@@ -86,6 +86,15 @@ g("RESOURCE-GATE-REAL-NEG", "PROVEN-EXECUTABLE", "P0",
   "自身即负例面：门在串行注入下必须判 fail；--seconds 0 时区间不适用 ⇒ rc=1",
   "run/PROJECT-GOVERNANCE-01/CI-003/logs/G_resource_gate_real_selftest.log",
   reason="真实两态已实测（同一日志）")
+# ── W4-A3 新增门（本会话双极实证） ───────────────────────────────────────────
+g("CHK-IMPACT-MAP", "PROVEN-EXECUTABLE", "P0",
+  (_p("tools/quality/check_impact_map.py",
+      "--json-out", "run/ci/impact-map/impact_map.json"), 0, "repo"),
+  (_p("tools/quality/check_impact_map.py", "--self-test"), 0, "repo"),
+  "selftest(N0 正例 + N1..N6 六条判据各自必红 + N7 输入缺失 fail-closed rc=2)",
+  "run/PROJECT-GOVERNANCE-01/W4-A3/logs/impact_map_selftest.log",
+  auto=True,
+  reason="判据违规面由 N1..N6 覆盖；fail-closed 面由 N7 覆盖；真仓 PASS rc=0")
 
 # ── CI-001 已双极实证（沿用证据锚） ──────────────────────────────────────────
 for gate, grade, pos, neg, kind, ev in [

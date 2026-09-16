@@ -24,7 +24,9 @@ INC = os.path.join(REPO, "include")
 C = os.path.join(REPO, "lib", "common")
 CASTRO = os.path.join(C, "healpix")
 
-FITS_INCS = [f"-I{INC}", f"-I{HOST}", f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
+# W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/ (会话层源仍在 HOST)
+P3W = os.path.join(REPO, "lib", "algorithms", "projection")
+FITS_INCS = [f"-I{INC}", f"-I{HOST}", f"-I{P3W}", f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
              f"-I{CASTRO}", f"-I{os.path.join(REPO, 'third_party', 'nlohmann')}",
              f"-I{os.path.join(REPO, 'third_party')}",  # nlohmann/json.hpp 以 <nlohmann/json.hpp> 引用
              f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}", f"-I{C}", f"-I{os.path.join(C, 'crypto')}",
@@ -122,7 +124,7 @@ class TestPhase3ReprojOracle(unittest.TestCase):
         _compile_srcs(cls.tmp, [os.path.join(REPO, "tests", "backend", "p3_session_probe.cpp")],
                       os.path.join(cls.tmp, "probe"), FITS_INCS,
                       [os.path.join(HOST, "p3_session.cpp"), os.path.join(HOST, "p3_output.cpp"),
-                       os.path.join(HOST, "p3_wcs.cpp")] + FITS_SRCS, objs)
+                       os.path.join(P3W, "p3_wcs.cpp")] + FITS_SRCS, objs)
         # fixture (const/field/nan)
         _compile_srcs(cls.tmp, [os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
                                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp")],

@@ -27,7 +27,8 @@ docs/api/CLI_PROTOCOL_V1.md §1-§3。
 import hashlib, json, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CLI = os.path.join(REPO, "cli")
+# ROOT-008 迁移后 CLI 命令层在 lib/infrastructure/cli/（cli/ 只剩 compatibility 声明）。
+CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
 from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
@@ -247,9 +248,14 @@ class TestManifestIncomplete(unittest.TestCase):
 
     def test_01_missing_input_writes_incomplete_manifest(self):
         cfg = os.path.join(self.tmp, "cfg.json")
+        # 标定帧必须显式给出（SMOKE-001 D4：normalize 预检对缺失标定帧判 error 并阻断
+        # rc=2，仅 -force 可越）。本用例判的是「输入文件找不到 → 3」，故配置须越过
+        # 预检（文件不存在属运行期输入缺失，由节点报 error_kind=input）。
+        na = os.path.join(self.tmp, "nope.fits")
         with open(cfg, "w", encoding="utf-8") as fh:
             json.dump({"schema_version": "1",
                        "input_lights": [os.path.join(self.tmp, "nope_light.fits")],
+                       "master_bias": na, "master_dark": na, "master_flat": na,
                        "output_dir": self.out}, fh)
         r = run("normalize", "--json", cfg, "--events-jsonl", "-y")
         self.assertEqual(r.returncode, 3, r.stderr[-300:])

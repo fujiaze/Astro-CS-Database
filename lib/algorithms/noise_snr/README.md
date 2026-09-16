@@ -111,7 +111,7 @@ noise_model.cpp:371-384 括号内为默认值）：
 | mask_radius_scale | double | 6.0 | 半径乘数 → 统一 rmax=max(1,r0)·max(1,scale)=60 px（不按亮度/振幅缩放，API 无 amplitude 输入） |
 | gain_e_per_adu | double | 0 | 增益 e⁻/ADU（**现状零读取**，use_gain_model 无效——DISP-NOISE-003） |
 | read_noise_e | double | 0 | 读出噪声 e⁻（**现状零读取**——DISP-NOISE-003） |
-| saturation_level | double | 0 | 饱和电平 ADU（0=禁用；>=该值像素不统计，valid_pixel :64-68） |
+| saturation_level | double | 0 | 饱和电平 ADU（**0=未提供电平 unset，不是"禁用"**；>=该值像素不统计，valid_pixel :64-68）。来源优先级 = 显式 cfg > 帧元数据 `SATURATE` > `DATAMAX`；未提供时编排层写 `NOISE_SATURATION_FILTER=DISABLED_NO_METADATA` 显式降级（SCI §4 饱和域，claim SC-008，门 ctest -R p1noise_saturation） |
 | cosmic_clip_sigma | double | 5.0 | patch 内稳健裁剪 σ 倍数（>=1，更小钳位——DISP-NOISE-007） |
 | min_patch_samples | int | 64 | patch 合格最小 sky 样本数（>=1；64=8×8 全格） |
 | max_clip_rounds | int | 2 | cosmic 裁剪轮数（>=0） |
@@ -194,8 +194,8 @@ TASK_RESULT。迁移不得改变 ALG-NOISE-001..003 公式语义与 DATA-P1-NOIS
 禁止声明 IMPLEMENTED（落码验收后由 IMPL 任务更新）。
 ## 11. P5-SNR 逐源 SNR 科学修正（2026-09-14，负责人授权）
 
-> 授权：负责人 2026-09-14 明示批准修改冻结/科学文档（ASTROCS_PROJECT_CONSTITUTION
-> §1.2 变更流程由负责人放行）。依据：`run/release-rescue/science-phot/
+> 授权：负责人 2026-09-14 明示批准修改冻结/科学文档（原引当时有效的 `ASTROCS_PROJECT_CONSTITUTION`
+> §1.2 变更流程由负责人放行；该宪章已废止，现行流程 = `ENGINEERING_SPEC.md` §3 + `SCIENCE_CORRECTNESS.md`）。依据：`run/release-rescue/science-phot/
 > PHOTOMETRY_LITERATURE_REVIEW.md` §C.3（SNR 模型正确形式）与 §D.2 S4。
 
 **唯一定义式（本模块权威，snr_science.cpp）**

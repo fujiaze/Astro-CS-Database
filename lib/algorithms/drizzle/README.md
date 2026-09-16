@@ -97,8 +97,10 @@ operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue
   等）；面积 = 球面 S-H 裁剪 + Eriksson 扇形三角剖分（:186-239）。
 - **FP32/FP64**：模板双实例（float/double 显式实例化
   drizzle_engine.cpp:2171-2178）；precision_mode 0/1/-1（-1=读 header
-  "PRECISION" KV；**无 KV 时按宪章 §5.3 缺省 FP64（RESCUE-FD-02），
-  未知 KV/参数值显式拒绝**）；FP32 累加器真 binary32（门 1e-5）。
+  "PRECISION" KV；**无 KV 时按 `docs/algorithms/DRIZZLE_GEOMETRY.md`
+  `RESCUE-FD-02` 缺省 FP64（原引「宪章 §5.3」已废止，现行载体即该条 +
+  `DATA_SEMANTICS.md` §11.1「PRECISION」行；**语义不变**），未知 KV/参数值
+  显式拒绝**）；FP32 累加器真 binary32（门 1e-5）。
 - **生产调用现状**：orchestrator DLL 通道（orchestrator.cpp:3256-3371）
   经函数指针调 `hp_drizzle_run_hips` 直写 HiPS；registry descriptor
   （module_adapters.cpp:508-525）未接节点。p1_session 无 drizzle stage

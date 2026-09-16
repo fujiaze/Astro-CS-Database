@@ -40,7 +40,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   - `med = median(src)`（`compute_global_median`，cosmetic_corrector.cpp:45-48，
     复制后 `std::nth_element`，O(n)，偶数长度取双中位均值——见 ALG-COS-005）；
   - `mad = median(|src − med|)`（`compute_global_mad`，cosmetic_corrector.cpp:50-54）；
-  - `sigma = 1.4826 · mad`（高斯假设换算系数，SCI-CAL-001 §9；`1.4826f`）。
+  - `sigma = 1.482602218505602 · mad`（高斯假设换算系数，单精度域：代码写作 `1.482602218505602f`，即该全精度字面量的 float 舍入，与双精度相对差 **+1.36e-08**；SCI-CAL-001 §9、与 SCI-NOISE-001 §14.2 同值）。
 - 判定（离散公式，逐像素 i）:
   - 热: `hot_mask[i] = (dark[i] > med_d + hot_sigma · σ_d) ? 1 : 0`
     （cosmetic_corrector.cpp:126-128；严格大于）。
@@ -181,7 +181,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   median_inplace；额外内存 O(n) float。
 - `compute_global_mad(const float*, int, float med)`（:50-54）: 复制
   `absdev[i] = fabsf(data[i] − med)` 到向量后取中位（O(n) 时间 + O(n)
-  内存）；float 单精度减法+fabsf。`σ = 1.4826f · mad`（高斯假设，
+  内存）；float 单精度减法+fabsf。`σ = 1.482602218505602f · mad`（高斯假设，全精度字面量在 float 域舍入到 1.4826022，
   SCI-CAL-001 §9）。
   若 mad=0（常量帧）→ σ=0，阈值=±med（ALG-COS-001 行为不变）。
 - `median_inplace` 为比较选择（非稳定），但**中位值本身**由顺序统计量

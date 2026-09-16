@@ -3,7 +3,7 @@
 > ID: ALG-ANCHOR-001　任务: SCI-ANCHOR-001　状态: ACTIVE_NORMATIVE（文档锚合同）
 > 机器检查器: `docs/algorithms/anchors/check_doc_line_anchors.py`（CI 检查项 DOC-LINE-ANCHORS）
 > 数据: `docs/algorithms/anchors/anchor_contract.json`（解析规则 / 豁免 / 符号绑定）
-> 上游: 冻结宪章文档—代码一致性要求；禁止把易过期内容写入顶层。
+> 上游: `ENGINEERING_SPEC.md` §8（文档—代码一致性 / 锚存活 fail-closed；原引「冻结宪章」已废止）；禁止把易过期内容写入顶层。
 
 ## 1 适用范围
 

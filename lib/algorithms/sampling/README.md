@@ -83,7 +83,7 @@
   failed、n_union>1e6、cells>2e8、resize OOM、首 tile 越界、
   exception）；out_obs/out_controls 容量不足按 capacity 截断拷贝、
   out_n_* 返回真实需求（probe/fill 协议，sampler.h:101-102）。
-- 统计量共享：p2_stats_median/p2_stats_mad（1.4826 系数）与 UPM 域
+- 统计量共享：p2_stats_median/p2_stats_mad（1.482602218505602 系数）与 UPM 域
   同一实现（sampler.h:96-99）；median 偶数 n 取 [begin,mid) 最大值
   均值（P0-01 修复，:196-203）。
 

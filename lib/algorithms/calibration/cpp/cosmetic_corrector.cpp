@@ -224,8 +224,8 @@ CC_EXPORT long long cc_detect_hot(
     }
     float mad = quick_median(abs_dev);
 
-    // sigma = 1.4826 * MAD，MAD=0 时回退到标准差
-    double std_val = 1.4826 * (double)mad;
+    // sigma = 1.482602218505602 * MAD，MAD=0 时回退到标准差
+    double std_val = 1.482602218505602 * (double)mad;
     if (mad <= 0) {
         double sum = 0.0, sum_sq = 0.0;
         for (int i = 0; i < N; i++) {
@@ -294,8 +294,8 @@ CC_EXPORT long long cc_detect_cold(
     }
     float mad = quick_median(abs_dev);
 
-    // sigma = 1.4826 * MAD，MAD=0 时回退到标准差
-    double std_val = 1.4826 * (double)mad;
+    // sigma = 1.482602218505602 * MAD，MAD=0 时回退到标准差
+    double std_val = 1.482602218505602 * (double)mad;
     if (mad <= 0) {
         double sum = 0.0, sum_sq = 0.0;
         for (int i = 0; i < N; i++) {

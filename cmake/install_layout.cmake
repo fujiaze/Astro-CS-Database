@@ -112,11 +112,24 @@ foreach(tgt astrocs_catalog_gaia astrocs_p1_drizzle astrocs_p1_calibration
 endforeach()
 
 # ── schemas / licenses / product manifest (只读白名单副本) ──
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/packaging/schemas/
-  DESTINATION ${ASTROCS_INSTALL_SCHEMA_SUBDIR}
-  COMPONENT astrocs_runtime
-  FILES_MATCHING PATTERN "*.json" PATTERN "*.schema.json")
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/packaging/licenses/
+# 白名单闭合 (W5-PKG-001): 逐文件枚举, 禁止 DIRECTORY/FILES_MATCHING 通配 ——
+# 通配会让新增 schema 静默进包而不进 packaging/install-tree.contract.json
+# (改前实测: 安装树 18 文件 vs 合同 16 单元)。新增/删除 schema 必须同步
+# 本清单与合同; 两侧一致性由 packaging/check_packaging_consistency.py C2/C6
+# 机器判红。
+foreach(_acs_schema
+    astrocs-product.schema.json
+    dependency-lock.schema.json
+    install-tree-contract.schema.json
+    preset-contract.json)
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/schemas/${_acs_schema}
+    DESTINATION ${ASTROCS_INSTALL_SCHEMA_SUBDIR}
+    COMPONENT astrocs_runtime)
+endforeach()
+install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/packaging/licenses/CFITSIO_LICENSE.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/packaging/licenses/LICENSE-INDEX.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/packaging/licenses/nlohmann_json.MIT.txt
   DESTINATION ${ASTROCS_INSTALL_LICENSE_SUBDIR}
   COMPONENT astrocs_runtime)
 if(WIN32)
@@ -125,7 +138,8 @@ if(WIN32)
   # libastrocs_runtime.so/...)。Windows 安装树无条件装它后, candidate 根的
   # astrocs.exe modules list/verify/selftest 读到 Linux rel_path →
   # missing_unit_file → 退出 5(ACR BACKEND)。MSVC configure 期生成 Windows
-  # 正式形态 manifest(03 §4)并安装生成物; Linux 维持骨架文件不变。
+  # 正式形态 manifest(03 §4)并安装生成物; Linux 分支同样在 configure 期生成
+  # 交付副本(注入 VERSION/commit), 只是单元 rel_path 取 Linux 形态。
   configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/astrocs.product.windows.json.in
     ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json
@@ -133,7 +147,18 @@ if(WIN32)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json
     DESTINATION . COMPONENT astrocs_runtime)
 else()
-  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/astrocs.product.json
+  # Linux 技术预览: 单元列表唯一源 = packaging/astrocs.product.json（仓库静态文件,
+  # 供 tools/quality/check_module_map.py 等消费）; 交付副本在 configure 期注入当前
+  # VERSION 与 commit, 与 Windows 分支同一约定 —— 改前直装静态文件会把「清单登记
+  # 时点」的旧版本/旧 SHA 带进安装树 (W5-PKG-001 实测 product_version=alpha.1,
+  # source_commit=9f6b72b5 对 VERSION=alpha.2/HEAD 漂移)。
+  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/packaging/astrocs.product.json _acs_product_manifest)
+  string(REGEX REPLACE "\"product_version\": \"[^\"]*\""
+    "\"product_version\": \"${ASTROCS_BASE_VERSION}\"" _acs_product_manifest "${_acs_product_manifest}")
+  string(REGEX REPLACE "\"source_commit\": \"[^\"]*\""
+    "\"source_commit\": \"${ASTROCS_GIT_COMMIT}\"" _acs_product_manifest "${_acs_product_manifest}")
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json "${_acs_product_manifest}")
+  install(FILES ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json
     DESTINATION . COMPONENT astrocs_runtime)
 endif()
 

@@ -8,7 +8,7 @@
 > **收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`**
 > （执行时 HEAD = main = origin/main 三 SHA 一致；本文执行级证据均为该 BASE 实测，
 > 命令日志见 `run/docconv001/logs/`）。
-> 最终发布裁定只属项目负责人（宪章 §1.2/§H），本 Agent 至多声明
+> 最终发布裁定只属项目负责人（`ASTROCS_DESIGN.md` §12；原引「宪章 §1.2/§H」已废止），本 Agent 至多声明
 > READY_FOR_OWNER_REVIEW，不替代批准。
 
 ## 0. 状态词阶梯（唯一口径；ASTROCS_DESIGN.md §11.3 同源）
@@ -34,7 +34,7 @@
 ## 1. 一句话结论
 
 ```text
-架构收敛主体已完成：合同面（冻结宪章/版本单源/文档边界/ABI v1/数据产物/Runtime 图/
+架构收敛主体已完成：合同面（权威文档集[原冻结宪章已删除]/版本单源/文档边界/ABI v1/数据产物/Runtime 图/
 工具链 preset/DLL schema/FITS 流接口/内核标准注册表）冻结在位；三 Phase 节点化、
 Phase3 四投影 registry、RT 唯一 executor + 实测资源门、MOD 科学模块安装面、
 CLI validate/plan/inspect 薄命令面均已落地（当前提交实测绿）；遗留 run --phases
@@ -67,8 +67,8 @@ Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_
 | C ABI v1 / DLL 边界 / 安全 loader 合同 | `CONTRACT_READY` | `include/astrocs/abi/*.h`（ABI-001）、`contracts/config/module_dll_contract.schema.json`（ARC-001）、`runtime/module_loader/secure_loader.h`（ABI-003） |
 | 类型化产物 / 三阶段交换 / 不确定度合同 | `CONTRACT_READY` | DATA-001/002 + DATA-UNC-001（`99713034`）+ `contracts/data/*` |
 | Runtime 类型化运行图 + 节点绑定表 | `IMPLEMENTED` | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`；节点绑定经 ctest 节点化用例复核 |
-| 三 Phase 节点化（§F.1 每节点唯一真实 operation） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309（P1 8 / P2 7 / P3 5 节点）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 PASS |
-| RT 唯一 executor + 实测资源门（§10.4/§10.5/§18.2） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
+| 三 Phase 节点化（`ASTROCS_DESIGN.md` §3.2/§4.2/§5.2 每节点唯一真实 operation；原引「宪章 §F.1」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309（P1 8 / P2 7 / P3 5 节点）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 PASS |
+| RT 唯一 executor + 实测资源门（`ASTROCS_DESIGN.md` §8/§10 + `ENGINEERING_SPEC.md` §10；原引「宪章 §10.4/§10.5/§18.2」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
 | Phase3 四投影 registry（TAN/SIN/CAR/AIT） | `IMPLEMENTED` | `lib/algorithms/projection/p3_projection.{h,cpp}`:267-273（registry v1 恰四行）；ctest `p3_projection_units`/`p3_projection_fault` 2/2 PASS；CI `CTEST-P3-PROJECTION-UNITS/FAULT` |
 | MOD 科学模块安装面 + 产品清单 | `INSTALLED` | `cmake/install_layout.cmake`:104-105；`packaging/astrocs.product.json` units=10；`tests/abi/mod001_install_load_check.py` 64/64 PASS（MOD-001 `59fdeab3`；`f74fc20f` 摘出 p1_noise） |
 | CLI 薄命令面（validate/plan/inspect） | `INSTALLED` | `cli/parser.cpp` kRules（9 条新命令）；`build/cli/astrocs --help` 实测；`tests/cli/test_cli001_vpi.py` 15/15 PASS（CLI-001 `026717fd`） |
@@ -107,13 +107,13 @@ Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_
   如实标注 `NOT_READY_FOR_RELEASE`。
 - 资源门口径（负责人既定原则，CI-001/CI-REPAIR-001 裁决）：构建/打包/单测为
   **非重计算面**，冻结阈值语义针对重计算区间；重计算面必须显式请求
-  `--gate-required` 并附判定证据，缺失即 fail-closed（§10.5/§18.2 阈值不被放宽）。
+  `--gate-required` 并附判定证据，缺失即 fail-closed（原引「宪章 §10.5/§18.2」已废止；现行 = `ASTROCS_DESIGN.md` §8 + `contracts/resource_gate_v1.json`；阈值不被放宽）。
 
 ## 6. 状态汇总
 
 ```text
-冻结/合同面:    CONTRACT_READY（宪章/索引/版本/ABI/DLL schema/数据合同/标准注册表）
-节点化与运行时: IMPLEMENTED（三 Phase 节点化 §F.1、RT 唯一 executor + 资源门）
+冻结/合同面:    CONTRACT_READY（权威文档集/索引/版本/ABI/DLL schema/数据合同/标准注册表）
+节点化与运行时: IMPLEMENTED（三 Phase 节点化 `ASTROCS_DESIGN.md` §3.2/§4.2/§5.2、RT 唯一 executor + 资源门）
 Phase3 投影:    IMPLEMENTED（TAN/SIN/CAR/AIT registry v1 + Oracle + 故障注入）
 安装面:         INSTALLED（Linux 技术预览：5 科学模块 + noop / 10 units / 安全 loader）
 CLI 命令面:     INSTALLED（phase1/2/3 × validate|plan|inspect；run --phases 已删除）

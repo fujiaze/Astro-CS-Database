@@ -142,7 +142,7 @@ __global__ void acr_weighted_integration_kernel(
 // ===== Phase2 mosaic_reject（synthetic.mosaic_reject.fp64acc）=====
 // 与 lib/phase2 CPU reference（p2_reject_stack + p2_integrate_pixel）同语义：
 // - 每像素收集有效样本（finite && support>0）；
-// - 迭代 sigma-clip：median + MAD(1.4826×median|Δ|)，low/high 边界；
+// - 迭代 sigma-clip：median + MAD(1.482602218505602×median|Δ|)，low/high 边界；
 // - 样本不足（< min_samples）fallback=全接受（single-coverage 稳定语义）；
 // - 输出 = 接受样本的 SNR²×support 加权均值（0 = 无有效/全拒）。
 // 计算全程 FP64（与 CPU reference 数值一致）；输入/输出为 FP32 buffer。
@@ -240,7 +240,7 @@ __global__ void acr_mosaic_reject_kernel(
             double dev[64];
             for (int j = 0; j < nc; ++j) dev[j] = fabs(cur[j] - m);
             acr_sort_asc(dev, nc);
-            const double s = 1.4826 * acr_median_sorted(dev, nc);
+            const double s = 1.482602218505602 * acr_median_sorted(dev, nc);
             if (s <= 1e-12) break;
             bool changed = false;
             const double lo = static_cast<double>(sigma_low);

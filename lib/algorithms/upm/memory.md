@@ -136,7 +136,7 @@
   \`p2_upm_control_variance\`。实现位于 \`lib/algorithms/coverage/src/upm.cpp\`
   （匿名 namespace helpers + \`extern "C"\` 段）。
 - 模型：\`y_k(p) = g_k * s(p) + b_k\`（\`ALG-P2S-UPM.1\`）；g/b 分别估计，
-  禁止把乘法尺度藏进加性场（宪章 §6.3）。空间加性场 b_k(x) 的数据面
+  禁止把乘法尺度藏进加性场（原引「宪章 §6.3」已废止；现行 = `docs/science/UNCERTAINTY_AND_COVARIANCE.md`）。空间加性场 b_k(x) 的数据面
   表示属 OPEN-P2S-02（不自行定值），本实现为帧级 b_k。
 - overlap graph：frame-control 二分图连通分量（确定性边序 union-find）；
   gauge 每分量 ref=min(frame_id)，\`g_ref=1, b_ref=0\`（\`ALG-P2S-UPM.2\`）。

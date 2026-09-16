@@ -40,7 +40,7 @@ tests/unit/p1_wcs_phot_test），其合同并入本 README §9，不另立目录
 T(λ) × CCD QE Q(λ) 的 Akima+Simpson 积分，XPSD 官方解码）；(b) Gaia 参考
 星 WCS TAN+SIP 投影与 PSF 星双向最近邻唯一配对（KD-tree）；(c) 星等一致性
 预过滤 + IRLS/Tukey 稳健零点估计（r_i=log10(F_instr/F_syn)）→
-scale=10^(−location) 与 sigma_residual=MAD(r_inliers)/0.6745；(d) 逐星
+scale=10^(−location) 与 sigma_residual=MAD(r_inliers)/0.6744897501960817；(d) 逐星
 PcMatchRecord 残差/拒绝原因回传；(e) 全局乘性校正 I_cal=I·scale；
 (f) PhotometricDiag 17 字段分阶段诊断。
 
@@ -84,10 +84,10 @@ DATA-P1-SOURCES/DATA-P1-FLUX）为编排层词汇（descriptor），模块合同
   :284-297、唯一配对 :299-333）→ 星等预过滤 |delta−median_delta|>3.0 mag
   拒绝（:436-450）→ 分阶段 diag（:335-368/:578-602）。
 - **ALG-PHOT-001 IRLS-Tukey 零点估计**：r_i=log10(F_instr/F_syn)
-  （:396-403）→ location0=median(r)、S=MAD(r)/0.6745（:477-485；S=0 直接
+  （:396-403）→ location0=median(r)、S=MAD(r)/0.6744897501960817（:477-485；S=0 直接
   median 兜底 :488-490）→ IRLS Tukey biweight c=4.685、w=(1−u²)²、迭代≤50、
   收敛 1e-6（:494-525）→ scale=10^(−location)（:527-529）→
-  sigma_residual=MAD(r_inliers)/0.6745（:551-560）。
+  sigma_residual=MAD(r_inliers)/0.6744897501960817（:551-560）。
 - **F_syn 合成测光**（生产=XPSD 官方解码）：
   compute_f_syn_cached_xpsd（spectrum_integrator.cpp:409-454，
   F(λ)=byte·flux_mul+flux_min 线性解码）→ 滤光片/QE 缓存重采样
@@ -173,7 +173,7 @@ spec_stars/spectra_buf 内部 malloc 本调用内 free。编排级合同 API-P1-
 - `astrocs::phase1::Photometer`（photometer.h:24 类、:26 ctor 默认
   aperture 4.0px/annulus 6.0-10.0px；photometer.cpp:12）：天空环中值背景
   （:31-51）+ 孔径积分 Σ(pixel−background)（:53-62，d²≤r²）+ 简化误差
-  flux_error=sqrt(max(sum,0)+n_in·σ_sky²)（:72-80，σ_sky=1.4826·MAD）+
+  flux_error=sqrt(max(sum,0)+n_in·σ_sky²)（:72-80，σ_sky=1.482602218505602·MAD）+
   snr（:81）。失败显式三态（§6）。
 - 构建现状：静态库 astrocs_phase1_phot（CMakeLists.txt:429-432），主程序
   链接（:513），单测 tests/unit/p1_wcs_phot_test.cpp（tests/unit/

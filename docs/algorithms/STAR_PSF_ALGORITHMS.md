@@ -53,7 +53,7 @@ F1: I(r)=B+A/(1+Q)^4, Q=p1dx²+2p2dxdy+p3dy², dx=x−(cx+x0), dy=y−(cy+y0)
     p1=cos²θ/(2sx²)+sin²θ/(2sy²), p2=sin2θ/(4sx²)−sin2θ/(4sy²), p3=sin²θ/(2sx²)+cos²θ/(2sy²)
 F2: 各向同性 sx=sy=σ→ Q=0.5·r²/σ², α=√2σ, FWHM=2√2σ·√(2^{1/4}−1)=1.230310σ
 F3: flux=2πA·sxsy/3 (β=4 整平面)
-F4: residual_scale=10–90% trimmed mean |residual|, robust_residual_sigma=residual_scale/0.7316728
+F4: residual_scale=10–90% trimmed mean |residual|, robust_residual_sigma=residual_scale/0.7316727929211932
     (kTrimMeanToSigma=0.7316727929211932, E[trimmed mean |r|]=0.731673σ, Gaussian)
 F5: q_psf=A/residual_scale, q_psf为QA代理不进science weight
 ```
@@ -114,7 +114,7 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 
 ## 8 参考实现/Oracle
 
-- 合成 Moffat 图像 (已知 B,A,σ,θ) 恢复测试 PSF-001..008 位置 ≤0.05px FWHM ≤1%；残差 Gaussian 假设校验 trimmed-mean 0.73167 复算。
+- 合成 Moffat 图像 (已知 B,A,σ,θ) 恢复测试 PSF-001..008 位置 ≤0.05px FWHM ≤1%；残差 Gaussian 假设校验 trimmed-mean 0.7316727929211932 复算。
 
 ## 9 容差来源
 

@@ -66,7 +66,7 @@ Phase1 目标链（03_TARGET_PRODUCT_AND_ARCHITECTURE.md §5）：
 ctest `p1001_real_nodes`（7 节点主链 cal→cos→psf→phot→snr→drz→wr，
 每节点 call_count=1、fail-fast 下游零调用、确定性 bitwise）本提交 rc=0（P1-001 `9e09941a`）。
 
-> **约束 §F.1（每 DAG 节点唯一真实模块 operation）已在三 Phase 达成**：
+> **约束「每 DAG 节点唯一真实模块 operation」已在三 Phase 达成**（原引「宪章 §F.1」已废止；现行 = `ASTROCS_DESIGN.md` §3.2/§4.2/§5.2）：
 > Phase1 八节点（本文件 §2）、Phase2 七节点（§3）、Phase3 五节点（§4）全部由
 > `make_p1/p2/p3_node_module` 绑定唯一真实 operation，不再出现"多节点重复调用
 > 同一个完整 phaseN session"的中间态。绑定表唯一源 =
@@ -106,8 +106,8 @@ ctest `p2001_real_nodes`、`p2002_unc_rej_prov` 本提交实测 rc=0
 - `lib/phase3_session/p3_resample.{h,cpp}`：nearest / bilinear（G4 冻结权重，
   `p3_uncertainty_propagate`）——**无 healpix_interp4**（`NOT_IMPLEMENTED`，
   见 SCIENCE_OVERVIEW §4）。
-- `lib/algorithms/projection/p3_projection.{h,cpp}`：**冻结四投影 TAN/SIN/CAR/AIT registry v1**
-  （`:267-273`，宪章 §7.3/§18.1），统一操作面 make/pix2world/world2pix/fits_keywords；
+- `lib/algorithms/projection/p3_projection.{h,cpp}`：**冻结四投影 TAN/SIN/CAR/AIT registry v1**（BASE 快照；现行 = `ASTROCS_DESIGN.md` §5.3 八投影、registry v3）
+  （`:267-273`，原引「宪章 §7.3/§18.1」已废止；现行 = `ASTROCS_DESIGN.md` §5.3 八投影），统一操作面 make/pix2world/world2pix/fits_keywords；
   现状为注册测试面（`ctest p3_projection_units/p3_projection_fault` 本提交 2/2 PASS），
   会话/DLL 挂载未切换（`lib/algorithms/projection/module.yaml`:79-80 `entrypoint: MISSING`）。
 - Phase3 writer 现走 CFITSIO 原子写（p3_output.cpp），**未接入 IO-001 流式 FITS**
@@ -118,7 +118,7 @@ ctest `p2001_real_nodes`、`p2002_unc_rej_prov` 本提交实测 rc=0
 typed artifact 链经 output_dir 文件约定传递，上游缺失 fail-closed），
 ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56ffb7`）；
 `healpix_interp4` 与流式 FITS 接入 `NOT_IMPLEMENTED`；
-「投影/重采样/写出为独立节点、非重复调用完整 p3_session_run」**已达成**（§F.1，同 §2 注）。
+「投影/重采样/写出为独立节点、非重复调用完整 p3_session_run」**已达成**（`ASTROCS_DESIGN.md` §3.2/§4.2/§5.2，同 §2 注）。
 
 ## 5. 执行与运行图
 

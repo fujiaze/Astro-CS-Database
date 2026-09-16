@@ -585,7 +585,7 @@ static double compute_rms(const std::vector<double>& rx,
 
 // ---------------------------------------------------------------------------
 // tukey_biweight_weight: Tukey biweight 权函数
-// u = |r| / (c × sigma), c = 4.685, sigma = 1.4826 × MAD
+// u = |r| / (c × sigma), c = 4.685, sigma = 1.482602218505602 × MAD
 // w = (1 - u²)² if u < 1, else 0
 // ---------------------------------------------------------------------------
 static double tukey_weight(double r_abs, double sigma, double c) {
@@ -597,7 +597,7 @@ static double tukey_weight(double r_abs, double sigma, double c) {
 }
 
 // ---------------------------------------------------------------------------
-// compute_mad: 计算 1.4826 × MAD (中位绝对偏差)
+// compute_mad: 计算 1.482602218505602 × MAD (中位绝对偏差)
 // ---------------------------------------------------------------------------
 static double compute_mad_sigma(const std::vector<double>& values) {
     int n = (int)values.size();
@@ -606,7 +606,7 @@ static double compute_mad_sigma(const std::vector<double>& values) {
     for (int i = 0; i < n; ++i) abs_vals[i] = std::abs(values[i]);
     std::sort(abs_vals.begin(), abs_vals.end());
     double median = (n & 1) ? abs_vals[n/2] : (abs_vals[n/2-1] + abs_vals[n/2]) / 2.0;
-    return 1.4826 * median;
+    return 1.482602218505602 * median;
 }
 
 // ---------------------------------------------------------------------------
@@ -647,7 +647,7 @@ static double cd_damping_factor(double rel_change,
 //
 // 算法:
 // 1. 计算残差 r_i = apply_trans(U[i]) - W_gaia[j]
-// 2. 计算 sigma = 1.4826 × MAD(|r|)
+// 2. 计算 sigma = 1.482602218505602 × MAD(|r|)
 // 3. 计算 Tukey biweight 权重 w_i (与空间一致性权重相乘)
 // 4. 数值微分计算雅可比 J_ij = ∂r_i/∂p_j (前向差分, 步长 1e-6)
 // 5. 构造正规方程 (J^T W J + D) Δp = -J^T W r
@@ -692,7 +692,7 @@ static bool irls_fit_one_step(
         ry[i] = wy - W_gaia[matched[i].w].y;
     }
 
-    // 3. 计算 sigma = 1.4826 × MAD(|r|) (合并 x 和 y 残差)
+    // 3. 计算 sigma = 1.482602218505602 × MAD(|r|) (合并 x 和 y 残差)
     std::vector<double> r_abs(2 * n);
     for (int i = 0; i < n; ++i) {
         r_abs[i] = std::abs(rx[i]);

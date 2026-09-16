@@ -1,19 +1,25 @@
 // ============================================================================
-// test_p1_batchH_star_coord.cpp - Bug 狩猎 R8-A 修复验证:
-//   star_measurements 坐标契约 0.5px 系统错位 (同帧混合星点方向性错位)
-// 仲裁口径 (DATA-P1-STAR §17.2 / DATA-P1-WCS §18.1 冻结合同):
-//   - sdet star_det 坐标 = "像素中心=索引+0.5" 连续系 (§17.2 权威);
-//   - DPSF 拟合中心与输入 det_x 同系 (dpsf_psf.cpp 样本 dx=索引-cx、
-//     回移 cx+x0, 无 0.5 注入) → 亦为 "像素中心=索引+0.5" 系;
-//   - star_measurements 权威块 = 统一契约 index-is-center (值=连续系-0.5);
-//   - ipv detections 输入 = IPV 接口契约 (像素中心=索引+0.5) (§18.1)。
-// 修复内容:
-//   1) orchestrator 写端 dpsf 分支: cx/cy 经 astro_coord_to_unified(-0.5)
-//      写入 star_measurements (与 fallback 分支同系);
-//   2) 读端 PLATESOLVE: 统一契约 +0.5 (astro_coord_from_unified) 桥接,
-//      fallback :1914 直送 (sdet 系 == IPV 接口契约, 不再重复注释矛盾);
-//   3) detections 构造提取纯函数 build_platesolve_detections, 去重比较
-//      双方处于同一坐标系。
+// test_p1_batchH_star_coord.cpp - star_measurements 坐标契约 (读端桥 + 去重边界)
+//
+// 本文件原头注曾断言「DPSF 拟合中心与输入 det_x 同系 ("像素中心=索引+0.5")」
+// —— 该前提**实测为假** (R-3 §2.9 探针: dpsf 输出系 = index-is-center, 与 sdet
+// 输出恒差 0.5 px; sdet 报 truth, dpsf 报 truth-0.5), 且本文件当时未被任何
+// CMakeLists 引用 (未入门禁)。SCI-FIX-PSF 第 2 项据此订正:
+//   - 权威坐标约定以 lib/infrastructure/pipeline/orchestrator/cpp/include/
+//     star_coord_contract.h 为唯一事实源 (写端/读端/门共用);
+//   - 「链接 sdet + dpsf 的绝对位置门」= G-P1-CENTROID-1, 落在
+//     lib/algorithms/psf/tests/p1psf/p1psf_centroid_gate.cpp, ctest 注册
+//     p1psf_centroid_gate (正例) 与 p1psf_centroid_gate_neg (修复前映射负例);
+//   - 本文件保留为**读端桥 + ipv 去重边界**的共址单测 (不重复绝对位置门)。
+//
+// 本文件断言的契约 (DATA-P1-STAR §17.2 / DATA-P1-WCS §18.1):
+//   - sdet star_det 坐标 = "像素中心=索引+0.5" 连续系;
+//   - DPSF 拟合中心 = 统一契约 index-is-center (dpsf_psf.cpp:295 样本
+//     dx=索引-cx, 无 +0.5 注入) ⇒ 写端**恒等**写入, 禁止再 -0.5;
+//   - star_measurements 权威块 = 统一契约 index-is-center (值=连续系-0.5),
+//     写端: sdet 系 → -0.5 / dpsf → 恒等 (SCI-FIX-PSF 第 1 项);
+//   - ipv detections 输入 = IPV 接口契约 (像素中心=索引+0.5): 读端统一 +0.5,
+//     fallback 支路 sdet 坐标已是该契约 → 直送。
 // 运行: ./tests/test_p1_batchH_star_coord.exe (rc=0 即全部通过)
 // ============================================================================
 

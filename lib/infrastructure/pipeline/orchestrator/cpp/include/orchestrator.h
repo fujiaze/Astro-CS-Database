@@ -25,6 +25,7 @@
 #include "dll_loader.h"
 #include "checkpoint.h"
 #include "logger.h"
+#include "star_coord_contract.h"  // 像素坐标契约唯一事实源 (写端/读端/门共用)
 
 // 前向声明 (完整定义在 json_config.h, 避免循环包含)
 struct Stage1Config;
@@ -336,14 +337,28 @@ public:
     // public: 供单元测试直接验证目录树清理行为 (test_p1_batchB_fixes)
     bool cleanup_partial_output(const std::string& path);
 
-    // R8-A 坐标契约桥 (单一来源, 写端/读端共用; DATA-P1-STAR §17.2 /
+    // 坐标契约桥 (单一来源 = star_coord_contract.h; DATA-P1-STAR §17.2 /
     // DATA-P1-WCS §18.1):
-    // - sdet 检测坐标与 DPSF 拟合中心同处一个连续坐标系: "像素中心=索引+0.5";
+    // - sdet 检测坐标 = 连续系 "像素中心=索引+0.5" (sdet_api.cpp:127-131 残差
+    //   dx 已含 +0.5);
+    // - DPSF 拟合中心 = **统一契约 index-is-center** (dpsf_psf.cpp:295 采样
+    //   sp.dx = 像素索引 - cx, 无 +0.5 注入; R-3 §2.9 探针三种初值同证);
     // - star_measurements 权威块 = 统一契约 (index-is-center, 值 = 连续坐标 - 0.5);
     // - ipv detections 输入 = IPV 接口契约 (像素中心=索引+0.5, §18.1)。
+    // 两分支写端各按"源系 → 统一契约"映射 (sdet → -0.5; dpsf → 恒等), 读端
+    // 统一 +0.5。对 dpsf 支路再施加 -0.5 会使 PSF 支路较 fallback 支路偏低恰
+    // 0.5000 px, 而 ipv 去重阈值是严格 < 0.5 px ⇒ 同星双份进 ipv
+    // (SCI-FIX-PSF 第 1 项修复; 门 G-P1-CENTROID-1 = ctest p1psf_centroid_gate)。
     // 像素坐标连续值 < 0.5 时 to_unified 会产出负值, 属统一契约合法域 (0-based)。
-    static double astro_coord_to_unified(double v) { return v - 0.5; }    // 连续系 → 统一契约 (写端)
-    static double astro_coord_from_unified(double v) { return v + 0.5; }  // 统一契约 → IPV 接口契约 (读端)
+    static double astro_coord_to_unified(double v) {
+        return astrocs::p1::coord::star_measurement_from_sdet(v);  // sdet 连续系 → 统一契约
+    }
+    static double astro_dpsf_center_to_unified(double v) {
+        return astrocs::p1::coord::star_measurement_from_dpsf(v);  // dpsf 中心(已同系) → 统一契约
+    }
+    static double astro_coord_from_unified(double v) {
+        return astrocs::p1::coord::ipv_detection_from_star_measurement(v);  // 统一契约 → IPV 接口契约
+    }
 
     // PLATESOLVE astrometric_detections 构造 (纯函数; public: 供共址单测直接
     // 数值验证同帧混合星点坐标契约, test_p1_batchH_star_coord)。

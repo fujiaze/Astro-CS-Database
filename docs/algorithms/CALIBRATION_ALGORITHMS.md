@@ -56,7 +56,7 @@ F1.3  sigma-clip 迭代 iter=0..max_iter-1 [104-133]:
         work = {v∈vals | !isnan(v)};  work 空 → break
         med  = median(work)                      # nth_element，偶数取双中位均值
         mad  = median({|v−med| | !isnan(v)})     # work 复用（clear 后重填）
-        σ    = 1.4826·mad                        # k_sigma [76]
+        σ    = 1.482602218505602·mad                        # k_sigma [76]
         σ<=0 → break                             # 无离散度 [120]
         v=NaN 当 dev<−sigma_low·σ 或 dev>sigma_high·σ   # 非对称阈值 [127]
         本轮 rejected==0 → break                 # 收敛 [132]
@@ -101,13 +101,13 @@ F2.3  步骤3（最终归一）[255-288]:
 > **OWNER-04 登记（B2-A6，不反向改 SCI）**：F2.1/F2.3 的"负 median 拒绝"
 > （B13-R13-7 实现）与 SCI-CAL-001 §4/§5/§8 对 `median<=0` 的"不归一、
 > 保持原样"文本不一致；按 ANCHOR_CONTRACT §2.3 只登记、不改 SCI 原文，由
-> 负责人在"改代码"与"按宪章 §1.2 改 SCI 文本"间裁决。
+> 负责人在"改代码"与"按 `ENGINEERING_SPEC.md` §3 + `SCIENCE_CORRECTNESS.md` 订正 SCI 文本"间裁决（原引「宪章 §1.2」已废止）。
 >
 > **DISP-CAL-010 关联（FIX-SCIENCE-2，仍不改 SCI 文本）**：F2.1/F2.3 帧级
 > median 现与 `generate_master` 逐像素路径同一 NaN 策略（先剔 NaN 再取
 > 中位数）；"全 NaN 帧 / 全 NaN 输出 → fail-closed" 的退化语义在 SCI-CAL-001
 > §4/§8 无显式条文，作为 **OWNER-04 关联**一并登记，交由负责人裁决是否需
-> 宪章 §1.2 流程补 SCI 文本。
+> `ENGINEERING_SPEC.md` §3 + `SCIENCE_CORRECTNESS.md` 变更 claim 流程补 SCI 文本（原引「宪章 §1.2」已废止）。
 >
 > **B2-A6 消费边界（冻结口径）**：P1 校准节点 `p1_op_calibrate`
 > （`module_adapters.cpp:1153-1179,1230-1240`）在进入 `ac_calibrate_frame`
@@ -145,7 +145,7 @@ F3.3  参数无效（!light||!out||w<=0||h<=0）: actual_k=k_init，静默返回
 
 ```text
 F4.1  热像素 [118-134]: med=median(dark 全帧)；mad=median(|dark−med|)；
-        σ=1.4826·mad；hot = (dark > med + hot_sigma·σ)
+        σ=1.482602218505602·mad；hot = (dark > med + hot_sigma·σ)
       冷像素 [139-155]: cold = (bias < med − cold_sigma·σ)
       # 阈值统计为单线程 O(n)；**不过滤 NaN**（NaN 参与 nth_element，
       # 行为不可靠——负面测试覆盖，DISP-CAL-004）
@@ -174,11 +174,11 @@ docs/science；SCI-CAL-001 明确 K=t_light/t_dark，本算法为该回退值之
 可选估计器，**未纳入 SCI 合同**）。
 
 ```text
-F5.1  背景提取: |light−median| <= 3·1.4826·MAD 全帧阈值；MAD=0 → 全部
+F5.1  背景提取: |light−median| <= 3·1.482602218505602·MAD 全帧阈值；MAD=0 → 全部
       视为背景 [125-142]
 F5.2  8×8 分区抽样: 每区 ≤1000 背景（等步长跨步），总样本 ≤50000
       [144-207]
-F5.3  鲁棒回归: OLS（double 累加）+ 残差 3·1.4826·MAD 离群抑制，≤5 轮
+F5.3  鲁棒回归: OLS（double 累加）+ 残差 3·1.482602218505602·MAD 离群抑制，≤5 轮
       [219-306]
 F5.4  失败→回退 k_init 且 diagnostics.fell_back=1, fallback_from=
       "OPTIMAL", fallback_to="EXPOSURE_RATIO"；诊断码: PARAM、BAD_K_INIT、

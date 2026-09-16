@@ -65,6 +65,8 @@
 
 // snr_estimator C API (用于 run_stage_snr)
 #include "snr_estimator.h"
+// 饱和电平解析策略（SAT-001 / claim SC-008；SCI NOISE_MODEL §4 饱和域）
+#include "astrocs/noise/saturation_policy.h"
 
 // nlohmann/json: 替代手写 orc_findJsonKey/orc_extractJsonStr/orc_extractJsonNum 解析
 // 已通过 MSYS2 pacman 安装在 mingw64/include, Makefile 默认搜索路径即可找到
@@ -1809,7 +1811,10 @@ Orchestrator::PlatesolveDetStats Orchestrator::build_platesolve_detections(
         astro_det.push_back(sat); astro_det.push_back(has_sat);
     };
     // 1. PSF 路径: star_measurements 统一契约 (index-is-center) →
-    //    IPV 接口契约 (像素中心=索引+0.5), 经单一桥 astro_coord_from_unified。
+    //    IPV 接口契约 (像素中心=索引+0.5), 经单一桥 astro_coord_from_unified
+    //    (契约唯一事实源 star_coord_contract.h)。写端已保证 PSF 支路值为
+    //    dpsf 原始中心 (index-is-center) / fallback 支路为 sdet 连续系 -0.5,
+    //    故此处 +0.5 后两分支同处 sdet 绝对坐标 (门 G-P1-CENTROID-1)。
     for (int i = 0; i < n_sm; ++i) {
         const double* r = sm_data + static_cast<size_t>(i) * sm_cols;
         double x = r[1], y = r[2];
@@ -1829,8 +1834,10 @@ Orchestrator::PlatesolveDetStats Orchestrator::build_platesolve_detections(
         ++stats.n_psf;
     }
     // 2. fallback 路径: star_det 坐标为 sdet 连续系 "像素中心=索引+0.5"
-    //    (DATA-P1-STAR §17.2), 与 PSF 星同系 — 与统一契约后的 PSF 中心差
-    //    恰为 0.5px, 去重比较前先与 PSF 星桥接值对齐。
+    //    (DATA-P1-STAR §17.2)。PSF 星经读端 +0.5 后同样落在 sdet 连续系
+    //    (修复前 PSF 支路被重复 -0.5, 两支路相差恰 0.5000 px 而阈值是严格
+    //    <0.5, 同一颗星双份进 ipv — SCI-FIX-PSF 第 1 项已修) ⇒ fallback 直送,
+    //    与 PSF 星直接比较坐标。
     if (det_data != nullptr && n_det > 0) {
         for (int i = 0; i < n_det; ++i) {
             const double* d = det_data + static_cast<size_t>(i) * 6;
@@ -2480,23 +2487,28 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
             const double* prow = psf_data + static_cast<size_t>(i) * 9;
             double* row = sm.data() + static_cast<size_t>(i) * kSmCols;
             row[0] = static_cast<double>(star_ids[static_cast<size_t>(i)]);
-            // Phase1 Final Closure: 权威坐标为 PSF 拟合中心 / 检测坐标, 统一契约
-            // "像素索引即中心坐标" (index-is-center)。两分支必须同系
-            // (R8-A 0.5px 系统错位修复):
-            // - DPSF 输出 cx/cy 与输入 det_x 同系 ("像素中心=索引+0.5",
-            //   DATA-P1-STAR §17.2; dpsf 内核样本 dx=像素索引-cx、回移 cx+x0,
-            //   无 0.5 注入, dpsf_psf.cpp:276/:414) → 经单一桥显式 -0.5
-            //   转统一契约, 与下方 fallback 分支一致;
-            // - PSF 失败 fallback: 检测坐标 (sdet 像素中心=索引+0.5) 同样 -0.5。
+            // Phase1 Final Closure: star_measurements 权威块 = 统一契约
+            // "像素索引即中心坐标" (index-is-center), 两分支必须同系。
+            // SCI-FIX-PSF 第 1 项订正 (R-3 §2.9 探针实测, 三种初值同解):
+            // - DPSF 拟合中心 **已是统一契约**, 不得再 -0.5: dpsf 采样
+            //   sp.dx = 像素索引 - cx (dpsf_psf.cpp:295)、回移
+            //   img_cx = cx + x0 (:437), 全程无 +0.5 注入 ⇒ 输出系 = 索引即中心;
+            //   实测 dpsf cx - truthFITS 恒 -0.4993..-0.5000 px。旧实现对
+            //   该支路再施加一次 -0.5, 使 PSF 支路较 fallback 支路系统性偏低
+            //   恰 0.5000 px, 卡在 ipv 去重阈值(严格 <0.5)之外 ⇒ 同一颗星
+            //   双份进入 ipv (R-3 §2.9 Part D);
+            // - PSF 失败 fallback: 检测坐标 = "像素中心=索引+0.5" 系
+            //   (sdet_api.cpp:127-131 残差 dx 已含 +0.5) → 经契约桥 -0.5。
             // 读端 (PLATESOLVE) 对该块统一 +0.5 桥接至 IPV 接口契约
-            // (DATA-P1-WCS §18.1)。
+            // (DATA-P1-WCS §18.1)。契约唯一事实源 = star_coord_contract.h;
+            // 机器门 G-P1-CENTROID-1 = ctest p1psf_centroid_gate(_neg)。
             // status: 0=DPSF_FIT_OK, 3=DPSF_FIT_ITERATION_LIMIT (参数有效亦视为成功)
             bool psf_valid = (prow[0] == 0.0 || prow[0] == 3.0) &&
                              std::isfinite(prow[3]) && std::isfinite(prow[4]);
             if (psf_valid) {
-                // cx (PSF 拟合中心, "像素中心=索引+0.5" 系) → 统一契约
-                row[1] = astro_coord_to_unified(prow[3]);
-                row[2] = astro_coord_to_unified(prow[4]);
+                // cx/cy (DPSF 拟合中心, 已是统一契约 index-is-center) → 直接写入
+                row[1] = astro_dpsf_center_to_unified(prow[3]);
+                row[2] = astro_dpsf_center_to_unified(prow[4]);
             } else {
                 // PSF 失败: 检测坐标 (sdet 像素中心=索引+0.5) 显式转统一契约 (索引即中心)
                 row[1] = astro_coord_to_unified(cx_arr[static_cast<size_t>(i)]);
@@ -4389,7 +4401,9 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
                 const double psf_status = row[6];
                 const double sat = row[13];
                 const double has_sat = row[14];
-                if (psf_status == 0.0 || psf_status == 3.0) qf |= SNR_QF_PSF_OK;
+                // M6a-D-007: PSF_OK 仅 status==0 (DPSF_FIT_OK); status==3 是
+                // STAR_PSF_ALGORITHMS §11.2 的 ITERATION_LIMIT 失败码, 不得记 OK
+                if (psf_status == 0.0) qf |= SNR_QF_PSF_OK;
                 if (sat != 0.0) qf |= SNR_QF_SATURATED;
                 if (has_sat != 0.0) qf |= SNR_QF_HAS_SATURATED;
             }
@@ -4720,6 +4734,38 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
             const char* rn_s = fn_kv_get ? fn_kv_get(frame_, "header", "READNOI") : nullptr;
             if (gain_s && gain_s[0]) ncfg.gain_e_per_adu = std::atof(gain_s);
             if (rn_s && rn_s[0]) ncfg.read_noise_e = std::atof(rn_s);
+            // ---- SAT-001（claim SC-008）：饱和电平必须显式提供，禁止静默关闭 ----
+            // 优先级：显式 cfg > header SATURATE > header DATAMAX（SCI NOISE_MODEL §4「饱和域」）。
+            // 未取到电平 ⇒ 0 = **未提供（unset）**，不是「无饱和」；此时写显式降级声明，
+            // 消费方可据此 fail-closed（禁止把 DISABLED_NO_METADATA 读成该帧无饱和像素）。
+            const char* saturate_s =
+                fn_kv_get ? fn_kv_get(frame_, "header", "SATURATE") : nullptr;
+            const char* datamax_s =
+                fn_kv_get ? fn_kv_get(frame_, "header", "DATAMAX") : nullptr;
+            ncfg.saturation_level = astrocs::noise::resolve_effective_saturation(
+                ncfg.saturation_level, saturate_s, datamax_s);
+            {
+                const char* sat_state =
+                    astrocs::noise::saturation_filter_state(ncfg.saturation_level);
+                const char* sat_src = astrocs::noise::saturation_level_source(
+                    0.0, saturate_s, datamax_s);
+                char satkv[64];
+                std::snprintf(satkv, sizeof(satkv), "%.6f", ncfg.saturation_level);
+                if (fn_kv_set) {
+                    fn_kv_set(frame_, "photo_stats", "NOISE_SATURATION_LEVEL", satkv);
+                    fn_kv_set(frame_, "photo_stats", "NOISE_SATURATION_FILTER", sat_state);
+                    fn_kv_set(frame_, "photo_stats", "NOISE_SATURATION_SOURCE", sat_src);
+                }
+                if (ncfg.saturation_level > 0.0) {
+                    LOG_INFO("orchestrator", std::string("[SNR] 饱和过滤生效: level=") +
+                             satkv + " ADU, source=" + sat_src);
+                } else {
+                    LOG_WARN("orchestrator",
+                             "[SNR] 饱和过滤降级: 帧元数据无 SATURATE/DATAMAX 且 cfg 未提供电平 "
+                             "⇒ NOISE_SATURATION_FILTER=DISABLED_NO_METADATA "
+                             "(饱和像素将进入 blank-sky 统计; 显式声明, 非静默)");
+                }
+            }
             NoiseWeightModelV1 nm = {};
             int nret = 0;
             if (data_blk->type == AIO_BLOCK_FLOAT64) {

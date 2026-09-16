@@ -5,8 +5,8 @@
  * 边界/守卫：gauss pivot <1e-30 判奇异（数值奇异守卫，dpsf_psf.cpp:45）；dx/dy 求导步长 h=max(|x|·1e-6,1e-8)（相对+绝对守卫，114）；
  *  sx/sy 下界 0.3 px（防平坦星退化，169-170,326）；FWHM>rect 判 NO_CONVERGENCE（拟合窗约束，333-341）；
  *  |B−bkg0|/max(bkg0,0.01)≤0.5（背景漂移约束，343-344）；Q<0 哨兵 1e10（无效几何守卫，89-91）。
- * 残差：10–90% trimmed mean |res| = residual_scale，robust_residual_sigma=residual_scale/0.7316728 仅 Gaussian 假设有效
- *  （E[trimmed mean |r|]=0.7316728·σ, kTrimMeanToSigma, docs/science/PSF.md PsfFitQuality / STAR_PSF_ALGORITHMS.md Postconditions）。
+ * 残差：10–90% trimmed mean |res| = residual_scale，robust_residual_sigma=residual_scale/0.7316727929211932 仅 Gaussian 假设有效
+ *  （E[trimmed mean |r|]=0.7316727929211932·σ, kTrimMeanToSigma, docs/science/PSF.md PsfFitQuality / STAR_PSF_ALGORITHMS.md Postconditions）。
  * θ 消歧：4 候选 {θ,π/2−θ,π/2+θ,π−θ} 取 trimmed-mad 最小者（351-363）。
  * 通量：flux=2πA·sxsy/3（β=4 整平面解析积分，368）。
  * 迭代：LM tol 1e-8 / maxIter 200（dpsf_psf.cpp:98-182,314）。

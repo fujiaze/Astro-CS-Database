@@ -63,7 +63,7 @@ WcsFitResult build_wcs(
 // STD-F1 口径边界 (前台裁决 R-02 方案 b; 合同见 docs/science/ASTROMETRY.md):
 //   - 本函数属 ipv 内部 0-based 口径, **禁止**在此处或调用侧再施加一次 +1;
 //   - FITS 1-based 桥接 (xp = x + 1) 的唯一责任方 = Phase3 导出边界
-//     (lib/phase3_session/p3_wcs.cpp 的 fits_pixel_1based);
+//     (lib/algorithms/projection/p3_wcs.cpp 的 fits_pixel_1based);
 //   - 第三方消费方按 Paper I §2.1.1 以 1-based 参考像素配对使用。
 struct WcsIterativeResult {
     bool   converged;

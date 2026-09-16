@@ -42,7 +42,7 @@ inline double median_oracle(std::vector<double> v) {
     return 0.5 * (v[n / 2 - 1] + v[n / 2]);
 }
 
-// 全局统计 oracle (ALG-COS-001): med / mad / sigma=1.4826*mad, double 域
+// 全局统计 oracle (ALG-COS-001): med / mad / sigma=1.482602218505602*mad, double 域
 struct StatsOracle {
     double med, mad, sigma;
 };
@@ -55,7 +55,7 @@ inline StatsOracle stats_oracle(const std::vector<float>& src) {
     std::vector<double> absdev(src.size());
     for (std::size_t i = 0; i < src.size(); ++i) absdev[i] = std::fabs(dv[i] - s.med);
     s.mad = median_oracle(absdev);
-    s.sigma = 1.4826 * s.mad;
+    s.sigma = 1.482602218505602 * s.mad;
     return s;
 }
 

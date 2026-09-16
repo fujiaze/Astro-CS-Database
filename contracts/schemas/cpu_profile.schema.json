@@ -14,7 +14,7 @@
   "x-astrocs-authority": [
     "docs/design/UNIFIED_MODEL.md §3（cpu_profile：ISA·workers·block·机器绑定；仅 benchmark 生成；缓存于程序安装目录；无 profile -> 保守运行不阻塞）",
     "ASTROCS_DESIGN.md §6.2:310,313（benchmark 直接输出 profile 到安装目录，后续运行时自动读取）",
-    "ENGINEERING_SPEC.md §3:27（cpu_profile 只影响并行/ISA，不进入科学配置）",
+    "ENGINEERING_SPEC.md §3:30（cpu_profile 只影响并行/ISA，不进入科学配置）",
     "docs/contracts/config_separation_anchors.json（cpu_profile 字段名族与禁止名）",
     "lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:558-610（v2 生产字段）、:645-707（verify_profile_v2）、lib/infrastructure/benchmark/backend_host/cpu_routing.cpp:216-300（check_profile_identity_v1 身份绑定字段）"
   ],
@@ -448,8 +448,11 @@
             },
             "os_abi": {
               "type": "string",
-              "minLength": 1,
-              "description": "OS/ABI 绑定（来源 hardware_inspect os.name；值域枚举见 x-astrocs-pending-authority）"
+              "enum": [
+                "linux",
+                "windows"
+              ],
+              "description": "OS/ABI 绑定。值域 = 生产者字面量集合：lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp:255-261 只写 \"windows\"（_WIN32）/\"linux\"（其余），profile_gen_v2.cpp:568 缺 os 字段时回落 \"linux\"；平台面由 ENGINEERING_SPEC §1（Windows amd64 / Linux amd64 双平台）封闭。非该集合一律 REJECT（fail-closed），不夹逼不改写。"
             },
             "features": {
               "type": "array",
@@ -677,8 +680,11 @@
       }
     }
   },
+  "x-astrocs-frozen-domains": {
+    "host.os_abi": "CFG-002 冻结（2026-09-17）：值域枚举 {linux, windows} 由生产者字面量集合推导（hardware_inspect.cpp:255-261、profile_gen_v2.cpp:568），非编造；平台面见 ENGINEERING_SPEC §1。原 x-astrocs-pending-authority 登记随之撤销。负例见 tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json。",
+    "note": "本键只登记「原 pending 项已冻结为枚举」的事实；枚举本体是 host.os_abi.enum（单一事实源），本处不重复取值。"
+  },
   "x-astrocs-pending-authority": {
-    "host.os_abi": "OS/ABI 字符串值域（hardware_inspect os.name 的取值集合）在 docs/science、docs/algorithms 与设计文档中均未冻结；本 schema 只约束为非空字符串，不编造枚举。",
     "legacy_v1.build.version": "legacy v1 的 version 形态沿用原 schema 的 alpha 正则（兼容期口径）；v2 已改为 semver 形态 build.astrocs_version。"
   }
 }

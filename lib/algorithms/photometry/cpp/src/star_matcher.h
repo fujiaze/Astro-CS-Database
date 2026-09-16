@@ -55,7 +55,7 @@ public:
     // mag_tolerance: 星等一致性容忍度 (mag, 默认 3.0; |delta - median_delta| > tol 拒绝)
     // out_scale_factor: 输出 IRLS 稳健 scale = 10^(-location(r)) (可为 nullptr)
     // 其中 r = log10(F_instr/F_syn); scale 用于 I_cal = I * scale
-    // out_sigma_residual: 输出 sigma_residual = MAD(r_inliers)/0.6745 (可为 nullptr, 向后兼容)
+    // out_sigma_residual: 输出 sigma_residual = MAD(r_inliers)/0.6744897501960817 (可为 nullptr, 向后兼容)
     // 供 SNR 模块 §14 计算 SNR_phot = 1/(ln10×sigma_residual)
     // out_diag: 分阶段诊断结构体 (可为 nullptr, 向后兼容)
     // 填充阶段2/3/4/6/7/8 字段 (阶段1由 pc_api.cpp 填充)
@@ -96,7 +96,7 @@ public:
     // 1) 计算每对匹配的 delta = -2.5*log10(F_instr) - gaia_mag (粗略零点差)
     // 2) 用 median(delta) 作为粗略零点, 拒绝 |delta - median_delta| > mag_tolerance 的匹配
     // 3) 对剩余匹配的 r = log10(F_instr/F_syn) 做 IRLS + Tukey biweight 稳健位置估计
-    // 4) 输出 scale = 10^(-location), sigma_residual = MAD(r_inliers)/0.6745
+    // 4) 输出 scale = 10^(-location), sigma_residual = MAD(r_inliers)/0.6744897501960817
     // 返回 IRLS inliers (Tukey 权重 > 0)
     //
     // B4-2 (M3-C-001) 冻结门 (SCI-PHOT-001 §4/§5/§8):

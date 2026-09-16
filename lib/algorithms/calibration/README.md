@@ -23,7 +23,7 @@
 
 负责：master bias/dark/flat 生成（非对称 sigma-clip + median/mean 合并，
 NaN 跳过）；单帧校准算术（dark_opt 双分支 + flat floor 0.1，FP32/真 FP64
-像素路径）；热/冷像素检测（全局 median+1.4826·MAD 阈值）+ 8 连通结构
+像素路径）；热/冷像素检测（全局 median+1.482602218505602·MAD 阈值）+ 8 连通结构
 过滤 + 5×5 中值 / 4 方向 IDW 修复；Gaia 测光比例标量乘法（现状未接线）。
 
 不负责：FITS/XISF 读写（astro_image_io，调用方侧）；母版按曝光/滤镜分组
@@ -65,7 +65,7 @@ float32 / f64 ABI double。
 
 ## 5. 实现事实（源码核对）
 
-- **算法**：master 生成 = 逐像素非对称 sigma-clip（σ=1.4826·MAD，
+- **算法**：master 生成 = 逐像素非对称 sigma-clip（σ=1.482602218505602·MAD，
   nth_element 中位数，max_iter 迭代，σ=0/无剔除提前终止）+ median/mean
   合并（mean=帧序升序 FP32 累加，顺序冻结）；单帧直接拷贝。
   master flat = 减 bias → 逐帧 median 归一（0/NaN→1.0）+ floor 0.1 →

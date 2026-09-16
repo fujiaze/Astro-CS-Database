@@ -1474,7 +1474,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   out_median = nullptr)`（:98-99）: 统一统计量（sampler patch
   estimator / MAD / SNR 邻域与 UPM 域共用同一实现）；median 偶数
   n 取上下中位平均、NaN 自动过滤（全 NaN → 0，:440-447）；MAD=
-  1.4826×median(|x−med|)（:449-461）。线程安全=reentrant yes /
+  1.482602218505602×median(|x−med|)（:449-461）。线程安全=reentrant yes /
   threadsafe yes（无共享可变态）；无取消检查点（ThreadLease 接线
   归 P2-SAMP-IMPL）。
 - `int p2_sample_controls(const P2CoverageResult*, const char*

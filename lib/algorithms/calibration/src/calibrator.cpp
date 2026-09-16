@@ -8,7 +8,7 @@
 // 实现函数（namespace ac）:
 // 1. compute_mad(data, n)
 // 计算中位绝对偏差 MAD：先求 median，再求 |v-median| 的 median。
-// 对应 sigma = 1.4826 * MAD（本函数只返回 MAD）。
+// 对应 sigma = 1.482602218505602 * MAD（本函数只返回 MAD）。
 // 2. normalize_flat(flat, w, h)
 // 将 Master Flat 归一化到 median=1.0，并把最小值裁剪到 0.1。
 // 3. optimize_dark_scale(light, bias, dark, flat, w, h, k_init)
@@ -62,7 +62,7 @@ float median_inplace(std::vector<float>& v) {
 
 // ---------------------------- MAD ----------------------------
 // 计算中位绝对偏差 MAD = median( |v - median(v)|)。
-// 对应高斯噪声 sigma = 1.4826 * MAD（由调用方按需换算）。
+// 对应高斯噪声 sigma = 1.482602218505602 * MAD（由调用方按需换算）。
 float compute_mad(const float* data, int n) {
     if (!data || n <= 0) return 0.0f;
 

@@ -393,7 +393,7 @@ void ProfileGenerator::map_result_to_curves(
     // 估算 p95/mad（基于 stddev）
     pt.p95 = static_cast<double>(r.median_kernel_ns) +
              2.0 * r.stddev_kernel_ns;  // 粗略 p95 ≈ median + 2σ
-    pt.mad = r.stddev_kernel_ns * 0.6745;  // σ → MAD 转换因子
+    pt.mad = r.stddev_kernel_ns * 0.6744897501960817;  // σ → MAD 转换因子
     // 25 §3.3：样本数与置信度
     pt.sample_count = static_cast<std::uint32_t>(r.samples.size());
     pt.confidence = (r.median_kernel_ns > 0)

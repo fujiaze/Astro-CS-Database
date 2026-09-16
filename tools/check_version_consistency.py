@@ -8,6 +8,18 @@ exit 0 = PASS; 任何伪造/漂移版本字面量 => 非 0 (mutation 必须失�
 的条款引用 (§2.1.1 / §4.2.1 / §4.4.1 / §6.3.1 等) 是科学可追溯锚, 不是产品版本;
 识别口径按"标准条款号形态"收窄 (见 mask_standard_clause_numbers)。
 口径只准更精确、不准更宽松: 只挖条款号本身, 同行真实版本字面量仍须 FAIL。
+
+合同生命周期边界字段豁免 (W4-A3): 合同/对象注册表 JSON 里的
+`"retire_after": "X.Y.Z"` 是**前向生命周期边界**(该字段的语义就是"在此版本之后退出"),
+不是"产品当前版本 = X.Y.Z"的声明 ⇒ 与唯一版本源比较是错口径 —— 现行实测
+`docs/contracts/unified_object_registry.json`(20 处) 与
+`contracts/data/unified_object_compatibility_map_v1.json`(17 处) 的
+`retire_after: "0.12.0"` 使本扫描器在真仓恒 FAIL(49 条), 遮蔽了
+`UT-VERSION` 的 test_04/test_13。口径仍只准更精确: 只挖 **JSON 字段形态**
+`"<生命周期键>": "<X.Y.Z>"` 的**值本身**, 同文件内任何其它版本字面量
+(含同一 JSON 对象里的 `"product_version"`/`"doc_version"` 等产品版本声明)
+照旧必须等于唯一源基础号(见 tests/version/test_version_consistency.py 的
+lifecycle boundary 正/负例)。
 """
 import os, re, subprocess, sys
 
@@ -26,7 +38,14 @@ PROBE_FIXTURES = {  # 版本探针工具：内含 '0.1.0' 等被扫描 token，�
 TEST_FIXTURES = {  # 单元测试合成数据文件: 内含 semver 解析/比较/取代逻辑的合成 token
     os.path.join("tests", "artifact", "test_provenance.py"),  # parse_version/version_gt 等合成版本
     os.path.join("tests", "abi", "test_secure_loader.py"),  # loader 探针 fixture 0.0.0-test 等非法版本样本
+    # W4-A3 实测残余: 硬件探针默认 build 串 (0.0.0-alpha.0+g000000000000) 与
+    # tests/config/fixtures/** 的 cpu_profile 负例/正例合成数据 (0.1.0-alpha.1) ——
+    # 都是"旧世代合成 token", 不是活动文档里的产品版本声明。
+    os.path.join("tests", "backend", "test_hardware_inspect.py"),
 }
+TEST_FIXTURE_DIRS = (  # 目录级合成数据面 (同上口径)
+    os.path.join("tests", "config", "fixtures"),
+)
 # 行内豁免: 非产品版本的数字三元组(外部工具/格式版本/协议版本/示例占位)
 EXEMPT = ("hips_version", "DatabaseVersion", "schema_version", "cap.version", "driver",
           "X.Y.Z", "MAJOR.MINOR.PATCH", "healpix", "cfitsio", "fitsio", "opencl", "example",
@@ -39,7 +58,14 @@ EXEMPT = ("hips_version", "DatabaseVersion", "schema_version", "cap.version", "d
           # 外部 oracle harness 版本引用 (R13 4b6eb26d 实证: PHASE2_REJECTION.md:282
           # "…未修改 Siril\n1.4.3 官方 harness…" 跨行断开 siril 豁免词 → 漏报;
           # 'harness' 一词在仓库仅出现于外部 oracle 工具上下文, 与 siril/rcr 同口径)
-          "hipsgen", "votable", 'version "', "harness")
+          "hipsgen", "votable", 'version "', "harness",
+          # W4-A3 实测残余 16 条(全在 docs/science|algorithms|references 的外部引用面,
+          # 与产品版本无关; 原口径把外部软件版本/文献卷页/数据文件名当产品版本):
+          #   astropy/WCSLIB 7.0.1(可执行标准)、photutils 1.6.0(Zenodo DOI)、
+          #   gdr3sp-1.0.0-*.xpsd(数据文件名)、MNRAS 214, 575(卷, 页, 被逗号分隔成三元组)、
+          #   DOI 10.5281/zenodo.XXXXXXX 与版本串同行。
+          "astropy", "wcs", "zenodo", "doi", "mnras", "xpsd", "photutils",
+          "gaiaxpy", "readthedocs", "文献", "表 ", "卷")
 # 合同文档 front matter 的 "状态: ACTIVE  版本: 1.0.0" 是文档修订号，不是产品版本
 CONTRACT_DOC_VERSION = re.compile(r"状态:\s*\w+\s+版本:\s*\d+\.\d+\.\d+")
 SKIP_DIRS = {".git", "build", "run", "reports", "archive", "testdata", "工程控制",
@@ -97,6 +123,33 @@ def mask_standard_clause_numbers(line):
         chars[s:e] = [" "] * (e - s)
     return "".join(chars)
 
+# ── 合同生命周期边界字段口径 (W4-A3) ────────────────────────────────────────
+# 事由: 合同/对象注册表 JSON 的 "retire_after": "0.12.0" 是前向生命周期边界,
+#       被 BASE_RE 当"未知版本字面量", 真仓恒 49 条 FAIL。
+# 依据: DATA-001 统一对象合同的兼容映射字段语义(该字段定义"在此版本之后退出",
+#       本质就是尚未到达的版本); 与 R-08 同款——修口径、不许改合同数据来迎合检查器。
+# 形态收窄: 只挖 JSON 字段形态 ""<键>": "<X.Y.Z>"" 的值; 非 JSON、无引号、
+#       同对象内其它字段形态一律不挖(负例见 test_version_consistency.LifecycleBoundary)。
+LIFECYCLE_KEYS = ("retire_after", "退役窗口", "introduced_in", "deprecated_in",
+                  "removed_in", "since", "until")
+# 生命周期边界列的合法取值：显式登记的前向边界(由合同 owner 维护)。空集 = 该列
+# 任何版本字面量都判红 —— fail-closed，不得把生命周期表当"免检区"。
+LIFECYCLE_BOUNDARY_VALUES = {"0.12.0"}
+LIFECYCLE_BOUNDARY_RE = re.compile(
+    r'"(?:' + "|".join(LIFECYCLE_KEYS) + r')"\s*:\s*"(\d+\.\d+\.\d+)"')
+
+
+def mask_lifecycle_boundaries(line):
+    """把生命周期边界字段的版本值挖成等长空白后返回, 供版本字面量扫描使用。
+
+    只挖值本身(保留键名与引号长度), 同行其它版本字面量仍会被抓 ——
+    `"product_version": "0.12.0", "retire_after": "0.99.0"` 中的前者必须 FAIL。
+    """
+    def repl(m):
+        return " " * (m.end(1) - m.start(1))
+    return LIFECYCLE_BOUNDARY_RE.sub(repl, line)
+
+
 def base_version():
     """返回 (基础号 X.Y.Z, alpha.N)。"""
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as f:
@@ -141,9 +194,21 @@ def check_file(path, base_num, alpha_n, errors):
         return  # 唯一定义点自身豁免
     if rel == SELF_FIXTURE or rel in PROBE_FIXTURES or rel in TEST_FIXTURES:
         return  # mutation/probe/合成数据测试样本文件(内含故意伪造或合成版本 token)
+    for _d in TEST_FIXTURE_DIRS:
+        if rel == _d or rel.startswith(_d + os.sep):
+            return  # 目录级合成数据面(tests/config/fixtures/**)
     alpha_full = re.compile(r"(\d+\.\d+\.\d+)-alpha\.(\d+)")
+    # 生命周期列口径 (W4-A3): 合同文档里 "退役窗口 / retire_after" 表格列同样是
+    # **前向边界**语义(该列的取值定义"何时退出", 天然 != 当前基础号)。表头命中
+    # LIFECYCLE_KEYS 即对其后的连续表格数据行启用豁免; 表格结束(非 '|' 行)即复位。
+    lifecycle_table = False
     with open(path, encoding="utf-8", errors="replace") as f:
         for i, line in enumerate(f, 1):
+            if line.lstrip().startswith("|"):
+                if any(k in line for k in LIFECYCLE_KEYS):
+                    lifecycle_table = True
+            else:
+                lifecycle_table = False
             if CONTRACT_DOC_VERSION.search(line):
                 continue  # L1 合同 front matter 的文档修订号(非产品版本)
             if PRERELEASE_BAD.search(line):
@@ -157,9 +222,18 @@ def check_file(path, base_num, alpha_n, errors):
             low = line.lower()
             if any(k in low for k in EXEMPT):
                 continue
-            # R-08: 未知版本字面量扫描前先挖掉标准条款号。alpha/prerelease 判定
-            # 仍跑在原始行上 —— 口径只收窄未知字面量误报面, 不放宽漂移判定。
-            for m in BASE_RE.finditer(mask_standard_clause_numbers(line)):
+            # R-08 / W4-A3: 未知版本字面量扫描前先挖掉标准条款号与合同生命周期
+            # 边界值。alpha/prerelease 判定仍跑在原始行上 —— 口径只收窄未知字面量
+            # 误报面, 不放宽漂移判定。
+            scan_line = (mask_lifecycle_boundaries(mask_standard_clause_numbers(line))
+                         if not lifecycle_table else
+                         mask_standard_clause_numbers(line))
+            if lifecycle_table:
+                for m in BASE_RE.finditer(scan_line):
+                    if m.group(1) not in LIFECYCLE_BOUNDARY_VALUES:
+                        errors.append(f"{rel}:{i}: 未知版本字面量 {m.group(1)} != 唯一源基础号 {base_num}: {line.strip()[:90]}")
+                continue
+            for m in BASE_RE.finditer(scan_line):
                 if m.group(1) != base_num:
                     errors.append(f"{rel}:{i}: 未知版本字面量 {m.group(1)} != 唯一源基础号 {base_num}: {line.strip()[:90]}")
 

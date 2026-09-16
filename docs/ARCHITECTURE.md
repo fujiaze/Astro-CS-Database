@@ -121,7 +121,7 @@ tools/docs_machine_consistency.py PASS 9/9
   error_taxonomy_exit_codes(AstroCsExitCode name+value 全集合==orchestrator.h 0-10),
   integration_status_full_set(P2_INTEGRATE_*==INTEGRATION_ALGORITHMS.md),
   rejection_status_full_set(P2_REASON_*/P2_STATUS_*==REJECTION_ALGORITHMS.md),
-  stage_ids_docs_vs_orchestrator, snr_constants(1.4826022185/0.7316728),
+  stage_ids_docs_vs_orchestrator, snr_constants(1.482602218505602/0.7316727929211932),
   product_contracts(signal/support/variance/ivar), drizzle_variance_formula(sumVarNum)
 tools/config_consistency_check.py PASS mismatches=[]
 ```

@@ -119,7 +119,7 @@ int main() {
                 std::vector<double> dev;
                 for (double v : patch) dev.push_back(std::fabs(v - med));
                 meds.push_back(med);
-                sigs.push_back(1.4826 * median_of(std::move(dev)));
+                sigs.push_back(1.482602218505602 * median_of(std::move(dev)));
                 ns.push_back((int)patch.size());
             }
             if (meds.size() < 200) continue;

@@ -3,7 +3,7 @@
 import hashlib, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-HOST = os.path.join(REPO, "lib", "backend_host")
+HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "include")
 
 
@@ -13,8 +13,8 @@ class TestBenchCandidates(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="bcand_")
         common = [os.path.join(HOST, "bench_harness.cpp"),
                   os.path.join(HOST, "host_services.cpp"),
-                  os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp"),
-                  f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}"]
+                  os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
+                  f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}"]
         cls.probe = os.path.join(cls.tmp, "cprobe")
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{INC}", f"-I{HOST}",
                             os.path.join(REPO, "tests", "backend", "candidates_probe_main.cpp"),

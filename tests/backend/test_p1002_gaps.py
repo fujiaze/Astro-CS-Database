@@ -12,7 +12,7 @@
      FWHM vs 注入 σ 的解析关系 FWHM=2.3548σ(预冻结容差)。
      五场景: isolated(1 亮 + 4 中亮)、overlapping(sep=12px 双星 + 孤立)、saturated(u16 平台 34px)、
              edge(距边界 ≥5px 四星)、pure-noise(纯高斯噪声 → 0 检出)。
-  B) WCS: driver 链接 lib/phase3_session/p3_wcs.cpp。已知天球场 → world2pix 与**独立解析解**
+  B) WCS: driver 链接 lib/algorithms/projection/p3_wcs.cpp (W4-A9 批次 1 迁入)。已知天球场 → world2pix 与**独立解析解**
      (CD⁻¹·(ξ,η) + CRPIX 第一性原理)比对; 扰动初值(crpix 偏移 0.5px)求解仍收敛(坐标平移一致);
      无解(parity 非法/极点越界/负 scale/背面半球/远像素)返回非 OK。
   C) photometry: driver 链接 lib/algorithms/photometry/wrapper_phase1/photometer.cpp(生产同源 aperture 积分)。
@@ -27,7 +27,8 @@ import math, os, shutil, subprocess, tempfile, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SDET_INC = os.path.join(REPO, "lib", "star_detector", "include")
 SDET_SRC = os.path.join(REPO, "lib", "star_detector", "src")
-P3_INC = os.path.join(REPO, "lib", "phase3_session")
+# W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/
+P3_INC = os.path.join(REPO, "lib", "algorithms", "projection")
 PHOT_INC = os.path.join(REPO, "lib", "phase1", "photometry")
 CORE_INC = os.path.join(REPO, "include")
 

@@ -132,11 +132,164 @@ double plane_geometry_ratio(const double* xs, const double* ys, std::size_t n) {
     return lam_lo / lam_hi;
 }
 
+// ============================================================================
+// MASK-002 (claim SC-007 / SCI-NOISE-001 §5a): 逐星掩膜半径 + 天空预算收缩
+// ----------------------------------------------------------------------------
+// 掩膜的唯一目的是让天空样本「无源」; 半径由「掩膜边缘源面亮度 = k·σ_bg」导出:
+//   Moffat β: r_local = α·sqrt((F(β−1)/(π α² k σ_bg))^(1/β) − 1),
+//             α = FWHM/(2·sqrt(2^(1/β)−1))
+//   Gaussian 极限 r_local = σ_p·sqrt(2·ln(F/(2π σ_p² k σ_bg)))  (本实现取 Moffat)
+// 掩膜专用保守翼指数 β=2.5 (比默认 Moffat4 β=4 的翼更宽 ⇒ 半径更大, 保守)。
+// 硬上界 rmax = max(1,source_mask_radius_px)·max(1,mask_radius_scale) 只是**上界**,
+// 不是操作默认半径 (实测: 256²/50 星取 60 px ⇒ 整帧 rc=1; 1024²/320 星 60 px 的
+// RMSE 是 10 px 的 4.6 倍)。「掩膜半径与星亮度解耦」为错误陈述, MASK-001 §3.3 实测
+// F 10³→10⁶ ADU 使 σ_bg 偏差 0.02%→2.29%。
+// ============================================================================
+constexpr double kMaskMoffatBeta = 2.5;   // 掩膜专用保守翼指数 (SCI §5a)
+constexpr uint32_t kMaskLegacy   = 1u;    // bit0: 半径信息缺失, 按 §5a 回调规则降级
+constexpr uint32_t kMaskDegraded = 2u;    // bit1: 天空预算收缩后仍 nq<预算 / 全局兜底
+
+double mask_local_radius(double flux, double fwhm, double k_sigma_bg) {
+    if (!(flux > 0.0) || !(fwhm > 0.0) || !(k_sigma_bg > 0.0)) return 0.0;
+    if (!std::isfinite(flux) || !std::isfinite(fwhm) || !std::isfinite(k_sigma_bg)) return 0.0;
+    const double beta = kMaskMoffatBeta;
+    const double alpha = fwhm / (2.0 * std::sqrt(std::pow(2.0, 1.0 / beta) - 1.0));
+    const double num = flux * (beta - 1.0);
+    const double den = M_PI * alpha * alpha * k_sigma_bg;
+    if (!(num > 0.0) || !(den > 0.0)) return 0.0;
+    const double q = std::pow(num / den, 1.0 / beta);
+    if (!(q > 1.0)) return 0.0;
+    const double r = alpha * std::sqrt(q - 1.0);
+    return std::isfinite(r) && r > 0.0 ? r : 0.0;
+}
+
+void rasterize_disk(std::vector<uint8_t>& mask, int h, int w,
+                    double cx, double cy, double r) {
+    if (!(r > 0.0) || !std::isfinite(cx) || !std::isfinite(cy)) return;
+    const int icx = (int)std::lround(cx);
+    const int icy = (int)std::lround(cy);
+    const int ir = (int)std::ceil(r);
+    const double r2 = r * r;
+    for (int dy = -ir; dy <= ir; ++dy) {
+        const int py = icy + dy;
+        if (py < 0 || py >= h) continue;
+        const double ddy = (double)dy;
+        const double rem = r2 - ddy * ddy;
+        if (rem < 0.0) continue;
+        const int dxmax = (int)std::floor(std::sqrt(rem));
+        for (int dx = -dxmax; dx <= dxmax; ++dx) {
+            const int px = icx + dx;
+            if (px < 0 || px >= w) continue;
+            mask[(std::size_t)py * (std::size_t)w + (std::size_t)px] = 1;
+        }
+    }
+}
+
+// 半径集 × 收缩因子 s → 圆盘掩膜 (r_i(s) = max(r_min_i, s·r_i))
+void build_disk_mask(std::vector<uint8_t>& mask, int h, int w,
+                     const std::vector<double>& cx, const std::vector<double>& cy,
+                     const std::vector<double>& radii,
+                     const std::vector<double>& rmin, double s) {
+    mask.assign((std::size_t)h * (std::size_t)w, 0);
+    for (std::size_t i = 0; i < cx.size(); ++i) {
+        const double r = std::max(rmin[i], s * radii[i]);
+        rasterize_disk(mask, h, w, cx[i], cy[i], r);
+    }
+}
+
+struct SkyBudget {
+    uint32_t nq = 0;      // 未掩膜合法样本 ≥ min_samples 的 patch 数 (廉价代理)
+    uint64_t n_sky = 0;   // 未掩膜且合法 (有限/未饱和) 的像素数
+    double   frac = 0.0;  // 掩膜覆盖比 (掩膜像素 / h·w), 与合法性无关
+};
+
+template <typename T>
+SkyBudget sky_budget(const T* data, int h, int w,
+                     const std::vector<uint8_t>& mask,
+                     int gx, int gy, int min_samples, double saturation) {
+    SkyBudget b;
+    for (int py = 0; py < gy; ++py) {
+        const int y0 = (int)((std::int64_t)py * h / gy);
+        const int y1 = (int)((std::int64_t)(py + 1) * h / gy);
+        for (int px = 0; px < gx; ++px) {
+            const int x0 = (int)((std::int64_t)px * w / gx);
+            const int x1 = (int)((std::int64_t)(px + 1) * w / gx);
+            std::int64_t cnt = 0;
+            for (int y = y0; y < y1; ++y) {
+                const std::size_t row = (std::size_t)y * (std::size_t)w;
+                for (int x = x0; x < x1; ++x) {
+                    if (!mask.empty() && mask[row + (std::size_t)x]) continue;
+                    if (!valid_pixel((double)data[row + (std::size_t)x], saturation)) continue;
+                    ++cnt;
+                }
+            }
+            b.n_sky += (uint64_t)cnt;
+            if (cnt >= (std::int64_t)min_samples) ++b.nq;
+        }
+    }
+    std::size_t masked = 0;
+    for (std::size_t i = 0; i < mask.size(); ++i) if (mask[i]) ++masked;
+    const std::size_t total = (std::size_t)h * (std::size_t)w;
+    b.frac = total ? (double)masked / (double)total : 0.0;
+    return b;
+}
+
+// 掩膜通道元数据 (逐星半径 / 预算 / 降级位标)
+struct MaskPlan {
+    std::vector<uint8_t> mask;
+    std::vector<double> cx, cy;      // 有效星坐标 (0-based px)
+    std::vector<double> flux, fwhm;  // 逐星通量 [ADU] / FWHM [px] (缺失 = 0)
+    std::vector<double> radii, rmin; // 逐星半径与下界
+    double   radius_p50 = 0.0;
+    double   frac = 0.0;
+    double   shrink = 1.0;           // 天空预算收缩因子 s
+    uint32_t flags = 0;
+    bool     infeasible = false;     // 预算在 r_min 仍不可行 ⇒ rc=1
+};
+
+// 由给定掩膜估 σ_bg 种子 (两遍法第一遍; §5a)。合格 patch 稳健中位数优先,
+// 否则全帧未掩膜稳健尺度。ok=false ⇒ 无可用样本。
+template <typename T>
+double sigma_from_mask(const T* data, int h, int w,
+                       const std::vector<uint8_t>& mask,
+                       int gx, int gy, double clip_sigma, int min_samples,
+                       int max_rounds, double saturation, bool* ok) {
+    std::vector<double> patch_sigma, samples;
+    for (int py = 0; py < gy; ++py) {
+        const int y0 = (int)((std::int64_t)py * h / gy);
+        const int y1 = (int)((std::int64_t)(py + 1) * h / gy);
+        for (int px = 0; px < gx; ++px) {
+            const int x0 = (int)((std::int64_t)px * w / gx);
+            const int x1 = (int)((std::int64_t)(px + 1) * w / gx);
+            if (!collect_patch_sky(data, w, x0, x1, y0, y1, mask, saturation,
+                                   clip_sigma, min_samples, max_rounds, samples)) continue;
+            const double sig = robust_sigma(samples);
+            if (std::isfinite(sig) && sig > 0.0) patch_sigma.push_back(sig);
+        }
+    }
+    if (!patch_sigma.empty()) { *ok = true; return robust_median(patch_sigma); }
+    std::vector<double> all;
+    all.reserve((std::size_t)h * (std::size_t)w);
+    for (int y = 0; y < h; ++y) {
+        const std::size_t row = (std::size_t)y * (std::size_t)w;
+        for (int x = 0; x < w; ++x) {
+            if (!mask.empty() && mask[row + (std::size_t)x]) continue;
+            const double v = (double)data[row + (std::size_t)x];
+            if (valid_pixel(v, saturation)) all.push_back(v);
+        }
+    }
+    if ((int)all.size() < std::max(1, min_samples)) { *ok = false; return 0.0; }
+    const double sig = robust_sigma(all);
+    *ok = std::isfinite(sig) && sig > 0.0;
+    return *ok ? sig : 0.0;
+}
+
 // 模板内核: 估计 blank-sky 方差模型 (float/double 数据)
 template <typename T>
 int noise_model_impl(const T* data, int h, int w,
                      const float* source_mask,
                      const double* star_x, const double* star_y,
+                     const double* star_flux, const double* star_fwhm,
                      int n_stars,
                      const SnrNoiseModelConfig* cfg,
                      NoiseWeightModelV1* out_model) {
@@ -148,51 +301,130 @@ int noise_model_impl(const T* data, int h, int w,
         snr_noise_model_v1_default_config(&c);
     }
     std::memset(out_model, 0, sizeof(NoiseWeightModelV1));
+    out_model->struct_size = (uint32_t)sizeof(NoiseWeightModelV1);
+    out_model->abi_version = SNR_NOISE_MODEL_ABI_VERSION;
     g_model_floor[out_model] = c.variance_floor;
-
-    // 星点掩膜（ 冻结：fixed conservative mask）：
-    // 像素在任一星点固定半径内 → source (1)；所有星统一
-    // rmax = max(1, source_mask_radius_px) × max(1, mask_radius_scale)。
-    // API 只接收星点坐标（无 amplitude），不按星等/振幅缩放
-    // （DOCS/header 已删除假 adaptive 描述）。调用方也可直接传
-    // source_mask 覆盖。
-    std::vector<uint8_t> mask;
-    if (source_mask) {
-        mask.assign((std::size_t)h * (std::size_t)w, 0);
-        for (std::size_t i = 0; i < mask.size(); ++i)
-            mask[i] = source_mask[i] != 0.0f;
-    } else if (star_x && star_y && n_stars > 0) {
-        mask.assign((std::size_t)h * (std::size_t)w, 0);
-        std::vector<double> amps;
-        amps.reserve((std::size_t)n_stars);
-        // 无振幅信息时统一基础半径 (调用方只传坐标)
-        const double r0 = std::max(1.0, c.source_mask_radius_px);
-        const double rmax = r0 * std::max(1.0, c.mask_radius_scale);
-        (void)amps;
-        const double r2 = rmax * rmax;
-        for (int i = 0; i < n_stars; ++i) {
-            if (!std::isfinite(star_x[i]) || !std::isfinite(star_y[i])) continue;
-            const int cx = (int)std::lround(star_x[i]);
-            const int cy = (int)std::lround(star_y[i]);
-            for (int dy = -(int)rmax; dy <= (int)rmax; ++dy) {
-                const int py = cy + dy;
-                if (py < 0 || py >= h) continue;
-                const double ddy = (double)dy;
-                const int dxmax = (int)std::floor(std::sqrt(r2 - ddy * ddy));
-                for (int dx = -dxmax; dx <= dxmax; ++dx) {
-                    const int px = cx + dx;
-                    if (px < 0 || px >= w) continue;
-                    mask[(std::size_t)py * (std::size_t)w + (std::size_t)px] = 1;
-                }
-            }
-        }
-    }
 
     const int gx = std::max(2, c.patch_grid_x);
     const int gy = std::max(2, c.patch_grid_y);
     const double clip_sigma = std::max(1.0, c.cosmic_clip_sigma);
     const int min_samples = std::max(1, c.min_patch_samples);
     const int max_rounds = std::max(0, c.max_clip_rounds);
+
+    // 星点掩膜 (MASK-002 / SCI-NOISE-001 §5a): 逐星半径
+    //   r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min_i, rmax)  + 天空预算收缩。
+    // 手工 source_mask 通道优先 (DISP-NOISE-006 互斥保持): 调用方显式给的掩膜
+    // **不收缩、不覆盖**, 预算违反只置 MASK_DEGRADED 诊断位 (SCI §5a 手工通道例外)。
+    MaskPlan plan;
+    const double r0 = std::max(1.0, c.source_mask_radius_px);
+    const double rmax = r0 * std::max(1.0, c.mask_radius_scale);
+    const double k_sigma = (c.mask_k_sigma > 0.0) ? c.mask_k_sigma : 0.1;
+    const double r_min_default = (c.mask_r_min_px > 0.0) ? c.mask_r_min_px : 1.5;
+    const double fwhm_floor = (c.mask_fwhm_floor_scale > 0.0) ? c.mask_fwhm_floor_scale : 0.75;
+    const uint32_t budget_patches = (c.mask_budget_min_patches > 0) ? c.mask_budget_min_patches : 8u;
+    const uint64_t budget_sky = (c.mask_budget_min_sky > 0) ? (uint64_t)c.mask_budget_min_sky : 9216ull;
+    const bool manual_mask = (source_mask != nullptr);
+
+    if (manual_mask) {
+        plan.mask.assign((std::size_t)h * (std::size_t)w, 0);
+        for (std::size_t i = 0; i < plan.mask.size(); ++i)
+            plan.mask[i] = source_mask[i] != 0.0f;
+    } else if (star_x && star_y && n_stars > 0) {
+        for (int i = 0; i < n_stars; ++i) {
+            if (!std::isfinite(star_x[i]) || !std::isfinite(star_y[i])) continue;
+            const double f = star_flux ? star_flux[i] : 0.0;
+            const double wf = star_fwhm ? star_fwhm[i] : 0.0;
+            const bool has_w = std::isfinite(wf) && wf > 0.0;
+            plan.cx.push_back(star_x[i]);
+            plan.cy.push_back(star_y[i]);
+            plan.flux.push_back(std::isfinite(f) && f > 0.0 ? f : 0.0);
+            plan.fwhm.push_back(has_w ? wf : 0.0);
+            plan.rmin.push_back(has_w ? std::max(r_min_default, fwhm_floor * wf)
+                                       : r_min_default);
+            plan.radii.push_back(0.0);   // 第二遍填
+            if (!has_w) plan.flags |= kMaskLegacy;   // §5a 回调: 无 FWHM ⇒ 统一 rmax
+        }
+        if (!plan.cx.empty()) {
+            // 第一遍 (§5a 两遍法): 只用 PSF 尺度 4·FWHM 的保守掩膜估 σ_bg 种子
+            std::vector<double> seed;
+            seed.reserve(plan.cx.size());
+            for (std::size_t i = 0; i < plan.cx.size(); ++i) {
+                const double wf = plan.fwhm[i];
+                const double r = (wf > 0.0) ? 4.0 * wf : rmax;
+                seed.push_back(std::min(r, rmax));
+            }
+            build_disk_mask(plan.mask, h, w, plan.cx, plan.cy, seed, plan.rmin, 1.0);
+            bool seed_ok = false;
+            const double sigma_seed =
+                sigma_from_mask(data, h, w, plan.mask, gx, gy, clip_sigma,
+                                min_samples, max_rounds, c.saturation_level, &seed_ok);
+            if (!seed_ok || !(sigma_seed > 0.0)) {
+                // 无法估种子 ⇒ σ_bg 不可知, 按 §5a 回调用统一 rmax (置 MASK_LEGACY)
+                for (std::size_t i = 0; i < plan.radii.size(); ++i) plan.radii[i] = rmax;
+                plan.flags |= kMaskLegacy;
+            } else {
+                const double k_bg = k_sigma * sigma_seed;
+                for (std::size_t i = 0; i < plan.cx.size(); ++i) {
+                    const double f = plan.flux[i];
+                    const double wf = plan.fwhm[i];
+                    double r = 0.0;
+                    if (f > 0.0 && wf > 0.0) {
+                        r = mask_local_radius(f, wf, k_bg);
+                    } else if (wf > 0.0) {
+                        r = 4.0 * wf;                  // §5a: F_i 缺失 ⇒ 4·FWHM_i
+                        plan.flags |= kMaskLegacy;
+                    }
+                    if (!(r > 0.0)) { r = rmax; plan.flags |= kMaskLegacy; }
+                    plan.radii[i] = std::min(r, rmax);
+                }
+            }
+            // 天空预算收缩: 取最大 s∈[0,1] 使 nq(s) ≥ budget_patches 且 N_sky(s) ≥ budget_sky
+            const auto feasible = [&](double s, SkyBudget* out) {
+                build_disk_mask(plan.mask, h, w, plan.cx, plan.cy, plan.radii, plan.rmin, s);
+                const SkyBudget b =
+                    sky_budget(data, h, w, plan.mask, gx, gy, min_samples, c.saturation_level);
+                if (out) *out = b;
+                return (b.nq >= budget_patches) && (b.n_sky >= budget_sky);
+            };
+            SkyBudget budget;
+            if (!feasible(1.0, &budget)) {
+                if (!feasible(0.0, nullptr)) {
+                    plan.infeasible = true;   // 收缩到 r_min 仍不可行 ⇒ rc=1 (空 support 不传播)
+                } else {
+                    double lo = 0.0, hi = 1.0, best = 0.0;
+                    for (int it = 0; it < 16; ++it) {
+                        const double mid = 0.5 * (lo + hi);
+                        if (feasible(mid, nullptr)) { best = mid; lo = mid; } else { hi = mid; }
+                    }
+                    plan.shrink = best;
+                    plan.flags |= kMaskDegraded;   // 收缩生效 ≠ 无代价, 显式标
+                    feasible(best, &budget);
+                }
+            }
+            if (!plan.infeasible) {
+                std::vector<double> rr;
+                rr.reserve(plan.radii.size());
+                for (std::size_t i = 0; i < plan.radii.size(); ++i)
+                    rr.push_back(std::max(plan.rmin[i], plan.shrink * plan.radii[i]));
+                plan.radius_p50 = robust_median(rr);
+            }
+        }
+    }
+
+    if (plan.infeasible) {
+        out_model->degenerate = 1;
+        out_model->mask_degraded = plan.flags;
+        return 1;
+    }
+
+    const std::vector<uint8_t>& mask = plan.mask;
+    const SkyBudget final_budget =
+        sky_budget(data, h, w, mask, gx, gy, min_samples, c.saturation_level);
+    plan.frac = final_budget.frac;
+    if (manual_mask &&
+        (final_budget.nq < budget_patches || final_budget.n_sky < budget_sky)) {
+        plan.flags |= kMaskDegraded;   // 手工通道: 只诊断, 不覆盖调用方掩膜
+    }
 
     std::vector<double> patch_sigma;
     std::vector<double> patch_var;

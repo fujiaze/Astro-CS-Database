@@ -39,7 +39,7 @@ VS 2026/v144/v145、17.14 evergreen latest、CMake 4.x、Ninja 作为 Windows
 | Clang (clang++) | 18 (Debian 13) | Debug/static analysis |
 | CMake | 3.31.6（控制节点现值） | 构建系统；preset `linux-control` 轻验证 |
 | Python | 3.13（控制节点）/ 3.12.10 x64（Windows 验证脚本） | 工具链/测试脚本 |
-| cfitsio | vendored (lib/astro_image_io/third_party, 60 源显式清单) | FITS I/O (第三方) |
+| cfitsio | vendored (lib/infrastructure/aio/third_party/cfitsio, 60 源显式清单) | FITS I/O (第三方) |
 | PyYAML | installed | 控制包解析 |
 
 Linux preset `linux-control` 仅供静态检查/轻量编译/小合成实验；Linux 性能
@@ -53,7 +53,8 @@ Linux preset `linux-control` 仅供静态检查/轻量编译/小合成实验；L
 ## 复现
 - build id = VERSION + g<commit> (cli/version_generated.h.in)
 - 同 commit 重构建 → 相同 build id
-- SBOM: dist/astrocs-alpha/SBOM.json（BLD-004 完善）
+- SBOM: 输入 = build/sbom-input.jsonl（`packaging/gen_sbom_input.py` 现行产物, 不入库）;
+  发布候选 SBOM 文档在发布流程内生成（发布决定权属负责人）
 
 ## 依赖锁定 (BLD-004)
 
@@ -63,19 +64,28 @@ Linux preset `linux-control` 仅供静态检查/轻量编译/小合成实验；L
 configure 无机器绝对路径扫描 + SBOM 输入生成）。
 
 ### 生产依赖 (vendored/系统标准库)
-- cfitsio `4.6.4` — vendored `lib/astro_image_io/third_party/cfitsio`
-  (60 C 源显式清单, BLD-001 禁 GLOB); 来源 heasarc; hash 见 lock。
-- nlohmann-json `3.12.0` — vendored `third_party/nlohmann_json`; 来源
-  nlohmann/json (MIT); hash 见 lock。
+- cfitsio `4.6.4` — vendored `lib/infrastructure/aio/third_party/cfitsio`
+  (60 C 源显式清单, BLD-001 禁 GLOB; 树内 168 git 追踪文件); 来源 heasarc;
+  hash + 目录级聚合哈希见 lock（`packaging/gen_sbom_input.py` 每次复算）。
+- nlohmann-json `3.12.0` — vendored `third_party/nlohmann/json.hpp`
+  （单头）; 来源 nlohmann/json (MIT); hash 见 lock。**当前树零引用**
+  （lock `reference_status=UNREFERENCED` + 理由; 有机器判据）。
+- gsl / gslcblas — 系统发行版库（`libgsl.so.28`/`libgslcblas.so.0`）;
+  经 `astrocs_p1_sdet → astrocs_module_adapters → astrocs` 进入产品 exe
+  动态链（ldd 实证）; **GPL 族再分发判定 PENDING_OWNER**（lock
+  `license_review`）。
 - zlib / zstd / lz4 — Linux 链接系统发行版库; MSVC 经 `ACS_ZLIB_ROOT`
   显式 cache 变量 (默认空, 不硬编码用户路径), 无则 cfitsio zcompress
   路径降级。
+- kernel32 — MSVC 侧 `win32_pthread_shim` 的 SRWLock 宿主（系统 DLL）。
 - OpenMP / Threads (pthread) / libm / libdl — 平台标准, 版本随工具链。
 
 ### test-only oracle (仅测试, 非产品运行依赖)
-- astropy (>=5, 控制节点 7.x) — FITS/天体测量科学 oracle
-- numpy — 数值 oracle
-- pytest — 契约测试运行器
+- astropy (>=5, 控制节点 7.0.1) — FITS/天体测量科学 oracle
+- numpy (控制节点 2.2.4) — 数值 oracle
+- pytest (控制节点 8.3.5) — 契约测试运行器
+- astropy-healpix (控制节点 2.0.1) — HEALPix 几何独立 oracle
+- rcr `2.4.7` — 稳健 Cat 率回归独立 oracle (`rcr_oracle_compare.py`)
 - astrometry.net — 外部求解器 (仅 P* 集成 oracle)
 
 ### 机器路径政策 (BLD-004)

@@ -3816,13 +3816,13 @@ TEST(Phase2Sampler, G1StatisticsCorrectness) {
     EXPECT_DOUBLE_EQ(p2_stats_median(f, 6), 2.5);   // NaN 过滤后 even
     double g[] = {1, std::nan(""), 3};
     EXPECT_DOUBLE_EQ(p2_stats_median(g, 3), 2.0);
-    // MAD：median(|x-med|)*1.4826
+    // MAD：median(|x-med|)*1.482602218505602
     double h[] = {1, 2, 3, 4};
     double med = 0;
     const double mad = p2_stats_mad(h, 4, &med);
     EXPECT_DOUBLE_EQ(med, 2.5);
-    // dev = [1.5,0.5,0.5,1.5] median=1.0 -> mad=1.4826
-    EXPECT_NEAR(mad, 1.4826, 1e-12);
+    // dev = [1.5,0.5,0.5,1.5] median=1.0 -> mad=1.482602218505602
+    EXPECT_NEAR(mad, 1.482602218505602, 1e-12);
 }
 
 // 稳定科学 identity：复制/重命名/换根不变；signal tile

@@ -12,9 +12,9 @@
 
 ```text
 F1: r_i = log10(F_instr,i / F_syn,i)
-F2: S = MAD(r)/0.6745, init location=median(r)
+F2: S = MAD(r)/0.6744897501960817, init location=median(r)
 F3: IRLS Tukey: u=(r−location)/(c·S), c=4.685, w=(1−u²)² if |u|<1 else 0, location=Σw·r/Σw, iter≤50 tol=1e-6
-F4: sigma_residual = MAD(r_inliers)/0.6745, r_inliers={w>0}
+F4: sigma_residual = MAD(r_inliers)/0.6744897501960817, r_inliers={w>0}
 F5: sigma_mag = 2.5·sigma_residual, sigma_cal_rel = ln10·sigma_residual
 F6: scale = 10^{−location}
 F7: 星等一致性预过滤 |Δ−median(Δ)|>3.0 mag reject where Δ=−2.5·log10(F_instr)−G_Gaia
@@ -29,12 +29,12 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
   if n < min_ref → NO_DATA
   Δ_i = −2.5·log10(F_instr)−G_Gaia; median_Δ = median(Δ)
   r_consistent = {i | |Δ_i−median_Δ|≤3.0} → r_i=log10(F_instr/F_syn)
-  if S=MAD(r)/0.6745 ==0 → location=median(r) skip IRLS
+  if S=MAD(r)/0.6744897501960817 ==0 → location=median(r) skip IRLS
   else:
     location=median(r); repeat 50×:
       w_i=(1−((r_i−location)/(c·S))²)² if |u|<1 else 0; c=4.685
       new_loc=Σw·r/Σw; if |new−old|<1e-6 break
-  sigma_res=MAD({r|w>0})/0.6745; scale=10^{−location}
+  sigma_res=MAD({r|w>0})/0.6744897501960817; scale=10^{−location}
 ```
 
 ## 4 边界/NaN/Inf
@@ -91,14 +91,14 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 | 步骤 | 符号/位置 | 锚 |
 |---|---|---|
-| 常量 | _MAD_SCALE=0.6745 / _TUKEY_C=4.685 / _IRLS_MAX_ITER=50 / _IRLS_CONVERGE=1e-6 | :21-27 |
+| 常量 | _MAD_SCALE=0.6744897501960817 / _TUKEY_C=4.685 / _IRLS_MAX_ITER=50 / _IRLS_CONVERGE=1e-6 | :21-27 |
 | 有效残差 r_i=log10(F_instr/F_syn) | cleanAndScale 内 r 计算 | :396-403 |
 | 星等预过滤 | delta−median_delta 阈值 mag_tolerance | :436-450 |
 | 一致集空回退 | scale=1.0/fit_used=0 | :462-475 |
-| IRLS 初值 | location=median(r), S=MAD/0.6745; S=0→median 兜底 | :477-490 |
+| IRLS 初值 | location=median(r), S=MAD/0.6744897501960817; S=0→median 兜底 | :477-490 |
 | IRLS 迭代 | Tukey w=(1−u²)², ≤50 iter, 收敛 1e-6 | :494-525 |
 | scale | 10^(−location) | :527-529 |
-| inliers/sigma_residual | \|u\|<1; MAD(r_inliers)/0.6745 | :531-560 |
+| inliers/sigma_residual | \|u\|<1; MAD(r_inliers)/0.6744897501960817 | :531-560 |
 | diag 填充 | r_median/p90/max, rejected_quality | :578-602 |
 | 一站式入口 | matchAndClean(2.0,3.0) | :610-632 |
 
@@ -131,7 +131,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 **图像校正**: ImageCorrector::correctImage I_cal=I·scale（image_corrector.cpp:63-77，OpenMP static :74-76）。
 
-**aperture 测光旧符号**（lib/algorithms/photometry/wrapper_phase1/photometer.cpp，§13.5）: 天空环收集 d∈[sky_inner,sky_outer] :31-42; 背景中值 :47-51; 孔径积分 d²≤r² Σ(pixel−background) :53-62; σ_sky=1.4826·MAD :69-70; flux_error=sqrt(max(sum,0)+n_in·σ_sky²) :72-80; snr :81。
+**aperture 测光旧符号**（lib/algorithms/photometry/wrapper_phase1/photometer.cpp，§13.5）: 天空环收集 d∈[sky_inner,sky_outer] :31-42; 背景中值 :47-51; 孔径积分 d²≤r² Σ(pixel−background) :53-62; σ_sky=1.482602218505602·MAD :69-70; flux_error=sqrt(max(sum,0)+n_in·σ_sky²) :72-80; snr :81。
 
 ### 13.2 实现事实修订（ALG 文档事实层；不改根科学公式）
 
@@ -190,7 +190,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
   records reject_reason 显式）；F6: Photometer aperture 已知通量 + 越界/
   空环/空孔径显式失败（对齐 tests/unit/p1_wcs_phot_test 4 组）。
 - 不变量 I1: out_pixels=round-trip(I·scale) bitwise（f64 通道）；I2:
-  sigma_residual=MAD(r_inliers)/0.6745 与逐星 records 残差一致；I3:
+  sigma_residual=MAD(r_inliers)/0.6744897501960817 与逐星 records 残差一致；I3:
   Σdiag.rejected_*+fit_used=unique_matches；I4: records[star_id] 与输入
   psf_star_ids 一一对应；I5: 线程数扫描（1/4/N）科学输出 bitwise 不变；
   I6: r 方向恒为 log10(F_instr/F_syn)。

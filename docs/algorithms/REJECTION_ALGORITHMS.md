@@ -8,11 +8,34 @@
 - 输入: candidate stack (values/support/weights/frame_ids) + P2RejectionPlan (method/profile/thresholds)
 - 输出: per-sample reason (P2_REASON_*) + stack status (P2_STATUS_*) + low/high计数
 
+### 1a 状态/原因枚举取值（唯一事实源）
+
+| 名称 | 值 |
+|---|---|
+| P2_REASON_ACCEPTED | 0 |
+| P2_REASON_REJECTED_LOW | 1 |
+| P2_REASON_REJECTED_HIGH | 2 |
+| P2_REASON_UNDERDETERMINED | 3 |
+| P2_STATUS_OK | 0 |
+| P2_STATUS_MIN_SAMPLES | 1 |
+| P2_STATUS_ALL_REJECTED | 2 |
+| P2_STATUS_INVALID_INPUT | 3 |
+| P2_STATUS_UNDERDETERMINED | 4 |
+| P2_STATUS_INVALID_CONFIGURATION | 5 |
+| P2_STATUS_INVALID_METHOD | 6 |
+| P2_STATUS_INTERNAL_ERROR | 7 |
+
+- 唯一事实源: `lib/algorithms/coverage/include/astro/phase2/rejection.h`
+  (`enum P2RejectReason` / `enum P2RejectStatus`)；
+- `P2_STATUS_MIN_SAMPLES=1` 为**兼容旧语义**保留值，新路径用 `P2_STATUS_UNDERDETERMINED=4`；
+- 机器门: `tools/docs_machine_consistency.py :: rejection_status_full_set`（全集合比对，禁 subset）。
+
+
 ## 2 离散公式
 
 ```text
 F1: plan resolve: n<6→percentile 0.2/0.1, 6≤n≤15→winsorized 4/3/8, n>15→linear_fit 5/3.5/8 (nominal n)
-F2: sigma: median ws, MAD→σ=1.4826·MAD, thresholds 4.0 low /3.0 high 8iter
+F2: sigma: median ws, MAD→σ=1.482602218505602·MAD, thresholds 4.0 low /3.0 high 8iter
 F3: winsorized: winsor at σ阈, 再sigma
 F4: linear_fit: 线性拟合残差MAD尺度 5/3.5 8iter
 F5: ESD: Rosner α=0.05 max10 双sqrt已修

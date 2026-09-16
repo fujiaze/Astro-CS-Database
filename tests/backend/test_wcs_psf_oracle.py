@@ -16,7 +16,8 @@ import math, os, re, shutil, subprocess, tempfile, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 INC = os.path.join(REPO, "include")
 HOST = os.path.join(REPO, "lib", "backend_host")
-P3 = os.path.join(REPO, "lib", "phase3_session")
+# W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/
+P3 = os.path.join(REPO, "lib", "algorithms", "projection")
 
 DRIVER = r'''
 #include "astrocs/common_abi_v1.h"

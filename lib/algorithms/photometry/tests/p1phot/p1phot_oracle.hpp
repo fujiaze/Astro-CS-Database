@@ -16,7 +16,7 @@
 //     定义, KD-tree 的独立对拍参照);
 //   oracle_aperture_flux — 天空环中值背景 + 孔径和独立式 (README §9 合同)。
 //
-// 冻结常数 (SCI-PHOT-001 §10/ALG §13.1, 不得改动): _MAD_SCALE=0.6745,
+// 冻结常数 (SCI-PHOT-001 §10/ALG §13.1, 不得改动): _MAD_SCALE=0.6744897501960817,
 // c=4.685, max_iter=50, tol=1e-6, mag_tolerance=3.0, match_radius=2.0px,
 // F_syn 网格 1.0nm, Akima fill=0。
 #ifndef P1PHOT_ORACLE_HPP
@@ -65,7 +65,7 @@ inline double oracle_mad(const std::vector<double>& v) {
 inline bool oracle_irls_tukey(const std::vector<double>& r,
                               double& location_out, double& sigma_out,
                               int& iters_out, std::vector<char>* inlier_mask) {
-    const double MAD_SCALE = 0.6745;   // ALG-PHOT-001 冻结
+    const double MAD_SCALE = 0.6744897501960817;   // ALG-PHOT-001 冻结
     const double TUKEY_C = 4.685;      // SCI-PHOT-001 §10 冻结
     const int MAX_ITER = 50;           // SCI-PHOT-001 §10 冻结
     const double CONVERGE = 1e-6;      // SCI-PHOT-001 §10 冻结
@@ -106,7 +106,7 @@ inline bool oracle_irls_tukey(const std::vector<double>& r,
         if (diff < CONVERGE) break;
         prev = new_location;
     }
-    // inliers: |u| < 1; sigma_residual = MAD(r_inliers)/0.6745
+    // inliers: |u| < 1; sigma_residual = MAD(r_inliers)/0.6744897501960817
     const double cS = TUKEY_C * S;
     std::vector<double> r_in;
     for (std::size_t k = 0; k < r.size(); ++k) {
@@ -117,7 +117,7 @@ inline bool oracle_irls_tukey(const std::vector<double>& r,
         }
     }
     location_out = location;
-    // sigma = median(|r_in − location|) 平均式偶数中位 / 0.6745 (同被测)
+    // sigma = median(|r_in − location|) 平均式偶数中位 / 0.6744897501960817 (同被测)
     sigma_out = 0.0;
     if (!r_in.empty()) {
         std::vector<double> dev;

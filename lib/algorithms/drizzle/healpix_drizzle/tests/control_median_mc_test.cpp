@@ -171,7 +171,7 @@ int main() {
         std::vector<double> dev;
         dev.reserve(patch.size());
         for (double v : patch) dev.push_back(std::fabs(v - med));
-        const double sigma = 1.4826 * median_of(std::move(dev));
+        const double sigma = 1.482602218505602 * median_of(std::move(dev));
         patch_medians.push_back(med);
         patch_n_retained.push_back(n_retained);
         patch_sigma.push_back(sigma);

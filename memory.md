@@ -80,7 +80,7 @@
 1. ~~`astrocs run --phases 1,2,3` 遗留未删~~ → **已删除**（CLI-002；DOC-CONV-001
    BASE=`da3c4b4a` 实测 `build/cli/astrocs run --phases 1,2,3` → rc=2
    `unknown command 'run'`；kRules 无 run/graph）。
-2. ~~约束 §F.1 每节点唯一真实模块 operation 未达成~~ → **三 Phase 节点化 `IMPLEMENTED`**（`ASTROCS_DESIGN.md` §11.3 词表）
+2. ~~约束 §F.1（原宪章条款，已废止）每节点唯一真实模块 operation 未达成~~ → **三 Phase 节点化 `IMPLEMENTED`**（`ASTROCS_DESIGN.md` §11.3 词表）
    （P1-001 `9e09941a` / P2-001 `439f9f20` / P3-002 `1a56ffb7`；
    `lib/core/src/module_adapters.cpp`:4257 P1 八节点 / :4282 P2 七节点 /
    :4309 P3 五节点；ctest `p1001_real_nodes`/`p2001_real_nodes`/
@@ -91,7 +91,7 @@
    （MOD-001 `59fdeab3`：`cmake/install_layout.cmake` 五科学模块 +
    `packaging/astrocs.product.json` units=10；DOC-CONV-001 实测
    `tests/abi/mod001_install_load_check.py` 64/64 PASS）。
-4. **Phase3 扩展（DOC-CONV-001 更正口径）**：负责人裁决 §18.1 冻结四投影为
+4. **Phase3 扩展（DOC-CONV-001 更正口径）**：负责人裁决 §18.1（原宪章条款，已废止；现行 = `ASTROCS_DESIGN.md` §5.3 八投影）冻结四投影为
    **TAN+SIN+CAR+AIT**（旧 `SIN/ZEA/CAR/AIT` 表述有误）——registry v1 已在
    `lib/phase3_proj/p3_projection.cpp`（:267-273）IMPLEMENTED 并通过 ctest
    `p3_projection_units`/`p3_projection_fault` + 独立 numpy Oracle；**生产会话/DLL

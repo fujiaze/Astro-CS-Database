@@ -33,18 +33,18 @@ MIN_EXPECTED_FILTERS = 45   # 编制时实测条数；少于该数说明转录�
 
 # 负责人实测指认的权威锚点（仍须逐条核对原文）——(字段, 文件, 行, 该行必须出现的 token)
 KEY_ANCHORS = [
-    ("detection.threshold_sigma", "docs/science/STAR_DETECTION.md", 18, "5.0"),
+    ("detection.threshold_sigma", "docs/science/STAR_DETECTION.md", 19, "5.0"),
     ("psf.default_model", "docs/science/PSF.md", 7, "Moffat4"),
     ("psf.moffat_beta", "docs/science/PSF.md", 92, "4"),
-    ("noise.source_mask_radius_px", "docs/algorithms/NOISE_ESTIMATION.md", 134, "r0=10"),
-    ("noise.variance_floor", "docs/algorithms/NOISE_ESTIMATION.md", 134, "1e-12"),
-    ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", 131, "4.0/3.0/8"),
+    ("noise.source_mask_radius_px", "docs/science/NOISE_MODEL.md", 84, "rmax"),
+    ("noise.variance_floor", "docs/science/NOISE_MODEL.md", 21, "1e-12"),
+    ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", 56, "4.0/3.0/8"),
     ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", 24, "3.0 mag"),
     ("weight.default_mode", "docs/science/PSF_SIGNAL_WEIGHT.md", 12, "psf_information_weight"),
     ("precision.default", "docs/science/SCIENCE_SCOPE.md", 53, "FP64"),
-    ("upm.k_corr", "docs/science/PHASE2_UPM.md", 100, "1.4"),
-    ("hips.tile_width", "docs/science/PHASE3_HIPS_TO_FITS.md", 27, "512"),
-    ("drizzle.pixfrac", "docs/science/DRIZZLE.md", 27, "pixfrac"),
+    ("upm.k_corr", "docs/science/PHASE2_UPM.md", 22, "1.4"),
+    ("hips.tile_width", "docs/science/PHASE3_HIPS_TO_FITS.md", 39, "512"),
+    ("drizzle.pixfrac", "docs/science/DRIZZLE.md", 21, "pixfrac"),
 ]
 PENDING_EXPECTED = {
     "drizzle.pixfrac": "SCI-RES-01/R-005",
@@ -196,12 +196,21 @@ class TestDefaultsContract(unittest.TestCase):
             lines = C.read_lines(ref["path"])
             self.assertGreaterEqual(ref["line"], 1)
             self.assertLessEqual(ref["line"], len(lines), "%s 的 source_ref 行号越界" % key)
+        # 一次报告全部锚点失败（fail-fast 会掩盖后续漂移：CFG-002 实测 3 处漂移只报第 1 处）
+        failures = []
         for key, path, line, token in KEY_ANCHORS:
-            self.assertIn(key, fields, "权威锚点字段缺失: %s" % key)
-            self.assertTrue(C.grep_line(path, line, token),
-                            "%s 的 source_ref 不成立：%s:%d 不含 %r" % (key, path, line, token))
-            self.assertEqual(path, fields[key]["source_ref"]["path"])
-            self.assertEqual(line, fields[key]["source_ref"]["line"])
+            if key not in fields:
+                failures.append("权威锚点字段缺失: %s" % key)
+                continue
+            if not C.grep_line(path, line, token):
+                failures.append("%s 的 source_ref 不成立：%s:%d 不含 %r" % (key, path, line, token))
+            if path != fields[key]["source_ref"]["path"]:
+                failures.append("%s 的 source_ref.path 漂移：测试期望 %s，登记 %s"
+                                % (key, path, fields[key]["source_ref"]["path"]))
+            if line != fields[key]["source_ref"]["line"]:
+                failures.append("%s 的 source_ref.line 漂移：测试期望 %d，登记 %d"
+                                % (key, line, fields[key]["source_ref"]["line"]))
+        self.assertEqual([], failures, "锚点失败 %d 条：\n  - %s" % (len(failures), "\n  - ".join(failures)))
 
     def test_design_named_defaults_all_present(self):
         """ASTROCS_DESIGN §3.3 点名的默认值项必须出现（含三项无权威数值者）。"""

@@ -31,7 +31,7 @@
 （锚=sdet_api.cpp 实测行号；公式与源码一一对应，禁止改写）
 
 - 背景噪声（FnNoise1 行差分族，:440-476）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
-  3 轮 5σ clip（median/MAD 迭代，MAD 含 1.4826）→ 行标准差 → 行中位 → ×0.7071
+  3 轮 5σ clip（median/MAD 迭代，MAD 含 1.482602218505602）→ 行标准差 → 行中位 → ×0.7071
   （1/√2）。
 - 全局检测阈值（:1637-1647）: `threshold = median(img) + 5.0·bgnoise`。
 - 动态范围与饱和水平（:1684-1692）: `bg=median(img)`，`maxi=max(img)`，
@@ -110,7 +110,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1599-2353
     if fit.status ≠ OK: drop                      # :2139
     if max(sx,sy)/min(sx,sy) > maxAxisRatio: drop # :2143-2145
     if reject_star(fit) ≠ OK: drop                # :2148-2150（FWHM>0.5、圆度≥0.5、
-                                                  #   RMSE=mad·1.4826/A≤0.2、FWHM 上限;
+                                                  #   RMSE=mad·1.482602218505602/A≤0.2、FWHM 上限;
                                                   #   饱和豁免 RMSE :189-239）
     mag = −2.5·log10(Σ_box(pixel − B_fit))（box=R, 中心=候选中心）  # :2177-2198
     saturated = (A_fit > dynrange); has_saturated = saturated       # :2159/:2203

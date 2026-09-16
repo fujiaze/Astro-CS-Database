@@ -61,7 +61,7 @@ INC_BASE = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "base
 INC_AVX2 = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx2", "include")
 INC_AVX512 = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx512", "include")
 INC_CAP = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "include")
-INC_HOST = os.path.join(REPO, "lib", "backend_host")  # cpu_features.h 探针 include
+INC_HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")  # cpu_features.h 探针 include (ROOT-008 迁移后路径)
 
 FAILURES = []
 HW = os.cpu_count() or 1
@@ -126,7 +126,8 @@ def host_avx512f_detected(tmp):
         f.write(PROBE_SRC)
     exe = os.path.join(tmp, "cpu004_host_probe")
     r = run(["g++", "-std=c++17", f"-I{INC_HOST}", src,
-             os.path.join(REPO, "lib", "backend_host", "cpu_features.cpp"),
+             os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host",
+                        "cpu_features.cpp"),
              "-o", exe], timeout=120)
     if r.returncode != 0:
         return False, "host capability 探针编译失败"

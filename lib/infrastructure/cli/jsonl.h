@@ -100,14 +100,21 @@ public:
              start ? "stage started" : "stage finished");
     }
 
+    // 本次 run 写出的 manifest 路径（write_run_manifest 落盘后登记）。
+    // SMOKE-001 D8: 协议 §4 的 final.run_manifest 必须回填本次 manifest；此前所有
+    // 调用点都传 nullptr ⇒ 恒 null。登记-回填在本类内完成，调用点无需各自传参。
+    void set_run_manifest(const std::string& path) { run_manifest_path_ = path; }
+
     // final 事件: {exit_code,status,run_manifest,summary}
+    // run_manifest == nullptr → 用已登记的 manifest 路径；未登记则 null（不伪造）。
     void emit_final(int exit_code, const std::string& status, const char* run_manifest,
                     const std::string& summary) {
+        const std::string path = (run_manifest != nullptr) ? std::string(run_manifest)
+                                                           : run_manifest_path_;
         nlohmann::json extra = {
             {"exit_code", exit_code},
             {"status", status},
-            {"run_manifest", run_manifest == nullptr ? nlohmann::json(nullptr)
-                                                     : nlohmann::json(run_manifest)},
+            {"run_manifest", path.empty() ? nlohmann::json(nullptr) : nlohmann::json(path)},
             {"summary", summary},
         };
         emit("final", exit_code == OK ? "info" : "error", "n/a", summary, extra);
@@ -117,6 +124,7 @@ private:
     bool enabled_;
     std::string run_id_;
     std::string phase_;
+    std::string run_manifest_path_;
     unsigned long long seq_ = 0;
 };
 

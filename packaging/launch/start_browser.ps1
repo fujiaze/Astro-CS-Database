@@ -15,7 +15,11 @@ AstroCS HiPS Browser — 一键启动（V9）
 #>
 param(
     [string]$HipsPath = "",
-    [string]$Preset = "GC Wide"
+    [string]$Preset = "GC Wide",
+    # MSYS2/MinGW 根目录由调用者显式给出（环境变量或参数）: 本脚本不得写死
+    # 机器绝对路径（BLD-004 machine_absolute_path=FORBIDDEN, 见
+    # packaging/dependency-lock.json policy 与 BLD-004 机器路径扫描）。
+    [string]$MsysRoot = $env:ASTROCS_MSYS_ROOT
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,12 +29,20 @@ $exe = Join-Path $repo "lib\healpix_db\healpix_browser_qt\build\healpix_browser_
 # ---------------------------------------------------------------------------
 # 1. 定位/构建浏览器
 # ---------------------------------------------------------------------------
+$msysBin = ""
+if (![string]::IsNullOrEmpty($MsysRoot)) {
+    $msysBin = Join-Path $MsysRoot "mingw64\bin"
+}
 if (!(Test-Path -LiteralPath $exe)) {
     Write-Host "[start_browser] 未找到 $exe，尝试构建浏览器 ..."
-    $env:Path = "C:\msys64\mingw64\bin;$env:Path"
+    if ([string]::IsNullOrEmpty($msysBin)) {
+        Write-Error "未设置 -MsysRoot / ASTROCS_MSYS_ROOT：无法定位 MinGW 工具链（本脚本不写死机器路径）。"
+        exit 1
+    }
+    $env:Path = "$msysBin;$env:Path"
     Push-Location (Join-Path $repo "lib\healpix_db\healpix_browser_qt")
     try {
-        cmake -S . -B build -DCMAKE_PREFIX_PATH=C:/msys64/mingw64 -DBUILD_TESTS=OFF -G Ninja
+        cmake -S . -B build -DCMAKE_PREFIX_PATH=(Join-Path $MsysRoot "mingw64") -DBUILD_TESTS=OFF -G Ninja
         ninja -C build healpix_browser_qt
     } finally {
         Pop-Location
@@ -91,8 +103,9 @@ if (!(Test-Path -LiteralPath (Join-Path $HipsPath "signal"))) {
 # ---------------------------------------------------------------------------
 # 3. 启动 + readiness wait（30s timeout，localhost-only 说明）
 # ---------------------------------------------------------------------------
-$env:Path = "C:\msys64\mingw64\bin;" +
-            (Join-Path $repo "lib\astro_image_io") + ";" + $env:Path
+$msysPrefix = ""
+if ($msysBin) { $msysPrefix = "$msysBin;" }
+$env:Path = $msysPrefix + (Join-Path $repo "lib\astro_image_io") + ";" + $env:Path
 
 Write-Host "[start_browser] 启动浏览器: $exe"
 Write-Host "[start_browser] 产品集: $HipsPath  Preset: $Preset"

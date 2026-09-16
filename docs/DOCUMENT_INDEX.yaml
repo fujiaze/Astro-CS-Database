@@ -301,7 +301,7 @@ doc_index:
       notes: "IO-003 原子产物发布合同（IO-003 集成补登）"
     - path: "docs/owner/PROJECT_SPEC.md"
       status: ACTIVE_NORMATIVE
-      notes: "ASTROCS-PROJECT-SPEC-002：冻结宪章之下唯一目标态设计总规范；不承载实施流水账"
+      notes: "ASTROCS-PROJECT-SPEC-002：目标态设计总规范（下级于 `ASTROCS_DESIGN.md` §0 权威链；原引「冻结宪章」已废止）；不承载实施流水账"
     - path: "docs/design/PHASE1_DETAILED_DESIGN.md"
       status: ACTIVE_NORMATIVE
       notes: "DESIGN-P1-001：Phase1 单帧观测模型、PSF/噪声/信息产品目标态"

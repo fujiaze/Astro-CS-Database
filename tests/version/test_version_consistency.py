@@ -263,12 +263,67 @@ class TestStandardClauseExclusion(unittest.TestCase):
         self.assertEqual(runs[0].stdout, runs[1].stdout, "stdout 必须逐字节一致")
         self.assertEqual(runs[0].returncode, 0)
 
+class TestLifecycleBoundary(unittest.TestCase):
+    """W4-A3: 合同生命周期边界值不得被当产品版本，但产品版本声明照旧必须 FAIL。
+
+    事由: DATA-001 的 `retire_after: "0.12.0"`(前向退出边界) 使检查器在真仓恒
+    FAIL(49 条)，遮蔽 UT-VERSION test_04/test_13；口径只准更精确, 不准更宽松。
+    """
+
+    def test_16_lifecycle_boundary_value_is_not_product_version(self):
+        m = load_checker()
+        b, a = _base_alpha()
+        with tempfile.TemporaryDirectory() as td:
+            os.makedirs(os.path.join(td, "docs", "contracts"))
+            p = os.path.join(td, "docs", "contracts", "registry.json")
+            with open(p, "w", encoding="utf-8") as f:
+                f.write('{"object": "signal", "retire_after": "9.9.9"}\n')
+            errs = []
+            m.check_file(p, b, a, errs)
+            self.assertEqual(errs, [], f"前向生命周期边界不得被判为产品版本: {errs}")
+
+    def test_17_product_version_claim_in_same_object_still_fails(self):
+        """负例守卫: 同一对象里的产品版本声明不得被生命周期豁免顺带放行。"""
+        m = load_checker()
+        b, a = _base_alpha()
+        with tempfile.TemporaryDirectory() as td:
+            os.makedirs(os.path.join(td, "docs", "contracts"))
+            p = os.path.join(td, "docs", "contracts", "registry.json")
+            with open(p, "w", encoding="utf-8") as f:
+                f.write('{"product_version": "9.9.9", "retire_after": "9.9.9"}\n')
+            errs = []
+            m.check_file(p, b, a, errs)
+            self.assertTrue(any("9.9.9" in e for e in errs),
+                            f"产品版本声明必须仍然 FAIL: {errs}")
+            # 契约文档表格的"退役窗口"列同理: 其它列的版本声明仍须 FAIL
+            md = os.path.join(td, "docs", "contracts", "UNIFIED.md")
+            with open(md, "w", encoding="utf-8") as f:
+                f.write("| 旧路径 | 新路径 | 退役窗口 |\n"
+                        "|---|---|---|\n"
+                        "| a.json | b.json | 9.9.9 |\n")
+            errs_md = []
+            m.check_file(md, b, a, errs_md)
+            self.assertEqual(errs_md, [], f"退役窗口列(显式登记边界)不得判红: {errs_md}")
+            with open(md, "w", encoding="utf-8") as f:
+                f.write("| 旧路径 | 新路径 | 退役窗口 |\n"
+                        "|---|---|---|\n"
+                        "| a.json | b.json | 8.8.8 |\n")
+            errs_md2 = []
+            m.check_file(md, b, a, errs_md2)
+            self.assertTrue(any("8.8.8" in e for e in errs_md2),
+                            f"未登记的生命周期边界值必须 FAIL(fail-closed): {errs_md2}")
+
+
 # ── 故障注入守卫 (裁决 R-08 自证: 新用例必须"注入必败"、未注入必绿) ──────────
 # 本类把上面的条款号用例当作被试对象做 meta 测试: 对检查器施加"过宽/过窄"两类
 # 故障注入, 断言子进程里的用例必须变红; 未注入时必须全绿。
 # 递归保护: 子进程带 CI_VER_CHK_MUTATION_GUARD=1, 本类自行 skip。
 MUTATION_GUARD_ENV = "CI_VER_CHK_MUTATION_GUARD"
-MASK_CALL = "for m in BASE_RE.finditer(mask_standard_clause_numbers(line)):"
+# W4-A3: 检查器的未知字面量扫描行现为"条款号 + 生命周期边界"双层挖空，
+# 注入锚点随判据更新（锚必须逐字命中现行源码，否则守卫本身失效 ——
+# test_14 的 assertIn 就是这条要求的机器判据）。
+MASK_CALL = ("for m in BASE_RE.finditer(mask_lifecycle_boundaries("
+             "mask_standard_clause_numbers(line))):")
 MUTATIONS = {
     # 过窄: 取消条款号豁免 → §2.1.1 等再现 19 条误报
     "masking_disabled": (MASK_CALL, "for m in BASE_RE.finditer(line):"),
@@ -302,6 +357,10 @@ CHILD_TESTS = [
         "test_10_forged_version_on_clause_line_still_fails",
         "test_11_bare_clause_in_standard_context_and_guard",
         "test_12_alpha_drift_not_masked_by_clause_exemption",
+    )] + [
+    "test_version_consistency.TestLifecycleBoundary." + n for n in (
+        "test_16_lifecycle_boundary_value_is_not_product_version",
+        "test_17_product_version_claim_in_same_object_still_fails",
     )]
 
 

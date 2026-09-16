@@ -38,7 +38,7 @@ struct PhotometricDiag {
     int fit_used;                 // IRLS inliers (Tukey 权重 > 0)
     int robust_iterations;        // IRLS 实际迭代次数
     double scale_factor;          // 10^(-location(r)), 与 out_scale_factor 一致
-    double sigma_residual;        // MAD(r_inliers)/0.6745, 与 out_sigma_residual 一致
+    double sigma_residual;        // MAD(r_inliers)/0.6744897501960817, 与 out_sigma_residual 一致
     // 阶段8: 残差/距离统计
     double r_median, r_p90, r_max;                       // r = log10(F_instr/F_syn) 的 inliers 统计
     double match_distance_median, match_distance_p90, match_distance_max;  // PSF-Gaia 像素距离统计
@@ -69,7 +69,7 @@ typedef struct {
 // 3. 星等一致性预过滤 (|delta - median_delta| > 3 mag 拒绝)
 // 4. IRLS + Tukey biweight 稳健位置估计 (c=4.685, 50 次迭代, 收敛 1e-6)
 // 5. scale = 10^(-location), I_cal = I * scale
-// 6. sigma_residual = MAD(r_inliers)/0.6745 供 SNR 模块使用
+// 6. sigma_residual = MAD(r_inliers)/0.6744897501960817 供 SNR 模块使用
 //
 // 输入参数:
 // pixels - 图像像素 float32 [H*W] (行优先)
@@ -93,7 +93,7 @@ typedef struct {
 // out_pixels - 校正后像素 (调用者分配, float32 [H*W])
 // out_n_matched - 匹配星数 (IRLS+Tukey 清洗后)
 // out_scale_factor- scale因子 (IRLS 稳健估计, 10^(-location(r)))
-// out_sigma_residual - sigma_residual = MAD(log10(F_instr/F_syn)_inliers)/0.6745
+// out_sigma_residual - sigma_residual = MAD(log10(F_instr/F_syn)_inliers)/0.6744897501960817
 // (可为 nullptr, 向后兼容; 供 SNR 模块 §14 计算 SNR_phot)
 // out_diag - 分阶段诊断结构体 (可为 nullptr, 向后兼容)
 // 旧接口仅填充部分字段; 完整诊断请使用 pc_calibrate_simple_with_gaia
@@ -143,7 +143,7 @@ PC_API int pc_calibrate_simple(
 // out_pixels - 校正后像素 (调用者分配, float32 [H*W])
 // out_n_matched - 匹配星数 (IRLS+Tukey 清洗后)
 // out_scale_factor- scale因子 (IRLS 稳健估计, 10^(-location(r)))
-// out_sigma_residual - sigma_residual = MAD(log10(F_instr/F_syn)_inliers)/0.6745
+// out_sigma_residual - sigma_residual = MAD(log10(F_instr/F_syn)_inliers)/0.6744897501960817
 // (可为 nullptr, 向后兼容; 供 SNR 模块 §14 计算 SNR_phot)
 // out_diag - 分阶段诊断结构体 (可为 nullptr, 向后兼容)
 // 完整填充所有 8 个阶段字段

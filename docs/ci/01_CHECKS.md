@@ -59,6 +59,7 @@
 | RESOURCE-GATE-REAL | 资源 | 真实重计算面利用率门（显式 --gate-required + 判定证据） | `python3 ci/resource_monitor.py --timeout 300 …` | P0 |
 | RESOURCE-GATE-REAL-NEG | 资源 | 上项的可执行负例面（串行注入 ⇒ 门必须判红） | `python3 tools/quality/check_resource_gate_real.py --fault-inject serial --seconds 20` | P0 |
 | CHK-KNOWN-FAILURES-BASELINE | 测试 | 版本化已知失败基线门（聚合型，linux-main 末位） | `python3 ci/run_checks.py --check CHK-KNOWN-FAILURES-BASELINE --quiet` | P1 |
+| CHK-IMPACT-MAP | 治理 | `ci/impact_map.json` 判据一致性（id 两层闭包 / fast 候选 / BASE 核心 / 路径域锚存活与覆盖 / 无退役引用 / 结构完整） | `python3 ci/run_checks.py --check CHK-IMPACT-MAP --quiet` | P0 |
 
 > **§8 判据登记：`AGENTS-GOV` / `ENG-CONSTRAINTS` 的「非绑定标记豁免」粒度 = 行级（2026-09-16，负责人裁决 B）。**
 > 两门的「唯一最高权威」判据原用**整文件豁免**（`if "ARCHIVED_NON_NORMATIVE" in text: continue`）：

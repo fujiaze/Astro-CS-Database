@@ -81,7 +81,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 
 - 母版算术与校准核心为 FP32（`float`）；FP64 双精度 ABI `*_f64` 在像素级算术路径使用 `double` 不降级（`calibrator.cpp:147-179 calibrate_d`），其余统计/mask 路径经 `float` 中转（注释已明示）。
 - `flat` 除法前 `max(...,0.1)` 保证除数下界 0.1，避免 `1e-7` 量级噪声放大。
-- 中位数用 `std::nth_element` O(n)，MAD 转 sigma 系数 `1.4826`（高斯假设）。
+- 中位数用 `std::nth_element` O(n)；MAD 转 sigma 系数为唯一全精度写法 `1.482602218505602`（= 1/Φ⁻¹(3/4)，高斯假设；单精度存储时写作 `1.482602218505602f`，即舍入到 `1.4826022f`，相对差 +1.36e-08）。
 - 不传播母版方差至 `cal` 的方差项（ivar 由 `snr_estimator` 独立估计，见 NOISE_MODEL）。
 
 ## 9a 专属问题回答（SCI-001 指定问题逐项）

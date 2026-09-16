@@ -37,30 +37,55 @@ def run_check(root, expected=EXPECTED):
 
 def make_fake_tree(dst, *, version="0.11.0-alpha.2", project="0.11.0",
                    doc="0.11.0-alpha.2"):
-    """最小活动面 fake 树 (只含 check_version.py 检查的文件)。"""
+    """最小活动面 fake 树 —— **必须满足 ci/check_version.py 的锚存活合同**。
+
+    W4-A3 订正：原夹具按迁移前布局构造（`cli/version_generated.h.in`、根
+    `REVIEW.md`/`HANDOVER.md`），而 ci/check_version.py 的 [0] 锚存活判据
+    （ENGINEERING_SPEC §8 fail-closed）要求 CLI_DIR_REL =
+    `lib/infrastructure/cli`、CLI_TEMPLATE_REL =
+    `lib/infrastructure/cli/version_generated.h.in` 与 DOC_SET_FILES/DOC_SET_DIRS
+    全集存在 ⇒ 任一缺失即 rc=2（ANCHOR_STALE），mutation 用例的 rc=1 断言被
+    fail-closed 遮蔽（实测 6 条断言 2 != 1）。
+
+    现行做法：锚集**单源**取自 ci/check_version.py 的常量（模块内 load_check()
+    后直接读 DOC_SET_FILES / DOC_SET_DIRS / CLI_TEMPLATE_REL），不在本测试里
+    重复维护第二份列表（同一事实两处判据正是本任务要消除的缺陷型）。
+    """
+    cv = load_check()
     os.makedirs(os.path.join(dst, "cli"), exist_ok=True)
-    os.makedirs(os.path.join(dst, "docs", "governance"), exist_ok=True)
     with open(os.path.join(dst, "VERSION"), "w", encoding="utf-8") as f:
         f.write(version + "\n")
     with open(os.path.join(dst, "CMakeLists.txt"), "w", encoding="utf-8") as f:
         f.write("cmake_minimum_required(VERSION 3.24)\n"
                 f"project(astrocs VERSION {project} LANGUAGES C CXX)\n"
                 'file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION ASTROCS_BASE_VERSION)\n'
-                "configure_file(lib/infrastructure/cli/version_generated.h.in "
+                "configure_file(" + cv.CLI_TEMPLATE_REL + " "
                 "${CMAKE_CURRENT_BINARY_DIR}/version_generated.h @ONLY)\n")
+    # cli/CMakeLists.txt 保留原位（不在构建图内）：check_version.py 的 CLI_CMAKE_REL
+    # 三条 chain 判据的输入。
     with open(os.path.join(dst, "cli", "CMakeLists.txt"), "w",
               encoding="utf-8") as f:
         f.write('file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION BASE_VERSION)\n'
                 "configure_file(version_generated.h.in version_generated.h @ONLY)\n")
-    with open(os.path.join(dst, "cli", "version_generated.h.in"), "w",
-              encoding="utf-8") as f:
+    template = os.path.join(dst, cv.CLI_TEMPLATE_REL)
+    os.makedirs(os.path.dirname(template), exist_ok=True)
+    with open(template, "w", encoding="utf-8") as f:
         f.write('#define ASTROCS_VERSION_STRING "@ASTROCS_VERSION_STRING@"\n')
-    with open(os.path.join(dst, "README.md"), "w", encoding="utf-8") as f:
-        f.write(f"# t\n\n> 目标产品：`{doc}`（根 VERSION）。\n")
-    for rel in ("REVIEW.md", "HANDOVER.md", "docs/DOCUMENT_INDEX.yaml",
-                "docs/VERSIONING.md"):
-        with open(os.path.join(dst, rel), "w", encoding="utf-8") as f:
-            f.write("t\n")
+    # 活动文档集：README 承载 doc 字面量，其余成员只需存在（锚存活 + [5]/[6]）
+    for rel in cv.DOC_SET_FILES:
+        full = os.path.join(dst, rel)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        body = (f"# t\n\n> 目标产品：`{doc}`（根 VERSION）。\n"
+                if rel == "README.md" else "t\n")
+        with open(full, "w", encoding="utf-8") as f:
+            f.write(body)
+    for d in cv.DOC_SET_DIRS:
+        full = os.path.join(dst, d)
+        os.makedirs(full, exist_ok=True)
+        if not os.listdir(full):
+            with open(os.path.join(full, "placeholder.md"), "w",
+                      encoding="utf-8") as f:
+                f.write("t\n")
     with open(os.path.join(dst, "docs", "governance", "VERSION_NAMESPACES.md"),
               "w", encoding="utf-8") as f:
         f.write(f"# govn\n\n- 根 VERSION：`{doc}`\n")
@@ -80,9 +105,20 @@ class TestAdopt006VersionUnification(unittest.TestCase):
         self.assertEqual(m.group(1), "0.11.0", TOL)
 
     def test_03_active_doc_literals_are_alpha2(self):
+        """活动文档 alpha 字面量统一性 —— 扫描面**单源**取自 ci/check_version.py。
+
+        W4-A3 订正：原实现硬编码 ("README.md", "REVIEW.md", "HANDOVER.md")。
+        REVIEW.md / HANDOVER.md 已随 ROOT-007 归档（根下已不存在）⇒ FileNotFoundError；
+        而 check_version.py 的权威活动文档集是 DOC_SET_FILES（10 项，含 docs/owner/**）。
+        按 §8「注册表双向一致 / 锚存活」口径改绑到该常量，消除两套不同步判据。
+        """
         m = load_check()
+        scanned = [rel for rel in m.DOC_SET_FILES if os.path.isfile(os.path.join(REPO, rel))]
+        self.assertTrue(scanned, "活动文档集不得为空（锚存活）")
+        missing = [rel for rel in m.DOC_SET_FILES if not os.path.isfile(os.path.join(REPO, rel))]
+        self.assertEqual(missing, [], f"DOC_SET_FILES 成员缺失（锚失效）: {missing}")
         errs = []
-        for rel in ("README.md", "REVIEW.md", "HANDOVER.md"):
+        for rel in scanned:
             with open(os.path.join(REPO, rel), encoding="utf-8") as f:
                 text = f.read()
             for i, ln in enumerate(text.splitlines(), 1):
@@ -129,9 +165,19 @@ class TestAdopt006CheckGate(unittest.TestCase):
             self.assertEqual(json.loads(r.stdout)["verdict"], "VERSION_CHECK_FAIL")
 
     def test_08_mutation_cli_literal_drift_fails(self):
+        """CLI 手抄版本漂移必须判红 —— 注入点随 ROOT-008 迁移改绑。
+
+        W4-A3 订正：CLI 字面量扫描面已由 `cli/**` 迁到 `lib/infrastructure/cli/**`
+        （check_version.py 的 CLI_DIR_REL）；原夹具把漂移写进 `cli/legacy.cpp`，
+        迁移后该目录已不在扫描面内 ⇒ 注入变成 no-op、断言 0 != 1。注入点改由
+        CLI_DIR_REL 单源派生。
+        """
+        cv = load_check()
         with tempfile.TemporaryDirectory() as td:
             make_fake_tree(td)
-            with open(os.path.join(td, "cli", "legacy.cpp"), "w",
+            cli_dir = os.path.join(td, cv.CLI_DIR_REL)
+            os.makedirs(cli_dir, exist_ok=True)
+            with open(os.path.join(cli_dir, "legacy.cpp"), "w",
                       encoding="utf-8") as f:
                 # CLI 手抄漂移 (输出内容含漂移串; 源码行运行期拼接对全文扫描不可见)
                 f.write('static const char* kV = "0.10.' + '0-alpha.2";\n')
@@ -147,12 +193,23 @@ class TestAdopt006CheckGate(unittest.TestCase):
             self.assertEqual(json.loads(r.stdout)["verdict"], "VERSION_CHECK_FAIL")
 
     def test_10_mutation_missing_doc_set_fails(self):
+        """活动文档面被移空必须判红 —— 口径 = §8 fail-closed（rc=2 且点名缺失锚）。
+
+        W4-A3 订正：原夹具删根 `HANDOVER.md`（已归档 ⇒ FileNotFoundError）；且
+        ci/check_version.py 对该情形的现行口径是 **ANCHOR_STALE / rc=2**
+        （[0] 锚存活 fail-closed），不是 rc=1。断言随之改绑：仍要求**必红**，
+        且必须点名缺失的 DOC_SET_FILES 成员（不许静默通过）。
+        """
+        cv = load_check()
+        victim = "docs/owner/RELEASE_STATUS.md"
+        self.assertIn(victim, cv.DOC_SET_FILES, "受害者必须是现行 DOC_SET_FILES 成员")
         with tempfile.TemporaryDirectory() as td:
             make_fake_tree(td)
-            os.remove(os.path.join(td, "HANDOVER.md"))  # 活动文档面被移空
+            os.remove(os.path.join(td, victim))  # 活动文档面被移空
             r = run_check(td)
-            self.assertEqual(r.returncode, 1)
-            self.assertEqual(json.loads(r.stdout)["verdict"], "VERSION_CHECK_FAIL")
+            self.assertEqual(r.returncode, 2, "锚失效 = harness 级失败（fail-closed）")
+            self.assertEqual(json.loads(r.stdout)["verdict"], "ANCHOR_STALE")
+            self.assertIn(victim, r.stderr, "必须点名缺失的锚（不许静默降级）")
 
     def test_11_cmake_project_alpha_suffix_rejected(self):
         """project() 不可能携带 alpha 后缀 (CMake 数字语法); 出现即 FAIL。"""

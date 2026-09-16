@@ -60,7 +60,7 @@ inline double actual_k_oracle(bool dark_opt, bool has_bias, bool has_dark, doubl
 
 // ---------------------------------------------------------------------------
 // ALG-CAL-001 oracle: 迭代 sigma-clip 合并, double 域独立复算 (ALG §3 F1):
-//   迭代: med = median(非NaN), MAD = median(|v-med|), sigma = 1.4826*MAD;
+//   迭代: med = median(非NaN), MAD = median(|v-med|), sigma = 1.482602218505602*MAD;
 //         sigma<=0 终止; 拒绝 dev < -sigma_low*sigma 或 dev > sigma_high*sigma;
 //         本轮零拒绝 → 收敛; max_iter 轮上限。
 //   合并: mean = 双域均值 (实现为 FP32 累加, 容差覆盖); median 同规则。
@@ -84,7 +84,7 @@ inline double master_gen_oracle(const T* stack, std::size_t npix, std::size_t id
         std::vector<double> devs;
         for (double v : vals)
             if (!std::isnan(v)) devs.push_back(std::fabs(v - med));
-        const double sigma = 1.4826 * median_oracle(devs);
+        const double sigma = 1.482602218505602 * median_oracle(devs);
         if (sigma <= 0.0) break;
         int rejected = 0;
         for (double& v : vals) {
@@ -164,8 +164,8 @@ inline FlatOracle master_flat_oracle(const std::vector<float>& stack,
 
 // ---------------------------------------------------------------------------
 // ALG-CAL-004 oracle:
-//   热像素阈值:   dark > med + hot_sigma·1.4826·MAD(dark)
-//   冷像素阈值:   bias < med − cold_sigma·1.4826·MAD(bias)
+//   热像素阈值:   dark > med + hot_sigma·1.482602218505602·MAD(dark)
+//   冷像素阈值:   bias < med − cold_sigma·1.482602218505602·MAD(bias)
 // (阈值统计与被测实现同定义; MAD 复算走 median_oracle sort 路径)
 // ---------------------------------------------------------------------------
 inline std::vector<char> detect_hot_oracle(const std::vector<float>& dark,
@@ -176,7 +176,7 @@ inline std::vector<char> detect_hot_oracle(const std::vector<float>& dark,
     const double med = median_oracle(dv);
     std::vector<double> abs_dev(dark.size());
     for (std::size_t i = 0; i < dark.size(); ++i) abs_dev[i] = std::fabs(dv[i] - med);
-    const double sigma = 1.4826 * median_oracle(abs_dev);
+    const double sigma = 1.482602218505602 * median_oracle(abs_dev);
     const double thr = med + hot_sigma * sigma;
     for (std::size_t i = 0; i < dark.size(); ++i) mask[i] = (dv[i] > thr) ? 1 : 0;
     return mask;
@@ -190,7 +190,7 @@ inline std::vector<char> detect_cold_oracle(const std::vector<float>& bias,
     const double med = median_oracle(bv);
     std::vector<double> abs_dev(bias.size());
     for (std::size_t i = 0; i < bias.size(); ++i) abs_dev[i] = std::fabs(bv[i] - med);
-    const double sigma = 1.4826 * median_oracle(abs_dev);
+    const double sigma = 1.482602218505602 * median_oracle(abs_dev);
     const double thr = med - cold_sigma * sigma;
     for (std::size_t i = 0; i < bias.size(); ++i) mask[i] = (bv[i] < thr) ? 1 : 0;
     return mask;

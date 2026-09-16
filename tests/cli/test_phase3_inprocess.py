@@ -316,6 +316,36 @@ class TestPhase3InProcess(unittest.TestCase):
                     self.assertIsInstance(h[k], float, "%s 必须是浮点（FITS 4.0）" % k)
             hdus.close()
 
+    def test_11_template_runnable_without_force(self):
+        """CLI-002 验收门（§6.1/§6.3 + GAP-034 D3）: export --template 产出的配置
+        **结构可直接运行** —— 只填路径（不改结构）后不加 -force 即 rc=0。
+
+        模板的占位值（空 hips_dir / output_dir "."）本身不是可运行输入（与
+        normalize 模板的空 input_lights 同款），因此判据是「结构同源 + 只改路径可跑」。
+        """
+        tpl_path = os.path.join(self.tmp, "tpl", "e.json")
+        os.makedirs(os.path.dirname(tpl_path), exist_ok=True)
+        r = self._run("export", "--template", "-o", tpl_path)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        with open(tpl_path, encoding="utf-8") as fh:
+            doc = json.load(fh)
+        # 与运行期会话同源的对象形态（source.hips_dir / center.ra_deg|dec_deg）
+        self.assertIsInstance(doc["source"], dict, "模板 source 必须是对象")
+        self.assertIn("hips_dir", doc["source"])
+        self.assertIsInstance(doc["center"], dict, "模板 center 必须是对象")
+        self.assertIn("ra_deg", doc["center"])
+        self.assertIn("dec_deg", doc["center"])
+        out = os.path.join(self.tmp, "tpl_out")
+        os.makedirs(out, exist_ok=True)
+        doc["source"]["hips_dir"] = self.hips      # 只填路径
+        doc["output_dir"] = out
+        cfg = os.path.join(self.tmp, "tpl_run.json")
+        with open(cfg, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh)
+        r2 = self._run("export", "--json", cfg)
+        self.assertEqual(r2.returncode, 0, r2.stderr[-400:])
+        self.assertTrue(os.path.isfile(os.path.join(out, "output_phase3.fits")))
+
     def test_10_coverage_requires_filter_and_nested_ordering(self):
         """B2-A8: coverage 对缺 obs_filter / hips_ordering!=NESTED 的输入必须 fail-closed。
         负例以 FIFO 生成的真实 HiPS 树构造，直接替换 properties 键。（mosaic 域, 不经 export）"""

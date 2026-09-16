@@ -28,7 +28,7 @@ CC_EXPORT long long cc_correct_median(
 // 从Dark检测热像素（全局统计 + 连通区域过滤）
 // dark_data: float32 Dark图像 [H*W]
 // H, W: 图像尺寸
-// sigma: 检测阈值（median + sigma * 1.4826 * MAD）
+// sigma: 检测阈值（median + sigma * 1.482602218505602 * MAD）
 // max_structure_size: 最大结构大小（大于此值的连通区域被过滤，用于排除星点）
 // out_mask: 输出 uint8 掩码 [H*W]，1=热像素，0=正常
 // 返回: 检测到的热像素数

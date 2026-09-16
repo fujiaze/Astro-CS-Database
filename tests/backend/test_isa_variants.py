@@ -3,7 +3,7 @@
 import json, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-HOST = os.path.join(REPO, "lib", "backend_host")
+HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "include")
 
 
@@ -101,11 +101,11 @@ class TestIsaVariants(unittest.TestCase):
         exe = os.path.join(self.tmp, "probe")
         r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
                             f"-I{os.path.join(REPO, 'third_party')}",
-                            f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}",
+                            f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
                             probe_src, os.path.join(HOST, "backend_loader.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
                             os.path.join(HOST, "cpu_features.cpp"),
-                            os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp"),
+                            os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
                             "-ldl", "-o", exe], capture_output=True, text=True, timeout=180)
         self.assertEqual(r.returncode, 0, r.stderr)
         import hashlib

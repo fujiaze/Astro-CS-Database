@@ -6,7 +6,7 @@
 - 工具：`tools/quality/check_complexity.py`（正则近似：函数头计数 +
   全文分支 token；文件级粒度，不做函数体切分——namespace/class 花括号
   会把多函数吞并成假"巨型函数"，实测伪影 max≈504 已弃用该算法）。
-- 度量域：`--paths lib,cli,include`；排除 `lib/acr`（ACR dormant，约束 §C）、
+- 度量域：`--paths lib,cli,include`；排除 `lib/infrastructure/acr`（ACR dormant，约束 §C）、
   `legacy`、`third_party`/`thirdparty`（vendored，QA-002 已 `-w` 隔离）。
 - 阈值：**null（未冻结）**。检查 `DEEP-COMPLEXITY` 恒 exit 0（只记录，
   不做门禁判定）；正式 C++ 解析器与阈值冻结由后续质量任务实现。
@@ -19,7 +19,7 @@
 | lines | 139881 |
 | functions_approx | 1858 |
 | branch_tokens | 19182 |
-| max_file_cyclomatic | 1048（`lib/orchestrator/cpp/src/orchestrator.cpp`） |
+| max_file_cyclomatic | 1048（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`） |
 
 cli 域 top1：`cli/commands.cpp`（332）；include 域 top1：
 `include/astrocs/core/contracts.h`（29）。

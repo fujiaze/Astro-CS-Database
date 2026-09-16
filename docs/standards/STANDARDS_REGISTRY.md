@@ -4,7 +4,7 @@
 > doc_status: ACTIVE_NORMATIVE
 > authoring_task: STD-REG-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev18，dispatch 79adc53703da7a33）
 > 上游权威: `ASTROCS_DESIGN.md` §5.3（冻结八投影）/附录 B（基础科学与格式参考）+ `ENGINEERING_SPEC.md` §8（本注册表为旧体系标准登记，不在 §0 权威链上）；旧宪章（已删除）
-> §18（负责人裁决，含 Phase3 四投影 TAN+SIN+CAR+AIT）
+> 已废止条款锚（旧宪章 §18 负责人裁决）的现行落点：投影集合 = `ASTROCS_DESIGN.md` §5.3（八投影）；资源门 = 同文 §8 + `contracts/resource_gate_v1.json`
 > 机器检查: `docs/standards/checks/check_standards_registry.py`（exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）
 > 登记: `docs/DOCUMENT_INDEX.yaml` doc_index.active（status = ACTIVE_NORMATIVE）
 
@@ -33,7 +33,7 @@
    （若存在）外部 findings 登记册**（外部登记册已删除，缺席时机器检查器显式登记
    `C6_external_findings_source`，不得静默返回空集）；悬空指针判 FAIL
    （`C6_deviation_id_closure`）。
-6. **变更流程**：新增/变更域、版本或条款映射必须走宪章 §1.2 变更流程并同步本文件 §2/§3
+6. **变更流程**：新增/变更域、版本或条款映射必须走 `ENGINEERING_SPEC.md` §3 + `SCIENCE_CORRECTNESS.md` 变更 claim 流程（原引「宪章 §1.2」已废止）并同步本文件 §2/§3
    与机器检查器冻结表；仅新增偏差指针（不改语义）由域内原子任务随实现提交更新。
 
 ---
@@ -298,9 +298,9 @@
 
 ---
 
-## 4. 与宪章 §19 文献锚的对应
+## 4. 与 `ASTROCS_DESIGN.md` 附录 B 文献锚的对应（原引「宪章 §19」已废止）
 
-| 宪章 §19 条目 | 本注册表域 | 落地文档 |
+| `ASTROCS_DESIGN.md` 附录 B 条目 | 本注册表域 | 落地文档 |
 |---|---|---|
 | IVOA HiPS 1.0 Recommendation | hips | docs/algorithms/HIPS_WRITER.md；docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md |
 | Fernique et al. 2015, Hierarchical progressive surveys | hips | docs/science/PHASE3_HIPS_TO_FITS.md |
