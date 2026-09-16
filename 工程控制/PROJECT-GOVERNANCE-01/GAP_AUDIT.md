@@ -381,3 +381,21 @@
 | ROOT-001 | IN_PROGRESS（自证完备） | `工程控制/PROJECT-GOVERNANCE-01/ROOT_LEDGER.md`（344 行）+ `reports/PROJECT-GOVERNANCE-01/root/{ROOT_LEDGER.tsv,ledger-stats.json,deleted-manifest/**}` | 顶层 133 → 60；删除 74 项 / 6,451,428,033 B |
 | ROOT-002 | IN_PROGRESS（自证完备；1 门受预存红灯阻塞，见 GAP-028） | `ci/root_manifest.json`、`tools/quality/check_root_cleanliness.py`、`tests/quality/test_root_cleanliness.py`、`ci/checks.json`（+CHK-ROOT-CLEAN，146 项）、`.gitignore` | 检查器正例 rc=0；3 负例 rc=1；真实根探针 2 次 rc=1 后复绿；注册表校验无新增错误 |
 | ROOT-003 | IN_PROGRESS（自证完备） | `工程控制/PROJECT-GOVERNANCE-01/RETENTION.md`（221 行）+ `run/PROJECT-GOVERNANCE-01/ROOT-003/logs/**` | `run/` 102G → 97G；删除 70 目录 / 5,430,815,754 B；27 个被引用目录全部保留 |
+
+---
+
+**GAP-031　违规（SECURITY）：凭据类文件入仓并被审计包白名单收录**
+
+- **发现者**：ROOT-004 前任执行 Agent（结构级判定，未读内容）；前台复核 + 负责人授权后读取内容完成最终判定。
+- **权威依据**：AGENTS.md §5（不读取/打印密钥与凭据；Fatduck 密钥只允许 `-i` 路径引用）；ENGINEERING_SPEC §6/§7；docs/ci 的检查项注册要求。
+- **证据（结构与登记层面）**：
+  1. `FATDUCK_ACCESS.md` **处于 tracked**，首次且唯一入库 `2f20a99d`（2026-08-29），此后未改；
+  2. **未被 .gitignore 覆盖**（`git check-ignore -v` 无匹配）；
+  3. 被 `tools/pack_audit_package.py` 的 `ROOT_FILES` 白名单收录（与 `VERSION`、`memory.md`、`HANDOVER.md` 等并列）⇒ **会被打进审计包 zip 外发**；
+  4. **负责人授权后读取内容的最终判定**：该文件是**接入说明**（Windows 验证节点 Fatduck 的跳板与身份、常用 ssh/scp 命令、在线时间窗、离线处理策略、使用范围），**不含明文密钥**——私钥实体 `vm-bj:/root/.ssh/id_ed25519` **不在仓库内**；全仓无 `BEGIN OPENSSH PRIVATE KEY` 形态、无 `id_ed25519`/`id_rsa`/`.pem`/`.key` 文件入库；
+  5. 残留暴露面：主机 Tailscale IP（`100.104.10.71`）、用户名、`sshd/0.0.0.0:22` 配置、公钥落点路径——属**基础设施侦察信息**，非可直接利用的凭据；
+  6. 约 30 个 tracked 文件提及该路径（多为路径引用）。
+- **判定**：①无凭据泄露，**不需要轮换**；②但「凭据访问说明」入仓 + 被审计包白名单收录仍属违规（扩大暴露面、且与 §5 口径冲突）；③`运营必需` 性成立（Windows 验证节点的接入文档被 CI/review 文档引用），不宜删除。
+- **处置（已裁决）**：立 **ROOT-006**（SECURITY）：**保留文件但缩小暴露面**——从 `tools/pack_audit_package.py` 的 `ROOT_FILES` 移除并加排除保证；`.gitignore` 加精确条目仅作为「误加回」护栏（已 tracked，忽略规则对已跟踪文件无效，故不替代白名单修复）；新增 `CHK-SECRET-HYGIENE`（白名单全量敏感形态扫描 + fail-closed + 能红能绿）；不再把「轮换」列为交付项。
+- **治理任务**：ROOT-006（前台提交）；不轮换凭据（无凭据）。
+
