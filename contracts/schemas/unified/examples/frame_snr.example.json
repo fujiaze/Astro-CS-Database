@@ -1,0 +1,35 @@
+{
+  "unified_object": "frame_snr",
+  "object_schema_id": "https://astrocs.local/schemas/unified/frame_snr/v1",
+  "schema_version": 1,
+  "units": {
+    "bunit": "1",
+    "bunit_semantics": "written_px_power",
+    "pixel_semantics": "dimensionless",
+    "pixel_area_power": 0
+  },
+  "missing_value": {
+    "missing_repr": "null",
+    "invalid_repr": "nan",
+    "nan_in_binary": true,
+    "silent_zero_forbidden": true
+  },
+  "precision": "float32",
+  "object_weight_capability": false,
+  "object_weight_verdict": "唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算",
+  "provenance": {
+    "source_chain": [
+      "phase1/frame-0001"
+    ],
+    "software_sha": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+    "config_hash": "sha256:cccc",
+    "algorithm_ids": [
+      "ALG-P2-INT-001"
+    ],
+    "generated_utc": "2026-09-16T00:00:00Z"
+  },
+  "frame_snr_value": 118.4,
+  "frame_id": "p2_frame_id:0f1e2d3c4b5a6978",
+  "estimator": "snr_noise_model_v1",
+  "role": "unique_frame_reference"
+}

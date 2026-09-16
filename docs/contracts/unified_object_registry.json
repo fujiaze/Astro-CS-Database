@@ -1,0 +1,701 @@
+{
+  "registry_schema": "astrocs.unified-object-registry/v1",
+  "registry_id": "IDX-UNIFIED-OBJECTS",
+  "version": 1,
+  "task": "DATA-001",
+  "baseline_head": "ecf6ad6f",
+  "authority": {
+    "objects": "docs/design/UNIFIED_MODEL.md §2（14 个对象与「可否作权重」列）",
+    "separation": "ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3（数据对象按 UNIFIED_MODEL 区分）",
+    "ports": "ENGINEERING_SPEC.md §4.7（端口引用有效 DATA 合同）",
+    "single_source_of_truth": "contracts/schemas/（ENGINEERING_SPEC §4.7）"
+  },
+  "canonical_object_classes": [
+    {
+      "object_name": "signal",
+      "object_data_id": "DATA-OBJ-SIGNAL-001",
+      "schema_id": "https://astrocs.local/schemas/unified/signal/v1",
+      "canonical_schema_file": "contracts/schemas/unified/signal.schema.json",
+      "unit_bunit": "ADU/px^2 或 BUNIT(声明)",
+      "pixel_semantics": "surface_brightness",
+      "invalid_or_missing": "NaN / null",
+      "precision": "float32|float64",
+      "weight_verdict": "否",
+      "weight_capable": false,
+      "notes": "声明单位和像素语义的估计量；不是权重。product_family 决定 pixel_area_power（面亮度 -2 / 通量 0）。",
+      "compatibility_projections": [
+        {
+          "file": "contracts/schemas/v6/astrocs.v6.signal.v1.schema.json",
+          "kind": "product_family_specialization_not_equivalent",
+          "status": "FROZEN_COMPATIBILITY",
+          "retire_after": "0.12.0",
+          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
+        }
+      ]
+    },
+    {
+      "object_name": "variance",
+      "object_data_id": "DATA-OBJ-VARIANCE-001",
+      "schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+      "canonical_schema_file": "contracts/schemas/unified/variance.schema.json",
+      "unit_bunit": "signal单位^2（面亮度 ADU^2/px^4）",
+      "pixel_semantics": "surface_brightness",
+      "invalid_or_missing": "null（无覆盖）；负值/NaN=损坏",
+      "precision": "float32|float64",
+      "weight_verdict": "对该估计目标可以",
+      "weight_capable": true,
+      "notes": "同一估计量的方差；variance_from 不得为权重标量（FZ-FORMULA-COV-PROP）。",
+      "compatibility_projections": [
+        {
+          "file": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+          "kind": "product_family_specialization_not_equivalent",
+          "status": "FROZEN_COMPATIBILITY",
+          "retire_after": "0.12.0",
+          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
+        }
+      ]
+    },
+    {
+      "object_name": "ivar",
+      "object_data_id": "DATA-OBJ-IVAR-001",
+      "schema_id": "https://astrocs.local/schemas/unified/ivar/v1",
+      "canonical_schema_file": "contracts/schemas/unified/ivar.schema.json",
+      "unit_bunit": "1/signal单位^2（面亮度 px^4/ADU^2）",
+      "pixel_semantics": "surface_brightness",
+      "invalid_or_missing": "0=显式不可用；null=缺失",
+      "precision": "float32|float64",
+      "weight_verdict": "对该估计目标可以",
+      "weight_capable": true,
+      "notes": "ivar=1/variance；variance 缺失/为 0 → ivar 显式不可用，禁止伪装。",
+      "compatibility_projections": [
+        {
+          "file": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+          "kind": "product_family_specialization_not_equivalent",
+          "status": "FROZEN_COMPATIBILITY",
+          "retire_after": "0.12.0",
+          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
+        }
+      ]
+    },
+    {
+      "object_name": "source_snr",
+      "object_data_id": "DATA-OBJ-SOURCE-SNR-001",
+      "schema_id": "https://astrocs.local/schemas/unified/source_snr/v1",
+      "canonical_schema_file": "contracts/schemas/unified/source_snr.schema.json",
+      "unit_bunit": "1（F_hat/sigma_F 无量纲）",
+      "pixel_semantics": "dimensionless",
+      "invalid_or_missing": "null",
+      "precision": "float32|float64",
+      "weight_verdict": "不直接作帧权重",
+      "weight_capable": false,
+      "notes": "依赖源亮度的 F_hat/sigma_F；不是 variance/ivar，不得接入要求 variance 的端口。",
+      "compatibility_projections": []
+    },
+    {
+      "object_name": "depth_m5",
+      "object_data_id": "DATA-OBJ-DEPTH-M5-001",
+      "schema_id": "https://astrocs.local/schemas/unified/depth_m5/v1",
+      "canonical_schema_file": "contracts/schemas/unified/depth_m5.schema.json",
+      "unit_bunit": "mag",
+      "pixel_semantics": "magnitude",
+      "invalid_or_missing": "null",
+      "precision": "float32|float64",
+      "weight_verdict": "摘要，不作权重",
+      "weight_capable": false,
+      "notes": "固定参考 PSF/孔径下 5σ 深度；摘要量，不作权重、不是 frame_snr。",
+      "compatibility_projections": []
+    },
+    {
+      "object_name": "frame_snr",
+      "object_data_id": "DATA-OBJ-FRAME-SNR-001",
+      "schema_id": "https://astrocs.local/schemas/unified/frame_snr/v1",
+      "canonical_schema_file": "contracts/schemas/unified/frame_snr.schema.json",
+      "unit_bunit": "1（真实信号/噪声比）",
+      "pixel_semantics": "dimensionless",
+      "invalid_or_missing": "null",
+      "precision": "float32|float64",
+      "weight_verdict": "唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算",
+      "weight_capable": false,
+      "notes": "帧级 SNR：是信噪比不是权重；权重由 Phase2 逆方差叠加从 SNR 计算。",
+      "compatibility_projections": []
+    },
+    {
+      "object_name": "point_information",
+      "object_data_id": "DATA-OBJ-POINT-INFORMATION-001",
+      "schema_id": "https://astrocs.local/schemas/unified/point_information/v1",
+      "canonical_schema_file": "contracts/schemas/unified/point_information.schema.json",
+      "unit_bunit": "ADU^-2（=signal^-2）",
+      "pixel_semantics": "dimensionless",
+      "invalid_or_missing": "null",
+      "precision": "float32|float64",
+      "weight_verdict": "点源目标的严格权重",
+      "weight_capable": true,
+      "notes": "W_info=a²PᵀC⁻¹P=1/Var(F_hat)；点源目标的严格权重。",
+      "compatibility_projections": [
+        {
+          "file": "contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json",
+          "kind": "product_family_specialization_not_equivalent",
+          "status": "FROZEN_COMPATIBILITY",
+          "retire_after": "0.12.0",
+          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
+        }
+      ]
+    },
+    {
+      "object_name": "psfsw_robust_weight",
+      "object_data_id": "DATA-OBJ-PSFSW-ROBUST-WEIGHT-001",
+      "schema_id": "https://astrocs.local/schemas/unified/psfsw_robust_weight/v1",
+      "canonical_schema_file": "contracts/schemas/unified/psfsw_robust_weight.schema.json",
+      "unit_bunit": "1（无量纲组内相对）",
+      "pixel_semantics": "dimensionless",
+      "invalid_or_missing": "null",
+      "precision": "float32|float64",
+      "weight_verdict": "显式 psfsw_robust 集成可用；不是 ivar",
+      "weight_capable": true,
+      "notes": "共同星集 PSF signal/集中度/稳健噪声/背景的复合权重；无量纲、组内相对，不是 ivar。",
+      "compatibility_projections": [
+        {
+          "file": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+          "kind": "product_family_specialization_not_equivalent",
+          "status": "FROZEN_COMPATIBILITY",
+          "retire_after": "0.12.0",
+          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
+        }
+      ]
+    },
+    {
+      "object_name": "sparse_snr_layer",
+      "object_data_id": "DATA-OBJ-SPARSE-SNR-LAYER-001",
+      "schema_id": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
+      "canonical_schema_file": "contracts/schemas/unified/sparse_snr_layer.schema.json",
+      "unit_bunit": "1",
+      "pixel_semantics": "dimensionless",
+      "invalid_or_missing": "null",
+      "precision": "float32|float64",
+      "weight_verdict": "帧内精细参考",
+      "weight_capable": false,
+      "notes": "帧内稀疏控制点 SNR 参考（可选标准层）；参考层不承载帧级权重。",
+      "compatibility_projections": []
+    },
+    {
+      "object_name": "support",
+      "object_data_id": "DATA-OBJ-SUPPORT-001",
+      "schema_id": "https://astrocs.local/schemas/unified/support/v1",
+      "canonical_schema_file": "contracts/schemas/unified/support.schema.json",
+      "unit_bunit": "1（[0,1]）",
+      "pixel_semantics": "probability",
+      "invalid_or_missing": "0=无覆盖",
+      "precision": "float32|float64|integer",
+      "weight_verdict": "否",
+      "weight_capable": false,
+      "notes": "有效输入/面积贡献；只作门，不作权重（FZ-GATE-SUPPORT-COVERAGE）。",
+      "compatibility_projections": []
+    },
+    {
+      "object_name": "coverage",
+      "object_data_id": "DATA-OBJ-COVERAGE-001",
+      "schema_id": "https://astrocs.local/schemas/unified/coverage/v1",
+      "canonical_schema_file": "contracts/schemas/unified/coverage.schema.json",
+      "unit_bunit": "1（几何有效域）",
+      "pixel_semantics": "probability",
+      "invalid_or_missing": "0=无覆盖（空域）",
+      "precision": "float32|float64|integer",
+      "weight_verdict": "否",
+      "weight_capable": false,
+      "notes": "几何/数据有效域；不是 rejection。",
+      "compatibility_projections": []
+    },
+    {
+      "object_name": "validity",
+      "object_data_id": "DATA-OBJ-VALIDITY-001",
+      "schema_id": "https://astrocs.local/schemas/unified/validity/v1",
+      "canonical_schema_file": "contracts/schemas/unified/validity.schema.json",
+      "unit_bunit": "1（状态量）",
+      "pixel_semantics": "count",
+      "invalid_or_missing": "missing=显式缺失态",
+      "precision": "integer",
+      "weight_verdict": "门，不是权重",
+      "weight_capable": false,
+      "notes": "坏点/缺失/越界状态；门，不是权重。",
+      "compatibility_projections": []
+    },
+    {
+      "object_name": "rejection",
+      "object_data_id": "DATA-OBJ-REJECTION-001",
+      "schema_id": "https://astrocs.local/schemas/unified/rejection/v1",
+      "canonical_schema_file": "contracts/schemas/unified/rejection.schema.json",
+      "unit_bunit": "1（门/概率）",
+      "pixel_semantics": "probability",
+      "invalid_or_missing": "0=未拒绝（无覆盖=0）",
+      "precision": "float32|float64|integer",
+      "weight_verdict": "门/概率，不是 coverage",
+      "weight_capable": false,
+      "notes": "污染推断结果；必须携带 pollution_inference 本体，不得用 coverage 冒充。",
+      "compatibility_projections": []
+    },
+    {
+      "object_name": "provenance",
+      "object_data_id": "DATA-OBJ-PROVENANCE-001",
+      "schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
+      "canonical_schema_file": "contracts/schemas/unified/provenance.schema.json",
+      "unit_bunit": "1（元数据，无量纲）",
+      "pixel_semantics": "dimensionless",
+      "invalid_or_missing": "unavailable.{flag,reason,scope} 显式登记",
+      "precision": "integer",
+      "weight_verdict": "——",
+      "weight_capable": false,
+      "notes": "输入/配置/软件/哈希来源链；不承载数值权重。",
+      "compatibility_projections": [
+        {
+          "file": "contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
+          "kind": "product_family_specialization_not_equivalent",
+          "status": "FROZEN_COMPATIBILITY",
+          "retire_after": "0.12.0",
+          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
+        }
+      ]
+    }
+  ],
+  "legacy_contract_ids": {
+    "task": "DATA-001",
+    "trigger": "MOD-001 的 docs/modules/MODULE_MAP.yaml 引用 22 个 DATA ID，其中 7 个在统一对象权威面上无解析；负责人裁决：权威=统一对象合同，MODULE_MAP 不得引用权威面之外的 ID。",
+    "decision_rule": "(a) 有 canonical 映射 = 旧 ID → 统一对象（或组件对象组合）canonical schema ID；(b) 无 canonical 对应 = 明确判定并附旧合同面证据，不得留待定。",
+    "entries": [
+      {
+        "legacy_id": "DATA-P1-CAL",
+        "decision": "mapped",
+        "canonical_objects": [
+          "signal"
+        ],
+        "relation": "single_object",
+        "kind": "module_io_contract",
+        "old_contract_face": [
+          "docs/contracts/DATA_SEMANTICS.md:133（§9 ID 定义节，:135 状态 CONTRACT_READY）",
+          "docs/contracts/PUBLIC_API.md:102",
+          "docs/modules/registry/astrocs.phase1.calibration.md:23（端口 calibrated）",
+          "docs/modules/registry/astrocs.phase1.cosmetic.md:34（端口 calibrated）",
+          "docs/modules/registry/astrocs.phase1.drizzle.md:35（端口 calibrated）",
+          "docs/modules/registry/astrocs.phase2.resample.md:22（端口 calibrated）",
+          "docs/modules/calibration.md:8/:53"
+        ],
+        "new_index_added_by_DATA001": [
+          "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-CAL'",
+          "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+        ],
+        "evidence": "DATA_SEMANTICS §9.1 输入 light（ADU，NaN 直传）+ §9.2 输出 out（ADU，可负不 clamp）= 声明单位与像素语义的科学估计量本身 → UNIFIED_MODEL §2 的 signal；§9.4 明确本层不出 variance/ivar/coverage。",
+        "note": "master_bias/master_dark/master_flat 属标定参考帧（flat 为无量纲归一参考），不是 14 个科学对象之一；本 ID 的契约主体（calibrated frame）归 signal。"
+      },
+      {
+        "legacy_id": "DATA-P1-COS",
+        "decision": "mapped",
+        "canonical_objects": [
+          "signal"
+        ],
+        "relation": "single_object",
+        "kind": "module_io_contract",
+        "old_contract_face": [
+          "docs/contracts/DATA_SEMANTICS.md:180（§10 ID 定义节，:182 状态 CONTRACT_READY）",
+          "docs/contracts/PUBLIC_API.md:152/:177",
+          "docs/modules/registry/astrocs.phase1.cosmetic.md:35（端口 cleaned）/:38-40（权威名说明）",
+          "docs/modules/calibration.md:12"
+        ],
+        "new_index_added_by_DATA001": [
+          "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COS'",
+          "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+        ],
+        "evidence": "DATA_SEMANTICS §10.2 输出 out（修复帧，ADU，可负不 clamp）+ §10.3「mask 为模块内部产物，不作为产品输出；variance/ivar/coverage 不在本层」→ 契约主体是 signal；坏点掩码不是 validity/rejection 产品。",
+        "note": "本 ID 是 DATA-P1-COSMETIC 的权威名（后者为 descriptor 占位）；registry :38-40 明写「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。"
+      },
+      {
+        "legacy_id": "DATA-P1-COSMETIC",
+        "decision": "mapped",
+        "canonical_objects": [
+          "signal"
+        ],
+        "relation": "superseded_placeholder",
+        "kind": "descriptor_port_placeholder",
+        "superseded_by": "DATA-P1-COS",
+        "old_contract_face": [
+          "docs/modules/registry/astrocs.phase1.cosmetic.md:39（descriptor 占位名说明）",
+          "docs/modules/registry/astrocs.phase1.star-psf.md:33（端口 cleaned）",
+          "docs/modules/registry/astrocs.phase1.star-detection.md:38（端口 image）"
+        ],
+        "new_index_added_by_DATA001": [
+          "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COSMETIC'",
+          "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+        ],
+        "evidence": "该 ID 在 docs/contracts/{DATA_SEMANTICS.md,PUBLIC_API.md,DATA_ARTIFACTS.md} 中**零命中**（旧契约面无定义）；唯一权威说明在 registry astrocs.phase1.cosmetic.md:38-40「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
+        "note": "占位名不再单独存在；统一对象面归 signal（cleaned 帧 = ADU 科学估计量）。"
+      },
+      {
+        "legacy_id": "DATA-P1-DRZ",
+        "decision": "mapped",
+        "canonical_objects": [
+          "signal",
+          "variance",
+          "ivar",
+          "support",
+          "coverage"
+        ],
+        "relation": "composite",
+        "kind": "module_io_contract",
+        "old_contract_face": [
+          "docs/contracts/DATA_SEMANTICS.md:226（§11 ID 定义节，:228 状态 CONTRACT_READY）",
+          "docs/contracts/PUBLIC_API.md:214",
+          "docs/modules/registry/astrocs.phase1.drizzle.md:7（upstream 引用）/:39（模块级数据合同说明）",
+          "docs/modules/registry/astrocs.phase1.hips-writer.md:7/:34（端口 stacked）",
+          "docs/modules/healpix_drizzle.md:32/:62"
+        ],
+        "new_index_added_by_DATA001": [
+          "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-DRZ'",
+          "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+        ],
+        "evidence": "§11.2 输出：sumFlux（HiPS SIGNAL 底数）→ signal；sumVarNum→variance 产品 + ivar=1/variance → variance/ivar；sumArea（HiPS SUPPORT 底数，sr）→ support；§11.3 面亮度归一 S=F/D 与 NaN 语义 → coverage 归属 finalize 层。§11.1 输入侧 data 块（ADU）同属 signal。",
+        "note": "组合映射：一个模块级合同覆盖 5 个对象；组件各自 canonical，不是新对象。"
+      },
+      {
+        "legacy_id": "DATA-P1-SOURCES",
+        "decision": "no_canonical",
+        "canonical_objects": [],
+        "relation": "orchestration_port_catalog_name",
+        "kind": "descriptor_port_catalog",
+        "old_contract_face": [
+          "docs/contracts/DATA_SEMANTICS.md:444（§14 下游计数行 n_sources 的引用）",
+          "docs/contracts/DATA_SEMANTICS.md:471（§14 端口链 psf→sources→fluxes）",
+          "docs/contracts/DATA_SEMANTICS.md:531（§15 端口链）",
+          "docs/contracts/PUBLIC_API.md:634（photometry descriptor 端口编目，带data_id=DATA-P1-SOURCES）",
+          "docs/modules/MODULE_MAP.yaml:151（psf 模块）"
+        ],
+        "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。DATA_SEMANTICS §15.2 明确该块列语义由 P1-STAR-INT 承接，且要求「下游必须经 star_id 连接」，未定义为跨阶段产品合同；基线 docs/contracts/DATA_ARTIFACTS.md 与基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 均为零命中。",
+        "new_index_added_by_DATA001": [
+          "docs/contracts/INDEX.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
+        ],
+        "note": "判定：旧契约面无 canonical 对应（属编排端口编目名，非 14 个科学数据对象之一）。其携带的 flux 物理量在 signal 面（§15.2 flux=ADU 解析积分），但 catalog 行集合本身不构成单一对象合同。"
+      },
+      {
+        "legacy_id": "DATA-P2-SMP",
+        "decision": "no_canonical",
+        "canonical_objects": [],
+        "relation": "module_io_contract_without_object_semantics",
+        "kind": "module_io_contract",
+        "old_contract_face": [
+          "docs/contracts/DATA_SEMANTICS.md:1407（§23 ID 定义节，:1409 状态 CONTRACT_READY）",
+          "docs/contracts/PUBLIC_API.md:1447/:1556/:1701",
+          "docs/modules/phase2_samp.md:74/:76/:189",
+          "docs/modules/phase2_upm.md:52/:73/:90/:101/:249",
+          "docs/modules/registry/astrocs.phase2.sample.md:62/:64/:164",
+          "docs/modules/registry/astrocs.phase2.upm-fit.md:46"
+        ],
+        "new_index_added_by_DATA001": [
+          "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P2-SMP'",
+          "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+        ],
+        "evidence": "DATA_SEMANTICS §23 冻结的是 P2ControlObservation / 逐样本列与 accept/reason 值域（§23.3 u8 reason），即 control 观测表与采样决定，不是 14 个对象中的任何一个：既不是 signal/variance/ivar（无单位与像素语义的科学估计量），也不是 validity/rejection（§23.3 的 accept/reason 是采样态，UPM 权重由 §22 rejection 与 §25 UPM 承接）。",
+        "note": "判定：无 canonical 对象对应；采样列的最终科学产品归 §25 UPM（DATA-P2-UPM，control cell 参数）与 §30 产品合同，两者都不在 UNIFIED_MODEL §2 的 14 对象内。"
+      },
+      {
+        "legacy_id": "DATA-GAIA-001",
+        "decision": "no_canonical",
+        "canonical_objects": [],
+        "relation": "external_catalog_service_contract",
+        "kind": "external_catalog_contract",
+        "old_contract_face": [
+          "docs/contracts/DATA_SEMANTICS.md:86（§8 ID 定义节，:88 状态 CONTRACT_READY）",
+          "docs/contracts/PUBLIC_API.md:71",
+          "docs/contracts/DATA_ARTIFACTS.md:29（登记行）",
+          "docs/traceability/TRACEABILITY_MATRIX.csv 第 2 行（DATA=DATA-GAIA-001, VERIFIED）",
+          "docs/modules/gaia_xpsd_client.md:23/:40"
+        ],
+        "new_index_added_by_DATA001": [
+          "docs/contracts/INDEX.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
+        ],
+        "evidence": "DATA_SEMANTICS §8 = Gaia XPSD 星表输入与星表行（三个变体）；单位 deg/mag/W·m⁻²·nm⁻¹，坐标 ICRS J2000，dtype f64/i32/u8[]，in-memory 不落盘。它是外部星表服务的 C ABI 行契约，不含 14 个对象中任何一个的单位/像素语义（无 ADU 估计量、无方差/逆方差、无 coverage/validity 产品）。",
+        "note": "判定：无 canonical 对象对应；旧面命中在 DATA_SEMANTICS.md:86（§8）、PUBLIC_API.md:71、DATA_ARTIFACTS.md:29、docs/modules/gaia_xpsd_client.md:23/:40 与 TRACEABILITY_MATRIX.csv 第 2 行；基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 零命中，继续作为星表服务合同存在，不进统一对象链。"
+      }
+    ],
+    "summary": {
+      "total": 7,
+      "mapped": 4,
+      "no_canonical": 3,
+      "mapped_ids": [
+        "DATA-P1-CAL",
+        "DATA-P1-COS",
+        "DATA-P1-COSMETIC",
+        "DATA-P1-DRZ"
+      ],
+      "no_canonical_ids": [
+        "DATA-P1-SOURCES",
+        "DATA-P2-SMP",
+        "DATA-GAIA-001"
+      ]
+    }
+  },
+  "port_contracts": [
+    {
+      "port_id": "phase2.integrate.pixel_variance_in",
+      "direction": "input",
+      "description": "Phase2 逐像素方差输入端口（消费 variance 平面）",
+      "accepts_object": "variance",
+      "accepts_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+      "rejects_object": "source_snr",
+      "accepts_example": {
+        "port_id": "phase2.integrate.pixel_variance_in",
+        "direction": "input",
+        "accepts_object": "variance",
+        "accepts_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+        "connected_object": "variance"
+      },
+      "rejects_example": {
+        "port_id": "phase2.integrate.pixel_variance_in",
+        "direction": "input",
+        "accepts_object": "variance",
+        "accepts_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+        "connected_object": "source_snr"
+      }
+    }
+  ],
+  "port_contract_ref": {
+    "schema_id": "https://astrocs.local/schemas/unified/port/v1",
+    "canonical_schema_file": "contracts/schemas/unified/port_contract.schema.json",
+    "purpose": "端口合同 canonical：跨对象连接只能同对象（UNIFIED_MODEL §2 禁止对象互相冒充；ENGINEERING_SPEC §4.7）。本 registry 的 port_contracts 只登记具体端口示例，不重复定义该约束。"
+  },
+  "other_schema_files": [
+    {
+      "file": "contracts/schemas/unified/port_contract.schema.json",
+      "role": "port_reference_contract",
+      "owner": "DATA-001",
+      "object_class": null,
+      "note": "端口合同 canonical（跨对象连接只能同对象）；不是 UNIFIED_MODEL §2 的 14 个数据对象之一。"
+    },
+    {
+      "file": "contracts/schemas/version.schema.json",
+      "role": "version_consistency_contract",
+      "owner": "GOV-001",
+      "object_class": null,
+      "note": "VERSION/CMake/packaging 三方一致性合同的机器可读形态；不属于 UNIFIED_MODEL §2 的 14 个数据对象。"
+    },
+    {
+      "file": "contracts/schemas/contract_index.schema.json",
+      "role": "contract_index_meta_schema",
+      "owner": "GOV-001",
+      "object_class": null,
+      "note": "docs/contracts/INDEX.yaml 的元 schema（索引不承载对象语义）。"
+    },
+    {
+      "file": "contracts/schemas/traceability_matrix.schema.json",
+      "role": "traceability_contract",
+      "owner": "GOV-001",
+      "object_class": null,
+      "note": "可追溯矩阵形状；由 tools/traceability/check_traceability_matrix.py 消费。"
+    },
+    {
+      "file": "contracts/schemas/cpu_profile.schema.json",
+      "role": "config_contract",
+      "owner": "CFG-001",
+      "object_class": null,
+      "note": "既有 cpu_profile 合同；配置 schema 与 config/** 归 CFG-001（DATA-001 只留锚点，见 docs/contracts/config_separation_anchors.json）。"
+    },
+    {
+      "file": "contracts/schemas/hardware_inspect.schema.json",
+      "role": "observability_contract",
+      "owner": "OBS-001",
+      "object_class": null,
+      "note": "硬件探测输出形状；不承载科学数据对象语义。"
+    },
+    {
+      "file": "contracts/schemas/jsonl_event_v1.schema.json",
+      "role": "observability_contract",
+      "owner": "OBS-001",
+      "object_class": null,
+      "note": "结构化日志 JSONL 事件合同（ENGINEERING_SPEC §9）。"
+    },
+    {
+      "file": "contracts/schemas/task_result.schema.json",
+      "role": "task_result_contract",
+      "owner": "CI-001",
+      "object_class": null,
+      "note": "任务结果合同；由 tools/quality/check_task_result_schema.py 消费。"
+    },
+    {
+      "file": "contracts/schemas/v6/astrocs.v6.units.v1.schema.json",
+      "role": "units_table_contract",
+      "owner": "SCHEMA-INTEGRATE-001(W6)",
+      "object_class": null,
+      "note": "冻结单位表（FZ-UNIT-*）机器镜像；canonical 对象 schema 的 units 块照抄其值，不在本任务改写。"
+    },
+    {
+      "file": "contracts/schemas/v6/astrocs.v6.psf.v1.schema.json",
+      "role": "product_family_specialization",
+      "owner": "SCHEMA-INTEGRATE-001(W6)",
+      "object_class": null,
+      "note": "PSF 模型合同；不在 14 个对象内（对象表只含 psfsw_robust_weight 与 point_information）。"
+    },
+    {
+      "file": "contracts/schemas/v6/astrocs.v6.effective-psf.v1.schema.json",
+      "role": "product_family_specialization",
+      "owner": "SCHEMA-INTEGRATE-001(W6)",
+      "object_class": null,
+      "note": "effective PSF 合同；不在 14 个对象内。"
+    },
+    {
+      "file": "contracts/schemas/v6/astrocs.v6.phase3.v1.schema.json",
+      "role": "product_family_specialization",
+      "owner": "SCHEMA-INTEGRATE-001(W6)",
+      "object_class": null,
+      "note": "Phase3 投影/采样合同；不在 14 个对象内。"
+    },
+    {
+      "file": "contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json",
+      "role": "weight_mode_vocabulary",
+      "owner": "SCHEMA-INTEGRATE-001(W6)",
+      "object_class": null,
+      "note": "weight_mode 枚举/词表合同（配置面）；对象合同只描述「可否作权重」，模式选择归配置面。"
+    },
+    {
+      "file": "contracts/schemas/phase_config_normalize.schema.json",
+      "role": "config_contract",
+      "owner": "CFG-001",
+      "object_class": null,
+      "note": "CFG-001 产物：normalize 的 phase_config 科学参数合同（锚点见 docs/contracts/config_separation_anchors.json）。"
+    },
+    {
+      "file": "contracts/schemas/phase_config_mosaic.schema.json",
+      "role": "config_contract",
+      "owner": "CFG-001",
+      "object_class": null,
+      "note": "CFG-001 产物：mosaic 的 phase_config 合同。"
+    },
+    {
+      "file": "contracts/schemas/phase_config_export.schema.json",
+      "role": "config_contract",
+      "owner": "CFG-001",
+      "object_class": null,
+      "note": "CFG-001 产物：export 的 phase_config 合同。"
+    },
+    {
+      "file": "contracts/schemas/run_manifest.schema.json",
+      "role": "config_contract",
+      "owner": "CFG-001",
+      "object_class": null,
+      "note": "CFG-001 产物：run_manifest 冻结合同（源码/配置/输入输出哈希）。"
+    }
+  ],
+  "deprecation": {
+    "legacy_id_map": {
+      "DATA-P1-CAL": "contracts/schemas/unified/signal.schema.json",
+      "DATA-P1-COS": "contracts/schemas/unified/signal.schema.json",
+      "DATA-P1-COSMETIC": "contracts/schemas/unified/signal.schema.json",
+      "DATA-P1-DRZ": "contracts/schemas/unified/signal.schema.json + variance/ivar/support/coverage（组件 canonical）",
+      "DATA-P1-SOURCES": "无 canonical 对应（编排端口编目名；见 legacy_contract_ids）",
+      "DATA-P2-SMP": "无 canonical 对应（模块 I/O 合同，无 14 对象语义；见 legacy_contract_ids）",
+      "DATA-GAIA-001": "无 canonical 对应（外部星表服务合同；见 legacy_contract_ids）"
+    },
+    "legacy_paths_are_compatibility_only": true,
+    "no_second_equivalent_schema": true,
+    "retire_after": "0.12.0",
+    "policy": "contracts/schemas/ 是唯一事实源；旧路径（contracts/data/**、contracts/schemas/v6/**、合同变体根文件）只保留兼容期映射与产品族专用投影，不得再新增与 canonical 等价的第二份定义；对象身份/单位/无效值/精度/可否作权重一律以 contracts/schemas/unified/ 为准。",
+    "legacy_paths": [
+      {
+        "old_path": "contracts/data/v6_data_dictionary_v1.json",
+        "new_path": "contracts/schemas/unified/",
+        "kind": "data_dictionary_index",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/data/v6_weight_vocabulary_v1.json",
+        "new_path": "contracts/schemas/unified/",
+        "kind": "weight_vocabulary",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/data/v6_migration_map_v1.json",
+        "new_path": "docs/contracts/unified_object_registry.json#deprecation",
+        "kind": "migration_map",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/schemas/v6/astrocs.v6.signal.v1.schema.json",
+        "new_path": "contracts/schemas/unified/signal.schema.json",
+        "kind": "object_contract",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+        "new_path": "contracts/schemas/unified/variance.schema.json",
+        "kind": "object_contract",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+        "new_path": "contracts/schemas/unified/ivar.schema.json",
+        "kind": "object_contract",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+        "new_path": "contracts/schemas/unified/psfsw_robust_weight.schema.json",
+        "kind": "object_contract",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json",
+        "new_path": "contracts/schemas/unified/point_information.schema.json",
+        "kind": "object_contract",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
+        "new_path": "contracts/schemas/unified/provenance.schema.json",
+        "kind": "object_contract",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/data/phase2_uncertainty_rejection_provenance_v1.json",
+        "new_path": "contracts/schemas/unified/rejection.schema.json",
+        "kind": "product_contract",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/data/phase_product_exchange.schema.json",
+        "new_path": "docs/contracts/unified_object_registry.json#port_contract",
+        "kind": "exchange_planes",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "contracts/proposals/v6/data/",
+        "new_path": "contracts/schemas/unified/",
+        "kind": "proposal_design_archive",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      },
+      {
+        "old_path": "docs/contracts/v6/data/",
+        "new_path": "docs/contracts/UNIFIED_OBJECTS.md",
+        "kind": "human_readable_design_archive",
+        "deprecated_at": "0.11.0-alpha.2",
+        "retire_after": "0.12.0"
+      }
+    ]
+  },
+  "u02_criterion": {
+    "id": "U-02",
+    "statement": "单一合同链的唯一性判定标准：对 UNIFIED_MODEL §2 的 14 个对象，contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，不得与 canonical 重复定义对象判别字段（除 schema_version 外 required/properties 词表不得重叠），且 contracts/schemas/** 下每个 schema 文件都必须在 docs/contracts/unified_object_registry.json 的 canonical_object_classes 中被登记归属。",
+    "machine_assertions": [
+      "tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_every_schema_loads_and_has_unique_global_id",
+      "tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_object_name_has_exactly_one_canonical_file",
+      "tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_every_object_schema_is_in_the_ownership_registry",
+      "tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_no_two_equivalent_schemas_per_object"
+    ]
+  }
+}

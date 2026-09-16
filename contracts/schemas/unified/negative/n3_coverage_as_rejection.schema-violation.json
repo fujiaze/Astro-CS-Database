@@ -1,0 +1,35 @@
+{
+  "unified_object": "coverage",
+  "object_schema_id": "https://astrocs.local/schemas/unified/coverage/v1",
+  "schema_version": 1,
+  "units": {
+    "bunit": "1",
+    "bunit_semantics": "written_px_power",
+    "pixel_semantics": "probability",
+    "pixel_area_power": 0
+  },
+  "missing_value": {
+    "missing_repr": "zero",
+    "invalid_repr": "zero",
+    "nan_in_binary": false,
+    "silent_zero_forbidden": true
+  },
+  "precision": "float32",
+  "object_weight_capability": false,
+  "object_weight_verdict": "否",
+  "provenance": {
+    "source_chain": [
+      "phase1/frame-0001"
+    ],
+    "software_sha": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+    "config_hash": "sha256:cccc",
+    "algorithm_ids": [
+      "ALG-P2-INT-001"
+    ],
+    "generated_utc": "2026-09-16T00:00:00Z"
+  },
+  "coverage_plane_ref": "phase2/coverage/union-moc",
+  "coverage_geometry": "moc_union",
+  "n_valid_cells": 4096,
+  "role": "geometric_valid_domain"
+}
