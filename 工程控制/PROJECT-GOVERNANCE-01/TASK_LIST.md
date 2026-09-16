@@ -1,6 +1,6 @@
 # 任务列表与依赖图
 
-基线提交：`a861d8f63a1f6c17dea2f201349006f6a6bd1ad2`　任务数：38　所有任务初始状态：`NOT_STARTED`
+基线提交：`a861d8f63a1f6c17dea2f201349006f6a6bd1ad2`　任务数：39　所有任务初始状态：`NOT_STARTED`
 状态列由调度员按 `OPERATOR.md §3` 维护；`PASS` 只由前台独立复跑后写入。
 
 ## 1. 任务总览
@@ -21,6 +21,7 @@
 | L2 | MOD-002 | 迁移后引用刷新（ARCH 停稳后：MODULE_MAP/合同文档/测试常量 → 悬空=0） | ARCH-001 | S4-B | NOT_STARTED |
 | L2 | CI-002 | 补齐 run_checks.py 三项活守卫 + 切换工作流调用点（规范=实现=工作流） | QA-001, CI-001 | S5-C | NOT_STARTED |
 | L2 | CFG-002 | 配置登记类遗留闭合（plugin 级默认 / per-module knobs / 滤镜名语义 / os_abi 值域 / 索引归属） | CFG-001, ARCH-001 | S6-A | NOT_STARTED |
+| L2 | TEST-CLI-SYNC-2 | 残余同步：后端 CLI 类 10 文件 + 陈旧 skip 载体 20 条（依赖 CLI-002/ARCH 停稳） | CLI-002, ARCH-001 | S3-B | NOT_STARTED |
 | L0 | GOV-001 | 收敛最高权威、根目录与废止治理入口 | BASE-001 | S1-A | NOT_STARTED |
 | L0 | DOC-001 | 收敛活动文档的术语、状态与引用 | BASE-001 | S1-B | NOT_STARTED |
 | L1 | DATA-001 | 建立统一数据对象合同链（14 个对象） | GOV-001, DOC-001 | S2-A | PASS（提前于声明的依赖，负责人裁决的 W1 顺序） |
@@ -41,7 +42,7 @@
 | L5 | CPU-001 | 治理 CPU provider、benchmark 与 profile | RT-001 | S6-C | NOT_STARTED |
 | L5 | OBS-001 | 治理观测事件、资源门与运行图 | RT-001 | S6-D | NOT_STARTED |
 | L6 | INT-001 | 汇总目标构建图、注册表与产品装配 | CLI-002, CLI-003, P1-002, P2-002, P3-002, CPU-001, OBS-001 | S8 | NOT_STARTED |
-| L6 | CI-001 | 重建新规范机器检查入口与治理门 | GOV-001, DOC-001, MOD-001 | S5-C | NOT_STARTED |
+| L6 | CI-001 | 重建新规范机器检查入口与治理门 | GOV-001, DOC-001, MOD-001 | S5-C | FAIL（第二轮闭合中） |
 | L7 | QA-001 | 接通双平台 CI 与完整测试矩阵 | INT-001, CI-001 | S9 | NOT_STARTED |
 | L7 | PKG-001 | 治理双平台安装树、清单与候选包 | INT-001, CI-001 | S9 | NOT_STARTED |
 | L8 | REAL-001 | 执行最终 SHA 跨平台真实数据与图像验收 | QA-001, PKG-001 | S10 | NOT_STARTED |
