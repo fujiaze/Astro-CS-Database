@@ -37,6 +37,13 @@
 3. 补齐 `.gitignore`：把「本地保留但不入库」的根条目全部登记（p*-files.patch、run_context.json 等），并写清每条的保留理由与清理条件。
 4. 注册到 `ci/checks.json`（ID 形如 CHK-ROOT-CLEAN，P0）并给正例与三类负例（多出条目 / 运行产物落根 / 白名单条目缺失）。
 
+## 并发写冲突与冻结交接（2026-09-16 15:0x，调度员令）
+
+- `ci/checks.json` 于 **2026-09-16（本任务完成 CHK-ROOT-CLEAN 注册后）冻结**，交接给 **CI-001** 做整体注册 ID 收敛；本任务已完成 `CHK-ROOT-CLEAN` 注册（P0 口径 = `waivable:false` + 进 `fast`/`linux-main`/`windows-main`），**后续对该文件的改动权在 CI-001**。
+- 冻结时实测：`ci/checks.json` 共 147 项（本任务新增 `CHK-ROOT-CLEAN` 在 index 68，另 `CHK-MODULE-MANIFEST` 由 CI-001 线新增）；本任务此后不再写该文件。
+- `ci/` 下其它文件（`ci/root_manifest.json`）与 `tests/quality/**`、`tools/quality/**` 仍属本任务。
+- 冻结原因：ROOT-002 的注册与 CI-001 的 ID 整体收敛会互相覆盖（调度线实测并发写冲突）。
+
 ## 验收门（前台独立复跑）
 - [ ] 检查器正例 rc=0；三类负例各自 rc≠0（给出注入方式与失败输出）
 - [ ] 白名单与 ENGINEERING_SPEC §7 逐条对照，无「比文档更宽」的条目（给出对照表）

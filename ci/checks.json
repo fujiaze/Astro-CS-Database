@@ -1794,6 +1794,35 @@
       "requires_monitor": false
     },
     {
+      "id": "CHK-ROOT-CLEAN",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/check_root_cleanliness.py",
+        "--json-out",
+        "run/ci/root-cleanliness/root_cleanliness.json"
+      ],
+      "timeout_seconds": 60,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/root-cleanliness/root_cleanliness.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        ".gitignore",
+        "ci/root_manifest.json",
+        "tools/quality/check_root_cleanliness.py",
+        "tests/quality/**"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "UT-CPU-BASELINE",
       "profiles": [
         "linux-main"
@@ -4442,6 +4471,38 @@
       "dirty_ignore_prefixes": [
         "run/v6/"
       ],
+      "prerequisite_tools": [
+        "python3"
+      ]
+    },
+    {
+      "id": "CHK-MODULE-MANIFEST",
+      "profiles": [
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "tools/quality/check_module_map.py",
+        "--json-out",
+        "run/ci/module-map/module_map.json",
+        "--quiet"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/module-map/module_map.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/modules/**",
+        "tools/quality/check_module_map.py",
+        "tools/quality/fixtures/**",
+        "tests/quality/**"
+      ],
+      "requires_monitor": false,
       "prerequisite_tools": [
         "python3"
       ]

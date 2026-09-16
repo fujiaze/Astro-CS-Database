@@ -130,3 +130,14 @@ alloc_samples.csv
 /graph/
 
 /dist/audit/
+
+# 根目录整洁兜底 (2026-09-16 ROOT-002 / CHK-ROOT-CLEAN): 本地保留但不入库
+# 保留理由与清理条件见 工程控制/PROJECT-GOVERNANCE-01/ROOT_LEDGER.md §9；
+# 机器门见 tools/quality/check_root_cleanliness.py + ci/root_manifest.json。
+# 注意：机器门不使用 .gitignore 判定，物理根目录出现未登记条目仍判红。
+/p*-files.patch
+/run_context.json
+/astrocs_p1sess_*/
+/CS/
+/Database/
+/worktrees/
