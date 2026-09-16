@@ -14,6 +14,12 @@ class TestThreadBudget(unittest.TestCase):
                            capture_output=True, text=True, cwd=REPO, timeout=300)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("未登记线程创建=0 硬编码线程数=0", r.stdout)
+        # RT-001 (P0 M5a-G-005): 非空转自证 —— 空转（扫 0 文件/0 登记命中）不得算通过
+        self.assertIn("扫描文件数=", r.stdout)
+        scanned = int(r.stdout.split("扫描文件数=")[1].split()[0])
+        self.assertGreater(scanned, 100, "扫描面为空转: %d 个文件" % scanned)
+        self.assertGreater(int(r.stdout.split("已登记命中=")[1].split()[0]), 0,
+                           "登记命中为 0 => 登记面与扫描面脱钩")
 
     def test_02_unregistered_thread_must_fail(self):
         with tempfile.TemporaryDirectory() as td:
@@ -23,7 +29,7 @@ class TestThreadBudget(unittest.TestCase):
             old = ctb.SCAN_ROOTS
             ctb.SCAN_ROOTS = [td]
             try:
-                errors, reg = ctb.scan()
+                errors, reg, _ = ctb.scan()
             finally:
                 ctb.SCAN_ROOTS = old
             self.assertTrue(any("rogue.cpp" in e and "未登记" in e for e in errors))
@@ -36,7 +42,7 @@ class TestThreadBudget(unittest.TestCase):
             old = ctb.SCAN_ROOTS
             ctb.SCAN_ROOTS = [td]
             try:
-                errors, reg = ctb.scan()
+                errors, reg, _ = ctb.scan()
             finally:
                 ctb.SCAN_ROOTS = old
             self.assertTrue(any("bad.cpp" in e and "omp_set_num_threads" in e for e in errors))
@@ -53,7 +59,7 @@ class TestThreadBudget(unittest.TestCase):
             old = ctb.SCAN_ROOTS
             ctb.SCAN_ROOTS = [td]
             try:
-                errors, reg = ctb.scan()
+                errors, reg, _ = ctb.scan()
             finally:
                 ctb.SCAN_ROOTS = old
             self.assertTrue(any("lit.cpp" in e and "字面量线程数" in e for e in errors))
@@ -73,7 +79,7 @@ class TestThreadBudget(unittest.TestCase):
         不得被登记放宽 (R-10 / 宪章 §10.4)。
         """
         with tempfile.TemporaryDirectory() as td:
-            d = os.path.join(td, "lib", "calibration", "src")
+            d = os.path.join(td, "lib", "algorithms", "calibration", "src")
             os.makedirs(d)
             open(os.path.join(d, "module_entry.cpp"), "w").write(
                 "#include <omp.h>\n"
@@ -83,7 +89,7 @@ class TestThreadBudget(unittest.TestCase):
             old = ctb.SCAN_ROOTS
             ctb.SCAN_ROOTS = [td]
             try:
-                errors, reg = ctb.scan()
+                errors, reg, _ = ctb.scan()
             finally:
                 ctb.SCAN_ROOTS = old
             self.assertFalse(
@@ -119,6 +125,67 @@ class TestThreadBudget(unittest.TestCase):
                       "lib/algorithms/noise_snr/src/module_entry.cpp"):
             self.assertIsNone(ctb.registered_annotation(other),
                               "%s 不得被这三条预算注入登记放行" % other)
+
+    # ── RT-001 (P0 M5a-G-005): 私有线程池可见性 + 登记悬空 + 行级豁免封堵 ──
+
+    def _scan_tmp(self, rel_parts, body):
+        with tempfile.TemporaryDirectory() as td:
+            d = os.path.join(td, *rel_parts)
+            os.makedirs(d, exist_ok=True)
+            with open(os.path.join(d, rel_parts[-1] + ".cpp"), "w") as fh:
+                fh.write(body)
+            old = ctb.SCAN_ROOTS
+            ctb.SCAN_ROOTS = [td]
+            try:
+                return ctb.scan()
+            finally:
+                ctb.SCAN_ROOTS = old
+
+    def test_10_unregistered_thread_pool_must_fail(self):
+        """负例(必红): 未登记的 std::vector<std::thread> 私有池必须 FAIL。
+
+        改前: 正则不含该形态 => 池声明对 check 完全不可见(全仓 12+ 处)。
+        """
+        errors, reg, _ = self._scan_tmp(
+            ("lib", "x"), "void f(){ std::vector<std::thread> pool; pool.emplace_back([]{ }); }\n")
+        self.assertTrue(any("未登记私有线程池" in e and "x.cpp" in e for e in errors),
+                        "未登记私有线程池必须 FAIL: %s" % errors)
+
+    def test_11_registered_thread_pool_passes_with_annotation(self):
+        """正例(可绿): 登记面覆盖后同形态不再报错(登记须带注记)。"""
+        key = "lib/x/x.cpp"
+        old = dict(ctb.REGISTERED)
+        ctb.REGISTERED[key] = "测试注记: 线程数来自 ThreadBudget 租约"
+        try:
+            errors, reg, _ = self._scan_tmp(
+                ("lib", "x"), "void f(){ std::vector<std::thread> pool; }\n")
+            self.assertFalse([e for e in errors if "未登记私有线程池" in e], errors)
+            self.assertTrue(any("x.cpp" in r for r in reg), reg)
+        finally:
+            ctb.REGISTERED.clear(); ctb.REGISTERED.update(old)
+
+    def test_12_dangling_registration_key_must_fail(self):
+        """负例(必红): 登记键指向不存在的路径 => 悬空登记 FAIL。
+
+        改前: ARCH-001 迁移(ARCH-001: lib/core -> lib/infrastructure/scheduler)后
+        旧路径键静默失配, check 由绿转红/由红转绿均无门可查。
+        """
+        old = dict(ctb.REGISTERED)
+        ctb.REGISTERED["lib/does/not/exist/rogue.cpp"] = "悬空登记(负例注入)"
+        try:
+            errs = ctb.validate_registry()
+            self.assertTrue(any("登记悬空" in e and "rogue.cpp" in e for e in errs), errs)
+        finally:
+            ctb.REGISTERED.clear(); ctb.REGISTERED.update(old)
+        self.assertEqual(ctb.validate_registry(), [], "真实树不得有悬空登记")
+
+    def test_13_row_level_watchdog_exemption_removed(self):
+        """负例(必红): 行内含 "watchdog" 不再是放行理由(行级豁免已删除)。"""
+        errors, reg, _ = self._scan_tmp(
+            ("lib", "w"), "std::thread watchdog_thread([]{ });\n")
+        self.assertTrue(any("w.cpp" in e and "未登记线程创建" in e for e in errors),
+                        "行级 watchdog 逃逸口必须已封堵: %s" % errors)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

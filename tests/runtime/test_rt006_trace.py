@@ -32,7 +32,7 @@ import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 INC = REPO / "include"
-CORE = REPO / "lib" / "core" / "src"
+CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
 TP = REPO / "third_party"
 
 sys.path.insert(0, str(REPO / "runtime" / "pipeline"))

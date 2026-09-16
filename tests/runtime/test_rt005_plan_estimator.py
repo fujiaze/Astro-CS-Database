@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import pathlib
+import re
 import shutil
 import subprocess
 import tempfile
@@ -28,7 +29,7 @@ import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 INC = REPO / "include"
-CORE = REPO / "lib" / "core" / "src"
+CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
 
 _DRIVER = r'''
 // RT-005 harness: plan_estimator 独立纯函数库验收（真实编译链接 + 运行断言）
@@ -430,6 +431,8 @@ int main() {
 # ── Python 静态断言 ──
 _HDR = INC / "astrocs" / "core" / "plan_estimator.h"
 _SRC = CORE / "plan_estimator.cpp"
+_BACKEND_TABLE = (REPO / "lib" / "infrastructure" / "benchmark" / "backend_host"
+                 / "backend_table.inc")
 _KNOWN_KERNELS = {
     "calibration-pixel-transform", "noise-snr-reductions", "wcs-psf-batch",
     "drizzle-overlap", "drizzle-accumulate", "drizzle-normalize",
@@ -468,15 +471,40 @@ class TestRt005PlanEstimatorStatic(unittest.TestCase):
         self.assertNotIn("hardware_concurrency", _SRC.read_text(encoding="utf-8"))
 
     def test_kernel_ids_authoritative(self):
-        """实现中出现的 kernel id 必须都在 backend_table.inc 权威清单内。"""
+        """实现中出现的 kernel id 必须都在 backend_table.inc 权威清单内。
+
+        改前缺陷(V15-N-06): 交替式与 _KNOWN_KERNELS 同集 -> assertIn 恒真;
+        且 backend_table.inc 从未被读取 => "权威清单"是自证巧合。现改为:
+        先由 .inc 实测清单构造交替式, 再断言实现引用非空(空转即 FAIL)。
+        """
         text = _SRC.read_text(encoding="utf-8")
-        import re
-        for m in re.finditer(r'"(calibration-pixel-transform|noise-snr-reductions|'
-                             r'wcs-psf-batch|drizzle-overlap|drizzle-accumulate|'
-                             r'drizzle-normalize|upm-spmv|upm-residual|'
-                             r'upm-weight-update|rejection-statistics|'
-                             r'integration-accumulate|hips-bulk-transform)"', text):
-            self.assertIn(m.group(1), _KNOWN_KERNELS, m.group(1))
+        alt = "|".join(re.escape(k) for k in sorted(_KNOWN_KERNELS))
+        hits = [m.group(1) for m in re.finditer(r'"(' + alt + r')"', text)]
+        self.assertTrue(hits, "实现未引用任何权威 kernel id => 断言空转")
+        for k in hits:
+            self.assertIn(k, _KNOWN_KERNELS, k)
+
+    def test_kernel_whitelist_matches_backend_table(self):
+        """白名单必须与 backend_table.inc 实测同集(V15-N-06 的根因面)。"""
+        table = _BACKEND_TABLE.read_text(encoding="utf-8")
+        ids = set(re.findall(r'ACS_KERNEL_ENTRY\(\s*"[^"]+"\s*,\s*"([^"]+)"', table))
+        self.assertTrue(ids, f"backend_table.inc 未解析出 kernel id: {_BACKEND_TABLE}")
+        self.assertEqual(_KNOWN_KERNELS, ids,
+                         "白名单与权威 backend_table.inc 不同集")
+
+    def test_impl_binds_frozen_constants(self):
+        """实现必须引用冻结常数, 不得复制其展开式(V15-N-05 的根因面)。
+
+        改前: 只断言头文件文本含 "kHipsTileWidthPx = 512" 等; 实现写死
+        512*512 / 512*512*4 仍全绿(常量与实现可各自漂移)。
+        """
+        src = _SRC.read_text(encoding="utf-8")
+        for lit in ("512u * 512u", "512 * 512", "512u * 512u * 4", "512 * 512 * 4"):
+            self.assertNotIn(lit, src,
+                             f"实现复制了冻结常数展开式 {lit!r}; 须改用 "
+                             "kHipsTileWidthPx/kHipsTileF32Bytes 单一事实源")
+        for name in ("kHipsTileWidthPx", "kHipsTileF32Bytes", "kHipsMaxOrder"):
+            self.assertIn(name, src, f"实现未引用冻结常数 {name}")
 
 
 @unittest.skipUnless(shutil.which("g++"), "需要 g++")

@@ -30,7 +30,7 @@ import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 INC = REPO / "include"
-CORE = REPO / "lib" / "core" / "src"
+CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
 
 _DRIVER = r'''
 // RT-004 harness: 唯一共享 executor（CPU heavy + 有界 I/O）真实编译链接验收
