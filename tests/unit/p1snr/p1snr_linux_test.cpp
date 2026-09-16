@@ -291,8 +291,28 @@ void group_contract() {
     if (std::isfinite(v)) check(v > 0.0, "C5 SNR_F > 0 [1]");
   }
 
-  // C6: 未参与行必须是 NaN (不得静默回填 1.0 伪装 unknown)
-  check(std::isnan(out.local_snr[0]) == false, "C6 used rows finite");
+  // C6: 参与行 local_snr 必须有限且 = SNR_F/median(SNR_F)；
+  //     未参与行必须是 NaN (不得静默回填 1.0 伪装 unknown)。
+  {
+    bool used_ok = (out.local_snr.size() == out.snr_f.size());
+    for (std::size_t i = 0; used_ok && i < out.local_snr.size(); ++i) {
+      used_ok = std::isfinite(out.local_snr[i]) &&
+                (out.local_snr[i] == out.snr_f[i] / out.median_snr);
+    }
+    check(used_ok, "C6 participating rows local_snr finite == SNR_F/median");
+    auto mixed = rows;                       // 5 真实源 + 1 条退化行
+    astrocs::phase1::SnrSourceRow bad;
+    bad.id = "bad-flux";
+    bad.flux_adu = 0.0;                      // flux<=0 -> 不参与逐源 SNR
+    bad.fwhm_px = 2.0;
+    mixed.push_back(bad);
+    auto outm = astrocs::phase1::compute_snr_frame_science(mixed, cfg);
+    check(outm.n_used == static_cast<int>(rows.size()), "C6 degenerate row not used");
+    check(std::isfinite(outm.local_snr[0]), "C6 participating row finite");
+    check(std::isnan(outm.local_snr.back()),
+          "C6 non-participating row local_snr must be NaN (no 1.0 fill)");
+    check(std::isnan(outm.snr_f.back()), "C6 non-participating row snr_f must be NaN");
+  }
 }
 
 void group_negative() {

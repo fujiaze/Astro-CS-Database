@@ -14,8 +14,8 @@
 import math, os, random, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SNR_INC = os.path.join(REPO, "lib", "snr_estimator", "cpp", "include")
-SNR_SRC = os.path.join(REPO, "lib", "snr_estimator", "cpp", "src")
+SNR_INC = os.path.join(REPO, "lib", "algorithms", "noise_snr", "cpp", "include")
+SNR_SRC = os.path.join(REPO, "lib", "algorithms", "noise_snr", "cpp", "src")
 
 DRIVER = r'''
 #include "snr_estimator.h"
@@ -106,6 +106,7 @@ class TestNoiseModelOracle(unittest.TestCase):
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{SNR_INC}", drv,
                             os.path.join(SNR_SRC, "noise_model.cpp"),
                             os.path.join(SNR_SRC, "snr_estimator.cpp"),
+                            os.path.join(SNR_SRC, "snr_science.cpp"),
                             "-pthread", "-o", cls.exe], capture_output=True, text=True, timeout=600)
         assert r.returncode == 0, r.stderr[-800:]
 
