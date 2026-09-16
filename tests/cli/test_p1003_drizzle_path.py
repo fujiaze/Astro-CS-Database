@@ -67,7 +67,7 @@ class TestP1003DrizzlePath(unittest.TestCase):
         # tools/quality/check_prod_reachability.py:140）。UT-CLI 以
         # mutates_workspace=false 执行，重写 tracked evidence 即 dirty 违规，而
         # checker 无输出目录开关（产品域禁改）。测试侧用 run/ 下 scratch repo 视图：
-        # 只读符号链接 cli/include/lib（checker 扫描面与真 repo 逐字节一致）+
+        # 只读符号链接 lib/infrastructure/cli/include/lib（checker 扫描面与真 repo 逐字节一致）+
         # 本地 evidence/ 输出目录；checker 的读取与判定完全不变，仅证据落点进入
         # gitignore 的 run/。
         scratch = os.path.join(run_cwd(), "reach_scratch")

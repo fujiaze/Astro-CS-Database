@@ -25,7 +25,7 @@
    "src_path": "MISSING",
    "src_status": "MISSING",
    "test_id": "TEST-FIX-001",
-   "test_path": "modules/conformance/noop/tests/unit/noop_handshake_test.c",
+   "test_path": "tests/conformance/noop/tests/unit/noop_handshake_test.c",
    "test_status": "VERIFIED",
    "evidence_id": "EVID-FIX-001",
    "evidence_status": "VERIFIED",

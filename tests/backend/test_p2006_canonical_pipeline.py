@@ -125,7 +125,7 @@ class TestP2006CanonicalPipeline(unittest.TestCase):
         mp = os.path.join(self.tmp, "mods.json")
         json.dump(mods, open(mp, "w"))
         # 合成最小 static/trace 输入(边链与现行 IR 构造同构: 上一节点输出 artifact
-        # 作为下一节点输入, 对齐 cli/runtime_client.cpp build_pipeline_ir)
+        # 作为下一节点输入, 对齐 lib/infrastructure/cli/runtime_client.cpp build_pipeline_ir)
         PORTS = {"coverage": ("calibrated", "coverage"), "sample": ("coverage", "samples"),
                  "upm_fit": ("samples", "upm_model"), "upm_apply": ("upm_model", "corrected"),
                  "reject": ("corrected", "accepted_mask"),
@@ -158,7 +158,7 @@ class TestP2006CanonicalPipeline(unittest.TestCase):
 
     def test_04_output_naming_unambiguous(self):
         """输出命名无歧义: manifest+资源三件套落盘 output_dir(现行载体)。"""
-        for name in ("resource_summary.json", "resource_samples.csv", "worker_balance.csv"):
+        for name in ("resource_summary.json", "resource_timeseries.csv", "worker_balance.csv"):
             self.assertTrue(os.path.isfile(os.path.join(self.out, name)), name)
         manifests = [f for f in os.listdir(self.out) if f.startswith("astrocs_run_")
                      and f.endswith(".json")]

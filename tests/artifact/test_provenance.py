@@ -29,7 +29,7 @@ import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "runtime" / "artifact_store"))
+sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "aio" / "runtime" / "artifact_store"))
 
 def _repo_version():
     """读根 VERSION 文件（单一版本源），防 alpha 版本字面量硬编码漂移。"""

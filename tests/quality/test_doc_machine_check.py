@@ -77,7 +77,7 @@ class TestDocMachineCheck(unittest.TestCase):
         """退出码: 把 exit_codes.h 中 `8` 的定义删除 → 文档 §2 提到的 `8` 在唯一源缺失 → FAIL。"""
         tmp_dir = os.path.join(self.tmp, "inc_tmp")
         os.makedirs(tmp_dir, exist_ok=True)
-        src = os.path.join(REPO, "cli", "exit_codes.h")
+        src = os.path.join(REPO, "lib", "infrastructure", "cli", "exit_codes.h")
         tmp_h = os.path.join(tmp_dir, "exit_codes.h")
         t = open(src, encoding="utf-8").read()
         # 删除所有赋值 =8 的行(退出码 8 缺失)

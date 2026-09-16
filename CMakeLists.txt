@@ -3,9 +3,10 @@
 # 1) 本文件是仓库唯一 project() 与唯一产品事实源: 产品可执行 astrocs 只在此声明
 #    (add_executable(astrocs ...)), 显式源列表, 禁 GLOB (QA-002)。
 # 2) 子目录 CMakeLists 只声明本模块 target (tests/unit 为测试, 见文末 add_subdirectory)。
-# 3) cli/CMakeLists.txt 与 lib/algorithms/coverage/CMakeLists.txt 已降级为 compatibility 声明
-#    (BLD-002): 保留给遗留 tests/cli 独立构建与模块自测/工具按需构建, 不是产品事实源,
-#    禁止正式 install; 产品安装/发布构建一律以本文件为入口。
+# 3) 旧 CLI 兼容子图的 CMakeLists（仓库根遗留, 非产品事实源; 其路径同步归 INT-001）与
+#    lib/algorithms/coverage/CMakeLists.txt 已降级为 compatibility 声明 (BLD-002): 保留给
+#    遗留 tests/cli 独立构建与模块自测/工具按需构建, 禁止正式 install; 产品安装/发布
+#    构建一律以本文件为入口。
 # 4) 正式构建入口: 本文件 (Windows preset win-msvc-17.14.39-x64 / Linux linux-control)。
 cmake_minimum_required(VERSION 3.24)
 # project() VERSION 只接受数字三元组(CMake 语法); alpha 后缀由根 VERSION 唯一承载,
@@ -58,9 +59,34 @@ endif()
 set(ASTROCS_VERSION_STRING "${ASTROCS_BASE_VERSION}+g${ASTROCS_GIT_COMMIT}")
 
 # 版本生成头 (VER-001: 从 VERSION 唯一源)
-configure_file(cli/version_generated.h.in ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h @ONLY)
+configure_file(lib/infrastructure/cli/version_generated.h.in ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h @ONLY)
 file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h
   "#define ASTROCS_COMMIT_SHA \"${ASTROCS_GIT_COMMIT}\"\n")
+
+# ── G-RES-01 数值唯一源 (GATE-FIX-RES / R-4 D-11) ────────────────────────────
+# 阈值不得在 C++ 里复制字面量: 由 contracts/resource_gate_v1.json 生成
+# resource_gate_thresholds_generated.h (CMake >= 3.19 string(JSON), 无额外依赖)。
+# 判据语义权威: docs/plugins/infrastructure/21_observability.md §8。
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/contracts/resource_gate_v1.json ASTROCS_RESOURCE_GATE_JSON)
+string(JSON ASTROCS_RG_APPLICABILITY GET "${ASTROCS_RESOURCE_GATE_JSON}" applicability)
+string(JSON ASTROCS_RG_COMPUTE GET "${ASTROCS_RESOURCE_GATE_JSON}" compute)
+string(JSON ASTROCS_RG_MEMORY GET "${ASTROCS_RESOURCE_GATE_JSON}" memory)
+string(JSON ASTROCS_RG_MIN_EFFECTIVE_CPUS GET "${ASTROCS_RG_APPLICABILITY}" min_effective_cpus)
+string(JSON ASTROCS_RG_MIN_ACTIVE_WINDOW_SECONDS_EXCLUSIVE GET "${ASTROCS_RG_APPLICABILITY}" min_active_window_seconds_exclusive)
+string(JSON ASTROCS_RG_MIN_ACTIVE_THREADS GET "${ASTROCS_RG_COMPUTE}" min_active_compute_threads)
+string(JSON ASTROCS_RG_MEAN_UTIL_PERCENT GET "${ASTROCS_RG_COMPUTE}" mean_utilization_min_percent)
+string(JSON ASTROCS_RG_P50_UTIL_PERCENT GET "${ASTROCS_RG_COMPUTE}" p50_utilization_min_percent)
+string(JSON ASTROCS_RG_PER_SAMPLE_UTIL_PERCENT GET "${ASTROCS_RG_COMPUTE}" per_sample_utilization_min_percent)
+string(JSON ASTROCS_RG_PER_SAMPLE_PASS_FRACTION GET "${ASTROCS_RG_COMPUTE}" per_sample_pass_fraction_min)
+string(JSON ASTROCS_RG_QUEUE_LOW_UTIL_PERCENT GET "${ASTROCS_RG_COMPUTE}" queue_low_utilization_percent)
+string(JSON ASTROCS_RG_QUEUE_LOW_WINDOW_SECONDS GET "${ASTROCS_RG_COMPUTE}" queue_low_window_seconds_min)
+string(JSON ASTROCS_RG_MEM_GROWTH_MIB_PER_S GET "${ASTROCS_RG_MEMORY}" growth_limit_mib_per_s)
+string(JSON ASTROCS_RG_ALLOC_RECLAIM_MIN_FRACTION GET "${ASTROCS_RG_MEMORY}" allocation_reclaim_min_fraction)
+string(JSON ASTROCS_RG_ALLOC_RECLAIM_MIN_WALL_SECONDS GET "${ASTROCS_RG_MEMORY}" allocation_reclaim_min_wall_seconds)
+string(JSON ASTROCS_RG_RECLAIM_RESIDUAL_TOL_BYTES GET "${ASTROCS_RG_MEMORY}" reclaim_residual_tolerance_bytes)
+string(JSON ASTROCS_RG_WORKLOAD_FLOOR_CORE_SECONDS GET "${ASTROCS_RESOURCE_GATE_JSON}" workload_floor_core_seconds)
+configure_file(lib/infrastructure/cli/resource_gate_thresholds_generated.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/resource_gate_thresholds_generated.h @ONLY)
 
 # vendored cfitsio 显式清单 (BLD-001 禁 GLOB; 由 tools/gen_cfitsio_list.py 生成)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cfitsio_sources.cmake)
@@ -97,7 +123,7 @@ target_include_directories(astrocs_contracts INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/include)
 
-# io adapter (IO-001: 依赖方向 core <- io; 不 include runtime/模块)
+# io adapter (IO-001: 依赖方向 core <- io; 不 include 平台 runtime 模块)
 # BLD-003: 更名 astrocs_io_adapter —— ARC-001 冻结的 DLL target 计划
 # (install_tree 一一对应) 中 "astrocs_io" 是平台 SHARED DLL (astrocs_io.dll/.so,
 # FITS/HiPS/原子流式 I/O 宿主服务), 见下 "BLD-003 平台 SHARED 骨架" 段落;
@@ -107,7 +133,7 @@ add_library(astrocs_io_adapter STATIC lib/infrastructure/aio/io/src/io_adapter.c
 target_include_directories(astrocs_io_adapter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
 
-# ── BLD-003 平台 SHARED 骨架 (G2: SHARED runtime/io/noop/baseline targets) ──
+# ── BLD-003 平台 SHARED 骨架 (G2: SHARED astrocs_runtime/io/noop/baseline targets) ──
 # 契约 (BLD-003 + 03_TARGET §4.1 + ARC-001):
 #   - 唯一 install 规则源 = cmake/install_layout.cmake (文末 include);
 #     install 树与 ARC-001 dll_units 计划一一对应; clean install 仅白名单。
@@ -116,13 +142,13 @@ target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
 #     使 target 真实可编译、可安装、可被 ABI-003 loader 加载验证;
 #     loader/registry/DAG/scheduler/ArtifactStore 接线由 ABI-003/004 与
 #     RT-002 等后续向本 target 追加源, 本任务不伪装平台实现完成。
-#   - astrocs_noop: conformance module SHARED (modules/conformance/noop),
+#   - astrocs_noop: conformance module SHARED (tests/conformance/noop),
 #     仅可加载性骨架 (SKELETON), 语义由 ABI-005 填充; 见其 README。
 #   - astrocs_cpu_baseline: baseline backend DSO。Linux 以 legacy backend
 #     ABI 源 (baseline_backend.cpp, SA-CPU-09 已有) 编译为 .so 技术预览,
 #     仅验证 provider 安装路径/RPATH/加载; 正式 provider ABI
 #     (astrocs_provider_query_v1, module_api_v1.h 冻结) 与 Windows DLL 由
-#     CPU-002 (providers/cpu/baseline) 交付, 本任务不伪装 provider 完成。
+#     CPU-002 (lib/infrastructure/benchmark/cpu/baseline) 交付, 本任务不伪装 provider 完成。
 # 导出可见性 (12 §1/ABI-006): module DLL 只导出批准 C ABI 入口; C 源 DLL
 # 使用 ASTROCS_ABI_SHARED/EXPORTS + -fvisibility=hidden 控制 (各 target)。
 
@@ -130,7 +156,7 @@ target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
 # 导出: 源为冻结 C ABI (无 ASTROCS_EXPORT 标注, SA-IO-07/DATA-06 头所有
 # 顶层函数即 API) → Linux 默认全导出; Windows 经 WINDOWS_EXPORT_ALL_SYMBOLS
 # (C 源, 导出全部顶层 API; ABI-006 收紧为精确导出清单, 正式 DLL 由 WIN-* 复核)。
-add_library(astrocs_runtime SHARED runtime/artifact_store/artifact_abi_v1.c)
+add_library(astrocs_runtime SHARED lib/infrastructure/aio/runtime/artifact_store/artifact_abi_v1.c)
 target_include_directories(astrocs_runtime PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(MSVC)
@@ -143,10 +169,10 @@ if(WIN32)
 endif()
 
 # astrocs_io: io 平台 DLL 骨架 (FITS stream C ABI, IO-001 冻结源)
-add_library(astrocs_io SHARED runtime/io/fits_core.c)
+add_library(astrocs_io SHARED lib/infrastructure/aio/io/fits_core.c)
 target_include_directories(astrocs_io PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/modules/services/io/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/io/include)
 if(MSVC)
   set_property(TARGET astrocs_io PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
   # HOSTFIX (WIN-BUILD C1189): fits_core.c 用 C11 <stdatomic.h> (tmp 名计数器),
@@ -168,8 +194,8 @@ if(NOT WIN32)
 endif()
 
 # astrocs_noop: conformance module SHARED (模块 CMakeLists 只声明本 target,
-# BLD-002: 子目录 CMakeLists 非产品事实源; 见 modules/conformance/noop/README)
-add_subdirectory(modules/conformance/noop)
+# BLD-002: 子目录 CMakeLists 非产品事实源; 见 tests/conformance/noop/README)
+add_subdirectory(tests/conformance/noop)
 
 # astrocs_catalog_gaia: GAIA XPSD catalog service module DLL (CAT-GAIA-IMPL;
 # 矩阵行 astrocs.catalog.gaia / astrocs_catalog_gaia.dll)。唯一导出
@@ -216,7 +242,7 @@ add_subdirectory(lib/algorithms/drizzle/hips)
 
 # astrocs_cpu_baseline: baseline backend DSO 技术预览 (Linux; legacy ABI,
 # 无导出标注 → 默认全导出)。正式 provider ABI/Windows DLL → CPU-002
-# (providers/cpu/baseline)
+# (lib/infrastructure/benchmark/cpu/baseline)
 add_library(astrocs_cpu_baseline SHARED
   lib/infrastructure/benchmark/backend_host/baseline_backend.cpp)
 target_include_directories(astrocs_cpu_baseline PUBLIC
@@ -369,7 +395,7 @@ target_include_directories(astrocs_hips PUBLIC
 target_compile_definitions(astrocs_hips PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
 target_link_libraries(astrocs_hips PUBLIC astrocs_aio astrocs_common)
 
-# modules/calibration
+# lib/algorithms/calibration
 add_library(astrocs_calibration STATIC
   lib/algorithms/calibration/src/calibrator.cpp
   lib/algorithms/calibration/src/master_generator.cpp
@@ -385,7 +411,7 @@ if(UNIX AND OpenMP_CXX_FOUND)
   target_link_libraries(astrocs_calibration PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
-# modules/phase2 (纯 CPU 生产模块; ACR 源不在此列 — LEG-004)
+# lib/algorithms/coverage (phase2 生产模块; ACR 源不在此列 — LEG-004)
 add_library(astrocs_phase2 STATIC
   lib/algorithms/coverage/src/upm.cpp
   lib/algorithms/coverage/src/stage2_common.cpp
@@ -404,7 +430,7 @@ target_include_directories(astrocs_phase2 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared)
 target_link_libraries(astrocs_phase2 PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips)
 
-# modules/healpix_drizzle
+# lib/algorithms/drizzle/healpix_drizzle
 add_library(astrocs_drizzle STATIC
   lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp
   lib/algorithms/drizzle/healpix_drizzle/wcs_sip.cpp
@@ -603,21 +629,21 @@ target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_ai
 
 # app/astrocs_cli: 薄 CLI (显式链接各库; 无 GLOB; ACR 不链)
 # RT-008: main.cpp 仅入口壳; parser/commands/runtime_client 为独立编译单元
-# B8-P1: cli/process.cpp — 跨平台子进程封装(argv 传参, 替代 std::system 拼接族),
+# B8-P1: lib/infrastructure/cli/process.cpp — 跨平台子进程封装(argv 传参, 替代 std::system 拼接族),
 #   同时以 astrocs_cli_process 静态库形式供 tests/unit 共址单测链接。
-add_library(astrocs_cli_process STATIC cli/process.cpp)
+add_library(astrocs_cli_process STATIC lib/infrastructure/cli/process.cpp)
 target_include_directories(astrocs_cli_process PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 
 add_executable(astrocs
-  cli/main.cpp
-  cli/parser.cpp
-  cli/commands.cpp
-  cli/process.cpp
-  cli/runtime_client.cpp)
+  lib/infrastructure/cli/main.cpp
+  lib/infrastructure/cli/parser.cpp
+  lib/infrastructure/cli/commands.cpp
+  lib/infrastructure/cli/process.cpp
+  lib/infrastructure/cli/runtime_client.cpp)
 target_include_directories(astrocs PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
@@ -682,9 +708,9 @@ target_include_directories(astrocs_module_adapters PUBLIC
 target_compile_definitions(astrocs_module_adapters PUBLIC AIO_ENABLE_HEALPIX=1)
 
 # RT-008 CLI Runtime client: CLI 经公开 Runtime API 驱动 pipeline（不 include session/IO 内部头）
-add_library(astrocs_cli_runtime STATIC cli/runtime_client.cpp)
+add_library(astrocs_cli_runtime STATIC lib/infrastructure/cli/runtime_client.cpp)
 target_include_directories(astrocs_cli_runtime PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 target_link_libraries(astrocs_cli_runtime PUBLIC

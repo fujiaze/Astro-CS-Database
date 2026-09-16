@@ -109,7 +109,7 @@
 - 红线遵守: docs/science/ 根公式零改动；lib/phase3_session/
   生产源 .cpp/.h 零改动；ci/、.github/、tools/、tests/ 零改动；
   批次 P（tests/backend、tests/cli）/批次 Q（lib/infrastructure/scheduler/、lib/algorithms/shared
-  io_adapter、cli/main.cpp）在途域只读不动；本任务零 git 操作。
+  io_adapter、lib/infrastructure/cli/main.cpp）在途域只读不动；本任务零 git 操作。
 
 ## P3-001（2026-09-10，控制包 ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev54，attempt 1）
 

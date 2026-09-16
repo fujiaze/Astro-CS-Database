@@ -12,9 +12,9 @@ endif()
 set(V6RT_REPO "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
 get_filename_component(V6RT_REPO "${V6RT_REPO}" ABSOLUTE)
 
-# 契约测试: 只依赖 cli/v6_runtime_contract.h（纯头文件，无科学依赖）。
+# 契约测试: 只依赖 lib/infrastructure/cli/v6_runtime_contract.h（纯头文件，无科学依赖）。
 add_executable(v6_runtime_contract_test v6_runtime_contract_test.cpp)
-target_include_directories(v6_runtime_contract_test PRIVATE "${V6RT_REPO}/cli")
+target_include_directories(v6_runtime_contract_test PRIVATE "${V6RT_REPO}/lib/infrastructure/cli")
 set_target_properties(v6_runtime_contract_test PROPERTIES
   CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(UNIX)
@@ -25,13 +25,13 @@ else()
 endif()
 
 add_executable(v6_runtime_determinism_test v6_runtime_determinism_test.cpp)
-target_include_directories(v6_runtime_determinism_test PRIVATE "${V6RT_REPO}/cli")
+target_include_directories(v6_runtime_determinism_test PRIVATE "${V6RT_REPO}/lib/infrastructure/cli")
 set_target_properties(v6_runtime_determinism_test PROPERTIES
   CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 
 # §10.5 记录链: 真实 /proc 观测下的每线程 CPU / I/O wait 字段面。
 add_executable(v6_runtime_resource_record_test v6_runtime_resource_record_test.cpp)
-target_include_directories(v6_runtime_resource_record_test PRIVATE "${V6RT_REPO}/cli")
+target_include_directories(v6_runtime_resource_record_test PRIVATE "${V6RT_REPO}/lib/infrastructure/cli")
 set_target_properties(v6_runtime_resource_record_test PROPERTIES
   CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 if(UNIX)

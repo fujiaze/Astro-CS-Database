@@ -1,6 +1,6 @@
 /* ABI-003 安全 loader 验收探针（C11; Linux amd64）
  *
- * 角色: 包装 runtime/module_loader/secure_loader.h 合同对真实文件系统执行
+ * 角色: 包装 lib/infrastructure/pipeline/module_loader/secure_loader.h 合同对真实文件系统执行
  * load/describe/release, 供 tests/abi/test_secure_loader.py 编排全部正/负
  * 场景并断言状态码与 detail_code。本探针不自己判定"通过/失败"语义, 只忠实
  * 执行并输出单行机器结果:

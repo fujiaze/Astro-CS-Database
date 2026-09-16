@@ -6,11 +6,11 @@ tests/system/v6_runtime/；根/公共 CMakeLists 注册由控制器在 W9 之后
 
 ## 被测单一事实源
 
-- cli/v6_runtime_contract.h —— 统一线程预算（§10.4）、CLI 模式路由、SO-05
+- lib/infrastructure/cli/v6_runtime_contract.h —— 统一线程预算（§10.4）、CLI 模式路由、SO-05
   记录/裁决分离（§10.5/§17.6）、三 Phase 隔离（§3.2）、每线程字段面。
-- cli/monitor.h + cli/resource_recorder.h —— heavy 运行自动记录（含每线程 CPU
+- lib/infrastructure/cli/monitor.h + lib/infrastructure/cli/resource_recorder.h —— heavy 运行自动记录（含每线程 CPU
   与 I/O wait）。
-- cli/v6_mode_gate.h + cli/commands.cpp —— 显式 --mode / --export-mode
+- lib/infrastructure/cli/v6_mode_gate.h + lib/infrastructure/cli/commands.cpp —— 显式 --mode / --export-mode
   CLI 选择与 fail-closed 拒绝。
 
 ## 构建与运行（自包含）

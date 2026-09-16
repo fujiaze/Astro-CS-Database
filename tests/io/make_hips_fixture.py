@@ -30,9 +30,9 @@ import sys
 import numpy as np
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-FITS_CORE = REPO / "runtime" / "io" / "fits_core.c"
-INCLUDE = REPO / "modules" / "services" / "io" / "include"
-LIB_SO = REPO / "runtime" / "io" / "libfits_core_test.so"
+FITS_CORE = REPO / "lib" / "infrastructure" / "aio" / "io" / "fits_core.c"
+INCLUDE = REPO / "lib" / "infrastructure" / "aio" / "io" / "include"
+LIB_SO = REPO / "lib" / "infrastructure" / "aio" / "io" / "libfits_core_test.so"
 
 ACS_FIO_ABI_VERSION_V1 = 1
 BITPIX_F32 = -32

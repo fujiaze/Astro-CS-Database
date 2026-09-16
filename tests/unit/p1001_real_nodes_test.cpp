@@ -3,7 +3,7 @@
 // 验收映射 (控制包 ARCH-P0-001 / PROD-P0-001 Phase1 侧, 前台裁定口径):
 //   1. registry 8 类 Phase1 节点各自唯一真实 operation 委托（子节点禁止调用完整
 //      phase_session_run）——节点 last_manifest 必须携带 operation/entry 标记, 与
-//      runtime/pipeline/module_ports.registry.json 冻结绑定表逐一一致。
+//      lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定表逐一一致。
 //   2. typed artifact: 每节点产出 descriptor.data_id 对应的磁盘 artifact 且存在。
 //   3. trace call_count=1: Runtime 全链执行每节点 MODULE_CALL 恰好一次,
 //      trace_violations 为空（无隐藏 session 重复调用）。
@@ -146,7 +146,7 @@ std::string find_repo_gaia_dir() {
 }
 
 // ── Phase1 节点期望表（唯一真实 operation 绑定, 冻结源
-//    runtime/pipeline/module_ports.registry.json）──────────────────────────
+//    lib/infrastructure/pipeline/module_ports.registry.json）──────────────────────────
 struct NodeExpect {
   const char* module_id;
   const char* operation;

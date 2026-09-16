@@ -45,7 +45,7 @@ tests/testkit/
 ```
 
 - 每模块测试的 label = `module:<module_id>`（先例：
-  `modules/conformance/noop/CMakeLists.txt` → `add_test(NAME module:astrocs.conformance.noop ...)`）。
+  `tests/conformance/noop/CMakeLists.txt` → `add_test(NAME module:astrocs.conformance.noop ...)`）。
 - 模块测试放置：单元/负测/性能可放模块共址 `tests/` 或 `tests/<type>/`；
   **关键通过证据**必须有：独立 oracle/期望 + 当前 commit 记录 + 故障注入证明
   （11 号文 §6 末句）。

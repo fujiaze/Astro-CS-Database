@@ -8,7 +8,7 @@
   4. 同一 module_id 不可出现两次(node 绑定表唯一)。
   5. module_ports.registry.json 中聚合 Session 模块(astrocs.phase2.resample /
      astrocs.phase3.resample)不可入图(IRF-0007)。
-  6. CLI 模式: python3 runtime/pipeline/typed_dag.py fixtures/phase2_typed_dag.json
+  6. CLI 模式: python3 lib/infrastructure/pipeline/typed_dag.py fixtures/phase2_typed_dag.json
      输出 plan-graph JSON(exit 0)。
   7. 隐式文件路径等负测由 tests/runtime/test_typed_dag_negative.py 覆盖。
 """
@@ -22,7 +22,7 @@ import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "runtime" / "pipeline"))
+sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "pipeline"))
 
 from typed_dag import (  # noqa: E402
     PLAN_SCHEMA_CONST,
@@ -30,8 +30,8 @@ from typed_dag import (  # noqa: E402
     TypedDagCompiler,
 )
 
-FIXTURE = REPO / "runtime" / "pipeline" / "fixtures" / "phase2_typed_dag.json"
-COMPILER = REPO / "runtime" / "pipeline" / "typed_dag.py"
+FIXTURE = REPO / "lib" / "infrastructure" / "pipeline" / "fixtures" / "phase2_typed_dag.json"
+COMPILER = REPO / "lib" / "infrastructure" / "pipeline" / "typed_dag.py"
 
 OPS = {
     "coverage": "compute_coverage", "sample": "sample_frames",

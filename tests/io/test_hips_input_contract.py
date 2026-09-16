@@ -31,10 +31,10 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import make_hips_fixture as mhf  # noqa: E402
 
-INCLUDE = REPO / "modules" / "services" / "io" / "include"
-FITS_CORE = REPO / "runtime" / "io" / "fits_core.c"
-HIPS_CORE = REPO / "runtime" / "io" / "hips_core.c"
-LIB_SO = REPO / "runtime" / "io" / "libhips_core_test.so"
+INCLUDE = REPO / "lib" / "infrastructure" / "aio" / "io" / "include"
+FITS_CORE = REPO / "lib" / "infrastructure" / "aio" / "io" / "fits_core.c"
+HIPS_CORE = REPO / "lib" / "infrastructure" / "aio" / "io" / "hips_core.c"
+LIB_SO = REPO / "lib" / "infrastructure" / "aio" / "io" / "libhips_core_test.so"
 
 ACS_HIPS_OK = 0
 ACS_HIPS_ERR_PARAM = 1

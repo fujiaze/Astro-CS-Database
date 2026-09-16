@@ -39,7 +39,7 @@
 注册 8 个 Phase1 descriptor。**P1-001（2026-09-10）真实节点化后**：全部
 工厂改为 `P1NodeModule` 唯一真实 operation 委托（module_adapters.cpp
 p1_nodes[] 表，operation/entry 名与
-runtime/pipeline/module_ports.registry.json 冻结绑定表一致）——calibrate→
+lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定表一致）——calibrate→
 `ac_calibrate_frame`、cosmetic→`ac_correct_frame`、star-psf→
 `astrocs::phase1::StarDetector::detect`+`dpsf_fit_batch_f64`
 （**lib/algorithms/star_detection/wrapper_phase1** 检测 —— 该文件为 **P1-003 桥接类**，**不是**

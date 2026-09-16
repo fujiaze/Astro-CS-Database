@@ -1,7 +1,7 @@
 {
   "descriptor_schema": "astrocs.module-integration-descriptor/v1",
   "descriptor_owner_task": "CAT-GAIA-INT",
-  "descriptor_note": "模块本地集成面 (MODULE_MIGRATION_TEMPLATE <prefix>-INT)。端口/operation 字段名与 runtime/pipeline/module_ports.registry.json v1 消费格式对齐; 本文件是模块侧声明面, 不是全局注册表。global DAG registration (typed DAG node 接线 + module_ports.registry.json 登记 + install manifest) 由 SA-RT-05 assembly task 消费本表执行; 本任务不改全局 registry/graph。所有 ID/键/词表与 lib/infrastructure/gaia_xpsd_client/module.yaml (CAT-GAIA-DOC 冻结)、lib/infrastructure/gaia_xpsd_client/include/astrocs/gaia/types.h (CAT-GAIA-IMPL) 三方一致 (12 §5)。",
+  "descriptor_note": "模块本地集成面 (MODULE_MIGRATION_TEMPLATE <prefix>-INT)。端口/operation 字段名与 lib/infrastructure/pipeline/module_ports.registry.json v1 消费格式对齐; 本文件是模块侧声明面, 不是全局注册表。global DAG registration (typed DAG node 接线 + module_ports.registry.json 登记 + install manifest) 由 SA-RT-05 assembly task 消费本表执行; 本任务不改全局 registry/graph。所有 ID/键/词表与 lib/infrastructure/gaia_xpsd_client/module.yaml (CAT-GAIA-DOC 冻结)、lib/infrastructure/gaia_xpsd_client/include/astrocs/gaia/types.h (CAT-GAIA-IMPL) 三方一致 (12 §5)。",
   "module_id": "astrocs.catalog.gaia",
   "module_version": "0.11.0-alpha.2",
   "abi_version": 1,
@@ -113,7 +113,7 @@
   "global_dag_registration": {
     "owner": "SA-RT-05",
     "status": "delegated",
-    "delegation": "typed DAG node 接线 (astrocs.typed-dag/v1)、module_ports.registry.json 登记、install manifest、ArtifactStore 端口绑定均由 SA-RT-05 assembly task 执行; 本任务仅交付模块本地集成面 (本 descriptor + 本地集成测试), 不修改 runtime/pipeline/*、graph/*、lib/infrastructure/scheduler 全局注册表 (模板 INT §1: 不直接修改全局 pipeline)",
+    "delegation": "typed DAG node 接线 (astrocs.typed-dag/v1)、module_ports.registry.json 登记、install manifest、ArtifactStore 端口绑定均由 SA-RT-05 assembly task 执行; 本任务仅交付模块本地集成面 (本 descriptor + 本地集成测试), 不修改 lib/infrastructure/pipeline/*、graph/*、lib/infrastructure/scheduler 全局注册表 (模板 INT §1: 不直接修改全局 pipeline)",
     "consumed_by": ["SA-RT-05 assembly", "typed DAG compiler"]
   }
 }

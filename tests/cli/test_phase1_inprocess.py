@@ -9,7 +9,7 @@
 
 退役登记（依据 §6.2 唯一命令树 + CLI-001 rc 矩阵）:
   * test_01 内 "verify --json --run-manifest" 断言 → 退役: verify 命令删除;
-    哈希链复算的新载体是 export resume 预检（cli/commands.cpp cmd_session3_run）,
+    哈希链复算的新载体是 export resume 预检（lib/infrastructure/cli/commands.cpp cmd_session3_run）,
     该载体当前被 export 预检/会话配置口径冲突阻塞（TEST-CLI-SYNC 报告已登记,
     归属 CLI-002）⇒ 本文件不再断言 verify, 缺口显式登记不静默;
   * test_06_ir_matches_frozen_chain（phase1 plan --json 逐节点对比 registry）→ 退役:
@@ -19,7 +19,7 @@
 import json, os, re, shutil, signal, subprocess, tempfile, time, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-REGISTRY = os.path.join(REPO, "runtime", "pipeline", "module_ports.registry.json")
+REGISTRY = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_ports.registry.json")
 
 
 def cli_binary():

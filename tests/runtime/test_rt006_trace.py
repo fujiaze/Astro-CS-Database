@@ -35,7 +35,7 @@ INC = REPO / "include"
 CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
 TP = REPO / "third_party"
 
-sys.path.insert(0, str(REPO / "runtime" / "pipeline"))
+sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "pipeline"))
 from trace_replay import detect_violations as py_detect_violations  # noqa: E402
 from trace_replay import replay_from_jsonl as py_replay_from_jsonl  # noqa: E402
 
@@ -468,7 +468,7 @@ int main() {
 _HDR_TRACE = INC / "astrocs" / "core" / "trace.h"
 _HDR_CTX = INC / "astrocs" / "core" / "context.h"
 _SRC_TRACE = CORE / "trace.cpp"
-_REPLAY_PY = REPO / "runtime" / "pipeline" / "trace_replay.py"
+_REPLAY_PY = REPO / "lib" / "infrastructure" / "pipeline" / "trace_replay.py"
 
 
 def _cpp_files():

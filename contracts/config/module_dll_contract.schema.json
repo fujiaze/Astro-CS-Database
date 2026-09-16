@@ -100,7 +100,7 @@
         },
         "common_policy": {
           "type": "string",
-          "description": "冻结：common/contracts 只保留 POD/value/header contracts，不得成为万能 DLL；跨 DLL 公共代码只能是 header-only 合同或 runtime/io 的稳定 C ABI 服务",
+          "description": "冻结：common/contracts 只保留 POD/value/header contracts，不得成为万能 DLL；跨 DLL 公共代码只能是 header-only 合同或 lib/infrastructure/aio/io 的稳定 C ABI 服务",
           "minLength": 1
         },
         "forbidden_aggregations": {
@@ -187,7 +187,7 @@
         "host_services": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "该 DLL 作为 host 提供的服务名集合（runtime/io/exe 层面）或作为 client 消费的 host 服务名集合（module/provider 层面）"
+          "description": "该 DLL 作为 host 提供的服务名集合（lib/infrastructure/aio/io/exe 层面）或作为 client 消费的 host 服务名集合（module/provider 层面）"
         },
         "depends_on": {
           "type": "array",

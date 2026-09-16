@@ -1,7 +1,7 @@
 // lib/infrastructure/cli/command_tree.h — 唯一命令树（ASTROCS_DESIGN §6.2）
 //
 // 本文件是「用户可见命令面」的唯一事实源：命令名、旗标白名单、help 文本都从
-// 这里生成；根 cli/parser.cpp 只消费本表，不再自带命令清单（旧表含 phase1/2/3
+// 这里生成；根 lib/infrastructure/cli/parser.cpp 只消费本表，不再自带命令清单（旧表含 phase1/2/3
 // 用户命令，已随 CLI-001 删除）。
 //
 // 三条不可回退的约束（改动本文件前先读）：
