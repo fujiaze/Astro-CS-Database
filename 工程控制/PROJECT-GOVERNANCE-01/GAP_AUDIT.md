@@ -253,6 +253,15 @@
 - **判定**：①Wiki 事实源漂移（内容陈旧且自称权威）；②工程规范清单与 .gitignore 不一致；③本地 clone 消失（不阻塞，可恢复）。
 - **处置**：立 **WIKI-001**（改为**由权威文档生成 Wiki** + `CHK-WIKI-SYNC` 一致性门 + 消除权威自称；push 属发布类动作须负责人批准）；立 **ROOT-005**（空目录与未登记产物目录处置，含 `AstroCS.wiki/`、`evidence/` 登记建议）；§7 清单缺项归下一轮工程包（工程规范对齐）。
 - **治理任务**：WIKI-001、ROOT-005、下一轮工程包（§7 对齐）
+**GAP-027　违规：清运删除 build/ 后 API-DOCS 门退化为恒绿（静默跳过）**
+
+- **发现者**：工程包调度线 W1 中期（独立复现，非执行 Agent 自述）；前台已复核其口径与证据落点。
+- **权威依据**：ENGINEERING_SPEC §8（每项检查必须能红能绿）；docs/ci/01_CHECKS.md §1（检查项语义与自检要求）；ASTROCS_DESIGN §12（不得用空输出/文档声明冒充验证）。
+- **证据**：`tools/check_api_docs.py` 的 `check_command_tree`（约 132-133 行）**仅在 "入参 build/cli/astrocs" 存在时**才比对命令树，否则**静默跳过**。调度线的 mutation 复现：在临时 docs 目录里给 `docs/api/CLI_PROTOCOL_V1.md` 的命令行加上 `--min-obs 9`，跑 `python3 tools/check_api_docs.py --repo . --docs-dir <tmp>/api` → **rc=0，mutation 未被发现**；而 build/ 存在时同一 mutation 必红。
+- **直接后果**：`tests/quality/test_doc_machine_check.test_05_command_tree_mutation_fails` 由 PASS 转 FAIL（外部原因，不计入 DATA-001/MOD-001）；检查项 API-DOCS **失去「能红能绿」**。
+- **判定**：这是**「机器门结构性不红」的又一实例**（SUMMARY.md 簇 1 的形态：校验对象≠交付对象／判据来自被检物自身／缺失即跳过）。**注意：它不是本包新引入的缺陷——build/ 长期存在时它被掩盖了；恰恰是物理清运把它暴露出来**，属清运的正向副作用。
+- **处置（已裁决）**：①修复归 **CI-001**，口径「缺构建产物时必须 fail-closed（判 FAIL），不得静默跳过」；②追加**同源全量审计**：逐个检查器审计其对「构建产物/外部文件」的存在性依赖，凡「缺失即跳过」一律改 fail-closed，产出「检查器 → 依赖物 → 缺失时行为（前/后）」清单，负例自测必须证明能红。
+- **治理任务**：CI-001（含依赖物恒绿全量扫描）
 ## 6. 科学课题研究层（2026-09-16 设立）
 
 负责人指示：**权威文档里点名存在但缺数值/缺定义的科学量，排 Agent 作课题研究，研究清楚后落到科学文档**。据此设立独立研究包 `工程控制/SCI-RES-01/`，与重构包并行、边界互斥。
