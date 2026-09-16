@@ -30,7 +30,7 @@
  *      status/artifact_size=终态与输出 manifest 实际字节; provider 与
  *      artifact_id 不填 (1:1 转发 legacy 无 provider 观测 / ArtifactStore
  *      归全局 —— 空=真实未观测); JSONL (astrocs.trace-event/v1 键序,
- *      lib/core TraceEvent::to_jsonl 同型) 写盘后本地重放: 每 node
+ *      lib/infrastructure/scheduler TraceEvent::to_jsonl 同型) 写盘后本地重放: 每 node
  *      module_call 计数==1 (context.cpp detect_repeated_calls 同语义,
  *      键=(node_id,operation))。
  *   F. 负面 ABI (模板 INT §5): 缺 DLL 加载失败; host_abi 失配 →

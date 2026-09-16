@@ -117,12 +117,12 @@ function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
 
 ### 13.1 逐符号实现锚定（现行唯一生产实现）
 
-生产符号唯一源 = `lib/snr_estimator/cpp/src/noise_model.cpp`（466 行，头
-`lib/snr_estimator/cpp/include/snr_estimator.h` 431 行；现状构建 =
-`lib/snr_estimator/cpp/Makefile:5,12`（g++ -shared → `snr_estimator.dll`，
+生产符号唯一源 = `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`（466 行，头
+`lib/algorithms/noise_snr/cpp/include/snr_estimator.h` 431 行；现状构建 =
+`lib/algorithms/noise_snr/cpp/Makefile:5,12`（g++ -shared → `snr_estimator.dll`，
 MinGW 通道）+ `cpp/build.ps1:29`——未编入根 CMake 主构建（无
 snr_estimator CMake 目标，与 astrocs_hips/astrocs_drizzle 先例不同，
-CMake 集成归 P1-NOISE-IMPL），dll_loader.cpp:41/55 加载名与路径吻合）；`lib/phase1/noise/noise_model.{h,cpp}` 为
+CMake 集成归 P1-NOISE-IMPL），dll_loader.cpp:41/55 加载名与路径吻合）；`lib/algorithms/noise_snr/wrapper_phase1/noise_model.{h,cpp}` 为
 `astrocs::phase1::NoiseModel` 小封装（39+67 行，静态库
 `astrocs_phase1_noise`，CMakeLists.txt:495-498，主程序链接 :556；单测
 tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:312-316 注册）。
@@ -225,7 +225,7 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:312-316 注册）。
 
 ### 13.5 遗留通道与迁移旧符号（非生产）
 
-- `lib/phase1/noise/NoiseModel::estimate`（median+MAD 全像素集单值，无
+- `lib/algorithms/noise_snr/wrapper_phase1/NoiseModel::estimate`（median+MAD 全像素集单值，无
   掩膜/patch/平面场）与 `NoiseModel::gain_variance`（signal/gain+rn²
   诊断）——P1-005 期封装，语义为 ALG-NOISE-001/003 的退化子集；随
   `astrocs_phase1_noise` 静态库编译（CMakeLists.txt:495-498）并进主程序
@@ -235,7 +235,7 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:312-316 注册）。
   （snr_estimator.h:200-218,394-428）——legacy heuristic/diagnostic，已由
   三层模型降级（头注释 :19-20）；不属 P1-NOISE 合同（SNR catalogue 语义
   归 P1-SNR/DRZ 侧），仅登记边界。
-- 迁移落点: `lib/snr_estimator;lib/phase1/noise`（matrix legacy_paths）→
+- 迁移落点: `lib/algorithms/noise_snr;lib/algorithms/noise_snr/wrapper_phase1`（matrix legacy_paths）→
   `astrocs_p1_noise.dll`（P1-NOISE-IMPL 建 C ABI adapter +
   plan/execute/cancel/inspect + ThreadLease 接线）；本 DOC 不改任何
   生产代码。

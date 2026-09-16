@@ -50,7 +50,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
                                             # median<=0 时不归一，保持原样
 ```
 
-与 `lib/calibration/src/calibrator.cpp:104-136,147-179` 及 `lib/calibration/src/master_generator.cpp:243-255` 一致。`dark_opt=1` 仅在 `bias && dark` 均非 NULL 时生效，否则回退 `dark_opt=0` 语义且 `k→1.0`。
+与 `lib/algorithms/calibration/src/calibrator.cpp:104-136,147-179` 及 `lib/algorithms/calibration/src/master_generator.cpp:243-255` 一致。`dark_opt=1` 仅在 `bias && dark` 均非 NULL 时生效，否则回退 `dark_opt=0` 语义且 `k→1.0`。
 
 ## 6 假设
 
@@ -91,7 +91,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 - **read noise**：校准层不建模、不传播；噪声建模归 `snr_estimator`（`docs/science/NOISE_MODEL.md`）。
 - **负值**：`raw−dark` 可为负，保留不 clamp（DATA_SEMANTICS §4 负值保留）。
 - **saturation**：FP32 饱和语义界定，不静默 clamp（§8 `t_light/t_dark` 行）。
-- **mask**：坏点掩膜为 `bad_mask`，极性 **1=坏点**（GLOSSARY `bad_mask`，实测 `lib/calibration/src/cosmetic_corrector.cpp#158`）。
+- **mask**：坏点掩膜为 `bad_mask`，极性 **1=坏点**（GLOSSARY `bad_mask`，实测 `lib/algorithms/calibration/src/cosmetic_corrector.cpp#158`）。
 - **variance 传播**：本层不传播母版方差至 `cal`（§9）；ivar 由 `snr_estimator` 独立估计，产品位见 DATA_SEMANTICS §4a。
 
 ## 10 不可接受变化
@@ -118,8 +118,8 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/CALIBRATION.md` (SCI-CAL-001)
-- 实现: `lib/calibration/src/calibrator.cpp` (`normalize_flat, calibrate, calibrate_d`), `lib/calibration/src/master_generator.cpp` (`generate_master`), `lib/calibration/src/cosmetic_corrector.cpp`
-- 公开 API: `lib/calibration/include/astro_calibration.h` (`ac_generate_master_bias/dark/flat, ac_calibrate_frame, ac_correct_frame` 及其 `_f64` 变体)
+- 实现: `lib/algorithms/calibration/src/calibrator.cpp` (`normalize_flat, calibrate, calibrate_d`), `lib/algorithms/calibration/src/master_generator.cpp` (`generate_master`), `lib/algorithms/calibration/src/cosmetic_corrector.cpp`
+- 公开 API: `lib/algorithms/calibration/include/astro_calibration.h` (`ac_generate_master_bias/dark/flat, ac_calibrate_frame, ac_correct_frame` 及其 `_f64` 变体)
 - 测试: `TST-CAL-001` 常量场、`TST-CAL-INV-001` 幂等归一、`TST-CAL-FAIL-001` 参数校验（新增/映射见 `docs/TRACEABILITY.csv`）
 
 ## 14 Primary literature（引用均已核对原文定位）

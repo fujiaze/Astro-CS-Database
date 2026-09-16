@@ -2,8 +2,8 @@
 //
 // 被测面 (真实生产目标, 非测试私有编译):
 //   astrocs_phase1_noise  — 根 CMakeLists.txt 的 Linux 生产静态库
-//     lib/phase1/noise/snr_frame_science.cpp  (帧级聚合, P8 接线层)
-//     lib/snr_estimator/cpp/src/snr_science.cpp (P5-SNR 唯一权威科学实现)
+//     lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp  (帧级聚合, P8 接线层)
+//     lib/algorithms/noise_snr/cpp/src/snr_science.cpp (P5-SNR 唯一权威科学实现)
 //   => 本可执行文件若链接不到 snr_source_snr_f64 / snr_frame_depth_f64,
 //      构建即失败 —— 这就是"snr_science.cpp 确实在 Linux 生产目标里"的机器锁。
 //

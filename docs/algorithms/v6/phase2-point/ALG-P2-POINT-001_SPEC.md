@@ -1,8 +1,10 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # ALG-P2-POINT-001 — Phase2 点源算法规格
 
 - 文档 ID：`ALG-P2-POINT-001`
 - 状态：`TARGET_NORMATIVE`（算法层目标规范；正式冻结由 W4 `CONTRACT-FREEZE-001` 写入 `docs/algorithms/v6/frozen/`）
-- 任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P2-POINT-001.md`（wave 3，depends_on SCI-ADJ-001）
+- 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P2-POINT-001.md`（wave 3，depends_on SCI-ADJ-001）
 - 基线：`HEAD = main = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`（本机 `git rev-parse HEAD` 实测）
 - 写域：`docs/algorithms/v6/phase2-point/`（人读规格）；机器规格/Oracle/证据/日志在 `run/v6/alg-p2-point/`（gitignore 工作区）
 - 性质：**算法层规格**。不改科学公式/容差/冻结门，不写生产源码，不 commit/push，不派生子任务。

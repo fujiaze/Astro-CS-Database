@@ -1,3 +1,5 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # SCI-P2-001 验证与证据（命令 / rc / 结果）
 
 文档 ID：`SCI-P2-001-VERIFICATION`
@@ -14,7 +16,7 @@
 | **F1 回退** | 16 tracked 回退到祖先 blob + 10 tracked 删除 | `run/v6/base/baseline_freeze.json.worktree_vs_head`（BASE-OWN-001） |
 
 **基线分歧未裁决**：本任务一切生产面判定**以已提交 HEAD 为准**（结构探针统一走 `git show HEAD:<path>`），
-不把回退态当已验证基线。示例：工作树 `lib/core/src/module_adapters.cpp` 相对 HEAD 为 `+27 / −135` 行
+不把回退态当已验证基线。示例：工作树 `lib/infrastructure/scheduler/src/module_adapters.cpp` 相对 HEAD 为 `+27 / −135` 行
 （`git diff --stat HEAD`），故该文件只按 HEAD 读取。
 
 ## 2. 命令与实测退出码

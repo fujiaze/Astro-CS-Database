@@ -1,6 +1,8 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # SCI-ADJ-001 — 科学裁决整合（Wave 2，人读正文索引）
 
-- 任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/SCI-ADJ-001.md`
+- 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCI-ADJ-001.md`
 - 文档 ID：`SCI-ADJ-001-ADJUDICATION`
 - 基线：`HEAD = main = bc166e9d4828b45ef32b679156e12d954640534a`（本机 `git rev-parse` 实测）
 - 性质：**整合裁决（integration adjudication）**——消费五份 Wave 1 交付 + 控制器 C-001..C-005 裁决，列冲突矩阵，冻结字段/公式/mode/适用域/降级/验证门。**只读输入**；不改任何上位规范、不改公式/容差/冻结门、不写生产代码、不 commit/push。

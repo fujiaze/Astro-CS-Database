@@ -5,7 +5,7 @@
 
 ## 0 ISA-002 补充测量与决策(2026-08-28, vm-bj, AVX(无 FMA)变体)
 
-- 变体 `lib/backend_host/avx_backend.cpp` → `avx_backend.so`, TU 局部旗标 `-mavx`(无 -mfma/-mavx2), 共享 baseline_kernels_impl.inc/backend_table.inc 同源(零复制漂移)。
+- 变体 `lib/infrastructure/benchmark/backend_host/avx_backend.cpp` → `avx_backend.so`, TU 局部旗标 `-mavx`(无 -mfma/-mavx2), 共享 baseline_kernels_impl.inc/backend_table.inc 同源(零复制漂移)。
 - 逐 kernel 实测(median-of-5 × 3 轮, best-of baseline 对变体最保守):
 
 | kernel | baseline ns | avx 变体 ns | avx 增益 | avx2(SHIP,ISA-001) 增益 | 决策 |
@@ -53,7 +53,7 @@
 ## 1.6 ISA-004 AVX512 复测与判定(2026-08-28, vm-bj)
 
 - vm-bj CPU 支持 AVX512(F/BW/VL/DQ/CD, `/proc/cpuinfo` 验证), 故按任务规则**可以**在 Linux 完整验证(规则只禁止"CPU 不支持时不验证就谎报 PASS", 本机支持→必须验证)。
-- 变体 `lib/backend_host/avx512_backend.cpp` → `avx512_backend.so`(`-mavx512f -mavx512bw -mavx512vl -mavx512dq`), 共享 impl/table 同源。
+- 变体 `lib/infrastructure/benchmark/backend_host/avx512_backend.cpp` → `avx512_backend.so`(`-mavx512f -mavx512bw -mavx512vl -mavx512dq`), 共享 impl/table 同源。
 - 能力证明(bidirectional): baseline 零 VEX(`BASELINE_OPCODE_PASS`); avx512 变体**含 15× %zmm**(512-bit=AVX512)+ vmovaps/vmovdqu8(EVEX 编码)。真 AVX512 变体成立。
 - 逐 kernel 复测(median, 多轮, best-of baseline), 与 avx2(SHIP) 对照:
 
@@ -68,7 +68,7 @@
 
 ## 2 变体注册(05 §5 capability)
 
-- `lib/backend_host/avx2_backend.cpp` → `avx2_backend.so`(DSO, manifest: required=avx2+fma, sha256 实测入 backends.manifest.json); 预检(ABI-002)保证: 不支持 ISA 的主机绝不加载/执行。
+- `lib/infrastructure/benchmark/backend_host/avx2_backend.cpp` → `avx2_backend.so`(DSO, manifest: required=avx2+fma, sha256 实测入 backends.manifest.json); 预检(ABI-002)保证: 不支持 ISA 的主机绝不加载/执行。
 - 逐 kernel 选路(BENCH-005): calibration/hips→avx2 变体; drizzle-accumulate→**保持 baseline**(变体更慢); 其余→baseline。错误变体绝不入候选(hash/ABI/ISA 预检+逐 kernel Oracle)。
 - variant Oracle: 与 baseline 同公式同序(共享源)→输出允许 FMA 舍入差(容差 2e-4 相对, 与 Python 参考比对); 值语义不变。
 

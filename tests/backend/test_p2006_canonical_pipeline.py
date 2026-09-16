@@ -15,7 +15,7 @@ CLI-002 迁移注记 (commit de2d6d7f):
     原 test_01/02/03/04 的产物级断言替换为现行可观测契约:
       * IR 链结构由 Registry + runtime 执行事实承载: 7 节点 descriptor
         (astrocs.phase2.{coverage,sample,upm-fit,upm-apply,reject,integrate,write})
-        已在 register_phase_modules 注册(lib/core/src/module_adapters.cpp), run 事件
+        已在 register_phase_modules 注册(lib/infrastructure/scheduler/src/module_adapters.cpp), run 事件
         流完整(final ok, sequence 连续, resource gate 事件);
       * 会话级节点执行证据: phase2 session stderr stage 日志
         ("stage coverage ok: cells=N" / "stage sample ok: obs=N overlap_controls=N",

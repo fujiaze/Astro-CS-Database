@@ -1,0 +1,13 @@
+# lib/snr_estimator/src/module_exports.map - astrocs_p1_noise 导出面白名单
+# ABI-006 (12_DLL_ABI_AND_LOADER_STANDARD §6): DLL 唯一导出符号 =
+# astrocs_module_query_v1。legacy snr_noise_* 七符号 (snr_estimator.h
+# API-NOISE-001) 与全部 C++ 内部符号 (mangled/匿名 namespace) 一律降 local;
+# 七符号仍全量编译进 DLL (ABI 合同不裁剪, 仅导出面净化)。
+# 实证: nm -D 仅此一符号; dlsym 探针 legacy 全 NULL
+# (tests/unit/p1_noise/adapter_test.cpp export_probe case)。
+{
+  global:
+    astrocs_module_query_v1;
+  local:
+    *;
+};

@@ -14,7 +14,7 @@
 | 集成测试配置 | `cmake -S tests/integration/v6_p2 -B run/v6/P2-INTEGRATE-001/build_it -DCMAKE_BUILD_TYPE=Release` | 0 | `logs/03_configure_it.log` |
 | 集成测试构建 | `cmake --build .../build_it -j4` | 0 | `logs/13_build_final.log` |
 
-编译源集 = 本层接线 + Wave 5 生产源（`lib/phase2/src/{upm,rejection,sampler,coverage}.cpp`）
+编译源集 = 本层接线 + Wave 5 生产源（`lib/algorithms/coverage/src/{upm,rejection,sampler,coverage}.cpp`）
 + P1-INTEGRATE-001 消费面 + IMPL-AIO-001 + IMPL-P1-PSFW-001 + IMPL-P1-CAL-001 + IMPL-P1-DRZ-001
 + legacy AIO 后端（`aio_hips_reader.cpp`/`aio_upm.cpp` + vendored cfitsio）。**未修改上述任何被链接源。**
 
@@ -77,8 +77,8 @@ point 独立合并、point 联合 GLS、surface GLS、psfsw conventional coadd �
 
 ## 6. 越界审计
 
-`git status --porcelain -- lib/phase2_int lib/phase2 tests/integration/v6_p2` 仅显示两个新增目录；
-`git diff --stat -- lib/phase2 lib/phase1 lib/astro_image_io contracts docs` 为空（零 tracked 修改）。
+`git status --porcelain -- lib/phase2_int lib/algorithms/coverage tests/integration/v6_p2` 仅显示两个新增目录；
+`git diff --stat -- lib/algorithms/coverage lib/phase1 lib/infrastructure/aio contracts docs` 为空（零 tracked 修改）。
 未 commit / 未 push / 未建分支或 worktree / 未派生子代理。
 
 ## 7. 未决 / 移交

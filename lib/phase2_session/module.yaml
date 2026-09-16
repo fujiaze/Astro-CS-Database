@@ -12,13 +12,13 @@
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为
 # 源码核对清单（P2-SESSION-DOC 2026-09-10 grep 实测），禁止手抄他版。
 # 本三件套落位于既有生产源目录 lib/phase2_session/（先例=
-# lib/phase1_session/ P1-SESSION-DOC 同址布局，不同于 lib/phase2_rej/
+# lib/phase1_session/ P1-SESSION-DOC 同址布局，不同于 lib/algorithms/rejection/
 # 的独立迁移空目录先例）；memory.md 归主 agent 登记。
 # dll_target=astrocs_p2_session.dll 为迁移目标合同值（尚未存在，
 # MISSING 如实登记）；现状构建=根 CMakeLists.txt astrocs_phase2_
 # session 静态库编入 astrocs 可执行（:501-506）。
 # entrypoint=MISSING：registry 无 astrocs.p2.session module_id 的
-# descriptor——p2_session 五函数经 P2Api（lib/core/src/
+# descriptor——p2_session 五函数经 P2Api（lib/infrastructure/scheduler/src/
 # module_adapters.cpp:711-718 五静态委托）被占位 descriptor 工厂
 # 委托：phase2_descriptor()（:283-300，module_id=astrocs.phase2.
 # resample，占位词汇 sci_id=SCI-P2-RES-001/alg_id=ALG-P2-RES-001/

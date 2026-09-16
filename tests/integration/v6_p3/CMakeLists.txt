@@ -12,9 +12,9 @@ endif()
 
 get_filename_component(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
 set(P3SESS_DIR  "${REPO_ROOT}/lib/phase3_session")
-set(P3PROJ_DIR  "${REPO_ROOT}/lib/phase3_proj")
-set(P3RSMP_DIR  "${REPO_ROOT}/lib/phase3_rsmp")
-set(AIO_V6_DIR  "${REPO_ROOT}/lib/astro_image_io/v6")
+set(P3PROJ_DIR  "${REPO_ROOT}/lib/algorithms/projection")
+set(P3RSMP_DIR  "${REPO_ROOT}/lib/algorithms/resample")
+set(AIO_V6_DIR  "${REPO_ROOT}/lib/infrastructure/aio/v6")
 set(JSON_DIR    "${REPO_ROOT}/third_party")
 
 # AIO v6 生产库（IMPL-AIO-001 提供；不修改其源码，仅链接）。

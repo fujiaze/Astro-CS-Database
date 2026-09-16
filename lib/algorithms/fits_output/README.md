@@ -1,9 +1,9 @@
 # astrocs.p3.fits_writer — Phase3 FITS 写出域（P3-FITS）
 
 > P3-FITS-DOC（2026-09-08，SA-P3-F27）合同冻结任务新建模块页。合同三件套
-> 落位 `lib/phase3_fits/`（README r1 + module.yaml + memory.md，
-> CONTRACT_READY，entrypoint=MISSING）——迁移目标目录按 `lib/phase2_int/`
-> → `lib/phase2_rej/` → `lib/phase2_samp/` → `lib/phase2_upm/` 先例新建，
+> 落位 `lib/algorithms/fits_output/`（README r1 + module.yaml + memory.md，
+> CONTRACT_READY，entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/integration/`
+> → `lib/algorithms/rejection/` → `lib/algorithms/sampling/` → `lib/algorithms/upm/` 先例新建，
 > 仅合同文件、无源码、不与 legacy 目录重叠；生产源引用不搬家。
 > 生产源 `lib/phase3_session/p3_output.cpp`（370 行，根 CMakeLists.txt
 > astrocs_phase3_session STATIC 目标 :460-465 五源文件之一）+ 唯一权威
@@ -64,7 +64,7 @@
 ## 关键合同事实
 
 - cfitsio 进程级串行化（RT-008）：写全程持 `aio::cfitsio_io_mutex()`
-  （p3_output.cpp:125；lib/astro_image_io/src/aio_cfitsio_mutex.h:9-15
+  （p3_output.cpp:125；lib/infrastructure/aio/src/aio_cfitsio_mutex.h:9-15
   单例；与 aio_fits.cpp:529 读路径共用），覆盖内部 verify 重开。
 - rc 枚举冻结（p3_output.h:34-39）：P3_OUT_OK=0 / P3_OUT_PARAM=1 /
   P3_OUT_IO=2 / P3_OUT_CANCELLED=3；CANCELLED 仅由 cancelled_at_row≥0
@@ -82,7 +82,7 @@
 
 ## 已知缺陷（登记不改码，P3-FITS-IMPL/TEST 整改）
 
-- DISP-P3FITS-001：lib/astro_image_io/README.md 旧派生内容声称
+- DISP-P3FITS-001：lib/infrastructure/aio/README.md 旧派生内容声称
   "零外部依赖、不依赖 cfitsio"，与现状 vendored third_party/cfitsio
   （astrocs_cfitsio 静态库，根 CMakeLists.txt:273-296 astrocs_aio
   链接）矛盾——P3-FITS-DOC 只登记不修他域文件。

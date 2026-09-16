@@ -1,7 +1,9 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # W6 生产 schema 集成登记（SCHEMA-INTEGRATE-001）
 
 - 文档 ID：`DATA-V6-SCHEMA-INTEGRATION`
-- 任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/SCHEMA-INTEGRATE-001.md`（Wave 6，depends_on = CONTRACT-FREEZE-001）
+- 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCHEMA-INTEGRATE-001.md`（Wave 6，depends_on = CONTRACT-FREEZE-001）
 - write_scope：`contracts/schemas/`、`contracts/data/`、`docs/contracts/`、`tests/contracts/v6/`
 - 基线 HEAD：`ac04289dea9d3ccb3dad8310dade53e75162447f`（`git rev-parse HEAD` 实测；controller C-007 已把 `docs/contracts/{DATA_SEMANTICS,PUBLIC_API}.md` 的 P33/P27 回退态固化为本基线）
 - 语义权威（唯一）：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8）

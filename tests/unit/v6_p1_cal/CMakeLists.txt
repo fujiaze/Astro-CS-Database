@@ -10,7 +10,7 @@
 # ============================================================================
 
 set(V6_CAL_TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(V6_CAL_PROD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/calibration)
+set(V6_CAL_PROD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/algorithms/calibration)
 
 if(NOT TARGET astrocs_p1_cal_v6_covariance)
   add_library(astrocs_p1_cal_v6_covariance STATIC

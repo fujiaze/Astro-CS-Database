@@ -36,7 +36,7 @@
   测试锚：tests/unit/p1001_real_nodes_test.cpp + p1sess 五组（断言已迁移
   partial）。
 - P1-001 attempt 2 三域真实化（2026-09-10 口径更新落地）：star-psf=
-  sdet(lib/star_detector 生产源)+dpsf_fit_batch_f64(lib/dynamic_psf
+  sdet(lib/algorithms/star_detection 生产源)+dpsf_fit_batch_f64(lib/algorithms/psf
   Moffat4 FP64，DATA-P1-PSF 携 psf_params:FLOAT64[N,9])；wcs=ipv 求解链
   (ipv_solve_from_memory_with_callback_d，sdet+gaia_client 句柄注入，
   Linux=源内 stub fail-closed 报平台限制、Windows=真实求解，缺求解参数

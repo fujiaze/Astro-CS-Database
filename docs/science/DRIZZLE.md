@@ -68,7 +68,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001):
   3) fast 枚举: buffer = 1.25·hp_res, 赤道 delta×1.15 畸变系数, 极冠回退
 ```
 
-与 `lib/healpix_db/healpix_drizzle/spherical_overlap.cpp:40,573,773-931` 及 `drizzle_engine.cpp:100,736-762` 一致。
+与 `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp:40,573,773-931` 及 `drizzle_engine.cpp:100,736-762` 一致。
 
 ## 6 假设
 
@@ -128,7 +128,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001):
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/DRIZZLE.md` (SCI-DRZ-001,014,015,016)
-- 实现: `lib/healpix_db/healpix_drizzle/spherical_overlap.cpp` (40,573,773-931), `lib/healpix_db/healpix_drizzle/drizzle_engine.cpp` (100,736-762, sink finalize), `lib/astro_image_io/src/hips/aio_hips_writer.cpp` (finalize_tile)
+- 实现: `lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp` (40,573,773-931), `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` (100,736-762, sink finalize), `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` (finalize_tile)
 - 公开 API: `processPixelSharedTiled, compute_overlap_area_g_ctx, drizzleTiled, compute_auto_nside`
 - 测试: `TEST-DRZ-CAND-001` 9003例零漏选、`TEST-DRZ-VAR-001` 缩放律、常数场、`TargetGeomCache` 等价（`candidate_oracle_test.cpp, variance_propagation_test.cpp`）
 

@@ -1,3 +1,5 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # 08 — Phase3 投影/采样 schema（Omega_i / 采样核 registry / Q-W 重算 / fail-closed）
 
 上位锚：`FZ-P3-MODES`、`FZ-P3-FAILCLOSED`、`FZ-P3-QW-RECOMPUTE`、`FZ-P3-KERNEL-REGISTRY`、`FZ-P3-BUNIT-QUADRATIC`、`FZ-FORMULA-COV-PROP`；

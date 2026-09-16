@@ -17,7 +17,7 @@
 | Resampler | (HiPSContext,TileCache,WCS,out_params)→`OutPlane{S,C}` | `OutPlane{S: span<float>, C: span<uint8>, W_out,H_out}` | G2/G3/G4(order_needed/反向映射/采样) |
 | FitsWriter | (OutPlane,WCS,provenance,path)→原子 FITS | `FitsDesc{BITPIX,BUNIT,WCS keys,HISTORY}`; tmp+rename | G5 |
 
-- 依赖: `lib/common/healpix`(ang2pix/pix2ang 唯一实现, round-trip ≤1e-12 deg)、`astro_image_io`(FITS 底层写)。不引入第二 HEALPix/第二 FITS 写路径。
+- 依赖: `lib/algorithms/shared/healpix`(ang2pix/pix2ang 唯一实现, round-trip ≤1e-12 deg)、`astro_image_io`(FITS 底层写)。不引入第二 HEALPix/第二 FITS 写路径。
 
 ## 2 跨 tile 访问(科学语义在 ALG,缓存只管取放)
 

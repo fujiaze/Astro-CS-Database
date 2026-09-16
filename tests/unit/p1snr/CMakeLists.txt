@@ -2,8 +2,8 @@
 # P8-SNR-LINUX 回归锁: Linux 生产路径的逐源 SNR
 # ----------------------------------------------------------------------------
 # 被测面 = **真实生产目标** astrocs_phase1_noise (根 CMakeLists.txt 声明),
-#   即 lib/phase1/noise/snr_frame_science.cpp +
-#      lib/snr_estimator/cpp/src/snr_science.cpp
+#   即 lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp +
+#      lib/algorithms/noise_snr/cpp/src/snr_science.cpp
 # 若 snr_science.cpp 未编入该目标, 本可执行文件链接失败 => 构建即红灯
 # (这是"P5 正确实现确实接进 Linux 生产路径"的机器锁, 不依赖任何文本断言)。
 #

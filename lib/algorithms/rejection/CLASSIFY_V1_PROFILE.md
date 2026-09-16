@@ -3,9 +3,9 @@
 > 状态：v1 **版本化算法 profile**（非 SCI/ALG 冻结阈值）。冻结合同条目：
 > `ALG-P2S-REJ.1..7`、`FZ-REJ-INHERITED-THRESH`（继承阈值）、
 > `FZ-AP2S-REJ-CALIB-BINMIN/ABS/BSS-MIN`（校准门，PENDING_OWNER_SIGNOFF
-> SO-07，fail-closed 按文档值实现）。实现锚：`lib/phase2/src/rejection.cpp`
+> SO-07，fail-closed 按文档值实现）。实现锚：`lib/algorithms/coverage/src/rejection.cpp`
 > （`p2_reject_classify` / `p2_reject_calibration`）；声明锚：
-> `lib/phase2/include/astro/phase2/rejection.h`。
+> `lib/algorithms/coverage/include/astro/phase2/rejection.h`。
 
 ## 1 判据：预测残差方差（ALG-P2S-REJ.3）
 

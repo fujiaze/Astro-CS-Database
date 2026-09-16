@@ -1,4 +1,4 @@
-// lib/phase3_rsmp/p3_rsmp.h
+// lib/algorithms/resample/p3_rsmp.h
 //
 // AstroCS V6 Phase3 科学重采样传播（IMPL-P3-RSMP-001）
 //

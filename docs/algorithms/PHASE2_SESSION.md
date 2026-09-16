@@ -49,7 +49,7 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
   合同值（MISSING，§11.4 差距表）。
 - **构建**（根 CMakeLists.txt 实测）：静态库 `astrocs_phase2_session`
   =add_library(STATIC lib/phase2_session/p2_session.cpp) :454 +
-  target_include_directories（lib/phase2_session 与 lib/phase2/include）
+  target_include_directories（lib/phase2_session 与 lib/algorithms/coverage/include）
   :455-457 + target_link_libraries PUBLIC astrocs_contracts astrocs_phase2
   :458；编入 astrocs 可执行 target_link_libraries（astrocs_phase2_session
   :504，块 :501-506）；astrocs_module_adapters 亦链接之（:538）。
@@ -62,7 +62,7 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
 ## 3 DAG 拓扑：canonical 四段
 
 p2_session.h:2 冻结注释"coverage → sampler → UPM build → persist
-(可选); 全部直调 lib/phase2 生产函数"；段名与运行 trace 由
+(可选); 全部直调 lib/algorithms/coverage 生产函数"；段名与运行 trace 由
 p2_ir_facade_test.cpp:31-38 断言（{"coverage","sample","upm_build",
 "persist"} 四节点）。**段序不可重排**（§10.1）。
 
@@ -280,9 +280,9 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 | # | artifact | 现状（2026-09-10 实测） | 差距归属 |
 |---|---|---|---|
 | 1 | astrocs_p2_session.dll（独立迁移目标） | 不存在（MISSING）；现状=静态库 astrocs_phase2_session（CMakeLists.txt:454-458）编入 astrocs 可执行（:501-506/:504） | P2-SESSION-IMPL |
-| 2 | coverage 域产物（union MOC+target_order，P2CoverageResult 进程内） | 已实现（lib/phase2/src/coverage.cpp，ALG-COV-001 域） | 已存在（P2-COV 域） |
+| 2 | coverage 域产物（union MOC+target_order，P2CoverageResult 进程内） | 已实现（lib/algorithms/coverage/src/coverage.cpp，ALG-COV-001 域） | 已存在（P2-COV 域） |
 | 3 | sample 域产物（P2ControlObservation/P2ControlNode/P2SampleStats） | 已实现（sampler.cpp，ALG-P2-SMP-001 域） | 已存在（P2-SAMP 域） |
-| 4 | upm 域产物（model 构建/持久化 p2_upm_build/save/info/close） | 已实现（lib/phase2/src/upm*.cpp，ALG-UPM-001 域） | 已存在（P2-UPM 域） |
+| 4 | upm 域产物（model 构建/持久化 p2_upm_build/save/info/close） | 已实现（lib/algorithms/coverage/src/upm*.cpp，ALG-UPM-001 域） | 已存在（P2-UPM 域） |
 | 5 | persist 段=HiPS writer 域马赛克写产品 | **不在会话**：p2_session persist 段仅 upm_save 单产物；upm_apply/reject/integrate/write 四域未编排（PUBLIC_API.md:1088-1090） | P2-SESSION-IMPL（typed DAG 扩面） |
 | 6 | typed phase2 DAG 全链执行（"full execution no partial facade"） | 现状=4 段 facade 直调（p2_ir_facade_test.cpp:41-52 契合现状口径） | P2-SESSION-IMPL（台账 :187） |
 | 7 | module integration descriptor + typed ports | registry 无 astrocs.p2.session descriptor；占位 descriptor 工厂委托（§4） | P2-SESSION-INT（台账 :188） |

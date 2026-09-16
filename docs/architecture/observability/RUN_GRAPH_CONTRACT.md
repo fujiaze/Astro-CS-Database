@@ -138,7 +138,7 @@ hash 等观测字段一律只来自 trace 事件。
 
 ## 8. 旧手绘图不再作为规范来源
 
-本工具交付前，仓库无产自工具的运行图规范来源；`evidence/**` 下历史
+本工具交付前，仓库无产自工具的运行图规范来源；`evidence/**`（已由 ROOT-007 清运至 `run/archive/legacy-control-packs/`）下历史
 `*.dot`（如 `v6_1_rework` PROD_REACHABILITY）是**旧审计期手写/一次性产物**
 （归档性质，非当前规范来源）。LOG-003 之后：
 

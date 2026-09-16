@@ -1,6 +1,8 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # SCI-P2-001 — Phase2 三模式集成复核（人读正文索引）
 
-任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/SCI-P2-001.md`
+任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCI-P2-001.md`
 基线：`HEAD = main = 4b508f28bbcada66c417a8a9324aca7eb92869ff`（本机 `git rev-parse` 实测）
 写域：`docs/science/v6/phase2/`、`run/v6/sci-p2/`（仅此两处）
 建议状态：**PASS**
@@ -32,5 +34,5 @@
 工作树**不是** HEAD 的干净副本：16 个 tracked 文件回退到祖先 blob、10 个 tracked 文件被删除
 （`run/v6/base/baseline_freeze.json.worktree_vs_head`，BASE-OWN-001 机器证据）。
 本任务一切**生产面判定以已提交 HEAD 为准**，并在 `VERIFICATION_AND_EVIDENCE.md` 显式标注
-"基线分歧未裁决"。工作树中 `lib/core/src/module_adapters.cpp` 相对 HEAD 少 135 行/多 27 行，
+"基线分歧未裁决"。工作树中 `lib/infrastructure/scheduler/src/module_adapters.cpp` 相对 HEAD 少 135 行/多 27 行，
 故该文件只以 `git show HEAD:...` 读取。

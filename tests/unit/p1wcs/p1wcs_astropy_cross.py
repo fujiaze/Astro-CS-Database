@@ -37,7 +37,7 @@
 #   通过 (防恒常 FAIL 假红); 另断言 --work-dir > env > default 优先级与
 #   默认路径的宿主推导性。守卫回归 → rc=3, 不放行。
 #
-# 依赖: astropy (测试面), numpy。零生产依赖 (lib/plate_solve 不 include)。
+# 依赖: astropy (测试面), numpy。零生产依赖 (lib/algorithms/platesolve 不 include)。
 import argparse
 import json
 import os

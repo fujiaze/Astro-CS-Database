@@ -3,7 +3,7 @@
 验收(03 L126): 常数/点源/梯度/旋转/亚像素 shift/pixfrac/tile boundary
                → flux 或 brightness/support/variance/coverage 不变量全过。
 方法(independent):
-  - 编译 driver 链接 lib/backend_host/baseline_backend.cpp+host_services.cpp(生产同源 kernel)。
+  - 编译 driver 链接 lib/infrastructure/benchmark/backend_host/baseline_backend.cpp+host_services.cpp(生产同源 kernel)。
   - 用解析合成数据驱动三个平面 drizzle kernel:
       OVERLAP      wx=max(0,1-|u|), wy=max(0,1-|v|)   (线性/pixfrac 收缩, 亚像素偏移用 u/v 随像素变化)
       ACCUMULATE   out[i]=Σ_f in0[f*N+i]*in1[f*N+i]

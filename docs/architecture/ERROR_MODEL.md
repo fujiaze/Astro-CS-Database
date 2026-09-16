@@ -21,7 +21,7 @@ P2.HIPS_WRITE。
 
 ## 编排退出码（AstroCsExitCode）
 
-orchestrator.exe 稳定退出码（lib/orchestrator/cpp/include/orchestrator.h）：
+orchestrator.exe 稳定退出码（lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h）：
 
 ```text
 SUCCESS=0  GENERIC_ERROR=1  DLL_LOAD_FAILED=2  BLOCK_MISSING=3
@@ -50,4 +50,4 @@ P1.PHOTOMETRIC/P1.NOISE/P1.DRIZZLE/P1.HIPS_WRITE/P2.*。
 
 ERR-* 族（S2 注册，含 ERR-P2-UPM-001 畸形模型）。
 
-ERR-P2-UPM-001 见 `lib/phase2/src/upm.cpp:~890` frames 唯一/类型/C 行数校验。
+ERR-P2-UPM-001 见 `lib/algorithms/coverage/src/upm.cpp:~890` frames 唯一/类型/C 行数校验。

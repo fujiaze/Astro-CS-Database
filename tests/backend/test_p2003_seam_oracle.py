@@ -58,7 +58,7 @@ def read_signal(path, tile_idx=0):
     return d / 1e8  # fixture: signal = flux_sum / area(=1e-8)
 
 
-# 生产 apply 证据工具(P8-2 lib/phase2/tools/calibrated_pair_diag.cpp)编译所需源。
+# 生产 apply 证据工具(P8-2 lib/algorithms/coverage/tools/calibrated_pair_diag.cpp)编译所需源。
 # 全走 production API(p2_upm_open/p2_frame_id/p2_upm_calibrate_block), 不复制 UPM 数学。
 DIAG_SRC = os.path.join(REPO, "lib", "phase2", "tools", "calibrated_pair_diag.cpp")
 DIAG_ACR = os.path.join(REPO, "lib", "acr")

@@ -29,16 +29,16 @@
 
 | SCI/ALG | TEST ID（现有） | Oracle 类型 | 容差 | 测试文件 |
 |---|---|---|---|---|
-| SCI-CAL-001 | TEST-CAL-001 | analytic | max_abs=0 / rtol=1e-6 | lib/calibration/tests/test_photometry_apply.cpp |
-| SCI-WCS-001 | TEST-IPV-001 | high-precision | WCS roundtrip 1e-6px | lib/plate_solve/cpp/ipv/test/test_synthetic.cpp |
-| SCI-PHOT-001 | TEST-PHOT-001 | analytic | flux rtol=1e-6 | lib/photometric_calib/... |
-| SCI-PSF-001 | TEST-PSF-001 | high-precision | centroid/FWHM 门 | lib/dynamic_psf/... |
-| SCI-NOISE-001 | TEST-NOISE-001..015 | analytic+MC | 固定 seed 统计界 | lib/snr_estimator/.../noise_model_science_test.cpp |
-| SCI-DRZ-001/014 | TEST-DRZ-CAND-001 / TEST-DRZ-VAR-001 | analytic/property | false_negative=0; α²v | lib/healpix_db/.../candidate_oracle_test.cpp |
-| SCI-UPM-001 | TEST-UPMW-001..007 | MC+property | k_corr≈1.3883; rtol=1e-9 | lib/phase2/tests/synthetic_gate.cpp |
-| SCI-REJ-001 | TEST-REJ-001..008 | property+boundary | precision/recall 门 | lib/phase2/tests/... |
-| SCI-INT-001 | TEST-INT-001 | analytic | mean/weighted mean 解析 | lib/phase2/tests/... |
-| SCI-CW-001 | TEST-CW-001..008 | property | snr 扰动不变 | lib/phase2/tests/... |
+| SCI-CAL-001 | TEST-CAL-001 | analytic | max_abs=0 / rtol=1e-6 | lib/algorithms/calibration/tests/test_photometry_apply.cpp |
+| SCI-WCS-001 | TEST-IPV-001 | high-precision | WCS roundtrip 1e-6px | lib/algorithms/platesolve/cpp/ipv/test/test_synthetic.cpp |
+| SCI-PHOT-001 | TEST-PHOT-001 | analytic | flux rtol=1e-6 | lib/algorithms/photometry/... |
+| SCI-PSF-001 | TEST-PSF-001 | high-precision | centroid/FWHM 门 | lib/algorithms/psf/... |
+| SCI-NOISE-001 | TEST-NOISE-001..015 | analytic+MC | 固定 seed 统计界 | lib/algorithms/noise_snr/.../noise_model_science_test.cpp |
+| SCI-DRZ-001/014 | TEST-DRZ-CAND-001 / TEST-DRZ-VAR-001 | analytic/property | false_negative=0; α²v | lib/infrastructure/aio/healpix_db/.../candidate_oracle_test.cpp |
+| SCI-UPM-001 | TEST-UPMW-001..007 | MC+property | k_corr≈1.3883; rtol=1e-9 | lib/algorithms/coverage/tests/synthetic_gate.cpp |
+| SCI-REJ-001 | TEST-REJ-001..008 | property+boundary | precision/recall 门 | lib/algorithms/coverage/tests/... |
+| SCI-INT-001 | TEST-INT-001 | analytic | mean/weighted mean 解析 | lib/algorithms/coverage/tests/... |
+| SCI-CW-001 | TEST-CW-001..008 | property | snr 扰动不变 | lib/algorithms/coverage/tests/... |
 | SCI-P3-001 | SYN-007 五件套 | analytic+property | WCS 1e-6px; 常数场 | tools/validation/phase3 (待建, P3-006) |
 
 ## 4. 影响触发（扩大验证条件）

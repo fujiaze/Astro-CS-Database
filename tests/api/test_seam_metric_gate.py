@@ -35,11 +35,11 @@ def _require_prerequisites():
     if shutil.which("g++") is None:
         missing.append("g++ (C++ 编译器)")
     if not os.path.isfile(OMP_LIB):
-        missing.append(OMP_LIB + " (phase2 OpenMP 归档; 构建: cmake -S lib/phase2 "
+        missing.append(OMP_LIB + " (phase2 OpenMP 归档; 构建: cmake -S lib/algorithms/coverage "
                        "-B build/linux-openmp-on -DP2_ENABLE_OPENMP=ON && cmake "
                        "--build build/linux-openmp-on --target phase2)")
     if not os.path.isfile(AIO_LIB):
-        missing.append(AIO_LIB + " (AIO 共享库; 构建: make -C lib/astro_image_io all)")
+        missing.append(AIO_LIB + " (AIO 共享库; 构建: make -C lib/infrastructure/aio all)")
     if missing:
         raise AssertionError(
             "SYN-008 独立接缝门前置缺失 (fail-closed, 不得 skip): " + "; ".join(missing))

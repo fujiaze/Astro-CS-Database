@@ -1,4 +1,4 @@
-// lib/phase3_proj/p3_proj_v6.cpp — V6 Phase3 投影实现层（标准 FITS WCS Paper II）
+// lib/algorithms/projection/p3_proj_v6.cpp — V6 Phase3 投影实现层（标准 FITS WCS Paper II）
 // 任务 IMPL-P3-PROJ-001；合同锚见 p3_proj_v6.h 头注。
 #include "p3_proj_v6.h"
 

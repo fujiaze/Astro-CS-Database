@@ -234,7 +234,7 @@ int main(int argc, char** argv) {
         // RESCUE-FD-08b(自标定 workload): N 块 seam HiPS, N 由 test 侧按实测吞吐
         // 选取(见 tests/backend/test_p2007_joint_gate.py)。模式/偏移按 6 周期轮换,
         // 并按周期附加区分偏移(+43*cyc), 保证每块内容互异; frame_id = 文件名
-        // basename(lib/phase2/src/coverage.cpp:138)故 SEAMi.hips 亦互异。
+        // basename(lib/algorithms/coverage/src/coverage.cpp:138)故 SEAMi.hips 亦互异。
         if (argc < 4) return 2;
         const int n = std::atoi(argv[3]);
         if (n < 1 || n > 4096) return 2;

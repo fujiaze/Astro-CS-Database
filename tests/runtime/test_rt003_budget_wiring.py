@@ -8,9 +8,9 @@
   - scheduler→RunContext 注入唯一 ThreadBudget（Scheduler::run 注入 ctx.budget）。
 
 方法 (独立 harness, 照 tests/arch/test_budget_contract.py 先例):
-  Python unittest 内嵌 C++ driver，g++ 真实编译 lib/core 源码(context.cpp/
+  Python unittest 内嵌 C++ driver，g++ 真实编译 lib/infrastructure/scheduler 源码(context.cpp/
   artifact.cpp/scheduler.cpp) + include/astrocs/core 头, 链接运行断言；
-  另以源码静态扫描断言生产路径(lib/core/src/**)无 ThreadLease::make 伪授权。
+  另以源码静态扫描断言生产路径(lib/infrastructure/scheduler/src/**)无 ThreadLease::make 伪授权。
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ INC = REPO / "include"
 CORE = REPO / "lib" / "core" / "src"
 
 _DRIVER = r'''
-// RT-003 harness: ThreadBudget 接入 scheduler→RunContext 验收（真实编译 lib/core 源码）
+// RT-003 harness: ThreadBudget 接入 scheduler→RunContext 验收（真实编译 lib/infrastructure/scheduler 源码）
 #include "astrocs/core/context.h"
 #include "astrocs/core/scheduler.h"
 
@@ -271,7 +271,7 @@ def build_driver(tmp: pathlib.Path) -> pathlib.Path:
 
 @unittest.skipUnless(shutil.which("g++"), "需要 g++")
 class TestRt003WiringCpp(unittest.TestCase):
-    """C++ harness：真实编译 lib/core 源码运行 RT-003 接线验收。"""
+    """C++ harness：真实编译 lib/infrastructure/scheduler 源码运行 RT-003 接线验收。"""
 
     @classmethod
     def setUpClass(cls):
@@ -290,7 +290,7 @@ class TestRt003WiringCpp(unittest.TestCase):
 
 
 class TestRt003NoFakeAuthorization(unittest.TestCase):
-    """静态检查生产路径没有伪授权：lib/core 生产源不得调用 ThreadLease::make。"""
+    """静态检查生产路径没有伪授权：lib/infrastructure/scheduler 生产源不得调用 ThreadLease::make。"""
 
     def test_no_threadlease_make_in_production_sources(self):
         hits = []

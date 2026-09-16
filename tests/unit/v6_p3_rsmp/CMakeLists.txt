@@ -10,7 +10,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   enable_testing()
 endif()
 
-set(V6_P3RSMP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/phase3_rsmp)
+set(V6_P3RSMP_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/algorithms/resample)
 set(V6_P3RSMP_SOURCES
   ${V6_P3RSMP_DIR}/p3_rsmp_units.cpp
   ${V6_P3RSMP_DIR}/p3_rsmp_kernel_registry.cpp

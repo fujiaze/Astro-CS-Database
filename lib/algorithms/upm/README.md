@@ -1,18 +1,18 @@
 # astrocs.p2.upm — Phase2 联合加性光度模型模块（P2-UPM）
 
 > P2-UPM-DOC（2026-09-10，SA-P2-U21）新建模块页。合同三件套落位
-> `lib/phase2_upm/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
-> entrypoint=MISSING）——迁移目标目录按 `lib/phase2_samp/`（P2-SAMP-DOC，
-> 其按 `lib/phase2_int/` → `lib/phase2_rej/` → `lib/hips_p2/`
-> P2-HIPS-DOC 先例链）先例新建；`lib/phase2/` 一目录一套三件套已被
-> P2-COV（astrocs.p2.coverage）占用（lib/phase2/README.md r1，不可
-> 覆盖）。生产源 `lib/phase2/src/upm.cpp`（1565 行，根 CMakeLists
+> `lib/algorithms/upm/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
+> entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/sampling/`（P2-SAMP-DOC，
+> 其按 `lib/algorithms/integration/` → `lib/algorithms/rejection/` → `lib/algorithms/coverage/hips_p2/`
+> P2-HIPS-DOC 先例链）先例新建；`lib/algorithms/coverage/` 一目录一套三件套已被
+> P2-COV（astrocs.p2.coverage）占用（lib/algorithms/coverage/README.md r1，不可
+> 覆盖）。生产源 `lib/algorithms/coverage/src/upm.cpp`（1565 行，根 CMakeLists
 > astrocs_phase2 静态库成员 :337-346，:338 编入 upm.cpp）+ 唯一权威
-> 签名头 `lib/phase2/include/astro/phase2/upm.h`（184 行）；会话消费方
+> 签名头 `lib/algorithms/coverage/include/astro/phase2/upm.h`（184 行）；会话消费方
 > `lib/phase2_session/p2_session.cpp`（upm_build 段 :180-233），apply
-> 面消费 `lib/phase2/tools/stage2.cpp`（p2_upm_calibrate_block
+> 面消费 `lib/algorithms/coverage/tools/stage2.cpp`（p2_upm_calibrate_block
 > :927/:1272，无独立 apply 段）；持久化后端
-> `lib/astro_image_io/src/aio_upm.cpp`（aio_upm_write_sparse :66，
+> `lib/infrastructure/aio/src/aio_upm.cpp`（aio_upm_write_sparse :66，
 > dense 格式 astrocs-upm-dense-v2 :223/:407）。
 
 ## 身份与合同
@@ -27,7 +27,7 @@
   对齐，不反向作冻结依据）；dll_target：`astrocs_p2_upm.dll`
   （合同值，尚未存在，迁移归 P2-UPM-IMPL）。
 - owner SA-P2-U21；depends_on_int=P2-SAMP-INT;CPU-005；
-  legacy_paths="lib/phase2 upm sources"（均以
+  legacy_paths="lib/algorithms/coverage upm sources"（均以
   MODULE_MIGRATION_MATRIX.csv P2-UPM 行为权威）。
 - 合同链：SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN T106
   2026-08-23，集合 SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
@@ -112,7 +112,7 @@
   tsums 按 tid 升序合并（:515-559，D1 worker 数无关）→
   determinism=fixed_reduction_order。
 
-## 唯一生产源符号清单（lib/phase2/src/upm.cpp，16 个导出符号）
+## 唯一生产源符号清单（lib/algorithms/coverage/src/upm.cpp，16 个导出符号）
 
 | 符号 | 行号 | 说明 |
 |---|---|---|
@@ -140,7 +140,7 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 
 ## fit/apply descriptor 现状（占位词汇声明）
 
-- lib/core/src/module_adapters.cpp:599-632：p2_upm_fit_descriptor
+- lib/infrastructure/scheduler/src/module_adapters.cpp:599-632：p2_upm_fit_descriptor
   （:599-613，module_id=astrocs.phase2.upm-fit，ports samples in →
   upm_model out（fit 行标可选输出，:609-612））与
   p2_upm_apply_descriptor（:614-632，module_id=
@@ -170,7 +170,7 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 
 ## 链接
 
-- README/module.yaml/memory.md：`lib/phase2_upm/`（本目录）
+- README/module.yaml/memory.md：`lib/algorithms/upm/`（本目录）
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106
   2026-08-23，零改动）
 - ALG：docs/algorithms/PHASE2_UPM_IMPL.md（ALG-P2-UPM-IMPL-001，
@@ -201,8 +201,8 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 
 - V6 目标态在既有加性 UPM 之外新增\*\*乘法/加性分离\*\*求解面：
   \`y_k(p) = g_k*s(p) + b_k\`（\`ALG-P2S-UPM.1\`），公共 API 见
-  \`lib/phase2/include/astro/phase2/upm.h\` 的 \`P2UpmMa*\` / \`p2_upm_ma_*\`
-  / \`p2_upm_control_variance\`；实现见 \`lib/phase2/src/upm.cpp\`。
+  \`lib/algorithms/coverage/include/astro/phase2/upm.h\` 的 \`P2UpmMa*\` / \`p2_upm_ma_*\`
+  / \`p2_upm_control_variance\`；实现见 \`lib/algorithms/coverage/src/upm.cpp\`。
 - 覆盖：overlap graph（连通分量）、每分量独立 gauge（\`g_ref=1,b_ref=0\`）、
   秩（\`FZ-AP2S-RANK-RTOL=1e-10\`）、条件数（\`FZ-AP2S-KAPPA-MAX=1e6\`）、
   \`min_frames=2\`（\`FZ-AP2S-UPM-MINFRAMES\`）、参数协方差
@@ -210,7 +210,7 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
   （\`FZ-FORMULA-COV-PROP\`）、欠定/秩亏/κ 超限 fail-closed。
 - 上文 "不处理乘性尺度差（已撤销，SCI-UPM 非目标）" 为 V5/历史加性
   模型口径；V6 以 \`ALG-P2S-UPM.1\` 取代（只登记，详见
-  \`lib/phase2_upm/memory.md\` 的 V6 追加节）。
+  \`lib/algorithms/upm/memory.md\` 的 V6 追加节）。
 - 共址测试：\`tests/unit/v6_p2_upm/\`（5 个 ctest 用例 + 负向 fail-closed
   门 + 独立 NumPy Oracle 锚 + 6 条冻结 mutation 全红）；证据
   \`run/v6/IMPL-P2-UPM-001/\`。

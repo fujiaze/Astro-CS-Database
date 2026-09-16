@@ -37,8 +37,8 @@
 | registry 生产 descriptor | astrocs.phase3.resample2（module_adapters.cpp:660 `p3_resample2_descriptor`，module_id 同名） | 实测 |
 | dll_target | astrocs_p3_resample.dll | 矩阵 CSV；entrypoint 实测未建（DISP-P3RSMP-005） |
 | owner | SA-P3-S26 | 矩阵 CSV |
-| 合同目录 | lib/phase3_rsmp/（本任务新建，仅合同文件，无源码） | 生产源仍在 lib/phase3_session/ |
-| 依赖 | lib/common/healpix（leaf_to_tile_nest/tile_to_leaf_nest/nested_local_to_fits_index/ang2pix/pix2ang）、lib/phase3_session/hips_properties（properties 严格校验经 p3_sampler_open 间接消费） | §3 |
+| 合同目录 | lib/algorithms/resample/（本任务新建，仅合同文件，无源码） | 生产源仍在 lib/phase3_session/ |
+| 依赖 | lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/nested_local_to_fits_index/ang2pix/pix2ang）、lib/phase3_session/hips_properties（properties 严格校验经 p3_sampler_open 间接消费） | §3 |
 | 下游 | P3-RSMP-IMPL（实现）、P3-RSMP-TEST（可执行测试）、P3-RSMP-INT（descriptor 对齐 astrocs.p3.resample） | — |
 
 - 静态库落位: astrocs_phase3_session（根 CMakeLists.txt:460-465，
@@ -54,7 +54,7 @@
 lib/phase3_session/p3_resample.h        58 行  唯一权威签名头（10 个公共符号，§4）
 lib/phase3_session/p3_resample.cpp     239 行  全部实现（§6 逐符号）
 lib/phase3_session/p3_session.cpp      343 行  会话编排消费（§8）
-lib/common/healpix/healpix_core.{h,cpp}         权威球面函数（禁止第二套核心）
+lib/algorithms/shared/healpix/healpix_core.{h,cpp}         权威球面函数（禁止第二套核心）
 tests/backend/p3_resample_probe_main.cpp        探针（order/mode/open/nearest/bilinear/pix2ang 六模式）
 tests/backend/test_p3_resample.py      156 行  最近邻邻接测试（编译探针+seam/NaN/无静默默认）
 tests/backend/test_p3003_parallel_resampler.py 104 行  并行域邻接测试
@@ -124,7 +124,7 @@ pixel_resolution_arcsec(nside=512 << k) / 3600 ≤ scale_deg_per_px
 ```
 
 其中 `pixel_resolution_arcsec(nside) = sqrt(4π/(12·nside²))·180·3600/π`
-（lib/common/healpix/healpix_core.cpp 权威实现）= `sqrt(π/3)/nside` rad。
+（lib/algorithms/shared/healpix/healpix_core.cpp 权威实现）= `sqrt(π/3)/nside` rad。
 与 ALG-P3-003 G3 冻结式 `s_tile_rad = sqrt(π/3)/(2^order·W)`、
 `order = clamp(ceil(log2(sqrt(π/3)/(W·s_out))), 0, hips_order)`
 **数学等价**（nside = W·2^k，W=512）：取等价形式

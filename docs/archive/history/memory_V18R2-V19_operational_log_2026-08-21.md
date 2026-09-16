@@ -37,7 +37,7 @@
 
 ## 目录结构
 - `lib/` - 通用库（文件IO、Gaia数据库客户端等）
-- `lib/astro_image_io/` - 统一天文图像 I/O 层 + Pipeline 管线引擎（FITS/XISF 读写 + .ahpx 单帧格式 + zstd/lz4 压缩 + PipelineFrame + 管线编排引擎）
+- `lib/infrastructure/aio/` - 统一天文图像 I/O 层 + Pipeline 管线引擎（FITS/XISF 读写 + .ahpx 单帧格式 + zstd/lz4 压缩 + PipelineFrame + 管线编排引擎）
   - GitHub: https://github.com/fujiaze/Astro-Image-IO-C (commit 37fee6c)
   - `include/aio_pipeline.h` - PipelineFrame 结构体 + 动态内存管理接口 + XML 调试导出
   - `include/aio_pipeline_engine.h` - 管线编排引擎（阶段注册/调度/OpenMP批量并行）
@@ -48,10 +48,10 @@
   - `src/aio_pipeline.cpp` - 动态内存管理实现 + XML 调试导出 (base64 编码, UTF-8 路径)
   - `src/aio_pipeline_engine.cpp` - 引擎实现 (OpenMP 16线程并行 + 自动内存释放 + 调试导出)
   - `python/astro_image_io.py` - Python封装 (ImageReader/FITSWriter/PipelineFramePy/PipelineEngine)
-- `lib/calibration/` - 天文CCD校准模块（主帧生成/图像校准/坏点修复，C++核心+Python流水线）
+- `lib/algorithms/calibration/` - 天文CCD校准模块（主帧生成/图像校准/坏点修复，C++核心+Python流水线）
   - `include/astro_calibration.h` - C API 头文件（extern "C", AC_API 导出宏）
   - `src/` - C++ 核心实现
-- `lib/healpix_db/` - Healpix 天球分块数据库（已拆分，核心仓库仅保留浏览器 + 独立仓库本地副本）
+- `lib/infrastructure/aio/healpix_db/` - Healpix 天球分块数据库（已拆分，核心仓库仅保留浏览器 + 独立仓库本地副本）
   - GitHub: https://github.com/fujiaze/Healpix-Database (commit 7129e32)
   - `healpix_browser_qt/` - Qt6+OpenGL 3.3 浏览器 (C++ core无Qt依赖 + Qt widgets层, 替代 healpix_browser_cpp + healpix_browser_web + healpix_browser)
     - Task 1-5 完成: 目录结构/HealpixMath/STFEngine/BrowserBackend/GLRenderer
@@ -60,23 +60,23 @@
     - 2026-07-14 切平面导航: gnomonic逆变换(极区无奇点) + 30°经纬线网格(Ctrl+G开关)
     - 2026-07-14 视角与像素修复: (1)eta符号翻转(抓画面拖模式) (2)虚拟轨迹球导航(forward+up双向量, axis=dy*right-dx*up, 统一左右上下无roll) (3)球面切平面菱形像素(替代矩形近似,无cos_dec发散) (4)no_data(value<=0)不渲染提升流畅性 (5)renderer用传入forward/up不重算
     - 2026-07-14 视角控制重写(最终方案): 赤道仪相机(yaw=ra增量绕Z/pitch=dec增量绕east, up始终north-up重算不携带不roll) + look_at_matrix column-major存储bug修复(原存V^T转置矩阵导致左右拖动roll) + pix_size公式修正(原240/nside偏大4.1倍致摩尔纹, 改为√(π/3)/nside×180/π≈58.6/nside) + 菱形外扩1.25覆盖drizzle pixfrac=0.8缝隙 + MAX_FOV=50°(原170°, 限制球面yaw畸变) + 左右方向修正(center_ra_+=dx, side=forward×up指向-Y/西)
-    - 2026-07-16 依赖迁移: healpix_io.dll → astro_image_io.dll (lib/astro_image_io/, AIO_ENABLE_HEALPIX 定义, aio_healpix_io.h 兼容宏)
+    - 2026-07-16 依赖迁移: healpix_io.dll → astro_image_io.dll (lib/infrastructure/aio/, AIO_ENABLE_HEALPIX 定义, aio_healpix_io.h 兼容宏)
     - 关键依赖: astro_image_io.dll需复制到build目录, Qt6 DLL在C:\msys64\mingw64\bin, QT_PLUGIN_PATH=C:\msys64\mingw64\share\Qt6\plugins
     - 启动: `$env:Path = "C:\msys64\mingw64\bin;$env:Path"; $env:QT_PLUGIN_PATH = "C:\msys64\mingw64\share\Qt6\plugins"; Start-Process -FilePath build\healpix_browser_qt.exe -ArgumentList "`"<hiss路径>`""`
     - 编译: `cd lib\healpix_db\healpix_browser_qt; cmake --build build`
-    - 模块记忆: lib/healpix_db/healpix_browser_qt/memory.md
+    - 模块记忆: lib/infrastructure/hips_browser/healpix_browser_qt/memory.md
   - `healpix_io/` - 已归档（2026-07-16，API 并入 astro_image_io，源码在 archive/）
   - `healpix_stack/` - 已拆分为独立仓库 Healpix-Mosaic（本地保留，.gitignore 忽略）
   - `healpix_drizzle/` - 已拆分为独立仓库 Healpix-Drizzle（.gitignore 忽略）
   - `archive/legacy/` - 2026-07-16 归档: healpix_browser_python/ (PyQt5+vispy) + healpix_lod/ (被内存ud_grade替代) + tests/
-- `lib/healpix_db/healpix_stack/` (独立仓库) - 稀疏 HEALpix 堆栈存储
+- `lib/infrastructure/aio/healpix_db/healpix_stack/` (独立仓库) - 稀疏 HEALpix 堆栈存储
   - GitHub: https://github.com/fujiaze/Healpix-Mosaic-Cpp (commit 027b64f)
-- `lib/healpix_db/healpix_drizzle/` (独立仓库) - 球面 Drizzle 重投影
+- `lib/algorithms/drizzle/healpix_drizzle/` (独立仓库) - 球面 Drizzle 重投影
   - GitHub: https://github.com/fujiaze/Healpix-Drizzle-Cpp (commit ecf8758)
-- `lib/photometric_calib/` - 测光定标模块（含 flux_calibrator 流量校准）
-- `lib/snr_estimator/` (独立仓库) - SNR 估算模块（乘法模型 SNR=SNR_phot×(SNR_psf/median)）
+- `lib/algorithms/photometry/` - 测光定标模块（含 flux_calibrator 流量校准）
+- `lib/algorithms/noise_snr/` (独立仓库) - SNR 估算模块（乘法模型 SNR=SNR_phot×(SNR_psf/median)）
   - GitHub: https://github.com/fujiaze/Snr-Estimator-Cpp-Python (commit 405d153)
-- `lib/orchestrator/` (独立仓库) - 管线编排引擎模块（v2.0 两段流水线 10 节点 C++ CLI + Python 调试层；stage1 8/8 节点实际 DLL 调用单帧端到端验证通过）
+- `lib/infrastructure/pipeline/orchestrator/` (独立仓库) - 管线编排引擎模块（v2.0 两段流水线 10 节点 C++ CLI + Python 调试层；stage1 8/8 节点实际 DLL 调用单帧端到端验证通过）
   - GitHub: https://github.com/fujiaze/Orchestrator-Cpp-Python (commit 25b8e81)
 - `lib/integration_test/` - 全链路整合测试 (已删除，orchestrator/archive/scripts/ 有完整副本)
 - `/GaiaDR3SP` - Gaia数据库
@@ -101,13 +101,13 @@
 **整理结果**:
 - 根目录清理 24 个调试文件（diag_*/healpix_*.png/qt_run_log.txt/run_healpix.bat/03_fsyn.json）
 - 高价值脚本保留至模块 tools/：
-  - `lib/photometric_calib/tools/diag_gradient_report.py`
-  - `lib/plate_solve/tools/diag_projection_plot.py`
-  - `lib/healpix_db/healpix_browser_qt/run_healpix.bat`
+  - `lib/algorithms/photometry/tools/diag_gradient_report.py`
+  - `lib/algorithms/platesolve/tools/diag_projection_plot.py`
+  - `lib/infrastructure/hips_browser/healpix_browser_qt/run_healpix.bat`
 - 一次性脚本分散归档至对应模块 `archive/debug_2026-07/`（含 README.md）：
-  - `lib/plate_solve/archive/debug_2026-07/`（diag_wcs.py, diag_wcs_offset.py）
-  - `lib/dynamic_psf/archive/debug_2026-07/`（diag_psf_edge.py, diag_psf_root_cause.py, diag_image_stats.py）
-  - `lib/photometric_calib/archive/debug_2026-07/`（diag_distribution.py, diag_light.py）
+  - `lib/algorithms/platesolve/archive/debug_2026-07/`（diag_wcs.py, diag_wcs_offset.py）
+  - `lib/algorithms/psf/archive/debug_2026-07/`（diag_psf_edge.py, diag_psf_root_cause.py, diag_image_stats.py）
+  - `lib/algorithms/photometry/archive/debug_2026-07/`（diag_distribution.py, diag_light.py）
 - 14 个一次性输出文件直接删除（diag_*.txt/png, healpix_*.png, qt_run_log.txt, 03_fsyn.json）
 - 识别 10 项设计与实施割裂点（见 docs/DESIGN_IMPL_GAP.md），关键项：
   - GAP-001: healpix_browser_cpp/web 文档标称已归档但代码仍在原位（双重存在）
@@ -145,9 +145,9 @@
   （mosaic_reject，RTX 3060 Ti）→ stage2 逐 tile ACR 路由，真实重叠
   61.6M 像素 CPU/GPU max diff 7.45e-9，tiles_process 13.6s→11.2s。
   AIO model APIs（aio_upm_* sparse/dense 容器 + checksum/stale 拒绝，
-  sha256 移至 lib/common/crypto 共用），UPM I/O 迁移唯一 AIO；
+  sha256 移至 lib/algorithms/shared/crypto 共用），UPM I/O 迁移唯一 AIO；
   Phase1 AIO 回归 28/28 + fuzz 8668/8668。合成 gate 22/22。
-- 模块文档：lib/phase2/memory.md（接口/验证/未完成项）、README.md；
+- 模块文档：lib/algorithms/coverage/memory.md（接口/验证/未完成项）、README.md；
   工程控制/docs/PHASE2_IMPLEMENTATION/EXECUTION_LOG.md。
 - 未完成：GUI smoke（无环境）、weight/rejection_count 作为 Image HiPS
   产品（当前 JSON 诊断 + GPU 路径计数缓冲）。
@@ -183,7 +183,7 @@
 - healpix_io/ 源码移入 healpix_io/archive/ (API 已并入 astro_image_io)
 
 **依赖迁移 (healpix_browser_qt)**:
-- ../healpix_io/ → ../../astro_image_io/ (lib/astro_image_io/ 提供 healpix_io 兼容 API)
+- ../healpix_io/ → ../../astro_image_io/ (lib/infrastructure/aio/ 提供 healpix_io 兼容 API)
 - 链接库名 healpix_io → astro_image_io, 添加 AIO_ENABLE_HEALPIX 定义
 - CMakeLists.txt/Makefile/deploy.ps1/browser_backend.cpp #include + 5个源码注释同步
 - 验证: astro_image_io.dll 构建成功(9个HEALPix I/O符号导出), healpix_browser_qt CMake 34/34编译成功
@@ -271,7 +271,7 @@
 5. **叠加执行顺序**：梯度迭代收敛→sigma-clip（用收敛g_i一次性判定）→SNR-B²加权平均，串行不嵌套
 
 **11 项设计决策摘要**:
-1. 新增 §14 SNR 估算模块（lib/snr_estimator/，STAGE_SNR，乘法模型）
+1. 新增 §14 SNR 估算模块（lib/algorithms/noise_snr/，STAGE_SNR，乘法模型）
 2. §12.15 SNR 耦合设计（**已确认**：SNR单次计算+固定权重解耦+SNR²最优加权+双层SNR保护）
 3. §12.13 文件名修正（sigma_clip_stack → stack_engine + hp_stack_hiss）
 4. §13 PSF 统一调整（psf 块 [N,6]→[N,9]，photometric_calib 新增 out_sigma_residual）
@@ -286,7 +286,7 @@
 **文档职责分离重构**:
 - §10 浏览器架构 → 根目录 `UI_ARCHITECTURE.md`（新建）
 - §11 性能优化记录 → 各模块 `memory.md`（dynamic_psf/photometric_calib/healpix_drizzle/healpix_browser_qt）
-- 已归档/废弃模块详细记录 → `lib/healpix_db/memory.md`
+- 已归档/废弃模块详细记录 → `lib/infrastructure/aio/healpix_db/memory.md`
 - PROJECT_ARCHITECTURE.md 聚焦数据流/后端，新增 §10 文档职责分离说明（指向各文档位置）
 - 新增 §14.7（4处断层）+ §14.8（传递优化检查：冗余/缺失/反复计算/未导出）
 
@@ -304,7 +304,7 @@
 - §11.5 新增 浏览器性能/视觉修复 (11个问题根因与修复)
 - 附录目录结构: 新增 healpix_browser_qt/ 子目录树
 
-**2. Drizzle 测试重写 (lib/healpix_db/healpix_drizzle/tests/test_drizzle.py)**:
+**2. Drizzle 测试重写 (lib/algorithms/drizzle/healpix_drizzle/tests/test_drizzle.py)**:
 - 从 .ahpx 改为 .hiss 格式 (HissReader)
 - 7项测试: WCS往返/点采样/面积分配/.hiss往返/SIP畸变/梯度通量/真实数据
 - **关键发现**: C++ Drizzle 输出 brightness = sumFlux (通量累加, 非亮度平均)
@@ -312,12 +312,12 @@
 - **关键发现**: 点采样 (pixfrac=0) 不保证总通量守恒 (diag_arcsec=0 时 C++ 跳过像素)
 - 测试结果: 6 passed, 1 skipped (真实FITS无WCS)
 
-**3. Photometric 能量守恒测试 (lib/photometric_calib/cpp/test/test_energy_conservation.py)**:
+**3. Photometric 能量守恒测试 (lib/algorithms/photometry/cpp/test/test_energy_conservation.py)**:
 - 4项测试: 像素级守恒/匹配星流量守恒/残差分布/退化路径
 - **关键发现**: Python 3.8+ Windows 不用 PATH 加载 DLL, 必须用 os.add_dll_directory()
 - **关键发现**: photometric_calib.dll → gaia_client.dll → libgomp-1.dll + zlib1.dll (MinGW运行时)
 - 测试结果: 4 passed
-- 运行命令: `python -m pytest lib/photometric_calib/cpp/test/test_energy_conservation.py -v`
+- 运行命令: `python -m pytest lib/algorithms/photometry/cpp/test/test_energy_conservation.py -v`
 
 ### Drizzle 黑色缝隙修复 + 性能优化（2026-07-14）
 针对 drizzle 输出在球面渲染上呈现的微小黑色缝隙，进行三项综合修复并优化候选像素检索性能。
@@ -362,7 +362,7 @@
 修复天文浏览器前端 (WebGL) 三个 bug: 横条纹渲染、缩放拖动失效、UI 改进文档。
 
 **Bug 1: 横条纹渲染问题 (切面投影)**
-- 文件: `lib/healpix_db/healpix_browser_web/js/webgl-renderer.js`
+- 文件: `lib/infrastructure/aio/healpix_db/healpix_browser_web/js/webgl-renderer.js`
 - 根因: `renderSingleFrame(data)` 将 NESTED 顺序 HEALPix 像素直接按顺序排列到方形纹理 (texWidth=ceil(sqrt(n))), 产生 Z 序曲线图案 (横条纹)
 - 修复:
   - 在 `HealpixUtils` 添加 `pix2angNest(nside, ipix)` 方法 (从 C++ browser_backend.cpp 移植, 支持任意 nside, BigInt 计算 ip_low 避免大 nside 精度丢失)
@@ -402,13 +402,13 @@ spec: .trae/specs/format-unification-browser-perf/
 **完成内容 (15/15 Task)**:
 
 #### 阶段1: 格式定义
-- 新建 `lib/healpix_db/healpix_io/FORMAT_SPEC.md` - .hiss/.hcsd 格式规范文档
+- 新建 `lib/infrastructure/aio/healpix_db/healpix_io/FORMAT_SPEC.md` - .hiss/.hcsd 格式规范文档
 - .hiss: Magic "HISS" + JSON头(zstd) + ipix数组(uint64) + pixel数组(float32)
 - .hcsd: Magic "HCSD" + JSON头(zstd) + 子叶块索引(49152×24B) + ipix数组 + pixel数组
 - 子叶块索引: nside=64 分区，O(1) 定位，支持浏览器按需加载
 
 #### 阶段2: healpix_io 模块
-- 新建 `lib/healpix_db/healpix_io/` (C++ DLL + Python 绑定)
+- 新建 `lib/infrastructure/aio/healpix_db/healpix_io/` (C++ DLL + Python 绑定)
 - C API: hiss_write/hiss_read/hcsd_write/hcsd_read/hcsd_read_leaf/hio_free
 - Python: HissWriter/HissReader/HcsdWriter/HcsdReader + 便捷函数
 - 往返测试 4/4 通过，导出符号验证通过
@@ -419,11 +419,11 @@ spec: .trae/specs/format-unification-browser-perf/
 - 废弃标记: healpix_lod/（README）、healpix_browser/（README）、astro_image_io/src/ahpx/（DEPRECATED.md）
 
 #### 阶段4: 浏览器重构
-- 新建 `lib/healpix_db/healpix_browser_cpp/` - C++ 渲染后端 + HTTP 服务器
+- 新建 `lib/infrastructure/aio/healpix_db/healpix_browser_cpp/` - C++ 渲染后端 + HTTP 服务器
   - BrowserBackend 类: open_file/get_required_leaves/load_leaf/ud_grade
   - 按需子叶加载: 中心 nside=8192，中间 nside=2048，边缘 nside=256
   - HTTP 服务器: localhost:18080, /api/file_info, /api/leaf, /api/all_data
-- 新建 `lib/healpix_db/healpix_browser_web/` - WebGL 前端
+- 新建 `lib/infrastructure/aio/healpix_db/healpix_browser_web/` - WebGL 前端
   - 球面 WebGL 渲染 (UV 球面 64×128 分段)
   - 视角交互 (鼠标拖动旋转、滚轮缩放)
   - STF 拉伸控制面板 (移植自 stf.py)
@@ -456,16 +456,16 @@ spec: .trae/specs/format-unification-browser-perf/
 新建基于 WebGL 的浏览器前端，替代现有 PyQt5 浏览器（healpix_browser）。通过 HTTP API 与 C++ 后端（Task 7，监听 localhost:18080）通信。
 
 **新建文件 (10个)**:
-- `lib/healpix_db/healpix_browser_web/index.html` - 主页面（顶栏+画布+控制面板+状态栏）
-- `lib/healpix_db/healpix_browser_web/css/style.css` - 深色主题样式表
-- `lib/healpix_db/healpix_browser_web/js/stf.js` - STF 拉伸算法（移植自 stf.py, MTF+MAD自动+4预设+asinh压缩）
-- `lib/healpix_db/healpix_browser_web/js/api-client.js` - C++ 后端 API 客户端（fetch+base64解码+超时）
-- `lib/healpix_db/healpix_browser_web/js/webgl-renderer.js` - WebGL 球面渲染器（着色器+网格+子叶管理+矩阵运算）
-- `lib/healpix_db/healpix_browser_web/js/view-controller.js` - 视角交互（鼠标拖动+滚轮缩放+触摸支持）
-- `lib/healpix_db/healpix_browser_web/js/main.js` - 主逻辑（BrowserApp, 模块整合+渲染循环）
-- `lib/healpix_db/healpix_browser_web/shaders/vertex.glsl` - 顶点着色器（参考）
-- `lib/healpix_db/healpix_browser_web/shaders/fragment.glsl` - 片元着色器（STF+MTF+uint8 binning, 参考）
-- `lib/healpix_db/healpix_browser_web/README.md` - 说明文档
+- `lib/infrastructure/aio/healpix_db/healpix_browser_web/index.html` - 主页面（顶栏+画布+控制面板+状态栏）
+- `lib/infrastructure/aio/healpix_db/healpix_browser_web/css/style.css` - 深色主题样式表
+- `lib/infrastructure/aio/healpix_db/healpix_browser_web/js/stf.js` - STF 拉伸算法（移植自 stf.py, MTF+MAD自动+4预设+asinh压缩）
+- `lib/infrastructure/aio/healpix_db/healpix_browser_web/js/api-client.js` - C++ 后端 API 客户端（fetch+base64解码+超时）
+- `lib/infrastructure/aio/healpix_db/healpix_browser_web/js/webgl-renderer.js` - WebGL 球面渲染器（着色器+网格+子叶管理+矩阵运算）
+- `lib/infrastructure/aio/healpix_db/healpix_browser_web/js/view-controller.js` - 视角交互（鼠标拖动+滚轮缩放+触摸支持）
+- `lib/infrastructure/aio/healpix_db/healpix_browser_web/js/main.js` - 主逻辑（BrowserApp, 模块整合+渲染循环）
+- `lib/infrastructure/aio/healpix_db/healpix_browser_web/shaders/vertex.glsl` - 顶点着色器（参考）
+- `lib/infrastructure/aio/healpix_db/healpix_browser_web/shaders/fragment.glsl` - 片元着色器（STF+MTF+uint8 binning, 参考）
+- `lib/infrastructure/aio/healpix_db/healpix_browser_web/README.md` - 说明文档
 
 **参考代码**: stf.py（MTF公式/MAD自动拉伸/4预设/asinh压缩）、sphere_renderer.py（UV球面网格/HEALPix坐标转换/GLSL shader）、single_frame_view.py（单帧浏览/通道切换）
 
@@ -529,14 +529,14 @@ spec: .trae/specs/format-unification-browser-perf/
 将 healpix_drizzle 模块的输出格式从 .ahpx 改为 .hiss，通过 healpix_io.dll 的 hiss_write 写入。
 
 **修改文件 (8个)**:
-- `lib/healpix_db/healpix_drizzle/drizzle_engine.h` - 新增 DrizzleMeta 结构体 (filter/exposure_s/obs_time/fits_meta map)；writeAhpx 改为 writeHis，增加 meta 参数
-- `lib/healpix_db/healpix_drizzle/drizzle_engine.cpp` - writeAhpx → writeHis: 移除 astro_image_io.h + aio_ahpx_write，改 include healpix_io.h + 调用 hiss_write；JSON meta 构建 filter/exposure_s/obs_time/pixfrac/fits_meta/wcs/source/drizzle（hiss_write 内部前置 nside/nested/n_pix）
-- `lib/healpix_db/healpix_drizzle/hp_drizzle_api.h` - 注释更新 .ahpx → .hiss（函数签名不变）
-- `lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp` - hp_drizzle_run: 从 header KV 读取 FILTER/EXPTIME/DATE-OBS + 16个 fits_meta KV (OBJCTRA/OBJCTDEC/IMAGETYP/SITELAT/SITELONG/OBJECT/RADESYS/EQUINOX/INSTRUME/TELESCOP/XPIXSZ/YPIXSZ/XBINNING/YBINNING/GAIN/OFFSET)；output_path .ahpx 后缀自动改 .hiss；hp_drizzle_fits_to_ahpx 同步更新
-- `lib/healpix_db/healpix_drizzle/healpix_drizzle.py` - docstring/注释更新为 .hiss；_load_dll 添加 healpix_io + astro_image_io 目录到 DLL 搜索路径
-- `lib/healpix_db/healpix_drizzle/pipeline_adapter.py` - _build_output_path 输出 .hiss；变量名 output_ahpx → output_hiss
-- `lib/orchestrator/python/pipeline_adapters/drizzle_adapter.py` - 同 pipeline_adapter.py 的修改
-- `lib/healpix_db/healpix_drizzle/Makefile` - INCLUDES 添加 -I../healpix_io/include；LDFLAGS 添加 -L../healpix_io -lhealpix_io
+- `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h` - 新增 DrizzleMeta 结构体 (filter/exposure_s/obs_time/fits_meta map)；writeAhpx 改为 writeHis，增加 meta 参数
+- `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp` - writeAhpx → writeHis: 移除 astro_image_io.h + aio_ahpx_write，改 include healpix_io.h + 调用 hiss_write；JSON meta 构建 filter/exposure_s/obs_time/pixfrac/fits_meta/wcs/source/drizzle（hiss_write 内部前置 nside/nested/n_pix）
+- `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h` - 注释更新 .ahpx → .hiss（函数签名不变）
+- `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp` - hp_drizzle_run: 从 header KV 读取 FILTER/EXPTIME/DATE-OBS + 16个 fits_meta KV (OBJCTRA/OBJCTDEC/IMAGETYP/SITELAT/SITELONG/OBJECT/RADESYS/EQUINOX/INSTRUME/TELESCOP/XPIXSZ/YPIXSZ/XBINNING/YBINNING/GAIN/OFFSET)；output_path .ahpx 后缀自动改 .hiss；hp_drizzle_fits_to_ahpx 同步更新
+- `lib/algorithms/drizzle/healpix_drizzle/healpix_drizzle.py` - docstring/注释更新为 .hiss；_load_dll 添加 healpix_io + astro_image_io 目录到 DLL 搜索路径
+- `lib/algorithms/drizzle/healpix_drizzle/pipeline_adapter.py` - _build_output_path 输出 .hiss；变量名 output_ahpx → output_hiss
+- `lib/infrastructure/pipeline/orchestrator/python/pipeline_adapters/drizzle_adapter.py` - 同 pipeline_adapter.py 的修改
+- `lib/algorithms/drizzle/healpix_drizzle/Makefile` - INCLUDES 添加 -I../healpix_io/include；LDFLAGS 添加 -L../healpix_io -lhealpix_io
 
 **编译结果**: 成功
 - healpix_drizzle.dll 1038 KB (g++ 16.1.0, exit code 0)
@@ -561,11 +561,11 @@ spec: .trae/specs/format-unification-browser-perf/
 实现 healpix_io.dll 的 Python ctypes 封装，提供 .hiss/.hcsd 格式的面向对象读写接口。
 
 **新建文件 (2个)**:
-- `lib/healpix_db/healpix_io/healpix_io.py` - Python 绑定（738行）：4 个类 + 5 个便捷函数 + DLL 加载 + 内存管理
+- `lib/infrastructure/aio/healpix_db/healpix_io/healpix_io.py` - Python 绑定（738行）：4 个类 + 5 个便捷函数 + DLL 加载 + 内存管理
   - HissWriter/HissReader - .hiss 单帧存储读写
   - HcsdWriter/HcsdReader - .hcsd 天球数据库读写（含 read_leaf 按子叶加载）
   - hiss_write/hiss_read/hcsd_write/hcsd_read/hcsd_read_leaf - 便捷函数
-- `lib/healpix_db/healpix_io/test_healpix_io_py.py` - Python 绑定往返测试（351行，4个测试用例）
+- `lib/infrastructure/aio/healpix_db/healpix_io/test_healpix_io_py.py` - Python 绑定往返测试（351行，4个测试用例）
 
 **测试结果**: 4/4 通过 ✓
 - 测试 1: .hiss 往返（类+便捷函数，10像素，ipix/pixel/meta 一致，C 侧合并 nside/nested/n_pix 到 meta）
@@ -587,11 +587,11 @@ spec: .trae/specs/format-unification-browser-perf/
 实现 .hiss 单帧存储和 .hcsd 天球数据库格式的读写模块，替代旧版 .ahpx/.ahps 格式。
 
 **新建文件 (5个)**:
-- `lib/healpix_db/healpix_io/include/healpix_io.h` - C API 头文件 (5个导出函数 + hio_free, HIO_API __declspec(dllexport))
-- `lib/healpix_db/healpix_io/src/healpix_io.cpp` - 完整实现 (UTF-8路径, zstd压缩, JSON合并/解析, 子叶块索引构建)
-- `lib/healpix_db/healpix_io/Makefile` - 构建脚本 (g++ -O2 -std=c++17 -lzstd -static)
-- `lib/healpix_db/healpix_io/build.ps1` - PowerShell 构建脚本 (UTF-8初始化 + mingw64 PATH)
-- `lib/healpix_db/healpix_io/test_healpix_io.py` - 往返测试 (4个测试用例, ctypes + numpy)
+- `lib/infrastructure/aio/healpix_db/healpix_io/include/healpix_io.h` - C API 头文件 (5个导出函数 + hio_free, HIO_API __declspec(dllexport))
+- `lib/infrastructure/aio/healpix_db/healpix_io/src/healpix_io.cpp` - 完整实现 (UTF-8路径, zstd压缩, JSON合并/解析, 子叶块索引构建)
+- `lib/infrastructure/aio/healpix_db/healpix_io/Makefile` - 构建脚本 (g++ -O2 -std=c++17 -lzstd -static)
+- `lib/infrastructure/aio/healpix_db/healpix_io/build.ps1` - PowerShell 构建脚本 (UTF-8初始化 + mingw64 PATH)
+- `lib/infrastructure/aio/healpix_db/healpix_io/test_healpix_io.py` - 往返测试 (4个测试用例, ctypes + numpy)
 
 **编译结果**: 成功
 - healpix_io.dll 1778.8 KB (1.74MB), g++ 16.1.0, 静态链接 libzstd
@@ -618,7 +618,7 @@ pc_calibrate_simple_with_gaia 接口从固定 mag_max=16.0 改为自适应迭代
 **问题**: pc_calibrate_simple_with_gaia 固定用 mag_max=16.0 查询 Gaia，返回星数过多（可能数万颗），后续 OpenMP 光谱积分+星匹配耗时过长。
 
 **修改文件 (1个)**:
-- `lib/photometric_calib/cpp/src/pc_api.cpp` - pc_calibrate_simple_with_gaia 函数中锥形搜索改为自适应迭代：从 mag_max=12.0 开始，若 n_gaia<2000 则增大到 13/14/15/16.0，直到 n_gaia>=2000 或达 16.0 上限。不缩小 radius_deg，mag_min 保持外部传入值。用 LOG_INFO 输出每次迭代 mag_max 和 n_gaia。函数签名不变（mag_max 参数仍接受但内部用迭代覆盖）
+- `lib/algorithms/photometry/cpp/src/pc_api.cpp` - pc_calibrate_simple_with_gaia 函数中锥形搜索改为自适应迭代：从 mag_max=12.0 开始，若 n_gaia<2000 则增大到 13/14/15/16.0，直到 n_gaia>=2000 或达 16.0 上限。不缩小 radius_deg，mag_min 保持外部传入值。用 LOG_INFO 输出每次迭代 mag_max 和 n_gaia。函数签名不变（mag_max 参数仍接受但内部用迭代覆盖）
 
 **编译结果**: 成功
 - photometric_calib.dll 1031.2 KB（与 Task 10 后尺寸一致）
@@ -638,10 +638,10 @@ pc_calibrate_simple_with_gaia 接口从固定 mag_max=16.0 改为自适应迭代
 **问题**: photometric 阶段耗时 354.7s（典型应 < 5s），根因是 C++ DLL 在循环内大量调用 fprintf 输出到 stderr。
 
 **修改文件 (4个)**:
-- `lib/photometric_calib/cpp/include/log_macros.h` - **新建**。定义 LOG_INFO/LOG_DEBUG/LOG_ERROR 宏。LOG_DEBUG 默认编译时不启用（展开为 ((void)0)），可通过定义 PC_ENABLE_DEBUG 启用。LOG_INFO/LOG_ERROR 输出到 stderr，自动加 [INFO]/[ERROR] 前缀和 \n 后缀
-- `lib/photometric_calib/cpp/src/spectrum_integrator.cpp` - 加 #include "log_macros.h"；将 compute_f_syn 末尾的循环内 fprintf（被 pc_api.cpp OpenMP 循环高频调用）改为 LOG_DEBUG。错误路径上的 6 个 fprintf 保留原样
-- `lib/photometric_calib/cpp/src/star_matcher.cpp` - 加 #include "log_macros.h"；将 matchBruteForce 循环内每颗匹配星的 fprintf（第86-89行）改为 LOG_DEBUG。错误路径和一次性日志保留
-- `lib/photometric_calib/cpp/src/pc_api.cpp` - 加 #include "../include/log_macros.h"。pc_api.cpp 无直接循环内 fprintf（OpenMP 循环调用 compute_f_syn 已在 spectrum_integrator.cpp 中处理）
+- `lib/algorithms/photometry/cpp/include/log_macros.h` - **新建**。定义 LOG_INFO/LOG_DEBUG/LOG_ERROR 宏。LOG_DEBUG 默认编译时不启用（展开为 ((void)0)），可通过定义 PC_ENABLE_DEBUG 启用。LOG_INFO/LOG_ERROR 输出到 stderr，自动加 [INFO]/[ERROR] 前缀和 \n 后缀
+- `lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp` - 加 #include "log_macros.h"；将 compute_f_syn 末尾的循环内 fprintf（被 pc_api.cpp OpenMP 循环高频调用）改为 LOG_DEBUG。错误路径上的 6 个 fprintf 保留原样
+- `lib/algorithms/photometry/cpp/src/star_matcher.cpp` - 加 #include "log_macros.h"；将 matchBruteForce 循环内每颗匹配星的 fprintf（第86-89行）改为 LOG_DEBUG。错误路径和一次性日志保留
+- `lib/algorithms/photometry/cpp/src/pc_api.cpp` - 加 #include "../include/log_macros.h"。pc_api.cpp 无直接循环内 fprintf（OpenMP 循环调用 compute_f_syn 已在 spectrum_integrator.cpp 中处理）
 
 **编译结果**: 成功
 - photometric_calib.dll 1,031.2 KB（1.01MB）
@@ -656,11 +656,11 @@ pc_calibrate_simple_with_gaia 接口从固定 mag_max=16.0 改为自适应迭代
 - photometric_calib 不写日志文件: 日志输出到 stderr，无 logs 目录，循环内 stderr 输出量大幅减少
 
 ### Drizzle 输出验证脚本 validate_drizzle_output.py（2026-07-13）
-- 路径: `lib/orchestrator/scripts/validate/validate_drizzle_output.py`
+- 路径: `lib/infrastructure/pipeline/orchestrator/scripts/validate/validate_drizzle_output.py`
 - 功能: 验证 Drizzle 输出的 .ahpx 文件正确性（8 项验证: 文件存在/ahpx 可读/n_healpix_pixels>0/像素非全0/无NaN-Inf/通量守恒/WCS元数据/nside合理）
 - ahpx_io 加载三层降级: 标准 import → .pyc 后备加载 → 降级为文件存在性验证
 - 关键发现: 当前环境 ahpx_io 目录无 .py 源文件（仅 .dll + .pyc），需从 `__pycache__/ahpx_io.cpython-310.pyc` 加载
-- 详见: lib/orchestrator/memory.md
+- 详见: lib/infrastructure/pipeline/orchestrator/memory.md
 
 ### photometric_adapter 移除 f_syn 依赖改用 gaia_client handle（2026-07-13）
 修改 photometric_adapter 和 PhotometricCalib Python 封装，调用新 C++ 接口 `pc_calibrate_simple_with_gaia`，DLL 内部完成锥形搜索+光谱积分，不再依赖外部 f_syn 数据。
@@ -668,9 +668,9 @@ pc_calibrate_simple_with_gaia 接口从固定 mag_max=16.0 改为自适应迭代
 **用户需求**: 移除 photometric_adapter 的 f_syn_path/f_syn_loader 依赖，改为传 gaia_client handle 给 pc_calibrate_simple_with_gaia DLL 接口。
 
 **修改文件 (3个)**:
-- `lib/photometric_calib/python/photometric_calib.py` - PhotometricCalib 类新增 `calibrate_with_gaia` 方法 + _setup_signature 加 pc_calibrate_simple_with_gaia ctypes 绑定 (c_void_p handle + 滤光片/光谱数组参数)。原 calibrate_simple 保持不变（向后兼容）
-- `lib/orchestrator/python/pipeline_adapters/photometric_adapter.py` - 移除 f_syn_path/f_syn_loader/FSynLoader 依赖；PhotometricParams 改为 gaia_client/filter_name_map/mag_min/mag_max；handler 双模式: gaia_client 不为 None 时用 calibrate_with_gaia (读 OBJCTRA/DEC + FILTER→CurveLoader + gaia_client.get_spectrum_params + FOV半径计算), 否则 fallback 到 calibrate_simple (从 gaia_cat 块读取, f_syn=0 退化路径)
-- `lib/orchestrator/python/orchestrator.py` - Orchestrator.__init__ 加 gaia_data_dir 参数；gaia_client 生命周期管理: 优先复用 solve_params.env[0], 否则用 gaia_data_dir 创建 GaiaClientPy(db_type=2)；新增 _create_gaia_client/close/__del__ 方法
+- `lib/algorithms/photometry/python/photometric_calib.py` - PhotometricCalib 类新增 `calibrate_with_gaia` 方法 + _setup_signature 加 pc_calibrate_simple_with_gaia ctypes 绑定 (c_void_p handle + 滤光片/光谱数组参数)。原 calibrate_simple 保持不变（向后兼容）
+- `lib/infrastructure/pipeline/orchestrator/python/pipeline_adapters/photometric_adapter.py` - 移除 f_syn_path/f_syn_loader/FSynLoader 依赖；PhotometricParams 改为 gaia_client/filter_name_map/mag_min/mag_max；handler 双模式: gaia_client 不为 None 时用 calibrate_with_gaia (读 OBJCTRA/DEC + FILTER→CurveLoader + gaia_client.get_spectrum_params + FOV半径计算), 否则 fallback 到 calibrate_simple (从 gaia_cat 块读取, f_syn=0 退化路径)
+- `lib/infrastructure/pipeline/orchestrator/python/orchestrator.py` - Orchestrator.__init__ 加 gaia_data_dir 参数；gaia_client 生命周期管理: 优先复用 solve_params.env[0], 否则用 gaia_data_dir 创建 GaiaClientPy(db_type=2)；新增 _create_gaia_client/close/__del__ 方法
 
 **关键设计决策**:
 - 传 Python 对象而非裸 handle: PhotometricParams.gaia_client 字段存 GaiaClientPy 实例（非 int handle），adapter 内部用 _get_gaia_client_handle() 提取 _handle 属性，用 _get_spectrum_wavelength() 调 get_spectrum_params()。这样 adapter 既能拿到 handle 传给 DLL，又能获取光谱波长数组
@@ -689,13 +689,13 @@ pc_calibrate_simple_with_gaia 接口从固定 mag_max=16.0 改为自适应迭代
 **用户需求**: 原 `pc_calibrate_simple` 接受预计算的 gaia_fsyn 数组；扩展为接受 gaia_client handle + 滤光片曲线 + 光谱波长数组，DLL 内部完成锥形搜索→光谱积分→星匹配→scale 校正全流程。
 
 **新建文件 (2个)**:
-- `lib/photometric_calib/cpp/src/spectrum_integrator.h` - 光谱积分器声明（akima_interpolate/simpson_integrate/compute_f_syn）
-- `lib/photometric_calib/cpp/src/spectrum_integrator.cpp` - 实现：Akima 子样条插值（参考 scipy.Akima1DInterpolator）+ Simpson 1/3 复合积分（末尾奇数区间用 3/8 公式）+ compute_f_syn（uint8→float64, 10^(-0.4*mag_g) 星等归一化, λ加权积分）
+- `lib/algorithms/photometry/cpp/src/spectrum_integrator.h` - 光谱积分器声明（akima_interpolate/simpson_integrate/compute_f_syn）
+- `lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp` - 实现：Akima 子样条插值（参考 scipy.Akima1DInterpolator）+ Simpson 1/3 复合积分（末尾奇数区间用 3/8 公式）+ compute_f_syn（uint8→float64, 10^(-0.4*mag_g) 星等归一化, λ加权积分）
 
 **修改文件 (3个)**:
-- `lib/photometric_calib/cpp/include/photometric_calib.h` - 新增 `pc_calibrate_simple_with_gaia` 声明（保持原接口不变）
-- `lib/photometric_calib/cpp/src/pc_api.cpp` - 实现新接口：gaia_client_cone_search_with_spectrum→OpenMP 16线程并行 compute_f_syn→StarMatcher+ImageCorrector 复用现有逻辑；free() 释放 gaia_client 返回内存
-- `lib/photometric_calib/cpp/Makefile` + `build.ps1` - 添加 gaia_client include path、链接 gaia_client.dll、复制 dll 到输出目录、mingw64/bin 加入 PATH
+- `lib/algorithms/photometry/cpp/include/photometric_calib.h` - 新增 `pc_calibrate_simple_with_gaia` 声明（保持原接口不变）
+- `lib/algorithms/photometry/cpp/src/pc_api.cpp` - 实现新接口：gaia_client_cone_search_with_spectrum→OpenMP 16线程并行 compute_f_syn→StarMatcher+ImageCorrector 复用现有逻辑；free() 释放 gaia_client 返回内存
+- `lib/algorithms/photometry/cpp/Makefile` + `build.ps1` - 添加 gaia_client include path、链接 gaia_client.dll、复制 dll 到输出目录、mingw64/bin 加入 PATH
 
 **编译结果**: 成功
 - photometric_calib.dll 1,059,631 字节（1.03MB），仅依赖 KERNEL32/msvcrt/gaia_client.dll
@@ -715,8 +715,8 @@ pc_calibrate_simple_with_gaia 接口从固定 mag_max=16.0 改为自适应迭代
 **根因**: dpsf_log.cpp 默认日志级别为 LOG_INFO，每颗星拟合都输出 DEBUG 日志到 stderr + 文件（双 fflush），2000颗星生成364MB日志文件，I/O开销主导耗时。
 
 **修改文件 (2个)**:
-- `lib/dynamic_psf/src/dpsf_log.cpp` - 默认threshold从LOG_INFO改为LOG_WARN；移除双fflush（stderr和文件均不强制刷盘）；WARN及以上级别才写文件（DEBUG/INFO不写文件）
-- `lib/dynamic_psf/Makefile` - CXXFLAGS和LDFLAGS添加 `-fopenmp` 启用OpenMP并行（16线程）
+- `lib/algorithms/psf/src/dpsf_log.cpp` - 默认threshold从LOG_INFO改为LOG_WARN；移除双fflush（stderr和文件均不强制刷盘）；WARN及以上级别才写文件（DEBUG/INFO不写文件）
+- `lib/algorithms/psf/Makefile` - CXXFLAGS和LDFLAGS添加 `-fopenmp` 启用OpenMP并行（16线程）
 
 **编译结果**:
 - dynamic_psf.dll 324.22 KB，修改时间 2026-07-12 22:48:24
@@ -743,21 +743,21 @@ pc_calibrate_simple_with_gaia 接口从固定 mag_max=16.0 改为自适应迭代
 - 日志相对路径 `lib\dynamic_psf\logs` 从tests目录运行时无法创建（父目录不存在），建议后续改为绝对路径或环境变量配置
 - DRIZZLE耗时波动+18.4%属正常噪声（18.44s vs 15.58s，可能是系统负载变化）
 
-### 编排器代码迁移到 lib/orchestrator/ 独立模块（2026-07-12）
-将分散在多个模块的编排器代码统一迁移到 `lib/orchestrator/` 独立目录，使用 copy 方式保留源文件。
+### 编排器代码迁移到 lib/infrastructure/pipeline/orchestrator/ 独立模块（2026-07-12）
+将分散在多个模块的编排器代码统一迁移到 `lib/infrastructure/pipeline/orchestrator/` 独立目录，使用 copy 方式保留源文件。
 
 **目录结构**:
-- `lib/orchestrator/python/orchestrator.py` - 编排器核心（从 astro_image_io/python/ 迁移）
-- `lib/orchestrator/python/pipeline_adapters/` - 5个适配器
+- `lib/infrastructure/pipeline/orchestrator/python/orchestrator.py` - 编排器核心（从 astro_image_io/python/ 迁移）
+- `lib/infrastructure/pipeline/orchestrator/python/pipeline_adapters/` - 5个适配器
   - `calibrate_adapter.py` (从 calibration/python/pipeline_adapter.py)
   - `platesolve_adapter.py` (从 plate_solve/python/pipeline_adapter.py)
   - `photometric_adapter.py` (从 photometric_calib/flux_calibrator/python/pipeline_adapter.py)
   - `drizzle_adapter.py` (从 healpix_db/healpix_drizzle/pipeline_adapter.py)
   - `psf_adapter.py` (从 orchestrator.py 的 make_psf_fit_handler 提取，dynamic_psf 无独立适配器)
-- `lib/orchestrator/tests/test_orchestrator_e2e.py` - 端到端测试
-- `lib/orchestrator/scripts/` - 批处理脚本（从 integration_test/python/ 复制，13个.py + test_config.json）
-- `lib/orchestrator/docs/architecture.md` - 架构说明
-- `lib/orchestrator/README.md` + `.gitignore`
+- `lib/infrastructure/pipeline/orchestrator/tests/test_orchestrator_e2e.py` - 端到端测试
+- `lib/infrastructure/pipeline/orchestrator/scripts/` - 批处理脚本（从 integration_test/python/ 复制，13个.py + test_config.json）
+- `lib/infrastructure/pipeline/orchestrator/docs/architecture.md` - 架构说明
+- `lib/infrastructure/pipeline/orchestrator/README.md` + `.gitignore`
 
 **Import 路径更新**:
 - orchestrator.py: 适配器路径改为 `orchestrator/python/pipeline_adapters/*.py`，import `from psf_adapter import make_psf_fit_handler`
@@ -774,10 +774,10 @@ spec: .trae/specs/module-adaptation/ (Phase 1 Task 6)
 **目标**: 更新编排器适配新版 handler（无临时文件+简化版photometric），执行端到端测试验证全链路
 
 **修改文件 (4个)**:
-- `lib/astro_image_io/python/orchestrator.py` - run_single 返回值从 bool 改为 result dict（含 success/timings/blocks/output_files/wcs/photo_stats），新增 _get_block_names/_find_output_ahpx 辅助方法，PLATESOLVE 后收集 WCS 字段，PHOTOMETRIC 后收集 photo_stats KV 值
-- `lib/astro_image_io/python/astro_image_io.py` - set_auto_free 文档注释去掉 grad_map/cal_stats（photometric_calib 已不再生成这些块）
-- `lib/plate_solve/python/pipeline_adapter.py` - 删除未使用的 import tempfile 和 temp_dir 变量（ipv_solve_from_memory 无临时文件），PlateSolveParams 去掉 temp_dir 字段
-- `lib/astro_image_io/python/tests/test_orchestrator_e2e.py` - 重写验证逻辑：15项验证（整体成功/耗时/块状态/WCS/photo_stats/.ahpx输出），临时文件泄漏检测（执行前后对比），性能对比表
+- `lib/infrastructure/aio/python/orchestrator.py` - run_single 返回值从 bool 改为 result dict（含 success/timings/blocks/output_files/wcs/photo_stats），新增 _get_block_names/_find_output_ahpx 辅助方法，PLATESOLVE 后收集 WCS 字段，PHOTOMETRIC 后收集 photo_stats KV 值
+- `lib/infrastructure/aio/python/astro_image_io.py` - set_auto_free 文档注释去掉 grad_map/cal_stats（photometric_calib 已不再生成这些块）
+- `lib/algorithms/platesolve/python/pipeline_adapter.py` - 删除未使用的 import tempfile 和 temp_dir 变量（ipv_solve_from_memory 无临时文件），PlateSolveParams 去掉 temp_dir 字段
+- `lib/infrastructure/aio/python/tests/test_orchestrator_e2e.py` - 重写验证逻辑：15项验证（整体成功/耗时/块状态/WCS/photo_stats/.ahpx输出），临时文件泄漏检测（执行前后对比），性能对比表
 
 **端到端测试结果**: 15/15 验证项全部通过 ✓
 - 测试帧: LDN43_LRGBH_flying_dutchman-20250503@031525-600S-Lum.fts (32MB, 4096×4096)
@@ -810,15 +810,15 @@ spec: .trae/specs/module-adaptation/ (Phase 1 Task 1+2)
 **目标**: 消除 plate_solve 管线适配器中的临时 FITS 文件，直接传递内存像素数据到 C++ DLL
 
 **修改文件 (8个)**:
-- `lib/plate_solve/cpp/ipv/include/ipv_api.h` - 新增 `ipv_solve_from_memory` C API 声明
-- `lib/plate_solve/cpp/ipv/include/ipv_select.h` - 新增 `ipv_select_from_memory` 内部 C++ 函数声明
-- `lib/plate_solve/cpp/ipv/include/ipv_solver.h` - IPVSolver 类新增 `solve_from_memory` 公有方法
-- `lib/plate_solve/cpp/ipv/src/ipv_select.cpp` - 实现 `ipv_select_from_memory`（跳过 aio_read，直接接受 float* 像素）
-- `lib/plate_solve/cpp/ipv/src/ipv_solver.cpp` - 实现 `solve_from_memory`（9步求解流程，与 solve() 一致）
-- `lib/plate_solve/cpp/ipv/src/ipv_entry.cpp` - 新增 `do_solve_from_memory_impl` + `ipv_solve_from_memory` C API 包装
-- `lib/plate_solve/python/ipv_solver.py` - 新增 `solve_from_memory` Python 方法（ctypes POINTER(c_float)）
-- `lib/plate_solve/python/pipeline_adapter.py` - 替换 `solver.solve(临时文件)` 为 `solver.solve_from_memory(内存)`，删除 astropy 临时 FITS 写入和 finally 清理代码
-- `lib/plate_solve/cpp/ipv/Makefile` - 修复: 添加 `ipv_robust_refine.cpp` 到 SRCS + `-fopenmp` 标志（pre-existing bug）
+- `lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h` - 新增 `ipv_solve_from_memory` C API 声明
+- `lib/algorithms/platesolve/cpp/ipv/include/ipv_select.h` - 新增 `ipv_select_from_memory` 内部 C++ 函数声明
+- `lib/algorithms/platesolve/cpp/ipv/include/ipv_solver.h` - IPVSolver 类新增 `solve_from_memory` 公有方法
+- `lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp` - 实现 `ipv_select_from_memory`（跳过 aio_read，直接接受 float* 像素）
+- `lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp` - 实现 `solve_from_memory`（9步求解流程，与 solve() 一致）
+- `lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp` - 新增 `do_solve_from_memory_impl` + `ipv_solve_from_memory` C API 包装
+- `lib/algorithms/platesolve/python/ipv_solver.py` - 新增 `solve_from_memory` Python 方法（ctypes POINTER(c_float)）
+- `lib/algorithms/platesolve/python/pipeline_adapter.py` - 替换 `solver.solve(临时文件)` 为 `solver.solve_from_memory(内存)`，删除 astropy 临时 FITS 写入和 finally 清理代码
+- `lib/algorithms/platesolve/cpp/ipv/Makefile` - 修复: 添加 `ipv_robust_refine.cpp` 到 SRCS + `-fopenmp` 标志（pre-existing bug）
 
 **编译**: make clean && make 成功，ipv_solver.dll 含 ipv_solve_from_memory 导出
 **测试**: LDN43 测试帧 (LDN43_LRGBH_flying_dutchman-20250503@031525-600S-Lum.fts) 验证通过
@@ -829,7 +829,7 @@ spec: .trae/specs/module-adaptation/ (Phase 1 Task 1+2)
 - 无临时 FITS 文件生成 ✅
 
 ### photometric_calib 简化版 C++ DLL 全局 scale 校准（2026-07-12）
-- 新建 `lib/photometric_calib/cpp/` 目录，实现简化版测光校准 C++ DLL
+- 新建 `lib/algorithms/photometry/cpp/` 目录，实现简化版测光校准 C++ DLL
 - 去掉梯度拟合（M_map曲面拟合），简化为：scale=median(F_syn/F_instr), I_cal=I*scale
 - 算法：WCS投影(TAN+SIP) -> 暴力最近邻匹配(3px) -> MAD离群清洗(sigma=3.0) -> 全局scale校正
 - 新建文件：`cpp/include/photometric_calib.h`, `cpp/src/{pc_api,star_matcher,image_corrector,wcs_transform}.cpp/.h`, `cpp/Makefile`, `cpp/build.ps1`, `python/photometric_calib.py`(ctypes封装), `cpp/test/test_photometric_calib.py`
@@ -837,33 +837,33 @@ spec: .trae/specs/module-adaptation/ (Phase 1 Task 1+2)
 - 归档 `estimator.py` 和 `gradient_fitter.py` 到 `archive/`
 - 编译：`make` 成功，photometric_calib.dll 697KB，`-static`全静态链接（仅依赖系统DLL），OpenMP 16线程
 - 测试：4/4 通过（基本校准/MAD清洗/退化路径/SIP投影）
-- 模块记忆: lib/photometric_calib/memory.md
+- 模块记忆: lib/algorithms/photometry/memory.md
 
 ### calibrate_data() 切换到 C++ DLL（2026-07-12）
-- `lib/calibration/python/calibrator.py` 的 `calibrate_data()` 方法从 numpy 路径切换到 C++ DLL `ac_calibrate_frame`
+- `lib/algorithms/calibration/python/calibrator.py` 的 `calibrate_data()` 方法从 numpy 路径切换到 C++ DLL `ac_calibrate_frame`
 - 导入 `astro_calibration` 模块的 `_dll`/`_to_float_ptr`/`AC_OK`，`Calibrator.__init__` 中调用 `ac_set_num_threads` 设置 OpenMP 线程数
 - Flat 归一化（median=1.0, clip 0.1）保留在 Python 端预处理（C++ DLL 内部仅裁剪 0.1 不做 median 归一化），其余校准运算全部由 C++ DLL 完成
 - 接口不变：输入/输出格式完全兼容（pipeline_adapter.py 和 calibration_pipeline.py 无需修改）
 - 构建 `astro_calibration.dll`（build.ps1，需 MSYS2 bin 在 PATH 中），6/6 测试通过
-- 模块记忆: lib/calibration/memory.md
+- 模块记忆: lib/algorithms/calibration/memory.md
 
 ### hp_drizzle_run 命名块直通版本实现完成（2026-07-12）
 - 将 `hp_drizzle_run` 从 stub（返回-1）重写为完整实现：从 PipelineFrame 命名块直通调用 DrizzleEngine，不经临时 FITS 文件
 - **修改文件**：
-  - `lib/healpix_db/healpix_drizzle/hp_drizzle_api.h` - 为 hp_drizzle_run 添加 `const char* output_path` 参数（nullptr 则不写 .ahpx）
-  - `lib/healpix_db/healpix_drizzle/hp_drizzle_api.cpp` - 实现 hp_drizzle_run：从 "data" 块读取 float32[H,W] 像素，从 "header" KV 块读取 WCS（CD矩阵+CDELT/CROTA2回退）+ SIP（A/B/AP/BP 系数），构造 FitsImage，调用 DrizzleEngine.drizzle() + writeAhpx()
-  - `lib/healpix_db/healpix_drizzle/healpix_drizzle.py` - 添加 hp_drizzle_run 的 ctypes 封装（接受 PipelineFramePy 对象或 C 指针）
-  - `lib/healpix_db/healpix_drizzle/pipeline_adapter.py` - 删除 `_write_temp_fits` 函数和 astropy 依赖，handler 直接调用 hp_drizzle_run
+  - `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h` - 为 hp_drizzle_run 添加 `const char* output_path` 参数（nullptr 则不写 .ahpx）
+  - `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp` - 实现 hp_drizzle_run：从 "data" 块读取 float32[H,W] 像素，从 "header" KV 块读取 WCS（CD矩阵+CDELT/CROTA2回退）+ SIP（A/B/AP/BP 系数），构造 FitsImage，调用 DrizzleEngine.drizzle() + writeAhpx()
+  - `lib/algorithms/drizzle/healpix_drizzle/healpix_drizzle.py` - 添加 hp_drizzle_run 的 ctypes 封装（接受 PipelineFramePy 对象或 C 指针）
+  - `lib/algorithms/drizzle/healpix_drizzle/pipeline_adapter.py` - 删除 `_write_temp_fits` 函数和 astropy 依赖，handler 直接调用 hp_drizzle_run
 - **设计决策**：在 hp_drizzle_run 签名中增加 output_path 参数（任务描述中未含此参数），因为 .ahpx 输出路径需由 Python handler 通过 _build_output_path 构造后传入，C++ 无法从 frame 推导 output_dir
 - **编译**：make clean && make 成功，DLL 1.05MB，导出 hp_drizzle_fits_to_ahpx + hp_drizzle_run
 - **测试**：tests/test_pipeline_adapter.py 3/3 通过（正常流程 + 缺 data 块错误处理 + SIP 系数），64x64 图像 4096 源像素→178 HEALPix 像素，无临时 FITS 文件生成
 
 ### PSF 拟合管线步骤实现完成（2026-07-12）
-- `lib/astro_image_io/python/orchestrator.py` - 管线编排器，实现 `make_psf_fit_handler(dll_path=None)` 函数
+- `lib/infrastructure/aio/python/orchestrator.py` - 管线编排器，实现 `make_psf_fit_handler(dll_path=None)` 函数
 - handler 读取 PipelineFrame 的 `star_det` 块（星点坐标）和 `data` 块（像素），调用 DynamicPSF.fit_batch 拟合
 - 结果写入 `psf` 块（FLOAT64[N,6]: status, B, flux, cx, cy, fwhm均值），供 photometric_calib 复用
 - 无 star_det 块时跳过（返回0），无 data 块时返回错误（返回-1）
-- 测试: `lib/astro_image_io/tests/test_psf_fit_handler.py` - 8/8 通过（真实 DLL 拟合 5 颗星 + 边界用例）
+- 测试: `lib/infrastructure/aio/tests/test_psf_fit_handler.py` - 8/8 通过（真实 DLL 拟合 5 颗星 + 边界用例）
 
 ### 管线编排引擎实现完成（2026-07-12）
 spec: .trae/specs/pipeline-engine/
@@ -926,23 +926,23 @@ spec: .trae/specs/healpix-repo-split-pipeline/
 
 ### healpix_lod 迁移至 AIO C API（2026-07-12）
 - lod_manager.cpp 压缩/解压调用由 `ahpx::compressZstd/decompressZstd/compressLz4/decompressLz4/compressBound*` 改为 AIO C API `aio_compress/aio_decompress/aio_compress_bound`（codec: 1=ZSTD, 2=LZ4），移除 `ahpx::hasZstdSupport/hasLz4Support` 检查（AIO DLL 始终支持两者）
-- Makefile: `AIO_DIR ?= ../../astro_image_io`（astro_image_io 位于 lib/astro_image_io，healpix_lod 位于 lib/healpix_db/healpix_lod，需上两级）；INCLUDES 改为 `-I$(AIO_DIR)/include -I$(AIO_DIR)/src -I../healpix_stack`；DEPS 删除 `../ahpx_io/compressor.cpp`；新增 `LDFLAGS = -L$(AIO_DIR) -lastro_image_io`，LIBS 去掉 `-lzstd -llz4`（压缩能力内置于 astro_image_io.dll）
+- Makefile: `AIO_DIR ?= ../../astro_image_io`（astro_image_io 位于 lib/infrastructure/aio，healpix_lod 位于 lib/infrastructure/aio/healpix_db/healpix_lod，需上两级）；INCLUDES 改为 `-I$(AIO_DIR)/include -I$(AIO_DIR)/src -I../healpix_stack`；DEPS 删除 `../ahpx_io/compressor.cpp`；新增 `LDFLAGS = -L$(AIO_DIR) -lastro_image_io`，LIBS 去掉 `-lzstd -llz4`（压缩能力内置于 astro_image_io.dll）
 - 关键发现: ahps_reader.cpp 已先行迁移至 AIO API（`#include "astro_image_io.h"` + `aio_decompress`），healpix_core.cpp 无压缩依赖，故 DEPS 移除 compressor.cpp 后链接仍完整
 - 编译验证通过: healpix_lod.dll 1.05MB，objdump 确认依赖 astro_image_io.dll，不再依赖 ahpx_io/zstd/lz4 直接链接
-- 注意: 任务原述 `AIO_DIR ?= ../astro_image_io` 与实际目录布局不符（astro_image_io 在 lib/ 而非 lib/healpix_db/ 下），已按 healpix_stack Makefile 同款约定修正为 `../../astro_image_io`
+- 注意: 任务原述 `AIO_DIR ?= ../astro_image_io` 与实际目录布局不符（astro_image_io 在 lib/ 而非 lib/infrastructure/aio/healpix_db/ 下），已按 healpix_stack Makefile 同款约定修正为 `../../astro_image_io`
 
 ### 已清理废弃模块（2026-07-12）
-- 删除 `lib/astro_calibration/` 整目录：与 `lib/calibration/` 逐字节相同的废弃副本，两者共推同一 GitHub 仓库 `Astro-Calibration-Cpp.git` 造成历史分叉。保留 `lib/calibration/`（超集，含完整流水线）
-- 删除 `lib/star_psf/` 整目录：未集成的组合原型（检测+PSF拟合合一），PSF 核心与 `dynamic_psf/` 相同，检测功能已被 `lib/star_detector/` 替代。流水线采用拆分架构（star_detector + dynamic_psf）
-- 删除 `lib/photometric_calib/python/` 下 5 个废弃文件：star_matcher.py、image_corrector.py（含梯度方向 bug r=log10(F_syn/F_instr)，已修复版在 gradient_estimator/python/）、gradient_fitter.py（旧 MAX_ORDER=5）、wcs_transform.py、curve_loader.py（冗余副本）
-- 保留 `lib/photometric_calib/python/sed_builder.py` 和 `synthetic_photometry.py`（spectrum_integrator 自测惰性引用，跨目录依赖未解耦）
+- 删除 `lib/astro_calibration/` 整目录：与 `lib/algorithms/calibration/` 逐字节相同的废弃副本，两者共推同一 GitHub 仓库 `Astro-Calibration-Cpp.git` 造成历史分叉。保留 `lib/algorithms/calibration/`（超集，含完整流水线）
+- 删除 `lib/star_psf/` 整目录：未集成的组合原型（检测+PSF拟合合一），PSF 核心与 `dynamic_psf/` 相同，检测功能已被 `lib/algorithms/star_detection/` 替代。流水线采用拆分架构（star_detector + dynamic_psf）
+- 删除 `lib/algorithms/photometry/python/` 下 5 个废弃文件：star_matcher.py、image_corrector.py（含梯度方向 bug r=log10(F_syn/F_instr)，已修复版在 gradient_estimator/python/）、gradient_fitter.py（旧 MAX_ORDER=5）、wcs_transform.py、curve_loader.py（冗余副本）
+- 保留 `lib/algorithms/photometry/python/sed_builder.py` 和 `synthetic_photometry.py`（spectrum_integrator 自测惰性引用，跨目录依赖未解耦）
 - spec: .trae/specs/cleanup-lib-duplicate-modules/
 
 ### calibration 模块 Python绑定与统一封装（已完成）
 - [x] cosmetic_corrector.py Python绑定C++ DLL（ctypes模块级缓存，优先C++ fallback到Python）
 - [x] calibrate_fits.py 统一封装接口（单帧 calibrate_fits + 批量 calibrate_batch 16线程并行）
 - [x] 单帧性能测试通过（C++ DLL加载成功，2.0s/帧，较Python版8.5s提速4x）
-- 模块记忆: lib/calibration/memory.md
+- 模块记忆: lib/algorithms/calibration/memory.md
 
 ### integration_test 全链路整合测试（进行中）
 - [x] Task 1: run_integrator.py 扩展 --narrowband-center/bw/trans 参数，支持运行时注入窄带方波曲线
@@ -964,7 +964,7 @@ spec: .trae/specs/optimize-integration-gaia-query/
 - [x] Task 4: synthetic_photometry.py 积分步长 0.1->1.0nm (误差 0.000002%)
 - [x] Task 5: run_all.py 传递 --detected-stars
 - [x] Task 6: 端到端验证 panel1_Red - 总耗时 18.28s(提速16x), step3 0.85s, n_matched=44
-- 文档: lib/photometric_calib/gradient_estimator/IMPLEMENTATION.md (鲁棒拟合模块实现文档)
+- 文档: lib/algorithms/photometry/gradient_estimator/IMPLEMENTATION.md (鲁棒拟合模块实现文档)
 
 ### healpix_db/ahpx_io .ahpx单帧存储格式读写模块（已完成）
 - [x] `ahpx_format.h` - 格式常量定义 (Magic/Version/HeaderLayout/WeightMode/Codec/BlockIndex)
@@ -1002,13 +1002,13 @@ spec: .trae/specs/optimize-integration-gaia-query/
 - [x] `main_window.py` - Qt主窗口 (菜单栏/工具栏/状态栏, 单帧/球面模式切换, STFPanel控制面板)
 - [x] `__main__.py` / `__init__.py` / `requirements.txt` - 包入口和依赖声明
 - [x] 8/8 文件语法编译通过, STF功能测试通过, 球面网格+HEALpix坐标+投影函数测试通过
-- 模块记忆: lib/healpix_db/healpix_browser/memory.md
+- 模块记忆: lib/infrastructure/aio/healpix_db/healpix_browser/memory.md
 - 依赖: PyQt5>=5.15, vispy>=0.9, numpy>=1.20, healpy>=1.16, astropy>=5.0 (当前环境缺PyQt5/vispy/healpy)
 
 ### healpix_db GitHub 仓库（已完成）
 - 仓库地址: https://github.com/fujiaze/Healpix-Database
 - 仓库名: Healpix-Database, 描述: Healpix Database (C++ Python), Public
-- 仓库根目录 = lib/healpix_db/ 内容平铺, 原位 git init (lib/healpix_db/.git)
+- 仓库根目录 = lib/infrastructure/aio/healpix_db/ 内容平铺, 原位 git init (lib/infrastructure/aio/healpix_db/.git)
 - 51 个源文件, 14892 行, commit cfaf2dc
 - 不含 DLL/nul/memory.md, 新建 .gitignore + README.md
 - ahpx_io/Makefile 删除了未使用的外部引用 -I../../astro_image_io/include
@@ -1060,7 +1060,7 @@ spec: .trae/specs/optimize-integration-gaia-query/
 
 ### 端到端测试 PLATESOLVE 阶段失败 - aio_frame_export_block_fits 导出 FITS 格式错误（已修复）
 - **现象**: 端到端测试在 PLATESOLVE 阶段失败，StarDetector 检测到 0 颗星。任务描述假设是 BZERO 数据格式问题
-- **根因**: `aio_frame_export_block_fits` (lib/astro_image_io/src/aio_pipeline.cpp) 导出的 FITS 文件格式不正确：
+- **根因**: `aio_frame_export_block_fits` (lib/infrastructure/aio/src/aio_pipeline.cpp) 导出的 FITS 文件格式不正确：
   - SIMPLE 卡片写成字符串 `'T'` 而非逻辑值 `T`（违反 FITS 标准，astropy 报错 "No SIMPLE card found"）
   - 字节序不正确：FITS 标准要求大端字节序，C++ 直接写入了小端 x86 数据
   - 导致 IPVSolver 内部用 aio_read 读取临时 FITS 时，像素值全是垃圾（min=9.8e-44, max=2.3e-38, median=0.00）
@@ -1068,13 +1068,13 @@ spec: .trae/specs/optimize-integration-gaia-query/
   - 原始 FITS (BITPIX=16, BZERO=32768): aio_read 正确返回 float32 (min=1564, max=65535, median=3044)
   - 导出 FITS (BITPIX=-32): aio_read 读回垃圾数据 (min=9.8e-44)，astropy 完全无法读取
   - 用 astropy 写 float32 FITS 后 aio_read 读回正确 (min=1564, max=65535)
-- **Python 临时绕过**: 修改 `lib/plate_solve/python/pipeline_adapter.py` 第 274-285 行，将 `frame.export_block_fits("data", temp_path)` 替换为 `astropy.io.fits.PrimaryHDU(data=pixels).writeto(temp_path)`，绕过 C++ 端的格式 bug
-- **C++ 端根因修复（2026-07-12）**: 修改 `lib/astro_image_io/src/aio_pipeline.cpp` 中 `aio_frame_export_block_fits` 函数：
+- **Python 临时绕过**: 修改 `lib/algorithms/platesolve/python/pipeline_adapter.py` 第 274-285 行，将 `frame.export_block_fits("data", temp_path)` 替换为 `astropy.io.fits.PrimaryHDU(data=pixels).writeto(temp_path)`，绕过 C++ 端的格式 bug
+- **C++ 端根因修复（2026-07-12）**: 修改 `lib/infrastructure/aio/src/aio_pipeline.cpp` 中 `aio_frame_export_block_fits` 函数：
   - 第 995 行: `write_card_str("SIMPLE", "T")` → `write_card("SIMPLE", "T")` (逻辑值 T 无引号，T 在 column 11)
   - 第 1002 行: `write_card_str("EXTEND", "T")` → `write_card("EXTEND", "T")` (同上)
   - 第 1010-1023 行: 像素数据写入前增加字节序转换，逐元素反转字节 (elem_size=4/8)，小端→大端
   - 编译: astro_image_io.dll (2.99MB, g++ 16.1.0, exit code 0)
-  - 测试: `lib/astro_image_io/tests/test_export_fits_fix.py` 23/23 通过 (FLOAT32/FLOAT64/INT32 数据值正确，SIMPLE 逻辑值 T)
+  - 测试: `lib/infrastructure/aio/tests/test_export_fits_fix.py` 23/23 通过 (FLOAT32/FLOAT64/INT32 数据值正确，SIMPLE 逻辑值 T)
   - 注意: astropy 有非致命 VerifyWarning ("SIMPLE card format doesn't respect FITS Standard")，但不影响数据读取，SIMPLE=True 且数据完全正确
 - **验证**: 端到端测试 PLATESOLVE 2.13s 成功 (2000 颗星 + 9799 Gaia 星), PSF_FIT 49.83s 成功 (2000 颗星拟合), PHOTOMETRIC 1.02s 成功 (grad_map + photo_stats)
 
@@ -1086,7 +1086,7 @@ spec: .trae/specs/optimize-integration-gaia-query/
 - **为什么 2 像素正常**: 2 像素数据(16字节)太小，ZSTD 压缩后更大，回退 NONE 路径有 `compBuf.resize(srcBytes)`，data.size()==compSize，无偏移
 - **修复**: 在 ZSTD 压缩成功的 else 分支添加 `compBuf.resize(compSize)`，确保 `data.size() == index.size`
 - **验证**: healpix_lod 4/4 + healpix_stack 7/7 + ahpx_io 6/6 = 17/17 全部通过
-- **文件**: `lib/healpix_db/healpix_stack/ahps_writer.cpp` 两处（像素索引块 + 波段统计块压缩）
+- **文件**: `lib/infrastructure/aio/healpix_db/healpix_stack/ahps_writer.cpp` 两处（像素索引块 + 波段统计块压缩）
 
 ### WCS SIP 系数写入 FITS 但 world2pix 边缘残差未修正（已修复）
 - **现象**: plate_solve 求解成功，FITS 头含 `A_ORDER=3 B_ORDER=3 AP_ORDER=3 BP_ORDER=3`，但 Gaia 星投影位置在边缘 r≥0.6 处偏移 median 3.48-6.48px（>2px 占 93.7%-100%）。PSF 拟合在边缘 100% 失败（LM 发散: A→0, B膨胀, x0漂移）。before（只CD）与 after（CD+SIP）偏移统计完全相同，SIP 似乎完全无效
@@ -1096,7 +1096,7 @@ spec: .trae/specs/optimize-integration-gaia-query/
 - **修复1**: `solve_and_write_wcs.py` 补全 AP/BP 写入（sip_keywords 字典收集 + FITS 头写入两处）
 - **修复2**: `wcs_transform.py` 将 4 处 `wcs_world2pix`→`all_world2pix`、`wcs_pix2world`→`all_pix2world`（`sky_to_pixel`/`pixel_to_sky`/`sky_to_pixel_batch`/`pixel_to_sky_batch`）
 - **验证**: after 图边缘偏移 median 从 3.48-6.48px 降到 0.22-0.32px（-94%~95%），>2px 比例从 93.7%-100% 降到 6.3%-6.5%。误差带从单调上升曲线变为水平直线（~0.2-0.3px）
-- **文件**: `lib/photometric_calib/gradient_estimator/python/wcs_transform.py`（4处）、`lib/plate_solve/python/solve_and_write_wcs.py`（2处）
+- **文件**: `lib/algorithms/photometry/gradient_estimator/python/wcs_transform.py`（4处）、`lib/algorithms/platesolve/python/solve_and_write_wcs.py`（2处）
 - **影响**: 所有使用 `WCSTransform.sky_to_pixel` 的地方（PSF 拟合、Gaia 投影、梯度估计、诊断图）均受此 bug 影响，边缘星投影位置偏差达 10px。修复后需重跑 PSF 拟合（step3/step4）
 - **诊断工具**: `diag_projection_plot.py`（支持 `--no-sip` 生成 before 图，`--label` 标注）
 
@@ -1109,7 +1109,7 @@ spec: .trae/specs/optimize-integration-gaia-query/
 
 ## SNR 模块 (§14) + 4 处断层修复（2026-07-15 完成）
 
-### SNR 模块 (lib/snr_estimator/)
+### SNR 模块 (lib/algorithms/noise_snr/)
 - **乘法模型**: SNR(pixel) = SNR_phot × (SNR_psf/median)
   - SNR_phot = 1/(ln10 × sigma_residual) 全帧常数
   - SNR_psf = IDW(PSF星位置, (A-B)/mad) 反距离加权 (power=2)
@@ -1156,14 +1156,14 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **重大教训**: PowerShell 7 解析无 BOM UTF-8 文件时中文注释导致行解析失败，build.ps1 中 `# 核心必需源文件` 后的 `$srcFiles += "src/aio_log.cpp"` 被吞。修复：所有中文注释改为英文
 
 ### Phase 2: 管线统一 (G3) ✅ 完成
-- integration_test/ 归档到 lib/orchestrator/archive/scripts/
-- test_config.json 迁移到 lib/orchestrator/configs/
+- integration_test/ 归档到 lib/infrastructure/pipeline/orchestrator/archive/scripts/
+- test_config.json 迁移到 lib/infrastructure/pipeline/orchestrator/configs/
 
 ### Phase 3: 模块整理 (G5) ✅ 完成
 - photometric_calib 子目录合并为 3 (cpp/python/archive) + data + docs
 
 ### Phase 4: step4 C++化 (G4) ✅ 完成 (commit fd7ddf1)
-- 新建 lib/photometric_calib/cpp/gradient_2d/ (独立 DLL 模块)
+- 新建 lib/algorithms/photometry/cpp/gradient_2d/ (独立 DLL 模块)
 - C API: gradient_2d_calibrate (星-图匹配 + IRLS+Tukey+Ridge+LOOCV + 图像校正)
 - gradient_2d.dll 编译通过 (329KB), 导出符号正常
 - 手写线性代数 (无 Eigen 依赖), OpenMP 并行
@@ -1180,8 +1180,8 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 
 ### Phase 6: 文档同步 (G8) ✅ 完成 (commit 050b2fe)
 - 6.1 PROJECT_ARCHITECTURE.md 更新 (两段流水线 + 10 节点 + gradient_2d 模块)
-- 6.2 lib/orchestrator/README.md 更新 (v2.0 stage1/stage2 CLI + 配置文件模板)
-- 6.3 lib/orchestrator/memory.md 更新 (Phase 5 完成详情)
+- 6.2 lib/infrastructure/pipeline/orchestrator/README.md 更新 (v2.0 stage1/stage2 CLI + 配置文件模板)
+- 6.3 lib/infrastructure/pipeline/orchestrator/memory.md 更新 (Phase 5 完成详情)
 - 6.4 V9 文档验证通过
 
 ### architecture-refactor spec 全部 6 Phase 完成 ✅
@@ -1229,19 +1229,19 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 
 ## 2026-07-18 归档 GRADIENT_2D 节点 + stage1 重排为 7 节点
 - 用户审阅 PROJECT_OVERVIEW.md 后纠正：stage1 不做曲面拟合和图像亮度修正，PSF 后只做测光坐标系校准（PHOTOMETRIC 已完成）
-- 归档 lib/photometric_calib/cpp/gradient_2d/ → lib/photometric_calib/archive/gradient_2d/
+- 归档 lib/algorithms/photometry/cpp/gradient_2d/ → lib/algorithms/photometry/archive/gradient_2d/
 - orchestrator 删除 GRADIENT_2D 枚举 + run_stage_gradient_2d 函数，stage 序号重排（SNR 6→5, DRIZZLE 7→6, GRADIENT_SPHERE 8→7, STACK 9→8）
-- 文档同步：PROJECT_OVERVIEW.md / DESIGN_IMPL_GAP.md（新增 GAP-021）/ PIPELINE_OVERVIEW.md / lib/photometric_calib/memory.md
+- 文档同步：PROJECT_OVERVIEW.md / DESIGN_IMPL_GAP.md（新增 GAP-021）/ PIPELINE_OVERVIEW.md / lib/algorithms/photometry/memory.md
 - spec: docs/superpowers/specs/2026-07-18-gradient-2d-archive.md
 
 ## 2026-07-25 P03-002 配置参数端到端追踪 (v1.1 开发包 G3 Gate) ★DONE★
 - **目标**: 证明 Gaia/filter/QE/nside/pixfrac/线程/超时等全部配置参数到达消费者
 - **结果**: VERDICT: PASS — 49 参数全追踪 (stage1 34 + stage2 15), 5 断裂点修复, 8 已知限制文档化, 0 FAIL
 - **代码修改** (orchestrator 模块):
-  - `lib/orchestrator/cpp/src/orchestrator.cpp` - 23 处 P03-002 标记; 修复 5 个断裂点 (photometric.filters_json/qe_curves_json + gradient_sphere.gaia_data_dir/gradient_max_iter/gradient_lambda 从 config 解析, 空值用默认)
-  - `lib/orchestrator/cpp/include/orchestrator.h` - 新增 config_gaia_data_dir_ 成员
-  - `lib/orchestrator/configs/stage1_config.json` - 扩展 platesolve/psf/photometric/drizzle 参数段
-  - `lib/orchestrator/configs/stage2_config.json` - 扩展 gradient_sphere 参数段
+  - `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` - 23 处 P03-002 标记; 修复 5 个断裂点 (photometric.filters_json/qe_curves_json + gradient_sphere.gaia_data_dir/gradient_max_iter/gradient_lambda 从 config 解析, 空值用默认)
+  - `lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h` - 新增 config_gaia_data_dir_ 成员
+  - `lib/infrastructure/pipeline/orchestrator/configs/stage1_config.json` - 扩展 platesolve/psf/photometric/drizzle 参数段
+  - `lib/infrastructure/pipeline/orchestrator/configs/stage2_config.json` - 扩展 gradient_sphere 参数段
 - **证据**: engineering/evidence/P03-002/ (TASK_REPORT/TEST_REPORT/EVIDENCE_INDEX/REVIEW_REPORT + config_parameter_trace.json + test_normal.log + .hiss)
 - **契约**: engineering/contracts/config_parameter_registry.csv (49 参数 CSV 注册表)
 - **断裂点修复**: DEF-01 filters_json / DEF-02 qe_curves_json / DEF-03 gradient_sphere.gaia_data_dir / DEF-04 gradient_max_iter / DEF-05 gradient_lambda
@@ -1254,10 +1254,10 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **目标**: 必需 DLL/块/质量失败必须非零退出；删除生产路径 true-on-skip；建立稳定错误码与非零退出测试
 - **结果**: VERDICT: PASS — 141/141 测试通过 (集成 136 + 端到端 5), 12 类静默跳过消除, 9 个稳定退出码定义
 - **代码修改** (orchestrator 模块, 代码变更已包含在 P03-004 提交 a4290d8 中):
-  - `lib/orchestrator/cpp/include/orchestrator.h` - 新增 AstroCsExitCode 命名空间 (9 个 constexpr int 常量: SUCCESS=0/GENERIC_ERROR=1/DLL_LOAD_FAILED=2/BLOCK_MISSING=3/CALIBRATE_FAILED=4/PLATESOLVE_FAILED=5/DRIZZLE_FAILED=6/CONFIG_ERROR=7/FILE_IO_ERROR=8) + TaskResult.exit_code 字段
-  - `lib/orchestrator/cpp/src/orchestrator.cpp` - 87 处 P03-003 标记, 覆盖 9 个 stage handler 所有必需失败路径; 兜底机制 (失败时若 exit_code=0 按 stage 类型推导默认退出码)
-  - `lib/orchestrator/cpp/src/cli_command.cpp` - 4 个 CLI 入口点 (cmd_run/cmd_run_batch/cmd_stage1/cmd_stage2) 统一传播 exit_code: `return r.success ? 0 : (r.exit_code != 0 ? r.exit_code : 1)`
-  - `lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp` - 测试 6 期望退出码从 2 改为 7 (CONFIG_ERROR)
+  - `lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h` - 新增 AstroCsExitCode 命名空间 (9 个 constexpr int 常量: SUCCESS=0/GENERIC_ERROR=1/DLL_LOAD_FAILED=2/BLOCK_MISSING=3/CALIBRATE_FAILED=4/PLATESOLVE_FAILED=5/DRIZZLE_FAILED=6/CONFIG_ERROR=7/FILE_IO_ERROR=8) + TaskResult.exit_code 字段
+  - `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` - 87 处 P03-003 标记, 覆盖 9 个 stage handler 所有必需失败路径; 兜底机制 (失败时若 exit_code=0 按 stage 类型推导默认退出码)
+  - `lib/infrastructure/pipeline/orchestrator/cpp/src/cli_command.cpp` - 4 个 CLI 入口点 (cmd_run/cmd_run_batch/cmd_stage1/cmd_stage2) 统一传播 exit_code: `return r.success ? 0 : (r.exit_code != 0 ? r.exit_code : 1)`
+  - `lib/infrastructure/pipeline/orchestrator/cpp/tests/test_orchestrator_cli.cpp` - 测试 6 期望退出码从 2 改为 7 (CONFIG_ERROR)
 - **静默跳过消除**: 12 类 WARN+return true 模式改为 ERROR+return false+exit_code (DLL 未加载/frame_ 为空/必需块缺失/块写入失败/stage handler 未设置 exit_code 兜底)
 - **必需/可选阶段分类**: READ_FITS/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/DRIZZLE/GRADIENT_SPHERE/STACK 为必需 (失败返回非零); SNR 为可选 (失败降级到 photo_stats SNR_STATUS=degraded, 不阻塞 stage1)
 - **端到端验证**: --help=0 / run nonexistent=1 / config error=7 / run-batch nonexistent=8 / unknown subcommand=1
@@ -1281,7 +1281,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   7. HCSD 字节级可重现: T1 SHA-256 = P00-003 baseline SHA-256 (2A9BD12E...4122C37)
 - **证据**: engineering/evidence/P06-003/ (TASK/TEST/EVIDENCE/REVIEW 报告 + hcsd_validation_results.json + parse_hcsd_binary.py + verify_read_leaf.py + logs/)
 - **关键脚本**: parse_hcsd_binary.py (HCSD 字节级解析, zstd 解压 JSON 头 + leaf_index 49152 项 + sorted_ipix 抽样验证) + verify_read_leaf.py (模拟 aio_hcsd_read_leaf 与全量读取逐子叶比较)
-- **DLL 路径注意**: build/artifacts/orchestrator.exe 的 DLL 自动推导路径错误 (向上4级得 F:\Astro dev 而非项目根), 需用 lib/orchestrator/cpp/orchestrator.exe (P06-002 已确认)
+- **DLL 路径注意**: build/artifacts/orchestrator.exe 的 DLL 自动推导路径错误 (向上4级得 F:\Astro dev 而非项目根), 需用 lib/infrastructure/pipeline/orchestrator/cpp/orchestrator.exe (P06-002 已确认)
 - **已知缺口 (不阻塞 PASS, contract §9)**: 无 format_version (§9.1); 无校验和 (§9.2); meta 无显式 input_hiss_files (§4.3 不强制); N_LEAVES 硬编码 49152 (§9.4); data_offset/data_length 单位混淆 (§9.6)
 - **依赖**: P06-002 (DONE) + P04-003 (DONE); **后续**: P07-001 性能与峰值内存基线
 - **Gate**: G6 PASSED (P06-001/002/003 全部 DONE)
@@ -1442,7 +1442,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **完成内容**:
   1. 修复 `ipv_wcs.cpp` L165-167 CRPIX 冲突：`cx + 1.0` → `cx + 0.5`（统一为 `width/2.0 + 0.5`，与 L287 和 P11-001 冻结值一致）
   2. 更新 `cli_command.cpp` L1696/L1715：ipv_solver capabilities 新增 `export_authoritative_pairs`/`wcs_sip_serialization`；schema_versions 新增 `wcs_authoritative_pairs:"1.0"`、`wcs_closure_report:"1.0"`、`coordinate_convention:"2"`
-  3. `run_ipv_baseline.py` 移除 `offset_px < 250` 检查（望远镜 pointing 抖动不应作为 WCS Gate；文件被 `lib/plate_solve/.gitignore` 排除，本地修改未提交）
+  3. `run_ipv_baseline.py` 移除 `offset_px < 250` 检查（望远镜 pointing 抖动不应作为 WCS Gate；文件被 `lib/algorithms/platesolve/.gitignore` 排除，本地修改未提交）
   4. 坐标契约 v2（`evidence/P11-006/COORDINATE_CONVENTION_V2.md`）：CRPIX 统一、WCS+SIP 管线内存块传递、A/B/C 三层验证架构、B 层硬 Gate 阈值、SIP 序列化要求
   5. provenance schema 扩展：`wcs_authoritative_pairs.schema.json` 新增可选 `provenance` 对象（solver_version, gaia_catalog_version, wcs_closure_summary 等）
 - **回归验证**: 710 帧重跑 709/710 pass（与 P11-005 一致，无回归），RMS 中位 0.285"，耗时 15.9min
@@ -1462,7 +1462,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 
 ### P12-002 进度（2026-07-28，DONE）
 - **状态**: DONE（KDTREE_DIRECTION_FIX + BIDIRECTIONAL_UNIQUE_MATCHING）
-- **修改文件**: `lib/photometric_calib/cpp/src/star_matcher.cpp`（仅 1 个文件，2 处改动）
+- **修改文件**: `lib/algorithms/photometry/cpp/src/star_matcher.cpp`（仅 1 个文件，2 处改动）
 - **改动 A**: 修复 `KdTree2D::findNearestRec` 方向 bug（第 137-142 行）
   - 修复前: `first = (diff < 0) ? node->left : node->right`（错误：diff < 0 时去了 left）
   - 修复后: `first = (diff < 0) ? node->right : node->left`（正确：diff = node - query, diff < 0 表示 query 在 node 右侧, 应去 right 子树）
@@ -1506,8 +1506,8 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   - Phase 1-2: Wiki 规范更新 (10 标准页面 + 6 SUPERSEDED 标注, 见 _wiki_freeze/)
   - Phase 3: C++ 实现
     - HISS 格式: hiss_format.h (HissGridSpec/HissTile/HissWriter/HissReader/CodecRegistry)
-    - HISS Writer/Reader/Codec/Common: lib/astro_image_io/src/hiss_*.cpp (XISF 式 Header+attachments, 无 Footer, .partial 原子提交)
-    - 最优 Dark: lib/calibration/src/dark_optimizer.cpp (8×8 分区 + 鲁棒回归 + 5 轮 MAD + 回退)
+    - HISS Writer/Reader/Codec/Common: lib/infrastructure/aio/src/hiss_*.cpp (XISF 式 Header+attachments, 无 Footer, .partial 原子提交)
+    - 最优 Dark: lib/algorithms/calibration/src/dark_optimizer.cpp (8×8 分区 + 鲁棒回归 + 5 轮 MAD + 回退)
     - Drizzle 增强: drizzle_engine.cpp/h (自动 NSIDE, sumArea 累加, float64 内部精度)
     - 校准 API 扩展: astro_calibration.h (Stage1Diagnostics)
   - Phase 4: C++ 实验 (DQ-001~DQ-007 全部完成, 仅推荐不冻结)
@@ -1518,8 +1518,8 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **已知问题** (2 项): Writer/Reader SNR 二进制布局不一致; 未知必需子块未主动拒绝
 - **禁止事项遵守**: 未新建仓库; 未修改 Stage2; 未自动运行 710 回归; 未用 Python 代替 C++; 未冻结实验结论
 - **新增测试文件**:
-  - lib/photometric_calib/cpp/test/test_spectrum_integrator.cpp（C++ 黑体光谱 F_syn 计算）
-  - lib/photometric_calib/cpp/test/test_spectrum_integrator_golden.py（Python golden 对比）
+  - lib/algorithms/photometry/cpp/test/test_spectrum_integrator.cpp（C++ 黑体光谱 F_syn 计算）
+  - lib/algorithms/photometry/cpp/test/test_spectrum_integrator_golden.py（Python golden 对比）
 - **证据**: 工程控制/evidence/P12-003/（TASK_REPORT + TEST_REPORT + EVIDENCE_INDEX + REVIEW_REPORT + reports/test_results.json + reports/filter_qe_provenance.json）
 - **commit**: b7b1879（15 files, +6113/-31），已 push 到 origin/main
 - **控制文件**: PROJECT_STATE.yaml (last_completed=P12-003, current=P12-004) + CURRENT_TASK.md + MASTER_TASK_REGISTER.csv (P12-003 → DONE) + DECISION_REGISTER.md (ADR-P12-003)
@@ -1543,11 +1543,11 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **状态**: DONE（SNR_MODEL_FIX + HISS_PERSISTENCE_VERIFIED，16/16 Gate PASS）
 - **目标**: 修复 P12-004 暴露的 4 类问题，使 16 帧代表帧测光矩阵全部通过 Gate，且 SNR 模型成功写入 HISS 持久化文件
 - **修复内容 (4 类)**:
-  1. **initDiag 误覆盖** (`lib/photometric_calib/cpp/src/star_matcher.cpp` L45-49): 从 initDiag 移除 spectrum_rows_total/valid_fsyn 重置，避免覆盖 pc_api.cpp 在光谱积分阶段已正确填充的值
+  1. **initDiag 误覆盖** (`lib/algorithms/photometry/cpp/src/star_matcher.cpp` L45-49): 从 initDiag 移除 spectrum_rows_total/valid_fsyn 重置，避免覆盖 pc_api.cpp 在光谱积分阶段已正确填充的值
   2. **scale_factor 误判** (`工程控制/evidence/P12-004/scripts/run_photometric_matrix.py` L70): SCALE_FACTOR_MIN=0.0（Spec 无下限约束，仅要求 scale > 0），SCALE_FACTOR_MAX=1.0e9
   3. **窄带滤光片 HA/OIII 缺失**:
-     - `lib/photometric_calib/data/response_curves/filters.json` L2571-2675: 新增 Baader 7nm H-alpha (21 点, 640-672nm) + Baader 8.5nm OIII (25 点, 484-518nm) 滤光片曲线
-     - `lib/orchestrator/cpp/src/orchestrator.cpp` L1397-1402: map_filter_name 新增 H-alpha/HA/OIII/Oiii 大小写变体映射
+     - `lib/algorithms/photometry/data/response_curves/filters.json` L2571-2675: 新增 Baader 7nm H-alpha (21 点, 640-672nm) + Baader 8.5nm OIII (25 点, 484-518nm) 滤光片曲线
+     - `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` L1397-1402: map_filter_name 新增 H-alpha/HA/OIII/Oiii 大小写变体映射
   4. **C++ 中文路径 filesystem error**:
      - PowerShell `New-Item -ItemType Junction` 创建 ASCII 链接 (testdata/*_flying_dutchman) 绕过 MSYS2 std::filesystem 中文路径 bug
      - 按设备生成独立 stage1_config_T2/T3/T4.json，将 calibration_dir 指向 ASCII 路径
@@ -1590,7 +1590,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
      - 修复: healpix_drizzle.dll 栈 8MB (`-Wl,--stack,8388608`) + snr_evaluator leaf_max_size 10→32 + orchestrator.exe 栈 32MB (`-Wl,--stack,33554432`)
      - 验证: 3/3 失败帧 exit=0，HISS 正常生成（85KB-87KB）
   2. **浏览器 CLI 后台调试工具 (commit e5aeaac)**:
-     - 文件: `lib/healpix_db/healpix_browser_qt/app/browser_cli.cpp`
+     - 文件: `lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp`
      - 功能: `--diag` DLL 依赖诊断 / `--benchmark` 性能基准 / `--sim zoom/pan` 交互模拟
      - 输出: JSON 报告 stdout + 详细日志 stderr
      - 性能: .hiss 加载 3.4ms, .hcsd 球面 55-63 FPS, 子叶加载 0.42ms/叶, 内存 8MB
@@ -1659,7 +1659,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **依赖**: C-002 (HISS V2 读写器, hiss_v2.py)
 - **方案**: 方案 A (Python 验证可视化工具) — browser_cli.exe 当前仅支持 V1 `.hiss`，不支持 V2 `.hiss2` (报错"未知 Magic: HI2S" rc=-5)
 - **实现**:
-  - 工具: `lib/astro_image_io/python/hiss_v2_visualizer.py`
+  - 工具: `lib/infrastructure/aio/python/hiss_v2_visualizer.py`
   - 复用 C-002 的 HissV2Reader.read_all() 读取 ipix/signal/support/snr_model/provenance
   - HEALPix ipix→(ra,dec) 转换: 优先 astropy_healpix (6.1.7, 支持 NESTED), 回退纯 numpy (仅 RING)
   - matplotlib 4 子图: (1)signal magma色图 (2)support YlGn+灰叉号 (3)SNR plasma散点 (4)组合图(signal+SNR菱形+support)
@@ -1675,7 +1675,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
   1. browser_cli 不支持 V2 (C++ 需升级 BrowserBackend + astro_image_io DLL 识别 HI2S magic, 属后续任务)
   2. NESTED 排序依赖 astropy_healpix (纯 numpy fallback 仅完整实现 RING)
   3. SNR NaN 点被显式过滤 (非跳过), V2 忠实保留 V1 的 NaN
-- **复现**: `python "lib/astro_image_io/python/hiss_v2_visualizer.py" "output/C-002" "engineering_authoritative/evidence/C-004/visualizations" --dpi 150`
+- **复现**: `python "lib/infrastructure/aio/python/hiss_v2_visualizer.py" "output/C-002" "engineering_authoritative/evidence/C-004/visualizations" --dpi 150`
 - **Gate C 进度**: C-001(契约冻结 DONE) + C-002(V2读写器 DONE) + C-003(?) + C-004(可视化 DONE)
 
 ## 2026-07-30 D-001 同一天区多帧 HISS 球面重合与光度一致性 ★DONE★ (Gate D 首任务)
@@ -1713,7 +1713,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 - **阶段A 15帧验证 PASS**: T2(5/5)+T3(5/5)+T4(4/5, 1栈溢出), 契约冻结无回归
 - **阶段B 710帧全量**: T2/T3/T4三设备并行, T4是瓶颈(385帧Victory_Nebula)
 - **已知问题**: DRIZZLE栈溢出(0xC00000FD)影响~2.5%帧, 非契约冻结回归
-- **中文路径修复**: orchestrator C++无法处理含中文路径(工程控制), 配置改lib/orchestrator/configs/, 输出改output/p13-001-*
+- **中文路径修复**: orchestrator C++无法处理含中文路径(工程控制), 配置改lib/infrastructure/pipeline/orchestrator/configs/, 输出改output/p13-001-*
 - **自动化收尾**: finish_710.py 后台运行(等待T4→重启T2/T3→merge_stage_b.py汇总)
 
 ### I-003 发布包 (框架就绪)
@@ -1811,7 +1811,7 @@ spec 路径: `.trae/specs/architecture-refactor/spec.md` (已审阅通过)
 控制包: AstroCS_PRECISE_Correctness_Hardening_Phase1_Baseline
 (SHA256 88ffc6862c12c7819fa08e1faaf5645f39da95c3d42a28610644327b693e6c34)
 
-**已完成并验证 (Drizzle 模块, lib/healpix_db/healpix_drizzle):**
+**已完成并验证 (Drizzle 模块, lib/algorithms/drizzle/healpix_drizzle):**
 - 候选零漏选 9003/9003 (12 face 边角/极区/RA0/pixfrac/0.1"~1°/NSIDE 16~4194304)
 - L0 16/16, L2 5/5 (T4 裁剪 1024²@65536), 科学矩阵 180/180
 - Python/numpy 全面验收 (acceptance_drizzle.py): 位置/过采样/双向投影/类型/ULP
@@ -2059,7 +2059,7 @@ SHA256 5afa4ffcb5a7132da6cf7852deb18759ba009efbf060772ca62870d6570bfd34
 ## 2026-08-09 Phase1 Final Signoff V4 (控制包 5ba1f0b1, SNR HiPS/Browser)
 
 ### 完成 (main 已 push 至 450f13c; wiki 0c94b56 已 push)
-- **G1 (6d810a3)**: 共享 HEALPix core `lib/common/healpix/`; 删除 AIO 私有错误
+- **G1 (6d810a3)**: 共享 HEALPix core `lib/algorithms/shared/healpix/`; 删除 AIO 私有错误
   ang2ipix_nest; astropy-healpix 1,000,000 全天随机点 Oracle mismatch=0 (12 face);
   SNR Catalogue 逐行 RA/Dec 空间 Oracle crop 997 / full 1947 行 wrong=0 dup=0
 - **G2 (6d810a3)**: snr_model v2 携带 star_id/quality_flags/photometric_status;
@@ -2160,7 +2160,7 @@ SHA256 73cdd6be2eb1eaa1fd218e0489e31a173f08f0d3a3b6146f8ea3f0da28e2894d
 
 - **merge**：`198d69e merge(acr): add astrocompute-runtime as dormant acceleration base`
   （--no-ff，HEAD e949b30 并入 main；merge-base=8f50519）
-- **改动范围**：仅 lib/acr（runtime/dispatcher/CPU/CUDA backend/benchmark/profile/
+- **改动范围**：仅 lib/infrastructure/acr（runtime/dispatcher/CPU/CUDA backend/benchmark/profile/
   mixed scheduler/residency/memory/weighted integration synthetic reference/tests/docs）
   + 工程控制文档；351 新增 + 1 文档更新，**业务代码（Phase1/真实积分/Drizzle）零修改**
 - **merge 前同步**：main=2a009a0（Phase1 V6，origin/main 一致）

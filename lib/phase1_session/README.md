@@ -23,7 +23,7 @@
   `astrocs_contracts astrocs_calibration astrocs_aio`；`:496/:514/:530` 编入
   astrocs 主可执行链接列表。现状为**静态库**，无独立 DLL（迁移矩阵无
   P1-SESSION 行，`dll_name=MISSING` 见 module.yaml）。
-- 生产调用方（登记）：`lib/core/src/module_adapters.cpp`
+- 生产调用方（登记）：`lib/infrastructure/scheduler/src/module_adapters.cpp`
   - **现行（P1-001 后）**：8 个 Phase1 descriptor 注册 + `P1NodeModule`
     工厂唯一真实 operation 委托（p1_nodes[] 表；子节点不调
     phase_session_run，ARCH-P0-001 整改）；
@@ -42,13 +42,13 @@ p1_nodes[] 表，operation/entry 名与
 runtime/pipeline/module_ports.registry.json 冻结绑定表一致）——calibrate→
 `ac_calibrate_frame`、cosmetic→`ac_correct_frame`、star-psf→
 `astrocs::phase1::StarDetector::detect`+`dpsf_fit_batch_f64`
-（**lib/phase1/stars** 检测 —— 该文件为 **P1-003 桥接类**，**不是**
-lib/star_detector 的 sdet；sdet 只被 wcs-platesolve 节点使用 →
-star_det v1 [N,6] → lib/dynamic_psf Moffat4 FP64 批量 PSF 拟合，
+（**lib/algorithms/star_detection/wrapper_phase1** 检测 —— 该文件为 **P1-003 桥接类**，**不是**
+lib/algorithms/star_detection 的 sdet；sdet 只被 wcs-platesolve 节点使用 →
+star_det v1 [N,6] → lib/algorithms/psf Moffat4 FP64 批量 PSF 拟合，
 DATA-P1-PSF 携 psf_params:FLOAT64[N,9]；P1-001 attempt 2 口径更新；
 P2/PSF-FAST-001（负责人裁决 2026-09-14）起**只对最亮 `psf.max_stars`
 颗拟合**（默认 5000），全量精确路径保留但 inactive），
-wcs-platesolve→`ipv_solve_from_memory_with_callback_d`（lib/plate_solve
+wcs-platesolve→`ipv_solve_from_memory_with_callback_d`（lib/algorithms/platesolve
 ipv 真实求解器链：sdet+gaia_client 句柄注入 → FP64 解算 → CD/CRVAL/
 CRPIX/RMS → WcsTan roundtrip 自检；求解参数 ra0/dec0/focal_length_mm/
 pixel_size_um/gaia_data_dir 缺失即 DATA 拒绝（禁 silent default）；
@@ -71,7 +71,7 @@ kernel 词汇（各域冻结 ALG 以"冻结合同"列为准，由各 INT 任务�
 |---|---|---|---|---|---|---|
 | 1 | `astrocs.phase1.calibration`（:254） | `frames`(DATA-P1-FRAME/ADU/PIXEL) → `calibrated`(DATA-P1-CAL/ADU/PIXEL) | SCI-P1-CAL-001 / ALG-P1-CAL-001 / API-P1-001 / TEST-P1-CAL-001 | SCI-CAL-001（docs/science/CALIBRATION.md）；ALG-CAL-001..006（docs/algorithms/CALIBRATION_ALGORITHMS.md）；DATA-P1-CAL（DATA_SEMANTICS §9）；API-CAL-001（PUBLIC_API） | P1-001 后=ac_calibrate_frame（p1_nodes[] 直调；p1_session 四段编排见 §3） | TEST-CAL-DESIGN-001（CALIBRATION_ALGORITHMS §9） |
 | 2 | `astrocs.phase1.cosmetic`（:411） | `calibrated`(DATA-P1-CAL) → `cleaned`(DATA-P1-COSMETIC/ADU/PIXEL) | SCI-P1-COS-001 / ALG-P1-COS-001 / API-P1-002 / TEST-P1-COS-001 | SCI-CAL-001 共享；ALG-COS-001..005（docs/algorithms/COSMETIC_ALGORITHMS.md）；DATA-P1-COS（DATA_SEMANTICS §10）；API-COS-001（PUBLIC_API） | P1-001 后=ac_correct_frame（p1_nodes[] 直调，in-place 覆写校准帧；p1_session 编排同款 :294；master nullptr 恒等=DISP-COS-009 语义） | TEST-COS-DESIGN-001（COSMETIC_ALGORITHMS） |
-| 3 | `astrocs.phase1.star-psf`（:430） | `cleaned`(DATA-P1-COSMETIC) → `sources`(DATA-P1-SOURCES/DIMENSIONLESS/ICRS)+`psf`(DATA-P1-PSF/DIMENSIONLESS/PIXEL) | SCI-P1-PSF-001 / ALG-002（占位）/ API-P1-003 / TEST-P1-PSF-001 | SCI-P1-PSF-001+ALG-STARPSF-001（STAR_PSF_ALGORITHMS §11）；DATA-P1-PSF（DATA_SEMANTICS §15）；API-PSF-001（PUBLIC_API） | P1-001 attempt 2 后=sdet 检测（lib/star_detector 生产源）+`dpsf_fit_batch_f64`（lib/dynamic_psf Moffat4 FP64 批量拟合；DATA-P1-PSF 携 psf_params:FLOAT64[N,9]+detection_schema=star_det_v1:FLOAT64[N,6]；N>0 全失败 DATA 拒绝） | TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS §11.4） |
+| 3 | `astrocs.phase1.star-psf`（:430） | `cleaned`(DATA-P1-COSMETIC) → `sources`(DATA-P1-SOURCES/DIMENSIONLESS/ICRS)+`psf`(DATA-P1-PSF/DIMENSIONLESS/PIXEL) | SCI-P1-PSF-001 / ALG-002（占位）/ API-P1-003 / TEST-P1-PSF-001 | SCI-P1-PSF-001+ALG-STARPSF-001（STAR_PSF_ALGORITHMS §11）；DATA-P1-PSF（DATA_SEMANTICS §15）；API-PSF-001（PUBLIC_API） | P1-001 attempt 2 后=sdet 检测（lib/algorithms/star_detection 生产源）+`dpsf_fit_batch_f64`（lib/algorithms/psf Moffat4 FP64 批量拟合；DATA-P1-PSF 携 psf_params:FLOAT64[N,9]+detection_schema=star_det_v1:FLOAT64[N,6]；N>0 全失败 DATA 拒绝） | TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS §11.4） |
 | 4 | `astrocs.phase1.wcs-platesolve`（:450） | `sources`(DATA-P1-SOURCES) → `wcs`(DATA-P1-WCS/DIMENSIONLESS/ICRS) | SCI-P1-WCS-001 / ALG-002（占位）/ API-P1-004 / TEST-P1-WCS-001 | 矩阵行显式 MISSING（MOD-astrocs-phase1-wcs-platesolve） | P1-001 attempt 2 后=`ipv_solve_from_memory_with_callback_d`（ipv 真实求解链；Linux=源内 stub fail-closed 报平台限制、Windows=真实求解；缺求解参数 DATA 拒绝；p1001 平台化单测）| 无（TEST-P1-WCS-001 词汇，待迁移任务） |
 | 5 | `astrocs.phase1.photometry`（:469） | `psf`(DATA-P1-PSF)+`sources`(DATA-P1-SOURCES) → `fluxes`(DATA-P1-FLUX/ELECTRON/ICRS) | SCI-P1-PHOT-001 / ALG-002（占位）/ API-P1-005 / TEST-P1-PHOT-001 | SCI-P1-PHOT-001；ALG-PHOT-001..002（PHOTOMETRIC_FIT.md）；DATA-P1-PHOT（DATA_SEMANTICS §14）；API-PHOT-001（PUBLIC_API） | P1-001 后=Photometer::measure（p1_nodes[]）；A 线生产调用锚 orchestrator.cpp:2474 → :2714（FP64 `pc_calibrate_simple_with_gaia_f64_v2`）/:2790（FP32 `pc_calibrate_simple_with_gaia_v2`） | TEST-PHOT-DESIGN-001（PHOTOMETRIC_FIT.md） |
 | 6 | `astrocs.phase1.noise-snr`（:489） | `fluxes`(DATA-P1-FLUX) → `snr`(DATA-P1-SNR/DIMENSIONLESS/ICRS) | SCI-P1-SNR-001 / ALG-004（占位）/ API-P1-006 / TEST-P1-SNR-001 | ALG-NOISE-001..003（NOISE_ESTIMATION.md）；DATA-P1-NOISE（DATA_SEMANTICS §13）；API-NOISE-001（PUBLIC_API） | P1-001 后=NoiseModel::estimate（p1_nodes[]）| TEST-NOISE-DESIGN-001（NOISE_ESTIMATION.md） |
@@ -229,7 +229,7 @@ module_adapters.cpp:61-91）：
    由各域 INT 任务对齐（P1-PSF-DOC 同先例）；`TEST-P1-*-001` registry
    词汇对应可执行测试待各 TEST 任务落地。
 3. **cosmetic 恒等现状**：master_dark/master_bias 传 nullptr（:295-296
-   调用实参）→检测全禁用，即 DISP-COS-009（lib/cosmetic/README.md 登记）；
+   调用实参）→检测全禁用，即 DISP-COS-009（lib/algorithms/cosmetic/README.md 登记）；
    接通 cosmetic master 属 P1-COS-INT 整改。
 4. **dark_scale_factor 未验**：validate 不校验该键类型，run `value()`
    兜底 1.0（:225）——键集与验面的不一致如实登记，整改归

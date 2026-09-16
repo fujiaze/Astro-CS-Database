@@ -111,11 +111,11 @@ def host_avx512f_detected(tmp):
     """宿主 AVX-512F 能力检测 (SKIP gate 前置, 与 ctest 侧同 API 同语义)。
 
     provider 激活合同 = required ⊆ detected, 否则 backend_loader 预检拒绝激活
-    (lib/backend_host/backend_loader.cpp); ctest 侧 tests/unit/cpu001_selftest_avx512
+    (lib/infrastructure/benchmark/backend_host/backend_loader.cpp); ctest 侧 tests/unit/cpu001_selftest_avx512
     已在 16867c25 合同化: 无 ACS_FEAT_AVX512F → SKIP (exit 77, SKIP_RETURN_CODE)。
     本 runner 此前无宿主 gate —— 无 AVX-512F 硬件上 oracle main rc=3 (QUERY_FAIL)
     直接判 FAIL 并跳过后续全部检查, 把宿主环境事实记成 FAIL (复审 N1)。
-    检测复用同一 API astrocs_cpu_detect_features_v1: 编译 lib/backend_host/
+    检测复用同一 API astrocs_cpu_detect_features_v1: 编译 lib/infrastructure/benchmark/backend_host/
     cpu_features.cpp + 探针 main, 模式同 tests/backend/test_abi_loader.py test_01
     的 cpu_probe (不发明新机制)。
     返回 (ok, text): ok=False 表示探针自身不可用 (编译/运行失败), 调用方按

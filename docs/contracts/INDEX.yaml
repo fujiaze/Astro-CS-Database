@@ -939,7 +939,7 @@ contracts:
     status: DRAFT
     owner: AstroCS
     version: 0.1.0
-    path: lib/phase2/CMakeLists.txt
+    path: lib/algorithms/coverage/CMakeLists.txt
     upstream: []
     downstream: []
 

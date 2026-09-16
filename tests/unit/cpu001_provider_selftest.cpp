@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 
   // ── avx512 硬件 gate (SKIP 语义, 前置到任何 provider TU 符号调用之前):
   // provider 激活合同 = required ⊆ detected, 否则 backend_loader 预检拒绝
-  // 激活 ("unsupported ISA ... 不尝试执行", lib/backend_host/backend_loader.cpp
+  // 激活 ("unsupported ISA ... 不尝试执行", lib/infrastructure/benchmark/backend_host/backend_loader.cpp
   // ⑤); CPU-004 capability gate 同语义 (无 AVX-512 hw / OS 未保存 ZMM → 拒绝)。
   // 因此无 AVX-512F 的 host 上 avx512 provider 处于"未激活"分支 — selftest
   // 相应 SKIP (exit 77, ctest SKIP_RETURN_CODE), 而非把宿主环境事实记成 FAIL。

@@ -59,7 +59,7 @@ Gain/Readnoise 诊断模型 (仅 diagnostic, NOT FOR PRODUCTION):
   用途仅 SNR-005 诊断交叉验证 (noise_model_science_test.cpp:238-272)，生产 source==0 empirical 不融合
 ```
 
-与 `lib/snr_estimator/cpp/src/noise_model.cpp:32-126,210-256,333-433,456-464` 一致。
+与 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:32-126,210-256,333-433,456-464` 一致。
 
 ## 6 假设
 
@@ -125,7 +125,7 @@ Gain/Readnoise 诊断模型 (仅 diagnostic, NOT FOR PRODUCTION):
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/NOISE_MODEL.md` (SCI-NOISE-001..015)
-- 实现: `lib/snr_estimator/cpp/src/noise_model.cpp` (`snr_noise_model_v1, _f64, _fill, _free, snr_noise_gain_variance, g_model_floor`), `lib/snr_estimator/cpp/include/snr_estimator.h`
+- 实现: `lib/algorithms/noise_snr/cpp/src/noise_model.cpp` (`snr_noise_model_v1, _f64, _fill, _free, snr_noise_gain_variance, g_model_floor`), `lib/algorithms/noise_snr/cpp/include/snr_estimator.h`
 - 公开 API: `snr_noise_model_v1, snr_noise_model_v1_f64, snr_noise_model_v1_fill, snr_noise_model_v1_free, snr_noise_gain_variance, snr_noise_model_v1_default_config`
 - 测试: `TST-NOISE-001..015` (`noise_model_science_test.cpp`), `TST-NOISE-INV-*` 四门、不变量，`TST-NOISE-FAIL-*` 空 patch/NaN 拒绝（新增/映射见 `docs/TRACEABILITY.csv`）
 

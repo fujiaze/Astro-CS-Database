@@ -2,7 +2,7 @@
 # IMPL-P2-SAMP-001 — Phase2 采样/覆盖 V6 目标态共址单元测试
 # ----------------------------------------------------------------------------
 # 被测面 = 生产目标 astrocs_phase2（根 CMakeLists.txt 声明；本任务 V6 源码
-#   位于 lib/phase2/src/sampler.cpp + lib/phase2/src/coverage.cpp）：
+#   位于 lib/algorithms/coverage/src/sampler.cpp + lib/algorithms/coverage/src/coverage.cpp）：
 #     - coverage/support 区分 + 缺失不零填 (FZ-GATE-SUPPORT-COVERAGE)
 #     - 权重角色门 (FZ-GATE-MEDIAN-SNR / FZ-FIELD-WEIGHTMODE / FZ-MODE-*)
 #     - 确定性边界 (DESIGN-P2 §8)
@@ -24,7 +24,7 @@ endif()
 
 add_executable(v6_p2_samp_test v6_p2_samp_test.cpp)
 target_include_directories(v6_p2_samp_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/phase2/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/algorithms/coverage/include)
 
 if(TARGET astrocs_phase2)
   # 根构建面（控制器 W9 集成后）

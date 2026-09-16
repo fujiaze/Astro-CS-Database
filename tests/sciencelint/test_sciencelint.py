@@ -33,7 +33,7 @@ class TestSciLint(unittest.TestCase):
         self.assertTrue(any("S2" in e for e in errs_for(bad)), "非法 claim ID 必须被抓")
 
     def test_04_missing_anchor_file_must_fail(self):
-        bad = REAL.replace("lib/calibration/src/calibrator.cpp", "lib/calibration/src/NO_SUCH.cpp")
+        bad = REAL.replace("lib/algorithms/calibration/src/calibrator.cpp", "lib/algorithms/calibration/src/NO_SUCH.cpp")
         self.assertTrue(any("S3" in e for e in errs_for(bad)), "锚点文件缺失必须被抓")
 
 if __name__ == "__main__":

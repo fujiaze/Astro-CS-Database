@@ -1,7 +1,9 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # Phase2 PSFSW 算法规格包（ALG-P2-PSFSW-001）
 
 文档包 ID：`ALG-P2-PSFSW-001`
-任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P2-PSFSW-001.md`（wave 3，`depends_on = SCI-ADJ-001`）
+任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P2-PSFSW-001.md`（wave 3，`depends_on = SCI-ADJ-001`）
 write_scope（tracked）：`docs/algorithms/v6/phase2-psfsw/`（本目录）
 write_scope（workspace，gitignore）：`run/v6/alg-p2-psfsw/`（机器可读规格、Oracle、门、日志、证据）
 基线：`HEAD = main = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`（任务派发时 `git rev-parse HEAD` 实测）

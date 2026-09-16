@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """p3_proj_legacy_deviation.py — V6 前 legacy registry v1 CAR/AIT 偏差证据
 
-对比 legacy 实现（lib/phase3_proj/p3_projection.cpp，编入
+对比 legacy 实现（lib/algorithms/projection/p3_projection.cpp，编入
 v6_p3_proj_legacy_probe）与 astropy/WCSLIB（标准 FITS WCS Paper II）在同
 CRVAL/CRPIX/CD/CTYPE 下的 pix2world：
   * CAR: legacy 用 Y=−θ（declination 反号）-> dec 全反号；

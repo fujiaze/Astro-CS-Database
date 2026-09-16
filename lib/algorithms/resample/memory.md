@@ -2,15 +2,15 @@
 
 - 任务: P3-RSMP-DOC（MODULE_MIGRATION_MATRIX P3-RSMP 行，owner
   SA-P3-S26，2026-09-12）——合同冻结层，不改生产源码，不 commit。
-  本目录 `lib/phase3_rsmp/` 三件套（README r1 + module.yaml +
+  本目录 `lib/algorithms/resample/` 三件套（README r1 + module.yaml +
   memory.md）由 P3-RSMP-DOC 建立。
-- 落位: `lib/phase3_rsmp/`（本目录）。实测生产源
+- 落位: `lib/algorithms/resample/`（本目录）。实测生产源
   lib/phase3_session/p3_resample.cpp + p3_resample.h 位于
   lib/phase3_session/ ——该目录为 Phase3 会话编排域共享源
   （p3_session/p3_output/p3_wcs/p3_resample/hips_properties 五源同库
   astrocs_phase3_session，根 CMakeLists.txt:460-465），非整目录归属
   本域（矩阵 legacy_paths="lib/phase3_session sampler sources" 只圈
-  sampler sources）；按 lib/phase3_proj→phase3_fits 迁移目录先例
+  sampler sources）；按 lib/algorithms/projection→phase3_fits 迁移目录先例
   新建迁移目标目录，仅合同文件、无源码、不与 legacy 目录重叠；
   legacy 生产源引用不搬家。
 - 矩阵权威（P3-RSMP 行，禁止编造）: owner=SA-P3-S26、

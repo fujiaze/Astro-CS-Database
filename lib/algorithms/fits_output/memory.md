@@ -2,17 +2,17 @@
 
 - 任务: P3-FITS-DOC（MODULE_MIGRATION_MATRIX P3-FITS 行，owner
   SA-P3-F27，2026-09-08）——合同冻结层，不改生产源码，不 commit。
-  本目录 `lib/phase3_fits/` 三件套（README r1 + module.yaml +
+  本目录 `lib/algorithms/fits_output/` 三件套（README r1 + module.yaml +
   memory.md）由 P3-FITS-DOC 建立。
-- 落位: `lib/phase3_fits/`（本目录）。实测生产源
+- 落位: `lib/algorithms/fits_output/`（本目录）。实测生产源
   lib/phase3_session/p3_output.cpp + p3_output.h 位于
   lib/phase3_session/——该目录为 Phase3 会话编排域共享源
   （p3_session/p3_resample/p3_wcs/hips_properties 五源同库
   astrocs_phase3_session，根 CMakeLists.txt:460-465），非整目录
   归属本域（矩阵 legacy_paths="lib/phase3_session fits sources" 只
-  圈 fits sources）；按 `lib/phase2_upm/`（P2-UPM-DOC）→
-  `lib/phase2_samp/`（P2-SAMP-DOC）→ `lib/phase2_rej/`（P2-REJ-DOC）
-  → `lib/phase2_int/`（P2-INT-DOC）→ `lib/hips_p2/`（P2-HIPS-DOC）
+  圈 fits sources）；按 `lib/algorithms/upm/`（P2-UPM-DOC）→
+  `lib/algorithms/sampling/`（P2-SAMP-DOC）→ `lib/algorithms/rejection/`（P2-REJ-DOC）
+  → `lib/algorithms/integration/`（P2-INT-DOC）→ `lib/algorithms/coverage/hips_p2/`（P2-HIPS-DOC）
   先例新建迁移目标目录，仅合同文件、无源码、不与 legacy 目录重叠；
   legacy 生产源引用不搬家。
 - 矩阵权威（P3-FITS 行，禁止编造）: owner=SA-P3-F27、
@@ -112,7 +112,7 @@
   astrocs_phase3_session STATIC（五源: p3_session/p3_wcs/
   hips_properties/p3_output/p3_resample）；astrocs_aio STATIC
   :273-296（aio_fits 等 6 源 + astrocs_cfitsio vendored + z）；
-  cfitsio 进程锁单例 lib/astro_image_io/src/aio_cfitsio_mutex.h
+  cfitsio 进程锁单例 lib/infrastructure/aio/src/aio_cfitsio_mutex.h
   :9-15（aio_fits.cpp:529 读路径 + p3_output.cpp:125 写路径共用，
   RT-008）。tests/unit/CMakeLists.txt:442-447 p3_output_test
   （链 astrocs_phase3_session+astrocs_hips+astrocs_common）。
@@ -127,11 +127,11 @@
   lib/phase3_session/*.cpp 0 处 hardware_concurrency（p3_session
   .cpp:209 仅注释命中）、0 处 #pragma omp、std::thread 池
   p3_session.cpp:247（worker 数=budget.max_workers :212-213）；
-  lib/astro_image_io/src/aio_fits.cpp:1154 唯一
+  lib/infrastructure/aio/src/aio_fits.cpp:1154 唯一
   `#pragma omp parallel for schedule(static)`（QA-001 -fopenmp
   编译处理）属 AIO 域非本域。
 - 实测偏差登记（不改码）:
-  - DISP-P3FITS-001: lib/astro_image_io/README.md 旧派生内容声称
+  - DISP-P3FITS-001: lib/infrastructure/aio/README.md 旧派生内容声称
     "零外部依赖、不依赖 cfitsio"，与现状 vendored
     third_party/cfitsio（astrocs_cfitsio 静态库 :273-296）矛盾；
     他域文件只登记不修。

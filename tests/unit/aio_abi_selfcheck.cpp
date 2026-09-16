@@ -1,6 +1,6 @@
 // AIO-001 · 故障注入必败自检 (selfcheck): 验证注入机制必败 + 基线对照
 //
-// 模式对齐: lib/astro_image_io/tests/p1hips/p1hips_tests_selfcheck.cpp。
+// 模式对齐: lib/infrastructure/aio/tests/p1hips/p1hips_tests_selfcheck.cpp。
 // 验收 (模板): "故障注入能让测试失败" + "不得写永远 PASS 的占位"。三阶段:
 //   1) 基线: 无注入跑 units+negative → 必 PASS (排除恒 FAIL 侧)。
 //   2) 注入 A: 子进程 ASTROCS_AIO_FAULT=n1_hash_value_flip 重跑 units → 必 FAIL。

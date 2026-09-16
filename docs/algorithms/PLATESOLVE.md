@@ -152,9 +152,9 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 ### 11.3 现状缺陷清单（DISP-WCS-001..006，登记不改码，整改归 P1-WCS-IMPL/INT）
 
 - DISP-WCS-001 CD/线性变换退化静默坍缩（R1 登记项，失败-置信度语义核心）：
-  lib/photometric_calib/cpp/src/wcs_transform.cpp:39-49 构造时
+  lib/algorithms/photometry/cpp/src/wcs_transform.cpp:39-49 构造时
   det<1e-15 → cdInv 全零 + 仅 stderr 警告，pixelToSky/skyToPixel 输出坍缩
-  到 CRPIX−1 附近，无错误码无标志位；同族 lib/phase1/wcs/wcs_tan.cpp:48-51
+  到 CRPIX−1 附近，无错误码无标志位；同族 lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp:48-51
   det<1e-30 → 直接返回 CRPIX 且零日志。调用方无法区分"真解≈CRPIX"与
   "退化坍缩=CRPIX"（wcs_transform 输出恒 CRPIX−1，0-based，更不可判）。
   失败-置信度语义契约：**CD det 退化必须视为求解失败（success=0），禁止
@@ -175,7 +175,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   .cpp:302/:347、ipv_select.cpp:838/:1123/:1412/:1756 等 #pragma omp 无
   num_threads 注入；长帧求解不可中断。threading_model=host_executor_lease
   为合同值，接线归 P1-WCS-IMPL。
-- DISP-WCS-006 三套 TAN 实现并存：ipv（生产）、wcs_tan（lib/phase1/wcs，
+- DISP-WCS-006 三套 TAN 实现并存：ipv（生产）、wcs_tan（lib/algorithms/platesolve/wrapper_phase1，
   仅 tests/unit/p1_wcs_phot_test.cpp 消费）、wcs_transform（P1-PHOT 域）
   ——像素中心契约不一致（§11.2 双契约），维护歧义，去留归
   P1-WCS-IMPL/P1-PHOT-IMPL。
@@ -205,7 +205,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   与 WcsTan 的 atan(R)/asin 式不同源）角距 **≤1e-9 deg**；测试锚
   tests/unit/p1wcs negative `n1_wcs_tan_unit_anchor` 与 units
   `u1_f6_abs_cross`，生产门同在 p1_op_wcs。roundtrip 仅作次级不变量
-  （对 ξ/η 成对单位错零鉴别力，见 AUD-COORD F-01/F-06）；原"lib/phase1/wcs
+  （对 ξ/η 成对单位错零鉴别力，见 AUD-COORD F-01/F-06）；原"lib/algorithms/platesolve/wrapper_phase1
   源码零改动"断言已由该修复取代。
 - 回归锚：Galaxy_Center 实场 fixture（rms_arcsec=0.1431″ 基线）。容差
   冻结：上述数值在 TEST 落地时逐项写死，P1-WCS-TEST 不得放宽；fixture

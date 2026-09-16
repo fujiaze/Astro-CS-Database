@@ -1,4 +1,4 @@
-# lib/hips — 模块记忆（P1-HIPS-DOC）
+# lib/algorithms/drizzle/hips — 模块记忆（P1-HIPS-DOC）
 
 > 生命周期: P1-HIPS-DOC（本文档建立）→ P1-HIPS-IMPL（落码）→ P1-HIPS-TEST
 > （可执行测试）→ P1-HIPS-INT。追加式日志，不删改历史段落。
@@ -12,7 +12,7 @@
   旧 README）。
 - 依据 MODULE_MIGRATION_TEMPLATE.md `<prefix>-DOC` 节执行；矩阵行
   P1-HIPS：module_id=astrocs.p1.hips_writer、target=astrocs_p1_hips_writer.dll、
-  legacy_paths="lib/healpix_db;lib/phase1_session"、
+  legacy_paths="lib/infrastructure/aio/healpix_db;lib/phase1_session"、
   depends_on_int=P1-DRZ-INT;IO-003。
 
 ### 产物
@@ -27,7 +27,7 @@
 - docs/modules/registry/astrocs.phase1.hips-writer.md 新建。phase3 registry
   页 `DATA-HIPS-001` 引用**经查非悬空**：该 ID 是既有自洽语义（matrix
   services-io 行 data=DATA-HIPS-001 VERIFIED、TRACEABILITY_SPEC.md:74
-  示例、生产源码 lib/core/src/module_adapters.cpp:300/:323 端口表在用，
+  示例、生产源码 lib/infrastructure/scheduler/src/module_adapters.cpp:300/:323 端口表在用，
   Phase3 通用 HiPS 语义），不属本模块合同、不在本任务域——不改（改动
   会扩 diff 并触碰生产源码）；本模块用 DATA-P1-HIPS（§12），两者并存
   合法。
@@ -35,13 +35,13 @@
   MOD-astrocs-phase1-hips-writer 行（七层 VERIFIED + EVID-MISSING，
   追加不重排）。
 - docs/DOCUMENT_INDEX.yaml 登记 docs/algorithms/HIPS_WRITER.md 与
-  registry 页；lib/hips/ 三件套入索引。
+  registry 页；lib/algorithms/drizzle/hips/ 三件套入索引。
 - 源码事实采集底稿（不入库）：run/local/agent_p1_hips_doc/
   （my_own_facts.md 主核 + subagent 侦察报告）。
 
 ### 源码核对结论（摘要，行号以实测为准）
 
-- 唯一生产 writer=lib/astro_image_io/src/hips/aio_hips_writer.cpp（1222 行，
+- 唯一生产 writer=lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（1222 行，
   合同头 aio_hips.h 9 符号）；编译于 astrocs_hips 静态库
   （CMakeLists.txt:298-309）；调用方=astro_sphere_sink.cpp:97（drizzle
   sink 合并后单线程写）+ stage2.cpp:592（Phase2）+ tests/unit/
@@ -54,7 +54,7 @@
   （有限+正值域）；无效→signal=NaN/support=0/variance=NaN（IEEE NaN，
   无 FITS BLANK）。全无效 variance tile rc=−5 不写文件。
 - FITS tile 索引=nested_local_to_fits_index(i,9,512)（三处 scatter
-  :464/:604/:809；共享 lib/common/healpix 权威 core，(511−x)·512+y，
+  :464/:604/:809；共享 lib/algorithms/shared/healpix 权威 core，(511−x)·512+y，
   CDS Hipsgen 冻结，DATA_SEMANTICS §3）；tile 布局
   NorderK/Dir{ipix/10000}/Npix{ipix%10000}.fits（万进制分片，
   tile_rel_path :135-142）。
@@ -142,11 +142,11 @@
 
 ### 交付物
 
-- lib/hips/CMakeLists.txt: SHARED 目标 astrocs_p1_hips_writer —— 生产闭包
+- lib/algorithms/drizzle/hips/CMakeLists.txt: SHARED 目标 astrocs_p1_hips_writer —— 生产闭包
   从源 PIC 重编译 2 TU（aio_hips_writer.cpp + healpix_core.cpp）+ cfitsio 源
   （ASTROCS_CFITSIO_SOURCES 相对根路径前缀变换）；version-script/DEF 唯一
   导出 astrocs_module_query_v1；C/CXX_VISIBILITY_PRESET hidden（Linux 面）。
-- lib/hips/src/module_entry.cpp: C ABI v1 九操作 adapter
+- lib/algorithms/drizzle/hips/src/module_entry.cpp: C ABI v1 九操作 adapter
   （query/describe/validate_config/plan/create/execute/inspect/
   request_cancel/destroy）。单事务 op=write_product（product_begin → 逐 tile
   write_signal_support_tile/write_variance_tile → write_snr_points →
@@ -158,14 +158,14 @@
   （DISP-HIPS-001: abort 不清理已写文件，处置归调用方/IO-003 层）；
   strbuf 两阶段（尺寸探测/BUFFER_TOO_SMALL）；manifest 输入顶层平铺 v1
   （base64 平面 native 字节序 + per-tile 位图 + SNR 六平面 SoA + provenance）。
-- lib/hips/include/astrocs/hips/types.h + src/module_exports.map +
+- lib/algorithms/drizzle/hips/include/astrocs/hips/types.h + src/module_exports.map +
   src/astrocs_p1_hips_writer.def + module.yaml（交付态: entrypoint=
   astrocs_module_query_v1, node_operations=[write_product]）。
 - tests/unit/p1_hips/adapter_test.c + adapter_entry_impl.cpp + tests/unit/
   CMakeLists.txt 注册块: hips_writer_adapter（9 case: direct reference/
   adapter 全生命周期/direct-vs-plugin 产物树逐文件 size 对拍/alloc_fail/
   schema_reject/budget 105×2/cancel_not_begun/strbuf 探针/dlsym 导出面探针）。
-- 根 CMakeLists.txt: add_subdirectory(lib/hips) + RPATH foreach 追加。
+- 根 CMakeLists.txt: add_subdirectory(lib/algorithms/drizzle/hips) + RPATH foreach 追加。
 
 ### 关键事实（实证）
 
@@ -173,7 +173,7 @@
   （nested_local_to_fits_index + ang2pix_nest, healpix_core.cpp）+ cfitsio 源；
   aio_fits/aio_log/aio_api/aio_healpix_io/hiss_*/aio_hips_reader/aio_upm
   零依赖剔除（g++ -fsyntax-only 实证）。
-- 生产源零改动: lib/astro_image_io/** git diff 空 —— scientific_change=false。
+- 生产源零改动: lib/infrastructure/aio/** git diff 空 —— scientific_change=false。
   manifest.json/properties 无路径键（两目录 size 对拍成立）；FITS tile 数据
   位级一致（DATASUM 同值），字节级差异仅 cfitsio CHECKSUM/DATASUM 注释
   的 wall-clock 秒级时间戳（as-built 实测: diff 4 字节全在头部注释）。
@@ -218,29 +218,29 @@
 
 - 控制包任务 AIO-002（ASTROCS-CONSTITUTION-ALIGNMENT-V1）：staging→校验→
   fsync→原子 promote；正常/取消/ENOSPC/kill 后无 partial；临时目录 RAII。
-- 写域：lib/hips/ lib/hips_p2/ tests/。生产 writer（lib/astro_image_io）零改动
+- 写域：lib/algorithms/drizzle/hips/ lib/algorithms/coverage/hips_p2/ tests/。生产 writer（lib/infrastructure/aio）零改动
   （scientific_change=false；git diff 实证空）。
 
 ### 交付物
 
-- lib/hips/include/astrocs/hips/publish.h：原子发布原语 v1 合同头（4 原语；
+- lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h：原子发布原语 v1 合同头（4 原语；
   aio_publish_status_v1 数值 0..15/70/71 与 aio_abi_v1.h aio_status 全域一致
   （_Static_assert 编译期对齐）；ASTROCS_HIPS_STAGE_BASENAME=".hips_staging.tmp"；
   故障注入 env=ASTROCS_HIPS_PUBLISH_FAULT 注册名
   p1_stage_create_fail/p1_fsync_fail/p1_promote_fail/p1_discard_noop/
   p1_stage_slow_write）。
-- lib/hips/src/aio_publish.cpp：唯一实现（stage_create 兄弟 staging+残留自愈/
+- lib/algorithms/drizzle/hips/src/aio_publish.cpp：唯一实现（stage_create 兄弟 staging+残留自愈/
   stage_discard 递归删除幂等 RAII/tree_fsync 后序文件+目录 fsync（ENOSPC→
   DISKFULL 收敛点）/promote rename 整树原子+目标非空拒绝+父目录 fsync）。
   DLL 内部隐藏符号，唯一导出面 astrocs_module_query_v1 不变。
-- lib/hips/src/module_entry.cpp：write_product 事务化——writer 写 staging；
+- lib/algorithms/drizzle/hips/src/module_entry.cpp：write_product 事务化——writer 写 staging；
   cancel 检查点抽取 hips_cancel_requested；发布门（fail/cancel → abort+discard
   → out_dir 无 partial；成功 → fsync 树 → promote → 输出 manifest 报 out_dir）；
   legacy 所有权修正：finalize 成功=句柄内部已释放（README §5），成功路径禁
   abort（旧代码成功路径 abort 是 double-free 隐患，本次实证修复——原语义
   finalize 后从未走 abort，未暴露）。诊断码 HIPS_ECODE_PUBLISH_STAGE=122/
   HIPS_ECODE_PUBLISH_REJECT=123（types.h）。
-- lib/hips/CMakeLists.txt：aio_publish.cpp 编入 DLL；tests/unit/CMakeLists.txt：
+- lib/algorithms/drizzle/hips/CMakeLists.txt：aio_publish.cpp 编入 DLL；tests/unit/CMakeLists.txt：
   hips_publish_atomic_test 注册（units/atomic 两组 ctest）+ adapter 测试补
   aio_publish.cpp。
 - tests/unit/p1_hips/publish_atomic_test.c：TEST-P1-HIPS-PUBLISH-001 可执行面
@@ -249,8 +249,8 @@
   幂等（重复 root 旧树清零——原子发布"非空目标拒绝"使旧残树合法拒发）。
 - module.yaml：source_symbols 补 4 publish 原语 + test_ids 补
   TEST-P1-HIPS-PUBLISH-001；README §9 补 AIO-002 验证与限制注记。
-- lib/hips_p2/：本任务零改动（P2 写编排 stage2.cpp 直写 out_hips 属
-  DISP-P2HIPS-003 登记面，域外不改；见 lib/hips_p2/memory.md）。
+- lib/algorithms/coverage/hips_p2/：本任务零改动（P2 写编排 stage2.cpp 直写 out_hips 属
+  DISP-P2HIPS-003 登记面，域外不改；见 lib/algorithms/coverage/hips_p2/memory.md）。
 
 ### 关键决策（防后续误读）
 
@@ -295,11 +295,11 @@
 ### RESCUE-V3 FD-01（2026-09-13，B3 批次）
 
 - 基线红复现：`ctest -R '^hips_writer_adapter$'` FAIL ——
-  `dlopen(build/lib/hips/astrocs_p1_hips_writer.so): undefined symbol
-  aio_hips_tile_ipix`（定义在 `lib/astro_image_io/src/hips/aio_hips_reader.cpp:391`）。
+  `dlopen(build/lib/algorithms/drizzle/hips/astrocs_p1_hips_writer.so): undefined symbol
+  aio_hips_tile_ipix`（定义在 `lib/infrastructure/aio/src/hips/aio_hips_reader.cpp:391`）。
 - 根因：2026-09-07 的「writer 依赖闭包实证最小集」漏了
   `aio_hips_writer.cpp:1652,1713` 对 `aio_hips_tile_ipix` 的跨 TU 调用。
-- 修：`lib/hips/CMakeLists.txt` 把 `aio_hips_reader.cpp` 纳入
+- 修：`lib/algorithms/drizzle/hips/CMakeLists.txt` 把 `aio_hips_reader.cpp` 纳入
   `HIPS_PROD_SOURCES`，并补 `${HIPS_PROD_DIR}/src` include（reader 引
   `aio_cfitsio_mutex.h`）。零科学改动；唯一导出面仍由 version-script 收口。
 - 后绿：`ctest -R '^hips_writer_adapter$'` PASS（全量 ctest 286 项中该靶转绿）。

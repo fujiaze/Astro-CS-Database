@@ -4,7 +4,7 @@
 > doc_status: ACTIVE_NORMATIVE
 > task_id: IO-001 · wave: W2 · owner: SA-IO-07
 > commit: `feat(io): IO-001 建立FITS流式接口`（前台集成）
-> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-001 / `05_FIXED_SUBAGENT_BINDINGS.yaml` SA-IO-07 / 冻结约束 `AstroCS_ENGINEERING_CONSTRAINTS.md` F.3（DLL C ABI 边界）
+> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-001 / `05_FIXED_SUBAGENT_BINDINGS.yaml` SA-IO-07 / 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）
 
 ## 1. 目标与范围
 
@@ -17,7 +17,7 @@ IO-001 是 **FITS 流式 I/O 接口冻结 + 骨架实现**（W2 宿主基础设�
 4. 验收负测覆盖：非法 header、截断、dtype/shape/unit mismatch、checksum error、NaN/Inf、取消、磁盘满。
 
 本任务**不改科学公式**（`scientific_change=false`），不迁移任何科学/图像处理算法；
-`lib/astro_image_io`（aio_fits 等历史全图像读写实现）与 `lib/io`（io_adapter）**保持原样、不删除**。
+`lib/infrastructure/aio`（aio_fits 等历史全图像读写实现）与 `lib/infrastructure/aio/io`（io_adapter）**保持原样、不删除**。
 
 ## 2. 模块归属与目录
 
@@ -31,7 +31,7 @@ IO-001 是 **FITS 流式 I/O 接口冻结 + 骨架实现**（W2 宿主基础设�
 | 契约/负测（Python，依赖 numpy/astropy 作 oracle） | `tests/io/` |
 | C 层自检驱动 | `modules/services/io/tests/` |
 
-允许写路径：`runtime/io/** lib/io/** lib/astro_image_io/** lib/healpix_db/** modules/services/io/** tests/io/** docs/interfaces/io/**`。
+允许写路径：`runtime/io/** lib/infrastructure/aio/io/** lib/infrastructure/aio/** lib/infrastructure/aio/healpix_db/** modules/services/io/** tests/io/** docs/interfaces/io/**`。
 
 ## 3. DLL 边界与所有权
 
@@ -186,9 +186,9 @@ typedef struct acs_fio_trace_hooks_v1 {
 
 ## 13. 与相邻接口/实现的边界
 
-- `lib/astro_image_io`（AIO，含 CFITSIO 静态链）：历史全图像读写（aio_read/write_fits），
+- `lib/infrastructure/aio`（AIO，含 CFITSIO 静态链）：历史全图像读写（aio_read/write_fits），
   保留作兼容层；**IO-001 不迁移/不修改/不删除**，其内部 CFITSIO 用法同样不跨 DLL 边界。
-- `lib/io` + `include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（历史 IO-001 原型），保留。
+- `lib/infrastructure/aio/io` + `include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（历史 IO-001 原型），保留。
 - `runtime/io/fits_core.c` 是本任务新增的 fits 流 C 核心（无 CFITSIO 依赖）。
 - DATA-001 `astrocs/contracts/artifact_abi_v1.h`：产物 manifest C ABI；fits 流接口不重复其职责。
 - trace/bytes：由宿主注入 hook（14 标准）；本任务只冻结 hook 契约并累计，运行时落点由后续 RT 任务接线。

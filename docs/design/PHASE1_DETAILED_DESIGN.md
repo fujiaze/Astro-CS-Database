@@ -2,7 +2,7 @@
 
 文档 ID：`DESIGN-P1-001`  
 状态：`TARGET_NORMATIVE`  
-上位：`ASTROCS_PROJECT_CONSTITUTION.md`、`docs/owner/PROJECT_SPEC.md`  
+上位：`ASTROCS_DESIGN.md`（§0 权威链，最高设计）、`docs/owner/PROJECT_SPEC.md`  
 下游：Phase1 SCI/ALG/DATA/API/实现与验收；冲突时本文件描述目标，现有实现不得反向定义目标。
 
 ## 1. 使命与科学产品

@@ -5,7 +5,7 @@
 > task_id: IO-002 · wave: W2 · owner: SA-IO-07
 > commit: `feat(io): IO-002 建立HiPS输入合同`（前台集成）
 > source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-002 / `05_FIXED_SUBAGENT_BINDINGS.yaml`
-> SA-IO-07 / 冻结约束 `AstroCS_ENGINEERING_CONSTRAINTS.md` F.3（DLL C ABI 边界）、
+> SA-IO-07 / 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）、
 > F.4（接口字段/单位/shape/坐标/invalid/所有权逐项明确）、E（阶段间只经磁盘产品交换）
 > 上游: DOC-IO-INTERFACE-001（IO-001 FITS 流式接口）——IO-002 的 tile FITS 平面读取
 > 全部复用 IO-001 的 fits_core 契约与错误码
@@ -33,7 +33,7 @@ IO-002 在 IO-001（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**
 
 本任务**不改科学公式**（`scientific_change=false`）；不做 tiles 解码、投影/天球坐标
 转换（科学层属于 P1/P2/P3 模块）；不做 HiPS 输出/原子发布（IO-003 范围）；
-`lib/astro_image_io`（aio_hips_*，CFITSIO 静态链）与 `lib/healpix_db` 保持原样不修改。
+`lib/infrastructure/aio`（aio_hips_*，CFITSIO 静态链）与 `lib/infrastructure/aio/healpix_db` 保持原样不修改。
 
 ## 2. 模块归属与目录
 
@@ -46,7 +46,7 @@ IO-002 在 IO-001（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**
 | C 层自检驱动 | `modules/services/io/tests/hips_core_selftest.c` |
 | fixture 重建生成器 | `tests/io/make_hips_fixture.py` |
 
-允许写路径：`runtime/io/** lib/io/** lib/astro_image_io/** lib/healpix_db/**
+允许写路径：`runtime/io/** lib/infrastructure/aio/io/** lib/infrastructure/aio/** lib/infrastructure/aio/healpix_db/**
 modules/services/io/** tests/io/** docs/interfaces/io/**`。
 
 ## 3. 输入合同（IVOA HiPS 兼容子集）
@@ -263,10 +263,10 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 ## 9. 与相邻接口/实现的边界
 
 - IO-001 fits_core：tile FITS 平面读取的唯一底层（§6）；错误码 0–7 对齐。
-- `lib/astro_image_io`（aio_hips_*，CFITSIO 链）：历史 HiPS 读写实现（writer 产线、
+- `lib/infrastructure/aio`（aio_hips_*，CFITSIO 链）：历史 HiPS 读写实现（writer 产线、
   reader 供浏览器）；**IO-002 不修改**。IO-002 是 modules/services/io 下与 IO-001
   同层的输入合同骨架；产线 writer 与 IO-002 的磁盘布局合同相同（§3.3）。
-- `lib/healpix_db`：浏览器/历史参考；不修改。
+- `lib/infrastructure/aio/healpix_db`：浏览器/历史参考；不修改。
 - DATA-001 artifact schema / DATA-HIPS-*：科学 dtype/unit/invalid 语义权威；
   IO-002 只透出 header/plane，不做单位换算。
 - IO-003：HiPS 原子输出/manifest —— 在 IO-002 读端之外；本任务不实现写端。

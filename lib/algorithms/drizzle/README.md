@@ -1,16 +1,16 @@
-# lib/drizzle — astrocs.p1.drizzle（P1-DRZ）
+# lib/algorithms/drizzle — astrocs.p1.drizzle（P1-DRZ）
 
 > 状态: CONTRACT_READY（P1-DRZ-DOC 冻结，2026-09-07）｜doc revision: r1
 > 本 README 由源码逐函数核对后新建（P1-DRZ-DOC）：函数、单位、坐标、dtype、
 > shape、invalid、错误、并发、内存、I/O 均以现行唯一生产实现
-> `lib/healpix_db/healpix_drizzle/`（根 CMakeLists.txt:356-366 静态库
+> `lib/algorithms/drizzle/healpix_drizzle/`（根 CMakeLists.txt:356-366 静态库
 > `astrocs_drizzle`，C ABI 导出权威 `hp_drizzle_api.h:42,62,70,130,139,140`）
-> 为准；`lib/drizzle/` 是 P1-DRZ 迁移目标目录（astrocs_p1_drizzle.dll 落码
+> 为准；`lib/algorithms/drizzle/` 是 P1-DRZ 迁移目标目录（astrocs_p1_drizzle.dll 落码
 > 由 P1-DRZ-IMPL 建立，当前本目录仅合同文件、无源码；落位依据
 > MODULE_MIGRATION_MATRIX.csv P1-DRZ 行 target=astrocs_p1_drizzle.dll、
 > legacy_paths="lib/phase1/drizzle;root astrocs_drizzle target"——
 > lib/phase1/drizzle 目录不存在，root target 源码在
-> lib/healpix_db/healpix_drizzle/，与 lib/cosmetic/、lib/calibration/ 先例
+> lib/algorithms/drizzle/healpix_drizzle/，与 lib/algorithms/cosmetic/、lib/algorithms/calibration/ 先例
 > 同构，本目录不与 legacy 目录重叠）。权威合同：
 > SCI-DRZ-001 → ALG-DRZ-001 → DATA-P1-DRZ / API-DRZ-001（链接见 §4）。
 
@@ -21,7 +21,7 @@
 | MOD ID / DLL target | `MOD-astrocs-phase1-drizzle` / 现状实现编入 CMake 静态库 `astrocs_drizzle`（CMakeLists.txt:356-366，无独立 DLL 产物）；迁移目标 `astrocs_p1_drizzle.dll`（P1-DRZ-IMPL 建立，尚未存在） |
 | module / ABI / doc revision | `astrocs.p1.drizzle` / C ABI（HP_DRIZZLE_API extern "C"，无版本化 query 入口，迁移缺口）/ r1 |
 | owner / phase scope | SA-P1-DRZ / phase1（wave W1） |
-| 文档状态 | CONTRACT_READY（实现存在于 lib/healpix_db/healpix_drizzle，模块化迁移未开始；不声明 IMPLEMENTED） |
+| 文档状态 | CONTRACT_READY（实现存在于 lib/algorithms/drizzle/healpix_drizzle，模块化迁移未开始；不声明 IMPLEMENTED） |
 | 构建 | 现状随 CMakeLists.txt:356-366 `astrocs_drizzle`（STATIC，链接 astrocs_contracts/common/aio/hips；UNIX 下 -fopenmp，:379-382 注释"omp 仅遗留内部，生产调度走 Runtime lease"）；独立目标由 P1-DRZ-IMPL 建立 |
 
 ## 2. 负责范围
@@ -70,7 +70,7 @@ operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue
 | ALG | ALG-DRZ-001 | docs/algorithms/DRIZZLE_GEOMETRY.md（逐公式源码锚定 + DISP-DRZ 清单） |
 | DATA | DATA-P1-DRZ | docs/contracts/DATA_SEMANTICS.md §11（上游 DATA-P1-CAL §9；编排现状引用 DATA-P1-STACK） |
 | API | API-DRZ-001 / API-P1-007 | docs/contracts/PUBLIC_API.md / docs/api/PHASE1_API_V1.md（区间 API-P1-001..010） |
-| MOD/SRC | MOD-astrocs-phase1-drizzle / SRC-DRZ-001 | docs/traceability/TRACEABILITY_MATRIX.json；实现源 lib/healpix_db/healpix_drizzle/（签名源 hp_drizzle_api.h:42-51,62-75,130-140） |
+| MOD/SRC | MOD-astrocs-phase1-drizzle / SRC-DRZ-001 | docs/traceability/TRACEABILITY_MATRIX.json；实现源 lib/algorithms/drizzle/healpix_drizzle/（签名源 hp_drizzle_api.h:42-51,62-75,130-140） |
 | TEST | TEST-DRZ-DESIGN-001 | docs/algorithms/DRIZZLE_GEOMETRY.md §9（可执行 TEST-P1-DRZ-001 由 P1-DRZ-TEST 落地） |
 
 ## 5. 实现事实（源码核对）
@@ -159,7 +159,7 @@ CMakeLists.txt:356-366）+ 遗留 Makefile 通道（healpix_drizzle.dll，
 Python ctypes 用）；迁移目标 astrocs_p1_drizzle.dll + C ABI adapter +
 plan/execute/cancel/inspect + ThreadLease 接线由 P1-DRZ-IMPL 建立
 （module.yaml 已登记 manifest；禁止跨 DLL 传 STL/异常/RTTI）。
-legacy 源目录 lib/healpix_db/healpix_drizzle/ 整体去留由 P1-DRZ-IMPL
+legacy 源目录 lib/algorithms/drizzle/healpix_drizzle/ 整体去留由 P1-DRZ-IMPL
 决定（poly_clip.cpp 编入 target 但生产路径零调用，DISP-DRZ-008）。
 
 已知限制（完整清单 = ALG-DRZ-001 §10 DISP-DRZ-001..008 + 源码内在
@@ -173,7 +173,7 @@ astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile）。
 
 ## 10. 迁移（P1-DRZ-IMPL 目标，不声明完成）
 
-本目录（lib/drizzle/）为迁移落点：astrocs_p1_drizzle.dll、
+本目录（lib/algorithms/drizzle/）为迁移落点：astrocs_p1_drizzle.dll、
 module.yaml（同目录，已冻结 manifest：entrypoint=MISSING——registry
 入口未接）、C ABI adapter、plan/execute/cancel/inspect、ThreadLease
 接线（替换 omp 遗留通道，保持 1/N 合并序）、DISP-DRZ 清单消化见

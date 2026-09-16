@@ -1,4 +1,4 @@
-/* CAT-GAIA-TEST (TEST-GAIA-001) — lib/gaia_xpsd_client 验证测试面（主测试）。
+/* CAT-GAIA-TEST (TEST-GAIA-001) — lib/infrastructure/gaia_xpsd_client 验证测试面（主测试）。
  *
  * 冻结依据：
  *   - MODULE_MIGRATION_TEMPLATE.md "<prefix>-TEST"：unit/properties/oracle/

@@ -1,4 +1,4 @@
-// lib/phase3_rsmp/p3_rsmp_propagation.cpp
+// lib/algorithms/resample/p3_rsmp_propagation.cpp
 // 三模式传播与输出帧 Q/W 重算（ALG-P3-002/004/005/006/007）。
 #include "p3_rsmp.h"
 

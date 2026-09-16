@@ -5,7 +5,7 @@
              WCS(已知星场/扰动初值/roundtrip/无解)、photometry(已知flux/background/PSF、饱和拒绝)。
 
 方法(independent, 不调待测 kernel 复算):
-  A) stars/PSF: C++ driver 编译链接 lib/star_detector/src/*.cpp(生产同源, GSL trust-region LM)。
+  A) stars/PSF: C++ driver 编译链接 lib/algorithms/star_detection/src/*.cpp(生产同源, GSL trust-region LM)。
      Python 侧**解析合成**已知位置/流量/σ 的高斯星场(独立第一性原理生成, 非检测器输出),
      驱动 sdet_detect_ex_f64(FP64 全精度)与 sdet_detect_ex(u16 饱和平台);
      completeness=检出/注入, FP=纯噪声图检出数, centroid 误差 vs 注入中心(预冻结 <0.5px),
@@ -15,7 +15,7 @@
   B) WCS: driver 链接 lib/phase3_session/p3_wcs.cpp。已知天球场 → world2pix 与**独立解析解**
      (CD⁻¹·(ξ,η) + CRPIX 第一性原理)比对; 扰动初值(crpix 偏移 0.5px)求解仍收敛(坐标平移一致);
      无解(parity 非法/极点越界/负 scale/背面半球/远像素)返回非 OK。
-  C) photometry: driver 链接 lib/phase1/photometry/photometer.cpp(生产同源 aperture 积分)。
+  C) photometry: driver 链接 lib/algorithms/photometry/wrapper_phase1/photometer.cpp(生产同源 aperture 积分)。
      已知 flux/background/PSF → 光圈测光恢复 flux(与注入 flux 解析关系比对);
      饱和拒绝: 含 u16 饱和平台的星场中, 检测器 sat 标志星不进入测光计数(sdet 饱和拒绝语义),
      非饱和星 flux 正常恢复; 越界中心显式失败(valid=false, 不留空 catalog)。

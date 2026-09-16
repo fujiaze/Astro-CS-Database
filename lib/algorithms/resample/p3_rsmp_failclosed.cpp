@@ -1,4 +1,4 @@
-// lib/phase3_rsmp/p3_rsmp_failclosed.cpp
+// lib/algorithms/resample/p3_rsmp_failclosed.cpp
 // 三模式 fail-closed 12 门 + kernel/covariance/QW/epsf/provenance 扩展门。
 // 冻结锚：FZ-P3-FAILCLOSED、FZ-P3-QW-RECOMPUTE、FZ-P3-KERNEL-REGISTRY、
 //         FZ-P3-BUNIT-QUADRATIC、FZ-FORMULA-COV-PROP、FZ-GATE-MEDIAN-SNR、

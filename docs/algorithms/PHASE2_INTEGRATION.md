@@ -1,9 +1,9 @@
 # Phase2 Integration Algorithms（P2-INT / astrocs.p2.integration）
 
 > ID: ALG-P2-INT-001  状态: CONTRACT_READY（P2-INT-DOC 冻结，2026-09-09）
-> 模块: lib/phase2/src/integrate.cpp（76 行，astrocs_phase2 静态库成员，
+> 模块: lib/algorithms/coverage/src/integrate.cpp（76 行，astrocs_phase2 静态库成员，
 > 根 CMakeLists.txt:336-346/:344）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/integrate.h（74 行）
+> lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-INT-001
 > （docs/science/INTEGRATION.md，FROZEN T108 2026-08-23，集合
 > SCI-INT-001/002/004/008，零改动）。DATA: DATA-P2-INT（DATA_SEMANTICS
@@ -308,11 +308,11 @@ eligibility（逐候选 i，候选索引固定序）:
 
 ## 13 追溯
 
-- 实现: lib/phase2/src/integrate.cpp（76 行）+
-  lib/phase2/include/astro/phase2/integrate.h（74 行）。
+- 实现: lib/algorithms/coverage/src/integrate.cpp（76 行）+
+  lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）。
 - 合同: DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001
   （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，§11.4 设计冻结）。
-- 交叉: docs/modules/phase2_int.md + lib/phase2_int/ 三件套；
+- 交叉: docs/modules/phase2_int.md + lib/algorithms/integration/ 三件套；
   registry astrocs.phase2.integrate.md；
   INTEGRATION_ALGORITHMS.md（旧 L2 文档，ID 让位本文件）。
 - 消费者: stage2.cpp（DATA_SEMANTICS §20 域）/ acr_kernels.cpp

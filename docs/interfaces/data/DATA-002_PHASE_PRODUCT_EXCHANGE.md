@@ -3,7 +3,7 @@
 > 文档 ID：DOC-DATA-PRODUCT-EXCHANGE-001
 > 状态：ACTIVE_NORMATIVE（DATA-002 冻结）
 > Owner：SA-DATA-06 ｜ 冻结基线：`b7b2dea70dbcdacdcf6eb762609a908abdeab697` ｜ 冻结日期：2026-09-02
-> 上游权威：AstroCS_ENGINEERING_CONSTRAINTS.md §A（产品与阶段）、
+> 上游权威：`ASTROCS_DESIGN.md` §1.2（三命令平级独立）/§9（I/O 与原子产品）、
 > `docs/contracts/DATA_SEMANTICS.md`（跨阶段唯一数据合同）、
 > `docs/science/PHASE3_HIPS_TO_FITS.md`（SCI-P3 units/planes）、
 > `contracts/data/artifact_types.registry.json` + `contracts/data/artifact_manifest.schema.json`（DATA-001 冻结）

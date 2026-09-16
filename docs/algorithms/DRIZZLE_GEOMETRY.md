@@ -2,9 +2,9 @@
 
 > ID 覆盖: ALG-DRZ-001  状态: CONTRACT_READY (P1-DRZ-DOC 冻结, 2026-09-07)  上游: SCI-DRZ-001  下游: DATA-P1-DRZ / API-DRZ-001 / TEST-DRZ-DESIGN-001
 > 本文档由源码逐函数核对后重写（P1-DRZ-DOC）。实现唯一生产源 =
-> `lib/healpix_db/healpix_drizzle/`（CMake 目标 `astrocs_drizzle`，
-> CMakeLists.txt:356-366；C ABI 导出 `lib/healpix_db/healpix_drizzle/
-> hp_drizzle_api.h:42,62,70,130,139,140`）；迁移目标目录 `lib/drizzle/`
+> `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `astrocs_drizzle`，
+> CMakeLists.txt:356-366；C ABI 导出 `lib/algorithms/drizzle/healpix_drizzle/
+> hp_drizzle_api.h:42,62,70,130,139,140`）；迁移目标目录 `lib/algorithms/drizzle/`
 > （落码由 P1-DRZ-IMPL 执行，尚未存在生产符号）。科学定义见
 > `docs/science/DRIZZLE.md`（SCI-DRZ-001，FROZEN T105 2026-08-23，
 > 集合 SCI-DRZ-001/014/015/016）。本文档只登记离散算法与实现事实，
@@ -27,7 +27,7 @@
 
 ## 1 ALG-DRZ-001 核心累加公式（与 SCI-DRZ-001 §5 对照）
 
-- 源锚: `lib/healpix_db/healpix_drizzle/drizzle_engine.cpp`
+- 源锚: `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`
   （processPixelSharedTiled/processPixelTiled 累加段 1490-1540）。
 - 记号: 源像素 j（值 x_j [ADU]、方差 v_j [ADU²]、权重面）、目标
   HEALPix NESTED leaf p；drop = 源像素按 pixfrac 收缩的球面 footprint；
@@ -46,7 +46,7 @@
 - **S_p = F_p/D_p 归一不在本模块**: sumFlux/sumArea/sumVarNum 原始和
   逐 tile 传出（astro_sphere_sink.cpp:99-104 dense 化），归一在
   aio_hips_writer finalize_tile（variance = var_num_sum/area²，
-  lib/astro_image_io/src/hips/aio_hips_writer.cpp:566-631）——与
+  lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:566-631）——与
   drizzle_engine.cpp:2-3 锚注释一致（DISP-DRZ-007 登记旧锚失效）。
 - 单位/dtype: 累加器 Scalar = float（precision_mode=0）或 double（=1）
   显式模板双实例（drizzle_engine.cpp:2177-2184）；a_jp/面积几何全程
@@ -251,8 +251,8 @@ _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性�
   DATA-P1-CAL（§9）；编排现状引用 DATA-P1-STACK（descriptor）。
 - API: API-DRZ-001（docs/contracts/PUBLIC_API.md）；API-P1-007
   （docs/api/PHASE1_API_V1.md，区间 API-P1-001..010 编排合同）。
-- MOD/SRC: MOD-astrocs-phase1-drizzle（lib/drizzle/module.yaml，
-  CONTRACT_READY；lib/drizzle/README.md 实现事实）；SRC-DRZ-001
-  （lib/healpix_db/healpix_drizzle/hp_drizzle_api.h 等签名源）。
+- MOD/SRC: MOD-astrocs-phase1-drizzle（lib/algorithms/drizzle/module.yaml，
+  CONTRACT_READY；lib/algorithms/drizzle/README.md 实现事实）；SRC-DRZ-001
+  （lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h 等签名源）。
 - TEST: TEST-DRZ-DESIGN-001（本文档 §9）；可执行 TEST-P1-DRZ-001
   由 P1-DRZ-TEST 建立（既有 lib 内 tests/*.cpp 为科学门基线）。

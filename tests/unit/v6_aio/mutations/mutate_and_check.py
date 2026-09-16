@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """IMPL-AIO-001 实现级负向 mutation harness。
 
-对 lib/astro_image_io/v6 源码副本注入"违反冻结"的实现错误，重新编译共址测试，
+对 lib/infrastructure/aio/v6 源码副本注入"违反冻结"的实现错误，重新编译共址测试，
 断言对应测试子命令 rc != 0（门必红）。正控制：未变异源码同一子命令 rc == 0。
 """
 import os
@@ -83,7 +83,7 @@ def main(argv):
         print("usage: mutate_and_check.py <repo_root> <workdir>")
         return 2
     repo_root, workdir = os.path.abspath(argv[1]), os.path.abspath(argv[2])
-    src_root = os.path.join(repo_root, "lib/astro_image_io/v6")
+    src_root = os.path.join(repo_root, "lib/infrastructure/aio/v6")
     tests_dir = os.path.join(repo_root, "tests/unit/v6_aio")
     third = os.path.join(repo_root, "third_party")
     os.makedirs(workdir, exist_ok=True)

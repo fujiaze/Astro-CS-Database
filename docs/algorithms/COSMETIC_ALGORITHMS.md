@@ -2,11 +2,11 @@
 
 > ID 覆盖: ALG-COS-001..005  状态: CONTRACT_READY (P1-COS-DOC 冻结, 2026-09-07)  上游: SCI-CAL-001  下游: DATA-P1-COS / API-COS-001 / API-P1-002 / TEST-COS-DESIGN-001
 > 本文档由源码逐函数核对后重写（P1-COS-DOC，wave W1）。实现唯一生产源 =
-> `lib/calibration/src/cosmetic_corrector.cpp`（CMake 目标
+> `lib/algorithms/calibration/src/cosmetic_corrector.cpp`（CMake 目标
 > `astrocs_calibration`，CMakeLists.txt:373-380；C ABI 导出
-> `lib/calibration/src/ac_api.cpp:108,228`，签名权威
-> `lib/calibration/include/astro_calibration.h:97,142`）；迁移目标目录
-> `lib/cosmetic/`（落码由 P1-COS-IMPL 执行，尚未存在生产符号）。
+> `lib/algorithms/calibration/src/ac_api.cpp:108,228`，签名权威
+> `lib/algorithms/calibration/include/astro_calibration.h:97,142`）；迁移目标目录
+> `lib/algorithms/cosmetic/`（落码由 P1-COS-IMPL 执行，尚未存在生产符号）。
 > 科学定义见 `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN，§2 参数表
 > `hot_sigma/cold_sigma/method/max_structure_size`、§6 假设、§9a mask 极性
 > 1=坏点）。本文档只登记离散算法与实现事实，不修改 SCI；算法分层与
@@ -25,14 +25,14 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   现行生产实现，ALG-CAL-004 为 P1-CAL 合同视角的摘要引用；本模块文档是
   cosmetic 域逐公式的权威登记（P1-COS-IMPL 迁移落码、P1-COS-TEST 落测试
   均以本文档为准）。
-- 遗留 cc_* 通道（`lib/calibration/cpp/cosmetic_corrector.cpp`：
+- 遗留 cc_* 通道（`lib/algorithms/calibration/cpp/cosmetic_corrector.cpp`：
   cc_detect_hot/cc_detect_cold/cc_correct_median/cc_last_error）**未编译
   进 CMake 主构建**，仅作为计划迁移旧符号登记（见 §8 与 module.yaml），
   其公式（局部窗口中值修复、window 3..15）与生产 ac_* 通道不同。
 
 ## 1 ALG-COS-001 全局阈值检测（热/冷像素）
 
-- 源锚: `lib/calibration/src/cosmetic_corrector.cpp:118-137`（detect_hot_pixels）、`139-158`（detect_cold_pixels）。
+- 源锚: `lib/algorithms/calibration/src/cosmetic_corrector.cpp:118-137`（detect_hot_pixels）、`139-158`（detect_cold_pixels）。
 - 输入: 检测源帧 `src`（热检测=master dark，冷检测=master bias；float32，
   ADU，`[h][w]` 行主序 0-based），sigma 倍数 `threshold_sigma`
   （无量纲），结构尺寸上限 `max_size`（像素个数）。
@@ -57,7 +57,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 ## 2 ALG-COS-002 连通域结构过滤（8 邻接）
 
-- 源锚: `lib/calibration/src/cosmetic_corrector.cpp:61-113`（filter_by_structure_size）。
+- 源锚: `lib/algorithms/calibration/src/cosmetic_corrector.cpp:61-113`（filter_by_structure_size）。
 - 输入: 候选掩码 `mask`（char，1=坏点候选），`max_size`（保留连通域
   尺寸上限）。
 - 连通性: 8 邻接（dx∈{-1,0,1}, dy∈{-1,0,1}，含对角；cosmetic_corrector.cpp:74-86）。
@@ -71,7 +71,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
      不混淆，大结构按非坏点处理）；
   4. 背景 label 0 的 size 记为 `max_size`（cosmetic_corrector.cpp:70），
      保证 `0 >= max_size` 不成立、非候选像素永不被误清（遗留通道曾出现
-     背景 label 泄漏 bug，本实现已修复——lib/calibration/memory.md
+     背景 label 泄漏 bug，本实现已修复——lib/algorithms/calibration/memory.md
      2026-07-10 记录）。
 - 复杂度: O(n)（每像素至多入队一次）+ O(n) 额外内存
   （labels + sizes 向量，int×n）。
@@ -84,7 +84,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 ## 3 ALG-COS-003 插值修复（method=0 中值 / method=1 名义 bilinear）
 
-- 源锚: `lib/calibration/src/cosmetic_corrector.cpp:160-227`（interpolate_pixels）。
+- 源锚: `lib/algorithms/calibration/src/cosmetic_corrector.cpp:160-227`（interpolate_pixels）。
 - 输入: 数据帧 `data`（float32 ADU）、掩码 `bad_mask`（1=坏点，SCI-CAL-001
   §9a）、`method`（0=AC_METHOD_MEDIAN, 1=AC_METHOD_BILINEAR，
   astro_calibration.h:18-19）；输出 `out`（调用方分配）。
@@ -125,7 +125,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 ## 4 ALG-COS-004 帧级编排（correct_frame 主管线）
 
-- 源锚: `lib/calibration/src/cosmetic_corrector.cpp:229-265`（ac::correct_frame）。
+- 源锚: `lib/algorithms/calibration/src/cosmetic_corrector.cpp:229-265`（ac::correct_frame）。
 - 离散步骤:
   1. 参数语义: `data/w/h/out` 必需；`n=w·h`（int 乘法，无溢出防护，
      DISP-COS-005）；
@@ -170,7 +170,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 ## 5 ALG-COS-005 统计基元（median / MAD 换算）
 
-- 源锚: `lib/calibration/src/cosmetic_corrector.cpp:34-54`（匿名命名空间）。
+- 源锚: `lib/algorithms/calibration/src/cosmetic_corrector.cpp:34-54`（匿名命名空间）。
 - `median_inplace(std::vector<float>&)`（:34-43）: `std::nth_element`
   就位中位数，O(n) 期望；**奇数 n** = `v[n/2]`；**偶数 n** =
   `(hi + lo) * 0.5f`，其中 `hi = v[n/2]`（nth_element 后上中位）、
@@ -217,13 +217,13 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 ## 8 遗留通道与迁移旧符号（非生产）
 
-- `lib/calibration/cpp/cosmetic_corrector.{cpp,h}`: cc_* 通道
+- `lib/algorithms/calibration/cpp/cosmetic_corrector.{cpp,h}`: cc_* 通道
   （cc_correct_median[data,bad_mask,H,W,window 奇数 3..15]/cc_detect_hot/
   cc_detect_cold/cc_last_error；局部窗口中值修复，非全局阈值检测），
   经 Makefile 编译为 cosmetic_corrector.dll；**未编译进 CMake 主构建**
-  （lib/calibration/README.md §9）。属计划迁移旧符号，公式与 ALG-COS-001..005
+  （lib/algorithms/calibration/README.md §9）。属计划迁移旧符号，公式与 ALG-COS-001..005
   不同，不得作为现状依据。
-- 迁移落点: `lib/cosmetic/`（P1-COS-IMPL 建 astrocs_p1_cosmetic.dll +
+- 迁移落点: `lib/algorithms/cosmetic/`（P1-COS-IMPL 建 astrocs_p1_cosmetic.dll +
   C ABI adapter + plan/execute/cancel/inspect + ThreadLease 接线）；
   本 DOC 不改任何生产代码。
 
@@ -298,8 +298,8 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 - API: API-COS-001（docs/contracts/PUBLIC_API.md，ac_correct_frame/
   ac_correct_frame_f64/ac_set_num_threads）；API-P1-002
   （docs/api/PHASE1_API_V1.md §2，编排合同，多模块共享）。
-- MOD/SRC: MOD-astrocs-phase1-cosmetic（lib/cosmetic/module.yaml，
-  CONTRACT_READY；lib/cosmetic/README.md 实现事实）。
+- MOD/SRC: MOD-astrocs-phase1-cosmetic（lib/algorithms/cosmetic/module.yaml，
+  CONTRACT_READY；lib/algorithms/cosmetic/README.md 实现事实）。
 - TEST: TEST-COS-DESIGN-001（本文档 §9）；可执行 TEST-P1-COS-001 由
   P1-COS-TEST 建立。
 - 摘要引用: ALG-CAL-004（docs/algorithms/CALIBRATION_ALGORITHMS.md §3.4，

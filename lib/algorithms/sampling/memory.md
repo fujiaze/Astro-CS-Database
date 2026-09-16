@@ -2,22 +2,22 @@
 
 - 任务: P2-SAMP-DOC（MODULE_MIGRATION_MATRIX P2-SAMP 行，owner
   SA-P2-S20，2026-09-09）——合同冻结层，不改生产源码，不 commit。
-  本目录 `lib/phase2_samp/` 三件套（README r1 + module.yaml +
+  本目录 `lib/algorithms/sampling/` 三件套（README r1 + module.yaml +
   memory.md）由 P2-SAMP-DOC 建立。
-- 落位: `lib/phase2_samp/`（本目录）。`lib/phase2/` 一目录一套三件套
-  已被 P2-COV（astrocs.p2.coverage）占用（lib/phase2/README.md r1，
-  2026-09-07），不可覆盖；按 `lib/phase2_int/`（P2-INT-DOC，其按
-  `lib/hips_p2/` P2-HIPS-DOC 先例）→ `lib/phase2_rej/`（P2-REJ-DOC）
+- 落位: `lib/algorithms/sampling/`（本目录）。`lib/algorithms/coverage/` 一目录一套三件套
+  已被 P2-COV（astrocs.p2.coverage）占用（lib/algorithms/coverage/README.md r1，
+  2026-09-07），不可覆盖；按 `lib/algorithms/integration/`（P2-INT-DOC，其按
+  `lib/algorithms/coverage/hips_p2/` P2-HIPS-DOC 先例）→ `lib/algorithms/rejection/`（P2-REJ-DOC）
   先例新建迁移目标目录，仅合同文件、无源码、不与 legacy 目录重叠。
   生产源引用不搬家。
 - 矩阵权威（P2-SAMP 行，禁止编造）: owner=SA-P2-S20、
   module_id=astrocs.p2.sampling、target_dll=astrocs_p2_sampling.dll、
-  legacy_paths="lib/phase2 sampling sources"、depends_on_int=
+  legacy_paths="lib/algorithms/coverage sampling sources"、depends_on_int=
   **P2-COV-INT;CPU-005**、science_specific_acceptance="coordinate/tile
   mapping;signal/variance/weight alignment;constant/gradient/impulse;
   boundary/seam;missing and invalid handling"。
-- 生产源锚（grep/read 实测，2026-09-09）: lib/phase2/src/sampler.cpp
-  （1156 行）+ lib/phase2/include/astro/phase2/sampler.h（136 行，
+- 生产源锚（grep/read 实测，2026-09-09）: lib/algorithms/coverage/src/sampler.cpp
+  （1156 行）+ lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行，
   唯一权威签名头）。几何解耦 h:6；SNR 纯查询 h:11-12；配置 15 字段
   h:32-57（control_k_corr 默认 1.4 :53、k_corr MC 注 :49-50）；
   default_config 声明 h:60；stats 10 字段 h:63-74；node h:77-83；
@@ -48,7 +48,7 @@
 - 消费链: stage2.cpp（1762 行）frame_id 预计算 :219-231、sccfg 组装
   :256-274（14 字段显式透传，control_k_corr 零初始化经 impl :497-498
   修补回退默认 1.4）、probe :279-281 / 上限 :296-300 / 分配 :301 /
-  fill :306-311。descriptor 占位（不改码）: lib/core/src/
+  fill :306-311。descriptor 占位（不改码）: lib/infrastructure/scheduler/src/
   module_adapters.cpp p2_sample_descriptor :580-592（module_id=
   astrocs.phase2.sample、ports coverage（in，DATA-P2-COV/ADU/PIXEL）
   → samples（out，DATA-P2-SMP/DIMENSIONLESS/PIXEL），占位 sci_id=
@@ -67,7 +67,7 @@
     0.012° 硬编码（:849-850）。
   - DISP-P2SMP-005: clipping 收敛阈值 1e-12×max(|m0|,1e-12) 在
     m0≈0 时过严（:818），退化固定轮数全迭代（确定性无影响）。
-- 验证锚（相邻证据，引用不冒认）: lib/phase2/tests/synthetic_gate.cpp
+- 验证锚（相邻证据，引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp
   Phase2Sampler 组（RealHipsControlSampling :3423、
   G6LocalSnrAvailabilityThreeZones :3470、G1StatisticsCorrectness
   :3594、UPMW-004 MC :4001、cvar 公式 :4089）+
@@ -84,11 +84,11 @@
   P2-XX-INT=编排层 descriptor 占位词汇与 manifest/registry 对齐
   （不改科学合同）。
 - 边界: 禁改 docs/science/ 既有文件（PHASE2_UPM.md FROZEN T106）；禁改
-  生产源码/测试/lib/phase2、lib/phase2_int、lib/phase2_rej、lib/hips_p2
+  生产源码/测试/lib/algorithms/coverage、lib/algorithms/integration、lib/algorithms/rejection、lib/algorithms/coverage/hips_p2
   既有文件；禁 git add/commit/push；run/local/ 产物不提交。
 - V6 实现登记（IMPL-P2-SAMP-001，Wave 5，2026-09-15；write_scope 显式授权
-  修改 lib/phase2/src/{sampler,coverage}.cpp 与唯一权威签名头
-  lib/phase2/include/astro/phase2/{sampler,coverage}.h；与上文 P2-SAMP-DOC
+  修改 lib/algorithms/coverage/src/{sampler,coverage}.cpp 与唯一权威签名头
+  lib/algorithms/coverage/include/astro/phase2/{sampler,coverage}.h；与上文 P2-SAMP-DOC
   的"不改生产源码"边界属不同任务层级）。在 legacy 符号/语义不变的前提下
   新增 V6 目标态纯函数面：
   * coverage/support 区分（FZ-GATE-SUPPORT-COVERAGE）：`P2CellState` 四态

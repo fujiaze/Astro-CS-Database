@@ -1,7 +1,9 @@
+> **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
+
 # `ALG-P1-001` — Phase1 V6 算法实施规格（calibration covariance / PSF information / PSFSW 四分量 / Drizzle）
 
 - 文档 ID：`ALG-P1-001-PHASE1-ALG`
-- 任务：`工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P1-001.md`（wave 3，`depends_on = SCI-ADJ-001`）
+- 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P1-001.md`（wave 3，`depends_on = SCI-ADJ-001`）
 - 写域：`docs/algorithms/v6/phase1/`（仅此一处）
 - 机器可读伴生：alg_p1_001_spec.json、alg_p1_001_test_matrix.json
 - 可复跑验证器：`tools/verify_alg_p1_001.py`

@@ -1,4 +1,4 @@
-// lib/phase3_proj/p3_projection.h — Phase3 版本化 projection registry + 冻结四投影
+// lib/algorithms/projection/p3_projection.h — Phase3 版本化 projection registry + 冻结四投影
 // (TAN/SIN/CAR/AIT) 统一签名头 — P3-001 (ASTROCS-CONSTITUTION-001 §7.3/§18.1)
 //
 // 冻结口径（ALG-P3-PROJ-IMPL-001 §15，docs/algorithms/PHASE3_PROJ_IMPL.md）:

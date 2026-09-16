@@ -16,7 +16,7 @@
 //   每个注册 fault 使对应 CHECK 确定性翻转 → rc=1, 输出 "FAULT-INJECT <name>"。
 //   可注入 registry 见 kP1wcsFaultNames[] (各 CHECK 第三参与此表对齐);
 //   注入名示例: ASTROCS_P1WCS_FAULT=u1_f1_cd_relative ./p1wcs_tests units
-// 模式对齐先例: lib/astro_image_io/tests/p1hips/p1hips_test_main.hpp
+// 模式对齐先例: lib/infrastructure/aio/tests/p1hips/p1hips_test_main.hpp
 // (c19b4a59, FaultRegistry + 组 runner + note_injected 一次性报告)。
 #ifndef P1WCS_TEST_MAIN_HPP
 #define P1WCS_TEST_MAIN_HPP

@@ -1,8 +1,8 @@
 # CPU AVX2/FMA provider（热点 kernel 后端）(CPU-003)
 
 > ID: DOC-ARCH-CPU-003 · owner: SA-CPU-A11 · 状态: FROZEN (CPU-003, 2026-09-03)
-> 上游: 15_CPU_PROVIDER_AND_RESOURCE_STANDARD.md §1/§2/§6 ·
->       AstroCS_ENGINEERING_CONSTRAINTS.md §C4-C6 · docs/architecture/CPU_BACKEND_ARCH.md
+> 上游: `ASTROCS_DESIGN.md` §8 · `ENGINEERING_SPEC.md` §10 ·
+>       docs/architecture/CPU_BACKEND_ARCH.md
 >       （ARCH-BACKEND-001 §1/§5/§6）· CPU_001_CAPABILITY_PROBE.md（CPU-001 os_safe 平面）·
 >       baseline provider 合同（CPU-002, baseline_provider_v1.h）
 > 下游: CPU-004 AVX-512 provider、CPU-005 逐 kernel 路由（以 kernel_id 选 provider）

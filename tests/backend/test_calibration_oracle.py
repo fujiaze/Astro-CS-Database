@@ -3,7 +3,7 @@
 验收(03 L123): constant/ramp/dark exposure/flat/gain/read noise/saturation/mask/NaN
                → value+variance+mask 单位/解析值全过。
 设计(independent):
-  1) GCC 编译 driver, 链接 lib/calibration/src/*.cpp(同 cli/CMakeLists.txt CAL_SRCS, 与生产同源);
+  1) GCC 编译 driver, 链接 lib/algorithms/calibration/src/*.cpp(同 cli/CMakeLists.txt CAL_SRCS, 与生产同源);
   2) driver 用**确定性解析函数**(sin/cos 闭式, 无 RNG)合成 bias/dark/flat/light 帧(含常量、ramp、
      固定离群值、NaN), 打印原始 stack 与库输出 MASTER_BIAS/DARK/FLAT、CAL0/CAL1;
   3) Python 侧只读取**原始素材**(RAW_*STACK、LIGHT), 按 astro_calibration.h 头注释规定的数学契约

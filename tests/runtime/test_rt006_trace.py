@@ -15,7 +15,7 @@
     node/module/entry/call_count/provider/status/artifact，可渲染）。
 
 方法 (照 tests/runtime/test_rt005_plan_estimator.py 先例):
-  Python unittest 内嵌 C++ driver，g++ 真实编译链接 lib/core/src
+  Python unittest 内嵌 C++ driver，g++ 真实编译链接 lib/infrastructure/scheduler/src
   (trace.cpp/context.cpp/executor.cpp/scheduler.cpp/runtime.cpp/artifact.cpp/
    module.cpp/pipeline.cpp) + include/astrocs/core 头，运行断言；
   另以 Python trace_replay.py 独立实现对照重放语义（双实现互证）。
@@ -533,7 +533,7 @@ class TestRt006Static(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which("g++"), "需要 g++")
 class TestRt006TraceCpp(unittest.TestCase):
-    """C++ harness：真实编译链接 lib/core 源码运行 RT-006 全部验收断言。"""
+    """C++ harness：真实编译链接 lib/infrastructure/scheduler 源码运行 RT-006 全部验收断言。"""
 
     @classmethod
     def setUpClass(cls):

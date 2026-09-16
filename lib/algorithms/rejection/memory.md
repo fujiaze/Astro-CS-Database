@@ -2,22 +2,22 @@
 
 - 任务: P2-REJ-DOC（MODULE_MIGRATION_MATRIX P2-REJ 行，owner SA-P2-R22，
   2026-09-09）——合同冻结层，不改生产源码，不 commit。本目录
-  `lib/phase2_rej/` 三件套（README r1 + module.yaml + memory.md）由
+  `lib/algorithms/rejection/` 三件套（README r1 + module.yaml + memory.md）由
   P2-REJ-DOC 建立。
-- 落位: `lib/phase2_rej/`（本目录）。`lib/phase2/` 一目录一套三件套已被
-  P2-COV（astrocs.p2.coverage）占用（lib/phase2/README.md r1，
-  2026-09-07），不可覆盖；按 `lib/phase2_int/`（P2-INT-DOC，其按
-  `lib/hips_p2/` P2-HIPS-DOC 先例）新建迁移目标目录，仅合同文件、
+- 落位: `lib/algorithms/rejection/`（本目录）。`lib/algorithms/coverage/` 一目录一套三件套已被
+  P2-COV（astrocs.p2.coverage）占用（lib/algorithms/coverage/README.md r1，
+  2026-09-07），不可覆盖；按 `lib/algorithms/integration/`（P2-INT-DOC，其按
+  `lib/algorithms/coverage/hips_p2/` P2-HIPS-DOC 先例）新建迁移目标目录，仅合同文件、
   无源码、不与 legacy 目录重叠。生产源引用不搬家。
 - 矩阵权威（P2-REJ 行，禁止编造）: owner=SA-P2-R22、
   module_id=astrocs.p2.rejection、target_dll=astrocs_p2_rejection.dll、
-  legacy_paths="lib/phase2 rejection sources"、depends_on_int=
+  legacy_paths="lib/algorithms/coverage rejection sources"、depends_on_int=
   **P2-UPM-INT;CPU-005**（注: P2-REJ-INT 是 P2-INT 行的 depends_on_int
   本域被依赖项，勿混淆）、science_specific_acceptance="sigma/winsor/
   linear-fit/ESD definitions;frame identity;small N;NaN;cosmic ray
   injection;mask/provenance;deterministic decisions"。
-- 生产源锚（grep/read 实测）: lib/phase2/src/rejection.cpp（2076 行）
-  + lib/phase2/include/astro/phase2/rejection.h（329 行，唯一权威
+- 生产源锚（grep/read 实测）: lib/algorithms/coverage/src/rejection.cpp（2076 行）
+  + lib/algorithms/coverage/include/astro/phase2/rejection.h（329 行，唯一权威
   签名头）。判向冻结 h:20-21；normalization 三态 h:94-96；percentile
   params h:117-119（DISP-P2REJ-001 锚）；large_scale 默认 h:142-148
   （enabled=0/min_structure 8/半径 2/2）；方法 0..10 h:46-56
@@ -43,7 +43,7 @@
   （并行块内）、OMP 像素间并行 :1288、per-thread 统计 thread id
   定序归并 :1305-1313、large_scale 两遍 :1544-1605（调用 :1549）。
   acr_kernels.cpp（361 行）OMP :218/:228 schedule(static)。
-- descriptor 占位（不改码）: lib/core/src/module_adapters.cpp
+- descriptor 占位（不改码）: lib/infrastructure/scheduler/src/module_adapters.cpp
   p2_reject_descriptor :638-655（module_id=astrocs.phase2.reject、
   sci_id=SCI-P2-REJ-001/alg_id=ALG-P2-REJ-001/data_id=DATA-P2-REJ/
   api_id=API-P2-001/test_id=TEST-P2-REJ-001、ports corrected（in，
@@ -66,7 +66,7 @@
   - DISP-P2REJ-004: minmax value-only tie-break 未显式冻结
     （sort :1667-1669，比较器仅 value），等值样本 permutation
     不变性未承诺。
-- 验证锚（相邻证据，引用不冒认）: lib/phase2/tests/synthetic_gate.cpp
+- 验证锚（相邻证据，引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp
   Phase2Rejection 组 :2639-2725（R1/G4 等）+ G6 组 :2779-2863
   （ESD NIST Rosner 54/掩蔽/winsor≠sigma/permutation）+ V15-V17 组
   :4138-4864（V16GatherStridedFp32Fp64 :4592、V17InvalidMethodStatus
@@ -82,14 +82,14 @@
   P2-REJ-INT=descriptor 对齐注册与 Phase DAG 接入；P2-XX-INT=编排层
   descriptor 占位词汇与 manifest/registry 对齐（不改科学合同）。
 - 边界: 禁改 docs/science/ 既有文件（REJECTION.md FROZEN T107）；禁改
-  生产源码/测试/lib/phase2、lib/phase2_int、lib/hips_p2 既有文件；
+  生产源码/测试/lib/algorithms/coverage、lib/algorithms/integration、lib/algorithms/coverage/hips_p2 既有文件；
   禁 git add/commit/push；run/local/ 产物不提交。
 
 ## IMPL-P2-REJ-001（Wave 5，V6 分类排异实现）
 
 - 任务: IMPL-P2-REJ-001（wave 5，depends_on CONTRACT-FREEZE-001）。只改
-  write_scope：`lib/phase2/src/rejection.cpp`、
-  `lib/phase2/include/astro/phase2/rejection.h`、`lib/phase2_rej/`、
+  write_scope：`lib/algorithms/coverage/src/rejection.cpp`、
+  `lib/algorithms/coverage/include/astro/phase2/rejection.h`、`lib/algorithms/rejection/`、
   `tests/unit/v6_p2_rej/`；未改 docs/、ci/、根/测试公共 CMakeLists。
 - 新增接口（头 `rejection.h`；实现 `rejection.cpp` 末尾 V6 段）:
   - `p2_reject_classify`：按预测残差方差

@@ -2,15 +2,15 @@
 
 - 任务: P3-PROJ-DOC（MODULE_MIGRATION_MATRIX P3-PROJ 行，owner
   SA-P3-P25，2026-09-11）——合同冻结层，不改生产源码，不 commit。
-  本目录 `lib/phase3_proj/` 三件套（README r1 + module.yaml +
+  本目录 `lib/algorithms/projection/` 三件套（README r1 + module.yaml +
   memory.md）由 P3-PROJ-DOC 建立。
-- 落位: `lib/phase3_proj/`（本目录）。实测生产源
+- 落位: `lib/algorithms/projection/`（本目录）。实测生产源
   lib/phase3_session/p3_wcs.cpp + p3_wcs.h 位于 lib/phase3_session/
   ——该目录为 Phase3 会话编排域共享源（p3_session/p3_resample/
   p3_output/p3_wcs/hips_properties 五源同库 astrocs_phase3_session，
   根 CMakeLists.txt:460-465），非整目录归属本域（矩阵
   legacy_paths="lib/phase3_session projection sources" 只圈
-  projection sources）；按 lib/phase2_upm→phase2_samp→phase2_rej→
+  projection sources）；按 lib/algorithms/upm→phase2_samp→phase2_rej→
   phase2_int→hips_p2→phase3_fits 迁移目录先例新建迁移目标目录，
   仅合同文件、无源码、不与 legacy 目录重叠；legacy 生产源引用
   不搬家。
@@ -108,7 +108,7 @@
   输出；日志 run/local/agent_p3_proj_doc/）。
 - 红线遵守: docs/science/ 根公式零改动；lib/phase3_session/
   生产源 .cpp/.h 零改动；ci/、.github/、tools/、tests/ 零改动；
-  批次 P（tests/backend、tests/cli）/批次 Q（lib/core/、lib/common
+  批次 P（tests/backend、tests/cli）/批次 Q（lib/infrastructure/scheduler/、lib/algorithms/shared
   io_adapter、cli/main.cpp）在途域只读不动；本任务零 git 操作。
 
 ## P3-001（2026-09-10，控制包 ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev54，attempt 1）

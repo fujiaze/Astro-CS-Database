@@ -2,17 +2,17 @@
 
 - 任务: P2-UPM-DOC（MODULE_MIGRATION_MATRIX P2-UPM 行，owner
   SA-P2-U21，2026-09-10）——合同冻结层，不改生产源码，不 commit。
-  本目录 `lib/phase2_upm/` 三件套（README r1 + module.yaml +
+  本目录 `lib/algorithms/upm/` 三件套（README r1 + module.yaml +
   memory.md）由 P2-UPM-DOC 建立。
-- 落位: `lib/phase2_upm/`（本目录）。`lib/phase2/` 一目录一套三件套
-  已被 P2-COV（astrocs.p2.coverage）占用（lib/phase2/README.md r1），
-  不可覆盖；按 `lib/phase2_int/`（P2-INT-DOC，其按 `lib/hips_p2/`
-  P2-HIPS-DOC 先例）→ `lib/phase2_rej/`（P2-REJ-DOC）→
-  `lib/phase2_samp/`（P2-SAMP-DOC）先例新建迁移目标目录，仅合同
+- 落位: `lib/algorithms/upm/`（本目录）。`lib/algorithms/coverage/` 一目录一套三件套
+  已被 P2-COV（astrocs.p2.coverage）占用（lib/algorithms/coverage/README.md r1），
+  不可覆盖；按 `lib/algorithms/integration/`（P2-INT-DOC，其按 `lib/algorithms/coverage/hips_p2/`
+  P2-HIPS-DOC 先例）→ `lib/algorithms/rejection/`（P2-REJ-DOC）→
+  `lib/algorithms/sampling/`（P2-SAMP-DOC）先例新建迁移目标目录，仅合同
   文件、无源码、不与 legacy 目录重叠。生产源引用不搬家。
 - 矩阵权威（P2-UPM 行，禁止编造）: owner=SA-P2-U21、
   module_id=astrocs.p2.upm、target_dll=astrocs_p2_upm.dll、
-  legacy_paths="lib/phase2 upm sources"、depends_on_int=
+  legacy_paths="lib/algorithms/coverage upm sources"、depends_on_int=
   **P2-SAMP-INT;CPU-005**、science_specific_acceptance="control
   points;photometric surface basis/regularization/gauge;fit+apply+
   persist+reload;known plane recovery;overlap seam residual;
@@ -29,8 +29,8 @@
   ALG-P2-UPM-001/002（astrocs.phase2.upm-fit/apply.md 头部），ID
   风格与 ALG-P2-SMP-001（phase2_samp 先例）同族，取 -IMPL-1 避免
   与占位 ALG-P2-UPM-001/002 冲突；descriptor 占位 ID 不入合同。
-- 生产源锚（grep/read 实测，2026-09-10）: lib/phase2/src/upm.cpp
-  （1565 行）+ lib/phase2/include/astro/phase2/upm.h（184 行，
+- 生产源锚（grep/read 实测，2026-09-10）: lib/algorithms/coverage/src/upm.cpp
+  （1565 行）+ lib/algorithms/coverage/include/astro/phase2/upm.h（184 行，
   唯一权威签名头）。P2ControlObservation h:31-57（control_variance/
   control_ivar 冻结注 :43-50、ivar 弃用注 :40-42、snr_available
   :51-54）；P2ModelInfo h:60-68（model_hash[65] :67）；P2UpmBuildConfig
@@ -71,11 +71,11 @@
   （persist_upm+upm_save_path :222-233）；【DISP-003】upm 覆盖键仅
   {max_iterations,huber_delta,smoothing_lambda}（:196-204），
   zero_anchor_weight/tolerance 等无 config 键（schema 扩展归
-  P2-SESSION-IMPL）。apply 面消费=lib/phase2/tools/stage2.cpp 经
+  P2-SESSION-IMPL）。apply 面消费=lib/algorithms/coverage/tools/stage2.cpp 经
   p2_upm_calibrate_block :927/:1272（无独立 apply 段）；AIO 后端
-  lib/astro_image_io/src/aio_upm.cpp（aio_upm_write_sparse :66、
+  lib/infrastructure/aio/src/aio_upm.cpp（aio_upm_write_sparse :66、
   dense 格式 astrocs-upm-dense-v2 :223/:407）。descriptor 占位
-  （不改码）: lib/core/src/module_adapters.cpp:599-632
+  （不改码）: lib/infrastructure/scheduler/src/module_adapters.cpp:599-632
   p2_upm_fit_descriptor（:599-613，module_id=astrocs.phase2.upm-fit、
   ports samples in → upm_model out 可选【DISP-004】、占位 sci_id=
   SCI-P2-UPM-001/alg_id=ALG-P2-UPM-001/data_id=DATA-P2-SMP/
@@ -118,8 +118,8 @@
   schema 扩展（DISP-003）；P2-UPM-INT / P2-XX-INT=descriptor 占位
   词汇与 manifest/registry 对齐（DISP-004，不改科学合同）。
 - 边界: 禁改 docs/science/ 既有文件（PHASE2_UPM.md FROZEN T106）；
-  禁改生产源码/测试/lib/phase2、lib/phase2_int、lib/phase2_rej、
-  lib/phase2_samp、lib/hips_p2 既有文件；禁 git add/commit/push；
+  禁改生产源码/测试/lib/algorithms/coverage、lib/algorithms/integration、lib/algorithms/rejection、
+  lib/algorithms/sampling、lib/algorithms/coverage/hips_p2 既有文件；禁 git add/commit/push；
   run/local/ 产物不提交。
 ---
 
@@ -129,11 +129,11 @@
 > 不改写上文 P2-UPM-DOC 历史合同文本。上位：\`ALG-P2-SURF-UPM.md\`
 > （\`ALG-P2S-UPM.1..8\`）、\`docs/contracts/v6/frozen/*\`、\`docs/algorithms/v6/frozen/*\`。
 
-- 新增公共面（\`lib/phase2/include/astro/phase2/upm.h\`）：
+- 新增公共面（\`lib/algorithms/coverage/include/astro/phase2/upm.h\`）：
   \`P2UpmMaObservation\` / \`P2UpmMaConfig\` / \`P2UpmMaInfo\` +
   \`p2_upm_ma_build/info/solution/component_of_frame/component_of_control/\`
   \`component_ref_frame/param_cov/c_out/provenance/close\` +
-  \`p2_upm_control_variance\`。实现位于 \`lib/phase2/src/upm.cpp\`
+  \`p2_upm_control_variance\`。实现位于 \`lib/algorithms/coverage/src/upm.cpp\`
   （匿名 namespace helpers + \`extern "C"\` 段）。
 - 模型：\`y_k(p) = g_k * s(p) + b_k\`（\`ALG-P2S-UPM.1\`）；g/b 分别估计，
   禁止把乘法尺度藏进加性场（宪章 §6.3）。空间加性场 b_k(x) 的数据面

@@ -37,10 +37,10 @@
   :260）；destroy :268-273；last_error :277-282。取消四段边界
   :120/:152/:181/:223（persist 先 close :224）。
 - 构建锚: 根 CMakeLists.txt astrocs_phase2_session STATIC :454
-  （:455-457 include lib/phase2/include、:458 link
+  （:455-457 include lib/algorithms/coverage/include、:458 link
   astrocs_contracts+astrocs_phase2）；astrocs 可执行链接 :501-506/:504；
   QA-001 严格警告名单 :517-529/:522。
-- 消费链: lib/core/src/module_adapters.cpp——P2Api :711-718（五静态
+- 消费链: lib/infrastructure/scheduler/src/module_adapters.cpp——P2Api :711-718（五静态
   委托）、phase2_descriptor() :283-300（module_id=astrocs.phase2.
   resample 占位）、占位 descriptor 注册段 :746-751、canonical 7 节点链
   descriptors 定义 :561-694/注册段 :782-794（工厂统一

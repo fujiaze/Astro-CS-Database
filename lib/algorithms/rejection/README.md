@@ -1,16 +1,16 @@
 # astrocs.p2.rejection — Phase2 候选栈排异模块（P2-REJ）
 
 > P2-REJ-DOC（2026-09-09，SA-P2-R22）新建模块页。合同三件套落位
-> `lib/phase2_rej/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
-> entrypoint=MISSING）——迁移目标目录按 `lib/phase2_int/`（P2-INT-DOC，
-> 其按 `lib/hips_p2/` P2-HIPS-DOC 先例）新建；`lib/phase2/` 三件套已被
-> P2-COV（astrocs.p2.coverage）占用（lib/phase2/README.md r1，一目录一套
+> `lib/algorithms/rejection/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
+> entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/integration/`（P2-INT-DOC，
+> 其按 `lib/algorithms/coverage/hips_p2/` P2-HIPS-DOC 先例）新建；`lib/algorithms/coverage/` 三件套已被
+> P2-COV（astrocs.p2.coverage）占用（lib/algorithms/coverage/README.md r1，一目录一套
 > README/module.yaml/memory.md，不可覆盖）。生产源
-> `lib/phase2/src/rejection.cpp`（2076 行，根 CMakeLists astrocs_phase2
+> `lib/algorithms/coverage/src/rejection.cpp`（2076 行，根 CMakeLists astrocs_phase2
 > 静态库成员 :336-346/:340）+ 唯一权威签名头
-> `lib/phase2/include/astro/phase2/rejection.h`（329 行）；消费链
-> `lib/phase2/tools/stage2.cpp`（1762 行，马赛克编排）与
-> `lib/phase2/src/acr_kernels.cpp`（361 行，ACR 加速），均为本模块
+> `lib/algorithms/coverage/include/astro/phase2/rejection.h`（329 行）；消费链
+> `lib/algorithms/coverage/tools/stage2.cpp`（1762 行，马赛克编排）与
+> `lib/algorithms/coverage/src/acr_kernels.cpp`（361 行，ACR 加速），均为本模块
 > 合同消费者。
 
 ## 身份与合同
@@ -20,7 +20,7 @@
   （MODULE_MIGRATION_MATRIX P2-REJ 行）；dll_target：
   `astrocs_p2_rejection.dll`（合同值，尚未存在，迁移归 P2-REJ-IMPL）。
 - owner SA-P2-R22；depends_on_int=P2-UPM-INT;CPU-005；
-  legacy_paths="lib/phase2 rejection sources"（均以
+  legacy_paths="lib/algorithms/coverage rejection sources"（均以
   MODULE_MIGRATION_MATRIX.csv P2-REJ 行为权威）。
 - 合同链：SCI-REJ-001（docs/science/REJECTION.md，FROZEN T107
   2026-08-23，集合 SCI-REJ-001..008，legacy RJ-001..008；descriptor
@@ -93,7 +93,7 @@
 docs/modules/registry/astrocs.phase2.reject.md §独立 synthetic
 验证节 + ALG-P2-REJ-001 §11.4 F1-F8 容差（F1-F6/F8 bitwise/枚举/
 计数精确、F7 rtol 1e-12、large_scale mask 精确）。现状相邻证据
-（引用不冒认）：lib/phase2/tests/synthetic_gate.cpp Phase2Rejection
+（引用不冒认）：lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Rejection
 组 :2639-2725 + G6 组 :2779-2863 + V15-V17 组 :4138-4864
 （V16GatherStridedFp32Fp64 :4592、V17InvalidMethodStatus :4763、
 V17LargeScale* :4798-4864）；tests/backend/
@@ -102,7 +102,7 @@ tests/unit/p2_rejection_test.cpp（P2-005）。
 
 ## 链接
 
-- README/module.yaml/memory.md：`lib/phase2_rej/`（本目录）
+- README/module.yaml/memory.md：`lib/algorithms/rejection/`（本目录）
 - SCI：docs/science/REJECTION.md（SCI-REJ-001，FROZEN T107
   2026-08-23，零改动）
 - ALG：docs/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）

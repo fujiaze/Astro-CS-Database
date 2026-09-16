@@ -2,7 +2,7 @@
 //
 // 合同锚: include/astrocs/io/aio_abi_v1.h + contracts/data/aio_abi_contract_v1.json。
 // 独立 oracle: FIPS 180-4 标准向量 (python hashlib 预生成, 非被测代码生成)
-// + astrocs::crypto::Sha256 (lib/common 单一实现, 与 AIO UPM 同源) 交叉对拍。
+// + astrocs::crypto::Sha256 (lib/algorithms/shared 单一实现, 与 AIO UPM 同源) 交叉对拍。
 // 状态码对齐: 与 acs_fio_status (fits_stream_v1.h) 0..13 全域编译期交叉断言。
 //
 // 组:
@@ -62,7 +62,7 @@ const HashCase kNistCases[] = {
     {"b129", 129, nullptr, "0ec9eb33e74510bcdd1f2ea55206e82f21649c5c2becbf2b433eb475b34c01bd"},
 };
 
-// 独立 SHA-256 oracle: lib/common 单一实现 (公开算法; 非 AIO ABI 通道)
+// 独立 SHA-256 oracle: lib/algorithms/shared 单一实现 (公开算法; 非 AIO ABI 通道)
 std::string oracle_hex(const void* data, std::size_t len) {
     Sha256 h;
     h.update(data, len);
@@ -120,7 +120,7 @@ int test_units(CheckState& cs) {
                   "u1_status_align_fio");
     }
 
-    // U2: NIST 标准向量 (oracle=hashlib 预生成) + lib/common Sha256 交叉对拍
+    // U2: NIST 标准向量 (oracle=hashlib 预生成) + lib/algorithms/shared Sha256 交叉对拍
     {
         for (const auto& tc : kNistCases) {
             // 内容: 字面向量 (abc/fips*) 或 'x'*len (块边界族); 空向量 data=NULL

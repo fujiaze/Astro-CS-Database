@@ -5,8 +5,8 @@
 > :130 实现锚 finalize_tile 方差语义、:145 support=D_p 归一语义）
 > 与 SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md，产品目标）；读侧消费合同
 > SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，只读引用）。
-> 实现源（逐公式锚定，P1-HIPS-DOC 亲核）: lib/astro_image_io/src/hips/aio_hips_writer.cpp
-> （合同头 lib/astro_image_io/include/aio_hips.h）。
+> 实现源（逐公式锚定，P1-HIPS-DOC 亲核）: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
+> （合同头 lib/infrastructure/aio/include/aio_hips.h）。
 > 数据语义权威: docs/contracts/DATA_SEMANTICS.md §12（DATA-P1-HIPS；上游 §11 DATA-P1-DRZ、
 > §4a DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001、§3 FITS 局部像素映射、§5 帧身份）。
 > HiPS 1.0/1.4 外部参照: IVOA HiPS 推荐（Fernique et al. 2015）、HEALPix 算法
@@ -280,7 +280,7 @@ round-trip（(5c)）。容差冻结见 §9。
   Hipsgen 样例）；FITS 头键精确匹配；MOC UNIQ 精确（式见 (5a)）；
   hierarchy 父像素=子像素精确聚合（NESTED 4 分叉）。独立复检生态参考：
   HIPS_VERIFY（orchestrator :3794 起，经 aio_hips_reader）与
-  gate7_hips_validate.py（lib/photometric_calib/.../gate7_hips_validate.py，
+  gate7_hips_validate.py（lib/algorithms/photometry/.../gate7_hips_validate.py，
   astropy 独立复检 tile 头/DATASUM/support∈[0,1]/F=signal×support×A_cell/
   MOC↔叶级一一对应）——其不变量与 I1-I8 相容，可作 oracle 参照实现。
 - **不变量**：I1 逐像素 signal=flux/area；I2 support=min(area/A_cell,1)≤1；
@@ -330,17 +330,17 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
 
 - 上游：SCI-DRZ-001（DRIZZLE.md，共享引用）、SCI-SCOPE-001；ALG-DRZ-001
   （tile 累加上游，DRIZZLE_GEOMETRY.md）；ALG-HEALPIX-001（NESTED 核心，
-  HEALPIX_MAPPING.md 索引卡，lib/common/healpix 权威实现——healpix_drizzle
+  HEALPIX_MAPPING.md 索引卡，lib/algorithms/shared/healpix 权威实现——healpix_drizzle
   内 healpix_core.h 为 DEPRECATED shim，healpix_stack 系列函数全仓零调用
   已死代码化）。
 - 下游/合同：DATA-P1-HIPS（DATA_SEMANTICS §12）、API-HIPS-001
   （PUBLIC_API.md）、API-P1-007（编排级 hp_drizzle_run_hips 区间）、
   ARCH-001、IO-003（发布合同，对齐不越权）、SCI-P3-001（读侧消费）。
-- 模块：MOD-astrocs-phase1-hips-writer（lib/hips/README.md、module.yaml、
+- 模块：MOD-astrocs-phase1-hips-writer（lib/algorithms/drizzle/hips/README.md、module.yaml、
   registry astrocs.phase1.hips-writer.md）；traceability 行
   MOD-astrocs-phase1-hips-writer。
 - 相邻（不改）：aio_hips_reader.cpp（P3 读链，HIPS_VERIFY 后端）、
   astro_sphere_sink.cpp（P1-DRZ 写通道 sink）、hiss_codec/hiss_stream_writer
   （独立中间容器，legacy_hiss_compare 开关封闭，CFG-002 关闭 HISS_VERIFY
   orchestrator:3404-3407）、orchestrator.cpp（stage 编排）、
-  lib/phase2/tools/stage2.cpp:592（Phase2 写方）。
+  lib/algorithms/coverage/tools/stage2.cpp:592（Phase2 写方）。

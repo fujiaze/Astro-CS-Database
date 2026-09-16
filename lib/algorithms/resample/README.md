@@ -1,8 +1,8 @@
-# lib/phase3_rsmp — astrocs.p3.resample（HiPS 重采样域合同）
+# lib/algorithms/resample — astrocs.p3.resample（HiPS 重采样域合同）
 
 > P3-RSMP-DOC 冻结（2026-09-12，SA-P3-R）。本目录为 Phase3 HiPS 重采样域
 > 迁移合同落位（三件套：README + module.yaml + memory.md），照
-> lib/phase3_proj→phase3_fits 迁移目录先例新建。**现状**：生产源实际
+> lib/algorithms/projection→phase3_fits 迁移目录先例新建。**现状**：生产源实际
 > 位于 lib/phase3_session/（p3_resample.h 58 行 + p3_resample.cpp 239 行，
 > astrocs_phase3_session 静态库成员，根 CMakeLists.txt:460-465）；
 > dll_target=astrocs_p3_resample.dll 为矩阵合同值，尚未存在

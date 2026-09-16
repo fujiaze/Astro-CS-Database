@@ -1,4 +1,4 @@
-// lib/phase2 tests — tests/unit/v6_p2_samp/v6_p2_samp_test.cpp
+// lib/algorithms/coverage tests — tests/unit/v6_p2_samp/v6_p2_samp_test.cpp
 //
 // IMPL-P2-SAMP-001 共址单元测试：Phase2 采样/覆盖 V6 目标态
 //   - coverage/support 区分（FZ-GATE-SUPPORT-COVERAGE）

@@ -1,6 +1,6 @@
 # CMakeLists.txt - astrocs_p1_drizzle 模块 DLL (P1-DRZ-IMPL 迁移面)
 #
-# 对齐先例: lib/gaia_xpsd_client/CMakeLists.txt (CAT-GAIA-IMPL, babe752d)。
+# 对齐先例: lib/infrastructure/gaia_xpsd_client/CMakeLists.txt (CAT-GAIA-IMPL, babe752d)。
 # 关键事实 (迁移报告 T-1): 现有 STATIC 库 astrocs_drizzle 的对象非 PIC
 # (TLS local-exec 重定位 R_X86_64_TPOFF32, 链接 .so 失败实证), 因此本模块
 # SHARED 目标从源文件独立重编译生产源 (POSITION_INDEPENDENT_CODE ON),
@@ -16,7 +16,7 @@
 # astrocs_drizzle :368 逐项一致), 链接以 target 名引用 (生成期解析)。
 
 # ── 生产源 (与根 CMakeLists.txt astrocs_drizzle 逐文件一致) ──
-set(DRZ_PROD_DIR "${CMAKE_SOURCE_DIR}/lib/healpix_db/healpix_drizzle")
+set(DRZ_PROD_DIR "${CMAKE_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle")
 set(DRZ_PROD_SOURCES
     ${DRZ_PROD_DIR}/fits_reader.cpp
     ${DRZ_PROD_DIR}/wcs_sip.cpp
@@ -38,25 +38,25 @@ set(DRZ_ADAPTER_SOURCES
 # R_X86_64_TPOFF32 链 .so 失败实证 → 不可链 .a)。源列表与根 STATIC 库
 # 逐文件一致, 语义同源; cfitsio 源变量在根 :66 已 include, 此处可直接引用。
 set(DRZ_AIO_SOURCES
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/aio_fits.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/aio_api.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/aio_log.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/aio_compressor.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/aio_xisf.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/aio_pipeline.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/hips/aio_hips_reader.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/hips/aio_hips_writer.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/healpix/aio_healpix_io.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/hiss_codec.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/hiss_common.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/hiss_reader.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/hiss_stream_writer.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/hiss_tile_model.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/hiss_transform.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/hiss_writer.cpp
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src/aio_upm.cpp
-    ${CMAKE_SOURCE_DIR}/lib/common/crypto/sha256.cpp
-    ${CMAKE_SOURCE_DIR}/lib/common/healpix/healpix_core.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/aio_fits.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/aio_api.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/aio_log.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/aio_compressor.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/aio_xisf.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/aio_pipeline.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hips/aio_hips_reader.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/healpix/aio_healpix_io.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hiss_codec.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hiss_common.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hiss_reader.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hiss_stream_writer.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hiss_tile_model.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hiss_transform.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/hiss_writer.cpp
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src/aio_upm.cpp
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/crypto/sha256.cpp
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/healpix/healpix_core.cpp
 )
 add_library(astrocs_p1_drizzle SHARED
     ${DRZ_ADAPTER_SOURCES}
@@ -84,13 +84,13 @@ target_include_directories(astrocs_p1_drizzle PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${DRZ_PROD_DIR}
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/include
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/src
-    ${CMAKE_SOURCE_DIR}/lib/common
-    ${CMAKE_SOURCE_DIR}/lib/common/healpix
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/include
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/shared
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/healpix
 )
 target_include_directories(astrocs_p1_drizzle SYSTEM PRIVATE
-    ${CMAKE_SOURCE_DIR}/lib/astro_image_io/third_party/cfitsio
+    ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
     ${CMAKE_SOURCE_DIR}/third_party          # nlohmann/json.hpp (aio_upm)
 )
 # QA-001: nanoflann.hpp (snr_evaluator KD-tree) -isystem 隔离 (若 vendored)

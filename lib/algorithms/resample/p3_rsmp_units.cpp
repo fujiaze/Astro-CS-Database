@@ -1,4 +1,4 @@
-// lib/phase3_rsmp/p3_rsmp_units.cpp
+// lib/algorithms/resample/p3_rsmp_units.cpp
 // 单位表 / BUNIT 二次律 / 模式枚举（冻结表 docs/contracts/v6/frozen/）。
 #include "p3_rsmp.h"
 

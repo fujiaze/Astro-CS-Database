@@ -1,7 +1,7 @@
-// lib/phase3_proj/p3_proj_v6.h — V6 Phase3 投影实现层（标准 FITS WCS Paper II
+// lib/algorithms/projection/p3_proj_v6.h — V6 Phase3 投影实现层（标准 FITS WCS Paper II
 // 四投影 + 逐像素立体角 Ω + R/S 行/列归一二元语义 + 计划/奇点/wrap）
 //
-// 任务: IMPL-P3-PROJ-001（wave 5, write_scope=lib/phase3_proj/）
+// 任务: IMPL-P3-PROJ-001（wave 5, write_scope=lib/algorithms/projection/）
 // 上位冻结:
 //   * 宪章 §7.3（版本化 projection registry；每投影声明适用天区/奇点/经纬方向/
 //     CRPIX/CRVAL/CD/CTYPE/合法 FOV/独立往返 Oracle；禁止 CLI switch 散落）+ §18.1

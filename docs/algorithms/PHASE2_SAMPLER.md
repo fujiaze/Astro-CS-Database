@@ -11,11 +11,11 @@
 > §处理链第 5 步"控制采样"（链位置）。
 > 关联 ALG: ALG-UPM-CONTROL-IVAR-001（本文件 §5.4 冻结承接，见 §12）；
 > ALG-UPM-001（UPM 拟合，下游消费方）。
-> 模块: lib/phase2/src/sampler.cpp（1156 行）+ 唯一权威签名头
-> lib/phase2/include/astro/phase2/sampler.h（136 行，实测 2026-09-09）；
+> 模块: lib/algorithms/coverage/src/sampler.cpp（1156 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行，实测 2026-09-09）；
 > DATA: DATA-P2-SMP（DATA_SEMANTICS §23）；API: API-P2-SMP-001
 > （PUBLIC_API.md）；MOD: astrocs.p2.sampling（合同三件套
-> lib/phase2_samp/，迁移目标 astrocs_p2_sampling.dll 为矩阵合同值
+> lib/algorithms/sampling/，迁移目标 astrocs_p2_sampling.dll 为矩阵合同值
 > 尚未存在，由 P2-SAMP-IMPL 建立，禁止声明 IMPLEMENTED）。
 
 ## 1 目的与非目标
@@ -293,7 +293,7 @@ g_aio_mu（:161 声明，read_tile_pair :166 加锁；并行路径 per-worker �
 **OpenMP 残留澄清**：PHASE2_SAMPLER 旧 §并行模型 的
 `P2_ENABLE_OPENMP` 表述为历史状态——当前实现 OpenMP 已移除、
 std::thread 为唯一并行路径（:879-880 注释"OpenMP 条件已移除"；
-lib/phase2/CMakeLists.txt:28 option 保留仅影响旧 target 编译面）。
+lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编译面）。
 本节为并行语义唯一权威。
 
 ## 7 与 SCI 的对应与偏差（如实登记）
@@ -458,7 +458,7 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 - 本层: ALG-P2-SMP-001（本文件）；ALG-UPM-CONTROL-IVAR-001（子面）；
 - 下游 DATA: DATA-P2-SMP（DATA_SEMANTICS §23）；API: API-P2-SMP-001
   （PUBLIC_API.md）；MOD: MOD-astrocs-phase2-sample（registry 行，
-  合同三件套 lib/phase2_samp/）；TEST: TEST-P2-SMP-DESIGN-001
+  合同三件套 lib/algorithms/sampling/）；TEST: TEST-P2-SMP-DESIGN-001
   （§11.3 设计冻结，registry 页承载）→ TEST-P2-SMP-001（可执行，
   P2-SAMP-TEST 落地前 MISSING）；
 - 矩阵行：MOD-astrocs-phase2-sample（P2-SAMP 行原位融合，

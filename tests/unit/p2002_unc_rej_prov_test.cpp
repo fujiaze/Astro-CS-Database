@@ -2,7 +2,7 @@
 // §30.3 provenance 键组（DATA-P2-REJ-001 / DATA-P2-PROV-001 白名单内承载面）
 //
 // 验收映射（控制包 P2-002, 前台 owner 口径①-⑤, BASE=8545d70a）:
-//   1. §30.2 kernel 语义锚（lib/phase2 白名单内库面直调, 正确 gather 契约
+//   1. §30.2 kernel 语义锚（lib/algorithms/coverage 白名单内库面直调, 正确 gather 契约
 //      value_stride=每帧元素跨度）: AUTO n=3 → PERCENTILE(median_center,
 //      low 0.2/high 0.1); flat 栈全 ACCEPTED(nrej=0); 单帧离群点
 //      REJECTED_HIGH(nrej=1, SCI-REJ §5 reason∉{ACCEPTED,UNDERDETERMINED}
@@ -12,7 +12,7 @@
 //      (覆盖像素=depth、无覆盖角落=0); int 无 NaN → 0 即"无"（禁 −1 哨兵）;
 //      dtype 固定 int32（文件字节 == 4·n_pixels）。
 //      [finding F-P2-002-01 锚] 生产 reject 的 gather 调用缺陷
-//      （lib/core 白名单外）使 depth≥3 的 rejection bins 与 kernel 语义
+//      （lib/infrastructure/scheduler 白名单外）使 depth≥3 的 rejection bins 与 kernel 语义
 //      失真且非确定——本测试只锚定"投影==bins"与 kernel 直调语义。修复
 //      验证断言已补于 test_f_p2002_01_rejection_parity（§2b）: 生产 bins==
 //      kernel 重放逐 bin 一致 + void 角落 nrej==0 + depth≥3 双跑/1v4
@@ -35,8 +35,8 @@
 //      fixture（F3 离群点 nrej=1）: 判定 depth 依据经 candidates bins 机器
 //      佐证（covered → cand==3 / void → cand==0）, 非测试面自述。
 //      库面对照（2d）: 按 kernel reason 逐样本构造 accepted 掩码后
-//      p2_integrate_pixel → 恒等式成立（证明 lib/phase2 契约正确）; 而把
-//      逐样本剔除塌缩为像素级 accepted 标志（= 基线 lib/core 节点链接线）
+//      p2_integrate_pixel → 恒等式成立（证明 lib/algorithms/coverage 契约正确）; 而把
+//      逐样本剔除塌缩为像素级 accepted 标志（= 基线 lib/infrastructure/scheduler 节点链接线）
 //      → 恒等式被破坏（同一断言在库面直接判负）。
 //      depth=3 1/4 worker parity（2e）+ ASTROCS_P2002_FAULT=identity 等价
 //      缺陷注入必败（2c 负向对照）。
@@ -368,7 +368,7 @@ bool run_kernel(const double* frame_major, std::uint32_t depth,
 
 }  // namespace
 
-// ── 1. §30.2 kernel 语义直调（lib/phase2 白名单内库面, 正确 gather 契约）───
+// ── 1. §30.2 kernel 语义直调（lib/algorithms/coverage 白名单内库面, 正确 gather 契约）───
 static void test_s302_kernel_semantics() {
   // plan resolve: AUTO n=3 → PERCENTILE（wbpp_current 路由 n<6）
   P2RejectionPlanRequest req{};
@@ -503,7 +503,7 @@ static void test_s302_integration_projection(bool fault_inject) {
     }
   // 无覆盖角落: int 无 NaN → nused=0（0 即"无", 禁 −1 哨兵）。
   // [finding F-P2-002-01 锚] nrej 角落断言（§30.2 invalid: 无覆盖 → nrej=0）
-  // 在生产 reject gather 调用缺陷（lib/core 白名单外, 越界读+契约错位）修复
+  // 在生产 reject gather 调用缺陷（lib/infrastructure/scheduler 白名单外, 越界读+契约错位）修复
   // 前无法锚定——缺陷使无覆盖像素 nrej bins 非零且非确定, 修复后须补
   // nrej_plane[void]==0 断言。
   for (uint32_t y = 448u; y < kTw; ++y)
@@ -516,7 +516,7 @@ static void test_s302_integration_projection(bool fault_inject) {
   // 平面非负守卫（弱界, 保留为越界哨兵）: nused+nrej ∈ [0, 2·depth]。
   // 严格恒等式 n_ineligible = depth − nused − nrej 由 2c 逐像素锚定
   // （F-P2-002-01 kernel 一致性已于 991e3e2e 修复; F-P2-002-02 逐样本剔除
-  // 归属 lib/core 节点链接线, 见 2c/2d 与 finding F-SCI-F2-001-01）。
+  // 归属 lib/infrastructure/scheduler 节点链接线, 见 2c/2d 与 finding F-SCI-F2-001-01）。
   for (size_t i = 0; i < nused.size(); ++i) {
     const int32_t s = nused[i] + nrej_plane[i] - nrej_bias;
     if (s < 0 || s > 2 * 3) {
@@ -752,12 +752,12 @@ static void test_f_p2002_01_rejection_parity() {
 //   n_ineligible(p) = depth(p) − nused(p) − nrej(p)，depth = probe 覆盖帧数
 // 三量完备划分 ⇒ 恒等式成立 ⇔ n_ineligible(p) == 0 ⇔ nused(p)+nrej(p)==depth(p)。
 //
-// [RED 面 · 基线实测] 基线 lib/core 节点链（p2_op_reject: module_adapters.cpp
+// [RED 面 · 基线实测] 基线 lib/infrastructure/scheduler 节点链（p2_op_reject: module_adapters.cpp
 // :2511-2545 把 kernel 逐样本 reason 塌缩为像素级 accepted(u8) "任一接受即 1";
 // p2_op_integrate: :2765 把该像素级标志套用到该像素**每个**样本）⇒ 部分拒绝
 // 像素（F3 离群点, 本 fixture 每 32px 网格一点, nrej=1）的被拒样本仍进积分:
 // nused=3 而 nrej=1 ⇒ n_ineligible = 3−3−1 = −1 < 0 ⇒ 本断言必败。
-// 修复面在 lib/core/src/module_adapters.cpp（本任务写域外）; 最小补丁与
+// 修复面在 lib/infrastructure/scheduler/src/module_adapters.cpp（本任务写域外）; 最小补丁与
 // 影子树 GREEN 证明见 finding F-SCI-F2-001-01。
 static void test_f_p2002_02_n_ineligible_identity(bool fault_inject) {
   Fixture3 fx = make_fixture3("ident");
@@ -932,16 +932,16 @@ static void test_f_p2002_02_n_ineligible_identity(bool fault_inject) {
   fs::remove_all(fx.root);
 }
 
-// ── 2d. [lib/phase2 库面] 逐样本剔除接线 ⇒ 恒等式成立（GREEN 对照）+ 缺陷
+// ── 2d. [lib/algorithms/coverage 库面] 逐样本剔除接线 ⇒ 恒等式成立（GREEN 对照）+ 缺陷
 // 机制在库面直接判负（像素级塌缩 ⇒ n_ineligible < 0）────────────────────
-// 该节不依赖 lib/core: 直接用与生产同参的 plan 直调 reject kernel, 按
+// 该节不依赖 lib/infrastructure/scheduler: 直接用与生产同参的 plan 直调 reject kernel, 按
 // reason 构造 accepted 掩码, 再调 p2_integrate_pixel。两个分支对照:
-//   (i)  逐样本掩码（lib/phase2 两条生产路径的接线语义,
+//   (i)  逐样本掩码（lib/algorithms/coverage 两条生产路径的接线语义,
 //        tools/stage2.cpp:1462-1467/1515-1522 与 src/acr_kernels.cpp:184-193）
 //        ⇒ n_used + nrej == depth, n_ineligible == 0   ← 契约正确
-//   (ii) 像素级塌缩掩码（基线 lib/core 节点链接线语义）
+//   (ii) 像素级塌缩掩码（基线 lib/infrastructure/scheduler 节点链接线语义）
 //        ⇒ n_used + nrej > depth, n_ineligible < 0     ← 契约破坏（必失败断言）
-// 结论: 缺陷不在 lib/phase2（kernel/reducer 契约正确）, 而在调用方接线。
+// 结论: 缺陷不在 lib/algorithms/coverage（kernel/reducer 契约正确）, 而在调用方接线。
 static void test_f_p2002_02_lib_level_correct_wiring() {
   // 3 帧 × 1 像素栈: 第三帧为高侧离群点（+800 vs ~100 基线）→ 恰 1 个
   // REJECTED_HIGH（与 1 节同一 kernel 语义断言面）
@@ -999,7 +999,7 @@ static void test_f_p2002_02_lib_level_correct_wiring() {
             ("rejected sample must not enter the weighted mean (signal=" +
              std::to_string(pr.signal) + ")").c_str());
 
-  // (ii) 像素级塌缩掩码（= 基线 lib/core 节点链接线; 负向对照）
+  // (ii) 像素级塌缩掩码（= 基线 lib/infrastructure/scheduler 节点链接线; 负向对照）
   std::vector<std::uint8_t> acc_pixel(depth, 0);
   {
     std::uint8_t any = 0;
@@ -1230,9 +1230,9 @@ static void test_s303_provenance_keys(bool fault_inject) {
   //   (b) 通道已实现 → 由 test_s303_aio_channel_real_values() 以真实 Phase2
   //       产物值驱动 AIO 通道并断言落盘 (含 verify 双向)。
   //   Findings: 05 号登记册 §STD-F3 (原 F-P2-002-03) 的 AIO 域实现已交付;
-  //   写节点调用点接线 (lib/core p2_op_write → aio_hips_set_provenance /
-  //   aio_hips_write_diag_tile) 属 lib/core 写域, 本任务写域外 →
-  //   finding F-SCI-F3-001-01 移交 (见 lib/astro_image_io/memory.md)。
+  //   写节点调用点接线 (lib/infrastructure/scheduler p2_op_write → aio_hips_set_provenance /
+  //   aio_hips_write_diag_tile) 属 lib/infrastructure/scheduler 写域, 本任务写域外 →
+  //   finding F-SCI-F3-001-01 移交 (见 lib/infrastructure/aio/memory.md)。
   {
     const std::string props = read_file(fx.out + "/signal/properties");
     CHECK(!props.empty());
@@ -1245,7 +1245,7 @@ static void test_s303_provenance_keys(bool fault_inject) {
 }
 
 // ── 3b. [SCI-F3-001 / §30.2+§30.3] Phase2 真实产物值 → AIO 通道端到端 ──────
-// 角色: 本函数扮演 p2_op_write 适配器调用点 (lib/core, 本任务写域外), 用
+// 角色: 本函数扮演 p2_op_write 适配器调用点 (lib/infrastructure/scheduler, 本任务写域外), 用
 // **真实 Phase2 产物值**驱动新交付的 AIO 通道:
 //   · 五 provenance 键真实值 = p2_samples.input_manifest_hash /
 //     p2_upm_model.model_hash / p2_rejection.profile /

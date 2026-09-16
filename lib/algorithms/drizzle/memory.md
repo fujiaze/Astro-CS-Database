@@ -1,4 +1,4 @@
-# lib/drizzle — 模块记忆（P1-DRZ-DOC）
+# lib/algorithms/drizzle — 模块记忆（P1-DRZ-DOC）
 
 > 生命周期: P1-DRZ-DOC（本文档建立）→ P1-DRZ-IMPL（落码）→ P1-DRZ-TEST
 > （可执行测试）→ P1-DRZ-INT。追加式日志，不删改历史段落。

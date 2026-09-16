@@ -1,7 +1,7 @@
 # V6 Phase3 科学重采样传播实现（IMPL-P3-RSMP-001）
 
 > 任务：IMPL-P3-RSMP-001（Wave 5，depends_on CONTRACT-FREEZE-001）
-> 写域：`lib/phase3_rsmp/`、`tests/unit/v6_rsmp/`（本文件与生产源、共址测试同域）
+> 写域：`lib/algorithms/resample/`、`tests/unit/v6_rsmp/`（本文件与生产源、共址测试同域）
 > 基线 HEAD：`44e1cb65`（开工时 `git rev-parse HEAD` 复核；未 commit/push）
 > 上位：`docs/algorithms/v6/phase3/ALG-P3-001_{SPEC,KERNEL_REGISTRY,VERIFICATION}.md`、
 > `docs/contracts/v6/frozen/*`、`docs/algorithms/v6/frozen/*`、`docs/science/v6/phase3/PHASE3_PROPAGATION_REVIEW.md`
@@ -51,7 +51,7 @@ python3 tests/unit/v6_p3_rsmp/run_mutations.py
 ```
 
 根 `CMakeLists.txt`/`tests/unit/CMakeLists.txt` 非本任务写域（C-004.4）；注册由控制器统一以独立集成提交完成。
-`lib/phase3_rsmp/CMakeLists.txt` 与 `tests/unit/v6_p3_rsmp/CMakeLists.txt` 为本模块的 add_subdirectory 面。
+`lib/algorithms/resample/CMakeLists.txt` 与 `tests/unit/v6_p3_rsmp/CMakeLists.txt` 为本模块的 add_subdirectory 面。
 
 ## 6. 未决风险 / 需裁决
 

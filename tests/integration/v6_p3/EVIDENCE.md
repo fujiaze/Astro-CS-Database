@@ -5,7 +5,7 @@
 - 接线对象（Wave 5，只调用不修改）:
   - `lib/phase3_proj/p3_proj_v6.h`（registry v2 四投影、逐像素 Ω、R/S 行列归一语义）
   - `lib/phase3_rsmp/p3_rsmp.h`（三模式传播、`C_y=R C_x R^T`、输出帧 Q/W、kernel registry、fail-closed 门）
-  - `lib/astro_image_io/v6/include/astro/aio/*.h`（流式 FITS、原子发布、provenance、单位门）
+  - `lib/infrastructure/aio/v6/include/astro/aio/*.h`（流式 FITS、原子发布、provenance、单位门）
 
 ## 1. 交付文件（全部在 write_scope 内）
 
@@ -81,6 +81,6 @@ kernel_nearest_continuous_field / kernel_unregistered_bicubic
    `FitsCard::make_real` 用 `%.12g` 产出小写 `e`，astropy `verify` 判为
    `not FITS standard`；`phase3proj::v6::fits_keywords` 亦用小写 `%.12e`。
    本层在写盘前把指数规范为大写 `E`（仅本任务产物），未改 AIO；建议 W9/后续任务修正
-   `lib/astro_image_io/v6` 的实数卡格式化。
+   `lib/infrastructure/aio/v6` 的实数卡格式化。
 3. 生产主面/扩展 HDU 的最终语义命名（`SIGNAL`/`FLUX`/`EFFECTIVE_PSF`）需与
    P1/P2-INTEGRATE-001 的 HDU 命名约定对齐（当前 P1 并行任务同波交付）。

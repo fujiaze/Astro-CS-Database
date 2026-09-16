@@ -1,4 +1,4 @@
-// lib/phase3_proj/p3_projection.cpp — 版本化 projection registry + 冻结四投影
+// lib/algorithms/projection/p3_projection.cpp — 版本化 projection registry + 冻结四投影
 // 实现 — P3-001 (ASTROCS-CONSTITUTION-001 §7.3/§18.1, ALG-P3-PROJ-IMPL-001 §15)
 //
 // 数学冻结口径:

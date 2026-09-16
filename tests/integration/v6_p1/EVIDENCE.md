@@ -6,19 +6,19 @@
   —— 控制器在本任务运行期间并行提交了 `P3-INTEGRATE-001`（`a689eff2`）；
   该提交未触及本任务写域（只含 `lib/phase3_session/`、`tests/integration/v6_p3/`、台账）。
 - 接线对象（Wave 5，只调用不修改）:
-  - `lib/calibration/include/astrocs/calibration/v6_calibration_covariance.h`
-  - `lib/dynamic_psf/include/astrocs/v6/psf_information.h`、`lib/snr_estimator/include/astrocs/v6/information_weight.h`、`lib/photometric_calib/include/astrocs/v6/psfsw.h`
-  - `lib/healpix_db/healpix_drizzle/{v6_drizzle_science.h,v6_spherical_overlap.h}`
-  - `lib/astro_image_io/v6/include/astro/aio/*.h`（FITS/provenance/BUNIT/原子发布/HiPS manifest）
+  - `lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h`
+  - `lib/algorithms/psf/include/astrocs/v6/psf_information.h`、`lib/algorithms/noise_snr/include/astrocs/v6/information_weight.h`、`lib/algorithms/photometry/include/astrocs/v6/psfsw.h`
+  - `lib/algorithms/drizzle/healpix_drizzle/{v6_drizzle_science.h,v6_spherical_overlap.h}`
+  - `lib/infrastructure/aio/v6/include/astro/aio/*.h`（FITS/provenance/BUNIT/原子发布/HiPS manifest）
 
 ## 1. 交付文件（全部在 write_scope 内；无已归属底层模块改动）
 
 | 文件 | 作用 |
 |---|---|
-| `lib/phase1/v6/include/astrocs/v6/phase1_product.h` | 单帧产品装配/重开/Phase2 消费面 API |
-| `lib/phase1/v6/src/phase1_product.cpp` | 实现：校准→PSF/W_info→PSFSW→球面 Drizzle→FITS/记录→原子发布→重开验证 |
-| `lib/phase1/v6/CMakeLists.txt` | 静态库 `astrocs_v6_phase1_product`（自注册，不改根/公共 CMake，C-004.4） |
-| `lib/phase1/v6/README.md` | 接线契约与冻结口径 |
+| `lib/algorithms/integration/v6_phase1/include/astrocs/v6/phase1_product.h` | 单帧产品装配/重开/Phase2 消费面 API |
+| `lib/algorithms/integration/v6_phase1/src/phase1_product.cpp` | 实现：校准→PSF/W_info→PSFSW→球面 Drizzle→FITS/记录→原子发布→重开验证 |
+| `lib/algorithms/integration/v6_phase1/CMakeLists.txt` | 静态库 `astrocs_v6_phase1_product`（自注册，不改根/公共 CMake，C-004.4） |
+| `lib/algorithms/integration/v6_phase1/README.md` | 接线契约与冻结口径 |
 | `tests/integration/v6_p1/CMakeLists.txt` | 自注册 ctest 目标（独立可配置） |
 | `tests/integration/v6_p1/v6_p1_integrate_test.cpp` | 端点测试：写盘/重开/组消费/24 条负向/无半成品 |
 | `tests/integration/v6_p1/oracle/v6_p1_reopen_oracle.py` | 独立重开 Oracle（生产 schema + 独立 SHA/BUNIT + 独立组归一 + 自检） |
@@ -41,7 +41,7 @@
 | FZ-UNIT-* / FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC | FITS 层 BUNIT=ADU/px^2、px^2、ADU^2/px^4、px^4/ADU^2；重开逐 HDU 独立回读校验 + 二次律 |
 | FZ-PROV-MINIMAL-SET / SHARED-SYSTEMATIC / KCORR | provenance 走 AIO `validate_provenance`；校准共享 bias master 走 `common_master` 通道（`representation=common_master`）；k_corr 域内冻结常数 1.4 并登记为继承（不重拟合） |
 | 原子发布（ALG-P3-008 §7） | `atomic_publish_directory`（staging→fsync→rename→重开验证）；失败清 staging，目标不可见 |
-| FZ-GATE-MEDIAN-SNR / C-004.2（P33 撤销） | 重开门递归扫描键 `snr_frame_coefficient/snr_coefficient/support_x_snr*/psf_snr_power/snr_frame*`，出现即红；**未引用** `lib/phase1/noise/snr_frame_science.*` |
+| FZ-GATE-MEDIAN-SNR / C-004.2（P33 撤销） | 重开门递归扫描键 `snr_frame_coefficient/snr_coefficient/support_x_snr*/psf_snr_power/snr_frame*`，出现即红；**未引用** `lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.*` |
 
 ## 3. 构建 / 测试命令与实测（g++ 14.2.0 / cmake 3.31.6 / Linux amd64）
 

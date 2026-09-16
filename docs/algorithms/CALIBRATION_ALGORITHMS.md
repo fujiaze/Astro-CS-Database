@@ -1,6 +1,6 @@
 # Calibration Algorithms (ALG-CAL)
 
-> ID: ALG-CAL-001  范围: ALG-CAL-001..006  上游 SCI: SCI-CAL-001  状态: CONTRACT_READY（P1-CAL-DOC 冻结，2026-09-07）  模块: lib/calibration（astrocs.p1.calibration / 目标 DLL astrocs_p1_calibration.dll）
+> ID: ALG-CAL-001  范围: ALG-CAL-001..006  上游 SCI: SCI-CAL-001  状态: CONTRACT_READY（P1-CAL-DOC 冻结，2026-09-07）  模块: lib/algorithms/calibration（astrocs.p1.calibration / 目标 DLL astrocs_p1_calibration.dll）
 >
 > 本文档由源码逐函数核对后全面重写（P1-CAL-DOC，wave W1）。连续数学定义以
 > `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN）为唯一权威；本文只做
@@ -13,10 +13,10 @@
   （dark_opt 双分支 + flat_norm median=1.0 / floor 0.1）、§9a 专属问题
   （无 pedestal、无 gain、无 read-noise 建模、负值保留、bad_mask 极性 1=坏点、
   variance 不传播）。
-- 生产源: `lib/calibration/include/astro_calibration.h`（唯一公共头，14 个
-  `AC_API` 符号）+ `lib/calibration/src/master_generator.cpp`、
-  `lib/calibration/src/calibrator.cpp`、`lib/calibration/src/cosmetic_corrector.cpp`、
-  `lib/calibration/src/ac_api.cpp`（CMake `astrocs_calibration` 静态库唯一构建
+- 生产源: `lib/algorithms/calibration/include/astro_calibration.h`（唯一公共头，14 个
+  `AC_API` 符号）+ `lib/algorithms/calibration/src/master_generator.cpp`、
+  `lib/algorithms/calibration/src/calibrator.cpp`、`lib/algorithms/calibration/src/cosmetic_corrector.cpp`、
+  `lib/algorithms/calibration/src/ac_api.cpp`（CMake `astrocs_calibration` 静态库唯一构建
   清单，CMakeLists.txt:321-333）。
 - 负责: master bias/dark/flat 生成（sigma-clip 合并）、单帧校准算术、
   热像素/冷像素检测与插值修复；Gaia 测光比例标量应用（现状未接线）。
@@ -190,7 +190,7 @@ F5.4  失败→回退 k_init 且 diagnostics.fell_back=1, fallback_from=
 
 **现状**: `dark_optimizer.cpp` 不在 CMake `astrocs_calibration` 构建清单
 （CMakeLists.txt:321-325），全仓无调用方；`hiss::Stage1Diagnostics` 来自
-`lib/astro_image_io/include/hiss_format.h`。登记为计划迁移符号
+`lib/infrastructure/aio/include/hiss_format.h`。登记为计划迁移符号
 （P1-CAL-IMPL 决定接线或删除），不声明任何生产语义（DISP-CAL-005）。
 
 ### 3.6 ALG-CAL-006 Gaia 测光比例应用 `calibration::apply_photometry`（非 SCI 范围，未接线）
@@ -227,7 +227,7 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 | NaN 语义 | generate_master 统计跳过 NaN、全 NaN→输出 NaN；**generate_master_flat 帧级 median 同样先剔 NaN（DISP-CAL-010），全 NaN 帧/全 NaN 输出 fail-closed**；calibrate/cosmetic 阈值统计**不**过滤 NaN（NaN 算术直传/阈值不可靠） | master_generator.cpp:106-118,214-223,258-267；cosmetic_corrector.cpp:45-54 |
 | 日志 I/O | generate_master/flat 每次调用 2 行 stderr（ac_log）；apply_photometry 2 行 stderr；无文件/网络 I/O | master_generator.cpp:38-45 |
 | 内存 | 输出缓冲调用方分配；模块内 std::vector RAII。峰值额外内存: generate_master O(n_frames/线程)；generate_master_flat O(n_frames·npix·4B)（norm 主缓冲）；calibrate O(1)；cosmetic O(npix)（labels+masks+统计副本）；f64 转接层 O(n_pix) 全帧复制 | 各源文件 |
-| 构建 | CMake 目标 `astrocs_calibration`（STATIC，4 个 cpp，OpenMP 可选）；遗留 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:373-380；lib/calibration/Makefile |
+| 构建 | CMake 目标 `astrocs_calibration`（STATIC，4 个 cpp，OpenMP 可选）；遗留 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:373-380；lib/algorithms/calibration/Makefile |
 | 生产调用方 | `lib/phase1_session/p1_session.cpp:243` 仅调 `ac_calibrate_frame`（master 由配置传入，帧粒度取消在 session 层）；master 生成与 cosmetic 的 ac_* 入口当前无生产调用方 | p1_session.cpp:200-270 |
 
 ### 4.1 遗留双实现：`cpp/cosmetic_corrector.cpp`（cc_* 通道）
@@ -324,7 +324,7 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
   （默认 1.0，即 k_init=t_light/t_dark 由调用方算出）；sigma-clip 族参数
   `sigma_low/sigma_high/max_iterations/combine`、cosmetic 族
   `hot_sigma/cold_sigma/method/max_structure_size`（默认见
-  lib/calibration/batch_config.json 实验配置：5.0/5.0/median/4）。
+  lib/algorithms/calibration/batch_config.json 实验配置：5.0/5.0/median/4）。
   正式 schema 版本化由 P1-CAL-IMPL 冻结（config_schema_ver）。
 
 ## 9 TEST-CAL-DESIGN-001 测试设计与冻结容差（P1-CAL-TEST 落地）
@@ -417,7 +417,7 @@ oracle 同容差；actual_k 精确相等。
   C API 层校验）。
 - DISP-CAL-011 遗留通道（build.ps1 的 `-march=native -ffast-math`、
   Makefile cc_* DLL、`cpp/cosmetic_corrector.cpp` 双实现）与 CMake 主
-  构建并存，语义漂移风险；`lib/calibration/python/`、
+  构建并存，语义漂移风险；`lib/algorithms/calibration/python/`、
   `cosmetic_corrector.dll`、`astro_calibration.dll` 等旧 README 记载
   产物在当前树中不存在。
 
@@ -427,5 +427,5 @@ oracle 同容差；actual_k 精确相等。
 - DATA: DATA-P1-CAL（docs/contracts/DATA_SEMANTICS.md §9）；输入帧端口 DATA-P1-FRAME
 - API: API-P1-001（docs/api/PHASE1_API_V1.md，编排合同 §2 已登记 ac_*）；API-CAL-001（docs/contracts/PUBLIC_API.md，现状 C API 合同）
 - MOD/SRC: MOD-astrocs-phase1-calibration；SRC-CAL-001（astro_calibration.h 14 符号）
-- 测试: TEST-CAL-DESIGN-001（本文 §9，P1-CAL-TEST 落地可执行 TEST-P1-CAL-001）；既有共址测试 lib/calibration/tests/test_photometry_apply.cpp
+- 测试: TEST-CAL-DESIGN-001（本文 §9，P1-CAL-TEST 落地可执行 TEST-P1-CAL-001）；既有共址测试 lib/algorithms/calibration/tests/test_photometry_apply.cpp
 - ARCH: ARCH-001（docs/contracts/ARCH-001.md）

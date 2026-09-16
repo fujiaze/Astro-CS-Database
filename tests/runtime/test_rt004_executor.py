@@ -2,7 +2,7 @@
 """RT-004 验收测试：唯一共享 executor（CPU heavy + 有界 I/O）。
 
 验收映射 (tasks/03_RUNTIME_DATA_IO_TASKS.md RT-004):
-  - 私池静态扫描：生产路径(lib/core/src + include/astrocs/core)无 std::thread
+  - 私池静态扫描：生产路径(lib/infrastructure/scheduler/src + include/astrocs/core)无 std::thread
     私建永久池；executor.cpp 是全仓唯一共享 executor 池实现（Impl 持有
     vector<thread> 创建 CPU/I/O worker，析构 stop+notify+join 完整回收生命周期，
     无 detach 常驻线程/UAF）；scheduler.cpp 的 CORE-006 基线 bounded per-run
@@ -15,7 +15,7 @@
     IoExecutor 有界队列满 → enqueue 返回 false。
 
 方法 (独立 harness, 照 tests/runtime/test_rt003_budget_wiring.py 先例):
-  Python unittest 内嵌 C++ driver，g++ 真实编译链接 lib/core/src 源码
+  Python unittest 内嵌 C++ driver，g++ 真实编译链接 lib/infrastructure/scheduler/src 源码
   (executor.cpp/context.cpp/artifact.cpp) + include/astrocs/core 头，运行断言；
   另以源码静态扫描断言生产路径无私建永久池、worker 无忙等轮询。
 """
@@ -292,7 +292,7 @@ int main() {
 '''
 
 # ── 静态扫描断言 (私池 + 忙等) ──
-# 扫描范围: 生产路径 = lib/core/src/*.cpp + include/astrocs/core/*.h
+# 扫描范围: 生产路径 = lib/infrastructure/scheduler/src/*.cpp + include/astrocs/core/*.h
 # 语义 (RT-004): 模块/节点不得 std::thread 私建永久池。executor.cpp 是全仓唯一
 # 共享 executor 池实现，允许创建常驻 worker（CpuHeavyExecutor/IoExecutor 构造，
 # Impl 持有 vector<thread>，析构 stop+notify+join 完整回收生命周期，无 UAF）。

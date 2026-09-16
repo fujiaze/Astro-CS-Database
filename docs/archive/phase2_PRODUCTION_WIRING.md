@@ -9,7 +9,7 @@
 
 | 项 | 值 |
 |---|---|
-| CMake option | `option(P2_ENABLE_OPENMP "... OFF)` lib/phase2/CMakeLists.txt:18, default OFF hard-disable |
+| CMake option | `option(P2_ENABLE_OPENMP "... OFF)` lib/algorithms/coverage/CMakeLists.txt:18, default OFF hard-disable |
 | 逻辑 | `if(P2_ENABLE_OPENMP) find_package(OpenMP)` `else set(OpenMP_CXX_FOUND FALSE)` — 避免缓存误链 libgomp |
 | Compile def | 无 P2_ENABLE_OPENMP define 到源 (条件编译 `#if defined(P2_ENABLE_OPENMP) && defined(_OPENMP)` 仅 sampler.cpp:30) |
 | Link | `if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND) target_link_libraries(phase2 PUBLIC OpenMP::OpenMP_CXX)` |
@@ -81,8 +81,8 @@
 
 ```sh
 # P2_ENABLE_OPENMP
-cmake -S lib/phase2 -B build/off -DP2_ENABLE_OPENMP=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && grep -c OpenMP build/off/CMakeCache.txt
-cmake -S lib/phase2 -B build/on  -DP2_ENABLE_OPENMP=ON  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && grep -c OpenMP build/on/CMakeCache.txt
+cmake -S lib/algorithms/coverage -B build/off -DP2_ENABLE_OPENMP=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && grep -c OpenMP build/off/CMakeCache.txt
+cmake -S lib/algorithms/coverage -B build/on  -DP2_ENABLE_OPENMP=ON  -DCMAKE_EXPORT_COMPILE_COMMANDS=ON && grep -c OpenMP build/on/CMakeCache.txt
 # ACR 资格三场景
 ./build/acr/qualification/acr_qualification --three-clean-ctest-runs
 # Mixed cold
