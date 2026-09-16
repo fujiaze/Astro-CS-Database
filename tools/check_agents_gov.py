@@ -287,9 +287,14 @@ def check_unique_authority(root: str, v: list, notes: dict) -> None:
         rel = os.path.relpath(p, base).replace(os.sep, "/")
         if rel == DESIGN:
             continue
-        if "ARCHIVED_NON_NORMATIVE" in text:
-            continue
+        # CI-003-B（2026-09-16）：豁免粒度由「整文件」改为「行级」。
+        # 旧判据 "ARCHIVED_NON_NORMATIVE" in text 的触发条件是**提到**该字样而不是
+        # **自称归档** ⇒ memory.md 只是在第 8/12/73 行说「别的东西已归档」就被整文件跳过，
+        # 「memory.md 自称唯一最高权威」永远判不出来（假绿）；与 R-6 §3.5 的「空触发」
+        # 同一失效型。现行判据：只有**该行自身**带非绑定标记才跳过该行。
         for i, line in enumerate(text.splitlines(), 1):
+            if any(m in line for m in NON_BINDING_MARKERS):
+                continue
             if not SELF_AUTHORITY_RE.search(line):
                 continue
             # 唯一行内豁免：逐字点名现行最高设计 ASTROCS_DESIGN.md。
