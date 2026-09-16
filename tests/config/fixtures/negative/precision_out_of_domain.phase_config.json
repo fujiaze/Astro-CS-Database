@@ -1,0 +1,16 @@
+{
+  "phase_name": "normalize",
+  "config": {
+    "output_dir": "path/to/out/normalize",
+    "precision": "fp128",
+    "sparse_snr_layer": false
+  },
+  "inputs": [
+    {
+      "light": "path/to/light1.fits",
+      "dark": "path/to/dark.fits",
+      "flat": "path/to/flat.fits",
+      "filter": "Baader R"
+    }
+  ]
+}

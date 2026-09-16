@@ -1,0 +1,20 @@
+{
+  "manifest_schema": "astrocs.run-manifest/v1",
+  "run_id": "run-20260916-0001",
+  "software_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "config_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "manifest_input_hashes": [
+    {
+      "path": "path/to/light1.fits",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ],
+  "manifest_output_hashes": [
+    {
+      "path": "path/to/out/normalize/product.json",
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  ],
+  "toolchain_version": "gcc-13.2.0",
+  "created_utc": "2026-09-16T00:00:00Z"
+}

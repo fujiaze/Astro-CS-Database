@@ -1,0 +1,25 @@
+{
+  "phase_name": "normalize",
+  "config": {
+    "output_dir": "path/to/out/normalize",
+    "precision": "fp64",
+    "sparse_snr_layer": false,
+    "algorithm_psf_model": "moffat4"
+  },
+  "inputs": [
+    {
+      "light": "path/to/light1.fits",
+      "bias": "path/to/bias.fits",
+      "dark": "path/to/dark.fits",
+      "flat": "path/to/flat.fits",
+      "filter": "Baader R"
+    },
+    {
+      "light": "path/to/light2.fits",
+      "bias": "path/to/bias.fits",
+      "dark": "path/to/dark.fits",
+      "flat": "path/to/flat.fits",
+      "filter": "Baader R"
+    }
+  ]
+}
