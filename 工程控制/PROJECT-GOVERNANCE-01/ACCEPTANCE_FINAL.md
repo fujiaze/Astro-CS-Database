@@ -37,7 +37,7 @@
 
 | # | 判据 |
 |---|---|
-| D1 | `normalize` / `mosaic` / `export` 各：`--help` rc=0 且参数与 `CLI_PROTOCOL_V1.md` 一致 |
+| D1 | `normalize` / `mosaic` / `export` 各：`--help` rc=0 且参数与 `CLI_PROTOCOL_V1.md` 一致 | ✅ **前台 2026-09-17 独立验证**（三命令 `--help` rc=0；`--version --json` stdout 纯 JSON；`doctor --json` verdict=PASS/3 检查；日志正确落 stderr。证据 `run/PROJECT-GOVERNANCE-01/FRONT-DESK/`） |
 | D2 | 各：最小合法输入 rc=0，产物落 `output_dir`，**同输入两次运行产物 sha256 一致** |
 | D3 | 各：失败路径（缺参/坏配置/缺输入/非法组合）rc 符合 `ENGINEERING_SPEC §9`，诊断结构化，**不留半成品** |
 
