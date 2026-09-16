@@ -32,8 +32,12 @@
 
 ### 源码核对结论（摘要，行号以实测为准）
 
-- 唯一生产实现 lib/algorithms/noise_snr/cpp/src/noise_model.cpp（466 行），签名
-  唯一权威 lib/algorithms/noise_snr/cpp/include/snr_estimator.h（431 行）；7 个
+- noise 方差模型唯一生产实现 lib/algorithms/noise_snr/cpp/src/noise_model.cpp
+  （**475 行**，2026-09-16 复测；旧记 466 行已过时），签名
+  唯一权威 lib/algorithms/noise_snr/cpp/include/snr_estimator.h（**526 行**，旧记
+  431 行已过时）；该实现经 cpp/Makefile 产出 snr_estimator.dll，**不在根 CMake 主图**
+  （根 CMakeLists.txt:210 的 add_subdirectory 被注释；交付面 SNR 实现 =
+  cpp/src/snr_science.cpp + wrapper_phase1/** 编入 astrocs_phase1_noise）。7 个
   noise 导出（头文件行号）：snr_noise_model_v1(:143-149)/_f64(:151-157)/
   _default_config(:115)/_fill(:162-166)/_free(:167-168)/
   snr_noise_scale_law(:173-175)/snr_noise_gain_variance(:178-180)；实现
