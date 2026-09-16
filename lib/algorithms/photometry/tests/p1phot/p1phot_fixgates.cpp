@@ -255,9 +255,9 @@ int main() {
               "b43_all_saturated: 全饱和 → NO_DATA 退化 (scale 不写)");
     }
 
-    // ── B4-3 (d): 公共 C ABI 形参存在性/位值一致性 ───────────────────────
-    // 编译期即证明 6 个导出均有 quality_flags 形参 (头文件声明); 这里核对
-    // 位值与 SNR 域冻结值同值。
+    // ── B4-3 (d): 公共 C ABI 质量位取值一致性 ─────────────────────────────
+    // 这里只核对质量位取值与冻结位定义同值; 公共 C 导出是否带 quality_flags
+    // 形参属 ABI 面, 不在本 TU 的断言范围。
     CHECK(PC_QF_SATURATED == (1u << 1), "b43_flag_bits: PC_QF_SATURATED == 1<<1");
     CHECK(PC_QF_HAS_SATURATED == (1u << 2), "b43_flag_bits: PC_QF_HAS_SATURATED == 1<<2");
 

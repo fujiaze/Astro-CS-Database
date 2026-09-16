@@ -35,7 +35,8 @@ struct SynthStar {
 };
 
 // FIX-STAR-A (F1): 含噪多星场 256×256, 40 星网格布点 (边界 ≥27.5px),
-// SNR 混谱 (≈20 谱段 15% / 中 25% / 亮 60%), bg=300, noise σ=6, seed 20260907。
+// SNR 混谱 (低 6.7–9.2 占 15% / 中 32.5–45 占 25% / 亮 683–1333 占 60%),
+// bg=300, noise σ=6, seed 20260907。注: 低谱段低于 SCI 冻结的 SNR≥10 召回域。
 // 与 truth 一同返回, 供召回/虚警/精度统计 (SNR≥10/20 分谱判定)。
 struct FixStarA {
     int w = 256, h = 256;
@@ -57,7 +58,7 @@ inline FixStarA fix_star_a_f1() {
         for (int gx = 0; gx < 8; ++gx) {
             const double p = amp_u(rng);
             double amp;
-            if (p < 0.15) amp = 40.0 + p * 100.0;       // SNR≈20 谱段
+            if (p < 0.15) amp = 40.0 + p * 100.0;       // amp 40–55 → SNR 6.7–9.2
             else if (p < 0.4) amp = 150.0 + p * 300.0;  // 中
             else amp = 1500.0 + p * 6500.0;             // 亮
             SynthStar s{40.0 + gx * 25.0 + jitter(rng),

@@ -52,7 +52,7 @@ extern "C" {
 
 #define DRZ_CFG_KEY_OP             "op"
 #define DRZ_CFG_KEY_NSIDE          "nside"              /* u32, 2 的幂, >=1 */
-#define DRZ_CFG_KEY_NESTED         "nested"             /* 0=RING 1=NESTED */
+#define DRZ_CFG_KEY_NESTED         "nested"             /* 仅 1=NESTED; 0(RING) 被实现硬拒绝 */
 #define DRZ_CFG_KEY_PIXFRAC        "pixfrac"            /* f64 [0,1] (DISP-DRZ-003 口径) */
 #define DRZ_CFG_KEY_PRECISION      "precision_mode"     /* 0=FP32 1=FP64 -1=auto(header) */
 #define DRZ_CFG_KEY_OUTPUT_PATH    "output_path"        /* legacy .hiss 路径 (可空) */

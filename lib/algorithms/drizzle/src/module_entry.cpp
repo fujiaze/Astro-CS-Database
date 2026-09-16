@@ -352,7 +352,7 @@ static acs_status drz_cfg_parse(const char* json, drz_cfg* c,
 
     int found = 0;
     double pixfrac = json_get_f64(json, DRZ_CFG_KEY_PIXFRAC, &found);
-    if (!found) pixfrac = 1.0;                     /* API-DRZ-001 默认 1.0 */
+    if (!found) pixfrac = 1.0;                     /* 缺键默认 1.0 (契约只约束 (0,1]) */
     if (!isfinite(pixfrac) || pixfrac < 0.0 || pixfrac > 1.0) {
         efill(err, ACS_ERR_PARAM, ACS_ERR_DOMAIN_CONFIG,
               DRZ_ECODE_BAD_VALUE, "drizzle: pixfrac must be finite in [0,1]");

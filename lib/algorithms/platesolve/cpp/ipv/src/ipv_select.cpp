@@ -13,7 +13,7 @@
 // 核心算法 (与 一致, 从 ss_core.cpp 迁移):
 // - 图像读取 (astro_image_io.dll 动态加载)
 // - 星点检测 (star_detector.dll, 句柄由外部注入)
-// - 图像侧选星 (: 统一按 flux(A) 降序取前 img_n_target 颗)
+// - 图像侧选星: 统一按 mag(box 积分) 升序取前 img_n_target 颗
 // - FOV/密度计算 + 自适应步长迭代极限星等 ( ss_core.cpp)
 // - Gaia 锥形查询 (gaia_client.dll, 句柄由外部注入)
 // - Gnomonic 投影 + FOV 内过滤
@@ -360,8 +360,8 @@ double compute_initial_mag_cut(
 // 实测依据 (run/perf-fix/P4-magiter/REPORT.md; 原始数据 run/release-rescue/
 // perf-study/exp-A-magiter):
 //  - 真实 alpha = dlog10(N)/dmag 实测 0.243–0.456 (中位 0.2885, R²>0.986);
-//    原代码/文档写死的 1.3 使密度模型高估 4–5 个数量级 (已在
-//    docs/algorithms/IPV_PIPELINE.md 走偏差登记, 本次不改冻结科学文档)。
+//    原代码/文档写死的 1.3 使密度模型高估 4–5 个数量级 (该偏差尚未在
+//    docs/algorithms 登记为 DISP 条目)。
 //  - 原"一次性公式 + 补救 +1.0mag×2 + mag=22 兜底"在 4/10 真实帧上
 //    "FOV 内不足 n_target 颗" (最短 -0.47 mag); 割线迭代 safety=3 时 10/10
 //    通过 (余量 +0.36..+1.07 mag), 且 6/10 帧匹配输入逐位不变。
@@ -718,12 +718,8 @@ void density_match_iterate(
 
 // ----------------------------------------------------------------------------
 // select_image_stars - 图像侧选星: 按 mag(box积分) 升序排序
-// 旧策略: 饱和星数 > img_n_target → 全选饱和星;
-// 否则 → 饱和全选 + 非饱和按 flux 降序补足到 img_n_target
-// 策略: 统一按 flux(A) 降序排序 (等价于按 mag 升序), 取前 img_n_target 颗
-// 策略: star_detector mag 已改为 box 积分。
-// 对饱和星, A(Moffat 振幅) 与 box 积分排序差异巨大, 按 flux(A)
-// 排序会不一致。改用 mag(box积分) 升序排序, mag 越小越亮。
+// 策略: 统一按 mag(box 积分) 升序 (mag 越小越亮), 取前 img_n_target 颗。
+// 饱和星的 A(Moffat 振幅) 与 box 积分排序差异巨大, 故不按 flux(A) 排序。
 // 跳过 mag 为 NaN 的失效星 (NaN 排到最后, 不会被选中)。
 // 注: flux 参数保留以备后续使用, 当前未使用 (排序基于 mag)
 // ----------------------------------------------------------------------------
@@ -999,7 +995,7 @@ int ipv_select(
     // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
     //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
     //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
-    //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/algorithms 登记。
     if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
     double m_lim_final = 0.0;
     int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
@@ -1296,7 +1292,7 @@ int ipv_select_from_memory(
     // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
     //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
     //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
-    //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/algorithms 登记。
     if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
     double m_lim_final = 0.0;
     int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
@@ -1565,7 +1561,7 @@ int ipv_select_from_detections(
     // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
     //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
     //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
-    //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/algorithms 登记。
     if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
     double m_lim_final = 0.0;
     int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
@@ -1891,7 +1887,7 @@ static int ipv_select_from_memory_with_callback_impl(
     // 替换 V4.9 一次性密度公式 + 补救 +1.0mag×2 + mag=22 兜底:
     //  - 割线迭代 m_next = m + (log10(N_target) - log10(N))/alpha, alpha 由相邻两次查询实测更新;
     //  - 删除 mag=22 兜底 (该值触发 gaia_client 每文件 200000 条顺序截断 => 科学有偏);
-    //  - 参数全部来自 IPVSolverParams (safety=3 等), 偏差登记见 docs/algorithms/IPV_PIPELINE.md。
+    //  - 参数全部来自 IPVSolverParams (safety=3 等); 与冻结文档的偏差尚未在 docs/algorithms 登记。
     if (logger) logger->info("Step 5: 极限星等割线迭代 (P4-magiter)");
     double m_lim_final = 0.0;
     int    m_lim_iters = 0;        // = query_count (Gaia 查询次数)
