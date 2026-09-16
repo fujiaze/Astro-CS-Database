@@ -356,31 +356,43 @@ static void test_validate_unconsumed() {
   CHECK(has);
 }
 
-static void test_control_package_fixtures() {
+static void test_pipeline_ir_fixtures() {
   PipelineIRParser parser;
-  // fixture 定位: 控制包解压布局演进过 (V6 控制包 fixtures 先在 工程控制/<pkg>/,
-  // V6.1 重构后归档迁移到 engineering/control/archive/...), 候选按新旧顺序探测,
-  // 首个存在者生效, 避免 single-path 硬编码随归档迁移后全平台 fixture 缺失。
-  static const char* kFixtureRoots[] = {
-      "/工程控制/CONTROL_V6/AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/fixtures",
-      "/engineering/control/archive/2026-09-02_legacy_"
-      "工程控制_v1.3-to-v6.1/CONTROL_V6/"
-      "AstroCS_V6_SYSTEM_REFACTOR_ALPHA_CONTROL_20260830/fixtures",
-  };
+  // fixture 定位: 夹具原随 V6 控制包发布 (工程控制/<pkg>/fixtures)。该控制包经 GOV-002
+  // (b7b2dea7) 归档、再经 a861d8f6 (以新设计文档集替换旧治理体系) 整树删除 ⇒ 指向旧控制包
+  // 的候选路径在现行树中恒为空, 测试恒红 (GAP-036)。依 ENGINEERING_SPEC §8「锚存活」
+  // (硬编码引用必须存在) 与 GAP-036 处置「把 fixtures 以新位置重建」, 夹具已按逐字节等价
+  // 内容重建在测试共址位置 tests/unit/fixtures/core_pipeline/ (溯源见该目录 README.md);
+  // 判据与断言集未变。
+  // ASTROCS_REPO 由 ctest 注入仓库根 (tests/unit/CMakeLists.txt 的 set_tests_properties);
+  // 手工直跑时再按 cwd 常见起点探测, 首个命中者生效。
   const char* repo = std::getenv("ASTROCS_REPO");
   std::string base;
-  for (const char* cand : kFixtureRoots) {
+  for (const char* root : {repo, ".", "..", "../..", "../../.."}) {
+    if (!root) continue;
+    std::string cand = std::string(root) + "/tests/unit/fixtures/core_pipeline/";
     // 探测/读取统一走 utf8_path: Windows 下窄路径按 ACP 解释, UTF-8 中文段
-    // 必须转宽 (CreateFileW) 才能命中磁盘真实目录名; kFixtureRoots 机制不动。
-    std::ifstream f(utf8_path(std::string(repo ? repo : "../..") + cand +
-                              "/valid_pipeline.json"));
-    if (f.good()) { base = std::string(repo ? repo : "../..") + cand + "/"; break; }
+    // 必须转宽 (CreateFileW) 才能命中磁盘真实目录名。
+    std::ifstream f(utf8_path(cand + "valid_pipeline.json"));
+    if (f.good()) { base = cand; break; }
   }
   CHECK(!base.empty());
   if (base.empty()) {
-    std::fprintf(stderr, "core_pipeline: 控制包 fixtures 目录缺失 (候选见 kFixtureRoots)\n");
+    std::fprintf(stderr, "core_pipeline: 夹具缺失 (tests/unit/fixtures/core_pipeline/)\n");
     return;
   }
+  // fail-closed: 两个夹具都必须存在。负例夹具若缺失, parser.parse("") 同样 failed ⇒
+  // 不显式探测就会把「夹具没了」伪装成「负例被正确拒绝」。
+  bool both_present = true;
+  for (const char* name : {"valid_pipeline.json", "invalid_pipeline_serial_heavy.json"}) {
+    std::ifstream f(utf8_path(base + name));
+    if (!f.good()) {
+      std::fprintf(stderr, "core_pipeline: 夹具缺失: %s%s\n", base.c_str(), name);
+      both_present = false;
+    }
+  }
+  CHECK(both_present);
+  if (!both_present) return;
   auto v = parser.parse(read_file(base + "valid_pipeline.json"));
   CHECK(v.ok());
   if (v.ok()) {
@@ -404,7 +416,7 @@ int main() {
   test_validate_data_mismatch();
   test_validate_unproduced_output();
   test_validate_unconsumed();
-  test_control_package_fixtures();
+  test_pipeline_ir_fixtures();
   if (failures == 0) {
     std::printf("CORE-004 TESTS PASS\n");
     return 0;
