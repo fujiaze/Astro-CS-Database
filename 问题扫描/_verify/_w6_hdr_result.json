@@ -1,0 +1,25 @@
+{
+ "B": [
+  [
+   "include/astrocs/io/aio_abi_v1.h",
+   [
+    "acs_fio_status",
+    "acs_status"
+   ]
+  ],
+  [
+   "lib/hips/include/astrocs/hips/publish.h",
+   [
+    "acs_status",
+    "aio_status"
+   ]
+  ],
+  [
+   "lib/snr_estimator/cpp/include/snr_estimator.h",
+   [
+    "HioSnrControlPoint"
+   ]
+  ]
+ ],
+ "C_count": 8
+}

@@ -232,7 +232,10 @@ git status --porcelain=v1 | grep -v -E "问题扫描/|reports/PROJECT-GOVERNANCE
 14. ⚠️ **判定时点必须写成三元组**：工作树在本轮**同时被多条线修改**（`ci/checks.json` 145→147 且为 M、`ci/root_manifest.json` 新增未跟踪、`docs/contracts/INDEX.yaml`/`.gitignore`/`GAP_AUDIT.md`/`ISA-00*/MEASUREMENTS.csv` 处 M、`设计大纲/**` 大批 D）⇒ 结论行应写「时点 = `<SHA>` + 当时的未提交改动」，**不要**引用"门数/不可达门数/CHK-* 数量"一类静态数字（必须按当时树重算）。
 15. ⚠️ **账本 `clause` 列常为空**：相当比例条目（如 `G_GOV_GATE_P1c` 的 27/31）在原账本第 `clause` 列为空 ⇒ 第 4 列按规则写「无（原判据即现行权威，账本 clause 列为空）」，不得编造旧条款。
 16. ⚠️ **路径漂移的高频形态（合并时用于重定位，不要当"文件消失"）**：`docs/science/X.md` 实为 `docs/algorithms/X.md`（PHASE2_SAMPLER / PHOTOMETRIC_FIT）；`lib/star_detection/sdet_api.cpp` → `lib/star_detector/src/`；`lib/star_detector/src/star_detector.cpp` → `lib/phase1/stars/star_detector.cpp`；`lib/phase1/photometry/image_corrector.cpp` → `lib/photometric_calib/cpp/src/`；`lib/astro_image_io/src/healpix/aio_healpix_io.h` → `lib/astro_image_io/include/`；`lib/hips/types.h` → `lib/hips/include/astrocs/hips/types.h`；`lib/plate_solve/src/ipv_triangle.cpp` → `lib/plate_solve/cpp/ipv/src/`；`include/` 公共头 96→23（其余在 `lib/*/include`）。
-17. **`UNVERIFIABLE` 的常见成因**：需 Windows/Fatduck 真机行为、需真实数据端到端、需新建 ASan/UBSan 构建、需外网原文（Paper I §3.3.3、Paper II Table 1、HiPS hips_frame 枚举行、IVOA 响应格式）、需负责人裁决（原 `40_OWNER_DECISIONS.md` 的 A-01…A-44）。**判不动就登记，不要强判。**
+17. ✅ **分配表/ID 映射已被交叉验证为正确 —— 分片对它的"笔误"指控经复核不成立，不要"修"它**：`C_ALG_IMPL_a` 报「`V10-N-07/N-08` 的『文件』列写 `p1/V10-c.md`」。前任实测：`_assign/C_ALG_IMPL_a.tsv` 两行的第 5 列**都是** `问题扫描/findings/C_ALG_IMPL/p2/V10-c.md`（行 3/10），且 `p1/V10-c.md` 在本树**不存在**、`p2/V10-c.md` 存在（6005 B）；`_gen/idmap.csv` 同指 `p2`。
+   ⇒ **规则**：若某片声称分配表路径错，先跑 `awk -F'\t' '$1=="<ID>"{print $5,$6}' shards/_assign/<片>.tsv` 与 `ls` 复核，**以实测为准**；分片第 4 列可能带一条不准确的转述（本例 `V10-N-07` 第 4 列写了"分配表写 p1"，属分片侧误读，不影响其结论与第 6 列证据）。
+18. ⚠️ **`pN` 目录不是优先级权威**：实测 **11 条**条目的所在目录 `pN` 与账本 `priority` 不一致（V/W/V2/V13/V14 轴文件是"按轴成文、混优先级"），例如 `V11-N-02`(P1) 在 `G_GOV_GATE/p0/V11.md`、`V13-N-05/07/08`(P2) 在 `p1/V13-b.md`、`V14-N-07`(P2) 在 `p1/V14-c.md`。**优先级一律取账本第 3 列**（这也是 `REBASE_TABLE` 与分片表的口径）；**不要**用目录名推断优先级，也不要用目录名做"优先级/目录不符"的finding。
+19. **`UNVERIFIABLE` 的常见成因**：需 Windows/Fatduck 真机行为、需真实数据端到端、需新建 ASan/UBSan 构建、需外网原文（Paper I §3.3.3、Paper II Table 1、HiPS hips_frame 枚举行、IVOA 响应格式）、需负责人裁决（原 `40_OWNER_DECISIONS.md` 的 A-01…A-44）。**判不动就登记，不要强判。**
 
 ### 9.3 ID 定位与条款查无
 - **ID 定位：0 条落空**（785/785 都有锚文件与锚标题）。若某片 PSV 少行，先查该片 `shards/<分片>.md` 的覆盖自证，再查 `_assign/<分片>.tsv`。
@@ -274,6 +277,18 @@ git status --porcelain=v1 | grep -v -E "问题扫描/|reports/PROJECT-GOVERNANCE
 
 ---
 
+## 11.5 ⚠️ 交接风险与基准变更（前任离场前实测，**接手必读**）
+
+1. **`问题扫描/REBASE.md` 目前是 `untracked`（未入库）** —— 它是**口径权威**，若发生 clean checkout 或被根清洁线误清，口径将丢失。**接手第一件事之一：确认它已入库**（`git ls-files --error-unmatch 问题扫描/REBASE.md`），未入库则请前台补交（前任无 git 写权限）。
+2. **前台已把部分交接物归档进 main**（`900916fb` 等）：`reports/PROJECT-GOVERNANCE-01/root-scan/shards/**` 共 **75 个文件（PSV+MD）**、`_tools/SHARD_BRIEF.md`、以及**较早版本**的 `CONTINUATION.md` 已在库；而 `REBASE.md`、`_gen/landed_stats.json`、`shards/G_GOV_GATE_P1c.md`、`00_README.md`/`INDEX.md` 的 REBASE 抬头、以及本文件的**最新修订**仍未入库（`git status --porcelain=v1 -- 问题扫描 reports/PROJECT-GOVERNANCE-01/root-scan | wc -l` 实测 96 条）。
+   ⇒ 接手应以**工作树**为准（工作树比 HEAD 新），并请前台在开工前把这批产物补交，避免"两份真相"。
+3. **任务数已由 30 → 33**：新增 `ROOT-004`(本任务)、`ROOT-005/006`、`TEST-GREEN-001`（`1497f796` 立，33 任务）。⇒ 第 8 列"归属"的**可选任务集合与映射计数必须按当前 `TASK_LIST.md` 重算**（本文件 §3 与 SHARD_BRIEF §4 里的 30 任务表已过期，仅作历史）。
+4. **凭据面已升级为独立任务**：`c44adc08` 立 **`ROOT-006（凭据入仓 SECURITY-URGENT）`** 并登记 `GAP-028` —— 即前任在 §11.3 登记的 `FATDUCK_ACCESS.md` 风险已被前台接住。接手在 `SUMMARY.md` 中仍应保留该发现的交叉引用，但**不要**与 ROOT-006 重复立任务。
+5. **根清洁线已在推进**：`4511712b` 删除 `设计大纲/`（344 tracked）、`e5fba371` ROOT-002 根目录长效机器门、`4fc3e898` ROOT-001/003 账本、`900916fb` 归档治理快照。⇒ 根目录条目与 `ci/checks.json` 仍在变动，**不要**引用任何"当前根条目数/门数"的静态数字。
+6. **`GAP` 基准同步扩容**：`GAP-001..GAP-030`（§13.7 已裁定）；`ROOT-006/GAP-028` 即为凭据面新条目 —— 合并时第 9 列按 **30 条 GAP + U-01..U-08** 重比对。
+
+---
+
 ## 12. 与 ROOT-004 验收门的对应（接手完成时逐条自证）
 
 | 验收门 | 复跑方式 |
@@ -291,7 +306,10 @@ git status --porcelain=v1 | grep -v -E "问题扫描/|reports/PROJECT-GOVERNANCE
 
 ### 13.1 分片状态（末次刷新；接手请用 §8 第 5 条再刷）
 
-> **🔚 最终落盘（前任最后一次实测）**：分片 **24 / 26 落盘**、条目 **735 / 785**、重复 ID = 0、列数不合格 **0** 行；结论分布 **{'OPEN': 688, 'RESOLVED': 38, 'VOID': 6, 'UNVERIFIABLE': 3}**。
+> **🔚 最终落盘（前任最后一次实测，2026-09-16T07:48Z）**：分片 **25 / 26 落盘**、条目 **756 / 785**、列数不合格 **0** 行；结论分布 **{'OPEN': 706, 'RESOLVED': 41, 'VOID': 6, 'UNVERIFIABLE': 3}**；`问题扫描` 文件数 **1096**（零删除）；`HEAD=900916fb`。
+> **仍未落盘**：`G_GOV_GATE_P2`。
+>
+> **较早快照**：分片 **24 / 26 落盘**、条目 **735 / 785**、重复 ID = 0、列数不合格 **0** 行；结论分布 **{'OPEN': 688, 'RESOLVED': 38, 'VOID': 6, 'UNVERIFIABLE': 3}**。
 > **仍未落盘**：`F_TEST_GAP_P0 G_GOV_GATE_P2`（接手按 §8 第 5 条轮询；若长时间无产出，登记「未完成，交下一任」，**不要重派**）。
 > `问题扫描` 文件数 **1096**（零删除）；`HEAD=4511712b`（继续移动，接手须自记）。以下为更早快照，保留以显示增长。
 

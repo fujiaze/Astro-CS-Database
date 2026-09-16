@@ -8,14 +8,13 @@
 
 ## ID 覆盖自证（命令 + 逐字输出）
 
-命令：timeout 60 python3 -c "a=[l.split(chr(9))[0] for l in open('reports/PROJECT-GOVERNANCE-01/root-scan/shards/_assign/F_TEST_GAP_P0.tsv',encoding='utf-8').read().splitlines()[1:] if l.strip()]；p=[l.split('|')[0] for l in open('reports/PROJECT-GOVERNANCE-01/root-scan/shards/F_TEST_GAP_P0.psv',encoding='utf-8').read().splitlines()[1:] if l.strip()]；print('assign=',len(a),'psv=',len(p),'order_identical=',a==p)；print('missing=',[x for x in a if x not in p],'extra=',[x for x in p if x not in a])"
+命令（单行）：timeout 60 python3 -c "a=[l.split(chr(9))[0] for l in open('reports/PROJECT-GOVERNANCE-01/root-scan/shards/_assign/F_TEST_GAP_P0.tsv',encoding='utf-8').read().splitlines()[1:] if l.strip()];p=[l.split('|')[0] for l in open('reports/PROJECT-GOVERNANCE-01/root-scan/shards/F_TEST_GAP_P0.psv',encoding='utf-8').read().splitlines()[1:] if l.strip()];print('assign=',len(a),'psv=',len(p),'order_identical=',a==p);print('missing=',[x for x in a if x not in p],'extra=',[x for x in p if x not in a])"
 
 逐字输出：
 assign= 15 psv= 15 order_identical= True
 missing= [] extra= []
 
-PSV 结构自检同批输出：lines= 16 / header_ok= True / bad_col_rows= [] / ids 顺序＝分配表顺序。
-（注：上面"命令"行内的分号在实跑时为换行，PSV 列内禁换行故此处折为单行；两行 print 逐字一致。）
+PSV 结构自检同批输出：lines= 16 / header_ok= True / bad_col_rows= [] / 四态计数 OPEN 12 RESOLVED 3 VOID 0 UNVERIFIABLE 0。
 
 ## RESOLVED 3 条的证据要点
 - M8-F-001：tests/abi 四个脚本已包装 TestCase（断言 main()==0），同一 discover 命令采集 22 例（原 0）；ci/validate_registry.py R11 已加"采集用例数>0"判定。
