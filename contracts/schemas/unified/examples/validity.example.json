@@ -1,0 +1,34 @@
+{
+  "unified_object": "validity",
+  "object_schema_id": "https://astrocs.local/schemas/unified/validity/v1",
+  "schema_version": 1,
+  "units": {
+    "bunit": "1",
+    "bunit_semantics": "written_px_power",
+    "pixel_semantics": "count",
+    "pixel_area_power": 0
+  },
+  "missing_value": {
+    "missing_repr": "null",
+    "invalid_repr": "nan",
+    "nan_in_binary": true,
+    "silent_zero_forbidden": true
+  },
+  "precision": "float32",
+  "object_weight_capability": false,
+  "object_weight_verdict": "门，不是权重",
+  "provenance": {
+    "source_chain": [
+      "phase1/frame-0001"
+    ],
+    "software_sha": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+    "config_hash": "sha256:cccc",
+    "algorithm_ids": [
+      "ALG-P2-INT-001"
+    ],
+    "generated_utc": "2026-09-16T00:00:00Z"
+  },
+  "validity_state": "valid",
+  "reason": "none",
+  "role": "gate"
+}

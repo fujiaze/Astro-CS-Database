@@ -1,0 +1,35 @@
+{
+  "unified_object": "signal",
+  "object_schema_id": "https://astrocs.local/schemas/unified/signal/v1",
+  "schema_version": 1,
+  "units": {
+    "bunit": "ADU",
+    "bunit_semantics": "written_px_power",
+    "pixel_semantics": "integrated_flux",
+    "pixel_area_power": 0,
+    "target_pixel_area": 1.0
+  },
+  "missing_value": {
+    "missing_repr": "null",
+    "invalid_repr": "nan",
+    "nan_in_binary": true,
+    "silent_zero_forbidden": true
+  },
+  "precision": "float32",
+  "object_weight_capability": false,
+  "object_weight_verdict": "否",
+  "provenance": {
+    "source_chain": [
+      "phase1/frame-0001"
+    ],
+    "software_sha": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+    "config_hash": "sha256:cccc",
+    "algorithm_ids": [
+      "ALG-P2-INT-001"
+    ],
+    "generated_utc": "2026-09-16T00:00:00Z"
+  },
+  "signal_plane_ref": "phase3/plane/signal",
+  "representation": "map",
+  "product_family": "phase3_plane_flux"
+}

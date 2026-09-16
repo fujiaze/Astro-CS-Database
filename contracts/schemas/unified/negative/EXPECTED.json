@@ -1,0 +1,33 @@
+{
+  "n1_bare_weight.schema-violation.json": {
+    "schema": "signal",
+    "must_match": [
+      "weight:pattern",
+      "weight:additionalProperties"
+    ]
+  },
+  "n2_source_snr_as_variance.schema-violation.json": {
+    "schema": "variance",
+    "must_match": [
+      "unified_object:const",
+      "variance_value",
+      "object_schema_id:const"
+    ]
+  },
+  "n3_coverage_as_rejection.schema-violation.json": {
+    "schema": "rejection",
+    "must_match": [
+      "unified_object:const",
+      "pollution_inference",
+      "object_schema_id:const"
+    ]
+  },
+  "n4_source_snr_into_variance_port.schema-violation.json": {
+    "schema": "port_contract",
+    "must_match": [
+      "connected_object_document/unified_object",
+      "connected_object_document/object_schema_id",
+      "connected_object_document"
+    ]
+  }
+}

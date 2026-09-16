@@ -1,0 +1,42 @@
+{
+  "port_id": "phase2.integrate.pixel_variance_in",
+  "direction": "input",
+  "accepts_object": "variance",
+  "accepts_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+  "connected_object_document": {
+    "unified_object": "source_snr",
+    "object_schema_id": "https://astrocs.local/schemas/unified/source_snr/v1",
+    "schema_version": 1,
+    "units": {
+      "bunit": "1",
+      "bunit_semantics": "written_px_power",
+      "pixel_semantics": "dimensionless",
+      "pixel_area_power": 0
+    },
+    "missing_value": {
+      "missing_repr": "null",
+      "invalid_repr": "nan",
+      "nan_in_binary": true,
+      "silent_zero_forbidden": true
+    },
+    "precision": "float32",
+    "object_weight_capability": false,
+    "object_weight_verdict": "不直接作帧权重",
+    "provenance": {
+      "source_chain": [
+        "phase1/frame-0001"
+      ],
+      "software_sha": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+      "config_hash": "sha256:cccc",
+      "algorithm_ids": [
+        "ALG-P2-INT-001"
+      ],
+      "generated_utc": "2026-09-16T00:00:00Z"
+    },
+    "source_snr_value": 37.2,
+    "flux_ref": "photometry/source-17/flux",
+    "sigma_flux_ref": "photometry/source-17/sigma_flux",
+    "source_id": "GAIA-DR3-1234567890",
+    "role": "diagnostic"
+  }
+}

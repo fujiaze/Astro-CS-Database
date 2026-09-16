@@ -1,0 +1,39 @@
+{
+  "unified_object": "rejection",
+  "object_schema_id": "https://astrocs.local/schemas/unified/rejection/v1",
+  "schema_version": 1,
+  "units": {
+    "bunit": "1",
+    "bunit_semantics": "written_px_power",
+    "pixel_semantics": "probability",
+    "pixel_area_power": 0
+  },
+  "missing_value": {
+    "missing_repr": "zero",
+    "invalid_repr": "zero",
+    "nan_in_binary": false,
+    "silent_zero_forbidden": true
+  },
+  "precision": "float32",
+  "object_weight_capability": false,
+  "object_weight_verdict": "门/概率，不是 coverage",
+  "provenance": {
+    "source_chain": [
+      "phase1/frame-0001"
+    ],
+    "software_sha": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+    "config_hash": "sha256:cccc",
+    "algorithm_ids": [
+      "ALG-P2-INT-001"
+    ],
+    "generated_utc": "2026-09-16T00:00:00Z"
+  },
+  "pollution_inference": {
+    "estimator": "wbpp_current",
+    "reason_code": "REJECTED_HIGH",
+    "rejection_probability": 0.98,
+    "threshold_ref": "SCI-REJ-001 §5"
+  },
+  "rejected_sample_count": 3,
+  "role": "gate"
+}

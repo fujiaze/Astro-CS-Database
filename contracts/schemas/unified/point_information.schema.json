@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/unified/point_information/v1",
+  "title": "AstroCS 统一对象 point_information —— 点源严格权重 W = a²PᵀC⁻¹P",
+  "description": "UNIFIED_MODEL §2：point_information = a²PᵀC⁻¹P = 1/Var(F_hat)；可否作权重 = 点源目标的严格权重。W_info 由完整 PᵀC⁻¹P 给出，禁止用 source_snr/depth_m5/frame_snr 等诊断量替代。",
+  "x-astrocs-object": {
+    "name": "point_information",
+    "canonical_file": "contracts/schemas/unified/point_information.schema.json",
+    "authority": "docs/design/UNIFIED_MODEL.md §2；ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "weight_verdict": "点源目标的严格权重",
+    "weight_eligible": true
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "unified_object",
+    "object_schema_id",
+    "schema_version",
+    "units",
+    "missing_value",
+    "precision",
+    "object_weight_capability",
+    "object_weight_verdict",
+    "provenance",
+    "W_info",
+    "variance_of_flux",
+    "aperture_scale_a_ref",
+    "psf_ref",
+    "covariance_ref",
+    "target_estimator"
+  ],
+  "propertyNames": {
+    "pattern": "^(?!(weight|value|mask|snr)$)(?!(weight|value|mask|snr)(_|$))(?!(weight|value|mask)(_|$)).*$"
+  },
+  "properties": {
+    "unified_object": {
+      "const": "point_information",
+      "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
+    },
+    "object_schema_id": {
+      "const": "https://astrocs.local/schemas/unified/point_information/v1",
+      "description": "全局唯一 schema ID（contracts/schemas/unified/point_information.schema.json）"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bunit",
+        "bunit_semantics",
+        "pixel_semantics",
+        "pixel_area_power"
+      ],
+      "propertyNames": {
+        "pattern": "^(?!(weight|value|mask|snr|snr_value|weight_value|value_value|mask_value)$).*$"
+      },
+      "properties": {
+        "bunit": {
+          "const": "ADU^-2",
+          "description": "FZ-UNIT-WINFO：W_info 严格为 signal^-2"
+        },
+        "bunit_semantics": {
+          "description": "FZ-BUNIT-SEMANTICS：written_px_power = BUNIT 显式含 px 幂次；declared_via_provenance = BUNIT 仅写 ADU 时必须由 provenance 声明 pixel_semantics + pixel_area_power",
+          "enum": [
+            "written_px_power",
+            "declared_via_provenance"
+          ]
+        },
+        "pixel_semantics": {
+          "const": "dimensionless"
+        },
+        "pixel_area_power": {
+          "description": "px 幂次：面亮度 -2 / 通量 0（FZ-BUNIT-SEMANTICS 缺省表）",
+          "enum": [
+            -2,
+            0
+          ]
+        },
+        "target_pixel_area": {
+          "description": "目标像素面积（BUNIT=ADU 且 surface_brightness 时必需）",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "bunit": {
+                "pattern": "/px\\^2"
+              }
+            },
+            "required": [
+              "bunit"
+            ]
+          },
+          "then": {
+            "properties": {
+              "bunit_semantics": {
+                "const": "written_px_power"
+              },
+              "pixel_semantics": {
+                "const": "surface_brightness"
+              },
+              "pixel_area_power": {
+                "const": -2
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "bunit_semantics": {
+                "const": "declared_via_provenance"
+              }
+            },
+            "required": [
+              "bunit_semantics"
+            ]
+          },
+          "then": {
+            "required": [
+              "target_pixel_area"
+            ],
+            "properties": {
+              "pixel_semantics": {
+                "const": "surface_brightness"
+              },
+              "pixel_area_power": {
+                "const": -2
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "pixel_semantics": {
+                "const": "integrated_flux"
+              }
+            },
+            "required": [
+              "pixel_semantics"
+            ]
+          },
+          "then": {
+            "properties": {
+              "pixel_area_power": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "missing_value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "missing_repr",
+        "invalid_repr"
+      ],
+      "propertyNames": {
+        "pattern": "^(?!(weight|value|mask|snr|snr_value|weight_value|value_value|mask_value)$).*$"
+      },
+      "properties": {
+        "missing_repr": {
+          "description": "缺失表示（对象文档不得省略该声明）",
+          "enum": [
+            "null",
+            "absent_key",
+            "zero",
+            "null_or_absent",
+            "unavailable_object"
+          ]
+        },
+        "invalid_repr": {
+          "description": "无效值表示",
+          "enum": [
+            "null",
+            "nan",
+            "zero",
+            "nan_or_negative",
+            "mask_bit",
+            "unavailable_object",
+            "not_applicable"
+          ]
+        },
+        "nan_in_binary": {
+          "description": "二进制平面是否允许 NaN 承载 invalid（JSON 无 NaN 字面量）",
+          "type": "boolean"
+        },
+        "silent_zero_forbidden": {
+          "description": "禁止用 0 冒充缺失/不可用（静默 0 = fail-closed）",
+          "type": "boolean"
+        },
+        "sentinel_note": {
+          "description": "补充说明（不得引入第二套无效值口径）",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "precision": {
+      "description": "精度：float32 / float64 / integer（与 DATA_SEMANTICS §6 一致，不得自定第二套）",
+      "enum": [
+        "float32",
+        "float64",
+        "integer"
+      ]
+    },
+    "object_weight_capability": {
+      "const": true,
+      "description": "UNIFIED_MODEL §2「可否作权重」列的机器判定（照抄，不得自行改判定）"
+    },
+    "object_weight_verdict": {
+      "const": "点源目标的严格权重",
+      "description": "UNIFIED_MODEL §2「可否作权重」列原文（逐字）"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_chain"
+      ],
+      "propertyNames": {
+        "pattern": "^(?!(weight|value|mask|snr|snr_value|weight_value|value_value|mask_value)$).*$"
+      },
+      "properties": {
+        "source_chain": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "description": "上游产品/输入标识（产物引用，悬空即 REJECT）",
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "来源链：本对象由哪些上游产物/输入派生（FZ-PROV-MINIMAL-SET 的对象级最小集）"
+        },
+        "software_sha": {
+          "description": "生成该对象的软件完整 SHA（40 hex）",
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "config_hash": {
+          "description": "配置哈希（run_manifest.config_hash）",
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "description": "算法条款 ID（ALG-* / SCI-*）",
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "generated_utc": {
+          "description": "生成时间 UTC（ISO-8601，Z 结尾）",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      }
+    },
+    "W_info": {
+      "description": "W_info = a²PᵀC⁻¹P = 1/Var(F_hat)（点源严格权重）",
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "variance_of_flux": {
+      "description": "Var(F_hat) = 1/W_info（必须与 W_info 自洽）",
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "aperture_scale_a_ref": {
+      "description": "光度响应 a 的引用",
+      "type": "string",
+      "minLength": 1
+    },
+    "psf_ref": {
+      "description": "PSF P 的引用",
+      "type": "string",
+      "minLength": 1
+    },
+    "covariance_ref": {
+      "description": "输入 covariance C 的引用",
+      "type": "string",
+      "minLength": 1
+    },
+    "target_estimator": {
+      "const": "point_source_flux"
+    }
+  }
+}
