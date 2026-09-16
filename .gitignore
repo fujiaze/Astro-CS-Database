@@ -120,7 +120,7 @@ astrocs_run_*.json
 /Testing/
 /out/
 /AstroCS.wiki/
-resource_samples.csv
+resource_timeseries.csv
 resource_summary.json
 worker_balance.csv
 # FIX-E2E B1-A8: MON-002 allocation report 亦属运行产物(此前漏登记 → CI dirty);

@@ -130,9 +130,12 @@ ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56
 - 唯一 executor 与实测资源门（RT-001 `91440c16`）：`lib/infrastructure/scheduler/src/executor_runtime.h`
   + `lib/infrastructure/scheduler/src/module_adapters.cpp`:3777-3793（Phase3 resample 行带提交唯一池，
   每任务经 `ThreadBudget acquire(1,1)` 恰租 1 槽）；`tools/monitoring/run_monitored.py`
-  `evaluate_frozen_gate()` 按 `ASTROCS_DESIGN.md` §8 冻结阈值（均值≥85%、任何连续 10s<60%、
-  单活跃线程即 fail）判定，未请求 `--gate-required` 时零行为变化，
-  缺失/非法监控输入 fail-closed。ctest `rt001_unique_executor` 本提交实测 rc=0。
+  `evaluate_frozen_gate()` 按 **`docs/plugins/infrastructure/21_observability.md` §8（G-RES-01）**
+  判定（判据语义权威），阈值唯一数值源 = `contracts/resource_gate_v1.json`；
+  硬失败 = 单活跃计算线程 / 连续≥10s<60% 且队列有工作 / 无界内存增长，均值≥85% 等为
+  record_and_justify。`ASTROCS_DESIGN.md` §8 只作定性要求与指针、**不含阈值数字**
+  （2026-09-16 GATE-FIX-RES 订正：旧表述「按最高设计 §8 冻结阈值」是悬空引用）。
+  未请求 `--gate-required` 时零行为变化，缺失/非法监控输入 fail-closed。ctest `rt001_unique_executor` 本提交实测 rc=0。
 
 ## 6. 与发布形态的关系
 
