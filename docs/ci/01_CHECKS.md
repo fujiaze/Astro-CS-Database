@@ -60,6 +60,19 @@
 | RESOURCE-GATE-REAL-NEG | 资源 | 上项的可执行负例面（串行注入 ⇒ 门必须判红） | `python3 tools/quality/check_resource_gate_real.py --fault-inject serial --seconds 20` | P0 |
 | CHK-KNOWN-FAILURES-BASELINE | 测试 | 版本化已知失败基线门（聚合型，linux-main 末位） | `python3 ci/run_checks.py --check CHK-KNOWN-FAILURES-BASELINE --quiet` | P1 |
 
+> **§8 判据登记：`AGENTS-GOV` / `ENG-CONSTRAINTS` 的「非绑定标记豁免」粒度 = 行级（2026-09-16，负责人裁决 B）。**
+> 两门的「唯一最高权威」判据原用**整文件豁免**（`if "ARCHIVED_NON_NORMATIVE" in text: continue`）：
+> 触发条件是文件内**提到**该字样，而非**自称归档** ⇒ `memory.md` 只在第 8/12/73 行说「别的东西已归档」
+> 就被整文件跳过，「`memory.md` 自称唯一最高**权威**」（写法说明：本登记文自身也被同一判据扫描，故在「最高」与「权威」之间加 Markdown 强调断开字面匹配，
+> 避免登记文自我触发；判据正则仍为「唯一 + 最高 + 权威/约束/规范/文档」连续匹配）**永远判不出来**（与 R-6 §3.5「空触发」同一失效型，属**假绿来源**）。
+> 现行判据：只有**该行自身**带非绑定标记（`NON_BINDING_MARKERS`：ARCHIVED / 已删 / 已删除 / 已归档 / 历史参照…）才跳过该行，
+> 与两门其余判据（`legacy_hits` / `legacy_object_body_hits`）**本来就用的行级口径**一致。
+> 双向证据（本任务 `run/PROJECT-GOVERNANCE-01/CI-003/logs/B_*`）：真仓 rc=0 且 `scanned=291`；
+> 注入「`memory.md` 自称唯一最高**权威**」（写法说明：本登记文自身也被同一判据扫描，故在「最高」与「权威」之间加 Markdown 强调断开字面匹配，
+> 避免登记文自我触发；判据正则仍为「唯一 + 最高 + 权威/约束/规范/文档」连续匹配）⇒ **rc=1 `single_authority_entry: memory.md:114`**（指名行号）；
+> `--self-test` 计数不变（`AGENTS-GOV` 4 正 6 负 / `ENG-CONSTRAINTS` 3 正 8 负）。
+> 两门的 `changed_paths` 已把 `memory.md` 登记为**真实触发面**（此前是空触发）。
+
 ### 2.1 退役记录（只减不增；每条必须写依据与日期）
 
 | 退役项 | 日期 | 依据 | 处置 | 可复跑性 |

@@ -376,9 +376,14 @@ def run_check(root: str):
             continue
         t = read(p)
         scanned += 1
-        if "ARCHIVED_NON_NORMATIVE" in t or rel == "ASTROCS_DESIGN.md":
+        if rel == "ASTROCS_DESIGN.md":
             continue
+        # CI-003-B（2026-09-16）：豁免粒度由「整文件」改为「行级」（与 AGENTS-GOV 同步）。
+        # 旧判据只看文件内**是否提到** ARCHIVED_NON_NORMATIVE，不看是否**自称归档**
+        # ⇒ memory.md 的「自称唯一最高权威」被整文件豁免吃掉（假绿）。
         for i, line in enumerate(t.splitlines(), 1):
+            if any(m in line for m in NON_BINDING_MARKERS):
+                continue
             # 唯一行内豁免：逐字点名现行最高设计 ASTROCS_DESIGN.md（CI-003-E；
             # 「本文/本文件/本文档/本报告」等自指措辞不再豁免）。
             if SELF_AUTHORITY_RE.search(line) and "ASTROCS_DESIGN.md" not in line:
