@@ -311,7 +311,7 @@ ivar_out = 1/var_out (有限且 >0)
 
 ### F-OBS-01 冻结文档单位/命名内部不一致（DRIZZLE §3 vs §5/§7）
 
-- 事实：§3 记 S,F,x: ADU/e⁻；v,variance: ADU²；ivar: ADU⁻²；§5/§7 推出 S_p=F_p/D_p（ADU/px²）与 variance_p=Σv_jw²/D_p²（ADU²/px⁴）。同名 variance 指两个不同量纲的对象。
+- 事实：§3 记 S,F,x: ADU/e⁻（记法冻结：斜杠为「主单位 + 等价标注」分隔符，ADU 为规范信号单位，e⁻ 为增益标定后的等价标注 [docs/GLOSSARY.md 第 9 行：electron = DRIZZLE 域允许的信号等价标注]，不得读作二选一；本条 finding 的歧义不在此记法，而在 variance 同名不同量纲）；v,variance: ADU²；ivar: ADU⁻²；§5/§7 推出 S_p=F_p/D_p（ADU/px²）与 variance_p=Σv_jw²/D_p²（ADU²/px⁴）。同名 variance 指两个不同量纲的对象。
 - 违反：宪章 §4.1（不得混淆的量）、§5.3（Drizzle 单位与误差传播必须明确）、UNIFIED §7。
 - 证据：门 U2；DRIZZLE.md:27,48,55,82。
 - 建议：SCI-OBS→SCI-ADJ 裁定术语（例如 pixel_variance_in / sb_variance_out），并在 DATA_SEMANTICS §30.4 的 BUNIT² 表达处显式声明输出面亮度与方差的 px 幂次。

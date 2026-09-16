@@ -4,7 +4,9 @@
 权威=控制包 04/API-002..005; 仓库落地 docs/api/*_V1.md + 真实头文件/源码。
 
 检查项(任一 FAIL→exit 1):
-  [A] 命令树  : docs/api/CLI_PROTOCOL_V1.md §1 每命令与 `build/cli/astrocs --help` 一致。
+  [A] 命令树  : docs/api/CLI_PROTOCOL_V1.md §1 每命令与 CLI 产物 --help 一致。
+        CLI 产物候选（产品图优先）见 Checker.CLI_EXE_CANDIDATES；候选全缺/跑不起来/
+        --help 无可解析命令树 → FAIL（fail-closed，禁止静默跳过让门退化为 0 检查）。
   [B] 退出码  : docs 列出的 0/2/3/4/5/6/7/8/9/10/70 与唯一源 exit_codes.h 一致。
   [C] session 签名(§1 生命周期): 每 `p1/p2/p3_session_*` 函数存在于 session 头文件,
        且参数数(按 '(' 后匹配 ')' 的顶层逗号)与文档 §1 一致。  ← 合同③ 签名一致
@@ -120,6 +122,25 @@ class Checker:
                    (symbol + "_f64", symbol + "_f32"))
 
     # ── [A] 命令树 vs CLI --help ──
+    # 命令树 golden 的可执行候选（顺序=优先级）：
+    #   1. build/astrocs           —— 产品图产物（CMakeLists.txt 根图 add_executable(astrocs)
+    #      是唯一 install(TARGETS astrocs) 交付件）；
+    #   2. build/astrocs.exe       —— 产品图 Windows 产物；
+    #   3. build/cli/astrocs       —— 兼容图产物（cli/CMakeLists.txt 自述 COMPATIBILITY、
+    #      非产品事实源，仅作历史回落）；
+    #   4. build/cli/astrocs.exe   —— 兼容图 Windows 产物。
+    # 两图同名不同源集，故产品图优先（问题扫描 M5b-G-01：门必须验交付物）。
+    CLI_EXE_CANDIDATES = ("build/astrocs", "build/astrocs.exe",
+                          "build/cli/astrocs", "build/cli/astrocs.exe")
+
+    def _cli_exe(self):
+        """返回首个存在的 CLI 可执行路径；候选全缺返回 None（调用方 fail-closed）。"""
+        for rel in self.CLI_EXE_CANDIDATES:
+            p = os.path.join(self.repo, *rel.split("/"))
+            if os.path.isfile(p):
+                return p
+        return None
+
     def check_command_tree(self):
         doc = os.path.join(self.doc_api, "CLI_PROTOCOL_V1.md")
         if not os.path.isfile(doc):
@@ -129,17 +150,28 @@ class Checker:
         # 去尾部注释
         doc_cmds = [c.split("#")[0].strip() for c in doc_cmds]
         doc_cmds = {c for c in doc_cmds if c.startswith("astrocs") and len(c) > 7}
-        exe = os.path.join(self.repo, "build", "cli", "astrocs")
-        if os.path.isfile(exe):
-            try:
-                help_text = subprocess.run([exe, "--help"], capture_output=True,
-                                           text=True, timeout=30).stdout
-            except (OSError, subprocess.TimeoutExpired):
-                return self.fail("无法运行 build/cli/astrocs --help")
-            help_cmds = {l.strip() for l in help_text.splitlines() if l.strip().startswith("astrocs")}
-            missing = sorted(c for c in doc_cmds if c not in help_cmds)
-            if missing:
-                self.fail("命令树 doc 有但 CLI --help 缺(或文本差): %s" % "; ".join(missing[:6]))
+        exe = self._cli_exe()
+        if exe is None:
+            # fail-closed: 缺产物即 FAIL。历史缺陷：此处曾无 else 分支，产物缺失时
+            # 既不 fail 也不告警，命令树门静默退化为 0 检查（问题扫描 M5b-G-01/L12）。
+            return self.fail("缺少 CLI 可执行产物（候选 %s）——命令树无从比对，fail-closed 判 FAIL"
+                             % "、".join(self.CLI_EXE_CANDIDATES))
+        try:
+            proc = subprocess.run([exe, "--help"], capture_output=True,
+                                  text=True, timeout=30)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return self.fail("无法运行 %s --help: %s" % (exe, exc))
+        if proc.returncode != 0:
+            return self.fail("%s --help rc=%d（命令树 golden 不可读，fail-closed）"
+                             % (exe, proc.returncode))
+        help_text = proc.stdout
+        help_cmds = {l.strip() for l in help_text.splitlines() if l.strip().startswith("astrocs")}
+        if not help_cmds:
+            return self.fail("%s --help 未输出任何 astrocs 命令行（命令树 golden 不可读，"
+                             "fail-closed）" % exe)
+        missing = sorted(c for c in doc_cmds if c not in help_cmds)
+        if missing:
+            self.fail("命令树 doc 有但 CLI --help 缺(或文本差): %s" % "; ".join(missing[:6]))
 
     # ── [B] 退出码唯一源 exit_codes.h ──
     def check_exit_codes(self):

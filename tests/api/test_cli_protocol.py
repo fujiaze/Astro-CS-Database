@@ -4,11 +4,12 @@ import json, os, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOC = os.path.join(REPO, "docs", "api", "CLI_PROTOCOL_V1.md")
-# 断链修复: 旧 LEDGER_04 指向 untracked 控制包布局 工程控制/RELEASE_V5/，
-# tracked 工作区与 hosted checkout 永不存在 → setUpClass FileNotFoundError。
-# 改指 tracked 同资产副本（sha256 17040e7b… 与 archive 副本逐字节一致）。
-LEDGER_04 = os.path.join(REPO, "artifacts", "prerelease_v5", "AUDIT_REVIEW",
-                         "control", "04_CLI_COMMAND_AND_PROTOCOL_CONTRACT.md")
+# 断链修复（第二次，2026-09-16，负责人裁决 C）：上一版 LEDGER_04 指向
+# artifacts/prerelease_v5/AUDIT_REVIEW/control/04_CLI_COMMAND_AND_PROTOCOL_CONTRACT.md，
+# 该树已随 artifacts/ 按负责人裁决删除（commit b1290525「不归档、不保留」）⇒ setUpClass
+# FileNotFoundError。04 控制包副本已不可得，交叉核对对象改为 **tracked 权威文档本身**
+# docs/api/CLI_PROTOCOL_V1.md（其 §1 命令树 + §6 校验器合同即 04 的仓库落地）。
+LEDGER_04 = DOC
 
 class TestCliProtocol(unittest.TestCase):
     @classmethod
@@ -51,8 +52,12 @@ class TestCliProtocol(unittest.TestCase):
 
     def test_06_04_is_authoritative_reference(self):
         self.assertIn("以 04 为准", self.s)
-        for cmd in ("astrocs --version --json", "astrocs doctor --json"):
-            self.assertIn(cmd, self.s04, "04 权威命令存在性交叉核对")
+        # 断言对象 = §1 命令树冻结原文（LEDGER_04 已重指本文档，见文件头断链修复说明）：
+        # 原 04 副本字面量 "astrocs --version --json" 为 04 侧写法，本文档冻结写法是
+        # "astrocs --version [--json]"（两者指同一命令，后者为可选参数形）。04 副本不可得，
+        # 故以 tracked 文档原文为准；如需恢复 04 字面量，属 CLI-001 的文档更新范畴。
+        for cmd in ("astrocs --version [--json]", "astrocs doctor --json"):
+            self.assertIn(cmd, self.s04, "权威命令存在性交叉核对")
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
