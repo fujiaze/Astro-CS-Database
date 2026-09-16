@@ -126,6 +126,15 @@ PATTERNS: list[tuple[str, str, re.Pattern]] = [
      re.compile(r"(?<![A-Za-z0-9+/])[A-Za-z0-9+/]{40,}={0,2}(?![A-Za-z0-9+/=])")),
 ]
 
+# 规则定义文件（**精确路径**，由测试断言锁定，防止被偷偷扩大）：
+# 「检测规则本体」与「其测试夹具」按定义就要写出原始形态字面量（如 sk- 前缀、password 赋值、
+# 私钥头拼接、哨兵串）。对它们只**降级**（命中仍逐条列出 路径/形态/行号，但不判红），
+# 不是豁免：文件照扫，报告照列。
+PATTERN_DEFINITION_FILES = frozenset({
+    "tools/quality/check_secret_hygiene.py",
+    "tests/quality/test_secret_hygiene.py",
+})
+
 # 需要在捕获组上做占位符过滤的形态（占位符 → 不算命中）
 VALUE_FILTERED = {"PASSWORD_ASSIGN", "SECRET_ASSIGN"}
 # B64_LONG 需含非 hex 字母，避免与 HEX64 重复计数
@@ -219,6 +228,21 @@ def git_files(root: pathlib.Path) -> tuple[list[str], str | None]:
     return [p for p in out.split("\0") if p], None
 
 
+def _still_tracked(root: pathlib.Path, rel: str) -> bool:
+    """并发竞态判定：清单枚举后文件消失时，再问一次 git。
+
+    仍 tracked（真丢文件）→ True（调用方按 fail-closed 判红）；
+    git 判定不再是 tracked 条目（别的线刚删/刚移出索引）→ False（不再属于扫描集）。
+    git 本身失败时返回 True —— 保持 fail-closed。
+    """
+    try:
+        proc = subprocess.run(["git", "-C", str(root), "ls-files", "--error-unmatch", "--", rel],
+                              capture_output=True, timeout=120)
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover - 环境异常
+        return True
+    return proc.returncode == 0
+
+
 def pack_files(root: pathlib.Path, packer_path: pathlib.Path) -> tuple[list[str], str | None]:
     """审计包收录文件清单（直接复用打包器 allowed()，保证检查与打包同源）。"""
     import importlib.util
@@ -262,16 +286,24 @@ def walk_files(root: pathlib.Path) -> tuple[list[str], str | None]:
     return out, None
 
 
-def build_report(scope, root, files, max_bytes, report_only) -> tuple[dict, int]:
+def build_report(scope, root, files, max_bytes, report_only, git_backed=False) -> tuple[dict, int]:
     undecidable: list[dict] = []
     results: list[dict] = []
     counts = {"files_in_set": len(files), "files_scanned": 0, "files_skipped_binary": 0,
               "files_oversize": 0, "files_with_critical": 0, "files_with_suspect": 0,
-              "files_info_only": 0, "fatal_findings": 0}
+              "files_info_only": 0, "fatal_findings": 0, "files_vanished": 0}
     for rel in files:
         path = root / rel
         try:
             data = path.read_bytes()
+        except FileNotFoundError:
+            # 并发竞态：清单来自 git，枚举后文件被别的线删除/移出索引 → 不再属于扫描集；
+            # 若 git 仍认为它 tracked（真丢文件）则按 fail-closed 判红。
+            if git_backed and not _still_tracked(root, rel):
+                counts["files_vanished"] += 1
+            else:
+                undecidable.append({"path": rel, "reason": "file_unreadable:FileNotFoundError"})
+            continue
         except OSError as exc:
             undecidable.append({"path": rel, "reason": "file_unreadable:" + type(exc).__name__})
             continue
@@ -287,6 +319,7 @@ def build_report(scope, root, files, max_bytes, report_only) -> tuple[dict, int]
         if not hits and not soft:
             continue
         sensitive = is_sensitive_path(rel)
+        downgraded = rel in PATTERN_DEFINITION_FILES
         fatal: list[str] = []
         info: list[str] = []
         for pid, sev, _rx in PATTERNS:
@@ -295,7 +328,7 @@ def build_report(scope, root, files, max_bytes, report_only) -> tuple[dict, int]
                 continue
             if pid not in hits:
                 continue
-            if sev == "CRITICAL" or (sev == "ESCALATE" and sensitive):
+            if not downgraded and (sev == "CRITICAL" or (sev == "ESCALATE" and sensitive)):
                 fatal.append(pid)
             else:
                 info.append(pid)
@@ -306,9 +339,12 @@ def build_report(scope, root, files, max_bytes, report_only) -> tuple[dict, int]
         if any(p in hits for p in ("HEX32", "HEX40", "HEX64", "B64_LONG")):
             counts["files_with_suspect"] += 1
         counts["fatal_findings"] += len(fatal)
+        if downgraded:
+            counts["files_policy_downgraded"] = counts.get("files_policy_downgraded", 0) + 1
         results.append({
             "path": rel,
             "sensitive_class": sensitive,
+            "policy_downgraded": downgraded,
             "patterns": {pid: hits[pid] for pid in sorted(hits)},
             "fatal_patterns": sorted(fatal),
             "info_patterns": sorted(info),
@@ -319,6 +355,8 @@ def build_report(scope, root, files, max_bytes, report_only) -> tuple[dict, int]
         verdict_reasons.append("undecidable_input")
     if counts["files_in_set"] == 0:
         verdict_reasons.append("empty_scan_set")
+    if counts["files_scanned"] == 0 and counts["files_in_set"] > 0:
+        verdict_reasons.append("nothing_scanned")
     if fatal_files and not report_only:
         verdict_reasons.append("secret_shape_detected")
     verdict = "PASS" if not verdict_reasons else "FAIL"
@@ -337,6 +375,8 @@ def build_report(scope, root, files, max_bytes, report_only) -> tuple[dict, int]
             "info_only_patterns": [p for p, s, _ in PATTERNS if s == "INFO"],
             "escalation_scope": "sensitive_path_class_only",
             "sensitive_path_rule": "basename 含 secret/credential/password/access 等标记，或扩展名 .env/.pem/.key/.ppk/.netrc/.p12/.pfx",
+            "pattern_definition_files": sorted(PATTERN_DEFINITION_FILES),
+            "pattern_definition_semantics": "规则本体与测试夹具：命中降级为 INFO（仍列 路径/形态/行号），不判红",
             "binary_scan_excluded_ext": sorted(BINARY_EXT),
         },
         "counts": counts,
@@ -425,7 +465,9 @@ def main(argv=None) -> int:
                   "output_contains_values": False}
         rc = 1
     else:
-        report, rc = build_report(args.scope, root, files, args.max_bytes, args.report_only)
+        git_backed = args.files is None and args.scope in ("pack", "tracked")
+        report, rc = build_report(args.scope, root, files, args.max_bytes, args.report_only,
+                                  git_backed=git_backed)
 
     text = json.dumps(report, ensure_ascii=False, indent=2)
     if _self_leak(text):
