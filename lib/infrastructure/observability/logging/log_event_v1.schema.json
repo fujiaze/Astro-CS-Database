@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "astrocs.log.event.v1",
+  "title": "AstroCS 结构化日志事件合同 (LOG-001, schema v1)",
+  "description": "AstroCS 统一结构化日志的机器 JSONL 单行事件合同。LOG-001 冻结字段语义；LOG-002 起生产 Runtime/模块/监控伴生器写入本 schema 的行。单行 = 一个 JSON 对象 + '\\n'。所有字符串必须为合法 UTF-8 且不含换行/回车（JSONL 约束）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "seq",
+    "ts",
+    "run",
+    "task",
+    "node",
+    "module",
+    "phase",
+    "commit",
+    "host",
+    "level",
+    "event",
+    "units",
+    "elapsed",
+    "diagnostic"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "astrocs.log.event.v1",
+      "description": "合同标识；本 schema 的 $id 常量，禁止缺省"
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "进程内单调递增的全局事件序号；多线程事件顺序的判定键（接受序 = seq 分配序），必须严格递增且无空洞（首事件=1）。禁止回绕"
+    },
+    "ts": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "description": "事件产生时刻，UTC，ISO8601 秒精度，固定后缀 Z（无小数秒/时区偏移）"
+    },
+    "run": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,128}$",
+      "description": "run 标识（run_id）；生产由 Runtime 分配，格式仅限安全字符"
+    },
+    "task": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{0,128}$",
+      "description": "高层任务标识（如 LOG-001 / phase1-32R / audit）；无则空字符串"
+    },
+    "node": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{0,128}$",
+      "description": "DAG 节点 id（如 nside_order_128 / node-3）；无则空字符串"
+    },
+    "module": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{0,128}$",
+      "description": "唯一 module id（对应 module.yaml / DLL）；无则空字符串"
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "phase1",
+        "phase2",
+        "phase3",
+        "runtime",
+        "monitoring",
+        "cli",
+        ""
+      ],
+      "description": "阶段/子系统归属；跨阶段 run 必须显式区分，空串仅允许未归属事件"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "产生事件的二进制/源码 commit（完整 40 位 SHA）；必须来自真实构建/运行现场，禁止 config 值冒充"
+    },
+    "host": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{0,255}$",
+      "description": "主机名或主机逻辑标识（不含用户名/绝对路径）；禁止携带敏感信息"
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "debug",
+        "info",
+        "warn",
+        "error"
+      ],
+      "description": "日志级别；error 事件必须携带 error.source/error.symbol/error.status（见 error 对象）"
+    },
+    "event": {
+      "type": "string",
+      "enum": [
+        "start",
+        "progress",
+        "end",
+        "warn",
+        "error",
+        "metric",
+        "checkpoint",
+        "cancel",
+        "trace"
+      ],
+      "description": "事件种类；event 与 level 独立（warn 级事件 / error 级事件均合法）"
+    },
+    "units": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9/%._-]{0,32}$",
+      "description": "主要数值量纲（如 us/ms/B/MiB/frames/tiles/percent/''）；无则空字符串。单位必须显式，禁止裸数字"
+    },
+    "elapsed": {
+      "type": "number",
+      "minimum": 0,
+      "description": "自 run 开始（或事件起点）起算的经过时间，单位 = units 字段；无则 0"
+    },
+    "diagnostic": {
+      "type": "string",
+      "description": "人工可读中文诊断/摘要（限制 1024 字符）；可为空字符串但字段必须存在",
+      "maxLength": 1024
+    },
+    "progress": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "可选进度 [0,1]（progress 事件）；其余事件缺省"
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "symbol",
+        "status"
+      ],
+      "description": "错误事件结构化载荷；仅 level=error 时必填（条件必填由检查器 check_error_payload 强制）；error 事件缺少本对象即合同违例",
+      "properties": {
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._/\\\\:-]{1,256}$",
+          "description": "错误来源位置（模块或相对源码路径，如 modules/phase1/noise/impl.cpp）；相对路径仅限仓库内路径，禁止绝对用户路径（脱敏约束）"
+        },
+        "symbol": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_:<>.]*$",
+          "description": "出错函数/符号（如 astrocs::noise::estimate_sigma）"
+        },
+        "status": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{0,63}$",
+          "description": "稳定错误码/退出状态（如 IO_READ_FAILED、CANCELLED）；与 ErrorDomain/错误码表一致"
+        }
+      }
+    },
+    "value": {
+      "type": "number",
+      "description": "可选数值载荷（metric/进度），与 units 配合；禁止承载敏感路径"
+    }
+  }
+}
