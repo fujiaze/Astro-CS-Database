@@ -1075,6 +1075,25 @@ signal 回读失败 rc=7 :1665）。
     =true 显式降级 support 并 diagnostics 标红（stage2.cpp:565-578）。
     ivar（1/ADU²）与 support（无量纲）量纲不同，任何静默互换违反
     本节。
+- **support 钳制的编码限（M2a-H-3，SCI-FIX-AIO）**: 上面的
+  `flux_sum = signal×area`（`area = support×A_cell`）闭合式**只在
+  support 未被钳制时恒等**。writer 落盘的 support 是
+  `min(covered_area/A_cell, 1)` 的**钳后发布值**，因此在
+  `covered_area > A_cell`（过覆盖；Phase2 同 cell 多帧叠加必然出现）时
+  `signal×support×A_cell` **不能复原真实 covered_area**（sup=1 丢失倍数
+  信息）——真实覆盖面积只在归约**输入侧**可得。据此冻结两条：
+  ① 低阶 hierarchy 归约必须用**未钳制**真实覆盖面积
+  （`flux_n += sig·a`、`area_n += a`；`a` = 输入 covered_area），
+  发布面 support 只在 finalize 钳一次；用钳后 support 反乘当归约权重是
+  **错的**（把父级面亮度降为 sup 加权均值，异质覆盖下父级通量出现本可
+  避免的损失：R-7 实测 sb=10@c=4 与 sb=0.1@c=1 混合域 8.02→5.05，
+  即 37.032% 的假损失）；
+  ② 钳制必须可观测：writer 逐产品写
+  `astrocs_support_clamped_pixels`（叶级 covered_area>A_cell 像素数）与
+  `astrocs_coverage_gt1_pixels`（层级 Σa>A_cell_k 像素数，即"覆盖面积
+  不可复原"的像素数），properties 与 manifest.json 双写；消费者见 >0 时
+  不得宣称覆盖面积可复原（DATA-P1-HIPS §12.2 的 F=signal×support×A_cell
+  闭合式同受此限）。
 - **序合同（HIPS-IMG-001，§3）**: 输出 FITS tile 行主序
   `(511−x)·512+y`；stage2 集成缓冲为 FITS 行主序，写入前按
   `nested_local_to_fits_index` 逆映射转 NESTED local 序（ACR 路径

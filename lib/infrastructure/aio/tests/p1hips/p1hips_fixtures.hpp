@@ -82,6 +82,7 @@ inline FixViewF64 fix_hips_a_tile(std::uint64_t parent_ipix,
                                   int dt = AIO_HIPS_FLOAT64,
                                   std::uint32_t leaf_order = FIX_LEAF_ORDER) {
     FixViewF64 f;
+    aio_hips_tile_view_abi_init(&f.view);   // ABI 自描述 (V11-N-01)
     f.view.data_type = dt;
     f.view.leaf_order = leaf_order;
     f.view.width = FIX_WIDTH;
@@ -164,6 +165,7 @@ inline std::vector<FixSnrPointF> fix_hips_d_snr_points(std::uint64_t seed, int n
     out.reserve((std::size_t)n);
     for (int i = 0; i < n; ++i) {
         FixSnrPointF p{};
+        aio_hips_snr_point_abi_init(&p);
         // 均匀球面抽样: z ∈ [-1,1], ra ∈ [0,360)
         const double z = 2.0 * rng.unit() - 1.0;
         const double ra = 360.0 * rng.unit();
@@ -195,6 +197,56 @@ inline FixViewF64 fix_hips_e_half_var_tile(std::uint64_t parent_ipix,
 inline FixViewF64 fix_hips_f_all_invalid_var_tile(std::uint64_t parent_ipix) {
     FixViewF64 f = fix_hips_a_tile(parent_ipix, 10.0, 0.5, 1.0, true, true);
     for (auto& v : f.var_num_sum) v = 0.0;
+    return f;
+}
+
+// ---------------------------------------------------------------------------
+// FIX-HIPS-G: 异质覆盖视图 (M2a-H-3 判别面): 同一 tile 内逐像素交替
+//   c_hi (>1, support 必须钳到 1) 与 c_lo (<=1)
+// = 用于区分两种层级归约式:
+//   (i)  面积加权 (未钳制真实覆盖面积) flux+=sig·a、area+=a
+//   (ii) support 加权 (钳后值)          flux+=sig·min(a,A_cell)、area+=min(a,A_cell)
+// 二者在 c<=1 全域一致 (纯浮点重结合), 只有 c>1 像素存在时分离。
+// 解析真值 (每父 cell 含 2·c_hi + 2·c_lo 叶像素):
+//   sig_parent = (2·sb_hi·c_hi + 2·sb_lo·c_lo) / (2·c_hi + 2·c_lo)
+//   sup_parent = min((2·c_hi + 2·c_lo)/4, 1)
+// 默认真值取 R-7 实测算例: sb_hi=10 @ c=4, sb_lo=0.1 @ c=1 → 8.02 (旧式 5.05)。
+// ---------------------------------------------------------------------------
+inline FixViewF64 fix_hips_g_hetero_coverage_tile(std::uint64_t parent_ipix,
+                                                  double sb_hi, double c_hi,
+                                                  double sb_lo, double c_lo,
+                                                  int dt = AIO_HIPS_FLOAT64,
+                                                  std::uint32_t leaf_order = FIX_LEAF_ORDER) {
+    FixViewF64 f;
+    aio_hips_tile_view_abi_init(&f.view);   // ABI 自描述 (V11-N-01)
+    // 覆盖因子 c 是相对**产品叶级 A_cell** 定义的 ⇒ a_cell 必须取 2^leaf_order,
+    // 否则 c 会整体放大 (nside 每翻倍 A_cell 缩小 4 倍)。
+    const double a_cell = fix_a_cell_sr(1u << leaf_order);
+    f.view.data_type = dt;
+    f.view.leaf_order = leaf_order;
+    f.view.width = FIX_WIDTH;
+    f.view.parent_ipix = parent_ipix;
+    f.view.valid_mask = nullptr;
+    f.view.var_num_sum = nullptr;
+    for (std::size_t i = 0; i < FIX_NPIX; ++i) {
+        const bool hi = (i % 2 == 0);
+        const double c = hi ? c_hi : c_lo;
+        const double sb = hi ? sb_hi : sb_lo;
+        if (dt == AIO_HIPS_FLOAT64) {
+            f.flux_sum.push_back(sb * c * a_cell);
+            f.covered_area.push_back(c * a_cell);
+        } else {
+            f.flux_f.push_back((float)(sb * c * a_cell));
+            f.area_f.push_back((float)(c * a_cell));
+        }
+    }
+    if (dt == AIO_HIPS_FLOAT64) {
+        f.view.flux_sum = f.flux_sum.data();
+        f.view.covered_area = f.covered_area.data();
+    } else {
+        f.view.flux_sum = f.flux_f.data();
+        f.view.covered_area = f.area_f.data();
+    }
     return f;
 }
 

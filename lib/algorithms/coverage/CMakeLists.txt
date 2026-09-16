@@ -64,6 +64,12 @@ target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infra
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/acr/scheduler)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/include)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../algorithms/shared)
+# SCI-FIX-AIO (V11-N-01) 连带修: compatibility 目标此前缺 third_party 头路径 ⇒
+# nlohmann/json 落到系统副本 (json_abi_v3_11_3), 而根图目标 (astrocs_hips/aio)
+# 带 third_party (v3_12_0); 两者混链时 p2_stage2_parse_config 之类的符号
+# mangling 不一致 (旧 astro_image_io.dll 恰好掩盖了该不一致)。统一到仓内
+# vendored json。
+target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party)
 if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
     target_link_libraries(phase2 PUBLIC OpenMP::OpenMP_CXX)
     # CON-004: 把 P2_ENABLE_OPENMP 作为编译宏定义（原为装饰性 option，源内 #if 恒假）。
@@ -84,7 +90,7 @@ if(GTest_FOUND)
     if(TARGET astrocs_hips AND TARGET astrocs_aio)
         set(P2_AIO_LINK astrocs_hips astrocs_aio)
     else()
-        set(P2_AIO_LINK ${P2_AIO_LINK})
+        set(P2_AIO_LINK ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/astro_image_io.dll)
     endif()
     add_executable(phase2_synthetic_gate tests/synthetic_gate.cpp)
     target_link_libraries(phase2_synthetic_gate PRIVATE phase2 GTest::gtest_main

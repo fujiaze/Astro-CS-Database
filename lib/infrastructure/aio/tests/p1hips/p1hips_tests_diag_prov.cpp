@@ -174,9 +174,11 @@ int dp_write_product(const std::string& dir, int flags, bool with_prov,
     }
     FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 1.5, true, true,
                                     AIO_HIPS_FLOAT32);
+    aio_hips_tile_view_abi_init(&fx.view);
     int rc = aio_hips_write_signal_support_tile(ps, &fx.view);
     if (rc != 0) { aio_hips_abort(ps); return rc; }
     if (flags & (AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR)) {
+        aio_hips_tile_view_abi_init(&fx.view);
         rc = aio_hips_write_variance_tile(ps, &fx.view);
         if (rc != 0) { aio_hips_abort(ps); return rc; }
     }
@@ -195,6 +197,7 @@ int dp_write_product(const std::string& dir, int flags, bool with_prov,
             out ? out->nrej_local : dp_to_local(dp_expected_nrej());
         dv.nused = (flags & AIO_HIPS_PRODUCT_NUSED) ? nused_buf.data() : nullptr;
         dv.nrej = (flags & AIO_HIPS_PRODUCT_NREJ) ? nrej_buf.data() : nullptr;
+        aio_hips_diag_tile_view_abi_init(&dv);
         rc = aio_hips_write_diag_tile(ps, &dv);
         if (rc != 0) { aio_hips_abort(ps); return rc; }
     }
@@ -575,6 +578,7 @@ int test_diag_prov_negative() {
                                                         1, 2, kProfile), 0);
             FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 1.5, true, true,
                                             AIO_HIPS_FLOAT32);
+            aio_hips_tile_view_abi_init(&fx.view);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &fx.view), 0);
             // available=true 但未置 variance/ivar 位 → finalize 必须 fail-closed
             P1HIPS_CHECK_MSG(cs, aio_hips_finalize(ps) == -9, "dpn2_guard_true",
@@ -595,6 +599,7 @@ int test_diag_prov_negative() {
                                                         0, 2, kProfile), 0);
             FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 1.5, true, true,
                                             AIO_HIPS_FLOAT32);
+            aio_hips_tile_view_abi_init(&fx.view);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &fx.view), 0);
             // available=false 却置 variance/ivar 位 → 禁占位, finalize 必须拒绝
             P1HIPS_CHECK_MSG(cs, aio_hips_finalize(ps) == -10, "dpn2_guard_false",
@@ -620,24 +625,30 @@ int test_diag_prov_negative() {
             dv.width = 512;
             dv.nrej = ok.data();
             dv.nused = ok.data();
+            aio_hips_diag_tile_view_abi_init(&dv);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_diag_tile(nullptr, &dv), -1);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_diag_tile(ps, nullptr), -1);
             AioHipsDiagTileView bad = dv;
             bad.width = 1024;
+            aio_hips_diag_tile_view_abi_init(&bad);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_diag_tile(ps, &bad), -2);
             bad = dv;
             bad.leaf_order = 10;
+            aio_hips_diag_tile_view_abi_init(&bad);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_diag_tile(ps, &bad), -2);
             bad = dv;
             bad.parent_ipix = 12ULL * (1ULL << (2ULL * 0));   // ≥ Norder0 上限
+            aio_hips_diag_tile_view_abi_init(&bad);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_diag_tile(ps, &bad), -3);
             bad = dv;
             bad.nrej = nullptr;                 // 已启用位无数据 → 禁静默跳过
+            aio_hips_diag_tile_view_abi_init(&bad);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_diag_tile(ps, &bad), -2);
             std::vector<int32_t> neg((size_t)kSpan, 0);
             neg[7] = -1;                        // 禁 −1 哨兵
             bad = dv;
             bad.nrej = neg.data();
+            aio_hips_diag_tile_view_abi_init(&bad);
             P1HIPS_CHECK_EQ(cs, aio_hips_write_diag_tile(ps, &bad), -5);
             P1HIPS_CHECK_MSG(cs, aio_hips_last_error() && *aio_hips_last_error(),
                              "dpn3_last_error", "负面返回后 last_error 必须非空");
@@ -657,6 +668,7 @@ int test_diag_prov_negative() {
                 dv2.width = 512;
                 dv2.nrej = z.data();
                 dv2.nused = z.data();
+                aio_hips_diag_tile_view_abi_init(&dv2);
                 P1HIPS_CHECK_EQ(cs, aio_hips_write_diag_tile(p2, &dv2), -4);
                 aio_hips_abort(p2);
             } else {

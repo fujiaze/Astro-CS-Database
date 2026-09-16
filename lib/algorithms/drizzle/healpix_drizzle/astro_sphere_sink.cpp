@@ -77,15 +77,25 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     }
     // （K_CORR_DOMAIN 选项 B）：Drizzle provenance 写入 properties，
     // Phase2 sampler 按帧选择 control-ivar 的 k_corr 标定值。
+    // M9-F-3: provenance 通道为全或无 —— 帧像素角尺度未知/非正 (header 缺
+    // src_pixel_scale_arcsec, 或 WCS 退化致 cd[0]=0) 时**不得**传 0 让 writer
+    // 猜; 此时整体不写这两键 (legacy 产品面), 由 Phase2 sampler 走"provenance
+    // 缺失"回退路径。帧尺度非有限/超物理域由 setter fail-closed。
     double scale_arcsec = 0.0;
     const auto sit = meta.fits_meta.find("src_pixel_scale_arcsec");
     if (sit != meta.fits_meta.end())
         scale_arcsec = std::atof(sit->second.c_str());
-    if (aio_hips_set_drizzle_provenance(ps, config.pixfrac,
-                                        scale_arcsec) != 0) {
-        err = "aio_hips_set_drizzle_provenance 失败";
-        aio_hips_abort(ps);
-        return false;
+    if (std::isfinite(scale_arcsec) && scale_arcsec > 0.0) {
+        if (aio_hips_set_drizzle_provenance(ps, config.pixfrac,
+                                            scale_arcsec) != 0) {
+            err = "aio_hips_set_drizzle_provenance 失败: " +
+                  std::string(aio_hips_last_error() ? aio_hips_last_error() : "?");
+            aio_hips_abort(ps);
+            return false;
+        }
+    } else {
+        std::fprintf(stderr, "[sink] 源帧像素角尺度未知/非正 (src_pixel_scale_arcsec),"
+                             " 跳过 drizzle provenance (全或无通道)\n");
     }
 
     const uint32_t leaf_order = ilog2_u64(nside);
@@ -125,6 +135,7 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         view.covered_area = dense_area.data();
         view.valid_mask = nullptr;
         view.var_num_sum = has_variance ? (const void*)dense_var.data() : nullptr;
+        aio_hips_tile_view_abi_init(&view);
         int rc = aio_hips_write_signal_support_tile(ps, &view);
         if (rc != 0) {
             err = "aio_hips_write_signal_support_tile rc=" + std::to_string(rc) +
@@ -134,6 +145,7 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
             return false;
         }
         if (has_variance) {
+            aio_hips_tile_view_abi_init(&view);
             rc = aio_hips_write_variance_tile(ps, &view);
             if (rc != 0) {
                 // 该 tile 全零/无有效方差 → 跳过本 tile variance (不中止)
@@ -309,6 +321,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         view.covered_area = area_buf.data();
         view.valid_mask = valid_buf.data();  // 显式 per-parent 有效掩膜
         view.var_num_sum = nullptr;
+        aio_hips_tile_view_abi_init(&view);
         const int rc = aio_hips_write_signal_support_tile(ps, &view);
         if (rc != 0) {
             err = "aio_hips_write_signal_support_tile rc=" + std::to_string(rc) +

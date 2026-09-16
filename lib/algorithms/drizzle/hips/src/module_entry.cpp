@@ -550,6 +550,8 @@ static acs_status hips_rows_parse(const char* manifest, const hips_cfg* c,
                          ACS_DIAG_ECODE_NONE, "hips: snr alloc failed");
         }
         for (uint64_t i = 0; i < m; ++i) {
+            /* V11-N-01: 每个元素携带 ABI 自描述 (步长 = sizeof(AioHipsSnrPoint)) */
+            aio_hips_snr_point_abi_init(&r->snr[i]);
             memcpy(&r->snr[i].ra_deg,  &ra[i * 8], 8);
             memcpy(&r->snr[i].dec_deg, &dec[i * 8], 8);
             memcpy(&r->snr[i].snr,     &sv[i * 8], 8);
@@ -928,10 +930,12 @@ static acs_status hips_execute_write_product(
             ? (const uint8_t*)(rows.valid_mask + i * tile_elems) : NULL;
         v.var_num_sum = rows.has_var && rows.var_num
             ? (const void*)(rows.var_num + i * tile_elems * dtype_sz) : NULL;
+        aio_hips_tile_view_abi_init(&v);
         int rc = aio_hips_write_signal_support_tile(ps, &v);
         if (rc != 0) { fail_rc = rc; fail_stage = "signal_support_tile"; break; }
         n_written++;
         if (rows.has_var) {
+            aio_hips_tile_view_abi_init(&v);
             rc = aio_hips_write_variance_tile(ps, &v);
             if (rc == -5 || rc == -2) {
                 /* 该 tile 无有效方差数据 → 跳过不中止 (生产同款) */

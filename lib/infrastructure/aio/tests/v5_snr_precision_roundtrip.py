@@ -15,27 +15,26 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(r"F:\Astro dev\Astro CS Normalization Database")
-AIO_DLL = ROOT / r"lib\astro_image_io\astro_image_io.dll"
 NON_PRODUCTION_TOOL_ONLY = True
 
 
-class AstroSphereTileView(ctypes.Structure):
-    _fields_ = [("parent_ipix", ctypes.c_uint64),
-                ("leaf_order", ctypes.c_uint32),
-                ("width", ctypes.c_uint32),
-                ("data_type", ctypes.c_int32),
-                ("flux_sum", ctypes.c_void_p),
-                ("covered_area", ctypes.c_void_p),
-                ("valid_mask", ctypes.c_void_p)]
-
-
-class AioHipsSnrPoint(ctypes.Structure):
-    _fields_ = [("ra", ctypes.c_double), ("dec", ctypes.c_double),
-                ("snr", ctypes.c_double),
-                ("star_id", ctypes.c_int64),
-                ("quality_flags", ctypes.c_uint32),
-                ("photometric_status", ctypes.c_uint32)]
+# 唯一权威镜像 (SCI-FIX-AIO #2 / V11-N-01): 本文件不得再内联 _fields_ ——
+# 内联镜像 = 镜像分叉 (修复前 C=40B vs 镜像=32B 静默错位写数据的根因)。
+_HERE = Path(__file__).resolve().parent
+_REPO = None
+for _cand in [_HERE] + list(_HERE.parents):
+    if (_cand / "lib" / "infrastructure" / "aio" / "include" / "aio_hips.h").is_file():
+        _REPO = _cand
+        break
+if _REPO is None:
+    raise SystemExit("找不到仓库根 (lib/infrastructure/aio/include/aio_hips.h)")
+sys.path.insert(0, str(_REPO / "lib" / "infrastructure" / "aio" / "tools"))
+import aio_abi_mirror as abi  # noqa: E402
+AstroSphereTileView = abi.AstroSphereTileView
+AioHipsSnrPoint = abi.AioHipsSnrPoint
+ROOT = _REPO
+AIO_DLL = os.environ.get("ASTROCS_AIO_DLL") or str(
+    _REPO / "lib" / "infrastructure" / "aio" / "astro_image_io.dll")
 
 
 def make_values(dtype: str, n_rand: int = 10000) -> list:
@@ -65,10 +64,11 @@ def main() -> int:
     args = ap.parse_args()
     wd = args.workdir
     wd.mkdir(parents=True, exist_ok=True)
-    for d in (ROOT / "lib" / "astro_image_io", Path(r"C:\msys64\mingw64\bin")):
-        os.add_dll_directory(str(d))
-        os.environ["PATH"] = str(d) + os.pathsep + os.environ.get("PATH", "")
-    aio = ctypes.CDLL(str(AIO_DLL))
+    if hasattr(os, "add_dll_directory"):   # POSIX: 无此 API
+        for d in (Path(AIO_DLL).parent, Path(r"C:\msys64\mingw64\bin")):
+            os.add_dll_directory(str(d))
+            os.environ["PATH"] = str(d) + os.pathsep + os.environ.get("PATH", "")
+    aio = ctypes.CDLL(AIO_DLL)
     aio.aio_hips_product_begin.restype = ctypes.c_void_p
     aio.aio_hips_product_begin.argtypes = [
         ctypes.c_char_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_int32,
@@ -100,14 +100,10 @@ def main() -> int:
         n = 512 * 512
         flux = np.ones(n, dtype=np.float64)
         area = np.ones(n, dtype=np.float64)
-        view = AstroSphereTileView()
-        view.parent_ipix = 0
-        view.leaf_order = 9
-        view.width = 512
-        view.data_type = dt
-        view.flux_sum = flux.ctypes.data_as(ctypes.c_void_p)
-        view.covered_area = area.ctypes.data_as(ctypes.c_void_p)
-        view.valid_mask = None
+        view = abi.tile_view(parent_ipix=0, leaf_order=9, width=512,
+                             data_type=dt,
+                             flux_sum=flux.ctypes.data_as(ctypes.c_void_p),
+                             covered_area=area.ctypes.data_as(ctypes.c_void_p))
         if aio.aio_hips_write_signal_support_tile(ps, ctypes.byref(view)) != 0:
             raise SystemExit("tile fail: " + aio.aio_hips_last_error().decode())
         vals = make_values(dtype)

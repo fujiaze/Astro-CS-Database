@@ -155,7 +155,9 @@ Built build_available(const std::string& dir, bool with_diag = true) {
     v.data_type = AIO_HIPS_FLOAT32;
     v.flux_sum = sig.data(); v.covered_area = area.data();
     v.valid_mask = nullptr; v.var_num_sum = vnum.data();
+    aio_hips_tile_view_abi_init(&v);
     if (aio_hips_write_signal_support_tile(ps, &v) != 0) { aio_hips_abort(ps); return b; }
+    aio_hips_tile_view_abi_init(&v);
     if (aio_hips_write_variance_tile(ps, &v) != 0) { aio_hips_abort(ps); return b; }
     if (with_diag) {
         std::vector<int32_t> nu(kSpan, 0), nr(kSpan, 0);
@@ -163,6 +165,7 @@ Built build_available(const std::string& dir, bool with_diag = true) {
         AioHipsDiagTileView dv{};
         dv.parent_ipix = 0; dv.leaf_order = 9; dv.width = kTw;
         dv.nused = nu.data(); dv.nrej = nr.data();
+        aio_hips_diag_tile_view_abi_init(&dv);
         if (aio_hips_write_diag_tile(ps, &dv) != 0) { aio_hips_abort(ps); return b; }
     }
     if (aio_hips_finalize(ps) != 0) return b;
@@ -299,6 +302,7 @@ void units_verify_bidirectional() {
         v.parent_ipix = 0; v.leaf_order = 9; v.width = kTw;
         v.data_type = AIO_HIPS_FLOAT32;
         v.flux_sum = sig.data(); v.covered_area = area.data();
+        aio_hips_tile_view_abi_init(&v);
         P2H_CHECK(aio_hips_write_signal_support_tile(ps, &v) == 0,
                   "U: unavailable signal tile 写");
         P2H_CHECK(aio_hips_finalize(ps) == 0, "U: unavailable finalize rc==0");
@@ -386,6 +390,7 @@ void negative_param_domain() {
         AioHipsDiagTileView dv{};
         dv.parent_ipix = 0; dv.leaf_order = 9; dv.width = kTw;
         dv.nused = nu.data(); dv.nrej = nr.data();
+        aio_hips_diag_tile_view_abi_init(&dv);
         P2H_CHECK(aio_hips_write_diag_tile(ps, &dv) != 0,
                   "N1: 未启用通道 → write_diag_tile 拒绝 (禁静默忽略)");
         P2H_CHECK(!fs::exists(fs::path(d) / "nused"),
@@ -406,6 +411,7 @@ void negative_param_domain() {
         AioHipsDiagTileView dv{};
         dv.parent_ipix = 0; dv.leaf_order = 9; dv.width = kTw;
         dv.nused = nullptr; dv.nrej = nr.data();
+        aio_hips_diag_tile_view_abi_init(&dv);
         const int rc = aio_hips_write_diag_tile(ps2, &dv);
         if (p2hips::injected("ASTROCS_HIPS_DIAG_FAULT", "sentinel")) {
             P2H_CHECK(rc == 0, "N1[inject]: sentinel 注入下守卫被绕过 (判别力证明)");
@@ -427,6 +433,7 @@ void negative_param_domain() {
         AioHipsDiagTileView dv{};
         dv.parent_ipix = 0; dv.leaf_order = 9; dv.width = kTw;
         dv.nused = nullptr; dv.nrej = nullptr;
+        aio_hips_diag_tile_view_abi_init(&dv);
         P2H_CHECK(aio_hips_write_diag_tile(ps3, &dv) != 0,
                   "N1: 已启用通道指针 NULL → 拒绝 (禁空占位)");
         aio_hips_abort(ps3);
@@ -468,6 +475,7 @@ void negative_provenance_params() {
     v.parent_ipix = 0; v.leaf_order = 9; v.width = kTw;
     v.data_type = AIO_HIPS_FLOAT32;
     v.flux_sum = sig.data(); v.covered_area = area.data();
+    aio_hips_tile_view_abi_init(&v);
     P2H_CHECK(aio_hips_write_signal_support_tile(ps, &v) == 0, "N2: signal tile 写");
     P2H_CHECK(aio_hips_finalize(ps) == 0, "N2: finalize rc==0");
     const std::string props = read_file(d + "/signal/properties");
@@ -494,6 +502,7 @@ void negative_provenance_params() {
         v2.parent_ipix = 0; v2.leaf_order = 9; v2.width = kTw;
         v2.data_type = AIO_HIPS_FLOAT32;
         v2.flux_sum = s2.data(); v2.covered_area = a2.data();
+        aio_hips_tile_view_abi_init(&v2);
         P2H_CHECK(aio_hips_write_signal_support_tile(ps2, &v2) == 0, "N2: tile 写");
         P2H_CHECK(aio_hips_finalize(ps2) != 0,
                   "N2: available=true 但缺 variance/ivar 位 → finalize fail-closed");
@@ -533,6 +542,7 @@ void negative_verify_tamper() {
             v.parent_ipix = 0; v.leaf_order = 9; v.width = kTw;
             v.data_type = AIO_HIPS_FLOAT32;
             v.flux_sum = s.data(); v.covered_area = a.data();
+            aio_hips_tile_view_abi_init(&v);
             aio_hips_write_signal_support_tile(ps, &v);
             aio_hips_finalize(ps);
             // 伪造: 复制 signal 子产品为 variance 占位

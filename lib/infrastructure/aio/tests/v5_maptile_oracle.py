@@ -20,24 +20,33 @@ from pathlib import Path
 import numpy as np
 from astropy.io import fits
 
-ROOT = Path(r"F:\Astro dev\Astro CS Normalization Database")
-AIO_DLL = ROOT / r"lib\astro_image_io\astro_image_io.dll"
-HIPSGEN_DEFAULT = ROOT / r"run\temp\Hipsgen.jar"
 NON_PRODUCTION_TOOL_ONLY = True
 
 
-class AstroSphereTileView(ctypes.Structure):
-    _fields_ = [("parent_ipix", ctypes.c_uint64),
-                ("leaf_order", ctypes.c_uint32),
-                ("width", ctypes.c_uint32),
-                ("data_type", ctypes.c_int32),
-                ("flux_sum", ctypes.c_void_p),
-                ("covered_area", ctypes.c_void_p),
-                ("valid_mask", ctypes.c_void_p)]
+# 唯一权威镜像 (SCI-FIX-AIO #2 / V11-N-01): 本文件不得再内联 _fields_ ——
+# 内联镜像 = 镜像分叉 (修复前 C=40B vs 镜像=32B 静默错位写数据的根因)。
+_HERE = Path(__file__).resolve().parent
+_REPO = None
+for _cand in [_HERE] + list(_HERE.parents):
+    if (_cand / "lib" / "infrastructure" / "aio" / "include" / "aio_hips.h").is_file():
+        _REPO = _cand
+        break
+if _REPO is None:
+    raise SystemExit("找不到仓库根 (lib/infrastructure/aio/include/aio_hips.h)")
+sys.path.insert(0, str(_REPO / "lib" / "infrastructure" / "aio" / "tools"))
+import aio_abi_mirror as abi  # noqa: E402
+AstroSphereTileView = abi.AstroSphereTileView
+AioHipsSnrPoint = abi.AioHipsSnrPoint
+ROOT = _REPO
+HIPSGEN_DEFAULT = ROOT / "run" / "temp" / "Hipsgen.jar"
+AIO_DLL = os.environ.get("ASTROCS_AIO_DLL") or str(
+    _REPO / "lib" / "infrastructure" / "aio" / "astro_image_io.dll")
 
 
 def add_dll_dirs():
-    for d in (ROOT / "lib" / "astro_image_io", Path(r"C:\msys64\mingw64\bin")):
+    if not hasattr(os, "add_dll_directory"):   # POSIX: 无此 API
+        return
+    for d in (Path(AIO_DLL).parent, Path(r"C:\msys64\mingw64\bin")):
         os.add_dll_directory(str(d))
         os.environ["PATH"] = str(d) + os.pathsep + os.environ.get("PATH", "")
 
@@ -104,7 +113,7 @@ def write_astrocs(order: int, out_root: Path) -> None:
     if out_root.exists():
         import shutil
         shutil.rmtree(out_root)
-    aio = ctypes.CDLL(str(AIO_DLL))
+    aio = ctypes.CDLL(AIO_DLL)
     aio.aio_hips_product_begin.restype = ctypes.c_void_p
     aio.aio_hips_product_begin.argtypes = [
         ctypes.c_char_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_int32,
@@ -126,14 +135,10 @@ def write_astrocs(order: int, out_root: Path) -> None:
         z = np.arange(n, dtype=np.float64)
         flux = (base + z)               # area=1.0 → 存储值 = ipix 精确 (避免 a_cell 舍入)
         area = np.ones(n, dtype=np.float64)
-        view = AstroSphereTileView()
-        view.parent_ipix = parent
-        view.leaf_order = leaf_order
-        view.width = 512
-        view.data_type = 1
-        view.flux_sum = flux.ctypes.data_as(ctypes.c_void_p)
-        view.covered_area = area.ctypes.data_as(ctypes.c_void_p)
-        view.valid_mask = None
+        view = abi.tile_view(parent_ipix=parent, leaf_order=leaf_order,
+                             width=512, data_type=1,
+                             flux_sum=flux.ctypes.data_as(ctypes.c_void_p),
+                             covered_area=area.ctypes.data_as(ctypes.c_void_p))
         rc = aio.aio_hips_write_signal_support_tile(ps, ctypes.byref(view))
         if rc != 0:
             raise SystemExit(f"astrocs tile {parent} fail: {aio.aio_hips_last_error().decode()}")
