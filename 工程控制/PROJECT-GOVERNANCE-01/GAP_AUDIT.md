@@ -415,3 +415,14 @@
 - **处置**：TEST-GREEN-001 执行退役（仅退役确认坏掉的那一个，其余 5 个追溯类注册项逐个复核后保留）；旧世代打包/审计工具（`tools/{assemble_audit,make_capsule,make_rev2_capsule}.py` 引用已删路径）另立 **RETIRE-001**；`tests/api/test_cli_protocol.py` 夹具重接线到 tracked 的 `docs/api/CLI_PROTOCOL_V1.md`；该文档本身随命令树更新归 CLI-001。
 - **备注**：若后续确需追溯能力，必须**在新文档集下重新立项**（给出规范条款、tracked 数据位置、能红能绿的负例），不得复活旧表。
 
+
+---
+
+**GAP-033　规范：`ENGINEERING_SPEC §7` 根白名单漏列 `config/`（设计 §3.3 要求该目录）**
+
+- **发现**：ROOT-005/CHK-ROOT-CLEAN 在 CFG-001 新建 `config/`（`defaults.json`）后判红 `unregistered_root_entry`。
+- **冲突**：`ASTROCS_DESIGN.md §3.3` 要求 `config/` 存在并承载默认配置；`ENGINEERING_SPEC.md §7` 的根目录白名单**未列** `config/` ⇒ 规范与设计不一致；
+- **另**：`ci/root_manifest.json` 的 `registered_local_retention` 仍列 7 条已不存在的条目（`CHANGELOG.md`/`REVIEW.md`/`ASTROCS_PROJECT_CONSTITUTION.md`/`AstroCS_ENGINEERING_CONSTRAINTS.md`/`evidence/`/`CS/`/`worktrees/`）—— ROOT-005 报告 §4 有改法建议；
+- **裁决**：放行把 `config/` 补进 `ENGINEERING_SPEC.md §7` 白名单 + `ci/root_manifest.json`（同一提交，依据设计 §3.3）；`registered_local_retention` 的 7 条悬空登记由 RETIRE-001 清理；
+- **同类**：`run/` 在 §7 同时出现于「固定条目」与「gitignore」两处，口径需在下一轮文档收敛中一并订正（登记待办）。
+
