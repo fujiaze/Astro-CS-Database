@@ -18,14 +18,27 @@ class TestCliProtocol(unittest.TestCase):
         cls.s04 = open(LEDGER_04, encoding="utf-8").read()
 
     def test_01_command_tree_covers_04(self):
-        # CLI-002 三入口隔离改造: 04 §1 的顶层 `astrocs run --phases 1,2,3` 已移除,
-        # 现行命令树 = phase1/2/3 run 三独立入口(等价 manifest 语义, §1 golden);
-        # 04 冻结文本仍留旧行属上游演进滞后, 断言权威 = 当前 help golden(CLI_PROTOCOL_V1.md §1)。
-        for cmd in ("--version", "hardware inspect", "config init", "config validate",
-                    "config show-effective", "benchmark cpu", "doctor", "test synthetic",
-                    "phase1 run", "phase2 run", "phase3 run", "verify --run-manifest"):
-            self.assertIn(cmd, self.s, f"缺命令 {cmd}")
-        self.assertIn("禁另发 benchmark exe", self.s)
+        # CLI-001 把用户命令树切换为 ASTROCS_DESIGN §6.2 的唯一七行树
+        # (normalize/mosaic/export + help/--version/doctor/benchmark)；旧 phase1|2|3 与
+        # config */modules */selftest/test synthetic/verify*/drizzle/benchmark cpu|
+        # verify-profile/hardware inspect 全部删除且 rc=2（phase 仅内部指代）。
+        # 断言对象 = 本 tracked 权威文档 docs/api/CLI_PROTOCOL_V1.md §1 的命令树 +
+        # 显式删除声明（旧期望值随 CLI-001 过期，此处只改期望、不放宽语义）。
+        for cmd in ("astrocs --version [--json]",
+                    "astrocs normalize (--json <config.json> | --template [-o <path>] | --help)",
+                    "astrocs mosaic (--json <config.json> | --template [-o <path>] | --help)",
+                    "astrocs export (--json <config.json> | --template [-o <path>] | --help)",
+                    "astrocs help",
+                    "astrocs doctor [--json]",
+                    "astrocs benchmark"):
+            self.assertIn(cmd, self.s, f"§6.2 命令树缺行: {cmd}")
+        for legacy in ("phase1", "phase2", "phase3", "config *", "modules *", "selftest",
+                       "test synthetic", "verify*", "drizzle", "benchmark cpu",
+                       "verify-profile", "hardware inspect"):
+            self.assertIn(legacy, self.s, f"旧命令面删除声明缺 {legacy}")
+        self.assertIn("全部删除且 rc=2", self.s)
+        # 唯一可执行: 发布 manifest 不含旧 Phase exe（§6-5，CLI-001 后=恰一 astrocs）
+        self.assertIn("恰一 astrocs", self.s)
 
     def test_02_exit_codes_complete(self):
         for c in (" 0 ", " 2 ", " 3 ", " 4 ", " 5 ", " 6 ", " 7 ", " 8 ", " 9 ", " 10 ", " 70 "):
@@ -53,10 +66,10 @@ class TestCliProtocol(unittest.TestCase):
     def test_06_04_is_authoritative_reference(self):
         self.assertIn("以 04 为准", self.s)
         # 断言对象 = §1 命令树冻结原文（LEDGER_04 已重指本文档，见文件头断链修复说明）：
-        # 原 04 副本字面量 "astrocs --version --json" 为 04 侧写法，本文档冻结写法是
-        # "astrocs --version [--json]"（两者指同一命令，后者为可选参数形）。04 副本不可得，
-        # 故以 tracked 文档原文为准；如需恢复 04 字面量，属 CLI-001 的文档更新范畴。
-        for cmd in ("astrocs --version [--json]", "astrocs doctor --json"):
+        # CLI-001 后 §1 = §6.2 七行树；doctor 的冻结写法是 "astrocs doctor [--json]"
+        # （可选参数形），旧 "astrocs doctor --json" 期望随命令树切换过期。
+        for cmd in ("astrocs --version [--json]", "astrocs doctor [--json]",
+                    "astrocs normalize (--json <config.json> | --template [-o <path>] | --help)"):
             self.assertIn(cmd, self.s04, "权威命令存在性交叉核对")
 
 if __name__ == "__main__":

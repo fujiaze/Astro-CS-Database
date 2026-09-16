@@ -1,83 +1,85 @@
 #!/usr/bin/env python3
-"""CLI-002 golden 测试: 04 协议合同 — parser/JSONL/退出码映射/cancel/crash boundary/Unicode。"""
-import hashlib, json, os, re, shutil, signal, subprocess, tempfile, time, unittest
+"""CLI golden 测试（按 CLI-001 §6.2 新树同步）: help 树/版本 JSON/parser 拒绝面/模板/
+配置错误映射/stdout 纪律/crash boundary 70/Unicode/退出码单源 + incomplete manifest。
+
+权威: ASTROCS_DESIGN §6.2（唯一命令树）、§6.3（stdout 纪律 + 退出码表）、§3.5（预检阻断）、
+docs/api/CLI_PROTOCOL_V1.md §1-§3。
+
+退役登记（旧命令面已被 CLI-001 删除，依据 §6.2 + CLI-001 rc 矩阵；原用例前提=命令存在）:
+  * test_04_config_init_writes_valid_json  → 改写为 --template -o 写合法 JSON（同意图: 模板即完整可运行配置）;
+  * test_05_config_validate_mapping        → 改写为运行入口的配置错误映射（文件缺失/坏 JSON/非对象 → 3）;
+  * test_06_jsonl_contract（phase1 run 全程事件）→ 事件流全字段/单调 sequence 断言迁往
+    tests/cli/test_phase1_inprocess.py（真实会话）; 本文件保留「阻断路径 stdout 无污染」;
+  * test_07_cancel_exit_9_no_fake_artifacts → 取消语义迁往 tests/cli/test_phase{1,2,3}_inprocess.py
+    （同一 ASTROCS_TEST_SLEEP_MS 钩子, 真实会话）;
+  * test_08_crash_boundary_70_sanitized: test synthetic 已删除 → 改由 normalize + 生产
+    ASTROCS_TEST_CRASH 钩子（subcommand.run 内）触发, 断言 70 + 脱敏 crash report;
+  * test_09_unicode_path: config init/validate 已删除 → 改为 --template -o 与 --json 的
+    非 ASCII 路径解析;
+  * TestManifestVerify.test_01..test_07（config validate / show-effective / verify-profile /
+    verify 闭环）→ **退役**: config */verify*/benchmark verify-profile 均不在 §6.2 命令树;
+    其仍有效的数据面断言（incomplete manifest 字段/hash 链）见本文件 TestManifestIncomplete
+    与 tests/cli/test_phase{1,2}_inprocess.py 的 resume 断言;
+  * TestManifestVerify.test_08 的 manifest 字段断言 → 改写保留（本文件 TestManifestIncomplete）;
+    test_09 verify 闭环 → 退役（verify 命令删除; 哈希链新载体是 export resume 预检,
+    当前被 export 预检/会话口径冲突阻塞, 见 TEST-CLI-SYNC 报告）。
+"""
+import hashlib, json, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CLI = os.path.join(REPO, "cli")
-BUILD = os.path.join(REPO, "build", "cli")
-EXE = os.path.join(BUILD, "astrocs")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
 from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
 
+HELP_LINES = [
+    "astrocs --version [--json]",
+    "astrocs normalize (--json <config.json> | --template [-o <path>] | --help)",
+    "astrocs mosaic (--json <config.json> | --template [-o <path>] | --help)",
+    "astrocs export (--json <config.json> | --template [-o <path>] | --help)",
+    "astrocs help",
+    "astrocs doctor [--json]",
+    "astrocs benchmark",
+]
+
+
+def cli_binary():
+    env = os.environ.get("ASTROCS_CLI_BIN")
+    if env and os.path.isfile(env):
+        return env
+    for rel in (("build", "astrocs"), ("build", "cli", "astrocs")):
+        cand = os.path.join(REPO, *rel)
+        if os.path.isfile(cand):
+            return cand
+    return os.path.join(REPO, "build", "astrocs")
+
+
+EXE = cli_binary()
+
+
 def _repo_version():
-    """版本单源: 根 VERSION 文件(cli/CMakeLists.txt 与 tools/gen_version.py 同源读取)。"""
+    """版本单源: 根 VERSION 文件（根 CMakeLists 与 tools/gen_version.py 同源读取）。"""
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as fh:
         return fh.read().strip()
 
-# CLI-001(宪章对齐): --help golden 同步登记宪章 §8.1 薄命令面
-# phase1/2/3 validate|plan|inspect(语义冻结见 tests/cli/test_cli001_vpi.py)。
-HELP_LINES = [
-    "astrocs --version [--json]",
-    "astrocs version [--json]",
-    "astrocs hardware inspect --json",
-    "astrocs modules list [--json]",
-    "astrocs modules verify [--json]",
-    "astrocs selftest [--module <ID>] [--provider <ID>] [--json]",
-    "astrocs config init --output <path>",
-    "astrocs config validate --config <path>",
-    "astrocs config show-effective --config <path> [--cpu-profile <path>] --json",
-    "astrocs benchmark cpu (--quick|--full) [--output <path>] [--events-jsonl]",
-    "astrocs verify profile --profile <path> [--json]",
-    "astrocs doctor --json",
-    "astrocs test synthetic --group <all|calibration|wcs_psf|noise_snr|drizzle|upm|rejection_integration|p1_ir_facade>",
-    "astrocs phase1 validate --config <path> [--json]",
-    "astrocs phase1 plan --config <path> [--json] [--output <path>]",
-    "astrocs phase1 run --config <path> [--cpu-profile <path>] [--events-jsonl]",
-    "astrocs phase1 inspect --config <path> [--json]",
-    "astrocs phase2 validate --config <path> [--json]",
-    "astrocs phase2 plan --config <path> [--json] [--output <path>]",
-    "astrocs phase2 run --config <path> [--cpu-profile <path>] [--events-jsonl]",
-    "astrocs phase2 inspect --config <path> [--json]",
-    "astrocs phase3 validate --config <path> [--json]",
-    "astrocs phase3 plan --config <path> [--json] [--output <path>]",
-    "astrocs phase3 run --config <path> [--cpu-profile <path>] [--events-jsonl]",
-    "astrocs phase3 inspect --config <path> [--json]",
-    "astrocs verify --run-manifest <path> --json",
-]
 
-def built():
-    if not os.path.isfile(EXE):
-        subprocess.run(["cmake", "-S", CLI, "-B", BUILD], check=True, capture_output=True, timeout=120)
-        subprocess.run(["cmake", "--build", BUILD, "-j2"], check=True, capture_output=True, timeout=300)
-    return EXE
-
-def run(*args, env=None):
+def run(*args, env=None, timeout=90):
     e = dict(os.environ)
     if env:
         e.update(env)
-    return subprocess.run([built(), *args], capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", timeout=60,
+    return subprocess.run([EXE, *args], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", timeout=timeout,
                           cwd=run_cwd(), env=e)
 
-def jsonl_lines(stdout):
-    return [json.loads(l) for l in stdout.splitlines() if l.strip()]
 
 class TestGolden(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        built()
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
         cls.tmp = tempfile.mkdtemp(prefix="astrocs_proto_")
-        cls.cfg = os.path.join(cls.tmp, "pipeline_config.json")
-        r = run("config", "init", "--output", cls.cfg)
-        assert r.returncode == 0, r.stderr
-        # FIX-UTCLI-HYGIENE: config init 缺省 output_dir="."（cli/commands.cpp run
-        # 路径按 cwd 相对落盘）会让 phase1/2 run 把 astrocs_run_*.json / run_context.json /
-        # resource_* / alloc_* 写进子进程 cwd（仓库根）。把 output_dir 显式改到测试
-        # 自己的绝对临时目录：产物不出测试沙箱，事件里的 manifest path 也保持绝对可读。
-        _d = json.load(open(cls.cfg, encoding="utf-8"))
-        _d["output_dir"] = cls.tmp
-        json.dump(_d, open(cls.cfg, "w", encoding="utf-8"))
+        cls.cfg = os.path.join(cls.tmp, "cfg_valid.json")
+        with open(cls.cfg, "w", encoding="utf-8") as fh:
+            json.dump({"schema_version": "1", "input_lights": [], "output_dir": cls.tmp}, fh)
 
     @classmethod
     def tearDownClass(cls):
@@ -97,137 +99,126 @@ class TestGolden(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         doc = json.loads(lines[0])
         self.assertEqual(doc["name"], "astrocs")
-        self.assertRegex(doc["version"], r"^" + re.escape(_repo_version()) + r"\+g[0-9a-f]{12}(\.dirty)?$")
+        self.assertEqual(doc["schema_version"], "1")
+        self.assertRegex(doc["version"],
+                         r"^" + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
 
-    # ── parser 拒绝面(全部 → 2, 诊断在 stderr) ──
+    # ── parser 拒绝面（全部 → 2, 诊断在 stderr, stdout 无污染） ──
     def test_03_parser_rejects(self):
         cases = [
             ("bogus",),
-            ("config",),                                   # 不完整命令
-            ("config", "init"),                            # 缺 --output
-            ("config", "init", "--output"),                # 缺值
-            ("config", "validate", "--config", "--json"),  # 旗标当值
-            ("phase1", "run", "--config", self.cfg, "--bogus", "x"),  # 未知旗标
-            ("phase1", "run", "--config", self.cfg, "--config", self.cfg),  # 重复
-            ("phase1", "run", "--json"),                   # 旗标不属该命令
-            ("test", "synthetic", "--group", "nope"),      # 枚举外
-            ("benchmark", "cpu"),                          # quick/full 皆无
-            ("benchmark", "cpu", "--quick", "--full"),     # quick/full 皆有
-            # CLI-002: 顶层 run/--phases/连续管线已删除 → 未知命令/未知旗标(2)
-            ("run",),                                      # 顶层 run 已移除 → unknown command
-            ("run", "--phases", "2,1", "--config", self.cfg),   # --phases 已移除 → unknown flag
-            ("run", "--phases", "1,1", "--config", self.cfg),   # 同上
-            ("run", "--phases", "4", "--config", self.cfg),     # 同上
-            ("graph",),                                    # 顶层 graph 已移除 → unknown command
-            ("graph", "--preset", "1,2,3", "--config", self.cfg, "--output", self.tmp),  # 同上
+            ("normalize",),                                  # 缺动作
+            ("normalize", "--json"),                         # 取值旗标缺值
+            ("normalize", "--json", self.cfg, "--bogus"),    # 未知旗标
+            ("normalize", "--json", self.cfg, "--template"),  # 运行/模板互斥
+            ("mosaic",), ("export",), ("doctor",),           # doctor 只登记 --json
+            ("benchmark", "cpu"),                            # 旧子命令
+            ("benchmark", "verify-profile", self.cfg),       # 旧子命令
+            ("hardware", "inspect", "--json"),               # 旧命令
+            ("config", "init", "--output", os.path.join(self.tmp, "x.json")),
+            ("test", "synthetic", "--group", "calibration"),
+            ("selftest", "--json"),
+            ("verify", "--run-manifest", self.cfg, "--json"),
+            ("drizzle",),
+            ("phase1", "run", "--config", self.cfg),
+            ("run", "--phases", "2,1", "--config", self.cfg),
+            ("graph", "--preset", "1,2,3"),
         ]
         for case in cases:
             r = run(*case)
-            self.assertEqual(r.returncode, 2, f"{case} → 期望 2, 得 {r.returncode}")
-            self.assertIn("astrocs:", r.stderr, f"{case} 缺 stderr 诊断")
-            self.assertEqual(r.stdout, "", f"{case} stdout 应无输出(污染)")
+            self.assertEqual(r.returncode, 2, "%s → 期望 2, 得 %s" % (case, r.returncode))
+            self.assertIn("astrocs:", r.stderr, "%s 缺 stderr 诊断" % (case,))
+            self.assertEqual(r.stdout, "", "%s stdout 应无输出(污染)" % (case,))
 
-    # ── config init/validate 真实现 ──
-    def test_04_config_init_writes_valid_json(self):
-        p = os.path.join(self.tmp, "u", "cfg.json")
+    # ── 模板 = 完整可运行 JSON（原 config init 的等价面） ──
+    def test_04_template_writes_valid_json(self):
+        p = os.path.join(self.tmp, "tpl", "norm.json")
         os.makedirs(os.path.dirname(p), exist_ok=True)
-        r = run("config", "init", "--output", p)
-        self.assertEqual(r.returncode, 0)
-        self.assertEqual(r.stdout.strip(), p)
+        r = run("normalize", "--template", "-o", p)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout, "", "-o 落盘时 stdout 不重复输出")
         with open(p, encoding="utf-8") as fh:
             doc = json.loads(fh.read())
         self.assertEqual(doc["schema_version"], "1")
+        self.assertIn("output_dir", doc)
+        # 三命令模板互不相同（各自独立产品）
+        outs = {}
+        for cmd in ("normalize", "mosaic", "export"):
+            rr = run(cmd, "--template")
+            self.assertEqual(rr.returncode, 0, rr.stderr)
+            outs[cmd] = json.loads(rr.stdout)
+        self.assertEqual(len({json.dumps(v, sort_keys=True) for v in outs.values()}), 3)
 
-    def test_05_config_validate_mapping(self):
-        r = run("config", "validate", "--config", self.cfg)
-        self.assertEqual(r.returncode, 0)
-        self.assertEqual(r.stdout.strip(), "config OK")
-        missing = run("config", "validate", "--config", os.path.join(self.tmp, "nope.json"))
+    # ── 配置错误映射（运行入口, 非空输入以越过预检到达会话校验） ──
+    def test_05_config_error_mapping(self):
+        def cfg(name, doc):
+            p = os.path.join(self.tmp, name)
+            with open(p, "w", encoding="utf-8") as fh:
+                json.dump(doc, fh)
+            return p
+
+        base = {"schema_version": "1", "input_lights": ["/nonexistent/x.fits"],
+                "output_dir": self.tmp}
+        missing = run("normalize", "--json", os.path.join(self.tmp, "nope.json"), "-y")
         self.assertEqual(missing.returncode, 3, "文件缺失 → 3(输入缺失)")
         bad = os.path.join(self.tmp, "bad.json")
         with open(bad, "w", encoding="utf-8") as fh:
             fh.write("{not json")
-        malformed = run("config", "validate", "--config", bad)
-        self.assertEqual(malformed.returncode, 3, "格式错 → 3")
+        self.assertEqual(run("normalize", "--json", bad, "-y").returncode, 3, "格式错 → 3")
         arr = os.path.join(self.tmp, "arr.json")
         with open(arr, "w", encoding="utf-8") as fh:
             fh.write("[1,2]")
-        nonobj = run("config", "validate", "--config", arr)
-        self.assertEqual(nonobj.returncode, 3, "非对象 → 3")
+        self.assertEqual(run("normalize", "--json", arr, "-y").returncode, 3, "非对象 → 3")
+        unk = run("normalize", "--json", cfg("unknown.json", dict(base, backend="x")), "-y")
+        self.assertEqual(unk.returncode, 3, "白名单外键 → 3(防拼写静默忽略)")
+        self.assertIn("unknown key", unk.stderr)
+        sv = run("normalize", "--json", cfg("sv2.json", dict(base, schema_version="2")), "-y")
+        self.assertEqual(sv.returncode, 2, "schema_version 非法 → 2(配置错, 与输入缺失 3 区分)")
+        nodir = run("normalize", "--json", cfg("nodir.json",
+                                               {"schema_version": "1",
+                                                "input_lights": ["/nonexistent/x.fits"]}), "-y")
+        self.assertEqual(nodir.returncode, 2, "缺 output_dir → 2(预检阻断, 无 silent default)")
+        self.assertIn("output_dir", nodir.stderr)
 
-    # ── JSONL 协议 ──
-    def test_06_jsonl_contract(self):
-        r = run("phase1", "run", "--config", self.cfg, "--events-jsonl")
-        self.assertEqual(r.returncode, 2)  # not-wired stub
-        events = jsonl_lines(r.stdout)
-        self.assertEqual(events[-1]["kind"], "final")
-        seqs = [e["sequence"] for e in events]
-        self.assertEqual(seqs, list(range(len(events))), "sequence 从 0 单调")
-        for e in events:
-            for f in ("schema_version", "event_id", "run_id", "timestamp_utc", "sequence",
-                      "kind", "severity", "phase", "stage", "message"):
-                self.assertIn(f, e, f"缺必含字段 {f}")
-            self.assertRegex(e["timestamp_utc"], r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
-        fin = events[-1]
-        for f in ("exit_code", "status", "run_manifest", "summary"):
-            self.assertIn(f, fin, f"final 缺扩展字段 {f}")
-        # stdout 无日志污染: 每行都是 JSON
-        for line in r.stdout.splitlines():
-            json.loads(line)
-        self.assertTrue(r.stderr.strip(), "诊断/日志必须在 stderr")
+    # ── 预检阻断: stdout 无污染 + 不落 complete ──
+    def test_06_blocked_preflight_stdout_purity(self):
+        out = os.path.join(self.tmp, "blocked_out")
+        os.makedirs(out, exist_ok=True)
+        cfg = os.path.join(self.tmp, "empty.json")
+        with open(cfg, "w", encoding="utf-8") as fh:
+            json.dump({"schema_version": "1", "input_lights": [], "output_dir": out}, fh)
+        r = run("normalize", "--json", cfg, "--events-jsonl", "-y")
+        self.assertEqual(r.returncode, 2, "空输入必须预检阻断")
+        self.assertEqual(r.stdout, "", "--events-jsonl 阻断路径 stdout 不得有非 JSON 文本")
+        self.assertIn("[error]", r.stderr)
+        for fn in os.listdir(out):
+            self.assertFalse(fn.startswith("astrocs_run_"),
+                             "预检阻断不得写 run manifest: %s" % fn)
 
-    # ── cancel → 9 ──
-    def test_07_cancel_exit_9_no_fake_artifacts(self):
-        # CLI-002: 顶层 run 已移除; 取消语义经 phase1 run 生产 sleep 钩子证明(同钩子)。
-        # config init 默认(空 inputs.lights)下 phase1 run 在 sleep 后即达 Runtime 且失败(3),
-        # 取消窗在 sleep 段 → exit 9 + incomplete manifest。
-        env = {"ASTROCS_TEST_SLEEP_MS": "8000"}
-        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-        p = subprocess.Popen([built(), "phase1", "run", "--config", self.cfg,
-                              "--events-jsonl"],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                             cwd=run_cwd(), env={**os.environ, **env},
-                             creationflags=creationflags)
-        time.sleep(0.4)
-        if os.name == "nt":
-            # Windows: subprocess.send_signal 不支持 SIGINT; 经 SetConsoleCtrlHandler 接收控制台信号置取消
-            p.send_signal(signal.CTRL_BREAK_EVENT)
-        else:
-            p.send_signal(signal.SIGINT)
-        out, err = p.communicate(timeout=15)
-        self.assertEqual(p.returncode, 9, f"取消 → 9, 得 {p.returncode}; stderr={err[:200]}")
-        events = jsonl_lines(out)
-        self.assertEqual(events[-1]["kind"], "final")
-        self.assertEqual(events[-1]["status"], "cancelled")
-        self.assertEqual(events[-1]["exit_code"], 9)
-        self.assertIn("cancelled", err)
-
-    # ── crash boundary → 70 ──
-    def test_08_crash_boundary_70_sanitized(self):
-        # test synthetic 是唯一仍走 cmd_stub 的命令(phase1/2/3 run 已是真实现);
-        # 其规则仅允许 --group(--events-jsonl 会被 flag 白名单拒绝)。
-        r = run("test", "synthetic", "--group", "calibration", env={"ASTROCS_TEST_CRASH": "1"})
+    # ── crash boundary → 70 + 脱敏 crash report ──
+    def test_07_crash_boundary_70_sanitized(self):
+        r = run("normalize", "--json", self.cfg, "-y", env={"ASTROCS_TEST_CRASH": "1"})
         self.assertEqual(r.returncode, 70, "未捕获异常 → 70")
         self.assertIn("CRASH", r.stderr)
         self.assertRegex(r.stderr, r"run_id=[0-9a-f]{12}")
-        self.assertIn("command='test synthetic'", r.stderr)
+        self.assertIn("command='normalize'", r.stderr)
         self.assertIn("no credentials", r.stderr)
         self.assertNotIn(self.cfg, r.stderr, "crash report 不得含完整路径外泄")
-        # 再次触发确认稳定(同一命令非 events 模式也 70)
-        r2 = run("test", "synthetic", "--group", "wcs_psf", env={"ASTROCS_TEST_CRASH": "1"})
-        self.assertEqual(r2.returncode, 70)
 
     # ── Unicode 路径 ──
-    def test_09_unicode_path(self):
+    def test_08_unicode_path(self):
         uni = os.path.join(self.tmp, "配置_β_test.json")
-        r0 = run("config", "init", "--output", uni)
+        r0 = run("normalize", "--template", "-o", uni)
         self.assertEqual(r0.returncode, 0, r0.stderr)
-        r = run("config", "validate", "--config", uni)
-        self.assertEqual(r.returncode, 0)
-        self.assertEqual(r.stdout.strip(), "config OK")
+        with open(uni, encoding="utf-8") as fh:
+            self.assertEqual(json.load(fh)["schema_version"], "1")
+        # 非 ASCII 配置路径可被解析（预检读到 input_lights, 而不是 config not found）
+        r = run("normalize", "--json", uni, "-y")
+        self.assertEqual(r.returncode, 2)
+        self.assertNotIn("config not found", r.stderr)
 
     # ── 退出码单源(04 §6-3) ──
-    def test_10_exit_codes_single_source(self):
+    def test_09_exit_codes_single_source(self):
         hits = []
         for fn in os.listdir(CLI):
             if fn.endswith((".cpp", ".h")) and fn != "exit_codes.h":
@@ -235,178 +226,51 @@ class TestGolden(unittest.TestCase):
                     text = fh.read()
                 if re.search(r"=\s*(70|10)\s*[,;/)]", text) or "ARGS  = 2" in text:
                     hits.append(fn)
-        self.assertEqual(hits, [], f"退出码数值表泄漏到: {hits}")
+        self.assertEqual(hits, [], "退出码数值表泄漏到: %s" % hits)
         with open(os.path.join(CLI, "exit_codes.h"), encoding="utf-8") as fh:
             self.assertIn("INTERNAL      = 70", fh.read())
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
 
-class TestManifestVerify(unittest.TestCase):
-    """CLI-003: config schema mutation / hash / stale profile / verify 闭环。"""
+class TestManifestIncomplete(unittest.TestCase):
+    """run manifest 数据面: 输入缺失 → 3 + incomplete（禁 complete 冒充）。"""
 
     @classmethod
     def setUpClass(cls):
-        built()
-        cls.tmp = tempfile.mkdtemp(prefix="astrocs_mf_")
-        # 有效 config(含真实存在的输入文件)
-        cls.light = os.path.join(cls.tmp, "light1.fits")
-        with open(cls.light, "wb") as f:
-            f.write(b"FAKE-FITS-DATA-0")
-        cls.cfg = os.path.join(cls.tmp, "cfg.json")
-        with open(cls.cfg, "w", encoding="utf-8") as f:
-            json.dump({"schema_version": "1",
-                       "inputs": {"lights": [cls.light], "darks": [], "flats": [], "bias": []},
-                       "output_dir": cls.tmp}, f)
+        assert os.path.isfile(EXE), "先构建 CLI"
+        cls.tmp = tempfile.mkdtemp(prefix="astrocs_manifest_")
+        cls.out = os.path.join(cls.tmp, "out")
+        os.makedirs(cls.out)
 
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
-    def _cfg_variant(self, **over):
-        doc = {"schema_version": "1",
-               "inputs": {"lights": [self.light], "darks": [], "flats": [], "bias": []},
-               "output_dir": self.tmp}
-        doc.update(over)
-        p = os.path.join(self.tmp, f"cfg_{abs(hash(str(sorted(over.items()))))}.json")
-        with open(p, "w", encoding="utf-8") as f:
-            json.dump(doc, f)
-        return p
-
-    def test_01_schema_version_2_is_args_error(self):
-        r = run("config", "validate", "--config", self._cfg_variant(schema_version="2"))
-        self.assertEqual(r.returncode, 2, "版本错=配置错 → 2(与输入缺失 3 区分)")
-
-    def test_02_missing_schema_version_is_input_error(self):
-        p = os.path.join(self.tmp, "nosv.json")
-        with open(p, "w", encoding="utf-8") as f:
-            json.dump({"inputs": {"lights": [], "darks": [], "flats": [], "bias": []},
-                       "output_dir": self.tmp}, f)
-        self.assertEqual(run("config", "validate", "--config", p).returncode, 3)
-
-    def test_03_unknown_key_rejected(self):
-        r = run("config", "validate", "--config", self._cfg_variant(kreation_x=1))
-        self.assertEqual(r.returncode, 3, "白名单外键 → 3(防拼写静默忽略)")
-
-    def test_04_missing_input_file_rejected(self):
-        r = run("config", "validate", "--config", self._cfg_variant(
-            inputs={"lights": ["nope.fits"], "darks": [], "flats": [], "bias": []}))
-        self.assertEqual(r.returncode, 3)
-
-    def test_05_valid_config_ok(self):
-        self.assertEqual(run("config", "validate", "--config", self.cfg).returncode, 0)
-
-    def test_06_show_effective_stale_profile_5(self):
-        # CPU-004: profile 校验升级为 v2(机器一致性: arch/quota_signature/logical_available/commit)。
-        # stale 语义 = 篡改 build.source_commit 等 → 拒绝(5); 合法 v2 profile → 通过(0)。
-        good = os.path.join(self.tmp, "cpu_profile_good.json")
-        r0 = run("benchmark", "cpu", "--quick", "--output", good)
-        self.assertEqual(r0.returncode, 0, r0.stderr[-200:])
-        stale = os.path.join(self.tmp, "cpu_profile_stale.json")
-        with open(good, encoding="utf-8") as fh:
-            doc = json.loads(fh.read())
-        doc["build"]["source_commit"] = "0" * 40   # 篡改 commit → 机器一致性失败
-        with open(stale, "w", encoding="utf-8") as fh:
-            json.dump(doc, fh)
-        r = run("config", "show-effective", "--config", self.cfg, "--cpu-profile", stale, "--json")
-        self.assertEqual(r.returncode, 5, "stale profile → 5(机器一致性失败)")
-        self.assertIn("cpu profile invalid", r.stderr)
-        r2 = run("config", "show-effective", "--config", self.cfg, "--cpu-profile", good, "--json")
-        self.assertEqual(r2.returncode, 0)
-        doc2 = json.loads(r2.stdout)
-        self.assertIn("effective", doc2)
-
-    def test_07_show_effective_requires_json(self):
-        r = run("config", "show-effective", "--config", self.cfg)
-        self.assertEqual(r.returncode, 2)
-
-    def test_08_run_writes_incomplete_manifest(self):
-        # CLI-002: 顶层 run --phases 已移除; 等价不完整 manifest 语义经 phase1 run 证明:
-        # config init 默认(空 inputs.lights)下 phase1 空输入 → Runtime DATA 失败(3),
-        # 必写 "incomplete" manifest, 禁 "complete"。
-        out = run("phase1", "run", "--config", self.cfg, "--events-jsonl")
-        self.assertEqual(out.returncode, 3, out.stderr[-200:])  # 空输入 DATA → INPUT(3)
-        artifacts = [json.loads(l) for l in out.stdout.splitlines() if l.strip()]
-        mf = [e for e in artifacts if e["kind"] == "artifact" and e.get("role") == "run_manifest"]
-        self.assertTrue(mf, "phase1 run 必须写 manifest 事件")
-        mpath = mf[-1]["path"]
-        doc = json.loads(open(mpath, encoding="utf-8").read())
+    def test_01_missing_input_writes_incomplete_manifest(self):
+        cfg = os.path.join(self.tmp, "cfg.json")
+        with open(cfg, "w", encoding="utf-8") as fh:
+            json.dump({"schema_version": "1",
+                       "input_lights": [os.path.join(self.tmp, "nope_light.fits")],
+                       "output_dir": self.out}, fh)
+        r = run("normalize", "--json", cfg, "--events-jsonl", "-y")
+        self.assertEqual(r.returncode, 3, r.stderr[-300:])
+        mans = [f for f in os.listdir(self.out) if f.startswith("astrocs_run_")]
+        self.assertEqual(len(mans), 1, "失败 run 必须落恰 1 个 manifest")
+        with open(os.path.join(self.out, mans[0]), encoding="utf-8") as fh:
+            doc = json.load(fh)
         self.assertEqual(doc["kind"], "astrocs_run_manifest")
+        self.assertEqual(doc["schema_version"], "1")
         self.assertEqual(doc["status"], "incomplete", "不完整运行禁止 complete")
         self.assertEqual(doc["platform"]["arch"], "amd64")
         self.assertEqual(doc["phases"], [1])
-        self.assertEqual(doc["config_sha256"],
-                         hashlib.sha256(open(self.cfg, "rb").read()).hexdigest())
-        r = run("verify", "--run-manifest", mpath, "--json")
-        self.assertEqual(r.returncode, 8, "incomplete manifest verify → 8")
+        with open(cfg, "rb") as fh:
+            want = hashlib.sha256(fh.read()).hexdigest()
+        self.assertEqual(doc["config_sha256"], want, "config_sha256 必须是配置实测 hash")
+        # 事件流末事件 final/exit_code 与进程退出码单源
+        events = [json.loads(l) for l in r.stdout.splitlines() if l.strip()]
+        self.assertTrue(events, "--events-jsonl 必须落事件")
+        self.assertEqual(events[-1]["kind"], "final")
+        self.assertEqual(events[-1]["exit_code"], 3)
 
-    def test_09_verify_happy_path_and_mutations(self):
-        import hashlib as _h
-        art = os.path.join(self.tmp, "out.fits")
-        payload = b"SCI-DATA-" + os.urandom(32)
-        with open(art, "wb") as f:
-            f.write(payload)
-        ver = json.loads(run("--version", "--json").stdout)["version"]
-        mf = os.path.join(self.tmp, "run_ok.json")
-        doc = {"schema_version": "1", "kind": "astrocs_run_manifest", "run_id": "0" * 12,
-               "astrocs_version": ver,
-               "platform": {"os": "linux", "arch": "amd64"},
-               "config_path": self.cfg,
-               "config_sha256": _h.sha256(open(self.cfg, "rb").read()).hexdigest(),
-               "cpu_profile_path": None, "cpu_profile_sha256": None,
-               "phases": [1, 2, 3],
-               "artifacts": [{"role": "phase3_output", "path": art,
-                              "sha256": _h.sha256(payload).hexdigest(),
-                              "size_bytes": len(payload)}],
-               "status": "complete", "started_utc": "2026-08-28T00:00:00Z",
-               "finished_utc": "2026-08-28T00:01:00Z", "summary": "t"}
-        with open(mf, "w", encoding="utf-8") as f:
-            json.dump(doc, f)
-        r = run("verify", "--run-manifest", mf, "--json")
-        self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertEqual(json.loads(r.stdout)["verify"], "ok")
-        # mutation: artifact sha 篡改 → 8
-        doc["artifacts"][0]["sha256"] = "0" * 64
-        self._rewrite(mf, doc)
-        self.assertEqual(run("verify", "--run-manifest", mf, "--json").returncode, 8)
-        # mutation: 版本不一致 → 5
-        doc["artifacts"][0]["sha256"] = _h.sha256(payload).hexdigest()
-        doc["astrocs_version"] = ".".join(["0", "0", "1"])  # 故意异于唯一源(版本不一致 mutation)
-        self._rewrite(mf, doc)
-        self.assertEqual(run("verify", "--run-manifest", mf, "--json").returncode, 5)
-        # mutation: config hash 不一致 → 3
-        doc["astrocs_version"] = ver
-        doc["config_sha256"] = "1" * 64
-        self._rewrite(mf, doc)
-        self.assertEqual(run("verify", "--run-manifest", mf, "--json").returncode, 3)
-        # 不存在 → 3
-        self.assertEqual(run("verify", "--run-manifest",
-                             os.path.join(self.tmp, "nope.json"), "--json").returncode, 3)
 
-    @staticmethod
-    def _rewrite(path, doc):
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(doc, f)
-
-    def test_10_cancel_writes_incomplete_manifest(self):
-        # CLI-002: 顶层 run 已移除; 取消留 incomplete manifest 语义经 phase2 run 证明
-        # (phase2 走 Runtime 单 phase 子图; sleep 钩子窗内 SIGINT → 9 + incomplete)。
-        env = {"ASTROCS_TEST_SLEEP_MS": "8000"}
-        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
-        p = subprocess.Popen([built(), "phase2", "run", "--config", self.cfg,
-                              "--events-jsonl"],
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                             cwd=run_cwd(), env={**os.environ, **env},
-                             creationflags=creationflags)
-        time.sleep(0.4)
-        if os.name == "nt":
-            p.send_signal(signal.CTRL_BREAK_EVENT)
-        else:
-            p.send_signal(signal.SIGINT)
-        out, err = p.communicate(timeout=15)
-        self.assertEqual(p.returncode, 9)
-        events = [json.loads(l) for l in out.splitlines() if l.strip()]
-        mfe = [e for e in events if e["kind"] == "artifact" and e.get("role") == "run_manifest"]
-        self.assertTrue(mfe, "取消也必须留 incomplete manifest")
-        doc = json.loads(open(mfe[-1]["path"], encoding="utf-8").read())
-        self.assertEqual(doc["status"], "incomplete")
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
