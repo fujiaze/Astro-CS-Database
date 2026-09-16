@@ -337,7 +337,7 @@ int pc_calibrate_simple_with_gaia(
     LOG_INFO("滤光片/QE 预处理完成: filter=%d 点, qe=%d 点 -> 光谱 %d 点",
              filter_count, qe_count, spectrum_count);
 
-    // ---- 3. OpenMP 16 线程并行计算 F_syn (复用缓存) ----
+    // ---- 3. OpenMP 并行计算 F_syn (复用缓存), 线程数由运行时默认决定 ----
     std::vector<double> f_syn_values(n_gaia, 0.0);
     int n_valid_fsyn = 0;
 
@@ -714,7 +714,7 @@ int pc_calibrate_simple_with_gaia_f64(
     LOG_INFO("滤光片/QE 预处理完成: filter=%d 点, qe=%d 点 -> 光谱 %d 点",
              filter_count, qe_count, spectrum_count);
 
-    // ---- 3. OpenMP 16 线程并行计算 F_syn (复用缓存) ----
+    // ---- 3. OpenMP 并行计算 F_syn (复用缓存), 线程数由运行时默认决定 ----
     std::vector<double> f_syn_values(n_gaia, 0.0);
     int n_valid_fsyn = 0;
 
@@ -993,7 +993,7 @@ int run_with_gaia_impl(
     LOG_INFO("滤光片/QE 预处理完成: filter=%d 点, qe=%d 点 -> 光谱 %d 点",
              filter_count, qe_count, spectrum_count);
 
-    // ---- 3. OpenMP 16 线程并行计算 F_syn (复用缓存) ----
+    // ---- 3. OpenMP 并行计算 F_syn (复用缓存), 线程数由运行时默认决定 ----
     std::vector<double> f_syn_values(n_gaia, 0.0);
     int n_valid_fsyn = 0;
 

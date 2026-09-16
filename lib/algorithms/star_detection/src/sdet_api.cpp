@@ -204,8 +204,7 @@ enum SfError {
 
 
 // IPv: cand_sx/cand_sy = candidates[i].sx/sy = Sr/Sc (与候选阶段 se->sx/se->sy 同源)
-// 修复: RMSE 系数从 mad*3.0 改为 mad*1.4826
-// 修复: FWHM_TOO_SMALL 从 1.0 放宽到 0.5 (长焦 H-alpha 星点 FWHM 可达 ~1px)
+// FWHM_TOO_SMALL 下限 0.5px: 长焦窄带 (H-alpha) 星点 FWHM 可达 ~1px
 // 圆度, 1.0]
 SfError reject_star(const InternalFitResult& fit, bool has_saturated,
                     double cand_sx, double cand_sy) {
@@ -213,7 +212,7 @@ SfError reject_star(const InternalFitResult& fit, bool has_saturated,
     if (fit.fwhm_x <= 0.0 || fit.fwhm_y <= 0.0) return SF_FWHM_NEG;
     // FWHM 过小检查（<0.5 像素, 放宽以支持长焦窄带）
     if (fit.fwhm_x <= 0.5 || fit.fwhm_y <= 0.5) return SF_FWHM_TOO_SMALL;
-    // 圆度, 1.0] (star_finder.c:105-108)
+    // 圆度 ratio = fwhm_min/fwhm_max, 取值 (0, 1.0] (star_finder.c:105-108)
 
     // IPv Moffat4 有 theta 旋转, x/y 方向可互换, 用 min/max 比值处理方向
     double fwhm_max = std::max(fit.fwhm_x, fit.fwhm_y);
@@ -227,11 +226,12 @@ SfError reject_star(const InternalFitResult& fit, bool has_saturated,
         double rmse_ratio = fit.mad * 1.482602218505602 / fit.A;
         if (rmse_ratio > 0.2) return SF_RMSE_TOO_LARGE;
     }
-    // FWHM 上限完全
+    // FWHM 上限: 由候选阶段 sigma 估计 (se_smax) 给出;
+    // 候选退化 (se_smax <= KERNEL_SIZE) 时跳过该检查。
 
     // se->sx/sy = 候选阶段 Gaussian sigma 估计 (高斯平滑图上二阶导数零交叉点 Sr/Sc)
     // _2_SQRT_2_LOG2 = 2.3548 (FWHM=2.3548*sigma), KERNEL_SIZE = 2.0
-    // 修复: 直接用候选阶段 cand_sx/cand_sy (Sr/Sc), 不再用 fit.sx/fit.sy 转换
+    // 直接用候选阶段 cand_sx/cand_sy (Sr/Sc), 不经 fit.sx/fit.sy 转换
     // 原因: 候选阶段 se->sx/se->sy 是候选阶段估计, 与拟合结果 fit.sx/fit.sy 量纲和含义不同
     // Moffat4 sx ≠ Gaussian sigma (fwhm=0.87*sx vs 2.3548*sigma), 转换会引入误差
     // 候选 Sr/Sc 已含高斯平滑核展宽, 直接代入公式即可

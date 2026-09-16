@@ -31,11 +31,11 @@ namespace astrocs {
 namespace star_detector {
 
 // 归一化最多允许的半程 (180°) 次数。物理上 alpha 为朝向角, 归一化后必落在
-// (-90, 90]; 64 次 (≥ 11610°) 对任何真实朝向都是宽松上界, 但足以让
+// [-90, 90] (两端均为不动点); 64 次 (≥ 11610°) 对任何真实朝向都是宽松上界, 但足以让
 // "迭代不收敛到 [-90,90]" 的病态输入在有限步内被明确拒绝。
 inline constexpr int kMaxAngleHalfTurns = 64;
 
-// 将 angle_deg 归一化到 (-90, 90], 行为与冻结迭代式对有限输入逐位一致。
+// 将 angle_deg 归一化到 [-90, 90], 行为与冻结迭代式对有限输入逐位一致。
 // 返回 true 时 *out_angle_deg 已写为归一化结果;
 // 返回 false 表示输入非有限或所需半程数超界 (fail-closed, 不写 *out)。
 inline bool normalize_angle_deg_bounded(double angle_deg, double* out_angle_deg) {
