@@ -30,7 +30,7 @@ def main():
             findings.append({"id":"BUILD-MISSING-DEFINE","severity":"P1","observed":"P2_ENABLE_OPENMP not in BUILD_GRAPH","expected":"exists"})
             status="FAIL"
     # Verify CMakeLists have these targets
-    cmake = repo / "lib/phase2/CMakeLists.txt"
+    cmake = repo / "lib/algorithms/coverage/CMakeLists.txt"
     if cmake.exists():
         ct = cmake.read_text(encoding="utf-8", errors="ignore")
         for tgt in ["add_library(phase2","add_executable(astrocs-stage2","add_executable(calibrated_pair_diag"]:
@@ -41,7 +41,7 @@ def main():
             findings.append({"id":"BUILD-MISSING-LINK","severity":"P1","observed":"phase2 link not in CMake","expected":"exists"})
             status="FAIL"
     # Verify sources exist
-    if not (repo / "lib/phase2/src/upm.cpp").exists():
+    if not (repo / "lib/algorithms/coverage/src/upm.cpp").exists():
         findings.append({"id":"BUILD-MISSING-SOURCE","severity":"P1","observed":"upm.cpp missing","expected":"exists"})
         status="FAIL"
 

@@ -9,7 +9,7 @@
       config *、modules *、selftest、test synthetic、verify*、drizzle、
       benchmark cpu|verify-profile、hardware inspect、graph、run）不再存在于
       命令表；命令表里出现任一 → 红。
-  [C] 退出码稳定: 参数/命令错误恒映射 exit 2（cli/exit_codes.h 单源），
+  [C] 退出码稳定: 参数/命令错误恒映射 exit 2（lib/infrastructure/cli/exit_codes.h 单源），
       且 parser 只用 ParseError → ARGS 这一条参数错误出口。
   [D] 运行时 rc 矩阵（binary 存在时）: 新命令 rc=0、旧命令 rc=2 实测。
 
@@ -24,8 +24,8 @@ import argparse, os, pathlib, re, shutil, subprocess, sys, tempfile
 REPO = pathlib.Path(__file__).resolve().parents[1]
 TREE_H = REPO / "lib" / "infrastructure" / "cli" / "command_tree.h"
 SESSION_H = REPO / "lib" / "infrastructure" / "cli" / "session_commands.h"
-PARSER = REPO / "cli" / "parser.cpp"
-EXIT_H = REPO / "cli" / "exit_codes.h"
+PARSER = REPO / "lib" / "infrastructure" / "cli" / "parser.cpp"
+EXIT_H = REPO / "lib" / "infrastructure" / "cli" / "exit_codes.h"
 
 # §6.2 唯一命令树（外部可见命令名 → 期望旗标面）
 SPEC_COMMANDS = {
@@ -79,8 +79,8 @@ def check_static(root=None):
     """静态判据。root 可指向一个临时副本（负例用）。"""
     root = pathlib.Path(root) if root else REPO
     tree_h = root / "lib" / "infrastructure" / "cli" / "command_tree.h"
-    parser = root / "cli" / "parser.cpp"
-    exit_h = root / "cli" / "exit_codes.h"
+    parser = root / "lib" / "infrastructure" / "cli" / "parser.cpp"
+    exit_h = root / "lib" / "infrastructure" / "cli" / "exit_codes.h"
     errors = []
 
     tree_text = read(tree_h)
@@ -130,7 +130,7 @@ def check_static(root=None):
         if re.search(r"^astrocs %s(\s|$)" % re.escape(legacy), tree_text, re.M):
             errors.append("help 文本仍含旧命令: %s" % legacy)
     # 命令实现的源码面：三个子命令之外不得再出现用户命令分发字符串
-    cmds_cpp = read(root / "cli" / "commands.cpp")
+    cmds_cpp = read(root / "lib" / "infrastructure" / "cli" / "commands.cpp")
     for m in re.finditer(r'if \(joined == "([^"]+)"\)', cmds_cpp):
         name = m.group(1)
         if name not in SPEC_COMMANDS and name not in ("version",):
@@ -149,7 +149,7 @@ def check_static(root=None):
         errors.append("parser.cpp 直接写死参数错退出码 2（应经 ParseError 单一出口）")
     if "parse_fail(" not in parser_text:
         errors.append("parser.cpp 无统一参数错误出口 parse_fail")
-    main_text = read(root / "cli" / "main.cpp")
+    main_text = read(root / "lib" / "infrastructure" / "cli" / "main.cpp")
     if "catch (const ParseError&" not in main_text or "astrocs::ARGS" not in main_text:
         errors.append("main.cpp 未把 ParseError 映射到 ARGS(=2) 单一出口")
     return errors

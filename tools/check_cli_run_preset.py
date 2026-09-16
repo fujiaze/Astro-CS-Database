@@ -93,9 +93,9 @@ def check_static(root=None):
             errors.append("旧 phase 命令重新登记: %s（§6.2 唯一命令树）" % path)
 
     # [B][C] 调度面与 artifact 哈希链（注释盲区加固: 剥 // 行注释后匹配）
-    cmds_text = strip_line_comments(read(root / "cli" / "commands.cpp"))
+    cmds_text = strip_line_comments(read(root / "lib" / "infrastructure" / "cli" / "commands.cpp"))
     if not cmds_text:
-        errors.append("cli/commands.cpp 缺失（无法核对调度面）")
+        errors.append("lib/infrastructure/cli/commands.cpp 缺失（无法核对调度面）")
     else:
         for cmd, sid in RUN_COMMANDS.items():
             token = 'run_with_resource_gate(ev, "phase%d"' % sid
@@ -113,7 +113,7 @@ def check_static(root=None):
             errors.append("缺 sha256 mismatch → INTEGRITY(=8) 退出码")
 
     # [D] 事件模式旗标在解析器旗标面（--events-jsonl）
-    if "--events-jsonl" not in read(root / "cli" / "parser.cpp"):
+    if "--events-jsonl" not in read(root / "lib" / "infrastructure" / "cli" / "parser.cpp"):
         errors.append("parser 旗标面无 --events-jsonl（stdout 事件模式）")
     return errors
 
@@ -253,7 +253,7 @@ def self_test():
             tree.write_text(t, encoding="utf-8")
 
         # 负例 2: 删掉 artifact 收集进 run manifest
-        cp = tmp / "cli" / "commands.cpp"
+        cp = tmp / "lib" / "infrastructure" / "cli" / "commands.cpp"
         c = cp.read_text(encoding="utf-8")
         if '"artifacts", artifacts' not in c:
             failures.append("负例 2 注入点未命中（artifact 收集字面量已变）")

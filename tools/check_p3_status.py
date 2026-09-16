@@ -2,8 +2,8 @@
 """P3-001: phase3 production registry/preset 无 prototype 校验。
 
 规则:
-1. lib/ cli/ 代码层 (除 test/third_party) 无 "prototype" 残留。
-2. cli/parser.cpp + cli/commands.cpp (RT-008 后命令面所在) 注册 phase3 命令指向正式模块。
+1. lib/ lib/infrastructure/cli/ 代码层 (除 test/third_party) 无 "prototype" 残留。
+2. lib/infrastructure/cli/parser.cpp + lib/infrastructure/cli/commands.cpp (RT-008 后命令面所在) 注册 phase3 命令指向正式模块。
 3. docs/contracts/INDEX.yaml 无 phase3 prototype ACTIVE。
 exit 0 = PASS。
 """
@@ -14,7 +14,7 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 def main():
     errors = []
     # 1) 代码层 prototype 扫描
-    for root in (REPO / "lib", REPO / "cli"):
+    for root in (REPO / "lib",):
         for f in sorted(root.rglob("*")):
             if not f.is_file(): continue
             if "test" in f.parts or "third_party" in f.parts: continue
@@ -22,12 +22,12 @@ def main():
             txt = f.read_text(encoding="utf-8", errors="ignore")
             if "prototype" in txt.lower():
                 errors.append(f"prototype ref in {f.relative_to(REPO)}")
-    # 2) cli/parser.cpp + cli/commands.cpp phase3 注册 (RT-008 后命令面所在)
+    # 2) lib/infrastructure/cli/parser.cpp + lib/infrastructure/cli/commands.cpp phase3 注册 (RT-008 后命令面所在)
     cli_face = "\n".join(
-        (REPO / "cli" / f).read_text(encoding="utf-8", errors="ignore")
+        (REPO / "lib" / "infrastructure" / "cli" / f).read_text(encoding="utf-8", errors="ignore")
         for f in ("parser.cpp", "commands.cpp"))
     if "phase3" not in cli_face.lower():
-        errors.append("cli/parser.cpp+commands.cpp 无 phase3 注册")
+        errors.append("lib/infrastructure/cli/parser.cpp+commands.cpp 无 phase3 注册")
     # 3) INDEX.yaml 无 phase3 prototype ACTIVE
     idx = (REPO / "docs" / "contracts" / "INDEX.yaml").read_text(encoding="utf-8", errors="ignore")
     if re.search(r"phase3[^\n]*prototype", idx, re.IGNORECASE):

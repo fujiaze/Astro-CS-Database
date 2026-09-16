@@ -4,7 +4,7 @@
 
 解析根 CMakeLists.txt / tests/unit/CMakeLists.txt / cli/CMakeLists.txt / cmake/*.cmake
 中全部 add_library/add_executable 显式源引用，逐项证明存在；并枚举自有源码
-(cli/include/lib/cmake/schemas/tools/docs/tests/scripts)，生成：
+(lib/include/cmake/schemas/tools/docs/tests/scripts)，生成：
 
   evidence/v6_1_rework/tasks/R0-002/SOURCE_INDEX.csv
       path,kind,owner,target,sha256,size_bytes,generated,required_for_build
@@ -108,7 +108,7 @@ def walk_self_owned(root: Path) -> list[Path]:
 
 def classify_kind(rel: str) -> str:
     first = rel.split("/", 1)[0]
-    if rel.startswith("cli/"):
+    if rel.startswith("lib/infrastructure/cli/"):
         return "cli"
     if rel.startswith("include/"):
         return "public_header"
@@ -145,6 +145,8 @@ def classify_owner(rel: str) -> str:
         return "astrocs-test"
     if first == "docs":
         return "astrocs-docs"
+    if rel.startswith("lib/infrastructure/cli/"):
+        return "astrocs-cli"
     if first == "lib":
         parts = rel.split("/")
         if len(parts) >= 2:
@@ -195,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
                 if src.startswith("${"):
                     resolved.append(src)
                     continue
-                if src.startswith("/") or src.startswith(("third_party/", "lib/astro_image_io/third_party/")):
+                if src.startswith("/") or src.startswith(("third_party/", "lib/infrastructure/aio/third_party/")):
                     resolved.append(src)
                     continue
                 # resolve relative to the CMake file's directory
@@ -226,8 +228,8 @@ def main(argv: list[str] | None = None) -> int:
 
     # 4. write SOURCE_INDEX.csv (validator-compatible columns)
     csv_path = out_dir / "SOURCE_INDEX.csv"
-    build_required: set[str] = {"CMakeLists.txt", "VERSION", "cli/version_generated.h.in",
-                                "cli/main.cpp", "cli/version_generated.h"}
+    build_required: set[str] = {"CMakeLists.txt", "VERSION", "lib/infrastructure/cli/version_generated.h.in",
+                                "lib/infrastructure/cli/main.cpp", "lib/infrastructure/cli/version_generated.h"}
     for target, sources in target_map.items():
         if target.endswith("_test"):
             continue

@@ -43,18 +43,18 @@ INV = os.path.join(REV, "file_audit_inventory.csv")
 # 由 git HEAD vs V19 zip 比对得出；仅 upm.cpp 变更。
 V19_CARRY = set()  # 程序内通过 shipping 列表 + changed 列表推导
 CHANGED = {
-    "lib/phase2/src/upm.cpp",
+    "lib/algorithms/coverage/src/upm.cpp",
 }
 
 BATCH = {
-    "lib/common": "B01", "lib/acr/api": "B14", "lib/acr": "B14",
-    "lib/astro_image_io": "B02", "lib/calibration": "B03",
-    "lib/dynamic_psf": "B04", "lib/star_detector": "B04",
-    "lib/gaia_xpsd_client": "B05", "lib/plate_solve": "B06",
-    "lib/photometric_calib": "B07", "lib/snr_estimator": "B08",
-    "lib/healpix_db/healpix_drizzle": "B09",
-    "lib/healpix_db/healpix_browser_qt": "B13",
-    "lib/phase2": "B10", "lib/orchestrator": "B12",
+    "lib/algorithms/shared": "B01", "lib/infrastructure/acr/api": "B14", "lib/infrastructure/acr": "B14",
+    "lib/infrastructure/aio": "B02", "lib/algorithms/calibration": "B03",
+    "lib/algorithms/psf": "B04", "lib/algorithms/star_detection": "B04",
+    "lib/infrastructure/gaia_xpsd_client": "B05", "lib/algorithms/platesolve": "B06",
+    "lib/algorithms/photometry": "B07", "lib/algorithms/noise_snr": "B08",
+    "lib/algorithms/drizzle/healpix_drizzle": "B09",
+    "lib/infrastructure/hips_browser/healpix_browser_qt": "B13",
+    "lib/algorithms/coverage": "B10", "lib/infrastructure/pipeline/orchestrator": "B12",
     "tools": "B15", "docs": "B16", "root": "B01",
 }
 
@@ -65,7 +65,7 @@ def batch_of(path: str) -> str:
         return BATCH[top]
     if top == "root":
         return "B01"
-    if path.startswith("lib/phase2") and any(
+    if path.startswith("lib/algorithms/coverage") and any(
             s in path for s in ("rejection", "integrate", "block", "acr_kernels")):
         return "B11"
     for prefix, b in BATCH.items():
@@ -176,7 +176,7 @@ def main() -> int:
         ["F-V19R2-ORCH-001", "orchestrator.cpp logger",
          "log path nested under cpp/ (run/logs convention)",
          "P3", "ENG-IO-001",
-         "known: creates lib/orchestrator/logs/ nested dir",
+         "known: creates lib/infrastructure/pipeline/orchestrator/logs/ nested dir",
          "logs under run/logs/orchestrator/",
          "pre-existing", "fix in later round or backlog",
          "-", "docs/modules/orchestrator.md", "none", "BACKLOG"],

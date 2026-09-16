@@ -48,31 +48,31 @@ REV = os.path.join(ROOT, "reports", "v19r3")
 CLANG = r"C:\msys64\mingw64\bin\clang++.exe"
 
 # 模块 → (include dirs, extra defines)
-COMMON_INC = ["lib/astro_image_io/include", "lib/astro_image_io/src",
-              "lib/common", "lib/common/include", "lib/common/healpix",
-              "lib/healpix_db/healpix_drizzle"]
+COMMON_INC = ["lib/infrastructure/aio/include", "lib/infrastructure/aio/src",
+              "lib/algorithms/shared", "lib/algorithms/shared/include", "lib/algorithms/shared/healpix",
+              "lib/algorithms/drizzle/healpix_drizzle"]
 BASE_DEFS = ["AIO_ENABLE_HEALPIX", "AIO_ENABLE_FITS", "AIO_ENABLE_XISF",
              "AIO_ENABLE_AHPX", "AIO_ENABLE_COMPRESSOR",
              "AIO_ENABLE_PIPELINE", "HAS_ZSTD", "HAS_LZ4", "NDEBUG"]
 
 MODULE_INC = {
-    "acr": ["lib/acr/include", "lib/acr", "lib/acr/backends/cuda/bridge",
-            "lib/acr/scheduler", "lib/acr/api", "lib/acr/routing",
-            "lib/acr/core", "lib/acr/cost", "lib/acr/qualification/focused"],
-    "astro_image_io": ["lib/astro_image_io/include", "lib/astro_image_io/src"],
-    "plate_solve": ["lib/plate_solve/cpp/ipv/include"],
-    "healpix_drizzle": ["lib/healpix_db/healpix_drizzle"],
-    "orchestrator": ["lib/orchestrator/cpp/include"],
-    "phase2": ["lib/phase2/include", "lib/acr/include", "lib/acr",
-               "lib/acr/scheduler", "lib/acr/backends/cuda/bridge"],
-    "photometric_calib": ["lib/photometric_calib/cpp/include"],
-    "calibration": ["lib/calibration/include", "lib/calibration/cpp/include"],
-    "star_detector": ["lib/star_detector/include", "lib/star_detector"],
-    "dynamic_psf": ["lib/dynamic_psf/include"],
-    "common": ["lib/common"],
-    "gaia_xpsd_client": ["lib/gaia_xpsd_client/src"],
-    "snr_estimator": ["lib/snr_estimator/cpp/include"],
-    "healpix_browser": ["lib/healpix_db/healpix_browser_qt"],
+    "acr": ["lib/infrastructure/acr/include", "lib/infrastructure/acr", "lib/infrastructure/acr/backends/cuda/bridge",
+            "lib/infrastructure/acr/scheduler", "lib/infrastructure/acr/api", "lib/infrastructure/acr/routing",
+            "lib/infrastructure/acr/core", "lib/infrastructure/acr/cost", "lib/infrastructure/acr/qualification/focused"],
+    "astro_image_io": ["lib/infrastructure/aio/include", "lib/infrastructure/aio/src"],
+    "plate_solve": ["lib/algorithms/platesolve/cpp/ipv/include"],
+    "healpix_drizzle": ["lib/algorithms/drizzle/healpix_drizzle"],
+    "orchestrator": ["lib/infrastructure/pipeline/orchestrator/cpp/include"],
+    "phase2": ["lib/algorithms/coverage/include", "lib/infrastructure/acr/include", "lib/infrastructure/acr",
+               "lib/infrastructure/acr/scheduler", "lib/infrastructure/acr/backends/cuda/bridge"],
+    "photometric_calib": ["lib/algorithms/photometry/cpp/include"],
+    "calibration": ["lib/algorithms/calibration/include", "lib/algorithms/calibration/cpp/include"],
+    "star_detector": ["lib/algorithms/star_detection/include", "lib/algorithms/star_detection"],
+    "dynamic_psf": ["lib/algorithms/psf/include"],
+    "common": ["lib/algorithms/shared"],
+    "gaia_xpsd_client": ["lib/infrastructure/gaia_xpsd_client/src"],
+    "snr_estimator": ["lib/algorithms/noise_snr/cpp/include"],
+    "healpix_browser": ["lib/infrastructure/hips_browser/healpix_browser_qt"],
 }
 
 # 系统/工具链头（MSYS2 MinGW：omp.h / nlohmann / Qt6）
@@ -86,25 +86,25 @@ SYS_INC = [r"C:\msys64\mingw64\include",
            r"C:\msys64\mingw64\include\Qt6\QtWidgets"]
 # 跨模块依赖 include（orchestrator 聚合全部模块头；photometric 依赖 gaia）
 EXTRA_MODULE_INC = {
-    "orchestrator": ["lib/plate_solve/cpp/ipv/include",
-                     "lib/dynamic_psf/include",
-                     "lib/photometric_calib/cpp/include",
-                     "lib/snr_estimator/cpp/include",
-                     "lib/star_detector/include",
-                     "lib/gaia_xpsd_client/src",
-                     "lib/healpix_db/healpix_drizzle",
-                     "lib/orchestrator/cpp/third_party/json-schema-validator"],
-    "photometric_calib": ["lib/gaia_xpsd_client/src"],
-    "acr": ["lib/acr/qualification/benchmarks", "lib/acr/qualification",
-            os.path.join(ROOT, "lib/acr/build2/_deps/benchmark-src/include")],
-    "healpix_browser": ["lib/healpix_db/healpix_browser_qt/core",
-                        "lib/healpix_db/healpix_browser_qt/app",
-                        "lib/healpix_db/healpix_browser_qt/widgets",
-                        "lib/healpix_db/healpix_browser_qt/include",
-                        "lib/astro_image_io/include"],
+    "orchestrator": ["lib/algorithms/platesolve/cpp/ipv/include",
+                     "lib/algorithms/psf/include",
+                     "lib/algorithms/photometry/cpp/include",
+                     "lib/algorithms/noise_snr/cpp/include",
+                     "lib/algorithms/star_detection/include",
+                     "lib/infrastructure/gaia_xpsd_client/src",
+                     "lib/algorithms/drizzle/healpix_drizzle",
+                     "lib/infrastructure/pipeline/orchestrator/cpp/third_party/json-schema-validator"],
+    "photometric_calib": ["lib/infrastructure/gaia_xpsd_client/src"],
+    "acr": ["lib/infrastructure/acr/qualification/benchmarks", "lib/infrastructure/acr/qualification",
+            os.path.join(ROOT, "lib/infrastructure/acr/build2/_deps/benchmark-src/include")],
+    "healpix_browser": ["lib/infrastructure/hips_browser/healpix_browser_qt/core",
+                        "lib/infrastructure/hips_browser/healpix_browser_qt/app",
+                        "lib/infrastructure/hips_browser/healpix_browser_qt/widgets",
+                        "lib/infrastructure/hips_browser/healpix_browser_qt/include",
+                        "lib/infrastructure/aio/include"],
 }
 
-PHOTOMETRIC_SRC_INC = "lib/photometric_calib/cpp/src"
+PHOTOMETRIC_SRC_INC = "lib/algorithms/photometry/cpp/src"
 
 
 def shipping_units() -> list[str]:
@@ -114,19 +114,19 @@ def shipping_units() -> list[str]:
 
 
 def module_of(p: str) -> str:
-    for mod, prefix in [("acr", "lib/acr"), ("astro_image_io", "lib/astro_image_io"),
-                        ("plate_solve", "lib/plate_solve"),
-                        ("healpix_drizzle", "lib/healpix_db/healpix_drizzle"),
-                        ("orchestrator", "lib/orchestrator"),
-                        ("phase2", "lib/phase2"),
-                        ("photometric_calib", "lib/photometric_calib"),
-                        ("calibration", "lib/calibration"),
-                        ("star_detector", "lib/star_detector"),
-                        ("dynamic_psf", "lib/dynamic_psf"),
-                        ("common", "lib/common"),
-                        ("gaia_xpsd_client", "lib/gaia_xpsd_client"),
-                        ("snr_estimator", "lib/snr_estimator"),
-                        ("healpix_browser", "lib/healpix_db/healpix_browser_qt")]:
+    for mod, prefix in [("acr", "lib/infrastructure/acr"), ("astro_image_io", "lib/infrastructure/aio"),
+                        ("plate_solve", "lib/algorithms/platesolve"),
+                        ("healpix_drizzle", "lib/algorithms/drizzle/healpix_drizzle"),
+                        ("orchestrator", "lib/infrastructure/pipeline/orchestrator"),
+                        ("phase2", "lib/algorithms/coverage"),
+                        ("photometric_calib", "lib/algorithms/photometry"),
+                        ("calibration", "lib/algorithms/calibration"),
+                        ("star_detector", "lib/algorithms/star_detection"),
+                        ("dynamic_psf", "lib/algorithms/psf"),
+                        ("common", "lib/algorithms/shared"),
+                        ("gaia_xpsd_client", "lib/infrastructure/gaia_xpsd_client"),
+                        ("snr_estimator", "lib/algorithms/noise_snr"),
+                        ("healpix_browser", "lib/infrastructure/hips_browser/healpix_browser_qt")]:
         if p.startswith(prefix + "/"):
             return mod
     return "other"

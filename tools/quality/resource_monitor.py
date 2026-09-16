@@ -48,15 +48,45 @@ CLK_TCK = float(os.sysconf("SC_CLK_TCK"))
 PAGE_SIZE = int(os.sysconf("SC_PAGE_SIZE"))
 
 # 默认阈值(可被 CLI 覆盖)。注意: 这些是**外挂裁决建议**阈值, 不是程序内置门。
-DEFAULT_MIN_MEAN_CAPACITY_PERCENT = 85.0   # 计算区间平均 >= 已分配容量 85%
-DEFAULT_LOW_UTIL_PERCENT = 60.0            # 连续低利用判定线(§10.5)
-DEFAULT_MAX_LOW_UTIL_RUN_SECONDS = 10.0    # 连续 >=10s 低于线 → 事实/建议 FAIL
-DEFAULT_MIN_CORE_SECONDS = 10.0            # 工作量下限(线程秒=等效核·秒)
-DEFAULT_MAX_MEM_GROWTH_MB_PER_S = 32.0     # 与程序内 kAllocGrowthUnboundedMbPerS 同口径
-DEFAULT_MIN_BUSY_THREADS = 2               # 参考计数: 区间内 >=5% 单核的线程数
-DEFAULT_MIN_EFFECTIVE_CORES = 2.0          # 有效核数(等效核)下限: 只有单个忙计算线程 → 建议 FAIL
+# 数值不在本文件发明：唯一数值源 = contracts/resource_gate_v1.json（G-RES-01）；
+# 判据语义权威 = docs/plugins/infrastructure/21_observability.md §8。
+_RESOURCE_GATE_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[2] / "contracts" / "resource_gate_v1.json")
+
+
+def load_resource_gate_contract(path=None) -> dict:
+    """读 G-RES-01 数值契约（唯一数值源）；不可得 → RuntimeError（不静默回落）。"""
+    p = Path(path) if path is not None else _RESOURCE_GATE_CONTRACT_PATH
+    try:
+        with open(p, "r", encoding="utf-8") as fh:
+            doc = json.load(fh)
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(f"资源门数值契约不可读/非法: {p} ({exc})") from exc
+    if doc.get("schema") != "astrocs.resource-gate/v1":
+        raise RuntimeError(f"资源门数值契约 schema 不符: {p}")
+    return doc
+
+
+RESOURCE_GATE_CONTRACT = load_resource_gate_contract()
+_GATE_COMPUTE = RESOURCE_GATE_CONTRACT["compute"]
+_GATE_MEMORY = RESOURCE_GATE_CONTRACT["memory"]
+
+DEFAULT_MIN_MEAN_CAPACITY_PERCENT = float(_GATE_COMPUTE["mean_utilization_min_percent"])
+DEFAULT_LOW_UTIL_PERCENT = float(_GATE_COMPUTE["queue_low_utilization_percent"])
+DEFAULT_MAX_LOW_UTIL_RUN_SECONDS = float(_GATE_COMPUTE["queue_low_window_seconds_min"])
+DEFAULT_MIN_CORE_SECONDS = float(RESOURCE_GATE_CONTRACT["workload_floor_core_seconds"])
+# GATE-FIX-RES 对齐（R-4 D-13 item 5）：单位统一为 **MiB/s**（1048576 B/s），
+# 判据方向统一为 **>=**（与 C++ kAllocGrowthUnboundedMbPerS / evaluate_mon002
+# 同口径）。旧注释写 MB/s 而实际算的是 MiB/s，且方向为严格大于 —— 两处口径差
+# 4.858%。
+DEFAULT_MAX_MEM_GROWTH_MIB_PER_S = float(_GATE_MEMORY["growth_limit_mib_per_s"])
+DEFAULT_MEM_GROWTH_PREDICATE = str(_GATE_MEMORY["growth_predicate"])
+DEFAULT_MIN_BUSY_THREADS = int(_GATE_COMPUTE["min_active_compute_threads"])
+DEFAULT_MIN_EFFECTIVE_CORES = 2.0          # 有效核数(等效核)下限(仅事实/参考)
 DEFAULT_SINGLE_THREAD_CORES_MAX = 1.2      # 有效核数 <= 该值视为"只有一个活跃计算线程"
 DEFAULT_MEM_WINDOW_SECONDS = 10.0          # 内存增长率滑动窗口
+# 兼容别名（旧名保留，值同 MiB/s；新代码用 MIB 名）。
+DEFAULT_MAX_MEM_GROWTH_MB_PER_S = DEFAULT_MAX_MEM_GROWTH_MIB_PER_S
 
 
 # ------------------------------------------------------------------ /proc 读取 ----
@@ -615,6 +645,15 @@ def facts(records, capacity, low_util_percent, max_low_util_run,
             "peak": round(max(cpu), 3) if cpu else 0.0,
             "p50": round(_frac(cpu, 0.50), 3) if cpu else 0.0,
             "p05": round(_frac(cpu, 0.05), 3) if cpu else 0.0,
+            # G-RES-01 对齐事实（契约 compute.per_sample_*）：单样本 >=85% 的
+            # 占比（阈 0.70）与判据方向，供与冻结门逐字段对拍。
+            "sample_pass_fraction": (
+                round(sum(1 for x in cpu
+                          if x >= DEFAULT_MIN_MEAN_CAPACITY_PERCENT)
+                      / len(cpu), 4) if cpu else 0.0),
+            "per_sample_min_percent": DEFAULT_MIN_MEAN_CAPACITY_PERCENT,
+            "pass_fraction_min": float(
+                _GATE_COMPUTE["per_sample_pass_fraction_min"]),
         },
         "cpu_pct_core": {
             "mean": round(statistics.fmean(core), 3) if core else 0.0,
@@ -679,7 +718,12 @@ def judge(summary, thresholds):
     if float(summary.get("capacity_cores", 0) or 0) >= 2 and \
             summary["effective_cores"]["mean"] < thresholds["min_effective_cores"]:
         fails.append("single_busy_compute_thread")
-    if summary["memory_growth_mb_per_s"]["peak"] > thresholds["max_mem_growth_mb_per_s"]:
+    # G-RES-01 对齐：单位 MiB/s（1048576 B/s），方向 >=（契约 memory.growth_predicate）。
+    # 旧实现用严格大于 + 注释写 MB/s，与 C++ 侧 >= / MiB/s 分歧（R-4 E6：口径差 4.858%）。
+    _mem_limit = thresholds.get("max_mem_growth_mib_per_s",
+                                thresholds.get("max_mem_growth_mb_per_s"))
+    _mem_peak = summary["memory_growth_mb_per_s"]["peak"]
+    if _mem_peak >= _mem_limit:
         fails.append("unbounded_memory_growth")
     if summary["io"]["io_wait_ms"] / max(1.0, wall * 1000.0) * 100.0 > \
             thresholds["max_io_wait_percent"]:
@@ -736,7 +780,9 @@ def _thresholds(args):
         "low_util_percent": args.low_util_percent,
         "max_low_util_run_seconds": args.max_low_util_run_seconds,
         "min_core_seconds": args.min_core_seconds,
-        "max_mem_growth_mb_per_s": args.max_mem_growth_mb_per_s,
+        # 单位 MiB/s（1048576 B/s）；旧键名 max_mem_growth_mb_per_s 保留兼容。
+        "max_mem_growth_mib_per_s": args.max_mem_growth_mib_per_s,
+        "max_mem_growth_mb_per_s": args.max_mem_growth_mib_per_s,
         "min_busy_threads": args.min_busy_threads,
         "min_effective_cores": args.min_effective_cores,
         "single_thread_cores_max": args.single_thread_cores_max,
@@ -785,8 +831,10 @@ def build_parser():
     ap.add_argument("--max-low-util-run-seconds", type=float,
                     default=DEFAULT_MAX_LOW_UTIL_RUN_SECONDS)
     ap.add_argument("--min-core-seconds", type=float, default=DEFAULT_MIN_CORE_SECONDS)
-    ap.add_argument("--max-mem-growth-mb-per-s", type=float,
-                    default=DEFAULT_MAX_MEM_GROWTH_MB_PER_S)
+    # 单位 MiB/s（1048576 B/s）；--max-mem-growth-mb-per-s 保留为兼容别名。
+    ap.add_argument("--max-mem-growth-mib-per-s", "--max-mem-growth-mb-per-s",
+                    dest="max_mem_growth_mib_per_s", type=float,
+                    default=DEFAULT_MAX_MEM_GROWTH_MIB_PER_S)
     ap.add_argument("--min-busy-threads", type=int, default=DEFAULT_MIN_BUSY_THREADS)
     ap.add_argument("--min-effective-cores", type=float, default=DEFAULT_MIN_EFFECTIVE_CORES)
     ap.add_argument("--single-thread-cores-max", type=float,

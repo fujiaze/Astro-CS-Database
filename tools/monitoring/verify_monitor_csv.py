@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """LOG-002 资源监控 CSV 机器检查器（tools/monitoring 域，owner SA-LOG-08）。
 
-用途：对 `runtime/monitoring/monitor.py` 产出的原始 CSV 做完整性/合同校验。
+用途：对 `lib/infrastructure/observability/monitoring/monitor.py` 产出的原始 CSV 做完整性/合同校验。
 exit 0 = PASS；任何违例 => 非 0 且输出 machine JSON verdict=FAIL。
 
 检查项（对应 LOG-002 验收"原始 CSV 不可手工合成/篡改"）：
@@ -27,7 +27,7 @@ import sys
 
 try:
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
-    from runtime.monitoring.monitor import (  # type: ignore
+    from lib.infrastructure.observability.monitoring.monitor import (  # type: ignore
         HEADER, PHASES, load_rows, verify_csv)
 except Exception:  # pragma: no cover - 独立运行异常兜底
     HEADER, PHASES = [], ()

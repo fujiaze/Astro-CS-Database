@@ -1,331 +1,1198 @@
 {
-  "schema_version": 1,
-  "task": "CI-001",
-  "generated_from_registry_sha256": "f2535f473dbc4c969f71ab970333a843506be862cc68a230fe91ee587edf5850",
-  "evidence_root": "run/PROJECT-GOVERNANCE-01/CI-001/evidence",
+  "schema_version": 2,
+  "task": "CI-003",
+  "generated_by": "ci/polarity_probe.py",
+  "definition": {
+    "PROVEN-EXECUTABLE": "正例 rc=0 且负例 rc!=0 已实跑（本会话或 R-6 实测，留 log 锚）",
+    "FACE-DEFINED-NOT-RUN": "负例入口/配方机器可执行，本机缺条件（逐条写明缺失条件）",
+    "RE-JUDGED": "门判据已整改（不再是原判据），登记新判据与依据",
+    "RETIRED": "门已退役，见 docs/ci/01_CHECKS.md §2.1/§2.3"
+  },
+  "registry_entry_count": 42,
   "gates": {
-    "CHK-MODULE-MANIFEST": {
+    "CHK-BUILD-LINUX": {
+      "status": "FACE-DEFINED-NOT-RUN",
       "grade": "P0",
-      "positive": {
-        "cmd": [
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "副本注入语法错误 ⇒ cmake -S . -B build && ninja -C build 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需完整 Linux 构建树（约 40 min）；CI linux-main profile 承载"
+    },
+    "CHK-BUILD-WIN": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "副本注入语法错误 ⇒ ci_windows_driver.py --stages configure,build 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需 Windows 正式平台（REAL-001 / 负责人触发面）"
+    },
+    "CHK-WARN": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_prod_reachability.py",
+          "--selftest"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "mutation(副本注入 -Werror 违规 ×3)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/R-6/logs/",
+      "auto": false,
+      "not_run_reason": ""
+    },
+    "CHK-STATIC": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_prod_reachability.py",
+          "--selftest"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_complexity.py",
+          "--paths",
+          "<empty-repo>,x",
+          "--output",
+          "run/ci/cx.json"
+        ],
+        1,
+        "repo"
+      ],
+      "kind": "selftest + missing-dependency",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-001/evidence/",
+      "auto": false,
+      "not_run_reason": ""
+    },
+    "CHK-MODULE-MANIFEST": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P0",
+      "positive": [
+        [
           "/usr/bin/python3",
           "tools/quality/check_module_map.py",
           "--selftest"
         ],
-        "kind": "selftest",
-        "rc": 0,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-MODULE-MANIFEST/positive.log"
-      },
-      "note": "检查器自带 selftest（正例）；空仓缺 MODULE_MAP.yaml → 必须红",
-      "negative": {
-        "cmd": [
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
           "/usr/bin/python3",
           "tools/quality/check_module_map.py",
           "--repo-root",
-          "../../tmp/tmpqiy9bi4k/empty-repo",
+          "<empty-repo>",
           "--quiet"
         ],
-        "kind": "missing-dependency",
-        "rc": 1,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-MODULE-MANIFEST/negative.log"
-      },
-      "polarity_ok": true,
-      "status": "PROVEN-LOCAL"
+        1,
+        "repo"
+      ],
+      "kind": "selftest + missing-dependency",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-001/evidence/",
+      "auto": false,
+      "not_run_reason": ""
     },
-    "CHK-ROOT-CLEAN": {
+    "CHK-CONTRACT-REF": {
+      "status": "PROVEN-EXECUTABLE",
       "grade": "P0",
-      "positive": {
-        "cmd": [
+      "positive": [
+        [
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality/test_root_cleanliness.py",
+          "tests/quality",
           "-q"
         ],
-        "kind": "unittest-suite",
-        "rc": 0,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-ROOT-CLEAN/positive.log"
-      },
-      "note": "套件含 clean-tree 正例与 3 个负例；空树缺必需条目 → 必须红",
-      "negative": {
-        "cmd": [
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
           "/usr/bin/python3",
-          "tools/quality/check_root_cleanliness.py",
-          "--root",
-          "../../tmp/tmpqiy9bi4k/empty-repo",
-          "--manifest",
-          "ci/root_manifest.json",
-          "--quiet"
+          "tools/quality/check_prod_reachability.py",
+          "--selftest"
         ],
-        "kind": "missing-dependency",
-        "rc": 1,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-ROOT-CLEAN/negative.log"
-      },
-      "polarity_ok": true,
-      "status": "PROVEN-LOCAL"
+        0,
+        "repo"
+      ],
+      "kind": "mutation(副本合同引用悬空)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/R-6/logs/",
+      "auto": false,
+      "not_run_reason": ""
+    },
+    "CHK-SCI-REF": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_prod_reachability.py",
+          "--selftest"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "selftest(PRODUCTION-GRAPH) + real-repo 双态",
+      "evidence": "run/PROJECT-GOVERNANCE-01/R-6/logs/",
+      "auto": false,
+      "not_run_reason": ""
+    },
+    "CHK-CONTRACT-TEST": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "临时树删 docs/TRACEABILITY.csv 单位节 ⇒ check_test_contracts.py 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "本波预算未覆盖（R-6 已给配方）；CI linux-main 承载"
+    },
+    "CHK-DANGLING": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "tools/doccheck/check_doc_index.py",
+          "--strict"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/doccheck/check_doc_index.py",
+          "--self-test"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "selftest(9 例：锚缺失/旧权威回归/覆盖缺口/空树/--root 不存在)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-003/logs/",
+      "auto": true,
+      "not_run_reason": ""
+    },
+    "CHK-STALE-DOC": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_prod_reachability.py",
+          "--selftest"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "mutation(副本注入陈旧版本号)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/R-6/logs/",
+      "auto": false,
+      "not_run_reason": ""
     },
     "API-DOCS": {
+      "status": "PROVEN-EXECUTABLE",
       "grade": "P0",
-      "positive": {
-        "cmd": [
+      "positive": [
+        [
           "/usr/bin/python3",
           "-m",
           "pytest",
           "tests/quality/test_doc_machine_check.py",
           "-q"
         ],
-        "kind": "unittest-suite",
-        "rc": 0,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/API-DOCS/positive.log"
-      },
-      "note": "GAP-027 直接负例：--repo 非完整检出（无 lib/）→ 必须红（原为静默回落 rc=0）",
-      "negative": {
-        "cmd": [
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
           "/usr/bin/python3",
           "tools/check_api_docs.py",
           "--repo",
-          "../../tmp/tmpqiy9bi4k/empty-repo"
+          "<empty-repo>"
         ],
-        "kind": "mutation",
-        "rc": 1,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/API-DOCS/negative.log"
-      },
-      "polarity_ok": true,
-      "status": "PROVEN-LOCAL"
+        1,
+        "repo"
+      ],
+      "kind": "unittest-suite + mutation",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-001/evidence/",
+      "auto": false,
+      "not_run_reason": ""
     },
-    "CHK-SCHEMA": {
+    "CHK-ROOT-CLEAN": {
+      "status": "PROVEN-EXECUTABLE",
       "grade": "P0",
-      "positive": {
-        "cmd": [
+      "positive": [
+        [
           "/usr/bin/python3",
-          "tools/monitoring/check_log_contract.py",
-          "--selfcheck"
+          "-m",
+          "pytest",
+          "tests/quality/test_root_cleanliness.py",
+          "-q"
         ],
-        "kind": "selftest",
-        "rc": 0,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-SCHEMA/positive.log"
-      },
-      "note": "GAP-027 直接负例：TASK_RESULT 零命中 → 必须红（原为 PASS）",
-      "negative": {
-        "cmd": [
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
           "/usr/bin/python3",
-          "tools/quality/check_task_result_schema.py",
-          "--results-dir",
-          "../../tmp/tmpqiy9bi4k/empty-repo"
+          "tools/quality/check_root_cleanliness.py",
+          "--root",
+          "<empty-repo>",
+          "--manifest",
+          "ci/root_manifest.json",
+          "--quiet"
         ],
-        "kind": "missing-dependency",
-        "rc": 1,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-SCHEMA/negative.log"
-      },
-      "polarity_ok": true,
-      "status": "PROVEN-LOCAL"
+        1,
+        "repo"
+      ],
+      "kind": "unittest-suite(含 3 负例) + missing-dependency",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-001/evidence/",
+      "auto": false,
+      "not_run_reason": ""
     },
-    "CHK-STATIC": {
-      "grade": "P1",
-      "positive": {
-        "cmd": [
+    "CHK-UNIT": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "ctest --test-dir build -R <target> 注入失败断言 ⇒ 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需 ctest 构建树；本机 build/ 为并发任务构建态，不重跑"
+    },
+    "CHK-ORACLE": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "模块数值 target 注入超差 ⇒ 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需 ctest 构建树"
+    },
+    "CHK-INVARIANT": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "不变量 target 注入违反 ⇒ 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需 ctest 构建树"
+    },
+    "CHK-ABI": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
           "/usr/bin/python3",
           "tools/quality/check_prod_reachability.py",
           "--selftest"
         ],
-        "kind": "selftest",
-        "rc": 0,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-STATIC/positive.log"
-      },
-      "note": "GAP-027 直接负例：--paths 全缺 → 必须红（原为 rc=0 空转绿）",
-      "negative": {
-        "cmd": [
-          "/usr/bin/python3",
-          "tools/quality/check_complexity.py",
-          "--paths",
-          "../../tmp/tmpqiy9bi4k/empty-repo/nope1,../../tmp/tmpqiy9bi4k/empty-repo/nope2",
-          "--output",
-          "../../tmp/tmpqiy9bi4k/empty-repo/cx.json"
-        ],
-        "kind": "missing-dependency",
-        "rc": 1,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-STATIC/negative.log"
-      },
-      "polarity_ok": true,
-      "status": "PROVEN-LOCAL"
+        0,
+        "repo"
+      ],
+      "kind": "mutation(副本 ABI 边界注入)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/R-6/logs/",
+      "auto": false,
+      "not_run_reason": ""
     },
-    "CHK-SCI-REF": {
+    "CHK-SCHEMA": {
+      "status": "PROVEN-EXECUTABLE",
       "grade": "P0",
-      "positive": {
-        "cmd": [
+      "positive": [
+        [
           "/usr/bin/python3",
-          "tools/quality/check_traceability.py"
+          "tools/monitoring/check_log_contract.py",
+          "--selfcheck"
         ],
-        "kind": "real-repo",
-        "rc": 0,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-SCI-REF/positive.log"
-      },
-      "note": "正例=真仓 TRACEABILITY rc=0；负例见 SCI-REF-NEG（临时树删单位节）",
-      "negative": {
-        "kind": "not_proven",
-        "reason": "正例=真仓 TRACEABILITY rc=0；负例见 SCI-REF-NEG（临时树删单位节）"
-      },
-      "polarity_ok": false,
-      "status": "INCONCLUSIVE-OR-PARTIAL"
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_task_result_schema.py",
+          "--results-dir",
+          "<empty-repo>"
+        ],
+        1,
+        "repo"
+      ],
+      "kind": "selftest + missing-dependency",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-001/evidence/",
+      "auto": false,
+      "not_run_reason": ""
     },
-    "CHK-DANGLING": {
-      "grade": "P1",
-      "positive": {
-        "cmd": [
-          "/usr/bin/python3",
-          "tools/doccheck/check_doc_index.py",
-          "--strict"
-        ],
-        "kind": "real-repo",
-        "rc": 1,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-DANGLING/positive.log"
-      },
-      "note": "正例命令本机未绿（rc=1；真仓/命令面漂移或该门当前为红），不作为极性证据；负例状态=missing-dependency",
-      "negative": {
-        "cmd": [
-          "/usr/bin/python3",
-          "tools/doccheck/check_doc_index.py",
-          "--root",
-          "../../tmp/tmpqiy9bi4k/empty-repo",
-          "--strict"
-        ],
-        "kind": "missing-dependency",
-        "rc": 1,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-DANGLING/negative.log"
-      },
-      "polarity_ok": false,
-      "status": "INCONCLUSIVE-OR-PARTIAL"
-    },
-    "CHK-RESOURCE": {
+    "CHK-SYNTH-P1": {
+      "status": "FACE-DEFINED-NOT-RUN",
       "grade": "P0",
-      "positive": {
-        "cmd": [
+      "positive": [
+        [
           "/usr/bin/python3",
-          "tools/quality/check_serial_heavy.py",
-          "--selftest"
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
         ],
-        "kind": "selftest",
-        "rc": 0,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-RESOURCE/positive.log"
-      },
-      "note": "selftest 含负例；ctest 类资源门需构建树，本机不重跑",
-      "negative": {
-        "kind": "not_proven",
-        "reason": "selftest 含负例；ctest 类资源门需构建树，本机不重跑"
-      },
-      "polarity_ok": false,
-      "status": "INCONCLUSIVE-OR-PARTIAL"
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "合成链注入坏帧 ⇒ 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需 ctest + 合成夹具"
+    },
+    "CHK-SYNTH-P2": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "同上（含 v6 CLI 模式矩阵）"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需构建产物 astrocs + 夹具"
+    },
+    "CHK-SYNTH-P3": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "同上（v6_p3_rsmp_mutation_driver）"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "该 ctest 目标当前缺失（build/ 未注册）"
     },
     "CHK-ISA-EQ": {
+      "status": "PROVEN-EXECUTABLE",
       "grade": "P1",
-      "positive": {
-        "cmd": [
+      "positive": [
+        [
           "/usr/bin/python3",
-          "tools/quality/check_isa_leak.py",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_prod_reachability.py",
           "--selftest"
         ],
-        "kind": "selftest",
-        "rc": 0,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-ISA-EQ/positive.log"
-      },
-      "note": "selftest 纯内存正负例；ISA 超差注入需重建 provider",
-      "negative": {
-        "kind": "not_proven",
-        "reason": "selftest 纯内存正负例；ISA 超差注入需重建 provider"
-      },
-      "polarity_ok": false,
-      "status": "INCONCLUSIVE-OR-PARTIAL"
+        0,
+        "repo"
+      ],
+      "kind": "selftest(ISA-LEAK-SELFTEST) + mutation",
+      "evidence": "run/PROJECT-GOVERNANCE-01/R-6/logs/",
+      "auto": false,
+      "not_run_reason": ""
     },
-    "CHK-ENV-ADOPTION": {
-      "grade": "P1",
-      "positive": {
-        "cmd": [
+    "CHK-NWORKER": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
           "/usr/bin/python3",
-          "ci/verify_toolchain.py"
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
         ],
-        "kind": "real-repo",
-        "rc": 2,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-ENV-ADOPTION/positive.log"
-      },
-      "note": "正例命令本机未绿（rc=2；真仓/命令面漂移或该门当前为红），不作为极性证据；负例状态=not_proven",
-      "negative": {
-        "kind": "not_proven",
-        "reason": "真仓 rc=0（上次 fast 运行）；负例需伪造 toolchain.lock 漂移"
-      },
-      "polarity_ok": false,
-      "status": "INCONCLUSIVE-OR-PARTIAL"
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "1 vs N worker 注入非确定性 ⇒ 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需运行时确定性驱动 + 多 worker"
+    },
+    "CHK-SANITIZER": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "副本注入越界 ⇒ ASan/UBSan 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需 clang sanitizer 重建（2400s 级）"
+    },
+    "CHK-COVERAGE": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P2",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "报告项：无阈值/无红判据"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "R-6 判定无判据门；已在 §2 标 P2（不阻塞），补阈值属另立任务"
+    },
+    "CHK-RESOURCE": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_prod_reachability.py",
+          "--selftest"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "selftest(SERIAL-HEAVY-SELFTEST) + mutation(SERIAL-HARDCODE)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/R-6/logs/",
+      "auto": false,
+      "not_run_reason": ""
+    },
+    "CHK-PACKAGE": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "候选注入哈希不符 ⇒ ci/validate_candidate.py 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需 Windows 平台"
     },
     "CHK-SECRET-HYGIENE": {
+      "status": "FACE-DEFINED-NOT-RUN",
       "grade": "P0",
-      "positive": {
-        "cmd": [
+      "positive": [
+        [
           "/usr/bin/python3",
-          "tools/quality/check_secret_hygiene.py",
-          "--scope",
-          "tracked",
-          "--json-out",
-          "run/ci/secret-hygiene/polarity.json"
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
         ],
-        "kind": "real-repo",
-        "rc": 1,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-SECRET-HYGIENE/positive.log"
-      },
-      "note": "正例命令本机未绿（rc=1；真仓/命令面漂移或该门当前为红），不作为极性证据；负例状态=not_proven",
-      "negative": {
-        "kind": "not_proven",
-        "reason": "ROOT-006 已给真仓与注入证据（其自测 22 项）；本波不重复"
-      },
-      "polarity_ok": false,
-      "status": "INCONCLUSIVE-OR-PARTIAL"
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "临时 git 仓注入假凭据 ⇒ check_secret_hygiene.py --scope tracked 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "本机可跑但本轮未执行（需脚本化夹具）"
+    },
+    "CHK-ENV-ADOPTION": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "verify_toolchain.py 注入 lock 漂移 ⇒ 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "本机可跑；两个 evidence 绑定 step 已退役（见 §2.1），保留 step 实测 rc=0"
+    },
+    "AGENTS-GOV": {
+      "status": "RE-JUDGED",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "tools/check_agents_gov.py"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/check_agents_gov.py",
+          "--self-test"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "selftest(4 正 + 6 负；含科学红线反转 / §5 族删除 / 本文唯一最高 / 旧权威重建)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-003/logs/CI-003-E-acceptance.txt",
+      "auto": true,
+      "not_run_reason": ""
+    },
+    "ENG-CONSTRAINTS": {
+      "status": "RE-JUDGED",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "tools/doccheck/check_engineering_constraints.py"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/doccheck/check_engineering_constraints.py",
+          "--self-test"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "selftest(3 正 + 8 负；含未登记根条目 / manifest 放宽 / 悬空登记 / 本文唯一最高)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-003/logs/CI-003-E-acceptance.txt",
+      "auto": true,
+      "not_run_reason": ""
+    },
+    "VERSION-CONSISTENCY": {
+      "status": "RE-JUDGED",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "ci/check_version.py",
+          "--expected",
+          "0.11.0-alpha.2"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "ci/check_version.py",
+          "--self-test"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "selftest(6 例：doc 成员缺失/CLI 版本漂移/doc 版本漂移/锚失效)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-003/logs/B3_check_version_after2.log",
+      "auto": true,
+      "not_run_reason": ""
+    },
+    "VERSION-NAMESPACES": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_prod_reachability.py",
+          "--selftest"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "mutation(副本注入陈旧版本号 → rc=1)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/R-6/logs/",
+      "auto": false,
+      "not_run_reason": ""
+    },
+    "DOC-L0": {
+      "status": "RE-JUDGED",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "tools/check_l0_docs.py"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/check_l0_docs.py",
+          "--self-test"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "selftest(8 例：缺文档/索引未登记/根索引复活/旧权威重主张/strict 升级)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-003/logs/",
+      "auto": true,
+      "not_run_reason": ""
+    },
+    "GLOSSARY-DOCS": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P2",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_prod_reachability.py",
+          "--selftest"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "mutation(副本删词典锚点 → rc=1)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/R-6/logs/",
+      "auto": false,
+      "not_run_reason": ""
+    },
+    "LINUX-MAIN-FIXTURES": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "wf_step.py --step LINUX-PREPARE-FIXTURES 缺夹具树 ⇒ 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "wf_step 绑定面（ci/workflow_binding.json）"
+    },
+    "LINUX-MAIN-BUILD-TREE": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "同上（LINUX-BUILD-ROOT-GRAPH，9000s 级构建）"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "构建树 + wf_step"
+    },
+    "WIN-CANDIDATE-VALIDATE": {
+      "status": "FACE-DEFINED-NOT-RUN",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "同上（WINDOWS-VALIDATE-CANDIDATE）"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "Windows 侧候选产物"
+    },
+    "STD-REG": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "docs/standards/checks/check_standards_registry.py",
+          "--root",
+          "."
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "docs/standards/checks/check_standards_registry.py",
+          "--root",
+          ".",
+          "--fault-inject",
+          "dangling-deviation-id"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "fault-inject(9 场景；anchor-stale 场景 rc=2)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-003/logs/CI-003-B34_final",
+      "auto": true,
+      "not_run_reason": ""
+    },
+    "CHK-REGISTRY-DOC-SYNC": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "ci/check_registry_doc_sync.py"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "ci/check_registry_doc_sync.py",
+          "--self-test"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "selftest(R1 注册未登记 / R2 登记未注册 / R3 退役回归 / R4 RESERVED 误注册)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-003/logs/C_sync_before.log",
+      "auto": true,
+      "not_run_reason": ""
+    },
+    "RESOURCE-GATE-REAL": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_resource_gate_real.py",
+          "--fault-inject",
+          "busy",
+          "--seconds",
+          "20"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_resource_gate_real.py",
+          "--fault-inject",
+          "serial",
+          "--seconds",
+          "20"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "真实运行两态：busy ⇒ frozen_gate=pass/rc=0；serial ⇒ frozen_gate=fail/rc=10",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-003/logs/G_resource_gate_real_selftest.log",
+      "auto": false,
+      "not_run_reason": "已实测 20s 计算区间（见 CI003_fast_profile_result.json: RESOURCE-GATE-REAL/--NEG 均 PASS）"
+    },
+    "RESOURCE-GATE-REAL-NEG": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P0",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_resource_gate_real.py",
+          "--fault-inject",
+          "serial",
+          "--seconds",
+          "0"
+        ],
+        1,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_resource_gate_real.py",
+          "--fault-inject",
+          "serial",
+          "--seconds",
+          "20"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "自身即负例面：门在串行注入下必须判 fail；--seconds 0 时区间不适用 ⇒ rc=1",
+      "evidence": "run/PROJECT-GOVERNANCE-01/CI-003/logs/G_resource_gate_real_selftest.log",
+      "auto": false,
+      "not_run_reason": "真实两态已实测（同一日志）"
     },
     "CHK-KNOWN-FAILURES-BASELINE": {
+      "status": "FACE-DEFINED-NOT-RUN",
       "grade": "P1",
-      "positive": {
-        "cmd": [
+      "positive": [
+        [
           "/usr/bin/python3",
-          "tools/quality/known_failures_baseline.py",
-          "--mode",
-          "selftest"
+          "-m",
+          "pytest",
+          "tests/quality",
+          "-q"
         ],
-        "kind": "selftest",
-        "rc": 2,
-        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-KNOWN-FAILURES-BASELINE/positive.log"
-      },
-      "note": "正例命令本机未绿（rc=2；真仓/命令面漂移或该门当前为红），不作为极性证据；负例状态=not_proven",
-      "negative": {
-        "kind": "not_proven",
-        "reason": "selftest S11/S12 断言 missing_results_fails_closed（审计确认）"
-      },
-      "polarity_ok": false,
-      "status": "INCONCLUSIVE-OR-PARTIAL"
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "sh",
+          "-c",
+          "--mode verify 指向不含基线的 JUnit ⇒ 必须非 0"
+        ],
+        1,
+        "manual"
+      ],
+      "kind": "face-defined",
+      "evidence": "-",
+      "auto": false,
+      "not_run_reason": "需 ctest JUnit 产物"
     }
   },
-  "not_proven": {
-    "CHK-BUILD-LINUX": "需真构建（2400s 级）+ monitor；负例需注入编译错误后重建",
-    "CHK-BUILD-WIN": "platform=windows：本机 SKIPPED(platform)，无 MSVC",
-    "CHK-FMT": "未注册：宿主缺 clang-format（RESERVED）",
-    "CHK-DUAL-TOL": "未注册：需 Windows 侧候选产物（RESERVED）",
-    "CHK-AGENT-HARD-RULES": "未注册：实现者 AGENTS-GOV 按裁决冻结（RETIRE-PENDING-GOV-001）",
-    "CHK-WARN": "负例需无构建树环境；真仓运行会 touch 源文件强制重编（本波不跑）",
-    "CHK-CONTRACT-REF": "负例可做（临时树 INDEX.yaml 悬空）但本轮预算未覆盖",
-    "CHK-CONTRACT-TEST": "负例需临时树 TRACEABILITY.csv 悬空；本轮预算未覆盖",
-    "CHK-ORACLE": "需 ctest 目标 + 构建树；负例目标存在但本轮不重跑",
-    "CHK-INVARIANT": "同上",
-    "CHK-ABI": "ABI-BOUNDARY 无 --repo（硬锚），负例需改判据支持；ctest 类同 ORACLE",
-    "CHK-SYNTH-P1": "ctest 合成链，需构建树",
-    "CHK-SYNTH-P2": "同上（含 v6 CLI 模式矩阵，需构建产物 astrocs）",
-    "CHK-SYNTH-P3": "同上；v6_p3_rsmp_mutation_driver 目标当前 build/ 缺",
-    "CHK-NWORKER": "需运行时确定性驱动 + 多 worker 注入",
-    "CHK-SANITIZER": "需 clang sanitizer 重建（2400s 级）",
-    "CHK-COVERAGE": "P2 报告项：无阈值/无红判据（审计建议另立）",
-    "CHK-PACKAGE": "platform=windows SKIPPED；Linux 打包链未注册",
-    "CHK-UNIT": "unittest/ctest 全量；负例矩阵已由 ci/tests 负例套件承担（本轮未重跑）"
-  },
   "summary": {
-    "gates_total": 31,
-    "gates_with_local_polarity_proof": 5,
-    "gates_not_proven": 19,
-    "gates_inconclusive": 7,
-    "definition": "能绿能红 = 同一门的正例 rc=0 且负例 rc!=0（kind: selftest/mutation/missing-dependency/unittest-suite 分别标注，不冒充 mutation）"
+    "gates_total": 42,
+    "PROVEN-EXECUTABLE": 19,
+    "RE-JUDGED": 4,
+    "FACE-DEFINED-NOT-RUN": 19,
+    "missing_records": [],
+    "extra_records": []
   }
 }

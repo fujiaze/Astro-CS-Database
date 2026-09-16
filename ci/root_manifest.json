@@ -119,18 +119,6 @@
       "note": "保留（登记，禁删）：运营必需的远程接入指引（reports/PROJECT-GOVERNANCE-01/security/SECURITY_NOTE.md）；去留归 ROOT-006，GOV-001 不删。"
     },
     {
-      "path": "VISUAL_CHECK_README.md",
-      "class": "F2",
-      "owner_task": "GOV-001",
-      "note": "已处置（GOV-001 2026-09-16）：归档到 docs/archive/VISUAL_CHECK_README.md 并加 ARCHIVED_NON_NORMATIVE 抬头（所引 launch/ 与 run/ 产品均不存在）；本登记保留至前台提交该移动。"
-    },
-    {
-      "path": "HANDOVER.md",
-      "class": "F2",
-      "owner_task": "GOV-001",
-      "note": "已处置（GOV-001 2026-09-16）：归档到 docs/archive/HANDOVER.md 并加 ARCHIVED_NON_NORMATIVE 抬头；本登记保留至前台提交该移动。"
-    },
-    {
       "path": "问题扫描",
       "class": "F2",
       "owner_task": "GOV-001",
@@ -141,60 +129,6 @@
       "class": "F2",
       "owner_task": "ARCH-001",
       "note": "§7 要求 CLI 归 lib/infrastructure/cli/（GAP-003）"
-    },
-    {
-      "path": "runtime",
-      "class": "F2",
-      "owner_task": "RT-001",
-      "note": "§7 无 runtime/（GAP-014）"
-    },
-    {
-      "path": "providers",
-      "class": "F2",
-      "owner_task": "CPU-001",
-      "note": "§7 无 providers/（GAP-015）"
-    },
-    {
-      "path": "modules",
-      "class": "F2",
-      "owner_task": "MOD-001",
-      "note": "§7 无 modules/（GAP-008）"
-    },
-    {
-      "path": "AstroCS.wiki",
-      "class": "F1",
-      "owner_task": "owner",
-      "note": "0 字节空目录；evidence/refactor 记「缺 .gitmodules 的普通目录」"
-    },
-    {
-      "path": "p8-files.patch",
-      "class": "F1",
-      "owner_task": "owner",
-      "note": "P8 批次本地改动补丁；本地保留，建议 .gitignore 登记"
-    },
-    {
-      "path": "p9-files.patch",
-      "class": "F1",
-      "owner_task": "owner",
-      "note": "P9 批次本地改动补丁；本地保留"
-    },
-    {
-      "path": "p10-files.patch",
-      "class": "F1",
-      "owner_task": "owner",
-      "note": "P10 批次本地改动补丁；本地保留"
-    },
-    {
-      "path": "p11-files.patch",
-      "class": "F1",
-      "owner_task": "owner",
-      "note": "P11 批次本地改动补丁；本地保留"
-    },
-    {
-      "path": "p15a-files.patch",
-      "class": "F1",
-      "owner_task": "owner",
-      "note": "P15a 批次本地改动补丁；本地保留"
     }
   ],
   "notes": {
@@ -206,7 +140,8 @@
     "gov001_pending_owner_root_entries": {
       "checks": "CI 执行器（ci/run_checks.py）本轮运行产出的逐检查 JSON 目录（2026-09-16 18:12，38 项）；根因：产出目录解析为进程 CWD（=仓库根），违反 ENGINEERING_SPEC §7「禁止把运行产物产出到项目根目录」与 ASTROCS_DESIGN §6.3。建议改法（不在 GOV-001 文件域）：执行器写入 --out-dir，默认 artifacts/ci/（已 gitignore）；CI-001 收敛窗口内由该任务落地。校验：arartifacts 目录存在且仓库根无 checks/ 与 ci_result.json。",
       "ci_result.json": "同一执行器写在仓库根的汇总 JSON（179,145 B，entry_count=38）；根因：产出目录解析为进程 CWD（=仓库根），违反 ENGINEERING_SPEC §7「禁止把运行产物产出到项目根目录」与 ASTROCS_DESIGN §6.3。建议改法（不在 GOV-001 文件域）：执行器写入 --out-dir，默认 artifacts/ci/（已 gitignore）；CI-001 收敛窗口内由该任务落地。校验：arartifacts 目录存在且仓库根无 checks/ 与 ci_result.json。"
-    }
+    },
+    "ci003_dangling_registration_cleanup": "CI-003（2026-09-16）：删除物理已不存在的登记条目（只减不增，依据 ENGINEERING_SPEC §8「锚存活」与 check_engineering_constraints.py::manifest_no_dangling_registration）：VISUAL_CHECK_README.md, HANDOVER.md, runtime, providers, modules, AstroCS.wiki, p8-files.patch, p9-files.patch, p10-files.patch, p11-files.patch, p15a-files.patch。cli 保留（cli/CMakeLists.txt 仍在位，处置权待 INT-001）。"
   },
   "gov001_pending_owner_root_entries": [
     "checks",

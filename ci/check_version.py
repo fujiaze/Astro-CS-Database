@@ -3,13 +3,23 @@
 
 用法:
   python3 ci/check_version.py --expected 0.11.0-alpha.2 [--root <repo_root>]
-  (默认 root = 本脚本所在 ci/ 的上一级, 即仓库根; --root 仅用于对 /tmp fake 树
-   做负向样例/自测, 脚本本身只读, 不写任何文件。)
+  python3 ci/check_version.py [--root <repo_root>]   # 缺省: expected 取自根 VERSION
+  python3 ci/check_version.py --self-test            # 机器可执行负例面 (tempfile mini-repo)
 
 检查规则 (写死, 无豁免开关; 与 docs/governance/VERSION_NAMESPACES.md GOV-003
 "根 VERSION 唯一事实源/生成链禁止手抄" 合同一致):
 
+  [0] 锚存活 (ENGINEERING_SPEC §8): 本文件硬编码引用的仓库路径常量在启动时逐条校验:
+      a) ANCHORS 表 (文件/目录存在性): os.path.exists 必需, 且当 --root 恰为 git
+         工作树根时追加 "git ls-files --error-unmatch <path>" 跟踪复核;
+      b) REF_ANCHORS 表 (路径引用存活): 引用方文件中必须仍出现指向该路径的字面量
+         (例: 根 CMakeLists.txt 的 configure_file(lib/infrastructure/cli/version_generated.h.in ...));
+         目录迁移后引用被改指他处 ⇒ 本文件的绑定失效, 必须点名而非静默降级。
+      任一失效 ⇒ stderr 打印 "ANCHOR_STALE: <常量名> <路径>" ⇒ exit 2 (fail-closed;
+      不 traceback, 不静默通过)。摘要 JSON 里逐条给出 anchor_alive_*/ref_alive_*
+      判据, 便于 CI 定位失效的常量与路径。
   [1] expected 格式: 必须匹配 ^\\d+\\.\\d+\\.\\d+-alpha\\.\\d+$ (禁 stable/rc/beta)。
+      --expected 缺省时取根 VERSION 的 strip 值 (读不到 ⇒ 锚失效 ⇒ exit 2), 判定规则不变。
   [2] 根 VERSION 文件: strip 后必须完全 == expected (唯一事实源)。
   [3] 根 CMakeLists.txt project(): 统一后的写法 = 纯数字三元组, 规则为
       "project() 的 major.minor.patch 必须 == expected 去掉 -alpha.N 的基础号"
@@ -20,36 +30,40 @@
   [4] CLI 版本定义点 (实际形态: 无手抄常量, 全部由生成链注入):
       a) 根 CMakeLists.txt 必须 file(READ .../VERSION ASTROCS_BASE_VERSION);
       b) cli/CMakeLists.txt 必须 file(READ .../../VERSION BASE_VERSION);
-      c) cli/version_generated.h.in 必须含注入点 @ASTROCS_VERSION_STRING@;
+      c) lib/infrastructure/cli/version_generated.h.in 必须含注入点 @ASTROCS_VERSION_STRING@;
       d) 根与 cli 的 CMakeLists.txt 必须 configure_file 生成 version_generated.h;
       e) cli/**(.h/.hpp/.cpp/.cc/.in/.cmake/.txt) 与根 CMakeLists.txt 中出现的
          任何 X.Y.Z-alpha.N 字面量必须 == expected (漂移即 FAIL; 若出现与
          expected 相等的字面量, 值上 PASS, 但 detail 标注"手抄字面量, 建议迁移
          生成链")。
-  [5] 活动文档统一 (GOV-003 硬判面 + 本任务收敛面): README.md / REVIEW.md /
-      HANDOVER.md / docs/DOCUMENT_INDEX.yaml / docs/VERSIONING.md /
-      docs/governance/** / docs/owner/** 中出现的任何 X.Y.Z-alpha.N 字面量必须
-      == expected; 行级豁免仅限机器修订关系字段 (REV_FIELD: source_main_version/
-      target_main_version/base_product_version/source_main_sha/base_main_sha/
-      product_version/doc_version) —— 这些是"记录来源/基线"的机器字段, 不是
-      当前值陈述。裸 X.Y.Z 三元组不扫 (FITS 4.0/HiPS 1.0/外部组件/占位属其他
-      命名空间, 反误报口径同 GOV-003 §3 豁免表)。
+  [5] 活动文档统一 (GOV-003 硬判面 + 本任务收敛面): DOC_SET_FILES / DOC_SET_DIRS
+      下的任何 X.Y.Z-alpha.N 字面量必须 == expected; 行级豁免仅限机器修订关系字段
+      (REV_FIELD: source_main_version/target_main_version/base_product_version/
+      source_main_sha/base_main_sha/product_version/doc_version) —— 这些是"记录来源/
+      基线"的机器字段, 不是"当前值"陈述。裸 X.Y.Z 三元组不扫 (FITS 4.0/HiPS 1.0/
+      外部组件/占位属其他命名空间, 反误报口径同 GOV-003 §3 豁免表)。
       注意: CHANGELOG.md 与 memory.md 是 history/日志命名空间驻留点 (GOV-003
       §2/§4: 只警告不硬判), 不进本检查; AstroCS_ENGINEERING_CONSTRAINTS.md 是
       负责人冻结文件 (Agent 不可改), 其目标版本行由负责人修订, 也不进本检查。
-  [6] 活动文档集合完整性: [5] 列出的固定文件必须存在 (缺文件 = FAIL, 防止
-      "文件被移走后检查静默变空")。
+  [6] 活动文档集合完整性 (防移空): DOC_SET_FILES 的每个成员必须存在, DOC_SET_DIRS
+      的每个目录必须存在且含 ≥1 个扫描成员; 缺一 ⇒ 该项 FAIL 并逐条点名。
+      [5] doc_scan_active_docs 同样显式报缺 (缺成员 ⇒ FAIL + detail 点名),
+      不再用 os.path.isfile 静默跳过 (静默跳过 = 扫描面悄悄缩小, 正是"防移空"
+      条款自己要防的失效型; R-6 §3.2 C 实测)。
 
 输出: stdout 一份 JSON 摘要 (各检查项: 文件/行号/检测值/PASS|FAIL);
-      任一 FAIL → exit 1, 全部 PASS → exit 0。脚本只读。
+      锚失效 → exit 2; 任一 FAIL → exit 1; 全部 PASS → exit 0。脚本只读。
 """
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import os
 import re
+import subprocess
 import sys
+import tempfile
 
 SEMVER_ALPHA = re.compile(r"^\d+\.\d+\.\d+-alpha\.\d+$")
 ALPHA_INLINE = re.compile(r"(?<![\w.])(\d+\.\d+\.\d+)-alpha\.(\d+)(?![\w.])")
@@ -59,13 +73,60 @@ REV_FIELD = re.compile(
     r"^(source_main_version|target_main_version|base_product_version|"
     r"source_main_sha|base_main_sha|product_version|doc_version)\s*[:=]\s*")
 
+# ---- 硬编码仓库路径常量 (锚存活合同; 常量集中于此, 不散落) --------------------
+VERSION_REL = "VERSION"
+ROOT_CMAKE_REL = "CMakeLists.txt"
+# ROOT-008（2026-09-16）目录迁移：cli/** → lib/infrastructure/cli/**（CMake 源树 + 版本模板）。
+# CLI_DIR_REL 的扫描面必须随迁，否则 [7] 字面量扫描静默漏扫迁移后的 CLI 源码。
+CLI_DIR_REL = "lib/infrastructure/cli"
+# cli/CMakeLists.txt 保留原位（不在构建图内）：GOV-001 判定 VERSION 不得删除的硬依据 +
+# 3 条 chain_* 判据的输入；最终处置权待 INT-001（CI-003 记「保留，处置待 INT-001」）。
+CLI_CMAKE_REL = "cli/CMakeLists.txt"
+CLI_TEMPLATE_REL = "lib/infrastructure/cli/version_generated.h.in"
+
+# [5]/[6] 现行活动文档集 (逐条绑定, 与 GOV-003 硬判面一致; 迁移时同步更新本表)。
 DOC_SET_FILES = [
-    "README.md", "REVIEW.md", "HANDOVER.md",
-    "docs/DOCUMENT_INDEX.yaml", "docs/VERSIONING.md",
+    "README.md",
+    "docs/DOCUMENT_INDEX.yaml",
+    "docs/VERSIONING.md",
+    "docs/governance/VERSION_NAMESPACES.md",
+    "docs/owner/ARCHITECTURE_OVERVIEW.md",
+    "docs/owner/CHANGE_REVIEW.md",
+    "docs/owner/PIPELINE_OVERVIEW.md",
+    "docs/owner/PROJECT_SPEC.md",
+    "docs/owner/RELEASE_STATUS.md",
+    "docs/owner/SCIENCE_OVERVIEW.md",
 ]
 DOC_SET_DIRS = ["docs/governance", "docs/owner"]
 DOC_SCAN_EXT = (".md", ".txt", ".json", ".yaml", ".yml", ".py", ".sh")
 CLI_SCAN_EXT = (".h", ".hpp", ".cpp", ".cc", ".in", ".cmake", ".txt")
+
+# 锚表: (常量名, 仓库相对路径)。DOC_SET_DIRS 目录锚额外要求"非空"(见 [6])。
+ANCHORS = (
+    [("VERSION_REL", VERSION_REL),
+     ("ROOT_CMAKE_REL", ROOT_CMAKE_REL),
+     ("CLI_DIR_REL", CLI_DIR_REL),
+     ("CLI_CMAKE_REL", CLI_CMAKE_REL),
+     ("CLI_TEMPLATE_REL", CLI_TEMPLATE_REL)]
+    + [("DOC_SET_FILES[%d]" % i, rel) for i, rel in enumerate(DOC_SET_FILES)]
+    + [("DOC_SET_DIRS[%d]" % i, d) for i, d in enumerate(DOC_SET_DIRS)]
+)
+
+# CMake 变量引用字面量 (拆写, 避免在工具链源码里出现未转义的插值序列)。
+CSD = "$" + "{CMAKE_CURRENT_SOURCE_DIR}"
+
+# 引用存活表: (常量名, 被引用路径, 引用方文件, 必须在引用方出现的字面量正则)。
+# 目录迁移 (ROOT-008 等) 后引用被改指他处 ⇒ ANCHOR_STALE, 不静默降级为普通 FAIL。
+REF_ANCHORS = [
+    ("CLI_TEMPLATE_REF_ROOT", CLI_TEMPLATE_REL, ROOT_CMAKE_REL,
+     re.compile(r"configure_file\(lib/infrastructure/cli/version_generated\.h\.in")),
+    ("CLI_TEMPLATE_REF_CLI", "version_generated.h.in", CLI_CMAKE_REL,
+     re.compile(r"configure_file\(version_generated\.h\.in")),
+    ("CLI_BASE_VERSION_READ", "../VERSION", CLI_CMAKE_REL,
+     re.compile(r"file\(READ\s+" + re.escape(CSD) + r"/\.\./VERSION\s+BASE_VERSION")),
+]
+
+GIT_TIMEOUT_S = 30
 
 
 def add(checks: list, cid: str, ok: bool, file: str, line=None,
@@ -87,42 +148,213 @@ def version_tuple(s: str) -> tuple:
     return tuple(int(x) for x in s.split("."))
 
 
+# ---- [0] 锚存活 -------------------------------------------------------------
+def git_toplevel(root: str):
+    """root 为 git 工作树根时返回其真实路径, 否则 None (非 git 树 ⇒ 跳过跟踪复核)。"""
+    try:
+        p = subprocess.run(["git", "-C", root, "rev-parse", "--show-toplevel"],
+                           capture_output=True, text=True, timeout=GIT_TIMEOUT_S)
+    except Exception:
+        return None
+    if p.returncode != 0:
+        return None
+    top = os.path.realpath(p.stdout.strip())
+    return top if top == os.path.realpath(root) else None
+
+
+def git_tracked(root: str, rel: str):
+    """(True|False|None, 说明): None = git 不可用/无法判定。"""
+    try:
+        p = subprocess.run(["git", "-C", root, "ls-files", "--error-unmatch",
+                            "--", rel], capture_output=True, text=True,
+                           timeout=GIT_TIMEOUT_S)
+    except Exception as exc:
+        return None, "git 调用失败: %s" % exc
+    if p.returncode == 0:
+        return True, "ls-files --error-unmatch rc=0"
+    last = (p.stderr.strip().splitlines() or [""])[-1]
+    return False, "ls-files --error-unmatch rc=%d (%s)" % (p.returncode, last[:120])
+
+
+def anchor_status(root: str, rel: str) -> tuple:
+    """(存活?, 说明)。双查: os.path.exists 必需 + (git 树根时) 跟踪复核。"""
+    full = os.path.join(root, rel)
+    if not os.path.exists(full):
+        return False, "路径不存在 (os.path.exists=False)"
+    if git_toplevel(root) is None:
+        return True, "存在 (root 非 git 工作树根, 未做跟踪复核)"
+    ok, why = git_tracked(root, rel)
+    if ok is False:
+        return False, "存在但 git 未跟踪: %s" % why
+    if ok is None:
+        return True, "存在 (git 不可用, 未做跟踪复核: %s)" % why
+    return True, "存在 + git 跟踪 (%s)" % why
+
+
+def check_anchors(root: str) -> tuple:
+    """返回 (checks, stale_lines)。stale 非空 ⇒ fail-closed exit 2。"""
+    checks, stale = [], []
+    for name, rel in ANCHORS:
+        ok, detail = anchor_status(root, rel)
+        add(checks, "anchor_alive_%s" % name, ok, rel, None,
+            "存活" if ok else "ANCHOR_STALE",
+            "锚存活合同 (ENGINEERING_SPEC §8): %s" % detail)
+        if not ok:
+            stale.append("ANCHOR_STALE: %s %s" % (name, rel))
+    return checks, stale
+
+
+def ref_anchor_status(root: str, ref: str, holder: str, rx: re.Pattern) -> tuple:
+    """引用存活: holder 文件中必须仍出现指向 ref 的字面量。"""
+    hfull = os.path.join(root, holder)
+    if not os.path.isfile(hfull):
+        return False, "引用方文件不存在: %s" % holder
+    for ln in read_text(hfull).splitlines():
+        if rx.search(ln):
+            return True, "引用在位: %s:%s" % (holder, ln.strip()[:100])
+    return False, ("引用失效: %s 中未出现指向 %s 的字面量 (绑定可能已随目录迁移改指他处)"
+                   % (holder, ref))
+
+
+def check_ref_anchors(root: str) -> tuple:
+    """返回 (checks, stale_lines)。路径引用失效 ⇒ fail-closed exit 2。"""
+    checks, stale = [], []
+    for name, ref, holder, rx in REF_ANCHORS:
+        ok, detail = ref_anchor_status(root, ref, holder, rx)
+        add(checks, "ref_alive_%s" % name, ok, holder, None,
+            "存活" if ok else "ANCHOR_STALE",
+            "路径引用存活合同 (ENGINEERING_SPEC §8): %s" % detail)
+        if not ok:
+            stale.append("ANCHOR_STALE: %s %s" % (name, ref))
+    return checks, stale
+
+
+# ---- [5]/[6] 活动文档集扫描面 ------------------------------------------------
+def doc_scan_set(root: str) -> tuple:
+    """返回 (doc_files[(rel, full)], missing_members[rel], empty_dirs[dir])。
+
+    DOC_SET_FILES 成员缺失不再静默跳过 —— 由调用方判 FAIL 并点名 [6]/[5]。
+    DOC_SET_DIRS 目录缺失或扫描成员数为 0 同样显式登记 (防"目录空了但看着通过")。
+    目录内成员与显式成员按 realpath 去重 (显式绑定 + 递归扫描并存时只扫一次)。
+    """
+    doc_files, missing, empty = [], [], []
+    seen = set()
+
+    def push(rel: str, full: str) -> None:
+        key = os.path.realpath(full)
+        if key in seen:
+            return
+        seen.add(key)
+        doc_files.append((rel, full))
+
+    for rel in DOC_SET_FILES:
+        full = os.path.join(root, rel)
+        if os.path.isfile(full):
+            push(rel, full)
+        else:
+            missing.append(rel)
+    for d in DOC_SET_DIRS:
+        base = os.path.join(root, d)
+        if not os.path.isdir(base):
+            empty.append(d + "/ (目录缺失)")
+            continue
+        n = 0
+        for dirpath, dirnames, filenames in os.walk(base):
+            dirnames[:] = [x for x in dirnames if not x.startswith("__")]
+            for fn in sorted(filenames):
+                if fn.endswith(DOC_SCAN_EXT):
+                    full = os.path.join(dirpath, fn)
+                    push(os.path.relpath(full, root), full)
+                    n += 1
+        if n == 0:
+            empty.append(d + "/ (0 个扫描成员)")
+    return doc_files, missing, empty
+
+
+def report(checks: list, root: str, expected, expected_source: str,
+           stale: list) -> int:
+    fails = [c for c in checks if not c["pass"]]
+    code = 2 if stale else (1 if fails else 0)
+    out = {
+        "tool": "ci/check_version.py",
+        "root": root,
+        "expected": expected,
+        "expected_source": expected_source,
+        "anchor_stale": stale,
+        "checks": checks,
+        "fail_count": len(fails),
+        "pass_count": len(checks) - len(fails),
+        "exit_code": code,
+        "verdict": ("ANCHOR_STALE" if stale else
+                    ("VERSION_CHECK_FAIL" if fails else "VERSION_CHECK_PASS")),
+    }
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return code
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="AstroCS 产品版本一致性 CI 快速门")
-    ap.add_argument("--expected", required=True,
-                    help="期望产品版本, 如 0.11.0-alpha.2")
+    ap.add_argument("--expected", default=None,
+                    help="期望产品版本, 如 0.11.0-alpha.2 (缺省: 取根 VERSION 的 strip 值)")
     ap.add_argument("--root", default=None,
                     help="仓库根 (默认: 脚本位置上一级; 只读)")
+    ap.add_argument("--self-test", action="store_true",
+                    help="mini-repo 自测: 正例必绿 + 负例必红 (不读不写本仓)")
     args = ap.parse_args()
+    if args.self_test:
+        return self_test()
     root = os.path.abspath(args.root or os.path.dirname(
         os.path.dirname(os.path.abspath(__file__))))
     checks: list = []
 
+    # [0] 锚存活前置断言 (fail-closed; 不 traceback, 不静默通过)
+    anchor_checks, stale = check_anchors(root)
+    ref_checks, ref_stale = check_ref_anchors(root)
+    checks.extend(anchor_checks)
+    checks.extend(ref_checks)
+    stale.extend(ref_stale)
+    for line in stale:
+        sys.stderr.write(line + "\n")
+
+    # expected 解析: 显式 --expected 优先; 缺省时取根 VERSION (唯一事实源)
+    expected_source = "--expected" if args.expected is not None else VERSION_REL
+    expected = args.expected
+    if expected is None:
+        vpath = os.path.join(root, VERSION_REL)
+        if os.path.isfile(vpath):
+            try:
+                expected = read_text(vpath).strip()
+                expected_source = "%s (--expected 缺省)" % VERSION_REL
+            except OSError as exc:
+                expected = ""
+                expected_source = "%s (读取失败: %s)" % (VERSION_REL, exc)
+        else:
+            expected = ""
+            expected_source = "%s (缺失)" % VERSION_REL
+
     # [1] expected 格式
-    add(checks, "expected_format", bool(SEMVER_ALPHA.match(args.expected)),
-        "<argument>", None, args.expected,
-        "必须形如 MAJOR.MINOR.PATCH-alpha.N (禁 stable/rc/beta)")
-    if not SEMVER_ALPHA.match(args.expected):
-        print(json.dumps({"tool": "ci/check_version.py", "expected": args.expected,
-                          "root": root, "checks": checks,
-                          "fail_count": 1, "pass_count": 0,
-                          "verdict": "VERSION_CHECK_FAIL"},
-                         ensure_ascii=False, indent=2))
-        return 1
-    exp_base = base_of(args.expected)
+    add(checks, "expected_format", bool(SEMVER_ALPHA.match(expected or "")),
+        "<argument|VERSION>", None, expected or "",
+        "必须形如 MAJOR.MINOR.PATCH-alpha.N (禁 stable/rc/beta); 来源=%s"
+        % expected_source)
+    if not SEMVER_ALPHA.match(expected or ""):
+        return report(checks, root, expected, expected_source, stale)
+    exp_base = base_of(expected)
 
     # [2] 根 VERSION 文件
-    vpath = os.path.join(root, "VERSION")
+    vpath = os.path.join(root, VERSION_REL)
     if os.path.isfile(vpath):
         ver = read_text(vpath).strip()
-        add(checks, "version_file", ver == args.expected, "VERSION", 1, ver,
-            "根 VERSION 必须 == expected (唯一事实源)")
+        add(checks, "version_file", ver == expected, VERSION_REL, 1, ver,
+            "根 VERSION 必须 == expected (唯一事实源)"
+            + ("; 注意: expected 亦取自 VERSION (缺省模式), 本项为自比较, "
+               "独立判据为 [3]/[4]" if args.expected is None else ""))
     else:
-        add(checks, "version_file", False, "VERSION", None, "缺失",
+        add(checks, "version_file", False, VERSION_REL, None, "缺失",
             "根 VERSION 文件不存在")
 
     # [3] 根 CMakeLists.txt project() 数字三元组 == expected 基础号
-    cml = os.path.join(root, "CMakeLists.txt")
+    cml = os.path.join(root, ROOT_CMAKE_REL)
     cml_text = read_text(cml) if os.path.isfile(cml) else ""
     proj_hit = None
     for i, ln in enumerate(cml_text.splitlines(), 1):
@@ -133,12 +365,12 @@ def main() -> int:
     if proj_hit:
         i, name, pv = proj_hit
         ok = version_tuple(pv) == exp_base
-        add(checks, "cmake_project_base", ok, "CMakeLists.txt", i,
-            f"project({name} VERSION {pv})",
+        add(checks, "cmake_project_base", ok, ROOT_CMAKE_REL, i,
+            "project(%s VERSION %s)" % (name, pv),
             "规则: project() 数字三元组 == expected 去 -alpha.N 的基础号 "
             "(CMake project() 不接受 alpha 后缀, 后缀由根 VERSION/生成链承载)")
     else:
-        add(checks, "cmake_project_base", False, "CMakeLists.txt", None,
+        add(checks, "cmake_project_base", False, ROOT_CMAKE_REL, None,
             "未找到 project(... VERSION ...)",
             "根 CMakeLists.txt 必须含唯一 project() 版本声明")
 
@@ -151,38 +383,39 @@ def main() -> int:
 
     i, ln = first_line(cml_text, re.compile(
         r"file\(READ\s+\$\{CMAKE_CURRENT_SOURCE_DIR\}/VERSION\s+ASTROCS_BASE_VERSION"))
-    add(checks, "chain_root_read_version", i is not None, "CMakeLists.txt", i,
+    add(checks, "chain_root_read_version", i is not None, ROOT_CMAKE_REL, i,
         ln or "缺失", "根 CMakeLists.txt 必须 file(READ 根 VERSION) (禁止手抄)")
-    cli_cml_path = os.path.join(root, "cli", "CMakeLists.txt")
+    cli_cml_path = os.path.join(root, CLI_CMAKE_REL)
     cli_cml = read_text(cli_cml_path) if os.path.isfile(cli_cml_path) else ""
     i, ln = first_line(cli_cml, re.compile(
         r"file\(READ\s+\$\{CMAKE_CURRENT_SOURCE_DIR\}/\.\./VERSION\s+BASE_VERSION"))
-    add(checks, "chain_cli_read_version", i is not None, "cli/CMakeLists.txt", i,
+    add(checks, "chain_cli_read_version", i is not None, CLI_CMAKE_REL, i,
         ln or "缺失", "cli/CMakeLists.txt 必须 file(READ 根 ../VERSION) (禁止手抄)")
-    tpl_path = os.path.join(root, "cli", "version_generated.h.in")
+    tpl_path = os.path.join(root, CLI_TEMPLATE_REL)
     if os.path.isfile(tpl_path):
         tpl = read_text(tpl_path)
         i, ln = first_line(tpl, re.compile(r"@ASTROCS_VERSION_STRING@"))
         add(checks, "chain_template_placeholder", i is not None,
-            "cli/version_generated.h.in", i, ln or "缺失",
+            CLI_TEMPLATE_REL, i, ln or "缺失",
             "版本注入模板必须含 @ASTROCS_VERSION_STRING@ 占位")
     else:
         add(checks, "chain_template_placeholder", False,
-            "cli/version_generated.h.in", None, "缺失", "版本注入模板不存在")
+            CLI_TEMPLATE_REL, None, "缺失",
+            "版本注入模板不存在 (锚失效时见 anchor_alive_CLI_TEMPLATE_REL)")
     i, ln = first_line(cml_text, re.compile(
-        r"configure_file\(cli/version_generated\.h\.in"))
-    add(checks, "chain_configure_file_root", i is not None, "CMakeLists.txt", i,
+        r"configure_file\(lib/infrastructure/cli/version_generated\.h\.in"))
+    add(checks, "chain_configure_file_root", i is not None, ROOT_CMAKE_REL, i,
         ln or "缺失", "根 CMakeLists.txt 必须 configure_file 生成 version_generated.h")
     i, ln = first_line(cli_cml, re.compile(
         r"configure_file\(version_generated\.h\.in"))
     add(checks, "chain_configure_file_cli", i is not None,
-        "cli/CMakeLists.txt", i, ln or "缺失",
+        CLI_CMAKE_REL, i, ln or "缺失",
         "cli/CMakeLists.txt (兼容 target) 必须 configure_file 生成 version_generated.h")
 
     # [4e] cli/** 与根 CMakeLists.txt 的 alpha 字面量扫描
     lit_rows = []
     scan_targets = []
-    cli_dir = os.path.join(root, "cli")
+    cli_dir = os.path.join(root, CLI_DIR_REL)
     if os.path.isdir(cli_dir):
         for dirpath, dirnames, filenames in os.walk(cli_dir):
             dirnames[:] = [x for x in dirnames if not x.startswith("__")]
@@ -195,38 +428,28 @@ def main() -> int:
         try:
             text = read_text(p)
         except OSError as exc:
-            lit_rows.append((p, None, None, f"读取失败: {exc}"))
+            lit_rows.append((p, None, None, "读取失败: %s" % exc))
             continue
         for i, ln in enumerate(text.splitlines(), 1):
             for m in ALPHA_INLINE.finditer(ln):
-                val = f"{m.group(1)}-alpha.{m.group(2)}"
+                val = "%s-alpha.%s" % (m.group(1), m.group(2))
                 lit_rows.append((os.path.relpath(p, root), i, val, ln.strip()[:90]))
-    bad = [(f, i, v, t) for (f, i, v, t) in lit_rows if v != args.expected]
-    handcopy = [(f, i, v) for (f, i, v, t) in lit_rows if v == args.expected]
-    add(checks, "literal_scan_cli_and_cmake", not bad,
+    bad = [(f, i, v, t) for (f, i, v, t) in lit_rows
+           if v is not None and v != expected]
+    handcopy = [(f, i, v) for (f, i, v, t) in lit_rows if v == expected]
+    unread = [(f, t) for (f, i, v, t) in lit_rows if v is None]
+    add(checks, "literal_scan_cli_and_cmake", not bad and not unread,
         "cli/** + CMakeLists.txt",
         None if not bad else bad[0][1],
         "0 处 alpha 字面量 (生成链注入)" if not lit_rows
-        else f"{len(lit_rows)} 处 (漂移 {len(bad)})",
+        else "%d 处 (漂移 %d)" % (len(lit_rows), len(bad)),
         "规则: 任何 X.Y.Z-alpha.N 字面量必须 == expected"
-        + (f"; 漂移: {bad[0][0]}:{bad[0][1]}={bad[0][2]}" if bad else "")
-        + (f"; 手抄但同值 {len(handcopy)} 处 (建议迁移生成链)" if handcopy else ""))
+        + ("; 漂移: %s:%s=%s" % (bad[0][0], bad[0][1], bad[0][2]) if bad else "")
+        + ("; 读取失败: %s" % unread if unread else "")
+        + ("; 手抄但同值 %d 处 (建议迁移生成链)" % len(handcopy) if handcopy else ""))
 
-    # [5] 活动文档 alpha 字面量统一
-    doc_files = []
-    for rel in DOC_SET_FILES:
-        p = os.path.join(root, rel)
-        if os.path.isfile(p):
-            doc_files.append((rel, p))
-    for d in DOC_SET_DIRS:
-        base = os.path.join(root, d)
-        if os.path.isdir(base):
-            for dirpath, dirnames, filenames in os.walk(base):
-                dirnames[:] = [x for x in dirnames if not x.startswith("__")]
-                for fn in sorted(filenames):
-                    if fn.endswith(DOC_SCAN_EXT):
-                        p = os.path.join(dirpath, fn)
-                        doc_files.append((os.path.relpath(p, root), p))
+    # [5] 活动文档 alpha 字面量统一 + 扫描面显式报缺 (防移空)
+    doc_files, doc_missing, doc_empty_dirs = doc_scan_set(root)
     drift, scanned = [], 0
     for rel, p in doc_files:
         scanned += 1
@@ -234,40 +457,170 @@ def main() -> int:
             if REV_FIELD.match(ln.strip()):
                 continue  # 机器修订关系字段 (记录来源/基线), 非"当前值"陈述
             for m in ALPHA_INLINE.finditer(ln):
-                val = f"{m.group(1)}-alpha.{m.group(2)}"
-                if val != args.expected:
+                val = "%s-alpha.%s" % (m.group(1), m.group(2))
+                if val != expected:
                     drift.append((rel, i, val, ln.strip()[:90]))
-    add(checks, "doc_scan_active_docs", not drift, "README/REVIEW/HANDOVER/docs",
+    shrink = doc_missing or doc_empty_dirs
+    add(checks, "doc_scan_active_docs", not drift and not shrink,
+        "README/docs/governance/docs/owner",
         None if not drift else drift[0][1],
-        f"扫描 {scanned} 份活动文档" if not drift else
-        f"{scanned} 份中 {len(drift)} 处漂移",
+        ("扫描 %d 份活动文档" % scanned if not shrink else
+         "扫描 %d 份活动文档; 扫描面缺口: 缺成员=%s 空目录=%s"
+         % (scanned, doc_missing, doc_empty_dirs)) if not drift else
+        "%d 份中 %d 处漂移" % (scanned, len(drift)),
         "规则: 活动文档中任何 X.Y.Z-alpha.N 字面量必须 == expected"
         " (豁免仅 REV_FIELD 机器修订字段; CHANGELOG/memory 为 history/日志"
-        " 命名空间不进本检查, 冻结约束文件由负责人修订)"
-        + (f"; 首处漂移 {drift[0][0]}:{drift[0][1]}={drift[0][2]}" if drift else ""))
+        " 命名空间不进本检查, 冻结约束文件由负责人修订). 防移空: DOC_SET_FILES "
+        "成员缺失或 DOC_SET_DIRS 扫描成员为 0 时本项判 FAIL 并点名"
+        " (禁止 isfile 静默跳过导致扫描面悄悄缩小)"
+        + ("; 缺成员=%s" % doc_missing if doc_missing else "")
+        + ("; 空目录=%s" % doc_empty_dirs if doc_empty_dirs else "")
+        + ("; 首处漂移 %s:%s=%s" % (drift[0][0], drift[0][1], drift[0][2])
+           if drift else ""))
 
     # [6] 活动文档集合完整性
-    missing = [rel for rel in DOC_SET_FILES
-               if not os.path.isfile(os.path.join(root, rel))]
+    missing = doc_missing[:]
     missing += [d + "/" for d in DOC_SET_DIRS
                 if not os.path.isdir(os.path.join(root, d))]
-    add(checks, "doc_set_complete", not missing, "README/REVIEW/HANDOVER/docs",
-        None, f"缺失: {missing}" if missing else f"{len(DOC_SET_FILES)} 文件 + "
-        f"{len(DOC_SET_DIRS)} 目录齐全",
-        "规则: [5] 的固定活动文档必须存在, 防止检查面被移空")
+    add(checks, "doc_set_complete", not missing and not doc_empty_dirs,
+        "README/docs/governance/docs/owner",
+        None, "缺失: %s" % missing if missing else
+        ("扫描面缺口: %s" % doc_empty_dirs if doc_empty_dirs else
+         "%d 文件 + %d 目录齐全" % (len(DOC_SET_FILES), len(DOC_SET_DIRS))),
+        "规则: [5] 的固定活动文档/目录必须存在且非空, 防止检查面被移空"
+        " (缺一即 FAIL 并逐条点名)")
 
-    fails = [c for c in checks if not c["pass"]]
-    out = {
-        "tool": "ci/check_version.py",
-        "expected": args.expected,
-        "root": root,
-        "checks": checks,
-        "fail_count": len(fails),
-        "pass_count": len(checks) - len(fails),
-        "verdict": "VERSION_CHECK_FAIL" if fails else "VERSION_CHECK_PASS",
+    return report(checks, root, expected, expected_source, stale)
+
+
+# ---- 可执行负例面: tempfile mini-repo ---------------------------------------
+ROOT_CMAKE_TMPL = """cmake_minimum_required(VERSION 3.24)
+project(astrocs VERSION %(base)s LANGUAGES C CXX)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION ASTROCS_BASE_VERSION)
+configure_file(lib/infrastructure/cli/version_generated.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version_generated.h @ONLY)
+"""
+CLI_CMAKE_TMPL = """cmake_minimum_required(VERSION 3.16)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION BASE_VERSION)
+configure_file(version_generated.h.in version_generated.h @ONLY)
+"""
+TEMPLATE_TMPL = """#pragma once
+#define ASTROCS_VERSION_STRING "@ASTROCS_VERSION_STRING@"
+"""
+DOC_TMPL = "# %s\n\ndoc_version: 0.10.0-alpha.1\n"
+
+
+def _mini_repo(root: str, *, expected: str, omit=(), extra_files=None,
+               readme_body=None) -> None:
+    base = ".".join(expected.split("-alpha.")[0].split("."))
+    files = {
+        VERSION_REL: expected + "\n",
+        ROOT_CMAKE_REL: ROOT_CMAKE_TMPL % {"base": base},
+        CLI_CMAKE_REL: CLI_CMAKE_TMPL,
+        CLI_TEMPLATE_REL: TEMPLATE_TMPL,
+        "README.md": readme_body if readme_body is not None
+        else DOC_TMPL % "README",
     }
-    print(json.dumps(out, ensure_ascii=False, indent=2))
-    return 1 if fails else 0
+    for rel in DOC_SET_FILES:
+        if rel == "README.md":
+            continue
+        files[rel] = DOC_TMPL % os.path.basename(rel)
+    for d in DOC_SET_DIRS:
+        files.setdefault(os.path.join(d, "placeholder.md"), DOC_TMPL % d)
+    files.update(extra_files or {})
+    for rel in omit:
+        files.pop(rel, None)
+    for rel, body in files.items():
+        full = os.path.join(root, rel)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "w", encoding="utf-8") as fh:
+            fh.write(body)
+
+
+def _run_mini(root: str, expected=None) -> tuple:
+    """进程内以给定 argv 跑 main(); 返回 (exit_code, stdout+stderr 全文)。
+
+    stdout (JSON 摘要) 一并捕获: 自测只打印 [selftest] 结论行, 不把每例摘要刷屏;
+    断言目标 = 全文, 既覆盖 stderr 的 ANCHOR_STALE 行, 也覆盖 JSON 里的判据明细。
+    """
+    argv = ["--root", root]
+    if expected is not None:
+        argv += ["--expected", expected]
+    old_argv, old_out, old_err = sys.argv, sys.stdout, sys.stderr
+    buf = io.StringIO()
+    try:
+        sys.argv = ["check_version.py"] + argv
+        sys.stdout = buf
+        sys.stderr = buf
+        code = main()
+    finally:
+        sys.argv, sys.stdout, sys.stderr = old_argv, old_out, old_err
+    return code, buf.getvalue()
+
+
+def self_test() -> int:
+    """正例必绿 + 负例必红 (tempfile mini-repo; 不读不写本仓库)。"""
+    expected = "0.11.0-alpha.2"
+    cases = []
+
+    with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
+        pos = os.path.join(td, "pos")
+        os.makedirs(pos)
+        _mini_repo(pos, expected=expected)
+        code, err = _run_mini(pos, expected)
+        cases.append(("pos_explicit_expected", code, err, 0, None))
+        code, err = _run_mini(pos)
+        cases.append(("pos_expected_from_version", code, err, 0, None))
+
+    with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
+        root = os.path.join(td, "neg-doc-member")
+        os.makedirs(root)
+        _mini_repo(root, expected=expected, omit=("docs/owner/PIPELINE_OVERVIEW.md",))
+        code, err = _run_mini(root, expected)
+        cases.append(("neg_doc_member_missing", code, err, 2,
+                      "doc_scan_active_docs|docs/owner/PIPELINE_OVERVIEW.md"))
+
+    with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
+        root = os.path.join(td, "neg-cli-drift")
+        os.makedirs(root)
+        # ROOT-008 迁移后 CLI 字面量扫描面 = lib/infrastructure/cli/（CLI_DIR_REL）
+        _mini_repo(root, expected=expected, extra_files={
+            "lib/infrastructure/cli/drift.cpp": 'const char* kVersion = "0.9.9-alpha.1";\n'})
+        code, err = _run_mini(root, expected)
+        cases.append(("neg_cli_version_drift", code, err, 1,
+                      "literal_scan_cli_and_cmake|0.9.9-alpha.1"))
+
+    with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
+        root = os.path.join(td, "neg-doc-drift")
+        os.makedirs(root)
+        _mini_repo(root, expected=expected, readme_body=(
+            "# README\n\n- product_version: 0.10.0-alpha.9\n\n当前版本 0.10.0-alpha.9\n"))
+        code, err = _run_mini(root, expected)
+        cases.append(("neg_doc_version_drift", code, err, 1,
+                      "doc_scan_active_docs|0.10.0-alpha.9"))
+
+    with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
+        root = os.path.join(td, "neg-anchor-stale")
+        os.makedirs(root)
+        _mini_repo(root, expected=expected, omit=(CLI_TEMPLATE_REL,))
+        code, err = _run_mini(root, expected)
+        cases.append(("neg_anchor_stale", code, err, 2,
+                      "ANCHOR_STALE: CLI_TEMPLATE_REL " + CLI_TEMPLATE_REL))
+
+    ok = True
+    for name, code, err, want_rc, want_text in cases:
+        good = (code == want_rc)
+        if good and want_text:
+            for token in want_text.split("|"):
+                if token not in err:
+                    good = False
+        ok = ok and good
+        print("[selftest] %-28s rc=%-2d want=%-2d %s"
+              % (name, code, want_rc, "OK" if good else "MISMATCH"))
+        if not good and want_text:
+            print("[selftest]   输出应包含: %s" % want_text)
+    print("[selftest] %d cases, %s" % (len(cases),
+                                       "ALL OK" if ok else "FAILED"))
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

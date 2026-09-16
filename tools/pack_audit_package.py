@@ -155,7 +155,7 @@ def legacy_main() -> int:
             z.writestr(dst, data)
             staged.append((dst, rel))
             manifest.append({"path": dst, "source": rel, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()})
-        md = f"# AstroCS V5 审核包(基线代码+证据)\n\n- 版本: `{ver}`\n- 基线来源提交: `{commit}` (`{c12}`)\n- 生成: {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}\n- 主机: vm-bj Linux amd64\n- 范围: AstroCS 自有基线源码(cli/ include/ lib/* 不含 third_party/, tools/ tests/ schemas/ docs/ launch/) + 证据(reports/evidence, 工程控制/RELEASE_V5/V5控制包, artifacts/prerelease_v5/AUDIT_REVIEW, artifacts/prerelease_v5/tables)。不含数据(testdata/, BASS DR3, .fts/.fit/.xisf/.zip)、不含 vendored 第三方(lib/astro_image_io/third_party, 需按各自版本单独获取以可控编译)、不含构建产物/运行时(run/, build/, *.dll/.a/.o/.so/.exe)。\n"
+        md = f"# AstroCS V5 审核包(基线代码+证据)\n\n- 版本: `{ver}`\n- 基线来源提交: `{commit}` (`{c12}`)\n- 生成: {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}\n- 主机: vm-bj Linux amd64\n- 范围: AstroCS 自有基线源码(lib/infrastructure/cli/ include/ lib/* 不含 third_party/, tools/ tests/ schemas/ docs/ launch/) + 证据(reports/evidence, 工程控制/RELEASE_V5/V5控制包, artifacts/prerelease_v5/AUDIT_REVIEW, artifacts/prerelease_v5/tables)。不含数据(testdata/, BASS DR3, .fts/.fit/.xisf/.zip)、不含 vendored 第三方(lib/astro_image_io/third_party, 需按各自版本单独获取以可控编译)、不含构建产物/运行时(run/, build/, *.dll/.a/.o/.so/.exe)。\n"
         z.writestr("00_README.md", md.encode("utf-8"))
         manifest.append({"path": "00_README.md", "source": "(generated)", "size": len(md.encode()),
                          "sha256": hashlib.sha256(md.encode()).hexdigest()})

@@ -715,17 +715,17 @@ def run_legacy(argv: list[str] | None = None) -> int:
     root: Path = args.repo.resolve()
     out = args.output or (root / "evidence" / "v6_1_rework" / "tasks" / "R0-004" / "KNOWN_FAILURES_BASELINE.json")
 
-    cli = read(root, "cli/main.cpp")
+    cli = read(root, "lib/infrastructure/cli/main.cpp")
     cmake = read(root, "CMakeLists.txt")
-    p2_sampler = read(root, "lib/phase2/src/sampler.cpp")
-    p2_upm = read(root, "lib/phase2/src/upm.cpp")
+    p2_sampler = read(root, "lib/algorithms/coverage/src/sampler.cpp")
+    p2_upm = read(root, "lib/algorithms/coverage/src/upm.cpp")
     p3_session = read(root, "lib/phase3_session/p3_session.cpp")
     p3_output = read(root, "lib/phase3_session/p3_output.cpp")
     p3_resample = read(root, "lib/phase3_session/p3_resample.cpp")
     context_h = read(root, "include/astrocs/core/context.h")
-    context_cpp = read(root, "lib/core/src/context.cpp")
-    pipeline_cpp = read(root, "lib/core/src/pipeline.cpp")
-    module_cpp = read(root, "lib/core/src/module.cpp")
+    context_cpp = read(root, "lib/infrastructure/scheduler/src/context.cpp")
+    pipeline_cpp = read(root, "lib/infrastructure/scheduler/src/pipeline.cpp")
+    module_cpp = read(root, "lib/infrastructure/scheduler/src/module.cpp")
     p2_upm_test = read(root, "tests/unit/p2_upm_synthetic_test.cpp")
     p2_seam_test = read(root, "tests/unit/p2_seam_gate_test.cpp")
     p3_assembly_test = read(root, "tests/unit/p3_assembly_test.cpp")
@@ -734,7 +734,7 @@ def run_legacy(argv: list[str] | None = None) -> int:
     check_ast = read(root, "tools/check_ast_api.py")
     check_trace = read(root, "tools/check_pipeline_trace.py")
     check_traceability = read(root, "tools/check_traceability.py")
-    monitor_h = read(root, "cli/monitor.h")
+    monitor_h = read(root, "lib/infrastructure/cli/monitor.h")
     old_ledger = read(root, "evidence/refactor/TASK_LEDGER.csv")
     rel3_logs = read(root, "evidence/refactor/tasks/REL-003/package_logs")
     rel4_views = read(root, "evidence/refactor/tasks/REL-004/VIEWS")
@@ -753,20 +753,20 @@ def run_legacy(argv: list[str] | None = None) -> int:
     # F-001 CLI 直连 phase session
     direct = sorted(set(re.findall(r"p[123]_session_(?:create|validate|run|inspect|destroy)", cli)))
     add("F-001", "P0", bool(direct),
-        "grep -oE 'p[123]_session_(create|validate|run|inspect|destroy)' cli/main.cpp",
-        [f"cli/main.cpp: {direct}"], "生产 CLI 直接调用 session 入口，无 Runtime 可达")
+        "grep -oE 'p[123]_session_(create|validate|run|inspect|destroy)' lib/infrastructure/cli/main.cpp",
+        [f"lib/infrastructure/cli/main.cpp: {direct}"], "生产 CLI 直接调用 session 入口，无 Runtime 可达")
 
     # F-002 phase handoff rebuilt from config paths
     broken_flow = "hips_paths" in cli and "doc[\"inputs\"][\"lights\"]" in cli and "phase3" in cli
     add("F-002", "P0", broken_flow,
-        "grep -n 'hips_paths\\|inputs.*lights\\|phase3' cli/main.cpp",
-        ["cli/main.cpp 中 P2 输入从 doc.inputs.lights 重建，P3 独立 config 路径"],
+        "grep -n 'hips_paths\\|inputs.*lights\\|phase3' lib/infrastructure/cli/main.cpp",
+        ["lib/infrastructure/cli/main.cpp 中 P2 输入从 doc.inputs.lights 重建，P3 独立 config 路径"],
         "无类型化 P1->P2->P3 Artifact 连续性")
 
     # F-003 P2_ENABLE_OPENMP absent from CMake / MSVC excluded
     p2_serial = "P2_ENABLE_OPENMP" in p2_sampler and ("P2_ENABLE_OPENMP" not in cmake or "!defined(_MSC_VER)" in p2_sampler)
     add("F-003", "P0", p2_serial,
-        "grep -n 'P2_ENABLE_OPENMP' CMakeLists.txt lib/phase2/src/sampler.cpp",
+        "grep -n 'P2_ENABLE_OPENMP' CMakeLists.txt lib/algorithms/coverage/src/sampler.cpp",
         ["CMakeLists.txt 无 P2_ENABLE_OPENMP 定义" if "P2_ENABLE_OPENMP" not in cmake else "CMakeLists.txt 有定义",
          "sampler.cpp 含 !defined(_MSC_VER) 排除" if "!defined(_MSC_VER)" in p2_sampler else "sampler.cpp 无 MSVC 排除"],
         "Phase2 sampler 并行路径非生产默认，Windows 被排除")
@@ -774,7 +774,7 @@ def run_legacy(argv: list[str] | None = None) -> int:
     # F-004 UPM bypasses lease / excludes MSVC
     p2_upm_bad = "hardware_concurrency" in p2_upm or ("P2_ENABLE_OPENMP" in p2_upm and "!defined(_MSC_VER)" in p2_upm)
     add("F-004", "P0", p2_upm_bad,
-        "grep -n 'hardware_concurrency\\|P2_ENABLE_OPENMP\\|_MSC_VER' lib/phase2/src/upm.cpp",
+        "grep -n 'hardware_concurrency\\|P2_ENABLE_OPENMP\\|_MSC_VER' lib/algorithms/coverage/src/upm.cpp",
         [line for line in p2_upm.splitlines() if "hardware_concurrency" in line or "_MSC_VER" in line][:5],
         "UPM 绕过 Runtime lease 或排除 MSVC")
 
@@ -798,14 +798,14 @@ def run_legacy(argv: list[str] | None = None) -> int:
     fake_lease = "acquire_lease" in context_h + context_cpp and not any(
         w in context_h + context_cpp for w in ("compare_exchange", "fetch_sub", "release_lease", "condition_variable"))
     add("F-007", "P0", fake_lease,
-        "grep -n 'acquire_lease\\|compare_exchange\\|fetch_sub\\|release_lease' include/astrocs/core/context.h lib/core/src/context.cpp",
+        "grep -n 'acquire_lease\\|compare_exchange\\|fetch_sub\\|release_lease' include/astrocs/core/context.h lib/infrastructure/scheduler/src/context.cpp",
         [line for line in (context_h + context_cpp).splitlines() if "acquire_lease" in line][:5],
         "ThreadLease 无原子预留/归还，可能超卖")
 
     # F-008 RunContext shared containers unsynchronized
     runctx_unsync = "RunContext" in context_cpp and "mutex" not in context_cpp and "lock" not in context_cpp.lower()
     add("F-008", "P0", runctx_unsync,
-        "grep -n 'mutex\\|lock\\|RunContext' lib/core/src/context.cpp",
+        "grep -n 'mutex\\|lock\\|RunContext' lib/infrastructure/scheduler/src/context.cpp",
         ["RunContext 容器无同步" if runctx_unsync else "context.cpp 中出现同步原语（需人工确认是否覆盖全部容器）"],
         "共享容器并发修改无同步，数据竞争风险")
 
@@ -861,7 +861,7 @@ def run_legacy(argv: list[str] | None = None) -> int:
     f015_repro = bool(declared_never_emitted) and not bool(
         set(declared_never_emitted) & emitted)
     add("F-015", "P1", f015_repro,
-        "grep -oE 'IrError::\\w+' lib/core/src/pipeline.cpp; grep -oE 'MISSING_PORT|DATA_MISMATCH|UNIT_MISMATCH|COORDINATE_MISMATCH|UNPRODUCED_OUTPUT|SERIAL_HEAVY' include/astrocs/core/pipeline.h",
+        "grep -oE 'IrError::\\w+' lib/infrastructure/scheduler/src/pipeline.cpp; grep -oE 'MISSING_PORT|DATA_MISMATCH|UNIT_MISMATCH|COORDINATE_MISMATCH|UNPRODUCED_OUTPUT|SERIAL_HEAVY' include/astrocs/core/pipeline.h",
         [f"声明的错误枚举从未发出: {declared_never_emitted}",
          f"实际发出: {sorted(emitted)}"],
         "类型化管道合同名义化：validate 无法校验端口/单位/坐标")
@@ -870,22 +870,22 @@ def run_legacy(argv: list[str] | None = None) -> int:
     desc_weak = "ModuleDescriptor" in module_cpp and "validate" in module_cpp and not all(
         k in module_cpp for k in ("ALG", "DATA", "TEST", "heavy"))
     add("F-016", "P1", desc_weak,
-        "grep -n 'ALG\\|DATA\\|TEST\\|heavy\\|validate' lib/core/src/module.cpp",
+        "grep -n 'ALG\\|DATA\\|TEST\\|heavy\\|validate' lib/infrastructure/scheduler/src/module.cpp",
         ["descriptor 校验不要求 ALG/DATA/API/TEST 或 heavy+parallel 合同"],
         "无效模块可能注册")
 
     # F-017 CLI direct drizzle
     direct_drizzle = "hp_drizzle_run_hips" in cli
     add("F-017", "P1", direct_drizzle,
-        "grep -n 'hp_drizzle_run_hips' cli/main.cpp",
-        ["cli/main.cpp 直接调用 Drizzle" if direct_drizzle else "未发现 hp_drizzle_run_hips"],
+        "grep -n 'hp_drizzle_run_hips' lib/infrastructure/cli/main.cpp",
+        ["lib/infrastructure/cli/main.cpp 直接调用 Drizzle" if direct_drizzle else "未发现 hp_drizzle_run_hips"],
         "遗留直接科学路径可达")
 
     # F-018 CLI whole file size
     cli_lines = len(cli.splitlines())
     add("F-018", "P1", cli_lines > 400,
-        "wc -l cli/main.cpp",
-        [f"cli/main.cpp {cli_lines} 行（>400 判定为超厚）"],
+        "wc -l lib/infrastructure/cli/main.cpp",
+        [f"lib/infrastructure/cli/main.cpp {cli_lines} 行（>400 判定为超厚）"],
         "薄 CLI 要求未满足")
 
     # F-019 single static CPU target
@@ -898,7 +898,7 @@ def run_legacy(argv: list[str] | None = None) -> int:
     # F-020 affinity only, no quota
     affinity_only = "cli_affinity_cpu_count" in cli and "cgroup" not in cli and "Job Object" not in cli
     add("F-020", "P1", affinity_only,
-        "grep -n 'cli_affinity_cpu_count\\|cgroup\\|Job Object' cli/main.cpp",
+        "grep -n 'cli_affinity_cpu_count\\|cgroup\\|Job Object' lib/infrastructure/cli/main.cpp",
         ["仅 affinity，无 cgroup/Job Object 配额"],
         "worker 预算可超有效配额")
 
@@ -979,7 +979,7 @@ def run_legacy(argv: list[str] | None = None) -> int:
     # F-030 monitor %llu
     warning_fmt = "%llu" in monitor_h
     add("F-030", "P1", warning_fmt,
-        "grep -n '%llu' cli/monitor.h",
+        "grep -n '%llu' lib/infrastructure/cli/monitor.h",
         ["monitor 用 %llu 配 uint64_t* 于 LP64（Clang 警告）"],
         "UB 风险 + 零警告声明虚假")
 

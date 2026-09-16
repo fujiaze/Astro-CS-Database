@@ -13,8 +13,12 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 HEADERS = [
     REPO / "include/astrocs/common_abi_v1.h",
 ]
-# 额外扫描 backend/provider 公开头
-for h in sorted((REPO / "lib/backend_host").glob("*.h")):
+# 额外扫描 backend/provider 公开头（ARCH-001 迁移后路径；迁移前 lib/backend_host）
+_BACKEND_HOST = REPO / "lib/infrastructure/benchmark/backend_host"
+if not _BACKEND_HOST.is_dir():
+    print("CPU-001_FAIL: backend_host 公开头目录缺失（fail-closed）：%s" % _BACKEND_HOST)
+    raise SystemExit(1)
+for h in sorted(_BACKEND_HOST.glob("*.h")):
     if "impl" not in h.name and "inc" not in h.name:
         HEADERS.append(h)
 

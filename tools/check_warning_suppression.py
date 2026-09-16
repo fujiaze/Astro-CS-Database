@@ -18,8 +18,24 @@ import pathlib, re, sys, subprocess
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 
-# 生产源目录 (V6 模块)
-PROD_DIRS = ["lib/phase1", "lib/phase2/src", "lib/phase3_session", "lib/core", "lib/io", "lib/cpu", "cli"]
+# 生产源目录 (V6 模块)。ARCH-001 迁移后路径；迁移前 =
+# ["lib/phase1", "lib/phase2/src", "lib/phase3_session", "lib/core", "lib/io",
+#  "lib/cpu", "cli"]（lib/cpu 在迁移清单外且树中不存在；缺失目录由 static_scan 跳过）
+PROD_DIRS = [
+    "lib/algorithms/star_detection/wrapper_phase1",
+    "lib/algorithms/platesolve/wrapper_phase1",
+    "lib/algorithms/photometry/wrapper_phase1",
+    "lib/algorithms/noise_snr/wrapper_phase1",
+    "lib/algorithms/coverage/src",
+    "lib/algorithms/projection",
+    "lib/algorithms/resample",
+    "lib/algorithms/fits_output",
+    "lib/phase3_session",
+    "lib/infrastructure/scheduler",
+    "lib/infrastructure/aio",
+    "lib/infrastructure/aio/io",
+    "cli",
+]
 # 豁免 (第三方/遗留): 允许源级抑制
 EXEMPT = ["cfitsio", "aio_", "drizzle", "hips_", "healpix"]
 
@@ -83,7 +99,8 @@ def count_build_warnings(build_dir, repo=None, build_cmd="cmake"):
 
 def measure_build(build_dir):
     """touch 强制重编一个生产文件后统计警告 (构建树存在时的功能需要)。"""
-    rel_src = REPO / "lib" / "phase1" / "noise" / "noise_model.cpp"
+    # ARCH-001 迁移后路径（迁移前 lib/phase1/noise/noise_model.cpp）
+    rel_src = REPO / "lib" / "algorithms" / "noise_snr" / "wrapper_phase1" / "noise_model.cpp"
     rel_src.touch()
     return count_build_warnings(build_dir)
 

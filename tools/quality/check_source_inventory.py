@@ -8,7 +8,7 @@ Generates, from `git ls-files`:
   reports/v19r2/evidence/quality/shipping_units.csv (production compile units)
 
 Exclusions (control package): build/vendor/data/archive.  Third-party vendored
-code (lib/astro_image_io/third_party) is recorded but excluded from first-party.
+code (lib/infrastructure/aio/third_party) is recorded but excluded from first-party.
 
 Timeout guard: this is a local-only deterministic walk; no network.
 """
@@ -58,19 +58,19 @@ V19_SHIPPING = os.path.join(ROOT, "run", "temp", "V19_review",
                             "evidence", "quality", "shipping_units.csv")
 
 MODULE_MAP = {
-    "acr": "lib/acr",
-    "astro_image_io": "lib/astro_image_io",
-    "plate_solve": "lib/plate_solve",
-    "healpix_drizzle": "lib/healpix_db/healpix_drizzle",
-    "orchestrator": "lib/orchestrator/cpp",
-    "phase2": "lib/phase2",
-    "photometric_calib": "lib/photometric_calib",
-    "calibration": "lib/calibration",
-    "star_detector": "lib/star_detector",
-    "dynamic_psf": "lib/dynamic_psf",
-    "common": "lib/common",
-    "gaia_xpsd_client": "lib/gaia_xpsd_client",
-    "snr_estimator": "lib/snr_estimator",
+    "acr": "lib/infrastructure/acr",
+    "astro_image_io": "lib/infrastructure/aio",
+    "plate_solve": "lib/algorithms/platesolve",
+    "healpix_drizzle": "lib/algorithms/drizzle/healpix_drizzle",
+    "orchestrator": "lib/infrastructure/pipeline/orchestrator/cpp",
+    "phase2": "lib/algorithms/coverage",
+    "photometric_calib": "lib/algorithms/photometry",
+    "calibration": "lib/algorithms/calibration",
+    "star_detector": "lib/algorithms/star_detection",
+    "dynamic_psf": "lib/algorithms/psf",
+    "common": "lib/algorithms/shared",
+    "gaia_xpsd_client": "lib/infrastructure/gaia_xpsd_client",
+    "snr_estimator": "lib/algorithms/noise_snr",
 }
 
 

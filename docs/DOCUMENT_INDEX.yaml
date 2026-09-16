@@ -84,6 +84,9 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/algorithms/GAIA_QUERY.md"
       status: ACTIVE_NORMATIVE
+    - path: "docs/algorithms/GATES_AND_TOLERANCES.md"
+      status: ACTIVE_NORMATIVE
+      notes: "SCI-FIX-PSF 第 9 项 (F-2 整改, 2026-09-16): P1 星检测/PSF/WCS 冻结门表 (16 门) + SNR_peak 定义; 规则 R1 表外阈值禁止 / R2 证据必需 / R3 量测域独立 / R4 统计量显式 / R5 SNR 统一; 机器检查器 tools/check_gates_and_tolerances.py (含负例自检)"
     - path: "docs/algorithms/HEALPIX_MAPPING.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/algorithms/HIPS_WRITER.md"
@@ -138,7 +141,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/algorithms/STAR_DETECTION_ALGORITHMS.md"
       status: ACTIVE_NORMATIVE
-      notes: "P1-STAR-DOC (2026-09-07) 冻结: ALG-STARDET-001 逐符号源码锚定(sdet_detect_impl/peaker 七步/sdet_moffat4_fit/sdet_lm_fit/reject_star)+DISP-STAR-001..005+TEST-STAR-DESIGN-001 冻结容差+SCI-P1-STAR-001 状态声明(§11.5)"
+      notes: "P1-STAR-DOC (2026-09-07) 冻结: ALG-STARDET-001 逐符号源码锚定(sdet_detect_impl/peaker 七步/sdet_gauss_fit/sdet_lm_fit/reject_star)+DISP-STAR-001..007+TEST-STAR-DESIGN-001 冻结容差+SCI-P1-STAR-001 状态声明(§11.5)"
     - path: "docs/algorithms/UPM_SOLVER.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/algorithms/anchors/ANCHOR_CONTRACT.md"
@@ -242,6 +245,9 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/contracts/API_CONTRACTS.csv"
       status: ACTIVE_NORMATIVE
+    - path: "docs/contracts/CONFIG_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+      notes: "CFG-001 程序根全局配置合同（config/filters.json、config/defaults.json）；CI-003（2026-09-16）补入活动索引（原缺口：check_doc_index.py::docs_fully_covered 报未覆盖）"
     - path: "docs/contracts/ARCH-001.md"
       status: ACTIVE_NORMATIVE
     - path: "docs/contracts/DATA_ARTIFACTS.md"
@@ -333,8 +339,8 @@ doc_index:
       status: ACTIVE_NORMATIVE
       notes: "GOV-004 L0 负责人科学总览"
     - path: "docs/review"
-      status: ACTIVE_INFORMATIVE
-      notes: "DOC-002 L0 治理评审五文档（SCIENCE/PIPELINE/ARCHITECTURE_OVERVIEW、RELEASE_STATUS、CHANGE_REVIEW；tools/check_l0_docs.py 检查面；权威汇总指向 docs/owner/ 与 docs/science/）"
+      status: ARCHIVED_NON_NORMATIVE
+      notes: "DOC-002 L0 治理评审五文档旧副本（SCIENCE/PIPELINE/ARCHITECTURE_OVERVIEW、RELEASE_STATUS、CHANGE_REVIEW）；DOC-001/CI-003（2026-09-16）整体移出活动索引，现行落位 docs/owner/**；5/5 份带 ARCHIVED_NON_NORMATIVE 抬头，仅作历史追溯"
     - path: "docs/operations/TOOLCHAIN_AGENT_HOST.md"
       status: ACTIVE_INFORMATIVE
       notes: "V81-ADOPT-004 Agent 主机工具链实测快照（V81-ADOPT-005 补登）"

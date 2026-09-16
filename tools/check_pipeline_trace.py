@@ -3,7 +3,7 @@
 
 规则:
 1. 静态图: 每 session (p1/p2/p3) 声明的阶段节点集 (源码 stage 调用)。
-   p3 的静态图来自 cli/runtime_client.cpp 的 graph 节点链 node_id 声明
+   p3 的静态图来自 lib/infrastructure/cli/runtime_client.cpp 的 graph 节点链 node_id 声明
    (p3_session.cpp 本身无 stage 声明; runtime_client 是 p3 图的声明面)。
 2. 运行 trace: 运行 manifest (astrocs_run_*.json) 的 stages 记录。
    manifest schema v1 不写 stages (write_run_manifest 只写 phases/artifacts):
@@ -21,7 +21,7 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 SESSIONS = {
     "p1": ["lib/phase1_session/p1_session.cpp"],
     "p2": ["lib/phase2_session/p2_session.cpp"],
-    "p3": ["lib/phase3_session/p3_session.cpp", "cli/runtime_client.cpp"],
+    "p3": ["lib/phase3_session/p3_session.cpp", "lib/infrastructure/cli/runtime_client.cpp"],
 }
 
 PHASE_TO_SESSION = {1: "p1", 2: "p2", 3: "p3"}

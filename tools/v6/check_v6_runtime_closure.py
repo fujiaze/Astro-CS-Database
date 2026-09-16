@@ -2,11 +2,11 @@
 """RUNTIME-CI-001 收口 CI 入口（V6 运行面）。
 
 子命令:
-  closure       独立 Oracle（全部规则）+ runtime/v6_budget.py selftest + 负向 mutation
+  closure       独立 Oracle（全部规则）+ lib/infrastructure/scheduler/v6_budget.py selftest + 负向 mutation
   cli-mode      Oracle R1/R2/R3（CLI 模式路由 + 三 Phase 隔离）
   resource-gate Oracle R5/R6（§10.5 字段面 + SO-05 记录/裁决分离）+ budget selftest
   mutations     仅负向 mutation 驱动
-  budget        runtime/v6_budget.py selftest
+  budget        lib/infrastructure/scheduler/v6_budget.py selftest
 
 所有子命令输出 JSON 证据（--json-out），任一失败 rc != 0；无零用例 PASS。
 """
@@ -45,7 +45,7 @@ def _oracle(repo, rules, out):
 
 
 def _budget(repo, out):
-    argv = [sys.executable, str(repo / "runtime/v6_budget.py"), "selftest"]
+    argv = [sys.executable, str(repo / "lib/infrastructure/scheduler/v6_budget.py"), "selftest"]
     return _run(argv)
 
 
@@ -66,7 +66,7 @@ def main(argv=None):
     ap.add_argument("--mutations-out", default="")
     args = ap.parse_args(argv)
     repo = pathlib.Path(args.repo).resolve()
-    if not (repo / "cli/v6_runtime_contract.h").exists():
+    if not (repo / "lib/infrastructure/cli/v6_runtime_contract.h").exists():
         print("check_v6_runtime_closure: repo invalid: %s" % repo, file=sys.stderr)
         return 2
 

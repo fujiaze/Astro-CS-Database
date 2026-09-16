@@ -4,17 +4,20 @@
 规则: 模块 README 必须含: 合同 ID (P?-xxx/SCI/ALG), header 路径, source 路径,
 test 路径 (存在), 且不抄完整公式 (摘要式)。
 检查模块: phase1/{stars,wcs,photometry,noise}, phase3_session。
+路径为 ARCH-001 迁移后位置（迁移前 = lib/phase1/{stars,wcs,photometry,noise}/README.md，
+逐条映射见 cmake/ARCH-001-migration-manifest.md §1 条目 25-28；lib/phase3_session 属
+INT-001 拟删的 Session 型模块，本门只核其 README 完整性）。
 exit 0 = PASS。
 """
 import pathlib, re, sys
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 MODULES = [
-    ("lib/phase1/stars/README.md",        ["star_detector.h", "star_detector.cpp", "p1_stars_test.cpp"]),
-    ("lib/phase1/wcs/README.md",          ["wcs_tan.h", "wcs_tan.cpp", "p1_wcs_phot_test.cpp"]),
-    ("lib/phase1/photometry/README.md",   ["photometer.h", "photometer.cpp", "p1_wcs_phot_test.cpp"]),
-    ("lib/phase1/noise/README.md",        ["noise_model.h", "noise_model.cpp", "p1_noise_test.cpp"]),
-    ("lib/phase3_session/README.md",      ["p3_wcs.h", "p3_output.h", "p3_wcs_test.cpp", "p3_assembly_test.cpp"]),
+    ("lib/algorithms/star_detection/wrapper_phase1/README.md", ["star_detector.h", "star_detector.cpp", "p1_stars_test.cpp"]),
+    ("lib/algorithms/platesolve/wrapper_phase1/README.md",     ["wcs_tan.h", "wcs_tan.cpp", "p1_wcs_phot_test.cpp"]),
+    ("lib/algorithms/photometry/wrapper_phase1/README.md",     ["photometer.h", "photometer.cpp", "p1_wcs_phot_test.cpp"]),
+    ("lib/algorithms/noise_snr/wrapper_phase1/README.md",      ["noise_model.h", "noise_model.cpp", "p1_noise_test.cpp"]),
+    ("lib/phase3_session/README.md",                           ["p3_wcs.h", "p3_output.h", "p3_wcs_test.cpp", "p3_assembly_test.cpp"]),
 ]
 
 def main():

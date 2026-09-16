@@ -89,7 +89,7 @@ def alg_scan(root):
 def scan(root=None):
     root = REPO if root is None else root
     violations, owners = [], {}
-    for src in sorted((root / "lib").rglob("*.cpp")) + sorted((root / "cli").glob("*.cpp")):
+    for src in sorted((root / "lib").rglob("*.cpp")):
         text = src.read_text(encoding="utf-8", errors="replace")
         for m in ACQ.finditer(text):
             var = None

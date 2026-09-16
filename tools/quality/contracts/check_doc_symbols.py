@@ -74,11 +74,11 @@ def main():
             if "/" in token and "." in token:
                 # File reference: check exists or is doc-relative
                 if token.endswith(".md") or token.endswith(".h") or token.endswith(".cpp") or token.endswith(".json"):
-                    # Try alternative: token may be relative like tools/stage2.cpp -> lib/phase2/tools/stage2.cpp
+                    # Try alternative: token may be relative like tools/stage2.cpp -> lib/algorithms/coverage/tools/stage2.cpp
                     found = token in known_files or (repo / token).exists()
                     if not found:
-                        # Try lib/phase2/tools/ prefix
-                        alt = repo / "lib/phase2" / token
+                        # Try lib/algorithms/coverage/tools/ prefix
+                        alt = repo / "lib/algorithms/coverage" / token
                         if alt.exists():
                             found = True
                         alt2 = repo / "lib" / token
@@ -86,7 +86,7 @@ def main():
                             found = True
                     if not found:
                         # 文档常写模块内相对路径(如 healpix_drizzle/xxx.cpp,
-                        # 真实位于 lib/healpix_db/healpix_drizzle/) — 以
+                        # 真实位于 lib/algorithms/drizzle/healpix_drizzle/) — 以
                         # known_files 后缀匹配兜底(消 Windows CI R8 实测误报)。
                         # rglob 相对路径在 Windows 是 backslash — 统一正斜杠
                         # 再匹配(否则 Linux 过 Windows 挂, R9 34178712916 实证)。

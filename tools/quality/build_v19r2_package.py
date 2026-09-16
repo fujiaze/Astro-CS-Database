@@ -101,7 +101,8 @@ def main() -> int:
         ["py -3.12", "tools/quality/check_traceability.py"],
         ["py -3.12", "tools/docs_machine_consistency.py"],
         [".\\toolchain.ps1", "build"],
-        ["ninja -C lib/phase2/build", "phase2_synthetic_gate"],
+        # 迁移前路径 lib/phase2/build；ARCH-001 后为 lib/algorithms/coverage（v19r2 包已退役，仅存历史）
+        ["ninja -C lib/algorithms/coverage/build", "phase2_synthetic_gate"],
         ["phase2_synthetic_gate.exe"],
     ]
     with open(os.path.join(ev, "exact_commands.csv"), "w", newline="",

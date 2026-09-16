@@ -24,7 +24,7 @@ flowchart TD
 |---|---|---|
 | build-linux | Linux Release 构建 + 安装树 + 打包 | 无 |
 | build-windows | Windows Release 构建 + 安装树 + 打包 | 无 |
-| static+doc+contract | CHK-FMT/WARN/STATIC、文档一致性、ABI、schema | 两个 build |
+| static+doc+contract | CHK-WARN/STATIC、文档一致性（含 AGENTS-GOV / ENG-CONSTRAINTS / VERSION-CONSISTENCY / STD-REG / CHK-REGISTRY-DOC-SYNC）、ABI、schema | 两个 build |
 | unit+module | 单元、Oracle、不变量、负例 | static 通过 |
 | synthetic-science | 三阶段合成全链、ISA 等价、N worker | unit 通过 |
 | gates-report | 汇总所有检查结果，生成门禁报告 | synthetic 通过 |

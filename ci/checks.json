@@ -27,7 +27,7 @@
       "waivable": false,
       "changed_paths": [
         "CMakeLists.txt",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "cmake/**",
         "include/**",
         "lib/**",
@@ -68,7 +68,7 @@
           "waivable": false,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**",
             "tests/**",
             "CMakeLists.txt",
@@ -111,7 +111,7 @@
           "waivable": true,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**",
             "tests/**",
             "CMakeLists.txt",
@@ -149,13 +149,13 @@
       "changed_paths": [
         "CMakeLists.txt",
         "CMakePresets.json",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "cmake/**",
         "include/**",
         "lib/**",
-        "modules/**",
-        "providers/**",
-        "runtime/**",
+        "lib/infrastructure/**",
+        "lib/infrastructure/benchmark/**",
+        "lib/infrastructure/**",
         "tests/**"
       ],
       "requires_monitor": false,
@@ -191,11 +191,11 @@
           "waivable": false,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**",
-            "runtime/**",
-            "modules/**",
-            "providers/**",
+            "lib/infrastructure/**",
+            "lib/infrastructure/**",
+            "lib/infrastructure/benchmark/**",
             "tests/**",
             "CMakeLists.txt",
             "cmake/**",
@@ -229,7 +229,7 @@
       "outputs": [],
       "waivable": false,
       "changed_paths": [
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "lib/**",
         "third_party/**"
       ],
@@ -254,7 +254,7 @@
           "waivable": false,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "third_party/**"
           ],
           "requires_monitor": false
@@ -285,7 +285,7 @@
       ],
       "waivable": false,
       "changed_paths": [
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "contracts/**",
         "docs/**",
         "include/**",
@@ -314,7 +314,7 @@
           "waivable": false,
           "changed_paths": [
             "lib/**",
-            "cli/**"
+            "lib/infrastructure/cli/**"
           ],
           "requires_monitor": false
         },
@@ -338,7 +338,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -390,7 +390,7 @@
           "waivable": true,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -426,14 +426,14 @@
         "CMakeLists.txt",
         "README.md",
         "ci/**",
-        "cli/**",
-        "cli/main.cpp",
+        "lib/infrastructure/cli/**",
+        "lib/infrastructure/cli/main.cpp",
         "contracts/**",
         "docs/**",
         "docs/modules/**",
         "lib/**",
         "lib/phase3_session/**",
-        "modules/**",
+        "lib/infrastructure/**",
         "tests/**",
         "tests/quality/**",
         "tools/quality/**",
@@ -492,7 +492,7 @@
           "outputs": [],
           "waivable": false,
           "changed_paths": [
-            "modules/**",
+            "lib/infrastructure/**",
             "lib/**",
             "README.md"
           ],
@@ -523,7 +523,7 @@
             "ci/**",
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "tools/quality/**",
             "CMakeLists.txt"
           ],
@@ -549,7 +549,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -573,7 +573,7 @@
           "outputs": [],
           "waivable": false,
           "changed_paths": [
-            "cli/main.cpp",
+            "lib/infrastructure/cli/main.cpp",
             "lib/phase3_session/**"
           ],
           "requires_monitor": false
@@ -745,7 +745,7 @@
       "waivable": false,
       "changed_paths": [
         "CMakeLists.txt",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "contracts/**",
         "docs/**",
         "docs/TRACEABILITY.csv",
@@ -782,7 +782,7 @@
             "docs/TRACEABILITY.csv",
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**"
           ],
           "requires_monitor": false
@@ -807,7 +807,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -880,7 +880,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -958,7 +958,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "include/**",
             "CMakeLists.txt"
@@ -993,13 +993,13 @@
       "changed_paths": [
         "CMakeLists.txt",
         "ci/checks.json",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "contracts/**",
         "docs/**",
         "evidence/**",
         "include/**",
         "lib/**",
-        "runtime/**",
+        "lib/infrastructure/**",
         "schemas/traceability_matrix.schema.json",
         "tests/**",
         "tests/contracts/**",
@@ -1047,7 +1047,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -1073,7 +1073,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -1130,7 +1130,7 @@
           "changed_paths": [
             "tests/traceability/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -1162,7 +1162,7 @@
           "changed_paths": [
             "tests/contracts/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -1190,8 +1190,8 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "cli/**",
-            "runtime/**",
+            "lib/infrastructure/cli/**",
+            "lib/infrastructure/**",
             "tools/v6/**",
             "ci/checks.json"
           ],
@@ -1306,7 +1306,7 @@
       "outputs": [],
       "waivable": false,
       "changed_paths": [
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "contracts/**",
         "docs/**",
         "docs/DOCUMENT_INDEX.yaml",
@@ -1336,7 +1336,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -1390,7 +1390,7 @@
       "outputs": [],
       "waivable": false,
       "changed_paths": [
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "contracts/**",
         "docs/**",
         "lib/**",
@@ -1418,7 +1418,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -1447,7 +1447,7 @@
       "outputs": [],
       "waivable": false,
       "changed_paths": [
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "contracts/**",
         "docs/**",
         "include/**",
@@ -1498,7 +1498,7 @@
           "outputs": [],
           "waivable": false,
           "changed_paths": [
-            "cli/**"
+            "lib/infrastructure/cli/**"
           ],
           "requires_monitor": false
         },
@@ -1520,7 +1520,7 @@
           "outputs": [],
           "waivable": false,
           "changed_paths": [
-            "cli/**"
+            "lib/infrastructure/cli/**"
           ],
           "requires_monitor": false
         },
@@ -1544,7 +1544,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -1612,14 +1612,14 @@
         "CMakeLists.txt",
         "CMakePresets.json",
         "ci/checks.json",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "cmake/**",
         "include/**",
         "lib/**",
         "lib/gaia_xpsd_client/**",
-        "modules/**",
-        "providers/**",
-        "runtime/**",
+        "lib/infrastructure/**",
+        "lib/infrastructure/benchmark/**",
+        "lib/infrastructure/**",
         "tests/**",
         "tests/api/**",
         "tests/arch/**",
@@ -1689,7 +1689,7 @@
           "changed_paths": [
             "tests/api/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -1719,7 +1719,7 @@
           "changed_paths": [
             "tests/arch/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -1749,7 +1749,7 @@
           "changed_paths": [
             "tests/backend/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false,
@@ -1782,7 +1782,7 @@
           "changed_paths": [
             "tests/cli/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false,
@@ -1823,7 +1823,7 @@
           "changed_paths": [
             "tests/version/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**",
             "tools/check_version_consistency.py"
           ],
@@ -1856,7 +1856,7 @@
           "changed_paths": [
             "tests/glossary/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -1888,7 +1888,7 @@
           "changed_paths": [
             "tests/monitoring/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -1920,7 +1920,7 @@
           "changed_paths": [
             "tests/pipeline/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -1952,7 +1952,7 @@
           "changed_paths": [
             "tests/runtime/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -1984,7 +1984,7 @@
           "changed_paths": [
             "tests/sciencelint/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -2016,7 +2016,7 @@
           "changed_paths": [
             "tests/artifact/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -2046,7 +2046,7 @@
           "changed_paths": [
             "tests/io/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -2076,7 +2076,7 @@
           "changed_paths": [
             "tests/quality/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -2166,7 +2166,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt",
             "cmake/**"
           ],
@@ -2206,11 +2206,11 @@
           "waivable": false,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**",
-            "runtime/**",
-            "modules/**",
-            "providers/**",
+            "lib/infrastructure/**",
+            "lib/infrastructure/**",
+            "lib/infrastructure/benchmark/**",
             "tests/**",
             "CMakeLists.txt",
             "cmake/**",
@@ -2328,12 +2328,12 @@
       "changed_paths": [
         "CMakeLists.txt",
         "ci/checks.json",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "lib/**",
         "lib/plate_solve/**",
-        "modules/**",
-        "providers/**",
-        "runtime/**",
+        "lib/infrastructure/**",
+        "lib/infrastructure/benchmark/**",
+        "lib/infrastructure/**",
         "tests/**",
         "tests/cpu/baseline/**",
         "tests/system/v6_runtime/**",
@@ -2370,7 +2370,7 @@
           "waivable": false,
           "changed_paths": [
             "tests/cpu/baseline/**",
-            "providers/**",
+            "lib/infrastructure/benchmark/**",
             "lib/**"
           ],
           "requires_monitor": false
@@ -2404,8 +2404,8 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "cli/**",
-            "runtime/**",
+            "lib/infrastructure/cli/**",
+            "lib/infrastructure/**",
             "tools/v6/**",
             "tests/system/v6_runtime/**",
             "ci/checks.json"
@@ -2445,7 +2445,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -2480,7 +2480,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -2519,7 +2519,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -2711,7 +2711,7 @@
         "lib/core/**",
         "lib/gaia_xpsd_client/**",
         "lib/snr_estimator/**",
-        "modules/**",
+        "lib/infrastructure/**",
         "tests/**"
       ],
       "requires_monitor": false,
@@ -3250,7 +3250,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -3285,7 +3285,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -3358,11 +3358,11 @@
       "waivable": false,
       "changed_paths": [
         "CMakeLists.txt",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "include/**",
         "lib/**",
         "lib/plate_solve/**",
-        "modules/**",
+        "lib/infrastructure/**",
         "tests/**",
         "tests/abi/**"
       ],
@@ -3396,7 +3396,7 @@
           "changed_paths": [
             "include/**",
             "lib/**",
-            "cli/**"
+            "lib/infrastructure/cli/**"
           ],
           "requires_monitor": false
         },
@@ -3418,7 +3418,7 @@
           "changed_paths": [
             "include/**",
             "lib/**",
-            "cli/**"
+            "lib/infrastructure/cli/**"
           ],
           "requires_monitor": false
         },
@@ -3447,7 +3447,7 @@
           "changed_paths": [
             "tests/abi/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**"
           ],
           "requires_monitor": false
@@ -3479,7 +3479,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -3514,7 +3514,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -3549,7 +3549,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -3685,8 +3685,8 @@
         "cli/**",
         "contracts/**",
         "docs/**",
-        "engineering/control/**",
-        "evidence/**",
+        "工程控制/**",
+        "artifacts/**",
         "lib/**",
         "runtime/logging/**",
         "schemas/**",
@@ -3694,29 +3694,6 @@
       ],
       "requires_monitor": false,
       "steps": [
-        {
-          "id": "TASK-RESULT-SCHEMA",
-          "profiles": [
-            "fast",
-            "linux-main",
-            "windows-main"
-          ],
-          "platform": "any",
-          "command": [
-            "python3",
-            "tools/quality/check_task_result_schema.py"
-          ],
-          "timeout_seconds": 60,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [],
-          "waivable": false,
-          "changed_paths": [
-            "evidence/**",
-            "engineering/control/**"
-          ],
-          "requires_monitor": false
-        },
         {
           "id": "CON-CONFIG-CONTRACTS",
           "profiles": [
@@ -3737,7 +3714,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -3762,7 +3739,7 @@
           "outputs": [],
           "waivable": false,
           "changed_paths": [
-            "runtime/logging/**",
+            "lib/infrastructure/observability/**",
             "schemas/**"
           ],
           "requires_monitor": false
@@ -3792,7 +3769,7 @@
       "changed_paths": [
         "CMakeLists.txt",
         "lib/**",
-        "modules/**",
+        "lib/infrastructure/**",
         "tests/**"
       ],
       "requires_monitor": false,
@@ -3827,7 +3804,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -3867,11 +3844,11 @@
       "changed_paths": [
         "CMakeLists.txt",
         "ci/checks.json",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "cmake/**",
         "lib/**",
         "lib/healpix_db/**",
-        "modules/**",
+        "lib/infrastructure/**",
         "tests/**",
         "tools/v6/**"
       ],
@@ -3912,7 +3889,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -3947,7 +3924,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -4044,7 +4021,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tools/v6/**",
             "ci/checks.json"
           ],
@@ -4077,7 +4054,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tools/v6/**",
             "ci/checks.json"
           ],
@@ -4118,7 +4095,7 @@
       "changed_paths": [
         "CMakeLists.txt",
         "lib/**",
-        "modules/**",
+        "lib/infrastructure/**",
         "tests/**"
       ],
       "requires_monitor": false,
@@ -4157,7 +4134,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -4192,7 +4169,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -4227,7 +4204,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -4262,7 +4239,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -4297,7 +4274,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -4329,7 +4306,7 @@
       "waivable": false,
       "changed_paths": [
         "lib/**",
-        "providers/**",
+        "lib/infrastructure/benchmark/**",
         "tests/cpu/avx2/**",
         "tests/cpu/avx512/**",
         "tests/cpu/dispatch/**",
@@ -4354,7 +4331,7 @@
           "waivable": false,
           "changed_paths": [
             "tests/cpu/avx2/**",
-            "providers/**",
+            "lib/infrastructure/benchmark/**",
             "lib/**"
           ],
           "requires_monitor": false
@@ -4376,7 +4353,7 @@
           "waivable": false,
           "changed_paths": [
             "tests/cpu/avx512/**",
-            "providers/**",
+            "lib/infrastructure/benchmark/**",
             "lib/**"
           ],
           "requires_monitor": false
@@ -4398,7 +4375,7 @@
           "waivable": false,
           "changed_paths": [
             "tests/cpu/dispatch/**",
-            "providers/**",
+            "lib/infrastructure/benchmark/**",
             "lib/**"
           ],
           "requires_monitor": false
@@ -4453,7 +4430,7 @@
       "changed_paths": [
         "CMakeLists.txt",
         "ci/checks.json",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "lib/**",
         "tests/**",
         "tests/integration/**",
@@ -4493,7 +4470,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "lib/**",
             "tests/integration/**",
             "tools/v6/**",
@@ -4608,7 +4585,7 @@
       "waivable": false,
       "changed_paths": [
         "CMakeLists.txt",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "cmake/**",
         "include/**",
         "lib/**",
@@ -4648,7 +4625,7 @@
           "waivable": false,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**",
             "tests/**",
             "CMakeLists.txt",
@@ -4692,7 +4669,7 @@
           "waivable": true,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**",
             "tests/**",
             "CMakeLists.txt",
@@ -4733,7 +4710,7 @@
       "waivable": false,
       "changed_paths": [
         "CMakeLists.txt",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "cmake/**",
         "include/**",
         "lib/**",
@@ -4777,7 +4754,7 @@
           "waivable": false,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**",
             "tests/**",
             "CMakeLists.txt",
@@ -4820,7 +4797,7 @@
           "waivable": true,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tools/**",
             "tests/**"
           ],
@@ -4861,13 +4838,13 @@
       "changed_paths": [
         "CMakeLists.txt",
         "ci/checks.json",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "contracts/**",
         "docs/**",
         "include/**",
         "lib/**",
-        "modules/**",
-        "runtime/**",
+        "lib/infrastructure/**",
+        "lib/infrastructure/**",
         "tests/**",
         "tools/quality/**",
         "tools/quality/check_serial_heavy.py",
@@ -4926,7 +4903,7 @@
           "waivable": false,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false
@@ -5002,8 +4979,8 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "cli/**",
-            "runtime/**",
+            "lib/infrastructure/cli/**",
+            "lib/infrastructure/**",
             "tools/v6/**",
             "ci/checks.json"
           ],
@@ -5041,7 +5018,7 @@
           "waivable": false,
           "changed_paths": [
             "tests/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "lib/**",
             "tools/quality/**",
             "CMakeLists.txt"
@@ -5077,7 +5054,7 @@
           "waivable": false,
           "changed_paths": [
             "tests/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "lib/**",
             "tools/quality/**",
             "CMakeLists.txt"
@@ -5114,7 +5091,7 @@
           "changed_paths": [
             "tests/**",
             "lib/**",
-            "modules/**",
+            "lib/infrastructure/**",
             "CMakeLists.txt"
           ],
           "requires_monitor": false,
@@ -5148,7 +5125,7 @@
           "waivable": false,
           "changed_paths": [
             "tests/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "lib/**",
             "tools/quality/**",
             "CMakeLists.txt"
@@ -5201,7 +5178,7 @@
           "changed_paths": [
             "docs/**",
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "tests/**",
             "contracts/**"
           ],
@@ -5235,14 +5212,14 @@
       "changed_paths": [
         "CMakeLists.txt",
         "CMakePresets.json",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "cmake/**",
         "include/**",
         "lib/**",
-        "modules/**",
+        "lib/infrastructure/**",
         "packaging/**",
-        "providers/**",
-        "runtime/**"
+        "lib/infrastructure/benchmark/**",
+        "lib/infrastructure/**"
       ],
       "requires_monitor": false,
       "steps": [
@@ -5283,11 +5260,11 @@
           "waivable": false,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "include/**",
-            "runtime/**",
-            "modules/**",
-            "providers/**",
+            "lib/infrastructure/**",
+            "lib/infrastructure/**",
+            "lib/infrastructure/benchmark/**",
             "packaging/**",
             "CMakeLists.txt",
             "cmake/**",
@@ -5347,69 +5324,17 @@
         "CHK-ENV-ADOPTION",
         "--quiet"
       ],
-      "timeout_seconds": 240,
+      "timeout_seconds": 60,
       "heavy": false,
       "mutates_workspace": false,
       "outputs": [],
       "waivable": false,
       "changed_paths": [
-        ".git/HEAD",
-        "ci/toolchain.lock.json",
         "ci/toolchain.policy.json",
-        "engineering/control/CONTROL_TASK_LEDGER.csv",
-        "evidence/v8_1_ci_control/**"
+        "ci/toolchain.lock.json"
       ],
       "requires_monitor": false,
       "steps": [
-        {
-          "id": "WORKSPACE-ADOPTION",
-          "profiles": [
-            "fast",
-            "linux-main",
-            "windows-main"
-          ],
-          "platform": "any",
-          "command": [
-            "python3",
-            "ci/verify_workspace_adoption.py",
-            "--repo-root-from-git",
-            "--preserve-dirty"
-          ],
-          "timeout_seconds": 60,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [],
-          "waivable": true,
-          "changed_paths": [
-            "evidence/v8_1_ci_control/**",
-            ".git/HEAD"
-          ],
-          "requires_monitor": false
-        },
-        {
-          "id": "RECONCILE-STATE",
-          "profiles": [
-            "fast",
-            "linux-main",
-            "windows-main"
-          ],
-          "platform": "any",
-          "command": [
-            "python3",
-            "ci/reconcile_state.py",
-            "--strict"
-          ],
-          "timeout_seconds": 60,
-          "heavy": false,
-          "mutates_workspace": false,
-          "outputs": [],
-          "waivable": true,
-          "changed_paths": [
-            "evidence/v8_1_ci_control/**",
-            "engineering/control/CONTROL_TASK_LEDGER.csv"
-          ],
-          "requires_monitor": false
-        },
         {
           "id": "TOOLCHAIN-VERIFY",
           "profiles": [
@@ -5461,7 +5386,12 @@
       "changed_paths": [
         "AGENTS.md",
         "memory.md",
-        "docs/governance/**"
+        "ASTROCS_DESIGN.md",
+        "README.md",
+        "ENGINEERING_SPEC.md",
+        "CONTROL_PACK_SPEC.md",
+        "docs/**",
+        "tools/**"
       ],
       "requires_monitor": false
     },
@@ -5483,9 +5413,15 @@
       "outputs": [],
       "waivable": false,
       "changed_paths": [
-        "AstroCS_ENGINEERING_CONSTRAINTS.md",
+        "ENGINEERING_SPEC.md",
+        "ci/root_manifest.json",
+        "memory.md",
+        "README.md",
         "AGENTS.md",
-        "docs/governance/**"
+        "CONTROL_PACK_SPEC.md",
+        "ASTROCS_DESIGN.md",
+        "docs/**",
+        "tools/**"
       ],
       "requires_monitor": false
     },
@@ -5511,13 +5447,10 @@
       "changed_paths": [
         "VERSION",
         "CMakeLists.txt",
-        "cli/**",
-        "docs/governance/**",
-        "docs/VERSIONING.md",
-        "docs/DOCUMENT_INDEX.yaml",
-        "README.md",
-        "REVIEW.md",
-        "HANDOVER.md"
+        "lib/infrastructure/cli/**",
+        "cli/CMakeLists.txt",
+        "docs/**",
+        "README.md"
       ],
       "requires_monitor": false
     },
@@ -5563,7 +5496,8 @@
       "outputs": [],
       "waivable": false,
       "changed_paths": [
-        "docs/**"
+        "docs/**",
+        "docs/DOCUMENT_INDEX.yaml"
       ],
       "requires_monitor": false
     },
@@ -5642,7 +5576,7 @@
       "changed_paths": [
         "ci/steps/**",
         "ci/workflow_binding.json",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "CMakeLists.txt",
         "cmake/**"
       ]
@@ -5674,6 +5608,252 @@
       ]
     },
     {
+      "id": "STD-REG",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/run_checks.py",
+        "--check",
+        "STD-REG",
+        "--quiet"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/standards/**",
+        "docs/ci/01_CHECKS.md",
+        "contracts/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "STD-REG",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "docs/standards/checks/check_standards_registry.py",
+            "--root",
+            "."
+          ],
+          "timeout_seconds": 180,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "docs/standards/**",
+            "contracts/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "STD-REG-FI-DANGLING",
+          "profiles": [
+            "fast"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "docs/standards/checks/check_standards_registry.py",
+            "--root",
+            ".",
+            "--fault-inject",
+            "dangling-deviation-id"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "docs/standards/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "STD-REG-FI-VERSION-DRIFT",
+          "profiles": [
+            "fast"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "docs/standards/checks/check_standards_registry.py",
+            "--root",
+            ".",
+            "--fault-inject",
+            "version-drift"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "docs/standards/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-REGISTRY-DOC-SYNC",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/run_checks.py",
+        "--check",
+        "CHK-REGISTRY-DOC-SYNC",
+        "--quiet"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "ci/checks.json",
+        "ci/id_migration_map.json",
+        "docs/ci/01_CHECKS.md",
+        "ci/check_registry_doc_sync.py"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "REGISTRY-DOC-SYNC",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "ci/check_registry_doc_sync.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "ci/checks.json",
+            "ci/id_migration_map.json",
+            "docs/ci/01_CHECKS.md"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "REGISTRY-DOC-SYNC-SELFTEST",
+          "profiles": [
+            "fast"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "ci/check_registry_doc_sync.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "ci/check_registry_doc_sync.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "RESOURCE-GATE-REAL",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "ci/resource_monitor.py",
+        "--timeout",
+        "300",
+        "--output",
+        "run/ci/resource-gate-real/resource_gate_real.json",
+        "--gate-required",
+        "--gate-compute-interval",
+        "20",
+        "--",
+        "python3",
+        "tools/quality/resource_gate_probe.py",
+        "--mode",
+        "busy",
+        "--seconds",
+        "20"
+      ],
+      "timeout_seconds": 600,
+      "heavy": true,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/resource-gate-real/resource_gate_real.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "cli/**",
+        "lib/infrastructure/cli/**",
+        "tools/quality/resource_gate_probe.py",
+        "tools/quality/check_resource_gate_real.py",
+        "contracts/resource_gate_v1.json"
+      ],
+      "requires_monitor": true
+    },
+    {
+      "id": "RESOURCE-GATE-REAL-NEG",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/check_resource_gate_real.py",
+        "--fault-inject",
+        "serial",
+        "--seconds",
+        "20"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tools/quality/resource_gate_probe.py",
+        "tools/quality/check_resource_gate_real.py",
+        "ci/resource_monitor.py"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",
@@ -5702,7 +5882,7 @@
         "ci/checks.json",
         "ci/ctest_baseline.json",
         "ci/known_failures.json",
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "include/**",
         "lib/**",
         "tests/**",
@@ -5733,7 +5913,7 @@
           "waivable": false,
           "changed_paths": [
             "lib/**",
-            "cli/**",
+            "lib/infrastructure/cli/**",
             "CMakeLists.txt",
             "include/**"
           ],

@@ -21,13 +21,19 @@
 | ID | 级 | 阻塞合并 | 豁免 |
 |---|---|---|---|
 | CHK-BUILD-LINUX / WIN | P0 | 是 | 否 |
-| CHK-FMT / WARN / STATIC | P0 | 是 | 否 |
-| CHK-MODULE-MANIFEST / CONTRACT-REF / SCI-REF / CONTRACT-TEST / AGENT-HARD-RULES | P0 | 是 | 否 |
+| CHK-WARN / STATIC | P0 | 是 | 否 |
+| CHK-MODULE-MANIFEST / CONTRACT-REF / SCI-REF / CONTRACT-TEST / AGENTS-GOV / ENG-CONSTRAINTS / CHK-REGISTRY-DOC-SYNC | P0 | 是 | 否 |
 | CHK-UNIT / ORACLE / INVARIANT / ABI / SCHEMA | P0 | 是 | 否 |
 | CHK-SYNTH-P1/P2/P3 / NWORKER / RESOURCE | P0 | 是 | 否 |
-| CHK-DUAL-TOL / ISA-EQ / SANITIZER | P1 | 是 | 负责人登记 |
+| RESOURCE-GATE-REAL / RESOURCE-GATE-REAL-NEG（真实重计算面利用率 + 负例面） | P0 | 是 | 否 |
+| CHK-SECRET-HYGIENE / CHK-ROOT-CLEAN | P0 | 是 | 否 |
+| CHK-ISA-EQ / SANITIZER / VERSION-CONSISTENCY / VERSION-NAMESPACES / DOC-L0 / CHK-ENV-ADOPTION / STD-REG | P1 | 是 | 负责人登记 |
 | CHK-DANGLING / STALE-DOC | P1 | 是 | 负责人登记 |
-| CHK-COVERAGE | P2 | 否 | —— |
+| CHK-COVERAGE / GLOSSARY-DOCS | P2 | 否 | —— |
+
+**RESERVED（文档曾承诺但无实现，不进本表）**：`CHK-FMT`、`CHK-DUAL-TOL`、`CHK-AGENT-HARD-RULES`
+（语义继任者 `AGENTS-GOV`）。逐条依据与重新注册前置条件见 `01_CHECKS.md §2.3`；机器可读面见
+`ci/id_migration_map.json::reserved_targets`。**保留一个不存在的 P0 门 = 把假绿写进本表。**
 
 ## 4. 禁止事项
 

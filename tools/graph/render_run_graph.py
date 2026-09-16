@@ -51,12 +51,12 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 try:  # 权威 replay 聚合（RT-006 双实现之一；只读消费，不改动）
-    from runtime.pipeline.trace_replay import replay_from_jsonl  # type: ignore
+    from lib.infrastructure.pipeline.trace_replay import replay_from_jsonl  # type: ignore
 except Exception:  # pragma: no cover - 独立运行时兜底
     replay_from_jsonl = None
 
 try:  # typed DAG 权威编译器（RT-001；只读编译 typed-dag IR → plan-graph 边）
-    from runtime.pipeline.typed_dag import TypedDagCompiler  # type: ignore
+    from lib.infrastructure.pipeline.typed_dag import TypedDagCompiler  # type: ignore
 except Exception:  # pragma: no cover
     TypedDagCompiler = None
 
@@ -140,7 +140,7 @@ def _read_jsonl(path: pathlib.Path) -> Tuple[List[Dict[str, Any]], int]:
 def aggregate_trace(events: List[Dict[str, Any]]) -> Dict[str, Any]:
     """事件列表 → 按 node 聚合的真实观测。
 
-    语义与 runtime/pipeline/trace_replay.py 对齐（call_count/status/provider/
+    语义与 lib/infrastructure/pipeline/trace_replay.py 对齐（call_count/status/provider/
     entry/module_id 一致），另收集 replay 不携带的 dll/artifact/workers/cpu 等
     观测字段。全部字段只来自事件本身。
     """
@@ -750,7 +750,7 @@ def verify_consistency(graph: Dict[str, Any],
     replay = replay_from_jsonl(
         "\n".join(json.dumps(e, ensure_ascii=False) for e in trace_events))
     if replay is None:
-        diffs.append("replay 模块不可用（runtime/pipeline/trace_replay 导入失败）")
+        diffs.append("replay 模块不可用（lib/infrastructure/pipeline/trace_replay 导入失败）")
         return False, diffs
     replay_nodes = {n["node_id"]: n for n in replay.get("nodes", [])}
     agg = aggregate_trace(trace_events)
@@ -884,7 +884,7 @@ def cmd_selfcheck() -> int:
     """结构自检：合法空 trace 渲染 + 无 dot 依赖 + replay 可导入。"""
     problems: List[str] = []
     if replay_from_jsonl is None:
-        problems.append("runtime/pipeline/trace_replay 导入失败")
+        problems.append("lib/infrastructure/pipeline/trace_replay 导入失败")
     g = build_graph(trace_path=None,
                     trace_events=[], sha="")
     if g["metrics"]["node_count"] != 0:
