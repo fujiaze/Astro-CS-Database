@@ -1,0 +1,53 @@
+# 插件文档：star_detection（源探测）
+
+## 1. 职责与边界
+
+- **职责**：检测图像中的源（星点/延展源），输出位置、质心/矩、源身份与 selection function 参数。
+- **不是**：不是图像灵敏度本身；不做 PSF 建模（psf 模块）；不做测光（photometry 模块）；检测目录是下游输入，不是产品权重。
+
+## 2. 权威依据
+
+- 最高设计 `ASTROCS_DESIGN.md` §3.6（硬约束：检测阈值基于局部噪声）
+- `docs/design/PHASE1_DETAILED_DESIGN.md` §5（背景、有效性与源检测）
+- `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（质心/矩不确定度）
+
+## 3. 输入/输出数据合同
+
+- **输入**：定标+cosmetic 后信号、variance/ivar、validity、背景模型（若已有）、配置。
+- **输出**：source catalog（源 ID、像素坐标、天球坐标、质心/矩、局部 SNR、flags）+ selection function/completeness 参数。
+- 检测、PSF、WCS、测光、SNR 的 source row 绑定同一 `frame_id/source_id`。
+- 参考：`contracts/schemas/source_catalog.schema.json`。
+
+## 4. 算法与公式要点
+
+- 检测阈值基于**局部噪声**（使用 variance/ivar），不得用全局固定阈值；
+- 质心/矩与不确定度：一阶矩质心、二阶矩，误差来自局部噪声传播；
+- 输出 selection function（完备性 vs 亮度/位置）和 completeness 参数；
+- 检测统计量与下游 PSF/测光解耦：检测目录不直接成为科学权重。
+
+## 5. 配置项
+
+| 字段 | 默认 | 单位 | 说明 |
+|---|---|---|---|
+| `detection_threshold` | 5.0 | σ（局部） | 检测阈值 |
+| `min_area` | 2 | px | 最小连通像素数 |
+| `deblend` | true | —— | 是否解混 |
+| `selection_function` | true | —— | 是否输出 selection function |
+
+## 6. 接口/ABI
+
+- entrypoint：图像+ivar+validity → source catalog；
+- 单源行结构版本化，绑定 frame_id/source_id。
+
+## 7. 错误与边界
+
+- 输入全 NaN/全饱和 → 拒绝并记录，不产出空目录冒充成功；
+- 边界源标记边界 flag；
+- 亮星饱和/拖线标记，不参与后续 PSF/测光默认路径。
+
+## 8. 测试与 Oracle
+
+- 合成图像注入已知源（位置/亮度分布已知）→ 检测率、误检率、质心精度符合理论；
+- selection function 与注入分布一致；
+- 改变星表亮度分布只改变 source-SNR 摘要，不改变信息权重（跨模块验证）；
+- 1 worker vs N worker 一致。
