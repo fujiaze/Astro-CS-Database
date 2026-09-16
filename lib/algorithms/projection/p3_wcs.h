@@ -1,4 +1,7 @@
-// lib/phase3_session/p3_wcs.h — FITS-WCS 输出描述符 + TAN 投影正反变换 (ALG-P3-002) — P3-002
+// lib/algorithms/projection/p3_wcs.h — FITS-WCS 输出描述符 + TAN 投影正反变换 (ALG-P3-002) — P3-002
+// W4-A9 批次 1: 原址 lib/phase3_session/p3_wcs.h, 按 ASTROCS_DESIGN §7.1「projection」
+// 行迁入本模块 (WCS 属投影域); 命名空间 astrocs::phase3 与全部公共符号名不变
+// (架构重构不改科学语义/接口, ENGINEERING_SPEC §3)。
 // 覆盖: CRPIX(pixel-center)/CD 关键字正确性、east_left|east_right、旋转 PA、
 // RA wrap、TAN 半球守卫(输出四角同半球)、abs(dec)<=85° 极点守卫(单一条件)。
 #ifndef ASTROCS_P3_WCS_H

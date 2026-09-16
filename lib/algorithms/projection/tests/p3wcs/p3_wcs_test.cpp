@@ -36,7 +36,8 @@ static bool safe_pixel_count(int w, int h, std::uint64_t* out) {
 // 合同锚:
 //   - docs/science/ASTROMETRY.md §5/§7 (xp = x+1; CRPIX 1-based; 往返 <1e-6 px)
 //   - docs/standards/STANDARDS_REGISTRY.md STD-F1 (Paper I §2.1.1)
-//   - lib/phase3_session/p3_wcs.cpp (唯一 +1 桥接点 fits_pixel_1based)
+//   - lib/algorithms/projection/p3_wcs.cpp (唯一 +1 桥接点 fits_pixel_1based;
+//     W4-A9 批次 1 由 lib/phase3_session/ 迁入本模块共址测试)
 // 验收 (任务规格 STD-F1-ADJ 必须动作 4/5):
 //   1. 九宫格 = 中心 1 格 + 四角 4 格 + 四边中点 4 格, 每格 100x100 px,
 //      逐像素显式验证**无 1px 偏移** (往返 < 1e-6 px 不变量, 每格 10000 像素);

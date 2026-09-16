@@ -4,7 +4,7 @@
 // 行为冻结不变（四项偏差 D1..D4 见 p3_projection.h 头注与 ALG-P3-PROJ-IMPL-001 §15.9）。
 //
 // 数学冻结口径:
-//   TAN(gnomonic): 逐式沿用 lib/phase3_session/p3_wcs.cpp 冻结生产事实
+//   TAN(gnomonic): 逐式沿用同目录 p3_wcs.cpp 冻结生产事实
 //     （Calabretta & Greisen (2002) 标准球面三角公式，RA wrap 经 atan2+fmod
 //     归一；G1 CD 构造 east_left/east_right + PA 推广 + P0 修复 bughunt_p0_wcs）。
 //     共享旋转核与其严格同构（sinθ=sinδ sinδ₀+cosδ cosδ₀ cosΔα 即 denom），
@@ -38,7 +38,7 @@ namespace {
 constexpr double kDeg = 180.0 / M_PI;
 constexpr double kRad = M_PI / 180.0;
 constexpr double kMaxAbsDec = 85.0;   // 四投影统一中心守卫（保守冻结，TAN=SCI 单一条件）
-// 最大尺寸与 lib/phase3_session/p3_wcs.cpp 冻结默认一致（PHASE3_API_V1 §2）。
+// 最大尺寸与同目录 p3_wcs.cpp 冻结默认一致（PHASE3_API_V1 §2）。
 #ifndef ASTROCS_P3_MAX_SIDE
 constexpr int kMaxSide = 20000;
 #else

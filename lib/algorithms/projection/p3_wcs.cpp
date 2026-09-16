@@ -1,4 +1,6 @@
-// lib/phase3_session/p3_wcs.cpp — TAN(gnomonic) WCS 实现 (ALG-P3-002/003) — P3-002
+// lib/algorithms/projection/p3_wcs.cpp — TAN(gnomonic) WCS 实现 (ALG-P3-002/003) — P3-002
+// W4-A9 批次 1: 原址 lib/phase3_session/p3_wcs.cpp (ASTROCS_DESIGN §7.1「projection」);
+// 源逐字节迁移, 命名空间/公式/容差零改动 (ENGINEERING_SPEC §3 架构重构不改科学语义)。
 // 数学: Calabretta & Greisen (2002) 标准球面三角公式(RA wrap 经 atan2+fmod 归一)。
 #include "p3_wcs.h"
 

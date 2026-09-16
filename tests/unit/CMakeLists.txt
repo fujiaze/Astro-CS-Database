@@ -724,11 +724,10 @@ target_include_directories(p2_seam_gate_test PRIVATE
 target_link_libraries(p2_seam_gate_test PRIVATE astrocs_contracts)
 add_test(NAME p2_seam_gate COMMAND p2_seam_gate_test)
 
-add_executable(p3_wcs_test p3_wcs_test.cpp)
-target_include_directories(p3_wcs_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session)
-target_link_libraries(p3_wcs_test PRIVATE astrocs_phase3_session astrocs_common)
-add_test(NAME p3_wcs COMMAND p3_wcs_test)
+# W4-A9 批次 1: p3_wcs_test 迁 lib/algorithms/projection/tests/p3wcs/ (共址),
+# 目标与 ctest 名不变; 本处注册已由根 CMakeLists.txt
+# add_subdirectory(lib/algorithms/projection/tests/p3wcs) 承接 —— 见处保留说明,
+# 防重复 add_test (同名即 ctest 冲突)。
 
 add_executable(p3_interp_test p3_interp_test.cpp)
 target_link_libraries(p3_interp_test PRIVATE astrocs_contracts)
@@ -1262,7 +1261,7 @@ add_test(NAME aio_abi_selfcheck COMMAND aio_abi_selfcheck)
 # 统一操作面, registry 函数指针 dispatch, fail-closed) 直编测试目标 —
 # 生产构建零改动 (根 CMakeLists 不动, astrocs_p3_projection.dll 挂载归
 # P3-PROJ-IMPL/P3-002, 白名单外越界零项)。
-# TAN 冻结零漂移: lib/phase3_session/p3_wcs.cpp (冻结生产事实) 同 TU 对拍
+# TAN 冻结零漂移: lib/algorithms/projection/p3_wcs.cpp (冻结生产事实) 同 TU 对拍
 # (G1 CD 构造/CRPIX/正反映射逐点 bitwise)。
 # 独立 Oracle: 3D 单位向量第一性原理 (切基正交投影/透视除法/AIT Paper II
 # 反演式), 不调生产实现; 往返容差 <1e-6 px (SCI §7 冻结)。
@@ -1272,10 +1271,9 @@ add_test(NAME aio_abi_selfcheck COMMAND aio_abi_selfcheck)
 add_executable(p3_projection_test
   p3_projection_test.cpp
   ../../lib/algorithms/projection/p3_projection.cpp
-  ../../lib/phase3_session/p3_wcs.cpp)
+  ../../lib/algorithms/projection/p3_wcs.cpp)
 target_include_directories(p3_projection_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/projection
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/phase3_session)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/projection)
 add_test(NAME p3_projection_units COMMAND p3_projection_test)
 add_test(NAME p3_projection_fault COMMAND p3_projection_test)
 set_tests_properties(p3_projection_fault PROPERTIES

@@ -150,3 +150,54 @@ set_tests_properties(p1psf_centroid_gate p1psf_centroid_gate_neg PROPERTIES
 set_tests_properties(p1psf_centroid_gate_neg PROPERTIES
   PASS_REGULAR_EXPRESSION "NEGATIVE INJECTION DETECTED")
 
+# ----------------------------------------------------------------------------
+# G-P1-CENTER-CONTRACT-1 (W4-A1): psf 块像素中心口径门
+# ----------------------------------------------------------------------------
+# 缺陷背景 (OPEN_ITEMS A1 / 问题扫描 M1a-C-003): psf 块 cx/cy = dpsf 原始输出
+# = index-is-center (0-based); 内部 0-based 与 FITS 1-based (CRPIX 1-based,
+# Paper I §2.1.1) 之间**只允许一次** +1 桥接 (SCI-WCS-001 §3a/§5a)。修复前
+# p1_op_wcs 把 0-based 数组下标直喂 1-based 契约的 WcsTan, 使发布工件
+# p1_wcs.json.samples[] 恒差 1px, 且两道自检门与"独立参考解"共用同一原点
+# ⇒ 对原点平移零判别力。
+# 本门链接三条消费链的真实生产源 (photometry wcs_transform / snr snr_estimator
+# +snr_science / 导出契约 wcs_tan) 与契约头 star_coord_contract.h; 判据
+# [C1]..[C5] 见 p1psf_center_contract_gate.cpp 头注 (含原点鉴别力判据)。
+# 负例 p1psf_center_contract_gate_neg 以修复前形态 (0-based 直喂 1-based)
+# 注入, 必须以 >= 0.9 px 被检出 (能红能绿, ENGINEERING_SPEC §8);
+# p1psf_center_contract_astropy 用 astropy.wcs 做第三方交叉 (fail-closed:
+# astropy/二进制/导出缺失一律判红)。
+# ----------------------------------------------------------------------------
+set(P1PSF_CC_DIR ${P1PSF_DIR}/../../../photometry/cpp/src)
+set(P1PSF_CC_SNR_DIR ${P1PSF_DIR}/../../../noise_snr/cpp)
+set(P1PSF_CC_TAN_DIR ${P1PSF_DIR}/../../../platesolve/wrapper_phase1)
+set(P1PSF_CC_ORCH_INC
+  ${P1PSF_DIR}/../../../../infrastructure/pipeline/orchestrator/cpp/include)
+set(P1PSF_CC_PROD_SOURCES
+  ${P1PSF_CC_DIR}/wcs_transform.cpp
+  ${P1PSF_CC_SNR_DIR}/src/snr_estimator.cpp
+  ${P1PSF_CC_SNR_DIR}/src/snr_science.cpp
+  ${P1PSF_CC_TAN_DIR}/wcs_tan.cpp)
+add_executable(p1psf_center_contract_gate_test
+  ${P1PSF_DIR}/p1psf_center_contract_gate.cpp
+  ${P1PSF_CC_PROD_SOURCES})
+target_include_directories(p1psf_center_contract_gate_test PRIVATE
+  ${P1PSF_CC_DIR}
+  ${P1PSF_CC_SNR_DIR}/include
+  ${P1PSF_CC_TAN_DIR}
+  ${P1PSF_CC_ORCH_INC}
+  ${P1PSF_DIR})
+target_link_libraries(p1psf_center_contract_gate_test PRIVATE m ${ASTROCS_OMP_TARGET})
+add_test(NAME p1psf_center_contract_gate COMMAND p1psf_center_contract_gate_test)
+add_test(NAME p1psf_center_contract_gate_neg
+  COMMAND p1psf_center_contract_gate_test negative-injection)
+set_tests_properties(p1psf_center_contract_gate_neg PROPERTIES
+  PASS_REGULAR_EXPRESSION "NEGATIVE INJECTION DETECTED")
+# astropy 第三方交叉 (独立实现, 零生产依赖; 自跑 C++ 门 --export 后对拍)。
+# fail-closed: astropy 缺失 ⇒ 门判红 (不用 SKIP 掩盖)。
+add_test(NAME p1psf_center_contract_astropy
+  COMMAND ${CMAKE_COMMAND} -E env
+          P1PSF_CENTER_GATE_BIN=$<TARGET_FILE:p1psf_center_contract_gate_test>
+          python3 ${P1PSF_DIR}/p1psf_center_contract_astropy.py)
+set_tests_properties(p1psf_center_contract_gate p1psf_center_contract_gate_neg
+                     p1psf_center_contract_astropy PROPERTIES LABELS "p1psf")
+

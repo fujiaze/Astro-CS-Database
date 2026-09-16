@@ -117,10 +117,10 @@
   （唯一权威签名头，namespace astrocs::phase3proj）+ `p3_projection.cpp`
   （registry v1 冻结表 4 行 TAN/SIN/CAR/AIT + 函数指针 dispatch +
   统一操作面 make/pix2world/world2pix/fits_keywords + registry_selfcheck）。
-- 冻结依据: 宪章 §7.3（registry 六要素/不散落 CLI switch）+ §18.1 裁决 1
+- 冻结依据: 宪章 §7.3（registry 六要素/不散落 CLI switch）+ §18.1 裁决 1【该宪章已废止；现行 = `ASTROCS_DESIGN.md` §5.3（八投影）+ 本目录 module.yaml/README】
   （首批四投影冻结，新增须注册+独立 Oracle）；TAN 逐式沿用
   lib/phase3_session/p3_wcs.cpp 冻结生产事实（G1/G2 零改动）；SIN/CAR/AIT
-  为 §18.1 新 claim，ALG 层唯一权威落位 docs/algorithms/PHASE3_PROJ_IMPL.md
+  为 §18.1（原宪章条款，已废止）新 claim，ALG 层唯一权威落位 docs/algorithms/PHASE3_PROJ_IMPL.md
   §15（Paper II 公式逐式冻结；CAR/AIT θ₀=+90° 恒等旋转、CRVAL2 不进映射、
   LONPOLE 通用机制不实现等口径均为显式冻结声明）；SCI 层零改动。
 - 共享核: zenithal 旋转核（TAN/SIN, θ₀=CRVAL2）与 TAN 生产式逐运算同构；

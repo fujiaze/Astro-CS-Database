@@ -79,13 +79,16 @@
 #include <omp.h>
 #endif
 
-// P3-002: Phase3 唯一真实 operation 节点生产头（lib/phase3_session 冻结 C++
-// 内核, 静态库 astrocs_phase3_session 已在 astrocs_module_adapters 链接闭包;
+// P3-002: Phase3 唯一真实 operation 节点生产头（冻结 C++ 内核, 静态库
+// astrocs_phase3_session 已在 astrocs_module_adapters 链接闭包;
 // 相对路径 include 同 "../../../algorithms/star_detection/wrapper_phase1/star_detector.h" 先例, 根 CMake
 // 零改动）
+// W4-A9 批次 1: p3_wcs.h 已迁 lib/algorithms/projection/ (ASTROCS_DESIGN §7.1
+// 「projection」行); 会话层 p3_resample.h / p3_output.h 仍在本批未迁的
+// lib/phase3_session/ (批次 2/3 迁入 resample / fits_output)。
 #include "../../../phase3_session/p3_resample.h"
 #include "../../../phase3_session/p3_output.h"
-#include "../../../phase3_session/p3_wcs.h"
+#include "../../../algorithms/projection/p3_wcs.h"
 
 #include <nlohmann/json.hpp>
 
@@ -342,6 +345,13 @@ Result<void> to_result(acs_status st, const char* what) {
 // WcsTan 头契约一致), CD 单位 deg/px。
 constexpr double kP1D2R = 0.01745329251994329577;   // π/180
 constexpr double kP1R2D = 57.29577951308232087680;  // 180/π
+// W4-A1 (M1a-C-003): Δ(内部 0-based → FITS 1-based) = +1 (FITS WCS Paper I §2.1.1)
+constexpr double kP1FitsPixelOrigin = 1.0;
+// W4-A1 (M1a-C-003): 内部像素坐标口径 = **0-based 数组下标 (index-is-center)**
+// (SCI-WCS-001 §3a「内部 0-based x,y, FITS 输出 1-based xp=x+1」/ §5a 单一桥接点);
+// WcsTan 与 p1_tan_forward_reference 的契约是 **FITS 1-based** (Paper I §2.1.1,
+// wcs_tan.h:11)。⇒ 任何把内部下标喂给 WcsTan 的调用必须恰好施加一次本偏移
+// (xp = x + kP1FitsPixelOrigin); 漏加 = 恒定 1px 系统偏差, 加两次 = 双重桥接。
 
 void p1_tan_forward_reference(double crpix1, double crpix2, double crval1,
                               double crval2, double cd11, double cd12,
@@ -784,6 +794,13 @@ ModuleDescriptor p1_photometry_descriptor() {
       {"psf", "DATA-P1-PSF", true, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
       {"sources", "DATA-P1-SOURCES", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       {"fluxes", "DATA-P1-FLUX", false, UnitId::ELECTRON, CoordinateFrame::ICRS},
+      // DET-001 (D5): p1_phot.json (DATA-P1-PHOTPROV-001) 是本节点的第二个真实
+      // 产物, 且被 drizzle 节点按 output_dir 文件约定消费。未声明为 typed 输出
+      // 时 drizzle 无依赖边、与 photometry 并发执行, 会在本文件落盘前读到
+      // "不存在" 并把 photometry_provenance 记成 "absent"（非确定性 + 静默
+      // ADU 降级）。声明为 typed 输出端口使依赖边可绑定（同 F-8 的 wcs 处置）。
+      {"photprov", "DATA-P1-PHOTPROV-001", false, UnitId::DIMENSIONLESS,
+       CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-PHOT-001";
   d.alg_id = "ALG-002";            // wcs-psf-batch kernel
@@ -825,6 +842,13 @@ ModuleDescriptor p1_drizzle_descriptor() {
       // 声明为 typed 输入端口使 IR 依赖边可绑定（artifact:p1_wcs）, 调度器据此
       // 保证 wcs 先落盘再 drizzle, 不再依赖并发文件约定。
       {"wcs", "DATA-P1-WCS", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+      // DET-001 (D5): PHOTSCAL/PHOTAPPL 的真实来源是 photometry 节点产物
+      // p1_phot.json。未声明该 typed 边时 drz 与 phot 同为 cal/psf 下游并发执行,
+      // drz 的存在性判定可先于 phot 落盘 → photometry_provenance 在
+      // "p1_phot.json"/"absent" 间翻转（14 次实测 10/4），且把「尚未产出」误记为
+      // 「未应用测光」（静默 ADU 降级）。声明依赖边后调度器保证 phot 完成再执行 drz。
+      {"photprov", "DATA-P1-PHOTPROV-001", true, UnitId::DIMENSIONLESS,
+       CoordinateFrame::ICRS},
       {"stacked", "DATA-P1-STACK", false, UnitId::ADU, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-DRIZ-001";
@@ -2152,25 +2176,34 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     double max_cross_deg = 0.0;
     // B2-A17: SIP A/B 前向修正叠加在 WcsTan 线性 pix2sky 之上 (WcsSip 同式,
     // pixelToSkyT: dx' = dx + A(dx,dy), dy' = dy + B(dx,dy))。
+    // W4-A1 (M1a-C-003): pts 里的 x/y 是 **0-based 数组下标**; WcsTan/
+    // p1_tan_forward_reference 的契约是 **FITS 1-based** ⇒ 在进入两者之前
+    // 施加**恰好一次** xp = x + kP1FitsPixelOrigin (SCI-WCS-001 §3a/§5a)。
+    // 修复前缺该桥接: samples[] 的 ra/dec 与自带 (x,y) 标签恒差 1px, 且
+    // 两道门 (roundtrip / forward-cross) 与参考解共用同一 (未桥接) 原点
+    // ⇒ 对原点平移零判别力 (M1a-C-003)。
     for (const auto& [x, y] : pts) {
+      const double xp = x + kP1FitsPixelOrigin;   // 内部 0-based → FITS 1-based
+      const double yp = y + kP1FitsPixelOrigin;
       double ra = 0.0, dec = 0.0, bx = 0.0, by = 0.0;
       if (sip.present && sip.order > 0) {
         double A = 0.0, B = 0.0;
-        p1_sip_poly(sip.a, x - wcs.crpix1, y - wcs.crpix2, sip.order, &A);
-        p1_sip_poly(sip.b, x - wcs.crpix1, y - wcs.crpix2, sip.order, &B);
-        wcs.pix2sky(x + A, y + B, &ra, &dec);
+        p1_sip_poly(sip.a, xp - wcs.crpix1, yp - wcs.crpix2, sip.order, &A);
+        p1_sip_poly(sip.b, xp - wcs.crpix1, yp - wcs.crpix2, sip.order, &B);
+        wcs.pix2sky(xp + A, yp + B, &ra, &dec);
       } else {
-        wcs.pix2sky(x, y, &ra, &dec);
+        wcs.pix2sky(xp, yp, &ra, &dec);
       }
       wcs.sky2pix(ra, dec, &bx, &by);
-      const double rt = std::sqrt((bx - x) * (bx - x) + (by - y) * (by - y));
+      const double rt = std::sqrt((bx - xp) * (bx - xp) + (by - yp) * (by - yp));
       if (rt > max_rt) max_rt = rt;
       // B2-A1/B2-A17: 绝对门 —— 与独立 gnomonic 前向参考解的角度残差
-      // (独立参考解同样施加 SIP A/B; 与 sky2pix/pix2sky 自洽无关)。
+      // (独立参考解同样施加 SIP A/B, 且同样以 FITS 1-based 入参 ⇒ 与
+      //  sky2pix/pix2sky 自洽无关, 但对原点平移的鉴别力来自上面的单一桥接)。
       double ra_ref = 0.0, dec_ref = 0.0;
       p1_tan_forward_reference_sip(sip, wcs.crpix1, wcs.crpix2, wcs.crval1,
                                    wcs.crval2, wcs.cd11, wcs.cd12, wcs.cd21,
-                                   wcs.cd22, x, y, &ra_ref, &dec_ref);
+                                   wcs.cd22, xp, yp, &ra_ref, &dec_ref);
       const double cross = p1_angular_sep_deg(ra, dec, ra_ref, dec_ref);
       if (cross > max_cross_deg) max_cross_deg = cross;
       samples.push_back(Json{{"x", x}, {"y", y}, {"ra", ra}, {"dec", dec},
@@ -2214,6 +2247,13 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                         {"max_roundtrip_px", max_rt},
                         {"max_forward_cross_deg", max_cross_deg},
                         {"forward_cross_ref", "p1_tan_forward_reference"},
+                        // W4-A1 (M1a-C-003): samples[] 的 (x,y) 原点必须显式声明
+                        // (内部 0-based 数组下标 = index-is-center); 其 ra/dec 已
+                        // 经单次 +1 桥接至 FITS 1-based 与 (x,y) 配对。消费方不得
+                        // 再叠加一次 +1 (双重桥接 = 恒定 1px 系统偏移)。
+                        {"pixel_origin", "0-based array index (index-is-center); "
+                                         "FITS 1-based xp = x + 1"},
+                        {"fits_pixel_origin", kP1FitsPixelOrigin},
                         {"samples", samples}};
     if (!p1_write_text(out_path, wcs_out.dump(2)))
       return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
@@ -2385,17 +2425,21 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   Json samples = Json::array();
   double max_rt = 0.0;
   double max_cross_deg = 0.0;
+  // W4-A1 (M1a-C-003): 同 explicit 路径 —— 0-based 数组下标经**恰好一次**
+  // FITS 1-based 桥接后喂 WcsTan / 独立参考解 (SCI-WCS-001 §3a/§5a)。
   for (const auto& [x, y] : pts) {
+    const double xp = x + kP1FitsPixelOrigin;   // 内部 0-based → FITS 1-based
+    const double yp = y + kP1FitsPixelOrigin;
     double ra = 0.0, dec = 0.0, bx = 0.0, by = 0.0;
-    wcs.pix2sky(x, y, &ra, &dec);
+    wcs.pix2sky(xp, yp, &ra, &dec);
     wcs.sky2pix(ra, dec, &bx, &by);
-    const double rt = std::sqrt((bx - x) * (bx - x) + (by - y) * (by - y));
+    const double rt = std::sqrt((bx - xp) * (bx - xp) + (by - yp) * (by - yp));
     if (rt > max_rt) max_rt = rt;
-    // B2-A1: 绝对门 (同 explicit 路径; 独立前向参考解)
+    // B2-A1: 绝对门 (同 explicit 路径; 独立前向参考解, 1-based 入参)
     double ra_ref = 0.0, dec_ref = 0.0;
     p1_tan_forward_reference(wcs.crpix1, wcs.crpix2, wcs.crval1, wcs.crval2,
                              wcs.cd11, wcs.cd12, wcs.cd21, wcs.cd22,
-                             x, y, &ra_ref, &dec_ref);
+                             xp, yp, &ra_ref, &dec_ref);
     const double cross = p1_angular_sep_deg(ra, dec, ra_ref, dec_ref);
     if (cross > max_cross_deg) max_cross_deg = cross;
     samples.push_back(Json{{"x", x}, {"y", y}, {"ra", ra}, {"dec", dec},
@@ -2460,6 +2504,12 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                       {"max_roundtrip_px", max_rt},
                       {"max_forward_cross_deg", max_cross_deg},
                       {"forward_cross_ref", "p1_tan_forward_reference"},
+                      // W4-A1 (M1a-C-003): 同 explicit 路径的像素原点声明 ——
+                      // samples[] 的 (x,y) 为内部 0-based 数组下标 (index-is-center),
+                      // ra/dec 已经单次 +1 桥接至 FITS 1-based 与其配对。
+                      {"pixel_origin", "0-based array index (index-is-center); "
+                                       "FITS 1-based xp = x + 1"},
+                      {"fits_pixel_origin", kP1FitsPixelOrigin},
                       {"samples", samples}};
   if (!p1_write_text(out_path, wcs_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
@@ -3217,7 +3267,6 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                         {"nside_clamped", auto_res.clamped != 0},
                         {"n_healpix_pixels", static_cast<int64_t>(res.n_healpix_pixels)},
                         {"n_source_pixels", static_cast<int64_t>(res.n_source_pixels)},
-                        {"elapsed_sec", static_cast<double>(res.elapsed_sec)},
                         {"bunit", photometry_applied ? "ASTROCS_RELATIVE_FLUX" : "ADU"},
                         {"photappl", photometry_applied ? 1 : 0},
                         {"photscal", photscal},
@@ -3227,6 +3276,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   if (!p1_write_text(out_path, stack_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_healpix_pixels"] = static_cast<int64_t>(res.n_healpix_pixels);
+  // DET-001 (D5): drizzle 墙钟耗时是**遥测**, 不属 DATA-P1-STACK 产品面。
+  // 产品面必须逐字节可复现（manifest 登记 sha256 作验收门）; 遥测保留在节点
+  // manifest / resource_summary.json，需要时仍可读取。
+  (*man)["elapsed_sec"] = static_cast<double>(res.elapsed_sec);
   (*man)["stack_artifact"] = out_path;
   (*man)["precision_mode"] = precision_mode;
   (*man)["sip_present"] = sip.present;
@@ -4265,8 +4318,11 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
     weight_mode = doc["weight_mode"].get<int>();
   }
   if (weight_mode != 1 && weight_mode != 2)
+    // SMOKE-001 D10: 诊断必须回显实际非法值（旧文案硬编码 "0"，把 99 报成 0，
+    // 用户按提示改不对）。判定规则与文案语义不变，仅把字面量改为实参。
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "weight_mode 0 (legacy SNR) is not a science variance surface in the"
+        "weight_mode " + std::to_string(weight_mode) +
+        " (legacy SNR) is not a science variance surface in the"
         " node chain; only 1 (equal) or 2 (ivar) are legal (DATA-UNC-001 §30.1)"));
   const bool allow_fallback = doc.value("legacy_allow_weight_fallback", false);
 
@@ -5402,6 +5458,12 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
   const P3ResampleStatus st =
       p3_sampler_open_ex(g.hips_dir.c_str(), &samp, &order, &bunit, &serr);
   if (st != P3_RS_OK) {
+    // SMOKE-001 D11: 打开失败的两条路径都指向**输入 HiPS 产品**不可用
+    // （P3_RS_PARAM = signal/properties 缺失或非法，p3_resample.cpp:271-272；
+    //  P3_RS_IO = 数据集打开失败）⇒ 按 §6.3「3 = 输入缺失/格式错」标记
+    // error_kind=input，由 CLI 退出码映射统一收敛（runtime_client.cpp:388），
+    // 与 mosaic 同类输入缺失同为 3（跨命令同失败同码）。
+    (*man)["error_kind"] = "input";
     const ErrorDomain dom = (st == P3_RS_IO) ? ErrorDomain::IO : ErrorDomain::DATA;
     return Result<void>::fail(Error(dom, "p3_sampler_open_ex: " + serr));
   }
