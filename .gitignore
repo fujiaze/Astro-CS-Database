@@ -147,3 +147,7 @@ alloc_samples.csv
 # 存量处置 = 审计包白名单移除 + 排除保证（tools/pack_audit_package.py）；
 # 是否 git rm --cached 见 reports/PROJECT-GOVERNANCE-01/security/EXPOSURE_NOTE.md（负责人裁决）。
 FATDUCK_ACCESS.md
+
+# 运行/CI 产物（ROOT-007 裁决：artifacts/ 不归档不保留；CI 产物不入库）
+/artifacts/ci/
+/artifacts/**/*.zip
