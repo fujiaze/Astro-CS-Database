@@ -46,7 +46,7 @@ def make_fake_tree(dst, *, version="0.11.0-alpha.2", project="0.11.0",
         f.write("cmake_minimum_required(VERSION 3.24)\n"
                 f"project(astrocs VERSION {project} LANGUAGES C CXX)\n"
                 'file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION ASTROCS_BASE_VERSION)\n'
-                "configure_file(cli/version_generated.h.in "
+                "configure_file(lib/infrastructure/cli/version_generated.h.in "
                 "${CMAKE_CURRENT_BINARY_DIR}/version_generated.h @ONLY)\n")
     with open(os.path.join(dst, "cli", "CMakeLists.txt"), "w",
               encoding="utf-8") as f:

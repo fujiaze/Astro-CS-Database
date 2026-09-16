@@ -5,7 +5,7 @@
   1. 模拟 feature matrix (合成 CPUID/XCR0 证据驱动生产判定) → 全 PASS;
   2. 缺 AVX / 缺 OS state / 缺 AVX-512 子集 / OS 不保存 ZMM → 拒绝 (负测);
   3. Windows/Linux 输出同一 schema — 本机 probe JSON 逐字段校验
-     providers/cpu/common/schemas/cpu_capability.schema.json (同一事实源;
+     lib/infrastructure/benchmark/cpu/common/schemas/cpu_capability.schema.json (同一事实源;
      Windows 实机输出由 WIN-* 以同 schema 校验);
   4. 不读取硬编码核心数 — probe 输出无 core 计数/线程字段 (schema 亦无);
      判定只读 CPUID+XCR0 位面。
@@ -28,9 +28,9 @@ import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
-INC = os.path.join(REPO, "providers", "cpu", "common", "include")
-SRC = os.path.join(REPO, "providers", "cpu", "common", "src", "capability_detect.c")
-SCHEMA = os.path.join(REPO, "providers", "cpu", "common", "schemas",
+INC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "include")
+SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "src", "capability_detect.c")
+SCHEMA = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "schemas",
                       "cpu_capability.schema.json")
 MATRIX = os.path.join(REPO, "tests", "cpu", "dispatch",
                       "cpu_capability_matrix_test.c")

@@ -16,7 +16,7 @@
   B7 既有 LOG-001 / RT-006 语义回归不破坏。
 
 方法：与 tests/monitoring/test_log_contract.py 同款——纯 Python unittest，
-真实调用 runtime/monitoring；真实采样用 ~1s 间隔短负载（≤4s），合成负载仅
+真实调用 lib/infrastructure/observability/monitoring；真实采样用 ~1s 间隔短负载（≤4s），合成负载仅
 演示 CPU 抬升，不依赖精确 CPU 数值。
 """
 from __future__ import annotations
@@ -33,13 +33,13 @@ import unittest
 REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 
-from runtime.monitoring import linux_procfs, windows_pdh_etw  # noqa: E402
-from runtime.monitoring.monitor import (  # noqa: E402
+from lib.infrastructure.observability.monitoring import linux_procfs, windows_pdh_etw  # noqa: E402
+from lib.infrastructure.observability.monitoring.monitor import (  # noqa: E402
     HEADER, PHASES, ResourceMonitor, load_rows, verify_csv,
     _seed_fingerprint, _fingerprint)
-from runtime.monitoring.runner import (  # noqa: E402
+from lib.infrastructure.observability.monitoring.runner import (  # noqa: E402
     HeavyRunGuard, MonitorRequired, run_heavy_with_monitor)
-from runtime.monitoring.trace_feed import (  # noqa: E402
+from lib.infrastructure.observability.monitoring.trace_feed import (  # noqa: E402
     TraceSnapshotObserver, observer_from_jsonl, emit_metric_event)
 
 HAS_LINUX = linux_procfs.is_available()
@@ -409,7 +409,7 @@ class TestRegressionLog001(unittest.TestCase):
             REPO / "tools" / "monitoring" / "check_log_contract.py")
         clc = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(clc)
-        schema = REPO / "runtime" / "logging" / "log_event_v1.schema.json"
+        schema = REPO / "lib" / "infrastructure" / "observability" / "logging" / "log_event_v1.schema.json"
         ok, errs, _ = clc.selfcheck(schema)
         self.assertTrue(ok, errs)
 
@@ -419,7 +419,7 @@ class TestRegressionRt006(unittest.TestCase):
 
     def test_trace_replay_still_works(self):
         spec = importlib.util.spec_from_file_location(
-            "trace_replay", REPO / "runtime" / "pipeline" / "trace_replay.py")
+            "trace_replay", REPO / "lib" / "infrastructure" / "pipeline" / "trace_replay.py")
         tr = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(tr)
         lines = []

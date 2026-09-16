@@ -38,13 +38,13 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
-AVX512_SRC = os.path.join(REPO, "providers", "cpu", "avx512", "src",
+AVX512_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx512", "src",
                           "avx512_provider.cpp")
-AVX2_SRC = os.path.join(REPO, "providers", "cpu", "avx2", "src",
+AVX2_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx2", "src",
                         "avx2_provider.cpp")
-BASE_SRC = os.path.join(REPO, "providers", "cpu", "baseline", "src",
+BASE_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "baseline", "src",
                         "baseline_provider.cpp")
-CAPSRC = os.path.join(REPO, "providers", "cpu", "common", "src",
+CAPSRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "src",
                       "capability_detect.c")
 ORACLE = os.path.join(REPO, "tests", "cpu", "avx512",
                       "provider_avx512_oracle_main.cpp")
@@ -57,10 +57,10 @@ SO_LOAD = os.path.join(REPO, "tests", "cpu", "avx512",
 ILLEGAL = os.path.join(REPO, "tests", "cpu", "avx512",
                        "check_avx512_illegal_instr.py")
 INC_ROOT = os.path.join(REPO, "include")
-INC_BASE = os.path.join(REPO, "providers", "cpu", "baseline", "include")
-INC_AVX2 = os.path.join(REPO, "providers", "cpu", "avx2", "include")
-INC_AVX512 = os.path.join(REPO, "providers", "cpu", "avx512", "include")
-INC_CAP = os.path.join(REPO, "providers", "cpu", "common", "include")
+INC_BASE = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "baseline", "include")
+INC_AVX2 = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx2", "include")
+INC_AVX512 = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx512", "include")
+INC_CAP = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "include")
 INC_HOST = os.path.join(REPO, "lib", "backend_host")  # cpu_features.h 探针 include
 
 FAILURES = []

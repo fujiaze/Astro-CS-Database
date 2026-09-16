@@ -5,7 +5,7 @@
 //      P2Api session adapter = 每个子节点调用完整 p2_session_run, 7 节点链重复
 //      执行全链 7 次, manifest 无 operation/entry 字段 —— RED 锚定即断言 1/2 在
 //      改造前失败）。节点 last_manifest 必须携带 operation/entry 标记, 与
-//      runtime/pipeline/module_ports.registry.json 冻结绑定表逐一一致。
+//      lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定表逐一一致。
 //   2. typed artifact: 每节点产出 descriptor.data_id 对应的磁盘 artifact。
 //   3. trace call_count=1: Runtime 全链执行每节点 MODULE_CALL 恰好一次,
 //      trace_violations 为空（无隐藏 session 重复调用）。
@@ -210,6 +210,7 @@ bool write_ivar_frame(const std::string& path, double ivar, float offset) {
   v.covered_area = area.data();
   v.valid_mask = nullptr;
   v.var_num_sum = vnum.data();
+  aio_hips_tile_view_abi_init(&v);
   if (aio_hips_write_signal_support_tile(ps, &v) != 0 ||
       aio_hips_write_variance_tile(ps, &v) != 0) {
     std::fprintf(stderr, "fixture tile write failed: %s\n", aio_hips_last_error());
@@ -253,7 +254,7 @@ std::string ivar_cfg(const Fx& fx, const std::string& extra = "") {
 }
 
 // ── Phase2 节点期望表（唯一真实 operation 绑定, 冻结源
-//    runtime/pipeline/module_ports.registry.json）──────────────────────────
+//    lib/infrastructure/pipeline/module_ports.registry.json）──────────────────────────
 struct NodeExpect {
   const char* module_id;
   const char* operation;

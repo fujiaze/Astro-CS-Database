@@ -164,6 +164,7 @@ bool write_ivar3_frame(const std::string& path, double ivar, float offset,
   v.covered_area = area.data();
   v.valid_mask = nullptr;
   v.var_num_sum = vnum.data();
+  aio_hips_tile_view_abi_init(&v);
   if (aio_hips_write_signal_support_tile(ps, &v) != 0 ||
       aio_hips_write_variance_tile(ps, &v) != 0) {
     std::fprintf(stderr, "fixture tile write failed: %s\n", aio_hips_last_error());
@@ -1360,9 +1361,11 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
     view.flux_sum = flux_buf.data();
     view.covered_area = cov_buf.data();
     view.var_num_sum = unc ? varnum_buf.data() : nullptr;
+    aio_hips_tile_view_abi_init(&view);
     int rc = aio_hips_write_signal_support_tile(ps, &view);
     CHECK_MSG(rc == 0, ("aio signal/support write failed rc=" + std::to_string(rc)).c_str());
     if (unc) {
+      aio_hips_tile_view_abi_init(&view);
       rc = aio_hips_write_variance_tile(ps, &view);
       CHECK_MSG(rc == 0, ("aio variance write failed rc=" + std::to_string(rc)).c_str());
     }
@@ -1372,6 +1375,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
     dv.width = 512;
     dv.nused = nused_local.data();
     dv.nrej = nrej_local.data();
+    aio_hips_diag_tile_view_abi_init(&dv);
     rc = aio_hips_write_diag_tile(ps, &dv);
     CHECK_MSG(rc == 0, ("aio diag tile write failed rc=" + std::to_string(rc)).c_str());
     if (rc == 0) nrej_readback = nrej_v;
@@ -1497,7 +1501,7 @@ static void test_f_unc_003_no_plane_drift() {
   // runtime validator（白名单外, 只读断言）: _PLANE_ID_SET 冻结五元
   {
     const std::string s =
-        repo_file("runtime/artifact_store/phase_product_exchange_validator.py");
+        repo_file("lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py");
     CHECK(!s.empty());
     const std::string anchor =
         "_PLANE_ID_SET = {\"signal\", \"support\", \"variance\", \"ivar\", \"mask\"}";

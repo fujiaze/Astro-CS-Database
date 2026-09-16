@@ -23,7 +23,7 @@ Static checks (source-tree level; no configure/build required):
                 packaging/install-tree.contract.json,
                 packaging/astrocs.product.json contain no ACR/CUDA entries
                 (grep-based production-dependency zero-hit).
-  ACK-ACR-005  production source tree (cli/, lib/infrastructure/scheduler/, lib/phase1*,
+  ACK-ACR-005  production source tree (lib/infrastructure/cli/, lib/infrastructure/scheduler/, lib/phase1*,
                 lib/phase2_session/, lib/phase3_session/, lib/infrastructure/benchmark/backend_host/,
                 runtime/, modules/, include/astrocs/) does not include/compile
                 ACR headers (astro/compute, lib/infrastructure/acr/backends/cuda/bridge) —
@@ -267,7 +267,7 @@ def selftest() -> int:
                 "install(TARGETS acr_fake ...)\n", encoding="utf-8")
         elif violation == "prod_include":
             (td / "cli").mkdir()
-            (td / "cli/main.cpp").write_text(
+            (td / "lib/infrastructure/cli/main.cpp").write_text(
                 '#include "astro/compute/acr.hpp"\nint main(){return 0;}\n', encoding="utf-8")
         elif violation == "registry_open":
             (td / "lib/infrastructure/scheduler/src/module.cpp").write_text(

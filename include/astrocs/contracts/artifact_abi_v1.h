@@ -45,7 +45,7 @@ typedef struct acs_artifact_handle_v1_s acs_artifact_handle_v1;
  * 结构校验覆盖: 必填字段齐全(缺字段拒绝)、status/枚举合法、digest hex=64、
  * size 非负、input_digests 内 artifact_id 唯一(重复输入拒绝)。
  * 顶层重复 key (含重复 producer 对象) 由严格 JSON 解析层
- * (runtime/artifact_store/artifact_manifest_validator.py) 拒绝; C 层顺序取首个。
+ * (lib/infrastructure/aio/runtime/artifact_store/artifact_manifest_validator.py) 拒绝; C 层顺序取首个。
  * type_id↔注册表对照属 schema 层 (python validator / DATA-003 Store), 不在此 C 层硬编码。
  * 失败返回非 0 且 *out 置 NULL; err/err_cap 可为 NULL。
  * 并发: reentrant=yes (无全局状态); 线程安全: 同一句柄不同时调用 (句柄非共享); 所有权:

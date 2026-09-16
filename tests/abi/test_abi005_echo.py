@@ -12,7 +12,7 @@
   4. 编译零告警; 唯一导出 astrocs_module_query_v1。
 
 结构:
-  - 编译真实 echo 模块源码 (modules/conformance/echo/src/echo_module.c) 为
+  - 编译真实 echo 模块源码 (tests/conformance/echo/src/echo_module.c) 为
     .so, 断言 stderr 无 warning（-Wall -Wextra -fno-exceptions）;
   - exports 检查: nm -D 仅 astrocs_module_query_v1;
   - 编译并运行共址单元测试 (tests/unit/echo_host_callback_test.c): 全部 host
@@ -38,13 +38,13 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 INC = os.path.join(REPO, "include")
-ECHO_DIR = os.path.join(REPO, "modules", "conformance", "echo")
+ECHO_DIR = os.path.join(REPO, "tests", "conformance", "echo")
 ECHO_SRC = os.path.join(ECHO_DIR, "src", "echo_module.c")
 ECHO_INC = os.path.join(ECHO_DIR, "include")
 ECHO_YAML = os.path.join(ECHO_DIR, "module.yaml")
 UNIT_C = os.path.join(ECHO_DIR, "tests", "unit", "echo_host_callback_test.c")
-LOADER_DIR = os.path.join(REPO, "runtime", "module_loader")
-REG_DIR = os.path.join(REPO, "runtime", "registry")
+LOADER_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
+REG_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
 LOADER_PROBE_C = os.path.join(REPO, "tests", "abi", "abi003_loader_probe.c")
 REG_PROBE_C = os.path.join(REPO, "tests", "abi", "abi004_registry_probe.c")
 TIMEOUT = 300

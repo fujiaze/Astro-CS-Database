@@ -42,7 +42,7 @@ LEGACY_COMMANDS = [
 class TestCliBuild(unittest.TestCase):
     """被测对象 = **根产品图**产出的唯一 exe（build/astrocs; ASTROCS_CLI_BIN 可覆盖）。
 
-    退役登记: 旧 setUpClass 以 cmake -S cli -B <tmp> 构建 cli/ 独立图（compatibility
+    退役登记: 旧 setUpClass 以 cmake -S cli -B <tmp> 构建 lib/infrastructure/cli/ 独立图（compatibility
     target）; BLD-002 明确唯一产品事实源是根 CMakeLists.txt, 且该独立图在 ARCH-001
     lib/** 迁移中间态必然 configure 失败 ⇒ 该构建路径退役（不是产品缺陷, 也不再 skip）;
     cli/CMakeLists.txt 的 compat 属性仍由 test_05/test_06 静态断言覆盖。
@@ -67,7 +67,7 @@ class TestCliBuild(unittest.TestCase):
     def test_01_version_format(self):
         r = self.run_cli("--version")
         self.assertEqual(r.returncode, 0)
-        # 根图用 rev-parse HEAD 全 40 hex（旧 cli/ 独立图才是 --short=12, 已退役）
+        # 根图用 rev-parse HEAD 全 40 hex（旧 lib/infrastructure/cli/ 独立图才是 --short=12, 已退役）
         self.assertRegex(r.stdout.strip(),
                          r"^astrocs " + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
 

@@ -30,11 +30,11 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))))
-AVX2_SRC = os.path.join(REPO, "providers", "cpu", "avx2", "src",
+AVX2_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx2", "src",
                         "avx2_provider.cpp")
-BASE_SRC = os.path.join(REPO, "providers", "cpu", "baseline", "src",
+BASE_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "baseline", "src",
                         "baseline_provider.cpp")
-CAPSRC = os.path.join(REPO, "providers", "cpu", "common", "src",
+CAPSRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "src",
                       "capability_detect.c")
 ORACLE = os.path.join(REPO, "tests", "cpu", "avx2",
                       "provider_avx2_oracle_main.cpp")
@@ -45,9 +45,9 @@ HANDSHAKE = os.path.join(REPO, "tests", "cpu", "avx2",
 SO_LOAD = os.path.join(REPO, "tests", "cpu", "avx2",
                        "provider_avx2_so_load_test.c")
 INC_ROOT = os.path.join(REPO, "include")
-INC_BASE = os.path.join(REPO, "providers", "cpu", "baseline", "include")
-INC_AVX2 = os.path.join(REPO, "providers", "cpu", "avx2", "include")
-INC_CAP = os.path.join(REPO, "providers", "cpu", "common", "include")
+INC_BASE = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "baseline", "include")
+INC_AVX2 = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx2", "include")
+INC_CAP = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "include")
 
 FAILURES = []
 HW = os.cpu_count() or 1

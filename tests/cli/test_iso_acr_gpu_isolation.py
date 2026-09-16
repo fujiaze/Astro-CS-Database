@@ -23,8 +23,8 @@ ACR_GPU_TERMS = re.compile(
 # 不含 stage2_common.cpp(其为 ACR 边界"拒绝层"/legacy tool parser; 本身校验 acr_route 只允许 auto/cpu,
 # 属 ACR 隔离防线, 不属生产选路)。
 PRODUCTION_SOURCES = [
-    "cli/main.cpp",
-    "cli/jsonl.h",
+    "lib/infrastructure/cli/main.cpp",
+    "lib/infrastructure/cli/jsonl.h",
     "lib/phase1_session/p1_session.cpp",
     "lib/phase2_session/p2_session.cpp",
     "lib/phase3_session/p3_session.cpp",
@@ -94,7 +94,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
 
     def test_02_production_has_no_acr_register_call(self):
         """生产路径不调用 register_phase2_acr_kernels(仅 tests/tools 调)。"""
-        prod_cpp = ["cli/main.cpp", "lib/phase1_session/p1_session.cpp",
+        prod_cpp = ["lib/infrastructure/cli/main.cpp", "lib/phase1_session/p1_session.cpp",
                     "lib/phase2_session/p2_session.cpp", "lib/phase3_session/p3_session.cpp",
                     "lib/algorithms/coverage/src/upm.cpp"]
         for rel in prod_cpp:

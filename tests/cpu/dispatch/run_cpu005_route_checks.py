@@ -149,7 +149,7 @@ def main():
                     fail(f"{os.path.relpath(f, REPO)}:{ln}: 全局 preferred_isa=avx512 赋值")
     # 全 CPU provider/backend_host 面 grep (跨文件全局 ISA 声明禁止; 注释除外)
     r = run(["grep", "-rn", "preferred_isa", os.path.join(BH),
-             os.path.join(REPO, "providers", "cpu")], timeout=60)
+             os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu")], timeout=60)
     if r.returncode == 0 and r.stdout.strip():
         hits = [l for l in r.stdout.splitlines()
                 if l.split("//", 1)[0].strip() and

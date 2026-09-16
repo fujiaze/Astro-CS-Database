@@ -77,7 +77,7 @@ add_test(NAME rt007_artifact_store COMMAND rt007_artifact_store_test)
 
 add_executable(rt008_runtime_client_test rt008_runtime_client_test.cpp)
 target_include_directories(rt008_runtime_client_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
 target_link_libraries(rt008_runtime_client_test PRIVATE astrocs_cli_runtime)
@@ -86,16 +86,16 @@ add_test(NAME rt008_runtime_client COMMAND rt008_runtime_client_test)
 # RT-009: 节点 trace 数据源（run 后 status/时间/workers/provider; IR 保留）
 add_executable(rt009_node_trace_test rt009_node_trace_test.cpp)
 target_include_directories(rt009_node_trace_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
 target_link_libraries(rt009_node_trace_test PRIVATE astrocs_cli_runtime)
 add_test(NAME rt009_node_trace COMMAND rt009_node_trace_test)
 
-# B8-P1: cli/process 跨平台子进程封装(argv 传参替代 std::system)共址单测
+# B8-P1: lib/infrastructure/cli/process 跨平台子进程封装(argv 传参替代 std::system)共址单测
 add_executable(cli_process_test cli_process_test.cpp)
 target_include_directories(cli_process_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
 target_link_libraries(cli_process_test PRIVATE astrocs_cli_process)
 add_test(NAME cli_process COMMAND cli_process_test)
@@ -103,7 +103,7 @@ add_test(NAME cli_process COMMAND cli_process_test)
 # B8-P1-2: benchmark cpu verdict 推导(cli_common.h header-only)共址单测
 add_executable(cli_bench_verdict_test cli_bench_verdict_test.cpp)
 target_include_directories(cli_bench_verdict_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
   ${CMAKE_BINARY_DIR})
 add_test(NAME cli_bench_verdict COMMAND cli_bench_verdict_test)
@@ -111,7 +111,7 @@ add_test(NAME cli_bench_verdict COMMAND cli_bench_verdict_test)
 # B13-R13-4: WideCharToMultiByte 缓冲计算共址单测 (cli_common.h header-only)
 add_executable(cli_wideconv_test cli_wideconv_test.cpp)
 target_include_directories(cli_wideconv_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
   ${CMAKE_BINARY_DIR})
 add_test(NAME cli_wideconv COMMAND cli_wideconv_test)
@@ -287,7 +287,7 @@ add_test(NAME cpu004_routing COMMAND cpu004_routing_test)
 add_executable(mon001_recorder_test mon001_recorder_test.cpp)
 target_include_directories(mon001_recorder_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
 target_link_libraries(mon001_recorder_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME mon001_recorder COMMAND mon001_recorder_test)
 
@@ -295,7 +295,7 @@ add_test(NAME mon001_recorder COMMAND mon001_recorder_test)
 add_executable(mon002_gate_test mon002_gate_test.cpp)
 target_include_directories(mon002_gate_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
 target_link_libraries(mon002_gate_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME mon002_gate COMMAND mon002_gate_test)
 
@@ -305,7 +305,7 @@ add_test(NAME mon002_gate COMMAND mon002_gate_test)
 add_executable(mon002_alloc_test mon002_alloc_test.cpp)
 target_include_directories(mon002_alloc_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
 target_link_libraries(mon002_alloc_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME mon002_alloc COMMAND mon002_alloc_test)
 
@@ -314,7 +314,7 @@ add_test(NAME mon002_alloc COMMAND mon002_alloc_test)
 add_executable(mon001_gate_test mon001_gate_test.cpp)
 target_include_directories(mon001_gate_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
 target_link_libraries(mon001_gate_test PRIVATE astrocs_cpu astrocs_contracts astrocs_core)
 add_test(NAME mon001_gate COMMAND mon001_gate_test)
 
@@ -324,7 +324,7 @@ add_test(NAME mon001_gate COMMAND mon001_gate_test)
 add_executable(mon004_enforcement_test mon004_enforcement_test.cpp)
 target_include_directories(mon004_enforcement_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
 target_link_libraries(mon004_enforcement_test PRIVATE astrocs_cpu astrocs_contracts)
 add_test(NAME mon004_enforcement COMMAND mon004_enforcement_test)
 
@@ -440,7 +440,7 @@ endif()
 add_executable(cpu_monitor_test cpu_monitor_test.cpp)
 target_include_directories(cpu_monitor_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
 target_link_libraries(cpu_monitor_test PRIVATE astrocs_contracts Threads::Threads)
 add_test(NAME cpu_monitor COMMAND cpu_monitor_test)
 
@@ -497,6 +497,14 @@ add_subdirectory(../../lib/algorithms/drizzle/healpix_drizzle/tests/p1drz p1drz)
 # astrocs_hips 的 C ABI 九导出现状生产实现 (API-HIPS-001)。
 # ----------------------------------------------------------------------------
 add_subdirectory(../../lib/infrastructure/aio/tests/p1hips p1hips)
+
+# ----------------------------------------------------------------------------
+# AIO-HIPS-ABI (SCI-FIX-AIO #2 / V11-N-01) — AIO HiPS 跨边界结构布局锁:
+# C 探针 (只 include aio_hips.h) + 唯一 ctypes 镜像
+# (lib/infrastructure/aio/tools/aio_abi_mirror.py) + 逐字段布局锁 + 变异自检。
+# 结构定义见 lib/infrastructure/aio/tests/abi/CMakeLists.txt。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/infrastructure/aio/tests/abi aio_abi)
 
 # ----------------------------------------------------------------------------
 # P2-HIPS-TEST (TEST-P2HIPS-UNC-PROV-001, SCI-F3-001) —
@@ -665,13 +673,13 @@ add_subdirectory(../../lib/phase1_session/tests/p1sess p1sess)
 add_executable(p1_resource_test p1_resource_test.cpp)
 target_include_directories(p1_resource_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/calibration/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
 target_link_libraries(p1_resource_test PRIVATE astrocs_calibration ${ASTROCS_OMP_TARGET} Threads::Threads)
 add_test(NAME p1_resource COMMAND p1_resource_test)
 
 add_executable(p2_workers_test p2_workers_test.cpp)
 target_include_directories(p2_workers_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/coverage/include)
 target_link_libraries(p2_workers_test PRIVATE astrocs_phase2 astrocs_contracts ${ASTROCS_OMP_TARGET})
 add_test(NAME p2_workers COMMAND p2_workers_test)
@@ -704,7 +712,7 @@ add_test(NAME p2_ir_facade COMMAND p2_ir_facade_test)
 
 add_executable(p2_seam_gate_test p2_seam_gate_test.cpp)
 target_include_directories(p2_seam_gate_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
 target_link_libraries(p2_seam_gate_test PRIVATE astrocs_contracts)
 add_test(NAME p2_seam_gate COMMAND p2_seam_gate_test)
 
@@ -799,7 +807,7 @@ add_test(NAME p1_io_hardening COMMAND p1_io_hardening_test)
 # run manifest 证据由 tests/cli/test_phase2_inprocess.py 覆盖。
 add_executable(p15_artifact_collect_test p15_artifact_collect_test.cpp)
 target_include_directories(p15_artifact_collect_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../cli)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/cli)
 target_link_libraries(p15_artifact_collect_test PRIVATE astrocs_cli_runtime)
 add_test(NAME p15_artifact_collect COMMAND p15_artifact_collect_test)
 
@@ -1218,7 +1226,7 @@ target_include_directories(aio_abi_tests PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/shared
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../modules/services/io/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/aio/io/include)
 target_link_libraries(aio_abi_tests PRIVATE astrocs_common ${ASTROCS_OMP_TARGET})
 add_test(NAME aio_abi_units COMMAND aio_abi_tests units)
 add_test(NAME aio_abi_negative COMMAND aio_abi_tests negative)
@@ -1232,7 +1240,7 @@ target_include_directories(aio_abi_selfcheck PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/shared
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../modules/services/io/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/aio/io/include)
 target_link_libraries(aio_abi_selfcheck PRIVATE astrocs_common)
 add_test(NAME aio_abi_selfcheck COMMAND aio_abi_selfcheck)
 
@@ -1365,6 +1373,18 @@ if(Python3_Interpreter_FOUND)
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../quality/test_compare_products.py)
   set_tests_properties(compare_products_quality PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 300)
+  # --------------------------------------------------------------------------
+  # SCI-FIX-WEIGHT (M4-F-01 改判): SCI/ALG 点名测试的"三合一"证据门
+  # (文件存在 ∧ 构建注册 ∧ CI 采集) + 文档点名↔注册状态双向一致。
+  # 现行事实: control_median_mc_test / kcorr_matrix_test 属 tracked-but-unbuilt，
+  # PHASE2_UPM.md 必须显式标 MISSING。
+  # 机器可执行负例: python3 tests/quality/test_sci_evidence_registration.py --self-test
+  # (4/4 注入判红)。ci/checks.json 注册面由前台单写者登记（转 CI-003）。
+  # --------------------------------------------------------------------------
+  add_test(NAME sci_evidence_registration_quality
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../quality/test_sci_evidence_registration.py --root "${CMAKE_SOURCE_DIR}")
+  set_tests_properties(sci_evidence_registration_quality PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 600)
 else()
   message(WARNING "P26 quality-tool tests skipped: Python3 interpreter not found")
 endif()

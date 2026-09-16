@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """CLI 进程协议验收: GUI 可调用 JSON stream protocol — 外部 harness 视角。
 
-权威: docs/api/CLI_PROTOCOL_V1.md §3/§4/§5 + cli/protocol.h 生产侧硬闸。
+权威: docs/api/CLI_PROTOCOL_V1.md §3/§4/§5 + lib/infrastructure/cli/protocol.h 生产侧硬闸。
 方法(independent, 模拟外部 harness/GUI, 不调用库内部):
   - spawn 'astrocs normalize --json <cfg> --events-jsonl -y' 子进程, 流式逐行读 stdout;
   - 每行恰一个 UTF-8 JSON 事件(stdout 纪律), 独立重实现协议合同校验(防生产侧同源盲区);
@@ -49,7 +49,7 @@ AIO = next((p for p in (os.path.join(REPO, "lib", "infrastructure", "aio"),
                         os.path.join(REPO, "lib", "astro_image_io")) if os.path.isdir(p)),
            os.path.join(REPO, "lib", "infrastructure", "aio"))
 
-# §4 冻结 kind 扩展字段(独立重实现 — 与 cli/protocol.h 生产侧互为对偶)
+# §4 冻结 kind 扩展字段(独立重实现 — 与 lib/infrastructure/cli/protocol.h 生产侧互为对偶)
 REQUIRED_FIELDS = {"schema_version", "event_id", "run_id", "timestamp_utc", "sequence",
                    "kind", "severity", "phase", "stage", "message"}
 KIND_EXT = {
@@ -65,7 +65,7 @@ RUNID_RE = re.compile(r"^[0-9a-f]{12}$")
 
 
 def harness_validate(ev, expect_seq):
-    """外部 harness 侧协议校验(读侧, 独立于 cli/protocol.h)。返回错误串, None=通过。"""
+    """外部 harness 侧协议校验(读侧, 独立于 lib/infrastructure/cli/protocol.h)。返回错误串, None=通过。"""
     if not isinstance(ev, dict):
         return "event is not an object"
     missing = REQUIRED_FIELDS - set(ev)

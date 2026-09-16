@@ -10,7 +10,7 @@
   3. 重复 unit_id/module_id 检测; 版本冲突; 未登记 DLL; module_id/hash 不一致。
 
 结构:
-  - fixture 目录(临时): 用仓库 modules/conformance/noop 源码编译真实 noop .so,
+  - fixture 目录(临时): 用仓库 tests/conformance/noop 源码编译真实 noop .so,
     构造 product manifest(units 数组)与 module.yaml 镜像;
   - 场景 1: clean manifest + 真实 noop → open OK, 0 findings, entry 三方一致
     (module_id/version/build/hash 与 module.yaml/descriptor/manifest 全符);
@@ -41,11 +41,11 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 INC = os.path.join(REPO, "include")
-LOADER_DIR = os.path.join(REPO, "runtime", "module_loader")
-REG_DIR = os.path.join(REPO, "runtime", "registry")
+LOADER_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
+REG_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
 PROBE_C = os.path.join(REPO, "tests", "abi", "abi004_registry_probe.c")
-NOOP_SRC = os.path.join(REPO, "modules", "conformance", "noop", "src", "noop_module.c")
-NOOP_YAML = os.path.join(REPO, "modules", "conformance", "noop", "module.yaml")
+NOOP_SRC = os.path.join(REPO, "tests", "conformance", "noop", "src", "noop_module.c")
+NOOP_YAML = os.path.join(REPO, "tests", "conformance", "noop", "module.yaml")
 TIMEOUT = 300
 CC = os.environ.get("CC", "gcc")
 
@@ -161,7 +161,7 @@ def main():
         #   <root>/modules/<dll>.so  + manifest rel modules/astrocs_noop.so
         #   module.yaml 镜像放 <root>/modules/astrocs_noop/module.yaml? 
         #   → rel_dir=modules 会找 <root>/modules/module.yaml 更贴仓库
-        # 仓库真实布局: modules/conformance/noop/module.yaml + 安装 modules/astrocs_noop.so。
+        # 仓库真实布局: tests/conformance/noop/module.yaml + 安装 modules/astrocs_noop.so。
         # registry 的 yaml 查找用 rel_dir = rel_path 的 dirname(=modules), 找
         # <yaml_root>/modules/module.yaml。为模拟三方, 我们在工作区放:
         #   <work>/yaml_src/modules/module.yaml  (内容=仓库 noop module.yaml)

@@ -39,7 +39,7 @@ constexpr const char* error_domain_name(ErrorDomain d) noexcept {
   return "INTERNAL";
 }
 
-// CLI 退出码映射 (cli/exit_codes.h 唯一源; 此处只做映射表, 不重定义数值)
+// CLI 退出码映射 (lib/infrastructure/cli/exit_codes.h 唯一源; 此处只做映射表, 不重定义数值)
 enum class ExitCode : uint8_t {
   OK = 0, ARGS = 2, INPUT = 3, SCIENCE = 4, BACKEND = 5,
   COMPUTE = 6, IO = 7, INTEGRITY = 8, CANCELLED = 9, RESOURCE = 10, INTERNAL = 70,

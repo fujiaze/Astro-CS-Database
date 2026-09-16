@@ -77,7 +77,7 @@
   承接，两合同对齐边界登记于 DATA-P1-HIPS §12.5。
 - **tree hash/provenance 现状**：C++ writer 无整树哈希——仅 per-tile FITS
   DATASUM/CHECKSUM（fits_write_chksum :230，MOC :275）；sha256 清单在
-  IO-003 发布层（runtime/io/hips_output_store.py）；properties 级
+  IO-003 发布层（lib/infrastructure/aio/io/hips_output_store.py）；properties 级
   provenance=creator_did/obs_*/prov_progenitor/ASTROCS_DRIZZLE_PIXFRAC/
   SCALE_ARCSEC（:727-736）+ frame_id 输入白名单含 signal/support tile
   像素与关键 properties（DATA_SEMANTICS §5，DATA-FRAME-ID-001）。

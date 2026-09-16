@@ -1,6 +1,6 @@
 /* ABI-004 动态 registry 验收探针（C11; Linux）
  *
- * 角色: 包装 runtime/registry/module_registry.h 对真实 manifest 目录执行
+ * 角色: 包装 lib/infrastructure/pipeline/module_loader/module_registry.h 对真实 manifest 目录执行
  * open/check/entry/finding/close, 输出机器可读单行结果, 供
  * tests/abi/test_module_registry.py 断言。不自己判定 PASS/FAIL 语义。
  *

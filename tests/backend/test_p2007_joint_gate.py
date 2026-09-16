@@ -22,7 +22,7 @@ CLI-002 迁移注记 (commit de2d6d7f) + 实测口径变更:
   - 现行 CLI 无 "gate" 事件 kind; 资源门证据 = kind=="resource"/message=="resource gate"
     事件(verdict + wall_seconds/workers_p50/cpu_p50_percent/cpu_mean_percent)。
   - 联合门语义判定(实测, 本机 16c): session budget 恒 2 workers, 而门禁阈值 =
-    0.80*min(selected_workers, available_cpus)(cli/resource_gate.h:122); 6 块 seam
+    0.80*min(selected_workers, available_cpus)(lib/infrastructure/cli/resource_gate.h:122); 6 块 seam
     workload 的 sampler 实测 avg≈1.04 核, 在 16c 宿主机阈值 12.8 下恒判
     low_avg_cores → exit 10。这是 budget(2)/available_cpus(16) 不一致的结构性
     IMPL 缺口(P0: 恒假拒绝), 测试侧不做语义放宽; 本文件按现行真实契约验证:
@@ -238,7 +238,7 @@ class TestP2007JointGate(unittest.TestCase):
 
         P0 budget 注入链修复后: MON-002 CPU 口径(active window≥10s 采样,
         100%=全部分配核)实测 cpu_p50≈114%/cpu_mean≈107%, 恢复正向指标断言
-        (≥90/≥85, cli/resource_gate.h kCpuP50MinPercent/kCpuMeanMinPercent)。
+        (≥90/≥85, lib/infrastructure/cli/resource_gate.h kCpuP50MinPercent/kCpuMeanMinPercent)。
         "verdict==ok ⇔ rc==0" 机制分支保留: seam6 workload 等效核强度(~1.1 核)
         低于 0.80*N(N≥2), LowAvgCores 拒绝是 workload 强度问题(见 docstring),
         gate 判据本体按合同执行 — verdict!=ok ⇔ rc=10 + error 事件。
@@ -260,7 +260,7 @@ class TestP2007JointGate(unittest.TestCase):
         self.assertNotIn(g["verdict"], ("cpu_p50_low", "cpu_mean_low",
                                         "compute_io_mem_all_low"),
                          f"MON-002 CPU 指标不达标: {g['verdict']}")
-        # -1.0 = MON-002 未采样哨兵(cli/resource_gate.h:110/136: "负值=未采样,
+        # -1.0 = MON-002 未采样哨兵(lib/infrastructure/cli/resource_gate.h:110/136: "负值=未采样,
         # 跳过对应判定")。哨兵是采集可用性问题, 不是 CPU 低利用率证据:
         # 未采样时跳过正向阈值断言(对齐生产门合同), 但低利用率 verdict 禁止出现;
         # 有采样时按合同阈值判定(≥90/≥85)。
@@ -305,7 +305,7 @@ class TestP2007JointGate(unittest.TestCase):
             self.assertEqual(rg.get("enforcement"), "record_only")
         elif rg is not None:
             self.assertNotEqual(rg.get("severity"), "error")
-        for name in ("resource_samples.csv", "resource_summary.json", "worker_balance.csv",
+        for name in ("resource_timeseries.csv", "resource_summary.json", "worker_balance.csv",
                      "alloc_samples.csv", "alloc_report.json"):
             self.assertTrue(os.path.isfile(os.path.join(out, name)), name + " 缺失")
     def test_04_resource_summary_bounded_rss(self):
@@ -320,7 +320,7 @@ class TestP2007JointGate(unittest.TestCase):
         self.assertLess(a["rss_peak_bytes"], 512 << 20, "峰值 RSS 超限")
         self.assertGreaterEqual(a["workers_p50"], 2.0, "active 段 workers_p50 < 2")
         # 资源三件套同轮落盘
-        for name in ("resource_samples.csv", "worker_balance.csv"):
+        for name in ("resource_timeseries.csv", "worker_balance.csv"):
             self.assertTrue(os.path.isfile(os.path.join(self.out, name)), f"{name} 缺失")
 
     def test_05_science_seam_corrected(self):

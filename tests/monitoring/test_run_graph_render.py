@@ -21,7 +21,7 @@
   G8 回归：LOG-002/RT-006 语义不破坏（本域纯新增，import 既有模块正常）。
 
 方法：纯 Python unittest + stdlib（同 tests/monitoring/test_monitor_contract.py
-风格），真实调用 runtime/pipeline/trace_replay.py + 本工具；样例 trace 为
+风格），真实调用 lib/infrastructure/pipeline/trace_replay.py + 本工具；样例 trace 为
 RT-006 7 节点真实语义 JSONL（与 test_rt006_trace.py 同构），哈希为可辨识
 合成值（真实观测路径语义验证，非真实产品运行）。
 """
@@ -38,7 +38,7 @@ import xml.etree.ElementTree as ET
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
-sys.path.insert(0, str(REPO / "runtime" / "pipeline"))
+sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "pipeline"))
 
 from trace_replay import replay_from_jsonl  # noqa: E402
 
@@ -140,7 +140,7 @@ class TestGraphRenderTool(unittest.TestCase):
             td = pathlib.Path(td)
             tr = td / "t.jsonl"
             tr.write_text(make_trace_jsonl(), encoding="utf-8")
-            plan = REPO / "runtime" / "pipeline" / "fixtures" / "phase2_typed_dag.json"
+            plan = REPO / "lib" / "infrastructure" / "pipeline" / "fixtures" / "phase2_typed_dag.json"
             r = subprocess.run(
                 [sys.executable, str(TOOL_PY), "render",
                  "--trace", str(tr), "--plan", str(plan), "--out-dir", str(td),
@@ -170,7 +170,7 @@ class TestGraphConsistency(unittest.TestCase):
         plan = None
         if with_plan:
             plan = json.loads(
-                (REPO / "runtime" / "pipeline" / "fixtures"
+                (REPO / "lib" / "infrastructure" / "pipeline" / "fixtures"
                  / "phase2_typed_dag.json").read_text(encoding="utf-8"))
         return RG.build_graph(trace_events=events, plan_obj=plan,
                               sha="e" * 40)
@@ -195,7 +195,7 @@ class TestGraphConsistency(unittest.TestCase):
             events = [json.loads(ln) for ln in jsonl.splitlines()
                       if ln.strip()]
             g = RG.build_graph(trace_events=events, plan_obj=json.loads(
-                (REPO / "runtime" / "pipeline" / "fixtures"
+                (REPO / "lib" / "infrastructure" / "pipeline" / "fixtures"
                  / "phase2_typed_dag.json").read_text(encoding="utf-8")),
                 sha="e" * 40)
             gj = td / "g.json"
@@ -259,9 +259,9 @@ class TestGraphConsistency(unittest.TestCase):
         g = self._graph_for(make_trace_jsonl())
         edges = {e["artifact"]: e for e in g["edges"]}
         # fixture 经 RT-001 编译器推导的数据边（authoritative plan edges）
-        plan = json.loads((REPO / "runtime" / "pipeline" / "fixtures"
+        plan = json.loads((REPO / "lib" / "infrastructure" / "pipeline" / "fixtures"
                            / "phase2_typed_dag.json").read_text(encoding="utf-8"))
-        from runtime.pipeline.typed_dag import TypedDagCompiler
+        from lib.infrastructure.pipeline.typed_dag import TypedDagCompiler
         res = TypedDagCompiler().compile(plan)
         self.assertTrue(res.ok)
         pj = json.loads(res.plan.to_json())

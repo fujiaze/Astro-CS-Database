@@ -23,9 +23,9 @@ import sys
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "runtime" / "core"))
-sys.path.insert(0, str(REPO / "runtime" / "pipeline"))
-sys.path.insert(0, str(REPO / "runtime" / "artifact_store"))
+sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "scheduler" / "core"))
+sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "pipeline"))
+sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "aio" / "runtime" / "artifact_store"))
 
 from phase_lifecycle import (  # noqa: E402
     PhaseIsolationGuard,
@@ -38,7 +38,7 @@ from phase_lifecycle import (  # noqa: E402
 
 FX = REPO / "contracts" / "data" / "examples" / "external_fixture_hips.example.json"
 P1_FX = REPO / "contracts" / "data" / "examples" / "phase1_product_v1.example.json"
-LIFECYCLE_PY = REPO / "runtime" / "core" / "phase_lifecycle.py"
+LIFECYCLE_PY = REPO / "lib" / "infrastructure" / "scheduler" / "core" / "phase_lifecycle.py"
 
 # 各 phase 代表模块（真实 registry 登记）
 P1_MOD = "astrocs.phase1.calibration"
@@ -239,8 +239,8 @@ class TestNoGlobalRegistryInProductionSource(unittest.TestCase):
     """
 
     PROD_SOURCES = [
-        REPO / "runtime" / "core" / "phase_lifecycle.py",
-        REPO / "runtime" / "pipeline" / "typed_dag.py",
+        REPO / "lib" / "infrastructure" / "scheduler" / "core" / "phase_lifecycle.py",
+        REPO / "lib" / "infrastructure" / "pipeline" / "typed_dag.py",
     ]
     GLOBAL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\s*=\s*(\{\}|\[\])\s*$")
     GLOBAL_REG_RE = re.compile(r"^global\s+")

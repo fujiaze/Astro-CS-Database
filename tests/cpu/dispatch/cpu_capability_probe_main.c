@@ -1,7 +1,7 @@
 /* AstroCS CPU-001 probe — tests/cpu/dispatch/cpu_capability_probe_main.c
  *
  * 用途: 本机 AMD64 能力探测证据输出。stdout = 单行/单对象 JSON (稳定 schema,
- * providers/cpu/common/schemas/cpu_capability.schema.json); 供机器校验与审计。
+ * lib/infrastructure/benchmark/cpu/common/schemas/cpu_capability.schema.json); 供机器校验与审计。
  * stderr: 人类可读摘要 + os_safe 判定提示。exit: 0=探测成功 (非 x86 环境
  * 返回 5=ACS_CAP_ERR_UNSUPPORTED, 此时 stdout 为空)。
  *

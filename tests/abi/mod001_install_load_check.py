@@ -20,7 +20,7 @@ DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签
      在生产 target libastrocs_aio.a 内; 直链生产库的探针 aio_abi_query_v1 握手
      abi_version=1/status_count=71 成功;
   S6 安全 loader 加载验证（探针 = tests/abi/abi003_loader_probe.c, 合同 =
-     runtime/module_loader/secure_loader.h; 绝无静态 fallback）:
+     lib/infrastructure/pipeline/module_loader/secure_loader.h; 绝无静态 fallback）:
      正路径 — manifest 声明的每个 kind=module unit（noop + 6 科学 DLL）按
        安装树绝对路径 + 实测 sha256 + module_id + allowed_root=安装树 加载成功,
        describe 回读 module_id 与 manifest 登记逐一一致（签名清单官方模块语义）;
@@ -53,7 +53,7 @@ import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 INC = os.path.join(REPO, "include")
-LOADER_DIR = os.path.join(REPO, "runtime", "module_loader")
+LOADER_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
 PROBE_C = os.path.join(REPO, "tests", "abi", "abi003_loader_probe.c")
 VERIFY_SCRIPT = os.path.join(REPO, "packaging", "verify_install_tree.py")
 CC = os.environ.get("CC", "gcc")

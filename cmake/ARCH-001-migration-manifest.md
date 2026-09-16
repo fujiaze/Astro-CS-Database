@@ -51,7 +51,7 @@
 
 ## 2. 迁移同步义务核对（移动模块 -> 受影响引用 -> 是否已同步）
 
-| 旧路径 | tests/** | docs/** | ci/** | cli/** | tools/其他 | 同步状态 |
+| 旧路径 | tests/** | docs/** | ci/** | lib/infrastructure/cli/** | tools/其他 | 同步状态 |
 |---|---|---|---|---|---|---|
 | `lib/phase2_rej` | 2 | 2 | 0 | 0 | 0 | tests/docs 已同步；ci/cli 见下 |
 | `lib/phase2_samp` | 2 | 2 | 0 | 0 | 0 | tests/docs 已同步；ci/cli 见下 |
@@ -92,7 +92,7 @@
 - `tests/**`：已随迁移同步（CMake + Python 内的 lib 路径字符串）。
 - `docs/**`：已同步 2136 处（120 文件）。**`docs/algorithms/**` 未动**——按前台令等 TEST-GREEN-001 交棒后由本任务接手（锚点同步）。
 - `ci/**`：按前台令**只登记不改**（CI-001 窗口订正）。
-- `cli/**`：按前台令**不改**（CLI-001 文件域；该文件当前不在构建图内）。
+- `lib/infrastructure/cli/**`：按前台令**不改**（CLI-001 文件域；该文件当前不在构建图内）。
 
 ## 3. 等价性证据
 

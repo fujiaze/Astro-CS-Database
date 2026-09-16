@@ -6,15 +6,15 @@
 忽略的文件都是 dirty 违规。UT-CLI 的 CLI/夹具子进程若以仓库根为 cwd，则会把
 按 cwd 相对解析的落点写到仓库里：
 
-  * CLI `output_dir` 缺省 `"."`（cli/commands.cpp run 路径）：astrocs_run_*.json、
-    run_context.json、resource_samples.csv / resource_summary.json /
-    worker_balance.csv（cli/resource_recorder.h）、alloc_samples.csv /
-    alloc_report.json（cli/memory_report.h）。
+  * CLI `output_dir` 缺省 `"."`（lib/infrastructure/cli/commands.cpp run 路径）：astrocs_run_*.json、
+    run_context.json、resource_timeseries.csv / resource_summary.json /
+    worker_balance.csv（lib/infrastructure/cli/resource_recorder.h）、alloc_samples.csv /
+    alloc_report.json（lib/infrastructure/cli/memory_report.h）。
   * lib/infrastructure/aio 写侧日志路径硬编码为相对路径
     `lib/infrastructure/aio/logs/astro_image_io.log`（lib/infrastructure/aio/src/aio_log.cpp）。
 
   * CLI run 图渲染器路径取 `ASTROCS_REPO`（缺省 `"."`，即 cwd 相对）：
-    `<repo>/tools/quality/gen_run_graphs.py`（cli/commands.cpp write_run_graphs）。
+    `<repo>/tools/quality/gen_run_graphs.py`（lib/infrastructure/cli/commands.cpp write_run_graphs）。
     cwd 重定向后该相对路径不可达 → DOT/SVG/L0 静默缺失。这里用产品**既有**环境变量
     开关显式声明仓库根（非改产品）。
 
@@ -29,7 +29,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # CLI 的 run 图渲染器按 ASTROCS_REPO/tools/quality/gen_run_graphs.py 定位（缺省
 # "."，cwd 相对）。子进程 cwd 已重定向到 run/，必须显式声明真实仓库根，否则
 # RT-009 的 DOT/SVG/L0 产物静默缺失（test_phase123_pipeline.test_08_run_graphs）。
-# 该变量是 cli/commands.cpp:600 既有开关，非新增产品面。
+# 该变量是 lib/infrastructure/cli/commands.cpp:600 既有开关，非新增产品面。
 os.environ.setdefault("ASTROCS_REPO", REPO)
 
 __all__ = ["REPO", "run_cwd"]

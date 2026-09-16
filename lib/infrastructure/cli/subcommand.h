@@ -3,7 +3,7 @@
 // 薄入口（ASTROCS_DESIGN §6.1）职责边界，本文件是这条边界的落点：
 //   参数读取 / 配置模板填充 / 运行前预检 / 运行确认 / 退出码映射
 // 科学计算一律不在本层：执行、校验、计划、检视全部委托会话层
-// （cli/commands.cpp 的 session_dispatch → runtime_client/算法模块）。
+// （lib/infrastructure/cli/commands.cpp 的 session_dispatch → runtime_client/算法模块）。
 //
 // 三个子命令（normalize/mosaic/export）等价地只是「命令名 + 会话号」不同的同一
 // 个薄适配器；不存在任何跨命令调用点，因而不可能隐式串接（§1.2）。

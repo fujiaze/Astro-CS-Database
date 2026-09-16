@@ -98,12 +98,12 @@
 
 - module_adapters.cpp：P1Api 8 工厂委托 → P1NodeModule 8 域唯一真实
   operation 委托（p1_nodes[]；子节点零 phase_session_run 调用）。
-  operation/entry 名与 runtime/pipeline/module_ports.registry.json 一致。
+  operation/entry 名与 lib/infrastructure/pipeline/module_ports.registry.json 一致。
 - p1_session.cpp：run 成功 manifest status="partial" + availability 8 域
   （链不完整禁写 complete，complete 语义冻结待链完整后按门禁恢复）。
-- cli/runtime_client.cpp：phase1 IR 由单 cal 节点扩为 cal→cosmetic 链
+- lib/infrastructure/cli/runtime_client.cpp：phase1 IR 由单 cal 节点扩为 cal→cosmetic 链
   （cosmetic enabled=false 时 0 帧直通，产物语义不变）。
-- cli/commands.cpp：phase1 成功路径补接 write_run_graphs（对齐 phase3
+- lib/infrastructure/cli/commands.cpp：phase1 成功路径补接 write_run_graphs（对齐 phase3
   先例；observed trace 现含 phase1 节点观测）。
 - 根 CMakeLists.txt（白名单越界登记）：astrocs_phase1_session PUBLIC
   链接追加 4 个 lib/phase1 静态库（wcs/phot/noise/stars，源零修改只读

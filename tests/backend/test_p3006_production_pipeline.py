@@ -8,7 +8,7 @@
   C) SCI/ALG/MOD 状态由 DRAFT/PROTOTYPE 改 IMPLEMENTED(台账/文档标记)。
 
 CLI-002 迁移注记 (commit de2d6d7f):
-  - 顶层 `graph` 入口已删除; IR 仅存在于内存 (cli/runtime_client.cpp build_pipeline_ir),
+  - 顶层 `graph` 入口已删除; IR 仅存在于内存 (lib/infrastructure/cli/runtime_client.cpp build_pipeline_ir),
     `<repo>/graph/static_graph.json` 等图落盘产物在现行 CLI 无载体 (孤儿函数
     write_run_graphs 无调用点, 二进制中已无产物字符串)。test_01 改为验证现行真实
     契约: `graph` 入口 exit 2 + `phase3 run` 真实完成 IR 链并产出 manifest(phases==[3],

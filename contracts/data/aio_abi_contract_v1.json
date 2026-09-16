@@ -21,7 +21,7 @@
     "count": 17,
     "alignment": {
       "acs_status_common": "0..7 与 include/astrocs/common_abi_v1.h acs_status 共同子域数值一致",
-      "acs_fio_status_full": "0..13 与 modules/services/io/include/astrocs/io/fits_stream_v1.h acs_fio_status 全域逐值一致（测试编译期交叉断言证明）"
+      "acs_fio_status_full": "0..13 与 lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h acs_fio_status 全域逐值一致（测试编译期交叉断言证明）"
     },
     "codes": [
       {
@@ -146,7 +146,7 @@
     },
     {
       "kind": "status_alignment",
-      "note": "modules/services/io/include/astrocs/io/fits_stream_v1.h acs_fio_status 0..13 全域交叉断言（测试编译期）"
+      "note": "lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h acs_fio_status 0..13 全域交叉断言（测试编译期）"
     }
   ],
   "conformance_tests": [

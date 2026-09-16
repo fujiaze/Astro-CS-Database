@@ -52,7 +52,7 @@ class TestP3003ParallelResampler(unittest.TestCase):
         RESCUE-FD-08 判据校正(证据驱动): 原断言要求两次独立 run 的 FITS 整文件
         逐字节一致, 但主 HDU 必写本次 run 的 provenance RUNID(p3_output.cpp:216
         fits_write_key(TSTRING, 'RUNID', prov->run_id)), run_id 逐 run 唯一
-        (cli/jsonl.h:38 格式 %012llx), 且 RUNID 是冻结合同(tests/backend/
+        (lib/infrastructure/cli/jsonl.h:38 格式 %012llx), 且 RUNID 是冻结合同(tests/backend/
         test_p3005_fits_output.py:75 关键字白名单; tests/cli/test_phase3_inprocess.py:269
         断言 FITS RUNID == 本 run 真实 run_id)。故"整文件字节相等"在合同上不可
         满足。实测标定(本机同 config 两次 run, 69120 字节): 仅 24 字节不同, 全部

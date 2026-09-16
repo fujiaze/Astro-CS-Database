@@ -28,7 +28,7 @@ import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "runtime" / "artifact_store"))
+sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "aio" / "runtime" / "artifact_store"))
 
 from production_store import (  # noqa: E402
     ArtifactStore,

@@ -1,9 +1,9 @@
 // tests/system/v6_runtime/v6_runtime_resource_record_test.cpp
 // RUNTIME-CI-001 (§10.5): heavy 运行自动记录链的真实 /proc 观测验证。
 //
-// 不链接任何科学实现：直接驱动 cli/monitor.h (ProcessMonitor) +
-// cli/resource_recorder.h (ResourceRecorder) 记录链，在多线程 busy 负载下采样，
-// 断言 resource_samples.csv / resource_summary.json 含 §10.5 必采字段，且
+// 不链接任何科学实现：直接驱动 lib/infrastructure/cli/monitor.h (ProcessMonitor) +
+// lib/infrastructure/cli/resource_recorder.h (ResourceRecorder) 记录链，在多线程 busy 负载下采样，
+// 断言 resource_timeseries.csv / resource_summary.json 含 §10.5 必采字段，且
 // 每线程 CPU / active compute threads / I/O wait 为真实观测（非哨兵 0）。
 //
 // 用法: v6_runtime_resource_record_test <positive|negative> <out_dir>
@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
     }
 
     std::string csv, js;
-    if (!read_file(out + "/resource_samples.csv", &csv) ||
+    if (!read_file(out + "/resource_timeseries.csv", &csv) ||
         !read_file(out + "/resource_summary.json", &js)) {
         std::fprintf(stderr, "[FAIL] recorder artifacts missing under %s\n", out.c_str());
         return 1;

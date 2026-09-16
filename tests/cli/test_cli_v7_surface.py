@@ -112,7 +112,7 @@ class TestVersionSurface(unittest.TestCase):
         r = run("--version")
         self.assertEqual(r.returncode, 0, r.stderr)
         # 版本串单源 = 根 CMakeLists（产品事实源, BLD-002）: VERSION+g<commit>;
-        # 根图用 rev-parse HEAD 全 40 hex（旧 cli/ 独立图才是 --short=12, 已退役）。
+        # 根图用 rev-parse HEAD 全 40 hex（旧 lib/infrastructure/cli/ 独立图才是 --short=12, 已退役）。
         self.assertRegex(r.stdout.strip(),
                          r"^astrocs " + re.escape(_repo_version()) + r"\+g[0-9a-f]{12,40}(\.dirty)?$")
         self.assertEqual(r.stderr, "")

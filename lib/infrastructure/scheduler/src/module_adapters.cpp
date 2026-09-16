@@ -28,7 +28,7 @@
 //                write_variance_tile/finalize (AIO-002 原子发布内建;
 //                variance/ivar 按 DATA-P2-VAR-001 §30.1 合成公式)
 // 子节点一律不调用完整 phase_session_run; operation/entry 名与
-// runtime/pipeline/module_ports.registry.json 冻结绑定表一致。
+// lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定表一致。
 // 节点间 typed artifact 经 output_dir 文件约定传递（p2_coverage.json →
 // p2_samples.json → p2_upm_model.{bin,json} → p2_corrected.{json,bin} →
 // p2_rejection.{json,bin} → p2_integrated.{json,bin} → mosaic HiPS + p2_final.json）。
@@ -1028,7 +1028,7 @@ struct P3Api {
 
 // ══ P1-001 (attempt 2): Phase1 真实节点 operation 实现 ══════════════════════
 // 唯一真实 operation 委托（见文件头映射表）；子节点禁止调用完整 phase_session_run。
-// manifest 携带 operation/entry 标记（与 runtime/pipeline/module_ports.registry.json
+// manifest 携带 operation/entry 标记（与 lib/infrastructure/pipeline/module_ports.registry.json
 // 冻结绑定表一致），typed artifact 落盘 config.output_dir。
 
 using Json = nlohmann::json;
@@ -3340,7 +3340,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
 // ══ P2-001: Phase2 真实节点 operation 实现 ═══════════════════════════════════
 // 每节点唯一真实 operation 委托（见文件头映射表）；子节点禁止调用完整
 // p2_session_run。manifest 携带 operation/entry 标记（与
-// runtime/pipeline/module_ports.registry.json 冻结绑定表一致），typed
+// lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定表一致），typed
 // artifact 落盘 config.output_dir。节点间数据流 = output_dir 文件约定
 // （上游 artifact 缺失 → DATA fail-closed，指向上游节点未执行）。
 
@@ -4721,6 +4721,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     view.covered_area = cov_buf.data();
     view.valid_mask = nullptr;
     view.var_num_sum = uncertainty_available ? varnum_buf.data() : nullptr;
+    aio_hips_tile_view_abi_init(&view);
     const int wr = aio_hips_write_signal_support_tile(ps, &view);
     if (wr != 0) {
       aio_hips_abort(ps);
@@ -4729,6 +4730,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
           aio_hips_last_error()));
     }
     if (uncertainty_available) {
+      aio_hips_tile_view_abi_init(&view);
       const int wv = aio_hips_write_variance_tile(ps, &view);
       if (wv != 0) {
         aio_hips_abort(ps);
@@ -5234,7 +5236,7 @@ std::unique_ptr<IModule> make_p2_node_module(ModuleDescriptor desc, P2NodeSpec s
 // 节点间 typed artifact 经 output_dir 文件约定传递（P2 先例同构）:
 //   p3_props.json → p3_wcs.json → p3_resampled.{json,bin} →
 //   output_phase3.fits + p3_writer.json → p3_verify.json。
-// operation/entry 名与 runtime/pipeline/module_ports.registry.json 冻结绑定
+// operation/entry 名与 lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定
 // 表一致; manifest 携带标记供 trace/审计。
 
 namespace {
@@ -6325,7 +6327,7 @@ Result<void> register_phase_modules(ModuleRegistry& registry) {
   // operation 委托（P3-002 整改: 原工厂委托 P3Api session adapter = 每个子
   // 节点调用完整 p3_session_run, 5 节点链重复执行全链 5 次, 违反 RT-001 每
   // node 唯一真实 operation 绑定）; 各节点 operation/entry 与
-  // runtime/pipeline/module_ports.registry.json 冻结绑定表一致, manifest
+  // lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定表一致, manifest
   // 携带标记供 trace/审计; 节点间 typed artifact 经 output_dir 文件约定
   // 传递 (p3_props.json → p3_wcs.json → p3_resampled.{json,bin} →
   // output_phase3.fits → p3_verify.json)。

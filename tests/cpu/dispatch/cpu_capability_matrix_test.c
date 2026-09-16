@@ -7,7 +7,7 @@
  *   负测 (缺 AVX hw / 缺 OS state / 缺 AVX-512 子集 / OS 不保存 ZMM) 全部
  *   必须在 os_safe 平面拒绝; 正测 (OS 全保存 + 五子集齐) 必须通过。
  *
- * 事实源: 判定规则唯一实现 = providers/cpu/common/src/capability_detect.c
+ * 事实源: 判定规则唯一实现 = lib/infrastructure/benchmark/cpu/common/src/capability_detect.c
  *   cap_classify (经 acs_cap_classify_v1 公开入口); 本测试不复制规则。
  *
  * 运行: 直接可执行 (exit 0 = 全 PASS); 亦被 run_cpu_capability_checks.py 调用。

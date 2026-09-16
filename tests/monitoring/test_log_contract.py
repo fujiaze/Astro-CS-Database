@@ -26,8 +26,8 @@ import unittest
 REPO = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
 
-from runtime.logging import log_event as le  # noqa: E402
-from runtime.logging.log_event import (  # noqa: E402
+from lib.infrastructure.observability.logging import log_event as le  # noqa: E402
+from lib.infrastructure.observability.logging.log_event import (  # noqa: E402
     EVENTS, LEVELS, MAX_LINE_BYTES, LogEvent, REQUIRED_FIELDS, SCHEMA_ID,
     SeqAllocator, line_size_bytes, redact)
 
@@ -37,7 +37,7 @@ spec = importlib.util.spec_from_file_location(
 clc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(clc)
 
-SCHEMA_PATH = REPO / "runtime" / "logging" / "log_event_v1.schema.json"
+SCHEMA_PATH = REPO / "lib" / "infrastructure" / "observability" / "logging" / "log_event_v1.schema.json"
 
 TS = "2026-09-02T00:00:00Z"
 COMMIT = "0" * 40
@@ -123,7 +123,7 @@ class TestSchemaContract(unittest.TestCase):
         schema = schema_dict()
         errs: list = []
         ok_ev = make_event(1, level="error", event="error", diagnostic="失败",
-                            error={"source": "runtime/logging/log_event.py",
+                            error={"source": "lib/infrastructure/observability/logging/log_event.py",
                                    "symbol": "LogEvent.__init__",
                                    "status": "SCHEMA_VIOLATION"})
         clc.validate_subschema(ok_ev.to_dict(), schema, "L1", errs)

@@ -1,6 +1,6 @@
 // tests/system/v6_runtime/v6_runtime_contract_test.cpp
 // RUNTIME-CI-001 (Wave 9): 运行面契约正向/负向单元测试。
-// 被测单一事实源 = cli/v6_runtime_contract.h（统一预算 / 模式路由 / SO-05 策略 /
+// 被测单一事实源 = lib/infrastructure/cli/v6_runtime_contract.h（统一预算 / 模式路由 / SO-05 策略 /
 // 每线程字段面 / §3.2 Phase 隔离）。本测试只做结构性判定，不重跑科学实现。
 //
 // 用法: v6_runtime_contract_test <units|modes|budget|so05|isolation|metrics|negative>

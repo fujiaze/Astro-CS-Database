@@ -19,9 +19,9 @@ import tempfile
 import numpy as np
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-INCLUDE = REPO / "modules" / "services" / "io" / "include"
-FITS_CORE = REPO / "runtime" / "io" / "fits_core.c"
-LIB_SO = REPO / "runtime" / "io" / "libfits_core_test.so"
+INCLUDE = REPO / "lib" / "infrastructure" / "aio" / "io" / "include"
+FITS_CORE = REPO / "lib" / "infrastructure" / "aio" / "io" / "fits_core.c"
+LIB_SO = REPO / "lib" / "infrastructure" / "aio" / "io" / "libfits_core_test.so"
 
 ACS_FIO_ABI_VERSION_V1 = 1
 BITPIX_F32 = -32

@@ -6,7 +6,7 @@
 // call_count 语义; P1-001/P2-001 先例同构):
 //   1. registry 5 类 Phase3 节点各自唯一真实 operation 委托 (子节点禁止调用
 //      完整 p3_session_run) — 节点 last_manifest 必须携带 operation/entry 标记,
-//      与 runtime/pipeline/module_ports.registry.json 冻结绑定表逐一一致:
+//      与 lib/infrastructure/pipeline/module_ports.registry.json 冻结绑定表逐一一致:
 //        astrocs.phase3.properties → read_properties   astrocs_phase3_properties_v1
 //        astrocs.phase3.wcs        → build_wcs         astrocs_phase3_wcs_v1
 //        astrocs.phase3.resample2  → resample_projection astrocs_phase3_resample_v1
@@ -148,7 +148,7 @@ void cleanup_fixture(NodeFixture& fx) {
 }
 
 // ── Phase3 节点期望表 (唯一真实 operation 绑定, 冻结源
-//    runtime/pipeline/module_ports.registry.json) ────────────────────────────
+//    lib/infrastructure/pipeline/module_ports.registry.json) ────────────────────────────
 struct NodeExpect {
   const char* module_id;
   const char* operation;

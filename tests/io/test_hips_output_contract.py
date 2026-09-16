@@ -29,7 +29,7 @@ import threading
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "runtime" / "io"))
+sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "aio" / "io"))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 import fits_verify  # noqa: E402
@@ -356,7 +356,7 @@ class TestFitsVerifyCrossOracle(unittest.TestCase):
     """fitsverify 与 IO-001 fits_core C verifier 同一判定（交叉 oracle）。"""
 
     def test_tile_verify_matches_c_verifier(self):
-        lib = ctypes.CDLL(str(REPO / "runtime" / "io" / "libfits_core_test.so"))
+        lib = ctypes.CDLL(str(REPO / "lib" / "infrastructure" / "aio" / "io" / "libfits_core_test.so"))
         vf = lib.acs_fio_verify_file_v1
         vf.restype = ctypes.c_int
         vf.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p,

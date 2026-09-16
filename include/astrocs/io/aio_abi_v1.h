@@ -7,14 +7,14 @@
  * 宪章锚 (ASTROCS-CONSTITUTION-001):
  *   - §8.3  lib/infrastructure/aio 是唯一 FITS/HiPS/manifest I/O 边界 (目标态);
  *     本头是该唯一边界的版本化 C ABI v1 合同面, 现有实现 (astro_image_io /
- *     runtime/io) 的 ABI 数值域向本头收敛。
+ *     lib/infrastructure/aio/io) 的 ABI 数值域向本头收敛。
  *   - §8.6  跨 DLL 边界使用版本化 C ABI: 不传 STL、C++ exception、RTTI 对象或
  *     编译器私有类型; 结构体带 struct_size/abi_version; buffer 所有权和释放方
  *     明确; 失败返回稳定状态码。
  *
  * 对齐矩阵 (数值冻结; v1 不可变, 扩展须升版本):
  *   - 0..7  与 include/astrocs/common_abi_v1.h acs_status 共同子域数值一致。
- *   - 0..13 与 modules/services/io/.../fits_stream_v1.h acs_fio_status 全域一致
+ *   - 0..13 与 lib/infrastructure/aio/io/.../fits_stream_v1.h acs_fio_status 全域一致
  *     (IO 家族同域; _Static_assert 编译期对齐证明)。
  *   - 14/15 为 AIO 内容哈希复核专属扩展码。
  *

@@ -8,7 +8,7 @@ AstroCS **唯一可执行入口** `astrocs`（Windows 交付名 `ACSD Cli.exe`�
   机器输出（`--json` 下 stdout 恰一个 JSON 文档）、JSONL 事件、取消与退出码；
 - **非职责**：科学公式（唯一家在 `lib/algorithms/`）、FITS/HiPS 读写（`infrastructure/aio`）、
   线程池（scheduler/runtime）。本目录**不实现**任何科学计算，只把已校验的配置交给
-  `cli/runtime_client`（CLI runtime client）→ Runtime/pipeline。
+  `lib/infrastructure/cli/runtime_client`（CLI runtime client）→ Runtime/pipeline。
 
 ## 2. 命令树（唯一，ASTROCS_DESIGN §6.2）
 
@@ -34,9 +34,9 @@ help / --version / doctor / benchmark
 | `mosaic/` | `mosaic` 子命令入口 |
 | `export/` | `export` 子命令入口 |
 
-用户可见命令名/旗标的唯一事实源是 `command_tree.h`；根 `cli/parser.cpp` 只从该表
+用户可见命令名/旗标的唯一事实源是 `command_tree.h`；根 `lib/infrastructure/cli/parser.cpp` 只从该表
 取白名单，不再自带命令清单。构建接线（根 `CMakeLists.txt` 的 `astrocs` target）
-由 INT-001 登记；本层当前以头文件形式被 `cli/commands.cpp` 消费。
+由 INT-001 登记；本层当前以头文件形式被 `lib/infrastructure/cli/commands.cpp` 消费。
 
 ## 4. 测试
 
