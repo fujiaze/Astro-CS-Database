@@ -342,3 +342,48 @@
 | 4 | `ci/checks.json` 其余 145 项旧 ID 尚未迁移为 `CHK-*`（本次仅新增 1 项 `CHK-ROOT-CLEAN`） | CI-001 | GAP-016 原样保留，本任务不改既有条目 |
 | 5 | `.gitignore` 新增项的「清理条件」需在 CLI/测试修复后回收 | CLI-003 / QA-001 | `/run_context.json`、`/astrocs_p1sess_*/` 是 ASTROCS_DESIGN §6.3 违规的兜底，不是终态 |
 
+
+---
+
+## 附录 R1　根条目用途台账（2026-09-16 清理后 · 回答「这目录是干什么的」）
+
+### R1.1 本次清理（已执行，根条目 54 → 47）
+
+| 条目 | 性质 | 为何无意义 | 处置 |
+|---|---|---|---|
+| `p8/p9/p10/p11/p15a-files.patch`（5 个） | 未跟踪文件（09-14） | **旧世代补丁**：diff 打的是迁移前路径（`lib/plate_solve/**`、`lib/healpix_db/**`、`docs/contracts/DATA_SEMANTICS.md`），ARCH-001 迁移后全部失效 | **已删除**（恢复走 git 历史） |
+| `.pytest_cache/` | 未跟踪缓存 | pytest 缓存（`.gitignore:91` 已忽略但仍物理存在） | **已删除** |
+| `AstroCS.wiki/` | 空目录（0 文件） | 旧 Wiki 归档，内容已不存在 ⇒ 空壳 | **已删除** |
+| `evidence/` | 未跟踪（1 文件） | `evidence/v6_1_rework/...` —— **v6.1 世代**残留；§7 规定证据落 `artifacts/` ⇒ 根 `evidence/` 属未登记条目 | **已删除**；后续证据一律落 `artifacts/` |
+
+### R1.2 保留条目及用途
+
+**文件（§7 点名）**：`ASTROCS_DESIGN.md`（最高权威）、`AGENTS.md`（机器手册）、`ENGINEERING_SPEC.md`（工程约束+§7 根规范）、`CONTROL_PACK_SPEC.md`、`README.md`/`memory.md`/`DEPENDENCIES.md`、`CMakeLists.txt`/`CMakePresets.json`/`build.sh`/`toolchain.ps1`、`.clang-format`/`.editorconfig`/`.gitignore`/`.gitattributes`/`.github/`、**`VERSION`**（内部助记符，`cli/CMakeLists.txt:27` 读取，删除破构建）、**`FATDUCK_ACCESS.md`**（运营必需，禁删，无凭据）。
+
+**目录**：
+
+| 条目 | 用途 |
+|---|---|
+| `lib/` | 产品源码：`algorithms/`（16 模块 + shared）+ `infrastructure/`（9 模块），ARCH-001 迁移后结构 |
+| `include/` `modules/` `providers/` `runtime/` `cli/` `packaging/` | 头文件 / 模块 / 提供者 / 运行时 / **CLI 兼容层**（不在根构建图内）/ 打包 |
+| `contracts/` `cmake/` `config/` `docs/` `tests/` `tools/` `ci/` `scripts/` `testdata/` `third_party/` | §7 固定目录（合同/构建/全局配置/文档/测试/工具/CI/脚本/测试数据/第三方） |
+| `工程控制/` | 控制包（现役 `PROJECT-GOVERNANCE-01/`） |
+| `reports/` | 正式报告与证据（含 `research/**` 研究线交付） |
+| `artifacts/` | §7 的**证据/产物**：`KNOWN_FAILURES_BASELINE.json`（**在用**，`source_commit` 指向当前 HEAD）、`ci/<sha>/`（每次 CI 运行产物）；`prerelease_v5/` 为旧世代但仍被 `ci/checks.json`/`impact_map` 引用 ⇒ **待 CI-003 处理** |
+| `engineering/` | §7 要求存在，**当前为空**（见 R1.4） |
+| `logs/` | §7 明示 gitignore 的运行日志目录，**当前为空**（日志实际落 `run/<task>/logs/`） |
+| `run/` | gitignore 临时产物/日志（**94G / 63 万文件**，见 R1.4） |
+| `问题扫描/` | 隔壁挖掘线的**在用台账**（1097 文件），登记禁删 |
+
+**数据目录（gitignore；代码按相对路径读取 ⇒ 位置即契约）**：`GaiaDR3/` 41G、`GaiaDR3SP/` 63G（`tools/realdata/match_plan.py:666/667` 直读相对路径）、`BASS DR3/` 57M、`testdata/` 30G（§7 固定，944 文件中仅 1 个入库）、`build/` 590M。
+
+### R1.3 检查器为什么没报？
+
+`tools/quality/check_root_cleanliness.py` 只校验「§7 白名单 + 未登记条目」，**不校验**：① 未跟踪文件是否为旧世代残留；② §7 要求的目录是否为空壳；③ gitignore 目录的膨胀。⇒ 已登记为检查器缺口，**归 CI-003**（新增「根目录不得存在未跟踪的非白名单文件」与「白名单目录不得长期为空」两条门）。
+
+### R1.4 需裁定（各一句）
+
+1. **空壳 §7 目录**（`engineering/` 空、`logs/` 空）：① 删除并从 §7 移除；② 保留但要求有内容（如 `engineering/` 放工程决策记录、`logs/` 落运行日志）；③ 维持现状。
+2. **`run/` 94G / 63 万文件**：是否按「保留最近 N 天 + 每任务自证摘要」裁剪一次？
+3. **104G 参考数据**（`GaiaDR3/` `GaiaDR3SP/` `BASS DR3/`）：是否移出仓库根到 `/workspace/astrocs_data/` 并留**同名符号链接**（代码无需改动）？
+
