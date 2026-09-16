@@ -42,4 +42,4 @@ STF engine 单测；视觉验收（工程控制 16 spec）。
 
 ## Source files
 
-lib/healpix_db/healpix_browser_qt/。
+lib/infrastructure/hips_browser/healpix_browser_qt/。

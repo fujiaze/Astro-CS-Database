@@ -1,18 +1,18 @@
 # Module: calibration
 
 > P1-CAL-DOC 事实修订（2026-09-07）：本页由源码核对后修订——生产调用方、
-> 线程模型、错误语义、诊断/测试陈述以 lib/calibration 现行源码为准；
+> 线程模型、错误语义、诊断/测试陈述以 lib/algorithms/calibration 现行源码为准；
 > 旧版与源码不符处（"16 线程块并行"、每帧日志/母版 hash、Python 对照
 > 测试等）已删除或修正。算法细节见 docs/algorithms/CALIBRATION_ALGORITHMS.md
 > （ALG-CAL-001..006）；数据语义见 docs/contracts/DATA_SEMANTICS.md §9
 > （DATA-P1-CAL）；API 合同见 docs/contracts/PUBLIC_API.md（API-CAL-001）
 > 与 docs/api/PHASE1_API_V1.md（API-P1-001）。
 > P1-COS-DOC 增补（2026-09-07）：cosmetic 域合同已独立冻结为
-> astrocs.p1.cosmetic（lib/cosmetic/，ALG-COS-001..005 =
+> astrocs.p1.cosmetic（lib/algorithms/cosmetic/，ALG-COS-001..005 =
 > docs/algorithms/COSMETIC_ALGORITHMS.md，DATA-P1-COS = DATA_SEMANTICS
 > §10，API-COS-001 = PUBLIC_API.md）——与本页 P1-CAL 合同共享同一编译
 > 目标 astrocs_calibration 与头文件；本页仅保留 P1-CAL 视角摘要，
-> cosmetic 域以 lib/cosmetic/README.md 为权威。
+> cosmetic 域以 lib/algorithms/cosmetic/README.md 为权威。
 
 ## 职责
 
@@ -34,7 +34,7 @@ astrocs_p1_calibration.dll 由 P1-CAL-IMPL 建立。
 （calibrate stage）与 `:294` 调 `ac_correct_frame`（cosmetic stage，
 2026-09-01 c5629be6 引入；master_dark/master_bias 传 nullptr → 检测
 全禁用、恒等 pass，DISP-COS-009——cosmetic 域现状与整改见
-lib/cosmetic/README.md）。`ac_generate_master_*`、`ac_set_num_threads`
+lib/algorithms/cosmetic/README.md）。`ac_generate_master_*`、`ac_set_num_threads`
 当前无生产调用方（master 由外部预生成；ac_set_num_threads 由
 session budget 注入通道持有）。
 
@@ -108,12 +108,12 @@ hash 诊断（旧版陈述已删除）。actual_k/out_hot/out_cold 为可选输�
 TEST-CAL-DESIGN-001（ALG-CAL 文档 §9：合成 fixture FIX-CAL-A..F、NumPy
 独立 oracle、不变量 I1-I6、负面/串并行/ISA/资源设计与冻结容差）——可执行
 测试由 P1-CAL-TEST 建立（TEST-P1-CAL-001）。既有共址测试：
-lib/calibration/tests/test_photometry_apply.cpp（未挂接 CMake 测试目标）。
+lib/algorithms/calibration/tests/test_photometry_apply.cpp（未挂接 CMake 测试目标）。
 Python 对照为历史层（当前树无 python/ 目录）。
 
 ## Source files
 
-lib/calibration/{include,src}/（CMake astrocs_calibration：
+lib/algorithms/calibration/{include,src}/（CMake astrocs_calibration：
 calibrator/master_generator/cosmetic_corrector/ac_api.cpp）；
 未编译：dark_optimizer.cpp、photometry_apply.cpp；遗留双实现：
 cpp/cosmetic_corrector.cpp（cc_* 通道）。

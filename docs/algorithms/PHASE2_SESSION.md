@@ -174,7 +174,7 @@ passthrough 交会话拒——两道防线，语义一致。
 | p2_upm_build（upm.h:95-97） | — | — | :204 | — | 恰 1 |
 | p2_upm_info（upm.h:110） | — | — | :210 | — | 恰 1（失败可容忍 :217-219） |
 | p2_upm_save（upm.h:108） | — | — | — | :230 | 0..1（条件 :222） |
-| p2_upm_close（upm.h:180） | — | — | — | :224/:231/:241 | 恰 1（正常 :241；persist 取消 :224；save 失败 :231） |
+| p2_upm_close（upm.h:192） | — | — | — | :224/:231/:241 | 恰 1（正常 :241；persist 取消 :224；save 失败 :231） |
 
 反断言（grep 实测 2026-09-10）：p2_session.cpp 不含 p2_integrate_
 pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
@@ -189,7 +189,7 @@ pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
   C API。
 - **预算注入**：sample sc.cpu_workers=host->budget.max_workers
   （:155）；upm uc.cpu_workers=host->budget.max_workers（:195）；
-  worker 数零硬编码。sampler 域 0→1 归一（sampler.cpp:883）、1=串行
+  worker 数零硬编码。sampler 域 0→1 归一（sampler.cpp:900）、1=串行
   reference；UPM blocks 并行语义归 ALG-UPM-001 域。
 - **线程创建归零**：p2_session.cpp 无 std::thread/omp 原语（grep 实
   测）——并行全部在域内实现（sampler.cpp worker 池 / upm.cpp blocks），

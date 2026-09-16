@@ -22,9 +22,9 @@ downstream: [TEST-P3-WR-001]
   为迁移合同值，尚未存在——MISSING 语义，由 P3-FITS-IMPL 建立，
   禁止声明 IMPLEMENTED；现状构建=astrocs_phase3_session 静态库成员，
   根 CMakeLists.txt:460-465）。
-- 合同落位: lib/phase3_fits/ 三件套（README r1 + module.yaml
+- 合同落位: lib/algorithms/fits_output/ 三件套（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
-  lib/phase2_upm→phase2_samp→phase2_rej→phase2_int→hips_p2 先例
+  lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2 先例
   新建；lib/phase3_session/ 为会话编排域共享源，不整目录归属）。
 - 生产源: lib/phase3_session/p3_output.cpp（370 行）+ 唯一权威签名头
   p3_output.h（64 行）+ WCS 关键字源 p3_wcs.h（50 行），实测
@@ -162,7 +162,7 @@ downstream: [TEST-P3-WR-001]
 
 ## 10 已知限制与缺陷登记（DISP-P3FITS-001..002，不改码）
 
-- **DISP-P3FITS-001**: lib/astro_image_io/README.md 旧派生内容
+- **DISP-P3FITS-001**: lib/infrastructure/aio/README.md 旧派生内容
   声称"零外部依赖、不依赖 cfitsio"，与现状 vendored
   third_party/cfitsio（astrocs_cfitsio 静态库，CMakeLists.txt
   :273-296 astrocs_aio 链接）矛盾；他域文件只登记不修。

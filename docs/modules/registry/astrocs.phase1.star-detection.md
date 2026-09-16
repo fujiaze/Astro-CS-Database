@@ -12,20 +12,20 @@ downstream: [TEST-P1-STAR-001]
 
 > P1-STAR-DOC 手写合同页（2026-09-07，SA-P1-S15）：registry 无
 > astrocs.p1.star_detection descriptor——现行占位 descriptor 为
-> astrocs.phase1.star-psf（lib/core/src/module_adapters.cpp:492-510，编排层
+> astrocs.phase1.star-psf（lib/infrastructure/scheduler/src/module_adapters.cpp:492-510，编排层
 > 词汇，占位 ID ALG-002/TEST-P1-PSF-001 由 P1-PSF-INT/P1-STAR-INT 对齐），
 > 本页手写登记，重生成时须保留（astrocs.phase1.session.md 先例）。权威签名头
-> lib/star_detector/include/star_detector.h:1-73；模块级事实以
-> lib/star_detector/README.md（r1，CONTRACT_READY）+ module.yaml
+> lib/algorithms/star_detection/include/star_detector.h:1-73；模块级事实以
+> lib/algorithms/star_detection/README.md（r1，CONTRACT_READY）+ module.yaml
 > （MOD-astrocs-phase1-star，dll_target=astrocs_p1_star_detection.dll，
 > entrypoint=MISSING）为准。
 
 - 模块词汇：`astrocs.p1.star_detection`（MODULE_MIGRATION_MATRIX P1-STAR 行
-  module_id；owner=SA-P1-S15，legacy_paths="lib/star_detector;lib/phase1/stars"，
+  module_id；owner=SA-P1-S15，legacy_paths="lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1"，
   迁移目标 astrocs_p1_star_detection.dll——合同值，尚未存在）。
-- 层级：Phase1 生产模块；现状构建 lib/star_detector/Makefile:39 →
+- 层级：Phase1 生产模块；现状构建 lib/algorithms/star_detection/Makefile:39 →
   star_detector.dll（orchestrator.cpp:1539-1549 显式加载，失败即错）；根
-  CMakeLists.txt:441 astrocs_phase1_stars STATIC（lib/phase1/stars P1-003
+  CMakeLists.txt:441 astrocs_phase1_stars STATIC（lib/algorithms/star_detection/wrapper_phase1 P1-003
   桥接层，独立 sigma-clip 实现）为 legacy_paths 第二路径。
 - 合同：SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，冻结层，共享 SCI
   引用不改动）/ ALG-STARDET-001（STAR_DETECTION_ALGORITHMS §11 逐符号锚）/

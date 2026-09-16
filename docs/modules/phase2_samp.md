@@ -11,8 +11,8 @@ downstream: [TEST-P2-SMP-001]
 # 模块 astrocs.p2.sampling（P2-SAMP-DOC 新建，2026-09-09）
 
 > P2-SAMP-DOC（SA-P2-S20）新建模块页。合同三件套落位
-> `lib/phase2_samp/`（README/module.yaml/memory.md，按
-> `lib/phase2_int/`→`lib/hips_p2/` 先例新建；`lib/phase2/` 一目录
+> `lib/algorithms/sampling/`（README/module.yaml/memory.md，按
+> `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/` 先例新建；`lib/algorithms/coverage/` 一目录
 > 一套已被 P2-COV 占用，不可覆盖）；合同权威=三件套 +
 > docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001，
 > CONTRACT_READY）。descriptor 词汇 module_id=astrocs.phase2.sample
@@ -27,16 +27,16 @@ downstream: [TEST-P2-SMP-001]
   `astrocs.p2.sampling`（矩阵 P2-SAMP 行；descriptor 占位
   `astrocs.phase2.sample` 仅编排层词汇）；dll_target=
   `astrocs_p2_sampling.dll`（合同值，尚未存在，迁移归 P2-SAMP-IMPL）。
-- 合同三件套：`lib/phase2_samp/`（README/module.yaml/memory.md），按
-  `lib/phase2_int/`→`lib/hips_p2/` 先例新建；`lib/phase2/` 三件套已
+- 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md），按
+  `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/` 先例新建；`lib/algorithms/coverage/` 三件套已
   被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
-- 生产源：`lib/phase2/src/sampler.cpp`（1156 行，根 CMakeLists.txt
+- 生产源：`lib/algorithms/coverage/src/sampler.cpp`（1156 行，根 CMakeLists.txt
   :337-346 astrocs_phase2 静态库成员，sampler.cpp 列于 :342）+
-  唯一权威签名头 `lib/phase2/include/astro/phase2/sampler.h`
+  唯一权威签名头 `lib/algorithms/coverage/include/astro/phase2/sampler.h`
   （136 行）。模块页=本文件。
 - owner SA-P2-S20；depends_on_int=P2-COV-INT;CPU-005
   （MODULE_MIGRATION_MATRIX.csv P2-SAMP 行权威）；
-  legacy_paths="lib/phase2 sampling sources"。
+  legacy_paths="lib/algorithms/coverage sampling sources"。
 
 ## 职责与明确非职责
 
@@ -94,7 +94,7 @@ downstream: [TEST-P2-SMP-001]
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/phase2/include/astro/phase2/sampler.h
+- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/sampler.h
   （136 行；cfg :32-57、stats :63-74、node :77-83、frame_id 冻结注
   :85-92、stats :95-99、probe/fill 冻结注 :101-102、两入口
   :103-114/:120-132）。
@@ -119,7 +119,7 @@ module_id=`astrocs.phase2.sample`（占位）；execution_class=
 - `cpu_heavy`；并行轴=union cell 间（模块内 std::thread 池
   :886-913，next_c.fetch_add 动态领取、固定槽位写回 cells[idx]
   :870-872、per-worker 独立 AIO 句柄 :894；=1 串行 reference
-  :916-933）；OpenMP 已从实现移除（:882-883 注释），lib/phase2/
+  :916-933）；OpenMP 已从实现移除（:882-883 注释），lib/algorithms/coverage/
   CMakeLists.txt:28 P2_ENABLE_OPENMP option 保留仅旧 target 编译面。
 - **输出 obs 序列 bitwise 与 worker 数无关**（1/N 等价）+ 第三遍
   单线程顺序扫描；验证门=F8
@@ -165,10 +165,10 @@ rtol 1e-12、F3 cvar Python oracle rtol 1e-12 + UPMW-004 MC 3σ、
 F4 坐标 atol 1e-9 deg、F5 constant/gradient/impulse cvar rtol
 1e-12、F6 边界/seam exact、F7 missing/invalid exact、F8 串并行
 bitwise、F9 计数守恒现状口径）。现状相邻证据（引用不冒认）:
-lib/phase2/tests/synthetic_gate.cpp Phase2Sampler 组
+lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Sampler 组
 （RealHipsControlSampling :3423、G6LocalSnrAvailabilityThreeZones
 :3470、G1StatisticsCorrectness :3594、UPMW-004 MC :4001、cvar
-:4089）；lib/phase2/tests/sampler_parallel_consistency_test.cpp
+:4089）；lib/algorithms/coverage/tests/sampler_parallel_consistency_test.cpp
 :29；ivar_wiring_test.cpp:223（ivar 面）。
 
 ## 已知限制
@@ -180,7 +180,7 @@ lib/phase2/tests/synthetic_gate.cpp Phase2Sampler 组
 
 ## 链接
 
-- 合同三件套：`lib/phase2_samp/`（README/module.yaml/memory.md）
+- 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md）
 - registry 页：docs/modules/registry/astrocs.phase2.sample.md
 - SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106，零
   改动；descriptor 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明=ALG

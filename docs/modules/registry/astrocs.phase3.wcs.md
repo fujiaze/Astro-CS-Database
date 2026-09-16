@@ -22,9 +22,9 @@ downstream: [TEST-P3-WCS-001]
   为迁移合同值，尚未存在——MISSING 语义，由 P3-PROJ-IMPL 建立，
   禁止声明 IMPLEMENTED；现状构建=astrocs_phase3_session 静态库成员，
   根 CMakeLists.txt:460-465，p3_wcs.cpp 为五源文件之一）。
-- 合同落位: lib/phase3_proj/ 三件套（README r1 + module.yaml
+- 合同落位: lib/algorithms/projection/ 三件套（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
-  lib/phase2_upm→phase2_samp→phase2_rej→phase2_int→hips_p2→
+  lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2→
   phase3_fits 先例新建；lib/phase3_session/ 为会话编排域共享源，
   不整目录归属）。
 - 生产源: lib/phase3_session/p3_wcs.cpp（165 行）+ 唯一权威签名头
@@ -96,7 +96,7 @@ downstream: [TEST-P3-WCS-001]
   +wcs_plan(DATA-P3-WCS 可)；sci_id=SCI-P3-WCS-001、alg_id=
   ALG-P3-002、data_id=DATA-P3-WCS、api_id=API-P3-001、test_id=
   TEST-P3-WCS-001——占位 ID/端口由 P3-PROJ-INT 对齐本页与
-  lib/phase3_proj/module.yaml，不作冻结依据。
+  lib/algorithms/projection/module.yaml，不作冻结依据。
 - 注册序: module_adapters.cpp:816 起序列（phase3_descriptor→
   p3_wcs_descriptor→p3_resample2_descriptor→p3_writer_descriptor，
   :797-798 收尾）；配置=phase config JSON（按 PHASE API 文档）。
@@ -161,4 +161,4 @@ downstream: [TEST-P3-WCS-001]
 - DATA: docs/contracts/DATA_SEMANTICS.md §28
 - API: docs/contracts/PUBLIC_API.md（API-P3-PROJ-001 节）
 - 模块总页: docs/modules/phase3_proj.md；合同三件套:
-  lib/phase3_proj/{README.md,module.yaml,memory.md}
+  lib/algorithms/projection/{README.md,module.yaml,memory.md}

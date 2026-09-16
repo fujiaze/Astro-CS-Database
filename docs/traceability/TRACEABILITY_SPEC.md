@@ -121,18 +121,18 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-DOC-001-MATRIX
 - SRC 层引用格式：`<repo-relative-path>::<symbol>[,<symbol>...]`，多符号用逗号分隔。
 - 文件必须存在且受 Git 跟踪；符号必须在文件文本中可见（宽松匹配标识符边界）。
 - 无符号可锚时写 `<path>::MISSING`（文件存在但符号待补）——禁止留空、禁止裸路径冒充。
-- 表达示例：`modules/conformance/noop/src/noop_module.c::astrocs_module_query_v1`、
-  `providers/cpu/common/README.md::MISSING`。
+- 表达示例：`tests/conformance/noop/src/noop_module.c::astrocs_module_query_v1`、
+  `lib/infrastructure/benchmark/cpu/common/README.md::MISSING`。
 
 ## 6. 初始矩阵（DOC-001 基线）
 
 `docs/traceability/TRACEABILITY_MATRIX.json` 覆盖仓库**全部已注册模块**：
 
-- `modules/services/io`（IO-001/IO-002 落地）：`astrocs.services.io`
-- `modules/conformance/noop`（BLD-003 SKELETON）：`astrocs.conformance.noop`
+- `lib/infrastructure/aio/io`（IO-001/IO-002 落地）：`astrocs.services.io`
+- `tests/conformance/noop`（BLD-003 SKELETON）：`astrocs.conformance.noop`
 - `docs/modules/registry/astrocs.phase*.md` 声明的 22 个 registry 生产模块
   （module_id 以 `astrocs.phase1./phase2./phase3.` 开头，唯一源 `lib/infrastructure/scheduler/src/module_adapters.cpp`）
-- `providers/cpu`（CPU-001 落地，provider 能力清单）
+- `lib/infrastructure/benchmark/cpu`（CPU-001 落地，provider 能力清单）
 
 每行 8 层全部显式；尚无科学/算法合同的行用 `SCI-MISSING`/`ALG-MISSING` + 状态
 `MISSING`，有实现有测试的行用真实 id/path/符号（`VERIFIED`）；空缺从不为空串。

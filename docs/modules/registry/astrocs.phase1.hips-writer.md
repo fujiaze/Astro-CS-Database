@@ -11,14 +11,14 @@ downstream: [TEST-HIPS-DESIGN-001]
 # 模块 astrocs.p1.hips_writer
 
 > P1-HIPS-DOC（2026-09-07）新建：本页为 HiPS writer 模块合同登记页（此前
-> registry 无占位页）。事实源：lib/hips/README.md、module.yaml、
+> registry 无占位页）。事实源：lib/algorithms/drizzle/hips/README.md、module.yaml、
 > docs/algorithms/HIPS_WRITER.md、docs/contracts/DATA_SEMANTICS.md §12、
 > docs/contracts/PUBLIC_API.md API-HIPS-001、
 > docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-hips-writer 行。
 
 ## 职责与明确非职责
 
-生产实现=lib/astro_image_io/src/hips/aio_hips_writer.cpp（CMake
+生产实现=lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（CMake
 astrocs_hips 静态库 CMakeLists.txt:298-309；registry descriptor 无本模块
 页项——astrocs_p1_hips_writer.dll 由 P1-HIPS-IMPL 建立，entrypoint=MISSING）。
 职责：IVOa HiPS 1.4 产品集写入（signal/support/variance/ivar Image HiPS +

@@ -3,7 +3,7 @@
 > P1-STAR-DOC 事实修订（2026-09-07）：本页为 legacy 诊断页（ACTIVE_INFORMATIVE，
 > 不属 gen_module_readmes.py 生成范围）。模块冻结合同页 =
 > docs/modules/registry/astrocs.phase1.star-detection.md（手写，P1-STAR-DOC）；
-> 合同入口 = lib/star_detector/README.md r1（CONTRACT_READY）+ module.yaml
+> 合同入口 = lib/algorithms/star_detection/README.md r1（CONTRACT_READY）+ module.yaml
 > （MOD-astrocs-phase1-star，module_id=astrocs.p1.star_detection，
 > dll_target=astrocs_p1_star_detection.dll，entrypoint=MISSING）。本页旧描述
 > 以冻结合同为准修订，禁止反向改写合同层。
@@ -27,7 +27,7 @@ FP32/FP64 双通道（sdet_detect_ex / sdet_detect_ex_f64）；一帧一次权�
 API-STAR-001（docs/contracts/PUBLIC_API.md）：9 导出符号
 `sdet_create/sdet_destroy/sdet_detect/sdet_free_coords/sdet_detect_debug/
 sdet_free_debug_maps/sdet_detect_ex/sdet_detect_ex_f64/sdet_free_detect_ex`
-（唯一权威签名头 lib/star_detector/include/star_detector.h:1-73）。
+（唯一权威签名头 lib/algorithms/star_detection/include/star_detector.h:1-73）。
 
 ## Data contract
 
@@ -70,12 +70,12 @@ SCI-P1-STAR-001（docs/science/STAR_DETECTION.md，本任务冻结层，共享 S
 TEST-STAR-DESIGN-001（STAR_DETECTION_ALGORITHMS §11.4，冻结测试设计：
 合成场质心/FWHM/召回/虚警、饱和/混合/边缘专项、确定性 bitwise、FP64 独立
 oracle、负例、回归锚）；可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 落地
-（现状无共址测试套件；lib/star_detector/test/sdet_fp64_test.cpp 为
+（现状无共址测试套件；lib/algorithms/star_detection/test/sdet_fp64_test.cpp 为
 NON_PRODUCTION_TOOL_ONLY 手工验证程序）。
 
 ## Source files
 
-lib/star_detector/（生产源 src/sdet_api.cpp:1599-2353 sdet_detect_impl，
-合同头 include/star_detector.h）；lib/phase1/stars/（P1-003 桥接层独立
+lib/algorithms/star_detection/（生产源 src/sdet_api.cpp:1599-2353 sdet_detect_impl，
+合同头 include/star_detector.h）；lib/algorithms/star_detection/wrapper_phase1/（P1-003 桥接层独立
 sigma-clip 实现，与生产 sdet_api.cpp 非同一算法路径，matrix legacy_paths
 第二路径，整合归 P1-STAR-IMPL）。

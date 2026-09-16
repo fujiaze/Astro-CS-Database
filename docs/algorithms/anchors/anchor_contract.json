@@ -96,14 +96,6 @@
    "evidence": "docs/algorithms/PHASE2_SAMPLER.md:391"
   },
   {
-   "doc": "docs/algorithms/PHASE2_INTEGRATION.md",
-   "raw": "run/local/bughunt/ledger.md:249",
-   "kind": "HISTORICAL_RUN_ARTIFACT",
-   "reason": "同上（R3-A bughunt 账本行）",
-   "owner": "P2-INT-IMPL",
-   "evidence": "docs/algorithms/PHASE2_INTEGRATION.md:176"
-  },
-  {
    "doc": "docs/science/INTEGRATION.md",
    "raw": "lib/algorithms/coverage/src/integrate.cpp:10-79",
    "kind": "FROZEN_SCI_CLAIM",

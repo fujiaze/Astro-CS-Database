@@ -14,19 +14,19 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
 > 占位页（旧页以 module_adapters.cpp descriptor 为唯一源——编排层
 > 词汇不得作为冻结依据，本页手写登记事实修订；registry 页保留先例
 > astrocs.phase1.session.md / astrocs.phase1.star-detection.md）。模块级
-> 事实以 lib/phase2/README.md（r1，CONTRACT_READY）+ module.yaml
+> 事实以 lib/algorithms/coverage/README.md（r1，CONTRACT_READY）+ module.yaml
 > （MOD-astrocs-phase2-coverage，module_id=astrocs.p2.coverage，
 > dll_target=astrocs_p2_coverage.dll，entrypoint=MISSING）为准。权威
-> 签名头 lib/phase2/include/astro/phase2/coverage.h:1-59（grep 实测，
+> 签名头 lib/algorithms/coverage/include/astro/phase2/coverage.h:1-59（grep 实测，
 > 禁止手抄他版）。
 
 - 模块词汇：`astrocs.p2.coverage`（MODULE_MIGRATION_MATRIX P2-COV 行
-  module_id；owner=SA-P2-S20，legacy_paths="lib/phase2 coverage
+  module_id；owner=SA-P2-S20，legacy_paths="lib/algorithms/coverage coverage
   sources"，迁移目标 astrocs_p2_coverage.dll——合同值，尚未存在；
   depends_on_int=IO-003;DATA-004;RT-006）。
 - 层级：Phase2 生产模块（DAG 首节点 coverage）；现状构建根
   CMakeLists.txt:338-346 astrocs_phase2 STATIC（src/coverage.cpp :341，
-  无独立 DLL target）；lib/phase2/CMakeLists.txt:42 phase2 STATIC 为
+  无独立 DLL target）；lib/algorithms/coverage/CMakeLists.txt:42 phase2 STATIC 为
   模块自测 compatibility target（非产品事实源）；生产调用=
   lib/phase2_session/p2_session.cpp:119-148 coverage 阶段（两阶段
   调用 :125/:138，manifest 登记 :145-147）。

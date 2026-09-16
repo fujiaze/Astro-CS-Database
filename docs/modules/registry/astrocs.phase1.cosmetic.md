@@ -12,8 +12,8 @@ downstream: [TEST-P1-COS-001]
 
 > P1-COS-DOC 事实修订（2026-09-07，wave W1）：本页由源码核对后修订——
 > 合同 ID 由 W3 骨架占位（SCI-P1-COS-001/ALG-P1-COS-001）更正为真实
-> 冻结 ID；模块级事实以 lib/cosmetic/README.md（r1，CONTRACT_READY）
-> 与现行生产实现 lib/calibration/src/cosmetic_corrector.cpp 为准；
+> 冻结 ID；模块级事实以 lib/algorithms/cosmetic/README.md（r1，CONTRACT_READY）
+> 与现行生产实现 lib/algorithms/calibration/src/cosmetic_corrector.cpp 为准；
 > descriptor 占位 ID（module_adapters.cpp p1_cosmetic_descriptor）
 > 将由 W3 接线任务对齐本页，不得反向作为冻结依据。
 
@@ -43,7 +43,7 @@ DATA-P1-COS 为准）。
 
 模块级: API-COS-001（docs/contracts/PUBLIC_API.md，ac_correct_frame/
 ac_correct_frame_f64/ac_set_num_threads，头
-lib/calibration/include/astro_calibration.h）；编排级: API-P1-002
+lib/algorithms/calibration/include/astro_calibration.h）；编排级: API-P1-002
 （PHASE1_API_V1 §2，生命周期 create→validate→run→inspect→destroy，
 多模块共享）。迁移目标 astrocs_p1_cosmetic.dll + C ABI adapter 由
 P1-COS-IMPL 建立（entrypoint 现状 MISSING）。
@@ -85,4 +85,4 @@ bitwise、I1-I6 不变量）；可执行 TEST-P1-COS-001 由 P1-COS-TEST 建立
 ## 已知限制
 
 DISP-COS-001..011（COSMETIC_ALGORITHMS.md §10）；模块级清单见
-lib/cosmetic/README.md §9。
+lib/algorithms/cosmetic/README.md §9。

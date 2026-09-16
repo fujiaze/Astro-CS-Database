@@ -1,14 +1,14 @@
 # astrocs.p2.hips_writer — Phase2 HiPS 马赛克写出模块（P2-HIPS）
 
 > P2-HIPS-DOC（2026-09-09，SA-P2-I23）新建模块页。合同三件套落位
-> `lib/hips_p2/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
-> entrypoint=MISSING）——迁移目标目录按 `lib/hips/`（P1-HIPS）先例新建；
-> `lib/phase2/` 三件套已被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
-> 唯一生产源 `lib/phase2/tools/stage2.cpp`（1762 行，astrocs-stage2 工具，
-> lib/phase2/CMakeLists.txt:103-110）+ config 层
-> `lib/phase2/include/astro/phase2/stage2_common.h`；共用 writer 库
-> `lib/astro_image_io/src/hips/aio_hips_writer.cpp` 为 P1-HIPS 冻结域
-> （ALG-HIPS-001..005），本模块为库消费者；`lib/healpix_db` 侧生产参与
+> `lib/algorithms/coverage/hips_p2/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
+> entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/drizzle/hips/`（P1-HIPS）先例新建；
+> `lib/algorithms/coverage/` 三件套已被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
+> 唯一生产源 `lib/algorithms/coverage/tools/stage2.cpp`（1762 行，astrocs-stage2 工具，
+> lib/algorithms/coverage/CMakeLists.txt:103-110）+ config 层
+> `lib/algorithms/coverage/include/astro/phase2/stage2_common.h`；共用 writer 库
+> `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 为 P1-HIPS 冻结域
+> （ALG-HIPS-001..005），本模块为库消费者；`lib/infrastructure/aio/healpix_db` 侧生产参与
 > 仅 `healpix_drizzle/astro_sphere_sink.cpp`（P1 写通道，引用不归属）。
 
 ## 身份与合同
@@ -18,7 +18,7 @@
   （MODULE_MIGRATION_MATRIX P2-HIPS 行）；dll_target：
   `astrocs_p2_hips_writer.dll`（合同值，尚未存在，迁移归 P2-HIPS-IMPL）。
 - owner SA-P2-I23；depends_on_int=P2-INT-INT;IO-003；legacy_paths=
-  "lib/phase2 write sources;lib/healpix_db"。
+  "lib/algorithms/coverage write sources;lib/infrastructure/aio/healpix_db"。
 - 合同链：SCI-UPM-001（w_UPM）+ SCI-INT-001（signal/sup_max）+
   SCI-REJ-001（排异判据）——共享 FROZEN SCI 零改动 → ALG-P2-HIPS-001..004
   （docs/algorithms/PHASE2_MOSAIC_WRITE.md）→ DATA-P2-HIPS
@@ -26,7 +26,7 @@
   write 节）→ TEST-P2-HIPS-001（登记面=ALG 文档 §11.4 设计冻结 VERIFIED，
   COV 先例；可执行测试 MISSING 归 P2-HIPS-TEST）。
 
-## 职责（摘要，权威=lib/hips_p2/README.md §2）
+## 职责（摘要，权威=lib/algorithms/coverage/hips_p2/README.md §2）
 
 - 输入哈希链：p2_frame_id → canonical manifest（frame_id|filter=;order=;
   frame=; 排序）→ sha256 input_manifest_hash → UPM model_hash → UPM 持久

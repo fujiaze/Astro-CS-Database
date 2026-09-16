@@ -1,7 +1,7 @@
 # Module: plate_solve (ipv)
 
 > P1-WCS-DOC 修订（2026-09-07）：本页为模块导览旧页；冻结合同落位
-> lib/plate_solve/（README.md r1 + module.yaml + memory.md 三件套，
+> lib/algorithms/platesolve/（README.md r1 + module.yaml + memory.md 三件套，
 > CONTRACT_READY，entrypoint=MISSING）；registry 页
 > docs/modules/registry/astrocs.phase1.wcs-platesolve.md 已同步修订。
 
@@ -57,5 +57,5 @@ P1-WCS-TEST 落地。
 
 ## Source files
 
-lib/plate_solve/cpp/ipv/（ipv_entry.cpp 649 行 12 导出 + 内核 13821 行；
+lib/algorithms/platesolve/cpp/ipv/（ipv_entry.cpp 649 行 12 导出 + 内核 13821 行；
 唯一权威签名头 include/ipv_api.h）。

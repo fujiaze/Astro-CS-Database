@@ -13,7 +13,7 @@ downstream: [TEST-P2-INT-001]
 > P2-INT-DOC（SA-P2-I23）将本页自 gen_module_readmes 派生页事实修订为
 > 手写合同页（手写 registry 先例 astrocs.phase2.write.md/
 > astrocs.phase2.coverage.md）。frontmatter 的 source_commit/upstream/
-> downstream 为 registry 生成词，保持不动；合同权威=lib/phase2_int/
+> downstream 为 registry 生成词，保持不动；合同权威=lib/algorithms/integration/
 > 三件套 + docs/algorithms/PHASE2_INTEGRATION.md（ALG-P2-INT-001）。
 > descriptor 词汇（本节标题 module_id=astrocs.phase2.integrate、端口
 > 表、坐标 PIXEL）为编排层占位（module_adapters.cpp:719-737
@@ -26,12 +26,12 @@ downstream: [TEST-P2-INT-001]
 - MOD ID：MOD-astrocs-phase2-integrate；module_id 合同值=
   astrocs.p2.integration（矩阵 P2-INT 行）；dll_target=
   astrocs_p2_integration.dll（合同值，尚未存在，P2-INT-IMPL）。
-- 合同三件套：lib/phase2_int/（README r1/module.yaml CONTRACT_READY
-  entrypoint=MISSING/memory.md；lib/phase2/ 一目录一套已被 P2-COV
-  占用，按 lib/hips_p2/ 先例新建）。
-- 生产源：lib/phase2/src/integrate.cpp（76 行，根 CMakeLists.txt
+- 合同三件套：lib/algorithms/integration/（README r1/module.yaml CONTRACT_READY
+  entrypoint=MISSING/memory.md；lib/algorithms/coverage/ 一目录一套已被 P2-COV
+  占用，按 lib/algorithms/coverage/hips_p2/ 先例新建）。
+- 生产源：lib/algorithms/coverage/src/integrate.cpp（76 行，根 CMakeLists.txt
   :336-346/:344 astrocs_phase2 静态库成员）+ 唯一权威签名头
-  lib/phase2/include/astro/phase2/integrate.h（74 行）。
+  lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）。
 - 模块页：docs/modules/phase2_int.md。
 
 ## 职责与明确非职责
@@ -66,7 +66,7 @@ NO_CANDIDATES、全拒→ALL_REJECTED、全零权重→ZERO_VALID_WEIGHT——
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/phase2/include/astro/phase2/integrate.h
+- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/integrate.h
   （P2PixelStack :36-42 / P2IntegrateStatus :45-51 / P2PixelResult
   :53-63 / 函数声明 :58-66）。
 - 核心 symbol: p2_integrate_pixel（integrate.cpp:19-74，唯一生产
@@ -118,7 +118,7 @@ P2PixelResult 调用方分配，integrate.h:36-42/:53-63）；无内部 cache
 登记面=TEST-P2-INT-DESIGN-001 设计冻结 VERIFIED（ALG-P2-INT-001
 §11.4: 常量场 bitwise/零权重惰性/五态穷尽/支撑 max 门/NumPy 参考
 rtol 1e-12/并行 1..N 线程 bitwise+ACR↔CPU 等价）。现状相邻证据
-（引用不冒认）: lib/phase2/tests/synthetic_gate.cpp Phase2Integrate
+（引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Integrate
 组 :4690-4760 + weight policy 门 :2941-2990 + W9 ACR 等价
 :3021-3160；tests/backend/test_p2004_reject_integrate.py（P2-004
 DRIVER_SRC :18-141）。

@@ -14,8 +14,8 @@ downstream: [TEST-P1-PSF-001]
 > （ALG-002/TEST-P1-PSF-001）保留为编排层词汇，由 P1-PSF-INT 对齐；冻结
 > 合同 = SCI-P1-PSF-001（STAR_PSF_ALGORITHMS §11.5）/ ALG-STARPSF-001
 > （§11.1）/ DATA-P1-PSF（DATA_SEMANTICS §15）/ API-PSF-001（PUBLIC_API
-> PSF 节）；模块级事实以 lib/dynamic_psf/README.md（r1，CONTRACT_READY）+
-> lib/dynamic_psf/module.yaml（astrocs.p1.psf，迁移目标 astrocs_p1_psf.dll，
+> PSF 节）；模块级事实以 lib/algorithms/psf/README.md（r1，CONTRACT_READY）+
+> lib/algorithms/psf/module.yaml（astrocs.p1.psf，迁移目标 astrocs_p1_psf.dll，
 > entrypoint=MISSING）为准；现状构建 Makefile:3-5 → dynamic_psf.dll，未编入
 > 根 CMake 主构建。测试设计 TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS §11.4）
 > 已冻结，由 P1-PSF-TEST 执行落 TEST-P1-PSF-001 + EVIDENCE。现状缺陷登记

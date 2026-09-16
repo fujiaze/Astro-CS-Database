@@ -129,6 +129,6 @@ MOD-001 的 `docs/modules/MODULE_MAP.yaml` 引用 22 个 DATA ID，其中 7 个�
 ## 6. 边界声明
 
 - 本任务只写 `contracts/schemas/**`、`contracts/data/**`、`contracts/config/**`、`docs/contracts/**`、`tests/contracts/**`；
-- 未改 `lib/**`、`cli/**`、`tools/**`、`ci/**`、`runtime/**`、`config/**`、`docs/science/**`、`docs/algorithms/**`、`docs/plugins/**`、根 `CMakeLists.txt`、仓库根条目、`工程控制/**`、`reports/**`、`.github/**`；
+- 未改 `lib/**`、`lib/infrastructure/cli/**`、`tools/**`、`ci/**`、`runtime/**`、`config/**`、`docs/science/**`、`docs/algorithms/**`、`docs/plugins/**`、根 `CMakeLists.txt`、仓库根条目、`工程控制/**`、`reports/**`、`.github/**`；
 - 未改任何公式、阈值、默认容差、排异规则或归约顺序；未 commit / push / 建分支 / stash / reset / clean / checkout。
 

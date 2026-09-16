@@ -408,7 +408,7 @@
   （PHASE1_API_V1 §2 口径）——唯一共享可变状态 g_model_floor 为进程级
   无锁 unordered_map，并发 build/free 无保护（DISP-NOISE-001）；fill
   只读模型 + g_model_floor 查询。输出 bitwise 与线程数无关（现状
-  单线程实现，noise_model.cpp:118-267,371-429）。
+  单线程实现，noise_model.cpp:137-296,408-470）。
 - 取消：无取消检查点（noise_model_impl/fill_impl 无 cancel 回调，
   DISP-NOISE-004；PHASE1_API_V1 §2 "取消点=行带"为计划语义）。
 - 生产调用方：lib/infrastructure/pipeline/orchestrator/src/orchestrator.cpp:4177（stage6 SNR，

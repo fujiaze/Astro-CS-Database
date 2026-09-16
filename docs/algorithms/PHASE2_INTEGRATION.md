@@ -100,33 +100,39 @@
 
 ```text
 eligibility（逐候选 i，候选索引固定序）:
-  n_accepted += accepted[i]!=0                                  :34-36
+  n_accepted += accepted[i]!=0                                  :34-35
+  if (!accepted[i]) continue                                    :36
   invalid ⇔ accepted[i]!=0 ∧ (
       !finite(values[i])                                        :37
       ∨ (support 非空 ∧ (!finite(support[i]) ∨ support[i]<=0))  :38-42
-      ∨ (weights 非空 ∧ (!finite(weights[i]) ∨ weights[i]<0))   :44-48
+      ∨ (weights 非空 ∧ (!finite(weights[i]) ∨ weights[i]<0))   :52-56
     )
 聚合（仅通过门的样本，i 固定序）:
   n_finite += 1                                                 :43
-  w_i = weights ? weights[i] : 1.0                              :44-45
-  if (w_i == 0) continue            # 零权重合法零贡献           :49
-  sup_max = max(sup_max, support[i])  # 现状位置→DISP-P2INT-001  :54-55
-  vs += w_i * values[i];  wsum += w_i                           :52-53
-  n_used += 1                                                   :56
+  sup_max = max(sup_max, support[i])  # canonical max(accepted) :44-50
+  w_i = weights ? weights[i] : 1.0                              :51-53
+  if (w_i == 0) continue            # 零权重合法零贡献           :56
+  vs += w_i * values[i]; wsum += w_i; n_used += 1               :58-61
 输出:
-  invalid_input        → status=INVALID_INPUT（n_used=已计数）  :58-63
+  invalid_input        → status=INVALID_INPUT（n_used=已计数）  :66-69
   n_positive_weight==0 → status = n_accepted==0
-                          ? ALL_REJECTED : ZERO_VALID_WEIGHT    :65-69
-  否则                 → signal = vs / wsum                     :70
-                         support = support ? sup_max : 1.0      :71
-                         status = OK                            :72
+                          ? ALL_REJECTED : ZERO_VALID_WEIGHT    :70-74
+  否则                 → signal = vs / wsum                     :75
+                         support = support ? sup_max : 1.0      :76
+                         status = OK                            :77
 ```
 
-- 权重语义（调用方构造，本层无知）: weight_mode=2 →
-  `ivar_valid?ivar:support`（1/ADU²，ivar 缺失样本 fallback support，
-  stage2.cpp:1106-1117/:1113-1114）；weight_mode=0 →
-  `support×snr²`（legacy/诊断，stage2.cpp:1124-1136）；
+- 权重语义（调用方构造，本层无知）: **weight_mode=2 = 逐样本 `ivar`（1/ADU²，
+  逆方差权重），无任何 fallback** —— 缺失 ivar 是显式科学错误
+  （产品级 stage2.cpp:565-575 rc=7 / 像素级 stage2.cpp:1106-1122 fail=2），
+  与 SCI-UPM §5:54、DATA-UNC-001 §51（「weight_mode=2，无 fallback」）、
+  DESIGN §4.3/§4.4 一致；weight_mode=0 → `support×snr²`（**legacy/ablation/
+  诊断**，被 DESIGN §4.3「不是直接用 SNR 加权」与 SCI-UPM §5:54 禁入生产，
+  stage2.cpp:1123-1141）；
   weight_mode=1/weights=null → 等权 1.0（stage2.cpp:1139）。
+  `ivar_valid?ivar:support` 只是 `legacy_allow_weight_fallback=true`（默认 false）
+  时的**显式降级路径**（stage2.cpp:1113-1120），**不是 mode 2 的定义**；
+  该降级发生时 DATA-UNC-001 §67-68 要求不写 variance/ivar 产品。
 - 禁止（SCI §10 逐条承接，本层为合同）: support 改 mean/sum 二次
   聚合；w==0 改判 INVALID_INPUT；INVALID_INPUT 并入
   ZERO_VALID_WEIGHT；在本层引入 ivar/SNR 策略；改变求和顺序。
@@ -163,22 +169,14 @@ eligibility（逐候选 i，候选索引固定序）:
 
 - SCI §5:55-60 伪码与本文档 §5 逐行同构（eligibility/wsum/vs/
   signal/support reducer/状态分支）。
-- **support reducer 表述矛盾（DISP-P2INT-002）**: SCI §5:58 写
-  `max_{valid,W>0} support[i]`（其中 valid 含 accepted 判据），
-  integrate.h:17 冻结注释写 "max(accepted support)"——accepted 集
-  ⊇ {valid ∧ W>0}，零权重 accepted 样本为两者差集，表述冲突。
-  实现现状（sup_max 在 w==0 continue 之后，:54-55）= max over
-  {valid ∧ W>0}，即 **实现现状=SCI §5:58 表述**；header :17 为
-  冻结合同文本。整改归 P2-INT-IMPL（实现对齐 header :17），
-  归一后以 header 为唯一口径；本冻结层按实现现状如实登记，
-  禁止反向修改 SCI（FROZEN）。
-- **sup_max 缺陷（DISP-P2INT-001，bughunt ledger R3-A，
-  run/local/bughunt/ledger.md:249）**: 零权重 accepted 样本的
-  support 不进 max → 输出 support 偏低（保守方向——覆盖并集
-  保守下界语义不被破坏，但偏离 header :17 冻结语义）；Stage2/ACR
-  直接消费。现状测试样本 support 全为正/同值，缺陷在既有门下
-  不可达（test_p2004:124 max(accepted support) 注释、
-  synthetic_gate:4737-4738）。
+- **support reducer 口径已统一（B2-A7 闭环，DISP-P2INT-001/002 关闭）**:
+  SCI §5:58 已订正为 `max_{accepted} support[i]`（SCI-FIX-WEIGHT / SC-005），
+  与 integrate.h:17-19、SCI §2:21/§5:63/§7:75 一致。实现把 `sup_max` 更新
+  置于权重分支**之前**（integrate.cpp:44-50），零权重 accepted 样本的
+  support 进入 max；回归门 tests/unit/p2_output_semantics_test.cpp:85-107
+  （4b/4c，B2-A7；`ctest -R p2_output_semantics` Passed）。
+  **旧登记「实现现状 = max over {valid ∧ W>0}」已过期**（实现位置为
+  `:49-50`，不在 `w==0 continue` 之后），不得据此整改实现。
 - SCI §5:63 声称与 "integrate.cpp:10-79" / "integrate.h:1-75"
   一致——实测文件为 76 行/74 行（锚漂移，行号如实以本文档 §3
   为准；语义一致不含该行号范围漂移）。
@@ -208,8 +206,9 @@ eligibility（逐候选 i，候选索引固定序）:
 ## 10 已冻结禁改清单（本层不可接受变化）
 
 1. 五态枚举 name/value/顺序（integrate.h:45-51）。
-2. support canonical reducer 语义（integrate.h:17 文本口径；
-   实现现状偏差仅按 DISP-P2INT-001 整改，禁止改语义解释）。
+2. support canonical reducer 语义 = max(accepted support)（integrate.h:17-19
+   文本口径；实现已在 integrate.cpp:44-50 对齐，DISP-P2INT-001/002 关闭，
+   禁止改语义解释）。
 3. 零权重=合法零贡献（integrate.cpp:56 / SCI §10）。
 4. 候选索引固定序归约（确定性合同，§6）。
 5. policy/reducer 分离（本层不引入权重策略；weights 数组外置）。

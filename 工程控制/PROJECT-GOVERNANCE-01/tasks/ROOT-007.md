@@ -35,6 +35,15 @@
 | `artifacts/**` | 含**实测性能数据**（`MEASUREMENTS.csv`：baseline_ns / avx2_variant_ns / improvement_pct = 真基准测量）、CI 运行产物（`artifacts/ci/`，1644 文件，**今日仍在更新**）、旧评审包 zip；**删除决定须负责人单独确认**（数据不可再生） |
 | `evidence/` 中任何被活动面引用的文件 | 若有，改归档链接后随 DOC-001 处理 |
 
+## 负责人第二轮裁决（2026-09-16）
+
+- 「**没必要归档，留着你也不看，纯浪费空间**」⇒ 不保留归档副本：
+  - `artifacts/**`（82 MB / 2081 文件，含旧审核包 zip 56 MB、旧 capsules、真实基准 CSV、今日仍在更新的 `artifacts/ci/`）→ **直接删除**；
+  - 已生成的 `run/archive/legacy-control-packs/evidence-legacy-control-packs.tar.gz` → **一并删除**（evidence 的最终提交 `7940d70e` 已终结其 tracked 副本，归档副本无独立价值）；
+- 数据安全性依据：删除仅为**工作树/索引**层面的移除，内容永久留存于 git 历史（`git show <commit>:<path>` 可取回）；
+- 护栏：`.gitignore` 增加 `artifacts/ci/` 与 `artifacts/**/*.zip`（含 capsules），防止 CI 产物再次散落根下；
+- 仍保留：`memory.md`、`HANDOVER.md`（§7 白名单条目，归 GOV-001/DOC-001）。
+
 ## 验收门
 
 - [ ] 四个根文档已删除且 tracked 集合相应减少（给出前后 `git ls-tree -r HEAD | wc -l`）

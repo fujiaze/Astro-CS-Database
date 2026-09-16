@@ -16,6 +16,7 @@
 | `CRPIX1/2` | 参考像素（1-based， `w/2+0.5, h/2+0.5`） | `ipv_wcs.cpp:154,276` |
 | `CRVAL1/2` | 参考天球坐标 RA/Dec (deg) | 同上 |
 | `CD` | 线性变换 `deg/pixel`（`CD=trans.linear/3600`） | WCS 头 |
+| ξ,η | TAN 投影中间坐标（deg） | §5 前向式 |
 | `cd_inv` | `CD^{-1}` 线性逆 `pixel/arcsec`（仅 SIP 换算） | `ipv_wcs.cpp:328-331` |
 | `trans` | IPV 求解的畸变多项式（含 `x_ij,y_ij`） | 求解器 |
 | `A/B` | SIP 前向畸变系数 `1/pixel^{i+j-1}` | `ipv_wcs.cpp:340-356` |
@@ -36,7 +37,7 @@
 
 ## 4 输入有效域
 
-- 维度 `w>0,h>0`，星点列表非空；`CRPIX` 按 `w/2+0.5` 冻结；`trans.order` 2–3 阶；`NB_GRID=7` 用于逆向拟合。
+- 维度 `w>0,h>0`，星点列表非空；`CRPIX` 按 `w/2+0.5` 冻结；`trans.order` 2–3 阶；**逆向拟合采样网格 ≥7×7**（实现值：AP/BP 41×41、拟合阶 5；APx/BPx 81×81、阶 7，DISP-WCS-008）。
 - 极区阈值 `|dec|>45°` 进入极区分支，`|dec|>85°` 仍保守；`dra>180°` 时 `dra=360°−dra` 并以 `cos(dec)` 缩放判相交。
 - 越界 `rect`/空星点 → `DPSF/IPV_ERR_PARAM`，不产生伪 WCS。
 
@@ -45,8 +46,10 @@
 ```text
 前向 WCS (像素→天球):
   xp = x+1,  yp = y+1
-  (u,v) = CD · (xp−CRPIX) + SIP_A/B(u,v)   # (u,v) 为 TAN 投影中间坐标
-  (RA,Dec) = TAN^{-1}(u,v; CRVAL)
+  (ξ,η) = CD · [ (xp−CRPIX) + SIP_A/B(xp−CRPIX) ]
+  # SIP 自变量 = 像素偏移 dPix = xp−CRPIX (px)；A/B 单位 1/px^{i+j-1}；
+  # CD 单位 deg/px ⇒ (ξ,η) 单位 deg；(ξ,η) 为 TAN 投影中间坐标
+  (RA,Dec) = TAN^{-1}(ξ,η; CRVAL)
 
 SIP 前向 (解析公式):
   A[i][j] = cd_inv · trans.x_ij
@@ -54,7 +57,7 @@ SIP 前向 (解析公式):
 
 SIP 逆向 (最小二乘):
   UV = cd_inv · IWC                # IWC 为世界坐标逆投影
-  AP/BP = argmin ||UV − (u,v)−SIP(u,v)||²  on 7×7 grid
+  AP/BP = argmin ||UV − [ (u,v) + SIP_A/B(u,v) ]||²   on ≥7×7 grid
   约定 AP[1,0]-=1, BP[0,1]-=1  (剔除单位线性)
 
 Y-up → Y-down 转换 (FITS 1-based 输出):
@@ -63,7 +66,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
   AP/BP 同规则；CRVAL/CRPIX 不变, |det(CD)| 不变
 ```
 
-与 `lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:13-16,153-164,274-420,530-576` 及 `ipv_select.cpp:723,712` 一致。
+与 `ipv_wcs.cpp::extract_wcs_sip / wcs_sky_to_pixel_iterative` 及 `ipv_select.cpp::select_image_stars` 的像素域 SIP 形式一致（SIP 标准形：自变量为像素偏移，Shupe et al. 2005 §A）。
 
 ### 5a 导出边界桥接条款（STD-F1 合同条款；前台裁决 R-02 方案 b）
 
@@ -106,7 +109,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 - **CRPIX 不变量**：`CRPIX = w/2+0.5, h/2+0.5` (1-based) 恒成立，与求解结果无关。
 - **行列式不变量**：`Y-up → Y-down` 转换前后 `|det(CD)|` 不变（仅符号重排）。
-- **SIP 逆一致性**：前向+逆向在 `7×7` 网格上往返误差 `‖(x,y)−WCS^{-1}(WCS(x,y))‖ < 1e-6 pixel`（FP64）。
+- **SIP 逆一致性**：逆映射以**迭代反演**为准；不变量在**独立于拟合采样的密集域**（中心 90% 区域 + 四边 + 四角 + ≥1000 随机点，FP64）上测量，判据 `max‖(x,y)−WCS^{-1}(WCS(x,y))‖ ≤ 1e-4 px`（与 ALG-WCS-001 §11.4 F2 同值）。
 - **极区保守性**：`|dec|≤85°` 时平面盘 `B(q,C·radius)` 与节点矩形不相交 ⇒ 安全剪枝，`false_negative=0`（`polar_plane_intersects`）。
 - **导出边界桥接不变量（STD-F1）**：FITS 导出侧恒满足 `xp = x + 1`（Paper I §2.1.1），该桥接**只发生一次**——位于 Phase3 导出边界的单一函数（§5a）；ipv 内部 0-based 输出 `u = x − CRPIX` 不变。桥接缺失或重复，两者都会产生恒定 1px 系统偏移，并必须被第三方对拍检出（§11）。
 
@@ -122,7 +125,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 ## 9 精度策略
 
-- FP64 全链路；`CD` 与 SIP 系数以 `double` 写入 FITS 头；`NB_GRID=7` 最小二乘拟合 `AP/BP`，残差 `rms_px` 写入诊断。
+- FP64 全链路；`CD` 与 SIP 系数以 `double` 写入 FITS 头；AP/BP 以**≥7×7 采样网格**（实现 41×41，DISP-WCS-008）迭代反演/最小二乘拟合，残差 `rms_px` 写入诊断。
 
 ## 9a 专属问题回答（SCI-002 指定问题逐项）
 
@@ -142,7 +145,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 ## 11 验证 Oracle
 
 - **Astropy WCS 参考**：同 `CD/CRPIX/CRVAL/SIP` 的 `astropy.wcs.WCS` 前向/逆向在 100 随机像素上 `‖Δx‖<1e-4 px`。
-- **往返不变量**：像素→天球→像素往返 `max_abs <1e-6 px`（网格 7×7 拟合精度门）。
+- **往返不变量**：像素→天球→像素往返在**独立密集域**（中心 90% + 四边/四角 + ≥1000 随机点）上 `max_abs ≤ 1e-4 px`（FP64）；原「7×7 网格 <1e-6 px」口径是拟合域插值条件，鉴别力为零（自网格 1.8e-12 px vs 离网格 3.10 px，R-3 §2.7），已废止。
 - **极区保守门**：对 `|dec|>45°` 人工锥与全量 Gaia 节点暴力比对，`false_negative=0`。
 - **导出边界桥接门（STD-F1，§5a）**：九宫格（中心 1 格 + 四角 4 格 + 四边中点 4 格，9×100×100 px）
   逐像素 roundtrip `< 1e-6 px`，且与 Paper I §2.1.1 独立第三方参考（`xp = x0+1`）差 `< 1e-6 px`；
@@ -169,7 +172,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 ## 15 Acceptance
 
-- §11 Oracle 全过：Astropy 前向/逆向 `‖Δx‖<1e-4 px`、往返 `<1e-6 px`、极区 `false_negative=0`；
+- §11 Oracle 全过：Astropy 前向/逆向 `‖Δx‖<1e-4 px`、往返 `≤1e-4 px`（独立密集域，§11）、极区 `false_negative=0`；
 - §11 导出边界桥接门（STD-F1）过：九宫格两 parity 共 18 格全过、astropy 四向桥接扫描
   正向达机器精度且三向负向注入全部检出（证据 `run/std_f1_adj/std_f1_bridge_cross.json`）；
 - §7 四不变量门全过（CRPIX/行列式/SIP 逆一致/极区保守）；

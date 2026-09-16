@@ -42,18 +42,18 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 |---|---|---|---|
 | Ω | coverage union（上游 MOC） | — | coverage.h（P2-COV 域） |
 | tile_ipix | union tile 的 NESTED 像素号（order=target_order） | 无量纲 | coverage.h P2CoverageCell.ipix |
-| grid=G | 每 tile 的 cell 网格边长（默认 8） | 无量纲 | sampler.cpp:296/:499 |
+| grid=G | 每 tile 的 cell 网格边长（默认 8） | 无量纲 | sampler.cpp:303/:499 |
 | cell_side | tile 边长/G=64（kTileWidth=512） | leaf 像素 | sampler.cpp:75/:595 |
-| cell (t,gx,gy) | 控制点拓扑 = tile × 网格坐标 | — | sampler.cpp:737-746 |
-| leaf_ipix | cell 中心 leaf 像素（order+9） | 无量纲 | sampler.cpp:739-740 |
-| y_ik | 控制观测（patch 位置估计） | ADU（UPM-calibrated） | sampler.cpp:828 |
-| σ_bg | robust scale（MAD×1.4826） | ADU | sampler.cpp:806-829 |
-| k_corr | Drizzle 协方差方差放大因子 | 无量纲 | sampler.cpp:82/:547-555 |
-| N_retained | clipping 后保留样本数 | 无量纲 | sampler.cpp:833 |
-| control_variance | 控制点估计统计方差 | ADU² | sampler.cpp:840-842 |
-| control_ivar | 1/control_variance | 1/ADU² | sampler.cpp:842 |
-| snr_available | 局部星点存在性标志 | 0/1 | sampler.cpp:859/:1038 |
-| reason | 内部拒绝原因 0..5 | 无量纲 | sampler.cpp:608/:759/:995-1005 |
+| cell (t,gx,gy) | 控制点拓扑 = tile × 网格坐标 | — | sampler.cpp:754-763 |
+| leaf_ipix | cell 中心 leaf 像素（order+9） | 无量纲 | sampler.cpp:756-757 |
+| y_ik | 控制观测（patch 位置估计） | ADU（UPM-calibrated） | sampler.cpp:845 |
+| σ_bg | robust scale（MAD×1.4826） | ADU | sampler.cpp:823-846 |
+| k_corr | Drizzle 协方差方差放大因子（1 ≤ k_corr） | 无量纲 | sampler.cpp:83/:560-574 |
+| N_retained | clipping 后保留样本数 | 无量纲 | sampler.cpp:851 |
+| control_variance | 控制点估计统计方差 | ADU² | sampler.cpp:856-860 |
+| control_ivar | 1/control_variance | 1/ADU² | sampler.cpp:860 |
+| snr_available | 局部星点存在性标志 | 0/1 | sampler.cpp:876/:1038 |
+| reason | 内部拒绝原因 0..5 | 无量纲 | sampler.cpp:625/:759/:995-1005 |
 
 禁止单位漂移：value=ADU、uncertainty=ADU、control_variance=ADU²、
 control_ivar=1/ADU²、ra_deg/dec_deg=度（J2000）、snr=无量纲；
@@ -96,12 +96,12 @@ control_ivar=1/ADU²、ra_deg/dec_deg=度（J2000）、snr=无量纲；
 `background_contamination_sigma=3.0`/
 `background_min_retained_fraction=0.60`/`background_tolerance=3.0`/
 `background_neighbor_radius=2`/`background_catalog_veto=1`/
-`control_k_corr=1.4`/`cpu_workers=1`（sampler.cpp:296-310）。
-显式 cfg 覆盖路径：sampler.cpp:484（`if (cfg_in) cfg = *cfg_in;`）。
+`control_k_corr=1.4`/`cpu_workers=1`（sampler.cpp:303-317）。
+显式 cfg 覆盖路径：sampler.cpp:491（`if (cfg_in) cfg = *cfg_in;`）。
 
 ## 4 算法结构：三阶段 background-clean 采样管线
 
-sampler.cpp:584-591 冻结注释将管线映射为
+sampler.cpp:601-608 冻结注释将管线映射为
 BACKGROUND_SAMPLER_SPEC.md Stage A-E；实现按三遍组织：
 
 | 阶段 | 遍 | 锚（sampler.cpp） | 语义 |
@@ -183,17 +183,21 @@ uncertainty      = sqrt(control_variance)                  # :843
 n_ret            = max(N_retained, 1.0)                    # :838 防零除
 ```
 
-- 常数权威：kPiHalf=1.57079632679489661923（:83）；k_corr 默认
-  1.4（:82，UPMW-005 MC 实证 1.3883 @pixfrac=0.8，保守上取）；
-- **K_CORR_DOMAIN 选项 B（逐帧标定）**：优先帧 Drizzle provenance
-  → kcorr_lookup(pixfrac, scale)（:547-555；scale 未知→300" 档
-  保守 ：554）；lookup 表 :91-94 冻结数值
+- 常数权威：kPiHalf=1.57079632679489661923（:84）；k_corr 默认
+  1.4（:83，UPMW-005 MC 实证 1.3883 @pixfrac=0.8，保守上取；**该 MC 证据源
+  `control_median_mc_test` 未注册/MISSING（构建孤儿），常数按 SCI-UPM §5/§10 冻结**）；
+  **定义域 1 ≤ k_corr**（k_corr<1 ⇔ N_eff>N_retained，物理不可达；越界显式拒）；
+- **K_CORR_DOMAIN 选项 B（逐帧标定）：scale 维已退役（SCI-FIX-WEIGHT / SC-005）**：
+  仅当帧 Drizzle provenance 的源像素角尺度落在**标定域 [300,600]″/px** 才取
+  kcorr_lookup(pixfrac, scale)（:93-112）；**域外（含生产真帧 0.9586″/px 与
+  provenance 实写 0.009856″）不得 clamp 到 300″ 档，一律保留 kcorr=0 并打
+  `[sampler] k_corr 域外回退` 标（:561-572）→ 回退 cfg.control_k_corr（:857 回退链
+  frames[i].kcorr>0 ? per-frame : cfg.control_k_corr）；lookup 表 :94-97 冻结数值
   {1.2112,1.3925,1.4980 | 2.3958,2.8971,3.2035}（300"/600" ×
-  pixfrac 0.5/0.8/1.0），两段分段线性插值（非均匀网格）:97-108，域外 clamp
-  [0.5,1.0]×[300,600]（:95-96）；provenance 缺失/无有效 pixfrac →
-  cfg.control_k_corr（:839 回退链 frames[i].kcorr>0 ? per-frame
-  : cfg.control_k_corr）；per-frame 覆盖关系与 PHASE2_SAMPLER 旧节
-  （sampler.cpp:672 旧行号锚）冻结语义一致；
+  pixfrac 0.5/0.8/1.0），两段分段线性插值（非均匀网格）:100-111；pixfrac 维仍
+  clamp [0.5,1.0]（表列有界性保留）；
+  旧行为「域外 clamp」把静默饱和固化成合同（旧 kcorr_lookup_test.domain_clamp），
+  已被 `kcorr.domain_fallback_to_frozen_default_not_clamp` 取代；
 - UPMW-004 独立 MC 基线：Var(median) ≈ πσ²/(2N)
   （synthetic_gate.cpp:4001 先例）；本式为该基线乘 k_corr 的
   Drizzle 相关放大，禁止把 (π/2) 因子解释为其他分布假设。
@@ -305,8 +309,8 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
 | patch robust median/MAD 保留负值 | :802-829（无符号过滤） | 一致 |
 | SNR 来自 Catalogue 禁止重检测 | :851-867 纯查询 | 一致 |
 | control_variance 公式（SCI-UPM-WEIGHT-001） | :840-842 逐项一致 | 一致 |
-| k_corr MC 校准非猜测（sampler.h:49-50） | :82/:88-109/:547-555（选项 B 逐帧） | 一致（冻结保守值 1.4 ≥ 实证） |
-| per-control geometric_reliability 参与归一化 | 采样器不产出 per-control 可靠度（UPM 侧缺陷，账本 R3-A upm.cpp:556） | 不在本模块域（登记于 P2-UPM 域） |
+| k_corr MC 校准非猜测（sampler.h:49-50） | :83/:89-112（选项 B 逐帧，scale 维已退役） | 常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 `control_median_mc_test` 未注册（MISSING，构建孤儿）⇒ 不可复跑** |
+| per-control `control_reliability`（旧名 geometric_reliability）参与归一化 | 采样器不产出 per-control 可靠度；UPM 侧实现为**配置常量 1.0**（`upm.cpp:565` 归一化消费） | 不在本模块域（UPM 侧缺陷，已登记 SC-005） |
 | wiki 语义版本 34A532A2...B2EB308 | sampler.cpp:3/:85-87 注释锚定 | 一致 |
 
 ## 8 单位与 dtype 登记（唯一权威=DATA_SEMANTICS §23）
@@ -402,7 +406,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
 | # | 设计面 | 冻结容差 | 现状测试锚 |
 |---|---|---|---|
 | F1 | 统计量单元：median odd/even/负值/重复/乱序/NaN 过滤；MAD=1.4826×median 偏差 | 逐值 bitwise（EXPECT_DOUBLE_EQ） | synthetic_gate.cpp:3594 G1StatisticsCorrectness（先例在库） |
-| F2 | kcorr_lookup 边界与角点：pf∈{0.5,0.8,1.0}×sc∈{300,600} 九值、域外 clamp、provenance 缺失回退 1.4 | 角点值 exact；插值点 rtol 1e-12 | phase2_sampler.kcorr.corner_exact（新建；表值 :91-94） |
+| F2 | kcorr_lookup 边界与角点：pf∈{0.5,0.8,1.0}×sc∈{300,600} 九值、**域外回退冻结默认 1.4（禁 clamp）**、provenance 缺失/尺度未知回退 1.4 | 角点值 exact；插值点 rtol 1e-12；域外 == 1.4 exact | phase2_sampler.kcorr.corner_exact / .domain_fallback_to_frozen_default_not_clamp（表值 :94-97） |
 | F3 | control_variance 解析 oracle（Python 复算 k_corr×(π/2)×σ²/N_ret） | rtol 1e-12；UPMW-004 MC 基线 3σ | synthetic_gate.cpp:4001/:4061/:4089（先例在库） |
 | F4 | 坐标/tile 映射：单 tile 合成 → 64 cell (ra,dec,leaf_ipix) 对独立 HEALPix 参考实现 | atol 1e-9 deg；cell 索引单射 exact | 无（新建） |
 | F5 | constant/gradient/impulse 验证面：constant patch（σ→1e-12 floor 路径）、线性梯度 patch（亮端 clipping 方向性）、单像素 impulse（bfrac=1/n_total 路径） | cvar rtol 1e-12；接受/拒绝判定 exact | 无（新建；公式 :829-843） |

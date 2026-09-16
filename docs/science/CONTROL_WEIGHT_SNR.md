@@ -35,8 +35,8 @@
 | `m_5` | 5σ 点源深度 `ZP − 2.5·log10(5·sigma_F(ref))`（唯一帧级科学基准，单位 mag） | 本文件 §2a |
 | `sigma_F` | 逐源通量不确定度（科学 SNR 定义量；PSF 拟合协方差或 CCD 方程，当前实现不产出） | 消费侧定义；本文件 §2a 登记边界 |
 | snr_available | 该控制观测是否含真实可用的局部质量权重（字段名沿用 `snr`） | `stage2.cpp:387` |
-| `frame quality` | 每星点 Phase1 SNR 目录质量位（uint32 位掩码） | `sampler.cpp:145,259`（`quality`, `out_qual`） |
-| `kSnrCatalogMax` | SNR 目录质量槽上限 | `sampler.cpp:568` |
+| `frame quality` | 每星点 Phase1 SNR 目录质量位（uint32 位掩码） | `sampler.cpp:152,266`（`quality`, `out_qual`） |
+| `kSnrCatalogMax` | SNR 目录质量槽上限 | `sampler.cpp:585` |
 | `w_snr` | 质量权重因子 `= snr_v²` | 积分/排异权重 |
 
 ## 2a 帧级科学基准与 SNR 定义（P5-SNR 新增）
@@ -63,12 +63,18 @@
 ## 4 连续定义
 
 ```text
-# 像素级 SNR 权重（stage2 排异/积分，weight_mode=2）
+# 像素级相对质量权重（stage2 排异/积分，weight_mode=0 legacy：生产禁用）
+#   weight_mode 分支号 = 实现事实（stage2_common.cpp:377-385 / stage2.cpp:1106-1141）：
+#     0 = support × snr_v²（本文件，legacy/ablation/诊断）
+#     1 = 等权 1.0
+#     2 = 逐样本 ivar 逆方差权重（生产默认，无 fallback；见 SCI-UPM §5:54 /
+#         DATA-UNC-001 §51 / DESIGN §4.3「SNR → 逆方差权重，不是直接用 SNR 加权」）
 for 每个候选 s:
   snr_v = local_snr_map[key(frame_id,tile,gx,gy)]        # 有局部星点 → 局部相对质量权重
           else frame_snr_by_id[frame_id]                # 缺失 → 整帧质量权重中位数
   quality_weight[s] = snr_v                              # 相对质量权重，非科学 SNR
   weights[s] = support[s] × snr_v²                      # 禁止 snr=1.0 伪装 unknown
+  # ↑ 仅 weight_mode=0（legacy/ablation）；生产 weight_mode=2 用逐样本 ivar。
 
 # local_snr_map 构造（stage2.cpp:383-396）
 for 每个控制观测 o:
@@ -79,7 +85,7 @@ for 每个控制观测 o:
 # frame_snr_medians（stage2.cpp:74,250）
 frame_snr[i] = median(帧 i 相对质量权重目录值)   # 分布摘要，非科学信噪比
 
-# frame quality（sampler.cpp:145,235,259）
+# frame quality（sampler.cpp:152,242,266）
 for 每个控制星 s（半径内）:
   out_qual |= quality[s]                                 # 质量位 OR 累积
 ```
@@ -93,6 +99,11 @@ for 每个控制星 s（半径内）:
 - **质量控制位为 OR 累积**（非均值/加权），表达"半径内任一惊星目录质量满足"的覆盖性语义；
 - **与 SCI-NOISE 区隔**：`variance/ivar` 为逐像素随机噪声权重；`local_snr/frame_snr` 为
   区域/帧级**相对质量权重倍率**（`quality_weight`，非科学信噪比）；二者**不混用**。
+- **分支号与生产面**：本文件的 `support × snr_v²` 是 `weight_mode=0`（legacy/
+  ablation/诊断，实现锚 `stage2_common.cpp:377-385`、`stage2.cpp:1123-1141`）；
+  **生产默认 `weight_mode=2`** = 逐样本 `ivar` 逆方差权重、无 fallback（ivar 缺失 =
+  显式科学错误 `rc=2/7`），见 SCI-UPM §5:54、DATA-UNC-001 §51、DESIGN §4.3/§4.4。
+  本文件不定义 mode 2 的权重语义。
 
 ## 6 独立不变量
 

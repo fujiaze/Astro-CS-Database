@@ -7,7 +7,7 @@
 > DATA-P1-SESSION（DATA_SEMANTICS §16）/ API-P1-SESSION（PUBLIC_API）；
 > 编排级上游合同 API-P1-001（docs/api/PHASE1_API_V1.md，FROZEN）；不设
 > 独立 DLL（MODULE_MIGRATION_MATRIX 无 P1-SESSION 行）。registry 关系：
-> 五函数经 P1Api（lib/core/src/module_adapters.cpp:755-762）被 8 个
+> 五函数经 P1Api（lib/infrastructure/scheduler/src/module_adapters.cpp:755-762）被 8 个
 > Phase1 descriptor 工厂委托（:728-735/:755-770）。
 
 ## 职责
@@ -15,7 +15,7 @@
 Phase1 装配/编排：四段 io_read→calibrate→cosmetic→io_write 的进程内
 会话（create/validate/run/inspect/destroy 生命周期）；config 键集校验、
 取消传播、线程预算注入、manifest 产出。科学实现全部委托既有冻结 C API
-（ac_calibrate_frame / ac_correct_frame，lib/calibration）。
+（ac_calibrate_frame / ac_correct_frame，lib/algorithms/calibration）。
 
 ## 非职责
 

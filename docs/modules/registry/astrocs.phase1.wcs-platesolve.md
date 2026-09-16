@@ -15,8 +15,8 @@ downstream: [DATA-P1-WCS, API-WCS-001, TEST-P1-WCS-001]
 > P1-WCS-INT 对齐；冻结合同 = SCI-WCS-001（docs/science/ASTROMETRY.md，
 > FROZEN T102 2026-08-23，共享引用不改动）/ ALG-WCS-001（PLATESOLVE.md
 > §11 逐符号锚）/ DATA-P1-WCS（DATA_SEMANTICS §18）/ API-WCS-001
-> （PUBLIC_API WCS 节）；模块级事实以 lib/plate_solve/README.md（r1，
-> CONTRACT_READY）+ lib/plate_solve/module.yaml（astrocs.p1.wcs，迁移
+> （PUBLIC_API WCS 节）；模块级事实以 lib/algorithms/platesolve/README.md（r1，
+> CONTRACT_READY）+ lib/algorithms/platesolve/module.yaml（astrocs.p1.wcs，迁移
 > 目标 astrocs_p1_wcs.dll，entrypoint=MISSING）为准；现状构建
 > cpp/ipv/build.ps1:27 / Makefile:6 → ipv_solver.dll，未编入根 CMake
 > 主构建。测试设计 TEST-WCS-DESIGN-001（PLATESOLVE.md §11.4）已冻结，

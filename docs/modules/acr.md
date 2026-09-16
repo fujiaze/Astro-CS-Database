@@ -47,5 +47,5 @@ GPU kernel 仅 phase2 legacy launcher 注册（W9）。
 
 ## Source files
 
-lib/acr/（api/backends/core/cost/diagnostics/profile/routing/scheduler/
+lib/infrastructure/acr/（api/backends/core/cost/diagnostics/profile/routing/scheduler/
 tools/tests）。

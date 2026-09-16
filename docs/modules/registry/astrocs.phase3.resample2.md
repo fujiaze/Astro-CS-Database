@@ -24,9 +24,9 @@ downstream: [TEST-P3-RES-001]
   P3-RSMP-IMPL 建立，禁止声明 IMPLEMENTED；现状构建=
   astrocs_phase3_session 静态库成员，根 CMakeLists.txt:460-465，
   p3_resample.cpp 为五源文件之一）。
-- 合同落位: lib/phase3_rsmp/ 三件套（README r1 + module.yaml
+- 合同落位: lib/algorithms/resample/ 三件套（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
-  lib/phase3_proj→phase3_fits 先例新建；lib/phase3_session/ 为会话
+  lib/algorithms/projection→phase3_fits 先例新建；lib/phase3_session/ 为会话
   编排域共享源，不整目录归属）。
 - 生产源: lib/phase3_session/p3_resample.cpp（239 行）+ 唯一权威
   签名头 p3_resample.h（58 行），实测 2026-09-12。
@@ -41,7 +41,7 @@ downstream: [TEST-P3-RES-001]
   矩阵 test_status=DORMANT）；编排面 API-P3-001（p3_session 五段
   FROZEN）镜像不变。
 - 上游依赖: astrocs_phase3_session（properties 校验经
-  p3_sampler_open 间接消费 + lib/common/healpix 权威球面函数）；
+  p3_sampler_open 间接消费 + lib/algorithms/shared/healpix 权威球面函数）；
   depends_on_int=P3-PROJ-INT;IO-003;CPU-005（矩阵行；P3-PROJ-INT=
   上游 WCS 域对齐、IO-003=tile 文件读路径、CPU-005=worker 池并行
   由每 worker 独立 sampler 结构性满足，ALG-P3-RSMP-IMPL-001 §7）。
@@ -118,7 +118,7 @@ downstream: [TEST-P3-RES-001]
   ports wcs_plan(DATA-P3-WCS 必)+hips(DATA-HIPS-001 必)+resampled
   (DATA-P3-RES 可)；alg_id=ALG-P3-003、data_id=DATA-P3-RES、
   api_id=API-P3-001、test_id=TEST-P3-RES-001——占位 ID/端口由
-  P3-RSMP-INT 对齐本页与 lib/phase3_rsmp/module.yaml，不作冻结
+  P3-RSMP-INT 对齐本页与 lib/algorithms/resample/module.yaml，不作冻结
   依据。
 - 注册序: module_adapters.cpp:816 起序列（phase3_descriptor→
   p3_wcs_descriptor→p3_resample2_descriptor→p3_writer_descriptor，
@@ -202,4 +202,4 @@ downstream: [TEST-P3-RES-001]
 - DATA: docs/contracts/DATA_SEMANTICS.md §29
 - API: docs/contracts/PUBLIC_API.md（API-P3-RSMP-001 节）
 - 模块总页: docs/modules/phase3_rsmp.md；合同三件套:
-  lib/phase3_rsmp/{README.md,module.yaml,memory.md}
+  lib/algorithms/resample/{README.md,module.yaml,memory.md}

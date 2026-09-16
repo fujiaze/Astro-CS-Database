@@ -13,8 +13,8 @@ downstream: [TEST-P1-SNR-001]
 > P1-NOISE-DOC 事实修订（2026-09-07，wave W1）：本页由源码核对后修订——
 > 合同 ID 由占位（SCI-P1-SNR-001/ALG-004/TEST-P1-SNR-001）更正为真实
 > 冻结 ID（SCI-NOISE-001..015 / ALG-NOISE-001..003 / DATA-P1-NOISE /
-> API-NOISE-001）；模块级事实以 lib/snr_estimator/README.md（r1，
-> CONTRACT_READY）与现行生产实现 lib/snr_estimator/cpp/（现状构建=
+> API-NOISE-001）；模块级事实以 lib/algorithms/noise_snr/README.md（r1，
+> CONTRACT_READY）与现行生产实现 lib/algorithms/noise_snr/cpp/（现状构建=
 > cpp/Makefile:5,12 g++ -shared → snr_estimator.dll + cpp/build.ps1:29，
 > 未编入根 CMake 主构建）为准；descriptor 占位 ID（module_adapters.cpp
 > p1_noise_snr_descriptor）由 P1-NOISE-INT 对齐本页，不得反向作为冻结
