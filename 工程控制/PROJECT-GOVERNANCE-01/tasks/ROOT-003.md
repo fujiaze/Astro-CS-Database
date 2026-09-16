@@ -21,6 +21,13 @@
 - 回收目标：把 `run/` 从 102G 降到与近期控制包工作相关的规模，并在 RETENTION.md 写明保留期（建议默认 14 天，可复跑证据另行归档到 `reports/`）。
 - 用户数据区（`GaiaDR3/`、`GaiaDR3SP/`、`BASS DR3/`、`testdata/`）**不属本任务**，保持原位。
 
+## >1G 目录放行的前置条件（负责人裁决 2026-09-16，消除二义）
+
+- 负责人已授权清理 `run/` 内全部内容（含 `run/perf-fix` 61.8G、`run/release-rescue` 29.6G），**不再设体积上限**。
+- 但每个 >1G 目录的删除必须同时满足：① 引用扫描证明 `reports/`·`evidence/`·`docs/`·`ci/`·`tests/` 无引用；② 非 `run/PROJECT-GOVERNANCE-01/**`（本控制包日志）；③ 非 tracked；④ 大小、文件数、最后修改时间、无引用证据写入 `RETENTION.md` 与删除清单。
+- 不满足①的目录（被报告引用）→ 保留，并在 `RETENTION.md` 里登记「被谁引用、保留到何时」。
+- 工作方式：SubAgent 无 git 写权限，删除工作区内容即可；前台负责提交与最终核对。
+
 ## 权威依据
 - ENGINEERING_SPEC.md §7（run/ 定位：临时产物/日志，gitignore）
 - CONTROL_PACK_SPEC.md §6.2（命令日志保存）、§9（汇总与归档）
