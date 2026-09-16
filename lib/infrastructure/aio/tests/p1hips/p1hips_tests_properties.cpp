@@ -30,6 +30,8 @@
 #include <cstdio>
 #include <cstring>
 #include <dirent.h>
+#include <filesystem>
+#include <system_error>
 #include <string>
 #include <thread>
 #include <vector>
@@ -227,6 +229,20 @@ int test_properties() {
             const auto it = kv.find("moc_sky_fraction");
             P1HIPS_CHECK(cs, it != kv.end() && it->second == std::to_string(3.0 / 12.0),
                          "i6_sky_fraction");
+        }
+        // AIO-001/M9-G-6 正例 (原子落盘纪律): properties 必须落在正式路径, 且
+        // 临时文件+fsync+原子 rename 的临时文件不得残留。修复前直写(无 tmp)也满足
+        // "无残留", 故本断言与 negative:N10 的失败传播断言成对 (一正一负)。
+        {
+            std::error_code ec;
+            P1HIPS_CHECK(cs, std::filesystem::exists(dir + "/signal/properties", ec),
+                         "n10_pos_properties_at_final_path");
+            bool tmp_left = false;
+            for (const auto& e : std::filesystem::recursive_directory_iterator(
+                     dir, std::filesystem::directory_options::skip_permission_denied, ec)) {
+                if (e.path().filename().string().find(".tmp.") != std::string::npos) tmp_left = true;
+            }
+            P1HIPS_CHECK(cs, !tmp_left, "n10_pos_no_tmp_leftover");
         }
     }
 

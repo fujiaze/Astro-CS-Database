@@ -17,6 +17,7 @@
 
 #include "aio_hips.h"
 #include "aio_hips_reader.h"   // DATA-UNC-001 §30.2/§30.3: verify 面回读 (只读)
+#include "aio_atomic_file.h"   // AIO-001: 临时文件+fsync+原子 rename 落盘原语
 #include "healpix/healpix_core.h"
 
 #include <fitsio.h>
@@ -49,6 +50,15 @@ namespace {
 thread_local std::string g_hips_error;
 
 void set_error(const std::string& msg) { g_hips_error = msg; }
+
+// 故障注入 (ASTROCS_HIPS_*): 测试专用等价缺陷注入面。未设置环境变量时
+// 逐行零行为差异; 命中时按注入名产生等价缺陷, 使对应断言必败 (判别力证明)。
+// 先例: tests/unit/aio_abi_test_main.hpp ASTROCS_AIO_FAULT / p2002 FAULT=proj|prov。
+// (原定义在句柄结构之后; AIO-001 起 write_properties 需要同一注入面, 故上移至此。)
+bool fault_injected(const char* var, const char* name) {
+    const char* v = std::getenv(var);
+    return v && name && std::strcmp(v, name) == 0;
+}
 
 double kPi() { return std::acos(-1.0); }
 
@@ -332,13 +342,34 @@ bool write_moc_fits(const std::string& path,
     return true;
 }
 
-void write_properties(const std::string& path,
+// properties 写出 (IVOA HiPS + ASTROCS_* provenance 唯一文本载体)。
+// M9-G-6/AIO-001: 原实现 fopen 失败即静默 return、fprintf/fclose 不查, 且直写正式路径
+// —— 违反 ASTROCS_DESIGN §9(失败不得留下可被误认为正式产品的半成品)与
+// ENGINEERING_SPEC §9(错误须经统一状态码传播)。改为: 同目录临时文件 → fflush →
+// fsync → 原子 rename (aio_atomic_file.h), 任一环节失败清理临时文件并返回 false,
+// 由调用方按子产品错误码 (-3..-8) 上报。
+bool write_properties(const std::string& path,
                       const std::vector<std::pair<std::string, std::string>>& kv) {
-    FILE* f = std::fopen(path.c_str(), "wb");
-    if (!f) return;
-    for (const auto& p : kv)
-        std::fprintf(f, "%s=%s\n", p.first.c_str(), p.second.c_str());
-    std::fclose(f);
+    std::string content;
+    content.reserve(kv.size() * 48 + 16);
+    for (const auto& p : kv) {
+        content += p.first;
+        content += '=';
+        content += p.second;
+        content += '\n';
+    }
+    // 注入点 (测试专用): 等价模拟"临时文件/fsync/rename 环节失败"。修复前本函数对这些
+    // 失败一律静默 (void + return), 故该注入正是判别"失败是否传播"的等价缺陷面。
+    if (fault_injected("ASTROCS_HIPS_PROV_FAULT", "properties_write_fail")) {
+        set_error("properties 原子落盘失败 (injected@atomic): " + path);
+        return false;
+    }
+    std::string err;
+    if (aio_atomic::write_file_atomic(path, content, &err) != 0) {
+        set_error("properties 原子落盘失败: " + path + " (" + err + ")");
+        return false;
+    }
+    return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -443,14 +474,6 @@ struct AioHipsProductSet {
     std::vector<int32_t> scratch_diag_nrej, scratch_diag_nused;
 };
 
-// 故障注入 (ASTROCS_HIPS_*): 测试专用等价缺陷注入面。未设置环境变量时
-// 逐行零行为差异; 命中时按注入名产生等价缺陷, 使对应断言必败 (判别力证明)。
-// 先例: tests/unit/aio_abi_test_main.hpp ASTROCS_AIO_FAULT / p2002 FAULT=proj|prov。
-bool fault_injected(const char* var, const char* name) {
-    const char* v = std::getenv(var);
-    return v && name && std::strcmp(v, name) == 0;
-}
-
 // ============================================================================
 // P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
 // aio_api.cpp P0-4 口径)。本文件 extern "C" 9 个导出入口此前 0 个有 try
@@ -478,10 +501,24 @@ AioHipsProductSet* aio_hips_product_begin(
     // P1 (R9-A): C 边界异常屏障
     try {
         g_hips_error.clear();
-        if (!out_dir || !*out_dir || nside < 512 || tile_width != 512 ||
+        // nside 必须恰为 2 的幂(M8d-A-01/AIO-001): 叶级几何基数 nside=2^K 是
+        // ALG-HIPS-001 (1a) 的冻结构造前提, 下方 ilog2_u64 是*向下取整*, 非 2 的幂
+        // (如 600) 会被静默夹逼到 2^9 并据此写出与调用方声明不一致的 NSIDE/
+        // A_cell/leaf_order 产品 —— 属 ASTROCS_DESIGN §9 禁止的"看似完整产品"。
+        // 上界 2^29(实现域): NESTED 计数 Npix=12·nside² 在 nside=2^29 时为 12·2^58
+        // < 2^63(uint64 域内); nside>2^29 时该积将溢出/越出可寻址 tile 域, 且
+        // tile_order=leaf_order-9 亦超出 MOC 阶实际可用范围 ⇒ 与非法 nside 同类拒绝。
+        // 依据: docs/algorithms/HIPS_WRITER.md §1(1a) "叶级 nside=2^K>=512";
+        //       API-HIPS-001 契约 aio_hips.h:101 "nside - 叶级 NSIDE (2 的幂, >= 512)";
+        //       §9 负面矩阵"nside<512"(扩展到非 2 的幂/越上界同类非法输入);
+        //       ASTROCS_DESIGN.md 附录 B IVOA HiPS 1.0 / Górski 2005 (Npix=12·nside²)。
+        const bool nside_is_pow2 = (nside & (nside - 1u)) == 0u;
+        if (!out_dir || !*out_dir || nside < 512 ||
+            nside > (1u << 29) || !nside_is_pow2 || tile_width != 512 ||
             (data_type != AIO_HIPS_FLOAT32 && data_type != AIO_HIPS_FLOAT64) ||
             (flags & ~AIO_HIPS_PRODUCT_ALL_V20) != 0) {
-            set_error("aio_hips_product_begin: 参数无效 (nside>=512, tile_width=512, dtype 0/1)");
+            set_error("aio_hips_product_begin: 参数无效 (nside=2^K 且 512<=nside<=2^29, "
+                      "tile_width=512, dtype 0/1)");
             return nullptr;
         }
         std::unique_ptr<AioHipsProductSet> ps(new AioHipsProductSet);
@@ -1020,7 +1057,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
             kv.push_back({"t_max", b1});
         }
     }
-    write_properties(dir + "/properties", kv);
+    if (!write_properties(dir + "/properties", kv)) return false;
     // metadata.fits (产品级) 由 Moc.fits 提供结构; 再写一份极简 metadata.fits
     {
         int status = 0;
@@ -1239,7 +1276,7 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
         kv2.push_back({"hips_initial_ra", std::to_string(ra_s[ra_s.size() / 2])});
         kv2.push_back({"hips_initial_dec", std::to_string(dec_s[dec_s.size() / 2])});
     }
-    write_properties(dir + "/properties", kv2);
+    if (!write_properties(dir + "/properties", kv2)) return false;
     {
         FILE* f = std::fopen((dir + "/metadata.xml").c_str(), "wb");
         if (!f) { set_error("无法创建 SNR metadata.xml: " + dir + "/metadata.xml"); return false; }
