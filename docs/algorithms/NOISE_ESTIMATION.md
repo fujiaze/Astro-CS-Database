@@ -23,7 +23,7 @@ F5: g_model_floor[model*]=floor 指针隔离
 F6: 诊断: var_ADU=max(signal,0)/gain + (rn/gain)² (仅 SNR-005, 不入生产)
 ```
 
-来源: `noise_model.cpp:32-464` `default_config variance_floor=1e-12`
+来源: `noise_model.cpp:32-507` `default_config variance_floor=1e-12`
 
 ## 3 伪代码
 
@@ -34,7 +34,7 @@ function snr_noise_model_v1(image, star_x/y, cfg):
     mask rmax=max(1,r0)·max(1,scale) 固定不按振幅
     vals = unmasked pixels; med=median(vals); mad=median(|vals−med|)
     sigma=1.4826·mad; 2轮内剔除 |v−med|>5σ → patch_variance
-  if n_valid <4 or !spatial_field → global_median fallback
+  if n_valid <4 or !spatial_field or 几何退化(λlo/λhi<1/16) → global_median fallback
   else LS平面 a,b,c 最小二乘 patch_centers→variance
   g_model_floor[model*]=1e-12; for fill: var=max(a+b·x+c·y, floor)
 
@@ -129,18 +129,18 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:312-316 注册）。
 
 | ALG | 符号 | 源锚 |
 |---|---|---|
-| ALG-NOISE-001 | `noise_model_impl`（模板 f32/f64 内核） | noise_model.cpp:118-267（参数校验 :112、`g_model_floor` 注册 :126、fixed conservative 掩膜 :128-157、patch 网格循环 :165-201、全局兜底 :206-239、控制点数组 :241-278） |
-| ALG-NOISE-001 | `snr_noise_model_v1` / `snr_noise_model_v1_f64`（C ABI 门面，extern "C" 异常屏障→rc 3） | noise_model.cpp:348-364 |
-| ALG-NOISE-001 | `snr_noise_model_v1_default_config` | noise_model.cpp:333-346（默认 8×8/r0=10/scale=6/clip 5.0/min 64/rounds 2/spatial 1/floor 1e-12） |
+| ALG-NOISE-001 | `noise_model_impl`（模板 f32/f64 内核） | noise_model.cpp:137-296（参数校验 :143、`g_model_floor` 注册 :151、fixed conservative 掩膜 :159-188、patch 网格循环 :190-226、全局兜底 :231-264、控制点数组 :266-295） |
+| ALG-NOISE-001 | `snr_noise_model_v1` / `snr_noise_model_v1_f64`（C ABI 门面，extern "C" 异常屏障→rc 3） | noise_model.cpp:386-402 |
+| ALG-NOISE-001 | `snr_noise_model_v1_default_config` | noise_model.cpp:371-384（默认 8×8/r0=10/scale=6/clip 5.0/min 64/rounds 2/spatial 1/floor 1e-12） |
 | ALG-NOISE-001 | `robust_median` / `robust_sigma`（1.482602218505602·MAD）/ `collect_patch_sky`（掩膜+饱和过滤+5σ≤2 轮裁剪） | noise_model.cpp:42-52,55-62,72-108 |
-| ALG-NOISE-002 | `fill_impl`（平面 LS var(x,y)=a+b·x+c·y，负预测 clamp floor；否则全局常量）+ `snr_noise_model_v1_fill` | noise_model.cpp:371-429（LS :340-370，floor 回退 :402-405，fill 门面 :411-422） |
-| ALG-NOISE-002 | `snr_noise_model_v1_free`（free ctrl 数组 + 按指针擦除 g_model_floor） | noise_model.cpp:431-445 |
-| ALG-NOISE-002 | `snr_noise_scale_law`（x'=αx → var'=α²var, ivar'=ivar/α²） | noise_model.cpp:447-454；snr_estimator.h:173-175 |
-| ALG-NOISE-003 | `snr_noise_gain_variance`（var_ADU=max(signal,0)/gain+(rn/gain)²，诊断不入生产） | noise_model.cpp:456-464；snr_estimator.h:178-180 |
-| （同头三层其余） | `snr_phot_cal_quality`（dex/mag/rel 换算 :67-79）、`snr_psf_fit_quality`（residual_scale/0.7316727929211932、q_psf=A/residual_scale :296-334） | 属 P1-PHOT/PSF 合同视角引用，本模块不重复冻结 |
+| ALG-NOISE-002 | `fill_impl`（平面 LS var(x,y)=a+b·x+c·y，负预测 clamp floor；否则全局常量）+ `snr_noise_model_v1_fill` | noise_model.cpp:408-470（LS :414-431，floor 回退 :443-445，fill 门面 :463-470） |
+| ALG-NOISE-002 | `snr_noise_model_v1_free`（free ctrl 数组 + 按指针擦除 g_model_floor） | noise_model.cpp:472-486 |
+| ALG-NOISE-002 | `snr_noise_scale_law`（x'=αx → var'=α²var, ivar'=ivar/α²） | noise_model.cpp:488-495；snr_estimator.h:183-184 |
+| ALG-NOISE-003 | `snr_noise_gain_variance`（var_ADU=max(signal,0)/gain+(rn/gain)²，诊断不入生产） | noise_model.cpp:497-505；snr_estimator.h:188-190 |
+| （同头三层其余） | `snr_phot_cal_quality`（dex/mag/rel 换算 `noise_model.cpp:305-328`）、`snr_psf_fit_quality`（residual_scale/0.7316727929211932、q_psf=A/residual_scale `noise_model.cpp:333-366`） | 属 P1-PHOT/PSF 合同视角引用，本模块不重复冻结 |
 
 返回码合同（三函数一致）：`0`=成功（含 degenerate=1 全局兜底成功）；`1`=
-完全退化（ivar_bg_global=0.0，调用方拒绝加权，noise_model.cpp:225-233）；
+完全退化（ivar_bg_global=0.0，调用方拒绝加权，noise_model.cpp:250-258）；
 `3`=nullptr/尺寸非法/内部异常（门面 try/catch 屏障）。
 
 ### 13.2 与 §1-§12 既有登记的实现事实差异修订（不改动根公式）
@@ -148,19 +148,20 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:312-316 注册）。
 - `g_model_floor` 实际为 `std::unordered_map<const NoiseWeightModelV1*,double>`
   （noise_model.cpp:32），§2 所写 `std::map<void*,double>` 为旧登记——语义
   （model 指针 key、无全局共享）不变，容器与 key 类型以本节为准。
-- `min_patch_samples` 默认 **64**（snr_estimator.h:117、default_config :333），
-  SCI §4 "min_samples 默认 5" 为旧稿数字——**不改 SCI**，以代码为准登记；
-  patch 合格阈即 64。
+- `min_patch_samples` 默认 **64**（snr_estimator.h:117、default_config :379），
+  patch 合格阈即 64。SCI-NOISE-001 §4 原文"默认 5"属旧稿数字，已按 claim SC-002
+  **订正 SCI 为 64**（依据 R-5 §2 EXP-1/2/3：N=5 时单 patch 偏差 −19.2%、SCI §11
+  冻结的 5% oracle 通过率仅 0.6%，与 SCI 自身验收条款不兼容）——本层**以 SCI 为准**。
 - 掩膜统一半径 rmax = max(1, source_mask_radius_px)·max(1, mask_radius_scale)
-  = 默认 10·6 = **60 px**（noise_model.cpp:144-147），对所有星统一，不按
-  振幅/星等缩放（API 无 amplitude 输入）；`amps` 向量残留未用（:139,146
+  = 默认 10·6 = **60 px**（noise_model.cpp:169-172），对所有星统一，不按
+  振幅/星等缩放（API 无 amplitude 输入）；`amps` 向量残留未用（:166,171
   `(void)amps`）。
 - 取消检查点：§5c "patch 行带粒度检查取消"为计划语义，现状
   noise_model_impl/fill_impl **无** cancel 回调（DISP-NOISE-004）。
 - §11 "n_ctrl ∈ {1..64}"：n_qualified_patches = 合格 patch 数 ∈ {0..64}
-  （8×8 网格上限 64）；<4 时 has_spatial_field=0（:276-277）。
+  （8×8 网格上限 64）；<4 时 has_spatial_field=0（:288-293）。
 - 线程：§5/§5c "OpenMP 并行"为计划语义——noise_model_impl 现状**单线程
-  顺序**（无 omp pragma；patch 循环 :165-201 串行），与
+  顺序**（无 omp pragma；patch 循环 :190-226 串行），与
   astrocs.p1.noise-snr descriptor parallel_ok 并行轴为迁移整改点。
 
 ### 13.3 缺陷清单（DISP-NOISE，登记不改码）
@@ -170,15 +171,26 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:312-316 注册）。
 
 | ID | 缺陷（现状事实） | 锚 |
 |---|---|---|
-| DISP-NOISE-001 | `g_model_floor` 为进程级 unordered_map、以原始指针为 key：`_free` 后同址复用（ABA）可命中旧 floor 值；多线程并发 build/free 对该 map 无锁竞争（PHASE1_API_V1 §2 threadsafe=yes 以"model 对象隔离"为前提，本条即该前提的实现边界） | noise_model.cpp:32,126,433 |
-| DISP-NOISE-002 | build 与 fill 两阶段 floor 语义不一致：build 内 `max(vmed, cfg->variance_floor)`/`max(patch_var, floor)` 在 floor<=0 时**不 clamp**（原值直通），fill 阶段 floor<=0 静默回退 1e-12——同一 cfg 两阶段下界不同 | noise_model.cpp:210,256 vs 400-404 |
-| DISP-NOISE-003 | `SnrNoiseModelConfig.gain_e_per_adu/read_noise_e/use_gain_model` 三字段在 noise_model_impl 中**零读取**：use_gain_model=1 无任何效果，gain 模型融合路径无实现（与 SCI §10 不融合禁令一致，但字段存在暗示可选路径，易误用） | snr_estimator.h:103-104,109；noise_model.cpp:119-124 |
-| DISP-NOISE-004 | 无取消检查点：noise_model_impl/fill_impl 均无 cancel 回调（§5c 为计划语义） | noise_model.cpp:118-267,371-429 |
-| DISP-NOISE-005 | `snr_noise_scale_law` 无参数校验：alpha=NaN/Inf/负值未拒绝，variance 无条件乘 α²（NaN 直传）；ivar 仅在 a2>0 且有限时更新——variance 与 ivar 在非法 alpha 下可失去互倒关系 | noise_model.cpp:447-454 |
-| DISP-NOISE-006 | `source_mask` 与 `star_x/y` 掩膜通道互斥：source_mask 非 NULL 时完全忽略 star 坐标（含 n_stars>0）；source_mask 长度不单独校验（信任 h·w 布局） | noise_model.cpp:134-163 |
-| DISP-NOISE-007 | 参数下限静默钳位无返回码区分：patch_grid<2→2、clip_sigma<1→1、min_patch_samples<1→1、max_clip_rounds<0→0（调用方不可知被钳位） | noise_model.cpp:166-170 |
-| DISP-NOISE-008 | 整除划分 patch 网格在小图出现空 patch（x0==x1），几何空 patch 与质量拒绝混入同一 `n_rejected_patches` 计数，语义不区分 | noise_model.cpp:179-204 |
-| DISP-NOISE-009 | 控制点 malloc 失败路径 return 3 前 `g_model_floor[out_model]` 已注册：调用方忽略 rc=3 不调 `_free` 则注册表条目泄漏（与 001 同根） | noise_model.cpp:126,244-254 |
+| DISP-NOISE-001 | `g_model_floor` 为进程级 unordered_map、以原始指针为 key：`_free` 后同址复用（ABA）可命中旧 floor 值；多线程并发 build/free 对该 map 无锁竞争（PHASE1_API_V1 §2 threadsafe=yes 以"model 对象隔离"为前提，本条即该前提的实现边界） | noise_model.cpp:32,151,474 |
+| DISP-NOISE-002 | build 与 fill 两阶段 floor 语义不一致：build 内 `max(vmed, cfg->variance_floor)`/`max(patch_var, floor)` 在 floor<=0 时**不 clamp**（原值直通），fill 阶段 floor<=0 静默回退 1e-12——同一 cfg 两阶段下界不同 | noise_model.cpp:235,281 vs 441-445 |
+| DISP-NOISE-003 | `SnrNoiseModelConfig.gain_e_per_adu/read_noise_e/use_gain_model` 三字段在 noise_model_impl 中**零读取**：use_gain_model=1 无任何效果，gain 模型融合路径无实现（与 SCI §10 不融合禁令一致，但字段存在暗示可选路径，易误用） | snr_estimator.h:113-114,119；noise_model.cpp:144-149 |
+| DISP-NOISE-004 | 无取消检查点：noise_model_impl/fill_impl 均无 cancel 回调（§5c 为计划语义） | noise_model.cpp:137-296,408-470 |
+| DISP-NOISE-005 | `snr_noise_scale_law` 无参数校验：alpha=NaN/Inf/负值未拒绝，variance 无条件乘 α²（NaN 直传）；ivar 仅在 a2>0 且有限时更新——variance 与 ivar 在非法 alpha 下可失去互倒关系 | noise_model.cpp:488-495 |
+| DISP-NOISE-006 | `source_mask` 与 `star_x/y` 掩膜通道互斥：source_mask 非 NULL 时完全忽略 star 坐标（含 n_stars>0）；source_mask 长度不单独校验（信任 h·w 布局） | noise_model.cpp:159-188 |
+| DISP-NOISE-007 | 参数下限静默钳位无返回码区分：patch_grid<2→2、clip_sigma<1→1、min_patch_samples<1→1、max_clip_rounds<0→0（调用方不可知被钳位） | noise_model.cpp:191-195 |
+| DISP-NOISE-008 | 整除划分 patch 网格在小图出现空 patch（x0==x1），几何空 patch 与质量拒绝混入同一 `n_rejected_patches` 计数，语义不区分 | noise_model.cpp:204-229 |
+| DISP-NOISE-009 | 控制点 malloc 失败路径 return 3 前 `g_model_floor[out_model]` 已注册：调用方忽略 rc=3 不调 `_free` 则注册表条目泄漏（与 001 同根） | noise_model.cpp:151,269-279 |
+| DISP-NOISE-010 | **（SC-002 已整改）** 平面场启用判据为绝对阈值 `fabs(det) > 1e-24`（det 量纲 px⁴），且 `has_spatial_field` 只由 `enable_spatial_field && n>=4` 决定、与 det 无关：①精确共线控制点（det==0）仍报 `has_spatial_field=1`，fill 退化为"控制点方差的算术平均"而冒充空间场；②近共线控制点虽 det>1e-24，平面病态外推把 variance 场拉到真值的 ±62%（R-5 EXP-7 A/B 例，512² 帧、8×8 网格）。现行为 M3-A-005 订正后的**无量纲点云相对条件数**判据，填充填 `has_spatial_field=0`→全局稳健中位数 | 整改前 `noise_model.cpp:403`（HEAD 原行）；现 `noise_model.cpp:plane_geometry_ratio` |
+
+### 13.3a SCI-FIX-NOISE 整改登记（claim SC-002，2026-09-16；本节为**已整改**项，非挂账缺陷）
+
+| # | 议题 | 改前原文/行为 | 改后 | 依据 |
+|---|---|---|---|---|
+| 1 | M3-A-005 平面几何判据 | `fill_impl`: `if (std::fabs(det) > 1e-24)`；build: `has_spatial_field=(enable_spatial_field && n>=4)` | 新增 `plane_geometry_ratio()`：中心化点云 Gram 特征值比 `λlo/λhi ≥ kPlaneGeomRatio=0.0625`（κ=√(λhi/λlo)≤4），build 与 fill 用同一判据；不满足 ⇒ `has_spatial_field=0` ⇒ 全局常量场 | R-5 EXP-7 A/B 复现；数值判据表 `run/PROJECT-GOVERNANCE-01/SCI-FIX-NOISE/logs/01_geom_criterion.log`（A=0 / B=0.0133 / C=0.200 / 满格=1.0；R-5 建议式 det/(sxx·syy) 实测 B=0.794 无法分离，已改用点云条件数） |
+| 2 | M3-A-006 gain 方向 | `wrapper_phase1/noise_model.h:33`、`.cpp:207` 注释写 `signal/gain + read_noise²`（漏 /gain²）；`tests/unit/p1_noise_test.cpp` fixture 用 `ADU=N_e·gain`、解析式 `signal·gain+rn²`、容差 ±15% | 注释补 `/gain²`；fixture 改 SCI 约定（`ADU=N_e/gain+N(0,rn/gain)`）、解析式 `signal/gain+(rn/gain)²`、容差收到 SCI 冻结 **5%**；并新增"生产诊断式 `snr_noise_gain_variance` 必须与该解析式一致"断言 | SCI-NOISE-001 §5:58；R-5 §3.5 算术（旧解析式与 SCI 相差 gain²=2.25 倍） |
+| 3 | M3-A-006 常数 | `photometry/wrapper_phase1/photometer.cpp:90` 用 4 位截断 `1.4826` | 改冻结常数 `1.482602218505602`（相对差由 −1.50e-6 → 0） | SCI-NOISE-001 §9:91；GLOSSARY:3 禁两套定义 |
+| 4 | M6a-D-007 PSF 状态位 | `orchestrator.cpp:4392`（HEAD 原行）：`if (psf_status == 0.0 \|\| psf_status == 3.0) qf \|= SNR_QF_PSF_OK;`（3=ITERATION_LIMIT 失败码拿到满权 1.0） | 仅 `psf_status == 0.0` 置位；`snr_estimator.h` 位注释同步；未收敛帧在 UPM `quality_factor` 走"未知"档 0.5 | STAR_PSF_ALGORITHMS §11.2（3=DPSF_FIT_ITERATION_LIMIT 在"拟合失败语义"表内）、DATA_SEMANTICS:553（PHOTOMETRIC 仅 status=0 入匹配）、R-5 §3.6/§5.9 |
+| 5 | V12-N-16 kLn10 双写 | `noise_model.cpp:34` 与 `snr_science.cpp:33` 各写一份 `kLn10`（字面量逐位相同，后者**全文件零引用**） | 删除 `snr_science.cpp` 的死定义，模块内唯一定义点 = `noise_model.cpp` | 复算 `float('2.302585092994045684')==float('2.302585092994045684017991454684')` → True；零引用由 grep 证实 |
 
 ### 13.4 测试设计 TEST-NOISE-DESIGN-001（冻结容差）
 

@@ -58,7 +58,7 @@
       "key": "noise.patch_grid",
       "value": [8, 8],
       "unit": "patch",
-      "constraint": "patch 网格行列数；整数（实现侧下限钳位 2，见 NOISE_ESTIMATION.md:179 差异登记）",
+      "constraint": "patch 网格行列数；整数（实现侧下限钳位 2，见 NOISE_ESTIMATION.md:180 差异登记）",
       "authority_status": "sourced",
       "source": "docs/algorithms/NOISE_ESTIMATION.md:134（snr_noise_model_v1_default_config 默认 8×8）",
       "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
@@ -80,7 +80,7 @@
       "key": "noise.mask_radius_scale",
       "value": 6,
       "unit": "1",
-      "constraint": ">= 1；无量纲倍率，与 source_mask_radius_px 相乘得掩膜半径（NOISE_ESTIMATION.md:154）",
+      "constraint": ">= 1；无量纲倍率，与 source_mask_radius_px 相乘得掩膜半径（NOISE_ESTIMATION.md:156）",
       "authority_status": "sourced",
       "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 scale=6）",
       "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
@@ -107,7 +107,7 @@
       "source": "docs/algorithms/NOISE_ESTIMATION.md:134（默认 min 64）",
       "source_ref": {"path": "docs/algorithms/NOISE_ESTIMATION.md", "line": 134},
       "pending_task": null,
-      "note": "同文件 :151 记 min_patch_samples 默认 64（snr_estimator.h:117、default_config :333）。"
+      "note": "同文件 :151 记 min_patch_samples 默认 64（snr_estimator.h:117、default_config :379）。"
     },
     {
       "key": "noise.max_clip_rounds",

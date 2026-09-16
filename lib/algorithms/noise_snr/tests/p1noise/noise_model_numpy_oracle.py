@@ -27,6 +27,7 @@
 import math
 import os
 import shutil
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -60,7 +61,11 @@ REPO = _repo_root(HERE)
 SNR_INC = os.path.join(REPO, "lib", "algorithms", "noise_snr", "cpp", "include")
 SNR_SRC = os.path.join(REPO, "lib", "algorithms", "noise_snr", "cpp", "src")
 
-MAD_TO_SIGMA = 1.482602218505602   # NOISE_MODEL.md §3:46 / §9:91（MAD→σ 唯一常数）
+# MAD→σ 常数由**第一性原理导出**（M3-F-001 独立性补强，R-5 §5.13①）：标准正态
+# 的 MAD 分位恒等式 Φ⁻¹(3/4) ⇒ MAD→σ = 1/Φ⁻¹(3/4)。不抄生产字面量。
+MAD_TO_SIGMA = 1.0 / statistics.NormalDist().inv_cdf(0.75)
+# 自证：与 SCI-NOISE-001 §5:46 冻结字面量逐位相等（不等则本 Oracle 自身失效）
+assert MAD_TO_SIGMA == 1.482602218505602, "MAD_TO_SIGMA 与 SCI §5:46 冻结值不逐位相等"
 RTOL_MODEL = 1e-9                  # NOISE_MODEL.md §15:140 承诺 rtol 1e-9
 RTOL_PLANE = 2e-6                  # fill 面 float32 存储精度
 
@@ -93,6 +98,11 @@ int main(int argc, char** argv) {
     std::fclose(f);
     SnrNoiseModelConfig cfg;
     snr_noise_model_v1_default_config(&cfg);
+    std::printf("DEFCFG %d %d %.17g %.17g %.17g %.17g %d %d %d %.17g",
+                cfg.patch_grid_x, cfg.patch_grid_y, cfg.source_mask_radius_px,
+                cfg.mask_radius_scale, cfg.gain_e_per_adu, cfg.read_noise_e,
+                cfg.min_patch_samples, cfg.max_clip_rounds,
+                (int)cfg.enable_spatial_field, cfg.variance_floor); nl();
     cfg.patch_grid_x = gx; cfg.patch_grid_y = gy;
     cfg.min_patch_samples = minsamp; cfg.cosmic_clip_sigma = clip;
     cfg.max_clip_rounds = rounds; cfg.variance_floor = floor_v;
@@ -228,7 +238,7 @@ def run_case(exe, name, data, gx, gy, minsamp, clip, rounds, floor_v, tmp):
             continue
         if tok[0] == "CP":
             out["CP"].append([float(x) for x in tok[2:]])
-        elif tok[0] in ("RC", "NQ", "VG", "FILLRC", "GV", "SL"):
+        elif tok[0] in ("RC", "NQ", "VG", "FILLRC", "GV", "SL", "DEFCFG"):
             out[tok[0]] = tok[1:]
         elif tok[0] == "FV":
             out["FV"] = np.asarray([float(x) for x in tok[1:]], dtype=np.float64)
@@ -305,6 +315,35 @@ def main():
 
         out_a = run_case(exe, "A_plane_outlier", data_a, 8, 8, 32, 5.0, 2, 1e-12, tmp)
         out_b = run_case(exe, "B_blank_gauss", data_b, 8, 8, 32, 5.0, 2, 1e-12, tmp)
+
+        # (2) 冻结默认值契约（R-5 §5.13②）：default_config 逐字段必须等于
+        # SCI/ALG/registry 冻结值。"min_samples 5 vs 64" 这类 SCI↔实现冲突
+        # 在本断言下必红（旧版用例逐字段覆盖默认值 ⇒ 零区分力）。
+        if "DEFCFG" in out_a:
+            d = out_a["DEFCFG"]
+            check(int(d[0]) == 8 and int(d[1]) == 8, "default_config patch_grid 8x8")
+            check(abs(float(d[2]) - 10.0) < 1e-12 and abs(float(d[3]) - 6.0) < 1e-12,
+                  "default_config source_mask_radius_px=10 / mask_radius_scale=6 (rmax=60px)")
+            check(abs(float(d[4])) < 1e-300 and abs(float(d[5])) < 1e-300,
+                  "default_config gain_e_per_adu=0 / read_noise_e=0 (DISP-NOISE-003 现状)")
+            check(int(d[6]) == 64, "default_config min_patch_samples==64 (SCI-NOISE-001 §4 冻结)")
+            check(int(d[7]) == 2, "default_config max_clip_rounds==2 (SCI §5 5sigma<=2 轮)")
+            check(int(d[8]) == 1, "default_config enable_spatial_field==1")
+            check(abs(float(d[9]) - 1e-12) < 1e-24, "default_config variance_floor==1e-12")
+
+        # (3) 公式级偏差用例（R-5 §5.13③）：纯高斯帧、8x8 网格、每 patch 恰 64
+        # 样本 ⇒ sigma_bg_global/sigma 必须落在 R-5 EXP-2 的 MC 区间
+        # (E=0.983170, SE=0.022736, T=976, N=64/patch) 的 ±3sigma 带内。
+        # 该用例能判"公式/阈值错"（min_samples=5 时 E=0.7488 必红），而非仅"抄写错"。
+        for seed_c in (11, 12, 13):
+            rng_c = np.random.default_rng(seed_c)
+            data_c = 1000.0 + rng_c.normal(0.0, 5.0, size=(64, 64))
+            out_c = run_case(exe, "C_bias_n64_s%d" % seed_c, data_c, 8, 8, 64, 5.0, 2, 1e-12, tmp)
+            if "VG" in out_c:
+                g_rel = math.sqrt(float(out_c["VG"][0])) / 5.0
+                check(0.91496 <= g_rel <= 1.05138,
+                      "C_bias_n64 sigma_bg/sigma in MC band (seed=%d got=%.5f band=[0.91496,1.05138])"
+                      % (seed_c, g_rel))
 
         if "VG" in out_a:
             sg_a = math.sqrt(float(out_a["VG"][0]))

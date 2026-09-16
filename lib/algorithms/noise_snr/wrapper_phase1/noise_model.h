@@ -30,7 +30,8 @@ class NoiseModel {
   // estimate: 空白背景像素集 (ADU); 返回 variance/ivar。
   astrocs::core::Result<NoiseResult> estimate(const std::vector<float>& pixels) const;
 
-  // Poisson+read noise 解析模型 (SCI §10 诊断): variance = signal/gain + read_noise²
+  // Poisson+read noise 解析模型 (SCI §10 诊断):
+  // variance = signal/gain + (read_noise_e/gain)²  [ADU²]
   // 零 gain 或无效 read_noise (<=0) → 返回无效 (诊断路径不入生产)。
   static astrocs::core::Result<NoiseResult> gain_variance(
       double signal, double gain, double read_noise_e);

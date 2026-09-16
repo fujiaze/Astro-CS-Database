@@ -138,7 +138,7 @@ typedef struct {
     uint32_t n_rejected_patches; // 样本不足/饱和/非有限
     uint8_t  source;             // 0=empirical blank-sky, 1=gain+readnoise model,
                                  // 2=mixed (control=empirical, fill 用模型)
-    uint8_t  has_spatial_field;  // 1=合格 patch >=4 且空间场可用
+    uint8_t  has_spatial_field;  // 1=合格 patch>=4 且控制点几何张成二维 (见 plane_geometry_ratio)
     uint8_t  degenerate;         // 1=无合格 patch, 全局兜底也退化 (ivar=0)
     uint8_t  reserved;
 } NoiseWeightModelV1;
@@ -409,7 +409,7 @@ static_assert(sizeof(SnrControlPointF64V3) == 40, "SnrControlPointF64V3 must be 
 
 // quality_flags 位定义 (, 与 orchestrator 序列化一致)
 enum SnrQualityFlagBits {
-    SNR_QF_PSF_OK          = 1u << 0,  // PSF 拟合状态有效 (status==0 或 3)
+    SNR_QF_PSF_OK          = 1u << 0,  // PSF 拟合收敛 (status==0 DPSF_FIT_OK；3=ITERATION_LIMIT 不置位)
     SNR_QF_SATURATED       = 1u << 1,  // 星点饱和标志
     SNR_QF_HAS_SATURATED   = 1u << 2,  // 邻域含饱和像素
     SNR_QF_PHOTO_MATCHED   = 1u << 3,  // 测光已匹配 (status==1)

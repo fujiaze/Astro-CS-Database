@@ -36,8 +36,8 @@ patch 网格（整除划分，循环 :179-208）、星点固定保守掩膜（so
 控制点（:241-267）、可选最小二乘平面空间方差场、全局兜底（合格 patch
 variance 稳健中位数，:207-246）；fill 逐像素 variance/ivar 场（平面 LS
 var(x,y)=a+b·x+c·y 负预测 clamp floor / 全局常量，fill_impl :371-419）；
-scale law（x'=αx → var'=α²var、ivar'=ivar/α²，:447-454）；gain+read-noise
-Poisson 诊断函数（var_ADU=max(signal,0)/gain+(rn/gain)²，:456-464，
+scale law（x'=αx → var'=α²var、ivar'=ivar/α²，:488-495）；gain+read-noise
+Poisson 诊断函数（var_ADU=max(signal,0)/gain+(rn/gain)²，:497-505，
 不入生产权重）。数据语义 DATA-P1-NOISE（DATA_SEMANTICS §13）。
 
 不负责：SNR catalogue 产品与 SNR² 加权落盘（P1-SNR/DRZ 侧，stage6 经
@@ -65,9 +65,8 @@ double `[n_control_points]`（patch 中心 0-based；σ ADU、variance ADU²、
 ivar ADU⁻²）、sigma_bg_global/variance_bg_global/ivar_bg_global 标量
 （全局兜底；完全退化 rc=1 时 ivar_bg_global==0.0 显式不可用——§4a）、
 n_qualified_patches+n_rejected_patches==64（8×8）、source=0（empirical
-blank-sky 唯一生产基线）、has_spatial_field（=1 须 enable_spatial_field
-且 n_control_points>=4）、degenerate；fill 输出 `out_variance/out_ivar`
-float32 `[h·w]`（任一可 NULL，双 NULL 拒绝 rc=3 :425-426；平面预测
+blank-sky 唯一生产基线）、has_spatial_field（=1 须 enable_spatial_field、n_control_points>=4 且控制点几何张成二维：点云相对条件数 κ=√(λhi/λlo)≤4，判据函数 plane_geometry_ratio）、degenerate；fill 输出 `out_variance/out_ivar`
+float32 `[h·w]`（任一可 NULL，双 NULL 拒绝 rc=3 :467-468；平面预测
 max(a+b·x+c·y, floor)）。所有权：out_model 由调用方分配/持有，ctrl_*
 内部数组由实现 malloc/free（须 snr_noise_model_v1_free 释放，未 free
 即丢弃指针=注册表泄漏 DISP-NOISE-009）。
@@ -88,9 +87,9 @@ max(a+b·x+c·y, floor)）。所有权：out_model 由调用方分配/持有，c
 行号 noise_model.cpp）：`snr_noise_model_v1`（头 :143-149，实现 :348-356
 门面）/ `snr_noise_model_v1_f64`（:151-157/:357-365，data 为 double）/
 `snr_noise_model_v1_default_config`（:115/:333-345）/
-`snr_noise_model_v1_fill`（:162-166/:422-429 门面）/ 
-`snr_noise_model_v1_free`（:167-168/:431-444）/ `snr_noise_scale_law`
-（:173-175/:447-454）/ `snr_noise_gain_variance`（:178-180/:456-464）。
+`snr_noise_model_v1_fill`（:172-174/:463-470 门面）/ 
+`snr_noise_model_v1_free`（:177/:472-486）/ `snr_noise_scale_law`
+（:183-184/:488-495）/ `snr_noise_gain_variance`（:188-190/:497-505）。
 调用时序：build → fill → free；free 幂等（nullptr 安全）。
 
 返回码（build/fill 一致，noise_model.cpp 实测）：`0`=成功（含
@@ -102,8 +101,8 @@ try/catch 屏障 :348-365；malloc 失败 :249-253）。同头三层模型其余
 
 ## 6. 配置 schema 与错误码
 
-`SnrNoiseModelConfig`（snr_estimator.h:98-112，default_config
-noise_model.cpp:333-345 括号内为默认值）：
+`SnrNoiseModelConfig`（snr_estimator.h:108-122，default_config
+noise_model.cpp:371-384 括号内为默认值）：
 
 | 字段 | 类型 | 默认 | 语义 |
 |---|---|---|---|
@@ -134,8 +133,8 @@ config_schema_ver）。
 掩膜 :128-163、patch 网格循环 :179-208、全局兜底 :207-246、控制点数组
 :241-267；robust_median :42-53/robust_sigma :55-62/collect_patch_sky
 :73-107）；ALG-NOISE-002=fill/free/scale_law（fill_impl LS 平面+clamp
-:371-419、free :431-444、scale_law :447-454）；ALG-NOISE-003=gain 诊断
-（gain_variance :456-464）。SCI 公式与默认容差不改动（禁止据代码缺陷
+:408-461、free :472-486、scale_law :488-495）；ALG-NOISE-003=gain 诊断
+（gain_variance :497-505）。SCI 公式与默认容差不改动（禁止据代码缺陷
 反向修改 SCI，差异全部登记 DISP-NOISE-*）。
 
 ## 8. 并发与资源
