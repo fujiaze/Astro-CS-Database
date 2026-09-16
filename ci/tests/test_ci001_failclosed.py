@@ -56,6 +56,21 @@ def _by_id(checks: list[dict]) -> dict:
     return {c["id"]: c for c in checks}
 
 
+def _units() -> dict:
+    """id -> 执行单元（顶层注册项 + 其 steps）。
+
+    CI-001 ID 收敛后 WIN-BUILD-RELEASE / BUILD-GCC-RELEASE / UT-QUALITY 等
+    已是 CHK-BUILD-WIN / CHK-BUILD-LINUX / CHK-UNIT 的 **step**，不再顶层存在；
+    `_by_id` 只索引顶层会 KeyError（原文件的既存红因）。
+    """
+    out: dict[str, dict] = {}
+    for c in _load_registry():
+        out[c["id"]] = c
+        for s in c.get("steps", []) or []:
+            out.setdefault(s["id"], s)
+    return out
+
+
 def _runner_mon_check(repo: Path, out_root: Path, check: dict) -> subprocess.CompletedProcess:
     """在 fixture 仓库执行单个 requires_monitor 检查的 runner。"""
     H.write_registry(repo, [check])
@@ -82,7 +97,7 @@ class TestWinChecksNotWaivable(unittest.TestCase):
     """目标 1：WIN-BUILD/TEST/PACKAGE 三项 waivable=false（不可 waiver）。"""
 
     def test_win_three_checks_flag_false(self):
-        reg = _by_id(_load_registry())
+        reg = _units()
         for cid in ("WIN-BUILD-RELEASE", "WIN-TEST-UNIT", "WIN-PACKAGE-CANDIDATE"):
             self.assertIn(cid, reg, cid)
             self.assertFalse(reg[cid]["waivable"],
@@ -92,7 +107,7 @@ class TestWinChecksNotWaivable(unittest.TestCase):
         """waivable=false 后：platform 门控不满足 → FAIL(prerequisite)，不再 SKIPPED。"""
         if sys.platform.startswith("win"):
             self.skipTest("仅非 Windows 宿主验证平台门控 fail-closed")
-        reg = _by_id(_load_registry())
+        reg = _units()
         check = dict(reg["WIN-BUILD-RELEASE"])
         check["command"] = ["python3", "-c", "print('noop')"]  # 门控命中后不执行
         check["prerequisite_tools"] = []
@@ -115,38 +130,75 @@ class TestWinChecksNotWaivable(unittest.TestCase):
 
 
 class TestMonitoredChecksRequestGate(unittest.TestCase):
-    """目标 2a：注册表资源门口径（owner 裁决原则一致化应用, 2026-09-11）。
+    """目标 2a：注册表资源门口径（CI-003 按负责人既定原则反转，2026-09-16）。
 
-    §10.5/§18.2 资源门冻结语义针对重计算区间；构建/打包/单测为非重计算面
-    （F-CI-002-04/06）：CI 注册表当前零 --gate-required——Linux 重计算检查
-    （BUILD-GCC-RELEASE + DEEP-*）仅采样留证（requires_monitor=true），
-    WIN-* 另按裁决 requires_monitor=false。资源门真正应用面 = REAL-001
-    真实数据终验重计算与本地 heavy 重计算（run_monitored evaluate 能力不动）。
+    **口径原文**（`docs/owner/RELEASE_STATUS.md §5`）：构建/打包/单测为
+    **非重计算面**，冻结阈值语义针对重计算区间；**重计算面必须显式请求
+    `--gate-required` 并附判定证据，缺失即 fail-closed**（§10.5/§18.2 阈值不被放宽）。
+
+    本类原先断言「全部 requires_monitor 检查命令均不含 --gate-required」，
+    与上述口径**直接矛盾**：它把「重计算面缺判定证据」这一 fail-closed 违规
+    当成期望态，会把真整改判成假红。CI-003 按 GATE-FIX-RES 登记反转：
+      - 正向要求：注册表**必须**存在显式请求 `--gate-required` 的重计算面检查
+        （`RESOURCE-GATE-REAL`），且该检查必须带真实监控包装；
+      - 反向维持：非重计算面（构建/打包/单测/WIN-*，仅采样留证）**不得**请求判定；
+      - `--gate-workers` 仍不得出现在任何注册命令里（判定容量一律由 host_probe 取）。
     """
 
-    def test_registry_gate_flags_removed_by_owner_ruling(self):
-        """裁决一致化：全部 requires_monitor 检查命令均不含 --gate-required。"""
-        reg = _by_id(_load_registry())
-        monitored = [c for c in reg.values() if c.get("requires_monitor")]
-        self.assertGreaterEqual(len(monitored), 6, "注册表 requires_monitor 检查数")
-        for c in monitored:
+    # 非重计算面（仅采样留证）：不得请求资源门判定
+    NON_RECOMPUTE_UNITS = ("BUILD-GCC-RELEASE", "DEEP-CLANG-BUILD", "DEEP-SAN-ASAN",
+                           "DEEP-SAN-TSAN", "DEEP-COV-CPP", "DEEP-COV-PY", "UT-QUALITY")
+
+    def test_registry_recompute_surface_requests_gate(self):
+        """负责人口径（RELEASE_STATUS §5）：重计算面必须显式请求 --gate-required。"""
+        reg = _units()
+        gate_checks = [c for c in reg.values()
+                       if "--gate-required" in c.get("command", [])]
+        self.assertTrue(gate_checks,
+                        "负责人口径：注册表必须有显式请求 --gate-required 的重计算面"
+                        "（缺失即 fail-closed，RELEASE_STATUS.md §5）")
+        for c in gate_checks:
+            cmd = c["command"]
+            self.assertIn("ci/resource_monitor.py", cmd,
+                          f"{c['id']} 请求判定必须经 ci/resource_monitor.py 并落判定证据")
+            self.assertTrue(c.get("requires_monitor"),
+                            f"{c['id']} 请求判定即 requires_monitor 必须为 true")
+            self.assertNotIn("--gate-workers", cmd,
+                             f"{c['id']} 不得经 --gate-workers 请求判定（容量取自 host_probe）")
+
+    def test_registry_non_recompute_surfaces_do_not_request_gate(self):
+        """非重计算面（构建/打包/单测）仍不得请求判定（阈值语义只针对重计算区间）。"""
+        reg = _units()
+        # 聚合项（ci/run_checks.py 派发）自身不带监控包装；判定旗标只允许出现在叶子单元
+        leaves = [c for c in reg.values() if c.get("requires_monitor")
+                  and "ci/run_checks.py" not in c.get("command", [])]
+        self.assertGreaterEqual(len(leaves), 6, "注册表 requires_monitor 叶子单元数")
+        for c in leaves:
             cmd = c["command"]
             self.assertIn("ci/resource_monitor.py", cmd,
                           f"{c['id']} requires_monitor 必须携带监控包装器")
-            head = cmd[:cmd.index("--")] if "--" in cmd else cmd
-            self.assertNotIn("--gate-required", head,
-                             f"{c['id']} 非重计算面不得请求资源门判定（owner 裁决一致化 2026-09-11）")
-            self.assertNotIn("--gate-workers", head,
-                             f"{c['id']} 不得经 --gate-workers 请求判定（owner 裁决一致化）")
+            if c["id"] in self.NON_RECOMPUTE_UNITS:
+                head = cmd[:cmd.index("--")] if "--" in cmd else cmd
+                self.assertNotIn("--gate-required", head,
+                                 f"{c['id']} 非重计算面不得请求资源门判定（RELEASE_STATUS §5）")
+            self.assertNotIn("--gate-workers", cmd,
+                             f"{c['id']} 不得经 --gate-workers 请求判定（容量取自 host_probe）")
+        for c in reg.values():
+            if "ci/run_checks.py" in c.get("command", []) and "--" in c["command"]:
+                self.assertNotIn("--gate-required", c["command"],
+                                 f"{c['id']} 聚合派发项不得承载判定旗标（旗标属于叶子单元）")
 
     def test_win_checks_excluded_from_gate_by_owner_ruling(self):
-        """owner 裁决（2026-09-11）：WIN-* 为非重计算面，requires_monitor=false。
+        """WIN-* 为非重计算面（构建/打包/单测），requires_monitor=false。
 
         依据：F-CI-002-04——包装器仅采样留证无 evaluate，requires_monitor=true
         会触发 run.py monitor_gate_missing 硬失败（Windows 证据无 frozen_gate）；
         R7（heavy→monitor）conform 同步 heavy=false。waivable=false 收紧维持。
+        **CI-003 更新**：原注「CI 注册表当前零 --gate-required」已不成立——按
+        `docs/owner/RELEASE_STATUS.md §5`「重计算面必须显式请求 --gate-required」，
+        现行注册表含 `RESOURCE-GATE-REAL`；WIN-* 仍属非重计算面，故本条断言维持。
         """
-        reg = _by_id(_load_registry())
+        reg = _units()
         for cid in _WIN_IDS:
             c = reg[cid]
             self.assertNotIn("--gate-required", c["command"],
@@ -162,7 +214,7 @@ class TestMonitoredChecksRequestGate(unittest.TestCase):
 
     def test_linux_heavy_checks_keep_monitor_sampling(self):
         """BUILD-GCC-RELEASE + DEEP-* 保留监控包装与 requires_monitor=true（采样留证）。"""
-        reg = _by_id(_load_registry())
+        reg = _units()
         for cid in ("BUILD-GCC-RELEASE", "DEEP-CLANG-BUILD", "DEEP-SAN-ASAN",
                     "DEEP-SAN-TSAN", "DEEP-COV-CPP", "DEEP-COV-PY"):
             c = reg[cid]
@@ -172,7 +224,7 @@ class TestMonitoredChecksRequestGate(unittest.TestCase):
 
     def test_ut_quality_registration_conformance(self):
         """UT-QUALITY 登记矛盾修正：命令无监控包装 → heavy/requires_monitor 均 false。"""
-        reg = _by_id(_load_registry())
+        reg = _units()
         c = reg["UT-QUALITY"]
         self.assertNotIn("ci/resource_monitor.py", c["command"],
                          "前提：UT-QUALITY 命令无监控包装器")

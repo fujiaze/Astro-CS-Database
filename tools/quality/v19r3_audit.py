@@ -63,16 +63,16 @@ SHIPPING_EXT = {".c", ".cpp", ".h", ".hpp", ".cu", ".cc", ".cxx", ".hh"}
 CODE_EXT = SHIPPING_EXT | {".py", ".f", ".f90"}
 
 MODULE_MAP = {
-    "acr": "lib/acr", "astro_image_io": "lib/astro_image_io",
-    "plate_solve": "lib/plate_solve",
-    "healpix_drizzle": "lib/healpix_db/healpix_drizzle",
-    "orchestrator": "lib/orchestrator/cpp", "phase2": "lib/phase2",
-    "photometric_calib": "lib/photometric_calib",
-    "calibration": "lib/calibration", "star_detector": "lib/star_detector",
-    "dynamic_psf": "lib/dynamic_psf", "common": "lib/common",
-    "gaia_xpsd_client": "lib/gaia_xpsd_client",
-    "snr_estimator": "lib/snr_estimator",
-    "healpix_browser": "lib/healpix_db/healpix_browser_qt",
+    "acr": "lib/infrastructure/acr", "astro_image_io": "lib/infrastructure/aio",
+    "plate_solve": "lib/algorithms/platesolve",
+    "healpix_drizzle": "lib/algorithms/drizzle/healpix_drizzle",
+    "orchestrator": "lib/infrastructure/pipeline/orchestrator/cpp", "phase2": "lib/algorithms/coverage",
+    "photometric_calib": "lib/algorithms/photometry",
+    "calibration": "lib/algorithms/calibration", "star_detector": "lib/algorithms/star_detection",
+    "dynamic_psf": "lib/algorithms/psf", "common": "lib/algorithms/shared",
+    "gaia_xpsd_client": "lib/infrastructure/gaia_xpsd_client",
+    "snr_estimator": "lib/algorithms/noise_snr",
+    "healpix_browser": "lib/infrastructure/hips_browser/healpix_browser_qt",
 }
 
 # V19R3 comment hygiene 扩展规则（DOCS_AND_COMMENTS.md §13）

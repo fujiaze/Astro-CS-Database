@@ -198,13 +198,13 @@ class Checker:
             hdr = self.exit_codes_h
         else:
             for cand in (os.path.join(self.repo, "include", "astrocs", "exit_codes.h"),
-                         os.path.join(self.repo, "cli", "exit_codes.h"),
+                         os.path.join(self.repo, "lib", "infrastructure", "cli", "exit_codes.h"),
                          os.path.join(self.repo, "include", "astrocs", "exit_codes.hpp")):
                 if os.path.isfile(cand):
                     hdr = cand
                     break
         if hdr is None:
-            return self.fail("缺少 exit_codes.h(include/astrocs/ 或 cli/)")
+            return self.fail("缺少 exit_codes.h(include/astrocs/ 或 lib/infrastructure/cli/)")
         hdr_text = open(hdr, encoding="utf-8", errors="ignore").read()
         defined = set(int(d) for d in re.findall(r"=\s*(\d{1,2})\b", hdr_text) if int(d) in EXIT_NAMES)
         for code in doc_codes:

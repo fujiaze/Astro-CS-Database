@@ -42,11 +42,12 @@
   VERIFIED        INSTALLED + 映射表登记的证据文件存在且含 Windows x64 + 真实数据标记
 
 诚实性红线（本门的存在意义）
-  - 实现只认 target_dir（lib/algorithms/<id> / lib/infrastructure/<id>）。旧命名目录
-    （lib/star_detector、lib/plate_solve、lib/phase2_*、lib/phase3_*、lib/orchestrator…）
-    只是 legacy_paths 定位线索，永不参与 IMPLEMENTED/INSTALLED 判定。
-  - lib/algorithms/ 与 lib/infrastructure/ 尚未建立（ARCH-001）时，真实仓库必然红灯；
-    这是本任务应有的诚实结论，不得放宽判据换绿。
+  - 实现只认 target_dir（lib/algorithms/<id> / lib/infrastructure/<id>）。迁移前的旧命名
+    目录（lib/star_detector、lib/plate_solve、lib/phase2_*、lib/phase3_*、lib/orchestrator…）
+    只是 legacy_paths 历史定位线索，永不参与 IMPLEMENTED/INSTALLED 判定。
+  - ARCH-001 已把 35 个旧 lib/ 目录迁入 target_dir（清单=cmake/ARCH-001-migration-manifest.md
+    §1；MOD-002 已核对 23/23 条 legacy_paths 与该清单一致）；迁移未落地时仓库必然红灯，
+    这是本门应有的诚实结论，不得放宽判据换绿。
 
 用法
   python3 tools/quality/check_module_map.py                      # 真实仓库 + 真实映射表

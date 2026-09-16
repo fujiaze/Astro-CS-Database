@@ -19,7 +19,7 @@ V8-CI-005（SA-CI-32）增强（保持占位语义：只记录、exit 0、不判
   * 增加分支 token 计数（if/for/while/case/catch/&&/||/?:）→
     per-file cyclomatic = 1 + branch_tokens（文件级粒度；不做函数体切分，
     namespace/class 花括号会把多函数吞并成假"巨型函数"）；
-  * 排除 ACR dormant 树（约束 §C：生产构建/度量不含 ACR，lib/acr/** 与
+  * 排除 ACR dormant 树（约束 §C：生产构建/度量不含 ACR，lib/infrastructure/acr/** 与
     legacy/** 不进复杂度基线，逐路径在 report.excluded 登记）。
 """
 from __future__ import annotations
@@ -39,7 +39,7 @@ FUNC_RE = re.compile(
 )
 # 分支 token（文件级圈复杂度近似；与函数计数同受字符串/注释噪声影响，仅基线用）
 BRANCH_RE = re.compile(r"\b(?:if|for|while|case|catch)\b|&&|\|\||\?")
-EXCLUDE_PARTS = ("lib/acr", "legacy", "third_party", "thirdparty")
+EXCLUDE_PARTS = ("lib/infrastructure/acr", "legacy", "third_party", "thirdparty")
 # ACR dormant（约束 §C）+ 遗留隔离树 + vendored 第三方（QA-002 -w 隔离，不度量）
 EXTS = (".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx")
 

@@ -51,8 +51,8 @@ def main():
 
     # 2) 生产并行轴: sampler/upm/p3_session 经 Runtime lease (std::thread), 无自取
     for rel, needle in (
-        ("lib/phase2/src/sampler.cpp", "std::thread"),
-        ("lib/phase2/src/upm.cpp", "std::thread"),
+        ("lib/algorithms/coverage/src/sampler.cpp", "std::thread"),
+        ("lib/algorithms/coverage/src/upm.cpp", "std::thread"),
         ("lib/phase3_session/p3_session.cpp", "std::thread"),
     ):
         p = repo / rel
@@ -73,7 +73,7 @@ def main():
                      "Runtime lease only", p)
 
     # 3) aio 串行化 (原 critical(aio_read) 语义 → cfitsio_io_mutex / g_aio_mu 全局锁)
-    aio = repo / "lib/astro_image_io/src/hips/aio_hips_reader.cpp"
+    aio = repo / "lib/infrastructure/aio/src/hips/aio_hips_reader.cpp"
     if aio.exists():
         t = aio.read_text(encoding="utf-8", errors="ignore")
         if "cfitsio_io_mutex" not in t and "g_aio_mu" not in t and "critical(aio_read)" not in t:

@@ -72,7 +72,7 @@ REQUIRED_KEYS += ["module_id", "module_kind", "module_anchor", "notes"]
 EXEMPT_KINDS = {"conformance", "service", "provider"}
 # 合法模块来源目录：矩阵模块清单须能在其中发现（防孤行/防遗漏）
 MODULE_ANCHOR_DIRS = [
-    "modules/conformance", "modules/services", "providers/cpu",
+    "tests/conformance", "lib/infrastructure/aio/io", "lib/infrastructure/benchmark/cpu",
     "docs/modules/registry",  # registry production 模块（module_adapters.cpp 唯一源）
 ]
 AUTHORITY_DIRS = {  # 各合同层 authority 文档搜索目录（id 需在其中一个文件文本中出现）
@@ -80,11 +80,12 @@ AUTHORITY_DIRS = {  # 各合同层 authority 文档搜索目录（id 需在其�
     "ALG": ["docs/algorithms", "docs/science"],
     "DATA": ["docs/contracts", "docs/interfaces/data", "docs/api", "lib/core/src"],
     "API": ["docs/api", "docs/contracts", "docs/interfaces/io", "docs/architecture/cpu",
-            "docs/modules/registry", "lib/core/src", "modules", "providers"],
+            "docs/modules/registry", "lib/core/src", "tests/conformance",
+            "lib/infrastructure/benchmark/cpu"],
     "ARCH": ["docs/architecture", "docs/architecture/cpu", "docs/contracts", "docs/api"],
-    "MOD": ["modules", "docs/modules/registry"],
-    "SRC": ["modules", "runtime", "providers", "lib", "include", "tests"],
-    "TEST": ["tests", "modules", "docs/interfaces", "docs/contracts", "docs/modules/registry"],
+    "MOD": ["tests/conformance", "lib/infrastructure", "docs/modules/registry"],
+    "SRC": ["lib", "include", "tests"],
+    "TEST": ["tests", "lib", "docs/interfaces", "docs/contracts", "docs/modules/registry"],
     "EVID": ["evidence", "reports", "returns"],
 }
 EMPTY_BAD = {"", "-", "?", "TBD", "TODO", "N/A", "NA", "n/a"}
@@ -359,11 +360,11 @@ def _check_module_coverage(root, rows, results):
                 if m:
                     known.add(m.group(1).strip())
     # 服务/conformance/provider 目录 → MOD- 行键
-    if os.path.isfile(os.path.join(root, "modules/conformance/noop/module.yaml")):
+    if os.path.isfile(os.path.join(root, "tests/conformance/noop/module.yaml")):
         known.add("MOD-astrocs-conformance-noop")
-    if os.path.isdir(os.path.join(root, "modules/services/io")):
+    if os.path.isdir(os.path.join(root, "lib/infrastructure/aio/io")):
         known.add("MOD-astrocs-services-io")
-    if os.path.isdir(os.path.join(root, "providers/cpu/common")):
+    if os.path.isdir(os.path.join(root, "lib/infrastructure/benchmark/cpu/common")):
         known.add("MOD-astrocs-providers-cpu")
     present = {r.get("module_id") for r in rows}
     missing = sorted(known - present)

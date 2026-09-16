@@ -1,3 +1,5 @@
+> **ARCHIVED_NON_NORMATIVE（DOC-001，2026-09-16）**：本文属旧文档体系，已由 docs/DOCUMENT_INDEX.yaml 移出活动索引，不再作为当前权威；替代见该索引 replacement 字段（API_REFERENCE -> docs/api/**；ARCHITECTURE -> docs/architecture/**；docs/review -> docs/owner/**）。保留仅作历史追溯。
+
 # CHANGE_REVIEW — L0 治理评审层（变更摘要）
 
 > 文档 ID：DOC-REVIEW-CHANGE-001

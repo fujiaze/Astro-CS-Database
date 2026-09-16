@@ -19,7 +19,7 @@
   python3 tools/monitoring/check_log_contract.py --selfcheck
   python3 tools/monitoring/check_log_contract.py --jsonl <file> [--verify-redact]
   python3 tools/monitoring/check_log_contract.py --stdin
-  （--schema 可选，默认取 runtime/logging/log_event_v1.schema.json）
+  （--schema 可选，默认取 lib/infrastructure/observability/logging/log_event_v1.schema.json）
 """
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 try:  # 允许从仓库根或任意 cwd 运行
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
-    from runtime.logging.log_event import (  # type: ignore
+    from lib.infrastructure.observability.logging.log_event import (  # type: ignore
         MAX_LINE_BYTES, REPO_ROOT, REQUIRED_FIELDS, SCHEMA_ID, line_size_bytes, redact)
 except Exception:  # pragma: no cover - 仅在独立运行异常时兜底
     MAX_LINE_BYTES = 4096
@@ -49,7 +49,7 @@ except Exception:  # pragma: no cover - 仅在独立运行异常时兜底
     def redact(text: str) -> str:
         return text
 
-DEFAULT_SCHEMA = REPO_ROOT / "runtime" / "logging" / "log_event_v1.schema.json"
+DEFAULT_SCHEMA = REPO_ROOT / "lib" / "infrastructure" / "observability" / "logging" / "log_event_v1.schema.json"
 
 _JSON_NUMBER = (int, float)
 _JSON_PRIM = (str, int, float, bool, type(None))
@@ -298,7 +298,7 @@ def selfcheck(schema_path: Optional[pathlib.Path]) -> Tuple[bool, List[str], Dic
     # 用参考实现生成最小合法行，验证整条链路
     try:
         sys.path.insert(0, str(REPO_ROOT))
-        from runtime.logging.log_event import LogEvent  # type: ignore
+        from lib.infrastructure.observability.logging.log_event import LogEvent  # type: ignore
         ev = LogEvent(seq=1, ts="2026-09-02T00:00:00Z", run="r1", level="info",
                       event="start", diagnostic="自检：检查器链路正常",
                       phase="runtime", module="core", commit="0" * 40,
@@ -321,7 +321,7 @@ def selfcheck(schema_path: Optional[pathlib.Path]) -> Tuple[bool, List[str], Dic
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="LOG-001 结构化日志合同检查器")
     ap.add_argument("--schema", type=pathlib.Path, default=None,
-                    help="log_event_v1.schema.json 路径（默认 runtime/logging/）")
+                    help="log_event_v1.schema.json 路径（默认 lib/infrastructure/observability/logging/）")
     ap.add_argument("--jsonl", type=str, default=None, help="待校验 JSONL 文件")
     ap.add_argument("--stdin", action="store_true", help="从 stdin 读取 JSONL")
     ap.add_argument("--verify-redact", action="store_true",

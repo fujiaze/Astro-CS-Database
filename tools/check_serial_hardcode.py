@@ -14,9 +14,24 @@ import pathlib, re, sys
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
 
+# ARCH-001 迁移后路径；迁移前 =
+# ["lib/phase1", "lib/phase2/src", "lib/phase3_session", "lib/core", "lib/io",
+#  "lib/cpu", "lib/calibration/src", "lib/infrastructure/cli/main.cpp"]（lib/cpu 在迁移清单外且树中不存在）
 PROD_FILES = [
-    "lib/phase1", "lib/phase2/src", "lib/phase3_session",
-    "lib/core", "lib/io", "lib/cpu", "lib/calibration/src", "cli/main.cpp",
+    "lib/algorithms/star_detection/wrapper_phase1",
+    "lib/algorithms/platesolve/wrapper_phase1",
+    "lib/algorithms/photometry/wrapper_phase1",
+    "lib/algorithms/noise_snr/wrapper_phase1",
+    "lib/algorithms/coverage/src",
+    "lib/algorithms/projection",
+    "lib/algorithms/resample",
+    "lib/algorithms/fits_output",
+    "lib/phase3_session",
+    "lib/infrastructure/scheduler",
+    "lib/infrastructure/aio",
+    "lib/infrastructure/aio/io",
+    "lib/algorithms/calibration/src",
+    "lib/infrastructure/cli/main.cpp",
 ]
 EXEMPT_SUBSTR = ("test", "tool", "README", "fixture", "cfitsio", "third_party")
 # 显式登记(必须带 lease 覆盖说明, 同 tools/arch/check_thread_budget.py 惯例):

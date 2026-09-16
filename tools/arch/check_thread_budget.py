@@ -2,7 +2,7 @@
 """ARCH-004 静态 checker: 未登记线程创建 / 硬编码线程数 / 私有线程池扫描 (§5 合同实现)。
 
 RT-001 加固 (P0 M5a-G-005; 依据 ASTROCS_DESIGN.md §8 + ENGINEERING_SPEC.md §8/§10):
-  1) 扫描面 = 生产源码面 lib/ providers/ cli/ runtime/ include/（tests/fixtures/archive/
+  1) 扫描面 = 生产源码面 lib/ providers/ lib/infrastructure/cli/ runtime/ include/（tests/fixtures/archive/
      third_party 除外）—— 不再只扫 lib/（closing: "扫描面仍只 lib/"）。
   2) PATTERNS 增加 thread_pool (std::vector<std::thread>)：私有线程池声明必须显式登记
      （closing: 全仓 14 处池声明此前对正则不可见）。
@@ -65,20 +65,20 @@ REGISTERED = {
         "per-call 池 x1: workers = cfg.cpu_workers <- p2_session 传 budget.max_workers(租约), 调用内创建/join, 非长期池",
     "lib/algorithms/coverage/src/upm.cpp":
         "per-call 池 x5: cworkers = cfg.cpu_workers <- Runtime lease, 调用内创建/join, 非长期池",
-    "providers/cpu/baseline/src/baseline_provider.cpp":
+    "lib/infrastructure/benchmark/cpu/baseline/src/baseline_provider.cpp":
         "provider per-call 池 x1: 线程数由调用方租借参数(n_threads)给出, 调用内创建/join",
-    "providers/cpu/avx2/src/avx2_provider.cpp":
+    "lib/infrastructure/benchmark/cpu/avx2/src/avx2_provider.cpp":
         "provider per-call 池 x1: 同上(avx2 provider)",
-    "providers/cpu/avx512/src/avx512_provider.cpp":
+    "lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp":
         "provider per-call 池 x1: 同上(avx512 provider)",
     "lib/phase3_session/p3_session.cpp":
         "Session 期池 x1: ASTROCS_DESIGN §7.3 禁 Session 型模块 -> 该目录为 INT-001 删除对象(ARCH-001 DEFERRED)",
     # ── 后台守护/监控线程（非并行池）──
     "lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp":
         "watchdog 超时守护线程 x2 (:5167 声明 + :5174 启动), 单线程超时通道(19_runtime.md §4 取消/超时), 非并行池; 原行级 watchdog 豁免已删除, 改为本路径级登记",
-    "cli/commands.cpp":
-        "legacy CLI 监控线程 x1 (:667): cli/** 不在构建图内(ARCH-001 §5), 归 CLI-001; 登记为可见面, 非 RT-001 修复对象",
-    "cli/runtime_client.cpp":
+    "lib/infrastructure/cli/commands.cpp":
+        "legacy CLI 监控线程 x1 (:667): lib/infrastructure/cli/** 不在构建图内(ARCH-001 §5), 归 CLI-001; 登记为可见面, 非 RT-001 修复对象",
+    "lib/infrastructure/cli/runtime_client.cpp":
         "legacy CLI 取消监听线程 x1 (:349): 同上(CLI-001 域)",
 }
 

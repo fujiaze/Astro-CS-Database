@@ -6,7 +6,7 @@
 
 覆盖（每项 = 一条硬规则，任一违反 → rc=1）：
   R1  CLI 模式路由表（FZ-MODE-PRODUCTION / FZ-MODE-DEFERRED / FZ-FIELD-WEIGHTMODE /
-      FZ-P3-MODES）在 cli/v6_runtime_contract.h 中唯一落位，且 reject 理由引用冻结节点。
+      FZ-P3-MODES）在 lib/infrastructure/cli/v6_runtime_contract.h 中唯一落位，且 reject 理由引用冻结节点。
   R2  --mode / --export-mode 只在 phase2 / phase3 命令面登记（parser kRules），phase1 不得有。
   R3  §3.2 三 Phase 隔离：CLI 命令面不得存在聚合式 run/graph/pipeline 入口。
   R4  §10.4 统一预算：进程唯一预算源登记处存在；V6 运行面不得出现未登记的私有长期线程池。
@@ -82,16 +82,16 @@ def strip_comments(text: str) -> str:
 
 def rule_r1_mode_routing(ctx: Ctx):
     """FZ-MODE-* 词表在契约头中唯一落位。"""
-    src = ctx.read("cli/v6_runtime_contract.h")
+    src = ctx.read("lib/infrastructure/cli/v6_runtime_contract.h")
     if src is None:
         return
     code = strip_comments(src)
     for tok in PROD_P2:
         ctx.check("R1-phase2-production", ('"' + tok + '"') in code,
-                  "cli/v6_runtime_contract.h 缺 phase2 生产模式 " + tok)
+                  "lib/infrastructure/cli/v6_runtime_contract.h 缺 phase2 生产模式 " + tok)
     for tok in BASE_P2:
         ctx.check("R1-phase2-baseline", ('"' + tok + '"') in code,
-                  "cli/v6_runtime_contract.h 缺 phase2 baseline " + tok)
+                  "lib/infrastructure/cli/v6_runtime_contract.h 缺 phase2 baseline " + tok)
     ctx.check("R1-deferred",
               "FZ-MODE-DEFERRED" in code and "psf_snr_power" in code,
               "psf_snr_power 的 DEFERRED 拒绝未在契约头显式落位（code 面）")
@@ -100,7 +100,7 @@ def rule_r1_mode_routing(ctx: Ctx):
               "legacy weight_mode 0 拒绝理由未登记（FZ-FIELD-WEIGHTMODE）")
     for tok in PROD_P3:
         ctx.check("R1-phase3-production", ('"' + tok + '"') in code,
-                  "cli/v6_runtime_contract.h 缺 phase3 输出模式 " + tok)
+                  "lib/infrastructure/cli/v6_runtime_contract.h 缺 phase3 输出模式 " + tok)
     ctx.check("R1-p3-modes", "FZ-P3-MODES" in src,
               "Phase3 输出模式未引用冻结节点 FZ-P3-MODES")
     # 契约头不得出现"把 deferred 当生产放行"的路径
@@ -120,7 +120,7 @@ def rule_r1_mode_routing(ctx: Ctx):
 
 def rule_r2_cli_flags(ctx: Ctx):
     """--mode 仅 phase2，--export-mode 仅 phase3；phase1 不得有。"""
-    parser = ctx.read("cli/parser.cpp")
+    parser = ctx.read("lib/infrastructure/cli/parser.cpp")
     if parser is None:
         return
     rules = re.findall(r'\{\s*"(phase[123] [a-z]+)"\s*,\s*\{([^}]*)\}', parser)
@@ -147,8 +147,8 @@ def rule_r2_cli_flags(ctx: Ctx):
               '"--mode"' in parser and '"--export-mode"' in parser,
               "parser kValueFlags 未登记 --mode/--export-mode")
     # 模式门必须在 phase2/phase3 各命令面被调用
-    cmds = ctx.read("cli/commands.cpp")
-    gate = ctx.read("cli/v6_mode_gate.h")
+    cmds = ctx.read("lib/infrastructure/cli/commands.cpp")
+    gate = ctx.read("lib/infrastructure/cli/v6_mode_gate.h")
     if cmds and gate:
         ctx.check("R2-gate-include", "v6_mode_gate.h" in cmds,
                   "commands.cpp 未 include v6_mode_gate.h")
@@ -162,7 +162,7 @@ def rule_r2_cli_flags(ctx: Ctx):
 
 def rule_r3_phase_isolation(ctx: Ctx):
     """CLI 命令面不得有聚合 run/graph/pipeline 入口。"""
-    parser = ctx.read("cli/parser.cpp")
+    parser = ctx.read("lib/infrastructure/cli/parser.cpp")
     if parser is None:
         return
     paths = re.findall(r'\{\s*"([a-z0-9 -]+)"\s*,\s*\{', parser)
@@ -183,14 +183,14 @@ def rule_r3_phase_isolation(ctx: Ctx):
 
 def rule_r4_unified_budget(ctx: Ctx):
     """§10.4 唯一预算源；V6 运行面无线程池私有实现。"""
-    for rel in ("cli/v6_runtime_contract.h", "runtime/v6_budget.py"):
+    for rel in ("lib/infrastructure/cli/v6_runtime_contract.h", "lib/infrastructure/scheduler/v6_budget.py"):
         src = ctx.read(rel)
         if src is None:
             continue
         ctx.check("R4-single-source-registry",
                   "ProcessBudgetRegistry" in src or "register_source" in src,
                   rel + " 缺进程唯一预算源登记处")
-    hdr = ctx.read("cli/v6_runtime_contract.h")
+    hdr = ctx.read("lib/infrastructure/cli/v6_runtime_contract.h")
     if hdr:
         code = strip_comments(hdr)
         ctx.check("R4-second-source-rejected", "if (has_source_) return false;" in code,
@@ -199,7 +199,7 @@ def rule_r4_unified_budget(ctx: Ctx):
                   "request_lease" in code and "nested_parallel_denied" in code,
                   "契约头缺线程租约/嵌套并行拒绝")
     # V6 运行面不得出现硬编码 num_threads(<数字>)
-    for rel in ("cli/commands.cpp", "cli/v6_mode_gate.h", "cli/v6_runtime_contract.h"):
+    for rel in ("lib/infrastructure/cli/commands.cpp", "lib/infrastructure/cli/v6_mode_gate.h", "lib/infrastructure/cli/v6_runtime_contract.h"):
         src = ctx.read(rel, required=False)
         if src is None:
             continue
@@ -211,7 +211,7 @@ def rule_r4_unified_budget(ctx: Ctx):
                       not re.search(r"num_threads\s*\(\s*\d+\s*\)|omp_set_num_threads\s*\(\s*\d+\s*\)", line),
                       rel + ":" + str(ln) + " 出现硬编码线程数")
     # V6 模块不得建立私有长期线程池（std::thread 需在登记表；本任务面无新增池）
-    for rel in ("cli/v6_runtime_contract.h", "cli/v6_mode_gate.h"):
+    for rel in ("lib/infrastructure/cli/v6_runtime_contract.h", "lib/infrastructure/cli/v6_mode_gate.h"):
         src = ctx.read(rel, required=False)
         if src is None:
             continue
@@ -222,29 +222,29 @@ def rule_r4_unified_budget(ctx: Ctx):
 
 def rule_r5_metric_fields(ctx: Ctx):
     """§10.5 必采字段面。"""
-    mon = ctx.read("cli/monitor.h")
-    rec = ctx.read("cli/resource_recorder.h")
+    mon = ctx.read("lib/infrastructure/cli/monitor.h")
+    rec = ctx.read("lib/infrastructure/cli/resource_recorder.h")
     if mon:
         for tok in ("per_thread_cpu", "active_compute_threads", "io_wait",
                     "rss_bytes", "pss_bytes", "read_bytes", "write_bytes"):
             ctx.check("R5-monitor-fields", tok in mon,
-                      "cli/monitor.h 缺指标 " + tok)
+                      "lib/infrastructure/cli/monitor.h 缺指标 " + tok)
         for decl in ("double sys_io_wait_seconds = 0.0", "double per_thread_cpu_max_seconds = 0.0",
                      "double per_thread_cpu_sum_seconds = 0.0", "uint32_t d_active_compute_threads = 0"):
             ctx.check("R5-monitor-decls", decl in mon,
-                      "cli/monitor.h ProcSample 缺字段声明: " + decl)
+                      "lib/infrastructure/cli/monitor.h ProcSample 缺字段声明: " + decl)
     if rec:
         for tok in ("per_thread_cpu_max_pct", "per_thread_cpu_sum_pct",
                     "active_compute_threads", "io_wait_pct", "queue_depth",
                     "runnable_workers", "read_bytes", "write_bytes"):
             ctx.check("R5-recorder-fields", tok in rec,
-                      "cli/resource_recorder.h 缺指标 " + tok)
+                      "lib/infrastructure/cli/resource_recorder.h 缺指标 " + tok)
         # ResRecord 字段本体（防只留引用/注释而删字段）
         for decl in ("double per_thread_cpu_max_pct = 0.0", "double per_thread_cpu_sum_pct = 0.0",
                      "double io_wait_pct = 0.0", "uint32_t active_compute_threads = 0"):
             ctx.check("R5-recorder-record-decls", decl in rec,
-                      "cli/resource_recorder.h ResRecord 缺字段声明: " + decl)
-    cmds = ctx.read("cli/commands.cpp")
+                      "lib/infrastructure/cli/resource_recorder.h ResRecord 缺字段声明: " + decl)
+    cmds = ctx.read("lib/infrastructure/cli/commands.cpp")
     if cmds:
         for tok in ("per_thread_cpu_max_pct", "per_thread_cpu_sum_pct",
                     "active_compute_threads_peak", "io_wait_pct", "work_units",
@@ -255,7 +255,7 @@ def rule_r5_metric_fields(ctx: Ctx):
 
 def rule_r6_so05(ctx: Ctx):
     """SO-05 记录/裁决分离（未签字不得硬失败）。"""
-    hdr = ctx.read("cli/v6_runtime_contract.h")
+    hdr = ctx.read("lib/infrastructure/cli/v6_runtime_contract.h")
     if hdr is None:
         return
     ctx.check("R6-signoff-status", "PENDING_OWNER_SIGNOFF" in hdr,
@@ -273,7 +273,7 @@ def rule_r6_so05(ctx: Ctx):
         body = hdr[m.end():m.end() + 400]
         ctx.check("R6-hard-fail-false", "hard_fail = false" in body,
                   "evaluate_heavy_run 未固定 hard_fail=false（擅自升级为硬失败）")
-    cmds = ctx.read("cli/commands.cpp")
+    cmds = ctx.read("lib/infrastructure/cli/commands.cpp")
     if cmds:
         idx = cmds.find("resource_gate")
         ctx.check("R6-cmds-markers",
@@ -314,7 +314,7 @@ def rule_r7_ci_registration(ctx: Ctx):
 
 
 def rule_r8_determinism(ctx: Ctx):
-    for rel in ("cli/v6_runtime_contract.h", "tests/system/v6_runtime/v6_runtime_determinism_test.cpp"):
+    for rel in ("lib/infrastructure/cli/v6_runtime_contract.h", "tests/system/v6_runtime/v6_runtime_determinism_test.cpp"):
         src = ctx.read(rel)
         if src is None:
             continue
@@ -363,7 +363,7 @@ def main(argv=None):
                     help="仅跑指定规则子集, 逗号分隔 (如 R1,R2,R3)")
     args = ap.parse_args(argv)
     repo = pathlib.Path(args.repo).resolve()
-    if not (repo / "cli").exists():
+    if not (repo / "lib" / "infrastructure" / "cli").exists():
         print("v6_runtime_oracle: repo root invalid: %s" % repo, file=sys.stderr)
         return 2
     res = evaluate(repo, args.rules)

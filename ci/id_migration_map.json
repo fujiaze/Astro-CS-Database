@@ -383,6 +383,66 @@
         "KNOWN-FAILURES-BASELINE-VERIFY",
         "KNOWN-FAILURES-BASELINE-CHECK"
       ]
+    },
+    "AGENTS-GOV": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "AGENTS.md 硬禁令 / §0 权威链唯一性 / 旧权威回归（GOV-001 门）",
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+    },
+    "ENG-CONSTRAINTS": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "工程约束（ENGINEERING_SPEC §7 目录规范 / 根条目白名单 / 旧权威回归）",
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+    },
+    "VERSION-CONSISTENCY": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "版本注入链单一真源 + 现行活动文档集完整性",
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+    },
+    "VERSION-NAMESPACES": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "版本命名空间一致性（陈旧版本号）",
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+    },
+    "DOC-L0": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "L0 现行文档集（docs/owner/**）与索引 active 登记完整性",
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+    },
+    "GLOSSARY-DOCS": {
+      "kind": "extension",
+      "grade": "P2",
+      "name": "词典锚点/别名唯一性（报告项）",
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+    },
+    "STD-REG": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "标准注册表 C1–C8 判据 + 9 场景 fault-inject 负例面",
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+    },
+    "CHK-REGISTRY-DOC-SYNC": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "注册表 ↔ docs/ci/01_CHECKS.md §2 双向一致（ENGINEERING_SPEC §8）",
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+    },
+    "RESOURCE-GATE-REAL": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "真实重计算面资源利用率门（显式 --gate-required + 判定证据）",
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+    },
+    "RESOURCE-GATE-REAL-NEG": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "上项的可执行负例面（串行注入 ⇒ 门必须判红）",
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
     }
   },
   "reserved_targets": {
@@ -435,12 +495,12 @@
     },
     {
       "old_id": "AGENTS-GOV",
-      "decision": "RETIRE-PENDING-GOV-001",
-      "target": "CHK-AGENT-HARD-RULES",
-      "reserved_target": "CHK-AGENT-HARD-RULES",
+      "decision": "KEPT",
+      "target": "AGENTS-GOV",
       "checker": "tools/check_agents_gov.py",
       "owner": "GOV-001 (W2)",
-      "reason": "AGENTS.md 硬禁令门实现者；GOV-001 迁移入目标 CHK-AGENT-HARD-RULES"
+      "reason": "AGENTS.md 硬禁令门实现者；GOV-001 迁移入目标 CHK-AGENT-HARD-RULES",
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
     },
     {
       "old_id": "AIO-OWNERSHIP",
@@ -1135,12 +1195,12 @@
     },
     {
       "old_id": "DOC-L0",
-      "decision": "RETIRE-PENDING-GOV-001",
-      "target": "CHK-DANGLING",
-      "reserved_target": "CHK-DANGLING",
+      "decision": "KEPT",
+      "target": "DOC-L0",
       "checker": "tools/check_l0_docs.py",
       "owner": "GOV-001 (W2)",
-      "reason": "L0 固定文档/链接完整性；悬空引用门归 CHK-DANGLING（GOV-001 迁移）"
+      "reason": "L0 固定文档/链接完整性；悬空引用门归 CHK-DANGLING（GOV-001 迁移）",
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
     },
     {
       "old_id": "DOC-LINE-ANCHORS",
@@ -1162,21 +1222,21 @@
     },
     {
       "old_id": "ENG-CONSTRAINTS",
-      "decision": "RETIRE-PENDING-GOV-001",
-      "target": "CHK-AGENT-HARD-RULES",
-      "reserved_target": "CHK-AGENT-HARD-RULES",
+      "decision": "KEPT",
+      "target": "ENG-CONSTRAINTS",
       "checker": "tools/doccheck/check_engineering_constraints.py",
       "owner": "GOV-001 (W2)",
-      "reason": "旧权威绑定（AstroCS_ENGINEERING_CONSTRAINTS.md 文本快照）清理归 GOV-001；语义继任者 = AGENTS.md 硬禁令门"
+      "reason": "旧权威绑定（AstroCS_ENGINEERING_CONSTRAINTS.md 文本快照）清理归 GOV-001；语义继任者 = AGENTS.md 硬禁令门",
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
     },
     {
       "old_id": "GLOSSARY-DOCS",
-      "decision": "RETIRE-PENDING-GOV-001",
-      "target": "CHK-DANGLING",
-      "reserved_target": "CHK-DANGLING",
+      "decision": "KEPT",
+      "target": "GLOSSARY-DOCS",
       "checker": "tools/check_glossary.py",
       "owner": "GOV-001 (W2)",
-      "reason": "词典锚点/别名唯一性；悬空引用门归 CHK-DANGLING（GOV-001 迁移）"
+      "reason": "词典锚点/别名唯一性；悬空引用门归 CHK-DANGLING（GOV-001 迁移）",
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
     },
     {
       "old_id": "IPV-PLATFORM-BINDING",
@@ -1661,21 +1721,21 @@
     },
     {
       "old_id": "VERSION-CONSISTENCY",
-      "decision": "RETIRE-PENDING-GOV-001",
-      "target": "CHK-STALE-DOC",
-      "reserved_target": "CHK-STALE-DOC",
+      "decision": "KEPT",
+      "target": "VERSION-CONSISTENCY",
       "checker": "ci/check_version.py",
       "owner": "GOV-001 (W2)",
-      "reason": "硬绑定 --expected 0.11.0-alpha.2 旧版本号；陈旧版本号门归 CHK-STALE-DOC（GOV-001 迁移）"
+      "reason": "硬绑定 --expected 0.11.0-alpha.2 旧版本号；陈旧版本号门归 CHK-STALE-DOC（GOV-001 迁移）",
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
     },
     {
       "old_id": "VERSION-NAMESPACES",
-      "decision": "RETIRE-PENDING-GOV-001",
-      "target": "CHK-STALE-DOC",
-      "reserved_target": "CHK-STALE-DOC",
+      "decision": "KEPT",
+      "target": "VERSION-NAMESPACES",
       "checker": "tools/doccheck/check_version_namespaces.py",
       "owner": "GOV-001 (W2)",
-      "reason": "五版本命名空间与最高设计 §12「版本信息下线」冲突；陈旧版本号门归 CHK-STALE-DOC（GOV-001 迁移）"
+      "reason": "五版本命名空间与最高设计 §12「版本信息下线」冲突；陈旧版本号门归 CHK-STALE-DOC（GOV-001 迁移）",
+      "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
     },
     {
       "old_id": "WARNING-SUPPRESSION",
@@ -1741,22 +1801,85 @@
       "grade": "P1",
       "order_in_target": 0,
       "note": "CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账）"
+    },
+    {
+      "old_id": "STD-REG",
+      "decision": "KEPT",
+      "target": "STD-REG",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "STD-REG-FI-DANGLING",
+      "decision": "KEPT",
+      "target": "STD-REG",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "STD-REG-FI-VERSION-DRIFT",
+      "decision": "KEPT",
+      "target": "STD-REG",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "REGISTRY-DOC-SYNC",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRY-DOC-SYNC",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "REGISTRY-DOC-SYNC-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRY-DOC-SYNC",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "RESOURCE-GATE-REAL",
+      "decision": "KEPT",
+      "target": "RESOURCE-GATE-REAL",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "RESOURCE-GATE-REAL-NEG",
+      "decision": "KEPT",
+      "target": "RESOURCE-GATE-REAL-NEG",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
     }
   ],
   "coverage": {
     "source_entry_count": 146,
     "mapped_entry_count": 147,
     "merged_into": 136,
-    "kept": 2,
-    "retire_pending_gov_001": 6,
+    "kept": 15,
+    "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。",
     "absorbed_entries": [
-      "CHK-SECRET-HYGIENE"
+      "CHK-SECRET-HYGIENE",
+      "STD-REG",
+      "STD-REG-FI-DANGLING",
+      "STD-REG-FI-VERSION-DRIFT",
+      "REGISTRY-DOC-SYNC",
+      "REGISTRY-DOC-SYNC-SELFTEST",
+      "RESOURCE-GATE-REAL",
+      "RESOURCE-GATE-REAL-NEG"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,
-    "result_entry_count": 38
+    "result_entry_count": 42
   }
 }

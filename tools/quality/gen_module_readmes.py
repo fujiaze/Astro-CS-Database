@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """gen_module_readmes.py — DOC-004 (G7): 从 Registry descriptor 生成模块 README。
-以 lib/core/src/module_adapters.cpp 为唯一源(registry 生产模块), 为每个模块生成
+以 lib/infrastructure/scheduler/src/module_adapters.cpp 为唯一源(registry 生产模块;
+迁移前路径 lib/core/src/module_adapters.cpp，ARCH-001), 为每个模块生成
 docs/modules/registry/<module_id>.md, 符合 V6.1 模板(MODULE_README.md):
 front matter(id/version/status/owner/source_commit/upstream/downstream) + 职责/
 端口/链接/execution class/内存/错误/synthetic/限制。非手工清单, checker 以本生成器

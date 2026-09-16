@@ -39,14 +39,14 @@ def main():
                 # Fallback: if test_ids mention synthetic_gate, allow
                 if "synthetic_gate" in tf or "TST-" in str(tids):
                     # Check if synthetic_gate.cpp exists as umbrella
-                    if (repo / "lib/phase2/tests/synthetic_gate.cpp").exists():
+                    if (repo / "lib/algorithms/coverage/tests/synthetic_gate.cpp").exists():
                         continue
                 if not p.exists():
                     findings.append({"id":"TEST-BAD-FILE","severity":"P1","file":str(trace.relative_to(repo)),"symbol":r["requirement_id"],"observed":f"test_files {tf} not found","expected":"exists"})
                     status="FAIL"
                     break
         # Check that at least some synthetic_gate tests exist
-        if not (repo / "lib/phase2/tests/synthetic_gate.cpp").exists():
+        if not (repo / "lib/algorithms/coverage/tests/synthetic_gate.cpp").exists():
             findings.append({"id":"TEST-MISSING-GATE","severity":"P1","observed":"synthetic_gate.cpp missing","expected":"exists"})
             status="FAIL"
         # Check upstream_ids present for science rows

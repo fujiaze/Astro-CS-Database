@@ -21,7 +21,7 @@ def main():
         findings.append({"id":"CFG-MISSING-DOC","severity":"P1","observed":"CONFIG_SCHEMA.md missing","expected":"exists"})
         status="FAIL"
     # Check: weight_mode defaults: parser default "auto" -> 2 (ivar) should match doc
-    parser_file = repo / "lib/phase2/src/stage2_common.cpp"
+    parser_file = repo / "lib/algorithms/coverage/src/stage2_common.cpp"
     parser_text = parser_file.read_text(encoding="utf-8", errors="ignore") if parser_file.exists() else ""
     if 'weight_mode = 2' not in parser_text:
         findings.append({"id":"CFG-PARSER-DEFAULT","severity":"P1","file":str(parser_file.relative_to(repo)),"observed":"weight_mode default 2 not found","expected":"default ivar"})
@@ -30,7 +30,7 @@ def main():
         findings.append({"id":"CFG-PARSER-ACR","severity":"P1","observed":"acr_route auto default not found","expected":"auto"})
         status="FAIL"
     # Check: example configs are valid JSON and contain required keys
-    for cfg in (repo / "lib/phase2/configs").glob("*.json"):
+    for cfg in (repo / "lib/algorithms/coverage/configs").glob("*.json"):
         try:
             j=json.loads(cfg.read_text(encoding="utf-8"))
             if "inputs" not in j or "integration" not in j:

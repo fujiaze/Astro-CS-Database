@@ -88,7 +88,7 @@ def collect_files() -> list[tuple[str, str]]:
                     out.append((os.path.join("headers", "_root_include", fn),
                                 os.path.relpath(full, REPO)))
 
-    # 核心源码(lib/**/src + cli/*.cpp)
+    # 核心源码(lib/**/src + lib/infrastructure/cli/*.cpp)
     for root in ["lib", "cli"]:
         rd = os.path.join(REPO, root)
         for dp, _dn, fns in os.walk(rd):
