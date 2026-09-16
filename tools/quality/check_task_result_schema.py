@@ -150,6 +150,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"SCHEMA_CHECK_FAIL total_failures={failures} checked={checked} "
               f"archived_skipped={len(archived_skipped)}")
         return 1
+    if checked == 0:
+        # GAP-027 fail-closed（CI-001）：零命中即「门空转」，原实现仍报 PASS。
+        print(f"SCHEMA_CHECK_FAIL: 零个 TASK_RESULT.json 被校验"
+              f"（results-dir={args.results_dir}，archived_skipped={len(archived_skipped)}）"
+              "—— fail-closed 判 FAIL")
+        return 1
     print(f"SCHEMA_CHECK_PASS checked={checked} "
           f"archived_skipped={len(archived_skipped)}")
     return 0

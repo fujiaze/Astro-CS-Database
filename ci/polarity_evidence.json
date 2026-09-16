@@ -1,0 +1,331 @@
+{
+  "schema_version": 1,
+  "task": "CI-001",
+  "generated_from_registry_sha256": "f2535f473dbc4c969f71ab970333a843506be862cc68a230fe91ee587edf5850",
+  "evidence_root": "run/PROJECT-GOVERNANCE-01/CI-001/evidence",
+  "gates": {
+    "CHK-MODULE-MANIFEST": {
+      "grade": "P0",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/check_module_map.py",
+          "--selftest"
+        ],
+        "kind": "selftest",
+        "rc": 0,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-MODULE-MANIFEST/positive.log"
+      },
+      "note": "检查器自带 selftest（正例）；空仓缺 MODULE_MAP.yaml → 必须红",
+      "negative": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/check_module_map.py",
+          "--repo-root",
+          "../../tmp/tmpqiy9bi4k/empty-repo",
+          "--quiet"
+        ],
+        "kind": "missing-dependency",
+        "rc": 1,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-MODULE-MANIFEST/negative.log"
+      },
+      "polarity_ok": true,
+      "status": "PROVEN-LOCAL"
+    },
+    "CHK-ROOT-CLEAN": {
+      "grade": "P0",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality/test_root_cleanliness.py",
+          "-q"
+        ],
+        "kind": "unittest-suite",
+        "rc": 0,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-ROOT-CLEAN/positive.log"
+      },
+      "note": "套件含 clean-tree 正例与 3 个负例；空树缺必需条目 → 必须红",
+      "negative": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/check_root_cleanliness.py",
+          "--root",
+          "../../tmp/tmpqiy9bi4k/empty-repo",
+          "--manifest",
+          "ci/root_manifest.json",
+          "--quiet"
+        ],
+        "kind": "missing-dependency",
+        "rc": 1,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-ROOT-CLEAN/negative.log"
+      },
+      "polarity_ok": true,
+      "status": "PROVEN-LOCAL"
+    },
+    "API-DOCS": {
+      "grade": "P0",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "-m",
+          "pytest",
+          "tests/quality/test_doc_machine_check.py",
+          "-q"
+        ],
+        "kind": "unittest-suite",
+        "rc": 0,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/API-DOCS/positive.log"
+      },
+      "note": "GAP-027 直接负例：--repo 非完整检出（无 lib/）→ 必须红（原为静默回落 rc=0）",
+      "negative": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/check_api_docs.py",
+          "--repo",
+          "../../tmp/tmpqiy9bi4k/empty-repo"
+        ],
+        "kind": "mutation",
+        "rc": 1,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/API-DOCS/negative.log"
+      },
+      "polarity_ok": true,
+      "status": "PROVEN-LOCAL"
+    },
+    "CHK-SCHEMA": {
+      "grade": "P0",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/monitoring/check_log_contract.py",
+          "--selfcheck"
+        ],
+        "kind": "selftest",
+        "rc": 0,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-SCHEMA/positive.log"
+      },
+      "note": "GAP-027 直接负例：TASK_RESULT 零命中 → 必须红（原为 PASS）",
+      "negative": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/check_task_result_schema.py",
+          "--results-dir",
+          "../../tmp/tmpqiy9bi4k/empty-repo"
+        ],
+        "kind": "missing-dependency",
+        "rc": 1,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-SCHEMA/negative.log"
+      },
+      "polarity_ok": true,
+      "status": "PROVEN-LOCAL"
+    },
+    "CHK-STATIC": {
+      "grade": "P1",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/check_prod_reachability.py",
+          "--selftest"
+        ],
+        "kind": "selftest",
+        "rc": 0,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-STATIC/positive.log"
+      },
+      "note": "GAP-027 直接负例：--paths 全缺 → 必须红（原为 rc=0 空转绿）",
+      "negative": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/check_complexity.py",
+          "--paths",
+          "../../tmp/tmpqiy9bi4k/empty-repo/nope1,../../tmp/tmpqiy9bi4k/empty-repo/nope2",
+          "--output",
+          "../../tmp/tmpqiy9bi4k/empty-repo/cx.json"
+        ],
+        "kind": "missing-dependency",
+        "rc": 1,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-STATIC/negative.log"
+      },
+      "polarity_ok": true,
+      "status": "PROVEN-LOCAL"
+    },
+    "CHK-SCI-REF": {
+      "grade": "P0",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/check_traceability.py"
+        ],
+        "kind": "real-repo",
+        "rc": 0,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-SCI-REF/positive.log"
+      },
+      "note": "正例=真仓 TRACEABILITY rc=0；负例见 SCI-REF-NEG（临时树删单位节）",
+      "negative": {
+        "kind": "not_proven",
+        "reason": "正例=真仓 TRACEABILITY rc=0；负例见 SCI-REF-NEG（临时树删单位节）"
+      },
+      "polarity_ok": false,
+      "status": "INCONCLUSIVE-OR-PARTIAL"
+    },
+    "CHK-DANGLING": {
+      "grade": "P1",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/doccheck/check_doc_index.py",
+          "--strict"
+        ],
+        "kind": "real-repo",
+        "rc": 1,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-DANGLING/positive.log"
+      },
+      "note": "正例命令本机未绿（rc=1；真仓/命令面漂移或该门当前为红），不作为极性证据；负例状态=missing-dependency",
+      "negative": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/doccheck/check_doc_index.py",
+          "--root",
+          "../../tmp/tmpqiy9bi4k/empty-repo",
+          "--strict"
+        ],
+        "kind": "missing-dependency",
+        "rc": 1,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-DANGLING/negative.log"
+      },
+      "polarity_ok": false,
+      "status": "INCONCLUSIVE-OR-PARTIAL"
+    },
+    "CHK-RESOURCE": {
+      "grade": "P0",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/check_serial_heavy.py",
+          "--selftest"
+        ],
+        "kind": "selftest",
+        "rc": 0,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-RESOURCE/positive.log"
+      },
+      "note": "selftest 含负例；ctest 类资源门需构建树，本机不重跑",
+      "negative": {
+        "kind": "not_proven",
+        "reason": "selftest 含负例；ctest 类资源门需构建树，本机不重跑"
+      },
+      "polarity_ok": false,
+      "status": "INCONCLUSIVE-OR-PARTIAL"
+    },
+    "CHK-ISA-EQ": {
+      "grade": "P1",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/check_isa_leak.py",
+          "--selftest"
+        ],
+        "kind": "selftest",
+        "rc": 0,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-ISA-EQ/positive.log"
+      },
+      "note": "selftest 纯内存正负例；ISA 超差注入需重建 provider",
+      "negative": {
+        "kind": "not_proven",
+        "reason": "selftest 纯内存正负例；ISA 超差注入需重建 provider"
+      },
+      "polarity_ok": false,
+      "status": "INCONCLUSIVE-OR-PARTIAL"
+    },
+    "CHK-ENV-ADOPTION": {
+      "grade": "P1",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "ci/verify_toolchain.py"
+        ],
+        "kind": "real-repo",
+        "rc": 2,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-ENV-ADOPTION/positive.log"
+      },
+      "note": "正例命令本机未绿（rc=2；真仓/命令面漂移或该门当前为红），不作为极性证据；负例状态=not_proven",
+      "negative": {
+        "kind": "not_proven",
+        "reason": "真仓 rc=0（上次 fast 运行）；负例需伪造 toolchain.lock 漂移"
+      },
+      "polarity_ok": false,
+      "status": "INCONCLUSIVE-OR-PARTIAL"
+    },
+    "CHK-SECRET-HYGIENE": {
+      "grade": "P0",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/check_secret_hygiene.py",
+          "--scope",
+          "tracked",
+          "--json-out",
+          "run/ci/secret-hygiene/polarity.json"
+        ],
+        "kind": "real-repo",
+        "rc": 1,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-SECRET-HYGIENE/positive.log"
+      },
+      "note": "正例命令本机未绿（rc=1；真仓/命令面漂移或该门当前为红），不作为极性证据；负例状态=not_proven",
+      "negative": {
+        "kind": "not_proven",
+        "reason": "ROOT-006 已给真仓与注入证据（其自测 22 项）；本波不重复"
+      },
+      "polarity_ok": false,
+      "status": "INCONCLUSIVE-OR-PARTIAL"
+    },
+    "CHK-KNOWN-FAILURES-BASELINE": {
+      "grade": "P1",
+      "positive": {
+        "cmd": [
+          "/usr/bin/python3",
+          "tools/quality/known_failures_baseline.py",
+          "--mode",
+          "selftest"
+        ],
+        "kind": "selftest",
+        "rc": 2,
+        "log": "/workspace/Astro CS Database/run/PROJECT-GOVERNANCE-01/CI-001/evidence/CHK-KNOWN-FAILURES-BASELINE/positive.log"
+      },
+      "note": "正例命令本机未绿（rc=2；真仓/命令面漂移或该门当前为红），不作为极性证据；负例状态=not_proven",
+      "negative": {
+        "kind": "not_proven",
+        "reason": "selftest S11/S12 断言 missing_results_fails_closed（审计确认）"
+      },
+      "polarity_ok": false,
+      "status": "INCONCLUSIVE-OR-PARTIAL"
+    }
+  },
+  "not_proven": {
+    "CHK-BUILD-LINUX": "需真构建（2400s 级）+ monitor；负例需注入编译错误后重建",
+    "CHK-BUILD-WIN": "platform=windows：本机 SKIPPED(platform)，无 MSVC",
+    "CHK-FMT": "未注册：宿主缺 clang-format（RESERVED）",
+    "CHK-DUAL-TOL": "未注册：需 Windows 侧候选产物（RESERVED）",
+    "CHK-AGENT-HARD-RULES": "未注册：实现者 AGENTS-GOV 按裁决冻结（RETIRE-PENDING-GOV-001）",
+    "CHK-WARN": "负例需无构建树环境；真仓运行会 touch 源文件强制重编（本波不跑）",
+    "CHK-CONTRACT-REF": "负例可做（临时树 INDEX.yaml 悬空）但本轮预算未覆盖",
+    "CHK-CONTRACT-TEST": "负例需临时树 TRACEABILITY.csv 悬空；本轮预算未覆盖",
+    "CHK-ORACLE": "需 ctest 目标 + 构建树；负例目标存在但本轮不重跑",
+    "CHK-INVARIANT": "同上",
+    "CHK-ABI": "ABI-BOUNDARY 无 --repo（硬锚），负例需改判据支持；ctest 类同 ORACLE",
+    "CHK-SYNTH-P1": "ctest 合成链，需构建树",
+    "CHK-SYNTH-P2": "同上（含 v6 CLI 模式矩阵，需构建产物 astrocs）",
+    "CHK-SYNTH-P3": "同上；v6_p3_rsmp_mutation_driver 目标当前 build/ 缺",
+    "CHK-NWORKER": "需运行时确定性驱动 + 多 worker 注入",
+    "CHK-SANITIZER": "需 clang sanitizer 重建（2400s 级）",
+    "CHK-COVERAGE": "P2 报告项：无阈值/无红判据（审计建议另立）",
+    "CHK-PACKAGE": "platform=windows SKIPPED；Linux 打包链未注册",
+    "CHK-UNIT": "unittest/ctest 全量；负例矩阵已由 ci/tests 负例套件承担（本轮未重跑）"
+  },
+  "summary": {
+    "gates_total": 31,
+    "gates_with_local_polarity_proof": 5,
+    "gates_not_proven": 19,
+    "gates_inconclusive": 7,
+    "definition": "能绿能红 = 同一门的正例 rc=0 且负例 rc!=0（kind: selftest/mutation/missing-dependency/unittest-suite 分别标注，不冒充 mutation）"
+  }
+}

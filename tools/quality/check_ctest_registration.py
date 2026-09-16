@@ -322,7 +322,12 @@ def main(argv=None) -> int:
     targets, structural = collect_real(repo)
     registry = load_json(repo / args.registry)
     baseline_path = repo / args.baseline
-    baseline = load_json(baseline_path) if baseline_path.is_file() else {"targets": []}
+    if not baseline_path.is_file():
+        # GAP-027 fail-closed（CI-001）：缺 C5 基线即静默回落空基线（漂移门失去基线）
+        print("CTEST-REG-FAIL: 缺 ctest 基线 %s（C5 基线漂移门无基线可比）——"
+              "fail-closed 判 FAIL；确需重建请显式 --write-baseline" % baseline_path)
+        return 1
+    baseline = load_json(baseline_path)
 
     if args.write_baseline:
         explicit = {t for _cid, pat, _cmd in registry_patterns(registry)

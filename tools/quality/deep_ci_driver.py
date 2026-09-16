@@ -214,6 +214,34 @@ def _ctest_argv(base: list[str], junit: str | None) -> list[str]:
     return base
 
 
+def _ctest_match_count(build_dir: str, target: str,
+                       timeout: int) -> tuple[int, str | None]:
+    """ctest -N -R 预检：返回 (命中测试数, 说明)。
+
+    GAP-027 fail-closed（CI-001）：ctest 在构建树未 configure / 目标未注册时
+    打印 "No tests were found!!!" 且 **rc=0**（实测），若只看 rc 会把「门空转」
+    记成 PASS。此预检把命中数显式暴露给调用方，0 即按 FAIL 处理。
+    """
+    try:
+        probe = subprocess.run(["ctest", "-N", "-R", "^%s$" % target],
+                               cwd=str(REPO / build_dir), capture_output=True,
+                               text=True, timeout=timeout)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return 0, "ctest -N 预检无法执行：%s（fail-closed）" % exc
+    text = (probe.stdout or "") + (probe.stderr or "")
+    matched = 0
+    for line in text.splitlines():
+        if "Total Tests:" in line:
+            digits = "".join(ch for ch in line.split("Total Tests:")[-1] if ch.isdigit())
+            if digits:
+                matched = int(digits)
+            break
+    if matched == 0:
+        return 0, ("ctest -N 命中 0 个测试（目标 %s 未注册或构建树未 configure）"
+                   "——fail-closed 判 FAIL" % target)
+    return matched, None
+
+
 def cmd_ctest_full(args: argparse.Namespace) -> int:
     """ctest-full：configure + 全图 build + CTest 全量（CTEST-LINUX-FULL）。
 
@@ -234,8 +262,15 @@ def cmd_ctest_full(args: argparse.Namespace) -> int:
                   "argv": _ctest_argv(["ctest", "--output-on-failure"], args.junit),
                   "cwd": str(REPO / build_dir)})
     rc = _run_steps(steps, args.output)
+    # GAP-027 fail-closed（CI-001）：全量 ctest 同样存在「零命中即 rc=0」的
+    # 假绿面（构建树未 configure / 无任何已注册测试），按命中数显式判红。
+    matched, probe_reason = _ctest_match_count(build_dir, ".", args.step_timeout)
+    zero_hit = matched == 0
+    if zero_hit and rc == 0:
+        rc = 1
     print(json.dumps({"driver": "deep_ci_driver.py", "subcommand": "ctest-full",
-                      "build_dir": str(build_dir),
+                      "build_dir": str(build_dir), "matched_tests": matched,
+                      "reason": probe_reason if zero_hit else None,
                       "verdict": "FAIL" if rc != 0 else "PASS"}, ensure_ascii=False))
     return rc
 
@@ -245,11 +280,17 @@ def cmd_ctest_target(args: argparse.Namespace) -> int:
 
     CI-REG-002 / STD-F7 处置 1：本轮新增测试目标逐个成为显式、不可豁免的
     CI 检查项。build dir 由登记顺序保证已构建（BUILD-GCC-RELEASE 或
-    CTEST-LINUX-FULL 先行）；未构建时 ctest 报 "No tests were found" 非零，
-    按 FAIL 如实传导（不静默绿）。
+    CTEST-LINUX-FULL 先行）。
+
+    GAP-027 fail-closed（CI-001，2026-09-16）：原注释断言「未构建时 ctest 报
+    "No tests were found" 非零」——**与 ctest 实测行为矛盾**：构建树未 configure
+    或目标未注册时 ctest -R 打印 "No tests were found!!!" 且 **rc=0**，本驱动据此
+    静默 PASS（46 条 CTEST-<TARGET> 门 + CTEST-LINUX-FULL 同族恒绿）。现在先做
+    ctest -N -R 枚举预检：命中测试数 == 0 即 FAIL（缺失判红，不静默跳过）。
     """
     build_dir = _ensure_inside_repo(args.build_dir, "build-dir")
     target = args.target
+    matched, probe_reason = _ctest_match_count(build_dir, target, args.step_timeout)
     steps: list[dict] = [{
         "name": "ctest-target",
         "timeout": args.step_timeout,
@@ -258,8 +299,13 @@ def cmd_ctest_target(args: argparse.Namespace) -> int:
         "cwd": str(REPO / build_dir),
     }]
     rc = _run_steps(steps, args.output)
+    zero_hit = matched == 0
+    if zero_hit and rc == 0:
+        rc = 1  # ctest 零命中实测 rc=0：按 fail-closed 判 FAIL，不静默绿
     print(json.dumps({"driver": "deep_ci_driver.py", "subcommand": "ctest-target",
                       "target": target, "build_dir": str(build_dir),
+                      "matched_tests": matched,
+                      "reason": probe_reason if zero_hit else None,
                       "verdict": "FAIL" if rc != 0 else "PASS"}, ensure_ascii=False))
     return rc
 

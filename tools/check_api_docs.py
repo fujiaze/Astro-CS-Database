@@ -38,11 +38,26 @@ def _looks_fn(token: str) -> bool:
         re.match(r"^[a-z][a-z0-9]+$", token))
 
 
-def _repo(path: str) -> str:
+def _repo(path: str, allow_fallback: bool = False) -> str:
+    """定位被检仓库根。
+
+    GAP-027 fail-closed（CI-001）：原实现把「--repo 不是完整检出」静默回落到
+    检查器自身所在仓库（rc=0 且零输出，等于拿另一个仓库的结果冒充被检对象）。
+    现在默认严格：非完整检出即 FAIL；确需回落必须显式 --allow-repo-fallback
+    且打印回落事实。
+    """
     p = os.path.abspath(path)
     if os.path.isdir(os.path.join(p, "docs")) and os.path.isdir(os.path.join(p, "lib")):
         return p
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fallback = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if allow_fallback:
+        sys.stderr.write(
+            "DOCCHK-001 WARN: --repo %s 不是完整检出（缺 docs/ 或 lib/）→ "
+            "显式回落 %s（--allow-repo-fallback）\n" % (p, fallback))
+        return fallback
+    raise SystemExit(
+        "DOCCHK-001 FAIL: --repo %s 不是完整检出（缺 docs/ 或 lib/）——"
+        "fail-closed 拒绝静默回落；确需回落请显式加 --allow-repo-fallback" % p)
 
 
 class Checker:
@@ -214,6 +229,8 @@ class Checker:
     def _session_funcs(self, phase: str) -> list[tuple[str, int]]:
         doc = os.path.join(self.doc_api, f"PHASE{phase}_API_V1.md")
         if not os.path.isfile(doc):
+            # GAP-027 fail-closed（CI-001）：原为 return []（签名门静默归零）
+            self.fail("缺少 API 文档 %s（签名一致性门无法执行 → FAIL）" % doc)
             return []
         text = open(doc, encoding="utf-8", errors="ignore").read()
         funcs = []
@@ -276,6 +293,8 @@ class Checker:
         for phase in ("1", "2", "3"):
             doc = os.path.join(self.doc_api, f"PHASE{phase}_API_V1.md")
             if not os.path.isfile(doc):
+                # GAP-027 fail-closed（CI-001）：原为 continue（整段登记门静默跳过）
+                self.fail("缺少 API 文档 %s（模块登记/并发合同/test ID 门无法执行 → FAIL）" % doc)
                 continue
             text = open(doc, encoding="utf-8", errors="ignore").read()
             # PHASE3 §2 是 request JSON 字段表(非函数登记), 由 check_phase3_schema 覆盖; 跳过。
@@ -385,8 +404,10 @@ class Checker:
                         json.load(open(os.path.join(d, f), encoding="utf-8"))
                     except Exception as e:
                         self.fail("schema %s 解析失败: %s" % (f, e))
-        if not seen and not os.path.isdir(schema_dirs[0]):
-            self.fail("无 schema 目录(schemas/)")
+        if not seen:
+            # GAP-027 fail-closed（CI-001）：原判据只在「目录也不存在」时报错，
+            # 目录存在但 0 个 *.schema.json 时 seen=False 亦静默通过（空转绿）。
+            self.fail("无任何 *.schema.json 可校验（目录 %s）→ FAIL" % schema_dirs[0])
 
 
 def main():

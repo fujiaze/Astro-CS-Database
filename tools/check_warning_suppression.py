@@ -97,8 +97,10 @@ def main():
         return 1
     build_dir = detect_build_tree()
     if build_dir is None:
-        print("QA-001_SKIP: 无可用构建树 (build/root-cmake 与 build/ 均缺失), 仅静态检查")
-        return 0
+        # GAP-027 fail-closed（CI-001）：原为 QA-001_SKIP + rc=0（缺构建产物即静默绿）
+        print("QA-001_FAIL: 无可用构建树 (build/root-cmake 与 build/ 均缺失)，"
+              "编译警告抑制门无法执行 → fail-closed 判 FAIL")
+        return 1
     warn = measure_build(build_dir)
     if warn not in ("", "0"):
         errors.append(f"生产构建警告 {warn} 个 (非 0)")

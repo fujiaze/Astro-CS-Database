@@ -16,8 +16,14 @@ REPO = pathlib.Path(__file__).resolve().parents[1]
 def check(name, task, bin_symbols, cmake_token, doc_check=None):
     errors = []
     # 1) 生产二进制符号
-    bin_path = REPO / "build" / "root-cmake" / "astrocs"
-    if bin_path.exists():
+    bin_path = next((p for p in (REPO / "build" / "root-cmake" / "astrocs",
+                                 REPO / "build" / "astrocs",
+                                 REPO / "build" / "cli" / "astrocs") if p.exists()), None)
+    if bin_path is None:
+        # GAP-027 fail-closed（CI-001）：原实现路径漂移后整段 nm 符号扫描静默跳过仍 PASS
+        errors.append(f"{name}: 未找到生产二进制（候选 build/root-cmake/astrocs、"
+                      "build/astrocs、build/cli/astrocs）→ 符号面无法验证，fail-closed 判 FAIL")
+    else:
         out = subprocess.run(["nm", str(bin_path)], capture_output=True, text=True).stdout.lower()
         for sym in bin_symbols:
             if sym in out:
@@ -64,8 +70,12 @@ def main():
     cmake = (REPO / "CMakeLists.txt").read_text(encoding="utf-8", errors="ignore")
     if "ASTROCS_ENABLE_ACR" not in cmake:
         errors.append("ACR option 缺失 (LEG-004)")
-    bin_path = REPO / "build" / "root-cmake" / "astrocs"
-    if bin_path.exists():
+    bin_path = next((p for p in (REPO / "build" / "root-cmake" / "astrocs",
+                                 REPO / "build" / "astrocs",
+                                 REPO / "build" / "cli" / "astrocs") if p.exists()), None)
+    if bin_path is None:
+        errors.append("ACR dormant: 未找到生产二进制（候选三处均缺）→ 符号面无法验证，fail-closed 判 FAIL")
+    else:
         out = subprocess.run(["nm", str(bin_path)], capture_output=True, text=True).stdout.lower()
         if "acr" in out:
             errors.append("生产二进制含 ACR 符号 (LEG-004)")

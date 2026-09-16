@@ -139,6 +139,84 @@ def _discover_case_gap(where: str, target: pathlib.Path, cmd: list[str]) -> list
     return problems
 
 
+# CI-001 ID 收敛：聚合项 steps 的必需/可选字段（step 是自描述最小检查单元）
+STEP_REQUIRED = ("id", "command", "timeout_seconds", "profiles", "platform")
+STEP_OPT_FIELDS = ("heavy", "mutates_workspace", "outputs", "waivable", "changed_paths",
+                   "requires_monitor", "prerequisite_tools", "ctest_targets",
+                   "dirty_ignore_exact", "dirty_ignore_prefixes")
+
+
+def _cmd_errors(where: str, cid: str, cmd, strict: bool) -> list[str]:
+    """R4/R6：命令可执行体与输入路径规则（注册项与 step 的命令用同一判据）。"""
+    errors: list[str] = []
+    if not (isinstance(cmd, list) and cmd and all(isinstance(x, str) for x in cmd)):
+        return errors
+    if cmd[0] not in ALLOWED_RUNNERS:
+        errors.append(f"R4 {where}: command[0]: {cmd[0]!r} not in {sorted(ALLOWED_RUNNERS)}")
+    else:
+        if len(cmd) < 2:
+            errors.append(f"R4 {where}: command needs script path as command[1]")
+        elif cmd[1].startswith("-"):
+            if "-s" in cmd:
+                target = REPO / cmd[cmd.index("-s") + 1]
+                if not target.is_dir():
+                    errors.append(f"R4 {where}.command -s: dir not found: {cmd[cmd.index('-s') + 1]}")
+                else:
+                    errors.extend(_discover_case_gap(where, target, cmd))
+            else:
+                errors.append(f"R4 {where}: command[1]: flag {cmd[1]!r} without resolvable target")
+        else:
+            script = REPO / cmd[1]
+            if not script.is_file():
+                errors.append(f"R4 {where}: command[1]: file not found: {cmd[1]}")
+    INPUT_FLAGS = {"--csv", "--index", "--schema", "--policy", "--actual",
+                   "--repo", "--registry", "--trace", "--ir", "--module-index",
+                   "--commits", "--results-dir"}
+    if strict:
+        for i, tok in enumerate(cmd):
+            if tok in INPUT_FLAGS and i + 1 < len(cmd):
+                arg = cmd[i + 1]
+                if not arg.startswith("-") and "/" in arg and not arg.startswith("/"):
+                    if not (REPO / arg).exists():
+                        errors.append(f"R6 {where}.command: input path not found: {arg}")
+    return errors
+
+
+def _step_errors(where: str, step, strict: bool) -> list[str]:
+    """R2（CI-001 收敛）：step 结构 + 与注册项同判据的命令规则。"""
+    errors: list[str] = []
+    if not isinstance(step, dict):
+        return [f"R2 {where}: step must be object"]
+    missing = [f for f in STEP_REQUIRED if f not in step]
+    if missing:
+        return [f"R2 {where}: step missing fields {missing}"]
+    extra = [f for f in step if f not in STEP_REQUIRED + STEP_OPT_FIELDS]
+    if extra:
+        errors.append(f"R2 {where}: step unexpected fields {extra}")
+    sid = step.get("id")
+    if not isinstance(sid, str) or not ID_RE.match(sid):
+        errors.append(f"R2 {where}: step bad id {sid!r}")
+    for f in ("profiles", "command", "outputs", "changed_paths"):
+        if f in step and (not isinstance(step[f], list)
+                          or not all(isinstance(x, str) for x in step[f])):
+            errors.append(f"R2 {where}.{f}: must be array of strings")
+    if not step.get("profiles"):
+        errors.append(f"R2 {where}.profiles: empty")
+    bad = [p for p in step.get("profiles", []) if p not in ALLOWED_PROFILES]
+    if bad:
+        errors.append(f"R2 {where}.profiles: unknown values {bad}")
+    if step.get("platform") not in ALLOWED_PLATFORM:
+        errors.append(f"R2 {where}.platform: must be one of {sorted(ALLOWED_PLATFORM)}")
+    to = step.get("timeout_seconds")
+    if not isinstance(to, int) or isinstance(to, bool) or to < 1:
+        errors.append(f"R2 {where}.timeout_seconds: must be integer >= 1（禁止无超时执行）")
+    for f in BOOL_FIELDS:
+        if f in step and not isinstance(step[f], bool):
+            errors.append(f"R2 {where}.{f}: must be boolean")
+    errors.extend(_cmd_errors(f"{where}.steps[{sid}]", sid, step.get("command"), strict))
+    return errors
+
+
 def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]:
     errors: list[str] = []
 
@@ -168,7 +246,7 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
         if missing:
             errors.append(f"R2 {where}: missing fields {missing}")
             continue
-        extra = [f for f in c if f not in REQUIRED + OPT_STR_LIST_FIELDS]
+        extra = [f for f in c if f not in REQUIRED + OPT_STR_LIST_FIELDS + ("steps",)]
         if extra:
             errors.append(f"R2 {where}: unexpected fields {extra}")
         for f in OPT_STR_LIST_FIELDS:
@@ -206,58 +284,60 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
             if bad:
                 errors.append(f"R5 {where}.profiles: unknown values {bad}")
 
-        # R4/R6 command
+        # R4/R6 command（CI-001 ID 收敛后：注册项与其每个 step 的命令同一判据）
         cmd = c.get("command")
-        if isinstance(cmd, list) and cmd and all(isinstance(x, str) for x in cmd):
-            if cmd[0] not in ALLOWED_RUNNERS:
-                errors.append(f"R4 {where}.command[0]: {cmd[0]!r} not in {sorted(ALLOWED_RUNNERS)}")
+        errors.extend(_cmd_errors(where, cid, cmd, strict))
+
+        # R12（CI-001）：聚合项 steps 结构 + 派发入口
+        if "steps" in c:
+            steps = c["steps"]
+            if not isinstance(steps, list) or not steps:
+                errors.append(f"R2 {where}.steps: must be a non-empty array")
             else:
-                if len(cmd) < 2:
-                    errors.append(f"R4 {where}.command: needs script path as command[1]")
-                elif cmd[1].startswith("-"):
-                    # 形如 "python3 -B -m unittest discover -s <dir> -t <dir>"：
-                    # command[1] 为解释器旗标，转而校验 -s 指向的仓库内目录存在
-                    if "-s" in cmd:
-                        target = REPO / cmd[cmd.index("-s") + 1]
-                        if not target.is_dir():
-                            errors.append(f"R4 {where}.command -s: dir not found: {cmd[cmd.index('-s') + 1]}")
-                        else:
-                            # R11（M8-F-001）: discover 采集用例数 > 0 且直跑
-                            # 验收脚本必须可被采集。
-                            errors.extend(_discover_case_gap(where, target, cmd))
-                    else:
-                        errors.append(f"R4 {where}.command[1]: flag {cmd[1]!r} without resolvable target")
-                else:
-                    script = REPO / cmd[1]
-                    if not script.is_file():
-                        errors.append(f"R4 {where}.command[1]: file not found: {cmd[1]}")
-            # R6：已知“输入类”旗标后的仓库相对路径必须存在；
-            # 输出类旗标（--output/--out-json/--json-out/--out-junit）指向待生成产物，不校验存在。
-            INPUT_FLAGS = {"--csv", "--index", "--schema", "--policy", "--actual",
-                           "--repo", "--registry", "--trace", "--ir", "--module-index",
-                           "--commits", "--results-dir"}
-            if strict:
-                for i, tok in enumerate(cmd):
-                    if tok in INPUT_FLAGS and i + 1 < len(cmd):
-                        arg = cmd[i + 1]
-                        if not arg.startswith("-") and "/" in arg and not arg.startswith("/"):
-                            if not (REPO / arg).exists():
-                                errors.append(f"R6 {where}.command: input path not found: {arg}")
+                seen_steps: set[str] = set()
+                for j, step in enumerate(steps):
+                    errors.extend(_step_errors(f"{where}.steps[{j}]", step, strict))
+                    sid = step.get("id") if isinstance(step, dict) else None
+                    if isinstance(sid, str):
+                        if sid in seen_steps:
+                            errors.append(f"R3 {where}.steps: duplicate step id {sid!r}")
+                        seen_steps.add(sid)
+                if not any(tok == "ci/run_checks.py" for tok in (cmd or [])):
+                    errors.append(
+                        f"R12 {where} ({cid}): 聚合项 command 必须经 ci/run_checks.py 派发 steps"
+                        "（否则旧入口只跑第一步 → 静默丢覆盖）")
 
-        # R7 heavy → monitor
-        if c.get("heavy") is True and c.get("requires_monitor") is not True:
-            errors.append(f"R7 {where} ({cid}): heavy=true requires requires_monitor=true")
-
-        # R8 fast 不得写工作区
-        if c.get("mutates_workspace") is True and isinstance(profs, list) and "fast" in profs:
-            errors.append(f"R8 {where} ({cid}): mutates_workspace=true must not be in fast profile")
+        # R7/R8（CI-001）：按**执行单元（unit）**判定——无 steps 的注册项即 unit，
+        # 有 steps 的逐 step 展开。聚合项父级的 heavy/mutates_workspace 是各 step 的
+        # 并集投影，用它判 R7/R8 会把「个别 step 的 heavy/写入面」错误外推到整组。
+        unit_specs = []
+        if isinstance(c.get("steps"), list) and c["steps"]:
+            for s in c["steps"]:
+                if isinstance(s, dict):
+                    unit_specs.append((f"{where}.steps[{s.get('id')}]", s))
+        else:
+            unit_specs.append((where, c))
+        for u_where, u in unit_specs:
+            u_id = u.get("id", cid)
+            # R7 heavy → monitor
+            if u.get("heavy") is True and u.get("requires_monitor") is not True:
+                errors.append(f"R7 {u_where} ({u_id}): heavy=true requires requires_monitor=true")
+            # R8 fast 不得写工作区
+            if u.get("mutates_workspace") is True and "fast" in (u.get("profiles") or []):
+                errors.append(f"R8 {u_where} ({u_id}): mutates_workspace=true must not be in fast profile")
 
         # R9 硬编码线程/核心数（GAP-G2）：ci/resource_monitor.py 与其 `--`
         # 之间的元素是 monitor 自身参数（--timeout/--output/--），白名单放行；
         # `--` 之后为被监视子命令，恢复逐一扫描。非 monitor 命令全元素扫描。
-        if isinstance(cmd, list) and all(isinstance(x, str) for x in cmd):
+        # CI-001：注册项命令与其每个 step 命令同判据。
+        all_cmds = [cmd]
+        if isinstance(c.get("steps"), list):
+            all_cmds += [s.get("command") for s in c["steps"] if isinstance(s, dict)]
+        for one_cmd in all_cmds:
+            if not (isinstance(one_cmd, list) and all(isinstance(x, str) for x in one_cmd)):
+                continue
             monitor_ctx = False
-            for tok in cmd:
+            for tok in one_cmd:
                 if tok == MONITOR_SCRIPT:
                     monitor_ctx = True
                 elif monitor_ctx and tok == "--":
@@ -266,15 +346,125 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
                     errors.append(
                         f"R9 {where} ({cid}): hardcoded_core_in_command: {tok!r}")
 
-    # R10（B3-A5）：聚合型 known-failures 基线门必须排在 linux-main 选中序末位。
-    # 它在运行期读取同 run 全部上游 per-check 结果与 CTEST-LINUX-FULL 的 JUnit；
-    # 排在中间会读不全 → 静态强制，杜绝注册表重排造成的静默退化。
-    linux_main_ids = [c["id"] for c in checks
-                      if isinstance(c, dict) and "linux-main" in c.get("profiles", [])]
-    if linux_main_ids and linux_main_ids[-1] != "KNOWN-FAILURES-BASELINE-CHECK":
+    # R10（B3-A5 + TEST-GREEN-001）：聚合型 known-failures 基线门必须排在
+    # linux-main 选中序末位。它在运行期读取同 run 全部上游 per-check 结果与
+    # CTEST-LINUX-FULL 的 JUnit；排在中间会读不全 → 静态强制，杜绝注册表重排
+    # 造成的静默退化。CI-001 收敛后判据落在**执行单元（unit）**层：无 steps 的
+    # 注册项即 unit；有 steps 的逐 step 展开为 unit（旧 ID 原样），因此末位
+    # 判据与收敛前语义等价且更强（step 次序也被纳入）。
+    units: list[tuple[str, list[str]]] = []
+    for c in checks:
+        if not isinstance(c, dict):
+            continue
+        steps = c.get("steps")
+        if isinstance(steps, list) and steps:
+            for s in steps:
+                if isinstance(s, dict):
+                    units.append((s.get("id", c["id"]), s.get("profiles", []) or []))
+        else:
+            units.append((c["id"], c.get("profiles", []) or []))
+    linux_main_units = [uid for uid, profs in units if "linux-main" in profs]
+    if linux_main_units and linux_main_units[-1] != "KNOWN-FAILURES-BASELINE-CHECK":
         errors.append(
-            "R10 linux-main: last selected entry must be "
-            f"KNOWN-FAILURES-BASELINE-CHECK, got {linux_main_ids[-1]!r}")
+            "R10 linux-main: last selected unit must be "
+            f"KNOWN-FAILURES-BASELINE-CHECK, got {linux_main_units[-1]!r}")
+
+    # R13/R14/R15（CI-001）：ID 治理、迁移映射覆盖、豁免登记。
+    # 仅对仓库唯一注册表（ci/checks.json）生效；fixture 注册表（单测注入）不适用。
+    if registry_path.resolve() == (REPO / "ci" / "checks.json").resolve():
+        map_path = REPO / "ci" / "id_migration_map.json"
+        if not map_path.is_file():
+            errors.append("R13 缺 ci/id_migration_map.json（ID 收敛迁移映射）")
+        else:
+            try:
+                mmap = json.loads(map_path.read_text(encoding="utf-8"))
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"R13 ci/id_migration_map.json 不可解析：{exc}")
+                mmap = None
+            if isinstance(mmap, dict):
+                declared = {m.get("old_id"): m for m in mmap.get("mappings", [])
+                            if isinstance(m, dict)}
+                entry_ids = {c["id"] for c in checks if isinstance(c, dict)}
+                unit_ids: list[str] = []
+                for c in checks:
+                    steps = c.get("steps")
+                    if isinstance(steps, list) and steps:
+                        unit_ids += [s["id"] for s in steps if isinstance(s, dict)]
+                    else:
+                        unit_ids.append(c["id"])
+                # 覆盖率：源注册表逐条登记
+                cov = mmap.get("coverage", {})
+                absorbed = set(cov.get("absorbed_entries", []) or [])
+                if cov.get("source_entry_count") != len(declared) - len(absorbed):
+                    errors.append(
+                        f"R13 迁移映射覆盖不足：source_entry_count={cov.get('source_entry_count')} "
+                        f"mappings={len(declared)} absorbed={len(absorbed)}")
+                if cov.get("silent_drops") not in (0, None):
+                    errors.append(f"R13 迁移映射声明了 silent_drops={cov.get('silent_drops')}")
+                # 无孤儿：注册表 unit 必须都在映射里
+                orphan_units = sorted(set(unit_ids) - set(declared))
+                if orphan_units:
+                    errors.append(f"R13 孤儿 unit（不在迁移映射）：{orphan_units}")
+                # 目标一致：MERGED-INTO/KEPT 的 target 必须等于该 unit 的父项 ID
+                parent_of: dict[str, str] = {}
+                for c in checks:
+                    steps = c.get("steps")
+                    if isinstance(steps, list) and steps:
+                        for s in steps:
+                            if isinstance(s, dict):
+                                parent_of[s["id"]] = c["id"]
+                    else:
+                        parent_of[c["id"]] = c["id"]
+                for uid in unit_ids:
+                    m = declared.get(uid)
+                    if not m:
+                        continue
+                    if m.get("decision") in ("MERGED-INTO", "KEPT") and m.get("target") != parent_of.get(uid):
+                        errors.append(
+                            f"R13 {uid}: 映射 target={m.get('target')!r} 与注册表父项 "
+                            f"{parent_of.get(uid)!r} 不一致")
+                # 目标 ID 空间：注册项 ID ∈ 目标 ∪ 扩展 ∪ RETIRE-PENDING
+                allowed_targets = set(mmap.get("targets", {})) | set(mmap.get("reserved_targets", {}))
+                pending = {m["old_id"] for m in declared.values()
+                           if str(m.get("decision", "")).startswith(("RETIRE-PENDING",
+                                                                     "KEPT-PENDING"))}
+                unknown_entries = sorted(entry_ids - allowed_targets - pending)
+                if unknown_entries:
+                    errors.append(f"R13 未登记的注册项 ID（既非目标也非 RETIRE-PENDING）：{unknown_entries}")
+        # R14：豁免登记（docs/ci/01_CHECKS.md §1；只减不增）
+        exemptions = REPO / "ci" / "exemptions.json"
+        if not exemptions.is_file():
+            errors.append("R14 缺 ci/exemptions.json（docs/ci/01_CHECKS.md §1 要求豁免显式登记）")
+        else:
+            try:
+                ex = json.loads(exemptions.read_text(encoding="utf-8"))
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"R14 ci/exemptions.json 不可解析：{exc}")
+                ex = None
+            if isinstance(ex, dict):
+                entries = ex.get("exemptions")
+                if not isinstance(entries, list):
+                    errors.append("R14 exemptions 必须是数组")
+                else:
+                    high = ex.get("high_water", {})
+                    max_entries = high.get("max_entries") if isinstance(high, dict) else None
+                    if not isinstance(max_entries, int) or isinstance(max_entries, bool):
+                        errors.append("R14 缺 high_water.max_entries（只减不增的高水位）")
+                    elif len(entries) > max_entries:
+                        errors.append(
+                            f"R14 豁免条目 {len(entries)} 超过高水位 {max_entries}（只减不增）")
+                    for i, item in enumerate(entries):
+                        if not isinstance(item, dict):
+                            errors.append(f"R14 exemptions[{i}] 必须是对象")
+                            continue
+                        for field in ("id", "reason", "approved_by", "approved_utc",
+                                      "expiry", "evidence"):
+                            if not item.get(field):
+                                errors.append(f"R14 exemptions[{i}] 缺 {field}")
+                        if item.get("approved_by") != "负责人":
+                            errors.append(f"R14 exemptions[{i}].approved_by 必须是「负责人」")
+                        if item.get("id") not in entry_ids and item.get("id") not in unit_ids:
+                            errors.append(f"R14 exemptions[{i}].id 不在注册表：{item.get('id')!r}")
 
     return errors, len(checks)
 
