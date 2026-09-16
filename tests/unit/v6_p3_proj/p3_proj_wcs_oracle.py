@@ -2,9 +2,10 @@
 """p3_proj_wcs_oracle.py — IMPL-P3-PROJ-001 独立 WCS Oracle
 
 真值来源（不 import / 不链接被测实现）:
-  * astropy.wcs（WCSLIB，FITS WCS Paper II 独立实现）做正反投影；
+  * astropy.wcs（WCSLIB，FITS WCS Paper II 独立实现）做逐点绝对对拍；
   * 自实现球面四边形盈余（Van Oosterom & Strackee）做逐像素 Ω；
-  * 自实现 CAR 解析纬度带 Ω = Δα_rad (sin δ_hi − sin δ_lo) 二次交叉。
+  * 自实现 CAR 解析纬度带 Ω = Δα_rad (sin δ_hi − sin δ_lo)（仅 |CRVAL2|≤1e-9）；
+  * CRPIX↔CRVAL 定义性不变量（Paper I §2.1.1）与 AIT 椭圆域 A≤1（Paper II）。
 
 被测面: tests/unit/v6_p3_proj/v6_p3_proj_probe.cpp 打印的 CSV（生产实现输出）。
 
@@ -31,6 +32,8 @@ except Exception:  # pragma: no cover
 DEG = math.pi / 180.0
 
 # case = (proj, ra0, dec0, scale, w, h, grid_n)
+# dec0≠0 用例是 CRVAL2 进入映射（Paper II §2.2 三 Euler 角）的唯一区分面：
+# dec0≡0 时恒等旋转与标准解重合，对 CRVAL2 缺陷零区分力（R-1 §4-A）。
 CASES = [
     ("TAN", 350.0, 30.0, 0.002, 97, 89, 5),
     ("SIN", 350.0, 30.0, 0.02, 97, 89, 5),
@@ -40,6 +43,13 @@ CASES = [
     ("AIT", 0.0, 0.0, 0.2, 61, 61, 3),
     ("TAN", 0.0, 60.0, 0.2, 61, 61, 3),
     ("TAN", 0.0, 0.0, 0.2, 11, 11, 3),
+    # --- dec0≠0（CRVAL2 进映射 + LONPOLE 标准默认 0/180）---
+    ("CAR", 10.0, 30.0, 0.2, 17, 17, 3),
+    ("CAR", 10.0, -30.0, 0.2, 17, 17, 3),
+    ("CAR", 10.0, 60.0, 0.2, 17, 17, 3),
+    ("AIT", 10.0, 30.0, 0.2, 17, 17, 3),
+    ("AIT", 10.0, -30.0, 0.2, 17, 17, 3),
+    ("AIT", 200.0, -45.0, 0.2, 17, 17, 3),
 ]
 
 MUTATIONS = ["const_omega", "legacy_ait", "legacy_car", "swap_norm", "naive_wrap"]
@@ -51,6 +61,7 @@ def run_probe(probe, case):
         [probe, proj, repr(ra0), repr(dec0), repr(scale), str(w), str(h), str(gn)],
         check=True, capture_output=True, text=True, timeout=600)
     head = omega_stat = plan = None
+    crpixw = None
     rows, rts, norms = [], [], []
     for line in out.stdout.splitlines():
         p = line.split()
@@ -67,6 +78,8 @@ def run_probe(probe, case):
             rts.append(kv())
         elif p[0] == "PLAN":
             plan = kv()
+        elif p[0] == "CRPIXW":
+            crpixw = kv()
         elif p[0] == "NORM":
             norms.append({"kind": "NORM", **kv()})
         elif p[0] == "NORM_ROWSUM":
@@ -75,7 +88,7 @@ def run_probe(probe, case):
             norms.append({"kind": "COLSUM", **kv()})
         elif p[0] == "NORM_S":
             norms.append({"kind": "NORM_S", **kv()})
-    return head, omega_stat, rows, rts, plan, norms
+    return head, omega_stat, rows, rts, plan, norms, crpixw
 
 
 def v_sky(ra_deg, dec_deg):
@@ -118,7 +131,7 @@ def grid_omega_astropy(w, wd, ht):
 
 def check_case(probe, case, injections):
     proj, ra0, dec0, scale, wd, ht, gn = case
-    head, omega_stat, rows, rts, plan, norms = run_probe(probe, case)
+    head, omega_stat, rows, rts, plan, norms, crpixw = run_probe(probe, case)
     checks = []
     if head is None or head["status_make"] != "0":
         return False, ["make_status FAIL"], {}
@@ -164,8 +177,12 @@ def check_case(probe, case, injections):
                    (prod_ratio, ref_ratio)))
 
     # 3) CAR 解析纬度带交叉（小像素适用；球面盈余 vs 纬度带小圆边的曲率差
-    #    随像素角尺度增大：0.2° 场残差 ~1e-6，1° 场 ~2.5e-5）
-    if proj == "CAR" and abs(float(head["cd11"])) <= 0.5:
+    #    随像素角尺度增大：0.2° 场残差 ~1e-6，1° 场 ~2.5e-5）。
+    #    ⚠ 量测域: 仅 |CRVAL2| ≤ 1e-9（未倾斜 CAR）成立——CRVAL2≠0 时行是倾斜
+    #    等纬线，Ω ≠ s_ra(sinδ_hi−sinδ_lo)，该判据对任何正确实现都误判
+    #    （R-1 §4-B：δ0=30° 偏差 17.36%；δ0=60° 偏差 110.2%）。
+    if (proj == "CAR" and abs(float(head["crval2"])) <= 1e-9
+            and abs(float(head["cd11"])) <= 0.5):
         decs = float(head["crval2"]) + (np.arange(ht, dtype=float) -
                                         (float(head["crpix2"]) - 1.0)) * float(head["cd22"])
         s_ra = abs(float(head["cd11"])) * DEG
@@ -174,7 +191,44 @@ def check_case(probe, case, injections):
         analytic = s_ra * (np.sin(hi) - np.sin(lo))
         ref_col = om_grid[:, wd // 2]
         rel = float(np.max(np.abs(ref_col - analytic) / analytic))
-        checks.append(("car_analytic_latitude_band", rel < 1e-5, rel))
+        checks.append(("car_analytic_latitude_band_untilte", rel < 1e-5, rel))
+
+    # 3b) CRPIX↔CRVAL 定义性不变量（Paper I §2.1.1；比球面距离更硬）：
+    #     world2pix 中间坐标为 0 的像素（CRPIX）其天球坐标必须 == CRVAL。
+    if crpixw is None:
+        checks.append(("crpix_world_eq_crval", False, "no CRPIXW line"))
+    else:
+        st_c = int(crpixw["status"])
+        if st_c != 0:
+            checks.append(("crpix_world_eq_crval", False, "status=%d" % st_c))
+        else:
+            d_ra = abs(float(crpixw["ra"]) - float(head["crval1"]))
+            d_ra = min(d_ra, 360.0 - d_ra)
+            d_dec = abs(float(crpixw["dec"]) - float(head["crval2"]))
+            checks.append(("crpix_world_eq_crval", max(d_ra, d_dec) < 1e-9,
+                           (d_ra, d_dec)))
+
+    # 3c) AIT 椭圆域（Paper II）：A = xp²/4 + yp²，A ≤ 1 域内 / A > 1 必须 HEMISPHERE。
+    #     判据只用标准椭圆 + 探针平面坐标，不引用实现内部状态。
+    if proj == "AIT":
+        cd11, cd12 = float(head["cd11"]), float(head["cd12"])
+        cd21, cd22 = float(head["cd21"]), float(head["cd22"])
+        cx, cy = float(head["crpix1"]), float(head["crpix2"])
+        worst_dom = 0.0
+        bad_dom = 0
+        for r in rows:
+            x, y = float(r["x"]), float(r["y"])
+            xd = cd11 * ((x + 1) - cx) + cd12 * ((y + 1) - cy)
+            yd = cd21 * ((x + 1) - cx) + cd22 * ((y + 1) - cy)
+            xp = xd * DEG / math.sqrt(2.0)
+            yp = yd * DEG / math.sqrt(2.0)
+            a_ell = xp * xp / 4.0 + yp * yp
+            inside = a_ell <= 1.0
+            if inside != (r["status"] == "0"):
+                bad_dom += 1
+                worst_dom = max(worst_dom, a_ell)
+        checks.append(("ait_ellipse_domain_A_le_1", bad_dom == 0,
+                       (bad_dom, worst_dom)))
 
     # 4) 往返
     worst_rt = max((float(r["err"]) for r in rts if r["status"] == "0"), default=0.0)

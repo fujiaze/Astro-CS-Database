@@ -66,6 +66,7 @@ static bool build_mini_hips(const std::string& hips, uint32_t n_present_tiles) {
     view.covered_area = area.data();
     view.valid_mask = nullptr;
     view.var_num_sum = nullptr;
+    aio_hips_tile_view_abi_init(&view);
     if (aio_hips_write_signal_support_tile(ps, &view) != 0) {
       aio_hips_finalize(ps);
       return false;

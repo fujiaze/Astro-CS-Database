@@ -154,7 +154,8 @@ int main() {
         g.util_samples_pass_frac = 0.10;
         g.queue_low_run_seconds = 0.0;
         g.heavy_wall_seconds_total = 24.0;
-        CHECK(astrocs::evaluate_gate(g) == astrocs::GateDiag::Ok);          // 统计判据豁免
+        // 统计判据豁免 → 显式 NotApplicable（GATE-FIX-RES: 不再静默 Ok）
+        CHECK(astrocs::evaluate_gate(g) == astrocs::GateDiag::NotApplicable);
         CHECK(astrocs::evaluate_mon001(g) == astrocs::GateDiag::UtilizationP75Low); // 仍 FAIL
     }
     // 13) 平均 U 门(LowAvgCores) 与逐样本门互认: 平均 0.8 但 70% 样本门不过 →

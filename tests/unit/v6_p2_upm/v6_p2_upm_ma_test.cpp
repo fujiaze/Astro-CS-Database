@@ -598,6 +598,16 @@ int run_control_variance() {
           "cv: sigma_bg=0 -> rc=1");
     check(p2_upm_control_variance(0.0, 5.0, 100, dom, nullptr, nullptr, nullptr) == 1,
           "cv: k_corr=0 -> rc=1");
+    // SCI-FIX-WEIGHT / R-2 D-10：k_corr ≥ 1 是定义性约束（N_eff ≤ N_retained）。
+    // k<1 ⇒ N_eff > N_retained，物理不可达，必须显式拒（旧实现 rc=0 接受）。
+    check(p2_upm_control_variance(0.9, 5.0, 100, dom, "mc-1", nullptr, nullptr) == 1,
+          "cv: k_corr<1 (0.9) -> rc=1（越域，不接受）");
+    check(p2_upm_control_variance(0.5, 5.0, 100, dom, "mc-1", nullptr, nullptr) == 1,
+          "cv: k_corr<1 (0.5) -> rc=1（越域，不接受）");
+    check(p2_upm_control_variance(0.999999, 5.0, 100, dom, "mc-1", nullptr, nullptr) == 1,
+          "cv: k_corr<1 (边界) -> rc=1");
+    check(p2_upm_control_variance(1.0000001, 5.0, 100, dom, "mc-1", nullptr, nullptr) == 0,
+          "cv: k_corr≥1 且带 MC run id -> rc=0");
     return g_failures;
 }
 

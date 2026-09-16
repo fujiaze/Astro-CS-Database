@@ -113,6 +113,18 @@ P2_API int p2_upm_save(const void* model, const char* path);
 P2_API int p2_upm_open(const char* path, void** out_model);
 P2_API int p2_upm_info(const void* model, P2ModelInfo* out_info);
 
+// M7-H-101 / ALG-UPM-CONVERGENCE：IRLS 迭代收敛状态的**只读**访问器
+// （不改 P2ModelInfo 冻结布局；p2_upm_build 仍以 rc=0 表示"构建成功"，
+// 收敛与否必须由本访问器显式读取，禁止用 rc=0 冒充"已收敛"）。
+//   out_iterations：实际执行迭代数（1..cfg.max_iterations）
+//   out_objective ：末轮 Huber 目标值（ADU² 量纲）
+//   out_converged ：1 = 在 cfg.max_iterations 内 max_dM/max_dC 均达
+//                   cfg.tolerance；0 = 迭代耗尽未达容差，或模型文件未记录
+//                   （旧文件 / open 后未知）——0 一律按"未证明收敛"处理。
+// 三个出参均可空。返回值：0 成功；1 model==nullptr。
+P2_API int p2_upm_convergence(const void* model, std::uint64_t* out_iterations,
+                              double* out_objective, int* out_converged);
+
 // 校准一块（W2 冻结核心接口）：frame_id + leaf_ipix[] + input_signal[] → output_signal[]
 P2_API int p2_upm_calibrate_block(
     const void* model,

@@ -83,9 +83,13 @@ constexpr int kSnrCatalogMax = 1 << 16;
 constexpr double kControlCorrDefault = 1.4;
 constexpr double kPiHalf = 1.57079632679489661923;  // π/2
 
-// （K_CORR_DOMAIN 选项 B）：k_corr 标定表（control_median_mc /
-// kcorr_matrix_test 实测，pixfrac × 源像素角尺度双线性插值）。
+// （K_CORR_DOMAIN 选项 B，scale 维 RETIRED）：k_corr 标定表
+// （kcorr_matrix_test 实测，pixfrac × 源像素角尺度双线性插值）。
 // 矩阵：scale 300"/600" 两档 × pixfrac 0.5/0.8/1.0。
+// **域外不得 clamp**：域外静默 clamp 会把「恒取 300 档」固化成合同，并把一个
+// 与帧无关的表值当成逐帧标定——生产真帧源像素角尺度 0.9586″/px 远在标定域
+// [300,600]″ 之外。域外一律返回冻结默认 kControlCorrDefault（1.4 ≥ 实证
+// 1.3883，保守侧），调用方 p2_sample_controls 另打 stderr 标。
 double kcorr_lookup(double pixfrac, double scale_arcsec) {
     static const double pf_grid[3] = {0.5, 0.8, 1.0};
     static const double sc_grid[2] = {300.0, 600.0};
@@ -93,8 +97,11 @@ double kcorr_lookup(double pixfrac, double scale_arcsec) {
         {1.2112, 1.3925, 1.4980},   // 300"/px
         {2.3958, 2.8971, 3.2035},   // 600"/px
     };
+    // 域外（含 NaN/未知）：显式回退冻结默认，禁止 clamp 静默饱和。
+    if (!(scale_arcsec >= sc_grid[0] && scale_arcsec <= sc_grid[1]))
+        return kControlCorrDefault;
     const double pf = std::clamp(pixfrac, 0.5, 1.0);
-    const double sc = std::clamp(scale_arcsec, 300.0, 600.0);
+    const double sc = scale_arcsec;
     // pixfrac 网格 {0.5,0.8,1.0} 非均匀：两段各自归一化的线性插值，
     // 不得按 [0.5,1.0] 均匀网格取列（F2 角点须精确等于表值）。
     const bool lo = (pf <= pf_grid[1]);
@@ -545,14 +552,24 @@ static int p2_sample_controls_impl(
             }
             return 1;
         }
-        // （K_CORR_DOMAIN 选项 B）：读帧 Drizzle provenance → k_corr
+        // （K_CORR_DOMAIN 选项 B，scale 维已退役）：读帧 Drizzle provenance。
+        // 仅当 scale 落在标定域 [300,600]″ 才取逐帧标定值；域外/未知一律保留
+        // frames[i].kcorr=0（→ 既有回退链 cfg.control_k_corr，默认即冻结 1.4）
+        // 并显式打标 —— 禁止把 300″ 档 clamp 值当生产逐帧 k_corr。
         {
             double pf = 0.0, sc = 0.0;
             frame_drizzle_provenance(hips_paths[i], &pf, &sc);
-            if (pf > 0.0)
-                frames[i].kcorr = (sc > 0.0)
-                    ? kcorr_lookup(pf, sc)
-                    : kcorr_lookup(pf, 300.0);   // scale 未知：300" 档保守
+            const bool in_domain = (sc >= 300.0 && sc <= 600.0);
+            if (pf > 0.0 && in_domain) {
+                frames[i].kcorr = kcorr_lookup(pf, sc);
+            } else if (pf > 0.0) {
+                std::fprintf(stderr,
+                             "[sampler] k_corr 域外回退: frame=%llu "
+                             "src_pixel_scale=%.6f\"/px ∉ [300,600] → 冻结默认 "
+                             "%.4f（scale 维退役，禁 clamp）\n",
+                             (unsigned long long)i, sc,
+                             (double)cfg.control_k_corr);
+            }
         }
         const int n = aio_hips_tile_count(sig[i]);
         for (int t = 0; t < n; ++t) {

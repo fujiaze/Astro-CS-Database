@@ -56,10 +56,22 @@ TEST(kcorr, piecewise_midpoints_rtol_1e_12) {
               0.5 * ((1.2112 + 1.3925) / 2.0 + (2.3958 + 2.8971) / 2.0), tol);
 }
 
-// F2：域外 clamp（[0.5,1.0] × [300,600]）。
-TEST(kcorr, domain_clamp) {
+// F2（SCI-FIX-WEIGHT / R-2 D-10）：scale 维**已退役**。
+// 标定域 = scale ∈ [300,600]″（kcorr_matrix_test.cpp:75）。生产真帧源像素角
+// 尺度 0.9586″/px（provenance 生产者实写 0.009856″）远在域外 ⇒ 域外**禁止
+// clamp**：静默 clamp 会把「恒取 300 档」固化成合同，并把与帧无关的表值当
+// 逐帧标定。域外一律显式回退冻结默认 k_corr=1.4。
+// pixfrac 维仍按标定列 clamp（表列有界性保留）。
+TEST(kcorr, domain_fallback_to_frozen_default_not_clamp) {
   EXPECT_EQ(lookup(0.2, 300.0), lookup(0.5, 300.0));
   EXPECT_EQ(lookup(2.0, 600.0), lookup(1.0, 600.0));
-  EXPECT_EQ(lookup(0.8, 100.0), lookup(0.8, 300.0));
-  EXPECT_EQ(lookup(0.8, 900.0), lookup(0.8, 600.0));
+  // scale 域外 = 冻结默认 1.4（≠ 300″ 档 1.3925 / 600″ 档 2.8971）
+  EXPECT_EQ(lookup(0.8, 100.0), 1.4);
+  EXPECT_EQ(lookup(0.8, 900.0), 1.4);
+  EXPECT_EQ(lookup(0.8, 0.9586), 1.4);     // 生产真帧尺度
+  EXPECT_EQ(lookup(0.8, 0.009856), 1.4);   // provenance 生产者实写值
+  EXPECT_EQ(lookup(0.5, 299.999), 1.4);
+  // 域内仍取标定值（表在标定域内保持判别力）
+  EXPECT_EQ(lookup(0.8, 300.0), 1.3925);
+  EXPECT_EQ(lookup(0.8, 600.0), 2.8971);
 }
