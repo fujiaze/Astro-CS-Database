@@ -4,7 +4,7 @@ import os, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DOC = os.path.join(REPO, "docs", "api", "PHASE2_API_V1.md")
-P2HDR = os.path.join(REPO, "lib", "phase2", "include", "astro", "phase2")
+P2HDR = os.path.join(REPO, "lib", "algorithms", "coverage", "include", "astro", "phase2")
 
 SYMBOLS = ["p2_coverage_build", "p2_coverage_free", "p2_sample_controls", "p2_sample_controls_cached",
            "p2_upm_build", "p2_upm_build_geo", "p2_upm_calibrate_block", "p2_upm_close", "p2_upm_open", "p2_upm_evaluate_c",

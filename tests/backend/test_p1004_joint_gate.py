@@ -66,23 +66,21 @@ def _ensure_mon001_fixture():
             shutil.rmtree(FIELD_HIPS, ignore_errors=True)
             shutil.move(os.path.join(tmpd, "FIELD.hips"), FIELD_HIPS)
         if not os.path.isfile(MON001_CFG):
+            # CLI-002 / ASTROCS_DESIGN 6.2: 现行 export 平铺会话配置形态。
             cfg = {
                 "schema_version": "1",
-                "inputs": {"lights": [], "darks": [], "flats": [], "bias": []},
+                "source": {"hips_dir": FIELD_HIPS},
+                "center": {"ra_deg": 210.0, "dec_deg": 34.0},
+                "scale_deg_per_px": 0.1,
+                "width_px": 40,
+                "height_px": 30,
+                "projection": "TAN",
+                "sampler": "nearest",
+                "coverage_output": "mask",
                 "output_dir": TMP,
-                "phase3": {
-                    "source": {"hips_dir": FIELD_HIPS},
-                    "center": {"ra_deg": 210.0, "dec_deg": 34.0},
-                    "scale_deg_per_px": 0.1,
-                    "width_px": 40,
-                    "height_px": 30,
-                    "projection": "TAN",
-                    "sampler": "nearest",
-                    "coverage_output": "mask",
-                    # P3-006/DOC-003 内存守卫: max_tiles 只降不升(默认
-                    # min(1024, ceil(W·H/512²)+16), 40x30→17); CI 残方 max_tiles=64
-                    # 现触发 ACS_ERR_BUDGET, 故不设该键取默认。
-                },
+                # P3-006/DOC-003 内存守卫: max_tiles 只降不升(默认
+                # min(1024, ceil(W·H/512²)+16), 40x30→17); CI 残方 max_tiles=64
+                # 现触发 ACS_ERR_BUDGET, 故不设该键取默认。
             }
             os.makedirs(os.path.dirname(MON001_CFG), exist_ok=True)
             with open(MON001_CFG, "w", encoding="utf-8") as f:
@@ -92,8 +90,11 @@ def _ensure_mon001_fixture():
 
 
 def _run_phase3(events=True):
-    """现行载体 phase3 run(2c 亲和, 恢复 CI 设计语境)。"""
-    argv = [EXE, "phase3", "run", "--config", MON001_CFG]
+    """现行载体 export(2c 亲和, 恢复 CI 设计语境)。
+
+    CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2)。
+    """
+    argv = [EXE, "export", "--json", MON001_CFG, "-y"]
     if events:
         argv.append("--events-jsonl")
     return subprocess.run(argv, capture_output=True, text=True, timeout=300,

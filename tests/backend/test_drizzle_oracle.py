@@ -18,7 +18,7 @@ import math, os, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 INC = os.path.join(REPO, "include")
-HOST = os.path.join(REPO, "lib", "backend_host")
+HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 
 DRIVER = r'''
 #include "astrocs/common_abi_v1.h"

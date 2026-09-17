@@ -24,7 +24,7 @@ from astropy.io import fits
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXE = os.path.join(REPO, "build", "astrocs")
 FIXTURE_SRC = os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp")
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 
 # 冻结容差(不事后放宽)
 AFTER_RATIO_TOL = 0.35   # after_rms / before_rms 上限(下降需 < 0.35)
@@ -60,16 +60,16 @@ def read_signal(path, tile_idx=0):
 
 # 生产 apply 证据工具(P8-2 lib/algorithms/coverage/tools/calibrated_pair_diag.cpp)编译所需源。
 # 全走 production API(p2_upm_open/p2_frame_id/p2_upm_calibrate_block), 不复制 UPM 数学。
-DIAG_SRC = os.path.join(REPO, "lib", "phase2", "tools", "calibrated_pair_diag.cpp")
-DIAG_ACR = os.path.join(REPO, "lib", "acr")
-DIAG_INCS = [f"-I{os.path.join(REPO, 'lib', 'phase2', 'include')}",
+DIAG_SRC = os.path.join(REPO, "lib", "algorithms", "coverage", "tools", "calibrated_pair_diag.cpp")
+DIAG_ACR = os.path.join(REPO, "lib", "infrastructure", "acr")
+DIAG_INCS = [f"-I{os.path.join(REPO, 'lib', 'algorithms', 'coverage', 'include')}",
              f"-I{DIAG_ACR}{os.sep}include",
              f"-I{DIAG_ACR}",
              f"-I{DIAG_ACR}{os.sep}backends{os.sep}cuda{os.sep}bridge",
              f"-I{DIAG_ACR}{os.sep}scheduler",
              f"-I{os.path.join(REPO, 'third_party')}",
-             f"-I{os.path.join(REPO, 'lib', 'common')}"]
-DIAG_P2_SRCS = [os.path.join(REPO, "lib", "phase2", "src", f)
+             f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}"]
+DIAG_P2_SRCS = [os.path.join(REPO, "lib", "algorithms", "coverage", "src", f)
                 for f in ("upm.cpp", "coverage.cpp", "sampler.cpp", "block.cpp",
                           "async_io.cpp", "stage2_common.cpp", "integrate.cpp",
                           "rejection.cpp", "acr_kernels.cpp", "cuda_bridge_stub.cpp")]
@@ -80,8 +80,8 @@ DIAG_AIO_SRCS = [os.path.join(AIO, "src", "aio_fits.cpp"),
                  os.path.join(AIO, "src", "aio_compressor.cpp"),
                  os.path.join(AIO, "src", "aio_upm.cpp"),
                  os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp")]
-DIAG_COMMON_SRCS = [os.path.join(REPO, "lib", "common", "healpix", "healpix_core.cpp"),
-                    os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp")]
+DIAG_COMMON_SRCS = [os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp"),
+                    os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp")]
 
 
 def build_pair_diag(tmp):
@@ -90,13 +90,13 @@ def build_pair_diag(tmp):
                 f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}"]
     objs = []
-    aio_common_incs = aio_incs + [f"-I{os.path.join(REPO, 'lib', 'common')}",
+    aio_common_incs = aio_incs + [f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
                                   f"-I{os.path.join(REPO, 'third_party')}"]
     for src, extra_inc in ([(DIAG_SRC, DIAG_INCS + aio_incs)] +
                            [(s, aio_common_incs) for s in DIAG_AIO_SRCS] +
                            [(s, DIAG_INCS + aio_incs) for s in DIAG_P2_SRCS] +
                            [(s, DIAG_INCS) for s in DIAG_ACR_SRCS] +
-                           [(s, [f"-I{os.path.join(REPO, 'lib', 'common')}"])
+                           [(s, [f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}"])
                             for s in DIAG_COMMON_SRCS]):
         o = os.path.join(tmp, "_diag_" + os.path.basename(src)[:-4] + ".o")
         if not os.path.exists(o):
@@ -139,8 +139,8 @@ class TestP2003SeamOracle(unittest.TestCase):
                 f"-I{os.path.join(AIO, 'include')}",
                 f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}",
-                f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}"]
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'healpix')}"]
         srcs = [FIXTURE_SRC,
                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
@@ -148,7 +148,7 @@ class TestP2003SeamOracle(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
-                os.path.join(REPO, "lib", "common", "healpix", "healpix_core.cpp")]
+                os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp")]
         exe = os.path.join(cls.tmp, "fixture")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
                             *srcs, *cfitsio_objs(cls.tmp), "-lz", "-lzstd", "-llz4",
@@ -182,7 +182,9 @@ class TestP2003SeamOracle(unittest.TestCase):
         cfg_path = os.path.join(cls.tmp, "cfg.json")
         with open(cfg_path, "w") as f:
             json.dump(cfg, f)
-        r3 = subprocess.run([EXE, "phase2", "run", "--config", cfg_path, "--events-jsonl"],
+        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2),
+        # 现行等价命令 = mosaic --json <cfg>(平铺会话格式); 判据不变。
+        r3 = subprocess.run([EXE, "mosaic", "--json", cfg_path, "--events-jsonl", "-y"],
                             capture_output=True, text=True,
                             env=dict(os.environ, ASTROCS_REPO=REPO), timeout=600)
         # 验收口径: 科学产物(UPM persist)必须存在 — 资源门拒绝路径(rc=10)同样完成

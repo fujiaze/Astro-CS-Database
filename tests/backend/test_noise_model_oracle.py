@@ -61,7 +61,9 @@ int main(){
     snr_noise_model_v1_free(&m2);
     std::vector<float> tiny(9,5.0f); NoiseWeightModelV1 m3;
     SnrNoiseModelConfig small; snr_noise_model_v1_default_config(&small); small.patch_grid_x=2; small.patch_grid_y=2; small.min_patch_samples=64;
-    int rc3=snr_noise_model_v1(tiny.data(),3,3,nullptr,nullptr,nullptr,0,&small,&m3);
+    // MASK-002: 形参含 star_flux/star_fwhm 两个新增可选数组, 传 NULL 走
+    // SCI 5a 回调降级(与其余调用点同为 source_mask+4 星数组=5 个 nullptr)。
+    int rc3=snr_noise_model_v1(tiny.data(),3,3,nullptr,nullptr,nullptr,nullptr,nullptr,0,&small,&m3);
     printf("N1 rc=%d deg=%u nq=%u ivg=%.8f\n",rc3,m3.degenerate,m3.n_qualified_patches,m3.ivar_bg_global);
     snr_noise_model_v1_free(&m3);
     // 3) cosmic/hot 离群: 高斯 σ=5 + 1% 离群(±500) → 稳健裁剪应去除, σ≈5
@@ -69,7 +71,7 @@ int main(){
     for(int i=0;i<N;++i) data2[i]=gau2(rng);
     for(int i=0;i<N;i+=97) data2[i]+=(i%2? 1: -1)*500.0f;
     NoiseWeightModelV1 m4; snr_noise_model_v1_default_config(&cfg); cfg.patch_grid_x=4; cfg.patch_grid_y=4; cfg.min_patch_samples=32;
-    int rc4=snr_noise_model_v1(data2.data(),H,W,nullptr,nullptr,nullptr,0,&cfg,&m4);
+    int rc4=snr_noise_model_v1(data2.data(),H,W,nullptr,nullptr,nullptr,nullptr,nullptr,0,&cfg,&m4);
     printf("O1 rc=%d sg=%.6f vg=%.8f\n",rc4,m4.sigma_bg_global,m4.variance_bg_global);
     snr_noise_model_v1_free(&m4);
     // 4) Poisson+read: var=max(s,0)/gain+(read/gain)^2
@@ -82,7 +84,7 @@ int main(){
     snr_noise_model_v1_default_config(&cfg); cfg.patch_grid_x=8; cfg.patch_grid_y=8; cfg.min_patch_samples=64;
     std::vector<float> bg(N); std::normal_distribution<float> gau3(1000.0f,4.0f);
     for(int i=0;i<N;++i) bg[i]=gau3(rng);
-    NoiseWeightModelV1 m5; int rc5=snr_noise_model_v1(bg.data(),H,W,nullptr,nullptr,nullptr,0,&cfg,&m5);
+    NoiseWeightModelV1 m5; int rc5=snr_noise_model_v1(bg.data(),H,W,nullptr,nullptr,nullptr,nullptr,nullptr,0,&cfg,&m5);
     std::vector<float> ivar(N);
     int rc6=snr_noise_model_v1_fill(&m5,H,W,nullptr,ivar.data());
     printf("F1 rc5=%d rc6=%d hasSp=%d nc=%u iv0=%.10g iv32=%.10g iv63=%.10g\n",

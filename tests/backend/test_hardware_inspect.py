@@ -49,9 +49,9 @@ def _pick_dir(*cands):
 
 
 HOST = _pick_dir(os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host"),
-                 os.path.join(REPO, "lib", "backend_host"))
+                 os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host"))
 CRYPTO = _pick_dir(os.path.join(REPO, "lib", "algorithms", "shared", "crypto"),
-                   os.path.join(REPO, "lib", "common", "crypto"))
+                   os.path.join(REPO, "lib", "algorithms", "shared", "crypto"))
 
 PROBE_MAIN = r"""
 #include <cstdio>

@@ -19,7 +19,7 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXE = os.path.join(REPO, "build", "astrocs")
 FIXTURE_SRC = os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp")
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 
 
 def cfitsio_objs(tmp):
@@ -49,8 +49,8 @@ class TestP2002ParallelUpm(unittest.TestCase):
                 f"-I{os.path.join(AIO, 'include')}",
                 f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}",
-                f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}"]
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'healpix')}"]
         srcs = [FIXTURE_SRC,
                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
@@ -58,7 +58,7 @@ class TestP2002ParallelUpm(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
-                os.path.join(REPO, "lib", "common", "healpix", "healpix_core.cpp")]
+                os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp")]
         exe = os.path.join(cls.tmp, "fixture")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
                             *srcs, *cfitsio_objs(cls.tmp), "-lz", "-lzstd", "-llz4",
@@ -86,13 +86,15 @@ class TestP2002ParallelUpm(unittest.TestCase):
 
     def _run_upm(self, workers, out_dir, save_path):
         cfg = self._make_cfg(workers, out_dir, save_path)
-        return subprocess.run([EXE, "phase2", "run", "--config", cfg, "--events-jsonl"],
+        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # 现行等价命令 = mosaic --json <cfg>(平铺会话格式)。
+        return subprocess.run([EXE, "mosaic", "--json", cfg, "--events-jsonl", "-y"],
                               capture_output=True, text=True,
                               env=dict(os.environ, ASTROCS_REPO=REPO), timeout=600)
 
     def test_01_no_openmp_gate(self):
         """upm.cpp 无 P2_ENABLE_OPENMP / hardware_concurrency 生产调用残留。"""
-        src = open(os.path.join(REPO, "lib", "phase2", "src", "upm.cpp"),
+        src = open(os.path.join(REPO, "lib", "algorithms", "coverage", "src", "upm.cpp"),
                    encoding="utf-8").read()
         self.assertNotIn("P2_ENABLE_OPENMP", src)
         # 仅允许注释/字符串提及 omp_; 禁止代码调用(omp_get_*())

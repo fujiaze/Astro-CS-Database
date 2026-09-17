@@ -32,7 +32,7 @@ class TestCliProtocol(unittest.TestCase):
                     "astrocs doctor [--json]",
                     "astrocs benchmark"):
             self.assertIn(cmd, self.s, f"§6.2 命令树缺行: {cmd}")
-        for legacy in ("phase1", "phase2", "phase3", "config *", "modules *", "selftest",
+        for legacy in ("phase1|2|3", "config *", "modules *", "selftest",
                        "test synthetic", "verify*", "drizzle", "benchmark cpu",
                        "verify-profile", "hardware inspect"):
             self.assertIn(legacy, self.s, f"旧命令面删除声明缺 {legacy}")

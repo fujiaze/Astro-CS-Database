@@ -25,11 +25,11 @@
 import math, os, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SDET_INC = os.path.join(REPO, "lib", "star_detector", "include")
-SDET_SRC = os.path.join(REPO, "lib", "star_detector", "src")
+SDET_INC = os.path.join(REPO, "lib", "algorithms", "star_detection", "include")
+SDET_SRC = os.path.join(REPO, "lib", "algorithms", "star_detection", "src")
 # W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/
 P3_INC = os.path.join(REPO, "lib", "algorithms", "projection")
-PHOT_INC = os.path.join(REPO, "lib", "phase1", "photometry")
+PHOT_INC = os.path.join(REPO, "lib", "algorithms", "photometry", "wrapper_phase1")
 CORE_INC = os.path.join(REPO, "include")
 
 # ---------- 预冻结常量(写死, 不事后放宽) ----------

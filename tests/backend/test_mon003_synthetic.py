@@ -17,7 +17,7 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 INC = os.path.join(REPO, "include")
-HOST = os.path.join(REPO, "lib", "backend_host")
+HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 CLI = os.path.join(REPO, "cli")
 
 

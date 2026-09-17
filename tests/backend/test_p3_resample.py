@@ -3,29 +3,31 @@
 import math, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-HOST = os.path.join(REPO, "lib", "phase3_session")
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+HOST = os.path.join(REPO, "lib", "algorithms", "resample")
+# W8 (批次 4): hips_properties.cpp 迁 lib/algorithms/coverage/ (独立库 astrocs_hips_properties)
+COV = os.path.join(REPO, "lib", "algorithms", "coverage")
+AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 
 
 class TestP3Resample(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="p3rs_")
-        incs = [f"-I{os.path.join(REPO, 'include')}", f"-I{HOST}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}",
-                f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}",
+        incs = [f"-I{os.path.join(REPO, 'include')}", f"-I{HOST}", f"-I{COV}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'healpix')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}"]
-        srcs = [os.path.join(REPO, "tests", "backend", "p3_resample_probe_main.cpp"),
+        srcs = [os.path.join(HOST, "tests", "p3rsmp", "p3_resample_probe_main.cpp"),
                 os.path.join(HOST, "p3_resample.cpp"),
-                os.path.join(HOST, "hips_properties.cpp"),
-                os.path.join(REPO, "lib", "common", "healpix", "healpix_core.cpp"),
+                os.path.join(COV, "hips_properties.cpp"),
+                os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
                 os.path.join(AIO, "src", "aio_fits.cpp"),
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
-                os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp")]
+                os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp")]
         objs = []
         cdir = os.path.join(AIO, "third_party", "cfitsio")
         for f in sorted(os.listdir(cdir)):

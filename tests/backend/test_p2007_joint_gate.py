@@ -105,14 +105,16 @@ class TestP2007JointGate(unittest.TestCase):
         out = os.path.join(cls.tmp, tag)
         os.makedirs(out, exist_ok=True)
         cfg = os.path.join(out, "cfg.json")
+        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # 现行等价命令 = mosaic --json <cfg>(平铺会话格式 hips_paths)。
+        # --resource-detail/--strict-resource-gate 均不在命令树白名单(真 CLI rc=2),
+        # 现行唯一可达资源门语义 = P26 默认 record-only(记录+warning, 不改 rc)。
         json.dump({"schema_version": "1",
-                   "inputs": {"lights": paths, "darks": [], "flats": [], "bias": []},
+                   "hips_paths": paths,
                    "output_dir": out}, open(cfg, "w"))
         t0 = time.monotonic()
-        argv = [EXE, "phase2", "run", "--config", cfg,
-                "--events-jsonl", "--resource-detail", "summary"]
-        if strict:
-            argv.append("--strict-resource-gate")
+        del strict
+        argv = [EXE, "mosaic", "--json", cfg, "--events-jsonl", "-y"]
         res = subprocess.run(argv, capture_output=True, text=True, timeout=400)
         dt = time.monotonic() - t0
         evs = []
@@ -209,15 +211,16 @@ class TestP2007JointGate(unittest.TestCase):
         self.assertIsNotNone(workers, "session 日志缺 budget workers 注入证据")
         self.assertGreaterEqual(workers, 2, "session budget workers < 2")
         self.assertGreaterEqual(n_proc, 2, "测试机可用核 < 2(非多核语境)")
-        # 联合门机制: workload 充分后, 资源证据判定执行面(verdict 与 rc 联动)
-        if g["verdict"] in GATE_OK_VERDICTS:
-            self.assertEqual(self.res.returncode, 0, self.res.stderr[-400:])
-        else:
-            self.assertEqual(self.res.returncode, 10,
-                             f"verdict={g['verdict']} 应拒绝 run(rc=10)")
+        # 联合门机制(P26 记录/裁决分离 + 命令树 6.2 无 --strict-resource-gate):
+        # 现行 CLI 唯一可达语义 = record-only —— 非 ok 判定只记录(warning), 不改 rc;
+        # 严格 rc=10 复现开关不在白名单(真 CLI unknown flag -> 2), 不可达。
+        self.assertEqual(self.res.returncode, 0,
+                         "record-only 不得因资源判定改退出码: " + self.res.stderr[-300:])
+        if g["verdict"] not in GATE_OK_VERDICTS:
             rg = self._event("resource_gate")
-            self.assertIsNotNone(rg, "gate 拒绝缺 resource_gate 事件")
-            self.assertEqual(rg.get("severity"), "error")
+            self.assertIsNotNone(rg, "非 ok 判定必须保留 resource_gate 记录")
+            self.assertEqual(rg.get("severity"), "warning")
+            self.assertFalse(rg.get("enforced"))
 
     def test_02_resource_gate_workers(self):
         """Runtime 多 worker: workers_p50 ≥ 2(非单线程) + session budget=真机核。
@@ -247,38 +250,36 @@ class TestP2007JointGate(unittest.TestCase):
         self.assertTrue(g.get("verdict"),
                         "resource gate 事件缺 verdict 字段")
         self.assertIn(g["verdict"],
-                      ("ok", "low_avg_cores", "single_threaded", "cpu_p50_low",
-                       "cpu_mean_low", "memory_growth", "progress_stall",
-                       "fast_fail_first_10s", "compute_io_mem_all_low"),
+                      ("ok", "not_applicable", "single_threaded", "low_avg_cores", "unannotated_priority", "compute_io_mem_all_low", "memory_bandwidth_low", "io_missing_evidence", "mixed_unsplit", "fast_fail_first_10s", "global_lock_degradation", "cpu_p50_low", "cpu_mean_low", "memory_growth", "progress_stall", "io_wait_high", "monitoring_missing", "utilization_p75_low", "queue_starved_cpu", "alloc_growth_unbounded", "alloc_reclaim_missing"),
                       f"verdict 非已知诊断枚举: {g['verdict']}")
         self.assertIn("avg_equivalent_cores", g, "缺 avg_equivalent_cores 证据")
         self.assertIn("cpu_p50_percent", g, "缺 cpu_p50_percent 证据")
         self.assertIn("cpu_mean_percent", g, "缺 cpu_mean_percent 证据")
-        # MON-002 正向指标断言(P0 修复后实测达标, 16c: p50≈114/mean≈107):
-        # 低利用率诊断(cpu_p50_low/cpu_mean_low/compute_io_mem_all_low)必须
-        # 不出现 — CPU 归一化口径 p50≥90/mean≥85。
-        self.assertNotIn(g["verdict"], ("cpu_p50_low", "cpu_mean_low",
-                                        "compute_io_mem_all_low"),
-                         f"MON-002 CPU 指标不达标: {g['verdict']}")
-        # -1.0 = MON-002 未采样哨兵(lib/infrastructure/cli/resource_gate.h:110/136: "负值=未采样,
-        # 跳过对应判定")。哨兵是采集可用性问题, 不是 CPU 低利用率证据:
-        # 未采样时跳过正向阈值断言(对齐生产门合同), 但低利用率 verdict 禁止出现;
-        # 有采样时按合同阈值判定(≥90/≥85)。
+        # MON-002 口径(resource_gate.h:101-111/183-187): cpu_p50/mean_percent
+        # 按「已分配容量」归一(100% = selected_workers 用满); K=0.85/0.90。
+        # 本文件的 mini seam fixture 只有 ~1 等效核计算量
+        # (resource_summary active_compute_threads_peak≈2), 在 16c 分配下
+        # 结构性不可达 90/85 —— 门的低利用率诊断(low_avg_cores/cpu_*_low)是
+        # 该 workload 的**正确**判定(见本文件 docstring 的失配注记), 故此处
+        # 不再断言不可达的正向阈值; MON-002 正向阈值由合成场景专测
+        # (tests/cli/test_resource_gate.py::test_01_compute_ok_and_failures)。
+        # 保留断言: 指标存在 + 指标与 verdict 自洽 + -1.0 未采样哨兵语义。
         if g["cpu_p50_percent"] < 0.0:
             self.assertLessEqual(g["cpu_mean_percent"], 0.0,
                                  "cpu_p50 未采样但 cpu_mean 有值(采样状态自洽)")
         else:
-            self.assertGreaterEqual(g["cpu_p50_percent"], 90.0,
-                                    f"cpu_p50 {g['cpu_p50_percent']:.1f}% < 90")
-            self.assertGreaterEqual(g["cpu_mean_percent"], 85.0,
-                                    f"cpu_mean {g['cpu_mean_percent']:.1f}% < 85")
-        if g["verdict"] == "ok":
-            self.assertEqual(self.res.returncode, 0, self.res.stderr[-400:])
-        else:
-            self.assertEqual(self.res.returncode, 10,
-                             "资源门拒绝必须导致 run 失败(rc=10), 数值好不可赎回")
+            low = (g["cpu_p50_percent"] < 90.0 or g["cpu_mean_percent"] < 85.0)
+            if low:
+                self.assertIn(g["verdict"],
+                              ("low_avg_cores", "cpu_p50_low", "cpu_mean_low",
+                               "compute_io_mem_all_low"),
+                              "低 CPU 指标必须由低利用率 verdict 反映")
+        # P26 record-only + 命令树 6.2: 非 ok 判定记录 warning, 不改 rc(严格
+        # rc=10 复现开关 --strict-resource-gate 不在白名单, 不可达)。
+        self.assertEqual(self.res.returncode, 0, self.res.stderr[-400:])
+        if g["verdict"] not in GATE_OK_VERDICTS:
             self.assertIsNotNone(self._event("resource_gate"),
-                                 "拒绝必须发出 resource_gate(error) 事件")
+                                 "非 ok 判定必须发出 resource_gate(warning) 记录")
 
     def test_06_default_record_only_no_block(self):
         """P26(T2): 默认 record-only —— 资源判定不再以 rc=10 阻塞, 记录仍在。
@@ -352,10 +353,9 @@ class TestP2007JointGate(unittest.TestCase):
         self.assertEqual(ev_run_ids, {m["run_id"]},
                          f"manifest/事件流 run_id 不一致: {ev_run_ids} vs {m['run_id']}")
         # 联合门拒绝语义: 资源不达门时 run 必须失败(数值好不可赎回)
-        g = self._gate_event()
-        if g["verdict"] != "ok":
-            self.assertEqual(self.res.returncode, 10,
-                             "联合门: 资源证据不足必须拒绝 run")
+        # P26 record-only: 资源证据不足只记录, 不改 rc(严格复现开关不可达)。
+        self.assertEqual(self.res.returncode, 0,
+                         "record-only: 资源证据不足不得改退出码")
         # IMPL/INT 缺口: UPM 校正场幅度有界(源不被拟合)断言依赖 UPM 模型持久化,
         # 现行 CLI config 不可达(persist_upm 顶层键被拒), 恢复载体后补回。
 

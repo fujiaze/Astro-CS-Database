@@ -73,7 +73,7 @@ class TestP3004SphericalOracle(unittest.TestCase):
         cls.analytic = os.path.join(cls.tmp, "ANALYTIC.hips")
         if not os.path.isdir(cls.analytic):
             import re
-            AIO = os.path.join(REPO, "lib", "astro_image_io")
+            AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
             srcs = [os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
                     os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                     os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
@@ -81,13 +81,13 @@ class TestP3004SphericalOracle(unittest.TestCase):
                     os.path.join(AIO, "src", "aio_api.cpp"),
                     os.path.join(AIO, "src", "aio_log.cpp"),
                     os.path.join(AIO, "src", "aio_compressor.cpp"),
-                    os.path.join(REPO, "lib", "common", "healpix", "healpix_core.cpp")]
+                    os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp")]
             incs = [f"-I{os.path.join(REPO, 'include')}",
                     f"-I{os.path.join(AIO, 'include')}",
                     f"-I{os.path.join(AIO, 'src')}",
                     f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                    f"-I{os.path.join(REPO, 'lib', 'common')}",
-                    f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}"]
+                    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+                    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'healpix')}"]
             objs = []
             cdir = os.path.join(AIO, "third_party", "cfitsio")
             for f in sorted(os.listdir(cdir)):
@@ -109,17 +109,17 @@ class TestP3004SphericalOracle(unittest.TestCase):
     def _run(self, out, ra, dec, scale, w, h, sampler="nearest", hips=None):
         os.makedirs(out, exist_ok=True)
         hp = hips if hips else self.hips
+        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
+        # 现行等价命令 = export --json <cfg>, 平铺会话配置形态(见 session_commands.h)。
         cfg = {"schema_version": "1",
-               "inputs": {"lights": [hp], "darks": [], "flats": [], "bias": []},
-               "phase3": {"source": {"hips_dir": hp},
-                          "center": {"ra_deg": ra, "dec_deg": dec},
-                          "scale_deg_per_px": scale, "width_px": w, "height_px": h,
-                          "sampler": sampler, "projection": "TAN",
-                          "coverage_output": "mask", "output_dir": out},
-               "output_dir": out}
+               "source": {"hips_dir": hp},
+               "center": {"ra_deg": ra, "dec_deg": dec},
+               "scale_deg_per_px": scale, "width_px": w, "height_px": h,
+               "sampler": sampler, "projection": "TAN",
+               "coverage_output": "mask", "output_dir": out}
         c = os.path.join(self.tmp, "c.json")
         json.dump(cfg, open(c, "w"))
-        r = subprocess.run([EXE, "phase3", "run", "--config", c], capture_output=True,
+        r = subprocess.run([EXE, "export", "--json", c, "-y"], capture_output=True,
                            text=True, timeout=300)
         return r, os.path.join(out, "output_phase3.fits")
 
@@ -185,16 +185,15 @@ class TestP3004SphericalOracle(unittest.TestCase):
         os.makedirs(out, exist_ok=True)
         cfg = json.load(open(os.path.join(self.tmp, "c.json"))) if os.path.isfile(
             os.path.join(self.tmp, "c.json")) else {}
-        cfg["phase3"] = {"source": {"hips_dir": self.hips},
-                         "center": {"ra_deg": 10.0, "dec_deg": 10.0},
-                         "scale_deg_per_px": 0.02, "width_px": 24, "height_px": 18,
-                         "sampler": "nearest", "projection": "TAN",
-                         "longitude_parity": "east_right", "coverage_output": "mask",
-                         "output_dir": out}
-        cfg["output_dir"] = out
+        cfg.update({"source": {"hips_dir": self.hips},
+                    "center": {"ra_deg": 10.0, "dec_deg": 10.0},
+                    "scale_deg_per_px": 0.02, "width_px": 24, "height_px": 18,
+                    "sampler": "nearest", "projection": "TAN",
+                    "longitude_parity": "east_right", "coverage_output": "mask",
+                    "output_dir": out})
         c = os.path.join(self.tmp, "c5.json")
         json.dump(cfg, open(c, "w"))
-        r = subprocess.run([EXE, "phase3", "run", "--config", c], capture_output=True,
+        r = subprocess.run([EXE, "export", "--json", c, "-y"], capture_output=True,
                            text=True, timeout=300)
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
         self.assertTrue(os.path.isfile(os.path.join(out, "output_phase3.fits")))

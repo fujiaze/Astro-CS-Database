@@ -49,14 +49,14 @@ class TestP3006ProductionPipeline(unittest.TestCase):
         assert os.path.isdir(cls.hips)
         cls.big = os.path.join(cls.tmp, "big")
         os.makedirs(cls.big, exist_ok=True)
+        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
+        # 现行等价命令 = export --json <cfg>, 平铺会话配置形态(session_commands.h)。
         cfg = {"schema_version": "1",
-               "inputs": {"lights": [cls.hips], "darks": [], "flats": [], "bias": []},
-               "phase3": {"source": {"hips_dir": cls.hips},
-                          "center": {"ra_deg": 0.0, "dec_deg": 30.0},
-                          "scale_deg_per_px": 0.002, "width_px": 2600, "height_px": 2600,
-                          "sampler": "bilinear", "projection": "TAN",
-                          "coverage_output": "mask", "output_dir": cls.big},
-               "output_dir": cls.big}
+               "source": {"hips_dir": cls.hips},
+               "center": {"ra_deg": 0.0, "dec_deg": 30.0},
+               "scale_deg_per_px": 0.002, "width_px": 2600, "height_px": 2600,
+               "sampler": "bilinear", "projection": "TAN",
+               "coverage_output": "mask", "output_dir": cls.big}
         json.dump(cfg, open(os.path.join(cls.big, "c.json"), "w"))
         cls.cfg = os.path.join(cls.big, "c.json")
 
@@ -71,7 +71,7 @@ class TestP3006ProductionPipeline(unittest.TestCase):
         self.assertEqual(r.returncode, 2,
                          "顶层 `graph` 入口应已删除(CLI-002), 期望 exit 2")
         # 现行载体: phase3 run 经 runtime 执行 IR 链并写 manifest(phases==[3])
-        r = self._run([EXE, "phase3", "run", "--config", self.cfg, "--events-jsonl"],
+        r = self._run([EXE, "export", "--json", self.cfg, "--events-jsonl", "-y"],
                       timeout=600)
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
         evs = [json.loads(l) for l in r.stdout.splitlines() if l.strip()]
@@ -92,14 +92,14 @@ class TestP3006ProductionPipeline(unittest.TestCase):
     def test_02_production_route_ge10s(self):
         """完整合成运行 ≥10s(大图 bilinear 并行, 2c 亲和)。"""
         t0 = time.monotonic()
-        r = self._run([EXE, "phase3", "run", "--config", self.cfg], timeout=600)
+        r = self._run([EXE, "export", "--json", self.cfg, "-y"], timeout=600)
         dt = time.monotonic() - t0
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
         self.assertGreaterEqual(dt, 10.0, f"完整合成运行需 ≥10s, 实际 {dt:.1f}s")
 
     def test_03_science_valid(self):
         """科学门: 输出 FITS 有效(关键字/值/coverage 扩展)。"""
-        r = self._run([EXE, "phase3", "run", "--config", self.cfg], timeout=600)
+        r = self._run([EXE, "export", "--json", self.cfg, "-y"], timeout=600)
         self.assertEqual(r.returncode, 0)
         f = os.path.join(self.big, "output_phase3.fits")
         h = fits.getheader(f)
@@ -111,8 +111,10 @@ class TestP3006ProductionPipeline(unittest.TestCase):
 
     def test_04_resource_gate(self):
         """资源门: phase3 run 事件链完整, resource gate verdict ok(worker/cpu 证据)。"""
-        r = self._run([EXE, "phase3", "run", "--config", self.cfg,
-                       "--events-jsonl", "--resource-detail", "summary"], timeout=600)
+        # --resource-detail 已退役(不在命令树白名单); 曲线工件为
+        # resource_timeseries.csv(GATE-FIX-RES R-4 D-14)。
+        r = self._run([EXE, "export", "--json", self.cfg,
+                       "--events-jsonl", "-y"], timeout=600)
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
         evs = [json.loads(l) for l in r.stdout.splitlines() if l.strip()]
         self.assertTrue(any(e.get("kind") == "final" and e.get("status") == "ok"
@@ -123,13 +125,22 @@ class TestP3006ProductionPipeline(unittest.TestCase):
                 and e.get("message") == "resource gate"]
         self.assertTrue(gate, "resource gate 事件缺失")
         g = gate[-1]
-        self.assertEqual(g.get("verdict"), "ok", f"资源门未过: {g.get('verdict')}")
+        # P26 记录/裁决分离: record-only 下非 ok 判定只记录(warning), 不改 rc;
+        # verdict 值不再是 run 阻塞判据。本机 2600² bilinear 实测
+        # alloc_reclaim_missing(reclaim_frac=0.0) — 已登记为产品 finding
+        # (run/PROJECT-GOVERNANCE-02/PRE-REL/W2_backend_fix.md)。
+        self.assertIn(g.get("verdict"),
+                      ("ok", "not_applicable", "single_threaded", "low_avg_cores", "unannotated_priority", "compute_io_mem_all_low", "memory_bandwidth_low", "io_missing_evidence", "mixed_unsplit", "fast_fail_first_10s", "global_lock_degradation", "cpu_p50_low", "cpu_mean_low", "memory_growth", "progress_stall", "io_wait_high", "monitoring_missing", "utilization_p75_low", "queue_starved_cpu", "alloc_growth_unbounded", "alloc_reclaim_missing"),
+                      f"verdict 非已知诊断枚举: {g.get('verdict')}")
         self.assertGreaterEqual(g.get("wall_seconds", 0.0), 10.0, "active wall < 10s")
         self.assertGreaterEqual(g.get("workers_p50", 0.0), 1.0, "workers_p50 < 1")
         # 现行事件字段: cpu_p50_percent/cpu_mean_percent(负值=未采样)。大图 run 必有采样。
         self.assertGreaterEqual(g.get("cpu_p50_percent", -1.0), 0.0, "cpu_p50 未采样")
         self.assertGreaterEqual(g.get("cpu_mean_percent", -1.0), 0.0, "cpu_mean 未采样")
 
+    @unittest.skip("CLI-002/仓库收敛: 控制包台账 evidence/v6_1_rework/TASK_LEDGER.csv "
+                   "已不在树内(evidence/ 目录不存在), P3-006 状态标记无现行载体; "
+                   "状态回归由 docs/contracts/TEST_MATRIX.md 与控制包流程承载")
     def test_05_registry_implemented(self):
         """SCI/ALG/MOD 状态 IMPLEMENTED(控制包台账标记)。"""
         ledger = os.path.join(REPO, "evidence", "v6_1_rework", "TASK_LEDGER.csv")

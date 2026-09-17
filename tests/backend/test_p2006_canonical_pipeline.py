@@ -58,13 +58,14 @@ class TestP2006CanonicalPipeline(unittest.TestCase):
         os.makedirs(cls.out, exist_ok=True)
         ensure_f1f2_hips()
         cls.cfg = os.path.join(cls.tmp, "cfg.json")
+        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # 现行等价命令 = mosaic --json <cfg>, 平铺会话配置形态(hips_paths)。
         json.dump({"schema_version": "1",
-                   "inputs": {"lights": [os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F1.hips"),
-                                         os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F2.hips")],
-                              "darks": [], "flats": [], "bias": []},
+                   "hips_paths": [os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F1.hips"),
+                                  os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F2.hips")],
                    "output_dir": cls.out}, open(cls.cfg, "w"))
-        cls.res = subprocess.run([EXE, "phase2", "run", "--config", cls.cfg,
-                                  "--events-jsonl"], capture_output=True, text=True,
+        cls.res = subprocess.run([EXE, "mosaic", "--json", cls.cfg,
+                                  "--events-jsonl", "-y"], capture_output=True, text=True,
                                  timeout=300)
         cls.evs = []
         for line in cls.res.stdout.splitlines():
@@ -90,7 +91,7 @@ class TestP2006CanonicalPipeline(unittest.TestCase):
         # (session stderr 仅对起手节点打 stage 日志, 逐节点 status 落盘无载体 — IMPL/INT)
         for frag in ("stage coverage ok", "stage sample ok"):
             self.assertIn(frag, self.res.stderr, f"session stage 日志缺 '{frag}'")
-        registry = os.path.join(REPO, "lib", "core", "src", "module_adapters.cpp")
+        registry = os.path.join(REPO, "lib", "infrastructure", "scheduler", "src", "module_adapters.cpp")
         src = open(registry, encoding="utf-8").read()
         for mod in MODULES.values():
             self.assertIn(f'"{mod}"', src, f"Registry 未注册 {mod}")
@@ -107,8 +108,10 @@ class TestP2006CanonicalPipeline(unittest.TestCase):
         # 资源门事件在事件流中承载 runtime 观测(verdict 由资源证据决定)
         gate = self._event("resource", "resource gate")
         self.assertIsNotNone(gate, "resource gate 事件缺失")
-        self.assertIn(gate.get("verdict"), ("ok", "low_avg_cores", "cpu_p50_low",
-                                            "cpu_mean_low", "single_threaded"),
+        # GATE-FIX-RES(R-4 D-13): 短窗/域外 = 显式 not_applicable(不再与 ok 混淆);
+        # 枚举与 lib/infrastructure/cli/resource_gate.h GateDiag 对齐。
+        self.assertIn(gate.get("verdict"),
+                      ("ok", "not_applicable", "single_threaded", "low_avg_cores", "unannotated_priority", "compute_io_mem_all_low", "memory_bandwidth_low", "io_missing_evidence", "mixed_unsplit", "fast_fail_first_10s", "global_lock_degradation", "cpu_p50_low", "cpu_mean_low", "memory_growth", "progress_stall", "io_wait_high", "monitoring_missing", "utilization_p75_low", "queue_starved_cpu", "alloc_growth_unbounded", "alloc_reclaim_missing"),
                       f"verdict 非枚举值: {gate.get('verdict')}")
         # IMPL/INT 缺口: observed_trace.json 逐节点 COMPLETED 断言无落盘载体。
 

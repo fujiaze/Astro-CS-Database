@@ -14,11 +14,11 @@
 import math, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-PH2 = os.path.join(REPO, "lib", "phase2")
+PH2 = os.path.join(REPO, "lib", "algorithms", "coverage")
 INC = os.path.join(REPO, "include")
-C = os.path.join(REPO, "lib", "common")
+C = os.path.join(REPO, "lib", "algorithms", "shared")
 CASTRO = os.path.join(C, "healpix")
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 OMP_LIB = os.path.join(REPO, "build", "linux-openmp-on", "libphase2.a")
 AIO_LIB = os.path.join(AIO, "astro_image_io.dll")
 SIGMA = 0.05  # 同步 synthetic_gate kNoiseRms
