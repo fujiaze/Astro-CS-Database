@@ -250,7 +250,9 @@ ExecResult exec_with_stdin(const std::string& command_line,
         }
         cmd = exe_tok + rest;
     }
-    std::string err_file = "/tmp/astrocs_cli_test_stderr_" +
+    // stderr 分离文件写在当前工作目录（ctest 的 WORKING_DIRECTORY，保证可写）：
+    // 不写死 "/tmp" —— Windows 无此路径，且系统临时目录可能不可写（AGENTS §3 禁止写死绝对路径）。
+    std::string err_file = "astrocs_cli_test_stderr_" +
                            std::to_string(::getpid()) + ".log";
     cmd += " 2>" + err_file;
     FILE* pipe = ::popen(cmd.c_str(), "r");

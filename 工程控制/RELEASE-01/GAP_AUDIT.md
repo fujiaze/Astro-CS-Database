@@ -166,3 +166,27 @@
 | 真实数据 L3/L4（PERF-001 手工复算 G-RES-01） | `contracts/resource_gate_v1.json` 阈值 vs 各 run 的 `resource_timeseries.csv`/`resource_summary.json` | **违约**：判据③ 4/4 normalize、判据① 3/4 mosaic；mosaic 利用率 5.6–6.4%、io_wait 峰值 94.47%；Phase1 峰值 RSS 4.1–8.6 GB、斜率 45.1–77.5 MiB/s |
 
 **结论（须负责人知悉）**：注册的机器门是**合成/oracle 面**且全绿；**真实数据面没有任何注册门在跑**（PERF-001 指出程序内默认 `record_only`，注册表内无 `RESOURCE-GATE-REAL` 类项）。因此「L2 是否达标」目前只能靠手工复算，而手工复算结论为**违约**。⇒ 真实数据资源裁决点缺失本身是一条差距（归属：编排/观测面，与 P0-17 同源）。
+
+### 7.7 宿主 `/tmp` 悬空导致测试红 + 写死 `/tmp` 的测试类（前台查证，2026-09-18）
+
+**环境事实（非产品缺陷）**：本机 `/tmp` 为**悬空挂载点**（目录项存在、size=0；`touch /tmp/x` → `No such file or directory`），时间戳 `2026-09-18 02:37`，与磁盘清理同一时刻。影响：链接器临时文件（已用工作区 `TMPDIR` 绕过）、任何写 `/tmp` 的测试。
+
+**因此产生的红（已定位、非回归）**：`orchestrator_cli_integration` 在 BLD-001 全量跑（`/tmp` 尚可用时）为 Passed，本轮复跑为 Failed（186 通过 / 47 失败）。**根因是测试写死 `/tmp`**（`lib/infrastructure/pipeline/orchestrator/cpp/tests/test_orchestrator_cli.cpp:253` 的 stderr 分离文件），`/bin/sh` 的重定向失败 ⇒ 全部 spawn 类断言失败。
+
+**已修复（F-03）**：该文件改为**当前工作目录相对路径**（ctest 的 `WORKING_DIRECTORY` 保证可写）。复验：`233 通过 / 0 失败`；`ctest -R orchestrator` **6/6 通过**；pipeline 逐模块 target 由 rc=1 → **rc=0**。
+
+**仍存在的同类 P1（写死 `/tmp`，跨平台/环境脆弱，违反 AGENTS §3）**：
+
+| 文件 | 位置 | 说明 |
+|---|---|---|
+| `lib/infrastructure/aio/tests/pipeline_frame_contract_test.cpp` | :55,65,66,71,72,76,77 | 缓存/坏块用例全写 `/tmp` |
+| `lib/infrastructure/aio/tests/p1hips/p1hips_oracle.hpp` | :366 | `mkstemp("/tmp/p1hips_...")` |
+| `lib/algorithms/coverage/tests/sanitize_driver.cpp` | :61,62 | `/tmp/p2_upm.json`、`/tmp/p2_dense.cache` |
+| `lib/algorithms/star_detection/tests/p1star/p1star_tests_core.cpp` | :634 | OOM 用例写 `/tmp` |
+| `tests/unit/p2_workers_test.cpp` | :54,55 | 配置内嵌 `/tmp/in*.hips` |
+| `tests/unit/v6_aio/v6_aio_test.cpp` | :737 | 默认工作目录 `/tmp/v6_aio_test` |
+| `tests/unit/drizzle_adapter_impl.cpp` | :222 | `mkstemp("/tmp/drz_adapter_test_hips_XXXXXX")` |
+| `tests/unit/rt008_runtime_client_test.cpp` | :18 | 配置内嵌 `output_dir:/tmp` |
+| `tests/unit/io_adapter_test.cpp` | :30 | 注释已承认 MSVC 下 `/tmp` 解析到当前盘根不存在 |
+
+处置建议：统一改为「`std::filesystem::temp_directory_path()` 优先、失败回落工作目录」或 ctest 提供的 per-test 工作目录；归属测试面（与 P0-18 同族）。本轮只修了**当前实际判红**的那一处，其余登记待分派（未在 `/tmp` 不可写时暴露，因为其断言不依赖重定向成功）。
