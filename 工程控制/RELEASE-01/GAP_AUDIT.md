@@ -211,3 +211,35 @@
 2. 本机 `/tmp` 悬空，故推荐 `TMPDIR=/dev/shm/astrocs_tmp`（或任一源码树外可写目录）。
 
 **剩余同类 P1（本轮未改，未在本机暴露为红）**：`pipeline_frame_contract_test.cpp`（:55,65,66,71,72,76,77）、`sanitize_driver.cpp`（:61,62）、`p2_workers_test.cpp`（:54,55）、`v6_aio_test.cpp`（:737）、`rt008_runtime_client_test.cpp`（:18）、`io_adapter_test.cpp`（:30，注释已承认 MSVC 下会失败）。这些**当前绿**（其断言不依赖写入成功），但同为写死路径，建议按同一模式硬化后交复验。
+
+### 7.9 AIO 顶层测试零注册：清单 + 首批激活（前台查证，2026-09-18）
+
+**发现**：`lib/infrastructure/aio/tests/` **顶层无 CMakeLists.txt**，其 20 个测试源文件（16 个 C++/C + 4 个 .py）**从未被编译、从未在 ctest 中运行**；仅 `p1hips/`、`p2hips/`、`abi/` 三个**子目录**被 `tests/unit/CMakeLists.txt` 注册。TST-001 记「aio 8 枚零注册」为**低估**，实际顶层为 20 个。
+
+**处置原则**：先 ad hoc 独立构建 + 运行取证，**只注册逐条跑绿的**，未通过者另行登记、不混入绿门。
+
+**已激活（本轮注册，全绿）**——被测面统一为 `astrocs_hips`（含 hiss_codec/reader/writer/tile_model/transform/stream_writer/upm）：
+
+| 源文件 | 独立复跑结果 | ctest 名 |
+|---|---|---|
+| `test_checksum.cpp` | 49 PASS / 0 FAIL（含 CRC32C Castagnoli 标准向量 `"123456789"`→`0xE3069283`） | `aio_checksum` |
+| `test_tile_model.cpp` | 67 PASS / 0 FAIL | `aio_tile_model` |
+| `test_transform.cpp` | 75 PASS / 0 FAIL / 2 SKIP（可选依赖缺失） | `aio_transform` |
+| `test_query_pixel.cpp` | ALL PASS | `aio_query_pixel` |
+| `test_precision_dual.cpp` | ALL PASS | `aio_precision_dual` |
+
+新增注册文件 `lib/infrastructure/aio/tests/CMakeLists.txt` + `tests/unit/CMakeLists.txt` 的 `add_subdirectory(... aio_toplevel)`。
+
+**复验**：`ctest --test-dir build` → **447 用例 100% 通过，0 失败**（`run/RELEASE-01/logs/ctest_after_aio_reg.log`；此前 442）。新增 5 个用例均为**真实产品面**验证（链接 `astrocs_hips`，非本地重实现）。
+
+**未激活（登记，需先修）**：
+
+| 源文件 | 阻塞原因 | 判定 |
+|---|---|---|
+| `hiss_writer_smoke.cpp` | 断言 `"MAGIC 不匹配"`：该测试仍校验**已废弃**的旧签名 `"ACSHISS\\0"`+version+header_offset | **测试陈旧**，非产品缺陷。现行格式为 `"HISS0100"`+header_length(u32 LE)+feature_flags(u32 LE)，16B 签名块，**writer/reader/格式头/其它测试四方一致**（`hiss_stream_writer.cpp:49/53`、`hiss_reader.cpp:71/507-509`、`hiss_format.h:253`、`test_writer_integration.cpp:530`）；旧格式在 `hiss_stream_writer.cpp:52` 明确标注废弃。**修测试后可注册** |
+| `hiss_correctness_test.cpp` | 缺 `astro_calibration.h`（跨模块依赖未接线） | 需补 include 路径与链接面 |
+| `pipeline_frame_contract_test.cpp` | 缺 `aio_pipeline_frame_*` 符号 | 需补链接面（另注意其内嵌 `/tmp` 路径，见 §7.8 剩余清单） |
+
+**附带发现（注释与实现不符）**：`lib/infrastructure/hips_browser/healpix_browser_qt/core/browser_backend.cpp:189` 注释称「"ACSH" 是新 HISS 格式的前 4 字节、"HISS" 是旧格式」，与实现和写入端**正好相反**（现行新格式首 4 字节为 `"HISS"`，旧格式为 `"ACSHISS\\0"`）。属误导性注释，建议随该模块任务一并订正。
+
+**未逐一验证的其余顶层源文件**：`dataflow_fuzz.cpp`、`hips_robust_sanitize_driver.cpp`、`hips_sanitize_driver.cpp`、`gaia_sanitize_driver.c`、`test_drizzle_integration.cpp`、`test_p0_io_hardening.cpp`、`test_snr_unknown_block.cpp`、`test_wph_cli_browser.cpp` 及 4 个 `.py`。清单见 `run/RELEASE-01/logs/orphan_tests.json`。

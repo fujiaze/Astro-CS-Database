@@ -504,6 +504,15 @@ add_subdirectory(../../lib/algorithms/drizzle/healpix_drizzle/tests/p1drz p1drz)
 add_subdirectory(../../lib/infrastructure/aio/tests/p1hips p1hips)
 
 # ----------------------------------------------------------------------------
+# AIO-TOPLEVEL-TESTS (RELEASE-01 / TST-001 欠账修复) — lib/infrastructure/aio/tests
+# 顶层原有 20 个测试源文件零 CMake 注册（该目录此前无 CMakeLists.txt），即从未
+# 编译、从未在 ctest 运行。本处只注册已逐条独立复跑通过的 5 个（checksum/
+# tile_model/transform/query_pixel/precision_dual），被测面 astrocs_hips；
+# 未通过的 3 个另行登记。结构与注册见 lib/infrastructure/aio/tests/CMakeLists.txt。
+# ----------------------------------------------------------------------------
+add_subdirectory(../../lib/infrastructure/aio/tests aio_toplevel)
+
+# ----------------------------------------------------------------------------
 # AIO-HIPS-ABI (SCI-FIX-AIO #2 / V11-N-01) — AIO HiPS 跨边界结构布局锁:
 # C 探针 (只 include aio_hips.h) + 唯一 ctypes 镜像
 # (lib/infrastructure/aio/tools/aio_abi_mirror.py) + 逐字段布局锁 + 变异自检。
