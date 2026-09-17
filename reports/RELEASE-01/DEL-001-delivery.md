@@ -42,6 +42,10 @@
 
 ## 5. 复现命令
 
+> **磁盘前置检查（务必）**：L4 全量 R 通道的中间产物峰值约 **70 GB**（HiPS 瓦片 + mosaic 中间帧），
+> 复跑前请确认 `/workspace` 可用空间 **≥ 100 GiB**；脚本已内置 `df` 余量闸（<30 GiB 直接 ABORT）。
+> 本控制包首次运行时未做该评估，曾造成磁盘压力，中间产物已于事后清理至 1.6 GB（仅保留交付帧/日志/证据）。
+
 ```bash
 python3 run/RELEASE-01/e2e/l4/gen_stage23.py          # 生成 p2/p3 配置
 ./run/RELEASE-01/e2e/l4/run_normals.sh                # 15 个 normalize 作业（81 帧）
