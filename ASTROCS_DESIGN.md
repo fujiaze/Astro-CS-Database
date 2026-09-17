@@ -12,18 +12,20 @@ flowchart TD
     A["② AGENTS.md 机器干活手册"]
     E["③ 工程规范 ENGINEERING_SPEC"]
     C["④ 控制包规范 CONTROL_PACK_SPEC"]
-    CI["⑤ CI 规范 docs/ci/"]
-    P["⑥ 插件文档 docs/plugins/ 23 篇"]
+    ACC["⑤ 验收规范 ACCEPTANCE_SPEC<br/>四层验收 · 预览版发布门"]
+    CI["⑥ CI 规范 docs/ci/"]
+    P["⑦ 插件文档 docs/plugins/ 23 篇"]
     S["docs/science 科学公式（权威）"]
     AL["docs/algorithms 算法推导（权威）"]
     U["docs/design/UNIFIED_MODEL 数据对象与配置"]
-    D --> A & E & C & CI & P
+    D --> A & E & C & ACC & CI & P
     D --> U
     D -.公式引用.-> S
     D -.算法引用.-> AL
     A --> P
     E --> CI
     C --> P
+    ACC --> CI
 ```
 
 - 本文与其他任何文档冲突时，**以本文为准**。
@@ -412,17 +414,17 @@ flowchart TD
 - `benchmark` 按 kernel 测量数值误差、吞吐、线程扩展、内存带宽、block/worker，生成绑定 CPU 特征/OS/版本/provider 哈希的 `cpu_profile`，输出到**安装目录**；选择用稳定统计，不用一次最快值。
 - **一个进程只有一个资源调度器与线程预算源**；模块不得硬编码 workers、不得私建长期线程池；CPU-heavy 必须多线程。
 - 每个 heavy 运行自动记录：进程/线程 CPU、RSS/PSS、内存增长、读写字节、I/O wait、work units、队列深度、worker 均衡、进度、墙钟。
-- **重计算负载资源门（G-RES-01）**：判据（判定域 / 已分配容量分母取义 / record-and-justify 与 enforce 划分 / exit 10 条件）见 `docs/plugins/infrastructure/21_observability.md` §8；**数值唯一源 = `contracts/resource_gate_v1.json`**（C++/Python 冻结门/外挂 judge 共读，实现侧不得出现字面量阈值）。
+- **重计算负载资源门（G-RES-01）**：判定域、已分配容量分母、record/enforce 划分、exit 10 条件见 `docs/plugins/infrastructure/21_observability.md` §8；**阈值唯一源 = `contracts/resource_gate_v1.json`**（C++/Python/外挂 judge 共读，实现侧只引用契约常量）。
 
 ---
 
 ## 9. I/O 与原子产品
 
-- `aio` 是唯一 FITS/HiPS/manifest 读写边界；Phase1/2/3 复用同一套 AIO，禁止各自复制 reader/writer。
-- 所有产品：临时文件/目录 + 校验 + fsync + 原子 rename 提交；失败/取消不得留下可被误认为正式产品的半成品。
-- 每次运行至少生成：`resource_timeseries.csv`、`resource_summary.json`、`worker_balance.csv`、`astrocs_run_*.json`（run manifest）、`run_context.json`、run-graph 渲染目录（`graph/`：`.dot`/`.svg`）。`plan` 是预期，`trace` 是实际观测，**禁止把计划值伪装成实际值**。
-- **下列 5 件在现行实现里 `NOT_IMPLEMENTED`（实测零产出，2026-09-16 R-4 §E5 + GATE-FIX-RES 复核；不得据本名录假设其存在）**：run-plan.json、run-trace.jsonl、artifact-manifest.json、run-summary.json、run-graph.json（现产出的是渲染目录而非该 JSON 文件）。它们**不在**「至少生成」清单内；补实现或显式退役须走任务流程（登记者：R-4 D-15）。
-- 工件名统一**下划线**：`resource_timeseries.csv` / `resource_summary.json`（旧写作 `resource-timeseries.csv` / `resource-summary.json` 及实现侧旧名 `resource_samples.csv` 均已废止）。
+- `aio` 是唯一 FITS/HiPS/manifest 读写边界；Phase1/2/3 复用同一套 AIO。
+- 所有产品：临时文件/目录 + 校验 + fsync + 原子 rename 提交；失败/取消时清理临时产物，正式产品目录只出现完整产品。
+- 每次运行生成：`resource_timeseries.csv`、`resource_summary.json`、`worker_balance.csv`、`astrocs_run_*.json`（run manifest）、`run_context.json`、run-graph 渲染目录（`graph/`：`.dot`/`.svg`）。`plan` 是预期，`trace` 是实际观测，两者如实分别记录。
+- 规划中的 run-plan.json、run-trace.jsonl、artifact-manifest.json、run-summary.json、run-graph.json（JSON 形态）当前状态为 `NOT_IMPLEMENTED`，补齐或显式退役走任务流程；状态以 `docs/plugins/` 与台账为准。
+- 工件名统一**下划线**（`resource_timeseries.csv`、`resource_summary.json`）。
 - manifest 至少记录：产品类型/schema 版本、软件来源、run ID、输入产品标识、科学配置、单位、坐标 frame、像素/采样语义、算法 ID、模块 build ID、实际 provider、生成时间。
 
 ---
@@ -492,7 +494,20 @@ flowchart TD
     F --> I["图像审核 Agent 初审 → Owner 终审"]
 ```
 
-### 11.3 状态阶梯（唯一口径）
+### 11.3 发布前四层验收
+
+预览版发布前按 `ACCEPTANCE_SPEC.md` 依次通过四层验收：
+
+| 层 | 数据 | 核心判据 |
+|---|---|---|
+| L1 合成科学性 | 真值已知的合成数据 | Oracle 对拍、科学不变量、精度、并行确定性全绿 |
+| L2 合成性能 | 规模化合成负载 | G-RES-01 零 enforce 违约，CPU 近满载、内存合理 |
+| L3 小批量端到端 | testdata 小批量真实帧 | 三命令串行跑通，科学性/性能/原子性抽检合格 |
+| L4 真实视觉验收 | M42 + Galaxy Center 全量 | 整马赛克→平面 FITS→拉伸 PNG→切块目检，无黑洞/亮斑/接缝，负责人确认 |
+
+L4 通过且 P0 机器门全绿后，由负责人决定发布预览版。
+
+### 11.4 状态阶梯（唯一口径）
 
 | 状态 | 语义 |
 |---|---|
@@ -511,7 +526,7 @@ flowchart TD
 - **Alpha 之前：程序与代码中不包含任何版本信息**。当前所有"版本"都只是内部开发助记符，不进入程序、代码与产物。
 - **全部验证通过、可发布 Alpha 时**：在 CLI 的 `--version` 查询命令写为 **`0.1alpha`**；此前不存在任何版本信息。
 - 只有**通过验收的 Phase** 才能在 product manifest 标 available；未实现/未验收必须明确报告，不得用命令占位/空输出/文档声明冒充完成。
-- 发布候选至少满足：合同冻结无冲突、追踪无断链、模块可独立加载/验证/卸载、ACR 生产不可达、heavy 无硬编码线程/单线程长计算/持续低利用率/无界内存增长、双平台 CI 通过、Linux 真实数据终验 + Windows 复验、图像有量化证据+Agent 初审+Owner 终审、P0/P1=0、发布包白名单/哈希/版本/provenance 通过。
+- 发布候选至少满足：合同冻结无冲突、追踪无断链、模块可独立加载/验证/卸载、ACR 生产不可达、heavy 无硬编码线程/单线程长计算/持续低利用率/无界内存增长、双平台 CI 通过、`ACCEPTANCE_SPEC.md` 四层验收全部通过（L4 含 M42/Galaxy Center 视觉目检）、P0/P1=0、发布包白名单/哈希/版本/provenance 通过。
 - **最终发布决定只属项目负责人**；Agent 至多声明 `READY_FOR_OWNER_REVIEW`。
 
 ---

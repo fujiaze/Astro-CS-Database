@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "spec": "ENGINEERING_SPEC.md §7（仓库根固定条目；任何新产物必须落位到对应目录，禁止散落根目录）",
-  "doc_anchor": "ENGINEERING_SPEC.md 第 86-111 行「仓库根固定条目」代码块（CFG-001 在 §7 增 config/ 一行，由 86-110 校正）",
+  "doc_anchor": "ENGINEERING_SPEC.md §7「仓库根固定条目」代码块（CFG-001 在 §7 增 config/ 一行；PRE-REL 增 ACCEPTANCE_SPEC.md 一行）",
   "task": "ROOT-002",
   "allowed_files": [
     "README.md",
@@ -9,6 +9,7 @@
     "ASTROCS_DESIGN.md",
     "ENGINEERING_SPEC.md",
     "CONTROL_PACK_SPEC.md",
+    "ACCEPTANCE_SPEC.md",
     "memory.md",
     "DEPENDENCIES.md",
     "CMakeLists.txt",
@@ -48,6 +49,7 @@
     "ASTROCS_DESIGN.md",
     "ENGINEERING_SPEC.md",
     "CONTROL_PACK_SPEC.md",
+    "ACCEPTANCE_SPEC.md",
     "memory.md",
     "DEPENDENCIES.md",
     "CMakeLists.txt",

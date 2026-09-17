@@ -22,13 +22,11 @@
 
 ## 3. 科学代码红线（最高优先级）
 
-- 科学公式、权重/variance/ivar/SNR 定义、排异规则、归约顺序、精度与默认容差 **不可随意修改**；
-- **科学正确性优先（负责人指令）**：`docs/science/**` 与 `docs/algorithms/**` **必须科学正确**。当**独立证据**（外部标准/文献/可复现实验）证明文档与标准或事实不符时，**订正文档是义务，不是例外**；流程 = **变更 claim**（记录证据、影响面、版本递增）+ 一致性回归。**禁止**以「文档已冻结」为由保留已知错误，也**禁止**在算法推导里写「以代码为准」这类权威倒置表述；
-- 反向同样成立：当文档**已被证明正确**而实现不符时，改实现；
-- 架构重构**不得**同时改动科学语义；迁移必须 bitwise 相等（顺序变化时先冻结容差并登记）；
-- 科学语义订正与架构重构**不得**混在同一次改动中；
-- 模块不得根据 CPU 型号改变公式；`cpu_profile` 只影响并行/ISA，不进入科学配置；
-- 数据对象按 `docs/design/UNIFIED_MODEL.md` 区分，禁止一个字段承载多个含义。
+- 科学公式、权重/variance/ivar/SNR 定义、排异规则、归约顺序、精度与默认容差**不可随意修改**；
+- **科学正确性优先**：`docs/science/**` 与 `docs/algorithms/**` 必须科学正确。当独立证据（外部标准、文献、可复现实验）证明文档与标准或事实不符时，订正文档是义务：走**变更 claim** 流程（记录证据、影响面、版本递增）+ 一致性回归；文档已证明正确而实现不符时，改实现；
+- 架构重构与科学语义订正分开提交；架构迁移保持 bitwise 相等（顺序变化时先冻结容差并登记）；
+- 模块按声明精度与公式执行，计算结果与 CPU 型号无关；`cpu_profile` 只影响并行/ISA；
+- 数据对象按 `docs/design/UNIFIED_MODEL.md` 区分，一个字段只承载一个含义。
 
 ---
 
@@ -89,7 +87,7 @@
 ```text
 仓库根固定条目：
 README.md / AGENTS.md / ASTROCS_DESIGN.md / ENGINEERING_SPEC.md /
-CONTROL_PACK_SPEC.md / memory.md / DEPENDENCIES.md /
+CONTROL_PACK_SPEC.md / ACCEPTANCE_SPEC.md / memory.md / DEPENDENCIES.md /
 CMakeLists.txt / CMakePresets.json / build.sh / toolchain.ps1 /
 .clang-format / .editorconfig / .gitignore / .gitattributes / .github/
 
@@ -120,11 +118,11 @@ run/（gitignore：临时产物/日志）  logs/（gitignore）
 
 - `ci/checks.json` 是唯一检查注册表；`ci/` 提供确定性执行器；
 - 每项检查有正例与负例（能红能绿）；豁免必须显式登记且只减不增；
-- **可执行负例面**：每项检查必须提供**机器可执行**的负例入口（`--self-test` 或 `--fault-inject`），仅有人工说明不算（R-6 实测：70 个检查器中 10 个有 `--self-test`、1 个有 `--fault-inject`、35 个连 `--root/--repo` 都没有）；
-- **fail-closed**：检查器在输入缺失/路径不存在/依赖不可用时必须**判红**，不得崩溃后静默通过，也不得把「文件不存在」当「无违规」；
-- **锚存活**：检查器硬编码引用的文件/目录必须存在（R-6 实测 5 处硬编码指向已删归档路径，其中 `--strict` 还是 no-op）；
-- **注册表双向一致**：`ci/checks.json` 与 `docs/ci/01_CHECKS.md §2` 必须双向对齐（既不得「注册未登记」，也不得「文档承诺 P0 但无实现」）；
-- **负责人裁决引用规范**：引用负责人裁决必须用 **named-ID**（如 `PSF-FAST-001`）并落位在 §0 权威链内的文档，不得只写在注释或已废止文件里；
+- **可执行负例面**：每项检查提供机器可执行的负例入口（`--self-test` 或 `--fault-inject`），注册时即可验证"能红能绿"；
+- **fail-closed**：检查器在输入缺失、路径不存在、依赖不可用时判红；"文件不存在"按"无违规"通过视为假绿；
+- **锚存活**：检查器硬编码引用的文件/目录必须存在，失效时显式报 `ANCHOR_STALE`；
+- **注册表双向一致**：`ci/checks.json` 与 `docs/ci/01_CHECKS.md §2` 双向对齐（注册项必登记、P0 承诺必有实现）；
+- **裁决引用规范**：引用负责人裁决使用 named-ID（如 `PSF-FAST-001`）并落位在 §0 权威链内的文档；
 - 修改代码/测试后必须本地复跑对应检查项；
 - 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、算法引用有效 SCI/ALG、核心合同有独立测试、API 文档与 AST 一致、删除/重命名无悬空引用、活动文档无陈旧版本号/历史状态冒充、Git diff 映射到受影响合同与最小测试集。
 

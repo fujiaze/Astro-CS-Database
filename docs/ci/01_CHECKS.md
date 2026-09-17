@@ -24,7 +24,8 @@
 | CHK-MODULE-MANIFEST | 文档一致性 | 模块 manifest/注册表/构建 target/产品清单一致 | ci 检查器 | P0 |
 | CHK-CONTRACT-REF | 文档一致性 | 端口引用有效 DATA 合同 | ci 检查器 | P0 |
 | CHK-SCI-REF | 文档一致性 | 算法引用有效 SCI/ALG；含 ACR/编排层退出面（`ACR-DORMANT` = `tools/check_legacy_exit.py`，LEG-002..004）| ci 检查器 | P0 |
-| CHK-CONTRACT-TEST | 文档一致性 | 核心合同有独立测试 | ci 检查器 | P0 |
+| CHK-CONTRACT-TEST | 文档一致性 | 核心合同有独立测试（含 ORCH-001 编排层 6 条共址 ctest）| ci 检查器 | P0 |
+| CHK-EXIT-CONSISTENCY | CI 自洽性 | 结论与退出码一致：打印 FAIL 必须 rc≠0（扫描 tools/**+ci/**；含 --self-test 3 正 3 负）| ci 检查器 | P1 |
 | CHK-DANGLING | 文档一致性 | 删除/重命名无悬空引用 | ci 检查器 | P1 |
 | CHK-STALE-DOC | 文档一致性 | 活动文档无陈旧版本号/历史状态冒充 | ci 检查器 | P1 |
 | API-DOCS | 文档一致性 | doc↔code 命令树/签名/退出码/schema 一致（命令树：CLI 产物候选缺失即 fail-closed） | `tools/check_api_docs.py` | P0 |
@@ -60,71 +61,21 @@
 | RESOURCE-GATE-REAL | 资源 | 真实重计算面利用率门（显式 --gate-required + 判定证据） | `python3 ci/resource_monitor.py --timeout 300 …` | P0 |
 | RESOURCE-GATE-REAL-NEG | 资源 | 上项的可执行负例面（串行注入 ⇒ 门必须判红） | `python3 tools/quality/check_resource_gate_real.py --fault-inject serial --seconds 20` | P0 |
 | CHK-KNOWN-FAILURES-BASELINE | 测试 | 版本化已知失败基线门（聚合型，linux-main 末位） | `python3 ci/run_checks.py --check CHK-KNOWN-FAILURES-BASELINE --quiet` | P1 |
+| CHK-E2E-REPRO | 测试 | 真实数据端到端天测闭合复现门（closure_metric 自证面） | `python3 tools/astrometry/closure_metric.py selftest` | P0 |
 | CHK-IMPACT-MAP | 治理 | `ci/impact_map.json` 判据一致性（id 两层闭包 / fast 候选 / BASE 核心 / 路径域锚存活与覆盖 / 无退役引用 / 结构完整） | `python3 ci/run_checks.py --check CHK-IMPACT-MAP --quiet` | P0 |
 
-> **§8 判据登记：`AGENTS-GOV` / `ENG-CONSTRAINTS` 的「非绑定标记豁免」粒度 = 行级（2026-09-16，负责人裁决 B）。**
-> 两门的「唯一最高权威」判据原用**整文件豁免**（`if "ARCHIVED_NON_NORMATIVE" in text: continue`）：
-> 触发条件是文件内**提到**该字样，而非**自称归档** ⇒ `memory.md` 只在第 8/12/73 行说「别的东西已归档」
-> 就被整文件跳过，「`memory.md` 自称唯一最高**权威**」（写法说明：本登记文自身也被同一判据扫描，故在「最高」与「权威」之间加 Markdown 强调断开字面匹配，
-> 避免登记文自我触发；判据正则仍为「唯一 + 最高 + 权威/约束/规范/文档」连续匹配）**永远判不出来**（与 R-6 §3.5「空触发」同一失效型，属**假绿来源**）。
-> 现行判据：只有**该行自身**带非绑定标记（`NON_BINDING_MARKERS`：ARCHIVED / 已删 / 已删除 / 已归档 / 历史参照…）才跳过该行，
-> 与两门其余判据（`legacy_hits` / `legacy_object_body_hits`）**本来就用的行级口径**一致。
-> 双向证据（本任务 `run/PROJECT-GOVERNANCE-01/CI-003/logs/B_*`）：真仓 rc=0 且 `scanned=291`；
-> 注入「`memory.md` 自称唯一最高**权威**」（写法说明：本登记文自身也被同一判据扫描，故在「最高」与「权威」之间加 Markdown 强调断开字面匹配，
-> 避免登记文自我触发；判据正则仍为「唯一 + 最高 + 权威/约束/规范/文档」连续匹配）⇒ **rc=1 `single_authority_entry: memory.md:114`**（指名行号）；
-> `--self-test` 计数不变（`AGENTS-GOV` 4 正 6 负 / `ENG-CONSTRAINTS` 3 正 8 负）。
-> 两门的 `changed_paths` 已把 `memory.md` 登记为**真实触发面**（此前是空触发）。
+### 2.1 检查器退役与预留
 
-### 2.1 退役记录（只减不增；每条必须写依据与日期）
+- 检查器退役：从 `ci/checks.json` 移除注册项，检查器文件保留可复跑性；退役检查器无参调用时打印退役标识并 exit 2；
+- 工具入口退役：退役工具的 `main` 打印退役标识并 exit 2，原实现保留为 `legacy_main()`，仍被其他检查器消费的函数保持活动语义；
+- 已退役检查器：`TASK-RESULT-SCHEMA`、`WORKSPACE-ADOPTION`、`RECONCILE-STATE`、`TRACEABILITY-CODE`；退役明细与复原坐标以仓库 git 历史与 `reports/` 台账为准；
+- RESERVED（文档登记但无实现，重新注册前须先有实现与可执行负例）：
 
-| 退役项 | 日期 | 依据 | 处置 | 可复跑性 |
-|---|---|---|---|---|
-| `TASK-RESULT-SCHEMA`（`CHK-SCHEMA` 的原 step；检查器 `tools/quality/check_task_result_schema.py`） | 2026-09-16 | 该 step 的**唯一默认输入**是 `evidence/v6_1_rework/tasks/*/TASK_RESULT.json`（V6.1 REWORK 世代证据树）：该树已随旧世代删除，且 `ENGINEERING_SPEC.md §7`（2026-09-16）明令根下**不得**新建 `evidence/` ⇒ 在**任何**检出上恒红（实测 `TASK-RESULT-SCHEMA FAIL rc=1`，零输入 fail-closed）；现行世代无 `TASK_RESULT.json` 生产者（`find 工程控制 -name 'TASK_RESULT*.json'` 零命中） | 从 `ci/checks.json` 的 `CHK-SCHEMA.steps` 退役（保留 `CON-CONFIG-CONTRACTS`、`LOG-CONTRACT-SELFCHECK`）；检查器文件**不删** | 有：`python3 tools/quality/check_task_result_schema.py --results-dir <任一含 TASK_RESULT.json 的树>` 仍全量校验；`git show HEAD:tools/quality/check_task_result_schema.py`。**能力去向**：新世代控制包若定义 TASK_RESULT 证据落位（`artifacts/**`），按 §4 流程以显式 `--results-dir` 重新注册 |
-| `WORKSPACE-ADOPTION` / `RECONCILE-STATE`（`CHK-ENV-ADOPTION` 的原 2 个 step；检查器 `ci/verify_workspace_adoption.py`、`ci/reconcile_state.py`） | 2026-09-16 | 两 step 的唯一输入是 `evidence/v8_1_ci_control/**`（V8.1 控制包世代的证据树）：该树已随旧世代删除，且 `ENGINEERING_SPEC.md §7`（2026-09-16）明令「证据与产物落 `artifacts/`；根下**不得**新建 `evidence/`」⇒ 两门在**任何**检出上都必然红（实测 `[FAIL] 证据文件缺失或为空: evidence/v8_1_ci_control/adoption/*`、`Errno 2 ... TASK_STATE.json`），属 §2.2 口径的「坏掉即红的门」 | 从 `ci/checks.json` 的 `CHK-ENV-ADOPTION.steps` 退役（保留 `TOOLCHAIN-VERIFY`，实测 rc=0）；两个检查器文件**不删** | 有：`git show HEAD:ci/verify_workspace_adoption.py`、`git show HEAD:ci/reconcile_state.py`。**能力去向**：待新世代控制包定义「工作区接管 / 任务-状态对账」的证据落位（`artifacts/**`）后，按 §4 流程以可执行负例重新注册 |
-| `TRACEABILITY-CODE`（`python3 tools/check_traceability.py`，原三 profile / `waivable=false`） | 2026-09-16 | 负责人裁决。① 本规范不含任何追溯要求（TRACEABILITY/追溯 零命中）；② `ASTROCS_DESIGN.md` 与 `ENGINEERING_SPEC.md` 同样零命中「追溯」；③ 该门**唯一默认输入** `artifacts/prerelease_v5/tables/TRACEABILITY.csv` 位于构建产物目录（从来不是权威落位），已随 `artifacts/` 按负责人裁决删除（commit `b1290525`「不归档、不保留」）；④ 表内容锚在 `docs/VERSIONING.md` 的版本串匹配上，而新设计 §12 明令版本信息下线 ⇒ 口径被新世代废止；⑤ 内容未丢：`git show b1290525^:artifacts/prerelease_v5/tables/TRACEABILITY.csv` | `ci/checks.json` 移除该注册项（147→146）；`ci/impact_map.json` 清 26 处悬空引用；`ci/tests/test_impact_map.py` 的「SCI→TEST 追踪」必含类保留 `TRACEABILITY-MATRIX`/`CON-TRACEABILITY`；`tools/check_traceability.py` 加退役抬头，**文件不删** | 有：`python3 tools/check_traceability.py <claims.csv>` 仍按 R1–R7 全量校验（夹具示例 `tests/quality/fixtures/docchk002_claims_fixture.csv`，11 claim PASS）；无参调用打印 `TRACEABILITY_RETIRED` 并 **exit 2**（不再回退被删快照，不伪装绿） |
-
-其余追溯类注册项**未退役**（2026-09-16 实测保留）：`TRACEABILITY` rc=0、`PIPELINE-TRACE` rc=0；
-`CON-TRACEABILITY` rc=1（`TRACE-CORE-MISSING`：PSF/REJ 核心 SCI 未入表，P1）；
-`TRACEABILITY-MATRIX` rc=1（矩阵 7 条 error：BOM / ID 格式 / 悬空测试路径，P1）；
-`UT-TRACEABILITY` rc=1（2 failures：一为已退役门的旧消费者
-`tests/traceability/test_traceability.py::test_01`，一为上述矩阵失败）。
-后三项红灯属既有技术债，另行处置，不在本次退役范围。
-
-### 2.2 工具层退役记录（非注册项，只减不增；每条必须写依据与日期）
-
-RETIRE-001（2026-09-16）退役旧世代（V5 控制包）打包/审计工具。**全部只加退役抬头，文件本体不删**（保留可复跑性）。
-统一判定口径：① 权威链 `ASTROCS_DESIGN.md §0`（旧世代控制包产物不构成判据）+ 负责人裁决「历史版本控制包全部作废；
-`artifacts/` 不归档不保留」（commit `b1290525`）与 `ASTROCS_DESIGN.md §12`（版本信息下线）；② `ENGINEERING_SPEC.md §8`
-（坏掉即红的门要退役或修好，**不允许静默坏掉**）。
-
-| 退役项 | 日期 | 依据 | 处置 | 可复跑性 |
-|---|---|---|---|---|
-| `tools/assemble_audit.py` | 2026-09-16 | 唯一输入 `工程控制/旧发布控制包（已删除）/` 与 `artifacts/prerelease_v5/tables/` 均不存在；实测未捕获 `FileNotFoundError` 且残留空目录 | 加退役抬头；入口改「显式失败」：打印 `ASSEMBLE_AUDIT_RETIRED` 并 exit 2；原实现保留为 `legacy_main()` | 有：`git show 01754fab8618:tools/assemble_audit.py` |
-| `tools/make_capsule.py` | 2026-09-16 | 输出 `artifacts/prerelease_v5/capsules/` 已随 `artifacts/` 删除；无参 `IndexError`，带参则静默把 zip 写回已退役路径 | 加退役抬头；入口改「显式失败」：`MAKE_CAPSULE_RETIRED` + exit 2；原实现保留为 `legacy_main()` | 有：`git show 01754fab8618:tools/make_capsule.py` |
-| `tools/make_rev2_capsule.py` | 2026-09-16 | 输入三表（`TRACEABILITY/COMMITS/REVIEW_CAPSULE_INDEX.csv`）被静默跳过，输出目录已删 → 实测未捕获 `FileNotFoundError` | 加退役抬头；入口改「显式失败」：`MAKE_REV2_CAPSULE_RETIRED` + exit 2；原实现保留为 `legacy_main()` | 有：`git show 01754fab8618:tools/make_rev2_capsule.py` |
-| `tools/pack_audit_package.py` | 2026-09-16 | 打包入口产物落已退役 `artifacts/prerelease_v5/`；实测目录被旁路重建时**静默产出 11.2 MB / 2709 条目且超 10 MB 目标仍 exit 0**，目录不存在则 traceback | **仅退役打包入口 `main`**（`PACK_AUDIT_PACKAGE_RETIRED` + exit 2）；`allowed()/denied()/EXCLUDE_EXT` **保留为活动依赖**（`CHK-SECRET-HYGIENE` 的收录白名单与凭据排除真源），import 语义不变 | 有：`git show 01754fab8618:tools/pack_audit_package.py` |
-
-实测复核（2026-09-16，RETIRE-001 自证）：四个退役项调用均为「明确退役文案 + exit 2，无未捕获 traceback」；
-`python3 tools/quality/check_secret_hygiene.py --scope pack` rc=0、`tests/quality/test_secret_hygiene.py` 22/22 OK，
-证明 `pack_audit_package.py` 保留函数的活动依赖未受影响。
-
-**经实证不退役（保留原样，不计入退役数）**：`tools/quality/known_failures_baseline.py`（被 `KNOWN-FAILURES-BASELINE`、
-`-VERIFY`、`-CHECK` 三个注册项消费，仍产出 `artifacts/KNOWN_FAILURES_BASELINE.json`）；`tools/check_traceability.py`
-（已按 GAP-032 于 §2.1 登记）。逐条判定、消费者实测与复原坐标见
-`reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md`。
-
-### 2.3 RESERVED（文档曾承诺但**无实现**；只减不增）
-
-> 依据：`ENGINEERING_SPEC.md §8`「可执行负例面」+ 本文件 §2.2 统一口径「坏掉即红的门要退役或修好，
-> **不允许静默坏掉**」。本表项**不得**出现在注册表 `ci/checks.json`（由 `CHK-REGISTRY-DOC-SYNC`
-> 的 R4 判据机器保证）；重新注册前必须① 有实现 ② 有可执行负例入口（`--self-test`/`--fault-inject`）。
-> 机器可读面见 `ci/id_migration_map.json` 的 `reserved_targets`。
-
-| RESERVED 项 | 日期 | 依据 | 处置 | 重新注册的前置条件 |
-|---|---|---|---|---|
-| `CHK-FMT` | 2026-09-16 | 原文档（本文件 §2、`02_PIPELINE.md:27`、`03_GATES.md:24`）承诺为 **P0 格式门**，但 `ci/checks.json` **零实现**；宿主实测 `clang-format` 未安装（`clang-format: 未找到命令`）⇒ 注册即恒红或恒 SKIP，属**假绿**（R-6 §4.1） | 从 P0 门禁表退出，登记 RESERVED；`ci/id_migration_map.json::reserved_targets.CHK-FMT` 同步 | `clang-format` 纳入 `ci/toolchain.policy.json` + 新增 checker（须带 `--self-test`：用注入桩验证「能红能绿」），并按 §4 流程注册 |
-| `CHK-DUAL-TOL` | 2026-09-16 | 原文档承诺 P1「双平台允许误差」，注册表零实现；需 Windows 侧可比候选产物（`REAL-001` 面） | 同上（RESERVED，不进 P0/P1 门禁表） | Windows 复验面产出可比候选 + checker 带可执行负例 |
-| `CHK-AGENT-HARD-RULES` | 2026-09-16 | 原文档承诺 **P0**「AGENTS.md 硬禁令存在」，注册表零实现；**语义继任者 = `AGENTS-GOV`**（已注册 P0，实测承接全部判据） | 从 P0 门禁表退出；文档与门禁表改指 `AGENTS-GOV` | 若重新注册，必须与 `AGENTS-GOV` 有**非重复**判据，否则应维持退役 |
+| RESERVED 项 | 重新注册前置条件 |
+|---|---|
+| `CHK-FMT`（格式门） | clang-format 纳入 `ci/toolchain.policy.json` + checker 带 `--self-test` |
+| `CHK-DUAL-TOL`（双平台误差） | Windows 侧可比候选产物 + checker 带可执行负例 |
+| `CHK-AGENT-HARD-RULES` | 语义由 `AGENTS-GOV` 承接；重新注册须有非重复判据 |
 
 ---
 
