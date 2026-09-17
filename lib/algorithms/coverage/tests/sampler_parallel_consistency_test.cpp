@@ -12,8 +12,16 @@
 #include <vector>
 #include <cmath>
 #include <cinttypes>
+#include <cstdlib>
 
 namespace {
+// 真实 HiPS fixture 根目录（禁止写死机器绝对路径 —— AGENTS §3）：
+// ASTROCS_PHASE1_FREEZE_DIR 未设置时用仓库相对默认 run/temp/phase1_freeze。
+std::string phase1_fixture_root() {
+    const char* e = std::getenv("ASTROCS_PHASE1_FREEZE_DIR");
+    return (e && *e) ? std::string(e) : std::string("run/temp/phase1_freeze");
+}
+
 struct P2ObsHash {
     std::uint64_t n_obs = 0, n_ctrl = 0;
     std::uint64_t acc = 0;
@@ -30,11 +38,11 @@ struct P2ObsHash {
 } // namespace
 
 TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism) {
-    const char* base = "F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze";
-    const std::string p0 = std::string(base) + "/t4_crop_v3.hips";
-    const std::string p1 = std::string(base) + "/t4_full_v3_final.hips";
-    if (!std::ifstream(std::string(base) + "/t4_crop_v3.hips/signal/properties").good())
-        GTEST_SKIP() << "真实 HiPS 输入不存在";
+    const std::string base = phase1_fixture_root();
+    const std::string p0 = base + "/t4_crop_v3.hips";
+    const std::string p1 = base + "/t4_full_v3_final.hips";
+    if (!std::ifstream(base + "/t4_crop_v3.hips/signal/properties").good())
+        GTEST_SKIP() << "真实 HiPS fixture 不存在：设 ASTROCS_PHASE1_FREEZE_DIR 指向 phase1_freeze 根";
 
     const char* paths[2] = {p0.c_str(), p1.c_str()};
     P2CoverageResult cov{};
