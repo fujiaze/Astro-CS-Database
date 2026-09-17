@@ -243,3 +243,28 @@
 **附带发现（注释与实现不符）**：`lib/infrastructure/hips_browser/healpix_browser_qt/core/browser_backend.cpp:189` 注释称「"ACSH" 是新 HISS 格式的前 4 字节、"HISS" 是旧格式」，与实现和写入端**正好相反**（现行新格式首 4 字节为 `"HISS"`，旧格式为 `"ACSHISS\\0"`）。属误导性注释，建议随该模块任务一并订正。
 
 **未逐一验证的其余顶层源文件**：`dataflow_fuzz.cpp`、`hips_robust_sanitize_driver.cpp`、`hips_sanitize_driver.cpp`、`gaia_sanitize_driver.c`、`test_drizzle_integration.cpp`、`test_p0_io_hardening.cpp`、`test_snr_unknown_block.cpp`、`test_wph_cli_browser.cpp` 及 4 个 `.py`。清单见 `run/RELEASE-01/logs/orphan_tests.json`。
+### 7.10 fail-open 判绿排查：已修 1 处注册门，区分「不可见假绿」与「可见 skip」（前台查证，2026-09-18）
+
+**权威依据**：`ENGINEERING_SPEC.md:122` —— 「**fail-closed**：检查器在输入缺失、路径不存在、依赖不可用时判红；『文件不存在』按『无违规』通过视为假绿」。TST-001 §3.1 亦登记「独立 Oracle 假绿（缺件即判绿，违反 fail-closed）」。
+
+**已修复（F-04，注册门内）**：`lib/algorithms/noise_snr/tests/p1noise/noise_model_numpy_oracle.py`
+
+| 位置 | 原行为 | 现行为 |
+|---|---|---|
+| `import numpy` 失败 | `print("SKIP…")` + `sys.exit(0)` → ctest 报 **Passed** | `print("FAIL…")` + `sys.exit(1)` → **判红** |
+| 缺 `g++` | `print("SKIP…")` + `return 0` → ctest 报 **Passed** | `print("FAIL…")` + `return 1` → **判红** |
+
+文件头「退出码」契约同步改写为 fail-closed 语义。**复验**：本机（numpy 2.2.4 + g++ 14.2）`python3 …noise_model_numpy_oracle.py` → `NUMPY-ORACLE PASS: 108/108`，rc=0；**模拟缺 numpy**（`__import__` 注入 ImportError）→ 实测 **exit code = 1**（不再是 0）；`ctest -R p1noise_numpy_oracle` → **Passed**（3.04 s）。
+
+**关键区分（本轮结论，供负责人裁决口径）**：同为「缺依赖」，两种写法危害不同——
+
+| 写法 | ctest 呈现 | 是否假绿 | 处置 |
+|---|---|---|---|
+| `sys.exit(0)` / `return 0`（本处、及已修的 `ci/verify_toolchain.py`） | **Passed** | **是**（不可见，绿灯里混着没跑的检查） | 必须 fail-closed（已修 2 处） |
+| `unittest.skipUnless(...)` / `pytest.mark.skipif(...)` | **Skipped** | 否（可见、可审计） | 保留；基线 12 个 skip 属此类 |
+
+**全仓排查结果**：`sys.exit(0)` 在测试/检查脚本中共 4 处，其中 2 处为**正常成功路径**（`acr/ci/sha256_utf8.py:197` 校验 0 失败后退出、`p1noise/check_saturation_wiring.py:129` 门 PASS 后退出），非 fail-open；1 处为测试夹具（`ci/tests/test_gap4_empty_outputs_guard.py:35` 的 `SILENT` 样本）。
+
+**仍存在的同类（登记，未改）**：`lib/algorithms/photometry/cpp/test/test_energy_conservation.py:483-485` —— `if not _PC_AVAILABLE: print("[SKIP] DLL 不可用…"); sys.exit(0)`（另 :97-98 有 `pytest` skipif 同因）。该文件**未在任何 CMakeLists / ci/checks.json 注册**（属 §7.9 同族的零注册测试），故当前不影响门；建议随 photometry 测试任务按 fail-closed 改写后再注册。
+
+**附**：全仓 Python 测试中 `skipUnless/skipif` 共 39 处（多为 `shutil.which("g++")` 类），均属**可见 skip**，不构成假绿；清单可按需导出。
