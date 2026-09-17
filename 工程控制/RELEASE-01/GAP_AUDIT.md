@@ -122,3 +122,47 @@
 - **运行产物面**：run-trace / artifact-manifest / run-summary / run-graph 四类输出在文档中要求但实现为 NOT_IMPLEMENTED（AUD-A4 U-1）。
 - **fixture 面（F-02 后续，前台已查证）**：6 个真实 HiPS 用例现在**可通过环境变量提供 fixture 而无需改代码**，但**当前管线无法自行生成该 fixture**：Phase1 不产出 `snr` 子产品（`lib/phase1_session/p1_session.cpp:493` 将 `noise_snr` 标为 `unavailable`；实测 `p1_final.json` `products=["signal","support"]`），而 `Phase2Sampler.RealHipsControlSampling`/`G6LocalSnrAvailabilityThreeZones` 断言 `snr_used>0`；HiPS writer 支持的产品集为 `{signal,support,snr,variance,ivar}`（`lib/algorithms/drizzle/hips/src/module_entry.cpp:1061`）。⇒ **该 fixture 无法在修复 P0-03（帧级 SNR/不确定度产品链）之前重建**；两处断言与 P0-03 同源，不得以"补 fixture"绕过。
 - **环境面（影响复现，非产品缺陷）**：本轮构建/链接期间 `/tmp` 不可写（`Cannot create temporary file in /tmp/`），前台改用工作区内 `TMPDIR=<repo>/run/tmp` 完成构建；复跑者若遇同样报错，请先确认 `/tmp` 可写或显式设置 `TMPDIR`。
+
+### 7.5 U8 证据包：文档引用的悬空 `contracts/schemas/*.schema.json` 全量清单（前台扫描，2026-09-18）
+
+扫描面：`docs/**`（排除 `docs/archive/**`）中形如 `contracts/schemas/<name>.schema.json` 的引用，逐个比对 `contracts/schemas/` 实际文件。
+结果：**21 个不同名、42 个引用点**，全部悬空（`contracts/`、`config/`、`ci/`、`tools/` 内零定义）。
+
+| 被引用的 schema（不存在） | 引用文件 |
+|---|---|
+| `calibration_output.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase1/01_calibration.md` |
+| `catalog_query.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/infrastructure/22_gaia_xpsd_client.md` |
+| `cli_output.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/infrastructure/18_cli.md` |
+| `control_points.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase2/10_sampling.md` |
+| `cosmetic_output.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase1/02_cosmetic.md` |
+| `coverage_output.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase2/09_coverage.md` |
+| `data_light.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase1/01_calibration.md` |
+| `events.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/infrastructure/18_cli.md`<br>`docs/plugins/infrastructure/21_observability.md` |
+| `export_product.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase3/15_resample.md` |
+| `fits_product.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase3/16_fits_output.md` |
+| `hips_product.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase1/08_drizzle.md`<br>`docs/plugins/infrastructure/23_hips_browser.md` |
+| `integration_output.schema.json` | `docs/modules/MODULE_MAP.yaml` |
+| `manifest.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase1/08_drizzle.md` |
+| `mosaic_product.schema.json` | `docs/plugins/algorithms_phase2/13_integration.md` |
+| `noise_snr_output.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase1/07_noise_snr.md` |
+| `photometry_output.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase1/06_photometry.md` |
+| `psf_output.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase1/04_psf.md` |
+| `rejection_output.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase2/12_rejection.md` |
+| `source_catalog.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase1/03_star_detection.md` |
+| `upm_output.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase2/11_upm.md` |
+| `wcs_output.schema.json` | `docs/modules/MODULE_MAP.yaml`<br>`docs/plugins/algorithms_phase1/05_platesolve.md` |
+
+判定：这是**系统性**缺口而非笔误 —— 插件文档承诺的「每模块输出 schema」族整体未落 `contracts/`；同时 `docs/modules/MODULE_MAP.yaml` 的 `schema_links` 亦引用同一批名字（:566 等），其 :654 注明来源为 `docs/plugins/infrastructure/21_observability.md`。
+处置建议（须负责人裁决归属，与 DOC-002 U8 同一项）：**(a)** 补齐 contracts（`contracts/` 为「唯一事实源」，则文档承诺应兑现）；或 **(b)** 把文档引用改指现有真实合同（`contracts/schemas/unified/**`、`jsonl_event_v1.schema.json`、`run_manifest.schema.json`、`cpu_profile.schema.json` 等）。
+本轮未做部分订正：仅改 1 处会造成与 `MODULE_MAP.yaml` 的机器登记面漂移，故保持文档包逐字节不变，交负责人一次裁决。
+
+附：可直接替换的实证 —— `events.schema.json` 的真实对应物为 `contracts/schemas/jsonl_event_v1.schema.json`（title「AstroCS JSONL event v1」，字段与 21_observability §3 描述一致）；`run_*.schema.json` 的真实对应物为 `contracts/schemas/run_manifest.schema.json`。
+
+### 7.6 资源门机器判据 vs 真实数据实测（前台复跑，2026-09-18）
+
+| 面 | 判据来源 | 结果 |
+|---|---|---|
+| 机器门 `CHK-RESOURCE`（profiles fast/linux-main/windows-main，waivable=false） | `ci/checks.json` 注册项；4 个 ctest 目标 + oracle/budget 自检 | **PASS**：`verdict=PASS entries=1 steps=11 pass=11 fail=0 timeout=0`（日志 `run/RELEASE-01/logs/CHK-RESOURCE.log`）；`run/v6/runtime-closure/resource_gate.json` verdict=PASS（oracle R5/R6 共 34 检查 0 违规） |
+| 真实数据 L3/L4（PERF-001 手工复算 G-RES-01） | `contracts/resource_gate_v1.json` 阈值 vs 各 run 的 `resource_timeseries.csv`/`resource_summary.json` | **违约**：判据③ 4/4 normalize、判据① 3/4 mosaic；mosaic 利用率 5.6–6.4%、io_wait 峰值 94.47%；Phase1 峰值 RSS 4.1–8.6 GB、斜率 45.1–77.5 MiB/s |
+
+**结论（须负责人知悉）**：注册的机器门是**合成/oracle 面**且全绿；**真实数据面没有任何注册门在跑**（PERF-001 指出程序内默认 `record_only`，注册表内无 `RESOURCE-GATE-REAL` 类项）。因此「L2 是否达标」目前只能靠手工复算，而手工复算结论为**违约**。⇒ 真实数据资源裁决点缺失本身是一条差距（归属：编排/观测面，与 P0-17 同源）。
