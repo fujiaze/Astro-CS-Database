@@ -28,6 +28,13 @@
 - **未落项（PARTIAL 原因）**：S2 的 2 项 P0（`DRIZZLE.md` §5 归一化与 §7 不变量互斥；`ASTROMETRY.md` §5a 1px 平移口径 vs Paper I/实现）位于**冻结科学文档**，按 ENGINEERING_SPEC §3 需走变更 claim + 一致性回归，本轮未改。
 - 前台修复的连带红：SCI-S2 新增引用触发 `DOC-INDEX` 与 `DOC-LINE-ANCHORS` 红 → 前台补登 `docs/DOCUMENT_INDEX.yaml` + 登记 1 条 `EXTERNAL_REFERENCE` 锚豁免（photutils 为外部实现未 vendor），复跑 CHK-DANGLING PASS、CHK-SCI-REF PASS(8/8)。
 
+### BLD-001 逐模块并行构建与冒烟
+
+- **前台独立复跑**：`cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release` rc=0 → `ninja -C build` rc=0（0 warning / 0 error）→ `ctest --test-dir build --output-on-failure` rc=0，**442 用例：430 通过 / 12 跳过 / 0 失败**，404.30 s（`run/RELEASE-01/logs/BLD-001/build_ctest.log`）。
+- **12 个跳过用例判定**（TST-001）：6 个属合理平台/硬件（无 AVX512F、CUDA/ACR dormant、有合成替代），6 个为真实 HiPS fixture-gated（原写死 Windows 路径，已由 F-02 改为可配置；fixture 需 P0-03 修复后才能生成）。
+- **资源门补跑（2026-09-18）**：`python3 ci/run_checks.py --check CHK-RESOURCE --quiet` → **PASS（11/11 步，0 失败）**（`run/RELEASE-01/logs/CHK-RESOURCE.log`）。其判据面为**合成/oracle**；真实数据面 L2 无注册门在跑（见 GAP_AUDIT §7.6），PERF-001 手工复算仍判违约。
+- **未达项**：验收门「机器门绿」不成立 —— `CHK-MODULE-MANIFEST` 红（负责人已裁决的临时红，P0-01）+ `CHK-REGISTRY-DOC-SYNC` 红（P0-16）+ `ENG-CONSTRAINTS` 红（U-1）+ `tests/quality/test_root_cleanliness.py` 1 failed（U-1 派生）。
+
 ### TST-001
 
 - 审查 442 ctest + Python 域；缺口矩阵按 7 类给出；12 个跳过用例判定：6 个合理（无 AVX512F / CUDA/ACR dormant / 有合成替代）、6 个因**硬编码 Windows 绝对路径**（`F:/Astro dev/...`）在 Linux 零执行；无 SKIP 充数。
