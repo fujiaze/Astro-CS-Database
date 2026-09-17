@@ -56,6 +56,21 @@ AstroCS 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal�
 
 Fruchter & Hook (2002)；Zackay & Ofek (2017)；IVOA HiPS 规范。
 
+## 参考文献（SCI-001-S2 补齐，含参考代码库与许可证）
+
+- Fruchter, A. S. & Hook, R. N. 2002, PASP 114, 144（DOI 10.1086/338393）：Drizzle 线性重建。
+- Zackay, B. & Ofek, E. O. 2017, ApJ 836, 187/188：多图像点源最优检测/测光与 proper coadd。
+- Horne, K. 1986, PASP 98, 609；Naylor, T. 1998, MNRAS 296, 339：最优提取与成像最优 PSF 光度。
+- Newberry, M. V. 1991, PASP 103, 122；Janesick, J. R. 2001, SPIE PM83：CCD 噪声/gain。
+- Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（SExtractor）：检测/背景/误差口径。
+- Greisen & Calabretta 2002, A&A 395, 1061；Calabretta & Greisen 2002, A&A 395, 1077：FITS WCS Paper I/II。
+- Górski, K. M. et al. 2005, ApJ 622, 759；Fernique, P. et al. 2015, A&A 578, A114：HEALPix/HiPS。
+- IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）与 IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）：HiPS/MOC 互操作。
+- Padmanabhan, N. et al. 2008, ApJ 674, 1217；Bertin, E. 2006, ASPC 351, 112（SCAMP）：相对光度联合定标。
+- Rosner, B. 1983, Technometrics 25, 165；Maples et al. 2018, ApJS 238, 2：ESD/RCR 排异。
+- 参考代码库（含许可证）：Astropy（BSD-3-Clause）、photutils（BSD-3-Clause）、astropy-healpix（BSD-3-Clause）、DrizzlePac（BSD-3-Clause）、ccdproc（BSD-3-Clause）、reproject（BSD-3-Clause）；SExtractor/PSFEx/SWarp/SCAMP（GPL-3.0）、healpy（GPL-2.0）、Siril（GPL-3.0）、LSST ip_isr（GPL-3.0）——GPL 代码只作行为对照，不复制进本仓；WCSLIB（LGPL-3.0）、CFITSIO（宽松许可）。完整清单与核验状态见 docs/references/SCIENTIFIC_REFERENCES.md §M。
+
+
 ## ID
 
 SCI-SCOPE-001（本文件范围/假设/失效域入口）；SCI-CAL-* / SCI-AST-* / SCI-PHOT-* / SCI-PSF-* / SCI-NOISE-* /

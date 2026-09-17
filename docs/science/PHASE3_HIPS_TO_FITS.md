@@ -182,6 +182,30 @@ coverage（SCI-FIX-PROJ 订正：与 §8「tile 内 NaN」行的互斥解除）:
    **Project-defined**（一般式与 DATA_SEMANTICS §3 冻结公式一致；W=512 ⇒ +9，支持子集收窄
    见 §4）。
 
+## 14b 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §5/§9a 任何公式、投影域与容差。
+
+- **HiPS 规范**：IVOA HiPS 1.0 Recommendation（https://www.ivoa.net/documents/HiPS/；最终 REC 2017-05-31，草案 PR-HiPS-1.0-20170406）。**§4.4.1 properties 键值（本轮核验）**：hips_version=1.4、hips_tile_width=512、hips_order；**hips_frame 标准值域 = {equatorial, galactic, ecliptic}**（真实 CDS 产品 DSS/2DSSColor、2MASS 实测 hips_frame=equatorial；本轮 web_fetch 逐字核验 2026-09-17）。**注**：本文件 §4 现行文本写“值域 {icrs, galactic, ecliptic} 且 equatorial 已废止”，方向与标准原文相反，已在 run/RELEASE-01/science/SCI-S2-topics.md §3-7 登记，待变更 claim 处理（公式/域条款本任务未改）。
+- **MOC**：IVOA MOC 1.0/2.0 Recommendation（https://www.ivoa.net/documents/MOC/）§4.3.1：uniq=4×4^order+index（write_moc_fits 的 ORDERING=NUNIQ/MOCORDER 依据）。
+- **HiPS 层级与目录**：Fernique, P. et al. 2015, A&A 578, A114（DOI 10.1051/0004-6361/201526075）§2/§3。
+- **HEALPix 几何**：Górski, K. M. et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；独立实现 astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）、healpy（GPL-2.0，只对照不复制）。
+- **FITS WCS**：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）§2.1.1；Calabretta & Greisen 2002, A&A 395, 1077（Paper II）§2.1/§2.2/Table 1；可执行标准 astropy 7.0.1（BSD-3-Clause）/WCSLIB（LGPL-3.0）。
+- **FITS 独立读取器**：CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- **order_needed/leaf_order=order_sel+log2(W)/sqrt(π/3) cell 宽度**：Project-defined（§5/§14 第 6 条），与 DATA_SEMANTICS §3 冻结公式一致。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- WCSLIB（LGPL-3.0）/ CFITSIO（宽松许可，NASA/HEASARC）：WCS 与 FITS 独立读取器。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
 ## 15 Acceptance
 
 - §11 Oracle 十二项全过且 Oracle 独立性成立（不调生产路径）；

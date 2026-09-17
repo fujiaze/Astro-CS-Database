@@ -78,3 +78,27 @@ G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-
 不改任何既有语义。
 
 > 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门不得引用表外阈值）。
+
+## 6 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现；§1–§5 语义与 ALG-STARDET-001 公式锚不变。
+
+- **阈值检测与去混叠**：Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（SExtractor；DOI 10.1051/aas:1996164）；源码 SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）detect.c/scan.c。**差异**：AstroCS 用 median+5σ 全局阈 + peaker 局部极大 + 去重，非 SExtractor 的阈值网格/去混叠，引用仅作方法学对照。
+- **质心估计（一阶矩/导数零交叉）**：Stetson, P. B. 1987, PASP 99, 191（DAOPHOT；DOI 10.1086/131977）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）centroid_sources 的 1D Gaussian / quadratic / com 估计器。
+- **椭圆高斯 LM 拟合**：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, Lecture Notes in Math. 630, 105；实现对照 GSL gsl_multifit_nlinear（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- **IIR 递归高斯平滑**：Young, I. T. & van Vliet, L. J. 1995, Signal Processing 44, 139。**核验状态**：文章级。
+- **SNR_peak 与门**：docs/algorithms/GATES_AND_TOLERANCES.md §2（本域唯一 SNR 定义）与 §3 门表。
+- **饱和/边缘处理**：无直接文献，Project-defined（ALG-STARDET-001 §2）；历史对照见 Stetson 1987 与 IRAF/DAOPHOT（IRAF/NOAO 许可，非 OSI）。
+- **与 PSF 侧的模型差**：检测侧椭圆高斯 FWHM=2.3548·σ 与 PSF 侧 Moffat4 FWHM=1.230310·σ 相差 1.9140×（DISP-STAR-007），两列不可跨块比较；Moffat 出处见 Moffat 1969, A&A 3, 455 与 docs/science/PSF.md §14。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

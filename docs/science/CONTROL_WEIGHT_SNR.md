@@ -128,3 +128,25 @@ for 每个控制星 s（半径内）:
 - 公开 API：见 `docs/TRACEABILITY.csv`；测试：见 `lib/algorithms/coverage/tests/synthetic_gate.cpp`
   （UPMW-* 权重相关）。
 - 权威文件：本文件 `docs/science/CONTROL_WEIGHT_SNR.md`（SCI-CW-001..008）。
+
+## 9 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §2a/§4 任何定义与权重语义。
+
+- **5σ 点源深度 m5**：Tonry, J. L. et al. 2012, ApJ 750, 99（Pan-STARRS 3π）；Huang, S. et al. 2017, ApJ 838, 110（HSC 深度）；Ivezić, Ž. et al. 2019, ApJ 873, 111（LSST 深度定义）。
+- **逐源最优提取 SNR_F=F/σ_F**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339。
+- **PixInsight PSFSNR/PSFSW 方法学**：PixInsight Reference, New Image Weighting Algorithms（https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html）。**核验状态**：方法学文档，未逐式核验常数。
+- **稳健噪声 MRS/N***：Starck & Murtagh 2006, Astronomical Image and Data Analysis, 2nd ed., Springer（ISBN 978-3-540-33023-3）。
+- **UNRESOLVED（两篇权威打架）**：本文件 §2a 把 frame_snr 定义为“相对质量权重场（不是科学信噪比）”，而 docs/design/UNIFIED_MODEL.md §2 数据对象表把 frame_snr 定义为“帧级未加权原始信噪比（真实 PSF 源信号功率/稳健噪声功率，方法学对标 PixInsight PSFSNR）”。两者语义互斥，且 docs/plugins/algorithms_phase1/07_noise_snr.md §4.1 采信后者。**登记 UNRESOLVED，上呈负责人裁决**（本任务不改公式）。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

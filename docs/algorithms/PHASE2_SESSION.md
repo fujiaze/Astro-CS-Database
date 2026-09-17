@@ -370,3 +370,22 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   （PHASE2_SAMPLER.md）/ ALG-UPM-001（UPM_SOLVER.md）。
 - 差距整改：§11.4（IMPL/INT）+ §11.3 DISP-P2SES-001..008；
   测试落地：P2-SESSION-TEST（§11.5）。
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- DAG/拓扑排序：Kahn 1962, Comm. ACM 5, 558（DOI 10.1145/368996.369025）；Cormen et al. 2009, Introduction to Algorithms 3rd ed., MIT Press, §22.4。
+- provenance/来源链：W3C PROV-DM（https://www.w3.org/TR/prov-dm/）；manifest 字段语义以 DATA_SEMANTICS 为准。
+- 内容寻址/哈希：Merkle 1988, Advances in Cryptology (CRYPTO 87), 369；SHA-256 NIST FIPS 180-4。
+- FITS checksum：FITS Standard 3.0 §5.5（DATASUM/CHECKSUM）；CFITSIO（宽松许可）。
+- 取消/生命周期语义：Project-defined（本文件 §5/§9）。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

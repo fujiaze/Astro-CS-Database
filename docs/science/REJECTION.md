@@ -163,6 +163,32 @@ large_scale 结构生长:
 3. `wbpp_2_9_1` auto 路由与阈值表：**采纳自 WBPP 2.9.1 `bestRejectionMethod` 源码**（非学术文献；对齐记录见 docs/development/CONFIG_SCHEMA.md#51 与 docs/science/REJECTION.md#40）。
 4. RCR：官方 RCR 2.4.7 软件参考（项目 oracle 锚定 `official rcr 2.4.7`，见 tools/assemble_v17_review_pkg.py 文献映射），非论文引用。
 
+## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §5 阈值表与 §10 禁改清单。
+
+- **Generalized ESD**：Rosner, B. 1983, Technometrics 25, 165-172（DOI 10.1080/00401706.1983.10487848，Crossref 逐字核验 2026-09-17）；独立可执行实现与临界值表见 NIST/SEMATECH e-Handbook of Statistical Methods §1.3.5.17/§7.1.6。
+- **六类排异核（sigma/winsorized/averaged-sigma/linear-fit/percentile/minmax）的祖先**：IRAF imcombine（reject=sigclip|avsigclip|pclip|lfitclip|minmax、winsorize 参数；IRAF/NOAO 许可，非 OSI）；可执行独立对照 ccdproc.combine（BSD-3-Clause，clip_extrema=IRAF-like minmax、sigma_clip_low/high_thresh）与 astropy SigmaClip（BSD-3-Clause）。**溯源注**：本文件 §5/§14 称阈值“采纳自 WBPP 2.9.1”，但代码语义注册表 rejection.cpp:1016-1021 为 *_SIRIL、注释 :1298/1398 与测试 :2903 均锚 Siril 1.4.3；“路由+阈值=WBPP，方法核=Siril”应在正文同处说明（见报告 §3-24）。
+- **预测残差方差阈值/最优检验（若采用）**：Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27）。
+- **RCR（Robust Chauvenet Rejection）**：**论文出处补齐**——Maples, M. P., Reichart, D. E., Konz, N. C., et al. 2018, ApJS 238, 2（DOI 10.3847/1538-4365/aad23d；arXiv:1807.05276）；后续方法学 Konz, N. & Reichart, D. E. 2023, arXiv:2301.07838。现行 §14 第 4 条只登记“官方 RCR 2.4.7 软件参考”，缺该论文引用。
+- **winsorization 与稳健尺度**：Hoaglin, Mosteller & Tukey (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）。
+- **Tukey biweight/bisquare**：Beaton & Tukey 1974, Technometrics 16, 147（DOI 10.1080/00401706.1974.10489171）。
+- **clipped-mean 叠加与 PSF 差异伪影**：Gruen, D., Seitz, S. & Bernstein, G. M. 2014, PASP 126, 158。
+- **开源对照**：Siril（GPL-3.0，https://gitlab.com/free-astro/siril）stacking/rejection 文档；PixInsight WBPP bestRejectionMethod 与 ImageIntegration 参考文档（非学术软件来源，AstroCS 自认）。
+- **已知缺陷（SC-005，未修复）**：percentile 的 scale=|median| 在近零天光上塌缩（§8a），属真实缺陷，不由 §4 容错掩盖；本任务只登记事实与影响面。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- WCSLIB（LGPL-3.0）/ CFITSIO（宽松许可，NASA/HEASARC）：WCS 与 FITS 独立读取器。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
 ## 15 Acceptance
 
 - §11 Oracle 全过（以 §11 列门为准：各方法已知 inlier/outlier 注入的 reject set 解析一致）；

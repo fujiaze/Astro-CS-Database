@@ -217,6 +217,30 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 2. Calabretta & Greisen 2002, A&A 395, 1077（Paper II，[A&A 全文](https://www.aanda.org/articles/aa/full/2002/45/aah3860/aah3860.right.html)）：天球坐标实现与 TAN 投影——文章级定位（§5 TAN 语义为 Project-defined）。
 3. Shupe et al. 2005, ASPC 347, 491（SIP畸变约定，bibcode 2005ASPC..347..491S）：SIP A/B/AP/BP 来源——文章级定位（bibcode 级，未逐页核验）。
 
+## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §5/§5a/§11a 任何公式、常数与容差。
+
+- **WCS 框架与 1-based CRPIX/CRVAL**：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（Paper I；DOI 10.1051/0004-6361:20021326，arXiv:astro-ph/0207407 逐字核验 2026-09-17）§2.1.1 式(1) q_i=Σ_j m_ij(p_j−r_j)（r_j=CRPIX_j）与 §2.1.4（整数像素号=像素中心，首像素 0.5→1.5）。**据此，CRPIX 处 world==CRVAL 在 1-based 下无需额外 +1**；本文件 §5a 的“0-based/常量 1px 平移”叙述与 Paper I 及实现（ipv_wcs.cpp:944-945 out.x=u+CRPIX）不符，已在 run/RELEASE-01/science/SCI-S2-topics.md §3-2 登记（finding WCS-003-F1），待变更 claim 处理。
+- **TAN 投影与 celestial↔native 旋转/LONPOLE**：Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（Paper II）§2.1/§2.2/Table 1。
+- **SIP A/B/AP/BP 约定**：Shupe, D. L. et al. 2005, ASP Conf. Ser. 347, 491（bibcode 2005ASPC..347..491S）。**核验状态**：bibcode 级。
+- **可执行标准与独立 Oracle**：WCSLIB（LGPL-3.0，官方 https://www.atnf.csiro.au/people/mcalabre/WCS/ ；镜像 Punzo/wcslib SPDX=LGPL-3.0）；astropy.wcs（BSD-3-Clause，https://github.com/astropy/astropy）≥7.0.1；ERFA（BSD-3-Clause 类，liberfa/erfa）。
+- **多帧天体/光度联合校准实践**：SCAMP（GPL-3.0，https://github.com/astromatic/scamp；论文 Bertin 2006, ASPC 351, 112）；Astrometry.net（https://astrometry.net，许可证**需网络核验**）。
+- **Gaia 参考星表与 ICRS/J2000**：Gaia Collaboration et al. 2016, A&A 595, A1（DR1）；2018, A&A 616, A1（DR2）；2021, A&A 649, A1（EDR3）；2023, A&A 674, A1（DR3）。**核验状态**：文章级；本合同只消费星表数值。
+- **极区保守剪枝/球面 bbox**：Project-defined（§8/§11）；球面几何基元可对照 astropy/ERFA 的独立实现。
+- **Y-up↔Y-down 与 |det(CD)| 不变量**：Paper I §2.1.1 的像素/世界定义 + Project-defined 符号规则（§5）。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
 ## 15 Acceptance
 
 - §11 Oracle 全过：Astropy 前向/逆向 `‖Δx‖<1e-4 px`、往返 `≤1e-4 px`（独立密集域，§11）、极区 `false_negative=0`；

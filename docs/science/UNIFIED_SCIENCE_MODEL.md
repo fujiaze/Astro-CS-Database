@@ -109,3 +109,26 @@ Phase2→Phase3：surface-brightness 和/或 point-source 产品族、variance/c
 - 像素 ivar average 对任意 PSF 点源目标都最优；
 - variance 足以描述所有 Drizzle 相关噪声；
 - 一帧内 SNR 无条件常数。
+
+## 12 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §2–§11 任何定义。
+
+- **线性观测模型 d=A x+n、Cov(n)=C**：教科书级（如 Kay, S. M. 1993, Fundamentals of Statistical Signal Processing: Estimation Theory, Prentice Hall；Rodgers, C. D. 2000, Inverse Methods for Atmospheric Sounding, World Scientific）。
+- **点源最优统计 Q/W、Fisher information**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339；Zackay & Ofek 2017, ApJ 836, 187。
+- **广义最小二乘 x̂=(AᵀC⁻¹A)⁻¹AᵀC⁻¹d、Cov=(AᵀC⁻¹A)⁻¹**：Aitken, A. C. 1935, Proc. Roy. Soc. Edinburgh 55, 42（GLS 原始出处）；教科书级。
+- **C_out=R C_in Rᵀ**：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II, ApJ 836, 188。
+- **5σ 深度 m5**：Tonry et al. 2012, ApJ 750, 99；Ivezić et al. 2019, ApJ 873, 111。
+- **UNRESOLVED（跨文档口径冲突）**：本文件 §3 表的 frame_snr（未加权原始信噪比）与 docs/science/CONTROL_WEIGHT_SNR.md §2a（相对质量权重，非科学信噪比）互斥；本文件 §2 的 sky_plane（稀疏样条天光面）与 docs/science/PHASE2_UPM.md §1/§5（纯加性 8×8 control cell，乘性尺度已撤销）模型不同。前者属“目标规范 vs 现行冻结”的设计-实现差，后者属同一字段语义冲突。**登记 UNRESOLVED，上呈负责人裁决**（本任务不改公式）。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

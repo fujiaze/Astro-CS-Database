@@ -223,6 +223,29 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 8. **FITS Standard 3.0 §4.2.1/§4.3**（`BSCALE`/`BZERO`：物理值 = `BSCALE·样本 + BZERO`；16 位相机 `BZERO=32768` 伪无符号约定）。本仓真实亮场（T2/T4）实测 `BITPIX=16, BZERO=32768`，读入域 [0,65535] ADU——这就是亮场一侧的"ADU 域"定义。
 9. IRAF `ccdproc`/`zerocombine` 家族（NOAO/IRAF：zero → dark → flat 的经典归约顺序，dark 帧先在 zero 校正后合并）。**本次核验状态**：`iraf.net` 帮助页对本节点返回 403（Cloudflare 人机校验），**未能逐字取原文**；因此本文只按 ccdproc 文档中明示的 IRAF 等价关系（"Those transitioning from IRAF to ccdproc … BIASSEC and TRIMSEC conventions"）与经典实践引用，不作为冻结判据的唯一来源（冻结判据以第 4、5 条为准）。
 
+## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §5/§9 任何公式、常数与容差。原有 §14 条目继续有效。
+
+- **母版约定（master_dark 已减 bias、dark 按曝光比缩放、flat 最后除）**：ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）reduction_toolbox/subtract_dark；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）isrFunctions.py 的 biasCorrection/darkCorrection/flatCorrection。仅行为对照。
+- **探测器噪声/gain/read noise**：Janesick 2001（SPIE PM83）Ch.2；Newberry 1991 PASP 103, 122；Howell, S. B. 2006, Handbook of CCD Astronomy, 2nd ed., CUP（ISBN 978-0-521-85215-9）Ch.4。
+- **MAD→σ 常数 1.482602218505602 = 1/Φ⁻¹(3/4)**：标准正态分位恒等式（教科书级）；稳健性与有限样本校正见 Rousseeuw, P. J. & Croux, C. 1993, J. Am. Stat. Assoc. 88, 1273（DOI 10.1080/01621459.1993.10476408）。**核验状态**：文章级（卷页），未逐式核验。
+- **flat-field 像素响应与低频边界**：HST ACS Data Handbook §4.4；IRAF ccdproc/zerocombine 归约顺序（IRAF/NOAO 许可，非 OSI 开源）。
+- **FITS BSCALE/BZERO 与伪无符号**：FITS Standard 3.0 §4.2.1/§4.3；CFITSIO（CFITSIO 宽松许可，NASA/HEASARC）作独立读取器 Oracle。
+- **XISF bounds 与 65535 换算**：XISF 1.0 Spec（PixInsight；PCL 为自定义 source-available 许可，https://gitlab.com/pixinsight/PCL）。**只作声明制换算因子的取证来源，不复制**。
+- **母版相关性/母版方差传播（当前缺口，登记 UNRESOLVED）**：本层 §9 明确“不传播母版方差至 cal”，而 docs/design/UNIFIED_MODEL.md §6 要求 master calibration 参数不确定度进入 variance/covariance。当前无实现证据，也无项目内冻结公式；建议按“有限母版帧数 ⇒ 母版方差 σ²/N_master + 与科学帧共享的相关系统项”建模，并把该项写入低秩 covariance/provenance。可对照 ccdproc/ip_isr（二者同样不传播母版方差，属行业普遍简化）与 Howell 2006 Ch.4 的校准误差预算讨论。**证据不足，不得自行定论。**
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
 ## 15 Acceptance
 
 - §11 Oracle 全过（解析解 max_abs==0、NumPy FP32 rtol=1e-6/atol=1e-7）；

@@ -839,6 +839,9 @@ doc_index:
     - path: "docs/plugins/infrastructure/23_hips_browser.md"
       status: ACTIVE_NORMATIVE
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
+    - path: "docs/research/SNR_WEIGHT_RESEARCH_PACK.md"
+      status: ACTIVE_NORMATIVE
+      notes: "研究包（AGENTS §1.8 必读面；RELEASE-01 文档包新增，DOC-001 补登）"
   archived:
     - path: "docs/archive/HANDOVER.md"
       status: ARCHIVED_NON_NORMATIVE
