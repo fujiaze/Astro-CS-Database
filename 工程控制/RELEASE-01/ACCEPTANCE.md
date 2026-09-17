@@ -32,6 +32,7 @@
 
 - **前台独立复跑**：`cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release` rc=0 → `ninja -C build` rc=0（0 warning / 0 error）→ `ctest --test-dir build --output-on-failure` rc=0，**442 用例：430 通过 / 12 跳过 / 0 失败**，404.30 s（`run/RELEASE-01/logs/BLD-001/build_ctest.log`）。
 - **12 个跳过用例判定**（TST-001）：6 个属合理平台/硬件（无 AVX512F、CUDA/ACR dormant、有合成替代），6 个为真实 HiPS fixture-gated（原写死 Windows 路径，已由 F-02 改为可配置；fixture 需 P0-03 修复后才能生成）。
+- **ctest 复跑（2026-09-18，激活 5 个零注册 aio 测试后）**：`ctest --test-dir build` → **447 用例 100% 通过，0 失败**（`run/RELEASE-01/logs/ctest_after_aio_reg.log`）。新增 5 个均为**真实产品面**验证（链接 `astrocs_hips`）：`aio_checksum`（49/0，含 CRC32C Castagnoli 标准向量）、`aio_tile_model`（67/0）、`aio_transform`（75/0/2 skip）、`aio_query_pixel`、`aio_precision_dual`。发现 `lib/infrastructure/aio/tests/` 顶层 20 个测试源**零 CMake 注册**（TST-001 记「8 枚」为低估）；未注册的 3 个及原因见 GAP_AUDIT §7.9。
 - **ctest 复跑（2026-09-18，修 7 处写死 `/tmp` 后）**：`ctest --test-dir build` → **442 用例 100% 通过，0 失败**（`run/RELEASE-01/logs/ctest_final_tmpfix.log`）。复跑须知：`TMPDIR` 必须置于**源码树外**（profile store 有源码树防线，置于树内会使 `cpu007_profile_store` 判红——按设计工作，已双向对照证明与「路径含空格」无关），且本机 `/tmp` 悬空，建议 `TMPDIR=/dev/shm/astrocs_tmp`。详见 GAP_AUDIT §7.8。
 - **资源门补跑（2026-09-18）**：`python3 ci/run_checks.py --check CHK-RESOURCE --quiet` → **PASS（11/11 步，0 失败）**（`run/RELEASE-01/logs/CHK-RESOURCE.log`）。其判据面为**合成/oracle**；真实数据面 L2 无注册门在跑（见 GAP_AUDIT §7.6），PERF-001 手工复算仍判违约。
 - **未达项**：验收门「机器门绿」不成立 —— `CHK-MODULE-MANIFEST` 红（负责人已裁决的临时红，P0-01）+ `CHK-REGISTRY-DOC-SYNC` 红（P0-16）+ `ENG-CONSTRAINTS` 红（U-1）+ `tests/quality/test_root_cleanliness.py` 1 failed（U-1 派生）。
