@@ -113,9 +113,12 @@
 
 | # | 缺陷 | 发现 | 处置 | 复验 |
 |---|---|---|---|---|
+| F-02 | 测试代码**写死机器绝对路径** `F:/Astro dev/Astro CS Normalization Database/run/temp/phase1_freeze`（违反 AGENTS §3「不得写死服务器绝对路径」），导致 6 个真实 HiPS 用例在 Linux 零执行 | TST-001 | 前台修复：新增 `phase1_fixture_root()`/`phase1_tmp_root()`，优先读环境变量 `ASTROCS_PHASE1_FREEZE_DIR`/`ASTROCS_PHASE1_TMP_DIR`，默认仓库相对 `run/temp/phase1_freeze`；skip 消息改为可执行的提供方式；去掉 `F:/definitely/not/a/hips` 这类平台相关坏路径 | ① `grep -rn 'F:/Astro dev' lib/algorithms/coverage/tests/*.cpp` → NONE；② 负例注入：`ASTROCS_PHASE1_FREEZE_DIR=<fake>` 下 `RealHipsUnion` **不再 SKIP 而是执行并 FAIL** ⇒ 环境变量确被读取；③ `ctest -R 'phase2_synthetic_gate|phase2_sampler_parallel'` → **101/101 通过，0 失败**（`phase2_synthetic_gate` 99 用例：89 通过 / 10 跳过 / 0 失败） |
 | F-01 | `ci/verify_toolchain.py` **fail-open**：lock/policy 缺件或不可解析时打印 `[FAIL]` 但 `exit 0`（违反 ENGINEERING_SPEC §8） | TST-001 | 前台修复：`if __name__ == "__main__": sys.exit(main())` | 缺件 → `rc=1`（订正前 rc=0）；CHK-ENV-ADOPTION 仍 PASS；负例锁定 `tests/quality/test_env_adoption_negative.py`（10 passed） |
 
 ### 7.4 另记（非差距，但影响判读）
 
 - **文档↔仓库口径冲突**：DOC-002 查出 7 项代码不一致 + `config_registry.json` 95 条行锚中 23 条失配（`07_noise_snr` +27、`10_sampling` +33、`11_upm` +38 且 `bkg_model_order` 字段在文档中不存在、`19_runtime` +34、`22_gaia` +22~25），行锚漂移面属 `config/`+`contracts/` 只读域，待分派。
 - **运行产物面**：run-trace / artifact-manifest / run-summary / run-graph 四类输出在文档中要求但实现为 NOT_IMPLEMENTED（AUD-A4 U-1）。
+- **fixture 面（F-02 后续，前台已查证）**：6 个真实 HiPS 用例现在**可通过环境变量提供 fixture 而无需改代码**，但**当前管线无法自行生成该 fixture**：Phase1 不产出 `snr` 子产品（`lib/phase1_session/p1_session.cpp:493` 将 `noise_snr` 标为 `unavailable`；实测 `p1_final.json` `products=["signal","support"]`），而 `Phase2Sampler.RealHipsControlSampling`/`G6LocalSnrAvailabilityThreeZones` 断言 `snr_used>0`；HiPS writer 支持的产品集为 `{signal,support,snr,variance,ivar}`（`lib/algorithms/drizzle/hips/src/module_entry.cpp:1061`）。⇒ **该 fixture 无法在修复 P0-03（帧级 SNR/不确定度产品链）之前重建**；两处断言与 P0-03 同源，不得以"补 fixture"绕过。
+- **环境面（影响复现，非产品缺陷）**：本轮构建/链接期间 `/tmp` 不可写（`Cannot create temporary file in /tmp/`），前台改用工作区内 `TMPDIR=<repo>/run/tmp` 完成构建；复跑者若遇同样报错，请先确认 `/tmp` 可写或显式设置 `TMPDIR`。

@@ -33,6 +33,9 @@
 - 审查 442 ctest + Python 域；缺口矩阵按 7 类给出；12 个跳过用例判定：6 个合理（无 AVX512F / CUDA/ACR dormant / 有合成替代）、6 个因**硬编码 Windows 绝对路径**（`F:/Astro dev/...`）在 Linux 零执行；无 SKIP 充数。
 - 发现并（前台）修复 1 项 P1 缺陷：`ci/verify_toolchain.py` fail-open（打印 [FAIL] 却 exit 0）→ 加 `sys.exit(main())`；负例锁定 `tests/quality/test_env_adoption_negative.py`（10 passed）；复跑 CHK-ENV-ADOPTION PASS。
 - **PARTIAL 原因**：46 个注册检查中仅 11 项自带可执行负例（19 项负例是人工说明、1 项无 polarity 记录、9 项借壳），未补齐；另登记 15 项缺陷/缺口（P0 3）。
+- **本轮闭合 1 项（F-02）**：6 个真实 HiPS 用例写死 Windows 绝对路径 `F:/Astro dev/...`（违反 AGENTS §3）→ 前台改为环境变量 `ASTROCS_PHASE1_FREEZE_DIR`/`ASTROCS_PHASE1_TMP_DIR`（默认仓库相对路径）。**复验**：`grep` 零命中；负例注入下 `RealHipsUnion` 由 SKIP 变为执行并 FAIL（证明环境变量生效）；`ctest -R 'phase2_synthetic_gate|phase2_sampler_parallel'` **101/101 通过 0 失败**。
+  该 6 用例仍为 fixture-gated：**当前管线无法生成该 fixture**（Phase1 不产 `snr` 子产品，`p1_session.cpp:493`；而 2 个用例断言 `snr_used>0`），与 P0-03 同源，登记于 GAP_AUDIT §7.4。
+- **环境注记**：本轮构建时 `/tmp` 不可写，改用工作区 `TMPDIR`；复跑者需注意。
 
 ### E2E-001（L4 R 通道全量）
 
