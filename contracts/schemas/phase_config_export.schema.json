@@ -156,7 +156,7 @@
             "cea",
             "zea"
           ],
-          "description": "投影选择，缺省 TAN（ASTROCS_DESIGN.md §5.3:264-266；docs/plugins/algorithms_phase3/14_projection.md:31）"
+          "description": "投影选择，缺省 TAN（ASTROCS_DESIGN.md §5.3:264-266；docs/plugins/algorithms_phase3/14_projection.md:34）"
         },
         "center_deg": {
           "type": "array",
@@ -195,7 +195,7 @@
         },
         "rotation_deg": {
           "type": "number",
-          "description": "旋转角（若用 CD）；默认 0（docs/plugins/algorithms_phase3/14_projection.md:35）"
+          "description": "旋转角（若用 CD）；默认 0（docs/plugins/algorithms_phase3/14_projection.md:38）"
         },
         "crpix_px": {
           "type": "array",
@@ -209,7 +209,7 @@
               "type": "number"
             }
           ],
-          "description": "参考像素（FITS 1-based）；缺省=中心（docs/plugins/algorithms_phase3/14_projection.md:32）"
+          "description": "参考像素（FITS 1-based）；缺省=中心（docs/plugins/algorithms_phase3/14_projection.md:35）"
         }
       }
     },

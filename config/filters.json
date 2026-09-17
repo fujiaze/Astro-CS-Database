@@ -717,14 +717,14 @@
     "non_key_examples": [
       {
         "literal": "bader r",
-        "where": "ASTROCS_DESIGN.md:128",
+        "where": "ASTROCS_DESIGN.md:130",
         "kind": "design_doc_illustration",
         "resolution": "ERROR",
         "note": "设计文档 §3.3 输入示例串，与本库键 'Baader R' 拼写不同形（bader vs Baader）：仅折叠大小写/空白仍不相等，因此任何「轻量归一化」都不能把它变成合法键；按 resolution_rule 判 ERROR。该示例只示意「型号名」这一概念，不是合法输入值。"
       },
       {
         "literal": "bader v",
-        "where": "ASTROCS_DESIGN.md:130",
+        "where": "ASTROCS_DESIGN.md:132",
         "kind": "design_doc_illustration",
         "resolution": "ERROR",
         "note": "同上；且本库 45 条曲线中不存在 Baader V 曲线（Baader 品牌只有 B/G/R/UV-IR Cut L CMOS Optimized/7nm H-alpha/8.5nm OIII 六条），故该示例既不能按字面命中，也不存在可归一化到的键。"
