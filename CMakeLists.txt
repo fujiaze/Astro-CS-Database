@@ -451,6 +451,23 @@ target_include_directories(astrocs_phase2 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared)
 target_link_libraries(astrocs_phase2 PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips)
 
+# lib/algorithms/coverage · Phase3 HIPS properties 解析器 (W8 / W4-A9 批次 4)
+# 原 lib/phase3_session/hips_properties.{h,cpp} (ASTROCS_DESIGN §7.1 无独立 hips 行;
+# coverage 承接 HIPS 产品结构面 —— 前台 2026-09-17 裁决)。独立成库以解
+# 「astrocs_p3_rsmp ⇄ astrocs_phase3_session」链接环: 该解析器不依赖任何 phase3
+# 目标 (头仅 <cstddef>/<string>), 由 resample 模块与会话库同时依赖。
+# 根声明 (非 coverage/CMakeLists.txt) 与 astrocs_phase2 同例, 遵 BLD-002。
+if(NOT TARGET astrocs_hips_properties)
+  add_library(astrocs_hips_properties STATIC
+    lib/algorithms/coverage/hips_properties.cpp)
+  target_include_directories(astrocs_hips_properties PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage)
+  target_link_libraries(astrocs_hips_properties PUBLIC astrocs_common)
+  set_target_properties(astrocs_hips_properties PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON)
+endif()
+
 # lib/algorithms/drizzle/healpix_drizzle
 add_library(astrocs_drizzle STATIC
   lib/algorithms/drizzle/healpix_drizzle/fits_reader.cpp
@@ -638,14 +655,12 @@ add_library(astrocs_phase3_session STATIC
   # W4-A9 批次 1: p3_wcs.cpp 已迁 lib/algorithms/projection/ (ASTROCS_DESIGN §7.1
   # 「projection」行; 由 add_subdirectory(lib/algorithms/projection) 的
   # astrocs_p3_projection_wcs 声明, 经本库 target_link_libraries 进闭包)。
-  # W4-A9 批次 2: p3_resample.cpp 文件已迁 lib/algorithms/resample/ (同 §7.1
-  # 「resample」行); 编译单元成员关系暂留本库 —— 该源依赖 hips_properties_parse
-  # (本库 hips_properties.cpp) 与 aio_hips_* (astrocs_hips), 单独成库会与本库成
-  # 链接环; 批次 4 hips_properties* 迁 lib/algorithms/coverage/ 后随 resample 模块收口。
   # W4-A9 批次 3: p3_output.cpp 已迁 lib/algorithms/fits_output/ (同 §7.1「fits_output」
   # 行; astrocs_p3_fits_output 声明, 经下方链接闭包进产品图)。
-  lib/algorithms/resample/p3_resample.cpp
-  lib/phase3_session/hips_properties.cpp)
+  # W8 (批次 4): p3_resample.cpp 编译单元归位 astrocs_p3_rsmp (resample 模块, 见
+  # lib/algorithms/resample/CMakeLists.txt); hips_properties.cpp 迁
+  # lib/algorithms/coverage/ 独立成库 astrocs_hips_properties (解环, 见上)。
+  )
 target_include_directories(astrocs_phase3_session PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase3_session
   # W4-A9 批次 1: p3_wcs.h 迁 projection; 会话层 p3_session.cpp / p3_output.h 仍以
@@ -663,7 +678,7 @@ target_include_directories(astrocs_phase3_session PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
   ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_aio astrocs_common
-  astrocs_p3_projection_wcs astrocs_p3_fits_output)
+  astrocs_p3_projection_wcs astrocs_p3_fits_output astrocs_p3_rsmp astrocs_hips_properties)
 
 # lib/infrastructure/cli: 子命令模块注册 (INT-001 W4-A9 接线步 1/3)。
 # CLI-001 交付的 header-only 命令编排层 (command_tree/session_commands/subcommand +
