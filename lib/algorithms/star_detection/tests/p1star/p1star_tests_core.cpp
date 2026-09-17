@@ -631,7 +631,9 @@ int test_negative() {
     std::vector<long> checkpoints;   // rc=-1 事务化检查点
     std::vector<long> gaps;          // rc=0 非必需分配
     std::vector<long> aborts;        // 134 定义性终止 (STL/GSL 内部)
-    char total_path[] = "/tmp/astrocs_p1star_oom_total.txt";
+    // OOM_TOTAL 落盘路径：不写死 "/tmp"（Windows 无此路径；宿主 /tmp 可能不可写 —— AGENTS §3）。
+    // 用当前工作目录相对路径（ctest WORKING_DIRECTORY 保证可写），父子进程共享 cwd。
+    char total_path[] = "astrocs_p1star_oom_total.txt";
     {
         OomProbe g = oom_probe_once(-1, total_path);
         P1STAR_CHECK_EQ(cs, g.shell_rc, 0, "oom_total_probe_rc");

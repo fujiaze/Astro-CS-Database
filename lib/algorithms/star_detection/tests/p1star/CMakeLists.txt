@@ -110,8 +110,16 @@ file(GENERATE OUTPUT ${P1STAR_LAUNCHER}
 # P1-STAR-TEST negative launcher: OOM interposer + 单线程 malloc 序确定性
 # LD_PRELOAD 无法携带含空格路径 (glibc ld.so 按空格分词, 无转义机制) →
 # 运行时把 .so 复制到无空格临时目录再预载; 探测子进程 execv 继承该值
-OOMDIR=/tmp/astrocs_p1star
-mkdir -p \"\$OOMDIR\" && cp \"$<TARGET_FILE:p1star_oom_interposer>\" \"\$OOMDIR/sdet_oom_interposer.so\" &&
+# 临时根不写死 /tmp (Windows 无此路径; 宿主 /tmp 可能不可写 —— AGENTS §3):
+# 依次尝试 ASTROCS_TEST_TMPDIR / TMPDIR / /dev/shm / /tmp, 取第一个可写且无空格的。
+OOMDIR=\"\"
+for d in \"\$ASTROCS_TEST_TMPDIR\" \"\${TMPDIR:-}\" /dev/shm /tmp; do
+  [ -n \"\$d\" ] || continue
+  case \"\$d\" in *\" \"*) continue;; esac
+  if mkdir -p \"\$d/astrocs_p1star\" 2>/dev/null && [ -w \"\$d/astrocs_p1star\" ]; then OOMDIR=\"\$d/astrocs_p1star\"; break; fi
+done
+[ -n \"\$OOMDIR\" ] || { echo 'p1star_negative: no writable space-free temp dir' >&2; exit 1; }
+cp \"$<TARGET_FILE:p1star_oom_interposer>\" \"\$OOMDIR/sdet_oom_interposer.so\" &&
   export LD_PRELOAD=\"\$OOMDIR/sdet_oom_interposer.so\"
 export OMP_NUM_THREADS=1
 cd \"\$1\" && shift

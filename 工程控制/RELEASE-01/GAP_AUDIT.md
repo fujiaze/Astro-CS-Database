@@ -190,3 +190,24 @@
 | `tests/unit/io_adapter_test.cpp` | :30 | 注释已承认 MSVC 下 `/tmp` 解析到当前盘根不存在 |
 
 处置建议：统一改为「`std::filesystem::temp_directory_path()` 优先、失败回落工作目录」或 ctest 提供的 per-test 工作目录；归属测试面（与 P0-18 同族）。本轮只修了**当前实际判红**的那一处，其余登记待分派（未在 `/tmp` 不可写时暴露，因为其断言不依赖重定向成功）。
+
+### 7.8 写死 `/tmp` 的批量硬化（前台修复 + 全量复验，2026-09-18）
+
+**驱动**：宿主 `/tmp` 悬空（§7.7）使 7 个用例实际判红。逐一定位根因后按「优先 `ASTROCS_TEST_TMPDIR` → 系统临时目录 → 当前工作目录」的可配置顺序修复：
+
+| 根因文件 | 位置 | 影响的用例 | 处置 |
+|---|---|---|---|
+| `lib/infrastructure/aio/tests/p1hips/p1hips_oracle.hpp` | :366 `mkdtemp("/tmp/p1hips_…")` | `p1hips_units/properties/oracle/negative/selfcheck`（5 个） | `make_tmp_dir()` 改为多候选根，逐候选尝试 `mkdtemp` |
+| `tests/unit/drizzle_adapter_impl.cpp` | :222 `mkdtemp("/tmp/drz_adapter…")` | `drizzle_adapter` | 同上（多候选根） |
+| `lib/algorithms/star_detection/tests/p1star/CMakeLists.txt` | 生成 launcher 内 `OOMDIR=/tmp/astrocs_p1star` | `p1star_negative` | launcher 改为遍历 `ASTROCS_TEST_TMPDIR`/`TMPDIR`/`/dev/shm`/`/tmp`，取**可写且无空格**者（LD_PRELOAD 不能带空格）；全失败则显式报错退出 |
+| `lib/algorithms/star_detection/tests/p1star/p1star_tests_core.cpp` | :634 `OOM_TOTAL=/tmp/astrocs_p1star_oom_total.txt` | `p1star_negative` | 改为当前工作目录相对路径（父子进程共享 cwd） |
+
+**复验（前台独立跑）**：
+- 修复前该 7 个用例红；修复后 **7/7 绿**；
+- 全量 `ctest --test-dir build`（`TMPDIR` 置于源码树外）：**442 用例 100% 通过，0 失败**（`run/RELEASE-01/logs/ctest_final_tmpfix.log`）。
+
+**两条必须记录的复跑须知**：
+1. `TMPDIR` **不得设在源码树内**：`save_profile_atomic_v1` 有**源码树防线**（`profile_store.cpp:147-161`，逐级向上找 `CMakeLists.txt`/`.git` 即拒），把 `TMPDIR` 设成 `<repo>/run/tmp` 会让 `cpu007_profile_store` 判红——**这是防线按设计工作，不是缺陷**（已用「源码树外 + 含空格路径」与「源码树外 + 无空格路径」双向对照证明：空格无影响，唯一变量是是否在源码树内）。
+2. 本机 `/tmp` 悬空，故推荐 `TMPDIR=/dev/shm/astrocs_tmp`（或任一源码树外可写目录）。
+
+**剩余同类 P1（本轮未改，未在本机暴露为红）**：`pipeline_frame_contract_test.cpp`（:55,65,66,71,72,76,77）、`sanitize_driver.cpp`（:61,62）、`p2_workers_test.cpp`（:54,55）、`v6_aio_test.cpp`（:737）、`rt008_runtime_client_test.cpp`（:18）、`io_adapter_test.cpp`（:30，注释已承认 MSVC 下会失败）。这些**当前绿**（其断言不依赖写入成功），但同为写死路径，建议按同一模式硬化后交复验。

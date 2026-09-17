@@ -12,6 +12,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <system_error>
 #include <string>
 #include <vector>
 
@@ -219,8 +221,25 @@ static int drz_bitwise_drizzle(acs_module_instance_v1* inst,
 
     /* plugin: 临时 hips_dir (hp_drizzle_run_hips 语义: 直写 HiPS 产品集,
      * hips_dir 必填 (-12); legacy_hiss_path 可选, 不传) */
-    char dtmpl[] = "/tmp/drz_adapter_test_hips_XXXXXX";
-    char* hips_dir = mkdtemp(dtmpl);
+    /* 临时 hips_dir：不写死 "/tmp"（Windows 无此路径；系统临时目录可能不可写）。
+     * 依次尝试 ASTROCS_TEST_TMPDIR / 系统临时目录 / 当前工作目录。 */
+    char dtmpl[512];
+    char* hips_dir = nullptr;
+    {
+        std::vector<std::string> roots;
+        if (const char* e = std::getenv("ASTROCS_TEST_TMPDIR"); e && *e) roots.push_back(e);
+        std::error_code ec;
+        const auto sys = std::filesystem::temp_directory_path(ec);
+        if (!ec) roots.push_back(sys.string());
+        roots.push_back(".");
+        for (const auto& base : roots) {
+            std::string t = base + "/drz_adapter_test_hips_XXXXXX";
+            if (t.size() >= sizeof(dtmpl)) continue;
+            std::snprintf(dtmpl, sizeof(dtmpl), "%s", t.c_str());
+            hips_dir = mkdtemp(dtmpl);
+            if (hips_dir) break;
+        }
+    }
     if (!hips_dir) return 0;
 
     std::string manifest = drz_build_drizzle_manifest(img, W, H);
