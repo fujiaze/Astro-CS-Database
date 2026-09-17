@@ -82,3 +82,40 @@
 | B-4 | Alpha 前产物不含版本信息；发布时 `--version` = `0.1alpha`（§12） | `./build/astrocs --version` → `0.11.0-alpha.2+g41b41e2d…` | **不对应** → P0-15 |
 | B-5 | 单一资源调度器与线程预算源（§8） | OpenMP 22 处；`tools/arch/check_thread_budget.py` 自述 scheduler per-run 池与 executor 共享池并存 → 同 run 上界≈2×budget | **不对应** → P1（A4-12） |
 | B-6 | 数据对象按 UNIFIED_MODEL 区分（frame_snr/sky_samples/sky_plane） | `grep -rIl sky_plane lib/ contracts/ config/` → 0 | **不对应** → P0-08/09 |
+
+## 7. 第二轮补充（PERF-001 / TST-001 / SCI-001-S2 增量，前台已复核）
+
+### 7.1 新增 P0（2 条，去重后编号续 §1）
+
+| # | 模块/条款 | 差距类型 | 级别 | 文档条款引用 | 现状复现路径 | 建议归属 | 状态 |
+|---|---|---|---|---|---|---|---|
+| P0-17 | 性能：G-RES-01 enforce | 违规 | P0 | ACCEPTANCE_SPEC L2（G-RES-01 判据①②③ enforce）；ASTROCS_DESIGN §8 | PERF-001 复算：判据③ **4/4 normalize 违约**、判据① **3/4 mosaic 违约**；mosaic 16 核配额下利用率 **5.6–6.4%**、active_compute_threads p50=1–2、io_wait 峰值 **94.47%**；Phase1 峰值 RSS 4.1–8.6 GB、稳健斜率 **45.1–77.5 MiB/s**、内存回收率 0.000–0.365（<0.5） | 修复任务（编排/并行/流式内存） | OPEN |
+| P0-18 | 测试：负例面（polarity） | 缺口 | P0 | ENGINEERING_SPEC §8「负例注入（能红能绿）」；docs/ci/01_CHECKS.md §1 | TST-001：46 个注册检查中**仅 11 项自带可执行负例**；19 项 FACE-DEFINED-NOT-RUN 的负例是人工中文说明（非机器可执行）；1 项（CHK-E2E-REPRO）无 polarity 记录；9 项 PROVEN 借壳 `check_prod_reachability.py --selftest` | 测试面补强 | OPEN |
+
+### 7.2 新增 P1（并入 §4 的 87 条，逐条证据见分片报告）
+
+| 来源 | 项 | 证据 |
+|---|---|---|
+| TST-001 | 6 个 C++ 测试为空/恒真断言（在 442 内） | `p2_upm_synthetic_test.cpp:125`、`p2_rejection_test.cpp:89`、`p2_output_semantics_test.cpp:136` 等 |
+| TST-001 | 3 个测试未链产品库（"假测试"） | `p2_upm_synthetic`/`p3_coverage`/`p2_ir_facade` |
+| TST-001 | 12 个跳过用例中 **6 个因硬编码 Windows 绝对路径**在 Linux 零执行 | `synthetic_gate.cpp:3584/3620/3633/3683/3833/3943`、`sampler_parallel_consistency_test.cpp:33`（`F:/Astro dev/...`） |
+| TST-001 | Oracle 假绿：缺 numpy 时 exit 0 | `noise_model_numpy_oracle.py` |
+| TST-001 | 测试索引陈旧；`aio` 8 枚 / `gaia` 2 枚 / `hips_browser` 全部测试零 CMake 注册 | `tests/test_index.csv` |
+| TST-001 | 文档引用的 `contracts/schemas/events.schema.json` 不存在 | `docs/plugins/infrastructure/21_observability.md:17` |
+| TST-001 | `fits_output` 的 `band_height`/`tile_cache_mb` 在 lib/include 零消费；`p3_output.cpp:235` long 溢出风险且无 >2GiB 测试 | `p3_output.cpp:235` |
+| PERF-001 | 4 项编排/缓存观测**完全无记录点**：worker 空转率（`worker_balance` 恒 50.00）、上下文切换/块重载（ctx_switches 采样后被 CSV 丢弃）、跨 worker 数据搬运量、同组 Gaia 外部请求计数；2 项部分（缓存命中率、峰值 RSS–块大小关系） | `reports/RELEASE-01/perf/PERF-001-timing.md` |
+| PERF-001 | normalize 进程墙钟 **22–35%** 未被日志/资源监测覆盖；mosaic 无 DAG trace；export 无阶段日志 | 同上 |
+| SCI-001-S2 | `DRIZZLE.md` §5 归一化 `D=Σa_jp` 使常数面亮度 `S_p=B0/pixfrac²`，与 §7 不变量 `S=B0` 互斥（pf=0.8 偏 1.5625×）——**P0 级科学文档冲突** | `drizzle_engine.cpp:1329/1531/1554` + 独立代数；已登记 M2a-A-1 |
+| SCI-001-S2 | `ASTROMETRY.md` §5a「0-based/常量 1px 平移」与 Paper I §2.1.1/§2.1.4 及实现矛盾（同节 :80 自相矛盾）——**P0 级** | `ipv_wcs.cpp:944-945`；finding WCS-003-F1 未裁决 |
+| SCI-001-S2 | P1 群：插件校准方差重复计同一 bias 母版；PSF trimmed-mean→σ 常数应为 `0.7316730952806139`；孔径 `flux_error` 漏 gain 与背景估计项；`hips_frame` 值域引反；`UNCERTAINTY` §Phase3 口径过时（实为完整 `R C Rᵀ`）且 36.3% 与 `1+0.75ρ` 不自洽；插件 UPM 承诺已撤销的 `g_k·s+b_k` | `reports/RELEASE-01/science/SCI-S2-topics.md` §3 |
+
+### 7.3 本轮已闭合（1 条）
+
+| # | 缺陷 | 发现 | 处置 | 复验 |
+|---|---|---|---|---|
+| F-01 | `ci/verify_toolchain.py` **fail-open**：lock/policy 缺件或不可解析时打印 `[FAIL]` 但 `exit 0`（违反 ENGINEERING_SPEC §8） | TST-001 | 前台修复：`if __name__ == "__main__": sys.exit(main())` | 缺件 → `rc=1`（订正前 rc=0）；CHK-ENV-ADOPTION 仍 PASS；负例锁定 `tests/quality/test_env_adoption_negative.py`（10 passed） |
+
+### 7.4 另记（非差距，但影响判读）
+
+- **文档↔仓库口径冲突**：DOC-002 查出 7 项代码不一致 + `config_registry.json` 95 条行锚中 23 条失配（`07_noise_snr` +27、`10_sampling` +33、`11_upm` +38 且 `bkg_model_order` 字段在文档中不存在、`19_runtime` +34、`22_gaia` +22~25），行锚漂移面属 `config/`+`contracts/` 只读域，待分派。
+- **运行产物面**：run-trace / artifact-manifest / run-summary / run-graph 四类输出在文档中要求但实现为 NOT_IMPLEMENTED（AUD-A4 U-1）。
