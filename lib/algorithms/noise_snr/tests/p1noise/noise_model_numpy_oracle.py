@@ -22,7 +22,8 @@
   * fill 平面是 **FLOAT32 产品**（snr_estimator.h:168-174），按 float32 存储精度 rtol 2e-6。
 
 用法: python3 lib/algorithms/noise_snr/tests/p1noise/noise_model_numpy_oracle.py
-退出码: 0 = 全过（缺 numpy/g++ 时 skip 亦为 0）；1 = 任一断言失败。
+退出码: 0 = 全过；1 = 任一断言失败**或依赖缺失**（fail-closed，ENGINEERING_SPEC §8:122
+        「检查器在输入缺失、路径不存在、依赖不可用时判红」——缺 numpy/g++ 判红，不再静默判绿）。
 """
 import math
 import os
@@ -35,8 +36,9 @@ import tempfile
 try:
     import numpy as np
 except ImportError:  # pragma: no cover
-    print("SKIP: numpy 不可用，无法执行 NumPy 独立 Oracle")
-    sys.exit(0)
+    # fail-closed (ENGINEERING_SPEC §8:122): 依赖不可用 → 判红, 不得静默判绿。
+    print("FAIL: numpy 不可用，无法执行 NumPy 独立 Oracle（依赖缺失判红，非 skip）")
+    sys.exit(1)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -343,8 +345,9 @@ def run_case(exe, name, data, gx, gy, minsamp, clip, rounds, floor_v, tmp,
 
 def main():
     if not shutil.which("g++"):
-        print("SKIP: 缺 g++，无法编译被测生产源")
-        return 0
+        # fail-closed (ENGINEERING_SPEC §8:122): 依赖不可用 → 判红, 不得静默判绿。
+        print("FAIL: 缺 g++，无法编译被测生产源（依赖缺失判红，非 skip）")
+        return 1
     for p in (SNR_INC, SNR_SRC):
         if not os.path.isdir(p):
             print("FAIL 生产源路径不存在: %s" % p)
