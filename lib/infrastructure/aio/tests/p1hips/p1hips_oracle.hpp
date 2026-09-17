@@ -41,6 +41,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <system_error>
 #include <map>
 #include <string>
 #include <vector>
@@ -362,12 +364,22 @@ inline bool read_moc_order(const std::string& path, long& moc_order) {
 // ---------------------------------------------------------------------------
 // 5) 临时目录工具 (fixture 不落仓库大二进制; 每用例独立 mkdtemp)
 // ---------------------------------------------------------------------------
+// 临时根：不写死 "/tmp" —— Windows 无此路径，且系统临时目录可能不可写（AGENTS §3）。
+// 依次尝试 ASTROCS_TEST_TMPDIR / 系统临时目录 / 当前工作目录，取第一个 mkdtemp 成功的。
 inline std::string make_tmp_dir(const char* tag) {
-    std::string tpl = std::string("/tmp/p1hips_") + tag + "_XXXXXX";
-    std::vector<char> buf(tpl.begin(), tpl.end());
-    buf.push_back('\0');
-    if (!mkdtemp(buf.data())) return std::string();
-    return std::string(buf.data());
+    std::vector<std::string> roots;
+    if (const char* e = std::getenv("ASTROCS_TEST_TMPDIR"); e && *e) roots.push_back(e);
+    std::error_code ec;
+    const auto sys = std::filesystem::temp_directory_path(ec);
+    if (!ec) roots.push_back(sys.string());
+    roots.push_back(".");
+    for (const auto& base : roots) {
+        std::string tpl = base + "/p1hips_" + tag + "_XXXXXX";
+        std::vector<char> buf(tpl.begin(), tpl.end());
+        buf.push_back('\0');
+        if (mkdtemp(buf.data())) return std::string(buf.data());
+    }
+    return std::string();
 }
 
 }  // namespace oracle
