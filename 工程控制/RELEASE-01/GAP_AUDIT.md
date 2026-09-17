@@ -1,93 +1,84 @@
 # 工程控制 / RELEASE-01 差异审计表（GAP_AUDIT）
 
 > 本表由 AUD-001 产出（SubAgent 只找不改），经 SCI-001 科学裁决合并后定稿。差距类型：`缺口` / `违规` / `过时` / `漂移` / `无主` / `UNRESOLVED`。状态：`OPEN → ASSIGNED → CLOSED`（CLOSED 仅由前台验证后写入）。
+>
+> **分片报告（全量明细，含 P1/P2 逐条证据）**：`reports/RELEASE-01/audit/AUD-A1-normalize.md`（54 条）、`AUD-A2-mosaic.md`（25 条）、`AUD-A3-export.md`（27 条）、`AUD-A4-infrastructure.md`（41 条）。本表只做**去重后的 P0 汇总 + UNRESOLVED 归并**；P1/P2 见分片报告。
 
-## 1. 差距汇总
+## 1. 差距汇总（P0，去重后 16 条）
 
 | # | 模块/条款 | 差距类型 | 级别 | 文档条款引用 | 现状复现路径（文件/行/命令） | 建议归属 | 状态 |
 |---|---|---|---|---|---|---|---|
-| G-01 | ENGINEERING_SPEC §7 根条目 | 违规（文档） | P0 | `ENGINEERING_SPEC.md` §7 | `python3 tools/doccheck/check_engineering_constraints.py` → `manifest_not_wider_than_spec7: ACCEPTANCE_SPEC.md` | 负责人裁决（ACCEPTANCE UNRESOLVED-1） | OPEN |
-| G-02 | docs/ci/01_CHECKS.md §2 ↔ ci/checks.json | 违规（文档） | P0 | `docs/ci/01_CHECKS.md` §2 | `python3 ci/check_registry_doc_sync.py` → `registered_not_documented: CHK-E2E-REPRO, CHK-EXIT-CONSISTENCY` | 负责人裁决（UNRESOLVED-2） | OPEN |
-| G-03 | 版本纪律 | UNRESOLVED | P1 | `ASTROCS_DESIGN.md` §12；`ACCEPTANCE_SPEC.md` §6；`FIN-001.md` | `./build/astrocs --version` = `0.11.0-alpha.2+ge88a0d89…` vs 文档"Alpha 前无版本信息"；`docs/ci/01_CHECKS.md` 又要求 `--expected 0.11.0-alpha.2` | 负责人裁决（UNRESOLVED-3） | OPEN |
-| G-04 | mosaic/sampling+upm：稀疏天光面 | 缺口 | P0 | `ASTROCS_DESIGN.md` §4.4；`docs/plugins/algorithms_phase2/10_sampling.md` §4.2；`11_upm.md` §4.2–4.4 | `grep -rIl sky_plane lib/ contracts/ config/` → 0；`sky_sample_spacing` → 0 | AUD-001 确认 → 修复任务 | OPEN |
-| G-05 | runtime：locality-aware 编排与流式内存 | 缺口 | P0 | `ASTROCS_DESIGN.md` §8；`docs/plugins/infrastructure/19_runtime.md` §4.2–4.3 | `schedule_policy`/`locality_first`/`cache_budget_mb` → 0 命中 | AUD-001 确认 → PERF-001 | OPEN |
-| G-06 | gaia_xpsd_client：查询合并 + 两级缓存 | 缺口 | P0 | `docs/plugins/infrastructure/22_gaia_xpsd_client.md` §4.1–4.2；`ACCEPTANCE_SPEC.md` §L2"缓存复用" | `prefetch_neighbors`/`tile_scheme`/`mem_cache_budget_mb` → 0 命中 | AUD-001 确认 → PERF-001 | OPEN |
-| G-07 | cli/export 文案 | 漂移 | P1 | `docs/plugins/algorithms_phase3/14_projection.md` §4 | `./build/astrocs export --help`："当前唯一实现 TAN" vs `lib/algorithms/projection/p3_proj_v6.cpp:270,349`（冻结 8、实现 4） | AUD-001/API-DOCS | OPEN |
-| G-08 | 文档树级残留（非权威文档） | 过时 | P1 | 文档风格红线（DOC-001 步骤 3；DOC-002 验收门） | 见 `DOC_RESIDUE_INVENTORY.md`（活动文档：129 文件含日期、31 含 V19、16 含 W#-A#、8 含头部元信息块） | DOC-002 | OPEN |
-| G-09 | `export --help` 投影实现状态 | 漂移 | P2 | 同上 G-07 | 同上 | AUD-001 | OPEN |
+| P0-01 | 横向：模块门 | 违规 | P0 | ENGINEERING_SPEC §4/§8；docs/ci/01_CHECKS.md §2 | `python3 ci/run_checks.py --check CHK-MODULE-MANIFEST --quiet` → FAIL；`run/ci/module-map/module_map.json` 139 findings / 20 模块 NOT_IMPLEMENTED（A1-52 / A3 X-01 / A4-39） | 负责人已裁决临时红；登记遗留 | OPEN（owner-sanctioned） |
+| P0-02 | drizzle / Phase1 产品 | 缺口 | P0 | docs/plugins/algorithms_phase1/08_drizzle.md:19；docs/design/PHASE1_DETAILED_DESIGN.md:132；docs/science/DRIZZLE.md:53-58 | p1 节点只注入 data 块（`module_adapters.cpp:3385-3419`）；`p1_final.json` `n_variance_tiles=0, n_ivar_tiles=0, uncertainty_available=false`；mosaic `weight_mode=2` rc=2 实测（`run/RELEASE-01/e2e/l3/logs/p2_m42_wm2.log`）（A1-45 = PRE-F-01） | 修复任务（接线 + Oracle） | OPEN |
+| P0-03 | noise_snr / frame_snr | 违规 + UNRESOLVED | P0 | docs/plugins/algorithms_phase1/07_noise_snr.md:36-63；contracts/schemas/unified/frame_snr.schema.json:5/42/224-231 | 实装把 frame_snr 定义为 5σ 深度对象（`module_adapters.cpp:3177-3183`；`p1_snr.json` 的 `frame_snr.definition="5-sigma point-source depth"`）；且帧级 SNR 未写入 HiPS 头（A1-44 / SCI F1） | 负责人裁决（UNRESOLVED-A）+ 修复 | OPEN |
+| P0-04 | calibration：方差传播 | 缺口 + UNRESOLVED | P0 | ENGINEERING_SPEC:26；docs/plugins/algorithms_phase1/01_calibration.md:31；docs/design/PHASE1_DETAILED_DESIGN.md:52-58 | 生产无 V(y)/ivar；`v6_calibration_covariance.cpp` 已实现未接线；文档面 `docs/science/CALIBRATION.md:144` 与插件/设计冲突（A1-01） | 负责人裁决（UNRESOLVED-B）+ 修复 | OPEN |
+| P0-05 | cosmetic：恒等 pass | 缺口 | P0 | docs/plugins/algorithms_phase1/02_cosmetic.md:5-6；docs/algorithms/COSMETIC_ALGORITHMS.md:150-156 | `lib/phase1_session/p1_session.cpp:443-446` 传 NULL master → `cosmetic_corrector.cpp:243-250` 检测全跳过；坏点/热像素/宇宙线从未修复（A1-07） | 修复任务 | OPEN |
+| P0-06 | cosmetic：方差未更新 | 缺口 | P0 | docs/plugins/algorithms_phase1/02_cosmetic.md:25/52 | `cosmetic_corrector.cpp:161-226` 插值只写 out[i]，无 variance 入/出参（A1-08） | 修复任务 | OPEN |
+| P0-07 | noise_snr：未入根构建 | 违规 | P0 | ENGINEERING_SPEC:41 | `CMakeLists.txt:236-241` 注释掉 `add_subdirectory(lib/algorithms/noise_snr)`，理由（untracked）与 `git ls-files` 事实不符（A1-37） | 修复任务 | OPEN |
+| P0-08 | sampling：star_mask/sky_samples | 缺口 | P0 | ASTROCS_DESIGN.md:246；docs/plugins/algorithms_phase2/10_sampling.md:5,18,20,42-46；UNIFIED_MODEL.md:46-48 | `grep -rn "sky_sample\|sky_plane\|sky_sample_spacing\|B_ref" lib/ contracts/ config/` 零实现命中；`sampler.h` 只输出 P2ControlObservation/P2ControlNode（A2 SMP-01） | 负责人裁决（UNRESOLVED-C 范围）+ 修复 | OPEN |
+| P0-09 | upm：b_k(x) 稀疏天光面 | 违规/缺口 | P0 | ASTROCS_DESIGN.md:213/246；docs/plugins/algorithms_phase2/11_upm.md:26-27,43-51 | 生产为纯加性 `upm.cpp:4-27`（无 g_k）；V6 求解器 b_k 为**帧级标量**（`upm.h:202-211`；`upm.cpp:1793/1818` Jacobian=1.0）；无 B_ref(x)+δ_k(x)（A2 UPM-01） | 负责人裁决（UNRESOLVED-C）+ 修复 | OPEN |
+| P0-10 | upm：g_k 乘法未接线 | 违规 | P0 | ASTROCS_DESIGN.md:213；docs/plugins/algorithms_phase2/11_upm.md:26,30 | 生产链 `module_adapters.cpp:20-22/4155/4331` 只走 `p2_upm_build_geo`/`p2_upm_calibrate_block`；g_k 乘法仅存在于未接 CLI 的 `lib/algorithms/integration/v6`（A2 UPM-02） | 修复任务 | OPEN |
+| P0-11 | integration：仅加权均值 | 违规/缺口 | P0 | ASTROCS_DESIGN.md:205；docs/plugins/algorithms_phase2/13_integration.md:5,18-28,42-59 | `integrate.cpp:19-79` 仅 `signal=Σwv/Σw`；`integrate.h:5-11` 无 variance/covariance 目标；GLS/Q-W/psfsw 仅在未接线 v6（A2 INT-01） | 修复任务 | OPEN |
+| P0-12 | integration：sparse_snr_layer 缺 | 缺口 | P0 | ASTROCS_DESIGN.md:225-240；docs/plugins/algorithms_phase2/13_integration.md:18-22,32-38 | `grep -rn "sparse_snr_layer" lib/` → NO_MATCH_IN_LIB（A2 INT-02） | 修复任务 | OPEN |
+| P0-13 | integration：weight_mode 词表 | 违规 | P0 | docs/contracts/v6/frozen/02_WEIGHT_MODE_VOCABULARY.md:9-18；docs/plugins/algorithms_phase2/13_integration.md:65 | 生产 CLI/session 用**被取代的 legacy 整数**且默认 2：`session_commands.h:133 {"weight_mode","2"}`；`canonical algorithm_weight_mode` 在 lib/ 零消费（A2 INT-03） | 负责人裁决（UNRESOLVED-D）+ 修复 | OPEN |
+| P0-14 | CLI：export 配置格式互斥 | 违规 + UNRESOLVED | P0 | contracts/schemas/phase_config_export.schema.json；config/templates/export.phase_config.json；config_registry「唯一事实源」 | 官方模板被 CLI 拒绝 rc=2；CLI 实际接受 `source.hips_dir/center/scale_deg_per_px`（A3 CLI-04） | 负责人裁决（UNRESOLVED-E）+ 修复 | OPEN |
+| P0-15 | 版本纪律 | 违规 + UNRESOLVED | P0 | ASTROCS_DESIGN §12；ACCEPTANCE_SPEC:158 | `./build/astrocs --version` = `0.11.0-alpha.2+g41b41e2d…`；VERSION/module.yaml/CI 同（A3 CLI-03 / DOC-002 版本四口径） | 负责人裁决（UNRESOLVED-F，FIN-001 前置） | OPEN |
+| P0-16 | 文档包 ↔ 仓库冲突（DOC-001 发现） | 违规（文档） | P0 | ENGINEERING_SPEC §7；docs/ci/01_CHECKS.md §2 | `ENG-CONSTRAINTS` 红（§7 删 `ACCEPTANCE_SPEC.md`）；`CHK-REGISTRY-DOC-SYNC` 红（§2 删 `CHK-E2E-REPRO`/`CHK-EXIT-CONSISTENCY` 两行；两者由前批 agent 于 `5eb1433f`/`bd300e85` 引入） | 负责人裁决（UNRESOLVED-1/2） | OPEN |
 
-> 说明：G-01/G-02/G-03 为**文档包 ↔ 仓库**冲突（DOC-001 阶段发现，属"发现文档包内部矛盾登记 UNRESOLVED 上呈负责人"）；G-04–G-06 为**新文档包新增语义尚未实现**（DOC-001 一致性基线抽查发现，需 AUD-001 全量确认后定级）。
+## 2. 按模块覆盖审计（结论索引）
 
-## 2. 按模块覆盖审计
+| 面 | 分片 | 模块数 | 差距（P0/P1/P2/无差距） | UNRESOLVED | 报告 |
+|---|---|---|---|---|---|
+| normalize | A1 | 8 | 7 / 31 / 10 / 6 | 10 | `reports/RELEASE-01/audit/AUD-A1-normalize.md` |
+| mosaic | A2 | 5 | 6 / 17 / 1 / 0 | 1 | `reports/RELEASE-01/audit/AUD-A2-mosaic.md` |
+| export + CLI | A3 | 3 | 3 / 15 / 9 / 0 | 4 | `reports/RELEASE-01/audit/AUD-A3-export.md` |
+| infrastructure | A4 | 7 | 0 / 24 / 15 / 2 | 3 | `reports/RELEASE-01/audit/AUD-A4-infrastructure.md` |
 
-### normalize（algorithms_phase1，8 模块）
+**A4 无差距（可放心）**：config/ 分离成立（无零点键、defaults.json 无硬件旋钮、filters.json sha256 实测一致）；14 个 canonical schema 齐全、tests/contracts 63 测试通过；G-RES-01 判据表与 `contracts/resource_gate_v1.json` 逐条一致，C++ 经 `configure_file` 生成阈值头引契约常量。
 
-| 模块 | 审计结论（含"无差距"） | 差距号 |
-|---|---|---|
-| calibration | 待 AUD-001 | |
-| cosmetic | 待 AUD-001 | |
-| star_detection | 待 AUD-001 | |
-| psf | 待 AUD-001 | |
-| platesolve | 待 AUD-001（DOC-001 已订正其死引用） | |
-| photometry | 待 AUD-001 | |
-| noise_snr | 待 AUD-001（07_noise_snr §4.1 新增 PSFSNR/PSFSW 对标，需 SCI-001） | |
-| drizzle | 待 AUD-001 | |
-
-### mosaic（algorithms_phase2，5 模块）
-
-| 模块 | 审计结论 | 差距号 |
-|---|---|---|
-| admit/coverage | 待 AUD-001 | |
-| sampling | 待 AUD-001（新增 sky_samples/star_mask 语义） | G-04 |
-| upm | 待 AUD-001（新增稀疏天光面） | G-04 |
-| rejection | 待 AUD-001 | |
-| integration | 待 AUD-001 | |
-
-### export（algorithms_phase3，3 模块）
-
-| 模块 | 审计结论 | 差距号 |
-|---|---|---|
-| projection | 待 AUD-001（CLI 文案与实现不一致） | G-07 |
-| resample | 待 AUD-001 | |
-| fits_output | 待 AUD-001 | |
-
-### infrastructure（7 模块）
-
-| 模块 | 审计结论 | 差距号 |
-|---|---|---|
-| aio | 待 AUD-001 | |
-| cli | 待 AUD-001（export 文案） | G-07 |
-| runtime | 待 AUD-001（编排/流式内存未实现） | G-05 |
-| observability | 待 AUD-001 | |
-| gaia_xpsd_client | 待 AUD-001（缓存/合并未实现） | G-06 |
-| benchmark | 待 AUD-001 | |
-| hips_browser | 待 AUD-001 | |
+**A1 无差距（6 条）**、**A3 重点判定**：投影 registry v3 实有 TAN/SIN/CAR/AIT（4/8），插件文档 `14_projection.md §4` **正确**；`export --help` 文案「当前唯一实现 TAN」**错误**（`session_commands.h:150`；应为「alpha 会话仅接受 TAN」，`p3_session.cpp:96-97`）。
 
 ## 3. 横向条款审计
 
 | 条款 | 审计结论 | 差距号 |
 |---|---|---|
-| CLI 契约（help/--json/-y/-force/预检三级） | 待 AUD-001 | |
-| config/ 分离（defaults.json/filters.json） | 待 AUD-001 | |
-| 契约 schema（14 canonical） | 待 AUD-001 | |
-| CI 检查器（70+） | 待 AUD-001 | |
-| 版本纪律（Alpha 前无版本信息） | **不对应**：当前构建输出 `0.11.0-alpha.2+g…` | G-03 |
+| CLI 契约（help/--json/-y/-force/预检三级） | `-y`/`-force` 实测有效；**预检只实现 correct/error 两级，橘色 optimize 无产生点**（A4-04） | P1 |
+| config/ 分离 | 成立（A4-35 无差距） | — |
+| 契约 schema（14 canonical） | 齐全；但插件文档 18 处 `contracts/schemas/<名>.schema.json` 悬空（A1-53 / DOC-002） | P1 |
+| CI 检查器 | CHK-MODULE-MANIFEST 红（P0-01）；CHK-REGISTRY-DOC-SYNC 红（P0-16）；其余复跑绿 | P0 |
+| 版本纪律 | **不对应**：`--version` 输出 `0.11.0-alpha.2+git` | P0-15 |
+| 编排/缓存/流式（新文档包新增） | locality-aware 编排、cache_budget、调度指标、Gaia 瓦片键/两级缓存/查询合并**全缺**（A4-09/10/13/21..24） | P1（若按新文档定级则 P0） |
 
 ## 4. 合并裁决（AUD + SCI）
 
-- P0 差距最终清单与修复归属：待 AUD-001 完成后合并裁决（已知 P0：G-01、G-02、G-04、G-05、G-06）。
-- P1 差距最终清单与修复归属：待定（已知 P1：G-03、G-07、G-08）。
-- P2/UNRESOLVED 登记：G-09；UNRESOLVED-1/2/3（见 `ACCEPTANCE.md` §3）。
+- **P0 最终清单**：P0-01..P0-16（见 §1）。其中 **P0-02/03/05/06/07/11/12/13** 属"文档要求而实现未达"的**代码侧缺口**；**P0-08/09/10** 属新文档包新增语义（稀疏天光面、g_k 乘法）未实现；**P0-14/15/16** 属**文档 ↔ 仓库口径冲突**。
+- **P1 最终清单**：A1 31 条 + A2 17 条 + A3 15 条 + A4 24 条 = 87 条（明细见分片报告，逐条含文件:行与复现命令）。
+- **P2/UNRESOLVED**：P2 共 35 条（A1 10 / A2 1 / A3 9 / A4 15）；UNRESOLVED 见 §5。
+- **关键范围裁决（须负责人裁定）**：新文档包引入了实现中不存在的语义（稀疏天光面 `sky_samples/sky_plane/star_mask`、locality-aware 编排与流式内存、Gaia 两级缓存与查询合并、GLS/Q-W/psfsw 三目标、variance/ivar 链），而 `00_README.md §2` 明确本轮"**不引入新功能**、仅发布准备相关验证与必要修正"。二者互斥：要么这些属发布阻断项（则当前实现不可发布），要么属下一版本路线图（则 L2/L3 中依赖它们的验收条目不能按新文档判绿）。**该裁决决定 RELEASE-01 的结论走向。**
 
-## 5. 附录：DOC-001 一致性基线
+## 5. UNRESOLVED（须负责人裁决；去重后按主题归并）
 
-以新文档包为权威，抽取 6 条最高设计硬约束与代码现状对照（只登记，不改）：
+| 主题 | 内容 | 来源 |
+|---|---|---|
+| U-A `frame_snr` 规范语义 | 文档（07 §4.1 / UNIFIED_MODEL:42 / ASTROCS_DESIGN:235）= 未加权原始 SNR、写 HiPS 头、w=SNR²/F_ref²；`CONTROL_WEIGHT_SNR.md:10-14`= 相对质量权重中位数；实装 = 5σ 深度对象。三方冲突 | A1-44 / SCI-S1 F1 |
+| U-B 校准方差传播 | `docs/science/CALIBRATION.md:144`「不传播母版方差」vs 插件 01:31 + PHASE1_DESIGN:52-58「必须物理传播」 | A1-01 |
+| U-C 天光面语义 | 新插件/设计要求 g·s+b(x)+sky_samples；`docs/science/PHASE2_UPM.md:7-8/34/48-50/153`（FROZEN）定义纯加性 C_f(p) 且"无 WCS/天球参与" | A2 X-03 |
+| U-D weight_mode 词表 | 冻结词表（字符串枚举、legacy 整数被取代、0 必拒）vs 生产 CLI 默认整数 2 | A2 INT-03 |
+| U-E export 配置格式 | 正式 schema/模板 vs CLI 实际接受格式互斥（官方模板 rc=2） | A3 CLI-04 |
+| U-F 版本口径 | `0.1alpha`（最高设计 §12/ACCEPTANCE/CI 文档）↔ `0.11.0-alpha.2`（VERSION/checks.json/product.json）↔ `0.0.1alpha`（RELEASE-01 00_README/FIN-001）；且 §12 要求"Alpha 前无版本信息" | A3 CLI-03 / DOC-002 U1 / DOC-001 UNRESOLVED-3 |
+| U-G 文档包 §7 / §2 | §7 删 `ACCEPTANCE_SPEC.md`；§2 删两个已注册检查行（均为前批 agent 引入） | DOC-001 UNRESOLVED-1/2 |
+| U-H 科学表述订正 | PSFSNR 公式（应为 c3·(Σf)²/(c4σ_n²)）、PSFSW 实现与式[16] 指数/N 语义差异、"帧级 SNR 不随天光漂移"为假、`psf_snr_power` DEFERRED、N*_Sn 常数冲突、PI Moffat √2、付印版式号 | SCI-S1 F2/F3/F4/F5/U3/U4/U5 |
+| U-I runtime/scheduler 命名 | 插件文档/00_INDEX 写 runtime；代码目录与 §7/AGENTS §6 为 scheduler；最高设计 §7.1/§7.2 自身两口径 | DOC-002 U5 / A4 U-2 |
+| U-J 其他登记面 | 退出码唯一源 `include/astrocs/exit_codes.h` 不存在（实际 `lib/infrastructure/cli/exit_codes.h`）；CLI 可执行名 `acsd_cli` vs `astrocs`；18 处 schema 悬空；PHASE1-3 头部元信息块与 `doc_symbol_namespaces.json` 锚耦合；`docs/archive/**` 是否清理；ACR dormant 双检查器冲突；run 产物 NOT_IMPLEMENTED 状态 | DOC-002 U2/U3/U4/U6/U7/U8 / A4 U-1/U-3 |
+| U-K 采样核词表 | 插件 `nearest|bilinear` vs V6 kernel registry；生产默认核不一致 | A3 U4 |
+
+## 6. 附录：DOC-001 一致性基线
 
 | # | 硬约束（文档条款） | 代码现状（可复现证据） | 对应结论 |
 |---|---|---|---|
-| B-1 | 三命令独立、阶段间只通过磁盘产品+manifest+哈希交换，禁止串成一次运行（ASTROCS_DESIGN §2/§3） | `lib/infrastructure/cli/command_tree.h:75-82` 只登记 normalize/mosaic/export；`./build/astrocs help` 实测三条目 | **对应** |
-| B-2 | ACR dormant、旧路径无生产符号/CMake/文档入口（ASTROCS_DESIGN §8） | `python3 tools/check_legacy_exit.py` → `LEGACY_EXIT_PASS … ACR dormant 隔离 (prod_sources=270)` rc=0 | **对应** |
-| B-3 | 投影首批冻结 8 种（ASTROCS_DESIGN §5.3） | `lib/algorithms/projection/p3_proj_v6.cpp:349` 冻结集含 8 名，`:270` 注明已实现 4（TAN/SIN/CAR/AIT） | **部分对应**（CLI 文案漂移 → G-07） |
-| B-4 | Alpha 前代码与产物中不含任何版本信息；发布时 `--version` = `0.1alpha`（ASTROCS_DESIGN §12） | `./build/astrocs --version` → `0.11.0-alpha.2+ge88a0d89…` | **不对应** → G-03（版本口径待裁决） |
-| B-5 | 一个进程只有一个资源调度器与线程预算源；模块不得硬编码 workers（ASTROCS_DESIGN §8） | `lib/` 内 OpenMP 使用 22 处；`omp_set_num_threads` 由预算注入（`aio_pipeline_engine.cpp:518`），未见写死 worker 数 | **待 AUD-001 逐点核**（需确认无写死） |
-| B-6 | 数据对象按 UNIFIED_MODEL 区分（frame_snr / sky_samples / sky_plane / psfsw_robust_weight 等） | `docs/design/UNIFIED_MODEL.md` 新增 sky_samples/sky_plane/star_mask；`grep -rIl sky_plane lib/ contracts/ config/` → 0 | **不对应** → G-04（新增对象未实现） |
+| B-1 | 三命令独立、阶段间只通过磁盘产品+manifest+哈希交换（ASTROCS_DESIGN §2/§3） | `lib/infrastructure/cli/command_tree.h:75-82`；`./build/astrocs help` 实测三条目 | **对应** |
+| B-2 | ACR dormant、旧路径无生产入口（§8） | `python3 tools/check_legacy_exit.py` → `LEGACY_EXIT_PASS … ACR dormant 隔离 (prod_sources=270)` rc=0 | **对应** |
+| B-3 | 投影首批冻结 8 种（§5.3） | `p3_proj_v6.cpp:348-349` 冻结 8 名；`:272-281` 实有 4（TAN/SIN/CAR/AIT） | **部分对应**（CLI 文案漂移 → P1） |
+| B-4 | Alpha 前产物不含版本信息；发布时 `--version` = `0.1alpha`（§12） | `./build/astrocs --version` → `0.11.0-alpha.2+g41b41e2d…` | **不对应** → P0-15 |
+| B-5 | 单一资源调度器与线程预算源（§8） | OpenMP 22 处；`tools/arch/check_thread_budget.py` 自述 scheduler per-run 池与 executor 共享池并存 → 同 run 上界≈2×budget | **不对应** → P1（A4-12） |
+| B-6 | 数据对象按 UNIFIED_MODEL 区分（frame_snr/sky_samples/sky_plane） | `grep -rIl sky_plane lib/ contracts/ config/` → 0 | **不对应** → P0-08/09 |
