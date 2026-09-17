@@ -39,10 +39,13 @@ flowchart LR
 | variance / ivar | 同一估计量的方差及倒数 | 对该估计目标可以 |
 | source_snr | F_hat/sigma_F | 不直接作帧权重 |
 | depth_m5 | 固定参考 PSF/孔径下 5σ 深度 | 摘要，不作权重 |
-|  frame_snr | 帧级 SNR（信噪比，非权重）：真实信号/噪声比，不受天光影响 | 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算 |
+|  frame_snr | 帧级**未加权原始信噪比**（非权重）：真实 PSF 源信号功率/稳健噪声功率，方法学对标 PixInsight PSFSNR；天光作独立背景分量扣除，不受天光影响 | 唯一帧级参考；Phase2 归一后现场换算 w=SNR²/F_ref² |
 | point_information | a²PᵀC⁻¹P = 1/Var(F_hat) | 点源目标的严格权重 |
-| psfsw_robust_weight | 共同星集 PSF signal/集中度/稳健噪声/背景的复合权重 | 显式 psfsw_robust 集成可用；不是 ivar |
+| psfsw_robust_weight | PixInsight PSFSW 同类的综合图像质量权重（信号×集中度/（稳健噪声×稳健背景），含 FWHM/梯度惩罚） | 显式 psfsw_robust 集成可用；是权重不是信噪比，不是 ivar |
 | sparse_snr_layer | 帧内稀疏控制点 SNR 参考（可选标准层） | 帧内精细参考 |
+| star_mask | 星点/饱和/高结构掩膜（天球坐标） | 否；UPM 采样排除用 |
+| sky_samples | 每帧掩膜外的稀疏天光采样点（坐标、值、variance、点 SNR 权重） | 点权重 ∝ SNR²，仅用于天光面拟合 |
+| sky_plane | 稀疏样条表示的天光亮度面（参考面 B_ref 系数 + 每帧梯度 δ_k 系数）；栅格值现场求值 | 否；加性背景模型 |
 | support | 有效输入/面积贡献 | 否 |
 | coverage | 几何/数据有效域 | 否 |
 | validity | 坏点/缺失/越界状态 | 门，不是权重 |

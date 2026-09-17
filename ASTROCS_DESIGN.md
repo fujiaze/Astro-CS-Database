@@ -232,6 +232,7 @@ flowchart TD
 
 - Phase2 **自动检测**输入 HiPS 是否有稀疏 SNR 层：有 → 帧级×帧内；无 → 帧级。
 - **逆方差叠加**：每个天球像素会有很多个源像素输入，利用**每个源像素的 SNR 计算对应权重**（SNR → 逆方差权重），得到最优检测/测光功率——**不是直接用 SNR 加权**。
+- **SNR 与权重的换算**：帧级 SNR 是**未加权的原始信噪比**（真实 PSF 源信号功率/稳健噪声功率，天光作为独立背景分量扣除，不受天光影响），其信号/噪声估计方法学对标 PixInsight 公开文档中的 **PSFSNR**（ratio-of-powers 信噪比）；PixInsight 的 **PSF Signal Weight（PSFSW）是综合图像质量权重**（额外含 FWHM/集中度与背景梯度），不是信噪比，仅在显式 `psfsw_robust` 模式使用。HiPS 是数据库，入库的是客观信噪比，UPM 归一到公共通量尺度后 Phase2 现场换算 `w = 1/σ² = SNR²/F_ref² ∝ SNR²`（PixInsight 官方同样只存信号/噪声元数据、集成时才算权重；详见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 与文献研究包 `docs/research/SNR_WEIGHT_RESEARCH_PACK.md`）。
 - **稠密权重是数学表示，工程上按需计算**：
   - 叠加是分块进行的，最小单元可以是一个像素；
   - **不预计算稠密权重、不全部加载到内存**；用到哪个像素的 SNR 就计算哪个；
@@ -241,6 +242,8 @@ flowchart TD
 ### 4.4 硬约束
 
 mosaic 的详细硬约束（UPM 不可互相代替、coverage 不作权重、排异是污染状态估计、GLS/Q-W/psfsw 权重分离、分块并行确定性等）见 `docs/plugins/algorithms_phase2/` 各插件文档与 `docs/science/`。
+
+**天光亮度平面**（UPM 的加性背景 `b_k(x)`）采用**稀疏表示**：星点掩膜外每帧取稀疏背景采样点（采样点带 SNR 权重），全部帧联合构建参考天光面，各帧以稀疏样条/插值把平缓梯度校准到参考面；面的栅格值按需现场求值，不构建稠密背景栅格；拟合目标为 SNR 加权下对各采样点的最小 RMS。细节见 `docs/plugins/algorithms_phase2/10_sampling.md` 与 `11_upm.md`。
 
 ---
 
@@ -413,6 +416,9 @@ flowchart TD
 - ISA 支持：amd64 baseline、AVX2/FMA、AVX-512 子集；baseline 禁止泄漏 `/arch:AVX*`；高级 ISA 只作用于对应 provider。
 - `benchmark` 按 kernel 测量数值误差、吞吐、线程扩展、内存带宽、block/worker，生成绑定 CPU 特征/OS/版本/provider 哈希的 `cpu_profile`，输出到**安装目录**；选择用稳定统计，不用一次最快值。
 - **一个进程只有一个资源调度器与线程预算源**；模块不得硬编码 workers、不得私建长期线程池；CPU-heavy 必须多线程。
+- **内存极简化**：工作集只保留当前分块计算所需数据，流式读取、分块处理、用完即释；可由确定性公式现场求值的内容（稠密权重、稠密天光面等）不预计算、不整体驻留；缓存只保留复用收益高于重算成本的对象（如 Gaia 查询结果、PSF 模型、标定母版），并受字节预算与 LRU 约束。
+- **编排连续性与数据局部性**：调度按 DAG 做 locality-aware 编排——同一数据块上可连续执行的节点在同一 worker 一次走完，块间流水并行，避免"A 做一半切到 B、再回到 A"造成的缓存失效、重复加载与线程空转；外部查询（Gaia 等）按组合并、同组最大复用。
+- 每个 heavy 模块实现前给出资源分析：峰值工作集估算、缓存复用点、调度顺序与切换次数；实测以 worker 空转率、缓存命中率、数据搬运量与 RSS 峰值佐证。
 - 每个 heavy 运行自动记录：进程/线程 CPU、RSS/PSS、内存增长、读写字节、I/O wait、work units、队列深度、worker 均衡、进度、墙钟。
 - **重计算负载资源门（G-RES-01）**：判定域、已分配容量分母、record/enforce 划分、exit 10 条件见 `docs/plugins/infrastructure/21_observability.md` §8；**阈值唯一源 = `contracts/resource_gate_v1.json`**（C++/Python/外挂 judge 共读，实现侧只引用契约常量）。
 
@@ -538,3 +544,4 @@ signal / variance / ivar / snr / frame_snr / quality / support / coverage / vali
 ## 附录 B. 外部标准与文献
 
 - IVOA HiPS 1.0、HEALPix（Górski 2005）、FITS WCS Paper I/II、FITS Standard、Drizzle（Fruchter & Hook 2002）—— 详见 docs/references/SCIENTIFIC_REFERENCES.md，具体 SCI claim 必须落实到论文节/式与项目推导差异。
+- 帧级 SNR、PSF 信号权重与逆方差叠加的专项研究（PixInsight 公开方法学、开源对照实现、Zackay & Ofek 等文献清单与研究任务）见 `docs/research/SNR_WEIGHT_RESEARCH_PACK.md`。
