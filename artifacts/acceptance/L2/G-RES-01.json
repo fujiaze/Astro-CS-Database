@@ -1,0 +1,40 @@
+{
+  "layer": "L2",
+  "gate": "G-RES-01",
+  "command": "run_monitored.py --gate-required --gate-workers 16 -- ./build/astrocs normalize ...",
+  "verdict": "pass",
+  "violations": [],
+  "recorded": [
+    "frozen_avg_utilization_low: 平均利用率 0.814 (<0.85, 实测 CPU 1302.1% / 已分配容量 16 核=1600%; enforcement=record_and_justify)",
+    "frozen_low_utilization_window_no_queue: 连续 15.1s 利用率<60% 但无就绪线程积压（不判 CPU 饥饿；策略同 C++ runnable>0 前置）"
+  ],
+  "metrics": {
+    "effective_cpus": 16,
+    "available_cpus": 16,
+    "selected_workers": 16,
+    "granted_workers": 16,
+    "allocated": 16,
+    "allocated_source": "granted_workers",
+    "interval_seconds": 208.758,
+    "threads_max": 64,
+    "work_core_seconds": 2718.258794,
+    "workload_floor_core_seconds": 10.0,
+    "workload_floor_reached": true,
+    "utilization_evaluated": true,
+    "avg_utilization": 0.813819,
+    "avg_cpu_percent": 1302.11,
+    "p50_utilization": 0.9475,
+    "sample_pass_fraction": 0.779577,
+    "max_low_window_seconds": 15.131,
+    "runnable_sampled": true,
+    "queued_work": false,
+    "queued_work_runnable_p50": 1.0,
+    "queued_work_reference": "runnable_p50 > allocated",
+    "active_threads_statistic": "p50",
+    "active_threads_stat": 64.0
+  },
+  "evidence": {
+    "full": "run/PROJECT-GOVERNANCE-02/PRE-REL/l2_resource_gate.json",
+    "stdout": "run/PROJECT-GOVERNANCE-02/PRE-REL/l2_run_stdout.jsonl"
+  }
+}
