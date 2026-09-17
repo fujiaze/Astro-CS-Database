@@ -39,11 +39,30 @@ class TestTraceability(unittest.TestCase):
             ctb.check_table(p, errs)
             return errs
 
-    def test_01_seed_passes_on_real_repo(self):
-        r = __import__("subprocess").run([sys.executable, os.path.join(REPO, "tools", "check_traceability.py")],
-                                         capture_output=True, text=True, cwd=REPO)
+    def test_01_registered_fixture_passes_and_bare_call_is_fail_closed(self):
+        """A 类改绑（W4-A3）：`TRACEABILITY-CODE` 已于 2026-09-16 按负责人裁决退役。
+
+        退役登记（docs/ci/01_CHECKS.md §2.1）给出的**能力去向**是：
+          `python3 tools/check_traceability.py <claims.csv>` 仍按 R1–R7 全量校验，
+          夹具 = tests/quality/fixtures/docchk002_claims_fixture.csv；
+          无参调用不得回退被删快照 ⇒ 打印 TRACEABILITY_RETIRED 并 exit 2（fail-closed）。
+
+        原断言 `TRACEABILITY_PASS claims=66` 依赖已随 artifacts/ 删除的默认快照 ——
+        那是"判定面输入已不存在"的悬空断言。按退役登记改绑到登记的成功者调用；
+        同时把"无参必 exit 2"这一 fail-closed 面纳入同一用例，保证退役后既证明
+        留存能力仍可用、又证明它不会伪装绿。
+        """
+        import subprocess
+        tool = os.path.join(REPO, "tools", "check_traceability.py")
+        fixture = os.path.join("tests", "quality", "fixtures", "docchk002_claims_fixture.csv")
+        r = subprocess.run([sys.executable, tool, fixture],
+                           capture_output=True, text=True, cwd=REPO)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        self.assertIn("TRACEABILITY_PASS claims=66", r.stdout)
+        self.assertIn("TRACEABILITY_PASS claims=11", r.stdout)
+        # 负例面：无参（默认输入已随 artifacts/ 删除）必须 fail-closed，不得伪装绿
+        r2 = subprocess.run([sys.executable, tool], capture_output=True, text=True, cwd=REPO)
+        self.assertEqual(r2.returncode, 2, "无参调用必须 exit 2（fail-closed）")
+        self.assertIn("TRACEABILITY_RETIRED", r2.stdout)
 
     def test_02_delete_any_layer_ref_must_fail(self):
         """mutation: 删除任一层引用 → checker 必须失败。"""

@@ -48,8 +48,8 @@
 | 迁移目标 | 路径 | 交付状态 | 现状与去向 |
 | --- | --- | --- | --- |
 | p3 projection | `lib/algorithms/projection` | IMPLEMENTED（registry）/ `entrypoint: MISSING` | 冻结四投影 `TAN/SIN/CAR/AIT` registry v1（`lib/algorithms/projection/p3_projection.cpp`:267-273）+ ctest `p3_projection_units`/`p3_projection_fault` 实测；DLL 挂载与生产会话切换归 P3-PROJ-INT；**未 INSTALLED** |
-| p3 resample | `lib/algorithms/resample` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_resample.dll`；生产实现在 `lib/phase3_session/p3_resample.cpp`；顶层占位 descriptor `astrocs.phase3.resample` 归 P3-RSMP-INT（DEFERRED） |
-| p3 fits | `lib/algorithms/fits_output` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_fits.dll`；生产实现在 `lib/phase3_session/p3_output.cpp`；流式 FITS 接入 NOT_IMPLEMENTED |
+| p3 resample | `lib/algorithms/resample` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_resample.dll`；生产实现在 `lib/algorithms/resample/p3_resample.cpp`（W4-A3 改绑：原 `lib/phase3_session/` 路径已随投影/重采样迁出删除）；顶层占位 descriptor `astrocs.phase3.resample` 归 P3-RSMP-INT（DEFERRED） |
+| p3 fits | `lib/algorithms/fits_output` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_fits.dll`；生产实现在 `lib/algorithms/fits_output/p3_output.cpp`；流式 FITS 接入 NOT_IMPLEMENTED |
 | phase2 upm / samp / rej / int | `lib/algorithms/upm`、`lib/algorithms/sampling`、`lib/algorithms/rejection`、`lib/algorithms/integration` | CONTRACT_READY（合同目录） | 生产实现在 `lib/algorithms/coverage`（节点化已 IMPLEMENTED）；独立 DLL 化为迁移目标 |
 | hips_p2 | `lib/algorithms/coverage/hips_p2` | CONTRACT_READY（合同目录） | Phase2 HiPS 写出目标；生产路径在 `lib/infrastructure/aio` + `lib/algorithms/coverage` |
 | plate_solve / photometric_calib / star_detector / dynamic_psf | `lib/algorithms/platesolve`、`lib/algorithms/photometry`、`lib/algorithms/star_detection`、`lib/algorithms/psf` | IMPLEMENTED（节点内核） | 已作为 Phase1 节点唯一真实 operation 接入（`module_adapters.cpp`:4257）；独立 DLL 化未做（`entrypoint: MISSING` 属实） |

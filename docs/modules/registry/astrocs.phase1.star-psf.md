@@ -1,5 +1,7 @@
 ---
 id: MOD-astrocs-phase1-star-psf
+module_id: astrocs.p1.psf
+aliases: [astrocs.phase1.star-psf]
 version: 1.0.0
 status: ACTIVE
 owner: astrocs-core

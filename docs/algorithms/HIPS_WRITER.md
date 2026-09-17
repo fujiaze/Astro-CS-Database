@@ -94,8 +94,9 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
   LASTPIX="262143"（调用方 :505-506/:638-639/:804-805；声明性头卡，
   DISP-HIPS-012）；`fits_write_pix` 行主序一次写 512×512（:220-225，
   bitpix −32/−64 随 data_type）；`fits_write_chksum`（:230，DATASUM/
-  CHECKSUM 完整性）。路径 `Norder{K}/Dir{ipix/10000}/Npix{ipix mod 10000}.fits`
-  （tile_rel_path :135-142，万进制分片）。
+  CHECKSUM 完整性）。路径 `Norder{K}/Dir{(ipix/10000)*10000}/Npix{ipix}.fits`
+  （IVOA REC-HIPS-1.0 §4.1；M2b-B-01 前为 Dir=商/Npix=余数，与标准相反；
+  tile_rel_path 现位于本文件 aio_hips_writer.cpp 的匿名命名空间内）。
 - (2e) 登记副作用：FITS 写失败 rc=−4（signal，:513）/−5（support，:521）；
   MOC 叶级 cell（moc_cells.insert :528-529）、moc_area_sr += A_cell(K)
   （:530）、covered_area_sr += tile_covered（:532）、leaf_ipix_list 追加
@@ -192,7 +193,8 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
   失败静默 return；键序 finalize_image_product :707-771）：IVOa 关键字
   creator_did（:707，缺省 ivo://astrocs/phase1）/ obs_title / obs_creator=
   "AstroCS"（:710）/ **hips_version="1.4"** / hips_order=K /
-  hips_tile_width="512" / hips_frame="equatorial" / dataproduct_type="image" /
+  hips_tile_width="512" / hips_frame="icrs"（IVOA REC-HIPS-1.0 §4.4.1 值域；
+  M1a-B-005 前写非标准值 "equatorial"）/ dataproduct_type="image" /
   dataproduct_subtype（signal=surface brightness、support=coverage fraction、
   variance=variance、ivar=inverse variance，:716 由 finalize :1030-1052
   传入）/ hips_tile_format="fits" / **hips_status="private master"（恒值
@@ -209,7 +211,9 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
   不再有 "scale>0 才写" 的静默省略分支。上界推导：叶级 nside≥512 ⇒ 最粗叶像素
   412.258369″，经 SCI-DRZ-001 冻结的 1–2× 过采样 ⇒ 帧尺度 ≤2×412.258369″；
   该界是物理/表示域，**不是** k_corr 查表域 [300,600]″）/ obs_regime
-  / hips_hierarchy / **hips_pixel_scale = 3600·180/π·√(π/3)/nside arcsec
+  / hips_hierarchy / **hips_pixel_scale = (180/π)·√(π/3)/nside deg（IVOA REC-HIPS-1.0
+  §4.4.1 单位=度；M2b-B-03 前多乘 3600 写角秒。帧尺度上界常量
+  ACS_HIPS_MAX_FRAME_SCALE_ARCSEC 仍是角秒内部量，不改）
   （:704-705，%.6f）** / **hips_initial_fov="60" 硬编码（:745，DISP-HIPS-002）** /
   **moc_sky_fraction（与 manifest.json 共用唯一格式化函数
   fmt_sky_fraction = %.17g，:1051/:1115/:1673；DBL_DECIMAL_DIG ⇒

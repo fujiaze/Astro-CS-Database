@@ -10,11 +10,28 @@
 #include <string>
 
 #include "astro_image_io.h"
+#include "fitsio.h"
 
 namespace {
 
 constexpr int W = 64, H = 64;
 constexpr float V_BIAS = 100.0f, V_DARK = 150.0f, V_FLAT = 1.25f, V_LIGHT = 200.0f;
+constexpr double V_EXPTIME = 1.0;   // 全帧同曝光 → K = t_light/t_dark = 1
+
+// BIAS-001 / B2-A13（cal 节点）: 只要 master_dark 在位，K=t_light/t_dark 就必须由
+// FITS 头 EXPTIME 推导；真实相机帧恒带 EXPTIME，而 aio_write_fits 只写几何头
+// （lib/infrastructure/aio/src/aio_fits.cpp 无任何 fits_write_key —— 元数据落盘缺口
+// 已另行登记）。夹具必须与真实帧同构，故写盘后补写 EXPTIME。
+bool add_exptime_key(const std::string& path) {
+    fitsfile* f = nullptr;
+    int st = 0;
+    if (fits_open_file(&f, path.c_str(), READWRITE, &st) != 0) return false;
+    double v = V_EXPTIME;
+    fits_update_key(f, TDOUBLE, const_cast<char*>("EXPTIME"), &v,
+                    const_cast<char*>("Exposure time (s)"), &st);
+    fits_close_file(f, &st);
+    return st == 0;
+}
 
 }  // namespace
 
@@ -52,6 +69,11 @@ if (argc < 3) { std::fprintf(stderr, "usage: --make <dir> | --mean <fits>\n"); r
                 std::fprintf(stderr, "write failed: %s\n", p.c_str());
                 std::free(im.data);
                 return 4;
+            }
+            if (!add_exptime_key(p)) {
+                std::fprintf(stderr, "EXPTIME key write failed: %s\n", p.c_str());
+                std::free(im.data);
+                return 5;
             }
             std::free(im.data);
         }

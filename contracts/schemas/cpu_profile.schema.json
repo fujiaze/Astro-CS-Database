@@ -21,7 +21,8 @@
   "x-astrocs-notes": [
     "迁移原因（实测）：原文件内容为 BENCH-004 旧 schema（schema_version=1），而 lib/infrastructure/benchmark/backend_host/profile_gen.h:21 明确 contracts/schemas/cpu_profile.schema.json 即 v2 schema；实现已在写/校 v2（profile_gen_v2.cpp、profile_store.h:10-18）。迁移把两条分支并入唯一文件，消除「schema 文件与实现口径分裂」。",
     "兼容面（既有检查项不变）：tests/backend/test_cpu_profile.py:74-79 读取顶层 required 与 properties.kernels.items.required；tools/validate_cpu_profile.py:41-70 读取顶层 required/additionalProperties/properties。故顶层 required 取两分支共有键 [build, kernels]，顶层 properties 同时登记两分支全部顶层键，完整字段约束分别落在 $defs.legacy_v1 / $defs.profile_v2。",
-    "兼容取舍（如实登记，需负责人知悉）：为让同一文件同时容纳 v1 数组与 v2 对象，顶层 properties.kernels.type = ['array','object']，因此 tools/validate_cpu_profile.py:65 的 rule.get('type')=='array' 分支对该字段不再生效。v1 kernel 项约束仍由本文件 items.required 与 $defs.legacy_v1 强制，并由 tests/config 负例复跑证明其仍能红（docs/contracts/CONFIG_CONTRACT.md §5）。",
+    "兼容取舍（如实登记，需负责人知悉）：为让同一文件同时容纳 v1 数组与 v2 对象，顶层 properties.kernels.type = ['array','object']，因此 tools/validate_cpu_profile.py:65 的 rule.get('type')=='array' 分支对该字段不再生效。v1 kernel 项约束由 $defs.legacy_v1.properties.kernels.items -> $defs.kernel_v1（顶层镜像等价）强制，并由 tests/config 负例复跑证明其仍能红（docs/contracts/CONFIG_CONTRACT.md §5、tests/config/fixtures/negative/cpu_profile_v1_bad_kernel.json）。",
+    "kernel 约束接线（W5-CPU-001，2026-09-17）：$defs.kernel_v1 现由 $defs.legacy_v1.properties.kernels.items $ref（v1 kernels[] 项约束），$defs.kernel_v2 现由 $defs.profile_v2.properties.kernels.additionalProperties $ref（v2 kernels{} 行约束）；两处 refs=1/1（登记 config/config_registry.json#cpu_profile_kernel_link，门 CFG002-10）。顶层 properties.kernels.items/.additionalProperties 保留等价镜像以服务既有读取面（tests/backend/test_cpu_profile.py:78、tools/validate_cpu_profile.py:68），镜像与 $defs 逐字一致由 tests/config 门钉死（漂移即红）。接线不收紧既有约束：镜像与 $defs 在接线时为同一约束（tests/config/test_cfg001_negative.py::TestNegativeFixturesMustFail::test_cpu_profile_kernel_defs_are_wired_and_enforced 断言 JSON 相等）。",
     "ISA 绑定：v2 的 ISA 级别由 kernels.*.provider ∈ {baseline,avx2,avx512} 与 host.features/xcr0 共同承载；不另造 isa/isa_level 死字段（锚点 isa(_[a-z0-9_]+)? / ^block(_[a-z0-9_]+)?$ 为命名族示例，生产者未写出）。",
     "无 profile 行为：无/失配 profile -> 回落 generic(baseline) + 动态多线程、不阻塞（profile_store.h:7-8,32），本 schema 不改变该行为。"
   ],
@@ -380,7 +381,10 @@
         },
         "kernels": {
           "type": "array",
-          "minItems": 1
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/kernel_v1"
+          }
         },
         "verdict": {
           "enum": [
@@ -548,7 +552,10 @@
         },
         "kernels": {
           "type": "object",
-          "minProperties": 1
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/kernel_v2"
+          }
         },
         "verdict": {
           "enum": [

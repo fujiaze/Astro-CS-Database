@@ -250,6 +250,16 @@ inline FixViewF64 fix_hips_g_hetero_coverage_tile(std::uint64_t parent_ipix,
     return f;
 }
 
+// 输出结构 AioHipsVerifyReport 的合规构造 (LEDGER-P1 追加项: 该结构自本批起
+// 带 ABI 自描述头; 库在写入前校验 struct_size/abi_version, 缺失即 -9 fail-closed
+// 且不写 —— 测试与调用方必须显式初始化, 不得裸 {} 后直接调用)。
+inline AioHipsVerifyReport make_verify_report() {
+    AioHipsVerifyReport r{};
+    r.struct_size = static_cast<std::uint32_t>(sizeof(AioHipsVerifyReport));
+    r.abi_version = static_cast<std::uint32_t>(AIO_HIPS_VERIFY_REPORT_ABI_VERSION);
+    return r;
+}
+
 }  // namespace p1hips
 
 #endif  // P1HIPS_FIXTURES_HPP

@@ -273,6 +273,8 @@ void units_verify_bidirectional() {
     if (!b.ok) return;
 
     AioHipsVerifyReport r{};
+    r.struct_size = static_cast<std::uint32_t>(sizeof(AioHipsVerifyReport));
+    r.abi_version = static_cast<std::uint32_t>(AIO_HIPS_VERIFY_REPORT_ABI_VERSION);
     const int rc = aio_hips_verify_product_set(base.c_str(), &r);
     P2H_CHECK(rc == 0, "V: available 产品集 rc==0");
     P2H_CHECK(r.signal_present == 1, "V: report.signal_present==1");
@@ -316,6 +318,8 @@ void units_verify_bidirectional() {
                       !fs::exists(fs::path(d2) / "ivar"),
                   "U: unavailable 禁 variance/ivar 占位子产品");
         AioHipsVerifyReport r2{};
+        r2.struct_size = static_cast<std::uint32_t>(sizeof(AioHipsVerifyReport));
+        r2.abi_version = static_cast<std::uint32_t>(AIO_HIPS_VERIFY_REPORT_ABI_VERSION);
         P2H_CHECK(aio_hips_verify_product_set(d2.c_str(), &r2) == 0,
                   "V: unavailable 产品集 rc==0 (双向)");
         P2H_CHECK(r2.uncertainty_available == 0, "V: report unavailable==0");
@@ -524,6 +528,8 @@ void negative_verify_tamper() {
         if (b.ok) {
             fs::remove_all(fs::path(d) / "nused", ec);
             AioHipsVerifyReport r{};
+            r.struct_size = static_cast<std::uint32_t>(sizeof(AioHipsVerifyReport));
+            r.abi_version = static_cast<std::uint32_t>(AIO_HIPS_VERIFY_REPORT_ABI_VERSION);
             P2H_CHECK(aio_hips_verify_product_set(d.c_str(), &r) != 0,
                       "N3.T1: 声明 nused 但目录缺失 → verify 必败 (V4)");
         }
@@ -550,6 +556,8 @@ void negative_verify_tamper() {
             std::ofstream(fs::path(d) / "variance" / "properties")
                 << "hips_version=1.4\nhips_order=0\nhips_tile_width=512\n";
             AioHipsVerifyReport r{};
+            r.struct_size = static_cast<std::uint32_t>(sizeof(AioHipsVerifyReport));
+            r.abi_version = static_cast<std::uint32_t>(AIO_HIPS_VERIFY_REPORT_ABI_VERSION);
             P2H_CHECK(aio_hips_verify_product_set(d.c_str(), &r) != 0,
                       "N3.T2: unavailable 面伪造 variance 占位 → verify 必败 (V3)");
         }
@@ -569,6 +577,8 @@ void negative_verify_tamper() {
                 props.replace(pos, from.size(), to);
                 std::ofstream(p, std::ios::binary | std::ios::trunc) << props;
                 AioHipsVerifyReport r{};
+                r.struct_size = static_cast<std::uint32_t>(sizeof(AioHipsVerifyReport));
+                r.abi_version = static_cast<std::uint32_t>(AIO_HIPS_VERIFY_REPORT_ABI_VERSION);
                 P2H_CHECK(aio_hips_verify_product_set(d.c_str(), &r) != 0,
                           "N3.T3: properties↔manifest 值分叉 → verify 必败 (V6)");
             }
@@ -610,6 +620,8 @@ void selfcheck_injection() {
         }
         P2H_CHECK(detected, "S1: 注入的等价缺陷在磁盘面可观测 (断言可判)");
         AioHipsVerifyReport r{};
+        r.struct_size = static_cast<std::uint32_t>(sizeof(AioHipsVerifyReport));
+        r.abi_version = static_cast<std::uint32_t>(AIO_HIPS_VERIFY_REPORT_ABI_VERSION);
         const int rc = aio_hips_verify_product_set(base.c_str(), &r);
         P2H_CHECK(rc != 0, "S1: 注入下 verify 必败 (判别力证明)");
         (void)man;

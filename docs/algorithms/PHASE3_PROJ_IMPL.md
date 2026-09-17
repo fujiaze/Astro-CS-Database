@@ -13,8 +13,9 @@
 > 工程控制/PROJECT-GOVERNANCE-01/SCIENCE_CORRECTNESS.md SC-001。
 > 本文档为 WCS/投影域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
-> 生产源: lib/phase3_session/p3_wcs.h（50 行，唯一权威签名头）+
-> lib/phase3_session/p3_wcs.cpp（165 行），实测 2026-09-11。
+> 生产源: lib/algorithms/projection/p3_wcs.h（66 行，唯一权威签名头）+
+> lib/algorithms/projection/p3_wcs.cpp（232 行），W4-A9 批次 1（2026-09-17）
+> 由 lib/phase3_session/ 迁入本目录（内容逐字节等价，行数按新址复测）。
 
 ## 1 目的与非目标
 
@@ -22,7 +23,7 @@
   descriptor 构造（CRPIX/CRVAL/CD、parity、PA）、像素↔天球正反映射、
   FITS 关键词文本输出、极点/半球/参数守卫——作为 P3-PROJ-IMPL/TEST/
   INT 的合同基线。
-- 非目标: **生产 alpha 路径仍只走 TAN**（lib/phase3_session/p3_wcs.cpp，
+- 非目标: **生产 alpha 路径仍只走 TAN**（lib/algorithms/projection/p3_wcs.cpp，
   会话合同 SCI-P3 §9a-3 收窄）；registry 冻结集合按 ASTROCS_DESIGN §5.3
   八投影（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），v3 已实现 4/8、
   STG/MOL/CEA/ZEA 实施归 P3-001（新增投影必须落在冻结集合内并附独立
@@ -55,8 +56,8 @@
 
 | 文件 | 行数 | 角色 |
 |---|---|---|
-| lib/phase3_session/p3_wcs.h | 50 | 唯一权威签名头（P3WcsDescriptor/P3WcsStatus/四函数） |
-| lib/phase3_session/p3_wcs.cpp | 165 | 实现（常量+守卫/G1 构造/正反映射/关键词） |
+| lib/algorithms/projection/p3_wcs.h | 66 | 唯一权威签名头（P3WcsDescriptor/P3WcsStatus/四函数）；W4-A9 批次 1 迁入，行数按新址复测 2026-09-17 |
+| lib/algorithms/projection/p3_wcs.cpp | 232 | 实现（常量+守卫/G1 构造/正反映射/关键词）；W4-A9 批次 1 迁入，行数按新址复测 2026-09-17 |
 | lib/phase3_session/p3_session.cpp | 329 | 会话消费点（:17/:160/:163/:232/:247-253） |
 | tests/backend/p3_wcs_main.cpp | — | 探针（make/p2w/w2p/kw 四模式，printf 协议） |
 | tests/backend/test_p1002_gaps.py | — | 独立解析解回归（内联编译链接 p3_wcs.cpp） |
@@ -456,7 +457,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 - **TAN**（§6/§7 冻结零改动，冻结逐式路径）: R=cotθ；
   X=−R sinφ, Y=R cosφ。逆: r=√(X²+Y²) (rad)，r≥π/2 → HEMISPHERE；
-  θ=atan2(1,r)，φ=atan2(−X,Y)。与 lib/phase3_session/p3_wcs.cpp 生产实现
+  θ=atan2(1,r)，φ=atan2(−X,Y)。与 lib/algorithms/projection/p3_wcs.cpp 生产实现
   bitwise 一致（§15.6 T3 对拍承载）。
 - **SIN**（orthographic）: R=cosθ；X=−R sinφ, Y=R cosφ。逆:
   ρ=√(X²+Y²) (rad)，ρ>1 → HEMISPHERE（ρ=1 边界合法，θ=0）；

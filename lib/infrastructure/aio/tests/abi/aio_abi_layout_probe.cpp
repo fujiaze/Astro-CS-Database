@@ -33,6 +33,7 @@ AIO_ABI_HEAD_ASSERT(AstroSphereTileView);
 AIO_ABI_HEAD_ASSERT(AioHipsSnrPoint);
 AIO_ABI_HEAD_ASSERT(AioHipsDiagTileView);
 AIO_ABI_HEAD_ASSERT(AioHipsTile);
+AIO_ABI_HEAD_ASSERT(AioHipsVerifyReport);
 
 // --- 头/镜像一致性: 初始化器写入的版本号必须等于头常量 ---
 static_assert(AIO_HIPS_TILE_VIEW_ABI_VERSION == 1u, "tile view ABI 版本常量漂移");
@@ -147,7 +148,62 @@ int main() {
             AIO_SZ(AioHipsTile, parent_ipix), AIO_SZ(AioHipsTile, depth),
             AIO_SZ(AioHipsTile, signal), AIO_SZ(AioHipsTile, support)};
         emit<AioHipsTile>("AioHipsTile", names, offsets, sizes, 6,
-                          (unsigned)AIO_HIPS_TILE_ABI_VERSION, true);
+                          (unsigned)AIO_HIPS_TILE_ABI_VERSION, false);
+    }
+    {
+        // 输出结构 (调用方分配/库写入): 同样纳入机器锁 (逐字段 offset/size)
+        const char* names[] = {"struct_size", "abi_version", "signal_present",
+                               "n_signal_tiles", "variance_present", "ivar_present",
+                               "n_variance_tiles", "n_ivar_tiles", "nrej_present",
+                               "nused_present", "nrej_declared", "nused_declared",
+                               "n_nrej_tiles", "n_nused_tiles", "prov_keys_present",
+                               "uncertainty_available", "manifest_keys_present",
+                               "diag_negative_pixels", "unreadable_tiles",
+                               "value_mismatch"};
+        const std::size_t offsets[] = {
+            AIO_OFF(AioHipsVerifyReport, struct_size),
+            AIO_OFF(AioHipsVerifyReport, abi_version),
+            AIO_OFF(AioHipsVerifyReport, signal_present),
+            AIO_OFF(AioHipsVerifyReport, n_signal_tiles),
+            AIO_OFF(AioHipsVerifyReport, variance_present),
+            AIO_OFF(AioHipsVerifyReport, ivar_present),
+            AIO_OFF(AioHipsVerifyReport, n_variance_tiles),
+            AIO_OFF(AioHipsVerifyReport, n_ivar_tiles),
+            AIO_OFF(AioHipsVerifyReport, nrej_present),
+            AIO_OFF(AioHipsVerifyReport, nused_present),
+            AIO_OFF(AioHipsVerifyReport, nrej_declared),
+            AIO_OFF(AioHipsVerifyReport, nused_declared),
+            AIO_OFF(AioHipsVerifyReport, n_nrej_tiles),
+            AIO_OFF(AioHipsVerifyReport, n_nused_tiles),
+            AIO_OFF(AioHipsVerifyReport, prov_keys_present),
+            AIO_OFF(AioHipsVerifyReport, uncertainty_available),
+            AIO_OFF(AioHipsVerifyReport, manifest_keys_present),
+            AIO_OFF(AioHipsVerifyReport, diag_negative_pixels),
+            AIO_OFF(AioHipsVerifyReport, unreadable_tiles),
+            AIO_OFF(AioHipsVerifyReport, value_mismatch)};
+        const std::size_t sizes[] = {
+            AIO_SZ(AioHipsVerifyReport, struct_size),
+            AIO_SZ(AioHipsVerifyReport, abi_version),
+            AIO_SZ(AioHipsVerifyReport, signal_present),
+            AIO_SZ(AioHipsVerifyReport, n_signal_tiles),
+            AIO_SZ(AioHipsVerifyReport, variance_present),
+            AIO_SZ(AioHipsVerifyReport, ivar_present),
+            AIO_SZ(AioHipsVerifyReport, n_variance_tiles),
+            AIO_SZ(AioHipsVerifyReport, n_ivar_tiles),
+            AIO_SZ(AioHipsVerifyReport, nrej_present),
+            AIO_SZ(AioHipsVerifyReport, nused_present),
+            AIO_SZ(AioHipsVerifyReport, nrej_declared),
+            AIO_SZ(AioHipsVerifyReport, nused_declared),
+            AIO_SZ(AioHipsVerifyReport, n_nrej_tiles),
+            AIO_SZ(AioHipsVerifyReport, n_nused_tiles),
+            AIO_SZ(AioHipsVerifyReport, prov_keys_present),
+            AIO_SZ(AioHipsVerifyReport, uncertainty_available),
+            AIO_SZ(AioHipsVerifyReport, manifest_keys_present),
+            AIO_SZ(AioHipsVerifyReport, diag_negative_pixels),
+            AIO_SZ(AioHipsVerifyReport, unreadable_tiles),
+            AIO_SZ(AioHipsVerifyReport, value_mismatch)};
+        emit<AioHipsVerifyReport>("AioHipsVerifyReport", names, offsets, sizes, 20,
+                                  (unsigned)AIO_HIPS_VERIFY_REPORT_ABI_VERSION, true);
     }
 
     std::printf("}\n");

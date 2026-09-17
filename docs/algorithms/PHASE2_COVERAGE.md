@@ -7,8 +7,9 @@
 > 第 5 步（coverage union 为 Phase2 首节点）。本任务零 SCI 层改动（§11.5）。
 > 下游: DATA-COV-001（DATA_SEMANTICS §19）、API-COV-001（PUBLIC_API）、
 > MOD-astrocs-phase2-coverage（registry）
-> 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（239 行实测）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/coverage.h（60 行）；禁止手抄他版。
+> 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（454 行，2026-09-17 LEDGER-DOC 复测；
+> 旧记 239 行为迁移前行数）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/coverage.h（168 行，同上；旧记 60 行）；禁止手抄他版。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json
 > MOD-astrocs-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
 > sources，迁移目标 astrocs_p2_coverage.dll，module_id=astrocs.p2.coverage）。

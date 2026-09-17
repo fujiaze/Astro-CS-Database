@@ -34,6 +34,13 @@
 // p2_rejection.{json,bin} → p2_integrated.{json,bin} → mosaic HiPS + p2_final.json）。
 #include "astrocs/core/module_adapters.h"
 
+// DET-001: 规范产品哈希（canonical product hash）—— 产品指纹口径的唯一实现
+// （C++ 侧; 与 tools/canonical_product_hash.py 逐字节同构）。
+#include "astrocs/core/canonical_hash.h"
+// UNIT-001: 母版单位/归一化消费门（纯规则；SCI-CAL-001 §3/§6/§8/§11 +
+// ALG-CAL-001 §2 标度声明表 + DISP-CAL-013 + DATA-P1-CAL §9.1a）。
+#include "astrocs/core/master_unit_guard.h"
+
 // B2-A10: 构建期版本单源（与 CLI 共用同一生成头）——节点 manifest 自报
 // module build ID 需要 ASTROCS_VERSION_STRING。
 #include "version_generated.h"
@@ -83,11 +90,12 @@
 // astrocs_phase3_session 已在 astrocs_module_adapters 链接闭包;
 // 相对路径 include 同 "../../../algorithms/star_detection/wrapper_phase1/star_detector.h" 先例, 根 CMake
 // 零改动）
-// W4-A9 批次 1: p3_wcs.h 已迁 lib/algorithms/projection/ (ASTROCS_DESIGN §7.1
-// 「projection」行); 会话层 p3_resample.h / p3_output.h 仍在本批未迁的
-// lib/phase3_session/ (批次 2/3 迁入 resample / fits_output)。
-#include "../../../phase3_session/p3_resample.h"
-#include "../../../phase3_session/p3_output.h"
+// W4-A9 批次 1/2/3: 三个 Phase3 会话内核头已按 ASTROCS_DESIGN §7.1 迁入各自算法
+// 模块 —— p3_wcs.h → algorithms/projection (批次 1)、p3_resample.h →
+// algorithms/resample (批次 2)、p3_output.h → algorithms/fits_output (批次 3);
+// 符号与命名空间零改动, 仅 include 面改锚。
+#include "../../../algorithms/resample/p3_resample.h"
+#include "../../../algorithms/fits_output/p3_output.h"
 #include "../../../algorithms/projection/p3_wcs.h"
 
 #include <nlohmann/json.hpp>
@@ -1318,6 +1326,174 @@ Result<void> p1_require_lights(const Json& doc) {
   return Result<void>::success();
 }
 
+// ── UNIT-001: 母版单位/归一化声明解析 + 观测统计 + 声明换算 ──────────────────
+// 依据: SCI-CAL-001 §3/§6/§8/§11；ALG-CAL-001 §2「标度声明」表 + DISP-CAL-013；
+//       DATA-P1-CAL §9.1/§9.1a。规则本体是纯函数（astrocs/core/master_unit_guard.h），
+//       本处只做 JSON 解析、像素统计与「按声明施加换算」；一句话：文件不携带 ADU 换算
+//       因子（XISF bounds 只是可表示域），所以换算必须显式声明，否则 fail-closed。
+namespace mu = astrocs::core::master_units;
+
+bool p1_parse_master_units(const Json &doc, mu::Decl *d, std::string *err) {
+  auto parse_unit = [&](const char *key, mu::ClassDecl *c) -> bool {
+    if (!doc.contains("master_units")) return true;
+    const Json &u = doc["master_units"];
+    if (!u.is_object()) {
+      if (err) *err = "master_units must be an object {light|bias|dark|flat: \"ADU\"|\"normalized\"}";
+      return false;
+    }
+    if (!u.contains(key)) return true;
+    const Json &v = u[key];
+    if (!v.is_string()) {
+      if (err) *err = std::string("master_units.") + key + " must be a string token";
+      return false;
+    }
+    const std::string t = v.get<std::string>();
+    c->has_unit = true;
+    if (t == "ADU") {
+      c->unit = mu::Unit::ADU;
+    } else if (t == "normalized") {
+      c->unit = mu::Unit::Normalized;
+    } else {
+      if (err) *err = std::string("master_units.") + key + "=\"" + t +
+                      "\" unknown token (allowed: ADU|normalized)";
+      return false;
+    }
+    return true;
+  };
+  auto parse_scale = [&](const char *key, mu::ClassDecl *c) -> bool {
+    if (!doc.contains("master_scale")) return true;
+    const Json &m = doc["master_scale"];
+    if (!m.is_object()) {
+      if (err) *err = "master_scale must be an object {light|bias|dark|flat: <number>}";
+      return false;
+    }
+    if (!m.contains(key)) return true;
+    const Json &v = m[key];
+    if (!v.is_number()) {
+      if (err) *err = std::string("master_scale.") + key + " must be a number (ADU factor)";
+      return false;
+    }
+    c->has_scale = true;
+    c->scale = v.get<double>();
+    return true;
+  };
+  const char *keys[4] = {"light", "bias", "dark", "flat"};
+  mu::ClassDecl *classes[4] = {&d->light, &d->bias, &d->dark, &d->flat};
+  for (int i = 0; i < 4; ++i)
+    if (!parse_unit(keys[i], classes[i])) return false;
+  for (int i = 0; i < 4; ++i)
+    if (!parse_scale(keys[i], classes[i])) return false;
+  if (doc.contains("master_flat_normalize")) {
+    const Json &v = doc["master_flat_normalize"];
+    if (!v.is_string()) {
+      if (err) *err = "master_flat_normalize must be \"none\" or \"median\"";
+      return false;
+    }
+    const std::string t = v.get<std::string>();
+    d->flat_normalize_given = true;
+    if (t == "median") {
+      d->flat_normalize_median = true;
+    } else if (t != "none") {
+      if (err) *err = "master_flat_normalize=\"" + t + "\" unknown (allowed: none|median)";
+      return false;
+    }
+  }
+  if (doc.contains("master_flat_median_range")) {
+    const Json &v = doc["master_flat_median_range"];
+    if (!v.is_array() || v.size() != 2 || !v[0].is_number() || !v[1].is_number()) {
+      if (err) *err = "master_flat_median_range must be [lower, upper] (two numbers)";
+      return false;
+    }
+    d->flat_band_given = true;
+    d->flat_band_lo = v[0].get<double>();
+    d->flat_band_hi = v[1].get<double>();
+    if (!(d->flat_band_lo < d->flat_band_hi) || !std::isfinite(d->flat_band_lo) ||
+        !std::isfinite(d->flat_band_hi)) {
+      if (err) *err = "master_flat_median_range must satisfy lower < upper (finite)";
+      return false;
+    }
+  }
+  // dark 的 bias 约定：dark_optimization 是否显式给出（U3 判据，见 master_unit_guard.h）
+  d->dark_convention_given = p1_has(doc, "dark_optimization");
+  d->dark_includes_bias = d->dark_convention_given && p1_flag(doc, "dark_optimization", false);
+  return true;
+}
+
+// 观测统计（中位数口径与 p1_master_flat_valid/master_generator 一致：偶数取中间两值均值）。
+mu::Stats p1_image_stats(const P1Image &im) {
+  mu::Stats s;
+  if (!im.ok() || im.px() == nullptr || im.w() <= 0 || im.h() <= 0) {
+    s.has_finite = false;
+    return s;
+  }
+  const int64_t n = static_cast<int64_t>(im.w()) * static_cast<int64_t>(im.h());
+  const float *px = im.px();
+  std::vector<float> vals;
+  vals.reserve(static_cast<size_t>(n));
+  double mn = 0.0, mx = 0.0;
+  bool first = true;
+  for (int64_t i = 0; i < n; ++i) {
+    const float v = px[i];
+    if (!std::isfinite(v)) {
+      s.all_finite = false;
+      continue;
+    }
+    vals.push_back(v);
+    if (first) {
+      mn = mx = static_cast<double>(v);
+      first = false;
+    } else {
+      if (v < mn) mn = v;
+      if (v > mx) mx = v;
+    }
+  }
+  if (vals.empty()) {
+    s.has_finite = false;
+    return s;
+  }
+  s.min_v = mn;
+  s.max_v = mx;
+  const size_t mid = vals.size() / 2;
+  std::nth_element(vals.begin(), vals.begin() + static_cast<std::ptrdiff_t>(mid), vals.end());
+  double med = static_cast<double>(vals[mid]);
+  if (vals.size() % 2 == 0) {
+    const float lower =
+        *std::max_element(vals.begin(), vals.begin() + static_cast<std::ptrdiff_t>(mid));
+    med = (static_cast<double>(lower) + med) * 0.5;
+  }
+  s.median = med;
+  return s;
+}
+
+// 按显式声明施加线性换算（仅当 scale 有效且 != 1.0；k<=1 与 NaN 已在 U4 拒绝）。
+void p1_apply_declared_scale(P1Image &im, double k) {
+  if (!im.ok() || im.px() == nullptr || k == 1.0 || !std::isfinite(k) || !(k > 0.0)) return;
+  const int64_t n = static_cast<int64_t>(im.w()) * static_cast<int64_t>(im.h());
+  float *px = im.px();
+  for (int64_t i = 0; i < n; ++i) px[i] = static_cast<float>(static_cast<double>(px[i]) * k);
+}
+
+// 显式声明 master_flat_normalize="median" 时按 SCI-CAL-001 §5 施加
+// flat/median(flat)（对已归一平场幂等；floor 0.1 仍由 calibrate 施加）。
+bool p1_normalize_flat_median(P1Image &flat, double *med_before, double *med_after,
+                              std::string *err) {
+  const mu::Stats s = p1_image_stats(flat);
+  if (!s.has_finite) {
+    if (err) *err = "master_flat has no finite pixels";
+    return false;
+  }
+  if (!(s.median > 0.0)) {
+    if (err) *err = "master_flat median<=0, cannot normalize";
+    return false;
+  }
+  if (med_before) *med_before = s.median;
+  const double inv = 1.0 / s.median;
+  const int64_t n = static_cast<int64_t>(flat.w()) * static_cast<int64_t>(flat.h());
+  float *px = flat.px();
+  for (int64_t i = 0; i < n; ++i) px[i] = static_cast<float>(static_cast<double>(px[i]) * inv);
+  if (med_after) *med_after = p1_image_stats(flat).median;
+  return true;
+}
 // ── B2-A6: master flat 数值有效性 fail-closed（消费边界）──────────────────
 // SCI-CAL-001 §3/§4/§8 单位表与 flat 语义：calibrate 以 max(flat,0.1) 为除数。
 // master flat 若全零/中位数<=0/非有限，除法退化为常数放大（max(0,0.1)=0.1 →
@@ -1412,14 +1588,120 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
               "): degenerate flat must not be consumed (SCI-CAL-001 §8)"));
     }
   }
+  // ── UNIT-001: 母版单位/归一化消费门（声明 + 观测校验 + 声明换算）────────────
+  // 依据 SCI-CAL-001 §3/§6/§8/§11、ALG-CAL-001 §2「标度声明」表 + DISP-CAL-013、
+  // DATA-P1-CAL §9.1a。只做「声明是否给出 / 观测域是否与声明相容 / 按声明施加换算」，
+  // 不改任何科学公式；违反即 DATA 拒绝（CLI rc=2）并点名文件与观测值，
+  // 禁止静默按错误标度计算（XISF Float32 bounds="0:1" 是可表示域，不是 ADU）。
+  mu::Decl mu_decl;
+  {
+    std::string mu_err;
+    if (!p1_parse_master_units(doc, &mu_decl, &mu_err)) {
+      st_cal["status"] = "fail";
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "MASTER_UNIT_DECLARATION_INVALID: " + mu_err));
+    }
+    const mu::Verdict dv = mu::check_declarations(mu_decl);
+    if (!dv.ok) {
+      st_cal["status"] = "fail";
+      return Result<void>::fail(Error(ErrorDomain::DATA, dv.message));
+    }
+  }
+  if (dark.ok()) {
+    const mu::Verdict dv =
+        mu::check_dark_convention(doc["master_dark"].get<std::string>(), mu_decl);
+    if (!dv.ok) {
+      st_cal["status"] = "fail";
+      return Result<void>::fail(Error(ErrorDomain::DATA, dv.message));
+    }
+  }
+  // 声明换算（归一化域 → ADU）：换算因子只来自显式声明（文件不携带）。
+  Json mu_applied = Json::object();
+  if (bias.ok() && mu_decl.bias.has_scale) {
+    p1_apply_declared_scale(bias, mu_decl.bias.scale);
+    mu_applied["bias"] = mu_decl.bias.scale;
+  }
+  if (dark.ok() && mu_decl.dark.has_scale) {
+    p1_apply_declared_scale(dark, mu_decl.dark.scale);
+    mu_applied["dark"] = mu_decl.dark.scale;
+  }
+  if (flat.ok() && mu_decl.flat.has_scale) {
+    p1_apply_declared_scale(flat, mu_decl.flat.scale);
+    mu_applied["flat"] = mu_decl.flat.scale;
+  }
+  // 亮场域证据用首帧探测（同配置/同相机；换算按声明施加后再取统计）。
+  const mu::Stats mu_light_probe = [&]() {
+    P1Image probe = p1_read_image(lights.front());
+    if (probe.ok() && mu_decl.light.has_scale)
+      p1_apply_declared_scale(probe, mu_decl.light.scale);
+    return p1_image_stats(probe);
+  }();
+  const mu::Stats mu_st_bias = p1_image_stats(bias);
+  const mu::Stats mu_st_dark = p1_image_stats(dark);
+  const mu::Stats mu_st_flat = p1_image_stats(flat);
+  if (bias.ok()) {
+    const mu::Verdict uv = mu::check_master_domain(
+        "bias", doc["master_bias"].get<std::string>(), mu_decl.bias, mu_st_bias, mu_light_probe);
+    if (!uv.ok) {
+      st_cal["status"] = "fail";
+      return Result<void>::fail(Error(ErrorDomain::DATA, uv.message));
+    }
+  }
+  if (dark.ok()) {
+    const mu::Verdict uv = mu::check_master_domain(
+        "dark", doc["master_dark"].get<std::string>(), mu_decl.dark, mu_st_dark, mu_light_probe);
+    if (!uv.ok) {
+      st_cal["status"] = "fail";
+      return Result<void>::fail(Error(ErrorDomain::DATA, uv.message));
+    }
+  }
+  double mu_flat_med_before = 0.0, mu_flat_med_after = 0.0;
+  bool mu_flat_normalized = false;
+  if (flat.ok()) {
+    const std::string flat_path = doc["master_flat"].get<std::string>();
+    const mu::Verdict fv = mu::check_flat_normalized(flat_path, mu_decl, mu_st_flat);
+    if (!fv.ok) {
+      st_cal["status"] = "fail";
+      return Result<void>::fail(Error(ErrorDomain::DATA, fv.message));
+    }
+    if (mu_decl.flat_normalize_median) {
+      std::string nerr;
+      if (!p1_normalize_flat_median(flat, &mu_flat_med_before, &mu_flat_med_after, &nerr)) {
+        st_cal["status"] = "fail";
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "MASTER_FLAT_NOT_NORMALIZED: master_flat=" + flat_path + " " + nerr));
+      }
+      mu_flat_normalized = true;
+    }
+  }
+  // 溯源（记实际执行路径）: 声明 + 观测中位数 + 实际换算/归一动作。
+  Json mu_man{{"spec", "UNIT-001/ALG-CAL-001-DISP-CAL-013"},
+              {"declared_units", {{"light", mu::unit_token(mu_decl.light.unit)},
+                                  {"bias", mu::unit_token(mu_decl.bias.unit)},
+                                  {"dark", mu::unit_token(mu_decl.dark.unit)},
+                                  {"flat", mu::unit_token(mu_decl.flat.unit)}}},
+              {"dark_convention_declared", mu_decl.dark_convention_given},
+              {"dark_includes_bias", mu_decl.dark_includes_bias},
+              {"flat_normalize", mu_flat_normalized ? "median" : "none"},
+              {"flat_median_range", {mu_decl.flat_band_lo, mu_decl.flat_band_hi}},
+              {"flat_median_before", mu_flat_med_before},
+              {"flat_median_after", mu_flat_med_after},
+              {"observed_median", {{"light", mu_light_probe.median},
+                                   {"bias", mu_st_bias.median},
+                                   {"dark", mu_st_dark.median},
+                                   {"flat", mu_st_flat.median}}},
+              {"applied_scale", mu_applied}};
+  st_cal["master_unit_guard"] = mu_man;
+  (*man)["master_unit_guard"] = mu_man;
   const bool dark_opt = doc.value("dark_optimization", false);
   const float k_fixed = doc.value("dark_scale_factor", 1.0f);
-  // ── B2-A13: dark_opt=1 的 K 必须由 FITS EXPTIME 推导 (K=t_light/t_dark) ──
-  // SCI-CAL-001 §5 / DATA_SEMANTICS §9.1 K 行: K 由调用方从 FITS EXPTIME 计算
-  // 后传入 ac_calibrate_frame。仅当 bias+dark 均在位（calibrator 的 K 分支真正
-  // 生效）时要求 EXPTIME；缺 bias/dark 时 calibrator 按合同回退标准分支
-  // (K=1.0, P2-11 另行处置)，此处不越界。缺失/非正/不匹配 → DATA fail-closed。
-  const bool k_branch = dark_opt && bias.ok() && dark.ok();
+  // ── B2-A13 + BIAS-001: K 只要 dark 在位就必须由 FITS EXPTIME 推导 ──
+  // SCI-CAL-001 §5（订正后）/ DATA_SEMANTICS §9.1 K 行: K = t_light/t_dark 由调用方
+  // 从 FITS EXPTIME 计算后传入 ac_calibrate_frame，**标准式与兼容式都施加**；
+  // 旧实现在标准分支强制 K=1.0 属缺陷（DISP-CAL-012）。dark 不在位时 K 不进入
+  // 算术，不要求 EXPTIME（bias/flat-only 配置保持可运行）。缺失/非正/不匹配 →
+  // DATA fail-closed（不得静默取 K=1）。
+  const bool k_branch = dark.ok();
   double dark_exptime = 0.0;
   if (k_branch) {
     const AIOImageMetadata dmeta =
@@ -1447,6 +1729,8 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
           "light size mismatch vs masters: " + lp));
     }
     W = light.w(); H = light.h();
+    // UNIT-001: 亮场声明域（若声明 normalized + scale，按声明换算；产物合同仍为 ADU）。
+    if (mu_decl.light.has_scale) p1_apply_declared_scale(light, mu_decl.light.scale);
     const uint64_t n = static_cast<uint64_t>(W) * static_cast<uint64_t>(H);
     std::vector<float> out(static_cast<size_t>(n), 0.0f);
     float actual_k = 0.0f;
@@ -1520,6 +1804,23 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   }
   st_cal["status"] = "ok";
   st_cal["frames"] = frames_ok;
+  // BIAS-001: 标定参与面必须显式可见（E2E-D04 期望①）。
+  // dark_convention 声明 master_dark 的本底约定；bias_participated 记录 master_bias
+  // 是否真正进入算术（标准式缺 bias 时为 false ⇒ 本底未去除）。
+  st_cal["dark_convention"] =
+      dark_opt ? "master_dark_includes_bias_explicit_separation"
+               : "master_dark_bias_subtracted";
+  st_cal["bias_participated"] = bias.ok();
+  st_cal["dark_participated"] = dark.ok();
+  st_cal["flat_participated"] = flat.ok();
+  if (dark.ok() && !bias.ok()) {
+    // 不阻断（真实性优先于完备性），但必须留痕：标准式的 bias 项为 0。
+    st_cal["optimize"] = Json::array({"master_bias 未提供：标准式 bias 项为 0，"
+                                      "本底未去除（母版须与 light 同标度，见 SCI-CAL-001 §5/§6）"});
+    std::fprintf(stderr,
+                 "[calibrate] WARNING (recorded): master_dark 在位但 master_bias 缺失 — "
+                 "标准式 bias 项为 0，本底未去除\n");
+  }
   st_cal["per_frame"] = per_frame;
 
   // io_write 校验（产物存在性 fail-closed）
@@ -3329,9 +3630,14 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   int leaf_order = 0;
   for (int n = nside; n > 1; n /= 2) ++leaf_order;
   const int leaf_norder = (nside >= 512) ? leaf_order - 9 : -1;
-  // 统计标准 HiPS 事实面 (signal/ 叶片 tile 数 + support/ 一致性)
+  // 统计标准 HiPS 事实面 (逐子产品叶片 tile 数)。product 集 = 磁盘事实,
+  // 不再硬编码 [signal, support]: 命中 DATA-P1-HIPS §12.2 variance/ivar 子产品
+  // 时如实上报 (manifest/合同登记面与产品一致)。
   int64_t n_tiles_written = 0, n_support_tiles = 0;
-  for (const std::string prod : {std::string("signal"), std::string("support")}) {
+  int64_t n_variance_tiles = 0, n_ivar_tiles = 0;
+  for (const std::string prod :
+       {std::string("signal"), std::string("support"),
+        std::string("variance"), std::string("ivar")}) {
     const std::string root = out_dir + "/" + prod;
     int64_t c = 0;
     std::error_code it_ec;
@@ -3350,10 +3656,37 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
       }
       ++c;
     }
-    if (prod == "signal") n_tiles_written = c; else n_support_tiles = c;
+    if (prod == "signal") n_tiles_written = c;
+    else if (prod == "support") n_support_tiles = c;
+    else if (prod == "variance") n_variance_tiles = c;
+    else n_ivar_tiles = c;
   }
+  // signal/support 为无条件产品面 (§12.2 恒写); 缺失即上游未接线 → fail-closed。
+  if (n_tiles_written <= 0 || n_support_tiles != n_tiles_written) {
+    (*man)["error_kind"] = "input";
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "phase1 HiPS product face incomplete: signal tiles=" +
+        std::to_string(n_tiles_written) + " support tiles=" +
+        std::to_string(n_support_tiles) +
+        " (DATA-P1-HIPS §12.2: signal/support 恒写且叶 tile 数一致)"));
+  }
+  // variance/ivar 为成对产品 (§4a 互推; §12.2 同通道落盘): 任一单独存在即产品
+  // 损坏 → fail-closed (禁静默丢弃/禁单边冒充)。
+  if ((n_variance_tiles > 0) != (n_ivar_tiles > 0) ||
+      (n_variance_tiles > 0 && n_variance_tiles != n_tiles_written)) {
+    (*man)["error_kind"] = "input";
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "phase1 variance/ivar product pair inconsistent: variance tiles=" +
+        std::to_string(n_variance_tiles) + " ivar tiles=" +
+        std::to_string(n_ivar_tiles) + " signal tiles=" +
+        std::to_string(n_tiles_written) +
+        " (DATA-P1-HIPS §12.1/§12.2 + §4a: variance/ivar 同通道成对落盘)"));
+  }
+  const bool has_uncertainty = (n_variance_tiles > 0 && n_ivar_tiles > 0);
   const std::string filter_passband = doc.value("filter_passband", std::string());
   const std::string final_path = out_dir + "/p1_final.json";
+  Json products = Json::array({"signal", "support"});
+  if (has_uncertainty) { products.push_back("variance"); products.push_back("ivar"); }
   Json final_out = Json{{"schema", "DATA-P1-HIPS"},
                         {"entry", "hp_drizzle_run_phase1_hips"},
                         {"hips_root", out_dir},
@@ -3362,13 +3695,21 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                         {"n_tiles", n_tiles_written},
                         {"n_tiles_written", n_tiles_written},
                         {"n_support_tiles", n_support_tiles},
-                        {"products", Json::array({"signal", "support"})},
+                        {"n_variance_tiles", n_variance_tiles},
+                        {"n_ivar_tiles", n_ivar_tiles},
+                        {"uncertainty_available", has_uncertainty},
+                        {"products", products},
                         {"filter_passband", filter_passband},
                         {"covered_area_model", "support_ratio_x_A_cell"},
                         {"properties", props}};
   if (!p1_write_text(final_path, final_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_tiles"] = n_tiles_written;
+  (*man)["n_support_tiles"] = n_support_tiles;
+  (*man)["n_variance_tiles"] = n_variance_tiles;
+  (*man)["n_ivar_tiles"] = n_ivar_tiles;
+  (*man)["uncertainty_available"] = has_uncertainty;
+  (*man)["products"] = products;
   // P21 复杂度不变量: 聚合已由上游 sink 的 write_hips_phase1 单趟完成 (O(T)),
   // 本节点只做产物计数, 结构上不存在 parent-span 整表扫描。aggregation_* 字段
   // 保留为机器可判定的回归面 (scan_steps ≈ n_tiles << parent_span × n_tiles)。
@@ -3385,7 +3726,9 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   (*man)["artifacts"] = Json::array({final_path, props});
   // B2-A10（宪章 §4.3）: 单位/坐标系/观测 passband 随节点 manifest 上报。
   (*man)["bunit"] = "ADU";
-  (*man)["coordinate_frame"] = "equatorial";
+  // LEDGER-P1 残留②: 与 properties 的 hips_frame=icrs 同源 (原写非标准值
+  // "equatorial", 使 CLI 汇总的 coordinate_frames 集合出现两种写法)。
+  (*man)["coordinate_frame"] = "icrs";
   (*man)["filter_passband"] = filter_passband;
   return Result<void>::success();
 }
@@ -4326,24 +4669,49 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         " node chain; only 1 (equal) or 2 (ivar) are legal (DATA-UNC-001 §30.1)"));
   const bool allow_fallback = doc.value("legacy_allow_weight_fallback", false);
 
-  // ivar 产品读取（weight_mode=2 必须; 缺失 → fail-closed 或显式降级）
+  // ivar 产品读取（weight_mode=2 必须; 缺失 → fail-closed 或显式降级）。
+  // 审计面（§30.1 unavailable 规则 2 + §20.1）: 逐帧记录 ivar 产品可用性、
+  // 缺失帧数与帧索引、同帧 variance/ 子产品存在性（Phase1 产品面事实），写入
+  // p2_integrated.json 与节点 manifest；显式降级另在 stderr 打红标。禁静默:
+  // 缺 ivar 时只允许 fail-closed 或 legacy_allow_weight_fallback=true 的显式
+  // 等权降级（§20.1/§20.3 红线, SCI-CW §5 生产默认无 fallback）。
   struct IvarSet {
     AioHipsDataset* ds = nullptr;
     std::string path;
+    bool variance_present = false;   // 仅审计事实; variance 不替代 ivar
   };
   std::vector<IvarSet> ivar(frames.size());
+  std::vector<uint64_t> ivar_missing_frames;
+  uint64_t variance_present_frames = 0;
   bool uncertainty_available = false;
   bool fallback = false;
+  std::string weight_basis = "per_sample_ivar";   // §30.1: w_i = 逐样本 ivar
   if (weight_mode == 2) {
     uint64_t ivar_missing = 0;
     for (size_t f = 0; f < frames.size(); ++f) {
       const std::string p = frames[f].value("hips_path", "");
       ivar[f].ds = aio_hips_open(p.c_str(), AIO_HIPS_RD_IVAR);
       ivar[f].path = p;
-      if (!ivar[f].ds) ++ivar_missing;
+      if (!ivar[f].ds) {
+        ++ivar_missing;
+        ivar_missing_frames.push_back(static_cast<uint64_t>(f));
+        // 同帧 variance/ 存在性只作审计上报: mode 2 读端按 §20.1 打开
+        // AIO_HIPS_RD_IVAR，ivar 产品面必须显式存在（禁静默替代）。
+        AioHipsDataset* vd = aio_hips_open(p.c_str(), AIO_HIPS_RD_VARIANCE);
+        if (vd) {
+          ivar[f].variance_present = true;
+          ++variance_present_frames;
+          aio_hips_close(vd);
+        }
+      }
     }
+    // 故障注入面（ENGINEERING_SPEC §8 可执行负例）: ASTROCS_IVAR_FAULT=
+    // silent_fallback 模拟「缺 ivar 静默等权降级」缺陷 —— 新门必然判红。
+    const char* ivar_fault = std::getenv("ASTROCS_IVAR_FAULT");
+    const bool fault_silent =
+        ivar_fault && std::string(ivar_fault) == "silent_fallback";
     if (ivar_missing > 0) {
-      if (!allow_fallback) {
+      if (!allow_fallback && !fault_silent) {
         for (auto& iv : ivar) if (iv.ds) aio_hips_close(iv.ds);
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "weight_mode=2 requires per-frame ivar products; " +
@@ -4353,12 +4721,22 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
             " degradation with uncertainty_available=false)"));
       }
       fallback = true;   // §30.1 unavailable 规则 2（显式降级路径）
+      weight_basis = "unit_weight_degraded";
       for (auto& iv : ivar) { if (iv.ds) { aio_hips_close(iv.ds); iv.ds = nullptr; } }
+      std::fprintf(stderr,
+                   ("[degrade] weight_mode=2: " + std::to_string(ivar_missing) +
+                    "/" + std::to_string(frames.size()) +
+                    " frames missing ivar -> explicit equal-weight degradation"
+                    " (legacy_allow_weight_fallback=true; uncertainty_available"
+                    "=false; variance_present_frames=" +
+                    std::to_string(variance_present_frames) +
+                    "; DATA-UNC-001 §30.1 unavailable rule 2)\n").c_str());
     } else {
       uncertainty_available = true;
     }
   } else {
     uncertainty_available = false;   // mode 1: 等权非 ivar 语义面
+    weight_basis = "unit_weight_mode1";
   }
   struct IvarGuard {
     std::vector<IvarSet>* v;
@@ -4624,10 +5002,17 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::IO, "integrated bin write failed"));
 
   const std::string out_path = out_dir + "/p2_integrated.json";
+  Json missing_j = Json::array();
+  for (uint64_t mf : ivar_missing_frames) missing_j.push_back(mf);
   Json artifact = Json{{"schema", "DATA-P2-INT"},
                        {"entry", "p2_validate_candidate_weights/p2_integrate_pixel"},
                        {"weight_mode", weight_mode},
+                       {"weight_basis", weight_basis},
                        {"fallback", fallback},
+                       {"legacy_allow_weight_fallback", allow_fallback},
+                       {"ivar_product_missing_frames", missing_j.size()},
+                       {"ivar_product_missing_frame_indices", missing_j},
+                       {"variance_product_present_frames", variance_present_frames},
                        {"uncertainty_available", uncertainty_available},
                        {"tile_leaf_span", tile_span},
                        {"n_pixels", nrej_pix_cursor},
@@ -4649,6 +5034,11 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                                      nused_file, nrej_file_out});
   (*man)["integrated_artifact"] = out_path;
   (*man)["weight_mode"] = weight_mode;
+  (*man)["weight_basis"] = weight_basis;
+  (*man)["fallback"] = fallback;
+  (*man)["legacy_allow_weight_fallback"] = allow_fallback;
+  (*man)["ivar_product_missing_frames"] = static_cast<uint64_t>(missing_j.size());
+  (*man)["variance_product_present_frames"] = variance_present_frames;
   (*man)["uncertainty_available"] = uncertainty_available;
   return Result<void>::success();
 }
@@ -4689,8 +5079,25 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   const uint32_t nside =
       1u << static_cast<uint32_t>(target_order + 9);
   const uint64_t tile_span = int_doc.value("tile_leaf_span", kP2TileLeafSpan);
+  // 审计面（DATA-UNC-001 §30.1 规则 1）: 集成产物必须显式声明整数
+  // weight_mode ∈ {1,2}。旧实现用 value("weight_mode", 0) 的 legacy 缺省,
+  // 缺键时会把模式静默记成 0（非科学方差面）并使 variance/ivar 落盘语义
+  // 依赖一个未声明状态 —— fail-closed 化（禁静默缺省）。
+  if (!int_doc.contains("weight_mode") || !int_doc["weight_mode"].is_number_integer())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "integrated artifact missing integer weight_mode (upstream integrate"
+        " must declare 1|2; DATA-UNC-001 §30.1 rule 1)"));
+  const int weight_mode = int_doc["weight_mode"].get<int>();
+  if (weight_mode != 1 && weight_mode != 2)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "integrated artifact weight_mode " + std::to_string(weight_mode) +
+        " illegal (only 1=equal | 2=ivar; DATA-UNC-001 §30.1 rule 1)"));
   const bool uncertainty_available = int_doc.value("uncertainty_available", false);
-  const int weight_mode = int_doc.value("weight_mode", 0);
+  if (uncertainty_available && weight_mode != 2)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "uncertainty_available=true with weight_mode=" +
+        std::to_string(weight_mode) + " (variance/ivar products are defined"
+        " only for mode 2; DATA-UNC-001 §30.1 rule 1)"));
   const double a_cell = 4.0 * 3.14159265358979323846 /
                         (12.0 * static_cast<double>(nside) * static_cast<double>(nside));
 
@@ -4825,6 +5232,12 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   }
 
   const std::string out_path = out_dir + "/p2_final.json";
+  // 权重面审计（IVAR-001）: weight_basis 与缺 ivar 帧数随 mosaic 产品面落盘,
+  // 使「本次叠加用的是逐样本 ivar 还是显式等权降级」在阶段交换面可判, 不依赖
+  // 上游节点目录的临时文件。
+  const std::string weight_basis = int_doc.value("weight_basis", std::string());
+  const uint64_t ivar_missing_frames =
+      int_doc.value("ivar_product_missing_frames", 0ull);
   Json final_out = Json{{"schema", "DATA-P2-RES"},
                         {"entry", "aio_hips_product_begin/write_signal_support_tile/write_variance_tile/finalize"},
                         {"hips_root", out_dir},
@@ -4835,6 +5248,8 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                         {"covered_area_model", "support_x_A_cell"},
                         {"uncertainty_available", uncertainty_available},
                         {"weight_mode", weight_mode},
+                        {"weight_basis", weight_basis},
+                        {"ivar_product_missing_frames", ivar_missing_frames},
                         {"provenance", Json{
                             {"ASTROCS_INPUT_MANIFEST_HASH", manifest_hash},
                             {"ASTROCS_MODEL_HASH", model_hash},
@@ -4861,11 +5276,15 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   (*man)["final_artifact"] = out_path;
   (*man)["n_tiles_written"] = n_tiles_written;
   (*man)["uncertainty_available"] = uncertainty_available;
+  (*man)["weight_mode"] = weight_mode;
+  (*man)["weight_basis"] = weight_basis;
+  (*man)["ivar_product_missing_frames"] = ivar_missing_frames;
   // B2-A10（宪章 §4.3）: 单位/坐标系/输入产品哈希随节点 manifest 上报，
   // 供 run manifest provenance 汇总（Phase2 mosaic 单位 = ADU，
-  // 坐标系 = equatorial，与 coverage.h / DATA-HIPS-SIGNAL-001 合同一致）。
+  // 坐标系 = ICRS（LEDGER-P1 残留②：原写非标准值 equatorial，与 properties
+  // 的 hips_frame=icrs 及 DATA-HIPS-SIGNAL-001 合同分叉）。
   (*man)["bunit"] = "ADU";
-  (*man)["coordinate_frame"] = "equatorial";
+  (*man)["coordinate_frame"] = "icrs";
   (*man)["input_manifest_hash"] = manifest_hash;
   return Result<void>::success();
 }
@@ -5957,9 +6376,20 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   long covn = 0;
   for (long i = 0; i < nelem; ++i) if (cov[(size_t)i] > 0.5f) ++covn;
   const std::string json_path = g.out_dir + "/p3_writer.json";
+  // DET-001: 主产物指纹分两层（禁一个名字承载两个含义, UNIFIED_MODEL §字段语义）:
+  //   canonical_sha256 — 规范产品哈希（像素数据 + 科学元数据; 排除易变卡/键）
+  //                      => 可复现性验收判据（ACCEPTANCE_FINAL D2/E4）;
+  //   integrity_sha256 — 整文件 sha256 => 完整性/防改动校验。
+  const astrocs::core::CanonicalHashResult canon =
+      astrocs::core::canonical_product_hash_file(fits_path);
+  if (!canon.ok)
+    return Result<void>::fail(Error(ErrorDomain::IO,
+        "canonical product hash failed: " + canon.error));
   Json wr{{"schema", "DATA-P3-WRITER-MANIFEST"},
           {"output_fits", fits_path},
-          {"sha256", std::string(ores.sha256)},
+          {"canonical_sha256", canon.canonical_sha256},
+          {"canonical_hash_spec", astrocs::core::kCanonicalProductHashSpec},
+          {"integrity_sha256", std::string(ores.sha256)},
           {"reopen_ok", ores.reopen_ok},
           {"coverage_stats", {{"covered_px", covn}, {"total_px", nelem}}},
           {"uncertainty_available", unc},
@@ -5972,7 +6402,6 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
           {"input_manifest_hash", input_manifest_hash},
           {"hips_id", std::string(prov.hips_id)},
           {"source_sha", source_sha_str},
-          {"product_sha256", std::string(ores.sha256)},
           {"coordinate_frame", "icrs"},
           {"bunit", res.value("bunit", "ADU")},
           {"algorithm_id", "ALG-P3-004"},
@@ -5986,7 +6415,9 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   (*man)["output_fits_path"] = fits_path;
   (*man)["writer_artifact"] = json_path;
   (*man)["artifacts"] = Json::array({fits_path, json_path});
-  (*man)["sha256"] = std::string(ores.sha256);
+  (*man)["canonical_sha256"] = canon.canonical_sha256;
+  (*man)["canonical_hash_spec"] = astrocs::core::kCanonicalProductHashSpec;
+  (*man)["integrity_sha256"] = std::string(ores.sha256);
   (*man)["uncertainty_available"] = unc;
   // B2-A10（宪章 §4.3）: writer 节点 manifest 携带真实 provenance，供 CLI
   // run manifest 汇总（input_product_hashes / units / coordinate_frames 等）。
@@ -5994,7 +6425,6 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   (*man)["software_version"] = version_str;
   (*man)["source_sha"] = source_sha_str;
   (*man)["input_manifest_hash"] = input_manifest_hash;
-  (*man)["product_sha256"] = std::string(ores.sha256);
   (*man)["coordinate_frame"] = "icrs";
   (*man)["bunit"] = res.value("bunit", "ADU");
   return Result<void>::success();
@@ -6043,11 +6473,26 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   if (vst != P3_OUT_OK)
     return Result<void>::fail(Error(ErrorDomain::IO, "p3_output_verify_ex failed"));
   const std::string json_path = g.out_dir + "/p3_verify.json";
+  // DET-001: verify 侧**独立重算**规范产品哈希（不采信 writer 自报值）, 并给出
+  // 与 writer 声明值的一致性判定; 自报值同时保留供审计。
+  const std::string verify_fits = wr.value("output_fits", std::string());
+  const astrocs::core::CanonicalHashResult vcanon =
+      astrocs::core::canonical_product_hash_file(verify_fits);
+  if (!vcanon.ok)
+    return Result<void>::fail(Error(ErrorDomain::IO,
+        "canonical product hash failed (verify): " + vcanon.error));
+  const std::string writer_canon = wr.value("canonical_sha256", std::string());
+  const bool canon_match = !writer_canon.empty() &&
+                           writer_canon == vcanon.canonical_sha256;
   Json ver{{"schema", "DATA-P3-VER"},
-           {"output_fits", wr.value("output_fits", std::string())},
+           {"output_fits", verify_fits},
            {"reopen_ok", vres.reopen_ok},
            {"coverage_ok", vres.coverage_ok},
-           {"sha256", std::string(vres.sha256)},
+           {"canonical_sha256", vcanon.canonical_sha256},
+           {"canonical_hash_spec", astrocs::core::kCanonicalProductHashSpec},
+           {"writer_canonical_sha256", writer_canon},
+           {"canonical_match", canon_match},
+           {"integrity_sha256", std::string(vres.sha256)},
            {"coverage_stats",
             {{"covered_px", vres.covered_px}, {"total_px", vres.total_px}}},
            {"uncertainty_available", unc},
@@ -6056,7 +6501,6 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
            {"software_version", wr.value("software_version", std::string())},
            {"input_manifest_hash", wr.value("input_manifest_hash", std::string())},
            {"source_sha", wr.value("source_sha", std::string())},
-           {"product_sha256", wr.value("product_sha256", std::string())},
            {"coordinate_frame", wr.value("coordinate_frame", std::string())},
            {"bunit", wr.value("bunit", std::string())},
            {"algorithm_id", wr.value("algorithm_id", std::string())},
@@ -6069,6 +6513,11 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   (*man)["verified_artifact"] = json_path;
   (*man)["artifacts"] = Json::array({json_path});
   (*man)["reopen_ok"] = vres.reopen_ok;
+  (*man)["canonical_sha256"] = vcanon.canonical_sha256;
+  (*man)["canonical_hash_spec"] = astrocs::core::kCanonicalProductHashSpec;
+  (*man)["writer_canonical_sha256"] = writer_canon;
+  (*man)["canonical_match"] = canon_match;
+  (*man)["integrity_sha256"] = std::string(vres.sha256);
   return Result<void>::success();
 }
 

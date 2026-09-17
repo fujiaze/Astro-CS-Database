@@ -42,27 +42,26 @@
 | calibration（暗场-亮场曝光容差） | 1 | 负责人裁决 2026-09-16（5 s）；待落 `docs/science/CALIBRATION.md`（SCI-RES-01/R-003 定义 + R-004 落文档） |
 | detection（σ 检测阈值） | 1 | `docs/science/STAR_DETECTION.md:19` |
 | psf（默认模型/β） | 2 | `docs/science/PSF.md:7`、`:92` |
-| noise（噪声模型默认配置） | 14 | `docs/algorithms/NOISE_ESTIMATION.md:134`（另见 :11/:20/:36/:100/:151/:154） |
+| noise（噪声模型默认配置） | 14 | `docs/science/NOISE_MODEL.md` §4/§5/§5a/§6 陈述行（:41,:49,:73,:95；逐字段 source_ref 见 defaults.json；MASK-002/SC-009 新增 5 键 k/r_min/fwhm_floor/nq≥8/N_sky≥9216 已含在 14 内）。旧锚 `NOISE_ESTIMATION.md:134` 为实现锚，按负责人指令撤出登记面 |
 | rejection（排异阈值表） | 18 | `docs/science/REJECTION.md:55-61`（§5「阈值冻结锚点」块；W5-CFG-002 重锚，原 :131 已因文档重排失效） |
 | photometry（mag_tolerance / Tukey c / IRLS / 最小星数） | 6 | `docs/science/PHOTOMETRY.md:21,24,38,39` |
 | weight（默认权重模式） | 1 | `docs/science/PSF_SIGNAL_WEIGHT.md:12`、`:28` |
 | precision（默认精度） | 1 | `docs/science/SCIENCE_SCOPE.md:53` |
 | upm（k_corr） | 1 | `docs/science/PHASE2_UPM.md:22`（定义 + 冻结默认，:124 记不可接受变化；W5-CFG-002 重锚） |
 | hips（tile 宽） | 1 | `docs/science/PHASE3_HIPS_TO_FITS.md:39`（W 默认 512=2⁹；W5-CFG-002 重锚） |
-| drizzle（pixfrac） | 1 | 语义 `docs/science/DRIZZLE.md:21,27,31`；**数值 pending** |
+| drizzle（pixfrac） | 1 | 语义 `docs/science/DRIZZLE.md:21,27,31`；**数值 1.0 已落**（`defaults.json#drizzle.pixfrac`=1.0，authority_status=owner_adjudicated；DOC-SCI-001 §3 裁决 + `docs/science/DRIZZLE.md:79`（通量守恒条件不变量）+ E1 复算；v6 侧 FZ-COND-FLUX-CONSERV 逐字见 `config/defaults.json#drizzle.pixfrac` 的 source/note） |
 | sparse_snr / scalar_gate | 3 | **数值 pending** |
 
-- **pending_authority 四项（禁止编造，值必须为 null）**：
+- **pending_authority 三项（禁止编造，值必须为 null）**：
 
 | key | unit | 归属任务 | 依据 |
 |---|---|---|---|
-| `drizzle.pixfrac` | `1` | SCI-RES-01/R-005 | 语义权威 `docs/science/DRIZZLE.md`（(0,1]、half=0.5·pixfrac）与 `docs/algorithms/DRIZZLE_GEOMETRY.md`（:57,:61,:102 严格校验不夹逼）；**数值默认 0.8 无科学权威出处**——现实现默认 0.8 见 `lib/infrastructure/pipeline/orchestrator/configs/stage1.template.json:41`（实现模板，非科学权威），旧文档 `docs/development/CONFIG_SCHEMA.md:84` 同值。GAP-023 |
 | `sparse_snr.density` | `点/度²` | SCI-RES-01/R-001 + 负责人批准 | ASTROCS_DESIGN §3.3 点名；`docs/science/**`、`docs/algorithms/**` 全库无数值（GAP-024）；单位见 `docs/plugins/algorithms_phase1/07_noise_snr.md:65` |
 | `scalar_gate.rd` | unspecified | SCI-RES-01/R-002 + 负责人批准 | GAP-024；`07_noise_snr.md:61` 字段名，默认/单位列均为 —— |
 | `scalar_gate.trend` | unspecified | SCI-RES-01/R-002 + 负责人批准 | 同上（`07_noise_snr.md:62`） |
 
 - `calibration.dark_light_exposure_tolerance = 5 s`：负责人已裁决值，按裁决**不标** pending；文档侧仅有 `K=t_light/t_dark` 语义（`docs/science/CALIBRATION.md:19,21,90`），数值待 SCI-RES-01/R-004 落 `docs/science/CALIBRATION.md`。
-- 负空间（口径保留，去向已定）：`docs/plugins/**` 的 plugin 级默认**不进** `fields[]`——本文件 source 规则限定 docs/science|docs/algorithms；它们改由 `config/config_registry.json#plugin_knobs` 逐行登记（96 行：归属类 + 登记点 + 缺口/冲突），见 §9。CFG002-ANCHOR: item1-plugin-defaults → config/config_registry.json
+- 负空间（口径保留，去向已定）：`docs/plugins/**` 的 plugin 级默认**不进** `fields[]`——本文件 source 规则限定 docs/science|docs/algorithms；它们改由 `config/config_registry.json#plugin_knobs` 逐行登记（95 行：归属类 + 登记点 + 缺口/冲突），见 §9。CFG002-ANCHOR: item1-plugin-defaults → config/config_registry.json
 - **默认值 → 字段值域的唯一登记**：`fields[].enum_target`（`{schema, pointer}`）+ `fields[].enum_token`。语义：defaults 里的「产品名/方法名」必须显式映射到承载字段的取值 token；机器门断言 pointer 落到含 `enum` 的节点且 token ∈ enum。首例：`weight.default_mode = psf_information_weight`（SCI 产品名）↔ `phase_config_mosaic.algorithm_weight_mode` 的 token `point_information`（同一模式的两套命名；依据 `docs/science/UNIFIED_SCIENCE_MODEL.md:55` 与 `docs/science/PSF_SIGNAL_WEIGHT.md` §1）。
 - **登记册指针**：`registry_ref` 指向 `config/config_registry.json`（plugin 级默认 / 旋钮归属 / 滤镜名语义 / os_abi / 索引归属的登记面）；本文件与登记册**不得互相复制数值**（数值唯一源 = defaults.json 与 phase_config schema）。
 
@@ -72,7 +71,7 @@
 
 | phase | 模板 | config 必填 | 可选算法选择（逐项权威） | inputs 项 |
 |---|---|---|---|---|
-| normalize | `config/templates/normalize.phase_config.json` | output_dir, precision | `algorithm_psf_model`（`docs/science/PSF.md:7,:81,:105`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ASTROCS_DESIGN.md` §3.4:161-164）；**`algorithm_drizzle_pixfrac`**（字段收录；语义/值域权威 `docs/science/DRIZZLE.md:21,:27,:31` + `docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102`，schema 机器强制 `0 < pixfrac <= 1`；**不声明数值默认**——默认值槽在 defaults.json 的 `drizzle.pixfrac`，状态 pending_authority/SCI-RES-01/R-005） | `{light, bias?, dark?, flat?, cosmetic?, filter}`，filter 必须命中滤镜库 |
+| normalize | `config/templates/normalize.phase_config.json` | output_dir, precision | `algorithm_psf_model`（`docs/science/PSF.md:7,:81,:105`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ASTROCS_DESIGN.md` §3.4:161-164）；**`algorithm_drizzle_pixfrac`**（字段收录；语义/值域权威 `docs/science/DRIZZLE.md:21,:27,:31` + `docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 1.0 已落 defaults.json 的 `drizzle.pixfrac`，状态 owner_adjudicated；DOC-SCI-001 §3） | `{light, bias?, dark?, flat?, cosmetic?, filter}`，filter 必须命中滤镜库 |
 | mosaic | `config/templates/mosaic.phase_config.json` | output_dir, precision | `algorithm_weight_mode`（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（method/profile 词表 `docs/science/REJECTION.md:20-21`；默认路由 `:47-53`；W5-CFG-002 重锚）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:36`） | `{product, filter?}` |
 | export | `config/templates/export.phase_config.json` | output_dir, precision, output_mode, wcs | `output_mode`（`ASTROCS_DESIGN.md` §5.3:267；默认 `surface_brightness` 见 `docs/plugins/algorithms_phase3/16_fits_output.md:41`）、`wcs.projection`（§5.3:264-266 首批 8 种 + 缺省 TAN；`14_projection.md:31`）、`wcs.{rotation_deg, crpix_px}`（`14_projection.md:32,35`） | `{product}` |
 
@@ -158,8 +157,8 @@ timeout 60 python3 tests/config/run_validation.py contracts/schemas/phase_config
 | 项 | 现状（实测） | 建议改法 | 归属 |
 |---|---|---|---|
 | `ci/checks.json` 无 config 门 | CHK-UNIT 的 13 个 UT-* 步骤不含 tests/config；`CON-CONFIG-CONTRACTS` 检查的是 legacy `docs/development/CONFIG_SCHEMA.md` + `lib/algorithms/coverage/src/stage2_common.cpp` 的 `weight_mode` 整数默认（与 phase_config 的字符串枚举不是同一面） | 在 CHK-UNIT 增 `UT-CONFIG` 步骤并与 `docs/ci/01_CHECKS.md §2` 双向对齐 | CI 线（`ci/**`、`docs/ci/**`） |
-|  `$defs.kernel_v1/kernel_v2` 未接线 | 0 处 `$ref`；workers/block/provider 约束定义但未施加 | 接线到 `profile_v2.properties.kernels.additionalProperties` 与 `legacy_v1.items`，同步 profile_gen_v2 与负例 | CPU/benchmark 线 |
-| 插件文档与 SCI/ALG 冲突 4 条 | `psf_model=gauss` vs Moffat4；`pixfrac=1.0` vs pending；`detection_threshold` 局部/全局语义；`flux_zero_point` vs 已删字段 | 逐条由负责人裁决后订正 `docs/plugins/**`（本卡不改插件文档） | 负责人裁决 + DOC 线 |
+|  `$defs.kernel_v1/kernel_v2` 未接线 | **已闭合（W5-CPU-001，2026-09-17）**：原 0 处 `$ref`；接线后 `kernel_v1` 由 `legacy_v1.properties.kernels.items`、`kernel_v2` 由 `profile_v2.properties.kernels.additionalProperties` $ref（refs=1/1；登记册 `cpu_profile_kernel_link.status=LINKED`，门 CFG002-10）。接线不收紧：接线前约束已由顶层 `properties.kernels.items/.additionalProperties` 等价镜像施加，接线时镜像与 `$defs` 逐字一致（门钉死） | 已完成；负例 `cpu_profile_v1_bad_kernel.json`（size_class 越界）/ `cpu_profile_v2_bad_kernel.json`（provider 越界）必红，producer 面无需改动 | CPU/benchmark 线（已闭合） |
+| 插件文档与 SCI/ALG 冲突 4 条 | **已按 DOC-SCI-001 裁决闭合 4/4（2026-09-17，LEDGER-DOC 落地）**：①`04_psf.psf_model`→`moffat4`；②`08_drizzle.pixfrac` 默认 1.0 入 defaults.json（owner_adjudicated）；③`03_star_detection.detection_threshold` 改全局语义（`median(img)+5.0·bgnoise`，局部自适应登记 DISP-STAR-002）；④`06_photometry.flux_zero_point` 行删除（补输出 `location`/`scale` 指针） | 已落地：插件文档 4 处 + `config_registry.json`（conflict 4→0）+ `config/defaults.json` + `CONFIG_CONTRACT` 本表 + `phase_config_normalize.schema.json` 描述 | DOC 线（variance 登记与 CFG002-01/02 逐行门复跑绿） |
 | plugin 级默认缺口 22 行 + 未登记字段 28 行 | 见 `config_registry.json#plugin_knobs`（finding=gap/unregistered） | 由负责人裁决字段归属后另立任务落地（不得由 Agent 自选字段） | 负责人裁决 |
 
 ## 9 旋钮与默认登记册 `config/config_registry.json`（`astrocs.config-registry/v1`）
@@ -167,8 +166,8 @@ timeout 60 python3 tests/config/run_validation.py contracts/schemas/phase_config
 - **覆盖面**：`docs/plugins/*/*.md` 的配置项表**全集**（23 篇 / 96 行）逐行登记，一行一个 `(module, field)`，字段：`doc/line/declared_default/unit/owner_class/registration/registered_at/registered_key/finding/note/conflict`。
 - **owner_class**（归属类，一行恰一个）：`science_param`（影响科学结果，必须有 SCI/ALG 条款或已登记配置类承载）· `runtime_policy`（运行期/实现/IO/观测策略，权威 = 插件文档或 algorithms/contracts 文档，**禁入 phase_config**）· `cli_surface`（命令行参数面）· `resource_binding`（线程/资源预算，cpu_profile 或调度器，禁硬编码、禁入 phase_config）。
 - **finding**：`none`（已闭合）· `gap`（插件声明了默认值但无 SCI/ALG 权威、未进任何配置类）· `unregistered`（无默认且字段本身未登记）· `conflict`（与 SCI/ALG 权威或已登记配置冲突，必须带 `conflict.{kind,evidence,owner}`）。
-- **实测分布（2026-09-17）**：96 = none 42 / gap 22 / conflict 4 / unregistered 28；归属 science_param 67 / runtime_policy 20 / cli_surface 6 / resource_binding 3；登记点 defaults_json 6 / phase_config 9 / inputs_block 8 / cpu_profile 2 / plugin_doc 11 / contracts_doc 3 / cli 6 / none 51。
-- **4 条冲突（禁止两存，须负责人裁决）**：①`04_psf.psf_model=gauss` vs `psf.default_model=moffat4`（SCI 权威 `docs/science/PSF.md:7,:81`）；②`08_drizzle.pixfrac=1.0` vs defaults pending（数值权威 SCI-RES-01/R-005；实现模板 0.8）；③`03_star_detection.detection_threshold` 的「局部 σ」vs defaults 的「全局阈值」语义（数值同为 5.0）；④`06_photometry.flux_zero_point` vs `docs/algorithms/PHOTOMETRIC_FIT.md:9` 已删除该字段。
+- **实测分布（2026-09-17，DOC-SCI-001 落地后复跑）**：95 = none 45 / gap 22 / conflict 0 / unregistered 28；归属 science_param 66 / runtime_policy 20 / cli_surface 6 / resource_binding 3；登记点 defaults_json 6 / phase_config 9 / inputs_block 8 / cpu_profile 2 / plugin_doc 11 / contracts_doc 3 / cli 6 / none 50。
+- **4 条冲突（DOC-SCI-001 裁决后已全部闭合，conflict=0）**：①`04_psf.psf_model` gauss→**moffat4**（`docs/science/PSF.md:7,:81`）；②`08_drizzle.pixfrac` 默认 **1.0** 落 `defaults.json`（owner_adjudicated）；③`03_star_detection.detection_threshold` 冻结语义 = **全局** `median(img)+5.0·bgnoise`（局部自适应为目标态，DISP-STAR-002）；④`06_photometry.flux_zero_point` **行删除**（`docs/algorithms/PHOTOMETRIC_FIT.md:9`）。证据与复跑：`reports/PROJECT-GOVERNANCE-01/research/DOC-SCI-001_插件文档与科学权威冲突裁决.md` + `run/PROJECT-GOVERNANCE-01/DOC-SCI-001/logs/`。
 - **module.yaml 面**：实测 20 份 `lib/**/module.yaml` 的顶层键只含契约/端口/构建/证据字段，**无任何旋钮或默认值声明字段**（因此「module.yaml 声明的可调项是否都登记」当前空集成立）；门 CFG002-06 断言键集闭包——出现 `knobs/knob/params/parameters/config/configs/defaults/tunables/options/settings` 任一键即判红，新增旋钮声明必须先在本册登记归属。
 - **维护规则**：本册是**人工维护**的登记面；文档变化必须由人重新判定归属。禁止用生成脚本批量刷新制造绿灯（ENGINEERING_SPEC §8 fail-closed）；本册不复制科学数值（数值唯一源 = defaults.json / phase_config schema）。
 

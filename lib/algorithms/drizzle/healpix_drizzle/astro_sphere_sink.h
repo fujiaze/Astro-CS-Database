@@ -38,8 +38,12 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 // metadata.fits + properties), 不落任何中间容器。
 //
 // 逐字节等价要点 (与 lib/infrastructure/scheduler/src/module_adapters.cpp 旧 p1_op_writer 同口径):
-//   * 只写 signal + support 两个子产品 (flags = SIGNAL|SUPPORT), 不写
-//     variance/ivar/snr, 不写 drizzle provenance;
+//   * 无方差输入时只写 signal + support 两个子产品 (flags =
+//     SIGNAL|SUPPORT); 累加器携带有限正方差累加量 (sumVarNum>0) 时按
+//     DATA-P1-HIPS §12.1/§12.2 追加 variance/ivar 子产品 (flags 增
+//     VARIANCE|IVAR, var_num_sum = Σ v_j·w_jp², writer 归约
+//     variance = var_num_sum/covered_area²、ivar = 1/variance)。snr 与
+//     drizzle provenance 通道本末端不开;
 //   * covered_area 先按容器 support 的 uint8 面积比量化
 //     (u8 = lround(255*clamp(sumArea/A_cell,0,1)), area = (u8/255)*A_cell),
 //     再交给 aio_hips 计算 signal = flux/area, support = area/A_cell;

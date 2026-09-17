@@ -1150,8 +1150,11 @@ static int fio_write_header_block(fio_file* f, const fio_header* h,
   }
   if (reserve_checksum) {
     checksum_off = total;
-    /* comment 必须与 acs_fio_writer_end_v1 patch 时完全一致 (校验按整卡字节累计,
-     * 占位卡与真值卡除值区外须逐字节相同, 否则写累计 ≠ verify 累计) */
+    /* 占位卡: 值区 16 个 '0' 是 1's complement 累计的规范零态 (重算基准),
+     * 不是 "已更新" 的校验值 —— 真值在 acs_fio_writer_end_v1 用同一算法
+     * 回填; write_checksum=0 时该卡在提交前被抹空 (见 end 内 M2b-B-09)。
+     * comment 必须与 patch 时完全一致 (校验按整卡字节累计, 占位卡与真值卡
+     * 除值区外须逐字节相同, 否则写累计 ≠ verify 累计)。 */
     fio_card_write(f, "CHECKSUM", "0000000000000000", "HDU checksum updated");
     total += 80;
   }
@@ -1445,7 +1448,18 @@ int acs_fio_writer_end_v1(acs_fio_writer_v1* wr,
       if (st != ACS_FIO_OK) goto fail;
     }
   }
-  /* CHECKSUM: 全 HDU 流式累计; CHECKSUM 槽已是 '0000000000000000' */
+  /* CHECKSUM: 全 HDU 流式累计; CHECKSUM 槽已是 '0000000000000000'。
+   * M2b-B-09 收口: write_checksum=0 时**不得**留下全零占位卡 —— 全零串是
+   * 1's complement 累计的规范零态(重算基准), 不是交付校验值; 留着会让
+   * "未声明校验和" 与 "校验和为 0" 不可区分, 且 verify_checksum=1 会由
+   * 假绿翻真红。改为把该卡抹空 (无 CHECKSUM 关键字) ⇒ verify 侧
+   * has_checksum=false, 跳过校验, 语义 = 本文件不声明校验和。 */
+  if (!write_checksum) {
+    if (wr->checksum_card_off >= 0) {
+      st = fio_card_patch(&wr->f, wr->checksum_card_off, "", "", "", err, cap);
+      if (st != ACS_FIO_OK) goto fail;
+    }
+  }
   if (write_checksum) {
     size_t hdu_len =
         (size_t)wr->header_bytes + (size_t)fio_blocks2880(wr->data_bytes_total) * 2880;
@@ -1628,6 +1642,27 @@ int acs_fio_verify_file_v1(const char* path_utf8,
         set_err(err, cap, "CHECKSUM card empty");
         return ACS_FIO_ERR_BAD_HEADER;
       }
+      /* M2b-B-09: 全零 CHECKSUM 串是"预留槽未复算"的基准态, 不是交付校验值。
+       * verify 必须 fail-closed 拒绝它 (旧实现的 sum==0 兼容分支在 sum 恰为 0
+       * 时会让未复算文件通过 —— 极窄但真实的 fail-open)。 */
+      {
+        /* 值 token 带 FITS 字符串引号时, 取值的 16 字符窗口会被开引号占去一格
+         * (cval = '\'' + 15 个 '0'), 故判据 = "引号以外的字符全为 '0' 且
+         * 至少 15 个", 而不是逐字符等于 '0' 或要求 16 个。 */
+        int zeros = 0, others = 0;
+        for (int z = 0; z < j; ++z) {
+          if (cval[z] == '0') zeros++;
+          else if (cval[z] != '\'') others++;
+        }
+        if (zeros >= 15 && others == 0) {
+          free(hbuf);
+          fio_file_close(&f2);
+          acs_fio_reader_close_v1(rd);
+          set_err(err, cap,
+                  "CHECKSUM 为全零占位串 (未复算): 交付物必须带真实校验和");
+          return ACS_FIO_ERR_CHECKSUM;
+        }
+      }
       fio_zero_card_value((char*)hbuf + coff, hlen - (size_t)coff);
       fio_dsum_init(&s);
       fio_dsum_update(&s, hbuf, hlen);
@@ -1646,9 +1681,10 @@ int acs_fio_verify_file_v1(const char* path_utf8,
       {
         unsigned long sum = fio_dsum_finish(&s);
         unsigned long decoded = fio_decode_checksum(cval, 1); /* 还原写时累计 */
-        /* 标准校验: 置零累计应等于 CHECKSUM 卡解码值 (即写时累计);
-         * 另兼容 sum==0xFFFFFFFF/0 的全零/未定义情形。 */
-        if (sum != decoded && sum != 0xFFFFFFFFUL && sum != 0UL) {
+        /* 标准校验: 置零累计应等于 CHECKSUM 卡解码值 (即写时累计)。
+         * 兼容 sum==0xFFFFFFFF (1's complement 全 1 = 写时累计的规范不动点)。
+         * M2b-B-09: 不再豁免 sum==0 —— 全零串已在上方显式拒绝。 */
+        if (sum != decoded && sum != 0xFFFFFFFFUL) {
           acs_fio_reader_close_v1(rd);
           set_err(err, cap, "CHECKSUM mismatch: computed 0x%08lx decoded 0x%08lx",
                   sum, decoded);

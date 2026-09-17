@@ -299,22 +299,14 @@
       "line": 32,
       "field": "detection_threshold",
       "declared_default": "5.0",
-      "unit": "σ（局部）",
+      "unit": "σ（全局 bgnoise）",
       "owner_class": "science_param",
       "registration": "defaults_json",
       "registered_at": "config/defaults.json#fields[].key=detection.threshold_sigma",
       "registered_key": "detection.threshold_sigma",
-      "finding": "conflict",
-      "note": "数值一致（5.0），但语义域冲突：插件写「σ（局部）」，defaults.json 的 constraint 写「全局检测阈值语义」，SCI 权威 docs/science/STAR_DETECTION.md:19 为全局 median+5.0·bgnoise。归属：负责人裁决（改插件文档或改 defaults 措辞，二者不得同时保留）。",
-      "conflict": {
-        "kind": "semantic_domain_conflict",
-        "evidence": [
-          "docs/plugins/algorithms_phase1/03_star_detection.md:32",
-          "config/defaults.json#fields[].key=detection.threshold_sigma",
-          "docs/science/STAR_DETECTION.md:19"
-        ],
-        "owner": "负责人裁决（插件文档域 / 默认值域）"
-      }
+      "finding": "none",
+      "note": "已按 DOC-SCI-001 §4 与 defaults detection.threshold_sigma 对齐：冻结语义=全局 median(img)+5.0·bgnoise（σ=2 平滑图，sdet_api.cpp:1782-1792）；逐像素 variance/ivar 局部自适应为目标态、未实现，登记 DISP-STAR-002（归 P1-STAR-IMPL/INT）。",
+      "conflict": null
     },
     {
       "module": "03_star_detection",
@@ -385,24 +377,15 @@
       "doc": "docs/plugins/algorithms_phase1/04_psf.md",
       "line": 32,
       "field": "psf_model",
-      "declared_default": "gauss",
+      "declared_default": "moffat4",
       "unit": null,
       "owner_class": "science_param",
       "registration": "defaults_json",
       "registered_at": "config/defaults.json#fields[].key=psf.default_model",
       "registered_key": "psf.default_model",
-      "finding": "conflict",
-      "note": "插件默认 gauss 与已登记默认 moffat4 冲突：SCI 权威 docs/science/PSF.md:7 点源响应=椭圆 Moffat4，:81 记当前唯一实现路径为 Moffat4 7 参数（无 gauss 路径）；phase_config algorithm_psf_model enum 亦只有 moffat4。归属：负责人裁决（插件文档订正或补 gauss 实现，不得两存）。",
-      "conflict": {
-        "kind": "value_conflict",
-        "evidence": [
-          "docs/plugins/algorithms_phase1/04_psf.md:32",
-          "docs/science/PSF.md:7",
-          "docs/science/PSF.md:81",
-          "config/defaults.json#fields[].key=psf.default_model"
-        ],
-        "owner": "负责人裁决（插件文档域）"
-      }
+      "finding": "none",
+      "note": "已按 DOC-SCI-001 §2 与 psf.default_model=moffat4 对齐；检测/PSF 双模型见 DISP-STAR-007（检测侧椭圆高斯不属本模块）。",
+      "conflict": null
     },
     {
       "module": "04_psf",
@@ -608,29 +591,6 @@
       "conflict": null
     },
     {
-      "module": "06_photometry",
-      "doc": "docs/plugins/algorithms_phase1/06_photometry.md",
-      "line": 34,
-      "field": "flux_zero_point",
-      "declared_default": null,
-      "unit": null,
-      "owner_class": "science_param",
-      "registration": "none",
-      "registered_at": null,
-      "registered_key": null,
-      "finding": "conflict",
-      "note": "插件仍列「参考零点（可空）」旋钮，而 docs/algorithms/PHOTOMETRIC_FIT.md:9 已明确该字段因无定义式、结构体无字段被删除（P5-SNR 订正），docs/science/PHOTOMETRY.md:7 记零点是逐次运行估计量；CONFIG_CONTRACT §4 据此判定滤镜库不含零点列。归属：负责人裁决（插件文档订正）。",
-      "conflict": {
-        "kind": "doc_conflict_deleted_field",
-        "evidence": [
-          "docs/plugins/algorithms_phase1/06_photometry.md:34",
-          "docs/algorithms/PHOTOMETRIC_FIT.md:9",
-          "docs/science/PHOTOMETRY.md:7"
-        ],
-        "owner": "负责人裁决（插件文档域）"
-      }
-    },
-    {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
       "line": 60,
@@ -753,17 +713,9 @@
       "registration": "defaults_json",
       "registered_at": "config/defaults.json#fields[].key=drizzle.pixfrac",
       "registered_key": "drizzle.pixfrac",
-      "finding": "conflict",
-      "note": "三方不一致：插件默认 1.0；defaults.json 为 pending_authority/null（数值权威归 SCI-RES-01/R-005，语义权威 docs/science/DRIZZLE.md:27 仅给 0<pixfrac≤1）；实现模板 lib/infrastructure/pipeline/orchestrator/configs/stage1.template.json:41 为 0.8。归属：SCI-RES-01/R-005 + 负责人批准；裁决前不得把 1.0 或 0.8 写成默认。",
-      "conflict": {
-        "kind": "value_conflict_pending",
-        "evidence": [
-          "docs/plugins/algorithms_phase1/08_drizzle.md:42",
-          "config/defaults.json#fields[].key=drizzle.pixfrac",
-          "lib/infrastructure/pipeline/orchestrator/configs/stage1.template.json:41"
-        ],
-        "owner": "SCI-RES-01/R-005 + 负责人批准"
-      }
+      "finding": "none",
+      "note": "已按 DOC-SCI-001 §3 裁决：默认 1.0 已入 defaults.json（owner_adjudicated，FZ-COND-FLUX-CONSERV 严格通量守恒端点 + E1 复算 + V18R2-V19 运行史）；值域 (0,1] 不变，pixfrac<1 须记 provenance.flux_conservation_factor=pixfrac²。",
+      "conflict": null
     },
     {
       "module": "08_drizzle",
@@ -1175,7 +1127,7 @@
       "module": "15_resample",
       "doc": "docs/plugins/algorithms_phase3/15_resample.md",
       "line": 35,
-      "field": "kernel",
+      "field": "sampler",
       "declared_default": "bilinear",
       "unit": null,
       "owner_class": "science_param",
@@ -1183,7 +1135,7 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 bilinear；未进任何配置类（export 无重采样核字段）。归属：负责人裁决。",
+      "note": "插件默认 bilinear；字段名按 DOC-SCI-001 A2 与 ALG 权威统一为 sampler（docs/algorithms/PHASE3_RESAMPLE.md:8,:43 取值 nearest|bilinear）；旧名 kernel 为分叉名。归属：负责人裁决（未进任何配置类，export 无重采样核字段）。",
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
@@ -1435,7 +1387,7 @@
       "registered_at": "contracts/schemas/cpu_profile.schema.json#/$defs/kernel_v2/properties/workers",
       "registered_key": "kernel_v2.workers",
       "finding": "none",
-      "note": "线程预算由 cpu_profile 提供，禁硬编码（ENGINEERING_SPEC §10、UNIFIED_MODEL §3）；禁入 phase_config。注：$defs.kernel_v2 目前未被 profile_v2.properties.kernels $ref（见 config_registry.cpu_profile_kernel_link，跨域交接）。",
+      "note": "线程预算由 cpu_profile 提供，禁硬编码（ENGINEERING_SPEC §10、UNIFIED_MODEL §3）；禁入 phase_config。注：$defs.kernel_v2 已由 profile_v2.properties.kernels.additionalProperties $ref（W5-CPU-001 接线，见 config_registry.cpu_profile_kernel_link，refs=1）。",
       "conflict": null
     },
     {
@@ -1450,7 +1402,7 @@
       "registered_at": "contracts/schemas/cpu_profile.schema.json#/$defs/kernel_v2/properties/block",
       "registered_key": "kernel_v2.block",
       "finding": "none",
-      "note": "分块大小由 cpu_profile 提供（同上）；同样受 kernel_v2 未接线影响。",
+      "note": "分块大小由 cpu_profile 提供（同上）；同样经 kernel_v2 接线生效（W5-CPU-001）。",
       "conflict": null
     },
     {
@@ -1702,22 +1654,21 @@
     }
   ],
   "totals": {
-    "rows": 96,
+    "rows": 95,
     "by_finding": {
-      "none": 42,
+      "none": 45,
       "gap": 22,
-      "conflict": 4,
       "unregistered": 28
     },
     "by_owner_class": {
-      "science_param": 67,
+      "science_param": 66,
       "runtime_policy": 20,
       "cli_surface": 6,
       "resource_binding": 3
     },
     "by_registration": {
       "inputs_block": 8,
-      "none": 51,
+      "none": 50,
       "defaults_json": 6,
       "phase_config": 9,
       "plugin_doc": 11,
@@ -1857,13 +1808,13 @@
     "gate": "机器门断言：①contracts/config/** 与 config/** 无同名文件、无重复 schema 定义；②DOCUMENT_INDEX 中 CONFIG_CONTRACT.md 恰一次且 ACTIVE_NORMATIVE；③tests/test_index.csv 登记 tests/config，且「未登记目录集合 == test_index_known_unregistered」（fail-closed）；④config/** 下不得出现 *.schema.json（防第二事实源）。"
   },
   "cpu_profile_kernel_link": {
-    "status": "UNLINKED",
-    "detail": "contracts/schemas/cpu_profile.schema.json 的 $defs.kernel_v1 / $defs.kernel_v2 被 0 处 $ref：profile_v2.properties.kernels 仅 {type:object,minProperties:1}，legacy_v1.items 仅 {type:object}。workers/block/provider/self_test_sha256 等约束已定义但未被 schema 施加（tests/config 只直接读 $defs.kernel_v2 断言，不构成施加）。",
+    "status": "LINKED",
+    "detail": "contracts/schemas/cpu_profile.schema.json：$defs.kernel_v1 由 $defs.legacy_v1.properties.kernels.items $ref（v1 kernels[] 项约束），$defs.kernel_v2 由 $defs.profile_v2.properties.kernels.additionalProperties $ref（v2 kernels{} 行约束），refs=1/1。接线前约束已由顶层 properties.kernels.items/.additionalProperties 的等价镜像施加（镜像为既有读取面 tests/backend/test_cpu_profile.py:78、tools/validate_cpu_profile.py:68 保留），故本次接线不收紧既有 profile；镜像与 $defs 逐字一致 + 「剥离镜像后仍由分支 $ref 判红」由 tests/config/test_cfg001_negative.py::TestNegativeFixturesMustFail::test_cpu_profile_kernel_defs_are_wired_and_enforced 钉死（漂移/退化即红）。",
     "refs": {
-      "kernel_v1": 0,
-      "kernel_v2": 0
+      "kernel_v1": 1,
+      "kernel_v2": 1
     },
-    "handover": "归属：CPU/benchmark 线（把 kernels→kernel_v2 / items→kernel_v1 接线会收紧既有 profile 与负例，须同步 profile_gen_v2.cpp 与 tests/config 夹具）。W5-CFG-002 只登记，不代改（不在本卡五项之内）。"
+    "handover": "已闭合（W5-CPU-001，2026-09-17）：按 W5-CFG-002 交接完成接线；负例 tests/config/fixtures/negative/cpu_profile_v1_bad_kernel.json（size_class 越界）与 cpu_profile_v2_bad_kernel.json（provider 越界）必红；正向 v1/v2 夹具仍绿；producer 面无需改动（接线不收紧：镜像与 $defs 接线时为同一约束）。"
   },
   "contract_doc_citations": {
     "structural_rule": "CONFIG_CONTRACT.md 内所有 文件:行 与 文件:a-b 引用必须：文件存在、行在范围内、起始行非空、范围升序（W5-CFG-002 实测修正了 7 处因文档重排失效的行号）。",

@@ -212,7 +212,9 @@ CalResult calibrate_pixel(const CalConfig& cfg, const CalPixelInput& px) {
 
   /* ── master 身份（master_id / 归一版本 / 单位） ───────────────────── */
   const bool dark_opt_explicit = (cfg.dark_opt == DarkOption::kExplicitBiasDark);
-  const bool uses_bias_light = dark_opt_explicit && px.has_bias_light;
+  /* BIAS-001：bias 在**两分支都进入算术**——标准式 (r-b-alpha*d)/f 只含光路 bias；
+   * 兼容式 (r-b-alpha*(d-b))/f 同时含光路与暗路 bias（可折叠为同一共享 master）。 */
+  const bool uses_bias_light = px.has_bias_light;
   const bool uses_bias_dark = dark_opt_explicit && px.has_bias_dark;
   const bool uses_dark = px.has_dark;
   const bool uses_flat = flat_used;
@@ -279,8 +281,10 @@ CalResult calibrate_pixel(const CalConfig& cfg, const CalPixelInput& px) {
     }
     y = num / denom;
   } else {
+    /* 标准式（BIAS-001）：master_dark 已减 bias -> y = (r - b - alpha*d) / f */
     const double d = px.has_dark ? px.dark : 0.0;
-    y = (px.r - d) / denom;
+    const double b = px.has_bias_light ? px.bias_light : 0.0;
+    y = (px.r - b - cfg.alpha * d) / denom;
   }
   if (fault_is("clip_negative") && y < 0.0) {
     y = 0.0;
@@ -290,14 +294,17 @@ CalResult calibrate_pixel(const CalConfig& cfg, const CalPixelInput& px) {
   }
   out.y = y;
 
-  /* ── 方向导数 J = [1/f, -(1-alpha)/f, -alpha/f, -y/f] ─────────────── */
+  /* ── 方向导数（BIAS-001 订正后）─────────────────────────────────────
+   *   标准式 (dark_opt=0): J = [ 1/f,   -1/f,     -alpha/f, -y/f ]
+   *   兼容式 (dark_opt=1): J = [ 1/f, -(1-alpha)/f, -alpha/f, -y/f ]（同 master 折叠）
+   * 缺省 master 的系数为 0（不使用即不进入 J 与方差）。 */
   double jac[4] = {0.0, 0.0, 0.0, 0.0};
   const bool bias_present_any = uses_bias_light || uses_bias_dark;
   const bool same_bias_master =
       (uses_bias_light && uses_bias_dark)
           ? (cfg.bias_light_master.master_id == cfg.bias_dark_master.master_id)
           : bias_present_any;
-  out.same_bias_master_folded = same_bias_master;
+  out.same_bias_master_folded = dark_opt_explicit && same_bias_master;
 
   const double j_r = 1.0 / denom;
   double j_b_folded = 0.0; /* 折叠后 bias 系数（同 master） */
@@ -310,9 +317,12 @@ CalResult calibrate_pixel(const CalConfig& cfg, const CalPixelInput& px) {
       if (uses_bias_light) j_b_light = -1.0 / denom;
       if (uses_bias_dark) j_b_dark = cfg.alpha / denom;
     }
+  } else if (uses_bias_light) {
+    /* 标准式：bias 只出现一次（光路），系数 -1/f；dark 视作已减 bias */
+    j_b_light = -1.0 / denom;
   }
-  const double j_d = (uses_dark && dark_opt_explicit) ? -cfg.alpha / denom
-                     : (uses_dark ? -1.0 / denom : 0.0);
+  /* K(=alpha) 在两分支都作用于 dark（BIAS-001：旧实现标准式强制 K=1） */
+  const double j_d = uses_dark ? -cfg.alpha / denom : 0.0;
   double j_f = 0.0;
   if (flat_used && !out.flat_floor_applied) {
     /* 只在未触发 floor 区域 y 才显式依赖 f；floor 区域 d y / d f = 0。 */
@@ -384,6 +394,9 @@ CalResult calibrate_pixel(const CalConfig& cfg, const CalPixelInput& px) {
       v_cal += j_b_light * j_b_light * v_b_light;
       v_cal += j_b_dark * j_b_dark * v_b_dark;
     }
+  } else if (uses_bias_light) {
+    /* 标准式：bias 独立项系数 -1/f（无折叠，bias 只出现一次） */
+    v_cal += j_b_light * j_b_light * v_b_light;
   }
   if (uses_dark) {
     v_cal += j_d * j_d * v_dark;
@@ -409,7 +422,8 @@ CalResult calibrate_pixel(const CalConfig& cfg, const CalPixelInput& px) {
     r.folded_same_master = folded;
     out.master_ids.push_back(r);
   };
-  if (same_bias_master && bias_present_any) {
+  const bool bias_folded = dark_opt_explicit && same_bias_master;
+  if (bias_folded && bias_present_any) {
     /* 同一 master 只登记一次（ADJ-OBS-01：共享 master 只进一次通道）。 */
     const MasterIdentity& m =
         uses_bias_light ? cfg.bias_light_master : cfg.bias_dark_master;

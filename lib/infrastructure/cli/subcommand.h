@@ -245,9 +245,12 @@ struct Subcommand {
         return astrocs::OK;
     }
 
+    // §1「子命令帮助与字段说明」：usage 行 + 字段表。字段表与 --template 同源
+    // （session_commands.h config_fields），不手写副本（CLI-11）。
     int print_help() const {
         const auto* c = find(name);
         std::printf("%s\n", c ? help_usage(*c).c_str() : name);
+        std::fputs(config_field_help(session).c_str(), stdout);
         return astrocs::OK;
     }
 

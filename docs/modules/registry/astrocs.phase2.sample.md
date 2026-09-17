@@ -1,5 +1,7 @@
 ---
 id: MOD-astrocs-phase2-sample
+module_id: astrocs.p2.sampling
+aliases: [astrocs.phase2.sample]
 version: 1.0.0
 status: ACTIVE
 owner: astrocs-core

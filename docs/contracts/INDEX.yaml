@@ -129,6 +129,15 @@ contracts:
     downstream: [ALG-ACR-EQUIV-001]
 
   # ── ALG 算法推导 ──
+  # 锚合同（L28e-E-004 登记：此前全仓仅自身声明行、INDEX 零命中 ⇒ 孤锚）。
+  - id: ALG-ANCHOR-001
+    type: ALG
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/algorithms/anchors/ANCHOR_CONTRACT.md
+    upstream: []
+    downstream: []
   - id: ALG-CAL-001
     type: ALG
     status: ACTIVE
@@ -224,7 +233,7 @@ contracts:
     version: 1.0.0
     path: docs/algorithms/HIPS_WRITER.md
     upstream: [SCI-DRZ-001]
-    downstream: []
+    downstream: [DATA-P1-HIPS]
   - id: ALG-UPM-001
     type: ALG
     status: ACTIVE
@@ -666,6 +675,14 @@ contracts:
     version: 1.0.0
     path: docs/contracts/PUBLIC_API.md
     upstream: [ALG-PHOT-001, ALG-PHOT-002]
+    downstream: []
+  - id: DATA-P1-HIPS
+    type: DATA
+    status: ACTIVE
+    owner: AstroCS
+    version: 1.0.0
+    path: docs/contracts/DATA_SEMANTICS.md
+    upstream: [ALG-HIPS-001]
     downstream: []
   - id: DATA-P1-PSF
     type: DATA

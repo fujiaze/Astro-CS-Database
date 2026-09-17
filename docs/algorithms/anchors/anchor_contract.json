@@ -140,55 +140,55 @@
   {
    "id": "P3FITS-CTYPE",
    "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
-   "target": "lib/phase3_session/p3_output.cpp",
+   "target": "lib/algorithms/fits_output/p3_output.cpp",
    "symbol": "CTYPE1"
   },
   {
    "id": "P3FITS-CUNIT",
    "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
-   "target": "lib/phase3_session/p3_output.cpp",
+   "target": "lib/algorithms/fits_output/p3_output.cpp",
    "symbol": "CUNIT1"
   },
   {
    "id": "P3FITS-CRPIX",
    "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
-   "target": "lib/phase3_session/p3_output.cpp",
+   "target": "lib/algorithms/fits_output/p3_output.cpp",
    "symbol": "CRPIX1"
   },
   {
    "id": "P3FITS-CRVAL",
    "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
-   "target": "lib/phase3_session/p3_output.cpp",
+   "target": "lib/algorithms/fits_output/p3_output.cpp",
    "symbol": "CRVAL1"
   },
   {
    "id": "P3FITS-CD",
    "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
-   "target": "lib/phase3_session/p3_output.cpp",
+   "target": "lib/algorithms/fits_output/p3_output.cpp",
    "symbol": "CD1_1"
   },
   {
    "id": "P3FITS-BSCALE",
    "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
-   "target": "lib/phase3_session/p3_output.cpp",
+   "target": "lib/algorithms/fits_output/p3_output.cpp",
    "symbol": "BSCALE"
   },
   {
    "id": "P3FITS-BUNIT",
    "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
-   "target": "lib/phase3_session/p3_output.cpp",
+   "target": "lib/algorithms/fits_output/p3_output.cpp",
    "symbol": "BUNIT"
   },
   {
    "id": "P3FITS-PROV",
    "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
-   "target": "lib/phase3_session/p3_output.cpp",
+   "target": "lib/algorithms/fits_output/p3_output.cpp",
    "symbol": "HIPSID"
   },
   {
    "id": "P3FITS-MUTEX",
    "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
-   "target": "lib/phase3_session/p3_output.cpp",
+   "target": "lib/algorithms/fits_output/p3_output.cpp",
    "symbol": "cfitsio_io_mutex"
   },
   {

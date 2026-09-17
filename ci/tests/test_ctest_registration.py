@@ -41,6 +41,14 @@ _spec.loader.exec_module(TOOL)
 _REGISTRY = json.loads((_REPO / "ci" / "checks.json").read_text(encoding="utf-8"))
 _BASELINE = json.loads((_REPO / "ci" / "ctest_baseline.json").read_text(encoding="utf-8"))
 _CHECKS = {c["id"]: c for c in _REGISTRY["checks"]}
+# W4-A3：注册表是**两层**结构（顶层注册项 checks[] + 执行单元 steps[]）。本测试
+# 按 id 直接取 waivable/profiles/command，而既有 id 里既有顶层项也有执行单元
+# （如 BUILD-GCC-RELEASE / DEEP-SAN-ASAN / CTEST-LINUX-FULL 都是 steps）——只索引
+# 顶层会让这些断言永远找不到 id（"顶层单层索引"失效型的又一复发点，与
+# CHK-IMPACT-MAP / V6-R7 同根因）。改为双层索引：顶层优先，执行单元补齐。
+for _c in _REGISTRY["checks"]:
+    for _s in _c.get("steps") or []:
+        _CHECKS.setdefault(_s["id"], _s)
 
 # 本轮（ASTROCS-CONSTITUTION-ALIGNMENT-V1）新增测试目标 → 显式检查项
 NEW_TARGET_CHECKS = {
@@ -145,7 +153,9 @@ class TestRealRepoRegistration(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.targets, cls.structural = TOOL.collect_real(_REPO)
+        # W4-A3：collect_real 第三个返回值是"未跟踪的 CMake 源"留痕（本门判版本库，
+        # 不判并发写者的工作区快照），测试同步按三元组解包。
+        cls.targets, cls.structural, cls.untracked = TOOL.collect_real(_REPO)
         cls.verdict = TOOL.evaluate(cls.targets, _REGISTRY, _BASELINE)
 
     def test_no_unregistered_targets(self):

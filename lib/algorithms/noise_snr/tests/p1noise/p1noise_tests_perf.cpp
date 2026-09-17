@@ -40,7 +40,8 @@ inline TimedRun time_build(const FixNoisePerf& fx) {
     TimedRun tr;
     const auto t0 = std::chrono::steady_clock::now();
     tr.rc = snr_noise_model_v1_f64(fx.data.data(), fx.h, fx.w, nullptr,
-                                   nullptr, nullptr, 0, nullptr, &tr.model);
+                                   nullptr, nullptr, nullptr, nullptr, 0,
+                                   nullptr, &tr.model);
     const auto t1 = std::chrono::steady_clock::now();
     tr.seconds = std::chrono::duration<double>(t1 - t0).count();
     return tr;

@@ -1426,6 +1426,8 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   // (c) verify 双向断言 (真实产品两态)
   {
     AioHipsVerifyReport rep{};
+    rep.struct_size = static_cast<std::uint32_t>(sizeof(AioHipsVerifyReport));
+    rep.abi_version = static_cast<std::uint32_t>(AIO_HIPS_VERIFY_REPORT_ABI_VERSION);
     const int vrc = aio_hips_verify_product_set(aio_dir.c_str(), &rep);
     CHECK_MSG(vrc == 0, ("aio verify must pass on real Phase2 product (rc=" +
                          std::to_string(vrc) + " : " + aio_hips_last_error() + ")").c_str());

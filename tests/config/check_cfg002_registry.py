@@ -218,6 +218,65 @@ def check_01_registry_correspondence(repo):
     return "rows=%d documents=%d missing=0 phantom=0 drift=0" % (len(rows), len(doc_by_key))
 
 
+# 单位归一别名表（登记册/文档用中文或符号写法，defaults 用 ASCII token）
+UNIT_ALIASES = {"σ": "sigma", "sigma": "sigma", "1": "dimensionless",
+                "度": "deg", "deg": "deg", "degree": "deg",
+                "角秒": "arcsec", "arcsec": "arcsec", "arcsec2": "arcsec",
+                "像素": "px", "px": "px", "pixel": "px",
+                "秒": "s", "s": "s", "毫秒": "ms", "ms": "ms",
+                "点/度²": "pt/deg2", "pt/deg2": "pt/deg2", "pt/deg^2": "pt/deg2"}
+# 已知量纲间换算（登记点单位 -> 文档单位）；不在表内的跨单位比较判「不可比」而非放行
+UNIT_SCALE = {("deg", "arcsec"): 3600.0, ("arcsec", "deg"): 1.0 / 3600.0,
+              ("s", "ms"): 1000.0, ("ms", "s"): 1.0 / 1000.0}
+
+
+def _unit_token(unit):
+    """单位归一：去括注，别名折叠到规范 token；未声明返回 None。"""
+    if unit is None:
+        return None
+    s = str(unit).strip()
+    if s in ("", "——", "-", "None", "null"):
+        return None
+    s = re.sub(r"（[^）]*）|\([^)]*\)", "", s).strip()
+    s = re.sub(r"\s+", "", s)
+    return UNIT_ALIASES.get(s, s)
+
+
+def _num(v):
+    if isinstance(v, bool) or v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        try:
+            return float(v.strip())
+        except ValueError:
+            return None
+    return None
+
+
+def _value_equal(declared, value, doc_unit, def_unit):
+    """(equal|None, detail)：类型/单位/缩放域感知的相等判定。
+
+    None 表示「不可比」（跨单位且无换算登记），由调用方计入未比对面而非放行。
+    """
+    du, vu = _unit_token(doc_unit), _unit_token(def_unit)
+    scale = 1.0
+    if du and vu and du != vu:
+        scale = UNIT_SCALE.get((du, vu))
+        if scale is None:
+            return None, "单位不可比 doc=%r default=%r" % (doc_unit, def_unit)
+    dn, vn = _num(declared), _num(value)
+    if dn is not None and vn is not None:
+        if abs(dn - vn * scale) <= 1e-9 * max(1.0, abs(dn)):
+            return True, ""
+        return False, "数值不等 文档=%r default=%r（单位 %r->%r ×%g）" % (
+            declared, value, doc_unit, def_unit, scale)
+    if str(declared).strip().strip('"').lower() == str(value).strip().strip('"').lower():
+        return True, ""
+    return False, "取值不等 文档=%r default=%r" % (declared, value)
+
+
 def _resolve_registration(repo, r, schemas, defaults_keys):
     """返回（ok, detail）；登记点必须真实可解析。"""
     reg, at, key = r["registration"], r.get("registered_at"), r.get("registered_key")
@@ -278,10 +337,71 @@ def _resolve_registration(repo, r, schemas, defaults_keys):
     return True, "none"
 
 
+def _registration_value_problems(r, defaults_by_key):
+    """登记点「值」判据（CFG002-02 值域面）。
+
+    规则：
+      1. registration=defaults_json 且登记点有值 ⇒ 必须与登记册 declared_default 相等
+         （类型/单位/缩放域感知；跨单位不可比计入未比对面，不放行）；
+         登记点有值而登记册未声明默认 ⇒ 判红（反向漂移）。
+      2. registration=defaults_json 且登记点无值（null）⇒ 必须在**两处**显式挂起登记：
+         defaults 条目的 authority_status=pending_authority + 非空 pending_task，
+         且登记册行 note 显式写明 pending_authority。否则「finding=none + value=null」
+         一律判红（禁止用 none 掩盖登记点没值）。
+      3. phase_config/inputs_block 的 schema 叶子若声明 default ⇒ 必须与 declared_default 相等。
+     """
+    problems, checked, unchecked = [], 0, 0
+    if r["registration"] in ("phase_config", "inputs_block"):
+        # 覆盖诚实性：schema 面不承载运行值（实测 0/17 声明 default），
+        # 这些行的值域不在本判据可判范围内，计数上报而非默认「已比对」。
+        return problems, checked, unchecked + (1 if r["declared_default"] is not None else 0)
+    if r["registration"] != "defaults_json":
+        return problems, checked, unchecked
+    entry = defaults_by_key.get(r["registered_key"])
+    if entry is None:
+        problems.append("%s/%s: defaults.json 无键 %r"
+                        % (r["module"], r["field"], r["registered_key"]))
+        return problems, checked, unchecked
+    val = entry.get("value")
+    pending = (entry.get("authority_status") == "pending_authority"
+               and str(entry.get("pending_task") or "").strip())
+    note = str(r.get("note") or "")
+    if val is None:
+        if not pending:
+            problems.append("%s/%s: 登记点 %s 的 value=null 且缺 pending_authority/"
+                            "pending_task 挂起登记（finding=%s）"
+                            % (r["module"], r["field"], r["registered_key"], r["finding"]))
+        elif "pending_authority" not in note:
+            problems.append("%s/%s: 登记点 value=null 依赖 defaults 挂起，但登记册 note "
+                            "未写明 pending_authority（finding=%s）"
+                            % (r["module"], r["field"], r["finding"]))
+        elif r["declared_default"] is not None:
+            problems.append("%s/%s: 文档/登记册声明默认 %r 而登记点无值"
+                            % (r["module"], r["field"], r["declared_default"]))
+        return problems, checked, unchecked
+    if r["declared_default"] is None:
+        problems.append("%s/%s: 登记点有值 %r 但文档/登记册 declared_default 为 ——（反向漂移）"
+                        % (r["module"], r["field"], val))
+        return problems, checked, unchecked
+    eq, why = _value_equal(r["declared_default"], val, r["unit"], entry.get("unit"))
+    if eq is False:
+        problems.append("%s/%s: 登记点值漂移 %s" % (r["module"], r["field"], why))
+    elif eq is None:
+        # 单位域不可比且无换算登记 ⇒ fail-closed 判红（不得以「不可比」放行）
+        problems.append("%s/%s: 登记点单位域未登记换算 %s" % (r["module"], r["field"], why))
+        unchecked += 1
+    else:
+        checked += 1
+    return problems, checked, unchecked
+
+
 def check_02_registration_targets(repo):
-    """登记点可解析 + 分类闭包（分离红线：runtime_policy/resource_binding 不得进科学配置）。"""
+    """登记点可解析 + 登记点值与登记册 declared_default 一致 + 分类闭包
+    （分离红线：runtime_policy/resource_binding 不得进科学配置）。"""
     reg = load_json(repo, REGISTRY)
-    defaults_keys = {f["key"] for f in load_json(repo, DEFAULTS)["fields"]}
+    defaults_doc = load_json(repo, DEFAULTS)
+    defaults_keys = {f["key"] for f in defaults_doc["fields"]}
+    defaults_by_key = {f["key"]: f for f in defaults_doc["fields"]}
     schemas = {rel: load_json(repo, rel) for rel in PHASE_SCHEMAS.values()}
     phase_props = set()
     for s in schemas.values():
@@ -290,11 +410,16 @@ def check_02_registration_targets(repo):
                     s.get("$defs", {}).get("export_config")):
             phase_props |= properties_of(sub)
     problems = []
+    value_checked = value_unchecked = 0
     for r in reg["plugin_knobs"]:
         ok, detail = _resolve_registration(repo, r, schemas, defaults_keys)
         if not ok:
             problems.append("%s/%s: %s" % (r["module"], r["field"], detail))
             continue
+        vp, v_checked, v_unchecked = _registration_value_problems(r, defaults_by_key)
+        problems.extend(vp)
+        value_checked += v_checked
+        value_unchecked += v_unchecked
         if r["owner_class"] in ("runtime_policy", "resource_binding") and \
                 r["registration"] in ("defaults_json", "phase_config", "inputs_block"):
             problems.append("%s/%s: %s 不得登记进 %s（UNIFIED_MODEL §3 / CONFIG_CONTRACT §3）"
@@ -313,7 +438,8 @@ def check_02_registration_targets(repo):
                                 % (r["module"], r["field"], r["declared_default"], enum))
     if problems:
         raise Fail("登记点/分类问题 %d 条: %s" % (len(problems), problems[:6]))
-    return "resolved=%d separation_ok" % len(reg["plugin_knobs"])
+    return ("resolved=%d value_checked=%d value_unchecked=%d separation_ok"
+            % (len(reg["plugin_knobs"]), value_checked, value_unchecked))
 
 
 def check_03_defaults_enum_mapping(repo):
@@ -980,9 +1106,26 @@ INJECTIONS = [
      lambda root: _edit_json(root, DEFAULTS, lambda d: [
          f.__setitem__("source_ref", {"path": "docs/science/STAR_DETECTION.md", "line": 1})
          for f in d["fields"] if f["key"] == "detection.threshold_sigma"])),
-    ("kernel_link_wired_without_registration", "CFG002-10",
-     lambda root: _edit_json(root, CPU_SCHEMA, lambda d: d["$defs"]["profile_v2"]["properties"]
-                             ["kernels"].__setitem__("additionalProperties", {"$ref": "#/$defs/kernel_v2"}))),
+    # W5-CPU-001 接线后本注入改为「接线状态变化未登记」的退化方向：拆掉 kernel_v1 的
+    # $ref 而不改登记册（原变异对已接线状态是无操作 → 负例面失效，故随接线同步更新）。
+    ("kernel_link_degraded_without_registration", "CFG002-10",
+     lambda root: _edit_json(root, CPU_SCHEMA, lambda d: d["$defs"]["legacy_v1"]["properties"]
+                             ["kernels"].pop("items"))),
+    # CFG002-02 值域面（DOC-SCI-001 A4）：登记点值必须与登记册 declared_default 一致
+    ("registry_value_mismatch", "CFG002-02",
+     lambda root: _edit_json(root, DEFAULTS, lambda d: [
+         f.__setitem__("value", 0.5) for f in d["fields"]
+         if f["key"] == "drizzle.pixfrac"])),
+    ("registry_null_value_finding_none", "CFG002-02",
+     lambda root: (_edit_json(root, DEFAULTS, lambda d: [
+         f.__setitem__("value", None) for f in d["fields"]
+         if f["key"] == "drizzle.pixfrac"]),
+                   _edit_json(root, REGISTRY, lambda d: _row(d, "08_drizzle", "pixfrac").__setitem__(
+                       "finding", "none")))),
+    ("registry_unit_domain_mismatch", "CFG002-02",
+     lambda root: _edit_json(root, DEFAULTS, lambda d: [
+         f.__setitem__("unit", "deg") for f in d["fields"]
+         if f["key"] == "detection.threshold_sigma"])),
     ("contract_anchor_removed", "CFG002-08",
      lambda root: _edit_text(root, CONTRACT_DOC,
                              lambda t: "".join(ln for ln in t.splitlines(True)

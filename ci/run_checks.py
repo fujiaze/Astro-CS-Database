@@ -66,6 +66,12 @@ EXIT_OK = 0
 EXIT_FAIL = 1
 EXIT_RUNNER_ERROR = 2
 
+# ctest SKIP_RETURN_CODE 同语义（77）：宿主能力门（如 AVX-512 不可用）以 77
+# 表示"合同化跳过"，不是失败。与 ci/run.py 的 SKIP_EXIT_CODE 同合同（W4-A3：
+# 两入口对同一退出码的判定必须一致，否则同一 step 在两个入口一红一绿）。
+# **只在执行单元 waivable=true 时被承认**；非 waivable 的 77 = 自我豁免 ⇒ FAIL。
+SKIP_EXIT_CODE = 77
+
 TAIL_LIMIT = 4000  # per-step stdout/stderr 摘要上限（字符）
 DEFAULT_RUN_ROOT = "run/ci/run-checks"
 
@@ -324,6 +330,19 @@ def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
         return finish(V_FAIL, f"被信号终止：{-proc.returncode}")
     if proc.returncode == 0:
         return finish(V_PASS)
+    if proc.returncode == SKIP_EXIT_CODE:
+        # 合同化 skip（ctest SKIP_RETURN_CODE=77 同语义）**只对 waivable 执行单元有效**：
+        # 非 waivable 的单元以 77 退出 = 自我豁免（fail-open），任何检查器都能
+        # 用 sys.exit(77) 让整门变绿 ⇒ 按 FAIL 记（ENGINEERING_SPEC §8 fail-closed：
+        # 不得把"未执行/未判定"当通过）。口径与 ci/run.py 的 SKIP_EXIT_CODE 分支一致
+        # （W4-A3：两入口对同一退出码的判定必须一致）。
+        if step.get("waivable"):
+            return finish(V_SKIP_WAIVABLE,
+                          f"命令以 SKIP 退出码 {SKIP_EXIT_CODE} 结束"
+                          "（ctest SKIP_RETURN_CODE 同语义, 如宿主能力 gate）")
+        return finish(V_FAIL,
+                      f"非 waivable 执行单元以 SKIP 退出码 {SKIP_EXIT_CODE} 结束："
+                      "合同化 SKIP 仅适用 waivable 单元（fail-closed）")
     return finish(V_FAIL, f"exit code {proc.returncode}")
 
 

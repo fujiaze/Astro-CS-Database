@@ -60,7 +60,7 @@
 
 ## 4 输入有效域
 
-- properties 必需键存在且合法: `hips_order`(int≥0), `hips_tile_width`(**支持子集 W=512**；其他 2 的幂见下), `hips_frame`='icrs'?/equatorial, `hips_order`≥0, 数据属性含 float FITS tiles；**合法转换=仅恒等 ICRS**。
+- properties 必需键存在且合法: `hips_order`(int≥0), `hips_tile_width`(**支持子集 W=512**；其他 2 的幂见下), `hips_frame`='icrs'（**IVOA REC-HIPS-1.0 §4.4.1 值域 = {icrs, galactic, ecliptic}；本管道只产/只收 ICRS；M1a-B-005 已把写出侧非标准值 "equatorial" 废止，读侧仅作旧产品兼容别名**）, `hips_order`≥0, 数据属性含 float FITS tiles；**合法转换=仅恒等 ICRS**。
   - **tile 宽收窄（SCI-FIX-PROJ 2026-09-16）**：M7-A-117 指出 `leaf_order=+9`
     与 `hips_tile_width∈{2^k}` 值域冲突。一般式 = `leaf_order = order_sel +
     log2(W)`（tile 内 leaf 数 = W²，见 §5），故 `W=512` 时才是 +9。alpha 支持

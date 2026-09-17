@@ -156,6 +156,12 @@ class TestEmptySelection(unittest.TestCase):
             self.assertEqual(ci["checks"], [])
 
     def test_fatduck_empty_profile_pending(self):
+        # W4-A3 / LEDGER-CI 工单 R2：**零成员** profile 的空集不再判 FATDUCK_PENDING
+        # （旧语义 rc=0 = 空集 PASS，是 fail-open）。
+        # 新口径：有登记成员但本机不可执行 ⇒ FATDUCK_PENDING(rc=0)；
+        #          零成员（no_checks_selected）        ⇒ FAIL(rc=1)。
+        # 本用例显式钉**新**语义（ENGINEERING_SPEC §8「能红能绿」：冻结期望随判据更新
+        # 并登记，不得为保绿灯保留 fail-open）；"有成员"那半边见下一个用例。
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             repo = H.make_repo(root / "repo")
@@ -163,7 +169,25 @@ class TestEmptySelection(unittest.TestCase):
             H.write_registry(repo, [H.check(id="CHK-F", profiles=["fast"])])
             H.write_ci_result_schema(repo)
             proc = H.run_runner(["--profile", "fatduck", "--output-root", str(out_root)], repo)
-            self.assertEqual(proc.returncode, 0, f"fatduck 空集应 FATDUCK_PENDING exit 0：{proc.stderr}")
+            self.assertEqual(proc.returncode, 1,
+                             f"fatduck 零成员空集必须 FAIL exit 1：{proc.stderr}")
+            ci = H.load_ci_result(out_root)
+            self.assertEqual(ci["verdict"], "FAIL")
+            self.assertIn("零成员", ci.get("verdict_reason", ""))
+
+    def test_fatduck_profile_with_members_still_pending(self):
+        # 正例半边：fatduck **有**登记成员、但本机不可执行（平台不匹配且 waivable）
+        # ⇒ 保持 FATDUCK_PENDING(rc=0)，不能把"有成员但本机跑不了"也判红。
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo = H.make_repo(root / "repo")
+            out_root = root / "out"
+            H.write_registry(repo, [H.check(id="CHK-FD", profiles=["fatduck"],
+                                           platform="windows", waivable=True)])
+            H.write_ci_result_schema(repo)
+            proc = H.run_runner(["--profile", "fatduck", "--output-root", str(out_root)], repo)
+            self.assertEqual(proc.returncode, 0,
+                             f"fatduck 有成员应 FATDUCK_PENDING exit 0：{proc.stderr}")
             ci = H.load_ci_result(out_root)
             self.assertEqual(ci["verdict"], "FATDUCK_PENDING")
 

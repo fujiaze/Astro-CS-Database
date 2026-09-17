@@ -41,23 +41,57 @@ def read_text(path: pathlib.Path) -> str:
         return ""
 
 
+ALLOWLIST_FIELDS = ("owner", "reason", "expiry", "test")
+
+
+def allowlisted(rel: str) -> bool:
+    """ALLOWLIST 命中判定（登记项必须四要素齐全才算有效豁免）。"""
+    ent = ALLOWLIST.get(rel)
+    if ent is None:
+        return False
+    return all(ent.get(f) for f in ALLOWLIST_FIELDS)
+
+
+def scan_allowlist(repo: pathlib.Path) -> list[str]:
+    """ALLOWLIST 自身完整性：登记项四要素齐全、文件仍存在（无空壳豁免）。"""
+    errors: list[str] = []
+    for rel, ent in sorted(ALLOWLIST.items()):
+        missing = [f for f in ALLOWLIST_FIELDS if not ent.get(f)]
+        if missing:
+            errors.append(f"ALLOWLIST {rel}: 缺字段 {missing}（豁免必须 owner/reason/expiry/test 齐全）")
+        if not (repo / rel).is_file():
+            errors.append(f"ALLOWLIST {rel}: 登记对象已不存在（STALE_ALLOWLIST，须删除或重锚）")
+    return errors
+
+
 def scan(repo: pathlib.Path, cmake_path: pathlib.Path) -> list[str]:
     errors: list[str] = []
     cmake = read_text(cmake_path)
+    errors.extend(scan_allowlist(repo))
     # 先读后用: sampler/upm/p3_session/p3_resample 必须在检查 1 的
     # "std::thread" not in sampler + upm 求值前赋值, 否则当根 CMake 不含
     # P2_ENABLE_OPENMP/P2_PARALLEL/-fopenmp 任一关键词时 UnboundLocalError。
     sampler = read_text(repo / "lib/algorithms/coverage/src/sampler.cpp")
     upm = read_text(repo / "lib/algorithms/coverage/src/upm.cpp")
     p3_session = read_text(repo / "lib/phase3_session/p3_session.cpp")
-    p3_resample = read_text(repo / "lib/phase3_session/p3_resample.cpp")
+    # W4-A9 批次 2: p3_resample.cpp 迁 lib/algorithms/resample/ (ASTROCS_DESIGN §7.1)
+    p3_resample = read_text(repo / "lib/algorithms/resample/p3_resample.cpp")
 
     # 1) Phase2 并行宏/开关: 根 CMake 必须定义 P2_ENABLE_OPENMP / P2_PARALLEL
     #    或等价 production 并行开关 (V6.1: 遗留 omp pragma 模块以 -fopenmp 编译,
     #    sampler/upm 以 std::thread + Runtime lease 并行 — 见 QA-001 CMake 分层)。
-    if ("P2_ENABLE_OPENMP" not in cmake and "P2_PARALLEL" not in cmake and
-            "-fopenmp" not in cmake and "std::thread" not in sampler + upm):
-        errors.append("P2_ENABLE_OPENMP/P2_PARALLEL/-fopenmp absent from root CMake (Phase2 production parallel default off)")
+    # 旧式四条件 AND 在根 CMake 恒含 -fopenmp 时结构式恒假（fail-open）:
+    # 拆成「开关在位」与「模块真有并行轴」两个可判红命题。
+    parallel_switch = [k for k in ("P2_ENABLE_OPENMP", "P2_PARALLEL", "-fopenmp")
+                       if k in cmake]
+    module_axis = ("std::thread" in sampler + upm) or ("#pragma omp parallel" in sampler + upm)
+    if not parallel_switch:
+        errors.append("P2_ENABLE_OPENMP/P2_PARALLEL/-fopenmp absent from root CMake "
+                      "(Phase2 production parallel default off)")
+    elif not module_axis:
+        errors.append("Phase2 production modules (sampler.cpp/upm.cpp) have no parallel "
+                      "axis (no std::thread / #pragma omp parallel) though %s present"
+                      % ",".join(parallel_switch))
 
     # 2) 扫描每个生产库的 serial-heavy 迹象
 
@@ -119,8 +153,13 @@ def scan(repo: pathlib.Path, cmake_path: pathlib.Path) -> list[str]:
     lease_ok_pattern = re.compile(
         r"默认 1\(串行 reference\)|生产由 p2_session 传 lease|budget\.max_workers|"
         r"lease 注入|worker 数=budget\.max_workers")
-    for name, text in (("sampler.cpp", sampler), ("upm.cpp", upm),
-                       ("p3_session.cpp", p3_session)):
+    for rel, name, text in (("lib/algorithms/coverage/src/sampler.cpp", "sampler.cpp", sampler),
+                            ("lib/algorithms/coverage/src/upm.cpp", "upm.cpp", upm),
+                            ("lib/phase3_session/p3_session.cpp", "p3_session.cpp", p3_session)):
+        if allowlisted(rel):
+            # ALLOWLIST 登记为 <5s I/O/metadata 的文件免于 workers=1 判定
+            # （登记项由 scan_allowlist 校验四要素与非空壳）
+            continue
         for m in re.finditer(r"workers\s*=\s*1\b|num_threads\s*\(\s*1\s*\)", text):
             ctx = text[max(0, m.start() - 120):m.end() + 80]
             if lease_ok_pattern.search(ctx):

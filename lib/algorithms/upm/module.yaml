@@ -80,6 +80,13 @@ science_contracts:
 algorithm_contracts:
   - ALG-P2-UPM-IMPL-001
   - ALG-UPM-001
+  # ALG-UPM-002..004 = SCI 页 §12 逐条序号 ID 的实现侧宿主回挂（L28e-E-003）：
+  # 002=p2_upm_calibrate_block 双线性校正、003=p2_upm_raw_weight/
+  # p2_upm_normalized_weights 权重、004=aio_upm 持久化绑定（本模块
+  # p2_upm_save/p2_upm_open 为绑定入口，后端 lib/infrastructure/aio/src/aio_upm.cpp）。
+  - ALG-UPM-002
+  - ALG-UPM-003
+  - ALG-UPM-004
   - ALG-UPM-CONTROL-IVAR-001
 data_contracts:
   - DATA-P2-UPM

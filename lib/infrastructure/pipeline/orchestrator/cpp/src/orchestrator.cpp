@@ -1529,6 +1529,8 @@ static bool read_wcs_from_header(
         char key[16];
         for (int i = 0; i <= order; ++i) {
             for (int j = 0; j <= order - i; ++j) {
+                // SIP §3: i+j<2 的头键不存在 (写侧同样不写); 保持 coeffs 初值 0。
+                if (i + j < 2) continue;
                 int idx = i * 6 + j;
                 if (idx < 36) {
                     std::snprintf(key, sizeof(key), "%s_%d_%d", prefix, i, j);
@@ -2094,6 +2096,9 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
         char key[16];
         for (int i = 0; i <= order; ++i) {
             for (int j = 0; j <= order - i; ++j) {
+                // SIP (Shupe 2005) §3: A_ij/B_ij 只对 i+j>=2 定义; i+j<2 的三项
+                // (0,0)/(1,0)/(0,1) 恒为 0, 不得写入头面 (M1a-B-006)。
+                if (i + j < 2) continue;
                 int idx = i * 6 + j;
                 if (idx < 36) {
                     std::snprintf(key, sizeof(key), "A_%d_%d", i, j);
@@ -2111,6 +2116,8 @@ bool Orchestrator::run_stage_platesolve(TaskResult& result) {
             fn_kv_set_double(frame_, "header", "BP_ORDER", static_cast<double>(ap_order));
             for (int i = 0; i <= ap_order; ++i) {
                 for (int j = 0; j <= ap_order - i; ++j) {
+                    // 同前向: AP/BP 亦只对 i+j>=2 定义 (SIP §3)。
+                    if (i + j < 2) continue;
                     int idx = i * 6 + j;
                     if (idx < 36) {
                         std::snprintf(key, sizeof(key), "AP_%d_%d", i, j);
@@ -2474,9 +2481,12 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
     // 5. 写入 star_measurements 权威块 (FLOAT64 [N,15], schema astrocs-star-measurements-1)
     // 列含义:
     // [0]=star_id (int64 as double), [1]=x, [2]=y,
-    // [3]=flux_inst (PSF integrated flux), [4]=flux_uncertainty (PSF mad proxy),
+    // [3]=flux_inst (PSF integrated flux), [4]=residual_mad
+    //     (PSF 10-90% 截尾平均绝对残差, 单位 ADU/pixel —— **诊断量**, 不是积分
+    //      流量不确定度; DISP-PSF-005/PSF §9a 明文无参数协方差输出。旧名
+    //      flux_uncertainty 把 MAD 冒充不确定度, 缺 √N_eff 与沿 A/sx/sy 传播),
     // [5]=background (PSF B), [6]=psf_status, [7]=fwhm,
-    // [8]=A, [9]=B, [10]=mad, [11]=eccentricity,
+    // [8]=A, [9]=B, [10]=mad (与 [4] 同源, 保留作兼容别名), [11]=eccentricity,
     // [12]=mag (detector), [13]=saturated, [14]=has_saturated
     // 说明: PSF 当前不输出独立 background_rms, SNR 使用 A/B/mad (与冻结 SNR 定义一致);
     // 下游必须通过 star_id 连接, 禁止通过数组行号隐式连接。
@@ -2515,7 +2525,7 @@ bool Orchestrator::run_stage_psf(TaskResult& result) {
                 row[2] = astro_coord_to_unified(cy_arr[static_cast<size_t>(i)]);
             }
             row[3] = prow[2];  // flux
-            row[4] = prow[7];  // mad (uncertainty proxy)
+            row[4] = prow[7];  // residual_mad (诊断量; 非 flux 不确定度, 见列头)
             row[5] = prow[1];  // B (background)
             row[6] = prow[0];  // status
             row[7] = prow[5];  // fwhm
@@ -4235,8 +4245,10 @@ bool Orchestrator::run_stage_read_fits(TaskResult& result) {
             fn_kv_set_double(frame_, "header", "CD1_2", meta.wcs.cd1_2);
             fn_kv_set_double(frame_, "header", "CD2_1", meta.wcs.cd2_1);
             fn_kv_set_double(frame_, "header", "CD2_2", meta.wcs.cd2_2);
-            if (meta.wcs.has_cdelt1) fn_kv_set_double(frame_, "header", "CDELT1", meta.wcs.cdelt1);
-            if (meta.wcs.has_cdelt2) fn_kv_set_double(frame_, "header", "CDELT2", meta.wcs.cdelt2);
+            // M1a-B-006: CD 矩阵与 CDELT 不得同现 (FITS WCS Paper I §1.1/§8.1:
+            // 二者同时出现时行为未定义)。本块恒写 CD1_1..CD2_2 (has_wcs 已要求
+            // 至少一个 CD 元非零), 故 CDELT 的读入 passthrough 在此**剥离**,
+            // 不再写回; 交付头只有一种线性变换表示。
             if (meta.wcs.has_equinox) fn_kv_set_double(frame_, "header", "EQUINOX", meta.wcs.equinox);
             if (meta.wcs.radesys[0] != '\0') fn_kv_set(frame_, "header", "RADESYS", meta.wcs.radesys);
         }
@@ -4327,8 +4339,11 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
         ModuleId::AIO, "aio_frame_kv_set");
 
     // NoiseWeightModelV1 函数指针
+    // MASK-002 (claim SC-009): 入口新增逐星 star_flux/star_fwhm 两个可选数组
+    // (生产 psf 块 row[2]=flux / row[5]=fwhm); cfg 的 ABI 头部由模块 fail-closed 校验。
     using NoiseModelFn = int (*)(const void*, int, int, const float*,
-                                 const double*, const double*, int,
+                                 const double*, const double*, const double*,
+                                 const double*, int,
                                  const SnrNoiseModelConfig*, NoiseWeightModelV1*);
     using NoiseFillFn = int (*)(const NoiseWeightModelV1*, int, int,
                                 float*, float*);
@@ -4473,10 +4488,10 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
                 wcs.sip.a_order = a_order;
                 wcs.sip.b_order = b_order;
 
-                // 读取 A_i_j (跳过 (0,0), i+j<=order)
+                // 读取 A_i_j (SIP §3: 只读 i+j>=2 的已定义项, i+j<2 恒 0)
                 for (int i = 0; i <= a_order; ++i) {
                     for (int j = 0; j <= a_order - i; ++j) {
-                        if (i + j == 0) continue;  // A_0_0 恒为 0
+                        if (i + j < 2) continue;  // A_0_0/A_1_0/A_0_1 未定义
                         char key[16];
                         std::snprintf(key, sizeof(key), "A_%d_%d", i, j);
                         const char* val = fn_kv_get(frame_, "header", key);
@@ -4485,10 +4500,10 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
                         }
                     }
                 }
-                // 读取 B_i_j
+                // 读取 B_i_j (同 A: 只读 i+j>=2)
                 for (int i = 0; i <= b_order; ++i) {
                     for (int j = 0; j <= b_order - i; ++j) {
-                        if (i + j == 0) continue;
+                        if (i + j < 2) continue;
                         char key[16];
                         std::snprintf(key, sizeof(key), "B_%d_%d", i, j);
                         const char* val = fn_kv_get(frame_, "header", key);
@@ -4718,16 +4733,23 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
             if (noise_cfg_ok) {
             const int H = (int)data_blk->dims[0];
             const int Wd = (int)data_blk->dims[1];
-            // 星点掩膜输入: psf cx/cy (0-based)
-            std::vector<double> star_x, star_y;
+            // 星点掩膜输入: psf cx/cy (0-based) + 逐星 flux/fwhm
+            // MASK-002 (claim SC-009 / SCI-NOISE-001 §5a): 掩膜半径 = r_local(F_i,
+            // FWHM_i, k·σ_bg), 三个量同在一块 9 列行里 (字段语义锚 row[2]=flux /
+            // row[5]=fwhm, 见本文件 :4558-4562), 故与坐标同序 push 保证索引对齐。
+            std::vector<double> star_x, star_y, star_flux, star_fwhm;
             star_x.reserve((size_t)n_stars);
             star_y.reserve((size_t)n_stars);
+            star_flux.reserve((size_t)n_stars);
+            star_fwhm.reserve((size_t)n_stars);
             for (int i = 0; i < n_stars; ++i) {
                 const double cx = psf_data[(size_t)i * 9 + 3];
                 const double cy = psf_data[(size_t)i * 9 + 4];
                 if (std::isfinite(cx) && std::isfinite(cy)) {
                     star_x.push_back(cx);
                     star_y.push_back(cy);
+                    star_flux.push_back(psf_data[(size_t)i * 9 + 2]);
+                    star_fwhm.push_back(psf_data[(size_t)i * 9 + 5]);
                 }
             }
             const char* gain_s = fn_kv_get ? fn_kv_get(frame_, "header", "GAIN") : nullptr;
@@ -4773,12 +4795,16 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
                     data_blk->data, H, Wd, nullptr,
                     star_x.empty() ? nullptr : star_x.data(),
                     star_y.empty() ? nullptr : star_y.data(),
+                    star_flux.empty() ? nullptr : star_flux.data(),
+                    star_fwhm.empty() ? nullptr : star_fwhm.data(),
                     (int)star_x.size(), &ncfg, &nm);
             } else {
                 nret = fn_noise_model(
                     data_blk->data, H, Wd, nullptr,
                     star_x.empty() ? nullptr : star_x.data(),
                     star_y.empty() ? nullptr : star_y.data(),
+                    star_flux.empty() ? nullptr : star_flux.data(),
+                    star_fwhm.empty() ? nullptr : star_fwhm.data(),
                     (int)star_x.size(), &ncfg, &nm);
             }
             if (nret != 0 && nret != 1) {
@@ -4847,7 +4873,17 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
                         fn_kv_set(frame_, "photo_stats", "NOISE_SPATIAL_FIELD", kv);
                         std::snprintf(kv, sizeof(kv), "%d", (int)nm.source);
                         fn_kv_set(frame_, "photo_stats", "NOISE_MODEL_SOURCE", kv);
-                        fn_kv_set(frame_, "photo_stats", "NOISE_MODEL_STATUS", "OK");
+                        // MASK-002 (claim SC-009): 掩膜降级标与诊断量显式落盘。
+                        // bit0=MASK_LEGACY(半径信息缺失) / bit1=MASK_DEGRADED(预算收缩/兜底)。
+                        std::snprintf(kv, sizeof(kv), "%u", nm.mask_degraded);
+                        fn_kv_set(frame_, "photo_stats", "NOISE_MASK_DEGRADED", kv);
+                        std::snprintf(kv, sizeof(kv), "%.6f", nm.mask_radius_p50);
+                        fn_kv_set(frame_, "photo_stats", "NOISE_MASK_RADIUS_P50", kv);
+                        std::snprintf(kv, sizeof(kv), "%.6f", nm.mask_frac);
+                        fn_kv_set(frame_, "photo_stats", "NOISE_MASK_FRAC", kv);
+                        fn_kv_set(frame_, "photo_stats", "NOISE_MODEL_STATUS",
+                                  (nret == 1) ? "DEGENERATE_GLOBAL"
+                                              : (nm.mask_degraded != 0 ? "DEGRADED_MASK" : "OK"));
                         fn_kv_set(frame_, "photo_stats", "NOISE_LEGACY_SNR", "DIAGNOSTIC_ONLY");
                     }
                     LOG_INFO("orchestrator", "[SNR] NoiseWeightModelV1: "
@@ -4855,6 +4891,9 @@ bool Orchestrator::run_stage_snr(TaskResult& result) {
                              + " sigma_global=" + std::to_string(nm.sigma_bg_global)
                              + " patches=" + std::to_string(nm.n_qualified_patches)
                              + " spatial_field=" + std::to_string((int)nm.has_spatial_field)
+                             + " mask_degraded=" + std::to_string(nm.mask_degraded)
+                             + " mask_r50=" + std::to_string(nm.mask_radius_p50)
+                             + " mask_frac=" + std::to_string(nm.mask_frac)
                              + " variance/ivar 块已写入");
                 } else {
                     LOG_WARN("orchestrator", "[SNR] NoiseWeightModelV1 fill 失败, variance 块不写");

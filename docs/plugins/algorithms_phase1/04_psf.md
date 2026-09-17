@@ -29,7 +29,7 @@
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `psf_model` | `gauss` | —— | 模型家族（gauss/moffat/empirical） |
+| `psf_model` | `moffat4` | —— | PSF 母函数（当前唯一实现：椭圆 Moffat4 7 参数；检测侧椭圆高斯不属本模块，见 `docs/science/STAR_DETECTION.md:31-34`、DISP-STAR-007） |
 | `psf_spatial_order` | 0 | —— | 空间变化阶数（0=帧级） |
 | `psf_uniformity_gate` | —— | —— | 均匀性门阈值 |
 | `fit_residual_gate` | —— | —— | 拟合残差门 |

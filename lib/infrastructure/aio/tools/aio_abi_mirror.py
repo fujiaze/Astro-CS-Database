@@ -30,6 +30,7 @@ AIO_HIPS_TILE_VIEW_ABI_VERSION = 1
 AIO_HIPS_SNR_POINT_ABI_VERSION = 1
 AIO_HIPS_DIAG_TILE_VIEW_ABI_VERSION = 1
 AIO_HIPS_TILE_ABI_VERSION = 1
+AIO_HIPS_VERIFY_REPORT_ABI_VERSION = 1
 # aio_hips.h: #define AIO_HIPS_ABI_MISMATCH (-9)
 AIO_HIPS_ABI_MISMATCH = -9
 # aio_hips.h: #define ACS_HIPS_MAX_FRAME_SCALE_ARCSEC 824.5167388361774
@@ -100,12 +101,40 @@ class AioHipsTile(ctypes.Structure):
     ]
 
 
+class AioHipsVerifyReport(ctypes.Structure):
+    """aio_hips.h::AioHipsVerifyReport (输出结构: 调用方分配/库写入) 的逐字段镜像。"""
+
+    _fields_ = [
+        ("struct_size", ctypes.c_uint32),
+        ("abi_version", ctypes.c_uint32),
+        ("signal_present", ctypes.c_int),
+        ("n_signal_tiles", ctypes.c_int),
+        ("variance_present", ctypes.c_int),
+        ("ivar_present", ctypes.c_int),
+        ("n_variance_tiles", ctypes.c_int),
+        ("n_ivar_tiles", ctypes.c_int),
+        ("nrej_present", ctypes.c_int),
+        ("nused_present", ctypes.c_int),
+        ("nrej_declared", ctypes.c_int),
+        ("nused_declared", ctypes.c_int),
+        ("n_nrej_tiles", ctypes.c_int),
+        ("n_nused_tiles", ctypes.c_int),
+        ("prov_keys_present", ctypes.c_int),
+        ("uncertainty_available", ctypes.c_int),
+        ("manifest_keys_present", ctypes.c_int),
+        ("diag_negative_pixels", ctypes.c_int),
+        ("unreadable_tiles", ctypes.c_int),
+        ("value_mismatch", ctypes.c_int),
+    ]
+
+
 # 机器锁覆盖的结构体集合 (名称 -> ctypes 类型); 名称与 C 头 typedef 名逐字一致。
 MIRRORED_STRUCTS = {
     "AstroSphereTileView": AstroSphereTileView,
     "AioHipsSnrPoint": AioHipsSnrPoint,
     "AioHipsDiagTileView": AioHipsDiagTileView,
     "AioHipsTile": AioHipsTile,
+    "AioHipsVerifyReport": AioHipsVerifyReport,
 }
 
 # 尺寸常量 (供调用方分配/自检; 由机器锁与 C 侧 sizeof 对齐)
@@ -113,6 +142,7 @@ AIO_HIPS_TILE_VIEW_STRUCT_SIZE = ctypes.sizeof(AstroSphereTileView)
 AIO_HIPS_SNR_POINT_STRUCT_SIZE = ctypes.sizeof(AioHipsSnrPoint)
 AIO_HIPS_DIAG_TILE_VIEW_STRUCT_SIZE = ctypes.sizeof(AioHipsDiagTileView)
 AIO_HIPS_TILE_STRUCT_SIZE = ctypes.sizeof(AioHipsTile)
+AIO_HIPS_VERIFY_REPORT_STRUCT_SIZE = ctypes.sizeof(AioHipsVerifyReport)
 
 
 def c_layout(struct_cls):

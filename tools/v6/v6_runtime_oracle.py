@@ -118,34 +118,66 @@ def rule_r1_mode_routing(ctx: Ctx):
               "route_legacy_weight_mode_int 缺 legacy 0 的 FZ-FIELD-WEIGHTMODE 拒绝分支")
 
 
+# W4-A3：阶段 ↔ 用户命令名的映射唯一事实源 = ASTROCS_DESIGN §2:317
+# （「phase1|2|3 仅为内部指代（设计层面），代码与命令名使用 normalize/mosaic/export」）。
+STAGE_COMMANDS = (("phase1", "normalize"), ("phase2", "mosaic"), ("phase3", "export"))
+
+
+def _command_tree_flags(ctx: Ctx) -> dict:
+    """从 command_tree.h 解析 {命令名: 旗标集合}；解析为空即判红（fail-closed）。"""
+    tree = ctx.read("lib/infrastructure/cli/command_tree.h")
+    if tree is None:
+        return {}
+    out = {}
+    for name, flags in re.findall(
+            r'\{\s*"([A-Za-z0-9_-]+)"\s*,\s*(?:true|false)\s*,\s*\{([^}]*)\}', tree):
+        # 注意取**组内**内容：命令树里的旗标写作 "--mode"，带引号；
+        # 若把引号留在集合里，"--mode" in flags 会恒为 False（假红）。
+        out[name] = set(re.findall(r'"([^"]+)"', flags))
+    return out
+
+
 def rule_r2_cli_flags(ctx: Ctx):
-    """--mode 仅 phase2，--export-mode 仅 phase3；phase1 不得有。"""
-    parser = ctx.read("lib/infrastructure/cli/parser.cpp")
-    if parser is None:
+    """--mode 仅 phase2(mosaic)，--export-mode 仅 phase3(export)；phase1(normalize) 不得有。
+
+    **W4-A3 判据改绑（A 类/B 类：判据读取面过时 ⇒ 空转）**。原实现从
+    `parser.cpp` 抓 `"phase[123] ..."` 字面量表；CLI-001 已删除这些用户命令
+    （parser.cpp:31-33），正则命中 0 条 ⇒ 4 条 R2-* 检查**全部被静默跳过**，
+    规则只剩 R2-value-flags 在跑（"空转绿"，正是 ENGINEERING_SPEC §8 要防的失效型）。
+    现改绑到命令树唯一事实源 `command_tree.h` + 设计映射（STAGE_COMMANDS），
+    并加 `R2-command-tree-parsed`：解析不到命令即判红，杜绝再次空转。
+    """
+    tree = ctx.read("lib/infrastructure/cli/command_tree.h")
+    if tree is None:
         return
-    rules = re.findall(r'\{\s*"(phase[123] [a-z]+)"\s*,\s*\{([^}]*)\}', parser)
-    seen = {}
-    for path, flags in rules:
-        seen[path] = flags
-    for path, flags in seen.items():
-        if path.startswith("phase2 "):
-            if path != "phase2 inspect":
-                ctx.check("R2-phase2-mode-flag", "--mode" in flags,
-                          path + " 未登记 --mode 显式模式旗标")
+    seen = _command_tree_flags(ctx)
+    ctx.check("R2-command-tree-parsed", len(seen) >= 4,
+              "command_tree.h 仅解析到 %d 条命令（判据面被移空）" % len(seen))
+    parser = ctx.read("lib/infrastructure/cli/parser.cpp")
+    for stage, cmd in STAGE_COMMANDS:
+        flags = seen.get(cmd)
+        ctx.check("R2-stage-command-present-" + stage, flags is not None,
+                  "命令树缺 %s 阶段命令 %s（ASTROCS_DESIGN §2:317/:439）" % (stage, cmd))
+        if flags is None:
+            continue
+        if stage == "phase2":
+            ctx.check("R2-phase2-mode-flag", "--mode" in flags,
+                      cmd + " 未登记 --mode 显式模式旗标")
             ctx.check("R2-phase2-no-export", "--export-mode" not in flags,
-                      path + " 误登记 phase3 的 --export-mode")
-        if path.startswith("phase3 "):
-            if path != "phase3 inspect":
-                ctx.check("R2-phase3-export-flag", "--export-mode" in flags,
-                          path + " 未登记 --export-mode 显式模式旗标")
-            ctx.check("R2-phase3-no-weight-mode", "--mode" not in re.split(r"[,\s]+", flags),
-                      path + " 误登记 phase2 的 --mode")
-        if path.startswith("phase1 "):
-            ctx.check("R2-phase1-no-mode", "--mode" not in flags and "--export-mode" not in flags,
-                      path + " 不得登记 V6 模式旗标（Phase1 无权重/输出模式）")
-    ctx.check("R2-value-flags",
-              '"--mode"' in parser and '"--export-mode"' in parser,
-              "parser kValueFlags 未登记 --mode/--export-mode")
+                      cmd + " 误登记 phase3 的 --export-mode")
+        if stage == "phase3":
+            ctx.check("R2-phase3-export-flag", "--export-mode" in flags,
+                      cmd + " 未登记 --export-mode 显式模式旗标")
+            ctx.check("R2-phase3-no-weight-mode", "--mode" not in flags,
+                      cmd + " 误登记 phase2 的 --mode")
+        if stage == "phase1":
+            ctx.check("R2-phase1-no-mode",
+                      "--mode" not in flags and "--export-mode" not in flags,
+                      cmd + " 不得登记 V6 模式旗标（Phase1 无权重/输出模式）")
+    if parser is not None:
+        ctx.check("R2-value-flags",
+                  '"--mode"' in parser and '"--export-mode"' in parser,
+                  "parser kValueFlags 未登记 --mode/--export-mode")
     # 模式门必须在 phase2/phase3 各命令面被调用
     cmds = ctx.read("lib/infrastructure/cli/commands.cpp")
     gate = ctx.read("lib/infrastructure/cli/v6_mode_gate.h")
@@ -161,18 +193,45 @@ def rule_r2_cli_flags(ctx: Ctx):
 
 
 def rule_r3_phase_isolation(ctx: Ctx):
-    """CLI 命令面不得有聚合 run/graph/pipeline 入口。"""
-    parser = ctx.read("lib/infrastructure/cli/parser.cpp")
-    if parser is None:
+    """CLI 命令面不得有聚合 run/graph/pipeline 入口；阶段命令名按设计权威。
+
+    **W4-A3 判据改绑（B 类：判据过时）**。原实现从 `lib/infrastructure/cli/parser.cpp`
+    的字面量表 `kRules` 抓路径，并断言 `phase1 run`/`phase2 run`/`phase3 run`
+    三条**逐 phase 用户命令必须存在**。两者都已过时：
+
+      ① 命令树的唯一事实源已迁到 `lib/infrastructure/cli/command_tree.h`
+         （parser.cpp:70-81 现为 `kRuleViews()` 对 command_tree 的派生视图，
+         不再含字面量路径表 ⇒ 原正则命中 0 条，规则整体空转后 3 条 check 恒红）；
+      ② `ASTROCS_DESIGN.md:317` 明定「`phase1|2|3` 仅为内部指代（设计层面），
+         代码与命令名使用 `normalize/mosaic/export`」；`:439` 明定子命令面为
+         `normalize/mosaic/export/help/benchmark/doctor`。CLI-001 已按此删除
+         `phase1|2|3 *` 用户命令（parser.cpp:31-33 注明这些一律 unknown command → 2）。
+
+    改绑后**意图不变、口径更严**：仍旧禁聚合入口、仍旧禁一条命令跨多阶段；
+    但阶段命令名以设计权威的 `normalize/mosaic/export` 为准，并**反向**断言
+    `phase1|2|3` 不得再作为用户命令出现（防复活）。
+    """
+    tree = ctx.read("lib/infrastructure/cli/command_tree.h")
+    if tree is None:
         return
-    paths = re.findall(r'\{\s*"([a-z0-9 -]+)"\s*,\s*\{', parser)
+    paths = re.findall(r'\{\s*"([A-Za-z0-9_ -]+)"\s*,\s*(?:true|false)\s*,\s*\{', tree)
+    ctx.evidence["cli_command_paths"] = sorted(paths)
+    ctx.check("R3-command-tree-nonempty", len(paths) >= 6,
+              "command_tree.h 解析到 %d 条命令路径（命令树被移空？）" % len(paths))
     for p in paths:
         head = p.split()[0]
         ctx.check("R3-no-aggregate-entry", head not in ("run", "graph", "pipeline", "all"),
-                  "CLI kRules 出现聚合式入口: " + p)
-    # 命令面必须是逐 phase 的 phase1/2/3 run
-    for ph in ("phase1 run", "phase2 run", "phase3 run"):
-        ctx.check("R3-per-phase-run", ph in paths, "缺逐 phase 命令 " + ph)
+                  "CLI 命令树出现聚合式入口: " + p)
+    # 设计权威（ASTROCS_DESIGN §2 :439）的三条阶段命令必须存在
+    for cmd in ("normalize", "mosaic", "export"):
+        ctx.check("R3-stage-command-present", cmd in paths,
+                  "缺设计权威阶段命令 " + cmd)
+    # 反向：phase1|2|3 只允许作为内部指代，不得成为用户命令（ASTROCS_DESIGN :317）
+    for p in paths:
+        toks = p.split()
+        ctx.check("R3-no-per-phase-user-command",
+                  not any(t in ("phase1", "phase2", "phase3") for t in toks),
+                  "phase1|2|3 不得作为用户命令（设计仅作内部指代）: " + p)
     # 不存在把多 phase 串接为单命令的规则
     for p in paths:
         toks = p.split()
@@ -291,8 +350,26 @@ def rule_r7_ci_registration(ctx: Ctx):
     except Exception as e:
         ctx.fail("R7-json", "ci/checks.json 不可解析: %s" % e)
         return
-    by_id = {c.get("id"): c for c in doc.get("checks", []) if isinstance(c, dict)}
+    # **W4-A3 判据改绑（A 类：判据索引面与注册表两层结构不匹配）**。
+    # ci/checks.json 是**两层注册表**：顶层聚合项 checks[].id + 执行单元 steps[].id
+    # （step 未声明的字段按 INHERIT_FIELDS 继承父项）。V6 的 8 个 ID 全部以
+    # **执行单元**形态登记，而原实现只索引顶层 ⇒ 8 条 R7-check-present 恒红，
+    # 与 ci/tests/test_impact_map.py 的 4 条既有红同根（step id 与顶层 id 混用）。
+    # 改绑：两层联合索引；step 命中的按 step 自身字段判 timeout/outputs，
+    # 字段缺失时回退父项（与 ci/run_checks.py 的继承口径一致）。
+    by_id = {}
+    for c in doc.get("checks", []):
+        if not isinstance(c, dict):
+            continue
+        by_id.setdefault(c.get("id"), c)
+        for s in (c.get("steps") or []):
+            if isinstance(s, dict) and s.get("id"):
+                merged = dict(c)
+                merged.update({k: v for k, v in s.items() if v is not None})
+                by_id.setdefault(s["id"], merged)
     ctx.evidence["ci_check_ids"] = sorted(by_id)
+    ctx.check("R7-registry-two-layer", True,
+              "两层注册表联合索引：%d 个 ID（顶层 + 执行单元）" % len(by_id))
     for cid in V6_CHECK_IDS:
         c = by_id.get(cid)
         ctx.check("R7-check-present", c is not None, "ci/checks.json 缺检查项 " + cid)

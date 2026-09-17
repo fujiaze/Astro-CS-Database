@@ -10,7 +10,7 @@
 #endif
 
 // ============================================================================
-// C ABI 版本化 (claim SC-007 / MASK-002；先例 = SCI-FIX-AIO SC-006 的
+// C ABI 版本化 (claim SC-009 / MASK-002；先例 = SCI-FIX-AIO SC-006 的
 // struct_size/abi_version 原位版本化纪律)
 // ----------------------------------------------------------------------------
 // 所有跨边界结构首部两个 uint32_t: struct_size @0 (= 调用方编译期 sizeof) +
@@ -140,7 +140,7 @@ typedef struct {
     uint32_t use_gain_model;        // 1=gain+readnoise 已知时优先模型; 默认 0 (经验优先)
     uint32_t enable_spatial_field;  // 1=最小二乘平面空间方差场 (默认 1)
     double   variance_floor;        // ivar 分母下限 (默认 1e-12)
-    // --- MASK-002 (claim SC-007): 逐星掩膜半径参数, 权威 = SCI-NOISE-001 §5a ---
+    // --- MASK-002 (claim SC-009): 逐星掩膜半径参数, 权威 = SCI-NOISE-001 §5a ---
     //   r_i = clip(r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax)
     //   r_max = max(1,source_mask_radius_px)·max(1,mask_radius_scale) 为**硬上界**
     double   mask_k_sigma;            // 掩膜边缘残余面亮度系数 k (默认 0.1σ_bg)
@@ -171,7 +171,7 @@ typedef struct {
     uint8_t  has_spatial_field;  // 1=合格 patch>=4 且控制点几何张成二维 (见 plane_geometry_ratio)
     uint8_t  degenerate;         // 1=无合格 patch, 全局兜底也退化 (ivar=0)
     uint8_t  reserved;
-    // --- MASK-002 (claim SC-007) 掩膜诊断标, 消费方可 fail-closed ---
+    // --- MASK-002 (claim SC-009) 掩膜诊断标, 消费方可 fail-closed ---
     uint32_t mask_degraded;      // 位标: bit0=1 MASK_LEGACY (无 flux/FWHM, 退回统一 rmax 或 4·FWHM);
                                  //       bit1=1 MASK_DEGRADED (天空预算收缩生效后 n_qualified<预算 或 全局兜底)
     double   mask_radius_p50;    // 逐星半径中位数 (px); 统一半径/手工掩膜通道 = 0
@@ -206,7 +206,7 @@ SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
                                    NoiseWeightModelV1* out_model);
 
 // ---------------------------------------------------------------------------
-// ABI 头部助手 (claim SC-007): 调用方自建结构体时必须先 stamp 再传入;
+// ABI 头部助手 (claim SC-009): 调用方自建结构体时必须先 stamp 再传入;
 // 校验函数返回 0=匹配, SNR_ABI_MISMATCH(-9)=失配。
 // ---------------------------------------------------------------------------
 SNR_API void snr_noise_model_v1_abi_stamp_config(SnrNoiseModelConfig* cfg);

@@ -122,9 +122,11 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   // lib/infrastructure/pipeline/module_ports.registry.json 的 phase1 冻结端口链逐节点一致
   // （GAP-10: 新增门 tests/cli/test_phase1_inprocess.py::test_ir_matches_frozen_chain
   // 断言该一致性, 防再次静默漂移到 2 节点）。
-  // 平台说明(B1-A1 风险): Linux 上 ipv 求解为源内 stub, 故 wcs 节点走"显式 WCS
-  // 配置"路径(见 p1_op_wcs 的 explicit_config 分支), drizzle 从 wcs 节点产物
-  // p1_wcs.json 透传 header KV —— 不伪造求解, manifest 记 wcs_source=explicit_config。
+  // wcs 节点走真实 ipv 求解链（lib/algorithms/platesolve/cpp/ipv 内非 Windows 与
+  // Windows 绑定同一组生产 C API，源内已无平台 stub）。explicit_config 只是
+  // 可选旁路: 仅当 wcs 配置显式给出八参数 crpix1/crpix2/crval1/crval2/cd11..cd22
+  // 时才走透传分支（manifest 记 wcs_source=explicit_config），否则一律真实求解
+  // 并记 wcs_source=ipv；两条路径都不伪造解。
   auto phase1_nodes = [&]() -> std::vector<nlohmann::json> {
     nlohmann::json pc = phase_config(doc, 1, out_dir, err);
     if (err && !err->empty()) return {};

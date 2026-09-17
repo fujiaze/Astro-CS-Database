@@ -29,10 +29,20 @@
        写完整 expected" 的形态 —— 出现非数字后缀即 FAIL (会导致 CMake 配置错误)。
   [4] CLI 版本定义点 (实际形态: 无手抄常量, 全部由生成链注入):
       a) 根 CMakeLists.txt 必须 file(READ .../VERSION ASTROCS_BASE_VERSION);
-      b) cli/CMakeLists.txt 必须 file(READ .../../VERSION BASE_VERSION);
+      b) 根 CMakeLists.txt 必须 configure_file 生成 version_generated.h;
       c) lib/infrastructure/cli/version_generated.h.in 必须含注入点 @ASTROCS_VERSION_STRING@;
-      d) 根与 cli 的 CMakeLists.txt 必须 configure_file 生成 version_generated.h;
-      e) cli/**(.h/.hpp/.cpp/.cc/.in/.cmake/.txt) 与根 CMakeLists.txt 中出现的
+      d) **[W4-A3 退役] 原「cli/CMakeLists.txt 必须 file(READ ../VERSION)」与
+         「cli/CMakeLists.txt 必须 configure_file」两条 chain 判据 + 两条
+         CLI_CMAKE_* REF_ANCHORS 已删除**。该文件是 ROOT-008 迁移后遗留的旧 build
+         文件(仍引用 main.cpp / lib/phase1/** / lib/backend_host/** 等已不存在路径),
+         且其 configure_file 的输入 cli/version_generated.h.in **既不在 git 也不在
+         盘上**(git ls-files 命中 0)。判据引用的目标已消失却仍判 PASS ⇒ 判据空转,
+         正是 ENGINEERING_SPEC §8「锚存活」失效型实例。退役后"VERSION 不得删除"的
+         硬依据改锚到根 CMakeLists.txt 的两条**真实**判据:
+         chain_root_read_version + chain_configure_file_root
+         (常量锚 ROOT_CMAKE_REL + CLI_TEMPLATE_REL)，见 ci/root_manifest.json。
+      e) lib/infrastructure/cli/**(.h/.hpp/.cpp/.cc/.in/.cmake/.txt) 与根
+         CMakeLists.txt 中出现的
          任何 X.Y.Z-alpha.N 字面量必须 == expected (漂移即 FAIL; 若出现与
          expected 相等的字面量, 值上 PASS, 但 detail 标注"手抄字面量, 建议迁移
          生成链")。
@@ -79,9 +89,15 @@ ROOT_CMAKE_REL = "CMakeLists.txt"
 # ROOT-008（2026-09-16）目录迁移：cli/** → lib/infrastructure/cli/**（CMake 源树 + 版本模板）。
 # CLI_DIR_REL 的扫描面必须随迁，否则 [7] 字面量扫描静默漏扫迁移后的 CLI 源码。
 CLI_DIR_REL = "lib/infrastructure/cli"
-# cli/CMakeLists.txt 保留原位（不在构建图内）：GOV-001 判定 VERSION 不得删除的硬依据 +
-# 3 条 chain_* 判据的输入；最终处置权待 INT-001（CI-003 记「保留，处置待 INT-001」）。
-CLI_CMAKE_REL = "cli/CMakeLists.txt"
+# [W4-A3 退役] 原 CLI_CMAKE_REL = "cli/CMakeLists.txt" 已删除。
+# 退役理由（ENGINEERING_SPEC §8「锚存活」实例）: 该常量支撑的 3 条判据
+# (anchor_alive_CLI_CMAKE_REL / chain_cli_read_version / chain_configure_file_cli)
+# 与 2 条 REF_ANCHORS(CLI_TEMPLATE_REF_CLI / CLI_BASE_VERSION_READ) 判的是**死对象**:
+# 文件内 configure_file 的输入 cli/version_generated.h.in 已从版本库消失
+# (`git ls-files cli/version_generated.h.in` = 0 命中，盘上亦不存在)，
+# 而链式判据只匹配文件内**字符串**、从不校验被引用目标是否存活 ⇒ 恒判 PASS。
+# 「VERSION 不得删除」的硬依据改锚到根 CMakeLists.txt 的真实判据
+# (chain_root_read_version :51 + chain_configure_file_root :62)，见 ci/root_manifest.json。
 CLI_TEMPLATE_REL = "lib/infrastructure/cli/version_generated.h.in"
 
 # [5]/[6] 现行活动文档集 (逐条绑定, 与 GOV-003 硬判面一致; 迁移时同步更新本表)。
@@ -106,7 +122,6 @@ ANCHORS = (
     [("VERSION_REL", VERSION_REL),
      ("ROOT_CMAKE_REL", ROOT_CMAKE_REL),
      ("CLI_DIR_REL", CLI_DIR_REL),
-     ("CLI_CMAKE_REL", CLI_CMAKE_REL),
      ("CLI_TEMPLATE_REL", CLI_TEMPLATE_REL)]
     + [("DOC_SET_FILES[%d]" % i, rel) for i, rel in enumerate(DOC_SET_FILES)]
     + [("DOC_SET_DIRS[%d]" % i, d) for i, d in enumerate(DOC_SET_DIRS)]
@@ -120,10 +135,9 @@ CSD = "$" + "{CMAKE_CURRENT_SOURCE_DIR}"
 REF_ANCHORS = [
     ("CLI_TEMPLATE_REF_ROOT", CLI_TEMPLATE_REL, ROOT_CMAKE_REL,
      re.compile(r"configure_file\(lib/infrastructure/cli/version_generated\.h\.in")),
-    ("CLI_TEMPLATE_REF_CLI", "version_generated.h.in", CLI_CMAKE_REL,
-     re.compile(r"configure_file\(version_generated\.h\.in")),
-    ("CLI_BASE_VERSION_READ", "../VERSION", CLI_CMAKE_REL,
-     re.compile(r"file\(READ\s+" + re.escape(CSD) + r"/\.\./VERSION\s+BASE_VERSION")),
+    # [W4-A3 退役] CLI_TEMPLATE_REF_CLI / CLI_BASE_VERSION_READ 已删除：
+    # 二者判的是 cli/CMakeLists.txt 内的字符串，而被引用目标
+    # (cli/version_generated.h.in) 已不在版本库 ⇒ 判据空转（§8 锚存活失效型）。
 ]
 
 GIT_TIMEOUT_S = 30
@@ -385,12 +399,10 @@ def main() -> int:
         r"file\(READ\s+\$\{CMAKE_CURRENT_SOURCE_DIR\}/VERSION\s+ASTROCS_BASE_VERSION"))
     add(checks, "chain_root_read_version", i is not None, ROOT_CMAKE_REL, i,
         ln or "缺失", "根 CMakeLists.txt 必须 file(READ 根 VERSION) (禁止手抄)")
-    cli_cml_path = os.path.join(root, CLI_CMAKE_REL)
-    cli_cml = read_text(cli_cml_path) if os.path.isfile(cli_cml_path) else ""
-    i, ln = first_line(cli_cml, re.compile(
-        r"file\(READ\s+\$\{CMAKE_CURRENT_SOURCE_DIR\}/\.\./VERSION\s+BASE_VERSION"))
-    add(checks, "chain_cli_read_version", i is not None, CLI_CMAKE_REL, i,
-        ln or "缺失", "cli/CMakeLists.txt 必须 file(READ 根 ../VERSION) (禁止手抄)")
+    # [W4-A3 退役] chain_cli_read_version / chain_configure_file_cli 已删除：
+    # 判据输入 cli/CMakeLists.txt 的 configure_file 目标 cli/version_generated.h.in
+    # 已不在版本库，判据只匹配字符串 ⇒ 恒 PASS（§8 锚存活失效型，实测见
+    # run/PROJECT-GOVERNANCE-01/W4-A3/logs/CLI003_before_false_green.log）。
     tpl_path = os.path.join(root, CLI_TEMPLATE_REL)
     if os.path.isfile(tpl_path):
         tpl = read_text(tpl_path)
@@ -406,11 +418,6 @@ def main() -> int:
         r"configure_file\(lib/infrastructure/cli/version_generated\.h\.in"))
     add(checks, "chain_configure_file_root", i is not None, ROOT_CMAKE_REL, i,
         ln or "缺失", "根 CMakeLists.txt 必须 configure_file 生成 version_generated.h")
-    i, ln = first_line(cli_cml, re.compile(
-        r"configure_file\(version_generated\.h\.in"))
-    add(checks, "chain_configure_file_cli", i is not None,
-        CLI_CMAKE_REL, i, ln or "缺失",
-        "cli/CMakeLists.txt (兼容 target) 必须 configure_file 生成 version_generated.h")
 
     # [4e] cli/** 与根 CMakeLists.txt 的 alpha 字面量扫描
     lit_rows = []
@@ -499,10 +506,8 @@ project(astrocs VERSION %(base)s LANGUAGES C CXX)
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION ASTROCS_BASE_VERSION)
 configure_file(lib/infrastructure/cli/version_generated.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version_generated.h @ONLY)
 """
-CLI_CMAKE_TMPL = """cmake_minimum_required(VERSION 3.16)
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION BASE_VERSION)
-configure_file(version_generated.h.in version_generated.h @ONLY)
-"""
+# [W4-A3 退役] 原 CLI_CMAKE_TMPL（cli/CMakeLists.txt 最小夹具）已随两条 chain 判据
+# 一并删除：夹具为死判据提供输入，留着就是“给不存在的目标造在场证明”。
 TEMPLATE_TMPL = """#pragma once
 #define ASTROCS_VERSION_STRING "@ASTROCS_VERSION_STRING@"
 """
@@ -515,7 +520,6 @@ def _mini_repo(root: str, *, expected: str, omit=(), extra_files=None,
     files = {
         VERSION_REL: expected + "\n",
         ROOT_CMAKE_REL: ROOT_CMAKE_TMPL % {"base": base},
-        CLI_CMAKE_REL: CLI_CMAKE_TMPL,
         CLI_TEMPLATE_REL: TEMPLATE_TMPL,
         "README.md": readme_body if readme_body is not None
         else DOC_TMPL % "README",
@@ -598,6 +602,9 @@ def self_test() -> int:
         cases.append(("neg_doc_version_drift", code, err, 1,
                       "doc_scan_active_docs|0.10.0-alpha.9"))
 
+    # [W4-A3] 换行拆写 ${，避免工具链源码出现未转义插值序列
+    D = "$"
+
     with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
         root = os.path.join(td, "neg-anchor-stale")
         os.makedirs(root)
@@ -605,6 +612,21 @@ def self_test() -> int:
         code, err = _run_mini(root, expected)
         cases.append(("neg_anchor_stale", code, err, 2,
                       "ANCHOR_STALE: CLI_TEMPLATE_REL " + CLI_TEMPLATE_REL))
+
+    # [W4-A3] 改锚后的「VERSION 不得删除」硬依据必须可判红：根 CMakeLists.txt 缺
+    # file(READ …/VERSION ASTROCS_BASE_VERSION) ⇒ rc=1 且点名 chain_root_read_version。
+    # 若这条也空转，退役 cli 判据后会出现"无人守 VERSION"的盲区。
+    with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
+        root = os.path.join(td, "neg-root-version-read")
+        os.makedirs(root)
+        _mini_repo(root, expected=expected, extra_files={
+            ROOT_CMAKE_REL: ("cmake_minimum_required(VERSION 3.24)\n"
+                             "project(astrocs VERSION 0.11.0 LANGUAGES C CXX)\n"
+                             "configure_file(lib/infrastructure/cli/version_generated.h.in "
+                             + D + "{CMAKE_CURRENT_SOURCE_DIR}/version_generated.h @ONLY)\n")})
+        code, err = _run_mini(root, expected)
+        cases.append(("neg_root_version_read_missing", code, err, 1,
+                      "chain_root_read_version"))
 
     ok = True
     for name, code, err, want_rc, want_text in cases:

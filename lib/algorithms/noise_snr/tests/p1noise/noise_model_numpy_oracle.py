@@ -98,18 +98,43 @@ int main(int argc, char** argv) {
     std::fclose(f);
     SnrNoiseModelConfig cfg;
     snr_noise_model_v1_default_config(&cfg);
-    std::printf("DEFCFG %d %d %.17g %.17g %.17g %.17g %d %d %d %.17g",
+    std::printf("DEFCFG %d %d %.17g %.17g %.17g %.17g %d %d %d %.17g"
+                " %u %u %.17g %.17g %.17g %u %u",
                 cfg.patch_grid_x, cfg.patch_grid_y, cfg.source_mask_radius_px,
                 cfg.mask_radius_scale, cfg.gain_e_per_adu, cfg.read_noise_e,
                 cfg.min_patch_samples, cfg.max_clip_rounds,
-                (int)cfg.enable_spatial_field, cfg.variance_floor); nl();
+                (int)cfg.enable_spatial_field, cfg.variance_floor,
+                (unsigned)cfg.struct_size, (unsigned)cfg.abi_version,
+                cfg.mask_k_sigma, cfg.mask_r_min_px, cfg.mask_fwhm_floor_scale,
+                (unsigned)cfg.mask_budget_min_patches, (unsigned)cfg.mask_budget_min_sky);
+    nl();
     cfg.patch_grid_x = gx; cfg.patch_grid_y = gy;
     cfg.min_patch_samples = minsamp; cfg.cosmic_clip_sigma = clip;
     cfg.max_clip_rounds = rounds; cfg.variance_floor = floor_v;
     cfg.saturation_level = 0.0; cfg.enable_spatial_field = 1;
+    // 可选第 11 参数: stars.bin (x,y,flux,fwhm 交错 double) —— MASK-002 源污染 oracle
+    std::vector<double> sx, sy, sf, sw;
+    if (argc > 10) {
+        std::FILE* fs = std::fopen(argv[10], "rb");
+        if (!fs) { std::fprintf(stderr, "cannot open stars file"); return 2; }
+        std::vector<double> raw;
+        double buf[4];
+        while (std::fread(buf, sizeof(double), 4, fs) == 4) {
+            sx.push_back(buf[0]); sy.push_back(buf[1]);
+            sf.push_back(buf[2]); sw.push_back(buf[3]);
+        }
+        std::fclose(fs);
+    }
     NoiseWeightModelV1 m;
-    const int rc = snr_noise_model_v1_f64(data.data(), h, w, nullptr, nullptr, nullptr, 0, &cfg, &m);
+    const int rc = snr_noise_model_v1_f64(data.data(), h, w, nullptr,
+                                          sx.empty() ? nullptr : sx.data(),
+                                          sy.empty() ? nullptr : sy.data(),
+                                          sf.empty() ? nullptr : sf.data(),
+                                          sw.empty() ? nullptr : sw.data(),
+                                          (int)sx.size(), &cfg, &m);
     std::printf("RC %d", rc); nl();
+    std::printf("MASK %u %.17g %.17g %u %u", m.mask_degraded, m.mask_radius_p50,
+                m.mask_frac, (unsigned)m.struct_size, (unsigned)m.abi_version); nl();
     std::printf("NQ %u %u %u %u", m.n_qualified_patches, m.n_rejected_patches,
                 (unsigned)m.has_spatial_field, (unsigned)m.degenerate); nl();
     std::printf("VG %.17g %.17g %.17g", m.variance_bg_global, m.ivar_bg_global, m.sigma_bg_global); nl();
@@ -173,6 +198,36 @@ def check(cond, what):
         print("FAIL %s" % what)
 
 
+# ---------------------------------------------------------------------------
+# MASK-002 (claim SC-009) 源污染 oracle 的**独立**半径实现 (不抄生产字面量):
+#   SCI-NOISE-001 §5a: Moffat β 的 r_local = α·sqrt((F(β−1)/(π α² k σ_bg))^(1/β) − 1),
+#   α = FWHM/(2·sqrt(2^(1/β)−1)); β=2.5 = 掩膜专用保守翼指数; k=0.1;
+#   r_i = clip(r_local, max(1.5, 0.75·FWHM), 60); 圆盘光栅化 = 像素中心在半径内。
+# ---------------------------------------------------------------------------
+MASK_BETA = 2.5
+
+
+def moffat_r_local(flux, fwhm, k_sigma_bg, beta=MASK_BETA):
+    alpha = fwhm / (2.0 * math.sqrt(2.0 ** (1.0 / beta) - 1.0))
+    q = (flux * (beta - 1.0) / (math.pi * alpha * alpha * k_sigma_bg)) ** (1.0 / beta)
+    if q <= 1.0:
+        return 0.0
+    return alpha * math.sqrt(q - 1.0)
+
+
+def disk_mask_frac(w, h, cx, cy, radii):
+    """独立圆盘光栅化 (与生产同判据: 像素中心 (lround(cx),lround(cy)) 起 dx²+dy² ≤ r²)。"""
+    mask = np.zeros((h, w), dtype=bool)
+    yy, xx = np.mgrid[0:h, 0:w]
+    for x, y, r in zip(cx, cy, radii):
+        if r <= 0.0:
+            continue
+        icx, icy = int(round(float(x))), int(round(float(y)))
+        sel = (xx - icx) ** 2 + (yy - icy) ** 2 <= r * r
+        mask |= sel
+    return float(mask.mean())
+
+
 def reference_model(data, h, w, gx, gy, minsamp, clip, rounds, floor_v):
     """NumPy 第一性原理复算（不调用生产实现）。"""
     gx = max(2, gx)
@@ -223,13 +278,18 @@ def reference_model(data, h, w, gx, gy, minsamp, clip, rounds, floor_v):
     return (np.asarray(xs), np.asarray(ys), np.asarray(var), n_rejected)
 
 
-def run_case(exe, name, data, gx, gy, minsamp, clip, rounds, floor_v, tmp):
+def run_case(exe, name, data, gx, gy, minsamp, clip, rounds, floor_v, tmp,
+             stars=None):
     h, w = data.shape
     binp = os.path.join(tmp, name + ".bin")
     data.astype("<f8").tofile(binp)
-    r = subprocess.run([exe, binp, str(h), str(w), str(gx), str(gy),
-                        str(minsamp), repr(clip), str(rounds), repr(floor_v)],
-                       capture_output=True, text=True, timeout=300)
+    argv = [exe, binp, str(h), str(w), str(gx), str(gy),
+            str(minsamp), repr(clip), str(rounds), repr(floor_v)]
+    if stars is not None:
+        sp = os.path.join(tmp, name + "_stars.bin")
+        np.asarray(stars, dtype="<f8").reshape(-1).tofile(sp)
+        argv.append(sp)
+    r = subprocess.run(argv, capture_output=True, text=True, timeout=300)
     check(r.returncode == 0, "%s driver rc=0" % name)
     out = {"CP": []}
     for line in r.stdout.splitlines():
@@ -238,13 +298,17 @@ def run_case(exe, name, data, gx, gy, minsamp, clip, rounds, floor_v, tmp):
             continue
         if tok[0] == "CP":
             out["CP"].append([float(x) for x in tok[2:]])
-        elif tok[0] in ("RC", "NQ", "VG", "FILLRC", "GV", "SL", "DEFCFG"):
+        elif tok[0] in ("RC", "NQ", "VG", "FILLRC", "GV", "SL", "DEFCFG", "MASK"):
             out[tok[0]] = tok[1:]
         elif tok[0] == "FV":
             out["FV"] = np.asarray([float(x) for x in tok[1:]], dtype=np.float64)
         elif tok[0] == "FI":
             out["FI"] = np.asarray([float(x) for x in tok[1:]], dtype=np.float64)
     check(out.get("RC", ["?"])[0] == "0", "%s rc=0 (成功/含全局兜底)" % name)
+    if stars is not None:
+        # 含星帧: 生产侧掩膜由 §5a 逐星半径决定, 未掩膜参考复算在调用点单独给出
+        # (main() 的 D_starfield 段: 独立 σ_seed → 独立 r_local/光栅化/预算断言)。
+        return out
     if G_FAIL:
         return out
 
@@ -327,6 +391,17 @@ def main():
             check(abs(float(d[4])) < 1e-300 and abs(float(d[5])) < 1e-300,
                   "default_config gain_e_per_adu=0 / read_noise_e=0 (DISP-NOISE-003 现状)")
             check(int(d[6]) == 64, "default_config min_patch_samples==64 (SCI-NOISE-001 §4 冻结)")
+            # MASK-002 (claim SC-009): ABI 头部 + 逐星掩膜默认值必须与 SCI §5a 一致。
+            # 旧断言把 10/6 当"rmax=60px 即掩膜半径"的合同冻结 —— 那是被证伪的
+            # 「统一半径」语义; 新合同 = 60 px **硬上界** + 5 个 §5a 参数。
+            check(int(d[10]) > 0 and int(d[11]) == 1,
+                  "default_config ABI 头部在场 (struct_size=%s abi_version=%s)"
+                  % (d[10], d[11]))
+            check(abs(float(d[12]) - 0.1) < 1e-12, "default_config mask_k_sigma==0.1 (§5a)")
+            check(abs(float(d[13]) - 1.5) < 1e-12, "default_config mask_r_min_px==1.5")
+            check(abs(float(d[14]) - 0.75) < 1e-12, "default_config mask_fwhm_floor_scale==0.75")
+            check(int(d[15]) == 8, "default_config mask_budget_min_patches==8")
+            check(int(d[16]) == 9216, "default_config mask_budget_min_sky==9216")
             check(int(d[7]) == 2, "default_config max_clip_rounds==2 (SCI §5 5sigma<=2 轮)")
             check(int(d[8]) == 1, "default_config enable_spatial_field==1")
             check(abs(float(d[9]) - 1e-12) < 1e-24, "default_config variance_floor==1e-12")
@@ -344,6 +419,61 @@ def main():
                 check(0.91496 <= g_rel <= 1.05138,
                       "C_bias_n64 sigma_bg/sigma in MC band (seed=%d got=%.5f band=[0.91496,1.05138])"
                       % (seed_c, g_rel))
+
+
+        # (4) MASK-002 源污染 oracle (含星帧; SCI-NOISE-001 §11, claim SC-009)
+        # 结构性缺口: 旧 §11 只用无星纯高斯帧 ⇒ 掩膜半径改动在原理上不影响
+        # 结果 (实测 r=0/8/60 px 输出逐位相同)。本用例注入 Moffat(β=2.5) 星场,
+        # 由 NumPy **独立**复算 §5a 半径/掩膜/σ_bg:
+        rng_s = np.random.default_rng(20260940)
+        H4 = W4 = 512
+        sigma4 = 5.0
+        n_stars4 = 40
+        fwhm4 = 3.0
+        beta4 = MASK_BETA
+        data4 = sigma4 * rng_s.normal(0.0, 1.0, size=(H4, W4))
+        u4 = rng_s.uniform(0.0, 1.0, size=n_stars4)
+        flux4 = 2.0e2 * (1.0e5 / 2.0e2) ** u4
+        cx4 = rng_s.uniform(0.0, W4, size=n_stars4)
+        cy4 = rng_s.uniform(0.0, H4, size=n_stars4)
+        alpha4 = fwhm4 / (2.0 * math.sqrt(2.0 ** (1.0 / beta4) - 1.0))
+        yy4, xx4 = np.mgrid[0:H4, 0:W4]
+        for k in range(n_stars4):
+            amp4 = flux4[k] * (beta4 - 1.0) / (math.pi * alpha4 * alpha4)
+            data4 = data4 + amp4 * (1.0 + ((xx4 - cx4[k]) ** 2 + (yy4 - cy4[k]) ** 2)
+                                    / (alpha4 * alpha4)) ** (-beta4)
+        stars4 = np.column_stack([cx4, cy4, flux4, np.full(n_stars4, fwhm4)])
+        out_d = run_case(exe, "D_starfield", data4, 8, 8, 64, 5.0, 2, 1e-12, tmp,
+                         stars=stars4.reshape(-1))
+        if "MASK" in out_d:
+            # 第一遍 σ_seed 独立复算: 4·FWHM 掩膜 → 被掩膜像素置 NaN → 同 patch 管线
+            seed_r = np.minimum(np.maximum(4.0 * fwhm4, 1.5), 60.0)
+            mask_seed = np.zeros((H4, W4), dtype=bool)
+            for k in range(n_stars4):
+                mask_seed |= ((xx4 - int(round(float(cx4[k])))) ** 2
+                              + (yy4 - int(round(float(cy4[k])))) ** 2) <= seed_r * seed_r
+            data_seed = data4.copy()
+            data_seed[mask_seed] = np.nan
+            _xs, _ys, var_seed, _nr = reference_model(data_seed, H4, W4, 8, 8, 64, 5.0, 2, 1e-12)
+            check(var_seed.size > 0, "D_starfield 第一遍 σ_seed 有合格 patch")
+            sigma_seed = float(np.median(np.sqrt(var_seed))) if var_seed.size else 0.0
+            r_local = np.array([moffat_r_local(float(flux4[k]), fwhm4, 0.1 * sigma_seed)
+                                for k in range(n_stars4)])
+            radii = np.clip(r_local, np.maximum(1.5, 0.75 * fwhm4), 60.0)
+            close(float(out_d["MASK"][1]), float(np.median(radii)), 1e-9,
+                  "D_starfield mask_radius_p50 (NumPy 独立 §5a 复算)")
+            close(float(out_d["MASK"][2]), disk_mask_frac(W4, H4, cx4, cy4, radii), 1e-6,
+                  "D_starfield mask_frac (NumPy 独立光栅化)")
+            check(int(out_d["MASK"][0]) == 0, "D_starfield mask_degraded==0 (F/FWHM 齐备)")
+            check(int(out_d["MASK"][3]) > 0 and int(out_d["MASK"][4]) == 1,
+                  "D_starfield 模型 ABI 头部在场")
+            sig_prod = math.sqrt(float(out_d["VG"][0]))
+            bias4 = abs(sig_prod / sigma4 - 1.0)
+            check(bias4 <= 0.02,
+                  "D_starfield 源污染 |σ/σ_true−1| = %.4f ≤ 2%% (SCI §11)" % bias4)
+            check(int(out_d["NQ"][0]) >= 8, "D_starfield n_qualified ≥ 8 (天空预算)")
+            check((1.0 - float(out_d["MASK"][2])) * H4 * W4 >= 9216.0,
+                  "D_starfield N_sky ≥ 9216 (天空预算)")
 
         if "VG" in out_a:
             sg_a = math.sqrt(float(out_a["VG"][0]))

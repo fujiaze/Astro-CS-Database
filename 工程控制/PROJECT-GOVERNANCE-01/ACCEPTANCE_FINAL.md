@@ -38,9 +38,9 @@
 | # | 判据 |
 |---|---|
 | D1 | `normalize` / `mosaic` / `export` 各：`--help` rc=0 且参数与 `CLI_PROTOCOL_V1.md` 一致 | ✅ **前台 2026-09-17 独立验证**（三命令 `--help` rc=0；`--version --json` stdout 纯 JSON；`doctor --json` verdict=PASS/3 检查；日志正确落 stderr。证据 `run/PROJECT-GOVERNANCE-01/FRONT-DESK/`） |
-| D2 | 各：最小合法输入 rc=0，产物落 `output_dir`，**同输入两次运行产物 sha256 一致** | ❌ **不满足**（SMOKE-001：`normalize` 最小路径 rc=0 但 `p1_stack.json` 哈希不可复现=D5；`mosaic` rc=0 且 `p2_*` 载荷逐字节一致 ✅；`export` 最小合法输入被预检误判 **rc=2**，需 `-force` 才 rc=0=D2 缺陷；`export` 主产物哈希被 RUNID/CHECKSUM 绑定=D6） |
+| D2 | 各：最小合法输入 rc=0，产物落 `output_dir`，**同输入两次运行的`canonical_sha256`一致**（规范产品哈希，DET-001 口径 `astrocs.canonical-product-hash/v1`；文件级 `sha256`/`integrity_sha256` 仍逐产物登记作完整性校验，**不作可复现判据**） | ✅ **DET-001 实测**（`run/PROJECT-GOVERNANCE-01/DET-001/logs/e4/`：A/B 两次独立运行，37 个登记产物 `canonical_mismatch=0`；`normalize` 10/10、`mosaic` 20/20、`export` 7/7）。修复项：D5 竞态已修（phot→drz typed 依赖边）+ `p1_stack.json` 去墙钟遥测，16 次运行哈希唯一；`export` 最小合法输入仍被预检误判 rc=2（需 `-force`）→ 归 CLI-002，与本条判据口径无关 |
 | D3 | 各：失败路径（缺参/坏配置/缺输入/非法组合）rc 符合 `ENGINEERING_SPEC §9`，诊断结构化，**不留半成品** | ⚠️ **部分**（通过：`-y` 未确认时 fail-closed 零产物 ✅、失败运行无 `.tmp` 残留且写 `status=incomplete` manifest ✅、`--events-jsonl` 失败路径 stdout 恰 6 行且末行 `severity=error exit_code=2` ✅、stdout 无日志污染 ✅。不通过：非法类型 **rc=70 崩溃**（应 2）=D1、非法 `weight_mode=99` 静默变 0=D10、路径不存在时 export rc=2 vs normalize/mosaic rc=3 不同码=D11、失败运行 stdout 打印 manifest 路径像成功=D7） |
-| D4 | SMOKE-001 缺陷清单全部闭合（P1×6 / P2×5） | 🔄 分派中：D1/D2/D3/D4/D7/D9/D10/D11 → `CLI-002`；D5/D6 → `DET-001`（可复现性语义）；D4 的真实数据复核 → `E2E-001` |
+| D4 | SMOKE-001 缺陷清单全部闭合（P1×6 / P2×5） | 🔄 分派中：D1/D2/D3/D4/D7/D9/D10/D11 → `CLI-002`；**D5/D6 → `DET-001` 已闭合**（D5 竞态修复 + 16 次哈希唯一；D6 双哈希口径 + 规范哈希工具/产品侧落地 + 反例自检 11 项；见 `run/PROJECT-GOVERNANCE-01/DET-001/自证摘要.md`）；D4 的真实数据复核 → `E2E-001` |
 
 ## E. 端到端（阶段 3）
 
@@ -49,7 +49,7 @@
 | E1 | 真实数据全链路（normalize→mosaic→export）rc=0，产物 sha256 记录完整 |
 | E2 | `export` 产物与 **astropy 7.0.1** 逐点对拍在冻结容差内（给 max 偏差与分布） |
 | E3 | 台账精度数字**重锚**完成（旧值 → 新值 → 差异原因），不再有"修复前产品"的数字冒充当前值 |
-| E4 | 确定性：同输入两次全链路产物哈希一致 |
+| E4 | 确定性：同输入两次全链路**登记产物 `canonical_sha256` 一致**（判据入口 `python3 tools/canonical_product_hash.py compare <manifestA> <manifestB> --normalize-output-dir`；文件级哈希差异必须被排除清单逐条解释）。**为什么不能用文件级 sha256**：登记产物中 `signal/support properties` 必带 IVOA HiPS 要求的 `hips_creation_date`/`hips_release_date`（§4.2 必备键, 删不得）、`output_phase3.fits` 必带合法运行溯源 `RUNID` 且 `CHECKSUM` 覆盖整个 HDU（FITS 4.0 §4.4.2.7, 头一变即重算）、`p3_writer/p3_verify.json` 记录主产物的文件级摘要 ⇒ 文件级哈希原理上不可复现。实测（DET-001 `logs/e4`）：37 产物 canonical 全一致, 其 11 个文件级不同（normalize 2 / mosaic 6 / export 3），差异 100% 落在排除清单内（实测逐项复核） |
 
 ## F. 文档与治理（贯穿）
 

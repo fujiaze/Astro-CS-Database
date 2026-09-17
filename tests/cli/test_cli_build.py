@@ -179,6 +179,52 @@ class TestCliBuild(unittest.TestCase):
             self.assertEqual(doc["schema_version"], "1")
             self.assertIn("output_dir", doc)
 
+    def test_03d_templates_key_complete_and_accepted(self):
+        """§6.3 / E2E-D02: 三命令 --template 的键必须全部是运行期接受键（无 unknown key），
+        且结构完整（填好路径即可运行）。负例自证: 注入未登记键必须被判出。"""
+        tmp = tempfile.mkdtemp(prefix="astrocs_tpl_")
+        self.addCleanup(shutil.rmtree, tmp, True)
+        # 各命令「只填路径」的最小填充（不填补即被预检阻断，无法走到键校验面）
+        fill = {
+            "normalize": lambda d: d.update({
+                "input_lights": [os.path.join(tmp, "light.fits")],
+                "master_bias": os.path.join(tmp, "b.fits"),
+                "master_dark": os.path.join(tmp, "d.fits"),
+                "master_flat": os.path.join(tmp, "f.fits")}),
+            "mosaic": lambda d: d.update({"hips_paths": [os.path.join(tmp, "F.hips")]}),
+            "export": lambda d: (d["source"].__setitem__("hips_dir", os.path.join(tmp, "F.hips"))),
+        }
+        for cmd in ("normalize", "mosaic", "export"):
+            t = self.run_cli(cmd, "--template")
+            self.assertEqual(t.returncode, 0, f"{cmd} --template")
+            doc = json.loads(t.stdout)
+            self.assertEqual(doc["schema_version"], "1")
+            out = os.path.join(tmp, cmd + "_out")
+            os.makedirs(out, exist_ok=True)
+            doc["output_dir"] = out
+            fill[cmd](doc)
+            cfg = os.path.join(tmp, cmd + ".json")
+            with open(cfg, "w", encoding="utf-8") as fh:
+                json.dump(doc, fh)
+            r = self.run_cli(cmd, "--json", cfg, "-y")
+            self.assertNotIn("unknown key", r.stderr,
+                             f"{cmd} 模板含运行期不接受的键:\n{r.stderr[-300:]}")
+            self.assertNotEqual(r.returncode, 70, f"{cmd} 模板触发未分类错误")
+            # 负例自证（判别力）: 注入未登记键 ⇒ 同一检查必须报 unknown key。
+            doc["definitely_not_a_key"] = 1
+            with open(cfg, "w", encoding="utf-8") as fh:
+                json.dump(doc, fh)
+            bad = self.run_cli(cmd, "--json", cfg, "-y")
+            self.assertIn("unknown key", bad.stderr,
+                          f"{cmd}: 未登记键未被判出（检查失去判别力）")
+        # E2E-D02 回归锚: normalize 模板必须带 drizzle.precision_mode（无 silent 缺省）
+        n = json.loads(self.run_cli("normalize", "--template").stdout)
+        self.assertIn("precision_mode", n["drizzle"])
+        # D3 形态锚: export 模板的 source/center 必须是运行期对象形态
+        e = json.loads(self.run_cli("export", "--template").stdout)
+        self.assertIsInstance(e["source"], dict)
+        self.assertIsInstance(e["center"], dict)
+
     def test_04_unknown_command_exit_2(self):
         r = self.run_cli("bogus")
         self.assertEqual(r.returncode, 2)

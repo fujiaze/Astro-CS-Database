@@ -1,5 +1,7 @@
 ---
 id: MOD-astrocs-phase1-noise-snr
+module_id: astrocs.p1.noise_snr
+aliases: [astrocs.p1.noise, astrocs.phase1.noise]
 version: 1.0.0
 status: ACTIVE
 owner: astrocs-core

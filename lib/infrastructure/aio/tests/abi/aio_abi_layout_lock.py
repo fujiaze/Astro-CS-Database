@@ -41,12 +41,14 @@ ABI_CONST = {
     "AioHipsSnrPoint": "AIO_HIPS_SNR_POINT_ABI_VERSION",
     "AioHipsDiagTileView": "AIO_HIPS_DIAG_TILE_VIEW_ABI_VERSION",
     "AioHipsTile": "AIO_HIPS_TILE_ABI_VERSION",
+    "AioHipsVerifyReport": "AIO_HIPS_VERIFY_REPORT_ABI_VERSION",
 }
 SIZE_CONST = {
     "AstroSphereTileView": "AIO_HIPS_TILE_VIEW_STRUCT_SIZE",
     "AioHipsSnrPoint": "AIO_HIPS_SNR_POINT_STRUCT_SIZE",
     "AioHipsDiagTileView": "AIO_HIPS_DIAG_TILE_VIEW_STRUCT_SIZE",
     "AioHipsTile": "AIO_HIPS_TILE_STRUCT_SIZE",
+    "AioHipsVerifyReport": "AIO_HIPS_VERIFY_REPORT_STRUCT_SIZE",
 }
 
 

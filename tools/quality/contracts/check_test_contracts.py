@@ -36,11 +36,12 @@ def main():
                 # Allow: if tf is dir-like and parent module exists, consider test covered by synthetic_gate
                 if p.exists():
                     continue
-                # Fallback: if test_ids mention synthetic_gate, allow
-                if "synthetic_gate" in tf or "TST-" in str(tids):
-                    # Check if synthetic_gate.cpp exists as umbrella
-                    if (repo / "lib/algorithms/coverage/tests/synthetic_gate.cpp").exists():
-                        continue
+                # 伞形豁免已删除（M6b-G-004 / §8 豁免只减不增）：旧判据对
+                # 「行内出现任意 TST-* ID」整行跳过，等价于任何带 TST 的行都能
+                # 蹭 umbrella。现仅接受 test_files 自身显式写 synthetic_gate.cpp
+                # 且该伞文件在位的情形；其余缺失一律判红。
+                if tf.endswith("synthetic_gate.cpp") and (repo / tf).exists():
+                    continue
                 if not p.exists():
                     findings.append({"id":"TEST-BAD-FILE","severity":"P1","file":str(trace.relative_to(repo)),"symbol":r["requirement_id"],"observed":f"test_files {tf} not found","expected":"exists"})
                     status="FAIL"

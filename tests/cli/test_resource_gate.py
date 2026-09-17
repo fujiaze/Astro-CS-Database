@@ -35,6 +35,8 @@ int main(int argc, char** argv){
     else if (c=="compute-lowcores"){ base.kind=ResKind::Compute; base.avg_equivalent_cores=1.5; show("r", evaluate_gate(base)); }
     else if (c=="compute-alllow"){ base.kind=ResKind::Compute; base.cpu_percent=5.0; base.iowait_percent=1.0; base.mem_bandwidth_percent=5.0; show("r", evaluate_gate(base)); }
     else if (c=="compute-short"){ base.kind=ResKind::Compute; base.wall_seconds=3.0; show("r", evaluate_gate(base)); }
+    // 短窗不豁免单线程判定（resource_gate.h:337-343 在本行前执行）
+    else if (c=="compute-short-single"){ base.kind=ResKind::Compute; base.wall_seconds=3.0; base.selected_workers=1; base.max_active_threads=1; show("r", evaluate_gate(base)); }
     else if (c=="compute-globallock"){ base.kind=ResKind::Compute; base.one_worker_ns=100.0; base.n_worker_ns=150.0; show("r", evaluate_gate(base)); }
     else if (c=="memory-ok"){ base.kind=ResKind::Memory; base.achieved_memory_bandwidth_frac=0.85; base.required_memory_bandwidth_frac=0.70; show("r", evaluate_gate(base)); }
     else if (c=="memory-low"){ base.kind=ResKind::Memory; base.achieved_memory_bandwidth_frac=0.50; base.required_memory_bandwidth_frac=0.70; show("r", evaluate_gate(base)); }
@@ -53,8 +55,14 @@ int main(int argc, char** argv){
 }
 ''')
         cls.exe = os.path.join(cls.tmp, "gate")
+        # 生成头（resource_gate_thresholds_generated.h，根 CMake configure_file 落构建根）
+        # 必须可包含：DISPATCH 附录 H（构建隔离）→ 构建树 = 被测二进制所在目录
+        # （ASTROCS_CLI_BIN 覆盖），不再写死共享 build/。
+        build_root = os.path.dirname(os.path.abspath(
+            os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))))
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{CLI}",
                             f"-I{os.path.join(REPO, 'third_party')}",
+                            f"-I{build_root}",
                             src, "-o", cls.exe], capture_output=True, text=True, timeout=180)
         assert r.returncode == 0, r.stderr
 
@@ -75,8 +83,17 @@ int main(int argc, char** argv){
         self.assertEqual(self._gate("compute-alllow")["r"], "compute_io_mem_all_low")
 
     def test_02_compute_short_wall_and_globallock(self):
-        """短于 5s 豁免; N-worker 无正向加速(全局锁) → fail。"""
-        self.assertEqual(self._gate("compute-short")["r"], "ok")
+        """短窗显式不判(非豁免); 短窗仍判单线程; 全局锁退化 → fail。
+
+        CLI-002 判据重锚: GATE-FIX-RES(R-4 D-13 item 1) 已删除 wall<5s 静默豁免 ——
+        判定域 = 计算区间（契约 contracts/resource_gate_v1.json
+        applicability.min_active_window_seconds_exclusive，严格 >10s）；域外返回
+        **显式 not_applicable**（resource_gate.h:349-358），不再与 ok 混淆。
+        旧断言 "ok"（判据早于 GATE-FIX-RES）已废止。
+        """
+        self.assertEqual(self._gate("compute-short")["r"], "not_applicable")
+        # 短窗不豁免单线程判定（同上 :337-343 在域判定之前执行）
+        self.assertEqual(self._gate("compute-short-single")["r"], "single_threaded")
         self.assertEqual(self._gate("compute-globallock")["r"], "global_lock_degradation")
 
     def test_03_memory_gate(self):

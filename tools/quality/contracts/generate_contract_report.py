@@ -26,6 +26,8 @@ def main():
     ap.add_argument("--out-json", default=None)
     ap.add_argument("--out-junit", default=None)
     ap.add_argument("--out-md", default=None)
+    ap.add_argument("--tool-timeout", type=int, default=600,
+                    help="单个子检查器预算秒数（默认 600）")
     args = ap.parse_args()
     repo = pathlib.Path(args.repo)
     results = []
@@ -38,7 +40,13 @@ def main():
             continue
         import subprocess
         try:
-            out = subprocess.run([sys.executable, str(script), "--repo", str(repo)], capture_output=True, text=True, timeout=30)
+            # W4-A3：30s 对 check_doc_symbols（187 份文档 × 全仓路径面）不够 ⇒
+            # 单工具超时被判 ERROR（"结论与退出码不一致"：工具其实能跑出 PASS）。
+            # 预算改为可配（默认 600s）；并把"超时"与"异常"分开登记，别用一个
+            # ERROR 把 TIMEOUT 盖掉。判据本身不放宽，只把量测预算还给工具。
+            out = subprocess.run([sys.executable, str(script), "--repo", str(repo)],
+                                 capture_output=True, text=True,
+                                 timeout=args.tool_timeout)
             try:
                 data = json.loads(out.stdout.strip().split("\n")[-1])
                 status = data.get("status","UNKNOWN")
@@ -48,6 +56,10 @@ def main():
             if not passed:
                 overall="FAIL"
             results.append({"tool":tool,"status":status,"passed":passed,"returncode":out.returncode})
+        except subprocess.TimeoutExpired:
+            results.append({"tool": tool, "status": "TIMEOUT", "passed": False,
+                            "error": "单工具预算 %ds 内未结束" % args.tool_timeout})
+            overall = "FAIL"
         except Exception as e:
             results.append({"tool":tool,"status":"ERROR","error":str(e),"passed":False})
             overall="FAIL"

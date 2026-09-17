@@ -788,7 +788,10 @@ static void test_negative_and_fallback() {
     json last = run_p2_chain(reg, cfg, ctx, 6, &ff);   // 到 integrate
     CHECK_MSG(ff.failed(), "ivar product missing + weight_mode=2 must fail closed");
     CHECK(!fs::exists(fs::path(out + "/p2_integrated.json")));   // 无伪产物
-    CHECK(ff.error().message().find("ivar") != std::string::npos);
+    // 仅在确实失败时取 error()（故障注入面下 ff 可能为 ok —— error() 会 abort
+    // 而非判红; 判据本身不放松, 只是把 abort 变成可读的断言失败）。
+    if (ff.failed())
+      CHECK(ff.error().message().find("ivar") != std::string::npos);
     // 4e. legacy_allow_weight_fallback=true → 显式等权降级（unavailable 面）
     //     → write 只发 signal/support, 不写 variance/ivar 子产品
     const std::string cfg_fb = R"({
@@ -935,12 +938,185 @@ static void test_worker_parity() {
   }
 }
 
+// ── IVAR-001: weight_mode 域/审计面 + 缺 ivar 的 fail-closed 与显式降级门 ───
+// 依据: DATA-UNC-001 §30.1 规则 1/2（mode 2 = 逐样本 ivar; 缺 → fail-closed;
+// 唯一显式出口 = legacy_allow_weight_fallback=true 的等权降级 +
+// uncertainty_available=false）+ SCI-CW-001 §5（生产默认无 fallback）+
+// DATA-P2-HIPS §20.1（读端 AIO_HIPS_RD_IVAR 强制打开）。
+// 故障注入面: ASTROCS_IVAR_FAULT=silent_fallback（等价缺陷: 缺 ivar 静默等权
+// 降级且不标降级）⇒ 本门必然判红。
+static void test_ivar001_weight_mode_domain_and_audit() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const char* fault_env = std::getenv("ASTROCS_IVAR_FAULT");
+  const bool fault_silent = fault_env && std::string(fault_env) == "silent_fallback";
+  // 缺 ivar 输入夹具（复制 ivar fixture 后删除 ivar/ 子产品, signal/support 保留）
+  IvarFixture src = make_ivar_fixture("audsrc");
+  const fs::path root2 = src.root.parent_path() /
+      ("p2001_noivar_aud_" + std::to_string(P2001_GETPID));
+  std::error_code ec;
+  fs::create_directories(root2, ec);
+  fs::copy(src.root / "F1.hips", root2 / "F1.hips", fs::copy_options::recursive);
+  fs::copy(src.root / "F2.hips", root2 / "F2.hips", fs::copy_options::recursive);
+  fs::remove_all(root2 / "F1.hips" / "ivar", ec);
+  fs::remove_all(root2 / "F2.hips" / "ivar", ec);
+  const std::string out2 = (root2 / "p2out").string();
+  fs::create_directories(out2, ec);
+  const std::string cfg_noivar = R"({
+    "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
+      (root2 / "F2.hips").string() + R"("],
+    "output_dir": ")" + out2 + R"("
+  })";
+  RunContext ctx;
+
+  // (a) weight_mode 域门（ivar 齐备夹具 → 失败只可能归因于 mode 域）
+  {
+    IvarFixture fx = make_ivar_fixture("domain");
+    auto mode_fail = [&](const std::string& extra, const std::string& want) {
+      Result<void> rc;
+      run_p2_chain(reg, ivar_cfg(fx, extra), ctx, 6, &rc);
+      CHECK_MSG(rc.failed(), ("weight_mode" + extra + " must fail closed").c_str());
+      if (rc.failed())
+        CHECK_MSG(rc.error().message().find(want) != std::string::npos,
+                  ("illegal weight_mode diagnostic must echo the actual value ('" +
+                   want + "'): " + rc.error().message()).c_str());
+    };
+    mode_fail(R"(,"weight_mode":0)", "weight_mode 0");      // §30.1 规则 1
+    mode_fail(R"(,"weight_mode":99)", "weight_mode 99");    // SMOKE-001 D10 回归锚
+    mode_fail(R"(,"weight_mode":-3)", "weight_mode -3");
+    // 非整数形态由 validate_config 拒绝（禁隐式字符串转换）
+    {
+      auto m = reg.create("astrocs.phase2.integrate");
+      CHECK(m.ok());
+      const Result<void> v = m.value()->validate_config(ivar_cfg(fx, R"(,"weight_mode":"2")"));
+      CHECK_MSG(v.failed(), "weight_mode string must be rejected by validate_config");
+    }
+    // 默认（缺键）= 2: ivar 齐备 → 成功 + 审计面 weight_basis=per_sample_ivar
+    Result<void> okrc;
+    run_p2_chain(reg, ivar_cfg(fx), ctx, 6, &okrc);
+    CHECK_MSG(okrc.ok(), ("default weight_mode must be 2 (ivar fixture): " +
+                          (okrc.failed() ? okrc.error().message() : std::string())).c_str());
+    if (okrc.ok()) {
+      json intj;
+      try { intj = json::parse(read_file(fx.out + "/p2_integrated.json")); } catch (...) {}
+      CHECK(intj.value("weight_mode", 0) == 2);
+      CHECK(intj.value("weight_basis", std::string()) == "per_sample_ivar");
+      CHECK(intj.value("ivar_product_missing_frames", -1) == 0);
+      CHECK(intj.value("uncertainty_available", false) == true);
+    }
+    fs::remove_all(fx.root);
+  }
+
+  // (b) 缺 ivar（默认 mode 2）→ fail-closed; 无伪产物
+  {
+    Result<void> ff;
+    run_p2_chain(reg, cfg_noivar, ctx, 6, &ff);
+    if (fault_silent) {
+      // 等价缺陷注入: 静默等权降级（不 fail-closed）⇒ 门必红。
+      CHECK_MSG(false,
+                "FAULT-INJECT: missing ivar under weight_mode=2 must fail closed"
+                " (ASTROCS_IVAR_FAULT=silent_fallback proves this gate is live)");
+    } else {
+      CHECK_MSG(ff.failed(), "missing ivar + default weight_mode=2 must fail closed");
+      CHECK_MSG(!fs::exists(fs::path(out2 + "/p2_integrated.json")),
+                "fail-closed path must not leave a pseudo integrated artifact");
+      if (ff.failed()) {
+        const std::string msg = ff.error().message();
+        CHECK_MSG(msg.find("ivar") != std::string::npos, msg.c_str());
+        CHECK_MSG(msg.find("2/2") != std::string::npos,
+                  ("diagnostic must report the missing-frame count: " + msg).c_str());
+        CHECK_MSG(msg.find("legacy_allow_weight_fallback=true") != std::string::npos,
+                  ("diagnostic must name the only explicit degradation exit: " + msg).c_str());
+      }
+    }
+  }
+
+  // (c) 显式降级: 审计面必须完整（禁静默）
+  {
+    const std::string cfg_fb = R"({
+      "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
+        (root2 / "F2.hips").string() + R"("],
+      "output_dir": ")" + out2 + R"(",
+      "legacy_allow_weight_fallback": true
+    })";
+    Result<void> ff2;
+    json wrman = run_p2_chain(reg, cfg_fb, ctx, 7, &ff2);
+    CHECK_MSG(ff2.ok(), (ff2.failed() ? ff2.error().message() : std::string("fallback chain ok")).c_str());
+    if (ff2.ok()) {
+      json intj;
+      try { intj = json::parse(read_file(out2 + "/p2_integrated.json")); } catch (...) {}
+      CHECK(intj.value("fallback", false) == true);
+      CHECK(intj.value("uncertainty_available", true) == false);
+      CHECK(intj.value("weight_basis", std::string()) == "unit_weight_degraded");
+      CHECK(intj.value("legacy_allow_weight_fallback", false) == true);
+      CHECK(intj.value("ivar_product_missing_frames", -1) == 2);
+      CHECK(intj.contains("ivar_product_missing_frame_indices"));
+      if (intj.contains("ivar_product_missing_frame_indices"))
+        CHECK(intj["ivar_product_missing_frame_indices"].size() == 2u);
+      // 该夹具删除的是 ivar/ 子产品, 同帧 variance/ 仍在 ⇒ 审计面必须如实上报
+      // 「variance 存在但 ivar 缺失」, 且**不得**以 variance 静默替代 ivar
+      // (§20.1 读端打开 AIO_HIPS_RD_IVAR; §20.3 红线; 既有 4d 门同口径)。
+      CHECK_MSG(intj.value("variance_product_present_frames", -1) == 2,
+                "audit must report variance/ presence while ivar/ is missing");
+      CHECK(intj.value("ivar_product_missing_frames", -1) == 2);
+      json fin;
+      try { fin = json::parse(read_file(wrman.value("final_artifact", ""))); } catch (...) {}
+      CHECK(fin.value("weight_mode", 0) == 2);
+      CHECK(fin.value("weight_basis", std::string()) == "unit_weight_degraded");
+      CHECK(fin.value("ivar_product_missing_frames", -1) == 2);
+      CHECK(fin.value("products", json::array()).size() == 2u);   // signal+support
+      CHECK(fin["provenance"].value("ASTROCS_UNCERTAINTY_AVAILABLE", "") == "false");
+      CHECK(!fs::exists(fs::path(out2 + "/variance/properties")));
+      CHECK(!fs::exists(fs::path(out2 + "/ivar/properties")));
+    }
+  }
+
+  // (d) write 节点: 集成产物缺/非法 weight_mode → fail-closed（禁 legacy 缺省 0）
+  {
+    IvarFixture fx = make_ivar_fixture("wrgate");
+    Result<void> rc6;
+    run_p2_chain(reg, ivar_cfg(fx), ctx, 6, &rc6);
+    CHECK_MSG(rc6.ok(), "write-gate precondition: integrate must succeed");
+    if (rc6.ok()) {
+      const std::string ip = fx.out + "/p2_integrated.json";
+      json intj;
+      try { intj = json::parse(read_file(ip)); } catch (...) {}
+      // d1: 缺 weight_mode
+      json d1 = intj; d1.erase("weight_mode");
+      { std::ofstream f(ip, std::ios::binary); f << d1.dump(2); }
+      Result<void> w1;
+      run_node(reg, "astrocs.phase2.write", ivar_cfg(fx), ctx, &w1);
+      CHECK_MSG(w1.failed(), "write must fail closed when integrated artifact lacks weight_mode");
+      CHECK_MSG(!fs::exists(fs::path(fx.out + "/p2_final.json")),
+                "fail-closed write must not leave p2_final.json");
+      // d2: 非法值 0（legacy）→ 拒
+      json d2 = intj; d2["weight_mode"] = 0;
+      { std::ofstream f(ip, std::ios::binary); f << d2.dump(2); }
+      Result<void> w2;
+      run_node(reg, "astrocs.phase2.write", ivar_cfg(fx), ctx, &w2);
+      CHECK_MSG(w2.failed(), "write must reject legacy weight_mode=0");
+      // d3: uncertainty_available=true 而 mode=1 → 拒（§30.1 规则 1）
+      json d3 = intj; d3["weight_mode"] = 1; d3["uncertainty_available"] = true;
+      { std::ofstream f(ip, std::ios::binary); f << d3.dump(2); }
+      Result<void> w3;
+      run_node(reg, "astrocs.phase2.write", ivar_cfg(fx), ctx, &w3);
+      CHECK_MSG(w3.failed(), "write must reject uncertainty_available with weight_mode=1");
+    }
+    fs::remove_all(fx.root);
+  }
+
+  fs::remove_all(src.root, ec);
+  fs::remove_all(root2, ec);
+}
+
 int main() {
   test_ivar_chain_real_operation();
   test_runtime_chain_call_count_1();
   test_fail_fast_downstream_zero_calls();
   test_complete_gate_fail_closed();
   test_negative_and_fallback();
+  // IVAR-001: weight_mode 域/审计面 + 缺 ivar fail-closed/显式降级门 + 注入面
+  test_ivar001_weight_mode_domain_and_audit();
   test_determinism();
   test_worker_parity();
   if (failures == 0) {

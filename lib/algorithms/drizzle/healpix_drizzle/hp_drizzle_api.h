@@ -76,8 +76,10 @@ HP_DRIZZLE_API int hp_drizzle_run_hips(PipelineFrame* frame,
 
 // Phase1 生产末端正式 C ABI: Drizzle -> 标准 HiPS 直写 (无容器中转)。
 // 产物与旧 writer 节点 (读中间容器后写 HiPS) 逐字节等价:
-// 仅 signal+support 子产品, support 按 uint8 面积比量化, 不写 variance/snr,
-// 不写 drizzle provenance; product_begin 元数据与旧 writer 一致。
+// signal+support 子产品恒写 (support 按 uint8 面积比量化); 输入帧含
+// "variance" 块时按 DATA-P1-HIPS §12.1/§12.2 追加 variance/ivar 子产品,
+// 不含时保持两产品面不变; 不写 snr, 不写 drizzle provenance;
+// product_begin 元数据与旧 writer 一致。
 // hips_dir: HiPS 产品集根目录 (signal/ support/ Moc.fits metadata.fits properties)
 // filter_passband: obs_filter 透传 (可 NULL 或空串)
 // 返回: 0=成功, 非 0=失败 (result->error_msg 给出原因)

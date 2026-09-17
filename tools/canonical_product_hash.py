@@ -40,6 +40,12 @@ AstroCS 产物里存在**合法但易变**的元数据：
   'upwcsver','pywcsver','history','prod_ver','rulefile']；
   romancal conftest.py ignore_metadata_paths（"always variable values.
   These include versions, dates, logs, etc."）。
+* 部署内既有裁决: tools/quality/compare_products.py（P26 T3, 负责人裁决 4）已把
+  hips_creation_date/hips_update_date/hips_release_date + created_utc/generated_utc/
+  timestamp_utc/run_id/started_utc/ended_utc 列为墙钟字段, 把 FITS
+  DATE/RUNID/CHECKSUM/DATASUM 列为头忽略项, 并明确**不忽略** DATE-OBS。本 spec v1 的
+  排除清单与之一致, 并额外登记两个 derived_integrity 键（sha256 / product_sha256）:
+  本工具产出的是**单一指纹**而非逐文件树比对, 派生摘要必须显式处理。
 * 天文界**不存在**通用 canonical product hash 规范（IVOA ProvenanceDM 模型
   中 checksum/hash 零命中；DataLink 用标识符寻址）=> 本项目必须自行定义，
   并把它与完整性校验分开陈述（本文件即该定义）。
@@ -167,6 +173,30 @@ EXCLUDED_JSON_KEYS: List[Dict[str, str]] = [
                     "DATE/fitsdate 同款处置",
     },
     {
+        "key": "hips_update_date",
+        "category": "wall_clock",
+        "reason": "IVOA HiPS properties 的更新日期; 部署内既有墙钟清单已登记。",
+        "evidence": "tools/quality/compare_products.py CLOCK_KEYS_TEXT（负责人裁决 4）",
+    },
+    {
+        "key": "generated_utc",
+        "category": "wall_clock",
+        "reason": "报告/溯源面通用生成时刻。",
+        "evidence": "tools/quality/compare_products.py CLOCK_KEYS_TEXT（负责人裁决 4）",
+    },
+    {
+        "key": "timestamp_utc",
+        "category": "wall_clock",
+        "reason": "报告/溯源面通用时刻戳。",
+        "evidence": "tools/quality/compare_products.py CLOCK_KEYS_TEXT（负责人裁决 4）",
+    },
+    {
+        "key": "ended_utc",
+        "category": "wall_clock",
+        "reason": "节点/运行结束时刻（compare_products 用 ended_utc, 本仓节点 trace 用 finished_utc, 两者同义）。",
+        "evidence": "tools/quality/compare_products.py CLOCK_KEYS_TEXT（负责人裁决 4）",
+    },
+    {
         "key": "hips_release_date",
         "category": "wall_clock",
         "reason": "IVOA HiPS properties 的发布日期; 随运行日变化。",
@@ -186,6 +216,13 @@ EXCLUDED_JSON_KEYS: List[Dict[str, str]] = [
         "reason": "同 sha256（p3_writer/p3_verify 记录 output_phase3.fits 的文件级摘要）。",
         "evidence": "同 sha256",
     },
+    {
+        "key": "integrity_sha256",
+        "category": "derived_integrity",
+        "reason": "DET-001 起 p3_writer/p3_verify 的**文件级**摘要字段名（原 sha256/product_sha256）;"
+                  " 其易变性由被引用产物自身的 canonical hash 覆盖（更强）。",
+        "evidence": "同 sha256; 命名分层见 tools/canonical_product_hash.py 头注释",
+    },
 ]
 
 EXCLUDED_PROPERTIES_KEYS: List[Dict[str, str]] = [
@@ -193,6 +230,9 @@ EXCLUDED_PROPERTIES_KEYS: List[Dict[str, str]] = [
      "reason": "同 JSON 侧。", "evidence": "IVOA HiPS 1.0 properties 必备键"},
     {"key": "hips_release_date", "category": "wall_clock",
      "reason": "同 JSON 侧。", "evidence": "IVOA HiPS 1.0 properties 键"},
+    {"key": "hips_update_date", "category": "wall_clock",
+     "reason": "同 JSON 侧。",
+     "evidence": "tools/quality/compare_products.py CLOCK_KEYS_TEXT（负责人裁决 4）"},
 ]
 
 # 不参与卡片比较的 FITS 结构卡（非内容关键字）
@@ -259,12 +299,12 @@ def canonical_fits(path: pathlib.Path, subs=None) -> Dict[str, Any]:
                 rec = raw[off:off + 80]
                 off += 80
                 kw = rec[:8].decode("ascii", "replace").strip()
-                if kw in FITS_STRUCTURAL_SKIP or rec.strip() == b"":
+                if kw in FITS_STRUCTURAL_SKIP or rec.strip(b" \x00") == b"":
                     continue
                 if kw.upper() in excluded:
                     excluded_hits.append("HDU%d:%s" % (idx, kw))
                     continue
-                cards_raw.append((kw.upper(), order, rec.rstrip()))
+                cards_raw.append((kw.upper(), order, rec.rstrip(b" \x00")))
                 order += 1
             cards_raw.sort(key=lambda t: (t[0], t[1]))
             data = raw[dat_loc:dat_loc + dat_span]
@@ -340,6 +380,56 @@ def _apply_subs_json(obj: Any, subs) -> Any:
     return obj
 
 
+def _json_escape(s: str) -> str:
+    out = ['"']
+    for ch in s:
+        o = ord(ch)
+        if ch == '"':
+            out.append('\\"')
+        elif ch == "\\":
+            out.append("\\\\")
+        elif o < 0x20:
+            out.append("\\u%04x" % o)
+        else:
+            out.append(ch)
+    out.append('"')
+    return "".join(out)
+
+
+def _num_text(v: Any) -> str:
+    """跨语言一致的数值文本: 整数 -> 十进制; 浮点 -> %.17g（C/Python 同义）。"""
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, int):
+        return str(v)
+    return "%.17g" % v
+
+
+def canonical_json_text(obj: Any) -> str:
+    """规范 JSON 文本（canonical-product-hash/v1）:
+
+    * 对象键按 UTF-8 字节序升序;
+    * 字符串仅转义 '"'、'\\' 与控制字符(\\u00xx), 非 ASCII 原样保留;
+    * 数字: 整数十进制; 浮点 %.17g（与 C++ snprintf("%.17g") 逐字一致）;
+    * 无空白。
+    """
+    if obj is None:
+        return "null"
+    if isinstance(obj, bool):
+        return "true" if obj else "false"
+    if isinstance(obj, (int, float)):
+        return _num_text(obj)
+    if isinstance(obj, str):
+        return _json_escape(obj)
+    if isinstance(obj, list):
+        return "[" + ",".join(canonical_json_text(v) for v in obj) + "]"
+    if isinstance(obj, dict):
+        items = sorted(obj.items(), key=lambda kv: kv[0].encode("utf-8"))
+        return "{" + ",".join(_json_escape(k) + ":" + canonical_json_text(v)
+                              for k, v in items) + "}"
+    raise CanonicalHashError("unsupported JSON value type: %r" % type(obj))
+
+
 def canonical_json(path: pathlib.Path, excluded_keys: Optional[set] = None,
                    subs=None) -> Dict[str, Any]:
     excluded = excluded_keys if excluded_keys is not None else {e["key"] for e in EXCLUDED_JSON_KEYS}
@@ -347,8 +437,7 @@ def canonical_json(path: pathlib.Path, excluded_keys: Optional[set] = None,
     hits: List[str] = []
     pruned = _prune_json(doc, excluded, hits)
     pruned = _apply_subs_json(pruned, subs)
-    body = json.dumps(pruned, sort_keys=True, separators=(",", ":"),
-                      ensure_ascii=False, allow_nan=False).encode("utf-8")
+    body = canonical_json_text(pruned).encode("utf-8")
     return {
         "format": "json",
         "canonical_sha256": _sha256_bytes(DOMAIN + b"JSON\n" + body),
@@ -564,8 +653,9 @@ def cmd_spec(_args: argparse.Namespace) -> int:
             "fits": "per HDU: retained header cards (raw 80-byte card text, trailing blanks "
                     "stripped, sorted by (KEYWORD, occurrence index)) + data-unit raw bytes "
                     "sha256; DATASUM/CHECKSUM cards cross-checked as invariants",
-            "json": "parse; drop keys in excluded_json_keys (recursively); serialize with "
-                    "sort_keys + compact separators + ensure_ascii=False; sha256",
+            "json": "parse; drop keys in excluded_json_keys (recursively); serialize with the "
+                    "cross-language canonical JSON text form (keys sorted by UTF-8 byte order, "
+                    "no whitespace, ints decimal, floats %.17g, minimal string escaping); sha256",
             "hips-properties": "key=value lines; drop excluded keys; sort by key; sha256",
             "other": "raw bytes sha256 (reported as format=raw with a warning)",
         },

@@ -201,6 +201,26 @@ acs_status p1_session_validate(acs_handle h, const acs_span_u8 config_json) {
                 s->last_error = "cosmetic values must be numeric/bool";
                 return ACS_ERR_PARAM;
             }
+        // LEDGER-P1 A1（未知插值词 fail-open 收口）: `method` 是**受控词表**字段,
+        // 词表 = cosmetic 冻结合同 types.h:50-56 的 {"median","bilinear"} ⇔
+        // {AC_METHOD_MEDIAN(0), AC_METHOD_BILINEAR(1)}（ALG-COS-003: method=0 中值 /
+        // method=1 名义 bilinear, DISP-COS-003）。C 适配层对词表外取值是
+        // **PARAM+103 fail-closed**; session 层不得比适配层更松 ⇒ 词表外显式拒绝。
+        if (c.contains("method") && !c["method"].is_null()) {
+            const auto& mv = c["method"];
+            long long iv = -1;
+            if (mv.is_number_integer()) {
+                iv = mv.get<long long>();
+            } else if (mv.is_number_unsigned()) {
+                const auto uv = mv.get<unsigned long long>();
+                if (uv <= 1ULL) iv = static_cast<long long>(uv);
+            }
+            if (iv != AC_METHOD_MEDIAN && iv != AC_METHOD_BILINEAR) {
+                s->last_error =
+                    "cosmetic.method out of vocabulary {0=median,1=bilinear}";
+                return ACS_ERR_PARAM;
+            }
+        }
     }
     if (doc.contains("dark_optimization") && !doc["dark_optimization"].is_boolean()) {
         s->last_error = "dark_optimization must be boolean";
@@ -372,6 +392,19 @@ acs_status run_session(SessionState* s, const json& doc) {
         }
         s->manifest["stages"].back()["status"] = "ok";
         s->manifest["stages"].back()["frames"] = frames_ok;
+        // BIAS-001: 标定参与面显式可见（与 p1_op_calibrate 同口径）。
+        s->manifest["stages"].back()["dark_convention"] =
+            dark_opt ? "master_dark_includes_bias_explicit_separation"
+                     : "master_dark_bias_subtracted";
+        s->manifest["stages"].back()["bias_participated"] = static_cast<bool>(bias);
+        s->manifest["stages"].back()["dark_participated"] = static_cast<bool>(dark);
+        s->manifest["stages"].back()["flat_participated"] = static_cast<bool>(flat);
+        if (dark && !bias) {
+            s->manifest["stages"].back()["optimize"] =
+                json::array({"master_bias 未提供：标准式 bias 项为 0，本底未去除"});
+            s->log(ACS_LOG_WARN, "phase1",
+                   "calibrate: master_dark 在位但 master_bias 缺失 — 标准式 bias 项为 0，本底未去除");
+        }
         s->manifest["stages"].back()["per_frame"] = per_frame;
         s->log(ACS_LOG_INFO, "phase1", "stage calibrate ok: " + std::to_string(frames_ok) + " frames");
     }
@@ -388,9 +421,18 @@ acs_status run_session(SessionState* s, const json& doc) {
         const json& c = doc["cosmetic"];
         const float hot_sigma = cosmetic_float(c, "hot_sigma", 5.0f);
         const float cold_sigma = cosmetic_float(c, "cold_sigma", 5.0f);
-        const int method = cosmetic_int(c, "method", AC_METHOD_MEDIAN) == AC_METHOD_BILINEAR
-                               ? AC_METHOD_BILINEAR
-                               : AC_METHOD_MEDIAN;
+        // LEDGER-P1 A1 收口: 原实现 `x == BILINEAR ? BILINEAR : MEDIAN` 对**任何**
+        // 词表外/错型取值静默回落 median（fail-open）, 与 C 适配层的 PARAM+103
+        // 拒绝面互斥, 且宽松的那套在生产路径上。现改为: 取值必须在词表内,
+        // 否则显式失败（run 可被直接调用而无 validate 前置, 故此处不依赖 validate）。
+        const int method_raw = cosmetic_int(c, "method", AC_METHOD_MEDIAN);
+        if (method_raw != AC_METHOD_MEDIAN && method_raw != AC_METHOD_BILINEAR) {
+            s->last_error = "cosmetic.method out of vocabulary {0=median,1=bilinear}";
+            st["status"] = "fail";
+            st["error"] = s->last_error;
+            return ACS_ERR_PARAM;
+        }
+        const int method = method_raw;
         const int max_structure_size = cosmetic_int(c, "max_structure_size", 4);
         for (const auto& a : s->manifest["artifacts"]) {
             if (s->cancelled()) { st["status"] = "cancelled"; return ACS_ERR_CANCELLED; }

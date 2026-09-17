@@ -15,6 +15,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 
 
 def _deduce_root() -> str:
@@ -37,7 +38,8 @@ def _deduce_root() -> str:
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = _deduce_root()
-REV = os.path.join(ROOT, "reports", "v19r2")
+# 产物落 run/（不写受跟踪的 reports/**；ENGINEERING_SPEC §7 产物落位 + §8 fail-closed）
+DEFAULT_OUT = os.path.join("run", "ci", "quality", "traceability_check.json")
 
 
 def tracked() -> list[str]:
@@ -47,11 +49,20 @@ def tracked() -> list[str]:
     return r.stdout.splitlines()
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+    ap = argparse.ArgumentParser(description="V19R2 S5 追溯校验")
+    ap.add_argument("--out", default=DEFAULT_OUT,
+                    help="JSON 证据输出路径（默认 run/ci/quality/traceability_check.json）")
+    args = ap.parse_args(argv)
+
     files = tracked()
-    trace = list(csv.DictReader(
-        open(os.path.join(ROOT, "docs", "TRACEABILITY.csv"),
-             encoding="utf-8")))
+    trace_path = os.path.join(ROOT, "docs", "TRACEABILITY.csv")
+    if not os.path.isfile(trace_path):
+        # fail-closed: 输入缺失判红，不得当「无违规」
+        print(f"TRACEABILITY_FAIL: 输入缺失 {trace_path}", file=sys.stderr)
+        return 1
+    trace = list(csv.DictReader(open(trace_path, encoding="utf-8")))
     rows_ok = 0
     broken = []
     for r in trace:
@@ -139,7 +150,8 @@ def main() -> int:
             continue
         sym_ok += 1
 
-    os.makedirs(os.path.join(REV, "evidence", "quality"), exist_ok=True)
+    out_path = args.out if os.path.isabs(args.out) else os.path.join(ROOT, args.out)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     out = {
         "traceability_rows": len(trace),
         "rows_ok": rows_ok,
@@ -150,12 +162,15 @@ def main() -> int:
         "sample_broken": sym_broken,
         "TRACEABILITY_BROKEN": len(broken),
     }
-    with open(os.path.join(REV, "evidence", "quality",
-                           "traceability_check.json"), "w",
-              encoding="utf-8") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
     print(f"traceability: rows={len(trace)} ok={rows_ok} broken={len(broken)} "
-          f"symbols={sym_ok}/{len(symbols)}")
+          f"symbols={sym_ok}/{len(symbols)} out={os.path.relpath(out_path, ROOT)}")
+    # 退出码按证据决定（旧版无条件 return 0 ⇒ waivable=false 却不可能红）
+    if broken or sym_broken:
+        print(f"TRACEABILITY_FAIL: broken_rows={len(broken)} "
+              f"broken_symbols={len(sym_broken)}", file=sys.stderr)
+        return 1
     return 0
 
 

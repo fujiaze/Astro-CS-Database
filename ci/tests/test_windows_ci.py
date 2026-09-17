@@ -49,7 +49,14 @@ from ci import validate_registry as VR  # noqa: E402
 
 _REG = json.loads((_REPO / "ci" / "checks.json").read_text(encoding="utf-8"))
 _WIN_IDS = ("WIN-BUILD-RELEASE", "WIN-TEST-UNIT", "WIN-PACKAGE-CANDIDATE")
+# W4-A3：注册表两层（顶层 checks[] + 执行单元 steps[]）。WIN-BUILD-RELEASE /
+# WIN-PACKAGE-CANDIDATE 等都是**执行单元** id，只索引顶层会让 _WIN_CHECKS 恒为空，
+# 后续断言 KeyError（"顶层单层索引"失效型，与 CHK-IMPACT-MAP / V6-R7 同根因）。
 _WIN_CHECKS = {c["id"]: c for c in _REG["checks"] if c["id"] in _WIN_IDS}
+for _c in _REG["checks"]:
+    for _s in _c.get("steps") or []:
+        if _s["id"] in _WIN_IDS:
+            _WIN_CHECKS.setdefault(_s["id"], _s)
 
 _spec = importlib.util.spec_from_file_location(
     "ci_windows_driver", _REPO / "tools" / "quality" / "ci_windows_driver.py")
@@ -173,8 +180,16 @@ class TestDriverStages(unittest.TestCase):
         self.assertIn(DRV.BUILD_CONFIG, build)
         self.assertIn("--parallel", build)  # 并行度由 host 探测注入
         self.assertEqual(plan["test"]["argv"][:2], ["ctest", "--preset"])
-        self.assertEqual(plan["test"]["argv"][-2:],
-                         ["--output-junit", DRV.DEFAULT_JUNIT])
+        # W4-A3：driver 有意把 --output-junit 解析为**绝对路径**（见 ci_windows_driver.py
+        # 的 "WIN-TEST-UNIT missing_output 根因" 注释：ctest 不自建父目录，driver 需先
+        # mkdir 父目录，故必须自己解析路径）。冻结期望随之更新为"末端等于登记的相对
+        # 产物路径"，而不是钉死相对写法（§8「能红能绿」：期望随判据更新并登记，
+        # 不为保绿灯回退 driver 的 mkdir 修复）。
+        self.assertEqual(plan["test"]["argv"][-2], "--output-junit")
+        junit_arg = plan["test"]["argv"][-1]
+        self.assertTrue(os.path.isabs(junit_arg), junit_arg)
+        self.assertEqual(os.path.relpath(junit_arg, _REPO).replace(os.sep, "/"),
+                         DRV.DEFAULT_JUNIT)
         inst = plan["install"]["argv"]
         self.assertEqual(inst[:2], ["cmake", "--install"])
         self.assertIn(DRV.DEFAULT_BUILD_DIR, inst)

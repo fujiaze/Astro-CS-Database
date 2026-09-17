@@ -18,7 +18,7 @@
 > **尚未建立**，MISSING 如实登记；现状构建=静态库
 > astrocs_phase2_session（根 CMakeLists.txt:454-458），编入 astrocs
 > 可执行（:501-506）。权威源: lib/phase2_session/p2_session.h（39 行）
-> + p2_session.cpp（282 行，2026-09-10 grep/read 实测；本文件行号
+> + p2_session.cpp（298 行，2026-09-17 LEDGER-DOC 复测；旧记 282 行为 2026-09-10 实测值；本文件行号
 > 禁止手抄他版）。
 
 ## 1 目的与非目标
@@ -351,7 +351,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   （P2-SESSION-TEST 落地）；`TEST-P2-SESSION-DESIGN-001` = 本文件
   §11.5（双面登记不冒认）。
 - `SRC-P2-SESSION-001` = lib/phase2_session/ 源码实测面（p2_session.h
-  39 行 + p2_session.cpp 282 行 + 根 CMakeLists.txt:454-458/:501-506/
+  39 行 + p2_session.cpp 298 行（2026-09-17 复测）+ 根 CMakeLists.txt:454-458/:501-506/
   :517-529），本文件全部行号锚的权威。
 - `MOD-astrocs-phase2-session` = lib/phase2_session/module.yaml（本
   任务同批建立）+ registry 页（并行任务生成）。
@@ -359,7 +359,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 ## 13 追溯
 
 - 实现：lib/phase2_session/p2_session.h（39 行）+ p2_session.cpp
-  （282 行）；构建：静态库 astrocs_phase2_session（CMakeLists.txt
+  （298 行，2026-09-17 复测）；构建：静态库 astrocs_phase2_session（CMakeLists.txt
   :454-458）→ astrocs 可执行（:501-506）+ QA-001 严格警告层
   （:517-529）。
 - 编排消费面：CLI 直调（CLI-005）与 RT-005/RT-008 SessionModule

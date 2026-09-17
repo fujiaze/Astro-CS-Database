@@ -39,8 +39,8 @@
   sdet(lib/algorithms/star_detection 生产源)+dpsf_fit_batch_f64(lib/algorithms/psf
   Moffat4 FP64，DATA-P1-PSF 携 psf_params:FLOAT64[N,9])；wcs=ipv 求解链
   (ipv_solve_from_memory_with_callback_d，sdet+gaia_client 句柄注入，
-  Linux=源内 stub fail-closed 报平台限制、Windows=真实求解，缺求解参数
-  DATA 拒绝)；writer=p1_stack.hiss→aio_hiss_inspect/read_tile_*→
+  两平台同一组生产 C API——非 Windows 静态绑定、Windows 动态加载，源内无平台
+  stub；缺求解参数 DATA 拒绝)；writer=p1_stack.hiss→aio_hiss_inspect/read_tile_*→
   AstroSphereTileView→aio_hips_product_begin/write/finalize（NESTED 聚合
   IVOA 1.4 标准 512×512 HiPS，covered_area_model=hiss_support_ratio_x_A_cell，
   nside>=512 合同）。主链测试 7 节点（wcs 旁支平台化单测）+ 下游零调用

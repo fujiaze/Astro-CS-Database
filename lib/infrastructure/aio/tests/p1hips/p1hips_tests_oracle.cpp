@@ -197,8 +197,9 @@ int test_oracle() {
         } else {
             P1HIPS_CHECK(cs, false, "o4_begin");
         }
-        // ALG: pixel_scale(") = 3600·(180/π)·sqrt(π/3)/nside —— 独立复算
-        const double scale = 3600.0 * (180.0 / kPi) * std::sqrt(kPi / 3.0) / 512.0;
+        // M2b-B-03: IVOA REC-HIPS-1.0 §4.4.1 定义 hips_pixel_scale 单位为**度**。
+        // 独立解析复算: pixel_scale(deg) = (180/π)·sqrt(π/3)/nside。
+        const double scale = (180.0 / kPi) * std::sqrt(kPi / 3.0) / 512.0;
         char want[32];
         std::snprintf(want, sizeof(want), "%.6f", scale);
         const auto kv = read_properties(dir + "/signal/properties");
@@ -206,6 +207,12 @@ int test_oracle() {
         P1HIPS_CHECK_MSG(cs, it != kv.end() && it->second == want, "o4_pixel_scale",
                          "hips_pixel_scale got=%s want=%s",
                          it == kv.end() ? "<missing>" : it->second.c_str(), want);
+        // 负例 (可判红): 角秒口径 (3600×) 必须**不**成立, 否则单位断言无判别力。
+        char want_arcsec[32];
+        std::snprintf(want_arcsec, sizeof(want_arcsec), "%.6f", scale * 3600.0);
+        P1HIPS_CHECK_MSG(cs, !(it != kv.end() && it->second == want_arcsec),
+                         "o4_pixel_scale_neg", "hips_pixel_scale 仍是角秒口径 %s",
+                         want_arcsec);
     }
 
     // --- O5: variance/ivar 互倒 (I4): f64 bitwise + f32 rtol

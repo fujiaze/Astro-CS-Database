@@ -91,9 +91,9 @@ Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_
 | Windows MSVC 编译 + 测试（Win10 22H2 下限 / Win11 主验证） | `NOT_VERIFIED` | Fatduck 侧执行，未完成；CI WIN-* 检查项已注册（CI-001/CI-001B） |
 | 真实数据（BASS/32R/接缝）最终验收 | `NOT_VERIFIED` | `docs/RELEASE_STATUS.md`：FINAL_REAL_DATA_VALIDATION=PENDING；REAL-000 `9f6b72b5` 数据审计/索引 v1.2/确定性匹配计划已 IMPLEMENTED |
 | 32R 单线程重计算禁令的执行证据 | `NOT_VERIFIED` | 资源门实现面已 IMPLEMENTED（RT-001）；正式平台执行证据属 Windows 域 |
-| Phase3 四投影 DLL 挂载/生产会话切换 | `NOT_IMPLEMENTED` | registry 实现已 IMPLEMENTED，但 `lib/algorithms/projection/module.yaml`:79-80 `entrypoint: MISSING`，生产 WCS 路径仍 TAN-only（`lib/phase3_session/p3_wcs.cpp`:36） |
+| Phase3 四投影 DLL 挂载/生产会话切换 | `NOT_IMPLEMENTED` | registry 实现已 IMPLEMENTED，但 `lib/algorithms/projection/module.yaml`:79-80 `entrypoint: MISSING`，生产 WCS 路径仍 TAN-only（`lib/algorithms/projection/p3_wcs.cpp`，W4-A9 批次 1 迁入） |
 | Phase3 `healpix_interp4` | `NOT_IMPLEMENTED` | lib/cli/include/runtime 全域无 `interp4` 实现符号；当前 nearest/bilinear |
-| Phase3 流式 FITS 输出接入 | `NOT_IMPLEMENTED` | IO-001 接口在位；Phase3 writer 走 CFITSIO 原子写（`lib/phase3_session/p3_output.cpp`） |
+| Phase3 流式 FITS 输出接入 | `NOT_IMPLEMENTED` | IO-001 接口在位；Phase3 writer 走 CFITSIO 原子写（`lib/algorithms/fits_output/p3_output.cpp`） |
 | 顶层占位 descriptor `astrocs.phase3.resample` | `DEFERRED` | P2 模板复制残留，归 P3-RSMP-INT（`lib/algorithms/resample/README.md` 登记） |
 | 旧 `aio_pipeline_engine` 越权编排 | 保留中（`DEFERRED`） | `lib/infrastructure/aio/src/aio_pipeline_engine.cpp` 仍在位，ARCH-001 §7 登记为已知现状差距（LEG-003 迁移）；不宣称已删除 |
 | ACR | `DORMANT` | 根 `CMakeLists.txt`:17 ACR 默认 OFF；生产构建/加载/路由/benchmark/发布不含 ACR/CUDA |

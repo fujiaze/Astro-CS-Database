@@ -31,7 +31,8 @@
 | `mode` | `psf` | —— | psf/aperture |
 | `aperture_radius` | 2×FWHM | px | 孔径测光半径 |
 | `sky_annulus` | —— | px | sky 环 |
-| `flux_zero_point` | —— | —— | 参考零点（可空） |
+
+（绝对通量锚定由 Gaia XP 合成通量 `F_syn` 与**输出** `location`/`scale` 承担，`docs/science/PHOTOMETRY.md:7,:18-19,:59`；`zero_point` 作为配置输入字段已于 P5-SNR 订正删除，`docs/algorithms/PHOTOMETRIC_FIT.md:9`，不得再登记为旋钮。）
 
 ## 6. 接口/ABI
 

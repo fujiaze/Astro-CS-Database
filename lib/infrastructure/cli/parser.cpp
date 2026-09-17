@@ -274,6 +274,9 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         // phase1 平铺 (p1_session 消费面)
         "input_lights", "master_bias", "master_dark", "master_flat",
         "dark_optimization", "dark_scale_factor", "cosmetic",
+        // UNIT-001: 母版标度/归一化声明面（SCI-CAL-001 §3/§6；ALG-CAL-001 §2 标度声明表;
+        // 缺声明时消费边界仍 fail-closed，见 module_adapters p1_op_calibrate）。
+        "master_units", "master_scale", "master_flat_normalize", "master_flat_median_range",
         // B2-A8: Phase1 产品观测 passband 身份（空 = 显式无 filter）；写入
         // HiPS properties obs_filter，Phase2 coverage 以此分组并 fail-closed。
         "filter_passband",

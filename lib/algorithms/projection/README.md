@@ -13,13 +13,15 @@
 > **legacy v1（P3-001 增补 2026-09-10）已 RETIRED**：p3_projection.h/.cpp
 > 退场，仅为历史测试面与 legacy 偏差对照证据门保留（四项偏差 D1..D4 见
 > ALG-P3-PROJ-IMPL-001 §15.9），禁止新消费方引用。TAN 逐式沿用
-> lib/phase3_session/p3_wcs.cpp 冻结生产事实（bitwise 对拍承载于
+> 同目录 p3_wcs.cpp 冻结生产事实（bitwise 对拍承载于
 > tests/unit/p3_projection_test.cpp T3）。**现状**：registry 为测试
 > 目标直编面（tests/unit/CMakeLists.txt），非生产构建成员；
 > dll_target=astrocs_p3_projection.dll 尚未存在（entrypoint=MISSING，
 > 挂载由 P3-PROJ-IMPL/P3-002 建立，禁止声明 IMPLEMENTED）。
-> legacy 生产源 lib/phase3_session/p3_wcs.h/.cpp 保留原位不搬家
-> （会话消费点 p3_session.cpp 不变）。
+> **W4-A9 批次 1（2026-09-17）**：legacy 生产源 p3_wcs.h/.cpp 已由
+> lib/phase3_session/ 迁入本目录（ASTROCS_DESIGN §7.1「projection」行），
+> 并登记 astrocs_p3_projection_wcs STATIC + 共址 tests/p3wcs/**；
+> 会话消费点 p3_session.cpp 的 include 同步改新址。
 > 文档口径见 docs/algorithms/PHASE3_PROJ_IMPL.md §15（v3 冻结口径 + §15.9
 > v1 偏差表）、docs/plugins/algorithms_phase3/14_projection.md。
 
@@ -64,15 +66,16 @@
 
 ## 3 生产源（冻结实测，2026-09-11）
 
-- 唯一权威签名头: lib/phase3_session/p3_wcs.h（50 行）——
+- 唯一权威签名头: lib/algorithms/projection/p3_wcs.h（W4-A9 批次 1 迁入）——
   P3WcsDescriptor（h:11-20）/P3WcsStatus（h:22-27）/
   p3_wcs_make（h:31-34）/p3_wcs_pix2world（h:38-39）/
   p3_wcs_world2pix（h:42-43）/p3_wcs_fits_keywords（h:46）。
-- 实现: lib/phase3_session/p3_wcs.cpp（165 行）。
+- 实现: lib/algorithms/projection/p3_wcs.cpp（W4-A9 批次 1 迁入；源逐字节等价）。
 - 会话消费点: p3_session.cpp:17（include）/:160（p3_wcs_make，
   rotation_pa_deg 恒 0.0）/:163（状态映射）/:232（worker 循环
   pix2world，半球外像素 NaN）/:247-253（线程池）；backend 探针
-  p3_wcs_main.cpp 与 Python 侧 test_p1002_gaps.py 编译链接 p3_wcs.cpp。
+  tests/p3wcs/p3_wcs_main.cpp 与 Python 侧 test_p1002_gaps.py 编译链接
+  p3_wcs.cpp（均为新址）。
 - 逐符号源码锚、冻结公式（G1 CD 构造/G2 反向映射）、错误语义、
   并发/确定性合同：ALG-P3-PROJ-IMPL-001 §2-§9。
 

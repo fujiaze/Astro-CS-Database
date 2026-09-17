@@ -1,12 +1,18 @@
 # lib/algorithms/drizzle — astrocs.p1.drizzle（P1-DRZ）
 
 > 状态: CONTRACT_READY（P1-DRZ-DOC 冻结，2026-09-07）｜doc revision: r1
+> **现状复测（LEDGER-DOC，2026-09-17；`python3 tools/quality/check_module_map.py`）**：
+> 本模块生产源 `lib/algorithms/drizzle/src/module_entry.cpp` 与 CMake SHARED target `astrocs_p1_drizzle`（`lib/algorithms/drizzle/CMakeLists.txt:61`）均在位，
+> `astrocs_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
+> ⇒ 机读状态 = **NOT_IMPLEMENTED**。下文旧基线中「仅合同文件/无源码/无 CMake target/
+> entrypoint=MISSING/尚未存在」等表述已被实测反证，以本注记与检查器输出为准；
+> 实现侧整改归 P1-DRZ-IMPL。
 > 本 README 由源码逐函数核对后新建（P1-DRZ-DOC）：函数、单位、坐标、dtype、
 > shape、invalid、错误、并发、内存、I/O 均以现行唯一生产实现
 > `lib/algorithms/drizzle/healpix_drizzle/`（根 CMakeLists.txt:356-366 静态库
 > `astrocs_drizzle`，C ABI 导出权威 `hp_drizzle_api.h:42,62,70,130,139,140`）
-> 为准；`lib/algorithms/drizzle/` 是 P1-DRZ 迁移目标目录（astrocs_p1_drizzle.dll 落码
-> 由 P1-DRZ-IMPL 建立，当前本目录仅合同文件、无源码；落位依据
+> 为准；`lib/algorithms/drizzle/` 是 P1-DRZ 迁移目标目录（astrocs_p1_drizzle.dll 与
+> src/module_entry.cpp 已由 P1-DRZ-IMPL 落地在位；落位依据
 > MODULE_MIGRATION_MATRIX.csv P1-DRZ 行 target=astrocs_p1_drizzle.dll、
 > legacy_paths="lib/phase1/drizzle;root astrocs_drizzle target"——
 > lib/phase1/drizzle 目录不存在，root target 源码在
@@ -18,7 +24,7 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-phase1-drizzle` / 现状实现编入 CMake 静态库 `astrocs_drizzle`（CMakeLists.txt:356-366，无独立 DLL 产物）；迁移目标 `astrocs_p1_drizzle.dll`（P1-DRZ-IMPL 建立，尚未存在） |
+| MOD ID / DLL target | `MOD-astrocs-phase1-drizzle` / 模块 DLL `astrocs_p1_drizzle`（SHARED，lib/algorithms/drizzle/CMakeLists.txt:61，**已在位**；legacy 静态库 `astrocs_drizzle` 并存）；entrypoint `astrocs_module_query_v1` 在位但零调用 ⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 P1-DRZ-IMPL） |
 | module / ABI / doc revision | `astrocs.p1.drizzle` / C ABI（HP_DRIZZLE_API extern "C"，无版本化 query 入口，迁移缺口）/ r1 |
 | owner / phase scope | SA-P1-DRZ / phase1（wave W1） |
 | 文档状态 | CONTRACT_READY（实现存在于 lib/algorithms/drizzle/healpix_drizzle，模块化迁移未开始；不声明 IMPLEMENTED） |
@@ -176,8 +182,7 @@ astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile）。
 ## 10. 迁移（P1-DRZ-IMPL 目标，不声明完成）
 
 本目录（lib/algorithms/drizzle/）为迁移落点：astrocs_p1_drizzle.dll、
-module.yaml（同目录，已冻结 manifest：entrypoint=MISSING——registry
-入口未接）、C ABI adapter、plan/execute/cancel/inspect、ThreadLease
+module.yaml（同目录，manifest：entrypoint=`astrocs_module_query_v1`——入口符号在位、函数体零调用）、C ABI adapter、plan/execute/cancel/inspect、ThreadLease
 接线（替换 omp 遗留通道，保持 1/N 合并序）、DISP-DRZ 清单消化见
 ALG-DRZ-001 §0/§10 与 module.yaml 注释。迁移不得改变 ALG-DRZ-001
 公式语义与 DATA-P1-DRZ 数据语义（SCI-DRZ-001 未变更前）。

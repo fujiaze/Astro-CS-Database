@@ -29,6 +29,12 @@ HEADER_GLOBS = (
     "lib/*/cpp/include/**/*.h",
     "lib/*/*/include/**/*.h",
     "lib/algorithms/platesolve/cpp/ipv/include/*.h",
+    # W4-A3：契约表登记了更深层的公共头（如
+    # lib/infrastructure/pipeline/orchestrator/cpp/include/admission_controller.h
+    # —— 深度 5，旧的四条 glob 全部覆盖不到）⇒ 这些头里的符号整批落进
+    # API-MISSING-AST。改为按 "任意深度 + /include/ 段" 收集；可复现性约束
+    # 仍由 ROOTS=("lib",) 与 EXCLUDED_ROOTS 保证（gitignore 影子面依旧排除）。
+    "lib/**/include/**/*.h",
 )
 
 def dedupe_root(repo):
@@ -38,13 +44,39 @@ HEADER_RE_F = re.compile(r'^\s*(?:P2_API|AC_API|CC_EXPORT|DPSF_EXPORT|SNR_API)?\
 # Broader: capture function-like lines in include headers
 FUNC_LINE_RE = re.compile(r'^\s*(?:extern\s+"C"\s*\{\s*)?(?:P2_API|AC_API|CC_EXPORT|DPSF_EXPORT|SNR_API|extern)?\s*([^\n;]*\b(\w+)\s*\([^;]*\)\s*;)', re.M)
 
+# ── W4-A3：契约表登记面 = 函数 **+ 类 + 成员方法** ─────────────────────────────
+# 事由： docs/contracts/API_CONTRACTS.csv 的 kind 列有 C（类）与 M（方法）两类行，
+# 其 symbol 是**类名**（signature 是构造声明，常带 `public:` 前缀）或**成员方法名**
+# （声明在 class 体内部，带 explicit/virtual/const/noexcept、默认实参含 `{}`）。
+# 而抽取器原实现只认"顶格、行首即返回类型、参数里不许有 {"的自由函数声明 ⇒
+# 144 行 C/M 类契约全部落进 API-MISSING-AST（"抽取器只抽函数"）。
+# 修法：抽取面补齐 ① class/struct 名 ② 类体内的成员声明（含 public: 同行前缀）。
+CLASS_RE = re.compile(r'^\s*(?:template\s*<[^>]*>\s*)?(?:class|struct)\s+(\w+)\b', re.M)
+# 成员声明：允许行首访问标号前缀 + 限定符；参数里允许成对花括号（默认实参 = {}）。
+_NESTED_BRACES = r'(?:[^;{}]|\{[^{}]*\})*'
+MEMBER_RE = re.compile(
+    r'^\s*(?:(?:public|private|protected)\s*:\s*)?'
+    r'(?:(?:explicit|virtual|static|inline|constexpr|friend|const)\s+)*'
+    r'(?:(P2_API|AC_API|CC_EXPORT|DPSF_EXPORT|SNR_API)\s+)?'
+    r'([A-Za-z_~][\w\s\*\:\<\>\,\&]*?)\b(\w+)\s*\((?:' + _NESTED_BRACES + r')\)'
+    r'\s*(?:const\s*)?(?:noexcept\s*)?(?:override\s*)?(?:=\s*0\s*)?;\s*$',
+    re.M)
+
+
 def extract_from_header(path: pathlib.Path):
     text = path.read_text(encoding="utf-8", errors="ignore")
     # Remove block comments for clean scan
     text_nc = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
     text_nc = re.sub(r'//.*', '', text_nc)
     results = []
-    for m in re.finditer(r'^\s*(?:(P2_API|AC_API|CC_EXPORT|DPSF_EXPORT|SNR_API)\s+)?([A-Za-z_][\w\s\*\:\<\>\,\&]*?)\b([A-Za-z_]\w*)\s*\([^;{]*\)\s*;\s*$', text_nc, re.M):
+    # ① 类/结构体名（契约表 kind=C 行的 symbol 就是它）
+    for cm in CLASS_RE.finditer(text_nc):
+        results.append({"symbol": cm.group(1), "signature": "class " + cm.group(1),
+                        "header": str(path), "export": None, "kind": "class"})
+    # ② 自由函数 + 成员方法声明（同一判据面；成员声明可带 public: 前缀）
+    for m in list(MEMBER_RE.finditer(text_nc)) + list(re.finditer(
+            r'^\s*(?:(P2_API|AC_API|CC_EXPORT|DPSF_EXPORT|SNR_API)\s+)?([A-Za-z_][\w\s\*\:\<\>\,\&]*?)\b([A-Za-z_]\w*)\s*\([^;{]*\)\s*;\s*$',
+            text_nc, re.M)):
         prefix = (m.group(1) or "").strip()
         ret = m.group(2).strip()
         name = m.group(3).strip()
@@ -54,6 +86,9 @@ def extract_from_header(path: pathlib.Path):
             continue
         if len(name) < 4 and not name.startswith(("aio_","ac_","cc_","dpsf_","snr_","p2_","sdet_","pc_","ipv_","gaia_","healpix_","aio","astro")):
             continue
+        # 注意：签名**原样保留**（含结尾 ';'）—— check_api_contracts 的文本判据
+        # 是"CSV full_signature == 头文件实测文本"，两侧本来就是带 ';' 的写法。
+        # W4-A3 只在 _arity() 侧放宽（剥掉 ';'/导出宏后再数参数），不动这里。
         sig = re.sub(r'\s+', ' ', full)
         results.append({"symbol": name, "signature": sig, "header": str(path), "export": prefix or None})
     return results
@@ -104,10 +139,17 @@ def extract(repo: pathlib.Path):
         except Exception as e:
             print(f"warn: {h}: {e}", file=sys.stderr)
     # Dedupe by symbol+header
+    # W4-A3：同名+同头多条时**优先保留带参数表的声明**。类/结构体标记行
+    # （"class AdmissionController"）无参数面，若按到达顺序抢占，kind=C 契约行
+    # 的签名比对会退化成 API-SIG-UNPARSABLE(ast arity=None)。
     dedup = {}
     for r in rows:
         k = (r["symbol"], r["header"])
-        if k not in dedup:
+        cur = dedup.get(k)
+        if cur is None:
+            dedup[k] = r
+        elif ("(" in (r.get("signature") or "")
+              and "(" not in (cur.get("signature") or "")):
             dedup[k] = r
     rows = sorted(dedup.values(), key=lambda x: (x["header"], x["symbol"]))
     out = {

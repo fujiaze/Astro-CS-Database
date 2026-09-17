@@ -13,6 +13,23 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+// ORCH-001 批次 1（平台补齐）：ENGINEERING_SPEC §1 把 Linux amd64 列为正式平台，
+// 而本文件原本是 Win32 专属（load_library/get_proc_address 在非 Windows 下是
+// 返回 nullptr 的占位）⇒ 编排层在 Linux 上永远加载不到任何模块、任何 stage 都
+// 不可执行（"编排层只支持 Windows" 是历史实现事实，不是设计条款）。
+// 本分支把 Windows API 三件套一一对应到 POSIX 等价物：
+//   LoadLibraryExA(LOAD_WITH_ALTERED_SEARCH_PATH) ↔ dlopen(RTLD_NOW|RTLD_GLOBAL)
+//   GetProcAddress ↔ dlsym    FreeLibrary ↔ dlclose    FormatMessage ↔ dlerror
+#include <dlfcn.h>
+#endif
+
+// 模块库文件名后缀：Windows .dll / Linux .so（同一模块 ID 对应同一模块，
+// 只是平台产物后缀不同；调用方 DllLoader 的路径推导逻辑不区分平台）。
+#ifdef _WIN32
+static const char* const kModuleLibSuffix = ".dll";
+#else
+static const char* const kModuleLibSuffix = ".so";
 #endif
 
 // ============================================================================
@@ -32,14 +49,15 @@ std::string DllLoader::get_module_name(ModuleId id) const {
 }
 
 std::string DllLoader::get_dll_filename(ModuleId id) const {
+    // 模块基名与平台后缀分离：Windows astro_image_io.dll / Linux astro_image_io.so
     switch (id) {
-        case ModuleId::AIO:             return "astro_image_io.dll";
-        case ModuleId::CALIBRATE:       return "astro_calibration.dll";
-        case ModuleId::PLATESOLVE:      return "ipv_solver.dll";
-        case ModuleId::PSF:             return "dynamic_psf.dll";
-        case ModuleId::PHOTOMETRIC:     return "photometric_calib.dll";
-        case ModuleId::SNR:             return "snr_estimator.dll";
-        case ModuleId::DRIZZLE:         return "healpix_drizzle.dll";
+        case ModuleId::AIO:             return std::string("astro_image_io") + kModuleLibSuffix;
+        case ModuleId::CALIBRATE:       return std::string("astro_calibration") + kModuleLibSuffix;
+        case ModuleId::PLATESOLVE:      return std::string("ipv_solver") + kModuleLibSuffix;
+        case ModuleId::PSF:             return std::string("dynamic_psf") + kModuleLibSuffix;
+        case ModuleId::PHOTOMETRIC:     return std::string("photometric_calib") + kModuleLibSuffix;
+        case ModuleId::SNR:             return std::string("snr_estimator") + kModuleLibSuffix;
+        case ModuleId::DRIZZLE:         return std::string("healpix_drizzle") + kModuleLibSuffix;
         default:                        return "";
     }
 }
@@ -151,7 +169,7 @@ bool DllLoader::load_module(ModuleId id, const std::string& lib_base_dir) {
     HMODULE h = load_library(full_path);
     if (h == nullptr) {
         info.status = ModuleStatus::LOAD_FAILED;
-        info.error_msg = "LoadLibraryA 失败: " + get_last_error();
+        info.error_msg = "动态库加载失败: " + get_last_error();
         std::cerr << "[dll_loader] [错误] " << info.error_msg << std::endl;
         return false;
     }
@@ -493,9 +511,29 @@ std::string DllLoader::get_last_error() {
     return msg;
 }
 #else
-// 非 Windows 平台占位 (本编排器仅支持 Windows)
-HMODULE DllLoader::load_library(const std::string& /*path*/) { return nullptr; }
-void* DllLoader::get_proc_address(HMODULE /*handle*/, const std::string& /*func_name*/) { return nullptr; }
-void DllLoader::free_library(HMODULE /*handle*/) {}
-std::string DllLoader::get_last_error() { return "非 Windows 平台不支持 DLL 加载"; }
+// POSIX (Linux amd64) 分支 —— 与上方 Win32 分支一一对应，无行为差异：
+// - RTLD_NOW: 立即解析未定义符号（对应 LoadLibrary 的导入解析时机）；
+// - RTLD_GLOBAL: 后加载模块可见先加载模块的符号（对应 Windows 的模块句柄表，
+//   AIO 作为共享 ABI 基础被其余模块复用即依赖该可见性）；
+// - RTLD_LOCAL 不采用：会让 ipv_solver 等模块看不到已加载的 astro_image_io。
+HMODULE DllLoader::load_library(const std::string& path) {
+    return reinterpret_cast<HMODULE>(dlopen(path.c_str(), RTLD_NOW | RTLD_GLOBAL));
+}
+
+void* DllLoader::get_proc_address(HMODULE handle, const std::string& func_name) {
+    if (handle == nullptr) return nullptr;
+    return dlsym(handle, func_name.c_str());
+}
+
+void DllLoader::free_library(HMODULE handle) {
+    if (handle != nullptr) {
+        dlclose(handle);
+    }
+}
+
+std::string DllLoader::get_last_error() {
+    const char* e = dlerror();
+    if (e == nullptr) return "无错误";
+    return std::string("code=dlopen/dlsym (") + e + ")";
+}
 #endif

@@ -86,7 +86,7 @@ for name in names:
         order.append((name,_id,cols))
 with open(TABLE,'w',encoding='utf-8') as f:
     f.write("# REBASE_TABLE · 旧 bug 清单按最新权威重定版逐条总表（ROOT-004）\n\n")
-    f.write("- 基线：HEAD = main = origin/main = 2c328348304d033aecfa81faf79d1c6cd802b30a（2026-09-16 接手轮实测）。\n")
+    f.write("- 基线：接手轮开工 HEAD = main = origin/main = 2c328348304d033aecfa81faf79d1c6cd802b30a；定稿写出时 HEAD = %s（并行执行线在窗口内持续推进，判定证据一律以当轮工作树实况为准）。\n" % os.popen("timeout 30 git -C \"%s\" rev-parse HEAD" % ROOT).read().strip())
     f.write("- 口径：问题扫描/REBASE.md（四态/10 列/覆盖度证明）；分片判定与 P0 主控复核同表。\n")
     f.write("- 行数 = 785 = FIX_LEDGER.csv 行数；ID 双向差集为空（merge_rebase.py 校验后写出）。\n\n")
     f.write("| " + HEADER.replace('|',' | ') + " |\n")
@@ -95,14 +95,14 @@ with open(TABLE,'w',encoding='utf-8') as f:
         f.write("| " + " | ".join(esc(c) for c in cols) + " |\n")
 
 # --- stats
-concl = collections.Counter(c[6].strip() for _,c in order)
-by = lambda k: collections.Counter(k(c) for _,c in order)
-open_pri = collections.Counter(c[2].strip() for _,c in order if c[6].strip()=='OPEN')
-attr = collections.Counter(c[7].strip() for _,c in order)
-attr_open = collections.Counter(c[7].strip() for _,c in order if c[6].strip()=='OPEN')
-gaprel = collections.Counter('重复' if c[8].strip().startswith('与 GAP') or c[8].strip().startswith('与GAP') else c[8].strip() for _,c in order)
+concl = collections.Counter(c[6].strip() for _,_,c in order)
+by = lambda k: collections.Counter(k(c) for _,_,c in order)
+open_pri = collections.Counter(c[2].strip() for _,_,c in order if c[6].strip()=='OPEN')
+attr = collections.Counter(c[7].strip() for _,_,c in order)
+attr_open = collections.Counter(c[7].strip() for _,_,c in order if c[6].strip()=='OPEN')
+gaprel = collections.Counter('重复' if c[8].strip().startswith('与 GAP') or c[8].strip().startswith('与GAP') else c[8].strip() for _,_,c in order)
 # simpler cross tab:
-ct = collections.Counter((c[1].strip(), c[2].strip(), c[6].strip()) for _,c in order)
+ct = collections.Counter((c[1].strip(), c[2].strip(), c[6].strip()) for _,_,c in order)
 cat_state = collections.Counter()
 for (cat,pri,st),n in ct.items():
     cat_state[(cat,st)] += n
@@ -111,13 +111,14 @@ void_no_alt = [_id for _,_id,c in order if c[6].strip()=='VOID' and (not c[9].st
 unver_no_gap = [_id for _,_id,c in order if c[6].strip()=='UNVERIFIABLE' and not c[9].strip()]
 res_no_note  = [_id for _,_id,c in order if c[6].strip()=='RESOLVED' and not c[9].strip()]
 stats = {
- 'baseline_sha':'2c328348304d033aecfa81faf79d1c6cd802b30a',
+ 'baseline_sha_takeover':'2c328348304d033aecfa81faf79d1c6cd802b30a',
+ 'baseline_sha_final': os.popen('timeout 30 git -C "%s" rev-parse HEAD main origin/main' % ROOT).read().split(),
  'row_count': len(order), 'ledger_count': len(LSET),
  'conclusions': dict(concl),
  'open_by_priority': dict(open_pri),
  'attribution_all': dict(attr), 'attribution_open': dict(attr_open),
  'gap_relation': dict(gaprel),
- 'cross_tab': {f"{a}|{b}": dict((s,n) for (c2,p2,s),n in ct.items() if c2==a and p2==b) for a,b in sorted({(c[1].strip(),c[2].strip()) for _,c in order})},
+ 'cross_tab': {f"{a}|{b}": dict((s,n) for (c2,p2,s),n in ct.items() if c2==a and p2==b) for a,b in sorted({(c[1].strip(),c[2].strip()) for _,_,c in order})},
  'cat_state': {f"{a}|{b}": n for (a,b),n in cat_state.items()},
  'quality_gate': {'void_missing_oldbasis': void_no_old, 'void_missing_replacement': void_no_alt,
                   'unverifiable_missing_note': unver_no_gap, 'resolved_missing_note': res_no_note},

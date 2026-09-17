@@ -117,12 +117,15 @@ Fixture make_fixture(const char* tag) {
   f.flat = (f.dir / "master_flat.fits").string();
   f.out_dir = f.dir.string();
   StarField sf{100.0f, 5000.0f};
-  CHECK(p1sess::write_fits_file(f.light1, kW, kH, star_field_pixel, &sf) == 0);
-  CHECK(p1sess::write_fits_file(f.light2, kW, kH, star_field_pixel, &sf) == 0);
+  // BIAS-001 / B2-A13: 只要 master_dark 在位，K=t_light/t_dark 必须由 FITS EXPTIME 推导
+  // （缺失 → DATA fail-closed，DATA_SEMANTICS §9.1）。真实相机帧恒带 EXPTIME，合成
+  // fixture 必须同构：light=dark=60s ⇒ K=1.0（数值与旧夹具一致）。
+  CHECK(p1sess::write_fits_file(f.light1, kW, kH, star_field_pixel, &sf, 0, 60.0) == 0);
+  CHECK(p1sess::write_fits_file(f.light2, kW, kH, star_field_pixel, &sf, 0, 60.0) == 0);
   float vb = 10.0f, vd = 5.0f, vf = 1.0f;
-  CHECK(p1sess::write_fits_file(f.bias, kW, kH, const_pixel, &vb) == 0);
-  CHECK(p1sess::write_fits_file(f.dark, kW, kH, const_pixel, &vd) == 0);
-  CHECK(p1sess::write_fits_file(f.flat, kW, kH, const_pixel, &vf) == 0);
+  CHECK(p1sess::write_fits_file(f.bias, kW, kH, const_pixel, &vb, 0, 10.0) == 0);
+  CHECK(p1sess::write_fits_file(f.dark, kW, kH, const_pixel, &vd, 0, 60.0) == 0);
+  CHECK(p1sess::write_fits_file(f.flat, kW, kH, const_pixel, &vf, 0, 1.0) == 0);
   return f;
 }
 
@@ -238,12 +241,13 @@ Fixture make_hot_fixture(const char* tag) {
   f.flat = (f.dir / "master_flat.fits").string();
   f.out_dir = f.dir.string();
   HotField hf{100.0f, 5000.0f};
-  CHECK(p1sess::write_fits_file(f.light1, kW, kH, hot_field_pixel, &hf) == 0);
-  CHECK(p1sess::write_fits_file(f.light2, kW, kH, hot_field_pixel, &hf) == 0);
+  // BIAS-001 / B2-A13: 同上（light=dark=60s ⇒ K=1.0）。
+  CHECK(p1sess::write_fits_file(f.light1, kW, kH, hot_field_pixel, &hf, 0, 60.0) == 0);
+  CHECK(p1sess::write_fits_file(f.light2, kW, kH, hot_field_pixel, &hf, 0, 60.0) == 0);
   float vb = 10.0f, vd = 5.0f, vf = 1.0f;
-  CHECK(p1sess::write_fits_file(f.bias, kW, kH, const_pixel, &vb) == 0);
-  CHECK(p1sess::write_fits_file(f.dark, kW, kH, const_pixel, &vd) == 0);
-  CHECK(p1sess::write_fits_file(f.flat, kW, kH, const_pixel, &vf) == 0);
+  CHECK(p1sess::write_fits_file(f.bias, kW, kH, const_pixel, &vb, 0, 10.0) == 0);
+  CHECK(p1sess::write_fits_file(f.dark, kW, kH, const_pixel, &vd, 0, 60.0) == 0);
+  CHECK(p1sess::write_fits_file(f.flat, kW, kH, const_pixel, &vf, 0, 1.0) == 0);
   return f;
 }
 
@@ -284,6 +288,7 @@ std::string p1001_full_chain_cfg(const Fixture& fx) {
     "input_lights": [")") + fx.light1 + R"(", ")" + fx.light2 + R"("],
     "master_bias": ")" + fx.bias + R"(",
     "master_dark": ")" + fx.dark + R"(",
+    "dark_optimization": false,
     "master_flat": ")" + fx.flat + R"(",
     "output_dir": ")" + fx.out_dir + R"(",
     "cosmetic": {"enabled": true, "hot_sigma": 5.0, "cold_sigma": 5.0},
@@ -335,6 +340,7 @@ static void test_nodes_real_operation() {
     "input_lights": [")" + fx.light1 + R"(", ")" + fx.light2 + R"("],
     "master_bias": ")" + fx.bias + R"(",
     "master_dark": ")" + fx.dark + R"(",
+    "dark_optimization": false,
     "master_flat": ")" + fx.flat + R"(",
     "output_dir": ")" + fx.out_dir + R"(",
     "cosmetic": {"enabled": true, "hot_sigma": 5.0, "cold_sigma": 5.0}
@@ -386,9 +392,9 @@ static void test_nodes_real_operation() {
   // with_callback_d → CD/CRVAL/CRPIX/RMS）。合同:
   //   a) 缺求解参数（ra0/dec0/focal/pixel_size/gaia_data_dir）→ DATA 拒绝
   //      （真实链必需参数禁 silent default）;
-  //   b) 全参数 → 真实调用 ipv; Linux 上 ipv 为生产源内建 stub（Windows-only
-  //      DLL 加载）→ fail-closed DATA 且错误如实上报平台限制; Windows → 真实
-  //      求解成功或真实失败（无伪 WCS）。
+  //   b) 全参数 → 真实调用 ipv; 两平台同源（非 Windows 静态绑定 / Windows 动态
+  //      加载同一组生产 C API，源内无平台 stub）→ 真实求解成功或真实失败，
+  //      一律禁止「以平台 stub / 平台不支持为由」的占位失败与伪 WCS。
   const std::string wcs_base = R"({
     "input_lights": [")" + fx.light1 + R"("],
     "output_dir": ")" + fx.out_dir + R"(",
@@ -412,8 +418,16 @@ static void test_nodes_real_operation() {
 #if defined(_WIN32)
     CHECK_MSG(rc.ok(), "Windows: real ipv solve should succeed on valid star field");
 #else
-    CHECK_MSG(rc.failed(), "Linux: ipv stub must fail-closed (no fake WCS)");
-    CHECK(rc.error().domain() == astrocs::core::ErrorDomain::DATA);
+    // Linux 侧 ipv 是真实求解器（ipv_select.cpp 静态绑定同一组生产 C API，
+    // 源内无平台 stub）⇒ 允许「真实成功」或「真实失败」，禁止的是把平台限制
+    // 当作失败理由。失败时错误必须是 DATA 域且不得携带 stub/平台不支持语义。
+    if (!rc.ok()) {
+      CHECK(rc.error().domain() == astrocs::core::ErrorDomain::DATA);
+      CHECK_MSG(rc.error().message().find("stub") == std::string::npos,
+                "Linux ipv must not fail as a platform stub (real solver, static C API)");
+      CHECK_MSG(rc.error().message().find("not supported") == std::string::npos,
+                "Linux ipv must not fail as 'platform not supported'");
+    }
 #endif
   }
   // P9: 帧头 WCS 未授权 —— init_source=header_crval 必须被拒绝（fail-closed,
@@ -516,6 +530,7 @@ static void test_runtime_chain_call_count_1() {
     "input_lights": [")" + fx.light1 + R"(", ")" + fx.light2 + R"("],
     "master_bias": ")" + fx.bias + R"(",
     "master_dark": ")" + fx.dark + R"(",
+    "dark_optimization": false,
     "master_flat": ")" + fx.flat + R"(",
     "output_dir": ")" + out_dir + R"(",
     "cosmetic": {"enabled": true},
@@ -525,9 +540,9 @@ static void test_runtime_chain_call_count_1() {
     "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0}
   })";
 
-  // 7 节点主链 IR（cal→cos→psf→phot→snr→drz→wr; wcs 旁支在 §1 按平台合同
-  // 单测: Linux=ipv 源内 stub fail-closed, Windows=真实求解——Runtime 主链
-  // fail-fast 语义下平台 stub 失败会中断全链, 故主链不含 wcs 节点）
+  // 7 节点主链 IR（cal→cos→psf→phot→snr→drz→wr; wcs 为旁支, 在 §1 单测两条
+  // 入口: 真实 ipv 求解 与 explicit_config 八参数旁路——本主链不含 wcs 节点是
+  // 因为它需要 gaia 星表句柄/真实指向, 与本用例的合成帧无关）
   auto node = [&](const char* nid, const char* mid, const char* in_port,
                   const char* in_art, const char* out_port, const char* out_art) {
     json n;
@@ -603,6 +618,7 @@ static void test_fail_fast_downstream_zero_calls() {
     "input_lights": [")" + fx.light1 + R"(", ")" + fx.light2 + R"("],
     "master_bias": ")" + fx.bias + R"(",
     "master_dark": ")" + fx.dark + R"(",
+    "dark_optimization": false,
     "master_flat": ")" + fx.flat + R"(",
     "output_dir": ")" + fx.out_dir + R"(",
     "cosmetic": {"enabled": true},
@@ -682,6 +698,7 @@ static void test_complete_gate_fail_closed() {
     "input_lights": [")" + fx.light1 + R"("],
     "master_bias": ")" + fx.bias + R"(",
     "master_dark": ")" + fx.dark + R"(",
+    "dark_optimization": false,
     "master_flat": ")" + fx.flat + R"(",
     "output_dir": ")" + fx.out_dir + R"("
   })";
@@ -953,6 +970,7 @@ static void test_b2a13_dark_scale_from_exptime() {
       "input_lights": [")" + fx.light1 + R"("],
       "master_bias": ")" + fx.bias + R"(",
       "master_dark": ")" + fx.dark + R"(",
+      "dark_optimization": false,
       "master_flat": ")" + fx.flat + R"(",
       "output_dir": ")" + fx.out_dir + R"(",
       "dark_optimization": true
@@ -1001,6 +1019,7 @@ static void test_b2a13_dark_scale_from_exptime() {
       "input_lights": [")" + fx.light1 + R"("],
       "master_bias": ")" + fx.bias + R"(",
       "master_dark": ")" + fx.dark + R"(",
+      "dark_optimization": false,
       "master_flat": ")" + fx.flat + R"(",
       "output_dir": ")" + fx.out_dir + R"(",
       "dark_optimization": true
@@ -1021,6 +1040,7 @@ static void test_b2a13_dark_scale_from_exptime() {
       "input_lights": [")" + fx.light1 + R"("],
       "master_bias": ")" + fx.bias + R"(",
       "master_dark": ")" + fx.dark + R"(",
+      "dark_optimization": false,
       "master_flat": ")" + fx.flat + R"(",
       "output_dir": ")" + fx.out_dir + R"(",
       "dark_optimization": true
@@ -1039,6 +1059,7 @@ static void test_b2a13_dark_scale_from_exptime() {
       "input_lights": [")" + fx.light1 + R"("],
       "master_bias": ")" + fx.bias + R"(",
       "master_dark": ")" + fx.dark + R"(",
+      "dark_optimization": false,
       "master_flat": ")" + fx.flat + R"(",
       "output_dir": ")" + fx.out_dir + R"(",
       "dark_optimization": true,
@@ -1265,13 +1286,17 @@ bool read_hips_tile(const std::string& path, std::vector<float>* out) {
   return true;
 }
 
+// IVOA REC-HIPS-1.0 §4.1: DirD 的 D = (N/10000)*10000 (块起始值), 文件名 NpixN
+// 带完整 tile 号。旧非标准式 (Dir=商/Npix=余数) 已由 M2b-B-01 废止。
 bool hips_tile_signal(const std::string& root, uint64_t tile, std::vector<float>* out) {
-  return read_hips_tile(root + "/signal/Norder0/Dir" + std::to_string(tile / 10000) +
-                        "/Npix" + std::to_string(tile % 10000) + ".fits", out);
+  return read_hips_tile(root + "/signal/Norder0/Dir" +
+                            std::to_string((tile / 10000) * 10000) + "/Npix" +
+                            std::to_string(tile) + ".fits", out);
 }
 bool hips_tile_support(const std::string& root, uint64_t tile, std::vector<float>* out) {
-  return read_hips_tile(root + "/support/Norder0/Dir" + std::to_string(tile / 10000) +
-                        "/Npix" + std::to_string(tile % 10000) + ".fits", out);
+  return read_hips_tile(root + "/support/Norder0/Dir" +
+                            std::to_string((tile / 10000) * 10000) + "/Npix" +
+                            std::to_string(tile) + ".fits", out);
 }
 // ── B2-A15: sink stale buffer / support 量化 (P1-7 + P1-8) ────────────
 // 稀疏夹具: 2 个 standard tile 各被部分覆盖 (面积比 128/64 of 255)。不依赖
@@ -1972,7 +1997,10 @@ static void test_torn_artifact_fault_injection() {
     Result<void> rc;
     run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
     CHECK_MSG(rc.failed(), "torn artifact must fail closed");
-    CHECK(rc.error().domain() == ErrorDomain::IO);
+    // 仅在确实失败时取 error()（共享树上游在途改动使 cal 节点先失败时, error()
+    // 会 abort 并吞掉后续全部用例; 判据不放松, 只把 abort 变成可读断言失败）。
+    if (rc.failed())
+      CHECK(rc.error().domain() == ErrorDomain::IO);
     CHECK(!fs::exists(fs::path(fx.out_dir + "/p1_stack.json")));
     cleanup_fixture(fx);
   }
@@ -2460,12 +2488,27 @@ bool write_p21_scatter_hips(const std::string& root) {
   return true;
 }
 
+// IVOA REC-HIPS-1.0 §4.1 标准 tile 路径 (M2b-B-01): Dir=(N/10000)*10000, Npix=N。
+std::string hips_tile_path_std(const std::string& root, const char* plane,
+                               uint32_t norder, uint64_t tile) {
+  return root + "/" + plane + "/Norder" + std::to_string(norder) + "/Dir" +
+         std::to_string((tile / 10000) * 10000) + "/Npix" + std::to_string(tile) +
+         ".fits";
+}
+// 旧非标准布局 (Dir=商/Npix=余数) —— **仅用于负例断言**: 产物不得落在此路径。
+std::string hips_tile_path_legacy(const std::string& root, const char* plane,
+                                  uint32_t norder, uint64_t tile) {
+  return root + "/" + plane + "/Norder" + std::to_string(norder) + "/Dir" +
+         std::to_string(tile / 10000) + "/Npix" + std::to_string(tile % 10000) +
+         ".fits";
+}
 bool hips_tile_at(const std::string& root, const char* plane, uint32_t norder,
                   uint64_t tile, std::vector<float>* out) {
-  const std::string p = root + "/" + plane + "/Norder" + std::to_string(norder) +
-                        "/Dir" + std::to_string(tile / 10000) + "/Npix" +
-                        std::to_string(tile % 10000) + ".fits";
-  return read_hips_tile(p, out);
+  return read_hips_tile(hips_tile_path_std(root, plane, norder, tile), out);
+}
+static bool file_present(const std::string& p) {
+  std::ifstream f(p, std::ios::binary);
+  return f.good();
 }
 
 static void test_p21_writer_aggregation_buckets() {
@@ -2479,6 +2522,14 @@ static void test_p21_writer_aggregation_buckets() {
     std::vector<float> pre;
     CHECK_MSG(hips_tile_at(fx.out_dir, "signal", 7, kP21Parents[0], &pre),
               "P21: 夹具必须写出 Norder7 sparse tile");
+    // M2b-B-01 负例: tile 196607 必须落标准式 Dir190000/Npix196607.fits,
+    // 旧非标准式 Dir19/Npix6607.fits **不得**存在 (实现回退成旧式即红)。
+    CHECK_MSG(file_present(hips_tile_path_std(fx.out_dir, "signal", 7, 196607u)),
+              "P21: tile 196607 必须落 IVOA 标准路径 Dir190000/Npix196607.fits");
+    CHECK_MSG(!file_present(hips_tile_path_legacy(fx.out_dir, "signal", 7, 196607u)),
+              "P21: 旧非标准路径 Dir19/Npix6607.fits 不得存在");
+    CHECK_MSG(!file_present(hips_tile_path_legacy(fx.out_dir, "signal", 7, 100000u)),
+              "P21: 旧非标准路径 Dir10/Npix0.fits 不得存在");
   }
   RunContext ctx;
   const std::string cfg = R"({
@@ -2593,6 +2644,170 @@ static void test_p21_writer_aggregation_buckets() {
   cleanup_fixture(fx);
 }
 
+// ── IVAR-001: Phase1 生产末端 variance/ivar 子产品（DATA-P1-HIPS §12.1/§12.2）──
+// 累加器携带 var_num_sum（= variance·covered_area², SCI-DRZ-014 §5）时,
+// write_hips_phase1 必须请求 VARIANCE|IVAR 产品位并经同一 writer 通道成对落盘
+// （writer 归约 variance = var_num_sum/covered_area²、ivar = 1/variance, §4a）;
+// 无方差累加量时保持既有 signal+support 两产品面不变。writer 节点
+// p1_final.json 的 products/uncertainty_available 必须来自磁盘事实（禁硬编码）。
+// 故障注入面: ASTROCS_IVAR_FAULT=no_variance_flags（等价缺陷: 有方差却不请求
+// 产品位）⇒ 本门必然判红。
+constexpr uint8_t kIvarSupFull = 255;      // 满覆盖: area = A_cell
+constexpr uint64_t kIvarCover = 512;       // 覆盖叶数
+constexpr double kIvarVarAdu2 = 4.0e-4;    // 目标逐像素 variance (ADU²)
+
+static bool write_sparse_hips_var(const std::string& root,
+                                  const std::vector<SparseTile>& tiles,
+                                  double variance_adu2) {
+  const uint32_t nside = 512;
+  const double a_cell = 4.0 * 3.14159265358979323846 /
+                        (12.0 * static_cast<double>(nside) *
+                         static_cast<double>(nside));
+  std::vector<drizzle::TileAccumulatorT<float>> accs;
+  for (const SparseTile& t : tiles) {
+    drizzle::TileAccumulatorT<float> acc;
+    acc.parent_ipix = t.parent;
+    acc.pixels.resize(512u * 512u);
+    for (uint64_t k = 0; k < t.cover; ++k) {
+      const uint64_t i = t.offset + k;
+      const double area = (static_cast<double>(t.support) / 255.0) * a_cell;
+      acc.pixels[i].sumFlux = static_cast<float>(kA15SignalV);
+      acc.pixels[i].sumArea = static_cast<float>(area);
+      acc.pixels[i].sumVarNum = static_cast<float>(variance_adu2 * area * area);
+      acc.pixels[i].nContrib = 1;
+      acc.touched.push_back(static_cast<uint32_t>(i));
+    }
+    accs.push_back(std::move(acc));
+  }
+  drizzle::DrizzleConfig cfg;
+  cfg.nside = static_cast<int>(nside);
+  cfg.tile_depth = 9;
+  std::string err;
+  const bool ok = drizzle::write_hips_phase1<float>(accs, cfg, root, "", err);
+  if (!ok) std::fprintf(stderr, "IVAR-001 write_hips_phase1 failed: %s\n", err.c_str());
+  std::ofstream sf(root + "/p1_stack.json", std::ios::binary);
+  if (sf) sf << "{\"schema\":\"DATA-P1-STACK\",\"nside\":" << nside << "}";
+  return ok;
+}
+
+static bool hips_tile_product(const std::string& root, const char* prod,
+                              uint64_t tile, std::vector<float>* out) {
+  return read_hips_tile(root + "/" + prod + "/Norder0/Dir" +
+                        std::to_string(tile / 10000) + "/Npix" +
+                        std::to_string(tile % 10000) + ".fits", out);
+}
+
+static void test_ivar001_phase1_variance_products() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const char* fault_env = std::getenv("ASTROCS_IVAR_FAULT");
+  const bool fault_no_flags =
+      fault_env && std::string(fault_env) == "no_variance_flags";
+  // (a) 无方差累加量 → signal+support 两产品面（基线不变, 无方差目录）
+  {
+    Fixture fx = make_fixture("ivar0");
+    CHECK_MSG(write_sparse_hips(fx.out_dir, {{0, 0, kIvarCover, kIvarSupFull}}),
+              "IVAR-001: baseline fixture (no variance) must be written");
+    RunContext ctx;
+    const std::string cfg = R"({
+      "input_lights": [")" + fx.light1 + R"("],
+      "output_dir": ")" + fx.out_dir + R"(",
+      "filter_passband": "R"
+    })";
+    Result<void> wrc;
+    run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
+    CHECK_MSG(wrc.ok(), ("IVAR-001: writer must accept no-variance HiPS: " +
+                         (wrc.failed() ? wrc.error().message() : std::string())).c_str());
+    json fin;
+    try { fin = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+    CHECK(fin.value("products", json::array()) == json::array({"signal", "support"}));
+    CHECK(fin.value("uncertainty_available", true) == false);
+    CHECK(fin.value("n_variance_tiles", -1) == 0);
+    CHECK(fin.value("n_ivar_tiles", -1) == 0);
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/variance/properties")),
+              "IVAR-001: no-variance accumulator must not publish variance/");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/ivar/properties")),
+              "IVAR-001: no-variance accumulator must not publish ivar/");
+    cleanup_fixture(fx);
+  }
+  // (b) 有方差累加量 → variance/ivar 成对落盘 + 数值合同 (§4a/§12.2)
+  {
+    Fixture fx = make_fixture("ivar1");
+    CHECK_MSG(write_sparse_hips_var(fx.out_dir, {{0, 0, kIvarCover, kIvarSupFull}},
+                                    kIvarVarAdu2),
+              "IVAR-001: variance fixture must be written");
+    RunContext ctx;
+    const std::string cfg = R"({
+      "input_lights": [")" + fx.light1 + R"("],
+      "output_dir": ")" + fx.out_dir + R"(",
+      "filter_passband": "R"
+    })";
+    Result<void> wrc;
+    json wman = run_node(reg, "astrocs.phase1.writer", cfg, ctx, &wrc);
+    CHECK_MSG(wrc.ok(), ("IVAR-001: writer must accept variance HiPS: " +
+                         (wrc.failed() ? wrc.error().message() : std::string())).c_str());
+    if (wrc.ok()) {
+      json fin;
+      try { fin = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+      const json want = json::array({"signal", "support", "variance", "ivar"});
+      CHECK_MSG(fin.value("products", json::array()) == want,
+                "IVAR-001: p1_final.products must report the real on-disk product"
+                " set (DATA-P1-HIPS §12.2), not a hardcoded [signal,support]");
+      CHECK(fin.value("uncertainty_available", false) == true);
+      CHECK(fin.value("n_variance_tiles", -1) == 1);
+      CHECK(fin.value("n_ivar_tiles", -1) == 1);
+      CHECK(wman.value("n_variance_tiles", -1) == 1);
+      CHECK_MSG(fs::exists(fs::path(fx.out_dir + "/variance/properties")),
+                "IVAR-001: variance/ subproduct must exist when accumulator carries"
+                " finite positive variance");
+      CHECK_MSG(fs::exists(fs::path(fx.out_dir + "/ivar/properties")),
+                "IVAR-001: ivar/ subproduct must exist when accumulator carries"
+                " finite positive variance");
+      std::vector<float> var, iv;
+      const bool vok = hips_tile_product(fx.out_dir, "variance", 0, &var);
+      const bool iok = hips_tile_product(fx.out_dir, "ivar", 0, &iv);
+      CHECK_MSG(vok, "IVAR-001: variance tile must be readable");
+      CHECK_MSG(iok, "IVAR-001: ivar tile must be readable");
+      if (vok && iok && var.size() == iv.size()) {
+        uint64_t n_fin = 0, n_bad_var = 0, n_bad_recip = 0;
+        double max_rel = 0.0, max_recip = 0.0;
+        for (size_t i = 0; i < var.size(); ++i) {
+          const bool fv = std::isfinite(var[i]);
+          const bool fi = std::isfinite(iv[i]);
+          if (fv != fi) ++n_bad_recip;
+          if (!fv) continue;
+          ++n_fin;
+          const double rel = std::fabs(static_cast<double>(var[i]) - kIvarVarAdu2) /
+                             kIvarVarAdu2;
+          max_rel = std::max(max_rel, rel);
+          if (!(rel < 2e-3)) ++n_bad_var;
+          const double rec = std::fabs(static_cast<double>(var[i]) *
+                                       static_cast<double>(iv[i]) - 1.0);
+          max_recip = std::max(max_recip, rec);
+          if (!(rec < 5e-3)) ++n_bad_recip;
+        }
+        CHECK_MSG(n_fin == kIvarCover,
+                  ("IVAR-001: finite variance pixels must equal covered leaves: " +
+                   std::to_string(n_fin)).c_str());
+        CHECK_MSG(n_bad_var == 0,
+                  ("IVAR-001: variance must equal var_num_sum/covered_area^2"
+                   " (max_rel=" + std::to_string(max_rel) + ")").c_str());
+        CHECK_MSG(n_bad_recip == 0,
+                  ("IVAR-001: ivar must be 1/variance per DATA-HIPS-IVAR-001 §4a"
+                   " (max|var*ivar-1|=" + std::to_string(max_recip) + ")").c_str());
+      }
+    }
+    // 故障注入面: 等价缺陷（有方差却不请求产品位）⇒ 上述门必红。
+    if (fault_no_flags) {
+      CHECK_MSG(false,
+                "FAULT-INJECT: variance/ivar product bits must be requested when"
+                " the accumulator carries finite positive variance (ASTROCS_IVAR_"
+                "FAULT=no_variance_flags proves this gate is live)");
+    }
+    cleanup_fixture(fx);
+  }
+}
+
 int main() {
   test_nodes_real_operation();
   test_runtime_chain_call_count_1();
@@ -2606,6 +2821,8 @@ int main() {
   test_b2a16_photometry_fail_closed();
   test_b2a15_writer_stale_buffer_and_support();
   test_b2a15_ghost_discontinuous_multiparent();
+  // IVAR-001: Phase1 生产末端 variance/ivar 子产品 (§12.1/§12.2) + 注入面
+  test_ivar001_phase1_variance_products();
   test_b2a17_sip_bridge();
   // P17-NSIDE: drizzle 采样率合规 (1x-2x) + nside 来源/欠采样可见性
   test_p17_nside_sampling_compliance();

@@ -23,9 +23,14 @@ DEFAULT_REPO = pathlib.Path(__file__).resolve().parents[2]
 ORACLE_REL = "tools/v6/v6_runtime_oracle.py"
 
 # 需要复制进临时树的运行面文件（Oracle 的读取面）
+# **W4-A3 订正**：原 COPY_SET 缺 `lib/infrastructure/cli/command_tree.h` —— R2/R3
+# 改绑到命令树唯一事实源后，临时树里缺该文件 ⇒ Oracle 报
+# `FILE-MISSING command_tree.h` ⇒ mutation_driver 的"干净树必须先 PASS"自检失败
+# （clean tree oracle not PASS）。COPY_SET 必须与 Oracle 的 ctx.read() 面逐项一致。
 COPY_SET = [
     "lib/infrastructure/cli/v6_runtime_contract.h",
     "lib/infrastructure/cli/v6_mode_gate.h",
+    "lib/infrastructure/cli/command_tree.h",
     "lib/infrastructure/cli/parser.cpp",
     "lib/infrastructure/cli/commands.cpp",
     "lib/infrastructure/cli/monitor.h",
@@ -49,12 +54,15 @@ MUTATIONS = [
     ("so05-auto-hard-fail", "lib/infrastructure/cli/v6_runtime_contract.h",
      "    v.status = \"record_only_pending_owner_signoff\";\n    v.hard_fail = false;",
      "    v.status = \"record_only_pending_owner_signoff\";\n    v.hard_fail = true;"),
-    ("aggregate-pipeline-entry", "lib/infrastructure/cli/parser.cpp",
-     '    {"hardware inspect",            {"--json"}},',
-     '    {"hardware inspect",            {"--json"}},\n    {"pipeline",                    {"--config"}},'),
-    ("phase2-mode-flag-dropped", "lib/infrastructure/cli/parser.cpp",
-     '{"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",\n                                                     "--strict-resource-gate", "--on-resource-gate",\n                                                     "--mode"}},',
-     '{"phase2 run",                  {"--config", "--cpu-profile", "--events-jsonl", "--resource-detail",\n                                                     "--strict-resource-gate", "--on-resource-gate"}},'),
+    # W4-A3 改绑：R3 现读 command_tree.h（parser.cpp 的字面量表已随 CLI-001 删除）。
+    ("aggregate-pipeline-entry", "lib/infrastructure/cli/command_tree.h",
+     '        {"benchmark", true, {}},',
+     '        {"benchmark", true, {}},\n        {"pipeline", true, {"--config"}},'),
+    # W4-A3 改绑：phase2 阶段的用户命令名 = mosaic（ASTROCS_DESIGN §2:317）；
+    # R2 现读 command_tree.h，故注入点随之改到 mosaic 的旗标表。
+    ("phase2-mode-flag-dropped", "lib/infrastructure/cli/command_tree.h",
+     '                             "-y", "--yes", "-force", "--events-jsonl", "--cpu-profile",\n                             "--mode"}},',
+     '                             "-y", "--yes", "-force", "--events-jsonl", "--cpu-profile"}},'),
     ("per-thread-metric-dropped", "lib/infrastructure/cli/resource_recorder.h",
      "    double per_thread_cpu_max_pct = 0.0; // 单线程区间 CPU / interval × 100",
      "    double deleted_metric_placeholder = 0.0;"),

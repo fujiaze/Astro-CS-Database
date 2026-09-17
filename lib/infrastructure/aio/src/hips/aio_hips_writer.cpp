@@ -96,6 +96,23 @@ bool abi_ok_snr_point(const AioHipsSnrPoint* p, int idx) {
     return false;
 }
 
+// 输出结构 (调用方分配、库写入) 的 ABI 前置校验: 必须先于任何产品级检查与写入,
+// 否则 (a) 会按库自身布局盲写调用方缓冲区, (b) ABI 不匹配会被 out_dir 检查的
+// "-1 参数无效" 掩盖 (诊断不点名 ABI)。
+bool abi_ok_verify_report(const AioHipsVerifyReport* r) {
+    if (r->struct_size == (uint32_t)sizeof(AioHipsVerifyReport) &&
+        r->abi_version == (uint32_t)AIO_HIPS_VERIFY_REPORT_ABI_VERSION)
+        return true;
+    set_error("AioHipsVerifyReport ABI 不匹配 (caller struct_size=" +
+              std::to_string(r->struct_size) + " abi_version=" +
+              std::to_string(r->abi_version) + ", expected struct_size=" +
+              std::to_string((unsigned)sizeof(AioHipsVerifyReport)) +
+              " abi_version=" +
+              std::to_string((unsigned)AIO_HIPS_VERIFY_REPORT_ABI_VERSION) +
+              "); 请重新编译调用方 / 同步 aio_abi_mirror.py");
+    return false;
+}
+
 bool abi_ok_legacy_tile(const AioHipsTile* t, int idx) {
     if (t->struct_size == (uint32_t)sizeof(AioHipsTile) &&
         t->abi_version == (uint32_t)AIO_HIPS_TILE_ABI_VERSION)
@@ -200,9 +217,23 @@ void make_dirs(const std::string& path) {
     }
 }
 
+// IVOA REC-HIPS-1.0 §4.1: order K 的 tile N 位于 NorderK/DirD/NpixN.fits,
+// 其中 D = (N/10000)*10000 (10000 块起始值, 不是商), 文件名 Npix 带**完整**
+// tile 号 (标准示例: 10302@order6 -> Dir10000/Npix10302.fits)。
+// 旧实现写 Dir=(N/10000), Npix=(N%10000), 与标准相反 (M2b-B-01)。
 std::string tile_rel_path(int order, uint64_t ipix, const char* ext) {
-    uint64_t dir = ipix / 10000;
-    uint64_t npix = ipix % 10000;
+    uint64_t dir = (ipix / 10000u) * 10000u;
+    char buf[512];
+    std::snprintf(buf, sizeof(buf), "Norder%d/Dir%llu/Npix%llu%s",
+                  order, (unsigned long long)dir, (unsigned long long)ipix, ext);
+    return std::string(buf);
+}
+
+// 旧版非标准布局 (Dir=商, Npix=余数) 的**只读**兼容路径; 仅当标准路径不存在
+// 时回退, 使既有产品仍可读, 但新产物一律按标准落盘。
+std::string tile_rel_path_legacy(int order, uint64_t ipix, const char* ext) {
+    uint64_t dir = ipix / 10000u;
+    uint64_t npix = ipix % 10000u;
     char buf[512];
     std::snprintf(buf, sizeof(buf), "Norder%d/Dir%llu/Npix%llu%s",
                   order, (unsigned long long)dir, (unsigned long long)npix, ext);
@@ -377,6 +408,10 @@ bool write_moc_fits(const std::string& path,
         fits_close_file(fptr, &status);
         return fits_ok(status, "moc create_tbl " + path);
     }
+    // IVOA REC-MOC 2.0 §6 Table 3: ORDERING 与 COORDSYS 对 MOC 1.1/2.0 均为
+    // mandatory; 本 MOC 为 NUNIQ 编码 + 赤道坐标系 (M2b-B-02)。
+    fits_write_key_str(fptr, "ORDERING", (char*)"NUNIQ", (char*)"MOC cell ordering", &status);
+    fits_write_key_str(fptr, "COORDSYS", (char*)"C", (char*)"Equatorial (ICRS)", &status);
     fits_write_key_lng(fptr, "MOCORDER", (long)order, (char*)"MOC order", &status);
     fits_write_key_lng(fptr, "PIXCOUNT", (long)uniq.size(), (char*)"Cell count", &status);
     if (status) {
@@ -1070,7 +1105,10 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     const std::string dir = ps->out_dir + "/" + prod;
     make_dirs(dir);
     char buf[64];
-    std::snprintf(buf, sizeof(buf), "%.6f", 3600.0 * 180.0 / kPi() * std::sqrt(kPi() / 3.0) / (double)ps->nside);
+    // M2b-B-03: IVOA REC-HIPS-1.0 §4.4.1 定义 hips_pixel_scale/s_pixel_scale 单位为
+    // **度** (示例 8.946E-4)。叶像素角尺度解析式 = (180/π)·sqrt(π/3)/nside [deg];
+    // 旧实现多乘 3600 写成角秒, 与同名标准键相差 3600×。
+    std::snprintf(buf, sizeof(buf), "%.6f", 180.0 / kPi() * std::sqrt(kPi() / 3.0) / (double)ps->nside);
     std::vector<std::pair<std::string, std::string>> kv;
     kv.push_back({"creator_did", ps->creator_did});
     kv.push_back({"obs_title", ps->obs_title});
@@ -1078,7 +1116,10 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_version", "1.4"});
     kv.push_back({"hips_order", std::to_string(ps->tile_order)});
     kv.push_back({"hips_tile_width", "512"});
-    kv.push_back({"hips_frame", "equatorial"});
+    // IVOA REC-HIPS-1.0 §4.4.1: hips_frame 值域 = {icrs, galactic, ecliptic};
+    // 非标准值 "equatorial" 已废止 (M1a-B-005)。本管道内部 frame 恒为 ICRS
+    // (SCI-P3-001 §4 "合法转换 = 仅恒等 ICRS"), 故写标准值 icrs。
+    kv.push_back({"hips_frame", "icrs"});
     // B2-A8: HiPS 1.0 tile 编号方案显式声明。消费者（Phase2 coverage union
     // 的 NESTED 父聚合 t>>2s）不得再依赖"缺省即 NESTED"的隐式约定。
     kv.push_back({"hips_ordering", "NESTED"});
@@ -1326,7 +1367,8 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     kv2.push_back({"obs_title", ps->obs_title + " (SNR catalogue)"});
     kv2.push_back({"hips_version", "1.4"});
     kv2.push_back({"hips_order", std::to_string(ps->tile_order)});
-    kv2.push_back({"hips_frame", "equatorial"});
+    // M1a-B-005: 同图产品面, 写 IVOA §4.4.1 标准值域内的 icrs。
+    kv2.push_back({"hips_frame", "icrs"});
     kv2.push_back({"dataproduct_type", "catalog"});
     kv2.push_back({"dataproduct_subtype", "snr"});
     kv2.push_back({"hips_tile_format", "tsv"});
@@ -1379,9 +1421,11 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
         // IVOA HiPS Catalog: metadata.xml 必须是 VOTable（Hipsgen LINT[4.4.3] 要求根元素 votable）
         std::fprintf(f,
             "<?xml version=\"1.0\"?>\n"
-            "<VOTABLE version=\"1.3\" xmlns=\"http:// www.ivoa.net/xml/VOTable/v1.3\"\n"
-            "         xmlns:xsi=\"http:// www.w3.org/2001/XMLSchema-instance\"\n"
-            "         xsi:schemaLocation=\"http:// www.ivoa.net/xml/VOTable/v1.3 http:// www.ivoa.net/xml/VOTable/v1.3\">\n"
+            // M2b-B-05: xmlns/schemaLocation 必须是合法 URI —— 旧串在 "http://"
+            // 后带字面空格, 产物根元素不被 XML 解析器识别为 VOTable。
+            "<VOTABLE version=\"1.3\" xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\"\n"
+            "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+            "         xsi:schemaLocation=\"http://www.ivoa.net/xml/VOTable/v1.3 http://www.ivoa.net/xml/VOTable/v1.3\">\n"
             "  <RESOURCE type=\"meta\">\n"
             "    <TABLE>\n"
             "      <FIELD name=\"star_id\" datatype=\"long\" ucd=\"meta.id\"/>\n"
@@ -1822,7 +1866,10 @@ int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  
             set_error("aio_hips_verify_product_set: 参数无效");
             return -1;
         }
+        if (!abi_ok_verify_report(out)) return AIO_HIPS_ABI_MISMATCH;
         AioHipsVerifyReport rep{};
+        rep.struct_size = out->struct_size;    // 头部字段原样回传 (不篡改调用方身份)
+        rep.abi_version = out->abi_version;
         rep.n_signal_tiles = rep.n_variance_tiles = rep.n_ivar_tiles = -1;
         rep.n_nrej_tiles = rep.n_nused_tiles = -1;
         rep.uncertainty_available = -1;

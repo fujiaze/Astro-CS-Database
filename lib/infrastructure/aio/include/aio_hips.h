@@ -78,6 +78,7 @@ enum AioHipsDataType {
 #define AIO_HIPS_SNR_POINT_ABI_VERSION      1u
 #define AIO_HIPS_DIAG_TILE_VIEW_ABI_VERSION 1u
 #define AIO_HIPS_TILE_ABI_VERSION           1u
+#define AIO_HIPS_VERIFY_REPORT_ABI_VERSION  1u
 // 入口 ABI 校验失败 (struct_size/abi_version 不匹配) 的统一错误码
 #define AIO_HIPS_ABI_MISMATCH               (-9)
 
@@ -89,7 +90,9 @@ enum AioHipsDataType {
 // Drizzle 源帧像素角尺度上界 (弧秒) —— M9-F-3 合法域, 由仓内冻结常量推导:
 //   叶级 nside >= 512 (本文件 aio_hips_product_begin 的 nside 合法域下界)
 //   => 最粗合法 HiPS 叶像素角尺度
-//      = 3600·180/π·sqrt(π/3)/512 = 412.258369 arcsec  (hips_pixel_scale 式)
+//      = 3600·180/π·sqrt(π/3)/512 = 412.258369 arcsec
+//      (同一角尺度的标准键 hips_pixel_scale 按 IVOA §4.4.1 以**度**落盘:
+//       (180/π)·sqrt(π/3)/nside deg; 本常量保留角秒表述, 只用于内部合法域)
 //   SCI-DRZ-001 冻结输入帧 1–2x 过采样 => 帧尺度上界 = 2 x 412.258369
 //      = 824.5167388361774 arcsec。
 // 该界是**物理/表示域** (writer 如实记录帧真实尺度), 不是消费侧 k_corr 查表域
@@ -252,6 +255,12 @@ AIO_HIPS_EXPORT int aio_hips_set_provenance(
 // 供调用方登记而不必重解析。
 // ═══════════════════════════════════════════════════════════════════════════
 typedef struct {
+    // 跨边界 ABI 自描述 (ASTROCS_DESIGN §7.3 / ENGINEERING_SPEC §1/§4:
+    // "版本化 C ABI, 结构体带 struct_size/abi_version")。
+    // **输出结构同样必须版本化**: 本结构由调用方分配、库写入 ⇒ 库必须先校验
+    // 调用方的 struct_size/abi_version, 不匹配即 fail-closed(-9) 且**不写**;
+    // 否则会按库自身布局盲写调用方缓冲区 (旧调用方越界写 / 新字段静默垃圾)。
+    AIO_HIPS_ABI_HEADER(AioHipsVerifyReport, AIO_HIPS_VERIFY_REPORT_ABI_VERSION)
     int signal_present;             // 1/0
     int n_signal_tiles;             // -1 = 不可得
     int variance_present, ivar_present;

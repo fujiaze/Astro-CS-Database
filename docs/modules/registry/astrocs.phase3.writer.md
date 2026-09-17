@@ -1,5 +1,7 @@
 ---
 id: MOD-astrocs-phase3-writer
+module_id: astrocs.p3.fits_output
+aliases: [astrocs.p3.fits_writer, astrocs.phase3.writer]
 version: 1.0.0
 status: ACTIVE
 owner: astrocs-core
@@ -26,7 +28,7 @@ downstream: [TEST-P3-WR-001]
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
   lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2 先例
   新建；lib/phase3_session/ 为会话编排域共享源，不整目录归属）。
-- 生产源: lib/phase3_session/p3_output.cpp（370 行）+ 唯一权威签名头
+- 生产源: lib/algorithms/fits_output/p3_output.cpp（370 行）+ 唯一权威签名头
   p3_output.h（64 行）+ WCS 关键字源 p3_wcs.h（50 行），实测
   2026-09-08。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，

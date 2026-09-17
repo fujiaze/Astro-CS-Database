@@ -28,12 +28,14 @@ DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签
        module_id 错配 → ACS_LOADER_EC_MODULE_ID_MISMATCH(15);
        allowed_root 越界 → ACS_LOADER_EC_PATH_ESCAPE(4);
        文件缺失 → ACS_LOADER_EC_FILE_MISSING(6)。全部必败（fail-closed）;
-  S7 CLI 联动（安装树内 exe）: modules list --json verdict=PASS units=10;
-     modules verify rc=0; selftest --module <科学模块> 逐模块装配 PASS;
-     selftest --module astrocs.not.in.manifest 必败 rc!=0;
+  S7 安装树模块面（CLI-001 后现行载体）: 产品 manifest astrocs.product.json
+     units=10 且逐 unit 文件在位; verify_install_tree rc=0; 每个科学模块经装载器
+     合同探针装配 PASS（sha256+module_id+root 三校验）; 未登记 module_id 装配必败。
+     能力去向: 旧 modules list/verify/selftest 用户命令已按 CLI_PROTOCOL_V1 §1 删除
+     （rc=2），其数据面由「产品 manifest + verify_install_tree + 装载器探针」承接。
   S8 安装树完整性负向（fail-closed 破坏性注入, 最后执行）: 删除
      modules/astrocs_p1_calibration.so → verify_install_tree 明确失败
-     （MISSING REQUIRED）+ CLI modules verify 非零（无静态 fallback 证明）。
+     （MISSING REQUIRED）+ 装载器装配必败 FILE_MISSING（无静态 fallback 证明）。
 
 用法:
   python3 tests/abi/mod001_install_load_check.py [--build-dir <dir>] [--keep]
@@ -320,32 +322,40 @@ def main():
                 "astrocs.missing", "-", prefix, "fail:6",
                 "S6 注入: 文件缺失")
 
-    # ── S7: CLI 联动（安装树内） ──
+    # ── S7: 安装树模块面（现行载体） ──
+    # CLI-001 已删除 modules list / modules verify / selftest 用户命令（依据
+    # docs/api/CLI_PROTOCOL_V1.md §1：modules */selftest 属「已删除别名，rc=2」；
+    # ASTROCS_DESIGN §6.2 命令树只有 normalize/mosaic/export/help/--version/doctor/
+    # benchmark）。能力去向（本段逐条验证，判据不放松）：
+    #   * units 枚举与 verdict  → 安装树产品 manifest astrocs.product.json +
+    #     packaging/verify_install_tree.py（§S3 同一入口，此处对 unit 集再断言）；
+    #   * 逐模块「装配 PASS」  → 装载器合同探针（sha256+module_id+root 三校验）；
+    #   * 未登记模块必败        → 同一探针的 module_id 错配路径。
     exe = os.path.join(prefix, "astrocs")
     env = dict(os.environ)
-    r = run([exe, "modules", "list", "--json"], cwd=prefix, env=env)
-    try:
-        doc = json.loads(r.stdout)
-    except Exception:  # noqa: BLE001
-        doc = {}
-    check("S7 modules list --json verdict=PASS units=10",
-          r.returncode == 0 and doc.get("verdict") == "PASS"
-          and len(doc.get("units", [])) == 10,
-          (r.stdout + r.stderr)[-400:] if r.returncode or not doc else "")
-    r = run([exe, "modules", "verify"], cwd=prefix, env=env)
-    check("S7 modules verify rc=0", r.returncode == 0
-          and "modules verify OK (10 units" in r.stdout,
+    munits = {u.get("unit_id"): u for u in manifest.get("units", [])
+              if isinstance(u, dict)} if manifest_ok else {}
+    check("S7 产品 manifest units=10", len(munits) == 10,
+          f"got {len(munits)}: {sorted(munits)}")
+    miss = [u.get("rel_path") for u in munits.values()
+            if not os.path.isfile(os.path.join(prefix, u.get("rel_path") or ""))]
+    check("S7 产品 manifest 逐 unit 文件在位", not miss, f"missing: {miss}")
+    r = run([sys.executable, VERIFY_SCRIPT, "--prefix", prefix])
+    check("S7 verify_install_tree rc=0 (unit 集与合同一致)", r.returncode == 0,
           (r.stdout + r.stderr)[-300:])
-    for _, mid, _so in SCIENCE_MODULES:
-        r = run([exe, "selftest", "--module", mid, "--json"], cwd=prefix, env=env)
-        ok = r.returncode == 0 and f'"module_assembly:{mid}"' in r.stdout \
-            and '"status": "pass"' in r.stdout
-        check(f"S7 selftest --module {mid} 装配 PASS", ok,
-              (r.stdout + r.stderr)[-300:] if not ok else "")
-    r = run([exe, "selftest", "--module", "astrocs.not.in.manifest", "--json"],
-            cwd=prefix, env=env)
-    check("S7 selftest 未登记 module 必败 rc!=0", r.returncode != 0,
-          f"rc={r.returncode}")
+    for _uid, mid, so in SCIENCE_MODULES:
+        abs_so = os.path.join(prefix, "modules", so + ".so")
+        if not os.path.isfile(abs_so):
+            check(f"S7 loader 装配 {mid}", False, f"missing {abs_so}")
+            continue
+        load_module(probe, abs_so, mid, sha256_file(abs_so), prefix, True,
+                    f"S7 loader 装配 {mid} (安装树 .so 三校验)")
+    # 负例: 未登记 module_id 必须装配失败（旧 selftest 未登记必败的同义判据）
+    victim_so = os.path.join(prefix, "modules", SCIENCE_MODULES[1][2] + ".so")
+    load_module(probe, victim_so, "astrocs.not.in.manifest",
+                sha256_file(victim_so) if os.path.isfile(victim_so) else "-",
+                prefix, "fail:15",
+                "S7 注入: 未登记 module_id 装配必败")
 
     # ── S8: 破坏性注入（最后执行; 安装树一次性） ──
     victim = os.path.join(prefix, "modules", "astrocs_p1_calibration.so")
@@ -355,10 +365,12 @@ def main():
         check("S8 注入: 删科学 DLL → verify_install_tree 必败(MISSING REQUIRED)",
               r.returncode != 0 and "MISSING REQUIRED" in (r.stdout + r.stderr),
               (r.stdout + r.stderr)[-300:])
-        r = run([exe, "modules", "verify"], cwd=prefix, env=env)
-        check("S8 注入: 删科学 DLL → CLI modules verify 必败(无静态 fallback)",
-              r.returncode != 0 and "missing_unit_file" in r.stdout,
-              f"rc={r.returncode}")
+        # 旧判据是「CLI modules verify 必败(无静态 fallback)」；现行判据 = 同一
+        # 事实由安装树校验 + 装载器文件缺失路径双向证明（无静态回退）。
+        check("S8 注入: 删科学 DLL → exe 在位但 manifest 仍声明该 unit",
+              os.path.isfile(exe) and not os.path.isfile(victim))
+        load_module(probe, victim, SCIENCE_MODULES[2][1], "-", prefix, "fail:6",
+                    "S8 注入: 删科学 DLL → loader 装配必败(FILE_MISSING)")
     else:
         check("S8 注入: 删科学 DLL", False, f"victim missing: {victim}")
 

@@ -522,6 +522,10 @@ def select_checks(registry: dict, *, profile: str, check_args: list[str], focus:
         "mode": "profile" if not changed_from and not focus else "filtered",
         "selected_by": selected_by,
         "changed_files": changed_files,
+        # LEDGER-CI 工单 R2：profile 的**登记成员数**（与"本机可执行数"区分）。
+        # 零成员 profile 与"成员存在但本机不可执行"必须分开判。
+        "profile_members": sum(1 for c in registry["checks"]
+                               if profile in c.get("profiles", [])),
     }
     return candidates, meta
 
@@ -897,13 +901,22 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
         result["reason"] = result["reason"] or "mutates_workspace=false 的检查修改了工作区"
     elif returncode == SKIP_EXIT_CODE and not timed_out:
         # SKIP 退出码（SKIP_EXIT_CODE 注释：ctest SKIP_RETURN_CODE 77 同语义,
-        # cpu001_selftest_avx512 / run_provider_avx512_checks.py 先例）——
-        # 合同化 skip, 不记 FAIL。
-        result["verdict"] = V_SKIP_WAIVABLE
-        result["reason"] = result["reason"] or (
-            f"命令以 SKIP 退出码 {SKIP_EXIT_CODE} 结束"
-            "（ctest SKIP_RETURN_CODE 同语义, 如宿主能力 gate）"
-        )
+        # cpu001_selftest_avx512 / run_provider_avx512_checks.py 先例）。
+        # **只对 waivable 检查有效**（W4-A3 / LEDGER-CI 工单 R1）：非 waivable 检查
+        # 以 77 退出 = 检查器自我豁免（任何 check 都能 sys.exit(77) 让整门变绿），
+        # 按 FAIL 记（ENGINEERING_SPEC §8 fail-closed：不得把"未执行/未判定"当通过）。
+        if check["waivable"]:
+            result["verdict"] = V_SKIP_WAIVABLE
+            result["reason"] = result["reason"] or (
+                f"命令以 SKIP 退出码 {SKIP_EXIT_CODE} 结束"
+                "（ctest SKIP_RETURN_CODE 同语义, 如宿主能力 gate）"
+            )
+        else:
+            result["verdict"] = V_FAIL
+            result["reason"] = (
+                f"非 waivable 检查以 SKIP 退出码 {SKIP_EXIT_CODE} 结束："
+                "合同化 SKIP 仅适用 waivable 检查（fail-closed）"
+            )
     elif returncode != 0:
         result["verdict"] = V_FAIL
         result["reason"] = result["reason"] or f"命令非零退出：{returncode}"
@@ -1041,16 +1054,20 @@ def build_ci_result(*, repo: Path, profile: str, selected_meta: dict, check_resu
     ]
 
     if profile == "fatduck" and not executed:
-        verdict = "FATDUCK_PENDING"
-        verdict_reason = "fatduck profile 无本机可执行检查，等待 Fatduck harness 结果"
+        if selected_meta.get("profile_members", 0) > 0:
+            verdict = "FATDUCK_PENDING"
+            verdict_reason = "fatduck profile 有登记成员但本机不可执行，等待 Fatduck harness 结果"
+        else:
+            verdict = "FAIL"
+            verdict_reason = ("fatduck profile 零成员（no_checks_selected）："
+                              "不允许空集 PASS")
     elif not executed and skipped_executed:
-        # 至少一项检查真实运行并以 SKIP 退出码结束（SKIP_EXIT_CODE, 如宿主缺
-        # AVX-512F 的合同化 skip）→ 整体 PASS 而非 no_checks_selected FAIL：
-        # 跳过是证据, 不是空选。
-        verdict = "PASS"
+        # 全部有效检查都 SKIP = 没有任何判定发生 ⇒ 不得判 PASS（SPEC §8 fail-closed；
+        # 与 R11「采集零用例判红」同口径。W4-A3 / LEDGER-CI 工单 R1-M8-G-002）。
+        verdict = "FAIL"
         verdict_reason = (
             f"选中检查全部合同化 SKIP（{len(skipped_executed)} 项 exit "
-            f"{SKIP_EXIT_CODE}, ctest SKIP_RETURN_CODE 语义）"
+            f"{SKIP_EXIT_CODE}）：零有效执行，不允许空集 PASS"
         )
     elif not executed and not known_summary.get("expired"):
         verdict = "FAIL"

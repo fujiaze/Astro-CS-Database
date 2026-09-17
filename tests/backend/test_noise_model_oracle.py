@@ -43,7 +43,7 @@ int main(){
     std::vector<float> data(N); for(int i=0;i<N;++i) data[i]=gau(rng);
     SnrNoiseModelConfig cfg; snr_noise_model_v1_default_config(&cfg);
     cfg.patch_grid_x=4; cfg.patch_grid_y=4; cfg.min_patch_samples=32; cfg.variance_floor=1e-9;
-    NoiseWeightModelV1 m; int rc=snr_noise_model_v1(data.data(),H,W,nullptr,nullptr,nullptr,0,&cfg,&m);
+    NoiseWeightModelV1 m; int rc=snr_noise_model_v1(data.data(),H,W,nullptr,nullptr,nullptr,nullptr,nullptr,0,&cfg,&m);
     printf("G1 rc=%d nq=%u nrej=%u sg=%0.6f vg=%0.8f ivg=%0.8f src=%u\n",
            rc,m.n_qualified_patches,m.n_rejected_patches,m.sigma_bg_global,m.variance_bg_global,m.ivar_bg_global,m.source);
     if(m.n_control_points>0 && m.ctrl_sigma){
@@ -55,7 +55,7 @@ int main(){
     // 2) 常量背景 σ_true=0 → σ 应很小/被 floor; small-N 3x3 退化
     std::vector<float> flat(N,1500.0f); NoiseWeightModelV1 m2;
     snr_noise_model_v1_default_config(&cfg); cfg.patch_grid_x=2; cfg.patch_grid_y=2; cfg.min_patch_samples=8;
-    int rc2=snr_noise_model_v1(flat.data(),H,W,nullptr,nullptr,nullptr,0,&cfg,&m2);
+    int rc2=snr_noise_model_v1(flat.data(),H,W,nullptr,nullptr,nullptr,nullptr,nullptr,0,&cfg,&m2);
     printf("K1 rc=%d nq=%u nrej=%u sg=%.6f vg=%.8f ivg=%.8f\n",
            rc2,m2.n_qualified_patches,m2.n_rejected_patches,m2.sigma_bg_global,m2.variance_bg_global,m2.ivar_bg_global);
     snr_noise_model_v1_free(&m2);

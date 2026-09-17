@@ -24,14 +24,19 @@ INC = os.path.join(REPO, "include")
 C = os.path.join(REPO, "lib", "common")
 CASTRO = os.path.join(C, "healpix")
 
-# W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/ (会话层源仍在 HOST)
+# W4-A9 批次 1/2/3: 会话内核按 ASTROCS_DESIGN §7.1 分迁各算法模块
+#   p3_wcs.cpp → lib/algorithms/projection (批次 1)
+#   p3_resample.cpp → lib/algorithms/resample (批次 2)
+#   p3_output.cpp → lib/algorithms/fits_output (批次 3)
 P3W = os.path.join(REPO, "lib", "algorithms", "projection")
-FITS_INCS = [f"-I{INC}", f"-I{HOST}", f"-I{P3W}", f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
+RSMP = os.path.join(REPO, "lib", "algorithms", "resample")
+FOUT = os.path.join(REPO, "lib", "algorithms", "fits_output")
+FITS_INCS = [f"-I{INC}", f"-I{HOST}", f"-I{P3W}", f"-I{RSMP}", f"-I{FOUT}", f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
              f"-I{CASTRO}", f"-I{os.path.join(REPO, 'third_party', 'nlohmann')}",
              f"-I{os.path.join(REPO, 'third_party')}",  # nlohmann/json.hpp 以 <nlohmann/json.hpp> 引用
              f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}", f"-I{C}", f"-I{os.path.join(C, 'crypto')}",
              f"-I{os.path.join(REPO, 'build')}"]  # version_generated.h(根 CMake configure_file 生成)
-FITS_SRCS = [os.path.join(HOST, "p3_resample.cpp"), os.path.join(HOST, "hips_properties.cpp"),
+FITS_SRCS = [os.path.join(RSMP, "p3_resample.cpp"), os.path.join(HOST, "hips_properties.cpp"),
              os.path.join(CASTRO, "healpix_core.cpp"),
              os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
              os.path.join(AIO, "src", "aio_fits.cpp"), os.path.join(AIO, "src", "aio_api.cpp"),
@@ -123,7 +128,7 @@ class TestPhase3ReprojOracle(unittest.TestCase):
         # probe (session end-to-end)
         _compile_srcs(cls.tmp, [os.path.join(REPO, "tests", "backend", "p3_session_probe.cpp")],
                       os.path.join(cls.tmp, "probe"), FITS_INCS,
-                      [os.path.join(HOST, "p3_session.cpp"), os.path.join(HOST, "p3_output.cpp"),
+                      [os.path.join(HOST, "p3_session.cpp"), os.path.join(FOUT, "p3_output.cpp"),
                        os.path.join(P3W, "p3_wcs.cpp")] + FITS_SRCS, objs)
         # fixture (const/field/nan)
         _compile_srcs(cls.tmp, [os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),

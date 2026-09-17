@@ -1,39 +1,35 @@
-# 分片 C_ALG_IMPL_a（ROOT-004 分片执行层）
+# 分片 C_ALG_IMPL_a（ROOT-004 旧 bug 清单按最新权威重定版）
 
-- 分片名 `C_ALG_IMPL_a`｜分配 35 条（V10-N-01..V10-N-08，C_ALG_IMPL，P1/P2）
+- 分片名 `C_ALG_IMPL_a`｜分配 35 条（V10-N-01..V10-N-08；类别全为 C_ALG_IMPL；33×P1 + 2×P2）
 - 产物 `reports/PROJECT-GOVERNANCE-01/root-scan/shards/C_ALG_IMPL_a.psv`（表头 1 + 数据 35 = 36 行，10 列，无列内 `|`/换行）
-- 四态计数 **OPEN 35｜RESOLVED 0｜VOID 0｜UNVERIFIABLE 0**｜日志 `run/PROJECT-GOVERNANCE-01/ROOT-004/logs/shards/C_ALG_IMPL_a.log`
+- 四态计数 **OPEN 35｜RESOLVED 0｜VOID 0｜UNVERIFIABLE 0**｜UNVERIFIABLE 清单：空｜日志 `run/PROJECT-GOVERNANCE-01/ROOT-004/logs/shards/C_ALG_IMPL_a.log`
+- 基线：任务书所述 2c328348 在开工时已过期；复核期间 HEAD 连续前进至 1d66845d（HEAD=main=origin/main），全部证据按最终 HEAD 重跑，未沿用任何旧行号/旧路径。
 
-## 1. ID 覆盖自证（命令 + 逐字输出）
-```
-$ PSV=reports/PROJECT-GOVERNANCE-01/root-scan/shards/C_ALG_IMPL_a.psv
-$ ASSIGN=reports/PROJECT-GOVERNANCE-01/root-scan/shards/_assign/C_ALG_IMPL_a.tsv
-$ echo "psv lines: $(wc -l < $PSV)"; head -1 $PSV; echo "assign rows: $(($(wc -l < $ASSIGN)-1)) psv data rows: $(($(wc -l < $PSV)-1))"
-psv lines: 36
-psv header: ID|原类别|原优先级|旧判据(文档+节号/路径)|最新权威条款|当前证据(命令+输出)|结论|归属|GAP关系|备注
-assign rows: 35 psv data rows: 35
-$ comm -23 <(tail -n +2 $ASSIGN|cut -f1|sort) <(tail -n +2 $PSV|cut -d'|' -f1|sort)   # psv 缺的 ID →（空）
-$ comm -13 <(tail -n +2 $ASSIGN|cut -f1|sort) <(tail -n +2 $PSV|cut -d'|' -f1|sort)   # psv 多的 ID →（空）
-$ diff <(tail -n +2 $ASSIGN|cut -f1) <(tail -n +2 $PSV|cut -d'|' -f1) && echo "order identical: YES"
-order identical: YES
-$ awk -F'|' 'NF!=10{printf "%d:%d ", NR, NF}' $PSV   # 列数违规 →（空）；结论分布：35 OPEN
-```
+## ID 覆盖与格式自证（本会话实跑）
 
-## 2. UNVERIFIABLE 清单
-**无。** 35 条均可在当前树静态复现，第 6 列给出本轮真跑的命令与逐字输出。
+- 命令：`awk -F'|' 'NR>1{print $1}' C_ALG_IMPL_a.psv > /tmp/pids.txt` ＋ `awk -F'\t' 'NR>1{print $1}' _assign/C_ALG_IMPL_a.tsv > /tmp/aids.txt` ＋ `diff -q /tmp/aids.txt /tmp/pids.txt`
+- 输出：`assign=35 psv=35` ／ `diff: 逐位一致 (exit 0)`（首末条 V10-N-01 … V10-N-08，无缺失无多余）
+- 命令：`awk -F'|' 'NR>1 && NF!=10' C_ALG_IMPL_a.psv | wc -l` ＋ 词表校验 ＋ 归属词表校验
+- 输出：`NF!=10: 0` ／ `结论词表外: 0` ／ `归属词表内: 35/35` ／ `证据列以「命令：」开头且含「输出：」: 35/35`
+- 归属分布：P1-001 9｜AIO-001 5｜CI-001 5｜PKG-001 4｜OBS-001 4｜P1-002 2｜CPU-001 2｜RT-001 2｜MOD-001 1｜INT-001 1
+- GAP 关系：仅 V10-N-04、V10-N-07 记「与 GAP-013 重复」（I/O 所有权分散、无唯一 AIO），其余 33 条「无」
 
-## 3. 异常
-1. **基线漂移（最重）**：任务书声明基线 `ecf6ad6f`，开工时 HEAD=`2c328348`、收尾时=`c44adc08`（前台持续提交治理与根清洁）。`git diff --name-only ecf6ad6f..HEAD` 实测改动分布：`设计大纲/` 344（已删目录）、`工程控制/PROJECT-GOVERNANCE-01/` 15、`ci/checks.json`+`ci/root_manifest.json`、`tools/quality/check_root_cleanliness.py`、`tests/quality/test_root_cleanliness.py`、`.gitignore` —— **无一条落在我 35 条取证的文件面**（lib/**、cli/**、providers/**、runtime/**、packaging/**、cmake/**、scripts/**、tools/check_warning_suppression.py、tools/quality/contracts/**、contracts/**）。已在新 HEAD 复点代表锚点（fits_reader.cpp:425、runtime.cpp:121、commands.cpp:934、snr_estimator 未跟踪态），逐字一致。
-2. **分配表路径笔误（V10-N-07/N-08）**：`文件` 列写 `p1/V10-c.md`，实际在 `p2/V10-c.md`（p1/ 无此文件）；已按实际路径读取并在 PSV 第 4 列注明。
-3. **原 finding 锚点偏差（PSV 备注已记，不改结论）**：①V7-N-04 把 CD 解析归因给 `hp_drizzle_api.cpp:474` 裸 atof，该行实为 SIP 系数，CD 走 `aio_frame_kv_get_double`（strtod，仅 end==val 拒），「无 isfinite 门」不变；②V21-N-15/16 引的「07 §1/§3/§4」不在权威链，改用 `ENGINEERING_SPEC §8/§10` + `ASTROCS_DESIGN §8`。
-4. **行号漂移（重定位后判定不变）**：V21-N-15 `:912/:946`→`:934/:974`；V21-N-16 `:901`→`:923`；V10-N-03 `:1213`→`:1269`；V7-N-07 `:2891`→`:2966`；V10-N-01 消费点 `:1808/1826/1833`→`:1896/1900/1905/1911`。
-5. **集合类口径重算，与原 finding 不一致处不混用**：W6-N-02 本轮 26/145（原文 18/135）；W6-N-04 本轮 336/191/13/29（原文 124/20/81/70）；两处以逐点可复跑站点为判据。V21-N-13 的「234 次写/100 键」总数未复算，只逐键复算 14 键零回读。
-6. **需真机/运行期才能定的子项（PSV 备注已写「未判」，不影响本条 OPEN）**：V10-N-06 bad_alloc 是否必现；W6-N-03 交付树是否真多 2 个 schema 文件（需 `cmake --install` 清点）；W6-N-05 实际导出符号面（需 Windows dumpbin）。
-7. **纪律**：外部命令全部带 `timeout`；`FATDUCK_ACCESS.md` 未 read/未打印/未复制；零修复、零 git 写、未碰禁改路径与仓库根条目；仅写本分片 `.psv`/`.md` 与分片日志。
+## 站点迁移（旧路径 → 现树路径，均本会话实测）
 
-## 4. 最重要 3 条 OPEN（判词）
-- **V10-N-01**：`fits_reader.cpp:425-431/514-515/530` 短读仍 `return true` 且 `img.width/height` 用头声明值，drizzle 输入侧按 `pixels[y*img.width+x]`（drizzle_engine.cpp:1896/1900/1905/1911）索引 ⇒ 截断 FITS 直进越界读，输入侧零长度校验。
-- **V21-N-12**：manifest 完整性两面被「期望为空」短路——两平台 `units[].sha256` 10/10 恒 null、`module_registry.c:735` 比对被 `sha_registered[0]` 短路、`:780` 的 `expected_build_id` 硬传空、`verify_install_tree.py` 非空分支不存在且校验器在 145 项检查里零注册 ⇒ 换掉 `modules/*.dll` 只要文件存在即放行。
-- **W3-R2-001**：`aio_upm.cpp:101-110` Windows 正常路径先 `std::remove(path)` 再 `rename`，二次失败再删 tmp ⇒ 旧新模型同灭而注释称「失败可恢复」为假；同仓 `io_adapter.cpp:124-127` 与 `hiss_stream_writer.cpp` 已有正确写法。
+lib/healpix_db/healpix_drizzle → lib/algorithms/drizzle/healpix_drizzle；lib/astro_image_io → lib/infrastructure/aio；lib/drizzle·lib/hips → lib/algorithms/drizzle/{,hips/}src；lib/gaia_xpsd_client·lib/backend_host → lib/infrastructure/{gaia_xpsd_client,benchmark/backend_host}；lib/plate_solve → lib/algorithms/platesolve；lib/snr_estimator → lib/algorithms/noise_snr（该 TU 仍 untracked、未入编译图）；lib/core/module_adapters.cpp 与 runtime/runtime.cpp → lib/infrastructure/scheduler/src/；lib/orchestrator → lib/infrastructure/pipeline/orchestrator；healpix_browser_qt → lib/infrastructure/hips_browser/。cli/resource_gate.h·cli/monitor.h 未迁移，但 CLI-001 使 commands.cpp 行号整体前移（原判 843-853/912/946 → 现 745-753/795/806/846），V21-N-15/16/17、W3-R2-006 已按现树重定位。
 
-（次重要：V21-N-17 内存回压双哨兵恒假、W3-R2-002 取消通道整体断线、W6-N-05 导出面合同无机器消费者。）
+## 原判据被现树否证的子项（第 10 列逐条标「订正」，未据此改判四态）
+
+1. W1-N-01：Gaia 硬顶实为每文件 collector（gaia_client.c:2099/2101/2124），原「跨文件全局硬顶」机制不成立；但 n_ret 是跨文件求和、与每文件上限同型比较仍会误判 capped，且公开头 ipv_types.h:258-260 仍写「整数倍」旧口径与 :487 实现互斥 ⇒ 仍 OPEN。
+2. W3-R2-002：resample band worker 已有取消安全点（module_adapters.cpp:5611）；残余为 astrocs_host_state_set_cancel 全仓零调用 ⇒ host->cancel->is_cancelled 恒 false，范围收窄但 OPEN。
+3. V21-N-05：无构建树一腿已按 GAP-027 改 fail-closed（:98-103）；残余为子进程退出码从不读取、|| true 拉平 ⇒ OPEN。
+4. V21-N-07：tools/assemble_audit.py 已按 RETIRE-001 显式退役（打印 ASSEMBLE_AUDIT_RETIRED + exit 2），且 package_audit/build_v19r{2,3,4} 在 ci/checks.json 引用数为 0；三份脚本 rc 仍不判定 ⇒ 降级为遗留处置，仍 OPEN。
+5. V21-N-12：loader 侧非空哈希分支已在 secure_loader.c:499 实现；残余为清单哈希全 null + module_registry.c:734 双非空短路 + :780 build_id 传 "" + verify_install_tree 无非空分支 + 测试反向钉 null ⇒ OPEN。
+6. W6-N-02：注册表已由 135 道平铺门改为 38 聚合门 + 147 step，validate_registry.py 的 R12 名额已被「steps 派发结构」占用（prereq→waiver 绑定仍无实现）；按新口径重算（27/147 声明，ctest 51 步零声明）核心仍成立 ⇒ OPEN。
+
+## 异常
+
+- SHARD_BRIEF §5 给出的 REBASE.md 路径片段在仓内不存在，实际口径文件在仓库根 `问题扫描/REBASE.md`。
+- 4 条引文（V10-N-06、V21-N-05、V7-N-04、V10-N-07）原文含 C 逻辑或两句号，与 PSV 分隔符冲突，第 6 列内以「∥」转写并在该列注明该约定；其余引文逐字未改。
+- 需真机或外部条件才能判定的子项（W3-R2-001 Windows 双失败实跑、W6-N-03 cmake --install 交付树、W6-N-05 dumpbin 导出集、W3-R2-006 TSan、W1-N-04 入库后实跑、V21-N-12 打包期是否真填哈希）在第 10 列显式声明「不另判」，判定只建立在可复跑的静态证据上；无一条因此被推定 UNVERIFIABLE，也未为凑数强判。
+- 本分片未做任何修复、未做 git 写、未读 FATDUCK_ACCESS.md、未改仓库根条目与他人分片产物；除本分片日志外未写 run/。

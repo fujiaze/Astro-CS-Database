@@ -30,6 +30,16 @@ HELP_LINES = [
     "astrocs benchmark",
 ]
 
+# CLI-002/CLI-11: 子命令 --help 的字段表必须覆盖该命令的**关键必填键**
+# （与 --template 同源; 逐命令取最小必需集, 不做全文对照以免与模板演进耦合）。
+FIELDS_MIN = {
+    "normalize": ("schema_version", "input_lights", "master_bias", "master_dark",
+                  "master_flat", "output_dir", "drizzle", "wcs"),
+    "mosaic": ("schema_version", "hips_paths", "output_dir", "weight_mode"),
+    "export": ("schema_version", "source", "output_dir", "center", "width_px",
+               "height_px", "scale_deg_per_px"),
+}
+
 LEGACY = ([[c, sub] for c in ("phase1", "phase2", "phase3")
            for sub in ("run", "validate", "plan", "inspect")] +
           [["phase1"], ["phase2"], ["phase3"], ["phase1-run"], ["phase-1"], ["Phase1"],
@@ -99,7 +109,18 @@ class TestCommandTree(unittest.TestCase):
         for cmd in ("normalize", "mosaic", "export"):
             r = self.cli(cmd, "--help")
             self.assertEqual(r.returncode, 0, f"{cmd} --help rc={r.returncode}")
-            self.assertEqual(r.stdout.strip(), f"astrocs {cmd} (--json <config.json> | --template [-o <path>] | --help)")
+            lines = [l for l in r.stdout.splitlines() if l.strip()]
+            # CLI-002/CLI-11: §1「子命令帮助与**字段说明**」—— usage 行恒为第一行,
+            # 其后为该命令的配置字段表（与 --template 同源生成, session_commands.h
+            # config_fields）。旧断言要求 stdout 恰为 usage 行（早于字段说明要求）。
+            self.assertEqual(lines[0],
+                             f"astrocs {cmd} (--json <config.json> | --template [-o <path>] | --help)")
+            self.assertEqual(lines[1].strip(), "fields:", "子命令帮助必须给字段说明")
+            fields = [l.split(" — ")[0].strip() for l in lines[2:] if " — " in l]
+            self.assertTrue(fields, f"{cmd} --help 字段表为空")
+            for k in FIELDS_MIN[cmd]:
+                self.assertTrue(any(f.split(" ")[0] == k for f in fields),
+                                f"{cmd} --help 缺字段 {k}: {fields}")
 
     # ── 2. 旧命令全部 rc=2 ──
     def test_03_legacy_commands_exit_2(self):

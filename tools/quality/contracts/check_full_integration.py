@@ -6,18 +6,51 @@ Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error
 """
 import argparse, json, pathlib, sys, subprocess
 
+# W4-A3（B 类收口）：报告生成器的子进程超时此前**未捕获** —— subprocess.run(timeout=30)
+# 抛出 TimeoutExpired 时本脚本以未捕获 Traceback 退出（exit 1 + 30 行栈），既不是
+# 合同 FAIL 也不是环境错，违反 ENGINEERING_SPEC §8「fail-closed 且不 traceback」。
+# 现改为：① 默认预算放宽到 300s（30s 对全仓合同报告不足，实测超时）；
+# ② 超时/无法启动一律转成具名 finding（INTEG-REPORT-TIMEOUT / INTEG-REPORT-ERROR）
+#    并以 status=FAIL 干净退出；③ __main__ 兜底把任何意外异常转成 exit 2 单行说明。
+DEFAULT_REPORT_TIMEOUT_S = 300
+
+
+def _run_report(repo, tf, timeout_s):
+    """跑 generate_contract_report；返回 (findings, note)。绝不抛异常。"""
+    cmd = [sys.executable, str(repo / "tools/quality/contracts/generate_contract_report.py"),
+           "--repo", str(repo), "--out-json", str(tf)]
+    try:
+        subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        return [{"id": "INTEG-REPORT-TIMEOUT", "severity": "P1",
+                 "symbol": "generate_contract_report",
+                 "observed": "子进程 %ds 未结束（已终止）" % timeout_s,
+                 "expected": "在 --report-timeout 内产出 report JSON"}], \
+               "报告生成超时 %ds" % timeout_s
+    except OSError as exc:
+        return [{"id": "INTEG-REPORT-ERROR", "severity": "P1",
+                 "symbol": "generate_contract_report",
+                 "observed": "无法启动: %s" % exc, "expected": "可执行"}], \
+               "报告生成无法启动"
+    return [], None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default=".")
     ap.add_argument("--out-json", default=None)
     ap.add_argument("--out-junit", default=None)
+    ap.add_argument("--report-timeout", type=int, default=DEFAULT_REPORT_TIMEOUT_S,
+                    help="generate_contract_report 子进程预算秒数（默认 %d）"
+                         % DEFAULT_REPORT_TIMEOUT_S)
     args = ap.parse_args()
     repo = pathlib.Path(args.repo)
     findings = []
     # Run generate_contract_report to get overall
     import tempfile
     tf = pathlib.Path(tempfile.mktemp(suffix=".json"))
-    out = subprocess.run([sys.executable, str(repo / "tools/quality/contracts/generate_contract_report.py"), "--repo", str(repo), "--out-json", str(tf)], capture_output=True, text=True, timeout=30)
+    rep_findings, rep_note = _run_report(repo, tf, args.report_timeout)
+    findings.extend(rep_findings)
     try:
         data = json.loads(tf.read_text(encoding="utf-8"))
         tf.unlink(missing_ok=True)
@@ -31,7 +64,11 @@ def main():
             w=json.loads(waivers.read_text(encoding="utf-8"))
             if w != []:
                 findings.append({"id":"INTEG-WAIVERS-NONEMPTY","severity":"P1","observed":f"waivers {w}","expected":"[]"})
-        except: pass
+        except Exception as exc:  # noqa: BLE001
+            # W4-A3：原为裸 `except: pass` —— waivers.json 坏掉时静默放行（"豁免面被移空"
+            # 正是要防的失效型）。现显式登记为 P1 finding。
+            findings.append({"id":"INTEG-WAIVERS-BAD-JSON","severity":"P1",
+                             "observed":f"waivers.json 不可解析: {exc}","expected":"[] 或合法 JSON"})
     # Check P0/P1: 豁免必须条件化, 否则 DELIVERED 永远可达。
     # 豁免白名单口径(来自 T411/T500 上下文): 仅 T407 的 FORBID-HARDCODE-THREADS
     # (hardcoded num_threads(16)) 属挂账债务 pending T500, 额度上限 10 条;
@@ -84,4 +121,12 @@ def main():
     return 0 if status in ("PASS","DELIVERED") else 1
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # W4-A3：兜底 —— 任何意外异常转成 exit 2 + 单行说明，绝不打印 Traceback。
+    try:
+        sys.exit(main())
+    except SystemExit:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        print("INTEGRATION_CHECK_ERROR: 未捕获异常 %r（fail-closed，exit 2）" % (exc,),
+              file=sys.stderr)
+        sys.exit(2)

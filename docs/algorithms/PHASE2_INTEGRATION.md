@@ -1,7 +1,7 @@
 # Phase2 Integration Algorithms（P2-INT / astrocs.p2.integration）
 
 > ID: ALG-P2-INT-001  状态: CONTRACT_READY（P2-INT-DOC 冻结，2026-09-09）
-> 模块: lib/algorithms/coverage/src/integrate.cpp（76 行，astrocs_phase2 静态库成员，
+> 模块: lib/algorithms/coverage/src/integrate.cpp（81 行，2026-09-17 LEDGER-DOC 复测；旧记 76 行为迁移前行数，astrocs_phase2 静态库成员，
 > 根 CMakeLists.txt:336-346/:344）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-INT-001
@@ -46,7 +46,7 @@
 `stack.equal.v1`（等权）。mode/策略属于调用方（stage2.cpp:1106-1140
 构造 numeric weights），reducer 只消费权重数组本身。
 
-## 3 逐符号锚（integrate.cpp 76 行 / integrate.h 74 行，2026-09-09 实测）
+## 3 逐符号锚（integrate.cpp 81 行 / integrate.h 74 行，2026-09-17 LEDGER-DOC 复测；旧记 76 行）
 
 | 符号/段 | 锚（integrate.cpp） | 语义 |
 |---|---|---|
@@ -178,7 +178,7 @@ eligibility（逐候选 i，候选索引固定序）:
   **旧登记「实现现状 = max over {valid ∧ W>0}」已过期**（实现位置为
   `:49-50`，不在 `w==0 continue` 之后），不得据此整改实现。
 - SCI §5:63 声称与 "integrate.cpp:10-79" / "integrate.h:1-75"
-  一致——实测文件为 76 行/74 行（锚漂移，行号如实以本文档 §3
+  一致——实测文件为 81 行/74 行（2026-09-17 复测；旧记 76 行，锚漂移，行号如实以本文档 §3
   为准；语义一致不含该行号范围漂移）。
 
 ## 8 单位与 dtype 登记（唯一权威=DATA_SEMANTICS §21）
@@ -307,7 +307,7 @@ eligibility（逐候选 i，候选索引固定序）:
 
 ## 13 追溯
 
-- 实现: lib/algorithms/coverage/src/integrate.cpp（76 行）+
+- 实现: lib/algorithms/coverage/src/integrate.cpp（81 行，2026-09-17 复测）+
   lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）。
 - 合同: DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001
   （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，§11.4 设计冻结）。

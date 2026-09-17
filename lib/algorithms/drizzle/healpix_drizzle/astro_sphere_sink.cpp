@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -254,11 +255,40 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     const uint32_t leaf_order = ilog2_u64(nside);
     const uint64_t std_parent_count = 12ULL * (1ULL << (2 * (leaf_order - 9)));
 
+    // DATA-P1-HIPS §12.1/§12.2 产品集: variance/ivar Image HiPS 由累加器
+    // var_num_sum (= Σ v_j·w_jp², SCI-DRZ-014 §5) 经同一 writer 通道落盘。
+    // 方差面**不再硬编码为「不请求」**: 累加器携带有限正方差累加量时请求
+    // VARIANCE|IVAR 并把 var_num_sum 交给 writer —— 与 write_hips_direct 的
+    // has_variance 分支同一冻结通道, 禁止第二套方差语义。方差面全零/全无效
+    // (无方差输入) 时保持既有 signal+support 两产品面逐字节不变。
+    bool has_variance = false;
+    for (const auto& t : tiles) {
+        if (t.touched.empty()) continue;
+        for (uint32_t local : t.touched) {
+            if (local >= n_leaf || local >= t.pixels.size()) continue;
+            const double vn = (double)t.pixels[local].sumVarNum;
+            if (std::isfinite(vn) && vn > 0.0) { has_variance = true; break; }
+        }
+        if (has_variance) break;
+    }
+    // 故障注入面（ENGINEERING_SPEC §8 可执行负例）: ASTROCS_IVAR_FAULT=
+    // no_variance_flags 模拟「累加器已含方差却不请求 variance/ivar 产品位」
+    // 缺陷 → IVAR-001 新增门必然判红（见 run/PROJECT-GOVERNANCE-01/IVAR-001）。
+    {
+        const char* sink_fault = std::getenv("ASTROCS_IVAR_FAULT");
+        if (sink_fault && std::string(sink_fault) == "no_variance_flags")
+            has_variance = false;
+    }
+    const int prod_flags =
+        has_variance ? (AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
+                        AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR)
+                     : (AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT);
+
     // product_begin 参数与旧 writer 逐项一致 (creator_did/obs_title/obs_filter/
-    // exposure/obs_date/moc_order), 不写 drizzle provenance, 不写 variance/snr。
+    // exposure/obs_date/moc_order), 不写 drizzle provenance, 不写 snr。
     AioHipsProductSet* ps = aio_hips_product_begin(
         hips_dir.c_str(), nside, 512, AIO_HIPS_FLOAT32,
-        AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
+        prod_flags,
         "astrocs/phase1", "AstroCS Phase1 single-frame stack",
         filter_passband.c_str(), 0.0, nullptr, 0);
     if (!ps) {
@@ -284,13 +314,16 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
     std::vector<float> flux_buf(n_leaf, 0.0f);
     std::vector<float> area_buf(n_leaf, 0.0f);
     std::vector<uint8_t> valid_buf(n_leaf, 0);
+    std::vector<float> var_buf(n_leaf, 0.0f);
     size_t n_written = 0;
+    uint64_t n_variance_written = 0, n_variance_skipped = 0;
     for (const auto* tp : ordered) {
         if (tp->parent_ipix >= std_parent_count) continue;  // 越界 parent 不写出
         const auto t_tr0 = std::chrono::steady_clock::now();
         std::fill(flux_buf.begin(), flux_buf.end(), 0.0f);
         std::fill(area_buf.begin(), area_buf.end(), 0.0f);
         std::fill(valid_buf.begin(), valid_buf.end(), 0);
+        if (has_variance) std::fill(var_buf.begin(), var_buf.end(), 0.0f);
         for (uint32_t local : tp->touched) {
             if (local >= n_leaf || local >= tp->pixels.size()) continue;
             const auto& acc = tp->pixels[local];
@@ -306,6 +339,10 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
             flux_buf[local] = (float)((double)acc.sumFlux);
             // covered_area = (u8/255)·A_cell (旧 writer 的面积比连续缩放)
             area_buf[local] = (float)(((double)q / 255.0) * a_cell);
+            // variance 分子 Σ v_j·w_jp² (ADU², SCI-DRZ-014 §5); writer 归约
+            // variance = var_num_sum/covered_area²、ivar = 1/variance (§12.2/§4a)。
+            if (has_variance)
+                var_buf[local] = (float)((double)acc.sumVarNum);
             valid_buf[local] = 1;
         }
         prof_transform += std::chrono::duration<double>(
@@ -320,7 +357,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         view.flux_sum = flux_buf.data();
         view.covered_area = area_buf.data();
         view.valid_mask = valid_buf.data();  // 显式 per-parent 有效掩膜
-        view.var_num_sum = nullptr;
+        view.var_num_sum = has_variance ? (const void*)var_buf.data() : nullptr;
         aio_hips_tile_view_abi_init(&view);
         const int rc = aio_hips_write_signal_support_tile(ps, &view);
         if (rc != 0) {
@@ -329,6 +366,23 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
             aio_hips_abort(ps);
             std::fprintf(stderr, "[sink][phase1] %s\n", err.c_str());
             return false;
+        }
+        if (has_variance) {
+            aio_hips_tile_view_abi_init(&view);
+            const int vrc = aio_hips_write_variance_tile(ps, &view);
+            if (vrc == -5 || vrc == -2) {
+                // 该 tile 全无效方差 → 不落盘 (§12.4 显式失败而非空产品),
+                // signal/support 已写, 正常收尾。
+                ++n_variance_skipped;
+            } else if (vrc != 0) {
+                err = "aio_hips_write_variance_tile rc=" + std::to_string(vrc) +
+                      ": " + (aio_hips_last_error() ? aio_hips_last_error() : "?");
+                aio_hips_abort(ps);
+                std::fprintf(stderr, "[sink][phase1] %s\n", err.c_str());
+                return false;
+            } else {
+                ++n_variance_written;
+            }
         }
         prof_fits_write += std::chrono::duration<double>(
             std::chrono::steady_clock::now() - t_wr0).count();
@@ -352,6 +406,11 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         std::chrono::steady_clock::now() - t_fin0).count();
     std::fprintf(stderr, "[sink][phase1] HiPS 直写完成: %zu tiles -> %s\n",
                  n_written, hips_dir.c_str());
+    std::fprintf(stderr,
+                 "[sink][phase1] variance/ivar 子产品: has_variance=%d written=%llu"
+                 " skipped(no-data)=%llu (DATA-P1-HIPS §12.2)\n",
+                 has_variance ? 1 : 0, (unsigned long long)n_variance_written,
+                 (unsigned long long)n_variance_skipped);
     std::fprintf(stderr,
                  "[sink][phase1][profile] transform=%.3fs fits_write=%.3fs "
                  "finalize=%.3fs total=%.3fs\n",

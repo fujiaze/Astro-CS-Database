@@ -449,6 +449,12 @@
       "grade": "P0",
       "name": "ci/impact_map.json 判据一致性门（changed-path→checks 映射；ENGINEERING_SPEC §8）",
       "doc": "docs/ci/01_CHECKS.md §2（W4-A3 登记）"
+    },
+    "CHK-PKG-CONSISTENCY": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "产品清单/安装树合同/依赖锁/安装规则/许可登记面一致 + SBOM 实树 hash 自证",
+      "doc": "docs/ci/01_CHECKS.md §2（W5-PKG-001 交付，W4-A3 注册）"
     }
   },
   "reserved_targets": {
@@ -1879,6 +1885,191 @@
       "kind": "extension",
       "grade": "P0",
       "note": "W4-A3（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）：收口 ci/tests/test_impact_map.py 4 条既有红的根因（step id 与顶层 id 混用）"
+    },
+    {
+      "old_id": "CTEST-AIO-ABI-LAYOUT-LOCK",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-AIO-ABI-LAYOUT-LOCK-SELFCHECK",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-IPV-DEAD-PARAMS-LOCK",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-IPV-DEAD-PARAMS-LOCK-SELFCHECK",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-CENTROID-GATE",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-CENTROID-GATE-NEG",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-CENTER-CONTRACT",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-CENTER-CONTRACT-NEG",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-CENTER-CONTRACT-ASTROPY",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-NUMPY-ORACLE",
+      "decision": "KEPT",
+      "target": "CHK-ORACLE",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-SCI-EVIDENCE-REGISTRATION",
+      "decision": "KEPT",
+      "target": "CHK-MODULE-MANIFEST",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "PKG-CONSISTENCY",
+      "decision": "KEPT",
+      "target": "CHK-PKG-CONSISTENCY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 ci/checks.json 注册（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "PKG-CONSISTENCY-NEG",
+      "decision": "KEPT",
+      "target": "CHK-PKG-CONSISTENCY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 ci/checks.json 注册（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "PKG-SBOM",
+      "decision": "KEPT",
+      "target": "CHK-PKG-CONSISTENCY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 ci/checks.json 注册（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "PKG-SBOM-NEG",
+      "decision": "KEPT",
+      "target": "CHK-PKG-CONSISTENCY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 ci/checks.json 注册（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "UT-CONFIG",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 18,
+      "note": "W5-CFG-002（2026-09-17）交付 tests/config（47 例 rc=0）；W4-A3 注册为 CHK-UNIT 执行单元（原无 CI 步骤）"
+    },
+    {
+      "old_id": "CTEST-P1CAL-BIAS-INFLUENCE-GATE",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1cal_bias_influence_gate（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-MASK",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_mask（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-SATURATION",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-SATURATION-SELFCHECK",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation_selfcheck（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-SATURATION-WIRING",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation_wiring（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-ABI-LAYOUT",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_abi_layout（CHK-ABI 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CTEST-P1WCS-CLOSURE-METRIC-GATE",
+      "decision": "KEPT",
+      "target": "CHK-ORACLE",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3：登记新交付的 ctest 目标 p1wcs_closure_metric_gate（CHK-ORACLE 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
     }
   ],
   "coverage": {
@@ -1889,7 +2080,7 @@
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。",
     "absorbed_entries": [
       "CHK-SECRET-HYGIENE",
       "STD-REG",
@@ -1900,7 +2091,30 @@
       "RESOURCE-GATE-REAL",
       "RESOURCE-GATE-REAL-NEG",
       "IMPACT-MAP",
-      "IMPACT-MAP-SELFTEST"
+      "IMPACT-MAP-SELFTEST",
+      "CTEST-AIO-ABI-LAYOUT-LOCK",
+      "CTEST-AIO-ABI-LAYOUT-LOCK-SELFCHECK",
+      "CTEST-IPV-DEAD-PARAMS-LOCK",
+      "CTEST-IPV-DEAD-PARAMS-LOCK-SELFCHECK",
+      "CTEST-P1PSF-CENTROID-GATE",
+      "CTEST-P1PSF-CENTROID-GATE-NEG",
+      "CTEST-P1PSF-CENTER-CONTRACT",
+      "CTEST-P1PSF-CENTER-CONTRACT-NEG",
+      "CTEST-P1PSF-CENTER-CONTRACT-ASTROPY",
+      "CTEST-P1NOISE-NUMPY-ORACLE",
+      "CTEST-SCI-EVIDENCE-REGISTRATION",
+      "PKG-CONSISTENCY",
+      "PKG-CONSISTENCY-NEG",
+      "PKG-SBOM",
+      "PKG-SBOM-NEG",
+      "UT-CONFIG",
+      "CTEST-P1CAL-BIAS-INFLUENCE-GATE",
+      "CTEST-P1NOISE-MASK",
+      "CTEST-P1NOISE-SATURATION",
+      "CTEST-P1NOISE-SATURATION-SELFCHECK",
+      "CTEST-P1NOISE-SATURATION-WIRING",
+      "CTEST-P1NOISE-ABI-LAYOUT",
+      "CTEST-P1WCS-CLOSURE-METRIC-GATE"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

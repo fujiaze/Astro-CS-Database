@@ -1,6 +1,6 @@
 # Phase3 HiPS→FITS Resample Algorithms (ALG-P3)
 
-> ID: ALG-P3-001  范围: ALG-P3-001..004  上游 SCI: SCI-P3-001  状态: DERIVED (V6 ALG-008, 2026-09-16；V5 ALG-007 2026-08-28)  模块: phase3 (施工规格; 重采样域实现级合同=ALG-P3-RSMP-IMPL-001 docs/algorithms/PHASE3_RSMP_IMPL.md, 投影域=ALG-P3-PROJ-IMPL-001, 写出域=ALG-P3-FITS-IMPL-001; 生产源 lib/phase3_session/p3_resample.cpp 239 行实测在库)
+> ID: ALG-P3-001  范围: ALG-P3-001..004  上游 SCI: SCI-P3-001  状态: DERIVED (V6 ALG-008, 2026-09-16；V5 ALG-007 2026-08-28)  模块: phase3 (施工规格; 重采样域实现级合同=ALG-P3-RSMP-IMPL-001 docs/algorithms/PHASE3_RSMP_IMPL.md, 投影域=ALG-P3-PROJ-IMPL-001, 写出域=ALG-P3-FITS-IMPL-001; 生产源 lib/algorithms/resample/p3_resample.cpp 239 行实测在库)
 
 ## 1 上游 SCI 与输入输出
 
@@ -42,6 +42,12 @@ G4 (ALG-P3-003) leaf 采样:
   nearest: S = tile[lx,ly]（**存在判定→coverage**：tile 像素存在即 C=1，值 NaN 照传）
   bilinear: 邻域 4 leaf 权重 w=面积重叠分数(投影线性化), **Σw = 1 ± k·ULP**(k 由累加 dtype 定),
             S=Σ w·tile_value, 跨 tile 读相邻 tile（NESTED 面邻接含轴翻转/镜像）
+            **邻域非有限规则（D10 冻结，2026-09-17）**: 4 邻域中任一 leaf 值为 NaN
+            ⇒ S=NaN，且**不**对剩余有效邻域重归一化（权重仍按几何 Σw=1 计，
+            已算出的有限加权和被丢弃）；C 不变（4 个 tile 均可读则 C=1）。
+            ±Inf 不单列判定，按 IEEE 进入加权和（0·Inf ⇒ NaN）
+            实现锚: lib/algorithms/resample/p3_resample.cpp 的 p3_sample_bilinear_ex
+            （any_nan → *value=NaN, *coverage=1；不重归一化）
 
 G5 (ALG-P3-004) FITS 写:
   BITPIX=−32/−64, BSCALE=1, BZERO=0, BUNIT=properties(缺省 'ADU')
@@ -80,7 +86,10 @@ function phase3_resample(hips_dir, params):
 | 条件 | 行为 |
 |---|---|
 | 缺 tile 文件 | 该足迹 C=0, S=NaN, provenance 记 missing, 不中断 |
-| tile 内 NaN | S=NaN, C=1(mask 语义=coverage+NaN 判定) |
+| tile 内 NaN（nearest） | S=NaN, C=1(mask 语义=coverage+NaN 判定) |
+| bilinear 四邻域**部分** NaN | S=NaN 且**不重归一化**剩余有效邻域（权重按几何 Σw=1，有限加权和被丢弃）；C=1（4 tile 均可读）——非有限优先于加权，禁「有效邻域重归一化」与「零填」两种替代语义 |
+| bilinear 四邻域 tile 全缺失 | 该足迹 C=0, S=NaN, provenance 记 missing |
+| bilinear 邻域含 ±Inf | 不单列判定，按 IEEE 进加权和（0·Inf ⇒ NaN）；coverage 规则同上 |
 | RA wrap 0/360 | 球面角差归一, 无接缝 |
 | 中心距极点 <5° / 输出跨 TAN 半球 | 显式拒(G2 前) |
 | properties 非法/缺键 | 显式拒(ALG-P3-001), 无 silent default |

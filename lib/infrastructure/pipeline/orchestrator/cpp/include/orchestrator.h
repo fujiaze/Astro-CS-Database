@@ -382,6 +382,11 @@ public:
         std::vector<double>& astro_det);
 
 private:
+    // ORCH-001 批次 3（可执行级接线门）：测试友元。不放宽任何生产公开 API ——
+    // 仅让共址门直接驱动私有 stage 处理器（run_stage_snr）并可注入最小链路状态
+    // （dll_loader_/dlls_loaded_/frame_）。生产路径（init_dlls/run_stage1）不经此。
+    friend struct OrchestratorGatePeer;
+
     OrchestratorConfig config_;
     std::atomic<TaskState> state_{TaskState::IDLE};
     std::string current_frame_;

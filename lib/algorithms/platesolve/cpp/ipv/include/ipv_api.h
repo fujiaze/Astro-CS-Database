@@ -152,7 +152,8 @@ IPV_API int ipv_solve_from_memory(
 // ============================================================================
 // 候选路径 A / 路径 B API (实验性, 生产默认不调用)
 //
-// 规范: docs/05_STAR_DETECT_PSF_DEDUP_SPEC.md
+// 规范: docs/algorithms/STAR_DETECTION_ALGORITHMS.md §2（star_det v1 十数组输出语义）
+//       + docs/contracts/DATA_SEMANTICS.md §17（star_det v1 [N,6] 权威块）
 // star_det v1 格式: FLOAT64 [N,6]
 // 0: x_px 1: y_px 2: flux
 // 3: mag 4: saturated 5: has_saturated

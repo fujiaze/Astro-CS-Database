@@ -120,8 +120,9 @@ notes: >-
   真实节点化在 B 线 registry 通道落地（module_adapters.cpp p1_nodes[]，
   各自唯一真实 operation 委托，子节点不调 phase_session_run）；
   P1-001 attempt 2 口径更新三域再真实化：star-psf=sdet 检测+
-  dpsf_fit_batch_f64 批量 PSF 拟合（Moffat4 FP64）、wcs=ipv 求解链
-  （Linux=源内 stub fail-closed、Windows=真实求解）、writer=aio_hips
+  dpsf_fit_batch_f64 批量 PSF 拟合（Moffat4 FP64）、wcs=ipv 真实求解链
+  （两平台同源：非 Windows 静态绑定、Windows 动态加载同一组生产 C API，
+  源内已无平台 stub；explicit_config 仅为显式八参数旁路）、writer=aio_hips
   标准 HiPS 写链（p1_stack.hiss→IVOA 1.4 512×512 signal/support/
   properties/MOC）；
   A 线 CLI 生产 7-stage 全链=production_call_paths_stage1.csv（DLL 显式

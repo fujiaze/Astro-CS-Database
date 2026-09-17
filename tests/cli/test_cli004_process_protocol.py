@@ -151,9 +151,16 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         # FIX-E2E B1-A1/A9: phase1 正式链为 8 节点端口链, drizzle/wcs 为链上必填科学配置。
         # 新树扁平会话形态（input_lights 在顶层; 预检按键名计数）。
         cfg = os.path.join(self.tmp, "cfg_%s.json" % os.path.basename(out))
+        # SMOKE-001 D4: normalize 预检对缺失标定帧判 error（§3.5，仅 -force 可越），
+        # 故配置须显式给三个 master（fixture --make 真实产出 bias/dark/flat）。
         with open(cfg, "w", encoding="utf-8") as fh:
             json.dump({"schema_version": "1",
                        "input_lights": lights,
+                       "master_bias": os.path.join(self.data, "bias.fits"),
+                       "master_dark": os.path.join(self.data, "dark.fits"),
+                       "master_flat": os.path.join(self.data, "flat.fits"),
+                       # BIAS-001: 夹具 dark.fits 含 bias ⇒ 显式声明兼容式标定。
+                       "dark_optimization": True,
                        "output_dir": out,
                        "wcs": {"crpix1": 32.5, "crpix2": 32.5, "crval1": 210.0,
                                "crval2": 34.0, "cd11": -2.7777777777777776e-4,
@@ -307,7 +314,12 @@ class TestCli004ProcessProtocol(unittest.TestCase):
                             capture_output=True, text=True, timeout=120, cwd=run_cwd())
         self.assertEqual(r2.returncode, 3)
         self.assertNotIn('"kind"', r2.stdout)
-        self.assertRegex(os.path.basename(r2.stdout.strip()), r"^astrocs_run_[0-9a-f]{12}\.json$")
+        # SMOKE-001 D7（§3 stdout 纪律）: 失败 run 的结果面不得与成功同形 ——
+        # stdout 只承载成功结果；incomplete manifest 路径走 stderr 诊断。
+        self.assertEqual(r2.stdout, "", "失败 run 不得在 stdout 打印 manifest 路径")
+        self.assertRegex(os.path.basename([l.split(": ")[-1] for l in r2.stderr.splitlines()
+                                           if "run manifest:" in l][-1]),
+                         r"^astrocs_run_[0-9a-f]{12}\.json$")
 
     # ── 6. CLI 无 Qt/HiPS Browser 链接(源码 + 动态依赖) ──
     def test_06_no_qt_hips_browser_links(self):

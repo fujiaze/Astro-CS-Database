@@ -1,37 +1,62 @@
 # Comment Hygiene Report (V19R2)
 
-- files scanned: 682
-- violation lines: 112
-- files with violations: 54
+- files scanned: 744
+- violation lines: 146
+- files with violations: 64
 
--   10  lib/core/src/module_adapters.cpp
--    9  lib/astro_image_io/include/aio_hips.h
--    8  lib/astro_image_io/src/hips/aio_hips_writer.cpp
--    6  lib/astro_image_io/tests/p1hips/p1hips_digest_verify.cpp
--    6  lib/backend_host/bench_report.h
--    6  lib/photometric_calib/cpp/src/pc_api.cpp
+-   16  lib/infrastructure/scheduler/src/module_adapters.cpp
+-    9  lib/infrastructure/aio/include/aio_hips.h
+-    9  lib/infrastructure/cli/resource_gate.h
+-    8  lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
+-    7  lib/infrastructure/cli/commands.cpp
+-    6  lib/algorithms/photometry/cpp/src/pc_api.cpp
+-    6  lib/infrastructure/aio/tests/p1hips/p1hips_digest_verify.cpp
+-    6  lib/infrastructure/benchmark/backend_host/bench_report.h
+-    4  lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp
+-    4  lib/infrastructure/cli/parser.cpp
 -    4  lib/phase1_session/p1_session.cpp
--    4  lib/plate_solve/cpp/ipv/src/ipv_select.cpp
--    3  lib/astro_image_io/tests/p2hips/p2hips_unc_prov_test.cpp
--    3  lib/backend_host/profile_store.h
--    3  lib/phase2/src/coverage.cpp
--    2  lib/astro_image_io/tests/p1hips/p1hips_tests_diag_prov.cpp
--    2  lib/backend_host/worker_advisor.h
+-    3  lib/algorithms/coverage/src/coverage.cpp
+-    3  lib/infrastructure/aio/tests/p2hips/p2hips_unc_prov_test.cpp
+-    3  lib/infrastructure/benchmark/backend_host/profile_store.h
+-    2  lib/algorithms/coverage/include/astro/phase2/coverage.h
+-    2  lib/algorithms/coverage/src/sampler.cpp
+-    2  lib/algorithms/photometry/cpp/test/test_p0_sip_order_guard.cpp
+-    2  lib/infrastructure/aio/tests/p1hips/p1hips_tests_diag_prov.cpp
+-    2  lib/infrastructure/benchmark/backend_host/worker_advisor.h
+-    2  lib/infrastructure/cli/memory_report.h
 -    2  lib/phase1_session/tests/test_p1_session_manifest.cpp
--    2  lib/phase2/include/astro/phase2/coverage.h
--    2  lib/phase2/src/sampler.cpp
 -    2  lib/phase3_session/p3_output.cpp
--    2  lib/photometric_calib/cpp/test/test_p0_sip_order_guard.cpp
--    1  lib/backend_host/backend_loader.cpp
--    1  lib/backend_host/bench_report.cpp
--    1  lib/backend_host/cpu_routing.h
--    1  lib/backend_host/profile_store.cpp
--    1  lib/cosmetic/tests/p1cos/p1cos_test_main.hpp
--    1  lib/dynamic_psf/tests/p1psf/p1psf_fixtures.hpp
--    1  lib/orchestrator/cpp/include/cli_command.h
--    1  lib/orchestrator/cpp/src/cli_command.cpp
--    1  lib/orchestrator/cpp/src/orchestrator.cpp
--    1  lib/orchestrator/cpp/tests/test_p1_batchB_fixes.cpp
+-    1  lib/algorithms/cosmetic/tests/p1cos/p1cos_test_main.hpp
+-    1  lib/algorithms/coverage/include/astro/phase2/rejection.h
+-    1  lib/algorithms/coverage/include/astro/phase2/sampler.h
+-    1  lib/algorithms/coverage/include/astro/phase2/upm.h
+-    1  lib/algorithms/coverage/src/rejection.cpp
+-    1  lib/algorithms/coverage/src/upm.cpp
+-    1  lib/algorithms/coverage/tests/ivar_wiring_test.cpp
+-    1  lib/algorithms/noise_snr/tests/p1noise/p1noise_fixtures.hpp
+-    1  lib/algorithms/noise_snr/tests/p1noise/p1noise_test_main.hpp
+-    1  lib/algorithms/noise_snr/tests/p1noise/p1noise_tests_core.cpp
+-    1  lib/algorithms/photometry/cpp/src/wcs_transform.cpp
+-    1  lib/algorithms/photometry/cpp/test/test_p0_pc_api_exception_barrier.cpp
+-    1  lib/algorithms/photometry/tests/p1phot/p1phot_test_main.hpp
+-    1  lib/algorithms/photometry/wrapper_phase1/tests/p1phot/p1phot_fixtures.hpp
+-    1  lib/algorithms/projection/p3_proj_v6.h
+-    1  lib/algorithms/psf/tests/p1psf/p1psf_fixtures.hpp
+-    1  lib/algorithms/resample/p3_rsmp.h
+-    1  lib/algorithms/star_detection/tests/p1star/p1star_test_main.hpp
+-    1  lib/infrastructure/benchmark/backend_host/backend_loader.cpp
+-    1  lib/infrastructure/benchmark/backend_host/bench_report.cpp
+-    1  lib/infrastructure/benchmark/backend_host/cpu_routing.h
+-    1  lib/infrastructure/benchmark/backend_host/profile_store.cpp
+-    1  lib/infrastructure/cli/main.cpp
+-    1  lib/infrastructure/cli/protocol.h
+-    1  lib/infrastructure/cli/runtime_client.cpp
+-    1  lib/infrastructure/cli/v6_mode_gate.h
+-    1  lib/infrastructure/cli/v6_runtime_contract.h
+-    1  lib/infrastructure/pipeline/orchestrator/cpp/include/cli_command.h
+-    1  lib/infrastructure/pipeline/orchestrator/cpp/src/cli_command.cpp
+-    1  lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp
+-    1  lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1_batchB_fixes.cpp
 -    1  lib/phase1_session/tests/p1sess/p1sess_fixtures.hpp
 -    1  lib/phase1_session/tests/p1sess/p1sess_oracle.hpp
 -    1  lib/phase1_session/tests/p1sess/p1sess_test_main.hpp
@@ -40,21 +65,6 @@
 -    1  lib/phase1_session/tests/p1sess/p1sess_tests_perf.cpp
 -    1  lib/phase1_session/tests/p1sess/p1sess_tests_properties.cpp
 -    1  lib/phase1_session/tests/p1sess/p1sess_tests_units.cpp
--    1  lib/phase2/include/astro/phase2/rejection.h
--    1  lib/phase2/include/astro/phase2/sampler.h
--    1  lib/phase2/include/astro/phase2/upm.h
--    1  lib/phase2/src/rejection.cpp
--    1  lib/phase2/src/upm.cpp
--    1  lib/phase2/tests/ivar_wiring_test.cpp
 -    1  lib/phase2_session/p2_session.cpp
--    1  lib/phase3_proj/p3_proj_v6.h
--    1  lib/phase3_rsmp/p3_rsmp.h
 -    1  lib/phase3_session/p3_v6_export.cpp
 -    1  lib/phase3_session/p3_v6_export.h
--    1  lib/photometric_calib/cpp/src/wcs_transform.cpp
--    1  lib/photometric_calib/cpp/test/test_p0_pc_api_exception_barrier.cpp
--    1  lib/photometric_calib/tests/p1phot/p1phot_test_main.hpp
--    1  lib/snr_estimator/tests/p1noise/p1noise_fixtures.hpp
--    1  lib/snr_estimator/tests/p1noise/p1noise_test_main.hpp
--    1  lib/snr_estimator/tests/p1noise/p1noise_tests_core.cpp
--    1  lib/star_detector/tests/p1star/p1star_test_main.hpp

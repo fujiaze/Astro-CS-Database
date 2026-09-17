@@ -88,3 +88,26 @@
 - 遗留：ALG-WCS-002（旧 TST-WCS-INV/FAIL 设计词汇）未在本节逐符号展开
   （域内唯一生产 ALG=ALG-WCS-001，见 §11.5 状态声明）；构建/CMake/取消点
   整改归 P1-WCS-IMPL；descriptor ID 对齐归 P1-WCS-INT。
+
+### 2026-09-17 天测精度口径冻结 + 台账重锚（claim「天测精度外部闭环口径冻结」（编号待前台集中分配））
+- **旧记录 `0.1431″`（上文 2026-07-12）不可复现**：当前版本 T4 Galaxy_Center 实测
+  0.2803–0.3588″（六帧，n_pairs 39–46），只在 T2/T3 档场复现（0.1472/0.1584″）
+  ⇒ 该单值**不再作为门与标定依据**，仅保留为历史记录（标签与量测域不一致）。
+- **旧记录 `0.897 px` / `0.772 px`（上文 2026-07-27 legacy v1.2 工具）单值不可复现**：
+  匹配半径/星选/统计量均未冻结，仅把匹配半径 1″→5″ median 即漂 14% ⇒ 保留为历史
+  记录，不作用门。
+- **现行口径 = SCI-WCS-001 §11a（G-P1-WCS-CLOSURE v1）**：样本 = `p1_sources.json`
+  中 `x,y` 有限 ∧ `snr>20`（`SNR_det`；超 20000 按 flux 降序截断并记录
+  `sample_capped`）、星表 = 本仓 Gaia DR3 XPSD 视场单锥 `mag<18`、**匹配半径唯一
+  1.0″**、统计量 `median`，**必须同报** `n_matched`/`match_rate`/`p95`/`max`；
+  solved(CD+SIP) 与 frame_header **分别报告**；s0 同报。门表行见
+  GATES_AND_TOLERANCES §3（口径行 + 可复现门行）。
+- **重锚实测（口径 v1；UNIT-001 未修复 ⇒ 绝对量待复跑）**：T3 NGC55
+  0.5410″=0.5644 px（875/18015）、T2 LDN43 0.4062″=0.4202 px（705/20000）、
+  T4 Galaxy_Center 0.6791″=0.1077 px（6265/20000）；内部解 rms
+  0.1584/0.1472/0.3588″。两跑一致性：T4 `det2/n1` vs `det3/n1` 记录逐位相同
+  （median 0.107658 px）。
+- **可执行门**：`tools/astrometry/closure_metric.py`（ctest
+  `p1wcs_closure_metric_gate`：容差 0 px + 7 类负例注入必红）；记录落
+  `run/PROJECT-GOVERNANCE-01/E2E-FIX-001/out/rec_*`。
+

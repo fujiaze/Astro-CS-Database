@@ -1,13 +1,35 @@
 #!/usr/bin/env python3
-"""MON-002 测试: 所有 Phase/kernel 发 stage/resource/backend 事件; summary/downsample/raw 分层。
-验收(07 §1): resource-detail summary|timeseries; summary 强制存在; 无标注 >5s 区间→P1。"""
-import json, os, re, shutil, subprocess, tempfile, unittest
+"""MON-002 测试: 所有 Phase/kernel 发 stage/resource/backend 事件; summary/raw 分层。
+验收(07 §1): resource summary 强制存在(07 §2 必采指标); 资源时序曲线唯一载体 = 磁盘工件
+resource_timeseries.csv（summary 事件只内嵌 raw_dir/raw_n 指针）; 无标注 >5s 区间→P1。
+
+CLI-002 重锚(ROOT-008 + CLI-001 命令树 + GATE-FIX-RES R-4 D-14): 运行面由已删的
+'phase3 run --config --resource-detail summary|timeseries' 改为 export 会话命令；
+「summary|timeseries 分层档」旗标已退役（不在白名单 → rc=2），曲线载体为该 CSV 工件
+（lib/infrastructure/cli/resource_events.h:1-9）。判据语义不变, 只换载体。
+"""
+import json, os, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CLI = os.path.join(REPO, "cli")
-BUILD = os.path.join(REPO, "build", "cli")
-EXE = os.path.join(BUILD, "astrocs")
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+# ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）
+CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
+# DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
+EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
+BUILD = os.path.dirname(os.path.abspath(EXE))
+
+
+def _pick(*cands):
+    for p in cands:
+        if os.path.isdir(p):
+            return p
+    return cands[0]
+
+
+AIO = _pick(os.path.join(REPO, "lib", "infrastructure", "aio"),
+            os.path.join(REPO, "lib", "astro_image_io"))
+SHARED = _pick(os.path.join(REPO, "lib", "algorithms", "shared"),
+               os.path.join(REPO, "lib", "common"))
+HEALPIX_SRC = os.path.join(SHARED, "healpix", "healpix_core.cpp")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
 from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
@@ -20,18 +42,17 @@ except Exception:
         return []
 
 
-@unittest.skipUnless(shutil.which("cmake") and os.path.isfile(EXE), "需要构建好的 CLI")
 class TestMonitorEvents(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls.exe_ok = os.path.isfile(EXE)
         cls.tmp = tempfile.mkdtemp(prefix="mon002_")
         cls.hips = None
-        # 建 phase3 合成 FIELD.hips fixture
+        # 建合成 FIELD.hips fixture（export 会话的输入产品）
         incs = [f"-I{os.path.join(REPO, 'include')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}",
-                f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}"]
+                f"-I{SHARED}", f"-I{os.path.dirname(HEALPIX_SRC)}"]
         srcs = [os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
@@ -39,32 +60,33 @@ class TestMonitorEvents(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
-                os.path.join(REPO, "lib", "common", "healpix", "healpix_core.cpp")]
+                HEALPIX_SRC]
         fixture = os.path.join(cls.tmp, "fixture")
-        r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
-                            *srcs, *cfitsio_objs(cls.tmp), "-lz", "-lzstd", "-llz4",
-                            "-o", fixture], capture_output=True, text=True, timeout=600)
-        if r.returncode == 0:
-            data = os.path.join(cls.tmp, "data")
-            os.makedirs(data)
-            r2 = subprocess.run([fixture, "--make-field", data], capture_output=True,
-                                text=True, timeout=300, cwd=run_cwd())
-            if "HIPS_FIXTURES_OK" in r2.stdout:
-                cls.hips = os.path.join(data, "FIELD.hips")
-        # run config
+        if shutil.which("g++"):
+            r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
+                                *srcs, *cfitsio_objs(cls.tmp), "-lz", "-lzstd", "-llz4",
+                                "-o", fixture], capture_output=True, text=True, timeout=600)
+            if r.returncode == 0:
+                data = os.path.join(cls.tmp, "data")
+                os.makedirs(data)
+                r2 = subprocess.run([fixture, "--make-field", data], capture_output=True,
+                                    text=True, timeout=300, cwd=run_cwd())
+                if "HIPS_FIXTURES_OK" in r2.stdout:
+                    cls.hips = os.path.join(data, "FIELD.hips")
+        # export 运行配置（§6.2 命令面 / 模板形态）
         cls.out = os.path.join(cls.tmp, "out")
         os.makedirs(cls.out)
         cls.rcfg = os.path.join(cls.tmp, "r.json")
-        json.dump({
-            "schema_version": "1",
-            "inputs": {"lights": [], "darks": [], "flats": [], "bias": []},
-            "output_dir": cls.out,
-            "phase3": {"source": {"hips_dir": cls.hips or "/nonexistent"},
-                       "center": {"ra_deg": 210.0, "dec_deg": 34.0},
-                       "scale_deg_per_px": 0.1, "width_px": 40, "height_px": 30,
-                       "projection": "TAN", "sampler": "nearest",
-                       "coverage_output": "mask", "max_tiles": 16},
-        }, open(cls.rcfg, "w"))
+        with open(cls.rcfg, "w", encoding="utf-8") as fh:
+            json.dump({
+                "schema_version": "1",
+                "source": {"hips_dir": cls.hips or "/nonexistent"},
+                "output_dir": cls.out,
+                "center": {"ra_deg": 210.0, "dec_deg": 34.0},
+                "scale_deg_per_px": 0.1, "width_px": 40, "height_px": 30,
+                "projection": "TAN", "sampler": "nearest",
+                "coverage_output": "mask",
+            }, fh)
 
     @classmethod
     def tearDownClass(cls):
@@ -76,39 +98,57 @@ class TestMonitorEvents(unittest.TestCase):
 
     def _events(self, out):
         evs = []
-        for l in out.stdout.splitlines():
-            if not l.strip():
-                continue
-            evs.append(json.loads(l))
+        for line in out.splitlines():
+            if line.strip():
+                evs.append(json.loads(line))
         return evs
 
-    def test_01_resource_detail_flag_accepted(self):
-        """--resource-detail summary|timeseries 必须被 run 接受, 非法值→2。"""
-        r = self._run("phase3", "run", "--config", self.rcfg,
-                      "--events-jsonl", "--resource-detail", "summary")
+    def _require_exe(self):
+        if not self.exe_ok:
+            self.skipTest("CLI 二进制缺失(先构建 build/astrocs)")
+
+    def _require_fixture(self):
+        self._require_exe()
+        self.assertTrue(self.hips, "无合成 fixture（setUpClass 未产出 FIELD.hips）")
+
+    def test_01_resource_detail_flag_retired_and_summary_run_ok(self):
+        """曲线档旗标已退役（rc=2 非静默）; 现行运行面 export --events-jsonl → 0。"""
+        self._require_fixture()
+        r = self._run("export", "--json", self.rcfg, "--events-jsonl", "-y")
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
-        r2 = self._run("phase3", "run", "--config", self.rcfg,
-                       "--events-jsonl", "--resource-detail", "bogus")
-        self.assertNotEqual(r2.returncode, 0)  # 非法 detail 应 fail(非静默)
+        # GATE-FIX-RES(R-4 D-14): --resource-detail 不在白名单 → unknown flag rc=2
+        for val in ("summary", "timeseries", "bogus"):
+            r2 = self._run("export", "--json", self.rcfg, "--resource-detail", val)
+            self.assertEqual(r2.returncode, 2, f"--resource-detail {val} 应被拒绝(已退役)")
+            self.assertNotIn('"kind"', r2.stdout, "拒绝路径不得吐事件流")
 
     def test_02_resource_summary_emitted_with_mandatory_metrics(self):
-        """run 成功 → resource summary 事件必含 07 §2 指标(peak_rss/n_samples/wall/details)。"""
-        r = self._run("phase3", "run", "--config", self.rcfg,
-                      "--events-jsonl", "--resource-detail", "summary")
-        evs = self._events(r)
-        res = [e for e in evs if e["kind"] == "resource" and "resource summary" in e["message"]]
+        """run 成功 → resource summary 事件必含 07 §2 指标 + 曲线工件指针。"""
+        self._require_fixture()
+        r = self._run("export", "--json", self.rcfg, "--events-jsonl", "-y")
+        self.assertEqual(r.returncode, 0, r.stderr[-300:])
+        res = [e for e in self._events(r.stdout)
+               if e["kind"] == "resource" and e["message"] == "resource summary"]
         self.assertTrue(res, "必须发出 resource summary 事件")
         e = res[-1]
-        for k in ("n_samples", "peak_rss_bytes", "wall_seconds", "resource_detail",
-                  "peak_equivalent_cores", "max_threads"):
+        for k in ("n_samples", "peak_rss_bytes", "wall_seconds",
+                  "peak_equivalent_cores", "max_threads", "raw_dir", "raw_n"):
             self.assertIn(k, e, f"resource summary 缺必采指标 {k}")
-        self.assertEqual(e["resource_detail"], "summary")
+        # D-14: 曲线不再内嵌, 只给磁盘工件指针
+        self.assertEqual(e.get("resource_curve_artifact"), "resource_timeseries.csv")
+        self.assertNotIn("resource_detail", e, "分层档字段已退役")
+        csv = os.path.join(e["raw_dir"], e["resource_curve_artifact"])
+        self.assertTrue(os.path.isfile(csv), f"曲线工件缺失: {csv}")
+        with open(csv, encoding="utf-8") as fh:
+            head = fh.readline().strip()
+        self.assertIn("elapsed_seconds", head)
+        self.assertIn("active_workers", head)
 
     def test_03_backend_event_emitted(self):
         """backend 事件含 backend_id/workers_used/available_cpus(07 §2 必采)。"""
-        r = self._run("phase3", "run", "--config", self.rcfg,
-                      "--events-jsonl", "--resource-detail", "summary")
-        be = [e for e in self._events(r) if e["kind"] == "backend"]
+        self._require_fixture()
+        r = self._run("export", "--json", self.rcfg, "--events-jsonl", "-y")
+        be = [e for e in self._events(r.stdout) if e["kind"] == "backend"]
         self.assertTrue(be, "必须发出 backend 事件")
         e = be[-1]
         self.assertIn("backend_id", e)
@@ -116,27 +156,33 @@ class TestMonitorEvents(unittest.TestCase):
         self.assertIn("available_cpus", e)
 
     def test_04_tier_downsample_present_only_when_timeseries(self):
-        """timeseries 内嵌 downsample_max/curve 标记; summary 不内嵌曲线数据(分层小型化)。"""
-        r = self._run("phase3", "run", "--config", self.rcfg,
-                      "--events-jsonl", "--resource-detail", "timeseries")
-        res = [e for e in self._events(r) if e["kind"] == "resource" and "resource summary" in e["message"]]
+        """分层小型化: summary 事件不内嵌曲线数据, 降采样曲线仍由 C++ 侧单点构造。"""
+        self._require_fixture()
+        r = self._run("export", "--json", self.rcfg, "--events-jsonl", "-y")
+        res = [e for e in self._events(r.stdout)
+               if e["kind"] == "resource" and e["message"] == "resource summary"]
         self.assertTrue(res)
         e = res[-1]
-        self.assertEqual(e["resource_detail"], "timeseries")
-        self.assertIn("downsample_max", e)
-        # 曲线数据不内嵌几十 MB: only a marker array (empty), raw 指针只指路径
+        # 曲线数据不内嵌: 无 curve_points; 只有工件指针 + raw 计数
+        self.assertNotIn("curve_points", e, "summary 不得内嵌曲线（D-14 静默空数组信号）")
         self.assertIn("raw_dir", e)
+        self.assertIn("raw_n", e)
+        self.assertGreaterEqual(int(e["raw_n"]), 1)
+        # 退役面: 分层档旗标不得回到命令树白名单（静态锚）
+        with open(os.path.join(CLI, "command_tree.h"), encoding="utf-8") as fh:
+            tree = fh.read()
+        self.assertNotIn("--resource-detail", tree, "曲线档旗标必须保持退役")
 
     def test_05_stage_annotation_enum_stable(self):
         """stage 资源类别枚举(compute/memory/io/mixed/unknown)在 C++ 侧固定, 供 MON-003 引用。"""
         drv = os.path.join(self.tmp, "enum.cpp")
         with open(drv, "w") as f:
-            f.write('''
+            f.write(r'''
 #include "resource_events.h"
 #include <cstdio>
 int main(){
     using namespace astrocs;
-    std::printf("%s %s %s %s %s\\n",
+    std::printf("%s %s %s %s %s\n",
         stage_kind_name(StageKind::Compute), stage_kind_name(StageKind::Memory),
         stage_kind_name(StageKind::Io), stage_kind_name(StageKind::Mixed),
         stage_kind_name(StageKind::Unknown));
@@ -156,16 +202,15 @@ int main(){
         """resource_events.h classify_stage/is_unannotated_priority 编译并正确分类。"""
         drv = os.path.join(self.tmp, "classify.cpp")
         with open(drv, "w") as f:
-            f.write('''
+            f.write(r'''
 #include "resource_events.h"
 #include <cstdio>
 int main(){
     using namespace astrocs;
-    std::printf("compute=%s\\n", stage_kind_name(classify_stage("compute")));
-    std::printf("unknown_unannoted_5s=%d\\n", (int)is_unannotated_priority(nullptr, 6.0));
-    std::printf("compute_annoted_5s=%d\\n", (int)is_unannotated_priority("compute", 6.0));
-    std::printf("unknown_short_5s=%d\\n", (int)is_unannotated_priority(nullptr, 3.0));
-    std::printf("downsample=%zu\\n", downsample_curve(std::vector<int>(1000, 7), kDownsampleMax).size());
+    std::printf("compute=%s\n", stage_kind_name(classify_stage("compute")));
+    std::printf("unknown_unannoted_5s=%d\n", (int)is_unannotated_priority(nullptr, 6.0));
+    std::printf("compute_annoted_5s=%d\n", (int)is_unannotated_priority("compute", 6.0));
+    std::printf("unknown_short_5s=%d\n", (int)is_unannotated_priority(nullptr, 3.0));
     return 0;
 }
 ''')
@@ -180,7 +225,14 @@ int main(){
         self.assertIn("unknown_unannoted_5s=1", o, "无标注>5s 必须 P1")
         self.assertIn("compute_annoted_5s=0", o, "compute 标注不触发 P1")
         self.assertIn("unknown_short_5s=0", o, "短于 5s 无标注不 P1")
-        self.assertIn("downsample=121", o, "降采样曲线 ≤ 121 点")
+        # GATE-FIX-RES(R-4 D-14/D-15): 内嵌曲线降采样器已删除（曲线唯一载体 =
+        # resource_timeseries.csv），退役面静态锚: 不得回流 CLI 事件头。
+        for h in ("resource_events.h", "monitor.h"):
+            p = os.path.join(CLI, h)
+            if os.path.isfile(p):
+                with open(p, encoding="utf-8") as fh:
+                    self.assertNotIn("downsample_curve", fh.read(),
+                                     f"{h} 出现已退役的曲线降采样器")
 
 
 if __name__ == "__main__":

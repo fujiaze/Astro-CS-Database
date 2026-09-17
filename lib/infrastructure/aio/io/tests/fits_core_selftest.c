@@ -392,6 +392,101 @@ static void test_checksum_error(void) {
   remove(path);
 }
 
+/* ── 6b. M2b-B-09: CHECKSUM 缺席语义 + 全零占位卡 fail-closed ──
+ * ① write_checksum=0 ⇒ 产物**不得**含 CHECKSUM 关键字; 此时以 verify_checksum=1
+ *    校验必须**通过**(无可校验的声明), 不得由假绿翻真红;
+ * ② 人为构造 CHECKSUM='0000000000000000' 的占位卡 ⇒ verify_checksum=1 必须红。 */
+static void test_checksum_absent_and_placeholder(void) {
+  const char* path = tmp_path("cs_absent.fits");
+  acs_fio_writer_v1* wr = NULL;
+  acs_fio_header_v1 decl;
+  float data[64];
+  char err[ACS_FIO_ERR_TEXT_MAX];
+  int st, i;
+  remove(path);
+  for (i = 0; i < 64; i++) data[i] = (float)(i + 1);
+  memset(&decl, 0, sizeof(decl));
+  decl.struct_size = (uint32_t)sizeof(decl);
+  decl.abi_version = ACS_FIO_ABI_VERSION_V1;
+  decl.bitpix = ACS_FIO_BITPIX_F32;
+  decl.naxis = 2;
+  decl.naxis_n[0] = 8;
+  decl.naxis_n[1] = 8;
+  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  CHECK_ST(ACS_FIO_OK, st, "absent_begin");
+  acs_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
+  st = acs_fio_writer_end_v1(wr, 1, 0 /*write_checksum*/, 0, NULL, err, sizeof(err));
+  CHECK_ST(ACS_FIO_OK, st, "absent_end");
+  /* ① 头区不得出现 CHECKSUM 关键字 */
+  {
+    FILE* fp = fopen(path, "rb");
+    char hdr[2880];
+    size_t got;
+    CHECK(fp != NULL);
+    got = fp ? fread(hdr, 1, sizeof(hdr), fp) : 0;
+    if (fp) fclose(fp);
+    CHECK(got == sizeof(hdr));
+    {
+      int has = 0;
+      size_t off;
+      for (off = 0; off + 8 <= sizeof(hdr); off += 80) {
+        if (memcmp(hdr + off, "CHECKSUM", 8) == 0) { has = 1; break; }
+      }
+      CHECK(!has);
+    }
+  }
+  /* ① verify_checksum=1 必须通过 (无声明可校验, 不是失败) */
+  st = acs_fio_verify_file_v1(path, 1, err, sizeof(err));
+  CHECK_ST(ACS_FIO_OK, st, "verify absent-with-checksum-request");
+  /* ② 真值校验和产物: 把 CHECKSUM 卡值区改回全零占位串 ⇒ verify 必须红。
+   * (直接改值区, 保留卡名与注释, 精确复现 "占位卡被当成交付值" 的形态) */
+  remove(path);
+  st = acs_fio_writer_begin_v1(path, &decl, NULL, 0, NULL, &wr, err, sizeof(err));
+  CHECK_ST(ACS_FIO_OK, st, "real_begin");
+  acs_fio_write_plane_v1(wr, 0, data, sizeof(data), NULL, err, sizeof(err));
+  st = acs_fio_writer_end_v1(wr, 1, 1 /*write_checksum*/, 0, NULL, err, sizeof(err));
+  CHECK_ST(ACS_FIO_OK, st, "real_end");
+  st = acs_fio_verify_file_v1(path, 1, err, sizeof(err));
+  CHECK_ST(ACS_FIO_OK, st, "verify real checksum");
+  {
+    FILE* fp = fopen(path, "r+b");
+    long off = -1;
+    CHECK(fp != NULL);
+    if (fp) {
+      char hdr[2880];
+      size_t got = fread(hdr, 1, sizeof(hdr), fp);
+      size_t k;
+      CHECK(got == sizeof(hdr));
+      for (k = 0; k + 8 <= sizeof(hdr); k += 80) {
+        if (memcmp(hdr + k, "CHECKSUM", 8) == 0) { off = (long)k; break; }
+      }
+      CHECK(off >= 0);
+      if (off >= 0) {
+        /* 值起始列 = '=' 之后第一个非空格 (CFITSIO 对 16 串按右对齐不加引号,
+         * 起始列是 10 而不是 11 —— 固定列偏移会只改到 15 个字符, 反而构造出
+         * 非法值 "3 000…", 走不到"全零占位串"分支)。 */
+        size_t vs = 0;
+        for (k = 0; k < 80; k++) {
+          if (hdr[off + k] == '=') { vs = k + 1; break; }
+        }
+        while (vs < 80 && hdr[off + vs] == ' ') vs++;
+        memset(hdr + off + (long)vs, '0', 16); /* 值区 16 字符置零 = 占位串 */
+        fseek(fp, off, SEEK_SET);
+        CHECK(fwrite(hdr + off, 1, 80, fp) == 80);
+      }
+      fclose(fp);
+    }
+  }
+  err[0] = '\0';
+  st = acs_fio_verify_file_v1(path, 1, err, sizeof(err));
+  CHECK_ST(ACS_FIO_ERR_CHECKSUM, st, "verify zero placeholder must fail");
+  /* 判别力: 全零占位串必须由**专用拒绝分支**判红 (错误文本点名), 而不是
+   * 碰巧落到数值不等的通用 mismatch —— 后者在 sum==0/0xFFFFFFFF 的兼容
+   * 分支下会假绿 (变异实测: 关掉专用分支后本用例曾 ALL PASS)。 */
+  CHECK(strstr(err, "全零占位串") != NULL);
+  remove(path);
+}
+
 /* ── 7. NaN/Inf strict ── */
 static void test_naninf(void) {
   const char* path = tmp_path("nan.fits");
@@ -546,6 +641,7 @@ int main(void) {
   test_truncated_data();
   test_mismatch();
   test_checksum_error();
+  test_checksum_absent_and_placeholder();
   test_naninf();
   test_cancel();
   test_write_denied();
