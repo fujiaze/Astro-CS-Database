@@ -52,7 +52,8 @@ flowchart LR
 - **P0/P1 必须 0**；红灯不豁免；
 - 只有负责人可批准豁免（写入 `ci/exemptions.json`，只减不增）；
 - 机器门禁通过后自动推进，不设频繁人工 checkpoint；
-- 合成测试不等于真实数据 VERIFIED；真实数据/Windows 复验按阶段由负责人触发。
+- 合成测试不等于真实数据 VERIFIED；真实数据/Windows 复验按阶段由负责人触发；
+- 预览版发布门 = P0 机器门全绿 + `ACCEPTANCE_SPEC.md` 四层验收（L1 合成科学性、L2 合成性能、L3 小批量端到端、L4 M42/Galaxy Center 视觉验收）全部通过，由负责人决定发布。
 
 ---
 

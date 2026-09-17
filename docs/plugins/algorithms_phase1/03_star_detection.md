@@ -20,7 +20,7 @@
 
 ## 4. 算法与公式要点
 
-- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）。检测路径**不消费**逐像素 variance/ivar。「局部噪声自适应」为目标态、当前未实现，登记 `DISP-STAR-002`（整改归 P1-STAR-IMPL/INT），不得写成现状；
+- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）。检测路径不消费逐像素 variance/ivar。局部噪声自适应为目标态、当前未实现（GAP 登记），文档按现状描述；
 - 质心/矩与不确定度：一阶矩质心、二阶矩，误差来自局部噪声传播；
 - 输出 selection function（完备性 vs 亮度/位置）和 completeness 参数；
 - 检测统计量与下游 PSF/测光解耦：检测目录不直接成为科学权重。
