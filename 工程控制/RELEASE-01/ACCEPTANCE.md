@@ -34,6 +34,38 @@
 - **12 个跳过用例判定**（TST-001）：6 个属合理平台/硬件（无 AVX512F、CUDA/ACR dormant、有合成替代），6 个为真实 HiPS fixture-gated（原写死 Windows 路径，已由 F-02 改为可配置；fixture 需 P0-03 修复后才能生成）。
 - **资源门补跑（2026-09-18）**：`python3 ci/run_checks.py --check CHK-RESOURCE --quiet` → **PASS（11/11 步，0 失败）**（`run/RELEASE-01/logs/CHK-RESOURCE.log`）。其判据面为**合成/oracle**；真实数据面 L2 无注册门在跑（见 GAP_AUDIT §7.6），PERF-001 手工复算仍判违约。
 - **未达项**：验收门「机器门绿」不成立 —— `CHK-MODULE-MANIFEST` 红（负责人已裁决的临时红，P0-01）+ `CHK-REGISTRY-DOC-SYNC` 红（P0-16）+ `ENG-CONSTRAINTS` 红（U-1）+ `tests/quality/test_root_cleanliness.py` 1 failed（U-1 派生）。
+- **逐模块冒烟证据表（前台独立复跑，2026-09-18）**：用例归属由 `ctest --show-only=json-v1` 的**可执行文件路径**映射（非名字猜测），结果取自 BLD-001 全量 ctest 日志；独立构建 rc 由 `ninja -C build <模块 target>` 逐模块复跑。全量 442 = 已归属 356（345 通过 / 11 跳过 / 0 失败）+ 横向脚本类 29 + 未归属 57（明细 `run/RELEASE-01/logs/BLD-001/unmapped_tests.json`）。
+
+| 模块 | 构建产物（.so） | 独立构建 | 用例 总/通过/跳过/失败 |
+|---|---|---|---|
+| calibration | `build/lib/algorithms/calibration/astrocs_p1_calibration.so` | rc=0 | 6 / 6 / 0 / 0 |
+| cosmetic | `build/lib/algorithms/cosmetic/astrocs_p1_cosmetic.so` | rc=0 | 6 / 6 / 0 / 0 |
+| star_detection | —（无独立 .so） | 无独立 target | 7 / 7 / 0 / 0 |
+| psf | —（无独立 .so） | 无独立 target | 20 / 20 / 0 / 0 |
+| platesolve | —（无独立 .so） | 无独立 target | 12 / 12 / 0 / 0 |
+| photometry | —（无独立 .so） | 无独立 target | 7 / 7 / 0 / 0 |
+| noise_snr | —（无独立 .so） | 无独立 target | 22 / 22 / 0 / 0 |
+| drizzle | `.../drizzle/astrocs_p1_drizzle.so`、`.../drizzle/hips/astrocs_p1_hips_writer.so` | rc=0 | 18 / 18 / 0 / 0 |
+| coverage | —（无独立 .so） | rc=0 | 137 / 126 / 11 / 0 |
+| sampling | —（无独立 .so） | 无独立 target | 10 / 10 / 0 / 0 |
+| upm | —（无独立 .so） | 无独立 target | 5 / 5 / 0 / 0 |
+| rejection | —（无独立 .so） | 无独立 target | 6 / 6 / 0 / 0 |
+| integration | —（无独立 .so） | rc=0 | 8 / 8 / 0 / 0 |
+| projection | —（无独立 .so） | rc=0 | 9 / 9 / 0 / 0 |
+| resample | —（无独立 .so） | rc=0 | **0 / 0 / 0 / 0** |
+| fits_output | —（无独立 .so） | rc=0 | 2 / 2 / 0 / 0 |
+| cli | —（无独立 .so） | 无独立 target | 3 / 3 / 0 / 0 |
+| scheduler | —（无独立 .so） | 无独立 target | 43 / 43 / 0 / 0 |
+| pipeline | `.../orchestrator/cpp/tests/astro_image_io.so` 等 | rc=0 | 6 / 6 / 0 / 0 |
+| aio | —（无独立 .so） | rc=0 | 11 / 11 / 0 / 0 |
+| benchmark | —（无独立 .so） | 无独立 target | **0 / 0 / 0 / 0** |
+| observability | —（无独立 .so） | 无独立 target | 5 / 5 / 0 / 0 |
+| gaia_xpsd_client | `.../gaia_xpsd_client/astrocs_catalog_gaia.so` | rc=0 | 13 / 13 / 0 / 0 |
+| acr | —（无独立 .so） | 无独立 target | **0 / 0 / 0 / 0**（dormant） |
+| hips_browser | —（无独立 .so） | 无独立 target | **0 / 0 / 0 / 0** |
+
+- **该表揭示的两类事实**：① 仅 5 个模块产出独立 `.so`，多数模块**无独立构建 target**（与 `CHK-MODULE-MANIFEST` 红同源，P0-01）；② `resample`/`benchmark`/`acr`/`hips_browser` **零模块级注册用例**（TST-001 亦记 aio/gaia/hips_browser 测试零 CMake 注册）。
+- **本轮修复 F-03**：`orchestrator_cli_integration` 一度红（186 通过 / 47 失败），根因是测试把 stderr 分离文件**写死 `/tmp`**（`test_orchestrator_cli.cpp:253`），而本机 `/tmp` 为悬空挂载点不可写 ⇒ 全部 spawn 类断言失败。改为**当前工作目录相对路径**后复跑：**233 通过 / 0 失败**，`ctest -R orchestrator` **6/6 通过**，pipeline 模块 target rc=1 → **rc=0**。
 
 ### TST-001
 
