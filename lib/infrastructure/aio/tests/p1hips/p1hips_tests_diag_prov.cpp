@@ -341,7 +341,7 @@ int test_diag_prov_units() {
                                  "dp2_manifest_products",
                                  "manifest.json products 未声明 %s", sub);
             // verify 双向断言 (available=true ⇒ variance/ivar 必在)
-            AioHipsVerifyReport rep{};
+            AioHipsVerifyReport rep = make_verify_report();
             const int vrc = aio_hips_verify_product_set(dir.c_str(), &rep);
             P1HIPS_CHECK_MSG(cs, vrc == 0, "dp3_verify_bidir",
                              "verify rc=%d (%s)", vrc, aio_hips_last_error());
@@ -439,7 +439,7 @@ int test_diag_prov_units() {
                                      !file_has(dir + "/ivar/properties"),
                              "dp4_no_placeholder",
                              "unavailable 面禁写 variance/ivar 占位子产品");
-            AioHipsVerifyReport rep{};
+            AioHipsVerifyReport rep = make_verify_report();
             const int vrc = aio_hips_verify_product_set(dir.c_str(), &rep);
             P1HIPS_CHECK_MSG(cs, vrc == 0, "dp4_verify", "unavailable verify rc=%d (%s)",
                              vrc, aio_hips_last_error());
@@ -466,7 +466,7 @@ int test_diag_prov_units() {
             P1HIPS_CHECK_MSG(cs, present == 0, "dp5_all_or_none",
                              "未设置 provenance 时五键必须整体缺席 (got %d)",
                              present);
-            AioHipsVerifyReport rep{};
+            AioHipsVerifyReport rep = make_verify_report();
             P1HIPS_CHECK_EQ(cs, aio_hips_verify_product_set(dir.c_str(), &rep), 0);
             P1HIPS_CHECK_EQ(cs, rep.prov_keys_present, 0);
             P1HIPS_CHECK_EQ(cs, rep.uncertainty_available, -1);
@@ -688,7 +688,7 @@ int test_diag_prov_negative() {
             std::ofstream f(d + "/variance/properties");
             f << "hips_version=1.4\nhips_order=0\nhips_tile_width=512\n";
         }
-        AioHipsVerifyReport rep{};
+        AioHipsVerifyReport rep = make_verify_report();
         const int vrc = aio_hips_verify_product_set(d.c_str(), &rep);
         P1HIPS_CHECK_MSG(cs, vrc == 3, "dpn4_placeholder_forbidden",
                          "unavailable 但存在 variance 占位必须 rc=3 (got %d)", vrc);
@@ -698,7 +698,7 @@ int test_diag_prov_negative() {
         const std::string d = make_tmp_dir("dpn4b");
         P1HIPS_CHECK_EQ(cs, dp_write_product(d, kFullFlags, true, 1, true, nullptr), 0);
         std::remove((d + "/variance/properties").c_str());
-        AioHipsVerifyReport rep{};
+        AioHipsVerifyReport rep = make_verify_report();
         P1HIPS_CHECK_MSG(cs, aio_hips_verify_product_set(d.c_str(), &rep) == 2,
                          "dpn4_hdu_missing",
                          "available=true 缺 variance 子产品必须 rc=2");
@@ -708,7 +708,7 @@ int test_diag_prov_negative() {
         const std::string d = make_tmp_dir("dpn4c");
         P1HIPS_CHECK_EQ(cs, dp_write_product(d, kDiagOnlyFlags, true, 0, true, nullptr), 0);
         std::remove((d + "/nrej/properties").c_str());
-        AioHipsVerifyReport rep{};
+        AioHipsVerifyReport rep = make_verify_report();
         P1HIPS_CHECK_MSG(cs, aio_hips_verify_product_set(d.c_str(), &rep) == 5,
                          "dpn4_declared_missing",
                          "manifest 声明 nrej 但磁盘缺失必须 rc=5");
@@ -725,7 +725,7 @@ int test_diag_prov_negative() {
             std::ofstream f(d + "/nused/properties");
             f << "hips_version=1.4\nhips_order=0\nhips_tile_width=512\n";
         }
-        AioHipsVerifyReport rep{};
+        AioHipsVerifyReport rep = make_verify_report();
         P1HIPS_CHECK_MSG(cs, aio_hips_verify_product_set(d.c_str(), &rep) == 6,
                          "dpn4_undeclared_present",
                          "未声明却存在 nused 子产品必须 rc=6 (禁占位)");
@@ -744,7 +744,7 @@ int test_diag_prov_negative() {
             f << line << "\n";
         }
         f.close();
-        AioHipsVerifyReport rep{};
+        AioHipsVerifyReport rep = make_verify_report();
         P1HIPS_CHECK_MSG(cs, aio_hips_verify_product_set(d.c_str(), &rep) == 4,
                          "dpn4_partial_keys",
                          "五键缺一必须 rc=4");
@@ -762,7 +762,7 @@ int test_diag_prov_negative() {
             std::ofstream f(mp, std::ios::binary | std::ios::trunc);
             f << man;
         }
-        AioHipsVerifyReport rep{};
+        AioHipsVerifyReport rep = make_verify_report();
         P1HIPS_CHECK_MSG(cs, aio_hips_verify_product_set(d.c_str(), &rep) == 8,
                          "dpn4_double_write_drift",
                          "properties/manifest 值分叉必须 rc=8");
@@ -771,7 +771,7 @@ int test_diag_prov_negative() {
     {
         // g) 空目录/NULL 参数 → -1
         const std::string d = make_tmp_dir("dpn4g");
-        AioHipsVerifyReport rep{};
+        AioHipsVerifyReport rep = make_verify_report();
         P1HIPS_CHECK_EQ(cs, aio_hips_verify_product_set(d.c_str(), &rep), -1);
         P1HIPS_CHECK_EQ(cs, aio_hips_verify_product_set(nullptr, &rep), -1);
         P1HIPS_CHECK_EQ(cs, aio_hips_verify_product_set(d.c_str(), nullptr), -1);
@@ -806,7 +806,7 @@ int dp_scenario_full(CheckState& cs) {
     P1HIPS_CHECK_MSG(cs,
                      dp_json_scalar(man, "astrocs_model_hash", &v) && v == kModelHash,
                      nullptr, "manifest.model_hash 缺失或值不符");
-    AioHipsVerifyReport rep{};
+    AioHipsVerifyReport rep = make_verify_report();
     P1HIPS_CHECK_MSG(cs, aio_hips_verify_product_set(dir.c_str(), &rep) == 0, nullptr,
                      "verify 正向必须 rc=0");
     return cs.failures;
@@ -823,7 +823,7 @@ int dp_scenario_placeholder(CheckState& cs) {
         std::ofstream f(dir + "/variance/properties");
         f << "hips_version=1.4\nhips_order=0\nhips_tile_width=512\n";
     }
-    AioHipsVerifyReport rep{};
+    AioHipsVerifyReport rep = make_verify_report();
     const int vrc = aio_hips_verify_product_set(dir.c_str(), &rep);
     P1HIPS_CHECK_MSG(cs, vrc == 3, nullptr,
                      "unavailable 占位必须被 verify 拒绝 (got %d)", vrc);
@@ -850,7 +850,7 @@ int dp_scenario_diag_values(CheckState& cs) {
         P1HIPS_CHECK_MSG(cs, mism == 0, nullptr, "nrej 平面 mismatch=%zu", mism);
         P1HIPS_CHECK_MSG(cs, neg == 0, nullptr, "nrej 平面出现负值 (哨兵污染)");
     }
-    AioHipsVerifyReport rep{};
+    AioHipsVerifyReport rep = make_verify_report();
     P1HIPS_CHECK_MSG(cs, aio_hips_verify_product_set(dir.c_str(), &rep) == 0, nullptr,
                      "verify 正向必须 rc=0 (含诊断值域)");
     return cs.failures;
@@ -863,7 +863,7 @@ int dp_scenario_declared_missing(CheckState& cs) {
     P1HIPS_CHECK_MSG(cs, rc == 0, nullptr, "场景写失败 rc=%d", rc);
     if (rc != 0) return cs.failures;
     std::remove((dir + "/nrej/properties").c_str());
-    AioHipsVerifyReport rep{};
+    AioHipsVerifyReport rep = make_verify_report();
     const int vrc = aio_hips_verify_product_set(dir.c_str(), &rep);
     P1HIPS_CHECK_MSG(cs, vrc == 5, nullptr,
                      "声明但缺失必须被 verify 拒绝 (got %d)", vrc);

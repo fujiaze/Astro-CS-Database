@@ -8,7 +8,7 @@
     "transcription_rule": "每个字段的 value 只能从 docs/science/** 或 docs/algorithms/** 逐字转录；无权威数值者写 null + authority_status=pending_authority + pending_task，禁止编造（GAP-024）。",
     "owner_rulings": "工程控制/PROJECT-GOVERNANCE-01/tasks/CFG-001.md「负责人补充裁决（2026-09-16 第二轮）」"
   },
-  "field_count": 50,
+  "field_count": 51,
   "registry_ref": {
     "path": "config/config_registry.json",
     "scope": "W5-CFG-002（CFG-002）登记面：docs/plugins/** 的 plugin 级默认与 per-module 旋钮归属（96 行）、滤镜名匹配语义、cpu_profile.host.os_abi 值域、索引登记归属。",
@@ -25,6 +25,20 @@
       "source_ref": null,
       "pending_task": null,
       "note": "docs/science/CALIBRATION.md:19,21 只给出 K=t_light/t_dark 语义与 t_light/t_dark 符号，文档内无容差数值；本值来自负责人裁决，按裁决不得标 pending_authority。"
+    },
+    {
+      "key": "calibration.master_flat_median_range",
+      "value": [0.5, 2.0],
+      "unit": "1",
+      "constraint": "已归一 master flat 的中位数判定带（无量纲）：median(flat) 落在带内 = 视为已归一（合同值 1.0）；带外必须显式声明 master_flat_normalize=\"median\" 才允许消费，否则消费边界 DATA 拒绝（rc=2）。仅区分「已归一 / 未归一」两种数量级状态，不是科学容差。",
+      "authority_status": "sourced",
+      "source": "docs/science/CALIBRATION.md:101（消费边界按 master_flat_median_range 判定已归一：冻结默认 [0.5, 2.0]）；:102（区间外必须显式声明 master_flat_normalize=\"median\" 才允许消费）；docs/algorithms/CALIBRATION_ALGORITHMS.md:56 同值、:495（DISP-CAL-013 登记）",
+      "source_ref": {
+        "path": "docs/science/CALIBRATION.md",
+        "line": 101
+      },
+      "pending_task": null,
+      "note": "UNIT-001 引入；实现侧 C++ 常量与文档/本表三处同值（tools/quality/check_master_unit_guard.py 机器核对）。"
     },
     {
       "key": "detection.threshold_sigma",
@@ -134,7 +148,7 @@
       "source": "docs/science/NOISE_MODEL.md:43（§4「饱和域」：x >= saturation_level 的像素不参与 blank-sky 统计，无条件生效；0/负/非有限 = 未提供电平；claim SC-008 / SAT-001）",
       "source_ref": {"path": "docs/science/NOISE_MODEL.md", "line": 43},
       "pending_task": null,
-      "note": "数值 0 的语义 = 「未提供」而非「禁用」：现行 SCI/ALG/DATA 三处条文都要求饱和像素不参与统计，无任何条文授权「默认关闭饱和过滤」；电平由调用方从帧元数据解析（FITS SATURATE/DATAMAX；标准做法同 LSST ip_isr IsrTaskConfig.doSaturation 默认 True 且置 SAT 面）。SAT-001 实测（run/PROJECT-GOVERNANCE-01/SAT-001/expS1_saturation.py）：level=0 且帧含亮星饱和核 ⇒ 污染控制点方差至 1.0e9 ADU²（真值 25 ADU²），平面权场被击穿、帧权重比 5.1e-7（静默失权）。"
+      "note": "数值 0 的语义 = 「未提供」而非「禁用」：现行 SCI/ALG/DATA 三处条文都要求饱和像素不参与统计，无任何条文授权「默认关闭饱和过滤」；电平由调用方从帧元数据解析（FITS SATURATE/DATAMAX；标准做法同 LSST ip_isr IsrTaskConfig.doSaturation 默认 True 且置 SAT 面）。SAT-001 实测（run/PROJECT-GOVERNANCE-01/SAT-001/expS1_saturation.py，生产源零改动）：level=0 且帧含亮星饱和核（512²，平台半径 44 px，掩膜 6 px）⇒ 平台 patch 控制点方差 6.87e8 vs 提供电平后 1.74e8 ADU²（真值 25），帧平均 ivar 比 0.218（丢失 4.6× 权重），而 sigma_bg_global 两臂均 5.08 ADU（差 0%）——缺陷只体现在逐像素权重场，故必须显式声明。"
     },
     {
       "key": "noise.spatial_field_enabled",
@@ -525,14 +539,14 @@
     },
     {
       "key": "drizzle.pixfrac",
-      "value": null,
+      "value": 1.0,
       "unit": "1",
       "constraint": "0 < pixfrac <= 1（严格校验，非法值显式 NO_DATA，不静默夹逼；DRIZZLE.md:31,:92；DRIZZLE_GEOMETRY.md:61,:102）",
-      "authority_status": "pending_authority",
-      "source": null,
-      "source_ref": {"path": "docs/science/DRIZZLE.md", "line": 21},
-      "pending_task": "SCI-RES-01/R-005（drizzle pixfrac 默认值的权威出处）",
-      "note": "语义/值域权威：docs/science/DRIZZLE.md:21,:27,:31,:61,:143 与 docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102（half=0.5*pixfrac）。数值默认无科学权威出处：现实现默认 0.8 见 lib/infrastructure/pipeline/orchestrator/configs/stage1.template.json:41（实现模板，非科学权威）；旧文档 docs/development/CONFIG_SCHEMA.md:84 同值。按 GAP-023 口径以 pending_authority 占位，禁止编造。"
+      "authority_status": "owner_adjudicated",
+      "source": "docs/science/DRIZZLE.md:31（0<pixfrac<=1，非法 NO_DATA，不静默夹逼）；docs/contracts/v6/data/02_signal.md:43-48（FZ-COND-FLUX-CONSERV：pixfrac=1 ⇒ ΣF=Σx 严格守恒；pixfrac<1 ⇒ 总输出通量 = pixfrac²·Σx 且 provenance.flux_conservation_factor=pixfrac²）",
+      "source_ref": {"path": "docs/science/DRIZZLE.md", "line": 31},
+      "pending_task": null,
+      "note": "DOC-SCI-001 §3 裁决（负责人授权，2026-09-17）：默认 1.0 = 通量严格守恒端点（E1 独立复算：pixfrac=1 无相邻源像素缝隙；V18R2-V19 运行史记 pixfrac 0.8→1.0 修黑色缝隙）。旧实现模板 0.8（lib/infrastructure/pipeline/orchestrator/configs/stage1.template.json:41）为实现默认、非科学权威，保留为历史记录不再作为默认值依据。"
     },
     {
       "key": "sparse_snr.density",

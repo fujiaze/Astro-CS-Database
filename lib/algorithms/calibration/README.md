@@ -1,6 +1,12 @@
 # lib/algorithms/calibration — astrocs.p1.calibration（P1-CAL）
 
 > 状态: CONTRACT_READY（P1-CAL-DOC 冻结，2026-09-07）｜doc revision: r2
+> **现状复测（LEDGER-DOC，2026-09-17；`python3 tools/quality/check_module_map.py`）**：
+> 本模块生产源 `lib/algorithms/calibration/src/module_entry.cpp` 与 CMake SHARED target `astrocs_p1_calibration`（`lib/algorithms/calibration/CMakeLists.txt:30`）均在位，
+> `astrocs_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
+> ⇒ 机读状态 = **NOT_IMPLEMENTED**。下文旧基线中「仅合同文件/无源码/无 CMake target/
+> entrypoint=MISSING/尚未存在」等表述已被实测反证，以本注记与检查器输出为准；
+> 实现侧整改归 P1-CAL-IMPL。
 > 本 README 由源码逐函数核对后全面重写（P1-CAL-DOC，wave W1）：函数、单位、
 > 坐标、dtype、shape、invalid、错误、并发、内存、I/O 均以
 > `include/astro_calibration.h` + `src/{master_generator,calibrator,
@@ -13,7 +19,7 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-phase1-calibration` / 现状产物 CMake 静态库 `astrocs_calibration`（+遗留 MinGW DLL 通道）；迁移目标 `astrocs_p1_calibration.dll`（P1-CAL-IMPL 建立，尚未存在） |
+| MOD ID / DLL target | `MOD-astrocs-phase1-calibration` / 模块 DLL `astrocs_p1_calibration`（SHARED，lib/algorithms/calibration/CMakeLists.txt:30，**已在位**；同目录另有 legacy 静态库 `astrocs_calibration`）；entrypoint `astrocs_module_query_v1` 在位但零调用 ⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 P1-CAL-IMPL） |
 | module / ABI / doc revision | `astrocs.p1.calibration` / C ABI（AC_API extern "C"，无版本化 query 入口，迁移缺口）/ r2 |
 | owner / phase scope | SA-P1-C14 / phase1（wave W1） |
 | 文档状态 | CONTRACT_READY（实现存在，模块化迁移未开始；不声明 IMPLEMENTED） |
@@ -160,6 +166,6 @@ compute_mad 死代码风险。
 
 module.yaml（同目录）登记 manifest：id=MOD-astrocs-phase1-calibration、
 module_id=astrocs.p1.calibration、dll_name=astrocs_p1_calibration.dll、
-entrypoint=MISSING（registry 入口未接）。C ABI adapter、
+entrypoint=`astrocs_module_query_v1`（入口符号在位；函数体零调用，检查器 finding=noop_entrypoint ⇒ NOT_IMPLEMENTED）。C ABI adapter、
 plan/execute/cancel/inspect、ThreadLease 接线、DISP-CAL 清单消化见
 ALG-CAL §8 与 module.yaml 注释。禁止跨 DLL 传 STL/异常/RTTI（约束 F.3）。

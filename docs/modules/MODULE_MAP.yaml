@@ -146,6 +146,7 @@ modules:
     target_file: lib/algorithms/psf/CMakeLists.txt
     co_located_tests: lib/algorithms/psf/tests
     module_id: astrocs.p1.psf
+    aliases: [astrocs.phase1.star-psf]   # MOD-002 中面：D 面将检测/PSF 拆两页，star-psf 指 PSF 模块
     module_version: 0.11.0-alpha.2
     abi_version: 1
     entrypoint: astrocs_module_query_v1
@@ -175,6 +176,7 @@ modules:
     target_file: lib/algorithms/platesolve/CMakeLists.txt
     co_located_tests: lib/algorithms/platesolve/tests
     module_id: astrocs.p1.platesolve
+    aliases: [astrocs.p1.wcs, astrocs.phase1.wcs, astrocs.phase1.wcs-platesolve]   # MOD-002：规范形 astrocs.p1.platesolve；B/C/D 面写法登记为弃用别名
     module_version: 0.11.0-alpha.2
     abi_version: 1
     entrypoint: astrocs_module_query_v1
@@ -233,6 +235,7 @@ modules:
     target_file: lib/algorithms/noise_snr/CMakeLists.txt
     co_located_tests: lib/algorithms/noise_snr/tests
     module_id: astrocs.p1.noise_snr
+    aliases: [astrocs.p1.noise, astrocs.phase1.noise, astrocs.phase1.noise-snr]   # MOD-002 中面：B/C 面子集名登记为弃用别名
     module_version: 0.11.0-alpha.2
     abi_version: 1
     entrypoint: astrocs_module_query_v1
@@ -320,6 +323,7 @@ modules:
     target_file: lib/algorithms/sampling/CMakeLists.txt
     co_located_tests: lib/algorithms/sampling/tests
     module_id: astrocs.p2.sampling
+    aliases: [astrocs.phase2.sample]   # MOD-002：C/D 面用 sample，登记为弃用别名
     module_version: 0.11.0-alpha.2
     abi_version: 1
     entrypoint: astrocs_module_query_v1
@@ -494,6 +498,7 @@ modules:
     target_file: lib/algorithms/fits_output/CMakeLists.txt
     co_located_tests: lib/algorithms/fits_output/tests
     module_id: astrocs.p3.fits_output
+    aliases: [astrocs.p3.fits_writer, astrocs.phase3.writer]   # MOD-002：A 面规范形；B/C/D 用角色名 fits_writer/writer
     module_version: 0.11.0-alpha.2
     abi_version: 1
     entrypoint: astrocs_module_query_v1

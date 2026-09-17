@@ -101,7 +101,7 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 | **冻结四投影 TAN / SIN / CAR / AIT（原引「宪章 §7.3/§18.1」已废止；现行投影集合权威 = `ASTROCS_DESIGN.md` §5.3 八投影，registry 已升 v3；本行为 BASE 快照）** | **`IMPLEMENTED`**（registry 面） | `lib/algorithms/projection/p3_projection.{h,cpp}` registry v1 恰四行（`:267-273`，`:299` 版本断言）+ 独立 numpy Oracle（`tests/backend/test_p3_projection_oracle.py`）；ctest `p3_projection_units`/`p3_projection_fault` 本提交实测 2/2 PASS；ALG 唯一权威 `docs/algorithms/PHASE3_PROJ_IMPL.md` §15（P3-001 `9953f103`）。**未 INSTALLED**：`lib/algorithms/projection/module.yaml`:79-80 `entrypoint: MISSING`，生产会话/DLL 尚未挂载 registry → 不得表述为已安装/已验证；**ZEA 不在冻结四投影内**（旧表述 SIN/ZEA/CAR/AIT 已按 §18.1 更正） |
 | Phase3 合成/单元测试文件在位 | `IMPLEMENTED` | `tests/unit/p3_{assembly,coverage,interp,output,wcs}_test.cpp`、`tests/api/test_p3_api.py`、`tests/unit/p3002_*_test.cpp`、`tests/unit/p3_projection_test.cpp` 存在于当前提交 |
 | **`healpix_interp4` 四点插值** | **`NOT_IMPLEMENTED`** | `lib/`、`cli/`、`include/`、`runtime/` 全域无 `interp4` 实现符号；当前采样为 nearest/bilinear（G4 冻结权重） |
-| **流式 FITS 输出接入 Phase3 writer** | **`NOT_IMPLEMENTED`** | IO-001 冻结 `astrocs.io.fits_stream_v1`（`runtime/io/fits_core.c` + 头 + 契约测试，接口面 `IMPLEMENTED`）；Phase3 writer 走 CFITSIO 原子写（`lib/phase3_session/p3_output.cpp`），未见流式写接线 |
+| **流式 FITS 输出接入 Phase3 writer** | **`NOT_IMPLEMENTED`** | IO-001 冻结 `astrocs.io.fits_stream_v1`（`runtime/io/fits_core.c` + 头 + 契约测试，接口面 `IMPLEMENTED`）；Phase3 writer 走 CFITSIO 原子写（`lib/algorithms/fits_output/p3_output.cpp`），未见流式写接线 |
 
 > 诚实标注：原宪章 §18.1（已废止）冻结的首批投影为 **TAN+SIN+CAR+AIT**（现行 = `ASTROCS_DESIGN.md` §5.3 八投影），其 registry 实现
 > 已落位并通过独立 Oracle 与故障注入（`IMPLEMENTED`），但**生产会话路径与 DLL 挂载

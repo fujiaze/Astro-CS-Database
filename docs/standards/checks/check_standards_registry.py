@@ -21,6 +21,10 @@
       (跨域治理)）改为校验其定义在 §3.2 表内且字段齐全；
   C8  §3 偏差索引与偏差登记面双向一致：定义域为空 ⇒ 索引必须有显式「（无）」行
       （不得留空）；定义域非空 ⇒ 索引不得出现「（无）」行（不得用「无」掩盖真实偏差）。
+  C9  **[W4-A3] 域清单「偏差」列 → 域 DEVIATION 字段 反向一致**：清单行偏差列里
+      出现的每个 STD-F*/DISP-* 词元必须在本域 DEVIATION 字段中有定义（反向指向）。
+      C4 只判该列"非空"、C7 只判 §3 索引 → DEVIATION，此前反向无人判 ⇒
+      "清单行写着 STD-F1 而 DEVIATION 字段删掉它"可以整体绿。
 
 锚存活与 fail-closed（ENGINEERING_SPEC §8）：
   REQUIRED_ANCHORS（REGISTRY_REL / INDEX_REL）在启动时校验 os.path.exists +
@@ -35,6 +39,12 @@
 退出码：0 = PASS；1 = FAIL；2 = ANCHOR_STALE（锚失效/输入不可读, fail-closed）。
 --fault-inject：注入缺陷后判定看 verdict 字段, 恒退出 0；唯一例外 anchor-stale
   （锚失效按 §8 必须非零退出, 不得静默通过）退出 2。
+
+注入空转守卫（W4-A3）：8 个文本场景一律经 _replace_once 确定性命中一次替换；
+命中 0 次（正文漂移导致锚点失配）或 >1 次 ⇒ 抛 InjectedNoOp（exit 3 + stderr
+  FAULT_INJECT_NOOP: ...），**拒绝以原文冒充"已注入"**。事由：drop-wcs003f1-pointer
+  的原锚串与注册表正文漂移，str.replace 命中 0 次却返回原文 ⇒ 该场景长期空转，
+  --fault-inject 沦为"无论如何都绿"的假自证。
 """
 from __future__ import annotations
 
@@ -504,6 +514,32 @@ def evaluate(root: str, text: str = None) -> dict:
     results.append(check("C7_deviation_index_rows_resolve", not bad_idx,
                          "坏行=%s" % bad_idx if bad_idx else "ok"))
 
+    # C9 域清单「偏差」列 ↔ 域 DEVIATION 字段反向一致（W4-A3；§8 注册表双向一致）
+    #
+    # 事由：C4 只判清单偏差列"非空"、C7 只判 §3 索引行 → 域 DEVIATION 字段。
+    # 反向（清单行引用的偏差 ID → 必须出现在本域 DEVIATION 字段）此前**无人判**，
+    # 于是"清单行写着 STD-F1 而 DEVIATION 字段把它删掉"可以整体绿 —— 正是
+    # --fault-inject drop-wcs003f1-pointer 想验却验不到的形态。
+    # 口径收窄：只取清单偏差列里的 ID 词元（ID_TOKEN_RE），不判自由文本；
+    # "无（…）"-类文字（不含 ID 词元）自然放行。
+    backref_bad = []
+    for key in DOMAIN_KEYS:
+        dom = domains.get(key)
+        if dom is None:
+            continue
+        field_dev = dom["fields"].get("DEVIATION", "")
+        field_ids = set(ID_TOKEN_RE.findall(field_dev))
+        for row in dom["checklist"]:
+            if len(row) < 5:
+                continue
+            for tok in ID_TOKEN_RE.findall(row[4]):
+                if tok not in field_ids:
+                    backref_bad.append("%s/%s: 清单偏差列引用 %s 但 DEVIATION 字段未含"
+                                       % (key, row[0], tok))
+    results.append(check("C9_checklist_deviation_backref", not backref_bad,
+                         "反向失配=%s" % backref_bad if backref_bad else
+                         "ok（%d 域清单偏差列 ⊆ 各域 DEVIATION 字段）" % len(DOMAIN_KEYS)))
+
     # C8 §3 索引与偏差登记面双向一致（（无）行只允许在定义域为空时出现）
     none_rows = [r[0] for r in idx_rows if r[0] in NONE_MARKERS]
     if not defined:
@@ -526,33 +562,63 @@ def evaluate(root: str, text: str = None) -> dict:
             "stale": ext_stale}
 
 
+def _replace_once(text: str, pattern: str, repl: str, scenario: str) -> str:
+    """确定性命中一次并替换；命中 0 次或 >1 次 ⇒ 立即报错（注入空转守卫）。
+
+    W4-A3 事由：`drop-wcs003f1-pointer` 的原锚串与注册表正文漂移，`str.replace`
+    命中 0 次却返回原文 ⇒ 注入静默空转，`--fault-inject` 变成"无论如何都绿"的
+    假自证。本守卫把"注入未生效"从静默变成硬错误（exit 3 + stderr 点名场景）。
+    """
+    new, n = re.subn(pattern, repl, text, count=1)
+    if n != 1:
+        raise InjectedNoOp(
+            "FAULT_INJECT_NOOP: 场景 %s 的注入锚点命中 %d 次（要求恰好 1 次）"
+            "；注入未生效 ⇒ 拒绝以原文冒充注入结果。锚: %s"
+            % (scenario, n, pattern))
+    return new
+
+
+class InjectedNoOp(SystemExit):
+    """注入空转：以非零退出（3）暴露，不得被当作"注入已生效"。"""
+
+
 def inject(text: str, scenario: str) -> str:
     if scenario == "drop-domain-section":
-        return re.sub(r"^## D\.drizzle\b.*?(?=^## )", "", text, flags=re.S | re.M)
+        return _replace_once(text, r"(?ms)^## D\.drizzle\b.*?(?=^## )", "", scenario)
     if scenario == "drop-checklist-table":
         m = re.search(r"^## D\.hips\b.*?(?=^## )", text, flags=re.S | re.M)
+        if not m:
+            raise InjectedNoOp(
+                "FAULT_INJECT_NOOP: 场景 %s 找不到 §D.hips 节（注入未生效）" % scenario)
         seg = m.group(0)
-        return text.replace(seg, "\n".join(l for l in seg.splitlines()
-                                           if not l.strip().startswith("|")) + "\n")
+        stripped = "\n".join(l for l in seg.splitlines()
+                                    if not l.strip().startswith("|")) + "\n"
+        if stripped == seg:
+            raise InjectedNoOp(
+                "FAULT_INJECT_NOOP: 场景 %s 未删除任何表格行（注入未生效）" % scenario)
+        return _replace_once(text, re.escape(seg), stripped.replace("\\", "\\\\"), scenario)
     if scenario == "illegal-status":
-        return text.replace("| CONFORMANT |", "| PASS |", 1)
+        return _replace_once(text, r"\| CONFORMANT \|", "| PASS |", scenario)
     if scenario == "version-drift":
         # §2 域表 healpix 行的「冻结版本」列（实现漂移即版本漂移）
-        return text.replace("| ApJ 622, 759 (2005)，bibcode 2005ApJ...622..759G |",
-                            "| ApJ 999, 1 (2099) |", 1)
+        return _replace_once(text, re.escape("| ApJ 622, 759 (2005)，bibcode 2005ApJ...622..759G |"),
+                             "| ApJ 999, 1 (2099) |", scenario)
     if scenario == "drop-wcs003f1-pointer":
-        # 只动域 DEVIATION 字段：去掉 WCS-003-F1 指针（清单行与 §3 索引保留）
-        return text.replace(
-            "- DEVIATION: STD-F1；DISP-WCS-008；DISP-P3PROJ-001",
-            "- DEVIATION: DISP-WCS-008；DISP-P3PROJ-001", 1)
+        # 只动域 DEVIATION 字段：去掉 STD-F1 指针（清单行与 §3 索引保留）。
+        # W4-A3 订正：原锚串漏了 DISP-WCS-001（"- DEVIATION: STD-F1；DISP-WCS-008；…"），
+        # 与现行注册表 :62 全文不符 ⇒ str.replace 命中 0 次 = **注入空转**（实测
+        # inject() 返回文本与输入逐字节相同）。现改为"行首锚 + 只删 STD-F1 词元"
+        # 的形态，并经 _replace_once 空转守卫（命中 0 次即报错退出，不得静默返回
+        # 原文冒充"已注入"）。
+        return _replace_once(text, r"(?m)^(- DEVIATION: )STD-F1；", r"\1", scenario)
     if scenario == "dangling-deviation-id":
-        return text.replace("| STD-F4 |", "| STD-F99 |", 1)
+        return _replace_once(text, r"\| STD-F4 \|", "| STD-F99 |", scenario)
     if scenario == "drop-governance-deviation":
         # 删掉 §3.2 的 STD-F6 定义行 ⇒ C6 悬空 + C7 索引失配 + C5' 表空
-        return text.replace(GOVERNANCE_ROW_STD_F6 + "\n", "", 1)
+        return _replace_once(text, re.escape(GOVERNANCE_ROW_STD_F6 + "\n"), "", scenario)
     if scenario == "add-none-marker-row":
         # §3 索引插入（无）行（定义域非空）⇒ C8 判 FAIL（C7 已按 NONE 过滤, 不受影响）
-        return text.replace(IDX_SEP, IDX_SEP + "\n" + NONE_MARKER_ROW, 1)
+        return _replace_once(text, re.escape(IDX_SEP), IDX_SEP + "\n" + NONE_MARKER_ROW, scenario)
     if scenario == "anchor-stale":
         # 锚失效由 ANCHOR_OVERRIDE_ENV 注入（见 main）；文本不变。
         return text

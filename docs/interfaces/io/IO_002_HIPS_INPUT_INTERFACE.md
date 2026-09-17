@@ -67,7 +67,7 @@ IO-002 读取的 HiPS 目录是 **磁盘上已发布的 HiPS 产品**。两档�
 | `hips_order` | tile order K | 十进制整数，0 ≤ K ≤ 29；K 与 NSIDE=2^(K+9) 一致 |
 | `hips_tile_width` | tile 宽 TW | 十进制整数；**必须为 2 的幂**且 1 ≤ TW ≤ 16384；TW=512 标准 |
 | `hips_tile_format` | tile 格式 | **必须为 `fits`**（科学平面 FITS-only；png/jpg/tsv 等拒绝） |
-| `hips_frame` | 参考系 | 必须为 `equatorial`（ICRS，本产品科学域） |
+| `hips_frame` | 参考系 | 必须为 `icrs`（IVOA REC-HIPS-1.0 §4.4.1 标准值域 {icrs,galactic,ecliptic} 内的 ICRS 项；M1a-B-005 起写出侧写 `icrs`，读侧另接受旧版非标准别名 `equatorial`；galactic/ecliptic 值域合法但本实现无转换 ⇒ 显式拒绝） |
 
 ### 3.2 建议键（可选，存在则校验自洽）
 
@@ -89,8 +89,9 @@ Norder{K}/Dir{D}/Npix{N}.fits
 
 - `{K}` = `hips_order`（十进制，无前导零歧义）；
 - tile ipix 为 order-K NESTED 单元号，`0 ≤ ipix < 12·4^K`；
-- `D = ipix / 10000`，`N = ipix % 10000`（IVOA HiPS 目录约定，`%` 为 C/Python 余数语义，
-  恒有 `ipix = 10000·D + N`、`0 ≤ N < 10000`）；
+- `D = (ipix / 10000) · 10000`（万进制块**起始值**），`N = ipix`（文件名带完整
+  tile 号）——IVOA REC-HIPS-1.0 §4.1 原式，示例 `10302@order6 → Dir10000/Npix10302.fits`；
+  M2b-B-01 前的 `D = ipix / 10000`、`N = ipix % 10000` 与标准相反，现仅作**只读**回退；
 - 调用方以 **NESTED ipix** 定位 tile；实现内部做 `D/N` 拆分并拒绝越界 ipix
   （ipix ≥ 12·4^K → `ACS_HIPS_ERR_ADDRESS`）。
 
@@ -147,7 +148,7 @@ tile FITS 头内卡（存在时校验一致）：
 | 2 | `ACS_HIPS_ERR_ABI_MISMATCH` | ABI 版本/结构大小失配（同 IO-001 语义） |
 | 3 | `ACS_HIPS_ERR_NOMEM` | 内存不足 |
 | 4 | `ACS_HIPS_ERR_IO` | 底层 I/O 失败 |
-| 5 | `ACS_HIPS_ERR_UNSUPPORTED` | 不支持（非 fits 格式/非 equatorial/非 NESTED 等） |
+| 5 | `ACS_HIPS_ERR_UNSUPPORTED` | 不支持（非 fits 格式/非 icrs 且非旧别名 equatorial/非 NESTED 等） |
 | 6 | `ACS_HIPS_ERR_CANCELLED` | 取消（透传 IO-001 取消语义） |
 | 7 | `ACS_HIPS_ERR_STATE` | 句柄状态错误 |
 | 8 | `ACS_HIPS_ERR_PROPERTIES` | properties 缺失/非法键值（必填键缺/值不合法） |
@@ -278,9 +279,14 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 1. Linux 控制节点（本任务执行环境）无 MSVC/Windows DLL 构建；产出 C ABI + C 核心 +
    Linux `.so` 技术预览与全部契约/负测。Windows 正式 DLL 构建（astrocs_io.dll）在
    W6 用同一源码执行。
-2. 只支持 `hips_frame=equatorial`、`ORDERING=NESTED`、`hips_tile_format=fits`；
-   galactic/tsv/png/jpg 目录拒绝（科学平面 FITS-only）。
+2. 只支持 `hips_frame=icrs`（旧产品别名 `equatorial` 只读兼容）、`ORDERING=NESTED`、
+   `hips_tile_format=fits`；galactic/tsv/png/jpg 目录拒绝（科学平面 FITS-only）。
 3. MOC 仅作 optional hint：无 MOC 时 tile 枚举接口返回 0；单个 ipix 定位不受影响。
+   **MOC 读侧显式不 fail-closed（登记项，M2b-B-02 收口）**：`Moc.fits` 存在但
+   不可解析（含 DISP-HIPS-005 的「低阶 UNIQ 对本 reader 无效」）同样降级为
+   「枚举面 0 tile」，不使 open 失败。理由：单 tile 定位与读取不依赖 MOC；
+   若 fail-closed 会把「MOC 不可用但 tile 完好」的合法产品判死。写侧已按
+   IVOA REC-MOC 2.0 §6 Table 3 补齐 `ORDERING='NUNIQ'`/`COORDSYS='C'`。
 4. 不做父 order 静默回退；也**不提供**显式父 tile 定位/层级回退接口（v1 最小合同；
    浏览器 LOD 需要时由上层按 Norder 拼接，超出本任务范围）。
 5. `tile_status` 只区分 PRESENT/MISSING/INVALID；不细分 FITS 内部错误（透传 err 文本）。

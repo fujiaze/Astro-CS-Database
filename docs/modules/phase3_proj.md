@@ -43,8 +43,9 @@
 
 ## 4 生产源
 
-- lib/phase3_session/p3_wcs.h（50 行，唯一权威签名头）+
-  lib/phase3_session/p3_wcs.cpp（165 行）——六符号:
+- lib/algorithms/projection/p3_wcs.h（唯一权威签名头）+
+  lib/algorithms/projection/p3_wcs.cpp——六符号（W4-A9 批次 1 由
+  lib/phase3_session/ 迁入本模块）:
   P3WcsDescriptor/P3WcsStatus/p3_wcs_make/p3_wcs_pix2world/
   p3_wcs_world2pix/p3_wcs_fits_keywords。
 - 会话消费点: p3_session.cpp :17/:160/:163/:232/:247-253；

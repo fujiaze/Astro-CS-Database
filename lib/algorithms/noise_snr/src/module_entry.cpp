@@ -988,18 +988,26 @@ static acs_status noise_execute_estimate(noise_inst* inst, const char* manifest,
      *    cfg=NULL 路径 bitwise 等价 —— default_config 填充来源相同) */
     NoiseWeightModelV1 model;
     memset(&model, 0, sizeof(model));
+    /* MASK-002 (claim SC-009): 本 adapter 的 manifest 合同只承载 star_x/star_y
+     * 两个 plane (NOISE_M_KEY_STAR_X/Y_B64, 合同面未扩展) ⇒ 逐星 flux/fwhm
+     * 以 NULL 传入, 模块按 SCI-NOISE-001 §5a 回调规则降级 (r=rmax → 天空预算
+     * 收缩) 并置 MASK_LEGACY 位标。禁止在此凭空造 FWHM/F 冒充逐星半径。 */
     int rc = (c->dtype == 1)
                  ? snr_noise_model_v1_f64((const double*)rows.data,
                                           (int)c->h, (int)c->w,
                                           (const float*)rows.mask,
                                           (const double*)rows.star_x,
                                           (const double*)rows.star_y,
+                                          nullptr,
+                                          nullptr,
                                           (int)rows.n_stars, &c->cfg, &model)
                  : snr_noise_model_v1((const float*)rows.data,
                                       (int)c->h, (int)c->w,
                                       (const float*)rows.mask,
                                       (const double*)rows.star_x,
                                       (const double*)rows.star_y,
+                                      nullptr,
+                                      nullptr,
                                       (int)rows.n_stars, &c->cfg, &model);
     if (rc == 3) {
         ex->release(ex->user_data, leased);
@@ -1219,6 +1227,9 @@ static acs_status noise_execute_fill(noise_inst* inst, const char* manifest,
     /* 影子模型重建 (round-trip; flags/全局标量自 manifest) */
     NoiseWeightModelV1 shadow;
     memset(&shadow, 0, sizeof(shadow));
+    /* MASK-002 (claim SC-009): 手工拼装的跨边界模型必须自带 ABI 头部,
+     * 否则 snr_noise_model_v1_fill fail-closed (rc=-9) 拒绝消费。 */
+    snr_noise_model_v1_abi_stamp_model(&shadow);
     shadow.n_control_points = (uint32_t)rows.n_ctrl;
     if (rows.n_ctrl > 0) {
         shadow.ctrl_x_px = (double*)malloc((size_t)(rows.n_ctrl * 8ull));

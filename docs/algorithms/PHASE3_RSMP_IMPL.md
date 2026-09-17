@@ -10,8 +10,8 @@
 > docs/algorithms/PHASE3_RESAMPLE.md，公式零改动）。
 > 本文档为 HiPS 重采样域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
-> 生产源: lib/phase3_session/p3_resample.h（58 行，唯一权威签名头）+
-> lib/phase3_session/p3_resample.cpp（239 行），实测 2026-09-12。
+> 生产源: lib/algorithms/resample/p3_resample.h（58 行，唯一权威签名头）+
+> lib/algorithms/resample/p3_resample.cpp（239 行），实测 2026-09-12。
 > 代码中不得出现第二套数学核心（healpix 权威函数唯一，见 §6）。
 
 ## 1 目的与非目标
@@ -34,7 +34,7 @@
 | 项 | 合同值 | 实测 |
 |---|---|---|
 | module_id（矩阵 CSV 权威） | astrocs.p3.resample | MODULE_MIGRATION_MATRIX.csv P3-RSMP 行 |
-| registry 生产 descriptor | astrocs.phase3.resample2（module_adapters.cpp:670 `p3_resample2_descriptor`，module_id 同名） | 实测 |
+| registry 生产 descriptor | astrocs.phase3.resample2（module_adapters.cpp:678 `p3_resample2_descriptor`，module_id 同名） | 实测 |
 | dll_target | astrocs_p3_resample.dll | 矩阵 CSV；entrypoint 实测未建（DISP-P3RSMP-005） |
 | owner | SA-P3-S26 | 矩阵 CSV |
 | 合同目录 | lib/algorithms/resample/（本任务新建，仅合同文件，无源码） | 生产源仍在 lib/phase3_session/ |
@@ -51,8 +51,8 @@
 ## 3 生产源图（实测，2026-09-12）
 
 ```text
-lib/phase3_session/p3_resample.h        58 行  唯一权威签名头（10 个公共符号，§4）
-lib/phase3_session/p3_resample.cpp     239 行  全部实现（§6 逐符号）
+lib/algorithms/resample/p3_resample.h        58 行  唯一权威签名头（10 个公共符号，§4）
+lib/algorithms/resample/p3_resample.cpp     239 行  全部实现（§6 逐符号）
 lib/phase3_session/p3_session.cpp      343 行  会话编排消费（§8）
 lib/algorithms/shared/healpix/healpix_core.{h,cpp}         权威球面函数（禁止第二套核心）
 tests/backend/p3_resample_probe_main.cpp        探针（order/mode/open/nearest/bilinear/pix2ang 六模式）
@@ -72,7 +72,7 @@ tests/unit/p3_coverage_test.cpp        106 行  同上（coverage 语义）
 
 ## 4 符号冻结（实测签名，不改码）
 
-lib/phase3_session/p3_resample.h 全部公共符号（10 个）：
+lib/algorithms/resample/p3_resample.h 全部公共符号（10 个）：
 
 | 符号 | 头锚 | 实现锚 | 签名要点 |
 |---|---|---|---|

@@ -58,13 +58,13 @@
 - VERSION: Paper I = A&A 395, 1061 (2002)；Paper II = A&A 395, 1077 (2002)；SIP = ASPC 347, 491 (2005)
 - CLAUSES: Paper I §2.1.1（CRPIX 1-based）/§3（CD/CTYPE）；Paper II §2.1（旋转/LONPOLE）/§5 Table 1（TAN/SIN/CAR/AIT）；SIP §A（A/B/AP/BP）
 - COMPLIANCE: PARTIAL
-- EVIDENCE: docs/science/ASTROMETRY.md；docs/algorithms/PLATESOLVE.md；docs/algorithms/PHASE3_PROJ_IMPL.md；docs/algorithms/PHASE3_FITS_IMPL.md；tests/unit/p1wcs/；tests/unit/p3_projection_test.cpp；lib/phase3_session/p3_wcs.cpp；lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp
+- EVIDENCE: docs/science/ASTROMETRY.md；docs/algorithms/PLATESOLVE.md；docs/algorithms/PHASE3_PROJ_IMPL.md；docs/algorithms/PHASE3_FITS_IMPL.md；tests/unit/p1wcs/；tests/unit/p3_projection_test.cpp；lib/algorithms/projection/p3_wcs.cpp；lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp
 - DEVIATION: STD-F1；DISP-WCS-001；DISP-WCS-008；DISP-P3PROJ-001
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
-| Paper I §2.1.1（CRPIX 1-based 参考像素） | 参考像素 CRPIX 为 1-based，像素坐标 `xp = x + 1` | CONFORMANT | docs/science/ASTROMETRY.md；docs/algorithms/PLATESOLVE.md；tests/unit/p1wcs/p1wcs_astropy_cross.py；tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py；tests/unit/p3_wcs_test.cpp | STD-F1（已闭环：ipv 内部保留 0-based 自洽约定，FITS 1-based 由 Phase3 导出边界单点 +1 桥接；实测 astropy 交叉 5.7e-14 deg、九宫格 18 格无 1px 偏移、负向注入必败；见 §3 偏差索引） |
-| Paper I §3（CD/CTYPE 关键词体系） | 线性变换以 CD 矩阵 + CTYPE 表达；FITS 头卡 ≤80 字节 | CONFORMANT | docs/algorithms/PHASE3_PROJ_IMPL.md；lib/phase3_session/p3_wcs.cpp；tests/unit/p3_projection_test.cpp | 无（T5/T7 断言在位） |
+| Paper I §2.1.1（CRPIX 1-based 参考像素） | 参考像素 CRPIX 为 1-based，像素坐标 `xp = x + 1` | CONFORMANT | docs/science/ASTROMETRY.md；docs/algorithms/PLATESOLVE.md；tests/unit/p1wcs/p1wcs_astropy_cross.py；tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py；lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp | STD-F1（已闭环：ipv 内部保留 0-based 自洽约定，FITS 1-based 由 Phase3 导出边界单点 +1 桥接；实测 astropy 交叉 5.7e-14 deg、九宫格 18 格无 1px 偏移、负向注入必败；见 §3 偏差索引） |
+| Paper I §3（CD/CTYPE 关键词体系） | 线性变换以 CD 矩阵 + CTYPE 表达；FITS 头卡 ≤80 字节 | CONFORMANT | docs/algorithms/PHASE3_PROJ_IMPL.md；lib/algorithms/projection/p3_wcs.cpp；tests/unit/p3_projection_test.cpp | 无（T5/T7 断言在位） |
 | Paper II §5 Table 1（TAN/SIN/CAR/AIT 四投影） | 四投影按 Table 1 的 R_θ 定义实现，新增投影须注册并附独立往返 Oracle | CONFORMANT | docs/algorithms/PHASE3_PROJ_IMPL.md；tests/unit/p3_projection_test.cpp；tests/backend/test_p3_projection_oracle.py | 无（registry v1 恰四行；T1/T2 往返与独立解析解在位） |
 | Paper II §2.1（LONPOLE 与旋转） | 允许通用 LONPOLE/φ_p 附加旋转机制 | PROJECT_DEFINED | docs/algorithms/PHASE3_PROJ_IMPL.md | 无（本实现固定 θ₀=+90°、无 φ_p 附加旋转，显式冻结为 Project-defined；不实现通用 LONPOLE） |
 | SIP §A（A/B 前向、AP/BP 逆向与单位线性剔除） | SIP 畸变系数约定与单位线性项处理 | PROJECT_DEFINED | docs/science/ASTROMETRY.md；docs/algorithms/PLATESOLVE.md | DISP-WCS-008（AP/BP 采样网格 ≥7×7，实现 41×41/81×81 + 迭代反演；SCI 已废止 7×7 自证门） |
@@ -99,7 +99,7 @@
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
-| §3（层级索引与 NorderK/DirD/NpixN 目录结构） | 层级 tile 目录命名与 NESTED 地址编码固定 | CONFORMANT | docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp；tests/unit/CMakeLists.txt | 无（D=ipix/10000、N=ipix%10000 与读侧同一合同） |
+| §3（层级索引与 NorderK/DirD/NpixN 目录结构） | 层级 tile 目录命名与 NESTED 地址编码固定 | CONFORMANT | docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp；tests/unit/CMakeLists.txt | 无（M2b-B-01 订正为 §4.1 标准式 D=(ipix/10000)*10000、Npix=ipix；旧式 Dir=商/Npix=余数仅作只读回退） |
 | §4.1（tile 为 W×W FITS 单元，tile_width=512） | tile 宽为 2 的幂、标准 512；tile 内 NESTED 序 | CONFORMANT | docs/algorithms/HIPS_WRITER.md；tests/unit/CMakeLists.txt | DISP-HIPS-006；DISP-HIPS-008（写路径无互斥包装；兼容入口 8bit support 旧语义并存） |
 | §4.2.1（properties 必需键集） | `hips_version/hips_order/hips_tile_width/hips_tile_format/hips_frame` 必需且自洽 | PARTIAL | docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp | STD-F4（写出侧键集缺 em_min/em_max/obs_bandpass 等推荐键；META-002 禁伪造，待 index.json 真实滤镜元数据接通） |
 | §4.2.1（properties 可选/推荐键：hips_status/hips_estsize/hips_initial_fov） | 可选键存在时须自洽、非占位 | PARTIAL | docs/algorithms/HIPS_WRITER.md；lib/infrastructure/aio/src/hips/aio_hips_writer.cpp | DISP-HIPS-002（hips_estsize="1000000"、hips_initial_fov="60" 硬编码占位）；DISP-HIPS-003（hips_status 恒 "private master"） |
@@ -325,6 +325,7 @@
 | C6 | 正文所有 STD-F*/DISP-* 引用在**闭包域**（本注册表域偏差表 ∪ §3.2 跨域治理偏差表 ∪（若存在）外部 findings 登记册）中有定义（悬空指针 FAIL）；外部登记册缺席时显式登记"缺席（可选来源）"，绝不静默返回空集 |
 | C7 | §3 偏差索引行与定义域（域偏差表 ∪ §3.2）逐 ID 一致（「（无）」行不计入 ID 集合）；域行指向的域/条款在对应清单中真实存在且域 DEVIATION 字段含该 ID；跨域治理行（域列 = `(跨域治理)`）校验其定义在 §3.2 表内且字段齐全 |
 | C8 | §3 偏差索引与偏差登记面双向一致：定义域为空 ⇒ 索引必须有显式「（无）」行（不得留空）；定义域非空 ⇒ 索引不得出现「（无）」行（不得用"无"掩盖真实偏差） |
+| C9 | **[W4-A3]** 域清单「偏差」列 → 域 DEVIATION 字段**反向一致**：清单行偏差列里出现的每个 STD-F*/DISP-* 词元必须在本域 DEVIATION 字段中有定义。C4 只判该列非空、C7 只判 §3 索引 → DEVIATION；补上反向后"清单行写着 STD-F1 而 DEVIATION 字段删掉它"不再可能整体绿 |
 
 用法（PASS 时 exit 0；FAIL 为 1；锚失效为 2）：
 
@@ -343,7 +344,16 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
     done
 
 前 8 场景恒退出 0（注入协议：判定看 verdict）；`anchor-stale` 为例外 —— 锚失效按 §8
-必须非零退出，退出 2 并打印 `ANCHOR_STALE`。人工复现生产路径（不经 --fault-inject）：
+必须非零退出，退出 2 并打印 `ANCHOR_STALE`。
+
+**注入空转守卫（W4-A3）**：8 个文本场景一律"确定性命中一次"替换；命中 0 次（正文
+漂移导致锚点失配）或 >1 次 ⇒ 抛 `FAULT_INJECT_NOOP`（exit 3），拒绝以原文冒充
+"已注入"。事由：`drop-wcs003f1-pointer` 原锚串漏了 `DISP-WCS-001`，与正文漂移 ⇒
+`str.replace` 命中 0 次返回原文，该场景长期空转（实测 `inject()` 返回文本与输入
+逐字节相同）。改正后该场景由 `C7_deviation_index_rows_resolve` **与新增的
+`C9_checklist_deviation_backref`** 双重判红。
+
+人工复现生产路径（不经 --fault-inject）：
 
     ASTROCS_STD_REG_ANCHOR_OVERRIDE='REGISTRY_REL=docs/standards/__missing__.md' \
       python3 docs/standards/checks/check_standards_registry.py --root .; echo rc=$?   # rc=2

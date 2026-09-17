@@ -16,7 +16,7 @@
     plan 命令删除, IR 逐节点顺序无用户可见载体; 防「2 节点回退」的等价证据是本文件
     test_01 的 8 节点产物集断言（calibrated×2 + p1_sources/psf/wcs/flux/snr/final）。
 """
-import json, os, re, shutil, signal, subprocess, tempfile, time, unittest
+import hashlib, json, os, re, shutil, signal, subprocess, tempfile, time, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REGISTRY = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_ports.registry.json")
@@ -94,7 +94,8 @@ class TestPhase1InProcess(unittest.TestCase):
         assert "FIXTURES_OK" in r.stdout, r.stderr
         cls.cfg = os.path.join(cls.tmp, "cfg.json")
         # FIX-E2E B1-A1: 正式 phase1 链为 8 节点（cal→cos→psf→wcs→phot→snr→drz→wr）,
-        # drizzle/wcs 为链上必填科学配置; Linux ipv stub 平台 wcs 走显式 WCS 配置路径。
+        # drizzle/wcs 为链上必填科学配置; wcs 走真实 ipv 求解链, 本用例给显式
+        # 八参数 WCS 只是选择 explicit_config 旁路（不是平台 stub 规避）。
         with open(cls.cfg, "w", encoding="utf-8") as fh:
             json.dump({
                 "input_lights": [os.path.join(cls.data, "light_1.fits"),
@@ -102,6 +103,9 @@ class TestPhase1InProcess(unittest.TestCase):
                 "master_bias": os.path.join(cls.data, "bias.fits"),
                 "master_dark": os.path.join(cls.data, "dark.fits"),
                 "master_flat": os.path.join(cls.data, "flat.fits"),
+                # BIAS-001: 夹具 dark.fits(=150) 为含 bias 的总暗场（bias=100）⇒ 按 SCI-CAL-001 §5
+                # 声明 dark_optimization 走兼容式 (200-100-1*(150-100))/1.25 = 40（CLI-002 Oracle 同式）。
+                "dark_optimization": True,
                 "wcs": {"crpix1": 32.5, "crpix2": 32.5, "crval1": 210.0, "crval2": 34.0,
                         "cd11": -2.7777777777777776e-4, "cd12": 0.0,
                         "cd21": 0.0, "cd22": 2.7777777777777776e-4},
@@ -175,8 +179,13 @@ class TestPhase1InProcess(unittest.TestCase):
     def test_04_error_mapping(self):
         # 缺失输入文件 → 3(INPUT)
         bad = os.path.join(self.tmp, "missing.json")
+        na = "/nonexistent/nope.fits"
         with open(bad, "w", encoding="utf-8") as fh:
-            json.dump({"input_lights": ["/nonexistent/x.fits"], "output_dir": self.out}, fh)
+            # 标定帧显式给出（SMOKE-001 D4: 缺标定帧本身是预检 error → 2），
+            # 本用例判的是「输入文件找不到 → 3」。
+            json.dump({"input_lights": ["/nonexistent/x.fits"],
+                       "master_bias": na, "master_dark": na, "master_flat": na,
+                       "output_dir": self.out}, fh)
         r = self._run("normalize", "--json", bad, "--events-jsonl", "-y")
         self.assertEqual(r.returncode, 3, r.stderr[-200:])
         # 配置坏 JSON → 3(INPUT)
@@ -185,7 +194,7 @@ class TestPhase1InProcess(unittest.TestCase):
             fh.write("{not json")
         r2 = self._run("normalize", "--json", bad2, "-y")
         self.assertEqual(r2.returncode, 3)
-        # 无 master 校准路径仍合法（正式 8 节点链要求 drizzle/wcs 配置）
+        # 无 master 校准路径（正式 8 节点链要求 drizzle/wcs 配置；SMOKE-001 D4）
         cfg3 = os.path.join(self.tmp, "cfg3.json")
         with open(cfg3, "w", encoding="utf-8") as fh:
             json.dump({"input_lights": [os.path.join(self.data, "light_1.fits")],
@@ -195,8 +204,13 @@ class TestPhase1InProcess(unittest.TestCase):
                        "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0,
                                    "precision_mode": 1},
                        "output_dir": self.out}, fh)
+        # SMOKE-001 D4（§3.5）: 缺标定帧 = 预检 error，仅 -force 可越过；
+        # 越过后的无标定路径仍是合法运行（旧断言只保留了后半段）。
         r3 = self._run("normalize", "--json", cfg3, "--events-jsonl", "-y")
-        self.assertEqual(r3.returncode, 0, r3.stderr[-400:])
+        self.assertEqual(r3.returncode, 2, r3.stderr[-300:])
+        self.assertIn("master_bias", r3.stderr)
+        r4 = self._run("normalize", "--json", cfg3, "--events-jsonl", "-y", "-force")
+        self.assertEqual(r4.returncode, 0, r4.stderr[-400:])
 
     def test_05_cancel_mid_run(self):
         """取消: rc=9 + 不落 complete manifest（§6.3 取消不得留下看似完整的产品）。"""
@@ -329,7 +343,62 @@ class TestPhase1InProcess(unittest.TestCase):
             self.assertFalse(any(f.startswith("calibrated_") for f in files),
                              "%s: 不得留 calibrated_* 半成品: %s" % (name, files))
 
-    def test_10_frozen_registry_chain_guard(self):
+    def test_10_det001_p1_phot_dependency_edge_and_stack_reproducible(self):
+        """DET-001 (D5) 回归门: phot -> drz 的 p1_phot.json typed 依赖边 + p1_stack.json 逐字节可复现。
+
+        修复前实测（SMOKE-001 D5, 14 次）: phot 与 drz 同为 cal/psf 下游并发执行,
+        drz 对 out_dir/p1_phot.json 的**存在性判定**可先于 phot 落盘（实测 drz 早启
+        0.27-0.33 s 的 4 次全部记成 absent）=> photometry_provenance 在
+        "p1_phot.json"/"absent" 间翻转, 且 p1_stack.json 携带墙钟遥测 elapsed_sec
+        => 登记产物 sha256 每次不同（14 次 14 种）。
+
+        本门三件事一起断言（任一退步即 FAIL）:
+          1) 静态依赖图上存在 phot --artifact:p1_phot--> drz 边（不再靠并发文件约定）;
+          2) photometry_provenance 恒为 "p1_phot.json"（不再翻转, 也不再静默 ADU 降级）;
+          3) p1_stack.json 连续 3 次运行逐字节一致（产品面不含墙钟遥测）。
+        """
+        out = os.path.join(self.tmp, "det001_out")
+        cfg = os.path.join(self.tmp, "det001_cfg.json")
+        with open(cfg, "w", encoding="utf-8") as fh:
+            json.dump({
+                "input_lights": [os.path.join(self.data, "light_1.fits")],
+                "master_bias": os.path.join(self.data, "bias.fits"),
+                "master_dark": os.path.join(self.data, "dark.fits"),
+                "master_flat": os.path.join(self.data, "flat.fits"),
+                # BIAS-001: 同上（含 bias 的 dark ⇒ 兼容式声明）。
+                "dark_optimization": True,
+                "wcs": {"crpix1": 32.5, "crpix2": 32.5, "crval1": 210.0, "crval2": 34.0,
+                        "cd11": -0.5, "cd12": 0.0, "cd21": 0.0, "cd22": 0.5},
+                "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 1},
+                "output_dir": out,
+            }, fh)
+        shas = []
+        for _ in range(3):
+            shutil.rmtree(out, ignore_errors=True)
+            os.makedirs(out)
+            r = self._run("normalize", "--json", cfg, "-y")
+            self.assertEqual(r.returncode, 0, r.stderr[-800:])
+            with open(os.path.join(out, "p1_stack.json"), encoding="utf-8") as fh:
+                stack = json.load(fh)
+            self.assertIn("photometry_provenance", stack)
+            self.assertEqual(stack["photometry_provenance"], "p1_phot.json",
+                             "measure_flux 的 provenance sidecar 必须先于 drizzle 落盘")
+            self.assertTrue(os.path.isfile(os.path.join(out, "p1_phot.json")))
+            self.assertNotIn("elapsed_sec", stack,
+                             "产品面不得含墙钟遥测（遥测留在节点 manifest）")
+            with open(os.path.join(out, "p1_stack.json"), "rb") as fh:
+                shas.append(hashlib.sha256(fh.read()).hexdigest())
+        self.assertEqual(len(set(shas)), 1,
+                         "p1_stack.json 必须逐字节可复现: %s" % sorted(set(shas)))
+
+        with open(os.path.join(out, "graph", "l0_graph.json"), encoding="utf-8") as fh:
+            graph = json.load(fh)
+        edges = {(e.get("from"), e.get("to"), e.get("artifact"))
+                 for e in graph.get("edges", [])}
+        self.assertIn(("phot", "drz", "artifact:p1_phot"), edges,
+                      "drz 必须声明消费 artifact:p1_phot（typed 依赖边, 禁用并发文件约定）")
+
+    def test_11_frozen_registry_chain_guard(self):
         """防「2 节点回退」: registry 冻结的 phase1 链必须是 8 模块, 且产物集覆盖其末端。
 
         （原 test_06 用 plan --json 逐节点对比; plan 已随 §6.2 删除, 等价守卫改为

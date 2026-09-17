@@ -1,31 +1,30 @@
-# 分片 G_GOV_GATE_P2 执行报告（ROOT-004）
+# 分片 G_GOV_GATE_P2 执行报告（ROOT-004 · 本轮复验版）
 
-- 分片名：G_GOV_GATE_P2（类别 G_GOV_GATE，优先级 P2，分配 29 条：FD-G-003 至 V19-N-12）
-- 产物：`reports/PROJECT-GOVERNANCE-01/root-scan/shards/G_GOV_GATE_P2.psv`（表头 1 行 + 数据 29 行，10 列）
-- 行数：**29**；四态计数：**OPEN 27 / RESOLVED 0 / VOID 1 / UNVERIFIABLE 1**
-- 判定时点：2026-09-16T07:28:06Z。**基线漂移**：任务书写 HEAD=main=ecf6ad6f，实测本轮作业期间 HEAD 由 2c328348 继续前移到 c44adc08，且 `ci/checks.json` 正被另一条线并发改写（145→147 门）。为可复跑，本轮把校验对象快照钉在 `run/PROJECT-GOVERNANCE-01/ROOT-004/logs/shards/_snap/checks.json`（sha256=`f89af2c483dc44af1a27271d54ee4b4bfb6e673c19381e8590cdc68164861eaa`）。
+- 分片名：G_GOV_GATE_P2（类别 G_GOV_GATE，优先级 P2，29 条：FD-G-003 … W5-N-15）
+- 产物：reports/PROJECT-GOVERNANCE-01/root-scan/shards/G_GOV_GATE_P2.psv（表头 1 行 + 数据 29 行 × 10 列）
+- 四态计数：**OPEN 22 / RESOLVED 0 / VOID 7 / UNVERIFIABLE 0**
+- 证据日志：run/PROJECT-GOVERNANCE-01/ROOT-004/logs/shards/G_GOV_GATE_P2.log（全部命令本轮真跑、逐字输出）
+- 纪律：零修复、零 git 写（仅只读查询）；未读取 FATDUCK_ACCESS.md；集合类判据全部重算未抄旧数。
 
-## ID 覆盖自证（命令 + 输出）
-
-```
-$ python3 -c "<csv 解析 PSV 与 _assign/G_GOV_GATE_P2.tsv 并逐位比对>"
-data_rows= 29 cols_ok= True order_match= True
-verdicts= {'VOID': 1, 'OPEN': 27, 'UNVERIFIABLE': 1}
-header_ok= True
-```
-
-ID 列表（逐字，序 = 分配表序）：FD-G-003, M1a-G-003, M2a-G-2, M2a-G-3, M4-G-02, M6b-G-007, M6b-G-008, M8a-G-009, M8a-G-010, V11-N-03, V13-N-05, V13-N-07, V13-N-08, V14-N-07, V16-N-01, V19-N-09, V19-N-10, V19-N-11, V19-N-12, V5-N-02, V5-N-04, V9-N-11, V9-N-13, W5-N-10, W5-N-11, W5-N-12, W5-N-13, W5-N-14, W5-N-15。
-
-分配表 ID 与 PSV ID 差集：missing=[] extra=[]。
+## ID 覆盖自证
+- 命令：python3 -c（逐行 split 校验：行数=29；每行 NF==10；结论∈四态；类别/优先级与账本一致；ID 序列与 _assign/G_GOV_GATE_P2.tsv 第 1 列逐字比对）
+- 输出：data_lines= 29；nf_bad= []；conclusion_bad= []；ids_seq_equal_assign= True；cat_pri_bad= []；verdicts= {'VOID': 7, 'OPEN': 22}
+- 锚点覆盖：29/29 在 _gen/idmap.csv 有锚文件与锚行（python csv 解析），0 条落空。
 
 ## UNVERIFIABLE 清单
+- 无（29 条均可在当前树取证判定）。
 
-- `V19-N-12`（1 条）：正文逐字自述「负结果 · 不立条，供邻站定性与防误报」，作者未立为条目。缺的是「该负结果是否升为独立偏差条目」的**负责人裁决**；其根事实本轮已用解释器复算逐字成立（`ci/checks.schema.json` 为 `additionalProperties=false`，无 `inputs`/`depends_on`/`needs`/`produced_by`）。
+## VOID 清单（7）
+- M2a-G-3（§16.1 分离条款下链→§12 零版本替代，GAP-017 承接）；M6b-G-007（L0/Wiki 制度下链→§0 权威链替代，GAP-002 同族）；
+- M8a-G-009（审核包/许可可寻址旧制→§12 发布候选门+ARCH-001 清运对象）；V19-N-12（负结果·不立条，旧 schema 面换代）；
+- V5-N-02（夸大声明宿主=已降历史证据的旧账本 fix_note；代码点静态有界）；W5-N-11（旧 standards source 条文下链→§9+21_observability）；FD-G-003（防误读注非交付面偏差，红灯处理口径以 CP§7.3/docs ci 为准）。
 
-## 异常与需上级注意的事实
-
-1. **原 finding 措辞过宽，本轮订正 3 条（均保留 OPEN）**：`V19-N-10`「既不能提交也不被忽略」不成立（`git status` 显示二者为 `??` 未跟踪、可提交），真实偏差是 `ci/run.py` 的 `ignore_exact=set(check[outputs])` 对未登记产物自豁免 dirty 检测；`W5-N-10`「rc=124/127 不在冻结码集」不成立（局部计数器，失败路径统一 `emit_final(INTERNAL)`/`return INTERNAL`，且 `cli/protocol.h:32-38` 硬闸拒绝域外值），真实偏差是 `include/astrocs/core/contracts.h:41-46` 重复数值表 + 门只扫 `cli/`；`V5-N-04` 新增 `CTEST-GAIA-MAGNITUDE-RANGE-BOUNDS` 已覆盖畸形声明解析边界，但仍未覆盖剪枝谓词方向。
-2. **集合类数字重算全部高于原报**：M2a-G-2 29/42（原「约半数」）；V19-N-09 13/98 dead（原 7 道门 + 5 条 rule）；V9-N-13 102/147 与 133/147（原 99/130、124/130）；V13-N-08 5 个补丁（原 4 个）；M1a-G-003 6 个文件（原 3 处）。
-3. **行锚漂移（E_TRACE_BREAK 邻域）**：M1a-G-003 的 `p3_wcs_validate_descriptor` 全仓 0 命中；V11-N-03 由 :108-111 漂到 :78-81；V5-N-13、W5-N-12/13 路径迁移到 `src/ahpx/`、`tools/quality/contracts/`；M6b-G-008 原引 README.md:33 已移走。
-4. **发现一条不在本分片、也不在 23 条 GAP 的偏差**（未在本分片产物中单独立条，仅登记备查）：`docs/ci/01_CHECKS.md §1` 写「豁免显式登记 `ci/exemptions.json`，只减不增」，但 **`ci/exemptions.json` 不存在**，实际豁免分散在 `ci/checks.json` 的 `waivable`（7 项）与 `ci/run.py:103 EMPTY_OUTPUT_SILENCE_EXEMPT`（硬编码 2 项）。建议主控另立条目（候选 NEXT-PACK:NP-09）。
-5. **未越界/未修复**：本分片只写 `.psv`/`.md` 两个产物 + `run/` 下日志与快照，未改任何代码/文档/CI，未执行任何 git 写操作；`FATDUCK_ACCESS.md` 未 read/打印。
+## 异常记录
+1. 基线漂移：任务卡记 HEAD=main=origin/main=2c328348；开工实测 HEAD=main=c44adc08；证据复跑时 main 已前进至 d414c3e0（origin=b4afc135）——控制包执行期内 main 仍在被提交（GAP-030 同现象）。全部行号锚按取证时点当前树重定位。
+2. 本分片在 16:07 已存在一版旧产物（疑似早前派发未收尾版）：其 MD 自述 ID 范围与计数和自身 PSV 不符，且将 V19-N-12（负结果·不立条）判 UNVERIFIABLE、W5-N-11 判 OPEN、GAP 关系引用超范围的 GAP-027。本轮以逐项真跑复验覆盖重写，以本版为准。
+3. W5-N-10 复验期间再漂移：原 commands.cpp:306/309 的 rc=124/127 已随 0d8e9e8f1（RUNTIME-CI-001）移出，124 消失、126/127 约定改驻 cli/process.cpp:173/175；「非冻结码当退出码+contracts.h 重表+§6.3 唯一源文件缺失」仍活，维持 OPEN 并已在行内写明重锚。
+4. V19-N-10：artifacts/KNOWN_FAILURES_BASELINE.json 取证时点文件已不存在（并行清运），但注册机制面（checks.json:703 outputs + 不入库 + 不被忽略 + run.py outputs 自豁免 dirty）复现，按机制判 OPEN。
+5. 数字口径更新：ci/checks.json 由 130→147 项；V19-N-09 本轮点名死模式门=6-7、V9-N-13=137/147 与 101/130、M2a-G-2=30/43、V13-N-05=63/63 全 VERIFIED——均本轮重算，与 finding 原数方向一致、幅度因注册表演进而变。
+6. V13-N-08 原 finding 正文自述类别 I_DOC_HYGIENE，账本/分配表为 G_GOV_GATE——第 2/3 列按纪律逐字沿用分配表（G_GOV_GATE/P2）。
+7. 账本 fix_state：29 条全部 OPEN（无 FIXED/PARTIAL），不触发「FIXED 复跑」路径；V13-N-05 另有 verified_state=STILL。
+8. M8a-G-010 上游现势（外部）：本轮 web_fetch https://heasarc.gsfc.nasa.gov/fitsio/ status=200「latest 4.7.0」，非仅沿用 finding 抓取记录。

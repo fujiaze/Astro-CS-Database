@@ -194,8 +194,12 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 ### 11.4 TEST-WCS-DESIGN-001 冻结测试设计（可执行 TEST-P1-WCS-001 由 P1-WCS-TEST 落地）
 
 - F1 合成线性场（order=1，已知 CD/CRVAL/CRPIX 合成星表）：求解成功且
-  n_pairs≥12；rms_arcsec ≤0.5″（实测锚 Galaxy_Center=0.1431″，memory.md
-  2026-07-12）；CD 元素相对误差 ≤2%（§9 尺度容差 0.002 同源）；|ΔCRVAL|≤1″。
+  n_pairs≥12；rms_arcsec ≤0.5″；CD 元素相对误差 ≤2%（§9 尺度容差 0.002 同源）；
+  |ΔCRVAL|≤1″。**历史锚已废止**：旧文所引「实测锚 Galaxy_Center=0.1431″
+  （memory.md 2026-07-12）」在当前版本 T4 帧上不可复现（实测 0.2803–0.3588″，
+  2.0–2.5×）、只在 T2/T3 档场复现（0.1472/0.1584″）⇒ 该单值不再作为任何门的
+  标定依据；产品级外部闭环口径已冻结在 SCI-WCS-001 §11a 与
+  GATES_AND_TOLERANCES §3（G-P1-WCS-CLOSURE / -REPRO，claim「天测精度外部闭环口径冻结」（编号待前台集中分配））。
   **量测域冻结**：本项 `rms_arcsec` 定义在 `trans` 拟合的**内点集**（`n_pairs≥12`）
   与**合成线性场**（order=1，已知 CD/CRVAL/CRPIX 合成星表）上；它**不是**产品级
   天测精度门。产品级外部闭环量（全帧头域 median/p95）另立证据面
@@ -224,9 +228,12 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   `u1_f6_abs_cross`，生产门同在 p1_op_wcs。roundtrip 仅作次级不变量
   （对 ξ/η 成对单位错零鉴别力，见 AUD-COORD F-01/F-06）；原"lib/algorithms/platesolve/wrapper_phase1
   源码零改动"断言已由该修复取代。
-- 回归锚：Galaxy_Center 实场 fixture（rms_arcsec=0.1431″ 基线）。容差
-  冻结：上述数值在 TEST 落地时逐项写死，P1-WCS-TEST 不得放宽；fixture
-  生成器注记容差来源（本节）。
+- 回归锚：Galaxy_Center 实场 fixture。**基线值已重锚**：`rms_arcsec=0.1431″`
+  为历史值（不可复现，见 F1 条与 SCI-WCS-001 §11a 历史值表），当前版本实测
+  T4 Galaxy_Center panel1 Red 为 0.2803–0.3588″（六帧）——**该重锚值须在
+  UNIT-001（XISF 母版单位）修复后整体复跑**，在此之前 P1-WCS-TEST 不得把它
+  写死为冻结数值。容差冻结：其余数值在 TEST 落地时逐项写死，不得放宽；
+  fixture 生成器注记容差来源（本节）。
 
 ### 11.5 SCI-WCS-001 状态声明
 

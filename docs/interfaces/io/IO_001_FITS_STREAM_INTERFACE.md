@@ -163,10 +163,13 @@ typedef struct acs_fio_trace_hooks_v1 {
   fits_writer_begin_v1(path, &hdr_struct, bunit, &trace, &wr, err);
   fits_write_plane_v1(wr, plane_index, nx, ny, bpix, data_bytes, &trace, err);
   // 或 fits_write_chunk_v1(wr, elem_count, data_bytes, &trace, err);
+  // write_checksum=0 ⇒ 本文件**不声明**校验和: 实现不落 CHECKSUM 关键字
+  // (预留槽在提交前被抹空), 故以 verify_checksum=1 复核该产物会通过
+  // (无可校验的声明), 不会判红。需要可复算校验和时显式传 1。
   fits_writer_end_v1(wr, 1 /*write_datasum*/, 0 /*write_checksum*/, &trace, err);
   // 失败路径: fits_writer_abort_v1(wr);
 校验:
-  st = fits_verify_file_v1(path, 1 /*verify_checksum*/, err);       // 负测: 篡改数据后返回 ACS_FIO_ERR_CHECKSUM
+  st = fits_verify_file_v1(path, 1 /*verify_checksum*/, err);       // 负测: 篡改数据后返回 ACS_FIO_ERR_CHECKSUM; 含全零 CHECKSUM 占位卡同样判红 (M2b-B-09)
   st = fits_compute_file_datadigest_v1(path, buf10, &len, err);
 ```
 

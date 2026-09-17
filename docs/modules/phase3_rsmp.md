@@ -49,8 +49,8 @@
 
 ## 4 生产源
 
-- lib/phase3_session/p3_resample.h（58 行，唯一权威签名头）+
-  lib/phase3_session/p3_resample.cpp（239 行）——十符号:
+- lib/algorithms/resample/p3_resample.h（58 行，唯一权威签名头）+
+  lib/algorithms/resample/p3_resample.cpp（239 行）——十符号:
   P3ResampleStatus/p3_order_select/p3_resample_check_mode/
   P3SamplerImpl/P3Sampler/p3_sampler_open/p3_sampler_open_ex/
   p3_sampler_set_max_tiles/p3_sample_nearest/p3_sample_bilinear/

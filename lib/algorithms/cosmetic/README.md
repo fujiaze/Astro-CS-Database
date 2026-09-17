@@ -1,13 +1,18 @@
 # lib/algorithms/cosmetic — astrocs.p1.cosmetic（P1-COS）
 
 > 状态: CONTRACT_READY（P1-COS-DOC 冻结，2026-09-07）｜doc revision: r1
+> **现状复测（LEDGER-DOC，2026-09-17；`python3 tools/quality/check_module_map.py`）**：
+> 本模块生产源 `lib/algorithms/cosmetic/src/module_entry.cpp` 与 CMake SHARED target `astrocs_p1_cosmetic`（`lib/algorithms/cosmetic/CMakeLists.txt:50`）均在位，
+> `astrocs_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
+> ⇒ 机读状态 = **NOT_IMPLEMENTED**。下文旧基线中「仅合同文件/无源码/无 CMake target/
+> entrypoint=MISSING/尚未存在」等表述已被实测反证，以本注记与检查器输出为准；
+> 实现侧整改归 P1-COS-IMPL。
 > 本 README 由源码逐函数核对后新建（P1-COS-DOC，wave W1）：函数、单位、
 > 坐标、dtype、shape、invalid、错误、并发、内存、I/O 均以现行唯一生产
 > 实现 `lib/algorithms/calibration/src/cosmetic_corrector.cpp` + `src/ac_api.cpp`
 > （CMake `astrocs_calibration`，CMakeLists.txt:321-333）+ 唯一权威签名源
 > `include/astro_calibration.h` 为准；`lib/algorithms/cosmetic/` 是 P1-COS 迁移目标
-> 目录（astrocs_p1_cosmetic.dll 落码由 P1-COS-IMPL 建立，当前本目录仅
-> 合同文件、无源码）。权威合同：SCI-CAL-001 → ALG-COS-001..005 →
+> 目录（astrocs_p1_cosmetic.dll 与 src/module_entry.cpp 已由 P1-COS-IMPL 落地在位）。权威合同：SCI-CAL-001 → ALG-COS-001..005 →
 > DATA-P1-COS / API-COS-001（链接见 §4）。与 P1-CAL-DOC 冻结的
 > lib/algorithms/calibration 合同共存不重叠：本模块只冻结 cosmetic 路径
 > （ac_correct_frame(+_f64) 域），master 生成/校准归 P1-CAL。
@@ -16,7 +21,7 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-phase1-cosmetic` / 现状实现编入 CMake 静态库 `astrocs_calibration`（无独立产物）；迁移目标 `astrocs_p1_cosmetic.dll`（P1-COS-IMPL 建立，尚未存在） |
+| MOD ID / DLL target | `MOD-astrocs-phase1-cosmetic` / 模块 DLL `astrocs_p1_cosmetic`（SHARED，lib/algorithms/cosmetic/CMakeLists.txt:50，**已在位**）；entrypoint `astrocs_module_query_v1` 在位但零调用 ⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 P1-COS-IMPL） |
 | module / ABI / doc revision | `astrocs.p1.cosmetic` / C ABI（AC_API extern "C"，无版本化 query 入口，迁移缺口）/ r1 |
 | owner / phase scope | SA-P1-COS / phase1（wave W1） |
 | 文档状态 | CONTRACT_READY（实现存在于 lib/algorithms/calibration，模块化迁移未开始；不声明 IMPLEMENTED） |
@@ -174,8 +179,7 @@ ThreadLease 约束；无取消检查点；**生产调用未接线母版（检测
 ## 10. 迁移（P1-COS-IMPL 目标，不声明完成）
 
 本目录（lib/algorithms/cosmetic/）为迁移落点：astrocs_p1_cosmetic.dll、
-module.yaml（同目录，已冻结 manifest：entrypoint=MISSING——registry
-入口未接）、C ABI adapter、plan/execute/cancel/inspect、ThreadLease
+module.yaml（同目录，manifest：entrypoint=`astrocs_module_query_v1`——入口符号在位、函数体零调用）、C ABI adapter、plan/execute/cancel/inspect、ThreadLease
 接线、DISP-COS 清单消化、母版接线修复（DISP-COS-009）见 ALG-COS
 §0/§8 与 module.yaml 注释。迁移不得改变 ALG-COS-001..005 公式语义与
 DATA-P1-COS 数据语义（SCI-CAL-001 未变更前）。

@@ -81,6 +81,11 @@ int run_negative() {
         {"n1_cosmetic_value_wrong_type", std::string("{\"input_lights\":") + L + ",\"output_dir\":" + O + ",\"cosmetic\":{\"enabled\":\"x\"}}"},
         {"n1_dark_optimization_wrong_type", std::string("{\"input_lights\":") + L + ",\"output_dir\":" + O + ",\"dark_optimization\":1}"},
         {"n1_null_input_lights", std::string("{\"input_lights\":null,\"output_dir\":") + O + "}"},
+        // LEDGER-P1 A1: 未知插值词必须判红 (旧实现静默回落 median ⇒ 本用例在旧码上为假绿)。
+        // 词表 = {0=median,1=bilinear}（cosmetic 冻结合同 types.h:50-56 / ALG-COS-003）。
+        {"n1_cosmetic_method_out_of_vocab", std::string("{\"input_lights\":") + L + ",\"output_dir\":" + O + ",\"cosmetic\":{\"method\":7}}"},
+        {"n1_cosmetic_method_negative", std::string("{\"input_lights\":") + L + ",\"output_dir\":" + O + ",\"cosmetic\":{\"method\":-1}}"},
+        {"n1_cosmetic_method_far_out_of_vocab", std::string("{\"input_lights\":") + L + ",\"output_dir\":" + O + ",\"cosmetic\":{\"method\":999}}"},
     };
     for (const auto& c : cases) {
         astrocs_host_services_v1 host = n_make_host();
@@ -110,6 +115,22 @@ int run_negative() {
         acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(ok_cfg.c_str())),
                                       static_cast<std::uint64_t>(ok_cfg.size()));
         P1SESS_CHECK_EQ(cs, p1_session_validate(h, cfg), ACS_OK);
+        P1SESS_CHECK_EQ(cs, p1_session_destroy(h), ACS_OK);
+    }
+
+    // N2b: method 词表**正对照** — 0/1 两个合法值必须被接受
+    // (证明 A1 的拒绝面不误伤合法配置)。
+    for (const char* mv : {"0", "1"}) {
+        const std::string ok_cfg =
+            std::string("{\"input_lights\":") + L + ",\"output_dir\":" + O +
+            ",\"cosmetic\":{\"enabled\":true,\"method\":" + mv + "}}";
+        astrocs_host_services_v1 host = n_make_host();
+        acs_handle h = nullptr;
+        P1SESS_CHECK_EQ(cs, p1_session_create(&host, &h), ACS_OK);
+        acs_span_u8 cfg = ACS_SPAN_U8(reinterpret_cast<std::uint8_t*>(const_cast<char*>(ok_cfg.c_str())),
+                                      static_cast<std::uint64_t>(ok_cfg.size()));
+        P1SESS_CHECK_MSG(cs, p1_session_validate(h, cfg) == ACS_OK,
+                         "n2b_method_in_vocab_accepted", "method=%s must be accepted", mv);
         P1SESS_CHECK_EQ(cs, p1_session_destroy(h), ACS_OK);
     }
 

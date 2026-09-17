@@ -32,7 +32,7 @@
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `kernel` | `bilinear` | —— | nearest/bilinear/higher |
+| `sampler` | `bilinear` | —— | 重采样核（ALG 权威名 `sampler`，`docs/algorithms/PHASE3_RESAMPLE.md:8,:43` 取值 `nearest|bilinear`；旧字段名 `kernel` 与之分叉，按 DOC-SCI-001 A2 统一为 `sampler`） |
 | `correlation_output` | true | —— | 是否输出相关核 |
 | `order_limits` | —— | —— | 输入 order 选择约束（Nyquist） |
 

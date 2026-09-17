@@ -8,7 +8,7 @@
 > 自本文件起，**现行结论一律以 `问题扫描/REBASE_TABLE.md` 为准**；`findings/**`、`INDEX.md`、`SUMMARY.md`、`_merge/**`、`账本/**` 的原始记录**保留为历史证据**，不再单独作为整改依据。
 > 本目录**零删除**：原始 finding 文件一个未删，仅追加了抬头说明（`00_README.md`、`INDEX.md`）。
 
-- 基线：`HEAD = main = ecf6ad6f`（origin/main = `f96dff61`，同一线，未推送；三 SHA 差异见 GAP_AUDIT §5.1 U-08）。
+- 基线：口径制定时 `HEAD = main = ecf6ad6f`（origin/main = `f96dff61`，同一线，未推送；三 SHA 差异见 GAP_AUDIT §5.1 U-08）。**接手轮注**：合并轮开工三 SHA 收敛为 `2c328348304d033aecfa81faf79d1c6cd802b30a`，收口时 HEAD 由并行执行线推进至 `d414c3e0`+；逐条证据一律按各自取证时刻的工作树留痕（详见 SUMMARY.md 与 REBASE_TABLE.md 抬头）。
 - 口径制定时点：本轮（ROOT-004）开工时按当前树实测；所有数字口径写在 §2 与 §8，可复跑。
 - 本文件只定义**怎么判、写什么字段、怎么证明覆盖**；逐条结论见 `REBASE_TABLE.md`，汇总结论见 `reports/PROJECT-GOVERNANCE-01/root-scan/SUMMARY.md`。
 

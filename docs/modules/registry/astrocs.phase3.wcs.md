@@ -25,10 +25,11 @@ downstream: [TEST-P3-WCS-001]
 - 合同落位: lib/algorithms/projection/ 三件套（README r1 + module.yaml
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
   lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2→
-  phase3_fits 先例新建；lib/phase3_session/ 为会话编排域共享源，
-  不整目录归属）。
-- 生产源: lib/phase3_session/p3_wcs.cpp（165 行）+ 唯一权威签名头
-  p3_wcs.h（50 行），实测 2026-09-11。
+  phase3_fits 先例新建）。
+- 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录唯一权威签名头
+  p3_wcs.h，实测 2026-09-11；**W4-A9 批次 1（2026-09-17）由
+  lib/phase3_session/ 迁入本模块**（ASTROCS_DESIGN §7.1「projection」行），
+  同批迁入共址测试 tests/p3wcs/**（ctest p3_wcs）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
   V5 SCI-007 2026-08-28）→ ALG-P3-PROJ-IMPL-001
   （docs/algorithms/PHASE3_PROJ_IMPL.md，兼承接 ALG-P3-002 本域

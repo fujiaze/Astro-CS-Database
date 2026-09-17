@@ -274,6 +274,87 @@ inline FixNoiseA fix_noise_a_small(std::uint64_t seed, int w, int h,
     return fix_noise_a_gaussian(seed, w, h, sigma_true);
 }
 
+// ---------------------------------------------------------------------------
+// FIX-NOISE-H 源污染星场 (MASK-002 / SCI-NOISE-001 §11 源污染 oracle; claim SC-009)
+//   N(0, sigma_bg^2) 空背景 + Ns 颗 Moffat(beta=2.5) 星:
+//     面亮度 I(r) = A·(1 + r^2/alpha^2)^(-beta),  alpha = FWHM/(2·sqrt(2^(1/beta)-1))
+//     总通量 F = A·pi·alpha^2/(beta-1)  ⇒ A = F(beta-1)/(pi alpha^2)
+//     亮度幂律: F = f_min·(f_max/f_min)^u  (u~U(0,1); 截断幂律, 亮端稀疏)
+//   beta=2.5 = 掩膜专用保守翼指数 (比默认 Moffat4 beta=4 的翼更宽)。
+//   期望值一律由测试面独立推导, fixture 只给输入侧。
+// ---------------------------------------------------------------------------
+struct FixNoiseH {
+    int w = 0, h = 0;
+    double sigma_bg = 0.0;
+    double fwhm = 0.0;
+    double beta = 2.5;
+    std::vector<double> data;
+    std::vector<double> star_x, star_y, star_flux, star_fwhm;
+};
+
+inline FixNoiseH fix_noise_h_starfield(std::uint64_t seed, int w, int h,
+                                       double sigma_bg, int n_stars,
+                                       double f_min, double f_max, double fwhm,
+                                       double beta = 2.5) {
+    FixNoiseH fx;
+    fx.w = w; fx.h = h; fx.sigma_bg = sigma_bg; fx.fwhm = fwhm; fx.beta = beta;
+    const std::size_t npix = static_cast<std::size_t>(w) * h;
+    fx.data.assign(npix, 0.0);
+    std::uint64_t st = seed;
+    for (std::size_t i = 0; i < npix; ++i) fx.data[i] = sigma_bg * gauss01(st);
+    const double alpha = fwhm / (2.0 * std::sqrt(std::pow(2.0, 1.0 / beta) - 1.0));
+    for (int k = 0; k < n_stars; ++k) {
+        const double u = uniform01(st);
+        const double f = f_min * std::pow(f_max / f_min, u);
+        const double sx = uniform01(st) * static_cast<double>(w);
+        const double sy = uniform01(st) * static_cast<double>(h);
+        const double amp = f * (beta - 1.0) / (3.14159265358979323846 * alpha * alpha);
+        for (int y = 0; y < h; ++y) {
+            const double dy = static_cast<double>(y) - sy;
+            for (int x = 0; x < w; ++x) {
+                const double dx = static_cast<double>(x) - sx;
+                const double r2 = dx * dx + dy * dy;
+                fx.data[static_cast<std::size_t>(y) * w + x] +=
+                    amp * std::pow(1.0 + r2 / (alpha * alpha), -beta);
+            }
+        }
+        fx.star_x.push_back(sx);
+        fx.star_y.push_back(sy);
+        fx.star_flux.push_back(f);
+        fx.star_fwhm.push_back(fwhm);
+    }
+    return fx;
+}
+
+// 手工欠掩膜通道 (SCI §11 负例②): 逐星半径固定 r 的圆盘掩膜 (输入侧 float 平面)
+inline std::vector<float> fix_noise_h_disk_mask(const FixNoiseH& fx, double r) {
+    std::vector<float> mask(static_cast<std::size_t>(fx.w) * fx.h, 0.0f);
+    const double r2 = r * r;
+    const int ir = static_cast<int>(std::ceil(r));
+    for (std::size_t i = 0; i < fx.star_x.size(); ++i) {
+        const int cx = static_cast<int>(std::lround(fx.star_x[i]));
+        const int cy = static_cast<int>(std::lround(fx.star_y[i]));
+        for (int dy = -ir; dy <= ir; ++dy) {
+            const int py = cy + dy;
+            if (py < 0 || py >= fx.h) continue;
+            for (int dx = -ir; dx <= ir; ++dx) {
+                const int px = cx + dx;
+                if (px < 0 || px >= fx.w) continue;
+                if (static_cast<double>(dx * dx + dy * dy) > r2) continue;
+                mask[static_cast<std::size_t>(py) * fx.w + px] = 1.0f;
+            }
+        }
+    }
+    return mask;
+}
+
+// 零权重像素占比 (ivar<=0 或非有限) — 失权面口径 (MASK-001 §5.3 EXP-C3)
+inline double zero_weight_frac(const std::vector<float>& ivar) {
+    if (ivar.empty()) return 1.0;
+    std::size_t z = 0;
+    for (float v : ivar) if (!(v > 0.0f) || !std::isfinite(v)) ++z;
+    return static_cast<double>(z) / static_cast<double>(ivar.size());
+}
 }  // namespace p1noise
 
 #endif  // P1NOISE_FIXTURES_HPP

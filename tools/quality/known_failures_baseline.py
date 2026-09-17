@@ -720,8 +720,10 @@ def run_legacy(argv: list[str] | None = None) -> int:
     p2_sampler = read(root, "lib/algorithms/coverage/src/sampler.cpp")
     p2_upm = read(root, "lib/algorithms/coverage/src/upm.cpp")
     p3_session = read(root, "lib/phase3_session/p3_session.cpp")
-    p3_output = read(root, "lib/phase3_session/p3_output.cpp")
-    p3_resample = read(root, "lib/phase3_session/p3_resample.cpp")
+    # W4-A9 批次 3: p3_output.cpp 迁 lib/algorithms/fits_output/ (ASTROCS_DESIGN §7.1)
+    p3_output = read(root, "lib/algorithms/fits_output/p3_output.cpp")
+    # W4-A9 批次 2: p3_resample.cpp 迁 lib/algorithms/resample/ (ASTROCS_DESIGN §7.1)
+    p3_resample = read(root, "lib/algorithms/resample/p3_resample.cpp")
     context_h = read(root, "include/astrocs/core/context.h")
     context_cpp = read(root, "lib/infrastructure/scheduler/src/context.cpp")
     pipeline_cpp = read(root, "lib/infrastructure/scheduler/src/pipeline.cpp")
@@ -840,14 +842,14 @@ def run_legacy(argv: list[str] | None = None) -> int:
     # F-013 writer always BITPIX -32
     fixed_bitpix = re.search(r"(?:const\s+)?int\s+bitpix\s*=\s*-32", p3_output)
     add("F-013", "P0", bool(fixed_bitpix),
-        "grep -nE 'int *bitpix *=' lib/phase3_session/p3_output.cpp",
+        "grep -nE 'int *bitpix *=' lib/algorithms/fits_output/p3_output.cpp",
         ["writer 固定 BITPIX=-32" if fixed_bitpix else "未发现固定 bitpix=-32"],
         "请求 bitpix 被忽略")
 
     # F-014 verify does not check WCS/BUNIT/CHECKSUM
     verify_weak = "p3_output_verify" in p3_output and ("CHECKSUM" not in p3_output.upper() or "verify" in p3_output and "return P3_OUT_OK" in p3_output)
     add("F-014", "P0", verify_weak,
-        "grep -n 'p3_output_verify\\|CHECKSUM\\|DATASUM\\|P3_OUT_OK' lib/phase3_session/p3_output.cpp",
+        "grep -n 'p3_output_verify\\|CHECKSUM\\|DATASUM\\|P3_OUT_OK' lib/algorithms/fits_output/p3_output.cpp",
         ["verify 未比较 WCS/BUNIT/CHECKSUM 或 mismatch 仍返回 OK"],
         "无效 FITS 可被报告为有效")
 
@@ -1046,7 +1048,7 @@ def run_legacy(argv: list[str] | None = None) -> int:
     # F-039 unused project lambda in p3_sample_bilinear
     unused_lambda = "project" in p3_resample and "p3_sample_bilinear" in p3_resample
     add("F-039", "P2", unused_lambda,
-        "grep -n 'project\\|p3_sample_bilinear' lib/phase3_session/p3_resample.cpp",
+        "grep -n 'project\\|p3_sample_bilinear' lib/algorithms/resample/p3_resample.cpp",
         ["p3_sample_bilinear 有未用 project lambda / 临时象限插值"],
         "可读性与数值设计需清理")
 

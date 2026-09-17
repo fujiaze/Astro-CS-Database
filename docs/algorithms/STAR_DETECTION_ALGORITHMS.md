@@ -5,7 +5,7 @@
 > SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
 > 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
 > MOD-astrocs-phase1-star（registry）
-> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2373 行实测）；合同头
+> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2555 行实测，2026-09-17 LEDGER-DOC 按附录 G 机械重锚；源文件唯一在役副本）；合同头
 > lib/algorithms/star_detection/include/star_detector.h（73 行）；禁止手抄他版。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-star
 > （matrix P1-STAR，legacy_paths=lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，
@@ -30,11 +30,11 @@
 
 （锚=sdet_api.cpp 实测行号；公式与源码一一对应，禁止改写）
 
-- 背景噪声（FnNoise1 行差分族，:440-476）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
+- 背景噪声（FnNoise1 行差分族，:462-518；sdet_compute_bgnoise 定义 :462）: 逐行差分 `d[y,x]=img[y,x]−img[y,x−1]` →
   3 轮 5σ clip（median/MAD 迭代，MAD 含 1.482602218505602）→ 行标准差 → 行中位 → ×0.7071
   （1/√2）。
-- 全局检测阈值（:1637-1647）: `threshold = median(img) + 5.0·bgnoise`。
-- 动态范围与饱和水平（:1684-1692）: `bg=median(img)`，`maxi=max(img)`，
+- 全局检测阈值（:1782-1792）: `threshold = median(img) + 5.0·bgnoise`。
+- 动态范围与饱和水平（:1835-1836）: `bg=median(img)`，`maxi=max(img)`，
   `dynrange=min(maxi,65535)−bg`，`minsatlevel=0.7·dynrange`，
   `satrange=0.1·dynrange`，`locthreshold=5·bgnoise`；norm 硬编码 65535
   （:1689，DISP-STAR-006）。
@@ -57,7 +57,7 @@
   max(|Ar|,|Ac|)<locthreshold`。
 - candidate 去重（:1947-1959）: `matchradius=max(1, floor(0.2·R))`；
   曼哈顿距 `|Δx|+|Δy|≤matchradius` 视为重复，先到先留（扫描序 y 主序）。
-- **椭圆高斯拟合模型（检测侧冻结母函数）**（sdet_gauss_fit :483-620 → sdet_lm_fit :262-437，
+- **椭圆高斯拟合模型（检测侧冻结母函数）**（sdet_gauss_fit :520-711 → sdet_lm_fit :285-460，
   GSL trust-region LM，7 参数）:
   `f(x,y)=B+A·exp(−(x′²/SX+(y′/r)²/SX)/1)`，参数 `{B,A,x0,y0,SX=2σ²,fr,alpha}`，
   `r=0.5·(cos fr+1)`，`sx=√(SX/2)`，`sy=sx·r`，`fwhm=2.3548·σ`（TWO_SQRT_2_LOG2），
@@ -76,20 +76,20 @@
   （量纲差异登记 DISP-STAR-003）。
 - 饱和标志（:2159）: `is_saturated = (A_fit > dynrange)`；`has_saturated =
   is_saturated`（:2203，DISP-STAR-004）。
-- 输出排序（sdet_sort_stars :941-956）: mag 升序 stable_sort，NaN 恒排末尾；
-  dedup（sdet_dedup_stars :822-939）: 饱和星与正常星 2px 网格 d²<4.0 →
+- 输出排序（sdet_sort_stars :983-995）: mag 升序 stable_sort，NaN 恒排末尾；
+  dedup（sdet_dedup_stars :864-982）: 饱和星与正常星 2px 网格 d²<4.0 →
   丢正常星保饱和星；饱和星间 d²<4.0 保 r 大者；正常星间 d²≤1.0 保先者；
   最后 `maxStars>0` 截断（:2240-2242）。
 
 ## 3 伪代码
 
 ```
-sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1599-2353
+sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1749-2499
   smooth   = GaussianBlur_YvV(image, sigma=2.0)   # :1623-1633（Young-van Vliet IIR）
-  bgnoise  = FnNoise1(image)                      # :440-476 行差分+3×5σ clip
+  bgnoise  = FnNoise1(image)                      # :462-518 行差分+3×5σ clip
   median   = robust_median(image)
-  thr      = median + 5·bgnoise                   # :1637-1647
-  dynrange = min(max(image), 65535) − median      # :1684-1692
+  thr      = median + 5·bgnoise                   # :1782-1792
+  dynrange = min(max(image), 65535) − median      # :1835-1836
   for y,x in [r..h−r)×[r..w−r):                   # 阶段4 peaker :1709-1974
     if smooth[y,x] ≤ thr: continue                # :1711-1712
     if not local_max_11x11(smooth,y,x): x+=5; continue   # :1715-1734 平局决胜取左上唯一
@@ -190,24 +190,24 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1599-2353
 
 | 符号 | 锚 | 角色 |
 |---|---|---|
-| sdet_detect_impl<T> | sdet_api.cpp:1599-2353 | 生产核心（float/double 双实例，:1599-1604） |
+| sdet_detect_impl<T> | sdet_api.cpp:1749-2499 | 生产核心（float/double 双实例调用点 :2514/:2533） |
 | YvV 平滑 σ=2.0 | :1623-1633 | 阶段2（sdet_gaussian_blur_yvv/_d） |
-| sdet_compute_bgnoise | :440-476 | 阶段3 行差分 FnNoise1 族 |
-| threshold=median+5·bgnoise | :1637-1647 | 阶段3 全局阈值 |
+| sdet_compute_bgnoise | :462-518 | 阶段3 行差分 FnNoise1 族 |
+| threshold=median+5·bgnoise | :1782-1792 | 阶段3 全局阈值 |
 | peaker 主扫描 | :1709-1974 | 阶段4 七步（§2 候选公式锚） |
 | 候选 mag_est 降序+截断 | :2026-2034 | 阶段5 排序闸门 |
-| sdet_gauss_fit | :483-620 | 阶段6 采样/饱和 mask/bkg0/初始值（检测侧母函数=椭圆高斯，DISP-STAR-007） |
-| sdet_lm_fit（GSL TR-LM 7 参） | :262-437 | 阶段6 拟合主体（halfA :289-313） |
+| sdet_gauss_fit | :520-711 | 阶段6 采样/饱和 mask/bkg0/初始值（检测侧母函数=椭圆高斯，DISP-STAR-007） |
+| sdet_lm_fit（GSL TR-LM 7 参） | :285-460 | 阶段6 拟合主体（halfA :315） |
 | reject_star | :189-239 | 阶段8 质量门（SfError 五码 :177-186） |
 | StarRecord 构建+mag | :2130-2205 | 阶段8（is_saturated :2159、mag :2177-2198） |
-| sdet_dedup_stars | :822-939 | 阶段10a（语义见 §2） |
-| sdet_sort_stars | :941-956 | 阶段10b（mag 升序 NaN 末尾） |
+| sdet_dedup_stars | :864-982 | 阶段10a（语义见 §2） |
+| sdet_sort_stars | :983-995 | 阶段10b（mag 升序 NaN 末尾） |
 | 输出构造 10 数组 | :2244-2313 | malloc+赋值+extras（:2301-2311） |
 | sdet_detect_ex（FP32 入口） | :2318-2333 | uint16→float 转换后 impl<float> |
 | sdet_detect_ex_f64（FP64 入口） | :2343-2355 | impl<double> 全程双精度 |
 | sdet_create / sdet_destroy | :954-990 | 句柄生命周期（默认参数 :963-975） |
-| sdet_detect（旧 CC 入口） | :992-1274 | 旧结构图路径（非生产，DISP-STAR-005） |
-| sdet_detect_debug | :1281-1593 | 诊断入口（CC 路径+平滑图导出） |
+| sdet_detect（旧 CC 入口） | :1034-1323 | 旧结构图路径（非生产，DISP-STAR-005） |
+| sdet_detect_debug | :1329 | 诊断入口（CC 路径+平滑图导出） |
 | edge_walking_center | :627-674 | 独立饱和中心实现（debug 路径） |
 | sdet_detect_saturated_stars | :675-775 | 半阈值 CC 饱和检测（debug 路径） |
 | get_extra_field / parse_extra_name | :778-819 | extras 列解析 |
@@ -239,7 +239,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   到 [0,65535] 转 uint16 后进 sdet_detect_ex；PREC-105 同族精度约束；FP64
   通道（sdet_detect_ex_f64）不降级。
 - DISP-STAR-002 全局单阈值无局部背景自适应: median+5·bgnoise 全局阈值
-  （:1645）对渐变背景/星云场漏检低对比星；旧结构图局部背景路径已退出生产
+  （:1790）对渐变背景/星云场漏检低对比星；旧结构图局部背景路径已退出生产
   impl（仅 :992/:1281 旧入口保留）。
 - DISP-STAR-003 SDetParams 9 字段生产消费面缺口（§11.1 表后注）: 编排
   platesolve.* 传参（orchestrator.cpp:1591-1607）部分字段无效；fwhmClipSigma
@@ -248,7 +248,7 @@ iterativeMaxRounds/medianFilterDetail 仅旧 sdet_get_structure_map 路径消费
   :2175 vs :2177-2198）；has_saturated 恒等于 is_saturated（:2203），列语义
   未分化（star_det v1 [5] 列承接归 P1-STAR-INT）。
 - DISP-STAR-005 双实现并存: 生产 impl（peaker 路径）与旧 sdet_detect/
-  sdet_detect_debug（CC 结构图路径 :992-1274/:1281-1593）行为漂移（候选过滤
+  sdet_detect_debug（CC 结构图路径 :1034-1323/:1329）行为漂移（候选过滤
   ≤4 vs peaker 七步、dedup 半径/网格不同）；维护歧义，去留归 P1-STAR-IMPL。
 - DISP-STAR-007 检测/PSF 双母函数（列语义不可互换）：检测侧生产内核为椭圆高斯
   （`sdet_gaussian_f/df`，`fwhm=2.3548·sx`），PSF 侧为椭圆 Moffat4

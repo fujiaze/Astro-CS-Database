@@ -49,16 +49,22 @@ inline void free_model(NoiseWeightModelV1* m) {
     snr_noise_model_v1_free(m);
 }
 
+// MASK-002 (claim SC-009): cfg 可空 (=模块默认配置); flux/fwhm 为可选逐星数组,
+// 与 sx/sy 同序等长 (缺省 = NULL ⇒ 模块按 SCI §5a 回调规则降级)。
 inline BuildResult build_f64(const std::vector<double>& data, int w, int h,
                              const std::vector<float>* mask,
                              const std::vector<double>* sx,
                              const std::vector<double>* sy,
-                             const SnrNoiseModelConfig* cfg) {
+                             const SnrNoiseModelConfig* cfg,
+                             const std::vector<double>* flux = nullptr,
+                             const std::vector<double>* fwhm = nullptr) {
     BuildResult r;
     r.rc = snr_noise_model_v1_f64(data.data(), h, w,
                                   mask ? mask->data() : nullptr,
                                   sx ? sx->data() : nullptr,
                                   sy ? sy->data() : nullptr,
+                                  flux ? flux->data() : nullptr,
+                                  fwhm ? fwhm->data() : nullptr,
                                   sx ? static_cast<int>(sx->size()) : 0,
                                   cfg, &r.model);
     return r;
@@ -66,11 +72,20 @@ inline BuildResult build_f64(const std::vector<double>& data, int w, int h,
 
 inline BuildResult build_f32(const std::vector<float>& data, int w, int h,
                              const std::vector<float>* mask,
-                             const SnrNoiseModelConfig* cfg) {
+                             const SnrNoiseModelConfig* cfg,
+                             const std::vector<double>* sx = nullptr,
+                             const std::vector<double>* sy = nullptr,
+                             const std::vector<double>* flux = nullptr,
+                             const std::vector<double>* fwhm = nullptr) {
     BuildResult r;
     r.rc = snr_noise_model_v1(data.data(), h, w,
                               mask ? mask->data() : nullptr,
-                              nullptr, nullptr, 0, cfg, &r.model);
+                              sx ? sx->data() : nullptr,
+                              sy ? sy->data() : nullptr,
+                              flux ? flux->data() : nullptr,
+                              fwhm ? fwhm->data() : nullptr,
+                              sx ? static_cast<int>(sx->size()) : 0,
+                              cfg, &r.model);
     return r;
 }
 
@@ -125,7 +140,7 @@ int check_a1_sigma(CheckState& cs) {
         const FixNoiseA fx = fix_noise_a_gaussian(seeds[k], 256, 256, 5.0);
         BuildResult r;
         r.rc = snr_noise_model_v1_f64(fx.data.data(), fx.h, fx.w,
-                                      nullptr, nullptr, nullptr, 0,
+                                      nullptr, nullptr, nullptr, nullptr, nullptr, 0,
                                       nullptr, &r.model);
         P1NOISE_CHECK_EQ(cs, r.rc, 0);
         const double rel = rel_diff(r.model.sigma_bg_global, fx.sigma_true);
@@ -148,7 +163,7 @@ int check_a2_oracle_bitwise(CheckState& cs) {
     const SnrNoiseModelConfig cfg = default_cfg();
     BuildResult r;
     r.rc = snr_noise_model_v1_f64(fx.data.data(), fx.h, fx.w,
-                                  nullptr, nullptr, nullptr, 0, &cfg, &r.model);
+                                  nullptr, nullptr, nullptr, nullptr, nullptr, 0, &cfg, &r.model);
     P1NOISE_CHECK_EQ(cs, r.rc, 0);
     const BlankSkyOracle o = blank_sky_oracle(fx.data, fx.w, fx.h, {}, cfg);
     // 全局兜底 = 合格 patch variance median (oracle sort 路径)
@@ -187,7 +202,7 @@ int check_b1_plane_ls(CheckState& cs) {
                                            4.0, 0.02, 0.03, 0.0);
     BuildResult r;
     r.rc = snr_noise_model_v1_f64(fx.data.data(), fx.h, fx.w,
-                                  nullptr, nullptr, nullptr, 0, nullptr, &r.model);
+                                  nullptr, nullptr, nullptr, nullptr, nullptr, 0, nullptr, &r.model);
     P1NOISE_CHECK_EQ(cs, r.rc, 0);
     P1NOISE_CHECK_EQ(cs, r.model.n_control_points, 64);
     const PlaneOracle p = plane_ls_oracle(r.model.ctrl_x_px, r.model.ctrl_y_px,
@@ -253,10 +268,10 @@ int test_properties() {
     // I4 确定性: 同输入同 cfg 两次运行 bitwise (现状单线程; 迁移并行后复验)
     BuildResult r1;
     r1.rc = snr_noise_model_v1_f64(fx.data.data(), fx.h, fx.w,
-                                   nullptr, nullptr, nullptr, 0, nullptr, &r1.model);
+                                   nullptr, nullptr, nullptr, nullptr, nullptr, 0, nullptr, &r1.model);
     BuildResult r2;
     r2.rc = snr_noise_model_v1_f64(fx.data.data(), fx.h, fx.w,
-                                   nullptr, nullptr, nullptr, 0, nullptr, &r2.model);
+                                   nullptr, nullptr, nullptr, nullptr, nullptr, 0, nullptr, &r2.model);
     P1NOISE_CHECK_EQ(cs, r1.rc, 0);
     P1NOISE_CHECK_EQ(cs, r2.rc, 0);
     P1NOISE_CHECK(cs, model_bitwise_equal(r1.model, r2.model), "i4_determinism");
@@ -306,7 +321,7 @@ int test_properties() {
         const std::vector<double> cdata = fix_noise_c_const(42.0, 64, 64);
         BuildResult rc1;
         rc1.rc = snr_noise_model_v1_f64(cdata.data(), 64, 64,
-                                        nullptr, nullptr, nullptr, 0,
+                                        nullptr, nullptr, nullptr, nullptr, nullptr, 0,
                                         nullptr, &rc1.model);
         P1NOISE_CHECK_EQ(cs, rc1.rc, 1);
         P1NOISE_CHECK_EQ(cs, rc1.model.degenerate, 1);
@@ -333,40 +348,80 @@ int test_properties() {
 
 // ---- oracle 组 ------------------------------------------------------------
 
-// o1: FIX-NOISE-D 掩膜解耦 — 亮星 (1e4) 与暗星 (10) 同坐标: 掩膜 rmax 与
-// 振幅无关 → 两帧 star 通道模型 bitwise 一致; star 通道与手工 source_mask
-// 通道 bitwise 一致; 手工掩膜与 oracle 独立圆盘光栅化逐位相同。
-int check_o2_mask_decouple(CheckState& cs) {
-    const FixNoiseD fx = fix_noise_d_mask(20260913ull, 256, 256,
-                                          128.0, 96.0, 5.0, 10.0, 6.0);
+// o2 (MASK-002 / claim SC-009 替换旧 o2_mask_channel_parity): 掩膜半径不变量。
+// 旧门断言「亮星与暗星掩膜 bitwise 一致」= 把**被证伪的**「半径与亮度解耦」
+// 机器化; 新判据 = SCI §5a: 半径对 F 与 FWHM **单调不减** + 同输入可复现。
+// 手工 source_mask 通道语义保持不变 (仍与 oracle 光栅化逐位一致),
+// 但其与 star 通道**不再**要求 bitwise 一致 (两通道半径语义本就不同)。
+int check_o2_mask_radius_monotone(CheckState& cs) {
+    const FixNoiseA bg = fix_noise_a_gaussian(20260913ull, 256, 256, 5.0);
     const SnrNoiseModelConfig cfg = default_cfg();
-    // star 通道: 亮星帧
-    std::vector<double> sx{fx.star_x}, sy{fx.star_y};
-    BuildResult rb = build_f64(fx.bright, fx.w, fx.h, nullptr, &sx, &sy, &cfg);
-    P1NOISE_CHECK_EQ(cs, rb.rc, 0);
-    // star 通道: 暗星帧
-    BuildResult rd = build_f64(fx.dim, fx.w, fx.h, nullptr, &sx, &sy, &cfg);
-    P1NOISE_CHECK_EQ(cs, rd.rc, 0);
-    // 手工 source_mask 通道: 亮星帧 + oracle 光栅化掩膜
-    BuildResult rm = build_f64(fx.bright, fx.w, fx.h, &fx.mask, nullptr, nullptr, &cfg);
-    P1NOISE_CHECK_EQ(cs, rm.rc, 0);
-
-    // oracle 掩膜 vs 被测 star 通道内建掩膜: 以手工通道结果一致性间接证明
-    // (掩膜不同 → 样本集不同 → σ bitwise 必异)
-    P1NOISE_CHECK(cs, model_bitwise_equal(rb.model, rd.model),
-                  "o2_mask_channel_parity");
-    P1NOISE_CHECK(cs, model_bitwise_equal(rb.model, rm.model),
-                  "o2_mask_channel_parity");
-
-    // oracle blank-sky 复算 (手工掩膜输入) bitwise 对照
-    const BlankSkyOracle o = blank_sky_oracle(fx.bright, fx.w, fx.h, fx.mask, cfg);
-    P1NOISE_CHECK(cs, bit_eq(rm.model.sigma_bg_global, o.sigma_global),
-                  "o2_mask_channel_parity");
-    P1NOISE_CHECK(cs, bit_eq(rm.model.variance_bg_global, o.variance_global),
-                  "o2_mask_channel_parity");
-    free_model(&rb.model);
-    free_model(&rd.model);
-    free_model(&rm.model);
+    const std::vector<double> sx{128.0}, sy{96.0};
+    const std::vector<double> fw3{3.0};
+    auto p50 = [&](double flux, double fwhm) {
+        std::vector<double> fl{flux}, fw{fwhm};
+        BuildResult r = build_f64(bg.data, bg.w, bg.h, nullptr, &sx, &sy, &cfg, &fl, &fw);
+        P1NOISE_CHECK_EQ(cs, r.rc, 0);
+        const double v = r.model.mask_radius_p50;
+        free_model(&r.model);
+        return v;
+    };
+    const double r_dim = p50(1.0e2, 3.0);
+    const double r_mid = p50(1.0e4, 3.0);
+    const double r_bright = p50(1.0e6, 3.0);
+    std::fprintf(stdout, "[p1noise][o2] r50: F=1e2 %.4f  F=1e4 %.4f  F=1e6 %.4f px\n",
+                 r_dim, r_mid, r_bright);
+    // (1) 对 F 单调不减 (旧实现三者相同 ⇒ 本条必红)
+    P1NOISE_CHECK(cs, r_bright > r_mid && r_mid > r_dim, "o2_mask_radius_monotone_F");
+    // (2) 对 FWHM 单调不减
+    const double r_narrow = p50(1.0e4, 2.0);
+    const double r_wide = p50(1.0e4, 6.0);
+    std::fprintf(stdout, "[p1noise][o2] r50: FWHM=2 %.4f  FWHM=3 %.4f  FWHM=6 %.4f px\n",
+                 r_narrow, r_mid, r_wide);
+    P1NOISE_CHECK(cs, r_wide > r_mid && r_mid > r_narrow, "o2_mask_radius_monotone_fwhm");
+    // (3) 同 (F,FWHM) 两次运行逐位可复现 (确定性)
+    {
+        std::vector<double> fl{1.0e4}, fw{3.0};
+        BuildResult a1 = build_f64(bg.data, bg.w, bg.h, nullptr, &sx, &sy, &cfg, &fl, &fw);
+        BuildResult a2 = build_f64(bg.data, bg.w, bg.h, nullptr, &sx, &sy, &cfg, &fl, &fw);
+        P1NOISE_CHECK(cs, model_bitwise_equal(a1.model, a2.model), "o2_mask_radius_reproducible");
+        P1NOISE_CHECK(cs, a1.model.mask_degraded == 0u, "o2_mask_no_degrade_with_flux_fwhm");
+        free_model(&a1.model);
+        free_model(&a2.model);
+    }
+    // (4) 负例注入 / 门牙证明: 只给 flux、不给 FWHM ⇒ §5a 回落到统一 rmax,
+    //     半径与 F 无关 ⇒ 严格单调判据在该通道上**必红**; 实现必须置
+    //     MASK_LEGACY (bit0), 不得静默当成逐星半径消费。
+    {
+        std::vector<double> fl_lo{1.0e2}, fl_hi{1.0e6};
+        BuildResult rl_lo = build_f64(bg.data, bg.w, bg.h, nullptr, &sx, &sy, &cfg, &fl_lo, nullptr);
+        BuildResult rl_hi = build_f64(bg.data, bg.w, bg.h, nullptr, &sx, &sy, &cfg, &fl_hi, nullptr);
+        P1NOISE_CHECK_EQ(cs, rl_lo.rc, 0);
+        P1NOISE_CHECK_EQ(cs, rl_hi.rc, 0);
+        const bool strict_monotone_holds =
+            rl_hi.model.mask_radius_p50 > rl_lo.model.mask_radius_p50;
+        P1NOISE_CHECK(cs, !strict_monotone_holds, "o2_mask_negative_legacy_not_monotone");
+        P1NOISE_CHECK(cs, (rl_lo.model.mask_degraded & 1u) != 0u, "o2_mask_legacy_flag");
+        P1NOISE_CHECK(cs, (rl_hi.model.mask_degraded & 1u) != 0u, "o2_mask_legacy_flag");
+        free_model(&rl_lo.model);
+        free_model(&rl_hi.model);
+    }
+    // (5) 手工 source_mask 通道: 与 oracle 独立光栅化逐位一致 (语义保留)
+    {
+        const FixNoiseD fxd = fix_noise_d_mask(20260913ull, 256, 256,
+                                               128.0, 96.0, 5.0, 10.0, 6.0);
+        BuildResult rm = build_f64(fxd.bright, fxd.w, fxd.h, &fxd.mask, nullptr, nullptr, &cfg);
+        P1NOISE_CHECK_EQ(cs, rm.rc, 0);
+        const BlankSkyOracle o = blank_sky_oracle(fxd.bright, fxd.w, fxd.h, fxd.mask, cfg);
+        P1NOISE_CHECK(cs, bit_eq(rm.model.sigma_bg_global, o.sigma_global),
+                      "o2_manual_channel_oracle_bitwise");
+        P1NOISE_CHECK(cs, bit_eq(rm.model.variance_bg_global, o.variance_global),
+                      "o2_manual_channel_oracle_bitwise");
+        // 手工通道不参与逐星半径; p50 = 0 且覆盖比 > 0
+        P1NOISE_CHECK(cs, bit_eq(rm.model.mask_radius_p50, 0.0), "o2_manual_channel_p50_zero");
+        P1NOISE_CHECK(cs, rm.model.mask_frac > 0.0, "o2_manual_channel_frac");
+        free_model(&rm.model);
+    }
     return cs.failures == 0 ? 0 : 1;
 }
 
@@ -421,7 +476,7 @@ int check_o4_f64_parity(CheckState& cs) {
     std::vector<double> d32(f32.size());
     for (std::size_t i = 0; i < d32.size(); ++i) d32[i] = static_cast<double>(f32[i]);
     BuildResult rd2;
-    rd2.rc = snr_noise_model_v1_f64(d32.data(), 128, 128, nullptr, nullptr, nullptr, 0,
+    rd2.rc = snr_noise_model_v1_f64(d32.data(), 128, 128, nullptr, nullptr, nullptr, nullptr, nullptr, 0,
                                     nullptr, &rd2.model);
     P1NOISE_CHECK_EQ(cs, rd2.rc, 0);
     P1NOISE_CHECK(cs, model_bitwise_equal(rf.model, rd2.model), "o4_f64_parity");
@@ -437,7 +492,7 @@ int check_o1_full_oracle(CheckState& cs) {
     const SnrNoiseModelConfig cfg = default_cfg();
     BuildResult r;
     r.rc = snr_noise_model_v1_f64(fx.data.data(), fx.h, fx.w,
-                                  nullptr, nullptr, nullptr, 0, &cfg, &r.model);
+                                  nullptr, nullptr, nullptr, nullptr, nullptr, 0, &cfg, &r.model);
     P1NOISE_CHECK_EQ(cs, r.rc, 0);
     const BlankSkyOracle o = blank_sky_oracle(fx.data, fx.w, fx.h, {}, cfg);
     P1NOISE_CHECK(cs, bit_eq(r.model.sigma_bg_global, o.sigma_global),
@@ -462,7 +517,7 @@ int check_o1_full_oracle(CheckState& cs) {
 int test_oracle() {
     CheckState cs;
     if (check_o1_full_oracle(cs) != 0) return 1;
-    if (check_o2_mask_decouple(cs) != 0) return 1;
+    if (check_o2_mask_radius_monotone(cs) != 0) return 1;
     if (check_o3_gain_model_inert(cs) != 0) return 1;
     if (check_o3b_poisson_cross(cs) != 0) return 1;
     if (check_o4_f64_parity(cs) != 0) return 1;
@@ -479,19 +534,19 @@ int test_negative() {
     {
         NoiseWeightModelV1 m{};
         P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_f64(nullptr, 64, 64, nullptr,
-                                                    nullptr, nullptr, 0, nullptr, &m), 3);
+                                                    nullptr, nullptr, nullptr, nullptr, 0, nullptr, &m), 3);
         P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_f64(fx.data.data(), 64, 64, nullptr,
-                                                    nullptr, nullptr, 0, nullptr, nullptr), 3);
+                                                    nullptr, nullptr, nullptr, nullptr, 0, nullptr, nullptr), 3);
         P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_f64(fx.data.data(), 0, 64, nullptr,
-                                                    nullptr, nullptr, 0, nullptr, &m), 3);
+                                                    nullptr, nullptr, nullptr, nullptr, 0, nullptr, &m), 3);
         P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_f64(fx.data.data(), 64, 0, nullptr,
-                                                    nullptr, nullptr, 0, nullptr, &m), 3);
+                                                    nullptr, nullptr, nullptr, nullptr, 0, nullptr, &m), 3);
         P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_f64(fx.data.data(), -1, 64, nullptr,
-                                                    nullptr, nullptr, 0, nullptr, &m), 3);
+                                                    nullptr, nullptr, nullptr, nullptr, 0, nullptr, &m), 3);
         std::vector<float> f32(fx.data.size());
         for (std::size_t i = 0; i < f32.size(); ++i) f32[i] = static_cast<float>(fx.data[i]);
         P1NOISE_CHECK_EQ(cs, snr_noise_model_v1(nullptr, 64, 64, nullptr,
-                                                nullptr, nullptr, 0, nullptr, &m), 3);
+                                                nullptr, nullptr, nullptr, nullptr, 0, nullptr, &m), 3);
         (void)f32;
     }
     P1NOISE_CHECK(cs, true, "n1_null_args_rc3");
@@ -614,7 +669,7 @@ int test_negative() {
                                                  1.0, -0.0024, -0.0060, 1.0e-6);
         BuildResult r;
         r.rc = snr_noise_model_v1_f64(fneg.data.data(), fneg.h, fneg.w,
-                                      nullptr, nullptr, nullptr, 0, nullptr, &r.model);
+                                      nullptr, nullptr, nullptr, nullptr, nullptr, 0, nullptr, &r.model);
         P1NOISE_CHECK_EQ(cs, r.rc, 0);
         P1NOISE_CHECK_EQ(cs, r.model.degenerate, 0);
         std::vector<float> vf(static_cast<std::size_t>(fneg.w) * fneg.h, 0.0f);
@@ -658,6 +713,48 @@ int test_negative() {
         free_model(&r.model);
     }
     P1NOISE_CHECK(cs, true, "n8_silent_clamp");
+
+    // n10 (MASK-002 / claim SC-009): ABI 头部 fail-closed。
+    // 无头部 (全零 = 未版本化旧调用方) / struct_size 错 / abi_version 错
+    // 一律 rc = SNR_ABI_MISMATCH(-9); 模型头部被篡改 ⇒ fill 亦 -9。
+    {
+        SnrNoiseModelConfig c_ok = default_cfg();
+        P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_abi_check_config(&c_ok), 0);
+        BuildResult r_ok = build_f64(fx.data, fx.w, fx.h, nullptr, nullptr, nullptr, &c_ok);
+        P1NOISE_CHECK_EQ(cs, r_ok.rc, 0);
+        P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_abi_check_model(&r_ok.model), 0);
+        std::vector<float> vf((std::size_t)fx.w * fx.h, 0.0f);
+        std::vector<float> ivf((std::size_t)fx.w * fx.h, 0.0f);
+        // 篡改模型头部 ⇒ fill fail-closed (不静默按错布局消费)
+        r_ok.model.abi_version = SNR_NOISE_MODEL_ABI_VERSION + 1u;
+        P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&r_ok.model, fx.h, fx.w,
+                                                     vf.data(), ivf.data()),
+                         SNR_ABI_MISMATCH);
+        r_ok.model.abi_version = SNR_NOISE_MODEL_ABI_VERSION;
+        r_ok.model.struct_size = 0;
+        P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&r_ok.model, fx.h, fx.w,
+                                                     vf.data(), ivf.data()),
+                         SNR_ABI_MISMATCH);
+        free_model(&r_ok.model);
+
+        SnrNoiseModelConfig c_zero{};   // 全零 = 无头部 (旧调用方)
+        BuildResult r0 = build_f64(fx.data, fx.w, fx.h, nullptr, nullptr, nullptr, &c_zero);
+        P1NOISE_CHECK_EQ(cs, r0.rc, SNR_ABI_MISMATCH);
+        SnrNoiseModelConfig c_ver = default_cfg();
+        c_ver.abi_version = SNR_NOISE_CONFIG_ABI_VERSION + 1u;
+        BuildResult r1 = build_f64(fx.data, fx.w, fx.h, nullptr, nullptr, nullptr, &c_ver);
+        P1NOISE_CHECK_EQ(cs, r1.rc, SNR_ABI_MISMATCH);
+        SnrNoiseModelConfig c_sz = default_cfg();
+        c_sz.struct_size = (uint32_t)sizeof(SnrNoiseModelConfig) - 4u;
+        BuildResult r2 = build_f64(fx.data, fx.w, fx.h, nullptr, nullptr, nullptr, &c_sz);
+        P1NOISE_CHECK_EQ(cs, r2.rc, SNR_ABI_MISMATCH);
+        // cfg=NULL 仍走模块默认配置 (rc=0), 与头部纪律不冲突
+        BuildResult rn = build_f64(fx.data, fx.w, fx.h, nullptr, nullptr, nullptr, nullptr);
+        P1NOISE_CHECK_EQ(cs, rn.rc, 0);
+        free_model(&rn.model);
+        std::fprintf(stdout, "[p1noise][n10] ABI fail-closed: zero/ver/size → rc=%d\n",
+                     (int)SNR_ABI_MISMATCH);
+    }
 
     // n9: M3-A-005 平面几何退化 (DISP-NOISE-010) —— 控制点共线/近共线时
     // 必须 has_spatial_field=0 且 fill 为全局常量场。原实现用绝对阈值
@@ -731,7 +828,7 @@ int test_fill() {
         const std::vector<double> cdata = fix_noise_c_const(42.0, 64, 64);
         BuildResult r;
         r.rc = snr_noise_model_v1_f64(cdata.data(), 64, 64, nullptr, nullptr,
-                                      nullptr, 0, nullptr, &r.model);
+                                      nullptr, nullptr, nullptr, 0, nullptr, &r.model);
         P1NOISE_CHECK_EQ(cs, r.rc, 1);
         std::vector<float> vf(64 * 64, -1.0f), ivf(64 * 64, -1.0f);
         const int rc = snr_noise_model_v1_fill(&r.model, 64, 64, vf.data(), ivf.data());
@@ -754,7 +851,7 @@ int test_fill() {
                                                4.0, 0.02, 0.03, 0.0);
         BuildResult r;
         r.rc = snr_noise_model_v1_f64(fx.data.data(), fx.h, fx.w, nullptr,
-                                      nullptr, nullptr, 0, nullptr, &r.model);
+                                      nullptr, nullptr, nullptr, nullptr, 0, nullptr, &r.model);
         P1NOISE_CHECK_EQ(cs, r.rc, 0);
         P1NOISE_CHECK_EQ(cs, r.model.has_spatial_field, 1);
         const PlaneOracle p = plane_ls_oracle(r.model.ctrl_x_px, r.model.ctrl_y_px,
@@ -792,7 +889,7 @@ int test_fill() {
                                                9.0, 0.01, 0.01, 0.0);
         BuildResult r;
         r.rc = snr_noise_model_v1_f64(fx.data.data(), fx.h, fx.w, nullptr,
-                                      nullptr, nullptr, 0, nullptr, &r.model);
+                                      nullptr, nullptr, nullptr, nullptr, 0, nullptr, &r.model);
         P1NOISE_CHECK_EQ(cs, r.rc, 0);
         std::vector<float> v_both(64 * 64, 0.0f), i_both(64 * 64, 0.0f);
         P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&r.model, 64, 64,
@@ -814,7 +911,7 @@ int test_fill() {
         c.enable_spatial_field = 0;
         BuildResult r;
         r.rc = snr_noise_model_v1_f64(fx.data.data(), fx.h, fx.w, nullptr,
-                                      nullptr, nullptr, 0, &c, &r.model);
+                                      nullptr, nullptr, nullptr, nullptr, 0, &c, &r.model);
         P1NOISE_CHECK_EQ(cs, r.rc, 0);
         P1NOISE_CHECK_EQ(cs, r.model.has_spatial_field, 0);
         std::vector<float> vf(64 * 64, -1.0f);
@@ -887,6 +984,92 @@ int test_scale_law() {
     return cs.failures == 0 ? 0 : 1;
 }
 
+
+// ---- mask 组: 源污染 oracle (MASK-002 / SCI-NOISE-001 §11, claim SC-009) -------
+// 结构性缺口 (MASK-001 §4.1): 原 §11 只有无星纯高斯 oracle —— 掩膜在原理上
+// 不影响其结果 (实测 r=0/8/60 px 输出逐位相同)。本组注入含星帧:
+//   正例  : 默认逐星掩膜 ⇒ |σ̂_bg/σ_bg − 1| ≤ 2% (MASK-001 EXP-C 实测 worst 1.11%),
+//           且 nq ≥ 8、N_sky ≥ 9216、无降级位标;
+//   负例① : 手工欠掩膜 (r=2 px, F_max=1e6 ADU) ⇒ 必须检出 |偏差| > 2%
+//           (证明 oracle 对半径错误有判别力, 不是恒绿门);
+//   负例② : 256²/50 星且不给逐星 F/FWHM (§5a 回调统一 rmax=60 px) ⇒ 旧实现
+//           rc=1 + 100% 零权重 (R-5 §5.14 / MASK-001 EXP-A 复现), 新实现必须
+//           rc=0 且零权重 < 5% (天空预算收缩生效) 并置 MASK_LEGACY。
+int test_mask() {
+    CheckState cs;
+    const SnrNoiseModelConfig cfg = default_cfg();
+    double worst_bias = 0.0;
+    const std::uint64_t seeds[3] = {20260930ull, 20260931ull, 20260932ull};
+    for (int si = 0; si < 3; ++si) {
+        const std::uint64_t seed = seeds[si];
+        const FixNoiseH fx = fix_noise_h_starfield(seed, 512, 512, 5.0, 60,
+                                                   2.0e2, 1.0e5, 3.0);
+        BuildResult r = build_f64(fx.data, fx.w, fx.h, nullptr, &fx.star_x,
+                                  &fx.star_y, &cfg, &fx.star_flux, &fx.star_fwhm);
+        P1NOISE_CHECK_EQ(cs, r.rc, 0);
+        const double bias = std::fabs(r.model.sigma_bg_global / fx.sigma_bg - 1.0);
+        if (bias > worst_bias) worst_bias = bias;
+        std::fprintf(stdout,
+                     "[p1noise][mask] seed=%llu sigma=%.4f (true 5) bias=%.4f "
+                     "nq=%u r50=%.3f frac=%.4f degraded=%u\n",
+                     (unsigned long long)seed, r.model.sigma_bg_global, bias,
+                     r.model.n_qualified_patches, r.model.mask_radius_p50,
+                     r.model.mask_frac, r.model.mask_degraded);
+        P1NOISE_CHECK(cs, bias <= 0.02, "mask_source_bias_le_2pct");
+        P1NOISE_CHECK(cs, r.model.n_qualified_patches >= 8, "mask_budget_patches");
+        P1NOISE_CHECK(cs, (1.0 - r.model.mask_frac) * (double)(fx.w * fx.h) >= 9216.0,
+                      "mask_budget_sky");
+        P1NOISE_CHECK_EQ(cs, r.model.mask_degraded, 0u);
+        P1NOISE_CHECK(cs, r.model.mask_radius_p50 > 0.0, "mask_radius_p50_positive");
+        free_model(&r.model);
+    }
+    std::fprintf(stdout, "[p1noise][mask] worst |bias| = %.4f (门限 2%%)\n", worst_bias);
+
+    // 负例①: 手工欠掩膜 (r=1 px, F=1e7 同亮度亮星) ⇒ |偏差| > 2% (门必须能红)。
+    // 逐星无偏所需 r_local(F=1e7, FWHM=3) ≈ 39 px ⇒ 1 px 掩膜是**明确欠掩膜**
+    // (欠掩膜偏差由 run/PROJECT-GOVERNANCE-01/MASK-002/probe_mask002 1 标定:
+    //  r=1.5 px ⇒ 3.9%、r=3 px ⇒ 5.2%; 本夹具 seed 流不同, 取 r=1 px 留裕量)。
+    double neg_bias = 0.0;
+    for (int k = 0; k < 3; ++k) {
+        const FixNoiseH fx = fix_noise_h_starfield(20260933ull + k, 512, 512, 5.0, 20,
+                                                   1.0e7, 1.0e7, 3.0);
+        const std::vector<float> m = fix_noise_h_disk_mask(fx, 1.0);
+        BuildResult r = build_f64(fx.data, fx.w, fx.h, &m, nullptr, nullptr, &cfg);
+        P1NOISE_CHECK_EQ(cs, r.rc, 0);
+        const double bias = std::fabs(r.model.sigma_bg_global / fx.sigma_bg - 1.0);
+        std::fprintf(stdout, "[p1noise][mask-neg1] undermined r=1px seed=%d sigma=%.4f bias=%.4f\n",
+                     k, r.model.sigma_bg_global, bias);
+        P1NOISE_CHECK(cs, bias > 0.02, "mask_negative_undermask_detected");
+        neg_bias += bias;
+        free_model(&r.model);
+    }
+    std::fprintf(stdout, "[p1noise][mask-neg1] mean |bias| = %.4f (门限 2%%)\n",
+                 neg_bias / 3.0);
+
+    // 负例②: 256²/50 星, 无逐星 F/FWHM ⇒ 不得整帧失权 (旧实现 rc=1)
+    {
+        const FixNoiseH fx = fix_noise_h_starfield(20260934ull, 256, 256, 5.0, 50,
+                                                   2.0e2, 1.0e5, 3.0);
+        BuildResult r = build_f64(fx.data, fx.w, fx.h, nullptr, &fx.star_x,
+                                  &fx.star_y, &cfg);
+        P1NOISE_CHECK_EQ(cs, r.rc, 0);
+        std::vector<float> vf((std::size_t)fx.w * fx.h, 0.0f);
+        std::vector<float> ivf((std::size_t)fx.w * fx.h, 1.0f);
+        P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&r.model, fx.h, fx.w,
+                                                     vf.data(), ivf.data()), 0);
+        const double zw = zero_weight_frac(ivf);
+        std::fprintf(stdout,
+                     "[p1noise][mask-neg2] 256^2/50 stars legacy-rmax: rc=%d r50=%.3f "
+                     "degraded=%u zero_weight=%.4f\n",
+                     r.rc, r.model.mask_radius_p50, r.model.mask_degraded, zw);
+        P1NOISE_CHECK(cs, zw < 0.05, "mask_legacy_no_full_frame_loss");
+        P1NOISE_CHECK(cs, (r.model.mask_degraded & 1u) != 0u, "mask_legacy_flag_set");
+        P1NOISE_CHECK(cs, r.model.mask_radius_p50 < 60.0, "mask_budget_shrink_applied");
+        free_model(&r.model);
+    }
+    return cs.failures == 0 ? 0 : 1;
+}
+
 }  // namespace
 
 // selfcheck 重入入口 (带注入环境子进程直接跑指定组; TU 外部符号)
@@ -898,6 +1081,7 @@ int p1noise_run_core_groups(int argc, char** argv) {
         {"negative", test_negative},
         {"scale_law", test_scale_law},
         {"fill", test_fill},
+        {"mask", test_mask},
     };
     return p1noise::run_all_groups(groups, sizeof(groups) / sizeof(groups[0]), argc, argv);
 }

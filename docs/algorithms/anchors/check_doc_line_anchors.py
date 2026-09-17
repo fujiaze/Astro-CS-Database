@@ -145,6 +145,16 @@ def emit(errors, anchors, json_out):
     for a in anchors:
         by_status[a["status"]] = by_status.get(a["status"], 0) + 1
     doc_count = len({a["doc"] for a in anchors})
+    # W4-A3（C 类收口）：豁免面必须**逐条点名**。原实现只在汇总行打印
+    # "status=EXEMPT:8"，读日志的人无法知道被豁免的到底是哪 8 个对象、依据什么
+    # 类型/理由豁免 —— 打印结论与判定面不自洽（审计面缺口）。现落进 JSON 的
+    # exemptions 数组并在 stdout 逐条打印；豁免计数与逐条列表同源，不可能不匹配。
+    exempt_list = sorted(
+        ({"doc": a["doc"], "doc_line": a["doc_line"], "raw": a["raw"],
+          "kind": a.get("kind", ""), "reason": a.get("reason", ""),
+          "owner": a.get("owner", "")}
+         for a in anchors if a["status"] == "EXEMPT"),
+        key=lambda e: (e["doc"], e["doc_line"], e["raw"]))
     report = {
         "schema": "astrocs/doc-line-anchors/v1",
         "task": "SCI-ANCHOR-001",
@@ -152,6 +162,7 @@ def emit(errors, anchors, json_out):
         "documents": doc_count,
         "anchors_total": len(anchors),
         "by_status": dict(sorted(by_status.items())),
+        "exemptions": exempt_list,
         "errors": errors,
         "anchors": sorted(anchors, key=lambda a: (a["doc"], a["doc_line"], a["start"], a["raw"])),
     }
@@ -170,6 +181,14 @@ def emit(errors, anchors, json_out):
     print("DOC_LINE_ANCHORS_PASS: %d docs, %d anchors, status=%s"
           % (doc_count, len(anchors),
              ",".join("%s:%d" % kv for kv in sorted(by_status.items()))))
+    # 豁免对象逐条点名（W4-A3）：EXEMPT 计数 == 逐条列表长度；空则不打印。
+    if exempt_list:
+        print("  EXEMPT_OBJECTS (%d) —— 逐条点名，禁止只报计数:" % len(exempt_list))
+        for e in exempt_list:
+            print("    %s:%d %s [%s] owner=%s"
+                  % (e["doc"], e["doc_line"], e["raw"], e["kind"] or "-",
+                     e["owner"] or "-"))
+            print("      理由: %s" % (e["reason"] or "-"))
     return 0
 
 
@@ -207,6 +226,9 @@ def main(argv=None):
             errors.append(fail("C1_docs_tracked", "untracked doc: " + d))
 
     exempt_keys = {(ex["doc"], ex["raw"]) for ex in exemptions}
+    # W4-A3：豁免元数据（kind/reason/owner）随锚记录落盘 —— 逐条点名要能说清
+    # "凭什么豁免"，只报一个 EXEMPT 计数等于没有审计面。
+    exempt_meta = {(ex["doc"], ex["raw"]): ex for ex in exemptions}
     matched_exemptions = set()
 
     anchors = []
@@ -220,6 +242,11 @@ def main(argv=None):
                     matched_exemptions.add((doc, raw))
                     rec["resolved"] = None
                     rec["status"] = "EXEMPT"
+                    _ex = exempt_meta.get((doc, raw), {})
+                    rec["kind"] = _ex.get("kind", "")
+                    rec["reason"] = _ex.get("reason", "")
+                    rec["owner"] = _ex.get("owner", "")
+                    rec["exemption_evidence"] = _ex.get("evidence", "")
                     anchors.append(rec)
                     continue
                 resolved, how = resolve(root, doc, base, resolvers, basename_index)

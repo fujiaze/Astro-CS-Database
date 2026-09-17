@@ -1,0 +1,66 @@
+{
+  "schema": "astrocs/doc-symbol-namespaces/v1",
+  "note": "check_doc_symbols.py 的**非 API 符号命名空间**登记表。判据：文档反引号里的 token 必须能解析到**已登记命名空间之一** —— API inventory / lib·include 公开头 / 文档词干 / 术语词典 / 本表。本表不是豁免表：每条登记的 token 必须在 evidence 所指文件里**逐字出现**（否则 DOC-SYMBOL-REGISTRY-EVIDENCE 判红），且必须在扫描面里**真实出现过**（否则 DOC-SYMBOL-REGISTRY-STALE 判红 ⇒ 登记只减不增）。",
+  "task": "W4-A3",
+  "auto_domains": [
+    {
+      "id": "document_stems",
+      "note": "docs/**/*.md 的词干（含 _ 边界后缀匹配，用于 `SCI-ADJ-001_CONFLICT_MATRIX.md` 的简写形式 CONFLICT_MATRIX）",
+      "source": "docs/**/*.md"
+    },
+    {
+      "id": "glossary_terms",
+      "note": "docs/GLOSSARY.md = 唯一术语权威（DOC-001 冻结，18 术语，机器门 tools/check_glossary.py）",
+      "source": "docs/GLOSSARY.md"
+    },
+    {
+      "id": "public_headers",
+      "note": "lib/**、include/** 公开头中真实定义的枚举常量/宏（api_inventory.csv 只登记函数签名）",
+      "source": "lib/**/*.h, include/**/*.h"
+    }
+  ],
+  "registered_symbols": [
+    {
+      "token": "ALG_PROPOSED",
+      "namespace": "doc_status",
+      "evidence": "docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md:6",
+      "reason": "算法层文档状态词（状态：`ALG_PROPOSED`），非代码符号"
+    },
+    {
+      "token": "TARGET_NORMATIVE",
+      "namespace": "doc_status",
+      "evidence": "docs/design/PHASE2_DETAILED_DESIGN.md:4",
+      "reason": "设计文档状态词（状态：`TARGET_NORMATIVE`），非代码符号"
+    },
+    {
+      "token": "NOT_IMPLEMENTED",
+      "namespace": "doc_status",
+      "evidence": "docs/contracts/v6/data/05_point_information_and_weight_mode.md:42",
+      "reason": "模式/实现状态词（DEFERRED/NOT_IMPLEMENTED），与 FZ-MODE-DEFERRED 同域"
+    },
+    {
+      "token": "PENDING_SO07",
+      "namespace": "signoff_status",
+      "evidence": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md:367",
+      "reason": "未签字阈值标记（SO-07 签署门），非代码符号"
+    },
+    {
+      "token": "snr_v",
+      "namespace": "science_quantity",
+      "evidence": "docs/GLOSSARY.md:13",
+      "reason": "SCI-CW 域科学量（帧质量权重 = support×snr_v²），术语权威 docs/GLOSSARY.md:13"
+    },
+    {
+      "token": "snr_v²",
+      "namespace": "science_quantity",
+      "evidence": "docs/GLOSSARY.md:13",
+      "reason": "同上（含上标写法）"
+    },
+    {
+      "token": "snr_identity",
+      "namespace": "machine_criterion_id",
+      "evidence": "docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md:201",
+      "reason": "文档内机器判据名（机器判据（`snr_identity`）），是判据 ID 不是 API 函数"
+    }
+  ]
+}

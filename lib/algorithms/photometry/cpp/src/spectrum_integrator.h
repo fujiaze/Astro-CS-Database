@@ -4,7 +4,9 @@
 
 // spectrum_integrator.h - 光谱积分器
 // 功能: 对 Gaia BP/RP uint8 光谱做 Akima 插值 + Simpson 1/3 积分, 得到合成流量 F_syn
-// 参考: lib/algorithms/photometry/spectrum_integrator/python/synthetic_photometry.py
+// 参考: lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/fsyn_astrocs.py
+// (numpy 移植, 与本文件 Akima+Simpson 数值等价; 旧引 lib/algorithms/photometry/
+//  spectrum_integrator/python/synthetic_photometry.py 全仓不存在 — L28c-E-002 订正)
 // F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ × 10^(-0.4*mag_g)
 // S(λ): uint8 光谱转 float64
 // T(λ): 滤光片透过率 (Akima 插值重采样到 SED 波长网格)

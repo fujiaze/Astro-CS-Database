@@ -133,7 +133,7 @@ double plane_geometry_ratio(const double* xs, const double* ys, std::size_t n) {
 }
 
 // ============================================================================
-// MASK-002 (claim SC-007 / SCI-NOISE-001 §5a): 逐星掩膜半径 + 天空预算收缩
+// MASK-002 (claim SC-009 / SCI-NOISE-001 §5a): 逐星掩膜半径 + 天空预算收缩
 // ----------------------------------------------------------------------------
 // 掩膜的唯一目的是让天空样本「无源」; 半径由「掩膜边缘源面亮度 = k·σ_bg」导出:
 //   Moffat β: r_local = α·sqrt((F(β−1)/(π α² k σ_bg))^(1/β) − 1),
@@ -460,6 +460,14 @@ int noise_model_impl(const T* data, int h, int w,
     out_model->n_qualified_patches = (uint32_t)patch_var.size();
     out_model->n_rejected_patches = (uint32_t)n_rejected;
 
+    // MASK-002 诊断标: 预算收缩后仍 nq<预算 ⇒ MASK_DEGRADED (显式降级, 消费方可 fail-closed)
+    if (patch_var.size() < budget_patches || final_budget.n_sky < budget_sky) {
+        plan.flags |= kMaskDegraded;
+    }
+    out_model->mask_degraded = plan.flags;
+    out_model->mask_radius_p50 = plan.radius_p50;
+    out_model->mask_frac = plan.frac;
+
     // 全局兜底: 合格 patch variance 的稳健中位数
     if (!patch_var.empty()) {
         std::vector<double> vc = patch_var;
@@ -479,19 +487,27 @@ int noise_model_impl(const T* data, int h, int w,
                 if (valid_pixel(v, c.saturation_level)) all.push_back(v);
             }
         }
-        if ((int)all.size() < std::max(1, min_samples / 2)) {
+        // MASK-002: 全帧兜底阈由 min_samples/2 (=32 px) **收紧**为
+        // max(min_samples, budget_sky): 32 个像素不得为整帧定权重。
+        // 依据 SE(σ̂)/σ ≈ 1.144/√N_sky (MAD 路径) ≤ 1.5% ⇒ N_sky ≥ 9216。
+        const std::int64_t fallback_min =
+            (std::int64_t)std::max(min_samples, (int)std::min<std::uint64_t>(budget_sky, 1000000000ull));
+        if ((std::int64_t)all.size() < std::max<std::int64_t>(1, fallback_min)) {
             out_model->degenerate = 1;
+            out_model->mask_degraded = plan.flags;
             return 1;
         }
         const double sig = robust_sigma(all);
         if (!std::isfinite(sig) || sig <= 0.0) {
             out_model->degenerate = 1;
+            out_model->mask_degraded = plan.flags;
             return 1;
         }
         out_model->sigma_bg_global = sig;
         out_model->variance_bg_global = std::max(sig * sig, c.variance_floor);
         out_model->ivar_bg_global = 1.0 / out_model->variance_bg_global;
         out_model->degenerate = 1;  // 无空间分辨, 全局兜底
+        out_model->mask_degraded = plan.flags | kMaskDegraded;
         return 0;
     }
 
@@ -603,34 +619,74 @@ SNR_API int snr_psf_fit_quality(const double* psf, int n_stars,
 SNR_API int snr_noise_model_v1_default_config(SnrNoiseModelConfig* cfg) {
     if (!cfg) return 3;
     std::memset(cfg, 0, sizeof(SnrNoiseModelConfig));
+    cfg->struct_size = (uint32_t)sizeof(SnrNoiseModelConfig);
+    cfg->abi_version = SNR_NOISE_CONFIG_ABI_VERSION;
     cfg->patch_grid_x = 8;
     cfg->patch_grid_y = 8;
-    cfg->source_mask_radius_px = 10.0;
+    cfg->source_mask_radius_px = 10.0;   // 与 mask_radius_scale 相乘 = 60 px 硬上界
     cfg->mask_radius_scale = 6.0;
     cfg->cosmic_clip_sigma = 5.0;
     cfg->min_patch_samples = 64;
     cfg->max_clip_rounds = 2;
     cfg->enable_spatial_field = 1;
     cfg->variance_floor = 1e-12;
+    // MASK-002 (claim SC-009 / SCI-NOISE-001 §5a): 逐星掩膜半径参数
+    cfg->mask_k_sigma = 0.1;              // 掩膜边缘残余面亮度 = 0.1·σ_bg  ⇒  σ_bg 偏差 ≤ 0.5%
+    cfg->mask_r_min_px = 1.5;             // r_min = max(1.5 px, 0.75·FWHM_i)
+    cfg->mask_fwhm_floor_scale = 0.75;
+    cfg->mask_budget_min_patches = 8;     // 天空预算: n_qualified ≥ 8
+    cfg->mask_budget_min_sky = 9216;      // 天空预算: N_sky ≥ 9216 (SE ≤ 1.5%)
+    return 0;
+}
+
+// ---- ABI 头部助手 (claim SC-009) -------------------------------------------
+SNR_API void snr_noise_model_v1_abi_stamp_config(SnrNoiseModelConfig* cfg) {
+    if (!cfg) return;
+    cfg->struct_size = (uint32_t)sizeof(SnrNoiseModelConfig);
+    cfg->abi_version = SNR_NOISE_CONFIG_ABI_VERSION;
+}
+
+SNR_API void snr_noise_model_v1_abi_stamp_model(NoiseWeightModelV1* model) {
+    if (!model) return;
+    model->struct_size = (uint32_t)sizeof(NoiseWeightModelV1);
+    model->abi_version = SNR_NOISE_MODEL_ABI_VERSION;
+}
+
+SNR_API int snr_noise_model_v1_abi_check_config(const SnrNoiseModelConfig* cfg) {
+    if (!cfg) return SNR_ABI_MISMATCH;
+    if (cfg->struct_size != (uint32_t)sizeof(SnrNoiseModelConfig)) return SNR_ABI_MISMATCH;
+    if (cfg->abi_version != (uint32_t)SNR_NOISE_CONFIG_ABI_VERSION) return SNR_ABI_MISMATCH;
+    return 0;
+}
+
+SNR_API int snr_noise_model_v1_abi_check_model(const NoiseWeightModelV1* model) {
+    if (!model) return SNR_ABI_MISMATCH;
+    if (model->struct_size != (uint32_t)sizeof(NoiseWeightModelV1)) return SNR_ABI_MISMATCH;
+    if (model->abi_version != (uint32_t)SNR_NOISE_MODEL_ABI_VERSION) return SNR_ABI_MISMATCH;
     return 0;
 }
 
 SNR_API int snr_noise_model_v1(const float* data, int h, int w,
                                const float* source_mask,
                                const double* star_x, const double* star_y,
+                               const double* star_flux, const double* star_fwhm,
                                int n_stars,
                                const SnrNoiseModelConfig* cfg,
                                NoiseWeightModelV1* out_model) {
-    try { return noise_model_impl(data, h, w, source_mask, star_x, star_y, n_stars, cfg, out_model); } catch (const std::exception& e) { (void)e; return 3; } catch (...) { return 3; }
+    // ABI fail-closed: 非空 cfg 必须带匹配头部 (无头部 = 旧调用方 ⇒ 拒绝)
+    if (cfg && snr_noise_model_v1_abi_check_config(cfg) != 0) return SNR_ABI_MISMATCH;
+    try { return noise_model_impl(data, h, w, source_mask, star_x, star_y, star_flux, star_fwhm, n_stars, cfg, out_model); } catch (const std::exception& e) { (void)e; return 3; } catch (...) { return 3; }
 }
 
 SNR_API int snr_noise_model_v1_f64(const double* data, int h, int w,
                                    const float* source_mask,
                                    const double* star_x, const double* star_y,
+                                   const double* star_flux, const double* star_fwhm,
                                    int n_stars,
                                    const SnrNoiseModelConfig* cfg,
                                    NoiseWeightModelV1* out_model) {
-    try { return noise_model_impl(data, h, w, source_mask, star_x, star_y, n_stars, cfg, out_model); } catch (const std::exception& e) { (void)e; return 3; } catch (...) { return 3; }
+    if (cfg && snr_noise_model_v1_abi_check_config(cfg) != 0) return SNR_ABI_MISMATCH;
+    try { return noise_model_impl(data, h, w, source_mask, star_x, star_y, star_flux, star_fwhm, n_stars, cfg, out_model); } catch (const std::exception& e) { (void)e; return 3; } catch (...) { return 3; }
 }
 
 namespace {
@@ -697,6 +753,8 @@ SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
                                     float* out_variance, float* out_ivar) {
     if (!model || h <= 0 || w <= 0) return 3;
     if (!out_variance && !out_ivar) return 3;
+    // ABI fail-closed: 模型必须由本版本 build 产出 (无头部 = 旧/手工拼装 ⇒ 拒绝)
+    if (snr_noise_model_v1_abi_check_model(model) != 0) return SNR_ABI_MISMATCH;
     try { fill_impl(model, h, w, out_variance, out_ivar); } catch (const std::exception& e) { (void)e; return 3; } catch (...) { return 3; }
     return 0;
 }

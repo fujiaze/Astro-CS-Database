@@ -97,6 +97,13 @@ def check(binary: pathlib.Path, avx2_lib: pathlib.Path | None,
     if a512:
         errors.append(f"CLI baseline 含 AVX512 指令: {a512}")
 
+    # provider 库必须显式提供且存在（fail-closed）: 缺参或路径不存在时不得
+    # 静默跳过 provider 侧断言 —— 否则本检查退化为「只看 CLI 二进制」的弱门。
+    for label, lib in (("--avx2-lib", avx2_lib), ("--avx512-lib", avx512_lib)):
+        if lib is None:
+            errors.append(f"{label} 缺失（fail-closed: provider 侧断言不得静默跳过）")
+        elif not lib.is_file():
+            errors.append(f"{label} 路径不存在: {lib}")
     # provider 库必须含对应指令（证明真实编译）; 但静态库需先解包反汇编
     if avx2_lib is not None and avx2_lib.is_file():
         try:
@@ -164,7 +171,8 @@ def main(argv: list[str] | None = None) -> int:
         for e in errors[:40]:
             print(f"  - {e}", file=sys.stderr)
         return 1
-    print(f"ISA_LEAK_PASS binary={args.binary} (CLI 无 AVX2/AVX512; provider 库含对应指令)")
+    print(f"ISA_LEAK_PASS binary={args.binary} (CLI 无 AVX2/AVX512; "
+          f"provider 已验: avx2={args.avx2_lib} avx512={args.avx512_lib})")
     return 0
 
 

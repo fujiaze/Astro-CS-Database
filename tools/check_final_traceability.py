@@ -35,7 +35,7 @@ def main():
     # 其余两源仍在 lib/phase3_session/ (批次 2/3 迁 resample / fits_output)。
     _p3_impl = {"p3_wcs.cpp": REPO / "lib" / "algorithms" / "projection",
                 "p3_resample.cpp": REPO / "lib" / "phase3_session",
-                "p3_output.cpp": REPO / "lib" / "phase3_session"}
+                "p3_output.cpp": REPO / "lib" / "algorithms" / "fits_output"}
     for impl, base in _p3_impl.items():
         if not (base / impl).is_file():
             errors.append(f"phase3 实现缺失: {impl}")

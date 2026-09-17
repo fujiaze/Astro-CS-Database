@@ -367,7 +367,8 @@ class Checker:
         code = os.path.join(self.repo, "lib", "phase3_session", "p3_session.cpp")
         if not os.path.isfile(code):
             # 退回 p3_output.cpp / 头文件
-            code = next((c for c in (os.path.join(self.repo, "lib", "phase3_session", "p3_output.cpp"),
+            # W4-A9 批次 3: p3_output.cpp 迁 lib/algorithms/fits_output/ (ASTROCS_DESIGN §7.1)
+            code = next((c for c in (os.path.join(self.repo, "lib", "algorithms", "fits_output", "p3_output.cpp"),
                                      os.path.join(self.repo, "lib", "phase3_session", "p3_session.h"))
                          if os.path.isfile(c)), None)
         code_text = open(code, encoding="utf-8", errors="ignore").read() if code else ""

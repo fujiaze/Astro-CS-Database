@@ -280,11 +280,18 @@ add_library(astrocs_core STATIC
   lib/infrastructure/scheduler/src/runtime.cpp
   lib/infrastructure/scheduler/src/scheduler.cpp
   lib/infrastructure/scheduler/src/checkpoint.cpp
-  lib/infrastructure/scheduler/src/logging.cpp)
+  lib/infrastructure/scheduler/src/logging.cpp
+  # DET-001: 规范产品哈希（canonical product hash）—— 与
+  # tools/canonical_product_hash.py 逐字节同构的 C++ 实现; 进 core 使 CLI run
+  # manifest 与 P3 writer/verify 节点共用同一实现（无第二份口径）。
+  lib/infrastructure/scheduler/src/canonical_hash.cpp)
 target_include_directories(astrocs_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
-target_link_libraries(astrocs_core PUBLIC astrocs_contracts Threads::Threads)
+# astrocs_common 提供 SHA-256（lib/algorithms/shared/crypto/sha256.cpp）; 无环
+#（astrocs_common 不依赖 core）。core 仍不依赖 cfitsio: FITS 结构由
+# canonical_hash.cpp 内的最小头解析处理, 保持 core 依赖图不含产品 IO 库。
+target_link_libraries(astrocs_core PUBLIC astrocs_contracts astrocs_common Threads::Threads)
 find_package(Threads REQUIRED)
 
 # core/common: sha256/healpix (纯算法)
@@ -296,6 +303,20 @@ target_include_directories(astrocs_common PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/healpix)
+
+# ── ORCH-001 批次 1: 编排层进构建图（结构性孤岛收口）─────────────────────
+# 事实（改前）: 根 CMake 对 orchestrator 命中 0，全仓只有 run/** 下的历史副本提到
+# 它 ⇒ lib/infrastructure/pipeline/orchestrator/cpp/** 从未进任何构建图，
+# SAT-001（claim SC-008 饱和电平解析）与 MASK-002（claim SC-007 逐星掩膜输入）
+# 在 orchestrator.cpp 的改动从未被编译过。
+# 归属: ASTROCS_DESIGN §7.1 逐字「scheduler/ 注册、资源预算、执行、取消、checkpoint」
+# 与本目录职责面逐条对应 ⇒ 职责家 = scheduler/**；物理位 = ARCH-001 迁移清单 #15
+# （登记在 pipeline/），位置与职责冲突登记 ORCH-HOME-01 交前台裁决。
+# target: astrocs_infra_orchestrator（MODULE_MAP conventions: astrocs_infra_<id>）;
+# 依赖闭包见 lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt。
+# 唯一静态依赖 = astrocs_common（sha256 + healpix_core），故置于其后。
+# 注: 共址测试子目录在文末 ASTROCS_BUILD_TESTS 段（enable_testing() 之后）注册。
+add_subdirectory(lib/infrastructure/pipeline/orchestrator/cpp)
 
 # vendored cfitsio (第三方, SYSTEM 隔离; 不参与模块图)
 add_library(astrocs_cfitsio STATIC ${ASTROCS_CFITSIO_SOURCES})
@@ -617,21 +638,32 @@ add_library(astrocs_phase3_session STATIC
   # W4-A9 批次 1: p3_wcs.cpp 已迁 lib/algorithms/projection/ (ASTROCS_DESIGN §7.1
   # 「projection」行; 由 add_subdirectory(lib/algorithms/projection) 的
   # astrocs_p3_projection_wcs 声明, 经本库 target_link_libraries 进闭包)。
-  lib/phase3_session/hips_properties.cpp
-  lib/phase3_session/p3_output.cpp
-  lib/phase3_session/p3_resample.cpp)
+  # W4-A9 批次 2: p3_resample.cpp 文件已迁 lib/algorithms/resample/ (同 §7.1
+  # 「resample」行); 编译单元成员关系暂留本库 —— 该源依赖 hips_properties_parse
+  # (本库 hips_properties.cpp) 与 aio_hips_* (astrocs_hips), 单独成库会与本库成
+  # 链接环; 批次 4 hips_properties* 迁 lib/algorithms/coverage/ 后随 resample 模块收口。
+  # W4-A9 批次 3: p3_output.cpp 已迁 lib/algorithms/fits_output/ (同 §7.1「fits_output」
+  # 行; astrocs_p3_fits_output 声明, 经下方链接闭包进产品图)。
+  lib/algorithms/resample/p3_resample.cpp
+  lib/phase3_session/hips_properties.cpp)
 target_include_directories(astrocs_phase3_session PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase3_session
   # W4-A9 批次 1: p3_wcs.h 迁 projection; 会话层 p3_session.cpp / p3_output.h 仍以
   # 扁平 "p3_wcs.h" 引用 ⇒ 登记新址 include 面 (会话层退场时随批次 3 收敛)。
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/projection
+  # W4-A9 批次 2: p3_resample.h 迁 resample; 会话层与既有测试仍以扁平
+  # "p3_resample.h" 引用 ⇒ 登记新址 include 面 (随批次 4 收口)。
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/resample
+  # W4-A9 批次 3: p3_output.h 迁 fits_output; 会话层与既有测试仍以扁平
+  # "p3_output.h" 引用 ⇒ 登记新址 include 面 (会话层退场时收敛)。
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/fits_output
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/healpix
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
   ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(astrocs_phase3_session PUBLIC astrocs_contracts astrocs_aio astrocs_common
-  astrocs_p3_projection_wcs)
+  astrocs_p3_projection_wcs astrocs_p3_fits_output)
 
 # lib/infrastructure/cli: 子命令模块注册 (INT-001 W4-A9 接线步 1/3)。
 # CLI-001 交付的 header-only 命令编排层 (command_tree/session_commands/subcommand +
@@ -748,8 +780,8 @@ target_link_libraries(astrocs_cli_runtime PUBLIC
 # W4-A9 批次 1: projection 算法模块注册 (p3_wcs TAN 投影/WCS 内核,
 # 原 lib/phase3_session/p3_wcs.cpp; ASTROCS_DESIGN §7.1「projection」)。
 # 声明见 lib/algorithms/projection/CMakeLists.txt (if(NOT TARGET) 守卫)。
-# 必须早于上方的 astrocs_phase3_session / astrocs / astrocs_module_adapters,
-# 它们经 target_link_libraries 引用 astrocs_p3_projection_wcs。
+# 由 astrocs_phase3_session / astrocs / astrocs_module_adapters 经
+# target_link_libraries 引用 astrocs_p3_projection_wcs (同名 target 前向引用)。
 add_subdirectory(lib/algorithms/projection)
 
 # ── V6 (AR-033 / C-004.4): V6 生产库统一注册 ─────────────────────────────
@@ -757,7 +789,15 @@ add_subdirectory(lib/algorithms/projection)
 # Phase2 三模式集成）。各子目录自带 if(NOT TARGET ...) 守卫，既支持独立
 # cmake -S <dir> 自包含构建，也可被根构建复用；此处为唯一注册点。
 add_subdirectory(lib/infrastructure/aio/v6)
+# W4-A9 批次 2: resample 模块 (含迁入的 p3_resample.{h,cpp}; 声明见
+# lib/algorithms/resample/CMakeLists.txt 的 astrocs_p3_rsmp)。
+# 注意: 同一源目录只允许 add_subdirectory 一次 (重复即 CMake 二进制目录冲突)。
 add_subdirectory(lib/algorithms/resample)
+# W4-A9 批次 3: fits_output 模块注册 (承载迁入的 p3_output.{h,cpp}; 声明见
+# lib/algorithms/fits_output/CMakeLists.txt 的 astrocs_p3_fits_output; 由
+# astrocs_phase3_session 的 target_link_libraries 引用 —— 同名 target 属前向
+# 引用, 由 CMake 生成期解析, 注册点与本文件内位置先后无关)。
+add_subdirectory(lib/algorithms/fits_output)
 add_subdirectory(lib/algorithms/integration/v6_phase1)
 add_subdirectory(lib/algorithms/integration/v6)
 
@@ -768,6 +808,9 @@ if(ASTROCS_BUILD_TESTS)
   # 以 $<TARGET_FILE:p3_wcs_test> 引用该目标 (STD-F1 导出边界第三方交叉)。
   # 目标名与 ctest 名相对迁移前不变, 外部引用零改动。
   add_subdirectory(lib/algorithms/projection/tests/p3wcs)
+  # ORCH-001 批次 1: 编排层共址测试注册（改前 ctest -N | grep -ci orchestrator = 0）。
+  # 必须在 enable_testing() 之后: 目标库本体已在 add_subdirectory(ORCH 模块) 声明。
+  add_subdirectory(lib/infrastructure/pipeline/orchestrator/cpp/tests)
   add_subdirectory(tests/unit)
   # V3 B3-A4 (RESCUE-P1-13/P1-16): Phase2 主科学门进全量 ctest。
   # lib/algorithms/coverage/tests/* 的六个 gtest 目标 (synthetic_gate / ivar_wiring /

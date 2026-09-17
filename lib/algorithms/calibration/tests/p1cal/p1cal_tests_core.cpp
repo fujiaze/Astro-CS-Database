@@ -70,6 +70,72 @@ int test_units() {
         }
     }
 
+    // --- BIAS-001: bias / K 参与门（契约 SCI-CAL-001 §5/§7 订正后） ---
+    //     全部期望值为手算字面量, 不复用实现; 判据见 docs/science/CALIBRATION.md §11。
+    {
+        const std::size_t W = 4, H = 4, NPIX = W * H;
+        std::vector<float> light(NPIX, 1000.0f), dark(NPIX, 200.25f),
+                           flat(NPIX, 2.0f), bias(NPIX, 100.5f), out(NPIX, -777.0f);
+        float ak = -1.0f;
+        // T1 标准式含 bias, K=1: (1000 − 100.5 − 200.25)/2 = 349.625
+        P1CAL_CHECK_EQ(cs, ac_calibrate_frame(light.data(), static_cast<int>(W),
+                                              static_cast<int>(H), dark.data(),
+                                              flat.data(), bias.data(), out.data(),
+                                              0, 1.0f, &ak), AC_OK);
+        for (std::size_t i = 0; i < NPIX; ++i)
+            P1CAL_CHECK(cs, out[i] == 349.625f, "bias_influence_standard");
+        P1CAL_CHECK(cs, ak == 1.0f, "bias_influence_standard_k");
+        // T3 提供 bias vs 不提供 bias: 必须逐位不同（标定输入不得被静默忽略）
+        {
+            std::vector<float> out_nb(NPIX, -777.0f);
+            float ak_nb = -1.0f;
+            P1CAL_CHECK_EQ(cs, ac_calibrate_frame(light.data(), static_cast<int>(W),
+                                                  static_cast<int>(H), dark.data(),
+                                                  flat.data(), nullptr, out_nb.data(),
+                                                  0, 1.0f, &ak_nb), AC_OK);
+            bool differs = false;
+            for (std::size_t i = 0; i < NPIX; ++i) {
+                if (out[i] != out_nb[i]) differs = true;
+                P1CAL_CHECK(cs, out_nb[i] == 399.875f, "bias_absent_standard");
+            }
+            P1CAL_CHECK(cs, differs, "bias_participation_gate");
+        }
+        // T4 只给 bias（dark/flat=NULL）: 1000 − 100.5 = 899.5（旧实现返回 1000）
+        {
+            std::vector<float> out_b(NPIX, -777.0f);
+            float ak_b = -1.0f;
+            P1CAL_CHECK_EQ(cs, ac_calibrate_frame(light.data(), static_cast<int>(W),
+                                                  static_cast<int>(H), nullptr,
+                                                  nullptr, bias.data(), out_b.data(),
+                                                  0, 1.0f, &ak_b), AC_OK);
+            for (std::size_t i = 0; i < NPIX; ++i)
+                P1CAL_CHECK(cs, out_b[i] == 899.5f, "bias_only_influence");
+        }
+        // T5 K 参与 (K=2, 标准式): (1000 − 100.5 − 2·200.25)/2 = 249.5
+        {
+            std::vector<float> out_k(NPIX, -777.0f);
+            float ak_k = -1.0f;
+            P1CAL_CHECK_EQ(cs, ac_calibrate_frame(light.data(), static_cast<int>(W),
+                                                  static_cast<int>(H), dark.data(),
+                                                  flat.data(), bias.data(), out_k.data(),
+                                                  0, 2.0f, &ak_k), AC_OK);
+            for (std::size_t i = 0; i < NPIX; ++i)
+                P1CAL_CHECK(cs, out_k[i] == 249.5f, "std_k_applied");
+            P1CAL_CHECK(cs, ak_k == 2.0f, "std_k_actual_k");
+        }
+        // T6 兼容式 (dark 含 bias, K=2): (1000 − 100.5 − 2·99.75)/2 = 350
+        {
+            std::vector<float> out_c(NPIX, -777.0f);
+            float ak_c = -1.0f;
+            P1CAL_CHECK_EQ(cs, ac_calibrate_frame(light.data(), static_cast<int>(W),
+                                                  static_cast<int>(H), dark.data(),
+                                                  flat.data(), bias.data(), out_c.data(),
+                                                  1, 2.0f, &ak_c), AC_OK);
+            for (std::size_t i = 0; i < NPIX; ++i)
+                P1CAL_CHECK(cs, out_c[i] == 350.0f, "compat_explicit_separation");
+        }
+    }
+
     // --- FIX-CAL-B: 解析梯度, oracle 独立重算 (std 与 dark_opt 双分支) ---
     {
         const std::size_t W = 24, H = 16, NPIX = W * H;
@@ -469,7 +535,8 @@ int test_negative() {
             P1CAL_CHECK(cs, cout_dis[i] == data[i], "identity_when_detection_disabled");
     }
 
-    // --- actual_k 回写: dark_opt=1 但 bias/dark 缺一 → 回退标准分支 k=1 ---
+    // --- actual_k 回写 (BIAS-001 订正): dark_opt=1 但 bias/dark 缺一 → 回退**标准式**,
+    //     且 K 仍为调用方给的 k_init (旧实现强制 1.0, 属缺陷 DISP-CAL-012) ---
     {
         const std::size_t NPIX = 8 * 8;
         std::vector<float> light(NPIX, 100.0f), dark(NPIX, 10.0f), flat(NPIX, 1.0f);
@@ -477,10 +544,13 @@ int test_negative() {
         float ak = -1.0f;
         P1CAL_CHECK_EQ(cs, ac_calibrate_frame(light.data(), 8, 8, dark.data(), flat.data(),
                                               nullptr, out.data(), 1, 0.5f, &ak), AC_OK);
-        P1CAL_CHECK(cs, ak == 1.0f, "fallback_standard_k");
+        P1CAL_CHECK(cs, ak == 0.5f, "fallback_standard_k");
+        // 标准式 + K=0.5 + 无 bias: (100 − 0.5·10)/1 = 95
+        for (std::size_t i = 0; i < NPIX; ++i)
+            P1CAL_CHECK(cs, out[i] == 95.0f, "fallback_standard_k_value");
         P1CAL_CHECK_EQ(cs, ac_calibrate_frame(light.data(), 8, 8, nullptr, flat.data(),
                                               nullptr, out.data(), 1, 0.5f, &ak), AC_OK);
-        P1CAL_CHECK(cs, ak == 1.0f, "fallback_standard_k");
+        P1CAL_CHECK(cs, ak == 0.5f, "fallback_standard_k");
     }
 
     return cs.failures == 0 ? 0 : 1;

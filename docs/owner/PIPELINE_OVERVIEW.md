@@ -103,7 +103,7 @@ ctest `p2001_real_nodes`、`p2002_unc_rej_prov` 本提交实测 rc=0
   `properties → wcs → resample2 → writer → verify`。
 - `lib/phase3_session/`：p3_session 组装 properties/WCS/采样/原子写（p3_session.cpp 注释
   明示 P3-001..P3-004 组装）；会话路径 WCS 仍 TAN-only（`p3_wcs.cpp`:36）。
-- `lib/phase3_session/p3_resample.{h,cpp}`：nearest / bilinear（G4 冻结权重，
+- `lib/algorithms/resample/p3_resample.{h,cpp}`：nearest / bilinear（G4 冻结权重，
   `p3_uncertainty_propagate`）——**无 healpix_interp4**（`NOT_IMPLEMENTED`，
   见 SCIENCE_OVERVIEW §4）。
 - `lib/algorithms/projection/p3_projection.{h,cpp}`：**冻结四投影 TAN/SIN/CAR/AIT registry v1**（BASE 快照；现行 = `ASTROCS_DESIGN.md` §5.3 八投影、registry v3）

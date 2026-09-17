@@ -61,7 +61,7 @@ V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 
 - 背景模型 (B(x,y)) 与随机噪声 (C) 分开；Phase1 可估计背景但不得把背景校正和 UPM 混成同一层；
 - validity 包含 NaN/Inf、坏点、饱和、cosmetic、边界、插值、星轨/严重形变；
-- 检测阈值基于局部噪声，输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
+- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/STAR_DETECTION.md:18-19`）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`，整改归 P1-STAR-IMPL/INT）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
 - 检测、PSF、WCS、测光、SNR 的 source row 都绑定同一 frame_id/source_id。
 
 ## 6. PSF 模型

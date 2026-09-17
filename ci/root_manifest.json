@@ -110,7 +110,7 @@
       "path": "VERSION",
       "class": "F2",
       "owner_task": "GOV-001",
-      "note": "保留（登记）：Alpha 前版本信息，ENGINEERING_SPEC §7 明认 VERSION 仅作内部助记符；GOV-001 2026-09-16 结论=不得删除（cli/CMakeLists.txt:27 file(READ ../VERSION) 为构建输入）。"
+      "note": "保留（登记）：Alpha 前版本信息，ENGINEERING_SPEC §7 明认 VERSION 仅作内部助记符；GOV-001 2026-09-16 结论=不得删除。**[W4-A3 改锚] 保留依据从已退役的 cli/CMakeLists.txt:27 file(READ ../VERSION) 改锚到根 CMakeLists.txt 的两条真实判据：CMakeLists.txt:51 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION ASTROCS_BASE_VERSION) + CMakeLists.txt:62 configure_file(lib/infrastructure/cli/version_generated.h.in …)。原依据属 ENGINEERING_SPEC §8「锚存活」失效型实例：cli/version_generated.h.in 已从版本库消失（git ls-files 命中 0），而 ci/check_version.py 的 chain 判据只匹配文件内字符串、从不校验被引用目标是否存活 ⇒ 恒判 PASS。退役证据：run/PROJECT-GOVERNANCE-01/W4-A3/logs/CLI003_before_false_green.log。"
     },
     {
       "path": "FATDUCK_ACCESS.md",
@@ -128,7 +128,7 @@
       "path": "cli",
       "class": "F2",
       "owner_task": "ARCH-001",
-      "note": "§7 要求 CLI 归 lib/infrastructure/cli/（GAP-003）"
+      "note": "§7 要求 CLI 归 lib/infrastructure/cli/（GAP-003）。**[W4-A3 改锚] 当前存量 = 1 个文件 cli/CMakeLists.txt（git 跟踪），是 ROOT-008 迁移后遗留的旧 build 文件：不在构建图（根 CMakeLists.txt 无 add_subdirectory(cli)，0 命中），且其引用的 cli/version_generated.h.in 已不存在。判据侧已由 W4-A3 退役三条 CLI_CMAKE_REL 相关判据（ci/check_version.py）。剩余动作：物理删除 cli/ 归 W4-A9 INT-001；删除同批必须同时移除本条登记（否则变悬空登记，同 ENGINEERING_SPEC §8）。"
     }
   ],
   "notes": {

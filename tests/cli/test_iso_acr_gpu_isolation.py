@@ -1,14 +1,33 @@
 #!/usr/bin/env python3
-"""ISO-001 测试: 静态+运行证明 CLI/Phase/dispatcher/manifest 不引用 ACR/GPU/Mixed; 发行包扫描。
-验收: production route 0 触达(纯 CPU, 不触 ACR/GPU); 配置请求 ACR 明确拒绝(exit 3, 非静默 fallback);
-发行包不含 ACR/GPU/CUDA/Mixed 标识。仅 Linux amd64。"""
+"""ISO-001 测试: 静态+运行证明 CLI/Phase/manifest 不引用 ACR/GPU/Mixed; 发行包扫描。
+验收: production route 0 触达(纯 CPU, 不触 ACR/GPU); 配置请求 ACR 后端明确拒绝(exit 3, 非静默
+fallback); 发行包不含 ACR/GPU/CUDA 标识。仅 Linux amd64。
+
+CLI-002 重锚(ROOT-008 + CLI-001 命令树): CLI 源在 lib/infrastructure/cli/, 唯一产品二进制
+build/astrocs; 旧 'phase3 run --config' 已删除 → 运行面改用 export 会话命令(§6.2)。判据语义
+不变(拒绝面/清单面/发行面), 只换载体。源扫描用例不依赖二进制, 不再被 EXE 门槛整体跳过。
+"""
 import json, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CLI = os.path.join(REPO, "cli")
-BUILD = os.path.join(REPO, "build", "cli")
-EXE = os.path.join(BUILD, "astrocs")
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+# ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）
+CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
+# DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
+EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
+BUILD = os.path.dirname(os.path.abspath(EXE))
+def _pick(*cands):
+    for p in cands:
+        if os.path.isdir(p):
+            return p
+    return cands[0]
+
+
+# ROOT-008: AIO 迁 lib/infrastructure/aio/（旧 lib/astro_image_io 已退役）
+AIO = _pick(os.path.join(REPO, "lib", "infrastructure", "aio"),
+            os.path.join(REPO, "lib", "astro_image_io"))
+SHARED = _pick(os.path.join(REPO, "lib", "algorithms", "shared"),
+               os.path.join(REPO, "lib", "common"))
+HEALPIX_SRC = os.path.join(SHARED, "healpix", "healpix_core.cpp")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
 from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
@@ -38,17 +57,18 @@ except Exception:
         return []
 
 
-@unittest.skipUnless(shutil.which("cmake") and os.path.isfile(EXE), "需要构建好的 CLI")
 class TestIsoAcrGpuIsolation(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls.exe_ok = os.path.isfile(EXE)
         cls.tmp = tempfile.mkdtemp(prefix="iso001_")
         cls.hips = None
-        # phase3 合成 fixture(为 manifest 运行测试)
+        # phase2 合成 fixture(为 export/manifest 运行测试提供带 variance 的 HiPS 产品)
         incs = [f"-I{os.path.join(REPO, 'include')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}"]
+                f"-I{SHARED}",
+                f"-I{os.path.dirname(HEALPIX_SRC)}"]
         srcs = [os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
@@ -56,7 +76,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
-                os.path.join(REPO, "lib", "common", "healpix", "healpix_core.cpp")]
+                HEALPIX_SRC]
         fixture = os.path.join(cls.tmp, "fixture")
         if shutil.which("g++"):
             r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
@@ -100,87 +120,104 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
         for rel in prod_cpp:
             p = os.path.join(REPO, rel)
             if os.path.isfile(p):
-                content = open(p, encoding="utf-8", errors="replace").read()
+                with open(p, encoding="utf-8", errors="replace") as fh:
+                    content = fh.read()
                 self.assertNotIn("register_phase2_acr_kernels", content,
                                  f"生产源码 {rel} 调用 ACR 注册")
 
     def test_03_config_requests_acr_gpu_rejected(self):
-        """run config 顶层出现 backend/acr_route/gpu_route/mixed → 明确拒绝(exit 3, 非静默)。"""
+        """config 顶层出现 backend/acr_route/gpu_route/mixed_backend → 明确拒绝(exit 3, 非静默)。"""
+        if not self.exe_ok:
+            self.skipTest("CLI 二进制缺失(先构建 build/astrocs)")
         out = os.path.join(self.tmp, "o3")
         os.makedirs(out, exist_ok=True)
         base = {"schema_version": "1",
-                "inputs": {"lights": [], "darks": [], "flats": [], "bias": []},
+                "source": {"hips_dir": self.hips or "/nonexistent"},
                 "output_dir": out,
-                "phase3": {"source": {"hips_dir": self.hips or "/nonexistent"}}}
+                "center": {"ra_deg": 210.0, "dec_deg": 34.0},
+                "width_px": 40, "height_px": 30, "scale_deg_per_px": 0.1}
         for bad in ("backend", "acr_route", "gpu_route", "mixed_backend"):
             cfg = dict(base)
             cfg[bad] = "acr" if bad in ("backend", "mixed_backend") else "cuda"
             cp = os.path.join(self.tmp, f"bad_{bad}.json")
-            json.dump(cfg, open(cp, "w"))
-            # CLI-002: run --phases 3 已移除 → phase3 run 单相入口(等价拒绝面)
-            r = subprocess.run([EXE, "phase3", "run", "--config", cp],
+            with open(cp, "w", encoding="utf-8") as fh:
+                json.dump(cfg, fh)
+            r = subprocess.run([EXE, "export", "--json", cp, "-y"],
                                capture_output=True, text=True, timeout=120, cwd=run_cwd())
             self.assertNotEqual(r.returncode, 0, f"{bad} 应被拒绝")
             self.assertIn("unknown key", r.stderr, f"{bad} 拒绝信息应为明确错误而非静默 fallback")
             self.assertEqual(r.returncode, 3, f"{bad} 应为 exit 3(INPUT)")
 
     def test_04_release_package_scan_no_acr_gpu(self):
-        """发行包脚本/产物目录不含 ACR/GPU/CUDA/Mixed 标识(除非明确说明)。"""
-        # 扫描 make_capsule/gen_backends_manifest 与 release 打包脚本中的 ACR/GPU 逻辑
-        release_tools = ["tools/make_capsule.py", "tools/gen_backends_manifest.py",
-                         "tools/assemble_v17_review_pkg.py"]
-        for rel in release_tools:
+        """发行包工具不得引入 ACR/GPU/CUDA 后端; ACR 目录必须被显式排除。"""
+        pure = ["tools/make_capsule.py", "tools/gen_backends_manifest.py"]
+        for rel in pure:
             p = os.path.join(REPO, rel)
             if not os.path.isfile(p):
                 continue
-            content = open(p, encoding="utf-8", errors="replace").read()
-            # 只关心"加载/引用 ACR/GPU/CUDA 插件/后端"的实义
-            if re.search(r'\b(acr|cuda|gpu)\b', content, re.IGNORECASE):
-                pass  # 允许出现在排除/注释中; 具体逻辑在 test_05 精查
+            with open(p, encoding="utf-8", errors="replace") as fh:
+                content = fh.read()
+            hits = [l for l in content.splitlines()
+                    if re.search(r'\b(acr|cuda|gpu)\b', l, re.IGNORECASE)]
+            self.assertEqual(hits, [], f"{rel} 含 ACR/GPU/CUDA 引用: {hits[:3]}")
+        pkg = os.path.join(REPO, "tools", "assemble_v17_review_pkg.py")
+        if os.path.isfile(pkg):
+            with open(pkg, encoding="utf-8", errors="replace") as fh:
+                content = fh.read()
+            self.assertIn('"lib/acr"', content,
+                          "发行包脚本必须显式排除 lib/acr（ACR dormant, 不入发行包）")
+            self.assertEqual([l for l in content.splitlines()
+                              if re.search(r'\b(cuda|gpu)\b', l, re.IGNORECASE)], [],
+                             "发行包脚本出现 CUDA/GPU 引用（ACR/GPU 路线 dormant）")
 
     def test_05_backends_manifest_only_pure_cpu(self):
-        """gen_backends_manifest 生成的 backends 列表仅纯 CPU 变体(无 acr/gpu/cuda)。"""
-        if not os.path.isfile(os.path.join(BUILD, "astrocs")):
-            self.skipTest("无 built CLI")
-        # 用 CLI 自身 inspect 后端清单, 校验 id 均为 CPU 变体
+        """doctor --json 的后端面仅纯 CPU 变体(无 acr/gpu/cuda)。"""
+        if not self.exe_ok:
+            self.skipTest("CLI 二进制缺失(先构建 build/astrocs)")
         r = subprocess.run([EXE, "doctor", "--json"], capture_output=True, text=True,
-                           timeout=60, cwd=run_cwd())
-        self.assertEqual(r.returncode, 0, r.stderr)
+                           timeout=120, cwd=run_cwd())
+        self.assertEqual(r.returncode, 0, r.stderr[-300:])
         doc = json.loads(r.stdout)
-        backends = doc.get("backends", [])
-        for b in backends:
-            bid = (b.get("backend_id") or b.get("id") or "").lower()
+        self.assertEqual(doc.get("verdict"), "PASS", doc)
+        checks = doc.get("checks", [])
+        pre = [c for c in checks if str(c.get("name", "")).startswith("backend_preflight:")]
+        for c in pre:
+            bid = str(c["name"]).split(":", 1)[1].lower()
             self.assertNotIn(bid, {"acr", "gpu", "cuda"}, f"backend_id '{bid}' 非纯 CPU")
             self.assertNotIn("cuda", bid)
+            self.assertIn(c.get("status"), ("pass", "skipped"), c)
+        if not pre:
+            # 无随包 DSO: doctor 必须显式声明内建 CPU 基线（不得静默无后端面）
+            bm = [c for c in checks if c.get("name") == "backends_manifest"]
+            self.assertTrue(bm, f"doctor 缺后端面检查: {checks}")
+            self.assertEqual(bm[0]["status"], "pass", bm[0])
+            self.assertNotIn("acr", str(bm[0].get("detail", "")).lower())
 
-    def test_06_phase3_manifest_no_acr_gpu(self):
-        """phase3 生产运行 manifest 不含 acr/gpu/route/dispatcher/mixed 选路字段。"""
-        if not self.hips:
-            self.skipTest("无合成 fixture")
+    def test_06_export_manifest_no_acr_gpu(self):
+        """export 生产运行 manifest 不含 acr/gpu/route/dispatcher/mixed 选路字段。"""
+        if not self.exe_ok:
+            self.skipTest("CLI 二进制缺失(先构建 build/astrocs)")
+        self.assertTrue(self.hips, "无合成 fixture（setUpClass 未产出 FIELD.hips）")
         out = os.path.join(self.tmp, "o6")
-        os.makedirs(out)
+        os.makedirs(out, exist_ok=True)
         cfg = os.path.join(self.tmp, "r6.json")
-        json.dump({"schema_version": "1",
-                   "inputs": {"lights": [], "darks": [], "flats": [], "bias": []},
-                   "output_dir": out,
-                   "phase3": {"source": {"hips_dir": self.hips},
-                              "center": {"ra_deg": 210.0, "dec_deg": 34.0},
-                              "scale_deg_per_px": 0.1, "width_px": 40, "height_px": 30,
-                              "projection": "TAN", "sampler": "nearest",
-                              "coverage_output": "mask", "max_tiles": 64}},
-                  open(cfg, "w"))
-        r = subprocess.run([EXE, "phase3", "run", "--config", cfg],
+        with open(cfg, "w", encoding="utf-8") as fh:
+            json.dump({"schema_version": "1",
+                       "source": {"hips_dir": self.hips},
+                       "output_dir": out,
+                       "center": {"ra_deg": 210.0, "dec_deg": 34.0},
+                       "scale_deg_per_px": 0.1, "width_px": 40, "height_px": 30,
+                       "projection": "TAN", "sampler": "nearest",
+                       "coverage_output": "mask"}, fh)
+        r = subprocess.run([EXE, "export", "--json", cfg, "-y"],
                            capture_output=True, text=True, timeout=300, cwd=run_cwd())
-        if r.returncode != 0:
-            self.skipTest(f"phase3 run 未成功: {r.stderr[-200:]}")
-        mf = os.path.join(out, "run_manifest.json")
-        if not os.path.isfile(mf):
-            # manifest 命名 astrocs_run_<hash>.json
-            cands = [os.path.join(out, f) for f in os.listdir(out)
-                     if f.startswith("astrocs_run_") and f.endswith(".json")]
-            mf = cands[0] if cands else ""
-        self.assertTrue(mf and os.path.isfile(mf), f"缺 run_manifest (out={os.listdir(out)})")
-        m = json.load(open(mf))
+        self.assertEqual(r.returncode, 0, r.stderr[-300:])
+        cands = [os.path.join(out, f) for f in os.listdir(out)
+                 if f.startswith("astrocs_run_") and f.endswith(".json")]
+        self.assertTrue(cands, f"缺 run manifest (out={os.listdir(out)})")
+        with open(cands[0], encoding="utf-8") as fh:
+            m = json.load(fh)
+        self.assertEqual(m.get("status"), "complete", m.get("status"))
         bad = [k for k in m if self._has_acr_term(k) or
                any(t in k.lower() for t in ("acr", "gpu", "cuda", "mixed", "dispatcher", "route"))]
         self.assertEqual(bad, [], f"manifest 出现 ACR/GPU/Mixed 选路字段: {bad}")

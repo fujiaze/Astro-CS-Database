@@ -168,7 +168,13 @@ def iter_files():
                            if d not in SKIP_DIRS and d != "__pycache__"]
             for fn in filenames:
                 if fn.endswith((".py", ".md", ".json", ".sh", ".ps1")):
-                    yield os.path.join(dirpath, fn)
+                    full = os.path.join(dirpath, fn)
+                    # W4-A3：跳过符号链接 —— 链接不是"第二权威"，同一份文件被扫两次
+                    # 会把目标文件里的历史版本字面量重复计数（实测：facade 链接到
+                    # gaia zlib 测试后，1.3.1/1.3.2 被当成未知产品版本字面量）。
+                    if os.path.islink(full):
+                        continue
+                    yield full
     for fn in SCAN_FILES:
         p = os.path.join(REPO, fn)
         if os.path.isfile(p):
@@ -225,16 +231,14 @@ def check_file(path, base_num, alpha_n, errors):
             # R-08 / W4-A3: 未知版本字面量扫描前先挖掉标准条款号与合同生命周期
             # 边界值。alpha/prerelease 判定仍跑在原始行上 —— 口径只收窄未知字面量
             # 误报面, 不放宽漂移判定。
-            scan_line = (mask_lifecycle_boundaries(mask_standard_clause_numbers(line))
-                         if not lifecycle_table else
-                         mask_standard_clause_numbers(line))
             if lifecycle_table:
-                for m in BASE_RE.finditer(scan_line):
-                    if m.group(1) not in LIFECYCLE_BOUNDARY_VALUES:
-                        errors.append(f"{rel}:{i}: 未知版本字面量 {m.group(1)} != 唯一源基础号 {base_num}: {line.strip()[:90]}")
-                continue
+                allowed = LIFECYCLE_BOUNDARY_VALUES
+                scan_line = mask_standard_clause_numbers(line)
+            else:
+                allowed = {base_num}
+                scan_line = mask_lifecycle_boundaries(mask_standard_clause_numbers(line))
             for m in BASE_RE.finditer(scan_line):
-                if m.group(1) != base_num:
+                if m.group(1) not in allowed:
                     errors.append(f"{rel}:{i}: 未知版本字面量 {m.group(1)} != 唯一源基础号 {base_num}: {line.strip()[:90]}")
 
 def main():

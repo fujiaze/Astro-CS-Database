@@ -283,7 +283,11 @@ int test_units() {
         P1HIPS_CHECK(cs, kv.count("hips_version") && kv.at("hips_version") == "1.4", "u1_prop_version");
         P1HIPS_CHECK(cs, kv.count("hips_order") && kv.at("hips_order") == "0", "u1_prop_order");
         P1HIPS_CHECK(cs, kv.count("hips_tile_width") && kv.at("hips_tile_width") == "512", "u1_prop_tilewidth");
-        P1HIPS_CHECK(cs, kv.count("hips_frame") && kv.at("hips_frame") == "equatorial", "u1_prop_frame");
+        // M1a-B-005: 写出侧必须落 IVOA REC-HIPS-1.0 §4.4.1 标准值域 {icrs,...};
+        // "equatorial" 是旧版非标准值, 已废止 (读侧仅作旧产品兼容别名)。
+        P1HIPS_CHECK(cs, kv.count("hips_frame") && kv.at("hips_frame") == "icrs", "u1_prop_frame");
+        P1HIPS_CHECK(cs, !(kv.count("hips_frame") && kv.at("hips_frame") == "equatorial"),
+                     "u1_prop_frame_neg");
         P1HIPS_CHECK(cs, kv.count("dataproduct_subtype") && kv.at("dataproduct_subtype") == "surface brightness", "u1_prop_subtype");
         P1HIPS_CHECK(cs, kv.count("astrocs_signal_dtype") && kv.at("astrocs_signal_dtype") == "float64", "u1_prop_dtype");
         // moc_sky_fraction (1/12 cell) — 非平凡序列化点: 字面量必须
@@ -416,8 +420,48 @@ int test_units() {
             std::ifstream f(dir + "/snr/metadata.xml");
             std::string txt((std::istreambuf_iterator<char>(f)),
                             std::istreambuf_iterator<char>());
-            P1HIPS_CHECK(cs, txt.find("<VOTABLE") != std::string::npos &&
-                             txt.find("</VOTABLE>") != std::string::npos, "u4_votable");
+            // M2b-F-03: 子串检查对"非法命名空间/缺 xmlns"无判别力 (D.hips 未登记)。
+            // 改为解析根元素: 名必须 VOTABLE, 且 xmlns 必须是**合法 URI**
+            // (IVOA VOTable 1.3 命名空间, 不含 "http:// " 这类空格畸形), 且有闭合标签。
+            auto votable_root_ok = [](const std::string& s) -> bool {
+                // 跳过 <?xml ... ?> 声明与 <!DOCTYPE ...>, 定位第一个元素起始标签。
+                std::size_t lt = s.find('<');
+                while (lt != std::string::npos &&
+                       (s.compare(lt, 2, "<?") == 0 || s.compare(lt, 2, "<!") == 0)) {
+                    const std::size_t end = s.find('>', lt);
+                    if (end == std::string::npos) return false;
+                    lt = s.find('<', end + 1);
+                }
+                if (lt == std::string::npos) return false;
+                if (s.compare(lt + 1, 7, "VOTABLE") != 0) return false;
+                const std::size_t gt = s.find('>', lt);
+                if (gt == std::string::npos) return false;
+                const std::string head = s.substr(lt, gt - lt + 1);
+                if (head.find("xmlns=\"http://www.ivoa.net/xml/VOTable/v1.3\"") ==
+                    std::string::npos) {
+                    return false;
+                }
+                if (head.find("http:// ") != std::string::npos) return false;  // 畸形 URI
+                return s.find("</VOTABLE>") != std::string::npos;
+            };
+            P1HIPS_CHECK(cs, votable_root_ok(txt), "u4_votable");
+            // 正例两侧都要可假: (a) XML 前言 <?xml ... ?> 必须存在;
+            // (b) 根元素名必须是 VOTABLE (而非其它元素)。
+            P1HIPS_CHECK_MSG(cs, txt.find("<?xml") == 0, "u4_votable_prolog",
+                             "metadata.xml 缺 XML 前言: %.16s", txt.c_str());
+            {
+                std::string bad_root = txt;
+                const std::size_t p = bad_root.find("<VOTABLE");
+                if (p != std::string::npos) bad_root.replace(p, 8, "<VOTABLX");
+                P1HIPS_CHECK(cs, !votable_root_ok(bad_root), "u4_votable_neg_root");
+            }
+            // 负例: 同一判据必须拒绝"命名空间带空格"的畸形文档 (可判红)。
+            {
+                std::string bad = txt;
+                const std::size_t p = bad.find("xmlns=\"http://");
+                if (p != std::string::npos) bad.insert(p + 14, " ");
+                P1HIPS_CHECK(cs, !votable_root_ok(bad), "u4_votable_neg");
+            }
         }
         const auto kv = read_properties(dir + "/snr/properties");
         P1HIPS_CHECK(cs, kv.count("hips_cat_nrows") && kv.at("hips_cat_nrows") == "128", "u4_cat_nrows");

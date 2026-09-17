@@ -1,5 +1,7 @@
 ---
 id: MOD-astrocs-phase1-wcs-platesolve
+module_id: astrocs.p1.platesolve
+aliases: [astrocs.p1.wcs, astrocs.phase1.wcs]
 version: 1.0.0
 status: ACTIVE
 owner: astrocs-core

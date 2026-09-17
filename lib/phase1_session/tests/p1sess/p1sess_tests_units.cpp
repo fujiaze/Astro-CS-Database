@@ -291,9 +291,15 @@ int run_units() {
         P1SESS_CHECK_MSG(cs, oracle_read_fits_f32(artifact, &w, &h, &px),
                          "u2_oracle_readback", "artifact=%s", artifact.c_str());
         if (px.size() == 64) {
-            // 全帧常数一致 (dark_opt=0 标准模式: (light-dark)/max(flat,0.1))
+            // 全帧常数一致 (dark_opt=0 标准式, BIAS-001 订正):
+            //     want = (light − bias − K·dark)/max(flat,0.1), K=dark_scale_factor 缺省 1.0
+            // 期望重锚（旧值 vs 新值；两者均由本 oracle 独立复算，非实现输出）:
+            //     旧式(已废止) (light − dark)/max(flat,0.1)         = 42.1519
+            //     新式         (light − bias − dark)/max(flat,0.1)  = 39.816
+            //     差 = bias/max(flat,0.1) = 旧实现静默丢弃的本底项
             const double want = oracle_calibrate_const(
-                F.f_light1.value, true, F.f_dark.value, true, F.f_flat.value);
+                F.f_light1.value, true, F.f_bias.value, true, F.f_dark.value,
+                true, F.f_flat.value);
             for (int i = 0; i < 64; ++i)
                 P1SESS_CHECK_MSG(cs, rel_close_f(px[i], want, 1e-6), "u2_oracle_pixel",
                                  "px[%d]=%g want=%g", i, static_cast<double>(px[i]), want);

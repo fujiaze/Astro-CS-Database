@@ -46,6 +46,19 @@
 # snr_calib_zero_point_standard_error (零点标准误 1.253*sigma/sqrt(N)), 故生产源闭包
 # 增加 snr_science.cpp (唯一权威实现, 零本地副本)。
 set(P1NOISE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+# ---------------------------------------------------------------------------
+# python3 解析必须在**任何** add_test 使用 ${P1NOISE_PYTHON3} 之前：旧位置在同文件
+# :157（aba_layout 门之后）⇒ 全新 build 目录首次 configure 时该变量为空，命令退化成
+# 裸 .py 路径（无执行位）⇒ p1noise_abi_layout = BAD_COMMAND 假红；再 configure 一次
+# （缓存已写入）后 100% 通过 —— 绿色只取决于目录是否被 configure 过。
+# 判据由 tools/quality/check_cmake_usebeforedef.py 常设扫描（C1 use_before_define）。
+# 缺 python3 一律 fail-closed（禁止静默退化）。
+find_program(P1NOISE_PYTHON3 NAMES python3 python)
+if(NOT P1NOISE_PYTHON3)
+  message(FATAL_ERROR
+    "p1noise 门需要 python3（p1noise_abi_layout / p1noise_numpy_oracle / "
+    "p1noise_saturation_wiring）；请安装 python3 或显式传 -DP1NOISE_PYTHON3=<path>")
+endif()
 set(P1NOISE_PROD_SRC
   ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/cpp/src/noise_model.cpp
   ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/cpp/src/snr_science.cpp)
@@ -67,13 +80,20 @@ if(UNIX)
   target_link_libraries(p1noise_tests PRIVATE m)
 endif()
 # 单组单跑: ctest -R p1noise_units / p1noise_properties / p1noise_oracle /
-#            p1noise_negative / p1noise_scale_law / p1noise_fill
+#            p1noise_negative / p1noise_scale_law / p1noise_fill / p1noise_mask
 add_test(NAME p1noise_units COMMAND p1noise_tests units)
 add_test(NAME p1noise_properties COMMAND p1noise_tests properties)
 add_test(NAME p1noise_oracle COMMAND p1noise_tests oracle)
 add_test(NAME p1noise_negative COMMAND p1noise_tests negative)
 add_test(NAME p1noise_scale_law COMMAND p1noise_tests scale_law)
 add_test(NAME p1noise_fill COMMAND p1noise_tests fill)
+# MASK-002 (claim SC-009): 源污染 oracle (含星帧) + 掩膜半径单调不变量。
+# 旧 oracle/negative 面只有无星纯高斯帧 ⇒ 原理上发现不了半径错误
+# (实测 r=0/8/60 px 输出逐位相同), 本组为结构性补强 (新增门, 不放宽任何旧断言)。
+add_test(NAME p1noise_mask COMMAND p1noise_tests mask)
+# ABI 版本化证据门 (claim SC-009): 结构布局探针 + 锁定文件比对 + 突变自检
+add_test(NAME p1noise_abi_layout
+         COMMAND ${P1NOISE_PYTHON3} ${P1NOISE_DIR}/p1noise_abi_layout_check.py)
 
 # performance 基线 (独立可执行, 时长敏感与 core 组隔离)
 add_executable(p1noise_perf_test
@@ -123,6 +143,23 @@ add_test(NAME p1snr_science_production COMMAND p1snr_science_test production)
 add_test(NAME p1snr_science_determinism COMMAND p1snr_science_test determinism)
 
 # ============================================================================
+# SAT-001（claim SC-008）：饱和域门 —— 「饱和过滤在默认配置下必须生效，
+#   若未提供电平则必须显式声明」。被测面 = 生产源 noise_model.cpp（零改动）
+#   + 策略头 astrocs/noise/saturation_policy.h；负例 = 未提供电平（level=0）
+#   时必须检出污染控制点与帧权重崩塌（gate 不得恒真）。
+#   selfcheck 组证明判据双向可假（无源帧不报污染 / 有源帧必报污染）。
+# ============================================================================
+add_executable(p1noise_saturation_test ${P1NOISE_DIR}/p1noise_saturation_test.cpp)
+target_link_libraries(p1noise_saturation_test PRIVATE p1noise_under_test)
+target_include_directories(p1noise_saturation_test PRIVATE
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/include)
+if(UNIX)
+  target_link_libraries(p1noise_saturation_test PRIVATE m)
+endif()
+add_test(NAME p1noise_saturation COMMAND p1noise_saturation_test contract)
+add_test(NAME p1noise_saturation_selfcheck COMMAND p1noise_saturation_test selfcheck)
+
+# ============================================================================
 # P1-002 / M3-F-001: docs/science/NOISE_MODEL.md §11:117 + §15:140 承诺的
 #   "**Python 参考**：NumPy 对同 data 的 median/MAD/5σ裁剪/平面最小二乘
 #    复算 variance/ivar（rtol 1e-9）"
@@ -130,9 +167,15 @@ add_test(NAME p1snr_science_determinism COMMAND p1snr_science_test determinism)
 #   Python/NumPy 侧从同一 data 第一性原理复算，生产源仅作被测对象（零改动）；
 #   numpy 或 g++ 缺失时脚本自身 SKIP 并返回 0。
 # ============================================================================
-find_program(P1NOISE_PYTHON3 NAMES python3 python)
+# find_program(P1NOISE_PYTHON3 ...) 已上移到文件顶部（首次 configure 即需有效，
+# 见该处注释与 tools/quality/check_cmake_usebeforedef.py）。
 if(P1NOISE_PYTHON3)
   add_test(NAME p1noise_numpy_oracle
            COMMAND ${P1NOISE_PYTHON3} ${P1NOISE_DIR}/noise_model_numpy_oracle.py)
   set_tests_properties(p1noise_numpy_oracle PROPERTIES LABELS "p1noise")
+
+  # SAT-001 生产接线门（源级 + 默认值登记 + 文档一致性；负例注入见 SAT-001 自证摘要 §4）
+  add_test(NAME p1noise_saturation_wiring
+           COMMAND ${P1NOISE_PYTHON3} ${P1NOISE_DIR}/check_saturation_wiring.py)
+  set_tests_properties(p1noise_saturation_wiring PROPERTIES LABELS "p1noise")
 endif()

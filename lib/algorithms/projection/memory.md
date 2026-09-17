@@ -1,5 +1,12 @@
 # memory.md — astrocs.p3.projection（P3-PROJ-DOC 冻结）
 
+> **W4-A9 批次 1（2026-09-17）**：本文件下文所有 `lib/phase3_session/p3_wcs.*`
+> 路径已随生产源迁至 **`lib/algorithms/projection/p3_wcs.{h,cpp}`**（ASTROCS_DESIGN
+> §7.1「projection」行），共址测试在 `lib/algorithms/projection/tests/p3wcs/**`
+> （ctest 名 `p3_wcs`）；构建为 `astrocs_p3_projection_wcs` STATIC，经
+> `astrocs_phase3_session` → `astrocs_module_adapters` 闭包进产品图。
+> 下文保留冻结时（2026-09-11）的历史表述，行号锚按新址复测。
+
 - 任务: P3-PROJ-DOC（MODULE_MIGRATION_MATRIX P3-PROJ 行，owner
   SA-P3-P25，2026-09-11）——合同冻结层，不改生产源码，不 commit。
   本目录 `lib/algorithms/projection/` 三件套（README r1 + module.yaml +

@@ -77,18 +77,27 @@
 ### 2.1 信号（原样继承 `SCI-CAL-001` §5 口径）
 
 ```text
-dark_opt = 0（dark 已含 bias）:           y_p = (r_p − d_p) / max(f_p, 0.1)                 [flat == NULL 时不除法]
-dark_opt = 1（显式 bias/dark 分离）:      y_p = (r_p − b_p − α·(d_p − b_p)) / max(f_p, 0.1),  α = t_light / t_dark
+dark_opt = 0（默认，标准式；master_dark 已减 bias）:
+    y_p = (r_p − b_p·[b≠NULL] − α·d_p·[d≠NULL]) / max(f_p, 0.1)        [flat == NULL 时不除法]
+dark_opt = 1（兼容式；master_dark 含 bias，显式 bias/dark 分离）:
+    y_p = (r_p − b_p − α·(d_p − b_p)) / max(f_p, 0.1),  α = t_light / t_dark
 ```
+
+两分支的 `α` 相同且**都必须施加**（`α` 是暗电流的曝光线性缩放因子，不是增益）；
+`K=1` 只是 `t_light==t_dark` 的特例，缺 EXPTIME 必须 fail-closed。权威与外部依据见
+`SCI-CAL-001` §5/§14（BIAS-001 订正；旧版把默认分支写成 `(r−d)/f` 且不含 b/α，
+登记 `DISP-CAL-012`）。
 
 **禁止**裁切负值、加未声明 pedestal 或夹紧（CONSTITUTION §5.3；`SCI-CAL-001` §9a）。校准路径至少 float32、累积用 float64（CONSTITUTION §5.3）。
 
 ### 2.2 方向导数与总方差
 
-对 `y = (r − b − α(d − b))/f`：
+标准式 `y = (r − b − α·d)/f`（`dark_opt=0`，默认）与兼容式
+`y = (r − b − α(d − b))/f`（`dark_opt=1`）的线性化系数不同（缺省 master 的项系数为 0）：
 
 ```text
-J = ∂y/∂(r, b, d, f) = [ 1/f,  −(1−α)/f,  −α/f,  −y/f ]
+标准式 (dark_opt=0):  J = ∂y/∂(r, b, d, f) = [  1/f,   −1/f,      −α/f,  −y/f ]
+兼容式 (dark_opt=1):  J = ∂y/∂(r, b, d, f) = [  1/f,  −(1−α)/f,   −α/f,  −y/f ]
 C_cal = J C_in Jᵀ ;  Var(y_p) = J C_in Jᵀ
 ```
 
@@ -104,7 +113,8 @@ C_cal = J C_in Jᵀ ;  Var(y_p) = J C_in Jᵀ
 于是逐像素独立方差为
 
 ```text
-Var_ind(y_p) = [ V_r,p + (1−α)² V_b,p + α² V_d,p + y_p² V_f,p ] / f_p²      (同一 bias master 只计一次)
+标准式 (dark_opt=0):  Var_ind(y_p) = [ V_r,p + V_b,p + α² V_d,p + y_p² V_f,p ] / f_p²
+兼容式 (dark_opt=1):  Var_ind(y_p) = [ V_r,p + (1−α)² V_b,p + α² V_d,p + y_p² V_f,p ] / f_p²   (同一 bias master 只计一次)
 V_r,p = V_rn + V_ph + V_q
 ```
 
@@ -120,7 +130,8 @@ V_r,p = V_rn + V_ph + V_q
 2. **相关核**：`σ（scale）+ kernel`（存 kernel id/version 与尺度）；
 3. **共同 master ID + 强度参数**：`master_id + α_m`（存 `master_id`、α_m、master 方差）。
 
-强度参数（同一 master 折叠后）：`α_b = −(1−α)/f`、`α_d = −α/f`、`α_f = −y/f`。
+强度参数（同一 master 折叠后）：标准式 `α_b = −1/f`；兼容式 `α_b = −(1−α)/f`；
+两式共用 `α_d = −α/f`、`α_f = −y/f`（BIAS-001 订正；`dark_opt` 决定 `α_b`）。
 
 master 自身方差：`V(master) = V_single_frame / N_combined + 已声明共同模式项`；combine 规则（mean / median / sigma-clip）与 `N_combined` 必须记录。
 

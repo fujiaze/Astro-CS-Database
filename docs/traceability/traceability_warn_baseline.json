@@ -1,0 +1,47 @@
+{
+ "schema": "astrocs/traceability-warn-baseline/v1",
+ "task": "W4-A3",
+ "note": [
+  "烧毁式 WARN 基线（附录 H.6）。规则：①只降不升 —— 基线条目若在当前扫描面匹配不到，检查器判 BASELINE_STALE(ERROR)，必须随修复同步删除；②归零转全量强制 —— 基线为空时",
+  "所有 WARN 在 --strict 下一律升级 ERROR；③--ignore-baseline 为负例注入面（绕过基线跑，",
+  "存量 WARN 必须让 --strict 判红）。默认 rc=0 是门，--strict 是审计升级。"
+ ],
+ "entries": [
+  {
+   "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-phase1-calibration|EVID|EVID-P1-CAL-001",
+   "owner": "DOC-SCI-001/W4-A4",
+   "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
+   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+  },
+  {
+   "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-phase1-noise-snr|EVID|EVID-P1-NOISE-001",
+   "owner": "DOC-SCI-001/W4-A4",
+   "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
+   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+  },
+  {
+   "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-phase1-photometry|EVID|EVID-P1-PHOT-001",
+   "owner": "DOC-SCI-001/W4-A4",
+   "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
+   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+  },
+  {
+   "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-phase1-writer|DATA|DATA-P1-FITS",
+   "owner": "DOC-SCI-001/W4-A4",
+   "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
+   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+  },
+  {
+   "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-phase3-verify|DATA|DATA-P3-VER",
+   "owner": "DOC-SCI-001/W4-A4",
+   "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
+   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+  },
+  {
+   "sig": "REF_OUT_OF_SCOPE|MOD-astrocs-services-io|API|API-IO-STREAM-V1",
+   "owner": "DOC-SCI-001/W4-A4",
+   "reason": "VERIFIED 行的 sci/alg/data/api/arch id 尚未有 authority 文件可见",
+   "burn_down": "补 authority 文件后删除本条目（不得新增）"
+  }
+ ]
+}

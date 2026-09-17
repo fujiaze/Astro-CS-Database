@@ -1,13 +1,17 @@
 # AstroCS phase3 projection (WCS) 模块 — 元数据 (P3-PROJ-DOC 冻结, 2026-09-11)
-# 状态: CONTRACT_READY —— 实现存在（生产源 lib/phase3_session/p3_wcs.cpp
-# 165 行 + 唯一权威签名头 lib/phase3_session/p3_wcs.h 50 行，
-# 行号 read/grep 实测；构建挂载: 根 CMakeLists.txt:460-465
-# astrocs_phase3_session STATIC 五源文件之一（p3_wcs.cpp）；
+# 状态: CONTRACT_READY —— 实现存在（生产源 lib/algorithms/projection/p3_wcs.cpp
+# + 唯一权威签名头 lib/algorithms/projection/p3_wcs.h，同一目录;
+# W4-A9 批次 1（2026-09-17）由 lib/phase3_session/ 迁入本模块，
+# ASTROCS_DESIGN §7.1「projection」行；构建挂载: 根 CMakeLists.txt
+# add_subdirectory(lib/algorithms/projection) 的 astrocs_p3_projection_wcs
+# STATIC，经 astrocs_phase3_session → astrocs_module_adapters 闭包；
 # 会话消费方 lib/phase3_session/p3_session.cpp :17 include / :160
 # p3_wcs_make（rotation_pa_deg 恒 0.0）/ :163 状态映射 / :232 worker
-# 循环 p3_wcs_pix2world；执行面探针 tests/backend/p3_wcs_main.cpp +
-# 独立解析解回归 tests/backend/test_p1002_gaps.py（CMake/fx3 脚本内联
-# 编译链接 p3_wcs.cpp）+ 单元测试 tests/unit/p3_wcs_test.cpp 90 行），
+# 循环 p3_wcs_pix2world；执行面探针
+# lib/algorithms/projection/tests/p3wcs/p3_wcs_main.cpp +
+# 独立解析解回归 tests/backend/test_p1002_gaps.py（脚本内联编译链接新址
+# p3_wcs.cpp）+ 单元测试 lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp
+# （ctest 名 p3_wcs，W4-A9 批次 1 共址化）），
 # 模块化迁移（独立模块源 astrocs_p3_projection.dll / C ABI adapter /
 # plan-execute-cancel-inspect / ThreadLease 接线）由 P3-PROJ-IMPL 执行；
 # 验收级可执行测试由 P3-PROJ-TEST 建立（可执行面升级不冒认；设计冻结
@@ -33,8 +37,9 @@
 # thresholds"。实测生产源 p3_wcs.cpp 位于 lib/phase3_session/ ——该目录
 # 为会话编排域共享源（p3_session/p3_output/p3_resample 等非本域），不整
 # 目录归属，故按 lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→
-# phase3_fits 先例落独立迁移目标目录 lib/algorithms/projection/（本文件所在，仅
-# 合同文件、无源码、不与 legacy 目录重叠）；legacy 生产源引用不搬家。
+# phase3_fits 先例落独立迁移目标目录 lib/algorithms/projection/（本文件所在）；
+# **W4-A9 批次 1（2026-09-17）生产源已迁入本目录**（p3_wcs.{h,cpp} + 共址
+# tests/p3wcs/**），本模块自此同时承载合同与源码，与 legacy 会话目录解耦。
 # dll_target=astrocs_p3_projection.dll 为迁移目标合同值（尚未存在）；
 # 现状构建=根 CMakeLists.txt astrocs_phase3_session 静态库成员。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4

@@ -65,8 +65,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[3]
-MODULE_CMAKE = REPO / "lib" / "gaia_xpsd_client" / "CMakeLists.txt"
+# W4-A3（前台授权，仅改本测试路径、不动实现）：本文件位于
+# <repo>/lib/infrastructure/gaia_xpsd_client/tests/ ⇒ 仓库根是 parents[4]，
+# 原 parents[3] 只到 <repo>/lib（实测 MODULE_CMAKE 被算成
+# <repo>/lib/lib/gaia_xpsd_client/CMakeLists.txt）；且模块随 ARCH-001 迁到
+# lib/infrastructure/ 下，模块路径也漏了一层 infrastructure。
+REPO = Path(__file__).resolve().parents[4]
+MODULE_CMAKE = REPO / "lib" / "infrastructure" / "gaia_xpsd_client" / "CMakeLists.txt"
 CONFIGURE_TIMEOUT = 600
 FAKE_VERSION = "1.3.2"          # 与 CI 报出 (found version "1.3.2") 一致
 ZLIB_HEADER = f'#define ZLIB_VERSION "{FAKE_VERSION}"\n'

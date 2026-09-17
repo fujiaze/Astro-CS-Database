@@ -32,30 +32,35 @@ inline double median_oracle(std::vector<double> v) {
 }
 
 // ---------------------------------------------------------------------------
-// ALG-CAL-003 oracle: 单帧校准, double 域整式复算
-//   标准分支:   out = (light − dark·[dark!=NULL]) / max(flat, 0.1)·[flat!=NULL]
-//   dark_opt:   out = (light − bias − K·(dark − bias)) / max(flat, 0.1)·[flat!=NULL]
-// (分支选择语义: dark_opt==1 && bias && dark 才走 dark_opt, 否则标准分支 k=1)
+// ALG-CAL-003 oracle: 单帧校准, double 域整式复算 (BIAS-001 订正版)
+//   标准式 (dark_opt=0): out = (light − bias·[bias!=NULL] − K·dark·[dark!=NULL])
+//                              / max(flat, 0.1)·[flat!=NULL]
+//   兼容式 (dark_opt=1): out = (light − bias − K·(dark − bias))
+//                              / max(flat, 0.1)·[flat!=NULL]   （要求 bias && dark）
+//   K 在两分支都施加；K=1 只是 t_light==t_dark 的特例。
+// (分支选择语义: dark_opt==1 且 bias&&dark 在位 → 兼容式；否则标准式，K 仍为 k_init)
 // ---------------------------------------------------------------------------
 inline double calibrate_oracle(std::size_t /*i*/,
                                double light, double dark, bool has_dark,
                                double bias, bool has_bias,
                                double flat, bool has_flat,
                                bool dark_opt, double k) {
+    double v;
     if (dark_opt && has_bias && has_dark) {
-        double v = light - bias - k * (dark - bias);
-        if (has_flat) v /= std::max(flat, 0.1);
-        return v;
+        v = light - bias - k * (dark - bias);          // 兼容式（dark 含 bias）
+    } else {
+        v = light;                                     // 标准式（dark 已减 bias）
+        if (has_bias) v -= bias;
+        if (has_dark) v -= k * dark;
     }
-    double v = light;
-    if (has_dark) v -= dark;
     if (has_flat) v /= std::max(flat, 0.1);
     return v;
 }
 
-// dark_opt 生效时的 actual_k 恒等映射 oracle (ALG §9.1: dark_opt=1 → actual_k==k_init)
-inline double actual_k_oracle(bool dark_opt, bool has_bias, bool has_dark, double k_init) {
-    return (dark_opt && has_bias && has_dark) ? k_init : 1.0;
+// actual_k 恒等映射 oracle (BIAS-001: 两分支 actual_k == k_init, 不再强制 1.0)
+inline double actual_k_oracle(bool /*dark_opt*/, bool /*has_bias*/, bool /*has_dark*/,
+                              double k_init) {
+    return k_init;
 }
 
 // ---------------------------------------------------------------------------

@@ -152,6 +152,11 @@ def build_repo(root, mutation=None, repo=None):
             mods[1]["product_manifest"]["match_module_id"] = mods[0]["module_id"]
     if mutation == "dangling_contract_ref":
         mods[4]["data_contracts"] = ["DATA-DOES-NOT-EXIST-999"]
+    if mutation == "legacy_contract_ok":
+        # 合成正例（附录 H.5）：引用一个「已由 legacy 映射裁决」的旧 ID。
+        # 它必须**不在** - id: 列表里（base_contract_ids 由未变异期望生成），
+        # 只能经 legacy_contract_id_map 解析 ⇒ 门若漏读该权威就会红（活性自持）。
+        mods[4]["data_contracts"] = ["DATA-LEGACY-FIXTURE-001"]
 
     _write(root / MAP_REL, yaml.safe_dump(doc, allow_unicode=True, sort_keys=False))
     # 权威模块总表原样带入 fixture（只读复制）：使「ID 集合 == 00_INDEX §2」交叉核验在
@@ -202,6 +207,13 @@ def build_repo(root, mutation=None, repo=None):
     for cid in base_contract_ids:
         index_lines += ["  - id: " + cid, "    type: DATA", "    status: ACTIVE",
                         "    path: docs/contracts/DATA_ARTIFACTS.md"]
+    if mutation == "legacy_contract_ok":
+        index_lines += ["legacy_contract_id_map:",
+                        "  - legacy_id: DATA-LEGACY-FIXTURE-001",
+                        "    decision: mapped",
+                        "    canonical_objects: [signal]",
+                        "    relation: single_object",
+                        "    canonical_schema_files: [contracts/schemas/unified/signal.schema.json]"]
     _write(root / (doc.get("conventions") or {}).get("contract_index_file", "docs/contracts/INDEX.yaml"),
            "\n".join(index_lines) + "\n")
     for rel in base_schema_links:

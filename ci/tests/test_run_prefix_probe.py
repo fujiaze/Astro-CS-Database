@@ -38,6 +38,12 @@ from ci import run as ci_run  # noqa: E402
 
 REGISTRY = json.loads((CI_DIR / "checks.json").read_text(encoding="utf-8"))
 BY_ID = {c["id"]: c for c in REGISTRY["checks"]}
+# W4-A3：注册表两层（顶层 checks[] + 执行单元 steps[]）；受试 id 里既有顶层项也有
+# 执行单元（BUILD-GCC-RELEASE / DEEP-SAN-ASAN / DEEP-COV-CPP 等是 steps）——只索引
+# 顶层会让断言永远找不到 id。双层索引：顶层优先，执行单元补齐。
+for _c in REGISTRY["checks"]:
+    for _s in _c.get("steps") or []:
+        BY_ID.setdefault(_s["id"], _s)
 
 # command 中携带 run/ 前缀仓库相对参数的检查（F-R3-03 受害者全集；
 # DEEP-COMPLEXITY 的 run/ 路径已在 outputs，列在此处一并守护）。

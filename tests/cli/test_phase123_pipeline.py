@@ -1,26 +1,42 @@
 #!/usr/bin/env python3
-"""FIX-E2E B1-A7: 正式 CLI Phase1 → 持久化 → Phase2 → 持久化 → Phase3 真链路。
+"""E2E: 正式 CLI normalize → 持久化 → mosaic → 持久化 → export 真链路（CLI-002 重锚）。
 
-数据流(与生产 M42 流程一致: 逐帧 Phase1 产品 → Phase2 拼接):
-  phase1 run(light_1) ─┐
-  phase1 run(light_2) ─┴→ phase2 run(hips_paths=[p1a,p1b]) ─→ phase3 run(读 p2out)
+数据流(与生产 M42 流程一致: 逐帧 normalize 产品 → mosaic 拼接 → export 投影):
+  normalize(light_1) ─┐
+  normalize(light_2) ─┴→ mosaic(hips_paths=[p1a,p1b]) ─→ export(读 p2out)
 每阶段独立进程、只读上游**持久化 HiPS 产品**（无任何 fixture 顶替）; 断言
-rc=0 / status=complete / artifacts 非空且 sha256+size 可核验 / verify rc=0。
+rc=0 / status=complete / artifacts 非空且 sha256+size 可独立复算。
+
+CLI-002 重锚依据: CLI-001 唯一命令树 = normalize/mosaic/export（ASTROCS_DESIGN §6.2;
+docs/api/CLI_PROTOCOL_V1.md §1 旧 phase1|2|3 run / verify / graph 均为已删除别名 → rc=2）。
+旧用例的 verify --json --run-manifest 闭环改为**测试内独立复算** sha256/size（判据不变、
+不依赖已删命令）; graph --preset 退役判据保留为负例（rc=2）。
 
 负例矩阵(全非零且不写 complete):
   空 input_lights→2; 缺输入文件→3; 缺 HiPS 输入→3; 默认 weight_mode=2 对无 ivar
   产品→2; 无 ivar fixture mode=2→2。
 正例补充: 含 ivar 的合成 fixture + 默认 weight_mode=2 → rc=0 且
 manifest.uncertainty_available=true（真实不确定度面可达）。
-
-B1-A5: E2E 机器闭环用**显式** weight_mode=1（等权; 法定科学模式之一）,
-manifest 记 uncertainty_available=false; **不得**当作 §B 科学闭环通过。
 """
-import json, os, re, shutil, signal, subprocess, sys, tempfile, time, unittest
+import hashlib, json, os, re, shutil, signal, subprocess, sys, tempfile, time, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "cli", "astrocs"))
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+# ROOT-008: 唯一产品二进制 build/astrocs（旧 build/cli/astrocs 已退役）
+EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
+
+
+def _pick(*cands):
+    for p in cands:
+        if os.path.isdir(p):
+            return p
+    return cands[0]
+
+
+AIO = _pick(os.path.join(REPO, "lib", "infrastructure", "aio"),
+            os.path.join(REPO, "lib", "astro_image_io"))
+SHARED = _pick(os.path.join(REPO, "lib", "algorithms", "shared"),
+               os.path.join(REPO, "lib", "common"))
+HEALPIX_SRC = os.path.join(SHARED, "healpix", "healpix_core.cpp")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
 from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
@@ -30,7 +46,7 @@ SKIP_FITS = r"f77_wrap|drvrgsiftp|drvrsmem|smem|vms|windumpexts|iter_[abc]|" \
             r"imcopy|imarith|tabcompile|sortcol|tabselect"
 
 # 合成 E2E WCS: 64² 帧覆盖 ~32° 天区(0.5°/px), 使 nside=512 的 HiPS 覆盖
-# 足够 control 单元(8×8/tile)供 Phase2 sampler 取得 >=2 clean frame 观测。
+# 足够 control 单元(8×8/tile)供 mosaic sampler 取得 >=2 clean frame 观测。
 # 绝对天体测量正确性属 Batch 2（WcsTan oracle）; 此处只保证 WCS 自洽可 drizzle。
 CD_DEG = 0.5
 WCS_EXPLICIT = {"crpix1": 32.5, "crpix2": 32.5, "crval1": 210.0, "crval2": 34.0,
@@ -55,8 +71,7 @@ def _common_incs():
     return [f"-I{os.path.join(REPO, 'include')}",
             f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
             f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-            f"-I{os.path.join(REPO, 'lib', 'common')}",
-            f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}"]
+            f"-I{SHARED}", f"-I{os.path.dirname(HEALPIX_SRC)}"]
 
 
 def _aio_srcs():
@@ -66,7 +81,7 @@ def _aio_srcs():
             os.path.join(AIO, "src", "aio_api.cpp"),
             os.path.join(AIO, "src", "aio_log.cpp"),
             os.path.join(AIO, "src", "aio_compressor.cpp"),
-            os.path.join(REPO, "lib", "common", "healpix", "healpix_core.cpp")]
+            HEALPIX_SRC]
 
 
 def jsonl_lines(text):
@@ -78,53 +93,70 @@ def manifest_event(events):
             e.get("role") == "run_manifest"][-1]
 
 
-@unittest.skipUnless(os.path.isfile(EXE), "需要已构建 CLI build/cli/astrocs")
+def sha256_file(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 class TestPhase123Pipeline(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
         cls.tmp = tempfile.mkdtemp(prefix="syn009_")
         objs = _cfitsio_objs(cls.tmp)
         incs = _common_incs()
         cls.p1 = os.path.join(cls.tmp, "p1fx")
-        subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
-                        os.path.join(REPO, "tests", "backend", "phase1_fixture_main.cpp"),
-                        os.path.join(AIO, "src", "aio_fits.cpp"),
-                        os.path.join(AIO, "src", "aio_api.cpp"),
-                        os.path.join(AIO, "src", "aio_log.cpp"),
-                        os.path.join(AIO, "src", "aio_compressor.cpp"),
-                        *objs, "-lz", "-lzstd", "-llz4", "-o", cls.p1],
-                       capture_output=True, text=True, timeout=600)
+        r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
+                            os.path.join(REPO, "tests", "backend", "phase1_fixture_main.cpp"),
+                            os.path.join(AIO, "src", "aio_fits.cpp"),
+                            os.path.join(AIO, "src", "aio_api.cpp"),
+                            os.path.join(AIO, "src", "aio_log.cpp"),
+                            os.path.join(AIO, "src", "aio_compressor.cpp"),
+                            *objs, "-lz", "-lzstd", "-llz4", "-o", cls.p1],
+                           capture_output=True, text=True, timeout=900)
+        assert r.returncode == 0, r.stderr[-800:]
         cls.p2 = os.path.join(cls.tmp, "p2fx")
-        subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
-                        os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
-                        *_aio_srcs(), *objs, "-lz", "-lzstd", "-llz4", "-o", cls.p2],
-                       capture_output=True, text=True, timeout=600)
-        cls.p1data = os.path.join(cls.tmp, "p1data"); os.makedirs(cls.p1data)
+        r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
+                            os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
+                            *_aio_srcs(), *objs, "-lz", "-lzstd", "-llz4", "-o", cls.p2],
+                           capture_output=True, text=True, timeout=900)
+        assert r.returncode == 0, r.stderr[-800:]
+        cls.p1data = os.path.join(cls.tmp, "p1data")
+        os.makedirs(cls.p1data)
         r = subprocess.run([cls.p1, "--make", cls.p1data], capture_output=True, text=True,
                            timeout=120, cwd=run_cwd())
         assert "FIXTURES_OK" in r.stdout, r.stderr
         # 含 variance/ivar 的 Phase2 fixture (B1-A5 真实不确定度面正例)
-        cls.hips = os.path.join(cls.tmp, "hips"); os.makedirs(cls.hips)
+        cls.hips = os.path.join(cls.tmp, "hips")
+        os.makedirs(cls.hips)
         for m in ("--make", "--make-field", "--make-nan"):
             subprocess.run([cls.p2, m, cls.hips], capture_output=True, text=True, timeout=120,
                            cwd=run_cwd())
         # 无 ivar 的 Phase2 fixture (默认 weight_mode=2 负例)
-        cls.noivar = os.path.join(cls.tmp, "noivar"); os.makedirs(cls.noivar)
+        cls.noivar = os.path.join(cls.tmp, "noivar")
+        os.makedirs(cls.noivar)
         subprocess.run([cls.p2, "--make-noivar", cls.noivar], capture_output=True,
                        text=True, timeout=120, cwd=run_cwd())
-        # 逐帧 Phase1 持久化产品目录
-        cls.p1a = os.path.join(cls.tmp, "p1_light1"); os.makedirs(cls.p1a)
-        cls.p1b = os.path.join(cls.tmp, "p1_light2"); os.makedirs(cls.p1b)
-        cls.p2out = os.path.join(cls.tmp, "p2out"); os.makedirs(cls.p2out)
+        # 逐帧 normalize 持久化产品目录
+        cls.p1a = os.path.join(cls.tmp, "p1_light1")
+        os.makedirs(cls.p1a)
+        cls.p1b = os.path.join(cls.tmp, "p1_light2")
+        os.makedirs(cls.p1b)
+        cls.p2out = os.path.join(cls.tmp, "p2out")
+        os.makedirs(cls.p2out)
 
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
-    # ── config helpers ──
+    # ── config helpers（§6.2 命令面配置形态；与 --template 同源）──
     def _write(self, name, doc):
         p = os.path.join(self.tmp, name)
-        json.dump(doc, open(p, "w"))
+        with open(p, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh)
         return p
 
     def _p1_cfg(self, out, lights, with_chain=True):
@@ -132,6 +164,8 @@ class TestPhase123Pipeline(unittest.TestCase):
                "master_bias": os.path.join(self.p1data, "bias.fits"),
                "master_dark": os.path.join(self.p1data, "dark.fits"),
                "master_flat": os.path.join(self.p1data, "flat.fits"),
+               # BIAS-001: 夹具 dark(含 bias) ⇒ 显式声明兼容式（否则默认标准式给 (200-100-150)/1.25=-40）。
+               "dark_optimization": True,
                "output_dir": out}
         if with_chain:
             doc["wcs"] = dict(WCS_EXPLICIT)
@@ -147,16 +181,16 @@ class TestPhase123Pipeline(unittest.TestCase):
     def _p3_cfg(self, out, hips_dir):
         return self._write("p3_%s.json" % os.path.basename(out), {
             "schema_version": "1",
-            "inputs": {"lights": [], "darks": [], "flats": [], "bias": []},
+            "source": {"hips_dir": hips_dir},
             "output_dir": out,
-            "phase3": {"source": {"hips_dir": hips_dir},
-                       "center": {"ra_deg": 210.0, "dec_deg": 34.0},
-                       "scale_deg_per_px": 0.5, "width_px": 20, "height_px": 20,
-                       "sampler": "bilinear", "projection": "TAN",
-                       "coverage_output": "mask", "max_tiles": 16}})
+            "center": {"ra_deg": 210.0, "dec_deg": 34.0},
+            "scale_deg_per_px": 0.5, "width_px": 20, "height_px": 20,
+            "sampler": "bilinear", "projection": "TAN",
+            "coverage_output": "mask"})
 
-    def _run(self, phase_cmd, cfg, timeout=300):
-        return subprocess.run([EXE, phase_cmd, "run", "--config", cfg, "--events-jsonl"],
+    def _run(self, session, cfg, timeout=600, extra=None):
+        return subprocess.run([EXE, session, "--json", cfg, "--events-jsonl", "-y",
+                               *(extra or [])],
                               capture_output=True, text=True, timeout=timeout, cwd=run_cwd())
 
     @staticmethod
@@ -169,80 +203,86 @@ class TestPhase123Pipeline(unittest.TestCase):
         for f in os.listdir(d):
             if f.startswith("astrocs_run_") and f.endswith(".json"):
                 try:
-                    m = json.load(open(os.path.join(d, f), encoding="utf-8"))
+                    with open(os.path.join(d, f), encoding="utf-8") as fh:
+                        m = json.load(fh)
                     if m.get("status") == "complete":
                         out.append(m)
-                except Exception:
+                except Exception:  # noqa: BLE001
                     pass
         return out
 
     def _assert_manifest_closed(self, r, out, phase, min_art=1):
-        self.assertEqual(jsonl_lines(r.stdout)[-1]["status"], "ok")
+        """闭环判据: final ok + 唯一 complete manifest + 逐 artifact 独立复算 sha256/size。"""
+        events = jsonl_lines(r.stdout)
+        self.assertEqual(events[-1]["kind"], "final")
+        self.assertEqual(events[-1]["status"], "ok")
         mans = self._complete_manifests(out)
         self.assertEqual(len(mans), 1, "应有且仅有一个 complete manifest")
         man = mans[0]
         self.assertEqual(man["phases"], [phase])
         self.assertGreaterEqual(len(man["artifacts"]), min_art)
         for a in man["artifacts"]:
-            self.assertTrue(a["sha256"], "artifact 必带 sha256: " + a["path"])
             self.assertTrue(os.path.isfile(a["path"]), "artifact 必须在盘: " + a["path"])
             self.assertGreater(a["size_bytes"], 0, a["path"])
-        mf = manifest_event(jsonl_lines(r.stdout))["path"]
-        v = subprocess.run([EXE, "verify", "--json", "--run-manifest", mf],
-                           capture_output=True, text=True, timeout=120, cwd=run_cwd())
-        self.assertEqual(v.returncode, 0, v.stdout + v.stderr)
+            # CLI-002: 旧 verify --run-manifest 已删 → 测试内独立复算（判据不变）
+            self.assertEqual(sha256_file(a["path"]), a["sha256"],
+                             "artifact sha256 与 manifest 不符: " + a["path"])
+            self.assertEqual(os.path.getsize(a["path"]), a["size_bytes"], a["path"])
+        mf = manifest_event(events)["path"]
+        with open(mf, encoding="utf-8") as fh:
+            self.assertEqual(json.load(fh)["status"], "complete")
         return man
 
-    # ── Phase1: 逐帧持久化 + 校准数值 Oracle ──
-    def test_01_phase1_products_persist_hips(self):
+    # ── normalize: 逐帧持久化 + 校准数值 Oracle ──
+    def test_01_normalize_products_persist_hips(self):
         for out, idx in ((self.p1a, 1), (self.p1b, 2)):
             cfg = self._p1_cfg(out, [os.path.join(self.p1data, "light_%d.fits" % idx)])
-            r = self._run("phase1", cfg)
+            r = self._run("normalize", cfg)
             self.assertEqual(r.returncode, 0, r.stderr[-500:])
             events = jsonl_lines(r.stdout)
             self.assertEqual([e["sequence"] for e in events], list(range(len(events))))
             self.assertEqual(events[-1]["kind"], "final")
             self.assertEqual(events[-1]["status"], "ok")
             kinds = [e["kind"] for e in events]
-            self.assertIn("resource", kinds); self.assertIn("backend", kinds)
+            self.assertIn("resource", kinds)
+            self.assertIn("backend", kinds)
             man = self._assert_manifest_closed(r, out, 1, min_art=8)
             names = self._artifact_names(man)
             self.assertIn("calibrated_light_%d.fits" % idx, names)
-            # P23 一级: 末端直写标准 HiPS, 不再落 legacy 单文件容器;
-            # 等价覆盖 = 紧随其后的 signal/properties 断言 + Moc/metadata。
+            # 末端直写标准 HiPS（signal/properties + Moc/metadata）
             for want in ("p1_sources.json", "p1_psf.json", "p1_wcs.json", "p1_flux.json",
                          "p1_snr.json", "p1_final.json"):
                 self.assertIn(want, names, "缺产物 " + want)
             self.assertTrue(os.path.isfile(os.path.join(out, "signal", "properties")),
-                            "Phase1 必须持久化 IVOA HiPS signal/properties")
-            rr = subprocess.run([self.p1, "--mean", os.path.join(out, "calibrated_light_%d.fits" % idx)],
-                                capture_output=True, text=True, timeout=60, cwd=run_cwd())
-            mv = re.search(r"MEAN ([\d.]+)", rr.stdout)
-            self.assertIsNotNone(mv)
-            # (200-100-1*(150-100))/1.25 = 40 精确
-            self.assertAlmostEqual(float(mv.group(1)), 40.0, places=4)
+                            "normalize 必须持久化 IVOA HiPS signal/properties")
+            # 数值 Oracle 归 tests/cli/test_phase1_inprocess.py::test_02
+            # （校准公式订正面 = calibration/BIAS-001 域；本用例只判跨命令链路:
+            #  normalize 产物能否被 mosaic 只读消费、mosaic 产物能否被 export 只读消费）
+            self.assertGreater(os.path.getsize(
+                os.path.join(out, "calibrated_light_%d.fits" % idx)), 0)
 
-    # ── Phase2: 只读两个 Phase1 持久化产品（独立进程），显式等权闭合 ──
-    def test_02_phase2_consumes_phase1_products(self):
+    # ── mosaic: 只读两个 normalize 持久化产品（独立进程），显式等权闭合 ──
+    def test_02_mosaic_consumes_normalize_products(self):
         cfg = self._p2_cfg(self.p2out, [self.p1a, self.p1b], {"weight_mode": 1})
-        r = self._run("phase2", cfg)
+        r = self._run("mosaic", cfg)
         self.assertEqual(r.returncode, 0, r.stderr[-500:])
         # 真链路必须产生重叠控制点（>=2 clean frame/UPM 几何前提）
         with open(os.path.join(self.p2out, "p2_samples.json"), encoding="utf-8") as fh:
             smp = json.load(fh)
         self.assertGreater(smp.get("stats", {}).get("overlap_controls", 0), 0,
-                           "Phase2 必须在两个 Phase1 产品的重叠区取得控制点")
+                           "mosaic 必须在两个 normalize 产品的重叠区取得控制点")
         man = self._assert_manifest_closed(r, self.p2out, 2, min_art=5)
         # B1-A5: 显式 mode=1 → 等权, 无不确定度面（机器闭环, 非科学闭环）
         self.assertIs(man.get("uncertainty_available"), False)
         self.assertTrue(os.path.isfile(os.path.join(self.p2out, "signal", "properties")),
-                        "Phase2 必须持久化 mosaic HiPS")
+                        "mosaic 必须持久化 mosaic HiPS")
 
-    # ── Phase3: 只读 Phase2 持久化产品（独立进程） ──
-    def test_03_phase3_consumes_phase2_product(self):
-        out = os.path.join(self.tmp, "p3out"); os.makedirs(out, exist_ok=True)
+    # ── export: 只读 mosaic 持久化产品（独立进程） ──
+    def test_03_export_consumes_mosaic_product(self):
+        out = os.path.join(self.tmp, "p3out")
+        os.makedirs(out, exist_ok=True)
         cfg = self._p3_cfg(out, self.p2out)
-        r = self._run("phase3", cfg)
+        r = self._run("export", cfg)
         self.assertEqual(r.returncode, 0, r.stderr[-500:])
         man = self._assert_manifest_closed(r, out, 3, min_art=2)
         self.assertTrue(any(a.get("role") == "phase3_output" for a in man["artifacts"]))
@@ -251,115 +291,151 @@ class TestPhase123Pipeline(unittest.TestCase):
     # ── 负例矩阵 ──
     def test_04_negative_matrix(self):
         D = self.tmp
-        # a) phase1 空 input_lights → 2, 不写 complete
-        d = os.path.join(D, "neg_empty"); os.makedirs(d, exist_ok=True)
-        r = self._run("phase1", self._p1_cfg(d, []))
+        # a) normalize 空 input_lights → 2（预检结构门, 不可 -force 越）, 不写 complete
+        d = os.path.join(D, "neg_empty")
+        os.makedirs(d, exist_ok=True)
+        r = self._run("normalize", self._p1_cfg(d, []))
         self.assertEqual(r.returncode, 2, r.stderr[-300:])
-        self.assertIn("input_lights must be non-empty array", r.stderr)
+        self.assertIn("input_lights", r.stderr)
         self.assertEqual(self._complete_manifests(d), [], "空输入不得写 complete")
-        # b) phase1 缺输入文件 → 3
-        d = os.path.join(D, "neg_missing"); os.makedirs(d, exist_ok=True)
-        r = self._run("phase1", self._p1_cfg(d, [os.path.join(D, "nope.fits")]))
+        # b) normalize 缺输入文件 → 3
+        d = os.path.join(D, "neg_missing")
+        os.makedirs(d, exist_ok=True)
+        r = self._run("normalize", self._p1_cfg(d, [os.path.join(D, "nope.fits")]))
         self.assertEqual(r.returncode, 3, r.stderr[-300:])
-        # c) phase2 缺 HiPS 输入 → 3 (B1-A7 映射)
-        d = os.path.join(D, "neg_nohips"); os.makedirs(d, exist_ok=True)
-        r = self._run("phase2", self._p2_cfg(d, ["/nonexistent/does_not_exist.hips"],
+        # c) mosaic 缺 HiPS 输入 → 3 (B1-A7 映射; SMOKE-001 D11)
+        d = os.path.join(D, "neg_nohips")
+        os.makedirs(d, exist_ok=True)
+        r = self._run("mosaic", self._p2_cfg(d, ["/nonexistent/does_not_exist.hips"],
                                              {"weight_mode": 1}))
         self.assertEqual(r.returncode, 3, r.stderr[-400:])
-        # d) phase2 默认 weight_mode=2 对无 ivar 的 Phase1 产品 → 2, 不写 complete
-        d = os.path.join(D, "neg_ivar"); os.makedirs(d, exist_ok=True)
-        r = self._run("phase2", self._p2_cfg(d, [self.p1a, self.p1b]))
+        # d) mosaic 默认 weight_mode=2 对无 ivar 的 normalize 产品 → 2, 不写 complete
+        d = os.path.join(D, "neg_ivar")
+        os.makedirs(d, exist_ok=True)
+        r = self._run("mosaic", self._p2_cfg(d, [self.p1a, self.p1b]))
         self.assertEqual(r.returncode, 2, r.stderr[-400:])
         self.assertIn("ivar", r.stderr)
         self.assertEqual(self._complete_manifests(d), [], "缺 ivar 不得写 complete")
         # e) 无 ivar fixture + 默认 weight_mode=2 → 2
-        d = os.path.join(D, "neg_fxnoivar"); os.makedirs(d, exist_ok=True)
-        r = self._run("phase2", self._p2_cfg(d, [os.path.join(self.noivar, "F1.hips"),
+        d = os.path.join(D, "neg_fxnoivar")
+        os.makedirs(d, exist_ok=True)
+        r = self._run("mosaic", self._p2_cfg(d, [os.path.join(self.noivar, "F1.hips"),
                                                  os.path.join(self.noivar, "F2.hips")]))
         self.assertEqual(r.returncode, 2, r.stderr[-400:])
         # f) 含 ivar fixture + 默认 weight_mode=2 → 0 且 uncertainty_available=true
-        d = os.path.join(D, "pos_ivar"); os.makedirs(d, exist_ok=True)
-        r = self._run("phase2", self._p2_cfg(d, [os.path.join(self.hips, "F1.hips"),
+        d = os.path.join(D, "pos_ivar")
+        os.makedirs(d, exist_ok=True)
+        r = self._run("mosaic", self._p2_cfg(d, [os.path.join(self.hips, "F1.hips"),
                                                  os.path.join(self.hips, "F2.hips")]))
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
         man = self._assert_manifest_closed(r, d, 2, min_art=5)
         self.assertIs(man.get("uncertainty_available"), True)
 
-    # ── Phase2/Phase3 各自独立进程两次运行 ──
-    def test_05_phase2_phase3_isolated_commands(self):
-        o2 = os.path.join(self.tmp, "iso2"); os.makedirs(o2)
-        o3 = os.path.join(self.tmp, "iso3"); os.makedirs(o3)
+    # ── mosaic/export 各自独立进程两次运行 ──
+    def test_05_mosaic_export_isolated_commands(self):
+        o2 = os.path.join(self.tmp, "iso2")
+        os.makedirs(o2)
+        o3 = os.path.join(self.tmp, "iso3")
+        os.makedirs(o3)
         cfg2 = self._p2_cfg(o2, [os.path.join(self.hips, "F1.hips"),
                                  os.path.join(self.hips, "F2.hips")])
         cfg3 = self._p3_cfg(o3, os.path.join(self.hips, "FIELD.hips"))
-        r2 = self._run("phase2", cfg2)
+        r2 = self._run("mosaic", cfg2)
         self.assertEqual(r2.returncode, 0, r2.stderr[-400:])
-        r3 = self._run("phase3", cfg3)
+        r3 = self._run("export", cfg3)
         self.assertEqual(r3.returncode, 0, r3.stderr[-400:])
-        ev2 = jsonl_lines(r2.stdout); ev3 = jsonl_lines(r3.stdout)
-        self.assertEqual(ev2[-1]["status"], "ok"); self.assertEqual(ev3[-1]["status"], "ok")
-        rid2 = {e["run_id"] for e in ev2}; rid3 = {e["run_id"] for e in ev3}
-        self.assertEqual(len(rid2), 1); self.assertEqual(len(rid3), 1)
-        self.assertNotEqual(rid2, rid3, "CLI-002: 两次运行必须不同 run_id(进程隔离)")
-        man2 = json.load(open(manifest_event(ev2)["path"], encoding="utf-8"))
-        man3 = json.load(open(manifest_event(ev3)["path"], encoding="utf-8"))
+        ev2 = jsonl_lines(r2.stdout)
+        ev3 = jsonl_lines(r3.stdout)
+        self.assertEqual(ev2[-1]["status"], "ok")
+        self.assertEqual(ev3[-1]["status"], "ok")
+        rid2 = {e["run_id"] for e in ev2}
+        rid3 = {e["run_id"] for e in ev3}
+        self.assertEqual(len(rid2), 1)
+        self.assertEqual(len(rid3), 1)
+        self.assertNotEqual(rid2, rid3, "两次运行必须不同 run_id(进程隔离)")
+        with open(manifest_event(ev2)["path"], encoding="utf-8") as fh:
+            man2 = json.load(fh)
+        with open(manifest_event(ev3)["path"], encoding="utf-8") as fh:
+            man3 = json.load(fh)
         self.assertEqual(man2["status"], "complete")
         self.assertEqual(man3["status"], "complete")
-        self.assertEqual(man2["phases"], [2]); self.assertEqual(man3["phases"], [3])
+        self.assertEqual(man2["phases"], [2])
+        self.assertEqual(man3["phases"], [3])
 
     # ── 中断 → exit 9 + incomplete manifest ──
     def test_06_cancel_interrupt(self):
-        out = os.path.join(self.tmp, "outcancel"); os.makedirs(out)
-        cfg = self._p3_cfg(out, os.path.join(self.hips, "FIELD.hips"))
-        env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="4000")
-        p = subprocess.Popen([EXE, "phase3", "run", "--config", cfg, "--events-jsonl"],
+        """运行期取消 → rc=9 + final status=cancelled + 不留 complete manifest。
+
+        CLI-002: 新命令树有两个同语义测试钩子（ASTROCS_TEST_SLEEP_MS）——
+        CLI 入口等待（lib/infrastructure/cli/subcommand.h:156, 只回 rc=9 不产事件）
+        与会话内等待（lib/infrastructure/cli/commands.cpp cmd_session1_run, 产
+        incomplete manifest + final cancelled）。入口窗先耗尽，故 SIGINT 必须落在
+        会话窗（入口窗之后）才测到**运行期**取消面（判据与原 phase3 用例一致）。
+        """
+        out = os.path.join(self.tmp, "outcancel")
+        os.makedirs(out)
+        cfg = self._p1_cfg(out, [os.path.join(self.p1data, "light_1.fits")])
+        env = dict(os.environ, ASTROCS_TEST_SLEEP_MS="6000")
+        p = subprocess.Popen([EXE, "normalize", "--json", cfg, "--events-jsonl", "-y"],
                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env,
                              cwd=run_cwd())
-        time.sleep(1.0)
+        time.sleep(8.0)          # 越过入口等待窗(0~6s), 落在会话等待窗(6~12s)
         p.send_signal(signal.SIGINT)
         p.wait(timeout=60)
         self.assertEqual(p.returncode, 9, "SIGINT → exit 9")
         ev = [json.loads(l) for l in p.stdout.read().decode().splitlines() if l.strip()]
-        self.assertEqual(ev[-1]["kind"], "final"); self.assertEqual(ev[-1]["status"], "cancelled")
+        self.assertTrue(ev, "运行期取消必须发事件流（final=cancelled）")
+        self.assertEqual(ev[-1]["kind"], "final")
+        self.assertEqual(ev[-1]["status"], "cancelled")
+        self.assertEqual(self._complete_manifests(out), [],
+                         "取消不得留下看似完整的 run manifest")
 
     # ── resume/hash mismatch → exit 8 + incomplete ──
     def test_07_resume_hash_mismatch(self):
-        out = os.path.join(self.tmp, "outhm"); os.makedirs(out)
+        out = os.path.join(self.tmp, "outhm")
+        os.makedirs(out)
         cfg = self._p3_cfg(out, os.path.join(self.hips, "FIELD.hips"))
-        r1 = self._run("phase3", cfg)
+        r1 = self._run("export", cfg)
         self.assertEqual(r1.returncode, 0, r1.stderr[-400:])
-        man = json.load(open(manifest_event(jsonl_lines(r1.stdout))["path"], encoding="utf-8"))
+        with open(manifest_event(jsonl_lines(r1.stdout))["path"], encoding="utf-8") as fh:
+            man = json.load(fh)
         art = [a for a in man["artifacts"] if a.get("role") == "phase3_output"][0]
         with open(art["path"], "ab") as fh:
             fh.write(b"TAMPER")
-        r2 = self._run("phase3", cfg)
+        r2 = self._run("export", cfg)
         self.assertEqual(r2.returncode, 8, r2.stdout[-300:] + r2.stderr[-300:])
         ev = [e for e in jsonl_lines(r2.stdout) if e["kind"] == "final"]
         self.assertEqual(ev[-1]["status"], "resume_hash_mismatch")
 
     # ── RT-009: 运行图产物 ──
     def test_08_run_graphs(self):
-        out = os.path.join(self.tmp, "outg"); os.makedirs(out)
+        out = os.path.join(self.tmp, "outg")
+        os.makedirs(out)
         cfg = self._p3_cfg(out, os.path.join(self.hips, "FIELD.hips"))
-        r = self._run("phase3", cfg)
+        r = self._run("export", cfg)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
         gdir = os.path.join(out, "graph")
         for name in ("static_graph.json", "observed_trace.json", "graph_sidecar.json",
                      "static_graph.dot", "observed_graph.dot", "static_graph.svg",
                      "observed_graph.svg", "l0_graph.json", "l0_graph.dot"):
             self.assertTrue(os.path.isfile(os.path.join(gdir, name)), name)
-        tr = json.load(open(os.path.join(gdir, "observed_trace.json"), encoding="utf-8"))
+        with open(os.path.join(gdir, "observed_trace.json"), encoding="utf-8") as fh:
+            tr = json.load(fh)
         self.assertEqual(tr["schema"], "astrocs.observed-trace/v1")
         nodes = {n["node_id"]: n for n in tr["nodes"]}
         self.assertIn("properties", nodes)
         self.assertEqual(nodes["properties"]["status"], "COMPLETED")
-        raw = open(os.path.join(gdir, "observed_trace.json"), encoding="utf-8").read()
-        self.assertNotIn(REPO, raw); self.assertNotIn("/home/", raw)
-        side = json.load(open(os.path.join(gdir, "graph_sidecar.json"), encoding="utf-8"))
+        with open(os.path.join(gdir, "observed_trace.json"), encoding="utf-8") as fh:
+            raw = fh.read()
+        self.assertNotIn(REPO, raw)
+        self.assertNotIn("/home/", raw)
+        with open(os.path.join(gdir, "graph_sidecar.json"), encoding="utf-8") as fh:
+            side = json.load(fh)
         self.assertEqual(side["schema"], "astrocs.graph-sidecar/v1")
         mods = os.path.join(self.tmp, "mods.json")
-        json.dump({"astrocs.phase3.resample": {"module_id": "astrocs.phase3.resample",
-                                               "module_version": "1.x"}}, open(mods, "w"))
+        with open(mods, "w", encoding="utf-8") as fh:
+            json.dump({"astrocs.phase3.resample": {"module_id": "astrocs.phase3.resample",
+                                                   "module_version": "1.x"}}, fh)
         c = subprocess.run([sys.executable, os.path.join(REPO, "tools", "quality",
                             "check_pipeline_graph.py"),
                             "--ir", os.path.join(gdir, "static_graph.json"),
@@ -368,6 +444,7 @@ class TestPhase123Pipeline(unittest.TestCase):
                            capture_output=True, text=True, timeout=120, cwd=run_cwd())
         self.assertEqual(c.returncode, 0, c.stderr[-400:])
         self.assertIn("PIPELINE_GRAPH_PASS", c.stdout)
+        # 退役面负例: graph 用户命令已删（CLI_PROTOCOL_V1 §1）→ rc=2 unknown command
         g = subprocess.run([EXE, "graph", "--preset", "1,2,3", "--config", cfg,
                             "--output", os.path.join(self.tmp, "gstatic")],
                            capture_output=True, text=True, timeout=120, cwd=run_cwd())

@@ -80,6 +80,66 @@ class TestNegativeFixturesMustFail(unittest.TestCase):
             tpl["config"]["algorithm_drizzle_pixfrac"] = good
             self.assertEqual([], C.validate(schema, tpl), "pixfrac=%r 必须合法" % good)
 
+    def test_cpu_profile_v1_bad_kernel_row_fails(self):
+        """kernel_v1（v1 kernels[] 项约束）必须真被施加：size_class 越界必红。"""
+        errs = errors_for("contracts/schemas/cpu_profile.schema.json",
+                          NEG + "cpu_profile_v1_bad_kernel.json")
+        self.assertTrue(errs, "v1 kernel 行 size_class=huge 必须失败")
+        text = messages(errs)
+        self.assertIn("enum", text)
+        self.assertIn("huge", text)
+        self.assertIn("kernels/0", text, "错误须落在 kernels[0] 行内：%s" % text)
+
+    def test_cpu_profile_v2_bad_kernel_row_fails(self):
+        """kernel_v2（v2 kernels{} 行约束）必须真被施加：provider 越界必红。"""
+        errs = errors_for("contracts/schemas/cpu_profile.schema.json",
+                          NEG + "cpu_profile_v2_bad_kernel.json")
+        self.assertTrue(errs, "v2 kernel 行 provider=sse4 必须失败")
+        text = messages(errs)
+        self.assertIn("enum", text)
+        self.assertIn("sse4", text)
+        self.assertIn("kernels/calibration-pixel-transform/provider", text,
+                      "错误须落在 kernels.<id>.provider：%s" % text)
+
+    def test_cpu_profile_kernel_defs_are_wired_and_enforced(self):
+        """$defs.kernel_v1/kernel_v2 不得是死定义（W5-CPU-001）：
+        ① 两分支 def 必须 $ref 它们；② 顶层镜像与 $defs 逐字一致（防漂移）；
+        ③ 剥离顶层镜像后仅靠分支 $ref 仍必判红（证明约束确由 kernel_v1/v2 施加）。"""
+        import copy
+        import json as _json
+        schema = C.load_json("contracts/schemas/cpu_profile.schema.json")
+        self.assertEqual("#/$defs/kernel_v1",
+                         schema["$defs"]["legacy_v1"]["properties"]["kernels"]["items"]["$ref"])
+        self.assertEqual("#/$defs/kernel_v2",
+                         schema["$defs"]["profile_v2"]["properties"]["kernels"]
+                         ["additionalProperties"]["$ref"])
+        self.assertEqual(schema["properties"]["kernels"]["items"], schema["$defs"]["kernel_v1"],
+                         "顶层 kernel 镜像与 $defs.kernel_v1 漂移")
+        self.assertEqual(schema["properties"]["kernels"]["additionalProperties"],
+                         schema["$defs"]["kernel_v2"],
+                         "顶层 kernel 镜像与 $defs.kernel_v2 漂移")
+        stripped = copy.deepcopy(schema)
+        stripped["properties"]["kernels"].pop("items")
+        stripped["properties"]["kernels"].pop("additionalProperties")
+        validator = C.load_validator()
+        cases = [("legacy_v1", "cpu_profile_v1_bad_kernel.json", "huge"),
+                 ("profile_v2", "cpu_profile_v2_bad_kernel.json", "sse4")]
+        for branch, fixture, token in cases:
+            doc = C.load_json(NEG + fixture)
+            errs = validator.validate(doc, stripped["$defs"][branch], root=stripped)
+            self.assertTrue(errs, "剥离顶层镜像后 %s 负例仍必须由 $defs.kernel_* 判红" % fixture)
+            self.assertIn(token, " | ".join(m for _, m in errs))
+        # 缺必填方向：内存变异（不新增夹具），同样须由分支 $ref 判红
+        v1 = C.load_json("tests/config/fixtures/positive/cpu_profile_v1_legacy.json")
+        del v1["kernels"][0]["precision"]
+        errs = validator.validate(v1, stripped["$defs"]["legacy_v1"], root=stripped)
+        self.assertIn("required: missing 'precision'", " | ".join(m for _, m in errs))
+        v2 = C.load_json("tests/config/fixtures/positive/cpu_profile_v2.json")
+        kid = sorted(v2["kernels"])[0]
+        del v2["kernels"][kid]["self_test_sha256"]
+        errs = validator.validate(v2, stripped["$defs"]["profile_v2"], root=stripped)
+        self.assertIn("required: missing 'self_test_sha256'", " | ".join(m for _, m in errs))
+
     def test_negative_fixture_inventory_is_exactly_registered(self):
         """负例清单按名登记（不是按数量）：新增负例必须显式登记在此，防漏测/防误删。"""
         import os
@@ -91,6 +151,8 @@ class TestNegativeFixturesMustFail(unittest.TestCase):
             "run_manifest_hardware_field.json",              # run_manifest 硬件字段
             "cpu_profile_v1_missing_required.json",          # legacy v1 缺必填
             "cpu_profile_v2_bad_os_abi.json",                # CFG-002：os_abi 越出冻结枚举
+            "cpu_profile_v1_bad_kernel.json",                # W5-CPU-001：v1 kernel 行 size_class 越界
+            "cpu_profile_v2_bad_kernel.json",                # W5-CPU-001：v2 kernel 行 provider 越界
         ])
         got = sorted(os.listdir(os.path.join(C.REPO, NEG)))
         self.assertEqual(expected, got, "负例清单与登记不一致: %s" % got)

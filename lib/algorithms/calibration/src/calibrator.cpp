@@ -15,9 +15,14 @@
 // 黄金分割搜索最优 K，使背景区域（去边缘10% + 去最亮5%）MAD 最小。
 // 搜索范围 [0.5*k_init, 2.0*k_init]，收敛条件：区间宽度<0.001 或迭代>30。
 // 4. calibrate(light, w, h, dark, flat, bias, out, dark_opt, k_init, actual_k)
-// dark_opt=0: out = (light - dark) / flat （Dark 已含 Bias）
-// dark_opt=1: out = (light - bias - K*(dark-bias)) / flat
-// Flat 已归一化，除法前裁剪最小值 0.1；OpenMP 并行。
+// 契约来源 docs/science/CALIBRATION.md §5（BIAS-001 订正）:
+// dark_opt=0（默认，标准式；master_dark 已减 bias）:
+//     out = (light - bias*[bias!=NULL] - K*dark*[dark!=NULL]) / max(flat, 0.1)
+// dark_opt=1（兼容式；master_dark 含 bias，显式 bias/dark 分离）:
+//     out = (light - bias - K*(dark-bias)) / max(flat, 0.1)
+// K = k_init，由调用方从 FITS EXPTIME 得 t_light/t_dark；**两分支都施加**，
+// 本层不静默取 K=1（缺 EXPTIME 由调用方 fail-closed）。Flat 已归一化，
+// 除法前逐像素 floor 0.1；OpenMP 并行。
 //
 // 设计说明:
 // - 核心算法不包含任何文件 IO，仅操作内存数组，便于上层 C API 包装。
@@ -99,10 +104,12 @@ void normalize_flat(float* flat, int w, int h) {
 // 不使用优化搜索，直接采用 k_init 作为暗场优化系数。
 
 // ---------------------------- 主校准 ----------------------------
-// dark_opt=0: out = (light - dark) / flat （Dark 已含 Bias）
-// dark_opt=1: out = (light - bias - K*(dark-bias)) / flat
-// - K = k_init（由调用方从 FITS EXPTIME 计算：t_light / t_dark）
-// - 若 dark_opt=1 但缺少 bias/dark，回退为标准模式 (light - dark)/flat
+// 标准式（dark_opt=0，默认）：master_dark 已减 bias
+//     out = (light - bias - K*dark) / max(flat, 0.1)   （缺项系数为 0）
+// 兼容式（dark_opt=1）：master_dark 含 bias（dark_total），显式分离
+//     out = (light - bias - K*(dark-bias)) / max(flat, 0.1)
+// - K = k_init（由调用方从 FITS EXPTIME 计算：t_light / t_dark），**两分支同一 K**
+// - 若 dark_opt=1 但缺少 bias/dark，回退标准式且**沿用 k_init**（不强制 K=1）
 void calibrate(const float* light, int w, int h,
                const float* dark, const float* flat, const float* bias,
                float* out, int dark_opt, float k_init, float* actual_k) {
@@ -115,7 +122,7 @@ void calibrate(const float* light, int w, int h,
     float k = k_init;
 
     if (dark_opt == 1 && bias && dark) {
-        // 暗场优化模式：K = t_light / t_dark，直接应用 (light - bias - K*(dark-bias)) / flat
+        // 兼容式：先分离 bias 再按 K 缩放
 #pragma omp parallel for schedule(static)
         for (int i = 0; i < n; i++) {
             float v = light[i] - bias[i] - k * (dark[i] - bias[i]);
@@ -123,12 +130,12 @@ void calibrate(const float* light, int w, int h,
             out[i] = v;
         }
     } else {
-        // 标准模式：Dark 已含 Bias，直接 (light - dark) / flat
-        k = 1.0f;
+        // 标准式：bias 与 dark 独立可缺；K 由调用方给出
 #pragma omp parallel for schedule(static)
         for (int i = 0; i < n; i++) {
             float v = light[i];
-            if (dark) v -= dark[i];
+            if (bias) v -= bias[i];
+            if (dark) v -= k * dark[i];
             if (flat) v /= std::max(flat[i], 0.1f);
             out[i] = v;
         }
@@ -144,8 +151,9 @@ void calibrate(const float* light, int w, int h,
 // FP64 模式下像素级算术 (light-bias-K*(dark-bias))/flat 在 double 上运行,
 // 不降级到 float32 (精度关键路径)。
 //
-// dark_opt=0: out = (light - dark) / flat （Dark 已含 Bias）
-// dark_opt=1: out = (light - bias - K*(dark-bias)) / flat
+// dark_opt=0（默认，标准式）: out = (light - bias - K*dark) / max(flat, 0.1)
+// dark_opt=1（兼容式，dark 含 bias）: out = (light - bias - K*(dark-bias)) / max(flat, 0.1)
+// K 两分支都施加；dark_opt=1 缺 bias/dark 时回退标准式且沿用 k_init。
 void calibrate_d(const double* light, int w, int h,
                  const double* dark, const double* flat, const double* bias,
                  double* out, int dark_opt, double k_init, double* actual_k) {
@@ -158,7 +166,7 @@ void calibrate_d(const double* light, int w, int h,
     double k = k_init;
 
     if (dark_opt == 1 && bias && dark) {
-        // 暗场优化模式：K = t_light / t_dark，直接应用 (light - bias - K*(dark-bias)) / flat
+        // 兼容式：先分离 bias 再按 K 缩放
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < n; i++) {
             double v = light[i] - bias[i] - k * (dark[i] - bias[i]);
@@ -166,12 +174,12 @@ void calibrate_d(const double* light, int w, int h,
             out[i] = v;
         }
     } else {
-        // 标准模式：Dark 已含 Bias，直接 (light - dark) / flat
-        k = 1.0;
+        // 标准式：bias 与 dark 独立可缺；K 由调用方给出
         #pragma omp parallel for schedule(static)
         for (int i = 0; i < n; i++) {
             double v = light[i];
-            if (dark) v -= dark[i];
+            if (bias) v -= bias[i];
+            if (dark) v -= k * dark[i];
             if (flat) v /= std::max(flat[i], 0.1);
             out[i] = v;
         }

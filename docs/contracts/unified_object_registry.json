@@ -578,6 +578,13 @@
       "owner": "CFG-001",
       "object_class": null,
       "note": "CFG-001 产物：run_manifest 冻结合同（源码/配置/输入输出哈希）。"
+    },
+    {
+      "file": "contracts/schemas/projection_registry.schema.json",
+      "role": "projection_registry_contract",
+      "owner": "SCI-FIX-PROJ(W4)",
+      "object_class": null,
+      "note": "投影注册表 v3 导出合同（SCI-FIX-PROJ 于 808e7a8d 建立，claim SC-001）；权威=ASTROCS_DESIGN.md §5.3 八投影 + docs/algorithms/PHASE3_PROJ_IMPL.md §15；实现导出=lib/algorithms/projection/p3_proj_v6.h registry_frozen_set()。不承载 UNIFIED_MODEL §2 的 14 个数据对象语义。"
     }
   ],
   "deprecation": {

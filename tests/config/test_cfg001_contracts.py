@@ -44,10 +44,11 @@ KEY_ANCHORS = [
     ("precision.default", "docs/science/SCIENCE_SCOPE.md", 53, "FP64"),
     ("upm.k_corr", "docs/science/PHASE2_UPM.md", 22, "1.4"),
     ("hips.tile_width", "docs/science/PHASE3_HIPS_TO_FITS.md", 39, "512"),
-    ("drizzle.pixfrac", "docs/science/DRIZZLE.md", 21, "pixfrac"),
+    ("drizzle.pixfrac", "docs/science/DRIZZLE.md", 31, "pixfrac"),
 ]
 PENDING_EXPECTED = {
-    "drizzle.pixfrac": "SCI-RES-01/R-005",
+    # drizzle.pixfrac 已于 DOC-SCI-001 §3 裁决落地（defaults.json value=1.0，
+    # authority_status=owner_adjudicated），不再是 pending 项。
     "sparse_snr.density": "SCI-RES-01/R-001",
     "scalar_gate.rd": "SCI-RES-01/R-002",
     "scalar_gate.trend": "SCI-RES-01/R-002",

@@ -441,6 +441,46 @@ int test_negative() {
         }
     }
 
+    // --- N10b: 输出结构 AioHipsVerifyReport 的 ABI fail-closed (LEDGER-P1 追加项)
+    //   ABI 校验必须**先于**任何产品级检查: 否则旧调用方 (零头) 会先拿到
+    //   "-1 参数无效/properties 缺失", ABI 不匹配被掩盖 = 假绿。
+    {
+        const std::string nodir = make_tmp_dir("n10babi") + "/absent";
+        // (a) 合法 ABI 头 ⇒ 走常规失败路径 (不得是 -9)
+        AioHipsVerifyReport rep{};
+        rep.struct_size = (uint32_t)sizeof(AioHipsVerifyReport);
+        rep.abi_version = (uint32_t)AIO_HIPS_VERIFY_REPORT_ABI_VERSION;
+        P1HIPS_CHECK_MSG(cs,
+                         aio_hips_verify_product_set(nodir.c_str(), &rep) !=
+                             AIO_HIPS_ABI_MISMATCH,
+                         "n10b_abi_ok_not_rejected", "合法 ABI 头不得判 -9");
+        // (b) 旧调用方 (struct_size/abi_version 均 0) ⇒ -9 且 last_error 点名 ABI
+        //   **本行必须保持零头**: 这是"旧调用方"的负例本体, 不得被调用方
+        //   批量补头脚本"顺手修好"(实测踩过一次 ⇒ 负例变假绿)。
+        AioHipsVerifyReport old_rep{};   // NOLINT: 故意不初始化 ABI 头
+        old_rep.struct_size = 0;
+        old_rep.abi_version = 0;
+        P1HIPS_CHECK_EQ(cs, aio_hips_verify_product_set(nodir.c_str(), &old_rep),
+                        AIO_HIPS_ABI_MISMATCH);
+        {
+            const char* m = aio_hips_last_error();
+            P1HIPS_CHECK_MSG(cs, m && std::strstr(m, "ABI") != nullptr,
+                             "n10b_last_error", "ABI 拒绝必须点名 ABI; last_error=%s",
+                             m ? m : "(null)");
+        }
+        // (c) 尺寸不符 ⇒ -9
+        AioHipsVerifyReport bad{};
+        bad.struct_size = (uint32_t)sizeof(AioHipsVerifyReport) - 4u;
+        bad.abi_version = (uint32_t)AIO_HIPS_VERIFY_REPORT_ABI_VERSION;
+        P1HIPS_CHECK_EQ(cs, aio_hips_verify_product_set(nodir.c_str(), &bad),
+                        AIO_HIPS_ABI_MISMATCH);
+        // (d) 版本不符 ⇒ -9
+        bad = rep;
+        bad.abi_version = (uint32_t)AIO_HIPS_VERIFY_REPORT_ABI_VERSION + 1u;
+        P1HIPS_CHECK_EQ(cs, aio_hips_verify_product_set(nodir.c_str(), &bad),
+                        AIO_HIPS_ABI_MISMATCH);
+    }
+
     // --- N11: 跨边界结构 ABI fail-closed (V11-N-01; ASTROCS_DESIGN §7.3)
     //   无 ABI 头的旧调用方 (struct_size/abi_version=0) 与错尺寸/错版本必须在
     //   公共入口被拒绝 (AIO_HIPS_ABI_MISMATCH=-9) 且 last_error 点名 ABI;

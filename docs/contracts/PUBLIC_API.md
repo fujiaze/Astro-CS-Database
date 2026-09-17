@@ -357,7 +357,7 @@
 > 手抄他版；SNR_API extern "C" 导出，_WIN32 下 __declspec(dllexport) :7-11）
 > SRC: lib/algorithms/noise_snr/cpp/src/noise_model.cpp（现状构建=cpp/Makefile:5,12
 > g++ -shared → snr_estimator.dll + cpp/build.ps1:29，未编入根 CMake 主
-> 构建；dll_loader.cpp:41/55 加载名与路径吻合）；SCI: SCI-NOISE-001..015；
+> 构建；dll_loader.cpp:59/73 加载名与路径吻合）；SCI: SCI-NOISE-001..015；
 > ALG: ALG-NOISE-001..003（NOISE_ESTIMATION §13.1 逐符号锚）；DATA:
 > DATA-P1-NOISE（DATA_SEMANTICS §13）；MOD: astrocs.p1.noise-snr（迁移目标
 > astrocs_p1_noise.dll，落码由 P1-NOISE-IMPL 建立）。编排级合同见
@@ -414,7 +414,7 @@
 - 生产调用方：lib/infrastructure/pipeline/orchestrator/src/orchestrator.cpp:4177（stage6 SNR，
   必需 stage）→ dll_loader_ 函数指针 snr_noise_model_v1/_f64/
   _default_config/_fill/_free（orchestrator.cpp:4242-4251）；DLL 装载
-  snr_estimator.dll（dll_loader.cpp:41，lib/algorithms/noise_snr/cpp/ :55）。
+  snr_estimator.dll（dll_loader.cpp:59，lib/algorithms/noise_snr/cpp/ :73）。
 - 已登记现状缺陷（不得静默使用，P1-NOISE-IMPL/INT 处理）：ABA 复用与
   并发无锁（DISP-NOISE-001）、build/fill floor 语义不一致（002）、
   gain 三字段无效（003）、无取消点（004）、scale_law 无校验（005）、
@@ -467,7 +467,7 @@
 ### 签名要点与内存所有权
 
 - gaia_client_handle 为 opaque borrow（调用方经 gaia_client.dll 创建/销毁，
-  dll_loader.cpp:271-281 预加载）；out_pixels/out_scale_factor/
+  dll_loader.cpp:289-299 预加载）；out_pixels/out_scale_factor/
   out_sigma_residual/out_n_matched/out_diag/out_records 均调用方分配；
   spec_stars/spectra_buf 为 DLL 内 malloc 的锥搜结果，本调用内 free。
 - 所有出参可 NULL 向后兼容（头 :17 注释）；records 需 n_psf≥1 才有意义。
@@ -634,8 +634,8 @@ cx/cy/fitRadius/sx/sy/fwhm 像素；theta 弧度；B/A/flux/mad ADU
   SCI-P1-PSF-001/alg_id=ALG-002/data_id=DATA-P1-SOURCES/api_id=API-P1-003/
   test_id=TEST-P1-PSF-001）由 P1-PSF-INT 对齐本合同，不得反向作为冻结
   依据（DISP-PSF-001 附注）。
-- 现状构建 lib/algorithms/psf/Makefile:3-5 → dynamic_psf.dll；dll_loader.cpp:39
-  （ModuleId::PSF→dynamic_psf.dll）/:53（lib/algorithms/psf/）；未编入根 CMake
+- 现状构建 lib/algorithms/psf/Makefile:3-5 → dynamic_psf.dll；dll_loader.cpp:57
+  （ModuleId::PSF→dynamic_psf.dll）/:71（lib/algorithms/psf/）；未编入根 CMake
   主构建——astrocs_p1_psf.dll 迁移由 P1-PSF-IMPL 建立。
 
 
@@ -735,8 +735,8 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
   `dpsf_fit_batch_f64`（Moffat4 FP64 批量 PSF 拟合，DATA-P1-PSF 携
   psf_params:FLOAT64[N,9]）；wcs→lib/algorithms/platesolve ipv 真实求解链
   `ipv_solve_from_memory_with_callback_d`（sdet+gaia_client 句柄注入；
-  非 Windows 平台为生产源内建 stub，节点 fail-closed 如实报平台限制，
-  Windows 侧真实求解；缺求解参数 DATA 拒绝）；writer→drizzle 节点经
+  两平台同源真实求解——非 Windows 侧静态绑定、Windows 侧动态加载同一组生产
+  C API（源内已无平台 stub）；缺求解参数 DATA 拒绝）；writer→drizzle 节点经
   `hp_drizzle_run_phase1_hips` 直写 `AstroSphereTileView`→
   `aio_hips_product_begin/write_signal_support_tile/finalize`
   （IVOA 1.4 标准 512×512 HiPS；P23 一级后不再经 legacy 单文件容器中转，
@@ -1840,9 +1840,9 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > （**不新增、不修改任何 C 头/C ABI**；p3_output.h 为唯一权威签名
 > 头，64 行，C++ namespace astrocs::phase3；编排面 p3_session.h
 > 五段式=API-P3-001 FROZEN 不变，本节仅镜像声明）。
-> SRC: lib/phase3_session/p3_output.cpp（370 行，astrocs_phase3_session
+> SRC: lib/algorithms/fits_output/p3_output.cpp（370 行，astrocs_phase3_session
 > 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
-> lib/phase3_session/p3_output.h（64 行）+ WCS 关键字源 p3_wcs.h
+> lib/algorithms/fits_output/p3_output.h（64 行）+ WCS 关键字源 p3_wcs.h
 > （50 行）；DATA: DATA-P3-FITS（DATA_SEMANTICS §27，单位/dtype/
 > invalid 唯一权威）；ALG: ALG-P3-FITS-IMPL-001
 > （docs/algorithms/PHASE3_FITS_IMPL.md，逐符号锚与消费链）；
@@ -1927,9 +1927,10 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > （**不新增、不修改任何 C 头/C ABI**；p3_wcs.h 为唯一权威签名头，
 > 50 行，C++ namespace astrocs::phase3；编排面 p3_session.h 五段式=
 > API-P3-001 FROZEN 不变，本节仅镜像声明）。
-> SRC: lib/phase3_session/p3_wcs.cpp（165 行，astrocs_phase3_session
-> 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
-> lib/phase3_session/p3_wcs.h（50 行）；DATA: DATA-P3-WCS
+> SRC: lib/algorithms/projection/p3_wcs.cpp（W4-A9 批次 1 由
+> lib/phase3_session/ 迁入；现为 astrocs_p3_projection_wcs STATIC 成员，
+> 经 astrocs_phase3_session/astrocs_module_adapters 闭包）+ 唯一权威签名头
+> lib/algorithms/projection/p3_wcs.h；DATA: DATA-P3-WCS
 > （DATA_SEMANTICS §28，单位/dtype/invalid 唯一权威）；ALG:
 > ALG-P3-PROJ-IMPL-001（docs/algorithms/PHASE3_PROJ_IMPL.md，逐符号
 > 锚与 G1/G2 冻结式）；MOD: astrocs.p3.projection（迁移目标
@@ -2016,9 +2017,9 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > （**不新增、不修改任何 C 头/C ABI**；p3_resample.h 为唯一权威签名
 > 头，58 行，C++ namespace astrocs::phase3；编排面 p3_session.h 五段
 > 式=API-P3-001 FROZEN 不变，本节仅镜像声明）。
-> SRC: lib/phase3_session/p3_resample.cpp（239 行，astrocs_phase3_
+> SRC: lib/algorithms/resample/p3_resample.cpp（239 行，astrocs_phase3_
 > session 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
-> lib/phase3_session/p3_resample.h（58 行）；DATA: DATA-P3-RES
+> lib/algorithms/resample/p3_resample.h（58 行）；DATA: DATA-P3-RES
 > （DATA_SEMANTICS §29，单位/dtype/invalid 唯一权威）；ALG:
 > ALG-P3-RSMP-IMPL-001（docs/algorithms/PHASE3_RSMP_IMPL.md，逐符号
 > 锚与 G3/G4 冻结式）；MOD: astrocs.p3.resample（迁移目标

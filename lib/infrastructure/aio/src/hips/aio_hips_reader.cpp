@@ -35,12 +35,34 @@ bool fits_ok(int status, const std::string& where) {
     return false;
 }
 
+// IVOA REC-HIPS-1.0 §4.1 标准布局: Dir = (N/10000)*10000, Npix = N (完整 tile 号)。
 std::string tile_path(const std::string& dir, int order, uint64_t ipix, const char* ext) {
     char buf[512];
     std::snprintf(buf, sizeof(buf), "%s/Norder%d/Dir%llu/Npix%llu%s",
-                  dir.c_str(), order, (unsigned long long)(ipix / 10000),
-                  (unsigned long long)(ipix % 10000), ext);
+                  dir.c_str(), order, (unsigned long long)((ipix / 10000u) * 10000u),
+                  (unsigned long long)ipix, ext);
     return std::string(buf);
+}
+
+// 旧版非标准布局 (Dir=商, Npix=余数) —— 只读兼容, 仅标准路径不存在时回退。
+std::string tile_path_legacy(const std::string& dir, int order, uint64_t ipix, const char* ext) {
+    char buf[512];
+    std::snprintf(buf, sizeof(buf), "%s/Norder%d/Dir%llu/Npix%llu%s",
+                  dir.c_str(), order, (unsigned long long)(ipix / 10000u),
+                  (unsigned long long)(ipix % 10000u), ext);
+    return std::string(buf);
+}
+
+// 解析实际存在的 tile 路径: 标准布局优先, 缺失时回退旧布局 (M2b-B-01 迁移兼容)。
+// ipix<10000 时两式同路径, 不产生额外 stat。
+std::string tile_path_resolve(const std::string& dir, int order, uint64_t ipix, const char* ext) {
+    const std::string std_p = tile_path(dir, order, ipix, ext);
+    if (ipix < 10000u) return std_p;
+    std::ifstream f(std_p, std::ios::binary);
+    if (f.good()) return std_p;
+    const std::string legacy_p = tile_path_legacy(dir, order, ipix, ext);
+    std::ifstream g(legacy_p, std::ios::binary);
+    return g.good() ? legacy_p : std_p;
 }
 
 // P1 (R9-A): 读侧产品参数硬校验 —— 与写侧 aio_hips_product_begin 完全一致
@@ -102,7 +124,7 @@ template <typename T>
 static int read_tile_t(AioHipsDataset* d, uint64_t ipix, T* out) {
     if (!d || !out) return -1;
     std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
-    std::string p = tile_path(d->dir, d->hips_order, ipix, ".fits");
+    std::string p = tile_path_resolve(d->dir, d->hips_order, ipix, ".fits");
     int status = 0;
     fitsfile* fptr = nullptr;
     if (fits_open_file(&fptr, p.c_str(), READONLY, &status)) {
@@ -152,7 +174,7 @@ static int read_tile_t(AioHipsDataset* d, uint64_t ipix, T* out) {
 static int read_tile_i32(AioHipsDataset* d, uint64_t ipix, int32_t* out) {
     if (!d || !out) return -1;
     std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
-    const std::string p = tile_path(d->dir, d->hips_order, ipix, ".fits");
+    const std::string p = tile_path_resolve(d->dir, d->hips_order, ipix, ".fits");
     int status = 0;
     fitsfile* fptr = nullptr;
     if (fits_open_file(&fptr, p.c_str(), READONLY, &status)) {
@@ -320,7 +342,7 @@ AioHipsDataset* aio_hips_open(const char* out_dir, int product)  {
         if (product == AIO_HIPS_RD_SNR) {
             // 读取全部 SNR TSV tiles
             for (uint64_t ip : d->tiles) {
-                std::string p = tile_path(d->dir, d->hips_order, ip, ".tsv");
+                std::string p = tile_path_resolve(d->dir, d->hips_order, ip, ".tsv");
                 std::ifstream f(p);
                 std::string line;
                 bool first = true;
@@ -487,7 +509,7 @@ int aio_hips_read_tile_datasum(AioHipsDataset* d, uint64_t tile_ipix,
     try {
         if (!d || !out || out_size <= 0) return -1;
         std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
-        std::string p = tile_path(d->dir, d->hips_order, tile_ipix, ".fits");
+        std::string p = tile_path_resolve(d->dir, d->hips_order, tile_ipix, ".fits");
         int status = 0;
         fitsfile* fptr = nullptr;
         if (fits_open_file(&fptr, p.c_str(), READONLY, &status)) {

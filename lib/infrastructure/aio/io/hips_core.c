@@ -236,8 +236,16 @@ static int hips_validate_properties(acs_hips_handle_v1 h, char* err, size_t cap)
     hips_set_err(err, cap, "properties 缺 hips_frame");
     return ACS_HIPS_ERR_PROPERTIES;
   }
-  if (!hips_strcaseeq(frame, "equatorial")) {
-    hips_set_err(err, cap, "hips_frame='%s' 非 equatorial (未知 frame 拒绝)", frame);
+  /* IVOA REC-HIPS-1.0 §4.4.1: hips_frame 值域 = {icrs, galactic, ecliptic}。
+   * 本管道内部 frame 恒为 ICRS (SCI-P3-001 §4 "合法转换 = 仅恒等 ICRS"),
+   * 故只接受标准值 "icrs"; "equatorial" 是写出侧旧版非标准值 (M1a-B-005),
+   * 仅作**读取兼容别名**接受。galactic/ecliptic 属标准值域但本实现无转换,
+   * 显式拒绝 (fail-closed, 不静默当 ICRS)。 */
+  if (!hips_strcaseeq(frame, "icrs") && !hips_strcaseeq(frame, "equatorial")) {
+    hips_set_err(err, cap,
+                 "hips_frame='%s' 不被接受: 本管道只支持 ICRS (标准值域 icrs/"
+                 "galactic/ecliptic; galactic/ecliptic 无转换实现)",
+                 frame);
     return ACS_HIPS_ERR_UNSUPPORTED;
   }
   h->order = (int32_t)order;
@@ -544,21 +552,55 @@ static int hips_join_path(char* path, size_t path_cap,
 /* tile 定位 / 校验                                                    */
 /* ------------------------------------------------------------------ */
 
-/* 组装 tile 相对路径 (含 Norder{DirNpix} 子目录结构)。返回 0=OK。 */
+/* 组装 tile 相对路径 (NorderK/DirD/NpixN.fits)。
+ * IVOA REC-HIPS-1.0 §4.1: D = (N/10000)*10000 (块起始值), Npix = 完整 tile 号 N
+ * (示例 10302@order6 -> Dir10000/Npix10302.fits)。旧实现写 Dir=商/Npix=余数,
+ * 与标准相反 (M2b-B-01)。返回 0=OK。 */
 static int hips_tile_rel(acs_hips_handle_v1 h, uint64_t ipix,
                          char* rel, size_t rel_cap, char* err, size_t cap) {
   uint64_t npix_order = 12ULL * (1ULL << (2ULL * (uint64_t)h->order));
-  uint64_t D, N;
   if (ipix >= npix_order) {
     hips_set_err(err, cap, "ipix=%llu 越界 (order %d 域 [0,%llu))",
                  (unsigned long long)ipix, (int)h->order,
                  (unsigned long long)npix_order);
     return ACS_HIPS_ERR_ADDRESS;
   }
-  D = ipix / 10000u;
-  N = ipix % 10000u;
   snprintf(rel, rel_cap, "Norder%d/Dir%llu/Npix%llu.fits", (int)h->order,
-           (unsigned long long)D, (unsigned long long)N);
+           (unsigned long long)((ipix / 10000u) * 10000u),
+           (unsigned long long)ipix);
+  return ACS_HIPS_OK;
+}
+
+/* 旧版非标准布局 (Dir=商, Npix=余数) —— 只读兼容, M2b-B-01 迁移用。 */
+static int hips_tile_rel_legacy(const acs_hips_handle_v1 h, uint64_t ipix,
+                                char* rel, size_t rel_cap) {
+  snprintf(rel, rel_cap, "Norder%d/Dir%llu/Npix%llu.fits", (int)h->order,
+           (unsigned long long)(ipix / 10000u),
+           (unsigned long long)(ipix % 10000u));
+  return ACS_HIPS_OK;
+}
+
+/* 解析实际存在的 tile 相对路径: 标准布局优先, 缺失时回退旧布局;
+ * 两者皆缺时返回标准路径 (调用方据此报 "tile 缺失" 并给出标准名)。 */
+static int hips_tile_rel_resolve(acs_hips_handle_v1 h, uint64_t ipix,
+                                 char* rel, size_t rel_cap,
+                                 char* err, size_t cap) {
+  char path[ACS_HIPS_PATH_MAX];
+  int st = hips_tile_rel(h, ipix, rel, rel_cap, err, cap);
+  if (st != ACS_HIPS_OK) return st;
+  if (ipix < 10000u) return ACS_HIPS_OK; /* 两式同路径, 无需回退 */
+  if (hips_join_path(path, sizeof(path), h->dir, rel) == ACS_HIPS_OK &&
+      hips_file_exists(path)) {
+    return ACS_HIPS_OK;
+  }
+  {
+    char legacy[512];
+    hips_tile_rel_legacy(h, ipix, legacy, sizeof(legacy));
+    if (hips_join_path(path, sizeof(path), h->dir, legacy) == ACS_HIPS_OK &&
+        hips_file_exists(path)) {
+      snprintf(rel, rel_cap, "%s", legacy);
+    }
+  }
   return ACS_HIPS_OK;
 }
 
@@ -574,7 +616,7 @@ static int hips_tile_validate(acs_hips_handle_v1 h, uint64_t ipix,
   int st, i;
   int32_t bitpix;
 
-  st = hips_tile_rel(h, ipix, rel, sizeof(rel), err, cap);
+  st = hips_tile_rel_resolve(h, ipix, rel, sizeof(rel), err, cap);
   if (st != ACS_HIPS_OK) return st;
   st = hips_join_path(path, sizeof(path), h->dir, rel);
   if (st != ACS_HIPS_OK) return st;
@@ -720,7 +762,14 @@ int acs_hips_open_v1(const char* base_dir_utf8,
     h->hooks = *hooks;
     h->has_hooks = 1;
   }
-  (void)hips_parse_moc(h, err, err_cap); /* optional; 失败忽略 */
+  /* MOC 读侧**显式登记为非 fail-closed** (M2b-B-02 收口项, 二选一中的「登记」分支)。
+   * 理由 (1) IO_002 §4「MOC 仅作 optional hint」: 无 Moc.fits 时 tile 枚举返回 0,
+   *         单 ipix 定位 (hips_tile_validate/read) 完全不依赖 MOC;
+   *      (2) DISP-HIPS-005 已登记「低阶 UNIQ 对自家 reader 无效」——自家产物的
+   *         MOC 可能合法存在而本 reader 不可用, 若 fail-closed 会把可读产品判死;
+   *      (3) 因此 MOC 解析失败只降级为「枚举面 0 tile」, 不改变单 tile 读取语义。
+   * 该降级面已登记在 docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md §5 限制 3。 */
+  (void)hips_parse_moc(h, err, err_cap);
   *out = h;
   return ACS_HIPS_OK;
 }
@@ -807,7 +856,7 @@ int acs_hips_tile_exists_v1(acs_hips_handle_v1 h, uint64_t ipix, int* out_exists
   char path[ACS_HIPS_PATH_MAX];
   int st;
   if (!h || !out_exists) return ACS_HIPS_ERR_PARAM;
-  st = hips_tile_rel(h, ipix, rel, sizeof(rel), NULL, 0);
+  st = hips_tile_rel_resolve(h, ipix, rel, sizeof(rel), NULL, 0);
   if (st != ACS_HIPS_OK) return st;
   st = hips_join_path(path, sizeof(path), h->dir, rel);
   if (st != ACS_HIPS_OK) return st;
@@ -866,7 +915,7 @@ static int hips_read_plane_impl(acs_hips_handle_v1 h, uint64_t ipix,
     return st;
   }
   if (st != ACS_HIPS_OK) return st;
-  st = hips_tile_rel(h, ipix, rel, sizeof(rel), err, err_cap);
+  st = hips_tile_rel_resolve(h, ipix, rel, sizeof(rel), err, err_cap);
   if (st != ACS_HIPS_OK) return st;
   st = hips_join_path(path, sizeof(path), h->dir, rel);
   if (st != ACS_HIPS_OK) return st;

@@ -1,5 +1,7 @@
 ---
 id: MOD-astrocs-phase1-star
+module_id: astrocs.p1.star_detection
+aliases: [astrocs.phase1.star, astrocs.phase1.star-detection]
 version: 1.0.0
 status: ACTIVE
 owner: astrocs-core

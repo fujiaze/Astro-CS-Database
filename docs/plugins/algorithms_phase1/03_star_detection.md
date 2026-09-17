@@ -7,7 +7,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §3.6（硬约束：检测阈值基于局部噪声）
+- 最高设计 `ASTROCS_DESIGN.md` §3.6:195（硬约束转引 `docs/plugins/algorithms_phase1/**` 与 `docs/science/**`）；检测阈值的冻结定义见 `docs/science/STAR_DETECTION.md:18-19`、`docs/algorithms/STAR_DETECTION_ALGORITHMS.md:36`、`docs/algorithms/GATES_AND_TOLERANCES.md:38-39`
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §5（背景、有效性与源检测）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（质心/矩不确定度）
 
@@ -20,7 +20,7 @@
 
 ## 4. 算法与公式要点
 
-- 检测阈值基于**局部噪声**（使用 variance/ivar），不得用全局固定阈值；
+- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）。检测路径**不消费**逐像素 variance/ivar。「局部噪声自适应」为目标态、当前未实现，登记 `DISP-STAR-002`（整改归 P1-STAR-IMPL/INT），不得写成现状；
 - 质心/矩与不确定度：一阶矩质心、二阶矩，误差来自局部噪声传播；
 - 输出 selection function（完备性 vs 亮度/位置）和 completeness 参数；
 - 检测统计量与下游 PSF/测光解耦：检测目录不直接成为科学权重。
@@ -29,7 +29,7 @@
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `detection_threshold` | 5.0 | σ（局部） | 检测阈值 |
+| `detection_threshold` | 5.0 | σ（全局 bgnoise） | 检测阈值；语义 = `median(img)+5.0·bgnoise`（σ=2 平滑图上判定），与 `config/defaults.json#detection.threshold_sigma` 同义 |
 | `min_area` | 2 | px | 最小连通像素数 |
 | `deblend` | true | —— | 是否解混 |
 | `selection_function` | true | —— | 是否输出 selection function |

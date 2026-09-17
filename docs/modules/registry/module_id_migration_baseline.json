@@ -1,0 +1,33 @@
+{
+  "baseline_id": "module-id-migration-2026-09-17",
+  "generated_at": "2026-09-17T06:15:00+08:00",
+  "method": "python3 tools/quality/check_module_id_normalization.py --root . --json-out <out>（逐类计数 = errors[].split()[0] 频次）",
+  "scope": "docs/modules/MODULE_MAP.yaml（规范面）+ docs/modules/registry/*.md front-matter（登记页）",
+  "index_module_count": 23,
+  "index_module_count_rule": "文档集规模登记值（前台 2026-09-17 裁决：取代 check_module_map.py 中的硬编码 23）：门断言 docs/plugins/00_INDEX.md §2 解析出的模块数 == 本值，且 set(map_ids) == set(index_ids)。只许在落地批内手改并在自证摘要写明依据；未登记时退化为「索引规模 == 映射表规模」。",
+  "classes": {
+    "PAGE_MISSING_MODULE_ID": 20,
+    "MODULE_WITHOUT_PAGE": 17,
+    "AUTHORITY_MISSING": 0
+  },
+  "rule": "烧毁式基线：每类只许下降不许上升；下调只能在 MOD-002 落地批内手改，并在 run/PROJECT-GOVERNANCE-01/LEDGER-DOC/自证摘要.md 记明「本批下调 X→Y，依据=落地了哪几条」；两类归零后删除本文件 ⇒ 门转全量强制（任何 error 即 rc=1）。负例注入（--fault-inject）一律绕过基线、全量强制。",
+  "owner": "MOD-002（LEDGER-DOC 域）；CI 注册转 W4-A3",
+  "history": [
+    {
+      "at": "2026-09-17T06:15:00+08:00",
+      "change": "建立基线 23/20（最小面批次后实测：3/26 页有 module_id、3/23 模块有页）"
+    },
+    {
+      "at": "2026-09-17T06:55:00+08:00",
+      "change": "中面批次后下调 23/20 → 21/18；依据=新增 module_id 的页 astrocs.phase1.noise-snr.md、astrocs.phase1.star-psf.md（+2 页），新增覆盖 module_id astrocs.p1.noise_snr、astrocs.p1.psf（+2 模块）"
+    },
+    {
+      "at": "2026-09-17T07:25:00+08:00",
+      "change": "大面步骤1+2 后下调：21/18 → 20/18；依据=新增 module_id 的页 astrocs.phase1.star-detection.md（+1 页）；新增 A 面条目 astrocs.p1.hips_writer（map_ids 23→24、covered 5→6，MODULE_WITHOUT_PAGE 不变）；新增错误类 AUTHORITY_MISSING 基线 0"
+    },
+    {
+      "at": "2026-09-17T07:35:00+08:00",
+      "change": "大面步骤1 落地后下调 21/18 → 20/17；依据=新增 module_id 的页 astrocs.phase1.star-detection.md（+1 页）+ 覆盖模块 astrocs.p1.star_detection（+1 模块有页）。大面步骤2（新增 A 面条目 astrocs.p1.hips_writer）已回退：check_module_map findings 155→161（missing_map_field plugin_doc / dangling_data_contract DATA-P1-DRZ+DATA-P1-HIPS / header_missing_abi_version 等 6 条），违反「findings 不得上升」⇒ 登记为待 B/C 面补齐后新增，不为凑数造条目"
+    }
+  ]
+}

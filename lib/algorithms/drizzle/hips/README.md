@@ -1,13 +1,19 @@
 # lib/algorithms/drizzle/hips — astrocs.p1.hips_writer（P1-HIPS）
 
 > 状态: CONTRACT_READY（P1-HIPS-DOC 冻结，2026-09-07）｜doc revision: r1
+> **现状复测（LEDGER-DOC，2026-09-17；`python3 tools/quality/check_module_map.py`）**：
+> 本模块生产源 `lib/algorithms/drizzle/hips/src/module_entry.cpp` 与 CMake SHARED target `astrocs_p1_hips_writer`（`lib/algorithms/drizzle/hips/CMakeLists.txt:43`）均在位，
+> `astrocs_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
+> ⇒ 机读状态 = **NOT_IMPLEMENTED**。下文旧基线中「仅合同文件/无源码/无 CMake target/
+> entrypoint=MISSING/尚未存在」等表述已被实测反证，以本注记与检查器输出为准；
+> 实现侧整改归 P1-HIPS-IMPL。
 > 本 README 由源码逐函数核对后新建（P1-HIPS-DOC）：函数、单位、坐标、dtype、
 > shape、invalid、错误、并发、内存、I/O 均以现行唯一生产实现
 > `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp`（合同头
 > `lib/infrastructure/aio/include/aio_hips.h`；根 CMakeLists.txt:298-309 编入静态库
 > `astrocs_hips`，C ABI 导出 aio_hips.h:104,121,130,135,144,149,152,163,177
 > 的 9 符号）为准；`lib/algorithms/drizzle/hips/` 是 P1-HIPS 迁移目标目录（astrocs_p1_hips_writer.dll
-> 落码由 P1-HIPS-IMPL 建立，当前本目录仅合同文件、无源码；落位依据
+> 与 src/module_entry.cpp 已由 P1-HIPS-IMPL 落地在位；落位依据
 > MODULE_MIGRATION_MATRIX.csv P1-HIPS 行 target=astrocs_p1_hips_writer.dll、
 > legacy_paths="lib/infrastructure/aio/healpix_db;lib/phase1_session"——实测生产 writer 在
 > lib/infrastructure/aio/src/hips/，lib/infrastructure/aio/healpix_db 侧参与生产的为 drizzle 写通道
@@ -21,7 +27,7 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-phase1-hips-writer` / 现状实现编入 CMake 静态库 `astrocs_hips`（CMakeLists.txt:298-309，无独立 DLL 产物，全仓库无 astrocs_p1_hips_writer 目标）；迁移目标 `astrocs_p1_hips_writer.dll`（P1-HIPS-IMPL 建立，尚未存在） |
+| MOD ID / DLL target | `MOD-astrocs-phase1-hips-writer` / 模块 DLL `astrocs_p1_hips_writer`（SHARED，lib/algorithms/drizzle/hips/CMakeLists.txt:43，**已在位**；legacy 静态库 `astrocs_hips` 并存）；entrypoint `astrocs_module_query_v1` 在位但零调用 ⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 P1-HIPS-IMPL） |
 | module / ABI / doc revision | `astrocs.p1.hips_writer` / C ABI（aio_hips.h extern "C" AIO_HIPS_EXPORT，无版本化 query 入口，迁移缺口）/ r1 |
 | owner / phase scope | SA-P1-D18 / phase1（matrix P1-HIPS；depends_on_int=P1-DRZ-INT;IO-003） |
 | 文档状态 | CONTRACT_READY（实现存在于 lib/infrastructure/aio/src/hips，模块化迁移未开始；不声明 IMPLEMENTED） |

@@ -1,9 +1,9 @@
 {
   "schema": "astrocs.known-failures-baseline/v1",
   "repo": "/workspace/Astro CS Database",
-  "source_commit": "fdf6296b1dd2acb4705e191a2c153c58e61d348e",
+  "source_commit": "61ca0725e251a4dc58b5c444ac0f09120c292367",
   "finding_count": 40,
-  "reproduced_count": 17,
+  "reproduced_count": 15,
   "findings": [
     {
       "finding_id": "F-001",
@@ -141,7 +141,7 @@
     {
       "finding_id": "F-014",
       "severity": "P0",
-      "status": "REPRODUCED",
+      "status": "NOT_REPRODUCED_WITH_EVIDENCE",
       "minimal_command": "grep -n 'p3_output_verify\\|CHECKSUM\\|DATASUM\\|P3_OUT_OK' lib/phase3_session/p3_output.cpp",
       "evidence": [
         "verify 未比较 WCS/BUNIT/CHECKSUM 或 mismatch 仍返回 OK"
@@ -256,17 +256,17 @@
       "status": "REPRODUCED",
       "minimal_command": "grep -c 'ADU/pixel/deg per header' docs/contracts/API_CONTRACTS.csv",
       "evidence": [
-        "占位行数=382"
+        "占位行数=381"
       ],
       "note": "422 行批量占位语义"
     },
     {
       "finding_id": "F-026",
       "severity": "P1",
-      "status": "REPRODUCED",
+      "status": "NOT_REPRODUCED_WITH_EVIDENCE",
       "minimal_command": "grep -oE '[\\w/]+\\.h' tools/check_ast_api.py",
       "evidence": [
-        "AST 检查头文件集合: ['include/astrocs/core/artifact.h', 'include/astrocs/core/contracts.h', 'include/astrocs/io/io_adapter.h']"
+        "AST 检查头文件集合: ['inc/demo.h', 'include/astrocs/core/artifact.h', 'include/astrocs/core/contracts.h', 'include/astrocs/io/io_adapter.h']"
       ],
       "note": "只查符号名存在，不查参数/语义"
     },
@@ -395,7 +395,7 @@
       "finding_id": "F-039",
       "severity": "P2",
       "status": "NOT_REPRODUCED_WITH_EVIDENCE",
-      "minimal_command": "grep -n 'project\\|p3_sample_bilinear' lib/phase3_session/p3_resample.cpp",
+      "minimal_command": "grep -n 'project\\|p3_sample_bilinear' lib/algorithms/resample/p3_resample.cpp",
       "evidence": [
         "p3_sample_bilinear 有未用 project lambda / 临时象限插值"
       ],

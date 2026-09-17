@@ -15,9 +15,11 @@
 import os, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CAL_INC = os.path.join(REPO, "lib", "calibration", "include")
-CAL_SRC = os.path.join(REPO, "lib", "calibration", "src")
-AIO_INC = os.path.join(REPO, "lib", "astro_image_io", "include")
+# 路径随 §7 布局迁移同步（旧 lib/calibration、lib/astro_image_io 已不存在；
+# BIAS-001：本文件是 SCI-CAL-001 §5 的独立 NumPy oracle，必须可跑才算 oracle）。
+CAL_INC = os.path.join(REPO, "lib", "algorithms", "calibration", "include")
+CAL_SRC = os.path.join(REPO, "lib", "algorithms", "calibration", "src")
+AIO_INC = os.path.join(REPO, "lib", "infrastructure", "aio", "include")
 
 DRIVER = r'''
 #include "astro_calibration.h"
@@ -164,18 +166,25 @@ def oracle_flat(fstack, w, h, bias, low, high, iters):
     return [max(v / med, 0.1) for v in master]
 
 def oracle_cal(light, dark, flat, bias, dark_opt, k):
+    """SCI-CAL-001 §5（BIAS-001 订正版）独立复算。
+
+    标准式 dark_opt=0：v = (light − bias − k·dark) / max(flat, 0.1)   [缺项为 0]
+    兼容式 dark_opt=1：v = (light − bias − k·(dark − bias)) / max(flat, 0.1)
+    K 在两分支都施加；旧版把标准式写成 (light − dark)/flat 且丢弃 bias，属缺陷
+    （ALG-CAL-001 DISP-CAL-012）。
+    """
     out = []
     for i in range(len(light)):
         if dark_opt == 1 and bias is not None and dark is not None:
             v = light[i] - bias[i] - k * (dark[i] - bias[i])
-            if flat is not None:
-                v /= max(flat[i], 0.1)
         else:
             v = light[i]
+            if bias is not None:
+                v -= bias[i]
             if dark is not None:
-                v -= dark[i]
-            if flat is not None:
-                v /= max(flat[i], 0.1)
+                v -= k * dark[i]
+        if flat is not None:
+            v /= max(flat[i], 0.1)
         out.append(v)
     return out
 
@@ -259,7 +268,11 @@ class TestCalibrationOracle(unittest.TestCase):
         md = oracle_master(self.raws["RAW_DARKSTACK"], W, H, 2.0, 3.0, 5, 1)
         mf = oracle_flat(self.raws["RAW_FLATSTACK"], W, H, mb, 2.5, 3.0, 4)
         light = self.raws["LIGHT"]
-        exp = oracle_cal(light, md, mf, None, 0, 1.0)
+        # BIAS-001: 驱动侧 CAL0 = ac_calibrate_frame(light, md, mf, mb, dark_opt=0, K=1)
+        # （见 DRIVER 第 78 行：bias 指针为 mb）。旧期望漏传 bias 且用旧标准式
+        # (light−dark)/flat，实测 2467.19 vs 实现 427.94 ⇒ 本 oracle 由红转绿。
+        # 新期望 = 标准式 (light − bias − K·dark)/max(flat,0.1)，K=1.0。
+        exp = oracle_cal(light, md, mf, mb, 0, 1.0)
         self.assertAlmostEqual(d["CAL0AK"][0], 1.0, delta=1e-6)
         self._approx_list(d["CAL0"], exp, 2e-3, "CAL0")
 

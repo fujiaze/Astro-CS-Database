@@ -17,7 +17,7 @@
   `AC_API` 符号）+ `lib/algorithms/calibration/src/master_generator.cpp`、
   `lib/algorithms/calibration/src/calibrator.cpp`、`lib/algorithms/calibration/src/cosmetic_corrector.cpp`、
   `lib/algorithms/calibration/src/ac_api.cpp`（CMake `astrocs_calibration` 静态库唯一构建
-  清单，CMakeLists.txt:321-333）。
+  清单，CMakeLists.txt:420-432）。
 - 负责: master bias/dark/flat 生成（sigma-clip 合并）、单帧校准算术、
   热像素/冷像素检测与插值修复；Gaia 测光比例标量应用（现状未接线）。
 - 不负责: FITS/XISF 文件读写（astro_image_io，调用方侧）、母版按曝光/滤镜
@@ -28,16 +28,39 @@
 ## 2 连续定义（SCI-CAL-001 §5 转述，权威以 SCI 为准）
 
 ```text
-dark_opt=0（默认，Dark 已含 Bias）:
-  cal = (raw − dark) / flat_norm
-dark_opt=1（显式 Bias/Dark 分离，K=t_light/t_dark）:
-  cal = (raw − bias − K·(dark − bias)) / flat_norm
+母版约定（SCI-CAL-001 §5 输入合同）:
+  master_bias  零曝光本底母版（ADU）
+  master_dark  已减 bias 的暗电流母版（ADU）
+  master_flat  已归一平场（median=1.0）
+
+dark_opt=0（默认，标准式；master_dark 已减 bias）:
+  cal = (raw − bias·[bias≠NULL] − K·dark·[dark≠NULL]) / max(flat, 0.1)
+dark_opt=1（兼容式，显式 Bias/Dark 分离；master_dark 含 bias）:
+  cal = (raw − bias − K·(dark − bias)) / max(flat, 0.1)
+K = t_light / t_dark                        （两分支同一 K）
 flat_norm = max(flat / median(flat), 0.1)   （median<=0 时不归一，保持原样）
 ```
 
 离散实现中 `flat/median(flat)` 归一发生在 master flat 生成期
 （ALG-CAL-002 步骤 3）；`calibrate`（ALG-CAL-003）对入参 flat 仅施加
 floor 0.1，即约定入参 master_flat 已是 median≈1.0 的归一化平场。
+
+**标度声明（UNIT-001 冻结，2026-09-17；SCI-CAL-001 §3/§6）**：本层 C ABI 单位盲，
+入参必须已同标度；把母版文件解释成该标度是**调用方（io_read/编排）义务**，且必须**显式声明**
+（禁止按后缀/目录名推断，`contracts/data/phase_product_exchange_matrix.json` R-NO-NAME-BINDING）：
+
+| 文件形态 | 文件自身声明 | 到 ADU 的换算 | 违反时 |
+|---|---|---|---|
+| FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU；[0,65535]） | — |
+| XISF `Float32` `bounds="0:1"` | **可表示域**（黑/白点），非物理单位（XISF 1.0 §Image，浮点实型必须带 `bounds`） | 换算因子**不由文件给出**：须声明 `master_units=normalized` + `master_scale`（16 位原生数据取 65535，PCL `NormalizeSamples`/`UInt16 MaxSampleValue`） | 消费边界 DATA 拒绝（rc=2），诊断点名文件 |
+| master_flat（任一形态） | 无 | 归一化是**独立维度**：`median(flat)` 须落在 `master_flat_median_range`（默认 [0.5,2.0]，`config/defaults.json`），否则须显式声明 `master_flat_normalize="median"`（= §2 `flat_norm`，幂等） | 未声明且不落区间 ⇒ DATA 拒绝（rc=2） |
+| master_dark | `dark_optimization`（bool）声明是否含 bias | — | 提供 dark 而未声明 ⇒ DATA 拒绝（rc=2） |
+
+**四条机器规则（`tools/quality/check_master_unit_guard.py --self-test` 可执行正负例）**：
+U1 亮场域 ≫ 1 ADU 而 bias/dark 中位数 ≤ 1.0 且未声明 normalized+scale ⇒ 拒；
+U2 `median(flat)` 出区间且未声明 median 归一 ⇒ 拒；
+U3 提供 dark 而未显式声明 bias 约定 ⇒ 拒；
+U4 已声明的换算因子/归一动作与观测统计必须自洽（声明 normalized 必带正 scale；bias/dark 声明域须一致）。
 
 ## 3 离散公式与伪代码（与源码逐一锚定）
 
@@ -70,7 +93,7 @@ F1.4  合并 [136-157]:
 
 中位数定义（全文档共用）: `median(v)`=nth_element 选择；n 奇取 `v[n/2]`，
 n 偶取 `(v[n/2−1]+v[n/2])/2`（`median_inplace`/`median_of`，如
-`calibrator.cpp:45-59`、`master_generator.cpp:49-60`）。
+`calibrator.cpp:50-64`、`master_generator.cpp:49-60`）。
 
 ### 3.2 ALG-CAL-002 MasterFlat 生成 `ac::generate_master_flat`
 
@@ -117,26 +140,53 @@ F2.3  步骤3（最终归一）[255-288]:
 
 ### 3.3 ALG-CAL-003 单帧校准 `ac::calibrate` / `ac::calibrate_d`
 
-源码锚: `calibrator.cpp:106-138`（float）、`calibrator.cpp:149-181`
+源码锚: `calibrator.cpp:113-145`（float）、`calibrator.cpp:157-189`
 （double，逻辑逐行一致）。OpenMP parallel for schedule(static)。
 
 ```text
-F3.1  dark_opt==1 && bias && dark（K=k_init 直通，非搜索）[117-124]:
+F3.1  dark_opt==1 && bias && dark（兼容式；K=k_init 直通，非搜索）[124-132]:
         out[i] = (light[i] − bias[i] − k·(dark[i] − bias[i])) / max(flat[i], 0.1)
         （flat==NULL 时跳过除法）；actual_k = k_init
-F3.2  否则（标准模式）[125-135]:
-        k = 1.0
-        out[i] = (light[i] − dark[i]·[dark!=NULL]) / max(flat[i], 0.1)·[flat!=NULL]
-        actual_k = 1.0
+F3.2  否则（标准式, dark_opt==0；dark 视为已减 bias）[133-142]:
+        k = k_init                       # K 必须由调用方给出（t_light/t_dark），不再强制 1.0
+        out[i] = (light[i] − bias[i]·[bias!=NULL] − k·dark[i]·[dark!=NULL])
+                 / max(flat[i], 0.1)·[flat!=NULL]
+        actual_k = k
 F3.3  参数无效（!light||!out||w<=0||h<=0）: actual_k=k_init，静默返回，
-      out 不写 [109-112]；C API 层先校验并返回 AC_ERR_PARAM（ac_api.cpp:100-101）。
+      out 不写 [116-119]；C API 层先校验并返回 AC_ERR_PARAM（ac_api.cpp:100-101）。
+F3.4  契约边界（BIAS-001 修复后）:
+      · bias 项在**两个分支都出现**：标准式 −bias、兼容式 −bias−K(dark−bias)；
+        缺 bias（NULL）时该项为 0，且调用方必须在预检/manifest 显式登记"本底未去除"。
+      · K 在**两个分支都施加**；缺 EXPTIME 时调用方 fail-closed，不得静默 K=1
+        （旧实现在标准分支强制 k=1.0 且完全不读 bias，见 DISP-CAL-012）。
+        K=1 时两分支代数恒等（SCI-CAL-001 §5/§7），逐位相等性不作判据。
 ```
 
-- `normalize_flat`（`calibrator.cpp:80-95`，median→1.0 + floor 0.1，
+**K / bias 退化对照表（BIAS-001 交付判据，逐格给期望诊断与 rc）**：
+
+| 情形 | dark | bias | EXPTIME | K | 期望行为 | rc |
+|---|---|---|---|---|---|---|
+| 标准式 K=1 | 在位 | 在位 | t_light = t_dark | 1.0 | `(raw−bias−dark)/flat`；`bias_participated=true` | 0 |
+| 标准式 K≠1 | 在位 | 在位 | t_light ≠ t_dark | t_l/t_d | `(raw−bias−K·dark)/flat` | 0 |
+| 兼容式 K≠1 | 在位 | 在位 | t_light ≠ t_dark + `dark_optimization=true` | t_l/t_d | `(raw−bias−K·(dark−bias))/flat` | 0 |
+| dark 缺 EXPTIME | 在位 | 在位 | master_dark 无/非正 EXPTIME | — | DATA fail-closed（不得静默 K=1） | 2 |
+| light 缺 EXPTIME | 在位 | 在位 | light 无/非正 EXPTIME | — | DATA fail-closed | 2 |
+| 显式 `dark_scale_factor` 与 EXPTIME 比不一致 | 在位 | 在位 | 在位 | — | DATA fail-closed（>1e-6 相对） | 2 |
+| dark 缺失 | NULL | 在位 | 任意 | 不进入算术 | `(raw−bias)/flat` | 0 |
+| bias 缺失 | 在位 | NULL | 在位 | t_l/t_d | `(raw−K·dark)/flat`；manifest `optimize`「本底未去除」+ stderr warning | 0（预检 error 需 `-force` 越过） |
+| `dark_optimization=true` 但 bias/dark 缺一 | 缺一 | 缺一 | 任意 | k_init | 回退标准式且沿用 k_init（不强制 1.0） | 0 |
+
+> 上表 rc 口径 = CLI 退出码（DATA 拒绝 → 2；`-force` 只越过「缺标定帧」类预检
+> error，不越过 DATA 校验）。单位一致性（母版与 light 同标度）由 **UNIT-001 的消费
+> 边界门**（`p1_op_calibrate` 前置校验 + `tools/quality/check_master_unit_guard.py`，
+> 见 §2 标度声明表与 DISP-CAL-013）fail-closed 校验；**本层（calibrator）保持单位盲**，
+> 只做 SCI-CAL-001 §5 的逐像素算术。
+
+- `normalize_flat`（`calibrator.cpp:85-100`，median→1.0 + floor 0.1，
   med<=0 原样返回）：**当前无任何生产调用方**（ac_api 不转发，模块内无
   调用）。median→1.0 归一由 ALG-CAL-002 在 master 生成期承担；登记为
   未接线辅助符号（DISP-CAL-007）。
-- `compute_mad`（`calibrator.cpp:66-76`）：与 cosmetic 的
+- `compute_mad`（`calibrator.cpp:71-82`）：与 cosmetic 的
   `compute_global_mad` 同义，供 C++ 内部使用，公共头无声明。
 
 ### 3.4 ALG-CAL-004 坏点检测/修复 `ac::detect_hot_pixels` / `ac::detect_cold_pixels` / `ac::filter_by_structure_size` / `ac::interpolate_pixels` / `ac::correct_frame`
@@ -189,7 +239,7 @@ F5.4  失败→回退 k_init 且 diagnostics.fell_back=1, fallback_from=
 ```
 
 **现状**: `dark_optimizer.cpp` 不在 CMake `astrocs_calibration` 构建清单
-（CMakeLists.txt:321-325），全仓无调用方；`hiss::Stage1Diagnostics` 来自
+（CMakeLists.txt:420-425），全仓无调用方；`hiss::Stage1Diagnostics` 来自
 `lib/infrastructure/aio/include/hiss_format.h`。登记为计划迁移符号
 （P1-CAL-IMPL 决定接线或删除），不声明任何生产语义（DISP-CAL-005）。
 
@@ -281,16 +331,17 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 | 条件 | 实现行为 | 锚 |
 |---|---|---|
 | 空指针 / n_frames<=0 / w<=0 / h<=0（C API 入口） | 返回 AC_ERR_PARAM，不写 out | ac_api.cpp:60-61,72-73,86-87,100-101,115-116 及 f64 对应 |
-| ac:: 层参数无效（void 函数） | 静默返回，out 不写，actual_k=k_init | calibrator.cpp:109-112；cosmetic_corrector.cpp:236 |
+| ac:: 层参数无效（void 函数） | 静默返回，out 不写，actual_k=k_init | calibrator.cpp:116-119；cosmetic_corrector.cpp:236 |
 | median(flat)<=0（normalize_flat） | 不归一保持原样（SCI §4/§5/§8 文本；与 master_generator 的"拒绝"分歧登记 OWNER-04） | calibrator.cpp:86 |
 | frame_med/final_med == 0（master flat，全零帧） | 置 1.0（不缩放） | master_generator.cpp:231,273 |
 | flat 帧全 NaN / 全 NaN 输出（master flat） | 剔 NaN 后无有效中位数 → 返回 AC_ERR_PARAM，out 不写（DISP-CAL-010 fail-closed；OWNER-04 关联：全 NaN 帧退化语义 SCI-CAL-001 §4/§8 无显式条文） | master_generator.cpp:219-221,263-265 |
 | frame_med/final_med < 0（master flat） | 返回 AC_ERR_PARAM，不写 out（B13-R13-7） | master_generator.cpp:234-238,276-280 |
 | flat 帧含部分 NaN（master flat 步骤1/3 median） | 与 generate_master 逐像素路径同一策略：先剔 NaN 再取中位数（DISP-CAL-010 修复；不再走 nth_element 含 NaN 的未定义序） | master_generator.cpp:214-223,258-267,49-60 |
 | master flat 全零 / median<=0 / 非有限（p1_op_calibrate 消费边界） | DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（B2-A6 fail-closed） | module_adapters.cpp:1153-1179,1230-1240 |
-| flat==NULL（calibrate） | 跳过除法，退化减法 | calibrator.cpp:122,132 |
-| dark==NULL（calibrate 标准分支） | out=light（flat 处理后） | calibrator.cpp:131 |
-| dark_opt=1 但 bias/dark 缺一 | 回退标准分支且 k=1.0 | calibrator.cpp:117,127 |
+| flat==NULL（calibrate） | 跳过除法，退化减法 | calibrator.cpp:129,139 |
+| dark==NULL（calibrate 标准分支） | out=(light−bias)/flat（bias 在位时） | calibrator.cpp:137-138 |
+| dark_opt=1 但 bias/dark 缺一 | 回退标准式且**沿用调用方给的 k**（不再强制 k=1.0） | calibrator.cpp:124,133-142 |
+| bias==NULL 而 dark 在位（标准式） | 本底不去除：out=(light−K·dark)/flat；调用方预检/manifest 必须显式登记（BIAS-001） | calibrator.cpp:136-140；module_adapters.cpp（p1_op_calibrate） |
 | dark_opt=1 且 bias+dark 在位（p1_op_calibrate K 分支） | K 由 light/dark FITS EXPTIME 推导 = t_light/t_dark；EXPTIME 缺失/非正或显式 dark_scale_factor 与 EXPTIME 比不一致 → DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（B2-A13 fail-closed） | module_adapters.cpp:1243-1305 |
 | σ=0（generate_master） | 提前终止不剔除 | master_generator.cpp:120 |
 | 单帧 master | 直接拷贝不做 clip | master_generator.cpp:84-88 |
@@ -346,8 +397,10 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
   numpy 顺序求和验证一致性），常量场期望 max_abs==0。
 - 坏点 oracle: scipy.ndimage.label 独立复算连通域过滤（8 连通），IDW
   修复按 F4.3 定义逐步复算。
-- K oracle: 恒等映射（dark_opt=1 时 actual_k==k_init；标准分支
-  actual_k==1.0）。
+- K oracle: 恒等映射（**两分支** actual_k==k_init；标准式不再把 k 强制为 1.0）。
+- **bias 参与 oracle（BIAS-001）**：同一 light/dark/flat/K 下，bias 在位与
+  bias=NULL 两次调用的输出必须逐像素不同（dark=NULL 时差恒为 bias/max(flat,0.1)）；
+  把实现里的 bias 项删掉（ignore-bias 变异）该判据必须判红。
 
 **不变量**（冻结）:
 - I1 常量场: 常数输入输出逐像素恒定，无空间调制（SCI §7）。
@@ -383,7 +436,7 @@ oracle 同容差；actual_k 精确相等。
 - DISP-CAL-001（**部分关闭**）`generate_master_flat` 逐帧/最终归一对
   **负 median** 已在 B13-R13-7 改为**拒绝**（返回 AC_ERR_PARAM，不写 out；
   `master_generator.cpp:234-238,276-280`），不再直除翻转符号。**残留**：
-  与 `normalize_flat`（median<=0 完全不归一，`calibrator.cpp:86`）语义
+  与 `normalize_flat`（median<=0 完全不归一，`calibrator.cpp:91`）语义
   不一致，且与 SCI-CAL-001 §4/§5/§8 的"保持原样"文本分歧未裁决 →
   **OWNER-04**（B2-A6 登记，不反向改 SCI）。`ac_generate_master_*` 系列
   无 extern "C" 异常屏障仍未处理：std::bad_alloc 可穿越 C ABI
@@ -415,6 +468,79 @@ oracle 同容差；actual_k 精确相等。
 - DISP-CAL-010 `ac::` 层 `n_frames<=0` 仅日志不返回（C API 层已挡），
   双层校验语义不一致；`generate_master` 对 `out==NULL` 无防护（依赖
   C API 层校验）。
+- **DISP-CAL-012（BIAS-001，本次订正：文档 + 实现同批）标准分支不读 bias 且漏 K**：
+  原文与旧实现（`docs/science/CALIBRATION.md` §5、本文 §2/§3.3 旧版）把默认分支定义为
+  `(raw − dark)/flat` 并声明"Dark 已含 Bias"，`k=1.0` 强制；`bias` 参数在该分支完全不被
+  读取，`K=t_light/t_dark` 只在 `dark_opt=1` 生效。**外部标准判定其为偏离**：
+  astropy ccdproc 明文要求 master dark "has been bias-subtracted so that it can be scaled
+  by exposure time"，顺序为 bias → dark(×曝光比) → flat；LSST `ip_isr` 为
+  `biasCorrection` → `darkCorrection`（`maskedImage -= dark * expScaling / darkScaling`）
+  → `flatCorrection`（证据与 URL 见 SCI-CAL-001 §14 第 4/5 条）。
+  **实测（真实 T2 NGC1727 Red 600s，固化二进制 63da68618aa73203）**：默认分支下
+  "提供 vs 缺失 master_bias" 的 `calibrated_*.fts` **逐位相同（16,777,216 px 全等，
+  max|Δ|=0）**；只提供 bias（无 dark/flat）时产物与**完全不标定**逐位相同（bias 零影响）；
+  缺 bias 的 dark+flat 产物 100% 像素不同（max 300192、mean 5863.8）⇒ dark/flat 确实参与。
+  `dark_opt=1` 分支有/无 bias 并非逐位相同（2,141,721 px 差，max|Δ|=0.03125），
+  差异来自 FP32 舍入而非代数相消。证据：
+  `run/PROJECT-GOVERNANCE-01/BIAS-001/repro/analyze_d04.py` +
+  `run/PROJECT-GOVERNANCE-01/BIAS-001/out/BIAS001_repro_report.md`。
+  **订正**：§2/§3.3 改为"标准式 `(raw − bias − K·dark)/flat`（master_dark 已减 bias，
+  默认）+ 兼容式 `dark_opt=1`（master_dark 含 bias，显式分离）"，K 在两分支都施加，
+  bias 在标准式显式减除；新增 §9.1 bias/K 参与门与 ignore-bias 变异注入。
+  **影响面**：所有曾用默认分支（`dark_optimization` 缺省）消费"已减 bias 暗电流母版"的
+  标定产物；含 bias 的暗场母版必须改用 `dark_optimization=true` 显式声明（否则多减一次
+  bias）。相邻缺陷（**UNIT-001 已落地**，见 DISP-CAL-013 + SCI-CAL-001 §3/§6/§8）：
+  XISF 母版 [0,1] 归一化 vs 亮场 ADU 的量级不一致、master_flat 未归一（median 0.2064）
+  在 BIAS-001 取证时均无机器门——二者使当时的真实链路产物标度错 ≈×4.85 且本底几乎未减，
+  故本卡实测的 bias 绝对影响被同一标度问题掩盖（本卡判据取"是否逐位相同"而非"差多少 ADU"）；
+  UNIT-001 落地后该两类输入 fail-closed，BIAS-001 的 bias/K 语义在其后独立成立。
+- **DISP-CAL-013（UNIT-001，本次订正：文档 + 实现同批）XISF 母版 [0,1] 归一化被当 ADU 消费**：
+  `aio_xisf.cpp` 对 `sampleFormat="Float32"` 只做字节布局转换（`convert_xisf_pixels`），
+  **不解释 `Image` 元素的 `bounds`（可表示域）**，也不做任何单位换算；`p1_op_calibrate`
+  把读到的 float 直接当 ADU 传给 `ac_calibrate_frame`，**消费边界零校验**。
+  **独立实测（`run/PROJECT-GOVERNANCE-01/UNIT-001/repro/repro_units.py`，自写 XISF/FITS 读取器，
+  不导入 AstroCS）**：T2 母版 `sampleFormat=Float32 bounds="0:1"`——`masterBias` median
+  0.015288（×65535 = **1001.87 ADU**）、`masterDark600` median 0.015391（**1008.63 ADU**）、
+  `masterFlatRed` median 0.206381（**13525.15 ADU**，**未归一**到 1.0）；真实亮场
+  `BITPIX=16 BZERO=32768` ⇒ [0,65535] ADU（T2 NGC1727 600s Red median 1481 ADU）。
+  两条暗场证据（`repro_dark_bias.py`）：T2 600s/1200s 线性外推零曝光截距 999.96 ADU
+  ≈ `masterBias` 1001.87 ADU；T4 180/300/600s 斜率 0.5700 ADU/s、截距 955.05 ADU ≈ bias
+  916.16 ADU ⇒ **两套真实母版暗场均含 bias**（须 `dark_optimization=true`）。
+  **后果（标度，实测定稿）**：默认分支下 flat 以 0.206381 作除数 ⇒ 整帧放大 **1/0.206381 = 4.845×**；
+  bias/dark 只减 0.0153 而应减 1001.87 ADU ⇒ 本底几乎未减。二者叠加使真实产物中位数量级错：
+  **T2 NGC1727 600s Red：现行 7048.618 ADU → 声明后 436.155 ADU（16.161×，实测 vs 逐像素 oracle）**；
+  **T4 Galaxy_Center panel1 180s Red：3650.390 → 361.236 ADU（10.105×）**。
+  **端到端验证（UNIT-001 批次 B，真实链路 rc=0）**：T2 同帧正例产物 `median=436.1555`、
+  `mean=500.7639`、`min=−23215.701`、`max=74318.594`，与门内独立 NumPy oracle 相对差 **1.26e−08**；
+  修复前同一帧（BIAS-001 `A_darkopt1_bias`）`median=7048.6179`、`mean=7372.6422` ⇒ 比值 **16.161×**。
+  **订正（已落地）**：①§2 增「标度声明」表与 U1–U4 四条机器规则；②消费边界（`p1_op_calibrate`）
+  新增声明解析 + 观测统计校验 + 声明换算 + 节点 manifest 溯源（`master_unit_guard`），
+  违反即 DATA 拒绝（rc=2）并点名文件 + 观测值 + 缺失声明项；
+  ③`tools/quality/check_master_unit_guard.py`：**四条负例（U1–U4）+ 两条正例**（显式声明组合 /
+  本就合规组合），合成与真实 T2 双模式，门内逐像素 NumPy oracle，`--self-test` 为期望 token 变异注入；
+  ④`config/defaults.json` 登记 `calibration.master_flat_median_range`（[0.5,2.0]）；
+  ⑤与 U3 冲突的既有节点级夹具（`tests/unit/p1001_real_nodes_test.cpp` 9 处 doc）补显式
+  `dark_optimization=false`（该夹具 `vd=5 < vb=10` = 已减 bias 的暗电流，声明后数值不变）。
+  **残留（登记待前台裁定）**：⑥**未新增 ctest 目标**（新目标必须在 `ci/checks.json` 的
+  `ctest_targets` 登记，本卡禁改 `ci/**`）⇒ U1–U4 的机器覆盖由上述门脚本承担；
+  ⑦**节点 manifest 未落盘**：`master_unit_guard` 写入节点 manifest 与 `stages.calibrate`，
+  但当前 CLI 面只持久化 run manifest（`summary`/`provenance.units=["ADU"]`）与失败时的
+  `error.message` ⇒ **拒绝路径可审计（token + 点名文件 + 观测值已入 run manifest）**，
+  **接受路径的"实际施加换算"尚未落盘**；声明内容本身可由 run manifest 的 `config_path`/
+  `config_sha256` 复核。落盘位置（节点 manifest dump 或扩展 `provenance.units`）属 CLI 域，待裁定。
+  **影响面**：一切消费 XISF 母版的真实链路产物标度（`calibrated_*`、`cleaned_*`、Phase1 HiPS
+  signal 及其下游 mosaic/export）与由之派生的测光/SNR 台账数字；合成测试若使用同域母版不受影响。
+- **DISP-CAL-014（UNIT-001 顺带发现，登记在案；门侧已覆盖，通用语义待前台裁定）拒绝/失败路径的产物残留**：
+  混标度输入下（UNIT-001 修复前）`p1_op_calibrate` 会**照常写出** `calibrated_*.fts`，运行随后在
+  下游节点（plate_solve 等）失败（rc≠0、run manifest `status=incomplete`）——此时 output_dir 里
+  留下形状完整、可被误认成正式产品的 `calibrated_*`/`cleaned_*`。**实测**（UNIT-001 门基线）：
+  `run/PROJECT-GOVERNANCE-01/UNIT-001/logs/10_gate_before.log` 的 N1_synth_unit_mix 在 rc=2 失败时
+  仍留下 `calibrated_light.fits`（`run/.../gate/out/N1_synth_unit_mix/`）。**本卡处置**：单位/归一化门
+  在 calibrate 节点**前置**判红（DATA/rc=2）⇒ 该场景不再产出任何 `calibrated_*`；门脚本
+  `tools/quality/check_master_unit_guard.py` 对三条负例显式断言「拒绝路径不留 calibrated_* 半成品」。
+  **通用语义（不在本卡文件域，需前台裁定）**：run 级 incomplete 时上游节点已原子发布的产品如何
+  标记/清理（`.incomplete` 后缀、独立 staging、或 run 结束统一回滚）——ENGINEERING_SPEC §9
+  「失败不得留下可被误认成正式产品的半成品」的落地口径；本卡不删除他节点产物（避免越域）。
 - DISP-CAL-011 遗留通道（build.ps1 的 `-march=native -ffast-math`、
   Makefile cc_* DLL、`cpp/cosmetic_corrector.cpp` 双实现）与 CMake 主
   构建并存，语义漂移风险；`lib/algorithms/calibration/python/`、

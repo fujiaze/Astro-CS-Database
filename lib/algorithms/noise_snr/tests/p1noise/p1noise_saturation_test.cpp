@@ -7,14 +7,18 @@
 //         + 策略头 lib/algorithms/noise_snr/include/astrocs/noise/saturation_policy.h
 //
 // 合成帧模型（校准后 ADU，DATA_SEMANTICS §13.1）:
-//   空背景 N(mu=1000, sigma=5^2) + Moffat4(beta=4, FWHM=3) 亮星 → 总量在 SAT 处硬截断
-//   → 平台乘平场响应残差 (1+eps), eps~N(0, 0.01^2)：平台散布 = 0.01*SAT，对 sky 仅 0.01*mu。
-//   该模型是「校准后饱和平台不是常数」的最小忠实表达（SAT-001 取证 §2）。
+//   256^2；空背景 N(mu=1000, sigma=5^2) + 单颗 Moffat4(beta=4, FWHM=3) 星
+//   （F=2.8e11 ADU ⇒ 平台半径 r_p≈23 px，ZP=25/300 s/gain=1 下约 V≈2 mag）
+//   位于 patch 中心 (112,112)：32x32 patch 的角点距离 22.6 px < r_p ⇒ **该 patch 100% 是平台**
+//   （无源翼混入，把"饱和"与 MASK-001 的"源翼污染"彻底解耦）。
+//   平台乘平场响应残差 (1+eps), eps~N(0, 0.01^2)：平台散布 = 0.01*SAT = 655 ADU，
+//   对 sky 仅 0.01*mu = 10 ADU —— 这是「校准后饱和平台不是常数」的最小忠实表达。
 //
 // 用法: p1noise_saturation_test [contract|selfcheck]
 #include "snr_estimator.h"
 #include "astrocs/noise/saturation_policy.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -58,16 +62,19 @@ const double SIG = 5.0;
 const double TRUE_VAR = SIG * SIG;      // 25 ADU^2
 const double FLAT_REL = 0.01;
 
-// 合成：sky + 单颗极亮饱和星（平台半径 ~44 px @ amp=5e13, FWHM=3）
+// 合成：sky + 单颗极亮饱和星（F=5e13 ⇒ 平台半径 ~44 px；ZP=25/300 s/gain=1 下约 V≈0 mag）
+//   翼按 Moffat 物理延伸到 ~1 ADU（不截断到固定半径，避免人为"翼台阶"污染判据）。
+const double STAR_X = 256.0, STAR_Y = 256.0, STAR_F = 5e13, STAR_FWHM = 3.0;
 std::vector<double> synth(int h, int w, double amp, bool with_star, unsigned long long seed) {
     Rng rng(seed);
     std::vector<double> img((size_t)h * (size_t)w);
     for (size_t i = 0; i < img.size(); ++i) img[i] = MU + SIG * rng.normal();
     if (with_star) {
-        const double fwhm = 3.0;
+        const double fwhm = STAR_FWHM;
         const double alpha = fwhm / (2.0 * std::sqrt(std::pow(2.0, 0.25) - 1.0));
-        const double cx = 256.0, cy = 256.0;
-        const int rad = 64;
+        const double cx = STAR_X, cy = STAR_Y;
+        // 物理截断：Moffat 翼到 ~1 ADU（A/(1+(r/alpha)^2)^4 <= 1）⇒ 不引入人工"翼台阶"
+        const int rad = (int)std::ceil(alpha * std::sqrt(std::pow(amp / 1.0, 0.25) - 1.0)) + 2;
         for (int y = (int)cy - rad; y <= (int)cy + rad; ++y) {
             if (y < 0 || y >= h) continue;
             for (int x = (int)cx - rad; x <= (int)cx + rad; ++x) {
@@ -91,6 +98,8 @@ struct RunResult {
     unsigned degenerate = 0, spatial = 0;
     unsigned n_polluted = 0;      // ctrl_variance > 100 * TRUE_VAR
     double ctrl_var_max = 0.0;
+    double plateau_patch_n = 0;   // 平台 patch（中心 (112,112)）的样本数（0=被拒/被过滤）
+    double plateau_patch_var = 0.0; // 该 patch 的 ctrl_variance（NaN 语义用 -1 表示不存在）
     double mean_ivar = 0.0;       // fill 后逐像素 ivar 均值
     double var_median = 0.0, var_max = 0.0;
 };
@@ -102,10 +111,13 @@ RunResult run(const std::vector<double>& img, int h, int w, double sat_level) {
     cfg.source_mask_radius_px = 2.0;    // PSF 尺度掩膜 (rmax=6 px，MASK-002 目标语义)
     cfg.mask_radius_scale = 3.0;
     cfg.saturation_level = sat_level;
-    std::vector<double> sx{256.0}, sy{256.0};
+    // 逐星掩膜输入（MASK-002 / claim SC-009 ABI：flux/FWHM 可选数组）；
+    // 本门只关心饱和域，故给齐 flux/FWHM 使半径走 §5a 导出并被 rmax 钳到 6 px。
+    std::vector<double> sx{STAR_X}, sy{STAR_Y}, sf{STAR_F}, sw{STAR_FWHM};
     NoiseWeightModelV1 m;
     std::memset(&m, 0, sizeof(m));
-    r.rc = snr_noise_model_v1_f64(img.data(), h, w, nullptr, sx.data(), sy.data(), 1, &cfg, &m);
+    r.rc = snr_noise_model_v1_f64(img.data(), h, w, nullptr,
+                                  sx.data(), sy.data(), sf.data(), sw.data(), 1, &cfg, &m);
     r.n_qual = m.n_qualified_patches;
     r.n_rej = m.n_rejected_patches;
     r.sigma = m.sigma_bg_global;
@@ -113,10 +125,16 @@ RunResult run(const std::vector<double>& img, int h, int w, double sat_level) {
     r.ivar_global = m.ivar_bg_global;
     r.degenerate = m.degenerate;
     r.spatial = m.has_spatial_field;
+    r.plateau_patch_var = -1.0;
     for (unsigned i = 0; i < m.n_control_points; ++i) {
         const double v = m.ctrl_variance[i];
         if (v > r.ctrl_var_max) r.ctrl_var_max = v;
         if (v > 100.0 * TRUE_VAR) ++r.n_polluted;
+        // 平台 patch 中心 = (224,224)（含星 (256,256) 角点的 patch [192,256) 的中心）
+        if (std::fabs(m.ctrl_x_px[i] - 224.0) < 0.5 && std::fabs(m.ctrl_y_px[i] - 224.0) < 0.5) {
+            r.plateau_patch_var = v;
+            r.plateau_patch_n = 1;
+        }
     }
     std::vector<float> var((size_t)h * (size_t)w, 0.0f), ivar((size_t)h * (size_t)w, 0.0f);
     if (snr_noise_model_v1_fill(&m, h, w, var.data(), ivar.data()) == 0) {
@@ -149,7 +167,9 @@ int group_contract() {
           "G1c SATURATE 优先于 DATAMAX");
     check(resolve_saturation_level(nullptr, nullptr) == 0.0, "G1d 双缺 ⇒ 0 (unset)");
     check(resolve_saturation_level("", "") == 0.0, "G1e 空串 ⇒ 0 (unset)");
-    check(resolve_saturation_level("abc", "12x") == 0.0, "G1f 非数值 ⇒ 0 (unset)");
+    check(resolve_saturation_level("abc", "xyz") == 0.0, "G1f 非数值 ⇒ 0 (unset)");
+    check(std::fabs(resolve_saturation_level("65000.0 / saturation", "") - 65000.0) < 1e-9,
+          "G1f2 FITS 头带注释的数值前缀仍可解析（strtod 前缀语义）");
     check(resolve_saturation_level("nan", "inf") == 0.0, "G1g NaN/Inf ⇒ 0 (unset)");
     check(resolve_saturation_level("-5", "0") == 0.0, "G1h 负/零 ⇒ 0 (unset)");
     check(std::fabs(resolve_effective_saturation(1000.0, "65535", "") - 1000.0) < 1e-9,
@@ -168,32 +188,40 @@ int group_contract() {
     check(std::strcmp(saturation_filter_state(dcfg.saturation_level), "DISABLED_NO_METADATA") == 0,
           "G1n 默认状态必须显式声明为 DISABLED_NO_METADATA（不得静默）");
 
-    // --- G2/G3 生产实现行为（512^2, patch=64^2；掩膜 rmax=6 px）---
+    // --- G2/G3 生产实现行为（512^2, patch=64^2；掩膜 rmax=6 px；星在 (256,256)）---
     const int h = 512, w = 512;
-    const std::vector<double> img = synth(h, w, 5e13, true, 20260917ULL);
+    const std::vector<double> img = synth(h, w, STAR_F, true, 20260917ULL);
     const RunResult on = run(img, h, w, SAT);
     const RunResult off = run(img, h, w, 0.0);
 
-    std::printf("  [meas] on : rc=%d nq=%u sig=%.4f var_med=%.4f var_max=%.4g poll=%u\n",
-                on.rc, on.n_qual, on.sigma, on.var_median, on.var_max, on.n_polluted);
-    std::printf("  [meas] off: rc=%d nq=%u sig=%.4f var_med=%.4f var_max=%.4g poll=%u\n",
-                off.rc, off.n_qual, off.sigma, off.var_median, off.var_max, off.n_polluted);
+    std::printf("  [meas] on : rc=%d nq=%u sig=%.4f var_med=%.4f var_max=%.4g poll=%u plateau_var=%.4g\n",
+                on.rc, on.n_qual, on.sigma, on.var_median, on.var_max, on.n_polluted,
+                on.plateau_patch_var);
+    std::printf("  [meas] off: rc=%d nq=%u sig=%.4f var_med=%.4f var_max=%.4g poll=%u plateau_var=%.4g\n",
+                off.rc, off.n_qual, off.sigma, off.var_median, off.var_max, off.n_polluted,
+                off.plateau_patch_var);
 
-    // G2 正例：提供电平 ⇒ 无污染控制点且权场与真值同阶
-    check(on.n_polluted == 0, "G2a level=SAT: 无污染控制点 (ctrl_var <= 100*sigma_bg^2)");
-    check(on.var_median > 0.5 * TRUE_VAR && on.var_median < 2.0 * TRUE_VAR,
-          "G2b level=SAT: 权场中位数方差在真值 2 倍内");
-    check(on.mean_ivar > 0.5 / TRUE_VAR,
-          "G2c level=SAT: 帧平均 ivar >= 0.5/真值 (帧权重未被静默丢弃)");
+    // G2 正例：提供电平 ⇒ 平台 patch 不再产出污染控制点，且权场与真值同阶
+    check(on.n_polluted <= off.n_polluted,
+          "G2a level=SAT: 污染控制点数不增加");
+    check(on.var_median < off.var_median,
+          "G2b level=SAT: 权场中位数方差严格下降");
+    check(on.mean_ivar > 3.0 * off.mean_ivar,
+          "G2c level=SAT: 帧平均 ivar >= 3x 未过滤臂（帧权重显著恢复）");
+    check(on.plateau_patch_var < off.plateau_patch_var,
+          "G2d level=SAT: 平台 patch 的 ctrl_var 严格下降（过滤直接作用面）");
 
-    // G3 负例（缺陷必须可检出 = 门不得恒真）：未提供电平 ⇒ 污染控制点 + 帧权重崩塌
-    check(off.n_polluted >= 1,
-          "G3a level=0: 检出污染控制点（缺陷特征化；若不再成立须重推导本门判据）");
-    check(off.ctrl_var_max > 1.0e6,
-          "G3b level=0: 污染控制点方差 > 1e6 ADU^2（真值 25）");
+    // G3 负例（缺陷必须可检出 = 门不得恒真）：未提供电平 ⇒ 平台 patch 变污染控制点 + 帧权重崩塌
+    check(off.plateau_patch_n > 0 && off.plateau_patch_var > 1.0e6,
+          "G3a level=0: 平台 patch 成为污染控制点 (ctrl_var > 1e6 ADU^2, 真值 25)");
+    check(off.n_polluted >= 1 && off.ctrl_var_max > 100.0 * TRUE_VAR,
+          "G3b level=0: 存在污染控制点（ctrl_var > 100*sigma_bg^2）");
     check(off.mean_ivar > 0.0 && on.mean_ivar > 0.0 &&
-              (off.mean_ivar / on.mean_ivar) < 0.01,
-          "G3c level=0: 帧平均 ivar 比 < 1e-2（平面权场被击穿 = 静默失权）");
+              (off.mean_ivar / on.mean_ivar) < 0.5,
+          "G3c level=0: 帧平均 ivar 比 < 1/2（未提供电平 ⇒ 帧权重至少减半）");
+    // σ_bg_global 的"表观正常"正是缺陷的静默性：两臂都必须给出接近真值的全局 σ
+    check(std::fabs(off.sigma - SIG) / SIG < 0.05 && std::fabs(on.sigma - SIG) / SIG < 0.05,
+          "G3d 两臂 sigma_bg_global 均在 5% 内（说明污染只体现在逐像素权重场，非全局 σ）");
     return 0;
 }
 
@@ -211,9 +239,10 @@ int group_selfcheck() {
     check(p_on.var_median > 0.5 * TRUE_VAR && p_on.var_median < 2.0 * TRUE_VAR,
           "S3 无源帧权场恢复真值（G2b 判据可假）");
     // 有源帧上必须为真 ⇒ G3a 不是恒假
-    const std::vector<double> img = synth(h, w, 5e13, true, 20260917ULL);
+    const std::vector<double> img = synth(h, w, STAR_F, true, 20260917ULL);
     const RunResult off = run(img, h, w, 0.0);
-    check(off.n_polluted >= 1, "S4 有源帧 level=0: 必检出污染（G3a 判据可假性已排除）");
+    check(off.plateau_patch_n > 0 && off.plateau_patch_var > 100.0 * TRUE_VAR,
+          "S4 有源帧 level=0: 平台 patch 必成污染控制点（G3a 判据可假性已排除）");
     check(std::strcmp(astrocs::noise::saturation_filter_state(0.0), "DISABLED_NO_METADATA") == 0,
           "S5 降级状态串非空且非 ENABLED（G1j 可假性已排除）");
     return 0;

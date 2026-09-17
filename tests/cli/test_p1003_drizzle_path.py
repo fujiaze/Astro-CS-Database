@@ -11,7 +11,9 @@ import subprocess
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-EXE = os.path.join(REPO, "build", "astrocs")
+# DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
+EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
+BUILD = os.path.dirname(os.path.abspath(EXE))
 # ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）。
 CLI_DIR = os.path.join(REPO, "lib", "infrastructure", "cli")
 
@@ -20,23 +22,65 @@ from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
 
 
 class TestP1003DrizzlePath(unittest.TestCase):
+    # P1-003 真实判据（CLI-002 重锚）: 「CLI 生产路径不得直连 drizzle」。
+    # 旧判据「exe 内不含 hp_drizzle_run_hips」在 ROOT-008 单 exe 形态下不可满足 —— 模块
+    # wrapper（lib/algorithms/drizzle/src/module_entry.cpp）本就编入同一 exe，符号必然
+    # 存在；判据与架构互斥（真缺陷判据错误，非实现缺陷）。现行判据拆三面，任一破即红：
+    #   1. 禁用内部符号 spawn_frame_from_fits 不得出现在 exe；
+    #   2. CLI 目标文件（nm -u 逐 TU）不得引用 hp_drizzle_run_hips/spawn_frame_from_fits；
+    #   3. 该入口符号的**定义者**必须是 drizzle 算法库（模块 wrapper 面），不得由 CLI 面定义。
+    DRIZZLE_ENTRY = "hp_drizzle_run_hips"
+    INTERNAL_BANNED = ("spawn_frame_from_fits",)
+
+    def _cli_objects(self):
+        root = os.path.join(BUILD, "CMakeFiles", "astrocs.dir")
+        objs = []
+        for dirpath, _dirs, files in os.walk(root):
+            objs += [os.path.join(dirpath, f) for f in files if f.endswith(".o")]
+        return objs
+
     def test_01_cli_binary_no_drizzle_direct_symbols(self):
-        """CLI 二进制不含 hp_drizzle_run_hips/spawn_frame_from_fits 符号(nm 证明不可绕过)。"""
+        """CLI 生产路径无 drizzle 直连：内部符号不在 exe + CLI 目标文件零引用 + 定义者非 CLI。"""
         if not os.path.isfile(EXE):
             self.skipTest("CLI 二进制缺失")
-        r = subprocess.run(["nm", "-C", EXE], capture_output=True, text=True, timeout=120)
-        self.assertEqual(r.returncode, 0)
-        banned = [s for s in ("hp_drizzle_run_hips", "spawn_frame_from_fits") if s in r.stdout]
-        self.assertEqual(banned, [], f"CLI 二进制含直连 drizzle 符号: {banned}")
+        r = subprocess.run(["nm", "-C", EXE], capture_output=True, text=True, timeout=300)
+        self.assertEqual(r.returncode, 0, r.stderr[-300:])
+        banned = [s for s in self.INTERNAL_BANNED if s in r.stdout]
+        self.assertEqual(banned, [], f"CLI 二进制含禁用内部符号: {banned}")
+        # 2) 逐 TU: CLI 目标文件不得有对 drizzle 入口/内部符号的未定义引用
+        objs = self._cli_objects()
+        self.assertTrue(objs, "未找到 CLI 目标文件（构建树布局变化，判据需重锚）")
+        for obj in objs:
+            u = subprocess.run(["nm", "-C", "-u", obj], capture_output=True, text=True,
+                               timeout=120)
+            self.assertEqual(u.returncode, 0, u.stderr[-200:])
+            for sym in (self.DRIZZLE_ENTRY,) + self.INTERNAL_BANNED:
+                self.assertNotIn(sym, u.stdout, f"{obj} 直连 {sym}")
+            self.assertNotIn(f" T {self.DRIZZLE_ENTRY}", subprocess.run(
+                ["nm", "-C", obj], capture_output=True, text=True, timeout=120).stdout,
+                f"{obj} 定义了 drizzle 入口符号（越界实现）")
+        # 3) 定义者归属: 入口符号定义必须来自 drizzle 算法库（模块 wrapper 面）
+        if self.DRIZZLE_ENTRY in r.stdout:
+            import glob
+            defs = []
+            for lib in glob.glob(os.path.join(BUILD, "**", "*.a"), recursive=True):
+                a = subprocess.run(["nm", "-A", lib], capture_output=True, text=True,
+                                   timeout=300)
+                defs += [l for l in a.stdout.splitlines()
+                         if l.rstrip().endswith(f" T {self.DRIZZLE_ENTRY}")]
+            self.assertTrue(defs, "exe 含该符号但无静态库定义者（判据失效）")
+            self.assertTrue(all("drizzle" in d for d in defs),
+                            f"drizzle 入口由非 drizzle 库定义: {defs}")
 
     def test_02_cli_source_no_direct_drizzle_call(self):
-        """CLI 源码(commands.cpp)无 hp_drizzle_run_hips / spawn_frame_from_fits 生产调用。"""
-        src = os.path.join(CLI_DIR, "commands.cpp")
-        if not os.path.isfile(src):
-            self.skipTest("commands.cpp 缺失")
-        text = open(src, encoding="utf-8").read()
-        for sym in ("hp_drizzle_run_hips", "spawn_frame_from_fits"):
-            self.assertNotIn(sym, text, f"CLI 源码含 {sym} 直连")
+        """CLI 命令层全部源文件无 hp_drizzle_run_hips / spawn_frame_from_fits 直连。"""
+        srcs = [os.path.join(CLI_DIR, f) for f in sorted(os.listdir(CLI_DIR))
+                if f.endswith((".cpp", ".h"))]
+        self.assertTrue(srcs, "CLI 源目录缺失或为空")
+        for src in srcs:
+            text = open(src, encoding="utf-8").read()
+            for sym in (self.DRIZZLE_ENTRY,) + self.INTERNAL_BANNED:
+                self.assertNotIn(sym, text, f"{os.path.basename(src)} 含 {sym} 直连")
 
     def test_03_drizzle_command_rejects_production(self):
         """drizzle 用户命令已删除（ASTROCS_DESIGN §6.2 唯一命令树; CLI-001 rc 矩阵）:
@@ -60,9 +104,14 @@ class TestP1003DrizzlePath(unittest.TestCase):
         # checker 需要 compile_commands.json 做 TU 级调用图; 纯 CMake 构建产物
         # 不含 CMAKE_EXPORT_COMPILE_COMMANDS 时该环境证据缺失, skip 而非 fail
         # (可达性本身由 test_01/02 的 nm/源码断言独立覆盖)。
-        cc = os.path.join(REPO, "build", "compile_commands.json")
+        cc = os.path.join(BUILD, "compile_commands.json")
         if not os.path.isfile(cc):
-            self.skipTest("compile_commands.json 缺失(checker 依赖)")
+            # 跨域缺口（不在 CLI-002 改动面）: ① CI 构建步未开
+            # CMAKE_EXPORT_COMPILE_COMMANDS（登记面 V17-N-03 / 归属 CI-001）；
+            # ② tools/quality/check_prod_reachability.py:92 锚点仍指向已退役 cli/
+            # （tools 域）。二者修好后本用例自动转为实跑；此处不放宽判据。
+            self.skipTest("compile_commands.json 缺失：CI 构建步未开 "
+                          "CMAKE_EXPORT_COMPILE_COMMANDS (V17-N-03/CI-001)")
         # FIX-UTCLI-HYGIENE: checker 把可达图证据硬写到
         # <repo>/evidence/v6_1_rework/tasks/CHK-001/（tracked 受控文件，
         # tools/quality/check_prod_reachability.py:140）。UT-CLI 以

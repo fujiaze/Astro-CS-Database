@@ -32,10 +32,10 @@
   ALG-STARDET-001 §2），**PSF 侧 = 椭圆 Moffat4**（SCI-PSF-001 §5）；
   两模型**宽度列不可跨块比较**：同 sx 下 `FWHM_gauss/FWHM_moffat =
   2.354820/1.230310 = 1.9140×`（DISP-STAR-007；证据 R-3 §2.2）。
-- SCI-PHOTOMETRY-001（PHOTOMETRY）：正常星 mag=−2.5·log10(Σ_box(pixel−B_fit))
+- SCI-PHOT-001（PHOTOMETRY）：正常星 mag=−2.5·log10(Σ_box(pixel−B_fit))
   为粗测光（检测侧自估），最终测光归 PHOTOMETRY 域；饱和星 mag 量纲差异
   已登记 DISP-STAR-004（ALG-STARDET-001 §11.3）。
-- SCI-ASTROMETRY-001（ASTROMETRY）：像素中心=索引+0.5 约定
+- SCI-AST-001（ASTROMETRY）：像素中心=索引+0.5 约定
   （ALG-STARDET-001 §2 残差坐标），star_det 权威块消费方（plate solve
   fallback）按此约定解析坐标（DATA_SEMANTICS §17）。
 
@@ -64,7 +64,7 @@ G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-
 ## 5 物理量和单位（units）
 
 - 像素坐标: 质心 c=(cx,cy) 单位 px（像素，0-based 索引+0.5 中心约定，
-  见 §2 SCI-ASTROMETRY-001）；容差 |Δc|≤0.3 px 同量纲比较。
+  见 §2 SCI-AST-001）；容差 |Δc|≤0.3 px 同量纲比较。
 - FWHM/孔径尺寸: 单位 px；σ 派生量 σ=FWHM/(2√(2ln2)) 同为 px。
 - 亮度/流量: 原始读出量单位 ADU（模拟数字单元）；粗测光
   mag=−2.5·log10(Σ_box(pixel−B_fit)) 中 pixel 与 B_fit 均为 ADU，

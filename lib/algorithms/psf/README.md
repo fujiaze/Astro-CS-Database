@@ -139,7 +139,10 @@ N*9 以 int64 计（入口 n ≤ INT_MAX/9 拒绝，:810/:955）。
 
 ## 7. threading / parallel axis / lease / memory / I/O / cancel / checkpoint
 
-现状（登记不改码，DISP-PSF-001..006 见 ALG §11.3）：
+现状（登记不改码，DISP-PSF-001..006 见 ALG §11.3；DISP-PSF-007 为**已关闭候选**：
+批 ABI 尺寸边界整改由 PSF-001 于 2026-09-10 落地，本文 r2 抬头与
+`tests/p1psf/p1psf_tests_core.cpp:717` 的 N4b 确定性拒绝用例为闭环证据，
+故不登记为开放偏差、不占用 DISP 编号序列——L28e-E-008/M8a-E-003 口径）：
 - OpenMP `parallel for schedule(dynamic) reduction(+:success_count)` 4 处
   （dpsf_psf.cpp:593,718,842,986）；逐星独立、输出按索引写，无跨星共享可变状态，
   计数 reduction 与星序无关 → 结果确定（determinism=fixed_reduction_order）。

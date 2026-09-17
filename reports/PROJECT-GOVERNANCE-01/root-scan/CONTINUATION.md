@@ -1,5 +1,7 @@
 # ROOT-004 接续执行包（CONTINUATION）——给完全不了解上下文的下一位 Agent
 
+> **收尾状态（接手轮 2026-09-16 16:3x）**：ROOT-004 已完成——REBASE_TABLE.md 785 行写出、SUMMARY.md/P0_RECHECK.md/merge_rebase.py 已落盘、26/26 分片回收（死片 C_ALG_IMPL_a、E_TRACE_P2_J_FS、G_GOV_GATE_P2 补做；在跑片未重派自然收齐）、93 条 P0 主控逐条复核全维持。本文件 §5.1/§6/§9.1 的「尚未生成」标记已过时，以 reports/PROJECT-GOVERNANCE-01/root-scan/SUMMARY.md 为准。接手轮开工基线 2c328348（三 SHA 一致），窗口内并行线推进至 d414c3e0+，各证据按取证时刻工作树留痕。
+
 > **移交说明（2026-09-16）**：ROOT-004「旧 bug 清单按最新权威订正」已由负责人决定**独立出去交给另一个 agent 执行**。
 > 本文件是**唯一接续入口**：前一位执行者（下称"前任"）已完成**口径与基础设施**、**93 条 P0 的逐条复核**、**三份根文档核对**，并派出 26 个分片但**尚未全部回收**。
 > 后一位执行者（下称"接手"）**不需要重读全部权威文档**，按本文件 §3/§4/§8 即可无缝接续；但**必须**读 §9 的陷阱与 §10 的硬规则。
@@ -235,7 +237,9 @@ git status --porcelain=v1 | grep -v -E "问题扫描/|reports/PROJECT-GOVERNANCE
 17. ✅ **分配表/ID 映射已被交叉验证为正确 —— 分片对它的"笔误"指控经复核不成立，不要"修"它**：`C_ALG_IMPL_a` 报「`V10-N-07/N-08` 的『文件』列写 `p1/V10-c.md`」。前任实测：`_assign/C_ALG_IMPL_a.tsv` 两行的第 5 列**都是** `问题扫描/findings/C_ALG_IMPL/p2/V10-c.md`（行 3/10），且 `p1/V10-c.md` 在本树**不存在**、`p2/V10-c.md` 存在（6005 B）；`_gen/idmap.csv` 同指 `p2`。
    ⇒ **规则**：若某片声称分配表路径错，先跑 `awk -F'\t' '$1=="<ID>"{print $5,$6}' shards/_assign/<片>.tsv` 与 `ls` 复核，**以实测为准**；分片第 4 列可能带一条不准确的转述（本例 `V10-N-07` 第 4 列写了"分配表写 p1"，属分片侧误读，不影响其结论与第 6 列证据）。
 18. ✅ **新增偏差候选（前任已复核实证，接手须收进"下一轮候选任务"）**：`docs/ci/01_CHECKS.md:7` 明文「豁免显式登记 `ci/exemptions.json`，只减不增，需负责人批准」，而 **`ci/exemptions.json` 在树内不存在**（实测 `ls` 0 命中）；实际豁免分散在 `ci/checks.json` 的 `waivable`（7 项）与 `ci/run.py:103` 的硬编码 `EMPTY_OUTPUT_SILENCE_EXEMPT`（2 项）。⇒ 由 `G_GOV_GATE_P2` 提出、前任复核确认；登记为 **`NEXT-PACK:NP-09`**（不属 `GAP-001..031`，勿误标重复）；建议文件域 `ci/**` + `docs/ci/01_CHECKS.md`，验收门 = `test -f ci/exemptions.json` 且每项豁免在注册表可追溯、`ci/run.py` 无硬编码豁免。
-19. ⚠️ **`pN` 目录不是优先级权威**：实测 **11 条**条目的所在目录 `pN` 与账本 `priority` 不一致（V/W/V2/V13/V14 轴文件是"按轴成文、混优先级"），例如 `V11-N-02`(P1) 在 `G_GOV_GATE/p0/V11.md`、`V13-N-05/07/08`(P2) 在 `p1/V13-b.md`、`V14-N-07`(P2) 在 `p1/V14-c.md`。**优先级一律取账本第 3 列**（这也是 `REBASE_TABLE` 与分片表的口径）；**不要**用目录名推断优先级，也不要用目录名做"优先级/目录不符"的finding。
+19. ✅ **集合类数字的"可复跑"锚点（接手复现证据时必用）**：`ci/checks.json` 在本轮被并发线持续改写（145→147 门），因此 `G_GOV_GATE_P2` 把**校验对象快照**钉在 `run/PROJECT-GOVERNANCE-01/ROOT-004/logs/shards/_snap/checks.json`（`sha256=f89af2c4…`）。
+   ⇒ 凡引用"门数/不可达门数/CHK-* 数量/在册项"一类集合数字的行，**复跑时须指向该快照**（或按当时 SHA 重新快照），否则数字必然对不上；`REBASE_TABLE` 第 6 列宜注明"快照 = <路径>@<sha256前8>"。
+20. ⚠️ **`pN` 目录不是优先级权威**：实测 **11 条**条目的所在目录 `pN` 与账本 `priority` 不一致（V/W/V2/V13/V14 轴文件是"按轴成文、混优先级"），例如 `V11-N-02`(P1) 在 `G_GOV_GATE/p0/V11.md`、`V13-N-05/07/08`(P2) 在 `p1/V13-b.md`、`V14-N-07`(P2) 在 `p1/V14-c.md`。**优先级一律取账本第 3 列**（这也是 `REBASE_TABLE` 与分片表的口径）；**不要**用目录名推断优先级，也不要用目录名做"优先级/目录不符"的finding。
 19. **`UNVERIFIABLE` 的常见成因**：需 Windows/Fatduck 真机行为、需真实数据端到端、需新建 ASan/UBSan 构建、需外网原文（Paper I §3.3.3、Paper II Table 1、HiPS hips_frame 枚举行、IVOA 响应格式）、需负责人裁决（原 `40_OWNER_DECISIONS.md` 的 A-01…A-44）。**判不动就登记，不要强判。**
 
 ### 9.3 ID 定位与条款查无

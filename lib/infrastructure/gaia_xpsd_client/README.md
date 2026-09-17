@@ -1,6 +1,12 @@
 # lib/infrastructure/gaia_xpsd_client — astrocs.catalog.gaia（CAT-GAIA）
 
 > 状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05）｜doc revision: r2
+> **现状复测（LEDGER-DOC，2026-09-17；`python3 tools/quality/check_module_map.py`）**：
+> 本模块生产源 `lib/infrastructure/gaia_xpsd_client/src/module_entry.c` 与 CMake SHARED target `astrocs_catalog_gaia`（`lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15`）均在位，
+> `astrocs_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
+> ⇒ 机读状态 = **NOT_IMPLEMENTED**。下文旧基线中「仅合同文件/无源码/无 CMake target/
+> entrypoint=MISSING/尚未存在」等表述已被实测反证，以本注记与检查器输出为准；
+> 实现侧整改归 CAT-GAIA-IMPL。
 > 本 README 由源码核对后全面重写（CAT-GAIA-DOC）：函数、单位、坐标、dtype、
 > shape、invalid、错误、并发、内存、I/O 均以
 > `src/gaia_client.h` / `src/gaia_client.c`（唯一生产源）为准；
@@ -10,7 +16,7 @@
 
 | 字段 | 当前值 |
 |---|---|
-| MOD ID / DLL target | `MOD-astrocs-catalog-gaia` / 现状产物 `gaia_client.dll`（模块 Makefile）；迁移目标 `astrocs_catalog_gaia.dll`（CAT-GAIA-IMPL 建立，尚未存在） |
+| MOD ID / DLL target | `MOD-astrocs-catalog-gaia` / 模块 DLL `astrocs_catalog_gaia`（SHARED，lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15，**已在位**）；entrypoint `astrocs_module_query_v1` 在位但零调用（src/module_entry.c）⇒ MOD-001 检查器判 NOT_IMPLEMENTED（整改归 CAT-GAIA-IMPL） |
 | module / ABI / doc revision | `astrocs.catalog.gaia` / C ABI（无版本化 query 入口，迁移缺口） / r2 |
 | owner / phase scope | SA-P1-W16 / service（wave W1） |
 | 文档状态 | CONTRACT_READY（实现存在，模块化迁移未开始；不声明 IMPLEMENTED） |
@@ -134,8 +140,9 @@ fallback：无（baseline 单路径）；ISA 合同=迁移 bitwise 等价。
 
 - 构建（现状，Linux 技术预览）：
   `make -C lib/infrastructure/gaia_xpsd_client`（gcc -O2 -march=native -fopenmp -lz）；
-  Windows MSVC/MinGW 命令见历史上游说明。**无 CMake target**（BLD-001 显式
-  target 缺口，CAT-GAIA-IMPL 建立 `astrocs_catalog_gaia` DLL + adapter）。
+  Windows MSVC/MinGW 命令见历史上游说明。CMake target `astrocs_catalog_gaia`
+  （SHARED，lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15）已在位；
+  adapter/版本化 query 入口的函数体仍为零调用（noop_entrypoint，CAT-GAIA-IMPL 整改）。
 - 已知限制/未实现（如实登记，不得静默使用）：
   1. C ABI adapter / 版本化 query 入口 / plan()/cancel() 不存在；
   2. OpenMP 默认 team，未接 host ThreadLease；

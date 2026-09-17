@@ -153,7 +153,8 @@ roundtrip <1e-6 deg。可执行 TEST-P1-WCS-001 + EVIDENCE 由 P1-WCS-TEST
 ## 11. 线程/确定性/资源
 
 threading_model=host_executor_lease（合同值）；现状 OpenMP 并行仅三角形
-投票/选星（整数归并+静态调度，输出 bitwise 与线程数无关，
+投票/选星（三角形投票 `schedule(dynamic)`：ipv_triangle.cpp:203/:309；选星归并
+`schedule(static)`：ipv_select.cpp:1045 等；输出 bitwise 与线程数无关，
 determinism=fixed_reduction_order）；求解主体单线程；FP64 全链路无量化
 降级（PREC-105 同族）；Gaia 查询网络 IO 主导。ThreadLease/取消检查点
 接线归 P1-WCS-IMPL（DISP-WCS-005）。

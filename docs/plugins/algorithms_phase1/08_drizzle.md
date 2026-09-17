@@ -39,7 +39,7 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
 | `order` | —— | —— | HEALPix order（或 HiPS 尺度） |
-| `pixfrac` | 1.0 | —— | drizzle 像素分数 |
+| `pixfrac` | 1.0 | —— | drop 收缩因子 ∈(0,1]；默认 1.0 = 严格通量守恒端点（`docs/science/DRIZZLE.md:31`；pixfrac<1 须记 `provenance.flux_conservation_factor=pixfrac²`） |
 | `pixel_scale` | —— | arcsec/px | 输出像素尺度（HiPS tile） |
 | `nside` | —— | —— | HEALPix nside（与 order 等价） |
 | `sparse_snr_layer` | false | —— | 是否将稀疏帧内 SNR 层插入 HiPS（来自 noise_snr） |

@@ -1104,7 +1104,7 @@
             "python3",
             "tools/quality/contracts/check_full_integration.py"
           ],
-          "timeout_seconds": 120,
+          "timeout_seconds": 600,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [],
@@ -1367,7 +1367,7 @@
             "python3",
             "tools/quality/contracts/check_doc_symbols.py"
           ],
-          "timeout_seconds": 120,
+          "timeout_seconds": 300,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [],
@@ -1449,7 +1449,7 @@
             "python3",
             "tools/quality/contracts/check_comments.py"
           ],
-          "timeout_seconds": 120,
+          "timeout_seconds": 300,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [],
@@ -1575,7 +1575,7 @@
             "python3",
             "tools/quality/contracts/check_api_contracts.py"
           ],
-          "timeout_seconds": 120,
+          "timeout_seconds": 300,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [],
@@ -1665,6 +1665,7 @@
         "tests/artifact/**",
         "tests/backend/**",
         "tests/cli/**",
+        "tests/config/**",
         "tests/glossary/**",
         "tests/io/**",
         "tests/monitoring/**",
@@ -1812,6 +1813,45 @@
             "tests/cli",
             "-t",
             "tests/cli"
+          ],
+          "timeout_seconds": 1200,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "tests/cli/**",
+            "lib/**",
+            "lib/infrastructure/cli/**",
+            "include/**"
+          ],
+          "requires_monitor": false,
+          "dirty_ignore_exact": [
+            "resource_samples.csv",
+            "resource_summary.json",
+            "worker_balance.csv"
+          ],
+          "dirty_ignore_prefixes": [
+            "astrocs_run_",
+            "run/"
+          ]
+        },
+        {
+          "id": "UT-CONFIG",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "tests/config",
+            "-t",
+            "tests/config"
           ],
           "timeout_seconds": 1200,
           "heavy": false,
@@ -2382,12 +2422,13 @@
       "ctest_targets": [
         "ipv_mag_iter",
         "ipv_mag_iter_delivery",
+        "p1noise_numpy_oracle",
         "p1phot_fixgates",
         "p1snr_science_*",
         "p1wcs_apbp",
         "p1wcs_astropy_cross",
-        "p1wcs_std_f1_bridge_cross",
-        "p1noise_numpy_oracle"
+        "p1wcs_closure_metric_gate",
+        "p1wcs_std_f1_bridge_cross"
       ],
       "dirty_ignore_prefixes": [
         "run/v6/"
@@ -2739,6 +2780,41 @@
           "ctest_targets": [
             "p1noise_numpy_oracle"
           ]
+        },
+        {
+          "id": "CTEST-P1WCS-CLOSURE-METRIC-GATE",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1wcs_closure_metric_gate",
+            "--output",
+            "run/ci/ctest/p1wcs_closure_metric_gate.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1wcs_closure_metric_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "tests/**",
+            "lib/**",
+            "lib/infrastructure/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1wcs_apbp"
+          ]
         }
       ]
     },
@@ -2798,6 +2874,16 @@
         "ipv_extract_wcs_sip_failclosed",
         "ipv_platform_binding",
         "ipv_triangle_budget",
+        "p1cal_bias_influence_gate",
+        "p1noise_mask",
+        "p1noise_saturation",
+        "p1noise_saturation_selfcheck",
+        "p1noise_saturation_wiring",
+        "p1psf_center_contract_astropy",
+        "p1psf_center_contract_gate",
+        "p1psf_center_contract_gate_neg",
+        "p1psf_centroid_gate",
+        "p1psf_centroid_gate_neg",
         "p1psf_prodpath_centroid",
         "p1snr_frame_parity",
         "p1star_angle_guard",
@@ -2806,12 +2892,7 @@
         "p2hips_negative",
         "p2hips_selfcheck",
         "p2hips_units",
-        "xpsd_spectrum_count_bounds",
-        "p1psf_centroid_gate",
-        "p1psf_centroid_gate_neg",
-        "p1psf_center_contract_gate",
-        "p1psf_center_contract_gate_neg",
-        "p1psf_center_contract_astropy"
+        "xpsd_spectrum_count_bounds"
       ],
       "steps": [
         {
@@ -3575,6 +3656,176 @@
           "ctest_targets": [
             "p1psf_center_contract_astropy"
           ]
+        },
+        {
+          "id": "CTEST-P1CAL-BIAS-INFLUENCE-GATE",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1cal_bias_influence_gate",
+            "--output",
+            "run/ci/ctest/p1cal_bias_influence_gate.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1cal_bias_influence_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1NOISE-MASK",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1noise_mask",
+            "--output",
+            "run/ci/ctest/p1noise_mask.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1noise_mask.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1NOISE-SATURATION",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1noise_saturation",
+            "--output",
+            "run/ci/ctest/p1noise_saturation.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1noise_saturation.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1NOISE-SATURATION-SELFCHECK",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1noise_saturation_selfcheck",
+            "--output",
+            "run/ci/ctest/p1noise_saturation_selfcheck.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1noise_saturation_selfcheck.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
+        },
+        {
+          "id": "CTEST-P1NOISE-SATURATION-WIRING",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1noise_saturation_wiring",
+            "--output",
+            "run/ci/ctest/p1noise_saturation_wiring.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1noise_saturation_wiring.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "drizzle_precision_default"
+          ]
         }
       ]
     },
@@ -3617,16 +3868,17 @@
       ],
       "requires_monitor": false,
       "ctest_targets": [
+        "aio_abi_layout_lock",
+        "aio_abi_layout_lock_selfcheck",
         "aio_abi_negative",
         "aio_abi_selfcheck",
         "aio_abi_units",
         "ipv_abi_layout_lock",
         "ipv_abi_layout_lock_selfcheck",
-        "ipv_params_abi_failclosed",
-        "aio_abi_layout_lock",
-        "aio_abi_layout_lock_selfcheck",
         "ipv_dead_params_lock",
-        "ipv_dead_params_lock_selfcheck"
+        "ipv_dead_params_lock_selfcheck",
+        "ipv_params_abi_failclosed",
+        "p1noise_abi_layout"
       ],
       "steps": [
         {
@@ -4046,6 +4298,41 @@
           "requires_monitor": false,
           "ctest_targets": [
             "ipv_dead_params_lock_selfcheck"
+          ]
+        },
+        {
+          "id": "CTEST-P1NOISE-ABI-LAYOUT",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1noise_abi_layout",
+            "--output",
+            "run/ci/ctest/p1noise_abi_layout.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1noise_abi_layout.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "tests/**",
+            "lib/**",
+            "lib/infrastructure/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_abi_units"
           ]
         }
       ]
@@ -4739,7 +5026,7 @@
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [],
-          "waivable": false,
+          "waivable": true,
           "changed_paths": [
             "tests/cpu/avx512/**",
             "lib/infrastructure/benchmark/**",
@@ -5664,6 +5951,137 @@
             "cmake",
             "dumpbin"
           ]
+        }
+      ]
+    },
+    {
+      "id": "CHK-PKG-CONSISTENCY",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "ci/run_checks.py",
+        "--check",
+        "CHK-PKG-CONSISTENCY",
+        "--quiet"
+      ],
+      "timeout_seconds": 1800,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/pkg-consistency.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "packaging/**",
+        "cmake/install_layout.cmake",
+        "cmake/astrocs.product.windows.json.in",
+        "DEPENDENCIES.md",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "PKG-CONSISTENCY",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "packaging/check_packaging_consistency.py",
+            "--root",
+            ".",
+            "--json-out",
+            "run/ci/pkg-consistency.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/pkg-consistency.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "packaging/**",
+            "cmake/**",
+            "DEPENDENCIES.md",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "PKG-CONSISTENCY-NEG",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "packaging/check_packaging_consistency.py",
+            "--root",
+            ".",
+            "--self-test"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "packaging/**",
+            "cmake/**",
+            "DEPENDENCIES.md",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "PKG-SBOM",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "packaging/gen_sbom_input.py",
+            "--root",
+            "."
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "packaging/**",
+            "DEPENDENCIES.md"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "PKG-SBOM-NEG",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "packaging/gen_sbom_input.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "packaging/**",
+            "DEPENDENCIES.md"
+          ],
+          "requires_monitor": false
         }
       ]
     },

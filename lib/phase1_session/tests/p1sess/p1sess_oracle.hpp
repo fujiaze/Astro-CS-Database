@@ -86,10 +86,16 @@ inline bool oracle_read_fits_f32(const std::string& path, int* w, int* h,
 //   P1-CAL-TEST (p1cal_oracle) — 本 oracle 验证 session 编排委托, 不重复
 //   校准内核验证面。
 // ---------------------------------------------------------------------------
-inline double oracle_calibrate_const(double light, bool has_dark, double dark,
-                                     bool has_flat, double flat) {
+// BIAS-001（SCI-CAL-001 §5 订正后的标准式，K 由调用方给出）:
+//     v = (light − bias·[has_bias] − K·dark·[has_dark]) / max(flat, 0.1)
+// 旧式（已废止，DISP-CAL-012）: v = (light − dark)/max(flat, 0.1) —— 完全不读 bias。
+// 本 helper 是**独立 oracle**（不复用实现）；参数缺省即该项为 0。
+inline double oracle_calibrate_const(double light, bool has_bias, double bias,
+                                     bool has_dark, double dark,
+                                     bool has_flat, double flat, double k = 1.0) {
     double v = light;
-    if (has_dark) v -= dark;
+    if (has_bias) v -= bias;
+    if (has_dark) v -= k * dark;
     if (has_flat) v /= std::max(flat, 0.1);
     return v;
 }

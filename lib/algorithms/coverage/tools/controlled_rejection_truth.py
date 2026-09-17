@@ -48,7 +48,7 @@ def write_properties(d):
         "hips_version=1.4\n"
         "hips_order=7\n"
         "hips_tile_width=512\n"
-        "hips_frame=equatorial\n"
+        "hips_frame=icrs\n"
         "hips_pixel_scale=0.0001125\n"
         "moc_sky_fraction=1.0\n", encoding="utf-8")
 
@@ -123,8 +123,20 @@ def build_hips_from_truth(truth, frame_idx, out_dir):
         lines.append(f"{i} {r0:.8f} {d0:.8f} 8.0 0 0")
     (d / "snr" / "Norder7" / "Dir0" / f"Npix{TILE}.tsv").write_text(
         "\n".join(lines) + "\n", encoding="utf-8")
+    # M2b-F-03: 夹具必须与生产模板同构 (aio_hips_writer.cpp SNR metadata.xml):
+    # 根元素 VOTABLE 带 IVOA VOTable 1.3 命名空间 + RESOURCE/TABLE 结构;
+    # 原 '<?xml version="1.0"?><VOTABLE version="1.3"/>' 缺 xmlns, 使"非法命名
+    # 空间"这类缺陷在夹具面永远不可见。
     (d / "snr" / "metadata.xml").write_text(
-        '<?xml version="1.0"?><VOTABLE version="1.3"/>', encoding="utf-8")
+        '<?xml version="1.0"?>\n'
+        '<VOTABLE version="1.3" xmlns="http://www.ivoa.net/xml/VOTable/v1.3">\n'
+        '  <RESOURCE type="meta">\n'
+        '    <TABLE>\n'
+        '      <FIELD name="star_id" datatype="long" ucd="meta.id"/>\n'
+        '      <FIELD name="snr" datatype="float" ucd="stat.snr"/>\n'
+        '    </TABLE>\n'
+        '  </RESOURCE>\n'
+        '</VOTABLE>\n', encoding="utf-8")
 
 
 def make_config(method, out):

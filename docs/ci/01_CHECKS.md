@@ -23,7 +23,7 @@
 | CHK-STATIC | 静态 | 静态分析 | 选定分析器（clang-tidy 等） | P1 |
 | CHK-MODULE-MANIFEST | 文档一致性 | 模块 manifest/注册表/构建 target/产品清单一致 | ci 检查器 | P0 |
 | CHK-CONTRACT-REF | 文档一致性 | 端口引用有效 DATA 合同 | ci 检查器 | P0 |
-| CHK-SCI-REF | 文档一致性 | 算法引用有效 SCI/ALG | ci 检查器 | P0 |
+| CHK-SCI-REF | 文档一致性 | 算法引用有效 SCI/ALG；含 ACR/编排层退出面（`ACR-DORMANT` = `tools/check_legacy_exit.py`，LEG-002..004）| ci 检查器 | P0 |
 | CHK-CONTRACT-TEST | 文档一致性 | 核心合同有独立测试 | ci 检查器 | P0 |
 | CHK-DANGLING | 文档一致性 | 删除/重命名无悬空引用 | ci 检查器 | P1 |
 | CHK-STALE-DOC | 文档一致性 | 活动文档无陈旧版本号/历史状态冒充 | ci 检查器 | P1 |
@@ -43,6 +43,7 @@
 | CHK-COVERAGE | 资源 | 覆盖率报告 | 覆盖率工具 | P2（报告） |
 | CHK-RESOURCE | 资源 | 内存/线程/利用率门禁 | 资源监控测试 | P0 |
 | CHK-PACKAGE | 打包 | 发布候选打包/白名单/哈希/版本/provenance | 打包脚本 | P0 |
+| CHK-PKG-CONSISTENCY | 打包 | 产品清单/安装树合同/依赖锁/安装规则/许可登记面一致 + SBOM 实树 hash 自证（含 -NEG 负例面） | `python3 ci/run_checks.py --check CHK-PKG-CONSISTENCY --quiet` | P0 |
 | CHK-SECRET-HYGIENE | 安全 | 凭据/密钥卫生（tracked 全域扫描） | `python3 tools/quality/check_secret_hygiene.py --scope tracked …` | P0 |
 | CHK-ENV-ADOPTION | 环境 | CI 环境接管基线（工具链策略/锁一致性） | `python3 ci/run_checks.py --check CHK-ENV-ADOPTION --quiet` | P1 |
 | AGENTS-GOV | 治理 | AGENTS.md 硬禁令 / §0 权威链唯一性 / 旧权威回归 | `python3 tools/check_agents_gov.py` | P0 |

@@ -198,6 +198,25 @@ def parse_index_module_ids(repo: pathlib.Path):
     return ids
 
 
+REGISTERED_COUNT_FILE = "docs/modules/registry/module_id_migration_baseline.json"
+
+
+def registered_index_count(repo: pathlib.Path):
+    """文档集规模 = 显式登记值（烧毁式基线范式，附录 H.6），不再是代码里的 magic number。
+
+    登记值在 docs/modules/registry/module_id_migration_baseline.json#index_module_count，
+    只许在落地批内手改并写明依据。未登记时退化为「索引规模必须等于映射表模块数」，
+    由 set(map_ids) == set(index_ids) 强一致约束兜底。
+    """
+    p = repo / REGISTERED_COUNT_FILE
+    if not p.is_file():
+        return None
+    try:
+        return int((json.loads(p.read_text(encoding="utf-8")) or {}).get("index_module_count"))
+    except Exception:
+        return None
+
+
 class Ctx:
     def __init__(self, repo: pathlib.Path, doc: dict):
         self.repo = repo
@@ -211,11 +230,33 @@ class Ctx:
         self.product_units = self._load_product_units()
 
     def _load_contract_ids(self):
+        """合同 ID 集合 = 「- id:」条目 ∪ legacy_contract_id_map 中已裁决的 legacy ID。
+
+        DATA-001 裁决（docs/contracts/INDEX.yaml#legacy_contract_id_map 与
+        docs/contracts/unified_object_registry.json#legacy_contract_ids）已把一批旧 ID
+        判为「legacy -> 统一对象 canonical」。这些 ID 是已登记的，门必须读同一权威；
+        只有真正未知的 ID 才判 dangling_data_contract（fail-closed，不放宽）。
+        """
         p = self.repo / self.contract_index_file
         if not p.is_file():
             return None
-        return set(re.findall(r"^\s*-\s*id:\s*([A-Za-z0-9_.-]+)\s*$",
-                              p.read_text(encoding="utf-8", errors="ignore"), flags=re.M))
+        text = p.read_text(encoding="utf-8", errors="ignore")
+        ids = set(re.findall(r"^\s*-\s*id:\s*([A-Za-z0-9_.-]+)\s*$", text, flags=re.M))
+        try:
+            doc = yaml.safe_load(text) or {}
+        except Exception:
+            doc = {}
+        for ent in (doc.get("legacy_contract_id_map") or []):
+            if not isinstance(ent, dict):
+                continue
+            lid = ent.get("legacy_id")
+            if not lid:
+                continue
+            # mapped 的必须给出非空 canonical_objects；否则视为登记未完成，不放行
+            if ent.get("decision") == "mapped" and not (ent.get("canonical_objects") or []):
+                continue
+            ids.add(str(lid))
+        return ids
 
     def _load_product_units(self):
         p = self.repo / self.product_manifest_file
@@ -558,9 +599,12 @@ def run_check(repo: pathlib.Path, map_path: pathlib.Path):
         mods = []
 
     index_ids = parse_index_module_ids(repo)
-    if len(index_ids) != 23:
+    reg_count = registered_index_count(repo)
+    if reg_count is None:
+        reg_count = len(mods)   # 未登记时退化为「索引规模 == 映射表规模」
+    if len(index_ids) != reg_count:
         findings.append(Finding("<map>", "index_parse_failed",
-                                "%s §2 机器解析出 %d 个模块 ID（期望 23）" % (INDEX_REL, len(index_ids))))
+                                "%s §2 机器解析出 %d 个模块 ID（登记值 %d）" % (INDEX_REL, len(index_ids), reg_count)))
     map_ids = [str(m.get("id")) for m in mods if isinstance(m, dict)]
     if len(set(map_ids)) != len(map_ids):
         dup = sorted({i for i in map_ids if map_ids.count(i) > 1})
@@ -607,7 +651,7 @@ def run_check(repo: pathlib.Path, map_path: pathlib.Path):
         "verdict": "FAIL" if fail else "PASS",
     }
     rc = 1 if fail else 0
-    if len(result["modules"]) != 23 or len(index_ids) != 23:
+    if len(result["modules"]) != reg_count or len(index_ids) != reg_count:
         rc = 1
     return rc, result
 
@@ -656,7 +700,10 @@ def _selftest() -> int:
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent / "fixtures"))
     import module_map_fixture as fx
     failures = []
-    cases = [("positive", None, 0)] + [(name, name, 1) for name in fx.MUTATIONS]
+    # 正例两条：plain（无变异）与 legacy_contract_ok（引用 legacy 旧 ID 必须绿，证明门读了
+    # legacy_contract_id_map 这份权威）；负例见 MUTATIONS（含 dangling_contract_ref = 未知 ID 必须红）。
+    cases = ([("positive", None, 0), ("legacy_contract_ok", "legacy_contract_ok", 0)]
+             + [(name, name, 1) for name in fx.MUTATIONS])
     with tempfile.TemporaryDirectory(prefix="mod001-selftest-") as td:
         tmp = pathlib.Path(td)
         for name, mutation, expect_rc in cases:

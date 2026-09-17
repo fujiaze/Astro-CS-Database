@@ -28,7 +28,7 @@ downstream: [TEST-P3-RES-001]
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
   lib/algorithms/projection→phase3_fits 先例新建；lib/phase3_session/ 为会话
   编排域共享源，不整目录归属）。
-- 生产源: lib/phase3_session/p3_resample.cpp（239 行）+ 唯一权威
+- 生产源: lib/algorithms/resample/p3_resample.cpp（239 行）+ 唯一权威
   签名头 p3_resample.h（58 行），实测 2026-09-12。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
   V5 SCI-007 2026-08-28；矩阵 science_id 占位 SCI-P3-RES-001 映射
