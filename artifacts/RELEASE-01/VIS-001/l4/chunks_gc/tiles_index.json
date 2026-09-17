@@ -1,0 +1,157 @@
+{
+  "source": "/workspace/Astro CS Database/run/RELEASE-01/vis/l4/gc_full.png",
+  "source_size": [
+    4096,
+    4096
+  ],
+  "grid": 4,
+  "tile_px": 1024,
+  "overlap": 0,
+  "n_tiles": 16,
+  "tiles": [
+    {
+      "file": "tile_r00_c00.png",
+      "row": 0,
+      "col": 0,
+      "src_x0": 0,
+      "src_y0": 0,
+      "src_x1": 1024,
+      "src_y1": 1024
+    },
+    {
+      "file": "tile_r00_c01.png",
+      "row": 0,
+      "col": 1,
+      "src_x0": 1024,
+      "src_y0": 0,
+      "src_x1": 2048,
+      "src_y1": 1024
+    },
+    {
+      "file": "tile_r00_c02.png",
+      "row": 0,
+      "col": 2,
+      "src_x0": 2048,
+      "src_y0": 0,
+      "src_x1": 3072,
+      "src_y1": 1024
+    },
+    {
+      "file": "tile_r00_c03.png",
+      "row": 0,
+      "col": 3,
+      "src_x0": 3072,
+      "src_y0": 0,
+      "src_x1": 4096,
+      "src_y1": 1024
+    },
+    {
+      "file": "tile_r01_c00.png",
+      "row": 1,
+      "col": 0,
+      "src_x0": 0,
+      "src_y0": 1024,
+      "src_x1": 1024,
+      "src_y1": 2048
+    },
+    {
+      "file": "tile_r01_c01.png",
+      "row": 1,
+      "col": 1,
+      "src_x0": 1024,
+      "src_y0": 1024,
+      "src_x1": 2048,
+      "src_y1": 2048
+    },
+    {
+      "file": "tile_r01_c02.png",
+      "row": 1,
+      "col": 2,
+      "src_x0": 2048,
+      "src_y0": 1024,
+      "src_x1": 3072,
+      "src_y1": 2048
+    },
+    {
+      "file": "tile_r01_c03.png",
+      "row": 1,
+      "col": 3,
+      "src_x0": 3072,
+      "src_y0": 1024,
+      "src_x1": 4096,
+      "src_y1": 2048
+    },
+    {
+      "file": "tile_r02_c00.png",
+      "row": 2,
+      "col": 0,
+      "src_x0": 0,
+      "src_y0": 2048,
+      "src_x1": 1024,
+      "src_y1": 3072
+    },
+    {
+      "file": "tile_r02_c01.png",
+      "row": 2,
+      "col": 1,
+      "src_x0": 1024,
+      "src_y0": 2048,
+      "src_x1": 2048,
+      "src_y1": 3072
+    },
+    {
+      "file": "tile_r02_c02.png",
+      "row": 2,
+      "col": 2,
+      "src_x0": 2048,
+      "src_y0": 2048,
+      "src_x1": 3072,
+      "src_y1": 3072
+    },
+    {
+      "file": "tile_r02_c03.png",
+      "row": 2,
+      "col": 3,
+      "src_x0": 3072,
+      "src_y0": 2048,
+      "src_x1": 4096,
+      "src_y1": 3072
+    },
+    {
+      "file": "tile_r03_c00.png",
+      "row": 3,
+      "col": 0,
+      "src_x0": 0,
+      "src_y0": 3072,
+      "src_x1": 1024,
+      "src_y1": 4096
+    },
+    {
+      "file": "tile_r03_c01.png",
+      "row": 3,
+      "col": 1,
+      "src_x0": 1024,
+      "src_y0": 3072,
+      "src_x1": 2048,
+      "src_y1": 4096
+    },
+    {
+      "file": "tile_r03_c02.png",
+      "row": 3,
+      "col": 2,
+      "src_x0": 2048,
+      "src_y0": 3072,
+      "src_x1": 3072,
+      "src_y1": 4096
+    },
+    {
+      "file": "tile_r03_c03.png",
+      "row": 3,
+      "col": 3,
+      "src_x0": 3072,
+      "src_y0": 3072,
+      "src_x1": 4096,
+      "src_y1": 4096
+    }
+  ]
+}

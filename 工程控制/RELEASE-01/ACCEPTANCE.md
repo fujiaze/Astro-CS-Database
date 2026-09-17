@@ -6,76 +6,76 @@
 
 | 任务 | 状态 | 机器门结果 | 证据路径 | 前台结论 |
 |---|---|---|---|---|
-| DOC-001 | **PASS**（含 UNRESOLVED-1/2/3 上呈） | 文档包核验器 PASS；受影响检查 8/10 PASS，2 红为文档包↔仓库冲突 | `工程控制/RELEASE-01/DOC_PACK_MANIFEST.json`、`run/RELEASE-01/logs/docs/` | 36 篇替换到位、治理痕迹清零、引用可达、一致性基线登记 |
-| AUD-001 | **PASS**（交付物齐备；差距本身未闭合） | 分片复跑命令见各报告 §4 | `工程控制/RELEASE-01/GAP_AUDIT.md` + `reports/RELEASE-01/audit/AUD-A{1,2,3,4}-*.md` | 23 模块 + 横向全覆盖；P0=16（去重）、P1=87、P2=35、UNRESOLVED=11 主题 |
-| SCI-001 | IN_PROGRESS（S1 PASS / S2 运行中） | S1 复跑脚本 `reports/RELEASE-01/science/exp_*.py` | `reports/RELEASE-01/science/SCI-S1-snr-psfsw.md`、`SCI-S2-topics.md` | SNR/PSFSW 专项 7/7 完成；5 项"我方有误"已定位 |
-| BLD-001 | **PARTIAL** | cmake rc=0 / ninja rc=0 / 0 警告；ctest 442 = 430 通过 + 12 跳过 + **0 失败**（404.3 s）；**CHK-MODULE-MANIFEST 红** | `run/RELEASE-01/logs/BLD-001/build_ctest.log` | 构建与全量单测绿；"机器门绿"未达（P0-01/P0-16） |
-| TST-001 | IN_PROGRESS | — | `run/RELEASE-01/tests/` | 运行中 |
-| DOC-002 | **PASS** | 订正后 `verify_doc_pack.py` 复跑 PASS；Mermaid `mermaid.parse` 30/30 | `reports/RELEASE-01/docs/DOC-002-selfcheck.md` | 38 篇自查；6 处非语义订正（前台已逐条复核 + 补 manifest） |
-| E2E-001 | IN_PROGRESS（L3 **PASS** / L4 运行中） | L3 两组 3 命令 rc 全 0；`weight_mode=2` 负例 rc=2 | `run/RELEASE-01/e2e/l3/logs/`、`l3/p3_{m42,gc}/output_phase3.fits` | L3 全链打通；L4 R 通道全量 81 帧运行中 |
-| VIS-001 | NOT_STARTED | — | — | — |
-| PERF-001 | NOT_STARTED | — | — | — |
-| DEL-001 | NOT_STARTED | — | — | — |
-| FIN-001 | NOT_STARTED（前置未满足） | — | — | — |
+| DOC-001 | **PASS** | 文档包核验器 PASS；受影响检查 8/10 → 现 8/12（新增 DOC-INDEX/SCI-REF 已修绿，2 红为文档包↔仓库冲突） | `工程控制/RELEASE-01/DOC_PACK_MANIFEST.json`、`run/RELEASE-01/logs/docs/` | 36 篇替换到位、治理痕迹清零、引用可达、一致性基线登记 |
+| AUD-001 | **PASS** | 分片复跑命令见各报告 §4 | `工程控制/RELEASE-01/GAP_AUDIT.md` + `reports/RELEASE-01/audit/*.md` | 23 模块 + 横向全覆盖；P0=16、P1=87、P2=35、UNRESOLVED=11 主题 |
+| SCI-001 | **PARTIAL** | `tools/science_contract_lint.py` PASS（10 篇 15 节）；CHK-SCI-REF PASS(8/8) | `reports/RELEASE-01/science/SCI-S{1,2}-*.md` | 专项 7/7 + 11 主题完成、参考补齐完成；**2 项 P0 科学订正未落**（属冻结文档，需变更 claim 裁决） |
+| BLD-001 | **PARTIAL** | cmake/ninja rc=0（0 警告）；ctest 442 = 430 通过 + 12 跳过 + **0 失败**；CHK-MODULE-MANIFEST 红 | `run/RELEASE-01/logs/BLD-001/build_ctest.log` | 构建与全量单测绿；"机器门绿"未达（P0-01/P0-16） |
+| TST-001 | **PARTIAL** | 新增负例测试 10 passed；暴露 fail-open 缺陷（已由前台修复并锁定） | `reports/RELEASE-01/tests/TST-001-report.md` | 缺口矩阵/跳过判定/断言抽检完成；**负例面 46 项仅 11 项自带可执行负例**，未补齐 |
+| DOC-002 | **PASS** | 订正后 `verify_doc_pack.py` PASS；Mermaid `mermaid.parse` 30/30 | `reports/RELEASE-01/docs/DOC-002-selfcheck.md` | 38 篇自查；6 处非语义订正（前台逐条复核 + 补 manifest） |
+| E2E-001 | **PARTIAL** | L3 两组 rc 全 0；L4 R 通道全量 rc 全 0；`weight_mode=2` 负例 rc=2 | `run/RELEASE-01/e2e/{l3,l4}/logs/` | 全链打通（R 通道口径）；**1/N worker 数值一致未验证**，全滤镜未跑 |
+| VIS-001 | **FAIL** | — | `reports/RELEASE-01/vis/VIS-001-report.md`、`artifacts/RELEASE-01/VIS-001/` | 整幅+分块+裁剪放大完成；**"无接缝/背景均匀"不通过**（归因 P0-09） |
+| PERF-001 | **FAIL** | — | `reports/RELEASE-01/perf/PERF-001-timing.md` | 计时/热点/L2 复算完成；**G-RES-01 enforce 非零违约**（③ 4/4 normalize、① 3/4 mosaic） |
+| DEL-001 | **DELIVERED（待负责人检查）** | 结构/数值校验通过 | `reports/RELEASE-01/DEL-001-delivery.md`、`run/RELEASE-01/deliverables/DEL-001/` | 两个 R 通道平面 FITS 已交付；含已知限制 4 条 |
+| FIN-001 | NOT_STARTED | — | — | 前置未满足（见 §3） |
 
-## 2. 各任务独立验证记录
+## 2. 各任务独立验证记录（本轮新增部分）
 
-### DOC-001 文档包替换核验
+### SCI-001（S1 + S2）
 
-- 来源 `AstroCS文档集.zip`，sha256 `fe7a0a4002b5d72c25b073e02c0633c8189578ea62efced82cd64d1ddcf3a483`，36 篇；23 篇逐字节相同 / 12 篇更新 / 1 篇新增；
-- 前台独立复跑：`python3 工程控制/RELEASE-01/verify_doc_pack.py` → 权威文档 36 篇、授权差异 **8** 条、相对引用 81 处、R1–R4 全零、`verdict=PASS rc=0`；
-- 授权差异（8 条）：3 条 DOC-001 治理痕迹/死引用清理（`ENGINEERING_SPEC.md`、`14_projection.md`、`05_platesolve.md`）+ 5 条 DOC-002 非语义订正（`03_GATES.md`、`02_PIPELINE.md`、`17_aio.md`、`03_star_detection.md`、`UNIFIED_MODEL.md`）；
-- 受影响机器门 8/10 PASS：CHK-ROOT-CLEAN / CHK-DANGLING（含 DOC-INDEX --strict）/ CHK-STALE-DOC / AGENTS-GOV / VERSION-NAMESPACES / VERSION-CONSISTENCY / DOC-L0 / CHK-IMPACT-MAP；**2 红**：ENG-CONSTRAINTS、CHK-REGISTRY-DOC-SYNC（→ §3 UNRESOLVED-1/2）。
+- S1：研究包 7/7；8 个开源实现源码级核验；photutils 3.0.0 数值对拍通过；"我方有误"5 项；文档订正 6 处；新增文献 9 + 代码库 8。
+- S2：11 主题对照；"我方有误/需订正"34 项（P0 2 / P1 8 / P2 24）；45 处文档节补出处；新增文献 47（编号 21–67）+ 参考代码库 23（含许可证）。
+- **前台独立复核**：`git diff` 显示 `docs/science|algorithms` 45 文件 **1027 增 / 2 删**；唯一语义订正 = `PSF_SIGNAL_WEIGHT.md` 的 `psf_snr_power` 行改 DEFERRED（证据 `v6_runtime_contract.h:110-114` 路由 reject）；其余为新增参考节，**未改公式**。
+- **未落项（PARTIAL 原因）**：S2 的 2 项 P0（`DRIZZLE.md` §5 归一化与 §7 不变量互斥；`ASTROMETRY.md` §5a 1px 平移口径 vs Paper I/实现）位于**冻结科学文档**，按 ENGINEERING_SPEC §3 需走变更 claim + 一致性回归，本轮未改。
+- 前台修复的连带红：SCI-S2 新增引用触发 `DOC-INDEX` 与 `DOC-LINE-ANCHORS` 红 → 前台补登 `docs/DOCUMENT_INDEX.yaml` + 登记 1 条 `EXTERNAL_REFERENCE` 锚豁免（photutils 为外部实现未 vendor），复跑 CHK-DANGLING PASS、CHK-SCI-REF PASS(8/8)。
 
-### AUD-001 设计-实现差异审计
+### TST-001
 
-- 4 个分片 SubAgent（normalize 8 / mosaic 5 / export 3 + CLI / infrastructure 7）**只找不改**，全部未改受版本控制文件；
-- 覆盖：23 个模块每模块 ≥1 条结论（含 8 条"无差距"）+ 5 条横向条款；
-- 差距：**P0 去重后 16 条**、P1 87 条、P2 35 条；UNRESOLVED 归并为 11 个主题；
-- 前台已核：分片报告的 P0 证据行均可复现（抽查 `CHK-MODULE-MANIFEST`、`sky_plane` 零命中、`p1_final.json n_variance_tiles=0`、`--version` 输出、`session_commands.h:150` 文案）。
+- 审查 442 ctest + Python 域；缺口矩阵按 7 类给出；12 个跳过用例判定：6 个合理（无 AVX512F / CUDA/ACR dormant / 有合成替代）、6 个因**硬编码 Windows 绝对路径**（`F:/Astro dev/...`）在 Linux 零执行；无 SKIP 充数。
+- 发现并（前台）修复 1 项 P1 缺陷：`ci/verify_toolchain.py` fail-open（打印 [FAIL] 却 exit 0）→ 加 `sys.exit(main())`；负例锁定 `tests/quality/test_env_adoption_negative.py`（10 passed）；复跑 CHK-ENV-ADOPTION PASS。
+- **PARTIAL 原因**：46 个注册检查中仅 11 项自带可执行负例（19 项负例是人工说明、1 项无 polarity 记录、9 项借壳），未补齐；另登记 15 项缺陷/缺口（P0 3）。
 
-### SCI-001 科学自审（S1 完成部分）
+### E2E-001（L4 R 通道全量）
 
-- 研究包 7/7 任务完成；8 个开源实现源码级核验（Siril/SWarp/DSS/SExtractor/SEP/photutils/properimage/SCAMP），photutils 3.0.0 数值对拍通过；
-- 结论"我方有误"5 项：PSFSNR 公式（应为 `c3·(Σf)²/(c4σ_n²)`，非 `√(Σf²)`）、`psf_snr_power` 实为 DEFERRED、研究包混引 ZOGY 与 How-to-COAAD-I、DeepSkyStacker 许可证/URL、SEP 许可证；
-- 文档订正 6 处（`PSF_SIGNAL_WEIGHT.md` §3/§4、`NOISE_MODEL.md` §14a.1、`SCIENTIFIC_REFERENCES.md`）；新增文献 9 条 + 参考代码库 8 项；
-- 前台已核：SCI-S2 对 `docs/science|algorithms` 的 45 文件改动为 1027 增 / **2 删**，删除项仅 `psf_snr_power` 行改为 DEFERRED（有代码证据），其余为新增"参考文献与参考代码库"节；**未改公式**（新出现的公式行为官方式[16]/[18]/[20] 的**引用披露**）。
+| 组 | normalize | mosaic | export（full / vis） | 交付帧 |
+|---|---|---|---|---|
+| M42（T2 M1–M6 + T3 M1–M6，Red 300s，49 帧） | 12 作业 rc=0（22:25→23:14，≈49 min） | rc=0（≈6 min，12 HiPS 输入，obs=67363/controls=28574） | rc=0 / rc=0 | 7821×10947 |
+| Galaxy Center（T4 panel1–3，Red 180s，32 帧） | 3 作业 rc=0 | rc=0 | rc=0 / rc=0 | 4856×9160 |
 
-### BLD-001 逐模块并行构建与冒烟
+- 产品结构：2 HDU（signal + `EXTNAME='COVERAGE'`），CHECKSUM/DATASUM 在位；覆盖外 = NaN（非 0）；`p3_props.json` `variance_available=false`（P0-02）。
+- **未验证项**：1/N worker 数值一致（E2E 验收门明确要求，本轮未跑）；全滤镜（仅 R，按 DEL-001 口径）。
 
-- 前台独立复跑（非 SubAgent 自述）：`cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release` rc=0 → `ninja -C build` rc=0（0 warning / 0 error）→ `ctest --test-dir build --output-on-failure` rc=0，**442 用例：430 通过 / 12 跳过 / 0 失败**，耗时 404.30 s；
-- 12 个跳过用例清单已归档（`phase2_synthetic_gate` ×3、`phase2_sampler_parallel` ×1 等），TST-001 正在判定是否属 SKIP 充数；
-- **未达项**：验收门"机器门绿"不成立——`CHK-MODULE-MANIFEST` 红（负责人已裁决的临时红，P0-01）+ `CHK-REGISTRY-DOC-SYNC` 红（P0-16）；逐模块独立构建/冒烟的**逐模块证据表**待 TST-001 汇总后补。
+### VIS-001 / PERF-001 / DEL-001
 
-### DOC-002 其他文档自查
-
-- 38 篇（根 5 + docs/ci 5 + docs/plugins 24 + docs/design 4）；
-- 6 处非语义订正（前台已逐条 diff 复核，行数不变）：`03_GATES.md` §11.3→§11.4 与 `§2.3`→`§2.1`、`02_PIPELINE.md` §11.3→§11.4、`17_aio.md` 模块路径、`03_star_detection.md` 去脆性行锚、`UNIFIED_MODEL.md` 表格错列；
-- Mermaid：作用域 30 图，结构检查 + `mermaid.parse` 30/30 PASS（浏览器级渲染因 Chromium 下载失败未完成，环境限制）；
-- 移交 AUD-001 的 7 项代码不一致 + `config_registry.json` 23 条行锚失配，均已并入 GAP_AUDIT §3/§5。
-
-### E2E-001 全流程真实数据端到端（L3 小批量，前台独立复跑）
-
-| 组 | 数据 | normalize | mosaic | export | 产物 |
-|---|---|---|---|---|---|
-| M42 | T2 M1 Red 300s ×2 + T3 M1 Red 300s ×6（600s dark，K=0.5） | rc=0 | rc=0（wm1） | rc=0 | `l3/p3_m42/output_phase3.fits` 2048²，RA---TAN/DEC--TAN，CRVAL 83.21382/−6.306814，BUNIT ADU |
-| Galaxy Center | T4 panel1 Red 180s ×4 + panel2 Red 180s ×4（180s dark） | rc=0 | rc=0（wm1） | rc=0 | `l3/p3_gc/output_phase3.fits` 2048²，RA---TAN/DEC--TAN，CRVAL −87.148208/−15.664133，BUNIT ADU |
-
-- **负例面**：`weight_mode=2` 两组均 rc=2，报 `weight_mode=2 requires per-frame ivar products; 2/2 frames missing ivar … set legacy_allow_weight_fallback=true` → 与 P0-02 一致，fail-closed 语义正确；
-- 科学抽检：WCS 解算 Gaia 闭合 RMS 0.1028″（M42 T3M1，inliers 37/64）、0.3242″（GC panel1，inliers 41/63）；往返 ~1e-10 px；`p1_final.json` 显示 `n_tiles=n_support_tiles=112/275`、`n_variance_tiles=n_ivar_tiles=0`；
-- 数值抽检：两个成品帧全有限、零 NaN、零零值；中位数 8.44e12（M42）/ 4.64e11（GC）ADU —— **单位口径待裁决**（BUNIT=ADU 与 HiPS 面元归一不一致，P1/P0 候选，见 GAP_AUDIT §5 B-6 同族）。
+见 §1 证据路径；结论分别为 **FAIL（接缝）**、**FAIL（L2 enforce 违约）**、**DELIVERED**。
 
 ## 3. 红灯与豁免
 
 - 本控制包**不使用 waiver 掩盖红灯**。
 
-### UNRESOLVED-1（P0）：文档包 `ENGINEERING_SPEC.md` §7 删去 `ACCEPTANCE_SPEC.md`
-### UNRESOLVED-2（P0）：文档包 `docs/ci/01_CHECKS.md` §2 删去 `CHK-EXIT-CONSISTENCY`/`CHK-E2E-REPRO`
-### UNRESOLVED-3（P1）：版本口径四冲突（`0.1alpha` / `0.11.0-alpha.2` / `0.0.1alpha` / "Alpha 前无版本"）
+### 未通过项
 
-> 三者细节与证据见本文件上一版（commit `41b41e2d` 版 §3）与 `GAP_AUDIT.md` §5 U-F/U-G。
-> **新增关键证据（前台查证）**：`CHK-EXIT-CONSISTENCY` 与 `CHK-E2E-REPRO` 是**前批 agent 自己引入**的注册项——`git log -S'CHK-EXIT-CONSISTENCY' -- ci/checks.json` 仅命中 `5eb1433f`，`-- docs/ci/01_CHECKS.md` 命中 `bd300e85`（新增）与 `41b41e2d`（本次删除）；两个检查器文件亦由 `5eb1433f` 新增。即：负责人文档包从未登记这两项。**建议**：按 `docs/ci/01_CHECKS.md §2.1` 退役流程从 `ci/checks.json` 移除注册（保留检查器可复跑性），而非回写文档包。
+| 项 | 判据 | 结论 | 归因 |
+|---|---|---|---|
+| VIS-001 | L4 §5.2「无接缝/背景均匀」 | **不通过**（行中位数跳变 M42 17.2–22.4×、GC 9.8–12.4×；裁剪放大见面板交界台阶） | P0-09（生产 UPM 无 `b_k(x)` 稀疏天光面） |
+| PERF-001 | G-RES-01 enforce 零违约 | **违约**：判据③ 4/4 normalize、判据① 3/4 mosaic | 编排/并行/内存（P1 群） |
+| BLD-001 | 机器门绿 | 未达：CHK-MODULE-MANIFEST 红（负责人已裁决临时红）+ CHK-REGISTRY-DOC-SYNC 红（U-2） | 文档↔仓库冲突 + 模块门 |
+| TST-001 | 每核心检查具备可执行负例 | 未达：46 项中 11 项具备 | 测试面欠账 |
+| SCI-001 | "我方有误"全部订正 | 未达：2 项 P0 属冻结文档 | 需变更 claim 裁决 |
 
-### 范围冲突（须负责人裁定，决定结论走向）
+### UNRESOLVED（上呈负责人）
 
-新文档包引入实现中不存在的语义（稀疏天光面、locality-aware 编排与流式内存、Gaia 两级缓存与查询合并、GLS/Q-W/psfsw 三目标、variance/ivar 链），而 `00_README.md §2` 明确本轮"不引入新功能"。二者互斥，须裁定：**(a)** 这些属发布阻断项 → 当前实现不可发布；**(b)** 属下一版本路线图 → L2/L3 中依赖它们的验收条目不能按新文档判绿，需在发布说明中如实声明。详见 `GAP_AUDIT.md` §4。
+- U-1（P0）`ENGINEERING_SPEC.md` §7 删 `ACCEPTANCE_SPEC.md` → ENG-CONSTRAINTS 红 + `tests/quality/test_root_cleanliness.py` 1 failed（前台已复现）。
+- U-2（P0）`docs/ci/01_CHECKS.md` §2 删 `CHK-EXIT-CONSISTENCY`/`CHK-E2E-REPRO` → CHK-REGISTRY-DOC-SYNC 红。**关键证据**：两项均为前批 agent 于 `5eb1433f`/`bd300e85` 自行引入，负责人文档包从未登记；建议按 §2.1 退役流程从 `ci/checks.json` 移除注册。
+- U-3 / U-F（P1）版本口径四冲突（`0.1alpha` / `0.11.0-alpha.2` / `0.0.1alpha` / "Alpha 前无版本"）。
+- U-4（范围裁决）新文档包新增语义（稀疏天光面、locality-aware 编排与流式内存、Gaia 两级缓存与查询合并、GLS/Q-W/psfsw、variance/ivar 链）是否属本轮发布阻断项——**决定 RELEASE-01 结论走向**。
+- 其余 UNRESOLVED 主题（U-A..U-K）见 `GAP_AUDIT.md` §5。
+
+## 4. 提交台账（本轮）
+
+| commit | 目的 |
+|---|---|
+| `41b41e2d` | 负责人授权文档包替换（36 篇）+ DOC-001 核验器/清单/验收记录 |
+| `44456cd9` | DOC-002 非语义订正 5 篇 + 文档包哈希清单同步 |
+| `891b05a3` | AUD-001 差异审计定稿 + DOC-002 报告 + 验收记录 |
+| `2d75e636` | fix(ci): verify_toolchain fail-closed + 负例锁定 |
+| `fcf87d8e` | SCI-001 三方自审订正 + 参考文献/代码库补齐 + 索引/锚登记 |

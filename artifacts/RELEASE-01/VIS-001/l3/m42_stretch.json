@@ -1,0 +1,14 @@
+{
+  "out": "/workspace/Astro CS Database/run/RELEASE-01/vis/l3_smoke/m42_full.png",
+  "source": "/workspace/Astro CS Database/run/RELEASE-01/e2e/l3/p3_m42/output_phase3.fits",
+  "hdu": 0,
+  "shape": [
+    2048,
+    2048
+  ],
+  "lo": 7555002757283.84,
+  "hi": 12873160248524.693,
+  "mode": "asinh",
+  "lo_pct": 1.0,
+  "hi_pct": 99.0
+}
