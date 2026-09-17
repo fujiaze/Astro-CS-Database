@@ -298,3 +298,9 @@ P2-002、OBS-001、P3-001 三条线均报「**卡内文件域不覆盖它自己�
 
 1. **legacy 合同 ID 集合由负责人冻结（当前 7 条），执行线不得追加**。实测：把 `DATA-P1-HIPS` 追加进 legacy 集合（INDEX legacy 行 + compat map + registry 四处）后，`tests/contracts` 立即 2 failures —— `test_legacy_ids_are_decided_not_pending`（集合恒为 7）与 `test_legacy_evidence_is_not_self_referential`（`old_contract_face` 只能引基线旧面）；已全部回退。**新增合同走独立 ID 路线（`- id:` + 上下游反向链接）；扩 legacy 集合须先经负责人裁决。**
 2. **可调容差 vs 实测证据**：科学文档**不得复制可调容差数值**（唯一家在 `config/**` + 登记册，文档只引用，受 CFG-001 合同门约束）；但**实测证据与观测事实**（测量中位数、比值、曝光时长、数据集属性）**必须留在科学文档里**——它们是判定实现对错的依据，删除会让文档失去可验证性。判据：该数字**可被调参改变** ⇒ 配置；**是测量/观测结果** ⇒ 证据。
+
+### H.5 追加（第四类假绿：静默退化读入）
+
+**例证（W4-A9 实证）**：`tools/quality/known_failures_baseline.py:690-695` 对读取失败的文件 `except OSError: return ""` ⇒ 依赖该文件内容的判据（如 `"p3_output_verify" in p3_output and (...)`）**因空串恒假** ⇒ finding 被降级为 `NOT_REPRODUCED_WITH_EVIDENCE`（**假阴性**：看起来缺陷没了，实际是读不到文件）。实测：对 `git show 61ca0725:…/p3_output.cpp` 与当前文件分别复算该布尔式，**两者都是 True** ⇒ 该 finding 一直可复现，是**产物错了**。
+
+**规则**：工具对**输入读取失败、路径缺失、解析为空**的情况，**必须判失败或显式标注 `UNREADABLE`**，**禁止静默返回空串/空集**——空值参与的子串/成员判据会退化成恒真或恒假，属附录 H.5 第 1 条（断言活性）的同类。产出物（如 `artifacts/KNOWN_FAILURES_BASELINE.json`）在**提交点入库前必须与 HEAD 版做结构化 diff**（新增/消失/仅路径变化三类计数），**计数不得上升**。
