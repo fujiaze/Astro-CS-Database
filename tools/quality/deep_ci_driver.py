@@ -222,10 +222,13 @@ def _ctest_match_count(build_dir: str, target: str,
     打印 "No tests were found!!!" 且 **rc=0**（实测），若只看 rc 会把「门空转」
     记成 PASS。此预检把命中数显式暴露给调用方，0 即按 FAIL 处理。
     """
+    # target="." 是 ctest-full 的「全部测试」哨兵：必须走不带 -R 的 ctest -N。
+    # （历史缺陷：哨兵被套成 ^.$，只匹配单字符测试名 ⇒ 全量门恒 0 命中假红。）
+    all_tests = target in (".", "", ".*")
+    probe_cmd = ["ctest", "-N"] if all_tests else ["ctest", "-N", "-R", "^%s$" % target]
     try:
-        probe = subprocess.run(["ctest", "-N", "-R", "^%s$" % target],
-                               cwd=str(REPO / build_dir), capture_output=True,
-                               text=True, timeout=timeout)
+        probe = subprocess.run(probe_cmd, cwd=str(REPO / build_dir),
+                               capture_output=True, text=True, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired) as exc:
         return 0, "ctest -N 预检无法执行：%s（fail-closed）" % exc
     text = (probe.stdout or "") + (probe.stderr or "")
