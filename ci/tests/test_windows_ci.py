@@ -115,13 +115,14 @@ class TestRegistryConformance(unittest.TestCase):
                              f"run/ci/monitor/{cid}.json", cid)
             self.assertIn("--timeout", c["command"], cid)
 
-    def test_registry_strict_pass_104(self):
-        # CI-REG-002 注册 17 项 CTEST-* 后 80 → 97；
-        # CI-BASELINE-001 注册 known-failures 基线两门后 97 → 99；
-        # CI-001B 注册 5 项（workflow 联动核死 + binding 测试 + 三步收编）后 99 → 104。
+    def test_registry_strict_pass(self):
+        # W4-A3：注册表已改为**两层**（checks[] + steps[]），104 是"扁平登记项"时代的流水
+        # 计数（80→97→99→104），不再是有效期望。改为由注册表**重算**的不变量：
+        # validate 返回条目数 == 文件里 checks[] 长度。
+        # 2026-09-17 重算：顶层 44 + steps 163（其中 3 个顶层项复用自身 id 为唯一单元）= 207 单元。
         errors, n = VR.validate(_REPO / "ci" / "checks.json", strict=True)
         self.assertEqual(errors, [])
-        self.assertEqual(n, 104)
+        self.assertEqual(n, len(_REG["checks"]))
 
 
 class TestProfilePlans(unittest.TestCase):
@@ -134,21 +135,37 @@ class TestProfilePlans(unittest.TestCase):
         assert proc.returncode == 0, proc.stderr[-400:]
         return json.loads(proc.stdout)
 
-    def test_windows_main_66_contains_new_ids(self):
+    def test_windows_main_contains_new_ids(self):
         plan = self.plan("windows-main")
         ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 66)
+        # W4-A3：期望值由注册表重算（原魔数 66）—— plan-only 口径 =
+        # 声明属于该 profile 的顶层注册项数。2026-09-17 重算 = 32。
+        declared = [c for c in _REG["checks"] if "windows-main" in c.get("profiles", [])]
+        self.assertEqual(plan["selected_count"], len(declared))
         # CI-001B：候选校验门收编为不可豁免注册表检查项（STD-F8 残留项收口）
         self.assertIn("WIN-CANDIDATE-VALIDATE", ids)
-        self.assertTrue(set(_WIN_IDS) <= ids)
-        self.assertEqual({c["platform"] for c in plan["checks"]
-                          if c["id"] in _WIN_IDS}, {"windows"})
+        # W4-A3：_WIN_IDS 三项都是**执行单元** id（WIN-BUILD-RELEASE 等），
+        # plan 只输出顶层注册项 ⇒ 用注册表两层索引取单元闭包。
+        units = set()
+        for c in declared:
+            units.add(c["id"])
+            units.update(s["id"] for s in c.get("steps") or [])
+        self.assertTrue(set(_WIN_IDS) <= units,
+                        sorted(set(_WIN_IDS) - units))
+        # 三项执行单元必须都是 windows 平台且不可豁免（跨平台漏跑要显性失败）
+        for wid in _WIN_IDS:
+            self.assertEqual(_WIN_CHECKS[wid]["platform"], "windows", wid)
+            self.assertFalse(_WIN_CHECKS[wid]["waivable"], wid)
 
-    def test_other_profiles_unchanged_61_94_7(self):
-        for profile, count in (("fast", 61), ("linux-main", 94), ("linux-deep", 7)):
+    def test_other_profiles_unchanged(self):
+        # W4-A3：期望值由注册表重算（原魔数 61/94/7）。
+        # 2026-09-17 重算：fast=31、linux-main=39、linux-deep=4。
+        for profile in ("fast", "linux-main", "linux-deep"):
             plan = self.plan(profile)
             ids = {c["id"] for c in plan["checks"]}
-            self.assertEqual(plan["selected_count"], count, profile)
+            declared = [c for c in _REG["checks"]
+                        if profile in c.get("profiles", [])]
+            self.assertEqual(plan["selected_count"], len(declared), profile)
             self.assertFalse(ids & set(_WIN_IDS), profile)
 
 

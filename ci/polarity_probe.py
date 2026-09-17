@@ -96,6 +96,28 @@ g("CHK-IMPACT-MAP", "PROVEN-EXECUTABLE", "P0",
   auto=True,
   reason="判据违规面由 N1..N6 覆盖；fail-closed 面由 N7 覆盖；真仓 PASS rc=0")
 
+
+g("CHK-EXIT-CONSISTENCY", "PROVEN-EXECUTABLE", "P1",
+  (_p("tools/quality/check_exit_conclusion_consistency.py"), 0, "repo"),
+  (_p("tools/quality/check_exit_conclusion_consistency.py", "--self-test"), 0, "repo"),
+  "selftest(正例=全仓 tools/**+ci/** 扫描 rc=0；负例=--self-test 内 3 组用例，"
+       "negative-literal-zero / negative-no-exit-path / "
+       "negative-sys-exit-zero-after-fail —— 此处引用不复制，"
+       "逐条源码见该脚本 SELFTEST_CASES)",
+  "run/PROJECT-GOVERNANCE-01/W4-A3/logs/after_EXIT-CONSISTENCY.log",
+  auto=True,
+  reason="判据=结论与退出码一致；负例面覆盖三种 fail-open 形态；真仓 PASS rc=0")
+
+
+g("CHK-PKG-CONSISTENCY", "PROVEN-EXECUTABLE", "P1",
+  (_p("packaging/check_packaging_consistency.py", "--root", ".",
+      "--json-out", "run/ci/pkg-consistency.json"), 0, "repo"),
+  (_p("packaging/check_packaging_consistency.py", "--root", EMPTY), 2, "repo"),
+  "fail-closed(ANCHOR_STALE，空树 rc=2) + selftest(注入 C5/C6/C7 均判红，正例判绿)",
+  "run/PROJECT-GOVERNANCE-01/W4-A3/logs/PKG/",
+  auto=True,
+  reason="正例全仓 rc=0（PKG_CONSISTENCY PASS）；负例空树 ANCHOR_STALE rc=2；两侧均已实跑留 log 锚")
+
 # ── CI-001 已双极实证（沿用证据锚） ──────────────────────────────────────────
 for gate, grade, pos, neg, kind, ev in [
     ("CHK-MODULE-MANIFEST", "P0", _p("tools/quality/check_module_map.py", "--selftest"),

@@ -51,6 +51,12 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 REGISTRY_REL = "ci/checks.json"
+
+# 口径（W4-A3 前台裁决，2026-09-17）：**已显式登记进 ci/checks.json 的 ctest_targets
+# ⇒ 不再进本冻结基线**。冻结基线是 CI-REG-002 建立时点**存量目标**的一次性过渡收编
+# 机制；显式登记强于冻结（登记会被 C4/C6 双向校验，冻结只保证不漂移）。所以看到
+# 某个 add_test 目标不在本基线里，先查它是不是已被显式登记 —— 那是**正常**的，
+# 不是遗漏。
 BASELINE_REL = "ci/ctest_baseline.json"
 SCHEMA_VERSION = 1
 
@@ -127,12 +133,34 @@ def _visible_text(text: str) -> str:
     return "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("#"))
 
 
+FOREACH_RE = re.compile(r'foreach\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s+([^)]*?)\s*\)(.*?)endforeach\s*\(', re.S)
+
+
+def expand_foreach(text, depth=0):
+    """把 foreach(var a b c) ... endforeach() 展开成逐值副本。
+
+    W4-A3：解析器原先只取字面量名，于是
+    lib/infrastructure/pipeline/orchestrator/cpp/tests/CMakeLists.txt 的
+    foreach(orch_test logger checkpoint) 生成的 orchestrator_logger_units /
+    orchestrator_checkpoint_units 两条真实 ctest 在扫描面上不可见 —— 这正是
+    空/不透明扫描面那一类失效（看不见的东西永远不会被判红）。"""
+    if depth > 4:
+        return text
+
+    def repl(m):
+        var, vals, body = m.group(1), m.group(2).split(), m.group(3)
+        return "\n".join(body.replace("${" + var + "}", v) for v in vals)
+
+    expanded = FOREACH_RE.sub(repl, text)
+    return expand_foreach(expanded, depth + 1) if expanded != text else expanded
+
+
 def parse_targets(sources: dict) -> tuple:
     """返回 (target -> 仓库相对源路径, 结构违规列表)。"""
     targets: dict = {}
     errors: list = []
     for rel, raw in sorted(sources.items()):
-        text = _visible_text(raw)
+        text = expand_foreach(_visible_text(raw))
         names = ADD_TEST_NAME_RE.findall(text)
         total = len(ADD_TEST_ANY_RE.findall(text))
         if total != len(names):

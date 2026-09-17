@@ -1060,7 +1060,13 @@
         "v6_p2_write",
         "v6_p3_export_negative",
         "v6_p3_export_oracle",
-        "v6_p3_export_positive"
+        "v6_p3_export_positive",
+        "orchestrator_logger_units",
+        "orchestrator_checkpoint_units",
+        "orchestrator_cli_integration",
+        "orchestrator_legacy_cli_smoke",
+        "orchestrator_legacy_cli_validate",
+        "orchestrator_saturation_wiring_gate"
       ],
       "dirty_ignore_prefixes": [
         "run/v6/"
@@ -1320,6 +1326,210 @@
             "v6_p3_export_positive",
             "v6_p3_export_negative",
             "v6_p3_export_oracle"
+          ]
+        },
+        {
+          "id": "CTEST-ORCH-LOGGER-UNITS",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "orchestrator_logger_units",
+            "--output",
+            "run/ci/ctest/orchestrator_logger_units.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/orchestrator_logger_units.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/pipeline/orchestrator/**",
+            "CMakeLists.txt",
+            "tests/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "orchestrator_logger_units"
+          ]
+        },
+        {
+          "id": "CTEST-ORCH-CHECKPOINT-UNITS",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "orchestrator_checkpoint_units",
+            "--output",
+            "run/ci/ctest/orchestrator_checkpoint_units.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/orchestrator_checkpoint_units.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/pipeline/orchestrator/**",
+            "CMakeLists.txt",
+            "tests/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "orchestrator_checkpoint_units"
+          ]
+        },
+        {
+          "id": "CTEST-ORCH-CLI-INTEGRATION",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "orchestrator_cli_integration",
+            "--output",
+            "run/ci/ctest/orchestrator_cli_integration.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/orchestrator_cli_integration.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/pipeline/orchestrator/**",
+            "CMakeLists.txt",
+            "tests/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "orchestrator_cli_integration"
+          ]
+        },
+        {
+          "id": "CTEST-ORCH-LEGACY-CLI-SMOKE",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "orchestrator_legacy_cli_smoke",
+            "--output",
+            "run/ci/ctest/orchestrator_legacy_cli_smoke.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/orchestrator_legacy_cli_smoke.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/pipeline/orchestrator/**",
+            "CMakeLists.txt",
+            "tests/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "orchestrator_legacy_cli_smoke"
+          ]
+        },
+        {
+          "id": "CTEST-ORCH-LEGACY-CLI-VALIDATE",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "orchestrator_legacy_cli_validate",
+            "--output",
+            "run/ci/ctest/orchestrator_legacy_cli_validate.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/orchestrator_legacy_cli_validate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/pipeline/orchestrator/**",
+            "CMakeLists.txt",
+            "tests/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "orchestrator_legacy_cli_validate"
+          ]
+        },
+        {
+          "id": "CTEST-ORCH-SATURATION-GATE",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "orchestrator_saturation_wiring_gate",
+            "--output",
+            "run/ci/ctest/orchestrator_saturation_wiring_gate.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/orchestrator_saturation_wiring_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/pipeline/orchestrator/**",
+            "CMakeLists.txt",
+            "tests/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "orchestrator_saturation_wiring_gate"
           ]
         }
       ]
@@ -6744,6 +6954,137 @@
         "ci/resource_monitor.py"
       ],
       "requires_monitor": false
+    },
+    {
+      "id": "CHK-EXIT-CONSISTENCY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/run_checks.py",
+        "--check",
+        "CHK-EXIT-CONSISTENCY",
+        "--quiet"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/exit-consistency.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "tools/**",
+        "ci/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "EXIT-CONSISTENCY-SCAN",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "tools/quality/check_exit_conclusion_consistency.py",
+            "--json-out",
+            "run/ci/exit-consistency.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/exit-consistency.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "tools/**",
+            "ci/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "EXIT-CONSISTENCY-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "tools/quality/check_exit_conclusion_consistency.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "tools/quality/check_exit_conclusion_consistency.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-E2E-REPRO",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/run_checks.py",
+        "--check",
+        "CHK-E2E-REPRO",
+        "--quiet"
+      ],
+      "timeout_seconds": 1200,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tools/astrometry/**",
+        "docs/algorithms/GATES_AND_TOLERANCES.md"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "E2E-WCS-CLOSURE-REPRO-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "tools/astrometry/closure_metric.py",
+            "selftest"
+          ],
+          "timeout_seconds": 1200,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "tools/astrometry/closure_metric.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
     },
     {
       "id": "CHK-KNOWN-FAILURES-BASELINE",

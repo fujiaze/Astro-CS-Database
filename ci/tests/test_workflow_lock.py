@@ -602,16 +602,21 @@ class TestValidateCandidate(unittest.TestCase):
 # ---------------------------------------------------------- 配置计数回归 ----
 
 class TestProfileCountsRegression(unittest.TestCase):
-    """plan-only selected_count 基线：61/94/7/66（CI-001B 后：WORKFLOW-REGISTRY-BINDING
-    与 CI-BINDING-TESTS 进 fast/linux-main/windows-main；LINUX-MAIN-FIXTURES /
-    LINUX-MAIN-BUILD-TREE 进 linux-main；WIN-CANDIDATE-VALIDATE 进 windows-main——
-    workflow 侧两条 linux 业务步与 windows 候选校验步同提交收编为注册表检查项）。
-    此前 CI-BASELINE-001 后为 59/90/7/63，CI-REG-002 后为 58/88/7/62。"""
+    """plan-only selected_count 与**注册表声明面**一致。
 
-    BASELINE = {"fast": 61, "linux-main": 94, "linux-deep": 7, "windows-main": 66}
+    W4-A3 重写：原先是魔数基线 61/94/7/66（其自身注释记录了 58/88/7/62 → 59/90/7/63
+    → 61/94/7/66 的流水演进）。注册表已改为**两层**（checks[] + steps[]），那些魔数
+    记的是"扁平登记项"时代的计划规模，既不是设计目标、也不再可复算 ⇒ 改为**由注册表
+    重算**的不变量：plan-only 不做平台/prerequisite 过滤，故口径 = 声明属于该 profile
+    的顶层注册项数。2026-09-17 重算值：fast=31、linux-main=39、linux-deep=4、
+    windows-main=32。本用例仍能红：注册表增删项而计划器不同步时立即失败。
+    """
 
-    def test_plan_only_counts_unchanged(self):
-        for profile, expected in self.BASELINE.items():
+    def test_plan_only_counts_match_registry(self):
+        registry = json.loads((_REPO / "ci" / "checks.json").read_text(encoding="utf-8"))
+        for profile in ("fast", "linux-main", "linux-deep", "windows-main"):
+            expected = sum(1 for c in registry["checks"]
+                           if profile in c.get("profiles", []))
             res = H.sh([sys.executable, str(_REPO / "ci" / "run.py"),
                         "--profile", profile, "--plan-only"],
                        cwd=_REPO, timeout=120)

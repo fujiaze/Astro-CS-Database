@@ -455,6 +455,14 @@
       "grade": "P0",
       "name": "产品清单/安装树合同/依赖锁/安装规则/许可登记面一致 + SBOM 实树 hash 自证",
       "doc": "docs/ci/01_CHECKS.md §2（W5-PKG-001 交付，W4-A3 注册）"
+    },
+    "CHK-EXIT-CONSISTENCY": {
+      "kind": "ci",
+      "grade": "P1"
+    },
+    "CHK-E2E-REPRO": {
+      "kind": "ci",
+      "grade": "P0"
     }
   },
   "reserved_targets": {
@@ -2070,10 +2078,109 @@
       "kind": "extension",
       "grade": "P1",
       "note": "W4-A3：登记新交付的 ctest 目标 p1wcs_closure_metric_gate（CHK-ORACLE 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CHK-EXIT-CONSISTENCY",
+      "decision": "KEPT",
+      "target": "CHK-EXIT-CONSISTENCY",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "C 类收口：结论与退出码一致性（W4-A3 新增门）"
+    },
+    {
+      "old_id": "EXIT-CONSISTENCY-SCAN",
+      "decision": "KEPT",
+      "target": "CHK-EXIT-CONSISTENCY",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "扫描 tools/**+ci/**：打印 FAIL 必须 rc≠0"
+    },
+    {
+      "old_id": "EXIT-CONSISTENCY-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-EXIT-CONSISTENCY",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "自测面：3 正例 + 3 负例"
+    },
+    {
+      "old_id": "CTEST-ORCH-LOGGER-UNITS",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CTEST-ORCH-CHECKPOINT-UNITS",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CTEST-ORCH-CLI-INTEGRATION",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CTEST-ORCH-LEGACY-CLI-SMOKE",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CTEST-ORCH-LEGACY-CLI-VALIDATE",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CTEST-ORCH-SATURATION-GATE",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CHK-E2E-REPRO",
+      "decision": "KEPT",
+      "target": "CHK-E2E-REPRO",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "E2E-FIX-001 发布门 G-P1-WCS-CLOSURE-REPRO CI 注册"
+    },
+    {
+      "old_id": "E2E-WCS-CLOSURE-REPRO-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-E2E-REPRO",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "G-P1-WCS-CLOSURE-REPRO 自检：7 类注入必红 + 缺输入 fail-closed 必红"
     }
   ],
   "coverage": {
-    "source_entry_count": 146,
+    "source_entry_count": 157,
     "mapped_entry_count": 147,
     "merged_into": 136,
     "kept": 15,
