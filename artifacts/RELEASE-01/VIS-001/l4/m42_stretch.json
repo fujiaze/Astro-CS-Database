@@ -1,0 +1,15 @@
+{
+  "out": "/workspace/Astro CS Database/run/RELEASE-01/vis/l4/m42_full.png",
+  "source": "/workspace/Astro CS Database/run/RELEASE-01/e2e/l4/p3_m42_vis/output_phase3.fits",
+  "hdu": 0,
+  "shape": [
+    4096,
+    4096
+  ],
+  "lo": 7630514893619.2,
+  "hi": 113513885880811.03,
+  "mode": "asinh",
+  "lo_pct": 1.0,
+  "hi_pct": 99.0,
+  "thumbnail": "/workspace/Astro CS Database/run/RELEASE-01/vis/l4/m42_thumb.png"
+}
