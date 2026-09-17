@@ -23,6 +23,36 @@
       "path": "docs/plugins/algorithms_phase1/05_platesolve.md",
       "kind": "reference-reachability",
       "detail": "死引用 `docs/algorithms/platesolve/*` 订正为实际文件 `docs/algorithms/PLATESOLVE.md`（DOC-001 步骤5 引用可达）"
+    },
+    {
+      "path": "docs/ci/03_GATES.md",
+      "kind": "style-consistency",
+      "detail": "DOC-002 非语义订正：最高设计 §11.3→§11.4（状态阶梯所在节）、01_CHECKS.md §2.3→§2.1（悬空引用）",
+      "repo_sha256": "8bfec8d89e91e7f04a97c142ae06d9770b888c4b17050c7ab1dc7c2d334cc8b1"
+    },
+    {
+      "path": "docs/ci/02_PIPELINE.md",
+      "kind": "style-consistency",
+      "detail": "DOC-002 非语义订正：VERIFIED 定义引用 §11.3→§11.4",
+      "repo_sha256": "0b99818c184de565060de8b6ac85284ab0f51c5300c3bbfd79a27dc20903b232"
+    },
+    {
+      "path": "docs/plugins/infrastructure/17_aio.md",
+      "kind": "style-consistency",
+      "detail": "DOC-002 非语义订正：模块路径 cli/scheduler/ → cli/、scheduler/（二者平级）",
+      "repo_sha256": "4ceb2cb9943897dcb1ece59eaf76cce29ff8649a867e3cf0d937539dc2e6a2f8"
+    },
+    {
+      "path": "docs/plugins/algorithms_phase1/03_star_detection.md",
+      "kind": "style-consistency",
+      "detail": "DOC-002 非语义订正：去掉脆性行锚 §3.6:195 → §3.6",
+      "repo_sha256": "8b877241686b22cf6332ca62a31b3511d61f9c24c0d0d2ce8d94aa750e22ae9a"
+    },
+    {
+      "path": "docs/design/UNIFIED_MODEL.md",
+      "kind": "style-consistency",
+      "detail": "DOC-002 非语义订正：表格错列（frame_snr 行多一个空格）修正，行数不变",
+      "repo_sha256": "5b33def7ba262f0780fa04c278ea3ed64c876c79c879325dd2bf2a30bbfae6b3"
     }
   ],
   "files": {
@@ -52,11 +82,11 @@
     },
     "docs/ci/02_PIPELINE.md": {
       "pack": "10b173f90b72f2edf159a77f194ce90b503f9bb8ed5f98671ad2565f080b2d50",
-      "repo": "10b173f90b72f2edf159a77f194ce90b503f9bb8ed5f98671ad2565f080b2d50"
+      "repo": "0b99818c184de565060de8b6ac85284ab0f51c5300c3bbfd79a27dc20903b232"
     },
     "docs/ci/03_GATES.md": {
       "pack": "a0b75c773f459ab37c1919e4242bb0a5b751b9f2cf52261670f057ea6a4b5f86",
-      "repo": "a0b75c773f459ab37c1919e4242bb0a5b751b9f2cf52261670f057ea6a4b5f86"
+      "repo": "8bfec8d89e91e7f04a97c142ae06d9770b888c4b17050c7ab1dc7c2d334cc8b1"
     },
     "docs/ci/04_ARTIFACTS.md": {
       "pack": "bbdbf524e4e64c6f25bdb5b1d266d107c0aa84418aaf5d5dd4959c2ca65b40f1",
@@ -68,7 +98,7 @@
     },
     "docs/design/UNIFIED_MODEL.md": {
       "pack": "ff79f1e872b255f435c2222e7032cc104ce5f69488d92c987f91b740c47b8f53",
-      "repo": "ff79f1e872b255f435c2222e7032cc104ce5f69488d92c987f91b740c47b8f53"
+      "repo": "5b33def7ba262f0780fa04c278ea3ed64c876c79c879325dd2bf2a30bbfae6b3"
     },
     "docs/plugins/00_INDEX.md": {
       "pack": "058a677cee700ac731dd86de0fb3306073e0f17725e40a8815530b0389168319",
@@ -84,7 +114,7 @@
     },
     "docs/plugins/algorithms_phase1/03_star_detection.md": {
       "pack": "95c08c335a4da57c0e9d932eed25f119d2947de4b9bacc1438d7f7a8a80597d8",
-      "repo": "95c08c335a4da57c0e9d932eed25f119d2947de4b9bacc1438d7f7a8a80597d8"
+      "repo": "8b877241686b22cf6332ca62a31b3511d61f9c24c0d0d2ce8d94aa750e22ae9a"
     },
     "docs/plugins/algorithms_phase1/04_psf.md": {
       "pack": "767f7c5cfe6dffa1cdf0d56a0de3b5ee49d9aaeec71571d29a65c70eb2452a07",
@@ -140,7 +170,7 @@
     },
     "docs/plugins/infrastructure/17_aio.md": {
       "pack": "231a90de54b2071d90731a3a56a2ee6c95c3dd14b930762c88496a6ba23040c0",
-      "repo": "231a90de54b2071d90731a3a56a2ee6c95c3dd14b930762c88496a6ba23040c0"
+      "repo": "4ceb2cb9943897dcb1ece59eaf76cce29ff8649a867e3cf0d937539dc2e6a2f8"
     },
     "docs/plugins/infrastructure/18_cli.md": {
       "pack": "57e8f029492a26dbd03be7f2878eb14abac5ab2cfd695286b3f0e942e5c3a217",
