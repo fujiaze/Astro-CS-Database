@@ -921,7 +921,19 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
         result["verdict"] = V_FAIL
         result["reason"] = result["reason"] or f"命令非零退出：{returncode}"
     else:
-        missing = [rel for rel in check["outputs"] if not _script_exists(repo, rel)]
+        # 平台跳过的 step，其登记 outputs 不得在其它平台被要求：
+        # CHK-UNIT 的 WIN-TEST-UNIT（platform=windows）产物在 linux 上永不产生，
+        # 而 check 级 outputs 是跨平台并集 ⇒ 历史 FAIL(missing_output) 假红。
+        _skip_outs, _kept_outs = set(), set()
+        for _s in check.get("steps") or []:
+            _outs = set(_s.get("outputs") or [])
+            if _s.get("platform", "any") in ("any", platform):
+                _kept_outs.update(_outs)
+            else:
+                _skip_outs.update(_outs)
+        _platform_skipped = _skip_outs - _kept_outs
+        missing = [rel for rel in check["outputs"]
+                   if not _script_exists(repo, rel) and rel not in _platform_skipped]
         result["outputs_missing"] = missing
         if missing:
             result["verdict"] = V_MISSING_OUTPUT
