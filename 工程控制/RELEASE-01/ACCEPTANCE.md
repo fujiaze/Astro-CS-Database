@@ -12,7 +12,7 @@
 | BLD-001 | **PARTIAL** | cmake/ninja rc=0（0 警告）；ctest 442 = 430 通过 + 12 跳过 + **0 失败**；CHK-MODULE-MANIFEST 红 | `run/RELEASE-01/logs/BLD-001/build_ctest.log` | 构建与全量单测绿；"机器门绿"未达（P0-01/P0-16） |
 | TST-001 | **PARTIAL** | 新增负例测试 10 passed；暴露 fail-open 缺陷（已由前台修复并锁定） | `reports/RELEASE-01/tests/TST-001-report.md` | 缺口矩阵/跳过判定/断言抽检完成；**负例面 46 项仅 11 项自带可执行负例**，未补齐 |
 | DOC-002 | **PASS** | 订正后 `verify_doc_pack.py` PASS；Mermaid `mermaid.parse` 30/30 | `reports/RELEASE-01/docs/DOC-002-selfcheck.md` | 38 篇自查；6 处非语义订正（前台逐条复核 + 补 manifest） |
-| E2E-001 | **PARTIAL** | L3 两组 rc 全 0；L4 R 通道全量 rc 全 0；`weight_mode=2` 负例 rc=2 | `run/RELEASE-01/e2e/{l3,l4}/logs/` | 全链打通（R 通道口径）；**1/N worker 数值一致未验证**，全滤镜未跑 |
+| E2E-001 | **PASS**（R 通道口径） | L3 两组 rc 全 0；L4 R 通道全量 rc 全 0；`weight_mode=2` 负例 rc=2；**1/N worker 一致性 PASS** | `run/RELEASE-01/e2e/{l3,l4}/logs/`、`reports/RELEASE-01/E2E-001-1N-consistency.md` | 全链打通；确定性门已验证；范围限 R 通道（按 DEL-001 指示） |
 | VIS-001 | **FAIL** | — | `reports/RELEASE-01/vis/VIS-001-report.md`、`artifacts/RELEASE-01/VIS-001/` | 整幅+分块+裁剪放大完成；**"无接缝/背景均匀"不通过**（归因 P0-09） |
 | PERF-001 | **FAIL** | — | `reports/RELEASE-01/perf/PERF-001-timing.md` | 计时/热点/L2 复算完成；**G-RES-01 enforce 非零违约**（③ 4/4 normalize、① 3/4 mosaic） |
 | DEL-001 | **DELIVERED（待负责人检查）** | 结构/数值校验通过 | `reports/RELEASE-01/DEL-001-delivery.md`、`run/RELEASE-01/deliverables/DEL-001/` | 两个 R 通道平面 FITS 已交付；含已知限制 4 条 |
@@ -42,7 +42,8 @@
 | Galaxy Center（T4 panel1–3，Red 180s，32 帧） | 3 作业 rc=0 | rc=0 | rc=0 / rc=0 | 4856×9160 |
 
 - 产品结构：2 HDU（signal + `EXTNAME='COVERAGE'`），CHECKSUM/DATASUM 在位；覆盖外 = NaN（非 0）；`p3_props.json` `variance_available=false`（P0-02）。
-- **未验证项**：1/N worker 数值一致（E2E 验收门明确要求，本轮未跑）；全滤镜（仅 R，按 DEL-001 口径）。
+- **1/N worker 数值一致性（验收门项）**：**PASS**。派生 workers=1 的 cpu_profile（仅改 kernels.*.workers，host/build 不动）重跑同一科学配置，与 N-worker 参考清单逐产物比对：**17 项中 15 项 sha256 逐字节相同**；差异 2 项为 `p1_final.json`（含绝对路径的运行报告）与 `properties`（其 **canonical_sha256 相同**）→ 并行度未改变科学结果。证据：`reports/RELEASE-01/E2E-001-1N-consistency.md`、`run/RELEASE-01/e2e/evidence/1N-consistency-*`。
+- **范围**：仅 R 通道（按 DEL-001 指示）；G/B/H-alpha 未跑，如需按"全滤镜"口径验收需补跑。
 
 ### VIS-001 / PERF-001 / DEL-001
 
