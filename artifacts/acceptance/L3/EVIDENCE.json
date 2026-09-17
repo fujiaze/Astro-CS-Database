@@ -1,0 +1,65 @@
+{
+  "layer": "L3",
+  "chain": [
+    "normalize",
+    "normalize",
+    "normalize",
+    "mosaic",
+    "export"
+  ],
+  "exit_codes": {
+    "normalize": [
+      0,
+      0,
+      0
+    ],
+    "mosaic": 0,
+    "export": 0
+  },
+  "phase1_wcs_closure": [
+    {
+      "frame": "p1_red_01",
+      "inliers": 43,
+      "samples": 64,
+      "rms_arcsec": 0.1408,
+      "rms_px": 0.14547,
+      "ctype": "RA---TAN-SIP"
+    },
+    {
+      "frame": "p1_red_02",
+      "inliers": 47,
+      "samples": 64,
+      "rms_arcsec": 0.1026,
+      "rms_px": 0.10605,
+      "ctype": "RA---TAN-SIP"
+    },
+    {
+      "frame": "p1_red_03",
+      "inliers": 42,
+      "samples": 64,
+      "rms_arcsec": 0.1198,
+      "rms_px": 0.12381,
+      "ctype": "RA---TAN-SIP"
+    }
+  ],
+  "plane_fits": {
+    "file": "run/PROJECT-GOVERNANCE-02/PRE-REL/l3_out/p3_red/output_phase3.fits",
+    "naxis": [
+      1024,
+      1024
+    ],
+    "ctype": [
+      "RA---TAN",
+      "DEC--TAN"
+    ],
+    "crval": [
+      73.091667,
+      -69.589722
+    ],
+    "bunit": "ADU",
+    "nhdu": 2
+  },
+  "weight_chain": "BLOCKED by PRE-F-01 (no variance/ivar from Phase1 CLI); chain completed via explicit legacy_allow_weight_fallback=true",
+  "atomicity": "failure paths leave run metadata only (manifest status=incomplete), no science products",
+  "evidence_dir": "run/PROJECT-GOVERNANCE-02/PRE-REL/"
+}

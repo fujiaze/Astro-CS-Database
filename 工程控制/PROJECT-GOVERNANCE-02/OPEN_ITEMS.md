@@ -9,13 +9,13 @@
 | A1 | 工作区 **10 个未提交文件**：`ci/checks.json`（注册表 45 项）· `ci/polarity_probe.py` + `ci/polarity_evidence.json`（新门极性记录）· `ci/id_migration_map.json` · `ci/tests/test_deep_profiles.py`/`test_windows_ci.py`/`test_workflow_lock.py`（重算式判据）· `docs/ci/01_CHECKS.md`/`03_GATES.md` · `tools/quality/check_ctest_registration.py`（foreach 展开） |
 | A2 | 本批治理附录（生成物只许改生成器 · 空扫描面假绿 · 判据复算>冻结数字 · 判据作者也是受试者）+ 本包文件 |
 
-## B. 端到端（**未跑通**，本包核心）
+## B. 端到端（**已跑通**，本包核心）
 
 | 项 | 现状 |
 |---|---|
-| B1 逐命令冒烟 | `normalize`/`mosaic`/`export` **未逐一在干净环境跑通**（已验的是标定链与天测闭合片段） |
-| B2 真实数据全链 | T2/T3/T4 的 `normalize→mosaic→export` 全链**未跑**；已验：T2/T4 标定链、T3/T2/T4 天测闭合（0.5644/0.4202/0.1077 px） |
-| B3 失败路径 | 各命令的 rc≠0 + 零产物 + 逐字诊断**未系统取证** |
+| B1 逐命令冒烟 | **完成**：`normalize`/`mosaic`/`export` 三命令串行 rc=0（NGC1727 T2 Red 数据块），见 `reports/PROJECT-GOVERNANCE-02/PRE_RELEASE_ACCEPTANCE.md §4` |
+| B2 真实数据全链 | **完成（L3）**：`normalize×3→mosaic→export` rc=0；Gaia 天测闭合 RMS 0.1408/0.1026/0.1198″。**科学权重链路有 P0 缺口** `PRE-F-01`（Phase1 不产 variance/ivar，链路经显式 `legacy_allow_weight_fallback=true` 降级跑通） |
+| B3 失败路径 | **完成**：缺 master flat→rc=3、缺 mosaic 源→rc=3、Phase2 缺 ivar→rc=2；输出目录仅剩 run 元数据（manifest `status=incomplete`），**零科学产品**；逐字诊断留证 |
 
 ## C. 台账（未清零）
 
@@ -57,5 +57,7 @@
 
 | 项 | 内容 |
 |---|---|
-| G1 W4-A9 批次 4 | `hips_properties* → lib/algorithms/coverage/` + resample TU 收口（开工包已备，待令） |
+| G1 W4-A9 批次 4 | **已完成**：`hips_properties* → lib/algorithms/coverage/`、`p3_resample.cpp` 编入 `astrocs_p3_rsmp`、链接序修正；构建 rc=0 |
+| G3 预发布 finding | 见 `PRE_RELEASE_FINDINGS.md`：PRE-F-01(P0)、PRE-F-02(判据订正已落)、PRE-F-03(P2 待裁)、PRE-F-04(P1)、PRE-F-05/06(P1 产品缺陷)、PRE-F-07(P2 证据缺位) |
+| G4 L4 全量运行 | M42/GC 全量视觉链路**未在本节点跑**（资源/时间）；工具链 `tools/quality/plane_stretch.py`/`plane_chunks.py` 就绪并自证 |
 | G2 未跟踪残留 | 17 项（多为邻居 root-scan 报告，不属本包提交面） |

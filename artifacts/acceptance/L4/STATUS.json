@@ -1,0 +1,16 @@
+{
+  "layer": "L4",
+  "tooling": [
+    "tools/quality/plane_stretch.py",
+    "tools/quality/plane_chunks.py"
+  ],
+  "self_test": {
+    "missing_input_rc": 2,
+    "all_nan_rc": 2,
+    "bad_grid_rc": 2,
+    "deterministic": "cmp identical"
+  },
+  "demo": "run/PROJECT-GOVERNANCE-02/PRE-REL/L4_l3demo/ (L3 real product -> full.png -> 4x4 tiles)",
+  "full_run_status": "NOT RUN on this node: M42 ~196 lights ~106GB Phase1, GC ~157 lights ~85GB; available disk ~108GB",
+  "owner_step": "visual inspection per ACCEPTANCE_SPEC 5.2"
+}
