@@ -104,3 +104,22 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 |---|---|---|
 | 2026-09-16 | 建表（F-2）：登记本域 16 条门 + 1 个 SNR 定义；新增 G-P1-CENTROID-1（端到端绝对位置门）、G-P1-PSF-SCIPY-ORACLE、G-P1-CENTROID-BRANCH-ORDER；补 G-P1-WCS-F1 量测域；废止 G-P1-WCS-RT 的 7×7 自网格口径；gate2 四阈值降级为诊断 | R-3 §4.1/§4.2/§4.3/§4.7/§5.6；SCI-FIX-PSF 第 1/2/3/4/6/8/9 项 |
 | 2026-09-17 | **天测口径冻结（claim「天测精度外部闭环口径冻结」（编号待前台集中分配））**：G-P1-WCS-CLOSURE 由「全帧头域残差 median/p95（阈值待定）」重写为 G-P1-WCS-CLOSURE v1 冻结口径（样本 `snr>20` + 星表 `G<18` + 半径 1″ + median + 必报 match_rate + solved/header 分别报告）；新增可复现门 **G-P1-WCS-CLOSURE-REPRO**（容差 0 px，含负例注入）；§2 登记 `SNR_det` 定义行；G-P1-WCS-F1 的 `0.1431″` 标定改为历史值；新增 §4a 台账重锚表 | E2E-001 §4.2/§4.3 实测（半径 1″→5″ median 漂 14%；4–28% 匹配率 ⇒ 错配主导）；`run/PROJECT-GOVERNANCE-01/E2E-FIX-001/probe_sample_def.py`（LDN43：legacy 样本 1497 匹配中 813 来自 `snr≤20`）；`ctest:p1wcs_closure_metric_gate` 自检 |
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- SNR_det/SNR_peak 与检测阈：Bertin & Arnouts 1996, A&AS 117, 393（SExtractor）；Stetson 1987, PASP 99, 191（DAOPHOT）。
+- 天测残差口径与大圆角距：Greisen & Calabretta 2002, A&A 395, 1061（Paper I）；Calabretta & Greisen 2002, A&A 395, 1077（Paper II）；astropy.wcs（BSD-3-Clause）作独立重建 Oracle。
+- Gaia G<18 样本与 1″ 匹配：Gaia DR3（Gaia Collaboration et al. 2023, A&A 674, A1）；匹配半径/统计量的冻结依据见本文件 §3 与 ASTROMETRY §11a。
+- MAD→σ 常数：Rousseeuw & Croux 1993, JASA 88, 1273。
+- 本表阈值均为 Project-defined 冻结门（不得引用表外阈值）；外部文献只提供量测域语义，不提供门值。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

@@ -38,6 +38,15 @@ A_NEA,k = 1 / ΣP_k,p²
 
 PixInsight 将 PSFSW 定义为 hybrid PSF/aperture photometry 的综合图像质量估计器：PSF 总 flux 表示总 signal，mean PSF flux 表示 signal concentration，分母结合稳健 noise 与稳健 mean background；归一常数把典型数值调到实用范围。其 PSF SNR 则采用 ratio-of-powers，并被建议用于只追求集成图像 SNR 的权重。
 
+> **PixInsight 官方公式（2026-09-17 核对；GitLab `Reference-Documentation/docs/ImageWeighting/02-PSF_Flux_Weighting_Algorithms.pidoc` master，与官网 `https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html` 式号一致）**
+> - PSFSW（式[16]）：`w_PSF = c1·(Σ_{j=1}^n f_j)·(Σ_{j=1}^n f̄_j) / (c2·σ_n·M*)`。`f_j` 为 FWTM 椭圆孔径内逐像素减局部背景之和（式[7]，**不使用拟合振幅 A**，故称 hybrid PSF/aperture photometry）；`f̄_j=f_j/(π·r_x·r_y)` 为 mean PSF flux（式[8]，信号集中度）；`M*=median(R*)` 为 MMT 残差（式[12]）的中位数（式[13]，默认尺度 256 px）；`σ_n` 为 MRS 或 `N*` 噪声估计（文章称默认 MRS）。
+> - PSFSNR（式[18]）：`SNR_PSF = c3·(Σ_{j=1}^n f_j)²/(c4·σ_n²)`。**分子是 (Σf_j)²，不是 √(Σf_j²)**；官方元数据里 `PSFFluxPower=Σf_j²` 标注 “Currently not used, reserved for future extensions”。
+> - 标准 SNR（式[20]）：`SNR=σ²/σ_n²`（全局尺度估计/噪声方差；官方明确指出它受背景梯度与天光正向影响）。
+> - 文章版常数：`c1=8.0832×10⁻⁶, c2=9.0×10⁺⁶`（式[17]）；`c3=1.350×10⁻⁷, c4=4.987×10⁺⁶`（式[19]）。标定集 = 1000 幅 4096² 合成图（背景高斯 σ=0.001/均值 0.015、平均 1500 颗可检测星、Moffat β=4 FWHM=5 px、Poisson+高斯噪声），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。**PCL 2.10.4 头文件**为 `c1=5.326×10⁻⁶, c3=1.316×10⁻⁷`（c2/c4 相同）——引用任何常数必须带版本。
+>
+> **AstroCS 实现披露（`docs/algorithms/v6/phase2-psfsw/PSFSW_ALGORITHM_SPEC.md` §5.1；`lib/algorithms/photometry/cpp/src/psfsw.cpp:312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:57-61`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；不得据「PixInsight 同类」推定其最优性。
+> - 依据出处：PixInsight .pidoc 式[7][8][12][13][16][17][18][19][20]；PCL 2.10.4 Doxygen `PSFSignalEstimator.h`；`lib/algorithms/photometry/cpp/src/psfsw.cpp:233-238,312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:42-64,137-138`。
+
 AstroCS 实现 psfsw_robust_weight 时必须保留这些特征，但为避免星表选择偏差增加以下约束：
 
 - 只在同一波段、同一目标/重叠连通分量、光度已归一的帧组内比较；
@@ -56,10 +65,12 @@ AstroCS 实现 psfsw_robust_weight 时必须保留这些特征，但为避免星
 |---|---|---|---|
 | point_information（默认） | W_info 或 Q/W | 点源检测、点源测光、proper coadd | 模型和 covariance 门通过时可以 |
 | psfsw_robust | psfsw_robust_weight | conventional image integration，兼顾 signal、星像集中度、噪声、背景 | 只能声明在验收数据上优于指定基线 |
-| psf_snr_power | ratio-of-powers 的项目冻结实现 | 只追求集成图像经验 SNR | 不能自动等同 Fisher 最优 |
+| psf_snr_power | ratio-of-powers（**DEFERRED，当前未实现**） | 设计占位；生产模式门显式拒绝 | 不适用（不得进入生产路由） |
 | surface_gls | AᵀC⁻¹A | 扩展源/面亮度 | GLS 假设成立时可以 |
 
 Phase2 配置必须显式选择 mode。默认不得由检测到多少颗星等偶然因素自动切换。
+
+> `psf_snr_power` 的 DEFERRED 证据：`lib/infrastructure/cli/v6_runtime_contract.h:110-114` 将其路由为 reject（`FZ-MODE-DEFERRED`）；`lib/algorithms/coverage/include/astro/phase2/coverage.h:157-165` 的生产模式门 allowed={point_information, surface_gls, psfsw_robust} 并显式拒绝 `psf_snr_power`；`docs/algorithms/v6/phase2-psfsw/PSFSW_ALGORITHM_SPEC.md` §2.1 标其为 NOT_IMPLEMENTED/unavailable。本表该行仅保留设计占位，不得据其声称已有实现。
 
 ## 5. 复合权重与不确定度的边界
 
@@ -93,3 +104,26 @@ C_out = R C_in Rᵀ
 - 把无量纲复合质量写入 inverse variance；
 - 未声明共同星集/selection function 就跨天区比较 PSFSW；
 - 用 PSFSW 的经验成功替代 Q/W 与 covariance 的科学产品。
+
+## 9 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §2/§3/§5 公式与 §7 验收。
+
+- **点源信息权重 Q=aPᵀC⁻¹d、W=a²PᵀC⁻¹P、Var(F)=1/W**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339；Zackay & Ofek 2017, ApJ 836, 187（arXiv:1512.06872）。
+- **proper coadd / 信息保持组合**：Zackay & Ofek 2017, ApJ 836, 188（arXiv:1512.06879）。
+- **白噪声 W_info=a²/(σ_pix²·A_NEA)、A_NEA=1/ΣP²**：噪声等效面积定义见 Horne 1986/Naylor 1998；实现对照 photutils（BSD-3-Clause）的 effective PSF/等效面积与 MoffatPSF 归一。
+- **PSFSW/PSFSNR 方法学**：PixInsight Reference, New Image Weighting Algorithms（https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html）；**AstroCS 不照抄其标定常数**（§3）。
+- **C_out=R C_in Rᵀ**：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II。
+- **UNRESOLVED**：与 docs/science/CONTROL_WEIGHT_SNR.md §2a 的 frame_snr 语义冲突（见该文件新增 §9），上呈裁决。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

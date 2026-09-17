@@ -113,3 +113,25 @@
 - 实现: `lib/algorithms/coverage/src/acr_kernels.cpp` (`kOpMosaicReject, mosaic_reject_legacy`), `lib/algorithms/coverage/src/stage2_common.cpp` (`weight_mode/ACR-IVAR-001`), `lib/infrastructure/acr/scheduler/*` (Dispatcher/Profile)
 - 公开 API: `register_phase2_acr_kernels, kOpMosaicReject`
 - 测试: `TST-ACR-001` CPU/GPU等价、`TST-ACR-INV-001` 分块不变量、`TST-ACR-FAIL-001` 极端回退（新增/映射见 `docs/TRACEABILITY.csv`）
+
+## 14 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §5 等价定义与 §9 容差。
+
+- **浮点语义与归约非结合**：IEEE 754-2019, IEEE Standard for Floating-Point Arithmetic；Goldberg, D. 1991, ACM Computing Surveys 23, 5（DOI 10.1145/103162.103163）。
+- **归约误差界/确定性求和**：Higham, N. J. 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）；可复现求和技术见 Demmel, J. & Nguyen, H. D. 2013, “Fast Reproducible Floating-Point Summation”, Proc. 21st IEEE Symp. Computer Arithmetic (ARITH)。
+- **并行执行语义**：OpenMP Application Programming Interface（OpenMP ARB）——本模块 fallback 路径（§5）的语义基础；ACR 现处 dormant（AGENTS §2）。
+- **CPU reference 为权威 science semantics**：Project-defined（§5）；GPU/Mixed 仅加速热点，不改变 rejection/integrate 语义。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- WCSLIB（LGPL-3.0）/ CFITSIO（宽松许可，NASA/HEASARC）：WCS 与 FITS 独立读取器。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

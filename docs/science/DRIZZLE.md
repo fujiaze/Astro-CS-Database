@@ -152,6 +152,30 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001):
 2. pixfrac 语义（drop 与像素之比、pixfrac=1 等价 overlap、缩小时权重场变化）：同上文献；实践语义另见 [DrizzlePac Handbook](https://www.stsci.edu/files/live/sites/www/files/home/scientific-community/software/drizzlepac/_documents/drizzlepac-handbook-v1.pdf)（STScI，节级定位）。
 3. HEALPix 网格：Górski et al. 2005, ApJ 622, 759（bibcode 2005ApJ...622..759G，文章级；NESTED/`nside=2^order` 语义见 DATA_SEMANTICS §2，逐式核验留 SCI-P3/ALG-007）。
 
+## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §5 公式与语义固定条款。
+
+- **Drizzle 线性重建/drop/pixfrac**：Fruchter, A. S. & Hook, R. N. 2002, PASP 114, 144（DOI 10.1086/338393）。**差异**：原始 Drizzle 在切平面上实施；AstroCS 在球面 HEALPix 上实施（§5），属 Project-defined 迁移，未逐式引用其公式号。
+- **Drizzle 实践与相关噪声**：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- **HEALPix 几何/order**：Górski, K. M. et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；独立实现 astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0，只对照不复制）。
+- **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207，Girard 定理）；**实现实为 Sutherland–Hodgman + Eriksson 2018 扇形三角剖分**（spherical_overlap.cpp:152-186,218），本文件 §5/§12 的“Girard 定理”命名与实现不符，已在 run/RELEASE-01/science/SCI-S2-topics.md §3-18 登记（DISP-DRZ-002），待变更 claim 处理。Eriksson, F. 2018, “The area of a spherical triangle”（代码 :178 已引）。
+- **多边形裁剪（Sutherland–Hodgman）**：Sutherland, I. E. & Hodgman, G. W. 1974, Comm. ACM 17, 32（DOI 10.1145/360767.360802）。
+- **HiPS/MOC 层级**：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）；Fernique et al. 2015, A&A 578, A114。
+- **HP_CIRCUMRADIUS_FACTOR=1.25、三层缓冲**：Project-defined（§5/§8），以 9003 例零漏选门承载。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- WCSLIB（LGPL-3.0）/ CFITSIO（宽松许可，NASA/HEASARC）：WCS 与 FITS 独立读取器。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
 ## 15 Acceptance
 
 - §11 Oracle 全过（常量场/解析场/方差传播/边界，以 §11 列门为准）；

@@ -169,6 +169,31 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 4. `k_corr=1.4`（MC 实测 1.3883，pixfrac=0.8，2000 次）：**项目自产 MC 证据**（`control_median_mc_test`，**未注册/MISSING：构建孤儿，本证据当前不可复跑**），非外部文献。
 5. Tukey/MAD 常数：复用 SCI-002/SCI-003 文献链（PMC6768164 实证；Φ⁻¹(3/4) 恒等式）。
 
+## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §5 公式、§7 不变量与 §10 禁改清单。
+
+- **多帧相对光度/天体联合定标**：SCAMP（GPL-3.0，https://github.com/astromatic/scamp；Bertin, E. 2006, ASP Conf. Ser. 351, 112，标题经 aspbooks.org 逐字核验 2026-09-17）；Padmanabhan, N. et al. 2008, ApJ 674, 1217（SDSS 重叠观测联合相对定标、gauge/连通性）。
+- **马赛克逐帧背景扣除/coadd 权重**：SWarp（GPL-3.0，https://github.com/astromatic/swarp；Bertin, E. et al. 2002, ASP Conf. Ser. 281, 228）；Gruen et al. 2014, PASP 126, 158。
+- **Huber IRLS**：Huber, P. J. 1964, Ann. Math. Statist. 35, 73（DOI 10.1214/aoms/1177703732）；Holland, P. W. & Welsch, R. E. 1977, Communications in Statistics A6, 813（DOI 10.1080/03610927708827533，δ=1.345 的 IRLS 出处）；Huber & Ronchetti 2009, Robust Statistics, 2nd ed., Wiley（ISBN 978-0-470-12990-6）。
+- **弱零锚（弱 Tikhonov/岭正则）**：Tikhonov, A. N. 1963, Soviet Math. Dokl. 4, 1035（**核验状态**：文章级，卷页需网络核验）。
+- **var(median)≈πσ²/(2N)**：正态样本中位数渐近方差的教科书结论（Hoaglin et al. 1983；Kendall & Stuart, The Advanced Theory of Statistics Vol.1）；UPMW-004 实证 ratio 0.997。
+- **稀疏天光面样条（目标表示，未实现）**：Duchon, J. 1977, Constructive Theory of Functions of Several Variables, 85（薄板样条）；Wahba, G. 1990, Spline Models for Observational Data, SIAM（ISBN 0-89871-244-0）。
+- **UNRESOLVED（设计-实现模型冲突）**：docs/plugins/algorithms_phase2/10_sampling.md §4.2、11_upm.md §4.1 与 docs/design/UNIFIED_MODEL.md §2 描述的目标 UPM 为 **y_k(x)=g_k·s(x)+b_k(x)**（乘性响应 + 稀疏样条天光面），而本文件 §1/§5 的现行冻结模型为**纯加性** calibrated=raw−C_f(p)（8×8 control cell），并明文“乘性尺度差已撤销”。二者不可同时为真。**登记 UNRESOLVED，上呈负责人裁决**；本任务不改公式，也不改设计/插件文档。
+- **k_corr=1.4 的 MC 证据**：control_median_mc_test 未注册（MISSING，构建孤儿），常数本身按 §5/§10 冻结但当前不可复跑（§9/§11/§13/§15）。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- WCSLIB（LGPL-3.0）/ CFITSIO（宽松许可，NASA/HEASARC）：WCS 与 FITS 独立读取器。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
 ## 15 Acceptance
 
 - §11 Oracle 全过（含 MC 一致性、gauge 唯一性、harmonic continuation 边界）；**例外**：

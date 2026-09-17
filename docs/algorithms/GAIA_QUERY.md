@@ -245,3 +245,22 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 - API-GAIA-001（docs/contracts/PUBLIC_API.md）；
 - TEST-GAIA-DESIGN-001（本文 §5，设计冻结；可执行 TEST-GAIA-* 待
   CAT-GAIA-TEST）。
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- Gaia 星表发布：Gaia Collaboration et al. 2016, A&A 595, A1（DR1）；2018, A&A 616, A1（DR2）；2021, A&A 649, A1（EDR3）；2023, A&A 674, A1（DR3）。**核验状态**：文章级。
+- Gaia 天体测量解：Lindegren et al. 2021, A&A 649, A2（DOI 10.1051/0004-6361/202039709）。
+- XP 光谱与外部定标：Gaia Collaboration et al. 2023, A&A 674, A1（DR3 文档）；CALSPEC（Bohlin et al. 2014, PASP 126, 711；Bohlin, Hubeny & Rauch 2020, AJ 159, 246）。
+- 锥搜索/球面几何：astropy（BSD-3-Clause）SkyCoord/cone search 作独立 Oracle；HEALPix 见 Górski et al. 2005。
+- 极冠平面剪枝：Project-defined（本文件 §2.5）。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

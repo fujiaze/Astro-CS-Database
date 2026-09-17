@@ -702,3 +702,22 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
   （test_path=docs/modules/registry/astrocs.phase2.reject.md::
   TEST-P2-REJ-001，设计冻结 VERIFIED + 可执行 MISSING 双
   statement）——由主控写入，本节仅声明预期终态。
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- Generalized ESD：Rosner 1983, Technometrics 25, 165（DOI 10.1080/00401706.1983.10487848）；NIST/SEMATECH e-Handbook §1.3.5.17/§7.1.6。
+- RCR 论文出处补齐：Maples et al. 2018, ApJS 238, 2（DOI 10.3847/1538-4365/aad23d；arXiv:1807.05276）；Konz & Reichart 2023, arXiv:2301.07838。
+- winsorization/稳健尺度：Hoaglin et al. 1983；Tukey biweight Beaton & Tukey 1974, Technometrics 16, 147。
+- 开源对照：Siril（GPL-3.0）stacking/rejection；PixInsight WBPP bestRejectionMethod（非学术软件来源）。
+- clipped-mean/伪影：Gruen et al. 2014, PASP 126, 158。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

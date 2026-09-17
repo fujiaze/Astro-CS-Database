@@ -304,3 +304,21 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   P1-COS-TEST 建立。
 - 摘要引用: ALG-CAL-004（docs/algorithms/CALIBRATION_ALGORITHMS.md §3.4，
   P1-CAL 合同视角同一实现）。
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- 宇宙线/坏点检测：van Dokkum 2001, PASP 113, 1420（LA Cosmic，DOI 10.1086/323894）；Pych 2004, A&A 419, 791（PyCosmic，DOI 10.1051/0004-6361:2003574）。
+- 稳健尺度（median/MAD 换算）：Hoaglin, Mosteller & Tukey (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）；Rousseeuw & Croux 1993, JASA 88, 1273。
+- 连通域结构过滤（8 邻接）：二值图像连通分量标准算法（见 Rosenfeld & Kak 1982, Digital Picture Processing）；本模块 Project-defined 实现。
+- 插值修复（中值/双线性）：教科书级（Press et al. 2007, Numerical Recipes 3rd ed.）。**差异**：本模块是坏点局部修复，不是通用的图像插值库。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

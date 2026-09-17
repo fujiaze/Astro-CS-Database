@@ -68,3 +68,22 @@ Fallback: if weight_mode==2 → cpu_only; if !model_trusted → OpenMP fallback
 
 - API: acr_kernels.h: kOpMosaicReject, stage2_common.h: weight_mode
 - TST: TST-ACR-* 等价/分块/回退
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- 浮点语义/归约非结合：IEEE 754-2019；Goldberg 1991, ACM Comput. Surv. 23, 5（DOI 10.1145/103162.103163）。
+- 归约误差界与确定性：Higham 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）。
+- 可复现求和：Demmel & Nguyen 2013, Proc. 21st IEEE Symp. Computer Arithmetic (ARITH)。
+- 并行执行语义：OpenMP Application Programming Interface（OpenMP ARB）；ACR 现处 dormant（AGENTS §2）。
+- CPU reference = 权威 science semantics：Project-defined（本文件 §5）。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

@@ -97,3 +97,20 @@ function integrate_pixel(in, out):
 
 - API: integrate.h: p2_integrate_pixel, p2_validate_candidate_weights
 - TST: TST-INT-001 常量场, TST-INT-ZERO, FAIL四态
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- 加权均值/逆方差聚合：教科书级（Bevington & Robinson 2003, Data Reduction and Error Analysis for the Physical Sciences 3rd ed., McGraw-Hill；Aitken 1935, Proc. Roy. Soc. Edinburgh 55, 42 的 GLS）。**差异**：本层 reducer 不编码 ivar 语义，权重策略在调用方（SCI-NOISE/SCI-UPM）。
+- 最优叠加：Zackay & Ofek 2017, ApJ 836, 187/188；Naylor 1998, MNRAS 296, 339。
+- support=max canonical reducer：Project-defined（覆盖并集保守下界，本文件 F6）。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

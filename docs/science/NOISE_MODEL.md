@@ -174,6 +174,36 @@ r_i = clip( r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax )
 5. 掩膜半径默认值的导出依据（claim SC-009 / MASK-002）：以 §11 源污染 oracle 为判据，`k=0.1`、`r_min=max(1.5 px, 0.75·FWHM)`、硬上界 `rmax=max(1,r0)·max(1,scale)=60 px`、`N_sky ≥ 9216`、`n_qualified ≥ 8`。`k=0.1` 下 `r_local(F=10⁵ ADU, FWHM=3 px, β=2.5) = 17.6 px`（Gaussian 极限同阶）；实测 `r=10 px` 偏差 +0.13%（RMSE 0.17%），统一 60 px 在 1024²/320 星上 RMSE 0.76%（**4.6×**）、在 256²/50 星上整帧退化（rc=1）。**缺口的形式化闭合**：`10`/`6`/`60 px` 此前只由 `noise_model.cpp:626-627` 字面量 → `NOISE_ESTIMATION.md:134` → `config/defaults.json` 的 `source_ref` 三段构成**循环引用**（无第一性依据，MASK-001 §1.4），故此处按 §14.4 对 `min_samples` 的同款先例给出可复跑推导。来源 `reports/PROJECT-GOVERNANCE-01/research/MASK-001_掩膜语义重新推导.md` §3.3/§3.4/§5.1，复跑 `run/PROJECT-GOVERNANCE-01/MASK-001/expB_radius_bias.py`、`expD_domain.py`。
 4. 默认值 `min_samples=64` 的导出依据（claim SC-002）：8×8 patch（P=64）下以本文件 §11 冻结的 5% oracle 为判据，`min_samples=5` 时单 patch 偏差 −19.2%、全局 `sigma_bg_global` 偏差 −25.1%、5% 门通过率 **0.6%**；`min_samples=64` 为 −1.25%/−1.7%、通过率 **92.8%**（纯高斯蒙特卡洛；常规无掩膜帧上 5 与 64 逐位同输出，差异只在 patch 残余样本 5~63 的掩膜 regime）。来源 `reports/PROJECT-GOVERNANCE-01/research/R-5_噪声SNR与统计口径.md` §2 EXP-1/2/3/9，复跑 `run/PROJECT-GOVERNANCE-01/R-5/exp1_mad_bias_mc.py`、`exp2_pipeline_mc.py`、`exp3_prod_threshold.py`。
 
+## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §5/§5a 公式与常数。
+
+- **MAD→σ 常数 1.482602218505602 = 1/Φ⁻¹(3/4)**：标准正态分位恒等式；稳健性/有限样本校正见 Rousseeuw & Croux 1993, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408）。
+- **稳健尺度与 σ-clipping**：Hoaglin, Mosteller & Tukey (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）。
+- **背景网格 + 稳健 σ 估计**：Bertin, E. & Arnouts, S. 1996, A&AS 117, 393（SExtractor §3 背景网格与 σ 估计；DOI 10.1051/aas:1996164）；源码 SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）back.c/makeback。**差异**：SExtractor 用 mode/median 与迭代 σ，AstroCS 用 8×8 patch 的 MAD + 最小二乘平面场，二者**不等价**（网格尺寸、尺度估计器、场基不同），引用仅作方法学对照。
+- **多尺度稳健噪声（MRS/N*）**：Starck, J.-L. & Murtagh, F. 1998, “Automatic Noise Estimation from the Multiresolution Support”, PASP 110, 193（DOI 10.1086/316124，starlet 小波；PixInsight ImageWeighting §2.4 的 MRS 出处，本轮逐字核验 2026-09-17）；Starck, J.-L. & Murtagh, F. 2006, Astronomical Image and Data Analysis, 2nd ed., Springer（ISBN 978-3-540-33023-3）Ch.2–3；Starck, Donoho & Candès 2003, A&A 398, 785（DOI 10.1051/0004-6361:20021569）。**核验状态**：文章级；AstroCS 现状**未采用**小波 MRS/N*，该条只作选型对照。
+- **Poisson+read noise 诊断式**：Newberry 1991 PASP 103, 122；Janesick 2001 SPIE PM83 Ch.2；Howell 2006 Handbook of CCD Astronomy Ch.4。
+- **饱和过滤**：LSST ip_isr（GPL-3.0）IsrTaskConfig.doSaturation 与 SAT 面；FITS SATURATE/DATAMAX 关键字（FITS Standard）。
+- **掩膜半径的解析导出**：Gaussian/Moffat 轮廓尾翼积分属 Project-defined 推导（§5a）；Moffat 轮廓出处见 Moffat 1969, A&A 3, 455；PSF 尺度与 FWHM 换算见 docs/science/PSF.md §5。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
+### 14a.1 SCI-001-S1 补充：PixInsight N* 常数与本项目口径（2026-09-17）
+
+- PixInsight 官方 N* 稳健噪声（.pidoc 式[14][15]）：`N*_MAD=2.48308·MAD(R*)`、`N*_Sn=2.03636·S_n(R*)`（`S_n` 为 Rousseeuw & Croux 1993 尺度估计；常数用 10000 幅 4096² 高斯白噪声 bootstrap 标定）。**AstroCS 未采用这两个常数**：本项目用标准正态 MAD 一致化 `1.482602218505602`（§9），与 PI 的 2.48308 定义域不同，**不得互换**。
+- PCL 2.10.4 `PSFSignalEstimator.h` 的 `NStar()` 默认取 `NStar_Sn`（2.03636），而 `Estimates::NStar` 文档注释写 2.05435——PI 自身存在版本/注释冲突（登记 UNRESOLVED U3）；本分片在 4×10⁶ 高斯样本上复核标准 Sn 的 σ 一致化为 1.1926，未能复现 2.03636（`run/RELEASE-01/science/exp_math.py` E1）。
+- 逐像素 ivar 的开源对照：SWarp `COADD_WEIGHTED` 输出方差 `=1/Σ(1/var_k)`（GPL-3.0，`src/coadd.c:1279-1311`）；SExtractor `Var(F)=Σ(σ_bkg²+F_pix/gain)`（GPL-3.0，`src/analyse.c:200-203,304-310`）；SEP 孔径 `σ²_sum=Σvar_pix·w²+Σ/gain`（LGPL-3.0，`src/aperture.c:516-570`）；photutils `σ_tot²=σ_bkg²+I/g_eff`（BSD-3-Clause，`photutils/utils/errors.py:91-92`）。与本文件 §5 诊断式同构，可作对拍基线。
+- 背景/权重重标定先例：SWarp `RESCALE_WEIGHTS` 用各背景网格实测 σ 与权重图比值的中位数重标定 `sigfac`（GPL-3.0，`src/back.c:361-389`），可作为本项目权重/方差标定门的对照。
+
 ## 15 Acceptance
 
 - §11 Oracle 全过：Gaussian 5% 复现、Poisson 诊断 5% 交叉（仅诊断）、平面场 10% 恢复、四不变量门、Python 参考 rtol 1e-9、**源污染 oracle（含星帧，正例 + 三条负例；claim SC-009）**、**饱和域 oracle（正例 + 两条负例；claim SC-008）**；

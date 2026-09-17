@@ -246,3 +246,23 @@ ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN T102
 astrocs.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
 API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:516-530，由 P1-WCS-INT
 对齐本合同，不作冻结依据）。
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- WCS 框架/TAN/SIP：Paper I §2.1.1；Paper II §2.1/§2.2/Table 1；Shupe et al. 2005, ASPC 347, 491（SIP）。
+- 可执行标准：WCSLIB（LGPL-3.0）、astropy.wcs（BSD-3-Clause）≥7.0.1。
+- 三角匹配/星表求解：Groth 1986, AJ 91, 1244（DOI 10.1086/114121）；Valdes et al. 1995, PASP 107, 1119（DOI 10.1086/133670）。
+- 多帧联合校准：SCAMP（GPL-3.0；Bertin 2006, ASPC 351, 112）。
+- Astrometry.net 语义对照（本文件 §8）：Astrometry.net（https://astrometry.net，许可证需网络核验）。
+- Huber IRLS（SIP 拟合）：Huber 1964, Ann. Math. Statist. 35, 73。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

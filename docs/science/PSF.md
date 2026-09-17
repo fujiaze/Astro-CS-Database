@@ -118,6 +118,29 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 2. β=4 解析通量 `flux=2πA·sxsy/3` 与 `FWHM/σ=1.230310`：**Project-defined derivation**（§5 对 (1+Q)^{−4} 解析积分，各向同性极限 πα²/3·A=2πAσ²/3 自洽），不引用外部公式号。
 3. trimmed-mean→σ 换算系数 `0.7316727929211932`：高斯假设下 10–90% trimmed mean 的标准化常数（Project-defined 采纳，数值由高斯分位积分确定）。
 
+## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §5 公式与 §7/§11 容差。
+
+- **Moffat 轮廓**：Moffat, A. F. J. 1969, A&A 3, 455（bibcode 1969A&A.....3..455M；I(r)∝(1+r²/α²)^(−β)）。**核验状态**：文章级，未逐式核验公式号。
+- **β=4 解析通量 flux=2πA·sxsy/3 与 FWHM/σ=1.230310**：**Project-defined 解析积分**（对 (1+Q)^(−4) 的整平面积分）；建议用独立符号/数值积分（SciPy quad 或 sympy，BSD-3-Clause）复算，不作文献引用。
+- **LM 阻尼最小二乘**：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, Lecture Notes in Math. 630, 105。实现对照 GSL gsl_multifit_nlinear（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- **10–90% trimmed mean → σ 常数 0.7316727929211932**：**Project-defined 高斯分位积分**（可用 scipy.stats.truncnorm 复算）；**注意**该常数是 trimmed mean 的标准化因子，与 MAD 常数 1.482602218505602 **不可互换**（NOISE_MODEL §9）。
+- **空间变异 PSF / PSF 采样基**：Bertin, E. 2011, ASP Conf. Ser. 442, 435（PSFEx；<http://aspbooks.org/custom/publications/paper/442-0435.html>，标题逐字核验 2026-09-17）；photutils（BSD-3-Clause）MoffatPSF/GaussianPSF。**差异**：AstroCS 现状为块状共享 7 参数 Moffat4，不做空间变异多项式基（§1 非目标）。
+- **拥挤场 PSF 拟合测光**：Stetson, P. B. 1987, PASP 99, 191（DAOPHOT；DOI 10.1086/131977）。
+- **q_psf=A/residual_scale**：**Project-defined 质量代理**，非 SNR、非 Fisher information（UNIFIED_SCIENCE_MODEL §3/§11；SCI-PSF §1 非目标）。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
 ## 15 Acceptance
 
 - §11 Oracle 全过：FWHM 缩放不变量、解析/数值积分一致性、参数拒门；

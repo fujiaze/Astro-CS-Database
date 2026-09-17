@@ -268,3 +268,22 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:619-623 注册）。
   `astrocs_p1_noise.dll`（P1-NOISE-IMPL 建 C ABI adapter +
   plan/execute/cancel/inspect + ThreadLease 接线）；本 DOC 不改任何
   生产代码。
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- 背景网格 + 稳健 σ：Bertin & Arnouts 1996, A&AS 117, 393（SExtractor §3）；源码 SExtractor（GPL-3.0）back.c/makeback。**差异**：SExtractor 用 mode/median + 迭代 σ，本模块用 8×8 patch MAD + 最小二乘平面场，二者不等价。
+- 多尺度稳健噪声 MRS/N*：Starck & Murtagh 2006, Astronomical Image and Data Analysis 2nd ed., Springer（ISBN 978-3-540-33023-3）；Starck, Donoho & Candès 2003, A&A 398, 785。现状未采用，仅选型对照。
+- MAD→σ：Rousseeuw & Croux 1993, JASA 88, 1273；稳健尺度 Hoaglin et al. 1983。
+- Poisson+read noise 诊断式：Newberry 1991, PASP 103, 122；Janesick 2001, SPIE PM83, Ch.2。
+- 饱和过滤：LSST ip_isr（GPL-3.0）doSaturation/SAT 面；FITS SATURATE/DATAMAX。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

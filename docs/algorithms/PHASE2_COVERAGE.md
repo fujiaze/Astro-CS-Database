@@ -373,3 +373,21 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   docs/science/ 为准并回改本文档（禁止反向）。
 - 本节禁止被编排层词汇反向改写（descriptor astrocs.phase2.coverage
   由 P2-COV-INT 对齐，不作冻结依据）。
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- 球面交叠/覆盖几何：Project-defined（本文件 §2/§7）；独立几何 Oracle 可用 astropy-healpix（BSD-3-Clause）与 Górski et al. 2005, ApJ 622, 759。
+- 连通分量分解：Tarjan 1972, SIAM J. Comput. 1, 146（DOI 10.1137/0201010）；Hopcroft & Tarjan 1973, Comm. ACM 16, 372。
+- coverage 非权重：UNIFIED_SCIENCE_MODEL §3 与 docs/plugins/algorithms_phase2/09_coverage.md §1；权威语义在本文件 §7 负向条款。
+- MOC 域表达：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+

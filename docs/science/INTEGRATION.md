@@ -134,6 +134,27 @@
 2. `support=max` canonical reducer：**Project-defined**（覆盖并集保守下界，§5 注释）；无外部公式。
 3. 无外部文献依赖；协方差不存矩阵（UNCERTAINTY_AND_COVARIANCE.md 文档化）。
 
+## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动 §5 公式与 §10 禁改清单。
+
+- **加权均值/逆方差聚合**：教科书级（加权最小二乘/逆方差加权平均，如 Bevington, P. R. & Robinson, D. K. 2003, Data Reduction and Error Analysis for the Physical Sciences, 3rd ed., McGraw-Hill；Aitken 1935 的 GLS）。**差异**：AstroCS 的 reducer 不编码 ivar 语义（§9），权重策略在调用方（SCI-NOISE/SCI-UPM），故这里是**通用数值加权均值**而非“逆方差估计量”本身。
+- **最优叠加/信息保持组合**：Zackay & Ofek 2017, ApJ 836, 187/188；Naylor 1998, MNRAS 296, 339。
+- **support=max canonical reducer**：Project-defined（覆盖并集保守下界，§5/§10），无外部公式；可对照 coverage/几何并集语义。
+- **Fruchter & Hook 2002, PASP 114, 144**：重采样后相关噪声背景（与 §5 加权平均的适用域相关）。
+
+参考代码库（含许可证；仅对照不复制 GPL 代码）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
+- photutils（BSD-3-Clause，https://github.com/astropy/photutils）：检测/质心、背景估计、PSF 与孔径测光。
+- SExtractor（GPL-3.0，https://github.com/astromatic/sextractor）：背景网格、检测/去混叠、FLUXERR。
+- ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）与 LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）：母版约定与 ISR 顺序。
+- SWarp（GPL-3.0，https://github.com/astromatic/swarp）/ SCAMP（GPL-3.0，https://github.com/astromatic/scamp）：马赛克背景与相对定标。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）：drizzle 与相关噪声。
+- astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）/ healpy（GPL-2.0，https://github.com/healpy/healpy）：HEALPix 几何。
+- reproject（BSD-3-Clause，https://github.com/astropy/reproject）：WCS 重采样与方差传播。
+- WCSLIB（LGPL-3.0）/ CFITSIO（宽松许可，NASA/HEASARC）：WCS 与 FITS 独立读取器。
+- NumPy/SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
 ## 15 Acceptance
 
 - §11 Oracle 全过（以 §11 列门为准：状态码/权重归一/support reducer/NaN 拒）；

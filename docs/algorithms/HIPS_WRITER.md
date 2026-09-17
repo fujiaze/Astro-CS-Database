@@ -398,3 +398,23 @@ UTC 时间戳致 properties/manifest 字节不跨运行复现（合同，§7）�
   （独立中间容器，legacy_hiss_compare 开关封闭，CFG-002 关闭 HISS_VERIFY
   orchestrator:3404-3407）、orchestrator.cpp（stage 编排）、
   lib/algorithms/coverage/tools/stage2.cpp:592（Phase2 写方）。
+
+## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+
+> 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。
+
+- HiPS 规范：IVOA HiPS 1.0 Recommendation（https://www.ivoa.net/documents/HiPS/；§3/§4.1/§4.2.1/§4.4.1/§6.3.1）。
+- HiPS 层级/目录：Fernique et al. 2015, A&A 578, A114（DOI 10.1051/0004-6361/201526075）。
+- HEALPix 几何：Górski et al. 2005, ApJ 622, 759。
+- FITS 写出/关键字：FITS Standard 3.0；CFITSIO（宽松许可）。
+- MOC/properties：IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）。
+- dtype/精度与 hierarchy 聚合：Project-defined（本文件 §2/§4/§8）。
+
+参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
+- Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。
+- DrizzlePac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
+- SExtractor / PSFEx / SWarp / SCAMP（GPL-3.0，https://github.com/astromatic/）。
+- healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
+- WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
+- NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
