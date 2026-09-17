@@ -1051,7 +1051,7 @@
     {
       "module": "14_projection",
       "doc": "docs/plugins/algorithms_phase3/14_projection.md",
-      "line": 44,
+      "line": 34,
       "field": "projection",
       "declared_default": "tan",
       "unit": null,
@@ -1066,7 +1066,7 @@
     {
       "module": "14_projection",
       "doc": "docs/plugins/algorithms_phase3/14_projection.md",
-      "line": 45,
+      "line": 35,
       "field": "crpix",
       "declared_default": "中心",
       "unit": "px",
@@ -1081,7 +1081,7 @@
     {
       "module": "14_projection",
       "doc": "docs/plugins/algorithms_phase3/14_projection.md",
-      "line": 46,
+      "line": 36,
       "field": "crval",
       "declared_default": null,
       "unit": "deg",
@@ -1096,7 +1096,7 @@
     {
       "module": "14_projection",
       "doc": "docs/plugins/algorithms_phase3/14_projection.md",
-      "line": 47,
+      "line": 37,
       "field": "cd_matrix / cdelt",
       "declared_default": null,
       "unit": "deg/px",
@@ -1111,7 +1111,7 @@
     {
       "module": "14_projection",
       "doc": "docs/plugins/algorithms_phase3/14_projection.md",
-      "line": 48,
+      "line": 38,
       "field": "rotation",
       "declared_default": "0",
       "unit": "deg",
@@ -1683,12 +1683,12 @@
     "declared_negatives": [
       {
         "literal": "bader r",
-        "where": "ASTROCS_DESIGN.md:128",
+        "where": "ASTROCS_DESIGN.md:130",
         "must": "REJECT"
       },
       {
         "literal": "bader v",
-        "where": "ASTROCS_DESIGN.md:130",
+        "where": "ASTROCS_DESIGN.md:132",
         "must": "REJECT"
       },
       {

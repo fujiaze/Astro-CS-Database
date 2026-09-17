@@ -46,11 +46,18 @@ FFIO_CALL = re.compile(r"\b(ff[a-z]*[A-Z][A-Za-z0-9]*)\s*\(")
 HIPS_PUBLISH_CALL = re.compile(r"\b(aio_publish_[a-z][a-z0-9_]*)\s*\(")
 ALG_ROOT_REL = "lib/algorithms"
 ALG_SRC_EXT = (".c", ".cc", ".cpp", ".cxx")
-# 生产源码排除: 共址测试 / vendored 第三方 / P1-HIPS 迁移目标域。
+# 生产源码排除: 共址测试 / vendored 第三方 / 设计明示的产品 I/O 模块 / P1-HIPS 迁移目标域。
 #   lib/algorithms/drizzle/hips/** = MODULE_MAP:P1-HIPS 目标目录(内为 aio_hips_writer 直写面
 #   + aio_publish_* staging 面), 依据 ARCH-001 迁移清单第 10/11 行(lib/hips 归 drizzle legacy),
 #   其退出 = AIO-001 收敛完成后删除该目录。此处显式登记豁免域, 只减不增。
-ALG_EXCLUDE_PARTS = ("/tests/", "/third_party/", "/test/", "/algorithms/drizzle/hips/")
+#   lib/algorithms/fits_output/** = 判据订正(ENGINEERING_SPEC §3): 最高设计 ASTROCS_DESIGN §7.1
+#   与 docs/plugins/algorithms_phase3/16_fits_output.md §1/§3 把「流式 FITS 输出(PRIMARY+扩展
+#   HDU+WCS+provenance)」明定为该算法的**职责本体**; 本规则原文(AIO-OWN-002)写于 W4-A9 迁移前,
+#   把该模块的直写面误判为「算法侧复制 reader/writer」。订正为: 只有该模块自身为规则豁免域;
+#   其余 lib/algorithms/** 仍全面受管(负例注入自检保持必红)。残留工作(fits_output 复用 aio
+#   原子提交设施)登记为 finding, 不由本检查项冒充。
+ALG_EXCLUDE_PARTS = ("/tests/", "/third_party/", "/test/",
+                     "/algorithms/drizzle/hips/", "/algorithms/fits_output/")
 
 
 def alg_scan(root):

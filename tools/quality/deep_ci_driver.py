@@ -379,6 +379,8 @@ def build_parser() -> argparse.ArgumentParser:
     # CI-REG-002（STD-F7 处置 1/2）：linux-main 全量 ctest 门 + 逐目标显式门
     f = sub.add_parser("ctest-full", help="全量 CTest 门（CTEST-LINUX-FULL）")
     f.add_argument("--build-dir", default="run/ci/build-gcc-release")
+    f.add_argument("--step-timeout", type=int, default=600,
+                   help="ctest 单步超时（秒）；检查项 timeout_seconds 应大于该值")
     f.add_argument("--junit", default=None,
                    help="ctest --output-junit 全量测试结果 XML（相对路径按构建树解析；"
                         "CI-BASELINE-001 known-failures 基线门消费）")
