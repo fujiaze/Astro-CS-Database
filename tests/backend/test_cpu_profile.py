@@ -30,6 +30,22 @@ def common_srcs():
             f"-I{os.path.join(REPO, 'third_party')}", "-ldl"]
 
 
+# VER-001 版本单源：探针 build 串由 gen_version 派生（不得写死版本字面量——否则
+# check_version_consistency 判 alpha 漂移；见 tools/check_version_consistency.py）。
+PROBE_MAIN = r"""
+#include <cstdio>
+#include <string>
+#include "hardware_inspect.h"
+int main() {
+    const std::string s = astrocs::backend_host::hardware_inspect_json_v1(
+        std::string("__ASTROCS_BUILD_VERSION__"));
+    std::fputs(s.c_str(), stdout);
+    return 0;
+}
+""".replace("__ASTROCS_BUILD_VERSION__",
+            gen_version.read_base_version() + "+g" + COMMIT[:12])
+
+
 class TestCpuProfile(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -43,12 +59,28 @@ class TestCpuProfile(unittest.TestCase):
         assert r.returncode == 0, r.stderr
         cls.profile = os.path.join(cls.tmp, "cpu_profile.json")
         cls.hw = os.path.join(cls.tmp, "hw.json")
-        # 由被测 CLI 自身产出硬件画像(fixture 真实性: 与生产路径同一实现)
-        # V6.1 布局路径修复 (V8-CI-012 R6.5.3): 旧 build/cli/astrocs 为 V6.1 独立
-        # cli 构建布局; BLD-002 后唯一产品事实源 = 根 CMake, 产物 build/astrocs。
-        exe = os.path.join(REPO, "build", "astrocs")
-        r2 = subprocess.run([exe, "hardware", "inspect", "--json"],
-                            capture_output=True, text=True, timeout=60)
+        # CLI-001 / ASTROCS_DESIGN 6.2: 旧 hardware inspect 用户命令已删(rc=2)。
+        # 硬件画像改由宿主探针直调 hardware_inspect_json_v1(与生产同实现,
+        # 同 tests/backend/test_hardware_inspect.py::TestHardwareInspectProbe)。
+        hw_main = os.path.join(cls.tmp, "hw_main.cpp")
+        with open(hw_main, "w", encoding="utf-8") as fh:
+            fh.write(PROBE_MAIN)
+        cls.hwprobe = os.path.join(cls.tmp, "hwprobe")
+        r_hw = subprocess.run(
+            ["g++", "-std=c++17", "-O2", "-Wno-format-truncation",
+             f"-I{INC}", f"-I{HOST}",
+             f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
+             f"-I{os.path.join(REPO, 'third_party')}",
+             hw_main,
+             os.path.join(HOST, "hardware_inspect.cpp"),
+             os.path.join(HOST, "cpu_features.cpp"),
+             os.path.join(HOST, "host_services.cpp"),
+             os.path.join(HOST, "backend_loader.cpp"),
+             os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
+             "-ldl", "-o", cls.hwprobe],
+            capture_output=True, text=True, timeout=300)
+        assert r_hw.returncode == 0, r_hw.stderr
+        r2 = subprocess.run([cls.hwprobe], capture_output=True, text=True, timeout=60)
         assert r2.returncode == 0, r2.stderr
         open(cls.hw, "w", encoding="utf-8").write(r2.stdout)
         r3 = subprocess.run([cls.gen, "--out", cls.profile, "--mode", "quick",

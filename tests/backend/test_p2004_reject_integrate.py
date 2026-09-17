@@ -138,12 +138,12 @@ class TestP2004RejectIntegrate(unittest.TestCase):
             f.write(DRIVER_SRC)
         cls.exe = os.path.join(cls.tmp, "d")
         incs = [f"-I{os.path.join(REPO, 'include')}",
-                f"-I{os.path.join(REPO, 'lib', 'phase2', 'include')}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'coverage', 'include')}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
                 f"-I{os.path.join(REPO, 'third_party')}"]
-        srcs = [os.path.join(REPO, "lib", "phase2", "src", "rejection.cpp"),
-                os.path.join(REPO, "lib", "phase2", "src", "integrate.cpp"),
-                os.path.join(REPO, "lib", "phase2", "src", "stage2_common.cpp")]
+        srcs = [os.path.join(REPO, "lib", "algorithms", "coverage", "src", "rejection.cpp"),
+                os.path.join(REPO, "lib", "algorithms", "coverage", "src", "integrate.cpp"),
+                os.path.join(REPO, "lib", "algorithms", "coverage", "src", "stage2_common.cpp")]
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", *incs, drv, *srcs,
                             "-o", cls.exe], capture_output=True, text=True, timeout=600)
         assert r.returncode == 0, r.stderr[-600:]

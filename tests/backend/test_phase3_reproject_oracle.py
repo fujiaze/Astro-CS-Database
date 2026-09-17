@@ -19,9 +19,9 @@ import math, os, shutil, struct, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 HOST = os.path.join(REPO, "lib", "phase3_session")
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 INC = os.path.join(REPO, "include")
-C = os.path.join(REPO, "lib", "common")
+C = os.path.join(REPO, "lib", "algorithms", "shared")
 CASTRO = os.path.join(C, "healpix")
 
 # W4-A9 批次 1/2/3: 会话内核按 ASTROCS_DESIGN §7.1 分迁各算法模块
@@ -30,13 +30,14 @@ CASTRO = os.path.join(C, "healpix")
 #   p3_output.cpp → lib/algorithms/fits_output (批次 3)
 P3W = os.path.join(REPO, "lib", "algorithms", "projection")
 RSMP = os.path.join(REPO, "lib", "algorithms", "resample")
+COV = os.path.join(REPO, "lib", "algorithms", "coverage")   # W8: hips_properties.cpp 迁此
 FOUT = os.path.join(REPO, "lib", "algorithms", "fits_output")
-FITS_INCS = [f"-I{INC}", f"-I{HOST}", f"-I{P3W}", f"-I{RSMP}", f"-I{FOUT}", f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
+FITS_INCS = [f"-I{INC}", f"-I{HOST}", f"-I{P3W}", f"-I{RSMP}", f"-I{FOUT}", f"-I{COV}", f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
              f"-I{CASTRO}", f"-I{os.path.join(REPO, 'third_party', 'nlohmann')}",
              f"-I{os.path.join(REPO, 'third_party')}",  # nlohmann/json.hpp 以 <nlohmann/json.hpp> 引用
              f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}", f"-I{C}", f"-I{os.path.join(C, 'crypto')}",
              f"-I{os.path.join(REPO, 'build')}"]  # version_generated.h(根 CMake configure_file 生成)
-FITS_SRCS = [os.path.join(RSMP, "p3_resample.cpp"), os.path.join(HOST, "hips_properties.cpp"),
+FITS_SRCS = [os.path.join(RSMP, "p3_resample.cpp"), os.path.join(COV, "hips_properties.cpp"),
              os.path.join(CASTRO, "healpix_core.cpp"),
              os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
              os.path.join(AIO, "src", "aio_fits.cpp"), os.path.join(AIO, "src", "aio_api.cpp"),

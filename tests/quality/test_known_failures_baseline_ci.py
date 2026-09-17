@@ -488,11 +488,14 @@ class TestRegistryWiring(unittest.TestCase):
     def setUpClass(cls):
         cls.registry = json.loads((REPO / "ci" / "checks.json").read_text(encoding="utf-8"))
         cls.by_id = {c["id"]: c for c in cls.registry["checks"]}
+        # 注册表把 VERIFY/CHECK/CTEST-LINUX-FULL 承载为父项 steps（注册表收敛后），
+        # 本组测试按 step id 解析其形态（父项 id 见 CHK-KNOWN-FAILURES-BASELINE / CHK-UNIT）。
+        cls.by_step = {s["id"]: s for c in cls.registry["checks"] for s in c.get("steps", [])}
 
     def test_t13a_verify_registered_non_waivable(self):
         """T13a：KNOWN-FAILURES-BASELINE-VERIFY 三 profile、不可豁免、输出落 run/。"""
-        check = self.by_id.get("KNOWN-FAILURES-BASELINE-VERIFY")
-        self.assertIsNotNone(check, "verify 门必须登记")
+        check = self.by_step.get("KNOWN-FAILURES-BASELINE-VERIFY")
+        self.assertIsNotNone(check, "verify 门必须登记（CHK-KNOWN-FAILURES-BASELINE 的 step）")
         self.assertEqual(sorted(check["profiles"]), ["fast", "linux-main", "windows-main"])
         self.assertFalse(check["waivable"])
         self.assertFalse(check["mutates_workspace"])
@@ -503,22 +506,22 @@ class TestRegistryWiring(unittest.TestCase):
 
     def test_t13b_check_gate_is_last_linux_main_entry(self):
         """T13b：CHECK 门必须排在 linux-main 选中序末位（它读同 run 上游结果）。"""
-        check = self.by_id.get("KNOWN-FAILURES-BASELINE-CHECK")
-        self.assertIsNotNone(check, "check 门必须登记")
+        check = self.by_step.get("KNOWN-FAILURES-BASELINE-CHECK")
+        self.assertIsNotNone(check, "check 门必须登记（CHK-KNOWN-FAILURES-BASELINE 的 step）")
         self.assertEqual(check["profiles"], ["linux-main"])
         self.assertFalse(check["waivable"])
         linux_main = [c["id"] for c in self.registry["checks"]
                       if "linux-main" in c["profiles"]]
-        self.assertEqual(linux_main[-1], "KNOWN-FAILURES-BASELINE-CHECK",
+        self.assertEqual(linux_main[-1], "CHK-KNOWN-FAILURES-BASELINE",
                          "聚合型检查必须末位：否则读不到上游 per-check 结果")
 
     def test_t13c_ctest_junit_path_matches_full_run(self):
         """T13c：CHECK 门读的 JUnit 路径 == CTEST-LINUX-FULL 的 --junit 落点。"""
-        full = self.by_id["CTEST-LINUX-FULL"]
+        full = self.by_step["CTEST-LINUX-FULL"]
         build_dir = full["command"][full["command"].index("--build-dir") + 1]
         junit = full["command"][full["command"].index("--junit") + 1]
         expected = "%s/%s" % (build_dir, junit)
-        gate = self.by_id["KNOWN-FAILURES-BASELINE-CHECK"]["command"]
+        gate = self.by_step["KNOWN-FAILURES-BASELINE-CHECK"]["command"]
         actual = gate[gate.index("--ctest-junit") + 1]
         self.assertEqual(actual, expected,
                          "基线门与全量 ctest 门的 JUnit 路径必须一致（漂移即红）")

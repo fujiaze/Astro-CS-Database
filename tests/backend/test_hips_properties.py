@@ -4,6 +4,8 @@ import os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 HOST = os.path.join(REPO, "lib", "phase3_session")
+# W8 (批次 4): hips_properties.cpp 迁 lib/algorithms/coverage/
+COV = os.path.join(REPO, "lib", "algorithms", "coverage")
 
 GOOD = """creator_did=ivo://astrocs/test
 obs_title=fixture
@@ -23,8 +25,8 @@ class TestHipsProperties(unittest.TestCase):
         cls.exe = os.path.join(cls.tmp, "probe")
         r = subprocess.run(
             ["g++", "-std=c++17", "-O2", "-Wall", "-Wextra",
-             f"-I{HOST}", os.path.join(REPO, "tests", "backend", "hips_properties_probe_main.cpp"),
-             os.path.join(HOST, "hips_properties.cpp"), "-o", cls.exe],
+             f"-I{HOST}", f"-I{COV}", os.path.join(REPO, "tests", "backend", "hips_properties_probe_main.cpp"),
+             os.path.join(COV, "hips_properties.cpp"), "-o", cls.exe],
             capture_output=True, text=True, timeout=180)
         assert r.returncode == 0, r.stderr
 

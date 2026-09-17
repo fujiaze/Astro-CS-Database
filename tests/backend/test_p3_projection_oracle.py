@@ -29,7 +29,7 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-P3PROJ_INC = os.path.join(REPO, "lib", "phase3_proj")
+P3PROJ_INC = os.path.join(REPO, "lib", "algorithms", "projection")
 
 # ---------- 预冻结常量(写死, 不事后放宽) ----------
 ROUNDTRIP_TOL_PX = 1e-6      # SCI-P3-001 §7 冻结往返容差
@@ -84,7 +84,7 @@ def build_driver(workdir: str) -> str:
     with open(src, "w") as f:
         f.write(PROJ_DRIVER)
     cmd = ["g++", "-std=c++17", "-O2", "-I", P3PROJ_INC, src,
-           os.path.join(REPO, "lib", "phase3_proj", "p3_projection.cpp"),
+           os.path.join(REPO, "lib", "algorithms", "projection", "p3_projection.cpp"),
            "-o", exe]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
     if r.returncode != 0:

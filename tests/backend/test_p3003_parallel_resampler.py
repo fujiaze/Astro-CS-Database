@@ -34,15 +34,16 @@ class TestP3003ParallelResampler(unittest.TestCase):
         os.makedirs(cls.hips, exist_ok=True)
 
     def _cfg(self, out, cancel_row=-1, sampler="bilinear"):
+        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
+        # 平铺会话配置形态(见 session_commands.h)。cancel_row 非现行 CLI 键
+        # (parser 白名单拒绝), 取消语义由 test_04 的 session 源码契约覆盖。
+        del cancel_row
         return {"schema_version": "1",
-                "inputs": {"lights": [os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F1.hips")],
-                           "darks": [], "flats": [], "bias": []},
-                "phase3": {"source": {"hips_dir": os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F1.hips")},
-                           "center": {"ra_deg": 0.0, "dec_deg": 30.0},
-                           "scale_deg_per_px": 0.01, "width_px": 64, "height_px": 48,
-                           "sampler": sampler, "projection": "TAN",
-                           "coverage_output": "mask",
-                           "output_dir": out, "cancel_row": cancel_row},
+                "source": {"hips_dir": os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2", "F1.hips")},
+                "center": {"ra_deg": 0.0, "dec_deg": 30.0},
+                "scale_deg_per_px": 0.01, "width_px": 64, "height_px": 48,
+                "sampler": sampler, "projection": "TAN",
+                "coverage_output": "mask",
                 "output_dir": out}
 
     @staticmethod
@@ -79,9 +80,9 @@ class TestP3003ParallelResampler(unittest.TestCase):
         out2 = os.path.join(self.tmp, "o2"); os.makedirs(out2, exist_ok=True)
         c1 = os.path.join(self.tmp, "c1.json"); json.dump(self._cfg(out1), open(c1, "w"))
         c2 = os.path.join(self.tmp, "c2.json"); json.dump(self._cfg(out2), open(c2, "w"))
-        r1 = subprocess.run([EXE, "phase3", "run", "--config", c1], capture_output=True,
+        r1 = subprocess.run([EXE, "export", "--json", c1, "-y"], capture_output=True,
                             text=True, timeout=300)
-        r2 = subprocess.run([EXE, "phase3", "run", "--config", c2], capture_output=True,
+        r2 = subprocess.run([EXE, "export", "--json", c2, "-y"], capture_output=True,
                             text=True, timeout=300)
         self.assertEqual(r1.returncode, 0, r1.stderr[-400:])
         self.assertEqual(r2.returncode, 0, r2.stderr[-400:])
@@ -128,7 +129,7 @@ class TestP3003ParallelResampler(unittest.TestCase):
             out = os.path.join(self.tmp, f"o_{smp}"); os.makedirs(out, exist_ok=True)
             c = os.path.join(self.tmp, f"c_{smp}.json")
             json.dump(self._cfg(out, sampler=smp), open(c, "w"))
-            r = subprocess.run([EXE, "phase3", "run", "--config", c],
+            r = subprocess.run([EXE, "export", "--json", c, "-y"],
                                capture_output=True, text=True, timeout=300)
             self.assertEqual(r.returncode, 0, f"{smp}: {r.stderr[-300:]}")
             self.assertTrue(os.path.isfile(os.path.join(out, "output_phase3.fits")), smp)

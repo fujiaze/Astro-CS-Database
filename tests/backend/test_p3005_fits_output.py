@@ -31,18 +31,18 @@ class TestP3005FitsOutput(unittest.TestCase):
 
     def _run(self, out, bitpix):
         os.makedirs(out, exist_ok=True)
+        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase3 run --config 已删(rc=2);
+        # 现行等价命令 = export --json <cfg>, 平铺会话配置形态(见 session_commands.h)。
         cfg = {"schema_version": "1",
-               "inputs": {"lights": [self.hips], "darks": [], "flats": [], "bias": []},
-               "phase3": {"source": {"hips_dir": self.hips},
-                          "center": {"ra_deg": 0.0, "dec_deg": 30.0},
-                          "scale_deg_per_px": 0.05, "width_px": 16, "height_px": 16,
-                          "sampler": "nearest", "projection": "TAN",
-                          "coverage_output": "mask", "output_dir": out,
-                          "bitpix": bitpix},
-               "output_dir": out}
+               "source": {"hips_dir": self.hips},
+               "center": {"ra_deg": 0.0, "dec_deg": 30.0},
+               "scale_deg_per_px": 0.05, "width_px": 16, "height_px": 16,
+               "sampler": "nearest", "projection": "TAN",
+               "coverage_output": "mask", "output_dir": out,
+               "bitpix": bitpix}
         c = os.path.join(out, "c.json")
         json.dump(cfg, open(c, "w"))
-        r = subprocess.run([EXE, "phase3", "run", "--config", c], capture_output=True,
+        r = subprocess.run([EXE, "export", "--json", c, "-y"], capture_output=True,
                            text=True, timeout=300)
         return r, os.path.join(out, "output_phase3.fits")
 

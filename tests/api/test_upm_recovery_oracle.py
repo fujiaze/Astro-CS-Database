@@ -11,11 +11,11 @@
 import os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-PH2_INC = os.path.join(REPO, "lib", "phase2", "include")
-PH2 = os.path.join(REPO, "lib", "phase2")
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+PH2_INC = os.path.join(REPO, "lib", "algorithms", "coverage", "include")
+PH2 = os.path.join(REPO, "lib", "algorithms", "coverage")
+AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 OMP_LIB = os.path.join(REPO, "build", "linux-openmp-on", "libphase2.a")
-ICOMMON = os.path.join(REPO, "lib", "common")
+ICOMMON = os.path.join(REPO, "lib", "algorithms", "shared")
 
 DRIVER = r'''
 #include "astro/phase2/upm.h"

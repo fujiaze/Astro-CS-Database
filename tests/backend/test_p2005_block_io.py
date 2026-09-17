@@ -107,8 +107,8 @@ class TestP2005BlockIo(unittest.TestCase):
         cls.exe = os.path.join(cls.tmp, "d")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w",
                             f"-I{os.path.join(REPO, 'include')}",
-                            f"-I{os.path.join(REPO, 'lib', 'phase2', 'include')}",
-                            drv, os.path.join(REPO, "lib", "phase2", "src", "block.cpp"),
+                            f"-I{os.path.join(REPO, 'lib', 'algorithms', 'coverage', 'include')}",
+                            drv, os.path.join(REPO, "lib", "algorithms", "coverage", "src", "block.cpp"),
                             "-o", cls.exe], capture_output=True, text=True, timeout=600)
         assert r.returncode == 0, r.stderr[-600:]
         cls.res = subprocess.run([cls.exe], capture_output=True, text=True, timeout=120)

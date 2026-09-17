@@ -16,7 +16,7 @@ HOST = os.path.join(REPO, "lib", "phase3_session")
 PROJ = os.path.join(REPO, "lib", "algorithms", "projection")
 # W4-A9 批次 3: p3_output.cpp 迁 lib/algorithms/fits_output/ (同 §7.1「fits_output」)
 FITS = os.path.join(REPO, "lib", "algorithms", "fits_output")
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 CFITSIO = os.path.join(AIO, "third_party", "cfitsio")
 
 
@@ -27,8 +27,8 @@ class TestP3Output(unittest.TestCase):
         cls.fsync_probe = None
         cls.interposer_so = None
         incs = [f"-I{os.path.join(REPO, 'include')}", f"-I{HOST}", f"-I{FITS}", f"-I{PROJ}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}",
-                f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{CFITSIO}"]
         objs = []
@@ -47,7 +47,7 @@ class TestP3Output(unittest.TestCase):
         cls.cfitsio_objs = objs
         srcs = [os.path.join(REPO, "tests", "backend", "p3_output_probe_main.cpp"),
                 os.path.join(FITS, "p3_output.cpp"), os.path.join(PROJ, "p3_wcs.cpp"),
-                os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp"),
+                os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
                 os.path.join(AIO, "src", "aio_fits.cpp"),
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp")]
@@ -68,13 +68,13 @@ class TestP3Output(unittest.TestCase):
         if getattr(cls, "fsync_probe", None):
             return cls.fsync_probe
         incs = [f"-I{os.path.join(REPO, 'include')}", f"-I{HOST}", f"-I{FITS}", f"-I{PROJ}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}",
-                f"-I{os.path.join(REPO, 'lib', 'common', 'crypto')}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{CFITSIO}"]
         srcs = [os.path.join(REPO, "tests", "backend", "p3_output_fsync_probe.cpp"),
                 os.path.join(FITS, "p3_output.cpp"), os.path.join(PROJ, "p3_wcs.cpp"),
-                os.path.join(REPO, "lib", "common", "crypto", "sha256.cpp"),
+                os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
                 os.path.join(AIO, "src", "aio_fits.cpp"),
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp")]

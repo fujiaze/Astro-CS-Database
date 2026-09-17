@@ -68,12 +68,16 @@ class RootCleanlinessPositiveTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td) / "clean"
             root.mkdir()
-            build_tree(root, load_manifest())
+            manifest = load_manifest()
+            build_tree(root, manifest)
             rc, report = run_checker(root)
             self.assertEqual(rc, 0, report)
             self.assertEqual(report["verdict"], "PASS")
             self.assertEqual(report["violations"], [])
-            self.assertEqual(report["counts"]["top_level_entries"], 35)
+            # D7 判据复算 > 冻结数字：顶层条目数由 manifest 声明的 required_files|required_dirs 重算，
+            # 不写死魔数（增删登记项时本断言自动跟随）。
+            expected = len(set(manifest["required_files"]) | set(manifest["required_dirs"]))
+            self.assertEqual(report["counts"]["top_level_entries"], expected)
 
 
 class RootCleanlinessNegativeTest(unittest.TestCase):

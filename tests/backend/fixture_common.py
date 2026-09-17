@@ -16,7 +16,10 @@ import re
 import subprocess
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+# CLI-002/ROOT-008 重锚: AIO 落 lib/infrastructure/aio(旧 lib/astro_image_io 已退役);
+# 共享算法基础库落 lib/algorithms/shared(旧 lib/common 已退役)。
+AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
+SHARED = os.path.join(REPO, "lib", "algorithms", "shared")
 FIXTURE_SRC = os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp")
 DEFAULT_FDIR = os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2")
 
@@ -51,8 +54,8 @@ def _build_fixture_exe():
             f"-I{os.path.join(AIO, 'include')}",
             f"-I{os.path.join(AIO, 'src')}",
             f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-            f"-I{os.path.join(REPO, 'lib', 'common')}",
-            f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}"]
+            f"-I{SHARED}",
+            f"-I{os.path.join(SHARED, 'healpix')}"]
     srcs = [FIXTURE_SRC,
             os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
             os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
@@ -60,7 +63,7 @@ def _build_fixture_exe():
             os.path.join(AIO, "src", "aio_api.cpp"),
             os.path.join(AIO, "src", "aio_log.cpp"),
             os.path.join(AIO, "src", "aio_compressor.cpp"),
-            os.path.join(REPO, "lib", "common", "healpix", "healpix_core.cpp")]
+            os.path.join(SHARED, "healpix", "healpix_core.cpp")]
     r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
                         *srcs, *_cfitsio_objs(os.path.dirname(_FIXTURE_EXE)),
                         "-lz", "-lzstd", "-llz4", "-o", _FIXTURE_EXE],

@@ -17,7 +17,7 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXE = os.path.join(REPO, "build", "astrocs")
 FIXTURE_SRC = os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp")
-AIO = os.path.join(REPO, "lib", "astro_image_io")
+AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 AIO_SRC = os.path.join(AIO, "src")
 
 
@@ -49,8 +49,8 @@ class TestP2001ParallelSampler(unittest.TestCase):
                 f"-I{os.path.join(AIO, 'include')}",
                 f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                f"-I{os.path.join(REPO, 'lib', 'common')}",
-                f"-I{os.path.join(REPO, 'lib', 'common', 'healpix')}"]
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+                f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'healpix')}"]
         srcs = [FIXTURE_SRC,
                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
@@ -58,7 +58,7 @@ class TestP2001ParallelSampler(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
-                os.path.join(REPO, "lib", "common", "healpix", "healpix_core.cpp")]
+                os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp")]
         exe = os.path.join(cls.tmp, "fixture")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
                             *srcs, *cfitsio_objs(cls.tmp), "-lz", "-lzstd", "-llz4",
@@ -80,13 +80,15 @@ class TestP2001ParallelSampler(unittest.TestCase):
         env = dict(os.environ, ASTROCS_REPO=REPO)
         if workers_env:
             env.update(workers_env)
-        r = subprocess.run([EXE, "phase2", "run", "--config", self.cfg, "--events-jsonl"],
+        # CLI-002 / ASTROCS_DESIGN 6.2: 旧 phase2 run --config 已删(rc=2);
+        # 现行等价命令 = mosaic --json <cfg>(平铺会话格式)。
+        r = subprocess.run([EXE, "mosaic", "--json", self.cfg, "--events-jsonl", "-y"],
                            capture_output=True, text=True, env=env, timeout=timeout)
         return r
 
     def test_01_production_no_openmp_gate(self):
         """生产代码无 P2_ENABLE_OPENMP 默认关闭与 hardware_concurrency() 调用残留。"""
-        src = open(os.path.join(REPO, "lib", "phase2", "src", "sampler.cpp"),
+        src = open(os.path.join(REPO, "lib", "algorithms", "coverage", "src", "sampler.cpp"),
                    encoding="utf-8").read()
         self.assertNotIn("P2_ENABLE_OPENMP", src, "sampler.cpp 仍含 P2_ENABLE_OPENMP 条件")
         # 仅允许注释/字符串提及 hardware_concurrency; 禁止生产调用(std::thread::hardware_concurrency)
@@ -125,7 +127,7 @@ class TestP2001ParallelSampler(unittest.TestCase):
         cfg1path = os.path.join(self.tmp, "cfg1.json")
         with open(cfg1path, "w") as f:
             json.dump(cfg1, f)
-        r1 = subprocess.run([EXE, "phase2", "run", "--config", cfg1path, "--events-jsonl"],
+        r1 = subprocess.run([EXE, "mosaic", "--json", cfg1path, "--events-jsonl", "-y"],
                             capture_output=True, text=True,
                             env=dict(os.environ, ASTROCS_REPO=REPO), timeout=600)
         self.assertEqual(r1.returncode, 0, r1.stdout[-400:] + r1.stderr[-400:])
@@ -136,7 +138,7 @@ class TestP2001ParallelSampler(unittest.TestCase):
         cfgNpath = os.path.join(self.tmp, "cfgN.json")
         with open(cfgNpath, "w") as f:
             json.dump(cfgN, f)
-        rN = subprocess.run([EXE, "phase2", "run", "--config", cfgNpath, "--events-jsonl"],
+        rN = subprocess.run([EXE, "mosaic", "--json", cfgNpath, "--events-jsonl", "-y"],
                             capture_output=True, text=True,
                             env=dict(os.environ, ASTROCS_REPO=REPO), timeout=600)
         self.assertEqual(rN.returncode, 0, rN.stdout[-400:] + rN.stderr[-400:])
