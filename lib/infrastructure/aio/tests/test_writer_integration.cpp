@@ -175,7 +175,8 @@ static void test_02_full_roundtrip(int id) {
     ASSERT_TRUE(signal.size() == n_leaf, "signal 长度 = n_leaf_per_tile (256)");
     ASSERT_TRUE(support.size() == n_leaf, "support 长度 = n_leaf_per_tile (256)");
 
-    // 验证 signal 值
+    // 验证 signal 值（逐元素断言 + 计数断言，替代原 ASSERT_TRUE(true) 占位）
+    uint32_t checked = 0;
     for (uint32_t i = 0; i < n_leaf; i++) {
         double expected = (double)i * 10.0;
         if (std::fabs((double)signal[i] - expected) > 1e-3) {
@@ -183,8 +184,9 @@ static void test_02_full_roundtrip(int id) {
             std::snprintf(buf, sizeof(buf), "signal[%u] = %.6f (期望 %.6f)", i, signal[i], expected);
             ASSERT_TRUE(false, buf);
         }
+        ++checked;
     }
-    ASSERT_TRUE(true, "全部 256 个 signal 值匹配");
+    ASSERT_EQ(checked, n_leaf) << "全部 " << n_leaf << " 个 signal 值均已逐元素校验";
 
     // 验证 support 值 (sum_area = A_p → S = 1.0 → support = 255)
     ASSERT_TRUE(support[0] == 255, "support[0] = 255 (S=1.0)");
@@ -262,7 +264,8 @@ static void test_03_bitmap_roundtrip(int id) {
     ASSERT_TRUE(signal.size() == n_leaf, "展开后 signal 长度 = 256");
     ASSERT_TRUE(support.size() == n_leaf, "展开后 support 长度 = 256");
 
-    // 验证有效像素值
+    // 验证有效像素值（逐元素断言 + 计数断言，替代原 ASSERT_TRUE(true) 占位）
+    uint32_t checked = 0;
     for (uint32_t idx : valid_indices) {
         double expected = (double)idx * 2.0;
         if (std::fabs((double)signal[idx] - expected) > 1e-3) {
@@ -270,8 +273,9 @@ static void test_03_bitmap_roundtrip(int id) {
             std::snprintf(buf, sizeof(buf), "signal[%u] = %.6f (期望 %.6f)", idx, signal[idx], expected);
             ASSERT_TRUE(false, buf);
         }
+        ++checked;
     }
-    ASSERT_TRUE(true, "有效像素 signal 值匹配");
+    ASSERT_EQ(checked, (uint32_t)valid_indices.size()) << "全部有效像素 signal 值均已逐元素校验";
 
     // 验证无效像素为 0
     ASSERT_NEAR(signal[1], 0.0f, 1e-6, "无效像素 signal[1] = 0");
@@ -347,7 +351,8 @@ static void test_04_sparse_roundtrip(int id) {
     ASSERT_TRUE(signal.size() == n_leaf, "展开后 signal 长度 = 4096");
     ASSERT_TRUE(support.size() == n_leaf, "展开后 support 长度 = 4096");
 
-    // 验证有效像素
+    // 验证有效像素（逐元素断言 + 计数断言，替代原 ASSERT_TRUE(true) 占位）
+    uint32_t checked = 0;
     for (uint32_t idx : valid_idx) {
         double expected = (double)idx * 5.0;
         if (std::fabs((double)signal[idx] - expected) > 1e-3) {
@@ -356,8 +361,9 @@ static void test_04_sparse_roundtrip(int id) {
             ASSERT_TRUE(false, buf);
         }
         ASSERT_TRUE(support[idx] > 0, "有效像素 support > 0");
+        ++checked;
     }
-    ASSERT_TRUE(true, "全部有效像素 signal 值匹配");
+    ASSERT_EQ(checked, (uint32_t)valid_idx.size()) << "全部有效像素 signal 值均已逐元素校验";
 
     // 验证无效像素
     ASSERT_NEAR(signal[0], 0.0f, 1e-6, "无效像素 signal[0] = 0");
