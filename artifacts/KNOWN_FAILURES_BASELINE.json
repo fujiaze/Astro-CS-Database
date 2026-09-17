@@ -1,9 +1,9 @@
 {
   "schema": "astrocs.known-failures-baseline/v1",
   "repo": "/workspace/Astro CS Database",
-  "source_commit": "61ca0725e251a4dc58b5c444ac0f09120c292367",
+  "source_commit": "33e3beb51183aa4858a3fdaf544fd6a5a235d29d",
   "finding_count": 40,
-  "reproduced_count": 15,
+  "reproduced_count": 16,
   "findings": [
     {
       "finding_id": "F-001",
@@ -132,7 +132,7 @@
       "finding_id": "F-013",
       "severity": "P0",
       "status": "NOT_REPRODUCED_WITH_EVIDENCE",
-      "minimal_command": "grep -nE 'int *bitpix *=' lib/phase3_session/p3_output.cpp",
+      "minimal_command": "grep -nE 'int *bitpix *=' lib/algorithms/fits_output/p3_output.cpp",
       "evidence": [
         "未发现固定 bitpix=-32"
       ],
@@ -141,8 +141,8 @@
     {
       "finding_id": "F-014",
       "severity": "P0",
-      "status": "NOT_REPRODUCED_WITH_EVIDENCE",
-      "minimal_command": "grep -n 'p3_output_verify\\|CHECKSUM\\|DATASUM\\|P3_OUT_OK' lib/phase3_session/p3_output.cpp",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n 'p3_output_verify\\|CHECKSUM\\|DATASUM\\|P3_OUT_OK' lib/algorithms/fits_output/p3_output.cpp",
       "evidence": [
         "verify 未比较 WCS/BUNIT/CHECKSUM 或 mismatch 仍返回 OK"
       ],

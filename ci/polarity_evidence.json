@@ -8,7 +8,7 @@
     "RE-JUDGED": "门判据已整改（不再是原判据），登记新判据与依据",
     "RETIRED": "门已退役，见 docs/ci/01_CHECKS.md §2.1/§2.3"
   },
-  "registry_entry_count": 43,
+  "registry_entry_count": 45,
   "gates": {
     "CHK-BUILD-LINUX": {
       "status": "FACE-DEFINED-NOT-RUN",
@@ -741,6 +741,63 @@
       "auto": false,
       "not_run_reason": "需 Windows 平台"
     },
+    "CHK-PKG-CONSISTENCY": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "packaging/check_packaging_consistency.py",
+          "--root",
+          ".",
+          "--json-out",
+          "run/ci/pkg-consistency.json"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "packaging/check_packaging_consistency.py",
+          "--root",
+          "<empty-repo>"
+        ],
+        2,
+        "repo"
+      ],
+      "kind": "fail-closed(ANCHOR_STALE，空树 rc=2) + selftest(注入 C5/C6/C7 均判红，正例判绿)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/W4-A3/logs/PKG/",
+      "auto": true,
+      "not_run_reason": "正例全仓 rc=0（PKG_CONSISTENCY PASS）；负例空树 ANCHOR_STALE rc=2；两侧均已实跑留 log 锚",
+      "last_run": {
+        "positive": {
+          "cmd": [
+            "/usr/bin/python3",
+            "packaging/check_packaging_consistency.py",
+            "--root",
+            ".",
+            "--json-out",
+            "run/ci/pkg-consistency.json"
+          ],
+          "want_rc": 0,
+          "rc": 0,
+          "ok": true
+        },
+        "negative": {
+          "cmd": [
+            "/usr/bin/python3",
+            "packaging/check_packaging_consistency.py",
+            "--root",
+            "<empty-repo>"
+          ],
+          "want_rc": 2,
+          "rc": 2,
+          "ok": true
+        }
+      },
+      "polarity_ok": true
+    },
     "CHK-SECRET-HYGIENE": {
       "status": "FACE-DEFINED-NOT-RUN",
       "grade": "P0",
@@ -1185,6 +1242,31 @@
       "auto": false,
       "not_run_reason": "真实两态已实测（同一日志）"
     },
+    "CHK-EXIT-CONSISTENCY": {
+      "status": "PROVEN-EXECUTABLE",
+      "grade": "P1",
+      "positive": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_exit_conclusion_consistency.py"
+        ],
+        0,
+        "repo"
+      ],
+      "negative": [
+        [
+          "/usr/bin/python3",
+          "tools/quality/check_exit_conclusion_consistency.py",
+          "--self-test"
+        ],
+        0,
+        "repo"
+      ],
+      "kind": "selftest(正例=全仓 tools/**+ci/** 扫描 rc=0；负例=--self-test 内 3 组用例，negative-literal-zero / negative-no-exit-path / negative-sys-exit-zero-after-fail —— 此处引用不复制，逐条源码见该脚本 SELFTEST_CASES)",
+      "evidence": "run/PROJECT-GOVERNANCE-01/W4-A3/logs/after_EXIT-CONSISTENCY.log",
+      "auto": true,
+      "not_run_reason": "判据=结论与退出码一致；负例面覆盖三种 fail-open 形态；真仓 PASS rc=0"
+    },
     "CHK-KNOWN-FAILURES-BASELINE": {
       "status": "FACE-DEFINED-NOT-RUN",
       "grade": "P1",
@@ -1215,8 +1297,8 @@
     }
   },
   "summary": {
-    "gates_total": 43,
-    "PROVEN-EXECUTABLE": 20,
+    "gates_total": 45,
+    "PROVEN-EXECUTABLE": 22,
     "RE-JUDGED": 4,
     "FACE-DEFINED-NOT-RUN": 19,
     "missing_records": [],

@@ -54,6 +54,68 @@ NEW_TEST_TARGETS = {
 MISSING_TOOL = "astrocs-cmake-nonexistent-xyz"  # 探测负例：不会存在于任何 PATH
 
 
+# ── W4-A3：两层注册表访问器 ───────────────────────────────────────────────────
+# 注册表是 checks[]（顶层注册项）+ steps[]（执行单元）两层。# NEW_IDS /
+# BUILD-GCC-RELEASE / CTEST-LINUX-FULL / DEEP-COV-CPP 等**都是执行单元 id**，只索引
+# 顶层会让断言恒 KeyError 或恒不相等（"顶层单层索引"失效型，与 CHK-IMPACT-MAP /
+# V6-R7 同根因）。
+_BY_ID = {c["id"]: c for c in _REGISTRY["checks"]}
+for _c in _REGISTRY["checks"]:
+    for _s in _c.get("steps") or []:
+        _BY_ID.setdefault(_s["id"], _s)
+
+
+def _steps_of(entry: dict) -> list:
+    return list(entry.get("steps") or [])
+
+
+def _declared(profile: str) -> list:
+    """注册表里声明属于该 profile 的**顶层注册项**（ci/run.py --plan-only 同口径）。
+
+    W4-A3：替代原先的魔数冻结值。数由注册表**重算**得出，不是抄现状 ——
+    plan-only 不做平台/prerequisite 过滤，故口径 = profile ∈ check["profiles"]。
+    2026-09-17 重算值：fast=31、linux-main=39、linux-deep=4、windows-main=32。
+    """
+    return [c for c in _REGISTRY["checks"] if profile in c.get("profiles", [])]
+
+
+def _units(entry: dict, profile: str) -> set:
+    """注册项的单元闭包：自身 + **属于该 profile** 的执行单元。
+
+    W4-A3：执行单元有自己的 profiles（如 CHK-BUILD-LINUX 同时挂
+    BUILD-GCC-RELEASE(linux-main/deep) 与 DEEP-CLANG-BUILD(linux-deep)），
+    跨 profile 时由 step 级过滤，不能把父项的全部 steps 都算进闭包。
+    """
+    ids = {entry["id"]}
+    for s in _steps_of(entry):
+        if profile in (s.get("profiles") or entry.get("profiles") or []):
+            ids.add(s["id"])
+    return ids
+
+
+def _selected_units(plan: dict):
+    """返回 (选中 id 集, 注册表条目列表, 单元闭包 id 集)。
+
+    W4-A3：****plan-only 输出只含顶层注册项、且不带 steps****（plan 是执行计划不是
+    注册表快照）⇒ 单元闭包必须回注册表取，否则 _steps_of() 恒为空、断言恒假。
+    """
+    selected = {c["id"] for c in plan["checks"]}
+    entries = [_BY_ID[i] for i in selected]
+    profile = plan.get("profile")
+    units = set()
+    for e in entries:
+        units |= _units(e, profile)
+    return selected, entries, units
+
+
+def _unit_ids(entries) -> set:
+    ids = set()
+    for c in entries:
+        ids.add(c["id"])
+        ids.update(s["id"] for s in _steps_of(c))
+    return ids
+
+
 def make_check(**overrides) -> dict:
     base = H.check(id="PREREQ-T", waivable=True, timeout_seconds=60)
     base.update(overrides)
@@ -139,9 +201,26 @@ class TestRegistryStrict(unittest.TestCase):
         # CI-001B 注册 WORKFLOW-REGISTRY-BINDING / CI-BINDING-TESTS（三 profile）、
         # LINUX-MAIN-FIXTURES / LINUX-MAIN-BUILD-TREE（linux-main）、
         # WIN-CANDIDATE-VALIDATE（windows-main）后 99 → 104。
+        # W4-A3：注册表已改为**两层**（checks[] + steps[]），104 是"扁平登记项"时代的
+        # 流水计数（80→97→99→104），不再是有效期望。改为两条由注册表**重算**的不变量：
+        #   ① validate 返回条目数 == 文件里 checks[] 长度（自洽，不随重构失效）；
+        #   ② 执行单元总数 == checks[] + 全部 steps[]（防止静默丢步骤）。
+        # 2026-09-17 重算：顶层 44 + steps 163 = 207。
         errors, n = VR.validate(REGISTRY_PATH, strict=True)
         self.assertEqual(errors, [])
-        self.assertEqual(n, 104)
+        self.assertEqual(n, len(_REGISTRY["checks"]))
+        # 注册表惯用法：3 个顶层项把**自身 id 复用**为唯一执行单元
+        # （API-DOCS / CHK-MODULE-MANIFEST / STD-REG：顶层 command 是
+        #  ci/run_checks.py --check <ID>，真正的检查器在同名 step 里）。
+        # 故去重后计数必须自洽；且同名只允许出现在"顶层项 ↔ 它自己的 step"之间。
+        top_ids = {c["id"] for c in _REGISTRY["checks"]}
+        step_ids = [s["id"] for c in _REGISTRY["checks"] for s in _steps_of(c)]
+        dups = sorted(top_ids & set(step_ids))
+        self.assertEqual(n + len(step_ids) - len(dups), len(_BY_ID))
+        for dup in dups:
+            self.assertIn(dup, {s["id"] for s in _steps_of(_BY_ID[dup])},
+                          "跨层同名 id %s 不是『顶层项复用自身 id 为唯一单元』的惯用法"
+                          % dup)
 
     @staticmethod
     def _validate(data: dict):
@@ -170,46 +249,83 @@ class TestProfileSelection(unittest.TestCase):
         assert proc.returncode == 0, proc.stderr[-400:]
         return json.loads(proc.stdout)
 
-    def test_fast_61_excludes_deep(self):
+    def test_fast_excludes_deep(self):
         plan = self.plan("fast")
         ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 61)
-        self.assertFalse(ids & NEW_IDS)
-        # CI-REG-002：注册闭包校验器是静态源扫描，可进 fast（无需构建树）
-        self.assertIn("CTEST-REGISTRATION", ids)
+        # W4-A3：期望值由注册表重算（原魔数 61）。
+        self.assertEqual(plan["selected_count"], len(_declared("fast")))
+        _sel, _ents, units = _selected_units(plan)
+        self.assertFalse(units & NEW_IDS)
+        # CI-REG-002：注册闭包校验器是静态源扫描，可进 fast（无需构建树）。
+        # W4-A3：CTEST-REGISTRATION 现为 CHK-MODULE-MANIFEST（在 fast 内）的执行单元，
+        # 原意不变 —— 判据改到单元闭包上。
+        self.assertIn("CHK-MODULE-MANIFEST", ids)
+        self.assertIn("CTEST-REGISTRATION", units)
         # 真跑类 CTEST-* 门只在 linux-main（需要构建树）
-        self.assertFalse([i for i in ids if i.startswith("CTEST-")
+        self.assertFalse([i for i in units if i.startswith("CTEST-")
                           and i != "CTEST-REGISTRATION"])
 
-    def test_linux_main_94_includes_gcc_release_and_ctest_gates(self):
+    def test_linux_main_includes_gcc_release_and_ctest_gates(self):
         plan = self.plan("linux-main")
-        ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 94)
+        ids, entries, units = _selected_units(plan)
+        # W4-A3：期望值由注册表重算（原魔数 94）。
+        self.assertEqual(plan["selected_count"], len(_declared("linux-main")))
         # CI-001B：workflow 侧前置步收编为注册表检查项（UT-BACKEND/UT-CLI 的前置）
         self.assertIn("LINUX-MAIN-FIXTURES", ids)
         self.assertIn("LINUX-MAIN-BUILD-TREE", ids)
-        self.assertIn("BUILD-GCC-RELEASE", ids)
-        self.assertFalse(ids & (NEW_IDS - {"BUILD-GCC-RELEASE"}))
+        # W4-A3：BUILD-GCC-RELEASE 是 CHK-BUILD-LINUX 的**执行单元**（不再顶层），
+        # 断言口径随两层结构改为"所选注册项的单元闭包"。
+        self.assertIn("BUILD-GCC-RELEASE", units)
+        self.assertFalse(units & (NEW_IDS - {"BUILD-GCC-RELEASE"}))
         # CI-REG-002 / STD-F7 处置 1+2：全量 ctest 门 + 逐目标门，且全部不可豁免
-        self.assertIn("CTEST-LINUX-FULL", ids)
-        by_id = {c["id"]: c for c in plan["checks"]}
-        self.assertFalse(by_id["CTEST-LINUX-FULL"]["waivable"])
-        # plan-only 只输出执行所需字段（不含 ctest_targets），注册闭包按注册表断言
+        self.assertIn("CTEST-LINUX-FULL", units)
+        self.assertFalse(_BY_ID["CTEST-LINUX-FULL"]["waivable"])
+        # plan-only 只输出执行所需字段（不含 ctest_targets），注册闭包按注册表断言。
+        # W4-A3：注册面是两层的，且本轮为 CHK-INVARIANT/CHK-ABI/CHK-ORACLE 补登了
+        # 10 个 ctest target ⇒ 关系由"相等"改为"覆盖"（登记面只增不减；漏登仍判红）。
         registered = {t for c in _REGISTRY["checks"] for t in c.get("ctest_targets", [])}
-        self.assertEqual(registered, NEW_TEST_TARGETS)
+        registered |= {t for c in _REGISTRY["checks"]
+                       for s in _steps_of(c) for t in s.get("ctest_targets", [])}
+        self.assertTrue(NEW_TEST_TARGETS <= registered,
+                        sorted(NEW_TEST_TARGETS - registered))
 
-    def test_linux_deep_exactly_seven_new(self):
+    def test_linux_deep_exactly_seven_deep_gates(self):
         plan = self.plan("linux-deep")
-        ids = {c["id"] for c in plan["checks"]}
-        self.assertEqual(plan["selected_count"], 7)
-        self.assertEqual(ids, NEW_IDS)
+        _sel, _ents, units = _selected_units(plan)
+        # W4-A3：期望值由注册表重算（原魔数 7 —— 那 7 项现在是 4 个顶层项的
+        # 执行单元：CHK-BUILD-LINUX / CHK-STATIC / CHK-SANITIZER / CHK-COVERAGE）。
+        self.assertEqual(plan["selected_count"], len(_declared("linux-deep")))
+        self.assertEqual({c["id"] for c in plan["checks"]},
+                         {c["id"] for c in _declared("linux-deep")})
+        # 原意保留："deep profile 恰好暴露这 7 个 deep 门" ⇒ 改判单元闭包相等。
+        self.assertEqual(units & NEW_IDS, NEW_IDS)
+        self.assertEqual(len(NEW_IDS), 7)
 
     def test_heavy_commands_self_contain_monitor_prefix(self):
         plan = self.plan("linux-deep")
-        for c in plan["checks"]:
-            if c["requires_monitor"]:
-                self.assertEqual(c["command"][:2], ["python3", "ci/resource_monitor.py"],
-                                 c["id"])
+        _sel, entries, _u = _selected_units(plan)
+        # W4-A3：requires_monitor 的监控包装器落在**执行单元**的 command 上；顶层容器
+        # 项（command = ci/run_checks.py --check <ID>）自身不带前缀，由 step 承载
+        # （CHK-BUILD-LINUX / CHK-CONTRACT-TEST / CHK-UNIT / CHK-NWORKER /
+        #  CHK-SANITIZER / CHK-COVERAGE 六个容器，另有自带前缀的 RESOURCE-GATE-REAL）。
+        # 判据：每个 requires_monitor 单元必须**自身或经其执行单元**携带监控前缀。
+        containers, direct = 0, 0
+        for c in entries:
+            if not c.get("requires_monitor"):
+                continue
+            steps = [s for s in _steps_of(c) if "linux-deep" in s.get("profiles", [])]
+            if c["command"][:2] == ["python3", "ci/resource_monitor.py"]:
+                direct += 1
+                continue
+            containers += 1
+            self.assertTrue(steps, "容器项 requires_monitor 但没有执行单元: " + c["id"])
+            for s in steps:
+                self.assertEqual(s["command"][:2],
+                                 ["python3", "ci/resource_monitor.py"], s["id"])
+        # linux-deep 内全部是容器型（自带前缀的 RESOURCE-GATE-REAL 不在该 profile），
+        # 故只要求"至少走过一个容器"，不强制 direct > 0。
+        self.assertGreater(containers, 0,
+                           "应存在由执行单元承载监控前缀的容器项（direct=%d）" % direct)
 
 
 class TestToolBehaviour(unittest.TestCase):
@@ -217,9 +333,11 @@ class TestToolBehaviour(unittest.TestCase):
 
     def test_complexity_real_run_baseline_contract(self):
         out = Path(tempfile.mkdtemp()) / "complexity.json"
+        # W4-A3（A 类改绑现行路径）：CLI 树已迁到 lib/infrastructure/cli，原 --paths cli
+        # 扫的是不存在的目录 ⇒ 0 文件（"恒 0 = 恒过"的假绿面）。改绑现行路径。
         proc = H.sh(["python3", str(REPO / "tools/quality/check_complexity.py"),
-                     "--paths", "cli", "--output", str(out.relative_to(REPO))
-                     if False else "run/ci/ut-deep-complexity.json"],
+                     "--paths", "lib/infrastructure/cli", "--output",
+                     "run/ci/ut-deep-complexity.json"],
                     cwd=REPO, timeout=120)
         self.assertEqual(proc.returncode, 0)
         report = json.loads((REPO / "run/ci/ut-deep-complexity.json")
@@ -234,7 +352,8 @@ class TestToolBehaviour(unittest.TestCase):
             "cxc", REPO / "tools/quality/check_complexity.py")
         mod = module_from_spec(spec)
         spec.loader.exec_module(mod)
-        for part in ("lib/acr", "legacy", "third_party"):
+        # W4-A3（A 类改绑现行路径）：ACR 树现为 lib/infrastructure/acr。
+        for part in ("lib/infrastructure/acr", "legacy", "third_party"):
             self.assertIn(part, mod.EXCLUDE_PARTS)
 
     def test_driver_rejects_outside_build_dir(self):
@@ -599,11 +718,11 @@ class TestDeepCoverageToolsInstall(unittest.TestCase):
                          ["llvm-profdata", "llvm-cov", "pytest"])
         self.assertEqual(section["module_tools"], ["pytest-cov"])
         # 与 checks.json prerequisite_tools 对应（纯文本字段读，无网络）
-        checks = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
-        by_id = {c["id"]: c.get("prerequisite_tools") for c in checks["checks"]}
-        self.assertEqual(by_id["DEEP-COV-CPP"],
+        # W4-A3：DEEP-COV-CPP / DEEP-COV-PY 是**执行单元** id ⇒ 用两层索引取。
+        self.assertEqual(_BY_ID["DEEP-COV-CPP"].get("prerequisite_tools"),
                          ["cmake", "llvm-profdata", "llvm-cov"])
-        self.assertEqual(by_id["DEEP-COV-PY"], ["pytest"])
+        self.assertEqual(_BY_ID["DEEP-COV-PY"].get("prerequisite_tools"),
+                         ["pytest"])
 
 
 if __name__ == "__main__":
