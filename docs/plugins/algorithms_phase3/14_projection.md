@@ -22,7 +22,7 @@
 
 - **内置多种投影**，首批冻结 **TAN / SIN / CAR / AIT / STG / MOL / CEA / ZEA**（权威 = `ASTROCS_DESIGN.md §5.3`），每种声明：适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT、CTYPE；
 - **registry v3 要点**（FITS WCS Paper II）：CAR/AIT 把 CRVAL2（含 LONPOLE 默认 0/180）纳入三 Euler 角映射、AIT 椭圆域 A≤1、CAR native 极行 |θ|≥90° fail-closed；`registry_find` 未命中返回 nullptr = fail-closed；
-- **实现状态**：已实现 TAN/SIN/CAR/AIT（4/8）；STG/MOL/CEA/ZEA 待实现（登记 GAP-011）；注册面与会话面分离；
+- **实现状态**：已实现 TAN/SIN/CAR/AIT（4/8）；STG/MOL/CEA/ZEA 待实现；注册面与会话面分离；
 - FITS 1-based 关键字、内部 0-based 像素中心，转换唯一；
 - 正反变换必须互逆（误差 < 合同阈值）；
 - 新增投影经 registry 注册并附独立往返 Oracle。

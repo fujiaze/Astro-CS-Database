@@ -87,7 +87,7 @@
 ```text
 仓库根固定条目：
 README.md / AGENTS.md / ASTROCS_DESIGN.md / ENGINEERING_SPEC.md /
-CONTROL_PACK_SPEC.md / ACCEPTANCE_SPEC.md / memory.md / DEPENDENCIES.md /
+CONTROL_PACK_SPEC.md / memory.md / DEPENDENCIES.md /
 CMakeLists.txt / CMakePresets.json / build.sh / toolchain.ps1 /
 .clang-format / .editorconfig / .gitignore / .gitattributes / .github/
 
@@ -100,7 +100,7 @@ lib/
 └── infrastructure/     基建（cli/ 下挂 normalize/mosaic/export 子命令 + scheduler/pipeline/aio/benchmark/observability/gaia/acr/hips_browser）
 
 其他固定目录：include/ contracts/ cmake/ docs/ tests/ scripts/ tools/ ci/ testdata/ third_party/
-config/（程序根全局配置：filters.json / defaults.json；ASTROCS_DESIGN.md §3.3 点名要求，CFG-001 建立，GAP-033）
+config/（程序根全局配置：filters.json / defaults.json；ASTROCS_DESIGN.md §3.3 点名要求）
 工程控制/ 报告 reports/ 证据 artifacts/ 工程 engineering/ 打包 packaging/
 run/（gitignore：临时产物/日志）  logs/（gitignore）
 ```

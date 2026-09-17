@@ -1,0 +1,174 @@
+{
+  "control_pack": "RELEASE-01",
+  "task": "DOC-001",
+  "source_zip": "AstroCS文档集.zip",
+  "source_zip_sha256": "fe7a0a4002b5d72c25b073e02c0633c8189578ea62efced82cd64d1ddcf3a483",
+  "source_zip_bytes": 108708,
+  "file_count": 36,
+  "replaced_identical": 23,
+  "replaced_changed": 12,
+  "added": 1,
+  "authorized_edits": [
+    {
+      "path": "ENGINEERING_SPEC.md",
+      "kind": "residue-cleanup",
+      "detail": "删除治理 ID `CFG-001`/`GAP-033`，保留原语义（config/ 为程序根全局配置）"
+    },
+    {
+      "path": "docs/plugins/algorithms_phase3/14_projection.md",
+      "kind": "residue-cleanup",
+      "detail": "删除治理任务 ID `GAP-011`，保留原语义（STG/MOL/CEA/ZEA 待实现）"
+    },
+    {
+      "path": "docs/plugins/algorithms_phase1/05_platesolve.md",
+      "kind": "reference-reachability",
+      "detail": "死引用 `docs/algorithms/platesolve/*` 订正为实际文件 `docs/algorithms/PLATESOLVE.md`（DOC-001 步骤5 引用可达）"
+    }
+  ],
+  "files": {
+    "ACCEPTANCE_SPEC.md": {
+      "pack": "53014601ff7bb4a81dbbea09ff1c76be7fbfb7bc20fdb180e90ce081cf65fe4f",
+      "repo": "53014601ff7bb4a81dbbea09ff1c76be7fbfb7bc20fdb180e90ce081cf65fe4f"
+    },
+    "AGENTS.md": {
+      "pack": "40f5dc93a970c6dc32e5a252640f60d5b157a1941404953a78b12cc031345e35",
+      "repo": "40f5dc93a970c6dc32e5a252640f60d5b157a1941404953a78b12cc031345e35"
+    },
+    "ASTROCS_DESIGN.md": {
+      "pack": "bcd9a62469cee71fcb9af18c0d3907fa39cf87e5aedebdce7751dfbe56f1b01a",
+      "repo": "bcd9a62469cee71fcb9af18c0d3907fa39cf87e5aedebdce7751dfbe56f1b01a"
+    },
+    "CONTROL_PACK_SPEC.md": {
+      "pack": "f46e85834477ee8484ec0eaf2fde38a2a64a80717f4c48d3c12ccec64787765c",
+      "repo": "f46e85834477ee8484ec0eaf2fde38a2a64a80717f4c48d3c12ccec64787765c"
+    },
+    "ENGINEERING_SPEC.md": {
+      "pack": "e8cb5dd24ce395b73323e1959f684d1bad3398b6f38acf545cda03c38f6daf9a",
+      "repo": "196d71727e5a436ceec976e4aa3b2d25878ec91166f318db282586c4dc51f9fb"
+    },
+    "docs/ci/01_CHECKS.md": {
+      "pack": "9256878b140906f753dedf653061b465f58834f5f5bdacd2a5cdabc0bffdb0bc",
+      "repo": "9256878b140906f753dedf653061b465f58834f5f5bdacd2a5cdabc0bffdb0bc"
+    },
+    "docs/ci/02_PIPELINE.md": {
+      "pack": "10b173f90b72f2edf159a77f194ce90b503f9bb8ed5f98671ad2565f080b2d50",
+      "repo": "10b173f90b72f2edf159a77f194ce90b503f9bb8ed5f98671ad2565f080b2d50"
+    },
+    "docs/ci/03_GATES.md": {
+      "pack": "a0b75c773f459ab37c1919e4242bb0a5b751b9f2cf52261670f057ea6a4b5f86",
+      "repo": "a0b75c773f459ab37c1919e4242bb0a5b751b9f2cf52261670f057ea6a4b5f86"
+    },
+    "docs/ci/04_ARTIFACTS.md": {
+      "pack": "bbdbf524e4e64c6f25bdb5b1d266d107c0aa84418aaf5d5dd4959c2ca65b40f1",
+      "repo": "bbdbf524e4e64c6f25bdb5b1d266d107c0aa84418aaf5d5dd4959c2ca65b40f1"
+    },
+    "docs/ci/CI_SPEC.md": {
+      "pack": "db00ee606d61ac01ff32e7f81a7e3deb5dda42277a2f0dcd14f5ed331576b0df",
+      "repo": "db00ee606d61ac01ff32e7f81a7e3deb5dda42277a2f0dcd14f5ed331576b0df"
+    },
+    "docs/design/UNIFIED_MODEL.md": {
+      "pack": "ff79f1e872b255f435c2222e7032cc104ce5f69488d92c987f91b740c47b8f53",
+      "repo": "ff79f1e872b255f435c2222e7032cc104ce5f69488d92c987f91b740c47b8f53"
+    },
+    "docs/plugins/00_INDEX.md": {
+      "pack": "058a677cee700ac731dd86de0fb3306073e0f17725e40a8815530b0389168319",
+      "repo": "058a677cee700ac731dd86de0fb3306073e0f17725e40a8815530b0389168319"
+    },
+    "docs/plugins/algorithms_phase1/01_calibration.md": {
+      "pack": "c3562c5cd6833f0013c2020b3901eb20f30f29e92087146c63ac409e96faea57",
+      "repo": "c3562c5cd6833f0013c2020b3901eb20f30f29e92087146c63ac409e96faea57"
+    },
+    "docs/plugins/algorithms_phase1/02_cosmetic.md": {
+      "pack": "0b8b50593da87e89246982d3b4cf2cbb9fde45d002caad9a97f8098be982d862",
+      "repo": "0b8b50593da87e89246982d3b4cf2cbb9fde45d002caad9a97f8098be982d862"
+    },
+    "docs/plugins/algorithms_phase1/03_star_detection.md": {
+      "pack": "95c08c335a4da57c0e9d932eed25f119d2947de4b9bacc1438d7f7a8a80597d8",
+      "repo": "95c08c335a4da57c0e9d932eed25f119d2947de4b9bacc1438d7f7a8a80597d8"
+    },
+    "docs/plugins/algorithms_phase1/04_psf.md": {
+      "pack": "767f7c5cfe6dffa1cdf0d56a0de3b5ee49d9aaeec71571d29a65c70eb2452a07",
+      "repo": "767f7c5cfe6dffa1cdf0d56a0de3b5ee49d9aaeec71571d29a65c70eb2452a07"
+    },
+    "docs/plugins/algorithms_phase1/05_platesolve.md": {
+      "pack": "a09bb3422326756e5174ec20a3b5788a260acaea7e0666b39ca59191f6eceae2",
+      "repo": "28c048ffcd15800522637b872f97d20d376507868b8a0c1bdc3ad574f33f82da"
+    },
+    "docs/plugins/algorithms_phase1/06_photometry.md": {
+      "pack": "95dc8db29c33114e54aeb5a6204179d62235943d177da168d68e11bacba96e16",
+      "repo": "95dc8db29c33114e54aeb5a6204179d62235943d177da168d68e11bacba96e16"
+    },
+    "docs/plugins/algorithms_phase1/07_noise_snr.md": {
+      "pack": "7eefc6100d76ecd452068e8291718295bd60be84103f3672e318ea0db68cc632",
+      "repo": "7eefc6100d76ecd452068e8291718295bd60be84103f3672e318ea0db68cc632"
+    },
+    "docs/plugins/algorithms_phase1/08_drizzle.md": {
+      "pack": "e4c3ea989e28397820de0fdac78139268a54c0436fe8288dc59d5ad551a5008c",
+      "repo": "e4c3ea989e28397820de0fdac78139268a54c0436fe8288dc59d5ad551a5008c"
+    },
+    "docs/plugins/algorithms_phase2/09_coverage.md": {
+      "pack": "182cfc109ce74e27431d5c6707f3d57a563ce4e174f9c283a309450da0d39345",
+      "repo": "182cfc109ce74e27431d5c6707f3d57a563ce4e174f9c283a309450da0d39345"
+    },
+    "docs/plugins/algorithms_phase2/10_sampling.md": {
+      "pack": "a24a1abc4cddf1649123d19f11d4aa18aed028d7b7be1dad21bd08f82d9f8396",
+      "repo": "a24a1abc4cddf1649123d19f11d4aa18aed028d7b7be1dad21bd08f82d9f8396"
+    },
+    "docs/plugins/algorithms_phase2/11_upm.md": {
+      "pack": "29118db971aee3240c69832019fb9dedaffa0b394c76c9e4206c9c0b969f2d9c",
+      "repo": "29118db971aee3240c69832019fb9dedaffa0b394c76c9e4206c9c0b969f2d9c"
+    },
+    "docs/plugins/algorithms_phase2/12_rejection.md": {
+      "pack": "9ec7c39335ff0d246506d9f3669053dd1b806c8e9d8182a3a09b5b0c8d114ab6",
+      "repo": "9ec7c39335ff0d246506d9f3669053dd1b806c8e9d8182a3a09b5b0c8d114ab6"
+    },
+    "docs/plugins/algorithms_phase2/13_integration.md": {
+      "pack": "b94bd1eeeee802c6a0e692e725a09cf17d17f5550116da11e6545532c392203f",
+      "repo": "b94bd1eeeee802c6a0e692e725a09cf17d17f5550116da11e6545532c392203f"
+    },
+    "docs/plugins/algorithms_phase3/14_projection.md": {
+      "pack": "dc8a86f85fecb498c08a31f6ec6e5c53b6a0bc55e3c8519ad46db37a97c352ab",
+      "repo": "11bade5936c7e5a1ddf1a6dc81c2ddaae4b66ec487243719ca09242622ec4c66"
+    },
+    "docs/plugins/algorithms_phase3/15_resample.md": {
+      "pack": "7b02fd5e7c4994709b73ea259fe767c225c44662f0daea8c983f119b4bc84665",
+      "repo": "7b02fd5e7c4994709b73ea259fe767c225c44662f0daea8c983f119b4bc84665"
+    },
+    "docs/plugins/algorithms_phase3/16_fits_output.md": {
+      "pack": "3184df7e08f1e09fcf6af2f0c334aa03b731a38796d0b881663b18efb085f21d",
+      "repo": "3184df7e08f1e09fcf6af2f0c334aa03b731a38796d0b881663b18efb085f21d"
+    },
+    "docs/plugins/infrastructure/17_aio.md": {
+      "pack": "231a90de54b2071d90731a3a56a2ee6c95c3dd14b930762c88496a6ba23040c0",
+      "repo": "231a90de54b2071d90731a3a56a2ee6c95c3dd14b930762c88496a6ba23040c0"
+    },
+    "docs/plugins/infrastructure/18_cli.md": {
+      "pack": "57e8f029492a26dbd03be7f2878eb14abac5ab2cfd695286b3f0e942e5c3a217",
+      "repo": "57e8f029492a26dbd03be7f2878eb14abac5ab2cfd695286b3f0e942e5c3a217"
+    },
+    "docs/plugins/infrastructure/19_runtime.md": {
+      "pack": "bbf2a876a182339bd8cc959f0822172d46e4f21e9a16de576e845641a05e44e5",
+      "repo": "bbf2a876a182339bd8cc959f0822172d46e4f21e9a16de576e845641a05e44e5"
+    },
+    "docs/plugins/infrastructure/20_benchmark.md": {
+      "pack": "6c1ff46341c555b938d0ae0ecfb42a3cc216dda5d7aa0385eae2eadbf41a7acc",
+      "repo": "6c1ff46341c555b938d0ae0ecfb42a3cc216dda5d7aa0385eae2eadbf41a7acc"
+    },
+    "docs/plugins/infrastructure/21_observability.md": {
+      "pack": "be40681808874f2aac51a5836cadb0784b26d883fc8fe883310d3d5839837866",
+      "repo": "be40681808874f2aac51a5836cadb0784b26d883fc8fe883310d3d5839837866"
+    },
+    "docs/plugins/infrastructure/22_gaia_xpsd_client.md": {
+      "pack": "909b289015242151ae6af1cc7ad1fa32fc86c1c0b30463cb407d367a2c6bfc82",
+      "repo": "909b289015242151ae6af1cc7ad1fa32fc86c1c0b30463cb407d367a2c6bfc82"
+    },
+    "docs/plugins/infrastructure/23_hips_browser.md": {
+      "pack": "2d939f26798c5a2e364efa3e8af70242cc8748531fea068a36fa7c39a7fcd863",
+      "repo": "2d939f26798c5a2e364efa3e8af70242cc8748531fea068a36fa7c39a7fcd863"
+    },
+    "docs/research/SNR_WEIGHT_RESEARCH_PACK.md": {
+      "pack": "884ff991f813494c09d3a575b2c79692274144d08cdf8c5d430f2405b5e2cdff",
+      "repo": "884ff991f813494c09d3a575b2c79692274144d08cdf8c5d430f2405b5e2cdff"
+    }
+  }
+}

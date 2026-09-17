@@ -9,7 +9,7 @@
 
 - 最高设计 `ASTROCS_DESIGN.md` §3.6（硬约束：WCS 为 ICRS）
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §7（天体测量与测光）
-- `docs/algorithms/platesolve/*`（解算算法推导）
+- `docs/algorithms/PLATESOLVE.md`（解算算法推导）
 - `docs/plugins/infrastructure/22_gaia_xpsd_client.md`（星表查询依赖）
 
 ## 3. 输入/输出数据合同

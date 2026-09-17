@@ -24,8 +24,7 @@
 | CHK-MODULE-MANIFEST | 文档一致性 | 模块 manifest/注册表/构建 target/产品清单一致 | ci 检查器 | P0 |
 | CHK-CONTRACT-REF | 文档一致性 | 端口引用有效 DATA 合同 | ci 检查器 | P0 |
 | CHK-SCI-REF | 文档一致性 | 算法引用有效 SCI/ALG；含 ACR/编排层退出面（`ACR-DORMANT` = `tools/check_legacy_exit.py`，LEG-002..004）| ci 检查器 | P0 |
-| CHK-CONTRACT-TEST | 文档一致性 | 核心合同有独立测试（含 ORCH-001 编排层 6 条共址 ctest）| ci 检查器 | P0 |
-| CHK-EXIT-CONSISTENCY | CI 自洽性 | 结论与退出码一致：打印 FAIL 必须 rc≠0（扫描 tools/**+ci/**；含 --self-test 3 正 3 负）| ci 检查器 | P1 |
+| CHK-CONTRACT-TEST | 文档一致性 | 核心合同有独立测试 | ci 检查器 | P0 |
 | CHK-DANGLING | 文档一致性 | 删除/重命名无悬空引用 | ci 检查器 | P1 |
 | CHK-STALE-DOC | 文档一致性 | 活动文档无陈旧版本号/历史状态冒充 | ci 检查器 | P1 |
 | API-DOCS | 文档一致性 | doc↔code 命令树/签名/退出码/schema 一致（命令树：CLI 产物候选缺失即 fail-closed） | `tools/check_api_docs.py` | P0 |
@@ -61,7 +60,6 @@
 | RESOURCE-GATE-REAL | 资源 | 真实重计算面利用率门（显式 --gate-required + 判定证据） | `python3 ci/resource_monitor.py --timeout 300 …` | P0 |
 | RESOURCE-GATE-REAL-NEG | 资源 | 上项的可执行负例面（串行注入 ⇒ 门必须判红） | `python3 tools/quality/check_resource_gate_real.py --fault-inject serial --seconds 20` | P0 |
 | CHK-KNOWN-FAILURES-BASELINE | 测试 | 版本化已知失败基线门（聚合型，linux-main 末位） | `python3 ci/run_checks.py --check CHK-KNOWN-FAILURES-BASELINE --quiet` | P1 |
-| CHK-E2E-REPRO | 测试 | 真实数据端到端天测闭合复现门（closure_metric 自证面） | `python3 tools/astrometry/closure_metric.py selftest` | P0 |
 | CHK-IMPACT-MAP | 治理 | `ci/impact_map.json` 判据一致性（id 两层闭包 / fast 候选 / BASE 核心 / 路径域锚存活与覆盖 / 无退役引用 / 结构完整） | `python3 ci/run_checks.py --check CHK-IMPACT-MAP --quiet` | P0 |
 
 ### 2.1 检查器退役与预留
