@@ -205,4 +205,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # fail-closed：main() 的早退分支返回 1（缺件/不可解析），必须经 sys.exit 传导；
+    # 原实现丢弃返回值 ⇒ 打印 [FAIL] 仍 exit 0（ENGINEERING_SPEC §8 fail-closed 违约）。
+    sys.exit(main())
