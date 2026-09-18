@@ -1116,10 +1116,16 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     kv.push_back({"hips_version", "1.4"});
     kv.push_back({"hips_order", std::to_string(ps->tile_order)});
     kv.push_back({"hips_tile_width", "512"});
-    // IVOA REC-HIPS-1.0 §4.4.1: hips_frame 值域 = {icrs, galactic, ecliptic};
-    // 非标准值 "equatorial" 已废止 (M1a-B-005)。本管道内部 frame 恒为 ICRS
-    // (SCI-P3-001 §4 "合法转换 = 仅恒等 ICRS"), 故写标准值 icrs。
-    kv.push_back({"hips_frame", "icrs"});
+    // P0-19 (IVOA HiPS 1.0 §4.4.1 关键字表): hips_frame 标准值域 =
+    // {equatorial, galactic, ecliptic}; ICRS 参考系的标准写法是 "equatorial"
+    // (规范原文: Format: "equatorial" (ICRS))。"icrs" 不是标准取值。
+    // 三方取证 (2026-09-18): IVOA PR-HIPS-1.0-20170406 §4.4.1 / Hipsgen 手册 /
+    // CDS Aladin Lite API 均为 equatorial; 生产 HiPS (CDS DSS/2MASS) 亦然。
+    // M1a-B-005 曾把标准值/非标准值判反并写成 "icrs", 本处订正。
+    // 本管道内部 frame 恒为 ICRS (SCI-P3-001 §4 "合法转换 = 仅恒等 ICRS"),
+    // 故写标准值 "equatorial"; 读侧 (io/hips_core.c) 保留 "icrs" 作旧产品
+    // 兼容别名。
+    kv.push_back({"hips_frame", "equatorial"});
     // B2-A8: HiPS 1.0 tile 编号方案显式声明。消费者（Phase2 coverage union
     // 的 NESTED 父聚合 t>>2s）不得再依赖"缺省即 NESTED"的隐式约定。
     kv.push_back({"hips_ordering", "NESTED"});
@@ -1367,8 +1373,9 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     kv2.push_back({"obs_title", ps->obs_title + " (SNR catalogue)"});
     kv2.push_back({"hips_version", "1.4"});
     kv2.push_back({"hips_order", std::to_string(ps->tile_order)});
-    // M1a-B-005: 同图产品面, 写 IVOA §4.4.1 标准值域内的 icrs。
-    kv2.push_back({"hips_frame", "icrs"});
+    // P0-19: 同图产品面, 写 IVOA HiPS 1.0 §4.4.1 标准值 "equatorial"
+    // (ICRS 的标准写法; "icrs" 非标准, 读侧仅作兼容别名)。
+    kv2.push_back({"hips_frame", "equatorial"});
     kv2.push_back({"dataproduct_type", "catalog"});
     kv2.push_back({"dataproduct_subtype", "snr"});
     kv2.push_back({"hips_tile_format", "tsv"});
@@ -1416,8 +1423,11 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
     }
     if (!write_properties(dir + "/properties", kv2)) return false;
     {
-        FILE* f = std::fopen((dir + "/metadata.xml").c_str(), "wb");
-        if (!f) { set_error("无法创建 SNR metadata.xml: " + dir + "/metadata.xml"); return false; }
+        // §9 原子产品: metadata.xml 统一走 tmp → fsync → 原子 rename (AIO-001 原语)。
+        std::string merr;
+        const int mrc = aio_atomic::write_file_atomic_stream(
+            dir + "/metadata.xml",
+            [&](FILE* f) -> bool {
         // IVOA HiPS Catalog: metadata.xml 必须是 VOTable（Hipsgen LINT[4.4.3] 要求根元素 votable）
         std::fprintf(f,
             "<?xml version=\"1.0\"?>\n"
@@ -1438,7 +1448,13 @@ static bool finalize_snr_product(AioHipsProductSet* ps) {
             "  </RESOURCE>\n"
             "</VOTABLE>\n",
             ps->data_type == AIO_HIPS_FLOAT32 ? "float" : "double");
-        std::fclose(f);
+                return true;
+            },
+            &merr);
+        if (mrc != 0) {
+            set_error("无法原子创建 SNR metadata.xml: " + dir + "/metadata.xml (" + merr + ")");
+            return false;
+        }
     }
     std::vector<uint64_t> uniq;
     for (uint64_t c : cells)
@@ -1672,10 +1688,13 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                      ps->prof_hierarchy_write, ps->prof_finalize_snr,
                      std::chrono::duration<double>(
                          std::chrono::steady_clock::now() - t_fin0).count());
-        // manifest.json
+        // manifest.json = 产品集完成标记。§9 原子产品: 统一 tmp → fsync → rename,
+        // 失败即 fail-closed (不得静默留下/缺失半成品 manifest)。
         {
-            FILE* f = std::fopen((ps->out_dir + "/manifest.json").c_str(), "wb");
-            if (f) {
+            std::string merr;
+            const int mrc = aio_atomic::write_file_atomic_stream(
+                ps->out_dir + "/manifest.json",
+                [&](FILE* f) -> bool {
                 std::string prod_list;
                 // 诊断平面只在真正写过 tile 时进入 products 清单 (与磁盘事实一致,
                 // 供 aio_hips_verify_product_set V4 双向核对)
@@ -1752,7 +1771,12 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                 } else {
                     std::fprintf(f, "\n}\n");
                 }
-                std::fclose(f);
+                    return true;
+                },
+                &merr);
+            if (mrc != 0) {
+                set_error("manifest.json 原子落盘失败: " + merr);
+                return -13;
             }
         }
         delete ps;

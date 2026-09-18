@@ -27,7 +27,9 @@ struct HipsProperties {
   std::string hips_version = "1.4";
   std::string release_date;
   std::string hips_status = "public master clonableOnce";
-  std::string frame = "icrs";
+  // P0-19: HiPS 1.0 §4.4.1 标准值 = equatorial|galactic|ecliptic;
+  // ICRS 的标准写法是 "equatorial" ("icrs" 非标准, 读侧仅作兼容别名)。
+  std::string frame = "equatorial";
   int order = 0;
   int order_min = -1;  // <0 => 不输出
   int tile_width = 512;
@@ -56,7 +58,7 @@ struct HipsManifest {
   int order = 0;
   int order_min = -1;
   std::string tile_format = "fits";
-  std::string frame = "icrs";
+  std::string frame = "equatorial";  // P0-19: HiPS 标准值 (非 "icrs")
   std::uint64_t tile_count = 0;
   std::vector<HipsFileRecord> files;
   std::string provenance_sha256;

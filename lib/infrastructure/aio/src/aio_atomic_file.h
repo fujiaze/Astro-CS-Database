@@ -27,6 +27,7 @@
 
 #include <cstdio>
 #include <cstdint>
+#include <functional>
 #include <string>
 
 #ifdef _WIN32
@@ -101,6 +102,58 @@ inline int write_file_atomic(const std::string& final_path,
             if (err) *err = "short write: " + tmp;
             return -2;
         }
+    }
+    if (std::fflush(f) != 0) {
+        std::fclose(f);
+        std::remove(tmp.c_str());
+        if (err) *err = "fflush failed: " + tmp;
+        return -3;
+    }
+#ifdef _WIN32
+    if (_commit(_fileno(f)) != 0) {
+#else
+    if (fsync(fileno(f)) != 0) {
+#endif
+        std::fclose(f);
+        std::remove(tmp.c_str());
+        if (err) *err = "fsync failed: " + tmp;
+        return -4;
+    }
+    if (std::fclose(f) != 0) {
+        std::remove(tmp.c_str());
+        if (err) *err = "fclose failed: " + tmp;
+        return -5;
+    }
+    if (atomic_replace(tmp, final_path) != 0) {
+        std::remove(tmp.c_str());
+        if (err) *err = "atomic rename failed: " + tmp + " -> " + final_path;
+        return -6;
+    }
+    return 0;
+}
+
+// 把 writer(FILE*) 生成的内容原子写为 final_path (与 write_file_atomic 同语义,
+// 供内容由多次 fprintf/fwrite 生成的场景使用)。返回 0=成功; 非 0=失败
+// (临时文件已清理, 目标未动)。writer 返回 false 视为内容生成失败。
+// §9: 产品落盘统一走 临时文件 → fflush → fsync → 原子 rename。
+inline int write_file_atomic_stream(const std::string& final_path,
+                                    const std::function<bool(FILE*)>& writer,
+                                    std::string* err) {
+    if (!writer) {
+        if (err) *err = "null writer";
+        return -1;
+    }
+    const std::string tmp = make_tmp_path(final_path);
+    FILE* f = aio_fopen_utf8(tmp.c_str(), "wb");
+    if (!f) {
+        if (err) *err = "open tmp failed: " + tmp;
+        return -1;
+    }
+    if (!writer(f)) {
+        std::fclose(f);
+        std::remove(tmp.c_str());
+        if (err) *err = "writer failed: " + tmp;
+        return -2;
     }
     if (std::fflush(f) != 0) {
         std::fclose(f);
