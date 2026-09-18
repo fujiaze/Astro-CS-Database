@@ -138,3 +138,13 @@ Phase1 各操作器对多帧的处理**内部不一致**——部分循环全部
 
 **测试缺口**：`ctest` 460 全绿**未能发现**此缺陷 ⇒ 缺少「多 light normalize」用例，须补正例（多帧正确叠加/正确处理）
 与负例（不支持的组合必须报错，不得静默通过）。
+### 8.4 模板形态纠正（与 SD-13 一致）
+
+P3/aio 分片在 SD-13 裁决前受命「对齐实现语义」，把 `config/templates/*.phase_config.json` 由嵌套改为**平铺**；
+与前台 SD-13 裁决（**以设计 §3.3 嵌套形态为权威**）相悖。已 `git checkout -- config/templates/` **还原为嵌套形态**。
+
+**结论**：模板保持设计形态（`phase_name`/`config`/`inputs`）；**要改的是实现**（必须接受 §3.3 嵌套形态，扁平可留兼容别名），
+列入 hub 批。`contracts/schemas/phase_config_*.schema.json` 本就是嵌套，与设计一致，无需改。
+
+**P3/aio 其余成果保留**：`hips_frame` icrs→equatorial（写侧两处 + manifest 默认 + 测试断言反转，三方取证）、
+`aio_atomic::write_file_atomic_stream`（tmp→fsync→rename，独立探针 PROBE_OK）、manifest/metadata.xml 原子化并 fail-closed。
