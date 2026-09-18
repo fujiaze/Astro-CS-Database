@@ -20,6 +20,19 @@
 | PERF-102 |  | G-RES-01 六判据真实数据面零违约 |  |
 | DEL-102 |  | 两个 FITS 结构/数值/视觉/单位；限制清单 | 待负责人检查 |
 
+## 1a. 独立科学审计（SCI-AUDIT，独立验证者角色）
+
+> 立场：`ASTROCS_DESIGN.md` = 需求/设计意图 = 最高权威；`docs/science/**`、`docs/algorithms/**` = 待证主张。审计员不盲从文档、代码、其他 agent 结论。
+
+| 项 | 结果 |
+|---|---|
+| **核心问题：文档问题是否阻塞最高设计** | **BLOCKS-DESIGN = 0 条**（覆盖 P0 全部 11 个 UNRESOLVED 主题 + RELEASE-02 全部 5 条 change-claim + P1-A 28 条 + P1-C 42 条 + P1-B/D 部分） |
+| 台账 | `reports/RELEASE-02/SCI-AUDIT/{REGISTER.md,VERDICT.md,EVIDENCE-GAPS.md}` + `per-doc/` 11 篇（含对 `ASTROCS_DESIGN.md` 的独立评估） |
+| 复算/证据 | `run/RELEASE-02/p0_recompute.py(.log)`、`verify_refs*.py(.log)`、`run/RELEASE-02/p1/P1-{A,B,C,D}.md` |
+| 前台抽验（已独立确认） | ① `contracts/schemas/unified/frame_snr.schema.json` 描述**仍写「不受天光影响」**（与设计 §3.4/§4.3 及同包订正口径冲突），且自述「不得与 depth_m5 互填」而实装输出 5σ 深度对象 ⇒ **设计输出合同当前未兑现**；② `p2_upm_ma_build` **确已存在**（`upm.cpp:1898`，`stage2.cpp:516` 调用）⇒ 乘性模型并非未实现，落后的是 FROZEN `PHASE2_UPM.md` 与 scheduler 的 `fit_upm` 适配器（`module_adapters.cpp:4155` 仍加性）；③ 校准同母版 bias 折叠实测 `j_b=-(1-α)/denom`（`v6_calibration_covariance.cpp:313-319`）⇒ 插件 `01_calibration.md:31` 的 `(1+α²)` 应为 `(1-α)²` |
+| 证据缺口规模 | 高 3（数值 Oracle 复跑脚本整体缺失；k_corr MC 构建孤儿不可复跑；PSFSW 指数无 L1 标定）、中 ~6、低 ~4；30 条 DOI 经 Crossref 核验，2 条疑似错引 |
+| 状态 | **进行中**（P1-B/P1-D 收尾后更新 REGISTER） |
+
 ## 2. P0 归宿台账（逐条 CLOSED / 变更 claim / 上呈）
 
 | P0 | 结论 | 证据（提交/报告/测试） |
