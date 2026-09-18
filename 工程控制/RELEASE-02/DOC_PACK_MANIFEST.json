@@ -72,7 +72,7 @@
       "kind": "owner-design-supplement",
       "detail": "负责人明确指示补充最高设计 §4.5 逐像素排异（叠加非纯逆方差平均；按输入集合大小 n 自适应选择算法；CLI mosaic 留空/0/auto 自动、显式指定则强制；证据=PixInsight WBPP 源码 BPP-FrameGroup.js:1304-1312/1229-1293）",
       "pack_sha256": "8f3eeb4ed397e5c90c7e3ef1c03f5c76a0a940eb9a35232d24b9844a0695a504",
-      "repo_sha256": "aa8767c27d54891ef9e597cae72ade2bdc3a81076a7fd94775e2dd14726e5873"
+      "repo_sha256": "09767191f8b552dddf9be14fd744cc3b04a743da2c0ec8d6b6f7f9e78fedcec1"
     },
     {
       "path": "docs/plugins/algorithms_phase1/08_drizzle.md",
