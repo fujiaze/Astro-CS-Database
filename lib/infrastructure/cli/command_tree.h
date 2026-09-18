@@ -39,6 +39,10 @@ inline const std::set<std::string>& boolean_flags() {
         "-y", "--yes",    // §6.3: 跳过运行确认
         "-force",         // §6.3: 越过可强制项（缺失校准帧等）
         "--events-jsonl", // §6.3: 运行事件 JSONL 走 stdout
+        // §8/21_observability §8.4: 资源门「记录/裁决分离」的历史复现开关
+        // （record_only → enforce，exit 10）。消费者见 commands.cpp
+        // strict_resource_gate_arg；此前不在白名单 → unknown flag，§8 在 CLI 面不可达。
+        "--strict-resource-gate",
     };
     return k;
 }
@@ -55,6 +59,9 @@ inline const std::set<std::string>& value_flags() {
         "--cpu-profile",  // 机器绑定 cpu_profile 路径（可选）
         "--mode",         // 会话内部显式模式选择（mosaic）
         "--export-mode",  // 会话内部显式模式选择（export）
+        // §8/21_observability §8.4: 资源门 enforce 语义显式写法
+        // （accept|record|record-only|strict|enforce）；消费者见 commands.cpp。
+        "--on-resource-gate",
     };
     return k;
 }
@@ -73,13 +80,14 @@ inline const std::vector<CommandDesc>& commands() {
     static const std::vector<CommandDesc> k = {
         {"--version", true, {"--json"}},
         {"normalize", true, {"--json", "--template", "-o", "--output", "--help", "-h",
-                             "-y", "--yes", "-force", "--events-jsonl", "--cpu-profile"}},
+                             "-y", "--yes", "-force", "--events-jsonl", "--cpu-profile",
+                             "--strict-resource-gate", "--on-resource-gate"}},
         {"mosaic",    true, {"--json", "--template", "-o", "--output", "--help", "-h",
                              "-y", "--yes", "-force", "--events-jsonl", "--cpu-profile",
-                             "--mode"}},
+                             "--mode", "--strict-resource-gate", "--on-resource-gate"}},
         {"export",    true, {"--json", "--template", "-o", "--output", "--help", "-h",
                              "-y", "--yes", "-force", "--events-jsonl", "--cpu-profile",
-                             "--export-mode"}},
+                             "--export-mode", "--strict-resource-gate", "--on-resource-gate"}},
         {"help",      true, {}},
         // 顶层 dash 命令（§6.2 的 help 等价形态）。不写进 help 文本
         // （help_text 里带 "-" 前缀的只保留 --version，避免把可选旗标行混进命令树）。

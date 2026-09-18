@@ -33,12 +33,16 @@
 // 用户命令现在一律「unknown command」→ exit 2。
 const std::set<std::string>& cmd_boolean_tokens() {
     static const std::set<std::string> k = {
-        "--json", "--template", "--help", "-h", "-y", "--yes", "-force", "--events-jsonl"};
+        "--json", "--template", "--help", "-h", "-y", "--yes", "-force", "--events-jsonl",
+        // §8/21_observability §8.4: 资源门 enforce 复现开关（消费者 commands.cpp）。
+        "--strict-resource-gate"};
     return k;
 }
 const std::set<std::string>& cmd_value_tokens() {
     static const std::set<std::string> k = {"--json",  "-o",       "--output", "--template",
-                                            "--cpu-profile", "--mode", "--export-mode"};
+                                            "--cpu-profile", "--mode", "--export-mode",
+                                            // §8/21_observability §8.4: 资源门 enforce 显式写法。
+                                            "--on-resource-gate"};
     return k;
 }
 // 允许裸用（不取值）的旗标: 顶层 --version --json / doctor 的 --json /
@@ -302,6 +306,13 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         "coverage_output", "max_tiles", "frame",
         // phase3 平铺直通特征键 (runtime_client phase_config 平铺判定)
         "output_fits_path", "sampler_used", "mode",
+        // DC-401/DC-418/DC-419 (§4.5.5): 排异算法选择键（留空/0/auto = 按 n 自动；
+        // 显式单算法；按 n 的分段/表达式）。CLI 只识别并透传到 pdoc（phase_config
+        // 直通分支），消费与 per-pixel 路由在 scheduler 面（另一分片）。
+        "algorithm_rejection_method",
+        // DC-503 (§5.3): 输出模式 surface_brightness/point_source_flux/visualization。
+        // CLI 只识别并透传到 pdoc；生产 resample/writer 的消费在 scheduler 面。
+        "output_mode",
     };
     for (auto it = doc.begin(); it != doc.end(); ++it) {
         const bool allowed = kAllowedKeys.count(it.key()) != 0 ||
