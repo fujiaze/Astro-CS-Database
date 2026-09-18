@@ -165,32 +165,44 @@ config/
 - 实际 SNR = **帧级 × 帧内**；
 - 不启用 → 只输出帧级；启用 → 帧级 + 稀疏帧内。
 
-### 3.5 运行前预检（CLI 检查页面）
+### 3.5 运行前预检（**三命令通用**：normalize / mosaic / export）
 
-`normalize/mosaic/export` 运行前必须对 JSON 配置做检查，**显示检查结果页面**：
+> **本节是 `normalize` / `mosaic` / `export` 三个命令共同的运行前预检合同，不是 normalize 专有。**
+> §4（mosaic）与 §5（export）**共享本节，无例外**；三个命令都必须实现同一套预检、同一套分级、同一套确认与跳过语义。
+
+对标 PixInsight WBPP 的运行前提示窗：**即使全部检查都通过，也必须弹出页面**，让用户了解详情（含资源占用）。
 
 ```mermaid
 flowchart TD
-    J["JSON 配置"] --> CHK["CLI 预检"]
-    CHK -->|通过| G["🟢 correct"]
-    CHK -->|可优化（暗场-亮场超容差→暗场优化）| O["🟠 optimize 提示"]
-    CHK -->|严重（滤镜不匹配/文件找不到）| R["🔴 error"]
-    G & O & R --> PAGE["显示完整检查页面"]
+    J["JSON 配置"] --> FORCE{"--force?"}
+    FORCE -->|是| RUN
+    FORCE -->|否| CHK["CLI 预检"]
+    CHK -->|没问题| G["🟢 correct"]
+    CHK -->|不合适（设置/帧不匹配/可优化）| O["🟠 warn（不阻塞）"]
+    CHK -->|文件找不到 / 路径问题 / 未知滤镜| R["🔴 error"]
+    G & O & R --> PAGE["显示完整检查页面<br/>（含资源与磁盘占用预估）"]
     PAGE --> YES{"存在 error?"}
-    YES -->|是| BLOCK["强制阻断运行<br/>-y 也不行"]
-    YES -->|否| CONFIRM{"用户输入 yes?"}
-    CONFIRM -->|yes| RUN["运行"]
+    YES -->|是| BLOCK["强制阻断运行<br/>必须报出原因 · -y 也不行"]
+    YES -->|否| CONFIRM{"用户输入 yes? / -y"}
+    CONFIRM -->|yes 或 -y| RUN["运行"]
     CONFIRM -->|其他| ABORT["中止"]
 ```
 
 - 检查结果三级（容差等判定基准来自 `config/defaults.json`）：
-  - **绿色 correct**：通过；
-  - **橘色 optimize**：可优化项（如暗场时间与亮场不在容差内 → 提示走暗场优化）；
-  - **红色 error**：严重问题（滤镜不匹配、文件找不到、未知滤镜等）。
-- **无论是否全部 correct，都显示这个页面**，并让用户**手动输入 `yes` 确认后运行**；
-- `-y` 可跳过确认直接运行（等价自动 yes）；
-- 存在 **error 时强制阻断运行**，即使加 `-y` 也不行；
-- 只有 **`-force`** 才能在缺少校准帧等情况下**无阻塞运行**（显式强制；其余 error 仍阻断）。
+  - **🟢 correct**：没有问题；
+  - **🟠 warn**：**不合适的设置、不匹配的帧**、可优化项（如暗场时间与亮场不在容差内 → 提示走暗场优化）。
+    **报 warn 但不阻塞**（归入既有 `optimize` 级，不新增阻断级别）；
+  - **🔴 error**：**文件找不到、路径问题**、未知滤镜等。**阻塞运行**，且**强制报告原因**——
+    原因必须出现在检查页面与机器可读输出中，**不得只报"失败"而不给理由**。
+- **无论结果是 correct / warn / error，都必须显示这个页面**（三者都弹窗）；页面须包含：
+  - 逐项检查明细与结论；
+  - **资源与磁盘占用预估**（输出规模、临时空间需求、当前可用空间）——对标 WBPP 的空间提示。
+- **确认与跳过语义**：
+  - 页面显示后，用户**手动输入 `yes`** 确认才运行；**`-y`** 跳过确认（等价自动 yes）；
+  - **存在 error 时强制阻断**，**`-y` 也不能越过**，且必须报出原因；
+  - **`--force` 跳过全部检查**，**直接进入运行过程**（不显示预检页面、不请求确认）。
+    即 `--force` 是"我知道我在干什么"的总开关：连 error 也一并跳过，后果由用户承担。
+- 预检本身失败（配置 JSON 无法解析）按 error 处理。
 
 ### 3.6 硬约束
 
@@ -241,6 +253,8 @@ flowchart TD
 - 检测与重建逻辑是 Phase2 的**标准行为**，不是可选开关。
 
 ### 4.4 硬约束
+
+mosaic 运行前**必须执行 §3.5 的三命令通用预检**（correct/warn/error 三级、必弹页面、含资源占用预估、`-y` 不越 error、`--force` 跳过全部检查）。
 
 mosaic 的详细硬约束（UPM 不可互相代替、coverage 不作权重、排异是污染状态估计、GLS/Q-W/psfsw 权重分离、分块并行确定性等）见 `docs/plugins/algorithms_phase2/` 各插件文档与 `docs/science/`。
 
@@ -324,6 +338,8 @@ flowchart TD
 
 ### 5.4 硬约束
 
+export 运行前**必须执行 §3.5 的三命令通用预检**（correct/warn/error 三级、必弹页面、含资源占用预估、`-y` 不越 error、`--force` 跳过全部检查）。
+
 export 的详细硬约束（采样核语义、重采样方差传播、FITS HDU 结构、流式与内存、原子提交等）见 `docs/plugins/algorithms_phase3/` 各插件文档与 `docs/science/`。
 
 ---
@@ -332,15 +348,17 @@ export 的详细硬约束（采样核语义、重采样方差传播、FITS HDU �
 
 ### 6.1 设计原则
 
-三个命令是**平级独立命令**，由**唯一可执行入口**提供，薄入口：职责限定为命令解析、配置预检、运行控制、机器输出、取消与退出码；科学公式实现在 `lib/algorithms/` 各模块，FITS/HiPS 读写由 `infrastructure/aio` 承担，线程池统一由 scheduler/runtime 管理。
+三个命令是**平级独立命令**（**三者共享同一套运行前预检合同，见 §3.5**），由**唯一可执行入口**提供，薄入口：职责限定为命令解析、配置预检、运行控制、机器输出、取消与退出码；科学公式实现在 `lib/algorithms/` 各模块，FITS/HiPS 读写由 `infrastructure/aio` 承担，线程池统一由 scheduler/runtime 管理。
 
 ```mermaid
 flowchart LR
     T["<cmd> --template"] -->|写出可直接改的 JSON| J["phase_config.json"]
     H["help"] -.字段说明.-> J
     J -->|--json 挂载| R["<cmd> --json phase_config.json"]
-    R -->|运行前预检（绿/橙/红）| V{error 存在?}
-    V -->|是| E2["强制阻断 · 仅 -force 可越过"]
+    R -->|--force| RUN
+    R -->|运行前预检（correct/warn/error，三命令通用 §3.5）| PAGE["显示检查页面<br/>（含资源与磁盘占用预估）"]
+    PAGE --> V{error 存在?}
+    V -->|是| E2["强制阻断 · 必须报原因 · -y 不可越过"]
     V -->|否| CONFIRM{输入 yes / -y}
     CONFIRM -->|确认| RUN["执行 → 产品 + manifest + run 记录"]
 ```
@@ -368,7 +386,7 @@ benchmark                                   # 生成/更新安装目录 cpu_prof
 
 - `benchmark` 直接输出 profile 到**安装目录**，后续运行时自动读取；
 - `help` 直接输入即为详细帮助；
-- `-y` 跳过运行确认；`-force` 强制越过缺失校准帧等可强制项（详见 §3.5）；
+- `-y` 跳过运行确认（等价自动 yes），但**不能越过 error**；`-force` **跳过全部预检检查**直接进入运行过程（详见 §3.5）；
 - 全部命令由唯一可执行 `ACSD Cli` 提供，安装后直接以命令名调用；
 - `phase1|2|3` 仅为内部指代（设计层面），代码与命令名使用 `normalize/mosaic/export`。
 
