@@ -24,6 +24,7 @@ if(NOT TARGET astrocs_v6_phase2_integrate)
 
   add_library(astrocs_v6_phase2_integrate STATIC
     src/phase2_integrate.cpp
+    src/weight_chain.cpp
     "${V6P2_REPO}/lib/algorithms/coverage/src/upm.cpp"
     "${V6P2_REPO}/lib/algorithms/coverage/src/rejection.cpp"
     "${V6P2_REPO}/lib/algorithms/coverage/src/sampler.cpp"
