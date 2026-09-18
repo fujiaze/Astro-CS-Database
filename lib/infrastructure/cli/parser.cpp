@@ -310,6 +310,14 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         // 显式单算法；按 n 的分段/表达式）。CLI 只识别并透传到 pdoc（phase_config
         // 直通分支），消费与 per-pixel 路由在 scheduler 面（另一分片）。
         "algorithm_rejection_method",
+        // RELEASE-02 SD-15 补白名单: 合同 schema 已声明但 CLI kSessionKeys 缺的
+        // 4 键（CLI 判 unknown key 退出 3 ⇒ 配置不可达）。CLI 只识别并透传到
+        // pdoc（phase_config 直通分支），科学消费在 scheduler 面。
+        //   phase_config_normalize.schema.json: sparse_snr_layer / algorithm_psf_model
+        //   phase_config_mosaic.schema.json:    algorithm_weight_mode / algorithm_upm_gauge
+        // 键名与 config_separation_anchors.json 的 ^algorithm_* 族一致。
+        "algorithm_weight_mode", "algorithm_upm_gauge",
+        "algorithm_psf_model", "sparse_snr_layer",
         // DC-503 (§5.3): 输出模式 surface_brightness/point_source_flux/visualization。
         // CLI 只识别并透传到 pdoc；生产 resample/writer 的消费在 scheduler 面。
         "output_mode",

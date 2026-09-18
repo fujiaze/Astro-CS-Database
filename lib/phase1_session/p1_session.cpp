@@ -21,6 +21,7 @@ extern "C" {
 #include "astro_calibration.h"
 }
 #include "astro_image_io.h"
+#include "astrocs/probe.h"  // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
 
 namespace {
 
@@ -313,6 +314,8 @@ acs_status run_session(SessionState* s, const json& doc) {
     const std::string out_dir = doc.value("output_dir", std::string());
     uint32_t frames_ok = 0;
     {
+        // [RELEASE-02 probe] Phase1 阶段边界: calibrate
+        ASTROCS_PROBE_SCOPE("phase1", "calibrate.stage");
         s->manifest["stages"].emplace_back(json{{"name", "calibrate"}, {"status", "running"}});
         ImagePtr bias, dark, flat;
         if (doc.contains("master_bias") && !doc["master_bias"].is_null())
@@ -342,11 +345,14 @@ acs_status run_session(SessionState* s, const json& doc) {
         float actual_k = 0;
         json per_frame = json::array();
         for (const auto& lp : doc["input_lights"]) {
+            // [RELEASE-02 probe] Phase1 逐帧热点: calibrate
+            ASTROCS_PROBE_SCOPE_CTX(_probe_cal_frame, "phase1", "calibrate.frame");
             if (s->cancelled()) {
                 s->manifest["stages"].back()["status"] = "cancelled";
                 return ACS_ERR_CANCELLED;   // 帧粒度取消点(API 冻结)
             }
             const std::string path = lp.get<std::string>();
+            ASTROCS_PROBE_TAG(_probe_cal_frame, "frame_key", path.c_str());
             auto light = read_image(path, &err);
             if (!light) { s->last_error = err; s->manifest["error_kind"] = "input"; s->manifest["stages"].back()["status"] = "fail"; return ACS_ERR_IO; }
             if (W >= 0 && (image_w(light.get()) != W || image_h(light.get()) != H)) {
@@ -355,6 +361,9 @@ acs_status run_session(SessionState* s, const json& doc) {
                 return ACS_ERR_PARAM;
             }
             W = image_w(light.get()); H = image_h(light.get());
+            // [RELEASE-02 probe] 规模 gauge: 每帧像素数
+            ASTROCS_PROBE_GAUGE("phase1", "calibrate.frame_pixels",
+                                static_cast<double>(W) * static_cast<double>(H));
             std::vector<float> out(static_cast<size_t>(W) * static_cast<size_t>(H), 0.0f);
             const int rc = ac_calibrate_frame(
                 image_px(light.get()), W, H,
@@ -384,6 +393,7 @@ acs_status run_session(SessionState* s, const json& doc) {
             }
             aio_free_image_data(wim);
             ++frames_ok;
+            ASTROCS_PROBE_COUNT("phase1", "calibrate.frames", 1);
             per_frame.push_back({{"input", base},
                                  {"output", "calibrated_" + base},
                                  {"dark_scale", dark_opt ? actual_k : k_fixed}});
@@ -416,6 +426,8 @@ acs_status run_session(SessionState* s, const json& doc) {
     //  2) 值读取经 cosmetic_flag/float/int 甄别: validate 冻结合同允许 number|bool,
     //     {"enabled":1} 等错型 config 不得抛 type_error.302 (原 run 期 get<T> 即崩)。
     if (doc.contains("cosmetic") && cosmetic_flag(doc["cosmetic"], "enabled", true)) {
+        // [RELEASE-02 probe] Phase1 阶段边界: cosmetic
+        ASTROCS_PROBE_SCOPE("phase1", "cosmetic.stage");
         json& st = s->manifest["stages"].emplace_back(
             json{{"name", "cosmetic"}, {"status", "running"}});
         const json& c = doc["cosmetic"];
@@ -435,8 +447,11 @@ acs_status run_session(SessionState* s, const json& doc) {
         const int method = method_raw;
         const int max_structure_size = cosmetic_int(c, "max_structure_size", 4);
         for (const auto& a : s->manifest["artifacts"]) {
+            // [RELEASE-02 probe] Phase1 逐帧热点: cosmetic
+            ASTROCS_PROBE_SCOPE_CTX(_probe_cos_frame, "phase1", "cosmetic.frame");
             if (s->cancelled()) { st["status"] = "cancelled"; return ACS_ERR_CANCELLED; }
             auto im = read_image(a.get<std::string>(), &err);
+            ASTROCS_PROBE_TAG(_probe_cos_frame, "frame_key", a.get<std::string>().c_str());
             if (!im) { s->last_error = err; st["status"] = "fail"; return ACS_ERR_IO; }
             std::vector<float> fixed(static_cast<size_t>(image_w(im.get())) * static_cast<size_t>(image_h(im.get())));
             int hot = 0, cold = 0;
@@ -457,6 +472,7 @@ acs_status run_session(SessionState* s, const json& doc) {
             }
             st["hot_fixed"] = st.value("hot_fixed", 0) + hot;
             st["cold_fixed"] = st.value("cold_fixed", 0) + cold;
+            ASTROCS_PROBE_COUNT("phase1", "cosmetic.frames", 1);
         }
         st["status"] = "ok";
         s->log(ACS_LOG_INFO, "phase1", "stage cosmetic ok");

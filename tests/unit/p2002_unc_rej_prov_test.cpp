@@ -7,6 +7,12 @@
 //      low 0.2/high 0.1); flat 栈全 ACCEPTED(nrej=0); 单帧离群点
 //      REJECTED_HIGH(nrej=1, SCI-REJ §5 reason∉{ACCEPTED,UNDERDETERMINED}
 //      计数); n=2 → UNDERDETERMINED 全接受; kernel 双调 bitwise 确定性。
+//   SD-18（2026-09-18）: astrocs_adaptive_pixel 低 n 档 n<=3 → none（保守：
+//      不排异 + 加权积分），生产不再做 31×31 先验；provenance 记
+//      low_n_policy=underdetermined_no_rejection + stats.underdetermined_pixels。
+//      逐几何 n 映射锁定于 test_s302_kernel_semantics（n<=3 none / 4..7 pct /
+//      8..15 winsorized / >=16 linear_fit）；部分拒绝面（2c/2e-parity）显式选
+//      冻结 wbpp_current profile 以保留 §30.2 判别力。
 //   2. §30.2 集成投影（现状承载面）: 3 帧链 nrej int32 平面 ==
 //      p2_rejection.json nrej bins 逐像素; nused == SCI-INT n_used 投影
 //      (覆盖像素=depth、无覆盖角落=0); int 无 NaN → 0 即"无"（禁 −1 哨兵）;
@@ -51,7 +57,9 @@
 #include "aio_hips_reader.h"
 #include "healpix/healpix_core.h"
 
+#include <algorithm>
 #include <limits>
+#include <map>
 
 #include <nlohmann/json.hpp>
 
@@ -367,6 +375,56 @@ bool run_kernel(const double* frame_major, std::uint32_t depth,
   return true;
 }
 
+// ── 生产同参（RELEASE-02 HUB-A ① / SD-18）: astrocs_adaptive_pixel 逐几何 n plan ──
+// 与 module_adapters::p2_op_reject 的 req 逐字一致（AUTO + nominal_contributors=0
+// + underdetermined_n=0 → pixel profile 默认 3 + profile=astrocs_adaptive_pixel）。
+// SD-18（2026-09-18）：n<=3 走保守 none（不排异 + 加权积分），**不再有任何
+// 31×31 先验计算**；extreme_value_clip_prior_sigma 仅显式 opt-in。
+bool resolve_adaptive_pixel_plan(std::uint32_t geom_n, P2RejectionPlan* out) {
+  P2RejectionPlanRequest req{};
+  req.request = P2_REJECT_AUTO;
+  req.nominal_contributors = 0;
+  req.profile = "astrocs_adaptive_pixel";
+  req.underdetermined_n = 0;   // 0 = pixel profile 默认 3（与生产同参）
+  char err[256] = {0};
+  if (p2_reject_plan_resolve_n(geom_n, &req, out, err, sizeof(err)) != 0) return false;
+  return true;
+}
+
+// kernel 直调（显式 plan）: 与生产逐像素路由同参。
+// SD-18 后生产默认路由不再产生 extreme_prior（n<=3 = none），故不提供任何
+// 先验数组（prior_* 保持 nullptr；显式 opt-in 先验档不在本测试范围）。
+bool run_kernel_plan(const double* frame_major, std::uint32_t depth,
+                     std::uint32_t npx, std::uint32_t pixel,
+                     const P2RejectionPlan& plan, KernelRun* out) {
+  P2EligibilityGatherInput gin{};
+  gin.values = frame_major;
+  gin.value_stride = npx;
+  gin.value_dtype = 1;
+  gin.count = depth;
+  gin.pixel = pixel;
+  std::vector<double> compact(depth);
+  std::vector<std::uint32_t> src(depth);
+  P2EligibilityGatherOutput gout{};
+  gout.values = compact.data();
+  gout.source_indices = src.data();
+  std::uint32_t ec = 0;
+  gout.eligible_count = &ec;
+  if (p2_collect_candidate_stack(&gin, &gout) != 0) return false;
+  out->eligible_count = ec;
+  out->reasons.assign(depth, 0);
+  out->dec.reasons = out->reasons.data();
+  if (ec > 0 && ec > plan.underdetermined_n &&
+      ec >= static_cast<std::uint32_t>(plan.minimum_n)) {
+    P2CandidateStack st{};
+    st.values = compact.data();
+    st.count = ec;
+    st.data_type = 1;
+    if (p2_reject_stack_ex(&st, &plan, &out->dec) != 0) return false;
+  }
+  return true;
+}
+
 }  // namespace
 
 // ── 1. §30.2 kernel 语义直调（lib/algorithms/coverage 白名单内库面, 正确 gather 契约）───
@@ -442,6 +500,39 @@ static void test_s302_kernel_semantics() {
           a.dec.rejected_low == b.dec.rejected_low &&
           a.dec.rejected_high == b.dec.rejected_high &&
           a.dec.iterations == b.dec.iterations);
+  }
+  // ── SD-18（2026-09-18）: astrocs_adaptive_pixel 逐几何 n 内置映射 ──
+  // n<=3 → none（保守：不排异 + 加权积分）；4..7 → percentile；
+  // 8..15 → winsorized；>=16 → linear_fit。extreme_prior 不再出现在 AUTO。
+  {
+    struct MapCase { std::uint32_t n; int method; };
+    const MapCase cases[] = {
+        {0u, P2_REJECT_NONE}, {1u, P2_REJECT_NONE}, {2u, P2_REJECT_NONE},
+        {3u, P2_REJECT_NONE}, {4u, P2_REJECT_PERCENTILE},
+        {7u, P2_REJECT_PERCENTILE}, {8u, P2_REJECT_WINSORIZED_SIGMA},
+        {15u, P2_REJECT_WINSORIZED_SIGMA}, {16u, P2_REJECT_LINEAR_FIT},
+        {64u, P2_REJECT_LINEAR_FIT}};
+    for (const MapCase& c : cases) {
+      P2RejectionPlan p{};
+      CHECK(resolve_adaptive_pixel_plan(c.n, &p));
+      CHECK_MSG(p.method == c.method,
+                ("astrocs_adaptive_pixel n=" + std::to_string(c.n) +
+                 " must map to method " + std::to_string(c.method)).c_str());
+      CHECK_MSG(p.underdetermined_n == 3u,
+                ("astrocs_adaptive_pixel n=" + std::to_string(c.n) +
+                 " underdetermined_n must be 3 (SD-18 conservative)").c_str());
+      CHECK(p.method != P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA);
+    }
+    // 显式 opt-in：request=EXTREME_VALUE_PRIOR_SIGMA 仍解析到先验 σ 档
+    // （underdetermined_n 默认 1，使 n=2 能进 kernel；API 未删除）。
+    P2RejectionPlanRequest preq{};
+    preq.request = P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA;
+    preq.profile = "astrocs_adaptive_pixel";
+    preq.underdetermined_n = 0;
+    P2RejectionPlan popt{};
+    CHECK(p2_reject_plan_resolve(&preq, &popt, err, sizeof(err)) == 0);
+    CHECK(popt.method == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA);
+    CHECK(popt.underdetermined_n == 1u);
   }
 }
 
@@ -592,26 +683,57 @@ static void test_f_p2002_01_rejection_parity() {
     return;
   }
 
-  // plan 与生产同参（wbpp_current group-level 一次解析, nominal=3, undet_n=2）
-  P2RejectionPlanRequest req{};
-  req.request = P2_REJECT_AUTO;
-  req.nominal_contributors = 3;
-  req.profile = "wbpp_current";
-  req.underdetermined_n = 2;
-  P2RejectionPlan plan{};
-  char perr[256] = {0};
-  CHECK(p2_reject_plan_resolve(&req, &plan, perr, sizeof(perr)) == 0);
+  // ── RELEASE-02 HUB-A ① + SD-18: 生产 = 逐输出像素几何 n 路由 ──
+  // （profile=astrocs_adaptive_pixel, nominal_contributors=0, underdetermined_n=0
+  //  → pixel profile 默认 3）。SD-18（2026-09-18）后 n<=3 走保守 none（不排异 +
+  // 加权积分），故本 depth=3 fixture 不再产生任何 kernel 拒绝；复算仍按
+  // provenance plans[] 逐 n 对拍（不得再用 group-level wbpp_current 一次解析）。
+  std::map<std::uint32_t, json> plans_by_n;
+  for (const auto& pl : rej["plans"])
+    plans_by_n[pl["nominal_n"].get<std::uint32_t>()] = pl;
+  CHECK(plans_by_n.count(3u) == 1u);
+  // SD-18：n=3 档 plan = none（保守不排异）, underdetermined_n=3；provenance
+  // 顶层如实登记低 n 策略，且不得再出现显式先验 σ 档（31×31 先验已移出生产）。
+  CHECK(plans_by_n.at(3u).value("method", -1) == P2_REJECT_NONE);
+  CHECK(plans_by_n.at(3u).value("underdetermined_n", 0u) == 3u);
+  CHECK(std::string(plans_by_n.at(3u).value("semantic_id", "")) ==
+        "astrocs.none.v1");
+  CHECK(rej.value("low_n_policy", "") == "underdetermined_no_rejection");
+  CHECK(rej.value("low_n_max_n", 0) == 3);
+  CHECK(rej.value("prior_unavailable_pixels", 1ull) == 0ull);
+  CHECK(rej["plan"].value("fallback", "") == "none");
+  for (const auto& kv : plans_by_n)
+    CHECK(kv.second.value("method", -1) != P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA);
+  // 逐像素几何 n 的唯一来源 = 各帧 support>0（与生产 p2_op_reject 同源）
+  std::vector<AioHipsDataset*> sup_ds(cframes.size(), nullptr);
+  {
+    const std::string* hp[3] = {&fx.hips1, &fx.hips2, &fx.hips3};
+    for (size_t d = 0; d < cframes.size() && d < 3u; ++d) {
+      sup_ds[d] = aio_hips_open(hp[d]->c_str(), AIO_HIPS_RD_SUPPORT);
+      CHECK(sup_ds[d] != nullptr);
+    }
+  }
+  struct SupGuard2 {
+    std::vector<AioHipsDataset*>* v;
+    ~SupGuard2() { for (auto* d : *v) if (d) aio_hips_close(d); }
+  } sup_guard2{&sup_ds};
 
   // ── a) 逐 tile 重建 frame-major → kernel 直调重放: 三 bins 逐像素一致 ──
   //    gather 契约: values[s*npx + p]（rejection.h:229 value_stride=每帧元素
   //    跨度; rejection.cpp:1185 索引公式 s*stride+pixel 为契约权威）。
-  uint64_t mismatch = 0, first_bad = 0;
-  bool has_bad = false, kern_ran = false, any_rej = false;
+  uint64_t mismatch = 0, first_bad = 0, low_n_px = 0;
+  bool has_bad = false;
   for (const auto& tj : rej["tiles"]) {
     const uint64_t tip = tj.value("tile_ipix", 0ull);
     const uint64_t npx = tj.value("n_pixels", 0ull);
     const uint64_t toff = tj.value("offset", 0ull);
     if (npx == 0) continue;
+    // 生产 reject 硬校验 tile_leaf_span == 512²（逐像素几何 n 前提）;
+    // 复算面同样只在标准叶 tile 上成立（防 support 缓冲越界）。
+    if (npx != kTileSpan) {
+      CHECK_MSG(false, "replay requires standard 512x512 leaf tile");
+      continue;
+    }
     std::vector<std::vector<double>> fr(cframes.size());
     bool ok = true;
     for (size_t d = 0; d < cframes.size() && ok; ++d) {
@@ -627,20 +749,53 @@ static void test_f_p2002_01_rejection_parity() {
     std::vector<double> fm(cframes.size() * npx);
     for (size_t d = 0; d < cframes.size(); ++d)
       std::memcpy(fm.data() + d * npx, fr[d].data(), npx * sizeof(double));
+    // 该 tile 各帧 support 平面（逐像素几何 n 的唯一来源, 与生产同源）
+    std::vector<std::vector<float>> sup_v(cframes.size());
+    for (size_t d = 0; d < cframes.size(); ++d) {
+      sup_v[d].assign(kTileSpan, 0.0f);
+      if (sup_ds[d])
+        CHECK(aio_hips_read_tile_f32(sup_ds[d], tip, sup_v[d].data()) == 0);
+    }
     for (uint64_t p = 0; p < npx; ++p) {
-      KernelRun k;
-      if (!run_kernel(fm.data(), 3, static_cast<uint32_t>(npx),
-                      static_cast<uint32_t>(p), &k)) {
+      // 逐像素几何 n = 覆盖该像素的帧 footprint 数（support>0）
+      std::uint32_t geom_n = 0;
+      for (size_t d = 0; d < cframes.size(); ++d) {
+        const float sv = sup_v[d][static_cast<size_t>(p)];
+        if (std::isfinite(sv) && sv > 0.0f) ++geom_n;
+      }
+      P2RejectionPlan plan{};
+      if (!resolve_adaptive_pixel_plan(geom_n, &plan)) {
         ++mismatch;
         if (!has_bad) { has_bad = true; first_bad = toff + p; }
         continue;
       }
       const uint64_t fi = toff + p;
+      // provenance plans[] 逐 n 对拍: 复算 plan 必须与生产登记的逐 n plan 同参
+      const auto pit = plans_by_n.find(geom_n);
+      if (pit == plans_by_n.end() ||
+          pit->second.value("method", -1) != plan.method ||
+          pit->second.value("minimum_n", -1) != plan.minimum_n ||
+          pit->second.value("underdetermined_n", 0u) != plan.underdetermined_n ||
+          pit->second.value("semantic_id", std::string()) !=
+              std::string(p2_rejection_semantic_id(plan.method))) {
+        ++mismatch;
+        if (!has_bad) { has_bad = true; first_bad = fi; }
+        continue;
+      }
+      KernelRun k;
+      if (!run_kernel_plan(fm.data(), static_cast<std::uint32_t>(cframes.size()),
+                           static_cast<std::uint32_t>(npx),
+                           static_cast<std::uint32_t>(p), plan, &k)) {
+        ++mismatch;
+        if (!has_bad) { has_bad = true; first_bad = toff + p; }
+        continue;
+      }
       // 生产语义: eligible>0 && >undet_n && >=minimum_n 才跑 kernel;
-      // acc = 栈内存在 ACCEPTED/UNDERDETERMINED 即接受; nrej = threshold 侧计数
+      // acc = 栈内存在 ACCEPTED/UNDERDETERMINED 即接受; nrej = threshold 侧计数。
+      // SD-18：depth=3 全部 geom_n<=3 → method=none → 生产不跑 kernel（else）。
       const bool kr = k.eligible_count > 0 &&
                       k.eligible_count > plan.underdetermined_n &&
-                      k.eligible_count >= static_cast<uint32_t>(plan.minimum_n);
+                      k.eligible_count >= static_cast<std::uint32_t>(plan.minimum_n);
       bool ok_bin;
       if (kr) {
         uint8_t acc = 0;
@@ -651,20 +806,28 @@ static void test_f_p2002_01_rejection_parity() {
             k.dec.rejected_low + k.dec.rejected_high);
         ok_bin = cand_bins[fi] == k.eligible_count &&
                  acc_bins[fi] == acc && nrej_bins[fi] == nrej_k;
-        kern_ran = true;
-        if (nrej_k > 0) any_rej = true;
       } else {
         ok_bin = cand_bins[fi] == k.eligible_count &&
                  acc_bins[fi] == 1 && nrej_bins[fi] == 0;
       }
+      if (plan.method == P2_REJECT_NONE && k.eligible_count > 0) ++low_n_px;
       if (!ok_bin) {
         ++mismatch;
         if (!has_bad) { has_bad = true; first_bad = fi; }
       }
     }
   }
-  CHECK_MSG(kern_ran, "kernel execution surface must exist (depth=3 chain)");
-  CHECK_MSG(any_rej, "outlier fixture must produce non-empty rejection surface");
+  // SD-18：depth=3 fixture 全部 geom_n<=3 → 保守 none，生产不排异（nrej=0）。
+  // 断言如实登记的低 n 像素数 == 有候选且 plan=none 的像素数，且零拒绝。
+  CHECK_MSG(low_n_px > 0, "conservative low-n route must cover covered pixels");
+  CHECK_MSG(rej["stats"].value("underdetermined_pixels", 0ull) == low_n_px,
+            ("stats.underdetermined_pixels must equal conservative low-n pixels"
+             " (stats=" +
+             std::to_string(rej["stats"].value("underdetermined_pixels", 0ull)) +
+             " replay=" + std::to_string(low_n_px) + ")").c_str());
+  CHECK_MSG(rej["stats"].value("rejected_low", 0ull) +
+                    rej["stats"].value("rejected_high", 0ull) == 0ull,
+            "n<=3 conservative route must perform no rejection");
   CHECK_MSG(mismatch == 0,
             ("production bins must equal kernel replay per-pixel (mismatch=" +
              std::to_string(mismatch) + " first_bad_fi=" +
@@ -760,13 +923,16 @@ static void test_f_p2002_01_rejection_parity() {
 // nused=3 而 nrej=1 ⇒ n_ineligible = 3−3−1 = −1 < 0 ⇒ 本断言必败。
 // 修复面在 lib/infrastructure/scheduler/src/module_adapters.cpp（本任务写域外）; 最小补丁与
 // 影子树 GREEN 证明见 finding F-SCI-F2-001-01。
+// SD-18（2026-09-18）：默认 astrocs_adaptive_pixel 在 n<=3 走保守 none（不排异），
+// 本 depth=3 fixture 无法产生部分拒绝；为保留"部分拒绝"判别力，本节显式选冻结
+// wbpp_current profile（n=3 → percentile，仍真正拒绝 F3 离群点）。
 static void test_f_p2002_02_n_ineligible_identity(bool fault_inject) {
   Fixture3 fx = make_fixture3("ident");
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
   RunContext ctx;
   Result<void> ff;
-  run_p2_chain(reg, chain_cfg(fx), ctx, &ff);
+  run_p2_chain(reg, chain_cfg(fx, R"(, "reject_profile":"wbpp_current")"), ctx, &ff);
   CHECK_MSG(ff.ok(), ff.ok() ? "chain ok" : ff.error().message().c_str());
   if (ff.failed()) { fs::remove_all(fx.root); return; }
 
@@ -1207,7 +1373,10 @@ static void test_s303_provenance_keys(bool fault_inject) {
   CHECK_MSG(prov.value("ASTROCS_WEIGHT_MODE", 0) == 2, "WEIGHT_MODE must be 2");
   CHECK_MSG(prov.value("ASTROCS_REJECT_PROFILE", "") == rej.value("profile", ""),
             "REJECT_PROFILE must equal rejection artifact profile");
-  CHECK(prov.value("ASTROCS_REJECT_PROFILE", "") == "wbpp_current");
+  // RELEASE-02 HUB-A ①: 生产 reject 默认 profile 已改为逐输出像素几何 n 路由的
+  // astrocs_adaptive_pixel（module_adapters p2_op_reject 缺省）。旧断言硬编码
+  // "wbpp_current"（group-level 一次解析）编码的是被替换的旧行为。
+  CHECK(prov.value("ASTROCS_REJECT_PROFILE", "") == "astrocs_adaptive_pixel");
   // UNCERTAINTY_AVAILABLE 与实际子产品存在性一致（§30.5 V5）
   const bool unc = prov.value("ASTROCS_UNCERTAINTY_AVAILABLE", "") == "true";
   CHECK(fin.value("uncertainty_available", true) == unc);
@@ -1446,47 +1615,84 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   fs::remove_all(fx.root);
 }
 
-// ── 4. §30.3 unavailable 面: fallback 降级后五键仍全写 + 磁盘一致 ──────────
+// ── 4. §30.3 unavailable 面 ────────────────────────────────────────────────
+// RELEASE-02 SD-15: legacy_allow_weight_fallback=true 的**成功等权降级路径已删除**
+// （weight-chain-report §5/§6.3）。缺 ivar 且无 HiPS 帧级 SNR 键 ⇒ 权重链
+// fail-closed。旧断言 "fallback 后成功 + unavailable 面" 编码的正是被删除的假绿
+// 路径; 现分两步:
+//   4a) 断言该键 fail-closed（无伪产物）—— 新行为, 不放宽;
+//   4b) 用**唯一合法的 unavailable 出口** weight_mode=1（§30.1 规则 1: mode 1 =
+//       等权, 非科学方差面）重建 §30.3 unavailable 面, 保留五键/磁盘一致性覆盖。
 static void test_s303_unavailable_explicit() {
-  Fixture3 fx = make_fixture3("unav");
-  ModuleRegistry reg;
-  CHECK(register_phase_modules(reg).ok());
-  // 删 ivar/ 子产品（模拟 Phase1 真实产物面）→ 显式等权降级
-  std::error_code ec;
-  fs::remove_all(fx.root / "F1.hips" / "ivar", ec);
-  fs::remove_all(fx.root / "F2.hips" / "ivar", ec);
-  fs::remove_all(fx.root / "F3.hips" / "ivar", ec);
-  RunContext ctx;
-  Result<void> ff;
-  json wrman = run_p2_chain(reg, chain_cfg(fx, R"(,"legacy_allow_weight_fallback":true)"),
-                            ctx, &ff);
-  CHECK_MSG(ff.ok(), ff.ok() ? "fallback chain ok" : ff.error().message().c_str());
-  if (ff.failed()) { fs::remove_all(fx.root); return; }
-  json fin;
-  try { fin = json::parse(read_file(wrman.value("final_artifact", ""))); }
-  catch (...) { CHECK(false); }
-  CHECK(fin.value("uncertainty_available", true) == false);
-  CHECK(fin.value("products", json::array()).size() == 2);   // signal+support
-  CHECK(!fs::exists(fs::path(fx.out + "/variance/properties")));
-  CHECK(!fs::exists(fs::path(fx.out + "/ivar/properties")));
-  // §18.3 unavailable 显式登记: 键仍在、值为 false（禁静默缺键/空输出冒充）
-  const json& prov = fin["provenance"];
-  for (const char* k : {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
-                        "ASTROCS_UNCERTAINTY_AVAILABLE", "ASTROCS_WEIGHT_MODE",
-                        "ASTROCS_REJECT_PROFILE"})
-    CHECK_MSG(prov.contains(k), (std::string("unavailable face missing key: ") + k).c_str());
-  CHECK(prov.value("ASTROCS_UNCERTAINTY_AVAILABLE", "true") == "false");
-  // 诊断平面在 fallback 面仍投影（int32; nused 语义不变）
+  // 4a) legacy_allow_weight_fallback=true → fail-closed
   {
-    json intj;
-    try { intj = json::parse(read_file(fx.out + "/p2_integrated.json")); }
-    catch (...) { CHECK(false); }
-    std::vector<int32_t> nused;
-    CHECK(read_bin<int32_t>(intj["files"].value("nused", ""), 0, kTileSpan, &nused));
-    CHECK(nused[fitseq(100u, 100u)] == 3);   // 等权: 3 样本参与
-    CHECK(nused[fitseq(480u, 480u)] == 0);
+    Fixture3 fx = make_fixture3("unav_fb");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    std::error_code ec;
+    fs::remove_all(fx.root / "F1.hips" / "ivar", ec);
+    fs::remove_all(fx.root / "F2.hips" / "ivar", ec);
+    fs::remove_all(fx.root / "F3.hips" / "ivar", ec);
+    RunContext ctx;
+    Result<void> ff;
+    run_p2_chain(reg, chain_cfg(fx, R"(,"legacy_allow_weight_fallback":true)"), ctx, &ff);
+    CHECK_MSG(ff.failed(),
+              "legacy_allow_weight_fallback=true must fail closed (successful"
+              " equal-weight degradation path removed)");
+    CHECK_MSG(!fs::exists(fs::path(fx.out + "/p2_integrated.json")),
+              "fail-closed weight chain must not leave a pseudo integrated artifact");
+    CHECK_MSG(!fs::exists(fs::path(fx.out + "/p2_final.json")),
+              "fail-closed weight chain must not leave p2_final.json");
+    if (ff.failed()) {
+      const std::string msg = ff.error().message();
+      CHECK_MSG(msg.find("NOT closed") != std::string::npos, msg.c_str());
+      CHECK_MSG(msg.find("legacy_allow_weight_fallback=true") != std::string::npos,
+                ("diagnostic must name the removed degradation exit: " + msg).c_str());
+    }
+    fs::remove_all(fx.root);
   }
-  fs::remove_all(fx.root);
+
+  // 4b) 显式 weight_mode=1 → unavailable 面五键全写 + 磁盘一致
+  {
+    Fixture3 fx = make_fixture3("unav");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    // 删 ivar/ 子产品（模拟 Phase1 真实产物面; mode 1 不消费 ivar）
+    std::error_code ec;
+    fs::remove_all(fx.root / "F1.hips" / "ivar", ec);
+    fs::remove_all(fx.root / "F2.hips" / "ivar", ec);
+    fs::remove_all(fx.root / "F3.hips" / "ivar", ec);
+    RunContext ctx;
+    Result<void> ff;
+    json wrman = run_p2_chain(reg, chain_cfg(fx, R"(,"weight_mode":1)"), ctx, &ff);
+    CHECK_MSG(ff.ok(), ff.ok() ? "mode=1 chain ok" : ff.error().message().c_str());
+    if (ff.failed()) { fs::remove_all(fx.root); return; }
+    json fin;
+    try { fin = json::parse(read_file(wrman.value("final_artifact", ""))); }
+    catch (...) { CHECK(false); }
+    CHECK(fin.value("uncertainty_available", true) == false);
+    CHECK(fin.value("products", json::array()).size() == 2);   // signal+support
+    CHECK(!fs::exists(fs::path(fx.out + "/variance/properties")));
+    CHECK(!fs::exists(fs::path(fx.out + "/ivar/properties")));
+    // §18.3 unavailable 显式登记: 键仍在、值为 false（禁静默缺键/空输出冒充）
+    const json& prov = fin["provenance"];
+    for (const char* k : {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
+                          "ASTROCS_UNCERTAINTY_AVAILABLE", "ASTROCS_WEIGHT_MODE",
+                          "ASTROCS_REJECT_PROFILE"})
+      CHECK_MSG(prov.contains(k), (std::string("unavailable face missing key: ") + k).c_str());
+    CHECK(prov.value("ASTROCS_UNCERTAINTY_AVAILABLE", "true") == "false");
+    // 诊断平面在 unavailable 面仍投影（int32; nused 语义不变）
+    {
+      json intj;
+      try { intj = json::parse(read_file(fx.out + "/p2_integrated.json")); }
+      catch (...) { CHECK(false); }
+      std::vector<int32_t> nused;
+      CHECK(read_bin<int32_t>(intj["files"].value("nused", ""), 0, kTileSpan, &nused));
+      CHECK(nused[fitseq(100u, 100u)] == 3);   // 等权: 3 样本参与
+      CHECK(nused[fitseq(480u, 480u)] == 0);
+    }
+    fs::remove_all(fx.root);
+  }
 }
 
 // ── 5. F-UNC-003 零断链 + 合同登记面 ────────────────────────────────────────
@@ -1644,15 +1850,18 @@ static void test_determinism_and_parity() {
     }
   }
   // 1-worker vs 4-worker bitwise（depth=3 部分拒绝面: F-P2-002-02 场景;
-  // kernel 真触发 → 掩码/计数/科学值三面同时受 worker 划分影响的可能性被
-  // 逐字节排除, 与 §30.1/§30.2 冻结的 OMP 定序归并/固定 chunk 合同一致）
+  // SD-18 后默认 astrocs_adaptive_pixel 在 n<=3 走保守 none（不排异），故显式
+  // 选冻结 wbpp_current profile 使 kernel 真触发 → 掩码/计数/科学值三面同时受
+  // worker 划分影响的可能性被逐字节排除, 与 §30.1/§30.2 冻结的 OMP 定序归并/
+  // 固定 chunk 合同一致）
   {
     std::string w1;
     for (int pass = 0; pass < 2; ++pass) {
       Fixture3 fx = make_fixture3("par3");
       ModuleRegistry reg;
       CHECK(register_phase_modules(reg).ok());
-      run_chain_via_runtime(reg, json::parse(chain_cfg(fx)),
+      run_chain_via_runtime(reg, json::parse(chain_cfg(
+                                fx, R"(, "reject_profile":"wbpp_current")")),
                             pass == 0 ? "p2002.w1.d3" : "p2002.w4.d3",
                             pass == 0 ? 1 : 4, fx);
       CHECK(fs::exists(fs::path(fx.out + "/p2_final.json")));

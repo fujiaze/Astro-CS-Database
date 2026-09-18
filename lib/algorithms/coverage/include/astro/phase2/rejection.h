@@ -54,8 +54,10 @@ enum P2RejectionMethod {
     P2_REJECT_MEDIAN_SIGMA = 8,     // astrocs.median_std_clip.v1
     P2_REJECT_MINMAX = 9,           // astrocs.minmax.v1
     P2_REJECT_AUTO = 10,            // 只在 planning 层解析，永不进入 kernel
-    // 已知先验 σ 的极值检验（FIX-REJ §3 内置映射 n=2 档；见
-    // P2ExtremeValuePriorSigmaParams）。显式方法：永不参与 AUTO 路由。
+    // 已知先验 σ 的极值检验（FIX-REJ §3；见 P2ExtremeValuePriorSigmaParams）。
+    // **显式 opt-in 方法**：永不参与任何 AUTO 路由（含 astrocs_adaptive_pixel
+    // 的逐几何 n 映射——SD-18 2026-09-18 裁决后 n<=3 走 none 保守路径）。
+    // API 保留供调用方显式指定并自带外部先验时使用。
     P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA = 11
 };
 
@@ -78,8 +80,10 @@ enum P2RejectionMethod {
 #define P2_PROFILE_WBPP_2_9_1             "wbpp_2_9_1"
 #define P2_PROFILE_WBPP_CURRENT           "wbpp_current"  // = wbpp_2_9_1 alias
 #define P2_PROFILE_ASTROCS_ADAPTIVE       "astrocs_adaptive"
-// FIX-REJ §3 AstroCS 自有「按几何 n」内置映射（逐输出像素；含 n=2 先验 σ 档）。
-// 独立命名，不改变 wbpp_2_9_1 / astrocs_adaptive 的冻结 AUTO 路由。
+// AstroCS 自有「按几何 n」内置映射（逐输出像素）。SD-18（2026-09-18）裁决：
+// 低 n（n<=3）出现在抖动边缘、最终丢弃 ⇒ 走保守路径（none：不排异 + 直接
+// 加权积分），不为它发明排异方法。独立命名，不改变 wbpp_2_9_1 /
+// astrocs_adaptive 的冻结 AUTO 路由。
 #define P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL "astrocs_adaptive_pixel"
 
 // per-sample reason（RejectionDecision.reasons[]）
@@ -223,9 +227,11 @@ typedef struct {
                                        // （一次解析）；astrocs_adaptive =
                                        // tile nominal geometric depth
     const char* profile;         // P2_PROFILE_*（nullptr=wbpp_2_9_1）
-    std::uint32_t underdetermined_n;   // 0=按 profile 默认（wbpp/adaptive=2；
-                                       // astrocs_adaptive_pixel=1，因为 n=2 档
-                                       // 由 extreme_prior 承担）
+    std::uint32_t underdetermined_n;   // 0=按 profile 默认：wbpp/adaptive=2（冻结）；
+                                       // astrocs_adaptive_pixel=3（n<=3 保守 none，
+                                       // 不排异）；显式 request=
+                                       // EXTREME_VALUE_PRIOR_SIGMA（opt-in）=1
+                                       // （使 n=2 进 kernel，n=1 由 minimum_n 拦下）
 } P2RejectionPlanRequest;
 
 // 在 planning 层把 request（含 AUTO）解析为显式 P2RejectionPlan。
@@ -236,9 +242,10 @@ typedef struct {
 // count，一次解析；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED。
 // astrocs_adaptive → AstroCS 自有策略：允许按 tile nominal geometric depth
 // 自适应；独立命名，不冒充 WBPP exact；AUTO 路由与 wbpp 冻结表一致。
-// astrocs_adaptive_pixel → FIX-REJ §3 AstroCS 自有「按逐输出像素几何 n」
-// 内置映射（n=2 走 extreme_value_clip_prior_sigma；3..7 percentile；
+// astrocs_adaptive_pixel → AstroCS 自有「按逐输出像素几何 n」内置映射
+// （n<=3 none（SD-18 保守：不排异 + 加权积分）；4..7 percentile；
 // 8..15 winsorized；>=16 linear_fit）；独立命名，不改变上述冻结路由。
+// extreme_value_clip_prior_sigma 保留为**显式 opt-in**，不再出现在该映射中。
 // err 仅作日志文本；返回 0=OK，非 0=非法参数（err 填充原因）。
 //
 // 确定性：同 (profile, request, nominal_contributors, underdetermined_n)
@@ -348,8 +355,9 @@ typedef struct {
     const std::uint64_t* frame_ids; // 可空（稳定帧标识；tie-break/确定性用）
     std::uint32_t count;         // 候选数
     int data_type;               // 0=fp32 源, 1=fp64（仅诊断）
-    // （FIX-REJ n=2 先验 σ 档）可空；仅 P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA
-    // 消费。逐样本先验噪声尺度/中心（与 values 同序；调用方从该样本所属
+    // （FIX-REJ n=2 先验 σ 档）可空；**仅显式 opt-in** 的
+    // P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA 消费（SD-18 后生产 AUTO 路径不再
+    // 填充）。逐样本先验噪声尺度/中心（与 values 同序；调用方从该样本所属
     // 帧/tile 的稳健邻域统计得到）。nullptr → 回退 plan.extreme_prior 标量。
     const double* prior_sigma;   // 先验 σ（>0 且 finite）
     const double* prior_sky;     // 先验中心

@@ -20,6 +20,10 @@ option(ASTROCS_BUILD_TESTS "Build tests" ON)
 # QA-002: sanitizer 选项 (ASan/UBSan/LSan 或 TSan; 生产默认 OFF)
 option(ASTROCS_ENABLE_SANITIZERS "Enable ASan/UBSan/LSan (GCC/Clang, production OFF)" OFF)
 option(ASTROCS_ENABLE_TSAN "Enable ThreadSanitizer (targeted, mutually exclusive with ASan)" OFF)
+# RELEASE-02 性能探针 (P1/P2 热点定位)。默认 OFF —— 关闭时探针宏展开为空语句
+# ((void)0), 不编译 probe.cpp, 链接产物中无 astrocs::probe::* 符号; 既有构建与
+# 测试行为完全不变。ON 时仍需运行期环境变量 ASTROCS_PROBE_LOG=<path> 才产出。
+option(ASTROCS_PROBES "Enable low-overhead runtime performance probes (default OFF; runtime gate ASTROCS_PROBE_LOG)" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -294,6 +298,28 @@ target_include_directories(astrocs_core PUBLIC
 target_link_libraries(astrocs_core PUBLIC astrocs_contracts astrocs_common Threads::Threads)
 find_package(Threads REQUIRED)
 
+# ── RELEASE-02 性能探针框架接线 ─────────────────────────────────────────────
+# 单开关 ASTROCS_PROBES (默认 OFF)。OFF 时只提供头文件 include 面 (宏为空语句),
+# 不编译实现、不产生符号; ON 时编译 astrocs_probes 静态库并把 ASTROCS_PROBES=1
+# 沿链接闭包传给被埋点 target。头文件: astrocs/probe.h。
+if(ASTROCS_PROBES)
+  add_library(astrocs_probes STATIC
+    lib/infrastructure/observability/probes/src/probe.cpp)
+  target_include_directories(astrocs_probes PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/observability/probes/include)
+  target_compile_definitions(astrocs_probes PUBLIC ASTROCS_PROBES=1)
+  target_link_libraries(astrocs_probes PUBLIC Threads::Threads)
+  if(NOT MSVC)
+    target_compile_options(astrocs_probes PRIVATE -Wall -Wextra -Wpedantic)
+  endif()
+else()
+  # INTERFACE: 仅登记 include 面; 源文件里的 #include "astrocs/probe.h" 在
+  # 未定义 ASTROCS_PROBES 时展开为空语句, 零开销。
+  add_library(astrocs_probes INTERFACE)
+  target_include_directories(astrocs_probes INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/observability/probes/include)
+endif()
+
 # core/common: sha256/healpix (纯算法)
 add_library(astrocs_common STATIC
   lib/algorithms/shared/crypto/sha256.cpp
@@ -450,7 +476,9 @@ target_include_directories(astrocs_phase2 PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared)
-target_link_libraries(astrocs_phase2 PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips)
+target_link_libraries(astrocs_phase2 PUBLIC astrocs_contracts astrocs_common astrocs_aio astrocs_hips
+  # RELEASE-02 探针 (OFF 时仅 include 面, 零开销)
+  astrocs_probes)
 
 # lib/algorithms/coverage · Phase3 HIPS properties 解析器 (W8 / W4-A9 批次 4)
 # 原 lib/phase3_session/hips_properties.{h,cpp} (ASTROCS_DESIGN §7.1 无独立 hips 行;
@@ -643,13 +671,17 @@ target_include_directories(astrocs_phase1_session PUBLIC
 # lib/algorithms/{noise_snr,photometry,star_detection,platesolve}/wrapper_phase1) 经本 PUBLIC
 # 链接闭包传递给 astrocs_module_adapters(B 线真实节点化构建接线; ARCH-P0-001)。
 target_link_libraries(astrocs_phase1_session PUBLIC astrocs_contracts astrocs_calibration astrocs_aio
-  astrocs_phase1_wcs astrocs_phase1_phot astrocs_phase1_noise astrocs_phase1_stars)
+  astrocs_phase1_wcs astrocs_phase1_phot astrocs_phase1_noise astrocs_phase1_stars
+  # RELEASE-02 探针 (OFF 时仅 include 面, 零开销)
+  astrocs_probes)
 
 add_library(astrocs_phase2_session STATIC lib/phase2_session/p2_session.cpp)
 target_include_directories(astrocs_phase2_session PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/phase2_session
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage/include)
-target_link_libraries(astrocs_phase2_session PUBLIC astrocs_contracts astrocs_phase2)
+target_link_libraries(astrocs_phase2_session PUBLIC astrocs_contracts astrocs_phase2
+  # RELEASE-02 探针 (OFF 时仅 include 面, 零开销)
+  astrocs_probes)
 
 add_library(astrocs_phase3_session STATIC
   lib/phase3_session/p3_session.cpp
@@ -761,20 +793,30 @@ if(NOT MSVC)
 endif()
 
 # RT-005 可执行模块适配器: Phase1/2/3 session → IModule (core 不依赖会话库)
-add_library(astrocs_module_adapters STATIC lib/infrastructure/scheduler/src/module_adapters.cpp)
+add_library(astrocs_module_adapters STATIC
+  lib/infrastructure/scheduler/src/module_adapters.cpp
+  # RELEASE-02 权重链（weight-chain-report §6）: HiPS 头帧级 SNR → 逆方差权重
+  # （w = SNR²/F_ref²; 纯 FP64 + std, 无第三方依赖）。直接编入本 target ——
+  # 不链 astrocs_v6_phase2_integrate: 后者重复编译 upm/rejection/sampler/
+  # coverage, 与本 target 已链的 astrocs_phase2 产生重复符号。
+  lib/algorithms/integration/v6/src/weight_chain.cpp)
 # B2-A10(宪章 §4.3): 节点 manifest 自报 module build ID = module_id@软件版本;
 # 版本单源 = 构建期 version_generated.h (与 CLI 共用同一生成头)。
 target_include_directories(astrocs_module_adapters PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party
-  ${CMAKE_CURRENT_BINARY_DIR})
+  ${CMAKE_CURRENT_BINARY_DIR}
+  # RELEASE-02 权重链公共头 (astrocs/v6/weight_chain.h)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/integration/v6/include)
 # P1-001 (attempt 2): drizzle 节点唯一真实入口 hp_drizzle_run(astrocs_drizzle 静态库
 # 直链) + 口径更新: star-psf→dpsf_fit_batch_f64(astrocs_p1_dpsf) /
 # wcs→ipv 求解器链(astrocs_p1_ipv, 含 gaia_client; 生产源零 diff 只读编译)。
 target_link_libraries(astrocs_module_adapters PUBLIC
   astrocs_core astrocs_common astrocs_contracts
   astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session
-  astrocs_cpu astrocs_drizzle astrocs_p1_dpsf astrocs_p1_ipv astrocs_p1_sdet)
+  astrocs_cpu astrocs_drizzle astrocs_p1_dpsf astrocs_p1_ipv astrocs_p1_sdet
+  # RELEASE-02 探针 (OFF 时仅 include 面, 零开销)
+  astrocs_probes)
 # P1-001: 生产头 include 面（dynamic_psf/ipv/star_detector/aio_hips 直读）
 target_include_directories(astrocs_module_adapters PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/include

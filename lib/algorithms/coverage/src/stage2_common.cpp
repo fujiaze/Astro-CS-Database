@@ -243,6 +243,9 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     cfg->reject_method = P2_REJECT_MEDIAN_SIGMA;
                 else if (method == "minmax")
                     cfg->reject_method = P2_REJECT_MINMAX;
+                // FIX-REJ n=2 档: 已知先验 σ 的极值检验（显式方法）
+                else if (method == "extreme_value_clip_prior_sigma")
+                    cfg->reject_method = P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA;
                 else if (method == "auto")
                     cfg->reject_method = P2_REJECT_AUTO;
                 else {
@@ -256,13 +259,22 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                 if (cfg->reject_profile == "wbpp_current")
                     cfg->reject_profile = "wbpp_2_9_1";   // alias 规范化
                 if (cfg->reject_profile != "wbpp_2_9_1" &&
-                    cfg->reject_profile != "astrocs_adaptive") {
+                    cfg->reject_profile != "astrocs_adaptive" &&
+                    cfg->reject_profile != "astrocs_adaptive_pixel") {
                     *err = "rejection.profile 只支持 wbpp_2_9_1（冻结）/ "
-                           "astrocs_adaptive";
+                           "astrocs_adaptive / astrocs_adaptive_pixel";
                     return false;
                 }
+                // astrocs_adaptive_pixel（SD-18 低 n 保守路径）: n<=3 走 none
+                // （不排异 + 直接加权积分），故 underdetermined_n 默认 3；
+                // 其余 profile 维持冻结默认 2。显式传值优先。
+                // （extreme_prior 为显式 opt-in，需调用方显式传 underdetermined_n=1。）
+                const std::uint32_t undet_default =
+                    (cfg->reject_profile == "astrocs_adaptive_pixel")
+                        ? (std::uint32_t)3
+                        : (std::uint32_t)2;
                 cfg->reject_underdetermined_n =
-                    rj.value("underdetermined_n", (std::uint32_t)2);
+                    rj.value("underdetermined_n", undet_default);
                 if (cfg->reject_underdetermined_n < 1) {
                     *err = "rejection.underdetermined_n 必须 >= 1";
                     return false;

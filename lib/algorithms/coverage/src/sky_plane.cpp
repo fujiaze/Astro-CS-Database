@@ -13,6 +13,8 @@
 // - gauge：参考帧 δ≡0（reference_frame）或 δ 常数项和为零（sum）。
 #include "astro/phase2/sky_plane.h"
 
+#include "astrocs/probe.h"  // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
+
 #include "crypto/sha256.h"
 
 #include <nlohmann/json.hpp>
@@ -414,6 +416,9 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                        const P2SkyPlaneConfig* cfg_in, void** out_model,
                        char* err, std::size_t err_size) {
     if (!out_model || !samples || n == 0) return P2_SKY_PLANE_INVALID_ARGS;
+    // [RELEASE-02 probe] Phase2 天光面构建 (整面一次; RAII 覆盖所有 return)
+    ASTROCS_PROBE_SCOPE("phase2", "sky_plane.build");
+    ASTROCS_PROBE_GAUGE("phase2", "sky_plane.build_samples", static_cast<double>(n));
     *out_model = nullptr;
     P2SkyPlaneConfig cfg = cfg_in ? *cfg_in : p2_sky_plane_default_config();
     if (cfg.spline_degree != 1 && cfg.spline_degree != 3) cfg.spline_degree = 1;
@@ -995,6 +1000,9 @@ int p2_sky_plane_eval_block(const void* model, std::uint64_t frame_id,
                             std::uint64_t n, double* out_values,
                             std::uint8_t* out_status) {
     if (!model || !ra_deg || !dec_deg || !out_values) return P2_SKY_PLANE_INVALID_ARGS;
+    // [RELEASE-02 probe] Phase2 天光面应用 (逐 tile 块; 非逐像素)
+    ASTROCS_PROBE_SCOPE("phase2", "sky_plane.eval_block");
+    ASTROCS_PROBE_GAUGE("phase2", "sky_plane.eval_points", static_cast<double>(n));
     int rc = 0;
     for (std::uint64_t i = 0; i < n; ++i) {
         double val = 0.0;
