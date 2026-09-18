@@ -25,9 +25,11 @@ add_test(NAME p1snr_linux_oracle COMMAND p1snr_linux_test oracle)
 add_test(NAME p1snr_linux_contract COMMAND p1snr_linux_test contract)
 add_test(NAME p1snr_linux_negative COMMAND p1snr_linux_test negative)
 add_test(NAME p1snr_linux_determinism COMMAND p1snr_linux_test determinism)
+# WEIGHT-SCI-001: 组内公共 F_ref（逐帧中位数回退已删除 ⇒ fail-closed 负例）
+add_test(NAME p1snr_linux_common_ref COMMAND p1snr_linux_test common_ref)
 set_tests_properties(
   p1snr_linux_units p1snr_linux_oracle p1snr_linux_contract
-  p1snr_linux_negative p1snr_linux_determinism
+  p1snr_linux_negative p1snr_linux_determinism p1snr_linux_common_ref
   PROPERTIES LABELS "p1snr")
 
 # ============================================================================

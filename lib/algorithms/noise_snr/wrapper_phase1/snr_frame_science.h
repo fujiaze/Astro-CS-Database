@@ -48,7 +48,9 @@ struct SnrFrameScienceConfig {
   int profile_half_px = 0;         // 轮廓网格半边长; 0 -> 自动 (max(30, ceil(12*FWHM)))
   double sigma_logflux_dex = 0.0;  // 定标残差散度 [dex] (逐星散度, 非零点误差)
   int n_matches = 0;               // 定标匹配星数 N
-  double reference_flux_adu = 0.0; // 5sigma 深度参考轮廓通量 [ADU]; <=0 -> 有效源通量中位数
+  // 组内公共参考通量 F_ref [ADU]（WEIGHT-SCI-001）。缺失/非有限/<=0 ->
+  // fail-closed（逐帧检出通量中位数回退已删除；调用方必须为整个帧组传入同一 F0）。
+  double reference_flux_adu = 0.0;
 };
 
 // 帧级聚合结果。snr_f/sigma_f_adu/local_snr 与输入 sources 逐行对齐;
@@ -70,7 +72,7 @@ struct SnrFrameScienceResult {
   double sigma_location_se_mag = 0.0;  // 2.5*sigma_location_se_dex [mag]
   // 显式参考轮廓 (帧级深度的唯一绑定对象; 禁止用整帧标量替代)
   int reference_index = -1;         // 参考轮廓对应的输入行 (-1 = 合成中位轮廓)
-  double reference_flux_adu = 0.0;  // 参考通量 [ADU]
+  double reference_flux_adu = 0.0;  // 组内公共参考通量 F_ref [ADU]（= 定义 reference_snr_f 的同一通量）
   double reference_fwhm_px = 0.0;   // 参考 FWHM (有效源 FWHM 中位数) [pixel]
   double reference_snr_f = 0.0;     // 参考轮廓 SNR_F [1]
   double reference_sigma_f_adu = 0.0;  // 参考 sigma_F [ADU]

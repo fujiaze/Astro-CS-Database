@@ -31,8 +31,14 @@
  *   reference_flux F_ref               : 与帧产品同通量标度 [ADU]
  *   weights w                          : [ADU^-2]（= 1/σ_F²，与 Phase1 W_info 同量纲）
  *
- * 前置条件（DESIGN §4.3:256）: 调用前帧已由 UPM 归一到公共通量尺度，F_ref 为
- *   组内公共常数；未归一化时换算不成立，调用方不得调用本模块。
+ * 前置条件（DESIGN §4.3:256 + WEIGHT-SCI-001 配对性定理）: 调用前帧已由 UPM
+ *   归一到公共通量尺度，F_ref 为**组内公共常数**；且传入的 reference_flux 必须
+ *   **等于定义帧级 frame_snr 时所用的那个参考通量**（配对性:
+ *     SNR_f = a_f·F_ref/σ_f  ⇒  SNR_f²/F_ref² = a_f²/σ_f² = w_f
+ *   成立当且仅当分子分母同源）。逐帧 F_ref（各帧自己的检出通量）会丢掉帧间标度
+ *   因子 a_f²，且使存头 SNR 混入本帧检出亮度（帧间不可比较）⇒ **不得使用**。
+ *   未归一化/分母与 SNR 定义不同源时换算不成立，调用方不得调用本模块。
+ *   注: 本条为约定澄清，**签名与实现不变**（判为正确；缺陷在 Phase1 写侧）。
  */
 #pragma once
 
@@ -100,7 +106,9 @@ bool reconstruct_sparse_snr(const SparseSnrLayer& layer, double x, double y,
 /* ------------------------------------------------------------------ */
 /* 标量换算                                                             */
 /* ------------------------------------------------------------------ */
-/* w = SNR² / F_ref² = 1/σ_F²。任一输入非有限/非正 → false（fail-closed）。 */
+/* w = SNR² / F_ref² = 1/σ_F²。reference_flux 必须是**定义 snr 时所用的同一
+ * 参考通量**（组内公共 F_ref，配对性定理；逐帧参考会丢掉 a_f²）。
+ * 任一输入非有限/非正 → false（fail-closed）。签名/实现保持正确不变。 */
 bool weight_from_snr(double snr, double reference_flux, double* out_weight,
                      std::string* err);
 

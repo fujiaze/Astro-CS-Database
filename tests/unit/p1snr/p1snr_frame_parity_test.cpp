@@ -241,6 +241,13 @@ int main() {
             frames[0]["snr_sample"].get<std::string>().find("sources") !=
                 std::string::npos,
         "真实性: 产物记录所用样本定义 snr_sample");
+  // WEIGHT-SCI-001: F_ref 是**组内公共**参考通量（scope=group）；未显式给
+  // snr.reference_flux_adu 时来源 = 块级两遍法（group_median）。
+  CHECK(frames[0].contains("snr_reference") && frames[0]["snr_reference"].is_object() &&
+            frames[0]["snr_reference"].value("scope", "") == "group",
+        "WEIGHT-SCI-001: snr_reference.scope=group (组内公共 F_ref)");
+  CHECK(frames[0]["snr_reference"].value("reference_flux_source", "") == "group_median",
+        "WEIGHT-SCI-001: 未显式给 F_ref -> reference_flux_source=group_median");
 
   // ── C. 非恒真: 人为把交付样本截断 -> truncated=true 且数值不同 ─────────
   {
@@ -267,6 +274,54 @@ int main() {
           "非恒真: 截断样本 snr_phot 与全量样本确实不同");
     CHECK(!same_f64(frames[0], capped, "frame_depth_m5_mag"),
           "非恒真: 截断样本 frame_depth_m5_mag 与全量样本确实不同");
+  }
+
+  // ── D. WEIGHT-SCI-001: 组内公共 F_ref 来源 + 显式非法值 fail-closed ─────
+  {
+    // D1: 显式 snr.reference_flux_adu ⇒ source=config 且存头 flux_adu 用该公共值。
+    const std::string od = (base / "run_cfg_fref").string();
+    fs::create_directories(od, ec);
+    fs::copy_file((base / "run_unlimited").string() + "/p1_sources.json",
+                  od + "/p1_sources.json", fs::copy_options::overwrite_existing, ec);
+    if (!write_light(od)) {
+      std::fprintf(stderr, "FAIL: cannot write fixture fits (run_cfg_fref)\n");
+      return 1;
+    }
+    json cfg;
+    cfg["input_lights"] = json::array({od + "/light_1.fits"});
+    cfg["output_dir"] = od;
+    cfg["snr"] = json{{"zero_point_mag", 25.0}, {"gain_e_per_adu", 1.5},
+                      {"read_noise_e", 5.0}, {"reference_flux_adu", 777.5}};
+    std::string err;
+    CHECK(run_node(reg, "astrocs.phase1.noise-snr", cfg.dump(), nullptr, &err),
+          "WEIGHT-SCI-001: 显式 reference_flux_adu 节点成功");
+    const json snr = read_json(od + "/p1_snr.json");
+    const json fr = snr["frames"][0];
+    CHECK(fr.contains("snr_reference") &&
+              fr["snr_reference"].value("reference_flux_source", "") == "config",
+          "WEIGHT-SCI-001: 显式 F_ref -> reference_flux_source=config");
+    CHECK(fr["snr_reference"].value("flux_adu", 0.0) == 777.5,
+          "WEIGHT-SCI-001: 存头 flux_adu == 显式组内公共 F0");
+    CHECK(snr.value("reference_flux_source", "") == "config" &&
+              snr.value("reference_flux_adu", 0.0) == 777.5,
+          "WEIGHT-SCI-001: p1_snr.json 块级 provenance 记录显式 F0");
+
+    // D2: 显式非法 F_ref（<=0）⇒ DATA fail-closed（不得静默回退块级中位数）。
+    const std::string od2 = (base / "run_bad_fref").string();
+    fs::create_directories(od2, ec);
+    fs::copy_file((base / "run_unlimited").string() + "/p1_sources.json",
+                  od2 + "/p1_sources.json", fs::copy_options::overwrite_existing, ec);
+    if (!write_light(od2)) {
+      std::fprintf(stderr, "FAIL: cannot write fixture fits (run_bad_fref)\n");
+      return 1;
+    }
+    json cfg2;
+    cfg2["input_lights"] = json::array({od2 + "/light_1.fits"});
+    cfg2["output_dir"] = od2;
+    cfg2["snr"] = json{{"reference_flux_adu", -1.0}};
+    std::string err2;
+    CHECK(!run_node(reg, "astrocs.phase1.noise-snr", cfg2.dump(), nullptr, &err2),
+          "WEIGHT-SCI-001: 显式 reference_flux_adu<=0 ⇒ DATA fail-closed");
   }
 
   // 证据留存: P14_KEEP_DIR=1 时保留产物目录 (pristine/patched 逐字节对照用)。

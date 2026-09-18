@@ -3147,6 +3147,11 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   // 与性能开关 psf.max_stars 完全解耦（后者只影响 PSF 拟合, 不进 SNR 样本）。
   int snr_max_sources = 0;
   astrocs::phase1::SnrFrameScienceConfig sci_cfg;
+  // ── WEIGHT-SCI-001: 显式配置的组内公共 F_ref（首选路径）───────────────
+  // 缺失/非有限/<=0 = 未给出 ⇒ 走下方块级两遍法；两者都不可得 ⇒ 逐帧
+  // compute_snr_frame_science fail-closed（不写伪帧级 SNR 键）。
+  double configured_ref_flux = 0.0;
+  bool has_configured_ref_flux = false;
   if (doc.contains("snr") && doc["snr"].is_object()) {
     const Json& sc = doc["snr"];
     sci_cfg.gain_e_per_adu = sc.value("gain_e_per_adu", 0.0);
@@ -3157,10 +3162,123 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     sci_cfg.profile_half_px = sc.value("profile_half_px", 0);
     sci_cfg.sigma_logflux_dex = sc.value("sigma_logflux_dex", 0.0);
     sci_cfg.n_matches = sc.value("n_matches", 0);
-    sci_cfg.reference_flux_adu = sc.value("reference_flux_adu", 0.0);
+    // F_ref 由下方"组内公共 F0"逻辑统一写入 sci_cfg.reference_flux_adu。
+    // 显式给出但非法（非有限/<=0）⇒ DATA fail-closed：不得静默回退到块级中位数
+    // （否则用户显式值被无声忽略）。键**缺失**才走两遍法。
+    if (sc.contains("reference_flux_adu")) {
+      configured_ref_flux = sc.value("reference_flux_adu", 0.0);
+      if (!std::isfinite(configured_ref_flux) || !(configured_ref_flux > 0.0))
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "snr.reference_flux_adu must be finite and > 0 (group-common F_ref)"));
+      has_configured_ref_flux = true;
+    }
     snr_max_sources = sc.value("max_sources", 0);
     if (snr_max_sources < 0) snr_max_sources = 0;   // <0 非法 -> 视为不限
   }
+
+  // ── WEIGHT-SCI-001 (2026-09-18): 组内公共参考通量 F0 ─────────────────────
+  // 依据 reports/RELEASE-02/weight-sci-ruling.md（配对性定理）:
+  //   SNR_f = a_f·F0/σ_f  ⇒  SNR_f²/F0² = a_f²/σ_f² = w_f
+  // 成立当且仅当分母 F0 与定义 SNR 时所用参考通量是同一个。逐帧 F_ref 回退已
+  // 在 snr_frame_science.cpp 删除（缺失即 fail-closed）。因此本节点必须为
+  // **整个 input_lights 数据块**选定一个公共 F0，并对所有帧传入同一值：
+  //   (a) 首选: snr.reference_flux_adu 显式给出 ⇒ F0 为全局固定值（闸门恒过）;
+  //   (b) 次选: 两遍法 —— 块级检出通量中位数（逐帧检出通量中位数 → 块中位数）。
+  //      仅当一次 Phase1 run 的帧即 Phase2 组时闸门才过（裁定 §7.1 C2(b)）。
+  // 逐帧 F_ref 禁止（丢 a_f² 且存头 SNR 混入本帧检出亮度）。
+  auto find_src_frame = [&](const std::string& base) -> const Json* {
+    for (const auto& fr : src_frames) {
+      if (fr.is_object() && fr.value("file", std::string()) == base) return &fr;
+    }
+    return nullptr;
+  };
+  auto median_of_vec = [](std::vector<double> v) -> double {
+    if (v.empty()) return std::numeric_limits<double>::quiet_NaN();
+    std::sort(v.begin(), v.end());
+    const std::size_t n = v.size();
+    if (n % 2 == 1) return v[n / 2];
+    return 0.5 * (v[n / 2 - 1] + v[n / 2]);
+  };
+  auto all_sources_of = [](const Json* src_frame) -> Json {
+    return (src_frame->contains("sources") && (*src_frame)["sources"].is_array())
+               ? (*src_frame)["sources"]
+               : Json::array();
+  };
+  // 交付 SNR 样本行构造（判据与 compute_snr_frame_science 内部一致:
+  // flux>0 ∧ fwhm_px>0），并施加 snr.max_sources 显式上限。两遍法与主循环
+  // **共用本 lambda** ⇒ F0 与逐帧样本定义严格一致（与 psf.max_stars 解耦）。
+  auto build_snr_rows =
+      [&](const Json& all_sources, std::size_t* n_available_out,
+          bool* truncated_out) {
+        std::vector<astrocs::phase1::SnrSourceRow> rows;
+        rows.reserve(all_sources.size());
+        for (const auto& s : all_sources) {
+          astrocs::phase1::SnrSourceRow row;
+          row.id = s.value("id", std::string());
+          row.flux_adu = s.value("flux", 0.0);
+          row.fwhm_px = s.value("fwhm_px", 0.0);
+          if (!(std::isfinite(row.flux_adu) && row.flux_adu > 0.0)) continue;
+          if (!(std::isfinite(row.fwhm_px) && row.fwhm_px > 0.0)) continue;
+          rows.push_back(std::move(row));
+        }
+        if (n_available_out) *n_available_out = rows.size();
+        if (truncated_out) *truncated_out = false;
+        if (snr_max_sources > 0 &&
+            rows.size() > static_cast<std::size_t>(snr_max_sources)) {
+          std::partial_sort(
+              rows.begin(),
+              rows.begin() + static_cast<std::ptrdiff_t>(snr_max_sources),
+              rows.end(),
+              [](const astrocs::phase1::SnrSourceRow& a,
+                 const astrocs::phase1::SnrSourceRow& b) {
+                if (a.flux_adu != b.flux_adu) return a.flux_adu > b.flux_adu;
+                return a.id < b.id;   // tie-break: id 升序 (确定性)
+              });
+          rows.resize(static_cast<std::size_t>(snr_max_sources));
+          std::sort(rows.begin(), rows.end(),
+                    [](const astrocs::phase1::SnrSourceRow& a,
+                       const astrocs::phase1::SnrSourceRow& b) {
+                      return a.id < b.id;
+                    });
+          if (truncated_out) *truncated_out = true;
+        }
+        return rows;
+      };
+
+  std::string ref_flux_source = "unavailable";
+  double group_ref_flux = std::numeric_limits<double>::quiet_NaN();
+  if (has_configured_ref_flux) {
+    group_ref_flux = configured_ref_flux;
+    ref_flux_source = "config";
+  } else {
+    // 两遍法 pass-1: 逐帧检出通量中位数 → 块级中位数 = F0（确定性; 只读
+    // 上游 p1_sources.json, 不读图像）。
+    std::vector<double> frame_flux_medians;
+    for (const auto& l : doc["input_lights"]) {
+      if (!l.is_string()) continue;
+      const std::string path = p1_cleaned_input_path(doc, l.get<std::string>());
+      const Json* src_frame = find_src_frame(p1_base_name(path));
+      if (src_frame == nullptr) continue;
+      const Json all_sources = all_sources_of(src_frame);
+      std::size_t n_avail = 0;
+      bool trunc = false;
+      const std::vector<astrocs::phase1::SnrSourceRow> rows =
+          build_snr_rows(all_sources, &n_avail, &trunc);
+      std::vector<double> fluxes;
+      fluxes.reserve(rows.size());
+      for (const auto& r : rows) fluxes.push_back(r.flux_adu);
+      const double fm = median_of_vec(fluxes);
+      if (std::isfinite(fm) && fm > 0.0) frame_flux_medians.push_back(fm);
+    }
+    const double block_med = median_of_vec(frame_flux_medians);
+    if (std::isfinite(block_med) && block_med > 0.0) {
+      group_ref_flux = block_med;
+      ref_flux_source = "group_median";
+    }
+  }
+  // 所有帧共用同一 F0（组内公共）。不可得时保持 0.0 ⇒ 逐帧 fail-closed。
+  if (std::isfinite(group_ref_flux) && group_ref_flux > 0.0)
+    sci_cfg.reference_flux_adu = group_ref_flux;
 
   Json frames = Json::array();
   for (const auto& l : doc["input_lights"]) {
@@ -3187,13 +3305,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
         "SNR_F = F/sigma_F (Horne 1986 optimal extraction; "
         "sigma_F^-2 = sum_i P_i^2/sigma_i^2); frame-level science benchmark = "
         "5-sigma point-source depth (SCI-CW-001 2a)";
-    const Json* src_frame = nullptr;
-    for (const auto& fr : src_frames) {
-      if (fr.is_object() && fr.value("file", std::string()) == base) {
-        src_frame = &fr;
-        break;
-      }
-    }
+    const Json* src_frame = find_src_frame(base);
     if (src_frame == nullptr) {
       frame["snr_catalogue_status"] = "unavailable_no_upstream_frame";
       frame["snr_phot"] = nullptr;
@@ -3214,45 +3326,14 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
       // (默认 5000) 截断的「最亮子集」, 会被静默当成 SNR 目录 ⇒ 交付的
       // median_snr / frame_depth_m5_mag 由最亮 ≤5000 颗决定, 系统性偏乐观。
       // 本实现与 psf.max_stars 解耦: 后者不得改变交付的 SNR/深度数值。
-      const Json all_sources =
-          (src_frame->contains("sources") && (*src_frame)["sources"].is_array())
-              ? (*src_frame)["sources"] : Json::array();
-      std::vector<astrocs::phase1::SnrSourceRow> rows;
-      rows.reserve(all_sources.size());
-      for (const auto& s : all_sources) {
-        astrocs::phase1::SnrSourceRow row;
-        row.id = s.value("id", std::string());
-        row.flux_adu = s.value("flux", 0.0);
-        row.fwhm_px = s.value("fwhm_px", 0.0);
-        // 测光有效判据与 compute_snr_frame_science 内部一致 (flux>0, fwhm>0);
-        // 此处先剔除不可计算行, 使 n_sources 如实反映可用样本。
-        if (!(std::isfinite(row.flux_adu) && row.flux_adu > 0.0)) continue;
-        if (!(std::isfinite(row.fwhm_px) && row.fwhm_px > 0.0)) continue;
-        rows.push_back(std::move(row));
-      }
-      const std::size_t n_snr_available = rows.size();
-      // 显式交付样本上限 (snr.max_sources; 默认 0 = 不限): 一旦生效即如实置
-      // truncated=true（下游可读）; 默认路径**不截断** ⇒ 样本 = 全量有效源。
+      // 交付 SNR 样本行构造与 snr.max_sources 截断统一走 build_snr_rows
+      // （两遍法 F0 与逐帧样本定义共用同一实现; 测光有效判据 flux>0, fwhm>0，
+      //  使 n_snr_available 如实反映可用样本）。
+      const Json all_sources = all_sources_of(src_frame);
+      std::size_t n_snr_available = 0;
       bool snr_sample_truncated = false;
-      if (snr_max_sources > 0 &&
-          rows.size() > static_cast<std::size_t>(snr_max_sources)) {
-        std::partial_sort(
-            rows.begin(),
-            rows.begin() + static_cast<std::ptrdiff_t>(snr_max_sources),
-            rows.end(),
-            [](const astrocs::phase1::SnrSourceRow& a,
-               const astrocs::phase1::SnrSourceRow& b) {
-              if (a.flux_adu != b.flux_adu) return a.flux_adu > b.flux_adu;
-              return a.id < b.id;   // tie-break: id 升序 (确定性)
-            });
-        rows.resize(static_cast<std::size_t>(snr_max_sources));
-        std::sort(rows.begin(), rows.end(),
-                  [](const astrocs::phase1::SnrSourceRow& a,
-                     const astrocs::phase1::SnrSourceRow& b) {
-                    return a.id < b.id;
-                  });
-        snr_sample_truncated = true;
-      }
+      std::vector<astrocs::phase1::SnrSourceRow> rows =
+          build_snr_rows(all_sources, &n_snr_available, &snr_sample_truncated);
       const astrocs::phase1::SnrFrameScienceResult sci =
           astrocs::phase1::compute_snr_frame_science(rows, cfg);
       frame["snr_catalogue_status"] = sci.valid ? "ok" : "degenerate";
@@ -3286,8 +3367,13 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
           (cfg.sigma_logflux_dex > 0.0 && cfg.n_matches > 0)
               ? std::string("ok")
               : std::string("unavailable_no_calibration_residual");
+      // WEIGHT-SCI-001 provenance: F_ref 的作用域与来源。scope="group" 表示
+      // flux_adu 是**组内公共**参考通量 F0（snr_f 亦定义在该 F0 下，二者配对）;
+      // reference_flux_source ∈ {"config","group_median","unavailable"}。
       frame["snr_reference"] = Json{
           {"profile", "median_fwhm_of_catalogue_sky_limited"},
+          {"scope", "group"},
+          {"reference_flux_source", ref_flux_source},
           {"flux_adu", sci.reference_flux_adu},
           {"fwhm_px", sci.reference_fwhm_px},
           {"snr_f", sci.reference_snr_f},
@@ -3323,12 +3409,20 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   const std::string out_path = out_dir + "/p1_snr.json";
   Json snr_out = Json{{"schema", "DATA-P1-SNR"},
                       {"schema_version", "2"},
+                      // WEIGHT-SCI-001: 块级组内公共 F_ref provenance。
+                      {"snr_reference_scope", "group"},
+                      {"reference_flux_source", ref_flux_source},
+                      {"reference_flux_adu", group_ref_flux},
                       {"frames", frames}};
   if (!p1_write_text(out_path, snr_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_frames"] = frames.size();
   (*man)["snr_schema"] = "DATA-P1-SNR/2";
   (*man)["snr_artifact"] = out_path;
+  // WEIGHT-SCI-001: 组内公共 F_ref provenance（块级）。
+  (*man)["snr_reference_scope"] = "group";
+  (*man)["reference_flux_source"] = ref_flux_source;
+  (*man)["reference_flux_adu"] = group_ref_flux;
   (*man)["artifacts"] = Json::array({out_path});
   return Result<void>::success();
 }
@@ -5375,9 +5469,21 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         in.x = 0.0;
         in.y = 0.0;
         if (has_ref) {
+          // WEIGHT-SCI-001: 闸门**保持 fail-closed**（相对容差 1e-9 不放宽、
+          // 不删除）—— 组内 F_ref 必须是同一公共值。错误串补 expected/actual/
+          // frame_id 以便定位写侧是否漏写组内公共 F_ref（仅诊断信息增强，
+          // 判据不变）。
           if (!ref_flux_set) { ref_flux = fref; ref_flux_set = true; }
-          else if (std::fabs(fref - ref_flux) > 1e-9 * std::fabs(ref_flux))
-            ref_err = "ASTROCS_REFERENCE_FLUX 逐帧不一致（组内公共通量标度要求）";
+          else if (std::fabs(fref - ref_flux) > 1e-9 * std::fabs(ref_flux)) {
+            char fref_buf[64];
+            char ref_buf[64];
+            std::snprintf(fref_buf, sizeof(fref_buf), "%.17g", fref);
+            std::snprintf(ref_buf, sizeof(ref_buf), "%.17g", ref_flux);
+            ref_err = std::string(
+                "ASTROCS_REFERENCE_FLUX 逐帧不一致（组内公共通量标度要求）: "
+                "expected=") + ref_buf + " actual=" + fref_buf +
+                " frame_id=" + std::to_string(frames[f].value("frame_id", 0ull));
+          }
         }
       }
       const WeightChainResult wres =
