@@ -110,6 +110,10 @@
 
 | SD-14 | **口径冲突⑤（实质）**：`docs/science/REJECTION.md` §7/§8 规定「n≤2 恒 UNDERDETERMINED、不做剔除」 vs 设计 §4.5 + FIX-REJ 映射表的 **n=2 排异能力**（`extreme_value_clip_prior_sigma`，k=Φ⁻¹(1−α/(2N))） | 冻结文档该条成文于「尚无 n=2 方法」之时；现有**外部先验 σ**（方案 A：该帧该 tile 31×31 邻域中位数/MAD）时，n=2 可做单趟极值剔除且实测无污染零误剔。设计 §4.5 是负责人意图，且 n=2 白名单正是卫星线进入叠加的直接原因（L4 实测 74% 像素 n=2） | **需订正 `REJECTION.md` §7/§8**（走 §3 变更 claim）：改为「n≤2 在**无外部先验**时 UNDERDETERMINED；**有有效先验**时按极值剔除」 | kernel 已提供能力（新方法 11 / 新 profile `astrocs_adaptive_pixel` / `p2_reject_plan_resolve_n`），未擅改冻结默认 | 裁决：(a) **订正文档**（设计优先，且有证据）；(b) **生产 mosaic 默认切 `astrocs_adaptive_pixel`**（§4.5 要求 auto 即内置映射），冻结路由测试同步更新；(c) scheduler 必须为 n=2 提供**外部 `prior_sky`**（只给 `prior_sigma` 会让中心回退中位数 → 全拒 → 冻结容错反转为全接受，排异失效） |
 
+| SD-15 | 权重链 HiPS 键名未冻结；且 HUB-A 指出 **Phase1 当前不写帧级 SNR 键** ⇒ 生产权重链必然 fail-closed（行为正确但产出不了权重） | HUB-A 读侧已按 `ASTROCS_FRAME_SNR`/`ASTROCS_REFERENCE_FLUX` 实现；设计 §3.4 要求帧级通量型 SNR 写 HiPS 头 | 无 | 冻结键名；Phase1 写侧补写（HUB-B 任务②） | 裁决：**冻结 `ASTROCS_FRAME_SNR` + `ASTROCS_REFERENCE_FLUX`**；Phase1 必须写入，否则权重链永远 fail-closed |
+| SD-16 | `coordinate_frame` 取 `icrs` 还是 `equatorial` | P0-19 已三方取证（IVOA REC-HIPS-1.0 §4.4.1 / WD-HiPS-1.0 / CDS Aladin Lite API） | 无 | HUB-A 已改 4 处（`:3961/5970/7101/7123`） | 裁决：**取 `equatorial`**，与 P0-19 同源；旧 `icrs` 产品混用会 fail-closed（可接受） |
+| SD-17 | HUB-A 上呈：n=2 先验「**逐输出像素**」vs「每 tile 一次」——逐像素粗估 L4 需 ~1000-1200s（单线程） | 先验语义是「以该输出像素为中心的局部天光/噪声」（方案 A 31×31 邻域中位数/MAD），**逐像素才是科学正确**；每 tile 一次是空间近似 | 无 | 保持逐像素；性能由 benchmark 定档，**不得为性能改科学语义** | 裁决：**保持逐像素**。性能是后话，科学优先 |
+
 ## 4. 上呈事项（穷尽：仅 §3a 列明类别）
 
 | 事项 | 证据 | 方案与代价 | agent 推荐 |
