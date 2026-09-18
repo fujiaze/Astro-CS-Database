@@ -175,7 +175,7 @@ HipsProperties make_positive_props() {
   hp.creator_did = "ivo://astrocs/test";
   hp.obs_collection = "AstroCS V6";
   hp.release_date = "2026-09-15T00:00:00Z";
-  hp.frame = "icrs";
+  hp.frame = "equatorial";  // P0-19: HiPS 1.0 §4.4.1 标准值 (icrs 非法)
   hp.order = 6;
   hp.order_min = 3;
   hp.tile_width = 512;
@@ -574,7 +574,7 @@ int test_manifest() {
   m.order = 6;
   m.order_min = 3;
   m.tile_format = "fits";
-  m.frame = "icrs";
+  m.frame = "equatorial";  // P0-19: HiPS 1.0 §4.4.1 标准值 (icrs 非法)
   m.files.push_back(HipsFileRecord{"product.fits", 1234, std::string(64, 'a'), "signal", "PRIMARY"});
   m.files.push_back(HipsFileRecord{"properties", 200, std::string(64, 'b'), "properties", ""});
   m.tile_count = m.files.size();

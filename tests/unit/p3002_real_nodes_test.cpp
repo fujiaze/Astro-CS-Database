@@ -84,7 +84,8 @@ std::string hips_properties_text(const char* bunit) {
   s += "hips_order = 0\n";
   s += "hips_tile_width = 512\n";
   s += "hips_tile_format = fits\n";
-  s += "hips_frame = icrs\n";
+  // P0-19: HiPS 标准值 = equatorial (IVOA REC-HIPS-1.0 §4.4.1); icrs 非法。
+  s += "hips_frame = equatorial\n";
   s += "dataproduct_type = image\n";
   s += "hips_version = 1.0\n";
   if (bunit) s += std::string("BUNIT = ") + bunit + "\n";

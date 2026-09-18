@@ -24,7 +24,7 @@ docs/api/CLI_PROTOCOL_V1.md §1-§3。
     test_09 verify 闭环 → 退役（verify 命令删除; 哈希链新载体是 export resume 预检,
     当前被 export 预检/会话口径冲突阻塞, 见 TEST-CLI-SYNC 报告）。
 """
-import hashlib, json, os, re, shutil, subprocess, tempfile, unittest
+import json, os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # ROOT-008 迁移后 CLI 命令层在 lib/infrastructure/cli/（cli/ 只剩 compatibility 声明）。
@@ -233,7 +233,15 @@ class TestGolden(unittest.TestCase):
 
 
 class TestManifestIncomplete(unittest.TestCase):
-    """run manifest 数据面: 输入缺失 → 3 + incomplete（禁 complete 冒充）。"""
+    """预检 fail-closed 数据面: 输入路径不存在 → rc=3, 写 manifest 之前阻断。
+
+    2026-09-18 CLI 预检修复（ASTROCS_DESIGN §3.5 + ENGINEERING_SPEC:122 fail-closed）：
+    路径不存在/不可读在 precheck_config 阶段即判 error，`-y` 不可越，进程在
+    session_dispatch（任何产品/manifest 落盘）之前返回 rc=3。
+    旧断言（落 1 个 incomplete manifest + final 事件 exit_code=3）固化的是修复前的
+    fail-open 行为，已同步反转为新行为。manifest 数据面（incomplete 禁 complete）
+    由运行期失败路径覆盖，不再由「输入路径缺失」这一预检场景覆盖。
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -246,11 +254,10 @@ class TestManifestIncomplete(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
-    def test_01_missing_input_writes_incomplete_manifest(self):
+    def test_01_missing_input_blocked_before_manifest(self):
         cfg = os.path.join(self.tmp, "cfg.json")
-        # 标定帧必须显式给出（SMOKE-001 D4：normalize 预检对缺失标定帧判 error 并阻断
-        # rc=2，仅 -force 可越）。本用例判的是「输入文件找不到 → 3」，故配置须越过
-        # 预检（文件不存在属运行期输入缺失，由节点报 error_kind=input）。
+        # 标定帧与 light 均给出但盘上不存在 ⇒ precheck_config 的 input_path_errors
+        # 判 error（§3.5 fail-closed），-y 不可越，rc=3 且写盘前返回。
         na = os.path.join(self.tmp, "nope.fits")
         with open(cfg, "w", encoding="utf-8") as fh:
             json.dump({"schema_version": "1",
@@ -260,22 +267,13 @@ class TestManifestIncomplete(unittest.TestCase):
         r = run("normalize", "--json", cfg, "--events-jsonl", "-y")
         self.assertEqual(r.returncode, 3, r.stderr[-300:])
         mans = [f for f in os.listdir(self.out) if f.startswith("astrocs_run_")]
-        self.assertEqual(len(mans), 1, "失败 run 必须落恰 1 个 manifest")
-        with open(os.path.join(self.out, mans[0]), encoding="utf-8") as fh:
-            doc = json.load(fh)
-        self.assertEqual(doc["kind"], "astrocs_run_manifest")
-        self.assertEqual(doc["schema_version"], "1")
-        self.assertEqual(doc["status"], "incomplete", "不完整运行禁止 complete")
-        self.assertEqual(doc["platform"]["arch"], "amd64")
-        self.assertEqual(doc["phases"], [1])
-        with open(cfg, "rb") as fh:
-            want = hashlib.sha256(fh.read()).hexdigest()
-        self.assertEqual(doc["config_sha256"], want, "config_sha256 必须是配置实测 hash")
-        # 事件流末事件 final/exit_code 与进程退出码单源
-        events = [json.loads(l) for l in r.stdout.splitlines() if l.strip()]
-        self.assertTrue(events, "--events-jsonl 必须落事件")
-        self.assertEqual(events[-1]["kind"], "final")
-        self.assertEqual(events[-1]["exit_code"], 3)
+        self.assertEqual(mans, [],
+                         "预检阻断必须发生在写 manifest 之前（不得落 incomplete 冒充）")
+        # 预检阻断路径不进入运行期事件流：stdout 无事件，诊断落 stderr。
+        self.assertEqual(r.stdout.strip(), "",
+                         "预检阻断不得发运行期事件流（stdout 纪律）")
+        self.assertIn("missing/unreadable input path", r.stderr,
+                      "必须点名输入路径缺失原因（不许静默）")
 
 
 if __name__ == "__main__":

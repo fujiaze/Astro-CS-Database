@@ -61,6 +61,12 @@
       不再用 os.path.isfile 静默跳过 (静默跳过 = 扫描面悄悄缩小, 正是"防移空"
       条款自己要防的失效型; R-6 §3.2 C 实测)。
 
+  [7] §12 门方向 (RELEASE-02 CI-HYGIENE 修复): 启动时先探测"版本信息面"是否存在。
+      存在 ⇒ 校验一致性 ([1]~[6] 全部照旧, fail-closed);
+      不存在 ⇒ 进入"Alpha 前无版本信息"模式 (version_absence_alpha_pre), 不判红。
+      旧实现把"版本串必须存在"当硬门 ⇒ 版本信息缺席判 ANCHOR_STALE(exit 2),
+      方向与 §12 相反 (CI 绿灯 = 必然违反 §12)。本修复只改门方向, 不改版本号。
+
 输出: stdout 一份 JSON 摘要 (各检查项: 文件/行号/检测值/PASS|FAIL);
       锚失效 → exit 2; 任一 FAIL → exit 1; 全部 PASS → exit 0。脚本只读。
 """
@@ -140,6 +146,17 @@ REF_ANCHORS = [
     # (cli/version_generated.h.in) 已不在版本库 ⇒ 判据空转（§8 锚存活失效型）。
 ]
 
+# §12 版本纪律修复（RELEASE-02 CI-HYGIENE）：
+#   设计 §12「Alpha 之前：程序与代码中不包含任何版本信息」。
+#   旧实现把「版本串必须存在且一致」当硬门 ⇒ 版本信息不存在时判红（ANCHOR_STALE），
+#   方向与 §12 相反（CI 绿灯 = 必然违反 §12）。新判据：
+#     · 版本信息存在  ⇒ 校验一致性（[1]~[6] 全部照旧，fail-closed）；
+#     · 版本信息不存在 ⇒ 不得判红（本文件的版本锚/生成链判据无对象，显式进入
+#       "Alpha 前无版本信息" 模式，仍校验非版本锚与文档集完整性，防移空）。
+#   注意：本修复只改门方向，不改任何版本号；版本信息当前仍存在于仓库，
+#   其去留属负责人裁决（DC-718 / 控制包 P0-15），不在本包范围。
+VERSION_ANCHOR_NAMES = ("VERSION_REL", "CLI_TEMPLATE_REL")
+
 GIT_TIMEOUT_S = 30
 
 
@@ -205,10 +222,19 @@ def anchor_status(root: str, rel: str) -> tuple:
     return True, "存在 + git 跟踪 (%s)" % why
 
 
-def check_anchors(root: str) -> tuple:
-    """返回 (checks, stale_lines)。stale 非空 ⇒ fail-closed exit 2。"""
+def check_anchors(root: str, skip=()) -> tuple:
+    """返回 (checks, stale_lines)。stale 非空 ⇒ fail-closed exit 2。
+
+    skip: 需跳过的锚常量名集合。§12 修复后仅"版本信息不存在"模式用它跳过
+    版本专用锚 (VERSION_REL/CLI_TEMPLATE_REL) —— 这些锚的判据对象本就不该存在,
+    跳过是"无对象"而非"放宽判据"; 非版本锚 (CMake/CLI 源树/文档集) 照旧 fail-closed。
+    """
     checks, stale = [], []
     for name, rel in ANCHORS:
+        if name in skip:
+            add(checks, "anchor_alive_%s" % name, True, rel, None, "SKIPPED(无版本信息)",
+                "§12 修复: 版本信息不存在 ⇒ 版本专用锚无判据对象, 显式跳过并留痕")
+            continue
         ok, detail = anchor_status(root, rel)
         add(checks, "anchor_alive_%s" % name, ok, rel, None,
             "存活" if ok else "ANCHOR_STALE",
@@ -285,6 +311,90 @@ def doc_scan_set(root: str) -> tuple:
     return doc_files, missing, empty
 
 
+# ---- §12 版本信息存在性探测 (门方向修复的核心) ------------------------------
+def _alpha_hit(text: str):
+    """返回首处非豁免 alpha 字面量 (行号, 'X.Y.Z-alpha.N'), 无则 (None, None)。"""
+    for i, ln in enumerate(text.splitlines(), 1):
+        if REV_FIELD.match(ln.strip()):
+            continue  # 机器修订字段记录"来源/基线", 不是"当前版本信息"陈述
+        m = ALPHA_INLINE.search(ln)
+        if m:
+            return i, "%s-alpha.%s" % (m.group(1), m.group(2))
+    return None, None
+
+
+def detect_version_presence(root: str) -> tuple:
+    """(present, evidence): 仓库里是否存在任何"版本信息面"。
+
+    判据对齐 ASTROCS_DESIGN §12「Alpha 之前：程序与代码中不包含任何版本信息」：
+      · 根 VERSION 文件非空;
+      · lib/infrastructure/cli/** 或根 CMakeLists.txt 出现 alpha 字面量;
+      · 根 CMakeLists.txt 的 project(... VERSION ...) 数字三元组 (版本基础设施);
+      · 根 CMakeLists.txt 的 file(READ .../VERSION ...) 生成链;
+      · CLI 版本注入模板含 @ASTROCS_VERSION_STRING@ 占位;
+      · 活动文档集 (DOC_SET_FILES/DIRS) 出现非豁免 alpha 字面量。
+    任一命中 ⇒ present=True ⇒ 走一致性校验; 全不命中 ⇒ absence 模式, 不判红。
+    只读; 不 import 被测模块。
+    """
+    evidence = []
+    vpath = os.path.join(root, VERSION_REL)
+    if os.path.isfile(vpath):
+        try:
+            raw = read_text(vpath).strip()
+        except OSError:
+            raw = ""
+        if raw:
+            evidence.append("%s 非空: %r" % (VERSION_REL, raw[:80]))
+
+    cml = os.path.join(root, ROOT_CMAKE_REL)
+    cml_text = read_text(cml) if os.path.isfile(cml) else ""
+    if cml_text:
+        m = PROJECT_RE.search(cml_text)
+        if m:
+            evidence.append("%s project(%s VERSION %s)" % (ROOT_CMAKE_REL, m.group(1), m.group(2)))
+        if re.search(r"file\(READ\s+\$\{CMAKE_CURRENT_SOURCE_DIR\}/VERSION\s+"
+                     r"ASTROCS_BASE_VERSION", cml_text):
+            evidence.append("%s 含 file(READ VERSION ASTROCS_BASE_VERSION) 生成链" % ROOT_CMAKE_REL)
+
+    cli_dir = os.path.join(root, CLI_DIR_REL)
+    if os.path.isdir(cli_dir):
+        for dirpath, dirnames, filenames in os.walk(cli_dir):
+            dirnames[:] = [x for x in dirnames if not x.startswith("__")]
+            for fn in sorted(filenames):
+                if not fn.endswith(CLI_SCAN_EXT):
+                    continue
+                full = os.path.join(dirpath, fn)
+                try:
+                    i, val = _alpha_hit(read_text(full))
+                except OSError:
+                    continue
+                if val:
+                    evidence.append("%s:%s %s" % (os.path.relpath(full, root), i, val))
+    if cml_text:
+        i, val = _alpha_hit(cml_text)
+        if val:
+            evidence.append("%s:%s %s" % (ROOT_CMAKE_REL, i, val))
+
+    tpl = os.path.join(root, CLI_TEMPLATE_REL)
+    if os.path.isfile(tpl):
+        try:
+            if "@ASTROCS_VERSION_STRING@" in read_text(tpl):
+                evidence.append("%s 含 @ASTROCS_VERSION_STRING@ 注入占位" % CLI_TEMPLATE_REL)
+        except OSError:
+            pass
+
+    doc_files, _, _ = doc_scan_set(root)
+    for rel, p in doc_files:
+        try:
+            i, val = _alpha_hit(read_text(p))
+        except OSError:
+            continue
+        if val:
+            evidence.append("%s:%s %s" % (rel, i, val))
+
+    return bool(evidence), evidence
+
+
 def report(checks: list, root: str, expected, expected_source: str,
            stale: list) -> int:
     fails = [c for c in checks if not c["pass"]]
@@ -321,6 +431,33 @@ def main() -> int:
         os.path.dirname(os.path.abspath(__file__))))
     checks: list = []
 
+    # §12 门方向修复（RELEASE-02 CI-HYGIENE）: 先探测"版本信息面"是否存在。
+    #   存在  ⇒ 走下方 [1]~[6] 一致性校验 (fail-closed, 与旧行为等价);
+    #   不存在 ⇒ absence 模式: 版本专用锚/生成链判据无对象, 显式跳过并留痕,
+    #            仍校验非版本锚 + 文档集完整性 (防移空), 然后 PASS —— 不判红。
+    # 修复前方向相反: 版本不存在 ⇒ anchor_alive_VERSION_REL 判 ANCHOR_STALE(exit 2),
+    # 即"CI 绿灯 = 必然违反 §12"。本修复只改门方向, 不改任何版本号。
+    present, presence_evidence = detect_version_presence(root)
+    if not present:
+        anchor_checks, stale = check_anchors(root, skip=VERSION_ANCHOR_NAMES)
+        checks.extend(anchor_checks)
+        for line in stale:
+            sys.stderr.write(line + "\n")
+        doc_files, doc_missing, doc_empty_dirs = doc_scan_set(root)
+        add(checks, "version_absence_alpha_pre", not stale, "<version-surface>", None,
+            "无版本信息",
+            "ASTROCS_DESIGN §12: Alpha 前程序与代码中不含任何版本信息; "
+            "本模式判据 = 版本信息不存在 ⇒ 不判红 "
+            "(存在则转入 [1]~[6] 一致性校验, 由 version_presence_detected 留痕)")
+        add(checks, "doc_set_complete", not doc_missing and not doc_empty_dirs,
+            "README/docs/governance/docs/owner", None,
+            "缺失: %s" % doc_missing if doc_missing else
+            ("扫描面缺口: %s" % doc_empty_dirs if doc_empty_dirs else
+             "%d 文件 + %d 目录齐全" % (len(DOC_SET_FILES), len(DOC_SET_DIRS))),
+            "规则: §12 absence 模式仍须保证非版本面判据存活 (防移空), "
+            "不因版本信息缺席而缩小扫描面")
+        return report(checks, root, "", "absent (§12 Alpha 前无版本信息)", stale)
+
     # [0] 锚存活前置断言 (fail-closed; 不 traceback, 不静默通过)
     anchor_checks, stale = check_anchors(root)
     ref_checks, ref_stale = check_ref_anchors(root)
@@ -329,6 +466,10 @@ def main() -> int:
     stale.extend(ref_stale)
     for line in stale:
         sys.stderr.write(line + "\n")
+    add(checks, "version_presence_detected", True, "<version-surface>", None,
+        "%d 处版本信息" % len(presence_evidence),
+        "§12 门方向: 版本信息存在 ⇒ 校验一致性 (非「必须存在」); 证据: %s"
+        % "; ".join(presence_evidence[:6]))
 
     # expected 解析: 显式 --expected 优先; 缺省时取根 VERSION (唯一事实源)
     expected_source = "--expected" if args.expected is not None else VERSION_REL
@@ -512,24 +653,39 @@ TEMPLATE_TMPL = """#pragma once
 #define ASTROCS_VERSION_STRING "@ASTROCS_VERSION_STRING@"
 """
 DOC_TMPL = "# %s\n\ndoc_version: 0.10.0-alpha.1\n"
+# §12 absence 夹具: 无 VERSION / 无 project VERSION / 无生成链 / 无 alpha 字面量。
+ROOT_CMAKE_NO_VERSION_TMPL = """cmake_minimum_required(VERSION 3.24)
+project(astrocs LANGUAGES C CXX)
+"""
+NO_VERSION_DOC_TMPL = "# %s\n\n版本信息面: 无 (Alpha 前, ASTROCS_DESIGN §12)\n"
 
 
-def _mini_repo(root: str, *, expected: str, omit=(), extra_files=None,
-               readme_body=None) -> None:
-    base = ".".join(expected.split("-alpha.")[0].split("."))
-    files = {
-        VERSION_REL: expected + "\n",
-        ROOT_CMAKE_REL: ROOT_CMAKE_TMPL % {"base": base},
-        CLI_TEMPLATE_REL: TEMPLATE_TMPL,
-        "README.md": readme_body if readme_body is not None
-        else DOC_TMPL % "README",
-    }
+def _mini_repo(root: str, *, expected: str = "0.11.0-alpha.2", omit=(),
+               extra_files=None, readme_body=None, version_free=False) -> None:
+    if version_free:
+        files = {
+            ROOT_CMAKE_REL: ROOT_CMAKE_NO_VERSION_TMPL,
+            # 非版本锚 (CLI_DIR_REL) 仍须存活, 但不得引入版本字面量。
+            "lib/infrastructure/cli/placeholder.txt": "// 无版本信息面\n",
+            "README.md": readme_body if readme_body is not None
+            else NO_VERSION_DOC_TMPL % "README",
+        }
+    else:
+        base = ".".join(expected.split("-alpha.")[0].split("."))
+        files = {
+            VERSION_REL: expected + "\n",
+            ROOT_CMAKE_REL: ROOT_CMAKE_TMPL % {"base": base},
+            CLI_TEMPLATE_REL: TEMPLATE_TMPL,
+            "README.md": readme_body if readme_body is not None
+            else DOC_TMPL % "README",
+        }
+    doc_tmpl = NO_VERSION_DOC_TMPL if version_free else DOC_TMPL
     for rel in DOC_SET_FILES:
         if rel == "README.md":
             continue
-        files[rel] = DOC_TMPL % os.path.basename(rel)
+        files[rel] = doc_tmpl % os.path.basename(rel)
     for d in DOC_SET_DIRS:
-        files.setdefault(os.path.join(d, "placeholder.md"), DOC_TMPL % d)
+        files.setdefault(os.path.join(d, "placeholder.md"), doc_tmpl % d)
     files.update(extra_files or {})
     for rel in omit:
         files.pop(rel, None)
@@ -627,6 +783,32 @@ def self_test() -> int:
         code, err = _run_mini(root, expected)
         cases.append(("neg_root_version_read_missing", code, err, 1,
                       "chain_root_read_version"))
+
+    # §12 门方向修复的正/负例（RELEASE-02 CI-HYGIENE）:
+    #   pos: 完全没有版本信息 ⇒ rc=0（旧实现因 anchor_alive_VERSION_REL 判 ANCHOR_STALE
+    #        exit 2, 方向与 §12 相反）;
+    #   pos: 完全无版本信息 + 显式 --expected ⇒ 仍 rc=0（显式 expected 不得强制版本存在）;
+    #   neg: 无 VERSION 但 CLI 出现 alpha 字面量 ⇒ 判红（版本信息存在即必须一致,
+    #        fail-closed; 此处 VERSION 锚同时失效故为 ANCHOR_STALE exit 2）。
+    with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
+        root = os.path.join(td, "pos-absence")
+        os.makedirs(root)
+        _mini_repo(root, version_free=True)
+        code, err = _run_mini(root)
+        cases.append(("pos_absence_no_version", code, err, 0,
+                      "VERSION_CHECK_PASS|version_absence_alpha_pre"))
+        code, err = _run_mini(root, expected)
+        cases.append(("pos_absence_explicit_expected", code, err, 0,
+                      "VERSION_CHECK_PASS"))
+
+    with tempfile.TemporaryDirectory(prefix="cv-selftest-") as td:
+        root = os.path.join(td, "neg-absence-literal")
+        os.makedirs(root)
+        _mini_repo(root, version_free=True, extra_files={
+            "lib/infrastructure/cli/drift.cpp": 'const char* kVersion = "0.9.9-alpha.1";\n'})
+        code, err = _run_mini(root)
+        cases.append(("neg_absence_literal_present", code, err, 2,
+                      "ANCHOR_STALE: VERSION_REL"))
 
     ok = True
     for name, code, err, want_rc, want_text in cases:

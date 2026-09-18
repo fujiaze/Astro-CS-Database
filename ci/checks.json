@@ -2405,6 +2405,30 @@
           ]
         },
         {
+          "id": "PY-TEST-INDEX-VERDICTS",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "ci/check_test_index.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "tests/test_index.csv",
+            "ci/check_test_index.py",
+            "tests/**"
+          ],
+          "requires_monitor": false
+        },
+        {
           "id": "TESTKIT-LIST",
           "profiles": [
             "fast",
@@ -6452,9 +6476,7 @@
       "platform": "any",
       "command": [
         "python3",
-        "ci/check_version.py",
-        "--expected",
-        "0.11.0-alpha.2"
+        "ci/check_version.py"
       ],
       "timeout_seconds": 60,
       "heavy": false,

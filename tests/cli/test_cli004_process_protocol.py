@@ -186,41 +186,22 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         self.assertEqual(r0.stdout, "", "阻断路径 stdout 不得有非 JSON 文本")
         self.assertEqual([f for f in os.listdir(out0) if f.startswith("astrocs_run_")], [],
                          "预检阻断不得写 manifest")
-        # 1b. 输入文件缺失 → rc=3, 失败路径仍须发完整合规事件流 + incomplete manifest
+        # 1b. 输入文件缺失 → 预检 rc=3（写盘前阻断）：无事件流、无 manifest。
+        #     2026-09-18 预检 fail-closed 修复后，路径不存在/不可读在 precheck_config
+        #     阶段即判 error（ASTROCS_DESIGN §3.5 + ENGINEERING_SPEC:122），-y 不可越；
+        #     旧断言（完整事件流 + incomplete manifest）固化的是修复前 fail-open 行为。
         out = os.path.join(self.tmp, "o1"); os.makedirs(out)
         cfg = self._cfg(out, [os.path.join(self.data, "does_not_exist.fits")])
-        errf = os.path.join(self.tmp, "o1_stderr.txt")
-        with open(errf, "w") as ef:
-            p = subprocess.Popen([EXE, "normalize", "--json", cfg, "--events-jsonl", "-y"],
-                                 stdout=subprocess.PIPE, stderr=ef, text=True, cwd=run_cwd())
-            events = []
-            for line in p.stdout:          # 真流式: 逐行读取(非 communicate 后解析)
-                events.append(json.loads(line))   # stdout 纪律: 每行恰一 JSON, 否则异常
-            p.wait(timeout=120)
-        with open(errf, encoding="utf-8") as fh:
-            err_text = fh.read()
-        self.assertEqual(p.returncode, 3, "输入文件缺失 → 3(INPUT)")
-        self.assertGreater(len(events), 0)
-        for i, ev in enumerate(events):
-            err = harness_validate(ev, i)
-            self.assertIsNone(err, "event[%d] protocol violation: %s" % (i, err))
-        fin = events[-1]
-        self.assertEqual(fin["kind"], "final")
-        self.assertEqual(fin["exit_code"], p.returncode)
-        self.assertNotEqual(fin["status"], "ok", "失败 run 的 final 不得标 ok")
-        kinds = [e["kind"] for e in events]
-        self.assertIn("stage_start", kinds)
-        prog = [e for e in events if e["kind"] == "progress"]
-        self.assertTrue(prog, "run 级 progress 必须发")
-        for e in prog:
-            self.assertLessEqual(e["completed"], e["total"])
-            self.assertEqual(e["unit"], "phases")
-        mf = [e for e in events if e["kind"] == "artifact" and e.get("role") == "run_manifest"]
-        self.assertTrue(mf, "manifest 事件必发")
-        self.assertTrue(os.path.isfile(mf[-1]["path"]))
-        with open(mf[-1]["path"], encoding="utf-8") as fh:
-            self.assertEqual(json.load(fh)["status"], "incomplete")
-        self.assertTrue(err_text.strip(), "诊断/日志必须在 stderr")
+        r1 = subprocess.run([EXE, "normalize", "--json", cfg, "--events-jsonl", "-y"],
+                            capture_output=True, text=True, cwd=run_cwd(), timeout=120)
+        self.assertEqual(r1.returncode, 3, "输入文件缺失 → 3(INPUT)")
+        self.assertEqual(r1.stdout, "",
+                         "预检阻断不得发运行期事件流（stdout 纪律）")
+        self.assertEqual([f for f in os.listdir(out) if f.startswith("astrocs_run_")], [],
+                         "预检阻断不得写 manifest")
+        self.assertTrue(r1.stderr.strip(), "诊断/日志必须在 stderr")
+        self.assertIn("missing/unreadable input path", r1.stderr,
+                      "必须点名输入路径缺失原因（不许静默）")
 
     # ── 2. 外部 harness: OK 路径 resource/backend/artifact 冻结扩展字段 ──
     def test_02_harness_ok_run_frozen_extension_fields(self):
