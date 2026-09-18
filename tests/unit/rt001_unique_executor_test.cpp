@@ -193,6 +193,7 @@ std::string node_config(const NodeFixture& fx) {
   std::snprintf(buf, sizeof(buf),
                 R"({
   "source": {"hips_dir": "%s"},
+  "output_mode": "surface_brightness",
   "center": {"ra_deg": %.12f, "dec_deg": %.12f},
   "scale_deg_per_px": 0.01,
   "width_px": %d, "height_px": %d,

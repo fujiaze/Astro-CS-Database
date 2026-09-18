@@ -63,6 +63,7 @@
 #include "../../../algorithms/star_detection/wrapper_phase1/star_detector.h"  // astrocs::phase1::StarDetector (C++)
 #include "aio_hips.h"        // lib/infrastructure/aio: IVOA HiPS 标准写链
 #include "aio_hips_reader.h" // lib/infrastructure/aio: HiPS 读面(P2 帧数据消费)
+#include "aio_atomic_file.h" // lib/infrastructure/aio: §9 原子产品落盘原语(header-only)
 
 // P2-001: Phase2 真实节点生产头（lib/algorithms/coverage 冻结 C ABI + HEALPix 单一实现 +
 // 输入 manifest hash 共享 SHA-256; 模块库零 diff 只读调用）
@@ -71,8 +72,12 @@
 #include "astro/phase2/upm.h"
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/integrate.h"
+#include "astro/phase2/sky_plane.h"   // FIX-A 稀疏天光面 (生产 mosaic 接线)
 #include "healpix/healpix_core.h"  // fits_index_to_nested_local (NESTED LUT 单一权威)
+// RELEASE-02 权重链: HiPS 头帧级 SNR → 逆方差权重 (w = SNR²/F_ref²)。
+#include "astrocs/v6/weight_chain.h"
 #include "crypto/sha256.h"         // astrocs::crypto::sha256_hex (input_manifest_hash)
+#include "astrocs/probe.h"         // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
 
 #include "photometer.h"
 #include "noise_model.h"
@@ -1693,6 +1698,9 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   const mu::Stats mu_st_dark = p1_image_stats(dark);
   const mu::Stats mu_st_flat = p1_image_stats(flat);
   for (size_t fi = 0; fi < lights.size(); ++fi) {
+    // [RELEASE-02 probe] 逐帧热点: calibrate
+    ASTROCS_PROBE_SCOPE_CTX(_probe_cal_frame, "phase1", "calibrate.frame");
+    ASTROCS_PROBE_TAG(_probe_cal_frame, "frame_key", p1_frame_key(lights[fi]).c_str());
     if (bias.ok()) {
       const mu::Verdict uv = mu::check_master_domain(
           "bias", doc["master_bias"].get<std::string>(), mu_decl.bias, mu_st_bias,
@@ -2758,6 +2766,9 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   bool have_first = false;
   for (const auto& l : doc["input_lights"]) {
     const std::string lp = l.get<std::string>();
+    // [RELEASE-02 probe] 逐帧热点: wcs
+    ASTROCS_PROBE_SCOPE_CTX(_probe_wcs_frame, "phase1", "wcs.frame");
+    ASTROCS_PROBE_TAG(_probe_wcs_frame, "frame_key", p1_frame_key(lp).c_str());
     const std::string frame_path = p1_calibrated_path(doc, lp);
     P1Image im = p1_read_image(frame_path);
     if (!im.ok()) {
@@ -3476,6 +3487,9 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   bool have_first = false;
   for (const auto& l : doc["input_lights"]) {
     const std::string lp = l.get<std::string>();
+    // [RELEASE-02 probe] 逐帧热点: drizzle
+    ASTROCS_PROBE_SCOPE_CTX(_probe_drz_frame, "phase1", "drizzle.frame");
+    ASTROCS_PROBE_TAG(_probe_drz_frame, "frame_key", p1_frame_key(lp).c_str());
     const std::string frame_path = p1_calibrated_path(doc, lp);
     P1Image im = p1_read_image(frame_path);
     if (!im.ok()) {
@@ -3951,9 +3965,10 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   (*man)["artifacts"] = artifacts;
   // B2-A10（宪章 §4.3）: 单位/坐标系/观测 passband 随节点 manifest 上报。
   (*man)["bunit"] = "ADU";
-  // LEDGER-P1 残留②: 与 properties 的 hips_frame=icrs 同源 (原写非标准值
-  // "equatorial", 使 CLI 汇总的 coordinate_frames 集合出现两种写法)。
-  (*man)["coordinate_frame"] = "icrs";
+  // P0-19 同步: HiPS properties 的 hips_frame 按 IVOA REC-HIPS-1.0 §4.4.1
+  // 写标准值 "equatorial"(ICRS); 节点 manifest 的 coordinate_frame 与之
+  // 同源, 避免 CLI 汇总 coordinate_frames 出现 icrs/equatorial 两种写法。
+  (*man)["coordinate_frame"] = "equatorial";
   (*man)["filter_passband"] = filter_passband;
   return Result<void>::success();
 }
@@ -3972,6 +3987,24 @@ bool p2_write_text(const std::string& path, const std::string& text) {
   f << text;
   return f.good();
 }
+
+// §9 原子文本落盘（临时文件 → fflush → fsync → 原子 rename; AIO 唯一原语）:
+// 失败/取消不得留下可被误认为正式产品的半成品。用于 P3 typed artifact。
+bool p2_write_text_atomic(const std::string& path, const std::string& text) {
+  std::string aerr;
+  const int rc = aio_atomic::write_file_atomic_stream(
+      path,
+      [&text](FILE* f) {
+        return text.empty() ||
+               std::fwrite(text.data(), 1, text.size(), f) == text.size();
+      },
+      &aerr);
+  if (rc != 0)
+    std::fprintf(stderr, "[atomic] text write failed: %s (%s)\n", path.c_str(),
+                 aerr.c_str());
+  return rc == 0;
+}
+
 
 bool p2_read_json(const std::string& path, Json* out) {
   std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
@@ -4449,6 +4482,94 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   (*man)["upm_model_bin"] = bin_path;
   (*man)["model_hash"] = std::string(info.model_hash);
   (*man)["observation_count"] = info.observation_count;
+
+  // ── FIX-A 天光面（P0-08/P0-09）接入生产 mosaic 链 ─────────────────────────
+  // DESIGN §4.4: 星点掩膜后逐帧稀疏天光采样 → 全部帧联合建参考天光面
+  // B_ref(x)+δ_k(x)（稀疏样条, 按需求值, 不建稠密栅格）。采样点直接由
+  // background-clean control observations 映射（与 sampler patch estimator
+  // 同源）; 成功后 save 供 upm-apply 逐像素扣除。失败显式降级（保留 UPM C
+  // 场）并记日志, 不静默、不写半成品。config: doc["sky_plane"]。
+  {
+    const Json sp_cfg = (doc.contains("sky_plane") && doc["sky_plane"].is_object())
+                            ? doc["sky_plane"] : Json::object();
+    const bool sky_enabled = sp_cfg.value("enabled", true);
+    if (!sky_enabled) {
+      (*man)["sky_plane_status"] = "disabled";
+    } else if (obs.empty()) {
+      std::fprintf(stderr, "[sky_plane] no control observations -> fallback to UPM C field\n");
+      (*man)["sky_plane_status"] = "fallback_no_samples";
+    } else {
+      std::vector<P2SkySample> sky_samples;
+      sky_samples.reserve(obs.size());
+      for (const auto& o : obs) {
+        P2SkySample sk{};
+        sk.frame_id = o.frame_id;
+        sk.control_id = o.control_id;
+        sk.ra_deg = o.ra_deg;
+        sk.dec_deg = o.dec_deg;
+        sk.value = o.value;
+        sk.variance = o.control_variance;
+        sk.snr = (o.uncertainty > 0.0) ? std::fabs(o.value) / o.uncertainty : 0.0;
+        sk.flags = o.snr_available ? P2_SKY_FLAG_NONE : P2_SKY_FLAG_NO_LOCAL_SNR;
+        sky_samples.push_back(sk);
+      }
+      P2SkyPlaneConfig spc = p2_sky_plane_default_config();
+      spc.spline_degree = sp_cfg.value("spline_degree", 3);
+      spc.node_spacing_deg = sp_cfg.value("node_spacing_deg", 1.0);
+      spc.frame_gradient_order = sp_cfg.value("frame_gradient_order", 1);
+      spc.gauge_mode = sp_cfg.value("gauge_mode", 0);
+      spc.weight_mode = sp_cfg.value("weight_mode", 0);
+      spc.roughness_penalty = sp_cfg.value("roughness_penalty", 1e-3);
+      if (sp_cfg.contains("huber_delta")) spc.huber_delta = sp_cfg["huber_delta"].get<double>();
+      if (sp_cfg.contains("max_iterations")) spc.max_iterations = sp_cfg["max_iterations"].get<int>();
+      if (sp_cfg.contains("tolerance")) spc.tolerance = sp_cfg["tolerance"].get<double>();
+      if (sp_cfg.contains("kappa_max")) spc.kappa_max = sp_cfg["kappa_max"].get<double>();
+      if (sp_cfg.contains("rank_rtol")) spc.rank_rtol = sp_cfg["rank_rtol"].get<double>();
+      if (sp_cfg.contains("min_samples")) spc.min_samples = sp_cfg["min_samples"].get<int>();
+      if (sp_cfg.contains("min_samples_per_frame"))
+        spc.min_samples_per_frame = sp_cfg["min_samples_per_frame"].get<int>();
+      if (sp_cfg.contains("max_nodes")) spc.max_nodes = sp_cfg["max_nodes"].get<int>();
+      char sperr[512] = {0};
+      void* spm = nullptr;
+      const int src = p2_sky_plane_build(sky_samples.data(), sky_samples.size(),
+                                         &spc, &spm, sperr, sizeof(sperr));
+      if (src != P2_SKY_PLANE_OK) {
+        std::fprintf(stderr,
+                     "[sky_plane] build FAILED rc=%d %s -> explicit fallback to UPM C field\n",
+                     src, sperr);
+        (*man)["sky_plane_status"] = "fallback_build_failed";
+        (*man)["sky_plane_rc"] = src;
+        (*man)["sky_plane_error"] = std::string(sperr);
+        if (spm) p2_sky_plane_close(spm);
+      } else {
+        P2SkyPlaneInfo spinfo{};
+        if (p2_sky_plane_info(spm, &spinfo) != 0) std::memset(&spinfo, 0, sizeof(spinfo));
+        const std::string sp_path = out_dir + "/p2_sky_plane.bin";
+        if (p2_sky_plane_save(spm, sp_path.c_str()) != 0) {
+          std::fprintf(stderr, "[sky_plane] save FAILED -> explicit fallback to UPM C field\n");
+          (*man)["sky_plane_status"] = "fallback_save_failed";
+          p2_sky_plane_close(spm);
+        } else {
+          p2_sky_plane_close(spm);
+          Json arts = (*man)["artifacts"];
+          arts.push_back(sp_path);
+          (*man)["artifacts"] = arts;
+          (*man)["sky_plane_status"] = "ok";
+          (*man)["sky_plane_artifact"] = sp_path;
+          (*man)["sky_plane_model_hash"] = std::string(spinfo.model_hash);
+          (*man)["sky_plane_n_nodes"] = spinfo.n_nodes;
+          (*man)["sky_plane_n_frames"] = spinfo.n_frames;
+          (*man)["sky_plane_n_used"] = spinfo.n_used;
+          std::fprintf(stderr,
+                       "[sky_plane] ok n_used=%llu n_nodes=%llu n_frames=%llu rms_w=%.6g\n",
+                       static_cast<unsigned long long>(spinfo.n_used),
+                       static_cast<unsigned long long>(spinfo.n_nodes),
+                       static_cast<unsigned long long>(spinfo.n_frames),
+                       spinfo.rms_weighted);
+        }
+      }
+    }
+  }
   return Result<void>::success();
 }
 
@@ -4495,6 +4616,39 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   for (uint64_t i = 0; i < kP2TileLeafSpan; ++i)
     local_lut[i] = astrocs::healpix::fits_index_to_nested_local(i, kP2TileShift, 512u);
 
+  // ── FIX-A 天光面扣除面（P0-09）接入生产 mosaic 链 ─────────────────────────
+  // upm-fit 成功时落盘 p2_sky_plane.bin; 此处 open 并逐像素扣除
+  // b_k(x)=B_ref+δ_k（按需求值, 不建稠密栅格）。文件存在但 open 失败 =
+  // 产物损坏 → DATA fail-closed（禁静默跳过）。
+  void* sky_model = nullptr;
+  {
+    const std::string sky_path = out_dir + "/p2_sky_plane.bin";
+    std::error_code sec;
+    if (std::filesystem::exists(std::filesystem::u8path(sky_path), sec)) {
+      if (p2_sky_plane_open(sky_path.c_str(), &sky_model) != 0 || !sky_model)
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "p2_sky_plane_open failed (corrupted sky plane artifact): " + sky_path));
+    }
+  }
+  struct SkyGuard {
+    void* m;
+    ~SkyGuard() { if (m) p2_sky_plane_close(m); }
+  } sky_guard{sky_model};
+  // 叶级 nside（ra/dec 求值需要）: coverage target_order → nside=2^(order+9)
+  uint32_t nside = 0;
+  if (sky_guard.m) {
+    Json cov_doc;
+    if (!p2_read_json(out_dir + "/p2_coverage.json", &cov_doc))
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "coverage artifact missing (sky plane eval needs target_order): " +
+          out_dir + "/p2_coverage.json"));
+    const int target_order = cov_doc.value("target_order", -1);
+    if (target_order < 0 || target_order > 20)
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "coverage target_order out of range for sky plane eval"));
+    nside = 1u << static_cast<uint32_t>(target_order + 9);
+  }
+
   Json frames_j = Json::array();
   uint64_t total_pixels = 0;
   for (size_t f = 0; f < paths.size(); ++f) {
@@ -4531,6 +4685,9 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     uint64_t tile_offset = 0;
     for (int t = 0; t < n_tiles; ++t) {
       const uint64_t tip = tile_ipix[static_cast<size_t>(t)];
+      // [RELEASE-02 probe] 逐 tile: sky_plane 应用 (库层 eval_block 已计时, 此处补 tile 上下文)
+      ASTROCS_PROBE_SCOPE_CTX(_probe_sky_tile, "phase2", "sky_plane.apply.tile");
+      ASTROCS_PROBE_TAG(_probe_sky_tile, "tile_id", static_cast<unsigned long long>(tip));
       if (aio_hips_read_tile_f32(sig, tip, sig_buf.data()) != 0 ||
           aio_hips_read_tile_f32(sup, tip, sup_buf.data()) != 0) {
         aio_hips_close(sig);
@@ -4539,8 +4696,26 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
             "aio_hips_read_tile_f32 failed (frame " + std::to_string(f) +
             " tile " + std::to_string(tip) + "): " + path));
       }
+      // 天光面求值用逐像素 ra/dec（leaf ipix 只依赖 tile 与局部 LUT, 与帧无关）
+      std::vector<double> tile_ra, tile_dec;
+      if (sky_guard.m) {
+        tile_ra.resize(static_cast<size_t>(kP2TileLeafSpan));
+        tile_dec.resize(static_cast<size_t>(kP2TileLeafSpan));
+        for (uint64_t i = 0; i < kP2TileLeafSpan; ++i) {
+          const uint64_t leaf =
+              (tip << (2 * kP2TileShift)) | local_lut[static_cast<size_t>(i)];
+          astrocs::healpix::pix2ang_nest(
+              nside, leaf, tile_ra[static_cast<size_t>(i)],
+              tile_dec[static_cast<size_t>(i)]);
+        }
+      }
       // valid 像素集（support>0 且 finite）→ 块校正; 无效位置保留 NaN
       uint64_t n_valid = 0;
+      std::vector<double> valid_ra, valid_dec;
+      if (sky_guard.m) {
+        valid_ra.reserve(static_cast<size_t>(kP2TileLeafSpan));
+        valid_dec.reserve(static_cast<size_t>(kP2TileLeafSpan));
+      }
       for (uint64_t i = 0; i < kP2TileLeafSpan; ++i) {
         const double sv = static_cast<double>(sup_buf[static_cast<size_t>(i)]);
         const double xv = static_cast<double>(sig_buf[static_cast<size_t>(i)]);
@@ -4549,12 +4724,30 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
           const uint64_t leaf = (tip << (2 * kP2TileShift)) | local_lut[static_cast<size_t>(i)];
           leaves[static_cast<size_t>(n_valid)] = leaf;
           in_v[static_cast<size_t>(n_valid)] = xv;
+          if (sky_guard.m) {
+            valid_ra.push_back(tile_ra[static_cast<size_t>(i)]);
+            valid_dec.push_back(tile_dec[static_cast<size_t>(i)]);
+          }
           ++n_valid;
         }
       }
       if (n_valid > 0) {
         p2_upm_calibrate_block(model, fid, leaves.data(), in_v.data(),
                                out_v.data(), n_valid);   // 唯一真实校正入口
+        // FIX-A：corrected = (raw − C_k(x) − b_k(x))。b_k 现场求值
+        // （B_ref+δ_k; 越域点不扣, 与 stage2 生产接线同口径）。
+        if (sky_guard.m) {
+          std::vector<double> bvals(static_cast<size_t>(n_valid), 0.0);
+          std::vector<uint8_t> bstat(static_cast<size_t>(n_valid), P2_SKY_EVAL_INVALID);
+          p2_sky_plane_eval_block(sky_guard.m, fid, valid_ra.data(), valid_dec.data(),
+                                  n_valid, bvals.data(), bstat.data());
+          for (uint64_t k = 0; k < n_valid; ++k) {
+            if (bstat[static_cast<size_t>(k)] == P2_SKY_EVAL_OK &&
+                std::isfinite(bvals[static_cast<size_t>(k)]) &&
+                std::isfinite(out_v[static_cast<size_t>(k)]))
+              out_v[static_cast<size_t>(k)] -= bvals[static_cast<size_t>(k)];
+          }
+        }
         // 回填 valid 位置（calibrate_block 按输入序输出; 重新扫描映射）
         uint64_t k = 0;
         for (uint64_t i = 0; i < kP2TileLeafSpan; ++i) {
@@ -4598,9 +4791,13 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   }
 
   const std::string out_path = out_dir + "/p2_corrected.json";
+  const bool sky_applied = (sky_guard.m != nullptr);
   Json artifact = Json{{"schema", "DATA-P2-COR"},
-                       {"entry", "p2_upm_open/p2_upm_calibrate_block"},
+                       {"entry", "p2_upm_open/p2_upm_calibrate_block/p2_sky_plane_eval_block"},
                        {"model_hash", model_doc.value("model_hash", "")},
+                       {"sky_plane_applied", sky_applied},
+                       {"sky_plane_artifact",
+                        sky_applied ? (out_dir + "/p2_sky_plane.bin") : std::string()},
                        {"n_pixels_total", total_pixels},
                        {"tile_leaf_span", kP2TileLeafSpan},
                        {"frames", frames_j}};
@@ -4611,15 +4808,84 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   (*man)["artifacts"] = cor_arts;
   (*man)["corrected_artifact"] = out_path;
   (*man)["n_pixels_total"] = total_pixels;
+  (*man)["sky_plane_applied"] = sky_applied;
   return Result<void>::success();
 }
 
-// ── op: reject_outliers（唯一真实入口 p2_reject_plan_resolve +
+// ── n=2 档外部先验（FIX-REJ §8 方案 A; REJ-kernel §7 接线约定）──────────────
+// **显式 opt-in 辅助（不在生产 AUTO 路由上）**：SD-18（2026-09-18）裁决后
+// astrocs_adaptive_pixel 的 n<=3 走保守 none（不排异 + 加权积分），生产
+// p2_op_reject **不再调用本函数**、不再逐样本填 prior_sigma/prior_sky
+// （原逐像素 31×31 稳健统计粗估 1000-1200s 单线程, 已从生产路径移除）。
+// 保留供显式指定 P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA 的调用方复用；因生产
+// 路径无引用, 以 [[maybe_unused]] 标注（不产生死代码警告）。
+// 对每个 eligible 候选样本, 取该样本所属帧该 tile 内以输出像素为中心的
+// 31×31 邻域（clipped 到 tile 边界）稳健统计:
+//     prior_sky   = 邻域中位数
+//     prior_sigma = 1.4826 × MAD(邻域)
+// 中位数与 MAD **同源**（同一邻域）; 按 eligibility 紧凑序写出（调用方用
+// src_idx 对齐, 禁止用 compact index 猜 original slot）。
+// 任一 eligible 样本邻域有效像素 < kMinValid → 返回 false（调用方不传先验
+// 数组; plan.extreme_prior.center_mode=0 ⇒ kernel fail-closed 为
+// UNDERDETERMINED, 绝不回退候选栈中位数 —— 那会把 n=2 单离群排异反转成
+// 全接受）。tile_span 必须 = 512×512（标准 HiPS tile）。
+[[maybe_unused]] static bool p2_reject_local_prior(
+    const double* frame_major, uint64_t tile_span, std::uint32_t depth,
+    uint64_t pixel, const std::uint32_t* src_idx, std::uint32_t eligible_count,
+    double* out_sky, double* out_sigma) {
+  constexpr int kHalf = 15;      // 31×31
+  constexpr int kTw = 512;
+  constexpr int kMinValid = 9;   // 至少 3×3 有效邻域样本
+  if (frame_major == nullptr || src_idx == nullptr || out_sky == nullptr ||
+      out_sigma == nullptr || tile_span != static_cast<uint64_t>(kTw) * kTw)
+    return false;
+  const int x0 = static_cast<int>(pixel % static_cast<uint64_t>(kTw));
+  const int y0 = static_cast<int>(pixel / static_cast<uint64_t>(kTw));
+  std::vector<double> buf;
+  buf.reserve(static_cast<size_t>(2 * kHalf + 1) * (2 * kHalf + 1));
+  for (std::uint32_t s = 0; s < eligible_count; ++s) {
+    const std::uint32_t slot = src_idx[s];
+    if (slot >= depth) return false;
+    const double* plane = frame_major + static_cast<size_t>(slot) * tile_span;
+    buf.clear();
+    for (int dy = -kHalf; dy <= kHalf; ++dy) {
+      const int yy = y0 + dy;
+      if (yy < 0 || yy >= kTw) continue;
+      const double* row = plane + static_cast<size_t>(yy) * kTw;
+      for (int dx = -kHalf; dx <= kHalf; ++dx) {
+        const int xx = x0 + dx;
+        if (xx < 0 || xx >= kTw) continue;
+        const double v = row[xx];
+        if (std::isfinite(v)) buf.push_back(v);
+      }
+    }
+    if (buf.size() < static_cast<size_t>(kMinValid)) return false;
+    const size_t mid = buf.size() / 2;
+    std::nth_element(buf.begin(), buf.begin() + static_cast<std::ptrdiff_t>(mid),
+                     buf.end());
+    const double med = buf[mid];
+    for (size_t i = 0; i < buf.size(); ++i) buf[i] = std::fabs(buf[i] - med);
+    std::nth_element(buf.begin(), buf.begin() + static_cast<std::ptrdiff_t>(mid),
+                     buf.end());
+    const double mad = buf[mid];
+    const double sigma = 1.4826 * mad;
+    if (!std::isfinite(med) || !std::isfinite(sigma) || !(sigma > 0.0))
+      return false;
+    out_sky[s] = med;
+    out_sigma[s] = sigma;
+  }
+  return true;
+}
+
+// ── op: reject_outliers（唯一真实入口 p2_reject_plan_resolve_n +
 //      p2_collect_candidate_stack + p2_reject_stack_ex; AUTO 只在 planning
-//      层解析（wbpp_current group-level 一次解析, nominal=全链帧数）;
-//      kernel 永不执行 AUTO）。rejected_low/high 语义 = threshold 侧
-//      计数（禁原始值符号）; n<=underdetermined_n → UNDERDETERMINED
-//      全接受并记录。──
+//      层解析。**逐输出像素几何 n 路由**（DESIGN §4.5）: n = 该像素被多少帧
+//      footprint 覆盖（各帧 support 层 >0 计数; coverage 覆盖图）, 按 n 缓存
+//      plan; 不得用 frames.size()（整组帧数）, 不得用资格/掩膜后
+//      eligible_count（n_eff）。n<=3 走保守 none（不排异 + 加权积分, SD-18）,
+//      无逐像素先验计算。kernel 永不执行 AUTO）。rejected_low/high 语义 =
+//      threshold 侧计数（禁原始值符号）; eligible<=underdetermined_n →
+//      UNDERDETERMINED 全接受并计入 provenance underdetermined_pixels。──
 Result<void> p2_op_reject(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
   Json cor_doc;
@@ -4634,18 +4900,58 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
         "corrected artifact frames invalid"));
   const uint64_t tile_span = cor_doc.value("tile_leaf_span", kP2TileLeafSpan);
 
-  // wbpp_current group-level 一次解析（kernel 域禁 AUTO）
-  P2RejectionPlanRequest req{};
-  req.request = P2_REJECT_AUTO;
-  req.nominal_contributors = static_cast<std::uint32_t>(frames.size());
-  const std::string profile = doc.value("reject_profile", std::string("wbpp_current"));
-  req.profile = profile.c_str();
-  req.underdetermined_n = 2;
-  P2RejectionPlan plan{};
-  char perr[256] = {0};
-  if (p2_reject_plan_resolve(&req, &plan, perr, sizeof(perr)) != 0)
+  if (tile_span != kP2TileLeafSpan)
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        std::string("p2_reject_plan_resolve failed: ") + perr));
+        "corrected artifact tile_leaf_span != 512*512 (geometric n / 31x31"
+        " prior require standard HiPS tiles): " + std::to_string(tile_span)));
+
+  // ── DESIGN §4.5：按**逐输出像素几何 n** 路由（唯一路由依据）──
+  // n = 该输出像素被多少帧 footprint 覆盖（各帧 support 层 >0 的帧计数;
+  // coverage 覆盖图）。**不得**用 frames.size()（整组帧数, 全图一个值 ⇒
+  // 等价于不按像素路由）, **不得**用资格/掩膜后的 eligible_count（n_eff）。
+  // p2_reject_plan_resolve_n 是 (profile, request, n, underdetermined_n) 的
+  // 纯函数 ⇒ 按 n 缓存 plan（最多 n_max 档, 1/N worker 一致）。
+  const std::string profile =
+      doc.value("reject_profile", std::string(P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL));
+  P2RejectionPlanRequest req{};
+  req.request = P2_REJECT_AUTO;   // AUTO 仅在 planning 层解析, 永不进 kernel
+  req.profile = profile.c_str();
+  req.underdetermined_n = 0;      // 0 = profile 默认（pixel=3: n<=3 保守 none;
+                                  // wbpp/adaptive=2 冻结不变, SD-18）
+  req.nominal_contributors = 0;   // 逐像素覆盖; resolve_n 传 geom_n
+  const std::uint32_t n_max = static_cast<std::uint32_t>(frames.size());
+  std::map<std::uint32_t, P2RejectionPlan> plan_cache;   // geom_n → plan
+  for (std::uint32_t n = 0; n <= n_max; ++n) {
+    P2RejectionPlan p{};
+    char perr[256] = {0};
+    if (p2_reject_plan_resolve_n(n, &req, &p, perr, sizeof(perr)) != 0)
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          std::string("p2_reject_plan_resolve_n(n=") + std::to_string(n) +
+          ") failed: " + perr));
+    // 显式 opt-in 保护（AUTO 默认路由永不含 extreme_prior；若调用方把
+    // request 改成显式先验档, 仍强制外部 prior_sky）：center_mode=1 在
+    // prior_sky 缺失时回退候选栈中位数 ⇒ 单离群使两侧同时超阈 → 全拒 →
+    // n<=4 全接受容错 ⇒ 排异被反转。强制 center_mode=0：缺先验即 kernel
+    // fail-closed（UNDERDETERMINED）, 绝不静默回退栈中位数。
+    if (p.method == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA)
+      p.extreme_prior.center_mode = 0;
+    plan_cache.emplace(n, p);
+  }
+  // 各帧 support 层（逐像素几何 n 的唯一来源）: corrected 数据面 NaN 无法区分
+  // "无覆盖"与"覆盖但信号非有限", 故不得以 corrected finiteness 冒充覆盖。
+  std::vector<AioHipsDataset*> fsup(frames.size(), nullptr);
+  for (size_t f = 0; f < frames.size(); ++f) {
+    const std::string p = frames[f].value("hips_path", "");
+    fsup[f] = aio_hips_open(p.c_str(), AIO_HIPS_RD_SUPPORT);
+    if (!fsup[f])
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "frame support product open failed (geometric n source): " + p +
+          " -- " + aio_hips_reader_last_error()));
+  }
+  struct SupGuard {
+    std::vector<AioHipsDataset*>* v;
+    ~SupGuard() { for (AioHipsDataset* d : *v) if (d) aio_hips_close(d); }
+  } sup_guard{&fsup};
 
   // 跨帧 tile 对齐: union tile = 各帧 tile 并集（升序）; 帧序 = corrected
   // manifest 帧序（稳定）。bin 布局 per tile: accepted u8 | nrej u16 | candidates u16
@@ -4660,6 +4966,8 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       union_tiles[tip].push_back(TileRef{tip, f, off});
     }
   }
+  // [RELEASE-02 probe] 规模 gauge: 并集 tile 数
+  ASTROCS_PROBE_GAUGE("phase2", "reject.union_tiles", static_cast<double>(union_tiles.size()));
   std::vector<uint8_t> accepted_bin;
   std::vector<uint16_t> nrej_bin, cand_u16;
   // [F-P2-002-02 / B2-A3] 逐样本接受掩码持久化（tile 序拼接; 每 tile
@@ -4670,12 +4978,22 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
   std::vector<uint8_t> sample_mask;
   uint64_t acc_total = 0, rej_low_total = 0, rej_high_total = 0, undet_total = 0;
   uint64_t n_pixels_processed = 0, rej_samples_total = 0;
+  // SD-18：几何 n<=3 保守档（method=NONE, 不排异 + 加权积分）且确有候选的
+  // 像素数。如实计入 provenance stats.underdetermined_pixels（不得看起来像
+  // "排异成功"）。
+  uint64_t undet_low_n_pixels = 0;
+  // opt-in 先验路径已移出生产；保留计数恒 0（artifact schema 稳定）。
+  uint64_t prior_unavailable_pixels = 0;
   Json tiles_j = Json::array();
   uint64_t out_offset = 0, mask_offset = 0;
   std::vector<double> compact_vals;  // kernel 候选栈（工作缓冲）
   std::vector<uint32_t> src_idx;
   std::vector<uint8_t> reasons;
   for (const auto& [tip, refs] : union_tiles) {
+    // [RELEASE-02 probe] 逐 tile 热点: reject
+    ASTROCS_PROBE_SCOPE_CTX(_probe_rej_tile, "phase2", "reject.tile");
+    ASTROCS_PROBE_TAG(_probe_rej_tile, "tile_id", static_cast<unsigned long long>(tip));
+    ASTROCS_PROBE_GAUGE("phase2", "reject.tile_frames", static_cast<double>(refs.size()));
     const uint64_t depth = refs.size();
     if (depth > 255)
       return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -4709,6 +5027,19 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                     tile_span * sizeof(double));
       }
     }
+    // 各帧该 tile 的 support 平面（几何 footprint 覆盖指示: support>0 = 覆盖）;
+    // 逐像素几何 n 由此计数（与掩膜/资格无关）。
+    std::vector<std::vector<float>> sup_tile(depth);
+    for (size_t d = 0; d < depth; ++d) {
+      std::vector<float> sb(static_cast<size_t>(kP2TileLeafSpan), 0.0f);
+      const size_t f = refs[d].frame_idx;
+      if (aio_hips_read_tile_f32(fsup[f], refs[d].tile_ipix, sb.data()) != 0)
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "frame support tile read failed (tile " +
+            std::to_string(refs[d].tile_ipix) + " frame slot " +
+            std::to_string(d) + ")"));
+      sup_tile[d] = std::move(sb);
+    }
     const uint64_t base = out_offset;
     // [F-P2-002-02 / B2-A3] 该 tile 的逐样本掩码块（[s*tile_span+p], 帧 slot 序
     // 与 refs 同序）。默认 0 = 未入栈/未接受; kernel 逐样本 reason 只映射到
@@ -4719,6 +5050,14 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
     for (size_t d = 0; d < depth; ++d)
       frame_slots[d] = static_cast<uint32_t>(refs[d].frame_idx);
     for (uint64_t p = 0; p < tile_span; ++p) {
+      // 该输出像素的几何 n = 覆盖它的帧 footprint 数（support>0; 与掩膜/资格
+      // 无关）。plan 按几何 n 取（纯函数缓存）。
+      std::uint32_t geom_n = 0;
+      for (size_t d = 0; d < depth; ++d) {
+        const float sv = sup_tile[d][static_cast<size_t>(p)];
+        if (std::isfinite(sv) && sv > 0.0f) ++geom_n;
+      }
+      const P2RejectionPlan& plan = plan_cache.at(geom_n);
       // 资格收集（生产 strided 单一路径）: frame-major values, valid/support/
       // quality 传 nullptr（corrected 数据面已保证 support>0; NaN 由 finite 过滤）
       P2EligibilityGatherInput gin{};
@@ -4744,6 +5083,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       uint8_t acc = 1;
       uint16_t nrej = 0;
       const uint16_t cand = static_cast<uint16_t>(eligible_count);
+      // 门 = **逐像素 plan** 的同式判定（几何 n 解析, 资格数判门）
       if (eligible_count > 0 &&
           eligible_count > plan.underdetermined_n &&
           eligible_count >= static_cast<uint32_t>(plan.minimum_n)) {
@@ -4753,6 +5093,10 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
         stack.frame_ids = nullptr;
         stack.count = eligible_count;
         stack.data_type = 1;
+        // SD-18（2026-09-18）：生产路径**不做逐像素 31×31 先验计算**（原
+        // n=2 extreme_prior 档, 粗估 1000-1200s 单线程）。低 n（n<=3）走保守
+        // none：不排异 + 直接加权积分。prior_sigma/prior_sky 保持 nullptr
+        // （仅显式 opt-in 先验档才由调用方提供, 见 p2_reject_local_prior）。
         P2RejectionDecision dec{};
         reasons.assign(eligible_count, 0);
         dec.reasons = reasons.data();
@@ -4788,12 +5132,16 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
             tile_mask[static_cast<size_t>(slot_s) * tile_span + p] = 1;
         }
       }
+      // SD-18：该像素 plan = 保守 none（几何 n<=3）且确有候选 → 未做排异。
+      // 如实计数（void 无候选像素不计, 它们由 candidates=0 表达）。
+      if (plan.method == P2_REJECT_NONE && eligible_count > 0)
+        ++undet_low_n_pixels;
       accepted_bin.push_back(acc);
       nrej_bin.push_back(nrej);
       cand_u16.push_back(cand);
       acc_total += acc;
       if (cand > 0 && (cand <= plan.underdetermined_n ||
-                       cand < static_cast<uint32_t>(plan.minimum_n))) ++undet_total;
+                       cand < static_cast<std::uint32_t>(plan.minimum_n))) ++undet_total;
       ++n_pixels_processed;
     }
     sample_mask.insert(sample_mask.end(), tile_mask.begin(), tile_mask.end());
@@ -4820,15 +5168,40 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       !p2_write_bin(cand_file, cand_u16) || !p2_write_bin(mask_file, sample_mask))
     return Result<void>::fail(Error(ErrorDomain::IO, "rejection bin write failed"));
 
+  // provenance: 逐几何 n 的 plan（method/semantic_id/minimum_n/underdetermined_n/
+  // normalization/nominal_n）。SD-18 后低 n（n<=3）plan.method=NONE
+  // （semantic_id="astrocs.none.v1"）, 生产不再计算逐像素先验 ⇒ fallback=none。
+  Json plans_j = Json::array();
+  for (const auto& kv : plan_cache) {
+    const P2RejectionPlan& p = kv.second;
+    plans_j.push_back(Json{{"nominal_n", kv.first},
+                           {"method", p.method},
+                           {"semantic_id", p2_rejection_semantic_id(p.method)},
+                           {"minimum_n", p.minimum_n},
+                           {"underdetermined_n", p.underdetermined_n},
+                           {"normalization", p.normalization}});
+  }
+  const P2RejectionPlan& plan_max = plan_cache.at(n_max);
+  const std::string fallback_token =
+      prior_unavailable_pixels > 0 ? "prior_sigma_unavailable" : "none";
   const std::string out_path = out_dir + "/p2_rejection.json";
   Json artifact = Json{{"schema", "DATA-P2-REJ"},
-                       {"entry", "p2_reject_plan_resolve/p2_collect_candidate_stack/p2_reject_stack_ex"},
+                       {"entry", "p2_reject_plan_resolve_n/p2_collect_candidate_stack/p2_reject_stack_ex"},
                        {"profile", profile},
-                       {"plan", Json{{"method", plan.method},
-                                     {"semantic_id", p2_rejection_semantic_id(plan.method)},
-                                     {"minimum_n", plan.minimum_n},
-                                     {"underdetermined_n", plan.underdetermined_n},
-                                     {"normalization", plan.normalization}}},
+                       // SD-18：低 n（几何 n<=3）保守路径 = 不排异 + 加权积分。
+                       {"low_n_policy", "underdetermined_no_rejection"},
+                       {"low_n_max_n", 3},
+                       // plan = 最大几何 n 档（确定性摘要; 逐 n 全表见 plans）
+                       {"plan", Json{{"nominal_n", n_max},
+                                     {"method", plan_max.method},
+                                     {"semantic_id", p2_rejection_semantic_id(plan_max.method)},
+                                     {"minimum_n", plan_max.minimum_n},
+                                     {"underdetermined_n", plan_max.underdetermined_n},
+                                     {"normalization", plan_max.normalization},
+                                     {"fallback", fallback_token}}},
+                       {"plans", plans_j},
+                       {"geometric_n_source", "frame_support_gt0"},
+                       {"prior_unavailable_pixels", prior_unavailable_pixels},
                        {"tile_leaf_span", tile_span},
                        {"n_pixels", n_pixels_processed},
                        {"tiles", tiles_j},
@@ -4836,7 +5209,12 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                                       {"rejected_low", rej_low_total},
                                       {"rejected_high", rej_high_total},
                                       {"rejected_samples", rej_samples_total},
-                                      {"underdetermined_pixels", undet_total}}},
+                                      // SD-18：因几何 n<=3 未做排异的像素数
+                                      // （method=NONE, 不排异 + 加权积分）。
+                                      {"underdetermined_pixels", undet_low_n_pixels},
+                                      // 资格门欠定（eligible<=undet_n 或 <minimum_n）
+                                      // 的像素数，独立于低 n 档。
+                                      {"underdetermined_gate_pixels", undet_total}}},
                        {"files", Json{{"accepted", acc_file},
                                       {"nrej", nrej_file},
                                       {"candidates", cand_file},
@@ -4846,17 +5224,49 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
   (*man)["artifacts"] = Json::array({out_path, acc_file, nrej_file, cand_file, mask_file});
   (*man)["rejection_artifact"] = out_path;
   (*man)["sample_mask"] = mask_file;
-  (*man)["reject_semantic_id"] = p2_rejection_semantic_id(plan.method);
+  (*man)["reject_semantic_id"] = p2_rejection_semantic_id(plan_max.method);
+  (*man)["reject_profile"] = profile;
+  (*man)["reject_geometric_n_source"] = "frame_support_gt0";
+  (*man)["reject_low_n_policy"] = "underdetermined_no_rejection";
+  (*man)["reject_underdetermined_pixels"] = undet_low_n_pixels;
+  (*man)["reject_prior_unavailable_pixels"] = prior_unavailable_pixels;
   (*man)["n_pixels"] = n_pixels_processed;
   return Result<void>::success();
 }
 
+// HiPS properties 文本（"KEY=value\n"）浮点键解析（帧级 SNR 读取）。
+static bool p2_hips_prop_double(AioHipsDataset* ds, const char* key, double* out) {
+  if (!ds || !key || !out) return false;
+  std::vector<char> buf(1 << 16, 0);
+  if (aio_hips_get_properties(ds, buf.data(), static_cast<int>(buf.size())) != 0)
+    return false;
+  const std::string text(buf.data());
+  const std::string k = std::string(key) + "=";
+  size_t pos = 0;
+  while (pos < text.size()) {
+    size_t eol = text.find('\n', pos);
+    if (eol == std::string::npos) eol = text.size();
+    const std::string line = text.substr(pos, eol - pos);
+    pos = eol + 1;
+    if (line.compare(0, k.size(), k) == 0) {
+      try {
+        *out = std::stod(line.substr(k.size()));
+      } catch (...) {
+        return false;
+      }
+      return std::isfinite(*out);
+    }
+  }
+  return false;
+}
+
 // ── op: integrate_frames（唯一真实入口 p2_validate_candidate_weights +
 //      p2_integrate_pixel; 权重面 = DATA-UNC-001 §30.1 目标态合同:
-//      weight_mode=2（科学默认）逐样本 ivar 逆方差, ivar 产品缺失 →
-//      fail-closed（禁 support/snr²/常量 0 伪 variance; 唯一显式出口 =
-//      legacy_allow_weight_fallback=true 的等权降级 + uncertainty_available=
-//      false）; weight_mode=1 等权 + uncertainty_available=false）。
+//      weight_mode=2（科学默认）逐样本 ivar 逆方差。ivar 产品缺失 → 不再等权
+//      降级: 由 HiPS 头帧级 SNR 现场换算逆方差权重（w = SNR²/F_ref² = 1/σ_F²,
+//      weight-chain-report §6）; 权重链未闭合 → DATA 错误 + closure token
+//      （legacy_allow_weight_fallback=true 不再产生成功降级路径）。
+//      weight_mode=1 等权 + uncertainty_available=false）。
 //      ivar_mosaic = Σ ivar_i（帧索引序, 正权样本）; variance = 1/W。──
 Result<void> p2_op_integrate(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
@@ -4894,12 +5304,11 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         " node chain; only 1 (equal) or 2 (ivar) are legal (DATA-UNC-001 §30.1)"));
   const bool allow_fallback = doc.value("legacy_allow_weight_fallback", false);
 
-  // ivar 产品读取（weight_mode=2 必须; 缺失 → fail-closed 或显式降级）。
-  // 审计面（§30.1 unavailable 规则 2 + §20.1）: 逐帧记录 ivar 产品可用性、
-  // 缺失帧数与帧索引、同帧 variance/ 子产品存在性（Phase1 产品面事实），写入
-  // p2_integrated.json 与节点 manifest；显式降级另在 stderr 打红标。禁静默:
-  // 缺 ivar 时只允许 fail-closed 或 legacy_allow_weight_fallback=true 的显式
-  // 等权降级（§20.1/§20.3 红线, SCI-CW §5 生产默认无 fallback）。
+  // ivar 产品读取（weight_mode=2 必须）。ivar 缺失 → **不再等权降级**:
+  // 由 HiPS 头帧级 SNR 现场换算逆方差权重（w = SNR²/F_ref² = 1/σ_F²;
+  // weight-chain-report §6.1）; 权重链未闭合 → DATA 错误 + closure token。
+  // 审计面（§30.1 + §20.1）: 逐帧记录 ivar 可用性/缺失帧索引/同帧 variance
+  // 存在性（Phase1 产品面事实）, 写入 p2_integrated.json 与节点 manifest。
   struct IvarSet {
     AioHipsDataset* ds = nullptr;
     std::string path;
@@ -4909,8 +5318,12 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   std::vector<uint64_t> ivar_missing_frames;
   uint64_t variance_present_frames = 0;
   bool uncertainty_available = false;
-  bool fallback = false;
+  bool fallback = false;   // legacy 等权降级成功路径已删除（恒 false）
   std::string weight_basis = "per_sample_ivar";   // §30.1: w_i = 逐样本 ivar
+  std::string weight_source = "none";             // weight-chain-report §6.1.4
+  bool use_snr_chain = false;                     // ivar 缺失时走 SNR 权重链
+  std::vector<double> snr_weights;                // 逐帧 w = 1/σ_F² [ADU^-2]
+  std::string snr_chain_closure = "not_used";
   if (weight_mode == 2) {
     uint64_t ivar_missing = 0;
     for (size_t f = 0; f < frames.size(); ++f) {
@@ -4930,32 +5343,73 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         }
       }
     }
-    // 故障注入面（ENGINEERING_SPEC §8 可执行负例）: ASTROCS_IVAR_FAULT=
-    // silent_fallback 模拟「缺 ivar 静默等权降级」缺陷 —— 新门必然判红。
-    const char* ivar_fault = std::getenv("ASTROCS_IVAR_FAULT");
-    const bool fault_silent =
-        ivar_fault && std::string(ivar_fault) == "silent_fallback";
     if (ivar_missing > 0) {
-      if (!allow_fallback && !fault_silent) {
-        for (auto& iv : ivar) if (iv.ds) aio_hips_close(iv.ds);
+      // ── 权重链接线（weight-chain-report §6）: HiPS 头帧级 SNR → 逆方差 ──
+      // 键 ASTROCS_FRAME_SNR（通量型 F_ref/σ_F）/ ASTROCS_REFERENCE_FLUX
+      // （组内公共 F_ref）; 键名与 Phase1 写入端尚未冻结（报告未闭合项）。
+      // 任一帧缺键 → 权重链 fail-closed（不静默退化为等权）。
+      for (auto& iv : ivar) { if (iv.ds) { aio_hips_close(iv.ds); iv.ds = nullptr; } }
+      using astrocs::v6::p2weight::FrameWeightInput;
+      using astrocs::v6::p2weight::FrameSnrKind;
+      using astrocs::v6::p2weight::WeightChainResult;
+      std::vector<FrameWeightInput> winputs(frames.size());
+      double ref_flux = 0.0;
+      bool ref_flux_set = false;
+      std::string ref_err;
+      for (size_t f = 0; f < frames.size(); ++f) {
+        const std::string p = frames[f].value("hips_path", "");
+        AioHipsDataset* ds = aio_hips_open(p.c_str(), AIO_HIPS_RD_SIGNAL);
+        double fsnr = 0.0, fref = 0.0;
+        const bool has_snr = ds &&
+            p2_hips_prop_double(ds, "ASTROCS_FRAME_SNR", &fsnr) && fsnr > 0.0;
+        const bool has_ref = ds &&
+            p2_hips_prop_double(ds, "ASTROCS_REFERENCE_FLUX", &fref) && fref > 0.0;
+        if (ds) aio_hips_close(ds);
+        FrameWeightInput& in = winputs[f];
+        in.frame_id = std::to_string(frames[f].value("frame_id", 0ull));
+        // 唯一合法语义: 帧级未加权原始通量型 SNR（质量权重/诊断量会被拒）。
+        in.kind = FrameSnrKind::kFluxTypeUnweightedSnr;
+        in.has_frame_snr = has_snr;
+        in.frame_snr = fsnr;
+        in.sparse = nullptr;   // 稀疏 SNR 层尚未接入生产数据面
+        in.x = 0.0;
+        in.y = 0.0;
+        if (has_ref) {
+          if (!ref_flux_set) { ref_flux = fref; ref_flux_set = true; }
+          else if (std::fabs(fref - ref_flux) > 1e-9 * std::fabs(ref_flux))
+            ref_err = "ASTROCS_REFERENCE_FLUX 逐帧不一致（组内公共通量标度要求）";
+        }
+      }
+      const WeightChainResult wres =
+          astrocs::v6::p2weight::compute_inverse_variance_weights(
+              winputs, ref_flux_set ? ref_flux : 0.0);
+      if (!ref_err.empty() || !wres.ok) {
+        const std::string tok = ref_err.empty()
+            ? std::string(astrocs::v6::p2weight::weight_closure_token(wres.closure))
+            : std::string("unclosed_invalid_reference_flux");
+        const std::string detail = ref_err.empty() ? wres.error : ref_err;
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "weight_mode=2 requires per-frame ivar products; " +
             std::to_string(ivar_missing) + "/" + std::to_string(frames.size()) +
-            " frames missing ivar (DATA-UNC-001 §30.1: no silent fallback;"
-            " set legacy_allow_weight_fallback=true for explicit equal-weight"
-            " degradation with uncertainty_available=false)"));
+            " frames missing ivar; frame-SNR weight chain NOT closed (" + tok +
+            "): " + detail + " (DATA-UNC-001 §30.1: no silent fallback;"
+            " legacy_allow_weight_fallback=true no longer produces a successful"
+            " equal-weight degradation)"));
       }
-      fallback = true;   // §30.1 unavailable 规则 2（显式降级路径）
-      weight_basis = "unit_weight_degraded";
-      for (auto& iv : ivar) { if (iv.ds) { aio_hips_close(iv.ds); iv.ds = nullptr; } }
+      use_snr_chain = true;
+      snr_weights = wres.weights;
+      weight_source = wres.weight_source;
+      weight_basis = "frame_snr_ivar";
+      snr_chain_closure = astrocs::v6::p2weight::weight_closure_token(wres.closure);
+      uncertainty_available = true;   // SNR 权重 = 合法逆方差面
       std::fprintf(stderr,
-                   ("[degrade] weight_mode=2: " + std::to_string(ivar_missing) +
+                   ("[weight_chain] weight_mode=2: " + std::to_string(ivar_missing) +
                     "/" + std::to_string(frames.size()) +
-                    " frames missing ivar -> explicit equal-weight degradation"
-                    " (legacy_allow_weight_fallback=true; uncertainty_available"
-                    "=false; variance_present_frames=" +
-                    std::to_string(variance_present_frames) +
-                    "; DATA-UNC-001 §30.1 unavailable rule 2)\n").c_str());
+                    " frames missing ivar -> HiPS frame-SNR inverse-variance"
+                    " weights (source=" + weight_source + "; closure=" +
+                    snr_chain_closure + "; legacy_allow_weight_fallback=" +
+                    (allow_fallback ? "true(requested,no-op)" : "false") + ")\n")
+                       .c_str());
     } else {
       uncertainty_available = true;
     }
@@ -5039,8 +5493,13 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   if (!rej_tiles.is_array() || rej_tiles.empty())
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "rejection artifact tiles invalid"));
+  // [RELEASE-02 probe] 规模 gauge: 待积分 tile 数
+  ASTROCS_PROBE_GAUGE("phase2", "integrate.tiles", static_cast<double>(rej_tiles.size()));
   for (const auto& rt : rej_tiles) {
     const uint64_t tip = rt.value("tile_ipix", 0ull);
+    // [RELEASE-02 probe] 逐 tile 热点: integrate
+    ASTROCS_PROBE_SCOPE_CTX(_probe_int_tile, "phase2", "integrate.tile");
+    ASTROCS_PROBE_TAG(_probe_int_tile, "tile_id", static_cast<unsigned long long>(tip));
     const uint64_t rej_off = rt.value("offset", 0ull);
     vals.clear(); weights.clear(); supports.clear(); accs.clear();
     // per-frame corrected tile 独立缓冲（tile 生存期; 禁共享 static 缓冲）
@@ -5140,20 +5599,34 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         }
         double w = 1.0;
         if (weight_mode == 2 && !fallback) {
-          // 入栈样本的 ivar 契约检查（§20.1 读侧: ivar==0 合法零权重,
-          // nonfinite/负 = 产品损坏 hard fail, 禁 clamp/skip）
-          if (!has_ivar[d])
-            return Result<void>::fail(Error(ErrorDomain::DATA,
-                "ivar tile read failed where corrected data exists (frame " +
-                std::to_string(slot[d]) + " tile " + std::to_string(tip) + ")"));
-          w = static_cast<double>(ivar_v[d][static_cast<size_t>(p)]);
-          if (!std::isfinite(w) || w < 0.0)
-            return Result<void>::fail(Error(ErrorDomain::DATA,
-                "non-finite/negative input ivar at frame " +
-                std::to_string(slot[d]) + " tile " + std::to_string(tip) +
-                " pixel " + std::to_string(p) +
-                " (DATA-UNC-001 §30.1: p2_validate_candidate_weights hard"
-                " fail, no clamp/no skip)"));
+          if (use_snr_chain) {
+            // ivar 产品缺失 → 帧级 SNR 逆方差权重（w = SNR²/F_ref² = 1/σ_F²,
+            // 逐帧常量; weight-chain-report §6.1）
+            if (slot[d] >= snr_weights.size())
+              return Result<void>::fail(Error(ErrorDomain::DATA,
+                  "frame-SNR weight index out of range (frame " +
+                  std::to_string(slot[d]) + ")"));
+            w = snr_weights[slot[d]];
+            if (!std::isfinite(w) || !(w > 0.0))
+              return Result<void>::fail(Error(ErrorDomain::DATA,
+                  "frame-SNR weight invalid (non-finite/<=0) at frame " +
+                  std::to_string(slot[d]) + " (frame-SNR weight chain)"));
+          } else {
+            // 入栈样本的 ivar 契约检查（§20.1 读侧: ivar==0 合法零权重,
+            // nonfinite/负 = 产品损坏 hard fail, 禁 clamp/skip）
+            if (!has_ivar[d])
+              return Result<void>::fail(Error(ErrorDomain::DATA,
+                  "ivar tile read failed where corrected data exists (frame " +
+                  std::to_string(slot[d]) + " tile " + std::to_string(tip) + ")"));
+            w = static_cast<double>(ivar_v[d][static_cast<size_t>(p)]);
+            if (!std::isfinite(w) || w < 0.0)
+              return Result<void>::fail(Error(ErrorDomain::DATA,
+                  "non-finite/negative input ivar at frame " +
+                  std::to_string(slot[d]) + " tile " + std::to_string(tip) +
+                  " pixel " + std::to_string(p) +
+                  " (DATA-UNC-001 §30.1: p2_validate_candidate_weights hard"
+                  " fail, no clamp/no skip)"));
+          }
         }
         vals.push_back(v);
         weights.push_back(w);
@@ -5233,6 +5706,9 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                        {"entry", "p2_validate_candidate_weights/p2_integrate_pixel"},
                        {"weight_mode", weight_mode},
                        {"weight_basis", weight_basis},
+                       {"weight_source", weight_source},
+                       {"snr_chain_closure", snr_chain_closure},
+                       {"snr_chain_used", use_snr_chain},
                        {"fallback", fallback},
                        {"legacy_allow_weight_fallback", allow_fallback},
                        {"ivar_product_missing_frames", missing_j.size()},
@@ -5260,6 +5736,9 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   (*man)["integrated_artifact"] = out_path;
   (*man)["weight_mode"] = weight_mode;
   (*man)["weight_basis"] = weight_basis;
+  (*man)["weight_source"] = weight_source;
+  (*man)["snr_chain_closure"] = snr_chain_closure;
+  (*man)["snr_chain_used"] = use_snr_chain;
   (*man)["fallback"] = fallback;
   (*man)["legacy_allow_weight_fallback"] = allow_fallback;
   (*man)["ivar_product_missing_frames"] = static_cast<uint64_t>(missing_j.size());
@@ -5506,10 +5985,9 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   (*man)["ivar_product_missing_frames"] = ivar_missing_frames;
   // B2-A10（宪章 §4.3）: 单位/坐标系/输入产品哈希随节点 manifest 上报，
   // 供 run manifest provenance 汇总（Phase2 mosaic 单位 = ADU，
-  // 坐标系 = ICRS（LEDGER-P1 残留②：原写非标准值 equatorial，与 properties
-  // 的 hips_frame=icrs 及 DATA-HIPS-SIGNAL-001 合同分叉）。
+  // 坐标系 = ICRS，P0-19 与 properties 的 hips_frame=equatorial 同源）。
   (*man)["bunit"] = "ADU";
-  (*man)["coordinate_frame"] = "icrs";
+  (*man)["coordinate_frame"] = "equatorial";
   (*man)["input_manifest_hash"] = manifest_hash;
   return Result<void>::success();
 }
@@ -5670,14 +6148,39 @@ struct P1NodeModule : public IModule {
     try {
       Json doc = Json::parse(config_);
       switch (spec_.op) {
-        case P1NodeOp::Calibrate:  r = p1_op_calibrate(doc, &man); break;
-        case P1NodeOp::Cosmetic:   r = p1_op_cosmetic(doc, &man); break;
-        case P1NodeOp::StarPsf:    r = p1_op_star_psf(doc, &man); break;
-        case P1NodeOp::WcsSolve:   r = p1_op_wcs(doc, &man); break;
-        case P1NodeOp::Photometry: r = p1_op_photometry(doc, &man); break;
-        case P1NodeOp::NoiseSnr:   r = p1_op_noise(doc, &man); break;
-        case P1NodeOp::Drizzle:    r = p1_op_drizzle(doc, &man); break;
-        case P1NodeOp::Writer:     r = p1_op_writer(doc, &man); break;
+        // [RELEASE-02 probe] Phase1 七阶段边界 (calibrate/cosmetic/star_psf/wcs/noise/drizzle/writer)
+        case P1NodeOp::Calibrate: {
+          ASTROCS_PROBE_SCOPE("phase1", "calibrate");
+          r = p1_op_calibrate(doc, &man); break;
+        }
+        case P1NodeOp::Cosmetic: {
+          ASTROCS_PROBE_SCOPE("phase1", "cosmetic");
+          r = p1_op_cosmetic(doc, &man); break;
+        }
+        case P1NodeOp::StarPsf: {
+          ASTROCS_PROBE_SCOPE("phase1", "star_psf");
+          r = p1_op_star_psf(doc, &man); break;
+        }
+        case P1NodeOp::WcsSolve: {
+          ASTROCS_PROBE_SCOPE("phase1", "wcs");
+          r = p1_op_wcs(doc, &man); break;
+        }
+        case P1NodeOp::Photometry: {
+          ASTROCS_PROBE_SCOPE("phase1", "photometry");
+          r = p1_op_photometry(doc, &man); break;
+        }
+        case P1NodeOp::NoiseSnr: {
+          ASTROCS_PROBE_SCOPE("phase1", "noise");
+          r = p1_op_noise(doc, &man); break;
+        }
+        case P1NodeOp::Drizzle: {
+          ASTROCS_PROBE_SCOPE("phase1", "drizzle");
+          r = p1_op_drizzle(doc, &man); break;
+        }
+        case P1NodeOp::Writer: {
+          ASTROCS_PROBE_SCOPE("phase1", "writer");
+          r = p1_op_writer(doc, &man); break;
+        }
       }
     } catch (const Json::exception& e) {
       man["error"] = std::string("config value type error: ") + e.what();
@@ -5861,13 +6364,35 @@ struct P2NodeModule : public IModule {
       Json cfg2 = doc;
       cfg2["__workers"] = cap;
       switch (spec_.op) {
-        case P2NodeOp::Coverage:  r = p2_op_coverage(cfg2, &man); break;
-        case P2NodeOp::Sample:    r = p2_op_sample(cfg2, &man); break;
-        case P2NodeOp::UpmFit:    r = p2_op_upm_fit(cfg2, &man); break;
-        case P2NodeOp::UpmApply:  r = p2_op_upm_apply(cfg2, &man); break;
-        case P2NodeOp::Reject:    r = p2_op_reject(cfg2, &man); break;
-        case P2NodeOp::Integrate: r = p2_op_integrate(cfg2, &man); break;
-        case P2NodeOp::Write:     r = p2_op_write(cfg2, &man); break;
+        // [RELEASE-02 probe] Phase2 七阶段边界 (coverage/sample/upm_fit/upm_apply/reject/integrate/write)
+        case P2NodeOp::Coverage: {
+          ASTROCS_PROBE_SCOPE("phase2", "coverage");
+          r = p2_op_coverage(cfg2, &man); break;
+        }
+        case P2NodeOp::Sample: {
+          ASTROCS_PROBE_SCOPE("phase2", "sample");
+          r = p2_op_sample(cfg2, &man); break;
+        }
+        case P2NodeOp::UpmFit: {
+          ASTROCS_PROBE_SCOPE("phase2", "upm_fit");
+          r = p2_op_upm_fit(cfg2, &man); break;
+        }
+        case P2NodeOp::UpmApply: {
+          ASTROCS_PROBE_SCOPE("phase2", "upm_apply");
+          r = p2_op_upm_apply(cfg2, &man); break;
+        }
+        case P2NodeOp::Reject: {
+          ASTROCS_PROBE_SCOPE("phase2", "reject");
+          r = p2_op_reject(cfg2, &man); break;
+        }
+        case P2NodeOp::Integrate: {
+          ASTROCS_PROBE_SCOPE("phase2", "integrate");
+          r = p2_op_integrate(cfg2, &man); break;
+        }
+        case P2NodeOp::Write: {
+          ASTROCS_PROBE_SCOPE("phase2", "write");
+          r = p2_op_write(cfg2, &man); break;
+        }
       }
       }
     } catch (const Json::exception& e) {
@@ -6132,11 +6657,9 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
              {"uncertainty_source",
               src == P3_UNC_VARIANCE ? "variance"
                                      : (src == P3_UNC_IVAR ? "ivar" : "none")}};
-  std::ofstream f(path, std::ios::binary);
-  if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_props.json"));
-  f << props.dump(2) << "\n";
-  f.close();
-  if (!f.good()) return Result<void>::fail(Error(ErrorDomain::IO, "p3_props.json write failed"));
+  // §9 原子提交（临时文件 + fsync + rename）: 不留半成品
+  if (!p2_write_text_atomic(path, props.dump(2) + "\n"))
+    return Result<void>::fail(Error(ErrorDomain::IO, "p3_props.json atomic write failed"));
   (*man)["props_artifact"] = path;
   (*man)["artifacts"] = Json::array({path});
   (*man)["hips_order"] = order;
@@ -6182,11 +6705,9 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
             {"height_px", wcs.height_px},
             {"projection", wcs.projection},
             {"fits_keywords", p3_wcs_fits_keywords(&wcs)}};
-  std::ofstream f(path, std::ios::binary);
-  if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_wcs.json"));
-  f << plan.dump(2) << "\n";
-  f.close();
-  if (!f.good()) return Result<void>::fail(Error(ErrorDomain::IO, "p3_wcs.json write failed"));
+  // §9 原子提交
+  if (!p2_write_text_atomic(path, plan.dump(2) + "\n"))
+    return Result<void>::fail(Error(ErrorDomain::IO, "p3_wcs.json atomic write failed"));
   (*man)["wcs_plan_artifact"] = path;
   (*man)["artifacts"] = Json::array({path});
   return Result<void>::success();
@@ -6197,6 +6718,23 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
 //    唯一 executor 执行 — RT-001) ─
 Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
                             RunContext* ctx) {
+  // ── FZ-P3-MODES / G-P3-MODE: output_mode 生产消费 ──────────────────────
+  // 缺失即拒绝（禁静默按 surface_brightness）; 值域经 p3_resample_check_mode
+  // （§4 显式拒 weight/flux-per-pixel; 仅 surface_brightness 为 resample 语义）。
+  if (!doc.contains("output_mode") || !doc["output_mode"].is_string() ||
+      doc["output_mode"].get<std::string>().empty())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "export config missing output_mode (FZ-P3-MODES: 模式未声明 -> REJECT;"
+        " 禁静默按 surface_brightness)"));
+  {
+    const std::string omode = doc["output_mode"].get<std::string>();
+    const astrocs::phase3::P3ResampleStatus mst =
+        astrocs::phase3::p3_resample_check_mode(omode.c_str());
+    if (mst != astrocs::phase3::P3_RS_OK)
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "output_mode '" + omode + "' rejected by p3_resample_check_mode"
+          " (FZ-P3-MODES; resample 仅实现 surface_brightness)"));
+  }
   P3nGeom g;
   std::string err;
   if (!p3n_geom(doc, &g, &err))
@@ -6457,21 +6995,24 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   // typed artifact: p3_resampled.bin = 平面连续拼接 (f32: sig, cov[, var, ivar])
   const std::string bin_path = g.out_dir + "/p3_resampled.bin";
   {
-    std::ofstream bf(bin_path, std::ios::binary);
-    if (!bf) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_resampled.bin"));
-    bf.write(reinterpret_cast<const char*>(sig.data()),
-             (std::streamsize)sizeof(float) * nelem);
-    bf.write(reinterpret_cast<const char*>(cov.data()),
-             (std::streamsize)sizeof(float) * nelem);
-    if (unc_available) {
-      bf.write(reinterpret_cast<const char*>(var_plane.data()),
-               (std::streamsize)sizeof(float) * nelem);
-      bf.write(reinterpret_cast<const char*>(ivar_plane.data()),
-               (std::streamsize)sizeof(float) * nelem);
-    }
-    bf.close();
-    if (!bf.good())
-      return Result<void>::fail(Error(ErrorDomain::IO, "p3_resampled.bin write failed"));
+    // §9 原子提交（多段流式写 → 临时文件 + fsync + rename）
+    std::string aerr;
+    const size_t nplane = static_cast<size_t>(nelem);
+    const int arc = aio_atomic::write_file_atomic_stream(
+        bin_path,
+        [&](FILE* bf) {
+          bool ok = std::fwrite(sig.data(), sizeof(float), nplane, bf) == nplane &&
+                    std::fwrite(cov.data(), sizeof(float), nplane, bf) == nplane;
+          if (unc_available)
+            ok = ok &&
+                 std::fwrite(var_plane.data(), sizeof(float), nplane, bf) == nplane &&
+                 std::fwrite(ivar_plane.data(), sizeof(float), nplane, bf) == nplane;
+          return ok;
+        },
+        &aerr);
+    if (arc != 0)
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "p3_resampled.bin atomic write failed: " + aerr));
   }
   // 完整性锚: bin 流式 sha256 (禁前缀/假哈希; 大图流式不整载)
   astrocs::crypto::Sha256 bh;
@@ -6502,12 +7043,9 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
            {"uncertainty_missing_pixels", missing_px.load()},
            {"bin", "p3_resampled.bin"},
            {"bin_sha256", bin_sha}};
-  std::ofstream f(json_path, std::ios::binary);
-  if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_resampled.json"));
-  f << res.dump(2) << "\n";
-  f.close();
-  if (!f.good())
-    return Result<void>::fail(Error(ErrorDomain::IO, "p3_resampled.json write failed"));
+  // §9 原子提交
+  if (!p2_write_text_atomic(json_path, res.dump(2) + "\n"))
+    return Result<void>::fail(Error(ErrorDomain::IO, "p3_resampled.json atomic write failed"));
   (*man)["resampled_artifact"] = json_path;
   (*man)["artifacts"] = Json::array({json_path, bin_path});
   (*man)["order_sel"] = order_sel;
@@ -6627,14 +7165,13 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
           {"input_manifest_hash", input_manifest_hash},
           {"hips_id", std::string(prov.hips_id)},
           {"source_sha", source_sha_str},
-          {"coordinate_frame", "icrs"},
+          {"coordinate_frame", "equatorial"},
           {"bunit", res.value("bunit", "ADU")},
           {"algorithm_id", "ALG-P3-004"},
           {"provider", "baseline"}};
-  std::ofstream f(json_path, std::ios::binary);
-  if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_writer.json"));
-  f << wr.dump(2) << "\n";
-  f.close();
+  // §9 原子提交
+  if (!p2_write_text_atomic(json_path, wr.dump(2) + "\n"))
+    return Result<void>::fail(Error(ErrorDomain::IO, "p3_writer.json atomic write failed"));
   // A2 单点键名: 节点 manifest 与 CLI 收集端统一用 output_fits_path
   //（旧节点写 output_fits、CLI 只读 output_fits_path → phase3_output role 恒缺）。
   (*man)["output_fits_path"] = fits_path;
@@ -6650,7 +7187,7 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   (*man)["software_version"] = version_str;
   (*man)["source_sha"] = source_sha_str;
   (*man)["input_manifest_hash"] = input_manifest_hash;
-  (*man)["coordinate_frame"] = "icrs";
+  (*man)["coordinate_frame"] = "equatorial";
   (*man)["bunit"] = res.value("bunit", "ADU");
   return Result<void>::success();
 }
@@ -6731,10 +7268,9 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
            {"algorithm_id", wr.value("algorithm_id", std::string())},
            {"module_build_id", wr.value("module_build_id", std::string())},
            {"provider", wr.value("provider", std::string())}};
-  std::ofstream f(json_path, std::ios::binary);
-  if (!f) return Result<void>::fail(Error(ErrorDomain::IO, "cannot write p3_verify.json"));
-  f << ver.dump(2) << "\n";
-  f.close();
+  // §9 原子提交
+  if (!p2_write_text_atomic(json_path, ver.dump(2) + "\n"))
+    return Result<void>::fail(Error(ErrorDomain::IO, "p3_verify.json atomic write failed"));
   (*man)["verified_artifact"] = json_path;
   (*man)["artifacts"] = Json::array({json_path});
   (*man)["reopen_ok"] = vres.reopen_ok;

@@ -13,8 +13,10 @@
 //      availability 7 域如实报告, 不冒充完成）。
 //   5. DATA-UNC-001 §30: weight_mode=2 逆方差合成（ivar_mosaic=Σivar_i,
 //      variance=1/W, 经 AIO variance 通道 §12.3/§12.4 归约）; ivar 产品缺失
-//      fail-closed（无 fallback, 禁静默）; legacy_allow_weight_fallback=true
-//      显式等权降级 + uncertainty_available=false（不写 variance/ivar 子产品）。
+//      fail-closed（禁静默）—— 由 HiPS 头帧级 SNR 现场换算权重
+//      （w = SNR²/F_ref², weight-chain-report §6），键缺失同样 fail-closed;
+//      RELEASE-02 SD-15 起 legacy_allow_weight_fallback=true 不再产生成功
+//      等权降级（只登记 provenance），故 4e/(c) 断言 fail-closed。
 //   6. 负向/确定性/1-N worker parity/fail-fast 下游 call_count=0。
 //
 // fixture: Phase1 真实链节点（drizzle→writer）产出单帧 HiPS（无 ivar 产品,
@@ -37,6 +39,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -471,36 +474,93 @@ static void test_ivar_chain_real_operation() {
     CHECK(intj.value("schema", "") == "DATA-P2-INT");
     CHECK(intj.value("uncertainty_available", false) == true);
     CHECK(intj.value("fallback", true) == false);
-    // §30.1 oracle: ivar_mosaic = W = Σ ivar_i = 2.0+0.5 = 2.5（覆盖像素）
+    // §30.1 oracle（RELEASE-02 HUB-A ① + SD-18 订正）: ivar_mosaic = W = Σ ivar_i，
+    // 但**只对 kernel 接受的样本**求和 —— reject 已改为逐输出像素几何 n 路由。
+    // SD-18（2026-09-18）：n<=3 走保守 none（不排异 + 加权积分），本 depth=2
+    // fixture 的 n=2 像素全接受；oracle 仍按 p2_rejection_sample_mask.bin 逐样本
+    // 剔除（同一科学口径）。掩码全接受时 W 退化为 2.5；若将来某 n 档产生拒绝，
+    // 该口径如实为 2.0 / 0.5 / NaN（不是放宽）。
     const json& t0 = intj["tiles"][0];
+    // 本 fixture 为单 tile（parent_ipix=0）标准 512×512 叶 tile
+    const uint64_t tile_span = 512ull * 512ull;
     std::vector<double> wsum;
     CHECK(read_bin<double>(intj["files"].value("wsum", ""), t0.value("offset", 0ull),
                            t0.value("n_pixels", 0ull), &wsum));
-    double wsum_min = 1e300, wsum_max = -1e300;
-    uint64_t n_cov = 0;
-    for (double w : wsum) {
-      if (std::isfinite(w)) { wsum_min = std::min(wsum_min, w);
-                              wsum_max = std::max(wsum_max, w); ++n_cov; }
+    // 逐样本接受掩码（reject 产物; 索引 [d*tile_span + p], d=原始帧 slot）
+    std::vector<uint8_t> smask;
+    uint64_t sm_off = 0, sm_depth = 0;
+    std::vector<uint64_t> frame_slots;
+    {
+      json rej;
+      try { rej = json::parse(read_file(man_rej.value("rejection_artifact", ""))); }
+      catch (...) { CHECK(false); }
+      CHECK(rej["files"].contains("sample_mask"));
+      const std::string mp = rej["files"].value("sample_mask", "");
+      std::error_code mec;
+      const uintmax_t msz = fs::file_size(fs::path(mp), mec);
+      CHECK(!mec && msz > 0);
+      if (!mec && msz > 0)
+        CHECK(read_bin<uint8_t>(mp, 0, static_cast<uint64_t>(msz), &smask));
+      CHECK(rej["tiles"].is_array() && rej["tiles"].size() == 1u);
+      if (rej["tiles"].is_array() && rej["tiles"].size() == 1u) {
+        sm_off = rej["tiles"][0].value("sample_mask_offset", ~0ull);
+        sm_depth = rej["tiles"][0].value("depth", 0ull);
+        if (rej["tiles"][0].contains("frame_slots"))
+          for (const auto& s : rej["tiles"][0]["frame_slots"])
+            frame_slots.push_back(s.get<uint64_t>());
+      }
+      CHECK(sm_depth == 2u);
+      CHECK(frame_slots.size() == 2u);
     }
-    CHECK(n_cov > 0);
-    CHECK_MSG(std::fabs(wsum_min - 2.5) < 1e-9 && std::fabs(wsum_max - 2.5) < 1e-9,
-        ("ivar_mosaic must be 2.5 on covered pixels (got [" +
-         std::to_string(wsum_min) + "," + std::to_string(wsum_max) + "])").c_str());
-    // 加权均值 oracle: signal == (2.0·s1c + 0.5·s2c)/2.5（抽查 1000 像素）
+    // 加权均值 oracle: signal == Σ_{accepted} ivar_i·s_i / Σ_{accepted} ivar_i
+    // （逐像素全量核对, 与 integrate 的逐样本剔除同口径）
     std::vector<double> sig, cor1, cor2;
     const std::string c1 = read_file(man_apply.value("corrected_artifact", ""));
     json cor = json::parse(c1);
+    CHECK(cor.value("tile_leaf_span", 0ull) == tile_span);
     CHECK(read_bin<double>(intj["files"].value("signal", ""), t0.value("offset", 0ull),
                            t0.value("n_pixels", 0ull), &sig));
     CHECK(read_bin<double>(cor["frames"][0].value("data_file", ""), 0, 512ull * 512ull, &cor1));
     CHECK(read_bin<double>(cor["frames"][1].value("data_file", ""), 0, 512ull * 512ull, &cor2));
-    for (int k = 0; k < 1000; ++k) {
-      const size_t i = static_cast<size_t>((k * 7919ull) % (512ull * 512ull));
-      if (!std::isfinite(cor1[i]) || !std::isfinite(cor2[i])) continue;
-      const double expect = (kIvar1 * cor1[i] + kIvar2 * cor2[i]) / (kIvar1 + kIvar2);
-      CHECK_MSG(std::fabs(sig[i] - expect) < 1e-9,
-          ("weighted mean oracle mismatch at pixel " + std::to_string(i)).c_str());
-      if (failures) return;
+    const double ivar_by_frame[2] = {kIvar1, kIvar2};
+    const std::vector<double>* cor_by_frame[2] = {&cor1, &cor2};
+    if (smask.size() >= sm_off + 2ull * tile_span && frame_slots.size() == 2u) {
+      for (size_t p = 0; p < wsum.size(); ++p) {
+        const size_t gi = static_cast<size_t>(t0.value("offset", 0ull)) + p;
+        if (gi >= cor1.size() || gi >= cor2.size()) break;
+        bool acc[2] = {false, false};
+        for (size_t d = 0; d < 2u; ++d) {
+          const uint64_t slot = frame_slots[d];
+          if (slot >= 2u) continue;
+          // 逐样本资格 = kernel 接受掩码 ∧ 该样本 corrected 有限（掩码与数据面
+          // 不得漂移: 非有限样本必然 ineligible）
+          acc[slot] =
+              smask[static_cast<size_t>(sm_off + d * tile_span + p)] != 0 &&
+              std::isfinite((*cor_by_frame[slot])[gi]);
+        }
+        double expect_w = 0.0, num = 0.0;
+        for (size_t slot = 0; slot < 2u; ++slot) {
+          if (!acc[slot]) continue;
+          expect_w += ivar_by_frame[slot];
+          num += ivar_by_frame[slot] * (*cor_by_frame[slot])[gi];
+        }
+        if (expect_w > 0.0) {
+          CHECK_MSG(std::fabs(wsum[p] - expect_w) < 1e-9,
+              ("ivar_mosaic must equal sum of accepted ivars (p=" +
+               std::to_string(gi) + " got " + std::to_string(wsum[p]) +
+               " want " + std::to_string(expect_w) + ")").c_str());
+          CHECK_MSG(std::fabs(sig[p] - num / expect_w) < 1e-9,
+              ("weighted mean oracle mismatch at pixel " + std::to_string(gi) +
+               " (got " + std::to_string(sig[p]) + " want " +
+               std::to_string(num / expect_w) + ")").c_str());
+        } else {
+          // 无有效样本（无覆盖 或 样本全部被 kernel 拒绝）⇒ NaN/NaN（禁 0 伪装）
+          CHECK_MSG(std::isnan(wsum[p]) && std::isnan(sig[p]),
+              ("no-eligible-sample pixel must yield NaN signal/wsum (p=" +
+               std::to_string(gi) + ")").c_str());
+        }
+        if (failures) return;
+      }
     }
   }
   // write: variance/ivar 产品 + §30.1 数值面（读回 2.5/0.4 + NaN 角落）
@@ -793,8 +853,12 @@ static void test_negative_and_fallback() {
     // 而非判红; 判据本身不放松, 只是把 abort 变成可读的断言失败）。
     if (ff.failed())
       CHECK(ff.error().message().find("ivar") != std::string::npos);
-    // 4e. legacy_allow_weight_fallback=true → 显式等权降级（unavailable 面）
-    //     → write 只发 signal/support, 不写 variance/ivar 子产品
+    // 4e. legacy_allow_weight_fallback=true **不再产生成功降级路径**
+    //     （RELEASE-02 SD-15 / weight-chain-report §5/§6.3: 该键只登记 provenance,
+    //     模块恒不返回成功等权结果）。缺 ivar 且无 HiPS 帧级 SNR 键
+    //     （ASTROCS_FRAME_SNR/ASTROCS_REFERENCE_FLUX）⇒ 权重链 fail-closed。
+    //     旧断言 "等权降级成功 + weight_basis=unit_weight_degraded" 编码的正是
+    //     被删除的 L3 假绿路径; 正确行为 = 失败且不留任何伪产物。
     const std::string cfg_fb = R"({
       "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
                     (root2 / "F2.hips").string() + R"("],
@@ -802,23 +866,20 @@ static void test_negative_and_fallback() {
       "legacy_allow_weight_fallback": true
     })";
     Result<void> ff2;
-    json wrman = run_p2_chain(reg, cfg_fb, ctx, 7, &ff2);
-    CHECK_MSG(ff2.ok(), ff2.ok() ? "fallback chain ok" : ff2.error().message().c_str());
-    if (ff2.ok()) {
-      json intj;
-      try { intj = json::parse(read_file(out + "/p2_integrated.json")); }
-      catch (...) { CHECK(false); }
-      if (!intj.is_object()) { fs::remove_all(root2); return; }
-      CHECK(intj.value("fallback", false) == true);
-      CHECK(intj.value("uncertainty_available", true) == false);
-      json fin;
-      try { fin = json::parse(read_file(wrman.value("final_artifact", ""))); }
-      catch (...) { CHECK(false); }
-      CHECK(fin.value("uncertainty_available", true) == false);
-      CHECK(fin.value("products", json::array()).size() == 2);   // signal+support
-      CHECK(!fs::exists(fs::path(out + "/variance/properties")));
-      CHECK(!fs::exists(fs::path(out + "/ivar/properties")));
-      CHECK(fin["provenance"].value("ASTROCS_UNCERTAINTY_AVAILABLE", "") == "false");
+    run_p2_chain(reg, cfg_fb, ctx, 7, &ff2);
+    CHECK_MSG(ff2.failed(),
+              "legacy_allow_weight_fallback=true must NOT succeed when ivar and"
+              " frame-SNR keys are absent (fail-closed, no equal-weight degradation)");
+    CHECK_MSG(!fs::exists(fs::path(out + "/p2_integrated.json")),
+              "fail-closed weight chain must not leave a pseudo integrated artifact");
+    CHECK_MSG(!fs::exists(fs::path(out + "/p2_final.json")),
+              "fail-closed weight chain must not leave p2_final.json");
+    if (ff2.failed()) {
+      const std::string msg = ff2.error().message();
+      CHECK_MSG(msg.find("NOT closed") != std::string::npos,
+                ("weight chain must report closure failure: " + msg).c_str());
+      CHECK_MSG(msg.find("legacy_allow_weight_fallback=true") != std::string::npos,
+                ("diagnostic must name the removed degradation exit: " + msg).c_str());
     }
     fs::remove_all(root2, ec);
   }
@@ -1032,7 +1093,9 @@ static void test_ivar001_weight_mode_domain_and_audit() {
     }
   }
 
-  // (c) 显式降级: 审计面必须完整（禁静默）
+  // (c) legacy_allow_weight_fallback=true 不再有成功降级路径（禁静默/禁假绿）
+  //     —— 与 4e 同口径: 缺 ivar 且无 HiPS 帧级 SNR 键 ⇒ 权重链 fail-closed,
+  //     不写 p2_integrated.json / p2_final.json, 不存在 unit_weight_degraded 面。
   {
     const std::string cfg_fb = R"({
       "hips_paths": [")" + (root2 / "F1.hips").string() + R"(", ")" +
@@ -1041,34 +1104,23 @@ static void test_ivar001_weight_mode_domain_and_audit() {
       "legacy_allow_weight_fallback": true
     })";
     Result<void> ff2;
-    json wrman = run_p2_chain(reg, cfg_fb, ctx, 7, &ff2);
-    CHECK_MSG(ff2.ok(), (ff2.failed() ? ff2.error().message() : std::string("fallback chain ok")).c_str());
-    if (ff2.ok()) {
-      json intj;
-      try { intj = json::parse(read_file(out2 + "/p2_integrated.json")); } catch (...) {}
-      CHECK(intj.value("fallback", false) == true);
-      CHECK(intj.value("uncertainty_available", true) == false);
-      CHECK(intj.value("weight_basis", std::string()) == "unit_weight_degraded");
-      CHECK(intj.value("legacy_allow_weight_fallback", false) == true);
-      CHECK(intj.value("ivar_product_missing_frames", -1) == 2);
-      CHECK(intj.contains("ivar_product_missing_frame_indices"));
-      if (intj.contains("ivar_product_missing_frame_indices"))
-        CHECK(intj["ivar_product_missing_frame_indices"].size() == 2u);
-      // 该夹具删除的是 ivar/ 子产品, 同帧 variance/ 仍在 ⇒ 审计面必须如实上报
-      // 「variance 存在但 ivar 缺失」, 且**不得**以 variance 静默替代 ivar
-      // (§20.1 读端打开 AIO_HIPS_RD_IVAR; §20.3 红线; 既有 4d 门同口径)。
-      CHECK_MSG(intj.value("variance_product_present_frames", -1) == 2,
-                "audit must report variance/ presence while ivar/ is missing");
-      CHECK(intj.value("ivar_product_missing_frames", -1) == 2);
-      json fin;
-      try { fin = json::parse(read_file(wrman.value("final_artifact", ""))); } catch (...) {}
-      CHECK(fin.value("weight_mode", 0) == 2);
-      CHECK(fin.value("weight_basis", std::string()) == "unit_weight_degraded");
-      CHECK(fin.value("ivar_product_missing_frames", -1) == 2);
-      CHECK(fin.value("products", json::array()).size() == 2u);   // signal+support
-      CHECK(fin["provenance"].value("ASTROCS_UNCERTAINTY_AVAILABLE", "") == "false");
-      CHECK(!fs::exists(fs::path(out2 + "/variance/properties")));
-      CHECK(!fs::exists(fs::path(out2 + "/ivar/properties")));
+    run_p2_chain(reg, cfg_fb, ctx, 7, &ff2);
+    CHECK_MSG(ff2.failed(),
+              "legacy_allow_weight_fallback=true must fail closed"
+              " (equal-weight degradation success path removed)");
+    CHECK_MSG(!fs::exists(fs::path(out2 + "/p2_integrated.json")),
+              "fail-closed path must not leave a pseudo integrated artifact");
+    CHECK_MSG(!fs::exists(fs::path(out2 + "/p2_final.json")),
+              "fail-closed path must not leave p2_final.json");
+    if (ff2.failed()) {
+      const std::string msg = ff2.error().message();
+      // 审计诊断必须如实说明: ivar 缺失帧数 + 权重链未闭合 + 该键不再是降级出口。
+      CHECK_MSG(msg.find("ivar") != std::string::npos, msg.c_str());
+      CHECK_MSG(msg.find("2/2") != std::string::npos,
+                ("diagnostic must report the missing-frame count: " + msg).c_str());
+      CHECK_MSG(msg.find("NOT closed") != std::string::npos, msg.c_str());
+      CHECK_MSG(msg.find("legacy_allow_weight_fallback=true") != std::string::npos,
+                ("diagnostic must name the removed degradation exit: " + msg).c_str());
     }
   }
 
@@ -1110,6 +1162,89 @@ static void test_ivar001_weight_mode_domain_and_audit() {
   fs::remove_all(root2, ec);
 }
 
+// ── RELEASE-02 SD-15: Phase1 写侧帧级 SNR 键 ────────────────────────────────
+// ASTROCS_FRAME_SNR（帧级**未加权通量型** SNR = F_ref/σ_F; 信噪比不是权重）与
+// ASTROCS_REFERENCE_FLUX（组内公共 F_ref）必须写入 HiPS signal properties ——
+// 这是 Phase2 权重链 w = SNR²/F_ref² = 1/σ_F² 的唯一数据源（键缺失 ⇒ fail-closed）。
+// 本测试用真实 Phase1 drizzle+writer 节点链 + 上游 p1_snr.json sidecar 驱动,
+// 并含负例（snr_reference 非正 ⇒ 两键整体不写, 禁伪造/占位）。
+static void test_p1_frame_snr_keys() {
+  const fs::path root = fs::temp_directory_path() /
+      ("p2001_p1snr_" + std::to_string(P2001_GETPID));
+  std::error_code ec;
+  fs::remove_all(root, ec);
+  fs::create_directories(root, ec);
+  const std::string light = (root / "light_snr.fits").string();
+  StarField sf{100.0f, 5000.0f};
+  CHECK(p1sess::write_fits_file(light, kW, kH, star_field_pixel, &sf) == 0);
+
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const std::string wcs = R"("wcs": {"crpix1": 16.0, "crpix2": 16.0,
+      "crval1": 10.0, "crval2": 20.0,
+      "cd11": -0.0002777777777777778, "cd12": 0.0,
+      "cd21": 0.0, "cd22": 0.0002777777777777778},)";
+
+  auto run_p1 = [&](const std::string& od, const std::string& snr_frame_json,
+                    std::string* props_out) -> bool {
+    fs::create_directories(od, ec);
+    {
+      std::ofstream f((od + "/p1_snr.json").c_str(), std::ios::binary);
+      if (!f.good()) return false;
+      f << R"({"schema":"DATA-P1-SNR","frames":[)" << snr_frame_json << "]}";
+    }
+    const std::string cfg = R"({"input_lights": [")" + light + R"("],
+      "output_dir": ")" + od + R"(",
+      )" + wcs + R"(
+      "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0}})";
+    RunContext ctx;
+    auto drz = reg.create("astrocs.phase1.drizzle");
+    if (drz.failed()) return false;
+    if (drz.value()->validate_config(cfg).failed()) return false;
+    if (drz.value()->plan("p1snr_drz", cfg).failed()) return false;
+    const Result<void> rd = drz.value()->execute(ctx);
+    if (rd.failed()) { std::fprintf(stderr, "P1 snr drizzle failed: %s\n",
+                                    rd.error().message().c_str()); return false; }
+    auto wr = reg.create("astrocs.phase1.writer");
+    if (wr.failed()) return false;
+    if (wr.value()->validate_config(cfg).failed()) return false;
+    if (wr.value()->plan("p1snr_wr", cfg).failed()) return false;
+    const Result<void> rw = wr.value()->execute(ctx);
+    if (rw.failed()) return false;
+    *props_out = read_file(od + "/light_snr/signal/properties");
+    return true;
+  };
+
+  // 正例: 真实上游值 → 两键写入且数值可回读（%.17g round-trip）
+  {
+    const std::string od = (root / "out_ok").string();
+    std::string props;
+    const bool ok = run_p1(od, R"({"file":"light_snr.fits","snr_reference":)"
+                               R"({"snr_f":42.5,"flux_adu":1000.0}})",
+                           &props);
+    CHECK(ok);
+    CHECK_MSG(props.find("ASTROCS_FRAME_SNR=42.5") != std::string::npos,
+              ("Phase1 must write ASTROCS_FRAME_SNR=F_ref/sigma_F; props=" +
+               props).c_str());
+    CHECK_MSG(props.find("ASTROCS_REFERENCE_FLUX=1000") != std::string::npos,
+              ("Phase1 must write ASTROCS_REFERENCE_FLUX=F_ref; props=" +
+               props).c_str());
+  }
+  // 负例: snr_reference 非正/缺失 → 两键整体不写（禁伪造; Phase2 fail-closed）
+  {
+    const std::string od = (root / "out_bad").string();
+    std::string props;
+    const bool ok = run_p1(od, R"({"file":"light_snr.fits","snr_reference":)"
+                               R"({"snr_f":0.0,"flux_adu":0.0}})",
+                           &props);
+    CHECK(ok);
+    CHECK_MSG(props.find("ASTROCS_FRAME_SNR") == std::string::npos &&
+                  props.find("ASTROCS_REFERENCE_FLUX") == std::string::npos,
+              "invalid snr_reference must NOT write fabricated frame-SNR keys");
+  }
+  fs::remove_all(root, ec);
+}
+
 int main() {
   test_ivar_chain_real_operation();
   test_runtime_chain_call_count_1();
@@ -1118,6 +1253,8 @@ int main() {
   test_negative_and_fallback();
   // IVAR-001: weight_mode 域/审计面 + 缺 ivar fail-closed/显式降级门 + 注入面
   test_ivar001_weight_mode_domain_and_audit();
+  // RELEASE-02 SD-15: Phase1 写侧帧级 SNR 键（权重链唯一数据源）
+  test_p1_frame_snr_keys();
   test_determinism();
   test_worker_parity();
   if (failures == 0) {

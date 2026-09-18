@@ -206,7 +206,8 @@ acs_status run_session(const std::string& hips_dir, const std::string& out_dir,
                 "{\"source\":{\"hips_dir\":\"%s\"},\"center\":{\"ra_deg\":%.12f,"
                 "\"dec_deg\":%.12f},\"scale_deg_per_px\":0.01,\"width_px\":%d,"
                 "\"height_px\":%d,\"sampler\":\"%s\",\"longitude_parity\":"
-                "\"east_left\",\"bitpix\":-32,\"output_dir\":\"%s\"}",
+                "\"east_left\",\"bitpix\":-32,"
+                "\"output_mode\":\"surface_brightness\",\"output_dir\":\"%s\"}",
                 hips_dir.c_str(), ra_deg, dec_deg, kW, kH, sampler,
                 out_dir.c_str());
   acs_span_u8 span{};
@@ -736,6 +737,7 @@ static void test_node_worker_parity() {
                      "dec_deg":%.12f},"scale_deg_per_px":0.01,"width_px":%d,
                      "height_px":%d,"sampler":"bilinear",
                      "longitude_parity":"east_left","bitpix":-32,
+                     "output_mode":"surface_brightness",
                      "output_dir":"%s"})",
                   fx.hips.c_str(), ra_v, dec_v, kW, kH, fx.out.c_str());
     const json pc = json::parse(cfgbuf);

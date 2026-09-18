@@ -174,6 +174,7 @@ std::string node_config(const NodeFixture& fx) {
   "sampler": "nearest",
   "longitude_parity": "east_left",
   "bitpix": -32,
+  "output_mode": "surface_brightness",
   "output_dir": "%s"
 })",
                 fx.hips.c_str(), fx.ra, fx.dec, kW, kH, fx.out.c_str());

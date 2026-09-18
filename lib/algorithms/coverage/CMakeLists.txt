@@ -64,6 +64,9 @@ target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infra
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/acr/backends/cuda/bridge)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/acr/scheduler)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/include)
+# RELEASE-02 性能探针头面 (ASTROCS_PROBES 默认 OFF; 未定义时 astrocs/probe.h 的宏
+# 全部为空语句)。独立 configure 不走根图 astrocs_probes target, 故此处显式登记。
+target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/observability/probes/include)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../algorithms/shared)
 # SCI-FIX-AIO (V11-N-01) 连带修: compatibility 目标此前缺 third_party 头路径 ⇒
 # nlohmann/json 落到系统副本 (json_abi_v3_11_3), 而根图目标 (astrocs_hips/aio)

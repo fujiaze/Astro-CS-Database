@@ -518,6 +518,10 @@ struct AioHipsProductSet {
     bool drizzle_prov_set = false;
     double drizzle_pixfrac = 0.0;
     double drizzle_scale_arcsec = 0.0;
+    // RELEASE-02 SD-15 帧级未加权通量型 SNR 键（默认未设置 → properties 不写）
+    bool frame_snr_set = false;
+    double frame_snr = 0.0;        // F_ref/σ_F（信噪比, 非权重）
+    double reference_flux = 0.0;   // 组内公共 F_ref
     // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 五键
     // （全或无: prov_set=false → 五键整体不写, legacy 产品面不变）
     bool prov_set = false;
@@ -1154,6 +1158,17 @@ static bool finalize_image_product(AioHipsProductSet* ps,
         std::snprintf(sc, sizeof(sc), "%.4f", ps->drizzle_scale_arcsec);
         kv.push_back({"ASTROCS_DRIZZLE_SCALE_ARCSEC", sc});
     }
+    // RELEASE-02 SD-15: 帧级未加权通量型 SNR（F_ref/σ_F）与公共参考通量 F_ref。
+    // 唯一消费者 = Phase2 权重链（w = SNR²/F_ref² = 1/σ_F²; weight-chain-report
+    // §6）。全或无: setter 未调用 → 两键整体不写。%.17g 保证 double round-trip
+    // 精确（逐帧 F_ref 一致性门 rtol 1e-9 依赖此精度）。
+    if (ps->frame_snr_set) {
+        char fs[64], rf[64];
+        std::snprintf(fs, sizeof(fs), "%.17g", ps->frame_snr);
+        std::snprintf(rf, sizeof(rf), "%.17g", ps->reference_flux);
+        kv.push_back({"ASTROCS_FRAME_SNR", fs});
+        kv.push_back({"ASTROCS_REFERENCE_FLUX", rf});
+    }
     kv.push_back({"obs_regime", "optical"});
     // META-002: 无真实 passband/系统响应波长范围时不伪造 em_min/em_max
     kv.push_back({"hips_hierarchy", "true"});
@@ -1492,6 +1507,38 @@ int aio_hips_set_drizzle_provenance(AioHipsProductSet* ps,
         ps->drizzle_prov_set = true;
         ps->drizzle_pixfrac = pixfrac;
         ps->drizzle_scale_arcsec = scale_arcsec;
+        return 0;
+
+    }
+    catch (const std::exception &e) {
+        set_error(std::string("exception: ") + e.what());
+        return -1;
+    } catch (...) {
+        set_error("unknown exception");
+        return -1;
+    }
+}
+
+// ── RELEASE-02 SD-15 帧级 SNR setter（ASTROCS_FRAME_SNR/REFERENCE_FLUX）─────
+// 全或无 + 禁伪造: 任一参数非有限/≤0 → 返回非 0 且不置 frame_snr_set。
+int aio_hips_set_frame_snr(AioHipsProductSet* ps, double frame_snr,
+                           double reference_flux)  {
+    // P1 (R9-A) 同款 C 边界异常屏障
+    try {
+        if (!ps) return 1;
+        if (!std::isfinite(frame_snr) || !(frame_snr > 0.0)) {
+            set_error("frame_snr 必须有限且 > 0（帧级未加权通量型 SNR F_ref/σ_F;"
+                      " 非信噪比/非权重不得写入）");
+            return 2;
+        }
+        if (!std::isfinite(reference_flux) || !(reference_flux > 0.0)) {
+            set_error("reference_flux 必须有限且 > 0（组内公共 F_ref; 0 不是"
+                      "\"未知\"哨兵——未知时不得调用本 setter）");
+            return 2;
+        }
+        ps->frame_snr_set = true;
+        ps->frame_snr = frame_snr;
+        ps->reference_flux = reference_flux;
         return 0;
 
     }

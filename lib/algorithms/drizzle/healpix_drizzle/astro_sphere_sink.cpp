@@ -4,12 +4,16 @@
 
 #include "astro_sphere_sink.h"
 
+#include <nlohmann/json.hpp>
+
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -32,6 +36,44 @@ uint32_t phase1_tile_depth(uint32_t nside) {
     if (d < 0) d = 0;
     if (d > 9) d = 9;
     return (uint32_t)d;
+}
+
+// RELEASE-02 SD-15: 由 light 基名派生 frame_key（与 module_adapters
+// p1_frame_key 同口径: 去扩展名 + 字符白名单 alnum/_/-/. → '_'; 空/./.. → "frame"）。
+// 输入为 p1_snr.json 的 file 字段（cleaned_<base>/calibrated_<base>/<base>）。
+std::string phase1_stem_key(const std::string& base_in) {
+    const size_t slash = base_in.find_last_of("/\\");
+    const std::string base =
+        (slash == std::string::npos) ? base_in : base_in.substr(slash + 1);
+    const size_t dot = base.find_last_of('.');
+    const std::string stem =
+        (dot == std::string::npos || dot == 0) ? base : base.substr(0, dot);
+    std::string out;
+    out.reserve(stem.size());
+    for (unsigned char c : stem) {
+        if (std::isalnum(c) || c == '_' || c == '-' || c == '.')
+            out.push_back(static_cast<char>(c));
+        else
+            out.push_back('_');
+    }
+    if (out.empty() || out == "." || out == "..") out = "frame";
+    return out;
+}
+
+// p1_snr.json 的 file 字段是否对应当前帧（frame_key = hips_dir 基名）。
+// 同时试「原样」与「去 cleaned_/calibrated_ 前缀」两种 stem，避免前缀歧义。
+bool phase1_frame_matches(const std::string& file, const std::string& frame_key) {
+    const size_t slash = file.find_last_of("/\\");
+    const std::string base =
+        (slash == std::string::npos) ? file : file.substr(slash + 1);
+    if (phase1_stem_key(base) == frame_key) return true;
+    if (base.rfind("cleaned_", 0) == 0 &&
+        phase1_stem_key(base.substr(8)) == frame_key)
+        return true;
+    if (base.rfind("calibrated_", 0) == 0 &&
+        phase1_stem_key(base.substr(11)) == frame_key)
+        return true;
+    return false;
 }
 
 } // namespace
@@ -296,6 +338,72 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
               std::string(aio_hips_last_error() ? aio_hips_last_error() : "?");
         std::fprintf(stderr, "[sink][phase1] %s\n", err.c_str());
         return false;
+    }
+
+    // ── RELEASE-02 SD-15: 帧级未加权通量型 SNR → HiPS properties ──────────
+    // 值来源 = 上游 snr 节点产物 <output_dir>/p1_snr.json 的该帧
+    // snr_reference.{snr_f,flux_adu}（F_ref/σ_F; ASTROCS_DESIGN §3.4 /
+    // 07_noise_snr.md §4.1）。本帧产品目录 = hips_dir（= <output_dir>/<frame_key>）
+    // ⇒ sidecar 在父目录，按 frame_key 匹配本帧。
+    // 缺失/不匹配/非有限 → **不写键**（Phase2 权重链据此 fail-closed; 禁伪造,
+    // 禁用受天光影响的普通 SNR 代替）。
+    {
+        std::string hd = hips_dir;
+        while (!hd.empty() && (hd.back() == '/' || hd.back() == '\\')) hd.pop_back();
+        const size_t slash = hd.find_last_of("/\\");
+        if (slash != std::string::npos) {
+            const std::string parent = hd.substr(0, slash);
+            const std::string frame_key = hd.substr(slash + 1);
+            std::ifstream sf((parent + "/p1_snr.json").c_str(), std::ios::binary);
+            if (sf) {
+                try {
+                    const nlohmann::json sj = nlohmann::json::parse(
+                        std::string((std::istreambuf_iterator<char>(sf)),
+                                    std::istreambuf_iterator<char>()));
+                    if (sj.is_object() && sj.contains("frames") &&
+                        sj["frames"].is_array()) {
+                        for (const auto& fr : sj["frames"]) {
+                            if (!fr.is_object()) continue;
+                            if (!phase1_frame_matches(
+                                    fr.value("file", std::string()), frame_key))
+                                continue;
+                            double snr = 0.0, fref = 0.0;
+                            if (fr.contains("snr_reference") &&
+                                fr["snr_reference"].is_object()) {
+                                snr = fr["snr_reference"].value("snr_f", 0.0);
+                                fref = fr["snr_reference"].value("flux_adu", 0.0);
+                            }
+                            if (std::isfinite(snr) && snr > 0.0 &&
+                                std::isfinite(fref) && fref > 0.0) {
+                                if (aio_hips_set_frame_snr(ps, snr, fref) != 0) {
+                                    err = "aio_hips_set_frame_snr 失败: " +
+                                          std::string(aio_hips_last_error()
+                                                          ? aio_hips_last_error() : "?");
+                                    aio_hips_abort(ps);
+                                    std::fprintf(stderr, "[sink][phase1] %s\n", err.c_str());
+                                    return false;
+                                }
+                                std::fprintf(stderr,
+                                    "[sink][phase1] frame-SNR keys written:"
+                                    " frame=%s snr=%.10g F_ref=%.10g\n",
+                                    frame_key.c_str(), snr, fref);
+                            } else {
+                                std::fprintf(stderr,
+                                    "[sink][phase1] frame %s: p1_snr.json"
+                                    " snr_reference 非有限/非正 → 不写帧级 SNR 键"
+                                    " (Phase2 权重链 fail-closed)\n",
+                                    frame_key.c_str());
+                            }
+                            break;
+                        }
+                    }
+                } catch (const std::exception& e) {
+                    std::fprintf(stderr,
+                        "[sink][phase1] p1_snr.json 解析失败 (%s) → 不写帧级 SNR 键\n",
+                        e.what());
+                }
+            }
+        }
     }
 
     // tile 按 parent_ipix 升序 (旧 writer 的 parent 升序归约顺序, 决定

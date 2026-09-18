@@ -142,7 +142,11 @@ int main(int argc, char** argv) {
             {"generalized_esd", P2_REJECT_GENERALIZED_ESD},
             {"rcr", P2_REJECT_RCR}, {"percentile", P2_REJECT_PERCENTILE},
             {"median_sigma", P2_REJECT_MEDIAN_SIGMA},
-            {"minmax", P2_REJECT_MINMAX}, {"auto", P2_REJECT_AUTO}};
+            {"minmax", P2_REJECT_MINMAX},
+            // FIX-REJ n=2 档: 已知先验 σ 的极值检验（显式方法, 永不 AUTO 路由）
+            {"extreme_value_clip_prior_sigma",
+             P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA},
+            {"auto", P2_REJECT_AUTO}};
         int request = -1;
         for (const auto& m : kMethods)
             if (req_s == m.n) { request = m.v; break; }

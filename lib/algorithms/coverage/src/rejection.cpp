@@ -1098,19 +1098,21 @@ const char* p2_rejection_semantic_id(int method) {
 }
 
 
-// FIX-REJ §3 AstroCS 自有「按几何 n」内置映射（astrocs_adaptive_pixel）：
-//   n <= 1  → none（单帧/空栈无对照量；provenance 记 UNDERDETERMINED）
-//   n == 2  → extreme_value_clip_prior_sigma（新增；小栈唯一确定性方法）
-//   3..7    → percentile（WBPP auto n<6 ∩ validator 要求 winsorized n>=8）
-//   8..15   → winsorized_sigma
+// AstroCS 自有「按几何 n」内置映射（astrocs_adaptive_pixel）：
+//   n <= 3  → none（SD-18 2026-09-18 裁决：低 n 出现在抖动边缘、最终丢弃，
+//             走保守路径 = 不排异 + 直接加权积分；不为低 n 发明排异方法。
+//             provenance 如实记 underdetermined_no_rejection / UNDERDETERMINED）
+//   4..7    → percentile（WBPP auto n<6 ∩ validator 要求 winsorized n>=8）
+//   8..15   → winsorized_sigma（卫星线去除主力档）
 //   n >= 16 → linear_fit
-// 与 WBPP 的偏离（3 处）已在 FIX-REJ §3 登记：n=2 用先验 σ 极值；
-// 6<=n<=7 用 percentile（消解 WBPP auto 与 validator 自相矛盾）；16<=n<20
-// linear_fit 由调用方发 WARN。本映射**独立命名**，不改变 wbpp_2_9_1 /
-// astrocs_adaptive 的冻结 AUTO 路由。
+// extreme_value_clip_prior_sigma（FIX-REJ §3 n=2 先验 σ 档）保留为**显式
+// opt-in**：不再出现在本映射，仅当调用方显式 request 该方法时执行。
+// 与 WBPP 的偏离（3 处）仍登记：n<=3 用 none（保守不排异；WBPP auto 会套
+// percentile）；6<=n<=7 用 percentile（消解 WBPP auto 与 validator 自相矛盾）；
+// 16<=n<20 linear_fit 由调用方发 WARN。本映射**独立命名**，不改变
+// wbpp_2_9_1 / astrocs_adaptive 的冻结 AUTO 路由。
 static int astrocs_n_map_method(std::uint32_t n) {
-    if (n <= 1u) return P2_REJECT_NONE;
-    if (n == 2u) return P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA;
+    if (n <= 3u) return P2_REJECT_NONE;
     if (n <= 7u) return P2_REJECT_PERCENTILE;
     if (n <= 15u) return P2_REJECT_WINSORIZED_SIGMA;
     return P2_REJECT_LINEAR_FIT;
@@ -1144,12 +1146,20 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     }
     const bool pixel_profile = (profile == P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL);
     P2RejectionPlan p{};
-    // FIX-REJ §3：pixel profile 的 n=2 档由 extreme_prior 承担，故其
-    // underdetermined 下限默认 1（n<=1 仍 UNDERDETERMINED）；其余 profile
-    // 维持冻结默认 2。显式传值优先。
+    // underdetermined_n 默认（显式传值优先）：
+    // - astrocs_adaptive_pixel：显式 request=EXTREME_VALUE_PRIOR_SIGMA
+    //   （opt-in 先验 σ 档）→ 1（使 n=2 能进 kernel，n=1 由 minimum_n=2 拦下）；
+    //   其余（AUTO）→ 3（与 astrocs_n_map_method 的 n<=3 none 保守档一致：
+    //   n<=3 像素记 UNDERDETERMINED，不冒充排异成功）；
+    // - 其余冻结 profile → 2（逐位不变，含显式 extreme_prior）。
+    std::uint32_t undet_default = 2u;
+    if (pixel_profile) {
+        undet_default =
+            (req->request == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA) ? 1u : 3u;
+    }
     p.underdetermined_n = req->underdetermined_n > 0
                               ? req->underdetermined_n
-                              : (pixel_profile ? 1u : 2u);
+                              : undet_default;
     p.normalization = P2_NORMALIZE_MEDIAN_CENTER;  // 默认（WBPP Light:
     // rejectionNormalization=Scale 映射；AstroCS 用 per-pixel robust 域）
     p.normalization_floor = 1e-12;
