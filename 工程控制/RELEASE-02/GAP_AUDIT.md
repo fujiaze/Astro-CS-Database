@@ -345,3 +345,39 @@ bin→p3 与 `p3_r_vis_fixed` 相关 **0.9935**；NEW 反算 pre-sky-plane raw �
 Siril 逐帧**多项式/RBF 背景**（推荐 order 1，明确警告高阶吸收信号）；SWarp 逐帧**网格背景** + 逆方差叠加 + **权重羽化**；
 SCAMP 用重叠源求**相对光度零点**。**共同点：逐帧、局部、独立估背景 + 重叠匹配 + 边界羽化**；
 我们则是**全局共享 `B_ref` + 逐帧平面联合拟合**，且 `B_ref` 被超强惩罚钉平。
+### 9.14 Phase2 剩余瓶颈（PERF-P2B，**决定性**）
+
+**654.5s 分解**：`sample 274s(42%) / upm_apply 145s(22%) / integrate 102s(16%) / reject 59s(9%) / write 27s(4%) / hash尾 43s(6.5%)`。
+
+**核心结论：不是 CPU 计算瓶颈，而是「每次 HiPS tile 读都取进程级 `cfitsio_io_mutex`」把读路径串行化。**
+每阶段墙钟 ≈（锁保护 tile 读次数）× 单次读成本 7–15ms。
+
+**线程维度生效、墙钟维度不生效**：三阶段核数 upm_apply **7.79**、reject **2.51**、integrate **0.75**；
+`thread_id` 已从单值变 **16 值** ⇒ 并行化确实生效；但 integrate 16w(102s) ≈ 1w(104s) **零加速**，reject 仅 3.3×。
+
+**锁争用占比（LD_PRELOAD 互斥探针，未改行为，开销 +2.6%）**：
+- 全部互斥等待 **2791.6 线程·秒**，**cfitsio 全局锁 = 90.3%**：
+  `read_tile_t<float> @ aio_hips_reader.cpp:126` **2036.4s（73.0%）**，7830 次，均 260ms；
+  `aio_hips_open` MOC `@ aio_hips_reader.cpp:216` **483.8s（17.3%）**，1521 次；
+  sampler 自己的 `g_aio_mu`（`sampler.cpp:169/174`）271.3s（9.7%）；
+- **微基准硬证据**：`aio_hips_read_tile_f32` 热缓存 16 线程 **0.93×**（≈完全串行）；
+  **绕过 cfitsio 的 raw `pread` 同数据冷读 16 线程 = 3.0×**（167→508 MB/s）⇒ **磁盘本身能并发，90% 等待是锁强加的**；
+- 锁临界区覆盖 `fits_open→read_pix→fits_close` **全程**。
+
+**⚠️ 两个混淆因子（否则 2.03× 会被误读）**：
+1. 旧基线 `mosaic_out_w1` 的 `sky_plane_applied=false`（rc=6 回退），新构建 `=true`；
+   同 1 worker 下 upm_apply **348s→792s**，主因是 **sky_plane gauge 修复**，**不是 P2-IMPL**；
+   ⇒ **正确的同构建加速比 = 1568.7s(新1w) → 654.5s(新16w) = 2.40×**（扣 hash 尾 2.24×）；
+2. page cache：同配置同构建 sample **冷 274s vs 热 158s**（输入 18GB > 12GB cache，且每跑写 18GB 产物）；
+3. 并行把总 CPU 从 1064.7 抬到 1925.4 core·s（**锁护航空转**）⇒ 资源门 `avg_equivalent_cores 2.74` 的根因。
+
+**下一步优先级（P2B 建议）**：
+| 优先级 | 项 | 预期 | 风险 |
+|---|---|---|---|
+| **P0** | **S3.1**：`p2_op_sample` 双扫描去重（`module_adapters.cpp:4375/:4385`） | 省 **120–137s（~20%）** | **零科学风险** |
+| P1 | **锁无关 tile 读路径**（普通未压缩图像自解析头 + `pread`，压缩/BINTABLE 回退） | 654 → **~400s** | 需位级回归 |
+| P2 | S3.2：pass2 `sampler.cpp:987` / pass3 `:1046` 按 cell 并行（须按 cell 升序拼接） | ≤20s | 低 |
+| P3 | upm_apply sky-plane pix2ang 去冗余（`module_adapters.cpp:4904-4912` 对全 2^18 像素求值，49 帧只覆盖 523 个不同 tile，**重复 10.7×**） | — | 低 |
+
+**不建议**在没有位级回归前动 cfitsio 句柄策略。
+**行号提示**：任务书写的 sample `4339/4349` 已漂移到 **`4375/4385`**。
