@@ -153,7 +153,7 @@ config/
 
 1. **HiPS 文件**（含帧级 SNR）：
    - 帧级 SNR（信噪比）**写入 HiPS 文件头**，是类似 PSF-SNR 的信噪比；
-   - 要求**可靠且独立**：不受天光影响的真实信号/噪声比，作为唯一帧级参考；
+   - 要求**可靠且独立**：信号经独立背景估计与扣除、不被加性天光背景虚高的真实信号/噪声比，作为唯一帧级参考；天光散粒噪声如实计入噪声项；
    - 帧级 SNR 随 HiPS 文件头输出（唯一承载）；
    - 注意：**SNR 是信噪比，不是权重**——权重由 Phase2 逆方差叠加计算。
 2. **结构化 JSON**：
@@ -232,7 +232,7 @@ flowchart TD
 
 - Phase2 **自动检测**输入 HiPS 是否有稀疏 SNR 层：有 → 帧级×帧内；无 → 帧级。
 - **逆方差叠加**：每个天球像素会有很多个源像素输入，利用**每个源像素的 SNR 计算对应权重**（SNR → 逆方差权重），得到最优检测/测光功率——**不是直接用 SNR 加权**。
-- **SNR 与权重的换算**：帧级 SNR 是**未加权的原始信噪比**（真实 PSF 源信号功率/稳健噪声功率，天光作为独立背景分量扣除，不受天光影响），其信号/噪声估计方法学对标 PixInsight 公开文档中的 **PSFSNR**（ratio-of-powers 信噪比）；PixInsight 的 **PSF Signal Weight（PSFSW）是综合图像质量权重**（额外含 FWHM/集中度与背景梯度），不是信噪比，仅在显式 `psfsw_robust` 模式使用。HiPS 是数据库，入库的是客观信噪比，UPM 归一到公共通量尺度后 Phase2 现场换算 `w = 1/σ² = SNR²/F_ref² ∝ SNR²`（PixInsight 官方同样只存信号/噪声元数据、集成时才算权重；详见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 与文献研究包 `docs/research/SNR_WEIGHT_RESEARCH_PACK.md`）。
+- **SNR 与权重的换算**：帧级 SNR 是**未加权的原始信噪比**（真实 PSF 源信号/稳健噪声，通量型口径 `F_ref/σ_F`；信号经独立局部背景估计与扣除、**不被加性天光背景虚高**，天光散粒噪声如实计入 σ_n），其信号/噪声估计方法学对标 PixInsight 公开文档中的 **PSFSNR**（ratio-of-powers 信噪比）；PixInsight 的 **PSF Signal Weight（PSFSW）是综合图像质量权重**（额外含 FWHM/集中度与背景梯度），不是信噪比，仅在显式 `psfsw_robust` 模式使用。HiPS 是数据库，入库的是客观信噪比，UPM 归一到公共通量尺度后 Phase2 现场换算 `w = 1/σ² = SNR²/F_ref² ∝ SNR²`（PixInsight 官方同样只存信号/噪声元数据、集成时才算权重；详见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 与文献研究包 `docs/research/SNR_WEIGHT_RESEARCH_PACK.md`）。
 - **稠密权重是数学表示，工程上按需计算**：
   - 叠加是分块进行的，最小单元可以是一个像素；
   - **不预计算稠密权重、不全部加载到内存**；用到哪个像素的 SNR 就计算哪个；
@@ -530,7 +530,7 @@ L4 通过且 P0 机器门全绿后，由负责人决定发布预览版。
 ## 12. 版本与发布权
 
 - **Alpha 之前：程序与代码中不包含任何版本信息**。当前所有"版本"都只是内部开发助记符，不进入程序、代码与产物。
-- **全部验证通过、可发布 Alpha 时**：在 CLI 的 `--version` 查询命令写为 **`0.1alpha`**；此前不存在任何版本信息。
+- **全部验证通过、可发布 Alpha 时**：在 CLI 的 `--version` 查询命令写为 **`0.0.1alpha`**；此前不存在任何版本信息。
 - 只有**通过验收的 Phase** 才能在 product manifest 标 available；未实现/未验收必须明确报告，不得用命令占位/空输出/文档声明冒充完成。
 - 发布候选至少满足：合同冻结无冲突、追踪无断链、模块可独立加载/验证/卸载、ACR 生产不可达、heavy 无硬编码线程/单线程长计算/持续低利用率/无界内存增长、双平台 CI 通过、`ACCEPTANCE_SPEC.md` 四层验收全部通过（L4 含 M42/Galaxy Center 视觉目检）、P0/P1=0、发布包白名单/哈希/版本/provenance 通过。
 - **最终发布决定只属项目负责人**；Agent 至多声明 `READY_FOR_OWNER_REVIEW`。

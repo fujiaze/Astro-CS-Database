@@ -46,7 +46,7 @@ flowchart TD
 ## 5. 真实数据与 Windows 复验
 
 - 真实数据终验/Windows 复验**不是**每提交自动项（成本高），由负责人按阶段触发；
-- CI 中的合成测试通过 ≠ VERIFIED；VERIFIED 定义见最高设计 §11.4。
+- CI 中的合成测试通过 ≠ VERIFIED；VERIFIED 定义见最高设计 §11.3。
 
 ## 6. 失败处理
 

@@ -39,7 +39,7 @@ flowchart LR
 | variance / ivar | 同一估计量的方差及倒数 | 对该估计目标可以 |
 | source_snr | F_hat/sigma_F | 不直接作帧权重 |
 | depth_m5 | 固定参考 PSF/孔径下 5σ 深度 | 摘要，不作权重 |
-| frame_snr | 帧级**未加权原始信噪比**（非权重）：真实 PSF 源信号功率/稳健噪声功率，方法学对标 PixInsight PSFSNR；天光作独立背景分量扣除，不受天光影响 | 唯一帧级参考；Phase2 归一后现场换算 w=SNR²/F_ref² |
+|  frame_snr | 帧级**未加权原始信噪比**（非权重），通量型口径 `F_ref/σ_F`（Horne 1986）：信号来自 PSF/孔径混合测光减独立局部背景，σ_n 为稳健噪声；方法学对标 PixInsight PSFSNR（信号取数、稳健噪声、独立背景三点），但不逐字套用其功率比式[18] `(Σf)²/σ_n²`，以保证逆方差换算严格成立；信号项不被加性天光背景虚高，天光散粒噪声计入 σ_n | 唯一帧级参考；Phase2 归一后现场换算 w=SNR²/F_ref²=1/σ_F² |
 | point_information | a²PᵀC⁻¹P = 1/Var(F_hat) | 点源目标的严格权重 |
 | psfsw_robust_weight | PixInsight PSFSW 同类的综合图像质量权重（信号×集中度/（稳健噪声×稳健背景），含 FWHM/梯度惩罚） | 显式 psfsw_robust 集成可用；是权重不是信噪比，不是 ivar |
 | sparse_snr_layer | 帧内稀疏控制点 SNR 参考（可选标准层） | 帧内精细参考 |

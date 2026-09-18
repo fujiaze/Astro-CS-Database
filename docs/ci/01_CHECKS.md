@@ -39,6 +39,7 @@
 | CHK-SYNTH-P3 | 科学 | export 合成全链 | 合成全链测试 | P0 |
 | CHK-ISA-EQ | 科学 | baseline/AVX2/AVX-512 等价 | ISA 等价测试 | P1 |
 | CHK-NWORKER | 科学 | 1 vs N worker 数值一致 | 并行一致性测试 | P0 |
+| CHK-E2E-REPRO | 科学 | 天测闭环独立 Oracle 工具自测（closure_metric：同输入两跑必绿 + 负例注入必红；不导入生产代码，WCS 仅用 astropy 重建） | `python3 tools/astrometry/closure_metric.py selftest` | P0 |
 | CHK-SANITIZER | 资源 | ASan/UBSan | sanitizer 构建测试 | P1 |
 | CHK-COVERAGE | 资源 | 覆盖率报告 | 覆盖率工具 | P2（报告） |
 | CHK-RESOURCE | 资源 | 内存/线程/利用率门禁 | 资源监控测试 | P0 |
@@ -57,6 +58,7 @@
 | WIN-CANDIDATE-VALIDATE | 打包 | Windows 候选校验（wf_step） | `python3 ci/wf_step.py --step WINDOWS-VALIDATE-CANDIDATE` | P0 |
 | STD-REG | 标准 | 标准注册表 C1–C8 判据 + 9 场景 fault-inject 负例面 | `python3 ci/run_checks.py --check STD-REG --quiet` | P1 |
 | CHK-REGISTRY-DOC-SYNC | 治理 | 注册表 ↔ 本文件 §2 双向一致（§8） | `python3 ci/run_checks.py --check CHK-REGISTRY-DOC-SYNC --quiet` | P0 |
+| CHK-EXIT-CONSISTENCY | 治理 | 检查器结论与退出码一致（静态扫描：打印 FAIL 必须存在非零退出路径，防 fail-open；含 --self-test） | `python3 tools/quality/check_exit_conclusion_consistency.py --json-out run/ci/exit-consistency.json` | P0 |
 | RESOURCE-GATE-REAL | 资源 | 真实重计算面利用率门（显式 --gate-required + 判定证据） | `python3 ci/resource_monitor.py --timeout 300 …` | P0 |
 | RESOURCE-GATE-REAL-NEG | 资源 | 上项的可执行负例面（串行注入 ⇒ 门必须判红） | `python3 tools/quality/check_resource_gate_real.py --fault-inject serial --seconds 20` | P0 |
 | CHK-KNOWN-FAILURES-BASELINE | 测试 | 版本化已知失败基线门（聚合型，linux-main 末位） | `python3 ci/run_checks.py --check CHK-KNOWN-FAILURES-BASELINE --quiet` | P1 |

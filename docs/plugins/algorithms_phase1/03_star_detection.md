@@ -7,7 +7,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §3.6（硬约束转引 `docs/plugins/algorithms_phase1/**` 与 `docs/science/**`）；检测阈值的冻结定义见 `docs/science/STAR_DETECTION.md:18-19`、`docs/algorithms/STAR_DETECTION_ALGORITHMS.md:36`、`docs/algorithms/GATES_AND_TOLERANCES.md:38-39`
+- 最高设计 `ASTROCS_DESIGN.md` §3.6:195（硬约束转引 `docs/plugins/algorithms_phase1/**` 与 `docs/science/**`）；检测阈值的冻结定义见 `docs/science/STAR_DETECTION.md:18-19`、`docs/algorithms/STAR_DETECTION_ALGORITHMS.md:36`、`docs/algorithms/GATES_AND_TOLERANCES.md:38-39`
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §5（背景、有效性与源检测）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（质心/矩不确定度）
 
