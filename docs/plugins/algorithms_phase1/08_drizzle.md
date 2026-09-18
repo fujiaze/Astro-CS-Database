@@ -31,15 +31,16 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 
 - 同时输出线性算子/足够方差传播信息、support、coverage、validity、相关噪声描述；
 - 重采样是线性算子 `R`：`C_out = R C_in Rᵀ`；只存对角 variance 时必须另存 correlation kernel/scale 或可重建算子摘要；
-- Drizzle 的 signal 单位、源/目标像素面积、pixfrac、归一必须统一；常量面亮度与总积分通量 Oracle 同时成立；
-- pixfrac、像素面积、单位不可隐含。
+- Drizzle 的 signal 单位、源/目标像素面积、pixfrac、归一必须统一；常量面亮度 Oracle（`x_j=B0·A_pixel,j`，`S_p=B0`，全 `pixfrac∈(0,1]`）与条件通量守恒（`Σ_p F_p=pixfrac²·Σ_j x_j`）同时成立；
+- pixfrac、像素面积、单位不可隐含；
+- **legacy 归一禁用于绝对面亮度**：`w=a_jp/A_drop,j`（现 `drizzle_engine.cpp` 实现）在 `pixfrac<1` 偏 `1/pixfrac²`，见 `docs/science/DRIZZLE.md` §5/§7 与 `DISP-DRZ-009`（claim FIX-SCI-DRZ-001）。
 
 ## 5. 配置项
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
 | `order` | —— | —— | HEALPix order（或 HiPS 尺度） |
-| `pixfrac` | 1.0 | —— | drop 收缩因子 ∈(0,1]；默认 1.0 = 严格通量守恒端点（`docs/science/DRIZZLE.md:31`；pixfrac<1 须记 `provenance.flux_conservation_factor=pixfrac²`） |
+| `pixfrac` | 1.0 | —— | drop 收缩因子 ∈(0,1]；默认 1.0 = 严格通量守恒端点（`docs/science/DRIZZLE.md:95-98`；pixfrac<1 须记 `provenance.flux_conservation_factor=pixfrac²`） |
 | `pixel_scale` | —— | arcsec/px | 输出像素尺度（HiPS tile） |
 | `nside` | —— | —— | HEALPix nside（与 order 等价） |
 | `sparse_snr_layer` | false | —— | 是否将稀疏帧内 SNR 层插入 HiPS（来自 noise_snr） |

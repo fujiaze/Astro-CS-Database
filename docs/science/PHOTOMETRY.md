@@ -21,7 +21,7 @@
 | `c` | Tukey 形状参数 `4.685` | 同上 |
 | `sigma_residual` | `MAD(r_inliers)/0.6744897501960817` dex | QA |
 | `sigma_mag` | `2.5·sigma_residual` mag | QA |
-| `mag_tolerance` | 星等一致性阈 `3.0 mag` | `star_matcher.cpp:241` |
+| `mag_tolerance` | 星等一致性阈 `3.0 mag` | `pc_api.cpp:139,398` |
 | `psf_status,qf` | 饱和/质量标志 | `snr_estimator` |
 
 ## 3 物理量和单位
@@ -62,11 +62,11 @@ sigma_mag = 2.5·sigma_residual
 outlier_rate = 1 − |r_inliers|/|r_consistent|
 ```
 
-与 `lib/algorithms/photometry/cpp/src/star_matcher.cpp:21-27,241-248,435-525,552-559` 及 `lib/algorithms/photometry/cpp/src/pc_api.cpp` 一致。
+与 `lib/algorithms/photometry/cpp/src/star_matcher.cpp:21-27,435-525,552-559`（IRLS/Tukey/scale）及 `lib/algorithms/photometry/cpp/src/pc_api.cpp:139,398`（`mag_tolerance=3.0` 实际传入点；`star_matcher.cpp:241-248` 仅为 `psf_valid` 诊断）一致。
 
 ## 6 假设
 
-- Gaia 合成星表（Gaia XP 绝对分光刻度，CALSPEC 溯源）在本模型通带内提供可信参考；**模型通带不含光学系统透过率与大气消光**（未建模项，跨帧会成为帧间系统差）；大气/仪器零点在观测尺度稳定；饱和判据可靠（`psf_status==0` 且无 `SATURATED` 标志）。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S6) -->
+- Gaia 合成星表（**模型通带相对刻度**，锚 Gaia XP 光谱形状；`F_syn=∫F_λTQλdλ` 不含 `1/(hc)` 等绝对归一，常数由 `location` 吸收，故**不宣称绝对通量刻度**）在本模型通带内提供可信参考；**模型通带不含光学系统透过率与大气消光**（未建模项，跨帧会成为帧间系统差）；大气/仪器零点在观测尺度稳定；饱和判据可靠（`psf_status==0` 且无 `SATURATED` 标志）。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S6) -->
 
 ## 7 独立不变量
 

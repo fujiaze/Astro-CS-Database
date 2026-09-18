@@ -2,6 +2,7 @@
 
 > ID: SCI-WCS-001 (SCI-AST-001 别名)  状态: FROZEN (T102 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-WCS-001..  模块: plate_solve (IPV)
 > 变更: 新增 §11a 天测精度外部闭环指标 v1（claim「天测精度外部闭环口径冻结」（编号待前台集中分配），2026-09-17；§1–§15 的公式/不变量/容差零改动）
+> 变更: §5a 像素原点口径订正（claim **FIX-SCI-WCS-001**，2026-09-18；依据 FITS WCS Paper I §2.1.1/§2.1.4、sdet 半整数像素中心与 `ipv_wcs.cpp:942-946`；订正旧「0-based 内部约定 / 常量 1px 平移」标签错误——求解器输出已是 1-based FITS `p`，产品网格/数组下标的单次 `+1` 换算与求解器口径无关；修正锚点；§1–§15 公式/不变量/容差零改动）
 
 ## 1 目的与非目标
 
@@ -71,20 +72,30 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 ### 5a 导出边界桥接条款（STD-F1 合同条款；前台裁决 R-02 方案 b）
 
-- **内部口径（求解器）**：`lib/algorithms/platesolve` 迭代反演与 `trans`/SIP 拟合全程 0-based 自洽约定，
-  收敛像素输出为 `x = u + CRPIX`（即 `u = x − CRPIX`，与 oracle 前向/逆向同口径，
-  `lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:869-872`）。该约定对自身 roundtrip 免疫，故
-  与标准口径的差异**是纯原点平移（常量 1px），不是数学内容差**。
-- **导出口径（FITS）**：以 FITS WCS Paper I §2.1.1 为基础 —— `CRPIX` 为 **1-based** 参考像素，
-  像素坐标 `xp = x + 1`，中间坐标 `(u,v) = CD·(xp − CRPIX) + SIP`（§5）；
-  逆向 `x = CD⁻¹·(ξ,η) + CRPIX − 1`（0-based 回程）。
-- **桥接点（单一，形状明确）**：`lib/algorithms/projection/p3_wcs.cpp` 的 `fits_pixel_1based`
-  （`xp = x + kFitsPixelOrigin`，`kFitsPixelOrigin = 1.0`）与逆桥接 `fits_pixel_0based`；
-  `p3_wcs_pix2world` 与 `p3_wcs_world2pix` **只经该函数对换算**，
-  该文件内再无第二处像素 `+1`。
-- **责任方**：**Phase3 导出边界**（`lib/phase3_session/`）。求解器内部、消费方与诊断工具
-  均按各自既有口径使用，不得再叠加一次 `+1`；第三方工具按 Paper I §2.1.1 以 1-based
-  参考像素配对使用即可与本链混用。
+- **标准口径（FITS WCS Paper I §2.1.1/§2.1.4）**：`CRPIX` 是 **1-based** 参考像素，整数像素号=像素中心
+  （首像素跨 0.5→1.5）；`q_i = Σ_j m_ij (p_j − CRPIX_j)`，参考像素（`q=0`，world==CRVAL）
+  在 1-based `p = CRPIX`（连续像素中心坐标 `x_c = CRPIX − 0.5`）。
+- **求解器口径（既有实现，与 Paper I 逐式一致，不是偏离）**：`lib/algorithms/platesolve` 的
+  `trans`/SIP 拟合自变量是 **sdet 半整数像素中心** `det_x = i + 0.5`（`i` 为 0-based 数组下标；
+  `lib/algorithms/star_detection/src/sdet_api.cpp:546-549`），`u = det_x − w/2`
+  （`lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:943,947` 取 `cx = img_w/2.0`），
+  `CRPIX = w/2 + 0.5`（`lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:158-162`）。因
+  `p = det_x + 0.5 = i + 1`，故 **`u = det_x − w/2 = p − CRPIX` 就是 Paper I §2.1.1 的 `q`**；
+  迭代反演 `out.x = u + CRPIX`（`ipv_wcs.cpp:942-946`）返回的是 **1-based FITS 像素 `p`**
+  （参考像素 `det_x = w/2` ⟺ `p = CRPIX`）。**无 1px 原点差、无"常量 1px 平移"。**
+  `ipv_wcs.h:43,57-60,70-71` 把该输出注释为"0-based FITS 像素"，属**标签错误**（见 §14a claim）。
+- **真正 0-based 的量（仅两处，各施加一次「下标→FITS」换算）**：
+  (i) `p1_sources` 的整数数组下标 `x`（phase1 `StarDetector`），由第三方 astropy `origin=0` 语义
+  `p = x + 1` 换算（`tools/astrometry/closure_metric.py:223`，无额外桥接）；
+  (ii) p3 产品网格下标 `x0`，由 `lib/algorithms/projection/p3_wcs.cpp` 的 `fits_pixel_1based`
+  （`xp = x0 + kFitsPixelOrigin`，`kFitsPixelOrigin = 1.0`）换算。二者是同一「下标→FITS」换算
+  在不同域各一次，**与 ipv 求解器内部口径无关**。
+  `p1_wcs.json` 写出侧（`lib/infrastructure/scheduler/src/module_adapters.cpp:2487-2493`、`:2731-2733`）
+  对 samples 的 0-based `(x,y)` 同样单次 `+1` 后喂 1-based `WcsTan`，并声明
+  `pixel_origin`/`fits_pixel_origin`（`:2555-2557`、`:2811-2813`）。
+- **责任方**：**Phase3 导出边界**（`lib/phase3_session/`）与 `p1_wcs.json` 写出侧负责产品网格/数组
+  下标 → FITS 1-based 的**单次**换算；ipv 求解器内部输出已是 1-based FITS `p`，**不得**再叠加 `+1`
+  （双重桥接 = 恒定 1px 系统偏移）。`wcs_sky_to_pixel_iterative` 当前无生产消费方（仅测试面调用）。
 - **冻结门不变**：Paper I 第三方交叉门 `1e-4 px`（§11）与冻结不变量（§7）**均不变、不放宽**；
   本条不改变任何科学公式、CD/SIP/CRVAL/CRPIX 数值或默认容差。
 
@@ -221,7 +232,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 > 本节只补出处与参考实现，不改动 §5/§5a/§11a 任何公式、常数与容差。
 
-- **WCS 框架与 1-based CRPIX/CRVAL**：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（Paper I；DOI 10.1051/0004-6361:20021326，arXiv:astro-ph/0207407 逐字核验 2026-09-17）§2.1.1 式(1) q_i=Σ_j m_ij(p_j−r_j)（r_j=CRPIX_j）与 §2.1.4（整数像素号=像素中心，首像素 0.5→1.5）。**据此，CRPIX 处 world==CRVAL 在 1-based 下无需额外 +1**；本文件 §5a 的“0-based/常量 1px 平移”叙述与 Paper I 及实现（ipv_wcs.cpp:944-945 out.x=u+CRPIX）不符，已在 run/RELEASE-01/science/SCI-S2-topics.md §3-2 登记（finding WCS-003-F1），待变更 claim 处理。
+- **WCS 框架与 1-based CRPIX/CRVAL**：Greisen, E. W. & Calabretta, M. R. 2002, A&A 395, 1061（Paper I；DOI 10.1051/0004-6361:20021326，arXiv:astro-ph/0207407 逐字核验 2026-09-17）§2.1.1 式(1) q_i=Σ_j m_ij(p_j−r_j)（r_j=CRPIX_j）与 §2.1.4（整数像素号=像素中心，首像素 0.5→1.5）；参考像素（world==CRVAL）在 1-based `p = CRPIX`（连续中心 `x_c = CRPIX − 0.5`）。**据此，本文件 §5a 的旧「0-based 内部约定 / 常量 1px 平移」叙述是标签错误**：求解器拟合自变量是 sdet 半整数像素中心 `det_x = i+0.5`，`u = det_x − w/2 = p − CRPIX` 即 Paper I 的 `q`，迭代反演 `x = u + CRPIX = p` 已是 1-based FITS；`ipv_wcs.h:43,57-60,70-71` 注释与旧 §5a 已订正（finding WCS-003-F1 → claim **FIX-SCI-WCS-001**，doc/comment-only，无数值/容差/代码改动）。
 - **TAN 投影与 celestial↔native 旋转/LONPOLE**：Calabretta, M. R. & Greisen, E. W. 2002, A&A 395, 1077（Paper II）§2.1/§2.2/Table 1。
 - **SIP A/B/AP/BP 约定**：Shupe, D. L. et al. 2005, ASP Conf. Ser. 347, 491（bibcode 2005ASPC..347..491S）。**核验状态**：bibcode 级。
 - **可执行标准与独立 Oracle**：WCSLIB（LGPL-3.0，官方 https://www.atnf.csiro.au/people/mcalabre/WCS/ ；镜像 Punzo/wcslib SPDX=LGPL-3.0）；astropy.wcs（BSD-3-Clause，https://github.com/astropy/astropy）≥7.0.1；ERFA（BSD-3-Clause 类，liberfa/erfa）。

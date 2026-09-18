@@ -29,7 +29,7 @@
 ## 1 目的与非目标
 
 - **目的**：把符合支持子集的图像 HiPS（HEALPix 层次球面 tile）重投影为用户指定天区/投影/像元尺度/宽高的二维 FITS image，带合法 FITS-WCS header、coverage 与可追溯 metadata（控制包 13 §2 冻结定义）。
-- **非目标（alpha 显式拒绝项）**：多通道/RGBA HiPS；JPEG/PNG 等 lossy/display-stretch tile；int+BLANK tile；variance/weight/ivar 输入产品；flux-per-pixel 输入模式；SIN/CAR 等非 TAN 投影；极近极点视场；GUI。
+- **非目标（alpha 显式拒绝项）**：多通道/RGBA HiPS；JPEG/PNG 等 lossy/display-stretch tile；int+BLANK tile；weight/support 输入产品；flux-per-pixel 输入模式；SIN/CAR 等非 TAN 投影；极近极点视场；GUI。**（variance/ivar 子产品输入为例外：按 §9a-10 必须显式消费传播，不属拒绝项——DATA-UNC-001 更新块。）**
 
 ## 2 符号表
 
@@ -144,7 +144,7 @@ coverage（SCI-FIX-PROJ 订正：与 §8「tile 内 NaN」行的互斥解除）:
    不作逐位断言）两种；**alpha 默认=bilinear**。
 8. **SB/flux/未知输入**：tile 值=面亮度（HiPS image 语义）；**flux-per-pixel 输入不支持→显式拒绝**（不做面积换算，禁止默认混淆 flux 与 SB）。
 9. **NaN/missing/coverage/mask/alpha channel/blank**：§5/§8——coverage 二值 mask；NaN 传播；missing tile=无覆盖+provenance；alpha channel HiPS 与 BLANK int tile 显式拒绝。
-10. **variance/weight/support 输入**：**不支持→显式拒绝**（HiPS-var/权重 tile 不得静默丢弃）；输出仅 `S+coverage`（+provenance）。
+10. **variance/ivar/support 输入（DATA-UNC-001 更新块口径）**：Phase3 输入 HiPS **含 variance/ivar 子产品时必须显式消费传播**（输出 `VARIANCE`/`IVAR` 扩展 HDU），两者皆无时显式 `unavailable`（不静默）；唯一权威 = `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（Phase3 节，DATA-P3-UNC-001）+ `docs/contracts/DATA_SEMANTICS.md` §30.4。**weight/support tile 输入仍不支持→显式拒绝**（不得静默丢弃）；flux-per-pixel 输入仍显式拒绝（§9a-8）。
 11. **FITS 关键字**：`BITPIX=-32/-64`；`BSCALE=1,BZERO=0`；`BUNIT` 按 properties（缺省 'ADU'）；WCS=`CRPIX/CRVAL/CD1_1,1_2,2_1,2_2/CTYPE=TAN/CUNIT=deg`；`HISTORY+provenance`（源 HiPS 标识/order_sel/sampler/软件版本/manifest hash）必写。
     `CRVAL=(center.RA, center.Dec)` 且**两个分量都进映射**；LONPOLE 取 Paper II 标准默认
     （δ0≥θ0 ⇒ 0° 否则 180°），读方无需额外关键字即可复现。
