@@ -46,6 +46,20 @@ struct P2Stage2Config {
     int use_ivar_weight = 1;
     int max_irls_iterations = 100;
     double tolerance = 1e-6;
+    // FIX-A 稀疏天光面链（P0-08/09/10）：观测外采样点联合拟合
+    // b_k(x)=B_ref(x)+delta_k(x)，应用 corrected=(raw-C-b_k)/g_k。
+    // 缺省关闭：保持 RELEASE-01 加性 C 场行为不变（基线 447 不回归）。
+    // 生产 config 模板显式 sky_plane.enabled=true / frame_gain=true 启用目标模型；
+    // 由 FIX-C/E2E 启用并重验 L4。代码路径已完整接线，非空壳。
+    bool   sky_plane_enabled = true;
+    int    sky_plane_spline_degree = 3;
+    double sky_plane_node_spacing_deg = 1.0;
+    int    sky_plane_gradient_order = 1;
+    int    sky_plane_gauge_mode = 0;
+    int    sky_plane_weight_mode = 0;
+    double sky_plane_roughness_penalty = 1e-3;
+    // 乘法响应 g_k（v6 UPM MA 求解器）接入主链；build 失败时显式 g=1 降级。
+    bool   frame_gain_enabled = true;
     // integration
     int precision = 0;
     std::uint64_t memory_limit_mb = 24576;

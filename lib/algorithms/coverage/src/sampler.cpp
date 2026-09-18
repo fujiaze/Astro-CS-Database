@@ -315,6 +315,8 @@ P2SamplerConfig p2_sampler_default_config(void) {
     c.background_neighbor_radius = 2;
     c.background_catalog_veto = 1;
     c.control_k_corr = kControlCorrDefault;
+    c.star_mask_snr_factor = 10.0;      // 与 catalog veto 同口径
+    c.star_mask_radius_deg = 0.012;     // 与 veto 半径同口径
     c.cpu_workers = 1;                  // 默认 1(串行 reference); 生产由 p2_session 传 lease
     return c;
 }
@@ -480,6 +482,12 @@ static int p2_sample_controls_impl(
                       P2SampleStats* out_stats,
                       P2ControlNode* out_controls,
                       std::uint64_t ctrl_capacity,
+                      P2SkySample* out_sky,
+                      std::uint64_t sky_capacity,
+                      std::uint64_t* out_n_sky,
+                      P2StarMaskCap* out_mask,
+                      std::uint64_t mask_capacity,
+                      std::uint64_t* out_n_mask,
                       char* err, std::size_t err_size) {
     if (!coverage || !hips_paths || !out_n_obs || !out_n_controls) {
         if (err && err_size) std::snprintf(err, err_size, "bad args");
@@ -487,6 +495,8 @@ static int p2_sample_controls_impl(
     }
     *out_n_obs = 0;
     *out_n_controls = 0;
+    if (out_n_sky) *out_n_sky = 0;
+    if (out_n_mask) *out_n_mask = 0;
     P2SampleStats stats{};
     P2SamplerConfig cfg = p2_sampler_default_config();
     if (cfg_in) cfg = *cfg_in;
@@ -500,6 +510,8 @@ static int p2_sample_controls_impl(
     if (cfg.background_min_retained_fraction <= 0.0)
         cfg.background_min_retained_fraction = 0.60;
     if (cfg.background_tolerance <= 0.0) cfg.background_tolerance = 3.0;
+    if (!(cfg.star_mask_snr_factor > 0.0)) cfg.star_mask_snr_factor = 10.0;
+    if (!(cfg.star_mask_radius_deg > 0.0)) cfg.star_mask_radius_deg = 0.012;
     if (cfg.background_neighbor_radius <= 0)
         cfg.background_neighbor_radius = 2;
     if (cfg.control_k_corr <= 0.0)
@@ -608,6 +620,11 @@ static int p2_sample_controls_impl(
     // E 可选 SNR catalogue veto
     // 同一 control ≥2 帧 clean 观测才进入 UPM（相对光度约束）
     std::vector<P2ControlObservation> obs;
+    // P0-08 天光采样点/星点掩膜输出（声明在 try 外，供函数尾部输出）
+    const bool want_sky = (out_n_sky != nullptr);
+    const bool want_mask = (out_n_mask != nullptr);
+    std::vector<P2SkySample> sky;
+    std::vector<P2StarMaskCap> mask;
     std::uint64_t control_id = 0;
     const int grid = cfg.control_grid_per_tile;
     const int cell_side = kTileWidth / grid;
@@ -1026,7 +1043,8 @@ static int p2_sample_controls_impl(
         }
     }
 
-    // 第三遍：≥2 帧 clean 的 control 才输出观测
+    // 第三遍：≥2 帧 clean 的 control 才输出观测；
+    // 同时输出 sky_samples（每帧全部 clean 采样点，**含单帧区**，P0-08）。
     for (std::size_t ci = 0; ci < cells.size(); ++ci) {
         const CellStat& cs = cells[ci];
         int nclean = 0;
@@ -1039,6 +1057,20 @@ static int p2_sample_controls_impl(
             if (!cs.accepted[fi]) {
                 if (cs.reason[fi] == 2) ++stats.rejected_insufficient_retained;
                 continue;
+            }
+            if (want_sky) {
+                P2SkySample sk{};
+                sk.frame_id = fid_cache[static_cast<std::size_t>(cs.frames[fi])];
+                sk.control_id = static_cast<std::uint64_t>(ci);
+                sk.ra_deg = cs.ra;
+                sk.dec_deg = cs.dec;
+                sk.value = cs.m[fi];
+                sk.variance = cs.cvar[fi];
+                // 点 SNR = 该点背景估计自身的信噪比 |value|/σ；无局部 SNR
+                // 时置 NO_LOCAL_SNR 标记（帧级回退由消费方决定）。
+                sk.snr = (cs.unc[fi] > 0.0) ? std::fabs(cs.m[fi]) / cs.unc[fi] : 0.0;
+                sk.flags = cs.snr_avail[fi] ? P2_SKY_FLAG_NONE : P2_SKY_FLAG_NO_LOCAL_SNR;
+                sky.push_back(sk);
             }
             if (nclean < 2) {
                 ++stats.rejected_lt_two_clean_frames;
@@ -1077,6 +1109,33 @@ static int p2_sample_controls_impl(
             obs.push_back(o);
             ++stats.accepted_observations;
             ++stats.candidate_observations;
+        }
+    }
+
+    // 星点掩膜（P0-08）：跨帧去重的球面圆帽（位置量化 1e-4 deg）。
+    if (want_mask) {
+        std::map<std::pair<long long, long long>, double> uniq;
+        for (std::uint64_t i = 0; i < n_frames; ++i) {
+            const FrameData& fr = frames[i];
+            if (fr.snr.empty()) continue;
+            const double thr = cfg.star_mask_snr_factor * frame_snr_med[i];
+            for (std::size_t j = 0; j < fr.snr.size(); ++j) {
+                if (!std::isfinite(fr.snr[j]) || !(fr.snr[j] > thr)) continue;
+                const long long qra = std::llround(fr.snr_ra[j] * 1e4);
+                const long long qdec = std::llround(fr.snr_dec[j] * 1e4);
+                const std::pair<long long, long long> key(qra, qdec);
+                auto it = uniq.find(key);
+                if (it == uniq.end() || fr.snr[j] > it->second) uniq[key] = fr.snr[j];
+            }
+        }
+        mask.reserve(uniq.size());
+        for (const auto& kv : uniq) {
+            P2StarMaskCap cap{};
+            cap.ra_deg = static_cast<double>(kv.first.first) * 1e-4;
+            cap.dec_deg = static_cast<double>(kv.first.second) * 1e-4;
+            cap.radius_deg = cfg.star_mask_radius_deg;
+            cap.kind = P2_STAR_MASK_STAR;
+            mask.push_back(cap);
         }
     }
 
@@ -1133,6 +1192,16 @@ static int p2_sample_controls_impl(
         const std::uint64_t n = std::min(out_capacity, obs.size());
         for (std::uint64_t i = 0; i < n; ++i) out_obs[i] = obs[(size_t)i];
     }
+    if (out_n_sky) *out_n_sky = sky.size();
+    if (out_sky) {
+        const std::uint64_t n = std::min(sky_capacity, (std::uint64_t)sky.size());
+        for (std::uint64_t i = 0; i < n; ++i) out_sky[i] = sky[(size_t)i];
+    }
+    if (out_n_mask) *out_n_mask = mask.size();
+    if (out_mask) {
+        const std::uint64_t n = std::min(mask_capacity, (std::uint64_t)mask.size());
+        for (std::uint64_t i = 0; i < n; ++i) out_mask[i] = mask[(size_t)i];
+    }
     return 0;
 }
 
@@ -1150,7 +1219,9 @@ int p2_sample_controls(const P2CoverageResult* coverage,
     return p2_sample_controls_impl(coverage, hips_paths, nullptr, cfg_in,
                                    out_obs, out_capacity, out_n_obs,
                                    out_n_controls, out_stats, out_controls,
-                                   ctrl_capacity, err, err_size);
+                                   ctrl_capacity,
+                                   nullptr, 0, nullptr, nullptr, 0, nullptr,
+                                   err, err_size);
 }
 
 int p2_sample_controls_cached(const P2CoverageResult* coverage,
@@ -1168,7 +1239,46 @@ int p2_sample_controls_cached(const P2CoverageResult* coverage,
     return p2_sample_controls_impl(coverage, hips_paths, frame_ids, cfg_in,
                                    out_obs, out_capacity, out_n_obs,
                                    out_n_controls, out_stats, out_controls,
-                                   ctrl_capacity, err, err_size);
+                                   ctrl_capacity,
+                                   nullptr, 0, nullptr, nullptr, 0, nullptr,
+                                   err, err_size);
+}
+
+int p2_sample_sky(const P2CoverageResult* coverage,
+                  const char* const* hips_paths,
+                  const P2SamplerConfig* cfg,
+                  P2SkySample* out_sky, std::uint64_t sky_capacity,
+                  std::uint64_t* out_n_sky,
+                  P2StarMaskCap* out_mask, std::uint64_t mask_capacity,
+                  std::uint64_t* out_n_mask,
+                  P2SampleStats* out_stats,
+                  char* err, std::size_t err_size) {
+    std::uint64_t n_obs = 0, n_controls = 0;
+    return p2_sample_controls_impl(coverage, hips_paths, nullptr, cfg,
+                                   nullptr, 0, &n_obs, &n_controls, out_stats,
+                                   nullptr, 0,
+                                   out_sky, sky_capacity, out_n_sky,
+                                   out_mask, mask_capacity, out_n_mask,
+                                   err, err_size);
+}
+
+int p2_sample_sky_cached(const P2CoverageResult* coverage,
+                         const char* const* hips_paths,
+                         const std::uint64_t* frame_ids,
+                         const P2SamplerConfig* cfg,
+                         P2SkySample* out_sky, std::uint64_t sky_capacity,
+                         std::uint64_t* out_n_sky,
+                         P2StarMaskCap* out_mask, std::uint64_t mask_capacity,
+                         std::uint64_t* out_n_mask,
+                         P2SampleStats* out_stats,
+                         char* err, std::size_t err_size) {
+    std::uint64_t n_obs = 0, n_controls = 0;
+    return p2_sample_controls_impl(coverage, hips_paths, frame_ids, cfg,
+                                   nullptr, 0, &n_obs, &n_controls, out_stats,
+                                   nullptr, 0,
+                                   out_sky, sky_capacity, out_n_sky,
+                                   out_mask, mask_capacity, out_n_mask,
+                                   err, err_size);
 }
 
 // ===========================================================================
