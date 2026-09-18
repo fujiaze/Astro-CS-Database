@@ -175,11 +175,23 @@ norm.hiss=ab85199b0acf6aa3e2a912f442fa5233679ba88ff599b06c1db43c7eda59cb62  (5 �
 [PASS] taskset 1..16 预算 drizzle 产物科学载荷 sha256 一致
 ```
 
-**口径声明（重要）**：该脚本直接运行 `build/tests/unit/p1drz/p1drz_thread_probe`，
-不触发构建。本轮**源码已改但未构建**（构建由前台统一做），因此上面这次 PASS 证明的是
+另跑 P22 归约流水线锁（fp32/fp64 × 1/2/4/8/16 预算 × r1/r2，64 stripe 高瘦帧）：
+
+```
+[PASS] fp32: .norm.hiss=f8517cc8aaedeab535197ede04ff0b0c5f6c402a1a960734f09863fd4e8dac7e
+             .canon   =1a569d518b9c2ac41402147ad0c51165e6ab3fc36dfb7d97d6009d6158b1fdd0
+[PASS] fp64: .norm.hiss=dd4ae101e204100bee95b62e67ea9509b0e63840dbb711fecb54ae337f6e07d3
+             .canon   =370fd98190588f6f3abeb93a16b407809f3ca9070b169638f06bd8e6f0ed9e40
+[PASS] p1drz_merge_pipeline_lock: 池化归约流水线线程预算不变式成立
+```
+（`run/RELEASE-02/perf-drz-impl/merge_lock.log`）
+
+**口径声明（重要）**：这两个脚本直接运行 `build/tests/unit/p1drz/p1drz_thread_probe`，
+不触发构建。本轮**源码已改但未构建**（构建由前台统一做），因此上面两次 PASS 证明的是
 **基线二进制**的线程预算不变式，**不是**本轮改动的产物级验证。
 本轮改动的位级回归**必须由前台 `ninja` 后重跑同一脚本**（脚本本身不需改动；
 它已覆盖 `query_candidate_pixels_fast` 与 `TargetGeomCache`，probe 用 nside=256）。
+前台复跑后应得到与上面**逐位相同**的 4 个基线 sha256（改动的全部等价性论证都指向这一点）。
 
 作为替代证据，本轮提供两条**独立于构建**的等价性复算：
 - `sim_k2_state_equivalence.py`：C3 状态机逐格值与顺序全等（60,000 盒）；
@@ -239,8 +251,18 @@ g++ -fsyntax-only ... drizzle_engine.cpp                                        
    容量 8192 / 身份 / 失效 / 线程模型均不变。本轮不改 `docs/**`，请前台另起文档提交。
    （`docs/algorithms/DRIZZLE_GEOMETRY.md:77`、`docs/modules/healpix_drizzle.md:74`
    只说「LRU 8192」，仍准确；可选补一句「O(1) 触摸」。）
-3. **C2 裁决**：若负责人仍要调容量，请一并批准文档同步与内存预算；
-   改动是 `TargetGeomCache` 构造参数一处，纯度证明已在 §2.2。
+3. **C2 裁决（如负责人仍要调容量）**：改动是 `TargetGeomCache` 构造参数一处，
+   纯度证明已在 §2.2（不会改变任何数值/产物）：
+   ```cpp
+   // lib/algorithms/drizzle/healpix_drizzle/spherical_overlap.h:305
+   explicit TargetGeomCache(std::size_t capacity = 131072)   // 原 8192
+   ```
+   建议值 `131072`（≈1.4× 每 stripe 工作集 9.3 万叶）：每线程 `Entry`≈152 B × 131072
+   ≈20 MB，16 线程 ≈+315 MB（相对现状 8192 的 ~21 MB 总量）；若 P21 内存预算不允许，
+   取 `32768`（≈+66 MB）。**必须先同步** `docs/architecture/CACHE_POLICY.md:9`
+   （容量列 8192 → 新值）、`docs/algorithms/DRIZZLE_GEOMETRY.md:77`、
+   `docs/modules/healpix_drizzle.md:74`。预期收益上界 ≤0.65%（§2.2 依据），
+   因此**不推荐**在没有端到端 A/B 证据前引入该内存与文档成本。
 4. **追溯登记**：本轮落地了审核包 P35 的「冻结边界（K2 + 缓存 O(1)）」；
    建议在 `docs/TRACEABILITY.csv` / 审核包 05 索引登记「已落地」。
 5. **P35 的端到端干净窗口缺口（D-2）**：P35 从未取得「仅 K2+缓存 O(1)」的端到端
@@ -252,7 +274,8 @@ g++ -fsyntax-only ... drizzle_engine.cpp                                        
 
 | 文件 | 内容 |
 |---|---|
-| `run/RELEASE-02/perf-drz-impl/taskset_regression.log` | 位级回归输出（基线二进制 PASS） |
+| `run/RELEASE-02/perf-drz-impl/taskset_regression.log` | P15a 位级回归输出（基线二进制 PASS） |
+| `run/RELEASE-02/perf-drz-impl/merge_lock.log` | P22 归约流水线锁输出（基线二进制 fp32/fp64 PASS） |
 | `run/RELEASE-02/perf-drz-impl/sim_k2_state_equivalence.py` | C3 状态机等价性复算（60,000 盒，逐格全等） |
 | `run/RELEASE-02/perf-drz-impl/sim_lru_equivalence.py` | C1 hit/miss 序列等价性复算（40 万次访问） |
 | `run/RELEASE-02/perf-drz/evidence_fine_profile.txt` | 基线 fine profile / ops（收益折算口径来源） |

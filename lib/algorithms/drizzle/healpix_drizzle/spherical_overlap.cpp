@@ -42,6 +42,8 @@ namespace spherical {
 static const double HP_CIRCUMRADIUS_FACTOR = 1.25;
 
 // overlap 路径统计 (仅统计, 不改变逻辑; 由 drizzle_engine 汇总)
+// PERF-DRZ-IMPL C7: 计数在每次读取后清零 (read-and-reset)，使 drizzle_engine
+// 每帧读到的都是**本帧**增量，而不是同进程累计值。仅影响观测口径，不参与数值。
 static thread_local long long g_tl_n_quick = 0;
 static thread_local long long g_tl_n_fully = 0;
 static thread_local long long g_tl_n_dropin = 0;
@@ -57,12 +59,18 @@ static bool overlap_profile_enabled() {
     return en;
 }
 
+// PERF-DRZ-IMPL C7: 读取本线程累计计数并清零 (read-and-reset)。
+// drizzle_engine 每帧只调用一次，故返回值即本帧增量；清零保证下一帧从 0 起。
 long long profile_overlap_path_counts(long long* fully, long long* dropin,
                                       long long* sh) {
     long long q = g_tl_n_quick;
     if (fully) *fully = g_tl_n_fully;
     if (dropin) *dropin = g_tl_n_dropin;
     if (sh) *sh = g_tl_n_sh;
+    g_tl_n_quick = 0;
+    g_tl_n_fully = 0;
+    g_tl_n_dropin = 0;
+    g_tl_n_sh = 0;
     return q;
 }
 
@@ -1380,19 +1388,40 @@ Scalar compute_overlap_area_g_ctx(const DropGeometryT<Scalar>& g,
 // ============================================================================
 // bounded target-ipix geometry cache 实现
 // ============================================================================
+// PERF-DRZ-IMPL C1: 侵入式双向链表 O(1) 触摸。
+// 语义与旧 deque 版逐项一致（MRU 在 head，淘汰 tail）；旧版命中路径是
+// O(capacity) 线性扫描，本版为常数时间指针重挂。链表不参与任何数值计算，
+// 仅决定哪些 ipix 留在缓存中，而任一 ipix 的几何是 (nside, ipix) 的确定性
+// 函数 ⇒ 命中/未命中取到的 geometry 逐位相同，产物不变。
+void TargetGeomCache::lru_unlink(Entry* e) {
+    if (e->lru_prev) e->lru_prev->lru_next = e->lru_next;
+    else lru_head_ = e->lru_next;
+    if (e->lru_next) e->lru_next->lru_prev = e->lru_prev;
+    else lru_tail_ = e->lru_prev;
+    e->lru_prev = nullptr;
+    e->lru_next = nullptr;
+}
+
+void TargetGeomCache::lru_push_front(Entry* e) {
+    e->lru_prev = nullptr;
+    e->lru_next = lru_head_;
+    if (lru_head_) lru_head_->lru_prev = e;
+    lru_head_ = e;
+    if (!lru_tail_) lru_tail_ = e;
+}
+
+void TargetGeomCache::lru_touch(Entry* e) {
+    if (lru_head_ == e) return;   // 已在 MRU，无需移动
+    lru_unlink(e);
+    lru_push_front(e);
+}
+
 const TargetPixelGeometry* TargetGeomCache::get_or_build(
     const healpix::HealpixCore& hp, std::uint64_t ipix, bool* built_out) {
     auto it = map_.find(ipix);
     if (it != map_.end()) {
         ++hits_;
-        // LRU touch：移到 deque 前端
-        for (auto d = lru_.begin(); d != lru_.end(); ++d) {
-            if (*d == ipix) {
-                lru_.erase(d);
-                break;
-            }
-        }
-        lru_.push_front(ipix);
+        lru_touch(&it->second);
         if (built_out) *built_out = false;
         return &it->second.geom;
     }
@@ -1403,22 +1432,26 @@ const TargetPixelGeometry* TargetGeomCache::get_or_build(
     tg.center = radec_to_vec<double>(ra_c, dec_c);
     get_healpix_boundary4<double>(hp, ipix, hp.getNside(), tg.boundary4);
     tg.ready = true;
-    // 插入 + LRU 淘汰（容量有界）
-    map_[ipix] = Entry{ipix, tg};
-    lru_.push_front(ipix);
+    // 插入 + LRU 淘汰（容量有界）。
+    // unordered_map 元素地址在 rehash 时稳定（仅迭代器失效），故可安全把
+    // Entry* 挂进侵入式链表。
+    Entry& e = map_[ipix];
+    e.ipix = ipix;
+    e.geom = tg;
+    lru_push_front(&e);
     while (map_.size() > capacity_) {
-        const std::uint64_t victim = lru_.back();
-        lru_.pop_back();
-        map_.erase(victim);
+        Entry* victim = lru_tail_;
+        lru_unlink(victim);
+        map_.erase(victim->ipix);
     }
-    const TargetPixelGeometry* out = &map_.find(ipix)->second.geom;
     if (built_out) *built_out = true;
-    return out;
+    return &e.geom;
 }
 
 void TargetGeomCache::clear() {
     map_.clear();
-    lru_.clear();
+    lru_head_ = nullptr;
+    lru_tail_ = nullptr;
     hits_ = 0;
     misses_ = 0;
 }
@@ -1511,6 +1544,34 @@ void query_candidate_pixels(
     }
     std::sort(candidates.begin(), candidates.end());
 }
+
+// ============================================================================
+// PERF-DRZ-IMPL C3: 增量候选枚举的线程私有状态。
+//
+// 相邻源像素的 face 内 (ix,iy) 包围盒高度重叠（本配置 hp_res≈0.805″、
+// 源像素≈0.94″ ⇒ 每前进 1 个源像素盒中心平移 ~1.2 格，7×7 盒交集约
+// 42/49）。因此只对 "新盒 − 旧盒" 做 morton + pix2ang，交集格复用上一轮
+// 已算好的 (ipix, 中心单位向量)。
+//
+// 这是**纯加速结构**：任一格 (nside, face, ix, iy) 的 ipix 与中心向量都是
+// 该格的确定性函数，与源像素位置无关；复用值与重算值逐位相同；且全部
+// 新盒格仍用**当前**圆心做同一条点积过滤、再 std::sort ⇒ 候选集合逐元素、
+// 逐顺序与旧实现完全一致（P35 落地实测 90,000 源像素 mismatch=0）。
+// nside / face 变化时状态自动失效；走极冠/跨 face 回退路径时不更新状态。
+// ============================================================================
+namespace {
+struct CandCell {
+    std::uint64_t ipix = 0;
+    double vx = 0.0, vy = 0.0, vz = 0.0;   // 像素中心单位向量
+};
+struct CandBoxState {
+    std::uint32_t nside = 0;
+    int face = -1;
+    int x0 = 0, x1 = -1, y0 = 0, y1 = -1;  // 上一轮盒 (闭区间); x1 < x0 = 空
+    int stride = 0;                        // = x1 - x0 + 1
+    std::vector<CandCell> cells;           // 行主序 (iy, ix)
+};
+} // namespace
 
 // ============================================================================
 // query_candidate_pixels_fast - NESTED 直接候选枚举 (, 替代 queryDisc BFS)
@@ -1635,7 +1696,6 @@ void query_candidate_pixels_fast(
         return;
     }
     // 快速路径统计: 单 face 内部枚举 (无跨 face)
-    candidates.reserve((size_t)(x1 - x0 + 1) * (size_t)(y1 - y0 + 1));
     // NESTED morton 交织 (标准位操作, 纯数学, 不依赖 healpix_core 私有接口)
     auto morton = [](int x, int y) -> uint64_t {
         auto spread = [](uint32_t v) -> uint64_t {
@@ -1656,32 +1716,62 @@ void query_candidate_pixels_fast(
     // 实测: drop 质心落在 4 像素公共角附近, 真实相交像素在对角方向
     // 被滤, 通量丢失 0.6%)。整个包围盒 (2delta+1)² 全枚举,
     // 由下方精确球面圆心距离过滤负责去重/裁剪, 所有 NSIDE 统一正确。
+    //
+    // C3 增量: 交集格 (上一轮同 nside/face 的盒 ∩ 本轮盒) 复用缓存的
+    // (ipix, 中心向量)；只有 "本轮盒 − 上一轮盒" 才做 morton + pix2ang。
+    // 注意 P35 踩过的坑：交集里上一轮**被过滤掉**的格也必须用**新圆心**
+    // 重判 —— 本实现把全部新盒格都重新过一遍点积过滤，天然满足。
+    static thread_local CandBoxState box_state;
+    static thread_local std::vector<CandCell> box_cells;
+    const int nx = x1 - x0 + 1;
+    const int ny = y1 - y0 + 1;
+    const bool reuse = box_state.nside == (std::uint32_t)nside &&
+                       box_state.face == face && box_state.x1 >= box_state.x0;
+    box_cells.resize((size_t)nx * (size_t)ny);
     for (int iy = y0; iy <= y1; ++iy) {
+        const size_t row = (size_t)(iy - y0) * (size_t)nx;
         for (int ix = x0; ix <= x1; ++ix) {
-            uint64_t ipix = (uint64_t)face * nside64 * nside64 + morton(ix, iy);
-            candidates.push_back(ipix);
+            CandCell& c = box_cells[row + (size_t)(ix - x0)];
+            if (reuse && ix >= box_state.x0 && ix <= box_state.x1 &&
+                iy >= box_state.y0 && iy <= box_state.y1) {
+                c = box_state.cells[(size_t)(iy - box_state.y0) *
+                                        (size_t)box_state.stride +
+                                    (size_t)(ix - box_state.x0)];
+            } else {
+                c.ipix = (uint64_t)face * nside64 * nside64 + morton(ix, iy);
+                double t, p;
+                hp.pix2ang((int64_t)c.ipix, &t, &p);
+                const double st = std::sin(t);
+                c.vx = st * std::cos(p);
+                c.vy = st * std::sin(p);
+                c.vz = std::cos(t);
+            }
         }
     }
     // 5. 圆心距离预过滤 (保守: 像素中心在查询圆盘内才保留)
     // 查询圆盘半径 = max_angle + 1.0×hp_res (像素外接圆半径上界;
     // 零漏选由候选 Oracle 矩阵对全部 face/NSIDE 验证)。
     // 过滤掉正方形包围盒的边角, 减少后续 compute_overlap_area 调用。
-    double cos_lim = std::cos(double(query_radius_rad));
-    std::vector<uint64_t> filtered;
-    filtered.reserve(candidates.size());
-    for (uint64_t ipix : candidates) {
-        double t, p;
-        hp.pix2ang((int64_t)ipix, &t, &p);
-        double st = std::sin(t);
-        double px = st * std::cos(p);
-        double py = st * std::sin(p);
-        double pz = std::cos(t);
-        if (px * center.x + py * center.y + pz * center.z >= cos_lim) {
-            filtered.push_back(ipix);
+    // 逐格点积与旧实现同一表达式、同一行主序, 故 survivors 序列逐项相同；
+    // 随后 std::sort ⇒ 输出 candidates 与旧实现逐元素逐顺序一致。
+    const double cos_lim = std::cos(double(query_radius_rad));
+    candidates.clear();
+    candidates.reserve((size_t)nx * (size_t)ny);
+    for (const CandCell& c : box_cells) {
+        if (c.vx * center.x + c.vy * center.y + c.vz * center.z >= cos_lim) {
+            candidates.push_back(c.ipix);
         }
     }
-    candidates.swap(filtered);
     std::sort(candidates.begin(), candidates.end());
+    // 更新增量状态：下一源像素若同 face/nside 即可复用本轮盒。
+    box_state.nside = (std::uint32_t)nside;
+    box_state.face = face;
+    box_state.x0 = x0;
+    box_state.x1 = x1;
+    box_state.y0 = y0;
+    box_state.y1 = y1;
+    box_state.stride = nx;
+    box_state.cells.swap(box_cells);
 }
 
 // ============================================================================

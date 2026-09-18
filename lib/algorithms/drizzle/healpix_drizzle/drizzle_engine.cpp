@@ -1805,6 +1805,13 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         // 时 clear（避免跨 run NSIDE 不同导致几何污染；容量有界见类定义）
         run_target_cache(rctx.target_cache_run_gen);
 
+        // PERF-DRZ-IMPL C7: fine profiler 的 thread_local 计时从 0 起算。
+        // 原实现从不重置，同进程第 2 帧起 [profile] 的 cand/overlap 为累计值
+        // （实测第 2 帧 cand=531.259 ≈ 254.004+277.255）。仅观测口径，
+        // 不参与任何数值/累加；真正的读取处再清零一次以覆盖未进入本区的线程。
+        g_tl_prof_cand = 0.0;
+        g_tl_prof_overlap = 0.0;
+
         // 行级顶点缓存 (跨 stripe 复用; 每线程私有, 无竞争)
         std::vector<double> bot_ra, bot_dec, top_ra, top_dec;
         // 行级顶点 Vec3 缓存（免每像素 8 次 sin/cos 重算）
@@ -2084,6 +2091,10 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             if (t < num_threads) {
                 cand_tl[static_cast<size_t>(t)] = g_tl_prof_cand;
                 overlap_tl[static_cast<size_t>(t)] = g_tl_prof_overlap;
+                // PERF-DRZ-IMPL C7: 读取后清零 ⇒ 下一次 run 从 0 起算
+                // (覆盖未进入累加区的线程，避免读到上一帧残值)。
+                g_tl_prof_cand = 0.0;
+                g_tl_prof_overlap = 0.0;
             }
         }
         for (int t = 0; t < num_threads; t++) {
