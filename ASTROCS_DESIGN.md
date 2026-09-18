@@ -286,9 +286,15 @@ mosaic 的详细硬约束（UPM 不可互相代替、coverage 不作权重、排
 
 1. **先排异，后加权平均**：对每个输出像素的那组输入值，先剔除离群量，再按逆方差（权重来自帧级/帧内 SNR，`w = 1/σ² = SNR²/F_ref²`）加权平均；
    排异与加权是**两个独立步骤**，排异结果作为 `rejection` provenance 独立落盘（排异是污染状态估计，不是权重）。
-2. **按输入集合大小 `n` 自适应选择排异算法**（对标 PixInsight WBPP 的做法）：
+2. **按该输出像素的 `n` 自适应选择排异算法**（对标 PixInsight WBPP 的做法）：
    `n` 很小时，只有极值类算法可用（如 min/max）；`n` 增大后依次可采用 sigma clip、winsorized sigma、averaged sigma、
    generalized ESD、percentile 等。**选择逻辑必须有依据**（WBPP 脚本判定逻辑 + 各算法原始文献），不得凭空设阈值。
+   - **`n` 的精确定义（与冻结科学文档对齐，消歧）**：`n` = 该输出像素的 **nominal contributors**，
+     即**几何可贡献帧数**（由 coverage 覆盖图得出：该像素被多少帧的 footprint 覆盖），**一次解析**；
+   - **不得**用**整组帧数**代替 `n`（那是全图一个值，等价于不按像素路由）；
+   - **不得**按 per-pixel `n_eff`（资格/掩膜后存活数）重选算法 —— 与 `docs/science/REJECTION.md` §4/§6/§7
+     「禁止 per-pixel effective 路由、auto 路由不依赖 per-pixel `n_eff`」一致。
+     即：**路由依据 = 几何覆盖数（与掩膜无关），不是存活数、不是整组总数。**
 3. **算法清单与出处**（每个算法须给出论文/权威标准出处，并在实现中标注语义 ID）：
    min/max（极值剔除法）、sigma clip（中位数 + MAD）、winsorized sigma clipping、averaged sigma clipping、
    **generalized ESD**（Rosner 1983；NIST/SEMATECH e-Handbook）、percentile clipping、linear fit clipping。
