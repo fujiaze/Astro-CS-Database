@@ -116,6 +116,10 @@
 
 | SD-18 | **收回 SD-14**：负责人 2026-09-18 裁决「抖动最外圈边缘可能出现 n=1,2,3，**这部分数据最终本身就是要丢弃的，直接走保守路径不排异，直接加权积分就行**」 | 真正需要的是 n≈8 的 winsorized（R 通道每片 8 帧）——卫星线去除主力；n≤3 只是待丢弃的边缘零头。先前实现的自创先验法无文献先例（WBPP 不用、`REJECTION.md` §7/§8 明写 n≤2 恒 UNDERDETERMINED），且逐像素 31×31 统计粗估 1000-1200s | 无需订正冻结文档（恢复文档口径） | 待改：`astrocs_adaptive_pixel` 低 n 档 n≤3→none；移除生产路径逐像素先验计算；方法保留为显式 opt-in | 裁决：**低 n 走保守（不排异+加权积分）**；省掉 ~1000-1200s；不拿自创规则压冻结文档；边缘未排异如实计入 `underdetermined_pixels` |
 
+| SD-19 | **F_ref 约定**：写侧逐帧 vs 读侧要求组内公共 ⇒ 混用，真实数据上 `weight_mode=2` fail-closed（`ASTROCS_REFERENCE_FLUX 逐帧不一致`） | WEIGHT-SCI 四方证据：**配对性定理** `SNR_f=a_f·F_ref/σ_f ⇒ SNR_f²/F_ref²=a_f²/σ_f²=w_f`，成立**当且仅当**分母 F_ref 与定义 SNR 用的是同一个；文档面（DESIGN §4.3:256/§3.4、07_noise_snr:59-63、UNIFIED_MODEL:42、aio_hips.h:302 等）高度一致；文献 Horne 1986 + Gauss–Markov `w=a²/σ²`；实测混用偏差 3.5× | `CONTROL_WEIGHT_SNR` vs `07_noise_snr` 的 UNRESOLVED 经查是**命名冲突**（同名 `frame_snr` 指两个对象），非公式冲突 ⇒ 走变更 claim 改名消歧 | 采纳裁决：**F_ref 用组内公共**；根因在写侧 `snr_frame_science.cpp:167-170` 的逐帧中位数回退 ⇒ fail-closed + 块级公共 F0（已派 FIX-W，5 处） | 闸门**保持 fail-closed**（判为正确，不放宽）；诚实登记两项未闭合：①`g_k` 乘性归一未接线 ②SNR 不含光度响应 `a_k` |
+| SD-20 | **Phase2 并行度极低**：mosaic 整跑 1327.9s 仅 **0.71 核**，而 `active_workers` 恒 16；资源门自报 `avg_equivalent_cores 0.73 < 13.6` | 逐阶段（探针 wall × cpu_pct，END 语义）：upm_apply 347.7s/**0.86 核**、reject 214.1s/**0.68**、sample 160.8s/**0.69**、integrate 138.9s/**0.53**、write 23.1s/**0.72**；对比 Phase1 drizzle 可达 **12.82 核** ⇒ 框架并行能力可用 | 无 | 待定（已派 PERF-P2 定位根因与并行化方案） | 裁决：**Phase2 是当前最大优化头寸**（1327.9s 若达 10 核 ⇒ 约 10×），优先级高于 Phase1 drizzle 算法重构（2.15×） |
+| SD-21 | Phase2 `sky_plane build` 真实数据上 **rc=6 失败**：`reduced normal matrix not SPD`，显式回退 UPM C 场 | 前台在 L4 实测（mosaic 两次运行均复现） | 无 | 待定（已并入 PERF-P2 归因任务） | 裁决：**显式回退方向正确**（未静默），但须定位非正定的数值根因并正确处置 |
+
 ## 4. 上呈事项（穷尽：仅 §3a 列明类别）
 
 | 事项 | 证据 | 方案与代价 | agent 推荐 |
