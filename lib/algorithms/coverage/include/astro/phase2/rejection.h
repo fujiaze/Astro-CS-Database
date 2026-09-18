@@ -53,7 +53,10 @@ enum P2RejectionMethod {
     P2_REJECT_PERCENTILE = 7,       // astrocs.percentile_siril.v1
     P2_REJECT_MEDIAN_SIGMA = 8,     // astrocs.median_std_clip.v1
     P2_REJECT_MINMAX = 9,           // astrocs.minmax.v1
-    P2_REJECT_AUTO = 10             // 只在 planning 层解析，永不进入 kernel
+    P2_REJECT_AUTO = 10,            // 只在 planning 层解析，永不进入 kernel
+    // 已知先验 σ 的极值检验（FIX-REJ §3 内置映射 n=2 档；见
+    // P2ExtremeValuePriorSigmaParams）。显式方法：永不参与 AUTO 路由。
+    P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA = 11
 };
 
 // canonical semantic id 常量（runtime 不依赖模糊字符串）
@@ -67,7 +70,17 @@ enum P2RejectionMethod {
 #define P2_SEMANTIC_PERCENTILE_SIRIL      "astrocs.percentile_siril.v1"
 #define P2_SEMANTIC_MEDIAN_STD_CLIP       "astrocs.median_std_clip.v1"
 #define P2_SEMANTIC_MINMAX                "astrocs.minmax.v1"
+#define P2_SEMANTIC_EXTREME_VALUE_PRIOR_SIGMA \
+    "astrocs.extreme_value_clip_prior_sigma.v1"
 #define P2_SEMANTIC_LARGE_SCALE           "astrocs.large_scale_rejection.v1"
+
+// 冻结 profile 名（planning 层路由选择器；kernel 只见显式方法）
+#define P2_PROFILE_WBPP_2_9_1             "wbpp_2_9_1"
+#define P2_PROFILE_WBPP_CURRENT           "wbpp_current"  // = wbpp_2_9_1 alias
+#define P2_PROFILE_ASTROCS_ADAPTIVE       "astrocs_adaptive"
+// FIX-REJ §3 AstroCS 自有「按几何 n」内置映射（逐输出像素；含 n=2 先验 σ 档）。
+// 独立命名，不改变 wbpp_2_9_1 / astrocs_adaptive 的冻结 AUTO 路由。
+#define P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL "astrocs_adaptive_pixel"
 
 // per-sample reason（RejectionDecision.reasons[]）
 enum P2RejectReason {
@@ -148,6 +161,36 @@ typedef struct {
     int high_grow_radius_pixels;  // 高侧扩张半径（>=0；默认 2）
 } P2LargeScaleParams;
 
+// astrocs.extreme_value_clip_prior_sigma.v1 —— 已知先验 σ 的极值检验
+// （NIST/SEMATECH e-Handbook §1.3.5.17.1 Grubbs / 已知方差单离群变体；
+// 单趟、无迭代、无 N-r 最小保留闸）。FIX-REJ §3 内置映射的 n=2 档：小栈
+// 无法估计稳健尺度，必须由调用方提供**先验**噪声尺度（方案 A：该帧该 tile
+// 的 31×31 邻域中位数/MAD；kernel 不自己算邻域）。
+//
+//   z_i = (v_i − center_i) / sigma_i
+//   k   = Φ⁻¹(1 − α/(2N))，α=0.05，N=Bonferroni 检验数（= 该像素几何
+//         nominal contributors，见 P2RejectionPlan.nominal_n；0 时退化为
+//         候选数 n）
+//   z_i > +k → REJECTED_HIGH；z_i < −k → REJECTED_LOW；否则 ACCEPTED
+//
+// 先验来源优先级：
+//   1) P2CandidateStack.prior_sigma[i] / prior_sky[i]（逐样本，可空）
+//   2) 本结构 prior_sigma / prior_sky（标量回退）
+//   3) prior_sky 缺失且 center_mode!=0 → 候选栈中位数（**注意**：n=2 时
+//      栈中位数落在两样本之间，单离群会使两侧同时超阈 → 全拒 → 走 n<=4
+//      全接受容错；生产必须提供外部 prior_sky）。
+// prior_sigma 缺失/非有限/<=0 → UNDERDETERMINED 全接受（fail-closed，
+// 禁止用栈内尺度冒名顶替）。
+// normalization 必须 = P2_NORMALIZE_NONE（本方法在原始 calibrated 值域
+// 直接比较绝对 prior_sky；planning 层解析已保证）。
+typedef struct {
+    double alpha;         // 显著性水平（冻结默认 0.05）
+    double prior_sigma;   // 先验噪声尺度（>0 且 finite；调用方提供）
+    double prior_sky;     // 先验中心（非 finite → 用候选栈中位数）
+    int    center_mode;   // 0=强制用 prior_sky；1=prior_sky 缺失时用栈中位数
+                          // （默认 1）
+} P2ExtremeValuePriorSigmaParams;
+
 // 显式 RejectionPlan（kernel 只执行 explicit method，永不为 AUTO）
 typedef struct {
     int method;                // P2RejectionMethod（explicit）
@@ -166,6 +209,10 @@ typedef struct {
     P2MinmaxParams minmax;     // P2_REJECT_MINMAX
     P2RcrParams rcr;           // P2_REJECT_RCR
     P2LargeScaleParams large_scale; // 大尺度后处理（独立于 pixel kernel）
+    P2ExtremeValuePriorSigmaParams extreme_prior; // P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA
+    // 本 plan 解析时使用的**几何 nominal n**（coverage 覆盖图；路由依据，
+    // 非存活数）。extreme_prior 的 Bonferroni N；0 = 未记录（用候选数）。
+    std::uint32_t nominal_n;
 } P2RejectionPlan;
 
 // Auto 解析请求（planning 层）
@@ -175,25 +222,56 @@ typedef struct {
                                        // active independent exposure 数
                                        // （一次解析）；astrocs_adaptive =
                                        // tile nominal geometric depth
-    const char* profile;         // "wbpp_current"（nullptr=默认）| "astrocs_adaptive"
-    std::uint32_t underdetermined_n;   // 默认 2
+    const char* profile;         // P2_PROFILE_*（nullptr=wbpp_2_9_1）
+    std::uint32_t underdetermined_n;   // 0=按 profile 默认（wbpp/adaptive=2；
+                                       // astrocs_adaptive_pixel=1，因为 n=2 档
+                                       // 由 extreme_prior 承担）
 } P2RejectionPlanRequest;
 
 // 在 planning 层把 request（含 AUTO）解析为显式 P2RejectionPlan。
 // WBPP 2.9.1（本机安装源码 bestRejectionMethod）Auto 路由：
 // nominal < 6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit。
 // profile 语义：
-// wbpp_current → 调用方必须传 integration group active count，一次
-// 解析；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED。
+// wbpp_2_9_1（wbpp_current alias）→ 调用方必须传 integration group active
+// count，一次解析；tile/pixel 不重选；局部候选不足 = UNDERDETERMINED。
 // astrocs_adaptive → AstroCS 自有策略：允许按 tile nominal geometric depth
-// 自适应；独立命名，不冒充 WBPP exact。
+// 自适应；独立命名，不冒充 WBPP exact；AUTO 路由与 wbpp 冻结表一致。
+// astrocs_adaptive_pixel → FIX-REJ §3 AstroCS 自有「按逐输出像素几何 n」
+// 内置映射（n=2 走 extreme_value_clip_prior_sigma；3..7 percentile；
+// 8..15 winsorized；>=16 linear_fit）；独立命名，不改变上述冻结路由。
 // err 仅作日志文本；返回 0=OK，非 0=非法参数（err 填充原因）。
+//
+// 确定性：同 (profile, request, nominal_contributors, underdetermined_n)
+// 恒等输出（纯函数、无状态、无随机）⇒ 同 n 方法选择确定性一致。
 P2_API int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
                                   P2RejectionPlan* plan,
                                   char* err, std::size_t err_cap);
 
 // 返回方法的 canonical semantic id 字符串（未知方法返回 "unknown"）
 P2_API const char* p2_rejection_semantic_id(int method);
+
+// ---- 逐 stack（逐输出像素/块）按几何 n 解析（FIX-REJ / DESIGN §4.5） ----
+//
+// nominal_n = 该 stack 的**几何 nominal contributors**（coverage 覆盖图：
+// 该输出像素被多少帧 footprint 覆盖），一次解析；**不是**整组帧数，也
+// **不是**资格/掩膜后的存活数 n_eff。
+//
+// p2_reject_plan_resolve_n 是 p2_reject_plan_resolve 的显式逐 stack 入口：
+// 以 nominal_n 覆盖 req->nominal_contributors 后解析。纯函数（同输入恒等
+// 输出，无状态、无随机）⇒ 调用方可按 n 缓存 plan（最多 n_max 个），
+// 1 worker 与 N worker 结果一致。
+P2_API int p2_reject_plan_resolve_n(std::uint32_t nominal_n,
+                                    const P2RejectionPlanRequest* req,
+                                    P2RejectionPlan* plan,
+                                    char* err, std::size_t err_cap);
+
+// FIX-REJ §4.2 方法适用域（WARN 级，advisory；不改判据、不阻断执行）。
+// 返回 0 = (method, nominal_n) 适用；非 0 = 不适用，warn_code 填稳定码
+// （"W_MINMAX"/"W_NONE"/"W_PCT_GT8"/... 见 rejection.cpp）。
+// 仅 planning/CLI 用于分级提示（-y 跳过确认 / -force 强制执行）；
+// kernel 执行不受本函数影响（显式指定一律照执行，不静默改算法）。
+P2_API int p2_rejection_applicability(int method, std::uint32_t nominal_n,
+                                      char* warn_code, std::size_t warn_cap);
 
 // ---- Eligibility（资格层，单一路径） ----
 typedef struct {
@@ -270,6 +348,11 @@ typedef struct {
     const std::uint64_t* frame_ids; // 可空（稳定帧标识；tie-break/确定性用）
     std::uint32_t count;         // 候选数
     int data_type;               // 0=fp32 源, 1=fp64（仅诊断）
+    // （FIX-REJ n=2 先验 σ 档）可空；仅 P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA
+    // 消费。逐样本先验噪声尺度/中心（与 values 同序；调用方从该样本所属
+    // 帧/tile 的稳健邻域统计得到）。nullptr → 回退 plan.extreme_prior 标量。
+    const double* prior_sigma;   // 先验 σ（>0 且 finite）
+    const double* prior_sky;     // 先验中心
 } P2CandidateStack;
 
 // ---- RejectionDecision（每样本 reason + stack status 分离） ----
@@ -287,6 +370,17 @@ typedef struct {
 P2_API int p2_reject_stack_ex(const P2CandidateStack* stack,
                               const P2RejectionPlan* plan,
                               P2RejectionDecision* out);
+
+// 逐 stack 解析 + 执行（单次调用完成 planning→kernel）：
+// req->nominal_contributors 必须是该 stack 的几何 n；req->request 允许
+// AUTO（在本函数内于 planning 层解析，kernel 永不见 AUTO）。resolved_plan
+// 可空；非空时回填解析结果（provenance）。返回 0=OK（out->status 表达
+// 科学状态）；非 0=参数非法（err 填充原因）。
+P2_API int p2_reject_stack_resolve_ex(const P2CandidateStack* stack,
+                                      const P2RejectionPlanRequest* req,
+                                      P2RejectionDecision* out,
+                                      P2RejectionPlan* resolved_plan,
+                                      char* err, std::size_t err_cap);
 
 // 大尺度 grow 后处理（生产 stage2 唯一调用点）。
 // low/high 为 frame-major 每帧 width*height 字节（1=rejected），原地修改。

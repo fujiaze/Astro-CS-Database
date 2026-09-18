@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <new>
 #include <numeric>
 #include <string>
@@ -93,6 +94,65 @@ double t_quantile(double p, double nu) {
         if (cdf < p) lo = mid; else hi = mid;
     }
     return 0.5 * (lo + hi);
+}
+
+// 标准正态 CDF（P(Z <= x)）。std::erfc 为标准库实现，FP64 精度。
+double norm_cdf(double x) {
+    return 0.5 * std::erfc(-x / std::sqrt(2.0));
+}
+
+// 标准正态分位数 Φ⁻¹(p)（p ∈ (0,1)）。
+// Acklam 有理近似（相对误差 ~1e-9）+ 一步 Halley 精修（~1e-15）。
+// 确定性：纯函数、固定迭代、无随机/无表插值依赖平台浮点行为之外的分支。
+double norm_quantile(double p) {
+    if (!(p > 0.0)) return -std::numeric_limits<double>::infinity();
+    if (p >= 1.0) return std::numeric_limits<double>::infinity();
+    static const double a[6] = {
+        -3.969683028665376e+01, 2.209460984245205e+02,
+        -2.759285104469687e+02, 1.383577518672690e+02,
+        -3.066479806614716e+01, 2.506628277459239e+00};
+    static const double b[5] = {
+        -5.447609879822406e+01, 1.615858368580409e+02,
+        -1.556989798598866e+02, 6.680131188771972e+01,
+        -1.328068155288572e+01};
+    static const double c[6] = {
+        -7.784894002430293e-03, -3.223964580411365e-01,
+        -2.400758277161838e+00, -2.549732539343734e+00,
+        4.374664141464968e+00, 2.938163982698783e+00};
+    static const double d[4] = {
+        7.784695709041462e-03, 3.224671290700398e-01,
+        2.445134137142996e+00, 3.754408661907416e+00};
+    const double plow = 0.02425, phigh = 1.0 - plow;
+    double x = 0.0;
+    if (p < plow) {
+        const double q = std::sqrt(-2.0 * std::log(p));
+        x = (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q +
+             c[5]) /
+            ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0);
+    } else if (p <= phigh) {
+        const double q = p - 0.5;
+        const double r = q * q;
+        x = (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r +
+             a[5]) * q /
+            (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r +
+             1.0);
+    } else {
+        const double q = std::sqrt(-2.0 * std::log(1.0 - p));
+        x = -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q +
+              c[5]) /
+            ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0);
+    }
+    // Halley 精修：x ← x − (Φ(x) − p)/(φ(x)) · 1/(1 + x·(Φ(x)−p)/(2φ(x)))
+    // 上尾用 1−Φ(x)=½·erfc(x/√2) 直接算残差，避免 p→1 时的灾难性相消。
+    const double e = (x >= 0.0)
+        ? ((1.0 - p) - 0.5 * std::erfc(x / std::sqrt(2.0)))
+        : (0.5 * std::erfc(-x / std::sqrt(2.0)) - p);
+    const double u = e * std::sqrt(2.0 * 3.14159265358979323846) *
+                     std::exp(0.5 * x * x);
+    const double r2 = 1.0 + 0.5 * x * u;
+    if (std::isfinite(u) && std::isfinite(r2) && std::fabs(r2) > 1e-300)
+        x = x - u / r2;
+    return x;
 }
 
 // =====：完整 sequential RCR =====
@@ -931,8 +991,18 @@ int method_minimum_n(int method) {
         case P2_REJECT_LINEAR_FIT: return 4;
         case P2_REJECT_PERCENTILE: return 2;
         case P2_REJECT_MINMAX: return 3;  // 固定删 low+high 后须 >= min_kept
+        // n=2 档：至少 2 个候选才有"对照"意义；n=1 单帧无排异
+        // （docs/science/REJECTION.md §1 非目标）。
+        case P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA: return 2;
         default: return 0;
     }
+}
+
+// 合法显式方法（可进 kernel）：0..9 与 11；AUTO(10) 与越界一律 false。
+bool method_is_explicit(int method) {
+    if (method == P2_REJECT_AUTO) return false;
+    return method >= P2_REJECT_NONE &&
+           method <= P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA;
 }
 
 void set_err(char* err, std::size_t err_cap, const char* msg) {
@@ -1021,8 +1091,29 @@ const char* p2_rejection_semantic_id(int method) {
         case P2_REJECT_PERCENTILE: return P2_SEMANTIC_PERCENTILE_SIRIL;
         case P2_REJECT_MEDIAN_SIGMA: return P2_SEMANTIC_MEDIAN_STD_CLIP;
         case P2_REJECT_MINMAX: return P2_SEMANTIC_MINMAX;
+        case P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA:
+            return P2_SEMANTIC_EXTREME_VALUE_PRIOR_SIGMA;
         default: return "unknown";
     }
+}
+
+
+// FIX-REJ §3 AstroCS 自有「按几何 n」内置映射（astrocs_adaptive_pixel）：
+//   n <= 1  → none（单帧/空栈无对照量；provenance 记 UNDERDETERMINED）
+//   n == 2  → extreme_value_clip_prior_sigma（新增；小栈唯一确定性方法）
+//   3..7    → percentile（WBPP auto n<6 ∩ validator 要求 winsorized n>=8）
+//   8..15   → winsorized_sigma
+//   n >= 16 → linear_fit
+// 与 WBPP 的偏离（3 处）已在 FIX-REJ §3 登记：n=2 用先验 σ 极值；
+// 6<=n<=7 用 percentile（消解 WBPP auto 与 validator 自相矛盾）；16<=n<20
+// linear_fit 由调用方发 WARN。本映射**独立命名**，不改变 wbpp_2_9_1 /
+// astrocs_adaptive 的冻结 AUTO 路由。
+static int astrocs_n_map_method(std::uint32_t n) {
+    if (n <= 1u) return P2_REJECT_NONE;
+    if (n == 2u) return P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA;
+    if (n <= 7u) return P2_REJECT_PERCENTILE;
+    if (n <= 15u) return P2_REJECT_WINSORIZED_SIGMA;
+    return P2_REJECT_LINEAR_FIT;
 }
 
 
@@ -1033,20 +1124,32 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
         set_err(err, err_cap, "p2_reject_plan_resolve: null request/plan");
         return 1;
     }
-    if (req->request < P2_REJECT_NONE || req->request > P2_REJECT_AUTO) {
+    if (req->request < P2_REJECT_NONE ||
+        req->request > P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA ||
+        (req->request != P2_REJECT_AUTO &&
+         !method_is_explicit(req->request))) {
         set_err(err, err_cap, "p2_reject_plan_resolve: request out of range");
         return 1;
     }
-    const std::string profile = req->profile ? req->profile : "wbpp_2_9_1";
-    if (profile != "wbpp_2_9_1" && profile != "wbpp_current" &&
-        profile != "astrocs_adaptive") {
+    const std::string profile = req->profile ? req->profile : P2_PROFILE_WBPP_2_9_1;
+    if (profile != P2_PROFILE_WBPP_2_9_1 &&
+        profile != P2_PROFILE_WBPP_CURRENT &&
+        profile != P2_PROFILE_ASTROCS_ADAPTIVE &&
+        profile != P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL) {
         set_err(err, err_cap,
                 "p2_reject_plan_resolve: profile 仅支持 wbpp_2_9_1"
-                "(wbpp_current alias) / astrocs_adaptive");
+                "(wbpp_current alias) / astrocs_adaptive / "
+                "astrocs_adaptive_pixel");
         return 1;
     }
+    const bool pixel_profile = (profile == P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL);
     P2RejectionPlan p{};
-    p.underdetermined_n = req->underdetermined_n > 0 ? req->underdetermined_n : 2u;
+    // FIX-REJ §3：pixel profile 的 n=2 档由 extreme_prior 承担，故其
+    // underdetermined 下限默认 1（n<=1 仍 UNDERDETERMINED）；其余 profile
+    // 维持冻结默认 2。显式传值优先。
+    p.underdetermined_n = req->underdetermined_n > 0
+                              ? req->underdetermined_n
+                              : (pixel_profile ? 1u : 2u);
     p.normalization = P2_NORMALIZE_MEDIAN_CENTER;  // 默认（WBPP Light:
     // rejectionNormalization=Scale 映射；AstroCS 用 per-pixel robust 域）
     p.normalization_floor = 1e-12;
@@ -1068,20 +1171,49 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     p.large_scale.min_structure_pixels = 8;
     p.large_scale.low_grow_radius_pixels = 2;
     p.large_scale.high_grow_radius_pixels = 2;
+    p.extreme_prior.alpha = 0.05;       // FIX-REJ：α 冻结 0.05
+    p.extreme_prior.prior_sigma = 0.0;  // 0 = 未提供 → kernel fail-closed
+    p.extreme_prior.prior_sky =
+        std::numeric_limits<double>::quiet_NaN();  // NaN = 未提供
+    p.extreme_prior.center_mode = 1;    // prior_sky 缺失时用栈中位数
+    p.nominal_n = req->nominal_contributors;  // 逐 stack 几何 n（路由依据）
 
     int method = req->request;
     if (method == P2_REJECT_AUTO) {
-        // WBPP 2.9.1 bestRejectionMethod 路由（两 profile 共用阈值表；
-        // 区别在 nominal 来源与解析粒度，见头文件）
         const std::uint32_t n = req->nominal_contributors;
-        if (n < 6u) method = P2_REJECT_PERCENTILE;
-        else if (n <= 15u) method = P2_REJECT_WINSORIZED_SIGMA;
-        else method = P2_REJECT_LINEAR_FIT;
+        if (pixel_profile) {
+            // FIX-REJ §3：AstroCS 自有按几何 n 映射（含 n=2 先验 σ 档）
+            method = astrocs_n_map_method(n);
+        } else {
+            // WBPP 2.9.1 bestRejectionMethod 冻结路由（两 profile 共用；
+            // 区别在 nominal 来源与解析粒度，见头文件）
+            if (n < 6u) method = P2_REJECT_PERCENTILE;
+            else if (n <= 15u) method = P2_REJECT_WINSORIZED_SIGMA;
+            else method = P2_REJECT_LINEAR_FIT;
+        }
     }
     p.method = method;
     p.minimum_n = method_minimum_n(method);
+    // extreme_prior 在原始 calibrated 值域直接比较绝对 prior_sky ⇒ 必须
+    // NONE；其余方法保持 MEDIAN_CENTER（WBPP Light rejectionNormalization
+    // =Scale 映射到 AstroCS per-pixel robust 域）。
+    if (method == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA)
+        p.normalization = P2_NORMALIZE_NONE;
     *plan = p;
     return 0;
+}
+
+int p2_reject_plan_resolve_n(std::uint32_t nominal_n,
+                             const P2RejectionPlanRequest* req,
+                             P2RejectionPlan* plan,
+                             char* err, std::size_t err_cap) {
+    if (req == nullptr || plan == nullptr) {
+        set_err(err, err_cap, "p2_reject_plan_resolve_n: null request/plan");
+        return 1;
+    }
+    P2RejectionPlanRequest r = *req;
+    r.nominal_contributors = nominal_n;  // 逐 stack 几何 n 覆盖
+    return p2_reject_plan_resolve(&r, plan, err, err_cap);
 }
 
 // =====================================================================
@@ -1693,14 +1825,96 @@ void reject_minmax_impl(const double* w, std::uint32_t n,
     *iterations = 1;
 }
 
+// extreme_value_clip_prior_sigma：已知先验 σ 的单离群极值检验。
+// 单趟、无迭代、无 N-r 最小保留闸（区别于 Siril 系方法核）。判据见头文件
+// P2ExtremeValuePriorSigmaParams。工作域 = 原始 calibrated 值（norm=NONE）。
+void reject_extreme_prior_impl(const double* vals, std::uint32_t n,
+                               const double* prior_sigma,
+                               const double* prior_sky,
+                               const P2ExtremeValuePriorSigmaParams& prm,
+                               std::uint32_t bonferroni_n,
+                               std::uint8_t* reason,
+                               std::uint32_t* iterations) {
+    const double alpha = (prm.alpha > 0.0 && prm.alpha < 1.0) ? prm.alpha : 0.05;
+    const std::uint32_t N =
+        bonferroni_n > 0 ? bonferroni_n : (n > 0 ? n : 1u);
+    // k = Φ⁻¹(1 − α/(2N))（Bonferroni 双侧；N = 该像素几何 nominal n）
+    const double k = norm_quantile(1.0 - alpha / (2.0 * (double)N));
+
+    // 先验中心优先级：per-sample prior_sky > 标量 prior_sky > 候选栈中位数
+    // （center_mode!=0 才允许最后一级）。栈中位数仅作回退；n=2 时它落在两
+    // 样本之间，单离群会使两侧同时超阈（生产必须提供外部 prior_sky）。
+    const bool scalar_sky = std::isfinite(prm.prior_sky);
+    bool need_median = false;
+    if (!scalar_sky) {
+        for (std::uint32_t i = 0; i < n; ++i) {
+            if (prior_sky == nullptr || !std::isfinite(prior_sky[i])) {
+                need_median = true;
+                break;
+            }
+        }
+    }
+    double stack_med = 0.0;
+    if (need_median && prm.center_mode != 0) {
+        ScratchVec<double> med_scratch;
+        med_scratch.resize(n);
+        for (std::uint32_t i = 0; i < n; ++i) med_scratch[i] = vals[i];
+        stack_med = scratch_median(med_scratch.data(), n);
+    }
+    for (std::uint32_t i = 0; i < n; ++i) {
+        const double sigma =
+            (prior_sigma != nullptr) ? prior_sigma[i] : prm.prior_sigma;
+        double center;
+        if (prior_sky != nullptr && std::isfinite(prior_sky[i])) {
+            center = prior_sky[i];
+        } else if (scalar_sky) {
+            center = prm.prior_sky;
+        } else {
+            center = stack_med;  // center_mode==0 时已由 valid 门拦下
+        }
+        const double z = (vals[i] - center) / sigma;
+        if (z > k) reason[i] = P2_REASON_REJECTED_HIGH;
+        else if (z < -k) reason[i] = P2_REASON_REJECTED_LOW;
+        else reason[i] = P2_REASON_ACCEPTED;
+    }
+    *iterations = 1;
+}
+
+// 先验可用性（fail-closed）：
+// - σ：逐样本数组优先（全项须 finite 且 >0）；否则标量须 finite 且 >0。
+// - 中心：center_mode==0（强制外部 prior_sky）时，必须存在可用的
+//   per-sample prior_sky 或 finite 标量 prior_sky；否则不可用。
+bool extreme_prior_valid(const P2CandidateStack* st,
+                         const P2RejectionPlan* plan) {
+    const auto& prm = plan->extreme_prior;
+    if (st->prior_sigma != nullptr) {
+        for (std::uint32_t i = 0; i < st->count; ++i) {
+            const double s = st->prior_sigma[i];
+            if (!std::isfinite(s) || !(s > 0.0)) return false;
+        }
+    } else {
+        const double s = prm.prior_sigma;
+        if (!std::isfinite(s) || !(s > 0.0)) return false;
+    }
+    if (prm.center_mode == 0) {
+        if (st->prior_sky != nullptr) {
+            for (std::uint32_t i = 0; i < st->count; ++i)
+                if (!std::isfinite(st->prior_sky[i])) return false;
+            return true;
+        }
+        return std::isfinite(prm.prior_sky);
+    }
+    return true;  // center_mode!=0：允许栈中位数回退
+}
+
 } // namespace
 
 int p2_reject_stack_ex(const P2CandidateStack* stack,
                        const P2RejectionPlan* plan,
                        P2RejectionDecision* out) {
     if (stack == nullptr || plan == nullptr || out == nullptr) return 1;
-    if (plan->method < P2_REJECT_NONE || plan->method > P2_REJECT_MINMAX) {
-        // AUTO 等非法方法 → 明确科学状态 INVALID_METHOD（rc=0，
+    if (!method_is_explicit(plan->method)) {
+        // AUTO(10) 等非法方法 → 明确科学状态 INVALID_METHOD（rc=0，
         // 调用方对非 {OK,UNDERDETERMINED} 一律 hard fail）
         std::uint8_t* reasons_out = out->reasons;
         std::memset(out, 0, sizeof(*out));
@@ -1752,11 +1966,32 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
         out->status = P2_STATUS_INVALID_CONFIGURATION;
         return 0;
     }
+    // extreme_prior 在原始值域比较绝对 prior_sky ⇒ 只接受 NONE（planning
+    // 层解析已保证；手工构造 plan 走此 fail-closed 门）。
+    if (plan->method == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA &&
+        norm != P2_NORMALIZE_NONE) {
+        for (std::uint32_t i = 0; i < n; ++i)
+            reasons_out[i] = P2_REASON_UNDERDETERMINED;
+        out->accepted_count = n;
+        out->status = P2_STATUS_INVALID_CONFIGURATION;
+        return 0;
+    }
 
     // UNDERDETERMINED：n <= underdetermined_n 或 n < method minimum N
     const std::uint32_t min_n =
         plan->minimum_n > 0 ? (std::uint32_t)plan->minimum_n : 0u;
     if (n <= plan->underdetermined_n || (min_n > 0 && n < min_n)) {
+        for (std::uint32_t i = 0; i < n; ++i)
+            reasons_out[i] = P2_REASON_UNDERDETERMINED;
+        out->accepted_count = n;
+        out->status = P2_STATUS_UNDERDETERMINED;
+        return 0;
+    }
+
+    // extreme_prior：先验 σ 缺失/非法 → 不做猜测，全接受并记录
+    // （FIX-REJ §9 fail-closed；禁止用栈内尺度冒名顶替）。
+    if (plan->method == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA &&
+        !extreme_prior_valid(stack, plan)) {
         for (std::uint32_t i = 0; i < n; ++i)
             reasons_out[i] = P2_REASON_UNDERDETERMINED;
         out->accepted_count = n;
@@ -1831,6 +2066,12 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
             reject_minmax_impl(stack->values, n, plan->minmax, reasons_out,
                                &iterations, idx, accept);
             break;
+        case P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA:
+            // 原始值域（norm 已校验 = NONE）；Bonferroni N = 几何 nominal n
+            reject_extreme_prior_impl(stack->values, n, stack->prior_sigma,
+                                      stack->prior_sky, plan->extreme_prior,
+                                      plan->nominal_n, reasons_out, &iterations);
+            break;
         default:
             return 1;
     }
@@ -1873,6 +2114,22 @@ int p2_reject_stack_ex(const P2CandidateStack* stack,
                                           : P2_STATUS_OK;
     }
     return 0;
+}
+
+int p2_reject_stack_resolve_ex(const P2CandidateStack* stack,
+                               const P2RejectionPlanRequest* req,
+                               P2RejectionDecision* out,
+                               P2RejectionPlan* resolved_plan,
+                               char* err, std::size_t err_cap) {
+    if (stack == nullptr || req == nullptr || out == nullptr) {
+        set_err(err, err_cap, "p2_reject_stack_resolve_ex: null arg");
+        return 1;
+    }
+    // planning 层解析（AUTO 在此消解；kernel 永不见 AUTO）
+    P2RejectionPlan plan{};
+    if (p2_reject_plan_resolve(req, &plan, err, err_cap) != 0) return 1;
+    if (resolved_plan != nullptr) *resolved_plan = plan;
+    return p2_reject_stack_ex(stack, &plan, out);
 }
 
 // =====================================================================
@@ -2130,6 +2387,11 @@ bool rej_plan_inherited(const P2RejectionPlan& p) {
         p.minmax.min_kept != 4)
         return false;
     if (p.rcr.technique != 0) return false;
+    // extreme_prior 的 α 是方法判据（冻结 0.05）；prior_sigma/prior_sky 是
+    // 调用方数据，不属"继承阈值"，此处不校验。
+    if (p.method == P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA &&
+        !rej_eq(p.extreme_prior.alpha, 0.05))
+        return false;
     if (p.large_scale.enabled != 0 || p.large_scale.min_structure_pixels != 8 ||
         p.large_scale.low_grow_radius_pixels != 2 ||
         p.large_scale.high_grow_radius_pixels != 2)
@@ -2203,6 +2465,59 @@ int p2_reject_plan_thresholds_inherited(const P2RejectionPlan* plan) {
     return rej_plan_inherited(*plan) ? 1 : 0;
 }
 
+int p2_rejection_applicability(int method, std::uint32_t nominal_n,
+                               char* warn_code, std::size_t warn_cap) {
+    const char* code = nullptr;
+    switch (method) {
+        case P2_REJECT_NONE:
+            code = "W_NONE";  // 排异是必需步骤（DESIGN §4.5.1；WBPP :1237）
+            break;
+        case P2_REJECT_MINMAX:
+            // WBPP :1239 "Min/Max rejection should not be used for
+            // production work"；FIX-REJ §4.2 恒 WARN+确认。
+            code = "W_MINMAX";
+            break;
+        case P2_REJECT_PERCENTILE:
+            if (nominal_n > 8u) code = "W_PCT_GT8";        // WBPP :1252-1254
+            else if (nominal_n <= 4u) code = "W_PCT_N4_FALLBACK";
+            break;
+        case P2_REJECT_SIGMA:
+            if (nominal_n < 8u || nominal_n > 15u) code = "W_SIGMA_RANGE";
+            break;
+        case P2_REJECT_WINSORIZED_SIGMA:
+            if (nominal_n < 8u) code = "W_WINS_LT8";       // WBPP :1262-1264
+            if (nominal_n <= 4u) code = "W_NR_LE4";        // Siril N-r<=4
+            break;
+        case P2_REJECT_MEDIAN_SIGMA:
+        case P2_REJECT_LINEAR_FIT:
+            if (nominal_n <= 4u) code = "W_NR_LE4";
+            if (method == P2_REJECT_LINEAR_FIT && nominal_n >= 8u &&
+                nominal_n < 20u)
+                code = "W_LF_LT20";                        // WBPP :1272-1276
+            break;
+        case P2_REJECT_AVERAGED_SIGMA:
+            if (nominal_n < 8u || nominal_n > 10u) code = "W_AVG_RANGE";
+            break;
+        case P2_REJECT_GENERALIZED_ESD:
+            // NIST §1.3.5.17.3：n>=15 起"reasonably accurate"，n>=25 准确
+            if (nominal_n < 25u) code = "W_ESD_LT25";
+            break;
+        case P2_REJECT_RCR:
+            if (nominal_n < 15u) code = "W_RCR_LT15";      // WBPP :1285-1287
+            break;
+        case P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA:
+            // FIX-REJ §3 的 n=2 档；显式在 n>2 亦为合法已知-σ 检验，不 WARN。
+            break;
+        default:
+            code = "W_UNKNOWN_METHOD";
+            break;
+    }
+    if (code == nullptr) return 0;
+    if (warn_code != nullptr && warn_cap > 0)
+        std::snprintf(warn_code, warn_cap, "%s", code);
+    return 1;
+}
+
 int p2_rejection_weight_surface_guard(const char* const* tokens,
                                       std::size_t count, char* err,
                                       std::size_t err_cap) {
@@ -2272,8 +2587,7 @@ int p2_reject_classify(const P2RejectClassifyInput* in,
         rej_all_underdetermined(out, n, P2_STATUS_INVALID_CONFIGURATION);
         return 0;
     }
-    if (cfg->plan.method < P2_REJECT_NONE ||
-        cfg->plan.method > P2_REJECT_MINMAX) {
+    if (!method_is_explicit(cfg->plan.method)) {
         // AUTO(10) 等非法方法 → INVALID_METHOD（AUTO 永不进 kernel）
         rej_all_underdetermined(out, n, P2_STATUS_INVALID_METHOD);
         return 0;
