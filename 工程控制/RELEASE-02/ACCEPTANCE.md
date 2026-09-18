@@ -108,6 +108,8 @@
 
 | SD-13 | **DC-514（阻断级）配置形态**：官方模板 `config/templates/*.phase_config.json` 为**嵌套形态**（`phase_name`/`config`/`inputs`），而 CLI/预检只认**扁平形态**（顶层 `output_dir`/`input_lights`/`master_*`）⇒ 官方模板 `export --json` **rc=2**，唯一事实源不可运行 | `ASTROCS_DESIGN.md` §3.3 输入合同**本身就是嵌套形态**（`config{precision,output_dir,sparse_snr_layer}` + `inputs[]{light,bias,dark,flat,filter}`）⇒ **嵌套形态才是设计权威**；扁平形态是实现的私有简化 | 无（§3.3 不动） | **待修（hub 批）**：实现必须接受 §3.3 嵌套形态（扁平形态可保留为兼容别名）；`inputs[]` 的逐条校准帧要支持（T2/T3 不同母版共处一个数据块）；模板必须可跑通 rc=0 | 裁决：**以设计 §3.3 嵌套形态为准**。这不是模板问题，是**实现偏离了设计输入合同**；与 P0-21 的「一组进一组出」同源（§3.3 的 `inputs[]` 就是那『一组』）。列入 hub 批必修 |
 
+| SD-14 | **口径冲突⑤（实质）**：`docs/science/REJECTION.md` §7/§8 规定「n≤2 恒 UNDERDETERMINED、不做剔除」 vs 设计 §4.5 + FIX-REJ 映射表的 **n=2 排异能力**（`extreme_value_clip_prior_sigma`，k=Φ⁻¹(1−α/(2N))） | 冻结文档该条成文于「尚无 n=2 方法」之时；现有**外部先验 σ**（方案 A：该帧该 tile 31×31 邻域中位数/MAD）时，n=2 可做单趟极值剔除且实测无污染零误剔。设计 §4.5 是负责人意图，且 n=2 白名单正是卫星线进入叠加的直接原因（L4 实测 74% 像素 n=2） | **需订正 `REJECTION.md` §7/§8**（走 §3 变更 claim）：改为「n≤2 在**无外部先验**时 UNDERDETERMINED；**有有效先验**时按极值剔除」 | kernel 已提供能力（新方法 11 / 新 profile `astrocs_adaptive_pixel` / `p2_reject_plan_resolve_n`），未擅改冻结默认 | 裁决：(a) **订正文档**（设计优先，且有证据）；(b) **生产 mosaic 默认切 `astrocs_adaptive_pixel`**（§4.5 要求 auto 即内置映射），冻结路由测试同步更新；(c) scheduler 必须为 n=2 提供**外部 `prior_sky`**（只给 `prior_sigma` 会让中心回退中位数 → 全拒 → 冻结容错反转为全接受，排异失效） |
+
 ## 4. 上呈事项（穷尽：仅 §3a 列明类别）
 
 | 事项 | 证据 | 方案与代价 | agent 推荐 |
