@@ -54,6 +54,7 @@
 | P0-15 版本号 | 不在本包（FIN 阶段处理） | 负责人裁决：全部验收通过后再改 |
 | P0-16 文档↔仓库冲突 | **CLOSED** | 新文档包 `ENGINEERING_SPEC.md` §7 根白名单补 `ACCEPTANCE_SPEC.md`（修 U-1）；`docs/ci/01_CHECKS.md` §2 补登记 `CHK-E2E-REPRO`、`CHK-EXIT-CONSISTENCY`（修 U-2）。前台独立复跑：`ENG-CONSTRAINTS` verdict=PASS、`CHK-REGISTRY-DOC-SYNC` verdict=PASS 2/2 |
 | P0-17/18（二轮增量） |  |  |
+| **P0-19（RELEASE-02 新增）** `hips_frame=icrs` 违反 IVOA HiPS | **待修（证据已闭环）** | 三方证据：IVOA 官方规范源码（`ivoa-std/HiPS` 关键字表与示例均为 `equatorial`）、CDS 生产 HiPS 实样（DSS/2MASS 均 `equatorial`）、本仓 `module_adapters.cpp:5284` 自述系前批 agent 误改。受影响：writer `:1122,1371`、`PHASE3_HIPS_TO_FITS.md:63`、`p1hips_tests_units.cpp:288-289`、adapter 注释 |
 
 ## 3. 自决闭环留痕（§3a 授权事项）
 
