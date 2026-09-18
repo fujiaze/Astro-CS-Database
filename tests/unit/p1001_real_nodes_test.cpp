@@ -134,6 +134,16 @@ void cleanup_fixture(Fixture& f) {
   fs::remove_all(f.dir, ec);
 }
 
+// ── P0-21: 每帧 HiPS 产品根 = output_dir/<frame_key>（DATA-P1-PRODUCTS 口径）──
+// 每个 input light 的 signal/support/p1_stack.json/p1_final.json/p1_wcs.json
+// 落在自己的产品目录下; <frame_key> = 输入基名去扩展名（本夹具 = light_N）。
+std::string frame_root(const Fixture& fx, const char* light_base = "light_1") {
+  std::string stem = light_base;
+  const size_t dot = stem.find_last_of('.');
+  if (dot != std::string::npos) stem = stem.substr(0, dot);
+  return fx.out_dir + "/" + stem;
+}
+
 // 向上探测仓库根（锚: ASTROCS_PROJECT_CONSTITUTION.md）→ GaiaDR3 用户数据区
 std::string find_repo_gaia_dir() {
   fs::path probe = fs::current_path();
@@ -513,7 +523,7 @@ static void test_nodes_real_operation() {
     CHECK(f.value("schema", "") == "DATA-P1-HIPS");
     CHECK(f.value("covered_area_model", "") == "support_ratio_x_A_cell");
   }
-  CHECK(fs::exists(fs::path(fx.out_dir + "/signal/properties")));
+  CHECK(fs::exists(fs::path(frame_root(fx) + "/signal/properties")));
   CHECK(fs::exists(fs::path(man_wr.value("final_artifact", ""))));
 
   cleanup_fixture(fx);
@@ -599,9 +609,14 @@ static void test_runtime_chain_call_count_1() {
   CHECK(fs::exists(fs::path(out_dir + "/p1_psf.json")));
   CHECK(fs::exists(fs::path(out_dir + "/p1_flux.json")));
   CHECK(fs::exists(fs::path(out_dir + "/p1_snr.json")));
-  CHECK(fs::exists(fs::path(out_dir + "/p1_stack.json")));
-  CHECK(fs::exists(fs::path(out_dir + "/p1_final.json")));
-  CHECK(fs::exists(fs::path(out_dir + "/signal/properties")));
+  // P0-21 §3.4: 每帧一个 HiPS 产品目录（本链 2 帧 ⇒ 2 个产品）。
+  CHECK(fs::exists(fs::path(frame_root(fx, "light_1") + "/p1_stack.json")));
+  CHECK(fs::exists(fs::path(frame_root(fx, "light_1") + "/p1_final.json")));
+  CHECK(fs::exists(fs::path(frame_root(fx, "light_1") + "/signal/properties")));
+  CHECK(fs::exists(fs::path(frame_root(fx, "light_2") + "/p1_stack.json")));
+  CHECK(fs::exists(fs::path(frame_root(fx, "light_2") + "/p1_final.json")));
+  CHECK(fs::exists(fs::path(frame_root(fx, "light_2") + "/signal/properties")));
+  CHECK(fs::exists(fs::path(out_dir + "/p1_products.json")));
 
   cleanup_fixture(fx);
 }
@@ -678,8 +693,8 @@ static void test_fail_fast_downstream_zero_calls() {
   CHECK_MSG(drz_failed, "drz node must be FAILED in trace");
   // 注: fail-fast 全局失败语义下, 与 drz 并行（2 workers）的 snr 可能被取消,
   // 故不断言 snr 产物存在; 只断言失败节点自身及其下游零产物。
-  CHECK(!fs::exists(fs::path(fx.out_dir + "/p1_stack.json"))); // drz 拒绝无产物
-  CHECK(!fs::exists(fs::path(fx.out_dir + "/p1_final.json"))); // wr 未执行
+  CHECK(!fs::exists(fs::path(frame_root(fx) + "/p1_stack.json"))); // drz 拒绝无产物
+  CHECK(!fs::exists(fs::path(frame_root(fx) + "/p1_final.json"))); // wr 未执行
 
   cleanup_fixture(fx);
 }
@@ -785,7 +800,7 @@ static void test_negative_injection() {
     Result<void> rc;
     json man = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
     CHECK_MSG(rc.failed(), "drizzle without nside must be rejected");
-    CHECK(!fs::exists(fs::path(fx.out_dir + "/p1_stack.json")));
+    CHECK(!fs::exists(fs::path(frame_root(fx) + "/p1_stack.json")));
   }
   // 4d. 纯噪声帧 → star-psf 空 catalog 合法成功（不误报）
   {
@@ -1095,7 +1110,7 @@ static void test_b2a12_precision_default_and_equiv() {
     (void)man;
     CHECK_MSG(rc.failed(), "B2-A12: missing precision_mode must be rejected (no silent FP32)");
     if (rc.failed()) CHECK(rc.error().domain() == ErrorDomain::DATA);
-    CHECK(!fs::exists(fs::path(fx.out_dir + "/p1_stack.json")));
+    CHECK(!fs::exists(fs::path(frame_root(fx) + "/p1_stack.json")));
     cleanup_fixture(fx);
   }
   // 12b: FP32/FP64 等价性 + p1_stack.json 记录 precision_mode
@@ -1125,15 +1140,15 @@ static void test_b2a12_precision_default_and_equiv() {
     // p1_stack.json provenance: precision_mode 显式记录 (禁隐式缺省)
     auto stack_prec = [](Fixture& fx) -> int {
       json s;
-      try { s = json::parse(read_file(fx.out_dir + "/p1_stack.json")); } catch (...) { return -99; }
+      try { s = json::parse(read_file(frame_root(fx) + "/p1_stack.json")); } catch (...) { return -99; }
       return s.value("precision_mode", -99);
     };
     CHECK_MSG(stack_prec(fx32) == 0, "B2-A12: p1_stack.json must record precision_mode=0");
     CHECK_MSG(stack_prec(fx64) == 1, "B2-A12: p1_stack.json must record precision_mode=1");
     // 等价性: 同一输入 FP32/FP64 累积逐 tile signal 相对一致 (输出窄化 FP32)
     std::map<std::string, std::vector<double>> s32, s64;
-    const bool ok32 = hips_tile_signals(fx32.out_dir, &s32);
-    const bool ok64 = hips_tile_signals(fx64.out_dir, &s64);
+    const bool ok32 = hips_tile_signals(frame_root(fx32), &s32);
+    const bool ok64 = hips_tile_signals(frame_root(fx64), &s64);
     CHECK_MSG(ok32 && ok64, "B2-A12: FP32/FP64 HiPS signal tiles must be readable");
     CHECK_MSG(s32.size() == s64.size() && !s32.empty(),
               "B2-A12: FP32/FP64 must touch the same tile set");
@@ -1180,7 +1195,7 @@ static void test_b2a14_photappl_provenance() {
     }
     // P23: PHOTAPPL/PHOTSCAL/BUNIT 事实面从 p1_stack.json provenance 读取
     // (旧链落中间容器头; 直写末端把同一 provenance 落 p1_stack.json)。
-    try { *meta_out = json::parse(read_file(fx.out_dir + "/p1_stack.json")); }
+    try { *meta_out = json::parse(read_file(frame_root(fx) + "/p1_stack.json")); }
     catch (...) { return false; }
     return true;
   };
@@ -1308,7 +1323,7 @@ static void test_b2a15_writer_stale_buffer_and_support() {
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
   Fixture fx = make_fixture("b2a15");
-  CHECK_MSG(write_sparse_hips(fx.out_dir, {{0, 0, kA15Cover0, kA15Tile0Support},
+  CHECK_MSG(write_sparse_hips(frame_root(fx), {{0, 0, kA15Cover0, kA15Tile0Support},
                                            {1, 0, kA15Cover1, kA15Tile1Support}}),
             "B2-A15: sparse multi-tile HiPS fixture (write_hips_phase1)");
   RunContext ctx;
@@ -1323,10 +1338,10 @@ static void test_b2a15_writer_stale_buffer_and_support() {
                        (wrc.failed() ? wrc.error().message() : std::string())).c_str());
   if (wrc.failed()) { cleanup_fixture(fx); return; }
   std::vector<float> sig0, sup0, sig1, sup1;
-  CHECK_MSG(hips_tile_signal(fx.out_dir, 0, &sig0), "B2-A15: signal tile 0 readable");
-  CHECK_MSG(hips_tile_support(fx.out_dir, 0, &sup0), "B2-A15: support tile 0 readable");
-  CHECK_MSG(hips_tile_signal(fx.out_dir, 1, &sig1), "B2-A15: signal tile 1 readable");
-  CHECK_MSG(hips_tile_support(fx.out_dir, 1, &sup1), "B2-A15: support tile 1 readable");
+  CHECK_MSG(hips_tile_signal(frame_root(fx), 0, &sig0), "B2-A15: signal tile 0 readable");
+  CHECK_MSG(hips_tile_support(frame_root(fx), 0, &sup0), "B2-A15: support tile 0 readable");
+  CHECK_MSG(hips_tile_signal(frame_root(fx), 1, &sig1), "B2-A15: signal tile 1 readable");
+  CHECK_MSG(hips_tile_support(frame_root(fx), 1, &sup1), "B2-A15: support tile 1 readable");
   if (sig0.size() != 512ull * 512ull || sup0.size() != sig0.size() ||
       sig1.size() != sig0.size() || sup1.size() != sig0.size()) {
     CHECK_MSG(false, "B2-A15: HiPS tile size must be 512x512");
@@ -1334,7 +1349,7 @@ static void test_b2a15_writer_stale_buffer_and_support() {
   }
   {  // n_tiles_written 属 p1_final.json 产物面字段
     json fin0;
-    try { fin0 = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+    try { fin0 = json::parse(read_file(frame_root(fx) + "/p1_final.json")); } catch (...) {}
     CHECK(fin0.value("n_tiles_written", 0) == 2);
     CHECK(fin0.value("n_tiles", 0u) == 2u);
   }
@@ -1381,7 +1396,7 @@ static void test_b2a15_writer_stale_buffer_and_support() {
             "B2-A15 fixture must expose non-full support scaling");
   {
     json fin;
-    try { fin = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+    try { fin = json::parse(read_file(frame_root(fx) + "/p1_final.json")); } catch (...) {}
     CHECK_MSG(fin.value("covered_area_model", "") == "support_ratio_x_A_cell",
               "B2-A15: covered_area_model must record uint8 area-ratio scaling");
   }
@@ -1406,7 +1421,7 @@ static void test_b2a15_ghost_discontinuous_multiparent() {
   ModuleRegistry reg;
   CHECK(register_phase_modules(reg).ok());
   Fixture fx = make_fixture("b2a15g");
-  CHECK_MSG(write_sparse_hips(fx.out_dir,
+  CHECK_MSG(write_sparse_hips(frame_root(fx),
                               {{kA15GhostParent0, 0, kA15GhostCover0, kA15GhostSup0},
                                {kA15GhostParent1, kA15GhostOffset1, kA15GhostCover1, kA15GhostSup1}}),
             "A15 ghost fixture must be written (write_hips_phase1)");
@@ -1422,10 +1437,10 @@ static void test_b2a15_ghost_discontinuous_multiparent() {
                        (wrc.failed() ? wrc.error().message() : std::string())).c_str());
   if (wrc.failed()) { cleanup_fixture(fx); return; }
   std::vector<float> sig0,sup0,sig1,sup1;
-  CHECK(hips_tile_signal(fx.out_dir, 0, &sig0));
-  CHECK(hips_tile_support(fx.out_dir, 0, &sup0));
-  CHECK(hips_tile_signal(fx.out_dir, 1, &sig1));
-  CHECK(hips_tile_support(fx.out_dir, 1, &sup1));
+  CHECK(hips_tile_signal(frame_root(fx), 0, &sig0));
+  CHECK(hips_tile_support(frame_root(fx), 0, &sup0));
+  CHECK(hips_tile_signal(frame_root(fx), 1, &sig1));
+  CHECK(hips_tile_support(frame_root(fx), 1, &sup1));
   if (sig0.size() != 512ull*512ull || sup0.size()!=sig0.size() ||
       sig1.size()!=sig0.size() || sup1.size()!=sig0.size()) {
     CHECK_MSG(false, "A15 ghost: tiles must be 512x512");
@@ -1465,7 +1480,7 @@ static void test_b2a15_ghost_discontinuous_multiparent() {
   CHECK_MSG(!support_bad, "A15 ghost: covered pixels must keep area-ratio support");
   {
     json fin;
-    try { fin = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+    try { fin = json::parse(read_file(frame_root(fx) + "/p1_final.json")); } catch (...) {}
     CHECK(fin.value("n_tiles_written", 0) == 2);
   }
   cleanup_fixture(fx);
@@ -1589,7 +1604,7 @@ static void test_b2a17_sip_bridge() {
                          (wrc.failed() ? wrc.error().message() : std::string())).c_str());
     CHECK(wman.value("wcs_source", "") == "explicit_config");
     json wj;
-    try { wj = json::parse(read_file(fx.out_dir + "/p1_wcs.json")); } catch (...) {}
+    try { wj = json::parse(read_file(frame_root(fx) + "/p1_wcs.json")); } catch (...) {}
     CHECK(wj.value("schema", "") == "DATA-P1-WCS");
     CHECK_MSG(!wj["wcs"].contains("sip"), "B2-A17: undistorted path must not emit wcs.sip");
     CHECK(wj["wcs"].value("ctype1", "") == std::string("RA---TAN"));
@@ -1611,7 +1626,7 @@ static void test_b2a17_sip_bridge() {
   CHECK_MSG(wrc.ok(), ("B2-A17: explicit SIP wcs: " +
                        (wrc.failed() ? wrc.error().message() : std::string())).c_str());
   json wj;
-  try { wj = json::parse(read_file(fx.out_dir + "/p1_wcs.json")); } catch (...) {}
+  try { wj = json::parse(read_file(frame_root(fx) + "/p1_wcs.json")); } catch (...) {}
   CHECK(wj.value("schema", "") == "DATA-P1-WCS");
   CHECK_MSG(wj["wcs"].contains("sip"), "B2-A17: p1_wcs.json must persist SIP coefficients");
   if (wj["wcs"].contains("sip")) {
@@ -1722,12 +1737,12 @@ static void test_b2a17_sip_bridge() {
     // (3a) 无 p1_wcs.json, config wcs 无 SIP
     {
       std::error_code ec;
-      fs::remove(fs::u8path(fxo.out_dir + "/p1_wcs.json"), ec);
+      fs::remove(fs::u8path(frame_root(fxo) + "/p1_wcs.json"), ec);
       Result<void> rc;
       const json m = run_node(reg2, "astrocs.phase1.drizzle", drz_cfg(wcs_lin), c2, &rc);
       CHECK_MSG(rc.ok(), ("B2-A17: exact linear drizzle: " +
                           (rc.failed() ? rc.error().message() : std::string())).c_str());
-      const auto sq = hips_exact_signal(fxo.out_dir);
+      const auto sq = hips_exact_signal(frame_root(fxo));
       CHECK_MSG(sq.size() == 1, ("B2-A17: delta frame must touch exactly 1 leaf, got " +
                                  std::to_string(sq.size())).c_str());
       if (sq.size() == 1) {
@@ -1740,10 +1755,10 @@ static void test_b2a17_sip_bridge() {
       }
       CHECK(m.value("precision_mode", -1) == 0);
       std::map<std::string, std::vector<float>> sup_lin;
-      hips_plane_snapshot(fxo.out_dir, "support", &sup_lin);
+      hips_plane_snapshot(frame_root(fxo), "support", &sup_lin);
       {
         json st;
-        try { st = json::parse(read_file(fxo.out_dir + "/p1_stack.json")); } catch (...) {}
+        try { st = json::parse(read_file(frame_root(fxo) + "/p1_stack.json")); } catch (...) {}
         CHECK_MSG(st.value("sip_present", true) == false,
                   "B2-A17: linear drizzle must record sip_present=false");
       }
@@ -1755,14 +1770,14 @@ static void test_b2a17_sip_bridge() {
                           (rw.failed() ? rw.error().message() : std::string())).c_str());
       CHECK(wm2.value("wcs_source", "") == "explicit_config");
       json wj2;
-      try { wj2 = json::parse(read_file(fxo.out_dir + "/p1_wcs.json")); } catch (...) {}
+      try { wj2 = json::parse(read_file(frame_root(fxo) + "/p1_wcs.json")); } catch (...) {}
       CHECK_MSG(wj2["wcs"].contains("sip"),
                 "B2-A17: p1_wcs.json must ship sip for the frame header bridge");
       Result<void> drc2;
       const json dm2 = run_node(reg2, "astrocs.phase1.drizzle", drz_cfg(wcs_sip), c2, &drc2);
       CHECK_MSG(drc2.ok(), ("B2-A17: SIP drizzle via p1_wcs.json: " +
                             (drc2.failed() ? drc2.error().message() : std::string())).c_str());
-      const auto sq2 = hips_exact_signal(fxo.out_dir);
+      const auto sq2 = hips_exact_signal(frame_root(fxo));
       CHECK_MSG(sq2.size() == 1,
                 ("B2-A17: SIP delta frame must still touch exactly 1 leaf, got " +
                  std::to_string(sq2.size())).c_str());
@@ -1775,7 +1790,7 @@ static void test_b2a17_sip_bridge() {
       CHECK(dm2.value("precision_mode", -1) == 0);
       {
         json st;
-        try { st = json::parse(read_file(fxo.out_dir + "/p1_stack.json")); } catch (...) {}
+        try { st = json::parse(read_file(frame_root(fxo) + "/p1_stack.json")); } catch (...) {}
         CHECK_MSG(st.value("sip_present", false) == true,
                   "B2-A17: drizzle must consume p1_wcs.json SIP into frame header (sip_present)");
         CHECK(st.value("sip_order", -1) == 2);
@@ -1785,7 +1800,7 @@ static void test_b2a17_sip_bridge() {
       // 桥接可观测性: SIP 系数下发后 drizzle 落与线性路径同点
       // (A(15.5,15.5)=0 与 B(15.5,15.5)=0) 且 support 平面因子一致。
       std::map<std::string, std::vector<float>> sup_sip;
-      hips_plane_snapshot(fxo.out_dir, "support", &sup_sip);
+      hips_plane_snapshot(frame_root(fxo), "support", &sup_sip);
       CHECK_MSG(sup_lin.size() == sup_sip.size(),
                 "B2-A17: SIP vs linear support plane topology must agree");
       bool same = (sup_lin.size() == sup_sip.size());
@@ -2001,7 +2016,7 @@ static void test_torn_artifact_fault_injection() {
     // 会 abort 并吞掉后续全部用例; 判据不放松, 只把 abort 变成可读断言失败）。
     if (rc.failed())
       CHECK(rc.error().domain() == ErrorDomain::IO);
-    CHECK(!fs::exists(fs::path(fx.out_dir + "/p1_stack.json")));
+    CHECK(!fs::exists(fs::path(frame_root(fx) + "/p1_stack.json")));
     cleanup_fixture(fx);
   }
   // 10b. 发布卫生 + 残缺旧产物覆盖: 预置一个残缺的 artifact:cos 文件, 再跑
@@ -2355,7 +2370,7 @@ static void test_p17_nside_sampling_compliance() {
     CHECK_MSG(man.value("nside_conflict", std::string()) == "none",
               "P17: 合规 auto 的 nside_conflict 必须是 none");
     json st;
-    try { st = json::parse(read_file(fx.out_dir + "/p1_stack.json")); } catch (...) { CHECK(false); }
+    try { st = json::parse(read_file(frame_root(fx) + "/p1_stack.json")); } catch (...) { CHECK(false); }
     CHECK_MSG(st.value("nside_source", std::string()) == "auto",
               "P17: p1_stack.json 必须记 nside_source");
     CHECK_MSG(st.value("oversample_factor", 0.0) >= 1.0,
@@ -2517,18 +2532,18 @@ static void test_p21_writer_aggregation_buckets() {
   Fixture fx = make_fixture("p21");
   // P23: 直接以生产末端 write_hips_phase1 写出 4 个分散 sparse tile 的 HiPS
   // (旧夹具写中间容器再交 writer 聚合; 容器已删除, 等价夹具改为直供 sink)。
-  CHECK_MSG(write_p21_scatter_hips(fx.out_dir), "P21: scatter HiPS fixture");
+  CHECK_MSG(write_p21_scatter_hips(frame_root(fx)), "P21: scatter HiPS fixture");
   {
     std::vector<float> pre;
-    CHECK_MSG(hips_tile_at(fx.out_dir, "signal", 7, kP21Parents[0], &pre),
+    CHECK_MSG(hips_tile_at(frame_root(fx), "signal", 7, kP21Parents[0], &pre),
               "P21: 夹具必须写出 Norder7 sparse tile");
     // M2b-B-01 负例: tile 196607 必须落标准式 Dir190000/Npix196607.fits,
     // 旧非标准式 Dir19/Npix6607.fits **不得**存在 (实现回退成旧式即红)。
-    CHECK_MSG(file_present(hips_tile_path_std(fx.out_dir, "signal", 7, 196607u)),
+    CHECK_MSG(file_present(hips_tile_path_std(frame_root(fx), "signal", 7, 196607u)),
               "P21: tile 196607 必须落 IVOA 标准路径 Dir190000/Npix196607.fits");
-    CHECK_MSG(!file_present(hips_tile_path_legacy(fx.out_dir, "signal", 7, 196607u)),
+    CHECK_MSG(!file_present(hips_tile_path_legacy(frame_root(fx), "signal", 7, 196607u)),
               "P21: 旧非标准路径 Dir19/Npix6607.fits 不得存在");
-    CHECK_MSG(!file_present(hips_tile_path_legacy(fx.out_dir, "signal", 7, 100000u)),
+    CHECK_MSG(!file_present(hips_tile_path_legacy(frame_root(fx), "signal", 7, 100000u)),
               "P21: 旧非标准路径 Dir10/Npix0.fits 不得存在");
   }
   RunContext ctx;
@@ -2563,7 +2578,7 @@ static void test_p21_writer_aggregation_buckets() {
              std::to_string(span * 4) + ")").c_str());
   {
     json fin0;
-    try { fin0 = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+    try { fin0 = json::parse(read_file(frame_root(fx) + "/p1_final.json")); } catch (...) {}
     CHECK(fin0.value("n_tiles_written", 0) == 4);
     CHECK(fin0.value("n_tiles", 0u) == 4u);
   }
@@ -2573,9 +2588,9 @@ static void test_p21_writer_aggregation_buckets() {
   for (int t = 0; t < 4; ++t) {
     std::vector<float> sig, sup;
     const std::string tag = std::to_string(kP21Parents[t]);
-    CHECK_MSG(hips_tile_at(fx.out_dir, "signal", norder, kP21Parents[t], &sig),
+    CHECK_MSG(hips_tile_at(frame_root(fx), "signal", norder, kP21Parents[t], &sig),
               ("P21: signal tile 可读 parent " + tag).c_str());
-    CHECK_MSG(hips_tile_at(fx.out_dir, "support", norder, kP21Parents[t], &sup),
+    CHECK_MSG(hips_tile_at(frame_root(fx), "support", norder, kP21Parents[t], &sup),
               ("P21: support tile 可读 parent " + tag).c_str());
     if (sig.size() != 512ull * 512ull || sup.size() != sig.size()) {
       CHECK_MSG(false, "P21: HiPS tile 必须 512x512");
@@ -2638,7 +2653,7 @@ static void test_p21_writer_aggregation_buckets() {
   // 缺失 parent 不得被凭空写出 (稀疏性守恒: 只有 4 个 parent 有 tile)
   {
     std::vector<float> ghost;
-    CHECK_MSG(!hips_tile_at(fx.out_dir, "signal", norder, 12345, &ghost),
+    CHECK_MSG(!hips_tile_at(frame_root(fx), "signal", norder, 12345, &ghost),
               "P21: 未被 sparse 覆盖的 parent 不得写出 signal tile");
   }
   cleanup_fixture(fx);
@@ -2706,7 +2721,7 @@ static void test_ivar001_phase1_variance_products() {
   // (a) 无方差累加量 → signal+support 两产品面（基线不变, 无方差目录）
   {
     Fixture fx = make_fixture("ivar0");
-    CHECK_MSG(write_sparse_hips(fx.out_dir, {{0, 0, kIvarCover, kIvarSupFull}}),
+    CHECK_MSG(write_sparse_hips(frame_root(fx), {{0, 0, kIvarCover, kIvarSupFull}}),
               "IVAR-001: baseline fixture (no variance) must be written");
     RunContext ctx;
     const std::string cfg = R"({
@@ -2719,21 +2734,21 @@ static void test_ivar001_phase1_variance_products() {
     CHECK_MSG(wrc.ok(), ("IVAR-001: writer must accept no-variance HiPS: " +
                          (wrc.failed() ? wrc.error().message() : std::string())).c_str());
     json fin;
-    try { fin = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+    try { fin = json::parse(read_file(frame_root(fx) + "/p1_final.json")); } catch (...) {}
     CHECK(fin.value("products", json::array()) == json::array({"signal", "support"}));
     CHECK(fin.value("uncertainty_available", true) == false);
     CHECK(fin.value("n_variance_tiles", -1) == 0);
     CHECK(fin.value("n_ivar_tiles", -1) == 0);
-    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/variance/properties")),
+    CHECK_MSG(!fs::exists(fs::path(frame_root(fx) + "/variance/properties")),
               "IVAR-001: no-variance accumulator must not publish variance/");
-    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/ivar/properties")),
+    CHECK_MSG(!fs::exists(fs::path(frame_root(fx) + "/ivar/properties")),
               "IVAR-001: no-variance accumulator must not publish ivar/");
     cleanup_fixture(fx);
   }
   // (b) 有方差累加量 → variance/ivar 成对落盘 + 数值合同 (§4a/§12.2)
   {
     Fixture fx = make_fixture("ivar1");
-    CHECK_MSG(write_sparse_hips_var(fx.out_dir, {{0, 0, kIvarCover, kIvarSupFull}},
+    CHECK_MSG(write_sparse_hips_var(frame_root(fx), {{0, 0, kIvarCover, kIvarSupFull}},
                                     kIvarVarAdu2),
               "IVAR-001: variance fixture must be written");
     RunContext ctx;
@@ -2748,7 +2763,7 @@ static void test_ivar001_phase1_variance_products() {
                          (wrc.failed() ? wrc.error().message() : std::string())).c_str());
     if (wrc.ok()) {
       json fin;
-      try { fin = json::parse(read_file(fx.out_dir + "/p1_final.json")); } catch (...) {}
+      try { fin = json::parse(read_file(frame_root(fx) + "/p1_final.json")); } catch (...) {}
       const json want = json::array({"signal", "support", "variance", "ivar"});
       CHECK_MSG(fin.value("products", json::array()) == want,
                 "IVAR-001: p1_final.products must report the real on-disk product"
@@ -2757,15 +2772,15 @@ static void test_ivar001_phase1_variance_products() {
       CHECK(fin.value("n_variance_tiles", -1) == 1);
       CHECK(fin.value("n_ivar_tiles", -1) == 1);
       CHECK(wman.value("n_variance_tiles", -1) == 1);
-      CHECK_MSG(fs::exists(fs::path(fx.out_dir + "/variance/properties")),
+      CHECK_MSG(fs::exists(fs::path(frame_root(fx) + "/variance/properties")),
                 "IVAR-001: variance/ subproduct must exist when accumulator carries"
                 " finite positive variance");
-      CHECK_MSG(fs::exists(fs::path(fx.out_dir + "/ivar/properties")),
+      CHECK_MSG(fs::exists(fs::path(frame_root(fx) + "/ivar/properties")),
                 "IVAR-001: ivar/ subproduct must exist when accumulator carries"
                 " finite positive variance");
       std::vector<float> var, iv;
-      const bool vok = hips_tile_product(fx.out_dir, "variance", 0, &var);
-      const bool iok = hips_tile_product(fx.out_dir, "ivar", 0, &iv);
+      const bool vok = hips_tile_product(frame_root(fx), "variance", 0, &var);
+      const bool iok = hips_tile_product(frame_root(fx), "ivar", 0, &iv);
       CHECK_MSG(vok, "IVAR-001: variance tile must be readable");
       CHECK_MSG(iok, "IVAR-001: ivar tile must be readable");
       if (vok && iok && var.size() == iv.size()) {
@@ -2808,6 +2823,169 @@ static void test_ivar001_phase1_variance_products() {
   }
 }
 
+// ── P0-21: 一组进一组出（ASTROCS_DESIGN §3.4「输出基数」）────────────────
+// 缺陷: drizzle/wcs 只取 input_lights[0] ⇒ N 帧只产 1 个 HiPS, 静默丢弃 N-1 帧
+// （L4 实测 49 帧只产 12 个产品）。本用例锁定:
+//   * N=3 帧 ⇒ 恰好 3 个逐帧 HiPS 产品, 内容互不相同（非同一帧写三次）;
+//   * p1_products.json 的计数/路径与输入帧数一致, hips_paths 可被 mosaic 直接消费;
+//   * 任一帧不可读 ⇒ 整体 fail-closed（不得产出部分产品却报成功）。
+struct TriField { float bg; float amp; float x0; float y0; };
+inline float tri_field_pixel(int i, void* user) {
+  auto* sf = static_cast<TriField*>(user);
+  const int x = i % kW, y = i / kW;
+  const double dx = static_cast<double>(x) - sf->x0;
+  const double dy = static_cast<double>(y) - sf->y0;
+  const double g = sf->amp * std::exp(-(dx * dx + dy * dy) / (2.0 * 1.5 * 1.5));
+  return sf->bg + static_cast<float>(g);
+}
+struct TriFixture {
+  fs::path dir;
+  std::string light[3];
+  std::string bias, dark, flat, out_dir;
+};
+TriFixture make_tri_fixture(const char* tag) {
+  TriFixture f;
+  f.dir = fs::temp_directory_path() /
+          ("p1001_p021_" + std::string(tag) + "_" + std::to_string(P1001_GETPID));
+  std::error_code ec;
+  fs::create_directories(f.dir, ec);
+  for (int i = 0; i < 3; ++i)
+    f.light[i] = (f.dir / ("light_" + std::to_string(i + 1) + ".fits")).string();
+  f.bias = (f.dir / "master_bias.fits").string();
+  f.dark = (f.dir / "master_dark.fits").string();
+  f.flat = (f.dir / "master_flat.fits").string();
+  f.out_dir = f.dir.string();
+  // 三帧内容互不相同（星幅度不同, 位置保持居中以保证 PSF 拟合稳定收敛）⇒
+  // 产品内容必须可区分（不是同一帧写三次）。
+  const double xs[3] = {16.0, 16.0, 16.0};
+  const float amps[3] = {4000.0f, 5000.0f, 6000.0f};
+  for (int i = 0; i < 3; ++i) {
+    TriField sf{100.0f, amps[i], static_cast<float>(xs[i]), 16.0f};
+    CHECK(p1sess::write_fits_file(f.light[i], kW, kH, tri_field_pixel, &sf, 0, 60.0) == 0);
+  }
+  float vb = 10.0f, vd = 5.0f, vf = 1.0f;
+  CHECK(p1sess::write_fits_file(f.bias, kW, kH, const_pixel, &vb, 0, 10.0) == 0);
+  CHECK(p1sess::write_fits_file(f.dark, kW, kH, const_pixel, &vd, 0, 60.0) == 0);
+  CHECK(p1sess::write_fits_file(f.flat, kW, kH, const_pixel, &vf, 0, 1.0) == 0);
+  return f;
+}
+void cleanup_tri_fixture(TriFixture& f) {
+  std::error_code ec;
+  fs::remove_all(f.dir, ec);
+}
+std::string tri_chain_cfg(const TriFixture& fx, bool with_missing_third) {
+  const std::string third = with_missing_third
+                                ? std::string("/nonexistent/p021_missing.fits")
+                                : fx.light[2];
+  return std::string(R"({
+    "input_lights": [)") + "\"" + fx.light[0] + "\", \"" + fx.light[1] +
+         "\", \"" + third + "\"" + R"(],
+    "master_bias": ")" + fx.bias + R"(",
+    "master_dark": ")" + fx.dark + R"(",
+    "dark_optimization": false,
+    "master_flat": ")" + fx.flat + R"(",
+    "output_dir": ")" + fx.out_dir + R"(",
+    "cosmetic": {"enabled": true, "hot_sigma": 5.0, "cold_sigma": 5.0},
+    "wcs": {"crpix1": 16.0, "crpix2": 16.0, "crval1": 10.0, "crval2": 20.0,
+            "cd11": -0.0002777777777777778, "cd12": 0.0,
+            "cd21": 0.0, "cd22": 0.0002777777777777778},
+    "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0}
+  })";
+}
+
+static void test_p0_21_multi_frame_one_hips_per_input() {
+  // 正例: N=3 ⇒ 恰好 3 个逐帧 HiPS 产品, 内容互不相同。
+  {
+    TriFixture fx = make_tri_fixture("pos");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    const ChainRunResult cr = run_full_chain_once(tri_chain_cfg(fx, false), 2, reg);
+    CHECK_MSG(cr.ok, ("P0-21: 3-frame chain must complete: " + cr.error).c_str());
+    CHECK_MSG(cr.trace_ok, "P0-21: chain trace must be clean");
+    json prods = json::object();
+    try { prods = json::parse(read_file(fx.out_dir + "/p1_products.json")); }
+    catch (...) { CHECK_MSG(false, "P0-21: p1_products.json must exist"); }
+    CHECK_MSG(prods.value("schema", "") == "DATA-P1-PRODUCTS",
+              "P0-21: products schema must be DATA-P1-PRODUCTS");
+    CHECK_MSG(prods.value("n_frames", 0) == 3, "P0-21: n_frames must equal 3 inputs");
+    CHECK_MSG(prods.value("n_products", 0) == 3,
+              "P0-21: n_products must equal 3 inputs (count == input frames)");
+    CHECK_MSG(prods["hips_paths"].is_array() && prods["hips_paths"].size() == 3,
+              "P0-21: hips_paths must list all 3 product paths");
+    std::vector<std::string> paths;
+    if (prods.contains("hips_paths") && prods["hips_paths"].is_array())
+      for (const auto& p : prods["hips_paths"]) paths.push_back(p.get<std::string>());
+    CHECK(paths.size() == 3);
+    for (size_t i = 0; i < paths.size(); ++i) {
+      CHECK_MSG(fs::exists(fs::path(paths[i] + "/signal/properties")),
+                ("P0-21: product " + std::to_string(i) +
+                 " must have signal/properties").c_str());
+      CHECK_MSG(fs::exists(fs::path(paths[i] + "/p1_stack.json")),
+                ("P0-21: product " + std::to_string(i) +
+                 " must have p1_stack.json").c_str());
+      CHECK_MSG(fs::exists(fs::path(paths[i] + "/p1_final.json")),
+                ("P0-21: product " + std::to_string(i) +
+                 " must have p1_final.json").c_str());
+    }
+    if (paths.size() == 3) {
+      CHECK_MSG(paths[0] != paths[1] && paths[1] != paths[2] && paths[0] != paths[2],
+                "P0-21: product paths must be distinct (no overwrite)");
+      auto sig_blob = [](const std::string& root) {
+        std::map<std::string, std::vector<float>> m;
+        read_hips_plane_px(root, "signal", &m);
+        std::string blob;
+        for (const auto& [k, v] : m) {
+          blob += k;
+          blob.append(reinterpret_cast<const char*>(v.data()),
+                      v.size() * sizeof(float));
+        }
+        return blob;
+      };
+      const std::string b0 = sig_blob(paths[0]);
+      const std::string b1 = sig_blob(paths[1]);
+      const std::string b2 = sig_blob(paths[2]);
+      CHECK_MSG(!b0.empty() && !b1.empty() && !b2.empty(),
+                "P0-21: every product signal plane must be non-empty");
+      CHECK_MSG(b0 != b1 && b1 != b2 && b0 != b2,
+                "P0-21: the 3 products must carry different content (not one frame x3)");
+    }
+    cleanup_tri_fixture(fx);
+  }
+  // 负例 1: 第三帧路径不存在 ⇒ 全链失败, 不写 p1_products.json（fail-closed）。
+  {
+    TriFixture fx = make_tri_fixture("neg");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    const ChainRunResult cr = run_full_chain_once(tri_chain_cfg(fx, true), 2, reg);
+    CHECK_MSG(!cr.ok, "P0-21: missing frame must fail the chain (fail-closed)");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/p1_products.json")),
+              "P0-21: failed run must not publish p1_products.json (no partial success)");
+    cleanup_tri_fixture(fx);
+  }
+  // 负例 2: drizzle 直接消费含不存在帧的输入 ⇒ 必须报错, 不得静默跳过该帧。
+  {
+    TriFixture fx = make_tri_fixture("drzneg");
+    ModuleRegistry reg;
+    CHECK(register_phase_modules(reg).ok());
+    RunContext ctx;
+    const std::string cfg = std::string(R"({
+      "input_lights": [)") + "\"" + fx.light[0] + "\", \"" + fx.light[1] +
+        "\", \"/nonexistent/p021_missing.fits\"" + R"(],
+      "output_dir": ")" + fx.out_dir + R"(",
+      "wcs": {"crpix1": 16.0, "crpix2": 16.0, "crval1": 10.0, "crval2": 20.0,
+              "cd11": -0.0002777777777777778, "cd12": 0.0,
+              "cd21": 0.0, "cd22": 0.0002777777777777778},
+      "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0}
+    })";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx, &rc);
+    CHECK_MSG(rc.failed(),
+              "P0-21: drizzle must reject a frame it cannot read (no silent skip)");
+    CHECK(man.value("status", "") == "fail");
+    cleanup_tri_fixture(fx);
+  }
+}
+
 int main() {
   test_nodes_real_operation();
   test_runtime_chain_call_count_1();
@@ -2839,6 +3017,8 @@ int main() {
   test_psf_partial_fit_identity();
   test_psf_fast_cap_and_inactive_precise();
   test_golden_parity();
+  // P0-21: 一组进一组出（N 帧 ⇒ N 个 HiPS 产品）+ fail-closed 负例
+  test_p0_21_multi_frame_one_hips_per_input();
   if (failures == 0) {
     std::printf("P1-001 REAL NODES PASS (8 节点唯一真实 operation + call_count=1 + complete 门 fail-closed + 下游零调用)\n");
     return 0;

@@ -151,7 +151,8 @@ P1Fixture make_p1_fixture(const char* tag) {
     if (rw.failed())
       std::fprintf(stderr, "P1 writer failed: %s\n", rw.error().message().c_str());
     CHECK(rw.ok());
-    *hips_out[i] = od;
+    // P0-21 §3.4: 单帧输入 ⇒ 产品落 output_dir/<frame_key>/（不再落 output_dir 根）。
+    *hips_out[i] = od + "/light_" + std::to_string(i + 1);
   }
   return fx;
 }

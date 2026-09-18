@@ -281,7 +281,16 @@ class TestPhase1InProcess(unittest.TestCase):
             json.dump(d2, fh)
         r2 = self._run("normalize", "--json", cfg2, "--events-jsonl", "-y", timeout=300)
         self.assertEqual(r2.returncode, 0, r2.stderr[-500:])
-        self.assertTrue(os.path.isfile(os.path.join(out2, "signal", "properties")))
+        # P0-21 §3.4: 每帧一个 HiPS 产品目录 output_dir/<frame_key>/（本配置 2 帧）。
+        for stem in ("light_1", "light_2"):
+            self.assertTrue(
+                os.path.isfile(os.path.join(out2, stem, "signal", "properties")),
+                "normalize 必须为每帧持久化 IVOA HiPS signal/properties: " + stem)
+        with open(os.path.join(out2, "p1_products.json"), encoding="utf-8") as fh:
+            prods = json.load(fh)
+        self.assertEqual(prods["n_products"], 2)
+        self.assertEqual(prods["n_frames"], 2)
+        self.assertEqual(len(prods["hips_paths"]), 2)
 
     def test_08_fp32_fp64_equivalence(self):
         finals = {}
@@ -297,7 +306,8 @@ class TestPhase1InProcess(unittest.TestCase):
                 json.dump(d, fh)
             r = self._run("normalize", "--json", cfg, "--events-jsonl", "-y", timeout=300)
             self.assertEqual(r.returncode, 0, "precision_mode=%d: %s" % (pm, r.stderr[-400:]))
-            with open(os.path.join(out, "p1_final.json"), encoding="utf-8") as fh:
+            # P0-21 §3.4: 逐帧产品落 output_dir/<frame_key>/p1_final.json（取首帧口径对比）。
+            with open(os.path.join(out, "light_1", "p1_final.json"), encoding="utf-8") as fh:
                 finals[pm] = json.load(fh)
         self.assertEqual(finals[0]["n_tiles"], finals[1]["n_tiles"])
         self.assertEqual(finals[0]["n_tiles_written"], finals[1]["n_tiles_written"])
@@ -378,7 +388,9 @@ class TestPhase1InProcess(unittest.TestCase):
             os.makedirs(out)
             r = self._run("normalize", "--json", cfg, "-y")
             self.assertEqual(r.returncode, 0, r.stderr[-800:])
-            with open(os.path.join(out, "p1_stack.json"), encoding="utf-8") as fh:
+            # P0-21 §3.4: 逐帧产品落 output_dir/<frame_key>/p1_stack.json。
+            stack_path = os.path.join(out, "light_1", "p1_stack.json")
+            with open(stack_path, encoding="utf-8") as fh:
                 stack = json.load(fh)
             self.assertIn("photometry_provenance", stack)
             self.assertEqual(stack["photometry_provenance"], "p1_phot.json",
@@ -386,7 +398,7 @@ class TestPhase1InProcess(unittest.TestCase):
             self.assertTrue(os.path.isfile(os.path.join(out, "p1_phot.json")))
             self.assertNotIn("elapsed_sec", stack,
                              "产品面不得含墙钟遥测（遥测留在节点 manifest）")
-            with open(os.path.join(out, "p1_stack.json"), "rb") as fh:
+            with open(stack_path, "rb") as fh:
                 shas.append(hashlib.sha256(fh.read()).hexdigest())
         self.assertEqual(len(set(shas)), 1,
                          "p1_stack.json 必须逐字节可复现: %s" % sorted(set(shas)))

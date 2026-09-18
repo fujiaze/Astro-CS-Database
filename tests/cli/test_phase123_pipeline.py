@@ -253,8 +253,16 @@ class TestPhase123Pipeline(unittest.TestCase):
             for want in ("p1_sources.json", "p1_psf.json", "p1_wcs.json", "p1_flux.json",
                          "p1_snr.json", "p1_final.json"):
                 self.assertIn(want, names, "缺产物 " + want)
-            self.assertTrue(os.path.isfile(os.path.join(out, "signal", "properties")),
-                            "normalize 必须持久化 IVOA HiPS signal/properties")
+            # P0-21 §3.4: 每帧一个 HiPS 产品目录 output_dir/<frame_key>/（1 帧配置）。
+            self.assertTrue(
+                os.path.isfile(os.path.join(out, "light_%d" % idx, "signal", "properties")),
+                "normalize 必须为每帧持久化 IVOA HiPS signal/properties")
+            with open(os.path.join(out, "p1_products.json"), encoding="utf-8") as fh:
+                prods = json.load(fh)
+            self.assertEqual(prods["n_products"], 1)
+            self.assertEqual(prods["n_frames"], 1)
+            self.assertEqual(prods["hips_paths"],
+                             [os.path.join(out, "light_%d" % idx)])
             # 数值 Oracle 归 tests/cli/test_phase1_inprocess.py::test_02
             # （校准公式订正面 = calibration/BIAS-001 域；本用例只判跨命令链路:
             #  normalize 产物能否被 mosaic 只读消费、mosaic 产物能否被 export 只读消费）
@@ -263,7 +271,11 @@ class TestPhase123Pipeline(unittest.TestCase):
 
     # ── mosaic: 只读两个 normalize 持久化产品（独立进程），显式等权闭合 ──
     def test_02_mosaic_consumes_normalize_products(self):
-        cfg = self._p2_cfg(self.p2out, [self.p1a, self.p1b], {"weight_mode": 1})
+        # P0-21 §3.4: normalize 产品 = 逐帧目录；mosaic 直接消费 p1_products.json
+        # 的 hips_paths（可串行衔接）。
+        cfg = self._p2_cfg(self.p2out,
+                           [os.path.join(self.p1a, "light_1"),
+                            os.path.join(self.p1b, "light_2")], {"weight_mode": 1})
         r = self._run("mosaic", cfg)
         self.assertEqual(r.returncode, 0, r.stderr[-500:])
         # 真链路必须产生重叠控制点（>=2 clean frame/UPM 几何前提）
@@ -312,7 +324,8 @@ class TestPhase123Pipeline(unittest.TestCase):
         # d) mosaic 默认 weight_mode=2 对无 ivar 的 normalize 产品 → 2, 不写 complete
         d = os.path.join(D, "neg_ivar")
         os.makedirs(d, exist_ok=True)
-        r = self._run("mosaic", self._p2_cfg(d, [self.p1a, self.p1b]))
+        r = self._run("mosaic", self._p2_cfg(
+            d, [os.path.join(self.p1a, "light_1"), os.path.join(self.p1b, "light_2")]))
         self.assertEqual(r.returncode, 2, r.stderr[-400:])
         self.assertIn("ivar", r.stderr)
         self.assertEqual(self._complete_manifests(d), [], "缺 ivar 不得写 complete")
