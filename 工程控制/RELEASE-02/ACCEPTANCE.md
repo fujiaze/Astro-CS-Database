@@ -101,6 +101,13 @@
 | SD-08 | **口径冲突④**：§9.1「aio 为唯一 I/O」 vs `algorithms/fits_output` 直调 CFITSIO | `DESIGN-CONFORMANCE` 条目 + 前台确认 `lib/algorithms/**/fits_output` 直接调用 CFITSIO，绕过 `infrastructure/aio` | 无 | 待修：经 aio 统一出口（或按 ENGINEERING_SPEC 正式登记偏差并说明理由） | 裁决：**属架构违规，须修**（不得默认接受）；排入主线修复批次，优先度低于 P0-21/权重链 |
 | SD-09 | `DESIGN-CONFORMANCE` 发现「**测试把 P0-21 单帧 bug 固化为期望**」：`tests/unit/p1001_real_nodes_test.cpp` fixture 用 **2 个 light**（`:288/:340/:530/:618`）却断言 `call_count==1`（`:324`/`:589`） | 前台独立复核确认（读源码 + fixture 定义）；全仓无 N→N 基数断言 | 无 | 待修：该断言改为**按帧数**（2 帧 ⇒ 2 次），并补 N→N 基数正/负例 | 裁决：**测试必须改**（不是改实现凑绿，而是测试固化了错误行为）。这是 P0-21 长期漏网的直接原因 |
 
+| SD-09（更正） | DESIGN-CONFORMANCE 断言「测试把 P0-21 单帧 bug 固化为期望」（`p1001_real_nodes_test.cpp:324/:589` 的 `call_count==1`） | **前台核实后判定：审计员该条有误，P0-21 分片的反驳成立。** `runtime.cpp:167-168` 原文：「MODULE_CALL 观测：真实调用 module execute（本层每节点正常恰好一次 execute → call_count=1 为观测值）」；`context.cpp:460/496` 递增。故 `call_count` = 节点调用次数，帧循环在节点内部；断言 `==1` 正确 | 无需订正文档 | 采纳分片做法：`call_count==1` 保持不变；帧基数改由产品面断言表达（`n_products == input_lights.size()`、逐帧 signal/properties 存在、3 产品内容两两不同） | 真问题是缺少帧基数断言（覆盖缺口），不是固化 bug；已补，且故障注入实测转 RED |
+| SD-10 | `CONTROL_WEIGHT_SNR.md:140`（frame_snr = 相对质量权重） vs `UNIFIED_MODEL.md` §2 / `07_noise_snr.md:55-70` / 设计 §3.4（帧级未加权通量型 SNR `F_ref/σ_F`）互斥 | 最高设计 + Horne 1986（DOI 10.1086/131801）+ SCI-AUDIT 复算 E7/E8 | 需订正 `CONTROL_WEIGHT_SNR.md`（走变更 claim） | 权重链按设计侧落地（`weight_chain.h/cpp`），并以 `FrameSnrKind` 语义门 fail-closed 拒绝质量权重冒充 | 裁决：以最高设计为准（通量型未加权 SNR）；文档走 §3 变更 claim，不得反向改设计 |
+| SD-11 | `sparse_snr_layer.schema.json` 未冻结 `sparse_snr_value` 是绝对帧内 SNR 还是相对帧级因子 | 设计 §3.4:174「实际 SNR = 帧级 × 帧内」的乘法形式 ⇒ 帧内量必为无量纲相对因子 | 无（设计已足够，需在合同冻结） | 权重链按相对因子解释（`actual = frame_snr × intra_snr`） | 裁决：冻结为相对因子；要求合同侧在 schema 显式写明单位/语义并由测试锁定 |
+| SD-12 | 权重链模块内 `legacy_allow_weight_fallback=true` 的处置 | 该标志造成 L3「等权走通却报成功」假绿 | 无 | 模块内已改恒 fail-closed（`unclosed_legacy_fallback_rejected`，weights 为空，`production_allowed=false`） | 裁决：接受。真正的静默降级点在 hub（`module_adapters.cpp:4938-4961`）——列入 hub 批必修 |
+
+| SD-13 | **DC-514（阻断级）配置形态**：官方模板 `config/templates/*.phase_config.json` 为**嵌套形态**（`phase_name`/`config`/`inputs`），而 CLI/预检只认**扁平形态**（顶层 `output_dir`/`input_lights`/`master_*`）⇒ 官方模板 `export --json` **rc=2**，唯一事实源不可运行 | `ASTROCS_DESIGN.md` §3.3 输入合同**本身就是嵌套形态**（`config{precision,output_dir,sparse_snr_layer}` + `inputs[]{light,bias,dark,flat,filter}`）⇒ **嵌套形态才是设计权威**；扁平形态是实现的私有简化 | 无（§3.3 不动） | **待修（hub 批）**：实现必须接受 §3.3 嵌套形态（扁平形态可保留为兼容别名）；`inputs[]` 的逐条校准帧要支持（T2/T3 不同母版共处一个数据块）；模板必须可跑通 rc=0 | 裁决：**以设计 §3.3 嵌套形态为准**。这不是模板问题，是**实现偏离了设计输入合同**；与 P0-21 的「一组进一组出」同源（§3.3 的 `inputs[]` 就是那『一组』）。列入 hub 批必修 |
+
 ## 4. 上呈事项（穷尽：仅 §3a 列明类别）
 
 | 事项 | 证据 | 方案与代价 | agent 推荐 |
