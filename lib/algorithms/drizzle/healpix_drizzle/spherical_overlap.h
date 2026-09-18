@@ -318,14 +318,26 @@ public:
     std::size_t misses() const { return misses_; }
 
 private:
+    // PERF-DRZ-IMPL C1: 命中触摸 O(1)。
+    // 原实现命中时对 std::deque<uint64_t> lru_ 做线性扫描（O(capacity)，
+    // 1.487 亿次命中）再 erase+push_front。改为侵入式双向链表：Entry 自带
+    // prev/next 指针，unordered_map 的节点地址在 rehash 时稳定（标准保证：
+    // rehash 只失效迭代器，不失效元素指针/引用），因此链表可安全持有 Entry*。
+    // MRU 语义（front = most recent）与旧 deque 完全一致 ⇒ 淘汰序列逐项相同。
     struct Entry {
         std::uint64_t ipix;
         TargetPixelGeometry geom;
+        Entry* lru_prev = nullptr;   // 指向更旧 (LRU) 方向
+        Entry* lru_next = nullptr;   // 指向更新 (MRU) 方向
     };
+    void lru_unlink(Entry* e);
+    void lru_push_front(Entry* e);
+    void lru_touch(Entry* e);
     std::size_t capacity_;
     std::size_t hits_ = 0;
     std::size_t misses_ = 0;
-    std::deque<std::uint64_t> lru_;      // front = most recent
+    Entry* lru_head_ = nullptr;   // most recent
+    Entry* lru_tail_ = nullptr;   // least recent
     std::unordered_map<std::uint64_t, Entry> map_;
 };
 
@@ -338,7 +350,9 @@ Scalar compute_overlap_area_g_ctx_cached(
     TargetGeomCache& cache);
 
 // overlap 路径计数 (quick=相离, fully=drop 包含像素,
-// dropin=drop 在像素内, sh=部分相交 S-H); 仅统计, 不改变逻辑
+// dropin=drop 在像素内, sh=部分相交 S-H); 仅统计, 不改变逻辑。
+// PERF-DRZ-IMPL C7: 读取本线程累计值后清零 (read-and-reset)，故调用方每帧
+// 读到的都是本帧增量；仅观测口径，不参与任何数值/累加。
 long long profile_overlap_path_counts(long long* fully, long long* dropin,
                                       long long* sh);
 
