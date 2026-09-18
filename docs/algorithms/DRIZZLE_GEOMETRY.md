@@ -34,8 +34,10 @@
   A_drop,j = drop 球面总面积 [sr]（S-H 裁剪前，双精度角点累积，
   <1e-20 拒绝，drizzle_engine.cpp:1439-1441）。
 - 离散公式（逐条源码锚）:
-  - 权重: `w_jp = a_jp / A_drop,j`，a_jp = drop ∩ target p 球面交叠
-    面积 [sr]（drizzle_engine.cpp:1508；w≤0 拒绝 :1509-1512）。
+  - 权重（**legacy，见 DISP-DRZ-009**）: `w_jp = a_jp / A_drop,j`，a_jp = drop ∩
+    target p 球面交叠面积 [sr]（drizzle_engine.cpp:1508；w≤0 拒绝 :1509-1512）。
+    SCI-DRZ-001 §5 目标态为面亮度保持权重 `w_SB=a_jp/A_pixel,j=pixfrac²·w_jp`；
+    本模块源码仍用 legacy，`pixfrac<1` 时 `S_p` 偏 `1/pixfrac²`。
   - 通量: `F_p = Σ_j x_j · w_jp`（`acc.sumFlux += Scalar(pixelValue *
     weight)`，:1530）。
   - 支撑面积: `D_p = Σ_j a_jp`（`acc.sumArea += Scalar(overlap_area)`，
@@ -222,7 +224,7 @@
 - 负面矩阵: §5 表逐行断言（pixfrac 0/负/>1、RING、多通道、缺 WCS、
   NaN 面、reverse 二选一/越界/重复 ipix）。
 
-## 10 DISP-DRZ-001..008（SCI/文档 vs 源码差异清单，P1-DRZ-IMPL/INT 消化；修复不得反向改 SCI）
+## 10 DISP-DRZ-001..009（SCI/文档 vs 源码差异清单，P1-DRZ-IMPL/INT 消化；修复不得反向改 SCI）
 
 | # | 文档声称 | 源码实际 | 双方锚 |
 |---|---|---|---|
@@ -234,9 +236,19 @@
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:62-63 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:62-63 vs 64-71 |
 | DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:131 vs drizzle_engine.cpp:2-3 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用（legacy） | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
+| DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`，claim FIX-SCI-DRZ-001） | 源码用 legacy `w_jp=a_jp/A_drop,j`（drizzle_engine.cpp:1531）后 `S_p=sumFlux/sumArea`，`pixfrac<1` 偏 `1/pixfrac²`（pixfrac=0.8→1.5625×） | DRIZZLE.md:40-54 vs drizzle_engine.cpp:1531,1553-1554；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/v6/data/02_signal.md:38） |
 
-无差异项（核对通过）: w=a/A_drop、F/D/sumVarNum 公式、HP_CIRCUMRADIUS
+无差异项（核对通过）: F/D/sumVarNum 结构、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
+
+**DISP-DRZ-009 最小修复（归 P1-DRZ-IMPL；本次未改源码）**：
+`drizzle_engine.cpp:1531` 的 `weight = overlap_area / drop_area` 改为
+`weight = overlap_area * (pixfrac*pixfrac) / drop_area`（等价 `overlap_area/A_pixel,j`，
+因 `A_drop,j=pixfrac²·A_pixel,j`）；`sumArea`/`sumVarNum` 语义与
+`variance=sumVarNum/sumArea²` 不变。pixfrac=1 时数值逐位不变（默认
+`config/defaults.json` `drizzle.pixfrac=1.0`）。验证：重跑 `p1drz` 常量面亮度门
+（`FZ-GATE-CONST-SB`，覆盖 pixfrac∈(0,1]）、`variance_propagation_test`、
+`candidate_oracle_test` 9003 例、以及 `ctest -R 'p1drz|drizzle'`。
 
 **DISP-DRZ-005 负面用例建议（仅注记，用例实现不在本批）**：θ < 1e-3 rad
 的微小 drop 两侧对拍——同一输入分别走切平面分支（`planar_polygon_area_n`）
