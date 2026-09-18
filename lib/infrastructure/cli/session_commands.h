@@ -136,6 +136,12 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "可选：ivar 缺失时是否允许显式降级为等权（默认不允许）"},
         {"upm", nullptr, "可选 UPM 配置块（拒绝/拟合参数）"},
         {"reject", nullptr, "可选 rejection 配置块；reject_profile 选择档位"},
+        // DC-401/DC-418/DC-419（§4.5.5）: CLI 只识别并透传，不判科学值域；
+        // 留空/0/auto = 按输出像素的 n 自动选择，显式算法名 = 强制，
+        // 分段/表达式 = 用户自定义映射（覆盖内置）。消费在 scheduler 面。
+        {"algorithm_rejection_method", nullptr,
+         "可选：排异算法选择（留空/0/auto=按 n 自动；显式算法名=强制；"
+         "按 n 的分段/表达式=用户映射覆盖内置）；方法名不存在/表达式语法错 → error"},
     };
     static const std::vector<ConfigField> kExport = {
         {"schema_version", "\"1\"", "配置合同版本（恒 \"1\"）"},
@@ -151,6 +157,10 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"sampler", nullptr, "可选采样核 nearest|bilinear（缺省 bilinear）"},
         {"longitude_parity", nullptr, "可选经度方向 east_left|east_right（缺省 east_left）"},
         {"coverage_output", nullptr, "可选覆盖率输出（当前唯一实现 mask）"},
+        // DC-503（§5.3）: CLI 只识别并透传，不判科学值域；消费在 scheduler 面。
+        {"output_mode", nullptr,
+         "可选输出模式：surface_brightness / point_source_flux / visualization"
+         "（缺所选模式所需信息 → 拒绝或明确 unavailable）"},
     };
     switch (s) {
         case SESSION_NORMALIZE: return kNormalize;
