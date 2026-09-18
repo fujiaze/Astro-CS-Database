@@ -283,10 +283,12 @@ int test_units() {
         P1HIPS_CHECK(cs, kv.count("hips_version") && kv.at("hips_version") == "1.4", "u1_prop_version");
         P1HIPS_CHECK(cs, kv.count("hips_order") && kv.at("hips_order") == "0", "u1_prop_order");
         P1HIPS_CHECK(cs, kv.count("hips_tile_width") && kv.at("hips_tile_width") == "512", "u1_prop_tilewidth");
-        // M1a-B-005: 写出侧必须落 IVOA REC-HIPS-1.0 §4.4.1 标准值域 {icrs,...};
-        // "equatorial" 是旧版非标准值, 已废止 (读侧仅作旧产品兼容别名)。
-        P1HIPS_CHECK(cs, kv.count("hips_frame") && kv.at("hips_frame") == "icrs", "u1_prop_frame");
-        P1HIPS_CHECK(cs, !(kv.count("hips_frame") && kv.at("hips_frame") == "equatorial"),
+        // P0-19 (IVOA HiPS 1.0 §4.4.1): 写出侧必须落标准值 "equatorial"
+        // (规范原文 Format: "equatorial" (ICRS)); "icrs" 非标准, 读侧仅作
+        // 旧产品兼容别名。M1a-B-005 曾把标准/非标准判反, 本断言订正。
+        P1HIPS_CHECK(cs, kv.count("hips_frame") && kv.at("hips_frame") == "equatorial",
+                     "u1_prop_frame");
+        P1HIPS_CHECK(cs, !(kv.count("hips_frame") && kv.at("hips_frame") == "icrs"),
                      "u1_prop_frame_neg");
         P1HIPS_CHECK(cs, kv.count("dataproduct_subtype") && kv.at("dataproduct_subtype") == "surface brightness", "u1_prop_subtype");
         P1HIPS_CHECK(cs, kv.count("astrocs_signal_dtype") && kv.at("astrocs_signal_dtype") == "float64", "u1_prop_dtype");

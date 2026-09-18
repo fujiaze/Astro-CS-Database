@@ -236,15 +236,17 @@ static int hips_validate_properties(acs_hips_handle_v1 h, char* err, size_t cap)
     hips_set_err(err, cap, "properties 缺 hips_frame");
     return ACS_HIPS_ERR_PROPERTIES;
   }
-  /* IVOA REC-HIPS-1.0 §4.4.1: hips_frame 值域 = {icrs, galactic, ecliptic}。
+  /* P0-19 (IVOA HiPS 1.0 §4.4.1 关键字表): hips_frame 标准值域 =
+   * {equatorial, galactic, ecliptic}; ICRS 的标准写法是 "equatorial"
+   * (规范原文 Format: "equatorial" (ICRS))。"icrs" 非标准取值。
    * 本管道内部 frame 恒为 ICRS (SCI-P3-001 §4 "合法转换 = 仅恒等 ICRS"),
-   * 故只接受标准值 "icrs"; "equatorial" 是写出侧旧版非标准值 (M1a-B-005),
-   * 仅作**读取兼容别名**接受。galactic/ecliptic 属标准值域但本实现无转换,
+   * 故接受标准值 "equatorial"; "icrs" 仅作**旧产品读取兼容别名**接受
+   * (M1a-B-005 曾把二者判反)。galactic/ecliptic 属标准值域但本实现无转换,
    * 显式拒绝 (fail-closed, 不静默当 ICRS)。 */
-  if (!hips_strcaseeq(frame, "icrs") && !hips_strcaseeq(frame, "equatorial")) {
+  if (!hips_strcaseeq(frame, "equatorial") && !hips_strcaseeq(frame, "icrs")) {
     hips_set_err(err, cap,
-                 "hips_frame='%s' 不被接受: 本管道只支持 ICRS (标准值域 icrs/"
-                 "galactic/ecliptic; galactic/ecliptic 无转换实现)",
+                 "hips_frame='%s' 不被接受: 本管道只支持 ICRS (标准值 "
+                 "equatorial; 兼容别名 icrs; galactic/ecliptic 无转换实现)",
                  frame);
     return ACS_HIPS_ERR_UNSUPPORTED;
   }
