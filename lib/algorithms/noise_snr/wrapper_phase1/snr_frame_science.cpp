@@ -120,17 +120,14 @@ SnrFrameScienceResult compute_snr_frame_science(
   }
   std::vector<double> used_snr;
   std::vector<double> used_fwhm;
-  std::vector<double> used_flux;
   used_snr.reserve(n_src);
   used_fwhm.reserve(n_src);
-  used_flux.reserve(n_src);
   for (std::size_t i = 0; i < n_src; ++i) {
     if (!rok[i]) continue;
     out.snr_f[i] = rn_snr[i];
     out.sigma_f_adu[i] = rn_sigmaf[i];
     used_snr.push_back(rn_snr[i]);
     used_fwhm.push_back(sources[i].fwhm_px);
-    used_flux.push_back(sources[i].flux_adu);
   }
   out.n_used = static_cast<int>(used_snr.size());
   if (used_snr.empty()) {
@@ -163,11 +160,26 @@ SnrFrameScienceResult compute_snr_frame_science(
   }
 
   // --- 帧级科学基准: 显式参考轮廓 = (median FWHM, sigma_sky, 参考通量) ---
+  //
+  // WEIGHT-SCI-001（2026-09-18 科学裁决，reports/RELEASE-02/weight-sci-ruling.md）:
+  // F_ref 必须是**组内公共参考通量**，且与存入 HiPS 头的 ASTROCS_FRAME_SNR
+  // **配对**（同一定义参考）。配对性定理:
+  //   SNR_f = a_f·F_ref/σ_f  ⇒  SNR_f²/F_ref² = a_f²/σ_f² = w_f
+  // 成立当且仅当分母 F_ref 与定义 SNR 时所用参考通量是同一个。
+  // 逐帧检出通量中位数回退会丢掉帧间标度因子 a_f²，并使存头 SNR 混入本帧检出
+  // 亮度（帧间不可比较），与 Phase2 闸门/权重链的单 F_ref 约定不配对
+  // ⇒ 必然 unclosed_invalid_reference_flux。该回退**已删除**（不得恢复）。
+  // reference_flux_adu 缺失/非有限/≤0 ⇒ fail-closed；调用方（Phase1 节点）必须为
+  // 整个帧组选定一个公共 F0 并对所有帧传入同一值。
+  if (!std::isfinite(cfg.reference_flux_adu) || !(cfg.reference_flux_adu > 0.0)) {
+    out.reason =
+        "reference_flux_adu required (group-common F_ref; per-frame median "
+        "fallback removed)";
+    out.valid = false;
+    return out;
+  }
   const double med_fwhm = median_of(used_fwhm);
-  const double ref_flux =
-      (std::isfinite(cfg.reference_flux_adu) && cfg.reference_flux_adu > 0.0)
-          ? cfg.reference_flux_adu
-          : median_of(used_flux);
+  const double ref_flux = cfg.reference_flux_adu;
   if (!std::isfinite(med_fwhm) || !(med_fwhm > 0.0) || !(ref_flux > 0.0)) {
     out.reason = "reference profile degenerate";
     return out;

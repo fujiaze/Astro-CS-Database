@@ -137,6 +137,10 @@ const RealSrc kReal[5] = {
 // NumPy oracle extract_v3 锚 (同一 5 源)
 constexpr double kOracleMedian = 8.14419621260785;
 constexpr double kOracleFlux5 = 7032.959743946604;
+// WEIGHT-SCI-001（2026-09-18 裁决）: 组内公共参考通量 F0。同一帧组的所有帧必须
+// 用**同一个** F0 定义 SNR 并写入 reference_flux_adu（配对性定理）。逐帧检出通量
+// 中位数回退已删除；本常量取 5 颗真实源通量的中位数作为冻结的公共参考值。
+constexpr double kGroupRefFlux = 11581.213134765625;
 
 std::vector<astrocs::phase1::SnrSourceRow> real_rows() {
   std::vector<astrocs::phase1::SnrSourceRow> rows;
@@ -167,6 +171,8 @@ void group_units() {
   }
   SnrFrameScienceConfig cfg;
   cfg.sigma_sky_adu = 40.0;
+  // WEIGHT-SCI-001: 组内公共 F_ref（旧逐帧中位数回退已删除 ⇒ 必须显式给出）。
+  cfg.reference_flux_adu = kGroupRefFlux;
   auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
   check(out.valid, "F1 valid");
   check(out.n_input == 9 && out.n_used == 9, "F1 counts");
@@ -193,6 +199,8 @@ void group_units() {
   check_close(out.frame_depth_flux5_adu, 5.0 * ref_ref.sigma_f, 1e-12, "F1 flux5");
   check(std::isnan(out.frame_depth_m5_mag), "F1 m5 NaN without ZP");
   check_close(out.reference_fwhm_px, med_fwhm, 1e-15, "F1 ref fwhm");
+  // WEIGHT-SCI-001: 存头参考通量 = 组内公共 F0（不是本帧检出通量中位数）。
+  check_close(out.reference_flux_adu, kGroupRefFlux, 0.0, "F1 ref flux = group-common F0");
   // 零点标准误
   check_close(out.sigma_location_se_dex, 0.0, 0.0, "F1 se zero (no sigma)");
   check_close(out.sigma_location_se_mag, 0.0, 0.0, "F1 se mag zero");
@@ -223,6 +231,7 @@ void group_oracle() {
   auto rows = real_rows();
   SnrFrameScienceConfig cfg;
   cfg.sigma_sky_adu = kRealSky;
+  cfg.reference_flux_adu = kGroupRefFlux;   // WEIGHT-SCI-001: 组内公共 F_ref
   auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
   check(out.valid, "O valid");
   check(out.n_used == 5, "O n_used");
@@ -249,6 +258,7 @@ void group_contract() {
   auto rows = real_rows();
   SnrFrameScienceConfig cfg;
   cfg.sigma_sky_adu = kRealSky;
+  cfg.reference_flux_adu = kGroupRefFlux;   // WEIGHT-SCI-001: 组内公共 F_ref
   auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
 
   // C1: 三个帧级标量必须是同一个 median(SNR_F), 不是任何"整帧 SNR"构造
@@ -360,6 +370,9 @@ void group_negative() {
     rows[2].id = "ok2"; rows[2].flux_adu = 2000.0; rows[2].fwhm_px = 2.5;
     SnrFrameScienceConfig cfg;
     cfg.sigma_sky_adu = 25.0;
+    // WEIGHT-SCI-001: 缺组内公共 F_ref 已改为 fail-closed（逐帧中位数回退已删除），
+    // 故本用例必须显式给出公共参考通量；n_used 仍应为 2（flux=0 的行仍被掩掉）。
+    cfg.reference_flux_adu = 1500.0;
     auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
     check(out.valid && out.n_used == 2, "N4 partial used");
     check(std::isfinite(out.snr_f[0]) && std::isnan(out.snr_f[1]) && std::isfinite(out.snr_f[2]),
@@ -373,6 +386,7 @@ void group_determinism() {
   auto rows = real_rows();
   SnrFrameScienceConfig cfg;
   cfg.sigma_sky_adu = kRealSky;
+  cfg.reference_flux_adu = kGroupRefFlux;   // WEIGHT-SCI-001: 组内公共 F_ref
   auto a = astrocs::phase1::compute_snr_frame_science(rows, cfg);
   auto b = astrocs::phase1::compute_snr_frame_science(rows, cfg);
   bool same = (a.snr_f.size() == b.snr_f.size()) &&
@@ -391,6 +405,79 @@ void group_determinism() {
   check_close(c.frame_depth_flux5_adu, a.frame_depth_flux5_adu, 1e-15, "D2 order-independent F5");
 }
 
+// ── WEIGHT-SCI-001: F_ref 必须是组内公共参考通量（配对性定理）───────────────
+// 旧行为 = 逐帧检出通量中位数回退（已删除）。本组断言:
+//   G1/G2: 同一帧组（不同检出星群）用同一 F0 ⇒ 写出的 reference_flux_adu 逐位相同;
+//   G3   : reference_snr_f 在公共 F0 处评价（= F0/σ_F(F0)），不是本帧检出通量处;
+//   G4/G5: F0 缺失/非有限/≤0 ⇒ fail-closed，reason 指明组内公共 F_ref（不回退）。
+void group_common_ref() {
+  using astrocs::phase1::SnrFrameScienceConfig;
+  using astrocs::phase1::SnrSourceRow;
+
+  const double F0 = 3000.0;   // 组内公共参考通量 [ADU]
+  std::vector<SnrSourceRow> frame_a, frame_b;
+  for (int i = 0; i < 6; ++i) {
+    SnrSourceRow ra;
+    ra.id = "a" + std::to_string(i);
+    ra.flux_adu = 500.0 + 100.0 * i;
+    ra.fwhm_px = 1.8;
+    frame_a.push_back(ra);
+    SnrSourceRow rb;
+    rb.id = "b" + std::to_string(i);
+    rb.flux_adu = 5000.0 + 1000.0 * i;
+    rb.fwhm_px = 2.4;
+    frame_b.push_back(rb);
+  }
+  SnrFrameScienceConfig cfg;
+  cfg.sigma_sky_adu = 40.0;
+  cfg.reference_flux_adu = F0;
+  const auto a = astrocs::phase1::compute_snr_frame_science(frame_a, cfg);
+  const auto b = astrocs::phase1::compute_snr_frame_science(frame_b, cfg);
+  check(a.valid && b.valid, "G1 both frames valid with group F0");
+
+  // 组内公共: 两帧写出的 F_ref 逐位相同（= 定义 SNR 时所用参考通量）。
+  check(a.reference_flux_adu == F0 && b.reference_flux_adu == F0,
+        "G2 group-common F_ref identical across frames");
+  check(std::memcmp(&a.reference_flux_adu, &b.reference_flux_adu, sizeof(double)) == 0,
+        "G2b group-common F_ref bitwise identical");
+
+  // 配对性: reference_snr_f 是在公共 F0 下评价的 SNR，不是"本帧检出通量中位数"处。
+  const Ref refa = ref_source(F0, a.reference_fwhm_px, cfg.sigma_sky_adu, 0.0);
+  check_close(a.reference_snr_f, refa.snr_optimal, 1e-12,
+              "G3 reference_snr_f evaluated at group F0 (frame a)");
+  const Ref refb = ref_source(F0, b.reference_fwhm_px, cfg.sigma_sky_adu, 0.0);
+  check_close(b.reference_snr_f, refb.snr_optimal, 1e-12,
+              "G3 reference_snr_f evaluated at group F0 (frame b)");
+
+  // G4: 逐帧中位数回退已删除 —— 不显式给 F0 ⇒ fail-closed, reason 指明组内公共。
+  {
+    SnrFrameScienceConfig bad;
+    bad.sigma_sky_adu = 40.0;   // reference_flux_adu 缺省 0.0
+    const auto out = astrocs::phase1::compute_snr_frame_science(frame_a, bad);
+    check(!out.valid, "G4 missing F0 fail-closed");
+    check(out.reason.find("reference_flux_adu required") != std::string::npos &&
+              out.reason.find("group-common F_ref") != std::string::npos,
+          "G4 reason names group-common F_ref requirement");
+    check(std::isnan(out.reference_flux_adu),
+          "G4 no per-frame median fallback (reference_flux_adu stays NaN)");
+  }
+  // G5: 非正 / 非有限 F0 ⇒ fail-closed（逐帧中位数不得兜底）
+  {
+    SnrFrameScienceConfig z = cfg;
+    z.reference_flux_adu = 0.0;
+    check(!astrocs::phase1::compute_snr_frame_science(frame_a, z).valid,
+          "G5 F0=0 fail-closed");
+    SnrFrameScienceConfig n = cfg;
+    n.reference_flux_adu = nan_v();
+    check(!astrocs::phase1::compute_snr_frame_science(frame_a, n).valid,
+          "G5 F0=NaN fail-closed");
+    SnrFrameScienceConfig neg = cfg;
+    neg.reference_flux_adu = -1.0;
+    check(!astrocs::phase1::compute_snr_frame_science(frame_a, neg).valid,
+          "G5 F0<0 fail-closed");
+  }
+}
+
 struct Group {
   const char* name;
   void (*fn)();
@@ -401,6 +488,7 @@ const Group kGroups[] = {
     {"contract", group_contract},
     {"negative", group_negative},
     {"determinism", group_determinism},
+    {"common_ref", group_common_ref},
 };
 
 }  // namespace
