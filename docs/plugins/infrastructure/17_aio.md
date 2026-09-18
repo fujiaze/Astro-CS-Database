@@ -34,7 +34,7 @@
 
 ## 6. 接口/ABI
 
-- 公共读写 API（C ABI 版本化），供 lib/infrastructure/cli/、lib/infrastructure/scheduler/ 与科学模块调用；
+- 公共读写 API（C ABI 版本化），供 lib/infrastructure/cli/scheduler/科学模块调用；
 - 是唯一允许触碰磁盘产品的模块。
 
 ## 7. 错误与边界

@@ -87,7 +87,7 @@
 ```text
 仓库根固定条目：
 README.md / AGENTS.md / ASTROCS_DESIGN.md / ENGINEERING_SPEC.md /
-CONTROL_PACK_SPEC.md / memory.md / DEPENDENCIES.md /
+CONTROL_PACK_SPEC.md / ACCEPTANCE_SPEC.md / memory.md / DEPENDENCIES.md /
 CMakeLists.txt / CMakePresets.json / build.sh / toolchain.ps1 /
 .clang-format / .editorconfig / .gitignore / .gitattributes / .github/
 
@@ -110,7 +110,7 @@ run/（gitignore：临时产物/日志）  logs/（gitignore）
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
 - 修改代码/测试后同步订正 `ci/checks.json`；禁止把运行产物产出到项目根目录；
 - **证据与产物落 `artifacts/`**（含 CI 运行产物 `artifacts/ci/<sha>/`）；根下**不得**新建 `evidence/` 等未登记目录（历史 `evidence/` 已删除，其内容为旧世代残留）；
-- **Alpha 之前代码与产物中不包含任何版本信息**（见最高设计 §12；`VERSION/CHANGELOG.md` 仅作内部助记，不进入程序与发布产物）。
+- **Alpha 之前代码与产物中不包含任何版本信息**（见最高设计 §12；`VERSION/CHANGELOG.md` 仅作内部助记，不进入程序与发布产物）；发布 Alpha 时 CLI `--version` 输出 **`0.0.1alpha`**。
 
 ---
 
