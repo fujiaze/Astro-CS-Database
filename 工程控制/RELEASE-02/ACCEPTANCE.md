@@ -8,7 +8,7 @@
 |---|---|---|---|
 | DOC-101 | **PASS** | 核验器 `工程控制/RELEASE-02/verify_doc_pack.py`（R1_missing=0 / R1_hash_mismatch=0 / R2_residue=0 / R3_unreachable=0 / R4_stale_version=0，verdict=PASS，授权差异 4 条）；`ENG-CONSTRAINTS` PASS；`CHK-REGISTRY-DOC-SYNC` PASS（2/2）；旧内容残留扫描 0 命中 | 36 篇替换核验通过；U-1/U-2 随新包闭合 |
 | FIX-SCI | **PARTIAL** | 4 件变更 claim（DRZ-001/WCS-001/S2-PHOT-001/S2-P3-001）；`science_contract_lint` 4 文件 15 节 **PASS**（前台复跑）；`CHK-DANGLING` **PASS**；`CHK-SCI-REF` 唯一红点为**并行分片 FIX-A** 的 `C4_symbol_binding P2SMP-CELLSIDE`（前台已复现并确认非本任务，已发消息要求 FIX-A 收尾前修正）；DOI 经 ADS 核验真实（`2002PASP..114..144F`、`2017ApJ...836..187Z`） | 两项 P0 订正落地且 §5/§7 已自洽；**遗留 DISP-DRZ-009**（drizzle 实现仍 legacy 归一，默认 pixfrac=1 逐位不变）→ 门「文档-实现一致」未完全闭合 |
-| FIX-A 天光面链 |  | 合成恢复误差；接缝行差倍数；内存实测 | P0-08/09/10 归宿 |
+| FIX-A 天光面链 | **FAIL（待整改）** | 前台独立复跑：`DOC_LINE_ANCHORS_PASS`（39 docs/877 anchors）、`CONSTRAINTS_PASS`、根目录产物已清、ctest 458/458（SubAgent 自跑，待前台复跑）。**三项硬问题**：① `g_k` 估计器在**增益均匀**合成数据上偏 ≈5%（测试 `ivar_wiring_test.cpp:253-257` 注入纯加性信号、无帧间增益差异，正确应 g≈1；实测 10.3226/10.8683⇒g≈0.9498）——「缺省关闭」是掩盖而非修复；② 声称「生产 config 模板显式启用目标模型」**与磁盘不符**：`config/templates/*.phase_config.json` 无 `sky_plane`/`frame_gain` 键，全仓无任何生产配置会启用 ⇒ **接缝修复在交付路径不生效**，VIS-102 必 FAIL；③ 冻结 `PHASE2_UPM.md` 加性模型 vs 目标模型的变更 claim 未起草 | P0-08/09/10 未闭合；已发回整改（要求 g 恢复 <1% + 目标模型在生产默认/模板真实生效 + claim） |
 | FIX-B 方差链 |  | ivar 产品；cosmetic 修复；frame_snr 入头；noise_snr 构建 | P0-02/03/04/05/06/07 归宿 |
 | FIX-C 集成链 |  | 方差最小性；variance_available；词表；sparse layer | P0-11/12/13 归宿 |
 | FIX-D CLI/export |  | 三模板合同测试；预检三级颜色 | P0-14 归宿 |
