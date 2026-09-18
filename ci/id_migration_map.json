@@ -1758,6 +1758,15 @@
       "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
     },
     {
+      "old_id": "PY-TEST-INDEX-VERDICTS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "checker": "ci/check_test_index.py",
+      "owner": "RELEASE-02 CI-HYGIENE",
+      "reason": "DESIGN-CONFORMANCE SUB-D-35：test_index.csv 无机器 verdict，含 errors/failures/skip 的套件被当作通过。本门把聚合判据机器化（PASS ⇔ failed==0∧errored==0；全 skip 不得记 PASS），并入 CHK-UNIT 聚合面。",
+      "note": "RELEASE-02（2026-09-18）新增；非本波 146 项基线，absorbed。"
+    },
+    {
       "old_id": "WARNING-SUPPRESSION",
       "decision": "MERGED-INTO",
       "target": "CHK-WARN",
@@ -2221,7 +2230,8 @@
       "CTEST-P1NOISE-SATURATION-SELFCHECK",
       "CTEST-P1NOISE-SATURATION-WIRING",
       "CTEST-P1NOISE-ABI-LAYOUT",
-      "CTEST-P1WCS-CLOSURE-METRIC-GATE"
+      "CTEST-P1WCS-CLOSURE-METRIC-GATE",
+      "PY-TEST-INDEX-VERDICTS"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

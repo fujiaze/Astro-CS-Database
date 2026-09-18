@@ -91,6 +91,37 @@ def make_fake_tree(dst, *, version="0.11.0-alpha.2", project="0.11.0",
         f.write(f"# govn\n\n- 根 VERSION：`{doc}`\n")
 
 
+def make_absence_tree(dst):
+    """§12 absence 夹具: 完全无版本信息面。
+
+    无 VERSION / 无 project() VERSION / 无 file(READ VERSION) 生成链 /
+    无 CLI 版本模板 / 文档与 CLI 源码均无 alpha 字面量。
+    锚集单源取自 ci/check_version.py; 非版本锚 (CLI_DIR_REL / DOC_SET_*) 仍须存活,
+    否则 absence 模式仍应因锚失效判红 (防移空)。
+    """
+    cv = load_check()
+    os.makedirs(dst, exist_ok=True)
+    with open(os.path.join(dst, "CMakeLists.txt"), "w", encoding="utf-8") as f:
+        f.write("cmake_minimum_required(VERSION 3.24)\n"
+                "project(astrocs LANGUAGES C CXX)\n")
+    cli_dir = os.path.join(dst, cv.CLI_DIR_REL)
+    os.makedirs(cli_dir, exist_ok=True)
+    with open(os.path.join(cli_dir, "placeholder.txt"), "w", encoding="utf-8") as f:
+        f.write("// 无版本信息面\n")
+    for rel in cv.DOC_SET_FILES:
+        full = os.path.join(dst, rel)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "w", encoding="utf-8") as f:
+            f.write("# t\n\n版本信息面: 无 (Alpha 前, ASTROCS_DESIGN §12)\n")
+    for d in cv.DOC_SET_DIRS:
+        full = os.path.join(dst, d)
+        os.makedirs(full, exist_ok=True)
+        if not os.listdir(full):
+            with open(os.path.join(full, "placeholder.md"), "w",
+                      encoding="utf-8") as f:
+                f.write("版本信息面: 无\n")
+
+
 class TestAdopt006VersionUnification(unittest.TestCase):
     def test_01_version_file_is_alpha2(self):
         with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as f:
@@ -217,6 +248,45 @@ class TestAdopt006CheckGate(unittest.TestCase):
             make_fake_tree(td, project="0.11.0-alpha.2")
             r = run_check(td)
             self.assertEqual(r.returncode, 1)
+
+
+    def test_12_absence_no_version_info_passes(self):
+        """§12 门方向: 版本信息完全不存在 ⇒ 不判红 (RELEASE-02 CI-HYGIENE)。
+
+        旧实现反向强制版本存在 (anchor_alive_VERSION_REL ⇒ ANCHOR_STALE exit 2),
+        CI 绿灯 = 必然违反 §12。新判据 = 版本信息存在则校验一致性, 不存在不得判红;
+        absence 模式必须显式留痕 version_absence_alpha_pre (不静默通过)。
+        """
+        with tempfile.TemporaryDirectory() as td:
+            make_absence_tree(td)
+            r = subprocess.run([sys.executable, CHECK, "--root", td],
+                               capture_output=True, text=True, timeout=120)
+            self.assertEqual(r.returncode, 0,
+                             f"无版本信息不得判红:\n{r.stdout[-1600:]}{r.stderr}")
+            out = json.loads(r.stdout)
+            self.assertEqual(out["verdict"], "VERSION_CHECK_PASS")
+            self.assertTrue(
+                any(c["id"] == "version_absence_alpha_pre" for c in out["checks"]),
+                "absence 模式必须在 checks 中显式留痕")
+
+    def test_13_absence_tree_with_version_literal_fails(self):
+        """版本信息存在 ⇒ 必须校验一致性, 不得借 absence 模式放行。
+
+        在 absence 夹具里注入一处 CLI alpha 字面量: 探测到版本信息后转入一致性校验,
+        而 VERSION 文件缺席 ⇒ 版本锚失效 (ANCHOR_STALE) 或格式 FAIL, 总之必红。
+        """
+        cv = load_check()
+        with tempfile.TemporaryDirectory() as td:
+            make_absence_tree(td)
+            cli_dir = os.path.join(td, cv.CLI_DIR_REL)
+            with open(os.path.join(cli_dir, "legacy.cpp"), "w",
+                      encoding="utf-8") as f:
+                f.write('static const char* kV = "0.10.' + '0-alpha.2";\n')
+            r = subprocess.run([sys.executable, CHECK, "--root", td],
+                               capture_output=True, text=True, timeout=120)
+            self.assertNotEqual(r.returncode, 0,
+                                "版本信息存在即必须校验, 不得走 absence 模式放行")
+            self.assertIn("version_presence_detected", r.stdout)
 
 
 if __name__ == "__main__":

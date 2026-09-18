@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "purpose": "RELEASE-02 CI-HYGIENE｜ctest SKIP 显式登记（不得静默）。基线 = run/RELEASE-02/DESIGN-CONFORMANCE/evidence/LastTestsDisabled.log（2026-09-18 16:47 轮, 12 条）。本文件让每条 SKIP 有类别/原因/owner/解除条件；新增 SKIP 必须先登记（当前尚无 checker, 列为 open item）。",
+  "measured_utc": "2026-09-18",
+  "baseline_evidence": "run/RELEASE-02/DESIGN-CONFORMANCE/evidence/LastTestsDisabled.log",
+  "skip_count": 12,
+  "classes": {
+    "HOST_CAPABILITY": "宿主能力不满足（ISA/OS），provider 未激活；sanctioned exit-77 SKIP_RETURN_CODE。",
+    "DORMANT_SUBSYSTEM": "设计判 DORMANT 的子系统（ACR/CUDA）在纯 CPU 生产节点不可用。",
+    "FIXTURE_MISSING": "需真实 Phase1 freeze HiPS fixture（run/temp/phase1_freeze），当前节点不存在。",
+    "COMPENSATED": "该真实数据门在 Linux 有合成等价门在跑，真实数据门仍缺。"
+  },
+  "skips": [
+    {
+      "test": "cpu001_selftest_avx512",
+      "class": "HOST_CAPABILITY",
+      "source": "tests/unit/cpu001_provider_selftest.cpp:41-48",
+      "reason": "本节点 /proc/cpuinfo 无 avx512* 旗标；provider 激活合同 = required ⊆ detected，故 exit 77 SKIP（非 FAIL）。",
+      "owner": "CPU/backend",
+      "unblock": "在支持 AVX-512F 的正式节点执行；本节点不可启用。",
+      "actionable_now": false
+    },
+    {
+      "test": "phase2_synthetic_gate.Phase2Acr.CudaEquivalent",
+      "class": "DORMANT_SUBSYSTEM",
+      "source": "lib/algorithms/coverage/tests/synthetic_gate.cpp:3342",
+      "reason": "CUDA bridge 不可用（ACR dormant, 纯 CPU 生产）。",
+      "owner": "ACR (dormant)",
+      "unblock": "仅在有 CUDA 的复验节点；生产不依赖。",
+      "actionable_now": false
+    },
+    {
+      "test": "phase2_synthetic_gate.Phase2Acr.CudaWeightedSupportEquivalent",
+      "class": "DORMANT_SUBSYSTEM",
+      "source": "lib/algorithms/coverage/tests/synthetic_gate.cpp:3387",
+      "reason": "同上。",
+      "owner": "ACR (dormant)",
+      "unblock": "同上。",
+      "actionable_now": false
+    },
+    {
+      "test": "phase2_synthetic_gate.Phase2Acr.G9CompactFrameSubset",
+      "class": "DORMANT_SUBSYSTEM",
+      "source": "lib/algorithms/coverage/tests/synthetic_gate.cpp:3465",
+      "reason": "同上。",
+      "owner": "ACR (dormant)",
+      "unblock": "同上。",
+      "actionable_now": false
+    },
+    {
+      "test": "phase2_synthetic_gate.Phase2Acr.G9WinsorizedCpuRoute",
+      "class": "DORMANT_SUBSYSTEM",
+      "source": "lib/algorithms/coverage/tests/synthetic_gate.cpp:3523",
+      "reason": "同上；但本用例的核心断言是『winsorized 必须 CPU_ROUTE（CUDA launcher 拒绝）』——该断言本不需要 GPU，前置 CUDA 检查把它整例 gate 掉（测试设计缺陷, 归 lib/**）。",
+      "owner": "ACR (dormant) / lib/coverage",
+      "unblock": "把 CPU_ROUTE 断言拆出 GPU 前置（无需硬件即可跑）；当前 lib/** 不在本包文件域。",
+      "actionable_now": false,
+      "test_design_gap": true
+    },
+    {
+      "test": "phase2_synthetic_gate.Phase2Coverage.RealHipsUnion",
+      "class": "FIXTURE_MISSING",
+      "source": "lib/algorithms/coverage/tests/synthetic_gate.cpp:3601",
+      "reason": "需 run/temp/phase1_freeze/T2_v3.hips（或 ASTROCS_PHASE1_FREEZE_DIR）；本节点无该 fixture。",
+      "owner": "FIX-B / 真实数据 fixture",
+      "unblock": "落 phase1_freeze fixture 或设 ASTROCS_PHASE1_FREEZE_DIR。",
+      "actionable_now": false
+    },
+    {
+      "test": "phase2_synthetic_gate.Phase2Coverage.FilterMismatchRejected",
+      "class": "FIXTURE_MISSING",
+      "source": "lib/algorithms/coverage/tests/synthetic_gate.cpp:3634-3646（skip 前置 :3638）",
+      "reason": "**负例被跳过 = 无负例保护**。实测该用例体只断言 p2_coverage_build(不存在路径) != 0，**不需要 T2 fixture**；:3638 的 fixture 前置是多余 gate ⇒ 负例在 Linux 恒 skip。属 lib/** 测试缺陷。",
+      "owner": "lib/coverage（FIX-B）",
+      "unblock": "删除 :3638 的多余 fixture 前置即可在无 fixture 节点执行（本包不改 lib/**）。",
+      "actionable_now": false,
+      "negative_case": true,
+      "test_design_gap": true
+    },
+    {
+      "test": "phase2_synthetic_gate.Phase2Sampler.RealHipsControlSampling",
+      "class": "FIXTURE_MISSING",
+      "source": "lib/algorithms/coverage/tests/synthetic_gate.cpp:3653",
+      "reason": "需 t4_crop_v3.hips fixture。",
+      "owner": "FIX-B / 真实数据 fixture",
+      "unblock": "落 fixture。",
+      "actionable_now": false
+    },
+    {
+      "test": "phase2_synthetic_gate.Phase2Sampler.G6LocalSnrAvailabilityThreeZones",
+      "class": "FIXTURE_MISSING",
+      "source": "lib/algorithms/coverage/tests/synthetic_gate.cpp:3705（TEST :3697）",
+      "reason": "需真实 HiPS 输入。",
+      "owner": "FIX-B / 真实数据 fixture",
+      "unblock": "落 fixture。",
+      "actionable_now": false
+    },
+    {
+      "test": "phase2_synthetic_gate.Phase2Identity.G3StableFrameIdentity",
+      "class": "FIXTURE_MISSING",
+      "source": "lib/algorithms/coverage/tests/synthetic_gate.cpp:3852（TEST :3847）",
+      "reason": "需真实 HiPS 输入。",
+      "owner": "FIX-B / 真实数据 fixture",
+      "unblock": "落 fixture。",
+      "actionable_now": false
+    },
+    {
+      "test": "phase2_synthetic_gate.Phase2Identity.G3ManifestOrderCanonical",
+      "class": "FIXTURE_MISSING",
+      "source": "lib/algorithms/coverage/tests/synthetic_gate.cpp:3959（TEST :3954）",
+      "reason": "需真实 HiPS 输入。",
+      "owner": "FIX-B / 真实数据 fixture",
+      "unblock": "落 fixture。",
+      "actionable_now": false
+    },
+    {
+      "test": "phase2_sampler_parallel.Phase2SamplerParallel.OneTvsTwoTDeterminism",
+      "class": "COMPENSATED",
+      "source": "lib/algorithms/coverage/tests/sampler_parallel_consistency_test.cpp:45（TEST :40）",
+      "reason": "需 t4_crop_v3/t4_full_v3_final 真实 HiPS（且该 overlap 数据漂移导致零交集）；同文件已有合成 fixture 等价门 OneTvsTwoTDetermine 在 Linux 跑（:80+）。",
+      "owner": "FIX-B / 真实数据 fixture",
+      "unblock": "落 fixture；合成等价门已覆盖并行=串行位精确断言。",
+      "actionable_now": false
+    }
+  ],
+  "summary": {
+    "HOST_CAPABILITY": 1,
+    "DORMANT_SUBSYSTEM": 4,
+    "FIXTURE_MISSING": 6,
+    "COMPENSATED": 1,
+    "enable_now_possible": 0,
+    "note": "12 条全部无法在本节点启用（不改 lib/** 与无真实 fixture 的前提下）；其中 2 条（FilterMismatchRejected 负例、G9WinsorizedCpuRoute）的 fixture/CUDA 前置是测试设计缺陷, 可在 lib/** 内无硬件启用 —— 已点名。"
+  },
+  "open_items": [
+    "新增 ctest SKIP 目前无机器门拦截（本文件为人工登记）——建议加 checker：读 ctest JUnit 的 skipped 集, 未登记即 FAIL。",
+    "FilterMismatchRejected 负例必须尽快解除 skip（负例保护当前为零）。",
+    "真实 HiPS fixture（FIX-B）到位后 6 条 FIXTURE_MISSING 必须转执行并通过。"
+  ]
+}

@@ -134,8 +134,10 @@ int main() {
     CHECK(props.find("obs_title") != std::string::npos);
     CHECK(props.find("hips_order") != std::string::npos);
     CHECK(props.find("hips_tile_width=512") != std::string::npos);
-    CHECK(props.find("hips_frame=icrs") != std::string::npos);
-    CHECK(props.find("hips_frame=equatorial") == std::string::npos);
+    // P0-19 (IVOA HiPS 1.0 §4.4.1 关键字表): hips_frame 标准值 = equatorial;
+    // icrs 非法, 仅可作读侧兼容别名, 不得出现在写侧产物。
+    CHECK(props.find("hips_frame=equatorial") != std::string::npos);
+    CHECK(props.find("hips_frame=icrs") == std::string::npos);
     CHECK(props.find("hips_status=") != std::string::npos);
     CHECK(props.find("ASTROCS_DRIZZLE_PIXFRAC") != std::string::npos);
     // M2b-B-03: hips_pixel_scale 单位=度 (IVOA REC-HIPS-1.0 §4.4.1):
