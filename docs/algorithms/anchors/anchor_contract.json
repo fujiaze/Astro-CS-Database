@@ -84,6 +84,24 @@
       "basename": "noise_model.cpp",
       "path": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
       "why": "同上"
+    },
+    {
+      "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
+      "basename": "DRIZZLE.md",
+      "path": "docs/science/DRIZZLE.md",
+      "why": "裸 DRIZZLE.md 锚指 SCI 冻结文档；reports/ 下的同名审计报告使 basename 不再唯一（2026-09-18 出现），显式钉死到 docs/science/DRIZZLE.md"
+    },
+    {
+      "doc": "docs/algorithms/HIPS_WRITER.md",
+      "basename": "DRIZZLE.md",
+      "path": "docs/science/DRIZZLE.md",
+      "why": "同上（reports/RELEASE-02/SCI-AUDIT/per-doc/DRIZZLE.md 引入同名）"
+    },
+    {
+      "doc": "docs/algorithms/NOISE_ESTIMATION.md",
+      "basename": "NOISE_MODEL.md",
+      "path": "docs/science/NOISE_MODEL.md",
+      "why": "裸 NOISE_MODEL.md 锚指 SCI 冻结文档；reports/ 下同名审计报告使 basename 不再唯一，显式钉死"
     }
   ],
   "exemptions": [

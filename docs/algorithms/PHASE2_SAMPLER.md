@@ -42,18 +42,18 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 |---|---|---|---|
 | Ω | coverage union（上游 MOC） | — | coverage.h（P2-COV 域） |
 | tile_ipix | union tile 的 NESTED 像素号（order=target_order） | 无量纲 | coverage.h P2CoverageCell.ipix |
-| grid=G | 每 tile 的 cell 网格边长（默认 8） | 无量纲 | sampler.cpp:303/:499 |
-| cell_side | tile 边长/G=64（kTileWidth=512） | leaf 像素 | sampler.cpp:75/:595 |
-| cell (t,gx,gy) | 控制点拓扑 = tile × 网格坐标 | — | sampler.cpp:754-763 |
-| leaf_ipix | cell 中心 leaf 像素（order+9） | 无量纲 | sampler.cpp:756-757 |
-| y_ik | 控制观测（patch 位置估计） | ADU（UPM-calibrated） | sampler.cpp:845 |
-| σ_bg | robust scale（MAD×1.482602218505602） | ADU | sampler.cpp:823-846 |
-| k_corr | Drizzle 协方差方差放大因子（1 ≤ k_corr） | 无量纲 | sampler.cpp:83/:560-574 |
-| N_retained | clipping 后保留样本数 | 无量纲 | sampler.cpp:851 |
-| control_variance | 控制点估计统计方差 | ADU² | sampler.cpp:856-860 |
-| control_ivar | 1/control_variance | 1/ADU² | sampler.cpp:860 |
-| snr_available | 局部星点存在性标志 | 0/1 | sampler.cpp:876/:1038 |
-| reason | 内部拒绝原因 0..5 | 无量纲 | sampler.cpp:625/:759/:995-1005 |
+| grid=G | 每 tile 的 cell 网格边长（默认 8） | 无量纲 | sampler.cpp:303/:509 |
+| cell_side | tile 边长/G=64（kTileWidth=512） | leaf 像素 | sampler.cpp:76/:630 |
+| cell (t,gx,gy) | 控制点拓扑 = tile × 网格坐标 | — | sampler.cpp:771-780 |
+| leaf_ipix | cell 中心 leaf 像素（order+9） | 无量纲 | sampler.cpp:773-774 |
+| y_ik | 控制观测（patch 位置估计） | ADU（UPM-calibrated） | sampler.cpp:862 |
+| σ_bg | robust scale（MAD×1.482602218505602） | ADU | sampler.cpp:840-863 |
+| k_corr | Drizzle 协方差方差放大因子（1 ≤ k_corr） | 无量纲 | sampler.cpp:83/:572-586 |
+| N_retained | clipping 后保留样本数 | 无量纲 | sampler.cpp:868 |
+| control_variance | 控制点估计统计方差 | ADU² | sampler.cpp:873-877 |
+| control_ivar | 1/control_variance | 1/ADU² | sampler.cpp:877 |
+| snr_available | 局部星点存在性标志 | 0/1 | sampler.cpp:893/:1056 |
+| reason | 内部拒绝原因 0..5 | 无量纲 | sampler.cpp:642/:776/:1012-1022 |
 
 禁止单位漂移：value=ADU、uncertainty=ADU、control_variance=ADU²、
 control_ivar=1/ADU²、ra_deg/dec_deg=度（J2000）、snr=无量纲；
@@ -88,7 +88,7 @@ control_ivar=1/ADU²、ra_deg/dec_deg=度（J2000）、snr=无量纲；
 | p2_sample_controls_impl | :463-1119 | 三阶段采样管线本体 |
 | CellStat | :599-612 | 每 (cell,frame) 候选统计载体 |
 
-**配置面（P2SamplerConfig，sampler.h:32-57，声明注释 ：31）**：15 字段默认值见
+**配置面（P2SamplerConfig，sampler.h:33-62，声明注释 ：31）**：15 字段默认值见
 §3 表 p2_sampler_default_config 实现行；`control_grid_per_tile=8`/
 `patch_radius_leaf=2`/`min_samples=5`/`snr_search_radius_deg=0.05`/
 `background_patch_radius=8`/`background_clip_sigma=3.0`/
@@ -97,11 +97,11 @@ control_ivar=1/ADU²、ra_deg/dec_deg=度（J2000）、snr=无量纲；
 `background_min_retained_fraction=0.60`/`background_tolerance=3.0`/
 `background_neighbor_radius=2`/`background_catalog_veto=1`/
 `control_k_corr=1.4`/`cpu_workers=1`（sampler.cpp:303-317）。
-显式 cfg 覆盖路径：sampler.cpp:491（`if (cfg_in) cfg = *cfg_in;`）。
+显式 cfg 覆盖路径：sampler.cpp:501（`if (cfg_in) cfg = *cfg_in;`）。
 
 ## 4 算法结构：三阶段 background-clean 采样管线
 
-sampler.cpp:601-608 冻结注释将管线映射为
+sampler.cpp:613-620 冻结注释将管线映射为
 BACKGROUND_SAMPLER_SPEC.md Stage A-E；实现按三遍组织：
 
 | 阶段 | 遍 | 锚（sampler.cpp） | 语义 |
@@ -132,7 +132,7 @@ cell 索引   = c*G² + gy*G + gx                                # :708-709/:870
 - control_id = cells 索引（uint64，稠密 0..n_union×G²-1，含空覆盖
   占位；:947 与 :1031/:1105 一致）；
 - out_n_controls = n_union×G²（几何节点总数，与
-  stats.accepted_controls/overlap_controls 区分；sampler.h:118-119
+  stats.accepted_controls/overlap_controls 区分；sampler.h:153-154
   注释冻结）；
 - P2ControlNode 填充 :1105-1111（control_id=索引、tile_ipix、gx/gy、
   ra/dec、leaf_ipix）。
@@ -266,15 +266,15 @@ SHA 流 = 9 关键 properties（creator_did/obs_title/obs_filter/
 → 0（调用方 :512-523 拒绝 rc=1；禁止静默继续）。
 ```
 
-禁止描述为 FNV-1a/路径派生（sampler.h:92 注释冻结；旧文档已修正）。
+禁止描述为 FNV-1a/路径派生（sampler.h:97 注释冻结；旧文档已修正）。
 
 ### 5.7 统计量共享实现（:191-204/:440-459）
 
 - median_of：nth_element 取中，偶数 n 取 [begin,mid) 最大值均值（P0-01 修复，:196-202）；
 - p2_stats_median：先过滤非 finite（:444-445），空/全 NaN 经 median_of :192 → 0.0
-  （sampler.h:96 冻结）；
+  （sampler.h:101 冻结）；
 - p2_stats_mad：median 后 1.482602218505602×median(|x−med|)（:452-460），
-  out_median 回传收敛 median；UPM 侧共享同一实现（sampler.h:97-99 导出声明；upm.h:43-48 冻结注释同源定义）。
+  out_median 回传收敛 median；UPM 侧共享同一实现（sampler.h:102-104 导出声明；upm.h:43-48 冻结注释同源定义）。
 
 ## 6 消费链与并行语义
 
@@ -309,7 +309,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
 | patch robust median/MAD 保留负值 | :802-829（无符号过滤） | 一致 |
 | SNR 来自 Catalogue 禁止重检测 | :851-867 纯查询 | 一致 |
 | control_variance 公式（SCI-UPM-WEIGHT-001） | :840-842 逐项一致 | 一致 |
-| k_corr MC 校准非猜测（sampler.h:49-50） | :83/:89-112（选项 B 逐帧，scale 维已退役） | 常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 `control_median_mc_test` 未注册（MISSING，构建孤儿）⇒ 不可复跑** |
+| k_corr MC 校准非猜测（sampler.h:50-51） | :83/:89-112（选项 B 逐帧，scale 维已退役） | 常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 `control_median_mc_test` 未注册（MISSING，构建孤儿）⇒ 不可复跑** |
 | per-control `control_reliability`（旧名 geometric_reliability）参与归一化 | 采样器不产出 per-control 可靠度；UPM 侧实现为**配置常量 1.0**（`upm.cpp:565` 归一化消费） | 不在本模块域（UPM 侧缺陷，已登记 SC-005） |
 | wiki 语义版本 34A532A2...B2EB308 | sampler.cpp:3/:85-87 注释锚定 | 一致 |
 
@@ -319,7 +319,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
   leaf_ipix u64；ra_deg/dec_deg/value/uncertainty/snr/ivar/
   control_variance/control_ivar/support f64；snr_available int；
   quality_flags u32；
-- P2SampleStats 10 字段 u64（sampler.h:63-74）；
+- P2SampleStats 10 字段 u64（sampler.h:68-79）；
 - tile payload float32（aio read_tile_f32；:359-361/:375-379）；
 - 输出 dtype/shape/invalid/可空语义唯一权威=DATA_SEMANTICS §23；
   本节单位表（§2）与之一致，冲突以 §23 为准。
@@ -383,7 +383,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
   ACS_ERR 映射归 API-P2-001 编排面，不在本模块域）；
 - out_obs/out_controls 容量不足**不报错**：按 capacity 截断拷贝、
   out_n_* 返回真实需求量（:1101-1117；probe/fill 协议
-  sampler.h:101-102 冻结）；
+  sampler.h:106-107 冻结）；
 - 并发安全：无共享可变全局态（g_aio_mu 锁仅覆盖 read_tile_pair :166；并行路径 per-worker 独立句柄），reentrant
   yes；无取消检查点（ThreadLease 接线归 P2-SAMP-IMPL 整改点，与
   DISP-COV-005 同构）。

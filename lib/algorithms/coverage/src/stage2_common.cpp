@@ -179,6 +179,23 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
             cfg->use_ivar_weight =
                 m.value("use_ivar_weight", 1) != 0 ? 1 : 0;
         }
+        // FIX-A 稀疏天光面（可选；缺省启用，保持设计"标准行为"）。
+        if (j.contains("sky_plane")) {
+            const auto& sp = j["sky_plane"];
+            if (!sp.is_object()) { *err = "sky_plane 必须是对象"; return false; }
+            cfg->sky_plane_enabled = sp.value("enabled", cfg->sky_plane_enabled);
+            cfg->sky_plane_spline_degree = sp.value("spline_degree", cfg->sky_plane_spline_degree);
+            cfg->sky_plane_node_spacing_deg =
+                sp.value("node_spacing_deg", cfg->sky_plane_node_spacing_deg);
+            cfg->sky_plane_gradient_order =
+                sp.value("frame_gradient_order", cfg->sky_plane_gradient_order);
+            cfg->sky_plane_gauge_mode = sp.value("gauge_mode", cfg->sky_plane_gauge_mode);
+            cfg->sky_plane_weight_mode = sp.value("weight_mode", cfg->sky_plane_weight_mode);
+            cfg->sky_plane_roughness_penalty =
+                sp.value("roughness_penalty", cfg->sky_plane_roughness_penalty);
+            cfg->frame_gain_enabled = sp.value("frame_gain", cfg->frame_gain_enabled);
+        }
+
         if (j.contains("integration")) {
             const auto& in = j["integration"];
             const std::string prec =

@@ -435,6 +435,7 @@ endif()
 # lib/algorithms/coverage (phase2 生产模块; ACR 源不在此列 — LEG-004)
 add_library(astrocs_phase2 STATIC
   lib/algorithms/coverage/src/upm.cpp
+  lib/algorithms/coverage/src/sky_plane.cpp
   lib/algorithms/coverage/src/stage2_common.cpp
   lib/algorithms/coverage/src/rejection.cpp
   lib/algorithms/coverage/src/coverage.cpp
@@ -846,6 +847,7 @@ if(ASTROCS_BUILD_TESTS)
   add_subdirectory(tests/unit/v6_p2_rej v6_p2_rej)
   add_subdirectory(tests/unit/v6_p2_samp v6_p2_samp)
   add_subdirectory(tests/unit/v6_p2_upm v6_p2_upm)
+  add_subdirectory(tests/unit/v6_p2_sky v6_p2_sky)
   add_subdirectory(tests/unit/v6_p3_proj v6_p3_proj)
   add_subdirectory(tests/unit/v6_p3_rsmp v6_p3_rsmp)
   add_subdirectory(tests/integration/v6_p1 v6_p1_integration)

@@ -444,6 +444,129 @@ int main(int argc, char** argv) {
         " hash=" + std::string(minfo.model_hash, 12) + "...");
     mark("upm_fit");
 
+    // ---- FIX-A 稀疏天光面 + 乘法响应 g_k（P0-08/09/10）----
+    // 天光采样点直接由 background-clean control observations 映射（同一 patch
+    // estimator：value=patch median，variance=control_variance，点 SNR=|value|/σ）。
+    // b_k(x)=B_ref(x)+δ_k(x) 稀疏样条联合拟合；g_k 由 v6 UPM MA 求解器估计。
+    // 任一失败都显式降级（保留 RELEASE-01 纯加性 C 场 / g=1）并记日志，不静默。
+    std::unique_ptr<void, void (*)(void*)> sky_guard(nullptr, &p2_sky_plane_close);
+    std::map<std::uint64_t, double> frame_gain;
+    if (cfg.sky_plane_enabled || cfg.frame_gain_enabled) {
+        std::vector<P2SkySample> sky_samples;
+        sky_samples.reserve(obs.size());
+        for (const auto& o : obs) {
+            P2SkySample sk{};
+            sk.frame_id = o.frame_id;
+            sk.control_id = o.control_id;
+            sk.ra_deg = o.ra_deg;
+            sk.dec_deg = o.dec_deg;
+            sk.value = o.value;
+            sk.variance = o.control_variance;
+            sk.snr = (o.uncertainty > 0.0) ? std::fabs(o.value) / o.uncertainty : 0.0;
+            sk.flags = o.snr_available ? P2_SKY_FLAG_NONE : P2_SKY_FLAG_NO_LOCAL_SNR;
+            sky_samples.push_back(sk);
+        }
+        if (cfg.sky_plane_enabled) {
+            P2SkyPlaneConfig spc = p2_sky_plane_default_config();
+            spc.spline_degree = cfg.sky_plane_spline_degree;
+            spc.node_spacing_deg = cfg.sky_plane_node_spacing_deg;
+            spc.frame_gradient_order = cfg.sky_plane_gradient_order;
+            spc.gauge_mode = cfg.sky_plane_gauge_mode;
+            spc.weight_mode = cfg.sky_plane_weight_mode;
+            spc.roughness_penalty = cfg.sky_plane_roughness_penalty;
+            char sperr[512] = {0};
+            void* spm = nullptr;
+            const int src = p2_sky_plane_build(sky_samples.data(), sky_samples.size(),
+                                               &spc, &spm, sperr, sizeof(sperr));
+            if (src != P2_SKY_PLANE_OK) {
+                log("[sky_plane] build FAILED rc=" + std::to_string(src) + " " +
+                    std::string(sperr) + " -> fallback to UPM C field");
+            } else {
+                P2SkyPlaneInfo spinfo{};
+                p2_sky_plane_info(spm, &spinfo);
+                log("[sky_plane] ok n_used=" + std::to_string(spinfo.n_used) +
+                    " n_nodes=" + std::to_string(spinfo.n_nodes) +
+                    " n_frames=" + std::to_string(spinfo.n_frames) +
+                    " rms_w=" + std::to_string(spinfo.rms_weighted) +
+                    " hash=" + std::string(spinfo.model_hash, 12));
+                sky_guard.reset(spm);
+            }
+        }
+        if (cfg.frame_gain_enabled) {
+            std::vector<P2UpmMaObservation> ma;
+            ma.reserve(obs.size());
+            for (const auto& o : obs) {
+                P2UpmMaObservation mo{};
+                mo.frame_id = o.frame_id;
+                mo.control_id = o.control_id;
+                mo.value = o.value;
+                mo.control_ivar = o.control_ivar;
+                ma.push_back(mo);
+            }
+            P2UpmMaConfig macfg{};
+            macfg.min_frames = 2;
+            macfg.gauge_mode = 0;
+            macfg.allow_additive_only_single_frame = 0;
+            macfg.huber_delta = cfg.huber_delta;
+            macfg.max_iterations = cfg.max_irls_iterations;
+            macfg.tolerance = cfg.tolerance;
+            macfg.sigma_floor = cfg.sigma_floor;
+            macfg.zero_anchor_weight = cfg.zero_anchor_weight;
+            void* ma_model = nullptr;
+            const int mrc = p2_upm_ma_build(ma.data(), ma.size(), &macfg, &ma_model);
+            if (mrc != 0) {
+                log("[frame_gain] MA build FAILED rc=" + std::to_string(mrc) +
+                    " -> explicit g=1 (additive-only degradation)");
+            } else {
+                P2UpmMaInfo mainfo{};
+                p2_upm_ma_info(ma_model, &mainfo);
+                log("[frame_gain] ok n_params=" + std::to_string(mainfo.n_params) +
+                    " rank=" + std::to_string(mainfo.rank) +
+                    " kappa=" + std::to_string(mainfo.kappa));
+                for (const auto& o : obs) {
+                    if (frame_gain.count(o.frame_id)) continue;
+                    double g = 1.0;
+                    if (p2_upm_ma_solution(ma_model, o.frame_id, o.control_id,
+                                           &g, nullptr, nullptr) == 0 &&
+                        std::isfinite(g) && g > 0.0)
+                        frame_gain[o.frame_id] = g;
+                }
+                // ---- g_k 一致性门（P0-10 修复）----
+                // MA 的 g 由空间结构定标：当帧间差异是纯加性（无乘法增益）时，
+                // 自由 latent s(p) 会把加性结构吸收成伪乘法（合成 ivar 场实测偏 ~5%）。
+                // 用帧间公共 control 的直流比 g_dc 做独立交叉校验（DC 不受相位/加性结构影响）；
+                // 不一致 → 显式 g=1，不施加伪乘法（fail-closed，非静默）。
+                std::uint64_t ref_frame = UINT64_MAX;
+                for (const auto& o : obs)
+                    if (o.frame_id < ref_frame) ref_frame = o.frame_id;
+                for (auto& kv : frame_gain) {
+                    if (kv.first == ref_frame) { kv.second = 1.0; continue; }
+                    double g_dc = 0.0;
+                    if (p2_sky_estimate_gain_dc(sky_samples.data(), sky_samples.size(),
+                                                ref_frame, kv.first, &g_dc) != 0) {
+                        log("[frame_gain] frame " + std::to_string(kv.first) +
+                            " DC-ratio unavailable -> reject g=1");
+                        kv.second = 1.0;
+                        continue;
+                    }
+                    const double dev = std::fabs(kv.second - g_dc) / g_dc;
+                    if (dev > 0.01) {
+                        log("[frame_gain] frame " + std::to_string(kv.first) +
+                            " MA g=" + std::to_string(kv.second) +
+                            " vs DC-ratio=" + std::to_string(g_dc) +
+                            " dev=" + std::to_string(dev) + " -> reject g=1");
+                        kv.second = 1.0;
+                    } else {
+                        log("[frame_gain] frame " + std::to_string(kv.first) +
+                            " MA g=" + std::to_string(kv.second) +
+                            " DC-ratio=" + std::to_string(g_dc) + " accepted");
+                    }
+                }
+                p2_upm_ma_close(ma_model);
+            }
+        }
+    }
+
     // ---- W4 UPM PERSIST (diagnostics) ----
     std::string model_path;
     if (cfg.diagnostics) {
@@ -834,6 +957,20 @@ int main(int argc, char** argv) {
                 chunk_leaves[c][i - p0] =
                     (tile_ipix << 18) + local_lut[(std::size_t)i];
         }
+        // FIX-A：天光面按需求值需 chunk 内每 leaf 的 (ra,dec)；仅在启用天光面时预计算。
+        std::vector<std::vector<double>> chunk_ra, chunk_dec;
+        if (sky_guard) {
+            const std::uint64_t sky_nside = 1ull << (unsigned)(target_order + 9);
+            chunk_ra.resize(n_chunk);
+            chunk_dec.resize(n_chunk);
+            for (std::uint64_t c = 0; c < n_chunk; ++c) {
+                chunk_ra[c].resize(chunk_leaves[c].size());
+                chunk_dec[c].resize(chunk_leaves[c].size());
+                for (std::size_t i = 0; i < chunk_leaves[c].size(); ++i)
+                    astrocs::healpix::pix2ang_nest(sky_nside, chunk_leaves[c][i],
+                                                   chunk_ra[c][i], chunk_dec[c][i]);
+            }
+        }
         std::vector<double> stack(depth), weights(depth), support_v(depth);
         std::vector<std::uint8_t> acc(depth);
         std::vector<std::uint64_t> fid_stack(depth);
@@ -928,6 +1065,26 @@ int main(int argc, char** argv) {
                         model, frame_id_cache[f],
                         chunk_leaves[c].data(), cal_v.data(), out_v.data(),
                         cnt);
+                    // FIX-A：corrected = (raw − C_k(x) − b_k(x)) / g_k。
+                    // b_k(x)=B_ref+δ_k 现场求值（不建稠密栅格）；g_k 乘法响应。
+                    double gain = 1.0;
+                    if (!frame_gain.empty()) {
+                        const auto git = frame_gain.find(frame_id_cache[f]);
+                        if (git != frame_gain.end()) gain = git->second;
+                    }
+                    if (sky_guard || gain != 1.0) {
+                        for (std::uint64_t i = 0; i < cnt; ++i) {
+                            if (sky_guard) {
+                                double b = 0.0;
+                                int st = P2_SKY_EVAL_INVALID;
+                                p2_sky_plane_eval(sky_guard.get(), frame_id_cache[f],
+                                                  chunk_ra[c][i], chunk_dec[c][i],
+                                                  &b, &st);
+                                if (st == P2_SKY_EVAL_OK) out_v[i] -= b;
+                            }
+                            out_v[i] /= gain;
+                        }
+                    }
                     for (std::uint64_t i = 0; i < cnt; ++i) {
                         frames_f32[(size_t)s * chunk_pixels + i] =
                             (float)out_v[i];
@@ -1279,6 +1436,25 @@ int main(int argc, char** argv) {
                     model, frame_id_cache[f], chunk_leaves[c].data(),
                     cal.data() + (std::size_t)s * chunk_pixels,
                     out_v.data(), cnt);
+                // FIX-A：corrected = (raw − C_k(x) − b_k(x)) / g_k（同 ACR 路径）。
+                double gain = 1.0;
+                if (!frame_gain.empty()) {
+                    const auto git = frame_gain.find(frame_id_cache[f]);
+                    if (git != frame_gain.end()) gain = git->second;
+                }
+                if (sky_guard || gain != 1.0) {
+                    for (std::uint64_t i = 0; i < cnt; ++i) {
+                        if (sky_guard) {
+                            double b = 0.0;
+                            int st = P2_SKY_EVAL_INVALID;
+                            p2_sky_plane_eval(sky_guard.get(), frame_id_cache[f],
+                                              chunk_ra[c][i], chunk_dec[c][i],
+                                              &b, &st);
+                            if (st == P2_SKY_EVAL_OK) out_v[i] -= b;
+                        }
+                        out_v[i] /= gain;
+                    }
+                }
                 for (std::uint64_t i = 0; i < cnt; ++i)
                     cal[(std::size_t)s * chunk_pixels + i] = out_v[i];
             }

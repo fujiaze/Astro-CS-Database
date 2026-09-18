@@ -14,6 +14,7 @@
 #pragma once
 
 #include "astro/phase2/coverage.h"
+#include "astro/phase2/sky_plane.h"
 #include "astro/phase2/upm.h"
 
 #include <cstdint>
@@ -52,6 +53,10 @@ typedef struct {
     // （UPMW-005 control_median_mc_test，pixfrac=0.8 实证 1.3883），
     // 冻结保守值 1.4（>= 实证，余量 <1%）。<=0 时回退冻结默认。
     double control_k_corr;                // 默认 1.4
+    // 星点掩膜（10_sampling.md §4.1）：星表中 snr > factor × 帧级 SNR 中位数
+    // 的星按 radius 膨胀进 star_mask（P0-08；原 catalog veto 硬编码整改）。
+    double star_mask_snr_factor;          // 默认 10.0
+    double star_mask_radius_deg;          // 默认 0.012
     // CON-004 并行采样 worker 数（0=auto：omp_get_max_threads/hardware_concurrency；1=串行默认）。
     // 仅 P2_ENABLE_OPENMP 且 >1 时启用并行第一遍；否则恒串行（默认行为不变）。
     int cpu_workers;                      // 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
@@ -112,6 +117,36 @@ P2_API int p2_sample_controls(
     P2SampleStats* out_stats,        // 可空（ 统计）
     P2ControlNode* out_controls,     // 可空（ 全几何节点）
     std::uint64_t ctrl_capacity,
+    char* err, std::size_t err_size);
+
+// ===========================================================================
+// P0-08：天光采样点 + 星点掩膜（10_sampling.md §3/§4.1/§4.2）
+// ---------------------------------------------------------------------------
+// 与 p2_sample_controls* 同一遍扫描，额外输出：
+//   - sky_samples：每帧掩膜外**全部 clean 采样点**（含单帧区，不要求 ≥2 帧），
+//     每点带 value / variance / 点 SNR / flags；供 p2_sky_plane_build 联合拟合；
+//   - star_mask：星表中 snr > star_mask_snr_factor × 帧级中位数的星，按
+//     star_mask_radius_deg 膨胀的球面圆帽（跨帧去重）。
+// 观测值仍来自实际 Phase1 HiPS；禁止重新检测星点。
+// probe/fill 协议同 p2_sample_controls*（out 可空查询容量）。
+// ===========================================================================
+P2_API int p2_sample_sky(
+    const P2CoverageResult* coverage,
+    const char* const* hips_paths,
+    const P2SamplerConfig* cfg,
+    P2SkySample* out_sky, std::uint64_t sky_capacity, std::uint64_t* out_n_sky,
+    P2StarMaskCap* out_mask, std::uint64_t mask_capacity, std::uint64_t* out_n_mask,
+    P2SampleStats* out_stats,
+    char* err, std::size_t err_size);
+
+P2_API int p2_sample_sky_cached(
+    const P2CoverageResult* coverage,
+    const char* const* hips_paths,
+    const std::uint64_t* frame_ids,
+    const P2SamplerConfig* cfg,
+    P2SkySample* out_sky, std::uint64_t sky_capacity, std::uint64_t* out_n_sky,
+    P2StarMaskCap* out_mask, std::uint64_t mask_capacity, std::uint64_t* out_n_mask,
+    P2SampleStats* out_stats,
     char* err, std::size_t err_size);
 
 // 含 frame_id 缓存的重载（性能：stage2 已算 frame_id 时透传，避免二次 500MB payload 哈希）。
