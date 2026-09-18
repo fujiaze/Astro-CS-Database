@@ -1,0 +1,40 @@
+问题扫描/_verify/scripts_v10_ctx.py	lines=18	verdict=OK	evidence=targets 五窗含 gaia_client.c:855-880 与 aio_xisf.cpp:526-560 且 READFAIL 兜底；旧路径经 ARCH-001(eaf32aad) 等价迁移至 lib/infrastructure·lib/algorithms，原址 test -f 0/5 属历史快照非缺陷，ast 编译干净
+问题扫描/_verify/scripts_v10_ctx2.py	lines=14	verdict=OK	evidence=show() 三窗声明 gain stod@drizzle_engine.cpp:1118-1132 与 valid_product_params@aio_hips_reader.cpp:296-325；现树 stod 首见 L1149、该函数名定义在 L55，内容锚住仅行号漂移
+问题扫描/_verify/scripts_v10_ctx3.py	lines=10	verdict=OK	evidence=fits_reader.cpp:289-345 标注 BITPIX 白名单与尺寸 + subprocess grep bad_snr_rows 限 lib/cli/include 三前缀；BITPIX 现树首见 269 行落窗附近，parse 无警告
+问题扫描/_verify/scripts_v10_ctx4.py	lines=11	verdict=OK	evidence=五 show 调用含 sampler.cpp pixfrac 来源/消费两窗 + cli/commands.cpp:196-210 sleep_ms 断言；实测 sleep_ms 首现 L1046（grep 实证），旧锚 196-210 已漂，脚本仅打印不受伤
+问题扫描/_verify/scripts_v10_dump.py	lines=29	verdict=OK	evidence=PAT 枚举 atof/strtol/stoull 等 21 个解析函数全表 + BAD_SEG 含 Testing_archive + 仅打 tag=="PROD"；git --no-optional-locks ls-files 只读无写盘
+问题扫描/_verify/scripts_v12_ae.py	lines=7	verdict=OK	evidence=核 AE_C45_FACTOR 字面 1.1107207345395915 vs π/(2√2)；timeout 实跑得 1.2/C45=1.0803795793885274 即赤道带相对极区紧界富余 8.04%，与打印式一致
+问题扫描/_verify/scripts_v12_band.py	lines=27	verdict=OK	evidence=自称逐字复刻 gaia_client.c:922-923 的 d_ra*cos(dec0)>1.2*r 剪枝；现迁文件 L936 存同式 if (d_ra * cos_dec > radius_deg * 1.2)，cone_pts(n=6000) 语法干净
+问题扫描/_verify/scripts_v12_bbox12.py	lines=31	verdict=OK	evidence=dRA_max n=36000 扫 20 dec0×17 r 网格 + 极冠阈 acos(0.01)=89.4270° 对照 cos_dec<0.01 保守不剪枝分支；cd0<0.01 continue 逻辑在 L18
+问题扫描/_verify/scripts_v12_bbox12b.py	lines=32	verdict=OK	evidence=cone_max_dRA 采样 20 万点 + angsep 自检"边界点反算角距应≈r" + 40 轮二分求 r_crit；纯 math 无 IO，重循环未实跑（语法级判定+阅读全 32 行）
+问题扫描/_verify/scripts_v12_chk_ipv.py	lines=10	verdict=OK	evidence=os.walk 硬根 "/workspace/Astro CS Database/问题扫描" 逐行找 IPV_PIPELINE 输出 rel:行号；import re 未用属冗余非缺陷
+问题扫描/_verify/scripts_v12_cpu.py	lines=24	verdict=OK	evidence=四组 pats CPU85(0\.85|MIN_AVG_UTIL)/CPU60(WINDOW_MIN_UTIL)/WIN10/W5 且 docs/archive 跳；其读的 _cache/v12_tracked.txt test -f 存在
+问题扫描/_verify/scripts_v12_d2.py	lines=19	verdict=OK	evidence=scan(r"0\.73167") 对 trimmed-mean→σ 常数 0.7316728 vs 0.7316727929211932 位数差 + Tukey c 4.685/_TUKEY_C 与中位数 SE 1.253 两路
+问题扫描/_verify/scripts_v12_d3.py	lines=20	verdict=OK	evidence=A 段 scope=("docs/standards/NUMERIC_STANDARD.md",) 查常量位数纪律，B 段 MON-001|MON-002|04_TASK_SPECIFICATIONS 定位权威出处；maxn 参数未用属冗余
+问题扫描/_verify/scripts_v12_dump1.py	lines=11	verdict=OK	evidence=消费 fam 落盘缓存的 ["CAPPED200000","WL343","M60"] 三族 code/doc 双列；实测 v12_fam.json 含全 13 键此三族俱在
+问题扫描/_verify/scripts_v12_dup.py	lines=17	verdict=FINDING:W3-S1-901	evidence=keys 裸串 "0\.2885" 等 6 处无效转义；默认 python3 ast.parse rc=0 但 stderr 喷 L3 SyntaxWarning，-W error::SyntaxWarning 下 SyntaxError invalid escape '\.'；实跑仍出 HITS 316
+问题扫描/_verify/scripts_v12_dup2.py	lines=13	verdict=OK	evidence=双关键词 docs_machine_consistency|snr_constants 全树 walk + rel.startswith("_verify/scripts") 自跳防自证；与 dup 不同根剔则仅 _cache
+问题扫描/_verify/scripts_v12_fam.py	lines=40	verdict=OK	evidence=FAM 13 族含 MAD15(r"1\.482602218505602")/GRID8/WL343(波长数 343)/CPU8560 注 §10.5/§17.6，json.dump 供 dump1 消费
+问题扫描/_verify/scripts_v12_fneg.py	lines=41	verdict=OK	evidence=自称复刻 gaia_client.c:914-925（现树 bbox_intersects 在 L927，行号随迁移漂移）；所引 GAIA_QUERY.md:143「经验保守（差分验证），非数学证明」与 gaia_client.h:9「裕量 1.2 保持无假阴性」两句 sed 实测逐字命中
+问题扫描/_verify/scripts_v12_fneg2.py	lines=36	verdict=OK	evidence=prunes() 判据 dra*cos0>r*1.2 + dl∈1..719 逐度找假阴性组合，末段限定 FOV≤20°/|dec|≤45° 子集反例条数打印
+问题扫描/_verify/scripts_v12_g.py	lines=25	verdict=OK	evidence=核查点：P50_90 与 GATE10 正则混入死支 "?&gt;=" 与 "interval ?&lt;="（HTML 实体永不匹配源码文本），但 90\.0\b|kMon002MinWindowSeconds 等活支保留覆盖，全库 grep "p50 >= 90" 0 命中故无漏报实证，判 OK
+问题扫描/_verify/scripts_v12_h.py	lines=26	verdict=OK	evidence=七组含 Mon002_32_used(memory_growth_limit_mb_per_s|kAllocGrowthUnboundedMbPerS)/Cache307(QUERY_CACHE_MAX_BYTES|kQueryCacheCap)/Reclaim32MiB(33554432)
+问题扫描/_verify/scripts_v12_i.py	lines=41	verdict=OK	evidence=(a) 0.73167 于 findings/账本/_merge 三目录查已报；(b) json.load ci/checks.json 取 'checks' 实测 38 项含 id/waivable；(d) ACS_FIO_PATH_MAX 的 define/const 定位
+问题扫描/_verify/scripts_v12_k.py	lines=23	verdict=OK	evidence=EXCL 剔工程控制/reports/evidence 等 13 目录；旁注：L6 pat(6.0|13.0|1.5|2.0 co-occur) 编译后未用，实际只 re.search(r"13\.0")，聚合按文件打印
+问题扫描/_verify/scripts_v12_mad.py	lines=43	verdict=OK	evidence=七正则含 1\.482602(?!\d)/0\.67448 倒数式 + json.dump 落盘 v12_mad.json（文件存在已核）+ 末段按六键逐条打印计数
+问题扫描/_verify/scripts_v12_math.py	lines=35	verdict=OK	evidence=NormalDist().inv_cdf(0.75)=0.6744897501960817；实跑 frozen15 对 1/q absdiff=0 ulp=0.000，k4 reldiff=-1.496359e-06，Moffat4 式 2√(2(2^(1/4)-1)) 核 1.230310
+问题扫描/_verify/scripts_v12_named.py	lines=15	verdict=OK	evidence=八具名单扫 \bkMadToSigma15\b|_MAD_SCALE|\bk_sigma\b|kMoffat4FwhmFactor|kFwhmFactor 定义与使用点；数据源为 tf 生成清单
+问题扫描/_verify/scripts_v12_scan2.py	lines=31	verdict=OK	evidence=八路含 buf511(r"\b511\b|\b512\b")/upm_grid8(8[x×]8)/reclaim_0.5_32MiB(33554432)，聚合 json.dump 至 _cache/v12_scan2.json（存在已核）
+问题扫描/_verify/scripts_v12_sum.py	lines=19	verdict=OK	evidence=PROD=re.compile(r"^(lib|providers|cli|runtime|modules)/") 与 CODE 分档，逐键 total/code/prod 计数后按注释标 // 剔除再打明细
+问题扫描/_verify/scripts_v12_tf.py	lines=8	verdict=OK	evidence=git --no-optional-locks ls-files 计数 TRACKED FILES + Counter 扩展名 most_common(20)，写盘 _cache/v12_tracked.txt 为下游多脚本之源
+问题扫描/_verify/scripts_v12_top.py	lines=5	verdict=OK	evidence=仅 5 行：读 tf 落盘清单按 f.split("/")[0] 做 Counter.most_common(40) 看根目录占比
+问题扫描/_verify/scripts_v12_trim.py	lines=27	verdict=OK	evidence=halfnorm_ppf/trimmed_mean_abs 解析式；实跑真值 0.731673095280613，在册 16 位 rel=-4.13e-07，doc7 rel=-4.04e-07，doc7-code=7.0788e-09
+问题扫描/_verify/scripts_v12_trim2.py	lines=34	verdict=OK	evidence=口径 A 半正态 10-90 截尾与口径 B ±1.2816σ 双解析式 + random.seed(12345) N=2_000_000 蒙特卡洛排序分位复算（重负载未实跑，全 34 行已读）
+问题扫描/_verify/scripts_v13_mint.py	lines=33	verdict=OK	evidence=NQ='\\x27\\x22' 拼引号类 + bt=chr(96) 反引号，五式 fstr/fstr2/pct/cat/js_tpl 捕 (TEST|EVID|SCI|ALG|DATA|DISP)- 具名 ID 动态拼接违规，unreadable 计数兜底
+问题扫描/_verify/scripts_v15_cat.json	lines=5195	verdict=SAMPLED	evidence=sections=5/5 顶层键 sorted(diagtext_pin,inject_reverse_lock,positive_exist,selfwitness_cand,src_text_guard)，条数 144/710/180/0/3 总 1037；抽 src_text_guard 首条 cpu_provider_test.cpp:72 与 positive_exist 首条 check_link_scan.py:9 回源 sed 逐字命中；selfwitness_cand=0 与生成器从不 append 该键自洽
+问题扫描/_verify/scripts_v15_cat.py	lines=53	verdict=OK	evidence=docstring「四类弱断言+注入式反向锁」+ OUT 直指 scripts_v15_cat.json 即批内产物；核查点：SKIP_DIRS 混入 "CS","Database" 碎词（find 实核根树 3 层无此目录名，无误伤）；NPOS 正则捕 find(...)!=npos
+问题扫描/_verify/scripts_v15_cpp.py	lines=41	verdict=OK	evidence=READ 正则 ifstream|std::fopen|istreambuf_iterator + lines[max(0,i-20):i+1] 回溯窗判 srcish，rows 列表 dump 至 scripts_v15_cpp_text.json
+问题扫描/_verify/scripts_v15_cpp_text.json	lines=733	verdict=OK	evidence=PARSE-OK 顶层 list 122 元素键 {f,l,src,s}；src=True 计 28 条；最大集中 ./lib/orchestrator/cpp/tests/test_orchestrator_cli.cpp 42 条（迁移前旧址快照），首条 mon002_alloc_test.cpp:253 CHECK(cut != npos) 实文命中
+问题扫描/_verify/scripts_v15_ctest_reg.py	lines=46	verdict=OK	evidence=取 c["checks"] 中命令含 ctest 者的 -R 模式对 add_test\(\s*NAME 收集全集求差，报「无（零采集）」名单；细疵：尾行 PY_MARKER = None 残迹无害
+问题扫描/_verify/scripts_v15_inject.json	lines=313	verdict=OK	evidence=PARSE-OK 顶层三档 A_env_fault_injection/B_write_defect_then_expect_fail/C_expect_fail_only 计 33/84/189；B 首键 test_evidence_with_contradicted_gate_fail_fails_closed grep 源文件命中，A 之 p3002_uncertainty_test.cpp 确含 ASTROCS FAULT 串
+问题扫描/_verify/scripts_v15_inject.py	lines=66	verdict=OK	evidence=三档分层 A env FAULT/B INJECT+EXPECT_FAIL/C 只断言失败；INJECT 正则含 篡改|注入|os.replace；小疵：L47 算 cur 后 L48 立即覆盖为死码，不影响分档计数

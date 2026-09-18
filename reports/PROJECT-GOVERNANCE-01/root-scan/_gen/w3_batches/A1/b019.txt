@@ -1,0 +1,15 @@
+lib/algorithms/star_detection/tests/p1star/p1star_fixtures.hpp
+lib/algorithms/star_detection/tests/p1star/p1star_mad_check.cpp
+lib/algorithms/star_detection/tests/p1star/p1star_oracle.hpp
+lib/algorithms/star_detection/tests/p1star/p1star_test_main.hpp
+lib/algorithms/star_detection/tests/p1star/p1star_tests_core.cpp
+lib/algorithms/star_detection/tests/p1star/p1star_tests_main.cpp
+lib/algorithms/star_detection/tests/p1star/p1star_tests_perf.cpp
+lib/algorithms/star_detection/tests/p1star/p1star_tests_selfcheck.cpp
+lib/algorithms/star_detection/tests/p1star/sdet_oom_interposer.c
+lib/algorithms/star_detection/wrapper_phase1/README.md
+lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp
+lib/algorithms/star_detection/wrapper_phase1/star_detector.h
+lib/algorithms/upm/README.md
+lib/algorithms/upm/memory.md
+lib/algorithms/upm/module.yaml
