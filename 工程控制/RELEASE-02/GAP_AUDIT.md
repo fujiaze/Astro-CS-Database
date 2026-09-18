@@ -120,5 +120,21 @@ RELEASE-02 不重做全量审计，以 RELEASE-01 审计结果为修复输入：
 3. 已按负责人指示补充进最高设计：`ASTROCS_DESIGN.md` §3.4「输出基数」与 §3.3 数据块条目（一组进一组出、不得只取一帧）；
 4. L4 重建：R 通道 49 帧、T2+T3 汇总为一个数据集 ⇒ 应得 **49 个 HiPS 产品**，马赛克逐像素 n≈8。
 
+**根因（前台 2026-09-18 定位，`lib/infrastructure/scheduler/src/module_adapters.cpp`）**：
+Phase1 各操作器对多帧的处理**内部不一致**——部分循环全部帧，**三个决定性操作器只取第 0 帧**：
+
+| 操作器 | 函数起点 | 多帧处理 | 证据行 |
+|---|---|---|---|
+| `p1_op_calibrate` | :1532 | ✗ **只取首帧** | `:1634` `p1_read_image(lights.front())` |
+| `p1_op_cosmetic` | :1843 | ✓ 循环 | `:1865` `for (const auto& l : doc["input_lights"])` |
+| `p1_op_star_psf_impl` | :1931 | ✓ 循环 | `:1945` 同上 |
+| `p1_op_wcs` | :2424 | ✗ **只取首帧** | `:2463`、`:2621` `input_lights[0]` |
+| `p1_op_noise` | :2980 | ✓ 循环 | `:3031` 同上 |
+| **`p1_op_drizzle`** | :3202 | ✗ **只取首帧** | `:3343` `p1_calibrated_path(doc, doc["input_lights"][0]...)` |
+
+其中 **`p1_op_drizzle` 是产出 HiPS 产品的操作器**，只 drizzle `input_lights[0]` ⇒ 每配置恒 1 个产品，
+与日志实测（`drizzle_engine] 完成` 恒 1 次、16,777,216 源像素 = 恰一帧）**完全吻合**。
+即：不是"叠加失败"，而是**除首帧外的帧从未进入 drizzle**；且无任何报错。
+
 **测试缺口**：`ctest` 460 全绿**未能发现**此缺陷 ⇒ 缺少「多 light normalize」用例，须补正例（多帧正确叠加/正确处理）
 与负例（不支持的组合必须报错，不得静默通过）。
