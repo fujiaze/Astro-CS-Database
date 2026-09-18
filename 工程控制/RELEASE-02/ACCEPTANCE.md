@@ -62,3 +62,5 @@
 | commit | 目的 |
 |---|---|
 | `3de869ae` | DOC-101 文档包替换与核验（36 篇；U-1/U-2 闭合；核验器 R4 判据改进 + self-test；ASTROCS_DESIGN §235 口径订正） |
+| `958fa5b7` | DOC-101 提交台账登记 |
+| `25b159e2` | FIX-SCI 两项冻结科学文档 P0 订正 + 4 件变更 claim（DRIZZLE §5/§7 归一化、ASTROMETRY §5a 标签；登记 DISP-DRZ-009） |
