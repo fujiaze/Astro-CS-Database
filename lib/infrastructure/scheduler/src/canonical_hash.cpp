@@ -315,6 +315,56 @@ CanonicalHashResult canonical_product_hash_file(const std::string& u8path) {
     r.error = "not a regular file: " + u8path;
     return r;
   }
+  const std::filesystem::path p = std::filesystem::u8path(u8path);
+  std::string lower_name = p.filename().string();
+  for (char& c : lower_name) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  const bool is_json = lower_name.size() > 5 &&
+                       lower_name.compare(lower_name.size() - 5, 5, ".json") == 0;
+  const bool is_props_name = p.filename().string() == "properties";
+  const std::string kSimple = "SIMPLE  ", kXtension = "XTENSION";
+
+  // PERF-P2 S2: 头 8 字节探测（FITS 判定只需前 8 字节）—— 使 raw 分支可在
+  // **不把整文件读入 std::string** 的前提下判定格式。
+  std::string head;
+  {
+    std::ifstream hf(p, std::ios::binary);
+    if (!hf) { r.error = "cannot read: " + u8path; return r; }
+    char hb[8] = {0};
+    hf.read(hb, 8);
+    const std::streamsize got = hf.gcount();
+    if (got > 0) head.assign(hb, static_cast<std::size_t>(got));
+  }
+
+  // raw 分支（无格式特化产品, 如 *.bin）**单遍流式**: 完整性 sha256 与规范
+  // sha256（= sha256(kDomain + "RAW\n" + file bytes)）在同一读遍上推进两个 SHA
+  // 状态, 峰值内存从 O(文件大小) 降为 O(64KiB)。仅当「头非 FITS ∧ 非 .json ∧
+  // 文件名非 properties」时进入 —— 与旧分支判定逐字节同值（properties 仍需
+  // bytes.find('=') 判定, 故一律走下方整读路径）。
+  if (head != kSimple && head != kXtension && !is_json && !is_props_name) {
+    std::ifstream f(p, std::ios::binary);
+    if (!f) { r.error = "cannot read: " + u8path; return r; }
+    astrocs::crypto::Sha256 h_int, h_can;
+    h_can.update(kDomain, sizeof(kDomain) - 1);
+    static const char kRawTag[] = "RAW\n";
+    h_can.update(kRawTag, sizeof(kRawTag) - 1);
+    char buf[65536];
+    while (f) {
+      f.read(buf, sizeof(buf));
+      const std::streamsize got = f.gcount();
+      if (got > 0) {
+        h_int.update(buf, static_cast<std::size_t>(got));
+        h_can.update(buf, static_cast<std::size_t>(got));
+      }
+    }
+    r.integrity_sha256 = h_int.final_hex();
+    r.format = "raw";
+    r.canonical_sha256 = h_can.final_hex();
+    r.warnings.push_back("no format-specific canonicalization for this file type; "
+                         "canonical hash falls back to raw bytes");
+    r.ok = true;
+    return r;
+  }
+
   bool ok = false;
   const std::string bytes = read_file_bytes(u8path, &ok);
   if (!ok) {
@@ -323,17 +373,10 @@ CanonicalHashResult canonical_product_hash_file(const std::string& u8path) {
   }
   r.integrity_sha256 = astrocs::crypto::sha256_hex(bytes.data(), bytes.size());
 
-  const std::string head = bytes.size() >= 8 ? bytes.substr(0, 8) : std::string();
-  const std::string kSimple = "SIMPLE  ", kXtension = "XTENSION";
-  const std::filesystem::path p = std::filesystem::u8path(u8path);
-  std::string lower_name = p.filename().string();
-  for (char& c : lower_name) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-  const bool is_json = lower_name.size() > 5 &&
-                       lower_name.compare(lower_name.size() - 5, 5, ".json") == 0;
-  const bool is_props = p.filename().string() == "properties" &&
-                        bytes.find('=') != std::string::npos;
+  const std::string head_full = bytes.size() >= 8 ? bytes.substr(0, 8) : std::string();
+  const bool is_props = is_props_name && bytes.find('=') != std::string::npos;
 
-  if (head == kSimple || head == kXtension) {
+  if (head_full == kSimple || head_full == kXtension) {
     std::string body;
     std::vector<std::string> excl, warns;
     if (!parse_fits_canonical(bytes, &body, &excl, &warns)) {

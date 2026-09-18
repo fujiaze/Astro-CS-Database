@@ -121,13 +121,15 @@ const char* kConfigTemplate =
 //   canonical_sha256  —— 规范产品哈希（像素数据 + 科学元数据）=> 可复现性判据
 //   canonical_hash_spec / canonical_format —— 口径版本与判定到的格式（审计面）
 // 规范化失败不静默: 记 canonical_sha256=null + canonical_error。
-nlohmann::json with_canonical_hash(const nlohmann::json& row, const std::string& path) {
+// PERF-P2 S2: 复用已算出的 CanonicalHashResult（同一 path 只读一遍）。
+// integrity_sha256 取 ch.integrity_sha256 —— canonical_product_hash_file 在读入
+// 同一文件字节时同步算出整文件 sha256（raw 分支为单遍流式）, 与 file_sha256(path)
+// 同值; 读失败时两者同为空。因此本重载与下方两参版本输出逐字节一致, 仅省掉一次
+// 重复整文件读 + 哈希。
+nlohmann::json with_canonical_hash(const nlohmann::json& row,
+                                   const astrocs::core::CanonicalHashResult& ch) {
     nlohmann::json out = row;
-    bool ok = false;
-    const std::string isha = file_sha256(path, &ok);
-    out["integrity_sha256"] = ok ? isha : "";
-    const astrocs::core::CanonicalHashResult ch =
-        astrocs::core::canonical_product_hash_file(path);
+    out["integrity_sha256"] = ch.integrity_sha256;
     if (ch.ok) {
         out["canonical_sha256"] = ch.canonical_sha256;
         out["canonical_hash_spec"] = astrocs::core::kCanonicalProductHashSpec;
@@ -137,6 +139,10 @@ nlohmann::json with_canonical_hash(const nlohmann::json& row, const std::string&
         out["canonical_error"] = ch.error;
     }
     return out;
+}
+
+nlohmann::json with_canonical_hash(const nlohmann::json& row, const std::string& path) {
+    return with_canonical_hash(row, astrocs::core::canonical_product_hash_file(path));
 }
 
 // CLI-001: 合成测试门与 stub 用户命令已删除（不在 §6.2 唯一命令树内）——
@@ -1019,14 +1025,50 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     nlohmann::json artifacts = nlohmann::json::array();
     std::vector<std::pair<std::string, std::string>> mans;
     astrocs::cli::collect_node_manifests(&mans);
-    for (const std::string& ap : astrocs::cli::collect_node_artifact_paths(mans)) {
-        bool ok2 = false;
-        const std::string sha = file_sha256(ap, &ok2);
+    // PERF-P2 S2: 逐 artifact **并行**哈希（N = Runtime 预算核数 budget, 非硬编码;
+    // 无硬编码线程数/ISA）。每个 artifact 独立读文件、结果写入按 path 下标固定的
+    // 槽位; 组装顺序 = apaths 序 ⇒ manifest 字段与串行逐字节同值, 只是更快。
+    // 每 artifact 只读一遍: canonical_product_hash_file 同时给出整文件
+    // integrity_sha256 与 canonical_sha256（raw/.bin 为单遍流式, 不再整文件入
+    // 内存）, 取代原先「file_sha256 + with_canonical_hash 内再 file_sha256 +
+    // canonical_product_hash_file 整读」的 2–3 遍冗余。
+    const std::vector<std::string> apaths =
+        astrocs::cli::collect_node_artifact_paths(mans);
+    std::vector<astrocs::core::CanonicalHashResult> chs(apaths.size());
+    std::vector<std::uintmax_t> asizes(apaths.size(), 0);
+    std::vector<unsigned char> asize_ok(apaths.size(), 0);
+    const uint32_t hash_workers =
+        std::max(1u, std::min<uint32_t>(budget, static_cast<uint32_t>(apaths.size())));
+    auto hash_one = [&](std::size_t i) {
+        chs[i] = astrocs::core::canonical_product_hash_file(apaths[i]);
         std::error_code ec;
-        const auto size = std::filesystem::file_size(std::filesystem::u8path(ap), ec);
+        asizes[i] = std::filesystem::file_size(std::filesystem::u8path(apaths[i]), ec);
+        asize_ok[i] = ec ? 0 : 1;
+    };
+    if (hash_workers <= 1 || apaths.size() <= 1) {
+        for (std::size_t i = 0; i < apaths.size(); ++i) hash_one(i);
+    } else {
+        std::atomic<std::size_t> next_hash{0};
+        std::vector<std::thread> hash_pool;
+        hash_pool.reserve(hash_workers);
+        for (uint32_t w = 0; w < hash_workers; ++w) {
+            hash_pool.emplace_back([&]() {
+                for (;;) {
+                    const std::size_t i = next_hash.fetch_add(1);
+                    if (i >= apaths.size()) break;
+                    hash_one(i);
+                }
+            });
+        }
+        for (auto& th : hash_pool) th.join();
+    }
+    for (std::size_t i = 0; i < apaths.size(); ++i) {
         artifacts.push_back(with_canonical_hash(
-            {{"path", ap}, {"sha256", ok2 ? sha : ""},
-             {"size_bytes", ec ? 0ULL : static_cast<unsigned long long>(size)}}, ap));
+            {{"path", apaths[i]}, {"sha256", chs[i].integrity_sha256},
+             {"size_bytes", asize_ok[i]
+                                ? static_cast<unsigned long long>(asizes[i])
+                                : 0ULL}},
+            chs[i]));
     }
     // B1-A5: uncertainty_available 由 integrate/write 节点 manifest 提供（mode=1 →
     // false; mode=2+ivar → true），CLI 只透传不判定。

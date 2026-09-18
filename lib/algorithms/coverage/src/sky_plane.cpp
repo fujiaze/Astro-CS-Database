@@ -9,6 +9,10 @@
 //       H_red = Σ_k (A_kᵀ W A_k − S_k M_k⁻¹ S_kᵀ),  S_k = A_kᵀ W P_k, M_k = P_kᵀ W P_k
 //   H_red 只有 nx*ny 阶，因此求解内存与帧数无关，也不随像素数增长；
 // - 粗糙度惩罚 λ·DᵀD（二阶差分）只加到求解矩阵，秩/κ 诊断用未惩罚数据矩阵；
+//   该惩罚的零空间 = {1, ix, iy, ix·iy}（bilinear，4 维）；当数据权重与惩罚量级
+//   悬殊时，惩罚矩阵的浮点舍入会淹没数据在该零空间上的曲率，使法方程失去正定性。
+//   求解先走直接 Cholesky（常规档逐位不变）；失败时对零空间做极小 Tikhonov 锚并
+//   用 deflation 校正扣回锚偏置（见 build 内注释），不改变科学解；
 // - 稳健 IRLS：Huber 权重按标准化残差更新；
 // - gauge：参考帧 δ≡0（reference_frame）或 δ 常数项和为零（sum）。
 #include "astro/phase2/sky_plane.h"
@@ -645,6 +649,54 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     for (std::size_t e = 0; e < bfree.size(); ++e)
         bfree[e] = free_of_full[static_cast<std::size_t>(bidx[e])];
 
+    // ---- 惩罚零空间基（bilinear: {1, ix, iy, ix*iy}）----
+    // 两个方向的二阶差分 stencil（v={1,-2,1}）各自湮灭"关于该方向仿射"的系数向量，
+    // 公共零空间 = 关于 ix、iy 均仿射的 bilinear 系数空间 a + b·ix + c·iy + d·ix·iy
+    // （4 维；在均匀张量 B 样条下等价于函数空间 {1, u, v, u·v}）。
+    // 注意：它比 11_upm.md §4.3 的 δ_k 一次多项式 gauge（3 维 {1, ξ, η}）**多一维**——
+    // δ_k 只到一阶、无法吸收 bilinear 项，故 bilinear 是真实模型方向，由数据决定，
+    // 不是规范自由度。这里只用于：(i) 求解前把惩罚零空间方向锚成正定；(ii) 求解后
+    // 用 deflation 校正精确抵消锚偏置。两处都只作用在该 4 维零空间上。
+    std::vector<double> gauge_q;   // n_free x mq，行主序 [f*mq + k]
+    int mq = 0;
+    {
+        std::vector<std::vector<double>> cols;
+        for (int c = 0; c < 4; ++c) {
+            std::vector<double> v(static_cast<std::size_t>(n_free), 0.0);
+            for (int f = 0; f < n_free; ++f) {
+                const int idx = full_of_free[static_cast<std::size_t>(f)];
+                const double ix = static_cast<double>(idx % model->nx);
+                const double iy = static_cast<double>(idx / model->nx);
+                v[static_cast<std::size_t>(f)] =
+                    (c == 0) ? 1.0 : (c == 1) ? ix : (c == 2) ? iy : ix * iy;
+            }
+            double orig = 0.0;
+            for (double x : v) orig += x * x;
+            orig = std::sqrt(orig);
+            for (const auto& q : cols) {   // 修正 Gram-Schmidt（固定列序，确定性）
+                double d = 0.0;
+                for (int f = 0; f < n_free; ++f)
+                    d += q[static_cast<std::size_t>(f)] * v[static_cast<std::size_t>(f)];
+                for (int f = 0; f < n_free; ++f)
+                    v[static_cast<std::size_t>(f)] -= d * q[static_cast<std::size_t>(f)];
+            }
+            double nrm = 0.0;
+            for (double x : v) nrm += x * x;
+            nrm = std::sqrt(nrm);
+            if (orig > 0.0 && nrm > 1e-9 * orig) {
+                for (double& x : v) x /= nrm;
+                cols.push_back(std::move(v));
+            }
+        }
+        mq = static_cast<int>(cols.size());
+        gauge_q.assign(static_cast<std::size_t>(n_free) * static_cast<std::size_t>(mq), 0.0);
+        for (int k = 0; k < mq; ++k)
+            for (int f = 0; f < n_free; ++f)
+                gauge_q[static_cast<std::size_t>(f) * static_cast<std::size_t>(mq) +
+                        static_cast<std::size_t>(k)] =
+                    cols[static_cast<std::size_t>(k)][static_cast<std::size_t>(f)];
+    }
+
     // ---- 稳健 IRLS ----
     std::vector<double> H_data(static_cast<std::size_t>(n_free) * n_free, 0.0);
     std::vector<double> H_red(static_cast<std::size_t>(n_free) * n_free, 0.0);
@@ -767,13 +819,95 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
                 for (int iy = 0; iy + 2 < model->ny; ++iy)
                     add_stencil(iy * model->nx + ix, (iy + 1) * model->nx + ix, (iy + 2) * model->nx + ix);
         }
-        if (!chol_spd(H_solve, n_free, L)) {
+        // ---- 求解：先直接 Cholesky；失败才对惩罚零空间做极小锚 + deflation 校正 ----
+        // 数值根因（对生产数据的复核）：惩罚项 ~1e-3 与约化数据项 ~1e-18 相差 ~1e15
+        // 量级，惩罚矩阵自身的浮点舍入（~1e-18）会淹没数据在惩罚零空间方向上的曲率
+        // （~1e-20），使 H_solve = H_red + λDᵀD 在浮点下失去正定性（:770 rc=6）。
+        // 数据项与惩罚项同量级的常规档（如单元测试 σ~0.05）直接 Cholesky 成功，本
+        // 路径与结果逐位不变；仅当直接 Cholesky 失败时，才对**惩罚零空间方向**做极小
+        // Tikhonov 锚使其严格 SPD，再用 deflation 校正把锚偏置精确扣回（科学解不变）。
+        bool solved = false;
+        std::vector<double> Bnew;
+        if (chol_spd(H_solve, n_free, L)) {
+            Bnew = rhs;
+            chol_solve(L, n_free, Bnew);
+            solved = true;
+        }
+        if (!solved && mq > 0) {
+            // alpha 取惩罚项对角量级；只加在 mq 个惩罚零空间方向（Q Qᵀ）上。
+            double alpha = 0.0;
+            for (int i = 0; i < n_free; ++i) {
+                const double pdiag = H_solve[static_cast<std::size_t>(i) * n_free + i] -
+                                     H_red[static_cast<std::size_t>(i) * n_free + i];
+                if (pdiag > alpha) alpha = pdiag;
+            }
+            if (alpha > 0.0) {
+                for (int i = 0; i < n_free; ++i)
+                    for (int j = 0; j < n_free; ++j) {
+                        double s = 0.0;
+                        for (int k = 0; k < mq; ++k)
+                            s += gauge_q[static_cast<std::size_t>(i) * mq + k] *
+                                 gauge_q[static_cast<std::size_t>(j) * mq + k];
+                        H_solve[static_cast<std::size_t>(i) * n_free + j] += alpha * s;
+                    }
+                if (chol_spd(H_solve, n_free, L)) {
+                    Bnew = rhs;
+                    chol_solve(L, n_free, Bnew);
+                    // Deflation 校正（只对惩罚零空间方向；O(n_free^2 * mq)）：
+                    //   B = B_a + Q · G^{-1} · (Qᵀ rhs − Qᵀ H_red B_a), G = Qᵀ H_red Q
+                    // 其中 B_a = (H_red + λDᵀD + alpha·Q Qᵀ)^{-1} rhs。因 P Q = 0，
+                    // 校正后的 B 满足 (H_red + λDᵀD) B = rhs（至浮点精度），即把锚
+                    // 偏置精确扣回，与直接求解惩罚法方程等价。
+                    std::vector<double> HrQ(static_cast<std::size_t>(n_free) * mq, 0.0);
+                    for (int i = 0; i < n_free; ++i) {
+                        const double* row = &H_red[static_cast<std::size_t>(i) * n_free];
+                        for (int k = 0; k < mq; ++k) {
+                            double s = 0.0;
+                            for (int j = 0; j < n_free; ++j)
+                                s += row[j] * gauge_q[static_cast<std::size_t>(j) * mq + k];
+                            HrQ[static_cast<std::size_t>(i) * mq + k] = s;
+                        }
+                    }
+                    std::vector<double> G(static_cast<std::size_t>(mq) * mq, 0.0);
+                    for (int p = 0; p < mq; ++p)
+                        for (int q = 0; q < mq; ++q) {
+                            double s = 0.0;
+                            for (int i = 0; i < n_free; ++i)
+                                s += gauge_q[static_cast<std::size_t>(i) * mq + p] *
+                                     HrQ[static_cast<std::size_t>(i) * mq + q];
+                            G[static_cast<std::size_t>(p) * mq + q] = s;
+                        }
+                    std::vector<double> corr(static_cast<std::size_t>(mq), 0.0);
+                    for (int p = 0; p < mq; ++p) {
+                        double s = 0.0;
+                        for (int i = 0; i < n_free; ++i)
+                            s += gauge_q[static_cast<std::size_t>(i) * mq + p] *
+                                 rhs[static_cast<std::size_t>(i)];
+                        for (int j = 0; j < n_free; ++j)
+                            s -= HrQ[static_cast<std::size_t>(j) * mq + p] *
+                                 Bnew[static_cast<std::size_t>(j)];
+                        corr[static_cast<std::size_t>(p)] = s;
+                    }
+                    std::vector<double> Lg;
+                    if (chol_spd(G, mq, Lg)) {
+                        chol_solve(Lg, mq, corr);
+                        for (int i = 0; i < n_free; ++i) {
+                            double s = 0.0;
+                            for (int k = 0; k < mq; ++k)
+                                s += gauge_q[static_cast<std::size_t>(i) * mq + k] *
+                                     corr[static_cast<std::size_t>(k)];
+                            Bnew[static_cast<std::size_t>(i)] += s;
+                        }
+                        solved = true;
+                    }
+                }
+            }
+        }
+        if (!solved) {
             sky_plane_free(model);
             if (err && err_size) std::snprintf(err, err_size, "reduced normal matrix not SPD");
             return P2_SKY_PLANE_RANK_DEFICIENT;
         }
-        std::vector<double> Bnew = rhs;
-        chol_solve(L, n_free, Bnew);
         // 收敛检查
         double db = 0.0, sb = 0.0;
         for (int i = 0; i < n_free; ++i) {

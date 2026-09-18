@@ -114,6 +114,7 @@
 #include <cstdio>
 #include <cstdlib>   // P7-UTIL-001: std::getenv (ASTROCS_LEASE_TRACE 观测开关)
 #include <cstring>
+#include <exception>  // PERF-P2: 并行 worker 内异常跨线程回传
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -4140,6 +4141,41 @@ bool p2_read_bin_range(const std::string& path, uint64_t offset_elems,
 constexpr uint64_t kP2TileLeafSpan = 512ULL * 512ULL;
 constexpr uint32_t kP2TileShift = 9;  // leaf order − tile order 差（512=2^9）
 
+// ── PERF-P2 (RELEASE-02): 确定性 tile 级并行执行器 ────────────────────────────
+// 线程数 = Runtime lease 注入的 __workers（AGENTS §5: 禁硬编码线程数; 1 = 串行
+// reference）。任务以原子计数动态认领（等价 dynamic schedule, 抗负载不均）;
+// 每个任务只写**自己下标**的结果槽 / 输出 offset，跨任务无任何浮点归约 ⇒ 结果
+// 与串行逐位一致、与线程数/调度顺序无关。
+// 异常语义: worker 内异常（如 bad_alloc）经 std::exception_ptr 回传并在 join 后
+// 于调用线程重抛, 与串行路径的异常行为一致（外层 execute 的 catch 语义不变）。
+template <typename Fn>
+static void p2_parallel_for(uint32_t workers, uint64_t n, Fn&& body) {
+  if (workers <= 1 || n <= 1) {
+    for (uint64_t i = 0; i < n; ++i) body(i, 0u);
+    return;
+  }
+  std::atomic<uint64_t> next{0};
+  std::vector<std::exception_ptr> eptr(workers, nullptr);
+  std::vector<std::thread> pool;
+  pool.reserve(workers);
+  for (uint32_t w = 0; w < workers; ++w) {
+    pool.emplace_back([&, w]() {
+      try {
+        for (;;) {
+          const uint64_t i = next.fetch_add(1);
+          if (i >= n) break;
+          body(i, w);
+        }
+      } catch (...) {
+        eptr[w] = std::current_exception();
+      }
+    });
+  }
+  for (auto& th : pool) th.join();
+  for (const auto& e : eptr)
+    if (e) std::rethrow_exception(e);
+}
+
 // coverage artifact → P2CoverageResult 重建（sample 节点消费上游 typed artifact;
 // inputs/union_cells 由调用方 vector 持有, 仅视图指向）
 struct P2CoverageView {
@@ -4589,9 +4625,11 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     const bool sky_enabled = sp_cfg.value("enabled", true);
     if (!sky_enabled) {
       (*man)["sky_plane_status"] = "disabled";
+      (*man)["sky_plane_degraded"] = true;   // 显式登记：本次 mosaic 无天光面扣除
     } else if (obs.empty()) {
       std::fprintf(stderr, "[sky_plane] no control observations -> fallback to UPM C field\n");
       (*man)["sky_plane_status"] = "fallback_no_samples";
+      (*man)["sky_plane_degraded"] = true;   // 顶层可见：天光面未生效
     } else {
       std::vector<P2SkySample> sky_samples;
       sky_samples.reserve(obs.size());
@@ -4634,6 +4672,10 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
         (*man)["sky_plane_status"] = "fallback_build_failed";
         (*man)["sky_plane_rc"] = src;
         (*man)["sky_plane_error"] = std::string(sperr);
+        // DATA-UNC-001 §30.1（unavailable 显式登记）：顶层置降级标志，机器消费者
+        // 无法把本次 mosaic 读成"天光面已生效"。rc=6 是否升为硬 fail-closed 由
+        // 前台裁决（见 reports/RELEASE-02/fix-sky-report.md §6）。
+        (*man)["sky_plane_degraded"] = true;
         if (spm) p2_sky_plane_close(spm);
       } else {
         P2SkyPlaneInfo spinfo{};
@@ -4642,6 +4684,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
         if (p2_sky_plane_save(spm, sp_path.c_str()) != 0) {
           std::fprintf(stderr, "[sky_plane] save FAILED -> explicit fallback to UPM C field\n");
           (*man)["sky_plane_status"] = "fallback_save_failed";
+          (*man)["sky_plane_degraded"] = true;
           p2_sky_plane_close(spm);
         } else {
           p2_sky_plane_close(spm);
@@ -4649,6 +4692,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
           arts.push_back(sp_path);
           (*man)["artifacts"] = arts;
           (*man)["sky_plane_status"] = "ok";
+          (*man)["sky_plane_degraded"] = false;
           (*man)["sky_plane_artifact"] = sp_path;
           (*man)["sky_plane_model_hash"] = std::string(spinfo.model_hash);
           (*man)["sky_plane_n_nodes"] = spinfo.n_nodes;
@@ -4743,39 +4787,101 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     nside = 1u << static_cast<uint32_t>(target_order + 9);
   }
 
-  Json frames_j = Json::array();
-  uint64_t total_pixels = 0;
-  for (size_t f = 0; f < paths.size(); ++f) {
-    const std::string& path = paths[f];
+  // ── PERF-P2 S1.1 (RELEASE-02): frame 级并行（work unit = 一帧）───────────
+  // 每帧独立 sig/sup 句柄、独立 p2_corrected_f<fid>.bin 输出文件; 帧间零共享写、
+  // 零浮点归约; model/sky_model/local_lut 只读共享。帧结果按下标写各自槽位, join
+  // 后按 paths 序组装 ⇒ 产物与串行逐位一致、与线程数/调度顺序无关。
+  //
+  // 上游 frame_id 复用: sample 阶段已按 coverage 路径序对每帧算过 p2_frame_id
+  // （p2_samples.json.frame_ids）。仅当本节点 hips_paths 与 p2_coverage.json.
+  // hips_paths **逐元素同序相等**时复用（同一函数同一路径 ⇒ 同一 fid, 产物逐位
+  // 不变）; 任一不满足 → 回退现场 p2_node_frame_id（不省读、不改值）。禁按长度/
+  // 位置猜测映射（DATA-FRAME-ID-001）。
+  std::vector<uint64_t> up_fids(paths.size(), 0);
+  {
+    Json cov_doc2, smp_doc2;
+    if (p2_read_json(out_dir + "/p2_coverage.json", &cov_doc2) &&
+        p2_read_json(out_dir + "/p2_samples.json", &smp_doc2) &&
+        cov_doc2.contains("hips_paths") && cov_doc2["hips_paths"].is_array() &&
+        smp_doc2.contains("frame_ids") && smp_doc2["frame_ids"].is_array()) {
+      const auto& cpaths = cov_doc2["hips_paths"];
+      const auto& cfids = smp_doc2["frame_ids"];
+      if (cpaths.size() == paths.size() && cfids.size() == paths.size()) {
+        bool same = true;
+        for (size_t i = 0; i < paths.size(); ++i)
+          if (cpaths[i].get<std::string>() != paths[i]) { same = false; break; }
+        if (same) {
+          for (size_t i = 0; i < paths.size(); ++i)
+            up_fids[i] = cfids[i].get<uint64_t>();
+        }
+      }
+    }
+  }
+
+  struct P2FrameOut {
+    bool ok = false;
+    ErrorDomain dom = ErrorDomain::INTERNAL;
     std::string err;
-    const uint64_t fid = p2_node_frame_id(path, &err);
-    if (fid == 0)
-      return Result<void>::fail(Error(ErrorDomain::DATA, err));
+    uint64_t fid = 0;
+    std::string data_file;
+    std::vector<P2FrameTiles::TileData> tiles;
+    uint64_t n_pixels = 0;
+  };
+  const uint32_t workers = std::max(1u, doc.value("__workers", 1u));
+  std::vector<P2FrameOut> fouts(paths.size());
+  p2_parallel_for(workers, static_cast<uint64_t>(paths.size()),
+                  [&](uint64_t fi, uint32_t /*w*/) {
+    const size_t f = static_cast<size_t>(fi);
+    const std::string& path = paths[f];
+    P2FrameOut& fo = fouts[f];
+    uint64_t fid = up_fids[f];
+    if (fid == 0) {
+      std::string err;
+      fid = p2_node_frame_id(path, &err);
+      if (fid == 0) { fo.dom = ErrorDomain::DATA; fo.err = err; return; }
+    }
     AioHipsDataset* sig = aio_hips_open(path.c_str(), AIO_HIPS_RD_SIGNAL);
     AioHipsDataset* sup = aio_hips_open(path.c_str(), AIO_HIPS_RD_SUPPORT);
     if (!sig || !sup) {
       if (sig) aio_hips_close(sig);
       if (sup) aio_hips_close(sup);
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          "aio_hips_open failed (frame " + std::to_string(f) + "): " + path +
-          " -- " + aio_hips_reader_last_error()));
+      fo.dom = ErrorDomain::IO;
+      fo.err = "aio_hips_open failed (frame " + std::to_string(f) + "): " + path +
+               " -- " + aio_hips_reader_last_error();
+      return;
     }
-    P2FrameTiles ft;
-    ft.frame_id = fid;
     const int n_tiles = aio_hips_tile_count(sig);
     if (n_tiles <= 0) {
       aio_hips_close(sig);
       aio_hips_close(sup);
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "frame has no signal tiles: " + path));
+      fo.dom = ErrorDomain::DATA;
+      fo.err = "frame has no signal tiles: " + path;
+      return;
     }
     std::vector<uint64_t> tile_ipix(static_cast<size_t>(n_tiles));
     for (int t = 0; t < n_tiles; ++t)
       aio_hips_tile_ipix(sig, t, &tile_ipix[static_cast<size_t>(t)]);
     std::sort(tile_ipix.begin(), tile_ipix.end());
+    // per-frame corrected bin（typed artifact 数据面; NaN=无覆盖）。PERF-P2:
+    // 逐 tile **顺序流式**写（tile t 在 offset t*kP2TileLeafSpan）, 与串行
+    // p2_write_bin(ft.data) 的 tile 序拼接逐字节同值; 不整帧驻留内存。
+    char fid_hex[17];
+    std::snprintf(fid_hex, sizeof(fid_hex), "%016llx",
+                  static_cast<unsigned long long>(fid));
+    const std::string data_file = out_dir + "/p2_corrected_f" + fid_hex + ".bin";
+    std::ofstream df(std::filesystem::u8path(data_file),
+                     std::ios::binary | std::ios::trunc);
+    if (!df) {
+      aio_hips_close(sig);
+      aio_hips_close(sup);
+      fo.dom = ErrorDomain::IO;
+      fo.err = "corrected bin write failed: " + data_file;
+      return;
+    }
     std::vector<float> sig_buf(kP2TileLeafSpan), sup_buf(kP2TileLeafSpan);
     std::vector<double> in_v(kP2TileLeafSpan), out_v(kP2TileLeafSpan);
     std::vector<uint64_t> leaves(kP2TileLeafSpan);
+    std::vector<double> tile_out(kP2TileLeafSpan);
     uint64_t tile_offset = 0;
     for (int t = 0; t < n_tiles; ++t) {
       const uint64_t tip = tile_ipix[static_cast<size_t>(t)];
@@ -4786,9 +4892,11 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
           aio_hips_read_tile_f32(sup, tip, sup_buf.data()) != 0) {
         aio_hips_close(sig);
         aio_hips_close(sup);
-        return Result<void>::fail(Error(ErrorDomain::IO,
-            "aio_hips_read_tile_f32 failed (frame " + std::to_string(f) +
-            " tile " + std::to_string(tip) + "): " + path));
+        df.close();
+        fo.dom = ErrorDomain::IO;
+        fo.err = "aio_hips_read_tile_f32 failed (frame " + std::to_string(f) +
+                 " tile " + std::to_string(tip) + "): " + path;
+        return;
       }
       // 天光面求值用逐像素 ra/dec（leaf ipix 只依赖 tile 与局部 LUT, 与帧无关）
       std::vector<double> tile_ra, tile_dec;
@@ -4848,40 +4956,55 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
           const double sv = static_cast<double>(sup_buf[static_cast<size_t>(i)]);
           const double xv = static_cast<double>(sig_buf[static_cast<size_t>(i)]);
           if (std::isfinite(sv) && sv > 0.0 && std::isfinite(xv)) {
-            ft.data.push_back(out_v[static_cast<size_t>(k)]);
+            tile_out[static_cast<size_t>(i)] = out_v[static_cast<size_t>(k)];
             ++k;
           } else {
-            ft.data.push_back(std::numeric_limits<double>::quiet_NaN());
+            tile_out[static_cast<size_t>(i)] =
+                std::numeric_limits<double>::quiet_NaN();
           }
         }
       } else {
         for (uint64_t i = 0; i < kP2TileLeafSpan; ++i)
-          ft.data.push_back(std::numeric_limits<double>::quiet_NaN());
+          tile_out[static_cast<size_t>(i)] =
+              std::numeric_limits<double>::quiet_NaN();
       }
-      ft.tiles.push_back(P2FrameTiles::TileData{tip, tile_offset});
+      df.write(reinterpret_cast<const char*>(tile_out.data()),
+               static_cast<std::streamsize>(kP2TileLeafSpan * sizeof(double)));
+      fo.tiles.push_back(P2FrameTiles::TileData{tip, tile_offset});
       tile_offset += kP2TileLeafSpan;
-      total_pixels += kP2TileLeafSpan;
     }
     aio_hips_close(sig);
     aio_hips_close(sup);
-    // per-frame corrected bin（typed artifact 数据面; NaN=无覆盖）
-    char fid_hex[17];
-    std::snprintf(fid_hex, sizeof(fid_hex), "%016llx",
-                  static_cast<unsigned long long>(fid));
-    const std::string data_file = out_dir + "/p2_corrected_f" + fid_hex + ".bin";
-    if (!p2_write_bin(data_file, ft.data))
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          "corrected bin write failed: " + data_file));
+    df.close();
+    if (!df.good()) {
+      fo.dom = ErrorDomain::IO;
+      fo.err = "corrected bin write failed: " + data_file;
+      return;
+    }
+    fo.fid = fid;
+    fo.data_file = data_file;
+    fo.n_pixels = tile_offset;
+    fo.ok = true;
+  });
+
+  // 帧序组装（= paths 序, 与串行逐位一致）; 失败按下标升序取首个（= 串行首个失败）。
+  Json frames_j = Json::array();
+  uint64_t total_pixels = 0;
+  for (size_t f = 0; f < paths.size(); ++f) {
+    const P2FrameOut& fo = fouts[f];
+    if (!fo.ok)
+      return Result<void>::fail(Error(fo.dom, fo.err));
     Json tiles_j = Json::array();
-    for (const auto& td : ft.tiles)
+    for (const auto& td : fo.tiles)
       tiles_j.push_back(Json{{"tile_ipix", td.tile_ipix},
                              {"n_pixels", kP2TileLeafSpan},
                              {"offset", td.offset}});
-    frames_j.push_back(Json{{"frame_id", fid},
-                            {"hips_path", path},
-                            {"data_file", data_file},
-                            {"n_tiles", ft.tiles.size()},
+    frames_j.push_back(Json{{"frame_id", fo.fid},
+                            {"hips_path", paths[f]},
+                            {"data_file", fo.data_file},
+                            {"n_tiles", fo.tiles.size()},
                             {"tiles", tiles_j}});
+    total_pixels += fo.n_pixels;
   }
 
   const std::string out_path = out_dir + "/p2_corrected.json";
@@ -5062,36 +5185,95 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
   }
   // [RELEASE-02 probe] 规模 gauge: 并集 tile 数
   ASTROCS_PROBE_GAUGE("phase2", "reject.union_tiles", static_cast<double>(union_tiles.size()));
-  std::vector<uint8_t> accepted_bin;
-  std::vector<uint16_t> nrej_bin, cand_u16;
+  // ── PERF-P2 S1.2 (RELEASE-02): union-tile 级并行 ─────────────────────────
+  // 每个输出 tile 的像素完全在 tile 内算完; 跨 tile 只有**整数**计数器归约
+  // （结合律成立 ⇒ 顺序无关 ⇒ 逐位一致）。输出按 tile 升序写入预分配固定
+  // offset（accepted/nrej/candidates: i*tile_span; sample_mask: depth 前缀和
+  // ×tile_span）。kernel 是 (stack,plan,out) 纯函数、plan_cache 只读 ⇒ 每 tile
+  // 结果与串行逐位相同。
+  //
+  // 每个 worker 使用**独立的 support 句柄**（cfitsio 同句柄并发读非线程安全,
+  // 与 sampler.cpp:717-730 同款契约）; 上游串行预开的 fsup 仅承担 fail-closed
+  // 校验（错误串/域与串行完全一致, 在任何 tile 处理前触发）。
+  struct RejTile {
+    uint64_t tip = 0;
+    uint64_t out_off = 0;
+    uint64_t mask_off = 0;
+    size_t depth = 0;
+    std::vector<size_t> frame_idx;    // union_tiles 构造序（帧升序）
+    std::vector<uint64_t> frame_off;  // corrected bin 内元素偏移
+  };
+  std::vector<RejTile> rtiles;
+  rtiles.reserve(union_tiles.size());
+  {
+    uint64_t out_off = 0, mask_off = 0;
+    for (const auto& kv : union_tiles) {
+      RejTile rt;
+      rt.tip = kv.first;
+      rt.out_off = out_off;
+      rt.mask_off = mask_off;
+      rt.depth = kv.second.size();
+      for (const auto& ref : kv.second) {
+        rt.frame_idx.push_back(ref.frame_idx);
+        rt.frame_off.push_back(ref.offset);
+      }
+      out_off += tile_span;
+      mask_off += static_cast<uint64_t>(rt.depth) * tile_span;
+      rtiles.push_back(std::move(rt));
+    }
+  }
+  const size_t n_tiles = rtiles.size();
+  const uint32_t workers = std::max(1u, doc.value("__workers", 1u));
+  std::vector<uint8_t> accepted_bin(n_tiles * static_cast<size_t>(tile_span));
+  std::vector<uint16_t> nrej_bin(n_tiles * static_cast<size_t>(tile_span));
+  std::vector<uint16_t> cand_u16(n_tiles * static_cast<size_t>(tile_span));
   // [F-P2-002-02 / B2-A3] 逐样本接受掩码持久化（tile 序拼接; 每 tile
   // depth×tile_span 字节, 索引 [s*tile_span+p], s=原始帧 slot）。像素级
   // accepted(u8) 无法表达部分拒绝像素内逐样本的接受/拒绝; §30.2 完备划分
   // （n_ineligible = depth − nused − nrej）要求 integrate 按原始样本索引
   // 逐样本剔除（01_SCIENCE_AUTHORITY_BASELINE §4: 拒绝掩码按原始样本索引传递）。
-  std::vector<uint8_t> sample_mask;
-  uint64_t acc_total = 0, rej_low_total = 0, rej_high_total = 0, undet_total = 0;
-  uint64_t n_pixels_processed = 0, rej_samples_total = 0;
-  // SD-18：几何 n<=3 保守档（method=NONE, 不排异 + 加权积分）且确有候选的
-  // 像素数。如实计入 provenance stats.underdetermined_pixels（不得看起来像
-  // "排异成功"）。
-  uint64_t undet_low_n_pixels = 0;
-  // opt-in 先验路径已移出生产；保留计数恒 0（artifact schema 稳定）。
-  uint64_t prior_unavailable_pixels = 0;
-  Json tiles_j = Json::array();
-  uint64_t out_offset = 0, mask_offset = 0;
-  std::vector<double> compact_vals;  // kernel 候选栈（工作缓冲）
-  std::vector<uint32_t> src_idx;
-  std::vector<uint8_t> reasons;
-  for (const auto& [tip, refs] : union_tiles) {
+  std::vector<uint8_t> sample_mask(n_tiles == 0 ? 0 : rtiles.back().mask_off +
+      static_cast<uint64_t>(rtiles.back().depth) * tile_span);
+  // 逐 tile 整数计数与失败（join 后按 tile 升序合并/取首个失败）
+  std::vector<uint64_t> t_acc(n_tiles, 0), t_rejlow(n_tiles, 0), t_rejhigh(n_tiles, 0);
+  std::vector<uint64_t> t_rejsamp(n_tiles, 0), t_undetlow(n_tiles, 0), t_undettot(n_tiles, 0);
+  std::vector<std::string> t_err(n_tiles);
+  std::vector<int> t_errd(n_tiles, 0);
+
+  struct P2SupportReader {
+    const std::vector<std::string>* paths = nullptr;
+    std::vector<AioHipsDataset*> ds;
+    AioHipsDataset* get(size_t f) {
+      if (ds.empty()) ds.assign(paths->size(), nullptr);
+      if (!ds[f]) ds[f] = aio_hips_open((*paths)[f].c_str(), AIO_HIPS_RD_SUPPORT);
+      return ds[f];
+    }
+    ~P2SupportReader() { for (AioHipsDataset* d : ds) if (d) aio_hips_close(d); }
+  };
+  std::vector<std::string> frame_paths(frames.size());
+  for (size_t f = 0; f < frames.size(); ++f)
+    frame_paths[f] = frames[f].value("hips_path", "");
+  std::vector<std::unique_ptr<P2SupportReader>> readers(workers);
+  for (uint32_t w = 0; w < workers; ++w) {
+    readers[w] = std::unique_ptr<P2SupportReader>(new P2SupportReader());
+    readers[w]->paths = &frame_paths;
+  }
+  p2_parallel_for(workers, static_cast<uint64_t>(n_tiles),
+                  [&](uint64_t ti, uint32_t w) {
+    const RejTile& rt = rtiles[static_cast<size_t>(ti)];
+    P2SupportReader& rd = *readers[w];
+    const size_t ti_s = static_cast<size_t>(ti);
+    const uint64_t tip = rt.tip;
     // [RELEASE-02 probe] 逐 tile 热点: reject
     ASTROCS_PROBE_SCOPE_CTX(_probe_rej_tile, "phase2", "reject.tile");
     ASTROCS_PROBE_TAG(_probe_rej_tile, "tile_id", static_cast<unsigned long long>(tip));
-    ASTROCS_PROBE_GAUGE("phase2", "reject.tile_frames", static_cast<double>(refs.size()));
-    const uint64_t depth = refs.size();
-    if (depth > 255)
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "tile depth > 255 exceeds u16 rejection counters"));
+    ASTROCS_PROBE_GAUGE("phase2", "reject.tile_frames", static_cast<double>(rt.depth));
+    const uint64_t depth = rt.depth;
+    if (depth > 255) {
+      t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+      t_err[ti_s] = "tile depth > 255 exceeds u16 rejection counters";
+      return;
+    }
     // 读各帧 tile 数据并拼接为 frame-major 平面（valid 面完整性: 文件/
     // offset/count 一致性）。
     // [F-P2-002-01 修复] gather 契约: values 必须是 frame-major 平面且
@@ -5111,12 +5293,13 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
     {
       std::vector<double> scratch;
       for (size_t d = 0; d < depth; ++d) {
-        const auto& ref = refs[d];
-        if (!p2_read_bin_range<double>(frames[ref.frame_idx].value("data_file", ""),
-                                       ref.offset, tile_span, &scratch))
-          return Result<void>::fail(Error(ErrorDomain::IO,
-              "corrected bin read failed (tile " + std::to_string(ref.tile_ipix) +
-              " frame slot " + std::to_string(d) + ")"));
+        if (!p2_read_bin_range<double>(frames[rt.frame_idx[d]].value("data_file", ""),
+                                       rt.frame_off[d], tile_span, &scratch)) {
+          t_errd[ti_s] = static_cast<int>(ErrorDomain::IO);
+          t_err[ti_s] = "corrected bin read failed (tile " + std::to_string(tip) +
+                        " frame slot " + std::to_string(d) + ")";
+          return;
+        }
         std::memcpy(frame_major.data() + d * tile_span, scratch.data(),
                     tile_span * sizeof(double));
       }
@@ -5126,23 +5309,27 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
     std::vector<std::vector<float>> sup_tile(depth);
     for (size_t d = 0; d < depth; ++d) {
       std::vector<float> sb(static_cast<size_t>(kP2TileLeafSpan), 0.0f);
-      const size_t f = refs[d].frame_idx;
-      if (aio_hips_read_tile_f32(fsup[f], refs[d].tile_ipix, sb.data()) != 0)
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "frame support tile read failed (tile " +
-            std::to_string(refs[d].tile_ipix) + " frame slot " +
-            std::to_string(d) + ")"));
+      AioHipsDataset* sds = rd.get(rt.frame_idx[d]);
+      if (!sds || aio_hips_read_tile_f32(sds, tip, sb.data()) != 0) {
+        t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+        t_err[ti_s] = "frame support tile read failed (tile " +
+                      std::to_string(tip) + " frame slot " +
+                      std::to_string(d) + ")";
+        return;
+      }
       sup_tile[d] = std::move(sb);
     }
-    const uint64_t base = out_offset;
+    const uint64_t base = rt.out_off;
     // [F-P2-002-02 / B2-A3] 该 tile 的逐样本掩码块（[s*tile_span+p], 帧 slot 序
-    // 与 refs 同序）。默认 0 = 未入栈/未接受; kernel 逐样本 reason 只映射到
-    // eligible 样本的原始 slot（src_idx 权威, compact→original）。
+    // 与 rt.frame_idx 同序）。默认 0 = 未入栈/未接受; kernel 逐样本 reason 只
+    // 映射到 eligible 样本的原始 slot（src_idx 权威, compact→original）。
     std::vector<uint8_t> tile_mask(
         static_cast<size_t>(depth) * static_cast<size_t>(tile_span), 0);
-    std::vector<uint32_t> frame_slots(depth, 0);
-    for (size_t d = 0; d < depth; ++d)
-      frame_slots[d] = static_cast<uint32_t>(refs[d].frame_idx);
+    uint64_t l_acc_total = 0, l_rej_low = 0, l_rej_high = 0, l_rej_samp = 0;
+    uint64_t l_undet_low = 0, l_undet_tot = 0;
+    std::vector<double> compact_vals;  // kernel 候选栈（工作缓冲）
+    std::vector<uint32_t> src_idx;
+    std::vector<uint8_t> reasons;
     for (uint64_t p = 0; p < tile_span; ++p) {
       // 该输出像素的几何 n = 覆盖它的帧 footprint 数（support>0; 与掩膜/资格
       // 无关）。plan 按几何 n 取（纯函数缓存）。
@@ -5171,9 +5358,12 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       uint32_t eligible_count = 0;
       gout.eligible_count = &eligible_count;
       const int grc = p2_collect_candidate_stack(&gin, &gout);
-      if (grc != 0)
-        return Result<void>::fail(Error(ErrorDomain::INTERNAL,
-            std::string("p2_collect_candidate_stack failed rc=") + std::to_string(grc)));
+      if (grc != 0) {
+        t_errd[ti_s] = static_cast<int>(ErrorDomain::INTERNAL);
+        t_err[ti_s] = std::string("p2_collect_candidate_stack failed rc=") +
+                      std::to_string(grc);
+        return;
+      }
       uint8_t acc = 1;
       uint16_t nrej = 0;
       const uint16_t cand = static_cast<uint16_t>(eligible_count);
@@ -5195,9 +5385,12 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
         reasons.assign(eligible_count, 0);
         dec.reasons = reasons.data();
         const int krc = p2_reject_stack_ex(&stack, &plan, &dec);
-        if (krc != 0)
-          return Result<void>::fail(Error(ErrorDomain::INTERNAL,
-              std::string("p2_reject_stack_ex failed rc=") + std::to_string(krc)));
+        if (krc != 0) {
+          t_errd[ti_s] = static_cast<int>(ErrorDomain::INTERNAL);
+          t_err[ti_s] = std::string("p2_reject_stack_ex failed rc=") +
+                        std::to_string(krc);
+          return;
+        }
         // per-sample reason 权威（kernel 冻结语义）: reason ∈ {ACCEPTED,
         // UNDERDETERMINED} 视为接受; rejected_low/high 只认 threshold 侧计数。
         // [F-P2-002-02 / B2-A3] 逐样本掩码必须落在**原始帧 slot**（src_idx
@@ -5208,14 +5401,14 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
           const bool ok_s = (reasons[s] == P2_REASON_ACCEPTED ||
                              reasons[s] == P2_REASON_UNDERDETERMINED);
           if (ok_s) acc = 1;
-          else ++rej_samples_total;
+          else ++l_rej_samp;
           const uint32_t slot_s = src_idx[s];
           if (slot_s < depth)
             tile_mask[static_cast<size_t>(slot_s) * tile_span + p] = ok_s ? 1 : 0;
         }
         nrej = static_cast<uint16_t>(dec.rejected_low + dec.rejected_high);
-        rej_low_total += dec.rejected_low;
-        rej_high_total += dec.rejected_high;
+        l_rej_low += dec.rejected_low;
+        l_rej_high += dec.rejected_high;
       } else {
         // 候选不足/空栈 → UNDERDETERMINED（全接受并记录, 禁偷换算法）:
         // 逐样本掩码对全部 eligible 样本置 1（与 accepted_bin=1 同语义）;
@@ -5229,27 +5422,53 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
       // SD-18：该像素 plan = 保守 none（几何 n<=3）且确有候选 → 未做排异。
       // 如实计数（void 无候选像素不计, 它们由 candidates=0 表达）。
       if (plan.method == P2_REJECT_NONE && eligible_count > 0)
-        ++undet_low_n_pixels;
-      accepted_bin.push_back(acc);
-      nrej_bin.push_back(nrej);
-      cand_u16.push_back(cand);
-      acc_total += acc;
+        ++l_undet_low;
+      accepted_bin[base + p] = acc;
+      nrej_bin[base + p] = nrej;
+      cand_u16[base + p] = cand;
+      l_acc_total += acc;
       if (cand > 0 && (cand <= plan.underdetermined_n ||
-                       cand < static_cast<std::uint32_t>(plan.minimum_n))) ++undet_total;
-      ++n_pixels_processed;
+                       cand < static_cast<std::uint32_t>(plan.minimum_n))) ++l_undet_tot;
     }
-    sample_mask.insert(sample_mask.end(), tile_mask.begin(), tile_mask.end());
+    std::memcpy(sample_mask.data() + rt.mask_off, tile_mask.data(), tile_mask.size());
+    t_acc[ti_s] = l_acc_total;
+    t_rejlow[ti_s] = l_rej_low;
+    t_rejhigh[ti_s] = l_rej_high;
+    t_rejsamp[ti_s] = l_rej_samp;
+    t_undetlow[ti_s] = l_undet_low;
+    t_undettot[ti_s] = l_undet_tot;
+  });
+
+  // tile 升序取首个失败（= 串行首个失败）; 整数计数按 tile 序合并（精确）。
+  for (size_t i = 0; i < n_tiles; ++i)
+    if (!t_err[i].empty())
+      return Result<void>::fail(Error(static_cast<ErrorDomain>(t_errd[i]), t_err[i]));
+  uint64_t acc_total = 0, rej_low_total = 0, rej_high_total = 0, undet_total = 0;
+  uint64_t rej_samples_total = 0, undet_low_n_pixels = 0;
+  // opt-in 先验路径已移出生产；保留计数恒 0（artifact schema 稳定）。
+  const uint64_t prior_unavailable_pixels = 0;
+  const uint64_t n_pixels_processed = static_cast<uint64_t>(n_tiles) * tile_span;
+  Json tiles_j = Json::array();
+  for (size_t i = 0; i < n_tiles; ++i) {
+    const RejTile& rt = rtiles[i];
+    std::vector<uint32_t> frame_slots(rt.depth, 0);
+    for (size_t d = 0; d < rt.depth; ++d)
+      frame_slots[d] = static_cast<uint32_t>(rt.frame_idx[d]);
     // [F-P2-002-02 / B2-A3] tile 记录承载逐样本掩码定位三键: depth（该 tile
     // 覆盖帧数）、frame_slots（掩码 slot d ↔ corrected 帧索引）、
     // sample_mask_offset（掩码块在 p2_rejection_sample_mask.bin 的字节偏移）。
-    tiles_j.push_back(Json{{"tile_ipix", tip},
+    tiles_j.push_back(Json{{"tile_ipix", rt.tip},
                            {"n_pixels", tile_span},
-                           {"offset", base},
-                           {"depth", depth},
+                           {"offset", rt.out_off},
+                           {"depth", rt.depth},
                            {"frame_slots", frame_slots},
-                           {"sample_mask_offset", mask_offset}});
-    out_offset += tile_span;
-    mask_offset += static_cast<uint64_t>(tile_mask.size());
+                           {"sample_mask_offset", rt.mask_off}});
+    acc_total += t_acc[i];
+    rej_low_total += t_rejlow[i];
+    rej_high_total += t_rejhigh[i];
+    rej_samples_total += t_rejsamp[i];
+    undet_low_n_pixels += t_undetlow[i];
+    undet_total += t_undettot[i];
   }
 
   const std::string acc_file = out_dir + "/p2_rejection_accepted.bin";
@@ -5573,19 +5792,30 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           "rejection sample mask read failed: " + smask_file));
   }
 
-  std::vector<double> sig_bin, sup_bin, wsum_bin;
-  std::vector<int32_t> nused_bin, nrej_plane;
-  Json tiles_j = Json::array();
-  uint64_t zero_weight_pixels = 0, invalid_pixels = 0, nrej_total = 0;
-  uint64_t nrej_pix_cursor = 0;
-  uint64_t sample_rejected_skipped = 0;   // 因 kernel 逐样本拒绝而剔除的样本实例数
-  // 掩码块在文件中必须**按 tile 序连续无洞**（reject 以 union tile 升序拼接）:
-  // 游标核对使任何 offset 错位/重叠/空洞立即被检出（禁信任可自洽的伪造 offset）。
-  uint64_t sm_cursor = 0;
-  uint64_t out_offset = 0;
-  std::vector<float> ivar_buf(kP2TileLeafSpan), sup_buf(kP2TileLeafSpan);
-  std::vector<double> vals, weights, supports;
-  std::vector<uint8_t> accs;
+  // ── PERF-P2 S1.3 (RELEASE-02): tile 级并行 + sm_cursor 串行预检 ─────────
+  // 唯一结构改动: 原循环内的 sample_mask 连续性校验（游标 sm_cursor）与
+  // slot/depth 求解抽成**串行预检 pass**（O(n_tiles), 成本可忽略）—— 它必须在
+  // 任何 tile 处理前按 tile 升序推进, 且失败语义/错误串与串行逐字一致。
+  // 并行体只做「读本 tile 各帧数据 + 逐像素积分 + 写本 tile 固定 offset」;
+  // 每 tile 的样本栈完全来自本 tile, 跨 tile 无浮点归约 ⇒ 逐位一致。
+  // 每个 worker 使用独立的 support/ivar 句柄（cfitsio 同句柄并发读非线程安全）。
+  struct IntTile {
+    uint64_t tip = 0;
+    uint64_t rej_off = 0;
+    uint64_t sm_off = 0;
+    size_t depth = 0;
+    std::vector<size_t> slot;            // corrected 帧索引升序（cor_index 同源）
+    std::vector<std::string> data_file;  // 每帧 corrected bin 路径
+    std::vector<uint64_t> data_off;      // corrected bin 内元素偏移
+  };
+  const auto& rej_tiles = rej_doc["tiles"];
+  if (!rej_tiles.is_array() || rej_tiles.empty())
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "rejection artifact tiles invalid"));
+  // [RELEASE-02 probe] 规模 gauge: 待积分 tile 数
+  ASTROCS_PROBE_GAUGE("phase2", "integrate.tiles", static_cast<double>(rej_tiles.size()));
+  std::vector<IntTile> itiles;
+  itiles.reserve(rej_tiles.size());
   // corrected tile 查找索引（tile_ipix+frame → data_file（frame 级键）/offset）
   std::map<std::pair<uint64_t, uint64_t>, std::pair<std::string, uint64_t>> cor_index;
   for (size_t f = 0; f < frames.size(); ++f) {
@@ -5595,38 +5825,23 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       cor_index[{tip, f}] = {fdata, t.value("offset", 0ull)};
     }
   }
-  const auto& rej_tiles = rej_doc["tiles"];
-  if (!rej_tiles.is_array() || rej_tiles.empty())
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "rejection artifact tiles invalid"));
-  // [RELEASE-02 probe] 规模 gauge: 待积分 tile 数
-  ASTROCS_PROBE_GAUGE("phase2", "integrate.tiles", static_cast<double>(rej_tiles.size()));
+  // 掩码块在文件中必须**按 tile 序连续无洞**（reject 以 union tile 升序拼接）:
+  // 游标核对使任何 offset 错位/重叠/空洞立即被检出（禁信任可自洽的伪造 offset）。
+  uint64_t sm_cursor = 0;
   for (const auto& rt : rej_tiles) {
     const uint64_t tip = rt.value("tile_ipix", 0ull);
-    // [RELEASE-02 probe] 逐 tile 热点: integrate
-    ASTROCS_PROBE_SCOPE_CTX(_probe_int_tile, "phase2", "integrate.tile");
-    ASTROCS_PROBE_TAG(_probe_int_tile, "tile_id", static_cast<unsigned long long>(tip));
-    const uint64_t rej_off = rt.value("offset", 0ull);
-    vals.clear(); weights.clear(); supports.clear(); accs.clear();
-    // per-frame corrected tile 独立缓冲（tile 生存期; 禁共享 static 缓冲）
-    std::vector<std::vector<double>> tile_bufs;
-    std::vector<size_t> slot;
+    IntTile it;
+    it.tip = tip;
+    it.rej_off = rt.value("offset", 0ull);
     for (size_t f = 0; f < frames.size(); ++f) {
-      const auto it = cor_index.find({tip, f});
-      if (it == cor_index.end()) continue;   // 该帧无此 tile → 不入栈
-      std::vector<double> buf;
-      if (!p2_read_bin_range<double>(it->second.first, it->second.second,
-                                     tile_span, &buf))
-        return Result<void>::fail(Error(ErrorDomain::IO,
-            "corrected bin read failed (tile " + std::to_string(tip) +
-            " frame " + std::to_string(f) + ")"));
-      tile_bufs.push_back(std::move(buf));
-      slot.push_back(f);
+      const auto cit = cor_index.find({tip, f});
+      if (cit == cor_index.end()) continue;   // 该帧无此 tile → 不入栈
+      it.slot.push_back(f);
+      it.data_file.push_back(cit->second.first);
+      it.data_off.push_back(cit->second.second);
     }
-    std::vector<const std::vector<double>*> tile_v;
-    tile_v.reserve(tile_bufs.size());
-    for (const auto& b : tile_bufs) tile_v.push_back(&b);
-    const uint64_t depth = tile_v.size();
+    const uint64_t depth = it.slot.size();
+    it.depth = static_cast<size_t>(depth);
     // [F-P2-002-02 / B2-A3] 该 tile 逐样本掩码定位/序校验（尺寸/depth/帧 slot
     // 三重一致, 任一不符 fail-closed；禁按文件长度/compact 下标猜测布局）。
     // reject 与 integrate 的 slot 均为 corrected 帧升序（cor_index 同源）。
@@ -5647,37 +5862,117 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           std::to_string(tip) + ")"));
     for (size_t d = 0; d < depth; ++d) {
       const uint64_t fs = rt["frame_slots"][d].get<uint64_t>();
-      if (fs != static_cast<uint64_t>(slot[d]))
+      if (fs != static_cast<uint64_t>(it.slot[d]))
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "rejection sample mask frame-slot order mismatch (tile " +
             std::to_string(tip) + " d=" + std::to_string(d) +
             " reject_slot=" + std::to_string(fs) + " integrate_slot=" +
-            std::to_string(slot[d]) + ")"));
+            std::to_string(it.slot[d]) + ")"));
     }
+    it.sm_off = sm_off;
     sm_cursor += depth * tile_span;
+    itiles.push_back(std::move(it));
+  }
+  const size_t n_tiles = itiles.size();
+  const uint32_t workers = std::max(1u, doc.value("__workers", 1u));
+  const bool need_ivar = (weight_mode == 2 && !fallback && !use_snr_chain);
+  std::vector<double> sig_bin(n_tiles * static_cast<size_t>(tile_span));
+  std::vector<double> sup_bin(n_tiles * static_cast<size_t>(tile_span));
+  std::vector<double> wsum_bin(n_tiles * static_cast<size_t>(tile_span));
+  std::vector<int32_t> nused_bin(n_tiles * static_cast<size_t>(tile_span));
+  std::vector<int32_t> nrej_plane(n_tiles * static_cast<size_t>(tile_span));
+  std::vector<uint64_t> t_zero(n_tiles, 0), t_invalid(n_tiles, 0);
+  std::vector<uint64_t> t_nrej(n_tiles, 0), t_skip(n_tiles, 0);
+  std::vector<std::string> t_err(n_tiles);
+  std::vector<int> t_errd(n_tiles, 0);
+  struct P2FrameReader {
+    const std::vector<std::string>* paths = nullptr;
+    std::vector<AioHipsDataset*> sup, ivar;
+    AioHipsDataset* get_sup(size_t f) {
+      if (sup.empty()) sup.assign(paths->size(), nullptr);
+      if (!sup[f]) sup[f] = aio_hips_open((*paths)[f].c_str(), AIO_HIPS_RD_SUPPORT);
+      return sup[f];
+    }
+    AioHipsDataset* get_ivar(size_t f) {
+      if (ivar.empty()) ivar.assign(paths->size(), nullptr);
+      if (!ivar[f]) ivar[f] = aio_hips_open((*paths)[f].c_str(), AIO_HIPS_RD_IVAR);
+      return ivar[f];
+    }
+    ~P2FrameReader() {
+      for (AioHipsDataset* d : sup) if (d) aio_hips_close(d);
+      for (AioHipsDataset* d : ivar) if (d) aio_hips_close(d);
+    }
+  };
+  std::vector<std::string> frame_paths(frames.size());
+  for (size_t f = 0; f < frames.size(); ++f)
+    frame_paths[f] = frames[f].value("hips_path", "");
+  std::vector<std::unique_ptr<P2FrameReader>> readers(workers);
+  for (uint32_t w = 0; w < workers; ++w) {
+    readers[w] = std::unique_ptr<P2FrameReader>(new P2FrameReader());
+    readers[w]->paths = &frame_paths;
+  }
+  p2_parallel_for(workers, static_cast<uint64_t>(n_tiles),
+                  [&](uint64_t ti, uint32_t w) {
+    const IntTile& it = itiles[static_cast<size_t>(ti)];
+    P2FrameReader& rd = *readers[w];
+    const size_t ti_s = static_cast<size_t>(ti);
+    const uint64_t tip = it.tip;
+    const uint64_t rej_off = it.rej_off;
+    const uint64_t sm_off = it.sm_off;
+    const uint64_t depth = it.depth;
+    const uint64_t base = static_cast<uint64_t>(ti) * tile_span;
+    // [RELEASE-02 probe] 逐 tile 热点: integrate
+    ASTROCS_PROBE_SCOPE_CTX(_probe_int_tile, "phase2", "integrate.tile");
+    ASTROCS_PROBE_TAG(_probe_int_tile, "tile_id", static_cast<unsigned long long>(tip));
+    std::vector<float> ivar_buf(kP2TileLeafSpan), sup_buf(kP2TileLeafSpan);
+    std::vector<double> vals, weights, supports;
+    std::vector<uint8_t> accs;
+    // per-frame corrected tile 独立缓冲（tile 生存期; 禁共享 static 缓冲）
+    std::vector<std::vector<double>> tile_bufs;
+    tile_bufs.reserve(static_cast<size_t>(depth));
+    for (size_t d = 0; d < depth; ++d) {
+      std::vector<double> buf;
+      if (!p2_read_bin_range<double>(it.data_file[d], it.data_off[d],
+                                     tile_span, &buf)) {
+        t_errd[ti_s] = static_cast<int>(ErrorDomain::IO);
+        t_err[ti_s] = "corrected bin read failed (tile " + std::to_string(tip) +
+                      " frame " + std::to_string(it.slot[d]) + ")";
+        return;
+      }
+      tile_bufs.push_back(std::move(buf));
+    }
+    std::vector<const std::vector<double>*> tile_v;
+    tile_v.reserve(tile_bufs.size());
+    for (const auto& b : tile_bufs) tile_v.push_back(&b);
     // 该 tile 各帧 support/ivar tile（read_tile_f32; 缺失 → 该像素零权/无支持）
     std::vector<bool> has_sup(depth, false), has_ivar(depth, false);
     std::vector<std::vector<float>> sup_v(static_cast<size_t>(depth));
     std::vector<std::vector<float>> ivar_v(static_cast<size_t>(depth));
     for (size_t d = 0; d < depth; ++d) {
-      const size_t f = slot[d];
-      if (fds[f].sup &&
-          aio_hips_read_tile_f32(fds[f].sup, tip, sup_buf.data()) == 0) {
+      const size_t f = it.slot[d];
+      AioHipsDataset* sds = rd.get_sup(f);
+      if (sds && aio_hips_read_tile_f32(sds, tip, sup_buf.data()) == 0) {
         sup_v[d] = sup_buf;
         has_sup[d] = true;
       }
-      if (ivar[f].ds &&
-          aio_hips_read_tile_f32(ivar[f].ds, tip, ivar_buf.data()) == 0) {
-        ivar_v[d] = ivar_buf;
-        has_ivar[d] = true;
+      if (need_ivar) {
+        AioHipsDataset* ivds = rd.get_ivar(f);
+        if (ivds && aio_hips_read_tile_f32(ivds, tip, ivar_buf.data()) == 0) {
+          ivar_v[d] = ivar_buf;
+          has_ivar[d] = true;
+        }
       }
     }
+    uint64_t l_zero = 0, l_invalid = 0, l_nrej = 0, l_skip = 0;
     for (uint64_t p = 0; p < tile_span; ++p) {
       vals.clear(); weights.clear(); supports.clear(); accs.clear();
       const uint64_t rej_pix = rej_off + p;
-      if (rej_pix >= acc_all.size())
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "rejection plane index out of range (tile " + std::to_string(tip) + ")"));
+      if (rej_pix >= acc_all.size()) {
+        t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+        t_err[ti_s] = "rejection plane index out of range (tile " +
+                      std::to_string(tip) + ")";
+        return;
+      }
       for (size_t d = 0; d < depth; ++d) {
         const double v = (*tile_v[d])[static_cast<size_t>(p)];
         const double sp = has_sup[d]
@@ -5688,11 +5983,15 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         // 资格权威; 非 0/1 掩码值 → 产品损坏 fail-closed（禁 clamp/推断）。
         const uint8_t sm =
             sample_mask_all[static_cast<size_t>(sm_off + d * tile_span + p)];
-        if (sm > 1)
-          return Result<void>::fail(Error(ErrorDomain::DATA,
-              "rejection sample mask must be 0/1 (tile " + std::to_string(tip) +
-              " frame " + std::to_string(slot[d]) + " pixel " + std::to_string(p) +
-              " value=" + std::to_string(static_cast<int>(sm)) + ")"));
+        if (sm > 1) {
+          t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+          t_err[ti_s] = "rejection sample mask must be 0/1 (tile " +
+                        std::to_string(tip) + " frame " +
+                        std::to_string(it.slot[d]) + " pixel " +
+                        std::to_string(p) + " value=" +
+                        std::to_string(static_cast<int>(sm)) + ")";
+          return;
+        }
         // 调用方资格（SCI-INT §5 valid ∧ W>0 面）: finite ∧ support>0 ∧
         // 逐样本 accepted; 先资格过滤后权重面 —— 无覆盖像素（support=0 →
         // corrected NaN → 过滤）不进入权重检查（ivar 产品在无覆盖像素 =
@@ -5700,7 +5999,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         if (!std::isfinite(v) || !std::isfinite(sp) || sp <= 0.0 || !acc ||
             sm == 0) {
           if (sm == 0 && std::isfinite(v) && std::isfinite(sp) && sp > 0.0 && acc)
-            ++sample_rejected_skipped;
+            ++l_skip;
           continue;
         }
         double w = 1.0;
@@ -5708,30 +6007,39 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           if (use_snr_chain) {
             // ivar 产品缺失 → 帧级 SNR 逆方差权重（w = SNR²/F_ref² = 1/σ_F²,
             // 逐帧常量; weight-chain-report §6.1）
-            if (slot[d] >= snr_weights.size())
-              return Result<void>::fail(Error(ErrorDomain::DATA,
-                  "frame-SNR weight index out of range (frame " +
-                  std::to_string(slot[d]) + ")"));
-            w = snr_weights[slot[d]];
-            if (!std::isfinite(w) || !(w > 0.0))
-              return Result<void>::fail(Error(ErrorDomain::DATA,
-                  "frame-SNR weight invalid (non-finite/<=0) at frame " +
-                  std::to_string(slot[d]) + " (frame-SNR weight chain)"));
+            if (it.slot[d] >= snr_weights.size()) {
+              t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+              t_err[ti_s] = "frame-SNR weight index out of range (frame " +
+                            std::to_string(it.slot[d]) + ")";
+              return;
+            }
+            w = snr_weights[it.slot[d]];
+            if (!std::isfinite(w) || !(w > 0.0)) {
+              t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+              t_err[ti_s] = "frame-SNR weight invalid (non-finite/<=0) at frame " +
+                            std::to_string(it.slot[d]) + " (frame-SNR weight chain)";
+              return;
+            }
           } else {
             // 入栈样本的 ivar 契约检查（§20.1 读侧: ivar==0 合法零权重,
             // nonfinite/负 = 产品损坏 hard fail, 禁 clamp/skip）
-            if (!has_ivar[d])
-              return Result<void>::fail(Error(ErrorDomain::DATA,
-                  "ivar tile read failed where corrected data exists (frame " +
-                  std::to_string(slot[d]) + " tile " + std::to_string(tip) + ")"));
+            if (!has_ivar[d]) {
+              t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+              t_err[ti_s] = "ivar tile read failed where corrected data exists (frame " +
+                            std::to_string(it.slot[d]) + " tile " +
+                            std::to_string(tip) + ")";
+              return;
+            }
             w = static_cast<double>(ivar_v[d][static_cast<size_t>(p)]);
-            if (!std::isfinite(w) || w < 0.0)
-              return Result<void>::fail(Error(ErrorDomain::DATA,
-                  "non-finite/negative input ivar at frame " +
-                  std::to_string(slot[d]) + " tile " + std::to_string(tip) +
-                  " pixel " + std::to_string(p) +
-                  " (DATA-UNC-001 §30.1: p2_validate_candidate_weights hard"
-                  " fail, no clamp/no skip)"));
+            if (!std::isfinite(w) || w < 0.0) {
+              t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+              t_err[ti_s] = "non-finite/negative input ivar at frame " +
+                            std::to_string(it.slot[d]) + " tile " +
+                            std::to_string(tip) + " pixel " + std::to_string(p) +
+                            " (DATA-UNC-001 §30.1: p2_validate_candidate_weights hard"
+                            " fail, no clamp/no skip)";
+              return;
+            }
           }
         }
         vals.push_back(v);
@@ -5747,15 +6055,20 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       stk.count = static_cast<std::uint32_t>(vals.size());
       P2PixelResult pr{};
       const int irc = p2_integrate_pixel(&stk, &pr);
-      if (irc != 0)
-        return Result<void>::fail(Error(ErrorDomain::INTERNAL,
-            std::string("p2_integrate_pixel failed rc=") + std::to_string(irc)));
+      if (irc != 0) {
+        t_errd[ti_s] = static_cast<int>(ErrorDomain::INTERNAL);
+        t_err[ti_s] = std::string("p2_integrate_pixel failed rc=") +
+                      std::to_string(irc);
+        return;
+      }
       // 权重资格守卫（构建后 p2_validate_candidate_weights; 合同要求）
       if (p2_validate_candidate_weights(weights.empty() ? nullptr : weights.data(),
-                                        static_cast<std::uint32_t>(weights.size())) != 0)
-        return Result<void>::fail(Error(ErrorDomain::DATA,
-            "candidate weights validation failed (tile " + std::to_string(tip) +
-            " pixel " + std::to_string(p) + ")"));
+                                        static_cast<std::uint32_t>(weights.size())) != 0) {
+        t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+        t_err[ti_s] = "candidate weights validation failed (tile " +
+                      std::to_string(tip) + " pixel " + std::to_string(p) + ")";
+        return;
+      }
       double wsum = 0.0;
       for (size_t i = 0; i < vals.size(); ++i) {
         if (weights[i] > 0.0 && std::isfinite(weights[i])) wsum += weights[i];
@@ -5765,27 +6078,44 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         if (!std::isfinite(wsum) || wsum <= 0.0) {
           signal = std::numeric_limits<double>::quiet_NaN();   // 病态 → NaN
           wsum = std::numeric_limits<double>::quiet_NaN();
-          ++invalid_pixels;
+          ++l_invalid;
         }
       } else {
         // 无有效样本: NaN/NaN 同态（§30.1 invalid policy 第 1 行, 禁 0/±Inf 伪装）
         signal = std::numeric_limits<double>::quiet_NaN();
         wsum = std::numeric_limits<double>::quiet_NaN();
-        if (pr.status == P2_INTEGRATE_ZERO_VALID_WEIGHT) ++zero_weight_pixels;
+        if (pr.status == P2_INTEGRATE_ZERO_VALID_WEIGHT) ++l_zero;
       }
-      sig_bin.push_back(signal);
-      sup_bin.push_back(pr.support);   // canonical reducer max(accepted support)
-      wsum_bin.push_back(wsum);        // ivar_mosaic（§30.1: ivar = W）
-      nused_bin.push_back(static_cast<int32_t>(pr.n_used));
+      sig_bin[base + p] = signal;
+      sup_bin[base + p] = pr.support;   // canonical reducer max(accepted support)
+      wsum_bin[base + p] = wsum;        // ivar_mosaic（§30.1: ivar = W）
+      nused_bin[base + p] = static_cast<int32_t>(pr.n_used);
       const int32_t nrej_p = static_cast<int32_t>(nrej_all[static_cast<size_t>(rej_pix)]);
-      nrej_plane.push_back(nrej_p);
-      nrej_total += static_cast<uint64_t>(nrej_p);
-      ++nrej_pix_cursor;
+      nrej_plane[base + p] = nrej_p;
+      l_nrej += static_cast<uint64_t>(nrej_p);
     }
-    tiles_j.push_back(Json{{"tile_ipix", tip},
+    t_zero[ti_s] = l_zero;
+    t_invalid[ti_s] = l_invalid;
+    t_nrej[ti_s] = l_nrej;
+    t_skip[ti_s] = l_skip;
+  });
+
+  // tile 升序取首个失败（= 串行首个失败）; 整数计数按 tile 序合并（精确）。
+  for (size_t i = 0; i < n_tiles; ++i)
+    if (!t_err[i].empty())
+      return Result<void>::fail(Error(static_cast<ErrorDomain>(t_errd[i]), t_err[i]));
+  uint64_t zero_weight_pixels = 0, invalid_pixels = 0, nrej_total = 0;
+  uint64_t sample_rejected_skipped = 0;   // 因 kernel 逐样本拒绝而剔除的样本实例数
+  const uint64_t nrej_pix_cursor = static_cast<uint64_t>(n_tiles) * tile_span;
+  Json tiles_j = Json::array();
+  for (size_t i = 0; i < n_tiles; ++i) {
+    tiles_j.push_back(Json{{"tile_ipix", itiles[i].tip},
                            {"n_pixels", tile_span},
-                           {"offset", out_offset}});
-    out_offset += tile_span;
+                           {"offset", static_cast<uint64_t>(i) * tile_span}});
+    zero_weight_pixels += t_zero[i];
+    invalid_pixels += t_invalid[i];
+    nrej_total += t_nrej[i];
+    sample_rejected_skipped += t_skip[i];
   }
   // [F-P2-002-02 / B2-A3] 掩码文件必须被 tile 块恰好铺满（无尾随/截断/空洞）:
   // 与游标核对共同保证"逐样本掩码与 reject 产物同源同序"。
