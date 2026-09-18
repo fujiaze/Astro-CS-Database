@@ -237,6 +237,7 @@ flowchart TD
   - 叠加是分块进行的，最小单元可以是一个像素；
   - **不预计算稠密权重、不全部加载到内存**；用到哪个像素的 SNR 就计算哪个；
   - 全稠密 = 数学等价描述；工程用节省资源的按需计算实现，按需权衡 CPU 与内存。
+- **排异先于加权**：逆方差加权前必须对该输出像素的输入集合做离群排异（算法按集合大小自适应选择）——见 §4.5。纯逆方差加权平均**不满足**本设计。
 - 检测与重建逻辑是 Phase2 的**标准行为**，不是可选开关。
 
 ### 4.4 硬约束
@@ -244,6 +245,50 @@ flowchart TD
 mosaic 的详细硬约束（UPM 不可互相代替、coverage 不作权重、排异是污染状态估计、GLS/Q-W/psfsw 权重分离、分块并行确定性等）见 `docs/plugins/algorithms_phase2/` 各插件文档与 `docs/science/`。
 
 **天光亮度平面**（UPM 的加性背景 `b_k(x)`）采用**稀疏表示**：星点掩膜外每帧取稀疏背景采样点（采样点带 SNR 权重），全部帧联合构建参考天光面，各帧以稀疏样条/插值把平缓梯度校准到参考面；面的栅格值按需现场求值，不构建稠密背景栅格；拟合目标为 SNR 加权下对各采样点的最小 RMS。细节见 `docs/plugins/algorithms_phase2/10_sampling.md` 与 `11_upm.md`。
+
+### 4.5 逐像素排异：叠加的前置必需步骤（负责人补充要求）
+
+> 本节由项目负责人明确指示补充进最高设计：**叠加不是纯逆方差加权平均**。高信噪比帧上的卫星线、宇宙线、热像素等污染，
+> 经逆方差加权会被**显著放大**（高 SNR ⇒ 高权重），因此必须先排异离群量、再叠加。
+
+**数学模型（负责人口径）**
+
+- Phase2 叠加在数学上是**逐像素**的：每个输出 HiPS 像素对应**一组输入值**——各帧在该天球位置上（经相对定标到统一天光面后）的贡献。
+- 每帧先被修正到**统一天光面**（等价于 PixInsight 的 Dynamic Background Extraction）：但**不手工选点**，也**不要求把真实天光去掉**；
+  做法是**星点掩膜后对「信号 + 天光」采样**，采样点配**信噪比**权重，使**所有真实信号在 SNR 加权下的 RMS 最小**；
+  单帧覆盖有限，全部帧共同覆盖同一面 ⇒ 得到该天光面。
+- 叠加**最小单元可以是一个像素**（数学上等价），输出即一个 HiPS 像素；不要求一次性完成整个天区。
+
+**排异是必需步骤，不是可选开关**
+
+1. **先排异，后加权平均**：对每个输出像素的那组输入值，先剔除离群量，再按逆方差（权重来自帧级/帧内 SNR，`w = 1/σ² = SNR²/F_ref²`）加权平均；
+   排异与加权是**两个独立步骤**，排异结果作为 `rejection` provenance 独立落盘（排异是污染状态估计，不是权重）。
+2. **按输入集合大小 `n` 自适应选择排异算法**（对标 PixInsight WBPP 的做法）：
+   `n` 很小时，只有极值类算法可用（如 min/max）；`n` 增大后依次可采用 sigma clip、winsorized sigma、averaged sigma、
+   generalized ESD、percentile 等。**选择逻辑必须有依据**（WBPP 脚本判定逻辑 + 各算法原始文献），不得凭空设阈值。
+3. **算法清单与出处**（每个算法须给出论文/权威标准出处，并在实现中标注语义 ID）：
+   min/max（极值剔除法）、sigma clip（中位数 + MAD）、winsorized sigma clipping、averaged sigma clipping、
+   **generalized ESD**（Rosner 1983；NIST/SEMATECH e-Handbook）、percentile clipping、linear fit clipping。
+4. **自动选择逻辑以 PixInsight WBPP 实测源码为依据**（一手证据，前台已解析）：
+   `BPP-FrameGroup.js:1304-1312 bestRejectionMethod()`：`n<6 → PercentileClip`；
+   `6≤n≤15（或 BIAS/DARK）→ WinsorizedSigmaClip`；`n>15 → LinearFit`。
+   `BPP-FrameGroup.js:1229-1293 rejectionIsGood()` 给出各算法的合法性约束，且**明确拒绝** `NoRejection`
+   与 `MinMax`（后者原文："Min/Max rejection should not be used for production work"）。
+   本项目按 n 的映射表须与 WBPP 对照、说明取舍理由，并冻结在 `docs/plugins/algorithms_phase2/12_rejection.md`。
+5. **CLI 合同：自动 / 手动强制**（`mosaic` 命令，负责人明确要求）：
+   - JSON 配置中排异算法字段**留空 / `0` / `auto`** ⇒ 生成马赛克 HiPS 时，**按该输出像素的输入集合大小 `n` 自动选择**排异算法；
+   - 用户在 JSON 中**显式指定**算法 ⇒ **强制按用户指定执行，不得被自动选择覆盖**；
+   - 显式指定但该算法在 `n` 下不合法（如 n 过小用 ESD）⇒ **fail-closed**，报明确理由（参照 WBPP `rejectionIsGood` 拒绝语义），
+     不得静默降级、不得静默改算法；
+   - 无论自动还是手动，实际使用的方法、参数与 n 必须写入 `rejection` provenance，可追溯。
+6. **阈值与映射表由合成 Oracle 正例/负例锁定**；排异必须**能红能绿**（注入卫星线/宇宙线必被剔除；无污染时不得误剔真实信号）。
+
+**验收要求**
+
+- 合成注入实验：在 `n` 帧中注入高 SNR 卫星线/宇宙线，叠加输出**不得被该帧显著拉高**（与无污染基线在容差内一致）；
+- 无污染时排异**不得**损失真实信号（偏差在容差内）；
+- `n` 处于各档位边界时，算法选择行为确定且可复现（1 worker vs N worker 一致）；
+- 真实数据 L4：成品帧**不得残留卫星线/宇宙线**（视觉验收逐块检查）。
 
 ---
 

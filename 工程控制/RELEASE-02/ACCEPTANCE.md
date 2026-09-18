@@ -20,6 +20,16 @@
 | PERF-102 |  | G-RES-01 六判据真实数据面零违约 |  |
 | DEL-102 |  | 两个 FITS 结构/数值/视觉/单位；限制清单 | 待负责人检查 |
 
+## 1b. 最高设计补充（负责人指示）
+
+| 项 | 内容 |
+|---|---|
+| 补充位置 | `ASTROCS_DESIGN.md` §4.5「逐像素排异：叠加的前置必需步骤」+ §4.3 交叉引用 |
+| 依据 | 负责人明确指示：叠加不是纯逆方差加权 average，高 SNR 帧上的卫星线会显著拉高，应先排异再叠加；并要求 mosaic CLI 支持排异算法选择（留空/0/auto ⇒ 按输出像素输入集合大小 n 自动选择；显式指定 ⇒ 强制） |
+| 一手证据 | PixInsight **WBPP 实测源码**（负责人提供 `scripts.zip`，解出 `run/RELEASE-02/FIX-REJ/wbpp/BatchPreprocessing/`）：`BPP-FrameGroup.js:1304-1312 bestRejectionMethod()` = `n<6→PercentileClip`、`6≤n≤15→WinsorizedSigmaClip`、`n>15→LinearFit`；`BPP-FrameGroup.js:1229-1293 rejectionIsGood()` 给出各算法 n 约束，且**拒绝 NoRejection 与 MinMax**（原文：Min/Max rejection should not be used for production work） |
+| 门禁 | `verify_doc_pack.py` PASS（36 篇/授权差异 5 条/引用 83 处；self-test 6/6）；`ENG-CONSTRAINTS` PASS。新增授权差异 2 条已登记 manifest：`ASTROCS_DESIGN.md`（本补充）、`docs/plugins/algorithms_phase1/08_drizzle.md`（FIX-SCI-DRZ-001，**补登记**——FIX-SCI 提交时漏登记，前台复核时发现并补上） |
+| 遗留 | 排异实现/CLI 接线/按 n 映射表冻结于 `docs/plugins/algorithms_phase2/12_rejection.md`，由 FIX-REJ 分片闭合（P0-20） |
+
 ## 1a. 独立科学审计（SCI-AUDIT，独立验证者角色）
 
 > 立场：`ASTROCS_DESIGN.md` = 需求/设计意图 = 最高权威；`docs/science/**`、`docs/algorithms/**` = 待证主张。审计员不盲从文档、代码、其他 agent 结论。
