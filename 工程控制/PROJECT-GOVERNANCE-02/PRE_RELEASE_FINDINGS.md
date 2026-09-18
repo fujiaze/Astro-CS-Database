@@ -24,6 +24,11 @@
   跑通 `normalize→mosaic→export` 全链 rc=0（见 `run/PROJECT-GOVERNANCE-02/PRE-REL/l3_mosaic_export.log`）。
   该降级不满足 ACCEPTANCE_SPEC L3「SNR/权重链路可追溯」的科学面，故本项仍为 P0 未关。
 - **归属**：Phase1 drizzle 写出面（`lib/algorithms/drizzle/**` + `module_adapters.cpp` p1 节点）。
+- **修复入口（已定位，未实施）**：写出器**已具备**能力——`lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h:80-82`
+  明示「含 `variance` 块时按 DATA-P1-HIPS §12.1/§12.2 追加 variance/ivar 子产品，不含时保持两产品面不变」。
+  缺口在 p1 节点未向 `PipelineFrame` 注入 `variance` 块（`module_adapters.cpp:3530-3542` 构造 frame 后直调
+  `hp_drizzle_run_phase1_hips`）。故本项 = **接线 + Oracle**，非重写写出器；仍须按 AGENTS §8 走科学查证
+  （variance 的来源与量纲：§4a 互推 / master 单位 / gain），不在本轮单方实现。
 - **复现**：见上命令；证据文件 `run/PROJECT-GOVERNANCE-02/PRE-REL/l3_mosaic_export.log`、`l3_out/p1_red_01/p1_final.json`。
 
 ## PRE-F-02（P1，判据订正已落）AIO-OWN-002 与最高设计 §7.1 冲突
