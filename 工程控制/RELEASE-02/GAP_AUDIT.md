@@ -633,3 +633,25 @@ w_k(p) = 1 / Var(corrected_k(p))
 
 **⑤ 权重链接口**：`compute_inverse_variance_weights` 产 `w=SNR²/F_ref²`（帧级常数）与归一化逐像素方差**当前不一致**；
 建议 priority1 逐像素 `w=1/Var(corrected)`；priority2 帧级 `w=SNR²/F_ref²·g_k²`（`FrameWeightInput` 增可空 gain），缺一 fail-closed。
+### 9.24 **Phase1 测光归一化的核实任务（负责人指派）**
+
+**负责人原话**：「这些应该你来确认 **phase1 的星等归一化是否正确**。另外我印象 **phase1 是对整帧做单一系数乘法校准**。
+**未必做好了对平场/渐晕残留的补偿**，因此**可能也需要马赛克阶段重新测光补充校准**之类的。」
+
+**前台初步核实（待 PHOT-VERIFY 独立复核）**：
+- `lib/algorithms/calibration/src/photometry_apply.h`（规范依据 `02_FROZEN_STAGE1_HISS_SPEC §7`）：
+  ```
+  I_photo = k_photo * I_cal
+  ```
+  `apply_photometry(const float* light, int w, int h, double photscal, float* out)` ——
+  **`k_photo` 是单一标量**，全帧所有像素统一相乘（`photometry_apply.cpp:63` 单一循环）；
+- **⇒ 负责人的印象得到确认**：Phase1 是**整帧单一系数**乘法校准；
+- **⇒ 推论**：**平场/渐晕残差是空间乘法图案，单一标量补偿不了**；且每帧指向不同天区，
+  渐晕图案落在不同天球位置 ⇒ 叠加后成为**逐帧不同的空间结构** ⇒ 既污染接缝、也破坏测光一致性。
+
+**待核实**：①`k_photo` 的定义式与拟合链路（星提取→Gaia 匹配→光谱积分→拟合）；②L4 实测拟合质量；
+③**空间乘法残留的量化**（`y_A/y_B` 是否空间变化、峰峰值、渐晕型 vs 梯度型）；④加性 vs 乘性谁主导接缝；
+⑤是否需 mosaic 阶段**补充测光校准**，及其与加性梯度的分工。
+
+**关联**：PMM（`run/RELEASE-02/pmosaic/`）正是「乘性 scale 用星测光 + 加性梯度用背景曲面样条」；
+若 Phase1 的标量不够，mosaic 阶段可能需要**逐帧空间乘法**补充 —— 但那会与现有 `g_k`（帧级）的定位冲突，需裁决。
