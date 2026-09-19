@@ -3150,6 +3150,255 @@ static void test_fixp1_photometry_apply() {
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// RELEASE-02 P1-PHOT-BROKEN: k_photo 伪造/单位混装 fail-closed 判别力测试
+//
+// 实测缺陷（run/RELEASE-02/L4-rebuild/norm_phot/*/p1_phot.json 与
+// run/RELEASE-02/logs/*.phot.stderr）:
+//   ① 11/12 板块 photscal=1.0 且 photometry_applied=true —— 该 1.0 不是拟合值,
+//      而是 star_matcher 在 NO_DATA（无匹配 / |r_consistent|<3）分支返回的占位
+//      值（日志 "匹配+清洗完成: 0 颗, scale=1.000000e+00"）。原判定只查
+//      finite&&>0 ⇒ 把占位 1.0 当"已拟合标度"施加并声明 applied=true。
+//   ② 根因: phot 节点按文件约定读 <frame_dir>/p1_wcs.json, 但 IR 未声明
+//      artifact:p1_wcs 依赖边 ⇒ 与 wcs 节点并发; 读不到时回退 config.wcs
+//      （非空但无天测键）⇒ CRVAL=(0,0)/CD=0 ⇒ 0 匹配 ⇒ ①。同配置两次运行
+//      结果不同（16:22 冒烟跑 vs 16:26 重跑）。
+//   ③ 唯一真拟合的板块 k=6.2722e-17（location=16.20 dex, sigma=0.019 dex）。
+//      该值是 SCI-PHOT-001 §3 的**正确**约定（scale 单位 [F_syn 单位]/ADU,
+//      仪器常数由 location 吸收）; 危险的不是数值小, 而是它与 1.0 的**混装**。
+//
+// 本测试锁定: (a) 无拟合证据的标度一律拒绝; (b) 组内标度不一致（单位混装）
+// 整组拒绝; (c) 一致的真实标度（含 6.27e-17 量级）正常通过并逐像素施加。
+// ══════════════════════════════════════════════════════════════════════════
+static void test_p1photbroken_scale_guards() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  // 正通量源（PSF 有效域要求 flux>0）: 使 fit 通道真正被走到, 从而 RED-4 判定的
+  // 是 WCS 可用性门（而不是被"无 PSF 星"提前拦下）。
+  const std::string src2_json =
+      R"({"schema":"DATA-P1-SOURCES","frames":[{"file":"light_1.fits","sources":[{"id":"s1","x":16,"y":16,"flux":1000.0}]},{"file":"light_2.fits","sources":[{"id":"s2","x":16,"y":16,"flux":1000.0}]}]})";
+  auto cfg_for2 = [](const Fixture& fx, const std::string& lights) {
+    return std::string(R"({"input_lights": [)") + lights + R"(],"output_dir": ")" +
+           fx.out_dir + R"("})";
+  };
+
+  // ── RED-1: k=6.27e-17 且 n_matched=0（无拟合证据）必须被拒绝 ─────────────
+  // 判别力: 修复前 sidecar 只查 finite&&>0 ⇒ 会施加并声明 applied=true。
+  {
+    Fixture fx = make_fixture("p1photbroken_nofit");
+    RunContext ctx;
+    { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
+    {
+      std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":6.272202992543341e-17,"n_matched":0}]})";
+    }
+    const std::string cfg = cfg_for2(fx, "\"" + fx.light1 + "\"");
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(!rc.ok(), "P1PHOTBROKEN RED-1: scale without fit provenance must be "
+                        "rejected (fail-closed), not silently applied");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "P1PHOTBROKEN RED-1: no photoapplied artifact for a rejected scale");
+    cleanup_fixture(fx);
+  }
+
+  // ── RED-2: 单位混装（6.27e-17 与 1.0 同组）必须整组拒绝 ────────────────
+  // 判别力: 这正是 L4 批次的真实形态（11 板块 1.0 + 1 板块 6.27e-17, 相差
+  // 16 dex）。修复前两帧都会以 applied=true 施加 ⇒ 帧间落在不同测光坐标系。
+  {
+    Fixture fx = make_fixture("p1photbroken_mixed");
+    RunContext ctx;
+    { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
+    {
+      std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":6.272202992543341e-17,"n_matched":939,"sigma_residual_dex":0.019},{"file":"light_2.fits","k_photo":1.0,"n_matched":0}]})";
+    }
+    const std::string cfg =
+        cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
+    Result<void> rc;
+    run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    // frame 2 无拟合证据 ⇒ 先被 §4 门拒绝（同为 fail-closed）。
+    CHECK_MSG(!rc.ok(), "P1PHOTBROKEN RED-2: mixed-provenance set must be rejected");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")) &&
+                  !fs::exists(fs::path(fx.out_dir + "/photoapplied_light_2.fits")),
+              "P1PHOTBROKEN RED-2: no partial/half-normalized artifacts");
+    cleanup_fixture(fx);
+  }
+
+  // ── RED-3: 两帧都有拟合证据但标度相差 > 0.5 dex ⇒ 整组拒绝（单位混装）──
+  {
+    Fixture fx = make_fixture("p1photbroken_spread");
+    RunContext ctx;
+    { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
+    {
+      std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":6.272202992543341e-17,"n_matched":939,"sigma_residual_dex":0.019},{"file":"light_2.fits","k_photo":1.0,"n_matched":917,"sigma_residual_dex":0.018}]})";
+    }
+    const std::string cfg =
+        cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "P1PHOTBROKEN RED-3: node degrades explicitly (does not abort)");
+    CHECK_MSG(man.value("photometry_applied", true) == false,
+              "P1PHOTBROKEN RED-3: 16 dex spread ⇒ refuse to apply (mixed photometric "
+              "system); was applied=true before the fix");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "P1PHOTBROKEN RED-3: no photoapplied artifact for an inconsistent set");
+    {
+      json pj;
+      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
+      CHECK_MSG(pj.value("photometry_applied", true) == false,
+                "P1PHOTBROKEN RED-3: p1_phot.json photometry_applied=false");
+      CHECK_MSG(pj.value("pixel_scaling", std::string()) == "none",
+                "P1PHOTBROKEN RED-3: pixel_scaling=none (explicit ADU degradation)");
+      CHECK_MSG(pj.contains("degraded_reason") && pj.contains("photscale_error"),
+                "P1PHOTBROKEN RED-3: degraded_reason + photscale_error present "
+                "(no silent degradation)");
+      CHECK_MSG(!pj.contains("photscales") && !pj.contains("photoapplied_artifacts"),
+                "P1PHOTBROKEN RED-3: applied=false ⇒ no photscales/artifacts claimed");
+    }
+    cleanup_fixture(fx);
+  }
+
+  // ── GREEN: 一致的**真实**标度（6.27e-17 / 5.69e-17 量级）正常通过并施加 ──
+  // 依据 SCI-PHOT-001 §3: scale 单位 [F_syn 单位]/ADU, 绝对值可跨数量级;
+  // 判据是一致性 + 拟合证据, 不是绝对窗口 [0.1,10]（那会拒绝 100% 真实数据）。
+  {
+    Fixture fx = make_fixture("p1photbroken_green");
+    RunContext ctx;
+    { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
+    {
+      std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":6.272202992543341e-17,"n_matched":939,"sigma_residual_dex":0.019137,"source":"gaia_star_matcher_tukey_irls"},{"file":"light_2.fits","k_photo":5.685037392078662e-17,"n_matched":917,"sigma_residual_dex":0.017811,"source":"gaia_star_matcher_tukey_irls"}]})";
+    }
+    std::vector<float> orig1, orig2;
+    for (const std::string* lp : {&fx.light1, &fx.light2}) {
+      AIOImageData* src = aio_read(lp->c_str());
+      CHECK(src != nullptr);
+      if (src) {
+        const float* p = aio_get_pixel_data(src);
+        std::vector<float> v(p, p + static_cast<size_t>(kW) * kH);
+        (lp == &fx.light1 ? orig1 : orig2) = v;
+        aio_free_image_data(src);
+      }
+    }
+    const std::string cfg =
+        cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "P1PHOTBROKEN GREEN: consistent fitted scales must succeed");
+    CHECK_MSG(man.value("photometry_applied", false) == true,
+              "P1PHOTBROKEN GREEN: applied=true for a real, consistent fit");
+    // photscal_rep = median(k) = k(frame2) (两帧升序后取 [size/2] = 第 2 个)
+    const double rep = man.value("photscal", -1.0);
+    CHECK_MSG(std::isfinite(rep) && rep > 0.0 &&
+                  std::fabs(rep / 6.272202992543341e-17 - 1.0) < 1e-12,
+              ("P1PHOTBROKEN GREEN: photscal = median(k_photo), got " +
+               std::to_string(rep)).c_str());
+    struct Case { const std::string* lp; const std::vector<float>* orig; double k; };
+    const Case cases[2] = {{&fx.light1, &orig1, 6.272202992543341e-17},
+                           {&fx.light2, &orig2, 5.685037392078662e-17}};
+    for (const Case& c : cases) {
+      const std::string apath =
+          fx.out_dir + "/photoapplied_" + fs::path(*c.lp).filename().string();
+      CHECK_MSG(fs::exists(fs::path(apath)), "P1PHOTBROKEN GREEN: photoapplied artifact");
+      if (!c.orig->empty() && fs::exists(fs::path(apath))) {
+        AIOImageData* ap = aio_read(apath.c_str());
+        CHECK(ap != nullptr);
+        if (ap) {
+          const float* q = aio_get_pixel_data(ap);
+          double maxrel = 0.0;
+          const size_t n = static_cast<size_t>(kW) * kH;
+          for (size_t i = 0; i < n; ++i) {
+            const double want = c.k * static_cast<double>((*c.orig)[i]);
+            const double got = static_cast<double>(q[i]);
+            const double den = std::fabs(want) > 1e-300 ? std::fabs(want) : 1.0;
+            maxrel = std::max(maxrel, std::fabs(got - want) / den);
+          }
+          // FP32 写盘 ⇒ 相对误差 ~1e-7; 关键是比值恒定（不是被乘成 0/溢出）
+          CHECK_MSG(maxrel < 1e-5,
+                    ("P1PHOTBROKEN GREEN: applied == k*orig (relative), maxrel=" +
+                     std::to_string(maxrel)).c_str());
+          aio_free_image_data(ap);
+        }
+      }
+    }
+    {
+      json pj;
+      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
+      std::fprintf(stderr, "[P1PHOTBROKEN-GREEN] p1_phot.json=%s\n", pj.dump().c_str());
+      CHECK_MSG(pj.value("photometry_applied", false) == true,
+                "P1PHOTBROKEN GREEN: p1_phot.json applied=true");
+      // provenance 自洽: applied=true ⟺ photscales 覆盖每帧 + 每帧拟合证据 + 产物
+      const bool has_ps = pj.contains("photscales");
+      const bool ps_is_obj = has_ps && pj["photscales"].is_object();
+      const std::size_t ps_n = ps_is_obj ? pj["photscales"].size() : 0;
+      CHECK_MSG(has_ps && ps_is_obj && ps_n == 2,
+                ("P1PHOTBROKEN GREEN: photscales covers every frame (has=" +
+                 std::to_string(static_cast<int>(has_ps)) + " obj=" +
+                 std::to_string(static_cast<int>(ps_is_obj)) + " n=" +
+                 std::to_string(ps_n) + ")").c_str());
+      CHECK_MSG(pj.contains("photscale_detail") && pj["photscale_detail"].is_object() &&
+                    pj["photscale_detail"].size() == 2,
+                "P1PHOTBROKEN GREEN: per-frame fit provenance present");
+      for (auto it = pj["photscale_detail"].begin();
+           it != pj["photscale_detail"].end(); ++it) {
+        CHECK_MSG(it.value().value("fitted", false) == true,
+                  "P1PHOTBROKEN GREEN: photscale_detail.fitted=true");
+        CHECK_MSG(it.value().value("n_matched", 0) >= 3,
+                  "P1PHOTBROKEN GREEN: n_matched >= SCI-PHOT-001 §4 gate");
+      }
+      CHECK_MSG(pj.contains("photoapplied_artifacts") &&
+                    pj["photoapplied_artifacts"].is_array() &&
+                    pj["photoapplied_artifacts"].size() == 2,
+                "P1PHOTBROKEN GREEN: photoapplied_artifacts covers every frame");
+    }
+    cleanup_fixture(fx);
+  }
+
+  // ── RED-4: fit 通道 WCS 不可用 ⇒ 显式降级, 不得以零 WCS 拟合出占位 1.0 ──
+  // 判别力: 修复前 config.wcs 非空即通过, 以 CRVAL=(0,0)/CD=0 拟合 → NO_DATA
+  // 占位 scale=1.0 → applied=true/photscal=1.0（实测 11/12 板块）。
+  // 修复后 WCS 可用性校验先于拟合 ⇒ photscale_error 指明 WCS（而非 "fit failed"）。
+  {
+    Fixture fx = make_fixture("p1photbroken_wcs");
+    RunContext ctx;
+    { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
+    const std::string cfg =
+        std::string(R"({"input_lights": [)") + "\"" + fx.light1 + "\"" +
+        R"(],"output_dir": ")" + fx.out_dir +
+        R"(","photometry":{"fit":{"enabled":true,"gaia_data_dir":")" +
+        (fs::temp_directory_path() / "p1photbroken_no_such_gaia_dir").string() +
+        R"(","filter":"Red","filters_json":")" + fx.dir.string() +
+        R"(/no_such_filters.json"}},"wcs":{"init_source":"header_pointing","gaia_data_dir":"/nonexistent"}})";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "P1PHOTBROKEN RED-4: node degrades explicitly (does not abort)");
+    CHECK_MSG(man.value("photometry_applied", true) == false,
+              "P1PHOTBROKEN RED-4: unusable WCS must NOT yield applied=true");
+    CHECK_MSG(std::fabs(man.value("photscal", -1.0) - 1.0) < 1e-12,
+              "P1PHOTBROKEN RED-4: neutral photscal=1.0 with applied=false");
+    {
+      const std::string err = man.value("photscale_error", std::string());
+      CHECK_MSG(err.find("WCS unusable") != std::string::npos,
+                ("P1PHOTBROKEN RED-4: photscale_error must name the WCS defect, got: " +
+                 err).c_str());
+    }
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "P1PHOTBROKEN RED-4: no fake identity 'photoapplied' artifact");
+    {
+      json pj;
+      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
+      CHECK_MSG(pj.value("photometry_applied", true) == false &&
+                    pj.value("pixel_scaling", std::string()) == "none",
+                "P1PHOTBROKEN RED-4: provenance is honest (applied=false/none)");
+      CHECK_MSG(pj.value("degraded_reason", std::string()) == "photscale_incomplete",
+                "P1PHOTBROKEN RED-4: degraded_reason=photscale_incomplete");
+    }
+    cleanup_fixture(fx);
+  }
+}
+
 int main() {
   test_nodes_real_operation();
   test_runtime_chain_call_count_1();
@@ -3163,6 +3412,8 @@ int main() {
   test_b2a16_photometry_fail_closed();
   // RELEASE-02 FIX-P1: Phase1 测光归一化真正施加 + 如实元数据
   test_fixp1_photometry_apply();
+  // RELEASE-02 P1-PHOT-BROKEN: k_photo 伪造/单位混装 fail-closed 判别力
+  test_p1photbroken_scale_guards();
   test_b2a15_writer_stale_buffer_and_support();
   test_b2a15_ghost_discontinuous_multiparent();
   // IVAR-001: Phase1 生产末端 variance/ivar 子产品 (§12.1/§12.2) + 注入面

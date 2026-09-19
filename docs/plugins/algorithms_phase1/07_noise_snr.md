@@ -2,8 +2,8 @@
 
 ## 1. 职责与边界
 
-- **职责**：从校准方差、背景、PSF 与光度响应估计逐像素噪声、逐源 SNR、深度 `m5`、点源信息权重 `W_psf` 与**帧级 SNR（信噪比）**（写入 HiPS 文件头的唯一帧级参考）。
-- **不是**：不生产"一个模糊的 snr 字段"；不把 median source SNR 当科学权重；不把 PSFSW 复合权重冒充 Fisher information；**不产出外挂独立 SNR 文件**（帧级 SNR（信噪比）写入 HiPS 文件头）。
+- **职责**：从校准方差、背景、PSF 与光度响应估计逐像素噪声、逐源 SNR、深度 `m5`、点源信息权重 `W_psf` 与**帧级 SNR（信噪比）**（写入 HiPS 文件头的唯一帧级参考）。**Phase1 的 HiPS 是唯一带 SNR 数据块的产物**（帧级 + 稀疏区域）。
+- **不是**：不生产"一个模糊的 snr 字段"；不把 median source SNR 当科学权重；不把 PSFSW 复合权重冒充 Fisher information；**不产出外挂独立 SNR 文件**（帧级 SNR（信噪比）写入 HiPS 文件头）；**不替 Phase2/Phase3 产出 SNR**（Phase2 在叠加中消费单帧 SNR、不输出 SNR 面；Phase3 无 SNR）。
 
 ## 2. 权威依据
 
@@ -21,8 +21,9 @@
   - `depth_m5`：`m5 = ZP − 2.5log10[5σ_F(ref)]`（帧/位置深度表达）；
   - `point_information`：`W_psf(x,y) = a²PᵀC⁻¹P = 1/Var(F_hat)`（点源严格权重）；
   - `psfsw_robust`：四分量（signal/concentration/robust noise/robust background）+ 相对权重 + validity + 共同星集/selection function；
-  - **`frame_snr`**：帧级 SNR（信噪比），**写入 HiPS 文件头**；
-  - **`sparse_snr_layer`**（可选，`sparse_snr_layer=true` 时）：帧内稀疏控制点 SNR 层，作为标准层插入 HiPS 文件内。
+  - **`frame_snr`**：帧级 SNR（信噪比），**写入 HiPS 文件头**；语义 = **点源（PSF）信号 SNR**（纯信号/噪声，红线见 §4.1）；
+  - **`sparse_snr_layer`**（`sparse_snr_layer=true` 时）：帧内稀疏控制点 SNR 层，作为标准层插入 HiPS 文件内；**本期决议默认产出**（默认稀疏路径，§4.2）。
+  - **不输出**：Phase2/Phase3 产物不含 SNR 面/块；Phase2 只在叠加中消费本模块产出的单帧 SNR（现场换算逆方差权重），**不直接复用**本模块的 SNR 产物。
 - 参考：`contracts/schemas/noise_snr_output.schema.json`。
 
 ## 4. 算法与公式要点
@@ -39,6 +40,14 @@ SNR_k²(F_ref) = F_ref² W_psf,k
 - **是未加权的原始信噪比，不是权重**——它只描述"这一帧的真实源信号相对真实噪声有多强"这一客观测量事实，不包含任何为某次叠加服务的加权；权重由 Phase2 逆方差叠加时从 SNR 现场计算（见最高设计 §4.3）；
 - **可靠且独立**：必须是**真实的信号与噪声比例**，信号项不被加性天光背景虚高——普通 SNR（全局信号方差/噪声方差，含天光背景）随天光变亮而虚高，不能作唯一帧级参考；
 - 天光的物理影响如实计入噪声：信号经独立的局部背景估计与扣除获得，不随加性背景平移而虚高；但天光散粒噪声是真实噪声的一部分，天光变亮会增大 σ_n、降低 SNR，这是真实物理变化而非指标漂移。
+
+**帧级 SNR 红线（负责人 2026-09-19 裁决 A1/C1，claim `FIX-SCI-SNR-CANON-001`；不可协商）**：
+
+- `SNR = F_signal / σ_F`，`F_signal` **必须已扣局部背景**；天光**只作为噪声项**进入 `σ_F`；
+- **必须可证明**：固定源通量、增大天光 ⇒ SNR **单调下降**（`B→∞` 时 `SNR→0`）；
+- 帧级 SNR 是**点源（PSF）**量，**不得**与面亮度 SNR 混用或互相宣称等价；
+- **验收方式（C1）**：对每条 SNR 路径做**注入-回收**——已知真值信号 + 已知天光 + 已知噪声，回收的 SNR 必须等于真值 `F_s/σ_F`；不满足者否决或修正；
+- 具体定义式（`F_signal` 的测光口径与 `σ_F` 的稳健噪声估计）**待 FRAME-SNR-CANON 文献调研结论补入**；本文件先固化红线与方向，不预设某一种方法。
 
 **与 PixInsight 公开方法学的关系（精确对标）**：PixInsight 核心闭源，但其《New Image Weighting Algorithms》参考文档公开了完整方法学，其中是**两个不同的量**，必须区分：
 
@@ -69,12 +78,22 @@ w_k = 1/σ_F,k² = SNR_k(F_ref)² / F_ref²   ⇒  F_ref 为组内公共常数�
 - Phase2 默认 point_information 逆方差叠加；`weight_mode=psfsw_robust` 时使用 `psfsw_robust` 复合权重（信号/集中度/稳健噪声/稳健背景四分量独立存储，模式显式选择，不自动切换）；
 - 稀疏帧内层启用时，每个控制点同样存未加权 SNR(x,y) 而非权重。
 
-### 4.2 稀疏帧内 SNR 层（可选）
+### 4.2 SNR 三条路径与稀疏帧内层（负责人裁决：默认稀疏）
 
-- `sparse_snr_layer=true` 时：生成稀疏控制点 SNR 层，作为**标准层插入 HiPS 文件内**，用于帧内精细 SNR 参考；
+**三条路径全部保留在算法面**（Phase1 产出 / Phase2 重建），由配置文件 JSON 显式指定：
+
+| 路径 | Phase1 产出 | Phase2 重建稠密 | 定位 |
+|---|---|---|---|
+| `dense` | 稠密逐像素 SNR 面 | 直接使用 | 精度基准（论文对照组） |
+| `sparse_reconstruct`（**默认**） | 帧级 + 稀疏控制点 SNR 层 | 由稀疏层重建 | 存储/精度折中（负责人选定默认） |
+| `frame_reconstruct` | 仅帧级标量 | 由帧级重建 | 单帧级对照（论文对照组） |
+
+- **默认 = `sparse_reconstruct`**：`sparse_snr_layer=true` 时生成稀疏控制点 SNR 层，作为**标准层插入 HiPS 文件内**；
 - 实际 SNR = **帧级 × 帧内**（SNR 是信噪比，不是权重）；
-- 不启用 → 只输出帧级；启用 → 帧级 + 稀疏帧内；
-- 稀疏层的位置/值/采样覆盖写入 manifest。
+- 稀疏层的位置/值/采样覆盖写入 manifest；
+- **论文核心实验（判据 SP-0）**：同条件比较三条路径重建稠密 SNR 的精度；**不得预设稀疏一定最好**——实测同条件帧上帧级标量已最优到 0.06%（稀疏层净亏 3.3%），「何时哪种最优」须由实验回答；
+- **不静默降级**：输入无稀疏层而路径为 `sparse_reconstruct`（含默认）⇒ 按帧级执行但**必须显式记录实际路径**（`snr_path_effective`）并计数；稀疏层存在但损坏/不可重建 ⇒ 显式失败；
+- 存储量/精度折中与显式指定口径见 §5 配置项。
 
 ### 4.3 其他要点
 
@@ -90,13 +109,15 @@ w_k = 1/σ_F,k² = SNR_k(F_ref)² / F_ref²   ⇒  F_ref 为组内公共常数�
 | `scalar_gate_rd` | —— | —— | 标量降级鲁棒离散门 |
 | `scalar_gate_trend` | —— | —— | 标量降级系统趋势门 |
 | `psfsw_enable` | true | —— | 是否生产 psfsw_robust 四分量 |
-| `sparse_snr_layer` | false | —— | 是否启用稀疏帧内 SNR 层 |
-| `sparse_snr_density` | —— | 点/度² | 稀疏层控制点密度（启用时） |
+| `sparse_snr_layer` | **true** | —— | 是否产出稀疏帧内 SNR 层。**本期决议默认产出**（默认稀疏路径；负责人 2026-09-19 裁决）。注：`sparse_snr_density` 数值定案前生产启用存在**联锁缺口**（§7） |
+| `sparse_snr_density` | —— | 点/度² | 稀疏层控制点密度（启用时）；**仍为 pending_authority，禁止编造数值** |
+| `snr_path`（Phase2 消费面键，在 mosaic 配置） | `sparse_reconstruct` | —— | SNR 重建路径：`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`；三条路径精度对比为论文核心实验（判据 SP-0） |
 
 ## 6. 接口/ABI
 
 - entrypoint：信号+ivar+PSF+`a_k` → {source_snr, depth_m5, point_information, psfsw_robust, frame_snr[, sparse_snr_layer]}；
 - 帧级 SNR（信噪比）经 drizzle 写入 HiPS 文件头；稀疏层作为标准层插入 HiPS；
+- **Phase2/Phase3 不再产出 SNR**：Phase2 在叠加中现场消费本模块的单帧 SNR（换算逆方差权重），不输出 SNR 面；Phase3 无 SNR；
 - 各类输出独立 schema，禁止混装。
 
 ## 7. 错误与边界
@@ -104,14 +125,19 @@ w_k = 1/σ_F,k² = SNR_k(F_ref)² / F_ref²   ⇒  F_ref 为组内公共常数�
 - 缺 `a_k`/PSF/方差 → fail-closed（信息权重不可凭空造）；
 - 标量门失败 → 自动升级为空间模型（不得静默用标量）；
 - reference_flux 未定义时 m5/SNR 不可输出；
-- 帧级 SNR（信噪比）无法计算（如缺真实信号参考）→ fail-closed，**不得用受天光影响的普通 SNR 代替**。
+- 帧级 SNR（信噪比）无法计算（如缺真实信号参考）→ fail-closed，**不得用受天光影响的普通 SNR 代替**；
+- 指定 `sparse_reconstruct` 路径而输入无稀疏层 → 按帧级执行并**显式记录实际路径**（不静默）；稀疏层损坏/不可重建 → fail-closed；
+- `sparse_snr_density` 未定案 ⇒ 稀疏层不可生产（**联锁缺口**登记；不得编造数值）；
+- 任何信号项未扣局部背景、被天光/背景抬高的 SNR → 判红（红线 §4.1）。
 
 ## 8. 测试与 Oracle
 
 - 注入点源：理论 `σ_F=1/√W_psf` 与实测散度一致；
 - 改变星表亮度分布不改变 `W_psf`、但改变 median source SNR（跨模块验证）；
 - seeing/背景/透明度按理论改变信息权重；
-- **加性背景平移不改变信号项**（注入恒定背景偏置，测光信号不变）；**天光散粒噪声增强时 σ_n 增大、帧级 SNR 按理论下降**（信噪比如实反映噪声，不允许被背景虚高）；
-- 稀疏层：启用/不启用输出结构正确，稀疏层值可重建验证；
+- **加性背景平移不改变信号项**（注入恒定背景偏置，测光信号不变）；**天光散粒噪声增强时 σ_n 增大、帧级 SNR 按理论下降**（信噪比如实反映噪声，不允许被背景虚高）；**单调性负例**：固定源通量、天光 `B` 增大 ⇒ SNR 单调下降，`B→∞` 时 `SNR→0`；
+- **注入-回收（C1）**：已知真值 `F_s` + 已知天光 + 已知噪声 ⇒ 回收 SNR = `F_s/σ_F`（三条路径各一组；不满足者判红）；
+- 稀疏层：启用/不启用输出结构正确，稀疏层值可重建验证；**三路径精度对比（判据 SP-0）**：`dense` / `sparse_reconstruct` / `frame_reconstruct` 同输入重建稠密 SNR，报告精度差与存储量；无稀疏层而路径为 `sparse_reconstruct` 时实际路径须被显式记录（负例：静默降级判红）；
+- 点源/面亮度口径分离：把面亮度 SNR 当帧级 SNR 使用必须判红。
 - PSFSW 与 W_psf 分离性（PSFSW 驱动集成时 covariance 由实际组合系数传播）；
 - 1 worker vs N worker 一致。

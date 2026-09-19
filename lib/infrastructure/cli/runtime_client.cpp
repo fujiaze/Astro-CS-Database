@@ -157,8 +157,17 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
         mk("wcs", "astrocs.phase1.wcs-platesolve",
            {{"sources", "artifact:p1_sources"}}, {{"wcs", "artifact:p1_wcs"}},
            "cpu_heavy", true),
+        // P1-PHOT-BROKEN: phot 的 CRVAL/CD 真实来源是 wcs 节点产物
+        // <frame_dir>/p1_wcs.json（按 out_dir 文件约定读取, 回退 config.wcs）。
+        // 未声明 artifact:p1_wcs 边时 phot 与 wcs 同为 sources 下游并发执行,
+        // p1_wcs.json 存在与否取决于调度时序 ⇒ 同配置两次运行不同结果
+        // （实测 16:22 冒烟跑读到缺失 WCS: CRVAL=(0,0)/CD=0 → 0 匹配 → NO_DATA
+        // 占位 scale=1.0 被当作"已应用"; 16:26 重跑读到真实 WCS: 939/917 匹配,
+        // location=16.20 dex）。与 F-8（drz←wcs）同款处置: 声明 typed 边,
+        // 由调度器保证 wcs 先落盘, 不再依赖并发文件约定。
         mk("phot", "astrocs.phase1.photometry",
-           {{"psf", "artifact:p1_psf"}, {"sources", "artifact:p1_sources"}},
+           {{"psf", "artifact:p1_psf"}, {"sources", "artifact:p1_sources"},
+            {"wcs", "artifact:p1_wcs"}},
            // DET-001 (D5): phot 有第二个真实产物 p1_phot.json (测光 provenance
            // sidecar, DATA-P1-PHOTPROV-001)。它必须登记为 typed 输出, 否则 drz
            // 读它的存在性判定没有依赖边可绑定（详见 drz 节点处注释）。

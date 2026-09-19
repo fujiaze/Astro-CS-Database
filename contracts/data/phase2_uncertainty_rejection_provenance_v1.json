@@ -64,7 +64,7 @@
     },
     "ASTROCS_REJECT_PROFILE": {
       "value": "版本化 profile 串",
-      "source": "cfg.reject_profile（wbpp_current / wbpp_2_9_1，§20.1 kernel 域禁 AUTO）"
+      "source": "cfg.reject_profile（canonical=astrocs_adaptive_pixel 自研档；wbpp_current / wbpp_2_9_1 为对照档，§20.1 kernel 域禁 AUTO）"
     }
   },
   "provenance_dual_write": {

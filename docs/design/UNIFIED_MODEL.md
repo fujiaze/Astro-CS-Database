@@ -39,10 +39,11 @@ flowchart LR
 | variance / ivar | 同一估计量的方差及倒数 | 对该估计目标可以 |
 | source_snr | F_hat/sigma_F | 不直接作帧权重 |
 | depth_m5 | 固定参考 PSF/孔径下 5σ 深度 | 摘要，不作权重 |
-|  frame_snr | 帧级**未加权原始信噪比**（非权重），通量型口径 `F_ref/σ_F`（Horne 1986）：信号来自 PSF/孔径混合测光减独立局部背景，σ_n 为稳健噪声；方法学对标 PixInsight PSFSNR（信号取数、稳健噪声、独立背景三点），但不逐字套用其功率比式[18] `(Σf)²/σ_n²`，以保证逆方差换算严格成立；信号项不被加性天光背景虚高，天光散粒噪声计入 σ_n | 唯一帧级参考；Phase2 归一后现场换算 w=SNR²/F_ref²=1/σ_F² |
+|  frame_snr | 帧级**未加权原始信噪比**（非权重），通量型口径 `F_ref/σ_F`（Horne 1986）：信号来自 PSF/孔径混合测光减独立局部背景，σ_n 为稳健噪声；方法学对标 PixInsight PSFSNR（信号取数、稳健噪声、独立背景三点），但不逐字套用其功率比式[18] `(Σf)²/σ_n²`，以保证逆方差换算严格成立；信号项不被加性天光背景虚高，天光散粒噪声计入 σ_n。**帧级 SNR = 点源（PSF）信号 SNR，纯信号/噪声**：`SNR=F_signal/σ_F`，`F_signal` 已扣局部背景、天光**只作噪声项**进 `σ_F`；固定源通量下天光增大 ⇒ SNR 单调下降（`B→∞` 时 `SNR→0`）；**不得**与面亮度 SNR 混用或互相宣称等价 | 唯一帧级参考；Phase2 归一后现场换算 w=SNR²/F_ref²=1/σ_F² |
 | point_information | a²PᵀC⁻¹P = 1/Var(F_hat) | 点源目标的严格权重 |
 | psfsw_robust_weight | PixInsight PSFSW 同类的综合图像质量权重（信号×集中度/（稳健噪声×稳健背景），含 FWHM/梯度惩罚） | 显式 psfsw_robust 集成可用；是权重不是信噪比，不是 ivar |
-| sparse_snr_layer | 帧内稀疏控制点 SNR 参考（可选标准层） | 帧内精细参考 |
+| sparse_snr_layer | 帧内稀疏控制点 SNR 参考（Phase1 标准层；**默认稀疏路径要求默认产出**） | 帧内精细参考；Phase2 由它重建稠密 SNR |
+| snr_path（配置） | SNR 重建路径：`dense`（Phase1 稠密面）/ `sparse_reconstruct`（稀疏→稠密，**默认**）/ `frame_reconstruct`（帧级→稠密）；三者精度对比是论文核心实验（判据 SP-0；实测同条件帧级标量已最优到 0.06%，**不得预设稀疏一定最好**） | 配置文件 JSON 显式指定 |
 | star_mask | 星点/饱和/高结构掩膜（天球坐标） | 否；UPM 采样排除用 |
 | sky_samples | 每帧掩膜外的稀疏天光采样点（坐标、值、variance、点 SNR 权重） | 点权重 ∝ SNR²，仅用于天光面拟合 |
 | sky_plane | 稀疏样条表示的天光亮度面（参考面 B_ref 系数 + 每帧梯度 δ_k 系数）；栅格值现场求值 | 否；加性背景模型 |
@@ -51,6 +52,8 @@ flowchart LR
 | validity | 坏点/缺失/越界状态 | 门，不是权重 |
 | rejection | 污染推断结果 | 门/概率，不是 coverage |
 | provenance | 输入/配置/软件/哈希来源链 | —— |
+
+**SNR 产物边界（负责人裁决）**：只有 **Phase1** 的 HiPS 带 SNR 数据块（帧级 + 稀疏区域）；**Phase2 不输出 SNR 面**——它在叠加中**消费**单帧 SNR、**不直接复用** Phase1 的 SNR 产物；**Phase3 无 SNR**。目标合同只冻结 variance/ivar，不新增 SNR 面。
 
 **禁止**用一个模糊的 `weight/value/mask/snr` 字段承载多个含义。
 

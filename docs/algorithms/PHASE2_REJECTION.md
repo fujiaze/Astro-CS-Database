@@ -184,11 +184,15 @@ AUTO 路由（nominal n 一次解析；两 profile 共用阈值表）:       :10
   request==AUTO: n<6 → PERCENTILE; 6≤n≤15 → WINSORIZED_SIGMA;
                  n>15 → LINEAR_FIT
   minimum_n = method_minimum_n(method)                        :921-935
-profile 合法集 = {wbpp_2_9_1, wbpp_current(V16 遗留 alias), astrocs_adaptive}  :1039-1046
-  （nullptr → wbpp_2_9_1；其余 rc=1；wbpp_current 为 V16 遗留别名
-  （migration：V17 G6 起 canonical=wbpp_2_9_1），仅保留 group active
-  count 一次解析历史语义；astrocs_adaptive=tile nominal depth——
-  canonical/adaptive 区别仅在 nominal 来源，h:174-177/:182-190 冻结注释。
+profile 合法集 = {astrocs_adaptive_pixel(生产默认, AstroCS 自研),
+                  wbpp_2_9_1(对照档), wbpp_current(历史 alias),
+                  astrocs_adaptive(可调档)}                        :1039-1046
+  （nullptr → wbpp_2_9_1；其余 rc=1；wbpp_current 为历史别名（解析为
+  wbpp_2_9_1），仅保留 group active count 一次解析历史语义；
+  astrocs_adaptive=tile nominal depth；astrocs_adaptive_pixel=逐输出像素
+  几何 n 内置映射（n≤3 none / 4..7 percentile / 8..15 winsorized /
+  ≥16 linear_fit，underdetermined_n 默认 3）——canonical/adaptive
+  区别仅在 nominal 来源，h:174-177/:182-190 冻结注释。
   生产布局与现行语义详见 DATA_SEMANTICS §22 生产表）
 ```
 
@@ -388,7 +392,8 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 ## 6 消费链与并行语义
 
 - **Stage2（编排，astrocs.p2.hips_writer 消费者）**:
-  group 级 plan resolve（wbpp_2_9_1，nominal=cfg.hips.size()，
+  group 级 plan resolve（**工具链现状** wbpp_2_9_1；**生产入口
+  p2_op_reject 默认 astrocs_adaptive_pixel（自研）**，nominal=cfg.hips.size()，
   stage2.cpp:643-658）→ tile 级（astrocs_adaptive，nominal=tile
   depth，:677-697）→ typed params 唯一默认源=cfg（:698-729）→
   CPU 像素 lambda: p2_collect_candidate_stack（:1085-1104，

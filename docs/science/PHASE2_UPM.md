@@ -5,7 +5,7 @@
 ## 1 目的与非目标
 
 - **目的**：在多帧覆盖并集上建立唯一的联合加性光度模型 UPM，消除逐帧背景/零点差，使校准后样本 `calibrated = raw − C_f(p)` 在全域可比；提供控制权重与持久化 frame_id 绑定。
-- **非目标**：不处理乘性尺度差（已撤销）；不做 Drizzle 方差估计（SCI-NOISE）；不做最终加权积分与排异判定（SCI-INT/SCI-REJ）；不跨滤镜统一（filter 分组由调用方保证）。
+- **非目标**：不处理乘性尺度差（**本期决议：纯加性模型**，`g_k ≡ 1` 不启用，见 §14a）；不做 Drizzle 方差估计（SCI-NOISE）；不做最终加权积分与排异判定（SCI-INT/SCI-REJ）；不跨滤镜统一（filter 分组由调用方保证）。
 
 ## 2 符号表
 
@@ -78,7 +78,7 @@
 
 ## 6 假设
 
-- 帧间无乘性尺度差（乘性 photometric scale 已撤销）；控制点 SNR 与几何解耦（`snr_available` 语义 V4 R6）；控制采样 patch 足域近似高斯；Drizzle 相关可用 `k_corr≥1` 表征。
+- 帧间无乘性尺度差（**本期决议：纯加性模型**，`g_k ≡ 1`；乘性残留属低阶空间增益、归 Phase1，见 §14a）；控制点 SNR 与几何解耦（`snr_available` 语义 V4 R6）；控制采样 patch 足域近似高斯；Drizzle 相关可用 `k_corr≥1` 表征。
 
 ## 7 独立不变量
 
@@ -178,8 +178,8 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 - **Huber IRLS**：Huber, P. J. 1964, Ann. Math. Statist. 35, 73（DOI 10.1214/aoms/1177703732）；Holland, P. W. & Welsch, R. E. 1977, Communications in Statistics A6, 813（DOI 10.1080/03610927708827533，δ=1.345 的 IRLS 出处）；Huber & Ronchetti 2009, Robust Statistics, 2nd ed., Wiley（ISBN 978-0-470-12990-6）。
 - **弱零锚（弱 Tikhonov/岭正则）**：Tikhonov, A. N. 1963, Soviet Math. Dokl. 4, 1035（**核验状态**：文章级，卷页需网络核验）。
 - **var(median)≈πσ²/(2N)**：正态样本中位数渐近方差的教科书结论（Hoaglin et al. 1983；Kendall & Stuart, The Advanced Theory of Statistics Vol.1）；UPMW-004 实证 ratio 0.997。
-- **稀疏天光面样条（目标表示，未实现）**：Duchon, J. 1977, Constructive Theory of Functions of Several Variables, 85（薄板样条）；Wahba, G. 1990, Spline Models for Observational Data, SIAM（ISBN 0-89871-244-0）。
-- **UNRESOLVED（设计-实现模型冲突）**：docs/plugins/algorithms_phase2/10_sampling.md §4.2、11_upm.md §4.1 与 docs/design/UNIFIED_MODEL.md §2 描述的目标 UPM 为 **y_k(x)=g_k·s(x)+b_k(x)**（乘性响应 + 稀疏样条天光面），而本文件 §1/§5 的现行冻结模型为**纯加性** calibrated=raw−C_f(p)（8×8 control cell），并明文“乘性尺度差已撤销”。二者不可同时为真。**登记 UNRESOLVED，上呈负责人裁决**；本任务不改公式，也不改设计/插件文档。
+- **稀疏天光面样条（加性天光面的表示候选）**：Duchon, J. 1977, Constructive Theory of Functions of Several Variables, 85（薄板样条）；Wahba, G. 1990, Spline Models for Observational Data, SIAM（ISBN 0-89871-244-0）。§5 冻结的加性场当前实现为 8×8 control cell 双线性；稀疏样条是**同一加性场**的另一种表示候选（`OPEN-P2S-02` 数据面/schema 待合同流程），**不改变** §1/§5 的纯加性模型。
+- **本期决议：纯加性（负责人 2026-09-19 裁决，claim `FIX-SCI-SNR-CANON-001`）**：本文件 §1/§5 的**纯加性**冻结模型 `calibrated_f(p)=raw_f(p)−C_f(p)` 为最终模型；**取代** `FIX-A-UPM-001` 提议的 `y_k(x)=g_k·s(x)+b_k(x)` 乘性方向。`g_k ≡ 1` **本期不启用**；`÷g²` 保持**恒等式**（`Var(corrected)=[σ_raw²+J_out C_θ J_outᵀ]/g²`，`g≡1` 时退化等价，公式不删）。**理论依据（负责人给出，须进论文）**：Phase1 正确归一化后，帧本身已是**同一测光体系的真信号**加**可等效为加性的天光**；残留天光**无论是加性还是乘性，都可以用加法移除**；乘性残留属**低阶空间增益**，已归 Phase1 处理（`I_photo = k_photo·m(x,y)·I_cal`），Phase2 只做加性扣除 `raw − C_k`。原「设计-实现模型冲突」UNRESOLVED **关闭**：`10_sampling.md`/`11_upm.md`/`UNIFIED_MODEL.md` 的目标态表述同步订正为纯加性；`OPEN-P2S-02` 仅剩数据面/schema 表示待合同流程。
 - **k_corr=1.4 的 MC 证据**：control_median_mc_test 未注册（MISSING，构建孤儿），常数本身按 §5/§10 冻结但当前不可复跑（§9/§11/§13/§15）。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：

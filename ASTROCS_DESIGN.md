@@ -119,7 +119,9 @@ flowchart TD
   "config": {                            // 处理配置（必要参数）
     "precision": "fp32",                 // fp32 / fp64
     "output_dir": "path/to/out",
-    "sparse_snr_layer": false
+    "sparse_snr_layer": true,           // 默认稀疏 SNR 层（负责人裁决 2026-09-19，见 change-claim FIX-SCI-SNR-CANON-001）；
+                                        // 三条路径 dense / sparse_reconstruct / frame_reconstruct，见 §3.4
+    "snr_path": "sparse_reconstruct"    // Phase2 面 SNR 路径键；默认稀疏重建为稠密
   },
   "inputs": [                            // 一大组数据：每组 = light 路径 + 对应校准帧 + 滤镜
     {

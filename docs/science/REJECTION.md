@@ -18,7 +18,7 @@
 | `n` | `nominal contributors` 几何可贡献数（一次解析） | `p2_reject_plan_resolve` |
 | `n_eff` | 资格后有效候选数 | 资格层 |
 | `method` | `None/Sigma/Winsorized/AveragedSigma/LinearFit/GeneralizedESD/RCR` | `P2RejectionMethod` |
-| `profile` | `wbpp_2_9_1 / wbpp_current(alias)` | `plan` |
+| `profile` | `astrocs_adaptive_pixel`（**生产默认，AstroCS 自研**）/ `wbpp_2_9_1`（对照档）/ `wbpp_current`(alias) / `astrocs_adaptive`（可调档） | `plan` |
 | `large_scale` | 结构生长开关及参数 | `P2RejectionLargeScaleConfig` |
 | `P2_REASON_*` | `ACCEPTED/REJECTED_LOW/REJECTED_HIGH/UNDERDETERMINED` | `rejection.h:76` |
 | `P2_STATUS_*` | `OK/MIN_SAMPLES/ALL_REJECTED/INVALID_INPUT/UNDERDETERMINED/...` | `rejection.h:83-86` |
@@ -35,7 +35,7 @@
   （`rejection.cpp:1860-1874`）。该容错的**可达域恰为 n=4**：n≤2 已被白名单截走；
   奇数 n 的百分位带必含中位样本（不可全拒）；n≥5 全拒仍 `ALL_REJECTED`。
 - `support/weights` 有限性在资格层校验，非有限 ⇒ `INVALID_INPUT` hard fail。
-- `profile` 仅 `wbpp_2_9_1`（及 `wbpp_current` alias）合法，否则 `INVALID_CONFIGURATION`。
+- `profile` 合法集 = {`astrocs_adaptive_pixel`（**生产默认，AstroCS 自研**）, `wbpp_2_9_1`（**对照档**，路由阈值表采纳自 WBPP 2.9.1 `bestRejectionMethod`）, `wbpp_current`（历史 alias，解析为 `wbpp_2_9_1`）, `astrocs_adaptive`（可调档，与对照档同阈）}；其余值 ⇒ `rc=1` + 显式错误（配置非法）。
 
 ## 5 连续定义
 
@@ -44,13 +44,23 @@
 
   None / Sigma / Winsorized / AveragedSigma / LinearFit / GeneralizedESD / RCR
 
-生产默认 auto + profile:
-  wbpp_2_9_1 (WBPP 2.9.1 bestRejectionMethod):
-    n < 6          → percentile (low 0.2 / high 0.1, scale=|median|)
-    6 ≤ n ≤ 15     → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
-    n > 15         → linear_fit (lower 5.0 / upper 3.5 / 8 iter)
-  astrocs_adaptive (tunable):
-    同阈但可配置 large_scale 等
+生产默认 auto + profile = astrocs_adaptive_pixel (AstroCS 自研，按逐输出像素几何 n):
+  n ≤ 3          → none（保守：不排异 + 直接加权积分；provenance 记 underdetermined_no_rejection）
+  4 ≤ n ≤ 7      → percentile (low 0.2 / high 0.1, scale=|median|)
+  8 ≤ n ≤ 15     → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
+  n ≥ 16         → linear_fit (lower 5.0 / upper 3.5 / 8 iter)
+  与 WBPP 的三处明示偏离：n≤3 用 none；6≤n≤7 用 percentile（消解 WBPP auto 与 validator 自相矛盾）；
+  16≤n<20 linear_fit 由调用方发 WARN。extreme_value_clip_prior_sigma 为显式 opt-in，永不参与 AUTO 路由。
+对照档 wbpp_2_9_1 (WBPP 2.9.1 bestRejectionMethod；仅对照/回归基线):
+  n < 6          → percentile (low 0.2 / high 0.1, scale=|median|)
+  6 ≤ n ≤ 15     → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
+  n > 15         → linear_fit (lower 5.0 / upper 3.5 / 8 iter)
+  astrocs_adaptive (tunable): 同阈但可配置 large_scale 等
+
+适用域（astrocs_adaptive_pixel）：
+  像素候选栈域、逐输出像素几何 n；n ≥ 4 才声明排异能力（n ≤ 3 显式不声明，recall=0）；
+  空间生长仅 large_scale 结构（trail），compact cosmic 不生长；
+  阈值逐档继承本节冻结锚点，不新增阈值。
 
 阈值冻结锚点 (SCI-REJ / ALG-REJ-001..008, rejection.cpp:1):
   sigma/winsorized/averaged: 4.0/3.0/8
@@ -79,7 +89,7 @@ large_scale 结构生长:
 
 ## 7 独立不变量
 
-- **阈值不变量**：同 `n` 的 `method` 选择确定性一致（WBPP 表驱动），`auto` 路由不依赖 per-pixel `n_eff`。
+- **阈值不变量**：同 `n` 的 `method` 选择确定性一致（阈值表驱动，逐档继承 §5 冻结锚点），`auto` 路由不依赖 per-pixel `n_eff`；生产默认档 = `astrocs_adaptive_pixel`（自研）。
 - **状态分离不变量**：`P2_REASON` (per-sample) 与 `P2_STATUS` (stack-level) 分离，`INVALID_*` → hard fail 非可继续集合。
 - **UNDERDETERMINED 单调性**：`n ≤2` 恒 `UNDERDETERMINED`，不做剔除（recall=0 显式）。
 - **全拒容错域（n=4，SC-005）**：`n=4` 且方法核全拒 ⇒ `UNDERDETERMINED` 全接受
@@ -152,7 +162,7 @@ large_scale 结构生长:
 
 - **统计假设**：Sigma/Winsorized/AveragedSigma=对称噪声+稳健 median/MAD 尺度；LinearFit=栈内随 n 的线性趋势+残差对称；GeneralizedESD=近似正态多离群检验（`alpha=0.05, max_outliers=10`）；percentile=小 N 无尺度估计时分位拒（`low 0.2/high 0.1, scale=|median|`）；minmax=极值拒（`min_kept=4`）；RCR=reject-clean-refine 迭代（官方 RCR 2.4.7 oracle 锚定）。
 - **阈值**：表驱动冻结锚点（`rejection.cpp:1`：sigma/winsorized/averaged 4.0/3.0/8；linear_fit 5.0/3.5/8；ESD alpha 0.05/max 10；percentile 0.2/0.1；minmax 1/1/4；large_scale 默认关闭）——**禁止用"效果好"定义**。
-- **自动选择可判定性**：`auto` 以 `nominal n` 唯一路由（n<6→percentile；6≤n≤15→winsorized；n>15→linear_fit，wbpp_2_9_1 profile），不依赖 per-pixel `n_eff` 重选（§7 阈值不变量）。
+- **自动选择可判定性**：`auto` 以 `nominal n` 唯一路由，不依赖 per-pixel `n_eff` 重选（§7 阈值不变量）；生产默认档 `astrocs_adaptive_pixel`（自研）的内置映射见 §5（n≤3→none；4..7→percentile；8..15→winsorized；≥16→linear_fit）。
 - **small-N**：n<6 无稳健尺度意义 → percentile；单帧无排异（§1 非目标）。
 - **frame identity**：每候选携带 `frame_id[i]`；排异只置 `accepted[i]` 掩膜不合并样本，identity 全程保持（integration 侧可追溯，SCI-INT §9a）。
 
@@ -160,7 +170,7 @@ large_scale 结构生长:
 
 1. Generalized ESD：Rosner, B. 1983, Technometrics 25, 165——文章级定位（bibcode 1983Techno..25..165R，未逐页核验），alpha/max_outliers 语义为 Project-defined 采纳。
 2. winsorization 概念：Hoaglin, Mosteller & Tukey 1983, *Understanding Robust and Exploratory Data Analysis*——书籍级，未逐页核验。
-3. `wbpp_2_9_1` auto 路由与阈值表：**采纳自 WBPP 2.9.1 `bestRejectionMethod` 源码**（非学术文献；对齐记录见 docs/development/CONFIG_SCHEMA.md#51 与 docs/science/REJECTION.md#40）。
+3. `astrocs_adaptive_pixel`（**生产默认，AstroCS 自研**）：内置映射与低 n 保守档为项目自定（阈值逐档继承 §5 冻结锚点，不新增阈值）；其**对照档** `wbpp_2_9_1` 的 auto 路由与阈值表**采纳自 WBPP 2.9.1 `bestRejectionMethod` 源码**（非学术文献；对齐记录见 docs/development/CONFIG_SCHEMA.md#51）。
 4. RCR：官方 RCR 2.4.7 软件参考（项目 oracle 锚定 `official rcr 2.4.7`，见 tools/assemble_v17_review_pkg.py 文献映射），非论文引用。
 
 ## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
@@ -168,7 +178,7 @@ large_scale 结构生长:
 > 本节只补出处与参考实现，不改动 §5 阈值表与 §10 禁改清单。
 
 - **Generalized ESD**：Rosner, B. 1983, Technometrics 25, 165-172（DOI 10.1080/00401706.1983.10487848，Crossref 逐字核验 2026-09-17）；独立可执行实现与临界值表见 NIST/SEMATECH e-Handbook of Statistical Methods §1.3.5.17/§7.1.6。
-- **六类排异核（sigma/winsorized/averaged-sigma/linear-fit/percentile/minmax）的祖先**：IRAF imcombine（reject=sigclip|avsigclip|pclip|lfitclip|minmax、winsorize 参数；IRAF/NOAO 许可，非 OSI）；可执行独立对照 ccdproc.combine（BSD-3-Clause，clip_extrema=IRAF-like minmax、sigma_clip_low/high_thresh）与 astropy SigmaClip（BSD-3-Clause）。**溯源注**：本文件 §5/§14 称阈值“采纳自 WBPP 2.9.1”，但代码语义注册表 rejection.cpp:1016-1021 为 *_SIRIL、注释 :1298/1398 与测试 :2903 均锚 Siril 1.4.3；“路由+阈值=WBPP，方法核=Siril”应在正文同处说明（见报告 §3-24）。
+- **六类排异核（sigma/winsorized/averaged-sigma/linear-fit/percentile/minmax）的祖先**：IRAF imcombine（reject=sigclip|avsigclip|pclip|lfitclip|minmax、winsorize 参数；IRAF/NOAO 许可，非 OSI）；可执行独立对照 ccdproc.combine（BSD-3-Clause，clip_extrema=IRAF-like minmax、sigma_clip_low/high_thresh）与 astropy SigmaClip（BSD-3-Clause）。**溯源注**：本文件 §5/§14 称阈值“采纳自 WBPP 2.9.1”，但代码语义注册表 rejection.cpp:1016-1021 为 *_SIRIL、注释 :1298/1398 与测试 :2903 均锚 Siril 1.4.3；“路由+阈值=WBPP，方法核=Siril”应在正文同处说明（见报告 §3-24）。**生产默认档自研说明**：`astrocs_adaptive_pixel` 的路由与低 n 保守档为项目自定（负责人 2026-09-19 裁决 C2，claim `FIX-SCI-SNR-CANON-001`）；WBPP/Siril 仅作对照来源，不作为生产算法归属。
 - **预测残差方差阈值/最优检验（若采用）**：Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27）。
 - **RCR（Robust Chauvenet Rejection）**：**论文出处补齐**——Maples, M. P., Reichart, D. E., Konz, N. C., et al. 2018, ApJS 238, 2（DOI 10.3847/1538-4365/aad23d；arXiv:1807.05276）；后续方法学 Konz, N. & Reichart, D. E. 2023, arXiv:2301.07838。现行 §14 第 4 条只登记“官方 RCR 2.4.7 软件参考”，缺该论文引用。
 - **winsorization 与稳健尺度**：Hoaglin, Mosteller & Tukey (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）。

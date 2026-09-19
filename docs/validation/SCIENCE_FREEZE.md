@@ -13,10 +13,13 @@ PHASE2_BASE_ALGORITHMS = FROZEN
 REJECTION_SEMANTICS    = FROZEN（canonical semantic IDs + typed params +
                         eligibility/rejection 分层 + per-sample reason +
                         RejectionNormalizationPolicy）
-WBPP_AUTO_POLICY       = FROZEN（wbpp_2_9_1 = WBPP 2.9.1
+ASTROCS_REJECT_PROFILE = FROZEN（生产默认 astrocs_adaptive_pixel = AstroCS
+                        自研「按逐输出像素几何 n」内置映射：n≤3→none；
+                        4..7→percentile；8..15→winsorized；≥16→linear_fit）
+WBPP_AUTO_POLICY       = FROZEN（对照档 wbpp_2_9_1 = WBPP 2.9.1
                         bestRejectionMethod；nominal<6→percentile；
                          6..15→winsorized；>15→linear_fit；wbpp_current 仅
-                         migration alias，运行期解析并序列化为 wbpp_2_9_1）
+                         历史 alias，运行期解析并序列化为 wbpp_2_9_1）
 WBPP_LARGE_SCALE       = SUPPORTED（astrocs.large_scale_rejection.v1：
                         connected-component grow，min structure size，
                         low/high 独立半径；默认关闭 = WBPP
