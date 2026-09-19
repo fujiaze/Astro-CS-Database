@@ -1,1 +1,383 @@
-% BibTeX（待填充）
+% bibliography.bib — SNR 全流程传播（reverse_verify / SNR-DESIGN）
+% 只收录本轮已核对的标识（Crossref / arXiv / DataCite / ADS / 实页）。
+% 未核对项见 bibliography.md §9，不得进入论文。
+
+@ARTICLE{fruchter2002drizzle,
+  author  = {Fruchter, A. S. and Hook, R. N.},
+  title   = {Drizzle: A Method for the Linear Reconstruction of Undersampled Images},
+  journal = {PASP}, volume = {114}, pages = {144--152}, year = {2002},
+  doi     = {10.1086/338393}
+}
+@ARTICLE{zackay2017coadd1,
+  author  = {Zackay, B. and Ofek, E. O.},
+  title   = {How to COADD Images. I. Optimal Source Detection and Photometry of Point Sources Using Ensembles of Images},
+  journal = {ApJ}, volume = {836}, pages = {187}, year = {2017},
+  doi     = {10.3847/1538-4357/836/2/187}, eprint = {1512.06872}
+}
+@ARTICLE{zackay2017coadd2,
+  author  = {Zackay, B. and Ofek, E. O.},
+  title   = {How to COADD Images. II. A Coaddition Image that is Optimal for Any Purpose in the Background-Dominated Noise Limit},
+  journal = {ApJ}, volume = {836}, pages = {188}, year = {2017},
+  doi     = {10.3847/1538-4357/836/2/188}, eprint = {1512.06879}
+}
+@ARTICLE{zackay2016zogy,
+  author  = {Zackay, B. and Ofek, E. O. and Gal-Yam, A.},
+  title   = {Proper Image Subtraction---Optimal Transient Detection, Photometry, and Hypothesis Testing},
+  journal = {ApJ}, volume = {830}, pages = {27}, year = {2016},
+  doi     = {10.3847/0004-637X/830/1/27}, eprint = {1601.02655}
+}
+@ARTICLE{hu2024jwst,
+  author  = {Hu, C. and Wang, L.},
+  title   = {Differencing and Coadding JWST Images with Matched Point-spread Function},
+  journal = {AJ}, volume = {167}, pages = {231}, year = {2024},
+  doi     = {10.3847/1538-3881/ad36cb}
+}
+@ARTICLE{makovoz2005mopex,
+  author  = {Makovoz, D. and Marleau, F. R.},
+  title   = {Point-Source Extraction with MOPEX},
+  journal = {PASP}, volume = {117}, pages = {1113--1128}, year = {2005},
+  doi     = {10.1086/432977}
+}
+@MISC{drizzlepac2025handbook,
+  author = {{Anand, G. S. and Mack, J. and others}}, title = {The DrizzlePac Handbook, Version 3.0},
+  howpublished = {STScI}, year = {2025}, url = {https://hst-docs.stsci.edu/drizzpac}
+}
+@MISC{reproject_docs,
+  author = {{Astropy Collaboration}}, title = {reproject documentation},
+  howpublished = {Read the Docs}, url = {https://reproject.readthedocs.io/en/stable/},
+  note = {NOTE: reproject_and_coadd returns no propagated variance plane}
+}
+@ARTICLE{aitken1935,
+  author  = {Aitken, A. C.},
+  title   = {On Least Squares and Linear Combination of Observations},
+  journal = {Proceedings of the Royal Society of Edinburgh}, volume = {55}, pages = {42--48}, year = {1935},
+  doi     = {10.1017/S0370164600014346}
+}
+@ARTICLE{plackett1949,
+  author  = {Plackett, R. L.}, title = {A Historical Note on the Method of Least Squares},
+  journal = {Biometrika}, volume = {36}, pages = {458--460}, year = {1949},
+  doi     = {10.1093/biomet/36.3-4.458}
+}
+@BOOK{janesick2007photon,
+  author = {Janesick, J. R.}, title = {Photon Transfer: DN $\rightarrow$ $\lambda$},
+  publisher = {SPIE Press}, year = {2007}, doi = {10.1117/3.725073}, isbn = {9780819478382}
+}
+@BOOK{janesick2001scd,
+  author = {Janesick, J. R.}, title = {Scientific Charge-Coupled Devices},
+  publisher = {SPIE Press}, year = {2001}, doi = {10.1117/3.374903}
+}
+@BOOK{howell2006handbook,
+  author = {Howell, S. B.}, title = {Handbook of CCD Astronomy}, edition = {2nd},
+  publisher = {Cambridge University Press}, year = {2006},
+  doi = {10.1017/cbo9780511807909}, isbn = {9780521852159},
+  note = {CCD equation, Ch. 4; exact equation number not verified}
+}
+@ARTICLE{mortara1981,
+  author  = {Mortara, L. and Fowler, A.},
+  title   = {Evaluations of Charge-Coupled Device /CCD/ Performance for Astronomical Use},
+  journal = {Proc. SPIE}, volume = {290}, pages = {28--33}, year = {1981},
+  doi     = {10.1117/12.965833}
+}
+@MISC{emva1288,
+  author = {{European Machine Vision Association}}, title = {EMVA 1288 Standard for Characterization of Image Sensors and Cameras},
+  url = {https://www.emva.org/standards-technology/emva-1288/},
+  note = {see also Jaehne 2010, DOI 10.1002/opph.201190082; Borek 2023, DOI 10.2352/ei.2023.35.6.iss-347}
+}
+@MISC{ccdproc_createdeviation,
+  author = {{Astropy Collaboration}}, title = {ccdproc.create_deviation},
+  url = {https://ccdproc.readthedocs.io/en/latest/api/ccdproc.create_deviation.html}
+}
+@ARTICLE{astropy2022,
+  author  = {{Astropy Collaboration}}, title = {The Astropy Project: ... Latest Major Release (v5.0) of the Core Package},
+  journal = {ApJ}, volume = {935}, pages = {167}, year = {2022}, doi = {10.3847/1538-4357/ac7c74}
+}
+@ARTICLE{bernstein2017decam,
+  author  = {Bernstein, G. M. and Abbott, T. M. C. and Desai, S. and others},
+  title   = {Instrumental Response Model and Detrending for the Dark Energy Camera},
+  journal = {PASP}, volume = {129}, pages = {114502}, year = {2017}, doi = {10.1088/1538-3873/aa858e}
+}
+@ARTICLE{morganson2018des,
+  author  = {Morganson, E. and Gruendl, R. A. and Menanteau, F. and others},
+  title   = {The Dark Energy Survey Image Processing Pipeline},
+  journal = {PASP}, volume = {130}, pages = {074501}, year = {2018},
+  doi     = {10.1088/1538-3873/aab4ef}, eprint = {1801.03177}
+}
+@ARTICLE{sevillanoarbe2021desy3,
+  author  = {Sevilla-Noarbe, I. and Bechtol, K. and Carrasco Kind, M. and others},
+  title   = {Dark Energy Survey Year 3 Results: Photometric Data Set for Cosmology},
+  journal = {ApJS}, volume = {254}, pages = {24}, year = {2021}, doi = {10.3847/1538-4365/abeb66}
+}
+@ARTICLE{bosch2018hsc,
+  author  = {Bosch, J. and Armstrong, R. and Bickerton, S. and others},
+  title   = {The Hyper Suprime-Cam Software Pipeline},
+  journal = {PASJ}, volume = {70}, pages = {S5}, year = {2018},
+  doi     = {10.1093/pasj/psx080}, eprint = {1705.06766}
+}
+@ARTICLE{waters2020ps1,
+  author  = {Waters, C. Z. and Magnier, E. A. and Price, P. A. and others},
+  title   = {Pan-STARRS Pixel Processing: Detrending, Warping, Stacking},
+  journal = {ApJS}, volume = {251}, pages = {4}, year = {2020},
+  doi     = {10.3847/1538-4365/abb82b}, eprint = {1612.05245}
+}
+@ARTICLE{magnier2020ps1sys,
+  author  = {Magnier, E. A. and Chambers, K. C. and Flewelling, H. A. and others},
+  title   = {The Pan-STARRS Data-processing System},
+  journal = {ApJS}, volume = {251}, pages = {3}, year = {2020}, doi = {10.3847/1538-4365/abb829}
+}
+@ARTICLE{york2000sdss,
+  author  = {York, D. G. and Adelman, J. and Anderson, J. E., Jr. and others},
+  title   = {The Sloan Digital Sky Survey: Technical Summary},
+  journal = {AJ}, volume = {120}, pages = {1579--1587}, year = {2000}, doi = {10.1086/301513}
+}
+@ARTICLE{stoughton2002sdssedr,
+  author  = {Stoughton, C. and Lupton, R. H. and Bernardi, M. and others},
+  title   = {Sloan Digital Sky Survey: Early Data Release},
+  journal = {AJ}, volume = {123}, pages = {485--548}, year = {2002}, doi = {10.1086/324741}
+}
+@ARTICLE{padmanabhan2008ubercal,
+  author  = {Padmanabhan, N. and Schlegel, D. J. and Finkbeiner, D. P. and others},
+  title   = {An Improved Photometric Calibration of the Sloan Digital Sky Survey Imaging Data},
+  journal = {ApJ}, volume = {674}, pages = {1217--1233}, year = {2008},
+  doi     = {10.1086/524677}, eprint = {astro-ph/0703454}
+}
+@ARTICLE{ivezic2019lsst,
+  author  = {Ivezi{\'c}, {\v{Z}}. and Kahn, S. M. and Tyson, J. A. and others},
+  title   = {LSST: From Science Drivers to Reference Design and Anticipated Data Products},
+  journal = {ApJ}, volume = {873}, pages = {111}, year = {2019}, doi = {10.3847/1538-4357/ab042c}
+}
+@MISC{lsst_dpdd,
+  author = {{Rubin Observatory}}, title = {LSST Data Products Definition Document (LSE-163)},
+  url = {https://ls.st/LSE-163},
+  note = {see also pipelines.lsst.io CompareWarpAssembleCoaddTask (clipped mean + static-sky model)}
+}
+@INPROCEEDINGS{marmo2008weightwatcher,
+  author    = {Marmo, C. and Bertin, E.},
+  title     = {MissFITS and WeightWatcher: Two Optimised Tools for Managing FITS Data},
+  booktitle = {ASP Conf. Ser.}, volume = {394}, pages = {619}, year = {2008},
+  note      = {no DOI found}
+}
+@ARTICLE{bertin1996sextractor,
+  author  = {Bertin, E. and Arnouts, S.}, title = {SExtractor: Software for source extraction},
+  journal = {A&AS}, volume = {117}, pages = {393--404}, year = {1996}, doi = {10.1051/aas:1996164},
+  note    = {photometric error Eq. (36) read verbatim from the current manual}
+}
+@ARTICLE{barbary2016sep,
+  author  = {Barbary, K.}, title = {SEP: Source Extractor as a library},
+  journal = {JOSS}, volume = {1}, pages = {58}, year = {2016}, doi = {10.21105/joss.00058}
+}
+@MISC{photutils2020,
+  author = {Bradley, L. and Sip{\H{o}}cz, B. and Robitaille, T. and Tollerud, E.},
+  title  = {astropy/photutils: 1.0.0}, year = {2020}, doi = {10.5281/zenodo.4044744}
+}
+@ARTICLE{akhlaghi2015noisechisel,
+  author  = {Akhlaghi, M. and Ichikawa, T.},
+  title   = {Noise-based Detection and Segmentation of Nebulous Objects},
+  journal = {ApJS}, volume = {220}, pages = {1}, year = {2015},
+  doi     = {10.1088/0067-0049/220/1/1}, eprint = {1505.01664}
+}
+@INPROCEEDINGS{dacosta1992,
+  author    = {Da Costa, G. S.}, title = {Basic Photometry Techniques},
+  booktitle = {Astronomical CCD Observing and Reduction Techniques}, editor = {Howell, S. B.},
+  series    = {ASP Conf. Ser.}, volume = {23}, pages = {90}, year = {1992},
+  note      = {ADS bibcode 1992ASPC...23...90D; primary source for MMM}
+}
+@ARTICLE{stetson1987daophot,
+  author  = {Stetson, P. B.}, title = {DAOPHOT --- A Computer Program for Crowded-Field Stellar Photometry},
+  journal = {PASP}, volume = {99}, pages = {191--222}, year = {1987}, doi = {10.1086/131977}
+}
+@ARTICLE{huber1964,
+  author  = {Huber, P. J.}, title = {Robust Estimation of a Location Parameter},
+  journal = {Annals of Mathematical Statistics}, volume = {35}, pages = {73--101}, year = {1964},
+  doi     = {10.1214/aoms/1177703732}
+}
+@ARTICLE{popowicz2015background,
+  author  = {Popowicz, A. and Smolka, B.}, title = {A method of complex background estimation in astronomical images},
+  journal = {MNRAS}, volume = {452}, pages = {809--823}, year = {2015}, doi = {10.1093/mnras/stv1320}
+}
+@MISC{swarp,
+  author = {Bertin, E.}, title = {SWarp},
+  url = {https://www.astromatic.net/software/swarp/},
+  note = {ASCL ID unverified; AstrOmatic 2009-06-02 news item warns about weight-map misuse}
+}
+@MISC{astropy_sigmaclip,
+  author = {{Astropy Collaboration}}, title = {astropy.stats.sigma_clipped_stats},
+  url = {https://docs.astropy.org/en/stable/api/astropy.stats.sigma_clipped_stats.html}
+}
+@INPROCEEDINGS{bertin2011psfex,
+  author    = {Bertin, E.}, title = {Automated Morphometry with SExtractor and PSFEx},
+  booktitle = {ASP Conf. Ser.}, volume = {442}, pages = {435}, year = {2011},
+  note      = {ADS 2011ASPC..442..435B; no DOI found}
+}
+@MISC{tractor,
+  author = {Lang, D. and Hogg, D. W. and Mykytyn, D.}, title = {The Tractor},
+  url = {https://thetractor.org/}, note = {ASCL ID unverified}
+}
+@ARTICLE{melchior2018scarlet,
+  author  = {Melchior, P. and Moolekamp, F. and Jerdee, M. and others},
+  title   = {scarlet: Source separation in multi-band images by Constrained Matrix Factorization},
+  journal = {Astronomy and Computing}, volume = {24}, pages = {129--142}, year = {2018},
+  doi     = {10.1016/j.ascom.2018.07.001}, eprint = {1802.10157}
+}
+@ARTICLE{anderson2000epsf,
+  author  = {Anderson, J. and King, I. R.},
+  title   = {Toward High-Precision Astrometry with WFPC2. I. Deriving an Accurate Point-Spread Function},
+  journal = {PASP}, volume = {112}, pages = {1360--1382}, year = {2000}, doi = {10.1086/316632}
+}
+@ARTICLE{dolphin2000hstphot,
+  author  = {Dolphin, A. E.}, title = {WFPC2 Stellar Photometry with HSTphot},
+  journal = {PASP}, volume = {112}, pages = {1383--1396}, year = {2000}, doi = {10.1086/316630}
+}
+@MISC{photutils_psf,
+  author = {{Astropy Collaboration}}, title = {photutils PSF Photometry},
+  url = {https://photutils.readthedocs.io/en/stable/user_guide/psf.html}
+}
+@ARTICLE{moffat1969,
+  author  = {Moffat, A. F. J.},
+  title   = {A Theoretical Investigation of Focal Stellar Images in the Photographic Emulsion and Application to Photographic Photometry},
+  journal = {A&A}, volume = {3}, pages = {455}, year = {1969},
+  note    = {ADS 1969A&A.....3..455M; page range not verified}
+}
+@ARTICLE{gorski2005healpix,
+  author  = {G{\'o}rski, K. M. and Hivon, E. and Banday, A. J. and others},
+  title   = {HEALPix: A Framework for High-Resolution Discretization and Fast Analysis of Data Distributed on the Sphere},
+  journal = {ApJ}, volume = {622}, pages = {759--771}, year = {2005}, doi = {10.1086/427976}
+}
+@ARTICLE{zonca2019healpy,
+  author  = {Zonca, A. and Singer, L. and Lenz, D. and others},
+  title   = {healpy: equal area pixelization and spherical harmonics transforms for data on the sphere in Python},
+  journal = {JOSS}, volume = {4}, pages = {1298}, year = {2019}, doi = {10.21105/joss.01298}
+}
+@ARTICLE{eilers1996pspline,
+  author  = {Eilers, P. H. C. and Marx, B. D.}, title = {Flexible smoothing with B-splines and penalties},
+  journal = {Statistical Science}, volume = {11}, pages = {89--121}, year = {1996}, doi = {10.1214/ss/1038425655}
+}
+@BOOK{rasmussen2006gpml,
+  author = {Rasmussen, C. E. and Williams, C. K. I.}, title = {Gaussian Processes for Machine Learning},
+  publisher = {MIT Press}, year = {2006}, doi = {10.7551/mitpress/3206.001.0001}, isbn = {0-262-18253-X},
+  note = {predictive covariance form; equation number not verified}
+}
+@ARTICLE{foremanmackey2017celerite,
+  author  = {Foreman-Mackey, D. and Agol, E. and Ambikasaran, S. and Angus, R.},
+  title   = {Fast and Scalable Gaussian Process Modeling with Applications to Astronomical Time Series},
+  journal = {AJ}, volume = {154}, pages = {220}, year = {2017}, doi = {10.3847/1538-3881/aa9332}
+}
+@ARTICLE{candes2006robust,
+  author  = {Cand{\`e}s, E. J. and Romberg, J. and Tao, T.},
+  title   = {Robust uncertainty principles: exact signal reconstruction from highly incomplete frequency information},
+  journal = {IEEE Trans. Inf. Theory}, volume = {52}, pages = {489--509}, year = {2006}, doi = {10.1109/TIT.2005.862083}
+}
+@ARTICLE{candes2006nearoptimal,
+  author  = {Cand{\`e}s, E. J. and Tao, T.},
+  title   = {Near-Optimal Signal Recovery From Random Projections: Universal Encoding Strategies?},
+  journal = {IEEE Trans. Inf. Theory}, volume = {52}, pages = {5406--5425}, year = {2006}, doi = {10.1109/TIT.2006.885507}
+}
+@ARTICLE{candes2008intro,
+  author  = {Cand{\`e}s, E. J. and Wakin, M. B.}, title = {An Introduction To Compressive Sampling},
+  journal = {IEEE Signal Processing Magazine}, volume = {25}, pages = {21--30}, year = {2008}, doi = {10.1109/MSP.2007.914731}
+}
+@ARTICLE{marinucci2008needlets,
+  author  = {Marinucci, D. and Pietrobon, D. and Balbi, A. and others},
+  title   = {Spherical needlets for cosmic microwave background data analysis},
+  journal = {MNRAS}, volume = {383}, pages = {539--545}, year = {2008}, doi = {10.1111/j.1365-2966.2007.12550.x}
+}
+@ARTICLE{shannon1949,
+  author  = {Shannon, C. E.}, title = {Communication in the Presence of Noise},
+  journal = {Proceedings of the IRE}, volume = {37}, pages = {10--21}, year = {1949}, doi = {10.1109/JRPROC.1949.232969}
+}
+@ARTICLE{schlafly2012ps1,
+  author  = {Schlafly, E. F. and Finkbeiner, D. P. and Juri{\'c}, M. and others},
+  title   = {Photometric Calibration of the First 1.5 Years of the Pan-STARRS1 Survey},
+  journal = {ApJ}, volume = {756}, pages = {158}, year = {2012}, doi = {10.1088/0004-637X/756/2/158}
+}
+@ARTICLE{burke2018descal,
+  author  = {Burke, D. L. and Rykoff, E. S. and Allam, S. and others},
+  title   = {Forward Global Photometric Calibration of the Dark Energy Survey},
+  journal = {AJ}, volume = {155}, pages = {41}, year = {2018},
+  doi     = {10.3847/1538-3881/aa9f22}, eprint = {1706.01542}
+}
+@ARTICLE{tonry2012ps1phot,
+  author  = {Tonry, J. L. and Stubbs, C. W. and Lykke, K. R. and others},
+  title   = {The Pan-STARRS1 Photometric System},
+  journal = {ApJ}, volume = {750}, pages = {99}, year = {2012}, doi = {10.1088/0004-637X/750/2/99}
+}
+@ARTICLE{stubbs2006onepercent,
+  author  = {Stubbs, C. W. and Tonry, J. L.}, title = {Toward 1% Photometry: End-to-End Calibration of Astronomical Telescopes and Detectors},
+  journal = {ApJ}, volume = {646}, pages = {1436--1444}, year = {2006}, doi = {10.1086/505138}
+}
+@ARTICLE{gaia2023xp,
+  author  = {{Gaia Collaboration} and Montegriffo, P. and Bellazzini, M. and others},
+  title   = {Gaia Data Release 3: The Galaxy in your preferred colours. Synthetic photometry from Gaia low-resolution spectra},
+  journal = {A&A}, volume = {674}, pages = {A33}, year = {2023},
+  doi     = {10.1051/0004-6361/202243709}, eprint = {2206.06215}
+}
+@ARTICLE{riello2021gaiaedr3,
+  author  = {Riello, M. and De Angeli, F. and Evans, D. W. and others},
+  title   = {Gaia Early Data Release 3: Photometric content and validation},
+  journal = {A&A}, volume = {649}, pages = {A3}, year = {2021}, doi = {10.1051/0004-6361/202039587}
+}
+@ARTICLE{evans2018gaiadr2,
+  author  = {Evans, D. W. and Riello, M. and De Angeli, F. and others},
+  title   = {Gaia Data Release 2: Photometric content and validation},
+  journal = {A&A}, volume = {616}, pages = {A4}, year = {2018}, doi = {10.1051/0004-6361/201832756}
+}
+@ARTICLE{gaia2023summary,
+  author  = {{Gaia Collaboration} and Drimmel, R. and Romero-G{\'o}mez, M. and others},
+  title   = {Gaia Data Release 3: Summary of the content and survey properties},
+  journal = {A&A}, volume = {674}, pages = {A37}, year = {2023}, doi = {10.1051/0004-6361/202243797}
+}
+@ARTICLE{jacob2010montage,
+  author  = {Jacob, J. C. and Katz, D. S. and Berriman, G. B. and others},
+  title   = {Montage: a grid portal and software toolkit for science-grade astronomical image mosaicking},
+  year    = {2010}, eprint = {1005.4454}
+}
+@ARTICLE{ku1966,
+  author  = {Ku, H. H.}, title = {Notes on the use of propagation of error formulas},
+  journal = {Journal of Research of the National Bureau of Standards}, volume = {70C}, pages = {263}, year = {1966},
+  doi     = {10.6028/jres.070c.025}
+}
+@ARTICLE{hogg2010fitting,
+  author = {Hogg, D. W. and Bovy, J. and Lang, D.}, title = {Data analysis recipes: Fitting a model to data},
+  year = {2010}, eprint = {1008.4686}
+}
+@ARTICLE{andrae2010chisq,
+  author = {Andrae, R. and Schulze-Hartung, T. and Melchior, P.}, title = {Dos and don'ts of reduced chi-squared},
+  year = {2010}, eprint = {1012.3754}
+}
+@MISC{gsl_nls,
+  author = {{GSL Team}}, title = {GNU Scientific Library Reference Manual: Nonlinear Least-Squares Fitting},
+  url = {https://www.gnu.org/software/gsl/doc/html/nls.html},
+  note = {section: Covariance matrix of best fit parameters}
+}
+@BOOK{ivezic2014statistics,
+  author = {Ivezi{\'c}, {\v{Z}}. and Connolly, A. J. and VanderPlas, J. T. and Gray, A.},
+  title = {Statistics, Data Mining, and Machine Learning in Astronomy},
+  publisher = {Princeton University Press}, year = {2014},
+  doi = {10.23943/princeton/9780691151687.001.0001}
+}
+
+% ===== P1-SPATIAL-GAIN (Phase1 低阶空间乘法增益) =====
+
+@ARTICLE{Padmanabhan2008,
+  author  = {Padmanabhan, Nikhil and Schlegel, David J. and Finkbeiner, Douglas P. and others},
+  title   = {An Improved Photometric Calibration of the Sloan Digital Sky Survey Imaging Data},
+  journal = {The Astrophysical Journal}, year = {2008}, volume = {674}, pages = {1217},
+  doi     = {10.1086/524677}, eprint = {astro-ph/0703454}, archivePrefix = {arXiv},
+  note    = {reverse_verify P1SG-R1; 核对: arXiv API 标题/作者/摘要}
+}
+
+@ARTICLE{Burke2018,
+  author  = {Burke, D. L. and Rykoff, E. S. and Allam, S. and others},
+  title   = {Forward Global Photometric Calibration of the Dark Energy Survey},
+  journal = {The Astronomical Journal}, year = {2018}, volume = {155}, pages = {41},
+  eprint  = {1706.01542}, archivePrefix = {arXiv},
+  note    = {reverse_verify P1SG-R2; 核对: arXiv API 标题/作者/摘要}
+}
+
+@MISC{Murphy2019PMM,
+  author       = {Murphy, John},
+  title        = {PhotometricMosaic, Version 1.0},
+  year         = {2019},
+  howpublished = {PixInsight script; official site https://astroprocessing.com/ (URL 可达性未核)},
+  note         = {reverse_verify P1SG-R3; 核对: 本地源码 run/RELEASE-02/pmosaic/PhotometricMosaic/ 头部逐字}
+}
+
