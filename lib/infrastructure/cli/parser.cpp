@@ -292,6 +292,11 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         //   由 p1_op_noise 消费; 缺失 = 未知 gain/ZP (天空受限最优提取,
         //   m_5 = null)。不放宽任何既有键校验。
         "snr",
+        // FIX-P1 (RELEASE-02): 测光归一化配置块 (photometry.fit.enabled/
+        //   gaia_data_dir/filter/filters_json/qe_json/qe_name/max_stars),
+        //   由 p1_op_photometry 消费 (I_photo=k_photo*I_cal, 02_FROZEN §7)。
+        //   缺失 = 不施加 (如实中性 applied=false, 不伪造 1.0)。
+        "photometry",
         // phase2 平铺 (p2_session / canonical P2 节点链 消费面)
         // B1-A4: 节点实际消费键必须可达, 否则配置被 parser 拒绝而链路不可闭合。
         // 节点侧键集（module_adapters P2NodeModule::validate_config + op 读取）:

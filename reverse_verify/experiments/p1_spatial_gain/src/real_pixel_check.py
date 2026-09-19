@@ -56,8 +56,10 @@ def aperture_sum(img, xs, ys, r=6.0, rin=10.0, rout=16.0, chunk=3000):
 
 
 def binned_ptp(x, y, z, nb=8, minn=4):
+    """返回 (峰峰值 dex, 分箱图, 中位每箱星数). 分箱中位数的噪声底 = sigma_z/sqrt(n_bin);
+    分箱图峰峰值本身含噪声, 星数少时必须与噪声底比较 (见 report §3.4)。"""
     if len(x) < nb * nb * minn:
-        return float('nan'), None
+        return float('nan'), None, 0.0
     xb = np.linspace(x.min(), x.max(), nb + 1); yb = np.linspace(y.min(), y.max(), nb + 1)
     xi = np.clip(np.digitize(x, xb) - 1, 0, nb - 1); yi = np.clip(np.digitize(y, yb) - 1, 0, nb - 1)
     M = np.full((nb, nb), np.nan)
@@ -67,9 +69,11 @@ def binned_ptp(x, y, z, nb=8, minn=4):
             if m.sum() >= minn:
                 M[a, b] = np.median(z[m])
     v = M[np.isfinite(M)]
+    cnt = np.array([[int(((xi == a) & (yi == b)).sum()) for b in range(nb)] for a in range(nb)])
+    med_cnt = float(np.median(cnt[M.reshape(-1).shape[0:] == M.reshape(-1).shape[0:]])) if False else float(np.median(cnt))
     if v.size < 4:
-        return float('nan'), M
-    return float(v.max() - v.min()), M
+        return float('nan'), M, med_cnt
+    return float(v.max() - v.min()), M, med_cnt
 
 
 def pick_pairs(res, n_pairs):
@@ -118,18 +122,26 @@ def main():
         xm = 0.5 * (A.x[i2] + B.x[j2]); ym = 0.5 * (A.y[i2] + B.y[j2])
         rec = {"kind": r['kind'], "labelA": A.label, "labelB": B.label, "n": int(len(z)),
                "z_median_mag": float(-2.5 * np.median(z)), "orders": {}}
-        z0 = z - np.median(z)
-        p0, _ = binned_ptp(xm, ym, z0)
-        rec["before"] = dict(ptp8x8_pct=float((10 ** p0 - 1) * 100), ptp8x8_mag=float(2.5 * p0))
+        z0 = z - np.median(z0 := z - np.median(z))
+        sig_z = 1.482602218505602 * np.median(np.abs(z0 - np.median(z0)))
+        rec["sigma_z_pct"] = float((10 ** float(sig_z) - 1) * 100)
+        for nb in (3, 8):
+            p0, _, c0 = binned_ptp(xm, ym, z0, nb=nb)
+            rec["before_nb%d" % nb] = dict(
+                ptp_pct=float((10 ** p0 - 1) * 100), ptp_mag=float(2.5 * p0),
+                median_stars_per_bin=c0,
+                noise_floor_pct=float((10 ** float(sig_z / math.sqrt(max(c0, 1))) - 1) * 100))
         for tau in TAUS:
             for o in (1, 2):
                 c = fits_[(tau, o)]
                 mdl = (R.surf_at(A, c[idx_of[A.label]], o, A.x[i2], A.y[i2])
                        - R.surf_at(B, c[idx_of[B.label]], o, B.x[j2], B.y[j2]))
                 zc = z - mdl; zc = zc - np.median(zc)
-                p, _ = binned_ptp(xm, ym, zc)
-                rec["orders"]["tau%s_o%d" % (tau, o)] = dict(
-                    ptp8x8_pct=float((10 ** p - 1) * 100), ptp8x8_mag=float(2.5 * p))
+                for nb in (3, 8):
+                    p, _, c0 = binned_ptp(xm, ym, zc, nb=nb)
+                    rec["orders"]["tau%s_o%d_nb%d" % (tau, o, nb)] = dict(
+                        ptp_pct=float((10 ** p - 1) * 100), ptp_mag=float(2.5 * p),
+                        median_stars_per_bin=c0)
         # ---- 真正乘像素: A 帧乘 10^-surf_A, B 帧乘 10^-surf_B (tau=0.005, order=1) ----
         tau, o = 0.005, 1
         c = fits_[(tau, o)]
@@ -140,14 +152,20 @@ def main():
         gA = aperture_sum(imgA, A.x[i2], A.y[i2]); gB = aperture_sum(imgB, B.x[j2], B.y[j2])
         ok2 = np.isfinite(gA) & np.isfinite(gB) & (gA > 0) & (gB > 0)
         z2 = np.log10(gA[ok2] / gB[ok2]); z2 = z2 - np.median(z2)
-        p2, _ = binned_ptp(xm[ok2], ym[ok2], z2)
-        rec["pixel_applied"] = dict(tau=tau, order=o, n=int(ok2.sum()),
-                                    ptp8x8_pct=float((10 ** p2 - 1) * 100), ptp8x8_mag=float(2.5 * p2))
+        pa = {}
+        for nb in (3, 8):
+            p2, _, c0 = binned_ptp(xm[ok2], ym[ok2], z2, nb=nb)
+            pa["ptp_nb%d_pct" % nb] = float((10 ** p2 - 1) * 100)
+        rec["pixel_applied"] = dict(tau=tau, order=o, n=int(ok2.sum()), **pa)
         del imgA, imgB
         out.append(rec)
-        print("  %-16s %-26s x %-26s n=%4d before=%6.3f%% o1(tau.005)=%6.3f%% pixel-applied=%6.3f%%" % (
-            rec['kind'], A.label[:26], B.label[:26], rec['n'], rec['before']['ptp8x8_pct'],
-            rec['orders']['tau0.005_o1']['ptp8x8_pct'], rec['pixel_applied']['ptp8x8_pct']))
+        print("  %-16s n=%4d | 3x3 before=%6.3f%% o1=%6.3f%% o2=%6.3f%% (floor %5.3f%%) | 8x8 before=%6.3f%% o1=%6.3f%% o2=%6.3f%% (floor %5.3f%%) | pixel-applied 3x3=%6.3f%% 8x8=%6.3f%%" % (
+            rec['kind'], rec['n'],
+            rec['before_nb3']['ptp_pct'], rec['orders']['tau0.005_o1_nb3']['ptp_pct'],
+            rec['orders']['tau0.005_o2_nb3']['ptp_pct'], rec['before_nb3']['noise_floor_pct'],
+            rec['before_nb8']['ptp_pct'], rec['orders']['tau0.005_o1_nb8']['ptp_pct'],
+            rec['orders']['tau0.005_o2_nb8']['ptp_pct'], rec['before_nb8']['noise_floor_pct'],
+            rec['pixel_applied']['ptp_nb3_pct'], rec['pixel_applied']['ptp_nb8_pct']))
         sys.stdout.flush()
 
     with open(os.path.join(DATA, "real_pixel_check.json"), "w") as fh:
