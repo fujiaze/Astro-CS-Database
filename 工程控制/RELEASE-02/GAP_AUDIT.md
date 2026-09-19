@@ -525,3 +525,60 @@ until converge
 **⇒ 修复方向（取代先前的 `g_k` 接线）**：把校正的 formulation 从「相对参考帧」改为「加权叠加平滑」：
 ① `ref(p)` 用**其他帧加权平均**（排除自身）；② gauge 改**全局加权均值为零**；
 ③ 拟合按 **SNR 加权**并把不确定度传播进 `ref`/`g_i`；④ `corrected = pixel − g_i`（**减法**）。
+### 9.22 **PhotometricMosaic (PMM) 源码研读**（负责人上传 `PhotometricMosaic.zip` → `run/RELEASE-02/pmosaic/`）
+
+**⚠️ 负责人对 9.21 的再更正**：那份《马赛克叠加梯度建模计划.md》是**很久以前的最初设想，不一定对**，需重新研究。
+以 **PMM 实际源码**为准（`PhotometricMosaic/lib/`，PixInsight JS，17755 行）。
+
+**PMM 真实算法（逐行核对）**：
+
+```js
+// lib/SampleGrid.js:23
+function SamplePair(targetMedian, referenceMedian, rect){
+    this.targetMedian = targetMedian;
+    this.referenceMedian = referenceMedian;
+    this.weight = 1;                                   // 权重（bin 内样本数）
+    this.getDifference = () => this.targetMedian - this.referenceMedian;
+}
+
+// lib/SampleGrid.js:39  —— 乘性 scale 先作用在 target 上（来自星测光）
+function applyScaleToSamplePairs(samplePairs, scale){
+    ... new SamplePair(samplePair.targetMedian * scale, samplePair.referenceMedian, rect) ...
+}
+
+// lib/Gradient.js:206 —— 对差值做加权曲面样条拟合（加性梯度）
+function calcSurfaceSpline(samplePairs, logSmoothing){
+    zVector.at(i, samplePair.getDifference());          // z = tgt*scale − ref
+    wVector.at(i, samplePair.weight);
+    ss.smoothing = Math.pow(10.0, logSmoothing);
+    ss.initialize(xVector, yVector, zVector, wVector);
+}
+```
+
+**⇒ 乘性与加性严格分离**：
+1. **乘性 scale `s`**：来自**星测光**，**先作用在 target 中位数上**（`tgtMedian * scale`）；
+2. **加性梯度 `g`**：对 `tgt*scale − ref` 做**曲面样条**拟合，**叠加时减去**。
+
+**⇒ 负责人判断得到源码印证**：「加法是足以解决的」—— 因为**乘性部分由测光 scale 独立解决**，
+梯度是**纯加性**、只需**减法**。
+
+**样本构造（`SampleGrid.js`）**：
+- 在 overlap 区按 `sampleSize` 分 bin；每 bin 取 `targetMedian` / `referenceMedian`；
+- **星拒绝**：`removeBinRectWithStars` —— 按星 flux 算拒绝半径（`calcSampleStarRejectionRadius`，含 `growthRate`），
+  落在圆内的 bin 整个丢弃（`removeBinsInCircle`）；`limitSampleStarsPercent` 控制只拒绝最亮的前 N%；
+- **黑点拒绝**：bin 内任何通道含 0 值 ⇒ 丢弃（`addBinRect` 的判据）；
+- 手动拒绝圆 `manualRejectionCircles`；
+- bin 合并时 `weight = insideBin.length`（**样本数**）。
+
+**与 AstroCS 的差异（N 帧）**：
+| 维度 | PMM | AstroCS 需要的 |
+|---|---|---|
+| 帧数 | 2 帧（ref + tgt） | **N 帧**（L4 每板块 8–9 帧） |
+| 参考场 | **单个 ref 帧** | **其他帧的加权组合**（「真实信号面」） |
+| 权重 | bin 内样本数 | **SNR**（各帧 SNR 不同；设计文档亦如此要求） |
+| 空间基 | 平面曲面样条 | 球面（HEALPix） |
+
+**⇒ 待研究/待定的核心问题（负责人指出的方向）**：
+1. **如何提取「真实信号面」**：N 帧情形下，参考场应如何由**其他帧**构造（加权平均？SNR 加权？迭代？）；
+2. **信噪比如何正确传播进该面**：使**高 SNR 帧不被降权**（`var(信号面) = 1/Σw`，并含拟合参数不确定度）；
+3. **减法去天光**：`corrected = pixel − g_i`（PMM 的做法；乘性 scale 已在 Phase1 应用）。
