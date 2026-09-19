@@ -582,3 +582,54 @@ function calcSurfaceSpline(samplePairs, logSmoothing){
 1. **如何提取「真实信号面」**：N 帧情形下，参考场应如何由**其他帧**构造（加权平均？SNR 加权？迭代？）；
 2. **信噪比如何正确传播进该面**：使**高 SNR 帧不被降权**（`var(信号面) = 1/Σw`，并含拟合参数不确定度）；
 3. **减法去天光**：`corrected = pixel − g_i`（PMM 的做法；乘性 scale 已在 Phase1 应用）。
+### 9.23 **不确定度传播审计（UNC-PROP）—— 方差根本没传播，高 SNR 帧被降权**
+
+**① 现状：完全没有传播方差**
+- 生产 `p2_op_upm_apply`（`module_adapters.cpp:4731-5037`）：`corrected=(raw−C_k)−δ_k`，**只写值**；
+  `p2_corrected.json` 键集**无任何 variance/ivar/sigma 字段**；`p2_upm_calibrate_block` 无方差出参；
+- 参考路径 `stage2.cpp:1089/:1460` 的 `out_v[i] /= gain` **只作用于值**；权重取自**与 gain 无关**的
+  `local_ivar_map`/`local_snr_map`/`frame_snr`；全 `stage2.cpp` **无 `p2_upm_ma_param_cov`/`c_out`（0 处）**；
+- 加性参数协方差：生产只建 W2 模型（无协方差 API）；`C_theta` 只在 v6 诊断路径用，且作用于模型预测而非归一化像素、**不除 g²**；
+- 生产 reject 用 `median+MAD`，**不用** `sigma_eff² = sigma_phase1² + J C_theta J^T`；
+- **流向**：integrate 权重 `w=Phase1 IVAR` 或 `w=SNR²/F_ref²`，**都与 `corrected` 无关**；
+  输出 `uncertainty_available=false`。**归一化后方差从未计算，被归一化前的权重面整体替换。**
+
+**② 高 SNR 帧确实被降权（Oracle 量化）**
+参考路径：`corrected=y/g`，正确 `Var=σ_y²/g² + J_out C_θ J_outᵀ`，**代码用 `Var=σ_y²`**。
+（良态 P=40；帧0 g=1 σ=2.0，帧1 g=2 σ=2.6）：
+
+| 量 | 值 |
+|---|---|
+| `w0` | 0.250 |
+| `w1` **正确** | 0.4468 |
+| `w1` **实际使用** | 0.1479 |
+| **used/correct** | **0.331**（纯乘性 `1/g²`=0.25） |
+| **权重排序** | **翻转**（正确 `w1/w0=1.79>1`，实际 `0.59<1`） |
+
+g 扫描：g=1.25→0.759；**g=1.5→0.544（翻转）**；g=2→0.331（翻转）；g=3→0.179（翻转）。
+⇒ **高响应帧被压低到约 `1/g_k²`，排序可翻转。**
+生产 scheme B（无 g）缺参数项、方向相反：良态 **高估 44%**，病态（P=4）**高估 50×**。
+
+**③ 正确公式**
+```
+corrected_k(p) = (y_k − C_k(p) − δ_k(p)) / g_k
+Var(corrected_k(p)) = [ σ²_{y,k}(p) + J_out,k C_θ J_out,kᵀ ] / g_k²
+  J_out = ∂corrected/∂θ = [ −(1/g_k)∂C_k/∂s_j , −corrected_k/g_k (g_k) , −1/g_k (b_k) , 0 ]
+  C_θ = (J^T W J)^{-1}（gauge 消除子空间）；C_out = C_stat + J_out C_θ J_outᵀ；
+  **禁 1/W_psfsw、禁由权重反推 variance**
+w_k(p) = 1 / Var(corrected_k(p))
+```
+因为 `w` 是归一化方差的**严格递减函数** ⇒ **权重序 ≡ 归一化 SNR 序**（由构造保证）。
+⇒ **这正是负责人要求的「不能把高信噪比帧归一化后等效权重降低」。**
+
+**④ 最小改动面**
+- **M1**：`stage2.cpp:1089/:1460` 除以 gain 后，该样本方差须 `/gain²`（等价权重 `×gain²`）；
+  生产 scheme B 无 g，**当前不需要 M1**；一旦接 `g_k`，`upm-apply` 须产出 `var/g²` 且 integrate 消费；
+- **M2（合同要求）**：参考路径在 `stage2.cpp:567` 关 MA 模型前调 `p2_upm_ma_param_cov` 算 `J_out C_θ J_outᵀ`
+  加入逐样本方差；生产需给 W2 加协方差 API（或改用 MA）—— **非最小改动，须裁决**；
+  过渡期保持 `uncertainty_available=false`，**不得声称逆方差加权**；
+- **M3**：Phase1 写侧须给整组**同一公共 `F_ref`**（`snr_frame_science.cpp:174` 已要求，L4 数据违反）；
+  SNR 链若配 `/g_k` 须 `w = SNR²/F_ref²·g_k²`。
+
+**⑤ 权重链接口**：`compute_inverse_variance_weights` 产 `w=SNR²/F_ref²`（帧级常数）与归一化逐像素方差**当前不一致**；
+建议 priority1 逐像素 `w=1/Var(corrected)`；priority2 帧级 `w=SNR²/F_ref²·g_k²`（`FrameWeightInput` 增可空 gain），缺一 fail-closed。

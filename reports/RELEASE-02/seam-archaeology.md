@@ -144,7 +144,7 @@
 ```
 
 判据链（全部 file:line）：
-1. `upm.cpp:559` `p2_upm_raw_weight(use_ivar_weight=1)` 返回 `quality × control_ivar`（`upm.cpp:1355-1361`），生产 ≈ 1e-22；
+1. `upm.cpp:559` `p2_upm_raw_weight(use_ivar_weight=1)` 返回 `quality × control_ivar`（`upm.cpp:1348`），生产 ≈ 1e-22；
 2. `upm.cpp:567-573` per-control 归一化：`if (sums[ck] > 1e-12) … else raw_w[i]=0.0;` ⇒ **全部 0**；
 3. `upm.cpp:626-660` `w[i] = raw_w[i]×huber_w` ⇒ 0；
 4. M 更新 `upm.cpp:710/719/744/761` `den > 1e-12` 恒假 ⇒ **M 保持 0**；
@@ -231,6 +231,7 @@
 | `check_upm_degeneracy.py` / `.log` | 生产 UPM 退化复现（M=0/C=0/objective=0 + 权重尺度 vs 1e-12） |
 | `run_gates.sh` / `run_gates.log` | 4 道接缝门复跑（G1–G4 全 PASS） |
 | `git_archaeology.sh` / `.log` | 关键提交、守卫/权重/公式引入点、file:line 锚 |
+| `callset_diff.py` / `.log` | 生产调度路径 vs stage2 工具路径的 `p2_*` 调用集差异 |
 | 只读输入 | `run/RELEASE-02/L4-rebuild/{bitref_16w,bitref_1w,mosaic_out_w1,mosaic_out}/p2_upm_model.bin`、`p2_samples.json`、`p2_sky_plane.bin` |
 
 ## 6 诚实边界
