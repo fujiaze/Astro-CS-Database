@@ -1,0 +1,6 @@
+{
+  "schema": "astrocs.provenance-fixture/v1",
+  "photometry_applied": true,
+  "photscal": 1.23,
+  "bunit": "ASTROCS_RELATIVE_FLUX"
+}

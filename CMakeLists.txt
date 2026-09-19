@@ -447,9 +447,16 @@ add_library(astrocs_calibration STATIC
   lib/algorithms/calibration/src/calibrator.cpp
   lib/algorithms/calibration/src/master_generator.cpp
   lib/algorithms/calibration/src/cosmetic_corrector.cpp
+  # RELEASE-02 FIX-P1 (P1-1): apply_photometry（I_photo = k_photo·I_cal,
+  # 02_FROZEN_STAGE1_HISS_SPEC §7 历史锚 / docs/algorithms/CALIBRATION_ALGORITHMS.md §3.6）
+  # 此前只在测试 target 编译、生产零调用者 ⇒ Phase1 测光归一化从未应用到像素。
+  # 编入生产库后由 Phase1 photometry 节点调用（p1_op_photometry）。
+  lib/algorithms/calibration/src/photometry_apply.cpp
   lib/algorithms/calibration/src/ac_api.cpp)
 target_include_directories(astrocs_calibration PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/calibration/include
+  # FIX-P1: photometry_apply.h 供 Phase1 节点直接 include（扁平头名, 无冲突）
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/calibration/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include)
 target_link_libraries(astrocs_calibration PUBLIC astrocs_aio astrocs_common)
 # QA-001: calibrator/cosmetic_corrector/master_generator 含 omp pragma → -fopenmp
@@ -579,6 +586,31 @@ add_library(astrocs_phase1_phot STATIC lib/algorithms/photometry/wrapper_phase1/
 target_include_directories(astrocs_phase1_phot PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/wrapper_phase1 ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_phot PUBLIC astrocs_contracts)
+
+# RELEASE-02 FIX-P1 (P1-1): Phase1 测光定标生产库 astrocs_phase1_photcal
+# ----------------------------------------------------------------------------
+# 缺陷: 会做 I_photo=k_photo·I_cal 的 pc_calibrate_simple* 只在测试 target
+# (lib/algorithms/photometry/tests/p1phot/CMakeLists.txt:60-68) 编译; 生产
+# photometric_calib.dll 未编入根构建 ⇒ Phase1 节点取不到 star_matcher 的
+# Tukey-IRLS 标量。本目标把 5 个生产 TU 零 diff 编入主图（与 p1phot 测试
+# 同一组源），供 p1_op_photometry 经 frame_photometry_fit 调用。
+# gaia_client 符号由 astrocs_p1_ipv（已含 gaia_client.c）提供。
+add_library(astrocs_phase1_photcal STATIC
+  lib/algorithms/photometry/cpp/src/pc_api.cpp
+  lib/algorithms/photometry/cpp/src/star_matcher.cpp
+  lib/algorithms/photometry/cpp/src/wcs_transform.cpp
+  lib/algorithms/photometry/cpp/src/image_corrector.cpp
+  lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp
+  lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp)
+target_include_directories(astrocs_phase1_photcal PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/cpp/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/cpp/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(astrocs_phase1_photcal PUBLIC astrocs_contracts astrocs_p1_ipv)
+if(UNIX AND OpenMP_CXX_FOUND)
+  target_link_libraries(astrocs_phase1_photcal PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 # phase1 noise (P1-005 SCI-NOISE-001)
 # P8-SNR-LINUX (2026-09-14): Linux 生产路径 SNR 接线 —— 把 P5-SNR 唯一权威科学实现
@@ -799,7 +831,9 @@ add_library(astrocs_module_adapters STATIC
   # （w = SNR²/F_ref²; 纯 FP64 + std, 无第三方依赖）。直接编入本 target ——
   # 不链 astrocs_v6_phase2_integrate: 后者重复编译 upm/rejection/sampler/
   # coverage, 与本 target 已链的 astrocs_phase2 产生重复符号。
-  lib/algorithms/integration/v6/src/weight_chain.cpp)
+  lib/algorithms/integration/v6/src/weight_chain.cpp
+  # RELEASE-02 P2b: 残差制造者 PΣPᵀ 方差传播（纯 FP64 + std，无第三方依赖）。
+  lib/algorithms/integration/v6/src/variance_propagation.cpp)
 # B2-A10(宪章 §4.3): 节点 manifest 自报 module build ID = module_id@软件版本;
 # 版本单源 = 构建期 version_generated.h (与 CLI 共用同一生成头)。
 target_include_directories(astrocs_module_adapters PUBLIC
@@ -815,6 +849,9 @@ target_link_libraries(astrocs_module_adapters PUBLIC
   astrocs_core astrocs_common astrocs_contracts
   astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session
   astrocs_cpu astrocs_drizzle astrocs_p1_dpsf astrocs_p1_ipv astrocs_p1_sdet
+  # RELEASE-02 FIX-P1 (P1-1): Phase1 测光定标生产库 (star_matcher Tukey-IRLS
+  # → k_photo); 由 p1_op_photometry 经 frame_photometry_fit 调用。
+  astrocs_phase1_photcal
   # RELEASE-02 探针 (OFF 时仅 include 面, 零开销)
   astrocs_probes)
 # P1-001: 生产头 include 面（dynamic_psf/ipv/star_detector/aio_hips 直读）

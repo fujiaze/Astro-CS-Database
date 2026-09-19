@@ -96,6 +96,23 @@ inline float star_field_pixel(int i, void* user) {
 inline float const_pixel(int, void* user) {
   return *static_cast<float*>(user);
 }
+// RELEASE-02 FIX-REGRESS（B2-A14b 夹具）：测光已应用帧 = 原星场 × photscal
+// 的副本（等价 calibration::apply_photometry 的逐像素乘性结果）。生产
+// drizzle 在 p1_phot.json 声明 applied=true 时消费 photoapplied_<base>，
+// 缺失即 fail-closed；本夹具必须真实产出该帧，而不是放宽生产校验。
+struct ScaledStarField {
+  float bg;
+  float amp;
+  float scale;
+};
+inline float scaled_star_field_pixel(int i, void* user) {
+  auto* sf = static_cast<ScaledStarField*>(user);
+  const int x = i % kW, y = i / kW;
+  const double dx = static_cast<double>(x) - 16.0;
+  const double dy = static_cast<double>(y) - 16.0;
+  const double g = sf->amp * std::exp(-(dx * dx + dy * dy) / (2.0 * 1.5 * 1.5));
+  return sf->scale * (sf->bg + static_cast<float>(g));
+}
 
 struct Fixture {
   fs::path dir;
@@ -1220,6 +1237,15 @@ static void test_b2a14_photappl_provenance() {
       std::ofstream o(fx.out_dir + "/p1_phot.json", std::ios::binary);
       o << R"({"schema":"DATA-P1-PHOTPROV-001","node":"astrocs.phase1.photometry",)"
            R"("operation":"measure_flux","photometry_applied":true,"photscal":0.5,"pixel_scaling":"applied"})";
+    }
+    // FIX-REGRESS: applied=true ⇒ 必须真实产出逐帧 photoapplied_<base>
+    // （生产契约 fail-closed；旧夹具只写标量 photscal 是遗留缺陷）。
+    {
+      ScaledStarField ssf{100.0f, 5000.0f, 0.5f};
+      CHECK_MSG(p1sess::write_fits_file(
+                    fx.out_dir + "/photoapplied_light_1.fits", kW, kH,
+                    scaled_star_field_pixel, &ssf, 0, 60.0) == 0,
+                "B2-A14b: photoapplied_light_1.fits fixture write failed");
     }
     json meta = json::object();
     const bool ok = run_drz(fx, &meta);
@@ -2986,6 +3012,144 @@ static void test_p0_21_multi_frame_one_hips_per_input() {
   }
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════
+// RELEASE-02 FIX-P1 (P1-1): Phase1 测光归一化真正施加到像素 + 如实落元数据
+//   正例: p1_photscale.json 给已知 k_photo → p1_op_photometry 施加
+//         I_photo = k_photo·I_cal, 写 photoapplied_<base>, applied=true/photscal=k。
+//   负例1: 无 scale 来源 → applied=false, pixel_scaling="none", 不写 photoapplied。
+//   负例2: sidecar 只覆盖部分帧 → 不施加（部分归一化比不归一化更糟）。
+//   RED (修复前): 节点写死 applied=false/photscal=1.0 → 正例三条断言必红。
+// ══════════════════════════════════════════════════════════════════════════
+static void test_fixp1_photometry_apply() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const std::string src_json =
+      R"({"schema":"DATA-P1-SOURCES","frames":[{"file":"light_1.fits","sources":[{"id":"s1","x":16,"y":16}]}]})";
+  auto cfg_for = [](const Fixture& fx, const std::string& lights) {
+    return std::string(R"({"input_lights": [)") + lights + R"(],"output_dir": ")" +
+           fx.out_dir + R"("})";
+  };
+
+  // ── 正例: 已知 k_photo=0.5 施加 ────────────────────────────────────────
+  {
+    Fixture fx = make_fixture("fixp1apply");
+    RunContext ctx;
+    {
+      std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary);
+      o << src_json;
+    }
+    {
+      std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":0.5,"n_matched":7,"sigma_residual_dex":0.01,"source":"star_matcher_tukey_irls"}]})";
+    }
+    std::vector<float> orig;
+    {
+      AIOImageData* src = aio_read(fx.light1.c_str());
+      CHECK(src != nullptr);
+      if (src) {
+        const float* p = aio_get_pixel_data(src);
+        orig.assign(p, p + static_cast<size_t>(kW) * kH);
+        aio_free_image_data(src);
+      }
+    }
+    const std::string cfg = cfg_for(fx, "\"" + fx.light1 + "\"");
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "FIX-P1 POS: photometry with photscale sidecar must succeed");
+    CHECK_MSG(man.value("photometry_applied", false) == true,
+              "FIX-P1 POS: manifest photometry_applied must be true (was hardcoded false)");
+    CHECK_MSG(std::fabs(man.value("photscal", -1.0) - 0.5) < 1e-12,
+              "FIX-P1 POS: manifest photscal must equal applied k_photo=0.5");
+    const std::string apath = fx.out_dir + "/photoapplied_light_1.fits";
+    CHECK_MSG(fs::exists(fs::path(apath)), "FIX-P1 POS: photoapplied_<base> must exist");
+    if (!orig.empty() && fs::exists(fs::path(apath))) {
+      AIOImageData* ap = aio_read(apath.c_str());
+      CHECK(ap != nullptr);
+      if (ap) {
+        const float* q = aio_get_pixel_data(ap);
+        double maxerr = 0.0;
+        const size_t n = static_cast<size_t>(kW) * kH;
+        for (size_t i = 0; i < n; ++i)
+          maxerr = std::max(maxerr, std::fabs(static_cast<double>(q[i]) -
+                                             0.5 * static_cast<double>(orig[i])));
+        CHECK_MSG(maxerr < 1e-3,
+                  ("FIX-P1 POS: applied pixel == 0.5*orig, maxerr=" +
+                   std::to_string(maxerr)).c_str());
+        aio_free_image_data(ap);
+      }
+    }
+    {
+      json pj;
+      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
+      CHECK_MSG(pj.value("photometry_applied", false) == true,
+                "FIX-P1 POS: p1_phot.json photometry_applied=true");
+      CHECK_MSG(pj.value("pixel_scaling", std::string()) == "applied",
+                "FIX-P1 POS: p1_phot.json pixel_scaling=applied");
+      CHECK_MSG(pj.contains("photscales") && pj["photscales"].is_object(),
+                "FIX-P1 POS: p1_phot.json carries per-frame photscales");
+    }
+    cleanup_fixture(fx);
+  }
+
+  // ── 负例1: 无 scale 来源 → 不施加（中性且如实） ────────────────────────
+  {
+    Fixture fx = make_fixture("fixp1neg");
+    RunContext ctx;
+    {
+      std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary);
+      o << src_json;
+    }
+    const std::string cfg = cfg_for(fx, "\"" + fx.light1 + "\"");
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "FIX-P1 NEG: photometry without scale source must still succeed");
+    CHECK_MSG(man.value("photometry_applied", false) == false,
+              "FIX-P1 NEG: no scale source → photometry_applied=false");
+    CHECK_MSG(std::fabs(man.value("photscal", -1.0) - 1.0) < 1e-12,
+              "FIX-P1 NEG: neutral photscal=1.0");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "FIX-P1 NEG: no photoapplied artifact when nothing applied");
+    {
+      json pj;
+      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
+      CHECK_MSG(pj.value("pixel_scaling", std::string()) == "none",
+                "FIX-P1 NEG: pixel_scaling=none");
+      CHECK_MSG(pj.value("degraded_reason", std::string()) == "photscale_absent",
+                "FIX-P1 NEG: degraded_reason=photscale_absent (no silent claim)");
+    }
+    cleanup_fixture(fx);
+  }
+
+  // ── 负例2: sidecar 只覆盖 1/2 帧 → 整组不施加 ──────────────────────────
+  {
+    Fixture fx = make_fixture("fixp1part");
+    RunContext ctx;
+    {
+      std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-SOURCES","frames":[{"file":"light_1.fits","sources":[{"id":"s1","x":16,"y":16}]},{"file":"light_2.fits","sources":[{"id":"s2","x":16,"y":16}]}]})";
+    }
+    {
+      std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":0.5}]})";
+    }
+    const std::string cfg =
+        cfg_for(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "FIX-P1 PART: photometry with partial scales must succeed");
+    CHECK_MSG(man.value("photometry_applied", false) == false,
+              "FIX-P1 PART: incomplete scales → refuse to apply (no half-normalized set)");
+    CHECK_MSG(man.value("photscale_source", std::string()) == "photscale_sidecar",
+              "FIX-P1 PART: source provenance still recorded");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "FIX-P1 PART: no partial applied frame 1");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_2.fits")),
+              "FIX-P1 PART: no partial applied frame 2");
+    cleanup_fixture(fx);
+  }
+}
+
 int main() {
   test_nodes_real_operation();
   test_runtime_chain_call_count_1();
@@ -2997,6 +3161,8 @@ int main() {
   test_b2a13_dark_scale_from_exptime();
   test_b2a14_photappl_provenance();
   test_b2a16_photometry_fail_closed();
+  // RELEASE-02 FIX-P1: Phase1 测光归一化真正施加 + 如实元数据
+  test_fixp1_photometry_apply();
   test_b2a15_writer_stale_buffer_and_support();
   test_b2a15_ghost_discontinuous_multiparent();
   // IVAR-001: Phase1 生产末端 variance/ivar 子产品 (§12.1/§12.2) + 注入面

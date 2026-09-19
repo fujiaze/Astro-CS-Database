@@ -63,6 +63,13 @@
 | RESOURCE-GATE-REAL-NEG | 资源 | 上项的可执行负例面（串行注入 ⇒ 门必须判红） | `python3 tools/quality/check_resource_gate_real.py --fault-inject serial --seconds 20` | P0 |
 | CHK-KNOWN-FAILURES-BASELINE | 测试 | 版本化已知失败基线门（聚合型，linux-main 末位） | `python3 ci/run_checks.py --check CHK-KNOWN-FAILURES-BASELINE --quiet` | P1 |
 | CHK-IMPACT-MAP | 治理 | `ci/impact_map.json` 判据一致性（id 两层闭包 / fast 候选 / BASE 核心 / 路径域锚存活与覆盖 / 无退役引用 / 结构完整） | `python3 ci/run_checks.py --check CHK-IMPACT-MAP --quiet` | P0 |
+| CHK-ALGO-WIRING | 治理 | 算法/关键 API 生产调用图可达性（DORMANT 台账） | `python3 ci/check_algo_wiring.py --json-out run/ci/fix-gates/algo_wiring.json` | P0 |
+| CHK-REGISTRY-IR-PARITY | 治理 | 生产注册表 ↔ Pipeline IR 双向一致 | `python3 ci/check_registry_ir_parity.py` | P0 |
+| CHK-CONFIG-CONSUMED | 治理 | 生产配置键消费（死键 no-op） | `python3 ci/check_config_consumed.py` | P0 |
+| CHK-CONFIG-DEFAULTS | 治理 | 生产默认值一致性 | `python3 ci/check_config_defaults.py` | P0 |
+| CHK-PROD-SCALE | 科学 | 关键算法生产尺度参数 | `python3 ci/check_prod_scale.py` | P0 |
+| CHK-PROVENANCE-CONSISTENCY | 科学 | 产品 provenance 自洽 | `python3 ci/check_provenance_consistency.py` | P0 |
+| CHK-REALDATA-E2E | 科学 | 真实数据 E2E（slow/heavy，linux-deep） | `python3 ci/check_realdata_e2e.py --execute` | P0 |
 
 ### 2.1 检查器退役与预留
 

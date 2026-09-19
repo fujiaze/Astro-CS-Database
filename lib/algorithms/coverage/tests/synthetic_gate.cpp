@@ -5782,3 +5782,212 @@ TEST(Phase2Upm, UpmUnknownFrameRejected) {
     EXPECT_TRUE(std::isnan(p2_upm_evaluate_c(model, 999, leaf)));
     p2_upm_close(model);
 }
+
+// ===========================================================================
+// RELEASE-02 P2a（接缝修复）判别力 Gate
+// ---------------------------------------------------------------------------
+// 场景与 run/RELEASE-02/fix-p2a/p2a_oracle.cpp 同构（生产尺度）：
+//   sky~1e13 ADU，control_ivar~6.25e-22（=1/(4e10)^2），3 帧按 gx 列覆盖
+//   （f0:gx<4 / f1:2<=gx<6 / f2:gx>=4 ⇒ 覆盖子集在 gx=1|2,3|4,5|6 突变）。
+// 覆盖：
+//  (1) P2a-3：生产尺度下绝对 tolerance=1e-6 不可达（converged=0，跑满
+//      max_iterations）；相对 tolerance=1e-3（tolerance_relative=1）可达。
+//  (2) P2a-2/P2a-4：full_frame+final_gauge 求解保留分量 gauge（参考帧 C≡0）。
+//  (3) legacy 默认（cfg{}）逐位不变：4 个新字段取 W2 冻结基线。
+// ===========================================================================
+namespace {
+std::uint64_t p2a_leaf(std::uint64_t tile, int x, int y) {
+    const std::uint64_t local = astrocs::healpix::xy_to_nested_local(
+        (std::uint32_t)x, (std::uint32_t)y, 9u);
+    return (tile << 18u) + local;
+}
+bool p2a_covers(int f, int gx) {
+    if (f == 0) return gx < 4;
+    if (f == 1) return gx >= 2 && gx < 6;
+    return gx >= 4;
+}
+}  // namespace
+
+TEST(Phase2Upm, Release02P2aDefaultsAreLegacy) {
+    P2UpmBuildConfig def{};
+    EXPECT_DOUBLE_EQ(def.gs_damping, 1.0);
+    EXPECT_EQ(def.m_full_frame, 0);
+    EXPECT_EQ(def.final_gauge, 0);
+    EXPECT_EQ(def.tolerance_relative, 0);
+}
+
+TEST(Phase2Upm, Release02P2aConvergenceRelativeAtProductionScale) {
+    constexpr int kOrder = 7, kGrid = 8, kCell = 64;
+    constexpr std::uint64_t kTile = 4;
+    constexpr double kSigma = 4.0e10;
+    const double ivar = 1.0 / (kSigma * kSigma);
+    std::mt19937 rng(20260919);
+    std::normal_distribution<double> nd(0.0, kSigma);
+    std::vector<P2ControlObservation> obs;
+    for (int gy = 0; gy < kGrid; ++gy)
+        for (int gx = 0; gx < kGrid; ++gx) {
+            const double ra = 0.1 + 0.001 * (double)gx;
+            const double dec = -0.2 + 0.001 * (double)gy;
+            const double sky = 1.0e13 + 2.0e12 * std::sin(0.7 * ra) *
+                                            std::cos(0.5 * dec) +
+                               5.0e11 * std::cos(2.1 * dec);
+            for (int f = 0; f < 3; ++f) {
+                if (!p2a_covers(f, gx)) continue;
+                P2ControlObservation o{};
+                o.frame_id = (std::uint64_t)f;
+                o.control_id = (std::uint64_t)(gy * kGrid + gx);
+                o.leaf_ipix = p2a_leaf(kTile, gx * kCell + kCell / 2,
+                                       gy * kCell + kCell / 2);
+                o.ra_deg = ra;
+                o.dec_deg = dec;
+                const double bg =
+                    (f == 0) ? 0.0
+                             : (f == 1 ? 3.0e11 * (double)gx / 7.0
+                                       : -2.0e11 * (double)gy / 7.0);
+                o.value = sky + bg + nd(rng);
+                o.uncertainty = kSigma;
+                o.snr = 100.0;
+                o.ivar = ivar;
+                o.control_variance = kSigma * kSigma;
+                o.control_ivar = ivar;
+                o.snr_available = 1;
+                o.support = 1.0;
+                o.quality_flags = 1;
+                obs.push_back(o);
+            }
+        }
+
+    // (1a) legacy：绝对 1e-6（生产旧口径）在生产尺度不可达。
+    P2UpmBuildConfig legacy{};
+    legacy.target_order = kOrder;
+    legacy.max_iterations = 60;
+    legacy.tolerance = 1e-6;
+    legacy.tolerance_relative = 0;
+    legacy.use_ivar_weight = 1;
+    legacy.zero_anchor_weight = 1e-3;
+    legacy.smoothing_lambda = 0.0;
+    void* ml = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &legacy, &ml), 0);
+    std::uint64_t it_l = 0;
+    double obj_l = 0.0;
+    int conv_l = -1;
+    ASSERT_EQ(p2_upm_convergence(ml, &it_l, &obj_l, &conv_l), 0);
+    EXPECT_EQ(conv_l, 0) << "生产尺度 max|M|~1e13 下绝对 1e-6 原理上不可达";
+    EXPECT_EQ(it_l, 60u);
+    p2_upm_close(ml);
+
+    // (1b) P2a-full：相对 1e-3 + 阻尼 0.5 + 全帧 M + 末端 gauge 可达。
+    P2UpmBuildConfig rel{};
+    rel.target_order = kOrder;
+    rel.max_iterations = 60;
+    rel.tolerance = 1e-3;
+    rel.tolerance_relative = 1;
+    rel.gs_damping = 0.5;
+    rel.m_full_frame = 1;
+    rel.final_gauge = 1;
+    rel.use_ivar_weight = 1;
+    rel.zero_anchor_weight = 1e-3;
+    rel.smoothing_lambda = 0.0;
+    void* mr = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &rel, &mr), 0);
+    std::uint64_t it_r = 0;
+    double obj_r = 0.0;
+    int conv_r = -1;
+    ASSERT_EQ(p2_upm_convergence(mr, &it_r, &obj_r, &conv_r), 0);
+    EXPECT_EQ(conv_r, 1) << "相对 1e-3 在生产尺度必须可达（P2a-3 新判据）";
+    EXPECT_LT(it_r, 60u);
+    // (2) 分量 gauge 不因 P2a-2 末端 gauge 破坏：参考帧（frame 0）C ≡ 0
+    EXPECT_DOUBLE_EQ(
+        p2_upm_evaluate_c(mr, 0, p2a_leaf(kTile, kCell / 2, kCell / 2)), 0.0);
+    // 末端 gauge 对全部帧施加同一公共扣除：frame0 与 frame1 在同一 leaf 的
+    // calibrate 输出差 = C 场差（gauge 抵消）—— 只验证可调用且有限。
+    const std::uint64_t leaf = p2a_leaf(kTile, 3 * kCell + kCell / 2,
+                                        2 * kCell + kCell / 2);
+    double in = 1.0e13, out0 = 0.0, out1 = 0.0;
+    ASSERT_EQ(p2_upm_calibrate_block(mr, 0, &leaf, &in, &out0, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(mr, 1, &leaf, &in, &out1, 1), 0);
+    EXPECT_TRUE(std::isfinite(out0));
+    EXPECT_TRUE(std::isfinite(out1));
+    p2_upm_close(mr);
+}
+
+// ===========================================================================
+// RELEASE-02 FIX-REGRESS：退化场景（单 control / 无重叠）判别力 Gate
+// ---------------------------------------------------------------------------
+// 场景：8×8 tile 的 64 个几何 control 中，只有 63 个有 ≥2 帧观测；角 cell
+// (gx=7,gy=7) 无任何观测（单帧区/无覆盖）。λs=0（生产缺省）时该节点
+// component=sentinel，M/C 更新无数据项 ⇒ C≡0。双线性插值到角区会把校正
+// 从邻居值（≈+1000）拉向假 0，制造 ~1000 ADU 的帧间假残差。
+// SCI PHASE2_UPM「单帧区 harmonic continuation」要求用观测邻居延拓。
+// 红（修复前）：evaluate_c(unobs)==0 ≠ 邻居；calibrate 帧间残差 ≈1000。
+// 绿（修复后）：evaluate_c(unobs)==邻居；帧间残差 ≈0。
+// ===========================================================================
+TEST(Phase2Upm, Release02UnobservedNodeHarmonicContinuation) {
+    constexpr int kGrid = 8, kCell = 64;
+    constexpr std::uint64_t kTile = 4;
+    constexpr double kUnc = 1.293427499199417;   // p2001 fixture 同值
+    const double civ = 1.0 / (kUnc * kUnc);
+    std::vector<P2ControlObservation> obs;
+    std::vector<P2ControlNode> nodes;
+    std::uint64_t cid = 0;
+    for (int gy = 0; gy < kGrid; ++gy)
+        for (int gx = 0; gx < kGrid; ++gx) {
+            const double ra = 0.1 + 0.001 * (double)gx;
+            const double dec = -0.2 + 0.001 * (double)gy;
+            P2ControlNode nd{};
+            nd.control_id = cid;
+            nd.tile_ipix = kTile;
+            nd.gx = gx;
+            nd.gy = gy;
+            nd.ra_deg = ra;
+            nd.dec_deg = dec;
+            nd.leaf_ipix = p2a_leaf(kTile, gx * kCell + kCell / 2,
+                                    gy * kCell + kCell / 2);
+            nodes.push_back(nd);
+            if (!(gx == kGrid - 1 && gy == kGrid - 1)) {   // 角 cell 无观测
+                for (int f = 0; f < 2; ++f) {
+                    P2ControlObservation o{};
+                    o.frame_id = (std::uint64_t)f;
+                    o.control_id = cid;
+                    o.leaf_ipix = nd.leaf_ipix;
+                    o.ra_deg = ra;
+                    o.dec_deg = dec;
+                    o.value = (f == 0) ? 10020.0 : 11020.0;   // 帧间 +1000
+                    o.uncertainty = kUnc;
+                    o.snr = 100.0;
+                    o.ivar = 1.0;
+                    o.control_variance = kUnc * kUnc;
+                    o.control_ivar = civ;
+                    o.snr_available = 1;
+                    o.support = 1.0;
+                    o.quality_flags = 1;
+                    obs.push_back(o);
+                }
+            }
+            ++cid;
+        }
+    P2UpmBuildConfig cfg{};            // legacy 默认（λs=0, 无阻尼, 绝对 tol）
+    cfg.target_order = 0;
+    cfg.max_iterations = 40;
+    cfg.tolerance = 1e-9;
+    cfg.use_ivar_weight = 1;
+    void* m = nullptr;
+    ASSERT_EQ(p2_upm_build_geo(obs.data(), obs.size(), nodes.data(),
+                               nodes.size(), &cfg, &m), 0);
+    const std::uint64_t leaf_unobs =
+        p2a_leaf(kTile, 7 * kCell + kCell / 2, 7 * kCell + kCell / 2);
+    const std::uint64_t leaf_nb =
+        p2a_leaf(kTile, 6 * kCell + kCell / 2, 7 * kCell + kCell / 2);
+    // 参考帧 = frame 0（C≡0 gauge）；非参考帧 = frame 1，观测区 C≈+1000。
+    const double c_unobs = p2_upm_evaluate_c(m, 1, leaf_unobs);
+    const double c_nb = p2_upm_evaluate_c(m, 1, leaf_nb);
+    EXPECT_NEAR(c_unobs, c_nb, 1e-6)
+        << "无观测节点必须调和延拓（修复前 C≡0 ⇒ 假台阶）";
+    double in0 = 10020.0, in1 = 11020.0, out0 = 0.0, out1 = 0.0;
+    ASSERT_EQ(p2_upm_calibrate_block(m, 0, &leaf_unobs, &in0, &out0, 1), 0);
+    ASSERT_EQ(p2_upm_calibrate_block(m, 1, &leaf_unobs, &in1, &out1, 1), 0);
+    EXPECT_LT(std::fabs(out1 - out0), 5.0)
+        << "退化（无观测）节点不得留下 ~1000 ADU 帧间假残差";
+    p2_upm_close(m);
+}
+

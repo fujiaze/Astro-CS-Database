@@ -1,0 +1,32 @@
+{
+  "ledger_schema": "astrocs.ci-ledger/v1",
+  "ledger_id": "dead-config-keys",
+  "purpose": "CHK-CONFIG-CONSUMED 显式台账：承载生产配置模板中生产代码零读取的键（死键 no-op）。",
+  "entries": [
+    {
+      "id": "dead_config_key:wcs.center_deg",
+      "kind": "dead_key",
+      "reason": "config/templates/export.phase_config.json#config.wcs.center_deg 在生产源码零命中。生产 CLI 实际读的是 wcs.center.{ra_deg,dec_deg}（lib/infrastructure/cli/parser.cpp:304 白名单 center；lib/infrastructure/scheduler/src/module_adapters.cpp:6957-6967/7767-7768 读 doc[\"center\"][\"ra_deg\"/\"dec_deg\"]）。模板键名与生产读取面不一致 ⇒ 用户按模板填 center_deg 会被静默忽略。",
+      "owner": "RELEASE-02 fix-gates（前台裁决：修模板键名为 center.ra_deg/dec_deg 或补消费）",
+      "exit_condition": "修正 config/templates/export.phase_config.json 与 phase_config_export.schema.json 的键名，使生产源码可读；或生产代码显式消费 center_deg",
+      "consumed_as": "wcs.center.ra_deg + wcs.center.dec_deg",
+      "template": "config/templates/export.phase_config.json",
+      "evidence": [
+        "lib/infrastructure/cli/parser.cpp:304",
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:6957"
+      ]
+    },
+    {
+      "id": "dead_config_key:wcs.s_out_deg",
+      "kind": "dead_key",
+      "reason": "config/templates/export.phase_config.json#config.wcs.s_out_deg 在生产源码零命中。生产实际读 wcs.scale_deg_per_px（lib/infrastructure/cli/parser.cpp:304 白名单）。模板键名与生产读取面不一致 ⇒ 静默 no-op。",
+      "owner": "RELEASE-02 fix-gates（前台裁决：修模板键名为 scale_deg_per_px 或补消费）",
+      "exit_condition": "修正模板/schema 键名为 scale_deg_per_px，或生产代码显式消费 s_out_deg",
+      "consumed_as": "wcs.scale_deg_per_px",
+      "template": "config/templates/export.phase_config.json",
+      "evidence": [
+        "lib/infrastructure/cli/parser.cpp:304"
+      ]
+    }
+  ]
+}

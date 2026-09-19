@@ -72,6 +72,10 @@ struct Model {
     std::map<std::uint64_t, std::size_t> frame_index;
     std::vector<std::uint64_t> frame_id_by_index;   // index -> stable frame_id
     std::vector<std::vector<double>> C;  // [frame][control] 空间校正
+    // RELEASE-02 P2a-2 末端残差场 gauge：每 control 的公共残差场 G_k，
+    // 对所有帧施加同一扣除（corrected = y - C - G）。空 = 关闭（legacy，
+    // 等价 G≡0），保证旧模型文件/旧行为逐位不变。
+    std::vector<double> gauge;
     std::vector<std::vector<std::size_t>> adj;  // control 邻接（tile 内网格）
     std::vector<std::vector<double>> obs_w;     // 最终每轮权重缓存
     std::map<std::pair<std::uint64_t, std::pair<int, int>>, std::size_t>
@@ -112,8 +116,11 @@ struct Model {
 // 自然外推）；不再 clamp 成常数。
 // - 外推锚点限制在本 tile **真实覆盖**的 cell 范围内；缺失 cell
 // （部分覆盖/单 cell）不会引用为 0。
-double evaluate_c_field(const Model* m, std::size_t frame_idx,
-                        std::uint64_t tile, int x, int y) {
+// RELEASE-02 P2a-2：把"按 tile 双线性/外推求值一个 control 场"从 C 行
+// 抽成通用行求值，使末端残差场 gauge G（对所有帧相同）与 C 共用同一
+// 科学求值语义（相位/外推逐位一致）。
+double evaluate_field_row(const Model* m, const std::vector<double>& row,
+                          std::uint64_t tile, int x, int y) {
     const int cell = m->cell_side;
     const int half = cell / 2;
     // v 轴（0..512）：返回定义线性段的两个 cell 中心坐标。
@@ -170,7 +177,7 @@ double evaluate_c_field(const Model* m, std::size_t frame_idx,
         // 冻结门实测红），超出 M7-H-103（null model / 未知 frame）范围。
         // 登记为开放项：是否把"域外 leaf"升级为显式错误需单独裁决（SC-005）。
         if (it == m->cell_index.end()) return 0.0;
-        return m->C[frame_idx][it->second];
+        return row[it->second];
     };
     const double c00 = at(x0, y0);
     const double c10 = at(x1, y0);
@@ -181,6 +188,11 @@ double evaluate_c_field(const Model* m, std::size_t frame_idx,
     const double top = c00 + tx * (c10 - c00);
     const double bot = c01 + tx * (c11 - c01);
     return top + ty * (bot - top);
+}
+
+double evaluate_c_field(const Model* m, std::size_t frame_idx,
+                        std::uint64_t tile, int x, int y) {
+    return evaluate_field_row(m, m->C[frame_idx], tile, x, y);
 }
 
 inline double quality_factor(std::uint32_t flags, int mode) {
@@ -242,6 +254,12 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         cfg.use_ivar_weight = 1;   // ivar 科学权重默认开启
         cfg.control_reliability = 1.0;
         cfg.cpu_workers = 1;       // 默认 1(串行 reference); 生产由 p2_session 传 lease(budget.max_workers)
+        // RELEASE-02 P2a：缺省 = W2 冻结 legacy 行为（显式列出，避免依赖
+        // 结构体默认成员初始化而被 cfg{} 之外的路径绕过）。
+        cfg.gs_damping = 1.0;
+        cfg.m_full_frame = 0;
+        cfg.final_gauge = 0;
+        cfg.tolerance_relative = 0;
     }
     if (cfg.huber_delta <= 0.0) cfg.huber_delta = 1.345;
     if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
@@ -257,6 +275,12 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     if (cfg.zero_anchor_weight < 0.0) cfg.zero_anchor_weight = 1e-3;
     if (cfg.grid != 8) return 3;   // M7-C-001: UPM 网格常数不一致 → 显式拒绝
     if (cfg.smoothing_lambda < 0.0) cfg.smoothing_lambda = 0.0;
+    // RELEASE-02 P2a 归一化（零初始化/越域配置一律退回 legacy，不产生静默
+    // 科学变更）：
+    if (!(cfg.gs_damping > 0.0) || cfg.gs_damping > 1.0) cfg.gs_damping = 1.0;
+    cfg.m_full_frame = (cfg.m_full_frame != 0) ? 1 : 0;
+    cfg.final_gauge = (cfg.final_gauge != 0) ? 1 : 0;
+    cfg.tolerance_relative = (cfg.tolerance_relative != 0) ? 1 : 0;
     if (cfg.target_order < 0) {
         // 空间 UPM 必须知道 control leaf 层级（order = target+9）
         return 1;
@@ -518,6 +542,41 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     const double anchor = std::max(0.0, cfg.zero_anchor_weight);
     const double lambda_s = std::max(0.0, cfg.smoothing_lambda);
 
+    // RELEASE-02 FIX-REGRESS（P2a-4 收敛修正）：m_full_frame=1 的 joint-LS
+    // 不动点（C_ref≡0 gauge 下）是 M_k = 参考帧观测均值。若 M 从 0 冷启动，
+    // 参考帧残差 r_ref = y_ref − M 在首轮被判为离群 → Huber 权重 w_ref 塌缩到
+    // ~1/300·w_nonref，M 沿 r_ref 方向以极慢速率漂移：100 轮后仍留数百 ADU
+    // 帧间残差（p2001_real_nodes 实测 mean|Δ| 448.018，converged=0）。
+    // 用「参考帧观测均值」做 M 初值（= legacy 的 gauge 一致解）使 r_ref≈0，
+    // 权重回到对称；full-frame 加权不动点不变（收敛后 m_full_frame 0/1 同解），
+    // 只修正收敛路径。m_full_frame=0（W2 冻结 legacy）不进入本分支 ⇒ 逐位不变。
+    if (cfg.m_full_frame) {
+        for (std::size_t k = 0; k < K; ++k) {
+            if (m->controls[k].obs_idx.empty()) continue;
+            const std::size_t comp = m->control_component[k];
+            const bool use_ref = (comp != kNoData);
+            const std::uint64_t rf =
+                use_ref ? m->component_ref_frame[comp] : 0ULL;
+            double num = 0.0;
+            int n = 0;
+            if (use_ref) {
+                for (std::size_t ii : m->controls[k].obs_idx) {
+                    const auto& o = obs[ii];
+                    if (o.frame_id != rf) continue;
+                    num += o.value;
+                    ++n;
+                }
+            }
+            if (n == 0) {
+                for (std::size_t ii : m->controls[k].obs_idx) {
+                    num += obs[ii].value;
+                    ++n;
+                }
+            }
+            if (n > 0) M[k] = num / (double)n;
+        }
+    }
+
     // per-control 归一化：需要先按 control 聚合（同 cell 多帧观测）
     // 这里直接按 obs 计算 raw 后按 control 归一化（与文档一致）
     std::vector<double> raw_w(n_obs, 0.0);
@@ -630,6 +689,9 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         }
     };
 
+    // RELEASE-02 P2a-2：w 提升到迭代循环外——末端残差场 gauge 必须复用
+    // 最后一轮的拟合权重（"拟合权重 = 叠加权重"同源，q2-snr-smooth §5）。
+    std::vector<double> w(n_obs, 0.0);
     for (int iter = 0; iter < cfg.max_iterations; ++iter) {
         // 1. 权重（每轮：raw per-control 归一化 + Huber）
         {
@@ -641,7 +703,6 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                 return 2;
             }
         }
-        std::vector<double> w(n_obs);
         // 逐 obs 独立 w 计算(per-obs 写 w[i] 不相交); std::thread + lease worker。
         {
             const int cworkers = (cfg.cpu_workers > 0) ? cfg.cpu_workers : 1;
@@ -701,7 +762,10 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                             const std::size_t comp = m->control_component[k];
                             // 无观测几何节点不参与数据图，component=sentinel；
                             // 其 M 由全部帧加权（无参考帧语义）定义。
-                            if (comp == kNoData) {
+                            // RELEASE-02 P2a-4：m_full_frame=1 时所有节点
+                            // 一律用全帧加权 M（joint-LS 不动点，方差更小、
+                            // 无参考帧结构共模；c-delta-ruling §3.2/§6.2 M2）。
+                            if (comp == kNoData || cfg.m_full_frame) {
                                 for (std::size_t ii : m->controls[k].obs_idx) {
                                     const auto& o = obs[ii];
                                     const double c =
@@ -751,7 +815,9 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                     const std::size_t comp = m->control_component[k];
                     // 无观测几何节点不参与数据图，component=sentinel；
                     // 其 M 由全部帧加权（无参考帧语义）定义。
-                    if (comp == kNoData) {
+                    // RELEASE-02 P2a-4：m_full_frame=1 时所有节点一律用
+                    // 全帧加权 M（joint-LS 不动点）。
+                    if (comp == kNoData || cfg.m_full_frame) {
                         for (std::size_t ii : m->controls[k].obs_idx) {
                             const auto& o = obs[ii];
                             const double c =
@@ -840,8 +906,17 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                                     m->obs_w[f][k] += w[ii];
                                 }
                             }
+                            // RELEASE-02 P2a-2 阻尼 Gauss-Seidel：x ←
+                            // (1-α)·x_old + α·x_new。naive α=1 在链式/二部
+                            // 覆盖图上有特征值 -1（周期 2 振荡，q2-snr-smooth §4.2）。
+                            const std::vector<double> x_old = m->C[f];
                             std::vector<double> x = m->C[f];
                             cg_solve_frame(f, x, rhs);
+                            if (cfg.gs_damping < 1.0) {
+                                const double gsa = cfg.gs_damping;
+                                for (std::size_t k = 0; k < K; ++k)
+                                    x[k] = (1.0 - gsa) * x_old[k] + gsa * x[k];
+                            }
                             for (std::size_t k = 0; k < K; ++k)
                                 lmax = std::max(lmax, std::fabs(x[k] - m->C[f][k]));
                             m->C[f] = std::move(x);
@@ -879,8 +954,15 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
                             m->obs_w[f][k] += w[ii];
                         }
                     }
+                    // RELEASE-02 P2a-2 阻尼 Gauss-Seidel（见并行分支同注）。
+                    const std::vector<double> x_old = m->C[f];
                     std::vector<double> x = m->C[f];
                     cg_solve_frame(f, x, rhs);
+                    if (cfg.gs_damping < 1.0) {
+                        const double gsa = cfg.gs_damping;
+                        for (std::size_t k = 0; k < K; ++k)
+                            x[k] = (1.0 - gsa) * x_old[k] + gsa * x[k];
+                    }
                     for (std::size_t k = 0; k < K; ++k)
                         max_dC = std::max(max_dC, std::fabs(x[k] - m->C[f][k]));
                     m->C[f] = std::move(x);
@@ -900,15 +982,123 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
             m->objective += raw_w[i] *
                             huber_rho(r / sigma_eff, cfg.huber_delta);
         }
-        if (max_dM < cfg.tolerance && max_dC < cfg.tolerance) {
+        // RELEASE-02 P2a-3：绝对 1e-6 在 max|M|~3e15 时低于 ULP(0.5)
+        // 5-8 个数量级，原理上不可达（iterations=100,converged=0）。
+        // tolerance_relative=1 时改为相对判据：
+        //   阈值 = tolerance × max(scale, 1.0)，scale = max|M| / max|C|；
+        // max(...,1.0) 保证小尺度合成数据与 legacy 绝对判据逐位等价。
+        // tolerance_relative=0 时 tol_M=tol_C=cfg.tolerance（legacy，逐位不变）。
+        double tol_M = cfg.tolerance;
+        double tol_C = cfg.tolerance;
+        if (cfg.tolerance_relative) {
+            double scale_M = 0.0, scale_C = 0.0;
+            for (std::size_t k = 0; k < K; ++k)
+                scale_M = std::max(scale_M, std::fabs(M[k]));
+            for (std::size_t f = 0; f < F; ++f)
+                for (std::size_t k = 0; k < K; ++k)
+                    scale_C = std::max(scale_C, std::fabs(m->C[f][k]));
+            tol_M = cfg.tolerance * std::max(scale_M, 1.0);
+            tol_C = cfg.tolerance * std::max(scale_C, 1.0);
+        }
+        if (max_dM < tol_M && max_dC < tol_C) {
             m->converged = 1;
             break;
         }
     }
 
+    // ===== RELEASE-02 FIX-REGRESS：无观测几何节点的调和延拓 =====
+    // build_geo 的全 coverage 节点里，单帧区/无覆盖 cell 没有 ≥2 帧观测
+    // （obs_idx 为空），其 component=sentinel，M/C 更新无数据项 ⇒ 在 λs=0
+    // 下恒为 0。双线性插值到这些 cell 时，"假 0" 会在相邻覆盖区制造大偏差
+    // （p2001_real_nodes 退化场景实测角区 mean|Δ|≈4.2 ADU，占阈值 5 的 84%）。
+    // SCI PHASE2_UPM「单帧区 harmonic continuation」要求用观测邻居延拓；
+    // λs>0 时由 CG 平滑隐式完成，λs=0（生产缺省）时此路径不可达 ⇒ 显式用
+    // 观测邻居做 Jacobi 调和平均（等价 λs→0+ 的延拓极限）。只改写无观测
+    // 节点，有观测节点的解逐位不变。孤立（无观测邻居）节点保持 0。
+    {
+        std::vector<std::uint8_t> g_known(K, 0);
+        for (std::size_t k = 0; k < K; ++k)
+            if (!m->controls[k].obs_idx.empty()) g_known[k] = 1;
+        auto harmonic_extend = [&](std::vector<double>& field) {
+            std::vector<std::uint8_t> kn = g_known;
+            for (int pass = 0; pass < 64; ++pass) {
+                bool changed = false;
+                for (std::size_t k = 0; k < K; ++k) {
+                    if (kn[k] == 1) continue;
+                    double s = 0.0;
+                    int n = 0;
+                    for (std::size_t nb : m->adj[k])
+                        if (kn[nb] == 1) { s += field[nb]; ++n; }
+                    if (n > 0) {
+                        field[k] = s / (double)n;
+                        kn[k] = 2;
+                        changed = true;
+                    }
+                }
+                for (std::size_t k = 0; k < K; ++k)
+                    if (kn[k] == 2) kn[k] = 1;
+                if (!changed) break;
+            }
+        };
+        harmonic_extend(M);
+        for (std::size_t f = 0; f < F; ++f) harmonic_extend(m->C[f]);
+    }
+
     for (std::size_t k = 0; k < K; ++k) m->controls[k].M = M[k];
     // 连通分量已在求解前建立（component_count_solve / component_ref_frame），
     // 每分量独立 gauge；此处不重复统计。
+
+    // ===== RELEASE-02 P2a-2 末端残差场 gauge（q2-snr-smooth §5）=====
+    //   R_k = [Σ_i w_i (y_i − C_{f(i),k})] / Σ_i w_i   （复用最后一轮拟合 w，
+    //         拟合权重 = 叠加权重同源）
+    //   G_k = R_k − M_k
+    // 校正变为 y − C − G ⇒ 叠加 Σ w (y−C−G)/Σw ≡ M（单一公共场）
+    // ⇒ 任意覆盖子集 / 任意权重面下边界阶跃恒 0（q2 §4 代数 + §5 数值 0.0000）。
+    // 注意 G 对全部帧相同，不是 gauge 常数（全局常数对接缝无效，c-delta §4）。
+    if (cfg.final_gauge) {
+        m->gauge.assign(K, 0.0);
+        std::vector<std::uint8_t> g_known(K, 0);
+        for (std::size_t k = 0; k < K; ++k) {
+            double num = 0.0, den = 0.0;
+            for (std::size_t ii : m->controls[k].obs_idx) {
+                const auto& o = obs[ii];
+                const std::size_t f = m->frame_index[o.frame_id];
+                num += w[ii] * (o.value - m->C[f][k]);
+                den += w[ii];
+            }
+            if (den > 0.0 && std::isfinite(den) && std::isfinite(num)) {
+                const double g = num / den - M[k];
+                if (std::isfinite(g)) {
+                    m->gauge[k] = g;
+                    g_known[k] = 1;
+                }
+            }
+        }
+        // 无观测几何节点的 G 由邻接图调和延拓（避免 0 在插值面上制造假台阶）。
+        // Jacobi 平均；孤立节点保持 0（无数据面，无接缝贡献）。
+        for (int pass = 0; pass < 64; ++pass) {
+            bool changed = false;
+            for (std::size_t k = 0; k < K; ++k) {
+                if (g_known[k] == 1) continue;
+                double s = 0.0;
+                int n = 0;
+                for (std::size_t nb : m->adj[k]) {
+                    if (g_known[nb] == 1) {
+                        s += m->gauge[nb];
+                        ++n;
+                    }
+                }
+                if (n > 0) {
+                    m->gauge[k] = s / (double)n;
+                    g_known[k] = 2;
+                    changed = true;
+                }
+            }
+            for (std::size_t k = 0; k < K; ++k)
+                if (g_known[k] == 2) g_known[k] = 1;
+            if (!changed) break;
+        }
+    }
 
     // 模型哈希：精确序列化（max_digits10）+ frame manifest + 拓扑 + 系数
     {
@@ -947,6 +1137,13 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         for (std::size_t f = 0; f < F; ++f) {
             for (std::size_t k = 0; k < K; ++k)
                 payload += fmt(m->C[f][k]) + ";";
+        }
+        // final_gauge 关闭时 m->gauge 为空 ⇒ payload 与 legacy 逐位一致
+        // （既有 model_hash 冻结门不受影响）；启用时 G 必须进入 hash。
+        if (!m->gauge.empty()) {
+            payload += "|G";
+            for (std::size_t k = 0; k < K; ++k)
+                payload += fmt(m->gauge[k]) + ";";
         }
         const std::string h = astrocs::crypto::sha256_hex(
             payload.data(), payload.size());
@@ -993,6 +1190,11 @@ int p2_upm_save(const void* model, const char* path) {
     j["tolerance"] = m->cfg.tolerance;
     j["sigma_floor"] = m->cfg.sigma_floor;
     j["support_power"] = m->cfg.support_power;
+    // RELEASE-02 P2a provenance（求解器行为；旧读取方忽略未知键，向后兼容）
+    j["gs_damping"] = m->cfg.gs_damping;
+    j["m_full_frame"] = m->cfg.m_full_frame;
+    j["final_gauge"] = m->cfg.final_gauge;
+    j["tolerance_relative"] = m->cfg.tolerance_relative;
     j["model_hash"] = m->info.model_hash;
     j["input_manifest_hash"] = m->input_manifest_hash;
     j["iterations"] = m->iterations;
@@ -1036,6 +1238,16 @@ int p2_upm_save(const void* model, const char* path) {
         Cj.push_back(row);
     }
     j["C"] = Cj;
+    // RELEASE-02 P2a-2：末端残差场 G（逐 control，对所有帧相同）必须持久化，
+    // 否则 upm-apply 重开模型后不施加 gauge（sparse 路径）。空 = legacy。
+    if (!m->gauge.empty()) {
+        nlohmann::json Gj = nlohmann::json::array();
+        for (std::size_t k = 0; k < m->gauge.size(); ++k) {
+            const double v = m->gauge[k];
+            if (v != 0.0) Gj.push_back({k, v});
+        }
+        j["gauge"] = Gj;
+    }
     // 唯一 AIO：模型稀疏持久化走 aio_upm_write_sparse
     const std::string text = j.dump(2);
     return aio_upm_write_sparse(path, text.c_str());
@@ -1084,6 +1296,11 @@ int p2_upm_open(const char* path, void** out_model) {
         m->cfg.tolerance = j.value("tolerance", 1e-6);
         m->cfg.sigma_floor = j.value("sigma_floor", 1e-3);
         m->cfg.support_power = j.value("support_power", 1.0);
+        // RELEASE-02 P2a provenance（旧文件无键 → legacy 默认）
+        m->cfg.gs_damping = j.value("gs_damping", 1.0);
+        m->cfg.m_full_frame = j.value("m_full_frame", 0);
+        m->cfg.final_gauge = j.value("final_gauge", 0);
+        m->cfg.tolerance_relative = j.value("tolerance_relative", 0);
         m->input_manifest_hash =
             j.value("input_manifest_hash", std::string());
         const std::string h =
@@ -1243,6 +1460,35 @@ int p2_upm_open(const char* path, void** out_model) {
                 m->C[f][k] = item[1].get<double>();
             }
         }
+        // RELEASE-02 P2a-2：恢复末端残差场 G。旧文件无 "gauge" 键 ⇒ 空向量
+        // （legacy：calibrate_block 不施加 G，行为逐位不变）。类型非法一律拒绝。
+        if (j.contains("gauge")) {
+            if (!j["gauge"].is_array()) {
+                delete m;
+                return 1;
+            }
+            m->gauge.assign(K, 0.0);
+            for (const auto& item : j["gauge"]) {
+                if (!item.is_array() || item.size() < 2 ||
+                    !item[0].is_number_unsigned() ||
+                    !item[1].is_number()) {
+                    delete m;
+                    return 1;
+                }
+                const std::size_t k = item[0].get<std::size_t>();
+                if (k >= K) {
+                    delete m;
+                    return 1;
+                }
+                m->gauge[k] = item[1].get<double>();
+            }
+            // 全零 gauge（序列化只写非零）→ 视作 legacy 空向量，保持
+            // calibrate_block 的"G 空 = 不施加"语义与 hash 一致性。
+            bool any = false;
+            for (double v : m->gauge)
+                if (v != 0.0) { any = true; break; }
+            if (!any) m->gauge.clear();
+        }
         m->adj.assign(K, {});
         for (std::size_t k = 0; k < K; ++k) {
             const auto& cn = m->controls[k];
@@ -1315,7 +1561,12 @@ int p2_upm_calibrate_block(const void* model, std::uint64_t frame_id,
         // 双线性空间校正场求值（cell 内随位置连续）
         const double c =
             evaluate_c_field(m, fi, tile, (int)x, (int)y);
-        output_signal[i] = input_signal[i] - c;
+        // RELEASE-02 P2a-2：末端残差场 G 对全部帧施加同一扣除（G 为空 = legacy）。
+        // corrected = y − C − G；叠加 Σw(y−C−G)/Σw ≡ M ⇒ 覆盖子集突变无阶跃。
+        double g = 0.0;
+        if (!m->gauge.empty())
+            g = evaluate_field_row(m, m->gauge, tile, (int)x, (int)y);
+        output_signal[i] = input_signal[i] - c - g;
     }
     return 0;
 }
@@ -1472,6 +1723,10 @@ int p2_upm_materialize_dense_n(const void* model, int target_order,
                 const auto it = m->cell_index.find(key);
                 if (it != m->cell_index.end()) {
                     node[gy][gx] = m->C[f][it->second];
+                    // RELEASE-02 P2a-2：稠密缓存必须与 sparse calibrate_block
+                    // 逐位等价 ⇒ 同一公共 gauge G 折入缓存值（G 空 = legacy）。
+                    if (!m->gauge.empty())
+                        node[gy][gx] += m->gauge[it->second];
                     node_ok[gy][gx] = true;
                 } else {
                     node[gy][gx] = 0.0;

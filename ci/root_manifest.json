@@ -41,7 +41,8 @@
     "packaging",
     "run",
     "logs",
-    "config"
+    "config",
+    "reverse_verify"
   ],
   "required_files": [
     "README.md",
@@ -81,7 +82,8 @@
     "packaging",
     "run",
     "logs",
-    "config"
+    "config",
+    "reverse_verify"
   ],
   "implicit_entries": [
     ".git"

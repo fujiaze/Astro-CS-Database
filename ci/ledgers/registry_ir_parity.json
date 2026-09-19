@@ -1,0 +1,23 @@
+{
+  "ledger_schema": "astrocs.ci-ledger/v1",
+  "ledger_id": "registry-ir-parity",
+  "purpose": "CHK-REGISTRY-IR-PARITY 显式台账：承载 register_phase_modules 注册但不在 build_pipeline_ir preset→IR 的模块（B 类：注册了但不在管线）。",
+  "entries": [
+    {
+      "id": "registered_not_in_ir:astrocs.phase2.resample",
+      "kind": "known_divergence",
+      "reason": "module_adapters.cpp:7980-7985 注册 phase2_descriptor()（module_id=astrocs.phase2.resample，:606-624 P2 模板复制残留占位），但 build_pipeline_ir 的 phase2 链为 coverage→sample→upm_fit→upm_apply→reject→integrate→write，无该节点；该模块永不被调度。属 B 类「注册了但不在管线」。",
+      "owner": "RELEASE-02 fix-gates（前台裁决：删除占位注册 或 接线到 IR）",
+      "exit_condition": "从 register_phase_modules 移除 astrocs.phase2.resample，或在 build_pipeline_ir 增补对应节点并给出 SCI/ALG 依据",
+      "module_id": "astrocs.phase2.resample"
+    },
+    {
+      "id": "registered_not_in_ir:astrocs.phase3.resample",
+      "kind": "known_divergence",
+      "reason": "module_adapters.cpp:7988-7992 注册 phase3_descriptor()（module_id=astrocs.phase3.resample，:625-643），但 phase3 IR 链为 properties→wcs→resample2→writer→verify，顶层 resample 占位不在管线（:8049-8050 注释自认占位）。",
+      "owner": "RELEASE-02 fix-gates（前台裁决：删除占位注册 或 接线到 IR）",
+      "exit_condition": "从 register_phase_modules 移除 astrocs.phase3.resample，或在 build_pipeline_ir 增补对应节点并给出 SCI/ALG 依据",
+      "module_id": "astrocs.phase3.resample"
+    }
+  ]
+}

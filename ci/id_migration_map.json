@@ -463,6 +463,55 @@
     "CHK-E2E-REPRO": {
       "kind": "ci",
       "grade": "P0"
+    },
+    "CHK-ALGO-WIRING": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "算法/关键 API 生产调用图可达性门",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-REGISTRY-IR-PARITY": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "生产注册表 ↔ Pipeline IR 双向一致门",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-CONFIG-CONSUMED": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "生产配置键消费门（死键 no-op）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-CONFIG-DEFAULTS": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "生产默认值一致性门",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-PROD-SCALE": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "生产尺度参数门",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-PROVENANCE-CONSISTENCY": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "产品 provenance 自洽门",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-REALDATA-E2E": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "真实数据 E2E（slow）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
     }
   },
   "reserved_targets": {
@@ -2186,6 +2235,69 @@
       "grade": "P0",
       "order_in_target": 0,
       "note": "G-P1-WCS-CLOSURE-REPRO 自检：7 类注入必红 + 缺输入 fail-closed 必红"
+    },
+    {
+      "old_id": "CHK-ALGO-WIRING",
+      "decision": "KEPT",
+      "target": "CHK-ALGO-WIRING",
+      "checker": "ci/check_algo_wiring.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 ci/check_algo_wiring.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-REGISTRY-IR-PARITY",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRY-IR-PARITY",
+      "checker": "ci/check_registry_ir_parity.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 ci/check_registry_ir_parity.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-CONFIG-CONSUMED",
+      "decision": "KEPT",
+      "target": "CHK-CONFIG-CONSUMED",
+      "checker": "ci/check_config_consumed.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 ci/check_config_consumed.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-CONFIG-DEFAULTS",
+      "decision": "KEPT",
+      "target": "CHK-CONFIG-DEFAULTS",
+      "checker": "ci/check_config_defaults.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 ci/check_config_defaults.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-PROD-SCALE",
+      "decision": "KEPT",
+      "target": "CHK-PROD-SCALE",
+      "checker": "ci/check_prod_scale.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 ci/check_prod_scale.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-PROVENANCE-CONSISTENCY",
+      "decision": "KEPT",
+      "target": "CHK-PROVENANCE-CONSISTENCY",
+      "checker": "ci/check_provenance_consistency.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 ci/check_provenance_consistency.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-REALDATA-E2E",
+      "decision": "KEPT",
+      "target": "CHK-REALDATA-E2E",
+      "checker": "ci/check_realdata_e2e.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 ci/check_realdata_e2e.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
     }
   ],
   "coverage": {
@@ -2196,7 +2308,7 @@
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。",
     "absorbed_entries": [
       "CHK-SECRET-HYGIENE",
       "STD-REG",
@@ -2231,7 +2343,14 @@
       "CTEST-P1NOISE-SATURATION-WIRING",
       "CTEST-P1NOISE-ABI-LAYOUT",
       "CTEST-P1WCS-CLOSURE-METRIC-GATE",
-      "PY-TEST-INDEX-VERDICTS"
+      "PY-TEST-INDEX-VERDICTS",
+      "CHK-ALGO-WIRING",
+      "CHK-REGISTRY-IR-PARITY",
+      "CHK-CONFIG-CONSUMED",
+      "CHK-CONFIG-DEFAULTS",
+      "CHK-PROD-SCALE",
+      "CHK-PROVENANCE-CONSISTENCY",
+      "CHK-REALDATA-E2E"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

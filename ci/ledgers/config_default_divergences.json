@@ -1,0 +1,90 @@
+{
+  "ledger_schema": "astrocs.ci-ledger/v1",
+  "ledger_id": "config-default-divergences",
+  "purpose": "CHK-CONFIG-DEFAULTS 显式台账：watch_keys 声明纳入监控的未登记键；config_default_divergence:<key> 承载已判定的同名不同义/未裁决差异。",
+  "entries": [
+    {
+      "id": "watch:smoothing_lambda",
+      "kind": "watch",
+      "reason": "smoothing_lambda 未进任何配置类（templates/schemas/defaults.json 均无），但被生产代码读取（module_adapters.cpp:4536 upm.smoothing_lambda），显式纳入默认值监控。",
+      "owner": "RELEASE-02 fix-gates",
+      "exit_condition": "登记进 phase_config schema 或 defaults.json 后移除本 watch 条目",
+      "watch_keys": [
+        "smoothing_lambda"
+      ]
+    },
+    {
+      "id": "config_default_divergence:smoothing_lambda",
+      "kind": "known_divergence",
+      "reason": "生产双口径：lib/algorithms/coverage/src/stage2_common.cpp:140 对 upm.smoothing==\"auto\" 取 0.1；lib/algorithms/coverage/src/upm.cpp:234 的 P2UpmBuildConfig 缺省 0.0；synthetic_gate.cpp:1641 注释称「生产语义（stage2 smoothing=0）」。同一科学旋钮两处缺省不一致 ⇒ 静默双口径（q2-snr-smooth 已指出）。",
+      "owner": "RELEASE-02 fix-gates（前台裁决：统一缺省或登记为 SCI/ALG 参数）",
+      "exit_condition": "统一 stage2_common.cpp 与 upm.cpp 的 smoothing_lambda 缺省，或登记进 phase_config schema/defaults.json 并写明权威条款",
+      "values": [
+        "0.0",
+        "0.1"
+      ],
+      "evidence": [
+        "lib/algorithms/coverage/src/stage2_common.cpp:140",
+        "lib/algorithms/coverage/src/upm.cpp:234",
+        "lib/algorithms/coverage/tests/synthetic_gate.cpp:1641"
+      ]
+    },
+    {
+      "id": "config_default_divergence:enabled",
+      "kind": "known_divergence",
+      "reason": "同名不同义：多处配置载体的 bool enabled 开关（不同功能各自的使能位），非同一科学参数。",
+      "owner": "RELEASE-02 fix-gates",
+      "exit_condition": "如需区分，改名去同义或登记各自归属",
+      "values": [
+        "false",
+        "true"
+      ]
+    },
+    {
+      "id": "config_default_divergence:height_px",
+      "kind": "known_divergence",
+      "reason": "0.0 为结构体未初始化哨兵（调用方必填），512 为 config/templates/export.phase_config.json 示例值；非科学默认冲突。",
+      "owner": "RELEASE-02 fix-gates",
+      "exit_condition": "在模板中标注示例值语义，或代码改用显式 Required",
+      "values": [
+        "0.0",
+        "512"
+      ]
+    },
+    {
+      "id": "config_default_divergence:width_px",
+      "kind": "known_divergence",
+      "reason": "同 height_px：0.0 未初始化哨兵 vs 模板示例 512。",
+      "owner": "RELEASE-02 fix-gates",
+      "exit_condition": "同 height_px",
+      "values": [
+        "0.0",
+        "512"
+      ]
+    },
+    {
+      "id": "config_default_divergence:max_iterations",
+      "kind": "known_divergence",
+      "reason": "同名不同义：UPM 求解 max_iterations 缺省 100/8、rejection 等其它算法缺省 1，属不同算法的迭代上限。",
+      "owner": "RELEASE-02 fix-gates",
+      "exit_condition": "按算法域改名或登记归属",
+      "values": [
+        "1.0",
+        "8.0",
+        "100.0"
+      ]
+    },
+    {
+      "id": "config_default_divergence:precision",
+      "kind": "known_divergence",
+      "reason": "同名不同义：字符串 precision（fp64，模板/schema 面）与 int 精度枚举（0/1）在同一键名下并存。",
+      "owner": "RELEASE-02 fix-gates",
+      "exit_condition": "int 精度枚举改名，或统一为字符串值域",
+      "values": [
+        "0.0",
+        "1.0",
+        "fp64"
+      ]
+    }
+  ]
+}
