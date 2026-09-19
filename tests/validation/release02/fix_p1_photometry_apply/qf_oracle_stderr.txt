@@ -1,0 +1,139 @@
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 开始 ======
+[pc_api] OpenMP线程数: 16
+[INFO] 锥形搜索: ra=0.0000 dec=0.0000 r=0.050 mag_min=10.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] 自适应星等查询: mag_max=12.0
+[INFO] 自适应星等查询: mag_max=12.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=13.0
+[INFO] 自适应星等查询: mag_max=13.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=14.0
+[INFO] 自适应星等查询: mag_max=14.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=15.0
+[INFO] 自适应星等查询: mag_max=15.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=16.0
+[INFO] 自适应星等查询: mag_max=16.0, n_gaia=9
+[INFO] 自适应星等查询完成: mag_max=16.0, n_gaia=9
+[pc_api] 搜索到 9 颗光谱星, 光谱点数=343 (wl_start=336, wl_step=2)
+[INFO] [spec_int] prepare_filter_cache: QE curve not provided, F_syn without Q(λ)
+[INFO] [spec_int] prepare_filter_cache: 滤光片 17 点 -> 光谱 343 点, 范围 [300.0, 1100.0] nm (无 QE)
+[INFO] 滤光片/QE 预处理完成: filter=17 点, qe=0 点 -> 光谱 343 点
+[pc_api] F_syn 并行计算完成: 9/9 颗有效
+[INFO] [pc_api] P12-001 阶段1: spectrum_rows_total=9, valid_fsyn=9
+[wcs_transform] 初始化: CRVAL=(0.000000,0.000000), CRPIX=(0.000,0.000), CD=[2.778e-04,0.000e+00;0.000e+00,2.778e-04], det=7.716e-08, sip_order=0
+[INFO] [star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=9 / 9
+[INFO] [star_matcher] P12-001 阶段3: psf_total=9, psf_valid=9
+[INFO] [star_matcher] PSF有效星: 9 / 9, Gaia星: 9, 匹配半径: 2.00 px
+[INFO] [star_matcher] P12-002 正向匹配 (PSF→Gaia): 9 / 9 命中
+[INFO] [star_matcher] P12-002 反向匹配 (Gaia→PSF): 9 / 9 命中
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=9 (正向命中), unique_matches=9 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=0 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段8: match_distance median=1.4142 p90=1.4142 max=1.4142 px
+[INFO] [star_matcher] P12-002 KD-tree 双向匹配完成: 9 对 (正向 9, 歧义 0)
+[INFO] [star_matcher] cleanAndScale: 输入 9 颗, 星等容忍 3.00 mag
+[INFO] [star_matcher] 星等一致性: 通过 9, 拒绝 0 (median_delta=-0.0000, tol=3.00 mag)
+[INFO] [star_matcher] IRLS 初始: location=-7.666286, MAD=0.000000, S=0.000000
+[INFO] [star_matcher] IRLS: S=0 (所有 r 相同), 跳过迭代
+[INFO] [star_matcher] 亮度比例一致性:
+[INFO]   - 输入匹配: 9
+[INFO]   - 星等一致性通过: 9 (拒绝 0)
+[INFO]   - IRLS inliers: 9 (outliers: 0)
+[INFO]   - location(r) = -7.666286 (dex), scale = 10^(-location) = 4.637520e+07
+[INFO]   - MAD(r) = 0.000000, S = 0.000000, sigma_residual = 0.000000
+[INFO]   - r_inliers 范围: [-7.666286, -7.666286] (spread 0.000000 dex = 0.000 mag)
+[INFO] [star_matcher] 清洗完成: 保留 9, 排除 0 (无效/星等不一致/IRLS离群)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=0 (quality=0 + invalid=0 + mag=0 + irls=0), fit_used=9, robust_iterations=0, scale=4.637520e+07, sigma=0.000000
+[INFO] [star_matcher] P12-001 阶段8: r_inliers median=-7.666286 p90=-7.666286 max=-7.666286 dex
+[pc_api] 匹配+清洗完成: 9 颗, scale=4.637520e+07, sigma_residual=0.000000
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=9, scale=4.637520e+07, sigma_residual=0.000000 ======
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 开始 ======
+[pc_api] OpenMP线程数: 16
+[INFO] 锥形搜索: ra=0.0000 dec=0.0000 r=0.050 mag_min=10.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] 自适应星等查询: mag_max=12.0
+[INFO] 自适应星等查询: mag_max=12.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=13.0
+[INFO] 自适应星等查询: mag_max=13.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=14.0
+[INFO] 自适应星等查询: mag_max=14.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=15.0
+[INFO] 自适应星等查询: mag_max=15.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=16.0
+[INFO] 自适应星等查询: mag_max=16.0, n_gaia=9
+[INFO] 自适应星等查询完成: mag_max=16.0, n_gaia=9
+[pc_api] 搜索到 9 颗光谱星, 光谱点数=343 (wl_start=336, wl_step=2)
+[INFO] [spec_int] prepare_filter_cache: QE curve not provided, F_syn without Q(λ)
+[INFO] [spec_int] prepare_filter_cache: 滤光片 17 点 -> 光谱 343 点, 范围 [300.0, 1100.0] nm (无 QE)
+[INFO] 滤光片/QE 预处理完成: filter=17 点, qe=0 点 -> 光谱 343 点
+[pc_api] F_syn 并行计算完成: 9/9 颗有效
+[INFO] [pc_api] P12-001 阶段1: spectrum_rows_total=9, valid_fsyn=9
+[wcs_transform] 初始化: CRVAL=(0.000000,0.000000), CRPIX=(0.000,0.000), CD=[2.778e-04,0.000e+00;0.000e+00,2.778e-04], det=7.716e-08, sip_order=0
+[INFO] [star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=9 / 9
+[INFO] [star_matcher] P12-001 阶段3: psf_total=9, psf_valid=9
+[INFO] [star_matcher] PSF有效星: 9 / 9, Gaia星: 9, 匹配半径: 2.00 px
+[INFO] [star_matcher] P12-002 正向匹配 (PSF→Gaia): 9 / 9 命中
+[INFO] [star_matcher] P12-002 反向匹配 (Gaia→PSF): 9 / 9 命中
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=9 (正向命中), unique_matches=9 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=0 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段8: match_distance median=1.4142 p90=1.4142 max=1.4142 px
+[INFO] [star_matcher] P12-002 KD-tree 双向匹配完成: 9 对 (正向 9, 歧义 0)
+[INFO] [star_matcher] cleanAndScale: 输入 9 颗, 星等容忍 3.00 mag
+[INFO] [star_matcher] 星等一致性: 通过 9, 拒绝 0 (median_delta=-19.2157, tol=3.00 mag)
+[INFO] [star_matcher] IRLS 初始: location=0.020000, MAD=0.060000, S=0.088956
+[INFO] [star_matcher] IRLS 收敛于迭代 5: location=0.021628
+[INFO] [star_matcher] 亮度比例一致性:
+[INFO]   - 输入匹配: 9
+[INFO]   - 星等一致性通过: 9 (拒绝 0)
+[INFO]   - IRLS inliers: 9 (outliers: 0)
+[INFO]   - location(r) = 0.021628 (dex), scale = 10^(-location) = 9.514189e-01
+[INFO]   - MAD(r) = 0.060000, S = 0.088956, sigma_residual = 0.091370
+[INFO]   - r_inliers 范围: [-0.100000, 0.250000] (spread 0.350000 dex = 0.875 mag)
+[INFO] [star_matcher] 清洗完成: 保留 9, 排除 0 (无效/星等不一致/IRLS离群)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=0 (quality=0 + invalid=0 + mag=0 + irls=0), fit_used=9, robust_iterations=6, scale=9.514189e-01, sigma=0.091370
+[INFO] [star_matcher] P12-001 阶段8: r_inliers median=0.020000 p90=0.138000 max=0.250000 dex
+[pc_api] 匹配+清洗完成: 9 颗, scale=9.514189e-01, sigma_residual=0.091370
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=9, scale=9.514189e-01, sigma_residual=0.091370 ======
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 开始 ======
+[pc_api] OpenMP线程数: 16
+[INFO] 锥形搜索: ra=0.0000 dec=0.0000 r=0.050 mag_min=10.0 (自适应迭代 mag_max, 不缩小半径)
+[INFO] 自适应星等查询: mag_max=12.0
+[INFO] 自适应星等查询: mag_max=12.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=13.0
+[INFO] 自适应星等查询: mag_max=13.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=14.0
+[INFO] 自适应星等查询: mag_max=14.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=15.0
+[INFO] 自适应星等查询: mag_max=15.0, n_gaia=9
+[INFO] 自适应星等查询: mag_max=16.0
+[INFO] 自适应星等查询: mag_max=16.0, n_gaia=9
+[INFO] 自适应星等查询完成: mag_max=16.0, n_gaia=9
+[pc_api] 搜索到 9 颗光谱星, 光谱点数=343 (wl_start=336, wl_step=2)
+[INFO] [spec_int] prepare_filter_cache: QE curve not provided, F_syn without Q(λ)
+[INFO] [spec_int] prepare_filter_cache: 滤光片 17 点 -> 光谱 343 点, 范围 [300.0, 1100.0] nm (无 QE)
+[INFO] 滤光片/QE 预处理完成: filter=17 点, qe=0 点 -> 光谱 343 点
+[pc_api] F_syn 并行计算完成: 9/9 颗有效
+[INFO] [pc_api] P12-001 阶段1: spectrum_rows_total=9, valid_fsyn=9
+[wcs_transform] 初始化: CRVAL=(0.000000,0.000000), CRPIX=(0.000,0.000), CD=[2.778e-04,0.000e+00;0.000e+00,2.778e-04], det=7.716e-08, sip_order=0
+[INFO] [star_matcher] 初始化: KD-tree + IRLS/Tukey 清洗 (GAP-013)
+[INFO] [star_matcher] P12-001 阶段2: gaia_projected_in_frame=9 / 9
+[INFO] [star_matcher] P12-001 阶段3: psf_total=9, psf_valid=9
+[INFO] [star_matcher] PSF有效星: 9 / 9, Gaia星: 9, 匹配半径: 2.00 px
+[INFO] [star_matcher] P12-002 正向匹配 (PSF→Gaia): 9 / 9 命中
+[INFO] [star_matcher] P12-002 反向匹配 (Gaia→PSF): 9 / 9 命中
+[INFO] [star_matcher] P12-002 阶段4/5/6: spatial_candidates=9 (正向命中), unique_matches=9 (双向唯一), rejected_ambiguous=0 (非互为最近邻), rejected_distance=0 (距离超阈值)
+[INFO] [star_matcher] P12-001 阶段8: match_distance median=1.4142 p90=1.4142 max=1.4142 px
+[INFO] [star_matcher] P12-002 KD-tree 双向匹配完成: 9 对 (正向 9, 歧义 0)
+[INFO] [star_matcher] cleanAndScale: 输入 9 颗, 星等容忍 3.00 mag
+[INFO] [star_matcher] B4-3 质量位有效域: 排除 1 颗 (SATURATED/HAS_SATURATED, SCI-PHOT-001 §4/§10), 剩余 8 颗
+[INFO] [star_matcher] 星等一致性: 通过 8, 拒绝 0 (median_delta=-19.1782, tol=3.00 mag)
+[INFO] [star_matcher] IRLS 初始: location=0.005000, MAD=0.060000, S=0.088956
+[INFO] [star_matcher] IRLS 收敛于迭代 0: location=0.005000
+[INFO] [star_matcher] 亮度比例一致性:
+[INFO]   - 输入匹配: 9
+[INFO]   - 星等一致性通过: 8 (拒绝 0)
+[INFO]   - IRLS inliers: 8 (outliers: 0)
+[INFO]   - location(r) = 0.005000 (dex), scale = 10^(-location) = 9.885531e-01
+[INFO]   - MAD(r) = 0.060000, S = 0.088956, sigma_residual = 0.088956
+[INFO]   - r_inliers 范围: [-0.100000, 0.110000] (spread 0.210000 dex = 0.525 mag)
+[INFO] [star_matcher] 清洗完成: 保留 8, 排除 1 (无效/星等不一致/IRLS离群)
+[INFO] [star_matcher] P12-001 阶段6/7/8: rejected_quality=1 (quality=1 + invalid=0 + mag=0 + irls=0), fit_used=8, robust_iterations=1, scale=9.885531e-01, sigma=0.088956
+[INFO] [star_matcher] P12-001 阶段8: r_inliers median=0.005000 p90=0.089000 max=0.110000 dex
+[pc_api] 匹配+清洗完成: 8 颗, scale=9.885531e-01, sigma_residual=0.088956
+[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 完成: n_matched=8, scale=9.885531e-01, sigma_residual=0.088956 ======

@@ -1,0 +1,39 @@
+== FIX-P2b variance Oracle (production scale sigma=4.22759e+10, N=49) ==
+  [PASS] T1 N=8 build include-self hat row
+  [PASS] T1 N=8 residual_maker_variance ok
+  [PASS] T1 N=8 naive_variance ok
+  [FAIL] T1 N=8 correct == sigma^2(1-1/N) [GREEN]
+  [PASS] T1 N=8 naive   == sigma^2(1+1/N) [RED]
+  [PASS] T1 N=8 RED: 若实现返回朴素值, correct 断言必红
+  [PASS] T1 N=8 RED: 若实现返回正确值, naive 断言必红
+  [PASS] T1 N=8 naive != correct (判别力)
+  [PASS] T1 N=8 naive/correct ratio closed-form
+  [PASS] T1 N=8 naive overestimates 1.2857x (报告值 1.29x)
+  [PASS] T1 N=49 build include-self hat row
+  [PASS] T1 N=49 residual_maker_variance ok
+  [PASS] T1 N=49 naive_variance ok
+  [FAIL] T1 N=49 correct == sigma^2(1-1/N) [GREEN]
+  [PASS] T1 N=49 naive   == sigma^2(1+1/N) [RED]
+  [PASS] T1 N=49 RED: 若实现返回朴素值, correct 断言必红
+  [PASS] T1 N=49 RED: 若实现返回正确值, naive 断言必红
+  [PASS] T1 N=49 naive != correct (判别力)
+  [PASS] T1 N=49 naive/correct ratio closed-form
+  [PASS] T2 exclude-self hat row ok
+  [PASS] T2 exclude-self Var == 1/w_k + 1/W_-k (control-level residual maker)
+  [PASS] T3 现行 w=1/sigma_raw^2 序 = A>C>B>D
+  [PASS] T3 正确 w=1/Var(corrected) 序 = A>B>C>D [GREEN]
+  [PASS] T3 权重序翻转：B/C 相对序在 raw 与 correct 间反转
+  [PASS] T3 Kendall tau = 0.667 (q2-snr-smooth §2)
+  [PASS] T3 A/B ratio: raw 6.76 vs correct 1.69 (g=2 帧被压低 4x 的修正)
+      w_raw=[1 0.147929 0.25 0.04] w_correct=[1 0.591716 0.16 0.04]
+  [PASS] T4 gain chain closed
+  [PASS] T4 w == SNR^2/F_ref^2 * g_k^2 for all frames
+  [PASS] T4 chain weight order A>B>C>D
+  [PASS] T5 require_gain + missing gain -> kUnclosedMissingGain
+  [PASS] T5 invalid gain -> kUnclosedInvalidGain
+  [PASS] T5 Var=0 -> weight fail-closed
+  [PASS] T5 Var<0 -> weight fail-closed
+  [PASS] T5 negative sigma^2 -> residual maker fail-closed
+  [PASS] T5 exclude-self single-frame stack -> fail-closed
+
+== P2b Oracle: pass=33 fail=2 ==

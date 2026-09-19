@@ -1,0 +1,13 @@
+=== P2a oracle (real upm.cpp, production scale) ===
+sky~1e13 ADU, sigma=4e+10, ivar=6.25e-22, frames 3, grid 8
+
+config                            iter conv   objective    boundary%    internal%    ratio
+legacy refM noG @lam1000            60    0       27.99      0.3386%      0.4091%    0.828
+full_frame noG @lam1000             60    0       24.01      0.3442%      0.4091%    0.842
+refM final_gauge @lam1000           60    0       27.99      0.4824%      0.4374%    1.103
+P2a-full rel1e-3 @lam1000           60    0       24.41      0.3917%      0.4091%    0.958
+legacy refM noG @lam0               60    0   0.0008331      1.0698%      0.4521%    2.367
+P2a-full rel1e-3 @lam0              25    1    0.001662      1.0707%      0.4521%    2.368
+
+--- P2a-1 组合失配（未归一化场景，λs=0，>=2 帧 control 的帧间 std/公共场）---
+  raw=6.4904%  raw-delta=5.0762%  raw-C=0.0130%  raw-C-delta=1.4013%

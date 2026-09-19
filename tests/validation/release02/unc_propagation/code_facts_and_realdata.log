@@ -1,0 +1,98 @@
+========================================================================
+1. CODE-PATH FACTS (grep-level, read-only)
+========================================================================
+  upm-apply applies delta (value only)           lib/infrastructure/scheduler/src/module_adapters.cpp -> 2 hit(s)
+      module_adapters.cpp:4947  p2_sky_plane_eval_delta_block(sky_guard.m, fid, valid_ra.data(),
+      module_adapters.cpp:5017  {"entry", "p2_upm_open/p2_upm_calibrate_block/p2_sky_plane_eval_delta_block"},
+  upm-apply: corrected -= delta (value only)     lib/infrastructure/scheduler/src/module_adapters.cpp -> 1 hit(s)
+      module_adapters.cpp:4954  out_v[static_cast<size_t>(k)] -= dvals[static_cast<size_t>(k)];
+  stage2 weight sources (gain-independent)       lib/algorithms/coverage/tools/stage2.cpp -> 6 hit(s)
+      stage2.cpp:1017  const auto iit = local_ivar_map.find(key);
+      stage2.cpp:1025  const auto sit = local_snr_map.find(key);
+      stage2.cpp:1294  const auto sit = local_snr_map.find(key);
+      stage2.cpp:1300  snr_v = frame_snr[frames[orig]];
+      stage2.cpp:1587  const auto sit = local_snr_map.find(key);
+      stage2.cpp:1593  snr_v = frame_snr[frames[orig]];
+  param cov in v6 diagnostic route               lib/algorithms/integration/v6/src/phase2_integrate.cpp -> 2 hit(s)
+      phase2_integrate.cpp:1649  const int pc_rc = p2_upm_ma_param_cov(model, Ctheta.data(), np);
+      phase2_integrate.cpp:1650  if (pc_rc != 0) { r.error = "p2_upm_ma_param_cov rc=" + std::to_string(pc_rc); p2_upm_ma_close(model); return 
+  param cov in reference path                    lib/algorithms/coverage/tools/stage2.cpp -> 0 hit(s)
+  production builds W2 model only (no cov API)   lib/infrastructure/scheduler/src/module_adapters.cpp -> 5 hit(s)
+      module_adapters.cpp:21  //   upm-fit    → p2_upm_build_geo + p2_upm_save          (production ivar 权重)
+      module_adapters.cpp:4463  // ── op: fit_upm（唯一真实入口 p2_upm_build_geo + p2_upm_save; production
+      module_adapters.cpp:4543  const int rc = p2_upm_build_geo(obs.data(), obs.size(),
+      module_adapters.cpp:4548  std::string("p2_upm_build_geo failed rc=") + std::to_string(rc) +
+      module_adapters.cpp:4578  {"entry", "p2_upm_build_geo/p2_upm_save"},
+  stage2: corrected /= g_k (value only)          lib/algorithms/coverage/tools/stage2.cpp -> 2 hit(s)
+      stage2.cpp:1089  out_v[i] /= gain;
+      stage2.cpp:1460  out_v[i] /= gain;
+  integrate reads RAW Phase1 ivar                lib/infrastructure/scheduler/src/module_adapters.cpp -> 1 hit(s)
+      module_adapters.cpp:5651  ivar[f].ds = aio_hips_open(p.c_str(), AIO_HIPS_RD_IVAR);
+  integrate uses frame-SNR weight verbatim       lib/infrastructure/scheduler/src/module_adapters.cpp -> 1 hit(s)
+      module_adapters.cpp:6023  w = snr_weights[it.slot[d]];
+  production reject kernel = stack_ex (MAD)      lib/infrastructure/scheduler/src/module_adapters.cpp -> 5 hit(s)
+      module_adapters.cpp:24  //                + p2_reject_stack_ex (AUTO 只在 planning 层解析)
+      module_adapters.cpp:5105  //      p2_collect_candidate_stack + p2_reject_stack_ex; AUTO 只在 planning
+      module_adapters.cpp:5394  const int krc = p2_reject_stack_ex(&stack, &plan, &dec);
+      module_adapters.cpp:5397  t_err[ti_s] = std::string("p2_reject_stack_ex failed rc=") +
+      module_adapters.cpp:5509  {"entry", "p2_reject_plan_resolve_n/p2_collect_candidate_stack/p2_reject_stack_ex"},
+  p2_reject_classify (sigma_eff path) in production lib/infrastructure/scheduler/src/module_adapters.cpp -> 0 hit(s)
+  param cov called in production chain           lib/infrastructure/scheduler/src/module_adapters.cpp -> 0 hit(s)
+  p2_integrate_pixel variance output             lib/algorithms/coverage/src/integrate.cpp -> 0 hit(s)
+
+  upm-apply writes corrected VALUES only; no variance/ivar/sigma key is emitted:
+      p2_corrected.json keys = ['entry', 'frames', 'model_hash', 'n_pixels_total', 'schema', 'sky_plane_applied', 'sky_plane_artifact', 'sky_plane_mode', 'tile_leaf_span']
+      sky_plane_mode='delta_to_B_ref' sky_plane_applied=True
+      p2_integrated.json: weight_mode=1 weight_basis='unit_weight_mode1' weight_source='none' uncertainty_available=False
+      p2_final.json: products=['signal', 'support'] uncertainty_available=False
+      p2_rejection.json entry='p2_reject_plan_resolve_n/p2_collect_candidate_stack/p2_reject_stack_ex' plan={"fallback": "none", "method": 4, "minimum_n": 4, "nominal_n": 49, "normalization": 1, "semantic_id": "astrocs.linear_fit_siril_1_4_3.v1", "underdetermined_n": 
+
+  Phase1 input frames carry NO variance/ivar product (so mode-2 has no source):
+      n_ivar_tiles=0 n_variance_tiles=0 products=['signal', 'support'] uncertainty_available=False
+
+  Production weight_mode=2 run status='incomplete'
+      summary=phase2 failed: node integrate failed: weight_mode=2 requires per-frame ivar products; 49/49 frames missing ivar; frame-SNR weight chain NOT closed (unclosed_invalid_reference_flux): ASTROCS_REFERENCE_FLUX 逐帧不一致（组内公共通量标度要求） (DATA-UNC-001 §30.1: no silent fallback; legacy_allow_weight_fallback=true no longer produces a successful equal-weight degradation)
+
+========================================================================
+2. REAL FRAME SNR / REFERENCE FLUX PAIRING (49 L4 frames)
+========================================================================
+  n_frames=49  missing ASTROCS_FRAME_SNR/ASTROCS_REFERENCE_FLUX=3
+      MISSING: M42_M4_T2_flying_dutchman-20251216_050117-300S-Red
+      MISSING: M42_M4_T2_flying_dutchman-20251224_045919-300S-Red
+      MISSING: M42_M4_T2_flying_dutchman-20251228_044805-300S-Red
+  frame_snr  min=21.3640 max=47.3882 median=27.4463  (max/min=2.2181)
+  ref_flux   min=1728.8476 max=11882.9856 median=3459.6615  (max/min=6.8734)
+  weight-chain gate requires a GROUP-COMMON F_ref (rel tol 1e-9) -> never satisfiable;
+  3/49 frames miss the keys entirely -> unclosed_missing_frame_snr.
+
+  If the per-frame F_ref were used in w = SNR^2/F_ref^2 (the write-side pairing
+  defect flagged in weight_chain.h:34-41), the COMMON-scale weight would instead be
+  w_correct = SNR^2/F_common^2, i.e. w_correct/w_used = (F_ref/F_common)^2:
+      F_common (median) = 3459.6615
+      frame                                                           SNR      F_ref wcorr/wused
+      M42_M2_T3_flying_dutchman-20251128_050425-300S-Red           47.388    11883.0    11.7973
+      M42_M5_T3_flying_dutchman-20251128_070149-300S-Red           44.290     9946.7     8.2659
+      M42_M2_T3_flying_dutchman-20251126_044822-300S-Red           42.864     9494.7     7.5318
+      M42_M2_T3_flying_dutchman-20251213_024656-300S-Red           42.797     9343.0     7.2929
+      M42_M4_T3_flying_dutchman-20251212_035745-300S-Red           21.364     1728.8     0.2497
+      M42_M1_T3_flying_dutchman-20251128_043530-300S-Red           23.276     3123.3     0.8150
+      M42_M1_T3_flying_dutchman-20251211_013548-300S-Red           23.948     2773.5     0.6427
+      M42_M1_T3_flying_dutchman-20251127_042719-300S-Red           24.073     2858.5     0.6827
+  => highest-SNR frame gets w_correct/w_used = (11883/3460)^2 = 11.797 (i.e. the
+     per-frame-F_ref chain would suppress it by 0.08x relative to a paired chain).
+
+========================================================================
+3. HIGH-SNR vs LOW-SNR CRITERION (production data, current chain)
+========================================================================
+  Observable production state: weight_mode=1 (equal weight). Every accepted sample
+  gets w=1, so w_highSNR == w_lowSNR == 1 -> the criterion 'w_high >= w_low' holds
+  trivially, but ONLY because there is no variance surface at all (uncertainty_available
+  = false). There is nothing to propagate: the normalization emitted no variance and
+  the input frames have no ivar product.
+
+  Consequence of the missing propagation on the SNR weight chain (if it were closed):
+      highest-SNR  SNR=47.388 F_ref=11883.0  w(common F)=1.876175e-04  w(own F)=1.590338e-05  ratio=11.7973
+      lowest-SNR   SNR=21.364 F_ref=1728.8  w(common F)=3.813288e-05  w(own F)=1.527050e-04  ratio=0.2497
+  -> using the frame's own F_ref collapses w to ~1/sigma_F^2 and silently reduces the
+     high-SNR frame's common-scale weight by a_f^2; the chain currently fail-closes
+     instead (safe), but any relaxation of the 1e-9 gate would expose the down-weighting.

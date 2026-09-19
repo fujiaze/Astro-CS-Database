@@ -1,0 +1,43 @@
+{
+ "n_controls": 33472,
+ "n_obs": 277234,
+ "n_frames": 49,
+ "ncov_median": 8,
+ "median_spacing_arcmin": 0.8640188968426762,
+ "order": 3,
+ "raw_no_correction": {
+  "boundary_ADU_per_arcmin": 272039607166.23224,
+  "interior_ADU_per_arcmin": 133301504105.34238,
+  "ratio": 2.0407842281453266,
+  "boundary_n": 8323,
+  "interior_n": 48932
+ },
+ "a_ref_gauge": {
+  "boundary_ADU_per_arcmin": 189446172704.68475,
+  "interior_ADU_per_arcmin": 90299101887.94263,
+  "ratio": 2.097985126582759,
+  "boundary_n": 8323,
+  "interior_n": 48932
+ },
+ "b_global_mean0": {
+  "boundary_ADU_per_arcmin": 189446172704.68475,
+  "interior_ADU_per_arcmin": 90299101887.94263,
+  "ratio": 2.097985126582759,
+  "boundary_n": 8323,
+  "interior_n": 48932
+ },
+ "c_excl_self": {
+  "boundary_ADU_per_arcmin": 153337232798.33694,
+  "interior_ADU_per_arcmin": 94394162784.20007,
+  "ratio": 1.6244355400332329,
+  "boundary_n": 8323,
+  "interior_n": 48932
+ },
+ "d_incl_self": {
+  "boundary_ADU_per_arcmin": 154559961108.50546,
+  "interior_ADU_per_arcmin": 94841431206.45966,
+  "ratio": 1.6296671100633746,
+  "boundary_n": 8323,
+  "interior_n": 48932
+ }
+}

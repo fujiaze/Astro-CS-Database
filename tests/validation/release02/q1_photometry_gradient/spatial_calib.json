@@ -1,0 +1,66 @@
+{
+ "star_spatial": [
+  {
+   "frame": 0,
+   "n": 135,
+   "a_hat": 0.5718999384510265,
+   "a_true": 0.85,
+   "fit_pp_rel": 0.01224453604542729,
+   "null_median": 0.001821011307457354,
+   "null_p95": 0.003053396148261016,
+   "p_value": 0.0
+  },
+  {
+   "frame": 3,
+   "n": 144,
+   "a_hat": 0.8070567604281098,
+   "a_true": 1.2,
+   "fit_pp_rel": 0.02382570052379407,
+   "null_median": 0.0019522409416738245,
+   "null_p95": 0.003462624768177099,
+   "p_value": 0.0
+  }
+ ],
+ "mult_calib": [
+  {
+   "frame": 1,
+   "bg_before": 199.07343246094248,
+   "bg_after": 0.0,
+   "absorbed_pct": 5.958858357955771,
+   "star_err_pct": 2.184612913839745
+  },
+  {
+   "frame": 2,
+   "bg_before": 63.88105467195844,
+   "bg_after": 0.0,
+   "absorbed_pct": 10.433700265681615,
+   "star_err_pct": 3.0718825719709324
+  },
+  {
+   "frame": 3,
+   "bg_before": 0.0,
+   "bg_after": 0.0,
+   "absorbed_pct": 0.0,
+   "star_err_pct": 0.0
+  },
+  {
+   "frame": 4,
+   "bg_before": 235.27445883441965,
+   "bg_after": 0.0,
+   "absorbed_pct": 9.972686176640913,
+   "star_err_pct": 4.040485631064284
+  },
+  {
+   "frame": 5,
+   "bg_before": 74.9531779343488,
+   "bg_after": 0.0,
+   "absorbed_pct": 11.139065569514695,
+   "star_err_pct": 6.834751773660382
+  }
+ ],
+ "grad_pct": 4.0,
+ "exact_degeneracy_maxdiff": 3.637978807091713e-12,
+ "bg_degeneracy_maxdiff": 6.016916518541734,
+ "bg_gradient_pp": 68.14453125,
+ "star_ratio_pp": 0.031089162469085857
+}

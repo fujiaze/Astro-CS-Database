@@ -1,0 +1,7 @@
+{
+  "schema": "DATA-P1-PHOTSCALE-001",
+  "node": "astrocs.phase1.photometry",
+  "frames": [
+    { "file": "light_1.fits", "k_photo": 0.9514, "n_matched": 137, "sigma_residual_dex": 0.031, "source": "star_matcher_tukey_irls" }
+  ]
+}

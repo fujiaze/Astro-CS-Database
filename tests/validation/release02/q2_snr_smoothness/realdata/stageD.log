@@ -1,0 +1,72 @@
+====================================================================================================
+PARSING bitref_16w /workspace/Astro CS Database/run/RELEASE-02/L4-rebuild/bitref_16w/p2_samples.json 134085525 bytes
+  top-level keys: ['control_grid_per_tile', 'controls', 'entry', 'frame_ids', 'input_manifest_hash', 'n_controls', 'n_obs', 'observations', 'schema', 'stats', 'target_order']
+  controls[] entries: 33472  observations[] entries: 277234
+  stats: {"accepted_controls": 29529, "accepted_observations": 277234, "candidate_observations": 358976, "overlap_controls": 29336, "rejected_bright_tolerance": 5897, "rejected_catalog_veto": 0, "rejected_high_contamination": 1841, "rejected_insufficient_retained": 0, "rejected_insufficient_support": 5792, "rejected_lt_two_clean_frames": 193}
+  target_order: 9  control_grid_per_tile: 8
+  unique control_id in controls[]: 33472
+  unique control_id in observations[]: 29336
+  coverage-count (obs per control): min 0 max 33 mean 8.283 median 8.0
+  controls with 0 obs: 4136   with 1: 0   >=2: 29336
+  coverage-count histogram: {0: 4136, 2: 176, 3: 150, 4: 127, 5: 98, 6: 206, 7: 646, 8: 18765, 9: 4129, 10: 129, 11: 181, 12: 102, 13: 68, 14: 103, 15: 182, 16: 2833, 17: 1171, 18: 35, 19: 1, 20: 18, 21: 5, 22: 9, 23: 6, 24: 1, 25: 11, 26: 7, 27: 1, 28: 3, 29: 8, 30: 8, 31: 7, 32: 82, 33: 68}
+  control_ids present in observations[] but NOT in controls[]: 0
+  ivar              {"max": 0.0, "mean": 0.0, "median": 0.0, "min": 0.0, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 0, "n_null": 0, "n_pos": 0, "n_zero": 277234}
+                    percentile {"0": 0.0, "1": 0.0, "100": 0.0, "16": 0.0, "50": 0.0, "84": 0.0, "99": 0.0}
+  snr               {"max": 0.0, "mean": 0.0, "median": 0.0, "min": 0.0, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 0, "n_null": 0, "n_pos": 0, "n_zero": 277234}
+                    percentile {"0": 0.0, "1": 0.0, "100": 0.0, "16": 0.0, "50": 0.0, "84": 0.0, "99": 0.0}
+  snr_available     {"max": 0.0, "mean": 0.0, "median": 0.0, "min": 0.0, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 0, "n_null": 0, "n_pos": 0, "n_zero": 277234}
+                    percentile {"0": 0.0, "1": 0.0, "100": 0.0, "16": 0.0, "50": 0.0, "84": 0.0, "99": 0.0}
+  uncertainty       {"max": 190719116526988.84, "mean": 82775972260.018, "median": 42275929969.71945, "min": 18050099650.421234, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 277234, "n_null": 0, "n_pos": 277234, "n_zero": 0}
+                    percentile {"0": 18050099650.421234, "1": 30989392336.664215, "100": 190719116526988.84, "16": 36883769293.83422, "50": 42275929969.71945, "84": 51018570860.91167, "99": 441065942997.0723}
+  value             {"max": 3324982218194944.0, "mean": 16034786562034.14, "median": 9467168030720.0, "min": 3786205560832.0, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 277234, "n_null": 0, "n_pos": 277234, "n_zero": 0}
+                    percentile {"0": 3786205560832.0, "1": 4176777343139.84, "100": 3324982218194944.0, "16": 7976888450416.64, "50": 9467168030720.0, "84": 13262613265776.64, "99": 122101915839363.27}
+  support           {"max": 1.0, "mean": 0.9981110155915808, "median": 1.0, "min": 0.3594771327916533, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 277234, "n_null": 0, "n_pos": 277234, "n_zero": 0}
+                    percentile {"0": 0.3594771327916533, "1": 0.9413160722803038, "100": 1.0, "16": 1.0, "50": 1.0, "84": 1.0, "99": 1.0}
+  control_ivar      {"max": 3.0693102677036438e-21, "mean": 5.53010562693718e-22, "median": 5.595174818096858e-22, "min": 2.7492329949426184e-29, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 277234, "n_null": 0, "n_pos": 277234, "n_zero": 0}
+                    percentile {"0": 2.7492329949426184e-29, "1": 5.1403562760470835e-24, "100": 3.0693102677036438e-21, "16": 3.841876695671336e-22, "50": 5.595174818096858e-22, "84": 7.350711979491952e-22, "99": 1.041295230807883e-21}
+  control_variance  {"max": 3.637378140883515e+28, "mean": 9.605937527120531e+23, "median": 1.7872542548057727e+21, "min": 3.258060973901367e+20, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 277234, "n_null": 0, "n_pos": 277234, "n_zero": 0}
+                    percentile {"0": 3.258060973901367e+20, "1": 9.603424373965234e+20, "100": 3.637378140883515e+28, "16": 1.3604124373236798e+21, "50": 1.7872542548057727e+21, "84": 2.602894572699114e+21, "99": 1.9453920646994162e+23}
+  quality_flags     {"max": 0.0, "mean": 0.0, "median": 0.0, "min": 0.0, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 0, "n_null": 0, "n_pos": 0, "n_zero": 277234}
+                    percentile {"0": 0.0, "1": 0.0, "100": 0.0, "16": 0.0, "50": 0.0, "84": 0.0, "99": 0.0}
+  distinct frame_id: 49
+  per-frame sample counts: min 5563 max 5779 sum 277234
+  per-frame value_median range: 4.183e+12 .. 1.496e+13
+  per-frame control_variance_median range: 1.124e+21 .. 2.503e+21
+  TOTAL observations with ivar!=0: 0 / 277234   with snr!=0: 0 / 277234
+====================================================================================================
+PARSING upmfix_out /workspace/Astro CS Database/run/RELEASE-02/L4-rebuild/upmfix_out/p2_samples.json 134085525 bytes
+  top-level keys: ['control_grid_per_tile', 'controls', 'entry', 'frame_ids', 'input_manifest_hash', 'n_controls', 'n_obs', 'observations', 'schema', 'stats', 'target_order']
+  controls[] entries: 33472  observations[] entries: 277234
+  stats: {"accepted_controls": 29529, "accepted_observations": 277234, "candidate_observations": 358976, "overlap_controls": 29336, "rejected_bright_tolerance": 5897, "rejected_catalog_veto": 0, "rejected_high_contamination": 1841, "rejected_insufficient_retained": 0, "rejected_insufficient_support": 4379, "rejected_lt_two_clean_frames": 193}
+  target_order: 9  control_grid_per_tile: 8
+  unique control_id in controls[]: 33472
+  unique control_id in observations[]: 29336
+  coverage-count (obs per control): min 0 max 33 mean 8.283 median 8.0
+  controls with 0 obs: 4136   with 1: 0   >=2: 29336
+  coverage-count histogram: {0: 4136, 2: 176, 3: 150, 4: 127, 5: 98, 6: 206, 7: 646, 8: 18765, 9: 4129, 10: 129, 11: 181, 12: 102, 13: 68, 14: 103, 15: 182, 16: 2833, 17: 1171, 18: 35, 19: 1, 20: 18, 21: 5, 22: 9, 23: 6, 24: 1, 25: 11, 26: 7, 27: 1, 28: 3, 29: 8, 30: 8, 31: 7, 32: 82, 33: 68}
+  control_ids present in observations[] but NOT in controls[]: 0
+  ivar              {"max": 0.0, "mean": 0.0, "median": 0.0, "min": 0.0, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 0, "n_null": 0, "n_pos": 0, "n_zero": 277234}
+                    percentile {"0": 0.0, "1": 0.0, "100": 0.0, "16": 0.0, "50": 0.0, "84": 0.0, "99": 0.0}
+  snr               {"max": 0.0, "mean": 0.0, "median": 0.0, "min": 0.0, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 0, "n_null": 0, "n_pos": 0, "n_zero": 277234}
+                    percentile {"0": 0.0, "1": 0.0, "100": 0.0, "16": 0.0, "50": 0.0, "84": 0.0, "99": 0.0}
+  snr_available     {"max": 0.0, "mean": 0.0, "median": 0.0, "min": 0.0, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 0, "n_null": 0, "n_pos": 0, "n_zero": 277234}
+                    percentile {"0": 0.0, "1": 0.0, "100": 0.0, "16": 0.0, "50": 0.0, "84": 0.0, "99": 0.0}
+  uncertainty       {"max": 190719116526988.84, "mean": 82775972260.018, "median": 42275929969.71945, "min": 18050099650.421234, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 277234, "n_null": 0, "n_pos": 277234, "n_zero": 0}
+                    percentile {"0": 18050099650.421234, "1": 30989392336.664215, "100": 190719116526988.84, "16": 36883769293.83422, "50": 42275929969.71945, "84": 51018570860.91167, "99": 441065942997.0723}
+  value             {"max": 3324982218194944.0, "mean": 16034786562034.14, "median": 9467168030720.0, "min": 3786205560832.0, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 277234, "n_null": 0, "n_pos": 277234, "n_zero": 0}
+                    percentile {"0": 3786205560832.0, "1": 4176777343139.84, "100": 3324982218194944.0, "16": 7976888450416.64, "50": 9467168030720.0, "84": 13262613265776.64, "99": 122101915839363.27}
+  support           {"max": 1.0, "mean": 0.9981110155915808, "median": 1.0, "min": 0.3594771327916533, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 277234, "n_null": 0, "n_pos": 277234, "n_zero": 0}
+                    percentile {"0": 0.3594771327916533, "1": 0.9413160722803038, "100": 1.0, "16": 1.0, "50": 1.0, "84": 1.0, "99": 1.0}
+  control_ivar      {"max": 3.0693102677036438e-21, "mean": 5.53010562693718e-22, "median": 5.595174818096858e-22, "min": 2.7492329949426184e-29, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 277234, "n_null": 0, "n_pos": 277234, "n_zero": 0}
+                    percentile {"0": 2.7492329949426184e-29, "1": 5.1403562760470835e-24, "100": 3.0693102677036438e-21, "16": 3.841876695671336e-22, "50": 5.595174818096858e-22, "84": 7.350711979491952e-22, "99": 1.041295230807883e-21}
+  control_variance  {"max": 3.637378140883515e+28, "mean": 9.605937527120531e+23, "median": 1.7872542548057727e+21, "min": 3.258060973901367e+20, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 277234, "n_null": 0, "n_pos": 277234, "n_zero": 0}
+                    percentile {"0": 3.258060973901367e+20, "1": 9.603424373965234e+20, "100": 3.637378140883515e+28, "16": 1.3604124373236798e+21, "50": 1.7872542548057727e+21, "84": 2.602894572699114e+21, "99": 1.9453920646994162e+23}
+  quality_flags     {"max": 0.0, "mean": 0.0, "median": 0.0, "min": 0.0, "n": 277234, "n_nan": 0, "n_neg": 0, "n_nonzero": 0, "n_null": 0, "n_pos": 0, "n_zero": 277234}
+                    percentile {"0": 0.0, "1": 0.0, "100": 0.0, "16": 0.0, "50": 0.0, "84": 0.0, "99": 0.0}
+  distinct frame_id: 49
+  per-frame sample counts: min 5563 max 5779 sum 277234
+  per-frame value_median range: 4.183e+12 .. 1.496e+13
+  per-frame control_variance_median range: 1.124e+21 .. 2.503e+21
+  TOTAL observations with ivar!=0: 0 / 277234   with snr!=0: 0 / 277234
+
+saved /workspace/Astro CS Database/run/RELEASE-02/q2-snr-smooth/realdata/p2_samples_summary.json

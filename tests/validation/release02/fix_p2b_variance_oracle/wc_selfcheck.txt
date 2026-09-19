@@ -1,0 +1,62 @@
+== weight_chain selfcheck (independent C++ oracle) ==
+[positive] scalar w = SNR^2/F_ref^2
+  [PASS] weight_from_snr accepted finite positive SNR
+  [PASS] w matches independent 1/sigma_F^2 oracle
+  [PASS] w matches SNR^2/F_ref^2 form
+  [PASS] weight_from_snr accepted finite positive SNR
+  [PASS] w matches independent 1/sigma_F^2 oracle
+  [PASS] w matches SNR^2/F_ref^2 form
+  [PASS] weight_from_snr accepted finite positive SNR
+  [PASS] w matches independent 1/sigma_F^2 oracle
+  [PASS] w matches SNR^2/F_ref^2 form
+[positive] multi-frame without sparse layer
+  [PASS] chain closed and production allowed
+  [PASS] closure token = closed
+  [PASS] weight_source = frame_snr
+  [PASS] one weight per input frame
+  [PASS] all weights match independent oracle
+  [PASS] SNR_combined^2 = Sum SNR_k^2 identity holds
+[positive] sparse layer composition (frame x intra)
+  [PASS] sparse chain closed
+  [PASS] weight_source = frame_snr_x_sparse_snr
+  [PASS] intra[0] matches independent bilinear oracle
+  [PASS] intra[1] matches independent bilinear oracle
+  [PASS] actual SNR = frame x intra (f0)
+  [PASS] weight[0] from composed SNR matches oracle
+  [PASS] reconstruction operator id recorded
+  [PASS] node reproduction residual ~ 0
+[negative] missing frame SNR -> fail-closed
+  [PASS] missing SNR is fail-closed
+  [PASS] closure = missing_frame_snr
+  [PASS] no weights emitted on failure
+  [PASS] explicit reason reported
+[negative] non-finite / non-positive SNR -> fail-closed
+  [PASS] invalid SNR is fail-closed (invalid_frame_snr)
+  [PASS] invalid SNR is fail-closed (invalid_frame_snr)
+  [PASS] invalid SNR is fail-closed (invalid_frame_snr)
+[negative] invalid F_ref -> fail-closed
+  [PASS] invalid F_ref is fail-closed (invalid_reference_flux)
+  [PASS] invalid F_ref is fail-closed (invalid_reference_flux)
+  [PASS] invalid F_ref is fail-closed (invalid_reference_flux)
+[negative] corrupt/empty sparse layer -> fail-closed, no frame fallback
+  [PASS] present-but-empty layer is fail-closed
+  [PASS] closure = sparse_layer_unreconstructible
+  [PASS] no silent fallback to frame-level weights
+[negative] sparse layer out-of-domain -> fail-closed
+  [PASS] out-of-domain is fail-closed
+  [PASS] explicitly states frame-level fallback forbidden
+[negative] wrong SNR semantics (quality weight) -> fail-closed
+  [PASS] relative quality weight rejected
+[negative] legacy_allow_weight_fallback -> explicit unclosed, no false green
+  [PASS] legacy fallback never reports success
+  [PASS] closure = legacy_fallback_rejected
+  [PASS] explicit 'weight chain not closed' message
+  [PASS] no scientific weights; diagnostic equal weights flagged only
+[negative] explicit equal-weight baseline is not a closure
+  [PASS] baseline never reports a closed chain
+  [PASS] closure = baseline_equal_weight
+  [PASS] baseline still exposes diagnostic weights
+[non-vacuity] equal weight differs from inverse-variance weight
+  [PASS] inverse-variance weights are not all 1.0 (test is non-vacuous)
+
+== summary: 47 passed, 0 failed ==

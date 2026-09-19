@@ -1,0 +1,75 @@
+
+[A well-conditioned P=40] P=40 kappa=9.712e+01 g1=2.0000 sigma0=2.000 sigma1=2.600
+  J Cth J^T (ref path, /g included)=5.481829e-01  (prod, no g)=2.994575e+00
+  ref path Var_correct=2.238183 (raw/g2=1.690000 + param=0.548183) Var_used=6.760000
+  prod     Var_correct=9.754575 (raw=6.760000 + param=2.994575)     Var_used=6.760000
+  w0(ref)=0.250000  w1_correct=0.446791  w1_used=0.147929  used/correct=0.3311 (pure 1/g^2=0.2500)
+  ORDER ref path: correct w1/w0=1.7872 used w1/w0=0.5917  FLIP=YES
+  prod path: correct w1/w0=0.4101 used/correct=1.4430
+
+[B medium P=12] P=12 kappa=1.105e+02 g1=2.0000 sigma0=2.000 sigma1=2.600
+  J Cth J^T (ref path, /g included)=1.677821e+00  (prod, no g)=1.133331e+01
+  ref path Var_correct=3.367821 (raw/g2=1.690000 + param=1.677821) Var_used=6.760000
+  prod     Var_correct=18.093313 (raw=6.760000 + param=11.333313)     Var_used=6.760000
+  w0(ref)=0.250000  w1_correct=0.296928  w1_used=0.147929  used/correct=0.4982 (pure 1/g^2=0.2500)
+  ORDER ref path: correct w1/w0=1.1877 used w1/w0=0.5917  FLIP=YES
+  prod path: correct w1/w0=0.2211 used/correct=2.6765
+
+[C ill-conditioned P=4] P=4 kappa=1.096e+03 g1=2.0000 sigma0=2.000 sigma1=2.600
+  J Cth J^T (ref path, /g included)=3.983000e+00  (prod, no g)=3.327748e+02
+  ref path Var_correct=5.673000 (raw/g2=1.690000 + param=3.983000) Var_used=6.760000
+  prod     Var_correct=339.534834 (raw=6.760000 + param=332.774834)     Var_used=6.760000
+  w0(ref)=0.250000  w1_correct=0.176274  w1_used=0.147929  used/correct=0.8392 (pure 1/g^2=0.2500)
+  ORDER ref path: correct w1/w0=0.7051 used w1/w0=0.5917  FLIP=no
+  prod path: correct w1/w0=0.0118 used/correct=50.2270
+
+[D mild g=1.25 P=40] P=40 kappa=6.255e+01 g1=1.2500 sigma0=2.000 sigma1=2.200
+  J Cth J^T (ref path, /g included)=6.837932e-01  (prod, no g)=1.459131e+00
+  ref path Var_correct=3.781393 (raw/g2=3.097600 + param=0.683793) Var_used=4.840000
+  prod     Var_correct=6.299131 (raw=4.840000 + param=1.459131)     Var_used=4.840000
+  w0(ref)=0.250000  w1_correct=0.264453  w1_used=0.206612  used/correct=0.7813 (pure 1/g^2=0.6400)
+  ORDER ref path: correct w1/w0=1.0578 used w1/w0=0.8264  FLIP=YES
+  prod path: correct w1/w0=0.6350 used/correct=1.3015
+
+=== g_k suppression scan (P=40 well-conditioned; sigma0=2.0 sigma1=2.6) ===
+      g1   w1_correct      w1_used    used/corr        1/g^2
+
+[scan g=1.10] P=40 kappa=4.385e+01 g1=1.1000 sigma0=2.000 sigma1=2.600
+  J Cth J^T (ref path, /g included)=9.236041e-01  (prod, no g)=1.526233e+00
+  ref path Var_correct=6.510381 (raw/g2=5.586777 + param=0.923604) Var_used=6.760000
+  prod     Var_correct=8.286233 (raw=6.760000 + param=1.526233)     Var_used=6.760000
+  w0(ref)=0.250000  w1_correct=0.153601  w1_used=0.147929  used/correct=0.9631 (pure 1/g^2=0.8264)
+  ORDER ref path: correct w1/w0=0.6144 used w1/w0=0.5917  FLIP=no
+  prod path: correct w1/w0=0.4827 used/correct=1.2258
+
+[scan g=1.25] P=40 kappa=5.067e+01 g1=1.2500 sigma0=2.000 sigma1=2.600
+  J Cth J^T (ref path, /g included)=8.021776e-01  (prod, no g)=1.711749e+00
+  ref path Var_correct=5.128578 (raw/g2=4.326400 + param=0.802178) Var_used=6.760000
+  prod     Var_correct=8.471749 (raw=6.760000 + param=1.711749)     Var_used=6.760000
+  w0(ref)=0.250000  w1_correct=0.194986  w1_used=0.147929  used/correct=0.7587 (pure 1/g^2=0.6400)
+  ORDER ref path: correct w1/w0=0.7799 used w1/w0=0.5917  FLIP=no
+  prod path: correct w1/w0=0.4722 used/correct=1.2532
+
+[scan g=1.50] P=40 kappa=6.384e+01 g1=1.5000 sigma0=2.000 sigma1=2.600
+  J Cth J^T (ref path, /g included)=6.748184e-01  (prod, no g)=2.073572e+00
+  ref path Var_correct=3.679263 (raw/g2=3.004444 + param=0.674818) Var_used=6.760000
+  prod     Var_correct=8.833572 (raw=6.760000 + param=2.073572)     Var_used=6.760000
+  w0(ref)=0.250000  w1_correct=0.271794  w1_used=0.147929  used/correct=0.5443 (pure 1/g^2=0.4444)
+  ORDER ref path: correct w1/w0=1.0872 used w1/w0=0.5917  FLIP=YES
+  prod path: correct w1/w0=0.4528 used/correct=1.3067
+
+[scan g=2.00] P=40 kappa=9.712e+01 g1=2.0000 sigma0=2.000 sigma1=2.600
+  J Cth J^T (ref path, /g included)=5.481829e-01  (prod, no g)=2.994575e+00
+  ref path Var_correct=2.238183 (raw/g2=1.690000 + param=0.548183) Var_used=6.760000
+  prod     Var_correct=9.754575 (raw=6.760000 + param=2.994575)     Var_used=6.760000
+  w0(ref)=0.250000  w1_correct=0.446791  w1_used=0.147929  used/correct=0.3311 (pure 1/g^2=0.2500)
+  ORDER ref path: correct w1/w0=1.7872 used w1/w0=0.5917  FLIP=YES
+  prod path: correct w1/w0=0.4101 used/correct=1.4430
+
+[scan g=3.00] P=40 kappa=1.917e+02 g1=3.0000 sigma0=2.000 sigma1=2.600
+  J Cth J^T (ref path, /g included)=4.577290e-01  (prod, no g)=5.626011e+00
+  ref path Var_correct=1.208840 (raw/g2=0.751111 + param=0.457729) Var_used=6.760000
+  prod     Var_correct=12.386011 (raw=6.760000 + param=5.626011)     Var_used=6.760000
+  w0(ref)=0.250000  w1_correct=0.827239  w1_used=0.147929  used/correct=0.1788 (pure 1/g^2=0.1111)
+  ORDER ref path: correct w1/w0=3.3090 used w1/w0=0.5917  FLIP=YES
+  prod path: correct w1/w0=0.3229 used/correct=1.8323

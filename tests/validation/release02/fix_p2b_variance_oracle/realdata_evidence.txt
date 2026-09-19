@@ -1,0 +1,24 @@
+== P2b-3: p2_samples stub fields (pre-fix artifact, 277234 obs) ==
+  ivar             nonzero=0/277234 min=0 median=0 max=0
+  snr              nonzero=0/277234 min=0 median=0 max=0
+  snr_available    nonzero=0/277234 min=0 median=0 max=0
+  uncertainty      nonzero=277234/277234 min=1.80501e+10 median=4.22759e+10 max=1.90719e+14
+  control_ivar     nonzero=277234/277234 min=2.74923e-29 median=5.59517e-22 max=3.06931e-21
+  control_variance nonzero=277234/277234 min=3.25806e+20 median=1.78725e+21 max=3.63738e+28
+  fixed ivar = 1/uncertainty^2 : median=5.59517e-22 (min=2.74923e-29 max=3.06931e-21)
+  fixed snr  = |value|/uncertainty : median=228.702
+  max rel |1/unc^2 - control_ivar| = 3.14e-16  (same object)
+
+== P2b-1: control-level residual-maker Var(corrected) at production scale ==
+  include-self  naive/correct  median=1.2591  min=1.0016 max=31.9870  (N=42241)
+  exclude-self ((c)) Var/correct_naive baseline (s2_k) median=1.1296  min=1.0008 max=16.4935
+  说明: include-self 档下朴素式系统性高估（残差制造者 vs sigma^2+Var(g)）；
+        exclude-self 档 H_kk=0 ⇒ 无自交叉项，两者恒等（与 (c) 一致）。
+
+== P2b-4: F_ref group-common — L4 (stale, pre-4f341b15) vs code state ==
+  HiPS signal products scanned: 49 ; missing keys: 3
+  ASTROCS_REFERENCE_FLUX: min=1728.85 median=3457.71 max=11883  max/min=6.873
+  ASTROCS_FRAME_SNR:      min=21.364 median=27.3646 max=47.3882
+  ⇒ L4 数据违反组内公共 F_ref（46 帧 F_ref 变化 ~6.87x），生成于 2026-09-18 23:53，
+    早于修复提交 4f341b15 (2026-09-19 01:42)；当前代码 module_adapters.cpp:3180-3282
+    两遍法/显式配置已为整组选定单一公共 F0，写侧 astro_sphere_sink 另加 P2b-4 闸门。

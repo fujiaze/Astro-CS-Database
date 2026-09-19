@@ -1,0 +1,19 @@
+== P1-1 apply oracle (production scale 4096x4096, 4 frames) ==
+  [NEG] 未施加: 帧间比值极差 max|g_k/g_ref - 1| = 1.820000 (应为 1.820000)
+  [PASS] NEG 未施加时残留非零 (判别力: 若此步为 0 则测试恒真)
+  [PASS] NEG 残留量级显著 (>0.5, 生产 3.53× 极差)
+  [PASS] apply_photometry rc=0 (frame 0)
+  [PASS] apply_photometry rc=0 (frame 1)
+  [PASS] apply_photometry rc=0 (frame 2)
+  [PASS] apply_photometry rc=0 (frame 3)
+  [POS] 施加 k_photo=1/g_k: 帧间比值中位 = 1.000000000000, |中位-1| = 0.000e+00
+        apply_photometry 逐像素 max|out - k·in| = 4.883e-04 (float 舍入)
+  [PASS] POS 施加后帧间乘性标量差归零 (<1e-6)
+  [PASS] POS out == k_photo·in (float32 舍入内)
+  [PASS] k=0 → rc=-5 (禁静默全零)
+  [PASS] k<0 → rc=-5
+  [PASS] k=NaN → rc=-4
+  [PASS] k=Inf → rc=-4
+  [PASS] NaN/Inf 像素不阻断 rc=0
+  [PASS] NaN/Inf 像素透传 (k>0)
+ORACLE_PASS
