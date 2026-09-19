@@ -1,0 +1,186 @@
+{
+  "exp": "EXP-3 multi-frame sparse-SNR weight penalty + scalar consistency",
+  "partA_scalar_consistency": {
+    "n_frames": 8,
+    "sigma_ratio_median": 1.3127098765695728,
+    "sigma_ratio_min": 1.0939316323503927,
+    "sigma_ratio_max": 1.5730957705316198,
+    "variance_ratio_median": 1.767632086435536,
+    "note": "sigma_mad = sqrt(p1_snr.frames[].variance); sigma_clipped_rms = p1_sources.frames[].noise_sigma (the sigma that scales every SNR in p1_snr.json)"
+  },
+  "partA_frames": [
+    {
+      "tile": "t2_m1_red",
+      "file": "cleaned_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+      "sigma_mad": 22.686442702562445,
+      "sigma_clipped_rms": 20.738446564360657,
+      "sigma_ratio": 1.0939316323503927,
+      "variance_ratio": 1.1966864162567945,
+      "background": 195.98373413085938,
+      "n_sources": 86717,
+      "frame_snr_ref": 28.236291506578443
+    },
+    {
+      "tile": "t2_m1_red",
+      "file": "cleaned_M42_M1_T2_flying_dutchman-20251224@031410-300S-Red.fts",
+      "sigma_mad": 21.83012771271146,
+      "sigma_clipped_rms": 19.81067136898897,
+      "sigma_ratio": 1.1019378044342145,
+      "variance_ratio": 1.214266924841297,
+      "background": 160.7876739501953,
+      "n_sources": 92839,
+      "frame_snr_ref": 28.489608867176226
+    },
+    {
+      "tile": "t2_m2_red",
+      "file": "cleaned_M42_M2_T2_flying_dutchman-20251212@020002-300S-Red.fts",
+      "sigma_mad": 58.2304599547346,
+      "sigma_clipped_rms": 38.22195596359685,
+      "sigma_ratio": 1.5234819487049314,
+      "variance_ratio": 2.320997248029775,
+      "background": 215.54481506347656,
+      "n_sources": 345960,
+      "frame_snr_ref": 41.014228671710114
+    },
+    {
+      "tile": "t2_m2_red",
+      "file": "cleaned_M42_M2_T2_flying_dutchman-20251216@033550-300S-Red.fts",
+      "sigma_mad": 59.320218735673826,
+      "sigma_clipped_rms": 37.975309002241566,
+      "sigma_ratio": 1.5620733654115186,
+      "variance_ratio": 2.440073198928068,
+      "background": 227.5389862060547,
+      "n_sources": 358683,
+      "frame_snr_ref": 41.29490149288103
+    },
+    {
+      "tile": "t2_m2_red",
+      "file": "cleaned_M42_M2_T2_flying_dutchman-20251224@033141-300S-Red.fts",
+      "sigma_mad": 58.286903627451444,
+      "sigma_clipped_rms": 37.0738353462076,
+      "sigma_ratio": 1.572184347347645,
+      "variance_ratio": 2.47176362204494,
+      "background": 194.8258514404297,
+      "n_sources": 360722,
+      "frame_snr_ref": 41.32637254967194
+    },
+    {
+      "tile": "t2_m2_red",
+      "file": "cleaned_M42_M2_T2_flying_dutchman-20251224@033733-300S-Red.fts",
+      "sigma_mad": 58.40128407204319,
+      "sigma_clipped_rms": 37.12506585171656,
+      "sigma_ratio": 1.5730957705316198,
+      "variance_ratio": 2.4746303032644703,
+      "background": 195.2891387939453,
+      "n_sources": 360862,
+      "frame_snr_ref": 41.389603125610904
+    },
+    {
+      "tile": "t2_m3_red",
+      "file": "cleaned_M42_M3_T2_flying_dutchman-20251216@043245-300S-Red.fts",
+      "sigma_mad": 22.426892298922997,
+      "sigma_clipped_rms": 20.468160275318045,
+      "sigma_ratio": 1.0956965353631185,
+      "variance_ratio": 1.2005508976067416,
+      "background": 198.2855224609375,
+      "n_sources": 103556,
+      "frame_snr_ref": 27.06469676494406
+    },
+    {
+      "tile": "t2_m3_red",
+      "file": "cleaned_M42_M3_T2_flying_dutchman-20251224@042543-300S-Red.fts",
+      "sigma_mad": 21.56879011462527,
+      "sigma_clipped_rms": 19.608530621608054,
+      "sigma_ratio": 1.0999697290350285,
+      "variance_ratio": 1.209933404793394,
+      "background": 165.16249084472656,
+      "n_sources": 105335,
+      "frame_snr_ref": 27.160858277940694
+    }
+  ],
+  "partB": {
+    "tile": "t2_m2_red",
+    "n_frames": 4,
+    "patch_px": 32,
+    "grid": [
+      128,
+      128
+    ],
+    "frames": [
+      "cleaned_M42_M2_T2_flying_dutchman-20251212@020002-300S-Red.fts",
+      "cleaned_M42_M2_T2_flying_dutchman-20251216@033550-300S-Red.fts",
+      "cleaned_M42_M2_T2_flying_dutchman-20251224@033141-300S-Red.fts",
+      "cleaned_M42_M2_T2_flying_dutchman-20251224@033733-300S-Red.fts"
+    ],
+    "sigma_frame_median_adu": [
+      14.547361243329377,
+      14.790651570910612,
+      13.984949249110038,
+      13.983835080420135
+    ],
+    "sigma_frame_spread": 1.0576963676881574,
+    "window": [
+      48,
+      80,
+      48,
+      80
+    ],
+    "scan": [
+      {
+        "stride": 2,
+        "spacing_px": 64,
+        "n_control_points": 4096,
+        "rmse_log_sigma": 0.09222906140996506,
+        "penalty_measured_mean": 1.0677884619785867,
+        "penalty_measured_p95": 1.0583252785689452,
+        "penalty_worstcase_independent": 1.0340247990742524,
+        "sigma_penalty_pct": 3.3338503094986205
+      },
+      {
+        "stride": 4,
+        "spacing_px": 128,
+        "n_control_points": 1024,
+        "rmse_log_sigma": 0.11239579152631299,
+        "penalty_measured_mean": 1.1611481557474026,
+        "penalty_measured_p95": 1.0797215097913113,
+        "penalty_worstcase_independent": 1.0505312558113056,
+        "sigma_penalty_pct": 7.756584752274076
+      },
+      {
+        "stride": 8,
+        "spacing_px": 256,
+        "n_control_points": 256,
+        "rmse_log_sigma": 0.13160353265559566,
+        "penalty_measured_mean": 1.3116686366119998,
+        "penalty_measured_p95": 1.0753453364906047,
+        "penalty_worstcase_independent": 1.0692779592297297,
+        "sigma_penalty_pct": 14.52810295346727
+      },
+      {
+        "stride": 16,
+        "spacing_px": 512,
+        "n_control_points": 64,
+        "rmse_log_sigma": 0.13463493038595287,
+        "penalty_measured_mean": 1.2850761480592823,
+        "penalty_measured_p95": 1.078331408211634,
+        "penalty_worstcase_independent": 1.0725062579201214,
+        "sigma_penalty_pct": 13.361199184698203
+      },
+      {
+        "stride": 32,
+        "spacing_px": 1024,
+        "n_control_points": 16,
+        "rmse_log_sigma": 0.2304063860928014,
+        "penalty_measured_mean": 1.2122413352340444,
+        "penalty_measured_p95": 1.0403776498557828,
+        "penalty_worstcase_independent": 1.2123484110093803,
+        "sigma_penalty_pct": 10.101831739260557
+      }
+    ],
+    "scalar_only": {
+      "penalty_mean": 1.001269244398189,
+      "sigma_penalty_pct": 0.06344209541209178
+    }
+  },
+  "elapsed_s": 33.01361536979675
+}

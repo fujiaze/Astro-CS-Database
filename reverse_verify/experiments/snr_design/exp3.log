@@ -1,0 +1,18 @@
+WARNING: VerifyWarning: Found a SIMPLE card but its format doesn't respect the FITS Standard [astropy.io.fits.hdu.hdulist]
+== Part A: frame-scalar consistency (8 frames) ==
+   sigma_MAD / sigma_clippedRMS : median 1.3127  range [1.0939, 1.5731]
+   variance ratio (MAD^2/RMS^2) : median 1.7676
+
+== Part B: tile t2_m2_red, 4 frames ==
+   per-frame median sigma [ADU]: ['14.547', '14.791', '13.985', '13.984']
+   frame-to-frame sigma spread  : 1.0577
+
+  spacing   N_ctrl  RMSE(logsig)     penalty_meas    pen_worstcase   sig_pen%
+       64     4096       0.09223         1.067788         1.034025     3.3339
+      128     1024       0.11240         1.161148         1.050531     7.7566
+      256      256       0.13160         1.311669         1.069278    14.5281
+      512       64       0.13463         1.285076         1.072506    13.3612
+     1024       16       0.23041         1.212241         1.212348    10.1018
+   scalar-only frame weight: penalty 1.001269 (sigma penalty 0.0634%)
+
+wrote exp3_multiframe_weight_penalty.json

@@ -1,0 +1,118 @@
+{
+  "exp": "EXP-5 final-product SNR error budget",
+  "partA_stacking_gain": {
+    "n_frames": 8,
+    "frame_snr_max_over_min": 2.22,
+    "snr_gain_vs_best_single_frame": {
+      "median": 2.647457849392094,
+      "p05": 2.526419665404723,
+      "p95": 2.73149483012792,
+      "sqrt_n": 2.8284271247461903,
+      "note": "sqrt(N) is reached only when all frames have equal SNR"
+    },
+    "snr_gain_inverse_variance_vs_equal_weight": {
+      "median": 1.0039813697620827,
+      "p05": 1.0013504094148793,
+      "p95": 1.0088238446914963
+    },
+    "snr_gain_vs_unweighted_mean": {
+      "median": 2.839688138974909
+    }
+  },
+  "partB_reported_sigma_budget": {
+    "terms": [
+      {
+        "name": "phase1_estimator_noise",
+        "rel_sigma_error": 0.015,
+        "evidence": "SE(sigma_hat)/sigma ~ 1.44/sqrt(N_sky), N_sky>=9216 -> 1.5% (NOISE_MODEL.md 5a sky-budget constant)"
+      },
+      {
+        "name": "phase1_source_contamination_bias",
+        "rel_sigma_error": 0.0,
+        "evidence": "MEASURED: production frame scalar sigma_MAD / sigma_clippedRMS = 1.3127 median (range 1.09-1.57) over 8 real frames (EXP-3 Part A); the production estimator is a whole-frame UNCLIPPED MAD, so this is a BIAS not a random error -- entered separately below"
+      },
+      {
+        "name": "sparse_reconstruction",
+        "rel_sigma_error": 0.0,
+        "evidence": "MEASURED: RMSE(log SNR) 0.092 (64 px pitch) .. 0.230 (1024 px) on a real M42 frame (EXP-2/EXP-3)"
+      },
+      {
+        "name": "upm_parameter_covariance",
+        "rel_sigma_error": 0.0,
+        "evidence": "reports/RELEASE-02/unc-prop-audit.md 2.2/2.3: J_out C_theta J_out^T = 0.46..333 ADU^2 vs raw sigma^2 = 6.76 ADU^2 => +7%..+4900% in VARIANCE, i.e. +3.4%..+2200% in sigma, condition-number dependent"
+      },
+      {
+        "name": "multiplicative_normalization_g",
+        "rel_sigma_error": 0.0,
+        "evidence": "production runs g == 1 (module_adapters.cpp:6344/6368 read multiplicative_gain_applied / frame_gain, no writer exists), so the term is structurally zero TODAY; it becomes the dominant term the moment g is enabled without an uncertainty on g"
+      },
+      {
+        "name": "drizzle_correlated_noise",
+        "rel_sigma_error": 0.202,
+        "evidence": "UNCERTAINTY_AND_COVARIANCE.md: diagonal-only propagation underestimates variance by ~1+0.75*rho; rho=0.19 (nside=512 MC) => variance low by 36.3%, sigma low by 20.2%"
+      },
+      {
+        "name": "master_frame_variance",
+        "rel_sigma_error": 0.0,
+        "evidence": "CALIBRATION.md:236 registers the master-variance gap as UNRESOLVED with no project formula; a finite-master model gives sigma_master/sigma_sky ~ 1/sqrt(N_master) per master frame"
+      }
+    ],
+    "scenarios": [
+      {
+        "scenario": "current production (scalar sigma, no sparse layer, g=1, no C_theta)",
+        "eps_phase1": 1.3127,
+        "eps_sparse": 0.0,
+        "eps_theta": 0.0,
+        "eps_g": 0.0,
+        "eps_total": 1.3127,
+        "snr_error_pct": 131.27
+      },
+      {
+        "scenario": "scalar sigma fixed + C_theta propagated (well conditioned)",
+        "eps_phase1": 0.015,
+        "eps_sparse": 0.0,
+        "eps_theta": 0.034,
+        "eps_g": 0.0,
+        "eps_total": 0.03716180835212409,
+        "snr_error_pct": 3.716180835212409
+      },
+      {
+        "scenario": "scalar sigma fixed + C_theta propagated (ill conditioned)",
+        "eps_phase1": 0.015,
+        "eps_sparse": 0.0,
+        "eps_theta": 2.2,
+        "eps_g": 0.0,
+        "eps_total": 2.200051135769349,
+        "snr_error_pct": 220.0051135769349
+      },
+      {
+        "scenario": "+ sparse layer at 64 px pitch (UPM control pitch)",
+        "eps_phase1": 0.015,
+        "eps_sparse": 0.092,
+        "eps_theta": 0.034,
+        "eps_g": 0.0,
+        "eps_total": 0.09922197337283713,
+        "snr_error_pct": 9.922197337283713
+      },
+      {
+        "scenario": "+ sparse layer at 512 px pitch (Phase1 8x8 patch grid)",
+        "eps_phase1": 0.015,
+        "eps_sparse": 0.135,
+        "eps_theta": 0.034,
+        "eps_g": 0.0,
+        "eps_total": 0.14002142693173786,
+        "snr_error_pct": 14.002142693173786
+      },
+      {
+        "scenario": "+ g enabled with 1% gain uncertainty",
+        "eps_phase1": 0.015,
+        "eps_sparse": 0.092,
+        "eps_theta": 0.034,
+        "eps_g": 0.01,
+        "eps_total": 0.09972462083156797,
+        "snr_error_pct": 9.972462083156797
+      }
+    ],
+    "drizzle_term_always_present": 0.202
+  }
+}
