@@ -524,6 +524,116 @@ TEST(Phase2Upm, S2LowSnrDoesNotPullHighSnr) {
     p2_upm_close(model);
 }
 
+// ===== FIX-UPMSCALE 回归（RELEASE-02）=====
+// 生产 control_ivar 尺度（~5.6e-22，uncertainty ~4.2e10）下，per-control
+// 归一化判据必须是尺度无关的「Σ_cell w_UPM > 0 且有限」。旧的绝对门
+// sums > 1e-12 会把生产尺度权重整体清零 ⇒ C 场恒 0、p2_upm_fit 空操作、
+// 帧间不可比（接缝根因）。既有合成用例一律用 control_ivar=1.0
+// （Σ≈O(1) > 1e-12），因此永远抓不到该 bug；本用例用生产量级 ivar 做
+// 判别力回归，并显式证明旧判据在本输入下判假（必然清零）。
+TEST(Phase2Upm, ProductionScaleControlIvarKeepsCFieldAlive) {
+    // control_ivar ≈ 5.6e-22 ⇔ control_variance ≈ 1.8e21（unc ≈ 4.2e10 ADU）
+    // 两帧同一 control，帧内两个观测有散布 ⇒ 加性 C 场无法精确吸收
+    // 全部残差 ⇒ objective > 0。
+    const double kProdIvar = 5.6e-22;
+    const double kProdUnc = 4.2e10;
+    auto prod_obs = [&](std::uint64_t f, double v) {
+        P2ControlObservation o{};
+        o.frame_id = f;
+        o.control_id = 0;
+        o.leaf_ipix = 0;
+        o.ra_deg = 0.0;
+        o.dec_deg = 0.0;
+        o.value = v;
+        o.uncertainty = kProdUnc;
+        o.snr = 1.0;
+        o.support = 1.0;
+        o.quality_flags = 1u;                 // PSF_OK ⇒ qf=1
+        o.control_variance = 1.0 / kProdIvar;
+        o.control_ivar = kProdIvar;
+        return o;
+    };
+    std::vector<P2ControlObservation> obs{
+        prod_obs(0, 10.0), prod_obs(0, 20.0),
+        prod_obs(1, 25.0), prod_obs(1, 35.0),
+    };
+    P2UpmBuildConfig cfg{};
+    cfg.use_ivar_weight = 1;   // production science
+
+    // (a) 判别力：复算 per-control raw 权重和，证明旧绝对门必然判假。
+    double sum_raw = 0.0;
+    for (const auto& o : obs) {
+        double raw = 0.0;
+        ASSERT_EQ(p2_upm_raw_weight(&o, &cfg, &raw), 0);
+        EXPECT_GT(raw, 0.0) << "生产 ivar 必须给出正 raw weight";
+        sum_raw += raw;
+    }
+    EXPECT_GT(sum_raw, 0.0);
+    EXPECT_LT(sum_raw, 1e-12)
+        << "生产 ivar 的 Σ w_UPM 必须 < 旧绝对门 1e-12（证明旧实现清零）";
+    // 同一 raw 在两种判据下的归一化结果：旧判据 → 0；尺度无关 → 份额。
+    double old_norm = 0.0, new_norm = 0.0;
+    {
+        double raw0 = 0.0;
+        ASSERT_EQ(p2_upm_raw_weight(&obs[0], &cfg, &raw0), 0);
+        old_norm = (sum_raw > 1e-12) ? raw0 / sum_raw * 1.0 : 0.0;
+        new_norm = (sum_raw > 0.0 && std::isfinite(sum_raw))
+                       ? raw0 / sum_raw * 1.0 : 0.0;
+    }
+    EXPECT_DOUBLE_EQ(old_norm, 0.0)
+        << "旧绝对门必须把生产权重清零（判别力证明）";
+    EXPECT_NEAR(new_norm, 0.25, 1e-12)
+        << "尺度无关判据必须保留 per-control 份额（4 obs 之一 = 0.25）";
+
+    // (b) 端到端：C 场必须复活（非零）、迭代 > 1、objective > 0。
+    void* model = nullptr;
+    ASSERT_EQ(p2_upm_build(obs.data(), obs.size(), &cfg, &model), 0);
+    const double c_ref = p2_upm_evaluate_c(model, 0, 0);   // gauge 参考帧
+    const double c_f1 = p2_upm_evaluate_c(model, 1, 0);    // 待解帧
+    EXPECT_DOUBLE_EQ(c_ref, 0.0) << "gauge 参考帧 C 必须为 0";
+    EXPECT_TRUE(std::isfinite(c_f1));
+    EXPECT_GT(std::fabs(c_f1), 1e-6)
+        << "生产 ivar 下 C 场必须非零（旧实现恒 0）";
+    std::uint64_t it = 0;
+    double obj = 0.0;
+    int conv = -1;
+    ASSERT_EQ(p2_upm_convergence(model, &it, &obj, &conv), 0);
+    EXPECT_GT(it, 1u) << "生产 ivar 下必须真正迭代（旧实现 iterations=1）";
+    EXPECT_GT(obj, 0.0) << "生产 ivar 下 objective 必须 > 0（旧实现 =0）";
+    EXPECT_EQ(conv, 1);
+    // 帧间可比：frame1 的 raw 25 应落回 frame0 的 raw 10 参考面。
+    std::uint64_t ipix[1] = {0};
+    double in[1] = {25.0};
+    double out[1] = {0.0};
+    ASSERT_EQ(p2_upm_calibrate_block(model, 1, ipix, in, out, 1), 0);
+    EXPECT_LT(std::fabs(out[0] - 10.0), 0.5)
+        << "校准后 frame1 必须落到 frame0 参考面（帧间可比）";
+    p2_upm_close(model);
+
+    // (c) fail-closed 不放宽：缺/非法 control_ivar 仍显式 rc=2。
+    {
+        std::vector<P2ControlObservation> bad = obs;
+        bad[0].control_ivar = 0.0;
+        void* mb = nullptr;
+        EXPECT_EQ(p2_upm_build(bad.data(), bad.size(), &cfg, &mb), 2)
+            << "缺/非法 control_ivar 必须 fail-closed（不得因尺度判据放宽）";
+        EXPECT_EQ(mb, nullptr);
+    }
+
+    // (d) 真零权重仍得 0（不被当有效观测）：全部 quality_flags=16
+    //     （photo_rejected ⇒ qf=0）⇒ Σ=0 ⇒ 权重 0，模型有限、C=0、无 NaN。
+    {
+        std::vector<P2ControlObservation> zero = obs;
+        for (auto& o : zero) o.quality_flags = 16u;
+        void* mz = nullptr;
+        ASSERT_EQ(p2_upm_build(zero.data(), zero.size(), &cfg, &mz), 0);
+        const double cz = p2_upm_evaluate_c(mz, 1, 0);
+        EXPECT_TRUE(std::isfinite(cz)) << "零权重不得产生 NaN/Inf";
+        EXPECT_DOUBLE_EQ(cz, 0.0) << "真零权重必须保持 0（不生成值）";
+        p2_upm_close(mz);
+    }
+}
+
 // W4：UPM 持久化 round-trip + 真实内容哈希 + 连通分量
 TEST(Phase2Upm, SaveOpenRoundtripAndHash) {
     std::vector<P2ControlObservation> obs{

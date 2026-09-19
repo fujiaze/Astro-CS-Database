@@ -1149,6 +1149,63 @@ int p2_sky_plane_eval_block(const void* model, std::uint64_t frame_id,
     return rc;
 }
 
+// FIX-GK / 方案 B：只求值逐帧偏差 δ_k(ra,dec) = b_k(x) − B_ref(x)。
+// 与 p2_sky_plane_eval 共用同一 gnomonic/越域/basis 约定，但**不触碰**
+// p2_sky_plane_eval 本体（其他调用方仍取 b_k=B_ref+δ_k，语义不变）。
+// δ_k = gauge_shift + δ_k 多项式项（gauge_mode=0 ⇒ gauge_shift=0，参考帧 δ≡0）。
+int p2_sky_plane_eval_delta(const void* model_in, std::uint64_t frame_id,
+                            double ra_deg, double dec_deg,
+                            double* out_value, int* out_status) {
+    if (out_status) *out_status = P2_SKY_EVAL_INVALID;
+    if (!model_in || !out_value) return P2_SKY_PLANE_INVALID_ARGS;
+    const SkyPlaneModel* m = static_cast<const SkyPlaneModel*>(model_in);
+    const auto it = m->frame_index.find(frame_id);
+    if (it == m->frame_index.end()) {
+        if (out_status) *out_status = P2_SKY_EVAL_UNKNOWN_FRAME;
+        return P2_SKY_PLANE_OK;
+    }
+    double u = 0, v = 0, cosc = 0;
+    if (!gnomonic(m->ra0_deg, m->dec0_deg, ra_deg, dec_deg, &u, &v, &cosc)) {
+        if (out_status) *out_status = P2_SKY_EVAL_OUT_OF_DOMAIN;
+        return P2_SKY_PLANE_OK;
+    }
+    const double mg = m->cfg.max_extrapolation_deg;
+    const double eps = 1e-9;   // 边界浮点舍入容差（不构成外插）
+    if (u < m->du_min - mg - eps || u > m->du_max + mg + eps ||
+        v < m->dv_min - mg - eps || v > m->dv_max + mg + eps) {
+        if (out_status) *out_status = P2_SKY_EVAL_OUT_OF_DOMAIN;
+        return P2_SKY_PLANE_OK;
+    }
+    std::vector<double> basis(static_cast<std::size_t>(m->m), 0.0);
+    delta_basis(u, v, m->uc, m->vc, m->us, m->vs, m->delta_order, basis.data());
+    const std::vector<double>& dk = m->deltas[it->second];
+    double dv = 0.0;
+    for (int q = 0; q < m->m; ++q)
+        dv += basis[static_cast<std::size_t>(q)] * dk[static_cast<std::size_t>(q)];
+    // B 口径：δ_k = b_k − B_ref = gauge_shift + δ_k 多项式项。
+    *out_value = m->gauge_shift + dv;
+    if (out_status) *out_status = P2_SKY_EVAL_OK;
+    return P2_SKY_PLANE_OK;
+}
+
+int p2_sky_plane_eval_delta_block(const void* model, std::uint64_t frame_id,
+                                  const double* ra_deg, const double* dec_deg,
+                                  std::uint64_t n, double* out_values,
+                                  std::uint8_t* out_status) {
+    if (!model || !ra_deg || !dec_deg || !out_values)
+        return P2_SKY_PLANE_INVALID_ARGS;
+    int rc = 0;
+    for (std::uint64_t i = 0; i < n; ++i) {
+        double val = 0.0;
+        int st = P2_SKY_EVAL_INVALID;
+        p2_sky_plane_eval_delta(model, frame_id, ra_deg[i], dec_deg[i], &val, &st);
+        out_values[i] = (st == P2_SKY_EVAL_OK) ? val : 0.0;
+        if (out_status) out_status[i] = static_cast<std::uint8_t>(st);
+        if (st != P2_SKY_EVAL_OK) rc = 2;
+    }
+    return rc;
+}
+
 int p2_sky_plane_frame_delta(const void* model_in, std::uint64_t frame_id,
                              double* out_coeffs, std::uint64_t cap,
                              std::uint64_t* out_n) {

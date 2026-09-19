@@ -47,7 +47,9 @@ struct P2Stage2Config {
     int max_irls_iterations = 100;
     double tolerance = 1e-6;
     // FIX-A 稀疏天光面链（P0-08/09/10）：观测外采样点联合拟合
-    // b_k(x)=B_ref(x)+delta_k(x)，应用 corrected=(raw-C-b_k)/g_k。
+    // b_k(x)=B_ref(x)+delta_k(x)。FIX-GK 方案 B（负责人裁决）：施加
+    // corrected=(raw-C-δ_k)/g_k，δ_k=b_k−B_ref（归一化到公共面 B_ref，
+    // 保留真实天光亮度，只消除帧间差异；不再扣整个 b_k）。
     // 缺省关闭：保持 RELEASE-01 加性 C 场行为不变（基线 447 不回归）。
     // 生产 config 模板显式 sky_plane.enabled=true / frame_gain=true 启用目标模型；
     // 由 FIX-C/E2E 启用并重验 L4。代码路径已完整接线，非空壳。

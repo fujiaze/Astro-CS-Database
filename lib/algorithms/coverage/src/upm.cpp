@@ -245,6 +245,10 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     }
     if (cfg.huber_delta <= 0.0) cfg.huber_delta = 1.345;
     if (cfg.max_iterations <= 0) cfg.max_iterations = 100;
+    // 与 max_iterations 同源的健壮性缺口：调用方传零初始化 config 时
+    // tolerance=0 会让收敛判据 `max_dM < tol && max_dC < tol` 永假
+    // (生产显式设 1e-6，不受影响；此处补齐默认化以消除静默不收敛)。
+    if (!(cfg.tolerance > 0.0)) cfg.tolerance = 1e-6;
     if (cfg.sigma_floor <= 0.0) cfg.sigma_floor = 1e-3;
     if (cfg.support_power < 0.0) cfg.support_power = 1.0;
     // use_ivar_weight 默认 1 (仅显式 0 关闭)
@@ -566,8 +570,22 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         }
         for (std::uint64_t i = 0; i < n_obs; ++i) {
             const std::size_t ck = m->control_by_id[obs[i].control_id];
-            if (sums[ck] > 1e-12)
-                raw_w[i] = raw_w[i] / sums[ck] * m->controls[ck].reliability;
+            // FIX-UPMSCALE（RELEASE-02）：尺度无关判据。per-control 归一化
+            //   w_cell = w_UPM / (Σ_cell w_UPM) × control_reliability
+            // 的数学定义域是「Σ_cell w_UPM > 0 且有限」，不是「Σ 大于某个
+            // 绝对常数」。旧门 sums[ck] > 1e-12 是绝对阈值：生产
+            // control_ivar 中位 ≈5.6e-22（Σ 中位 ≈5.1e-21）使全部 control
+            // 判假 ⇒ 100% 权重清零 ⇒ C 场恒 0、p2_upm_fit 空操作、帧间不可
+            // 比（接缝根因）。归一化表达式本身不变（raw_w / sums *
+            // reliability），只把「是否执行归一化」的判据换成尺度无关形式，
+            // 因此数学语义逐位不变。
+            // - 真零权重（如 quality_factor=0 的全部观测）Σ=0 ⇒ 仍得 0，
+            //   不被当作有效观测（不生成值）；
+            // - 非法/缺失 ivar 已由 p2_upm_raw_weight rc=2 显式拦下，此处
+            //   不承担 fail-closed 职责，不放宽任何校验。
+            const double s = sums[ck];
+            if (s > 0.0 && std::isfinite(s))
+                raw_w[i] = raw_w[i] / s * m->controls[ck].reliability;
             else
                 raw_w[i] = 0.0;
         }
