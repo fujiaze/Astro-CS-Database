@@ -79,21 +79,21 @@
       "kind": "owner-design-supplement",
       "detail": "负责人明确指示补充最高设计 §4.5 逐像素排异（叠加非纯逆方差平均；按输入集合大小 n 自适应选择算法；CLI mosaic 留空/0/auto 自动、显式指定则强制；证据=PixInsight WBPP 源码 BPP-FrameGroup.js:1304-1312/1229-1293）",
       "pack_sha256": "8f3eeb4ed397e5c90c7e3ef1c03f5c76a0a940eb9a35232d24b9844a0695a504",
-      "repo_sha256": "bcd7aa0210dd68eb50d7ec222744bf296b2681b5dc85dac271b414cdc668f9e2"
+      "repo_sha256": "48ff71b687563cdceced74a414917e1d75bae72537d3263a47c03b28fc76b9ec"
     },
     {
       "path": "docs/plugins/algorithms_phase1/08_drizzle.md",
       "kind": "science-change-claim",
       "detail": "变更 claim FIX-SCI-DRZ-001：§5/§7/§11 归一化订正为面亮度保持 S_p=Σ_j B_j a_jp/Σ_j a_jp（依据 Fruchter & Hook 2002 PASP 114,144 式(5)，DOI 10.1086/338393）；后由 FIX-SCI-SNR-CANON-001 续订：§5 配置表 sparse_snr_layer 默认 false→true（负责人裁决：SNR 默认稀疏路径）",
       "pack_sha256": "e4c3ea989e28397820de0fdac78139268a54c0436fe8288dc59d5ad551a5008c",
-      "repo_sha256": "ec53be48817fcfee9ca45a4e5e0c142c487cd3b31d6064b65b389f0ee8ec7ec4"
+      "repo_sha256": "ca0366b61d9735434f9dc953ae3f6791a56fa9a7f8c39af0b8184653aef7a310"
     },
     {
       "path": "docs/plugins/algorithms_phase1/07_noise_snr.md",
       "kind": "science-change-claim",
       "detail": "变更 claim FIX-SCI-SNR-CANON-001：帧级 SNR 红线（纯信号/噪声、F_signal 已扣局部背景、天光只进 σ_F、单调性、点源口径）；SNR 三条路径（dense / sparse_reconstruct 默认 / frame_reconstruct）与配置键设计；Phase1 HiPS 为唯一带 SNR 数据块产物（Phase2 不输出、Phase3 无）；sparse_snr_layer 默认 true（联锁缺口登记）",
       "pack_sha256": "edec91ccd1c621daaffca45932113cfaaa46d2ac05ed16fea6557f60d45ca2d2",
-      "repo_sha256": "65953c00a3f64a2d72edecdfc9f079033498676ce10a9a2b171fe10a44945aeb"
+      "repo_sha256": "b3fabbfd9dc2a0abf20e24c0e44379d042a986fc54565fa699ca4dfbbabef0ff"
     },
     {
       "path": "docs/plugins/algorithms_phase1/06_photometry.md",
