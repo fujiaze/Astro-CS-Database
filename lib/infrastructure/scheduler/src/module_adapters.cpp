@@ -4754,10 +4754,10 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   for (uint64_t i = 0; i < kP2TileLeafSpan; ++i)
     local_lut[i] = astrocs::healpix::fits_index_to_nested_local(i, kP2TileShift, 512u);
 
-  // ── FIX-A 天光面扣除面（P0-09）接入生产 mosaic 链 ─────────────────────────
-  // upm-fit 成功时落盘 p2_sky_plane.bin; 此处 open 并逐像素扣除
-  // b_k(x)=B_ref+δ_k（按需求值, 不建稠密栅格）。文件存在但 open 失败 =
-  // 产物损坏 → DATA fail-closed（禁静默跳过）。
+  // ── FIX-A 天光面 / FIX-GK 方案 B 归一化面接入生产 mosaic 链 ───────────────
+  // upm-fit 成功时落盘 p2_sky_plane.bin; 此处 open 并按需逐像素取 δ_k
+  // （δ_k = b_k − B_ref, 不建稠密栅格），把每帧归一化到公共面 B_ref。
+  // 文件存在但 open 失败 = 产物损坏 → DATA fail-closed（禁静默跳过）。
   void* sky_model = nullptr;
   {
     const std::string sky_path = out_dir + "/p2_sky_plane.bin";
@@ -4936,18 +4936,22 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
       if (n_valid > 0) {
         p2_upm_calibrate_block(model, fid, leaves.data(), in_v.data(),
                                out_v.data(), n_valid);   // 唯一真实校正入口
-        // FIX-A：corrected = (raw − C_k(x) − b_k(x))。b_k 现场求值
-        // （B_ref+δ_k; 越域点不扣, 与 stage2 生产接线同口径）。
+        // FIX-GK / 方案 B（负责人裁决）：corrected = (raw − C_k(x)) − δ_k(x)，
+        //   δ_k(x) = b_k(x) − B_ref(x)  （逐帧相对公共参考面的偏差）
+        // ⇔ raw − b_k + B_ref：把每一帧归一化到公共面 B_ref（多退少补），
+        // 保留 B_ref 真实天光亮度，只消除帧间差异；不扣整个背景面、不除 g_k。
+        // 越域/未知帧点不扣（状态非 OK → 保持 raw−C；与 stage2 生产接线同口径）。
         if (sky_guard.m) {
-          std::vector<double> bvals(static_cast<size_t>(n_valid), 0.0);
-          std::vector<uint8_t> bstat(static_cast<size_t>(n_valid), P2_SKY_EVAL_INVALID);
-          p2_sky_plane_eval_block(sky_guard.m, fid, valid_ra.data(), valid_dec.data(),
-                                  n_valid, bvals.data(), bstat.data());
+          std::vector<double> dvals(static_cast<size_t>(n_valid), 0.0);
+          std::vector<uint8_t> dstat(static_cast<size_t>(n_valid), P2_SKY_EVAL_INVALID);
+          p2_sky_plane_eval_delta_block(sky_guard.m, fid, valid_ra.data(),
+                                        valid_dec.data(), n_valid, dvals.data(),
+                                        dstat.data());
           for (uint64_t k = 0; k < n_valid; ++k) {
-            if (bstat[static_cast<size_t>(k)] == P2_SKY_EVAL_OK &&
-                std::isfinite(bvals[static_cast<size_t>(k)]) &&
+            if (dstat[static_cast<size_t>(k)] == P2_SKY_EVAL_OK &&
+                std::isfinite(dvals[static_cast<size_t>(k)]) &&
                 std::isfinite(out_v[static_cast<size_t>(k)]))
-              out_v[static_cast<size_t>(k)] -= bvals[static_cast<size_t>(k)];
+              out_v[static_cast<size_t>(k)] -= dvals[static_cast<size_t>(k)];
           }
         }
         // 回填 valid 位置（calibrate_block 按输入序输出; 重新扫描映射）
@@ -5010,9 +5014,12 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   const std::string out_path = out_dir + "/p2_corrected.json";
   const bool sky_applied = (sky_guard.m != nullptr);
   Json artifact = Json{{"schema", "DATA-P2-COR"},
-                       {"entry", "p2_upm_open/p2_upm_calibrate_block/p2_sky_plane_eval_block"},
+                       {"entry", "p2_upm_open/p2_upm_calibrate_block/p2_sky_plane_eval_delta_block"},
                        {"model_hash", model_doc.value("model_hash", "")},
                        {"sky_plane_applied", sky_applied},
+                       // FIX-GK 方案 B: 施加的是逐帧 δ_k=b_k−B_ref（保留公共面 B_ref），
+                       // 不是整个 b_k（旧口径会把背景归零并产生大量负像素）。
+                       {"sky_plane_mode", sky_applied ? "delta_to_B_ref" : "none"},
                        {"sky_plane_artifact",
                         sky_applied ? (out_dir + "/p2_sky_plane.bin") : std::string()},
                        {"n_pixels_total", total_pixels},

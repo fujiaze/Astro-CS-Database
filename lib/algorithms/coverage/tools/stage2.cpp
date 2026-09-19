@@ -448,7 +448,9 @@ int main(int argc, char** argv) {
     // 天光采样点直接由 background-clean control observations 映射（同一 patch
     // estimator：value=patch median，variance=control_variance，点 SNR=|value|/σ）。
     // b_k(x)=B_ref(x)+δ_k(x) 稀疏样条联合拟合；g_k 由 v6 UPM MA 求解器估计。
-    // 任一失败都显式降级（保留 RELEASE-01 纯加性 C 场 / g=1）并记日志，不静默。
+    // FIX-GK 方案 B：施加的是 δ_k=b_k−B_ref（归一化到公共面 B_ref），
+    // 不是整个 b_k。任一失败都显式降级（保留 RELEASE-01 纯加性 C 场 / g=1）
+    // 并记日志，不静默。
     std::unique_ptr<void, void (*)(void*)> sky_guard(nullptr, &p2_sky_plane_close);
     std::map<std::uint64_t, double> frame_gain;
     if (cfg.sky_plane_enabled || cfg.frame_gain_enabled) {
@@ -1065,8 +1067,10 @@ int main(int argc, char** argv) {
                         model, frame_id_cache[f],
                         chunk_leaves[c].data(), cal_v.data(), out_v.data(),
                         cnt);
-                    // FIX-A：corrected = (raw − C_k(x) − b_k(x)) / g_k。
-                    // b_k(x)=B_ref+δ_k 现场求值（不建稠密栅格）；g_k 乘法响应。
+                    // FIX-GK / 方案 B：corrected = (raw − C_k(x) − δ_k(x)) / g_k。
+                    // δ_k(x) = b_k(x) − B_ref(x) 现场求值（不建稠密栅格）：
+                    // 把该帧归一化到公共参考面 B_ref（多退少补，保留 B_ref 真实
+                    // 天光亮度，只消除帧间差异）；不扣整个 b_k。g_k 乘法响应保留。
                     double gain = 1.0;
                     if (!frame_gain.empty()) {
                         const auto git = frame_gain.find(frame_id_cache[f]);
@@ -1075,12 +1079,12 @@ int main(int argc, char** argv) {
                     if (sky_guard || gain != 1.0) {
                         for (std::uint64_t i = 0; i < cnt; ++i) {
                             if (sky_guard) {
-                                double b = 0.0;
+                                double dk = 0.0;
                                 int st = P2_SKY_EVAL_INVALID;
-                                p2_sky_plane_eval(sky_guard.get(), frame_id_cache[f],
-                                                  chunk_ra[c][i], chunk_dec[c][i],
-                                                  &b, &st);
-                                if (st == P2_SKY_EVAL_OK) out_v[i] -= b;
+                                p2_sky_plane_eval_delta(sky_guard.get(), frame_id_cache[f],
+                                                        chunk_ra[c][i], chunk_dec[c][i],
+                                                        &dk, &st);
+                                if (st == P2_SKY_EVAL_OK) out_v[i] -= dk;
                             }
                             out_v[i] /= gain;
                         }
@@ -1436,7 +1440,8 @@ int main(int argc, char** argv) {
                     model, frame_id_cache[f], chunk_leaves[c].data(),
                     cal.data() + (std::size_t)s * chunk_pixels,
                     out_v.data(), cnt);
-                // FIX-A：corrected = (raw − C_k(x) − b_k(x)) / g_k（同 ACR 路径）。
+                // FIX-GK / 方案 B：corrected = (raw − C_k(x) − δ_k(x)) / g_k
+                // （同 ACR 路径）。δ_k = b_k − B_ref，归一化到公共面 B_ref。
                 double gain = 1.0;
                 if (!frame_gain.empty()) {
                     const auto git = frame_gain.find(frame_id_cache[f]);
@@ -1445,12 +1450,12 @@ int main(int argc, char** argv) {
                 if (sky_guard || gain != 1.0) {
                     for (std::uint64_t i = 0; i < cnt; ++i) {
                         if (sky_guard) {
-                            double b = 0.0;
+                            double dk = 0.0;
                             int st = P2_SKY_EVAL_INVALID;
-                            p2_sky_plane_eval(sky_guard.get(), frame_id_cache[f],
-                                              chunk_ra[c][i], chunk_dec[c][i],
-                                              &b, &st);
-                            if (st == P2_SKY_EVAL_OK) out_v[i] -= b;
+                            p2_sky_plane_eval_delta(sky_guard.get(), frame_id_cache[f],
+                                                    chunk_ra[c][i], chunk_dec[c][i],
+                                                    &dk, &st);
+                            if (st == P2_SKY_EVAL_OK) out_v[i] -= dk;
                         }
                         out_v[i] /= gain;
                     }

@@ -232,6 +232,24 @@ P2_API int p2_sky_plane_eval_block(const void* model, std::uint64_t frame_id,
                                    std::uint64_t n, double* out_values,
                                    std::uint8_t* out_status);
 
+// 只求值逐帧偏差 δ_k(ra,dec) = b_k(x) − B_ref(x)（B 口径归一化用）。
+//   corrected_k(x) = raw_k(x) − δ_k(x)  ⇔  raw_k(x) − b_k(x) + B_ref(x)
+// 即把第 k 帧归一化到公共参考面 B_ref（多退少补），保留 B_ref 真实天光亮度，
+// 只消除帧间差异。δ_k = gauge_shift + δ_k 多项式项；gauge_mode=0 时 gauge_shift=0
+// 且参考帧 δ_ref≡0（与 UPM MA 同构）。**不改变 p2_sky_plane_eval 语义**（其他
+// 调用方仍取 b_k=B_ref+δ_k）。状态/返回码语义与 p2_sky_plane_eval 完全一致
+// （未知帧 → UNKNOWN_FRAME；越域 → OUT_OF_DOMAIN，均不外插）。
+P2_API int p2_sky_plane_eval_delta(const void* model, std::uint64_t frame_id,
+                                   double ra_deg, double dec_deg,
+                                   double* out_value, int* out_status);
+
+// 分块 δ_k 求值：out_values[i]/out_status[i] 对应 ra[i]/dec[i]。
+// 返回 0=全部成功；2=存在越域/未知帧（状态逐点写出，out_values 该点=0）；1=参数错误。
+P2_API int p2_sky_plane_eval_delta_block(const void* model, std::uint64_t frame_id,
+                                         const double* ra_deg, const double* dec_deg,
+                                         std::uint64_t n, double* out_values,
+                                         std::uint8_t* out_status);
+
 // 每帧 δ_k 系数（m 个，升序 a+b<=order 的 u^a v^b），可空查询数量。
 P2_API int p2_sky_plane_frame_delta(const void* model, std::uint64_t frame_id,
                                     double* out_coeffs, std::uint64_t cap,
