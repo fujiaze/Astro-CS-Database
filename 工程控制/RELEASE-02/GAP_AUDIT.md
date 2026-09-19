@@ -977,3 +977,26 @@ astrocs normalize|mosaic|export
 - `ci/checks.json` 对 `smoothing`/`large_scale`/`algorithm_rejection_method`/`apply_photometry`/`g_k` **零检查项**；
 - **无生产尺度门**；**L4 真实数据 E2E 是人工跑**（`CHK-E2E-REPRO` 只做 WCS closure）。
 - **建议补**：`CHK-ALGO-WIRING`、`CHK-REGISTRY-IR-PARITY`、`CHK-CONFIG-CONSUMED`、`CHK-PROD-SCALE`、`CHK-PROVENANCE-CONSISTENCY`、`CHK-REALDATA-E2E`、`CHK-CONFIG-DEFAULTS`。
+### 9.35 **修复批次（按执行面划分）—— 负责人令「按执行面分开，统一修复，然后汇总重跑」**
+
+**四个执行面分片**（各自零 git 写；前台统一构建/测试/提交/重跑）：
+
+| 分片 | 执行面 | 要修 |
+|---|---|---|
+| **FIX-P1** | **Phase1 测光归一化链** | P1-1 把 `I_photo=k_photo·I_cal` **真正接到像素**（Drizzle 前）并如实落元数据；P1-2 修 `pc_api.cpp:138,397` `quality_flags=nullptr` 致饱和过滤失效；P1-3 `F_instr` 估计量（检测等照度 flux 有强视宁度偏差）—— 涉及科学定义者只登记不擅改 |
+| **FIX-P2a** | **Phase2 接缝（组合+formulation+收敛）** | P2a-1 去掉有害双重加性扣除（**两种都可配**，默认选择须论证）；P2a-2 按 Q2 的 **(c) 排除自身 + 阻尼 α≈0.5 + 拟合/叠加权重自洽 + 末端扣残差场** 重构；P2a-3 UPM 收敛状态入 `p2_upm_model.json` + `p2_op_upm_fit` 调 `p2_upm_convergence` + 绝对 `1e-6` 改相对（新阈值须论证）；P2a-4 M-update 改全帧 SNR 加权 |
+| **FIX-P2b** | **Phase2 方差传播+权重链** | P2b-1 归一化产出逐像素方差（**残差制造者 `PΣPᵀ`**，非 `σ²+Var(ĝ)`）并与 (c) 一致；P2b-2 权重链消费 `w=1/Var(corrected)`；P2b-3 修 `ivar`/`snr`=0 stub（改 `1/uncertainty²`）；P2b-4 `F_ref` 组内公共；P2b-5 过渡期 `uncertainty_available=false` 不得撒谎 |
+| **FIX-GATES** | **CI 门禁（防复发）** | 新增 7 项：`CHK-ALGO-WIRING`、`CHK-REGISTRY-IR-PARITY`、`CHK-CONFIG-CONSUMED`、`CHK-CONFIG-DEFAULTS`、`CHK-PROD-SCALE`、`CHK-PROVENANCE-CONSISTENCY`、`CHK-REALDATA-E2E`；每项**能红能绿**；当前必然红者用**显式台账**承载而非删检查 |
+
+**统一纪律**：
+- 只改各自执行面；不改 `docs/**`；不改冻结科学定义（除明示的科学行为变更，须逐条列明理由）；
+- **必须用生产尺度参数自证**（不得重蹈 `control_ivar=1.0` vs 生产 `5.6e-22` 的尺度裂缝）；
+- 不跑 `ninja`/`cmake`/`ctest`（前台统一做）；零 git 写；
+- 科学行为变更逐条列出 ⇒ 前台记入 `ACCEPTANCE.md §3` 自裁决台账。
+
+**前台后续（分片回来后）**：
+1. 统一 `ninja -C build` + 全量 `ctest`（**先清 `/dev/shm`**，否则假红）；
+2. 按序提交（一个 commit 一个目的），push 后核对三 SHA；
+3. **汇总重跑 L4**：`normalize`（应用测光后）→ `mosaic` → `export`，
+   与旧基线对比：接缝（沿真实倾斜边界）、帧间乘性差、权重序、UPM 收敛状态、性能；
+4. 出汇总报告与验收证据。
