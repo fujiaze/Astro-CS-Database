@@ -415,3 +415,52 @@ SCAMP 用重叠源求**相对光度零点**。**共同点：逐帧、局部、�
 | ④ 天光面归零背景（46% 负值） | 不变（约定变更需知会下游） |
 
 **⇒ 优先级：先接 `g_k`（FIX-GK），重跑 mosaic 后**重做接缝/卫星线数值验收**，再决定 ②③ 是否还需要。**
+### 9.17 **接缝终极根因：UPM C 场在生产里被一个绝对阈值清零（空操作）**
+
+**缺陷**（`lib/algorithms/coverage/src/upm.cpp:566-573`）：
+```cpp
+if (sums[ck] > 1e-12)                                   // 绝对阈值
+    raw_w[i] = raw_w[i] / sums[ck] * m->controls[ck].reliability;
+else
+    raw_w[i] = 0.0;                                     // 生产全走这里
+```
+`sums[ck]` = 该 control 上**逆方差权重之和**；生产 `control_ivar` 中位 ≈ **5.6e-22**，
+`Σcontrol_ivar` 中位 **5.1e-21**；**29336/29336 个 control 的 sum < 1e-12** ⇒ **100% 权重被清零**。
+
+**后果**：`p2_upm_fit` 在生产里是**空操作** —— 三次 L4 运行（`bitref_16w`/`bitref_1w`/`mosaic_out_w1`）实测
+`iterations=1, converged=1, objective=0.0, M 全 0, C 非零项=0`；`p2_upm_calibrate_block` 逐位返回 `raw`
+（TRAIL 实测 `corrected − Phase1 = 0.0`）。
+
+**为什么测试没抓到**：合成测试用 `control_ivar=1.0`（`synthetic_gate.cpp:71-73`）⇒ `sums≈8 > 1e-12`
+⇒ **测试永远绿、生产永远死**。守卫自 `32d84795`(phase2-v2) 起就是绝对 `1e-12`；
+生产切到 `control_ivar` 权重在 `1752e8ca` + 节点接线 `439f9f20` ⇒ **尺度裂缝自那时起存在**。
+
+**这就是「以前版本把接缝彻底解决过」的答案**：UPM 加性 C 场设计上就是
+「使校准后样本 `calibrated = raw − C_f(p)` **在全域可比**」（`docs/science/PHASE2_UPM.md:7`）
+＝**把所有帧归一化到公共面**（负责人原话）。**C 场死 ⇒ 帧间不可比 ⇒ 接缝**。
+RELEASE-01 VIS-001 的接缝 FAIL 即此后果（当时被误归因为「只有帧级标量 b_k」）。
+
+### 9.18 方案 B 与接缝的关系（FIX-GK 代数 + 数值证明）
+
+`b_k = B_ref + δ_k`：
+- OLD `corrected_k = raw_k − b_k`；NEW `corrected_k = raw_k − δ_k`；
+- ⇒ `NEW_k − OLD_k = b_k − δ_k = B_ref(x)`（**帧无关**）
+- ⇒ **任意两帧之差 `NEW_k − NEW_j = OLD_k − OLD_j` 恒等** ⇒ **帧子集边界台阶不变**；
+- 实测（合成 2 帧 + δ=3）：`max|帧间台阶(new) − 台阶(old)| = 1.4e-14`（完全相同）。
+
+**⇒ 方案 B 修「背景归零 / 大量负像素」（背景抬回公共面 B_ref），但修不了接缝。**
+**接缝必须靠帧间归一 —— 即 C 场（9.17）。**
+（TRAIL 的 0.696→0.985 收益来自「sky_plane 生效」，与 B/OLD 口径无关。）
+
+### 9.19 离群剔除现状（负责人要求「RMS 判据 + 剔除异常采样点」）
+
+- 设计 `11_upm.md §4.4` 要求「**逆方差加权最小二乘 + 稳健迭代抑制离群点（M 估计/σ-clipping）**」；
+- `11_upm.md:62` 原文：「最优解即对各采样点的**加权残差 RMS 最小**的天光面」；
+- **现状：天光面联合拟合只有 Huber 软降权，无硬剔除**（`sky_plane.cpp:948` `w=base_w*huber_w`；
+  `:949` 的 `|z|>5` 计数是死变量；`:1057` 的 `n_rejected` 只是诊断计数，样本仍以 Huber 权重留在法方程）；
+  σ-clipping（`clip_iters=3`/`clip_sigma=3.0`）属 patch 估计器 `P2SkyPatchConfig`，**不在联合拟合里**；
+- **待办**：给天光面联合拟合加**离群样本剔除**（设计已要求，属实现补全）。
+
+### 9.20 其他 tool-only 缺口（SEAM-ARCH 附带发现）
+`smoothing_lambda` 生产默认 **0**（`module_adapters.cpp:4536-4537`），而 tool 的 `stage2_common.cpp:140` 是 `smoothing:auto→0.1`
+⇒ **全几何 Laplacian 延拓在 stage2 开、生产关**。待评估。
