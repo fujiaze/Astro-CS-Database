@@ -917,3 +917,63 @@ D4 `pc_api.cpp:138,397` 传 `quality_flags=nullptr` 致**饱和过滤失效**（
    - **`δ_ref≡0` gauge 保留参考帧梯度**（Q2 已证：gauge 平移不改空间阶跃，但**参考帧 gauge 不保证 `g_k=ḡ` 公共**）；
 4. **Q2 的 (c) 排除自身 + 阻尼 + 权重自洽**正是针对第 3 点的第二条；
 5. **空间乘法残留 ~4.3% 真实存在**但不主导接缝，会污染测光（星云区因信号 10³–10⁴ ADU/px 而放大）。
+### 9.34 ★★ **CHAIN-AUDIT：生产链条审计 —— 共登记 56 个缺口，「设计但未接入」48 个**
+
+（`reports/RELEASE-02/chain-audit.md` 334 行；证据 `run/RELEASE-02/chain-audit/{phase1,phase2,phase3}-chain.md`、`config-and-design-gaps.md`）
+
+**① 真实链条（以代码为准）**
+```
+astrocs normalize|mosaic|export
+  -> commands.cpp session_dispatch(:1982)
+  -> cmd_session{1,2,3}_run(:1611/:965/:1140)
+  -> run_with_resource_gate(:579) -> run_pipeline({N})(:678)
+  -> runtime_client.cpp build_pipeline_ir(:101) 生成 IR
+  -> astrocs_core Runtime 调度
+  -> module_adapters.cpp register_phase_modules(:7981)
+```
+- **Phase1 IR 8 节点**（`runtime_client.cpp:146-188`）：`cal,cos,psf,wcs,phot,snr,drz,wr`；
+- **Phase2 IR 7 节点**（`:197-205`）：`coverage,sample,upm_fit,upm_apply,reject,integrate,write`；
+- **Phase3 IR 5 节点**（`:229-235`）：`properties,wcs,resample2,writer,verify`；
+- **每命令只跑 1 phase**；`lib/phase{1,2,3}_session` 是**遗留通道**（CLI 调用已被 `check_prod_reachability.py:34` 禁）；
+- L4 产物：Phase1 49/49 齐全；Phase2 完整基线=`upmfix_out`（`mosaic_out` 是未跑完运行）；Phase3 7 产品齐全。
+
+**② 缺口统计（共 56；「设计但未接入」B+C+D+E = 48）**
+| 类 | 数量 | 内容 |
+|---|---|---|
+| **A** 已接入且执行 | 20 节点 | 但 `phot` 只测不应用、`upm_apply` 双扣、`integrate` 无方差传播 |
+| **B** 注册但不在管线 | **3** | `astrocs.phase2.resample`(:606 注册 :7980)、`astrocs.phase3.resample`(:625 注册 :7988)、`astrocs.phase1.session` 未注册 —— **前两者携带完整遗留 session 执行体，潜在旁路** |
+| **C** 代码存在但无生产调用者 | **7** | `apply_photometry`、`pc_calibrate` 节点不存在、`p2_upm_ma_build`、`p2_large_scale_apply`、`p2_upm_normalized_weights`、稀疏 SNR 层、投影 registry |
+| **D** 设计有实现缺失 | **24** | 八投影仅 TAN、`output_mode` 仅 surface_brightness、无 background 节点、预检无资源预估、`filters.json` 不校验、`defaults.json` 不被读、coverage/sampling/rejection 配置面缺失、多目标产品族缺失… |
+| **E** 默认值/死键使功能失效 | **14** | `smoothing_lambda` 生产 0 vs 工具 0.1；`reject_profile` 生产 `astrocs_adaptive_pixel` vs 合同 `wbpp_2_9_1`；`algorithm_rejection_method`/`algorithm_weight_mode`/`algorithm_upm_gauge`/`algorithm_psf_model` **全 no-op**；`reject` 对象整块零读取；`cosmetic` 缺键即静默关闭；`precision` 合同 required 但 CLI 拒键；export 模板缺必填 `output_mode`；`sparse_snr_layer` no-op；`defaults.json`/`filters.json` 不生效 |
+| **X** 交叉实测缺陷 | **8** | 见下 |
+
+**③ 最危险的（排序）**
+1. **X-01（P0）δ_k 双重扣除** —— 接缝首要驱动项，且 `sky_plane_applied=true` 让它**看起来生效**；
+2. **C-01/C-02（P0）Phase1 测光归一化从未执行** —— 注释指向的 `pc_calibrate/simple` **节点不存在**（仅注释 `:3078`）；49/49 帧 `photometry_applied=false/photscal=1.0`，**全部 Phase1 产物为未测光 ADU**；
+3. **X-02（P0）UPM 不收敛不可见** —— 实测 `iterations=100, converged=0, objective=24081.46`；该状态**不在 `p2_upm_model.json`（只在 `.bin`）**，且 `p2_op_upm_fit` **不调 `p2_upm_convergence`**；
+4. E-02 `reject_profile` 生产默认未在 docs 登记；5. E-01/E-03/E-04/E-05 配置静默失效；6. C-03/C-04/C-06/D-08 能力缺失。
+
+**④ 根因模式（回答「咋回事」）**
+| 假设 | 判定 |
+|---|---|
+| **H1 注册≠调度** | **部分成立**（B 类 3 项）；**主模式是反向的「实现完成度≠接线完成度」—— 大量算法根本没注册成节点**；绑定表只覆盖已接线节点，**无门要求两者相等** |
+| **H2 缺键→代码默认静默关功能** | **成立（强）** |
+| **H3「由某某节点承担」责任悬空** | **成立**（注释指向不存在节点） |
+| **H4 测试合成参数 O(1) 掩盖生产 ~1e-22** | **成立（强）** —— `synthetic_gate.cpp:73` `control_ivar=1.0` vs 生产中位 `5.595e-22`，旧绝对门 `1e-12` 合成恒真/生产恒假 |
+| **H5 工具/生产双实现漂移** | **成立（强）** —— 工具 `stage2.cpp:1070/1443` 除 `g_k`、`smoothing auto=0.1`、有 `large_scale`；生产不除、0、无 |
+| **H6 门太弱** | **成立（强）** |
+
+**⑤ 修复优先级（危险度 × 成本）**
+- **P0-1** 去掉双重加性扣除（**低**成本，13.974%→~0.13%）；
+- **P0-2** 把测光归一化接到像素并重跑 normalize（**中**）；
+- **P0-3** UPM 收敛状态入 JSON + 判据改相对（**低**）；
+- **P1** `reject_profile` 对齐/登记；死键 fail-closed；接 `large_scale`；统一 `g_k`（接或撤回工具侧）；`cosmetic` 缺键 fail-closed；降级 B-01/B-02 占位注册；
+- **P2** 八投影分派、稀疏 SNR 层、多目标产品族、`defaults.json`/`filters.json`、coverage/sampling 配置面、typed 端口修正。
+
+**⑥ 门禁盲区（为什么没人发现）**
+- `check_prod_reachability.py` **建了可达图却不断言算法覆盖**（只查禁用符号/ACR）⇒ **C 类全漏**；
+- `check_pipeline_graph.py` **只比 IR↔trace，不比注册表↔IR** ⇒ **B 类漏**；
+- `check_module_map.py` 只到**模块级**不到算法级；
+- `ci/checks.json` 对 `smoothing`/`large_scale`/`algorithm_rejection_method`/`apply_photometry`/`g_k` **零检查项**；
+- **无生产尺度门**；**L4 真实数据 E2E 是人工跑**（`CHK-E2E-REPRO` 只做 WCS closure）。
+- **建议补**：`CHK-ALGO-WIRING`、`CHK-REGISTRY-IR-PARITY`、`CHK-CONFIG-CONSUMED`、`CHK-PROD-SCALE`、`CHK-PROVENANCE-CONSISTENCY`、`CHK-REALDATA-E2E`、`CHK-CONFIG-DEFAULTS`。
