@@ -3,6 +3,7 @@
 // 流程: WCS投影 -> 星匹配 -> MAD清洗 -> scale计算 -> 图像校正
 
 #include "../include/photometric_calib.h"
+#include "pc_api_qf.h"
 #include "../include/log_macros.h"
 #include "wcs_transform.h"
 #include "star_matcher.h"
@@ -35,7 +36,11 @@ extern "C" {
 // -2: 尺寸无效
 // -3: 无Gaia星或无PSF星
 // ============================================================================
-int pc_calibrate_simple(
+// RELEASE-02 FIX-P1 (P1-2): 内部实现携带 quality_flags（长度=n_psf，按 PSF 行
+// 对齐；含 PC_QF_SATURATED_MASK 的星不进零点拟合）。冻结的 C 导出
+// pc_calibrate_simple 以 nullptr 调本实现（签名/行为不变）；质量位感知的
+// 生产入口见 pc_api_qf.h。
+static int run_simple_impl(
     const float* pixels, int width, int height,
     const double* gaia_ra, const double* gaia_dec,
     const double* gaia_mag, const double* gaia_fsyn, int n_gaia,
@@ -49,7 +54,8 @@ int pc_calibrate_simple(
     const double* sip_ap, const double* sip_bp,
     float* out_pixels, int* out_n_matched, double* out_scale_factor,
     double* out_sigma_residual,
-    PhotometricDiag* out_diag) {
+    PhotometricDiag* out_diag,
+    const uint32_t* quality_flags) {
 
     // P0(bug 狩猎 R5): C 边界异常屏障 —— C++ 异常 (StarMatcher KdTree/vector
     // bad_alloc、WcsTransform SIP order 越界拒绝等) 一律拦在 C ABI 内转错误码,
@@ -135,7 +141,7 @@ int pc_calibrate_simple(
     match_rows.reserve(raw_matches.size());
     for (const pc::StarMatch& m : raw_matches) match_rows.push_back(m.psf_idx);
     std::vector<pc::StarMatch> matches = matcher.cleanAndScale(
-        raw_matches, &match_rows, nullptr,
+        raw_matches, &match_rows, quality_flags,
         3.0,  // mag_tolerance (: 星等一致性容忍度, mag)
         &scale,
         &sigma_residual,
@@ -165,6 +171,35 @@ int pc_calibrate_simple(
     }
 }
 
+// 冻结 C 导出（签名/行为与 HEAD 逐行等价）: 质量位缺省 nullptr。
+int pc_calibrate_simple(
+    const float* pixels, int width, int height,
+    const double* gaia_ra, const double* gaia_dec,
+    const double* gaia_mag, const double* gaia_fsyn, int n_gaia,
+    const double* psf_cx, const double* psf_cy,
+    const double* psf_flux, const int* psf_status, int n_psf,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order,
+    const double* sip_a, const double* sip_b,
+    const double* sip_ap, const double* sip_bp,
+    float* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag) {
+    return run_simple_impl(
+        pixels, width, height,
+        gaia_ra, gaia_dec, gaia_mag, gaia_fsyn, n_gaia,
+        psf_cx, psf_cy, psf_flux, psf_status, n_psf,
+        qe_wl, qe_trans, qe_count,
+        crval1, crval2, crpix1, crpix2,
+        cd11, cd12, cd21, cd22,
+        sip_order, sip_a, sip_b, sip_ap, sip_bp,
+        out_pixels, out_n_matched, out_scale_factor,
+        out_sigma_residual, out_diag,
+        /*quality_flags=*/nullptr);
+}
+
 // ============================================================================
 // pc_calibrate_simple_with_gaia: 扩展接口
 // DLL 内部调用 gaia_client 锥形搜索 DR3SP 光谱 -> OpenMP 并行积分 F_syn
@@ -175,7 +210,8 @@ int pc_calibrate_simple(
 // -2: gaia_client_handle 为空
 // -3: 锥形搜索失败或无光谱星
 // ============================================================================
-int pc_calibrate_simple_with_gaia(
+// RELEASE-02 FIX-P1 (P1-2): 内部实现携带 quality_flags（同 run_simple_impl）。
+static int run_with_gaia_f32_impl(
     void* gaia_client_handle,
     double ra_center, double dec_center, double radius_deg,
     double mag_min, double /*mag_max*/,
@@ -192,7 +228,8 @@ int pc_calibrate_simple_with_gaia(
     const double* sip_ap, const double* sip_bp,
     float* out_pixels, int* out_n_matched, double* out_scale_factor,
     double* out_sigma_residual,
-    PhotometricDiag* out_diag) {
+    PhotometricDiag* out_diag,
+    const uint32_t* quality_flags) {
 
     // P0(bug 狩猎 R5): C 边界异常屏障 (同 pc_calibrate_simple 注释; -4=内部异常)
     try {
@@ -394,7 +431,7 @@ int pc_calibrate_simple_with_gaia(
     match_rows.reserve(raw_matches.size());
     for (const pc::StarMatch& m : raw_matches) match_rows.push_back(m.psf_idx);
     std::vector<pc::StarMatch> matches = matcher.cleanAndScale(
-        raw_matches, &match_rows, nullptr,
+        raw_matches, &match_rows, quality_flags,
         3.0,   // mag_tolerance (: 星等一致性容忍度, mag)
         &scale,
         &sigma_residual,
@@ -426,6 +463,41 @@ int pc_calibrate_simple_with_gaia(
         std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia: C 边界捕获未知异常\n");
         return -4;
     }
+}
+
+// 冻结 C 导出（签名/行为与 HEAD 逐行等价）: 质量位缺省 nullptr。
+int pc_calibrate_simple_with_gaia(
+    void* gaia_client_handle,
+    double ra_center, double dec_center, double radius_deg,
+    double mag_min, double mag_max,
+    const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    const double* spectrum_wl, int spectrum_count,
+    const float* pixels, int width, int height,
+    const double* psf_cx, const double* psf_cy,
+    const double* psf_flux, const int* psf_status, int n_psf,
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order,
+    const double* sip_a, const double* sip_b,
+    const double* sip_ap, const double* sip_bp,
+    float* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag) {
+    return run_with_gaia_f32_impl(
+        gaia_client_handle, ra_center, dec_center, radius_deg,
+        mag_min, mag_max,
+        filter_wl, filter_trans, filter_count,
+        qe_wl, qe_trans, qe_count,
+        spectrum_wl, spectrum_count,
+        pixels, width, height,
+        psf_cx, psf_cy, psf_flux, psf_status, n_psf,
+        crval1, crval2, crpix1, crpix2,
+        cd11, cd12, cd21, cd22,
+        sip_order, sip_a, sip_b, sip_ap, sip_bp,
+        out_pixels, out_n_matched, out_scale_factor,
+        out_sigma_residual, out_diag,
+        /*quality_flags=*/nullptr);
 }
 
 // ============================================================================
@@ -839,7 +911,8 @@ int run_with_gaia_impl(
     const double* sip_ap, const double* sip_bp,
     T* out_pixels, int* out_n_matched, double* out_scale_factor,
     double* out_sigma_residual,
-    PhotometricDiag* out_diag) {
+    PhotometricDiag* out_diag,
+    const uint32_t* quality_flags) {
 
     std::fprintf(stderr, "[pc_api] ====== pc_calibrate_simple_with_gaia (impl) 开始 ======\n");
 #ifdef _OPENMP
@@ -1044,7 +1117,7 @@ int run_with_gaia_impl(
     match_rows.reserve(raw_matches.size());
     for (const pc::StarMatch& m : raw_matches) match_rows.push_back(m.psf_idx);
     std::vector<pc::StarMatch> matches = matcher.cleanAndScale(
-        raw_matches, &match_rows, nullptr, 3.0, &scale, &sigma_residual,
+        raw_matches, &match_rows, quality_flags, 3.0, &scale, &sigma_residual,
         out_diag, out_records ? &match_reasons : nullptr);
 
     int n_matched = (int)matches.size();
@@ -1153,7 +1226,7 @@ PC_API int pc_calibrate_simple_with_gaia_v2(
         cd11, cd12, cd21, cd22,
         sip_order, sip_a, sip_b, sip_ap, sip_bp,
         out_pixels, out_n_matched, out_scale_factor,
-        out_sigma_residual, out_diag);
+        out_sigma_residual, out_diag, /*quality_flags=*/nullptr);
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_v2: C 边界捕获异常: %s\n", e.what());
         return -4;
@@ -1199,12 +1272,65 @@ PC_API int pc_calibrate_simple_with_gaia_f64_v2(
         cd11, cd12, cd21, cd22,
         sip_order, sip_a, sip_b, sip_ap, sip_bp,
         out_pixels, out_n_matched, out_scale_factor,
-        out_sigma_residual, out_diag);
+        out_sigma_residual, out_diag, /*quality_flags=*/nullptr);
     } catch (const std::exception& e) {
         std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_f64_v2: C 边界捕获异常: %s\n", e.what());
         return -4;
     } catch (...) {
         std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_f64_v2: C 边界捕获未知异常\n");
+        return -4;
+    }
+}
+
+// ============================================================================
+// RELEASE-02 FIX-P1 (P1-2): 质量位感知入口（非 C 导出, C++ 链接期）
+//
+// 与 pc_calibrate_simple_with_gaia_f64_v2 逐参数等价, 仅追加
+// const uint32_t* quality_flags（长度 = n_psf, 按 PSF 行对齐; 含
+// PC_QF_SATURATED_MASK 的星不进入零点拟合, SCI-PHOT-001 §4/§10）。
+// 既有 6 个 PC_API 导出签名/行为不变（负责人 ABI 冻结裁决）; 生产 Phase1
+// 节点经本入口把 p1_sources[].quality 的饱和位送达 cleanAndScale。
+// ============================================================================
+int pc_calibrate_simple_with_gaia_f64_v2_qf(
+    void* gaia_client_handle,
+    double ra_center, double dec_center, double radius_deg,
+    double mag_min, double mag_max,
+    const double* filter_wl, const double* filter_trans, int filter_count,
+    const double* qe_wl, const double* qe_trans, int qe_count,
+    const double* spectrum_wl, int spectrum_count,
+    const double* pixels, int width, int height,
+    const double* psf_cx, const double* psf_cy,
+    const double* psf_flux, const int* psf_status, int n_psf,
+    const int64_t* psf_star_ids, PcMatchRecord* out_records,
+    double crval1, double crval2, double crpix1, double crpix2,
+    double cd11, double cd12, double cd21, double cd22,
+    int sip_order,
+    const double* sip_a, const double* sip_b,
+    const double* sip_ap, const double* sip_bp,
+    double* out_pixels, int* out_n_matched, double* out_scale_factor,
+    double* out_sigma_residual,
+    PhotometricDiag* out_diag,
+    const uint32_t* quality_flags) {
+    try {
+    return run_with_gaia_impl<double>(
+        gaia_client_handle, ra_center, dec_center, radius_deg,
+        mag_min, mag_max,
+        filter_wl, filter_trans, filter_count,
+        qe_wl, qe_trans, qe_count,
+        spectrum_wl, spectrum_count,
+        pixels, width, height,
+        psf_cx, psf_cy, psf_flux, psf_status, n_psf,
+        psf_star_ids, out_records,
+        crval1, crval2, crpix1, crpix2,
+        cd11, cd12, cd21, cd22,
+        sip_order, sip_a, sip_b, sip_ap, sip_bp,
+        out_pixels, out_n_matched, out_scale_factor,
+        out_sigma_residual, out_diag, quality_flags);
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_f64_v2_qf: C 边界捕获异常: %s\n", e.what());
+        return -4;
+    } catch (...) {
+        std::fprintf(stderr, "[pc_api] pc_calibrate_simple_with_gaia_f64_v2_qf: C 边界捕获未知异常\n");
         return -4;
     }
 }

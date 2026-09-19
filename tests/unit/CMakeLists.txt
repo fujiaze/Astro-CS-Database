@@ -781,14 +781,14 @@ set_tests_properties(
 # ----------------------------------------------------------------------------
 # bug 狩猎 R13 P2-1/P2-2: 批次 K/I 产物共址测试注册 (此前从未进构建/ctest)
 # ----------------------------------------------------------------------------
-# TEST-CAL-001 (批次 K): photometry_apply.cpp 不在 astrocs_calibration 库源
-# 列表 (根 CMakeLists calibration 段), 与测试 TU 一并编译; HAS_ZSTD 不加 —
+# TEST-CAL-001 (批次 K) + RELEASE-02 FIX-P1 (P1-1): photometry_apply.cpp 现
+# 已编入 astrocs_calibration（生产接线; 本测试 target 链接该库即可解析
+# calibration::apply_photometry, 不再重复编译同一 TU）。HAS_ZSTD 不加 —
 # 根 CMake 从未为 astrocs_hips/astrocs_aio 定义该宏, hiss_*/aio_compressor
 # 以无 zstd 分支自洽 (ZSTD 未编译时 writer 保持 RAW), 测试 TU 自身亦无
 # zstd 依赖, 与库既有编译形态一致。
 add_executable(test_photometry_apply_test
-  ../../lib/algorithms/calibration/tests/test_photometry_apply.cpp
-  ../../lib/algorithms/calibration/src/photometry_apply.cpp)
+  ../../lib/algorithms/calibration/tests/test_photometry_apply.cpp)
 target_include_directories(test_photometry_apply_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/calibration/src
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/calibration/include

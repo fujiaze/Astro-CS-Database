@@ -362,6 +362,41 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                                     std::istreambuf_iterator<char>()));
                     if (sj.is_object() && sj.contains("frames") &&
                         sj["frames"].is_array()) {
+                        // P2b-4（RELEASE-02）: 写侧**组内公共 F_ref** 闸门。
+                        // p1_snr.json 逐帧 snr_reference.flux_adu 必须组内公共
+                        // （相对容差 1e-9）；逐帧 F_ref 会丢掉帧间标度 a_f² 并使
+                        // Phase2 权重链 fail-closed（WEIGHT-SCI-001 配对性定理:
+                        // SNR_f=a_f·F_ref/σ_f ⇒ SNR_f²/F_ref²=a_f²/σ_f²=w_f 当且
+                        // 仅当分子分母同源）。数据违反 → **不写帧级 SNR 键**
+                        // （fail-closed；禁写非配对键冒充合法权重链）。
+                        double group_fref = 0.0;
+                        bool group_fref_set = false;
+                        bool group_fref_ok = true;
+                        if (sj.contains("snr_reference_scope") &&
+                            sj["snr_reference_scope"].is_string() &&
+                            sj["snr_reference_scope"].get<std::string>() != "group")
+                            group_fref_ok = false;
+                        for (const auto& fr : sj["frames"]) {
+                            if (!fr.is_object()) continue;
+                            if (!fr.contains("snr_reference") ||
+                                !fr["snr_reference"].is_object()) continue;
+                            const double fv =
+                                fr["snr_reference"].value("flux_adu", 0.0);
+                            if (!std::isfinite(fv) || !(fv > 0.0)) continue;
+                            if (!group_fref_set) {
+                                group_fref = fv;
+                                group_fref_set = true;
+                            } else if (std::fabs(fv - group_fref) >
+                                       1e-9 * std::fabs(group_fref)) {
+                                group_fref_ok = false;
+                            }
+                        }
+                        if (!group_fref_ok) {
+                            std::fprintf(stderr,
+                                "[sink][phase1] p1_snr.json F_ref 非组内公共"
+                                " → 不写帧级 SNR 键 (Phase2 权重链 fail-closed;"
+                                " P2b-4)\n");
+                        }
                         for (const auto& fr : sj["frames"]) {
                             if (!fr.is_object()) continue;
                             if (!phase1_frame_matches(
@@ -374,7 +409,8 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                                 fref = fr["snr_reference"].value("flux_adu", 0.0);
                             }
                             if (std::isfinite(snr) && snr > 0.0 &&
-                                std::isfinite(fref) && fref > 0.0) {
+                                std::isfinite(fref) && fref > 0.0 &&
+                                group_fref_ok) {
                                 if (aio_hips_set_frame_snr(ps, snr, fref) != 0) {
                                     err = "aio_hips_set_frame_snr 失败: " +
                                           std::string(aio_hips_last_error()

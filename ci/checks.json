@@ -7109,6 +7109,214 @@
       ]
     },
     {
+      "id": "CHK-ALGO-WIRING",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "ci/check_algo_wiring.py",
+        "--json-out",
+        "run/ci/fix-gates/algo_wiring.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/fix-gates/algo_wiring.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/**",
+        "lib/**",
+        "config/**",
+        "contracts/schemas/**",
+        "tests/**"
+      ],
+      "requires_monitor": false,
+      "prerequisite_tools": [
+        "python3:yaml",
+        "nm"
+      ]
+    },
+    {
+      "id": "CHK-REGISTRY-IR-PARITY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/check_registry_ir_parity.py",
+        "--json-out",
+        "run/ci/fix-gates/registry_ir_parity.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/fix-gates/registry_ir_parity.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/**",
+        "lib/infrastructure/scheduler/**",
+        "lib/infrastructure/cli/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-CONFIG-CONSUMED",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/check_config_consumed.py",
+        "--json-out",
+        "run/ci/fix-gates/config_consumed.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/fix-gates/config_consumed.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/**",
+        "config/**",
+        "lib/**",
+        "contracts/schemas/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-CONFIG-DEFAULTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/check_config_defaults.py",
+        "--json-out",
+        "run/ci/fix-gates/config_defaults.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/fix-gates/config_defaults.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/**",
+        "config/**",
+        "lib/**",
+        "contracts/schemas/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-PROD-SCALE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/check_prod_scale.py",
+        "--json-out",
+        "run/ci/fix-gates/prod_scale.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/fix-gates/prod_scale.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/**",
+        "lib/**",
+        "tests/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-PROVENANCE-CONSISTENCY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/check_provenance_consistency.py",
+        "--json-out",
+        "run/ci/fix-gates/provenance.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/fix-gates/provenance.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/**",
+        "lib/infrastructure/aio/**",
+        "lib/infrastructure/scheduler/**",
+        "contracts/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-REALDATA-E2E",
+      "profiles": [
+        "linux-deep"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "ci/check_realdata_e2e.py",
+        "--execute",
+        "--work-dir",
+        "run/ci/fix-gates/e2e",
+        "--json-out",
+        "run/ci/fix-gates/realdata_e2e.json"
+      ],
+      "timeout_seconds": 20000,
+      "heavy": true,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/fix-gates/realdata_e2e.json",
+        "run/ci/fix-gates/e2e/**"
+      ],
+      "waivable": true,
+      "changed_paths": [
+        "ci/**",
+        "lib/**",
+        "tests/**",
+        "testdata/**"
+      ],
+      "requires_monitor": true
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",

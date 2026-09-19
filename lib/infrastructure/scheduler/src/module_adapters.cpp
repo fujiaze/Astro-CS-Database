@@ -76,6 +76,8 @@
 #include "healpix/healpix_core.h"  // fits_index_to_nested_local (NESTED LUT 单一权威)
 // RELEASE-02 权重链: HiPS 头帧级 SNR → 逆方差权重 (w = SNR²/F_ref²)。
 #include "astrocs/v6/weight_chain.h"
+// RELEASE-02 P2b: 残差制造者 PΣPᵀ 归一化方差传播（variance_propagation.h）
+#include "astrocs/v6/variance_propagation.h"
 #include "crypto/sha256.h"         // astrocs::crypto::sha256_hex (input_manifest_hash)
 #include "astrocs/probe.h"         // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
 
@@ -85,6 +87,13 @@
 // lib/algorithms/noise_snr/cpp/src/snr_science.cpp (已编入 astrocs_phase1_noise)。
 #include "snr_frame_science.h"
 #include "wcs_tan.h"
+// RELEASE-02 FIX-P1 (P1-1): Phase1 测光归一化真正接到像素。
+//  - apply_photometry: I_photo = k_photo·I_cal (生产零调用者缺陷的修复;
+//    astrocs_calibration 已编入 photometry_apply.cpp)
+//  - fit_frame_photometry: 装配 gaia_client + filters/QE → 生产 star_matcher
+//    Tukey-IRLS k_photo (astrocs_phase1_photcal)
+#include "photometry_apply.h"
+#include "frame_photometry_fit.h"
 
 // P7-UTIL-001: 节点级 OpenMP 并行度注入的保存/恢复需要 ICV 访问器。
 #ifdef _OPENMP
@@ -1332,6 +1341,16 @@ std::string p1_cleaned_input_path(const Json& doc, const std::string& light) {
   std::error_code ec;
   if (std::filesystem::exists(std::filesystem::u8path(cand), ec)) return cand;
   return p1_calibrated_path(doc, light);
+}
+
+// ── RELEASE-02 FIX-P1 (P1-1): 测光已应用帧路径 photoapplied_<base> ──────────
+// photometry 节点在 Drizzle 前把 I_photo = k_photo·I_cal 应用到 cal 产物, 写成
+// 独立路径 photoapplied_<base>（不就地覆写上游产物, 同 CORE-RACE-001 语义）。
+// drizzle 消费该路径; 若 provenance 声明 applied=true 而产物缺失 ⇒ 调用方
+// fail-closed（不得静默退回未测光 ADU）。
+std::string p1_photoapplied_path(const Json& doc, const std::string& light) {
+  const std::string out_dir = doc.value("output_dir", std::string("."));
+  return out_dir + "/photoapplied_" + p1_base_name(light);
 }
 
 bool p1_write_text(const std::string& path, const std::string& text) {
@@ -3073,27 +3092,281 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   Json flux_out = Json{{"schema", "DATA-P1-FLUX"}, {"frames", frames}};
   if (!p1_write_text(out_path, flux_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
+  // ── RELEASE-02 FIX-P1 (P1-1): 取 k_photo 并真正施加 I_photo = k_photo·I_cal ──
+  // 规范依据: docs/algorithms/CALIBRATION_ALGORITHMS.md §3.6 /
+  //   docs/science/PHOTOMETRY.md (SCI-PHOT-001 FROZEN):
+  //   k_photo = scale = 10^(-location), location = Tukey-IRLS(r_i) (c=4.685)。
+  //
+  // 缺陷 (GAP_AUDIT §9.29): 本节点原只 measure_flux, 写死
+  //   photometry_applied=false/photscal=1.0; apply_photometry 生产零调用者;
+  //   会归一化的 pc_calibrate_simple* 只在测试 target 编译 ⇒ Phase1 测光
+  //   归一化从未应用到像素。
+  //
+  // 修复: 在 Drizzle 前对**每一帧**施加 I_photo=k_photo·I_cal, 写独立产物
+  //   photoapplied_<base>（不就地覆写 cal 产物, 同 CORE-RACE-001 语义）。
+  //   k_photo 两个显式来源:
+  //   (1) photometry.fit.enabled=true → 本节点直接调生产 star_matcher 链
+  //       (frame_photometry_fit → pc_calibrate_simple_with_gaia_f64_v2_qf);
+  //       配置 gaia_data_dir / filter / filters_json / qe_json / qe_name /
+  //       max_stars（缺 gaia/filter/filters_json 即不拟合, 不造 1.0）。
+  //   (2) 否则读 p1_photscale.json (DATA-P1-PHOTSCALE-001) 逐帧标量
+  //       （star_matcher 外部/离线标定通道）。
+  //   两者皆无 → 如实中性 (applied=false, pixel_scaling="none") +
+  //   photscale_source="none"（不把 1.0 伪装成"已应用"）。
+  //
+  // 完整性: 只有**全部帧**都有合法 k_photo 时才施加（部分归一化会把帧拉到
+  //   不同测光坐标系 ⇒ 比不归一化更糟）; 任一缺失 → 不施加 + degraded_reason。
+  struct P1FrameScale {
+    std::string key;
+    double k_photo = 1.0;
+    int n_matched = 0;
+    double sigma_residual_dex = 0.0;
+    std::string source;
+  };
+  std::map<std::string, P1FrameScale> scales;
+  std::string photscale_source = "none";
+  std::string photscale_error;
+  const Json phot_cfg = (p1_has(doc, "photometry") && doc["photometry"].is_object())
+                            ? doc["photometry"] : Json::object();
+  const Json fit_cfg = (phot_cfg.contains("fit") && phot_cfg["fit"].is_object())
+                           ? phot_cfg["fit"] : Json::object();
+  const bool fit_enabled = !fit_cfg.empty() && p1_flag(fit_cfg, "enabled", false);
+  const Json& lights = doc["input_lights"];
+  const size_t n_lights = lights.size();
+
+  if (fit_enabled) {
+    // (1) 生产 star_matcher 拟合通道
+    std::string gaia_dir = fit_cfg.value("gaia_data_dir", std::string());
+    if (gaia_dir.empty() && p1_has(doc, "wcs") && doc["wcs"].is_object())
+      gaia_dir = doc["wcs"].value("gaia_data_dir", std::string());
+    std::string filter_name = fit_cfg.value("filter", std::string());
+    if (filter_name.empty()) filter_name = doc.value("filter_passband", std::string());
+    const std::string filters_json = fit_cfg.value("filters_json", std::string());
+    const std::string qe_json = fit_cfg.value("qe_json", std::string());
+    const std::string qe_name = fit_cfg.value("qe_name", std::string());
+    const int max_stars = p1_int(fit_cfg, "max_stars", 5000);
+    if (gaia_dir.empty()) {
+      photscale_error = "photometry.fit.gaia_data_dir (或 wcs.gaia_data_dir) required";
+    } else if (filter_name.empty()) {
+      photscale_error = "photometry.fit.filter (或 filter_passband) required";
+    } else if (filters_json.empty()) {
+      photscale_error = "photometry.fit.filters_json required (response curve file)";
+    } else {
+      for (size_t i = 0; i < n_lights; ++i) {
+        const std::string lp = lights[i].get<std::string>();
+        const std::string key = p1_frame_key(lp);
+        // PSF 星: p1_sources.json 帧序 == input_lights 序 (star-psf 顺序写出)
+        if (i >= cat.size() || !cat[i].is_object() ||
+            !cat[i].contains("sources") || !cat[i]["sources"].is_array()) {
+          photscale_error = "p1_sources.json frame missing sources for " + key;
+          break;
+        }
+        const Json& srcs = cat[i]["sources"];
+        std::vector<size_t> idx;
+        idx.reserve(srcs.size());
+        for (size_t s = 0; s < srcs.size(); ++s) {
+          const double fl = srcs[s].value("flux", 0.0);
+          if (std::isfinite(fl) && fl > 0.0) idx.push_back(s);
+        }
+        std::sort(idx.begin(), idx.end(), [&srcs](size_t a, size_t b) {
+          return srcs[a].value("flux", 0.0) > srcs[b].value("flux", 0.0);
+        });
+        if (max_stars > 0 && idx.size() > static_cast<size_t>(max_stars))
+          idx.resize(static_cast<size_t>(max_stars));
+        std::vector<double> pcx, pcy, pfl;
+        std::vector<int> pst;
+        std::vector<uint32_t> pqf;
+        pcx.reserve(idx.size()); pcy.reserve(idx.size()); pfl.reserve(idx.size());
+        pst.reserve(idx.size()); pqf.reserve(idx.size());
+        for (size_t s : idx) {
+          pcx.push_back(srcs[s].value("x", 0.0));
+          pcy.push_back(srcs[s].value("y", 0.0));
+          pfl.push_back(srcs[s].value("flux", 0.0));
+          pst.push_back(0);  // 检测成功 = PSF 输入有效（p1_sources 无拟合状态列）
+          // P1-2: sdet 饱和位 = quality&1 (star_detector.cpp:170); 映射到
+          // PC_QF_SATURATED (star_matcher.h:11, 1u<<1) ⇒ cleanAndScale 有效域
+          // 过滤 (SCI-PHOT-001 §4/§10)。
+          const int64_t q = srcs[s].value("quality", int64_t{0});
+          pqf.push_back((q & 1) ? (1u << 1) : 0u);
+        }
+        // WCS: 逐帧 p1_wcs.json（回退 config.wcs）
+        Json wj = Json::object();
+        {
+          const std::string wpath = p1_frame_dir(doc, lp) + "/p1_wcs.json";
+          std::ifstream wf(std::filesystem::u8path(wpath), std::ios::binary);
+          if (wf) {
+            try {
+              Json wprod = Json::parse(std::string(
+                  (std::istreambuf_iterator<char>(wf)), std::istreambuf_iterator<char>()));
+              if (wprod.is_object() && wprod.contains("wcs") && wprod["wcs"].is_object())
+                wj = wprod["wcs"];
+            } catch (...) { wj = Json::object(); }
+          }
+          if (wj.empty() && p1_has(doc, "wcs") && doc["wcs"].is_object()) wj = doc["wcs"];
+        }
+        if (wj.empty()) { photscale_error = "missing WCS for " + key; break; }
+        bool sip_ok = true;
+        std::string sip_err;
+        const P1SipCoeffs sip = p1_parse_sip(wj, &sip_ok, &sip_err);
+        if (!sip_ok) { photscale_error = "wcs " + sip_err; break; }
+        const std::string src_path_i = p1_calibrated_path(doc, lp);
+        P1Image fim = p1_read_image(src_path_i);
+        if (!fim.ok()) { photscale_error = "cannot read " + src_path_i; break; }
+        std::vector<double> dbuf(static_cast<size_t>(fim.w()) * fim.h());
+        for (size_t p = 0; p < dbuf.size(); ++p) dbuf[p] = static_cast<double>(fim.px()[p]);
+        astrocs::photometry::FramePhotFitRequest freq;
+        freq.pixels = dbuf.data();
+        freq.width = fim.w(); freq.height = fim.h();
+        freq.psf_cx = pcx.data(); freq.psf_cy = pcy.data();
+        freq.psf_flux = pfl.data(); freq.psf_status = pst.data();
+        freq.psf_quality = pqf.empty() ? nullptr : pqf.data();
+        freq.n_psf = static_cast<int>(pst.size());
+        freq.crval1 = p1_num(wj, "crval1", 0.0); freq.crval2 = p1_num(wj, "crval2", 0.0);
+        freq.crpix1 = p1_num(wj, "crpix1", 0.0); freq.crpix2 = p1_num(wj, "crpix2", 0.0);
+        freq.cd11 = p1_num(wj, "cd11", 0.0); freq.cd12 = p1_num(wj, "cd12", 0.0);
+        freq.cd21 = p1_num(wj, "cd21", 0.0); freq.cd22 = p1_num(wj, "cd22", 0.0);
+        freq.sip_order = sip.present ? sip.order : 0;
+        freq.sip_a = sip.a; freq.sip_b = sip.b; freq.sip_ap = sip.ap; freq.sip_bp = sip.bp;
+        freq.gaia_data_dir = gaia_dir;
+        freq.filter_name = filter_name;
+        freq.filters_json = filters_json;
+        freq.qe_json = qe_json; freq.qe_name = qe_name;
+        const astrocs::photometry::FramePhotFitResult fr =
+            astrocs::photometry::fit_frame_photometry(freq);
+        if (fr.rc != 0) { photscale_error = "fit failed for " + key + ": " + fr.error; break; }
+        if (!(std::isfinite(fr.k_photo) && fr.k_photo > 0.0)) {
+          photscale_error = "non-physical k_photo for " + key; break;
+        }
+        P1FrameScale sc;
+        sc.key = key; sc.k_photo = fr.k_photo; sc.n_matched = fr.n_matched;
+        sc.sigma_residual_dex = fr.sigma_residual_dex;
+        sc.source = "gaia_star_matcher_tukey_irls";
+        scales[key] = sc;
+      }
+      if (photscale_error.empty()) photscale_source = "gaia_star_matcher_tukey_irls";
+    }
+  } else {
+    // (2) 上游/外部标定通道: p1_photscale.json (DATA-P1-PHOTSCALE-001)
+    const std::string sp = out_dir + "/p1_photscale.json";
+    std::error_code sec;
+    if (std::filesystem::exists(std::filesystem::u8path(sp), sec)) {
+      std::ifstream sf(std::filesystem::u8path(sp), std::ios::binary);
+      if (!sf) return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + sp));
+      try {
+        const Json sj = Json::parse(std::string((std::istreambuf_iterator<char>(sf)),
+                                                std::istreambuf_iterator<char>()));
+        if (!sj.is_object() || sj.value("schema", std::string()) != "DATA-P1-PHOTSCALE-001")
+          return Result<void>::fail(Error(ErrorDomain::DATA,
+              "p1_photscale.json schema mismatch (expect DATA-P1-PHOTSCALE-001): " + sp));
+        if (!sj.contains("frames") || !sj["frames"].is_array())
+          return Result<void>::fail(Error(ErrorDomain::DATA,
+              "p1_photscale.json must have a 'frames' array: " + sp));
+        for (const auto& sfj : sj["frames"]) {
+          const std::string file = sfj.value("file", std::string());
+          const double k = sfj.value("k_photo", 0.0);
+          if (file.empty() || !(std::isfinite(k) && k > 0.0))
+            return Result<void>::fail(Error(ErrorDomain::DATA,
+                "p1_photscale.json frame requires file + finite k_photo>0"));
+          P1FrameScale sc;
+          sc.key = p1_frame_key(file);
+          sc.k_photo = k;
+          sc.n_matched = sfj.value("n_matched", 0);
+          sc.sigma_residual_dex = sfj.value("sigma_residual_dex", 0.0);
+          sc.source = sfj.value("source", std::string("photscale_sidecar"));
+          scales[sc.key] = sc;
+        }
+        if (!scales.empty()) photscale_source = "photscale_sidecar";
+      } catch (const std::exception& e) {
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            std::string("p1_photscale.json parse failed: ") + e.what()));
+      }
+    }
+  }
+
+  // 逐帧查表: frame_key(input) 或 frame_key(calibrated_<base>) 两种键都接受。
+  auto find_scale = [&](const std::string& lp) -> const P1FrameScale* {
+    auto it = scales.find(p1_frame_key(lp));
+    if (it != scales.end()) return &it->second;
+    it = scales.find(p1_frame_key(p1_calibrated_path(doc, lp)));
+    if (it != scales.end()) return &it->second;
+    return nullptr;
+  };
+  bool scales_complete = (n_lights > 0);
+  for (size_t i = 0; i < n_lights && scales_complete; ++i) {
+    if (find_scale(lights[i].get<std::string>()) == nullptr) scales_complete = false;
+  }
+
+  Json applied_artifacts = Json::array();
+  Json photscales = Json::object();
+  double photscal_rep = 1.0;
+  bool photometry_applied = false;
+  if (scales_complete) {
+    std::vector<double> ks;
+    for (size_t i = 0; i < n_lights; ++i) {
+      const std::string lp = lights[i].get<std::string>();
+      const P1FrameScale* sc = find_scale(lp);
+      const std::string key = p1_frame_key(lp);
+      const std::string src_path_i = p1_calibrated_path(doc, lp);
+      P1Image im = p1_read_image(src_path_i);
+      if (!im.ok()) return Result<void>::fail(Error(ErrorDomain::IO,
+          "photometry apply: cannot read " + src_path_i));
+      // I_photo = k_photo · I_cal (apply_photometry, in-place; 非有限像素透传)
+      const int arc = calibration::apply_photometry(im.px(), im.w(), im.h(),
+                                                    sc->k_photo, im.px());
+      if (arc != 0) return Result<void>::fail(Error(ErrorDomain::DATA,
+          "apply_photometry failed rc=" + std::to_string(arc) + " for " + key));
+      const std::string apath = p1_photoapplied_path(doc, lp);
+      std::string werr;
+      if (!p1_write_fits_atomic(im, apath, &werr))
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            "photometry apply write failed: " + werr));
+      applied_artifacts.push_back(apath);
+      photscales[key] = sc->k_photo;
+      ks.push_back(sc->k_photo);
+    }
+    std::sort(ks.begin(), ks.end());
+    photscal_rep = ks.empty() ? 1.0 : ks[ks.size() / 2];
+    photometry_applied = true;
+  }
+
   // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV-001) ─────────────
-  // 本节点 (measure_flux) 只测量孔径通量, 不对像素施加测光缩放（§02_FROZEN §7
-  // I_photo=k_photo·I_cal 由 pc_calibrate/simple 类节点承担），故如实声明
-  // photometry_applied=false、photscal=1.0（中性）。drizzle 消费本产物决定
-  // PHOTSCAL/PHOTAPPL；禁止再硬编码 1。
+  // drizzle 消费本产物决定 PHOTSCAL/PHOTAPPL; 禁止硬编码 1。如实声明是否已对
+  // 像素施加测光缩放（施加后 applied=true, operation 记录两步）。
   const std::string prov_path = out_dir + "/p1_phot.json";
-  const Json prov = Json{{"schema", "DATA-P1-PHOTPROV-001"},
-                         {"node", "astrocs.phase1.photometry"},
-                         {"operation", "measure_flux"},
-                         {"entry", "astrocs_phase1_photometry_v1"},
-                         {"photometry_applied", false},
-                         {"photscal", 1.0},
-                         {"pixel_scaling", "none"},
-                         {"n_frames", frames.size()}};
+  // operation 保持冻结绑定值 measure_flux（module_ports.registry.json）; 施加
+  // 步骤以 pixel_scaling/apply_entry/photometry_applied 如实登记。
+  Json prov = Json{{"schema", "DATA-P1-PHOTPROV-001"},
+                   {"node", "astrocs.phase1.photometry"},
+                   {"operation", "measure_flux"},
+                   {"entry", "astrocs_phase1_photometry_v1"},
+                   {"photometry_applied", photometry_applied},
+                   {"photscal", photometry_applied ? photscal_rep : 1.0},
+                   {"pixel_scaling", photometry_applied ? "applied" : "none"},
+                   {"photscale_source", photscale_source},
+                   {"n_frames", frames.size()}};
+  if (photometry_applied) {
+    prov["apply_entry"] = "calibration::apply_photometry";
+    prov["photscales"] = photscales;
+    prov["photoapplied_artifacts"] = applied_artifacts;
+  } else if (!photscale_error.empty()) {
+    prov["degraded_reason"] = "photscale_incomplete";
+    prov["photscale_error"] = photscale_error;
+  } else {
+    prov["degraded_reason"] = "photscale_absent";
+  }
   if (!p1_write_text(prov_path, prov.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_frames"] = frames.size();
   (*man)["flux_artifact"] = out_path;
   (*man)["photometry_provenance_artifact"] = prov_path;
-  (*man)["photometry_applied"] = false;
-  (*man)["artifacts"] = Json::array({out_path, prov_path});
+  (*man)["photometry_applied"] = photometry_applied;
+  (*man)["photscal"] = photometry_applied ? photscal_rep : 1.0;
+  (*man)["photscale_source"] = photscale_source;
+  if (!photscale_error.empty()) (*man)["photscale_error"] = photscale_error;
+  (*man)["photoapplied_artifacts"] = applied_artifacts;
+  Json artifacts = Json::array({out_path, prov_path});
+  for (const auto& a : applied_artifacts) artifacts.push_back(a);
+  (*man)["artifacts"] = artifacts;
   return Result<void>::success();
 }
 
@@ -3536,6 +3809,9 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   bool photometry_applied = false;
   double photscal = 1.0;
   bool have_phot_prov = false;
+  // FIX-P1: 逐帧 k_photo (frame_key → 标量)。p1_phot.json.photscales 缺省时
+  // 退回标量 photscal（向后兼容既有 B2-A14 夹具）。
+  Json photscales = Json::object();
   {
     const std::string prov_path = out_dir + "/p1_phot.json";
     std::error_code pec;
@@ -3554,6 +3830,18 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         if (!std::isfinite(photscal) || photscal <= 0.0)
           return Result<void>::fail(Error(ErrorDomain::DATA,
               "p1_phot.json photscal must be finite and > 0"));
+        if (pj.contains("photscales") && pj["photscales"].is_object()) {
+          photscales = pj["photscales"];
+          for (auto it = photscales.begin(); it != photscales.end(); ++it) {
+            if (!it.value().is_number())
+              return Result<void>::fail(Error(ErrorDomain::DATA,
+                  "p1_phot.json photscales values must be numbers"));
+            const double k = it.value().get<double>();
+            if (!std::isfinite(k) || k <= 0.0)
+              return Result<void>::fail(Error(ErrorDomain::DATA,
+                  "p1_phot.json photscales values must be finite and > 0"));
+          }
+        }
         have_phot_prov = true;
       } catch (const std::exception& e) {
         return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -3585,7 +3873,23 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     // [RELEASE-02 probe] 逐帧热点: drizzle
     ASTROCS_PROBE_SCOPE_CTX(_probe_drz_frame, "phase1", "drizzle.frame");
     ASTROCS_PROBE_TAG(_probe_drz_frame, "frame_key", p1_frame_key(lp).c_str());
-    const std::string frame_path = p1_calibrated_path(doc, lp);
+    // FIX-P1: 测光已应用 ⇒ drizzle 消费 photoapplied_<base>（provenance 声明
+    // applied=true 而产物缺失 ⇒ fail-closed, 不得静默退回未测光 ADU）。
+    const std::string calibrated_path = p1_calibrated_path(doc, lp);
+    std::string frame_path = calibrated_path;
+    double frame_photscal = photscal;
+    if (photometry_applied) {
+      const std::string applied_path = p1_photoapplied_path(doc, lp);
+      std::error_code aec;
+      if (!std::filesystem::exists(std::filesystem::u8path(applied_path), aec))
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "p1_phot.json declares photometry_applied=true but applied frame missing: "
+            + applied_path));
+      frame_path = applied_path;
+      auto ksit = photscales.find(p1_frame_key(lp));
+      if (ksit == photscales.end()) ksit = photscales.find(p1_frame_key(calibrated_path));
+      if (ksit != photscales.end()) frame_photscal = ksit.value().get<double>();
+    }
     P1Image im = p1_read_image(frame_path);
     if (!im.ok()) {
       (*man)["error_kind"] = "input";
@@ -3697,7 +4001,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       // PHOTSCAL: 来自真实测光 provenance（未应用测光时=中性 1.0）；PHOTAPPL 由
       // provenance 决定；PHOTDEGRADE=1 表示本节点显式降级为未测光 ADU（B2-A14）。
       char b9[64];
-      fmt(photscal, b9, sizeof(b9));
+      fmt(frame_photscal, b9, sizeof(b9));
       for (const KV& kv : kvs) {
         std::string val = kv.v[0] != '\0' ? std::string(kv.v) : [&] {
           if (std::strcmp(kv.k, "CRPIX1") == 0) return std::string(b1);
@@ -3817,7 +4121,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                           {"n_source_pixels", static_cast<int64_t>(res.n_source_pixels)},
                           {"bunit", photometry_applied ? "ASTROCS_RELATIVE_FLUX" : "ADU"},
                           {"photappl", photometry_applied ? 1 : 0},
-                          {"photscal", photscal},
+                          {"photscal", frame_photscal},
                           {"photometry_provenance", have_phot_prov ? "p1_phot.json" : "absent"},
                           {"artifact", "signal/ + support/ (标准 HiPS 树)"},
                           {"entry", "hp_drizzle_run_phase1_hips"}};
@@ -3855,7 +4159,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       (*man)["nside_conflict"] = nside_conflict;
       (*man)["nside_clamped"] = auto_res.clamped != 0;
       (*man)["photometry_applied"] = photometry_applied;
-      (*man)["photscal"] = photscal;
+      (*man)["photscal"] = frame_photscal;
       (*man)["photometry_provenance"] = have_phot_prov ? "p1_phot.json" : "absent";
     }
   }
@@ -4515,7 +4819,19 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   uc.snr_weight_mode = 0;          // snr2_normalized
   uc.huber_delta = 1.345;
   uc.max_iterations = 100;
-  uc.tolerance = 1e-6;
+  // RELEASE-02 P2a-3（科学行为变更）：绝对 1e-6 在 max|M|~3e15 时低于
+  // ULP(0.5) 5-8 个数量级，原理上不可达（iterations=100,converged=0）。
+  // 生产改为相对判据 tolerance_relative=1 + 1e-3（论证见
+  // reports/RELEASE-02/fix-p2a-seam.md §4：实测每轮仅降 ~0.7%，
+  // rel_dM 稳定 1.15-1.32e-4，1e-6 即使相对也不可达）。
+  uc.tolerance = 1e-3;
+  uc.tolerance_relative = 1;
+  // RELEASE-02 P2a-2/P2a-4（科学行为变更）：阻尼 α=0.5（naive α=1 在
+  // 链式/二部覆盖图有特征值 -1、周期 2 振荡）；M 全帧加权；末端残差场
+  // gauge 使叠加 ≡ 公共场 ⇒ 覆盖子集突变处阶跃恒 0（q2-snr-smooth §4/§5）。
+  uc.gs_damping = 0.5;
+  uc.m_full_frame = 1;
+  uc.final_gauge = 1;
   // target_order = coverage 实测值（p2_session 同款; 空间 UPM 显式 control
   // leaf 层级 order=target+9 由模型内部展开）
   uc.target_order = smp_doc.value("target_order", -1);
@@ -4538,6 +4854,18 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   // M4-C-02: 与 stage2_common 对称的显式覆盖面；缺省保持 SCI §9a:133 λ0=1e-3。
   if (upm_cfg.contains("zero_anchor_weight"))
     uc.zero_anchor_weight = upm_cfg["zero_anchor_weight"].get<double>();
+  // RELEASE-02 P2a 显式可配置（缺省 = 上面的生产值；便于对照/回归与
+  // 负责人按 c-delta-ruling 裁决切换）。
+  if (upm_cfg.contains("tolerance"))
+    uc.tolerance = upm_cfg["tolerance"].get<double>();
+  if (upm_cfg.contains("tolerance_relative"))
+    uc.tolerance_relative = upm_cfg["tolerance_relative"].get<int>();
+  if (upm_cfg.contains("gs_damping"))
+    uc.gs_damping = upm_cfg["gs_damping"].get<double>();
+  if (upm_cfg.contains("m_full_frame"))
+    uc.m_full_frame = upm_cfg["m_full_frame"].get<int>();
+  if (upm_cfg.contains("final_gauge"))
+    uc.final_gauge = upm_cfg["final_gauge"].get<int>();
 
   void* model = nullptr;
   const int rc = p2_upm_build_geo(obs.data(), obs.size(),
@@ -4563,6 +4891,19 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     if (p2_upm_component_gauges(model, &n_components, gauges.data()) != 0)
       gauges.clear();
   }
+  // RELEASE-02 P2a-3（收敛状态可见）：iterations/converged/objective 此前
+  // 只进 .bin（模型 JSON 文本），p2_upm_model.json 契约面缺失、且本节点从不
+  // 调用 p2_upm_convergence。此处显式读取并落盘到 .json + manifest，使
+  // "不收敛"在数据面上可见（禁 rc=0 冒充已收敛）。
+  uint64_t upm_iterations = 0;
+  double upm_objective = 0.0;
+  int upm_converged = 0;
+  if (p2_upm_convergence(model, &upm_iterations, &upm_objective,
+                         &upm_converged) != 0) {
+    upm_iterations = 0;
+    upm_objective = 0.0;
+    upm_converged = 0;   // 读不到一律按"未证明收敛"
+  }
   const std::string bin_path = out_dir + "/p2_upm_model.bin";
   if (p2_upm_save(model, bin_path.c_str()) != 0) {
     p2_upm_close(model);
@@ -4586,7 +4927,17 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
                        {"gauges", gauges_j},
                        {"input_manifest_hash", manifest_hash},
                        {"artifact_bin", bin_path},
-                       {"use_ivar_weight", 1}};
+                       {"use_ivar_weight", 1},
+                       // RELEASE-02 P2a-3：IRLS 收敛状态（只读访问器）
+                       {"iterations", upm_iterations},
+                       {"converged", upm_converged},
+                       {"objective", upm_objective},
+                       // RELEASE-02 P2a-2/P2a-3/P2a-4 求解器行为 provenance
+                       {"tolerance", uc.tolerance},
+                       {"tolerance_relative", uc.tolerance_relative},
+                       {"gs_damping", uc.gs_damping},
+                       {"m_full_frame", uc.m_full_frame},
+                       {"final_gauge", uc.final_gauge}};
   if (!p2_write_text(out_path, artifact.dump(2))) {
     std::error_code ec;
     std::filesystem::remove(std::filesystem::u8path(bin_path), ec);
@@ -4612,6 +4963,15 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   (*man)["upm_model_bin"] = bin_path;
   (*man)["model_hash"] = std::string(info.model_hash);
   (*man)["observation_count"] = info.observation_count;
+  // RELEASE-02 P2a-3：收敛状态进 manifest（不收敛必须对机器消费者可见）
+  (*man)["upm_iterations"] = upm_iterations;
+  (*man)["upm_converged"] = upm_converged;
+  (*man)["upm_objective"] = upm_objective;
+  (*man)["upm_tolerance"] = uc.tolerance;
+  (*man)["upm_tolerance_relative"] = uc.tolerance_relative;
+  (*man)["upm_gs_damping"] = uc.gs_damping;
+  (*man)["upm_m_full_frame"] = uc.m_full_frame;
+  (*man)["upm_final_gauge"] = uc.final_gauge;
 
   // ── FIX-A 天光面（P0-08/P0-09）接入生产 mosaic 链 ─────────────────────────
   // DESIGN §4.4: 星点掩膜后逐帧稀疏天光采样 → 全部帧联合建参考天光面
@@ -4728,6 +5088,92 @@ struct P2FrameTiles {
   std::vector<double> data;          // 全 tile leaf-major（NaN=无效）
 };
 
+// ── RELEASE-02 P2b-1: 控制级残差制造者方差表（upm-apply 逐像素方差用）──────
+// 归一化把观测 y 映射到被扣除的校正场 ĝ = H y，输出 corrected = y − ĝ = P y
+// （P = I − H，"残差制造者"）。p2_samples.json 的每个 control 上，各帧观测以
+// control_ivar 加权耦合出公共校正场；采用 **(c) 排除自身**（H_kk=0，与 P2a
+// 重构口径一致，不假设参考帧）：
+//   Var(corrected_k) = Σ_j (δ_kj − H_kj)² σ_j² ,  H_kj = w_j / W_{-k}
+// 逐 leaf 用 tile 内最近 control（8×8 控制格）的值，得到逐像素方差面。
+// **不是** σ² + Var(ĝ)（后者漏 −HΣ−ΣHᵀ 交叉项；N=8 高估 1.29×）。
+struct P2bControlVar {
+  uint64_t tile_ipix = 0;
+  int gx = 0, gy = 0;
+  std::vector<uint64_t> frame_id;
+  std::vector<double> weight;    // control_ivar（>0）
+  std::vector<double> variance;  // control_variance（>0）
+  std::vector<double> corr_var;  // 残差制造者方差（与 frame_id 同序；NaN=不可算）
+};
+
+// 读 p2_samples.json 并逐 control 预计算残差制造者方差。失败 → false + why。
+static bool p2b_load_control_var(const std::string& out_dir,
+                                 std::vector<P2bControlVar>* out,
+                                 int* out_grid, bool include_self,
+                                 std::string* why) {
+  Json smp;
+  if (!p2_read_json(out_dir + "/p2_samples.json", &smp)) {
+    if (why) *why = "p2_samples.json missing (control weights for residual maker)";
+    return false;
+  }
+  const int grid = smp.value("control_grid_per_tile", 0);
+  if (grid < 2 || grid > 64) {
+    if (why) *why = "control_grid_per_tile invalid in p2_samples.json";
+    return false;
+  }
+  if (!smp.contains("controls") || !smp["controls"].is_array() ||
+      !smp.contains("observations") || !smp["observations"].is_array()) {
+    if (why) *why = "p2_samples.json controls/observations invalid";
+    return false;
+  }
+  out->clear();
+  out->reserve(smp["controls"].size());
+  std::map<uint64_t, std::size_t> cidx;
+  for (const auto& c : smp["controls"]) {
+    P2bControlVar e;
+    e.tile_ipix = c.value("tile_ipix", 0ull);
+    e.gx = c.value("gx", 0);
+    e.gy = c.value("gy", 0);
+    const uint64_t cid = c.value("control_id", 0ull);
+    cidx[cid] = out->size();
+    out->push_back(std::move(e));
+  }
+  for (const auto& o : smp["observations"]) {
+    const auto it = cidx.find(o.value("control_id", 0ull));
+    if (it == cidx.end()) continue;
+    P2bControlVar& e = (*out)[it->second];
+    e.frame_id.push_back(o.value("frame_id", 0ull));
+    e.weight.push_back(o.value("control_ivar", 0.0));
+    e.variance.push_back(o.value("control_variance", 0.0));
+  }
+  if (out_grid) *out_grid = grid;
+  for (P2bControlVar& e : *out) {
+    const std::size_t n = e.frame_id.size();
+    e.corr_var.assign(n, std::numeric_limits<double>::quiet_NaN());
+    if (n < 2) continue;   // 单帧/无观测：无跨帧耦合，残差制造者无定义
+    std::vector<double> w(n, 0.0), s2(n, 0.0);
+    for (std::size_t j = 0; j < n; ++j) {
+      const double v = e.variance[j];
+      const double wj = (std::isfinite(e.weight[j]) && e.weight[j] > 0.0)
+                            ? e.weight[j]
+                            : ((std::isfinite(v) && v > 0.0) ? 1.0 / v : 0.0);
+      w[j] = wj;
+      s2[j] = (std::isfinite(v) && v > 0.0) ? v : ((wj > 0.0) ? 1.0 / wj : 0.0);
+    }
+    bool ok = true;
+    std::string err;
+    for (std::size_t k = 0; k < n && ok; ++k) {
+      astrocs::v6::p2var::HatRow row;
+      ok = astrocs::v6::p2var::normalized_weight_hat_row(w.data(), n, k,
+                                                         include_self, &row,
+                                                         &err) &&
+           astrocs::v6::p2var::residual_maker_variance(row, s2.data(), n, k,
+                                                       &e.corr_var[k], &err);
+    }
+    if (!ok) e.corr_var.assign(n, std::numeric_limits<double>::quiet_NaN());
+  }
+  return true;
+}
+
 Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
   Json model_doc;
@@ -4787,6 +5233,34 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     nside = 1u << static_cast<uint32_t>(target_order + 9);
   }
 
+  // ── RELEASE-02 P2a-1：单次加性扣除（去掉有害的双重扣除）────────────────
+  // 生产原为 corrected = (raw − C_k) − δ_k，两次逐帧加性扣除。实测帧间失配
+  //   raw−C = 0.131% / raw−δ = 2.799% / raw−C−δ = 13.974%（比不校正的
+  //   13.454% 还差）——C 已把每帧对齐到公共面，δ 是在已对齐场上的第二次
+  //   扣除（c-delta-ruling §2）。
+  // 配置 doc["seam"]["additive_mode"] ∈ {"c"(默认), "delta", "both"}：
+  //   c     = raw − C_k         （默认；依据见 reports/RELEASE-02/fix-p2a-seam.md §2）
+  //   delta = raw − δ_k         （把 C 加回，只保留 δ 一次；需 p2_sky_plane.bin）
+  //   both  = raw − C_k − δ_k   （legacy 双重扣除，仅供对照/回归）
+  const Json seam_cfg = (doc.contains("seam") && doc["seam"].is_object())
+                            ? doc["seam"] : Json::object();
+  std::string additive_mode =
+      seam_cfg.value("additive_mode", std::string("c"));
+  if (additive_mode != "c" && additive_mode != "delta" &&
+      additive_mode != "both")
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "seam.additive_mode invalid (expect c|delta|both): " + additive_mode));
+  std::string additive_mode_effective = additive_mode;
+  if (additive_mode == "delta" && !sky_guard.m) {
+    // 无天光面产物 ⇒ δ 不存在；退化为单次 C 扣除并显式登记（绝不静默变成
+    // raw 不校正，也绝不回退到双重扣除）。
+    additive_mode_effective = "c";
+  }
+  const bool sub_c = (additive_mode_effective == "c" ||
+                      additive_mode_effective == "both");
+  const bool sub_delta = (additive_mode_effective == "delta" ||
+                          additive_mode_effective == "both");
+
   // ── PERF-P2 S1.1 (RELEASE-02): frame 级并行（work unit = 一帧）───────────
   // 每帧独立 sig/sup 句柄、独立 p2_corrected_f<fid>.bin 输出文件; 帧间零共享写、
   // 零浮点归约; model/sky_model/local_lut 只读共享。帧结果按下标写各自槽位, join
@@ -4826,7 +5300,29 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     std::string data_file;
     std::vector<P2FrameTiles::TileData> tiles;
     uint64_t n_pixels = 0;
+    // RELEASE-02 P2b-1: 逐像素 Var(corrected) 面
+    std::string var_file;
+    bool var_ok = false;
+    bool pixel_noise_included = false;
+    uint64_t n_var_pixels = 0;
   };
+  // ── RELEASE-02 P2b-1: 逐像素 Var(corrected) 输入（残差制造者 PΣPᵀ）─────
+  // 控制级耦合表来自 p2_samples.json；不可得 → 如实报 variance_available=false
+  // （禁伪造方差面；P2b-5 过渡期纪律）。
+  std::vector<P2bControlVar> cvar_tab;
+  int cvar_grid = 0;
+  std::string cvar_why;
+  // variance_include_self: false（默认）= (c) 排除自身（与 P2a 重构口径一致）；
+  // true = UPM 含自身的加权均值（W2 口径；此时"残差制造者 vs σ²+Var(ĝ)"
+  // 差异显著——朴素式对 N 帧高估 (1+1/N)/(1-1/N)）。
+  const bool cvar_include_self = doc.value("variance_include_self", false);
+  const bool cvar_available = p2b_load_control_var(
+      out_dir, &cvar_tab, &cvar_grid, cvar_include_self, &cvar_why);
+  std::map<std::pair<uint64_t, int>, std::size_t> cvar_at;
+  if (cvar_available)
+    for (std::size_t i = 0; i < cvar_tab.size(); ++i)
+      cvar_at[{cvar_tab[i].tile_ipix, cvar_tab[i].gy * cvar_grid + cvar_tab[i].gx}] = i;
+
   const uint32_t workers = std::max(1u, doc.value("__workers", 1u));
   std::vector<P2FrameOut> fouts(paths.size());
   p2_parallel_for(workers, static_cast<uint64_t>(paths.size()),
@@ -4878,16 +5374,43 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
       fo.err = "corrected bin write failed: " + data_file;
       return;
     }
+    // P2b-1: 逐帧 Var(corrected) 输出面（cvar_available 时）；帧自身 Phase1
+    // variance 产品可选（缺失 ⇒ 方差只含校正场残差制造者项，如实标记
+    // pixel_noise_included=false，不得声称完整 Var(corrected)）。
+    const std::string var_file = out_dir + "/p2_corrected_var_f" + fid_hex + ".bin";
+    std::ofstream vdf;
+    if (cvar_available) {
+      vdf.open(std::filesystem::u8path(var_file),
+               std::ios::binary | std::ios::trunc);
+      if (!vdf) {
+        aio_hips_close(sig);
+        aio_hips_close(sup);
+        df.close();
+        fo.dom = ErrorDomain::IO;
+        fo.err = "corrected variance bin write failed: " + var_file;
+        return;
+      }
+      fo.var_file = var_file;
+    }
+    AioHipsDataset* vds = aio_hips_open(path.c_str(), AIO_HIPS_RD_VARIANCE);
+    bool any_pixel_noise = false;
     std::vector<float> sig_buf(kP2TileLeafSpan), sup_buf(kP2TileLeafSpan);
+    std::vector<float> var_buf(kP2TileLeafSpan);
     std::vector<double> in_v(kP2TileLeafSpan), out_v(kP2TileLeafSpan);
     std::vector<uint64_t> leaves(kP2TileLeafSpan);
     std::vector<double> tile_out(kP2TileLeafSpan);
+    std::vector<double> var_tile(kP2TileLeafSpan);
     uint64_t tile_offset = 0;
     for (int t = 0; t < n_tiles; ++t) {
       const uint64_t tip = tile_ipix[static_cast<size_t>(t)];
       // [RELEASE-02 probe] 逐 tile: sky_plane 应用 (库层 eval_block 已计时, 此处补 tile 上下文)
       ASTROCS_PROBE_SCOPE_CTX(_probe_sky_tile, "phase2", "sky_plane.apply.tile");
       ASTROCS_PROBE_TAG(_probe_sky_tile, "tile_id", static_cast<unsigned long long>(tip));
+      std::fill(var_tile.begin(), var_tile.end(),
+                std::numeric_limits<double>::quiet_NaN());
+      bool has_var_tile = false;
+      if (vds && aio_hips_read_tile_f32(vds, tip, var_buf.data()) == 0)
+        has_var_tile = true;
       if (aio_hips_read_tile_f32(sig, tip, sig_buf.data()) != 0 ||
           aio_hips_read_tile_f32(sup, tip, sup_buf.data()) != 0) {
         aio_hips_close(sig);
@@ -4936,12 +5459,22 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
       if (n_valid > 0) {
         p2_upm_calibrate_block(model, fid, leaves.data(), in_v.data(),
                                out_v.data(), n_valid);   // 唯一真实校正入口
-        // FIX-GK / 方案 B（负责人裁决）：corrected = (raw − C_k(x)) − δ_k(x)，
-        //   δ_k(x) = b_k(x) − B_ref(x)  （逐帧相对公共参考面的偏差）
-        // ⇔ raw − b_k + B_ref：把每一帧归一化到公共面 B_ref（多退少补），
-        // 保留 B_ref 真实天光亮度，只消除帧间差异；不扣整个背景面、不除 g_k。
-        // 越域/未知帧点不扣（状态非 OK → 保持 raw−C；与 stage2 生产接线同口径）。
-        if (sky_guard.m) {
+        // RELEASE-02 P2a-1：单次加性扣除（见本函数头 seam.additive_mode）。
+        // calibrate_block 已输出 raw − C（并含 P2a-2 末端公共 gauge G）。
+        if (!sub_c) {
+          // delta 模式：把 C 加回（raw − C → raw − G），只保留 δ 一次扣除。
+          // G 是"对所有帧相同"的公共残差场（P2a-2，full_frame=1 时≈0），
+          // 不产生帧间/接缝差异，故保留。
+          for (uint64_t k = 0; k < n_valid; ++k) {
+            const double cval = p2_upm_evaluate_c(model, fid, leaves[k]);
+            if (std::isfinite(cval) &&
+                std::isfinite(out_v[static_cast<size_t>(k)]))
+              out_v[static_cast<size_t>(k)] += cval;
+          }
+        }
+        // FIX-GK / 方案 B：δ_k(x) = b_k(x) − B_ref(x)（逐帧相对公共参考面的偏差）。
+        // 越域/未知帧点不扣（状态非 OK → 保持当前值；与 stage2 生产接线同口径）。
+        if (sub_delta && sky_guard.m) {
           std::vector<double> dvals(static_cast<size_t>(n_valid), 0.0);
           std::vector<uint8_t> dstat(static_cast<size_t>(n_valid), P2_SKY_EVAL_INVALID);
           p2_sky_plane_eval_delta_block(sky_guard.m, fid, valid_ra.data(),
@@ -4955,12 +5488,44 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
           }
         }
         // 回填 valid 位置（calibrate_block 按输入序输出; 重新扫描映射）
+        // 同时算 RELEASE-02 P2b-1 逐像素 Var(corrected)：最近 control 的
+        // 残差制造者方差（(c) 排除自身），加可选帧 Phase1 逐像素方差。
+        const uint64_t tile_side = (1ull << kP2TileShift);
         uint64_t k = 0;
         for (uint64_t i = 0; i < kP2TileLeafSpan; ++i) {
           const double sv = static_cast<double>(sup_buf[static_cast<size_t>(i)]);
           const double xv = static_cast<double>(sig_buf[static_cast<size_t>(i)]);
           if (std::isfinite(sv) && sv > 0.0 && std::isfinite(xv)) {
             tile_out[static_cast<size_t>(i)] = out_v[static_cast<size_t>(k)];
+            if (cvar_available && cvar_grid > 0) {
+              const uint64_t fx =
+                  tile_side - 1ull - i / tile_side;   // FITS index → (x,y)
+              const uint64_t fy = i % tile_side;
+              const uint64_t cs = tile_side / static_cast<uint64_t>(cvar_grid);
+              const int cgx = static_cast<int>(fx / cs);
+              const int cgy = static_cast<int>(fy / cs);
+              const auto cit = cvar_at.find({tip, cgy * cvar_grid + cgx});
+              if (cit != cvar_at.end()) {
+                const P2bControlVar& ce = cvar_tab[cit->second];
+                std::size_t kk = ce.frame_id.size();
+                for (std::size_t z = 0; z < ce.frame_id.size(); ++z)
+                  if (ce.frame_id[z] == fid) { kk = z; break; }
+                if (kk < ce.frame_id.size() && std::isfinite(ce.corr_var[kk]) &&
+                    ce.corr_var[kk] > 0.0) {
+                  double vv = ce.corr_var[kk];
+                  if (has_var_tile) {
+                    const double pv =
+                        static_cast<double>(var_buf[static_cast<size_t>(i)]);
+                    if (std::isfinite(pv) && pv > 0.0) {
+                      vv += pv;
+                      any_pixel_noise = true;
+                    }
+                  }
+                  var_tile[static_cast<size_t>(i)] = vv;
+                  ++fo.n_var_pixels;
+                }
+              }
+            }
             ++k;
           } else {
             tile_out[static_cast<size_t>(i)] =
@@ -4974,9 +5539,13 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
       }
       df.write(reinterpret_cast<const char*>(tile_out.data()),
                static_cast<std::streamsize>(kP2TileLeafSpan * sizeof(double)));
+      if (vdf.is_open())
+        vdf.write(reinterpret_cast<const char*>(var_tile.data()),
+                  static_cast<std::streamsize>(kP2TileLeafSpan * sizeof(double)));
       fo.tiles.push_back(P2FrameTiles::TileData{tip, tile_offset});
       tile_offset += kP2TileLeafSpan;
     }
+    if (vds) aio_hips_close(vds);
     aio_hips_close(sig);
     aio_hips_close(sup);
     df.close();
@@ -4985,15 +5554,28 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
       fo.err = "corrected bin write failed: " + data_file;
       return;
     }
+    if (vdf.is_open()) {
+      vdf.close();
+      if (!vdf.good()) {
+        fo.dom = ErrorDomain::IO;
+        fo.err = "corrected variance bin write failed: " + var_file;
+        return;
+      }
+    }
     fo.fid = fid;
     fo.data_file = data_file;
     fo.n_pixels = tile_offset;
+    fo.var_ok = cvar_available && fo.n_var_pixels > 0;
+    fo.pixel_noise_included = any_pixel_noise;
     fo.ok = true;
   });
 
   // 帧序组装（= paths 序, 与串行逐位一致）; 失败按下标升序取首个（= 串行首个失败）。
   Json frames_j = Json::array();
   uint64_t total_pixels = 0;
+  bool any_var_ok = false;
+  bool all_pixel_noise = true;
+  uint64_t var_pixels_total = 0;
   for (size_t f = 0; f < paths.size(); ++f) {
     const P2FrameOut& fo = fouts[f];
     if (!fo.ok)
@@ -5006,33 +5588,90 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     frames_j.push_back(Json{{"frame_id", fo.fid},
                             {"hips_path", paths[f]},
                             {"data_file", fo.data_file},
+                            {"var_file", fo.var_file},
+                            {"variance_available", fo.var_ok},
+                            {"pixel_noise_included", fo.pixel_noise_included},
+                            {"n_var_pixels", fo.n_var_pixels},
                             {"n_tiles", fo.tiles.size()},
                             {"tiles", tiles_j}});
     total_pixels += fo.n_pixels;
+    any_var_ok = any_var_ok || fo.var_ok;
+    all_pixel_noise = all_pixel_noise && fo.pixel_noise_included;
+    var_pixels_total += fo.n_var_pixels;
   }
 
   const std::string out_path = out_dir + "/p2_corrected.json";
   const bool sky_applied = (sky_guard.m != nullptr);
+  // RELEASE-02 P2b-5: 过渡期诚实标记。方差面 = 残差制造者 PΣPᵀ（(c) 排除自身
+  // 控制级耦合）+ 可选逐像素 Phase1 噪声 + 参数协方差 J_out C_θ J_outᵀ。
+  // 当前生产 W2 模型无 C_θ API（参数项缺失）且 L4 输入帧无 variance 产品
+  // （逐像素噪声缺失）⇒ 不得声称完整 Var(corrected)，uncertainty_available
+  // 必须为 false，权重链不得据此声称逆方差加权。
+  const bool param_cov_included = false;
+  const bool uncertainty_available =
+      any_var_ok && all_pixel_noise && param_cov_included;
+  const bool delta_applied = sub_delta && sky_applied;
+  // RELEASE-02 P2a-1：单次加性扣除 provenance（组合语义对机器消费者可见）
+  std::string combo;
+  if (sub_c && delta_applied) combo = "raw_minus_C_minus_delta(legacy)";
+  else if (sub_c) combo = "raw_minus_C";
+  else if (delta_applied) combo = "raw_minus_delta";
+  else combo = "raw(no_additive_correction)";
   Json artifact = Json{{"schema", "DATA-P2-COR"},
-                       {"entry", "p2_upm_open/p2_upm_calibrate_block/p2_sky_plane_eval_delta_block"},
+                       {"entry", "p2_upm_open/p2_upm_calibrate_block" +
+                                     std::string(delta_applied ? "/p2_sky_plane_eval_delta_block" : "")},
                        {"model_hash", model_doc.value("model_hash", "")},
                        {"sky_plane_applied", sky_applied},
+                       // RELEASE-02 P2a-1：单次加性扣除（默认 raw−C；双重扣除已
+                       // 证有害：13.974% vs 0.131%，c-delta-ruling §2）。
+                       {"additive_mode_requested", additive_mode},
+                       {"additive_mode_effective", additive_mode_effective},
+                       {"additive_combination", combo},
+                       {"c_subtracted", sub_c},
+                       {"delta_subtracted", delta_applied},
                        // FIX-GK 方案 B: 施加的是逐帧 δ_k=b_k−B_ref（保留公共面 B_ref），
                        // 不是整个 b_k（旧口径会把背景归零并产生大量负像素）。
-                       {"sky_plane_mode", sky_applied ? "delta_to_B_ref" : "none"},
+                       {"sky_plane_mode", delta_applied ? "delta_to_B_ref" : "none"},
                        {"sky_plane_artifact",
                         sky_applied ? (out_dir + "/p2_sky_plane.bin") : std::string()},
                        {"n_pixels_total", total_pixels},
                        {"tile_leaf_span", kP2TileLeafSpan},
+                       // ── RELEASE-02 P2b-1/5: 逐像素方差面与诚实标记 ──
+                       {"variance_available", any_var_ok},
+                       {"variance_model",
+                        any_var_ok
+                            ? (cvar_include_self
+                                   ? "residual_maker_PSigmaPt_include_self_control"
+                                   : "residual_maker_PSigmaPt_exclude_self_control")
+                            : "unavailable"},
+                       {"variance_reason", any_var_ok ? std::string() : cvar_why},
+                       {"pixel_noise_included", any_var_ok && all_pixel_noise},
+                       {"param_covariance_included", param_cov_included},
+                       {"n_var_pixels_total", var_pixels_total},
+                       {"uncertainty_available", uncertainty_available},
                        {"frames", frames_j}};
   if (!p2_write_text(out_path, artifact.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
   Json cor_arts = Json::array({out_path});
-  for (const auto& fr : frames_j) cor_arts.push_back(fr.value("data_file", std::string()));
+  for (const auto& fr : frames_j) {
+    cor_arts.push_back(fr.value("data_file", std::string()));
+    const std::string vf = fr.value("var_file", std::string());
+    if (!vf.empty()) cor_arts.push_back(vf);
+  }
   (*man)["artifacts"] = cor_arts;
   (*man)["corrected_artifact"] = out_path;
   (*man)["n_pixels_total"] = total_pixels;
   (*man)["sky_plane_applied"] = sky_applied;
+  (*man)["variance_available"] = any_var_ok;
+  (*man)["pixel_noise_included"] = any_var_ok && all_pixel_noise;
+  (*man)["param_covariance_included"] = param_cov_included;
+  (*man)["uncertainty_available"] = uncertainty_available;
+  // RELEASE-02 P2a-1：组合语义与降级显式登记
+  (*man)["additive_mode_requested"] = additive_mode;
+  (*man)["additive_mode_effective"] = additive_mode_effective;
+  (*man)["additive_combination"] = combo;
+  if (additive_mode == "delta" && additive_mode_effective != "delta")
+    (*man)["additive_mode_degraded"] = "no_sky_plane_artifact";
   return Result<void>::success();
 }
 
@@ -5624,6 +6263,25 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         " node chain; only 1 (equal) or 2 (ivar) are legal (DATA-UNC-001 §30.1)"));
   const bool allow_fallback = doc.value("legacy_allow_weight_fallback", false);
 
+  // ── RELEASE-02 P2b-2: 优先消费归一化逐像素方差 w = 1/Var(corrected) ──────
+  // p2_corrected.json 报 uncertainty_available=true（方差完整传播：残差制造者
+  // PΣPᵀ + 逐像素 Phase1 噪声 + 参数协方差项）时，权重面**优先**用逐像素
+  // 1/Var(corrected)（weight_chain.h: weight_from_corrected_variance）；否则
+  // 退回既有 ivar 面 / 帧级 SNR 链（后者须组内公共 F_ref 与 g_k 配对）。
+  // 过渡期（方差未完整传播）不得声称逆方差加权（P2b-5）。
+  std::vector<std::string> corr_var_file(frames.size());
+  bool corr_var_ready = false;
+  if (weight_mode == 2) {
+    const bool cor_var_avail = cor_doc.value("variance_available", false);
+    const bool cor_unc_avail = cor_doc.value("uncertainty_available", false);
+    bool all_files = cor_var_avail && cor_unc_avail;
+    for (size_t f = 0; f < frames.size() && all_files; ++f) {
+      corr_var_file[f] = frames[f].value("var_file", std::string());
+      if (corr_var_file[f].empty()) all_files = false;
+    }
+    corr_var_ready = all_files;
+  }
+
   // ivar 产品读取（weight_mode=2 必须）。ivar 缺失 → **不再等权降级**:
   // 由 HiPS 头帧级 SNR 现场换算逆方差权重（w = SNR²/F_ref² = 1/σ_F²;
   // weight-chain-report §6.1）; 权重链未闭合 → DATA 错误 + closure token。
@@ -5644,7 +6302,13 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   bool use_snr_chain = false;                     // ivar 缺失时走 SNR 权重链
   std::vector<double> snr_weights;                // 逐帧 w = 1/σ_F² [ADU^-2]
   std::string snr_chain_closure = "not_used";
-  if (weight_mode == 2) {
+  if (corr_var_ready) {
+    // P2b-2 priority 1：逐像素归一化方差面（唯一科学正确的权重来源）。
+    weight_basis = "per_pixel_corrected_variance";
+    weight_source = "corrected_variance";
+    uncertainty_available = true;
+  }
+  if (weight_mode == 2 && !corr_var_ready) {
     uint64_t ivar_missing = 0;
     for (size_t f = 0; f < frames.size(); ++f) {
       const std::string p = frames[f].value("hips_path", "");
@@ -5673,6 +6337,12 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       using astrocs::v6::p2weight::FrameSnrKind;
       using astrocs::v6::p2weight::WeightChainResult;
       std::vector<FrameWeightInput> winputs(frames.size());
+      // P2b-2: 归一化含乘性 /g_k 时，帧级链须 w = SNR²/F_ref²·g_k²
+      // （weight_chain FrameWeightInput.gain 可空；缺一 fail-closed）。
+      // 生产方案 B（加性-only, g≡1）不置 multiplicative_gain_applied ⇒
+      // gain=nullptr、require_frame_gain=false，行为与旧口径逐位一致。
+      const bool require_gain = cor_doc.value("multiplicative_gain_applied", false);
+      std::vector<double> frame_gain(frames.size(), 1.0);
       double ref_flux = 0.0;
       bool ref_flux_set = false;
       std::string ref_err;
@@ -5694,6 +6364,11 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         in.sparse = nullptr;   // 稀疏 SNR 层尚未接入生产数据面
         in.x = 0.0;
         in.y = 0.0;
+        in.gain = nullptr;
+        if (require_gain) {
+          frame_gain[f] = frames[f].value("frame_gain", 1.0);
+          in.gain = &frame_gain[f];
+        }
         if (has_ref) {
           // WEIGHT-SCI-001: 闸门**保持 fail-closed**（相对容差 1e-9 不放宽、
           // 不删除）—— 组内 F_ref 必须是同一公共值。错误串补 expected/actual/
@@ -5712,9 +6387,11 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           }
         }
       }
+      astrocs::v6::p2weight::WeightChainPolicy wpolicy;
+      wpolicy.require_frame_gain = require_gain;
       const WeightChainResult wres =
           astrocs::v6::p2weight::compute_inverse_variance_weights(
-              winputs, ref_flux_set ? ref_flux : 0.0);
+              winputs, ref_flux_set ? ref_flux : 0.0, wpolicy);
       if (!ref_err.empty() || !wres.ok) {
         const std::string tok = ref_err.empty()
             ? std::string(astrocs::v6::p2weight::weight_closure_token(wres.closure))
@@ -5882,7 +6559,8 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   }
   const size_t n_tiles = itiles.size();
   const uint32_t workers = std::max(1u, doc.value("__workers", 1u));
-  const bool need_ivar = (weight_mode == 2 && !fallback && !use_snr_chain);
+  const bool need_ivar =
+      (weight_mode == 2 && !fallback && !use_snr_chain && !corr_var_ready);
   std::vector<double> sig_bin(n_tiles * static_cast<size_t>(tile_span));
   std::vector<double> sup_bin(n_tiles * static_cast<size_t>(tile_span));
   std::vector<double> wsum_bin(n_tiles * static_cast<size_t>(tile_span));
@@ -5948,6 +6626,24 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       }
       tile_bufs.push_back(std::move(buf));
     }
+    // P2b-2: 逐像素归一化方差 tile（与 corrected tile 同布局/同 offset）
+    std::vector<std::vector<double>> tile_cvar;
+    if (corr_var_ready) {
+      tile_cvar.reserve(static_cast<size_t>(depth));
+      for (size_t d = 0; d < depth; ++d) {
+        std::vector<double> buf;
+        const std::string& vf = corr_var_file[it.slot[d]];
+        if (vf.empty() ||
+            !p2_read_bin_range<double>(vf, it.data_off[d], tile_span, &buf)) {
+          t_errd[ti_s] = static_cast<int>(ErrorDomain::IO);
+          t_err[ti_s] = "corrected variance bin read failed (tile " +
+                        std::to_string(tip) + " frame " +
+                        std::to_string(it.slot[d]) + ")";
+          return;
+        }
+        tile_cvar.push_back(std::move(buf));
+      }
+    }
     std::vector<const std::vector<double>*> tile_v;
     tile_v.reserve(tile_bufs.size());
     for (const auto& b : tile_bufs) tile_v.push_back(&b);
@@ -6011,7 +6707,26 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         }
         double w = 1.0;
         if (weight_mode == 2 && !fallback) {
-          if (use_snr_chain) {
+          if (corr_var_ready) {
+            // P2b-2 priority 1: w = 1/Var(corrected)（逐像素归一化方差）
+            const double vv = tile_cvar[d][static_cast<size_t>(p)];
+            if (!std::isfinite(vv) || !(vv > 0.0)) {
+              t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+              t_err[ti_s] = "corrected variance invalid (non-finite/<=0) at frame " +
+                            std::to_string(it.slot[d]) + " tile " +
+                            std::to_string(tip) + " pixel " + std::to_string(p) +
+                            " (P2b-2: w=1/Var(corrected) fail-closed, no clamp)";
+              return;
+            }
+            std::string verr;
+            if (!astrocs::v6::p2weight::weight_from_corrected_variance(vv, &w,
+                                                                       &verr)) {
+              t_errd[ti_s] = static_cast<int>(ErrorDomain::DATA);
+              t_err[ti_s] = "weight_from_corrected_variance failed at frame " +
+                            std::to_string(it.slot[d]) + ": " + verr;
+              return;
+            }
+          } else if (use_snr_chain) {
             // ivar 产品缺失 → 帧级 SNR 逆方差权重（w = SNR²/F_ref² = 1/σ_F²,
             // 逐帧常量; weight-chain-report §6.1）
             if (it.slot[d] >= snr_weights.size()) {
@@ -6150,6 +6865,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                        {"weight_mode", weight_mode},
                        {"weight_basis", weight_basis},
                        {"weight_source", weight_source},
+                       {"corrected_variance_used", corr_var_ready},
                        {"snr_chain_closure", snr_chain_closure},
                        {"snr_chain_used", use_snr_chain},
                        {"fallback", fallback},
@@ -6180,6 +6896,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   (*man)["weight_mode"] = weight_mode;
   (*man)["weight_basis"] = weight_basis;
   (*man)["weight_source"] = weight_source;
+  (*man)["corrected_variance_used"] = corr_var_ready;
   (*man)["snr_chain_closure"] = snr_chain_closure;
   (*man)["snr_chain_used"] = use_snr_chain;
   (*man)["fallback"] = fallback;

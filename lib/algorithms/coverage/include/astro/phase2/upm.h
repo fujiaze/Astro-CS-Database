@@ -75,7 +75,10 @@ typedef struct {
     double smoothing_lambda;      // 图平滑权重（默认 0=关闭）
     double zero_anchor_weight;    // 弱零校正锚权重（生产装配显式 1e-3，SCI §9a:133）
     int    max_iterations;        // IRLS 最大迭代（默认 100）
-    double tolerance;             // 收敛容差（默认 1e-6）
+    // 收敛容差（默认 1e-6）。语义由 tolerance_relative 决定：
+    // 0=绝对（legacy，max_dM/max_dC < tolerance）；1=相对
+    // （< tolerance × max(scale,1.0)，scale=max|M| 或 max|C|）。
+    double tolerance;
     int    target_order;          // 模型目标 order（-1=auto）
     double sigma_floor;           // uncertainty 下限（默认 1e-3）
     double support_power;         // support 因子指数（默认 1.0）
@@ -89,6 +92,25 @@ typedef struct {
     // CON-005 并行观察/聚合 worker 数（0=auto；1=串行默认）。仅 P2_ENABLE_OPENMP
     // 且 >1 时并行 compute_raw/聚合；gauge/连通分量/收敛/归并保持固定顺序。
     int    cpu_workers;          // 来自 Runtime lease(p2_session 传 budget.max_workers); 1=串行 reference
+    // ===== RELEASE-02 P2a 接缝修复（科学行为变更，显式 opt-in）=====
+    // 下列 4 项默认取 W2 冻结基线（legacy）值，使 cfg{}/cfg; 的既有调用点
+    // 行为逐位不变；生产装配 p2_op_upm_fit 显式启用 P2a-2/P2a-3/P2a-4。
+    // 依据：reports/RELEASE-02/{q2-snr-smooth,c-delta-ruling}.md。
+    // P2a-2 阻尼：C 场交替更新 x ← (1-α)·x_old + α·x_new。α<=0 / 非有限 /
+    // >1 一律按 1.0（无阻尼，legacy）。naive α=1 在链式/二部覆盖图上有
+    // 特征值 -1（周期 2 振荡，永不收敛）。
+    double gs_damping = 1.0;
+    // P2a-4：1 = M 更新用全帧加权公共场（joint-LS 不动点，方差更小）；
+    // 0 = 分量参考帧 M（legacy，M=y_ref）。见 c-delta-ruling §3.2/§6.2 M2。
+    int    m_full_frame = 0;
+    // P2a-2 末端残差场 gauge：1 = 计算 R_k = Σw(y-C)/Σw - M_k 并以公共场 G
+    // 从每帧扣除（使叠加 Σw(y-C-G)/Σw ≡ M ⇒ 任意覆盖子集/权重面无阶跃）；
+    // 0 = 关闭（legacy）。见 q2-snr-smooth §5（阶跃恒 0.0000）。
+    int    final_gauge = 0;
+    // P2a-3：1 = tolerance 解释为相对判据，阈值 = tolerance × max(scale,1.0)，
+    // scale = max|M| / max|C|；0 = 绝对判据（legacy）。生产显式 1 + 1e-3。
+    // 绝对 1e-6 在 max|M|~3e15 时低于 ULP(0.5) 5-8 个数量级，原理上不可达。
+    int    tolerance_relative = 0;
     // M7-C-001: UPM 控制 cell 网格边长 G，必须 == 采样器
     // control_grid_per_tile 且 == UPM 网格常数 8；不等时 p2_upm_build* 返回 3
     // （禁静默错格架：control 场会按错误格架插值）。

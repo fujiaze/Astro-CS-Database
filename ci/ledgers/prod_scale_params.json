@@ -1,0 +1,65 @@
+{
+  "ledger_schema": "astrocs.ci-ledger/v1",
+  "ledger_id": "prod-scale-params",
+  "purpose": "CHK-PROD-SCALE 参数声明与豁免台账：params 声明关键参数的生产尺度；entries 承载合成尺度用例豁免（须说明生产尺度用例位置与解除条件）。",
+  "params": [
+    {
+      "name": "control_ivar",
+      "production": 5.6e-22,
+      "unit": "ADU^-2",
+      "rationale": "UPM 观测权重 raw_w=quality*control_ivar（SCI-UPM-WEIGHT-001）；生产 control_ivar 中位 ~5.6e-22（upm.cpp:577 注释；unc-prop-audit 复核 uncertainty 中位 4.23e10 -> ivar ~5.6e-22）。",
+      "ratio_floor": 0.000001,
+      "ratio_ceil": 1000000
+    },
+    {
+      "name": "control_variance",
+      "production": 1.8e+21,
+      "unit": "ADU^2",
+      "rationale": "control_ivar 的倒数（control_variance = 1/control_ivar ~1.8e21，synthetic_gate.cpp:535 注释；与 control_ivar 同尺度裂缝面）。",
+      "ratio_floor": 0.000001,
+      "ratio_ceil": 1000000
+    }
+  ],
+  "entries": [
+    {
+      "id": "prod_scale_exception:control_ivar:lib/algorithms/coverage/tests/synthetic_gate.cpp",
+      "kind": "synthetic_exception",
+      "reason": "该文件的既有合成用例以 control_ivar=1.0 构造等价等权（synthetic_gate.cpp:71-73 注释自认），属历史合成面；同文件已有生产尺度判别力回归 ProductionScaleControlIvarKeepsCFieldAlive（:543-560，kProdIvar=5.6e-22）。",
+      "owner": "RELEASE-02 fix-gates（前台裁决：是否将既有合成用例迁移到生产尺度）",
+      "exit_condition": "既有合成用例改用生产尺度 control_ivar，或登记为「等权语义」专用并加注释说明与生产尺度的关系",
+      "production_scale_evidence": [
+        "lib/algorithms/coverage/tests/synthetic_gate.cpp:543-560"
+      ]
+    },
+    {
+      "id": "prod_scale_exception:control_variance:lib/algorithms/coverage/tests/synthetic_gate.cpp",
+      "kind": "synthetic_exception",
+      "reason": "同上：合成等权用例 control_variance=1.0；生产尺度用例见同文件 ProductionScaleControlIvarKeepsCFieldAlive（control_variance=1.0/kProdIvar≈1.8e21）。",
+      "owner": "RELEASE-02 fix-gates（前台裁决：是否迁移）",
+      "exit_condition": "同 control_ivar 条目",
+      "production_scale_evidence": [
+        "lib/algorithms/coverage/tests/synthetic_gate.cpp:543-560"
+      ]
+    },
+    {
+      "id": "prod_scale_exception:control_ivar:lib/algorithms/coverage/tests/sanitize_driver.cpp",
+      "kind": "synthetic_exception",
+      "reason": "sanitizer 驱动夹具（:43-44 control_variance=1.0/control_ivar=1.0），目的为 ASan/UBSan 内存面而非科学尺度；生产尺度覆盖由 synthetic_gate 生产尺度回归承担。",
+      "owner": "RELEASE-02 fix-gates",
+      "exit_condition": "驱动夹具补一处生产尺度输入，或登记为 sanitizer-only 夹具",
+      "production_scale_evidence": [
+        "lib/algorithms/coverage/tests/synthetic_gate.cpp:543-560"
+      ]
+    },
+    {
+      "id": "prod_scale_exception:control_variance:lib/algorithms/coverage/tests/sanitize_driver.cpp",
+      "kind": "synthetic_exception",
+      "reason": "同 sanitize_driver control_ivar 条目。",
+      "owner": "RELEASE-02 fix-gates",
+      "exit_condition": "同上",
+      "production_scale_evidence": [
+        "lib/algorithms/coverage/tests/synthetic_gate.cpp:543-560"
+      ]
+    }
+  ]
+}

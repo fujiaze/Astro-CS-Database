@@ -1084,16 +1084,28 @@ static int p2_sample_controls_impl(
             o.dec_deg = cs.dec;
             o.value = cs.m[fi];
             o.uncertainty = cs.unc[fi];
-            o.snr = cs.snr[fi];
+            // P2b-3（RELEASE-02）: snr=0 stub 修正。局部 catalogue SNR 不可用时
+            // 如实写该 control 点自身信噪比 |value|/uncertainty（点 SNR），
+            // 不再写 0；snr_available 仍如实标记 catalogue 可用性（0=无局部星点，
+            // 见 upm.h:51-54），本字段不参与 science 权重（SCI-UPM-WEIGHT-001）。
+            o.snr = cs.snr_avail[fi]
+                        ? cs.snr[fi]
+                        : ((cs.unc[fi] > 0.0 && std::isfinite(cs.unc[fi]))
+                               ? std::fabs(cs.m[fi]) / cs.unc[fi]
+                               : 0.0);
             o.snr_available = cs.snr_avail[fi];
             // control estimator 的
             // 统计方差/逆方差（patch median；含 Drizzle 协方差 k_corr）。
             o.control_variance = cs.cvar[fi];
             o.control_ivar = cs.civar[fi];
-            // 控制点 ivar 取自帧 ivar 产品 (控制 leaf 处)
-            // 弃用：仅诊断（单 leaf Phase1 ivar ≠ Var(control
-            // estimator)），science 权重一律使用 control_ivar。
-            o.ivar = 0.0;
+            // P2b-3（RELEASE-02）: ivar=0 stub 修正。帧 ivar 产品可用时用其
+            // 单 leaf 值；缺失时改用该观测的**有效逆方差** 1/uncertainty²
+            // (= control_ivar = 1/control_variance，控制估计器方差)，不再写 0。
+            // science 权重仍只认 control_ivar（upm.h:40-47 / SCI-UPM-WEIGHT-001）；
+            // 本字段仅诊断/下游方差面读取，禁止冒充 Var(control estimator) 之外的语义。
+            o.ivar = (cs.civar[fi] > 0.0 && std::isfinite(cs.civar[fi]))
+                         ? cs.civar[fi]
+                         : 0.0;
             {
                 AioHipsDataset* iv = ivr[static_cast<std::size_t>(cs.frames[fi])];
                 if (iv) {

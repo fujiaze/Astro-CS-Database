@@ -71,6 +71,8 @@ const char* weight_closure_token(WeightClosure c) {
     case WeightClosure::kUnclosedLegacyFallbackRejected: return "unclosed_legacy_fallback_rejected";
     case WeightClosure::kUnclosedEmptyInput: return "unclosed_empty_input";
     case WeightClosure::kBaselineEqualWeight: return "baseline_equal_weight";
+    case WeightClosure::kUnclosedMissingGain: return "unclosed_missing_gain";
+    case WeightClosure::kUnclosedInvalidGain: return "unclosed_invalid_gain";
   }
   return "unknown";
 }
@@ -89,6 +91,22 @@ bool weight_from_snr(double snr, double reference_flux, double* out_weight,
   const double w = (snr / reference_flux) * (snr / reference_flux);
   if (!positive_finite(w)) {
     set("computed inverse-variance weight is non-finite/non-positive");
+    return false;
+  }
+  if (out_weight) *out_weight = w;
+  return true;
+}
+
+bool weight_from_corrected_variance(double variance, double* out_weight,
+                                    std::string* err) {
+  auto set = [&](const char* m) { if (err) *err = m; };
+  if (!positive_finite(variance)) {
+    set("weight_from_corrected_variance: Var(corrected) must be finite and > 0");
+    return false;
+  }
+  const double w = 1.0 / variance;
+  if (!positive_finite(w)) {
+    set("weight_from_corrected_variance: 1/Var(corrected) non-finite/non-positive");
     return false;
   }
   if (out_weight) *out_weight = w;
@@ -288,6 +306,7 @@ WeightChainResult compute_inverse_variance_weights(
   r.weights.assign(n, 0.0);
   r.sparse_operator_ids.assign(n, std::string());
   r.sparse_node_residual.assign(n, 0.0);
+  r.frame_gain.assign(n, 1.0);
 
   bool any_sparse = false;
   for (std::size_t k = 0; k < n; ++k) {
@@ -345,11 +364,37 @@ WeightChainResult compute_inverse_variance_weights(
     }
     r.actual_snr[k] = actual;
 
+    /* 乘性光度响应 g_k（可空）。归一化 corrected=(y−ĝ)/g_k ⇒ Var(corrected)=
+       Var(y)/g_k² ⇒ 帧级权重乘 g_k²（q2-snr-smooth §2/§7）。声明要求而缺
+       → fail-closed，不得静默按 g=1 冒充。 */
+    double g = 1.0;
+    if (f.gain != nullptr) {
+      if (!positive_finite(*f.gain)) {
+        return fail_with_policy(
+            policy, WeightClosure::kUnclosedInvalidGain,
+            tag + ": frame gain g_k must be finite and > 0 (multiplicative "
+                  "normalization corrected=(y-ĝ)/g_k)", n);
+      }
+      g = *f.gain;
+    } else if (policy.require_frame_gain) {
+      return fail_with_policy(
+          policy, WeightClosure::kUnclosedMissingGain,
+          tag + ": frame gain g_k missing but policy.require_frame_gain=true "
+                "(w = SNR²/F_ref²·g_k² undefined; no silent g=1 fallback)", n);
+    }
+    r.frame_gain[k] = g;
+
     double w = 0.0;
     std::string werr;
     if (!weight_from_snr(actual, reference_flux, &w, &werr)) {
       return fail_with_policy(policy, WeightClosure::kUnclosedNonFiniteWeight,
                               tag + ": " + werr, n);
+    }
+    w *= g * g;
+    if (!positive_finite(w)) {
+      return fail_with_policy(
+          policy, WeightClosure::kUnclosedNonFiniteWeight,
+          tag + ": SNR²/F_ref²·g_k² non-finite/non-positive after gain", n);
     }
     r.weights[k] = w;
   }
@@ -375,6 +420,7 @@ WeightChainResult make_equal_weight_baseline(std::size_t n_frames) {
   r.weights.assign(n_frames, 1.0);
   r.intra_snr.assign(n_frames, 1.0);
   r.actual_snr.assign(n_frames, 0.0);
+  r.frame_gain.assign(n_frames, 1.0);
   r.sparse_operator_ids.assign(n_frames, std::string());
   r.sparse_node_residual.assign(n_frames, 0.0);
   return r;

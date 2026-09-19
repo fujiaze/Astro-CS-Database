@@ -25,6 +25,8 @@ if(NOT TARGET astrocs_v6_phase2_integrate)
   add_library(astrocs_v6_phase2_integrate STATIC
     src/phase2_integrate.cpp
     src/weight_chain.cpp
+    # RELEASE-02 P2b: 残差制造者 PΣPᵀ 方差传播（纯 FP64 + std，无第三方依赖）。
+    src/variance_propagation.cpp
     "${V6P2_REPO}/lib/algorithms/coverage/src/upm.cpp"
     "${V6P2_REPO}/lib/algorithms/coverage/src/rejection.cpp"
     "${V6P2_REPO}/lib/algorithms/coverage/src/sampler.cpp"

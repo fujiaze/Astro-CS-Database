@@ -116,6 +116,13 @@ bool weight_from_snr(double snr, double reference_flux, double* out_weight,
 bool compose_actual_snr(double frame_snr, double intra_snr, double* out_snr,
                         std::string* err);
 
+/* w = 1/Var(corrected)（Var>0 有限）[ADU^-2]：逐像素归一化方差的逆。
+ * 这是 P2b 的正确权重面（w 是 Var(corrected) 的严格单调递减函数 ⇒ 高归一化
+ * SNR 帧权重 ≥ 低归一化 SNR 帧由构造保证）。**禁止**由权重标量反推 variance
+ * （upm.h:228）；本函数只做 1/var。Var<=0/非有限 → false（fail-closed）。 */
+bool weight_from_corrected_variance(double variance, double* out_weight,
+                                    std::string* err);
+
 /* ------------------------------------------------------------------ */
 /* 逐输出像素的多帧权重链                                                */
 /* ------------------------------------------------------------------ */
@@ -126,6 +133,12 @@ struct FrameWeightInput {
   double frame_snr = 0.0;                     /* F_ref/σ_F，>0 有限 */
   const SparseSnrLayer* sparse = nullptr;     /* 可空；非空且 present 即参与合成 */
   double x = 0.0, y = 0.0;                    /* 该帧像素坐标系下输出像素位置 */
+  /* 可空乘性光度响应 g_k（>0 有限）。归一化含 corrected=(y−ĝ)/g_k 时必填：
+   * 帧级权重须 w = SNR²/F_ref²·g_k²（Var(corrected)=Var(y)/g² ⇒ w 乘 g²；
+   * q2-snr-smooth §2/§7）。nullptr = 未声明（按 g=1），仅当
+   * policy.require_frame_gain=false 时合法；声明要求而缺 → fail-closed
+   * （kUnclosedMissingGain），不得静默按 g=1 冒充。 */
+  const double* gain = nullptr;
 };
 
 /* 权重链闭合状态。只有 kClosed 代表科学权重成立。 */
@@ -141,6 +154,8 @@ enum class WeightClosure : int {
   kUnclosedLegacyFallbackRejected = 8,       /* 显式请求等权降级 → 仍 fail-closed */
   kUnclosedEmptyInput = 9,
   kBaselineEqualWeight = 10,                 /* 显式非生产基线，非闭合 */
+  kUnclosedMissingGain = 11,                 /* require_frame_gain 但 gain 缺失 */
+  kUnclosedInvalidGain = 12,                 /* gain 非有限/非正 */
 };
 const char* weight_closure_token(WeightClosure c);
 
@@ -148,6 +163,9 @@ struct WeightChainPolicy {
   /* 兼容旧调用方签名。**置真不会产生成功结果**：仅触发
      kUnclosedLegacyFallbackRejected + 显式错误串（消除静默假绿）。 */
   bool legacy_allow_weight_fallback = false;
+  /* 1 = 调用方声明归一化含 /g_k ⇒ 每帧 gain 必填（缺一 fail-closed）。
+     默认 0 = 兼容旧调用方（gain 缺失按 g=1，仅加性-only 方案 B 合法）。 */
+  bool require_frame_gain = false;
 };
 
 struct WeightChainResult {
@@ -160,7 +178,8 @@ struct WeightChainResult {
   double reference_flux = 0.0;
   std::vector<double> intra_snr;   /* 逐帧（无层 = 1.0） */
   std::vector<double> actual_snr;  /* 逐帧 = frame_snr × intra_snr */
-  std::vector<double> weights;     /* 逐帧 = actual_snr²/F_ref² [ADU^-2] */
+  std::vector<double> frame_gain;  /* 逐帧 g_k（未声明 = 1.0；审计用） */
+  std::vector<double> weights;     /* 逐帧 = actual_snr²/F_ref²·g_k² [ADU^-2] */
   std::vector<std::string> sparse_operator_ids; /* 逐帧（无层 = ""） */
   std::vector<double> sparse_node_residual;     /* 逐帧 */
   /* 显式 legacy 请求时填充，仅供诊断；ok/weight_chain_closed 恒为 false。 */
