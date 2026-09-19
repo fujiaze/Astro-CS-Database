@@ -750,3 +750,46 @@ C-DELTA 建议 M1 保留 δ 去掉 C —— **但实测 `raw−C_k`=0.131% 远�
 
 **UNRESOLVED（`PHASE2_UPM.md:182`）处置建议**：新证据支持「加性足以」，**撤回「补 g_k」提案**；
 建议裁决为「**保留单一加性校正 + 修组合 + 修 Phase1 归一化**」。
+### 9.29 ★★ **P0：Phase1 的测光归一化从未应用到像素（节点不存在）**
+
+**前台独立核实**（承 9.27）：
+
+1. **`apply_photometry` 在生产无任何调用者**：全仓搜索，只有测试调用；
+   `drizzle_engine.h:30` 的 `apply_photometry` 是**元数据标志**（「测光已应用到像素」），**不是实际应用**；
+2. **Phase1 节点表只有 8 个节点，无 apply 节点**（`module_adapters.cpp:7999-8008`）：
+   ```
+   calibrate / cosmetic_correct / detect_sources / plate_solve / measure_flux / estimate_snr / drizzle_stack / write_hips
+   ```
+   `measure_flux` 的注释（`:3077-3078`）自认「**只测量孔径通量，不对像素施加测光缩放**（§02_FROZEN §7
+   `I_photo=k_photo·I_cal` 由 `pc_calibrate/simple` 类节点承担）」，
+   **但全仓搜索 `pc_calibrate` 只命中这一句注释 —— 该节点不存在**；
+3. **后果链**：`hp_drizzle_api.cpp:316` `photometry_applied_upstream = (img.photappl != 0)` 恒读 0；
+   `p1_phot.json` 如实记 `photometry_applied:false, photscal:1.0, operation:measure_flux`；
+   `p1_stack.json` 记 `photappl:0, photscal:1.0`。
+
+**⇒ 设计要求的 `I_photo = k_photo·I_cal`（Drizzle 前应用，`02_FROZEN_STAGE1_HISS_SPEC §7`）
+在当前实现中从未执行。**
+
+**⇒ 这解释了 9.26 的 `C_k ∝ M_c`**：UPM 的自由 C 场（271555 自由度）在**吸收未被归一化的残余乘性标度**
+（把乘性差当加性差拟合掉）—— 所以 `raw − C_k`=0.131% 看起来极好，但那不是「正确」的加性校正，
+而是**自由场在替缺失的测光归一化代偿**。
+
+**⇒ 完整的因果链（三条独立缺陷叠加）**：
+1. **Phase1 未应用测光归一化**（本 9.29）⇒ 帧间存在**残余乘性差**；
+2. **UPM 自由 C 场代偿**（9.26）⇒ 表面上对齐（0.131%），但用 271555 DOF 过拟合、且吸收了本应由测光解决的量；
+3. **生产再减 δ_k**（9.26）⇒ **把代偿结果重新拉开** ⇒ 13.974%，**比完全不校正还差** ⇒ **接缝**。
+
+**⇒ 负责人前提的修正**：「我们在 phase1 中把所有帧都归一化到测光坐标系上了」——
+**设计上如此，但实现里这一步从未执行**（节点缺失）。这不是负责人的错，是实现的 P0 缺口。
+
+**⇒ 修复顺序（须负责人裁决，涉及科学行为变更）**：
+- **M0（最优先）**：把测光归一化真正应用到像素（补 `apply_photometry` 节点或按设计在 Drizzle 前应用），
+  并让 `photappl`/`photscal` 如实落元数据；**重跑 L4 normalize**；
+- **M1**：修双重扣除（只保留一次加性校正）；**保留哪个须在 M0 修好后实测**，
+  前台不采纳 C-DELTA「保留 δ」的倾向（现测 `raw−C_k`=0.131% 远优于 `raw−δ_k`=2.799%，但 C 的代偿成分要 M0 后才能分清）；
+- **M2–M5**：M-update 改全帧加权、gauge 改均值零（注明不修接缝）、收敛判据改相对、堆叠权重按 `Var(corrected)`。
+
+**⇒ 对应负责人三问**：
+- **Q1**：Phase1 测光**本应**能校准掉（乘性）梯度，但**当前实现没执行**；执行后残余空间乘性（渐晕）仍需 Q1 合成实验判定；
+- **Q3**：预测 P（正确归一化后阶跃由加性天光产生、可直接减法去除）**尚未被真正检验过** ——
+  因为「正确归一化」这一步从未发生；**必须先补 M0 才能判定 P**。
