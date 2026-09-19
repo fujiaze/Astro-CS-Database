@@ -48,7 +48,7 @@
 - 旧有 `p2_sky_plane_frame_delta`（`sky_plane.cpp:1209+`）只返回**未求值的多项式系数**，不给出 `δ_k(x)` 值，故不能直接用于像素级扣除——这正是需要新增求值入口的原因。
 
 ### 2.3 gauge 与参考帧约定
-- `gauge_mode=0`（**生产/参考默认**，`sky_plane.cpp:400-410`；`stage2_common.h:58`；`module_adapters.cpp:4652`）：
+- `gauge_mode=0`（**生产/参考默认**，`sky_plane.cpp:398-407` 默认配置 + `:441` 校验；`stage2_common.h:58`；`module_adapters.cpp:4652`）：
   - 参考帧 = 分量内**最小 `frame_id`**（`sky_plane.cpp:585`）；
   - 参考帧 `δ_ref ≡ 0`（`sky_plane.cpp:920`）；
   - `gauge_shift = 0`（`sky_plane.cpp:1001`）；
