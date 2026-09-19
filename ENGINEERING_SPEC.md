@@ -99,7 +99,7 @@ lib/
 │   └── shared/
 └── infrastructure/     基建（cli/ 下挂 normalize/mosaic/export 子命令 + scheduler/pipeline/aio/benchmark/observability/gaia/acr/hips_browser）
 
-其他固定目录：include/ contracts/ cmake/ docs/ tests/ scripts/ tools/ ci/ testdata/ third_party/
+其他固定目录：include/ contracts/ cmake/ docs/ tests/ scripts/ tools/ ci/ testdata/ third_party/ reverse_verify/
 config/（程序根全局配置：filters.json / defaults.json；ASTROCS_DESIGN.md §3.3 点名要求）
 工程控制/ 报告 reports/ 证据 artifacts/ 工程 engineering/ 打包 packaging/
 run/（gitignore：临时产物/日志）  logs/（gitignore）
@@ -107,6 +107,7 @@ run/（gitignore：临时产物/日志）  logs/（gitignore）
 
 - **任何新产物必须落位到对应目录，禁止散落根目录**；
 - 确需新增根目录条目，先登记并获得负责人确认；
+- **`reverse_verify/` 为逆向验收工作区**（RELEASE-02 负责人确认新增）：主线做**正向推导**，该区从第一性原理与公开文献/开源实现**逆向验证**；**独立构建**（不得被根 `CMakeLists.txt` 引用），存放实验代码、合成数据代码、方案设计与参考文献；中间产物落 `run/reverse_verify/`；
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
 - 修改代码/测试后同步订正 `ci/checks.json`；禁止把运行产物产出到项目根目录；
 - **证据与产物落 `artifacts/`**（含 CI 运行产物 `artifacts/ci/<sha>/`）；根下**不得**新建 `evidence/` 等未登记目录（历史 `evidence/` 已删除，其内容为旧世代残留）；
