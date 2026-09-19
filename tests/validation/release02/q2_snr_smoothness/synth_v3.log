@@ -1,0 +1,135 @@
+=== item2 weight ordering ===
+{
+ "frames": [
+  "A",
+  "B",
+  "C",
+  "D"
+ ],
+ "gain": {
+  "A": 1.0,
+  "B": 2.0,
+  "C": 0.8,
+  "D": 1.0
+ },
+ "sigma_raw": {
+  "A": 1.0,
+  "B": 2.6,
+  "C": 2.0,
+  "D": 5.0
+ },
+ "sigma_norm": {
+  "A": 1.0,
+  "B": 1.3,
+  "C": 2.5,
+  "D": 5.0
+ },
+ "w_raw": {
+  "A": 1.0,
+  "B": 0.14792899408284022,
+  "C": 0.25,
+  "D": 0.04
+ },
+ "w_norm": {
+  "A": 1.0,
+  "B": 0.5917159763313609,
+  "C": 0.16,
+  "D": 0.04
+ },
+ "rank_raw": [
+  "A",
+  "C",
+  "B",
+  "D"
+ ],
+ "rank_norm": [
+  "A",
+  "B",
+  "C",
+  "D"
+ ],
+ "kendall_tau": 0.6666666666666666,
+ "order_flipped": true,
+ "A_over_B_raw": 6.760000000000001,
+ "A_over_B_norm": 1.6900000000000002
+}
+
+=== NF: NOISE-FREE, order-2 models, SNR weights ===
+== NF  gauge_shift=-0.7516  iters 150/150
+   a_ref            spread= 3.76e-01 residRMS= 9.54e-01 residMaxStep=   0.2093 stackMaxStep=   0.4171
+        resid_steps -0.0717 -0.1116 +0.0615 +0.0896 +0.1230 +0.2093
+   b_global_mean0   spread= 3.76e-01 residRMS= 9.54e-01 residMaxStep=   0.2093 stackMaxStep=   0.4171
+        resid_steps -0.0717 -0.1116 +0.0615 +0.0896 +0.1230 +0.2093
+   c_excl_self      spread= 1.30e-01 residRMS= 5.91e-02 residMaxStep=   0.0352 stackMaxStep=   0.3631
+        resid_steps +0.0104 -0.0058 -0.0210 -0.0148 +0.0086 +0.0352
+   d_incl_self      spread= 4.24e+01 residRMS= 5.70e+00 residMaxStep=   4.9147 stackMaxStep=   5.1451
+        resid_steps +1.2636 +0.5506 -1.3492 -1.8683 -0.7812 +4.9147
+
+=== NF2: NOISE-FREE, production-like B=ord2 + delta=plane, equal weights ===
+== NF2  gauge_shift=-0.2089  iters 150/150
+   a_ref            spread= 3.67e-01 residRMS= 1.06e+00 residMaxStep=   0.1638 stackMaxStep=   0.3858
+        resid_steps -0.1269 -0.0566 +0.0449 +0.0966 +0.0885 +0.1638
+   b_global_mean0   spread= 3.67e-01 residRMS= 1.06e+00 residMaxStep=   0.1638 stackMaxStep=   0.3858
+        resid_steps -0.1269 -0.0566 +0.0449 +0.0966 +0.0885 +0.1638
+   c_excl_self      spread= 1.30e-01 residRMS= 5.91e-02 residMaxStep=   0.0351 stackMaxStep=   0.3630
+        resid_steps +0.0104 -0.0058 -0.0204 -0.0154 +0.0086 +0.0351
+   d_incl_self      spread= 1.77e+01 residRMS= 5.51e+00 residMaxStep=   3.1483 stackMaxStep=   3.4560
+        resid_steps +1.3195 -0.1252 -2.1818 -1.7360 +1.1042 +3.1483
+
+=== N1: NOISY, order-2 models, SNR weights, poly gauge ===
+== N1  gauge_shift=-0.7364  iters 150/150
+   a_ref            spread= 3.68e-01 residRMS= 9.94e-01 residMaxStep=   0.2598 stackMaxStep=   0.5485
+        resid_steps -0.0766 -0.1020 +0.0722 +0.1036 +0.1363 +0.2598
+   b_global_mean0   spread= 3.68e-01 residRMS= 9.94e-01 residMaxStep=   0.2598 stackMaxStep=   0.5485
+        resid_steps -0.0766 -0.1020 +0.0722 +0.1036 +0.1363 +0.2598
+   c_excl_self      spread= 1.09e+00 residRMS= 1.31e-01 residMaxStep=   0.0603 stackMaxStep=   0.4215
+        resid_steps +0.0457 +0.0327 -0.0436 +0.0054 -0.0105 +0.0603
+   d_incl_self      spread= 4.27e+01 residRMS= 5.72e+00 residMaxStep=   4.9289 stackMaxStep=   5.2970
+        resid_steps +1.2601 +0.5489 -1.3640 -1.8464 -0.7837 +4.9289
+
+=== N2: NOISY, equal weights ===
+== N2  gauge_shift=-0.1541  iters 150/150
+   a_ref            spread= 3.51e-01 residRMS= 1.10e+00 residMaxStep=   0.2243 stackMaxStep=   0.5963
+        resid_steps -0.1338 -0.0472 +0.0615 +0.1095 +0.1056 +0.2243
+   b_global_mean0   spread= 3.51e-01 residRMS= 1.10e+00 residMaxStep=   0.2243 stackMaxStep=   0.5963
+        resid_steps -0.1338 -0.0472 +0.0615 +0.1095 +0.1056 +0.2243
+   c_excl_self      spread= 1.09e+00 residRMS= 1.29e-01 residMaxStep=   0.0622 stackMaxStep=   0.3922
+        resid_steps +0.0452 +0.0343 -0.0390 -0.0127 -0.0226 +0.0622
+   d_incl_self      spread= 1.80e+01 residRMS= 5.52e+00 residMaxStep=   3.1749 stackMaxStep=   3.4124
+        resid_steps +1.3299 -0.1184 -2.2040 -1.7277 +1.1067 +3.1749
+
+=== N3: NOISY, scalar gauge only (shows common-mode drift) ===
+== N3  gauge_shift=-0.7364  iters 150/150
+   a_ref            spread= 3.68e-01 residRMS= 9.94e-01 residMaxStep=   0.2598 stackMaxStep=   0.5485
+        resid_steps -0.0766 -0.1020 +0.0722 +0.1036 +0.1363 +0.2598
+   b_global_mean0   spread= 3.68e-01 residRMS= 9.94e-01 residMaxStep=   0.2598 stackMaxStep=   0.5485
+        resid_steps -0.0766 -0.1020 +0.0722 +0.1036 +0.1363 +0.2598
+   c_excl_self      spread= 1.09e+00 residRMS= 7.56e+00 residMaxStep=   2.2541 stackMaxStep=   2.5291
+        resid_steps -2.0871 -1.2391 -0.4791 +0.4298 +1.3036 +2.2541
+   d_incl_self      spread= 4.27e+01 residRMS= 6.06e+00 residMaxStep=   5.5125 stackMaxStep=   5.8127
+        resid_steps +1.1100 +0.5764 -1.2163 -1.5099 -0.3322 +5.5125
+
+=== N4: NOISY, final global-field gauge applied to (a) ===
+   a_ref_finalgauge residMaxStep=0.0000 stackMaxStep=0.4285 spread=3.68e-01
+
+=== N5: NOISY + spatially varying stack weight (B x3 for x>256) ===
+== N5  gauge_shift=-0.7364  iters 150/150
+   a_ref            spread= 3.68e-01 residRMS= 9.94e-01 residMaxStep=   0.2598 stackMaxStep=   0.5485
+        resid_steps -0.0766 -0.1020 +0.0722 +0.1036 +0.1363 +0.2598
+   b_global_mean0   spread= 3.68e-01 residRMS= 9.94e-01 residMaxStep=   0.2598 stackMaxStep=   0.5485
+        resid_steps -0.0766 -0.1020 +0.0722 +0.1036 +0.1363 +0.2598
+   c_excl_self      spread= 1.09e+00 residRMS= 1.31e-01 residMaxStep=   0.0603 stackMaxStep=   0.4215
+        resid_steps +0.0457 +0.0327 -0.0436 +0.0054 -0.0105 +0.0603
+   d_incl_self      spread= 4.27e+01 residRMS= 5.72e+00 residMaxStep=   4.9289 stackMaxStep=   5.2970
+        resid_steps +1.2601 +0.5489 -1.3640 -1.8464 -0.7837 +4.9289
+  per-boundary stack step change vs N1 (ADU):
+   a_ref            128:+0.0000 192:+0.0000 256:-0.0145 320:+0.0052 384:+0.0000 448:+0.0000
+   c_excl_self      128:+0.0000 192:+0.0000 256:-0.0018 320:+0.0098 384:+0.0000 448:+0.0000
+
+=== N6: final global gauge (base w) then STACK with mapped weights (B x5 for x>256) ===
+   a_ref+finalgauge         stack_steps +0.1810 +0.1708 +0.2266 +0.1952 +0.4285 +0.2534  maxabs=0.4285
+   c_excl_self+finalgauge   stack_steps +0.1810 +0.1708 +0.2408 +0.1908 +0.4285 +0.2534  maxabs=0.4285
+   a_ref (base w)           stack_steps +0.2326 +0.2937 +0.3674 +0.3662 +0.5485 +0.4812  maxabs=0.5485
+   c_excl_self (base w)     stack_steps +0.2254 +0.2100 +0.2009 +0.1711 +0.4215 +0.3604  maxabs=0.4215
+
+wrote synth_results_v3.json

@@ -1,0 +1,56 @@
+{
+ "setup": {
+  "sigma_norm": {
+   "H": 1.0,
+   "L": 10.0
+  },
+  "overlap_px": 12800,
+  "artifact_peak_ADU": 20.0
+ },
+ "snr": {
+  "w_H": 1.0,
+  "w_L": 0.01,
+  "weight_fraction_on_L": 0.009900990099009901,
+  "measured_bias_ADU": 0.08103741142497256,
+  "predicted_bias_ADU": 0.19801980198019803,
+  "artifact_leak_pct": 0.4051870571248628,
+  "mc_bias_ADU": -0.0016560488803725093,
+  "mc_rms_ADU": 0.012960751390333982
+ },
+ "equal": {
+  "w_H": 1.0,
+  "w_L": 1.0,
+  "weight_fraction_on_L": 0.5,
+  "measured_bias_ADU": 4.092389276958329,
+  "predicted_bias_ADU": 10.0,
+  "artifact_leak_pct": 20.461946384791645,
+  "mc_bias_ADU": -0.0045929004629255135,
+  "mc_rms_ADU": 0.06447284758902418
+ },
+ "inv": {
+  "w_H": 1.0,
+  "w_L": 100.0,
+  "weight_fraction_on_L": 0.9900990099009901,
+  "measured_bias_ADU": 8.103741142523575,
+  "predicted_bias_ADU": 19.801980198019802,
+  "artifact_leak_pct": 40.51870571261787,
+  "mc_bias_ADU": 0.00870474053672865,
+  "mc_rms_ADU": 0.11456428923182478
+ },
+ "full_formula": {
+  "H": {
+   "sigma_norm2": 1.0,
+   "param_term": 0.00013671622984781265,
+   "var_full": 1.0001367162298478,
+   "w_stat_only": 1.0,
+   "w_full": 0.9998633024589246
+  },
+  "L": {
+   "sigma_norm2": 100.0,
+   "param_term": 0.0175276613762318,
+   "var_full": 100.01752766137623,
+   "w_stat_only": 0.01,
+   "w_full": 0.00999824754102745
+  }
+ }
+}

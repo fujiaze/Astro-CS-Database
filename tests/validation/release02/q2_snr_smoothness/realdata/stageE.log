@@ -1,0 +1,52 @@
+=== GLOBAL OFFSET vs p3_r_vis (OLD) ===
+common finite+covered px: 11554609
+  p3_r_vis_fixed  median -9.37821e+12  p16 -1.09626e+13  p84 -8.30488e+12  | block-median spread [-1.384e+13, -7.017e+12] (med -9.281e+12)
+  p3_upmfix       median -6.46939e+11  p16 -2.02877e+12  p84 +1.29648e+12  | block-median spread [-4.974e+12, 4.61e+12] (med -4.318e+11)
+  OLD global covered median: 9.39646e+12
+  p3_r_vis_fixed global covered median: 4.65194e+10
+  p3_upmfix global covered median: 9.54861e+12
+
+=== INDEPENDENT wide-strip estimator (10px strips, 6px gap, no search), J = below/right - above/left ===
+  H1top    p3_r_vis_fixed     +0  n= 49  J=  -2.5273e+11  p16..p84 -8.089e+11..+1.953e+11  -2.4409%ref
+  H1top    p3_upmfix          +0  n= 49  J=  -8.6182e+10  p16..p84 -5.962e+11..+2.636e+11  -0.8323%ref
+  H1top    p3_r_vis           +0  n= 49  J=  +2.1933e+11  p16..p84 +1.537e+11..+6.352e+11  +2.1183%ref
+  H1top    p3_r_vis_fixed   -150  n= 49  J=  +4.3804e+10  p16..p84 -4.887e+10..+4.104e+11  +0.4231%ref
+  H1top    p3_upmfix        -150  n= 49  J=  -1.8586e+09  p16..p84 -1.577e+11..+4.439e+11  -0.0180%ref
+  H1top    p3_r_vis         -150  n= 49  J=  +6.1643e+10  p16..p84 -3.598e+10..+4.368e+11  +0.5953%ref
+  H1top    p3_r_vis_fixed   +150  n= 49  J=  -2.1039e+10  p16..p84 -2.665e+11..+5.28e+10  -0.2032%ref
+  H1top    p3_upmfix        +150  n= 49  J=  -9.7007e+10  p16..p84 -3.043e+11..-8.565e+09  -0.9369%ref
+  H1top    p3_r_vis         +150  n= 49  J=  -1.8356e+10  p16..p84 -2.62e+11..+5.609e+10  -0.1773%ref
+--------------------------------------------------------------------------------------------------------------
+  H1bot    p3_r_vis_fixed     +0  n= 49  J=  -6.3132e+11  p16..p84 -9.538e+11..-2.196e+10  -5.8554%ref
+  H1bot    p3_upmfix          +0  n= 49  J=  -6.8234e+11  p16..p84 -9.819e+11..-9.677e+09  -6.3287%ref
+  H1bot    p3_r_vis           +0  n= 49  J=   +2.086e+11  p16..p84 +8.014e+10..+3.188e+11  +1.9348%ref
+  H1bot    p3_r_vis_fixed   -150  n= 49  J=  +3.6997e+10  p16..p84 -8.881e+10..+2.641e+11  +0.3431%ref
+  H1bot    p3_upmfix        -150  n= 49  J=   +4.896e+10  p16..p84 -1.04e+11..+2.784e+11  +0.4541%ref
+  H1bot    p3_r_vis         -150  n= 49  J=  +3.4218e+10  p16..p84 -8.828e+10..+2.937e+11  +0.3174%ref
+  H1bot    p3_r_vis_fixed   +150  n= 49  J=  +3.7106e+10  p16..p84 -3.538e+10..+1.595e+12  +0.3442%ref
+  H1bot    p3_upmfix        +150  n= 49  J=  +2.1661e+10  p16..p84 -7.062e+10..+1.575e+12  +0.2009%ref
+  H1bot    p3_r_vis         +150  n= 49  J=  +4.3492e+10  p16..p84 -5.003e+10..+1.557e+12  +0.4034%ref
+--------------------------------------------------------------------------------------------------------------
+  V-right  p3_r_vis_fixed     +0  n= 63  J=   +5.939e+10  p16..p84 -8.428e+11..+2.397e+11  +0.5842%ref
+  V-right  p3_upmfix          +0  n= 63  J=  +6.8869e+10  p16..p84 -7.623e+11..+3.788e+11  +0.6774%ref
+  V-right  p3_r_vis           +0  n= 63  J=   -4.266e+11  p16..p84 -1.397e+12..+4.045e+10  -4.1962%ref
+  V-right  p3_r_vis_fixed   -150  n= 63  J=  -2.7681e+10  p16..p84 -1.791e+12..+2.056e+11  -0.2723%ref
+  V-right  p3_upmfix        -150  n= 63  J=   -6.017e+10  p16..p84 -1.925e+12..+1.85e+11  -0.5919%ref
+  V-right  p3_r_vis         -150  n= 63  J=  -3.9784e+10  p16..p84 -1.818e+12..+2.002e+11  -0.3913%ref
+  V-right  p3_r_vis_fixed   +150  n= 63  J=  -3.4625e+10  p16..p84 -1.156e+12..+4.894e+10  -0.3406%ref
+  V-right  p3_upmfix        +150  n= 63  J=  -6.1226e+10  p16..p84 -1.213e+12..+3.521e+10  -0.6022%ref
+  V-right  p3_r_vis         +150  n= 63  J=  -6.4763e+10  p16..p84 -1.288e+12..+2.394e+10  -0.6370%ref
+--------------------------------------------------------------------------------------------------------------
+
+=== CROSS-AXIS NULL (other-axis step at the same locus, +/-8 search) ===
+  H1top    p3_r_vis_fixed  n= 49  |J|median=+1.4044e+11  p16..p84 -1.7e+11..+6.163e+11
+  H1top    p3_upmfix       n= 49  |J|median= +2.157e+11  p16..p84 -3.061e+11..+5.911e+11
+  H1top    p3_r_vis        n= 49  |J|median=+2.2299e+11  p16..p84 -1.667e+11..+6.911e+11
+  H1bot    p3_r_vis_fixed  n= 49  |J|median=+2.0868e+11  p16..p84 -2.816e+11..+9.909e+11
+  H1bot    p3_upmfix       n= 49  |J|median=+1.6488e+11  p16..p84 -3.323e+11..+9.196e+11
+  H1bot    p3_r_vis        n= 49  |J|median=+3.1498e+11  p16..p84 -1.838e+11..+1.022e+12
+  V-right  p3_r_vis_fixed  n= 63  |J|median=+1.3939e+11  p16..p84 -2.356e+12..+3.783e+12
+  V-right  p3_upmfix       n= 63  |J|median=+2.0051e+11  p16..p84 -2.352e+12..+3.724e+12
+  V-right  p3_r_vis        n= 63  |J|median=+1.0735e+11  p16..p84 -2.427e+12..+3.775e+12
+
+saved /workspace/Astro CS Database/run/RELEASE-02/q2-snr-smooth/realdata/realdata_seam.json

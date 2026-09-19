@@ -1,0 +1,94 @@
+frames found: 49
+used 49 skipped 0
+nmap hist (n:count): {0: 5175267, 1: 35397, 2: 41895, 3: 23115, 4: 1545257, 5: 21092, 6: 29540, 7: 1472948, 8: 6359121, 9: 63734, 10: 44999, 11: 51269, 12: 533432, 13: 25123, 14: 26077, 15: 723373, 16: 497172, 17: 8172, 18: 5082, 19: 2889, 20: 3558, 21: 3351, 22: 4131, 23: 1408, 24: 2514, 25: 3184, 26: 3518, 27: 32942, 28: 1188, 29: 1825, 30: 1144, 31: 33499}
+nmap>0 px: 11601949  nmap==0 px: 5175267  total 16777216
+saved /workspace/Astro CS Database/run/RELEASE-02/q2-snr-smooth/realdata/nmap.npy (4096, 4096) int16
+
+--- n(y) profile: mode/mean over x[900,1900] ---
+  y=1100 mode= 4 mean=  4.00  n>=8 frac=0.00
+  y=1110 mode= 4 mean=  4.00  n>=8 frac=0.00
+  y=1120 mode= 4 mean=  4.00  n>=8 frac=0.00
+  y=1130 mode= 4 mean=  4.00  n>=8 frac=0.00
+  y=1140 mode= 4 mean=  4.00  n>=8 frac=0.00
+  y=1150 mode= 4 mean=  4.00  n>=8 frac=0.00
+  y=1160 mode= 4 mean=  4.00  n>=8 frac=0.00
+  y=1170 mode= 4 mean=  4.07  n>=8 frac=0.00
+  y=1180 mode= 5 mean=  5.78  n>=8 frac=0.00
+  y=1190 mode=12 mean= 11.54  n>=8 frac=1.00
+  y=1200 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1210 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1220 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1230 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1240 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1250 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1260 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1270 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1280 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1290 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1300 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1310 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1320 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1330 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1340 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1350 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1360 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1370 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1380 mode=12 mean= 12.00  n>=8 frac=1.00
+  y=1390 mode=10 mean= 10.74  n>=8 frac=1.00
+  y=1400 mode= 8 mean=  8.00  n>=8 frac=1.00
+  y=1410 mode= 8 mean=  8.00  n>=8 frac=1.00
+  y=1420 mode= 8 mean=  8.00  n>=8 frac=1.00
+  y=1430 mode= 8 mean=  8.00  n>=8 frac=1.00
+  y=1440 mode= 8 mean=  8.00  n>=8 frac=1.00
+  y=1450 mode= 8 mean=  8.00  n>=8 frac=1.00
+  y=1460 mode= 8 mean=  8.00  n>=8 frac=1.00
+
+--- n(x) profile: mode/mean over y[300,3600] ---
+  x=2040 mode=15 mean= 16.25  n>=8 frac=1.00
+  x=2050 mode=15 mean= 16.25  n>=8 frac=1.00
+  x=2060 mode=15 mean= 16.25  n>=8 frac=1.00
+  x=2070 mode=15 mean= 16.25  n>=8 frac=1.00
+  x=2080 mode=15 mean= 16.25  n>=8 frac=1.00
+  x=2090 mode=15 mean= 16.25  n>=8 frac=1.00
+  x=2100 mode=15 mean= 16.25  n>=8 frac=1.00
+  x=2110 mode=15 mean= 16.25  n>=8 frac=1.00
+  x=2120 mode=15 mean= 16.25  n>=8 frac=1.00
+  x=2130 mode=15 mean= 15.97  n>=8 frac=1.00
+  x=2140 mode=12 mean= 13.44  n>=8 frac=1.00
+  x=2150 mode= 8 mean=  9.40  n>=8 frac=0.81
+  x=2160 mode= 8 mean=  8.55  n>=8 frac=0.67
+  x=2170 mode= 8 mean=  8.55  n>=8 frac=0.67
+  x=2180 mode= 8 mean=  8.55  n>=8 frac=0.67
+  x=2190 mode= 8 mean=  8.55  n>=8 frac=0.67
+  x=2200 mode= 8 mean=  8.55  n>=8 frac=0.67
+  x=2210 mode= 8 mean=  8.55  n>=8 frac=0.67
+  x=2220 mode= 8 mean=  8.55  n>=8 frac=0.67
+  x=2230 mode= 8 mean=  8.55  n>=8 frac=0.67
+  x=2240 mode= 8 mean=  8.55  n>=8 frac=0.67
+  x=2250 mode= 8 mean=  8.55  n>=8 frac=0.67
+  x=2260 mode= 8 mean=  8.55  n>=8 frac=0.67
+
+--- n(x) profile over y[500,3300] (narrower, avoids top/bottom band) ---
+  x=2040 mode=15 mean= 16.58
+  x=2050 mode=15 mean= 16.58
+  x=2060 mode=15 mean= 16.58
+  x=2070 mode=15 mean= 16.58
+  x=2080 mode=15 mean= 16.58
+  x=2090 mode=15 mean= 16.58
+  x=2100 mode=15 mean= 16.58
+  x=2110 mode=15 mean= 16.58
+  x=2120 mode=15 mean= 16.58
+  x=2130 mode=15 mean= 16.24
+  x=2140 mode=12 mean= 13.49
+  x=2150 mode= 8 mean=  9.38
+  x=2160 mode= 8 mean=  8.65
+  x=2170 mode= 8 mean=  8.65
+  x=2180 mode= 8 mean=  8.65
+  x=2190 mode= 8 mean=  8.65
+  x=2200 mode= 8 mean=  8.65
+  x=2210 mode= 8 mean=  8.65
+  x=2220 mode= 8 mean=  8.65
+  x=2230 mode= 8 mean=  8.65
+  x=2240 mode= 8 mean=  8.65
+  x=2250 mode= 8 mean=  8.65
+  x=2260 mode= 8 mean=  8.65

@@ -1,0 +1,11 @@
+== P1-2 quality-flag oracle (9 stars, 1 saturated outlier) ==
+  [PASS] pass1 rc=0 且全部匹配 (n_matched=9)
+  [PASS] pass1 读出全部 F_syn>0 (用于构造已知 r)
+  ① 无质量位: rc=0 location=+0.021628 dex scale=0.95141893 rejected_quality=0
+  ② 有质量位: rc=0 location=+0.005000 dex scale=0.98855309 rejected_quality=1
+  [PASS] 两次调用 rc=0
+  [PASS] ① 无质量位: 饱和星未被质量位剔除 (rejected_quality=0)
+  [PASS] ② 有质量位: 饱和星被剔除 (rejected_quality=1)
+  [PASS] ② 剔除后 location 更接近内点中心 (|loc_b|<|loc_a|)
+  [PASS] 红/绿判别力: 有无质量位结果显著不同 (>1e-3 dex)
+ORACLE_PASS

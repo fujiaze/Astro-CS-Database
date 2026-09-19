@@ -1,0 +1,14 @@
+[photometry_apply] 开始: w=4096 h=4096 photscal=1.250000, 总像素=16777216
+[photometry_apply] 完成: 已处理 16777216 像素, photscal=1.250000
+[photometry_apply] 开始: w=4096 h=4096 photscal=1.000000, 总像素=16777216
+[photometry_apply] 完成: 已处理 16777216 像素, photscal=1.000000
+[photometry_apply] 开始: w=4096 h=4096 photscal=0.800000, 总像素=16777216
+[photometry_apply] 完成: 已处理 16777216 像素, photscal=0.800000
+[photometry_apply] 开始: w=4096 h=4096 photscal=0.354610, 总像素=16777216
+[photometry_apply] 完成: 已处理 16777216 像素, photscal=0.354610
+[photometry_apply] 失败: photscal=0.000000 非正 (要求 > 0)
+[photometry_apply] 失败: photscal=-1.000000 非正 (要求 > 0)
+[photometry_apply] 失败: photscal 非有限值 (nan)
+[photometry_apply] 失败: photscal 非有限值 (inf)
+[photometry_apply] 开始: w=4 h=4 photscal=2.000000, 总像素=16
+[photometry_apply] 完成: 已处理 16 像素, photscal=2.000000

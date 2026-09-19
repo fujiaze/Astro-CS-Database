@@ -1,0 +1,102 @@
+=== [1] pc_calibrate_simple* callers outside lib/algorithms/photometry (production?) ===
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2784:    // 4. 调用 pc_calibrate_simple_with_gaia (DLL 内部: 锥形搜索+光谱积分+星匹配+scale 校正)
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2800:        // + Phase1 v2: FP64 路径 - pc_calibrate_simple_with_gaia_f64_v2 (per-star 导出)
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2812:            ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia_f64_v2");
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2815:            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64_v2 函数未找到 (FP64 模式)");
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2816:            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64_v2 函数未找到";
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2831:                "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia_f64_v2 (mag_min=%.1f, mag_max=%.1f, fov=%.3fdeg, FP64, per-star) ...",
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2853:            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64 失败: ret=" + std::to_string(ret));
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2854:            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_f64 失败: ret=" + std::to_string(ret);
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2888:            ModuleId::PHOTOMETRIC, "pc_calibrate_simple_with_gaia_v2");
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2891:            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_v2 函数未找到");
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2892:            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia_v2 函数未找到";
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2906:                "[PHOTOMETRIC] 调用 pc_calibrate_simple_with_gaia_v2 (mag_min=%.1f, mag_max=%.1f, fov=%.3fdeg, per-star) ...",
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2928:            LOG_ERROR("orchestrator", "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 失败: ret=" + std::to_string(ret));
+lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:2929:            result.error_msg = "[PHOTOMETRIC] pc_calibrate_simple_with_gaia 失败: ret=" + std::to_string(ret);
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_dll_loader.cpp:195:    // PHOTOMETRIC: pc_calibrate_simple
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_dll_loader.cpp:199:            ModuleId::PHOTOMETRIC, "pc_calibrate_simple");
+lib/infrastructure/pipeline/orchestrator/cpp/tests/test_dll_loader.cpp:200:        TEST_CHECK(pc_fn != nullptr, "PHOTOMETRIC: pc_calibrate_simple 函数指针非空");
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:28:    // 测光校准语义 (B5 修复): PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal
+lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:313:    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal 乘入像素值,
+lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:945:    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal 乘入像素值,
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:819:    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal 乘入像素值,
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1050:    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 应已把 photscal 乘入像素值,
+tools/check_api_docs.py:288:                  "ipv_solve_create", "pc_calibrate_simple", "snr_noise_model_v1"],
+tools/quality/v19r3_traceability.py:251:     "pc_calibrate_simple; pc_calibrate_simple_with_gaia",
+
+=== [2] apply_photometry callers in live tree ===
+lib/infrastructure/aio/tests/hiss_experiments.cpp:266:    config.apply_photometry = false;
+lib/infrastructure/aio/tests/hiss_experiments.cpp:992:    config.apply_photometry = false;
+lib/infrastructure/aio/tests/test_drizzle_integration.cpp:171:    config.apply_photometry = false;
+lib/infrastructure/aio/tests/test_drizzle_integration.cpp:210:    config.apply_photometry = false;
+lib/algorithms/calibration/src/photometry_apply.h:37:int apply_photometry(const float* light, int w, int h, double photscal, float* out);
+lib/algorithms/calibration/src/photometry_apply.cpp:29:int apply_photometry(const float* light, int w, int h, double photscal, float* out)
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:14:// 6. Writer 元数据一致性: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:15:// 7. Writer 元数据一致性: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:16:// 8. Writer 元数据一致性: apply_photometry=false + BUNIT=ADU → 成功
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:89:    int rc = calibration::apply_photometry(light.data(), W, H, 2.0, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:108:    int rc = calibration::apply_photometry(light.data(), W, H, 1.0, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:127:    int rc = calibration::apply_photometry(light.data(), W, H, 0.0, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:140:    int rc = calibration::apply_photometry(light.data(), W, H, -1.0, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:153:    int rc = calibration::apply_photometry(light.data(), W, H, 0.5, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:170:    int rc1 = calibration::apply_photometry(nullptr, 2, 2, 1.0, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:173:    int rc2 = calibration::apply_photometry(light.data(), 2, 2, 1.0, nullptr);
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:176:    int rc3 = calibration::apply_photometry(light.data(), 0, 2, 1.0, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:179:    int rc4 = calibration::apply_photometry(light.data(), 2, 0, 1.0, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:182:    int rc5 = calibration::apply_photometry(light.data(), 2, 2, NAN, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:185:    int rc6 = calibration::apply_photometry(light.data(), 2, 2, INFINITY, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:197:    int rc = calibration::apply_photometry(buf.data(), W, H, 3.0, buf.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:215:    int rc = calibration::apply_photometry(light.data(), W, H, 2.0, out.data());
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:240:    int rc = calibration::apply_photometry(&light, W, H, 1e-7, &out);
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:256:// 测试 6: Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:278:    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → open 成功");
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:285:// 测试 7: Writer: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:300:    meta.photappl = 0;  // apply_photometry=false
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:307:    ASSERT_TRUE(rc == -2, "Writer: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → open 返回 -2 (拒绝)");
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:311:// 测试 8: Writer: apply_photometry=false + BUNIT=ADU → 成功 (允许非测光数据)
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:333:    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=false + BUNIT=ADU → open 成功 (允许非测光数据)");
+lib/algorithms/calibration/tests/test_photometry_apply.cpp:346:    printf("--- 测光应用模块 (calibration::apply_photometry) ---\n");
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.h:30:    bool   apply_photometry = false;  // 测光已应用到像素 (元数据标记, drizzle 不再应用)
+lib/algorithms/drizzle/healpix_drizzle/tests/kcorr_matrix_test.cpp:90:            cfg.apply_photometry = true;
+lib/algorithms/drizzle/healpix_drizzle/tests/variance_propagation_test.cpp:69:    c.apply_photometry = true;
+lib/algorithms/drizzle/healpix_drizzle/tests/control_median_mc_test.cpp:71:    c.apply_photometry = true;
+lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_nonfinite_test.cpp:72:    c.apply_photometry = true;
+lib/algorithms/drizzle/healpix_drizzle/tests/concurrency_cache_test.cpp:77:    cfg.apply_photometry = true;
+lib/algorithms/drizzle/healpix_drizzle/tests/representative_probe.cpp:51:    cfg.apply_photometry = true;
+lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:315:    config.apply_photometry          = false;                       // drizzle 不再应用
+lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:954:    config.apply_photometry          = false;                  // drizzle 不再应用
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:821:    // apply_photometry / photometry_applied_upstream 仅作为元数据标记,
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:824:            "[drizzle_engine] Photometry status: apply_photometry=%d "
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:827:            (int)config.apply_photometry,
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:945:            (int)config.apply_photometry,
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1051:    // 或调用方显式设置 apply_photometry=true。两者均未设置时拒绝生成 HISS,
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1055:    if (!config.apply_photometry && !config.photometry_applied_upstream &&
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1058:                    "(apply_photometry=false 且 photometry_applied_upstream=false), "
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1123:    // 元数据标记: apply_photometry || photometry_applied_upstream → PHOTAPPL=1
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1124:    bool photometry_done = config.apply_photometry || config.photometry_applied_upstream;
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:2225:    if (!config.apply_photometry && !config.photometry_applied_upstream &&
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:2228:                    "(apply_photometry=false 且 photometry_applied_upstream=false), "
+lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:2269:    bool photometry_done = config.apply_photometry || config.photometry_applied_upstream;
+
+=== [3] legacy orchestrator presence ===
+ls: 无法访问 'lib/orchestrator': 没有那个文件或目录
+
+=== [4] p1_phot.json across all 12 L4 tiles ===
+t2_m1_red: False 1.0 none
+t2_m2_red: False 1.0 none
+t2_m3_red: False 1.0 none
+t2_m4_red: False 1.0 none
+t2_m5_red: False 1.0 none
+t2_m6_red: False 1.0 none
+t3_m1_red: False 1.0 none
+t3_m2_red: False 1.0 none
+t3_m3_red: False 1.0 none
+t3_m4_red: False 1.0 none
+t3_m5_red: False 1.0 none
+t3_m6_red: False 1.0 none
+
+=== [5] module.yaml build status ===
+22:# dll_target=astrocs_p1_photometry.dll 为迁移目标合同值（尚未存在）。现状
+25:# cpp/build.ps1:9（MinGW 通道）；未编入根 CMake 主构建（无 photometric_calib
+37:# entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
+51:dll_target: astrocs_p1_photometry.dll

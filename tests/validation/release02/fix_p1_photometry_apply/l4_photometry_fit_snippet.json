@@ -1,0 +1,15 @@
+{
+  "_comment": "RELEASE-02 FIX-P1: 在 L4 p1 配置中追加 photometry 段以启用生产 Gaia 星匹配拟合 k_photo。",
+  "_note": "gaia_data_dir 必须指向**含光谱**的 XPSD 目录 (GaiaDR3SP), 不是 GaiaDR3; filters_json 为仓库内响应曲线文件。",
+  "photometry": {
+    "fit": {
+      "enabled": true,
+      "gaia_data_dir": "/workspace/Astro CS Database/GaiaDR3SP",
+      "filter": "Red",
+      "filters_json": "/workspace/Astro CS Database/lib/algorithms/photometry/data/response_curves/filters.json",
+      "qe_json": "/workspace/Astro CS Database/lib/algorithms/photometry/data/response_curves/qe_curves.json",
+      "qe_name": "",
+      "max_stars": 5000
+    }
+  }
+}
