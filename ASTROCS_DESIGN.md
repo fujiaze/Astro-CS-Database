@@ -100,7 +100,7 @@ flowchart TD
     I["ingest 输入+元数据校验"] --> C["calibration 偏置/暗流/平场"]
     C --> CS["cosmetic/validity 坏点/宇宙线"]
     CS --> BN["background/noise 背景与噪声"]
-    BN --> D["star_detection 源探测"]
+    BN --> D["star_detection 星表引导检测（WCS 投影 Gaia → 只拟合星表位置；拟合失败丢弃；top 2–5 万亮星 + 极限星等截断）"]
     D --> P["psf PSF 建模"]
     P --> A["platesolve 天体测量/WCS"]
     A --> PH["photometry 测光/通量定标"]
@@ -233,7 +233,7 @@ normalize 的详细硬约束（校准方差传播、不裁切负值、共享 mas
 flowchart TD
     A["admit 兼容性校验"] --> C["coverage 重叠图"]
     C --> S["sampling 控制采样"]
-    S --> U["upm 联合相对模型 g·s+b"]
+    S --> U["upm 纯加性相对模型 raw − C_k（g_k≡1 本期不启用）"]
     U --> UA["upm apply 归一化"]
     UA --> R["rejection 排异推断"]
     R --> I["integration 科学目标集成"]
@@ -253,7 +253,7 @@ flowchart TD
     W --> INT["integration 集成"]
 ```
 
-- Phase2 **自动检测**输入 HiPS 是否有稀疏 SNR 层：有 → 帧级×帧内；无 → 帧级。
+- Phase2 **默认消费**稀疏 SNR 层（`snr_path` 默认 `sparse_reconstruct`）：实际 SNR = **帧级 × 帧内**（`SNR(p) = SNR_frame · rho(p)`，`rho` 为 SNR 相对因子；进叠加时 `w(p) = w_frame · rho(p)²`）。三条路径 `dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct` 由 JSON 显式指定；**不得静默降级**，须记录 `snr_path_effective`。负责人 2026-09-19 裁决（`GAP_AUDIT §9.46`）。
 - **逆方差叠加**：每个天球像素会有很多个源像素输入，利用**每个源像素的 SNR 计算对应权重**（SNR → 逆方差权重），得到最优检测/测光功率——**不是直接用 SNR 加权**。
 - **SNR 与权重的换算**：帧级 SNR 是**未加权的原始信噪比**（真实 PSF 源信号/稳健噪声，通量型口径 `F_ref/σ_F`；信号经独立局部背景估计与扣除、**不被加性天光背景虚高**，天光散粒噪声如实计入 σ_n），其信号/噪声估计方法学对标 PixInsight 公开文档中的 **PSFSNR**（ratio-of-powers 信噪比）；PixInsight 的 **PSF Signal Weight（PSFSW）是综合图像质量权重**（额外含 FWHM/集中度与背景梯度），不是信噪比，仅在显式 `psfsw_robust` 模式使用。HiPS 是数据库，入库的是客观信噪比，UPM 归一到公共通量尺度后 Phase2 现场换算 `w = 1/σ² = SNR²/F_ref² ∝ SNR²`（PixInsight 官方同样只存信号/噪声元数据、集成时才算权重；详见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 与文献研究包 `docs/research/SNR_WEIGHT_RESEARCH_PACK.md`）。
 - **稠密权重是数学表示，工程上按需计算**：
