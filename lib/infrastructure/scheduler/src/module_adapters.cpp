@@ -818,6 +818,14 @@ ModuleDescriptor p1_photometry_descriptor() {
   d.ports = {
       {"psf", "DATA-P1-PSF", true, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
       {"sources", "DATA-P1-SOURCES", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+      // P1-PHOT-BROKEN: 本节点按 output_dir 文件约定读 <frame_dir>/p1_wcs.json
+      // （回退 config.wcs）来取 CRVAL/CD 做 Gaia 投影。未声明该 typed 输入时
+      // phot 与 wcs 同为 sources 下游**并发执行**, p1_wcs.json 是否存在取决于
+      // 调度时序 ⇒ 同配置两次运行结果不同（实测: 16:22 冒烟跑读到缺失 WCS,
+      // 以 CRVAL=(0,0)/CD=0 拟合出 0 匹配 → 占位 scale=1.0; 16:26 重跑读到
+      // 真实 WCS → 939/917 匹配, location=16.20 dex）。与 F-8（drz←wcs）、
+      // DET-001（drz←phot）同款处置: 声明 typed 边, 调度器保证 wcs 先落盘。
+      {"wcs", "DATA-P1-WCS", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       {"fluxes", "DATA-P1-FLUX", false, UnitId::ELECTRON, CoordinateFrame::ICRS},
       // DET-001 (D5): p1_phot.json (DATA-P1-PHOTPROV-001) 是本节点的第二个真实
       // 产物, 且被 drizzle 节点按 output_dir 文件约定消费。未声明为 typed 输出
@@ -2314,6 +2322,36 @@ P1SipCoeffs p1_parse_sip(const Json& wc, bool* ok, std::string* err) {
   return out;
 }
 
+// ── P1-PHOT-BROKEN: WCS 天测可用性判定 ──────────────────────────────────────
+// 判定一个 WCS 对象是否**天测可用**, 而不是"对象非空"。
+// 修复前 p1_op_photometry 只判 `wj.empty()`; 而 config 的 "wcs" 段是
+// {"init_source":"header_pointing","gaia_data_dir":...} —— 非空但不含任何
+// 天测键。该回退一旦命中, WcsTransform 初始化为 CRVAL=(0,0)、CD=0（det=0）:
+// 锥形搜索落到 (0,0)、gaia_projected_in_frame=0、匹配 0 对 ⇒ star_matcher 走
+// NO_DATA 退化（scale=1.0）, 而调用方把 1.0 当作"已拟合标度"施加。
+// 实测（run/RELEASE-02/logs/smoke_norm.stderr:6155-6167 与 12 板块 phot 日志）
+// 11/12 板块正是这条路径。可用性判据: 有限 CRVAL1/2 + 有限非退化 CD 矩阵。
+bool p1_wcs_astrometry_usable(const Json& wc, std::string* why) {
+  auto bad = [why](const char* m) { if (why) *why = m; return false; };
+  if (!wc.is_object() || wc.empty()) return bad("missing/empty wcs object");
+  const char* rk[2] = {"crval1", "crval2"};
+  for (const char* k : rk) {
+    if (!p1_has(wc, k) || !wc[k].is_number()) return bad("missing/invalid crval");
+    if (!std::isfinite(wc[k].get<double>())) return bad("non-finite crval");
+  }
+  const char* ck[4] = {"cd11", "cd12", "cd21", "cd22"};
+  double cd[4] = {0.0, 0.0, 0.0, 0.0};
+  for (int i = 0; i < 4; ++i) {
+    if (!p1_has(wc, ck[i]) || !wc[ck[i]].is_number())
+      return bad("missing/invalid CD matrix");
+    cd[i] = wc[ck[i]].get<double>();
+    if (!std::isfinite(cd[i])) return bad("non-finite CD matrix");
+  }
+  const double det = cd[0] * cd[3] - cd[1] * cd[2];
+  if (!(std::fabs(det) > 0.0)) return bad("degenerate CD matrix (det=0)");
+  return true;
+}
+
 // SIP 前向修正 (FITS paper IV §2.1: U = dx + A(dx,dy), V = dy + B(dx,dy))。
 // 独立于 WcsSip (与 drizzle 生产实现不同翻译单元; 交叉门用)。
 void p1_sip_poly(const double* c, double dx, double dy, int order, double* out) {
@@ -3116,12 +3154,32 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   //
   // 完整性: 只有**全部帧**都有合法 k_photo 时才施加（部分归一化会把帧拉到
   //   不同测光坐标系 ⇒ 比不归一化更糟）; 任一缺失 → 不施加 + degraded_reason。
+  //
+  // ── P1-PHOT-BROKEN 修复门（全部 fail-closed, 不得放宽）──────────────────
+  // (1) P1_PHOT_MIN_FIT_STARS: 只接受**真实拟合**产物（SCI-PHOT-001 §4 冻结门
+  //     |r_consistent| >= 3）。NO_DATA 退化返回的占位 1.0 一律拒绝 —— 禁止把
+  //     1.0 伪装成"已应用"。
+  // (2) P1_PHOT_MAX_SIGMA_DEX: 拟合散度 QA 上限（1.0 dex = 2.5 mag）。散度更大
+  //     说明匹配集不是同一测光零点, 不是标度。
+  // (3) P1_PHOT_MAX_SPREAD_DEX: **组内帧间一致性**上限。SCI-PHOT-001 §3 明确
+  //     scale 单位是 [F_syn 单位]/ADU, 其**绝对值**由未建模的仪器常数
+  //     （口径·曝光·增益·hc, 见 §6「常数由 location 吸收」）决定, 可跨多个
+  //     数量级 —— 故**不能**用绝对窗口（如 [0.1,10]）判"合理": 那会拒绝 100%
+  //     的真实 ADU→F_syn 标度（实测本 L4 数据 location=16.2 dex ⇒ k=6.27e-17,
+  //     散度仅 0.019 dex）。物理上受约束的是同一组内各帧的**相对**一致性
+  //     （同仪器/滤光片/曝光, 帧间零点差 << 1 mag）。修复前实测: 同批 11/12
+  //     板块 k=1.0（NO_DATA 占位）而 1 个板块 k=6.27e-17, 相差 16 dex; 若施加
+  //     则帧间落在不同测光坐标系。超限 ⇒ 整组不施加 + degraded_reason。
+  constexpr int P1_PHOT_MIN_FIT_STARS = 3;
+  constexpr double P1_PHOT_MAX_SIGMA_DEX = 1.0;
+  constexpr double P1_PHOT_MAX_SPREAD_DEX = 0.5;
   struct P1FrameScale {
     std::string key;
     double k_photo = 1.0;
     int n_matched = 0;
     double sigma_residual_dex = 0.0;
     std::string source;
+    bool fitted = false;  // true ⇔ 来自真实拟合（fit_ok）, false ⇔ 外部/占位
   };
   std::map<std::string, P1FrameScale> scales;
   std::string photscale_source = "none";
@@ -3204,7 +3262,16 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           }
           if (wj.empty() && p1_has(doc, "wcs") && doc["wcs"].is_object()) wj = doc["wcs"];
         }
-        if (wj.empty()) { photscale_error = "missing WCS for " + key; break; }
+        // P1-PHOT-BROKEN (a): 原判定 wj.empty() 只查"对象是否为空"。config 的
+        // "wcs" 段（init_source/gaia_data_dir）非空但无天测键 ⇒ 以 CRVAL=(0,0)、
+        // CD=0 拟合出 0 匹配, 静默退化为占位 1.0。改为显式天测可用性校验:
+        // 不可用即记 photscale_error ⇒ 整组不施加 + degraded_reason（fail-closed,
+        // 不静默、不伪造）。
+        std::string wcs_why;
+        if (!p1_wcs_astrometry_usable(wj, &wcs_why)) {
+          photscale_error = "WCS unusable for " + key + ": " + wcs_why;
+          break;
+        }
         bool sip_ok = true;
         std::string sip_err;
         const P1SipCoeffs sip = p1_parse_sip(wj, &sip_ok, &sip_err);
@@ -3234,13 +3301,39 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         const astrocs::photometry::FramePhotFitResult fr =
             astrocs::photometry::fit_frame_photometry(freq);
         if (fr.rc != 0) { photscale_error = "fit failed for " + key + ": " + fr.error; break; }
+        // P1-PHOT-BROKEN (b): **必须**是真实拟合产物。冻结 C 入口在 NO_DATA/
+        // 退化分支（无 PSF 星 / 无光谱星 / 滤光片缓存失败 / SCI-PHOT-001 §4
+        // 冻结门 |r_consistent|<3）返回 rc==0 且 scale=1.0、fit_used=0。原判定
+        // 只查 finite&&>0, 于是把占位 1.0 当作"已拟合标度"施加并声明
+        // photometry_applied=true —— 正是 FIX-P1 承诺不会做的事（伪造 1.0）。
+        if (!fr.fit_ok) {
+          photscale_error = "photometry fit produced no scale for " + key +
+                            " (NO_DATA, degraded_reason=" + fr.degraded_reason +
+                            ", n_matched=" + std::to_string(fr.n_matched) + ")";
+          break;
+        }
+        if (fr.n_matched < P1_PHOT_MIN_FIT_STARS) {
+          photscale_error = "fit inliers below SCI-PHOT-001 §4 gate for " + key +
+                            " (n_matched=" + std::to_string(fr.n_matched) + " < " +
+                            std::to_string(P1_PHOT_MIN_FIT_STARS) + ")";
+          break;
+        }
         if (!(std::isfinite(fr.k_photo) && fr.k_photo > 0.0)) {
           photscale_error = "non-physical k_photo for " + key; break;
+        }
+        if (!std::isfinite(fr.sigma_residual_dex) ||
+            fr.sigma_residual_dex > P1_PHOT_MAX_SIGMA_DEX) {
+          photscale_error = "implausible fit scatter for " + key +
+                            " (sigma_residual_dex=" +
+                            std::to_string(fr.sigma_residual_dex) + " > " +
+                            std::to_string(P1_PHOT_MAX_SIGMA_DEX) + ")";
+          break;
         }
         P1FrameScale sc;
         sc.key = key; sc.k_photo = fr.k_photo; sc.n_matched = fr.n_matched;
         sc.sigma_residual_dex = fr.sigma_residual_dex;
         sc.source = "gaia_star_matcher_tukey_irls";
+        sc.fitted = true;
         scales[key] = sc;
       }
       if (photscale_error.empty()) photscale_source = "gaia_star_matcher_tukey_irls";
@@ -3267,12 +3360,25 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           if (file.empty() || !(std::isfinite(k) && k > 0.0))
             return Result<void>::fail(Error(ErrorDomain::DATA,
                 "p1_photscale.json frame requires file + finite k_photo>0"));
+          // P1-PHOT-BROKEN (b'): 外部通道同样不得注入"无拟合证据"的占位标度。
+          // 显式声明 n_matched 时必须过 SCI-PHOT-001 §4 冻结门（|r_consistent|>=3）;
+          // 未声明则按 fitted=false 如实登记来源, 不冒充拟合产物。
+          const int n_matched = sfj.value("n_matched", -1);
+          if (n_matched >= 0 && n_matched < P1_PHOT_MIN_FIT_STARS) {
+            return Result<void>::fail(Error(ErrorDomain::DATA,
+                "p1_photscale.json frame declares n_matched=" +
+                std::to_string(n_matched) + " < " +
+                std::to_string(P1_PHOT_MIN_FIT_STARS) +
+                " (SCI-PHOT-001 §4 gate): a scale with no fit provenance must not"
+                " be applied (refusing to fake a calibration)"));
+          }
           P1FrameScale sc;
           sc.key = p1_frame_key(file);
           sc.k_photo = k;
-          sc.n_matched = sfj.value("n_matched", 0);
+          sc.n_matched = n_matched < 0 ? 0 : n_matched;
           sc.sigma_residual_dex = sfj.value("sigma_residual_dex", 0.0);
           sc.source = sfj.value("source", std::string("photscale_sidecar"));
+          sc.fitted = (n_matched >= P1_PHOT_MIN_FIT_STARS);
           scales[sc.key] = sc;
         }
         if (!scales.empty()) photscale_source = "photscale_sidecar";
@@ -3296,8 +3402,51 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     if (find_scale(lights[i].get<std::string>()) == nullptr) scales_complete = false;
   }
 
+  // ── P1-PHOT-BROKEN (c): 组内帧间标度一致性守卫 (fail-closed) ─────────────
+  // 依据 SCI-PHOT-001 §3/§6: scale 的绝对值含未建模仪器常数（可跨数量级）,
+  // 但同一组（同仪器/滤光片/曝光）各帧的**相对**零点差必须 << 1 mag。超限即
+  // 拒绝整组施加 —— 否则帧被拉到不同测光坐标系（比不归一化更糟）。显式降级,
+  // 不静默。
+  if (scales_complete) {
+    double kmin = 0.0, kmax = 0.0;
+    for (size_t i = 0; i < n_lights; ++i) {
+      const P1FrameScale* sc = find_scale(lights[i].get<std::string>());
+      if (sc == nullptr) { scales_complete = false; break; }
+      if (i == 0 || sc->k_photo < kmin) kmin = sc->k_photo;
+      if (i == 0 || sc->k_photo > kmax) kmax = sc->k_photo;
+    }
+    // (c1) 每帧都必须有**拟合证据**（fitted=true）。外部 sidecar 未声明
+    // n_matched（<§4 门）时 fitted=false ⇒ 整组拒绝, 不把无证据标度伪装成
+    // "已应用"（与 CHK-PROVENANCE-CONSISTENCY 的 photscale_detail.fitted 判据
+    // 同一口径, 生产侧与门禁侧不得分歧）。
+    for (size_t i = 0; i < n_lights && scales_complete; ++i) {
+      const P1FrameScale* sc = find_scale(lights[i].get<std::string>());
+      if (sc == nullptr) { scales_complete = false; break; }
+      if (!sc->fitted) {
+        photscale_error = "photscale for " + sc->key +
+                          " has no fit provenance (n_matched=" +
+                          std::to_string(sc->n_matched) + " < " +
+                          std::to_string(P1_PHOT_MIN_FIT_STARS) +
+                          ", SCI-PHOT-001 §4 gate); refusing to declare it applied";
+        scales_complete = false;
+      }
+    }
+    if (scales_complete && kmin > 0.0) {
+      const double spread_dex = std::log10(kmax / kmin);
+      if (!std::isfinite(spread_dex) || spread_dex > P1_PHOT_MAX_SPREAD_DEX) {
+        photscale_error = "photscale inconsistent across frames (max/min=" +
+                          std::to_string(kmax / kmin) + " = " +
+                          std::to_string(spread_dex) + " dex > " +
+                          std::to_string(P1_PHOT_MAX_SPREAD_DEX) +
+                          " dex); refusing to apply a mixed photometric system";
+        scales_complete = false;
+      }
+    }
+  }
+
   Json applied_artifacts = Json::array();
   Json photscales = Json::object();
+  Json photscale_detail = Json::object();
   double photscal_rep = 1.0;
   bool photometry_applied = false;
   if (scales_complete) {
@@ -3322,11 +3471,35 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
             "photometry apply write failed: " + werr));
       applied_artifacts.push_back(apath);
       photscales[key] = sc->k_photo;
+      // P1-PHOT-BROKEN (d): 逐帧拟合 provenance（标度之外的拟合证据）。
+      // photoscales 只承载标量（drz 消费口径不变）; 本对象记录该标量是否来自
+      // 真实拟合（fitted/n_matched/sigma_residual_dex）, 使"applied=true"可被
+      // 独立核对, 而不是只能自证。
+      photscale_detail[key] = Json{{"k_photo", sc->k_photo},
+                                   {"n_matched", sc->n_matched},
+                                   {"sigma_residual_dex", sc->sigma_residual_dex},
+                                   {"fitted", sc->fitted},
+                                   {"source", sc->source}};
       ks.push_back(sc->k_photo);
     }
     std::sort(ks.begin(), ks.end());
     photscal_rep = ks.empty() ? 1.0 : ks[ks.size() / 2];
     photometry_applied = true;
+  }
+
+  // ── P1-PHOT-BROKEN (e): provenance 自洽硬约束 (fail-closed) ─────────────
+  // applied=true ⟺ 每帧都有标度且每帧产物都写出。修复前 11/12 板块声明
+  // applied=true + photscal=1.0, 而该 1.0 是 NO_DATA 占位值（provenance 结构
+  // 完整但语义为假）。这里把"结构完整"升级为"结构完整 + 每帧拟合证据齐全"。
+  if (photometry_applied &&
+      (photscales.size() != n_lights || applied_artifacts.size() != n_lights ||
+       photscale_detail.size() != n_lights)) {
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "photometry provenance inconsistent: applied=true but photscales=" +
+        std::to_string(photscales.size()) + " detail=" +
+        std::to_string(photscale_detail.size()) + " artifacts=" +
+        std::to_string(applied_artifacts.size()) + " for n_lights=" +
+        std::to_string(n_lights)));
   }
 
   // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV-001) ─────────────
@@ -3347,6 +3520,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   if (photometry_applied) {
     prov["apply_entry"] = "calibration::apply_photometry";
     prov["photscales"] = photscales;
+    prov["photscale_detail"] = photscale_detail;
     prov["photoapplied_artifacts"] = applied_artifacts;
   } else if (!photscale_error.empty()) {
     prov["degraded_reason"] = "photscale_incomplete";

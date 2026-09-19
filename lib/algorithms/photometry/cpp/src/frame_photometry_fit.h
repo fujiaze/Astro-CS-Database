@@ -54,18 +54,33 @@ struct FramePhotFitRequest {
   double mag_max = 16.0;
 };
 
+// SCI-PHOT-001 §4/§8 冻结门: |r_consistent| >= 3 才进 IRLS, 否则 NO_DATA
+// （scale 保持 1.0、fit_used=0、不迭代）。本常量只用于**上报**拟合是否真的
+// 产出标度, 不改变 §4 判据本身。
+inline constexpr int kMinFitStars = 3;
+
 struct FramePhotFitResult {
-  int rc = -1;                  // 0=成功算出 k_photo; <0 失败
+  int rc = -1;                  // 0=成功算出 k_photo; <0 失败/未产出标度
   double k_photo = 1.0;         // 10^(-location)
+  // P1-PHOT-BROKEN: fit_ok 是**唯一**允许调用方据以施加 k_photo 的判据。
+  // rc==0 不足以说明"拟合产出了标度" —— 冻结 C 入口
+  // pc_calibrate_simple_with_gaia_f64_v2_qf 在 NO_DATA/退化分支（无 PSF 星、
+  // 无光谱星、滤光片缓存失败、|r_consistent|<3）**返回 0 且 scale=1.0**。
+  // 修复前 module_adapters 只看 finite&&>0, 于是把 NO_DATA 的占位 1.0 当作
+  // "已拟合标度"施加并声明 photometry_applied=true（伪造 1.0）。
+  // fit_ok=true ⇔ rc==0 且 n_matched>=kMinFitStars 且 scale 有限且 >0。
+  bool fit_ok = false;
   int n_matched = 0;            // IRLS 后 inliers
   double sigma_residual_dex = 0.0;
   int n_gaia = 0;               // 锥形搜索返回的光谱星数
   int psf_valid = 0;            // status==0 的 PSF 星数
   int robust_iterations = 0;
+  std::string degraded_reason;  // fit_ok=false 时说明退化分支（机器可读）
   std::string error;
 };
 
-// 运行单帧生产星匹配链, 返回 k_photo。失败时 rc<0 且 k_photo=1.0。
+// 运行单帧生产星匹配链, 返回 k_photo。
+// 失败或未产出标度时 rc<0、fit_ok=false 且 k_photo=1.0（占位, 不得施加）。
 FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req);
 
 }  // namespace photometry

@@ -15,6 +15,16 @@ BUNIT=ASTROCS_RELATIVE_FLUX（相对通量）却未应用测光 ⇒ 下游把 AD
      存在的 run/RELEASE-01/e2e/evidence），对每个含 provenance 键的记录断言
      photometry_applied=false ⇒ photscal==1.0 且 bunit != ASTROCS_RELATIVE_FLUX；
      photometry_applied=true ⇒ photscal 有限且 > 0；
+  P3b 数据侧补盲（P1-PHOT-BROKEN）：schema==DATA-P1-PHOTPROV-001 且
+      photometry_applied=true 的记录还必须**自带逐帧标度与拟合证据**：
+        · photscales 为非空对象，键数 == n_frames（若给出），值均为有限正数；
+        · photoapplied_artifacts 为非空数组，数量与 photscales 一致；
+        · photscale_detail 与 photscales 键集一致，逐帧 fitted==true 且
+          n_matched >= MIN_FIT_STARS（SCI-PHOT-001 §4 冻结门）。
+      动机（实测 RELEASE-02 L4-rebuild/norm_phot）：11/12 板块声明
+      applied=true + photscal=1.0，而该 1.0 是 star_matcher NO_DATA 分支返回的
+      **占位值**（日志 "匹配+清洗完成: 0 颗, scale=1.000000e+00"）——
+      provenance 结构完整但语义为假；原 P3 只查 finite&&>0 ⇒ 判绿（盲区）。
   P4 零记录扫描 / 锚点缺失 ⇒ rc=2（不得空扫描判绿）。
 
 豁免：ci/ledgers/provenance_exceptions.json 的 'provenance:<file>:<path>' 条目。
@@ -45,6 +55,8 @@ PRODUCT_GLOBS = ("**/p1_phot.json", "**/manifest.json", "**/*product*.json",
                  "**/*provenance*.json")
 MAX_FILES = 4000
 RELATIVE_FLUX = "ASTROCS_RELATIVE_FLUX"
+PHOTPROV_SCHEMA = "DATA-P1-PHOTPROV-001"
+MIN_FIT_STARS = 3  # SCI-PHOT-001 §4 冻结门 |r_consistent| >= 3
 
 
 def _neutral_photscal(adapters: str):
@@ -120,6 +132,73 @@ def _applied(rec):
     return None
 
 
+def _is_finite_positive_number(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return False
+    return math.isfinite(v) and v > 0.0
+
+
+def _photprov_applied_problems(rec):
+    """P3b：DATA-P1-PHOTPROV-001 且 applied=true 时的逐帧标度/拟合证据自洽判据。
+
+    防的复发缺口（实测 RELEASE-02 L4-rebuild/norm_phot）：11/12 板块
+    photometry_applied=true + photscal=1.0，而该 1.0 是 star_matcher 在
+    NO_DATA 分支（无匹配 / |r_consistent|<3）返回的**占位值**，不是拟合标度。
+    结构上 provenance 完整，语义上「已应用」为假 ⇒ 原 P3（只查 finite&&>0）
+    判绿。本判据要求 applied=true 必须自带逐帧标度、逐帧产物与逐帧拟合证据。
+    """
+    problems = []
+    scales = rec.get("photscales")
+    if not isinstance(scales, dict) or not scales:
+        problems.append("photometry_applied=true 但 photscales 缺失/为空"
+                        "（逐帧标度是 applied 的必要条件）")
+    else:
+        n_frames = rec.get("n_frames")
+        if isinstance(n_frames, int) and not isinstance(n_frames, bool) and n_frames > 0 \
+                and len(scales) != n_frames:
+            problems.append("photometry_applied=true 但 photscales 覆盖 %d/%d 帧"
+                            % (len(scales), n_frames))
+        for key, value in scales.items():
+            if not _is_finite_positive_number(value):
+                problems.append("photscales[%s]=%r 非有限正数" % (key, value))
+    artifacts = rec.get("photoapplied_artifacts")
+    if not isinstance(artifacts, list) or not artifacts:
+        problems.append("photometry_applied=true 但 photoapplied_artifacts 缺失/为空")
+    elif isinstance(scales, dict) and len(artifacts) != len(scales):
+        problems.append("photoapplied_artifacts(%d) 与 photscales(%d) 数量不一致"
+                        % (len(artifacts), len(scales)))
+    detail = rec.get("photscale_detail")
+    if not isinstance(detail, dict) or not detail:
+        problems.append("photometry_applied=true 但 photscale_detail 缺失/为空"
+                        "（无法区分真实拟合标度与 NO_DATA 占位 1.0）")
+    else:
+        if isinstance(scales, dict) and set(detail) != set(scales):
+            problems.append("photscale_detail 键集与 photscales 不一致")
+        for key, item in detail.items():
+            if not isinstance(item, dict):
+                problems.append("photscale_detail[%s] 非对象" % key)
+                continue
+            if item.get("fitted") is not True:
+                problems.append("photscale_detail[%s].fitted != true"
+                                "（占位/无证据标度不得声明为已应用）" % key)
+            n_matched = item.get("n_matched")
+            if isinstance(n_matched, bool) or not isinstance(n_matched, int) \
+                    or n_matched < MIN_FIT_STARS:
+                problems.append("photscale_detail[%s].n_matched=%r < %d"
+                                "（SCI-PHOT-001 §4 冻结门）" % (key, n_matched, MIN_FIT_STARS))
+            if isinstance(scales, dict) and key in scales:
+                k_detail = item.get("k_photo")
+                if not _is_finite_positive_number(k_detail) or \
+                        abs(float(k_detail) - float(scales[key])) > 0.0:
+                    problems.append("photscale_detail[%s].k_photo=%r 与 photscales 不一致"
+                                    % (key, k_detail))
+    return problems
+
+
 def scan_products(repo: pathlib.Path, roots):
     findings = []
     record_count = 0
@@ -161,6 +240,8 @@ def scan_products(repo: pathlib.Path, roots):
                                 problems.append("photometry_applied=true 但 photscal=%s" % photscal)
                         except (TypeError, ValueError):
                             problems.append("photscal 非数值: %r" % (photscal,))
+                    if rec.get("schema") == PHOTPROV_SCHEMA:
+                        problems.extend(_photprov_applied_problems(rec))
                 if not problems:
                     continue
                 for problem in problems:
@@ -192,6 +273,27 @@ _GOOD_NEUTRAL = {"schema": "DATA-P1-PHOTPROV-001", "photometry_applied": False,
 _GOOD_APPLIED = {"photometry_applied": True, "photscal": 1.23, "bunit": RELATIVE_FLUX}
 _BAD_NEUTRAL = {"photometry_applied": False, "photscal": 2.5, "bunit": "ADU"}
 _BAD_BUNIT = {"photometry_applied": False, "photscal": 1.0, "bunit": RELATIVE_FLUX}
+# P3b 夹具（P1-PHOT-BROKEN）: 真实拟合标度（6.27e-17 量级, SCI-PHOT-001 §3 单位
+# [F_syn 单位]/ADU）必须判绿; NO_DATA 占位 1.0 / 无拟合证据必须判红。
+_GOOD_PHOTPROV = {
+    "schema": PHOTPROV_SCHEMA, "photometry_applied": True, "photscal": 6.272202992543341e-17,
+    "n_frames": 2,
+    "photscales": {"a": 6.272202992543341e-17, "b": 5.685037392078662e-17},
+    "photoapplied_artifacts": ["/p/a.fits", "/p/b.fits"],
+    "photscale_detail": {
+        "a": {"k_photo": 6.272202992543341e-17, "n_matched": 939, "fitted": True},
+        "b": {"k_photo": 5.685037392078662e-17, "n_matched": 917, "fitted": True}},
+}
+_BAD_PHOTPROV_PLACEHOLDER = {
+    "schema": PHOTPROV_SCHEMA, "photometry_applied": True, "photscal": 1.0,
+    "n_frames": 2, "photscales": {"a": 1.0, "b": 1.0},
+    "photoapplied_artifacts": ["/p/a.fits", "/p/b.fits"],
+}
+_BAD_PHOTPROV_NOFIT = {
+    "schema": PHOTPROV_SCHEMA, "photometry_applied": True, "photscal": 1.0,
+    "n_frames": 1, "photscales": {"a": 1.0}, "photoapplied_artifacts": ["/p/a.fits"],
+    "photscale_detail": {"a": {"k_photo": 1.0, "n_matched": 0, "fitted": False}},
+}
 
 
 def _write_fixture(root: pathlib.Path, records, entries=None, source_ok=True):
@@ -227,6 +329,15 @@ def _selftest() -> int:
         d_src = base / "badsrc"
         _write_fixture(d_src, [_GOOD_NEUTRAL], source_ok=False)
         cases.append(("red_producer_neutral_photscal", True, d_src))
+        d_pb = base / "photprov"
+        _write_fixture(d_pb, [_GOOD_PHOTPROV, _GOOD_NEUTRAL])
+        cases.append(("green_photprov_fitted", False, d_pb))
+        d_pb_red = base / "photprov_red"
+        _write_fixture(d_pb_red, [_BAD_PHOTPROV_PLACEHOLDER])
+        cases.append(("red_photprov_no_detail", True, d_pb_red))
+        d_pb_red2 = base / "photprov_red2"
+        _write_fixture(d_pb_red2, [_BAD_PHOTPROV_NOFIT])
+        cases.append(("red_photprov_nofit", True, d_pb_red2))
         d_led = base / "ledgered"
         _write_fixture(d_led, [_BAD_NEUTRAL, _GOOD_APPLIED],
                        entries=[{"id": "provenance:ci/fixtures/provenance/prod_product.json:[0]",

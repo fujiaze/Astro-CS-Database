@@ -49,9 +49,16 @@
     {
       "path": "ENGINEERING_SPEC.md",
       "kind": "residue-cleanup",
-      "detail": "删除治理 ID CFG-001/GAP-033，保留原语义（config/ 为程序根全局配置，ASTROCS_DESIGN §3.3 点名要求）",
+      "detail": "删除治理 ID CFG-001/GAP-033，保留原语义（config/ 为程序根全局配置，ASTROCS_DESIGN §3.3 点名要求）；后续 RELEASE-02 已提交编辑（§7 根条目补 ACCEPTANCE_SPEC.md、reverse_verify/ 逆向验收工作区登记，commit ddf692ed）此前未回填哈希——由 FIX-SCI-SNR-CANON-001 一致性回归一并刷新（非本 claim 内容改动）",
       "pack_sha256": "2ae831270b2c3fd4db5e557cafe1e754228c5e8eac62b50130e360393105762c",
-      "repo_sha256": "d468fcf690139c2820e54e4be328fbb3826b93f8d47e80de35fd99711cb3275f"
+      "repo_sha256": "fbf39354373bafdd448e0849c27e2596f4dd88c5337e4c4f0bb9b9ef6d994686"
+    },
+    {
+      "path": "docs/ci/01_CHECKS.md",
+      "kind": "registry-doc-sync",
+      "detail": "RELEASE-02 已提交编辑（§2 补登记 CHK-E2E-REPRO / CHK-EXIT-CONSISTENCY，负责人已认可保留，见工程控制/RELEASE-02/00_README.md §3 第 5 项；commit 7ae4b449）此前未回填哈希——由 FIX-SCI-SNR-CANON-001 一致性回归一并刷新（非本 claim 内容改动）",
+      "pack_sha256": "a4361952b0a73724829b121e23c90d390da2858e0ab1e61aec84e5a2f453464c",
+      "repo_sha256": "da27477d8206c1850527d741c2c4156b79a3ec605c810c29ad464f99c3a68994"
     },
     {
       "path": "docs/plugins/algorithms_phase3/14_projection.md",
@@ -72,14 +79,56 @@
       "kind": "owner-design-supplement",
       "detail": "负责人明确指示补充最高设计 §4.5 逐像素排异（叠加非纯逆方差平均；按输入集合大小 n 自适应选择算法；CLI mosaic 留空/0/auto 自动、显式指定则强制；证据=PixInsight WBPP 源码 BPP-FrameGroup.js:1304-1312/1229-1293）",
       "pack_sha256": "8f3eeb4ed397e5c90c7e3ef1c03f5c76a0a940eb9a35232d24b9844a0695a504",
-      "repo_sha256": "03c6eb29622687126b81ec084781e0eacc1417ab346e68baffff29c3af6bed51"
+      "repo_sha256": "bcd7aa0210dd68eb50d7ec222744bf296b2681b5dc85dac271b414cdc668f9e2"
     },
     {
       "path": "docs/plugins/algorithms_phase1/08_drizzle.md",
       "kind": "science-change-claim",
-      "detail": "变更 claim FIX-SCI-DRZ-001：§5/§7/§11 归一化订正为面亮度保持 S_p=Σ_j B_j a_jp/Σ_j a_jp（依据 Fruchter & Hook 2002 PASP 114,144 式(5)，DOI 10.1086/338393）",
+      "detail": "变更 claim FIX-SCI-DRZ-001：§5/§7/§11 归一化订正为面亮度保持 S_p=Σ_j B_j a_jp/Σ_j a_jp（依据 Fruchter & Hook 2002 PASP 114,144 式(5)，DOI 10.1086/338393）；后由 FIX-SCI-SNR-CANON-001 续订：§5 配置表 sparse_snr_layer 默认 false→true（负责人裁决：SNR 默认稀疏路径）",
       "pack_sha256": "e4c3ea989e28397820de0fdac78139268a54c0436fe8288dc59d5ad551a5008c",
-      "repo_sha256": "b771493fe077e306c9093e7eda152a9b6ae73a7ed04c9fe83510dd6263ced037"
+      "repo_sha256": "ec53be48817fcfee9ca45a4e5e0c142c487cd3b31d6064b65b389f0ee8ec7ec4"
+    },
+    {
+      "path": "docs/plugins/algorithms_phase1/07_noise_snr.md",
+      "kind": "science-change-claim",
+      "detail": "变更 claim FIX-SCI-SNR-CANON-001：帧级 SNR 红线（纯信号/噪声、F_signal 已扣局部背景、天光只进 σ_F、单调性、点源口径）；SNR 三条路径（dense / sparse_reconstruct 默认 / frame_reconstruct）与配置键设计；Phase1 HiPS 为唯一带 SNR 数据块产物（Phase2 不输出、Phase3 无）；sparse_snr_layer 默认 true（联锁缺口登记）",
+      "pack_sha256": "edec91ccd1c621daaffca45932113cfaaa46d2ac05ed16fea6557f60d45ca2d2",
+      "repo_sha256": "65953c00a3f64a2d72edecdfc9f079033498676ce10a9a2b171fe10a44945aeb"
+    },
+    {
+      "path": "docs/plugins/algorithms_phase1/06_photometry.md",
+      "kind": "science-change-claim",
+      "detail": "变更 claim FIX-SCI-SNR-CANON-001（§3.6 / GAP_AUDIT §9.42）：测光标定语义 = 消除物理单位、只使用星等；标定因子 a_k/k_photo 绝对值无物理意义；禁止物理闭合反推与绝对窗口；判据 = 测光一致性 + 帧间一致性（均尺度无关）",
+      "pack_sha256": "95dc8db29c33114e54aeb5a6204179d62235943d177da168d68e11bacba96e16",
+      "repo_sha256": "e8d98c4140736fa43ff37a30b0bf3e8d11cb0be49ae47a7a025db7c8bd381f88"
+    },
+    {
+      "path": "docs/plugins/algorithms_phase2/13_integration.md",
+      "kind": "science-change-claim",
+      "detail": "变更 claim FIX-SCI-SNR-CANON-001：SNR 三条路径（dense / sparse_reconstruct 默认 / frame_reconstruct）+ 配置文件 JSON 显式指定；无稀疏层时显式记录实际路径（不静默），损坏层 fail-closed；论文核心实验判据 SP-0",
+      "pack_sha256": "b94bd1eeeee802c6a0e692e725a09cf17d17f5550116da11e6545532c392203f",
+      "repo_sha256": "4856681f39dd129a0212231aeb31bcb7709663600136a38a3220b5a0d7dfacf7"
+    },
+    {
+      "path": "docs/plugins/algorithms_phase2/10_sampling.md",
+      "kind": "science-change-claim",
+      "detail": "变更 claim FIX-SCI-SNR-CANON-001：UPM 目标态订正为纯加性（g_k ≡ 1）；采样职责改为定加性校正场与加性天光面 C_k(x)",
+      "pack_sha256": "a24a1abc4cddf1649123d19f11d4aa18aed028d7b7be1dad21bd08f82d9f8396",
+      "repo_sha256": "10f8a5adf975c67d9247ae35f35ba0fcde0e3a3a8e01e26c90a03cdd7bc59be6"
+    },
+    {
+      "path": "docs/plugins/algorithms_phase2/11_upm.md",
+      "kind": "science-change-claim",
+      "detail": "变更 claim FIX-SCI-SNR-CANON-001：UPM 模型订正为纯加性 y_k(x)=s(x)+C_k(x)（取代 FIX-A-UPM-001 的乘性提议）；g_k ≡ 1 不启用、÷g² 恒等式；不输出 g_k",
+      "pack_sha256": "29118db971aee3240c69832019fb9dedaffa0b394c76c9e4206c9c0b969f2d9c",
+      "repo_sha256": "e03b6e2db9cbd50ac6dddfc3c9f0cfb807141116da78215c79cd1a97504cc008"
+    },
+    {
+      "path": "docs/design/UNIFIED_MODEL.md",
+      "kind": "science-change-claim",
+      "detail": "变更 claim FIX-SCI-SNR-CANON-001：数据对象表补帧级 SNR 红线（点源 PSF 信号 SNR、纯信号/噪声、不得与面亮度 SNR 混用）；sparse_snr_layer 默认产出；新增 snr_path 三路径对象；SNR 产物边界（只有 Phase1 HiPS 带 SNR 数据块）",
+      "pack_sha256": "6df5dc287175527cad8f974ee692ae972a7bfcd6977dbf7048592f26fc72eec5",
+      "repo_sha256": "fc33cce4cff934ab3dc697c45f62af3b3ae99aa7ca60e676050780ba6e14e301"
     }
   ],
   "files": {

@@ -9,8 +9,9 @@
 - `p2_sample_controls` / `p2_sample_controls_cached`（后者性能透传 `frame_id_cache` 避免二次 500MB payload 哈希；同数值语义）。
 - V16/V17 rejection 接口（typing 单语义，版本化政策）：
   - `p2_reject_plan_resolve`（planning 层把 auto 解析为显式方法 +
-    method-specific typed params；profile=wbpp_2_9_1 冻结版本或
-    astrocs_adaptive 独立策略）；
+    method-specific typed params；profile 默认 `astrocs_adaptive_pixel`
+    （自研，逐输出像素几何 n）；对照档 `wbpp_2_9_1` 或
+    `astrocs_adaptive` 独立策略）；
   - `p2_eligibility_filter` / `p2_collect_candidate_stack`（V16 生产 strided
     collector：finite/valid/support/quality → CandidateStack；Stage2 CPU/ACR
     统一入口）；
@@ -1159,7 +1160,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 | target_order_spec / target_order | "auto" / −1（:20-21） | HEALPix order | auto=cov.target_order；显式值不得高于输入最高 order（stage2.cpp:203-205） |
 | precision | 0（:50） | 0/1 | 0=float32 / 1=float64 输出（stage2.cpp:528） |
 | memory_limit_mb | 24576（:51） | MB | CON-002 内存预算 |
-| reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "wbpp_2_9_1" / 2（:52-54） | 无量纲 | planning 层 rejection 解析（profile 版本化冻结） |
+| reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "astrocs_adaptive_pixel"（**生产默认**，自研）/ 2（:52-54；**工具链默认仍 "wbpp_2_9_1"（对照档），分歧已登记**） | 无量纲 | planning 层 rejection 解析（profile 版本化；自研档 `underdetermined_n` 默认 3） |
 | reject_normalization | "astrocs_median_center_v1"（:56） | 无量纲 | 判定工作域归一（mask 应用回原始值） |
 | large_scale_enabled（+ min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | astrocs.large_scale_rejection.v1，默认关闭 |
 | weight_mode | 2（:90） | 0/1/2 | 2=ivar（科学默认）/1=等权/0=support×snr²（legacy/诊断） |
@@ -1323,11 +1324,13 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 
 - `int p2_reject_plan_resolve(const P2RejectionPlanRequest*,
   P2RejectionPlan*, char* err, std::size_t err_size)`（:191-193 声明，
-  注释 :182-190 WBPP 2.9.1 路由 + profile 语义）: AUTO 一次解析为
-  显式方法（nominal n<6 → PERCENTILE、6..15 → WINSORIZED、>15 →
-  LINEAR_FIT；nominal_contributors=u32 几何可贡献数 :174-177；
-  kernel 永不接收 AUTO）；profile 版本化（wbpp_2_9_1 /
-  astrocs_adaptive）；非法 profile → 非零 rc。rc=0 OK；rc=1 null
+  注释 :182-190 路由 + profile 语义）: AUTO 一次解析为
+  显式方法（nominal_contributors=u32 几何可贡献数 :174-177；
+  kernel 永不接收 AUTO）；**生产默认 profile = `astrocs_adaptive_pixel`
+  （自研：n≤3 → NONE、4..7 → PERCENTILE、8..15 → WINSORIZED、
+  ≥16 → LINEAR_FIT）**；对照档 `wbpp_2_9_1`（n<6 → PERCENTILE、
+  6..15 → WINSORIZED、>15 → LINEAR_FIT）与 `astrocs_adaptive`；
+  非法 profile → 非零 rc。rc=0 OK；rc=1 null
   请求/plan、request 出界或 profile 非法（err 仅日志文本）。线程
   安全=reentrant yes / threadsafe no（无锁无全局态，并发由调用方
   像素划分）；无取消检查点（ThreadLease 接线归 P2-REJ-IMPL）。

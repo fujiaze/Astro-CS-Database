@@ -43,7 +43,7 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 | `pixfrac` | 1.0 | —— | drop 收缩因子 ∈(0,1]；默认 1.0 = 严格通量守恒端点（`docs/science/DRIZZLE.md:95-98`；pixfrac<1 须记 `provenance.flux_conservation_factor=pixfrac²`） |
 | `pixel_scale` | —— | arcsec/px | 输出像素尺度（HiPS tile） |
 | `nside` | —— | —— | HEALPix nside（与 order 等价） |
-| `sparse_snr_layer` | false | —— | 是否将稀疏帧内 SNR 层插入 HiPS（来自 noise_snr） |
+| `sparse_snr_layer` | **true** | —— | 是否将稀疏帧内 SNR 层插入 HiPS（来自 noise_snr）；**本期决议默认产出**（默认稀疏路径，`07_noise_snr.md` §4.2/§5） |
 
 ## 6. 接口/ABI
 

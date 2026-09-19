@@ -77,6 +77,7 @@
           "ports": [
             { "name": "psf", "direction": "input", "data_schema_id": "DATA-P1-PSF", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[K,K]" },
             { "name": "sources", "direction": "input", "data_schema_id": "DATA-P1-SOURCES", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N,2]" },
+            { "name": "wcs", "direction": "input", "data_schema_id": "DATA-P1-WCS", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" },
             { "name": "fluxes", "direction": "output", "data_schema_id": "DATA-P1-FLUX", "unit": "ELECTRON", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N]" },
             { "name": "photprov", "direction": "output", "data_schema_id": "DATA-P1-PHOTPROV-001", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "n/a", "shape_hint": "n/a" }
           ]

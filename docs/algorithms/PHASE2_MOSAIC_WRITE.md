@@ -77,8 +77,10 @@
     `depth = |frames|`（:670）。无 MOC 缓存，逐 tile 逐帧重复 FITS 读
     （DISP-P2HIPS-004）。
   - rejection 计划解析（不改判据，只把 cfg 组装为 P2RejectionPlan）:
-    `wbpp_2_9_1` → group-level 一次解析（:639-658，`p2_reject_plan_resolve`
-    :650，nominal_contributors=帧总数 :646，tile 不重选 :675 采纳 group_plan）；
+    `wbpp_2_9_1`（**对照档；工具链现状默认**）→ group-level 一次解析
+    （:639-658，`p2_reject_plan_resolve` :650，nominal_contributors=帧总数
+    :646，tile 不重选 :675 采纳 group_plan）；**生产编排入口默认**
+    `astrocs_adaptive_pixel`（自研，逐输出像素几何 n，见 SCI-REJ §5）；
     `astrocs_adaptive` → tile 级按 nominal geometric depth 解析（:677-690）；
     normalization 三态映射（:691-696）+ floor（:697）；typed params 逐字段
     注入（sigma/winsorized/averaged/linear_fit/esd/percentile/median_sigma/

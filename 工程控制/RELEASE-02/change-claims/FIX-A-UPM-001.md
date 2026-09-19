@@ -5,7 +5,7 @@
 - 关联条目：`OPEN-P2S-02`（`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json:2425`，"UPM 乘法尺度 g_k 的生产数据面/schema 与空间模型表示"，OPEN）；`docs/science/PHASE2_UPM.md:182`（UNRESOLVED 设计-实现模型冲突登记）
 - 日期：2026-09-18
 - 依据条款：ENGINEERING_SPEC §3（科学正确性优先 + 变更 claim + 一致性回归）；AGENTS §8；RELEASE-02 控制包"稀疏天光面等新文档语义属本预览版必须闭合范围"
-- 状态：**草案，待前台/负责人裁决落地**（本 shard 不改 SCI 文档，只备足证据）
+- 状态：**已否决 / SUPERSEDED by `FIX-SCI-SNR-CANON-001`（2026-09-19）**——负责人 A2 裁决 UPM = **纯加性**，与本 claim 提议方向相反；模型订正提议（§3 的「恢复 `g_k`」「空间天光面取代加性场」）**不采纳**，本文件保留为证据面与加性天光面**表示层**参考（见 `FIX-SCI-SNR-CANON-001.md` §2）
 
 ## 1 问题描述
 

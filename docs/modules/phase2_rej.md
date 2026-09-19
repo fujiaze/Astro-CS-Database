@@ -41,8 +41,9 @@ downstream: [TEST-P2-REJ-001]
 - 职责：每像素候选栈排异决策——eligibility strided gather 单路径
   （source_indices 权威映射 PHASE2_IVAR_WIRING，rejection.h:252-255，
   compact 后禁止用 compact index 猜 original slot）→ planning 层
-  AUTO 一次解析（nominal n<6→PERCENTILE、6..15→WINSORIZED、>15→
-  LINEAR_FIT；profile wbpp_2_9_1 / astrocs_adaptive）→ 10 显式方法核
+  AUTO 一次解析（生产默认 profile astrocs_adaptive_pixel（自研）：
+  n≤3→NONE、4..7→PERCENTILE、8..15→WINSORIZED、≥16→LINEAR_FIT；
+  对照档 wbpp_2_9_1 / astrocs_adaptive）→ 10 显式方法核
   （NONE/SIGMA/WINSORIZED/AVERAGED/LINEAR_FIT/ESD/RCR/PERCENTILE/
   MEDIAN_SIGMA/MINMAX，AUTO=10 永不进 kernel；per-sample reason u8
   0..3 与 stack status int 0..7 分离；判向冻结=低于 lower threshold→

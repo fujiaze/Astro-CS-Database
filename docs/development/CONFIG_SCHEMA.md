@@ -22,7 +22,7 @@ model: control_grid_per_tile(8) patch_radius_leaf(2) min_samples(5)
 integration: precision(fp32) memory_limit_mb rejection{method
              none|sigma|winsorized_sigma|averaged_sigma|linear_fit|
              generalized_esd|rcr|percentile|median_sigma|minmax|auto
-             profile(wbpp_2_9_1|wbpp_current alias|astrocs_adaptive)
+             profile(astrocs_adaptive_pixel(生产默认,自研)|wbpp_2_9_1(对照档)|wbpp_current alias|astrocs_adaptive)
              underdetermined_n(2)
              normalization(none|astrocs_median_center_v1|astrocs_median_scale_v1)
              normalization_floor(1e-12)
@@ -44,11 +44,14 @@ integration: precision(fp32) memory_limit_mb rejection{method
              weight_mode(auto) acr_route(cpu/auto)
 
 rejection.method 说明（V17 True Final Freeze）：
-  - production 默认 `method=auto` + `profile=wbpp_2_9_1`（冻结版本；
-    `wbpp_current` 仅 migration alias，解析并序列化为 wbpp_2_9_1）；
+  - production 默认 `method=auto` + `profile=astrocs_adaptive_pixel`
+    （**AstroCS 自研**，逐输出像素几何 n 内置映射：n≤3→none；4..7→
+    percentile；8..15→winsorized_sigma；≥16→linear_fit；阈值逐档继承
+    SCI-REJ 冻结锚点）；`wbpp_2_9_1` 为**对照档**（`wbpp_current` 仅历史
+    alias，解析并序列化为 wbpp_2_9_1）；
   - auto 在 **planning 层**按 integration cohort/tile 的 nominal
     contributors（几何可贡献独立 exposure 数）解析一次，禁止在 pixel loop
-    内按 effective count 路由；WBPP 2.9.1（本机源码 bestRejectionMethod）：
+    内按 effective count 路由；对照档 WBPP 2.9.1（本机源码 bestRejectionMethod）：
       nominal<6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit；
   - `astrocs_adaptive` = AstroCS 自有策略（tile nominal depth 自适应，
     独立命名，不冒充 WBPP exact）；

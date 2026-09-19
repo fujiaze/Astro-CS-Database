@@ -37,8 +37,9 @@ downstream: [TEST-P2-REJ-001]
 
 - 职责：eligibility strided gather（source_indices 权威映射
   PHASE2_IVAR_WIRING，rejection.h:252-255）→ planning AUTO 一次解析
-  （nominal n<6→PERCENTILE/6..15→WINSORIZED/>15→LINEAR_FIT，profile
-  wbpp_2_9_1/astrocs_adaptive）→ 10 显式方法核（per-sample reason
+  （生产默认 profile astrocs_adaptive_pixel（自研）：n≤3→NONE/4..7→
+  PERCENTILE/8..15→WINSORIZED/≥16→LINEAR_FIT；对照档 wbpp_2_9_1/
+  astrocs_adaptive）→ 10 显式方法核（per-sample reason
   u8 0..3 与 stack status int 0..7 分离；判向=低于 lower→
   REJECTED_LOW/高于 upper→REJECTED_HIGH，禁原始值正负号判向，
   rejection.h:20-21）→ large_scale 结构生长后处理（trail 扩张只增

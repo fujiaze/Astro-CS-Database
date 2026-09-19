@@ -189,13 +189,35 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     out.n_gaia = diag.spectrum_rows_total;
     out.psf_valid = diag.psf_valid;
     out.robust_iterations = diag.robust_iterations;
+    // ── P1-PHOT-BROKEN: 如实上报"拟合是否真的产出标度" ────────────────────
+    // 冻结 C 入口在 NO_DATA/退化分支（无 PSF 星 / 无光谱星 / 滤光片缓存失败 /
+    // SCI-PHOT-001 §4 冻结门 |r_consistent|<3）返回 rc==0 且 scale=1.0、
+    // fit_used=0。这些分支**没有产出标度**, 1.0 是占位值。修复前调用方只查
+    // finite&&>0 就施加并声明 applied=true（伪造 1.0）。
+    // 此处把退化显式化: rc<0 + fit_ok=false + degraded_reason（机器可读），
+    // k_photo 保留 1.0 但**不得**被施加。
     if (rc != 0) {
         out.error = "pc_calibrate_simple_with_gaia_f64_v2_qf rc=" + std::to_string(rc);
+        out.degraded_reason = "c_api_rc_" + std::to_string(rc);
         out.k_photo = 1.0;
+        out.fit_ok = false;
     } else if (!(std::isfinite(scale) && scale > 0.0)) {
         out.rc = -5;
         out.k_photo = 1.0;
         out.error = "non-physical scale from fit";
+        out.degraded_reason = "non_physical_scale";
+        out.fit_ok = false;
+    } else if (n_matched < kMinFitStars) {
+        // SCI-PHOT-001 §8「无星/星数不足 → NO_DATA」: 没有可施加的标度。
+        out.rc = -6;
+        out.k_photo = 1.0;
+        out.fit_ok = false;
+        out.degraded_reason = "no_data_n_matched_" + std::to_string(n_matched);
+        out.error = "photometry fit produced no scale (NO_DATA): n_matched=" +
+                    std::to_string(n_matched) + " < " + std::to_string(kMinFitStars) +
+                    " (SCI-PHOT-001 §4/§8)";
+    } else {
+        out.fit_ok = true;
     }
     return out;
 }

@@ -85,7 +85,8 @@ module_id=astrocs.phase2.write、sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/
 test_id=TEST-P2-WR-001）为编排占位词汇，不得反向作为冻结依据，由
 P2-XX-INT 对齐本页与 lib/algorithms/coverage/hips_p2/module.yaml。配置=single JSON
 （P2Stage2Config :16-99：weight_mode=2、legacy_allow_weight_fallback=
-false、reject_profile=wbpp_2_9_1、large_scale 默认关、acr_route=auto、
+false、reject_profile（工具链默认 wbpp_2_9_1；生产入口默认
+astrocs_adaptive_pixel）、large_scale 默认关、acr_route=auto、
 memory_limit_mb=24576 等，权威=API-P2-HIPS-001）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性

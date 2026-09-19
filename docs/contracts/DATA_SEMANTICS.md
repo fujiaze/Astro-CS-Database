@@ -1040,7 +1040,7 @@ P2Stage2Config 公共关键字段（唯一签名源 stage2_common.h:16-99，行�
 | target_order_spec / target_order | "auto" / −1（:20-21） | 无量纲（HEALPix order） | target_order≥0 显式采用，否则 = cov.target_order；**不得高于输入最高 order**（stage2.cpp:203-205，禁插值伪装分辨率，对齐 §19.2 target_order 冻结语义） |
 | precision | 0（:50） | 无量纲 | 0=float32 / 1=float64 输出 dtype（stage2.cpp:529） |
 | memory_limit_mb | 24576（:51） | MB | 执行内存预算（CON-002 全局执行预算域） |
-| reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "wbpp_2_9_1" / 2（:52-54） | 无量纲 | planning 层解析为显式方法；profile 版本化冻结（WBPP 2.9.1 同名语义） |
+| reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "astrocs_adaptive_pixel"（**生产默认**，自研）/ 2（:52-54；工具链默认 "wbpp_2_9_1" 为对照档，分歧已登记） | 无量纲 | planning 层解析为显式方法；profile 版本化（自研档逐输出像素几何 n；对照档阈值表采纳自 WBPP 2.9.1） |
 | reject_normalization | "astrocs_median_center_v1"（:56） | 无量纲 | 判定工作域归一；mask 应用回原始 calibrated 值 |
 | large_scale_enabled（及 min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | astrocs.large_scale_rejection.v1，默认关闭（WBPP largeScaleClip 默认一致） |
 | weight_mode | 2（:90） | 无量纲 | 2=ivar 逆方差（科学默认）；1=等权；0=support×snr²（legacy/诊断） |
@@ -1380,8 +1380,9 @@ eligible 位图 `[count]`，V15FilterAllPolicies :4337）。
   minimum_n（:153）；underdetermined_n=2（:155）。
 - AUTO 仅合法于 plan_resolve 请求（P2RejectionPlanRequest :171-180:
   request 允许 AUTO；nominal_contributors u32，wbpp_current=group
-  active 一次解析、astrocs_adaptive=tile nominal depth，
-  :174-177；profile 版本化 wbpp_2_9_1）；kernel 永不接收 AUTO
+  active 一次解析、astrocs_adaptive=tile nominal depth、
+  astrocs_adaptive_pixel=逐输出像素几何 n，
+  :174-177；profile 版本化，生产默认 astrocs_adaptive_pixel）；kernel 永不接收 AUTO
   （:285 注释，违规→INVALID_METHOD :1688-1701）。
 
 ### 22.2 输出（P2RejectionDecision，rejection.h:275-283）
@@ -2498,7 +2499,7 @@ sample_mask 布局: 逐 tile 块按 tile_ipix 升序拼接; 块内 [s*tile_span 
 | ASTROCS_MODEL_HASH | UPM model_hash | P2ModelInfo.model_hash（stage2.cpp:439-444） |
 | ASTROCS_UNCERTAINTY_AVAILABLE | true/false | §30.1 unavailable 规则判定结果 |
 | ASTROCS_WEIGHT_MODE | 0/1/2 | cfg.weight_mode（stage2_common.h:90） |
-| ASTROCS_REJECT_PROFILE | 版本化 profile 串 | cfg.reject_profile（wbpp_2_9_1，§20.1） |
+| ASTROCS_REJECT_PROFILE | 版本化 profile 串 | cfg.reject_profile（生产默认 astrocs_adaptive_pixel；对照档 wbpp_2_9_1，§20.1） |
 
 - **unavailable 显式登记**: uncertainty_available=false 不是失败态，是
   unavailable 显式登记模式在数据面的落位（本节 §30.1/§30.4 + UNC Phase3 节；

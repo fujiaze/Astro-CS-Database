@@ -8,10 +8,17 @@
 > code + `docs/architecture/execution_inventory.csv`，无 science authority）。
 
 > **P5-SNR 重定义注记（2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S4）**：
-> 本文件所称 `local_snr` / `frame_snr` 实为**相对质量权重场**（`quality_weight =
+> **本文件（Phase2 stage2 内部）**所称 `local_snr` / `frame_snr` 实为**相对质量权重场**（`quality_weight =
 > frame_quality_scalar × local_quality_proxy/median`），**不是科学信噪比**；科学 SNR 由
 > 逐源 `σ_F` 定义，帧级科学基准为 5σ 点源深度 `m_5`（§2a）。字段名 `snr` 仅为兼容保留，
 > 其语义为 "SNR-equivalent relative quality, not a calibrated signal-to-noise ratio"。
+>
+> **同名两义分离（负责人 2026-09-19 裁决 A1/C1，claim `FIX-SCI-SNR-CANON-001`；关闭 §9 的 UNRESOLVED）**：
+> **Phase1 HiPS 文件头的 `frame_snr` 是科学量**——帧级未加权原始信噪比（**点源（PSF）信号 SNR，纯信号/噪声**：
+> `SNR = F_signal/σ_F`，`F_signal` 已扣局部背景、天光**只作噪声项**进 `σ_F`；固定源通量下天光增大 ⇒ SNR 单调下降），
+> 定义与红线见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 与 `docs/design/UNIFIED_MODEL.md` §2。
+> **本文件的 `local_snr`/`frame_snr` 是 stage2 内部相对质量场**，与上述科学量**禁止同名互指**；
+> stage2 侧字段改名 `quality_weight`（`snr_v` 为别名）登记为实现跟随项。
 
 ## 1 目的与非目标
 
@@ -30,7 +37,7 @@
 | 符号 | 含义 | 出现位置 |
 |---|---|---|
 | `local_snr` | 区域级局部**相对质量权重**（有局部星点可得时；**不是**科学信噪比） | `stage2.cpp:383-396`（`local_snr_map`） |
-| `frame_snr` | 整帧 Phase1 SNR 目录值的**中位数（回退质量基准）**（**不是**科学信噪比） | `stage2.cpp:74,250,402`（`frame_snr_medians`） |
+| `frame_snr`（stage2 内部，建议改名 `quality_weight`） | 整帧 Phase1 SNR 目录值的**中位数（回退质量基准）**（**不是**科学信噪比；Phase1 HiPS 文件头的同名 `frame_snr` 是科学量，见 §0 注记与 §2a） | `stage2.cpp:74,250,402`（`frame_snr_medians`） |
 | `quality_weight` | `frame_quality_scalar × local_quality_proxy/median`，无量纲相对质量权重（S4 重定义的规范名；`snr_v` 为其别名） | 本文件 §4 |
 | `m_5` | 5σ 点源深度 `ZP − 2.5·log10(5·sigma_F(ref))`（唯一帧级科学基准，单位 mag） | 本文件 §2a |
 | `sigma_F` | 逐源通量不确定度（科学 SNR 定义量；PSF 拟合协方差或 CCD 方程，当前实现不产出） | 消费侧定义；本文件 §2a 登记边界 |
@@ -48,6 +55,7 @@
   孔径/背景（PSF 或孔径、背景估计域、像素标度）；空间变化时应给**深度图**而非单标量。
 - **质量权重场定位**：本文件 §4 的 `quality_weight`（`local_snr`/`frame_snr`）为**相对质量
   权重场**，**无量纲**，仅供采样/加权（`support × snr_v²`），不得解释为 `m_5` 或 `SNR_F`。
+- **Phase1 产品面帧级 SNR（同名不同物）**：Phase1 HiPS 文件头的 `frame_snr` 是**科学量**（点源 PSF 信号 SNR，纯信号/噪声，§0 注记），不属于本文件的相对质量权重场；本文件「帧级科学基准 = `m_5`」不改变其定义，二者不得互指。
 - 推导与文献锚见 `run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md` §C.3.1
   （Horne 1986 最优提取；5σ 深度 Tonry et al. 2012 / Huang et al. 2017 / Ivezić et al. 2019）。
   <!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S4) -->
@@ -117,7 +125,7 @@ for 每个控制星 s（半径内）:
 - 以 `snr=1.0` 替代缺失回退（伪装 unknown）；
 - 将 `local_snr` 与逐像素 `variance/ivar` 当作同一权重语义；
 - 将 `frame quality` 位掩码当作浮点权重参与数值积分；
-- 把 `quality_weight`/`local_snr`/`frame_snr` 声明或解释为科学信噪比（`m_5` 或 `SNR_F`）。
+- 把 stage2 的 `quality_weight`/`local_snr`/`frame_snr_medians` 声明或解释为科学信噪比（`m_5`、`SNR_F` 或 Phase1 产品面的 `frame_snr`）。
   <!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S4) -->
 
 ## 8 关联与追溯
@@ -137,7 +145,7 @@ for 每个控制星 s（半径内）:
 - **逐源最优提取 SNR_F=F/σ_F**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339。
 - **PixInsight PSFSNR/PSFSW 方法学**：PixInsight Reference, New Image Weighting Algorithms（https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html）。**核验状态**：方法学文档，未逐式核验常数。
 - **稳健噪声 MRS/N***：Starck & Murtagh 2006, Astronomical Image and Data Analysis, 2nd ed., Springer（ISBN 978-3-540-33023-3）。
-- **UNRESOLVED（两篇权威打架）**：本文件 §2a 把 frame_snr 定义为“相对质量权重场（不是科学信噪比）”，而 docs/design/UNIFIED_MODEL.md §2 数据对象表把 frame_snr 定义为“帧级未加权原始信噪比（真实 PSF 源信号功率/稳健噪声功率，方法学对标 PixInsight PSFSNR）”。两者语义互斥，且 docs/plugins/algorithms_phase1/07_noise_snr.md §4.1 采信后者。**登记 UNRESOLVED，上呈负责人裁决**（本任务不改公式）。
+- **已定案（原 UNRESOLVED，两篇权威打架）**：冲突根因是**同名两义**——本文件 §2a 的 `frame_snr` 是 Phase2 stage2 内部相对质量权重场，而 `docs/design/UNIFIED_MODEL.md` §2 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 的 `frame_snr` 是 Phase1 HiPS 文件头的科学量。负责人 2026-09-19 裁决 A1/C1（claim `FIX-SCI-SNR-CANON-001`）确认：**帧级 SNR = 点源（PSF）信号 SNR，纯信号/噪声**（`F_signal` 已扣局部背景、天光只进 `σ_F`、天光增大 ⇒ SNR 单调下降），故 Phase1 产品面按科学量定义；本文件的 stage2 字段是相对质量场，须改名 `quality_weight` 以消除同名互指。**UNRESOLVED 关闭**。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。

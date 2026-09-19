@@ -51,7 +51,7 @@ F7: 状态机: n≤underdetermined(2) → UNDERDETERMINED; non-finite → INVALI
 function p2_reject(stack, plan):
   if plan.method==AUTO → INVALID_METHOD
   n_nominal = plan nominal contributors
-  method = resolve_profile(n) # wbpp_2_9_1
+  method = resolve_profile(n) # 生产默认 astrocs_adaptive_pixel（自研）；对照档 wbpp_2_9_1
   if n ≤2 or n<minimum_n → status=UNDERDETERMINED, reason=UNDERDETERMINED
   switch method:
     None: all ACCEPTED

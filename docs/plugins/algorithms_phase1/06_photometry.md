@@ -3,7 +3,7 @@
 ## 1. 职责与边界
 
 - **职责**：对检测源做孔径/PSF 测光，把本帧 signal 映射到统一线性通量尺度 `d = a_k F P + n`，给出 `a_k` 及其不确定度。
-- **不是**：不做绝对光度定标到物理流量；不做 Phase2 集成（integration）；相对标度不足时标记不可跨帧合并，**不用 median stellar flux 静默代替**。
+- **不是**：不做绝对光度定标到物理流量；不做 Phase2 集成（integration）；相对标度不足时标记不可跨帧合并，**不用 median stellar flux 静默代替**；**不以物理单位论证标定因子**——`a_k`/`k_photo` 的绝对值无物理意义，判据 = 测光一致性 + 帧间一致性（`docs/science/PHOTOMETRY.md` §1）。
 
 ## 2. 权威依据
 
