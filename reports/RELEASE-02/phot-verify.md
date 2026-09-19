@@ -129,7 +129,7 @@ t2_m1_red: False 1.0 none        ... (全部 12 个板块)
   `astrocs` CLI 可执行文件链接的是 `p1_session.cpp + module_adapters.cpp`，**不含 orchestrator**（`cli/CMakeLists.txt:216`）；
   L4 的 `graph/l0_graph.json` 节点是 `astrocs.phase1.photometry / measure_flux`。
   ⇒ 归一化路径在 `astrocs normalize` 上**不可达**。
-- `apply_photometry`（`photometry_apply.cpp`）在**活跃代码树内 0 调用者**（`evidence_wiring.txt [2]`）。
+- `apply_photometry`（`photometry_apply.cpp`）**无任何生产调用者** —— 只被自身单测 `lib/algorithms/calibration/tests/test_photometry_apply.cpp` 调用（`evidence_wiring.txt [2]`）。
 - `module.yaml`：`entrypoint: MISSING`、`node_operations: []`、`dll_target` 尚未存在。
 
 ### 3.4 后果
@@ -269,7 +269,7 @@ L4 的 49 帧**不在同一测光坐标系**：帧间保留完整的乘性零点
 |---|---|---|---|
 | D1 | photometry 节点不计算也不应用 k_photo | `module_adapters.cpp:3076-3091` | 在 `p1_op_photometry` 内增加"星测光拟合 + 乘到像素"步骤（或新增独立节点），产出真实 `photscal` 并置 `photometry_applied=true` |
 | D2 | 归一化实现未编入主构建 | `lib/algorithms/photometry/module.yaml`（entrypoint=MISSING；无 CMake 目标） | 把 `cpp/src/*.cpp` 编入根 CMake 并接 registry 入口 |
-| D3 | `apply_photometry` 无调用者 | `photometry_apply.cpp`（活跃树 0 caller） | 由 D1 的节点调用 |
+| D3 | `apply_photometry` 无生产调用者（仅单测） | `photometry_apply.cpp` | 由 D1 的节点调用 |
 | D4 | 饱和/质量位过滤未生效 | `pc_api.cpp:138,397`（传 `nullptr`） | 传入 quality_flags（或改 `cleanAndScale` 签名强制） |
 | D5 | F_instr 用检测等照度 flux（阈值/视宁度偏差） | `sdet_detector.cpp:281-285` → `p1_sources.flux` | 改用固定孔径/PSF 总通量做测光拟合输入 |
 | D6 | 拟合无 χ² | `star_matcher.cpp:616-627` | 可选：补 χ²_red/outlier_rate 进 diag |
