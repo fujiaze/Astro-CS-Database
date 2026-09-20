@@ -45,7 +45,7 @@
 | noise（噪声模型默认配置） | 14 | `docs/science/NOISE_MODEL.md` §4/§5/§5a/§6 陈述行（:41,:49,:73,:95；逐字段 source_ref 见 defaults.json；MASK-002/SC-009 新增 5 键 k/r_min/fwhm_floor/nq≥8/N_sky≥9216 已含在 14 内）。旧锚 `NOISE_ESTIMATION.md:134` 为实现锚，按负责人指令撤出登记面 |
 | rejection（排异阈值表） | 18 | `docs/science/REJECTION.md:66`（§5「阈值冻结锚点」块；W5-CFG-002 重锚，原 :131 已因文档重排失效） |
 | photometry（mag_tolerance / Tukey c / IRLS / 最小星数） | 6 | `docs/science/PHOTOMETRY.md:21,24,38,39` |
-| weight（默认权重模式） | 1 | `docs/science/PSF_SIGNAL_WEIGHT.md:12`、`:28` |
+| weight（默认权重口径；~~权重模式~~ 概念已作废 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）） | 1 | `docs/science/PSF_SIGNAL_WEIGHT.md:12`、`:28` |
 | precision（默认精度） | 1 | `docs/science/SCIENCE_SCOPE.md:53` |
 | upm（k_corr） | 1 | `docs/science/PHASE2_UPM.md:22`（定义 + 冻结默认，:124 记不可接受变化；W5-CFG-002 重锚） |
 | hips（tile 宽） | 1 | `docs/science/PHASE3_HIPS_TO_FITS.md:39`（W 默认 512=2⁹；W5-CFG-002 重锚） |
@@ -62,7 +62,7 @@
 
 - `calibration.dark_light_exposure_tolerance = 5 s`：负责人已裁决值，按裁决**不标** pending；文档侧仅有 `K=t_light/t_dark` 语义（`docs/science/CALIBRATION.md:19,21,90`），数值待 SCI-RES-01/R-004 落 `docs/science/CALIBRATION.md`。
 - 负空间（口径保留，去向已定）：`docs/plugins/**` 的 plugin 级默认**不进** `fields[]`——本文件 source 规则限定 docs/science|docs/algorithms；它们改由 `config/config_registry.json#plugin_knobs` 逐行登记（95 行：归属类 + 登记点 + 缺口/冲突），见 §9。CFG002-ANCHOR: item1-plugin-defaults → config/config_registry.json
-- **默认值 → 字段值域的唯一登记**：`fields[].enum_target`（`{schema, pointer}`）+ `fields[].enum_token`。语义：defaults 里的「产品名/方法名」必须显式映射到承载字段的取值 token；机器门断言 pointer 落到含 `enum` 的节点且 token ∈ enum。首例：`weight.default_mode = psf_information_weight`（SCI 产品名）↔ `phase_config_mosaic.algorithm_weight_mode` 的 token `point_information`（同一模式的两套命名；依据 `docs/science/UNIFIED_SCIENCE_MODEL.md:55` 与 `docs/science/PSF_SIGNAL_WEIGHT.md` §1）。
+- **默认值 → 字段值域的唯一登记**：`fields[].enum_target`（`{schema, pointer}`）+ `fields[].enum_token`。语义：defaults 里的「产品名/方法名」必须显式映射到承载字段的取值 token；机器门断言 pointer 落到含 `enum` 的节点且 token ∈ enum。首例：`weight.default_mode = psf_information_weight`（SCI 产品名）↔ ~~`phase_config_mosaic.algorithm_weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量） 的 token `point_information`（同一口径的两套命名；依据 `docs/science/UNIFIED_SCIENCE_MODEL.md:55` 与 `docs/science/PSF_SIGNAL_WEIGHT.md` §1）。
 - **登记册指针**：`registry_ref` 指向 `config/config_registry.json`（plugin 级默认 / 旋钮归属 / 滤镜名语义 / os_abi / 索引归属的登记面）；本文件与登记册**不得互相复制数值**（数值唯一源 = defaults.json 与 phase_config schema）。
 
 ## 3 三命令 phase_config 与模板
@@ -77,7 +77,7 @@ mosaic/export 仍为 `{phase_name, config, inputs}`（`config`/`inputs` 两级 `
 | phase | 模板 | 必填 | 可选算法选择（逐项权威） | 输入项 |
 |---|---|---|---|---|
 | normalize（多块） | `config/templates/normalize.phase_config.json` | 块级 `input_lights` + `output_dir`；顶层 `schema_version` + `blocks` | `algorithm_psf_model`（`docs/science/PSF.md:7,:81,:105`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ASTROCS_DESIGN.md` §3.4:161-164）；**`algorithm_drizzle_pixfrac`** 与 **`drizzle.pixfrac`**（语义/值域权威 `docs/science/DRIZZLE.md:23,:27,:31` + `docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 1.0 已落 defaults.json 的 `drizzle.pixfrac`，状态 owner_adjudicated；DOC-SCI-001 §3）；`drizzle.precision_mode`（0=FP32/1=FP64，**必须显式**） | 块级 `input_lights[]`（每帧一个 FITS 路径）+ 块级母版 `master_bias/master_dark/master_flat` + `filter_passband`（必须命中滤镜库；空串 = 显式无 filter） |
-| mosaic | `config/templates/mosaic.phase_config.json` | output_dir, precision | `algorithm_weight_mode`（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（method/profile 词表 `docs/science/REJECTION.md:20-21`；默认路由 `:47-53`；W5-CFG-002 重锚）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:89`） | `{product, filter?}` |
+| mosaic | `config/templates/mosaic.phase_config.json` | output_dir, precision | ~~`algorithm_weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量）（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（method/profile 词表 `docs/science/REJECTION.md:20-21`；默认路由 `:47-53`；W5-CFG-002 重锚）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:89`） | `{product, filter?}` |
 | export | `config/templates/export.phase_config.json` | output_dir, precision, output_mode, wcs | `output_mode`（`ASTROCS_DESIGN.md` §5.3:267；默认 `surface_brightness` 见 `docs/plugins/algorithms_phase3/16_fits_output.md:41`）、`wcs.projection`（§5.3:264-266 首批 8 种 + 缺省 TAN；`14_projection.md:34`）、`wcs.{rotation_deg, crpix_px}`（`14_projection.md:35,38`） | `{product}` |
 
 - **精度显式声明**：mosaic/export 用 `config.precision`（值域 {fp32, fp64}；模板填 `fp64`，`docs/science/SCIENCE_SCOPE.md:53` 默认 FP64）；normalize 用块级 `drizzle.precision_mode`（0=FP32 / 1=FP64，**必须显式**，缺失即拒绝——`config.precision` 是旧键名，不在 CLI 键集内，见 `ASTROCS_DESIGN.md` §3.3 键集权威）。
@@ -161,7 +161,7 @@ timeout 60 python3 tests/config/run_validation.py contracts/schemas/phase_config
 
 | 项 | 现状（实测） | 建议改法 | 归属 |
 |---|---|---|---|
-| `ci/checks.json` 无 config 门 | CHK-UNIT 的 13 个 UT-* 步骤不含 tests/config；`CON-CONFIG-CONTRACTS` 检查的是 legacy `docs/development/CONFIG_SCHEMA.md` + `lib/algorithms/coverage/src/stage2_common.cpp` 的 `weight_mode` 整数默认（与 phase_config 的字符串枚举不是同一面） | 在 CHK-UNIT 增 `UT-CONFIG` 步骤并与 `docs/ci/01_CHECKS.md §2` 双向对齐 | CI 线（`ci/**`、`docs/ci/**`） |
+| `ci/checks.json` 无 config 门 | CHK-UNIT 的 13 个 UT-* 步骤不含 tests/config；`CON-CONFIG-CONTRACTS` 检查的是 legacy `docs/development/CONFIG_SCHEMA.md` + `lib/algorithms/coverage/src/stage2_common.cpp` 的 ~~`weight_mode`~~ 整数默认 （已按 §9.73 A44 作废：键不存在；权重是派生量）（与 phase_config 的字符串枚举不是同一面） | 在 CHK-UNIT 增 `UT-CONFIG` 步骤并与 `docs/ci/01_CHECKS.md §2` 双向对齐 | CI 线（`ci/**`、`docs/ci/**`） |
 |  `$defs.kernel_v1/kernel_v2` 未接线 | **已闭合（W5-CPU-001，2026-09-17）**：原 0 处 `$ref`；接线后 `kernel_v1` 由 `legacy_v1.properties.kernels.items`、`kernel_v2` 由 `profile_v2.properties.kernels.additionalProperties` $ref（refs=1/1；登记册 `cpu_profile_kernel_link.status=LINKED`，门 CFG002-10）。接线不收紧：接线前约束已由顶层 `properties.kernels.items/.additionalProperties` 等价镜像施加，接线时镜像与 `$defs` 逐字一致（门钉死） | 已完成；负例 `cpu_profile_v1_bad_kernel.json`（size_class 越界）/ `cpu_profile_v2_bad_kernel.json`（provider 越界）必红，producer 面无需改动 | CPU/benchmark 线（已闭合） |
 | 插件文档与 SCI/ALG 冲突 4 条 | **已按 DOC-SCI-001 裁决闭合 4/4（2026-09-17，LEDGER-DOC 落地）**：①`04_psf.psf_model`→`moffat4`；②`08_drizzle.pixfrac` 默认 1.0 入 defaults.json（owner_adjudicated）；③`03_star_detection.detection_threshold` 改全局语义（`median(img)+5.0·bgnoise`，局部自适应登记 DISP-STAR-002）；④`06_photometry.flux_zero_point` 行删除（补输出 `location`/`scale` 指针） | 已落地：插件文档 4 处 + `config_registry.json`（conflict 4→0）+ `config/defaults.json` + `CONFIG_CONTRACT` 本表 + `phase_config_normalize.schema.json` 描述 | DOC 线（variance 登记与 CFG002-01/02 逐行门复跑绿） |
 | plugin 级默认缺口 22 行 + 未登记字段 28 行 | 见 `config_registry.json#plugin_knobs`（finding=gap/unregistered） | 由负责人裁决字段归属后另立任务落地（不得由 Agent 自选字段） | 负责人裁决 |

@@ -27,8 +27,7 @@
           "regex": "^sci_[a-z0-9_]+$",
           "examples": [
             "sci_algorithm_id",
-            "sci_rejection_profile",
-            "sci_weight_mode"
+            "sci_rejection_profile"
           ]
         },
         {
@@ -122,7 +121,6 @@
       "forbidden_field_names": [
         "sci_algorithm_id",
         "sci_rejection_profile",
-        "sci_weight_mode",
         "algorithm_choice"
       ],
       "note": "cpu_profile 只影响并行/ISA，不进入科学配置；无 profile 时保守运行（不阻塞）"
@@ -175,8 +173,7 @@
         "isa",
         "workers",
         "block",
-        "sci_algorithm_id",
-        "sci_weight_mode"
+        "sci_algorithm_id"
       ],
       "note": "run_manifest 只冻结哈希与版本，不解释科学语义；input_hashes 与 DATA-OBJ-PROVENANCE-001.provenance.input_hashes 同义"
     }
@@ -197,7 +194,6 @@
     "phase_config_keys_in_cpu_profile": [
       "sci_algorithm_id",
       "sci_rejection_profile",
-      "sci_weight_mode",
       "algorithm_choice"
     ],
     "manifest_keys_anywhere_else": [

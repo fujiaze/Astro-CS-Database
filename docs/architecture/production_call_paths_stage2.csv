@@ -7,5 +7,5 @@ upm_persist,stage2.output.upm,astro_image_io,aio_upm_write_sparse,serial,upm.sha
 block_calibrate,stage2.integration.*,phase2/block,p2_upm_calibrate_block,parallel_cpu,block.t_ms,TEST-P2-CALIB-001,"每帧C(frame,leaf)"
 rejection,stage2.integration.rejection.*,phase2/rejection,p2_reject (7 methods),parallel_cpu per-pixel,rejection.n_rejected_low/high,TEST-REJ-*,排异
 integration,stage2.integration.*,phase2/integrate,p2_integrate_pixel,parallel_cpu per-pixel,integrate.signal/support,V17StatusesExplicit,加权均值max reducer
-acr_routing,stage2.integration.acr_route + weight_mode=2 → cpu,acr/dispatcher,Dispatcher::decide / register_phase2_acr_kernels,mixed_cpu_gpu or cpu_only fallback,diagnostics.route,TEST-ACR-001,ACR-IVAR-001 ivar禁用
+acr_routing,stage2.integration.acr_route + 纯逆方差权重 → cpu （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）,acr/dispatcher,Dispatcher::decide / register_phase2_acr_kernels,mixed_cpu_gpu or cpu_only fallback,diagnostics.route,TEST-ACR-001,ACR-IVAR-001 ivar禁用
 hips_write,stage2.output.hips,astro_image_io,aio_hips_writer,serial+async_io,hips.nside,TEST-HIPS-001,HiPS写

@@ -110,14 +110,14 @@ Phase1 HiPS集 → p2_coverage_build(MOC union, target_order=min leaf)
 ## 6. Configs & Tooling
 
 - Stage1: `lib/infrastructure/pipeline/orchestrator/configs/stage1.schema.json`(v1.1) + `stage1.template.json`(pixfrac 默认 0.8, 生产默认收缩滴落) + `stage1_gc_panel{1,2,3}_Red.json`(32=11+11+10, panel1↔panel2/panel2↔panel3 连通, GC 三面板 pixfrac=1.0 无收缩分支用于最大覆盖)；`precision` fp32/fp64、`gaia_data_dir` 必填、`nside` auto/explicit、`pixfrac` (0,1] 默认 0.8 / GC 1.0 分支见 `lib/infrastructure/pipeline/orchestrator/configs/`；校验 `validate_stage1_schema` (nlohmann-json-schema-validator v2.4.0，`orchestrator.h` 锚点)。
-- Stage2: `lib/algorithms/coverage/configs/stage2_*.json`(inputs/model/integration/output/diagnostics)；`model` control 网格/sigma_floor/support_power/use_ivar_weight 等，`reject_method/profile/normalization/large_scale/typed params` 冻结(V17)，`weight_mode` 2=ivar 默认，`acr_route` auto；默认值单一来源 `lib/algorithms/coverage/src/stage2_common.cpp`，与 `docs/development/CONFIG_SCHEMA.md` + `tools/config_consistency_check.py` 一致(`mismatches=[]`)。
+- Stage2: `lib/algorithms/coverage/configs/stage2_*.json`(inputs/model/integration/output/diagnostics)；`model` control 网格/sigma_floor/support_power/use_ivar_weight 等，`reject_method/profile/normalization/large_scale/typed params` 冻结(V17)，~~`weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量）（逆方差权重由阶段二现场算），`acr_route` auto；默认值单一来源 `lib/algorithms/coverage/src/stage2_common.cpp`，与 `docs/development/CONFIG_SCHEMA.md` + `tools/config_consistency_check.py` 一致(`mismatches=[]`)。
 - 工具: `tools/docs_machine_consistency.py`(9 checks，见 §7)，`config_consistency_check.py`，`api_doc_consistency.py`，`no_legacy_production_reference.py` 等。
 
 ## 7. Machine Consistency (S8 gate, 本版实测)
 
 ```
 tools/docs_machine_consistency.py PASS 9/9
-  config_weight_mode_ivar, frame_id_contract_exact(DATA-FRAME-ID-001 exact),
+  config_weight_mode_ivar （已按 §9.73 A44 作废：键不存在；权重是派生量）, frame_id_contract_exact(DATA-FRAME-ID-001 exact),
   error_taxonomy_exit_codes(AstroCsExitCode name+value 全集合==orchestrator.h 0-10),
   integration_status_full_set(P2_INTEGRATE_*==INTEGRATION_ALGORITHMS.md),
   rejection_status_full_set(P2_REASON_*/P2_STATUS_*==REJECTION_ALGORITHMS.md),

@@ -78,7 +78,7 @@ Q = Σ_k Q_k,    W = Σ_k W_k,    F_hat = Q/W,    Var(F_hat) = 1/W
 
 ### 6.3 PSFSW 稳健集成模式
 
-Phase2 必须实现显式 `weight_mode=psfsw_robust`：使用 Phase1 输出的 `psfsw_robust_weight` 进行 conventional image integration，兼顾 signal、PSF concentration、noise 和 background。该模式与默认 `point_information`、`surface_gls` 并列，不是 QA-only。
+Phase2 支持显式选择 `psfsw_robust` 口径：使用 Phase1 输出的 `psfsw_robust_weight` 进行 conventional image integration，兼顾 signal、PSF concentration、noise 和 background。该口径与默认 `point_information`、`surface_gls` 并列，不是 QA-only。（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
 
 它必须使用共同星集/selection-function 门，传播实际线性组合的 covariance，输出 effective PSF，并与等权、exposure、pixel-ivar 和 `W_info` 基线比较。不得宣称 Fisher 最优，除非专项证明。median source SNR、单独 FWHM penalty 仍只能作为诊断或显式实验指标。详细定义见 `docs/science/PSF_SIGNAL_WEIGHT.md`。
 
@@ -99,7 +99,7 @@ Phase1 的 PSF/information/noise 若为空间模型，Phase2 必须在输出位�
 3. `psfsw_integration`（被选择时）：四分量、相对权重、conventional coadd、variance/correlation、effective PSF 与基线比较；
 4. support、coverage、validity、rejection；
 5. UPM 参数、协方差和残差诊断；
-6. manifest：输入列表/哈希、目标函数、weight_mode、权重模型、近似、排异和 provider。
+6. manifest：输入列表/哈希、目标函数、权重口径 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）、权重模型、近似、排异和 provider。
 
 不得只写一张图和一个语义不明的 weight。
 

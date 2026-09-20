@@ -1,6 +1,8 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
-# DATA-DESIGN-001 — 跨 Phase signal / covariance / PSF / W_info / PSFSW / weight_mode / effective PSF / provenance schema 设计
+# DATA-DESIGN-001 — 跨 Phase signal / covariance / PSF / W_info / PSFSW / weight_mode / effective PSF / provenance schema 设计（已按 §9.73 A44 作废：该概念不存在）
 
 - 文档 ID：`DATA-DESIGN-001-SCHEMA-DESIGN`
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/DATA-DESIGN-001.md`（Wave 3，depends_on = SCI-ADJ-001）
@@ -23,7 +25,7 @@
 
 ## 1. 本任务交付什么
 
-按任务正文（signal / covariance / PSF / W_info / PSFSW components / weight_mode / effective PSF / provenance）
+按任务正文（signal / covariance / PSF / W_info / PSFSW components / weight_mode / effective PSF / provenance）（已按 §9.73 A44 作废：该概念不存在）
 给出**可实施、可验证**的字段名、单位、适用域、fail-closed 条件、验证门与迁移建议：
 
 | # | 主题 | 人读规格 | 机器 schema（proposal） |
@@ -32,8 +34,8 @@
 | 2 | signal | `02_signal.md` | `astrocs.v6.signal.v1.schema.json` |
 | 3 | covariance / variance / correlation | `03_covariance.md` | `astrocs.v6.covariance.v1.schema.json` |
 | 4 | PSF + effective PSF | `04_psf_and_effective_psf.md` | `astrocs.v6.psf.v1.schema.json`、`astrocs.v6.effective-psf.v1.schema.json` |
-| 5 | W_info / point_information | `05_point_information_and_weight_mode.md` | `astrocs.v6.point-information.v1.schema.json` |
-| 6 | weight_mode 语义与词表 | `05_point_information_and_weight_mode.md` | `astrocs.v6.weight-mode.v1.schema.json` |
+| 5 | W_info / point_information | `05_point_information_and_weight_mode.md` | `astrocs.v6.point-information.v1.schema.json` |（已按 §9.73 A44 作废：该概念不存在）
+| 6 | weight_mode 语义与词表 | `05_point_information_and_weight_mode.md` | `astrocs.v6.weight-mode.v1.schema.json` |（已按 §9.73 A44 作废：该概念不存在）
 | 7 | PSFSW 四分量/复合/归一 | `06_psfsw.md` | `astrocs.v6.psfsw.v1.schema.json` |
 | 8 | provenance 最小集/共享系统项/k_corr/降级 | `07_provenance.md` | `astrocs.v6.provenance.v1.schema.json` |
 | 9 | Phase3（Omega / 采样核 registry / Q-W 重算） | `08_phase3.md` | `astrocs.v6.phase3.v1.schema.json` |
@@ -42,7 +44,7 @@
 
 机器可读索引 `contracts/proposals/v6/data/astrocs.v6.data-design-catalog.v1.json` 由
 `run/v6/data-design/tools/gen_catalog.py` 从上述 schema 与 `adjudications.json` 机械导出
-（与 SCI-ADJ-001 的 `render_freeze_list.py` 同构做法）：它登记冻结单位表、weight_mode 枚举、
+（与 SCI-ADJ-001 的 `render_freeze_list.py` 同构做法）：它登记冻结单位表、weight_mode 枚举、（已按 §9.73 A44 作废：该概念不存在）
 禁止项、**每个字段的条款锚/单位/适用域/fail-closed/门 id**、19 条 required freeze id 覆盖、迁移与开放项。
 
 ## 2. 与 SCI-ADJ-001 冻结的一致性（逐条）
@@ -50,15 +52,15 @@
 | 冻结条目 | 本设计落点 |
 |---|---|
 | `FZ-UNIT-SIGNAL-SB`=`ADU/px^2`、`FZ-UNIT-VAR-IN`=`ADU^2`、`FZ-UNIT-VAR-SB`=`ADU^2/px^4`、`FZ-UNIT-IVAR-SB`=`px^4/ADU^2` | `01_units_and_bunit.md`；`units.v1.table` + `covariance.v1.variance_plane/ivar_plane` |
-| `FZ-UNIT-WINFO`=`ADU^-2`、`FZ-UNIT-Q`=`ADU^-1`、`FZ-UNIT-FLUX`=`ADU` | `05_point_information_and_weight_mode.md`；`point-information.v1.{W_info,Q,flux,flux_variance}` |
+| `FZ-UNIT-WINFO`=`ADU^-2`、`FZ-UNIT-Q`=`ADU^-1`、`FZ-UNIT-FLUX`=`ADU` | `05_point_information_and_weight_mode.md`；`point-information.v1.{W_info,Q,flux,flux_variance}` |（已按 §9.73 A44 作废：该概念不存在）
 | `FZ-UNIT-PSFSW`=`1`（无量纲、组内相对、**不是** ivar/Fisher） | `06_psfsw.md`；`psfsw.v1.weight.units="1"` + `group_normalized=true` + 禁止键门 |
 | `FZ-FORMULA-DRIZZLE-SB` 面亮度保持归一 | `02_signal.md`；`signal.v1.formula_ref` + `constant_field_oracle` |
-| `FZ-FORMULA-WINFO/Q/FHAT`、`FZ-COND-WHITENOISE` | `05_point_information_and_weight_mode.md`；`point-information.v1.authoritative_formula` + `white_noise_approximation` |
+| `FZ-FORMULA-WINFO/Q/FHAT`、`FZ-COND-WHITENOISE` | `05_point_information_and_weight_mode.md`；`point-information.v1.authoritative_formula` + `white_noise_approximation` |（已按 §9.73 A44 作废：该概念不存在）
 | `FZ-FORMULA-GLS` + `FZ-GATE-PIXIVAR-APPROX` | `03_covariance.md`；`covariance.v1.surface_gls_normal_equations` + `approximation` |
 | `FZ-FORMULA-COV-PROP` `C_out=R C_in R^T` | `03_covariance.md`；`covariance.v1.propagation/variance_from/combination_coefficients` |
 | `FZ-FIELD-PSFSW-4COMP`/`FZ-FIELD-PSFSW-UNIT` | `06_psfsw.md`；`psfsw.v1.components`（measurement_id 互异 + p05/p50/p95 + 有效覆盖） |
 | `FZ-GATE-PSFSW-FAILCLOSED`/`-COV`/`-EPSF` | `06_psfsw.md`；`psfsw.v1.validity/covariance_ref/effective_psf_ref` |
-| `FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE` | `05_point_information_and_weight_mode.md`；`weight-mode.v1` |
+| `FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE` | `05_point_information_and_weight_mode.md`；`weight-mode.v1` |（已按 §9.73 A44 作废：该概念不存在）
 | `FZ-GATE-MEDIAN-SNR`/`FZ-GATE-SUPPORT-COVERAGE`/`FZ-GATE-PSFSW-EPSF` | `04_psf_and_effective_psf.md`；各 schema 的 `fail_closed` + `G-DIAGNOSTIC-NOT-WEIGHT` |
 | `FZ-BUNIT-SEMANTICS`/`FZ-P3-BUNIT-QUADRATIC` | `01_units_and_bunit.md` |
 | `FZ-COND-FLUX-CONSERV` | `01/02`；`normalization.flux_conservation_factor` |

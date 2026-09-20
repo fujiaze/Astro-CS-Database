@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
 
 # PSFSW 基线比较协议
@@ -11,7 +13,7 @@
 | `baseline_id` | 权重 | 备注 |
 |---|---|---|
 | `equal` | `w_k=1` | 文档基线模式（`FZ-MODE-BASELINE`） |
-| `exposure` | `w_k=t_k`（有效曝光时间，来自 provenance） | **比较协议标识**，不是 `weight_mode` 合法值；不扩展冻结枚举（`C-004.3`） |
+| `exposure` | `w_k=t_k`（有效曝光时间，来自 provenance） | **比较协议标识**，不是 `weight_mode` 合法值；不扩展冻结枚举（`C-004.3`） |（已按 §9.73 A44 作废：该概念不存在）
 | `pixel_ivar` | `w_k(p)=1/v_k(p)` | 文档基线模式（`FZ-MODE-BASELINE`）；不得宣称对任意 PSF 的点源最优 |
 | `point_information` | `W_info,k=a_k²P_kᵀC_k⁻¹P_k` | 生产模式 `point_information` 作为 `W_info` 基线（`FZ-FORMULA-WINFO`） |
 
@@ -54,4 +56,4 @@ P_eff      = 该基线实际算子的脉冲响应（归一约定声明）
 
 - 生产模式枚举保持 `{point_information, surface_gls, psfsw_robust}`（`FZ-MODE-PRODUCTION`）；
 - 文档基线模式枚举保持 `{equal, pixel_ivar}`（`FZ-MODE-BASELINE`）；
-- `exposure` 与 `baseline_id` 是**比较协议字段**，归属 `SCHEMA-INTEGRATE-001`(W6) 归一，本协议不发明 `weight_mode` 新值、不改 contracts（`C-004.3`/`C-004.5`）。
+- `exposure` 与 `baseline_id` 是**比较协议字段**，归属 `SCHEMA-INTEGRATE-001`(W6) 归一，本协议不发明 `weight_mode` 新值、不改 contracts（`C-004.3`/`C-004.5`）。（已按 §9.73 A44 作废：该概念不存在）

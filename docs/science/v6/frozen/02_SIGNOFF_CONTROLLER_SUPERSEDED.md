@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 > 由 `reports/v6/contract-review/tools/gen_freeze.py` 机械渲染，与 `docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json` 同源；语义源 = `reports/v6/science-adjudication/adjudications.json` + W3 各规格；基线 HEAD = `ebefe00d3cb9018d61b7b3e8d3d7694191c1f333`。
@@ -32,7 +34,7 @@
 | SUP-02 | docs/science/DRIZZLE.md | §5 权重与归一 / §7 不变量 | 38-51,79-84 | FZ-FORMULA-DRIZZLE-SB, FZ-FORMULA-DRIZZLE-VAR, FZ-COND-FLUX-CONSERV | SO-02 |
 | SUP-03 | docs/science/DRIZZLE.md | §11 验收门 | 117 | FZ-GATE-CONST-SB | SO-03 |
 | SUP-04 | docs/science/DRIZZLE.md | §1 目的与非目标 / §9a 专属问题 | 8,146 | FZ-GATE-PARENT-VAR, FZ-FORMULA-COV-PROP, FZ-PROV-SHARED-SYSTEMATIC | SO-04 |
-| SUP-05 | docs/science/CONTROL_WEIGHT_SNR.md | § 像素级 SNR 权重（weight_mode=2） | 66,71 | FZ-MODE-PRODUCTION, FZ-FIELD-WEIGHTMODE, FZ-GATE-SUPPORT-COVERAGE, FZ-GATE-MEDIAN-SNR | SO-06 |
+| SUP-05 | docs/science/CONTROL_WEIGHT_SNR.md | § 像素级 SNR 权重（weight_mode=2） | 66,71 | FZ-MODE-PRODUCTION, FZ-FIELD-WEIGHTMODE, FZ-GATE-SUPPORT-COVERAGE, FZ-GATE-MEDIAN-SNR | SO-06 |（已按 §9.73 A44 作废：该概念不存在）
 | SUP-06 | docs/science/ACR_EQUIVALENCE.md | §4 GPU 合同 | 33 | FZ-FIELD-WEIGHTMODE, FZ-MODE-PRODUCTION | SO-06 |
 | SUP-07 | docs/science/INTEGRATION.md | §1 目的与非目标 | 8 | FZ-FORMULA-COV-PROP, FZ-GATE-PARENT-VAR | SO-04/SO-06 |
 | SUP-08 | docs/science/CALIBRATION.md | §1 目的与非目标 / §9a 专属问题 | 5,91,95 | FZ-PROV-SHARED-SYSTEMATIC, FZ-FORMULA-COV-PROP | SO-06 |

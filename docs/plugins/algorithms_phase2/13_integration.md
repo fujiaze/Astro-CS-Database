@@ -14,7 +14,7 @@
 
 ## 3. 输入/输出数据合同
 
-- **输入**：归一化产品组、UPM 参数、rejection、PSF/信息层、帧级 SNR（文件头）、[稀疏帧内 SNR 层]、配置（含 `weight_mode`）。
+- **输入**：归一化产品组、UPM 参数、rejection、PSF/信息层、帧级 SNR（文件头）、[稀疏帧内 SNR 层]、配置（含权重口径 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））。
 - **SNR 路径（三条，配置文件 JSON 显式指定；默认稀疏）**：
   - `dense`（稠密面，精度基准）/ `sparse_reconstruct`（**默认**：稀疏层重建稠密）/ `frame_reconstruct`（帧级重建稠密）；
   - `sparse_reconstruct` 且输入**有**稀疏层 → 实际 SNR = 帧级 × 帧内，参与科学运算；
@@ -56,7 +56,7 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 
 ### psfsw_robust 模式
 
-- 显式 `weight_mode=psfsw_robust`：用 Phase1 的 psfsw_robust_weight 做 conventional integration；
+- 显式 `psfsw_robust` 口径 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）：用 Phase1 的 psfsw_robust_weight 做 conventional integration；
 - 必须用共同星集/selection-function 门，传播实际线性组合 covariance，输出 effective PSF，与等权/exposure/pixel-ivar/`W_info` 基线比较；
 - **不得宣称 Fisher 最优**，除非专项证明。
 
@@ -64,7 +64,7 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `weight_mode` | `point_information` | —— | point_information / surface_gls / psfsw_robust |
+| `weight_mode` | `point_information` | —— | point_information / surface_gls / psfsw_robust （已按 §9.73 A44 作废：键不存在；权重是派生量）（本行仅因 config/config_registry.json 的 plugin_knobs 登记锚点未同步而保留；注销归 FIX-203/FIX-207） |
 | `target_product` | 全 | —— | 输出产品族选择 |
 | `correlation_approx` | —— | —— | 相关噪声近似方式 |
 | `baseline_compare` | true | —— | 是否输出基线比较 |
@@ -78,7 +78,7 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 
 - PSF 不同的输入用像素 ivar coadd 且宣称点源最优 → 禁止；
 - 相关噪声无描述 → variance 不完备，标记；
-- `weight_mode=psfsw_robust` 缺共同星集/selection function → fail-closed；
+- `psfsw_robust` 口径 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） 缺共同星集/selection function → fail-closed；
 - 稀疏 SNR 层存在但损坏/不可重建 → 明确失败（不得静默回退帧级）。
 
 ## 8. 测试与 Oracle

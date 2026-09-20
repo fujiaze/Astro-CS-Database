@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # Phase2 `psfsw_robust` 算法主规格
@@ -29,7 +31,7 @@
 | A12 | 与等权/exposure/pixel-ivar/`W_info` 四基线比较，只允许声明“在指定验收数据上优于/不劣于指定基线”，不得声明 Fisher 最优 | `DESIGN-P2-001` §6.3/§10；`SCI-PSFW-001` §5/§7.4 | `SCI-PSFW-001` §4 表；Zackay & Ofek 2017 I/II |
 | A13 | 标量降级须**同时**过空间残差/趋势门与功率损失门；否则存 map/model/控制点 | `FZ-DEGRADE-SCALAR`；`SC-ADJ-GEN04.1..4`；`UNIFIED` §8；`DESIGN-P1-001` §8.3 | `DESIGN-P1-001` §8.3 |
 | A14 | 面亮度保持归一 `S_p=Σ_j B_j a_jp/Σ_j a_jp` 为上游输入口径；通量守恒为条件不变量并写 provenance | `FZ-FORMULA-DRIZZLE-SB`；`FZ-COND-FLUX-CONSERV`；`SC-ADJ-F02.1..4` | `DESIGN-P1-001` §9:120-126 |
-| A15 | schema 词表由 W6 归一；本任务不发明第三套词表，`baseline_id` 为比较协议标识（非 `weight_mode` 枚举值） | `SC-ADJ-C00403.1..2`；`C-004.3` | `PSFW_FREEZE_RESEARCH` §8/§11-R2 |
+| A15 | schema 词表由 W6 归一；本任务不发明第三套词表，`baseline_id` 为比较协议标识（非 `weight_mode` 枚举值） | `SC-ADJ-C00403.1..2`；`C-004.3` | `PSFW_FREEZE_RESEARCH` §8/§11-R2 |（已按 §9.73 A44 作废：该概念不存在）
 
 ---
 
@@ -37,7 +39,7 @@
 
 ### 1.1 主体
 
-本规格约束 Phase2 的显式模式 `weight_mode = psfsw_robust`（`DESIGN-P2-001` §6.3；`FZ-MODE-PRODUCTION`）。它在同一**帧组 `G`** 内定义：同波段 × 同目标或重叠连通分量 × 光度已归一的帧集合（`SCI-PSFW-001` §3）。跨组比较在未声明 selection function 前禁止。
+本规格约束 Phase2 的显式模式 `weight_mode = psfsw_robust`（`DESIGN-P2-001` §6.3；`FZ-MODE-PRODUCTION`）。它在同一**帧组 `G`** 内定义：同波段 × 同目标或重叠连通分量 × 光度已归一的帧集合（`SCI-PSFW-001` §3）。跨组比较在未声明 selection function 前禁止。（已按 §9.73 A44 作废：该概念不存在）
 
 ### 1.2 输入
 
@@ -92,9 +94,9 @@ normalization.median_target = 1.0
 ```
 （语义冻结锚：`FZ-FIELD-PSFSW-UNIT`；字段词表由 `SCHEMA-INTEGRATE-001`/W6 归一，`SC-ADJ-C00403.1..2`。本规格同时给出与 `SCI-P2-001` 词表的双向映射建议，见 §7.4。）
 
-### 2.3 `baseline_id` 与 `weight_mode` 的分离（避免污染冻结枚举）
+### 2.3 `baseline_id` 与 `weight_mode` 的分离（避免污染冻结枚举）（已按 §9.73 A44 作废：该概念不存在）
 
-基线比较需要的 `exposure` 不是 `FZ-MODE-BASELINE` 的枚举值。本规格引入**比较协议标识** `baseline_id ∈ {equal, exposure, pixel_ivar, point_information}`，它属于比较报告字段，**不是** `weight_mode` 合法取值，因此不扩展冻结模式枚举（`C-004.3`）；其 schema 归属 `SCHEMA-INTEGRATE-001`(W6)。
+基线比较需要的 `exposure` 不是 `FZ-MODE-BASELINE` 的枚举值。本规格引入**比较协议标识** `baseline_id ∈ {equal, exposure, pixel_ivar, point_information}`，它属于比较报告字段，**不是** `weight_mode` 合法取值，因此不扩展冻结模式枚举（`C-004.3`）；其 schema 归属 `SCHEMA-INTEGRATE-001`(W6)。（已按 §9.73 A44 作废：该概念不存在）
 
 ---
 
@@ -282,7 +284,7 @@ P_eff(x;x_o) = [ sum_k alpha_k(x_o) a_k (P_k (x) K_k)(x - x_o) ]
 | `baseline_id` | 权重 | 说明 |
 |---|---|---|
 | `equal` | `w_k = 1` | 文档基线模式（`FZ-MODE-BASELINE`） |
-| `exposure` | `w_k = t_k`（有效曝光时间，来自 provenance） | 比较协议标识，非 `weight_mode` 枚举值 |
+| `exposure` | `w_k = t_k`（有效曝光时间，来自 provenance） | 比较协议标识，非 `weight_mode` 枚举值 |（已按 §9.73 A44 作废：该概念不存在）
 | `pixel_ivar` | `w_k(p) = 1/v_k(p)` | 文档基线模式（`FZ-MODE-BASELINE`） |
 | `point_information` | `W_info,k = a_k² P_kᵀ C_k⁻¹ P_k` | 生产模式 `point_information` 作为 `W_info` 基线（`FZ-FORMULA-WINFO`） |
 

@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # 观测模型与 covariance 复核（SCI-OBS-001）
@@ -83,7 +85,7 @@ W_info,k = a_k² P_kᵀ C_k⁻¹ P_k
 
 ### 2.4 用词纪律
 
-宪章 §4.1 要求 signal/variance/ivar/snr/quality/support/coverage/validity/rejection/provenance 不复用模糊名；UNIFIED §3 禁止无前缀 weight/snr。现状：lib/algorithms/coverage/src/stage2_common.cpp:373-384 仅接受 auto/ivar/equal/support_x_snr2（整数 weight_mode），lib/infrastructure/scheduler/src/module_adapters.cpp:4261-4270 在节点链上只放行 1/2 并显式拒绝 legacy 0——方向上与 DATA_SEMANTICS §30.1 一致，但**目标三模式 point_information/surface_gls/psfsw_robust 在生产面仍 0 命中**（run/v6/base/gap_baseline.md §1；本任务不改实现，仅登记）。
+宪章 §4.1 要求 signal/variance/ivar/snr/quality/support/coverage/validity/rejection/provenance 不复用模糊名；UNIFIED §3 禁止无前缀 weight/snr。现状：lib/algorithms/coverage/src/stage2_common.cpp:373-384 仅接受 auto/ivar/equal/support_x_snr2（整数 weight_mode），lib/infrastructure/scheduler/src/module_adapters.cpp:4261-4270 在节点链上只放行 1/2 并显式拒绝 legacy 0——方向上与 DATA_SEMANTICS §30.1 一致，但**目标三模式 point_information/surface_gls/psfsw_robust 在生产面仍 0 命中**（run/v6/base/gap_baseline.md §1；本任务不改实现，仅登记）。（已按 §9.73 A44 作废：该概念不存在）
 
 ---
 
@@ -113,10 +115,10 @@ Var_joint(F) = 3.523773   vs   1/ΣW (naive) = 1.013967   → ratio 3.475
 
 DATA_SEMANTICS §30.1（DATA-P2-VAR-001）冻结：ivar_mosaic(p)=W(p)=Σ_i ivar_i(p)，variance_mosaic=1/W，一般式 Σ_i w_i²v_i/W²。现状：
 
-- lib/infrastructure/scheduler/src/module_adapters.cpp:4704-4711 确实写 var_num_sum = cov²/W（即 variance_mosaic=1/W 经 writer 反归一）；uncertainty_available 仅在 weight_mode==2 且全部帧 ivar 存在时为 true（:4281-4306），等权/降级时置 false（fail-closed，符合 §30.1 unavailable 规则）；
+- lib/infrastructure/scheduler/src/module_adapters.cpp:4704-4711 确实写 var_num_sum = cov²/W（即 variance_mosaic=1/W 经 writer 反归一）；uncertainty_available 仅在 weight_mode==2 且全部帧 ivar 存在时为 true（:4281-4306），等权/降级时置 false（fail-closed，符合 §30.1 unavailable 规则）；（已按 §9.73 A44 作废：该概念不存在）
 - writer 归约 variance = var_num_sum/covered_area²（aio_hips_writer.cpp:668,721-724）。
 
-失效域：该逐像素方差只在 (a) 权重为纯逆方差、(b) 输入帧 ivar 只含随机项、(c) 相邻像素独立 时是无偏的。Drizzle 后 (c) 不成立（§5），共同 master 使 (b) 不成立（§3.1），weight_mode=1 使 (a) 不成立（但此时产品直接 unavailable）。三者都不进入逐像素 variance 产品，是**结构性缺口**而非公式错误（unavailable 规则部分覆盖了 (a)）。
+失效域：该逐像素方差只在 (a) 权重为纯逆方差、(b) 输入帧 ivar 只含随机项、(c) 相邻像素独立 时是无偏的。Drizzle 后 (c) 不成立（§5），共同 master 使 (b) 不成立（§3.1），weight_mode=1 使 (a) 不成立（但此时产品直接 unavailable）。三者都不进入逐像素 variance 产品，是**结构性缺口**而非公式错误（unavailable 规则部分覆盖了 (a)）。（已按 §9.73 A44 作废：该概念不存在）
 
 ---
 
@@ -255,7 +257,7 @@ ivar_out = 1/var_out (有限且 >0)
 | FD-7 | W_psf(x,y) 空间非均匀却压成帧标量 | 信息损失 | 有门要求（UNIFIED §8；PHASE1 §8.3），未验证 |
 | FD-8 | Phase3 输入 u 已相关仍用 Σc²u | 输出方差下界 | 同 FD-3 |
 | FD-9 | 把 psfsw/support/coverage/median SNR/FWHM/residual 当 ivar | 方差语义错误 | 合同禁止（UNIFIED §3/§11；PSF_SIGNAL_WEIGHT §8；门 W1/I1） |
-| FD-10 | weight_mode≠2 或 ivar 帧缺失 | 应 fail-closed 不写 variance | §30.1 unavailable 规则；实现 module_adapters.cpp:4289-4306 |
+| FD-10 | weight_mode≠2 或 ivar 帧缺失 | 应 fail-closed 不写 variance | §30.1 unavailable 规则；实现 module_adapters.cpp:4289-4306 |（已按 §9.73 A44 作废：该概念不存在）
 | FD-11 | k_corr 与生产几何/pixfrac 解耦 | control_ivar 有偏 | 冻结 1.4 + 按尺度查找表，无独立复现（F-OBS-05） |
 
 ---

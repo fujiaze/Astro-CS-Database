@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# ⚠ 已按 §9.73 A44 作废：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念不存在（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。内容保持历史原样、仅作留痕，不构成现行规范；权重 = 阶段二按该天球像素对应帧集合现场算出的派生量。
 """ALG-P1-001 独立 Oracle + 结构一致性检查 + 负向 mutation 门。
 
 任务：工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/ALG-P1-001.md
@@ -83,7 +84,7 @@ def chk_gates(subj):
 
 def chk_mode_production(subj):
     spec = subj["spec"]
-    prod = set(spec.get("production_weight_modes", []))
+    prod = set(spec.get("production_weight_modes", []))  # （已按 §9.73 A44 作废：该概念不存在）
     defer = set(spec.get("deferred_modes", []))
     fb = set(spec.get("forbidden_production_mode_values", []))
     return (prod == PRODUCTION_MODES_EXPECTED and "psf_snr_power" in defer
@@ -652,7 +653,7 @@ MUTATIONS = {
     "M-S5": {"gate": "G-STRUCT-GATES", "desc": "drop FZ-GATE-CONST-SB from gates",
              "apply": lambda s: s["spec"].__setitem__("gates", [g for g in s["spec"]["gates"] if g["id"] != "FZ-GATE-CONST-SB"])},
     "M-S6": {"gate": "G-MODE-PRODUCTION", "desc": "put psf_snr_power into production modes",
-             "apply": lambda s: (s["spec"]["production_weight_modes"].append("psf_snr_power"),
+             "apply": lambda s: (s["spec"]["production_weight_modes"].append("psf_snr_power"),  # （已按 §9.73 A44 作废：该概念不存在）
                                  s["spec"]["deferred_modes"].remove("psf_snr_power"))},
     "M-S7": {"gate": "FZ-GATE-PSFSW-NOKEYS", "desc": "drop ivar from psfsw forbidden keys",
              "apply": lambda s: s["spec"]["psfsw_forbidden_keys"].remove("ivar")},

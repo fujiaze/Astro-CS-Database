@@ -34,8 +34,8 @@
 - 马赛克编排生命周期 DISCOVER→COVERAGE_UNION→CONTROL_SAMPLE→UPM_FIT→
   UPM_PERSIST→BLOCK_PLAN→REJECT+INTEGRATE+HIPS_WRITE→HIPS_VERIFY；
   target_order 禁插值伪装分辨率（高于输入最高 order → rc=3）。
-- 逐 tile 排异+加权积分（weight_mode=2 ivar 权重门：缺 ivar 产品且
-  legacy_allow_weight_fallback=false → rc=7 显式科学错误）→ 逆归一
+- 逐 tile 排异+加权积分（纯逆方差权重门 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）：缺 ivar 产品 →
+  rc=7 显式科学错误）→ 逆归一
   （area=sup×A_cell、flux=signal×area）→ FITS 序→NESTED 序转换
   （HIPS-IMG-001）→ writer 库写 signal+support 两产品 → HIPS_VERIFY 回读。
 - 非职责：叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库 P1 域）；

@@ -51,9 +51,9 @@ Phase2 必须验证输入兼容，建立 overlap graph，联合求解乘法光�
 
 - 扩展源：广义最小二乘或经证明适用的像素 inverse-variance 近似；
 - 点源：消费每帧 PSF、光度响应和 covariance，以 `Q=aPᵀC⁻¹d`、`W=a²PᵀC⁻¹P` 合并，达到最大检测功率/最小通量方差；
-- PSFSW 稳健集成：正式支持 `weight_mode=psfsw_robust`，以共同星集的 PSF signal/concentration、稳健 noise/background 复合相对权重驱动 conventional coadd；它与 Q/W、surface GLS 并列，但不冒充统计 ivar/Fisher information。
+- PSFSW 稳健集成：正式支持 `psfsw_robust` 口径，以共同星集的 PSF signal/concentration、稳健 noise/background 复合相对权重驱动 conventional coadd；它与 Q/W、surface GLS 并列，但不冒充统计 ivar/Fisher information。（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
 
-Phase2 配置必须显式选择 `point_information`、`surface_gls` 或 `psfsw_robust` 等冻结模式。输出不得只有一张 signal 和一个模糊 weight；必须包含目标函数、权重分量、variance/correlation、effective PSF、coverage/validity/rejection、UPM 和 provenance。PSFSW 详细定义见 `docs/science/PSF_SIGNAL_WEIGHT.md`。
+Phase2 配置必须显式选择 `point_information`、`surface_gls` 或 `psfsw_robust` 等冻结口径 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）。输出不得只有一张 signal 和一个模糊 weight；必须包含目标函数、权重分量、variance/correlation、effective PSF、coverage/validity/rejection、UPM 和 provenance。PSFSW 详细定义见 `docs/science/PSF_SIGNAL_WEIGHT.md`。
 
 ## 6. Phase3 必须做到什么
 

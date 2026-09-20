@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # W6 生产 schema 集成登记（SCHEMA-INTEGRATE-001）
@@ -18,11 +20,11 @@
 | # | 类别 | 落点 | 说明 |
 |---|---|---|---|
 | 1 | 生产 schema（10 件） | `contracts/schemas/v6/astrocs.v6.*.v1.schema.json` | 由 `contracts/proposals/v6/data/*.v1.schema.json` 迁移；JSON Schema 2020-12；全部通过 meta-schema 校验 |
-| 2 | 数据字典 | `contracts/data/v6_data_dictionary_v1.json` | 单位表 / BUNIT / weight_mode 三分 / 禁止项 / provenance 最小集 / concentration 权威 / fail-closed / 条款注册表 / 签字与开放登记 |
+| 2 | 数据字典 | `contracts/data/v6_data_dictionary_v1.json` | 单位表 / BUNIT / weight_mode 三分 / 禁止项 / provenance 最小集 / concentration 权威 / fail-closed / 条款注册表 / 签字与开放登记 |（已按 §9.73 A44 作废：该概念不存在）
 | 3 | 单一权重词表 | `contracts/data/v6_weight_vocabulary_v1.json` | canonical 字段 + 双词表双向映射 + 第三套词表禁止项 + legacy 整数处置（DI-01/DI-07 闭合） |
 | 4 | 迁移映射表 | `contracts/data/v6_migration_map_v1.json` | 文件级 + 记录级 legacy→v6 映射与 reader/writer 规则 |
 | 5 | 生产正例 | `contracts/data/examples/v6/*.example.json`（10 件） | 逐条通过目标 schema（含 concentration 单位修正） |
-| 6 | 合同文档 | `docs/contracts/DATA_SEMANTICS.md` §31；`docs/contracts/PUBLIC_API.md`「V6 消费面」 | 单位表/BUNIT/weight_mode/provenance/fail-closed 消费语义 |
+| 6 | 合同文档 | `docs/contracts/DATA_SEMANTICS.md` §31；`docs/contracts/PUBLIC_API.md`「V6 消费面」 | 单位表/BUNIT/weight_mode/provenance/fail-closed 消费语义 |（已按 §9.73 A44 作废：该概念不存在）
 | 7 | 验证 | `tests/contracts/v6/` | 独立 Oracle（对照冻结表）、schema 校验、词表归一、兼容/迁移、负向 mutation（≥12 必红） |
 
 ## 2. 词表归一（C-004.3 / DI-01 / DI-07）
@@ -62,7 +64,7 @@
 | `MIG-NORM-DRIZZLE` | `w_jp=a_jp/A_drop` 前向归一 | 面亮度保持 + `flux_conservation_factor` | legacy 归一须带版本；缺 factor 禁绝对通量 | 语义兼容（非静默改变） |
 | `MIG-COVARIANCE-PRODUCT` | 只存对角 variance | 对角 + 相关核/可重建算子摘要 | 只对角无核 → REJECT | 强化（fail-closed） |
 | `MIG-DIAGNOSTIC-NOT-WEIGHT` | 诊断量作权重 | 仅诊断/深度/门 | 诊断别名命中 → REJECT | 撤销旧权重形态（已登记 `SUPERSEDED`） |
-| `MIG-PROVENANCE-KEYS` | `ASTROCS_WEIGHT_MODE` 整数 / 无 reason 的 unavailable | `weight_mode_version` + `unavailable.{flag,reason,scope}` | 缺 reason/scope → REJECT | reader 兼容（缺声明拒绝） |
+| `MIG-PROVENANCE-KEYS` | `ASTROCS_WEIGHT_MODE` 整数 / 无 reason 的 unavailable | `weight_mode_version` + `unavailable.{flag,reason,scope}` | 缺 reason/scope → REJECT | reader 兼容（缺声明拒绝） |（已按 §9.73 A44 作废：该概念不存在）
 | `MIG-SCHEMA-PLANE-OWNER` | exchange plane ∈ {signal,support,variance,ivar,mask} | v6 描述层对象 | science plane 扩展须 schema + runtime validator 同一提交 | **保持 OPEN（DI-06）**：runtime 不在本任务 write_scope，未改 exchange schema |
 
 **向后兼容声明**：既有平面语义（`signal/support/variance/ivar/mask`）、BUNIT 二次律、provenance 最小集**不被静默改变**；所有 legacy 记录由 reader 显式规范化或拒绝，不存在"静默按新语义重解释"。生产 writer 只产出 v6 canonical。

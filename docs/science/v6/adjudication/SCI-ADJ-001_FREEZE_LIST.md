@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # SCI-ADJ-001 冻结清单（字段 / 公式 / mode / 适用域 / 降级 / 验证门）
@@ -73,13 +75,13 @@
 | `FZ-BUNIT-SEMANTICS` | BUNIT/pixel_area_power | BUNIT 必须量纲可判：显式 px 幂次 或 provenance pixel_semantics=surface_brightness+pixel_area_power=-2 | 全部产品写盘 | ADJ-F-OBS-01; DATA_SEMANTICS §30.4:2475 | 单位不可判 -> unavailable/REJECT |
 | `FZ-FIELD-PSFSW-4COMP` | PSFSW 四分量 | psfsw.signal / psfsw.concentration / psfsw.noise / psfsw.background (measurement_id 互异; p05/p50/p95; 有效覆盖) | Phase1/2 PSFSW | PSF_SIGNAL_WEIGHT §3; PSFW_FREEZE §4.2; ADJ-P2-03 | 四分量塌陷/缺分量即 REJECT |
 | `FZ-FIELD-PSFSW-UNIT` | PSFSW 单位/归一语义 | weight_kind=relative_dimensionless; weight_units=1; group_normalized=true; normalization.scope=group | Phase2 psfsw_robust | PSF_SIGNAL_WEIGHT §3; ADJ-P2-03 | units 含 flux^-2/ivar 即 REJECT |
-| `FZ-FIELD-WEIGHTMODE` | weight_mode 语义 | 显式三模式; legacy 整数 {0=support x snr^2,1=equal,2=ivar} 被取代; 0 不得进科学权重面; schema 词表归 W6 | Phase2 | ADJ-S1; C-004.3; UNIFIED §11 | schema 词表未归一前不得发明第三套 |
+| `FZ-FIELD-WEIGHTMODE` | weight_mode 语义 | 显式三模式; legacy 整数 {0=support x snr^2,1=equal,2=ivar} 被取代; 0 不得进科学权重面; schema 词表归 W6 | Phase2 | ADJ-S1; C-004.3; UNIFIED §11 | schema 词表未归一前不得发明第三套 |（已按 §9.73 A44 作废：该概念不存在）
 
 ## 3.4 冻结模式（4 条）
 
 | id | 主题 | 冻结值 | 生效范围 | 条款/证据锚 | 验证门 |
 |---|---|---|---|---|---|
-| `FZ-MODE-PRODUCTION` | 生产科学权重模式 | point_information | surface_gls | psfsw_robust | Phase2 配置/路由 | PROJECT_SPEC §5; PSF_SIGNAL_WEIGHT §4; C-004.1; ADJ-S1 | 未知模式/legacy 0 进生产即 REJECT |
+| `FZ-MODE-PRODUCTION` | 生产科学权重口径 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） | point_information | surface_gls | psfsw_robust | Phase2 配置/路由 | PROJECT_SPEC §5; PSF_SIGNAL_WEIGHT §4; C-004.1; ADJ-S1 | 未知模式/legacy 0 进生产即 REJECT |
 | `FZ-MODE-BASELINE` | 文档基线模式 | equal | pixel_ivar (仅基线比较, 非科学最优声明) | Phase2 基线对比 | DESIGN-P2 §6.3; ADJ-S1 | 基线模式冒充最优即 REJECT |
 | `FZ-MODE-DEFERRED` | 延迟模式 | psf_snr_power (DEFERRED/NOT_IMPLEMENTED, 不进 V6 生产路由) | Phase2 | CONTROLLER_LOG C-004.1; 00_READ_FIRST; ADJ-C004-01 | 进生产模式列表即 REJECT |
 | `FZ-P3-MODES` | Phase3 输出模式 | surface_brightness | point_source_flux | visualization | Phase3 配置 | DESIGN-P3 §1:11-13; ADJ-P3-01 | 模式未声明即拒绝 |

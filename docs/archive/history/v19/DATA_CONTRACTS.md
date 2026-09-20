@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **ARCHIVED_NON_NORMATIVE** — GOV-002 归档历史技术文档，不再作为当前权威。
 > 替代文档：docs/contracts/DATA_ARTIFACTS.md、docs/contracts/DATA_SEMANTICS.md
 
@@ -34,7 +36,7 @@ ivar/      Image HiPS  V19: 1/variance
 
 ```text
 variance = 传播方差 (含 drizzle 线性算子的源像素方差贡献)
-ivar     = 1/variance (Phase2 积分权重, weight_mode=2)
+ivar     = 1/variance (Phase2 积分权重, weight_mode=2)（已按 §9.73 A44 作废：该概念不存在）
 NaN 语义: covered_area<=0 → variance/ivar NaN (与 signal 一致)
 ```
 

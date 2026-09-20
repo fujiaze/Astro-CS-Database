@@ -1,4 +1,5 @@
 {
+  "_a44_deprecation_banner": "本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念不存在（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。内容保持历史原样、仅作留痕，不构成现行规范；权重 = 阶段二按天球像素对应帧集合现场算出的派生量。",
   "schema": "astrocs.v6.alg-p1-001/v1",
   "spec_id": "ALG-P1-001",
   "document_id": "ALG-P1-001-PHASE1-ALG",
@@ -718,7 +719,7 @@
     "w_info",
     "w_psf"
   ],
-  "production_weight_modes": [
+  "_a44_deprecation_note": "production_weight_modes 已按 §9.73 A44 作废（该概念不存在；权重是阶段二按像素集合现场算的派生量）", "production_weight_modes": [
     "point_information",
     "surface_gls",
     "psfsw_robust"

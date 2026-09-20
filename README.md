@@ -11,7 +11,7 @@
 > 现状与发布口径：`docs/owner/RELEASE_STATUS.md`、`docs/RELEASE_STATUS.md`、`docs/KNOWN_LIMITATIONS.md`。
 > 本轮治理控制包：`工程控制/PROJECT-GOVERNANCE-01/`（任务与验收状态以该包 `TASK_LIST.md`/`ACCEPTANCE.md` 为准）。
 >
-> **V6 产品族冻结合同（现存文档面，非控制包）**：Phase2 生产权重模式 =
+> **V6 产品族冻结合同（现存文档面，非控制包）**：Phase2 生产~~权重模式~~ =（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
 > `{point_information, surface_gls, psfsw_robust}`；文档基线 = `{equal, pixel_ivar}`；
 > `psf_snr_power` = **DEFERRED 且生产拒绝**。语义权威 =
 > `docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 /
@@ -42,7 +42,7 @@ AstroCS 是天文 CCD/CMOS 图像校准与标准化数据库系统。产品形�
 - **`normalize`（内部指代 Phase1）**：JSON 配置 + 元数据 → 标准化单帧 HiPS（帧级 SNR 入文件头，
   可选稀疏帧内 SNR 层）+ 结构化 JSON。数据块 = 一组 light + 对应校准帧 + 滤镜。
 - **`mosaic`（内部指代 Phase2）**：一组合同兼容 HiPS + JSON 配置 → 马赛克 HiPS +
-  UPM/排异/集成 provenance + 结构化 JSON；三种显式生产权重模式 `point_information`
+  UPM/排异/集成 provenance + 结构化 JSON；三种显式生产口径 `point_information`（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
   （`Q=aPᵀC⁻¹d`、`W_info=a²PᵀC⁻¹P`）、`surface_gls`（扩展源 GLS）、`psfsw_robust`
   （PixInsight-style，**无量纲/组内 median=1、不是 ivar/Fisher**）；文档基线模式
   `equal`/`pixel_ivar` 仅作对照；`psf_snr_power` 保持 DEFERRED 且生产拒绝。

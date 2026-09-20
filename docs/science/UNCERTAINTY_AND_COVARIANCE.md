@@ -51,7 +51,7 @@ control_ivar     = 1 / control_variance
 
 ## Phase2 马赛克合成方差（DATA-P2-VAR-001，DATA-UNC-001 冻结 2026-09-09）
 
-马赛克加权积分（SCI-INT §5，w_i=逐样本 ivar，weight_mode=2，无 fallback）的
+马赛克加权积分（SCI-INT §5，w_i=逐样本 ivar，纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），无 fallback）的
 方差传播是 SCI-DRZ-014 一般式 `var_p = Σ_j v_j w_jp²/D_p²` 在积分权重下的
 直接特例（w_i=1/v_i）：
 
@@ -67,7 +67,7 @@ variance_mosaic(p) = 1 / W(p)
   variance 产品严格分离。
 - invalid（输出面）：无有效样本（n_used=0）→ variance/ivar=NaN（signal=NaN
   同态，writer 通道 DATA_SEMANTICS §12.4）；输入 ivar 非有限 → hard fail。
-- unavailable（fail-closed）：weight_mode≠2 或 ivar 帧缺失 fallback 发生 →
+- unavailable（fail-closed）：权重非纯逆方差 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） 或 ivar 帧缺失 fallback 发生 →
   不写 variance/ivar 产品 + manifest uncertainty_available=false（禁伪值）。
 - 产品/manifest 表达与验证门：DATA_SEMANTICS §30.1/§30.5（DATA-P2-VAR-001）。
 

@@ -81,7 +81,7 @@ NO_CANDIDATES、全拒→ALL_REJECTED、全零权重→ZERO_VALID_WEIGHT——
 
 module_id=`astrocs.phase2.integrate`（占位）；execution_class=
 `cpu_heavy`；parallel_ok=True（像素间）；配置=phase config JSON
-（权重策略在 Stage2 weight_mode，本内核无策略配置——weights 数组
+（权重策略在 Stage2 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），本内核无策略配置——weights 数组
 外置）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性

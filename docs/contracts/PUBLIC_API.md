@@ -1167,15 +1167,15 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 
 | 字段 | 默认 | 域 | 语义 |
 |---|---|---|---|
-| hips | —（:19） | 路径数组 `[n_frames]` | 每帧 Phase1 HiPS 目录（读 signal/support，weight_mode=2 加读 ivar） |
+| hips | —（:19） | 路径数组 `[n_frames]` | 每帧 Phase1 HiPS 目录（读 signal/support；纯逆方差权重时加读 ivar （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）） |
 | target_order_spec / target_order | "auto" / −1（:20-21） | HEALPix order | auto=cov.target_order；显式值不得高于输入最高 order（stage2.cpp:203-205） |
 | precision | 0（:50） | 0/1 | 0=float32 / 1=float64 输出（stage2.cpp:528） |
 | memory_limit_mb | 24576（:51） | MB | CON-002 内存预算 |
 | reject_method / reject_profile / reject_underdetermined_n | P2_REJECT_AUTO / "astrocs_adaptive_pixel"（**生产默认**，自研）/ 2（:52-54；**工具链默认仍 "wbpp_2_9_1"（对照档），分歧已登记**） | 无量纲 | planning 层 rejection 解析（profile 版本化；自研档 `underdetermined_n` 默认 3） |
 | reject_normalization | "astrocs_median_center_v1"（:56） | 无量纲 | 判定工作域归一（mask 应用回原始值） |
 | large_scale_enabled（+ min_structure_pixels/low_grow/high_grow） | false / 8 / 2 / 2（:60-63） | 无量纲 | astrocs.large_scale_rejection.v1，默认关闭 |
-| weight_mode | 2（:90） | 0/1/2 | 2=ivar（科学默认）/1=等权/0=support×snr²（legacy/诊断） |
-| legacy_allow_weight_fallback | false（:94） | bool | ivar 产品缺失默认 rc=7；true 才允许降级 support 标红（stage2.cpp:565-578） |
+| ~~weight_mode~~ （已按 §9.73 A44 作废：键不存在；权重是派生量） | — | — | **已删字段**：不存在「权重模式」；逆方差权重由阶段二现场算出（§9.73 A44；ASTROCS_DESIGN.md §2.1） |
+| ~~legacy_allow_weight_fallback~~ （已按 §9.73 A44 作废：键不存在；权重是派生量） | — | — | **已删字段**：ivar 产品缺失默认 rc=7 的失败语义保留（stage2.cpp:565-578 为历史实现锚） |
 | acr_route | "auto"（:95） | cpu/auto/cuda 族 | 集成执行路由 |
 | out_hips | —（:97） | 路径 | 输出 HiPS 产品集根目录 |
 | diagnostics | true（:98） | bool | true → 落 diagnostics.json（本节键集） |
@@ -1214,7 +1214,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   large_scale_high_grow_radius_pixels（:1724）/
   large_scale_grown_samples（:1726）/ quality_fallback_unknown
   （:1728）/ local_snr_used（:1729）/ frame_snr_median_fallback
-  （:1730）/ weight_mode（:1731）/ local_ivar_used（:1732）/
+  （:1730）/ ~~weight_mode~~（:1731，（已按 §9.73 A44 作废：键不存在；权重是派生量））/ local_ivar_used（:1732）/
   ivar_product_missing（:1733）/ local_snr_unavailable_controls
   （:1734）/ upm_sigma_floor（:1735）/ upm_support_power（:1736）/
   reject_method（:1739）/ reject_underdetermined_n（:1740）/
@@ -1300,7 +1300,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 - 负向条款: **P2-INT-DOC 不新增、不修改任何公共 C 头/C ABI**——
   既有 V17 清单（:17-29）与本节为同一 ABI 的展开冻结，禁止第二套
   定义；policy/reducer 分离: 本层禁止引入 ivar/SNR 权重策略
-  （weights 数组外置，构造在 Stage2 weight_mode）。
+  （weights 数组外置，构造在 Stage2 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））。
 - 缺陷迁移语义（登记不改码）: DISP-P2INT-001（sup_max 漏计零权重
   accepted 样本——输出 support 保守方向偏低，偏离 integrate.h:17
   冻结文本；Stage2/ACR 直接消费，整改归 P2-INT-IMPL，回归门=
@@ -1397,7 +1397,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 | 项 | 值 |
 |---|---|
 | values | f64，ADU（kernel 工作域输入；gather f32/f64 源 → f64 提升，:1164-1179） |
-| weights | f64，1/ADU²（可空=等权；数值域，权重策略外置调用方 weight_mode） |
+| weights | f64，1/ADU²（可空=等权；数值域，权重策略外置调用方 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）） |
 | support | f64，无量纲 [0,1]（仅资格门，不进统计） |
 | frame_ids | u64，无量纲稳定帧标识（ESD tie-break/确定性） |
 | reasons | u8 0..3（P2RejectReason） |
@@ -1429,7 +1429,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 - 负向条款: **P2-REJ-DOC 不新增、不修改任何公共 C 头/C ABI**——
   rejection.h 既有声明与本节为同一 ABI 的展开冻结，禁止第二套
   定义；policy/reducer 分离: 禁止引入 ivar/SNR 权重策略（weights
-  数组外置，构造在 Stage2 weight_mode；RCR 核消费同栈 weights 数组
+  数组外置，构造在 Stage2 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；RCR 核消费同栈 weights 数组
   属官方加权语义，非策略）。
 - 缺陷迁移语义（登记不改码）: DISP-P2REJ-001（rejection.h:118
   percentile low_fraction 注释"默认 0.1" vs 实现 plan_resolve 默认
@@ -2121,14 +2121,14 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
   （FITS 写出消费面，resampled 平面为其输入）；镜像: API-P3-001
   （FROZEN 编排面，不因本节改动）。
 
-## V6 消费面：显式 `weight_mode` 与权重对象（API-V6-WEIGHTMODE-001，SCHEMA-INTEGRATE-001/W6）
+## V6 消费面：~~显式 `weight_mode` 与权重对象~~ **已作废** （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（原 `API-V6-WEIGHTMODE-001`，SCHEMA-INTEGRATE-001/W6；v6 合同层去留见 DESIGN-DRAFT §4.2-Q2）
 
 > 条款 ID：`API-V6-WEIGHTMODE-001`　状态：ACTIVE（V6 目标态消费面集成，2026-09-15）
 > 语义权威：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`；数据合同：`docs/contracts/DATA_SEMANTICS.md` §31（`DATA-V6-SCHEMA`）；
 > 生产 schema：`contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json`（及 `point-information`/`psfsw`/`covariance`/`effective-psf`/`provenance`）；
 > 词表：`contracts/data/v6_weight_vocabulary_v1.json`；迁移：`contracts/data/v6_migration_map_v1.json`。本节只定义**消费面语义**，不实现公式、不改既有 API/ABI 布局。
 
-### 1. 配置面 `weight_mode`（取代 legacy 整数）
+### 1. ~~配置面 `weight_mode`（取代 legacy 整数）~~ **已删键** （已按 §9.73 A44 作废：键不存在；权重是派生量）
 
 | 项 | 内容 |
 |---|---|
@@ -2136,9 +2136,9 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 | 合法值（文档基线） | `equal` / `pixel_ivar`（仅基线对照，非科学最优声明） |
 | 延迟值 | `psf_snr_power`（DEFERRED，不进 V6 生产路由；`C-004.1` 本包不解冻） |
 | 拒绝值 | `auto` / `support_x_snr2` / legacy 整数 `0` / 未知串（`G-WEIGHTMODE-ENUM`） |
-| 现有落点 | Phase2 mosaic write 消费面 `P2Stage2Config.weight_mode`（`stage2_common.h:90`）现为整数 `0/1/2`（本文 §「Phase2 mosaic write 公共消费面」:1165；`DATA_SEMANTICS` §20/§30.3） |
+| 现有落点（历史） | Phase2 mosaic write 消费面 `P2Stage2Config.weight_mode`（`stage2_common.h:90`）曾为整数 `0/1/2`（本文 §「Phase2 mosaic write 公共消费面」:1165；`DATA_SEMANTICS` §20/§30.3）（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） |
 
-**legacy 整数处置（reader 规则，唯一）**：`0=support×snr²` **一律拒绝**（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）；`1 → equal`；`2 → pixel_ivar`（迁移结果必须带 `weight_mode_version`，且两者不得冒充生产模式）。生产 writer 只写显式字符串模式。
+**legacy 整数处置（reader 规则，唯一）**：`0=support×snr²` **一律拒绝**（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）；`1 → equal`；`2 → pixel_ivar`（迁移结果必须带 ~~`weight_mode_version`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量），且两者不得冒充生产模式）。生产 writer 只写显式字符串模式。
 
 ### 2. 权重对象 canonical 字段（单一词表，`C-004.3`/`DI-01`/`DI-07`）
 
@@ -2156,6 +2156,6 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 ### 4. 边界登记
 
 - 帧级 `median(SNR_F)` 只作诊断/深度表达，不得接入任何权重面（`C-004.2`）；本文不重新加回被 `ac04289d` 回退的帧级单一 SNR 系数落位段或参数登记回退节。
-- UPM fit 的 `snr_weight_mode`（`DATA_SEMANTICS` §25）与 `use_ivar_weight` 是拟合内部诊断开关，**不是** Phase2 集成 `weight_mode` 枚举；不得互相映射。
+- UPM fit 的 `upm_weight_source`（原 `snr_weight_mode`，（已按 §9.73 A44 作废：键不存在；权重是派生量）；`DATA_SEMANTICS` §25）与 `use_ivar_weight` 是拟合内部诊断开关，**不是** Phase2 集成权重枚举；不得互相映射。
 - `SO-01`..`SO-07` 的待签条款保持 `PENDING_OWNER_SIGNOFF` 并 fail-closed；本节不使任何待签条款生效。
 - 验证：`tests/contracts/v6/`（独立 Oracle 对照冻结表 + 负向 mutation ≥12 条必红）。

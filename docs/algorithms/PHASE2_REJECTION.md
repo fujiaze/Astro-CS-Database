@@ -27,7 +27,7 @@
   本文件为阈值/迭代权威锚定文档（rejection.cpp:1-11 冻结头注释
   "本文件为阈值/迭代权威实现，禁止阈值漂移"）。
 - **非目标**：不合并/积分样本（SCI-INT-001 / ALG-P2-INT-001）；不
-  做权重策略（weights 数组外置，构造在 Stage2 weight_mode；RCR 核
+  做权重策略（weights 数组外置，构造在 Stage2 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；RCR 核
   消费同栈 weights 数组属官方加权语义，非策略）；不做像素外结构
   重建（large_scale 仅对已拒 mask 做 8 邻域扩张，只增不减）；无
   session 依赖（无状态纯函数）；不做瞬变/卫星语义区分（SCI §1
@@ -49,9 +49,9 @@
 | `alpha` | ESD 显著性水平 | 无量纲 0.05 | rejection.cpp:1059（默认） |
 | `iterations` | 外层迭代计数（kernel 计量） | 无量纲 u32 | rejection.h:281 |
 
-权重语义（调用方构造，本层无知）: weight_mode=2 → ivar（经
+权重语义（调用方构造，本层无知）: 纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） → ivar（经
 `source_indices` 回映射原始 slot，stage2.cpp:1098/:1361/:1379）；
-weight_mode=0 → support×snr²（legacy/诊断，ACR 域 acr_kernels.cpp:158）；
+历史 legacy 分支 （已按 §9.73 A44 作废：键不存在；权重是派生量） → support×snr²（legacy/诊断，ACR 域 acr_kernels.cpp:158）；
 null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 同一政策）。
 
@@ -415,7 +415,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
   large_scale 激活强制串行 :742-746/:1280）与串行路径
   （:1325-1543）。ivar
   权重经 source_indices 回映射原始 slot（:1098/:1361/:1379）；
-  weight_mode=0 snr² 加权在 ACR 域（acr_kernels.cpp:147-158）。
+  历史 legacy 分支 snr² 加权在 ACR 域 （已按 §9.73 A44 作废：键不存在；权重是派生量）（acr_kernels.cpp:147-158）。
 - **确定性合同（matrix 专项）**: 同输入同 plan 同 fid → decision
   bitwise 确定且与 worker 数无关（每像素独立决策树；无共享累加
   器；ESD tie-break=frame_id :1515-1518；linear_fit 排序

@@ -35,13 +35,13 @@
     {
       "token": "NOT_IMPLEMENTED",
       "namespace": "doc_status",
-      "evidence": "docs/contracts/v6/data/05_point_information_and_weight_mode.md:42",
+      "evidence": "docs/contracts/v6/data/05_point_information_and_weight_mode.md:44 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）",
       "reason": "模式/实现状态词（DEFERRED/NOT_IMPLEMENTED），与 FZ-MODE-DEFERRED 同域"
     },
     {
       "token": "PENDING_SO07",
       "namespace": "signoff_status",
-      "evidence": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md:367",
+      "evidence": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md:369",
       "reason": "未签字阈值标记（SO-07 签署门），非代码符号"
     },
     {

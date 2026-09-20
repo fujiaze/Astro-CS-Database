@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **ARCHIVED_NON_NORMATIVE** — GOV-002 归档历史技术文档，不再作为当前权威。
 > 替代文档：docs/science/PHASE2_UPM.md、docs/contracts/API-001.md、docs/algorithms/PHASE2_SAMPLER.md
 
@@ -17,12 +19,12 @@ legacy snr²/(1+snr²): 仅 use_ivar_weight=0 时用于 ablation (SNR-015)
 ### Integration 权重 (stack.ivar.v1 默认)
 
 ```text
-weight_mode = 2 (默认 ivar)
+weight_mode = 2 (默认 ivar)（已按 §9.73 A44 作废：该概念不存在）
   逐像素权重 = 帧 ivar 产品像素值 (Drizzle 传播方差倒数)
   support 只作 validity/coverage (禁止与 ivar 双重计数)
   产品缺失 → support (几何可靠性) 回退, 如实计数 ivar_product_missing
-weight_mode = 1  equal
-weight_mode = 0  support_x_snr2 (legacy, 仅 ablation/诊断)
+weight_mode = 1  equal（已按 §9.73 A44 作废：该概念不存在）
+weight_mode = 0  support_x_snr2 (legacy, 仅 ablation/诊断)（已按 §9.73 A44 作废：该概念不存在）
 ```
 
 ### ACR kernel

@@ -71,8 +71,8 @@
 ## 4 连续定义
 
 ```text
-# 像素级相对质量权重（stage2 排异/积分，weight_mode=0 legacy：生产禁用）
-#   weight_mode 分支号 = 实现事实（stage2_common.cpp:377-385 / stage2.cpp:1106-1141）：
+# 像素级相对质量权重（stage2 排异/积分，历史 legacy 分支 （已按 §9.73 A44 作废：键不存在；权重是派生量）：生产禁用）
+#   历史权重分支号 （已按 §9.73 A44 作废：键不存在；权重是派生量） = 实现事实（stage2_common.cpp:377-385 / stage2.cpp:1106-1141）：
 #     0 = support × snr_v²（本文件，legacy/ablation/诊断）
 #     1 = 等权 1.0
 #     2 = 逐样本 ivar 逆方差权重（生产默认，无 fallback；见 SCI-UPM §5:54 /
@@ -82,7 +82,7 @@ for 每个候选 s:
           else frame_snr_by_id[frame_id]                # 缺失 → 整帧质量权重中位数
   quality_weight[s] = snr_v                              # 相对质量权重，非科学 SNR
   weights[s] = support[s] × snr_v²                      # 禁止 snr=1.0 伪装 unknown
-  # ↑ 仅 weight_mode=0（legacy/ablation）；生产 weight_mode=2 用逐样本 ivar。
+  # ↑ 仅历史 legacy 分支（ablation）；生产用逐样本 ivar （已按 §9.73 A44 作废：键不存在；权重是派生量）。
 
 # local_snr_map 构造（stage2.cpp:383-396）
 for 每个控制观测 o:
@@ -107,9 +107,9 @@ for 每个控制星 s（半径内）:
 - **质量控制位为 OR 累积**（非均值/加权），表达"半径内任一惊星目录质量满足"的覆盖性语义；
 - **与 SCI-NOISE 区隔**：`variance/ivar` 为逐像素随机噪声权重；`local_snr/frame_snr` 为
   区域/帧级**相对质量权重倍率**（`quality_weight`，非科学信噪比）；二者**不混用**。
-- **分支号与生产面**：本文件的 `support × snr_v²` 是 `weight_mode=0`（legacy/
+- **分支号与生产面**：本文件的 `support × snr_v²` 是历史 legacy 分支 （已按 §9.73 A44 作废：键不存在；权重是派生量）（legacy/
   ablation/诊断，实现锚 `stage2_common.cpp:377-385`、`stage2.cpp:1123-1141`）；
-  **生产默认 `weight_mode=2`** = 逐样本 `ivar` 逆方差权重、无 fallback（ivar 缺失 =
+  **生产默认 = 逐样本 `ivar` 逆方差权重** （已按 §9.73 A44 作废：键不存在；权重是派生量）、无 fallback（ivar 缺失 =
   显式科学错误 `rc=2/7`），见 SCI-UPM §5:54、DATA-UNC-001 §51、DESIGN §4.3/§4.4。
   本文件不定义 mode 2 的权重语义。
 

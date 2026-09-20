@@ -33,7 +33,7 @@
 - SCI-SCOPE-001: 处理链位置权威（Phase2 末节点 coverage→…→马赛克写出）。
 - 输入: N 个 Phase1 单帧 HiPS 目录（`cfg.hips`），每帧消费 signal/support 两数据集
   （`aio_hips_open(AIO_HIPS_RD_SIGNAL/:AIO_HIPS_RD_SUPPORT)` :536-537）+
-  weight_mode=2 时 ivar 数据集（`AIO_HIPS_RD_IVAR` :557）；SNR Catalogue 仅供
+  纯逆方差权重时 ivar 数据集 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（`AIO_HIPS_RD_IVAR` :557）；SNR Catalogue 仅供
   frame 级 median fallback（`frame_snr_medians` :74-95，`AIO_HIPS_RD_SNR` :77，
   注释 "禁止重新检测星点" :73）。
 - 输出: 单个 Phase2 马赛克 HiPS 目录（`cfg.out_hips`），仅 signal/support 两产品
@@ -104,7 +104,7 @@
     `chunk_pixels = min(n_leaf, max(1, plan.block_pixels))`（:795-797）、
     `n_chunk = ceil(n_leaf/chunk_pixels)`（:798-799）、working_bytes log（:800-817）。
 - **ACR 块路径**（:863-1058，与 CPU reference 同一科学合同，路由仅执行域）:
-  - weight_compact 8×8 网格（:864-899）: weight_mode=2 → local_ivar_map
+  - weight_compact 8×8 网格（:864-899）: 纯逆方差权重 → local_ivar_map （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
     per-cell ivar（:877-884，缺失 key 时 `(ivar_product_missing==0) ? 1.0 : 0.0`）；
     mode 0 → local_snr_map + frame_snr fallback（:886-894）。
   - 逐 chunk 逐帧读 tile + UPM 空间校准 `p2_upm_calibrate_block`（:911-937，
@@ -115,7 +115,7 @@
     3=weight_compact(Input) / 4=out_sup(Output) / 5=out_rej(Output) /
     6=out_valid(Output)（:945-959）；scalars = cnt、depth、rplan.method、
     underdetermined_n、sigma lower/upper/max_iterations、chunk 偏移 p0、
-    weight_mode、acr_workers（:960-977）；cuda 可用走 `acr_reg->cuda`
+    权重分支 （已按 §9.73 A44 作废：键不存在；权重是派生量）、acr_workers（:960-977）；cuda 可用走 `acr_reg->cuda`
     否则 `legacy_parallel`（:979-983），异常时 fallback CPU（:984-988）。
   - 输出逆变换（writer 视图）: `valid = out_sup > 0`；
     `area = out_sup × A_cell`；`flux = out_sig × area`（:989-1004，
@@ -137,7 +137,7 @@
     `p2_collect_candidate_stack`（并行 :1084-1105 / 串行 :1330-1353），
     `gout.source_indices` 为 eligible→原 frame slot 稳定映射
     （:1344-1346 注释 "compact eligible → 原始 frame slot 稳定映射"）。
-  - 权重模式（并行 :1106-1140 / 串行 :1354-1400）:
+  - 权重口径（并行 :1106-1140 / 串行 :1354-1400）（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）:
     mode 2（默认）= 逐像素 ivar `weights[s] = ivarv[orig×chunk_pixels+i]`
     （ivar==0 合法零权重 ZERO_VALID_WEIGHT，注释 :1366-1368；nonfinite →
     `p2_validate_candidate_weights` 拒绝 hard fail，合同注释 :1366 "nonfinite
@@ -207,8 +207,8 @@ main(stage2.json, CLI overrides):
   BLOCK_PLAN（全局估算 tile_pixels=262144）失败 → rc=6          # :502-521
   # ALG-P2-HIPS-002 tile 循环
   nside=1<<(target_order+9); n_leaf=512×512; A_cell=4π/(12·nside²); dtype  # :525-529
-  for f: open signal+support（失败 rc=6）; weight_mode=2 时 open ivar       # :533-548
-  ivar 门: 缺失>0 且 !legacy_allow_weight_fallback → rc=7        # :565-574
+  for f: open signal+support（失败 rc=6）; 纯逆方差权重时 open ivar （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）  # :533-548
+  ivar 门: 缺失>0 且 !legacy_allow_weight_fallback （已按 §9.73 A44 作废：键不存在；权重是派生量） → rc=7  # :565-574
   out_hips 存在且非目录 → rc=6;                                  # :586-589
   aio_hips_product_begin(signal|support, creator, title, filter) # :592-596
   for ci in 0..cov.n_union_cells:                                # :659
@@ -226,7 +226,7 @@ main(stage2.json, CLI overrides):
         for s in frames: 读 sig/sup + ivar; UPM 校准 cal          # :1245-1277
         if OMP && !large_scale && workers>1:                      # :1280
             parallel for pixel: per-worker scratch
-            eligibility → weights(mode2=ivar/0=sup·snr²/1=等权)
+            eligibility → weights(逐样本 ivar / 等权 （已按 §9.73 A44 作废：键不存在；权重是派生量）)
             → validate(hard fail rc=6) → reject_stack_ex
             → accepted(reasons) → integrate_pixel
             → area=sup×A_cell, flux=sig×area                      # :1299-1237
@@ -277,8 +277,8 @@ main(stage2.json, CLI overrides):
 
 - 空帧集 tile: probe 全失败 → `continue`（:669），不写该 tile。
 - 输入打开失败: signal/support 任一失败 → 关闭已开句柄 + rc=6（:538-547）。
-- ivar 门（weight_mode=2 默认）: 逐帧 `AIO_HIPS_RD_IVAR` 失败计数
-  ivar_product_missing（:553-563）；>0 且 `legacy_allow_weight_fallback=false`
+- ivar 门（纯逆方差权重默认 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））: 逐帧 `AIO_HIPS_RD_IVAR` 失败计数
+  ivar_product_missing（:553-563）；>0 且 `legacy_allow_weight_fallback=false` （已按 §9.73 A44 作废：键不存在；权重是派生量）
   （默认）→ 显式科学错误 rc=7，log "拒绝继续，防止在非逆方差语义下冒充
   ivar coadd"（:565-574）；显式 true 才降级 support 并 diagnostics 标红
   （:576-577）。
@@ -316,11 +316,11 @@ main(stage2.json, CLI overrides):
 ## 7 合同负向条款（科学红线，P2-HIPS 专项）
 
 - **四概念分离红线**: `signal`（SCI-INT §5 加权积分输出，ADU）、
-  `variance/ivar`（输入侧逐帧产品消费，w_i=ivar_i，weight_mode=2 默认），
+  `variance/ivar`（输入侧逐帧产品消费，w_i=ivar_i，纯逆方差权重默认 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）），
   `support`（SCI-INT §5 sup_max=max(accepted support)，几何覆盖 [0,1]，
   A_cell 归一）、`mask`（rejection reasons→accepted 掩码，large_scale grow
   后处理）在缓冲/产品/命名上严格分离；**禁止 support 当科学权重冒充
-  ivar**——weight_mode=2 缺 ivar 产品 → rc=7 或显式标红 fallback（:565-577），
+  ivar**——纯逆方差权重缺 ivar 产品 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） → rc=7 或显式标红 fallback（:565-577），
   像素级缺 ivar 仅显式 fallback 路径可达并降级 support 计数（:1372-1375）；
   **禁止 valid_mask 入权重式**（valid_mask 仅 writer 视图层
   `view.valid_mask` :1628，权重式只取 ivar/support）。
@@ -355,7 +355,7 @@ main(stage2.json, CLI overrides):
   - 序转换往返恒等: `nested_local_to_fits_index(i,9,512)` ↔
     `fits_index_to_nested_local`（stage2.cpp:825-827 消费后者）对全
     262144 索引双射断言（整数精确，无容差）。
-  - ivar 门负测: weight_mode=2 且 ivar 产品缺失、legacy_allow_weight_fallback
+  - ivar 门负测: 纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） 且 ivar 产品缺失、legacy_allow_weight_fallback
     未显式置 true → rc=7（:565-574）；置 true → rc=0 且 diagnostics
     ivar_product_missing>0。
 - 既有可执行测试（legacy gate，迁移基线，实测）:
@@ -454,7 +454,7 @@ main(stage2.json, CLI overrides):
 
 | ID | 严重度 | 描述 | 源码锚 | 整改去向 |
 |---|---|---|---|---|
-| DISP-P2HIPS-001 | 中 | 马赛克输出仅 signal/support 两产品（flags=AIO_HIPS_PRODUCT_SIGNAL\|AIO_HIPS_PRODUCT_SUPPORT），输入侧消费 ivar（weight_mode=2）但输出侧无 variance/ivar 产品——方差传播止于加权积分，无逐像素方差输出供下游（P3/统计）消费；writer 层 variance 通道（aio_hips_writer.cpp:1067-1073）未被 P2 启用 | stage2.cpp:594; :553-563; aio_hips_writer.cpp:1067-1073 | P2-HIPS-IMPL 评估 variance 产品接入（writer 侧已具备，属接线缺口非能力缺口） |
+| DISP-P2HIPS-001 | 中 | 马赛克输出仅 signal/support 两产品（flags=AIO_HIPS_PRODUCT_SIGNAL\|AIO_HIPS_PRODUCT_SUPPORT），输入侧消费 ivar（纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））但输出侧无 variance/ivar 产品——方差传播止于加权积分，无逐像素方差输出供下游（P3/统计）消费；writer 层 variance 通道（aio_hips_writer.cpp:1067-1073）未被 P2 启用 | stage2.cpp:594; :553-563; aio_hips_writer.cpp:1067-1073 | P2-HIPS-IMPL 评估 variance 产品接入（writer 侧已具备，属接线缺口非能力缺口） |
 | DISP-P2HIPS-002 | 中 | input_manifest_hash 与 model_hash 仅进入 UPM 持久层与 diagnostics.json，未写入 HiPS properties/manifest.json——全文件 `aio_hips_set_drizzle_provenance` grep 零命中（实测 0 处），provenance 链断在 products 元数据层，跨 run 溯源依赖 run 目录约定 | stage2.cpp:245; :427-430; :1746; 全文件 grep 零命中 | P2-HIPS-INT 经 writer provenance 通道接线（aio_hips.h provenance API），不改 SCI |
 | DISP-P2HIPS-003 | 低 | stage2 直写 cfg.out_hips（aio_hips_product_begin :592），无 staging 目录；原子发布语义依赖 IO-003 Python 发布层（docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md）在编排层承接，stage2 单体运行时无该保护；与 writer 层 DISP-HIPS-004 同源 | stage2.cpp:592; docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | P2-HIPS-INT 编排层接线（与 DISP-HIPS-004 整改同域） |
 | DISP-P2HIPS-004 | 低 | 覆盖帧探测逐 tile 逐帧 aio_hips_read_tile_f32 probe，n 帧×n_tile 次重复 FITS 读，大 N 输入时 I/O 放大（O(T·N) probe）；无 MOC 缓存探测 | stage2.cpp:663-668 | P2-HIPS-IMPL 引入逐帧 MOC/tile 集合缓存（coverage 层已有逐帧 tile 列表可复用，ALG-COV-001 输出） |

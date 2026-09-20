@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # QA-MATRIX-001 科学 QA 矩阵（解析 / Monte Carlo / 注入源 / 真实数据 / 负向 mutation / 基线比较）
@@ -750,7 +752,7 @@
 
 ### `G-BASE-05` — psf_snr_power 延迟：不进生产路由
 
-- **claim**：psf_snr_power 保持 DEFERRED/NOT_IMPLEMENTED，不得进入 V6 生产 weight_mode 枚举与路由；生产模式列表出现即 REJECT；必须登记在 deferred_modes。
+- **claim**：psf_snr_power 保持 DEFERRED/NOT_IMPLEMENTED，不得进入 V6 生产 weight_mode 枚举与路由；生产模式列表出现即 REJECT；必须登记在 deferred_modes。（已按 §9.73 A44 作废：该概念不存在）
 - **条款锚**：FZ-MODE-DEFERRED；ADJ-C004-01；C-004.1；00_READ_FIRST；PSF_SIGNAL_WEIGHT §4
 - **文献锚**：PixInsight New Image Weighting Algorithms §2.5-2.6
 - **输入 -> 输出**：mode_registry -> deferred_ok
@@ -814,7 +816,7 @@
 
 ### `P0-04` — R10 回归锁：不得反向固化已退休 support×snr²
 
-- **claim**：新门/规格不得把已退休的 support×snr²、legacy weight_mode=0、auto、support_x_snr2 钉成合法规格或 expected；support/coverage 只能作门。
+- **claim**：新门/规格不得把已退休的 support×snr²、legacy weight_mode=0、auto、support_x_snr2 钉成合法规格或 expected；support/coverage 只能作门。（已按 §9.73 A44 作废：该概念不存在）
 - **条款锚**：AR-049；ADJ-S1；ADJ-AR-01；UNIFIED §11；宪章 §6.3
 - **输入 -> 输出**：qa_matrix.json 全文本 -> fossilized_tokens
 - **单位**：count=1

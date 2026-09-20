@@ -37,13 +37,12 @@ downstream: [TEST-P2-HIPS-001, DATA-P2-HIPS]
 - 写出：aio_hips_product_begin（nside=1<<(target_order+9) :525、dtype
   :528、flags 仅 SIGNAL|SUPPORT :594、creator "ivo://astrocs/phase2"）→
   逐 tile 排异+积分（p2_collect_candidate_stack/p2_reject_stack_ex/
-  p2_integrate_pixel，权重 mode2=ivar/mode0=support×snr²/mode1=等权）→
+  p2_integrate_pixel，权重为逐样本 ivar （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））→
   逆归一（area=sup×A_cell :527、flux=signal×area :1000-1017/:1219-1233）→
   FITS 序→NESTED 序转换（HIPS-IMG-001，nested_local_to_fits_index
   :1032/:1611）→ aio_hips_write_signal_support_tile/
   aio_hips_finalize；HIPS_VERIFY 回读（:1659-1676）。
-- ivar 权重门（matrix 专项）：缺 ivar 产品且
-  legacy_allow_weight_fallback=false（默认）→ rc=7 显式科学错误
+- ivar 权重门（matrix 专项）：缺 ivar 产品（默认）→ rc=7 显式科学错误 （已按 §9.73 A44 作废：键不存在；权重是派生量）
   （:565-578，rc=7 :574）；禁 support 冒充 ivar。
 
 **不负责**：叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库
@@ -84,8 +83,7 @@ module_id=`astrocs.p2.hips_writer`（matrix P2-HIPS 行）；registry 行 ID
 module_id=astrocs.phase2.write、sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/
 test_id=TEST-P2-WR-001）为编排占位词汇，不得反向作为冻结依据，由
 P2-XX-INT 对齐本页与 lib/algorithms/coverage/hips_p2/module.yaml。配置=single JSON
-（P2Stage2Config :16-99：weight_mode=2、legacy_allow_weight_fallback=
-false、reject_profile（工具链默认 wbpp_2_9_1；生产入口默认
+（P2Stage2Config :16-99：权重口径为逐样本 ivar （已按 §9.73 A44 作废：键不存在；权重是派生量）、reject_profile（工具链默认 wbpp_2_9_1；生产入口默认
 astrocs_adaptive_pixel）、large_scale 默认关、acr_route=auto、
 memory_limit_mb=24576 等，权威=API-P2-HIPS-001）。
 

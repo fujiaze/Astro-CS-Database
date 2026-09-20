@@ -122,16 +122,16 @@ eligibility（逐候选 i，候选索引固定序）:
                          status = OK                            :77
 ```
 
-- 权重语义（调用方构造，本层无知）: **weight_mode=2 = 逐样本 `ivar`（1/ADU²，
+- 权重语义（调用方构造，本层无知）: **纯逆方差 = 逐样本 `ivar`（1/ADU²，（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），
   逆方差权重），无任何 fallback** —— 缺失 ivar 是显式科学错误
   （产品级 stage2.cpp:565-575 rc=7 / 像素级 stage2.cpp:1106-1122 fail=2），
-  与 SCI-UPM §5:54、DATA-UNC-001 §51（「weight_mode=2，无 fallback」）、
-  DESIGN §4.3/§4.4 一致；weight_mode=0 → `support×snr²`（**legacy/ablation/
+  与 SCI-UPM §5:54、DATA-UNC-001 §51（「纯逆方差权重，无 fallback」（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））、
+  DESIGN §4.3/§4.4 一致；历史 legacy 分支 （已按 §9.73 A44 作废：键不存在；权重是派生量） → `support×snr²`（**legacy/ablation/
   诊断**，被 DESIGN §4.3「不是直接用 SNR 加权」与 SCI-UPM §5:54 禁入生产，
   stage2.cpp:1123-1141）；
-  weight_mode=1/weights=null → 等权 1.0（stage2.cpp:1139）。
-  `ivar_valid?ivar:support` 只是 `legacy_allow_weight_fallback=true`（默认 false）
-  时的**显式降级路径**（stage2.cpp:1113-1120），**不是 mode 2 的定义**；
+  等权分支/weights=null → 等权 1.0 （已按 §9.73 A44 作废：键不存在；权重是派生量）（stage2.cpp:1139）。
+  `ivar_valid?ivar:support` 只是历史 legacy 降级键 `legacy_allow_weight_fallback=true` （已按 §9.73 A44 作废：键不存在；权重是派生量）（默认 false）
+  时的**显式降级路径**（stage2.cpp:1113-1120），**不是纯逆方差的定义** （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；
   该降级发生时 DATA-UNC-001 §67-68 要求不写 variance/ivar 产品。
 - 禁止（SCI §10 逐条承接，本层为合同）: support 改 mean/sum 二次
   聚合；w==0 改判 INVALID_INPUT；INVALID_INPUT 并入

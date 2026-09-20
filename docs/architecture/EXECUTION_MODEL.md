@@ -22,7 +22,7 @@
 | HiPS write | async_io | `aio_hips_writer` 异步刷盘, 事务提交；合同见 [ASYNC_IO_CONTRACT.md](ASYNC_IO_CONTRACT.md) |
 | HiPS read | serial or critical | `aio_read critical(aio_read)` 若 OpenMP 开启则串行化 |
 | ACR H2D/D2H | async via CUDA stream | `cuda_bridge_api` H2D>0 in cold Mixed (BDR D gate) |
-| Fallback | sync fallback | ivar weight_mode=2 → CPU canonical (ACR-IVAR-001), 无画像→OpenMP fallback |
+| Fallback | sync fallback | 纯逆方差权重 → CPU canonical (ACR-IVAR-001) （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）, 无画像→OpenMP fallback |
 
 ## 3 锁/原子与 I/O 串行
 

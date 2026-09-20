@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **ARCHIVED_NON_NORMATIVE** — GOV-002 归档历史技术文档，不再作为当前权威。
 > 替代文档：docs/architecture/PIPELINE.md、docs/architecture/EXECUTION_MODEL.md
 
@@ -41,15 +43,15 @@
 
 确定性: 所有路径按输入索引固定顺序, 无调度相关归约, float 累积文档化 (THREADING_MODEL ARC-004)。
 
-## 4 weight_mode=ivar + auto → linear_fit 时 ACR 是否允许 / 禁止
+## 4 weight_mode=ivar + auto → linear_fit 时 ACR 是否允许 / 禁止（已按 §9.73 A44 作废：该概念不存在）
 
 | 配置 | Plan resolve | ACR |
 |---|---|---|
-| `weight_mode=auto → 2 (ivar)` 默认 | `n<6 percentile, 6-15 winsorized, >15 linear_fit` wbpp_2_9_1 | 禁  |
-| `weight_mode=ivar` | 同上 | 禁  |
-| `weight_mode=equal/support_x_snr2` | 同上 | 允 (当 acr_route=auto 且 large_scale等允许) |
+| `weight_mode=auto → 2 (ivar)` 默认 | `n<6 percentile, 6-15 winsorized, >15 linear_fit` wbpp_2_9_1 | 禁  |（已按 §9.73 A44 作废：该概念不存在）
+| `weight_mode=ivar` | 同上 | 禁  |（已按 §9.73 A44 作废：该概念不存在）
+| `weight_mode=equal/support_x_snr2` | 同上 | 允 (当 acr_route=auto 且 large_scale等允许) |（已按 §9.73 A44 作废：该概念不存在）
 
-**科学原因 (ACR-IVAR-001)**: `ivar` 为逐像素 `variance` 逆方差 `1/variance` (SCI-NOISE), ACR 粒度为 per-tile chunk `cell-ivar×support` 与 CPU 逐像素 ivar 不等价 (cell 级平滑 vs 像素级), 混用会改变加权语义, 故 `weight_mode==2` 强制 CPU canonical (TRACEABILITY ACR-IVAR-001: `stage2_common.cpp:391, acr_kernels.cpp` 禁)。
+**科学原因 (ACR-IVAR-001)**: `ivar` 为逐像素 `variance` 逆方差 `1/variance` (SCI-NOISE), ACR 粒度为 per-tile chunk `cell-ivar×support` 与 CPU 逐像素 ivar 不等价 (cell 级平滑 vs 像素级), 混用会改变加权语义, 故 `weight_mode==2` 强制 CPU canonical (TRACEABILITY ACR-IVAR-001: `stage2_common.cpp:391, acr_kernels.cpp` 禁)。（已按 §9.73 A44 作废：该概念不存在）
 
 **性能后果**: ivar 生产路径失去 ACR GPU 加速, 为保科学等价的必要代价; equal/legacy 模式可启用 Mixed, 但生产默认 ivar 不混。
 

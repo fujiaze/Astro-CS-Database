@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # 09 — 验证门与负向 mutation 判据（可实施、可验证）
@@ -12,7 +14,7 @@ SCI-ADJ-001 `required_freeze_ids` 与 `forbidden_weight_source_tokens`；SCI-P2-
 
 1. **独立结构 Oracle**（纯 Python 标准库，**不 import/不调用任何生产实现**）：
    以 `reports/v6/science-adjudication/adjudications.json` 为**语义真值**，校验本提案 schema/catalog 的：
-   单位表、weight_mode 枚举、禁止项、required freeze id 覆盖、每个字段的条款锚/单位/适用域/fail-closed/门、示例记录结构合法性。
+   单位表、weight_mode 枚举、禁止项、required freeze id 覆盖、每个字段的条款锚/单位/适用域/fail-closed/门、示例记录结构合法性。（已按 §9.73 A44 作废：该概念不存在）
 2. **负向 mutation**：对 catalog/schema/示例的临时副本注入已知错误，Oracle 必须 rc≠0；逐条留 rc。
 3. **文档 claim 锚审计**：人读规格中的冻结公式串、条款锚与机器表逐条对照，并注入文档 mutation 必须判红。
 
@@ -40,12 +42,12 @@ SCI-ADJ-001 `required_freeze_ids` 与 `forbidden_weight_source_tokens`；SCI-P2-
 | C2 | 全部 `*.schema.json` 可解析且含 `$id`/`title` | 本提案 |
 | C3 | 每个 `x-astrocs` 有非空 `anchor`+`domain`；`quantity=true` 须有 `units`+`fail_closed`+`gate` | 宪章 §4.1/§4.3；PROJECT_SPEC §3 |
 | C4 | `catalog.frozen_units_table == adjudications.units_table` | `FZ-UNIT-*`；ADJ-GEN-01 |
-| C5 | `catalog.weight_mode.{production,documented_baseline,deferred} == adjudications` 对应数组 | `FZ-MODE-*`；ADJ-S1 |
+| C5 | `catalog.weight_mode.{production,documented_baseline,deferred} == adjudications` 对应数组 | `FZ-MODE-*`；ADJ-S1 |（已按 §9.73 A44 作废：该概念不存在）
 | C6 | `catalog.forbidden.weight_source_tokens == adjudications.forbidden_weight_source_tokens` | ADJ `forbidden_weight_source_tokens` |
 | C7 | catalog psfsw 禁止键集 == FREEZE_LIST §5.2 键集 | `FZ-GATE-PSFSW-COV` |
 | C8 | 19 条 `required_freeze_ids` 全部被提案覆盖（missing 为空） | SCI-ADJ `required_freeze_ids` |
 | C9 | schema 引用的每个 gate id 存在于 `gate_index` 且登记负向 mutation | 本提案 |
-| C10 | `weight-mode.v1` 的 `weight_mode` 枚举 == catalog production ∪ baseline（且不含 deferred） | `FZ-MODE-PRODUCTION/-BASELINE/-DEFERRED` |
+| C10 | `weight-mode.v1` 的 `weight_mode` 枚举 == catalog production ∪ baseline（且不含 deferred） | `FZ-MODE-PRODUCTION/-BASELINE/-DEFERRED` |（已按 §9.73 A44 作废：该概念不存在）
 | C11 | `weight-mode.v1.legacy_integer_allowed == false` 且 legacy 映射 == `{0:support_x_snr2,1:equal,2:pixel_ivar}` | ADJ-S1 |
 | C12 | effective-psf schema required 含 `effective_psf_id`、`definition`、`normalization`、`kernel_transfer` | `FZ-GATE-PSFSW-EPSF` |
 | C13 | covariance schema `propagation` const == `C_out = R C_in R^T`，`variance_from` 枚举不含禁止 token | `FZ-FORMULA-COV-PROP`；门 R6 |
@@ -68,7 +70,7 @@ SCI-ADJ-001 `required_freeze_ids` 与 `forbidden_weight_source_tokens`；SCI-P2-
 |---|---|---|
 | M01 | catalog W_info 单位改为 `ADU^-1` | C4 |
 | M02 | signal schema `units` 枚举删除 `ADU/px^2` | C21（signal 示例失效） |
-| M03 | weight-mode schema `weight_mode` 枚举加入 `psf_snr_power` | C10 |
+| M03 | weight-mode schema `weight_mode` 枚举加入 `psf_snr_power` | C10 |（已按 §9.73 A44 作废：该概念不存在）
 | M04 | `legacy_integer_allowed` 改 `true` | C11 |
 | M05 | psfsw 示例 `weight` 注入键 `variance` | C22 |
 | M06 | effective-psf schema required 删除 `effective_psf_id` | C12 |
@@ -89,7 +91,7 @@ SCI-ADJ-001 `required_freeze_ids` 与 `forbidden_weight_source_tokens`；SCI-P2-
 | M21 | catalog `schema_index` 删除一个 schema 条目 | C23 |
 | M22 | psfsw 示例 background `p05>p50` | C22 |
 | M23 | provenance 示例 `k_corr` 删除 `domain` | C21 |
-| M24 | weight-mode schema `weight_mode` 枚举删除 `pixel_ivar` | C10 |
+| M24 | weight-mode schema `weight_mode` 枚举删除 `pixel_ivar` | C10 |（已按 §9.73 A44 作废：该概念不存在）
 | M25 | weight-mode `weight` 删除 `units_alias_sci_psfw` | C25 |
 
 每条 mutation 的「注入即报红」写在日志与 `mutation_summary.json`（含 rc 与命中检查）。

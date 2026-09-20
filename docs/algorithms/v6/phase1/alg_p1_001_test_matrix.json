@@ -1,4 +1,5 @@
 {
+  "_a44_deprecation_banner": "本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念不存在（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。内容保持历史原样、仅作留痕，不构成现行规范；权重 = 阶段二按天球像素对应帧集合现场算出的派生量。",
   "schema": "astrocs.v6.alg-p1-001-test-matrix/v1",
   "spec_id": "ALG-P1-001",
   "document_id": "ALG-P1-001-TEST-MATRIX",
@@ -288,7 +289,7 @@
       "id": "T-X-01",
       "area": "cross",
       "level": "structural",
-      "input": "生产权重模式枚举",
+      "input": "生产权重口径枚举 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）",
       "expected": "{point_information, surface_gls, psfsw_robust}；psf_snr_power/legacy 0/auto/support_x_snr2 出现即红",
       "gate": "G-MODE-PRODUCTION",
       "clause": "FZ-MODE-PRODUCTION; C-004.1; ADJ-S1"

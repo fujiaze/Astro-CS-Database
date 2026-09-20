@@ -46,7 +46,7 @@ downstream: [TEST-P2-REJ-001]
   不减，cosmic 不生长，默认关闭）。阈值/迭代权威锚定
   rejection.cpp:1-11 冻结头注释。
 - 非职责：不合并/积分（P2-INT 下游）；权重策略（weights 外置
-  Stage2 weight_mode；RCR 消费同栈 weights 属官方加权语义）；像素外
+  Stage2 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；RCR 消费同栈 weights 属官方加权语义）；像素外
   结构重建；session 依赖（无状态纯函数）；瞬变/卫星语义区分
   （SCI §1）。
 
