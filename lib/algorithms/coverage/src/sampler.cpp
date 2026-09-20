@@ -733,7 +733,7 @@ static int p2_sample_controls_impl(
     // per-cell body：串行与并行共用（杜绝双份漂移）。返回 0 或错误码(1=pairs resize OOM)。
     auto pass1_cell = [&](std::uint64_t c, SamplerReader& rdr,
                          std::uint64_t& cv, std::uint64_t& ci) -> int {
-        cv = 0; ci = 0;
+        cv = 0; ci = 0;   // 本 cell 输出计数（入口清零）；调用方须用独立局部量接收后累加（FIX-210 D2）
         const std::uint64_t tile_ipix = coverage->union_cells[c].ipix;
         {
             const std::uint64_t npix = 12ULL * ((std::uint64_t)1 << (2u * (unsigned)coverage->target_order));
@@ -936,11 +936,15 @@ static int p2_sample_controls_impl(
         for (int w = 0; w < workers; ++w) {
             pool.emplace_back([&]() {
                 SamplerReader rdr; rdr.init_own(hips_paths, n_frames);
-                std::uint64_t cv = 0, ci = 0;
+                std::uint64_t cv = 0, ci = 0;   // 本 worker 的跨 cell 累加器
                 for (;;) {
                     const std::uint64_t c = next_c.fetch_add(1);
                     if (c >= n_union) break;
-                    if (pass1_cell(c, rdr, cv, ci) != 0) { pass1_fail.store(1); break; }
+                    // FIX-210 D2：pass1_cell 的 cv/ci 是本 cell 输出（入口清零）⇒ 必须用
+                    // 每次调用独立的局部量接收后再累加（复用累加器只剩最后一个 cell 计数）。
+                    std::uint64_t cell_cv = 0, cell_ci = 0;
+                    const int cell_rc = pass1_cell(c, rdr, cell_cv, cell_ci); cv += cell_cv; ci += cell_ci;
+                    if (cell_rc != 0) { pass1_fail.store(1); break; }
                 }
                 a_veto.fetch_add(cv);
                 a_insuff.fetch_add(ci);
