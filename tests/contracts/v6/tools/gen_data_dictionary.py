@@ -150,6 +150,13 @@ CONCENTRATION_UNIT_AUTHORITY = {
     "legacy_proposal_example": "contracts/proposals/v6/data/examples/psfsw.example.json 原写 'ADU/px'；生产正例 contracts/data/examples/v6/psfsw.example.json 已按唯一权威修正为 'ADU/px^2'",
 }
 
+CANONICAL_OBJECT_RETIREMENT = {
+    "note": "本文件属 v6 合同层，按 工程控制/RELEASE-03/GAP_AUDIT.md §4.1 Q2 裁决在位保留为「设计档案 / 产品族专用投影（非生产目标态）」，文件不删。统一对象 canonical psfsw_robust_weight retired（负责人 2026-09-20 裁决 B，14→13；变更编号 CHG-2026-09-20-PSFSW-RETIRE；依据 ASTROCS_DESIGN.md §2.1/§2.2/§2.3 与 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44）：contracts/schemas/unified/psfsw_robust_weight.schema.json 与其正例已删除，端口合同枚举不再接受该对象。本文件中的 psfsw_robust_weight 是 v6 提案/产品族内部标识（weight.kind 值、单位表符号、variance_from 禁止项 token），不是统一对象 canonical 引用；旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示（contracts/data/unified_object_compatibility_map_v1.json#retired_entries）。",
+    "retired_canonical_object": "psfsw_robust_weight",
+    "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
+    "v6_layer_status": "retained_design_archive",
+}
+
 # ── 独立手写：fail-closed 语义清单（门 → 处置）──
 FAIL_CLOSED = [
     {"gate": "G-BUNIT-SEMANTICS", "clause_id": "FZ-BUNIT-SEMANTICS", "condition": "BUNIT=ADU 且 provenance 无 pixel_semantics=surface_brightness + pixel_area_power=-2", "disposition": "unavailable/REJECT"},
@@ -234,6 +241,7 @@ def build():
         "weight_modes": WEIGHT_MODES,
         "weight_vocabulary_ref": "contracts/data/v6_weight_vocabulary_v1.json",
         "migration_map_ref": "contracts/data/v6_migration_map_v1.json",
+        "x-astrocs-canonical-object-retirement": CANONICAL_OBJECT_RETIREMENT,
         "forbidden": {
             "weight_source_tokens": FORBIDDEN_WEIGHT_SOURCE_TOKENS,
             "psfsw_forbidden_keys": PSFSW_FORBIDDEN_KEYS,

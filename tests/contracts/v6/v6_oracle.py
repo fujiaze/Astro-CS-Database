@@ -527,7 +527,8 @@ class Oracle:
         ds = self._read(DATA_SEM_REL)
         pa = self._read(PUB_API_REL)
         ig = self._read(INTEG_REL)
-        need_ds = ["## 31. V6 目标态数据合同", "DATA-V6-SCHEMA", "FZ-BUNIT-SEMANTICS",
+        # 2026-09-20：§31 标题按 GAP_AUDIT §4.1 Q2 裁决去「生产目标态」措辞（DOC-203 落地）
+        need_ds = ["## 31. V6 合同层数据合同", "DATA-V6-SCHEMA", "FZ-BUNIT-SEMANTICS",
                    "ADU/px^2", "ADU^-2", "psfsw_robust_weight", "component_flux_unit/px^2",
                    "FZ-PROV-MINIMAL-SET", "FZ-MODE-DEFERRED", "FZ-FIELD-WEIGHTMODE",
                    "0=support×snr²", "fail-closed", "PENDING_OWNER_SIGNOFF"]

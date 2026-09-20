@@ -184,7 +184,8 @@ class TestV6DocsGuard(unittest.TestCase):
     def test_v6_sections_present(self):
         ds = (REPO / "docs/contracts/DATA_SEMANTICS.md").read_text(encoding="utf-8")
         pa = (REPO / "docs/contracts/PUBLIC_API.md").read_text(encoding="utf-8")
-        self.assertIn("## 31. V6 目标态数据合同", ds)
+        # 2026-09-20：§31 标题按 GAP_AUDIT §4.1 Q2 裁决去「生产目标态」措辞（DOC-203 落地）
+        self.assertIn("## 31. V6 合同层数据合同", ds)
         self.assertIn("component_flux_unit/px^2", ds)
         self.assertIn("API-V6-WEIGHTMODE-001", pa)
         self.assertIn("support×snr²", pa)

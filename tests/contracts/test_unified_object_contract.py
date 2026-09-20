@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""DATA-001 —— 统一数据对象合同链（UNIFIED_MODEL §2 的 14 个对象）契约测试。
+"""DATA-001 —— 统一数据对象合同链（UNIFIED_MODEL §2 的 13 个对象）契约测试。
 
 覆盖（全部为真实机器门，不是文档约定）：
-  A. 14 个对象各一份 canonical schema 落在 contracts/schemas/，schema ID 全局唯一、对象名无二主；
+  A. 13 个对象各一份 canonical schema 落在 contracts/schemas/，schema ID 全局唯一、对象名无二主；
   B. 模糊字段名守卫（weight/value/mask/snr 单独出现即不合格）在 schema 内真实生效；
-  C. 四个负例各自必败，且失败原因命中指定门（不是"恰好别处报错"）；
+  C. 五个负例各自必败，且失败原因命中指定门（不是"恰好别处报错"）；
   D. 单位 / BUNIT 语义 / 无效值 / 精度 / 可否作权重 与 UNIFIED_MODEL §2 表格逐字一致；
   E. 三类配置分离锚点：phase_config / cpu_profile / run_manifest 字段名不得共用（配置 schema 本体归 CFG-001）。
 
@@ -30,9 +30,9 @@ EXAMPLES = UNIFIED / "examples"
 NEGATIVE = UNIFIED / "negative"
 REGISTRY_REL = "docs/contracts/unified_object_registry.json"
 
-# UNIFIED_MODEL §2 的 14 个对象名（逐字）
+# UNIFIED_MODEL §2 的 13 个对象名（逐字）
 OBJECTS = ["signal", "variance", "ivar", "source_snr", "depth_m5", "frame_snr",
-           "point_information", "psfsw_robust_weight", "sparse_snr_layer",
+           "point_information", "sparse_snr_layer",
            "support", "coverage", "validity", "rejection", "provenance"]
 
 # UNIFIED_MODEL §2 表格「可否作权重」列原文（逐字照抄，不得自行改判定）
@@ -44,7 +44,6 @@ VERDICT = {
     "depth_m5": ("摘要，不作权重", False),
     "frame_snr": ("唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算", False),
     "point_information": ("点源目标的严格权重", True),
-    "psfsw_robust_weight": ("显式 psfsw_robust 集成可用；不是 ivar", True),
     "sparse_snr_layer": ("帧内精细参考", False),
     "support": ("否", False),
     "coverage": ("否", False),
@@ -72,7 +71,7 @@ class TestCanonicalObjectSchemas(unittest.TestCase):
         self.assertTrue(UNIFIED.is_dir(), "contracts/schemas/unified/ 缺失：canonical 对象合同必须落 contracts/schemas/")
         found = sorted(p.name for p in UNIFIED.glob("*.schema.json"))
         self.assertEqual(sorted(["%s.schema.json" % o for o in OBJECTS] + ["port_contract.schema.json"]), found,
-                         "contracts/schemas/unified/ 必须且只能有 14 个对象 schema + 1 个端口合同 schema")
+                         "contracts/schemas/unified/ 必须且只能有 13 个对象 schema + 1 个端口合同 schema")
 
     def test_port_contract_schema_is_canonical_and_loadable(self):
         """负例④指向的 port_contract 必须是真实存在、可被 jsonschema_min 加载的 schema（不是索引里的内联约定）。"""
@@ -108,14 +107,15 @@ class TestCanonicalObjectSchemas(unittest.TestCase):
                 continue
             self.assertNotIn(sid, ids, "schema ID 不唯一: %s (同时出现在 %s 与 %s)" % (sid, ids.get(sid), p))
             ids[sid] = p.relative_to(REPO).as_posix()
-        # 14 个 canonical 对象 schema 必须全部声明 $id 且互不相同（不得靠别处文件凑数）
+        # 13 个 canonical 对象 schema 必须全部声明 $id 且互不相同（不得靠别处文件凑数）
         self.assertTrue(all(("https://astrocs.local/schemas/unified/%s/v1" % o) in ids for o in OBJECTS))
         canonical = {}
         for o in OBJECTS:
             sid = "https://astrocs.local/schemas/unified/%s/v1" % o
             self.assertIn(sid, ids, "缺少 canonical schema ID: %s" % sid)
             canonical[sid] = ids[sid]
-        self.assertEqual(14, len(set(canonical.values())), "canonical schema 文件不唯一: %s" % canonical)
+        self.assertEqual(len(OBJECTS), len(set(canonical.values())),
+                         "canonical schema 文件不唯一: %s" % canonical)
 
     def test_object_name_has_exactly_one_canonical_file(self):
         owner = {}
@@ -214,7 +214,7 @@ class TestAmbiguousFieldGuard(unittest.TestCase):
                     self.assertIsNone(re.search(pat, unqualified),
                                       "%s: 守卫放行了未限定名 %r" % (o, unqualified))
                 # 裸名带对象/类型限定前缀合格：frame_snr_value / variance_value / bad_pixel_mask
-                for qualified in ("psfsw_robust_weight_value", "variance_value",
+                for qualified in ("point_information_value", "variance_value",
                                   "bad_pixel_mask", "frame_snr_value"):
                     self.assertIsNotNone(re.search(pat, qualified),
                                          "%s: 守卫 pattern 误拦合格限定名 %r" % (o, qualified))
@@ -250,9 +250,9 @@ class TestNegativeFixtures(unittest.TestCase):
     def expected(self):
         return load(NEGATIVE / "EXPECTED.json")
 
-    def test_expected_index_covers_four_cases(self):
+    def test_expected_index_covers_all_cases(self):
         exp = self.expected()
-        self.assertEqual(4, len(exp))
+        self.assertEqual(5, len(exp), "负例索引必须覆盖全部负例（含退役对象声明负例 n5）")
         for name in exp:
             self.assertTrue((NEGATIVE / name).is_file(), "负例 fixture 缺失: %s" % name)
 
@@ -296,6 +296,92 @@ class TestNegativeFixtures(unittest.TestCase):
         self.assertEqual(port["rejects_object"], neg["connected_object_document"]["unified_object"])
 
 
+class TestRetiredObjectContract(unittest.TestCase):
+    """F. 退役对象（psfsw_robust_weight，14→13）：无 canonical 正本、旧声明显式拒绝 + 迁移提示。"""
+
+    RETIRED = "psfsw_robust_weight"
+    RETIRED_SCHEMA = "contracts/schemas/unified/psfsw_robust_weight.schema.json"
+    RETIRED_EXAMPLE = "contracts/schemas/unified/examples/psfsw_robust_weight.example.json"
+
+    def retired_entry(self):
+        m = load(REPO / "contracts/data/unified_object_compatibility_map_v1.json")
+        self.assertEqual(1, len(m["retired_entries"]), "退役记录必须逐条登记（不得静默删除）")
+        e = m["retired_entries"][0]
+        self.assertEqual(self.RETIRED, e["covers_object"])
+        return e
+
+    def test_retired_object_has_no_canonical_face(self):
+        """fail-closed：canonical schema / example 不存在、schema ID 不再出现、不在 canonical 清单。"""
+        self.assertNotIn(self.RETIRED, OBJECTS)
+        self.assertFalse((REPO / self.RETIRED_SCHEMA).exists(), "退役对象的 canonical schema 不得复活")
+        self.assertFalse((REPO / self.RETIRED_EXAMPLE).exists(), "退役对象的正例不得复活")
+        sid = "https://astrocs.local/schemas/unified/%s/v1" % self.RETIRED
+        for p in sorted(SCHEMAS.rglob("*.schema.json")):
+            self.assertNotEqual(sid, load(p).get("$id"), "退役对象的 schema ID 仍被声明: %s" % p)
+        reg = load(REPO / REGISTRY_REL)
+        self.assertNotIn(self.RETIRED, {c["object_name"] for c in reg["canonical_object_classes"]})
+
+    def test_retired_object_declaration_is_explicitly_rejected(self):
+        """旧产品/端口声明退役对象 ⇒ 端口合同 enum 判红（显式拒绝，不是"恰好别处报错"）。"""
+        port = load(UNIFIED / "port_contract.schema.json")
+        neg = load(NEGATIVE / "n5_retired_psfsw_robust_weight.schema-violation.json")
+        self.assertEqual(self.RETIRED, neg["connected_object_document"]["unified_object"])
+        errs = merged_errors(neg, port)
+        self.assertTrue(errs)
+        for tok in ("accepts_object:enum", "accepts_schema_id:enum",
+                    "connected_object_document/unified_object:enum",
+                    "connected_object_document/object_schema_id:enum"):
+            self.assertIn(tok, errs, "退役对象声明未命中预期拒绝门 %r: %s" % (tok, errs))
+        # 反向：同形端口连接合法对象必须通过（证明判红来自对象枚举，不是端口形态本身）
+        ok = json.loads(json.dumps(neg))
+        ok["accepts_object"] = "point_information"
+        ok["accepts_schema_id"] = "https://astrocs.local/schemas/unified/point_information/v1"
+        ok["connected_object_document"]["unified_object"] = "point_information"
+        ok["connected_object_document"]["object_schema_id"] = \
+            "https://astrocs.local/schemas/unified/point_information/v1"
+        self.assertEqual("", merged_errors(ok, port))
+
+    def test_retirement_record_carries_migration_hint(self):
+        """退役必须带变更编号 + 拒绝策略 + 迁移提示（不得静默接受）。"""
+        e = self.retired_entry()
+        self.assertEqual("retired_canonical_object", e["relation"])
+        self.assertTrue(e["retired_at_change"].startswith("CHG-"), "退役必须绑定变更编号")
+        self.assertIn("显式拒绝", e["rejection"])
+        self.assertIn(self.RETIRED, e["rejection"])
+        self.assertIn("迁移提示", e["migration_hint"])
+        self.assertIn("point_information", e["migration_hint"])
+        self.assertFalse((REPO / e["canonical_schema"]).exists(),
+                         "退役记录的 canonical schema 必须确实不存在（fail-closed）")
+        reg = load(REPO / REGISTRY_REL)
+        rec = reg["deprecation"]["object_retirements"][self.RETIRED]
+        self.assertEqual(e["retired_at_change"], rec["retired_at_change"])
+        self.assertEqual(e["migration_hint"], rec["migration_hint"])
+        self.assertEqual("retired", rec["state"], "退役状态必须是机器可读 ASCII token")
+
+    def test_retired_name_not_reintroduced_in_canonical_face(self):
+        """退役对象名不得以 canonical 形式回流（canonical schema / 正例；留痕必须含「已退役」或退役容器）。"""
+        offenders = []
+        containers = ("retired_objects", "retired_entries", "object_retirements")
+
+        def walk(node, path):
+            if isinstance(node, dict):
+                for k, v in node.items():
+                    if self.RETIRED in k and not (set(path) & set(containers)):
+                        offenders.append("%s#%s" % ("/".join(str(x) for x in path), k))
+                    walk(v, path + (k,))
+            elif isinstance(node, list):
+                for i, v in enumerate(node):
+                    walk(v, path + (i,))
+            elif isinstance(node, str) and self.RETIRED in node:
+                if not (set(path) & set(containers)) \
+                        and "已退役" not in node and "retired" not in node:
+                    offenders.append("%s=%r" % ("/".join(str(x) for x in path), node[:60]))
+
+        for p in sorted(list(UNIFIED.glob("*.schema.json")) + list(EXAMPLES.glob("*.example.json"))):
+            walk(load(p), (p.relative_to(REPO).as_posix(),))
+        self.assertEqual([], offenders, "canonical 面出现未留痕的退役对象名: %s" % offenders)
+
+
 class TestUnitsMissingPrecisionWeight(unittest.TestCase):
     """D. 单位（含 BUNIT 语义）/ 无效值 / 精度 / 可否作权重 与 UNIFIED_MODEL §2 一致。"""
 
@@ -337,14 +423,15 @@ class TestUnitsMissingPrecisionWeight(unittest.TestCase):
 
     def test_all_positive_examples_pass(self):
         got = sorted(p.name for p in EXAMPLES.glob("*.example.json"))
-        self.assertGreaterEqual(len(got), 14, "正例不足 14 份: %s" % got)
+        self.assertGreaterEqual(len(got), len(OBJECTS) + 1,
+                                "正例不足 %d 份（13 个对象 + signal_flux 变体）: %s" % (len(OBJECTS) + 1, got))
         for p in sorted(EXAMPLES.glob("*.example.json")):
             doc = load(p)
             schema = load(UNIFIED / ("%s.schema.json" % doc["unified_object"]))
             errs = merged_errors(doc, schema)
             self.assertEqual("", errs, "正例 %s 未通过: %s" % (p.name, errs))
 
-    def test_examples_cover_all_fourteen_objects(self):
+    def test_examples_cover_all_canonical_objects(self):
         covered = {load(p)["unified_object"] for p in EXAMPLES.glob("*.example.json")}
         self.assertEqual(sorted(OBJECTS), sorted(covered))
 
@@ -358,7 +445,7 @@ class TestUnitsMissingPrecisionWeight(unittest.TestCase):
 
 
 class TestDeclarationDriftGuard(unittest.TestCase):
-    """登记表（registry / 语义文档 / DATA_ARTIFACTS）不得与 14 个 canonical schema 漂移。"""
+    """登记表（registry / 语义文档 / DATA_ARTIFACTS）不得与 13 个 canonical schema 漂移。"""
 
     def setUp(self):
         self.reg = load(REPO / REGISTRY_REL)
@@ -471,7 +558,10 @@ class TestRegistryIndex(unittest.TestCase):
         m = load(REPO / "contracts/data/unified_object_compatibility_map_v1.json")
         reg = load(REPO / REGISTRY_REL)
         by_name = {c["object_name"]: c for c in reg["canonical_object_classes"]}
-        self.assertEqual(10, len(m["entries"]), "兼容期映射必须覆盖基线实测的 10 个 contracts/data 条目")
+        # 基线实测 10 个 contracts/data 条目 = 现存 9 条 + 退役 1 条（psfsw_robust_weight，14→13）
+        self.assertEqual(9, len(m["entries"]), "兼容期映射现存条目数漂移（基线 10 = 9 现存 + 1 退役）")
+        self.assertEqual(10, len(m["entries"]) + len(m["retired_entries"]),
+                         "基线 10 个 contracts/data 条目必须逐条有归宿（现存 + 退役）")
         for e in m["entries"]:
             self.assertIn(e["covers_object"], OBJECTS)
             cls = by_name[e["covers_object"]]

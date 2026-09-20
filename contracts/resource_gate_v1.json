@@ -72,13 +72,26 @@
   "workload_floor_effect": "fact_marker_only",
   "enforcement": {
     "in_process_default": "record_only",
-    "adjudication_point": "CI 重计算检查（CHK-RESOURCE/RESOURCE-GATE-REAL）+ 发布验收",
-    "hard_fail_exit_code": 10,
-    "exit_code_source": "cli/exit_codes.h"
+    "in_process_hard_fail": "retired",
+    "in_process_hard_fail_retired_by": "GAP_AUDIT(RELEASE-02) §9.74 裁决 10 + ASTROCS_DESIGN.md §3.5/§6.3（一般性资源超限门已取消：内存 / CPU / 线程不设门）",
+    "adjudication_point": "外部裁决面（CI 重计算检查 CHK-RESOURCE / RESOURCE-GATE-REAL + 发布验收）—— 该面的退出码属外部程序（tools/monitoring/run_monitored.py / tools/quality/resource_monitor.py），**不是** AstroCS CLI 的退出码",
+    "cli_exit_code_for_resource_utilization": null,
+    "cli_exit_code_source": "lib/infrastructure/cli/exit_codes.h",
+    "cli_exit_10_meaning": "磁盘写满 / 写盘失败（唯一 in-process 资源门 = 磁盘门，见 disk_gate）"
   },
+  "hard_fail_criteria_scope": "外部裁决面（CI 重计算检查）的硬失败清单；**不**经 AstroCS CLI 退出码（CLI 面判据只记录，见 enforcement.in_process_hard_fail）",
   "hard_fail_criteria": [
     "single_active_compute_thread",
     "queue_low_window_with_queued_work",
     "unbounded_memory_growth_with_unexplained_reclaim"
-  ]
+  ],
+  "disk_gate": {
+    "authority": "ASTROCS_DESIGN.md §3.5（资源门只管磁盘）/§6.3（exit 10 = 磁盘写满 / 写盘失败）+ GAP_AUDIT(RELEASE-02) §9.74 裁决 10",
+    "implementation": "lib/infrastructure/cli/disk_gate.h（判据唯一实现；预检面 = subcommand.h，运行期面 = commands.cpp）",
+    "precheck": "磁盘余量 < 预估需求下限（= 配置声明输入字节和；阈值自由，不引入经验系数）⇒ warn（**不阻断**，只进预检页）",
+    "runtime": "写盘失败 / 磁盘满（ENOSPC / EDQUOT / EFBIG）⇒ error（fail-closed，收尾归并 exit 10）",
+    "exit_code": 10,
+    "exit_code_source": "lib/infrastructure/cli/exit_codes.h",
+    "no_gate": ["memory", "cpu", "threads"]
+  }
 }

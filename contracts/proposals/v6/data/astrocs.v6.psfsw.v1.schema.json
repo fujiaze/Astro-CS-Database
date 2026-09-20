@@ -3,6 +3,12 @@
   "$id": "https://astrocs.local/schemas/v6/psfsw.v1.schema.json",
   "title": "AstroCS V6 psfsw_robust 四分量与复合权重（DATA-DESIGN-001 提案）",
   "description": "PSFSW 是正式可选 conventional integration 权重（非 QA-only），但无量纲、组内相对，不得写成 ivar/Fisher/W_info。四分量 psfsw.signal / psfsw.concentration / psfsw.noise / psfsw.background 分别落产品，measurement_id 互异，各带 p05/p50/p95 与有效覆盖。复合 Wt_k=C_norm*S^alpha*Conc^beta/(N^gamma*B^delta)，W_psfsw,k=Wt_k/median_j(Wt_j)。covariance 只能从实际组合系数传播，effective PSF 必输。",
+  "x-astrocs-canonical-object-retirement": {
+    "note": "本文件属 v6 合同层，按 工程控制/RELEASE-03/GAP_AUDIT.md §4.1 Q2 裁决在位保留为「设计档案 / 产品族专用投影（非生产目标态）」，文件不删。统一对象 canonical psfsw_robust_weight retired（负责人 2026-09-20 裁决 B，14→13；变更编号 CHG-2026-09-20-PSFSW-RETIRE；依据 ASTROCS_DESIGN.md §2.1/§2.2/§2.3 与 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44）：contracts/schemas/unified/psfsw_robust_weight.schema.json 与其正例已删除，端口合同枚举不再接受该对象。本文件中的 psfsw_robust_weight 是 v6 提案/产品族内部标识（weight.kind 值、单位表符号、variance_from 禁止项 token），不是统一对象 canonical 引用；旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示（contracts/data/unified_object_compatibility_map_v1.json#retired_entries）。",
+    "retired_canonical_object": "psfsw_robust_weight",
+    "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
+    "v6_layer_status": "retained_design_archive"
+  },
   "x-astrocs-forbidden-keys": ["ivar", "inverse_variance", "variance", "var", "sigma", "sigma2", "fisher", "fisher_information", "information", "w_info", "w_psf"],
   "x-astrocs-extended-guard-keys": ["snr", "snr2", "support", "coverage"],
   "type": "object",

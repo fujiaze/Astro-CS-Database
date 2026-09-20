@@ -142,7 +142,7 @@ MUTATIONS = [
      "mutate": _json_mut(lambda d: d["properties"]["common_star_set"]["properties"]["n_common"]["x-astrocs"].update(signoff="FROZEN (signed)"))},
     {"id": "M31_doc_remove_v6_section", "target": DOC_DS, "kind": "text", "expect": "O25-docs-present",
      "inject": "remove DATA_SEMANTICS section-31 heading",
-     "mutate": _text_mut(lambda t: t.replace("## 31. V6 目标态数据合同", "## 31. (removed)"))},
+     "mutate": _text_mut(lambda t: t.replace("## 31. V6 合同层数据合同", "## 31. (removed)"))},
     {"id": "M32_doc_readd_p33_snr_coefficient", "target": DOC_DS, "kind": "text", "expect": "O26-no-p33-p27-reintroduction",
      "inject": "reintroduce P33-COEF SNR coefficient section",
      "mutate": _text_mut(lambda t: t + "\n\n**P33-COEF：帧级 SNR 系数在 HiPS 产品中的落位**\n\n- snr_coefficient 重新落位\n")},
