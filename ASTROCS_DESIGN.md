@@ -125,35 +125,74 @@ flowchart TD
 
 输入为 **JSON 配置**（数据块结构）。数据块只含**必要参数 + 帧路径**；容差与默认参数放在**程序根目录 `config/`**（见下）。
 
+**两种形态（互斥）**：一个 JSON 内可写**多个数据块**（`blocks[]`，形如「一个 main 下面写很多个函数」）；只有一块时可用**平铺单块简写**。同一顶层同时出现 `blocks` 与任一平铺键 → **报错**（不静默取一）。
+
 ```jsonc
+// ① 多块形态（GAP_AUDIT §9.68 负责人裁决 2026-09-20）：每块自带一组 light + 一套母版
+//    + 运行参数 + 块级 output_dir；「同一组校准帧和运行参数支持一组 light」——
+//    不得逐帧重复写校准帧。一块 = 一次运行（独立 output_dir / 独立 run manifest）。
 {
   "schema_version": "1",                 // 配置合同版本（恒 "1"）
-  "input_lights": [                      // 亮场 FITS 路径数组（必填非空）= 一大组 light
-    "path/to/light1.fits",               // 每帧独立处理、各自产出一个 HiPS 产品（§3.4）
-    "path/to/light2.fits"
-  ],
-  "master_bias": "path/to/bias.fits",    // 一套母版校准帧（全组共用）；缺 → 预检 error（仅 -force 可越）
+  "blocks": [
+    {
+      "name": "red",                     // 可选：块归属标识（写入日志与 run manifest 的 block.name）
+      "input_lights": [                  // 本块一组亮场（必填非空）= 一大组 light
+        "path/to/light1.fits",           // 每帧独立处理、各自产出一个 HiPS 产品（§3.4）
+        "path/to/light2.fits"
+      ],
+      "master_bias": "path/to/bias.fits",   // 本块一套母版校准帧（全组共用）；缺 → 预检 error（仅 -force 可越）
+      "master_dark": "path/to/dark.fits",
+      "master_flat": "path/to/flat_red.fits",
+      "output_dir": "path/to/out/red",      // 块级必填非空：本块产物唯一落点（禁 silent default）
+      "drizzle": { "nested": 1, "pixfrac": 1.0, "precision_mode": 1 },   // precision_mode 必须显式：0=FP32 / 1=FP64
+      "filter_passband": "Baader R",        // 本块整组共用；与 config/filters.json 逐字匹配（空 = 显式无 filter），未知滤镜 → error
+      "wcs": { "gaia_data_dir": "path/to/gaia" }   // 或显式线性 WCS 八参数 crpix1/crpix2/crval1/crval2/cd11/cd12/cd21/cd22
+    },
+    {
+      "name": "ha",                      // 另一通道：换平场与运行参数；bias/dark 母版与 Gaia 目录可复用
+      "input_lights": ["path/to/light3.fits"],
+      "master_bias": "path/to/bias.fits",
+      "master_dark": "path/to/dark.fits",
+      "master_flat": "path/to/flat_ha.fits",
+      "output_dir": "path/to/out/ha",
+      "drizzle": { "nested": 1, "pixfrac": 1.0, "precision_mode": 1 },
+      "filter_passband": "Baader 7nm H-alpha",
+      "wcs": { "gaia_data_dir": "path/to/gaia" }
+    }
+  ]
+}
+
+// ② 平铺单块简写（只有一块时的等价写法，向后兼容）：顶层平铺 input_lights/master_*/output_dir/运行参数
+{
+  "schema_version": "1",
+  "input_lights": ["path/to/light1.fits"],
+  "master_bias": "path/to/bias.fits",
   "master_dark": "path/to/dark.fits",
   "master_flat": "path/to/flat.fits",
-  "output_dir": "path/to/out",           // 运行产物唯一落点（必填非空）
-  "drizzle": { "nested": 1, "pixfrac": 1.0, "precision_mode": 1 },   // precision_mode 必须显式：0=FP32 / 1=FP64
-  "filter_passband": "bader r",          // 运行级单值；与 config/filters.json 匹配（空 = 显式无 filter），未知滤镜 → error
-  "wcs": { "gaia_data_dir": "path/to/gaia" }   // 或显式线性 WCS 八参数 crpix1/crpix2/crval1/crval2/cd11/cd12/cd21/cd22
+  "output_dir": "path/to/out",
+  "drizzle": { "nested": 1, "pixfrac": 1.0, "precision_mode": 1 },
+  "filter_passband": "Baader R",
+  "wcs": { "gaia_data_dir": "path/to/gaia" }
 }
 
 // 可选键（不进 --template 骨架）：snr（SNR 科学块）、photometry（测光归一配置块）、cosmetic、
 // dark_optimization、dark_scale_factor、master_units / master_scale / master_flat_normalize /
 // master_flat_median_range、sparse_snr_layer、algorithm_psf_model、wcs.init_source
+//
+// ⚠ 滤镜名反例（必须被拒）：filter_passband 写 "bader r" 或 "bader v"（型号名的大小写/写法变体）
+//    → 未知滤镜 error；库键必须**逐字**命中 config/filters.json（match=exact、case_sensitive=true、
+//    normalization=none、aliases={}）。这两个串登记为 lookup.non_key_examples。
 ```
 
-> **键集权威（§9.56 裁决 4，2026-09-20 订正）**：上例是 `normalize --json` **实际消费**的键集，
-> 与 `--template` 输出同源；唯一声明 = `lib/infrastructure/cli/session_commands.h` 的 `config_fields()`，
+> **键集权威（§9.56 裁决 4，2026-09-20 订正；§9.68 裁决 2026-09-20 收口）**：上例是 `normalize --json` **实际消费**的键集，
+> 与 `--template` 输出同源；唯一声明 = `lib/infrastructure/cli/session_commands.h` 的 `config_fields()`
+> （块内键以 `scope == "block"` 标记，模板与 `--help` 同源生成），
 > 数据面登记 = `docs/contracts/DATA_SEMANTICS.md` §16.1（`input_lights` / `master_bias` / `master_dark` / `master_flat`）。
 > 另存在 **V1 顶层形态**（`{"inputs": {"lights": [...]}}`，由 `runtime_client` 映射为 `input_lights`；
 > 见 `docs/api/CLI_PROTOCOL_V1.md` §7 与 `lib/infrastructure/cli/runtime_client.cpp`）—— 该形态的 `inputs` 是**对象**，**不是**每帧一个对象的数组。
-> ⚠ **越层分叉（只登记，不在本层修）**：`contracts/schemas/phase_config_normalize.schema.json` 与
-> `config/templates/normalize.phase_config.json` 仍按本节**旧写法**声明 `{phase_name, config, inputs[]}`（内层 `light/bias/dark/flat`），
-> 且其 `x-astrocs-authority` 指向本节 ⇒ **合同层须走变更 claim 对齐**（本次仅报告，见 `run/RELEASE-02/merge/` 回写报告）。
+> ✅ **越层分叉已收口（§9.68，2026-09-20）**：`contracts/schemas/phase_config_normalize.schema.json` 与
+> `config/templates/normalize.phase_config.json` 已按本节改写为多块形态，逐帧 `{phase_name, config, inputs[]}`
+> **删除**（CLI 明确拒绝并给迁移提示）；合同层与本节同源（变更 claim `CFG-MULTIBLOCK-001`）。
 
 **程序根目录 `config/`（全局配置，放配置文件）**：
 
@@ -163,12 +202,21 @@ config/
 └── defaults.json     默认参数：暗场-亮场曝光容差、默认 PSF 模型、检测阈值、标量门、稀疏层控制点间隔（sparse_snr_spacing_px）等
 ```
 
-- **`input_lights` 是一组亮场路径，全组共用一套母版校准帧**（`master_bias`/`master_dark`/`master_flat`）与一个运行级 `filter_passband`；一组 light + 母版 + 波段 = 一次运行的**数据块**。
+- **`input_lights` 是一组亮场路径，全组共用一套母版校准帧**（`master_bias`/`master_dark`/`master_flat`）与一个运行级 `filter_passband`；一组 light + 母版 + 波段 = 一次运行的**数据块**（§9.68 后是 `blocks[]` 的**一项**，见下条）。
   ⚠ **订正留痕（§9.56 裁决 4，2026-09-20）**：本节旧写法为「每组 light 各自对应一组校准帧（bias/dark/flat/cosmetic）+ 各自 `filter`」，
   与 CLI/schema 实际键不符（CLI 键 = `input_lights` + 一套 `master_*` + 运行级 `filter_passband`）；
-  **以 CLI/schema 为准**已订正。若设计本意确为「每帧一套母版/滤镜」，则须扩展 CLI 合同（属前台裁定，不属本次订正）。
+  **以 CLI/schema 为准**已订正。
+  ⚠ **订正留痕（§9.68 裁决，2026-09-20）**：上条曾写「若设计本意确为『每帧一套母版/滤镜』，则须扩展 CLI 合同（属前台裁定）」——
+  负责人已裁决（**甲**）：**不是**每帧一套母版，而是**多数据块**（`blocks[]`，每块一套母版 + 一组 light）；
+  「同一组校准帧和运行参数**应该支持一组 light**」。本定义随之细化为「一块 = 一组 light + 一套母版 + 波段 + 块级运行参数与 `output_dir`」。
 - **数据块内的每一帧都要独立处理并各自产出一个 HiPS 产品**（一组进、一组出，见 §3.4），**不得只取其中一帧**；
-- **顶层平铺键**（必要参数 + 一大组 `input_lights`）；**容差和默认参数从 `config/defaults.json` 读取**，运行 JSON 只写必要参数与路径；滤镜型号必须与 `config/filters.json` 滤镜库匹配（如 `bader r`），未知滤镜 → error；
+- **数据块是一等公民**（§9.68）：顶层 `blocks[]` 并列多块，**每块**自带一组 `input_lights` + 一套母版 + 运行参数 + **块级 `output_dir`**；
+  **一块 = 一次运行**（独立 `output_dir`、独立 run manifest、独立 `run_context`；块级 `name` 写入日志与 manifest 的 `block` 子对象）；
+  多块**按序**各自成一次运行，**不得**把多块混成一个 manifest；块间 `output_dir` 不得重复。
+  用途：多套设备 / 多个通道（不同滤镜）各自需要不同校准场与运行参数时，在**同一个 JSON** 里并列多个 block。
+  只有一块时可用**平铺单块简写**（顶层 `input_lights`/`master_*`/`output_dir`/运行参数，与多块形态等价）；
+  两种形态**互斥**（同时出现 → 明确报错，不静默取一）。
+- **顶层平铺键**（必要参数 + 一大组 `input_lights`；= 单块简写形态）；**容差和默认参数从 `config/defaults.json` 读取**，运行 JSON 只写必要参数与路径；滤镜型号必须与 `config/filters.json` 滤镜库匹配（如 `Baader R`），未知滤镜 → error；
 - **计算精度显式声明**：CLI 键 = `drizzle.precision_mode`（`0`=FP32 / `1`=FP64，必须显式，缺失即拒绝）；科学模块按声明精度执行。（`config.precision` 是 `phase_config` 合同族旧键名，**不在 CLI 键集内**——见下条键集权威。）
 - **输入就是必要参数 + 路径**；星表引导检测的**极限星等**与 **top N 上限**是**派生量**（按焦距/画幅/曝光时间估计，见 §3.6），**不是**用户配置键。
 
@@ -639,6 +687,65 @@ lib/
   依据 = **本节「顶层结构（唯一）」零命中** + 生产链接行零命中；删除须**同步清理** `ci/`、CMake、共址测试、`CHK-MODULE-MANIFEST` 登记与**全部引用点**。
   **本节是唯一顶层结构，二者不在其列**；**删除前不得声称**生产已产出逐像素方差面（接入完成前 `uncertainty_available=false` 如实登记）。
 - 每个算法模块是一个独立 DLL/SO；基建按稳定职责合并为有限个模块。
+
+### 7.1a 数据流形态：**阶段内内存块管线，阶段间落盘**（负责人 2026-09-20 裁决，选项丙）
+
+> 负责人逐字：「**阶段内走管线，阶段间落盘**」
+
+两个层级**必须严格区分**，不得混用：
+
+```text
+┌─ 阶段间（normalize → mosaic → export）───────────────────────────┐
+│  磁盘产品 + manifest + 哈希 = 唯一交换（见 §9）                   │
+│  三个命令各自独立运行；用户可依次跑，但这不是产品内部状态机         │
+└──────────────────────────────────────────────────────────────┘
+        ↑ 落盘                                   ↑ 落盘
+┌─ 阶段内（同一命令的一次运行）──────────────────────────────────┐
+│  内存块管线：PipelineFrame + 命名块（AioBlock）                  │
+│  节点之间**传块**，不落中间文件                                   │
+│  块词表 = 模块化接口：增删/替换模块 = 调整块的**生产者/消费者顺序** │
+└──────────────────────────────────────────────────────────────┘
+```
+
+#### 强制条款
+
+1. **阶段内一律走内存块管线**：同一命令内相邻节点之间的数据传递**必须**通过 `PipelineFrame` 的
+   命名块完成；**禁止**用中间文件（JSON/FITS/bin）在阶段内节点之间搬运数据。
+2. **载体与 API** = `lib/infrastructure/aio` 的 `PipelineFrame` / `AioBlock`：
+   `aio_pipeline_frame_create` / `aio_frame_add_block` / `aio_frame_add_block_move` /
+   `aio_frame_get_block` / `aio_frame_remove_block` / `aio_frame_kv_set`（头部 KV 走同一帧）。
+3. **块词表即模块化接口**：每个块有**冻结的名字与语义**（形状/类型/单位/可缺性）。
+   模块只声明「消费哪些块、产出哪些块」；**接入或替换一个模块 = 调整块的生产者/消费者顺序**，
+   不需要改其它模块、不需要新增中间文件、不需要改阶段间合同。
+4. **算法模块按块接口编写**：算法模块从帧上取块、把结果写回帧；**不得**自行读写阶段内中间文件。
+   范例（**既有冻结合同**）：`docs/contracts/DATA_SEMANTICS.md` §11.1 标题逐字
+   「输入（**PipelineFrame 命名块**；文件通道 FITS 另注）」，其中 `variance` 面登记为
+   「可选，**帧内块** | float32，随 `data` 布局 | ADU²」；消费侧实现见
+   `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp` 的 `aio_frame_get_block(frame, "variance")`。
+5. **阶段间一律落盘**：跨命令的数据传递**只**通过磁盘产品 + manifest + 哈希（见 §9）；
+   不得依赖进程内存、不得依赖临时文件续传。
+6. **provenance 不因「在内存里」而丢失**：帧上的头部 KV（诊断键、状态枚举等）随帧流动，
+   最终按 §9 落进产品 manifest。
+7. **内存纪律**（与 §8「内存极简化」一致）：块用完即释（`aio_frame_remove_block`）；
+   工作集只保留当前分块所需；可由确定性公式现场求值的内容不预计算、不整体驻留。
+8. **禁止挂会破坏数据的块**：可缺块的**缺省语义必须是无害的**。反例（实测事故面）：
+   噪声模型退化时逐像素方差平面为**全零**，而积分侧对 `≤0` 的处理是**整像素 `continue`**
+   ⇒ 挂全零平面会**清空 signal/support**。故：退化 / 平面无正有限值 / 无必需掩膜输入时，
+   **不挂该块 + 显式降级声明**（manifest + stderr），**禁止静默**。
+
+#### 与 §7.2 架构图的关系
+
+§7.2 的 `RT → ALG` 边在**阶段内**即「调度器把块喂给算法模块」；`AIO → DISK` 边只在**阶段间**成立。
+二者不矛盾，是同一流程的两个层级。
+
+#### 状态登记（**未实现，如实登记**）
+
+⚠ **当前生产实现不符合本条**：`lib/infrastructure/scheduler/src/module_adapters.cpp` 在**阶段内**
+也用磁盘 JSON + FITS 传递；`PipelineFrame` 仅在**单个节点内部**建/销毁（如 drizzle 节点），
+**节点间不传块**。
+符合本条的实现已存在但**未接入生产**：`lib/infrastructure/pipeline/orchestrator/cpp/`
+（`orchestrator.cpp` 的命名块词表见其 `:3212-3213`）。
+**订正计划**：见 §7.1 的接入登记与工程包任务；**接入完成前不得声称本条款已满足**。
 
 ### 7.2 架构图
 
