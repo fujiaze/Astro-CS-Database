@@ -1,5 +1,6 @@
 ---
 id: MOD-astrocs-phase2-coverage
+module_id: astrocs.p2.coverage
 version: 1.0.0
 status: ACTIVE
 owner: SA-P2-S20

@@ -58,7 +58,7 @@ docs/plugins/
 |---|---|---|
 | `17_aio.md` | aio | FITS/HiPS/manifest 唯一 I/O、原子提交 |
 | `18_cli.md` | cli | 命令解析、JSON/JSONL、取消、退出码 |
-| `19_runtime.md` | runtime | typed DAG、调度、线程预算、资源监控 |
+| `19_runtime.md` | scheduler | 模块名 = `scheduler` + `pipeline`（最高设计 §7.1；`runtime` 不是模块名）；typed DAG、调度、线程预算、资源监控 |
 | `20_benchmark.md` | benchmark | CPU profile 生成与校验 |
 | `21_observability.md` | observability | 日志、事件、运行图 |
 | `22_gaia_xpsd_client.md` | gaia_xpsd_client | 外部星表查询、缓存、坐标/历元语义 |

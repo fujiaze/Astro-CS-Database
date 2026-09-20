@@ -62,9 +62,17 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
   定，save 前校验行数一致 :944-945，拒绝写绑定损坏的模型文件）。
   build_geo 变体（:934）消费全几何 P2ControlNode（含单帧区），单帧
   区经全局平滑/Laplacian 延拓（harmonic continuation）。
-- apply 职责：按 frame_id 绑定逐块校准——`calibrated = raw −
-  C_f(p)`（p2_upm_calibrate_block :1240，与 p2_upm_evaluate_c :1271
-  sparse/dense 同一科学语义）；dense cache 物化/读取
+- apply 职责：按 frame_id 绑定逐块校准——**默认只扣偏差 δ_k、保留公共天光面
+  B_ref**：`calibrated_k(x) = raw_k(x) − δ_k(x)`（最高设计 §4.4「公共面语义：
+  只扣「多退少补」的偏差，不剪掉整个背景」，§9.67 定案 1）。
+  ⚠ **记法消歧（强制）**：`C_k ≡ B_ref + δ_k` 是**表示层全量**；**全量扣除
+  `raw − C_k`（含 `B_ref`）不再是默认**，凡写 `raw − C_k` 处必须写明
+  「全量」还是「仅偏差」——本页原写 `calibrated = raw − C_f(p)` **无消歧，已按
+  R24 订正**。实现键 `seam.additive_mode ∈ {c, delta, both}`：`delta` = `raw − δ_k`
+  （保留 `B_ref`，**设计默认**）、`c` = 全量扣除、`both` = 两者同时施加
+  （最高设计 §4.4；⚠ 实现面默认仍为 `c`，属**待改**，以设计为准）。
+  内核锚 = p2_upm_calibrate_block :1240，与 p2_upm_evaluate_c :1271
+  sparse/dense 同一科学语义；dense cache 物化/读取
   （p2_upm_materialize_dense_n :1390 分批并行求值→(f,tile) 单调序
   串行写、bit-identical，p2_upm_dense_read_block :1542 stale 拒绝
   rc=2）；生产 apply 消费链=lib/algorithms/coverage/tools/stage2.cpp
@@ -107,7 +115,9 @@ control_ivar、snr_available=0 时 snr 回退整帧中位）；输出模型对�
 DATA-P2-UPM（DATA_SEMANTICS §25；P2ModelInfo version/precision
 0=fp32,1=fp64/target_order/control_count/observation_count/
 component_count/model_hash[65] + C[frame][control] FP64）；apply 输
-出 DATA-P2-COR（§26，calibrated=raw−C_f(p) FP64 ADU）。
+出 DATA-P2-COR（§26）**默认语义 = 只扣偏差**：`calibrated_k(x) = raw_k(x) − δ_k(x)`
+  （FP64 ADU，**保留公共天光面 `B_ref`**）；全量扣除 `raw − C_k` 非默认，
+  使用时必须显式声明（最高设计 §4.4 / §9.67 定案 1）。
 - invalid: null 参数/n_obs=0/frame 绑定不一致/open/parse 失败 →
   rc=1；production 模式 control_ivar≤0/非有限 → p2_upm_raw_weight
   rc=2 → build rc=2（显式 INVALID，禁静默回退 support/SNR，

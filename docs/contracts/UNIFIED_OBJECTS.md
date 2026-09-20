@@ -1,4 +1,14 @@
-# 统一数据对象合同（UNIFIED_MODEL §2 的 14 个对象）
+# 统一数据对象合同（UNIFIED_MODEL §2 的 **13** 个对象）
+
+> **退役与身份（DOC-203 / Q2 前置裁决 2026-09-20；GAP_AUDIT §4.1/§4.5）**
+> ① canonical 数据对象 = **13 个**（原 14 个）；`psfsw_robust_weight` **已真删**（负责人 2026-09-20
+> 裁决 B；变更 claim `CHG-2026-09-20-PSFSW-RETIRE`；退役记录
+> `contracts/data/unified_object_compatibility_map_v1.json#retired_entries`）。上位正本 =
+> `docs/design/UNIFIED_MODEL.md` §2。
+> ② **V6 合同层在位保留**，身份归一为「**设计档案 / 产品族专用投影（非生产目标态）**」——
+> 原「ACTIVE / 生产目标态」措辞已删；生效与退役条件由**变更编号**决定，**不得**用版本号窗口表达
+> （`ASTROCS_DESIGN.md` §12）。
+> ③ v6 内的 `weight_mode` 家族已按 §9.73 A44 作废（作废键面：删键 / 改写 / 加作废留痕；文件本身不删；DOC-201 已落地）。
 
 - 文档 ID：`IDX-UNIFIED-OBJECTS`（机器索引：`docs/contracts/unified_object_registry.json`）
 - 任务：`DATA-001`　基线 HEAD：`ecf6ad6f`
@@ -6,7 +16,7 @@
 
 ## 1. 唯一事实源声明（U-02 口径）
 
-`contracts/schemas/` 是数据合同的**唯一事实源**（ENGINEERING_SPEC §4.7）。对 UNIFIED_MODEL §2 的 14 个对象：
+`contracts/schemas/` 是数据合同的**唯一事实源**（ENGINEERING_SPEC §4.7）。对 UNIFIED_MODEL §2 的 **13** 个对象（\(psfsw_robust_weight\) 已于 2026-09-20 退役，见文首）：
 
 ```text
 canonical 定义 = contracts/schemas/unified/<对象名>.schema.json
@@ -16,7 +26,7 @@ canonical 定义 = contracts/schemas/unified/<对象名>.schema.json
                   且不得与 canonical 重复定义对象判别字段（除 schema_version 外 required/properties 词表不得重叠）。
 ```
 
-**U-02 结论（唯一性判定标准）**：单一合同链的唯一性判定标准：对 UNIFIED_MODEL §2 的 14 个对象，contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，不得与 canonical 重复定义对象判别字段（除 schema_version 外 required/properties 词表不得重叠），且 contracts/schemas/** 下每个 schema 文件都必须在 docs/contracts/unified_object_registry.json 的 canonical_object_classes 中被登记归属。
+**U-02 结论（唯一性判定标准）**：单一合同链的唯一性判定标准：对 UNIFIED_MODEL §2 的 13 个对象，contracts/schemas/unified/<对象名>.schema.json 是唯一 canonical 定义（每对象恰 1 个 $id，全局不重复）；任何其它 schema 只能是「产品族专用投影」或「兼容期映射」，不得与 canonical 重复定义对象判别字段（除 schema_version 外 required/properties 词表不得重叠），且 contracts/schemas/** 下每个 schema 文件都必须在 docs/contracts/unified_object_registry.json 的 canonical_object_classes 中被登记归属。
 
 机器可复跑断言（`python3 -m unittest discover -s tests/contracts -t tests/contracts`）：
 
@@ -25,7 +35,7 @@ canonical 定义 = contracts/schemas/unified/<对象名>.schema.json
 - `tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_every_object_schema_is_in_the_ownership_registry`
 - `tests/contracts/test_unified_object_contract.py::TestCanonicalObjectSchemas::test_no_two_equivalent_schemas_per_object`
 
-## 2. 14 个对象 → canonical schema → schema ID（对照表）
+## 2. 13 个对象 → canonical schema → schema ID（对照表）
 
 | 对象 | schema ID | canonical 文件 | 单位（BUNIT 语义） | 无效值 / 缺失表示 | 精度 | 可否作权重（UNIFIED_MODEL §2 原文） | DataArtifact 登记 |
 |---|---|---|---|---|---|---|---|
@@ -36,7 +46,7 @@ canonical 定义 = contracts/schemas/unified/<对象名>.schema.json
 | `depth_m5` | `https://astrocs.local/schemas/unified/depth_m5/v1` | `contracts/schemas/unified/depth_m5.schema.json` | mag | null | float32|float64 | 摘要，不作权重 | `DATA-OBJ-DEPTH-M5-001` |
 | `frame_snr` | `https://astrocs.local/schemas/unified/frame_snr/v1` | `contracts/schemas/unified/frame_snr.schema.json` | 1（真实信号/噪声比） | null | float32|float64 | 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算 | `DATA-OBJ-FRAME-SNR-001` |
 | `point_information` | `https://astrocs.local/schemas/unified/point_information/v1` | `contracts/schemas/unified/point_information.schema.json` | ADU^-2（=signal^-2） | null | float32|float64 | 点源目标的严格权重 | `DATA-OBJ-POINT-INFORMATION-001` |
-| `psfsw_robust_weight` | `https://astrocs.local/schemas/unified/psfsw_robust_weight/v1` | `contracts/schemas/unified/psfsw_robust_weight.schema.json` | 1（无量纲组内相对） | null | float32|float64 | 显式 psfsw_robust 集成可用；不是 ivar | `DATA-OBJ-PSFSW-ROBUST-WEIGHT-001` |
+| ~~`psfsw_robust_weight`~~ **已退役** | ~~`https://astrocs.local/schemas/unified/psfsw_robust_weight/v1`~~ | ~~`contracts/schemas/unified/psfsw_robust_weight.schema.json`~~（**已删除**） | — | — | — | **对象已不存在**（负责人 2026-09-20 裁决 B，14→13；`ASTROCS_DESIGN.md` §2.1/§2.3 + §9.73 A44） | ~~`DATA-OBJ-PSFSW-ROBUST-WEIGHT-001`~~（INDEX 已置 `OBSOLETE`） |
 | `sparse_snr_layer` | `https://astrocs.local/schemas/unified/sparse_snr_layer/v1` | `contracts/schemas/unified/sparse_snr_layer.schema.json` | 1 | null | float32|float64 | 帧内精细参考 | `DATA-OBJ-SPARSE-SNR-LAYER-001` |
 | `support` | `https://astrocs.local/schemas/unified/support/v1` | `contracts/schemas/unified/support.schema.json` | 1（[0,1]） | 0=无覆盖 | float32|float64|integer | 否 | `DATA-OBJ-SUPPORT-001` |
 | `coverage` | `https://astrocs.local/schemas/unified/coverage/v1` | `contracts/schemas/unified/coverage.schema.json` | 1（几何有效域） | 0=无覆盖（空域） | float32|float64|integer | 否 | `DATA-OBJ-COVERAGE-001` |
@@ -67,26 +77,34 @@ UNIFIED_MODEL §2 末条：**禁止**用一个模糊的 `weight/value/mask/snr` 
 
 基线（`ecf6ad6f`）实测：合同分散在 `contracts/data/**`（10 文件）、`contracts/schemas/v6/**`（10 件产品族 schema）、`contracts/schemas/*.schema.json`（6 件根合同）；文档面 `docs/contracts/{DATA_SEMANTICS.md,DATA_ARTIFACTS.md,INDEX.yaml}` 与 `docs/contracts/v6/**`（11 篇）并存两套口径（GAP-007）。本次迁移只做**归属归一与索引**：
 
-| 旧路径 | 新路径（canonical 或索引） | 归属类型 | 废弃登记时间点 | 退役窗口 |
+| 旧路径 | 新路径（canonical 或索引） | 归属类型 | 废弃登记（**变更编号**） | 退役条件（**变更编号 / 日期**） |
 |---|---|---|---|---|
-| `contracts/data/v6_data_dictionary_v1.json` | `contracts/schemas/unified/` | data_dictionary_index | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/data/v6_weight_vocabulary_v1.json` | `contracts/schemas/unified/` | weight_vocabulary | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/data/v6_migration_map_v1.json` | `docs/contracts/unified_object_registry.json#deprecation` | migration_map | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/schemas/v6/astrocs.v6.signal.v1.schema.json` | `contracts/schemas/unified/signal.schema.json` | object_contract | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json` | `contracts/schemas/unified/variance.schema.json` | object_contract | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json` | `contracts/schemas/unified/ivar.schema.json` | object_contract | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json` | `contracts/schemas/unified/psfsw_robust_weight.schema.json` | object_contract | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json` | `contracts/schemas/unified/point_information.schema.json` | object_contract | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json` | `contracts/schemas/unified/provenance.schema.json` | object_contract | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/data/phase2_uncertainty_rejection_provenance_v1.json` | `contracts/schemas/unified/rejection.schema.json` | product_contract | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/data/phase_product_exchange.schema.json` | `docs/contracts/unified_object_registry.json#port_contract` | exchange_planes | 0.11.0-alpha.2 | 0.12.0 |
-| `contracts/proposals/v6/data/` | `contracts/schemas/unified/` | proposal_design_archive | 0.11.0-alpha.2 | 0.12.0 |
-| `docs/contracts/v6/data/` | `docs/contracts/UNIFIED_OBJECTS.md` | human_readable_design_archive | 0.11.0-alpha.2 | 0.12.0 |
+| `contracts/data/v6_data_dictionary_v1.json` | `contracts/schemas/unified/` | data_dictionary_index | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `contracts/data/v6_weight_vocabulary_v1.json` | `contracts/schemas/unified/` | weight_vocabulary | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `contracts/data/v6_migration_map_v1.json` | `docs/contracts/unified_object_registry.json#deprecation` | migration_map | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `contracts/schemas/v6/astrocs.v6.signal.v1.schema.json` | `contracts/schemas/unified/signal.schema.json` | object_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json` | `contracts/schemas/unified/variance.schema.json` | object_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json` | `contracts/schemas/unified/ivar.schema.json` | object_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json` | ~~`contracts/schemas/unified/psfsw_robust_weight.schema.json`~~ **canonical 已退役**（负责人 2026-09-20 裁决 B，14→13；GAP_AUDIT §4.5 C01） | object_contract（**v6 提案归档**；canonical 目标已删除） | CHG-2026-09-20-PSFSW-RETIRE | 不适用（目标对象已真删；v6 件按 Q2 裁决**在位保留**为设计档案） |
+| `contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json` | `contracts/schemas/unified/point_information.schema.json` | object_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json` | `contracts/schemas/unified/provenance.schema.json` | object_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `contracts/data/phase2_uncertainty_rejection_provenance_v1.json` | `contracts/schemas/unified/rejection.schema.json` | product_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `contracts/data/phase_product_exchange.schema.json` | `docs/contracts/unified_object_registry.json#port_contract` | exchange_planes | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `contracts/proposals/v6/data/` | `contracts/schemas/unified/` | proposal_design_archive | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+| `docs/contracts/v6/data/` | `docs/contracts/UNIFIED_OBJECTS.md` | human_readable_design_archive | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
 
 策略：contracts/schemas/ 是唯一事实源；旧路径（contracts/data/**、contracts/schemas/v6/**、合同变体根文件）只保留兼容期映射与产品族专用投影，不得再新增与 canonical 等价的第二份定义；对象身份/单位/无效值/精度/可否作权重一律以 contracts/schemas/unified/ 为准。
 
 > 说明：`contracts/schemas/v6/**` 是**产品族专用合同**（含 49 条 `PENDING_OWNER_SIGNOFF` 条款，fail-closed），与被其引用的 canonical 对象合同**不等价**，因此在 v6 冻结期内作为投影存在但必须在 ownership 索引中登记；其读写规则、fail-closed 门与词表不变（W6 集成基线不得静默改变）。
 > `contracts/data/**` 与 `docs/contracts/v6/**` 只作兼容期映射与设计档案，不得再新增与 canonical 等价的对象定义。
+>
+> **Q2 前置裁决落地（DOC-203，2026-09-20；GAP_AUDIT §4.1）**：
+> - **在位保留**：`contracts/schemas/v6/**`（10 件产品族 schema，fail-closed 语义不变）、`docs/contracts/v6/**`（16 篇）、
+>   `contracts/proposals/v6/**` 三面**均不删**（避免触碰「删除交付物」上呈线）；
+> - **身份归一**：`contracts/schemas/v6/**` = 「**产品族专用投影（非生产目标态）**」、`docs/contracts/v6/**` = 「**人类可读设计档案**」、
+>   `contracts/proposals/v6/**` = 「**提案归档**」——**删**「ACTIVE / 生产目标态」措辞；
+> - **生效与退役条件**：由**变更编号**决定，**不得**用版本号窗口表达（`ASTROCS_DESIGN.md` §12；本表已按此订正）；
+> - **`weight_mode` 家族**：已按 §9.73 A44 作废（作废键面：删键 / 改写 / 加作废留痕），**文件本身不删**（DOC-201 已落地）。
 
 ## 4a. 旧合同 ID → 统一对象映射（MODULE_MAP 引用面，负责人裁决）
 

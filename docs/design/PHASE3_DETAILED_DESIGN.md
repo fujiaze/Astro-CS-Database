@@ -16,7 +16,7 @@
 
 ## 2. WCS 计划
 
-用户提供中心、尺度、shape、旋转、投影或足够约束。首批支持 TAN、SIN、CAR、AIT；每种定义适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT 和 CTYPE。采用 FITS 1-based 关键字、内部 0-based 像素中心，转换唯一。
+用户提供中心、尺度、shape、旋转、投影或足够约束。**冻结清单 = 8 种**（TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA）；**已实现并可作为产品声明的以实际注册表为准——当前仅 TAN**，**未实现的必须显式报「不支持」**，**禁止**声称支持（`ASTROCS_DESIGN.md` §5.3；DOC-203 订正：原文「首批支持 TAN、SIN、CAR、AIT」与 §5.3 相反，已删）。每种定义适用域、奇点、经度 wrap、轴手性、CRPIX/CRVAL/CD/PC/CDELT 和 CTYPE。采用 FITS 1-based 关键字、内部 0-based 像素中心，转换唯一。
 
 计划阶段：
 

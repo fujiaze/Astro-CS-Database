@@ -19,6 +19,22 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 **边界（本任务冻结范围）**：LOG-001 只冻结合同 + schema + 小型验证，**不实现生产 logger、
 不接监控**。LOG-002 把生产 Runtime/模块/资源监控接入本合同的 JSONL 输出。
 
+### 1.1 身份声明：本合同**不是**运行事件流（DOC-202 R08 / GAP_AUDIT §4.3 Q6 裁决）
+
+> ⚠ **强制消歧（唯一口径）**：LOG-001 的身份 = **「结构化日志合同」**（人可读摘要 + 机器 JSONL
+> 双通道同源），**它⛔不是运行事件流（run event stream）**，不得被当作运行事件流消费或冒充。
+
+| 面 | 唯一源 | 事件键名 | 事件枚举 | 工件 |
+|---|---|---|---|---|
+| **运行事件流**（run event stream） | `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`） | `kind` | `progress` / `resource` / `artifact` / `backend` / `final` | CLI JSONL 事件流（默认输出，最高设计 §6.3） |
+| **结构化日志**（本合同 LOG-001） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + `tools/monitoring/check_log_contract.py` | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`astrocs.log.event.v1`） |
+
+- **两份流各用不同工件名，不得互相冒充**；
+- **键名 `event`（本合同）与 `kind`（运行事件流）不得混用**：本合同的 `event` 字段
+  **不得**承载运行事件流的枚举，运行事件流**不得**新增 `event` 键；
+- 运行事件流的字段名 / 枚举 / 顺序键**唯一**以 `protocol.h` + `jsonl.h` 为源
+  （最高设计 §6.3）；本合同**不复制**其字段表。
+
 ## 2. 事件模型
 
 每个生产事件产生两路输出，内容一致：
@@ -50,7 +66,7 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 | `commit` | string | 产生事件的 commit | 40 位小写 hex；真实运行现场值 |
 | `host` | string | 主机逻辑标识 | 安全字符；不得含用户/凭据 |
 | `level` | string | 级别 | `debug/info/warn/error` |
-| `event` | string | 事件种类 | `start/progress/end/warn/error/metric/checkpoint/cancel/trace` |
+| `event` | string | 事件种类（**结构化日志专用键**；运行事件流用 `kind`，见 §1.1，**两者不得混用**） | `start/progress/end/warn/error/metric/checkpoint/cancel/trace` |
 | `units` | string | 数值量纲 | `[A-Za-z0-9/%._-]{0,32}`；无则 `""` |
 | `elapsed` | number ≥0 | 自 run 开始经过时间 | 单位 = `units`；无则 0 |
 | `diagnostic` | string | 中文诊断/摘要 | ≤1024 字符；可空串但字段必在 |
@@ -108,7 +124,13 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 - 机器检查器 `tools/monitoring/check_log_contract.py` 提供：schema 校验（缺字段被拒）、
   seq 单调性、error 载荷、级别/事件枚举、脱敏样例、单行大小；输出机器 JSON 判定。
 
-## 7. 与既有 Core 日志的关系
+## 7. 与运行事件流 / 既有 Core 日志的关系
+
+- **与运行事件流的关系（DOC-202 R08）**：本合同**不是**运行事件流，见 §1.1；
+  运行事件流的唯一 schema = `lib/infrastructure/cli/protocol.h` + `jsonl.h`。
+  两者**可以并存**（日志面向操作员/审计，事件流面向 GUI/机器消费），但**不得互相替代**，
+  也不得把任一方的字段名搬到另一方。
+
 
 `include/astrocs/core/logging.h`（CORE-008 Logger/MetricsAggregator）是既有运行时组件
 （owner SA-RT-05 路径）；LOG-001 **不修改它**。本合同是其事件语义的冻结外部化：

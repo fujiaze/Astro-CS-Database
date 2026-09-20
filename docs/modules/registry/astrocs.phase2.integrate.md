@@ -1,5 +1,6 @@
 ---
 id: MOD-astrocs-phase2-integrate
+module_id: astrocs.p2.integration
 version: 1.0.0
 status: ACTIVE
 owner: astrocs-core

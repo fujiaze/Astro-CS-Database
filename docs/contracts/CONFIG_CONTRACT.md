@@ -10,7 +10,7 @@
 | 事项 | 权威 |
 |---|---|
 | 输入合同（JSON 数据块：`blocks[]` 多块 + 平铺单块简写、程序根 config/） | `ASTROCS_DESIGN.md` §3.3（:124-222；§9.68 多块形态） |
-| 运行前预检（绿/橙/红、error 强制阻断） | `ASTROCS_DESIGN.md` §3.5（:272-318） |
+| 运行前预检（绿/橙/红、error 强制阻断；**打印报错 + 详细预估，无交互式提示窗**） | `ASTROCS_DESIGN.md` §3.5（**三命令通用预检**；DOC-203 / S02 订正：§3.5 的「必须弹出页面」交互式提示窗措辞已由负责人 2026-09-20 裁决**作废**，现行口径 = ① 打印有没有报错 + ② 详细预估（含资源与磁盘预估），`-y`/`-yes`/`-force` 保留为正式接口；原 `:272-318` 行锚指向 §3.3 区间，已撤以避行号漂移） |
 | 配置挂载 / 模板 / 机器输出 / 退出码 | `ASTROCS_DESIGN.md` §6.1-§6.3（:574-642） |
 | 三类配置严格分离、benchmark 独占 cpu_profile | `docs/design/UNIFIED_MODEL.md` §3（:54-66） |
 | CLI 预检与模板职责 | `docs/plugins/infrastructure/18_cli.md` §3-§5 |
@@ -77,12 +77,20 @@ mosaic/export 仍为 `{phase_name, config, inputs}`（`config`/`inputs` 两级 `
 | phase | 模板 | 必填 | 可选算法选择（逐项权威） | 输入项 |
 |---|---|---|---|---|
 | normalize（多块） | `config/templates/normalize.phase_config.json` | 块级 `input_lights` + `output_dir`；顶层 `schema_version` + `blocks` | `algorithm_psf_model`（`docs/science/PSF.md:7,:81,:105`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ASTROCS_DESIGN.md` §3.4:161-164）；**`algorithm_drizzle_pixfrac`** 与 **`drizzle.pixfrac`**（语义/值域权威 `docs/science/DRIZZLE.md:23,:27,:31` + `docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 1.0 已落 defaults.json 的 `drizzle.pixfrac`，状态 owner_adjudicated；DOC-SCI-001 §3）；`drizzle.precision_mode`（0=FP32/1=FP64，**必须显式**） | 块级 `input_lights[]`（每帧一个 FITS 路径）+ 块级母版 `master_bias/master_dark/master_flat` + `filter_passband`（必须命中滤镜库；空串 = 显式无 filter） |
-| mosaic | `config/templates/mosaic.phase_config.json` | output_dir, precision | ~~`algorithm_weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量）（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（method/profile 词表 `docs/science/REJECTION.md:20-21`；默认路由 `:47-53`；W5-CFG-002 重锚）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:89`） | `{product, filter?}` |
-| export | `config/templates/export.phase_config.json` | output_dir, precision, output_mode, wcs | `output_mode`（`ASTROCS_DESIGN.md` §5.3:267；默认 `surface_brightness` 见 `docs/plugins/algorithms_phase3/16_fits_output.md:41`）、`wcs.projection`（§5.3:264-266 首批 8 种 + 缺省 TAN；`14_projection.md:34`）、`wcs.{rotation_deg, crpix_px}`（`14_projection.md:35,38`） | `{product}` |
+| mosaic | `config/templates/mosaic.phase_config.json` | 块级 `output_dir` + 块级 `hips_paths`（平铺单块简写 = `schema_version` + 同名两键；**旧合同分支保留** `{output_dir, precision}`） | ~~`algorithm_weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量）（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（method/profile 词表 `docs/science/REJECTION.md:20-21`；默认路由 `:47-53`；W5-CFG-002 重锚）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:89`） | 块级 `hips_paths[]`（一组输入 HiPS）；**旧合同分支保留** `{product, filter?}` |
+| export | `config/templates/export.phase_config.json` | 块级 `output_dir` + 块级 `source`（一个输入产品）+ **`output_mode`（**必须显式**，缺键即 REJECT）**；平铺单块简写 = `schema_version` + 同名三键；**旧合同分支保留** `{output_dir, precision, output_mode, wcs}` | `wcs.projection`（§5.3:264-266 首批 8 种 + 缺省 TAN；`14_projection.md:34`）、`wcs.{rotation_deg, crpix_px}`（`14_projection.md:35,38`）；**`output_mode` 不在本列**（它**必填**：值域 `surface_brightness`/`point_source_flux`/`visualization`；合同登记的 `surface_brightness` **只作 `--template` 骨架值**，`--json` 运行**不得**靠静默缺省——见 §3 末条） | 块级 `source.hips_dir`（单值 = 一个输入产品；多产品 = 多块）；**旧合同分支保留** `{product}` |
 
 - **精度显式声明**：mosaic/export 用 `config.precision`（值域 {fp32, fp64}；模板填 `fp64`，`docs/science/SCIENCE_SCOPE.md:53` 默认 FP64）；normalize 用块级 `drizzle.precision_mode`（0=FP32 / 1=FP64，**必须显式**，缺失即拒绝——`config.precision` 是旧键名，不在 CLI 键集内，见 `ASTROCS_DESIGN.md` §3.3 键集权威）。
 - export 几何字段名与值域取自科学权威：`center_deg`/[`s_out_deg`]/`width_px`/`height_px`（`docs/science/PHASE3_HIPS_TO_FITS.md:39,41,42,43`（§3 符号表：W/s_out/center/W_out,H_out）；约束 `docs/science/PHASE3_HIPS_TO_FITS.md:70`：abs(dec) ≤ 85°、W_out/H_out ∈ [1,20000]、s_out > 0；W5-CFG-002 重锚）。原 `projection` 插件文档的 `mode` 在 phase_config 中命名为 `output_mode`，以避开 legacy cpu_profile v1 的 `mode` 字段名（UNIFIED_MODEL §3 禁止同名异义，见 §7 门表）。
-- **模板示例值声明**：模板中的 `path/to/...` 路径、`filter: "Baader R"`、export 的 `center_deg: [0,0]` 与 `s_out_deg: 0.001`、`width_px/height_px: 512` 都是**示例占位**（用户必须按观测改写），**不是**科学默认值；除 `precision`/`output_mode`/`projection`/`rotation_deg` 等有权威默认者外，模板不主张任何数值默认。`width_px/height_px = 512` 与 HiPS tile 默认（`PHASE3_HIPS_TO_FITS.md:39`）同值，仅作可运行的示例几何。
+- **`output_mode` 的必填与默认值口径（DOC-203 订正，与 FIX-207 的 fail-closed 判定一致；**不得两边相反**）**：
+  - **必填且必须显式**：`{phase_name, config, inputs[]}` 旧合同分支的 `$defs.export_config.required` 即含 `output_mode`；
+    FIX-207 新增的 `blocks[]` 分支（`$defs.export_block.required`）与平铺单块简写分支的 `required` **同样含 `output_mode`**
+    ⇒ **三条分支一致 fail-closed**；运行期缺键即 REJECT（`FZ-P3-MODES`；`lib/infrastructure/cli/session_commands.h` 的
+    `config_fields(SESSION_EXPORT)` 同面）——**合同不得比运行期松**。
+  - **合同登记的 `surface_brightness` 不是「运行默认值」**：它只用于 `<cmd> --template` 的**骨架值**
+    （`config/templates/export.phase_config.json`；`config/config_registry.json` 的 `export.config.output_mode` 登记点）。
+  - 因此本表 export 行的「可选算法选择」列**不再列 `output_mode`**（原文同时把它列进「必填」与「可选/有默认」两处 = 自相矛盾，已订正）。
+- **模板示例值声明**：模板中的 `path/to/...` 路径、`filter: "Baader R"`、export 的 `center_deg: [0,0]` 与 `s_out_deg: 0.001`、`width_px/height_px: 512` 都是**示例占位**（用户必须按观测改写），**不是**科学默认值；除 `precision`/`projection`/`rotation_deg` 等有权威默认者外，模板不主张任何数值默认（**`output_mode` 不在其列**：它**必填**，模板骨架值 `surface_brightness` 只是让模板可直接运行，不是「缺省可用」的许可，见上条）。`width_px/height_px = 512` 与 HiPS tile 默认（`PHASE3_HIPS_TO_FITS.md:39`）同值，仅作可运行的示例几何。
 - 硬约束：normalize 块内（`additionalProperties:false`）、`drizzle`/`wcs` 两级与顶层 `propertyNames` 都拒绝任何未登记字段；mosaic/export 的 `config`/`inputs` 两级 `additionalProperties:false` ⇒ cpu_profile 的 `workers`/`isa`/`block_size` 混入必失败（负例 ④）。
 - 内存/流式预算类字段（`docs/plugins/algorithms_phase3/16_fits_output.md:38-39` 的 `band_height`/`tile_cache_mb`）**不进** phase_config：它们不可跨机器复现，属实现策略，按 UNIFIED_MODEL §3 不得写入科学配置。CFG-002 已把它们登记为 `runtime_policy` 类（权威 = 插件文档；机器门断言此类旋钮不得出现在任何 phase_config 属性面），见 §9。CFG002-ANCHOR: item2-knob-ownership → config/config_registry.json
 

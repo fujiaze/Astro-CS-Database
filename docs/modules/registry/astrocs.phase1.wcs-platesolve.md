@@ -70,10 +70,10 @@ POD（DLL 仅写不 malloc，无堆所有权转移）；inlier 缓冲调用方�
 
 ## 错误、日志、指标、取消和 checkpoint
 
-错误码=ACS_ERR_*(API 合同)；现状 ret 0/1 + error_msg[256] +
-BLOCK_MISSING/PLATESOLVE_FAILED 编排码（API-WCS-001 返回码节）；
-取消=host cancel 回调（现状缺失，DISP-WCS-005）; 无 checkpoint
-(Phase3 原子写)。
+错误码与退出码唯一源=lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；
+现状 ret 0/1 + error_msg[256]（API-WCS-001 返回码节）；
+取消=协作取消（契约：宿主 cancel 通道 → exit 9，最高设计 §6.3；**现状缺失，DISP-WCS-005**）；
+模块内无 checkpoint（无断点续算）。
 
 ## 独立 synthetic 验证命令与容差
 

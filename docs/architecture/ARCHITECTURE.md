@@ -30,13 +30,13 @@ astrocs CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 - **Phase1**（单帧→标准化）：FITS/XISF 亮场+母版 → 校准(CAL) → 检测/PSF → 天文定位(WCS) → 测光定标 → 噪声模型(ivarr) → HiPS 入库；帧身份=`frame_id`(SHA-256 截断 64)。
 - **Phase2**（多帧→统一产品）：coverage → control 采样(UPM) → 加性校正场 → 逐像素候选栈 → 排异(rejection) → 加权积分(integration) → signal/support → HiPS。
 - **Phase3**（HiPS→FITS）：图像 HiPS(单通道/ICRS/NESTED/float) → SCI-P3 alpha 范围校验 → 反向映射+采样+coverage → TAN FITS+provenance。
-- 三 Phase 经 manifest/数据文件衔接（运行目录 run/，见 §4），不共享进程外状态。
+- 三 Phase 经 manifest/数据文件衔接（**产品落块级 `output_dir`；`run/` 只放临时产物与日志**，见 §4），不共享进程外状态。
 
 ## 4 配置/manifest/artifact 生命周期
 
 - **配置**：科学 config（用户，schema 校验）与 CPU profile（benchmark 产物，逐内核）**分离**（CLI-003）；profile 缺失→baseline 后端+动态 worker（保守合法）。
 - **manifest**：每次 run 生成 run manifest（版本/输入 hash/参数/软件版本/manifest hash），输出原子落盘（tmp+rename，IO_AND_ATOMICITY.md）；Phase3 额外写 provenance 到 FITS HISTORY（ALG-P3-004）。
-- **artifact**：run/ 唯一运行输出目录；失败/取消的 artifact 不落盘（帧/行带/整文件原子单元，见 ARCH-001 清单 thread_model 列）；verify 子命令复算 hash 判定 stale。
+- **artifact**：**产品只落块级 `output_dir`**（最高设计 §9）；`run/` **只放临时产物与日志**（**不是**「唯一运行输出目录」）；失败/取消的 artifact 不落盘（帧/行带/整文件原子单元，见 ARCH-001 清单 thread_model 列）；verify 子命令复算 hash 判定 stale。
 
 ## 5 错误/取消/恢复
 
@@ -47,12 +47,12 @@ astrocs CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 ## 6 线程与执行
 
 - 全局 thread budget 与串行 I/O/异步 pipeline/backpressure 见 ARCH-004（冻结前置）；每 kernel 预算来源=PERFORMANCE_MODEL + benchmark profile；无硬编码线程数（ARCH-001 门+AGENTS 硬约束）。
-- 历史路径的执行语义存量证据：`production_call_paths_stage1/2.csv`（symbol 级）+`PRODUCTION_EXECUTION_INVENTORY.csv`（217 行）；stage2 迁移后其 ACR Dispatcher 接线标记为不可达（ACR 不接入）。
+- 历史路径的执行语义存量证据：`production_call_paths_stage1/2.csv`（symbol 级）+`PRODUCTION_EXECUTION_INVENTORY.csv`（**338 行**，实测 `wc -l`；DOC-202 S11 订正，原写「217 行」）；stage2 迁移后其 ACR Dispatcher 接线标记为不可达（ACR 不接入）。
 
 ## 7 不变量（机器可验）
 
 1. 唯一生产入口=astrocs；文档内"正式运行入口"表述唯一（测试断言）。
-2. lib/ 唯一源码目录；run/ 唯一运行输出；testdata/ 只读。
+2. lib/ 唯一源码目录；**产品落块级 `output_dir`，`run/` 只放临时产物与日志**（最高设计 §9）；testdata/ 只读。
 3. I/O 唯一入口 astro_image_io；healpix_core/sha256 单源（B4-01）。
 4. 科学语义唯一实现，oracle/reference 并存不重复 active path。
 5. Phase1/2/3 全部 in-process 由 CLI 调用（无 orchestrator 进程边界）。
@@ -61,4 +61,7 @@ astrocs CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 
 - 任务: ARCH-002(本文件)/ARCH-003(backend ABI)/ARCH-004(thread budget)/ARCH-005(Phase3 模块)/CLI-001(单一 target)/API-001..005
 - 文档: MODULE_MAP.md/DATA_FLOW.md/PIPELINE.md/ERROR_MODEL.md/THREADING_MODEL.md/OWNERSHIP_AND_LIFETIME.md/IO_AND_ATOMICITY.md/PERFORMANCE_MODEL.md
-- 迁移遗留: 旧 orchestrator/stage2 文档描述保留于 git 历史；本文件为 V5 唯一权威。
+- 迁移遗留: 旧 orchestrator/stage2 文档描述保留于 git 历史。
+- **权威（DOC-202 R14/R04 订正）**：本文件是详细文档层的一员，**不另立权威链、不自称「唯一权威」**
+  （最高设计 §0.1/§0.2）；架构问题的权威 = 最高设计 §7，科学/算法权威 = `docs/science/` + `docs/algorithms/`，
+  与本文件冲突时一律以最高设计为准。

@@ -2123,7 +2123,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 
 ## V6 消费面：~~显式 `weight_mode` 与权重对象~~ **已作废** （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（原 `API-V6-WEIGHTMODE-001`，SCHEMA-INTEGRATE-001/W6；v6 合同层去留见 DESIGN-DRAFT §4.2-Q2）
 
-> 条款 ID：`API-V6-WEIGHTMODE-001`　状态：ACTIVE（V6 目标态消费面集成，2026-09-15）
+> 条款 ID：`API-V6-WEIGHTMODE-001`　状态：**已作废（A44）+ 设计档案 / 产品族专用投影（非生产目标态）**（DOC-203 / Q2 前置裁决 2026-09-20；原「ACTIVE（V6 目标态消费面集成，2026-09-15）」措辞已删）
 > 语义权威：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`；数据合同：`docs/contracts/DATA_SEMANTICS.md` §31（`DATA-V6-SCHEMA`）；
 > 生产 schema：`contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json`（及 `point-information`/`psfsw`/`covariance`/`effective-psf`/`provenance`）；
 > 词表：`contracts/data/v6_weight_vocabulary_v1.json`；迁移：`contracts/data/v6_migration_map_v1.json`。本节只定义**消费面语义**，不实现公式、不改既有 API/ABI 布局。
@@ -2140,7 +2140,11 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 
 **legacy 整数处置（reader 规则，唯一）**：`0=support×snr²` **一律拒绝**（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）；`1 → equal`；`2 → pixel_ivar`（迁移结果必须带 ~~`weight_mode_version`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量），且两者不得冒充生产模式）。生产 writer 只写显式字符串模式。
 
-### 2. 权重对象 canonical 字段（单一词表，`C-004.3`/`DI-01`/`DI-07`）
+### 2. ~~权重对象 canonical 字段~~ **已作废**（`psfsw_robust_weight` 对象已真删，14→13；DOC-203 订正）
+
+> **DOC-203 订正**：本节描述的 `psfsw_robust_weight` canonical 对象已按负责人 2026-09-20 裁决 B **真删**
+> （GAP_AUDIT §4.5 C01；变更 claim `CHG-2026-09-20-PSFSW-RETIRE`）⇒ 其 canonical 字段、单位（`1`）、
+> `group_normalized`/`median_target` 语义**随对象退役**，**不得**据此实现或验收。以下原文只作**历史留痕**：
 
 `weight.kind` / `weight.units` / `weight.group_normalized` / `weight.normalization.{scope,median_target,constants_version}` / `weight.weight_value`。
 两套既有权重词表（SCI-PSFW `weight_kind`/`weight_units`/`normalization.scope` 与 SCI-P2 `weight.kind`/`weight.units`/`group_normalized`）由迁移层归一为上述 canonical；生产 schema 不出现别名字段，第三套名 → REJECT。psfsw canonical 值：`kind="psfsw_robust_weight"`、`units="1"`、`group_normalized=true`、`scope="group"`、`median_target=1.0`；W_info canonical 单位 `ADU^-2`；`surface_gls` 权威式 `x_hat=(A^T C^-1 A)^-1 A^T C^-1 d`。
@@ -2149,7 +2153,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 
 - 模式未知 / legacy 0 / `psf_snr_power` 进生产 → 拒绝（不得回退到 any 自动权重）；
 - 权重来源含诊断量（`median_source_snr`/`median_snr`/`support`/`coverage`/`fwhm`/`residual`/…）→ 拒绝；
-- `psfsw_robust` 无量纲相对权重不得写入 ivar/variance（`Var=1/W_psfsw` → 拒绝；禁止键 `ivar/variance/sigma/fisher/w_info/w_psf`）；
+- ~~`psfsw_robust` 无量纲相对权重不得写入 ivar/variance（`Var=1/W_psfsw` → 拒绝；禁止键 `ivar/variance/sigma/fisher/w_info/w_psf`）~~（**随 `psfsw_robust_weight` 对象退役**；其「不得写 ivar/variance」的红线本身仍由 §20.3 四概念分离承载，DOC-203 订正）；
 - 三生产模式缺 effective PSF（只给 FWHM 标量不算）→ 拒绝；`parameter_effectiveness` 证明参数确实进入组合系数与 effective PSF（否则拒绝，AR-048）；
 - provenance 缺最小集键 / 单位不可判 / `unavailable` 无 reason → 拒绝。
 

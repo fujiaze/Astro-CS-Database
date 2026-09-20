@@ -38,8 +38,14 @@
   east_right、PA 推广 CD、手性 det=−s² 冻结）；FITS 关键词文本
   输出（CTYPE/CUNIT/CRPIX/CRVAL/CD）；极点/TAN 半球/参数守卫。
 - 非职责: 重采样（phase3_resample2 域）、FITS 文件读写
-  （phase3_fits 域）、会话编排（p3_session 域）、SIN/ZEA/CAR/AIT
-  （扩展 TODO，SCI §9a-3 须独立测试+新 claim）。
+  （phase3_fits 域）、会话编排（p3_session 域）、**除 TAN 以外的投影**。
+- **投影集口径（DOC-202 R26 订正，最高设计 §5.3）**：**设计冻结 8 种**
+  （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；**已实现并可作为产品声明的以实际注册表为准
+  —— 当前登记：仅 `TAN` 已实现**（`lib/algorithms/projection/p3_projection_registry.h`
+  的声明集 D = 实现集 I = `{TAN}`）；**未实现的必须显式报「不支持」，禁止声称支持**
+  （`p3_proj_declare` 返回 `P3_WCS_UNSUPPORTED` 并给出请求码 + 原因 + 已支持清单）。
+  ~~原「SIN/ZEA/CAR/AIT 扩展 TODO」表述作废~~——新增投影须**同时**进实现集与声明集
+  （`p3_proj_registry_selfcheck` 判红），并附独立往返 Oracle + 新 claim。
 
 ## 4 生产源
 
@@ -68,7 +74,12 @@ module_id=astrocs.phase3.wcs），由 P3-PROJ-INT 对齐，不作冻结依据。
 
 - PA 未接线（p3_session.cpp:160 恒 0.0）→ P3-PROJ-IMPL/INT。
 - kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期覆盖（默认值语义）。
-- projection 硬编码 "TAN"、UNSUPPORTED 枚举无产生点（扩展 TODO）。
+- ~~projection 硬编码 "TAN"、UNSUPPORTED 枚举无产生点（扩展 TODO）。~~
+  **已闭合（DOC-202 R26 复核 2026-09-20）**：产品声明门 `p3_proj_declare` 对非 TAN 码
+  **显式返回 `P3_WCS_UNSUPPORTED`**（含请求码 + 原因 + 已支持清单），
+  `p3_wcs.cpp` 经 `p3_proj_is_implemented` 产生 `P3_WCS_UNSUPPORTED`；
+  legacy v1 四行 registry（`p3_projection.cpp`）已 `RETIRED`（仅历史测试面与偏差对照），
+  在役 registry = `p3_proj_v6.cpp`（v3）。
 - DLL/入口未建；WCSLIB 验收 oracle 归 P3-PROJ-TEST。
 - 本域无 DISP 缺陷登记；详见 ALG-P3-PROJ-IMPL-001 §11/§13。
 

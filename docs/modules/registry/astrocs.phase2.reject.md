@@ -1,5 +1,6 @@
 ---
 id: MOD-astrocs-phase2-reject
+module_id: astrocs.p2.rejection
 version: 1.0.0
 status: ACTIVE
 owner: astrocs-core

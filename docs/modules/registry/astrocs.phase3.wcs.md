@@ -1,5 +1,6 @@
 ---
 id: MOD-astrocs-phase3-wcs
+module_id: astrocs.p3.projection
 version: 1.0.0
 status: ACTIVE
 owner: astrocs-core
@@ -49,9 +50,15 @@ downstream: [TEST-P3-WCS-001]
   文本输出、极点（|dec|≤85° 单一条件）/TAN 半球/参数守卫。
 - 非职责: 不做重采样与 tile 读取（ALG-P3-001/003，phase3_resample2
   域）、不做 FITS 文件读写（ALG-P3-FITS-IMPL-001 域）、不做请求
-  解析与编排（p3_session run 段）、不实现 SIN/ZEA/CAR/AIT（矩阵
-  notes 扩展清单，SCI §9a-3 须独立测试+新 claim）、不改 SCI 公式
+  解析与编排（p3_session run 段）、**除 TAN 以外的投影**、不改 SCI 公式
   （SCI-P3 FROZEN 零改动）。
+- **投影集口径（DOC-202 R26 订正，最高设计 §5.3）**：**设计冻结 8 种**
+  （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；**当前登记：仅 `TAN` 已实现**
+  （声明集 D = 实现集 I = `{TAN}`，`p3_projection_registry.h`）；
+  **未实现的必须显式报「不支持」，禁止声称支持**（`p3_proj_declare` →
+  `P3_WCS_UNSUPPORTED` + 请求码 + 原因 + 已支持清单）。
+  ~~原「不实现 SIN/ZEA/CAR/AIT（矩阵 notes 扩展清单）」表述作废~~；
+  新增投影须同时进实现集与声明集（`p3_proj_registry_selfcheck` 判红）+ 独立往返 Oracle + 新 claim。
 
 ## 3 输入输出端口、DATA、单位、坐标、invalid
 
@@ -132,8 +139,11 @@ downstream: [TEST-P3-WCS-001]
   无会话消费方）→ P3-PROJ-IMPL/INT。
 - kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期覆盖（:18-22）——
   默认值语义如实冻结。
-- projection 硬编码 "TAN"（:36/:89），UNSUPPORTED 枚举无产生点；
-  SIN/ZEA/CAR/AIT 扩展 TODO。
+- ~~projection 硬编码 "TAN"（:36/:89），UNSUPPORTED 枚举无产生点；
+  SIN/ZEA/CAR/AIT 扩展 TODO。~~ **已闭合（DOC-202 R26 复核 2026-09-20）**：
+  产品声明门 `p3_proj_declare` 对非 TAN 码**显式返回 `P3_WCS_UNSUPPORTED`**
+  （含已支持清单），`p3_wcs.cpp:98-99` 经 `p3_proj_is_implemented` 产生该状态；
+  8 冻结码 = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，声明/实现集当前 = `{TAN}`。
 - astrocs_p3_projection.dll 未建（entrypoint=MISSING）；探针/
   回归现状内联编译，DLL 挂载归 P3-PROJ-IMPL。
 - 本域无 DISP 缺陷登记；其余见 docs/KNOWN_LIMITATIONS.md 与

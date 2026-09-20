@@ -1,9 +1,9 @@
-# 插件文档：runtime（调度与资源）
+# 插件文档：scheduler + pipeline（调度与资源）
 
 ## 1. 职责与边界
 
 - **职责**：typed DAG 的执行（注册、依赖、调度）、统一线程预算、**locality-aware 编排**、流式内存管理、资源监控、取消与 checkpoint。
-- **不是**：不定义科学公式；不产生科学值；模块注册/加载与 ABI 校验由调度器承担（本模块负责执行与资源）。
+- **不是**：不定义科学公式；不产生科学值；模块注册/加载与 ABI 校验由调度器承担（本模块负责执行与资源）。**模块名只有一份 = `scheduler` + `pipeline`（最高设计 §7.1）；`runtime` 不是模块名（禁第二名字）**；本页文件名 `19_runtime.md` 仅为历史路径，不得作为职责名引用。
 
 ## 2. 权威依据
 
@@ -49,14 +49,14 @@ flowchart LR
 - 工作集 = 当前在算的块 + 其显式依赖；块完成即释放中间数组（引用计数/作用域绑定），不累积整轮数据；
 - 可现场计算的量（逐像素逆方差权重、天光面值、投影坐标）按需计算，不预分配稠密数组（与最高设计 §4.3、§8 一致）；
 - 缓存分层：进程内只读共享缓存（Gaia/星表、PSF、母版，带字节预算 + LRU）+ 磁盘缓存；缓存命中不改变科学结果；
-- 内存预算 `memory_limit` 给出时，调度器据此选块大小与并发块数；超预算趋势（G-RES-01 ③）触发收窄并发或落盘；
+- 内存预算 `memory_limit` 给出时，调度器据此选块大小与并发块数（**内存不是门禁**：最高设计 §8「资源门已收窄为磁盘门——内存/CPU/线程不设门」）；
 - 大对象单一所有者、显式交接，避免多副本驻留。
 
 ### 4.4 取消、checkpoint 与监控
 
 - 取消：协作取消 → checkpoint → 干净退出；
 - 资源监控：进程/线程 CPU、RSS/PSS、内存增长、读写字节、I/O wait、work units、队列深度、worker 均衡、进度、墙钟；
-- 重计算负载受 G-RES-01 约束（判据与 exit 10 见 21_observability §8）。
+- 重计算负载受 G-RES-01 **磁盘门**约束（内存/CPU/线程不设门；判据与 exit 10 见 21_observability §8 与最高设计 §8）。
 
 ## 5. 配置项
 
@@ -77,11 +77,12 @@ flowchart LR
 
 ## 7. 错误与边界
 
-- ABI/签名/CPU 特征不匹配 → exit 5；
-- 执行失败 → exit 6；
-- 资源利用率门禁失败 → exit 10；
-- 取消/超时 → exit 9；
+- ABI/签名/CPU 特征不匹配 → exit 5（BACKEND）；
+- 执行失败 → exit 6（COMPUTE）；
+- **磁盘写满 / 写盘失败 → exit 10（RESOURCE）**；一般性资源超限门**已取消**（内存/CPU/线程不设门，最高设计 §6.3/§8）；
+- 取消/超时 → exit 9（CANCELLED）；
 - 内存预算内无法安排最小工作集 → 显式失败并报告所需工作集，不静默退化。
+- **退出码唯一源 = `lib/infrastructure/cli/exit_codes.h`**（本页不复制定义第二套数值表；R07 同批订正）。
 
 ## 8. 测试与 Oracle
 
@@ -91,4 +92,24 @@ flowchart LR
 - **缓存复用**：同组 Gaia 查询只发起一次外部请求（命中计数），缓存命中/失效不改变结果；
 - 1 worker vs N worker 数值一致；
 - 取消/checkpoint 恢复无半成品；
-- 资源监控记录完整性；利用率门禁测试（能红能绿）。
+- 资源监控记录完整性；磁盘门测试（能红能绿）。
+
+---
+
+## 9. 模块名订正留痕（DOC-202 R27，2026-09-20）
+
+- **原状**：本页标题与 `docs/modules/MODULE_MAP.yaml` / `docs/plugins/00_INDEX.md` §2
+  把模块名写作 **`runtime`**（`MODULE_MAP.yaml` 的 `id: runtime` / `target_dir:
+  lib/infrastructure/runtime` / `module_id: astrocs.infra.runtime`）。
+- **改为**：模块名 = **`scheduler`**（注册、资源预算、执行、取消、checkpoint；
+  物理位 `lib/infrastructure/scheduler`）+ **`pipeline`**（typed DAG、artifact、
+  内存/数据管线；物理位 `lib/infrastructure/pipeline`）。
+  `MODULE_MAP.yaml` 条目 `id: scheduler` / `module_id: astrocs.infra.scheduler` /
+  `target_dir: lib/infrastructure/scheduler`；`00_INDEX.md` §2 第 2 列 = `scheduler`。
+- **依据**：最高设计 §7.1「模块名只有一份：顶层结构 = §7.1 所列——`scheduler` 与
+  `pipeline`；**禁止**再用第二个名字（如 `runtime`）指同一职责」；§7.1a 同源。
+- **`runtime` 的处置**：**不是模块名**，**不得**再作为职责名/模块名引用；
+  仅 `19_runtime.md` 这个**历史文件名**保留（改名会波及 `config/config_registry.json`
+  的 17 处登记与 `DOCUMENT_INDEX`，属 `config/` 文件域，不在 DOC-202）。
+- **残留（交接前台）**：`pipeline` 未在 `MODULE_MAP.yaml` 单列条目（登记规模
+  `index_module_count = 23` 只许在 MOD-002 落地批内手改）；本页与 `00_INDEX.md` 已覆盖其名。

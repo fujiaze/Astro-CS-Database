@@ -5,8 +5,12 @@
 > 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003 唯一源）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
 > 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
-> 用途：项目负责人 L0 审查入口之一。本文只**汇总权威来源**（不复制公式/函数清单），
-> 科学公式与默认容差的唯一权威是 `docs/science/` 与 `docs/algorithms/`。
+> 用途：项目负责人 L0 审查入口之一。本文只**汇总权威来源**（不复制公式/函数清单）。
+> ⚠ **DOC-202 R23-adjacent 订正（2026-09-20）**：原文「科学公式与默认容差的唯一权威是
+> `docs/science/` 与 `docs/algorithms/`」是**下级文档自行声明权威顺序**，违反最高设计
+> §0.1「**禁止**任何下级文档声明自己的权威顺序」⇒ 改为**引用式**：科学公式与算法推导的
+> 权威**依 `ASTROCS_DESIGN.md` §0.1/§1.1** 为 `docs/science/`（公式）与
+> `docs/algorithms/`（推导），与本设计冲突时以本设计为准。
 >
 > 状态词约定（全任务统一，DOC-CONV-001 起唯一口径见
 > `docs/owner/RELEASE_STATUS.md` §0）：`CONTRACT_READY`=合同/权威文档冻结在位；
@@ -51,7 +55,8 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 
 ## 3. 数据语义与产品合同（合同冻结 = PASS）
 
-- 数据语义唯一权威：`docs/contracts/DATA_SEMANTICS.md`、`DATA_ARTIFACTS.md`。
+- 数据语义权威（**依最高设计 §2 的引用，不是本文自立的权威链**）：
+  `docs/contracts/DATA_SEMANTICS.md`、`DATA_ARTIFACTS.md`。
 - DATA-001 类型化产物合同：`contracts/data/artifact_manifest.schema.json`、
   `artifact_types.registry.json`（type_id schema_version=1）。
 - DATA-002 三阶段产品交换合同：`contracts/data/phase_product_exchange.schema.json` +
@@ -98,7 +103,7 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 | SCI-P3 / ALG-P3 权威冻结 | PASS | `docs/science/PHASE3_HIPS_TO_FITS.md`、`docs/algorithms/PHASE3_RESAMPLE.md`、`docs/api/PHASE3_API_V1.md` |
 | 会话路径 TAN 投影 + WCS + nearest/bilinear 重采样 + FITS 原子写 | `IMPLEMENTED` | `lib/phase3_session/{p3_session,p3_wcs,p3_resample,p3_output}.cpp`（会话路径仍 TAN-only，`p3_wcs.cpp`:36）；ctest `p3_wcs`/`p3_interp`/`p3_output` 家族在本提交全量构建中 rc=0 |
 | **Phase3 节点化（IR 五节点唯一真实 operation）** | **`IMPLEMENTED`** | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4309 五节点（properties/wcs/resample/writer/verify）各绑唯一真实 operation；typed artifact 链 `p3_props.json→p3_wcs.json→p3_resampled.{json,bin}→output_phase3.fits→p3_verify.json`，节点 call_count=1；ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 PASS（P3-002 `1a56ffb7`，科学面 `9662afa8`） |
-| **冻结四投影 TAN / SIN / CAR / AIT（原引「宪章 §7.3/§18.1」已废止；现行投影集合权威 = `ASTROCS_DESIGN.md` §5.3 八投影，registry 已升 v3；本行为 BASE 快照）** | **`IMPLEMENTED`**（registry 面） | `lib/algorithms/projection/p3_projection.{h,cpp}` registry v1 恰四行（`:267-273`，`:299` 版本断言）+ 独立 numpy Oracle（`tests/backend/test_p3_projection_oracle.py`）；ctest `p3_projection_units`/`p3_projection_fault` 本提交实测 2/2 PASS；ALG 唯一权威 `docs/algorithms/PHASE3_PROJ_IMPL.md` §15（P3-001 `9953f103`）。**未 INSTALLED**：`lib/algorithms/projection/module.yaml`:79-80 `entrypoint: MISSING`，生产会话/DLL 尚未挂载 registry → 不得表述为已安装/已验证；**ZEA 不在冻结四投影内**（旧表述 SIN/ZEA/CAR/AIT 已按 §18.1 更正） |
+| **投影集合（DOC-202 R26 订正 2026-09-20）** | **`CONTRACT_READY`**（声明面）/ **仅 TAN `IMPLEMENTED`** | **设计冻结 8 种** = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`（`ASTROCS_DESIGN.md` §5.3）；**当前登记：仅 `TAN` 已实现**（声明集 D = 实现集 I = `{TAN}`，`lib/algorithms/projection/p3_projection_registry.h`；在役 registry = `p3_proj_v6.cpp`（v3）；`p3_projection.cpp` 的 v1 四行 registry 已 `RETIRED`，仅历史测试面/偏差对照）。**未实现的必须显式报「不支持」**（`p3_proj_declare` → `P3_WCS_UNSUPPORTED` + 请求码 + 原因 + 已支持清单）。**未 INSTALLED**：`lib/algorithms/projection/module.yaml` `entrypoint: MISSING`，生产会话/DLL 尚未挂载 registry → 不得表述为已安装/已验证。~~原「冻结四投影 TAN/SIN/CAR/AIT / registry v1 恰四行」表述作废~~（与 §5.3 八投影及现行 registry 均不符，DOC-202 R26 订正）。 |
 | Phase3 合成/单元测试文件在位 | `IMPLEMENTED` | `tests/unit/p3_{assembly,coverage,interp,output,wcs}_test.cpp`、`tests/api/test_p3_api.py`、`tests/unit/p3002_*_test.cpp`、`tests/unit/p3_projection_test.cpp` 存在于当前提交 |
 | **`healpix_interp4` 四点插值** | **`NOT_IMPLEMENTED`** | `lib/`、`cli/`、`include/`、`runtime/` 全域无 `interp4` 实现符号；当前采样为 nearest/bilinear（G4 冻结权重） |
 | **流式 FITS 输出接入 Phase3 writer** | **`NOT_IMPLEMENTED`** | IO-001 冻结 `astrocs.io.fits_stream_v1`（`runtime/io/fits_core.c` + 头 + 契约测试，接口面 `IMPLEMENTED`）；Phase3 writer 走 CFITSIO 原子写（`lib/algorithms/fits_output/p3_output.cpp`），未见流式写接线 |

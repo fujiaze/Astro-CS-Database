@@ -36,7 +36,10 @@
   target_order 禁插值伪装分辨率（高于输入最高 order → rc=3）。
 - 逐 tile 排异+加权积分（纯逆方差权重门 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）：缺 ivar 产品 →
   rc=7 显式科学错误）→ 逆归一
-  （area=sup×A_cell、flux=signal×area）→ FITS 序→NESTED 序转换
+  （area=sup×A_cell、flux=signal×area）——
+  ⚠ **该 `flux` 是 writer 视图的中间量**（writer 入参口径），
+  **落盘值仍 = `flux_sum / covered_area` = 面亮度**（EXP-203 C1b：**不得**读成「产品是通量」）→
+  FITS 序→NESTED 序转换
   （HIPS-IMG-001）→ writer 库写 signal+support 两产品 → HIPS_VERIFY 回读。
 - 非职责：叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库 P1 域）；
   原子发布（IO-003 编排层）；UPM/排异/积分公式（SCI FROZEN）；P3。

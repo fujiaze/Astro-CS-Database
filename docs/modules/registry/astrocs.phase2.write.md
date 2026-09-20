@@ -38,7 +38,10 @@ downstream: [TEST-P2-HIPS-001, DATA-P2-HIPS]
   :528、flags 仅 SIGNAL|SUPPORT :594、creator "ivo://astrocs/phase2"）→
   逐 tile 排异+积分（p2_collect_candidate_stack/p2_reject_stack_ex/
   p2_integrate_pixel，权重为逐样本 ivar （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））→
-  逆归一（area=sup×A_cell :527、flux=signal×area :1000-1017/:1219-1233）→
+  逆归一（area=sup×A_cell :527、flux=signal×area :1000-1017/:1219-1233）——
+  ⚠ **该 `flux` 是 writer 视图的中间量**（`aio_hips_write_signal_support_tile` 的入参口径），
+  **落盘值仍 = `flux_sum / covered_area` = 面亮度**（EXP-203 C1b：**不得**读成「产品是通量」；
+  通量语义只在 writer 视图内部存在，产品语义 = 面亮度）→
   FITS 序→NESTED 序转换（HIPS-IMG-001，nested_local_to_fits_index
   :1032/:1611）→ aio_hips_write_signal_support_tile/
   aio_hips_finalize；HIPS_VERIFY 回读（:1659-1676）。
@@ -48,7 +51,9 @@ downstream: [TEST-P2-HIPS-001, DATA-P2-HIPS]
 **不负责**：叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库
 aio_hips_writer.cpp，P1-HIPS 域 ALG-HIPS-001..005）；HiPS 格式解析
 （IO-002/aio_hips_reader）；原子发布（IO-003 编排层，DISP-P2HIPS-003
-如实登记）；UPM/排异/积分公式（SCI-UPM-001/SCI-REJ-001/SCI-INT-001
+如实登记；⚠ **待修缺口，DOC-202 R29**：阶段二**直写 out_hips 无 staging**，
+违反最高设计 §9 的原子发布强制条款，最高设计 §9 已如实登记为本期例外；
+**闭合归属 = FIX-206**）；UPM/排异/积分公式（SCI-UPM-001/SCI-REJ-001/SCI-INT-001
 FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
@@ -56,11 +61,13 @@ FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
 | `integrated` | `DATA-P2-INT` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL`（descriptor 词汇） |
-| `mosaic` | `DATA-P2-RES`→`DATA-P2-HIPS` | 可 | `UnitId::ADU`（signal surface brightness） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
+| `mosaic` | `DATA-P2-RES`→`DATA-P2-HIPS` | 可 | **`UnitId::SURFACE_BRIGHTNESS`**（signal = **面亮度**；枚举已存在，`include/astrocs/core/artifact.h:36`，phase3 在用；EXP-203 C1 订正：原写 `UnitId::ADU` 与「surface brightness」自相矛盾） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
 
 唯一权威 = DATA-P2-HIPS（DATA_SEMANTICS §20）：descriptor 端口表
-（module_adapters.cpp:739-756 p2_write_descriptor，坐标 PIXEL 与 NESTED
+（**`module_adapters.cpp:1040-1057`** `p2_write_descriptor`，坐标 PIXEL 与 NESTED
 球面实际不符）为编排词汇，以 DATA-P2-HIPS 为准修订，P2-XX-INT 对齐。
+（EXP-203 C2 行锚订正：原写 `:739-756` 已漂移；实测 `grep -n 'p2_write_descriptor' →
+`lib/infrastructure/scheduler/src/module_adapters.cpp:1040`。）
 invalid = NaN signal + support=0（writer 库 aio_hips_writer.cpp :481-485）；ivar 缺产品=rc=7
 science/degraded（:565-574）。四概念分离红线：signal/variance/support/
 mask 严格分离，mask 不输出产品不入权重式（ALG-P2-HIPS §7）。
@@ -79,7 +86,7 @@ stage2 配置 schema + 退出码 2/3/4/5/6/7 + diagnostics.json 键集）。
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.p2.hips_writer`（matrix P2-HIPS 行）；registry 行 ID
-沿用 `MOD-astrocs-phase2-write`；descriptor（module_adapters.cpp:739-752，
+沿用 `MOD-astrocs-phase2-write`；descriptor（**`module_adapters.cpp:1040-1057`**（EXP-203 C2 订正，原 `:739-752` 已漂移），
 module_id=astrocs.phase2.write、sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/
 test_id=TEST-P2-WR-001）为编排占位词汇，不得反向作为冻结依据，由
 P2-XX-INT 对齐本页与 lib/algorithms/coverage/hips_p2/module.yaml。配置=single JSON
@@ -127,6 +134,7 @@ tests/api/test_reject_integration_oracle.py。
 ## 已知限制
 
 DISP-P2HIPS-001..004（lib/algorithms/coverage/hips_p2/README.md §7）：无 variance/ivar 输出
-产品；hash 链未入 HiPS properties provenance；直写 out_hips 无 staging
-（原子发布归 IO-003）；O(T·N) 覆盖帧 probe。迁移目标
+产品；hash 链未入 HiPS properties provenance；**直写 out_hips 无 staging
+—— 已登记的原子性待修缺口（DOC-202 R29，未闭合；闭合归属 FIX-206；原子发布归 IO-003）**；
+O(T·N) 覆盖帧 probe。迁移目标
 astrocs_p2_hips_writer.dll 归 P2-HIPS-IMPL；见 docs/KNOWN_LIMITATIONS.md。

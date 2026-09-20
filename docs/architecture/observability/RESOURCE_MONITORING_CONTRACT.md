@@ -38,6 +38,22 @@ LOG-001/RT-006 已冻结语义；不实现 Windows PDH/ETW 真实采集。
 
 ## 3. CSV 合同（原始时序数据）
 
+### 3.0 工件名与「两工件不互替」声明（DOC-202 R09 / GAP_AUDIT §4.2 Q4 裁决）
+
+> ⚠ **强制消歧（唯一口径）**：仓库里有**两个不同的资源时序工件**，**不同名、不互替**：
+
+| 工件名 | 生产者 | 列合同 | 采样语义 |
+|---|---|---|---|
+| **`resource_timeseries.csv`**（生产运行记录） | `lib/infrastructure/cli/resource_recorder.h` | **唯一列合同声明（Q4）**：该工件列合同**只有一处** = 生产实现 `lib/infrastructure/cli/resource_recorder.h:260-266`（20 列）；**本文件不复写其列名、不重定义其列** | **run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖 |
+| **`monitor_timeseries.csv`**（本合同的监控伴随器原始数据） | `lib/infrastructure/observability/monitoring/monitor.py` | 本节 §3.1（21 列 + seed 行 + 行指纹链） | **每秒采样 + seed 行 + 指纹链 + 写后只读** |
+
+- 本合同的 CSV 工件名**固定为 `monitor_timeseries.csv`**（本节以下所有「CSV」均指该工件）；
+- **两工件不得互替**：任何消费方**禁止**用 `monitor_timeseries.csv` 冒充
+  `resource_timeseries.csv`（或反之）；也**禁止**把本节的 21 列合同套到
+  `resource_timeseries.csv` 上。
+
+### 3.1 CSV 列合同（`monitor_timeseries.csv`）
+
 文件布局（UTF-8，LF；`row_fingerprint` 恒为最后一列）：
 
 ```
@@ -91,8 +107,9 @@ fp(seq=n)    = sha256(salt | fp(seq=n-1) | json(行字符串形态) | n)
 
 ### 4.2 写后只读
 
-`ResourceMonitor.seal()`：flush + fsync + close + chmod 只读。监测结束后原始
-CSV 不可再写；复验/审计只读。
+`ResourceMonitor.seal()`：flush + fsync + close + chmod 只读。监测结束后
+本工件（`monitor_timeseries.csv`，**不是** `resource_timeseries.csv`，见 §3.0）不可再写；
+复验/审计只读。
 
 ### 4.3 单 run 单链
 
@@ -151,7 +168,7 @@ JSONL，按 LOG-001 合同做适配（本任务交付 CSV + 指纹 + 校验闭�
 
 | # | 验收点 | 证据 |
 |---|---|---|
-| B1 | 同一 run ID 每秒采集：字段齐、时间戳单调、间隔≈1s | `test_monitor_contract.py` real-run |
+| B1 | 同一 run ID 每秒采集：字段齐、时间戳单调、间隔≈1s（工件 = `monitor_timeseries.csv`） | `test_monitor_contract.py` real-run |
 | B2 | 无 monitor 的 `cpu_heavy` run FAIL | `HeavyRunGuard.assert_ready` 负测 |
 | B3 | CSV 篡改（改 1 字节/追加行）校验失败 | tamper/append 负测 |
 | B4 | I/O 区间与初始化区间分开 | `phases_seen` 含独立 init/io 行 |
