@@ -529,15 +529,48 @@ class TestConfigSeparationAnchors(unittest.TestCase):
 
 
 class TestRegistryIndex(unittest.TestCase):
-    """registry 索引与 INDEX.yaml / DATA_ARTIFACTS.md 的一致性（迁移映射与废弃时间点）。"""
+    """registry 索引与 INDEX.yaml / DATA_ARTIFACTS.md 的一致性（迁移映射与废弃/退役登记）。
+
+    废弃登记 = 变更编号（CHG-YYYY-MM-DD-<TAG>）；退役条件 = 负责人裁决哨兵 OWNER_DECISION
+    —— 版本号不得作为生效/退役条件（ASTROCS_DESIGN.md §12；GAP_AUDIT §4.1 Q2 裁决）。
+    """
 
     def test_registry_has_deprecation_window(self):
         reg = load(REPO / REGISTRY_REL)
         dep = reg["deprecation"]
         self.assertTrue(dep["legacy_paths_are_compatibility_only"])
         self.assertTrue(dep["no_second_equivalent_schema"])
-        self.assertRegex(dep["retire_after"], r"^\d+\.\d+\.\d+(-[a-z]+\.\d+)?$")
+        # 本对象只有 retire_after（无 deprecated_at）⇒ 只锁退役哨兵与说明句。
+        self.assertEqual("OWNER_DECISION", dep["retire_after_change"])
+        self.assertIn("版本号不得作为退役条件", dep["retire_note"])
         self.assertGreaterEqual(len(dep["legacy_paths"]), 10)
+        # 12 条旧路径逐条锁：废弃 = 变更编号；退役 = 负责人裁决哨兵（不得写版本号窗口）。
+        self.assertEqual(12, len(dep["legacy_paths"]))
+        for lp in dep["legacy_paths"]:
+            self.assertRegex(lp["deprecated_at_change"], r"^CHG-\d{4}-\d{2}-\d{2}-[A-Z0-9-]+$")
+            self.assertEqual("OWNER_DECISION", lp["retire_after_change"])
+            self.assertIn("版本号不得作为退役条件", lp["retire_note"])
+        # 5 条 status=FROZEN_COMPATIBILITY 的产品族专用投影按 Q2 在位保留，不得写版本号退役窗口。
+        projections = [p for c in reg["canonical_object_classes"]
+                       for p in c["compatibility_projections"]]
+        self.assertEqual(5, len(projections))
+        for p in projections:
+            self.assertEqual("FROZEN_COMPATIBILITY", p["status"])
+            self.assertEqual("OWNER_DECISION", p["retire_after_change"])
+            self.assertIn("版本号不得作为退役条件", p["retire_note"])
+
+    def test_no_version_window_literals_in_registration_files(self):
+        """反向锁（Q2 裁决：删版本号退役窗口）：两个登记件内不得再出现任何 0.x.y 版本号。
+
+        能红能绿：把任一 deprecated_at_change / retire_after_change 改回版本号字面量
+        ⇒ 本用例必红；还原 ⇒ 判绿。
+        """
+        reg = load(REPO / REGISTRY_REL)
+        m = load(REPO / "contracts/data/unified_object_compatibility_map_v1.json")
+        self.assertNotRegex(json.dumps(reg, ensure_ascii=False), r"\b0\.\d+\.\d+\b",
+                            "registry 仍含版本号退役窗口字面量（Q2：改用变更编号/日期）")
+        self.assertNotRegex(json.dumps(m, ensure_ascii=False), r"\b0\.\d+\.\d+\b",
+                            "兼容期映射仍含版本号退役窗口字面量（Q2：改用变更编号/日期）")
 
     def test_registry_object_ids_are_unique(self):
         reg = load(REPO / REGISTRY_REL)
@@ -568,9 +601,15 @@ class TestRegistryIndex(unittest.TestCase):
             self.assertEqual(cls["canonical_schema_file"], e["canonical_schema"])
             self.assertEqual(cls["schema_id"], e["canonical_schema_id"])
             self.assertEqual("compatibility_view_of_canonical_object", e["relation"])
-            for key in ("deprecated_at", "retire_after"):
-                self.assertRegex(e[key], r"^\d+\.\d+\.\d+(-[a-z]+\.\d+)?$")
+            self.assertRegex(e["deprecated_at_change"], r"^CHG-\d{4}-\d{2}-\d{2}-[A-Z0-9-]+$")
+            self.assertEqual("OWNER_DECISION", e["retire_after_change"])
+            self.assertIn("版本号不得作为退役条件", e["retire_note"])
             self.assertTrue(e["evidence"])
+        # 7 条 legacy_contract_id_map 旧 ID 同批口径：废弃 = 变更编号；退役 = 负责人裁决哨兵。
+        for row in m["legacy_contract_id_map"]:
+            self.assertRegex(row["deprecated_at_change"], r"^CHG-\d{4}-\d{2}-\d{2}-[A-Z0-9-]+$")
+            self.assertEqual("OWNER_DECISION", row["retire_after_change"])
+            self.assertIn("版本号不得作为退役条件", row["retire_note"])
 
     def test_legacy_ids_are_decided_not_pending(self):
         """追加门（负责人裁决）：7 个旧 ID 必须逐个给出 mapped 或 no_canonical，不得含糊。"""

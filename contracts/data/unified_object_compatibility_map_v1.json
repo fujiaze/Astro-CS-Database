@@ -33,8 +33,9 @@
       "canonical_schema": "contracts/schemas/unified/signal.schema.json",
       "canonical_schema_id": "https://astrocs.local/schemas/unified/signal/v1",
       "relation": "compatibility_view_of_canonical_object",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
       "evidence": "对象平面在 AIO 通道面（signal/support/variance/ivar 位）的 ABI 视图"
     },
     {
@@ -43,8 +44,9 @@
       "canonical_schema": "contracts/schemas/unified/provenance.schema.json",
       "canonical_schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
       "relation": "compatibility_view_of_canonical_object",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
       "evidence": "产品 manifest ↔ provenance 最小集的 manifest 面视图"
     },
     {
@@ -53,8 +55,9 @@
       "canonical_schema": "contracts/schemas/unified/provenance.schema.json",
       "canonical_schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
       "relation": "compatibility_view_of_canonical_object",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
       "evidence": "产品类型注册表（provenance.product_type_id 的值域来源）"
     },
     {
@@ -63,8 +66,9 @@
       "canonical_schema": "contracts/schemas/unified/rejection.schema.json",
       "canonical_schema_id": "https://astrocs.local/schemas/unified/rejection/v1",
       "relation": "compatibility_view_of_canonical_object",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
       "evidence": "Phase2 rejection/provenance 产品合同（§30.2/§30.3）"
     },
     {
@@ -73,8 +77,9 @@
       "canonical_schema": "contracts/schemas/unified/variance.schema.json",
       "canonical_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
       "relation": "compatibility_view_of_canonical_object",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
       "evidence": "跨阶段交换矩阵（plane 语义映射）"
     },
     {
@@ -83,8 +88,9 @@
       "canonical_schema": "contracts/schemas/unified/variance.schema.json",
       "canonical_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
       "relation": "compatibility_view_of_canonical_object",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
       "evidence": "交换 schema 的 plane 枚举 {signal,support,variance,ivar,mask}"
     },
     {
@@ -93,8 +99,9 @@
       "canonical_schema": "contracts/schemas/unified/provenance.schema.json",
       "canonical_schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
       "relation": "compatibility_view_of_canonical_object",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
       "evidence": "V6 数据字典（单位表/禁止项/fail-closed 的机器索引）"
     },
     {
@@ -103,8 +110,9 @@
       "canonical_schema": "contracts/schemas/unified/provenance.schema.json",
       "canonical_schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
       "relation": "compatibility_view_of_canonical_object",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
       "evidence": "legacy→v6 迁移映射表"
     },
     {
@@ -113,8 +121,9 @@
       "canonical_schema": "contracts/schemas/unified/signal.schema.json",
       "canonical_schema_id": "https://astrocs.local/schemas/unified/signal/v1",
       "relation": "compatibility_view_of_canonical_object",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
       "evidence": "V6 产品族正例集（含 10 个对象族示例）"
     }
   ],
@@ -165,8 +174,9 @@
       ],
       "evidence": "DATA_SEMANTICS §9.1 输入 light（ADU，NaN 直传）+ §9.2 输出 out（ADU，可负不 clamp）= 声明单位与像素语义的科学估计量本身 → UNIFIED_MODEL §2 的 signal；§9.4 明确本层不出 variance/ivar/coverage。",
       "note": "master_bias/master_dark/master_flat 属标定参考帧（flat 为无量纲归一参考），不是 14 个科学对象之一；本 ID 的契约主体（calibrated frame）归 signal。",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0"
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
     },
     {
       "legacy_id": "DATA-P1-COS",
@@ -195,8 +205,9 @@
       ],
       "evidence": "DATA_SEMANTICS §10.2 输出 out（修复帧，ADU，可负不 clamp）+ §10.3「mask 为模块内部产物，不作为产品输出；variance/ivar/coverage 不在本层」→ 契约主体是 signal；坏点掩码不是 validity/rejection 产品。",
       "note": "本 ID 是 DATA-P1-COSMETIC 的权威名（后者为 descriptor 占位）；registry :38-40 明写「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0"
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
     },
     {
       "legacy_id": "DATA-P1-COSMETIC",
@@ -224,8 +235,9 @@
       ],
       "evidence": "该 ID 在 docs/contracts/{DATA_SEMANTICS.md,PUBLIC_API.md,DATA_ARTIFACTS.md} 中**零命中**（旧契约面无定义）；唯一权威说明在 registry astrocs.phase1.cosmetic.md:38-40「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
       "note": "占位名不再单独存在；统一对象面归 signal（cleaned 帧 = ADU 科学估计量）。",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0"
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
     },
     {
       "legacy_id": "DATA-P1-DRZ",
@@ -267,8 +279,9 @@
       ],
       "evidence": "§11.2 输出：sumFlux（HiPS SIGNAL 底数）→ signal；sumVarNum→variance 产品 + ivar=1/variance → variance/ivar；sumArea（HiPS SUPPORT 底数，sr）→ support；§11.3 面亮度归一 S=F/D 与 NaN 语义 → coverage 归属 finalize 层。§11.1 输入侧 data 块（ADU）同属 signal。",
       "note": "组合映射：一个模块级合同覆盖 5 个对象；组件各自 canonical，不是新对象。",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0"
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
     },
     {
       "legacy_id": "DATA-P1-SOURCES",
@@ -291,8 +304,9 @@
       ],
       "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。DATA_SEMANTICS §15.2 明确该块列语义由 P1-STAR-INT 承接，且要求「下游必须经 star_id 连接」，未定义为跨阶段产品合同；基线 docs/contracts/DATA_ARTIFACTS.md 与基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 均为零命中。",
       "note": "判定：旧契约面无 canonical 对应（属编排端口编目名，非 14 个科学数据对象之一）。其携带的 flux 物理量在 signal 面（§15.2 flux=ADU 解析积分），但 catalog 行集合本身不构成单一对象合同。",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0"
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
     },
     {
       "legacy_id": "DATA-P2-SMP",
@@ -317,8 +331,9 @@
       ],
       "evidence": "DATA_SEMANTICS §23 冻结的是 P2ControlObservation / 逐样本列与 accept/reason 值域（§23.3 u8 reason），即 control 观测表与采样决定，不是 14 个对象中的任何一个：既不是 signal/variance/ivar（无单位与像素语义的科学估计量），也不是 validity/rejection（§23.3 的 accept/reason 是采样态，UPM 权重由 §22 rejection 与 §25 UPM 承接）。",
       "note": "判定：无 canonical 对象对应；采样列的最终科学产品归 §25 UPM（DATA-P2-UPM，control cell 参数）与 §30 产品合同，两者都不在 UNIFIED_MODEL §2 的 14 对象内。",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0"
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
     },
     {
       "legacy_id": "DATA-GAIA-001",
@@ -341,8 +356,9 @@
       ],
       "evidence": "DATA_SEMANTICS §8 = Gaia XPSD 星表输入与星表行（三个变体）；单位 deg/mag/W·m⁻²·nm⁻¹，坐标 ICRS J2000，dtype f64/i32/u8[]，in-memory 不落盘。它是外部星表服务的 C ABI 行契约，不含 14 个对象中任何一个的单位/像素语义（无 ADU 估计量、无方差/逆方差、无 coverage/validity 产品）。",
       "note": "判定：无 canonical 对象对应；旧面命中在 DATA_SEMANTICS.md:86（§8）、PUBLIC_API.md:71、DATA_ARTIFACTS.md:29、docs/modules/gaia_xpsd_client.md:23/:40 与 TRACEABILITY_MATRIX.csv 第 2 行；基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 零命中，继续作为星表服务合同存在，不进统一对象链。",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0"
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
     }
   ],
   "legacy_contract_id_summary": {
