@@ -58,7 +58,7 @@
       "kind": "registry-doc-sync",
       "detail": "RELEASE-02 已提交编辑（§2 补登记 CHK-E2E-REPRO / CHK-EXIT-CONSISTENCY，负责人已认可保留，见工程控制/RELEASE-02/00_README.md §3 第 5 项；commit 7ae4b449）此前未回填哈希——由 FIX-SCI-SNR-CANON-001 一致性回归一并刷新（非本 claim 内容改动）",
       "pack_sha256": "a4361952b0a73724829b121e23c90d390da2858e0ab1e61aec84e5a2f453464c",
-      "repo_sha256": "da27477d8206c1850527d741c2c4156b79a3ec605c810c29ad464f99c3a68994"
+      "repo_sha256": "40c7cd9f4fea7da48e15ef637d72a51ee8f740ff3d7dca22d2dea9fec9d9ebc8"
     },
     {
       "path": "docs/plugins/algorithms_phase3/14_projection.md",
@@ -79,7 +79,7 @@
       "kind": "owner-design-supplement",
       "detail": "负责人明确指示补充最高设计 §4.5 逐像素排异（叠加非纯逆方差平均；按输入集合大小 n 自适应选择算法；CLI mosaic 留空/0/auto 自动、显式指定则强制；证据=PixInsight WBPP 源码 BPP-FrameGroup.js:1304-1312/1229-1293）",
       "pack_sha256": "8f3eeb4ed397e5c90c7e3ef1c03f5c76a0a940eb9a35232d24b9844a0695a504",
-      "repo_sha256": "48ff71b687563cdceced74a414917e1d75bae72537d3263a47c03b28fc76b9ec"
+      "repo_sha256": "87ed1948a350580bd3072ba945c1887272c5373462e6796af1911b68c876533a"
     },
     {
       "path": "docs/plugins/algorithms_phase1/08_drizzle.md",
