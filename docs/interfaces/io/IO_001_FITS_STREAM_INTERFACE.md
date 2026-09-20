@@ -4,7 +4,7 @@
 > doc_status: ACTIVE_NORMATIVE
 > task_id: IO-001 · wave: W2 · owner: SA-IO-07
 > commit: `feat(io): IO-001 建立FITS流式接口`（前台集成）
-> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-001 / `05_FIXED_SUBAGENT_BINDINGS.yaml` SA-IO-07 / 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）
+> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-001 / `05_FIXED_SUBAGENT_BINDINGS.yaml` SA-IO-07 —— **两份来源均已不在 git 跟踪面**（`tasks/` 目录不存在且无 git 历史；`05_FIXED_SUBAGENT_BINDINGS.yaml` 仅存 `run/` 内 gitignore 的历史归档副本，非规范面）；现行权威=`ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）+ 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
 
 ## 1. 目标与范围
 
@@ -27,7 +27,7 @@ IO-001 是 **FITS 流式 I/O 接口冻结 + 骨架实现**（W2 宿主基础设�
 | io 服务模块骨架（README/module.yaml/CMake/占位入口） | `lib/infrastructure/aio/io/` |
 | FITS 流核心（C 实现、私有，DLL 内） | `lib/infrastructure/aio/io/fits_core.c` |
 | FITS 流 C ABI（只被 astrocs_io.dll 导出） | `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` |
-| 模块公开 ABI 占位（module query 入口） | `lib/infrastructure/aio/io/include/astrocs/io/io_module_api_v1.h` |
+| 模块公开 ABI 占位（module query 入口） | `lib/infrastructure/aio/io/include/astrocs/io/io_module_api_v1.h`（**该文件不存在**：全仓零命中，如实登记为缺口；现行 io ABI 面 = `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` + `hips_input_v1.h`） |
 | 契约/负测（Python，依赖 numpy/astropy 作 oracle） | `tests/io/` |
 | C 层自检驱动 | `lib/infrastructure/aio/io/tests/` |
 
@@ -193,7 +193,7 @@ typedef struct acs_fio_trace_hooks_v1 {
   保留作兼容层；**IO-001 不迁移/不修改/不删除**，其内部 CFITSIO 用法同样不跨 DLL 边界。
 - `lib/infrastructure/aio/io` + `include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（历史 IO-001 原型），保留。
 - `lib/infrastructure/aio/io/fits_core.c` 是本任务新增的 fits 流 C 核心（无 CFITSIO 依赖）。
-- DATA-001 `astrocs/contracts/artifact_abi_v1.h`：产物 manifest C ABI；fits 流接口不重复其职责。
+- DATA-001 `include/astrocs/contracts/artifact_abi_v1.h`（原写作 `astrocs/contracts/artifact_abi_v1.h`，路径形式不可解析，已订正）：产物 manifest C ABI；fits 流接口不重复其职责。
 - trace/bytes：由宿主注入 hook（14 标准）；本任务只冻结 hook 契约并累计，运行时落点由后续 RT 任务接线。
 - HiPS/manifest 输入输出（IO-002/IO-003）在本接口之上扩展，本任务不实现。
 

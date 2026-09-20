@@ -32,7 +32,7 @@ downstream: [TEST-P2-SMP-001]
   被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
 - 生产源：`lib/algorithms/coverage/src/sampler.cpp`（1156 行，根 CMakeLists.txt
   :337-346 astrocs_phase2 静态库成员，sampler.cpp 列于 :342）+
-  唯一权威签名头 `lib/algorithms/coverage/include/astro/phase2/sampler.h`
+  签名头正本 `lib/algorithms/coverage/include/astro/phase2/sampler.h`
   （136 行）。模块页=本文件。
 - owner SA-P2-S20；depends_on_int=P2-COV-INT;CPU-005
   （MODULE_MIGRATION_MATRIX.csv P2-SAMP 行权威）；
@@ -94,7 +94,7 @@ downstream: [TEST-P2-SMP-001]
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/sampler.h
+- 签名头正本: lib/algorithms/coverage/include/astro/phase2/sampler.h
   （136 行；cfg :32-57、stats :63-74、node :77-83、frame_id 冻结注
   :85-92、stats :95-99、probe/fill 冻结注 :101-102、两入口
   :103-114/:120-132）。

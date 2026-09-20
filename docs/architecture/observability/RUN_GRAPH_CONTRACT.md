@@ -14,7 +14,7 @@ AstroCS 需要一个**运行图渲染工具**：从 plan/trace 生成 DOT/SVG/JS
 artifact hash。旧手绘图/静态架构示意图不再作为规范来源——每次生成都从当前
 提交可复现，且机器可验证与 trace 一致。
 
-**验收（tasks/03_RUNTIME_DATA_IO_TASKS.md LOG-003 + 标准 14 §5 + 23 政策）**：
+**验收（tasks/03_RUNTIME_DATA_IO_TASKS.md LOG-003〔来源已删除/不可考，替代=ASTROCS_DESIGN.md §6.3〕+ 标准 14 §5〔同上〕+ 23 政策）**：
 - 图与 trace 调用计数一致：图节点 `call_count` == replay `call_count` ==
   原始 `module_call` 事件计数（`--verify` exit 0 = GRAPH_CONSISTENT）；
 - 图与 trace 的 DLL hash、artifact hash 一致（从 trace 事件真实字段取；
@@ -164,7 +164,7 @@ hash 等观测字段一律只来自 trace 事件。
 
 ## 10. 参考
 
-- 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-003
+- 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-003（**来源已删除/不可考**；**替代**=`ASTROCS_DESIGN.md` §6.3 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记）
 - RT-006：`include/astrocs/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`
 - RT-001：`lib/infrastructure/pipeline/typed_dag.py`、

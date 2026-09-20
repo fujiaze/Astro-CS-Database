@@ -31,7 +31,7 @@ downstream: [TEST-P2-REJ-001]
   被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
 - 生产源：`lib/algorithms/coverage/src/rejection.cpp`（2076 行，根 CMakeLists.txt
   :336-346 astrocs_phase2 静态库成员，rejection.cpp 列于 :340）+
-  唯一权威签名头 `lib/algorithms/coverage/include/astro/phase2/rejection.h`
+  签名头正本 `lib/algorithms/coverage/include/astro/phase2/rejection.h`
   （329 行）。模块页=本文件。
 - owner SA-xxx；depends_on_int=P2-UPM-INT;CPU-005（MODULE_MIGRATION_MATRIX.csv:15 权威；P2-REJ-INT 为 P2-INT 行本域被依赖项，勿混淆）；
   legacy_paths="lib/algorithms/coverage rejection sources"。
@@ -89,7 +89,7 @@ downstream: [TEST-P2-REJ-001]
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/rejection.h
+- 签名头正本: lib/algorithms/coverage/include/astro/phase2/rejection.h
   （329 行；方法枚举 :45-57、reason :71-77、status :79-90）。
 - 核心 symbol: p2_reject_plan_resolve（:191，AUTO 路由唯一解析点）、
   p2_eligibility_filter（:222）、p2_collect_candidate_stack（:263，

@@ -6,7 +6,7 @@
 > 前序合同: DATA-001（typed manifest schema + 唯一 producer）、DATA-002（三阶段
 > 产品交换、跨 Phase 仅磁盘交换）；运行时隔离: RT-002（phase-isolated Runtime）。
 
-## 1. 目标（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-003）
+## 1. 目标（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-003〔**来源已删除/不可考**；替代=本文件 + `ASTROCS_DESIGN.md` §9〕）
 
 > Runtime 启动真实 Store；模块 `execute` 只能拿已校验 handle/reader/writer；
 > 写临时对象 → 完整校验 → hash → 原子 publish；cancel/fail 无成功对象。
@@ -15,7 +15,7 @@
 
 约束来源: `ASTROCS_DESIGN.md` §1.2/§9（三 Phase 隔离产品命令；
 阶段间只通过原子发布、哈希和 provenance 完整的磁盘产品/manifest 交换）；
-`13_DATA_PIPELINE_AND_ARTIFACT_STANDARD` §1（Pipeline edge 传递 ArtifactHandle，
+`13_DATA_PIPELINE_AND_ARTIFACT_STANDARD` §1〔**来源已删除/不可考**，git 跟踪面零命中；替代=`ASTROCS_DESIGN.md` §9 + `docs/architecture/ARCHITECTURE.md`〕（Pipeline edge 传递 ArtifactHandle，
 不是路径字符串）；DATA-001 manifest 合同（storage_uri 解析只发生在 Store 内部）。
 
 ## 2. 接线结构

@@ -6,7 +6,7 @@
 > 先例新建；`lib/algorithms/coverage/` 三件套已被 P2-COV（astrocs.p2.coverage）占用，
 > 不可覆盖。生产源 `lib/algorithms/coverage/src/integrate.cpp`（76 行，根 CMakeLists
 > astrocs_phase2 静态库成员 :336-346/:344；lib/algorithms/coverage/CMakeLists.txt:42-49
-> 兼容 target :49 同文件）+ 唯一权威签名头
+> 兼容 target :49 同文件）+ 签名头正本
 > `lib/algorithms/coverage/include/astro/phase2/integrate.h`（74 行）。
 
 ## 身份与合同

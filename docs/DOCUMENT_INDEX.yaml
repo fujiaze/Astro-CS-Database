@@ -23,6 +23,8 @@
 # 校验：tools/doccheck/check_doc_index.py（exit 0 = PASS）
 # 规则：
 #   1. 每项唯一 status ∈ {ACTIVE_NORMATIVE, ACTIVE_INFORMATIVE, GENERATED, ARCHIVED_NON_NORMATIVE}
+#      （该字段是**文档活动分类**，由 tools/doccheck/check_doc_index.py 现场校验；它不是 ASTROCS_DESIGN.md
+#      §11.4 的交付状态阶梯——§0.2「登记表不得写状态字段」禁的是后者。分类随区段派生，不构成自证绿）
 #   2. active 区段不包含任何 archive 路径（docs/archive/** 等）
 #   3. archived 区段全部 ARCHIVED_NON_NORMATIVE
 #   4. status 按 path 唯一；同 path 不得跨区段
@@ -254,7 +256,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/contracts/DATA_SEMANTICS.md"
       status: ACTIVE_NORMATIVE
-      notes: "P1-WCS-DOC (2026-09-07) 追加 §18 DATA-P1-WCS: detections [n,6] +0.5 契约/IpvWcsResult 唯一权威/编排写回 KV 键表/inlier [n,9]/失败-置信度语义(DISP-WCS-001); P2-COV-DOC (2026-09-07) 追加 §19 DATA-COV-001: HiPS 兼容域/union MOC P2MocCell[K] NESTED 坐标契约/P2HipsInputInfo 逐字段/coverage≠support≠validity 与 no-use-as-weight 负向条款"
+      notes: "P1-WCS-DOC (2026-09-07) 追加 §18 DATA-P1-WCS: detections [n,6] +0.5 契约/IpvWcsResult 权威源/编排写回 KV 键表/inlier [n,9]/失败-置信度语义(DISP-WCS-001); P2-COV-DOC (2026-09-07) 追加 §19 DATA-COV-001: HiPS 兼容域/union MOC P2MocCell[K] NESTED 坐标契约/P2HipsInputInfo 逐字段/coverage≠support≠validity 与 no-use-as-weight 负向条款"
     - path: "docs/contracts/INDEX.yaml"
       status: ACTIVE_NORMATIVE
     - path: "docs/contracts/PUBLIC_API.md"
@@ -551,7 +553,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
     - path: "docs/standards/STANDARDS_REGISTRY.md"
       status: ACTIVE_NORMATIVE
-      notes: "STD-REG-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev18）国际标准冻结注册表：领域→标准→版本→条款→符合性清单→偏差指针六域冻结（球面投影=FITS WCS Paper I/II+SIP；HiPS=IVOA HiPS 1.0+properties 1.4；HEALPix=Górski 2005 NESTED；Drizzle=Fruchter & Hook 2002；星表=Gaia DR3 data model；FITS=4.0）；机器检查 docs/standards/checks/check_standards_registry.py（C1-C7）；承接 05 号 findings 登记册 §STD-F6 处置"
+      notes: "STD-REG-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev18）国际标准冻结注册表：领域→标准→版本→条款→符合性清单→偏差指针六域冻结（球面投影=FITS WCS Paper I/II+SIP；HiPS=IVOA HiPS 1.0+properties 1.4；HEALPix=Górski 2005 NESTED；Drizzle=Fruchter & Hook 2002；星表=Gaia DR3 data model；FITS=4.0）；机器检查 docs/standards/checks/check_standards_registry.py（C1-C9）；承接 05 号 findings 登记册 §STD-F6 处置"
     - path: "docs/validation/SCIENCE_FREEZE.md"
       status: ACTIVE_INFORMATIVE
       notes: "V17 冻结历史快照；当前科学权威以 docs/science 与约束文件为准"

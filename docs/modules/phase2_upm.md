@@ -40,7 +40,7 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
   `lib/algorithms/coverage/` 三件套已被 P2-COV（astrocs.p2.coverage）占用，不可
   覆盖。
 - 生产源：`lib/algorithms/coverage/src/upm.cpp`（1565 行，根 CMakeLists.txt
-  :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 唯一权威
+  :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 权威源
   签名头 `lib/algorithms/coverage/include/astro/phase2/upm.h`（184 行）。模块页=
   本文件。
 - owner SA-P2-U21；depends_on_int=P2-SAMP-INT;CPU-005
@@ -127,7 +127,7 @@ component_count/model_hash[65] + C[frame][control] FP64）；apply 输
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/upm.h（184 行；
+- 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（184 行；
   P2ControlObservation :31-57、P2ModelInfo :60-68、P2UpmBuildConfig
   :71-92、build :95-98、build_geo :103-107、save/open/info
   :108-110、calibrate_block :113-、evaluate_c :122、

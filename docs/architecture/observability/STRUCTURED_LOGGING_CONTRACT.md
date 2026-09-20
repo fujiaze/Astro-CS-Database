@@ -152,6 +152,6 @@ LOG-002 在 Runtime 集成时以本合同为单一事实源做适配，双写/�
 
 ## 9. 参考
 
-- 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-001
-- 控制包标准：`14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md` §4/§5、`13_DATA_PIPELINE_AND_ARTIFACT_STANDARD.md` §5
+- 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-001（**来源已删除/不可考**：`tasks/` 目录不在 git 跟踪面且无 git 历史；**替代**=`ASTROCS_DESIGN.md` §6.3 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记）
+- 控制包标准：`14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md` §4/§5、`13_DATA_PIPELINE_AND_ARTIFACT_STANDARD.md` §5（**两份来源均已删除/不可考**，git 跟踪面零命中；**替代**=`ASTROCS_DESIGN.md` §7.1a/§9 + `docs/architecture/ARCHITECTURE.md`）
 - 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`、`tools/monitoring/check_log_contract.py`

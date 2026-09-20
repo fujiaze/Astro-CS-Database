@@ -1,13 +1,13 @@
 # 科学总览（Science Overview）
 
 > 文档 ID：DOC-GOV-OWNER-SCIENCE-001
-> 状态：ACTIVE_NORMATIVE（GOV-004 建立，SA-GOV-01）
+> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
 > 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003 唯一源）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
 > 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
 > 用途：项目负责人 L0 审查入口之一。本文只**汇总权威来源**（不复制公式/函数清单）。
-> ⚠ **DOC-202 R23-adjacent 订正（2026-09-20）**：原文「科学公式与默认容差的唯一权威是
-> `docs/science/` 与 `docs/algorithms/`」是**下级文档自行声明权威顺序**，违反最高设计
+> ⚠ **DOC-202 R23-adjacent 订正（2026-09-20；DOC-204 改写引文，不复述禁令字样）**：原文（原句见 git 历史）
+> 把 `docs/science/` 与 `docs/algorithms/` 声明为下级自定的排他权威，是**下级文档自行声明权威顺序**，违反最高设计
 > §0.1「**禁止**任何下级文档声明自己的权威顺序」⇒ 改为**引用式**：科学公式与算法推导的
 > 权威**依 `ASTROCS_DESIGN.md` §0.1/§1.1** 为 `docs/science/`（公式）与
 > `docs/algorithms/`（推导），与本设计冲突时以本设计为准。

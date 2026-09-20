@@ -137,7 +137,7 @@ api_key/credential/private_key 等）→ 命中即报告泄露（不静默改写
 provenance 顶层字段结构上也不携带任何文件系统路径（storage_uri/artifact_id 词法
 层由 DATA-001 拒绝裸路径）——绝对用户路径/凭据在溯源通道不出现。
 
-## 6. 验收映射（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-004）
+## 6. 验收映射（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-004〔**来源已删除/不可考**；替代=本文件 + `ASTROCS_DESIGN.md` §9〕）
 
 | 验收 | 实现 | 测试 |
 |---|---|---|

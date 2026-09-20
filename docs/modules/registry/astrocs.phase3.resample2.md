@@ -28,7 +28,7 @@ downstream: [TEST-P3-RES-001]
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
   lib/algorithms/projection→phase3_fits 先例新建；lib/phase3_session/ 为会话
   编排域共享源，不整目录归属）。
-- 生产源: lib/algorithms/resample/p3_resample.cpp（239 行）+ 唯一权威
+- 生产源: lib/algorithms/resample/p3_resample.cpp（239 行）+ 权威源
   签名头 p3_resample.h（58 行），实测 2026-09-12。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
   V5 SCI-007 2026-08-28；矩阵 science_id 占位 SCI-P3-RES-001 映射
@@ -71,7 +71,7 @@ downstream: [TEST-P3-RES-001]
 | `hips` | `DATA-HIPS-001` | 必 | `UnitId::ADU` | `CoordinateFrame::HEALPIX` |
 | `resampled` | `DATA-P3-RES` | 可 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::PIXEL` |
 
-- invalid 唯一权威=DATA-P3-RES §29.4：properties 语义不符→
+- invalid 权威源=DATA-P3-RES §29.4：properties 语义不符→
   P3_RS_PARAM（hips_properties.cpp:113-122；order∈[0,20]、
   tile_width 必须 512、NESTED 唯一）；max_order 越界/scale≤0→
   P3_RS_PARAM（p3_resample.cpp:84-86）；input_mode 非
@@ -89,7 +89,7 @@ downstream: [TEST-P3-RES-001]
 
 ## 4 公共 header、核心 symbol 与生命周期
 
-- 内核消费面=API-P3-RSMP-001（p3_resample.h 唯一权威签名头）:
+- 内核消费面=API-P3-RSMP-001（p3_resample.h 签名头正本）:
   `p3_sampler_open`（h:32-33，实现 :109+）、`p3_sampler_open_ex`
   （h:36-38，:130-159）、`p3_order_select`（h:21，:82-93）、
   `p3_resample_check_mode`（h:25，:95-107）、
@@ -124,7 +124,7 @@ downstream: [TEST-P3-RES-001]
   p3_wcs_descriptor→p3_resample2_descriptor→p3_writer_descriptor，
   :797-798 收尾）；配置=phase config JSON（按 PHASE API 文档）。
 
-## 6 冻结公式（G3/G4 摘要；唯一权威=ALG-P3-RSMP-IMPL-001 §6）
+## 6 冻结公式（G3/G4 摘要；权威源=ALG-P3-RSMP-IMPL-001 §6）
 
 - G3 order 选择（p3_resample.cpp:82-93）: 最小 k∈[0,max_order] 使
   pixel_resolution_arcsec(512<<k)/3600 ≤ scale_deg_per_px
@@ -159,7 +159,7 @@ downstream: [TEST-P3-RES-001]
   ⇒ 输出与 tile 装载顺序/worker 数/缓存容量无关，bitwise 一致
   （ALG-P3-RSMP-IMPL-001 §7）。
 
-## 8 实测偏差与整改（不修码，唯一权威=ALG-P3-RSMP-IMPL-001 §11）
+## 8 实测偏差与整改（不修码，权威源=ALG-P3-RSMP-IMPL-001 §11）
 
 - DISP-P3RSMP-001: bilinear=切平面四象限最近中心双线性
   （cpp:196-230）；G4 施工规格写"面积重叠分数（投影线性化）"——

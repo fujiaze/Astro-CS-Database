@@ -2,8 +2,8 @@
 
 ## 1. 唯一版本源
 
-- 仓库根 `VERSION` 是产品版本号的**唯一权威来源**，内容一行：`MAJOR.MINOR.PATCH-alpha.N`。
-- 当前基线：以根 `VERSION`（唯一权威）为准；V6 控制包时代的冻结基线值是历史值，
+- 仓库根 `VERSION` 是产品版本号的**唯一来源**（`ASTROCS_DESIGN.md` §12），内容一行：`MAJOR.MINOR.PATCH-alpha.N`。
+- 当前基线：以根 `VERSION`（唯一来源）为准；V6 控制包时代的冻结基线值是历史值，
   不再在本文件复制（V81-ADOPT-006 起活动文档不把旧版本写成当前值）。
 - Agent 不得自行改大版本号。
 - `MAJOR/MINOR/PATCH` 只能由用户/外部审核指令变更；`alpha.N` 只能在**最终外部审核通过后**提升或打 tag，Agent 无权自行发布。

@@ -30,7 +30,7 @@
 | DATA | DATA-P3-RES | docs/contracts/DATA_SEMANTICS.md §29 | CONTRACT_READY |
 | API | API-P3-RSMP-001 | docs/contracts/PUBLIC_API.md（Phase3 重采样公共消费面节） | CONTRACT_READY |
 | API(镜像) | API-P3-001 | PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像） | FROZEN 镜像 |
-| ARCH | ARCH-001 | docs/architecture/cpu/ARCH_CONTRACTS.md | VERIFIED |
+| ARCH | ARCH-001 | docs/contracts/ARCH-001.md（原写 docs/architecture/cpu/ARCH_CONTRACTS.md〔已删除〕，该路径不存在，DOC-204 订正） | VERIFIED |
 | TEST | TEST-P3-RES-001 | 登记面=TEST-P3-RSMP-DESIGN-001（ALG §12 + registry 页 §9 双重陈述 VERIFIED）；矩阵 test_status=DORMANT，可执行面升级归 P3-RSMP-TEST | 见左 |
 | EVID | EVID-MISSING | 归 P3-RSMP-INT/验收补 | MISSING |
 
@@ -49,7 +49,7 @@
 
 ## 4 生产源
 
-- lib/algorithms/resample/p3_resample.h（58 行，唯一权威签名头）+
+- lib/algorithms/resample/p3_resample.h（58 行，签名头正本）+
   lib/algorithms/resample/p3_resample.cpp（239 行）——十符号:
   P3ResampleStatus/p3_order_select/p3_resample_check_mode/
   P3SamplerImpl/P3Sampler/p3_sampler_open/p3_sampler_open_ex/
@@ -71,9 +71,9 @@
 
 | 端口 | DATA | 必/可 | 说明 |
 |---|---|---|---|
-| wcs_plan | DATA-P3-WCS | 必 | §28 唯一权威（输出平面几何上游） |
+| wcs_plan | DATA-P3-WCS | 必 | §28 权威源（输出平面几何上游） |
 | hips | DATA-HIPS-001 | 必 | HiPS tile/properties 输入面（tile 读路径权威=DATA_SEMANTICS §3） |
-| resampled | DATA-P3-RES | 可 | §29 唯一权威（value/coverage/单位/dtype/invalid） |
+| resampled | DATA-P3-RES | 可 | §29 权威源（value/coverage/单位/dtype/invalid） |
 
 端口词汇为 descriptor 派生（module_adapters.cpp:425-439 占位
 module_id=astrocs.phase3.resample2），由 P3-RSMP-INT 对齐，不作
@@ -101,4 +101,4 @@ module_id=astrocs.phase3.resample2），由 P3-RSMP-INT 对齐，不作
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）
 - 同域: docs/modules/phase3_proj.md（WCS 域）、
   docs/modules/phase3_fits.md（写出域）、
-  docs/modules/phase3_session.md（会话编排域）
+  docs/modules/phase3_session.md（**未建**：Session 型模块按 §7.3 不迁移、待删除，见 `cmake/ARCH-001-migration-manifest.md` §1；会话编排面现行权威=`docs/contracts/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`）

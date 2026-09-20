@@ -27,7 +27,7 @@ downstream: [TEST-P3-WCS-001]
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
   lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2→
   phase3_fits 先例新建）。
-- 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录唯一权威签名头
+- 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录签名头正本
   p3_wcs.h，实测 2026-09-11；**W4-A9 批次 1（2026-09-17）由
   lib/phase3_session/ 迁入本模块**（ASTROCS_DESIGN §7.1「projection」行），
   同批迁入共址测试 tests/p3wcs/**（ctest p3_wcs）。
@@ -67,7 +67,7 @@ downstream: [TEST-P3-WCS-001]
 | `props` | `DATA-P3-PROPS`（descriptor 词汇；HiPS properties 面） | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::HEALPIX`，文本键值 |
 | `wcs_plan` | `DATA-P3-WCS`（§28 实际承载=构造入参/映射面） | 可 | `UnitId::DEGREE` | `CoordinateFrame::ICRS` deg + 0-based px + CD deg/px，FP64 |
 
-- invalid 唯一权威=DATA-P3-WCS §28：parity 非法/|dec|>85°/scale≤0/
+- invalid 权威源=DATA-P3-WCS §28：parity 非法/|dec|>85°/scale≤0/
   W,H∉[1,20000]→P3_WCS_PARAM（p3_wcs.cpp:39-43）；映射空指针→
   PARAM（:95/:122）；world2pix |dec|>85°→PARAM（:123）、|det|<
   1e-300→PARAM（:137）；r≥π/2（:104）/denom≤0（:130）→
@@ -81,7 +81,7 @@ downstream: [TEST-P3-WCS-001]
 
 ## 4 公共 header、核心 symbol 与生命周期
 
-- 内核消费面=API-P3-PROJ-001（p3_wcs.h 唯一权威签名头）:
+- 内核消费面=API-P3-PROJ-001（p3_wcs.h 签名头正本）:
   `p3_wcs_make`（h:31-34，实现 :30-90）、`p3_wcs_pix2world`
   （h:38-39，:93-118）、`p3_wcs_world2pix`（h:42-43，:120-143）、
   `p3_wcs_fits_keywords`（h:46，:145-163）+ 数据结构
@@ -109,7 +109,7 @@ downstream: [TEST-P3-WCS-001]
   p3_wcs_descriptor→p3_resample2_descriptor→p3_writer_descriptor，
   :797-798 收尾）；配置=phase config JSON（按 PHASE API 文档）。
 
-## 6 冻结公式（G1/G2 摘要；唯一权威=ALG-P3-PROJ-IMPL-001 §6/§7）
+## 6 冻结公式（G1/G2 摘要；权威源=ALG-P3-PROJ-IMPL-001 §6/§7）
 
 - G1（p3_wcs.cpp:51-111）: CRPIX=((W+1)/2,(H+1)/2)；PA=0 对角
   east_left diag(−s,+s)/east_right diag(+s,−s)；PA≠0 推广
@@ -133,7 +133,7 @@ downstream: [TEST-P3-WCS-001]
 - 确定性: 同入参 bitwise（无求和序）；双平台数值合同由测试层
   承载（§9 T6）。
 
-## 8 实测偏差与整改（不修码，唯一权威=ALG-P3-PROJ-IMPL-001 §11）
+## 8 实测偏差与整改（不修码，权威源=ALG-P3-PROJ-IMPL-001 §11）
 
 - PA 未接线: p3_session.cpp:160 rotation_pa_deg 恒 0.0（内核能力
   无会话消费方）→ P3-PROJ-IMPL/INT。

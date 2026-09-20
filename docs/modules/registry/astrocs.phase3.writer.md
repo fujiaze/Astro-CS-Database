@@ -28,7 +28,7 @@ downstream: [TEST-P3-WR-001]
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
   lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2 先例
   新建；lib/phase3_session/ 为会话编排域共享源，不整目录归属）。
-- 生产源: lib/algorithms/fits_output/p3_output.cpp（370 行）+ 唯一权威签名头
+- 生产源: lib/algorithms/fits_output/p3_output.cpp（370 行）+ 签名头正本
   p3_output.h（64 行）+ WCS 关键字源 p3_wcs.h（50 行），实测
   2026-09-08。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
@@ -63,7 +63,7 @@ downstream: [TEST-P3-WR-001]
 | `resampled` | `DATA-P3-RES`（descriptor 词汇；实际承载=DATA-P3-FITS §27.1 in 面） | 必 | UnitId::SURFACE_BRIGHTNESS（BUNIT，缺省 ADU） | PIXEL 行主序 f32 [W·H]，W,H∈[1,20000] |
 | `fits` | `DATA-P3-FITS` | 可 | UnitId::SURFACE_BRIGHTNESS | FITS 文件 BITPIX=-32/-64 + COVERAGE 扩展 + sha256 |
 
-- invalid 唯一权威=DATA-P3-FITS §27：signal 无覆盖=NaN（禁 ±Inf
+- invalid 权威源=DATA-P3-FITS §27：signal 无覆盖=NaN（禁 ±Inf
   伪装；NaN==NaN 回环一致 p3_output.cpp:341-344）；coverage 二值门
   >0.5f（:346）；bitpix∉{-32,-64}→PARAM（:140-145）；WCS 守卫
   abs(dec)≤85°+四角同半球（p3_wcs.h:24-26）。
@@ -73,7 +73,7 @@ downstream: [TEST-P3-WR-001]
 
 ## 4 公共 header、核心 symbol 与生命周期
 
-- 内核消费面=API-P3-FITS-001（p3_output.h 唯一权威签名头）:
+- 内核消费面=API-P3-FITS-001（p3_output.h 签名头正本）:
   `p3_output_write_atomic`（h:45-53，实现 :117-321）、
   `p3_output_verify`（h:57-60，:296-368）+ 数据结构 P3Provenance
   （h:15-24）/P3OutputResult（h:26-32）/P3OutputStatus（h:34-39，

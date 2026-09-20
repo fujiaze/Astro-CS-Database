@@ -63,7 +63,7 @@ FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 | `integrated` | `DATA-P2-INT` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL`（descriptor 词汇） |
 | `mosaic` | `DATA-P2-RES`→`DATA-P2-HIPS` | 可 | **`UnitId::SURFACE_BRIGHTNESS`**（signal = **面亮度**；枚举已存在，`include/astrocs/core/artifact.h:36`，phase3 在用；EXP-203 C1 订正：原写 `UnitId::ADU` 与「surface brightness」自相矛盾） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
 
-唯一权威 = DATA-P2-HIPS（DATA_SEMANTICS §20）：descriptor 端口表
+权威源 = DATA-P2-HIPS（DATA_SEMANTICS §20）：descriptor 端口表
 （**`module_adapters.cpp:1040-1057`** `p2_write_descriptor`，坐标 PIXEL 与 NESTED
 球面实际不符）为编排词汇，以 DATA-P2-HIPS 为准修订，P2-XX-INT 对齐。
 （EXP-203 C2 行锚订正：原写 `:739-756` 已漂移；实测 `grep -n 'p2_write_descriptor' →

@@ -1,7 +1,7 @@
 # 管线总览（Pipeline Overview）
 
 > 文档 ID：DOC-GOV-OWNER-PIPELINE-001
-> 状态：ACTIVE_NORMATIVE（GOV-004 建立，SA-GOV-01）
+> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
 > 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
 > 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
@@ -62,7 +62,7 @@ Phase1 目标链（03_TARGET_PRODUCT_AND_ARCHITECTURE.md §5）：
 - 模块端口注册表：`runtime/pipeline/module_ports.registry.json`（RT-001）登记
   `astrocs.phase1.*` 与 entry（`astrocs_phase1_*_v1`）。
 
-状态：装配与节点绑定在位且**本提交实测通过**（`IMPLEMENTED`）——
+现场计算（`tools/quality/check_module_map.py`；状态词依 `ASTROCS_DESIGN.md` §11.4，不在本文自证）：装配与节点绑定在位且**本提交实测通过**——
 ctest `p1001_real_nodes`（7 节点主链 cal→cos→psf→phot→snr→drz→wr，
 每节点 call_count=1、fail-fast 下游零调用、确定性 bitwise）本提交 rc=0（P1-001 `9e09941a`）。
 
@@ -88,7 +88,7 @@ ctest `p1001_real_nodes`（7 节点主链 cal→cos→psf→phot→snr→drz→w
 - `module_ports.registry.json`：`astrocs.phase2.{coverage,sample,upm-fit,upm-apply,
   reject,integrate,write}`（phase=phase2）。
 
-状态：`IMPLEMENTED` —— 七节点各绑唯一真实 operation（`lib/infrastructure/scheduler/src/module_adapters.cpp`:4282），
+现场计算（`tools/quality/check_module_map.py`）—— 七节点各绑唯一真实 operation（`lib/infrastructure/scheduler/src/module_adapters.cpp`:4282），
 ctest `p2001_real_nodes`、`p2002_unc_rej_prov` 本提交实测 rc=0
 （P2-001 `439f9f20`、P2-002 `9e0fa3a8`）；真实数据（合成/接缝/Windows）验收
 未在本提交复跑（`NOT_VERIFIED`）。
@@ -114,7 +114,7 @@ ctest `p2001_real_nodes`、`p2002_unc_rej_prov` 本提交实测 rc=0
   （`NOT_IMPLEMENTED`）。
 - `module_ports.registry.json`：`astrocs.phase3.{properties,wcs,resample2,writer,verify}`。
 
-状态：`IMPLEMENTED` —— 五节点各绑唯一真实 operation（`lib/infrastructure/scheduler/src/module_adapters.cpp`:4309，
+现场计算（`tools/quality/check_module_map.py`）—— 五节点各真实 operation（`lib/infrastructure/scheduler/src/module_adapters.cpp`:4309，
 typed artifact 链经 output_dir 文件约定传递，上游缺失 fail-closed），
 ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56ffb7`）；
 `healpix_interp4` 与流式 FITS 接入 `NOT_IMPLEMENTED`；

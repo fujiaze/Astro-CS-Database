@@ -1,7 +1,7 @@
 # 发布状态（Release Status）
 
 > 文档 ID：DOC-GOV-OWNER-RELEASE-001
-> 状态：ACTIVE_NORMATIVE（GOV-004 建立，SA-GOV-01；DOC-CONV-001 状态收敛）
+> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
 > 目标产品：`0.11.0-alpha.2`（根 `VERSION`，GOV-003 唯一源；生成串
 > `0.11.0-alpha.2+g<commit12>`，见 `docs/governance/VERSION_NAMESPACES.md`）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
