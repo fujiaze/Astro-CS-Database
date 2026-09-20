@@ -717,14 +717,14 @@
     "non_key_examples": [
       {
         "literal": "bader r",
-        "where": "ASTROCS_DESIGN.md:182",
+        "where": "ASTROCS_DESIGN.md:221",
         "kind": "design_doc_negative_example",
         "resolution": "ERROR",
         "note": "设计文档 §3.3 的**滤镜名反例**（§9.68 改写后明确标注「必须被拒」），与本库键 'Baader R' 拼写不同形（bader vs Baader）：仅折叠大小写/空白仍不相等，因此任何「轻量归一化」都不能把它变成合法键；按 resolution_rule 判 ERROR。反例在 tests/config/test_cfg003_multiblock.py 与 tests/config/test_cfg001_negative.py 上红绿双向复跑。"
       },
       {
         "literal": "bader v",
-        "where": "ASTROCS_DESIGN.md:182",
+        "where": "ASTROCS_DESIGN.md:221",
         "kind": "design_doc_negative_example",
         "resolution": "ERROR",
         "note": "同上；且本库 45 条曲线中不存在 Baader V 曲线（Baader 品牌只有 B/G/R/UV-IR Cut L CMOS Optimized/7nm H-alpha/8.5nm OIII 六条），故该示例既不能按字面命中，也不存在可归一化到的键。"
