@@ -8,7 +8,7 @@
     "transcription_rule": "每个字段的 value 只能从 docs/science/** 或 docs/algorithms/** 逐字转录；无权威数值者写 null + authority_status=pending_authority + pending_task，禁止编造（GAP-024）。",
     "owner_rulings": "工程控制/PROJECT-GOVERNANCE-01/tasks/CFG-001.md「负责人补充裁决（2026-09-16 第二轮）」"
   },
-  "field_count": 53,
+  "field_count": 52,
   "registry_ref": {
     "path": "config/config_registry.json",
     "scope": "W5-CFG-002（CFG-002）登记面：docs/plugins/** 的 plugin 级默认与 per-module 旋钮归属（96 行）、滤镜名匹配语义、cpu_profile.host.os_abi 值域、索引登记归属。",
@@ -619,25 +619,6 @@
       },
       "pending_task": null,
       "note": ""
-    },
-    {
-      "key": "weight.default_mode",
-      "value": "psf_information_weight",
-      "unit": "1",
-      "constraint": "枚举 id；science_objective=point_source_detection / point_source_photometry 的默认权重；psfsw_robust_weight 为可选工程集成模式",
-      "authority_status": "sourced",
-      "source": "docs/science/PSF_SIGNAL_WEIGHT.md:12（psf_information_weight：默认科学模式）",
-      "source_ref": {
-        "path": "docs/science/PSF_SIGNAL_WEIGHT.md",
-        "line": 12
-      },
-      "pending_task": null,
-      "enum_token": "point_information",
-      "enum_target": {
-        "schema": "contracts/schemas/phase_config_mosaic.schema.json",
-        "pointer": "#/$defs/mosaic_config/properties/algorithm_weight_mode"
-      },
-      "note": "同文件 :28 记其为 point_source_detection / point_source_photometry 的默认权重。值的形态是 SCI 产品名（psf_information_weight），而承载它的 phase_config 字段 mosaic.config.algorithm_weight_mode 取的是模式 token：enum_token=point_information（docs/science/UNIFIED_SCIENCE_MODEL.md:55 用 psfsw_robust 指模式、PSF_SIGNAL_WEIGHT.md §1 用 psf_information_weight 指方法，同一模式的两套命名）。本字段数值不变；enum_token 是「默认值 → 字段取值域」的唯一登记，机器门断言 token ∈ phase_config_mosaic 的 algorithm_weight_mode enum（tests/config/check_cfg002_registry.py）。"
     },
     {
       "key": "precision.default",

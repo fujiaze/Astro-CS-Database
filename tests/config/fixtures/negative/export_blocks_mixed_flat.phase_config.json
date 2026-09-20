@@ -1,0 +1,16 @@
+{
+  "schema_version": "1",
+  "blocks": [
+    {
+      "name": "e1",
+      "source": {
+        "hips_dir": "path/to/mosaic_hips"
+      },
+      "output_dir": "path/to/out/e1"
+    }
+  ],
+  "source": {
+    "hips_dir": "path/to/mosaic_hips"
+  },
+  "output_dir": "path/to/out/flat"
+}

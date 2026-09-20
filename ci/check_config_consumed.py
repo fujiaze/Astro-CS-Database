@@ -103,21 +103,23 @@ def evaluate(repo: pathlib.Path):
 
 
 # --------------------------------------------------------------------------- selftest ----
+# §9.73 裁决 A44（不存在「权重模式」）：夹具不再使用已作废键名
+# algorithm_weight_mode（该键已从 phase_config_mosaic 合同、config_registry.json 登记与
+# config/defaults.json 注销）；红/绿语义不变（BAD 仍缺 wcs 两个叶子键）。
 _FIXTURE_TEMPLATE = {
     "phase_name": "mosaic",
     "config": {
         "output_dir": "path",
         "precision": "fp64",
-        "algorithm_weight_mode": "point_information",
         "wcs": {"projection": "tan", "center_deg": [0, 0], "s_out_deg": 0.001},
     },
     "inputs": [{"product": "x"}],
 }
 _FIXTURE_SRC_OK = 'cfg.value("output_dir", "x"); cfg.value("precision", "fp64");\n' \
-                  'cfg.value("algorithm_weight_mode", "p"); cfg.value("projection","tan");\n' \
-                  'cfg.value("center_deg", 0); cfg.value("s_out_deg", 0);\n'
+                  'cfg.value("projection","tan"); cfg.value("center_deg", 0);\n' \
+                  'cfg.value("s_out_deg", 0);\n'
 _FIXTURE_SRC_BAD = 'cfg.value("output_dir", "x"); cfg.value("precision", "fp64");\n' \
-                   'cfg.value("algorithm_weight_mode", "p"); cfg.value("projection","tan");\n'
+                   'cfg.value("projection","tan");\n'
 
 # CLI-MULTIBLOCK（GAP_AUDIT §9.68）夹具：多数据块模板（顶层 blocks[]）。
 _FIXTURE_BLOCKS_TEMPLATE = {

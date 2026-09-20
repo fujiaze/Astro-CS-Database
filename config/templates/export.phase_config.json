@@ -1,23 +1,17 @@
 {
-  "phase_name": "export",
-  "config": {
-    "output_dir": "path/to/out/export",
-    "precision": "fp64",
-    "output_mode": "surface_brightness",
-    "wcs": {
-      "projection": "tan",
-      "center_deg": [
-        0,
-        0
-      ],
-      "s_out_deg": 0.001,
-      "width_px": 512,
-      "height_px": 512
-    }
-  },
-  "inputs": [
+  "schema_version": "1",
+  "blocks": [
     {
-      "product": "path/to/mosaic/product.hips"
+      "name": "e1",
+      "source": {"hips_dir": "path/to/mosaic_hips"},
+      "output_dir": "path/to/out/export",
+      "center": {"ra_deg": 0.0, "dec_deg": 0.0},
+      "width_px": 1024,
+      "height_px": 1024,
+      "scale_deg_per_px": 0.001,
+      "rotation_deg": 0.0,
+      "crpix_px": [512.5, 512.5],
+      "output_mode": "surface_brightness"
     }
   ]
 }

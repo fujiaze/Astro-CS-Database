@@ -1,0 +1,23 @@
+{
+  "phase_name": "export",
+  "config": {
+    "output_dir": "path/to/out/export",
+    "precision": "fp64",
+    "output_mode": "surface_brightness",
+    "wcs": {
+      "projection": "tan",
+      "center_deg": [
+        0,
+        0
+      ],
+      "s_out_deg": 0.001,
+      "width_px": 512,
+      "height_px": 512
+    }
+  },
+  "inputs": [
+    {
+      "product": "path/to/mosaic/product.hips"
+    }
+  ]
+}

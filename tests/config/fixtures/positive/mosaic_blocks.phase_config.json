@@ -1,0 +1,21 @@
+{
+  "schema_version": "1",
+  "blocks": [
+    {
+      "name": "red",
+      "hips_paths": [
+        "path/to/p1_hips_red_a",
+        "path/to/p1_hips_red_b"
+      ],
+      "output_dir": "path/to/out/mosaic_red"
+    },
+    {
+      "name": "ha",
+      "hips_paths": [
+        "path/to/p1_hips_ha_a"
+      ],
+      "output_dir": "path/to/out/mosaic_ha",
+      "snr_path": "dense"
+    }
+  ]
+}
