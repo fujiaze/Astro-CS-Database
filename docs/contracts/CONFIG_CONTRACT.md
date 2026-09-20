@@ -9,9 +9,9 @@
 
 | 事项 | 权威 |
 |---|---|
-| 输入合同（config + inputs 数据块、程序根 config/） | `ASTROCS_DESIGN.md` §3.3（:111-146） |
-| 运行前预检（绿/橙/红、error 强制阻断） | `ASTROCS_DESIGN.md` §3.5（:166-191） |
-| 配置挂载 / 模板 / 机器输出 / 退出码 | `ASTROCS_DESIGN.md` §6.1-§6.3（:277-340） |
+| 输入合同（JSON 数据块：`blocks[]` 多块 + 平铺单块简写、程序根 config/） | `ASTROCS_DESIGN.md` §3.3（:124-222；§9.68 多块形态） |
+| 运行前预检（绿/橙/红、error 强制阻断） | `ASTROCS_DESIGN.md` §3.5（:272-318） |
+| 配置挂载 / 模板 / 机器输出 / 退出码 | `ASTROCS_DESIGN.md` §6.1-§6.3（:574-642） |
 | 三类配置严格分离、benchmark 独占 cpu_profile | `docs/design/UNIFIED_MODEL.md` §3（:54-66） |
 | CLI 预检与模板职责 | `docs/plugins/infrastructure/18_cli.md` §3-§5 |
 | 科学红线（默认容差不可改、cpu_profile 不进科学配置） | `ENGINEERING_SPEC.md` §3（:23-28） |
@@ -67,29 +67,34 @@
 
 ## 3 三命令 phase_config 与模板
 
-结构 = `ASTROCS_DESIGN.md` §3.3 的 JSON 数据块：`{phase_name, config, inputs}`；`config`/`inputs` 两级 `additionalProperties:false`。
+结构 = `ASTROCS_DESIGN.md` §3.3 的 JSON 数据块。**两种形态，互斥**（GAP_AUDIT §9.68 负责人裁决 2026-09-20）：
+① **多块形态**（normalize）= 顶层 `{schema_version, blocks[]}`，每块自带一组 `input_lights` + 一套母版 + 运行参数 + **块级 `output_dir`**；
+   一块 = 一次运行（独立 `output_dir` / 独立 run manifest / 块级 `name` 归属），多块按序各自成一次运行；
+② **平铺单块简写**（normalize 单块时的等价写法，向后兼容）= 顶层 `{schema_version, input_lights, master_*, output_dir, ...}`。
+mosaic/export 仍为 `{phase_name, config, inputs}`（`config`/`inputs` 两级 `additionalProperties:false`）；normalize 的块内用 `additionalProperties:false`、顶层键闭包用 `propertyNames`（避免 `schema_version` 与 cpu_profile 同名键冲突，见 §7 跨类不相交门）。
+**已否决**（§9.68）：normalize 的逐帧 `{phase_name, config, inputs[]}` 形态已删除；CLI 遇到该形态**明确拒绝并给迁移提示**（退出码 3）。
 
-| phase | 模板 | config 必填 | 可选算法选择（逐项权威） | inputs 项 |
+| phase | 模板 | 必填 | 可选算法选择（逐项权威） | 输入项 |
 |---|---|---|---|---|
-| normalize | `config/templates/normalize.phase_config.json` | output_dir, precision | `algorithm_psf_model`（`docs/science/PSF.md:7,:81,:105`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ASTROCS_DESIGN.md` §3.4:161-164）；**`algorithm_drizzle_pixfrac`**（字段收录；语义/值域权威 `docs/science/DRIZZLE.md:23,:27,:31` + `docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 1.0 已落 defaults.json 的 `drizzle.pixfrac`，状态 owner_adjudicated；DOC-SCI-001 §3） | `{light, bias?, dark?, flat?, cosmetic?, filter}`，filter 必须命中滤镜库 |
-| mosaic | `config/templates/mosaic.phase_config.json` | output_dir, precision | `algorithm_weight_mode`（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（method/profile 词表 `docs/science/REJECTION.md:20-21`；默认路由 `:47-53`；W5-CFG-002 重锚）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:76`） | `{product, filter?}` |
+| normalize（多块） | `config/templates/normalize.phase_config.json` | 块级 `input_lights` + `output_dir`；顶层 `schema_version` + `blocks` | `algorithm_psf_model`（`docs/science/PSF.md:7,:81,:105`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ASTROCS_DESIGN.md` §3.4:161-164）；**`algorithm_drizzle_pixfrac`** 与 **`drizzle.pixfrac`**（语义/值域权威 `docs/science/DRIZZLE.md:23,:27,:31` + `docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 1.0 已落 defaults.json 的 `drizzle.pixfrac`，状态 owner_adjudicated；DOC-SCI-001 §3）；`drizzle.precision_mode`（0=FP32/1=FP64，**必须显式**） | 块级 `input_lights[]`（每帧一个 FITS 路径）+ 块级母版 `master_bias/master_dark/master_flat` + `filter_passband`（必须命中滤镜库；空串 = 显式无 filter） |
+| mosaic | `config/templates/mosaic.phase_config.json` | output_dir, precision | `algorithm_weight_mode`（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（method/profile 词表 `docs/science/REJECTION.md:20-21`；默认路由 `:47-53`；W5-CFG-002 重锚）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:89`） | `{product, filter?}` |
 | export | `config/templates/export.phase_config.json` | output_dir, precision, output_mode, wcs | `output_mode`（`ASTROCS_DESIGN.md` §5.3:267；默认 `surface_brightness` 见 `docs/plugins/algorithms_phase3/16_fits_output.md:41`）、`wcs.projection`（§5.3:264-266 首批 8 种 + 缺省 TAN；`14_projection.md:34`）、`wcs.{rotation_deg, crpix_px}`（`14_projection.md:35,38`） | `{product}` |
 
-- `precision` **必填**（`ASTROCS_DESIGN.md` §3.3:145「precision（FP32/FP64）显式声明」），值域 {fp32, fp64}；模板填 `fp64`（`docs/science/SCIENCE_SCOPE.md:53` 默认 FP64）。
+- **精度显式声明**：mosaic/export 用 `config.precision`（值域 {fp32, fp64}；模板填 `fp64`，`docs/science/SCIENCE_SCOPE.md:53` 默认 FP64）；normalize 用块级 `drizzle.precision_mode`（0=FP32 / 1=FP64，**必须显式**，缺失即拒绝——`config.precision` 是旧键名，不在 CLI 键集内，见 `ASTROCS_DESIGN.md` §3.3 键集权威）。
 - export 几何字段名与值域取自科学权威：`center_deg`/[`s_out_deg`]/`width_px`/`height_px`（`docs/science/PHASE3_HIPS_TO_FITS.md:39,41,42,43`（§3 符号表：W/s_out/center/W_out,H_out）；约束 `docs/science/PHASE3_HIPS_TO_FITS.md:70`：abs(dec) ≤ 85°、W_out/H_out ∈ [1,20000]、s_out > 0；W5-CFG-002 重锚）。原 `projection` 插件文档的 `mode` 在 phase_config 中命名为 `output_mode`，以避开 legacy cpu_profile v1 的 `mode` 字段名（UNIFIED_MODEL §3 禁止同名异义，见 §7 门表）。
 - **模板示例值声明**：模板中的 `path/to/...` 路径、`filter: "Baader R"`、export 的 `center_deg: [0,0]` 与 `s_out_deg: 0.001`、`width_px/height_px: 512` 都是**示例占位**（用户必须按观测改写），**不是**科学默认值；除 `precision`/`output_mode`/`projection`/`rotation_deg` 等有权威默认者外，模板不主张任何数值默认。`width_px/height_px = 512` 与 HiPS tile 默认（`PHASE3_HIPS_TO_FITS.md:39`）同值，仅作可运行的示例几何。
-- 硬约束：`config`/`inputs` 两级拒绝任何未登记字段 ⇒ cpu_profile 的 `workers`/`isa`/`block_size` 混入必失败（负例 ④）。
+- 硬约束：normalize 块内（`additionalProperties:false`）、`drizzle`/`wcs` 两级与顶层 `propertyNames` 都拒绝任何未登记字段；mosaic/export 的 `config`/`inputs` 两级 `additionalProperties:false` ⇒ cpu_profile 的 `workers`/`isa`/`block_size` 混入必失败（负例 ④）。
 - 内存/流式预算类字段（`docs/plugins/algorithms_phase3/16_fits_output.md:38-39` 的 `band_height`/`tile_cache_mb`）**不进** phase_config：它们不可跨机器复现，属实现策略，按 UNIFIED_MODEL §3 不得写入科学配置。CFG-002 已把它们登记为 `runtime_policy` 类（权威 = 插件文档；机器门断言此类旋钮不得出现在任何 phase_config 属性面），见 §9。CFG002-ANCHOR: item2-knob-ownership → config/config_registry.json
 
 ## 4 `config/filters.json`（`astrocs.filter-library/v1`）
 
 - **逐字转录** `lib/algorithms/photometry/data/response_curves/filters.json`（45 条；字段 `name/channel/wavelength_nm/value/n_points`），未重采样、未插值、未改数值；机器门逐条与源文件比对（`TestFiltersLibrary::test_verbatim_transcription`）。
 - **provenance**：指向 `lib/algorithms/photometry/cpp/test/filter_qe_provenance.json`；其 source 自述 `unverified: original curve source not recorded in repository`，本库 **45/45 如实标注** `status=unverified`、`verified=false`、`url=null`、`gap_id=GAP-025`；曲线统计量（`curve_stats`）由机器门与曲线逐条对账。**补 provenance 属下一轮工程包专项**（原出处/版本/获取方式/校验和）。
-- **未知滤镜 → error**：`lookup.unknown_filter = "error"`（`ASTROCS_DESIGN.md` §3.3:144、§3.5 红级）；三份 phase_config schema 的 `filter` 字段为 45 键 `enum`，并由机器门锁定 `enum == config/filters.json 的 filters 键`（`test_filter_enum_equals_library_keys`）。
+- **未知滤镜 → error**：`lookup.unknown_filter = "error"`（`ASTROCS_DESIGN.md` §3.3 滤镜名反例行、§3.5 红级）；三份 phase_config schema 都保留 45 键 `$defs.filter_name` 枚举（normalize 由块级 `filter_passband` 消费：`anyOf[{const:""}, {$ref: filter_name}]`；mosaic 由 `inputs[].filter` 消费），并由机器门锁定 `enum == config/filters.json 的 filters 键`（`test_filter_enum_equals_library_keys`）。
 - **不含每滤镜零点**（本任务裁决口径）：零点 `location` 是**逐次运行估计量**且满足**零点平移不变量**——`docs/science/PHOTOMETRY.md:7`（估计零点 location、尺度因子 scale…）与 `:73`（零点平移不变量：F_instr 同乘 k ⇒ location 增 log10 k，scale 除 k，sigma_residual 不变）；`docs/algorithms/PHOTOMETRIC_FIT.md:9` 明确 `zero_point` 字段因「无定义式、结构体无字段」被删除（P5-SNR 订正，负责人授权）。故滤镜库**不出现**任何零点列/占位/null 字段；机器门 `test_no_zero_point_column_anywhere` 对**键路径与全文**双向断言（大小写不敏感）。若将来需要每滤镜零点，属**新科学定义**，须负责人批准后另立任务。
 - **匹配语义（CFG-002 冻结）**：`lookup = {unknown_filter: error, match: exact, case_sensitive: true, normalization: none, aliases: {}}` ⇒ `resolve(name) = filters[name] if name ∈ keys(filters) else ERROR(unknown_filter)`；不做大小写/空白/Unicode 归一，不解析别名（`aliases` 为空对象 = 显式声明「本库不解析任何别名」）。冻结理由：库内品牌大小写不一致（`Optolong B/G/R` 与 `OPTOLONG L-PRO Light Pollution` 并存），品牌级归一化会引入歧义；当前 45 键在「大小写 + 空白」折叠下无重名（机器门断言），但该事实不替代显式规则。
-- **设计示例串的去向（不改设计文档）**：`ASTROCS_DESIGN.md` §3.3:128/:130 的 `"bader r"`/`"bader v"` 登记为 `lookup.non_key_examples`（`kind=design_doc_illustration`、`resolution=ERROR`）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把示例与合法值分开，**不**把示例升级为别名。正反例与门见 §10。CFG002-ANCHOR: item3-filter-name-policy → config/config_registry.json
-- **死定义已登记**：三份 schema 都保留 `$defs/filter_name`；被字段 `$ref` 的只有 normalize（`inputs[].filter` 必填）与 mosaic（`inputs[].filter` 可选、模板未用）；export 无字段引用它（导出以 HiPS 产品为单位、滤镜在上游分离）⇒ `config_registry.filter_name_policy.dead_filter_enum_phases` 登记，机器门断言该集合不得静默变化。
+- **设计文档反例串的去向**：`ASTROCS_DESIGN.md` §3.3 的 `"bader r"`/`"bader v"`（§9.68 改写后**明确标注为「必须被拒」的反例**，不再是「示例输入值」）登记为 `lookup.non_key_examples`（`kind=design_doc_negative_example`、`resolution=ERROR`）——它们不是合法库键，也不能靠归一化变成合法键（`bader` ≠ `Baader`；且库内不存在 Baader V 曲线）。`non_key_examples` 只把反例与合法值分开，**不**把反例升级为别名。正反例与门见 §10。CFG002-ANCHOR: item3-filter-name-policy → config/config_registry.json
+- **死定义已登记**：三份 schema 都保留 `$defs/filter_name`；被字段 `$ref` 的只有 normalize（块级 `filter_passband`，§9.68 后取代逐帧 `inputs[].filter`）与 mosaic（`inputs[].filter` 可选、模板未用）；export 无字段引用它（导出以 HiPS 产品为单位、滤镜在上游分离）⇒ `config_registry.filter_name_policy.dead_filter_enum_phases` 登记，机器门断言该集合不得静默变化。
 - **`channel`（带宽列）语义缺口**：`channel` 值域实测 `{B,G,R,L,HA,OIII,PAN,""}`，其中 7 条为空（`Johnson I`/`Johnson U`/`SDSS g,i,r,u,z`）；`docs/contracts/**` 内不存在滤镜命名/带宽条款 ⇒ **不存在旧名残留或别名冲突**，但 `channel` 语义与空值域无权威定义，登记为缺口（归属：负责人裁决 / 测光文档域，见 §9 缺口清单）。
 
 ## 5 `contracts/schemas/cpu_profile.schema.json`（迁移后：单一文件，两分支）
@@ -122,15 +127,15 @@ timeout 60 python3 tests/config/run_validation.py contracts/schemas/phase_config
 
 | 门 | 断言 | 测试 |
 |---|---|---|
-| 三模板通过对应 schema | 逐模板 `validate()==[]` 且 `phase_name` 相符 | `TestPhaseConfigFamily::test_templates_pass_their_schema` |
-| 四个负例必败 | 未知滤镜/缺 output_dir/precision 越界/硬件字段混入，各自命中预期错误串 | `TestNegativeFixturesMustFail::test_negative_01..04` |
+| 三模板通过对应 schema | 逐模板 `validate()==[]`；phase 身份：mosaic/export 由 `phase_name`、normalize 由 `x-astrocs-phase` + 非空 `blocks[]` | `TestPhaseConfigFamily::test_templates_pass_their_schema` |
+| 负例必败 | 未知滤镜/缺 output_dir/precision_mode 越界/硬件字段混入/多块与平铺互斥/块内未知键/逐帧 `inputs[]` 已退役，各自命中预期错误串 | `TestNegativeFixturesMustFail::test_negative_01..04`、`TestMultiBlockForm::test_03..06` |
 | defaults 计数 | 字段数 == 带 unit 数 == 带 source 或 pending 数；来源不明 == 0 | `TestDefaultsContract::test_counts_and_no_unknown_source` |
 | 转录保真 | 11 个关键 source 锚点 (文件:行:token) 逐行成立；pending 值必为 null | `test_every_source_ref_resolves_and_key_anchors_hold`、`test_pending_items_are_the_adjudicated_gap_set` |
 | 跨类不相交 | phase_config ∩ cpu_profile(v2) == ∅；∩ run_manifest == ∅；∩ cpu_profile(全体) == {precision}（登记） | `TestCrossClassDisjointness` |
 | 滤镜库 | 45/45 逐字一致 + provenance unverified/GAP-025 + 无零点键 + enum==库键 | `TestFiltersLibrary` |
 | cpu_profile | 单一定义、benchmark-only、v1/v2 双分支可绿、缺必有字段可红 | `TestCpuProfileMigration`、`test_cpu_profile_v1_missing_required_still_fails` |
 | CFG002-01 登记对应 | `docs/plugins/**` 配置表 96 行 ↔ `config/config_registry.json#plugin_knobs` 一一对应（缺登记/多登记/默认值漂移/单位漂移/行号漂移/summary 撒谎均判红） | `check_cfg002_registry.py` CFG002-01 |
-| CFG002-02 登记点可解析 | 每行登记点必须真实解析（defaults 键存在 / phase_config 指针落到属性 / inputs[] 项属性存在 / cpu_profile 指针存在 / 文档 文件:行 非空）；runtime_policy 与 resource_binding 进科学配置即红；phase_config 默认值必须 ∈ 目标 enum | 同上 CFG002-02 |
+| CFG002-02 登记点可解析 | 每行登记点必须真实解析（defaults 键存在 / phase_config 指针落到属性 / `blocks[]` 项属性存在（§9.68 后取代 `inputs[]`）/ cpu_profile 指针存在 / 文档 文件:行 非空）；runtime_policy 与 resource_binding 进科学配置即红；phase_config 默认值必须 ∈ 目标 enum | 同上 CFG002-02 |
 | CFG002-03 默认值→值域 | `fields[].enum_target` 指针落到含 enum 节点且 `enum_token` ∈ enum | 同上 CFG002-03 |
 | CFG002-04 滤镜名语义 | `match=exact` / `case_sensitive=true` / `normalization=none` / `aliases={}`；三 schema enum == 库键；6 反例必拒、4 正例必过；`non_key_examples` 锚点成立；消费 filter 的 phase 面与登记一致 | 同上 CFG002-04 |
 | CFG002-05 os_abi 值域 | schema enum == 生产者字面量集合 == 登记册；profile_gen_v2 回落字面量 ∈ enum；pending 项已撤销；负例必拒、正例必过 | 同上 CFG002-05 |
@@ -181,7 +186,7 @@ negative: "bader r" | "bader v" | "baader r" | "BAADER R" | "Baader  R" | " Baad
 ```
 
 - 三份 phase_config schema 的 `filter` 字段 enum 必须逐项等于库键（45），门同时断言 `enum == keys(filters)`。
-- 正反例由门 CFG002-04 在每个消费滤镜的 phase（normalize/mosaic）上**双向**复跑：反例必须被拒、正例必须通过；`non_key_examples` 的 `where` 锚点（`ASTROCS_DESIGN.md:128/:130`）必须真的含该串。
+- 正反例由门 CFG002-04 在每个消费滤镜的 phase（normalize/mosaic）上**双向**复跑：反例必须被拒、正例必须通过；`non_key_examples` 的 `where` 锚点（`ASTROCS_DESIGN.md:182`，§3.3 滤镜名反例行）必须真的含该串。
 - 归一化被**显式拒绝**（不是「暂未实现」）：`aliases` 为空对象即声明「无别名」；将来要支持别名必须先登记（登记=改合同，需权威条款 + 机器门 + 迁移说明）。
 
 ## 11 `cpu_profile.host.os_abi` 值域（冻结）
