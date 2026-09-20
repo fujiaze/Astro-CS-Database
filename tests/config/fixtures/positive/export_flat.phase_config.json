@@ -1,0 +1,15 @@
+{
+  "schema_version": "1",
+  "source": {
+    "hips_dir": "path/to/mosaic_hips"
+  },
+  "output_dir": "path/to/out/export",
+  "center": {
+    "ra_deg": 0.0,
+    "dec_deg": 0.0
+  },
+  "width_px": 1024,
+  "height_px": 1024,
+  "scale_deg_per_px": 0.001,
+  "output_mode": "surface_brightness"
+}

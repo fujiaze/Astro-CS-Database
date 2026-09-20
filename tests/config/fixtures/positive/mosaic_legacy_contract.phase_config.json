@@ -1,0 +1,18 @@
+{
+  "phase_name": "mosaic",
+  "config": {
+    "output_dir": "path/to/out/mosaic",
+    "precision": "fp64",
+    "algorithm_rejection_method": "auto",
+    "algorithm_upm_gauge": "reference_frame",
+    "snr_path": "sparse_reconstruct"
+  },
+  "inputs": [
+    {
+      "product": "path/to/normalize/product1.json"
+    },
+    {
+      "product": "path/to/normalize/product2.json"
+    }
+  ]
+}

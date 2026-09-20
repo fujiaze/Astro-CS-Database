@@ -25,6 +25,12 @@ NEGS = [
     ("multi_block_mixed_forms", "phase_config_normalize", "normalize_mixed_forms.phase_config.json"),
     ("multi_block_unknown_key", "phase_config_normalize", "normalize_block_unknown_key.phase_config.json"),
     ("retired_perframe_inputs", "phase_config_normalize", "normalize_perframe_inputs.phase_config.json"),
+    # FIX-207（§9.71 裁决 2 + §9.73 A44，2026-09-20）：三命令同构块结构的三类新负例
+    # （blocks 与平铺键互斥 / 块内 A44 键 / 新分支出现阶段判别键）。
+    ("mosaic_blocks_mixed_flat", "phase_config_mosaic", "mosaic_blocks_mixed_flat.phase_config.json"),
+    ("export_blocks_mixed_flat", "phase_config_export", "export_blocks_mixed_flat.phase_config.json"),
+    ("mosaic_block_weight_mode", "phase_config_mosaic", "mosaic_block_weight_mode.phase_config.json"),
+    ("export_block_phase_name", "phase_config_export", "export_block_phase_name.phase_config.json"),
 ]
 CPU = "contracts/schemas/cpu_profile.schema.json"
 MANIFEST = "contracts/schemas/run_manifest.schema.json"
@@ -51,7 +57,7 @@ for name, schema_key, fixture in NEGS:
     ok_neg = ok_neg and bool(errs)
     det_neg.append("%s=%s" % (name, "REJECTED" if errs else "ACCEPTED(BUG)"))
 gate("G1 三模板通过对应 schema", ok_tpl, " ".join(det_tpl))
-gate("G2 负例必败（原 4 + §9.68 多块 3）", ok_neg, " ".join(det_neg))
+gate("G2 负例必败（原 4 + §9.68 多块 3 + §9.71 同构 4）", ok_neg, " ".join(det_neg))
 
 # 门 B：defaults 计数断言
 ddoc = C.load_json("config/defaults.json")

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/phase_config/normalize/v1",
-  "title": "AstroCS phase_config — normalize v1（多数据块）",
-  "description": "CFG-001 建立的 normalize 科学配置合同；GAP_AUDIT §9.68 负责人裁决（2026-09-20）改写为**多数据块**形态：顶层 blocks[]，每块自带一组 input_lights + 一套母版（master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir（一块 = 一次运行 = 独立 output_dir / 独立 run manifest）。平铺单块简写（input_lights/master_*/output_dir 顶层平铺）保留为只有一块时的等价写法；两种形态**互斥**。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
+  "title": "AstroCS phase_config — normalize v1（三命令通用输入合同：多数据块 blocks[] / 平铺单块简写）",
+  "description": "CFG-001 建立的 normalize 科学配置合同；GAP_AUDIT §9.68 负责人裁决（2026-09-20）改写为**多数据块**形态，GAP_AUDIT §9.71 裁决 2（2026-09-20）把该形态确立为**三命令通用输入合同**（ASTROCS_DESIGN.md §3.3）：顶层 blocks[]，每块自带一组 input_lights + 一套母版（master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir（一块 = 一次运行 = 独立 output_dir / 独立 run manifest）。平铺单块简写（input_lights/master_*/output_dir 顶层平铺）保留为只有一块时的等价写法；两种形态**互斥**。逐帧 {phase_name, config, inputs[]} 形态已按 §9.68 **退役**（与 mosaic/export 的处置不同：那两份 schema 按 §9.71 裁决 2 定案 4「不是退役旧合同」**保留**旧分支作合同留痕；normalize 侧旧分支由 §9.68 删除，CLI 明确拒绝并给迁移提示）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
   "x-astrocs-schema-family": "phase_config",
   "x-astrocs-phase": "normalize",
   "x-astrocs-config-class": "phase_config",
@@ -12,6 +12,7 @@
   ],
   "x-astrocs-authority": [
     "ASTROCS_DESIGN.md §3.3（输入合同 JSON 数据块：多块 blocks[] + 平铺单块简写 + 互斥规则）",
+    "GAP_AUDIT §9.71 裁决 2（负责人 2026-09-20：三命令同构块结构 —— 一个块 = {输出名称, 运行参数, 输入的一组帧}；定案 3 键名与 CLI 统一）",
     "GAP_AUDIT §9.68（负责人裁决 2026-09-20：normalize 配置 = 多数据块 JSON；同一组校准帧和运行参数支持一组 light）",
     "ASTROCS_DESIGN.md §3.5（运行前预检绿/橙/红）",
     "ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
@@ -19,11 +20,13 @@
     "docs/plugins/infrastructure/18_cli.md §3-§5"
   ],
   "x-astrocs-notes": [
-    "形态（§9.68）：① 多块 —— {\"schema_version\",\"blocks\":[normalize_block, ...]}（每块一组 light + 一套母版 + 运行参数 + 块级 output_dir）；② 平铺单块简写 —— 顶层 input_lights/master_*/output_dir/运行参数（只有一块时的等价写法，向后兼容）。二者互斥：顶层同时出现 blocks 与任一平铺键 → 本 schema 的 then 分支（propertyNames）与 CLI 解析器都报错，不静默取一。",
+    "形态（§9.68 + §9.71 裁决 2）：① 多块 —— {\"schema_version\",\"blocks\":[normalize_block, ...]}（每块一组 light + 一套母版 + 运行参数 + 块级 output_dir）；② 平铺单块简写 —— 顶层 input_lights/master_*/output_dir/运行参数（只有一块时的等价写法，向后兼容）。二者互斥：顶层同时出现 blocks 与任一平铺键 → 本 schema 的 then 分支（propertyNames）与 CLI 解析器都报错，不静默取一。该形态是**三命令通用输入合同**（§3.3）：mosaic/export 同构（块内第三件分别为 hips_paths / source.hips_dir）。",
     "顶层键闭包用 propertyNames 而非 additionalProperties：schema_version 与 cpu_profile 的同名键冲突登记（tests/config/test_cfg001_contracts.py::TestCrossClassDisjointness 的 phase_config ∩ cpu_profile == {precision}）必须保持，故 schema_version 不进 properties；块内（normalize_block）无此冲突，仍用 additionalProperties:false 做机器拒绝。",
     "字段名与 DATA-001 锚点 docs/contracts/config_separation_anchors.json 的关系：本 schema 的顶层键 {schema_version, blocks} 与块内键（input_lights/master_*/output_dir/filter_passband/drizzle/wcs/...）以 ASTROCS_DESIGN.md §3.3 的 JSON 数据块为准（最高权威）；锚点的 ^sci_*/^(input|output)_*/^algorithm_*/^phase_name$ 命名族用于「算法选择」与「输入输出路径」类字段（本 schema 的 algorithm_* 与 output_* 即该族）。旧逐帧形态 {phase_name, config, inputs[]} 已按 §9.68 删除。",
     "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。本 schema 用 additionalProperties:false 在块与 drizzle/wcs 两级做机器拒绝。",
-    "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。"
+    "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。",
+    "块内键集派生（§9.71 裁决 2 定案 3「键名一律以命令行实际认的键为准」）：唯一声明 = lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_NORMALIZE) + parser.cpp block_keys()={name, output_dir}。**登记在案的既存差异（本任务实测，未修）**：normalize_block 另含 12 个会话可选键（cosmetic / dark_optimization / dark_scale_factor / master_units / master_scale / master_flat_normalize / master_flat_median_range / photometry / sparse_snr_layer / sparse_snr_spacing_px / algorithm_drizzle_pixfrac / algorithm_psf_model）——它们在 parser.cpp session_keys()（平铺白名单）内、可经平铺简写到达，但**不在** config_fields() 内 ⇒ CLI 的块内未知键门（session_blocks_errors）对块内出现它们判 rc=3（实测）。收口二选一（均不在本任务文件域）：① 把这 12 键补进 config_fields()（lib/infrastructure/cli/**）；② 从 normalize_block 移除并改指 config_registry.json 的两条 sparse_snr_layer 登记点（config/**）。在收口前，块内出现这 12 键是「schema 通过但 CLI rc=3」，不得据此认为块面已同构。",
+    "按 §9.73 裁决 A44（不存在「权重模式」）：本 schema 任何分支都**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode（机器断言在 tests/config/test_cfg004_unified_contract.py）。"
   ],
   "type": "object",
   "$defs": {

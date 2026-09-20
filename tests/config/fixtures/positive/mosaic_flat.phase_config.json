@@ -1,0 +1,7 @@
+{
+  "schema_version": "1",
+  "hips_paths": [
+    "path/to/p1_hips_a"
+  ],
+  "output_dir": "path/to/out/mosaic"
+}

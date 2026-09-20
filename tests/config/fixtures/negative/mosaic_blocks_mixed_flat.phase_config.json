@@ -1,0 +1,16 @@
+{
+  "schema_version": "1",
+  "blocks": [
+    {
+      "name": "m1",
+      "hips_paths": [
+        "path/to/p1_hips_a"
+      ],
+      "output_dir": "path/to/out/m1"
+    }
+  ],
+  "hips_paths": [
+    "path/to/p1_hips_a"
+  ],
+  "output_dir": "path/to/out/flat"
+}

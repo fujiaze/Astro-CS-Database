@@ -174,6 +174,10 @@ class TestNegativeFixturesMustFail(unittest.TestCase):
             "normalize_mixed_forms.phase_config.json",       # §9.68 ③ blocks 与平铺键互斥
             "normalize_block_unknown_key.phase_config.json", # §9.68 ⑤ 块内未知键
             "normalize_perframe_inputs.phase_config.json",   # §9.68 ⑥ 逐帧 inputs[] 已退役
+            "mosaic_blocks_mixed_flat.phase_config.json",    # §9.71 裁决 2：blocks 与平铺键互斥
+            "export_blocks_mixed_flat.phase_config.json",    # §9.71 裁决 2：blocks 与平铺键互斥
+            "mosaic_block_weight_mode.phase_config.json",    # §9.73 A44：块内 weight_mode 必拒
+            "export_block_phase_name.phase_config.json",     # §3.3：新分支不得出现阶段判别键
             "run_manifest_hardware_field.json",              # run_manifest 硬件字段
             "cpu_profile_v1_missing_required.json",          # legacy v1 缺必填
             "cpu_profile_v2_bad_os_abi.json",                # CFG-002：os_abi 越出冻结枚举

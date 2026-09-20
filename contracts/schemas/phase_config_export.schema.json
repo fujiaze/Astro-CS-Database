@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/phase_config/export/v1",
-  "title": "AstroCS phase_config — export v1",
-  "description": "CFG-001 建立的 export 科学配置合同：只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
+  "title": "AstroCS phase_config — export v1（三命令通用输入合同：blocks[] / 平铺单块简写 / 旧合同分支保留）",
+  "description": "CFG-001 建立的 export 科学配置合同。GAP_AUDIT §9.71 裁决 2（负责人 2026-09-20）+ ASTROCS_DESIGN.md §3.3「三命令通用输入合同」：三命令同构 —— 顶层 blocks[]（每块 = 输出名称 name/output_dir + 运行参数（块内平铺）+ 输入的一组帧 source.hips_dir）或**平铺单块简写**（只有一块时的等价写法；与 blocks[] 互斥，同时出现 → 报错不静默取一）。旧合同形态 {phase_name, config, inputs[]} **保留不退役**（§9.71 裁决 2 定案 4）——它是**合同留痕**，CLI 会话面按裁决 2 定案 3/4 **显式拒绝 + 给迁移提示**（lib/infrastructure/cli/parser.cpp retired_perframe_form_message）。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
   "x-astrocs-schema-family": "phase_config",
   "x-astrocs-phase": "export",
   "x-astrocs-config-class": "phase_config",
@@ -11,34 +11,77 @@
     "benchmark"
   ],
   "x-astrocs-authority": [
-    "ASTROCS_DESIGN.md §3.3（输入合同 JSON 数据块：config + inputs）",
+    "ASTROCS_DESIGN.md §3.3（三命令通用输入合同：顶层 blocks[] 或平铺单块简写，二者互斥；块内运行参数平铺；第三件 = 阶段三 source（一个输入产品））",
+    "GAP_AUDIT §9.71 裁决 2（负责人 2026-09-20：mosaic/export 沿用块状结构；一个块 = {输出名称, 运行参数, 输入的一组帧}；定案 3 键名与 CLI 统一；定案 4 旧合同不退役）",
+    "lib/infrastructure/cli/session_commands.h config_fields()（键集唯一声明）+ parser.cpp input_contract(SESSION_EXPORT)={source, hips_dir} / block_keys()（块内键集派生与拒绝面）",
+    "ASTROCS_DESIGN.md §5.3（投影：首批冻结八投影 TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA，当前仅 TAN 已实现；未实现必须显式报「不支持」）",
     "ASTROCS_DESIGN.md §3.5（运行前预检绿/橙/红）",
     "ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
     "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
     "docs/plugins/infrastructure/18_cli.md §3-§5"
   ],
   "x-astrocs-notes": [
-    "字段名与 DATA-001 锚点 docs/contracts/config_separation_anchors.json 的关系：phase_config 顶层键 {phase_name, config, inputs} 与内层键（precision/output_dir/sparse_snr_layer/light/bias/dark/flat/cosmetic/filter 等）以 ASTROCS_DESIGN.md §3.3 的 JSON 数据块为准（最高权威）；锚点的 ^sci_*/^(input|output)_*/^algorithm_*/^phase_name$ 命名族用于「算法选择」与「输入输出路径」类字段（本 schema 的 algorithm_* 与 output_* 即该族）。",
-    "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。本 schema 用 additionalProperties:false 在 config 与 inputs 项两级做机器拒绝。",
+    "形态三分支（互斥，用 if/then/else 而非 oneOf：jsonschema_min.py 的 oneOf 只报「0 branches matched」，会吞掉分支级诊断，与 normalize 同口径）：① blocks[] —— {\"schema_version\",\"blocks\":[export_block, ...]}；② 平铺单块简写 —— 顶层 source/output_dir/运行参数（= 一个块去掉 name 的等价写法）；③ 旧合同 —— {phase_name:\"export\", config, inputs[]}（保留，见下条）。",
+    "块内键集（唯一声明，禁止第二份副本）= lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_EXPORT) 键 − schema_version + parser.cpp block_keys() = {name, output_dir}；与 parser.cpp session_blocks_errors() 的块内允许键集逐字同面（schema 通过 ⇒ CLI 通过）。按 §9.73 裁决 A44，块面**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。",
+    "**U07 定案（本任务登记）**：第三件 = source: {hips_dir} **单值**（一个输入产品）。依据：ASTROCS_DESIGN.md §3.3 明文「阶段三 source（一个输入产品）」（最高权威）+ CLI input_contract(SESSION_EXPORT)={source, hips_dir}（对象 + 必需非空子键，唯一声明，lib/** 只读）。§9.71 裁决 2 的「一组帧」在阶段三的落地 = 一组退化为一个产品（N=1）；**多产品用多块表达**（每块独立 output_dir / 独立 run manifest），不得把 source 改成数组（那会与 CLI 合同分叉，属顶层合同结构性变更，须先上呈）。",
+    "块内运行参数的**值域不另写一份**：凡旧合同 $defs.export_config / $defs.export_wcs 已定义的键（output_mode / width_px / height_px / rotation_deg / crpix_px），块内属性以 $ref 指向该唯一定义（防漂移；同时保住 config_registry.json 的登记点与 CFG002 的值域判据）。仅 CLI 独有、旧合同未定义的键（source / center / scale_deg_per_px / projection / sampler / longitude_parity / coverage_output）新增 $defs。",
+    "**projection 大小写**：新分支用注册码**大写**八投影（与 contracts/schemas/projection_registry.schema.json 的 code enum 同面；生产精确匹配 \"TAN\"，§5.3 当前仅 TAN 已实现，其余运行期显式报「不支持」）；旧合同分支的 wcs.projection 小写 enum **保持原样不改**（config_registry.json 的 declared_default=tan 与 CFG002 值域判据依赖它）——两分支大小写不一致是**既有历史留痕**，收口属投影注册表任务。",
+    "旧合同分支**保留**的机器理由：① config_registry.json 的登记点（#/$defs/export_config/properties/output_mode、#/$defs/export_wcs/properties/{projection,crpix_px,center_deg,rotation_deg}）与 config/defaults.json 的引用必须继续可解析；② 跨类不相交门（phase_config ∩ cpu_profile == {precision}）由 $defs.precision 承载；③ §9.71 裁决 2 定案 4「不是退役旧合同」。CLI 会话面不消费该分支（显式拒绝 + 迁移提示）。",
+    "平铺简写分支按设计「与多块形态等价」取块内键集 ⇒ 比 CLI 的平铺门**严**：CLI 平铺门 = parser.cpp session_keys() 全局并集（含 bitpix / max_tiles / frame 等 config_fields 未列的会话键）。方向是 fail-closed（schema 通过 ⇒ CLI 通过）；CLI 平铺门收敛为按会话的 config_fields 属 lib/** 后续项。",
+    "新分支（blocks[] 与平铺简写）**不出现** phase_name / config / inputs[].product / inputs[].filter：命令名就是阶段身份（§3.3），输入身份 = source.hips_dir。",
+    "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。块与 wcs 两级用 additionalProperties:false 做机器拒绝。",
     "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。"
   ],
   "type": "object",
-  "required": [
-    "phase_name",
-    "config",
-    "inputs"
-  ],
-  "additionalProperties": false,
   "properties": {
-    "phase_name": {
-      "const": "export",
-      "description": "phase 判别键（锚点 ^phase_name$）"
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/export_block"
+      }
     },
-    "config": {
-      "$ref": "#/$defs/export_config"
+    "bitpix": {
+      "$ref": "#/$defs/bitpix"
     },
-    "inputs": {
-      "$ref": "#/$defs/export_inputs"
+    "center": {
+      "$ref": "#/$defs/center"
+    },
+    "coverage_output": {
+      "$ref": "#/$defs/coverage_output"
+    },
+    "crpix_px": {
+      "$ref": "#/$defs/export_wcs/properties/crpix_px"
+    },
+    "height_px": {
+      "$ref": "#/$defs/export_wcs/properties/height_px"
+    },
+    "longitude_parity": {
+      "$ref": "#/$defs/longitude_parity"
+    },
+    "output_dir": {
+      "$ref": "#/$defs/output_dir"
+    },
+    "output_mode": {
+      "$ref": "#/$defs/export_config/properties/output_mode"
+    },
+    "projection": {
+      "$ref": "#/$defs/projection_code"
+    },
+    "rotation_deg": {
+      "$ref": "#/$defs/export_wcs/properties/rotation_deg"
+    },
+    "sampler": {
+      "$ref": "#/$defs/sampler"
+    },
+    "scale_deg_per_px": {
+      "$ref": "#/$defs/scale_deg_per_px"
+    },
+    "source": {
+      "$ref": "#/$defs/source_hips"
+    },
+    "width_px": {
+      "$ref": "#/$defs/export_wcs/properties/width_px"
     }
   },
   "$defs": {
@@ -230,6 +273,241 @@
           }
         }
       }
+    },
+    "block_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "块归属标识（可选）；写入日志与 run manifest 的 block.name（§3.3 / §9.71 裁决 2「输出名称」）。块级键，唯一声明 = parser.cpp block_keys()"
+    },
+    "source_hips": {
+      "type": "object",
+      "required": [
+        "hips_dir"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "hips_dir": {
+          "type": "string",
+          "minLength": 1,
+          "description": "输入 HiPS 根目录（必填非空；对象字段 hips_dir，非字符串——CLI input_contract(SESSION_EXPORT) 的唯一声明）"
+        }
+      },
+      "description": "第三件 = 一个输入产品（合同兼容 HiPS 根目录）：{hips_dir}。单值（U07 定案，依据 ASTROCS_DESIGN.md §3.3「阶段三 source（一个输入产品）」）；多产品 = 多块"
+    },
+    "center": {
+      "type": "object",
+      "required": [
+        "ra_deg",
+        "dec_deg"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "ra_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360,
+          "description": "投影中心 RA（ICRS deg，[0,360]）"
+        },
+        "dec_deg": {
+          "type": "number",
+          "minimum": -85,
+          "maximum": 85,
+          "description": "投影中心 Dec（ICRS deg，|dec| ≤ 85°；TAN 极区排除）"
+        }
+      },
+      "description": "投影中心对象 {ra_deg, dec_deg}（CLI 键；等价于旧合同 export_wcs.center_deg 的 [RA,Dec] 数组——旧键已在 ci/ledgers/dead_config_keys.json 登记 consumed_as=center.ra_deg+center.dec_deg）"
+    },
+    "scale_deg_per_px": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "输出像元角尺度 deg/px（必须 > 0；CLI 键；等价于旧合同 export_wcs.s_out_deg——旧键已在 ci/ledgers/dead_config_keys.json 登记 consumed_as=scale_deg_per_px。权威 docs/algorithms/PHASE3_HIPS_TO_FITS.md s_out>0）"
+    },
+    "projection_code": {
+      "enum": [
+        "TAN",
+        "SIN",
+        "CAR",
+        "AIT",
+        "STG",
+        "MOL",
+        "CEA",
+        "ZEA"
+      ],
+      "description": "投影注册码（大写，精确匹配无 fallback）：ASTROCS_DESIGN.md §5.3 首批冻结八投影；enum 与 contracts/schemas/projection_registry.schema.json 的 code enum 同面（机器断言）。**当前仅 TAN 已实现**，其余必须由运行期显式报「不支持」（§5.3；FIX-205）——缺省 TAN"
+    },
+    "sampler": {
+      "enum": [
+        "nearest",
+        "bilinear"
+      ],
+      "description": "采样核（CLI --help 字段说明：nearest|bilinear，缺省 bilinear）；重采样方差传播语义见 docs/plugins/algorithms_phase3/ 与 docs/science/"
+    },
+    "longitude_parity": {
+      "enum": [
+        "east_left",
+        "east_right"
+      ],
+      "description": "经度方向（CLI --help 字段说明：east_left|east_right，缺省 east_left）"
+    },
+    "coverage_output": {
+      "enum": [
+        "mask"
+      ],
+      "description": "覆盖率输出（CLI --help 字段说明：当前唯一实现 mask）"
+    },
+    "export_block": {
+      "type": "object",
+      "required": [
+        "source",
+        "output_dir",
+        "output_mode"
+      ],
+      "additionalProperties": false,
+      "description": "一个数据块 = {输出名称（name/output_dir）+ 运行参数（块内平铺，取消 config 子对象）+ 输入的一组帧（source.hips_dir，单值）}。**output_mode 必填**：旧合同 $defs.export_config.required 即含 output_mode（docs/contracts/CONFIG_CONTRACT.md:81），且 p3 resample 节点缺键即 REJECT（FZ-P3-MODES）——合同不得比运行期松。（§9.71 裁决 2；§3.3 三命令通用输入合同）。块内键集 = config_fields(SESSION_EXPORT) 派生 + {name, output_dir}（唯一声明 lib/infrastructure/cli/session_commands.h）；按 §9.73 裁决 A44 排除 weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode。一块 = 一次运行 = 独立 output_dir / 独立 run manifest（块间 output_dir 不得重复，CLI session_blocks_errors 强制）。",
+      "properties": {
+        "bitpix": {
+          "$ref": "#/$defs/bitpix"
+        },
+        "center": {
+          "$ref": "#/$defs/center"
+        },
+        "coverage_output": {
+          "$ref": "#/$defs/coverage_output"
+        },
+        "crpix_px": {
+          "$ref": "#/$defs/export_wcs/properties/crpix_px"
+        },
+        "height_px": {
+          "$ref": "#/$defs/export_wcs/properties/height_px"
+        },
+        "longitude_parity": {
+          "$ref": "#/$defs/longitude_parity"
+        },
+        "name": {
+          "$ref": "#/$defs/block_name"
+        },
+        "output_dir": {
+          "$ref": "#/$defs/output_dir"
+        },
+        "output_mode": {
+          "$ref": "#/$defs/export_config/properties/output_mode"
+        },
+        "projection": {
+          "$ref": "#/$defs/projection_code"
+        },
+        "rotation_deg": {
+          "$ref": "#/$defs/export_wcs/properties/rotation_deg"
+        },
+        "sampler": {
+          "$ref": "#/$defs/sampler"
+        },
+        "scale_deg_per_px": {
+          "$ref": "#/$defs/scale_deg_per_px"
+        },
+        "source": {
+          "$ref": "#/$defs/source_hips"
+        },
+        "width_px": {
+          "$ref": "#/$defs/export_wcs/properties/width_px"
+        }
+      }
+    },
+    "bitpix": {
+      "enum": [
+        -32,
+        -64
+      ],
+      "description": "阶段三科学计算位深键（−32 = FP32 / −64 = FP64）：ASTROCS_DESIGN.md §3.3「计算精度键：阶段二/三 = 位深键（−32/−64）」。CLI 只识别并透传（config_fields 的 json==nullptr ⇒ 不进 --template 骨架），消费在 p3 重采样/写出面。**禁止**新造 precision(fp32/fp64) 同义键（FIX-203 精度口径）"
+    }
+  },
+  "if": {
+    "required": [
+      "blocks"
+    ]
+  },
+  "then": {
+    "required": [
+      "schema_version",
+      "blocks"
+    ],
+    "patternProperties": {
+      "^schema_version$": {
+        "const": "1"
+      }
+    },
+    "propertyNames": {
+      "enum": [
+        "schema_version",
+        "blocks"
+      ]
+    },
+    "description": "多块形态：顶层只允许 schema_version + blocks[]（与平铺单块简写互斥，同时出现 → 报错不静默取一；ASTROCS_DESIGN.md §3.3）"
+  },
+  "else": {
+    "if": {
+      "required": [
+        "phase_name"
+      ]
+    },
+    "then": {
+      "required": [
+        "phase_name",
+        "config",
+        "inputs"
+      ],
+      "propertyNames": {
+        "enum": [
+          "phase_name",
+          "config",
+          "inputs"
+        ]
+      },
+      "properties": {
+        "phase_name": {
+          "const": "export",
+          "description": "phase 判别键（锚点 ^phase_name$）——**仅旧合同分支**；CLI 会话面不消费（命令名就是阶段身份，§3.3）"
+        },
+        "config": {
+          "$ref": "#/$defs/export_config"
+        },
+        "inputs": {
+          "$ref": "#/$defs/export_inputs"
+        }
+      },
+      "description": "旧合同分支（**保留不退役**，§9.71 裁决 2 定案 4）：{phase_name, config, inputs[]}。它是合同留痕与登记点锚面（config_registry.json），**不是 CLI 运行形态** —— CLI 会话面显式拒绝并给迁移提示（parser.cpp retired_perframe_form_message）"
+    },
+    "else": {
+      "required": [
+        "schema_version",
+        "source",
+        "output_dir",
+        "output_mode"
+      ],
+      "patternProperties": {
+        "^schema_version$": {
+          "const": "1"
+        }
+      },
+      "propertyNames": {
+        "enum": [
+          "bitpix",
+          "center",
+          "coverage_output",
+          "crpix_px",
+          "height_px",
+          "longitude_parity",
+          "output_dir",
+          "output_mode",
+          "projection",
+          "rotation_deg",
+          "sampler",
+          "scale_deg_per_px",
+          "schema_version",
+          "source",
+          "width_px"
+        ]
+      },
+      "description": "平铺单块简写：只有一块时的等价写法（= 一个块去掉块标签 name；§3.3）。与 blocks[] 互斥"
     }
   }
 }

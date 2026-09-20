@@ -40,7 +40,9 @@ KEY_ANCHORS = [
     ("noise.variance_floor", "docs/science/NOISE_MODEL.md", 21, "1e-12"),
     ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", 66, "4.0/3.0/8"),
     ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", 28, "3.0 mag"),
-    ("weight.default_mode", "docs/science/PSF_SIGNAL_WEIGHT.md", 12, "psf_information_weight"),
+    # §9.73 裁决 A44（不存在「权重模式」）：weight.default_mode 组与
+    # phase_config_mosaic 的 algorithm_weight_mode 已同批注销（config/defaults.json
+    # field_count 53→52；config_registry.json 登记注销），故此处不再登记其权威锚点。
     ("precision.default", "docs/science/SCIENCE_SCOPE.md", 53, "FP64"),
     ("upm.k_corr", "docs/science/PHASE2_UPM.md", 22, "1.4"),
     ("hips.tile_width", "docs/science/PHASE3_HIPS_TO_FITS.md", 39, "512"),

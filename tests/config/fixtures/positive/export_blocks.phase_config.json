@@ -1,0 +1,39 @@
+{
+  "schema_version": "1",
+  "blocks": [
+    {
+      "name": "wide",
+      "source": {
+        "hips_dir": "path/to/mosaic_hips"
+      },
+      "output_dir": "path/to/out/export_wide",
+      "center": {
+        "ra_deg": 10.5,
+        "dec_deg": -20.25
+      },
+      "width_px": 1024,
+      "height_px": 1024,
+      "scale_deg_per_px": 0.001,
+      "output_mode": "surface_brightness"
+    },
+    {
+      "name": "viz",
+      "source": {
+        "hips_dir": "path/to/mosaic_hips"
+      },
+      "output_dir": "path/to/out/export_viz",
+      "center": {
+        "ra_deg": 10.5,
+        "dec_deg": -20.25
+      },
+      "width_px": 512,
+      "height_px": 512,
+      "scale_deg_per_px": 0.002,
+      "projection": "TAN",
+      "sampler": "nearest",
+      "longitude_parity": "east_left",
+      "coverage_output": "mask",
+      "output_mode": "visualization"
+    }
+  ]
+}
