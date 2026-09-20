@@ -58,7 +58,7 @@
 
 | 迁移 ID | from | to | reader 规则 | 兼容性 |
 |---|---|---|---|---|
-| `MIG-WEIGHTMODE-LEGACY` | `ASTROCS_WEIGHT_MODE ∈ {0,1,2}` / ACR `{auto,ivar,equal,support_x_snr2}` | 显式字符串模式 + 版本 | 0→REJECT；1→equal；2→pixel_ivar；auto/support_x_snr2/未知→REJECT | reader 兼容（拒绝 0）；writer 只写 v6 |
+| `MIG-WEIGHTMODE-LEGACY` | `ASTROCS_WEIGHT_MODE ∈ {0,1,2}` / ACR `{auto,ivar,equal,support_x_snr2}` | 显式字符串模式 + 版本 | 0→REJECT；1→equal；2→pixel_ivar；auto/support_x_snr2/未知→REJECT | reader 兼容（拒绝 0）；writer 只写 v6 |（**已按 §9.73 A44 作废**：ASTROCS_WEIGHT_MODE 键已从库头摘除、「权重模式 / 权重档位」概念不存在；本行只作 v6 **设计档案**的迁移留痕，**不得**据此定义生产键名/枚举/配置项） |
 | `MIG-VOCAB-PSFSW-CANONICAL` | 双词表并存 | canonical `weight.{kind,units,group_normalized,normalization.*}` | 别名规范化；第三套名→REJECT | reader 兼容；writer 只写 canonical |
 | `MIG-UNITS-PXVARIANCE` | 同名 `variance`（ADU² / ADU²/px 混名） | `pixel_variance_in`/`sb_variance_out`/`sb_ivar_out` | BUNIT=ADU 无 pixel 语义 → 单位不可判 REJECT | reader 兼容（缺声明拒绝） |
 | `MIG-NORM-DRIZZLE` | `w_jp=a_jp/A_drop` 前向归一 | 面亮度保持 + `flux_conservation_factor` | legacy 归一须带版本；缺 factor 禁绝对通量 | 语义兼容（非静默改变） |

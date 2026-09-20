@@ -113,7 +113,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一, claim FIX-SCI-
 | RING ordering | 拒绝（HISS 统一 NESTED） | `drizzle:拒绝RING` |
 | 多通道图像 | 拒绝 | `drizzle:拒绝多通道` |
 | WCS 无效/尺度非法 | 拒绝 `compute_auto_nside` 失败 | `drizzle_engine.cpp:631` |
-| 源像素 NaN/Inf（值） | 经 `F_p=Σx_j·w_jp` 直接传播为 NaN/Inf，drizzle 层**不掩膜**；非有限值由下游积分 INVALID_INPUT 合同（SCI-INT）处理 | `spherical_overlap.cpp:192`（几何 NaN 才显式拒绝） |
+| 源像素 NaN/Inf（值） | **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`；唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项中一并剔除并**重新归一**——**禁止**让单个不合格样本使整个输出像素变为 NaN，**禁止**保留被剔除样本的权重在分母里；仅当 `D_p = 0`（零合格样本）时输出 `signal = NaN ∧ support ≤ 0`（NaN 是无效的**唯一**表示，**禁止**用 0/±Inf 冒充），且每个输出像素**必须**暴露被剔除样本计数 `n_rejected_nonfinite`（**禁止**静默剔除）。EXP-202 定案「掩膜」（三数据面：传播支 L1 污染率 1.0000、L2 0.0473–0.0662；判据冻结 sha256 `539d83a0…`） | 本行原「经 `F_p` 直接传播、不掩膜」表述**已作废**（`DISP-DRZ-004` 撤销闭环，见 `docs/standards/STANDARDS_REGISTRY.md`）；`spherical_overlap.cpp:192`（几何 NaN 显式拒绝）不变 |
 | 无覆盖/几何退化 | `NO_DATA`，不产伪信号 | `drizzleTiled` |
 | 微小交集 `max_angle<1e-3 rad` | 切平面面积近似保持交叠面积 `a_jp` 一致（legacy 权重 `overlap/drop_area` 同路径） | `spherical_overlap.cpp:75` |
 | RA 跨0/极区/face边界 | `boundary_fallback` 保守 queryDisc，`false_negative=0` | `spherical_overlap` |

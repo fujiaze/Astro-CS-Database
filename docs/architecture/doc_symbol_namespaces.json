@@ -61,6 +61,12 @@
       "namespace": "machine_criterion_id",
       "evidence": "docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md:201",
       "reason": "文档内机器判据名（机器判据（`snr_identity`）），是判据 ID 不是 API 函数"
+    },
+    {
+      "token": "p2_write_descriptor",
+      "namespace": "registry_descriptor",
+      "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057",
+      "reason": "Phase2 write 节点的 registry descriptor 构造器（编排层词汇；api_inventory 只登记函数签名 ⇒ 需显式登记命名空间）。行锚 = EXP-203 C1b 同面实测 `grep -n p2_write_descriptor → :1040`，函数体止于 :1057"
     }
   ]
 }

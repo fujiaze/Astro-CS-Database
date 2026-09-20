@@ -191,7 +191,11 @@ class TestModuleReadmeCheckerCanRedAndGreen(unittest.TestCase):
 class TestWarningSuppressionCheckerCanRedAndGreen(unittest.TestCase):
     """T4：生产源注入 -w 抑制 ⇒ rc=1；真实仓库 rc=0。"""
 
-    TARGET = "lib/algorithms/noise_snr/wrapper_phase1/noise_model.cpp"
+    # B（`wrapper_phase1/noise_model.cpp`）已按 EXP-206 定案退役、文件在 HEAD 已删除
+    # （GAP_AUDIT §5.2「生产唯一实现 = A」）⇒ 负例注入目标改用**同目录仍存活**的生产源；
+    # 退役文件另行断言「不存在」（原断言「该文件存在」已失真）。
+    RETIRED = "lib/algorithms/noise_snr/wrapper_phase1/noise_model.cpp"
+    TARGET = "lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp"
 
     @classmethod
     def tearDownClass(cls):
@@ -205,6 +209,13 @@ class TestWarningSuppressionCheckerCanRedAndGreen(unittest.TestCase):
         """镜像树里把生产源换成含 -w 的副本（真实仓库零改动）。"""
         mirror = make_mirror("warn")
         src_real = REPO / self.TARGET
+        # B 已按 EXP-206 定案退役：该路径**不得再被 Git 跟踪**（HEAD 1fc88989 已删）。
+        # 不变量取「未被跟踪」而非「工作树不存在」——untracked 的 0 字节同名文件由域外
+        # `tools/check_warning_suppression.py:104` 的 `rel_src.touch()` 产生（DOC-205 回执已登记）。
+        tracked = subprocess.run(["git", "ls-files", "--error-unmatch", self.RETIRED],
+                                 cwd=str(REPO), capture_output=True, text=True)
+        self.assertNotEqual(tracked.returncode, 0,
+                            "B 已按 EXP-206 退役，不得再被 Git 跟踪：%s" % self.RETIRED)
         self.assertTrue(src_real.is_file(), "负例目标不存在：%s" % self.TARGET)
         target = mirror / self.TARGET
         target.unlink()                                  # 只断开镜像树里的文件级 symlink

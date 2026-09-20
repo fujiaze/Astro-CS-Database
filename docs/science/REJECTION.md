@@ -33,7 +33,7 @@
 - 方法合法且 `method != AUTO` 才进 kernel；`n <= underdetermined_n(=2)` 或 `n < minimum_n` ⇒ `UNDERDETERMINED`（`rejection.h:153-154`）。
 - **全拒容错域（SC-005 登记）**：`n = 4` ∧ 方法核全拒 ⇒ 降级 `UNDERDETERMINED` 全接受
   （`rejection.cpp:1860-1874`）。该容错的**可达域恰为 n=4**：n≤2 已被白名单截走；
-  奇数 n 的百分位带必含中位样本（不可全拒）；n≥5 全拒仍 `ALL_REJECTED`。
+  奇数 n 的百分位带必含中位样本（不可全拒）；n≥5 全拒仍 `ALL_REJECTED`。**可达域三条件（EXP-204 复核补充，2026-09-20）**：① 该输出像素**几何 `n = 4`**（`1 ≤ n ≤ 3` 由内核闸 `underdetermined_n = 3` 判 `UNDERDETERMINED`、永不进方法核——**不得**用 `plan.method` 断言「N≤3 ⇒ none」，该档 `plan.method` 仍解析为 `percentile`）；② 路由把 `n = 4` 分派给 `percentile`（本文件 §5 两个 profile 均命中）；③ 百分位带**退化**（近零天光 `median → 0` ∧ `scale = |median|` ⇒ 带宽 → 0，§8a），否则带非空、不可能全拒。**电平依赖（EXP-204 如实登记）**：小 N 段优劣**由电平决定、不由 N 决定**——低/中电平（≲2700 e⁻/pix，含真实数据 NGC1727 1110 ADU、LDN43 2664 ADU）下 `N=3` 强制 percentile **有损**（`ρ−1` = 0.3%–27% ≫ `τ_ρ` = 0.31%）、`N=2` **不可用**（83.5% 像素无输出）；高电平（≳3400 e⁻/pix）对抗轮 R5 实测 `N=3` 占优，翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）⇒ 生产默认取保守读法 `1 ≤ N ≤ 3 → none`。
 - `support/weights` 有限性在资格层校验，非有限 ⇒ `INVALID_INPUT` hard fail。
 - `profile` 合法集 = {`astrocs_adaptive_pixel`（**生产默认，AstroCS 自研**）, `wbpp_2_9_1`（**对照档**，路由阈值表采纳自 WBPP 2.9.1 `bestRejectionMethod`）, `wbpp_current`（历史 alias，解析为 `wbpp_2_9_1`）, `astrocs_adaptive`（可调档，与对照档同阈）}；其余值 ⇒ `rc=1` + 显式错误（配置非法）。
 
@@ -45,12 +45,12 @@
   None / Sigma / Winsorized / AveragedSigma / LinearFit / GeneralizedESD / RCR
 
 生产默认 auto + profile = astrocs_adaptive_pixel (AstroCS 自研，按逐输出像素几何 n):
-  n ≤ 3          → none（保守：不排异 + 直接加权积分；provenance 记 underdetermined_no_rejection）
+  n ≤ 3          → none（保守：不排异 + 直接加权积分；provenance 记 underdetermined_no_rejection。**偏离代价量化（EXP-204）**：不排异的代价 = 污染**泄漏**——注入实验实测 `N=2` 泄漏 **1/2**、`N=3` 泄漏 **1/3**；收益 = **不误剔真信号**——低/中电平（≲2700 e⁻/pix）下强制 percentile 使 `N=3` 精度损失 `ρ−1` = **0.3%–27%**（≫ `τ_ρ` = 0.31%）、`N=2` **83.5% 像素无输出**）
   4 ≤ n ≤ 7      → percentile (low 0.2 / high 0.1, scale=|median|)
   8 ≤ n ≤ 15     → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
   n ≥ 16         → linear_fit (lower 5.0 / upper 3.5 / 8 iter)
-  与 WBPP 的三处明示偏离：n≤3 用 none；6≤n≤7 用 percentile（消解 WBPP auto 与 validator 自相矛盾）；
-  16≤n<20 linear_fit 由调用方发 WARN。extreme_value_clip_prior_sigma 为显式 opt-in，永不参与 AUTO 路由。
+  与 WBPP 的三处明示偏离（**科学依据 + 实验编号 = EXP-204**：三数据面 + 6 轮独立复核，判据冻结 sha256 `bd8982d6…`；一手实测 `BPP-FrameGroup.js:1304-1312`/`:1229-1293`、`BPP-engine.js:2695-2719`）：n≤3 用 none（科学依据：低电平强制 percentile 有损、`N=2` 不可用，且维持负责人 2026-09-19 原裁决）；6≤n≤7 用 percentile（消解 WBPP auto 与 validator 自相矛盾）；
+  16≤n<20 linear_fit 由调用方发 WARN。extreme_value_clip_prior_sigma 为显式 opt-in，永不参与 AUTO 路由。**电平依赖（EXP-204）**：翻转边界 ≈3000–3400 e⁻/pix（对抗轮 R5 反例）——判据**由电平决定、不由 N 决定**；该区间**超出实验网格上界 1734 e⁻/pix，属外延**。
 对照档 wbpp_2_9_1 (WBPP 2.9.1 bestRejectionMethod；仅对照/回归基线):
   n < 6          → percentile (low 0.2 / high 0.1, scale=|median|)
   6 ≤ n ≤ 15     → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
@@ -121,7 +121,7 @@ large_scale 结构生长:
 - **这是真实缺陷，不由 §4 容错掩盖**：是否把尺度改为 `max(|median|, MAD)`（WBPP 对齐面）
   需单独裁决与重标定；本文件只登记事实与影响面。
 - 证据：`reports/PROJECT-GOVERNANCE-01/research/R-2_phase2权重与UPM语义.md` §3.6 /
-  `run/PROJECT-GOVERNANCE-01/R-2/logs/probe_r2.log`（[REJX]/[MC] 行）。
+  `run/PROJECT-GOVERNANCE-01/R-2/logs/probe_r2.log`（[REJX]/[MC] 行）。**SC-005 可达域条件与 EXP-204 关联见文末 §16（复核补充）**。
 
 ## 9 精度策略
 
@@ -205,3 +205,22 @@ large_scale 结构生长:
 - §7 阈值不变量/路由确定性门全过；
 - `tools/science_contract_lint.py` PASS；
 - 解析不变量→SYN-006 转换：卫星线/宇宙线/坏帧注入、small-N 分位、frame identity 保持、reject set 与 identity 解析可验用例登记 SYN-006。
+
+## 16 复核补充：SC-005 可达域条件与小 N 档位（EXP-204 / DOC-205，2026-09-20）
+
+> 本节为**登记补充**，不改动 §4/§5/§7/§8a 的任何公式、阈值、门与冻结锚点。
+
+- **SC-005 可达域条件**：§4 的「全拒容错」可被触发需**同时**满足
+  ① 该输出像素**几何 `n = 4`**（`1 ≤ n ≤ 3` 由内核闸 `underdetermined_n = 3` 判 `UNDERDETERMINED`，永不进方法核；
+  这与「`plan.method` 对 `n ≤ 3` 解析为 `percentile`」并不矛盾——**不得**用 `plan.method` 断言「N≤3 ⇒ none」）；
+  ② 路由把 `n = 4` 分派给 `percentile`（§5 两个 profile 均命中）；
+  ③ 百分位带**退化**（近零天光 `median → 0` ∧ `scale = |median|` ⇒ 带宽 → 0，§8a），否则带非空、不可能全拒。
+- **EXP-204 关联（判据冻结 sha256 `bd8982d6…`；三数据面 + 6 轮独立复核 + 对抗轮 R5）**：
+  低/中电平（≲2700 e⁻/pix，含真实数据 NGC1727 1110 ADU、LDN43 2664 ADU）下 `N=3` 强制 percentile 精度损失
+  `ρ−1` = **0.3%–27%**（≫ `τ_ρ` = 0.31%）、`N=2` **83.5% 像素无输出** ⇒ 生产默认取 `1 ≤ N ≤ 3 → none`
+  （保守读法，维持负责人 2026-09-19 原裁决）；高电平（≳3400 e⁻/pix）对抗轮 R5 反例显示 `N=3` 反而占优，
+  翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）。
+  **§8a 的尺度塌缩缺陷与上述档位取舍是两件事**，不得互相掩盖。
+- **档位表归属**：逐像素冻结映射表见 `docs/plugins/algorithms_phase2/12_rejection.md` §9（`1≤N≤3` none / `4≤N≤5` percentile /
+  `6≤N≤15` winsorized / `N≥16` linear fit）；本节 §5 的 `astrocs_adaptive_pixel` 表为**生产 profile 解析面**，两者以 §5 冻结阈值为共同锚。
+
