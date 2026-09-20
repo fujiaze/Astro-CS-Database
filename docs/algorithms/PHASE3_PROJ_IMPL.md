@@ -592,6 +592,30 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 | D3 | AIT 缺 Paper II γ 的 √2 因子（平面尺度差 √2） | 同像素天球位置偏移 ≥3600″ | 冻结对照 |
 | D4 | AIT 域判据 A<2（正确 A≤1；接受 \|X_v1\|>2 rad 的折叠环带，\|ΔRA\| 折返） | 折返幅度 ≥5° | 冻结对照 |
 
+## 16 登记面：EXP-203 C1–C9 的实现侧缺口（**只登记，不改码**，2026-09-20）
+
+> 依据：`ASTROCS_DESIGN.md` §5.3（导出只接受面亮度语义输入）+ §11.1.1 第 8 条（未满足 ⇒ 如实登记为未验证）；
+> 证据：`run/RELEASE-02/实验/E09-Phase2信号量纲/`（判据冻结 sha256 `562d9f7447b91f650d547ce0a322fc519e91de270956da9c49094b7f163d5de0`）与 `ALIGNMENT-5.3.md` C1–C9；
+> 本节**只登记**实现侧缺口与归属，**不改动**任何公式、阈值、容差、锚点与冻结集合；科学侧口径见 `docs/science/PHASE3_HIPS_TO_FITS.md` §16（同一实验单元，不得两套文字）。
+
+| # | 位置 | 现状（实测） | 归属 |
+|---|---|---|---|
+| C1 | `docs/modules/registry/astrocs.phase2.write.md:60` | `UnitId::ADU（signal surface brightness）` | ✅ 已订正为 `UnitId::SURFACE_BRIGHTNESS`（DOC-202） |
+| C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:99` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:739-756` / `:677-694` 已漂移 | ✅ 已订正为 `:1040-1057`（DOC-202；`grep -n p2_write_descriptor → :1040`） |
+| **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
+| C2 | `astrocs.phase2.write.md:41` / `docs/modules/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」（DOC-202） |
+| C3 | `docs/contracts/DATA_SEMANTICS.md:1113` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/px²` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」（DOC-202/203） |
+| **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_v6_export.cpp` **未进构建**（`grep -c p3_v6_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；**不得声称 §5.3 已生效**） |
+| **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/px^2"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
+| C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素分母退化） | P1 域单独处理（登记） |
+| C7 | 实验内部判据（非生产文档） | 预注册把舍入预算 `τ=2e-6` 用于像素化主导的统计量 | 后续实验（登记） |
+| C8 | `docs/contracts/DATA_SEMANTICS.md` §20.3 | 未说明「输入 support 恒为 1 时 `astrocs_support_clamped_pixels` 也非零」 | ✅ 已补注（实测常量场 = 262144）（DOC-202） |
+| **C9** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:495-499,776-800` | hierarchy 归约在 **f32** 累加器上做：dk=1 逐位精确、dk=9 偏差 **2.5e-3**（合成）/ **3.95e-4**（真实）；`f32_accum_repro.json` 复现发布值到 1.5e-9，float64 理想值差 2.52e-3 | **lib/** ⇒ FIX（本包只登记；修法 = `sumFluxD/sumAreaD` 分支或 Kahan/分块补偿求和） |
+
+- **判据冻结**：`ALIGNMENT-5.3.md` §1 结论表 + E09 `results/PREREGISTRATION.sha256`（`562d9f74…`，冻结于 2026-09-20T08:39:28Z，跑后未改）。
+- **负例（判据非退化）**：FLUX-IN 支同二进制下 `R_cross = 4.0`、`T ≈ −1`；面积标度错注入 `T = −0.75` ⇒ 判据能红能绿。
+- **不在本节范围**：SIN 内核 0.5″/px 往返误差 2.5e-5 px（超 SCI §7 冻结容差 1e-6 px 的 25 倍）另见 `run/RELEASE-03/logs/FIX-205-v6-sin-roundtrip.log` 登记。
+
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 
 > 本节只补出处与参考实现，不改动本文件任何公式、锚点、阈值与容差；原有条款全部保留。

@@ -122,9 +122,9 @@ function snr_noise_model_v1_free(model): g_model_floor.erase(model*)
 `lib/algorithms/noise_snr/cpp/Makefile:5,12`（g++ -shared → `snr_estimator.dll`，
 MinGW 通道）+ `cpp/build.ps1:29`——未编入根 CMake 主构建（无
 snr_estimator CMake 目标，与 astrocs_hips/astrocs_drizzle 先例不同，
-CMake 集成归 P1-NOISE-IMPL），dll_loader.cpp:41/55 加载名与路径吻合）；`lib/algorithms/noise_snr/wrapper_phase1/noise_model.{h,cpp}` 为
-`astrocs::phase1::NoiseModel` 小封装（39+67 行，静态库
-`astrocs_phase1_noise`，CMakeLists.txt:620-632，主程序链接 :706；单测
+CMake 集成归 P1-NOISE-IMPL），dll_loader.cpp:41/55 加载名与路径吻合）；`lib/algorithms/noise_snr/wrapper_phase1/noise_model.{h,cpp}`（**B 实现：已按 EXP-206 定案退役、文件已删除**）原为
+`astrocs::phase1::NoiseModel` 小封装（39+67 行）；**现行生产唯一实现 = A**（`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，`GAP_AUDIT.md` §5.2 / EXP-206），静态库
+`astrocs_phase1_noise`（源 = A + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），CMakeLists.txt:644-659，主程序链接 :747；单测
 tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:619-623 注册）。
 
 | ALG | 符号 | 源锚 |
@@ -200,7 +200,7 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:619-623 注册）。
 | # | 议题 | 改前原文/行为 | 改后 | 依据 |
 |---|---|---|---|---|
 | 1 | M3-A-005 平面几何判据 | `fill_impl`: `if (std::fabs(det) > 1e-24)`；build: `has_spatial_field=(enable_spatial_field && n>=4)` | 新增 `plane_geometry_ratio()`：中心化点云 Gram 特征值比 `λlo/λhi ≥ kPlaneGeomRatio=0.0625`（κ=√(λhi/λlo)≤4），build 与 fill 用同一判据；不满足 ⇒ `has_spatial_field=0` ⇒ 全局常量场 | R-5 EXP-7 A/B 复现；数值判据表 `run/PROJECT-GOVERNANCE-01/SCI-FIX-NOISE/logs/01_geom_criterion.log`（A=0 / B=0.0133 / C=0.200 / 满格=1.0；R-5 建议式 det/(sxx·syy) 实测 B=0.794 无法分离，已改用点云条件数） |
-| 2 | M3-A-006 gain 方向 | `wrapper_phase1/noise_model.h:33`、`.cpp:207` 注释写 `signal/gain + read_noise²`（漏 /gain²）；`tests/unit/p1_noise_test.cpp` fixture 用 `ADU=N_e·gain`、解析式 `signal·gain+rn²`、容差 ±15% | 注释补 `/gain²`；fixture 改 SCI 约定（`ADU=N_e/gain+N(0,rn/gain)`）、解析式 `signal/gain+(rn/gain)²`、容差收到 SCI 冻结 **5%**；并新增"生产诊断式 `snr_noise_gain_variance` 必须与该解析式一致"断言 | SCI-NOISE-001 §5:58；R-5 §3.5 算术（旧解析式与 SCI 相差 gain²=2.25 倍） |
+| 2 | M3-A-006 gain 方向 | `wrapper_phase1/noise_model.{h,cpp}`（**B 实现已按 EXP-206 定案退役、文件已删除**：原锚 `:33`/`:207` 随文件删除失效，依 `ANCHOR_CONTRACT.md` §5「删除/改名被锚定的文件 ⇒ 同一提交更新文档锚」处置）注释原写 `signal/gain + read_noise²`（漏 /gain²）；`tests/unit/p1_noise_test.cpp` fixture 用 `ADU=N_e·gain`、解析式 `signal·gain+rn²`、容差 ±15% | 注释补 `/gain²`；fixture 改 SCI 约定（`ADU=N_e/gain+N(0,rn/gain)`）、解析式 `signal/gain+(rn/gain)²`、容差收到 SCI 冻结 **5%**；并新增"生产诊断式 `snr_noise_gain_variance` 必须与该解析式一致"断言 | SCI-NOISE-001 §5:58；R-5 §3.5 算术（旧解析式与 SCI 相差 gain²=2.25 倍） |
 | 3 | M3-A-006 常数 | `photometry/wrapper_phase1/photometer.cpp:90` 用 4 位截断 `1.4826` | 改冻结常数 `1.482602218505602`（相对差由 −1.50e-6 → 0） | SCI-NOISE-001 §9:91；GLOSSARY:3 禁两套定义 |
 | 4 | M6a-D-007 PSF 状态位 | `orchestrator.cpp:4392`（HEAD 原行）：`if (psf_status == 0.0 \|\| psf_status == 3.0) qf \|= SNR_QF_PSF_OK;`（3=ITERATION_LIMIT 失败码拿到满权 1.0） | 仅 `psf_status == 0.0` 置位；`snr_estimator.h` 位注释同步；未收敛帧在 UPM `quality_factor` 走"未知"档 0.5 | STAR_PSF_ALGORITHMS §11.2（3=DPSF_FIT_ITERATION_LIMIT 在"拟合失败语义"表内）、DATA_SEMANTICS:553（PHOTOMETRIC 仅 status=0 入匹配）、R-5 §3.6/§5.9 |
 | 5 | V12-N-16 kLn10 双写 | `noise_model.cpp:34` 与 `snr_science.cpp:33` 各写一份 `kLn10`（字面量逐位相同，后者**全文件零引用**） | 删除 `snr_science.cpp` 的死定义，模块内唯一定义点 = `noise_model.cpp` | 复算 `float('2.302585092994045684')==float('2.302585092994045684017991454684')` → True；零引用由 grep 证实 |
@@ -257,9 +257,10 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:619-623 注册）。
 - `lib/algorithms/noise_snr/wrapper_phase1/NoiseModel::estimate`（median+MAD 全像素集单值，无
   掩膜/patch/平面场）与 `NoiseModel::gain_variance`（signal/gain+rn²
   诊断）——P1-005 期封装，语义为 ALG-NOISE-001/003 的退化子集；随
-  `astrocs_phase1_noise` 静态库编译（CMakeLists.txt:620-632）并进主程序
-  （:706），属计划迁移旧符号：P1-NOISE-IMPL 决定改写为
-  snr_noise_model_v1 薄封装或退出，去留登记其 TASK_RESULT。
+  `astrocs_phase1_noise` 静态库编译（CMakeLists.txt:644-659）并进主程序
+  （:747）——**该封装即 B，已按 EXP-206 定案退役（`GAP_AUDIT.md` §5.2：A 为唯一生产实现），
+  文件已删除**；原「属计划迁移旧符号：P1-NOISE-IMPL 决定改写为 snr_noise_model_v1 薄封装或退出」
+  的表述随之作废（`CHG-2026-09-20-NOISE-A`）。
 - 旧乘法 SNR 通道 `snr_estimate/snr_estimate_f64/snr_extract_model{,_v2,_v3}`
   （snr_estimator.h:329-350,538-570）——legacy heuristic/diagnostic，已由
   三层模型降级（头注释 :19-20）；不属 P1-NOISE 合同（SNR catalogue 语义

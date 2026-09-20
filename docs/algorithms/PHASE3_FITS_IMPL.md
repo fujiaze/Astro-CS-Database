@@ -36,18 +36,20 @@
 | coverage | f32 [W·H] | 二值门 {0,1}（>0.5f=covered） | p3_output.cpp:231/:325/:384 |
 | width,height | int px | [1,20000]（会话层 :113-114；内核 width<1 拒 :132） | p3_output.h:46 |
 | bitpix | int | -32 \| -64（真实决定 buffer，h:51） | p3_output.cpp:140-154 |
-| BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，B2-A9 由 TINT 改 TDOUBLE） | p3_output.cpp:213-214 |
-| BUNIT | string | properties 缺省 "ADU"（h 缺省 :175） | p3_output.cpp:216-217 |
-| CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:14 / p3_output.cpp:197-198 |
-| CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:12-13 / p3_output.cpp:199-200 |
-| CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | p3_wcs.h:16 / p3_output.cpp:201-204 |
-| CTYPE1/2 | string | RA---TAN / DEC--TAN | p3_output.cpp:186-187 |
-| CUNIT1/2 | string | deg | p3_output.cpp:189-190 |
-| HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集；RUNID/SWVER/manifest hash 由 CLI run_context + 输入 HiPS 产品哈希注入（B2-A10，禁占位串） | p3_output.h:15-24 / p3_output.cpp:219-225 |
+| BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，B2-A9 由 TINT 改 TDOUBLE） | p3_output.cpp:188-190 |
+| BUNIT | string | properties 缺省 "ADU"（h 缺省 :175） | p3_output.cpp:191-192 |
+| CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:14 / p3_output.cpp:173-174 |
+| CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:12-13 / p3_output.cpp:175-176 |
+| CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | p3_wcs.h:16 / p3_output.cpp:177-180 |
+| CTYPE1/2 | string | RA---TAN / DEC--TAN | p3_output.cpp:162-163 |
+| CUNIT1/2 | string | deg | p3_output.cpp:165-166 |
+| HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集；RUNID/SWVER/manifest hash 由 CLI run_context + 输入 HiPS 产品哈希注入（B2-A10，禁占位串） | p3_output.h:15-24 / p3_output.cpp:195-201 |
 | DATASUM/CHECKSUM | string | 标准 CFITSIO `fits_write_chksum`（IAU FITS 4.0 §4.4.2.5），逐 HDU 归属 PRIMARY/COVERAGE/VARIANCE/IVAR | p3_output.cpp:63-70 / :241-249 / :263-271 / :294-302 |
 | sha256 | char[65] | 输出文件 SHA-256 hex 小写（完整读出才填） | p3_output.h:27 / :92-114 |
 
-## 3 逐符号锚（p3_output.cpp 556 行 / p3_output.h 64 行 / p3_wcs.h 50 行，B2-A9/A10 后实测）
+## 3 逐符号锚（p3_output.cpp 520 行 / p3_output.h 99 行 / p3_wcs.h 66 行，2026-09-20 实测）
+
+> **2026-09-20 行锚重定基（DOC-205）**：FIX-201 使 `p3_output.cpp` 556 → 520 行，上表 8 组符号锚（CTYPE1/2、CUNIT1/2、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、BUNIT、HIPSID..SWVER、`cfitsio_io_mutex`）已按 `grep -n` 现址订正；**语义不变**（`ANCHOR_CONTRACT.md` §2/§5：只改数字、不动符号/公式/门）。
 
 - 平台宏（Windows _unlink/_commit/_close/_open 映射）:19-31；
   头包含 aio_fits.h/fitsio.h/aio_cfitsio_mutex.h/sha256.h :47-54。
@@ -238,7 +240,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   | `hardware_concurrency` | p3_session.cpp:242（仅注释，禁用声明） | 合规 |
   | `std::thread` | p3_session.cpp:335（采样池，非写面） | §8 声明面 |
   | `#pragma omp`（AIO 域） | aio_fits.cpp:1154 唯一 `parallel for schedule(static)` | 属 AIO 域非本域（QA-001 -fopenmp 编译处理），登记不改 |
-  | `cfitsio_io_mutex` | p3_output.cpp:156 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:11 | RT-008 合规 |
+  | `cfitsio_io_mutex` | p3_output.cpp:132 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:11 | RT-008 合规 |
 - **取消点**：内核级 cancelled_at_row 参数（h:52，行粒度，session
   层恒 -1 :292）；会话级取消在采样循环 :228-229；写面一旦进入
   R10-C 发布序不可中断（半成品不可见，符合 IO_003 §6）。

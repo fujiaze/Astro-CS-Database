@@ -3,7 +3,7 @@
 ## 1. 职责与边界
 
 - **职责**：为 UPM 拟合提供两类稀疏采样——① 光度控制点（定每帧**加性**校正场；本期 `g_k ≡ 1`，不做乘性响应）；② **天光背景采样点**（定加性天光面 `C_k(x)`）；同时生成星点掩膜，保证模型可辨识。
-- **不是**：不做模型拟合（upm）；采样点的 SNR 权重不是最终科学叠加权重（最终权重在 integration 由逆方差产生）；不做排异推断（rejection 可辅助但独立）。
+- **不是**：不做模型拟合（upm）；采样点的控制权重（`control_ivar`）不是最终科学叠加权重（最终权重在 integration 由逆方差产生）；不做排异推断（rejection 可辅助但独立）。
 
 ## 2. 权威依据
 
@@ -35,14 +35,14 @@ flowchart LR
     F["每帧校准图像"] --> M["套用星点掩膜"]
     M --> GRID["空间分层网格"]
     GRID --> P["每格取稀疏背景采样点<br/>（局部稳健背景 + 方差）"]
-    P --> W["每点赋 SNR 权重<br/>w_ki ∝ SNR_ki²"]
+    P --> W["每点赋 control_ivar 权重<br/>w_ki = control_ivar_ki = N_retained/(k_corr·(π/2)·σ_bg²)"]
     W --> OUT["sky_samples 稀疏点表"]
 ```
 
 - **稀疏而非稠密**：按空间分层网格在每帧掩膜外取一批采样点（数量由天光面自由度决定，远少于像素数）；不生成逐像素背景栅格；
 - 每点在格内做局部稳健背景估计（如 σ-clipping/中位数小窗），记录值与 variance；
 - 每点携带该位置的 SNR：帧级 × 帧内（有稀疏 SNR 层时），无帧内层时用帧级；
-- **采样点权重 = 逆方差**：`w_ki = 1/σ²_ki ∝ SNR_ki²`——低 SNR 帧、光污染帧的采样点权重自然变小，无法把正常帧的天光面异常拉高；
+- **采样点权重 = 逆方差**：`w_ki = control_ivar_ki = N_retained/(k_corr·(π/2)·σ_bg²)`（= `1/control_variance`，冻结式 `control_variance = k_corr·(π/2)·σ_bg²/N_retained` 见 `docs/modules/phase2_samp.md` §6 / `docs/contracts/DATA_SEMANTICS.md` §23）——低 SNR 帧、光污染帧的采样点权重自然变小，无法把正常帧的天光面异常拉高；**为什么不是 `SNR²`**（EXP-201 定案，判据冻结 sha256 `0d41e29b…`，三数据面 + 刚性扫描复核 5/5）：`w = 1/σ² = SNR²/F_ref² ∝ SNR²` 的 `∝` **以固定参考通量 `F_ref` 为前提**；天光控制点的**被估量本身在变**（估的是天光面/背景电平，不是固定源通量）⇒ `SNR²` **不是**有效逆方差代理，控制点权重一律取 `control_ivar`，`SNR` 只作 veto/质量门（`docs/modules/phase2_samp.md` §6、`docs/science/CONTROL_WEIGHT_SNR.md`）。
 - 采样点经 WCS 映射到天球坐标，供跨帧联合拟合。
 - **公共面与逐帧梯度的分工**（§9.67 定案 1）：采样点用于**全部帧联合**拟合公共天光面 `B_ref(x)`；每帧只在其上拟合平缓梯度 `δ_k(x)`，归一施加量为 `δ_k`（**保留 `B_ref`**）；`raw − C_k`（全减，含 `B_ref`）**不再是默认**（详见 `11_upm.md` §4.1/§5）。
 

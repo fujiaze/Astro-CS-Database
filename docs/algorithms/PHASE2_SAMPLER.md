@@ -298,7 +298,7 @@ g_aio_mu（:161 声明，read_tile_pair :166 加锁；并行路径 per-worker �
 `P2_ENABLE_OPENMP` 表述为历史状态——当前实现 OpenMP 已移除、
 std::thread 为唯一并行路径（:879-880 注释"OpenMP 条件已移除"；
 lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编译面）。
-本节为并行语义唯一权威。
+本节是 `ASTROCS_DESIGN.md` §8（资源与并行的强制条款：确定性合同 = 浮点归约顺序冻结、并行开关不改科学数值、输出不依赖线程调度；线程预算唯一来源）与 §7.1（模块边界）在本模块的**落地细化**，**不另立权威**（§0.1：只有一份权威链）。
 
 ## 7 与 SCI 的对应与偏差（如实登记）
 

@@ -80,7 +80,7 @@ k_corr = Var(median) / [ pi * sigma_bg^2 / (2 * N_retained) ]
 
 ## 7. 迁移建议
 
-- 现有 Phase2 provenance 键 `ASTROCS_WEIGHT_MODE=0/1/2`（DATA_SEMANTICS §30.3）须迁移为显式 mode 字符串 + 版本；
+- 现有 Phase2 provenance 键 `ASTROCS_WEIGHT_MODE=0/1/2`（DATA_SEMANTICS §30.3）须迁移为显式 mode 字符串 + 版本；（**已按 §9.73 A44 作废**：该键已从库头摘除、「权重模式」概念不存在；本行只作 v6 **设计档案**留痕，**不得**据此定义生产键名/枚举/配置项）
   整数 0 一律 REJECT，1→equal、2→pixel_ivar 仅作基线对照（S1/AR-028/AR-029）。
 - 现有 `ASTROCS_UNCERTAINTY_AVAILABLE` 保留为 unavailable 的落位，但须补 `reason/scope`。
 - 相关核摘要与 `k_corr` 适用域在旧产品中普遍缺失：读取侧按 fail-closed 标 unavailable，不得静默补默认。

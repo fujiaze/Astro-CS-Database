@@ -105,26 +105,26 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - 标量降级门：仅当帧内 `W_psf(x,y)` 鲁棒相对离散与系统趋势低于阈值才存帧级标量；否则存 map/控制点/多项式/HEALPix，摘要带 p05/p50/p95、最大系统偏差、覆盖、模型误差；
 - PSFSW 是综合图像质量**权重**（含 FWHM/背景梯度），无量纲、组内相对、可驱动显式 `psfsw_robust` 集成 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），**不是信噪比、不是 ivar**；frame_snr 对标的是 PSFSNR（未加权原始信噪比）而非 PSFSW。
 
-### 4.4 噪声模型双实现登记（§9.66 B / §9.67 定案 3；**未闭合**）
+### 4.4 噪声模型两套实现：**取 A**（EXP-206 定案；B 已退役）
 
-> 登记日期 2026-09-20；依据 `GAP_AUDIT.md` §9.66 B（2479–2509）与 §9.67 定案 3（2565–2568）。
+> 登记日期 2026-09-20；依据 `GAP_AUDIT.md` **§5.2（EXP-206 定案：取 A）** + §9.66 B / §9.67 定案 3；实验单元 `run/RELEASE-02/实验/E12-噪声模型两套/`（判据冻结 sha256 `d5119c6f…`，三数据面 + ≥5 轮独立复核）。
 
-- **仓库内存在两套噪声实现**，而**生产调度路径用的是没有逐像素能力的那一套**：
+- **定案**：**生产唯一实现 = A**（`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1`/`_f64`/`_fill` + `NoiseWeightModelV1`，**逐像素**）；**B（`lib/algorithms/noise_snr/wrapper_phase1/noise_model.cpp`）已退役、不得保留**（`HEAD` 退役提交 `f0d4a468`）。
 
-| | 插件/编排路径 | **生产调度路径** |
+| 面 | A（**保留，唯一生产实现**） | B（**已退役**） |
 |---|---|---|
 | 实现 | `lib/algorithms/noise_snr/cpp/src/noise_model.cpp` | `lib/algorithms/noise_snr/wrapper_phase1/noise_model.cpp` |
-| 接口 | `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**） | `astrocs::phase1::NoiseModel`（**标量**） |
-| 编入 | `astrocs_p1_noise`（SHARED，`lib/algorithms/noise_snr/CMakeLists.txt:35`） | `astrocs_phase1_noise`（STATIC，根 `CMakeLists.txt:620`） |
-| 调用者 | `orchestrator.cpp:4694–4839`（DLL 加载，挂 `variance` 块 → V19 方差/ivar 产品） | `module_adapters.cpp:4432`（**只挂 `data` 块**） |
+| 接口 | `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**） | `astrocs::phase1::NoiseModel`（**标量**，A 的**退化子集**：无掩膜/无 5σ 裁剪/无饱和过滤/无 patch 网格/无平面场/无天空预算门） |
+| 编入 | 根 `CMakeLists.txt:644-659` 的 `astrocs_phase1_noise`（STATIC，源 = `cpp/src/noise_model.cpp` + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），主程序链接 `:747` | **不编入**（`astrocs_phase1_noise` 不再含 B 源） |
+| 实测（E12） | 纯合成 K1 −0.51/−0.11/−0.04%（门 5%）、K2 掩膜无偏 ≤0.10%（门 2%）、K3 系数 ≤7.3%（门 10%）、K4 **fail-closed**；M16 −4.62/−3.48%；testdata 真实 4K 帧 116.36 vs 参考 113.11（+2.87%） | K2 **+2.74…+2.93%（红）**、K3 常量平面 maxdev **+2251%**、K4 **fail-open**（var=1e-12 ⇒ ivar=1e12）；M16 **+104%/+231%**；testdata **+78.6%** |
 
-- **链路后果**：生产路径从不挂 `variance` 块 ⇒ `hp_drizzle_api.cpp:1024` 读不到 ⇒ `astro_sphere_sink.cpp:306–327` 不产出 variance/ivar 子产品面 ⇒ `p2_integrated.json` 报 `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）。
-- **裁决（§9.67 定案 3）**：**不是「哪套在跑就用哪套」**——须先做**公式级比对**（blank-sky 稳健方差、MAD→σ 常数、Poisson 项、饱和掩膜、平面场、scale law），**判定哪一套科学正确、用正确的那一套**，另一套删除或登记退役。
+- **接线现状（未闭合）**：A 已编入 `astrocs_phase1_noise` 并链入主程序，但生产调度路径（`module_adapters.cpp`）**尚未挂 `variance` 块** ⇒ `hp_drizzle_api.cpp:1024` 读不到 ⇒ `astro_sphere_sink.cpp:306–327` 不产出 variance/ivar 子产品面 ⇒ `p2_integrated.json` 报 `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）。
+- **收敛结论（EXP-206 定案 + §9.67 定案 3；最高设计 §3.6「单一生产实现 + 一个 Oracle」）**：**A 为唯一生产实现**（公式级比对已由 E12 完成）；**B 的源文件必须删除或明确登记退役**——本包只订正文档侧，代码侧删除归 P1-NOISE 域。
 - **接入义务（§9.67 定案 2）**：把 `orchestrator` 的**逐像素方差接线**（`orchestrator.cpp:4694-4839`）搬进 `scheduler`，使生产产出逐像素 `variance`/`ivar` 产品面；接入并验证后**删除** `lib/infrastructure/pipeline/orchestrator/cpp/` 与 v6 家族。
-- **架构选择须上呈（§9.66 B，属 `AGENTS.md` §9 第 1 类）**：补齐生产路径需在 ①编入静态库（可能重复符号/两套语义）/ ②加载插件共享库（改 ABI 与加载时序）/ ③在 `wrapper_phase1` 重新实现（**两套科学公式副本**，违「零公式副本」纪律）之间选型 ⇒ **不在本包内擅自选型**。
-- **影响面（诚实）**：**不影响** 纯逆方差权重链 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（帧级 SNR 路径，`snr_chain_closure="closed"`，科学上正确）；**影响**逐像素**不确定度产品面**。凡「逐像素方差/不确定度已传播到产品」的主张，**只能引用插件路径证据**，**不得声称生产路径已产出**。
-- **状态**：**未闭合**（审计 S16 登记；`wrapper_phase1` 在 `docs/plugins/` 此前 0 命中，本条即其登记位）。
-- **行号说明**：本节的 `文件:行` 取自 §9.66 B 审计时点（2026-09-20）；工作树并发改动会使行号漂移，**以符号名/文件名核对为准**。
+- **新增硬化项（EXP-206 遗留项 2）**：`variance_floor` clamp 可产出「rc=0 + deg=0 + var=1e-12」**伪有效模型**（仅输入误读场景复现）⇒ 须补**退化判据与守卫**（fail-closed），归 P1-NOISE 域。
+- **影响面（诚实）**：**不影响** 帧级 SNR 路径（`snr_chain_closure="closed"`，科学上正确；A44 留痕：本节原文「纯逆方差权重链」措辞已作废——权重是阶段二按该天球像素对应帧集合现场算出的派生量）；**影响**逐像素**不确定度产品面**。凡「逐像素方差/不确定度已传播到产品」的主张，**只能引用 A 的插件路径证据**，**不得声称生产路径已产出**。
+- **状态**：**文档侧已收敛**（取 A、B 退役已登记）；**代码侧未闭合**（B 源文件删除、`variance` 块接线、`variance_floor` 守卫）——逐条归 P1-NOISE 域。
+- **行号说明**：本节的 `文件:行` 取自 2026-09-20 `grep -n` 实测；工作树并发改动会使行号漂移，**以符号名/文件名核对为准**。
 
 ## 5. 配置项
 
@@ -135,7 +135,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 | `scalar_gate_trend` | —— | —— | 标量降级系统趋势门 |
 | `psfsw_enable` | true | —— | 是否生产 psfsw_robust 四分量 |
 | `sparse_snr_layer` | true | —— | 是否产出稀疏帧内 SNR 层。**本期决议默认产出**（默认稀疏路径；负责人 2026-09-19 裁决） |
-| `sparse_snr_spacing_px` | 64 | px | 稀疏层控制点间隔 Δ。**负责人 2026-09-19 定案 Δ=64px**（复用 Phase2 UPM 8×8/tile 控制网格；依据：实测 SNR 场相关长度 **ℓ = 40.4–57.9 px 区间** ⇒ Δ/ℓ ≈ 1.1–1.6）。旧键 `sparse_snr_density`（单位 点/度²）保留登记但**不再承载本量**（守「一个字段只承载一个含义」）。（**2026-09-20 订正**：原文「ℓ=48px ⇒ Δ/ℓ=**1.33** 近临界」中 ℓ 的**单点值已作废**——§9.48 更正表判「应写 **40.4–57.9px 区间**」；Δ=64px 定案不变。） |
+| `sparse_snr_spacing_px` | 64 | px | 稀疏层控制点间隔 Δ。**负责人 2026-09-19 定案 Δ=64px**（复用 Phase2 UPM 8×8/tile 控制网格；依据：实测 SNR 场相关长度 **ℓ = 40.4–57.9 px 区间** ⇒ Δ/ℓ ≈ 1.1–1.6）。**2026-09-20 补记（EXP-205 / E11 实测，判据冻结 sha256 `81244053…`）**：在同一 testdata 上按操作定义 ℓ_SE(P=32) 实测 **ℓ = 50.9–208.3 px**（Δ=64 时 Δ/ℓ = **0.31–0.84**），设计所引 40.4–57.9 px 是更小尺度上的估计；E11 实测稀疏**失效边界 Δ*/ℓ = 0.50–0.98** ⇒ Δ/ℓ ≈ 1.1–1.6 **已在边界之外**，**Δ=64 的安全性来自实际 ℓ 更大，而不是来自「近临界」**。旧键 `sparse_snr_density`（单位 点/度²）保留登记但**不再承载本量**（守「一个字段只承载一个含义」）。（**2026-09-20 订正**：原文「ℓ=48px ⇒ Δ/ℓ=**1.33** 近临界」中 ℓ 的**单点值已作废**——§9.48 更正表判「应写 **40.4–57.9px 区间**」；Δ=64px 定案不变。） |
 | `sparse_snr_density` | —— | 点/度² | **已退役（保留登记，不再承载任何量）**：原稀疏层控制点密度。负责人 2026-09-19 定案改用 `sparse_snr_spacing_px`（守「一个字段只承载一个含义」）；本行仅为登记册一一对应与「未定案」联锁缺口留痕，**禁止在生产配置中使用**。 |
 | `snr_path` | `sparse_reconstruct` | —— | SNR 重建路径：`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`；三条路径精度对比为论文核心实验（判据 SP-0） |
 

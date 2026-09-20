@@ -212,3 +212,21 @@ coverage（SCI-FIX-PROJ 订正：与 §8「tile 内 NaN」行的互斥解除）:
 - `UNRESOLVED-SCIENCE=0`（§9a 十二项全部冻结，无 TBD/二选一）；
 - `tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
 - alpha 最小范围=13 §4 候选清单（单通道/ICRS/NESTED/TAN/显式 center-scale-W-H/nearest+bilinear/coverage/float32+64），**收窄不扩大**。
+
+## 16 登记面：§5.3 输入语义守卫与产品 provenance 现状（EXP-203 / E09，2026-09-20）
+
+> 本节是**如实登记**（`ASTROCS_DESIGN.md` §11.1.1 第 8 条「未满足 ⇒ 不得声称科学正确，须如实登记为未验证」+ §5.3），
+> **不改动**本文件任何公式、阈值、容差与冻结锚点。证据 = `run/RELEASE-02/实验/E09-Phase2信号量纲/`
+> （判据冻结 sha256 `562d9f7447b91f650d547ce0a322fc519e91de270956da9c49094b7f163d5de0`，冻结时刻 `2026-09-20T08:39:28Z`）与同目录 `ALIGNMENT-5.3.md` C1–C9。
+
+| # | 项 | 实测现状 | 结论 |
+|---|---|---|---|
+| C4 | §5.3 输入语义守卫在**生产 export 路径**是否生效 | **未生效（守卫未接线）**：`lib/phase3_session/p3_session.cpp:166-172,396` 只透传 BUNIT（缺省 `"ADU"`，`p3_resample.cpp:284-286`），不做语义判定；守卫内核 `lib/algorithms/resample/p3_rsmp_units.cpp:137-171` 与会话接线层 `lib/phase3_session/p3_v6_export.cpp` **未进构建**（`grep -c p3_v6_export CMakeLists.txt` = **0**） | **不得声称 §5.3 已在生产生效**；接线归 FIX / Phase3 export 域 |
+| C5 | 即使接线，能否接受当前 Phase2 产品 | **不能（会 REJECT）**：产品 FITS tile **无 `BUNIT`**（真实 6 帧与合成产品实测一致）；`signal/properties` 只有 `dataproduct_subtype=surface brightness`，**无** `pixel_semantics` / `pixel_area_power` | **产品侧 provenance 缺口**（不是语义错）；补 `BUNIT` + provenance 归 FIX |
+| C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素 `S=F/D` 分母退化） | 归 P1 域单独处理 |
+| — | Phase2 `signal` 量纲 | 实测 = **面亮度**（分辨率不变密度算子：常量场 `R_cross = 1.0`、真实 testdata `0.999999972724`；链内零单位换算，FLUX-IN 负例逐像元 ×Ω） | 与 §5.3「导出只接受面亮度语义输入」**一致** ⇒ **§5.3 无需订正** |
+
+- **口径**：§5.3 是**目标态声明**；缺的是实现接线与产品 provenance（C4/C5），**不是**科学语义。
+- **代码侧缺口（只登记，本文件不改）**：C1a（`module_adapters.cpp:1040-1057` `p2_write_descriptor` 的 `mosaic` 端口仍为 `UnitId::ADU`）、C4、C5、
+  C9（HiPS hierarchy 归约用 **f32** 累加器：dk=1 逐位精确、dk=9 偏差 **2.5e-3**（合成）/ **3.95e-4**（真实）；修法 = 用已存在的 `sumFluxD/sumAreaD` 分支或 Kahan/分块补偿求和）。
+  实现侧完整清单与归属见 `docs/algorithms/PHASE3_PROJ_IMPL.md` §16（同一实验单元，避免两套文字）。
