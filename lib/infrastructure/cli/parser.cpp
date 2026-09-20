@@ -296,10 +296,26 @@ const std::set<std::string>& session_keys() {
         // （「权重模式」概念不存在；权重是消费 SNR 时的派生量）⇒ 配置里出现即 rc=3。
         "hips_paths", "upm", "upm_save_path", "persist_upm",
         "reject", "reject_profile",
+        // FIX-203（GAP_AUDIT G05；ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
+        // 命令行实际认的键为准」）：合同声明但 CLI 白名单缺的提升键落地。键名**逐字**取
+        // 合同声明名（禁止新造同义键）：
+        //   phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
+        // 只识别并透传到 pdoc（phase_config 直通分支）；科学消费点在 scheduler 面。
+        // 生产零读取期间由 ci/ledgers/dead_config_keys.json 显式登记（不得静默 no-op）。
+        "snr_path",
         // phase3 平铺 (p3_session 消费面)
         "source", "center", "scale_deg_per_px", "width_px", "height_px",
         "projection", "sampler", "longitude_parity", "bitpix",
         "coverage_output", "max_tiles", "frame",
+        // FIX-203（GAP_AUDIT N03）：export 提升键（合同声明名逐字，平铺顶层，与
+        // center/scale_deg_per_px 同面）：
+        //   phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
+        // 同 snr_path：CLI 只识别并透传，生产消费点未落地 ⇒ 死键台账已登记。
+        "rotation_deg", "crpix_px",
+        // 计算精度口径（ASTROCS_DESIGN §3.3:256；FIX-203 前台裁决）：阶段一 =
+        // drizzle.precision_mode(0=FP32/1=FP64)；阶段二/三 = 位深键 bitpix(-32/-64)。
+        // **不新造 precision(fp32/fp64) 同义键**——合同旧键 precision 由死键台账登记
+        // （ci/ledgers/dead_config_keys.json#dead_config_key:precision），CLI 面拒绝。
         // phase3 平铺直通特征键 (runtime_client phase_config 平铺判定)
         "output_fits_path", "sampler_used", "mode",
         // DC-401/DC-418/DC-419 (§4.5.5): 排异算法选择键（留空/0/auto = 按 n 自动；

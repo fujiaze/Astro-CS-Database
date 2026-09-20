@@ -108,6 +108,12 @@ inline const InputContract& input_contract(SessionId s) {
 // 二选一，模板不替用户填任何天测值 —— 伪造 WCS 会静默污染真实数据）。
 // 科学默认值不写进模板（唯一家在程序根 config/defaults.json），表中出现的字面量
 // 只有「结构骨架」与显式无默认要求键（如 drizzle.precision_mode）。
+// FIX-203 例外（唯一，逐条登记）：提升键 snr_path / rotation_deg 的模板值取自
+// **合同已登记的默认**（phase_config_mosaic.schema.json#snr_path.default +
+// config/defaults.json#snr.path；14_projection.md:38 rotation 默认 0），目的是让
+// 合同键在 --template 里可见（FIX-203 步骤 5 / 验收门：模板必须含新键）；默认值的
+// 唯一家仍是 schema / defaults.json，本表只是显示，不新增第二份来源。
+// crpix_px 的 [512.5, 512.5] 是随模板几何（1024×1024）推出的示例占位，非数值默认。
 // scope（CLI-MULTIBLOCK, GAP_AUDIT §9.68）：
 //   "top"   —— 配置顶层键（单块简写/所有命令）
 //   "block" —— normalize 多块形态的**块内**键（模板里组装进 blocks[] 的每一项；
@@ -178,6 +184,20 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"schema_version", "\"1\"", "配置合同版本（恒 \"1\"）"},
         {"hips_paths", "[]", "输入 HiPS 产品目录数组（必填非空；properties 严格校验）"},
         {"output_dir", "\".\"", "运行产物唯一落点（必填非空字符串）"},
+        // FIX-203（GAP_AUDIT G05；ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
+        // 命令行实际认的键为准」）：合同声明但 CLI 不认的提升键落地。键名**逐字**取合同
+        // 声明名（禁止新造同义键）：
+        //   contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
+        // 模板值 = 合同默认 sparse_reconstruct（schema default 与 config/defaults.json#snr.path
+        // 同值；本表只作可运行骨架，默认值唯一家仍是 schema/defaults.json，不构成第二份来源）。
+        // ⚠ 生产科学消费点尚未落地（Phase2 SNR 消费 = FIX-SCI-SNR-CANON-001 §4.2 跟随项）
+        //   ⇒ 已在 ci/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
+        {"snr_path", "\"sparse_reconstruct\"",
+         "Phase2 SNR 重建/消费路径 dense|sparse_reconstruct|frame_reconstruct"
+         "（默认 sparse_reconstruct = 消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR；"
+         "合同声明 = phase_config_mosaic.schema.json；生产消费点未落地，见死键台账）"},
+        // FIX-203 精度口径（ASTROCS_DESIGN §3.3:256）：阶段二/三 = 位深键 bitpix(-32/-64)，
+        // 阶段一 = drizzle.precision_mode(0/1)。**不新造 precision(fp32/fp64) 同义键**。
         // §9.73 裁决 A44（「权重模式」概念不存在）: 原 weight_mode / legacy_allow_weight_fallback
         // 两键**已从 CLI 配置面摘除**（模板/help/白名单同撤）。权重是 Phase2 消费 SNR 时的
         // 派生量（帧级 SNR + 稀疏相对 SNR 比），不是配置项；实现/冻结面（module_adapters /
@@ -201,6 +221,30 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"width_px", "1024", "输出宽度（1..20000）"},
         {"height_px", "1024", "输出高度（1..20000）"},
         {"scale_deg_per_px", "0.001", "输出像素尺度（度/像素，必须 > 0）"},
+        // FIX-203（GAP_AUDIT N03；ASTROCS_DESIGN §3.3 键名以 CLI 实际认的键为准）：
+        // 合同声明但 CLI 不认的提升键落地。键名**逐字**取合同声明名（禁止新造同义键）：
+        //   contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
+        // 平铺顶层与 CLI export 既有几何键（center / scale_deg_per_px / width_px / height_px）同面
+        // —— 三命令通用输入合同「块内运行参数平铺、取消 config 子对象」。
+        // rotation_deg 模板值 0.0 = 合同默认（docs/plugins/algorithms_phase3/14_projection.md:38）。
+        // crpix_px 模板值 [512.5, 512.5] = 本模板 1024×1024 输出的几何中心（FITS 1-based，
+        // (1+1024)/2；「缺省 = 中心」），是示例占位、不是数值默认。
+        // ⚠ 两键生产科学消费点尚未落地（p3 投影/重采样面）⇒ 已在
+        //   ci/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
+        {"rotation_deg", "0.0",
+         "投影旋转角（度；合同默认 0，见 phase_config_export.schema.json；"
+         "生产消费点未落地，见死键台账）"},
+        {"crpix_px", "[512.5, 512.5]",
+         "参考像素（FITS 1-based；示例值 = 本模板 1024×1024 输出的几何中心，缺省 = 中心；"
+         "合同声明 = phase_config_export.schema.json；生产消费点未落地，见死键台账）"},
+        // FIX-203 精度口径（ASTROCS_DESIGN §3.3:256）：阶段三精度键 = 位深键 bitpix(-32/-64)
+        // —— 既有键、已在 session_keys() 白名单且已被生产消费（lib/phase3_session/p3_session.cpp:126,391；
+        // module_adapters.cpp:8890/9693），**不是新造键**。这里只把它列进字段说明（json == nullptr
+        // ⇒ 不进模板：它有实现缺省 -32，模板不替用户主张数值），补上「合同 precision 键被拒后
+        // 用户找不到精度载体」的缺口。
+        {"bitpix", nullptr,
+         "可选输出位深 -32(FP32)|-64(FP64)；阶段三计算精度键（ASTROCS_DESIGN §3.3:256），"
+         "缺省按现实现 -32"},
         {"projection", nullptr, "可选投影（当前唯一实现 TAN；缺省 TAN）"},
         {"sampler", nullptr, "可选采样核 nearest|bilinear（缺省 bilinear）"},
         {"longitude_parity", nullptr, "可选经度方向 east_left|east_right（缺省 east_left）"},
