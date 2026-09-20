@@ -45,7 +45,7 @@
 | spherical-projection | FITS WCS Paper I/II + SIP（Shupe et al. 2005） | Paper I = A&A 395, 1061 (2002)；Paper II = A&A 395, 1077 (2002)；SIP = ASPC 347, 491 (2005) | Paper I §2.1.1（CRPIX 1-based）/§3（CD/CTYPE）；Paper II §2.1（旋转与 LONPOLE）/§5 Table 1（TAN/SIN/CAR/AIT）；SIP §A（A/B/AP/BP 约定） |
 | hips | IVOA HiPS Recommendation 1.0（properties 修订 1.4） | HiPS 1.0 (PR-HiPS-1.0-20161122) + properties hips_version="1.4" | HiPS 1.0 §3（层级索引与目录结构）/§4.1（tile）/§4.2.1（properties）/§4.4.1（all-sky map）/§6.3.1（客户端绘制）；properties 1.4 键集 |
 | healpix | Górski et al. 2005 HEALPix（NESTED） | ApJ 622, 759 (2005)，bibcode 2005ApJ...622..759G | §5.1（nside=2^order 等面积单元）/§5.2（NESTED 编号与父子关系）/§5.3（ang2pix/pix2ang） |
-| drizzle | Fruchter & Hook 2002 Drizzle | PASP 114, 144 (2002)，bibcode 2002PASP..114..144F | §2（drop 与 pixfrac）/§3（线性重建与权重 w_jp=a_jp/A_drop）/§4（欠采样图像重建） |
+| drizzle | Fruchter & Hook 2002 Drizzle | PASP 114, 144 (2002)，bibcode 2002PASP..114..144F | §2（drop 与 pixfrac）/§3（线性重建与权重 w_jp=a_jp/A_pixel）/§4（欠采样图像重建） |
 | catalog | Gaia DR3 data model（本地 XPSD 星表） | Gaia DR3（Gaia Collaboration et al. 2023, A&A 674, A1）+ XPSD 本地编码合同 | DR3 source 列面（ra/dec 参考历元 J2016.0、phot_g_mean_mag/phot_bp_mean_mag/phot_rp_mean_mag）；本地 XPSD 记录布局（ALG-GAIA-001 §2） |
 | fits | FITS Standard 4.0 | FITS 4.0（IAU FWG，2016-07-22 批准版） | §3.1（基本文件结构/80 字节卡）/§4.2（SIMPLE/BITPIX/NAXIS 基本头）/§4.4（扩展 HDU）/§5（表扩展）/§6（DATASUM/CHECKSUM 校验和） |
 
@@ -161,8 +161,15 @@
 - CLAUSES: §2（drop 与 pixfrac）/§3（线性重建与权重 w_jp=a_jp/A_pixel）/§4（欠采样图像重建）
 - COMPLIANCE: PARTIAL
 - EVIDENCE: docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz
-- DEVIATION: DISP-DRZ-001；DISP-DRZ-002；DISP-DRZ-003；DISP-DRZ-005；DISP-DRZ-006；DISP-DRZ-007；DISP-DRZ-008；DISP-DRZ-009
-  （**2026-09-20 闭环移除**：`DISP-DRZ-004` 已闭环——按 §3.1 登记纪律「偏差闭环后删除基线/豁免条目、清单行升 CONFORMANT、本表行改 CLOSED」处理。原文留痕：「…DISP-DRZ-002；DISP-DRZ-003；**DISP-DRZ-004**；DISP-DRZ-005…」）
+- DEVIATION: DISP-DRZ-001；DISP-DRZ-002；DISP-DRZ-003；**DISP-DRZ-004**；DISP-DRZ-005；DISP-DRZ-006；DISP-DRZ-007；DISP-DRZ-008；DISP-DRZ-009
+  （**2026-09-20 DOC-202 R34 订正——撤销 `DISP-DRZ-004` 的 CLOSED**：该条曾于同日按「现行实现为值 NaN 经 `F_p` **传播、不掩膜**」判为已闭环；
+  但该判据**已被三面实测推翻**——`GAP_AUDIT` §5.1 **EXP-202 定案 = 「掩膜」**
+  （样本级掩膜 + 覆盖级 NaN + 强制计数；判据冻结，见 `工程控制/RELEASE-03/EXP-202`）。
+  ⇒ `DISP-DRZ-004` **改回 TRACKED/OPEN**，处置 = 实现侧改为掩膜（P1-DRZ-IMPL）。
+  **唯一口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`
+  §2a `invalid_handling` 块：样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 `n_rejected_nonfinite`；
+  `docs/standards/NUMERIC_STANDARD.md` §MUST 引用同一份文字，**不得两套**）。原文留痕：
+  「（**2026-09-20 闭环移除**：`DISP-DRZ-004` 已闭环…）」——该闭环声明**作废**。）
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
@@ -170,7 +177,7 @@
 | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 一致加权均值，drop 面积在分子分母相消；每像素常量 ADU ⇒ S=C/A_pixel | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz | DISP-DRZ-009（源码仍用 legacy `w=a/A_drop`，pixfrac<1 的绝对面亮度偏 1/pixfrac²）；DISP-DRZ-002（面积实现为 S-H 裁剪+Eriksson 扇形剖分，非 Girard 定理，文档措辞已登记） |
 | §3（球面交叠面积与微小 drop 数值路径） | 交叠面积计算须数值稳定 | PROJECT_DEFINED | docs/algorithms/DRIZZLE_GEOMETRY.md | DISP-DRZ-005（角跨度 <1e-3 rad 时切平面分支为真路径，注释论证偏差 <4e-8；禁删） |
 | §4（欠采样重建与候选枚举完备性） | 重建须覆盖全部候选源像素，零漏选 | CONFORMANT | lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp；docs/algorithms/DRIZZLE_GEOMETRY.md | 无（9003 例全枚举 false_negative=0：4 pixfrac × 5 尺度 × 7 nside × RA 跨 0 × 极区 × face 边界） |
-| §3（方差/权重传播确定性） | 重建为线性加权，须确定性可复现 | CONFORMANT | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md | ~~DISP-DRZ-004（值像素 NaN 静默 continue，无计数暴露）~~ **已闭环（2026-09-20）**——现行实现为值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1898-1902`；回归 `p1drz_tests_core.cpp:517-537`）；DISP-DRZ-007（方差锚行号漂移） |
+| §3（方差/权重传播确定性） | 重建为线性加权，须确定性可复现 | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；docs/standards/NUMERIC_STANDARD.md | **DISP-DRZ-004（TRACKED/OPEN，2026-09-20 DOC-202 R34 由 CLOSED 改回）**：原登记「值像素 NaN 静默 continue，无计数暴露」；现行实现为值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1898-1902`；回归 `p1drz_tests_core.cpp:517-537`）——该「传播」行为**已被 EXP-202 三面实测推翻**，**定案 = 掩膜**（样本级掩膜 + 覆盖级 NaN + 强制计数）⇒ 待实现侧整改（P1-DRZ-IMPL）；DISP-DRZ-007（方差锚行号漂移） |
 | §2/§3（SIP 畸变场下的 drop 映射） | 源像素角点经 WCS 映射到球面多边形 | PARTIAL | docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests | DISP-DRZ-001（SIP 阶数校验 [0,5] 与注释 0..4 不符） |
 
 ### D.drizzle 偏差表
@@ -180,7 +187,7 @@
 | DISP-DRZ-001 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（SIP 阶数注释与校验不一致） |
 | DISP-DRZ-002 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（面积算法文档措辞 vs 实现） |
 | DISP-DRZ-003 | 中 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（pixfrac 双轨边界） |
-| DISP-DRZ-004 | 已闭环（2026-09-20） | docs/algorithms/DRIZZLE_GEOMETRY.md | **已闭环**：原登记「NaN 值像素静默跳过」与现行实现相反——值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1898-1902`「旧 `isfinite(...)+continue` 静默吞像素已删除」；回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537` `p1drz_negative`，注册于 `.../p1drz/CMakeLists.txt:22-51`）。依据 `ENGINEERING_SPEC.md:133`（活动文档禁陈旧状态冒充）。**残留**：`docs/algorithms/DRIZZLE_GEOMETRY.md:120,234` 仍写旧行为 ⇒ 走变更 claim（ALG 层只读，本分片未改） |
+| DISP-DRZ-004 | **高（P1）** | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；docs/standards/NUMERIC_STANDARD.md | **TRACKED/OPEN（2026-09-20 DOC-202 R34 由 CLOSED 改回）**：原登记「NaN 值像素静默跳过，无计数暴露」；现行实现为值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1898-1902`；回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537` `p1drz_negative`）。**该「传播」判据已被三面实测推翻**（`GAP_AUDIT` §5.1 **EXP-202**：纯合成 / HST 真实信号 + 噪声梯度 / `testdata` 真实数据三面 + 多轮独立复核）⇒ **定案 = 掩膜**，**唯一口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling`：样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 `n_rejected_nonfinite`；`NUMERIC_STANDARD.md` §MUST 引用同一份文字）。处置 = 实现侧由「传播」改「掩膜」+ 补计数暴露（P1-DRZ-IMPL）；文档侧 SCI/ALG 口径订正归 DOC-205 |
 | DISP-DRZ-005 | 中 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL / P1-DRZ-INT（微小 drop 切平面真路径须守护，禁按旧登记删除） |
 | DISP-DRZ-006 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（累加器字段数注释漂移） |
 | DISP-DRZ-007 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（方差锚行号漂移） |
@@ -268,7 +275,7 @@
 | DISP-DRZ-002 | drizzle | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 第 2 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-DRZ-009 | drizzle | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 第 2 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-DRZ-003 | drizzle | §2（drop 与 pixfrac 收缩因子） | 第 1 行 | TRACKED | P1-DRZ-IMPL |
-| DISP-DRZ-004 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | CLOSED | P1-DRZ-IMPL（**2026-09-20 闭环**：值 NaN 经 `F_p` 传播、不掩膜；`drizzle_engine.cpp:1898-1902` + `p1drz_negative` 回归锁定） |
+| DISP-DRZ-004 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | **TRACKED** | P1-DRZ-IMPL（**2026-09-20 DOC-202 R34 由 CLOSED 改回 TRACKED**：原「闭环」依据「值 NaN 经 `F_p` 传播、不掩膜」已被 **EXP-202 三面实测推翻**；定案 = 掩膜，rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`（正本 = DATA-002 §2a `invalid_handling`），实现侧待改） |
 | DISP-DRZ-005 | drizzle | §3（球面交叠面积与微小 drop 数值路径） | 第 3 行 | TRACKED | P1-DRZ-IMPL / P1-DRZ-INT |
 | DISP-DRZ-006 | drizzle | §2（drop 与 pixfrac 收缩因子） | 第 1 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-DRZ-007 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | TRACKED | P1-DRZ-IMPL |
@@ -338,7 +345,17 @@
 docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --error-unmatch`；
 失效 ⇒ stderr 打印 `ANCHOR_STALE: <常量名> <路径>` ⇒ **exit 2**（不 traceback、不静默通过）。
 
-负向注入自证（9 场景，全部必须 FAIL；判定看 verdict 字段）：
+负向注入自证（9 场景，**域内手工复跑判据**：全部必须 FAIL；判定看 verdict 字段）：
+
+> ⚠ **DOC-202 S12-Y4 订正（2026-09-20）——本节义务的 CI 登记状态如实降级为「计划」**：
+> 下列 9 场景与「注入空转守卫（`FAULT_INJECT_NOOP`）」**目前只有 2 个场景登记进
+> `ci/checks.json`**（`STD-REG-FI-DANGLING` = `dangling-deviation-id`、
+> `STD-REG-FI-VERSION-DRIFT` = `version-drift`）；**其余 7 个场景与空转守卫尚未登记**
+> ⇒ 它们是 **PLANNED（计划）**，**不是**已生效的强制 CI 义务。
+> 本节的「全部必须 FAIL」是**域内手工复跑**判据（手动执行 `--fault-inject`），
+> **不得**读作「CI 已强制」。补登记属 `ci/checks.json` 写入面（**不在 DOC-202 文件域**），
+> 由前台 **BLD-201** 统一补登记（`changed_paths=["docs/standards/**"]`，参照 DOC-INDEX 形态）；
+> 补登记完成后方可把本节改回强制口径。
 
     for s in drop-domain-section drop-checklist-table illegal-status version-drift \
              drop-wcs003f1-pointer dangling-deviation-id \
@@ -361,11 +378,14 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
     ASTROCS_STD_REG_ANCHOR_OVERRIDE='REGISTRY_REL=docs/standards/__missing__.md' \
       python3 docs/standards/checks/check_standards_registry.py --root .; echo rc=$?   # rc=2
 
-> CI 登记状态：本检查器为**治理文档检查器**（非 CTest 目标、非 add_test 注册面），
-> 当前 CI 检查项（ci/checks.json）尚未显式登记该命令——该登记属 ci/checks.json 写入面，
-> 超出本任务白名单（docs/standards/ + docs/DOCUMENT_INDEX.yaml），已作为 finding 登记，
-> 由 CI 域原子任务承接（同提交注册显式检查项，参照 DOC-INDEX 检查项形态：
-> changed_paths=["docs/standards/**"]）。登记前本检查器由域内任务按 §1 纪律手工复跑。
+> CI 登记状态（**DOC-202 S12-Y4 订正，2026-09-20**）：本检查器为**治理文档检查器**
+> （非 CTest 目标、非 add_test 注册面）。**已登记**：`ci/checks.json` 的 `STD-REG` 项
+> （主判据 `check_standards_registry.py --root .`）+ 2 个负向注入场景
+> （`STD-REG-FI-DANGLING`、`STD-REG-FI-VERSION-DRIFT`）。
+> **未登记（PLANNED）**：其余 7 个注入场景 + 空转守卫；该登记属 `ci/checks.json` 写入面，
+> 超出 DOC-202 白名单，由前台 **BLD-201** 承接
+> （参照 DOC-INDEX 检查项形态：changed_paths=["docs/standards/**"]）。
+> 补登记前，未登记场景由域内任务按 §1 纪律**手工复跑**，**不得**声称已被 CI 强制。
 
 ---
 

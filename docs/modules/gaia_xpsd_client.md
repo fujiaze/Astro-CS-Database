@@ -79,3 +79,15 @@ O(树深 + 命中叶块解压 + 输出)；文件级并行；缓存命中近乎�
 - lib/infrastructure/gaia_xpsd_client/module.yaml / README.md（CAT-GAIA-DOC 冻结）
 - 追溯行：docs/traceability/TRACEABILITY_MATRIX.json
   `MOD-astrocs-catalog-gaia`
+
+---
+
+## 附：DOC-202 R28 处置留痕（2026-09-20，行号中性追加）
+
+✅ 本页 §「职责」的「**离线、零网络**」与 §「Errors」的「**无网络**：不存在 TIMEOUT/网络
+错误码」两条**保留不改**——它们是**对的**，与最高设计 §2.4「星表只解析**本地**星表文件
+（**离线、零网络**）；**禁止**引入网络超时/重试类错误码」逐条一致。
+**订正在设计侧**（DESIGN-DRAFT C16：最高设计旧文「外部星表查询（网络/缓存/坐标语义）」
+已改为「本地星表解析（离线、零网络）；缓存与坐标语义」，见 `ASTROCS_DESIGN.md` §7.1）。
+详细层两侧已收敛，无残留分歧。本条**追加在文件末尾**，以保持
+`docs/contracts/unified_object_registry.json` 登记的 `docs/modules/gaia_xpsd_client.md:23` 锚点存活。

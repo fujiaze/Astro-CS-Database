@@ -80,6 +80,14 @@ profile 计时（transform/fits_write/hierarchy/finalize 分段）。取消=无
 检查点（登记限制）；checkpoint 无（abort 不清理已写文件，
 DISP-HIPS-001，处置归调用方/IO-003 层）。
 
+⚠ **原子性待修缺口登记（DOC-202 R29，2026-09-20；未闭合）**：
+本模块的 HiPS tile 写出**不是原子发布**——现状为 `remove → fits_create → write_chksum → close`
+（`lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:330/:399` 的 `std::remove`），
+**违反最高设计 §9「所有产品（含 HiPS tile）：临时文件/目录 + 校验 + fsync + 原子 rename 提交」**。
+最高设计 §9 已把该处如实登记为**本期例外**。**闭合归属 = FIX-206**；
+**闭合判据** = tile 走「临时区 → 校验 → 哈希 → 原子改名」且负例可红。
+**未闭合期间**：本页保持「缺口」语义，**禁止**任何文档/声明称 HiPS tile 已原子发布。
+
 ## 独立 synthetic 验证命令与容差
 
 `TEST-HIPS-DESIGN-001`（HIPS_WRITER.md §9）：解析 oracle（独立朴素实现）

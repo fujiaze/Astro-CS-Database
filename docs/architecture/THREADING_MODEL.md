@@ -2,11 +2,18 @@
 
 ## 分层
 
-- 编排层：orchestrator/stage2 顺序 stage，内部 OpenMP parallel-for。
-- 科学模块：内部 OpenMP parallel region；每模块文档化 parallel/shared/
+- **生产执行层（唯一）**：`scheduler` + `pipeline`（typed DAG 调度、统一线程预算、
+  执行与取消；最高设计 §7.1/§8）。一个进程只有一个全局执行顺序与线程预算源。
+- 科学模块：内部并行 region 由宿主按预算注入；每模块文档化 parallel/shared/
   thread-local/reduction/determinism/float accumulation order。
-- ACR：work_pool + device_executor 调度；CPU reference 与 GPU 等价契约。
-- 浏览器：Qt 主线程 + 后台 I/O 线程；renderer 只读共享数据。
+- ~~编排层：orchestrator/stage2 顺序 stage~~ **历史保留 / 非入口**（最高设计 §7.1：
+  旧可执行程序不是入口；orchestrator 在退役计划内）。
+- ~~ACR：work_pool + device_executor 调度；CPU reference 与 GPU 等价契约。~~
+  **DORMANT**：保留源码与隔离测试，**不进生产构建/加载/路由/benchmark/发布**
+  （最高设计 §8）。
+- ~~浏览器：Qt 主线程 + 后台 I/O 线程；renderer 只读共享数据。~~
+  **工具分类（非发布）**：HiPS Browser 是未来可视化组件，**不进产品 manifest**
+  （最高设计 §7.1/§10.1）。
 
 ## 约定
 

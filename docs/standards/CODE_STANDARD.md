@@ -1,10 +1,18 @@
 # AstroCS Code Standard
 
-权威来源：V19R2 MASTER_CONTROL_SPEC §5；本文件为仓库内单一实现标准。
+权威来源：`ENGINEERING_SPEC.md` §1（C++17 双平台工具链：**Windows = MSVC v143**；Linux = GCC 或 Clang）
+与 §4（每模块必备项）+ `ASTROCS_DESIGN.md` §10.2（官方 Windows 工具链 = MSVC）。本文件是这些要求的实现级展开。
+> ⚠ **DOC-202 S12-Y1 订正（2026-09-20）**：原句「权威来源：**V19R2 MASTER_CONTROL_SPEC §5**」
+> 指向的 `V19R2 MASTER_CONTROL_SPEC` **全仓零命中**（已归档控制包世代产物，来源已不可考），
+> 权威分层倒挂 ⇒ 已改为上方可解析来源。
 
 ## MUST
 
-- C++17（正式 toolchain：MSYS2 MinGW64 g++ 16.1.0）；RAII 优先。
+- C++17（**正式 toolchain：Windows = MSVC v143；Linux = GCC 或 Clang**，见 `ENGINEERING_SPEC.md` §1
+  与 `ASTROCS_DESIGN.md` §10.2「官方 Windows 工具链 = MSVC」）；RAII 优先。
+  > ⚠ **DOC-202 R35 订正（2026-09-20）**：原文「正式 toolchain：**MSYS2 MinGW64 g++ 16.1.0**」
+  > 与最高设计 §10.2 直接冲突，已作废。MinGW64 仅可作为**本地开发/兼容性验证**工具链，
+  > **不得**作为正式工具链、**不得**作为发布物构建依据。
 - 公共指针必须声明所有权（borrowed / owned / optional）与空值语义。
 - 分配前检查尺寸运算；禁止未检查整数乘法后直接分配。
 - 禁止异常跨 C ABI；C ABI 失败时输出重置，单出口 cleanup/RAII。

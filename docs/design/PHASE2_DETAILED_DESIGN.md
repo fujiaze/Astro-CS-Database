@@ -76,11 +76,17 @@ Q = Σ_k Q_k,    W = Σ_k W_k,    F_hat = Q/W,    Var(F_hat) = 1/W
 - effective/proper coadd PSF；
 - 或经证明信息保持的 proper coadd 表示。
 
-### 6.3 PSFSW 稳健集成模式
+### 6.3 ~~PSFSW 稳健集成模式~~ **已作废**（DOC-203 / A44 + C01 订正 2026-09-20）
 
-Phase2 支持显式选择 `psfsw_robust` 口径：使用 Phase1 输出的 `psfsw_robust_weight` 进行 conventional image integration，兼顾 signal、PSF concentration、noise 和 background。该口径与默认 `point_information`、`surface_gls` 并列，不是 QA-only。（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
+> **订正**：`psfsw_robust_weight` 数据对象已按负责人 2026-09-20 **裁决 B 真删**（14→13；`GAP_AUDIT.md` §4.5 C01；
+> `CHG-2026-09-20-PSFSW-RETIRE`），且 `ASTROCS_DESIGN.md` §2.1 定案「**全程只有 SNR，不存在「权重模式」**」、
+> §2.3 定案「PSF 拟合质量代理（`q_psf`、残差尺度）**只作诊断**，**禁止**计入阶段二科学叠加权重」。
+> ⇒ 本节的 `psfsw_robust` 口径**不存在**：Phase2 **不消费**任何"PSFSW 相对权重"产品；
+> 权重一律**按该天球像素对应的帧集合现场算出**（派生量，见 §1.2/§4.3）。以下原文只作**历史留痕**：
 
-它必须使用共同星集/selection-function 门，传播实际线性组合的 covariance，输出 effective PSF，并与等权、exposure、pixel-ivar 和 `W_info` 基线比较。不得宣称 Fisher 最优，除非专项证明。median source SNR、单独 FWHM penalty 仍只能作为诊断或显式实验指标。详细定义见 `docs/science/PSF_SIGNAL_WEIGHT.md`。
+~~Phase2 支持显式选择 `psfsw_robust` 口径：使用 Phase1 输出的 `psfsw_robust_weight` 进行 conventional image integration，兼顾 signal、PSF concentration、noise 和 background。该口径与默认 `point_information`、`surface_gls` 并列，不是 QA-only。~~
+
+~~它必须使用共同星集/selection-function 门，传播实际线性组合的 covariance，输出 effective PSF，并与等权、exposure、pixel-ivar 和 `W_info` 基线比较。不得宣称 Fisher 最优，除非专项证明。median source SNR、单独 FWHM penalty 仍只能作为诊断或显式实验指标。详细定义见 `docs/science/PSF_SIGNAL_WEIGHT.md`。~~
 
 ## 7. 空间变化与压缩
 
@@ -96,7 +102,7 @@ Phase1 的 PSF/information/noise 若为空间模型，Phase2 必须在输出位�
 
 1. `surface_brightness`：signal、variance、correlation、effective PSF；
 2. `point_source`：Q、W、flux、detection statistic、effective/proper PSF；
-3. `psfsw_integration`（被选择时）：四分量、相对权重、conventional coadd、variance/correlation、effective PSF 与基线比较；
+3. ~~`psfsw_integration`（被选择时）：四分量、相对权重、conventional coadd、variance/correlation、effective PSF 与基线比较；~~（**已退役**：`psfsw_robust_weight` 对象真删 14→13，见 §6.3 订正）；
 4. support、coverage、validity、rejection；
 5. UPM 参数、协方差和残差诊断；
 6. manifest：输入列表/哈希、目标函数、权重口径 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）、权重模型、近似、排异和 provider。

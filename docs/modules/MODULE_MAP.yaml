@@ -575,17 +575,17 @@ modules:
       exemption_reason: null
     legacy_paths: [cli]
     note: 唯一入口 exe（DESIGN §6.2 命令树唯一）；target=astrocs，非 DLL/SO，故 entrypoint=main。legacy 面 lib/infrastructure/cli/ 与 target_dir 同名（不在 ARCH-001 迁移清单内）。
-  - id: runtime
+  - id: scheduler
     scope: infra
     group: infrastructure
     plugin_doc: docs/plugins/infrastructure/19_runtime.md
-    target_dir: lib/infrastructure/runtime
-    readme: lib/infrastructure/runtime/README.md
-    module_yaml: lib/infrastructure/runtime/module.yaml
-    target: astrocs_infra_runtime
-    target_file: lib/infrastructure/runtime/CMakeLists.txt
-    co_located_tests: lib/infrastructure/runtime/tests
-    module_id: astrocs.infra.runtime
+    target_dir: lib/infrastructure/scheduler
+    readme: lib/infrastructure/scheduler/README.md
+    module_yaml: lib/infrastructure/scheduler/module.yaml
+    target: astrocs_core
+    target_file: CMakeLists.txt
+    co_located_tests: lib/infrastructure/scheduler/tests
+    module_id: astrocs.infra.scheduler
     module_version: 0.11.0-alpha.2
     abi_version: 1
     entrypoint: astrocs_module_query_v1
@@ -603,7 +603,15 @@ modules:
       unit_kind: runtime
       exemption_reason: null
     legacy_paths: [lib/core]
-    note: typed DAG 执行/线程预算/资源监控；lib 侧 legacy 源 = lib/core（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 34）。runtime/ 与 tools/monitoring 不在 ARCH-001 迁移清单内，仍待 ARCH-001/INT-001 收口。
+    note: >-
+      DOC-202 R27（2026-09-20）改名对齐 ASTROCS_DESIGN §7.1：本条目覆盖 §7.1 顶层结构的
+      scheduler（注册、资源预算、执行、取消、checkpoint；物理位 lib/infrastructure/scheduler）
+      与 pipeline（typed DAG、artifact、内存/数据管线；物理位 lib/infrastructure/pipeline）。
+      「runtime」不是模块名（禁第二名字）：plugin_doc 文件名 19_runtime.md 仅为历史路径，
+      不得作为职责名引用。物理位与 target 如实登记：scheduler 源集编入根 CMakeLists.txt:292
+      的 astrocs_core STATIC（本项目唯一根 CMake，无逐模块 CMakeLists.txt）；
+      readme 在位；module_yaml / 共址 tests 缺失属已登记缺口（见文件头「声明路径缺失登记」）。
+      lib 侧 legacy 源 = lib/core（ARCH-001 已迁入 target_dir）。
   - id: benchmark
     scope: infra
     group: infrastructure
@@ -661,7 +669,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: []
-    note: 日志/事件/运行图/资源监控；ARCH-001 迁移清单内的 legacy 源 = 无（lib 侧无对应旧目录）；runtime/ 与 tools/monitoring 不在迁移清单内，仍待 ARCH-001/INT-001 收口。
+    note: 日志/事件/运行图/资源监控；ARCH-001 迁移清单内的 legacy 源 = 无（lib 侧无对应旧目录）；scheduler/ 与 pipeline/ 与 tools/monitoring 不在迁移清单内，仍待 ARCH-001/INT-001 收口。
   - id: gaia_xpsd_client
     scope: infra
     group: infrastructure
@@ -725,3 +733,118 @@ modules:
       exemption_reason: docs/plugins/00_INDEX.md §2（23_hips_browser「未来 GUI 可视化组件（不进产品 manifest）」）+ ASTROCS_DESIGN.md §7.1（hips_browser/ 未来 GUI 可视化组件（不进产品 manifest））
     legacy_paths: []
     note: 未来 GUI 可视化组件：docs/plugins/00_INDEX.md §2「不进产品 manifest」+ ASTROCS_DESIGN.md §7.1 同口径 → product_manifest.required=false。
+
+
+# ===========================================================================
+# 声明路径缺失登记（缺口，逐条）—— DOC-202 S09 / GAP_AUDIT D05
+# ---------------------------------------------------------------------------
+# 本表是**期望映射**：下列 target_dir/readme/module_yaml/target_file/co_located_tests
+# 声明指向的路径**当前在树中不存在**（实测 os.path.exists=false）。此处**如实登记为缺口**，
+# 不得读作「该路径已存在」；实现只认 target_dir 下的真实生产源，缺口不参与实现/安装判定。
+# 处置归属：模块落地任务（MOD-002 / P*-IMPL / INT-001 / BLD-201）；本表只登记，不伪造。
+# 规模：32 条（R27 把 id: runtime→scheduler 后由 35 条降为 32 条）。
+# 校验：python3 tools/quality/check_module_map.py（每条缺失各产生一条 FAIL finding，不静默）。
+# ===========================================================================
+declared_absent_paths:
+  note: >-
+    下列声明路径在登记时点实测不存在。这是**已登记缺口**，不是「已存在」声明；
+    逐条处置由模块落地任务承接（创建真实文件）或由 MOD-002 在落地批内修正声明。
+  checked_at: "2026-09-20"
+  count: 32
+  items:
+    - module: star_detection
+      key: target_file
+      path: lib/algorithms/star_detection/CMakeLists.txt
+    - module: psf
+      key: target_file
+      path: lib/algorithms/psf/CMakeLists.txt
+    - module: platesolve
+      key: target_file
+      path: lib/algorithms/platesolve/CMakeLists.txt
+    - module: platesolve
+      key: co_located_tests
+      path: lib/algorithms/platesolve/tests
+    - module: photometry
+      key: target_file
+      path: lib/algorithms/photometry/CMakeLists.txt
+    - module: drizzle
+      key: co_located_tests
+      path: lib/algorithms/drizzle/tests
+    - module: sampling
+      key: target_file
+      path: lib/algorithms/sampling/CMakeLists.txt
+    - module: sampling
+      key: co_located_tests
+      path: lib/algorithms/sampling/tests
+    - module: upm
+      key: target_file
+      path: lib/algorithms/upm/CMakeLists.txt
+    - module: upm
+      key: co_located_tests
+      path: lib/algorithms/upm/tests
+    - module: rejection
+      key: target_file
+      path: lib/algorithms/rejection/CMakeLists.txt
+    - module: rejection
+      key: co_located_tests
+      path: lib/algorithms/rejection/tests
+    - module: integration
+      key: target_file
+      path: lib/algorithms/integration/CMakeLists.txt
+    - module: integration
+      key: co_located_tests
+      path: lib/algorithms/integration/tests
+    - module: fits_output
+      key: co_located_tests
+      path: lib/algorithms/fits_output/tests
+    - module: aio
+      key: module_yaml
+      path: lib/infrastructure/aio/module.yaml
+    - module: aio
+      key: target_file
+      path: lib/infrastructure/aio/CMakeLists.txt
+    - module: cli
+      key: co_located_tests
+      path: lib/infrastructure/cli/tests
+    - module: scheduler
+      key: module_yaml
+      path: lib/infrastructure/scheduler/module.yaml
+    - module: scheduler
+      key: co_located_tests
+      path: lib/infrastructure/scheduler/tests
+    - module: benchmark
+      key: readme
+      path: lib/infrastructure/benchmark/README.md
+    - module: benchmark
+      key: module_yaml
+      path: lib/infrastructure/benchmark/module.yaml
+    - module: benchmark
+      key: target_file
+      path: lib/infrastructure/benchmark/CMakeLists.txt
+    - module: benchmark
+      key: co_located_tests
+      path: lib/infrastructure/benchmark/tests
+    - module: observability
+      key: readme
+      path: lib/infrastructure/observability/README.md
+    - module: observability
+      key: module_yaml
+      path: lib/infrastructure/observability/module.yaml
+    - module: observability
+      key: target_file
+      path: lib/infrastructure/observability/CMakeLists.txt
+    - module: observability
+      key: co_located_tests
+      path: lib/infrastructure/observability/tests
+    - module: hips_browser
+      key: readme
+      path: lib/infrastructure/hips_browser/README.md
+    - module: hips_browser
+      key: module_yaml
+      path: lib/infrastructure/hips_browser/module.yaml
+    - module: hips_browser
+      key: target_file
+      path: lib/infrastructure/hips_browser/CMakeLists.txt
+    - module: hips_browser
+      key: co_located_tests
+      path: lib/infrastructure/hips_browser/tests

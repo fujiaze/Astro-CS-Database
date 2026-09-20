@@ -281,6 +281,15 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 
 ### 11.1 输入（PipelineFrame 命名块；文件通道 FITS 另注）
 
+> **块词表归属（DOC-203 / Q8 前置裁决 2026-09-20；GAP_AUDIT §4.4）**：**帧内命名块的唯一登记处**
+> = `lib/infrastructure/aio/include/aio_pipeline.h` 的「**标准块定义表**」（名字 / 形状 / 类型 / 单位 /
+> 可缺性）。**下表只作引用**（本模块消费哪些块、块的 dtype/域/invalid 语义），**不得**自称第二套
+> 登记处；块名 ∉ 标准表 ⇒ 机器判红。`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:3211-3213`
+> 的 6 个名字**不是块词表**（是 `stage_trace.jsonl` 的跟踪子集），只作引用。
+> **`variance` 块**：按 GAP_AUDIT §4.4 处置①纳入标准表登记范围——**代码侧入表归 FIX-201**
+> （截至 DOC-203 实测：`aio_pipeline.h` 标准表**尚未含** `variance` 行，且仍保留
+> 「未列出的自定义块名也允许」一句，同属 FIX-201 处置②）⇒ **本表不得据此声称已入表**。
+
 | 块/参数 | dtype/shape | 单位/域 | invalid / NULL 语义 |
 |---|---|---|---|
 | "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（hp_drizzle_api.cpp:583-630） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；**值 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**（**2026-09-20 订正**：原文「值 NaN/Inf 静默跳过（等效掩膜，不进累加器，无计数暴露——DISP-DRZ-004，drizzle_engine.cpp:1712）」**已作废**——实现 `drizzle_engine.cpp:1898-1902` 自述「旧 `isfinite(...)+continue` 静默吞像素已删除」，科学锚 `docs/science/DRIZZLE.md:116`，回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537`（`p1drz_negative`）；原锚 `api.cpp:486-503` 的 `api.cpp` 在本仓不存在，已重锚为 `hp_drizzle_api.cpp`） |
@@ -292,8 +301,9 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（hp_drizzle_api.cpp:208-211 文件通道 / `:557-561` 帧通道；**2026-09-20 订正**：原锚 `api.cpp:398-402` 的 `api.cpp` 在本仓不存在且行号已漂移）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
 | nested | int 1/0 | — | 仅 1=NESTED；0=RING 硬拒绝（drizzle_engine.cpp:1575-1579） |
 | pixfrac | double | drop 与源像素之比（无量纲） | 引擎层 (0,1] 严格拒绝 ≤0/>1（:1567-1574，不夹逼）；文件通道 API 层接受 0.0 的双轨见 DISP-DRZ-003 |
-| variance 面（可选，帧内块） | float32，随 data 布局 | ADU² | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
-| weight / snr 面（可选，文件通道 FITS） | float32 `[H][W]` | 无量纲 | 读失败 rc=8/9；尺寸不匹配 rc=7/9；非有限/≤0 跳过 |
+| variance 面（可选，帧内块；块名 = `variance`，登记处见本节首注） | float32，随 data 布局 | ADU² | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
+| ~~weight 面（可选，文件通道 FITS）~~ **已作废** | — | — | **已删面**（DOC-203 / R06，按 §9.73 A44）：阶段一/阶段三**不产生也不消费**权重；HiPS 只存**帧级 SNR** + **稀疏的相对 SNR 比值**，权重是**阶段二按天球像素对应帧集合现场算出的派生量**（`ASTROCS_DESIGN.md` §2.1）。该面仅存在于**已作废**的 legacy 文件通道 API `hp_drizzle_run(…, weight_path, …)`（`hp_drizzle_api.h:39,49`；**零生产调用者**，GAP_AUDIT A-04；生产末端 = `hp_drizzle_run_hips`）⇒ 该形参的退役归 legacy API 退役面，**不得**作为输入通道使用 |
+| snr 面（可选，文件通道 FITS） | float32 `[H][W]` | 无量纲 | 读失败 rc=8/9；尺寸不匹配 rc=7/9；非有限/≤0 跳过 |
 
 ### 11.2 输出（HEALPix NESTED tile 产品 + 统计）
 
@@ -1099,10 +1109,20 @@ K=target_order+9，tile 512×512（tile_order=K−9，§2）；
 
 | 文件/数组 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
-| signal/NorderK/DirD/NpixN.fits | float32（precision=0 默认）/float64（=1）（stage2.cpp:529）`[512×512]` NESTED local | ADU surface brightness（writer finalize 单位名 "surface brightness"，aio_hips_writer.cpp:1035） | 无效像素 IEEE NaN（writer :483-485 else 分支置 NaN，无 FITS BLANK 整型卡，同 §12.2） |
+| signal/NorderK/DirD/NpixN.fits | float32（precision=0 默认）/float64（=1）（stage2.cpp:529）`[512×512]` NESTED local | **`ADU/px²`**（= 面亮度 surface brightness；px = 叶级单元立体角，与 §4/§12.2 同源；writer finalize 单位名 "surface brightness"，aio_hips_writer.cpp:1035；DOC-203 / EXP-203 C3 订正：原「ADU surface brightness」措辞歧义，明确为 `ADU/px²`，与 `p3_rsmp_units.cpp:77` 的 `signal_sb{1,-2}` 同源） | 无效像素 IEEE NaN（writer :483-485 else 分支置 NaN，无 FITS BLANK 整型卡，同 §12.2） |
 | support/…fits | 同上 `[512×512]` | 无量纲 [0,1] = covered_area/A_cell（writer :478，>1 钳 1.0 :479；A_cell 同 §12.2 公式） | 无效像素 0.0（writer else 分支 sup 保持初值 0.0） |
 | Moc.fits（每子产品） | BINTABLE 列 UNIQ | 无量纲（UNIQ 编码） | AIO writer finalize 生成（DATA-P1-HIPS §12.2 同构） |
 | diagnostics.json | JSON 文本 | — | diagnostics=true 时落 `<out_hips>/diagnostics.json`（stage2.cpp:1748-1749）；键集见 API-P2-HIPS-001 |
+
+**产品侧 provenance 缺口（DOC-203 / EXP-203 C3，如实登记，2026-09-20）**：
+Phase1/Phase2 的 FITS tile **当前不写 `BUNIT`**（实测 tile 头只有
+`SIMPLE/BITPIX/NAXIS/NAXIS1/NAXIS2/EXTEND/PIXTYPE/ORDERING/COORDSYS/OBJECT/FILTER/NSIDE/FIRSTPIX/LASTPIX/CHECKSUM/DATASUM`），
+且 `signal/properties` 只有 `dataproduct_subtype=surface brightness`、**无**
+`pixel_semantics` / `pixel_area_power` 这类像素语义 provenance 键。后果：§5.3 的输入语义守卫
+（`lib/algorithms/resample/p3_rsmp_units.cpp:137-171` `resolve_bunit`：裸 `ADU` 需
+`pixel_semantics=SurfaceBrightness && pixel_area_power=-2` 才可判）**即使接线也会拒绝当前产品**
+（`resolvable=false`）。⇒ 本条为**已登记缺口**（归属：signal 产品写出面 / 归后续 FIX；证据
+`run/RELEASE-02/实验/E09-Phase2信号量纲/ALIGNMENT-5.3.md` C3/C5），**不得**据此声称 §5.3 守卫已生效。
 
 写出 tile 集: cov.n_union_cells 顺序逐 tile（stage2.cpp:659-660），
 探测读零帧的 tile 跳过（frames.empty() → continue，:669）；写后
@@ -1163,6 +1183,13 @@ signal 回读失败 rc=7 :1665）。
   不可复原"的像素数），properties 与 manifest.json 双写；消费者见 >0 时
   不得宣称覆盖面积可复原（DATA-P1-HIPS §12.2 的 F=signal×support×A_cell
   闭合式同受此限）。
+  **⚠ 计数被 f32 舍入污染（DOC-203 / EXP-203 C8，如实登记）**：`A_cell` 以
+  **f32** 进入 writer 视图后再回除，相对误差 ~1e-8 使 `sup = covered_area/A_cell`
+  略 >1 而被钳 ⇒ 输入 support 恒为 1 时 `astrocs_support_clamped_pixels` **也非零**。
+  实测：常量场（输入 support≡1）`astrocs_support_clamped_pixels = 262144`（= 全部像素）。
+  ⇒ 该计数**不能直接读作过覆盖像素数**（判据须同时看 `covered_area > A_cell` 的
+  未钳制事实，或改用 float64 累加/回除）；证据
+  `run/RELEASE-02/实验/E09-Phase2信号量纲/ALIGNMENT-5.3.md` C8。
 - **序合同（HIPS-IMG-001，§3）**: 输出 FITS tile 行主序
   `(511−x)·512+y`；stage2 集成缓冲为 FITS 行主序，写入前按
   `nested_local_to_fits_index` 逆映射转 NESTED local 序（ACR 路径
@@ -1335,6 +1362,13 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 > descriptor 占位 SCI-P2-REJ-001⇒SCI-REJ-001 映射见 ALG §11.5）；
 > API 面: API-P2-REJ-001（PUBLIC_API.md）+ 编排级 API-P2-001
 > （FROZEN）。
+>
+> **`MINMAX` 路径已禁用（DOC-203 / S01；§9.71 裁决 3.4 + EXP-204，2026-09-20）**：
+> `min/max` **不得**在任何档位使用（WBPP 自动选择表内不含 min/max 且明文拒绝
+> 「Min/Max rejection should not be used for production work」）。因此：
+> ① `contracts/schemas/phase_config_mosaic.schema.json` 的 `minmax` 枚举值**已删**（FIX-207 已落地）；
+> ② 本节以下对 `MINMAX` **实现分支**的描述只作**实现事实留痕**（内核里该分支仍存在），
+> **不是**可选生产路由——生产**不得**选择它；③ 该内核分支的删除/隔离归 **FIX-204**。
 
 ### 22.1 输入（按消费路径分层；锚=rejection.h，未注文件者同）
 
@@ -1414,7 +1448,7 @@ eligible 位图 `[count]`，V15FilterAllPolicies :4337）。
 | accepted_count | u32 标量 | 无量纲（含 UNDERDETERMINED 样本，全接受语义） | — |
 | rejected_low | u32 标量 | 无量纲（仅显式拒绝） | — |
 | rejected_high | u32 标量 | 无量纲（仅显式拒绝） | — |
-| iterations | u32 标量 | 无量纲（kernel 外层迭代：ESD=k_out；RCR=3；percentile/minmax=1） | — |
+| iterations | u32 标量 | 无量纲（kernel 外层迭代：ESD=k_out；RCR=3；percentile=1；~~minmax~~ **已禁用**，见 §22 首注） | — |
 | status | int 标量 | 无量纲 0..7（P2RejectStatus :80-90，§22.3） | — |
 
 kernel 输出之外（本域其余产物）:
@@ -1451,7 +1485,7 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
 ### 22.4 单位/dtype/确定性
 
 - 工作域全浮点 IEEE f64（gather f32 源→f64 提升，:1164-1179；无
-  long double/复数）。MINMAX 判定用原始域值（:1812-1814 分派
+  long double/复数）。~~MINMAX~~（**已禁用**，见 §22 首注）判定用原始域值（:1812-1814 分派
   stack->values）；PERCENTILE scale=原始域 |median|（:1587）；σ 族/
   ESD/RCR 在工作域（MEDIAN_SCALE 下无量纲化
   work/max(|median|,1e-12)，:1763-1766）。weights（1/ADU²）与
@@ -1462,7 +1496,7 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
   在调用方 stage2.cpp:1288/acr_kernels.cpp:218；per-thread 统计
   thread id 定序归并 stage2.cpp:1305-1313）。ESD tie-break=frame_id
   （1e-15 eps，:1515-1518）；linear_fit sort (value,orig_index)
-  字典序稳定（:1417-1423）；minmax 比较器 value-only（std::sort
+  字典序稳定（:1417-1423）；~~minmax~~（**已禁用**，见 §22 首注）比较器 value-only（std::sort
   非稳定，tie-break 未显式冻结=DISP-P2REJ-004，同输入同编译器
   确定）。验证锚: G6PermutationInvariance :2863/
   V15ExPermutationInvarianceTyped :4443（ALG §6 冻结容差）。
@@ -1472,7 +1506,7 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
 - rc 语义（§22.3 末）; 大栈 n>64 堆 fallback（n≤64 固定 scratch
   :944-986，无每像素堆分配）；accept 集 nc<2（σ 族）/:3（ESD）
   break、s≤1e-12 不除零（:1263/:1311/:1367/:1508/:1629）；
-  linear_fit N<4 break（:1416）；minmax 删后<min_kept → 全栈
+  linear_fit N<4 break（:1416）；~~minmax~~（**已禁用**，见 §22 首注）删后<min_kept → 全栈
   UNDERDETERMINED, iterations=0（:1657-1664）。
 - 兼容门: compat p2_reject_stack（:1863-1974）min_samples 换算
   :1891-1900 仅测试/旧调用（h:299 冻结注释"生产 Stage2 不再调用"；
@@ -1485,8 +1519,8 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
   DISP-P2REJ-002（SCI §8 "无候选→NO_CANDIDATES" vs 实现
   MIN_SAMPLES，澄清归 SCI 修订流程）；DISP-P2REJ-003（SCI/
   REJECTION_ALGORITHMS 行号锚漂移，行号权威=ALG §3 实测）；
-  DISP-P2REJ-004（minmax 等值 tie-break 未显式冻结，整改候选归
-  P2-REJ-IMPL/TEST）。
+  DISP-P2REJ-004（~~minmax~~ **已禁用**（见 §22 首注）等值 tie-break 未显式冻结，整改候选归
+  P2-REJ-IMPL/TEST；该分支删除归 FIX-204）。
 
 ### 22.6 交叉引用
 
@@ -2655,9 +2689,13 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
     nrej）的联动扩展约束——任何扩展必须 schema 与 validator 同一提交，
     当前无扩展需求。
 
-## 31. V6 目标态数据合同（DATA-V6-SCHEMA，SCHEMA-INTEGRATE-001/W6 集成）
+## 31. V6 合同层数据合同（DATA-V6-SCHEMA，SCHEMA-INTEGRATE-001/W6 集成；**设计档案 / 产品族专用投影，非生产目标态**）
 
-> 条款 ID：`DATA-V6-SCHEMA`　状态：ACTIVE（V6 目标态集成，2026-09-15）
+> 条款 ID：`DATA-V6-SCHEMA`　状态：**设计档案 / 产品族专用投影（非生产目标态）**（DOC-203 / Q2 前置裁决 2026-09-20；原「ACTIVE（V6 目标态集成，2026-09-15）」措辞已**删**）
+> **Q2 落地**：v6 合同层（`docs/contracts/v6/**` 16 篇 + `contracts/schemas/v6/**` 10 件 + `contracts/proposals/v6/**`）
+> **在位保留**（不删交付物；`fail-closed` 语义不变）；生效与退役条件由**变更编号**决定，
+> **不得**用版本号窗口表达（`ASTROCS_DESIGN.md` §12）；v6 内 `weight_mode` 家族已按 §9.73 A44 作废（作废键面：
+> 删键 / 改写 / 加作废留痕；文件本身不删；DOC-201 已落地）。
 > 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCHEMA-INTEGRATE-001.md`（Wave 6）
 > 语义权威（唯一）：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8）。
 > 生产 schema（10 件）：`contracts/schemas/v6/astrocs.v6.*.v1.schema.json`；机器数据字典：`contracts/data/v6_data_dictionary_v1.json`；
@@ -2676,12 +2714,12 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | `W_info` | `ADU^-2` | 点源信息权重 = 1/Var(F_hat) | — | — | `FZ-UNIT-WINFO` | FROZEN |
 | `Q` | `ADU^-1` | 点源线性充分统计量 | — | — | `FZ-UNIT-Q` | FROZEN |
 | `flux` (F_hat) | `ADU` | 点源通量估计 | `ADU^2` | `ADU^-2` | `FZ-UNIT-FLUX` | FROZEN |
-| `psfsw_robust_weight` | `1` | 无量纲组内相对复合权重 | — | — | `FZ-UNIT-PSFSW` | FROZEN |
+| ~~`psfsw_robust_weight`~~ | — | **对象已真删**（负责人 2026-09-20 裁决 B，14→13；GAP_AUDIT §4.5 C01；`CHG-2026-09-20-PSFSW-RETIRE`）⇒ 该单位条款随对象退役 | — | — | ~~`FZ-UNIT-PSFSW`~~（退役留痕） | **OBSOLETE** |
 | `phase2_mosaic_signal` | `BUNIT(声明)` | Phase2 马赛克 signal；面亮度产品则 `ADU/px^2` | `BUNIT^2` | `1/BUNIT^2` | `FZ-UNIT-SIGNAL-SB` | FROZEN |
 | `phase3_var_out` | `BUNIT^2` | Phase3 输出方差 = 主 HDU BUNIT 平方 | — | `1/BUNIT^2` | `FZ-P3-BUNIT-QUADRATIC` | FROZEN |
 
 **二次律（`FZ-P3-BUNIT-QUADRATIC`）**：`variance = signal^2`、`ivar = 1/variance`；Phase3 输出 variance BUNIT = (主 HDU signal BUNIT)²。
-`W_info` 严格为 `signal^-2`；`psfsw_robust_weight` 严格无量纲 = `1`。历史 `DRIZZLE.md` §3 把输入 `v_j(ADU^2)` 与输出 `variance_p(ADU^2/px^4)` 同名写作 `variance`：V6 目标态按本条分离命名为 `pixel_variance_in`/`sb_variance_out`，属 `SO-01`（只登记，不擅改 FROZEN 正文）。
+`W_info` 严格为 `signal^-2`；~~`psfsw_robust_weight` 严格无量纲 = `1`~~（该对象已于 2026-09-20 真删，14→13）。历史 `DRIZZLE.md` §3 把输入 `v_j(ADU^2)` 与输出 `variance_p(ADU^2/px^4)` 同名写作 `variance`：V6 目标态按本条分离命名为 `pixel_variance_in`/`sb_variance_out`，属 `SO-01`（只登记，不擅改 FROZEN 正文）。
 
 ### 31.2 BUNIT 量纲可判（`FZ-BUNIT-SEMANTICS`，PENDING/SO-01）
 

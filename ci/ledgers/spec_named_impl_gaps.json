@@ -24,13 +24,6 @@
       "reason": "lib/phase3_session/p3_v6_export.cpp（V6 三模式导出链）不在任何生产 target 源列表，仅被 tests/integration/v6_p3 编译 ⇒ FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 四条 FROZEN 合同在生产运行面无载体（CONFORM-SWEEP-4 P3X-06，E-09）。",
       "owner": "Phase3 export 域主（前台裁决接线面）",
       "exit_condition": "把 p3_v6_export.cpp 编入生产 target 并链入 astrocs 后删除本条目"
-    },
-    {
-      "id": "SNI-S4-P3X-12",
-      "kind": "known_gap",
-      "reason": "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:338 把 p3_v6_export.cpp 标 production=yes，与该文件实际不在生产闭包冲突（CONFORM-SWEEP-4 P3X-12）；属清单反标。",
-      "owner": "Phase3 export 域主（清单更正或完成接线）",
-      "exit_condition": "清单更正 classification/production_reachable，或 P3X-06 接线完成后清单声明成立，然后删除本条目"
     }
   ]
 }

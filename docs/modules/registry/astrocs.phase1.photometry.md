@@ -1,5 +1,6 @@
 ---
 id: MOD-astrocs-phase1-photometry
+module_id: astrocs.p1.photometry
 version: 1.0.0
 status: ACTIVE
 owner: astrocs-core
@@ -65,7 +66,7 @@ cache/内存按 ALG 合同(bounded); I-O 单 writer; 所有权=调用方分配 b
 
 ## 错误、日志、指标、取消和 checkpoint
 
-错误码=ACS_ERR_*(API 合同); 取消=host cancel 回调; 无 checkpoint(Phase3 原子写)。
+错误码与退出码唯一源=lib/infrastructure/cli/exit_codes.h（本页不复制数值表）；取消=协作取消（契约：宿主 cancel 通道 → 停止调度新单元 → 等运行中单元完成 → exit 9，最高设计 §6.3；接线以实测为准）；模块内无 checkpoint（无断点续算）。
 
 ## 独立 synthetic 验证命令与容差
 

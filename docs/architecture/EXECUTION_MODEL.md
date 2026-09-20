@@ -2,6 +2,13 @@
 
 > 关联: ARC-EXEC-001..00N  模块: orchestrator/phase2/acr  状态: FROZEN (T303 2026-08-23)
 
+> ⚠ **DOC-202 订正（R12，2026-09-20）——休眠面不得写成生产执行层**：
+> 本文件的 **ACR / CUDA / GPU 行与 §2/§5 的 H2D/D2H、GPU buffer、GPU fallback 全部标
+> `DORMANT`**（保留源码与隔离测试，**不进生产构建/加载/路由/benchmark/发布**，
+> 最高设计 §8/§1.3）；**浏览器（Qt）标「工具分类（非发布）」**（最高设计 §7.1/§10.1：
+> HiPS Browser 不进产品 manifest）；**orchestrator 标「历史保留」**（最高设计 §7.1 退役计划：
+> 接入后删除）。上述三类**均不是生产执行层**，任何发布/性能结论不得引用其行。
+
 ## 1 串/并行分层
 
 | 路径 | 调用线程 | 切分单位 | 最大并发 | 调度器 | 同步点 | 证据 |
@@ -11,7 +18,7 @@
 | Stage2 sampler | stage2 main | per-control-cell (64 per tile) | n_threads if P2_ENABLE_OPENMP ON else 1 | OpenMP or serial | cell barrier | `sampler.cpp:604, CMakeLists.txt:18 OFF` |
 | Stage2 UPM solve | stage2 main | full graph | 1 | serial | — | `upm.cpp Huber IRLS` |
 | Stage2 block/reject/integrate | block worker | per-pixel candidate stack | n_threads | OpenMP per-pixel | pixel barrier | `rejection.cpp/integrate.cpp` |
-| ACR Dispatcher | acr thread | per-tile chunk (px) | auto | Dispatcher::decide | mixed merge | `acr_kernels.cpp` |
+| ~~ACR Dispatcher~~ **DORMANT** | — | — | — | — | — | 保留源码与隔离测试，**不进生产**（最高设计 §8）；原行：acr thread / per-tile chunk (px) / auto / Dispatcher::decide / mixed merge / `acr_kernels.cpp` |
 
 见 `THREADING_MODEL.md` 确定性锚点 ARC-004。
 
@@ -21,8 +28,8 @@
 |---|---|---|
 | HiPS write | async_io | `aio_hips_writer` 异步刷盘, 事务提交；合同见 [ASYNC_IO_CONTRACT.md](ASYNC_IO_CONTRACT.md) |
 | HiPS read | serial or critical | `aio_read critical(aio_read)` 若 OpenMP 开启则串行化 |
-| ACR H2D/D2H | async via CUDA stream | `cuda_bridge_api` H2D>0 in cold Mixed (BDR D gate) |
-| Fallback | sync fallback | 纯逆方差权重 → CPU canonical (ACR-IVAR-001) （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）, 无画像→OpenMP fallback |
+| ~~ACR H2D/D2H~~ **DORMANT** | — | 保留源码与隔离测试，**不进生产**；原行：async via CUDA stream / `cuda_bridge_api` H2D>0 in cold Mixed (BDR D gate) |
+| Fallback | sync fallback | 生产 fallback **只有一条**：无 cpu_profile → baseline 后端 + 动态 worker（保守合法，最高设计 §8）。~~原「纯逆方差权重 → CPU canonical (ACR-IVAR-001)」面**DORMANT**~~（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） |
 
 ## 3 锁/原子与 I/O 串行
 
@@ -48,9 +55,9 @@
 | 项 | 语义 |
 |---|---|
 | CPU buffers | `BufferBinding` caller-owned, `free` via aio_hio_free |
-| GPU buffers | `cuda_buffer` device alloc, residency via ResidencyManager |
-| H2D/D2H | per-chunk async stream, timed via bridge loader |
-| Fallback | GPU OOM/无画像 → CPU OpenMP per-pixel (science equiv) |
+| ~~GPU buffers~~ **DORMANT** | 保留源码与隔离测试，**不进生产**（最高设计 §8）；原行：`cuda_buffer` device alloc, residency via ResidencyManager |
+| ~~H2D/D2H~~ **DORMANT** | 同上；原行：per-chunk async stream, timed via bridge loader |
+| Fallback | **生产 fallback = 无 cpu_profile → baseline 后端 + 动态 worker**（最高设计 §8）。~~原「GPU OOM/无画像 → CPU OpenMP per-pixel」面 DORMANT~~ |
 
 ## 6 确定性与嵌套并行限制
 
@@ -65,7 +72,7 @@
 | 错误 | 传播 |
 |---|---|
 | C ABI 返回码 | 0=OK 非0=失败, err缓冲仅日志 |
-| ACR error | Dispatcher 返回码, fallback 兜底 |
+| ~~ACR error~~ **DORMANT** | 保留源码与隔离测试，**不进生产**；生产错误面见 `docs/architecture/ERROR_MODEL.md`（唯一源 `lib/infrastructure/cli/exit_codes.h`） |
 | Invalid/UNDERDETERMINED | per-pixel status, 不抛异常 |
 
 ## 8 ARC-EXEC 契约 ID 映射
@@ -76,7 +83,7 @@
 | ARC-EXEC-002 | Stage2 sampler critical(aio_read) |
 | ARC-EXEC-003 | Stage2 UPM serial solve |
 | ARC-EXEC-004 | Phase2 block/reject/integrate per-pixel parallel |
-| ARC-EXEC-005 | ACR Dispatcher mixed H2D/D2H + fallback |
+| ~~ARC-EXEC-005~~ **DORMANT** | ACR Dispatcher mixed H2D/D2H + fallback —— **休眠，不进生产**（最高设计 §8） |
 | ARC-EXEC-006 | HiPS async I/O transaction |
 | ARC-EXEC-007 | Orchestrator cancel/timeout propagation |
 

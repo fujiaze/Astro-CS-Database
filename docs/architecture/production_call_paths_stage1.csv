@@ -1,5 +1,5 @@
 entry_symbol,config_gate,target,source_symbol,execution_mode,diagnostic_field,test_id,notes
-main (orchestrator.exe <stage1.json>),stage1.schema.json,orchestrator,Orchestrator::run,serial,exit_code,TEST-ORCH-001,唯一Phase1入口
+normalize --json <config.json> (唯一 CLI 子命令),phase_config_normalize.schema.json,astrocs(cli),normalize_command::run,serial,exit_code,TEST-CLI-001,"唯一 Phase1 入口 = 唯一 CLI 的 normalize 子命令（最高设计 §6.2/§7.1/§11）；历史登记：main(orchestrator.exe <stage1.json>) / Orchestrator::run 已非入口"
 Orchestrator::run_stage_calibrate,stage1.calibrate.enabled,astro_calibration,ac_calibrate_frame / calibrate,parallel_cpu (OpenMP 16),calibrate.t_ms,TEST-CAL-001,Drizzle前校准
 Orchestrator::run_stage_platesolve,stage1.platesolve.enabled,ipv_solver,ipv_solve_from_detections_v1 / build_wcs,serial,platesolve.rms_px,TEST-IPV-001,astrometry.net对照
 Orchestrator::run_stage_photometric,stage1.photometric.enabled,photometric_calib,pc_calibrate_simple,serial,photometric.zero_point,TEST-SPEC-001,flux校准

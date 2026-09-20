@@ -1,34 +1,48 @@
 # Data Flow
 
-## Phase1（单帧管线）
+> ⚠ **DOC-202 订正（R15 / R16 / R17 / R21，2026-09-20）**：本文按最高设计 §3.2 / §4.2 / §4.5 / §7.1a 重写；
+> 旧 `orchestrator.exe` / `astrocs-stage2` **不是入口**（§7.1/§11），已从本文入口位删除。
+
+## Phase1（normalize：单帧管线）
 
 ```text
 FITS/XISF 亮场 + 母版
-  → aio read (astro_image_io)
-  → calibration (bias/dark/flat + cosmetic)
-  → star_detector (星点表)
-  → dynamic_psf (PSF 质量)
-  → ipv plate solve (WCS/astrometry)
-  → photometric_calib (flux 定标)
-  → snr_estimator (SNR/ivar)
-  → healpix_drizzle (球面投影/方差传播)
-  → HiPS 写 (signal/support/variance/ivar)
-  → orchestrator stage 编排 + 日志/诊断
+  → aio read（唯一 I/O 边界）
+  → calibration（bias/dark/flat） → cosmetic/validity（坏点/宇宙线）
+  → background/noise（背景与噪声）
+  → platesolve 第一轮（盲解粗 WCS：为星表投影提供近似坐标）
+  → star_detection（星表引导检测；一次检测、一次通量积分，三处复用）
+  → psf（PSF 建模）
+  → platesolve 第二轮（精解 WCS = 权威 WCS）
+  → photometry（通量定标） → apply photometry（测光归一化落到像素）
+  → noise_snr（噪声/帧级 SNR）
+  → drizzle（球面重采样/方差传播）
+  → 产品验证 → 原子发布 HiPS（signal/support[/variance/ivar] + JSON）
 ```
 
-## Phase2（多帧统一模型）
+- 入口 = 唯一 CLI 的 `normalize` 子命令（最高设计 §6.2）。
+- 阶段内节点之间**传内存块**（`PipelineFrame` 命名块），**不落中间文件**（最高设计 §7.1a）；
+  当前生产实现仍用磁盘 JSON/FITS 传递，属**已登记缺口**（迁移归 FIX 代码任务）。
+
+## Phase2（mosaic：多帧统一模型）
 
 ```text
 多帧 Phase1 HiPS
-  → coverage (MOC union, target_order)
-  → sampler (control cell + patch estimator + SNR catalogue)
-  → UPM build (Huber IRLS + ivar 权重 + 弱零锚 + 连通分量)
-  → UPM persist (sparse JSON via aio_upm; dense cache 可选)
-  → block plan/calibrate (每帧 frame_id → C(frame, leaf))
-  → rejection (7 种: None/Sigma/Winsorized/AveragedSigma/LinearFit/ESD/RCR)
-  → integrate (加权均值 + support reducer)
-  → HiPS 写 + verify
+  → admit（兼容性校验） → coverage（MOC union, target_order）
+  → sampling（控制采样 + patch estimator）
+  → upm（Huber IRLS + 控制点权重 + 弱零锚 + 连通分量；纯加性相对模型）
+  → upm persist（sparse JSON via aio_upm；dense cache 可选）
+  → block plan / upm apply（每帧 frame_id → δ_k(frame, leaf)；**默认只扣偏差、保留公共天光面**）
+  → rejection（**逐像素按几何可贡献帧数 N 自动选择**：`1≤N≤3` none / `4≤N≤5` percentile /
+      `6≤N≤15` winsorized / `N≥16` linear fit；映射表 = EXP-204 定案冻结表；
+      禁 min/max —— 表落 `docs/plugins/algorithms_phase2/12_rejection.md` §9，**只引用**）
+  → integration（加权均值 + support reducer）
+  → 产品验证 → 原子发布马赛克 HiPS + verify
 ```
+
+- 入口 = 唯一 CLI 的 `mosaic` 子命令（最高设计 §6.2）。
+- 排异**不是「7 种任选」**：**逐像素按 N 自动选择**，冻结映射表落位
+  `docs/plugins/algorithms_phase2/12_rejection.md` §9（EXP-204 定案；**只引用，不复制**）。
 
 ## 数据契约
 

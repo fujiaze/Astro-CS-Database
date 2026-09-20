@@ -4,6 +4,19 @@
 docs、tests 必须一致；一致性由 `tools/config_consistency_check.py` 校验
 （V14 交付）。
 
+> **文档范围与 `output_mode` 口径（DOC-203 订正，2026-09-20；依 `ASTROCS_DESIGN.md` §0.2「详细层不得与本设计相反」）**
+> - 本文描述的是 **legacy orchestrator 的 Stage2 配置**（parser = `lib/algorithms/coverage/src/stage2_common.cpp`，
+>   struct = `stage2_common.h`），**不是**三命令 `phase_config` 合同；后者的语义与索引唯一权威 =
+>   `docs/contracts/CONFIG_CONTRACT.md` §3。
+> - 本文的 `precision(fp32)` 是 **legacy orchestrator** 的解析缺省（仅用于「doc ↔ parser/struct 一致」门）；
+>   三命令 `phase_config` 的精度**必须显式**（normalize = 块级 `drizzle.precision_mode`；mosaic/export =
+>   位深键 / `config.precision` 旧键名），见 `CONFIG_CONTRACT.md` §3「精度显式声明」。
+> - **`output_mode` 不属本文范围**（它只出现在 export 的 `phase_config`）：**必填且必须显式** ——
+>   `blocks[]` 分支、平铺单块简写分支、旧合同 `{phase_name, config, inputs[]}` 分支的 `required`
+>   **都含 `output_mode`**（FIX-207 fail-closed；`docs/contracts/CONFIG_CONTRACT.md` §3 末条）；
+>   合同登记的 `surface_brightness` **只作 `--template` 骨架值**，**不得**当成「运行期缺省」。
+>   ⇒ 本文与 `CONFIG_CONTRACT.md` 在此点上**不得两边相反**。
+
 ## Stage2 config 段
 
 ```text
@@ -80,6 +93,14 @@ output.hips / diagnostics
 
 默认值来源：`stage2_common.h`（C++ struct）与 `stage2_common.cpp`
 （parser）为唯一双实现，consistency test 保证一致。
+
+> **排异档位映射：legacy 实现事实 ≠ 生产科学路由（DOC-203 订正，2026-09-20）**
+> 上方 fenced 块内的 `astrocs_adaptive_pixel` 档位映射（`n≤3→none / 4..7→percentile / 8..15→winsorized_sigma / ≥16→linear_fit`）
+> 与 WBPP 对照档（`nominal<6 / 6..15 / >15`）都是**当前 legacy orchestrator 的实现事实**（本文只如实描述它，
+> 且该 fenced 块是 `tools/config_consistency_check.py` 的 docs 腿输入，故不改块内文字）。
+> **生产科学路由唯一权威** = `ASTROCS_DESIGN.md` §4.5（按 EXP-204 定案：`1≤N≤3` none / `4≤N≤5` percentile /
+> `6≤N≤15` winsorized / `N≥16` linear fit；逐像素按几何可贡献帧数 N 自动选；**min/max 禁用**）。
+> 两者的档界差异（4..7/8..15 vs 4..5/6..15）归 **FIX-204** 对齐实现；`docs/contracts/DATA_SEMANTICS.md` §22 首注同面。
 
 ## Stage1 config
 

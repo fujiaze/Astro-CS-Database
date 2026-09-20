@@ -102,14 +102,19 @@ W_psf,k = a_k² Σ_p P_k,p² / sigma_pix,k² = a_k² / (sigma_pix,k² A_NEA,k)
 
 固定参考通量下 `SNR_k²(F_ref) = F_ref² W_psf,k`。所以 Phase2 消费的是信息权重或等价充分统计量，不是未平方 SNR，也不是实际星表的 median SNR。
 
-### 8.2 PSF Signal Weight 双产品
+### 8.2 PSF Signal Weight（**已退役**；DOC-203 / A44 + C01 订正 2026-09-20）
 
-AstroCS 正式生产两类 PSF 权重：
+> **订正**：`psfsw_robust_weight` 数据对象已按负责人 2026-09-20 **裁决 B 真删**（14→13；`GAP_AUDIT.md` §4.5 C01；
+> 变更 claim `CHG-2026-09-20-PSFSW-RETIRE`），且 `ASTROCS_DESIGN.md` §2.1 定案「**全程只有 SNR，不存在「权重模式」**；
+> 阶段一、阶段三**不产生、也不消费任何权重**」，§2.3 定案「PSF 拟合质量代理**只作诊断**，**禁止**计入阶段二科学叠加权重」。
+> 因此本节原文的「两类 PSF 权重」「Phase2 conventional integration 的可选相对帧权重」**已作废**：
+> Phase1 **只**产出帧级 SNR（与 `W_psf` 作为点源充分统计量），**不得**把 PSFSW 相对权重写进任何产品；
+> 权重一律由**阶段二**按该天球像素对应的帧集合**现场算出**（派生量）。以下原文只作**历史留痕**（不得据此实现或验收）：
 
-- `psf_information_weight`：上述 `W_psf=PᵀC⁻¹P` 信息权重，是点源检测/测光默认科学产品；
-- `psfsw_robust_weight`：受 PixInsight PSFSW 启发，综合共同星集的 PSF 总 signal、signal concentration、稳健 noise 和稳健 background，是 Phase2 conventional integration 的可选相对帧权重。
+- ~~`psf_information_weight`：上述 `W_psf=PᵀC⁻¹P` 信息权重，是点源检测/测光默认科学产品；~~
+- ~~`psfsw_robust_weight`：受 PixInsight PSFSW 启发，综合共同星集的 PSF 总 signal、signal concentration、稳健 noise 和稳健 background，是 Phase2 conventional integration 的可选相对帧权重。~~
 
-Phase1 必须把 PSFSW 的四个分量、共同星集/selection function、归一和有效性分别输出。该相对无量纲权重不写成 ivar，也不取代 `W_psf`；详细合同见 `docs/science/PSF_SIGNAL_WEIGHT.md`。
+~~Phase1 必须把 PSFSW 的四个分量、共同星集/selection function、归一和有效性分别输出。该相对无量纲权重不写成 ivar，也不取代 `W_psf`；详细合同见 `docs/science/PSF_SIGNAL_WEIGHT.md`。~~
 
 ### 8.3 标量降级门
 
@@ -131,7 +136,7 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 
 - HiPS signal；pixel variance/ivar；support；coverage/validity；
 - PSF 模型/地图；photometric response；WCS；背景/噪声模型；
-- `point_source_information`（map/model + summary）；`psfsw_robust`（四分量 + 相对权重 + validity）；`depth_m5`（map/model + summary）；
+- `point_source_information`（map/model + summary）；~~`psfsw_robust`（四分量 + 相对权重 + validity）~~（**已退役**：对象真删 14→13，见 §8.2 订正）；`depth_m5`（map/model + summary）；
 - source catalog（逐源 flux、variance、SNR、flags）；
 - drizzle correlation/transfer 描述；
 - product manifest：schema、算法/模块/provider、完整 SHA、输入/配置哈希、单位、参考尺度、近似和降级。

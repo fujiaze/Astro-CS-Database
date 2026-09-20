@@ -24,26 +24,38 @@ astrocs benchmark
   可越过可强制项）→ 用户输入 `yes` 确认（`-y` 跳过）→ 执行并落产品 + manifest；
 - `--template [-o <path>]` 生成可直接改的完整 JSON 模板（缺 `-o` → stdout）；
 - `--help` 子命令帮助与字段说明；
-- 三个命令**平级独立**：各自独立进程、独立恢复、独立验收，**禁止**隐式串接（§1.2）；
+- 三个命令**平级独立**：各自独立进程、**独立重跑**（**无断点续算**：重跑 = 新运行目录 + 新 manifest）、独立验收，**禁止**隐式串接（`ASTROCS_DESIGN.md` §1.2:78；DOC-203 订正：原「独立恢复」措辞与 §1.2「无断点续算」相反，已删）；
 - `benchmark` 生成/更新**安装目录** cpu_profile（后续运行自动读取）。
 
 handler→内部会话 API 追溯(04 §6-4,phase 为内部指代): normalize→API-003(会话1)；mosaic→API-004(会话2)；export→API-005(会话3)；benchmark→BENCH-001..004 harness(内部)。
 
-## 2 退出码(04 §2 全 11 条冻结,唯一源 `include/astrocs/exit_codes.h`)
+## 2 退出码(全 11 条冻结,唯一源 `lib/infrastructure/cli/exit_codes.h`)
 
-0 成功且门禁全过 / 2 CLI 参数或配置错 / 3 输入缺失格式 hash 错 / 4 科学验证或不变量失败 / 5 backend ABI 签名 CPU 特征或加载失败 / 6 计算执行失败 / 7 I/O 失败 / 8 输出完整性验证失败 / 9 用户取消或超时 / 10 资源利用率或内存增长门禁失败 / 70 未分类内部错误(必须出脱敏 crash report)。跨平台同失败同码(golden 双平台断言)。
+0 成功且门禁全过 / 2 CLI 参数或配置错 / 3 输入缺失格式 hash 错 / 4 科学验证或不变量失败 / 5 backend ABI 签名 CPU 特征或加载失败 / 6 计算执行失败 / 7 I/O 失败 / 8 输出完整性验证失败 / 9 用户取消或超时 / **10 磁盘写满 / 写盘失败**（`ASTROCS_DESIGN.md` §6.3：**一般性资源超限门已取消**——内存 / CPU / 线程不设门）/ 70 未分类内部错误(必须出脱敏 crash report)。跨平台同失败同码(golden 双平台断言)。
+
+> DOC-203 订正：原文唯一源写作 `include/astrocs/exit_codes.h`（实测**不存在**）、exit 10 写作「资源利用率或内存增长门禁失败」——两处均与 `ASTROCS_DESIGN.md` §6.3 相反，已按 §0.2 订正。码值与含义**只有一份**，以 `exit_codes.h` 为唯一源。
 
 ## 3 stdout/stderr 纪律(04 §3)
 
-- 人类模式: stdout=简洁结果, stderr=日志/诊断;`--json`: stdout 恰一个 JSON 文档;`--events-jsonl`: stdout 每行一个 UTF-8 JSON 事件,禁夹普通文字;JSON 路径全 UTF-8(Windows 内部 Unicode 路径正确处理)。
+- 人类模式: stdout=简洁结果, stderr=日志/诊断;`--json`: stdout 恰一个 JSON 文档;运行事件流: stdout 每行一个 UTF-8 JSON 事件,禁夹普通文字;JSON 路径全 UTF-8(Windows 内部 Unicode 路径正确处理)。
+- **事件流 = 默认输出**（`ASTROCS_DESIGN.md` §6.3；§9.74 裁决 7-a「事件流 = 默认输出」）：**不需要旗标开启**；GUI 用其它语言**直接捕获 CLI 输出**。`--events-jsonl` **保留接受**，语义**等价默认行为**（历史别名，`lib/infrastructure/cli/commands.cpp:2115`、`command_tree.h:43`）——**不得**把它当作开启事件流的必要条件。
 - **stdout 无日志污染**为机器测试项(CLI-002 golden)。
 
-## 4 JSONL 事件 v1(04 §4 字段冻结)
+## 4 JSONL 运行事件流 v1（**唯一 schema**；DOC-203 / Q6 前置裁决）
+
+> **唯一性声明（Q6 裁决 2026-09-20，GAP_AUDIT §4.3）**：运行事件流的**唯一 schema** = 实现正本
+> `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`）。
+> 本节是它的**人类可读合同**（同源；字段名 / 枚举 / 顺序键以 `protocol.h` + `jsonl.h` 为准，
+> 冲突时以实现正本为准）。机器 schema = `contracts/schemas/jsonl_event_v1.schema.json`（**派生件**，
+> 不得自成第二份定义）。
+> **不得与结构化日志混用**：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`（LOG-001，
+> `astrocs.log.event.v1`）是**结构化日志**合同，**显式声明它不是运行事件流**；其事件键名 `event`
+> 与本流的 `kind` **不得混用**，两份流各用**不同工件名**、不得互相冒充。
 
 - 每行必含: `schema_version,event_id,run_id,timestamp_utc,sequence,kind,severity,phase,stage,message`;`sequence` 从 0 单调递增。
 - kind 扩展字段: progress{completed,total,unit,rate,eta_seconds} / resource{cpu_cores_used,rss_bytes,io_read_bytes,io_write_bytes,threads} / artifact{role,path,sha256,size_bytes,integrity_sha256,canonical_sha256,canonical_hash_spec,canonical_format}（**DET-001**：sha256=整文件字节摘要(完整性)，canonical_sha256=规范产品哈希(像素数据+科学元数据，排除易变卡/键；口径 spec=astrocs.canonical-product-hash/v1，见 tools/canonical_product_hash.py --spec)；可复现性判据用 canonical_sha256，不得用 sha256） / backend{kernel,backend_id,isa,workers,block_size,reason} / final{exit_code,status,run_manifest,summary}。
 - 重计算 stage 必发 `stage_start/stage_end`+实际 backend 事件;GUI/未来客户端只消费本协议(禁链接科学库绕过 CLI)。
-- schema: `schemas/jsonl_event_v1.schema.json`(API-002 建立,CLI-002 golden 用)。
+- schema: `contracts/schemas/jsonl_event_v1.schema.json`(API-002 建立,CLI-002 golden 用;**派生件**——原路径 `schemas/jsonl_event_v1.schema.json` 实测不存在,DOC-203 订正)。
 
 ## 5 取消与崩溃(04 §5)
 
@@ -67,6 +79,16 @@ handler→内部会话 API 追溯(04 §6-4,phase 为内部指代): normalize→A
 运行产物(每相 run manifest `astrocs_run_*.json`、资源三件套
 `resource_timeseries.csv` / `resource_summary.json` / `worker_balance.csv`、
 `alloc_samples.csv` / `alloc_report.json`、节点科学产物)**只落 `output_dir`**;
+
+> **资源时序工件的唯一列合同（DOC-203 / Q4 前置裁决 2026-09-20，GAP_AUDIT §4.2）**：
+> - **唯一列合同 = 生产实现** `lib/infrastructure/cli/resource_recorder.h:260-266`：**20 列**
+>   `elapsed_seconds,stage,cpu_pct,system_cpu_pct,active_workers,runnable_workers,rss_bytes,pss_bytes,commit_bytes,page_faults,read_bytes,write_bytes,queue_depth,lock_wait_ns,progress,threads,active_compute_threads,per_thread_cpu_max_pct,per_thread_cpu_sum_pct,io_wait_pct`
+>   （**run 收尾一次性落盘**，被 manifest / 目录树哈希覆盖）；`lib/infrastructure/cli/resource_events.h:6` 明文
+>   「资源时序曲线的**唯一载体** = 磁盘工件 `resource_timeseries.csv`」。
+> - `docs/architecture/observability/RESOURCE_MONITORING_CONTRACT.md`（LOG-002）的「每秒采样 + seed 行 + 指纹链」
+>   CSV 是**监控伴随器的原始数据**，**不是同一工件** ⇒ 其工件名固定为 **`monitor_timeseries.csv`**。
+> - **两工件不同名、不互替**：`resource_timeseries.csv`（20 列，收尾一次性）与 `monitor_timeseries.csv`
+>   （每秒采样 + 指纹链）**不得**互相冒充、**不得**共用一套列定义或采样语义。
 CLI 不得以进程 CWD(`"."`)作为隐式缺省写出,否则在工作区根散落产物并触发
 UT-CLI `mutates_workspace=false` 的 dirty 判定。
 
