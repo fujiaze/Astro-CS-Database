@@ -3,7 +3,8 @@
   "config": {
     "output_dir": "path/to/out/normalize",
     "precision": "fp64",
-    "sparse_snr_layer": false,
+    "sparse_snr_layer": true,
+    "sparse_snr_spacing_px": 64,
     "algorithm_psf_model": "moffat4"
   },
   "inputs": [

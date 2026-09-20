@@ -593,7 +593,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 60,
+      "line": 108,
       "field": "reference_flux",
       "declared_default": null,
       "unit": "e⁻/s",
@@ -608,7 +608,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 61,
+      "line": 109,
       "field": "scalar_gate_rd",
       "declared_default": null,
       "unit": null,
@@ -623,7 +623,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 62,
+      "line": 110,
       "field": "scalar_gate_trend",
       "declared_default": null,
       "unit": null,
@@ -638,7 +638,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 63,
+      "line": 111,
       "field": "psfsw_enable",
       "declared_default": "true",
       "unit": null,
@@ -651,7 +651,7 @@
       "conflict": {
         "kind": "unregistered_default",
         "evidence": [
-          "docs/plugins/algorithms_phase1/07_noise_snr.md:63",
+          "docs/plugins/algorithms_phase1/07_noise_snr.md:111",
           "docs/contracts/CONFIG_CONTRACT.md §2"
         ],
         "owner": "负责人裁决"
@@ -660,22 +660,22 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 64,
+      "line": 112,
       "field": "sparse_snr_layer",
-      "declared_default": "false",
+      "declared_default": "true",
       "unit": null,
       "owner_class": "science_param",
       "registration": "phase_config",
       "registered_at": "contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_config/properties/sparse_snr_layer",
       "registered_key": "normalize.config.sparse_snr_layer",
       "finding": "none",
-      "note": "已登记（phase_config normalize config）；同名 knob 亦由 08_drizzle:45 声明，归属唯一 = 该 phase_config 字段（两处声明同一字段，不是两个字段）。",
+      "note": "已登记（phase_config normalize config）；同名 knob 亦由 08_drizzle:46 声明，归属唯一 = 该 phase_config 字段（两处声明同一字段，不是两个字段）。默认 false→true（负责人 2026-09-19 裁决：默认稀疏路径要求稀疏层默认产出，FIX-SCI-SNR-CANON-001 §3.2；07_noise_snr.md:112 与 08_drizzle.md:46 均为 true，schema 亦记 default=true）。**转录口径**：文档默认列写作 Markdown 加粗 **true**，本册登记语义值 true（不把标记写进数据字段）；CFG002-01 会因该标记报 declared_default 漂移，订正建议见 reports/RELEASE-02/snr-config-land.md §5。",
       "conflict": null
     },
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 65,
+      "line": 114,
       "field": "sparse_snr_density",
       "declared_default": null,
       "unit": "点/度²",
@@ -684,13 +684,28 @@
       "registered_at": "config/defaults.json#fields[].key=sparse_snr.density",
       "registered_key": "sparse_snr.density",
       "finding": "none",
-      "note": "已登记：pending_authority/null（SCI-RES-01/R-001）。",
+      "note": "已登记：pending_authority/null（SCI-RES-01/R-001）。行号 65→113（文档重排）。**注意**：负责人 2026-09-19 已裁决稀疏层密度 Δ = 64 px（GAP_AUDIT §9.45），该值由**新键** sparse_snr.spacing_px（单位 px，承载字段 normalize.config.sparse_snr_spacing_px）承载；本行（点/度²）数值仍无 SCI/ALG 权威 ⇒ 保持 pending_authority，二者不是同一字段。文档 07_noise_snr.md:113 的单位列与 SCI-RES-01/R-001 收口订正建议见 reports/RELEASE-02/snr-config-land.md §5。",
+      "conflict": null
+    },
+    {
+      "module": "07_noise_snr",
+      "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
+      "line": 115,
+      "field": "snr_path",
+      "declared_default": "sparse_reconstruct",
+      "unit": null,
+      "owner_class": "science_param",
+      "registration": "phase_config",
+      "registered_at": "contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path",
+      "registered_key": "mosaic.config.snr_path",
+      "finding": "none",
+      "note": "已登记：phase_config mosaic config.snr_path（enum dense/sparse_reconstruct/frame_reconstruct，默认 sparse_reconstruct = Phase2 默认消费稀疏层，负责人 2026-09-19 裁决 GAP_AUDIT §9.46；键名与 ASTROCS_DESIGN.md §3.3:124 一致）。默认值唯一登记 = config/defaults.json#snr.path（owner_adjudicated，enum_token/enum_target 指向本 schema 字段）。**转录口径**：文档该行字段列写作「snr_path（Phase2 消费面键，在 mosaic 配置）」（括注写进了字段列），本册登记字段名 snr_path（括注是说明、不是字段名）；CFG002-01 会因该括注报本行「缺登记」，订正建议 = 文档把括注移入说明列（reports/RELEASE-02/snr-config-land.md §5）。",
       "conflict": null
     },
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 41,
+      "line": 42,
       "field": "order",
       "declared_default": null,
       "unit": null,
@@ -705,7 +720,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 42,
+      "line": 43,
       "field": "pixfrac",
       "declared_default": "1.0",
       "unit": null,
@@ -720,7 +735,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 43,
+      "line": 44,
       "field": "pixel_scale",
       "declared_default": null,
       "unit": "arcsec/px",
@@ -735,7 +750,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 44,
+      "line": 45,
       "field": "nside",
       "declared_default": null,
       "unit": null,
@@ -750,16 +765,16 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 45,
+      "line": 46,
       "field": "sparse_snr_layer",
-      "declared_default": "false",
+      "declared_default": "true",
       "unit": null,
       "owner_class": "science_param",
       "registration": "phase_config",
       "registered_at": "contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_config/properties/sparse_snr_layer",
       "registered_key": "normalize.config.sparse_snr_layer",
       "finding": "none",
-      "note": "与 07_noise_snr:64 同名的同一字段：归属唯一 = phase_config normalize config.sparse_snr_layer。",
+      "note": "与 07_noise_snr:112 同名的同一字段：归属唯一 = phase_config normalize config.sparse_snr_layer。默认 false→true（负责人 2026-09-19 裁决，FIX-SCI-SNR-CANON-001 §3.2；文档默认列写作加粗 **true**，本册登记语义值 true，CFG002-01 订正建议见 reports/RELEASE-02/snr-config-land.md §5）。",
       "conflict": null
     },
     {
@@ -801,7 +816,7 @@
     {
       "module": "10_sampling",
       "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
-      "line": 30,
+      "line": 63,
       "field": "spacing",
       "declared_default": null,
       "unit": "px/deg",
@@ -816,7 +831,7 @@
     {
       "module": "10_sampling",
       "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
-      "line": 31,
+      "line": 65,
       "field": "bright_star_mask",
       "declared_default": null,
       "unit": null,
@@ -831,7 +846,7 @@
     {
       "module": "10_sampling",
       "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
-      "line": 32,
+      "line": 66,
       "field": "min_control_points",
       "declared_default": null,
       "unit": null,
@@ -846,7 +861,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 36,
+      "line": 76,
       "field": "gauge",
       "declared_default": "reference_frame",
       "unit": null,
@@ -861,28 +876,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 37,
-      "field": "bkg_model_order",
-      "declared_default": "0",
-      "unit": null,
-      "owner_class": "science_param",
-      "registration": "none",
-      "registered_at": null,
-      "registered_key": null,
-      "finding": "gap",
-      "note": "插件默认 0（常数背景）；SCI/ALG 零命中；未进任何配置类。归属：负责人裁决。",
-      "conflict": {
-        "kind": "unregistered_default",
-        "evidence": [
-          "docs/plugins/algorithms_phase2/11_upm.md:37"
-        ],
-        "owner": "负责人裁决"
-      }
-    },
-    {
-      "module": "11_upm",
-      "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 38,
+      "line": 81,
       "field": "max_iter",
       "declared_default": null,
       "unit": null,
@@ -897,7 +891,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 39,
+      "line": 82,
       "field": "convergence_gate",
       "declared_default": null,
       "unit": null,
@@ -985,7 +979,7 @@
     {
       "module": "13_integration",
       "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 65,
+      "line": 66,
       "field": "weight_mode",
       "declared_default": "point_information",
       "unit": null,
@@ -1000,7 +994,7 @@
     {
       "module": "13_integration",
       "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 66,
+      "line": 67,
       "field": "target_product",
       "declared_default": "全",
       "unit": null,
@@ -1021,7 +1015,7 @@
     {
       "module": "13_integration",
       "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 67,
+      "line": 68,
       "field": "correlation_approx",
       "declared_default": null,
       "unit": null,
@@ -1036,7 +1030,7 @@
     {
       "module": "13_integration",
       "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 68,
+      "line": 69,
       "field": "baseline_compare",
       "declared_default": "true",
       "unit": null,
@@ -1378,7 +1372,7 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 31,
+      "line": 65,
       "field": "workers",
       "declared_default": "由 profile",
       "unit": null,
@@ -1393,7 +1387,7 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 32,
+      "line": 66,
       "field": "block",
       "declared_default": "由 profile",
       "unit": null,
@@ -1408,7 +1402,7 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 33,
+      "line": 67,
       "field": "checkpoint",
       "declared_default": "true",
       "unit": null,
@@ -1423,7 +1417,7 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 34,
+      "line": 68,
       "field": "memory_limit",
       "declared_default": null,
       "unit": "MB",
@@ -1528,7 +1522,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 32,
+      "line": 54,
       "field": "catalog",
       "declared_default": "gaia",
       "unit": null,
@@ -1550,7 +1544,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 33,
+      "line": 55,
       "field": "catalog_version",
       "declared_default": null,
       "unit": null,
@@ -1565,7 +1559,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 34,
+      "line": 56,
       "field": "cache_dir",
       "declared_default": null,
       "unit": null,
@@ -1580,7 +1574,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 35,
+      "line": 60,
       "field": "query_limit",
       "declared_default": null,
       "unit": null,
@@ -1595,7 +1589,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 36,
+      "line": 61,
       "field": "timeout",
       "declared_default": null,
       "unit": "s",
@@ -1651,31 +1645,227 @@
       "finding": "none",
       "note": "显示拉伸（默认 sqrt），浏览器面旋钮。",
       "conflict": null
+    },
+    {
+      "module": "07_noise_snr",
+      "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
+      "line": 113,
+      "field": "sparse_snr_spacing_px",
+      "declared_default": "64",
+      "unit": "px",
+      "owner_class": "science_param",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/algorithms_phase1/07_noise_snr.md:113",
+      "registered_key": "07_noise_snr#sparse_snr_spacing_px",
+      "finding": "none",
+      "note": "负责人 2026-09-19 定案 Δ=64px（ℓ=48px ⇒ Δ/ℓ=1.33 近临界）；复用 Phase2 UPM 8×8/tile 控制网格",
+      "conflict": null
+    },
+    {
+      "module": "10_sampling",
+      "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
+      "line": 64,
+      "field": "sky_sample_spacing",
+      "declared_default": null,
+      "unit": "px/deg",
+      "owner_class": "science_param",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/algorithms_phase2/10_sampling.md:64",
+      "registered_key": "10_sampling#sky_sample_spacing",
+      "finding": "none",
+      "note": "天光采样点网格间距（粗于像素网格，与样条节点间距匹配）",
+      "conflict": null
+    },
+    {
+      "module": "10_sampling",
+      "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
+      "line": 67,
+      "field": "min_sky_samples",
+      "declared_default": null,
+      "unit": null,
+      "owner_class": "science_param",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/algorithms_phase2/10_sampling.md:67",
+      "registered_key": "10_sampling#min_sky_samples",
+      "finding": "none",
+      "note": "每帧天光采样点数量下限",
+      "conflict": null
+    },
+    {
+      "module": "10_sampling",
+      "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
+      "line": 68,
+      "field": "local_estimator",
+      "declared_default": "robust_median",
+      "unit": null,
+      "owner_class": "science_param",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/algorithms_phase2/10_sampling.md:68",
+      "registered_key": "10_sampling#local_estimator",
+      "finding": "none",
+      "note": "局部背景估计器（robust_median/trimmed_mean）",
+      "conflict": null
+    },
+    {
+      "module": "11_upm",
+      "doc": "docs/plugins/algorithms_phase2/11_upm.md",
+      "line": 77,
+      "field": "bkg_model",
+      "declared_default": "spline",
+      "unit": null,
+      "owner_class": "science_param",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/algorithms_phase2/11_upm.md:77",
+      "registered_key": "11_upm#bkg_model",
+      "finding": "none",
+      "note": "天光面表示：spline（稀疏二维样条面）/ constant（常数，仅均匀背景）",
+      "conflict": null
+    },
+    {
+      "module": "11_upm",
+      "doc": "docs/plugins/algorithms_phase2/11_upm.md",
+      "line": 78,
+      "field": "bkg_spline_spacing",
+      "declared_default": null,
+      "unit": "deg",
+      "owner_class": "science_param",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/algorithms_phase2/11_upm.md:78",
+      "registered_key": "11_upm#bkg_spline_spacing",
+      "finding": "none",
+      "note": "样条节点间距（决定面自由度）",
+      "conflict": null
+    },
+    {
+      "module": "11_upm",
+      "doc": "docs/plugins/algorithms_phase2/11_upm.md",
+      "line": 79,
+      "field": "frame_gradient_order",
+      "declared_default": "1",
+      "unit": null,
+      "owner_class": "science_param",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/algorithms_phase2/11_upm.md:79",
+      "registered_key": "11_upm#frame_gradient_order",
+      "finding": "none",
+      "note": "逐帧梯度修正 δ_k 的阶数（0=仅偏移，1=平面）",
+      "conflict": null
+    },
+    {
+      "module": "11_upm",
+      "doc": "docs/plugins/algorithms_phase2/11_upm.md",
+      "line": 80,
+      "field": "roughness_penalty",
+      "declared_default": null,
+      "unit": null,
+      "owner_class": "science_param",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/algorithms_phase2/11_upm.md:80",
+      "registered_key": "11_upm#roughness_penalty",
+      "finding": "none",
+      "note": "样条粗糙度惩罚系数（保平滑）",
+      "conflict": null
+    },
+    {
+      "module": "19_runtime",
+      "doc": "docs/plugins/infrastructure/19_runtime.md",
+      "line": 69,
+      "field": "cache_budget_mb",
+      "declared_default": null,
+      "unit": "MB",
+      "owner_class": "runtime_policy",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/infrastructure/19_runtime.md:69",
+      "registered_key": "19_runtime#cache_budget_mb",
+      "finding": "none",
+      "note": "进程内共享缓存字节预算（LRU）",
+      "conflict": null
+    },
+    {
+      "module": "19_runtime",
+      "doc": "docs/plugins/infrastructure/19_runtime.md",
+      "line": 70,
+      "field": "schedule_policy",
+      "declared_default": "locality_first",
+      "unit": null,
+      "owner_class": "runtime_policy",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/infrastructure/19_runtime.md:70",
+      "registered_key": "19_runtime#schedule_policy",
+      "finding": "none",
+      "note": "调度策略（locality_first/balanced）",
+      "conflict": null
+    },
+    {
+      "module": "22_gaia_xpsd_client",
+      "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
+      "line": 57,
+      "field": "mem_cache_budget_mb",
+      "declared_default": null,
+      "unit": "MB",
+      "owner_class": "runtime_policy",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/infrastructure/22_gaia_xpsd_client.md:57",
+      "registered_key": "22_gaia_xpsd_client#mem_cache_budget_mb",
+      "finding": "none",
+      "note": "内存缓存字节预算（LRU）",
+      "conflict": null
+    },
+    {
+      "module": "22_gaia_xpsd_client",
+      "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
+      "line": 59,
+      "field": "prefetch_neighbors",
+      "declared_default": "true",
+      "unit": null,
+      "owner_class": "runtime_policy",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/infrastructure/22_gaia_xpsd_client.md:59",
+      "registered_key": "22_gaia_xpsd_client#prefetch_neighbors",
+      "finding": "none",
+      "note": "邻接瓦片预取",
+      "conflict": null
+    },
+    {
+      "module": "22_gaia_xpsd_client",
+      "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
+      "line": 58,
+      "field": "tile_scheme",
+      "declared_default": "healpix",
+      "unit": null,
+      "owner_class": "runtime_policy",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/infrastructure/22_gaia_xpsd_client.md:58",
+      "registered_key": "22_gaia_xpsd_client#tile_scheme",
+      "finding": "none",
+      "note": "天区分片方案（决定缓存键）",
+      "conflict": null
     }
   ],
   "totals": {
-    "rows": 95,
+    "rows": 108,
     "by_finding": {
-      "none": 45,
-      "gap": 22,
-      "unregistered": 28
+      "none": 59,
+      "unregistered": 28,
+      "gap": 21
     },
     "by_owner_class": {
-      "science_param": 66,
-      "runtime_policy": 20,
+      "science_param": 74,
+      "runtime_policy": 25,
       "cli_surface": 6,
       "resource_binding": 3
     },
     "by_registration": {
+      "none": 49,
+      "plugin_doc": 24,
+      "phase_config": 10,
       "inputs_block": 8,
-      "none": 50,
       "defaults_json": 6,
-      "phase_config": 9,
-      "plugin_doc": 11,
-      "contracts_doc": 3,
       "cli": 6,
+      "contracts_doc": 3,
       "cpu_profile": 2
-    }
+    },
+    "plugin_knobs": 108
   },
   "filter_name_policy": {
     "source_of_truth": "config/filters.json#lookup",
@@ -1683,12 +1873,12 @@
     "declared_negatives": [
       {
         "literal": "bader r",
-        "where": "ASTROCS_DESIGN.md:130",
+        "where": "ASTROCS_DESIGN.md:144",
         "must": "REJECT"
       },
       {
         "literal": "bader v",
-        "where": "ASTROCS_DESIGN.md:132",
+        "where": "ASTROCS_DESIGN.md:146",
         "must": "REJECT"
       },
       {
@@ -1802,9 +1992,10 @@
       "tests/integration",
       "tests/oracle",
       "tests/realdata",
-      "tests/system"
+      "tests/system",
+      "tests/validation"
     ],
-    "test_index_known_unregistered_note": "CFG-002 只闭合 tests/config 的登记（任务卡 6.7 / 本卡项5）；上列 5 个目录在 tests/test_index.csv 中缺席（编制时实测，均有测试源但无登记行），属 QA/测试线登记缺口，已登记为交接项。机器门要求「未登记集合 == 本清单」：新增 tests/** 目录必须先登记（fail-closed），清单缩小时必须同步。",
+    "test_index_known_unregistered_note": "CFG-002 只闭合 tests/config 的登记（任务卡 6.7 / 本卡项5）；上列 5 个目录在 tests/test_index.csv 中缺席（编制时实测，均有测试源但无登记行），属 QA/测试线登记缺口，已登记为交接项。机器门要求「未登记集合 == 本清单」：新增 tests/** 目录必须先登记（fail-closed），清单缩小时必须同步。 追加 tests/validation：RELEASE-02 验证工作区（L4/M16 真实数据验收与论文实验），由 RELEASE-02 控制包建立。",
     "gate": "机器门断言：①contracts/config/** 与 config/** 无同名文件、无重复 schema 定义；②DOCUMENT_INDEX 中 CONFIG_CONTRACT.md 恰一次且 ACTIVE_NORMATIVE；③tests/test_index.csv 登记 tests/config，且「未登记目录集合 == test_index_known_unregistered」（fail-closed）；④config/** 下不得出现 *.schema.json（防第二事实源）。"
   },
   "cpu_profile_kernel_link": {
@@ -1824,8 +2015,7 @@
         "token": "5.0"
       },
       {
-        "ref": "docs/science/REJECTION.md:55-61",
-        "token_line": 56,
+        "ref": "docs/science/REJECTION.md:66",
         "token": "4.0/3.0/8"
       },
       {
@@ -1845,7 +2035,7 @@
         "token": "20000"
       },
       {
-        "ref": "docs/science/DRIZZLE.md:21",
+        "ref": "docs/science/DRIZZLE.md:23",
         "token": "pixfrac"
       },
       {

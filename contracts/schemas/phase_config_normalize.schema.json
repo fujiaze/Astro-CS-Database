@@ -121,7 +121,14 @@
         },
         "sparse_snr_layer": {
           "type": "boolean",
-          "description": "启用稀疏帧内 SNR 层（ASTROCS_DESIGN.md §3.4:161-164；默认 false 见 §3.3 示例）"
+          "default": true,
+          "description": "是否产出稀疏帧内 SNR 层（Phase1 标准层，插入 HiPS 文件内）。默认 true：负责人 2026-09-19 裁决「默认稀疏路径要求稀疏层默认产出」（change-claim FIX-SCI-SNR-CANON-001 §3.2；docs/plugins/algorithms_phase1/07_noise_snr.md:112、08_drizzle.md:46）。本键只决定「是否产出稀疏层」，不决定 Phase2 走哪条重建路径（那是 mosaic 的 snr_path）——一个字段只承载一个含义（docs/design/UNIFIED_MODEL.md §2）。数值默认的机器可读承载 = 本 schema 的 default 与 config/templates/normalize.phase_config.json；不复制进 config/defaults.json（config/config_registry.json#rules.no_second_source：phase_config 行以本 schema 为唯一事实源）。"
+        },
+        "sparse_snr_spacing_px": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 64,
+          "description": "稀疏 SNR 层控制点间隔 Δ（px），即负责人 2026-09-19 裁决的「稀疏层密度」像素域表述（GAP_AUDIT §9.45：「64 可以了，够密且占用空间可控」）：默认 Δ = 64 px，复用 Phase2 UPM 的 8×8/tile 控制网格（二者同一套几何）⇒ Δ = hips.tile_width / 8 = 512 / 8 = 64（config/defaults.json#hips.tile_width = 512）；实测 SNR 场相关长度 ℓ = 48 px ⇒ Δ/ℓ = 1.33（近临界采样，够密）。单位 px，非「点/度²」；与文档侧 07_noise_snr.md:113 的 sparse_snr_density（点/度²、pending_authority）不是同一字段（后者数值仍无 SCI/ALG 权威，本键不改其状态）。数值默认同时登记于 config/defaults.json#sparse_snr.spacing_px 与 config/templates/normalize.phase_config.json（三处同值 64）。"
         },
         "algorithm_drizzle_pixfrac": {
           "type": "number",

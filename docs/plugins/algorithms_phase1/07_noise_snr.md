@@ -111,6 +111,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref)² / F_ref²   ⇒  F_ref 为组内公共常数�
 | `psfsw_enable` | true | —— | 是否生产 psfsw_robust 四分量 |
 | `sparse_snr_layer` | true | —— | 是否产出稀疏帧内 SNR 层。**本期决议默认产出**（默认稀疏路径；负责人 2026-09-19 裁决） |
 | `sparse_snr_spacing_px` | 64 | px | 稀疏层控制点间隔 Δ。**负责人 2026-09-19 定案 Δ=64px**（复用 Phase2 UPM 8×8/tile 控制网格；依据：实测 SNR 场相关长度 ℓ=48px ⇒ Δ/ℓ=1.33 近临界）。旧键 `sparse_snr_density`（单位 点/度²）保留登记但**不再承载本量**（守「一个字段只承载一个含义」） |
+| `sparse_snr_density` | —— | 点/度² | **已退役（保留登记，不再承载任何量）**：原稀疏层控制点密度。负责人 2026-09-19 定案改用 `sparse_snr_spacing_px`（守「一个字段只承载一个含义」）；本行仅为登记册一一对应与「未定案」联锁缺口留痕，**禁止在生产配置中使用**。 |
 | `snr_path` | `sparse_reconstruct` | —— | SNR 重建路径：`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`；三条路径精度对比为论文核心实验（判据 SP-0） |
 
 ## 6. 接口/ABI
