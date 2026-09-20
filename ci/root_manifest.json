@@ -98,6 +98,7 @@
     "resource_summary.json",
     "worker_balance.csv"
   ],
+  "ignored_patterns_extra_note": "外部只读数据集（ENGINEERING_SPEC §7：只读引用/不入库/不被 CMake 引用/不被检查器当仓库内容）",
   "ignored_patterns": [
     "build",
     "out",
@@ -107,7 +108,8 @@
     "AstroCS.wiki",
     "GaiaDR3",
     "GaiaDR3SP",
-    "BASS DR3"
+    "BASS DR3",
+    "HST_M16"
   ],
   "registered_local_retention": [
     {
@@ -127,12 +129,6 @@
       "class": "F2",
       "owner_task": "GOV-001",
       "note": "保留（登记，禁删）：在用的待整改台账（REBASE_TABLE.md 785 条 + 本轮 28 条归属处置）；按任务卡「只能登记不能删」。"
-    },
-    {
-      "path": "cli",
-      "class": "F2",
-      "owner_task": "ARCH-001",
-      "note": "§7 要求 CLI 归 lib/infrastructure/cli/（GAP-003）。**[W4-A3 改锚] 当前存量 = 1 个文件 cli/CMakeLists.txt（git 跟踪），是 ROOT-008 迁移后遗留的旧 build 文件：不在构建图（根 CMakeLists.txt 无 add_subdirectory(cli)，0 命中），且其引用的 cli/version_generated.h.in 已不存在。判据侧已由 W4-A3 退役三条 CLI_CMAKE_REL 相关判据（ci/check_version.py）。剩余动作：物理删除 cli/ 归 W4-A9 INT-001；删除同批必须同时移除本条登记（否则变悬空登记，同 ENGINEERING_SPEC §8）。"
     }
   ],
   "notes": {

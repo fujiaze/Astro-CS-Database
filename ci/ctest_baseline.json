@@ -17,6 +17,7 @@
     "modules/conformance/echo/CMakeLists.txt",
     "modules/conformance/noop/CMakeLists.txt",
     "tests/unit/CMakeLists.txt",
+    "tests/unit/p1snr/CMakeLists.txt",
     "tests/unit/p1wcs/CMakeLists.txt"
   ],
   "targets": [
@@ -146,6 +147,7 @@
     "p1sess_properties",
     "p1sess_selfcheck",
     "p1sess_units",
+    "p1snr_fref_baseline",
     "p1star_negative",
     "p1star_oracle",
     "p1star_performance",

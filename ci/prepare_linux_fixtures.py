@@ -30,7 +30,7 @@ import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-AIO = REPO / "lib" / "astro_image_io"
+AIO = REPO / "lib" / "infrastructure" / "aio"
 OUT_DIR = Path("/tmp/mon001_run_out")
 CFG = REPO / "run" / "temp" / "mon001_cfg.json"
 HIPS = REPO / "run" / "temp" / "FIELD.hips"
@@ -72,15 +72,15 @@ def build_fixture(tmp: Path) -> None:
         AIO / "src" / "aio_api.cpp",
         AIO / "src" / "aio_log.cpp",
         AIO / "src" / "aio_compressor.cpp",
-        REPO / "lib" / "common" / "healpix" / "healpix_core.cpp",
+        REPO / "lib" / "algorithms" / "shared" / "healpix" / "healpix_core.cpp",
     ]
     incs = [
         f"-I{REPO / 'include'}",
         f"-I{AIO / 'include'}",
         f"-I{AIO / 'src'}",
         f"-I{cdir}",
-        f"-I{REPO / 'lib' / 'common'}",
-        f"-I{REPO / 'lib' / 'common' / 'healpix'}",
+        f"-I{REPO / 'lib' / 'algorithms' / 'shared'}",
+        f"-I{REPO / 'lib' / 'algorithms' / 'shared' / 'healpix'}",
     ]
     exe = tmp / "fixture"
     r = _run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,

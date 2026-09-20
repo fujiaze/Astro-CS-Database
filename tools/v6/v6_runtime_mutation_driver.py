@@ -60,9 +60,19 @@ MUTATIONS = [
      '        {"benchmark", true, {}},\n        {"pipeline", true, {"--config"}},'),
     # W4-A3 改绑：phase2 阶段的用户命令名 = mosaic（ASTROCS_DESIGN §2:317）；
     # R2 现读 command_tree.h，故注入点随之改到 mosaic 的旗标表。
+    #
+    # RELEASE-02 改绑（2026-09-19，GATE-RED-FIX）：**语义不变**，仍注入
+    # 「phase2(mosaic) 丢失 --mode 显式模式旗标」。原锚点尾部 '--mode"}},' 已因
+    # §8/21_observability §8.4 资源门 enforce 旗标落地（command_tree.h:85-87 mosaic
+    # 行新增 --strict-resource-gate / --on-resource-gate）而失配：anchor matched
+    # 0 times ⇒ mutation_driver 判「漏检」，V6-RUNTIME-CLOSURE/V6-NEGATIVE-MUTATION
+    # 双红。按注入锚维护惯例（同 W4-A3 两处改绑）把锚点同步到新形态：注入后
+    # mosaic 的 allowed 仍缺 --mode，Oracle 规则 R2-phase2-mode-flag
+    # （v6_runtime_oracle.py::rule_r2_cli_flags，"--mode" in flags）必须判红；
+    # 可检出性由本驱动的 CLEAN_TREE(必绿) + 逐条注入(必红) 自证。
     ("phase2-mode-flag-dropped", "lib/infrastructure/cli/command_tree.h",
-     '                             "-y", "--yes", "-force", "--events-jsonl", "--cpu-profile",\n                             "--mode"}},',
-     '                             "-y", "--yes", "-force", "--events-jsonl", "--cpu-profile"}},'),
+     '                             "-y", "--yes", "-force", "--events-jsonl", "--cpu-profile",\n                             "--mode", "--strict-resource-gate", "--on-resource-gate"}},',
+     '                             "-y", "--yes", "-force", "--events-jsonl", "--cpu-profile",\n                             "--strict-resource-gate", "--on-resource-gate"}},'),
     ("per-thread-metric-dropped", "lib/infrastructure/cli/resource_recorder.h",
      "    double per_thread_cpu_max_pct = 0.0; // 单线程区间 CPU / interval × 100",
      "    double deleted_metric_placeholder = 0.0;"),

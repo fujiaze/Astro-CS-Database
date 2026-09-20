@@ -84,9 +84,12 @@ def main():
                     m = re.search(r"omp_set_num_threads\(\s*(\d+)\s*\)", code)
                     if m: errors.append(f"{rel}:{ln} OMP 线程数硬编码")
     # GLOB 禁令
-    cmake = (REPO / "cli" / "CMakeLists.txt").read_text(encoding="utf-8", errors="ignore")
+    # ROOT-008 收口：CLI 归 lib/infrastructure/cli/（根 cli/ 已退役并物理删除，GAP-003/§7）。
+    # 旧路径使本检查 FileNotFoundError 恒红。
+    cmake = (REPO / "lib" / "infrastructure" / "cli" / "CMakeLists.txt").read_text(
+        encoding="utf-8", errors="ignore")
     for m in re.finditer(r"file\(GLOB[^)]*\)", cmake):
-        errors.append(f"cli/CMakeLists.txt GLOB: {m.group(0)[:40]}")
+        errors.append(f"lib/infrastructure/cli/CMakeLists.txt GLOB: {m.group(0)[:40]}")
     if errors:
         print("QA-002_VIOLATION:")
         for e in errors: print("  " + e)

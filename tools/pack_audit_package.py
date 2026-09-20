@@ -30,7 +30,9 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 OUT = REPO / "artifacts/prerelease_v5"
 
 # 顶层贡献: 这些路径作为"代码"或"证据"收录
-CODE_TOPS = {"cli", "include", "lib", "tools", "tests", "contracts/schemas", "docs"}
+# ROOT-008 收口：根 cli/ 已退役并物理删除（GAP-003/§7，CLI 归 lib/infrastructure/cli/）。
+# 旧条目使 pack scope 读到不存在路径 ⇒ CHK-SECRET-HYGIENE 记 file_unreadable 恒红。
+CODE_TOPS = {"include", "lib", "tools", "tests", "contracts/schemas", "docs"}
 EVIDENCE_TOPS = {"reports", "工程控制/RELEASE_V5", "artifacts/prerelease_v5/AUDIT_REVIEW",
                  "artifacts/prerelease_v5/tables"}
 ROOT_FILES = {"VERSION", "README.md", "AGENTS.md", "build.sh", "toolchain.ps1", "CHANGELOG.md",

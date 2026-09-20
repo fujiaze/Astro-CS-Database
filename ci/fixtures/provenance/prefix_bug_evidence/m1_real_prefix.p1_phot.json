@@ -1,0 +1,20 @@
+{
+  "apply_entry": "calibration::apply_photometry",
+  "entry": "astrocs_phase1_photometry_v1",
+  "n_frames": 2,
+  "node": "astrocs.phase1.photometry",
+  "operation": "measure_flux",
+  "photoapplied_artifacts": [
+    "/workspace/Astro CS Database/run/RELEASE-02/p1-phot-fix2/norm/m1_real_prefix/photoapplied_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+    "/workspace/Astro CS Database/run/RELEASE-02/p1-phot-fix2/norm/m1_real_prefix/photoapplied_M42_M1_T2_flying_dutchman-20251224@031410-300S-Red.fts"
+  ],
+  "photometry_applied": true,
+  "photscal": 6.272202992543341e-17,
+  "photscale_source": "gaia_star_matcher_tukey_irls",
+  "photscales": {
+    "M42_M1_T2_flying_dutchman-20251212_012404-300S-Red": 6.272202992543341e-17,
+    "M42_M1_T2_flying_dutchman-20251224_031410-300S-Red": 5.685037392078662e-17
+  },
+  "pixel_scaling": "applied",
+  "schema": "DATA-P1-PHOTPROV-001"
+}

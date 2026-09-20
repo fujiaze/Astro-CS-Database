@@ -151,3 +151,9 @@ FATDUCK_ACCESS.md
 # 运行/CI 产物（ROOT-007 裁决：artifacts/ 不归档不保留；CI 产物不入库）
 /artifacts/ci/
 /artifacts/**/*.zip
+
+# 论文工作区：仅本地留痕，不上传（负责人 2026-09-19 令）
+run/RELEASE-02/paper/
+
+# 外部只读数据集（RELEASE-02：HST WFC3/UVIS M16 三帧 drz，公开 HLSP）
+HST_M16/

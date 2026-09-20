@@ -27,6 +27,32 @@
       "evidence": [
         "lib/infrastructure/cli/parser.cpp:304"
       ]
+    },
+    {
+      "id": "dead_config_key:snr_path",
+      "kind": "dead_key",
+      "reason": "config/templates/mosaic.phase_config.json#config.snr_path 在生产源码零命中（lib/** 无带引号的 snr_path token；hp_drizzle_api 的同名形参不是配置读取面）。键本身已由合同登记：contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path（enum dense/sparse_reconstruct/frame_reconstruct，默认 sparse_reconstruct）+ config/defaults.json#snr.path（owner_adjudicated，enum_token/enum_target）。实现跟随项已登记于变更 claim FIX-SCI-SNR-CANON-001 §4.2（Phase1 三路径产出 + Phase2 消费点）与 GAP_AUDIT §9.46（Phase2 默认消费稀疏层）。另：CLI lib/infrastructure/cli/parser.cpp 的 kSessionKeys 白名单尚未含本键 ⇒ 按现实现会被判 unknown key 退出 3（与 RELEASE-02 SD-15 同类），属同一实现跟随项。",
+      "owner": "负责人裁决 2026-09-19（GAP_AUDIT §9.45/§9.46）+ 分片 SNR-CONFIG-LAND（FIX-SCI-SNR-CANON-001 §4.1 落地）",
+      "exit_condition": "Phase2 叠加现场按 snr_path 消费/重建 SNR（含无稀疏层时显式记录 snr_path_effective、损坏层 fail-closed）出现生产读取点后删除本条；同时 CLI kSessionKeys 补 snr_path 使配置可达",
+      "template": "config/templates/mosaic.phase_config.json",
+      "evidence": [
+        "contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path",
+        "config/defaults.json#fields[].key=snr.path",
+        "工程控制/RELEASE-02/change-claims/FIX-SCI-SNR-CANON-001.md §4.2"
+      ]
+    },
+    {
+      "id": "dead_config_key:sparse_snr_spacing_px",
+      "kind": "dead_key",
+      "reason": "config/templates/normalize.phase_config.json#config.sparse_snr_spacing_px 在生产源码零命中。键已由合同登记：contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_config/properties/sparse_snr_spacing_px（integer >= 1，default 64）+ config/defaults.json#sparse_snr.spacing_px（owner_adjudicated，GAP_AUDIT §9.45：Δ = 64 px，复用 Phase2 UPM 8×8/tile 控制网格）。Phase1 稀疏层生产者（含控制点网格）为登记未实现的跟随项（FIX-SCI-SNR-CANON-001 §4.2）。另：CLI kSessionKeys 白名单尚未含本键 ⇒ 现实现判 unknown key 退出 3。",
+      "owner": "负责人裁决 2026-09-19（GAP_AUDIT §9.45）+ 分片 SNR-CONFIG-LAND（FIX-SCI-SNR-CANON-001 §4.1 落地）",
+      "exit_condition": "Phase1 按 sparse_snr_spacing_px 生成稀疏控制点 SNR 层（复用 UPM 8×8/tile 网格）出现生产读取点后删除本条；同时 CLI kSessionKeys 补 sparse_snr_spacing_px 使配置可达",
+      "template": "config/templates/normalize.phase_config.json",
+      "evidence": [
+        "contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_config/properties/sparse_snr_spacing_px",
+        "config/defaults.json#fields[].key=sparse_snr.spacing_px",
+        "工程控制/RELEASE-02/change-claims/FIX-SCI-SNR-CANON-001.md §4.2"
+      ]
     }
   ]
 }
