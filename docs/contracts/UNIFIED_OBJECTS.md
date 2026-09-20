@@ -120,8 +120,8 @@ MOD-001 的 `docs/modules/MODULE_MAP.yaml` 引用 22 个 DATA ID，其中 7 个�
 | 配置类 | 语义 | schema owner | 字段名命名空间 | 禁止混入 |
 |---|---|---|---|---|
 | `phase_config` | 科学参数 / 输入输出 / 算法选择；可跨机器复现；禁止出现任何硬件调优字段 | CFG-001 | `^sci_[a-z0-9_]+$`；`^(input|output)_[a-z0-9_]+$`；`^algorithm_[a-z0-9_]+$`；`^phase_name$` | `isa`、`isa_level`、`workers`、`worker_count`、`block`、`block_size`、`cpu_model`、`cpu_vendor`、`thread_budget`、`affinity_mask` |
-| `cpu_profile` | ISA / workers / block / 机器绑定；仅 benchmark 生成；缓存于程序安装目录；无 profile → 保守运行不阻塞 | CFG-001 | `^isa(_[a-z0-9_]+)?$`；`^(workers|worker_count)$`；`^block(_[a-z0-9_]+)?$`；`^cpu_[a-z0-9_]+$`；`^thread_budget$`；`^profile_hash$` | `sci_algorithm_id`、`sci_rejection_profile`、`sci_weight_mode`、`algorithm_choice` |
-| `run_manifest` | 本次运行冻结：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本；不承载科学参数与硬件调优 | CFG-001 | `^manifest_(input|output)_hashes$`；`^software_sha$`；`^config_hash$`；`^toolchain_[a-z0-9_]+$`；`^run_id$` | `isa`、`workers`、`block`、`sci_algorithm_id`、`sci_weight_mode` |
+| `cpu_profile` | ISA / workers / block / 机器绑定；仅 benchmark 生成；缓存于程序安装目录；无 profile → 保守运行不阻塞 | CFG-001 | `^isa(_[a-z0-9_]+)?$`；`^(workers|worker_count)$`；`^block(_[a-z0-9_]+)?$`；`^cpu_[a-z0-9_]+$`；`^thread_budget$`；`^profile_hash$` | `sci_algorithm_id`、`sci_rejection_profile`、`algorithm_choice`（原示例 `sci_weight_mode` 已删 （已按 §9.73 A44 作废：键不存在；权重是派生量）） |
+| `run_manifest` | 本次运行冻结：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本；不承载科学参数与硬件调优 | CFG-001 | `^manifest_(input|output)_hashes$`；`^software_sha$`；`^config_hash$`；`^toolchain_[a-z0-9_]+$`；`^run_id$` | `isa`、`workers`、`block`、`sci_algorithm_id`（原示例 `sci_weight_mode` 已删 （已按 §9.73 A44 作废：键不存在；权重是派生量）） |
 
 硬规则：三类配置的字段名模式两两互斥（不得共用字段名承载不同含义）；`cpu_profile` 的硬件字段出现在 `phase_config` 即 REJECT。
 机器断言：`tests/contracts/test_unified_object_contract.py::TestConfigSeparationAnchors`。

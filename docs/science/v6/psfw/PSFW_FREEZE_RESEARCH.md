@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # SCI-PSFW-001 — PSF Signal Weight 冻结研究（W_info / PixInsight-style PSFSW / PSF SNR power / 共同星集与 selection bias）
@@ -228,7 +230,7 @@ Oracle K8 用同一合成星场（6000 颗，`10²..10⁵` 通量，CCD 方程�
 - 本项目 `SCI-PSFW-001` §4 表：`psf_snr_power` **不能**自动等同 Fisher 最优；
 - `00_READ_FIRST.md` 规定它"只有在 SCI-PSFW 冻结后才可进入生产"——本任务即为是否冻结该资格的输入；
 - 独立证据（K6）：在同一 PSF 核 64 个最亮像素上，matched-filter 权重 `f/σ²` 与 ratio-of-powers 权重 `f²/σ²` 的方向余弦 = **0.932**（< 0.999），两种加权**不是**同一算子；
-- 冻结建议：**建议有条件允许** `psf_snr_power` 进 Phase2 生产，作为**独立于 `psfsw_robust` 的第三模式**，但必须 (a) 单独登记为 `weight_mode=psf_snr_power`；(b) 其归一常数与截断版本化；(c) 验收只允许"在指定数据上优于指定基线"的声明；(d) 不得借用 PSFSW 的四分量或选择门来**继承**合法性。若 `SCI-ADJ-001`/`CONTRACT-FREEZE-001` 认为证据不足，则保持 `psf_snr_power` 为 `NOT_IMPLEMENTED` 并显式 `unavailable`（**这是本任务唯一要求控制器裁决的冻结项**，见 §11）。
+- 冻结建议：**建议有条件允许** `psf_snr_power` 进 Phase2 生产，作为**独立于 `psfsw_robust` 的第三模式**，但必须 (a) 单独登记为 `weight_mode=psf_snr_power`；(b) 其归一常数与截断版本化；(c) 验收只允许"在指定数据上优于指定基线"的声明；(d) 不得借用 PSFSW 的四分量或选择门来**继承**合法性。若 `SCI-ADJ-001`/`CONTRACT-FREEZE-001` 认为证据不足，则保持 `psf_snr_power` 为 `NOT_IMPLEMENTED` 并显式 `unavailable`（**这是本任务唯一要求控制器裁决的冻结项**，见 §11）。（已按 §9.73 A44 作废：该概念不存在）
 
 ---
 
@@ -278,7 +280,7 @@ Oracle K8 用同一合成星场（6000 颗，`10²..10⁵` 通量，CCD 方程�
 |---|---|---|
 | `docs/science/v6/phase2/WEIGHT_PROVENANCE_GATE.md`（SCI-P2-001，HEAD `192fab35`） | 其 R3 把 `median_source_snr/support/coverage/fwhm/residual` 列为禁止的权重来源；其 R5 要求 `psfsw_robust units=dimensionless_relative` + `group_normalized=true` + 共同星集 `n_common≥3`；其 R6 要求 `variance_from ∈ {combination_coefficients,…}` | **一致**：本任务 P9/P10/P12/P17 与其同源（`SCI-PSFW-001` §3/§4/§5/§8、`RULINGS.md` #3/#4/#5） |
 | 同上，token 词表 | 该门用 `weight.kind` / `weight.units="dimensionless_relative"` / `group_normalized`；本门用 `weight_kind="relative_dimensionless"` / `weight_units="1"` / `normalization.scope="group"` | **接口差异（须 SCHEMA-INTEGRATE-001 归一）**，见 §11-R2 |
-| `docs/design/PHASE2_DETAILED_DESIGN.md` §6.3（只读上位） | 要求 `weight_mode=psfsw_robust` 与 `point_information`/`surface_gls` 并列、covariance 从实际组合系数传播、输出 effective PSF、与等权/exposure/pixel-ivar/`W_info` 比较 | 本任务 §4/§5 完全覆盖，无偏差 |
+| `docs/design/PHASE2_DETAILED_DESIGN.md` §6.3（只读上位） | 要求 `weight_mode=psfsw_robust` 与 `point_information`/`surface_gls` 并列、covariance 从实际组合系数传播、输出 effective PSF、与等权/exposure/pixel-ivar/`W_info` 比较 | 本任务 §4/§5 完全覆盖，无偏差 |（已按 §9.73 A44 作废：该概念不存在）
 | `SCI-P2-001` open item 4（PSFSW 指数/归一常数版本由 wave 3 冻结） | 本任务 §4.3 只给**结构**，未定数值 | **一致**：本任务不越界定数值 |
 
 ---
@@ -321,7 +323,7 @@ Oracle K8 用同一合成星场（6000 颗，`10²..10⁵` 通量，CCD 方程�
 | R1 | `psf_snr_power` 是否解冻进 Phase2 生产 | 若不裁决，wave 3 `ALG-P2-*` 无法确定模式集合；若误当 Fisher 最优会污染科学声明 | 建议**有条件解冻**（§6）；若控制器要求更强证据，保持 `NOT_IMPLEMENTED` + `unavailable` |
 | R2 | 与 `SCI-P2-001` 权重来源门的 schema 词表不一致（`weight_kind/weight_units/normalization.scope` vs `weight.kind/weight.units/group_normalized`） | 两套门各自 PASS 但互相不认，集成时漏检 | 由 `SCHEMA-INTEGRATE-001`（W6）统一为**单一** schema；本任务给出双向 token 映射（§8） |
 | R3 | F1 基线分歧未裁决（16 回退 + 10 删除） | 本任务生产面判定以 HEAD 为准；若最终基线取工作树，`lib/algorithms/noise_snr/wrapper_phase1/snr_frame_coefficient.*` 等删除态会改变"现状" | 控制器先裁决 F1；科学结论（§3–§6）与回退无关，仍然成立 |
-| R4 | 帧级 `median(SNR_F)` 系数的现状定位 | HEAD 存在 `value = median(SNR_F)` 的帧级系数；若被任何消费者当权重即违反 P17 | 建议在 `CONTRACT-FREEZE-001` 显式把它登记为**诊断/深度表达**，禁止进入 `weight_mode` 权重面 |
+| R4 | 帧级 `median(SNR_F)` 系数的现状定位 | HEAD 存在 `value = median(SNR_F)` 的帧级系数；若被任何消费者当权重即违反 P17 | 建议在 `CONTRACT-FREEZE-001` 显式把它登记为**诊断/深度表达**，禁止进入 `weight_mode` 权重面 |（已按 §9.73 A44 作废：该概念不存在）
 | R5 | PixInsight 式子的"三输入 vs 本项目四分量"结构差异 | 若下游误以为本项目公式必须与 PixInsight 逐字一致，会误删独立分量 | 已在 §4.1 登记；建议 `CONTRACT-FREEZE-001` 原样保留该登记与 `pixinsight_psfsw_compat` 另名规则 |
 | R6 | 共同星集深度稳定性阈值（< 5%）与 `n_common` 下限（≥ 3） | 本任务给出的数值是建议，不是冻结门；若被直接当冻结门即属越界 | 交 `ALG-P2-PSFSW-001`（W3）定值，本任务不擅改容差 |
 | R7 | 四分量空间非均匀性的"拆 tile"判据 | `SCI-PSFW-001` §6 要求"显著非均匀时拆"，但未给阈值 | 交 `ALG-P2-PSFSW-001`（W3）定值 |

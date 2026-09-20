@@ -16,9 +16,9 @@
 | `px` | `pixel_count`（该子域像素数） | `scalars[0]` |
 | `depth` | `stack_depth`（候选深度） | `scalars[sizeof_t]` |
 | `p0` | tile 内偏移（`inv.scalars`） | `scalars+p0` |
-| `wmode` | `weight_mode`（0 legacy / 1 equal / 2 ivar） | `scalars+wmode` |
+| `wmode` | ~~`weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量）（历史分支号 0 legacy / 1 equal / 2 ivar 为实现事实） | `scalars+wmode` |
 | `mosaic_reject_legacy` | CPU reference launcher（逐像素 `rejection+integrate`） | `acr_kernels.cpp` |
-| `weight_mode=2 (ivar)` | 逐像素 ivar 产品权重 | `stage2_common.cpp:378` |
+| 纯逆方差（逐像素 ivar）权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） | 逐像素 ivar 产品权重 | `stage2_common.cpp:378` |
 | `ACR-IVAR-001` | ivar 时 ACR 块禁用 → CPU canonical | `stage2_common.cpp:391` |
 
 ## 3 物理量和单位
@@ -29,8 +29,8 @@
 
 - `inv.buffers` 含 `buffer0=out signal`, `buffer1=values` 必备，否则 `throw runtime_error`；`buffer2/3/4/5/6` 可空（`support/snr/out_sup/out_rej/out_valid`）。
 - `scalars` 须 `px>0 && depth>0`，否则 `throw`；`method/underdetermined_n/sigma_lower+upper/max_iterations/p0/wmode` 均有缺省（`1u/2u/-4.0/3.0/8/0/0`）。
-- `weight_mode=2 (ivar)` 时 `ACR` 块禁用，走 CPU `canonical p2_integrate_pixel` 路径（`ACR-IVAR-001`），不进入 `GPU/Mixed` 分块。
-- `weight_mode∈{auto,ivar,equal,support_x_snr2}`，`acr_route∈{auto,cpu}`（`auto==cpu` 语义，见 `stage2_common.cpp:391-392`）。
+- 纯逆方差（逐像素 ivar）权重时 `ACR` 块禁用 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），走 CPU `canonical p2_integrate_pixel` 路径（`ACR-IVAR-001`），不进入 `GPU/Mixed` 分块。
+- 历史权重分支 `{auto,ivar,equal,support_x_snr2}` （已按 §9.73 A44 作废：键不存在；权重是派生量），`acr_route∈{auto,cpu}`（`auto==cpu` 语义，见 `stage2_common.cpp:391-392`）。
 
 ## 5 连续定义
 
@@ -49,7 +49,7 @@
     GPU kernel 后续在 profile 后添加但不改变语义。
 
 失败回退 (不得改变科学语义):
-  ivar 生产路径 (weight_mode==2) → 强制 CPU canonical (ACR-IVAR-001)
+  ivar 生产路径（纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））→ 强制 CPU canonical (ACR-IVAR-001)
   无画像/无画像信任 (model_available≠model_trusted) → OpenMP fallback (acr memory.md: BDR Reviewed)
   候选栈 non-finite / UNDERDETERMINED / ALL_REJECTED 等冻结语义在任意设备上一致
 ```
@@ -66,7 +66,7 @@
 
 - **分块不变量**：任意 `split`（含 `1×total` 与 `N×1` 极端）`signal/support` 等价。
 - **设备不变量**：`cpu_only` vs 单设备 `gpu_only` vs `mixed`（同 `total_pixels`）结果等价。
-- **回退不变量**：回退到 CPU 的结果与直接 CPU 一致，无相位内 `weight_mode` 偷换。
+- **回退不变量**：回退到 CPU 的结果与直接 CPU 一致，无相位内权重分支偷换 （已按 §9.73 A44 作废：键不存在；权重是派生量）。
 - **常量场不变量**：常数 `values=C` 时 `signal=C` 与设备/分块无关。
 
 ## 8 极端/退化条件
@@ -75,7 +75,7 @@
 |---|---|---|
 | `px==0` / `depth==0` | `throw runtime_error missing scalars` | `acr_kernels.cpp` |
 | 缺 `buffer0/1` | `throw missing buffers` | 同上 |
-| `weight_mode=2` (ivar) | 禁 ACR，CPU canonical | `ACR-IVAR-001` |
+| 纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） | 禁 ACR，CPU canonical | `ACR-IVAR-001` |
 | 无画像信任 | OpenMP fallback | `acr memory.md BDR` |
 | 非有限 candidate | `INVALID_INPUT` 一致 | `integrate.cpp` |
 
@@ -90,7 +90,7 @@
 ## 10 不可接受变化
 
 - 在 `GPU/Mixed` 分块中改变 `rejection` 阈值/归一化/large_scale 语义；
-- 在 `weight_mode=2` 时仍走 `GPU` 分块（违反 `ACR-IVAR-001`）；
+- 在纯逆方差权重时仍走 `GPU` 分块 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（违反 `ACR-IVAR-001`）；
 - 将 `status` 的 `UNDERDETERMINED/INVALID` 语义改写为设备相关；
 - 以放宽 `1e-6/1e-12` 容差掩盖分块越界或 `p0` 错位。
 
@@ -98,7 +98,7 @@
 
 - **CPU/GPU/Mixed 等价门**：同 `total_pixels` 的 `cpu_only vs gpu_only vs mixed(2/4/8 splits)` 的 `signal max_abs ≤ 1e-6`、`support exact`（`synthetic_gate` 变种）。
 - **分块不变量门**：`1×N` vs `N×1` 切分结果等价。
-- **回退门**：`weight_mode=ivar` 的 `ACR` 强制 CPU 与纯 CPU `canonical` 等价（`ivar_wiring_test`）。
+- **回退门**：纯逆方差（ivar）权重的 `ACR` 强制 CPU 与纯 CPU `canonical` 等价 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（`ivar_wiring_test`）。
 - **流量守恒门**：常数场 `C` 的 `signal==C` 与分块无关。
 - **Python 参考**：NumPy 对同分块的 `rejection+integrate` 复算 `signal/support`（`rtol 1e-9`）。
 
@@ -110,7 +110,7 @@
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/ACR_EQUIVALENCE.md` (SCI-ACR-EQUIV-001)
-- 实现: `lib/algorithms/coverage/src/acr_kernels.cpp` (`kOpMosaicReject, mosaic_reject_legacy`), `lib/algorithms/coverage/src/stage2_common.cpp` (`weight_mode/ACR-IVAR-001`), `lib/infrastructure/acr/scheduler/*` (Dispatcher/Profile)
+- 实现: `lib/algorithms/coverage/src/acr_kernels.cpp` (`kOpMosaicReject, mosaic_reject_legacy`), `lib/algorithms/coverage/src/stage2_common.cpp` (权重分支 （已按 §9.73 A44 作废：键不存在；权重是派生量）/`ACR-IVAR-001`), `lib/infrastructure/acr/scheduler/*` (Dispatcher/Profile)
 - 公开 API: `register_phase2_acr_kernels, kOpMosaicReject`
 - 测试: `TST-ACR-001` CPU/GPU等价、`TST-ACR-INV-001` 分块不变量、`TST-ACR-FAIL-001` 极端回退（新增/映射见 `docs/TRACEABILITY.csv`）
 

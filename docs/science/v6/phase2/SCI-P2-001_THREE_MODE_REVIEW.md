@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # SCI-P2-001 主正文 — point_information / surface_gls / psfsw_robust 独立复核
@@ -174,7 +176,7 @@ effective PSF 与对等权/exposure/pixel-ivar/`W_info` 基线的比较。
 | `point_information`/`surface_gls`/`psfsw_robust` 字面量在生产面 0 命中 | `oracle/probe_production_surface.py`（16/16 PASS，rc=0） | **NOT_IMPLEMENTED** |
 | `P2PixelResult` 仅 `signal`/`support`/`n_used`/计数，无 variance/covariance/effective PSF | `git show HEAD:lib/algorithms/coverage/include/astro/phase2/integrate.h` | 偏差（§9 输出族未达成） |
 | `p2_integrate_pixel` 只做加权均值 `Σwv/Σw`，无 `AᵀC⁻¹A`、无 Q/W | `git show HEAD:lib/algorithms/coverage/src/integrate.cpp` | 偏差 |
-| `weight_mode` 只接受整数 {1=equal, 2=ivar}，显式拒绝 0（legacy SNR） | `git show HEAD:lib/infrastructure/scheduler/src/module_adapters.cpp`（HEAD `module_adapters.cpp:4368-4379`） | 与三模式集不相交 |
+| `weight_mode` 只接受整数 {1=equal, 2=ivar}，显式拒绝 0（legacy SNR） | `git show HEAD:lib/infrastructure/scheduler/src/module_adapters.cpp`（HEAD `module_adapters.cpp:4368-4379`） | 与三模式集不相交 |（已按 §9.73 A44 作废：该概念不存在）
 | 跨 Phase 交换矩阵无 `point_information`/`psfsw`/`effective_psf` 字段 | `git show HEAD:contracts/data/phase_product_exchange_matrix.json` | 偏差（`UNIFIED` §9 最小合同未达成） |
 
 结论与 `run/v6/base/gap_baseline.md` §1 一致：三模式在 HEAD **全部不可达**，是 Wave 3→4→5→8 全链新建的科学能力，

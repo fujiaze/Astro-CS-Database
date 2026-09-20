@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # 10 — 迁移建议、开放项与需裁决/签字项（只登记不擅改）
@@ -15,7 +17,7 @@
 | MIG-NORM-DRIZZLE | `w_jp=a_jp/A_drop`（pf<1 时 `S_p=B0/pixfrac²`） | 面亮度保持 `S_p=Sum_j B_j a_jp/Sum_j a_jp` + `flux_conservation_factor` | legacy 归一须带版本；缺 factor 禁用于绝对通量 | W4 + 负责人 | `FZ-FORMULA-DRIZZLE-SB`；`FZ-COND-FLUX-CONSERV`；SO-02 |
 | MIG-PSFSW-VOCAB | SCI-PSFW 词表 `weight_kind/weight_units/normalization.scope` 与 SCI-P2 词表 `weight.kind/weight.units/group_normalized` | W6 归一为单一 schema（**已归一**：canonical = `weight.kind` / `weight.units` / `weight.group_normalized`。旧写法「本提案两词表并存互映，不发明第三套」**已作废**——2026-09-20，依据 `W6_SCHEMA_INTEGRATION.md:29,38,104` + `contracts/data/v6_weight_vocabulary_v1.json`（`status=PRODUCTION_INTEGRATED`）） | 自创第三套词表 → REJECT（**已归一之后**；旧写法「**归一前**自创第三套词表 → REJECT」中的「归一前」已作废——2026-09-20，同上） | W6 | ADJ-C004-03；ADJ-S1 |
 | MIG-COVARIANCE-PRODUCT | DRIZZLE §1/§9a「协方差产品为非目标」；只存对角 variance | 协方差/相关核为强制输出面（对角+rho/算子摘要） | 只对角无核/近似误差 → REJECT | W4 + 负责人 | ADJ-AR-02；`FZ-GATE-PARENT-VAR`；SO-04 |
-| MIG-DIAGNOSTIC-NOT-WEIGHT | median(SNR_F)/support/coverage/FWHM/residual 作权重（SCI-CW weight_mode=2 等） | 仅诊断/深度/门 | 诊断别名出现在 weight.sources/weight_value/variance_from → REJECT | W4 | `FZ-GATE-MEDIAN-SNR`/`-SUPPORT-COVERAGE`；ADJ-C004-02 |
+| MIG-DIAGNOSTIC-NOT-WEIGHT | median(SNR_F)/support/coverage/FWHM/residual 作权重（SCI-CW weight_mode=2 等） | 仅诊断/深度/门 | 诊断别名出现在 weight.sources/weight_value/variance_from → REJECT | W4 | `FZ-GATE-MEDIAN-SNR`/`-SUPPORT-COVERAGE`；ADJ-C004-02 |（已按 §9.73 A44 作废：该概念不存在）
 | MIG-SCHEMA-OWNER | 生产 schema 仅 `phase_product_exchange.schema.json` plane_id={signal,support,variance,ivar,mask} | W6 并入本提案对象（W_info/psfsw/effective PSF/covariance 描述层） | science plane 枚举扩展须 schema 与 runtime validator 同一提交 | W6 | F-UNC-003；DATA_SEMANTICS §30.2 |
 
 ## 2. 开放项（本任务只登记，不定值/不擅改）
@@ -42,7 +44,7 @@ HEAD=`28e0ac6c` 已集成 `ALG-P2-PSFSW-001` 与 `ALG-P2-POINT-001`（`git log 1
 
 **字面量差已由 W6 落定（2026-09-20 订正）**：canonical = 冻结字面量 `"1"`（`FZ-UNIT-PSFSW`/`FZ-FIELD-PSFSW-UNIT`），`SCI-P2-001` 权重来源门 R5 的 `dimensionless_relative` 仅作 **reader 别名**（旧写法「**唯一需 W6 落定的字面量差**」已作废，依据 `W6_SCHEMA_INTEGRATION.md:34`）。
 本设计取 canonical `"1"`；**归一已完成**，`dimensionless_relative` 只存在于迁移层 reader 规则（不再有 `units_alias_sci_psfw` 字段），第三套词表仍禁止（旧写法「使两套既有词表在 **W6 归一前**互相可认（`C25-dual-vocabulary` 结构门；不发明第三套）」已作废，依据 `W6_SCHEMA_INTEGRATION.md:34,38,39`）。
-`exposure` 只作 `baseline_id` 比较协议字段、不是 `weight_mode` 合法值，与 PSFSW 规格 §3 一致。
+`exposure` 只作 `baseline_id` 比较协议字段、不是 `weight_mode` 合法值，与 PSFSW 规格 §3 一致。（已按 §9.73 A44 作废：该概念不存在）
 
 ## 3. 需负责人签字项（只登记，不擅改；来自 SCI-ADJ-001 §7）
 

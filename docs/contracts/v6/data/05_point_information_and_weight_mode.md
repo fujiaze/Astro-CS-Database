@@ -1,6 +1,8 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
 
-# 05 — W_info（point_information）与 weight_mode 对象 schema
+# 05 — W_info（point_information）与 weight_mode 对象 schema（已按 §9.73 A44 作废：该概念不存在）
 
 上位锚：`FZ-FORMULA-WINFO/Q/FHAT`、`FZ-COND-WHITENOISE`、`FZ-GATE-MEDIAN-SNR`、`FZ-GATE-SUPPORT-COVERAGE`、`FZ-DEGRADE-SCALAR`；
 `FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE`；UNIFIED §4/§4.1/§11；PSF_SIGNAL_WEIGHT §2/§4；ADJ-P2-01/ADJ-S1/ADJ-C004-01/02/03；C-004.1/2/3。
@@ -33,7 +35,7 @@ FZ-COND-WHITENOISE（条件式，仅 C 对角且 sigma_pix 声明时）:
 **最优性前提（全部满足才可声明 BLUE / 最大点源 SNR / 最小通量方差）**：模型正确、P 归一 ΣP=1、C 正确且可表示、高斯或 CRLB 意义、目标为点源。
 仅有 Drizzle 后逐像素 ivar **无法重建** W_info（会丢 PSF/协方差）；相关帧简单求和必须被拒（Oracle C3 过度乐观比 1.575）。
 
-## 2. weight_mode 语义（三面互斥，ADJ-S1）
+## 2. weight_mode 语义（三面互斥，ADJ-S1）（已按 §9.73 A44 作废：该概念不存在）
 
 | 面 | 取值 | 说明 |
 |---|---|---|
@@ -72,7 +74,7 @@ C-004.3 / ADJ-C004-03：schema 词表由 SCHEMA-INTEGRATE-001(W6) 归一。本�
 
 `weight-mode.v1.parameter_effectiveness` 要求：声明的权重参数必须
 `applied_in_combination_coefficients=true` 且 `applied_in_effective_psf=true`。
-仅把 `weight_mode` 写进配置/日志而不影响实际组合系数与 effective PSF → REJECT（`G-PARAMETER-EFFECTIVENESS`）。
+仅把 `weight_mode` 写进配置/日志而不影响实际组合系数与 effective PSF → REJECT（`G-PARAMETER-EFFECTIVENESS`）。（已按 §9.73 A44 作废：该概念不存在）
 这是对 review-audit AR-048「R9 装饰性合规」在本设计面的直接闭合要求。
 
 ## 6. fail-closed 与负向门

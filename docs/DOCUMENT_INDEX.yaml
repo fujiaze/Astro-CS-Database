@@ -656,7 +656,7 @@ doc_index:
     - path: "docs/contracts/v6/data/04_psf_and_effective_psf.md"
       status: ACTIVE_NORMATIVE
       doc001_note: "DOC-001：V6 产品族冻结/设计档案，仍被活动合同（docs/contracts/DATA_SEMANTICS.md §31、PUBLIC_API.md「V6 消费面」、UNIFIED_OBJECTS.md）引用，故保留活动索引；文中 工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/** 为历史任务溯源（该控制包已由 ROOT-007 删除），不作现状引用"
-    - path: "docs/contracts/v6/data/05_point_information_and_weight_mode.md"
+    - path: "docs/contracts/v6/data/05_point_information_and_weight_mode.md"  # （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（文件名保留：v6 合同层去留见 DESIGN-DRAFT §4.2-Q2）
       status: ACTIVE_NORMATIVE
       doc001_note: "DOC-001：V6 产品族冻结/设计档案，仍被活动合同（docs/contracts/DATA_SEMANTICS.md §31、PUBLIC_API.md「V6 消费面」、UNIFIED_OBJECTS.md）引用，故保留活动索引；文中 工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/** 为历史任务溯源（该控制包已由 ROOT-007 删除），不作现状引用"
     - path: "docs/contracts/v6/data/06_psfsw.md"

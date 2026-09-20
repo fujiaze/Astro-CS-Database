@@ -13,7 +13,7 @@
 ```text
 F1: split不变: Σ px_i = total_pixels, p0_i连续不重叠 → 任意分块等价 (SCI-ACR)
 F2: legacy launcher: per-pixel rejection+integrate逐位等价, signal=Σw·x/Σw, support=max
-F3: weight_mode=2 ivar → CPU canonical禁用ACR (ACR-IVAR-001)
+F3: 纯逆方差(ivar)权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） → CPU canonical禁用ACR (ACR-IVAR-001)
 F4: 容差: float32 max_abs ≤1e-6, float64 ≤1e-12; support/rejection exact
 ```
 
@@ -31,7 +31,7 @@ function cpu_gpu_equiv(inv, split):
   for each split {px_i,p0_i}: legacy(inv subset) → concat signal/support
   assert split科学输出 ≡ cpu_only(inv) within tolerance
 
-Fallback: if weight_mode==2 → cpu_only; if !model_trusted → OpenMP fallback
+Fallback: if 纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） → cpu_only; if !model_trusted → OpenMP fallback
 ```
 
 ## 4 边界/NaN/Inf
@@ -66,7 +66,7 @@ Fallback: if weight_mode==2 → cpu_only; if !model_trusted → OpenMP fallback
 
 ## 10 关联 ARC/API/TST
 
-- API: acr_kernels.h: kOpMosaicReject, stage2_common.h: weight_mode
+- API: acr_kernels.h: kOpMosaicReject, stage2_common.h: 权重分支 （已按 §9.73 A44 作废：键不存在；权重是派生量）
 - TST: TST-ACR-* 等价/分块/回退
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐

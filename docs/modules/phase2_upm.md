@@ -153,7 +153,7 @@ SCI-P2-UPM-002/ALG-P2-UPM-002/DATA-P2-COR/TEST-P2-UPM-002；
 DISP-P2UPM-004=descriptor 端口占位语义 persist→reload（ports 静态
 声明与内核 probe/fill 语义的桥接未验证）。配置=P2UpmBuildConfig 16
 字段（upm.h:71-92；production 默认单一来源=p2_session.cpp:183-199:
-robust_loss=0 huber、snr_weight_mode=0 snr2_normalized、
+robust_loss=0 huber、upm_weight_source=0 snr2_normalized（原 snr_weight_mode，（已按 §9.73 A44 作废：键不存在；权重是派生量））、
 huber_delta=1.345、max_iterations=100、tolerance=1e-6、
 target_order=coverage 实测、sigma_floor=1e-3、support_power=1.0、
 use_ivar_weight=1、control_reliability=1.0；upm/smoothing_lambda/

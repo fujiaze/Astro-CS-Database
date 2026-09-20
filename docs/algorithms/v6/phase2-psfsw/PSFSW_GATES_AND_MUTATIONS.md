@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
 
 # PSFSW 门目录与负向 mutation 册
@@ -64,7 +66,7 @@ no_common_star_set | background_nonpositive_undefined_transform | insufficient_v
 | m14 | `independence_proof=per_frame_threshold_intersection` | G09 |
 | m15 | 分量非均匀 `(p95−p05)/p50=0.45` | G18 |
 | m16 | 生产模式列表加入 `psf_snr_power` | G20 |
-| m17 | `weight_mode=0`（legacy support×snr²） | G21 |
+| m17 | `weight_mode=0`（legacy support×snr²） | G21 |（已按 §9.73 A44 作废：该概念不存在）
 | m18 | `covariance.variance_from="psfsw_robust_weight"` | G06 |
 | m19 | `group_normalized=false` | G03 |
 | m20 | `concentration` 用 `fwhm` 代替（`component_source="fwhm"`） | G04/G22 |
@@ -82,7 +84,7 @@ m04_inject_ivar_key             m05_covariance_from_weight      m06_normalizatio
 m07_version_empty               m08_no_common_star_set          m09_invalid_with_weight_value
 m10_valid_with_reason           m11_no_effective_psf            m12_n_common_below_min
 m13_depth_fail                  m14_independence_per_frame      m15_nonuniformity_wide
-m16_psf_snr_power_in_production m17_legacy_weight_mode_0        m18_variance_from_weight_token
+m16_psf_snr_power_in_production m17_legacy_weight_mode_0        m18_variance_from_weight_token（已按 §9.73 A44 作废：该概念不存在）
 m19_group_not_normalized        m20_concentration_is_fwhm       m21_normalization_removed
 m22_cnorm_breaks_invariance     m23_calibration_eq_acceptance   m24_fisher_optimal_claim
 m25_sample_derived_stars        m26_unjustified_fail_closed

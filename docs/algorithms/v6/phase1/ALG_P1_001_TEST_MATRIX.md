@@ -1,5 +1,7 @@
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
 
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 # ALG-P1-001 测试矩阵（Phase1 算法实施规格）
 
 - 文档 ID：`ALG-P1-001-TEST-MATRIX`
@@ -43,7 +45,7 @@
 | `T-DRZ-06` | drizzle | structural | 父级 tile variance 归约 | lower_bound=true + 相关核/算子摘要 + deficit 门；否则 variance 面 unavailable | `FZ-GATE-PARENT-VAR` | `ADJ-F-OBS-03;  FZ-GATE-PARENT-VAR` |
 | `T-DRZ-07` | drizzle | boundary | pixfrac 非法 / RING / 多通道 / 缺 WCS | 显式拒绝，不夹逼（ALG-DRZ-001） | `FZ-GATE-CONST-SB` | `SCI-DRZ-001 §4/§8;  ALG-DRZ-001 §5` |
 | `T-DRZ-08` | drizzle | unit | 写盘 BUNIT | signal 与 variance 满足二次律；单位不可判 -> unavailable/REJECT | `G-STRUCT-UNIT-LAW` | `FZ-BUNIT-SEMANTICS;  FZ-P3-BUNIT-QUADRATIC` |
-| `T-X-01` | cross | structural | 生产权重模式枚举 | {point_information, surface_gls, psfsw_robust}；psf_snr_power/legacy 0/auto/support_x_snr2 出现即红 | `G-MODE-PRODUCTION` | `FZ-MODE-PRODUCTION;  C-004.1;  ADJ-S1` |
+| `T-X-01` | cross | structural | 生产权重口径枚举 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） | {point_information, surface_gls, psfsw_robust}；psf_snr_power/legacy 0/auto/support_x_snr2 出现即红 | `G-MODE-PRODUCTION` | `FZ-MODE-PRODUCTION;  C-004.1;  ADJ-S1` |
 | `T-X-02` | cross | structural | 冻结条目继承集 | inherited_frozen_ids 不得缺失任一条 | `G-STRUCT-FREEZE-INHERIT` | `SCI-ADJ-001 FREEZE_LIST §4` |
 | `T-X-03` | cross | structural | 禁止权重来源 token | token 集完整；出现在 weight.sources/weight_value/covariance.variance_from 即红 | `G-STRUCT-FORBIDDEN-TOKENS` | `FZ-GATE-MEDIAN-SNR;  FZ-GATE-SUPPORT-COVERAGE` |
 

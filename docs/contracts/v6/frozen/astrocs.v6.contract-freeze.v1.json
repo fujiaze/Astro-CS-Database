@@ -1,4 +1,5 @@
 {
+ "_a44_deprecation_banner": "本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念不存在（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。内容保持历史原样、仅作留痕，不构成现行规范；权重 = 阶段二按天球像素对应帧集合现场算出的派生量。",
  "freeze_schema": "astrocs.v6.contract-freeze/v1",
  "freeze_id": "CONTRACT-FREEZE-001",
  "task": "工程控制/AstroCS_PARALLEL_SCIENCE_IMPLEMENTATION_V6_20260915/tasks/CONTRACT-FREEZE-001.md",
@@ -68,7 +69,7 @@
    "ivar_unit": "1/BUNIT^2"
   }
  ],
- "weight_modes": {
+ "_a44_deprecation_note": "weight_modes 已按 §9.73 A44 作废（该概念不存在；权重是阶段二按像素集合现场算的派生量）", "weight_modes": {
   "production": [
    "point_information",
    "surface_gls",
@@ -214,7 +215,7 @@
    "support",
    "coverage"
   ],
-  "production_weight_mode_forbidden_values": [
+  "_a44_deprecation_note_forbidden": "production_weight_mode_forbidden_values 已按 §9.73 A44 作废（该概念不存在）", "production_weight_mode_forbidden_values": [
    "psf_snr_power",
    "auto",
    "support_x_snr2",
@@ -666,7 +667,7 @@
    "id": "FZ-MODE-PRODUCTION",
    "kind": "mode",
    "layer": "science",
-   "subject": "生产科学权重模式",
+   "subject": "生产科学权重口径 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）",
    "value": "point_information | surface_gls | psfsw_robust",
    "scope": "Phase2 配置/路由",
    "anchor": "PROJECT_SPEC §5; PSF_SIGNAL_WEIGHT §4; C-004.1; ADJ-S1",
@@ -714,13 +715,13 @@
    "id": "FZ-FIELD-WEIGHTMODE",
    "kind": "field",
    "layer": "data",
-   "subject": "weight_mode 语义",
+   "subject": "weight_mode 语义（已按 §9.73 A44 作废：该概念不存在）",
    "value": "显式三模式; legacy 整数 {0=support x snr^2,1=equal,2=ivar} 被取代; 0 不得进科学权重面; schema 词表归 W6",
    "scope": "Phase2",
    "anchor": "ADJ-S1; C-004.3; UNIFIED §11",
    "gate": "schema 词表未归一前不得发明第三套",
    "fail_closed": "legacy 整数 0 进科学权重面、未知模式、或发明第三套词表 → REJECT",
-   "negative_mutation": "weight_mode=0（support×snr²）→ rc!=0",
+   "negative_mutation": "weight_mode=0（support×snr²）→ rc!=0（已按 §9.73 A44 作废：该概念不存在）",
    "status": "FROZEN",
    "owner_signoff": null,
    "signoff_reason": null,
@@ -2598,9 +2599,9 @@
    "id": "SUP-05",
    "doc_id": "SCI-CW-001..008",
    "file": "docs/science/CONTROL_WEIGHT_SNR.md",
-   "section": "§ 像素级 SNR 权重（weight_mode=2）",
+   "section": "§ 像素级 SNR 权重（weight_mode=2）（已按 §9.73 A44 作废：该概念不存在）",
    "lines": "66,71",
-   "statement": "`weight_mode=2`；`weights[s] = support[s] × snr_v²`（support×SNR² 作像素级权重）",
+   "statement": "`weight_mode=2`；`weights[s] = support[s] × snr_v²`（support×SNR² 作像素级权重）（已按 §9.73 A44 作废：该概念不存在）",
    "superseded_by": [
     "FZ-MODE-PRODUCTION",
     "FZ-FIELD-WEIGHTMODE",
@@ -2616,7 +2617,7 @@
    "file": "docs/science/ACR_EQUIVALENCE.md",
    "section": "§4 GPU 合同",
    "lines": "33",
-   "statement": "`weight_mode∈{auto,ivar,equal,support_x_snr2}`",
+   "statement": "`weight_mode∈{auto,ivar,equal,support_x_snr2}`（已按 §9.73 A44 作废：该概念不存在）",
    "superseded_by": [
     "FZ-FIELD-WEIGHTMODE",
     "FZ-MODE-PRODUCTION"

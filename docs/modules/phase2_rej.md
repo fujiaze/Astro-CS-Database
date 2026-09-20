@@ -55,7 +55,7 @@ downstream: [TEST-P2-REJ-001]
 - 工作域归一 NONE/MEDIAN_CENTER/MEDIAN_SCALE（floor 1e-12，不除零）；
   mask 应用回原始 calibrated 值（经 source_indices 回映射）。
 - 非职责：不合并/积分样本（P2-INT 下游）；不做权重策略（weights
-  数组外置，构造在 Stage2 weight_mode；RCR 核消费同栈 weights 数组
+  数组外置，构造在 Stage2 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；RCR 核消费同栈 weights 数组
   属官方加权语义，非策略）；不做像素外结构重建（large_scale 仅对
   已拒 mask 做 8 邻域扩张，只增不减）；无 session 依赖（无状态纯
   函数）；不做瞬变/卫星语义区分（SCI §1 非目标）；单帧无排异

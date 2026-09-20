@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **ARCHIVED_NON_NORMATIVE** — GOV-002 归档历史技术文档，不再作为当前权威。
 > 替代文档：docs/development/CONFIG_SCHEMA.md
 
@@ -26,13 +28,13 @@
 ```json
 {
   "integration": {
-    "weight_mode": "ivar",
+    "weight_mode": "ivar",（已按 §9.73 A44 作废：该概念不存在）
     "rejection": { "method": "auto", "profile": "wbpp_2_9_1" }
   }
 }
 ```
 
-`weight_mode` 枚举: `ivar` (默认) / `equal` / `support_x_snr2` (legacy)。
+`weight_mode` 枚举: `ivar` (默认) / `equal` / `support_x_snr2` (legacy)。（已按 §9.73 A44 作废：该概念不存在）
 `profile` canonical 为 `wbpp_2_9_1` (alias 名仅代码层兼容, 文档统一 canonical)。
 
 ## 环境变量

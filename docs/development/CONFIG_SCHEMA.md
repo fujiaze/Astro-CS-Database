@@ -18,7 +18,7 @@ model: control_grid_per_tile(8) patch_radius_leaf(2) min_samples(5)
        background_catalog_veto(1)
        huber_delta(1.345) smoothing(auto→0.1) zero_anchor_weight(1e-3)
        max_irls_iterations(100) tolerance(1e-6) sigma_floor(1e-3)
-       support_power(1.0) robust_loss(huber) snr_weight_mode(snr2_normalized)
+       support_power(1.0) robust_loss(huber) upm_weight_source(snr2_normalized)  # 原 snr_weight_mode，（已按 §9.73 A44 作废：键不存在；权重是派生量）
 integration: precision(fp32) memory_limit_mb rejection{method
              none|sigma|winsorized_sigma|averaged_sigma|linear_fit|
              generalized_esd|rcr|percentile|median_sigma|minmax|auto
@@ -41,7 +41,7 @@ integration: precision(fp32) memory_limit_mb rejection{method
              rcr{technique ss_median_dl}
              （low/high/max_iterations/min_samples 已删除（V17 硬错误），
               旧 config 必须 tools/migrate_stage2_config.py 迁移）}
-             weight_mode(auto) acr_route(cpu/auto)
+             weight_mode(auto) acr_route(cpu/auto)   # （已按 §9.73 A44 作废：键不存在；权重是派生量）
 
 rejection.method 说明（V17 True Final Freeze）：
   - production 默认 `method=auto` + `profile=astrocs_adaptive_pixel`

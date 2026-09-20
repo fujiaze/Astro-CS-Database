@@ -1,5 +1,7 @@
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 # `ALG-P1-001` — Phase1 V6 算法实施规格（calibration covariance / PSF information / PSFSW 四分量 / Drizzle）
 
 - 文档 ID：`ALG-P1-001-PHASE1-ALG`
@@ -278,7 +280,7 @@ Phase1 的 depth_m5 与 source_snr 为诊断/深度表达，不得作权重来�
 
 `BUNIT` 必须量纲可判：显式含 px 幂次（canonical `ADU/px²` 与 `ADU²/px⁴`），或 `BUNIT = ADU` 时 provenance 声明 ¤`pixel_semantics` = surface_brightness¤、¤`pixel_area_power` = -2¤ 与目标像素面积；缺声明 = 单位不可判 → unavailable / REJECT（`FZ-BUNIT-SEMANTICS`）。
 
-### 5.3 权重模式枚举
+### 5.3 ~~权重模式~~ 枚举 **已作废** （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
 
 生产科学模式 = `{point_information, surface_gls, psfsw_robust}`；文档基线模式 = `{equal, pixel_ivar}`（仅基线比较，非科学最优）；延迟模式 = `{psf_snr_power}`（DEFERRED / NOT_IMPLEMENTED，不进 V6 生产路由，控制器 C-004.1）。legacy 整数 `{0 = support×snr², 1 = equal, 2 = ivar}` 被取代，`0` 不得进任何科学权重面。未知模式 / auto / support_x_snr2 出现即 REJECT（`FZ-MODE-PRODUCTION` / `FZ-MODE-DEFERRED` / `ADJ-S1`）。
 

@@ -117,7 +117,7 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes（:16）。
 3. **p2_session_run**（:100-248）：parse（:103-110，失败文案
    "config parse failed (validate first)"）→ hips 装配（:111-114）→
    预算日志（:115-117）→ 四段（§3）。常量面（:184-194 冻结首版值）：
-   robust_loss=0（huber）、snr_weight_mode=0（snr2_normalized）、
+   robust_loss=0（huber）、upm_weight_source=0（snr2_normalized （已按 §9.73 A44 作废：键不存在；权重是派生量））、
    huber_delta=1.345、max_iterations=100、tolerance=1e-6、
    sigma_floor=1e-3、support_power=1.0、use_ivar_weight=1、
    control_reliability=1.0、target_order=cov 实测值（:189）；config

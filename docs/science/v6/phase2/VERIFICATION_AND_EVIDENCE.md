@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。
 
 # SCI-P2-001 验证与证据（命令 / rc / 结果）
@@ -55,7 +57,7 @@
 |---|---|
 | Phase2 生产源码/头文件无 point_information / surface_gls / psfsw_robust / psf_information_weight / psfsw_robust_weight / W_info / effective_psf 字面量 | 命中 = {}（全部为空） |
 | `P2PixelResult` 只含 signal/support/n_used/计数，无 variance/covariance/effective PSF | 成立 |
-| `module_adapters.cpp` 只接受 `weight_mode ∈ {1,2}` 并拒绝 0 | 成立（`"weight_mode must be integer (1=equal, 2=ivar)"` 命中） |
+| `module_adapters.cpp` 只接受 `weight_mode ∈ {1,2}` 并拒绝 0 | 成立（`"weight_mode must be integer (1=equal, 2=ivar)"` 命中） |（已按 §9.73 A44 作废：该概念不存在）
 | 交换矩阵无 point_information / psfsw / effective_psf | 成立 |
 
 结论：HEAD 三模式 **NOT_IMPLEMENTED**（与 `gap_baseline.md` §1 一致），实现责任在 Wave 5/8，本复核不据此判 FAIL。

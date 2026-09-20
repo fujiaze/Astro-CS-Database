@@ -52,7 +52,7 @@ Var(F_hat_k) = 1/W_k
 
 ## 4.1 PSF Signal Weight 双轨
 
-AstroCS 同时支持严格 `psf_information_weight` 与可选 `psfsw_robust_weight`。后者不是 QA-only：它可在 Phase2 的 `weight_mode=psfsw_robust` 中驱动 conventional coadd，但无量纲、组内相对、必须使用共同星集/selection-function 门，并从实际组合系数另行传播 covariance。完整定义见 `docs/science/PSF_SIGNAL_WEIGHT.md`。
+AstroCS 同时支持严格 `psf_information_weight` 与可选 `psfsw_robust_weight`。后者不是 QA-only：它可在 Phase2 显式选择 `psfsw_robust` 口径时驱动 conventional coadd （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），但无量纲、组内相对、必须使用共同星集/selection-function 门，并从实际组合系数另行传播 covariance。完整定义见 `docs/science/PSF_SIGNAL_WEIGHT.md`。
 
 ## 5. 扩展源最优统计
 

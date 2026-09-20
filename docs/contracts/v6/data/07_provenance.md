@@ -1,3 +1,5 @@
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
 # 07 — provenance 对象 schema（最小集 / 共享系统项 / k_corr / 降级 / unavailable）
@@ -23,7 +25,7 @@
 | `approximations[]` | 近似清单 | PROJECT_SPEC §3 |
 | `degradations[]` | 降级记录（见 §4） | `FZ-DEGRADE-SCALAR` |
 | `normalization_version` | Drizzle/psfsw 归一版本 | SC-ADJ-F02 |
-| `weight_mode_version` | 权重模式版本 | `FZ-FIELD-WEIGHTMODE` |
+| `weight_mode_version` | 权重模式版本 | `FZ-FIELD-WEIGHTMODE` |（已按 §9.73 A44 作废：该概念不存在）
 | `correlation_summary` | 相关核/低秩/master 摘要 | `FZ-PROV-SHARED-SYSTEMATIC` |
 | `flux_conservation_factor` | pixfrac² 条件项 | `FZ-COND-FLUX-CONSERV` |
 | `k_corr` | 定义+适用域+值+标定 | `FZ-PROV-KCORR` |
