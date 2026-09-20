@@ -1,0 +1,122 @@
+{
+  "renderer": "m16_sampling",
+  "band": "F657N",
+  "shape": [
+    1024,
+    1024
+  ],
+  "canvas": {
+    "smooth_sigma_px": 0.8,
+    "subtract_percentile": 5,
+    "mask_dir": "run/reverse_verify/m16_scene/masks",
+    "flux_scale": 1,
+    "exclude_spike": false
+  },
+  "sampling": {
+    "pixel_scale_arcsec": 0.2,
+    "rotation_deg": 0,
+    "base_fwhm_px": null,
+    "resample_order": 3
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000,
+    "dark_current_e_per_s": 0.02,
+    "dark_ref_temp_c": -20,
+    "dark_double_temp_c": 6
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "tilt_x": 1,
+    "tilt_y": 0.5,
+    "vignette": 0.05,
+    "seed": 1234
+  },
+  "temp_c": -20,
+  "masters": {
+    "dark_exposure_s": 600,
+    "hot_pixel_fraction": 0,
+    "hot_seed": 4321
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 0,
+    "cr_mean_charge_e": 1000
+  },
+  "$comment": "M16-SAMPLING 场景 ④：**不同探测器滚转角**的重叠马赛克（采样几何维度）。三帧共享同一片天区画布，但探测器相对天球的滚转角不同（-10/0/+10 deg）⇒ 同一颗星落在不同探测器像素上，检验 WCS 的旋转项与重采样。",
+  "scene_id": "m16_sampling_mosaic_rotated",
+  "kind": "different_pointing_mosaic_rotated",
+  "description": "真实 M16 F657N 信号模板 -> 3 帧不同滚转角（-10/0/+10 deg，0.2\"/px）的仿真采样帧；用于检验重建链的 WCS 旋转项。",
+  "matrix_cells": [
+    "pointing:mosaic_diff_pointing",
+    "geometry:detector_rotation",
+    "band:Ha"
+  ],
+  "seed": 20261013,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3.4,
+    "beta": 4
+  },
+  "sky": {
+    "level_e_per_s": 0.7
+  },
+  "frames": [
+    {
+      "frame_id": "rt_f0",
+      "exposure_s": 400,
+      "seed": 401,
+      "dither_label": "rot_m10",
+      "pointing": {
+        "y": 1800,
+        "x": 1000,
+        "dy": 0,
+        "dx": 0
+      },
+      "sampling_rotation_deg": -10,
+      "sky": {
+        "level_e_per_s": 0.7,
+        "grad_x_e_per_s": 0.3,
+        "theta_deg": 0
+      }
+    },
+    {
+      "frame_id": "rt_f1",
+      "exposure_s": 400,
+      "seed": 402,
+      "dither_label": "rot_0",
+      "pointing": {
+        "y": 1800,
+        "x": 1000,
+        "dy": 0.5,
+        "dx": 0.25
+      },
+      "sampling_rotation_deg": 0,
+      "sky": {
+        "level_e_per_s": 1.1,
+        "grad_x_e_per_s": 0.5,
+        "theta_deg": 90
+      }
+    },
+    {
+      "frame_id": "rt_f2",
+      "exposure_s": 400,
+      "seed": 403,
+      "dither_label": "rot_p10",
+      "pointing": {
+        "y": 1800,
+        "x": 1000,
+        "dy": 0.25,
+        "dx": 0.75
+      },
+      "sampling_rotation_deg": 10,
+      "sky": {
+        "level_e_per_s": 1.6,
+        "grad_x_e_per_s": 0.7,
+        "theta_deg": 200
+      }
+    }
+  ]
+}
