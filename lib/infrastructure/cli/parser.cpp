@@ -1,8 +1,9 @@
 // astrocs CLI — parser (RT-008 拆分自 main.cpp)
 // 统一 parser + 参数校验帮助器 + CPU 指纹/hash 帮助器。
 // 定义在 namespace astrocs 外(与拆分前一致); 不 include 任何 session/科学内部头 ——
-// 只 include CLI 自身的单一声明头 session_commands.h（input_contract()/config_fields()，
-// 供 §9.71 三命令同构块结构派生键集，禁止在 parser 内手写第二份键集）。
+// 只 include CLI 自身的单一声明头 session_commands.h（input_contract()，供 §9.71
+// 三命令同构块结构派生输入判据；块内键集则与平铺形态同源 = 本文件 session_keys()，
+// 禁止在 parser 内手写第二份键集）。
 #include "cli_common.h"
 
 // CLI-001: 用户可见命令树唯一事实源（lib/infrastructure/cli/command_tree.h）。
@@ -10,7 +11,7 @@
 // 相对路径: 根 CMakeLists.txt 的 astrocs target include 目录尚未登记本模块
 // （登记属 INT-001 域），此处用工作区相对包含保证根图与 lib/infrastructure/cli/ 独立图都能编译。
 #include "command_tree.h"
-#include "session_commands.h"   // CLI-MULTIBLOCK: input_contract()/config_fields() 单一声明
+#include "session_commands.h"   // CLI-MULTIBLOCK: input_contract() 单一声明
 
 #include "sha256.h"
 #include "cpu_routing.h"
@@ -257,7 +258,7 @@ std::string local_cpu_signature() {
 //   ② 每块自带：一组 input_lights + 一套母版 + 运行参数 + 块级 output_dir；
 //   ③ 同一组校准帧和运行参数支持一组 light（不得逐帧重复写校准帧）；
 //   ④ 平铺单块简写保留（只有一块时两种写法等价），两形态互斥（同时出现 → 明确报错）。
-// 块内键 = 平铺会话键集（session_keys()）+ 块级 name；块内不得再出现 blocks。
+// 块内键 = 平铺会话键集（session_keys()）+ 块级键（block_keys()）；块内不得再出现 blocks。
 // 本文件是「结构可达性」的唯一实现：运行期 validate_config_full 与 CLI 预检
 // （subcommand.h config_structure_errors）都调本函数，禁止各写一份。
 
@@ -400,8 +401,8 @@ bool config_has_flat_session_keys(const nlohmann::json& doc) {
 //   * 每块必须有非空 input_lights（非空字符串数组）与非空字符串 output_dir（禁 silent default）；
 //   * 块间 output_dir 不得重复 —— 否则两块会写同一份 run manifest，违反
 //     「每块独立 output_dir / 独立 manifest」；
-//   * 块内未知键拒绝（键集 = 平铺会话键集 + block_keys() = {name, output_dir}）；未知键先于运行期，
-//     与顶层 unknown key 同码（3）。
+//   * 块内未知键拒绝（键集 = 平铺会话键集 session_keys() + block_keys() = {name, output_dir}）；
+//     未知键先于运行期，与顶层 unknown key 同码（3）。
 // 母版路径存在性按现有纪律：不在本函数判盘（= 平铺同款），由 CLI 预检
 // （subcommand.h input_path_errors）逐块核磁盘；-force 越过预检的后果由用户承担。
 std::vector<std::string> session_blocks_errors(const std::string& session_name,
@@ -415,18 +416,23 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
     }
     // §9.71 裁决 2：三命令同构块结构（一个块 = 输出名称 + 运行参数 + 一组输入帧）。
     // 块内键集与「输入帧键」**从单一来源派生**，禁止手写副本：
-    //   * 键集 = 该会话 config_fields() 的键 + block_keys()（name/output_dir）；
+    //   * 键集 = 平铺会话键集 session_keys() + block_keys()（name/output_dir）
+    //     —— §3.3「两形态等价」（FIX-210 D1）：块内门与平铺门必须是**同一份**键表。
+    //     旧实现用该会话 config_fields()（= --template 骨架键表）派生块内键，两门不等价：
+    //     normalize 块内曾拒绝 10 个本阶段科学键（dark_optimization / dark_scale_factor /
+    //     cosmetic / master_units / master_scale / master_flat_normalize /
+    //     master_flat_median_range / photometry / sparse_snr_layer / algorithm_psf_model），
+    //     mosaic 4 个、export 5 个；真实 testdata 多块形态因此无任何可运行配置
+    //     （留键 ⇒ rc=3 unknown key；去键 ⇒ cal 节点 fail-closed rc=2）。平铺门本身即
+    //     session_keys() 的并集，故块内门同源 = 两形态等价（机器判据见
+    //     tests/cli/test_fix210_block_key_parity.py）。
     //   * 输入判据 = input_contract(session)（数组形态 or 对象形态 + 必需子键）；
     //   * §9.73 裁决 A44（「权重模式」概念不存在）⇒ 块面不收 weight_mode /
     //     legacy_allow_weight_fallback（派生量，由 Phase2 消费 SNR 时现场算）。
+    //   * schema_version 由两形态各自单列（顶层 kAllowedKeys）⇒ 块内不收。
     const astrocs::cli::cmd::SessionId sess = astrocs::cli::cmd::session_of(session_name);
     std::set<std::string> allowed = block_keys();
-    for (const auto& f : astrocs::cli::cmd::config_fields(sess)) {
-        const std::string k = f.key;
-        if (k == "schema_version" || k == "weight_mode" || k == "legacy_allow_weight_fallback")
-            continue;
-        allowed.insert(k);
-    }
+    for (const auto& k : session_keys()) allowed.insert(k);
     const astrocs::cli::cmd::InputContract& ic = astrocs::cli::cmd::input_contract(sess);
     if (config_has_flat_session_keys(doc)) {
         errs.push_back("config mixes 'blocks' with flat single-block keys "

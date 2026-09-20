@@ -1242,7 +1242,7 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         ev.emit_final(o.rc, o.kind, nullptr, o.why);
         return o.rc;
     }
-    // 多块形态：结构校验（唯一实现 = parser.cpp session_blocks_errors，键集从 config_fields() 派生）
+    // 多块形态：结构校验（唯一实现 = parser.cpp session_blocks_errors，键集 = session_keys() ∪ block_keys()）
     int bcode = astrocs::ARGS;
     const std::vector<std::string> berrs = session_blocks_errors("mosaic", doc, &bcode);
     if (!berrs.empty()) {

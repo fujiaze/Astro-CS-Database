@@ -6,6 +6,7 @@
 #include "aio_hips.h"
 
 #include <gtest/gtest.h>
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -102,8 +103,25 @@ TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism) {
 // =====================================================================
 namespace {
 
+// 测试用临时目录（合成 fixture 根）与清理：两个用例共用同一对 I/O 原语，
+// 避免重复文件系统原语命中（AIO 边界台账对本文件的命中数**只减不增**：
+// ci/ledgers/aio_io_boundary_inventory.json#entries[5]）。
+std::string sampler_tmp_dir(const char* leaf) {
+    return (std::filesystem::temp_directory_path() / leaf).string();
+}
+
+void remove_test_dir(const std::string& dir) {
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+}
+
 // 写一帧合成 HiPS（nside=512，12 个 order-0 tile，常量信号 + 全覆盖 support）。
-bool make_synth_frame(const std::string& path, float flux) {
+// support_tiles：前 N 个 order-0 tile 带 support（kArea），其余 tile 的 support 全 0
+// —— tile 仍在文件里（coverage 的 tile 集合不变），但该帧在这些 tile 上
+// patch 有效样本 = 0 < min_samples ⇒ pass1 产生 insufficient_support 拒绝对
+// （FIX-210 D2 门的非退化输入：全覆盖 fixture 的 insuff 恒 0，门会退化成空门）。
+bool make_synth_frame(const std::string& path, float flux,
+                      std::uint64_t support_tiles = 12) {
     constexpr std::uint32_t kW = 512;
     constexpr float kArea = 1.0e-8f;
     std::error_code ec;
@@ -123,6 +141,8 @@ bool make_synth_frame(const std::string& path, float flux) {
     std::vector<float> sig((std::size_t)kW * kW, flux);
     std::vector<float> area((std::size_t)kW * kW, kArea);
     for (std::uint64_t ipix = 0; ipix < 12; ++ipix) {
+        const float a = (ipix < support_tiles) ? kArea : 0.0f;
+        std::fill(area.begin(), area.end(), a);
         AstroSphereTileView v{};
         v.parent_ipix = ipix;
         v.leaf_order = 9;
@@ -168,8 +188,7 @@ void check_bitwise_same(const P2ControlObservation& a,
 }  // namespace
 
 TEST(Phase2SamplerParallel, SyntheticFixtureBitwiseDeterminism) {
-    const std::string dir =
-        (std::filesystem::temp_directory_path() / "astrocs_p2_sampler_par").string();
+    const std::string dir = sampler_tmp_dir("astrocs_p2_sampler_par");
     const std::string p0 = dir + "/F1.hips";
     const std::string p1 = dir + "/F2.hips";
     ASSERT_TRUE(make_synth_frame(p0, 100.0f));
@@ -225,6 +244,112 @@ TEST(Phase2SamplerParallel, SyntheticFixtureBitwiseDeterminism) {
     EXPECT_EQ(s1.rejected_catalog_veto, s2.rejected_catalog_veto);
     EXPECT_EQ(s1.rejected_insufficient_support, s2.rejected_insufficient_support);
     p2_coverage_free(&cov);
-    std::error_code ec;
-    std::filesystem::remove_all(dir, ec);
+    remove_test_dir(dir);
+}
+
+// =====================================================================
+// FIX-210 D2：诊断计数在 1 worker 与 N worker 下必须**逐位一致**
+// （ASTROCS_DESIGN §8「并行开关不得改变科学数值；输出不得依赖线程调度」）。
+//
+// 根因（本任务定位）：pass1_cell() 入口 "cv = 0; ci = 0;" 把调用方传入的
+// 计数器清零；串行路径每 cell 用新局部量接收后立即累加（正确），而并行 worker
+// 把**同一个** cv/ci 复用为跨 cell 累加器 ⇒ 每个 worker 只剩最后一个 cell 的
+// 计数（真实 testdata 实测 insuff 4214 vs 322；证据见
+// run/RELEASE-03/fix/FIX-210/RECEIPT.md）。全覆盖 fixture 的 insuff 恒 0，
+// 故既有 SyntheticFixtureBitwiseDeterminism 门对该缺陷是空门。
+//
+// 断言：
+//   ① 非退化自证：fixture 必须真的产生 insufficient_support 拒绝（否则门失效）；
+//   ② 1 worker 与 N worker 的 P2SampleStats **全部字段**逐位一致；
+//   ③ 计数恒等式 candidate == accepted + Σrejected（两侧都要成立）；
+//   ④ 观测序列逐位一致（既有 check_bitwise_same）。
+// =====================================================================
+TEST(Phase2SamplerParallel, SparseSupportStatsBitwiseIdenticalAcrossWorkers) {
+    const std::string dir = sampler_tmp_dir("astrocs_p2_sampler_sparse");
+    const std::string p0 = dir + "/F1.hips";
+    const std::string p1 = dir + "/F2.hips";
+    ASSERT_TRUE(make_synth_frame(p0, 100.0f));
+    // 后 6 个 order-0 tile 的 support 全 0 ⇒ 该帧在这些 tile 的每个 union cell
+    // 上都是 insufficient_support（coverage 的 tile 集合不变，故 cov_frames 仍含它）。
+    ASSERT_TRUE(make_synth_frame(p1, 125.0f, /*support_tiles=*/6));
+
+    const char* paths[2] = {p0.c_str(), p1.c_str()};
+    P2CoverageResult cov{};
+    P2HipsInputInfo infos[2]{};
+    cov.n_inputs = 2;
+    cov.inputs = infos;
+    ASSERT_EQ(p2_coverage_build(paths, 2, &cov), 0);
+    ASSERT_GT(cov.n_union_cells, 0u);
+    std::vector<P2MocCell> cells(cov.n_union_cells);
+    cov.union_cells = cells.data();
+    ASSERT_EQ(p2_coverage_build(paths, 2, &cov), 0);
+
+    char err[512] = {0};
+    auto sample = [&](int workers, P2SampleStats* st,
+                      std::vector<P2ControlObservation>* obs) {
+        P2SamplerConfig cfg{};
+        cfg.control_grid_per_tile = 8;
+        cfg.patch_radius_leaf = 2;
+        cfg.min_samples = 5;
+        cfg.snr_search_radius_deg = 0.05;
+        cfg.cpu_workers = workers;
+        std::uint64_t n = 0, c = 0;
+        if (p2_sample_controls(&cov, paths, &cfg, nullptr, 0, &n, &c, nullptr,
+                               nullptr, 0, err, sizeof(err)) != 0)
+            return 1;
+        obs->assign(n, P2ControlObservation{});
+        if (p2_sample_controls(&cov, paths, &cfg, obs->data(), n, &n, &c, st,
+                               nullptr, 0, err, sizeof(err)) != 0)
+            return 1;
+        return 0;
+    };
+
+    P2SampleStats s1{}, sN{};
+    std::vector<P2ControlObservation> o1, oN;
+    ASSERT_EQ(sample(1, &s1, &o1), 0) << err;
+    ASSERT_EQ(sample(4, &sN, &oN), 0) << err;   // N>1 走并行分支
+
+    // ① 非退化自证：门必须踩到 insufficient_support 计数路径
+    ASSERT_GT(s1.rejected_insufficient_support, 0u)
+        << "fixture 未触发 insufficient_support ⇒ 该门为空门（判据无效）";
+
+    // ② 全部 stats 字段逐位一致（不止 insuff：veto 走同一累加器）
+    EXPECT_EQ(s1.candidate_observations, sN.candidate_observations);
+    EXPECT_EQ(s1.accepted_observations, sN.accepted_observations);
+    EXPECT_EQ(s1.rejected_insufficient_support, sN.rejected_insufficient_support)
+        << "insufficient_support 计数随 worker 数变化（FIX-210 D2 回归）";
+    EXPECT_EQ(s1.rejected_insufficient_retained, sN.rejected_insufficient_retained);
+    EXPECT_EQ(s1.rejected_bright_tolerance, sN.rejected_bright_tolerance);
+    EXPECT_EQ(s1.rejected_high_contamination, sN.rejected_high_contamination);
+    EXPECT_EQ(s1.rejected_catalog_veto, sN.rejected_catalog_veto);
+    EXPECT_EQ(s1.rejected_lt_two_clean_frames, sN.rejected_lt_two_clean_frames);
+    EXPECT_EQ(s1.accepted_controls, sN.accepted_controls);
+    EXPECT_EQ(s1.overlap_controls, sN.overlap_controls);
+
+    // ③ 计数恒等式（1 与 N 都必须精确成立）。
+    // 注：本 fixture 的 retained 计数为 0 ⇒ 不受已登记缺陷 DISP-P2SMP-002
+    // （第三遍对 reason==2 重复 ++rejected_insufficient_retained，
+    // docs/algorithms/PHASE2_SAMPLER.md §11.2）影响；该缺陷整改归 P2-SAMP-IMPL，
+    // 不在 FIX-210 范围。
+    ASSERT_EQ(0u, s1.rejected_insufficient_retained)
+        << "fixture 触发了 DISP-P2SMP-002 双计数面 ⇒ 恒等式断言需先处置该登记缺陷";
+    auto identity_gap = [](const P2SampleStats& s) -> long long {
+        const std::uint64_t rej = s.rejected_insufficient_support +
+                                  s.rejected_insufficient_retained +
+                                  s.rejected_bright_tolerance +
+                                  s.rejected_high_contamination +
+                                  s.rejected_catalog_veto +
+                                  s.rejected_lt_two_clean_frames;
+        return static_cast<long long>(s.candidate_observations) -
+               static_cast<long long>(s.accepted_observations + rej);
+    };
+    EXPECT_EQ(0, identity_gap(s1)) << "1 worker：candidate != accepted + Σrejected";
+    EXPECT_EQ(0, identity_gap(sN)) << "N worker：candidate != accepted + Σrejected";
+
+    // ④ 观测序列逐位一致
+    ASSERT_EQ(o1.size(), oN.size());
+    for (std::size_t i = 0; i < o1.size(); ++i) check_bitwise_same(o1[i], oN[i], i);
+
+    p2_coverage_free(&cov);
+    remove_test_dir(dir);
 }
