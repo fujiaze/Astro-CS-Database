@@ -84,14 +84,41 @@ constexpr int kW = 32, kH = 32;
 struct StarField {
   float bg;
   float amp;
+  double gain_e_per_adu = 1.5;   // 物理噪声过程参数（见下）
+  double read_noise_e = 5.0;
 };
+// §9.41 负责人裁决：「合成数据**必须是真实物理噪声过程**（源/天光/暗电流
+// Poisson（电子域）+ 读出 Gaussian（电子域）+ 增益量化（ADU）），**严禁**
+// 「纯加性天光」（只加常数不改噪声 = 测不出任何东西）。
+// 原 fixture 返回**无噪声**的 bg+高斯 —— 既是 §9.41 违规，也使
+// SCI-NOISE-001 §5 的稳健噪声估计正确地判为退化（无散射 ⇒ 估不出噪声）。
+// 本实现按物理链生成：电子域 Poisson(源+天光) + 电子域 Gaussian(读出)
+// → ÷gain 得 ADU。用**确定性**逐像素哈希做 PRNG（可复跑，不依赖全局 RNG 状态）。
+inline double fixture_uniform(uint32_t k) {
+  // splitmix64 → [0,1)
+  uint64_t z = static_cast<uint64_t>(k) + 0x9E3779B97F4A7C15ull;
+  z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
+  z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+  z = z ^ (z >> 31);
+  return static_cast<double>(z >> 11) * (1.0 / 9007199254740992.0);
+}
+inline double fixture_gauss(uint32_t k) {
+  // Box–Muller（两枚独立均匀）
+  const double u1 = std::max(1e-12, fixture_uniform(k));
+  const double u2 = fixture_uniform(k ^ 0xA5A5A5A5u);
+  return std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * M_PI * u2);
+}
 inline float star_field_pixel(int i, void* user) {
   auto* sf = static_cast<StarField*>(user);
   const int x = i % kW, y = i / kW;
   const double dx = static_cast<double>(x) - 16.0;
   const double dy = static_cast<double>(y) - 16.0;
-  const double g = sf->amp * std::exp(-(dx * dx + dy * dy) / (2.0 * 1.5 * 1.5));
-  return sf->bg + static_cast<float>(g);
+  const double src = sf->amp * std::exp(-(dx * dx + dy * dy) / (2.0 * 1.5 * 1.5));
+  const double lambda_e = (sf->bg + src) * sf->gain_e_per_adu;  // 电子域均值
+  // Poisson 大均值正态近似（与 tests/unit/p1_noise_test.cpp 同款约定）
+  const double e = lambda_e + std::sqrt(std::max(0.0, lambda_e)) * fixture_gauss(static_cast<uint32_t>(i) * 2u + 1u);
+  const double rn = sf->read_noise_e * fixture_gauss(static_cast<uint32_t>(i) * 2u + 2u);
+  return static_cast<float>((e + rn) / sf->gain_e_per_adu);   // 增益量化 → ADU
 }
 inline float const_pixel(int, void* user) {
   return *static_cast<float*>(user);
