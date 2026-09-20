@@ -2641,3 +2641,36 @@ frame-SNR weight chain NOT closed (unclosed_invalid_reference_flux):
 3. 退役/改写 `phase_config_normalize.schema.json` 与 `normalize.phase_config.json` 逐帧形态；
 4. 同步 `config/defaults.json`、`docs/contracts/**`、`tests/config/**` 与 `--template` 输出；
 5. **属顶层 JSON 合同变更**（负责人已当面定案，不再上呈）。
+
+### 9.69 **负责人裁决（2026-09-20）：数据流形态 = 阶段内走内存管线，阶段间落盘（选项丙）**
+
+#### 负责人原话（逐字）
+> 「需要我定的那个是**丙**。**阶段内走管线，阶段间落盘**」
+
+#### 定案
+1. **阶段内（同一命令的一次运行内）= 内存块管线**：
+   - 载体 = `PipelineFrame` + **命名块**（`AioBlock`）；
+   - 节点间**传块**，不落中间文件；
+   - **块词表即模块化接口**：新增/替换模块 = 调整块的**生产者/消费者顺序**，不改其它模块；
+2. **阶段间（normalize → mosaic → export）= 落盘**：
+   - 磁盘产品 + manifest + 哈希，**唯一交换**（与 `ASTROCS_DESIGN.md:64`/`:700` 既有条款一致）；
+3. ⇒ **现生产实现不符**：`lib/infrastructure/scheduler/src/module_adapters.cpp` 在**阶段内**也走
+   磁盘 JSON + FITS（`PipelineFrame` 仅单节点内建/销毁，drizzle 节点 `:4596-4620`），
+   **违反定案 1**；
+4. ⇒ **orchestrator 不是死代码**：`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`
+   （5,573 行）实现了定案 1 的块管线（块词表 `:3212-3213`：`data` / `star_det` /
+   `star_det_psf_compat` / `psf` / `star_measurements` / `photometric_match`），
+   **它是要接入的生产路径**；此前「删除 orchestrator/v6」的处置**作废**；
+5. ⇒ **最高设计必须补写「阶段内内存块管线」**（`PipelineFrame` 在 `ASTROCS_DESIGN.md` 现为 0 命中）——
+   这是本次割裂的**根因**：设计没写，实现就自由演化成了磁盘传输。
+
+#### 消费侧早已按本定案实现（佐证设计意图未被完全丢失）
+`lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:1018-1052` 读的是
+`aio_frame_get_block(frame, "variance")` —— **这就是内存块管线接口**；
+即**算法模块侧一直按块接口写**，是**调度侧没把块喂进去**。
+
+#### 待执行
+1. **订正最高设计**：新增「阶段内内存块管线」条款（块格式、块词表、消费顺序即模块化、
+   与阶段间落盘的边界）；
+2. **工程包**：把生产调度改为阶段内走块管线（含逐像素 variance 块）；
+3. 同步 `docs/plugins/**`、`docs/ci/**` 与全部引用点。
