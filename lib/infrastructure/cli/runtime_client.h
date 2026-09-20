@@ -20,8 +20,11 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
                               const std::string& config_json, std::string* err);
 
 // 执行一次 pipeline（同步；取消经 Runtime::cancel）
-// MON-002: cancel_ext 为可选外部协作取消源（first-10s gate 快速失败置位）——
-// 与信号 cancel_flag 等价转发 rt->cancel()，但不影响 CLI 全局取消态（exit 语义仍由 gate 判定）。
+// MON-002: cancel_ext 为可选外部协作取消源 —— 与信号 cancel_flag 等价转发 rt->cancel()，
+// 但不影响 CLI 全局取消态。
+// §9.74 裁决 10（ASTROCS_DESIGN §3.5/§6.3）: 一般性资源超限门已取消 ⇒ CLI 不再因
+// 资源判据（CPU/内存/线程）置位本取消源（原 first-10s gate 快速失败接线已退役）；
+// 参数保留为通用外部取消面，调用点当前恒传 nullptr。
 // 返回: exit code（astrocs::OK=0；科学失败=4；IO=7；...）
 int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
                  uint32_t budget, std::string* fail_reason,

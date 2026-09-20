@@ -14,7 +14,7 @@ enum ExitCode {
     IO            = 7,   // I/O 失败
     INTEGRITY     = 8,   // 输出完整性/验证失败
     CANCELLED     = 9,   // 用户取消或超时
-    RESOURCE      = 10,  // 资源利用率或内存增长门禁失败
+    RESOURCE      = 10,  // 磁盘写满 / 写盘失败（一般性资源超限门已取消：内存/CPU/线程不设门）
     INTERNAL      = 70,  // 未分类内部软件错误; 必须生成 crash report
 };
 

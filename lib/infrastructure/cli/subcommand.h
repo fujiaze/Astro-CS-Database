@@ -27,6 +27,7 @@
 #include "session_commands.h"
 
 #include "cli_common.h"   // Parsed / need_value / parse_fail / session_dispatch
+#include "disk_gate.h"    // §9.74 裁决 10: 磁盘门（唯一资源判据；跑前 warn / 运行中 fail-closed）
 #include "exit_codes.h"
 #include "jsonl.h"
 
@@ -271,6 +272,28 @@ inline std::vector<CheckLine> calibration_checks(SessionId session,
     return checks;
 }
 
+// ── §3.5「详细预估」+ §9.74 裁决 10：磁盘预检（**唯一资源判据**） ──
+//   * 预估事实（可用空间 / 预估需求下限）恒呈现（correct 行）——§3.5 要求预检页含
+//     「资源与磁盘占用预估」；
+//   * 余量不足 ⇒ **warn（不阻断）**：只进预检页，**不参与** has_error() 判定，
+//     也不改退出码；运行期写盘失败/磁盘满才 fail-closed（disk_gate.h + commands.cpp）；
+//   * 内存/CPU/线程**不设门**（本函数不产生任何此类判据）。
+// 判据唯一实现 = lib/infrastructure/cli/disk_gate.h（statvfs/GetDiskFreeSpaceEx 实测 +
+// 配置声明输入字节和）；本函数只组装预检行，不另造判据、不引入魔法字节数。
+inline std::vector<CheckLine> disk_precheck_lines(SessionId session, const nlohmann::json& doc) {
+    std::vector<CheckLine> lines;
+    const InputContract& ic = input_contract(session);
+    const std::string object_field = (ic.object_field == nullptr) ? std::string() : ic.object_field;
+    for (const auto& sc : astrocs::disk_scopes(doc, ic.key, object_field,
+                                               /*include_masters=*/session == SESSION_NORMALIZE)) {
+        const astrocs::DiskSpace sp = astrocs::disk_space_of(sc.output_dir);
+        const std::string warn = astrocs::disk_precheck_warning(sp, sc.est, sc.output_dir);
+        if (!warn.empty()) lines.push_back({"warn", warn});
+        else lines.push_back({"correct", astrocs::disk_estimate_line(sp, sc.est, sc.output_dir)});
+    }
+    return lines;
+}
+
 // 配置预检页（薄入口只给「可见性」，不做科学判定）：
 //   error    — 结构错 / 输入路径不存在或不可读（§3.5 fail-closed）/ 缺校准帧
 //   correct  — 结构可达 / 路径可达的标定帧
@@ -306,6 +329,7 @@ inline std::vector<CheckLine> precheck_config(SessionId session, const nlohmann:
             for (const auto& e : berrs) checks.push_back({"error", e});
         }
         for (const auto& c : calibration_checks(session, doc)) checks.push_back(c);
+        for (const auto& c : disk_precheck_lines(session, doc)) checks.push_back(c);
         return checks;
     }
     const std::vector<std::string> errs = config_structure_errors(session, doc);
@@ -328,6 +352,7 @@ inline std::vector<CheckLine> precheck_config(SessionId session, const nlohmann:
     if (session == SESSION_NORMALIZE) {
         for (const auto& c : calibration_checks(session, doc)) checks.push_back(c);
     }
+    for (const auto& c : disk_precheck_lines(session, doc)) checks.push_back(c);
     return checks;
 }
 
@@ -424,6 +449,10 @@ struct Subcommand {
             return astrocs::ARGS;                           // 2: 配置错
         }
         const bool assume_yes = p.flags.count("-y") > 0 || p.flags.count("--yes") > 0;
+        // §3.5（2026-09-20 裁决）: 预检 = ① 打印有没有报错 + ② 详细预估（含资源与磁盘
+        // 预估），**无论 correct / warn / error 都必须显示页面**；-y 只跳过**确认**，
+        // 不跳过页面 ⇒ 无确认交互时在此打印（有确认时由 confirm_run 打印同一份 page）。
+        if (assume_yes) std::fputs(page.c_str(), stderr);
         if (!assume_yes && !confirm_run(name, page)) {
             std::fputs(page.c_str(), stderr);
             std::fprintf(stderr, "astrocs: %s not confirmed — aborting before any product write\n",

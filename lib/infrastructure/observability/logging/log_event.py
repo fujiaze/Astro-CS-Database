@@ -20,6 +20,20 @@ import pathlib
 import re
 from typing import Any, Dict, List, Optional
 
+# ── Q6 边界（RELEASE-03 GAP_AUDIT §4.3 前置裁决）：本模块**不是**运行事件流 ──────
+# 运行事件流的唯一 schema = lib/infrastructure/cli/protocol.h（ValidateEventV1 发送侧硬闸）
+# + lib/infrastructure/cli/jsonl.h（JsonlEmitter）；其字段 = schema_version/event_id/run_id/
+# timestamp_utc/sequence/kind/severity/phase/stage/message，事件枚举键名 = kind
+# （progress/resource/artifact/backend/final），顺序键 = sequence。
+# 本模块（LOG-001「结构化日志」）的键名是 event / seq / level / schema / ts / run，
+# **不得**与运行事件流混用；两份流各用不同工件名，不得互相冒充。
+RUN_EVENT_STREAM_SCHEMA_OWNER = "lib/infrastructure/cli/protocol.h + lib/infrastructure/cli/jsonl.h"
+RUN_EVENT_STREAM_ORDER_KEY = "sequence"
+RUN_EVENT_STREAM_KIND_KEY = "kind"
+# 本合同的标识键（出现在同一行即视为两种字段命名混用 → 合同违例）
+LOG_IDENTIFYING_KEYS = ("schema", "seq", "ts", "run", "level", "event", "units",
+                        "elapsed", "diagnostic")
+
 # ── 合同标识与 schema 文件位置 ────────────────────────────────────────────────
 SCHEMA_ID = "astrocs.log.event.v1"
 SCHEMA_VERSION = "v1"

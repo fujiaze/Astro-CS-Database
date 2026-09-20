@@ -47,18 +47,20 @@ FORM_ERROR_MARKERS = ("unknown key", "mutually exclusive", "phase_config contrac
 #   ① CLI --template 的 mosaic/export 输入占位为**空**（hips_paths: [] / source.hips_dir: ""），
 #      与合同「输入必填非空」不符 ⇒ 模板产物自身不通过合同 schema，且未填路径时预检判 error
 #      「没有输入产品」。normalize 的模板用非空占位（path/to/light1.fits）⇒ 无此偏差。
-#   ② CLI --template（export）**不带 output_mode**（config_fields 里该键 json==nullptr），
+#   ② CLI --template（export）曾**不带 output_mode**（config_fields 里该键 json==nullptr），
 #      而合同与运行期都要求显式声明：旧合同 $defs.export_config.required 含 output_mode
 #      （docs/contracts/CONFIG_CONTRACT.md:81），p3 resample 节点缺键即 REJECT（FZ-P3-MODES）
-#      ⇒ 合同按 fail-closed 判必填，CLI 骨架缺值 ⇒ 登记为偏差（tests/cli/test_phase3_inprocess.py
-#      ::test_11_template_runnable_without_force 即因此红）。
-# 本表是**精确登记**（多一条/少一条都判红）。收口（lib/** 后续项，各一行）：
-#   ① 两处输入占位改非空；② kExport 的 output_mode 由 nullptr 改为 "\"surface_brightness\""
-#      （值取 config_registry.json#16_fits_output/mode.declared_default）。
+#      ⇒ 合同按 fail-closed 判必填，CLI 骨架缺值曾登记为偏差。
+#      **已收口（FIX-208，2026-09-20）**：kExport 的 output_mode 由 nullptr 改为
+#      "\"surface_brightness\""（值取 phase_config_export.schema.json 该键 description
+#      「默认 surface_brightness」+ config_registry.json:1238-1241 同源登记）⇒ 该偏差从
+#      本表**移除**（本表只减不增）。
+# 本表是**精确登记**（多一条/少一条都判红）。仍存偏差（lib/** 后续项）：
+#   ① 两处输入占位改非空（mosaic hips_paths: [] / export source.hips_dir: ""）。
 CLI_TEMPLATE_DEVIATIONS = {
     "normalize": set(),
     "mosaic": {("hips_paths", "minItems")},
-    "export": {("source", "hips_dir", "minLength"), ("required: missing 'output_mode'",)},
+    "export": {("source", "hips_dir", "minLength")},
 }
 CLI_TEMPLATE_INPUT_ERRORS = {
     "normalize": "指向的路径不存在",

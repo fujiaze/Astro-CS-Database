@@ -1,5 +1,9 @@
-// astrocs 资源利用率门禁 (MON-003) — 07 §3/§4/§5 分类+公式+first-10s 快速失败+exit 10+诊断分类
-// ABI 冻结(v1)不改公共 API; 本模块纯 CLI 侧 gate 判定。硬编码禁令: 线程数/cpus 由调用方注入。
+// astrocs 资源利用率**观测/判定** (MON-003) — 07 §3/§4/§5 分类+公式+first-10s 诊断+诊断分类
+// ABI 冻结(v1)不改公共 API; 本模块纯 CLI 侧判定。硬编码禁令: 线程数/cpus 由调用方注入。
+//
+// §9.74 裁决 10（ASTROCS_DESIGN §3.5/§6.3）: **一般性资源超限门已取消** —— 本模块的
+// 判定结果只作**记录**（resource/resource_gate 事件 + 资源产物），**不产生任何退出码**；
+// 唯一资源门 = 磁盘门（lib/infrastructure/cli/disk_gate.h，exit 10 = 磁盘写满/写盘失败）。
 //
 // 分类(07 §3): compute | memory | io | mixed(不得用 mixed 掩盖低利用率)。
 // compute 门禁: 有线程利用(selected_workers/max_active_threads) + avg_equivalent_cores 达标
@@ -50,7 +54,7 @@ enum class GateDiag {
     GlobalLockDegradation,   // N-worker 相对 1-worker 无正向加速(全局锁退化)
     CpuP50Low,               // MON-002: CPU p50 < 90%(active window>=10s)
     CpuMeanLow,              // MON-002: CPU mean < 85%(active window>=10s)
-    MemoryGrowth,            // 内存持续增长: rss_slope 超阈值(RESOURCE 门类别)
+    MemoryGrowth,            // 内存持续增长: rss_slope 超阈值(记录项; 不产生退出码)
     ProgressStall,           // 无进度(progress 停滞)
     IoWaitHigh,              // 异常 IO 等待(iowait 占比超阈值)
     // MON-001(V7 04_CPU_RESOURCE_TASKS) 逐样本判定追加(末尾追加, 不重排既有值;
@@ -243,12 +247,13 @@ inline bool gate_workload_above_floor(const GateConfig& g) {
 }
 
 // 门禁处置(记录与裁决分离):
-//   RecordOnly —— 默认。资源判据只记录/报告(resource_gate 事件 severity=warning),
-//                 不改变进程退出码(rc 语义不再由资源判据决定)。
-//   Enforced   —— --strict-resource-gate(历史复现开关, 既有测试用): 非 Ok 判定
-//                 即 error + rc=10(RESOURCE), 与变更前一致。
-// 注意: Enforced 路径**不咨询工作量下限**(它复现的就是变更前无条件判定的行为);
-// 工作量下限作用于记录面标记与外部裁决(tools/quality/resource_monitor.py --judge)。
+//   RecordOnly —— **唯一**处置。资源判据只记录/报告(resource_gate 事件 severity=warning),
+//                 不改变进程退出码。
+//   Enforced   —— **已退役**(§9.74 裁决 10 + ASTROCS_DESIGN §3.5/§6.3: 一般性资源超限门
+//                 已取消，内存/CPU/线程不设门)。枚举值保留以免破坏既有 ABI/测试引用，
+//                 但 gate_enforcement() 恒返回 RecordOnly —— CLI 面**不存在**由 CPU/内存
+//                 判据产生 rc=10 的路径（exit 10 只属磁盘写满/写盘失败，见 disk_gate.h）。
+// 注意: 工作量下限仍只作用于记录面标记与外部裁决(tools/quality/resource_monitor.py --judge)。
 enum class GateEnforcement { RecordOnly, Enforced };
 // 「判定有无违规」的统一谓词: Ok = 判过且通过; NotApplicable = 判定域不成立(未判)。
 // 二者都不是违规 —— 调用方一律用本谓词, 不得再写 d == GateDiag::Ok（那会把
@@ -257,11 +262,11 @@ inline bool gate_diag_is_violation(GateDiag d) {
     return d != GateDiag::Ok && d != GateDiag::NotApplicable;
 }
 
-inline GateEnforcement gate_enforcement(bool strict_mode, GateDiag d) {
-    // NotApplicable = 判定域不成立（显式分类, 非豁免也非失败）; 不产生 rc=10。
-    return (strict_mode && d != GateDiag::Ok && d != GateDiag::NotApplicable)
-               ? GateEnforcement::Enforced
-               : GateEnforcement::RecordOnly;
+// §9.74 裁决 10: 一般性资源超限门已取消 ⇒ 本函数恒 RecordOnly。
+// strict_mode 参数保留（调用方仍解析 --strict-resource-gate / --on-resource-gate，
+// 旗标登记为「历史复现开关，已退役」），但**不再**改变裁决；d 只影响记录内容。
+inline GateEnforcement gate_enforcement(bool /*strict_mode*/, GateDiag /*d*/) {
+    return GateEnforcement::RecordOnly;
 }
 inline const char* gate_enforcement_name(GateEnforcement e) {
     return e == GateEnforcement::Enforced ? "enforced" : "record_only";
