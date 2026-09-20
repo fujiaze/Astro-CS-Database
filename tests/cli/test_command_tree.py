@@ -38,7 +38,9 @@ FIELDS_MIN = {
     "normalize": ("schema_version", "blocks", "blocks[].input_lights", "blocks[].master_bias",
                   "blocks[].master_dark", "blocks[].master_flat", "blocks[].output_dir",
                   "blocks[].drizzle", "blocks[].wcs"),
-    "mosaic": ("schema_version", "hips_paths", "output_dir", "weight_mode"),
+    # §9.73 裁决 A44: weight_mode 已从配置面摘除（模板/help/白名单同撤），
+    # 故 mosaic 的 --help 不再列该键；此处只断言**仍在**的必列键。
+    "mosaic": ("schema_version", "hips_paths", "output_dir", "algorithm_rejection_method"),
     "export": ("schema_version", "source", "output_dir", "center", "width_px",
                "height_px", "scale_deg_per_px"),
 }
