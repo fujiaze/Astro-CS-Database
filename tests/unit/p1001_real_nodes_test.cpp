@@ -1103,6 +1103,60 @@ static void test_b2a13_dark_scale_from_exptime() {
     CHECK_MSG(rc.failed(), "B2-A13: dark_scale_factor disagreeing with EXPTIME K must fail");
     cleanup_fixture(fx);
   }
+  // 13e (CONFORM-FIX-A ⑤ / CONFORM-SWEEP-1-008): **标准式** (dark_optimization=false,
+  //   单键) 且 K≠1 ⇒ manifest per_frame[].dark_scale 必须等于**实际施加**的 K=t_l/t_d
+  //   (旧实现写 k_fixed=1.0 默认值, 与算术 k_use 不符), 且像素等于标准式 Oracle
+  //   (L − B − K·D)/F (CALIBRATION_ALGORITHMS.md F3.2 退化对照表「标准式 K≠1」行)。
+  {
+    Fixture fx = make_exptime_fixture("b2a13e", L, B, D, F, tl, td);
+    RunContext ctx;
+    const std::string cfg = R"({
+      "input_lights": [")" + fx.light1 + R"("],
+      "master_bias": ")" + fx.bias + R"(",
+      "master_dark": ")" + fx.dark + R"(",
+      "master_flat": ")" + fx.flat + R"(",
+      "output_dir": ")" + fx.out_dir + R"(",
+      "dark_optimization": false
+    })";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.calibration", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), ("B2-A13: standard-form K from EXPTIME must succeed: " +
+                        (rc.failed() ? rc.error().message() : std::string())).c_str());
+    if (rc.ok()) {
+      double got = -1.0;
+      if (man.contains("stages") && man["stages"].is_array()) {
+        for (const auto& st : man["stages"]) {
+          if (st.value("name", "") == "calibrate" && st.contains("per_frame") &&
+              st["per_frame"].is_array() && !st["per_frame"].empty())
+            got = st["per_frame"][0].value("dark_scale", -1.0);
+        }
+      }
+      // 证据行 (CONFORM-FIX-A ⑤): 直接打印观测值, 使 ctest 日志可核对 red/green。
+      std::printf("[B2-A13 13e] standard-form dark_scale observed=%.17g expected K=t_l/t_d=%.17g\n",
+                  got, K);
+      CHECK_MSG(std::fabs(got - K) < 1e-9,
+                ("B2-A13: standard-form dark_scale must equal actual K=t_light/t_dark=" +
+                 std::to_string(K) + " got=" + std::to_string(got)).c_str());
+      // Oracle: 标准式 (raw − bias − K·dark)/flat
+      const std::string out_fits = fx.out_dir + "/calibrated_light_1.fits";
+      CHECK(fs::exists(fs::path(out_fits)));
+      AIOImageData* im = aio_read(out_fits.c_str());
+      CHECK_MSG(im != nullptr, "B2-A13: standard-form calibrated FITS readable");
+      if (im) {
+        const float* px = aio_get_pixel_data(im);
+        const double expect = (L - B - K * D) / F;
+        double maxdiff = 0.0;
+        const int64_t n = static_cast<int64_t>(kW) * kH;
+        for (int64_t i = 0; i < n; ++i)
+          maxdiff = std::max(maxdiff, std::fabs(static_cast<double>(px[i]) - expect));
+        CHECK_MSG(maxdiff < 1e-4,
+                  ("B2-A13: standard-form K Oracle max|out-expected|=" +
+                   std::to_string(maxdiff)).c_str());
+        aio_free_image_data(im);
+      }
+    }
+    cleanup_fixture(fx);
+  }
 }
 
 // ── B2-A12: drizzle precision_mode 缺省门 + FP32/FP64 等价性 ───────────────
@@ -3225,9 +3279,19 @@ static void test_p1photbroken_scale_guards() {
     cleanup_fixture(fx);
   }
 
-  // ── RED-3: 两帧都有拟合证据但标度相差 > 0.5 dex ⇒ 整组拒绝（单位混装）──
+  // ── SPREAD-REPORT-1（原 RED-3，**语义已按负责人 GAP_AUDIT §9.49 定案 2 反转**）──
+  // 旧断言：两帧都有拟合证据但标度相差 16 dex ⇒ **整组拒绝**（applied=false）。
+  // 该断言锁的是**已被删除的组间 k 散度门**。负责人裁决原文：
+  //   「极度异常值拒绝，并抛出错误…这玩意应该是帧间独立的，为啥要组间对比」
+  //   「不同光学系统的帧混装不得报错」「门只有一个：单帧标定是否可信…与其它帧无关」
+  // ⇒ 新语义：**帧间独立**。单帧标定可信（本 fixture 两帧 n_matched>0 且
+  //   sigma_residual_dex 均在帧内判据 P1_PHOT_MAX_SIGMA_DEX=1.0 内）⇒ 必须施加；
+  //   组间散度只**报告**（photscale_spread_dex/_warn/_gate），不阻断。
+  // 判别力：若有人把组间门加回来，本用例立即转红（applied 会变 false）。
+  // 帧内门（MIN_FIT_STARS=3 / MAX_SIGMA_DEX=1.0）的负例仍由 RED-2 与本块之外
+  // 的用例覆盖，未被削弱。
   {
-    Fixture fx = make_fixture("p1photbroken_spread");
+    Fixture fx = make_fixture("p1phot_spread_report");
     RunContext ctx;
     { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
     {
@@ -3238,24 +3302,27 @@ static void test_p1photbroken_scale_guards() {
         cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
     Result<void> rc;
     json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
-    CHECK_MSG(rc.ok(), "P1PHOTBROKEN RED-3: node degrades explicitly (does not abort)");
-    CHECK_MSG(man.value("photometry_applied", true) == false,
-              "P1PHOTBROKEN RED-3: 16 dex spread ⇒ refuse to apply (mixed photometric "
-              "system); was applied=true before the fix");
-    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
-              "P1PHOTBROKEN RED-3: no photoapplied artifact for an inconsistent set");
+    CHECK_MSG(rc.ok(), "SPREAD-REPORT-1: node succeeds (frame-independent)");
+    CHECK_MSG(man.value("photometry_applied", false) == true,
+              "SPREAD-REPORT-1: 帧间 k 散度**不得**阻断施加（§9.49 定案 2：帧间独立）");
+    CHECK_MSG(fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "SPREAD-REPORT-1: 单帧标定可信 ⇒ 必须有 photoapplied 产物");
+    CHECK_MSG(man.value("photscale_spread_dex", 0.0) > 0.0,
+              "SPREAD-REPORT-1: 组间散度必须**报告**（photscale_spread_dex>0）");
+    CHECK_MSG(man.value("photscale_spread_warn", false) == true,
+              "SPREAD-REPORT-1: 散度超阈 ⇒ photscale_spread_warn=true（警告，非门）");
+    CHECK_MSG(man.value("photscale_spread_gate", std::string()).find("none") !=
+                  std::string::npos,
+              "SPREAD-REPORT-1: photscale_spread_gate 必须显式声明 'none'");
+    CHECK_MSG(!man.contains("degraded_reason") && !man.contains("photscale_error"),
+              "SPREAD-REPORT-1: 组间散度不得产生 degraded_reason/photscale_error");
     {
       json pj;
       try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
-      CHECK_MSG(pj.value("photometry_applied", true) == false,
-                "P1PHOTBROKEN RED-3: p1_phot.json photometry_applied=false");
-      CHECK_MSG(pj.value("pixel_scaling", std::string()) == "none",
-                "P1PHOTBROKEN RED-3: pixel_scaling=none (explicit ADU degradation)");
-      CHECK_MSG(pj.contains("degraded_reason") && pj.contains("photscale_error"),
-                "P1PHOTBROKEN RED-3: degraded_reason + photscale_error present "
-                "(no silent degradation)");
-      CHECK_MSG(!pj.contains("photscales") && !pj.contains("photoapplied_artifacts"),
-                "P1PHOTBROKEN RED-3: applied=false ⇒ no photscales/artifacts claimed");
+      CHECK_MSG(pj.value("photometry_applied", false) == true,
+                "SPREAD-REPORT-1: p1_phot.json photometry_applied=true");
+      CHECK_MSG(pj.contains("photscales") && pj.contains("photoapplied_artifacts"),
+                "SPREAD-REPORT-1: applied=true ⇒ 必须声明 photscales/artifacts");
     }
     cleanup_fixture(fx);
   }
@@ -3269,7 +3336,11 @@ static void test_p1photbroken_scale_guards() {
     { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
     {
       std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
-      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":6.272202992543341e-17,"n_matched":939,"sigma_residual_dex":0.019137,"source":"gaia_star_matcher_tukey_irls"},{"file":"light_2.fits","k_photo":5.685037392078662e-17,"n_matched":917,"sigma_residual_dex":0.017811,"source":"gaia_star_matcher_tukey_irls"}]})";
+      // F-INSTR-CONFORM-FIX: 收紧 P1_PHOT_MAX_SPREAD_DEX 0.5→0.02 dex（=0.05 mag
+      // 峰峰, 负责人判据）后, 本 GREEN 对必须是**真一致**的一对。旧值
+      // (6.272202992543341e-17, 5.685037392078662e-17) 的散度 0.0427 dex =
+      // 0.107 mag 是盒和口径下的视宁度假信号, 已改判为 RED-5。
+      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":6.272202992543341e-17,"n_matched":939,"sigma_residual_dex":0.019137,"source":"gaia_star_matcher_tukey_irls"},{"file":"light_2.fits","k_photo":6.260000000000000e-17,"n_matched":917,"sigma_residual_dex":0.017811,"source":"gaia_star_matcher_tukey_irls"}]})";
     }
     std::vector<float> orig1, orig2;
     for (const std::string* lp : {&fx.light1, &fx.light2}) {
@@ -3297,7 +3368,7 @@ static void test_p1photbroken_scale_guards() {
                std::to_string(rep)).c_str());
     struct Case { const std::string* lp; const std::vector<float>* orig; double k; };
     const Case cases[2] = {{&fx.light1, &orig1, 6.272202992543341e-17},
-                           {&fx.light2, &orig2, 5.685037392078662e-17}};
+                           {&fx.light2, &orig2, 6.260000000000000e-17}};
     for (const Case& c : cases) {
       const std::string apath =
           fx.out_dir + "/photoapplied_" + fs::path(*c.lp).filename().string();
@@ -3353,6 +3424,37 @@ static void test_p1photbroken_scale_guards() {
                     pj["photoapplied_artifacts"].size() == 2,
                 "P1PHOTBROKEN GREEN: photoapplied_artifacts covers every frame");
     }
+    cleanup_fixture(fx);
+  }
+
+  // ── SPREAD-REPORT-2（原 RED-5 F-INSTR，**语义已按 §9.49 定案 2 反转**）──
+  // 旧断言：帧间 k 散度 0.107 mag（6.272203e-17 vs 5.685037e-17）在
+  // P1_PHOT_MAX_SPREAD_DEX=0.02 dex 下必须整组拒绝。该阈值/门**已删除**。
+  // 新语义：逐帧独立判定；组间散度只报告。同一对帧的两帧各自
+  // n_matched>0 且 sigma_residual_dex 均在帧内判据内 ⇒ 必须各自施加。
+  // 判别力：把组间门加回来 ⇒ applied 变 false ⇒ 本用例转红。
+  {
+    Fixture fx = make_fixture("finstr_spread_report");
+    RunContext ctx;
+    { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
+    {
+      std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":6.272202992543341e-17,"n_matched":939,"sigma_residual_dex":0.019137},{"file":"light_2.fits","k_photo":5.685037392078662e-17,"n_matched":917,"sigma_residual_dex":0.017811}]})";
+    }
+    const std::string cfg =
+        cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "SPREAD-REPORT-2: node succeeds (frame-independent)");
+    CHECK_MSG(man.value("photometry_applied", false) == true,
+              "SPREAD-REPORT-2: 0.107 mag 组间散度**不得**阻断（§9.49 定案 2）");
+    CHECK_MSG(fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "SPREAD-REPORT-2: 单帧可信 ⇒ 必须有 photoapplied 产物");
+    CHECK_MSG(man.value("photscale_spread_dex", 0.0) > 0.0 &&
+                  man.value("photscale_spread_warn", false) == true,
+              "SPREAD-REPORT-2: 散度必须报告且置 warn（警告，非门）");
+    CHECK_MSG(!man.contains("photscale_error"),
+              "SPREAD-REPORT-2: 不得再产生 photscale_error（门已删除）");
     cleanup_fixture(fx);
   }
 

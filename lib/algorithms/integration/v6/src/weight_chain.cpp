@@ -301,6 +301,7 @@ WeightChainResult compute_inverse_variance_weights(
 
   WeightChainResult r;
   r.reference_flux = reference_flux;
+  r.reference_flux_k.assign(n, reference_flux);
   r.intra_snr.assign(n, 1.0);
   r.actual_snr.assign(n, 0.0);
   r.weights.assign(n, 0.0);
@@ -384,9 +385,21 @@ WeightChainResult compute_inverse_variance_weights(
     }
     r.frame_gain[k] = g;
 
+    /* 参考通量：**优先用本帧自己的 F_ref,k**（f.ref_flux>0），否则回退组标量。
+     * 配对性定理只要求同一帧内 SNR 与 F_ref 同源；跨帧相等**不是**要求
+     * （负责人 GAP_AUDIT §9.49 定案 2：帧间独立、不同光学系统混装不得报错）。
+     * 旧实现强制组内公共 F_ref ⇒ 多指向/多光学系统拼接时 weight_mode=2
+     * 完全不可用（实测 6/6 帧被拒）。 */
+    const double f_ref_k = (f.ref_flux > 0.0) ? f.ref_flux : reference_flux;
+    if (!positive_finite(f_ref_k)) {
+      return fail_with_policy(
+          policy, WeightClosure::kUnclosedInvalidReferenceFlux,
+          tag + ": per-frame reference flux F_ref,k must be finite and > 0", n);
+    }
+    r.reference_flux_k[k] = f_ref_k;
     double w = 0.0;
     std::string werr;
-    if (!weight_from_snr(actual, reference_flux, &w, &werr)) {
+    if (!weight_from_snr(actual, f_ref_k, &w, &werr)) {
       return fail_with_policy(policy, WeightClosure::kUnclosedNonFiniteWeight,
                               tag + ": " + werr, n);
     }
