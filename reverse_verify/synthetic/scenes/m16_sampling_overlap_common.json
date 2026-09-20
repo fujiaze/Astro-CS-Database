@@ -1,0 +1,121 @@
+{
+  "renderer": "m16_sampling",
+  "band": "F657N",
+  "shape": [
+    1024,
+    1024
+  ],
+  "canvas": {
+    "smooth_sigma_px": 0.8,
+    "subtract_percentile": 5,
+    "mask_dir": "run/reverse_verify/m16_scene/masks",
+    "flux_scale": 1,
+    "exclude_spike": false
+  },
+  "sampling": {
+    "pixel_scale_arcsec": 0.2,
+    "rotation_deg": 0,
+    "base_fwhm_px": null,
+    "resample_order": 3
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000,
+    "dark_current_e_per_s": 0.02,
+    "dark_ref_temp_c": -20,
+    "dark_double_temp_c": 6
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "tilt_x": 1,
+    "tilt_y": 0.5,
+    "vignette": 0.05,
+    "seed": 1234
+  },
+  "temp_c": -20,
+  "masters": {
+    "dark_exposure_s": 600,
+    "hot_pixel_fraction": 0,
+    "hot_seed": 4321
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 0,
+    "cr_mean_charge_e": 1000
+  },
+  "$comment": "M16-SAMPLING 场景 ①：**同指向重叠（共模，负例）**。四帧同指向、同天光、同 seeing、同曝光、同探测器，**只有噪声实现不同**（外加亚像素抖动）。真值 = 帧间无空间形状差异 ⇒ 任何形状差异度量必须归零。探测器 0.2 arcsec/px（画布 0.04 的 5 倍，205\" FOV）⇒ 走重采样 + 真实 IPV 解算。",
+  "scene_id": "m16_sampling_overlap_common",
+  "kind": "same_pointing_overlap_common_mode",
+  "description": "真实 M16 F657N(H-alpha) 信号模板 -> 4 帧同指向仿真采样帧（0.2\"/px, seeing 3.2 px=0.64\", 300 s, 天光 0.5 e-/s）；仅噪声/亚像素抖动不同。§9.67 定案 7 的「同指向重叠」覆盖格。",
+  "matrix_cells": [
+    "pointing:same_overlap",
+    "negative_control:true",
+    "band:Ha",
+    "target:bright_nebula_core",
+    "instrument:0.2asp"
+  ],
+  "seed": 20261010,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3.2,
+    "beta": 4
+  },
+  "sky": {
+    "level_e_per_s": 0.5,
+    "grad_x_e_per_s": 0,
+    "grad_y_e_per_s": 0,
+    "theta_deg": 0
+  },
+  "frames": [
+    {
+      "frame_id": "cm_f0",
+      "exposure_s": 300,
+      "seed": 101,
+      "dither_label": "none",
+      "pointing": {
+        "y": 2900,
+        "x": 1300,
+        "dy": 0,
+        "dx": 0
+      }
+    },
+    {
+      "frame_id": "cm_f1",
+      "exposure_s": 300,
+      "seed": 102,
+      "dither_label": "sub_0.50_0.25",
+      "pointing": {
+        "y": 2900,
+        "x": 1300,
+        "dy": 0.5,
+        "dx": 0.25
+      }
+    },
+    {
+      "frame_id": "cm_f2",
+      "exposure_s": 300,
+      "seed": 103,
+      "dither_label": "sub_0.25_0.75",
+      "pointing": {
+        "y": 2900,
+        "x": 1300,
+        "dy": 0.25,
+        "dx": 0.75
+      }
+    },
+    {
+      "frame_id": "cm_f3",
+      "exposure_s": 300,
+      "seed": 104,
+      "dither_label": "sub_0.75_0.50",
+      "pointing": {
+        "y": 2900,
+        "x": 1300,
+        "dy": 0.75,
+        "dx": 0.5
+      }
+    }
+  ]
+}
