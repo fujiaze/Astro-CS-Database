@@ -518,6 +518,97 @@
       "grade": "P0",
       "name": "规范点名的权威实现必须在生产可达路径（CMake 根构建图闭包 + 生产节点调用点；登记表 ci/spec_named_impls.json；缺口台账 ci/ledgers/spec_named_impl_gaps.json）",
       "doc": "docs/ci/01_CHECKS.md §2（DESIGN-GAP-LAND 登记，GAP_AUDIT §9.44 负责人令）"
+    },
+    "CHK-NO-WEIGHT-MODE": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "§9.73 A44「权重模式」整套作废门（docs/** + README.md 零未留痕残留）",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": []
+    },
+    "CHK-NO-WEIGHT-MODE-SELFTEST": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "上项的可执行负例面",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": []
+    },
+    "AHPX-WEIGHT-RETIRED": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "HiPS 格式内部权重枚举作废（FIX-202 行为门）",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": []
+    },
+    "CHK-FIX203-PROMOTED-KEYS": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "提升键落地三方一致（CLI 键表 ↔ 生产消费 ↔ 死键台账）",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": []
+    },
+    "CHK-P3-PROJ-DECL": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "投影注册表声明集 == 实际可运行集（FIX-205）",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": [
+        "P3-PROJ-DECL-REGISTRY",
+        "P3-PROJ-DECL-UNSUPPORTED-CLI"
+      ]
+    },
+    "CHK-P3-PROJ-DECL-SELFTEST": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "上项的注册表自检面",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": [
+        "P3-PROJ-DECL-SELFTEST"
+      ]
+    },
+    "CHK-AIO-IO-BOUNDARY": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "aio 文件级唯一 I/O 边界（FIX-201）",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": []
+    },
+    "AIO-IO-BOUNDARY-SELFTEST": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "上项的可执行负例面",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": []
+    },
+    "CHK-PSFSW-RETIRED-STATIC": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "PSFSW 退役对象 canonical 面静态清零",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": [
+        "PSFSW-RETIRED-STATIC"
+      ]
+    },
+    "CHK-PSFSW-RETIRED-NEGATIVE": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "退役对象行为门（旧声明显式拒绝 + 迁移提示）",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": []
+    },
+    "CHK-FIX208-EVENT-STREAM-DEFAULT": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "事件流 = 默认输出（FIX-208）",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": []
+    },
+    "CHK-FIX208-DISK-GATE": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "资源门只管磁盘（FIX-208）",
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
+      "steps": []
     }
   },
   "reserved_targets": {
@@ -2328,6 +2419,110 @@
       "kind": "extension",
       "grade": "P0",
       "note": "DESIGN-GAP-LAND（2026-09-19）新增执行单元（非基线 146 项，absorbed）：GAP_AUDIT §9.44 负责人令新增门禁 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH，覆盖 S1-002/S2-NS-01/S4-P3X-06 三条同类缺陷；判据+可执行负例见 ci/check_spec_named_impl.py --self-test。"
+    },
+    {
+      "old_id": "CHK-NO-WEIGHT-MODE",
+      "decision": "KEPT",
+      "target": "CHK-NO-WEIGHT-MODE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-NO-WEIGHT-MODE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-NO-WEIGHT-MODE-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "AHPX-WEIGHT-RETIRED",
+      "decision": "KEPT",
+      "target": "AHPX-WEIGHT-RETIRED",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-FIX203-PROMOTED-KEYS",
+      "decision": "KEPT",
+      "target": "CHK-FIX203-PROMOTED-KEYS",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "P3-PROJ-DECL-REGISTRY",
+      "decision": "KEPT",
+      "target": "CHK-P3-PROJ-DECL",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "P3-PROJ-DECL-UNSUPPORTED-CLI",
+      "decision": "KEPT",
+      "target": "CHK-P3-PROJ-DECL",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "P3-PROJ-DECL-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-P3-PROJ-DECL-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-AIO-IO-BOUNDARY",
+      "decision": "KEPT",
+      "target": "CHK-AIO-IO-BOUNDARY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "AIO-IO-BOUNDARY-SELFTEST",
+      "decision": "KEPT",
+      "target": "AIO-IO-BOUNDARY-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "PSFSW-RETIRED-STATIC",
+      "decision": "KEPT",
+      "target": "CHK-PSFSW-RETIRED-STATIC",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-PSFSW-RETIRED-NEGATIVE",
+      "decision": "KEPT",
+      "target": "CHK-PSFSW-RETIRED-NEGATIVE",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-FIX208-EVENT-STREAM-DEFAULT",
+      "decision": "KEPT",
+      "target": "CHK-FIX208-EVENT-STREAM-DEFAULT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-FIX208-DISK-GATE",
+      "decision": "KEPT",
+      "target": "CHK-FIX208-DISK-GATE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
     }
   ],
   "coverage": {
@@ -2383,7 +2578,20 @@
       "CHK-REALDATA-E2E",
       "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
       "SPEC-NAMED-IMPL-ON-PROD-PATH",
-      "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST"
+      "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST",
+      "CHK-NO-WEIGHT-MODE",
+      "CHK-NO-WEIGHT-MODE-SELFTEST",
+      "AHPX-WEIGHT-RETIRED",
+      "CHK-FIX203-PROMOTED-KEYS",
+      "P3-PROJ-DECL-REGISTRY",
+      "P3-PROJ-DECL-UNSUPPORTED-CLI",
+      "P3-PROJ-DECL-SELFTEST",
+      "CHK-AIO-IO-BOUNDARY",
+      "AIO-IO-BOUNDARY-SELFTEST",
+      "PSFSW-RETIRED-STATIC",
+      "CHK-PSFSW-RETIRED-NEGATIVE",
+      "CHK-FIX208-EVENT-STREAM-DEFAULT",
+      "CHK-FIX208-DISK-GATE"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

@@ -98,9 +98,22 @@ def count_build_warnings(build_dir, repo=None, build_cmd="cmake"):
 
 
 def measure_build(build_dir):
-    """touch 强制重编一个生产文件后统计警告 (构建树存在时的功能需要)。"""
-    # ARCH-001 迁移后路径（迁移前 lib/phase1/noise/noise_model.cpp）
-    rel_src = REPO / "lib" / "algorithms" / "noise_snr" / "wrapper_phase1" / "noise_model.cpp"
+    """touch 强制重编一个生产文件后统计警告 (构建树存在时的功能需要)。
+
+    返回警告统计串; 锚失效时返回 None (调用方 fail-closed 判 FAIL)。
+
+    锚点订正 (DOC-205 回执 #1): 原锚 `wrapper_phase1/noise_model.cpp` 已按
+    NOISE-MODEL-CANON-001 / EXP-206 定案从 HEAD 删除 (B 为 A 的退化子集, 退役),
+    继续 `touch()` 只会在工作树里凭空造出一个 0 字节幽灵文件, 且因为该路径
+    不在构建图内, cmake 什么都不重编 ⇒ "生产警告=0" 是空扫描假绿。
+    改锚为仍在 `astrocs_phase1_noise` 源列表内的
+    `wrapper_phase1/snr_frame_science.cpp` (CMakeLists.txt:646)。
+    """
+    rel_src = REPO / "lib" / "algorithms" / "noise_snr" / "wrapper_phase1" / "snr_frame_science.cpp"
+    if not rel_src.is_file():
+        # 锚存活 (ENGINEERING_SPEC.md §8): 硬编码锚失效 ⇒ 显式判红, 不静默跳过、
+        # 不 touch 出幽灵文件。
+        return None
     rel_src.touch()
     return count_build_warnings(build_dir)
 
@@ -119,6 +132,13 @@ def main():
               "编译警告抑制门无法执行 → fail-closed 判 FAIL")
         return 1
     warn = measure_build(build_dir)
+    if warn is None:
+        # 锚存活 fail-closed (ENGINEERING_SPEC §8): 硬编码生产源不存在 ⇒ 判红,
+        # 不得把「锚失效」当「零警告」。
+        print("QA-001_FAIL: ANCHOR_STALE 强制重编锚 "
+              "lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp 不存在 "
+              "⇒ 编译警告统计无法执行, fail-closed 判 FAIL")
+        return 1
     if warn not in ("", "0"):
         errors.append(f"生产构建警告 {warn} 个 (非 0)")
     if errors:

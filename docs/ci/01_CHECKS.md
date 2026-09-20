@@ -71,6 +71,18 @@
 | CHK-PROVENANCE-CONSISTENCY | 科学 | 产品 provenance 自洽 | `python3 ci/check_provenance_consistency.py` | P0 |
 | CHK-REALDATA-E2E | 科学 | 真实数据 E2E（slow/heavy，linux-deep） | `python3 ci/check_realdata_e2e.py --execute` | P0 |
 | CHK-SPEC-NAMED-IMPL-ON-PROD-PATH | 治理 | 规范点名的权威实现必须在生产可达路径（CMake 根构建图闭包 + 生产节点调用点；登记表 `ci/spec_named_impls.json`，缺口台账 `ci/ledgers/spec_named_impl_gaps.json`；含 --self-test） | `python3 ci/check_spec_named_impl.py --json-out run/ci/fix-gates/spec_named_impl.json` | P0 |
+| CHK-NO-WEIGHT-MODE | 文档一致性 | §9.73 A44：不存在「权重模式」（**已按 §9.73 A44 作废**）：`docs/**` + `README.md` 零未留痕残留（R1 键族同行留痕 / R2 中文概念 / R3 fail-closed；含 --self-test 负例面） | `python3 ci/check_no_weight_mode.py --json-out run/ci/no-weight-mode/no_weight_mode.json` | P0 |
+| CHK-NO-WEIGHT-MODE-SELFTEST | 文档一致性 | 上项（A44 门；该概念**已按 §9.73 A44 作废**，不存在）的可执行负例面：临时目录正例 + 3 类负例 + 缺 docs 的 fail-closed | `python3 ci/check_no_weight_mode.py --self-test` | P0 |
+| AHPX-WEIGHT-RETIRED | 合同/ABI | HiPS 格式内部权重枚举作废（FIX-202；N1/N2/P1/N3 共 36 断言；负例面 `ASTROCS_AHPX_FAULT=accept_legacy\|writer_accept_legacy_meta\|writer_drop_snr` 各期望 rc=1） | `python3 tools/quality/deep_ci_driver.py ctest-target --build-dir build --target ahpx_hips_format` | P0 |
+| CHK-FIX203-PROMOTED-KEYS | 治理 | 提升键落地三方一致（CLI 键表 ↔ 生产消费 ↔ 死键台账；内建 test_04 负例面，纯源码级不需构建） | `python3 -B -m unittest discover -s tests/cli -t tests/cli -p "test_fix203_*.py"` | P1 |
+| CHK-P3-PROJ-DECL | 合同/ABI | 投影注册表声明集 == 实际可运行集（FIX-205；未实现投影显式报「不支持」，不得静默回落 TAN） | `ctest --test-dir build -R "^p3_projection_registry$\|^p3_projection_unsupported_cli$" --output-on-failure` | P0 |
+| CHK-P3-PROJ-DECL-SELFTEST | 合同/ABI | 上项的注册表自检面（`p3_projection_registry_selftest`，可执行负例面） | `ctest --test-dir build -R "^p3_projection_registry_selftest$" --output-on-failure` | P0 |
+| CHK-AIO-IO-BOUNDARY | 静态 | aio 是文件级唯一 I/O 边界（HARD H1/H2 + A44 代码面 + 台账棘轮；除 aio 外越界 I/O 命中 = 0；台账 `ci/ledgers/aio_io_boundary_inventory.json`） | `python3 ci/check_aio_io_boundary.py` | P0 |
+| AIO-IO-BOUNDARY-SELFTEST | 静态 | 上项的可执行负例面（8 条负例 + 台账缺失 fail-closed + HARD 层台账不可豁免） | `python3 ci/check_aio_io_boundary.py --self-test` | P0 |
+| CHK-PSFSW-RETIRED-STATIC | 合同/ABI | PSFSW 退役对象 canonical 面静态清零（`contracts/schemas/unified/` 除「已退役/retired」留痕外零残留） | `bash -lc "! grep -rn 'psfsw_robust_weight' contracts/schemas/unified/ \| grep -v '已退役\\\|retired'"` | P1 |
+| CHK-PSFSW-RETIRED-NEGATIVE | 合同/ABI | 退役对象行为门（无 canonical 正本 / 旧声明显式拒绝 / 迁移提示 / 不得回流） | `python3 -B -m unittest discover -s tests/contracts -t tests/contracts -p test_unified_object_contract.py -k RetiredObjectContract` | P1 |
+| CHK-FIX208-EVENT-STREAM-DEFAULT | 治理 | 事件流 = 默认输出（无需 `-y`/`--events` 旗标即输出，唯一 schema） | `python3 -B -m unittest discover -s tests/cli -t tests/cli -p test_fix208_event_stream_default.py` | P0 |
+| CHK-FIX208-DISK-GATE | 治理 | 资源门只管磁盘（跑前 warn / 写盘失败 error=rc10；内存/CPU 不设门；缺 `unshare -Ur -m` 时用例显式 skip） | `python3 -B -m unittest discover -s tests/cli -t tests/cli -p test_fix208_disk_gate.py` | P0 |
 
 ### 2.1 检查器退役与预留
 

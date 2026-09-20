@@ -2082,7 +2082,11 @@
             "tests/cli/**",
             "lib/**",
             "lib/infrastructure/cli/**",
-            "include/**"
+            "include/**",
+            "tests/config/**",
+            "contracts/schemas/**",
+            "config/templates/**",
+            "config/**"
           ],
           "requires_monitor": false,
           "dirty_ignore_exact": [
@@ -7592,6 +7596,488 @@
           "requires_monitor": false
         }
       ]
+    },
+    {
+      "id": "CHK-NO-WEIGHT-MODE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/check_no_weight_mode.py",
+        "--json-out",
+        "run/ci/no-weight-mode/no_weight_mode.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/no-weight-mode/no_weight_mode.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "README.md",
+        "ci/check_no_weight_mode.py",
+        "ci/checks.json"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-NO-WEIGHT-MODE-SELFTEST",
+      "profiles": [
+        "fast"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/check_no_weight_mode.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "ci/check_no_weight_mode.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "AHPX-WEIGHT-RETIRED",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "build",
+        "--target",
+        "ahpx_hips_format",
+        "--output",
+        "run/ci/ctest/ahpx_hips_format.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/ahpx_hips_format.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/infrastructure/aio/**",
+        "tests/unit/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "ahpx_hips_format"
+      ]
+    },
+    {
+      "id": "CHK-FIX203-PROMOTED-KEYS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/cli",
+        "-t",
+        "tests/cli",
+        "-p",
+        "test_fix203_*.py"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/cli/**",
+        "lib/infrastructure/cli/**",
+        "ci/ledgers/dead_config_keys.json",
+        "ci/checks.json"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-P3-PROJ-DECL",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "ci/run_checks.py",
+        "--check",
+        "CHK-P3-PROJ-DECL",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p3_projection_registry.json",
+        "run/ci/ctest/p3_projection_unsupported_cli.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/algorithms/projection/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p3_projection_registry",
+        "p3_projection_unsupported_cli"
+      ],
+      "steps": [
+        {
+          "id": "P3-PROJ-DECL-REGISTRY",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "build",
+            "--target",
+            "p3_projection_registry",
+            "--output",
+            "run/ci/ctest/p3_projection_registry.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p3_projection_registry.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/algorithms/projection/**",
+            "tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "P3-PROJ-DECL-UNSUPPORTED-CLI",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "build",
+            "--target",
+            "p3_projection_unsupported_cli",
+            "--output",
+            "run/ci/ctest/p3_projection_unsupported_cli.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p3_projection_unsupported_cli.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/algorithms/projection/**",
+            "tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-P3-PROJ-DECL-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "ci/run_checks.py",
+        "--check",
+        "CHK-P3-PROJ-DECL-SELFTEST",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p3_projection_registry_selftest.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/algorithms/projection/**",
+        "tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p3_projection_registry_selftest"
+      ],
+      "steps": [
+        {
+          "id": "P3-PROJ-DECL-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "build",
+            "--target",
+            "p3_projection_registry_selftest",
+            "--output",
+            "run/ci/ctest/p3_projection_registry_selftest.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p3_projection_registry_selftest.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/algorithms/projection/**",
+            "tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-AIO-IO-BOUNDARY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/check_aio_io_boundary.py"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "include/**",
+        "tests/**",
+        "tools/**",
+        "ci/check_aio_io_boundary.py",
+        "ci/ledgers/aio_io_boundary_inventory.json",
+        "ci/checks.json"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "AIO-IO-BOUNDARY-SELFTEST",
+      "profiles": [
+        "fast"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/check_aio_io_boundary.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "ci/check_aio_io_boundary.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-PSFSW-RETIRED-STATIC",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "ci/run_checks.py",
+        "--check",
+        "CHK-PSFSW-RETIRED-STATIC",
+        "--quiet"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "contracts/schemas/unified/**",
+        "ci/checks.json"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "PSFSW-RETIRED-STATIC",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "bash",
+            "-lc",
+            "! grep -rn 'psfsw_robust_weight' contracts/schemas/unified/ | grep -v '已退役\\|retired'"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "contracts/schemas/unified/**",
+            "ci/checks.json"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-PSFSW-RETIRED-NEGATIVE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/contracts",
+        "-t",
+        "tests/contracts",
+        "-p",
+        "test_unified_object_contract.py",
+        "-k",
+        "RetiredObjectContract"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/contracts/**",
+        "contracts/**",
+        "ci/checks.json"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-FIX208-EVENT-STREAM-DEFAULT",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/cli",
+        "-t",
+        "tests/cli",
+        "-p",
+        "test_fix208_event_stream_default.py"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/cli/**",
+        "lib/infrastructure/cli/**",
+        "lib/infrastructure/observability/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-FIX208-DISK-GATE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/cli",
+        "-t",
+        "tests/cli",
+        "-p",
+        "test_fix208_disk_gate.py"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "tests/cli/**",
+        "lib/infrastructure/cli/**"
+      ],
+      "requires_monitor": false
     },
     {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
