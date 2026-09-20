@@ -29,5 +29,15 @@
       "connected_object_document/object_schema_id",
       "connected_object_document"
     ]
+  },
+  "n5_retired_psfsw_robust_weight.schema-violation.json": {
+    "schema": "port_contract",
+    "retired_object": "psfsw_robust_weight",
+    "must_match": [
+      "accepts_object:enum",
+      "accepts_schema_id:enum",
+      "connected_object_document/unified_object:enum",
+      "connected_object_document/object_schema_id:enum"
+    ]
   }
 }

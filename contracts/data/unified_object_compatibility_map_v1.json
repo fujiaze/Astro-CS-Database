@@ -4,7 +4,7 @@
   "task": "DATA-001",
   "baseline_head": "ecf6ad6f",
   "authority": "docs/design/UNIFIED_MODEL.md §2；ENGINEERING_SPEC.md §4.7（contracts/schemas/ 唯一事实源）",
-  "policy": "contracts/data/** 是**兼容期映射**：只登记旧路径/旧 ID→canonical 对象的归属与废弃时间点，不承载第二份对象定义。本文件不改写被登记文件的内容（v6 生成物与 runtime artifact_store 校验器仍在用它们），也不放宽任何既有检查。",
+  "policy": "contracts/data/** 是**兼容期映射**：只登记旧路径/旧 ID→canonical 对象的归属与废弃时间点，不承载第二份对象定义。本文件不改写被登记文件的内容（v6 生成物与 runtime artifact_store 校验器仍在用它们），也不放宽任何既有检查。retired（不再是 canonical）对象落 retired_entries：必须带 retired_at_change + rejection + migration_hint，且其 canonical schema 文件必须确实不存在（fail-closed）。",
   "canonical_root": "contracts/schemas/unified/",
   "canonical_object_schema_ids": {
     "signal": "https://astrocs.local/schemas/unified/signal/v1",
@@ -14,7 +14,6 @@
     "depth_m5": "https://astrocs.local/schemas/unified/depth_m5/v1",
     "frame_snr": "https://astrocs.local/schemas/unified/frame_snr/v1",
     "point_information": "https://astrocs.local/schemas/unified/point_information/v1",
-    "psfsw_robust_weight": "https://astrocs.local/schemas/unified/psfsw_robust_weight/v1",
     "sparse_snr_layer": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
     "support": "https://astrocs.local/schemas/unified/support/v1",
     "coverage": "https://astrocs.local/schemas/unified/coverage/v1",
@@ -109,16 +108,6 @@
       "evidence": "legacy→v6 迁移映射表"
     },
     {
-      "path": "contracts/data/v6_weight_vocabulary_v1.json",
-      "covers_object": "psfsw_robust_weight",
-      "canonical_schema": "contracts/schemas/unified/psfsw_robust_weight.schema.json",
-      "canonical_schema_id": "https://astrocs.local/schemas/unified/psfsw_robust_weight/v1",
-      "relation": "compatibility_view_of_canonical_object",
-      "deprecated_at": "0.11.0-alpha.2",
-      "retire_after": "0.12.0",
-      "evidence": "单一权重词表（weight.kind/units/group_normalized 的 canonical 名）"
-    },
-    {
       "path": "contracts/data/examples/",
       "covers_object": "signal",
       "canonical_schema": "contracts/schemas/unified/signal.schema.json",
@@ -127,6 +116,22 @@
       "deprecated_at": "0.11.0-alpha.2",
       "retire_after": "0.12.0",
       "evidence": "V6 产品族正例集（含 10 个对象族示例）"
+    }
+  ],
+  "retired_entries": [
+    {
+      "path": "contracts/data/v6_weight_vocabulary_v1.json",
+      "covers_object": "psfsw_robust_weight",
+      "canonical_schema": "contracts/schemas/unified/psfsw_robust_weight.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/psfsw_robust_weight/v1",
+      "relation": "retired_canonical_object",
+      "retired_on": "2026-09-20",
+      "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
+      "basis": "负责人 2026-09-20 裁决 B（14→13）；工程控制/RELEASE-03/GAP_AUDIT.md §4.5；ASTROCS_DESIGN.md §2.1（全程只有 SNR，不存在权重模式）/§2.2（数据对象唯一性）/§2.3（质量代理不进科学权重）；工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44；run/RELEASE-02/design-merge/DESIGN-DRAFT.md §3.1-C01",
+      "canonical_schema_removed": true,
+      "rejection": "旧产品声明 unified_object=psfsw_robust_weight ⇒ 显式拒绝（canonical schema 已不存在，无法解析；端口合同 enum 判红，负例 contracts/schemas/unified/negative/n5_retired_psfsw_robust_weight.schema-violation.json），不得静默接受、不得自动转换",
+      "migration_hint": "迁移提示：无等价替代对象——点源严格权重 → point_information（W_info=1/Var(F_hat)）；帧级参考 → frame_snr（权重由 Phase2 逆方差叠加从 SNR 现场派生，不落盘）；v6 词表 token psfsw_robust_weight 仅存于 v6 设计档案（contracts/data/v6_weight_vocabulary_v1.json），不构成 canonical 对象。完整记录见 contracts/data/unified_object_compatibility_map_v1.json#retired_entries。",
+      "evidence": "原 entries 条目（contracts/data/v6_weight_vocabulary_v1.json 的兼容期视图，covers_object=psfsw_robust_weight）canonical object retired ⇒ 该条目一并撤销；基线 entries 10 条 = 现存 9 条 + retired 1 条。"
     }
   ],
   "legacy_contract_id_map": [

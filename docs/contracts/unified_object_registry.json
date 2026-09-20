@@ -506,14 +506,14 @@
       "role": "retained_v6_design_archive",
       "owner": "SCHEMA-INTEGRATE-001(W6)",
       "object_class": null,
-      "note": "v6 产品族专用投影（含 49 条 PENDING_OWNER_SIGNOFF 条款，fail-closed）；按 GAP_AUDIT §4.1 Q2 在位保留为设计档案，不是 canonical 对象定义。其 canonical 对象 psfsw_robust_weight 已于 2026-09-20 退役（裁决 B，14→13，CHG-2026-09-20-PSFSW-RETIRE），故不再登记为 compatibility_projection；文件内的 psfsw_robust_weight 是 v6 产品族内部标识（weight.kind / 单位表符号），不构成 canonical 引用。"
+      "note": "v6 产品族专用投影（含 49 条 PENDING_OWNER_SIGNOFF 条款，fail-closed）；按 GAP_AUDIT §4.1 Q2 在位保留为设计档案，不是 canonical 对象定义。其 canonical 对象 psfsw_robust_weight retired（裁决 B，14→13，CHG-2026-09-20-PSFSW-RETIRE，2026-09-20），故不再登记为 compatibility_projection；文件内的 psfsw_robust_weight 是 v6 产品族内部标识（weight.kind / 单位表符号），不构成 canonical 引用。"
     },
     {
       "file": "contracts/schemas/v6/astrocs.v6.psf.v1.schema.json",
       "role": "product_family_specialization",
       "owner": "SCHEMA-INTEGRATE-001(W6)",
       "object_class": null,
-      "note": "PSF 模型合同；不在 13 个对象内（对象表只含 point_information；psfsw_robust_weight 已于 2026-09-20 退役，见 deprecation.object_retirements）。"
+      "note": "PSF 模型合同；不在 13 个对象内（对象表只含 point_information；psfsw_robust_weight retired（2026-09-20），见 deprecation.object_retirements）。"
     },
     {
       "file": "contracts/schemas/v6/astrocs.v6.effective-psf.v1.schema.json",
@@ -587,7 +587,7 @@
     "retire_after": "0.12.0",
     "object_retirements": {
       "psfsw_robust_weight": {
-        "state": "已退役",
+        "state": "retired",
         "retired_on": "2026-09-20",
         "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
         "basis": "负责人 2026-09-20 裁决 B（14→13）；工程控制/RELEASE-03/GAP_AUDIT.md §4.5；ASTROCS_DESIGN.md §2.1/§2.2/§2.3；工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44",

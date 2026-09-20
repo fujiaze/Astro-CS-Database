@@ -1,0 +1,43 @@
+{
+  "port_id": "phase2.integrate.pixel_variance_in",
+  "direction": "input",
+  "accepts_object": "psfsw_robust_weight",
+  "accepts_schema_id": "https://astrocs.local/schemas/unified/psfsw_robust_weight/v1",
+  "connected_object_document": {
+    "unified_object": "psfsw_robust_weight",
+    "object_schema_id": "https://astrocs.local/schemas/unified/psfsw_robust_weight/v1",
+    "schema_version": 1,
+    "units": {
+      "bunit": "1",
+      "bunit_semantics": "written_px_power",
+      "pixel_semantics": "dimensionless",
+      "pixel_area_power": 0
+    },
+    "missing_value": {
+      "missing_repr": "null",
+      "invalid_repr": "nan",
+      "nan_in_binary": true,
+      "silent_zero_forbidden": true
+    },
+    "precision": "float32",
+    "object_weight_capability": true,
+    "object_weight_verdict": "显式 psfsw_robust 集成可用；不是 ivar",
+    "provenance": {
+      "source_chain": [
+        "phase1/frame-0001"
+      ],
+      "software_sha": "125bc0999363be1a42a1f2df3254601e0cc7b8fb",
+      "config_hash": "sha256:cccc",
+      "algorithm_ids": [
+        "ALG-P2-INT-001"
+      ],
+      "generated_utc": "2026-09-16T00:00:00Z"
+    },
+    "psfsw_weight_value": 1,
+    "components_ref": "psfsw/components/f1",
+    "common_star_set_ref": "psfsw/common-star-set/f1",
+    "covariance_ref": "covariance/v1/run-3",
+    "effective_psf_ref": "effective-psf/v1/run-3",
+    "isolated_object": "GAIA-DR3-1234567890"
+  }
+}

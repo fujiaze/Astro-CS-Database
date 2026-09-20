@@ -99,16 +99,63 @@
 | 静态清零（验收门 1） | `grep -rn "psfsw_robust_weight" contracts/schemas/unified/ \| grep -v "已退役\|retired"` | 1 | **输出为空**（见 §5.1） |
 | OBJECTS 长度（验收门 2） | `python3 -c "from tests.contracts.test_unified_object_contract import OBJECTS; print(len(OBJECTS))"` | 0 | **13** |
 | 合同测试（验收门 3） | `flock -w 7200 /var/tmp/astrocs/build.lock timeout 900 python3 -m pytest tests/contracts -q` | 0 | **67 passed**（基线 63 + 新增 4） |
-| CI 检查项（验收门 4） | `python3 ci/run_checks.py --check CHK-CONTRACT-TEST` | 见 §5.1 | — |
+| CI 检查项（验收门 4） | `python3 ci/run_checks.py --check CHK-CONTRACT-TEST` | **1** | 12/13 step PASS（`UT-CONTRACTS` PASS、`CON-TEST-CONTRACTS` PASS、`V6-CTEST-INTEGRATION` PASS）；唯一失败 `CON-FULL-INTEGRATION` ← `check_doc_symbols`，findings 全在文件域外（见 §5.1 归因） |
 | 变更 claim 落盘（验收门 5） | 本文件 | — | 在位 |
 | 旧声明显式拒绝 + 迁移提示（验收门 6） | 负例 `n5_...schema-violation.json` + `TestRetiredObjectContract` | 0 | 4 个 enum 门全红 + 反向控制通过 + 迁移提示逐字锁定（见 §5.1） |
-| 全量 ctest | `flock -w 7200 /var/tmp/astrocs/build.lock timeout 3000 ctest --test-dir build --output-on-failure` | 见 §5.1 | — |
+| 全量 ctest | `flock -w 7200 /var/tmp/astrocs/build.lock timeout 3000 ctest --test-dir build --output-on-failure` | 见 §5.1 | 全量结果与既有失败归因见 §5.1 |
+| 静态清零（严格变体） | `grep -rn "psfsw_robust_weight" contracts/schemas/unified/ --exclude-dir=negative \| grep -v "已退役\|retired"` | 1 | **输出为空**（排除负例目录后仍零残留） |
+| 负例注入（能红能绿） | `bash /var/tmp/astrocs/FIX-209-negative-injection.sh`（flock 内） | 0 | 绿→注入→红→回滚→绿；回滚后 sha256 与备份一致（见 §5.1） |
+| 相关检查器 | `python3 ci/run_checks.py --check CHK-CONTRACT-REF` | 0 | **PASS**（2/2 step） |
+| 相关检查器 | `python3 ci/run_checks.py --check CHK-SECRET-HYGIENE` | 1 | 仅 `undecidable_input`：`git ls-files` 仍列出本任务删除的 2 个 tracked 文件（需前台 `git rm`/提交转绿，见 §5.1） |
 
 日志目录：`run/RELEASE-03/logs/FIX-209-*.log`。
 
 ### 5.1 收口记录（2026-09-20，FIX-209 执行者）
 
-（见本文件末尾补记）
+**A. 验收门逐条（实测命令 + rc + 输出摘要）**
+
+| # | 门 | 命令 | rc | 输出/结论 |
+|---|---|---|---|---|
+| 1 | 静态清零 | `grep -rn "psfsw_robust_weight" contracts/schemas/unified/ \| grep -v "已退役\|retired"` | 1 | **空**（canonical 面零残留；负例 n5 因路径含 `retired` 被过滤，端口合同留痕行含 `retired` 被过滤） |
+| 2 | OBJECTS=13 | `python3 -c "import sys;sys.path.insert(0,'.');from tests.contracts.test_unified_object_contract import OBJECTS,VERDICT;print(len(OBJECTS),len(VERDICT))"` | 0 | `13 13` |
+| 3 | 合同测试 | `flock -w 7200 /var/tmp/astrocs/build.lock timeout 900 python3 -m pytest tests/contracts -q` | 0 | **67 passed**（基线 63；新增 4 个退役对象测试；负例索引 4→5） |
+| 3b | CI 同款 UT | `python3 -B -m unittest discover -s tests/contracts -t tests/contracts` | 0 | `Ran 67 tests ... OK` |
+| 4 | CI 检查项 | `python3 ci/run_checks.py --check CHK-CONTRACT-TEST` | 1 | 12/13 PASS（`UT-CONTRACTS` / `CON-TEST-CONTRACTS` / `V6-CTEST-INTEGRATION` 全 PASS）；唯一失败 `CON-FULL-INTEGRATION` ← `check_doc_symbols`（**域外**，见 C） |
+| 5 | 变更 claim | 本文件 | — | 在位 |
+| 6 | 旧声明显式拒绝 | `python3 -m pytest tests/contracts/test_unified_object_contract.py -q -k RetiredObjectContract` | 0 | 4 passed（负例 n5 的 4 个 enum 门全红 + 反向控制通过 + 迁移提示锁定 + 不得回流） |
+| 7 | 负例注入（能红能绿） | `bash /var/tmp/astrocs/FIX-209-negative-injection.sh` | 0 | G1 绿（静态门空）→ 注入（把该对象写回 `accepts_object` 枚举）→ R1 红（静态门 1 命中）、R2 红（3 个测试失败）→ 回滚 sha256 一致 → G3 绿、G4 绿（67 passed） |
+| 8 | 相关检查器 | `python3 ci/run_checks.py --check CHK-CONTRACT-REF` | 0 | **PASS**（`CONTRACT-GRAPH` + `DATA-ARTIFACTS` 均 PASS） |
+| 9 | 相关检查器 | `python3 ci/run_checks.py --check CHK-SECRET-HYGIENE` | 1 | `verdict_reasons=["undecidable_input"]`；`undecidable` 恰为本任务删除的 2 个 tracked 文件（见 C） |
+| 10 | 全量 ctest | `flock -w 7200 /var/tmp/astrocs/build.lock timeout 3000 ctest --test-dir build --output-on-failure` | **0** | **100% tests passed, 0 tests failed out of 471**（Total 431.61 s；12 项 Skipped 为既有平台/夹具条件，非失败）——日志 `run/RELEASE-03/logs/FIX-209-ctest.log` |
+
+日志：`run/RELEASE-03/logs/FIX-209-*.log|json`；影响面：`run/RELEASE-03/logs/FIX-209-impact-surface.txt`。
+
+**B. 退役留痕的机器可读表示法（本任务确立，供后续任务沿用）**
+
+| 面 | 字段（机器可读） | 取值 |
+|---|---|---|
+| canonical 端口合同 | `x-astrocs-object.retired_objects[].retired_object` / `.state` / `.retired_on` / `.retired_at_change` / `.canonical_schema_removed` | `"psfsw_robust_weight"` / `"retired"` / `"2026-09-20"` / `"CHG-2026-09-20-PSFSW-RETIRE"` / `true` |
+| 兼容期映射 | `retired_entries[].relation` / `.covers_object` / `.retired_at_change` / `.canonical_schema_removed` | `"retired_canonical_object"` / `"psfsw_robust_weight"` / `"CHG-2026-09-20-PSFSW-RETIRE"` / `true` |
+| 对象登记表 | `deprecation.object_retirements.<name>.state` / `.retired_at_change` / `.canonical_object_data_id` | `"retired"` / `"CHG-2026-09-20-PSFSW-RETIRE"` / `"DATA-OBJ-PSFSW-ROBUST-WEIGHT-001"` |
+| v6 合同层归档标注 | `x-astrocs-canonical-object-retirement.v6_layer_status` / `.retired_canonical_object` / `.retired_at_change` | `"retained_design_archive"` / `"psfsw_robust_weight"` / `"CHG-2026-09-20-PSFSW-RETIRE"` |
+| 合同 ID 登记（DOC-203 侧） | `docs/contracts/INDEX.yaml` 的 `status: OBSOLETE` + `path: ""` | 该行**不再登记指向已删文件的 path**（登记即判红） |
+
+- **规则**：机器可读字段（id / schema_id / path / state / relation / *_at_change）**只用 ASCII token 或原字面量**；**禁止** Markdown（`~~删除线~~`、`**粗体**`）与中文状态词；中文说明只放**明确命名的注释/文档字段**（`note` / `basis_ref` / `migration_hint` / `evidence`）或变更 claim；
+- **禁止**在 CSV/表格的 `schema_id`/`path` 等列里做删除线或就地中文加注（会直接打红 `CHK-CONTRACT-REF(DATA-ARTIFACTS)`：`非法 schema_id`）——退役要么**整行删除**，要么**保留原字面量 + 留痕放独立列/独立注释字段**；
+- **本任务自查**：`contracts/**` + `tests/contracts/**` 已无 `~~`，机器字段无「已退役」中文（仅测试断言中的历史标记字面量）。
+
+**C. 域外残留（非本任务文件域，附归因证据）**
+
+1. `CHK-CONTRACT-TEST` 唯一失败 step `CON-FULL-INTEGRATION` ← `check_doc_symbols` 3 条 findings：
+   - `docs/contracts/v6/W6_SCHEMA_INTEGRATION.md`：`ASTROCS_WEIGHT_MODE` not in API inventory；
+   - `docs/contracts/v6/data/10_migration_and_open_items.md`：同上；
+   - `docs/modules/registry/astrocs.phase2.write.md`：`p2_write_descriptor` not in API inventory。
+   **归因**：三处均非本任务文件（本任务未触碰 `docs/contracts/v6/**`、`docs/modules/**`）；`docs/architecture/api_inventory.csv`/`docs/contracts/API_CONTRACTS.csv` 于 17:18 由 FIX-201/202 侧改动，`docs/modules/...` 于 19:15 由 DOC-202 侧改动；**DOC-203 自己的基线日志** `run/RELEASE-03/logs/DOC-203-baseline-con_doc_symbols.log` 记录了**同一 3 条 findings（passed=false）** ⇒ 非 FIX-209 引入。修复归 DOC-201/DOC-202/DOC-203 面。
+2. `CHK-SECRET-HYGIENE` 唯一失败原因 `undecidable_input`：`git ls-files` 仍列出本任务**按裁决删除**的 2 个 tracked 文件（`contracts/schemas/unified/psfsw_robust_weight.schema.json`、`contracts/schemas/unified/examples/psfsw_robust_weight.example.json`），工作区已无该文件 ⇒ `file_unreadable:FileNotFoundError`。
+   **处置**：只能由**前台**以 git 动作转绿（`git rm` / 随本任务提交把删除入索引；SubAgent 零 git 写）。**不得**为过门而恢复这两个文件（与裁决 B「彻底删除」冲突，且静态门会立刻判红）。
+3. `docs/contracts/**`（`DATA_SEMANTICS.md`、`PUBLIC_API.md`、`UNIFIED_OBJECTS.md`、`DATA_ARTIFACTS.md`、`INDEX.yaml`、`v6/**`）与 `docs/design/PHASE{1,2}_DETAILED_DESIGN.md` 的 `psfsw_robust_weight` 出现：归 **DOC-203**（其已在改，`INDEX.yaml` 已把该 ID 标 `OBSOLETE` 且 `path: ""`，`CONTRACT-GRAPH` 已转绿）。
+4. v6 运行/消费代码与 v6 单元/集成测试（`lib/**`、`tests/unit/v6_*`、`tests/integration/v6_*`）中的 token：按 §4.1 Q2 在位保留，**本任务未触碰**。
+5. `docs/contracts/v6/` 的 §31 标题契约标记：因 DOC-203 按 Q2 改标题为 `## 31. V6 合同层数据合同`，`tests/contracts/v6/` 的 3 处标记（`v6_oracle.py:530`、`test_v6_schema_integration.py:187`、`test_v6_negative_mutations.py:145` M31）由本任务同步（文件域内），`UT-CONTRACTS` 因此转绿；建议归入 DOC-203 提交或单独说明。
 
 ## 6 需前台登记的 CI 检查项（`ci/checks.json`，本任务不写该文件）
 
