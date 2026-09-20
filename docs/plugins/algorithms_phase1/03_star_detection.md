@@ -7,7 +7,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §3.6:195（硬约束转引 `docs/plugins/algorithms_phase1/**` 与 `docs/science/**`）；检测阈值的冻结定义见 `docs/science/STAR_DETECTION.md:18-19`、`docs/algorithms/STAR_DETECTION_ALGORITHMS.md:36`、`docs/algorithms/GATES_AND_TOLERANCES.md:38-39`
+- 最高设计 `ASTROCS_DESIGN.md` §3.6（硬约束，**实测行范围 `:319-344`**；星表引导检测条 `:323-325`）与 §3.2（星表引导检测范式，`:119-120`）；硬约束转引 `docs/plugins/algorithms_phase1/**` 与 `docs/science/**`。（**2026-09-20 订正**：原文行锚「§3.6:195」**悬空**——该行已不存在；依据 `ENGINEERING_SPEC.md:129`「锚存活」；检测阈值的冻结定义见 `docs/science/STAR_DETECTION.md:18-19`、`docs/algorithms/STAR_DETECTION_ALGORITHMS.md:36`、`docs/algorithms/GATES_AND_TOLERANCES.md:38-39`）
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §5（背景、有效性与源检测）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（质心/矩不确定度）
 
@@ -20,7 +20,8 @@
 
 ## 4. 算法与公式要点
 
-- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）。检测路径不消费逐像素 variance/ivar。局部噪声自适应为目标态、当前未实现（GAP 登记），文档按现状描述；
+- **权威检测范式 = 星表引导拟合**（最高设计 §3.2 `ASTROCS_DESIGN.md:119-120`）：检测定义域是**星表位置**（用本帧 WCS 把 Gaia 星表反向投影到像素域），只对星表位置做质心/PSF 拟合；拟合成功即星点，失败**直接丢弃**；**全图盲检测连通域路径不是权威路径**（§3.6 `:325`；§9.49 定案 1，2026-09-20）。
+- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）——**仅适用于「第一轮盲解」**（全图盲检测 → 粗匹配 → 初解 WCS，只为星表投影提供近似指向，该轮星表**不是**权威科学产品；实现即既有 `sdet_api.cpp`，最高设计 §3.2 `:120`）。**第二轮精解**用星表引导检测后的高纯度星表重解 WCS，此结果才是权威 WCS。检测路径不消费逐像素 variance/ivar。局部噪声自适应为目标态、当前未实现（GAP 登记），文档按现状描述；
 - 质心/矩与不确定度：一阶矩质心、二阶矩，误差来自局部噪声传播；
 - 输出 selection function（完备性 vs 亮度/位置）和 completeness 参数；
 - 检测统计量与下游 PSF/测光解耦：检测目录不直接成为科学权重。
@@ -29,9 +30,9 @@
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `detection_threshold` | 5.0 | σ（全局 bgnoise） | 检测阈值；语义 = `median(img)+5.0·bgnoise`（σ=2 平滑图上判定），与 `config/defaults.json#detection.threshold_sigma` 同义 |
-| `min_area` | 2 | px | 最小连通像素数 |
-| `deblend` | true | —— | 是否解混 |
+| `detection_threshold` | 5.0 | σ（全局 bgnoise） | **第一轮盲解专用 / 显式声明的可选诊断**（**不是**模块主路径配置——主路径 = 星表引导拟合，不消费此键）；语义 = `median(img)+5.0·bgnoise`（σ=2 平滑图上判定），与 `config/defaults.json#detection.threshold_sigma` 同义（**2026-09-20 订正**，依据 §9.49 定案 1 + `ASTROCS_DESIGN.md:119,260,262`） |
+| `min_area` | 2 | px | 最小连通像素数。**仅第一轮盲解 / 连通域诊断**（星表引导路径不做连通域，2026-09-20 订正） |
+| `deblend` | true | —— | 是否解混。**仅第一轮盲解 / 显式声明的可选诊断**（星表引导路径按星表位置逐源拟合，不做盲解混，2026-09-20 订正） |
 | `selection_function` | true | —— | 是否输出 selection function |
 
 ## 6. 接口/ABI

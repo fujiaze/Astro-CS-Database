@@ -186,6 +186,8 @@ C 场复活。证据：`run/RELEASE-02/fix-upmscale/discriminative_proof.log`。
 任何直接调用方在生产 `control_ivar` 下都会得到全 0 权重。按任务约束「只修 569」
 本任务未改，**请前台裁决是否同批修复**。
 
+> 订正（2026-09-20）：#2 已随 CONFORM-FIX-B 003 修复 —— lib/algorithms/coverage/src/upm.cpp:1654 现为 out_norm[i] = (s > 0.0 && std::isfinite(s)) ? raw[i] / s * rel : 0.0;（绝对门 1e-12 已去；2026-09-20 复核）；「请前台裁决是否同批修复」不再需要（旧文 =「请前台裁决是否同批修复」）。
+
 ---
 
 ## 8. 测试影响
@@ -238,5 +240,5 @@ UPM 加性 C 场的设计目的（`docs/science/PHASE2_UPM.md:7`）是「使校�
 
 - 未跑 ninja/cmake/ctest；未提交 git（零写权限）；未改 `docs/**`、`sky_plane.*`、`g_k`。
 - 未改 #2 `p2_upm_normalized_weights`（超范围，已在 §7 上呈）。
-- `corrected` 口径按 SD-22（方案 B）保持，由 FIX-GK 负责。
+- `corrected` 口径按 SD-22（方案 B）保持，由 FIX-GK 负责。 订正（2026-09-20）：口径已由 §9.67 定案 1（工程控制/RELEASE-02/GAP_AUDIT.md:2548-2555）定为 corrected = raw − δ_k（保留 B_ref；additive_mode 默认 delta，module_adapters.cpp:6129-6130）；raw − C_k 全减不再是默认。B 报告要求写「生产默认 raw − C」（依据 §9.54/§9.55 S8）已被更晚的 §9.67 定案 1 取代，不采纳。旧文 =「按 SD-22（方案 B）保持」。
 - 生产 L4 重建与接缝度量复跑属前台验收步骤，本任务仅交付实现 + 判别力测试 + 证据。

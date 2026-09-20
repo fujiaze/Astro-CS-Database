@@ -1,15 +1,15 @@
-# 变更 claim（草案）：CONFORM-FIX-B-001 — UPM 收敛容差由绝对判据改为尺度无关相对判据，并登记 tolerance_relative 字段
+# 变更 claim（~~草案~~ → **已批准** §9.53:1737-1777；订正留痕 2026-09-20）：CONFORM-FIX-B-001 — UPM 收敛容差由绝对判据改为尺度无关相对判据，并登记 tolerance_relative 字段
 
 - 控制包：RELEASE-02 / 分片 **CONFORM-FIX-B**（符合性修复分片 B）
 - 关联审计条目：CONFORM-SWEEP-3-001（C2 常数不符）、CONFORM-SWEEP-3-002（C7 schema 面漏登记）
-- 变更对象（**本草案不改任何文档**，仅提出订正请求）：
+- 变更对象（~~本草案~~ **本 claim** 不改任何文档，仅提出订正请求；**已批准** §9.53:1737-1777，订正留痕 2026-09-20）：
   - docs/algorithms/v6/frozen/01_NUMERIC_THRESHOLD_FREEZE.md:45（FZ-UPM-CONVERGENCE）
   - docs/algorithms/PHASE2_UPM_IMPL.md:379（§13 冻结数值表）、:400-401（「冻结面，任何修改必须走 SCI/合同变更」）
   - docs/contracts/DATA_SEMANTICS.md:1874（P2UpmBuildConfig 字段表）、:1762
   - docs/contracts/PUBLIC_API.md:1827（config 覆盖键集）
 - 日期：2026-09-19
 - 依据条款：ENGINEERING_SPEC §3（科学正确性优先 + 变更 claim + 一致性回归）；AGENTS.md §5（不动冻结容差，除变更流程批准）、§8（科学疑义查证流程）
-- 状态：**草案，待负责人裁决**（本分片**未**启用相对判据；实现已回退到冻结值 tol=1e-6 / tolerance_relative=0）
+- 状态：~~**草案，待负责人裁决**~~ **已批准**（§9.53:1737-1777；订正留痕 2026-09-20，同步 B 报告 G36 的引用点）。本分片**未**启用相对判据，实现已回退到冻结值 tol=1e-6 / tolerance_relative=0；落地项（`rms_z` 判据 + 三参数补登记 + 两路径闭合）见 §4/§5
 
 ---
 
@@ -76,7 +76,7 @@ upm.cpp:646）**同一类**根因（绝对阈值 vs 量纲），保持项目内�
 
 **A 方案的 tol_rel 取值证据**（RELEASE-02 P2a 实测，供裁决参考）：每轮 max_dM 仅降
 ~0.7%，相对残差稳定在 1.15e-4 ~ 1.32e-4；故 tol_rel=1e-3 会在相对残差 ≈1e-4 量级停
-（约 25 轮），而 tol_rel=1e-4 需 ~60 轮以上。**具体取值请负责人裁决**（本草案不预设生产值）。
+（约 25 轮），而 tol_rel=1e-4 需 ~60 轮以上。**具体取值请负责人裁决**（本草案不预设生产值）。**→ 已裁决（§9.53:1737-1777，订正留痕 2026-09-20）：判据形态改为无量纲 `tol_step`/`tol_obj` + 状态枚举，本段的「tol_rel 数值」请求不再适用；生产值登记见 §5 第 2 条。**
 
 ---
 
@@ -99,14 +99,18 @@ upm.cpp:646）**同一类**根因（绝对阈值 vs 量纲），保持项目内�
   uc.tolerance = <裁决值>; uc.tolerance_relative = 1;；p2_session.cpp 同步（否则两条路径再次分叉）。
 - **一致性回归**：p2_upm_synthetic_test + v6_p2_upm 用例需增加「同输入下绝对/相对判据的
   C 场一致性」锚（本分片已在 run/RELEASE-02/conform-fix-b/tests/cfb_tests.cpp::t001 给出实测）。
-- **未决耦合（须一并裁决）**：p2_session.cpp 与 node chain 除 tolerance 外还在 gs_damping /
+- **已裁决（§9.53 批准:1737-1777 + §9.55 S3:1837-1844）** —— 订正留痕（2026-09-20）：旧文「**未决耦合（须一并裁决）**」已作废。
+  事实不变：p2_session.cpp 与 node chain 除 tolerance 外还在 gs_damping /
   m_full_frame / final_gauge / 求解入口（p2_upm_build vs p2_upm_build_geo）上分叉，且这三个
-  参数在 docs/ + contracts/ + 工程控制/ **零登记**（同属「就地改科学行为」）。仅修 tolerance
-  不能使两条路径「同输入同结果」，需一并裁决其规范地位（见 reports/RELEASE-02/conform-fix-b.md §001-3）。
+  参数在 docs/ + contracts/ + 工程控制/ 曾 **零登记**（同属「就地改科学行为」）。仅修 tolerance
+  不能使两条路径「同输入同结果」⇒ **裁决 = 按 `ENGINEERING_SPEC §3` 补登记三参数（写入 `PHASE2_UPM_IMPL.md` + `DATA_SEMANTICS` 字段表）并闭合两路径（`p2_session.cpp` 与节点链同输入同结果）**；依据：三参数是 448 回归修复（冷启动 `w_ref` 崩溃）的必需机制，有实测证据，**登记是义务，不是可选项**（见 reports/RELEASE-02/conform-fix-b.md §001-3）。
+  **落地状态（2026-09-20 复核）**：**未落地** —— `docs/` grep `gs_damping|m_full_frame|final_gauge` **0 命中**；两路径仍分叉（node chain 覆盖 `module_adapters.cpp:5635-5637` = 0.5/1/1 vs 库默认 `upm.cpp:259-261` = 1.0/0/0；`p2_session.cpp:204` 仍 `tolerance=1e-6`）；§9.55:1882 亦登记为未完成项。
 
-## 5 请求裁决
+## 5 裁决结果（§9.53 / §9.55 S3）
 
-1. 是否批准方案 A（tol 改为尺度无关相对判据 + 登记 tolerance_relative）？
-2. 若批准，tol_rel 取值（建议 1e-3，待收敛专项实测确认）？
-3. p2_session 与 node chain 的其余分叉参数（gs_damping/m_full_frame/final_gauge/求解入口）
-   如何定性——补齐 session、或把 session 标为非生产路径？
+> 订正留痕（2026-09-20）：旧标题为「## 5 请求裁决」；下列三问**已全部裁决**，逐条标注。
+
+1. **已裁决：批准方案 A**（tol 改尺度无关判据 + 登记 `tolerance_relative`）—— §9.53:1748「✅ 裁决：**批准**（依据充分，属「证据指向文档错」）」，落地方向 :1766-1777。
+   ⚠ 落地口径以 §9.53 落地方向为准：**分母必须用「观测量的尺度」，不得用 `max|M|`**；`converged` 改状态枚举（`0=max_iter/1=converged/2=stalled/3=invalid`）；拟合质量三元组（`rms_z`/保留率/`sigma_residual_dex`）独立落盘。
+2. **已裁决（形态变更）**：`tol_rel` 具体数值 —— §9.53 未给生产值，改由「无量纲 `tol_step`/`tol_obj` + 状态枚举」承载（:1768-1771）；`tolerance_relative` 字段由 §9.55 S2:1867 裁「**补登记**（与 §9.53 一并）」。**剩余**：合同表登记动作（当前实现仍默认 0：`module_adapters.cpp:5630-5631`、`upm.cpp:262`）。
+3. **已裁决**：`gs_damping`/`m_full_frame`/`final_gauge`/求解入口 = **按 `ENGINEERING_SPEC §3` 补登记 + 闭合两路径**（§9.55 S3:1842-1844）；「把 session 标为非生产路径」**未被采纳**（裁决要求两路径同输入同结果；§9.55:1882 登记为未完成项 ⇒ 待落地）。

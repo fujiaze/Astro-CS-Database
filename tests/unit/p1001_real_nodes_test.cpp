@@ -2930,6 +2930,317 @@ static void test_ivar001_phase1_variance_products() {
   }
 }
 
+// ── IVAR-002: 逐像素 variance **帧内命名块**接入（定案 2 / ASTROCS_DESIGN §7.1a）──
+// 登记面 = DATA-P1-DRZ §11.1:295「variance 面（可选，帧内块）| float32 | ADU²」；
+// 生产侧 = drizzle 节点（module_adapters.cpp p1_op_drizzle）用 A
+// （snr_noise_model_v1/_fill）对**即将被积分的同一数组**产块并 add_block；
+// 消费侧 = hp_drizzle_api.cpp:1018-1052（既有冻结实现, 零改动）。
+// 本门锁定四件事:
+//   (a) 正例: 星掩膜输入在位 ⇒ variance_product_status=attached + variance/ivar
+//       成对落盘 + writer 节点 uncertainty_available=true（磁盘事实, 非硬编码）;
+//   (b) 负例 1: p1_sources.json 缺该帧条目 ⇒ 显式降级（不挂块, 禁静默）;
+//   (c) 负例 2: A 退化（密集星掩膜 ⇒ plan infeasible, rc=1）⇒ 显式降级
+//       （全零平面会把 drizzle_engine.cpp:1919 的整像素 continue 变成清空产品）;
+//   (d) 不变性: 挂块不得改变 signal/support（逐字节对拍）。
+// IVAR-002 (a2) 线性性 oracle 夹具: 与 star_field_pixel 同一噪声实现（同 hash 键），
+// 噪声项整体乘 nscale ⇒ σ² 乘 nscale²（几何/WCS/星位置不变 ⇒ 产品方差应与模型方差
+// 同比例变化，几何常数相消）。
+struct NoisyField { float bg; float amp; double gain; double rn; double nscale; };
+inline float noisy_field_pixel(int i, void* user) {
+  auto* sf = static_cast<NoisyField*>(user);
+  const int x = i % kW, y = i / kW;
+  const double dx = static_cast<double>(x) - 16.0;
+  const double dy = static_cast<double>(y) - 16.0;
+  const double src = sf->amp * std::exp(-(dx * dx + dy * dy) / (2.0 * 1.5 * 1.5));
+  const double lambda_e = (sf->bg + src) * sf->gain;
+  const double e = lambda_e +
+                   sf->nscale * std::sqrt(std::max(0.0, lambda_e)) *
+                       fixture_gauss(static_cast<uint32_t>(i) * 2u + 1u);
+  const double rn = sf->nscale * sf->rn *
+                    fixture_gauss(static_cast<uint32_t>(i) * 2u + 2u);
+  return static_cast<float>((e + rn) / sf->gain);
+}
+
+static Fixture make_noise_fixture(const char* tag, double nscale) {
+  Fixture f;
+  f.dir = fs::temp_directory_path() /
+          ("p1001_ivar2_" + std::string(tag) + "_" + std::to_string(P1001_GETPID));
+  std::error_code ec;
+  fs::create_directories(f.dir, ec);
+  f.light1 = (f.dir / "light_1.fits").string();
+  f.out_dir = f.dir.string();
+  NoisyField nf{100.0f, 5000.0f, 1.5, 5.0, nscale};
+  CHECK(p1sess::write_fits_file(f.light1, kW, kH, noisy_field_pixel, &nf, 0, 60.0) == 0);
+  return f;
+}
+
+struct SrcRow { double x, y, flux, fwhm; };
+
+static void write_p1_sources(const Fixture& fx, const char* frame_file,
+                             const std::vector<SrcRow>& stars) {
+  json srcs = json::array();
+  for (size_t i = 0; i < stars.size(); ++i) {
+    srcs.push_back(json{{"id", "s" + std::to_string(i)},
+                        {"x", stars[i].x}, {"y", stars[i].y},
+                        {"flux", stars[i].flux}, {"fwhm_px", stars[i].fwhm},
+                        {"snr", 10.0}, {"quality", 0}});
+  }
+  json fr = json{{"file", frame_file}, {"noise_sigma", 3.0},
+                 {"psf_mode", "unavailable"}, {"sources", srcs}};
+  json doc = json{{"schema", "DATA-P1-SOURCES"}, {"frames", json::array({fr})}};
+  std::ofstream f(fx.out_dir + "/p1_sources.json", std::ios::binary);
+  f << doc.dump(2);
+}
+
+static std::vector<std::string> hips_leaf_tiles(const std::string& root,
+                                                const char* prod) {
+  std::vector<std::string> out;
+  std::error_code ec;
+  const fs::path base = fs::u8path(root + "/" + prod);
+  for (fs::recursive_directory_iterator it(base, ec), end; it != end;
+       it.increment(ec)) {
+    if (!it->is_regular_file(ec)) continue;
+    const fs::path p = it->path();
+    const std::string fn = p.filename().string();
+    if (fn == "Moc.fits" || fn == "metadata.fits" || fn == "properties") continue;
+    if (p.extension() != ".fits") continue;
+    out.push_back(p.string());
+  }
+  std::sort(out.begin(), out.end());
+  return out;
+}
+
+static void test_ivar002_frame_variance_block_wiring() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const std::string wcs =
+      std::string("\"wcs\": {\"crpix1\": 16.0, \"crpix2\": 16.0, \"crval1\": 10.0,"
+                  " \"crval2\": 20.0, \"cd11\": -0.02, \"cd12\": 0.0,"
+                  " \"cd21\": 0.0, \"cd22\": 0.02}");
+  auto drz_cfg = [&](const Fixture& fx) {
+    return std::string("{\n  \"input_lights\": [\"") + fx.light1 +
+           "\"],\n  \"output_dir\": \"" + fx.out_dir + "\",\n  " + wcs +
+           ",\n  \"drizzle\": {\"nside\": 512, \"nested\": 1, \"pixfrac\": 1.0,"
+           " \"precision_mode\": 0}\n}";
+  };
+  auto wr_cfg = [&](const Fixture& fx) {
+    return std::string("{\n  \"input_lights\": [\"") + fx.light1 +
+           "\"],\n  \"output_dir\": \"" + fx.out_dir +
+           "\",\n  \"filter_passband\": \"R\"\n}";
+  };
+  // (a) 正例: 单星 + 星掩膜输入在位
+  Fixture fx = make_fixture("ivar2pos");
+  write_p1_sources(fx, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
+  RunContext ctx;
+  Result<void> rc;
+  json man = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx), ctx, &rc);
+  CHECK_MSG(rc.ok(), ("IVAR-002(a): drizzle must succeed: " +
+                      (rc.failed() ? rc.error().message() : std::string())).c_str());
+  CHECK_MSG(man.value("variance_product_status", std::string()) == "attached",
+            ("IVAR-002(a): variance block must be attached, got status=" +
+             man.value("variance_product_status", std::string())).c_str());
+  CHECK(man.value("variance_block_name", std::string()) == "variance");
+  CHECK(man.value("variance_block_type", std::string()) == "AIO_BLOCK_FLOAT32");
+  CHECK(man.value("variance_block_unit", std::string()) == "ADU^2");
+  CHECK(man.value("variance_block_optional", false) == true);
+  CHECK(man.value("variance_scale_law_applied", true) == false);
+  const json vf = man.value("variance_product_frames", json::array());
+  CHECK_MSG(vf.size() == 1, "IVAR-002(a): per-frame variance audit must have 1 entry");
+  double model_var = 0.0, model_var_1 = 0.0, med_var_1 = 0.0;
+  if (!vf.empty()) {
+    CHECK(vf[0].value("status", std::string()) == "attached");
+    CHECK(vf[0].value("n_control_points", 0u) > 0u);
+    model_var = vf[0].value("variance_bg_global", 0.0);
+    CHECK_MSG(model_var > 0.0, "IVAR-002(a): non-degenerate model must have variance>0");
+  }
+  const std::string vroot = frame_root(fx) + "/variance";
+  const std::string iroot = frame_root(fx) + "/ivar";
+  CHECK_MSG(fs::exists(fs::path(vroot + "/properties")),
+            "IVAR-002(a): variance/ subproduct must exist when the frame block is attached");
+  CHECK_MSG(fs::exists(fs::path(iroot + "/properties")),
+            "IVAR-002(a): ivar/ subproduct must exist when the frame block is attached");
+  const std::vector<std::string> vt = hips_leaf_tiles(frame_root(fx), "variance");
+  const std::vector<std::string> it2 = hips_leaf_tiles(frame_root(fx), "ivar");
+  CHECK_MSG(!vt.empty() && vt.size() == it2.size(),
+            "IVAR-002(a): variance/ivar leaf tiles must be paired");
+  if (!vt.empty() && vt.size() == it2.size()) {
+    std::vector<float> var, iv;
+    const bool vok = read_hips_tile(vt[0], &var);
+    const bool iok = read_hips_tile(it2[0], &iv);
+    CHECK_MSG(vok && iok, "IVAR-002(a): variance/ivar tile must be readable");
+    if (vok && iok && var.size() == iv.size() && !var.empty()) {
+      std::vector<double> fin;
+      double max_recip = 0.0;
+      for (size_t i = 0; i < var.size(); ++i) {
+        const double v = var[i], w = iv[i];
+        if (!std::isfinite(v)) continue;
+        fin.push_back(v);
+        max_recip = std::max(max_recip, std::fabs(v * w - 1.0));
+      }
+      CHECK_MSG(!fin.empty(), "IVAR-002(a): product must carry finite variance pixels");
+      std::sort(fin.begin(), fin.end());
+      const double med = fin[fin.size() / 2];
+      CHECK_MSG(med > 0.0, ("IVAR-002(a): variance must be positive (med=" +
+                            std::to_string(med) + ")").c_str());
+      // 绝对量纲不在本门判定（见 02-variance-wiring.md §5.3 的量纲发现:
+      // 引擎 w=overlap/drop 无量纲、sumArea 为 sr、writer 取 vnum/area² ⇒ 产品
+      // 方差 = Var(signal)（signal 单位内），而非字面 ADU²）。本门改判
+      // **量纲无关的线性性**（(a2): 噪声 ×2 ⇒ 产品方差与模型方差同比例）。
+      model_var_1 = model_var;
+      med_var_1 = med;
+      std::fprintf(stderr, "[IVAR-002] frame1: model_var=%.6f product_med=%.6g\n",
+                   model_var, med);
+      CHECK_MSG(max_recip < 5e-3,
+                ("IVAR-002(a): ivar must be 1/variance (max|v*ivar-1|=" +
+                 std::to_string(max_recip) + ")").c_str());
+    }
+  }
+  // writer 节点: 产品面事实来自磁盘（DATA-P1-HIPS §12.2 + §4a 成对）
+  json wman = run_node(reg, "astrocs.phase1.writer", wr_cfg(fx), ctx, &rc);
+  CHECK_MSG(rc.ok(), ("IVAR-002(a): writer must accept variance HiPS: " +
+                      (rc.failed() ? rc.error().message() : std::string())).c_str());
+  json fin = json::object();
+  try { fin = json::parse(read_file(frame_root(fx) + "/p1_final.json")); } catch (...) { CHECK(false); }
+  const json want = json::array({"signal", "support", "variance", "ivar"});
+  CHECK_MSG(fin.value("products", json::array()) == want,
+            "IVAR-002(a): p1_final.products must report the real on-disk product set");
+  CHECK_MSG(fin.value("uncertainty_available", false) == true,
+            "IVAR-002(a): writer must report uncertainty_available=true from disk facts");
+  CHECK(fin.value("n_variance_tiles", -1) == fin.value("n_tiles", -2));
+  CHECK(fin.value("n_ivar_tiles", -1) == fin.value("n_tiles", -2));
+  CHECK_MSG(wman.value("uncertainty_available", false) == true,
+            "IVAR-002(a): writer node manifest must report uncertainty_available=true");
+  // (a2) 传播有效性 oracle（量纲无关）: 同几何、噪声 ×2（方差 ×4）的第二帧 ⇒
+  //   产品方差与模型方差**同比例**变化（几何常数相消）⇒ 产品方差确由块内容驱动,
+  //   而不是常数/零/装饰面。
+  {
+    Fixture fx4 = make_noise_fixture("x4", 2.0);
+    write_p1_sources(fx4, "cleaned_light_1.fits", {{16.0, 16.0, 5000.0, 3.5}});
+    RunContext ctx4;
+    Result<void> rc4;
+    json man4 = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx4), ctx4, &rc4);
+    CHECK_MSG(rc4.ok(), ("IVAR-002(a2): drizzle must succeed on the x4-noise frame: " +
+                         (rc4.failed() ? rc4.error().message() : std::string())).c_str());
+    const json vf4 = man4.value("variance_product_frames", json::array());
+    double model_var_4 = 0.0, med_var_4 = 0.0;
+    if (!vf4.empty()) model_var_4 = vf4[0].value("variance_bg_global", 0.0);
+    {
+      const std::vector<std::string> vt4 = hips_leaf_tiles(frame_root(fx4), "variance");
+      if (!vt4.empty()) {
+        std::vector<float> var4;
+        if (read_hips_tile(vt4[0], &var4)) {
+          std::vector<double> f4;
+          for (float v : var4) if (std::isfinite(v)) f4.push_back(v);
+          if (!f4.empty()) {
+            std::sort(f4.begin(), f4.end());
+            med_var_4 = f4[f4.size() / 2];
+          }
+        }
+      }
+    }
+    std::fprintf(stderr, "[IVAR-002] frame2(x2 noise): model_var=%.6f product_med=%.6g\n",
+                 model_var_4, med_var_4);
+    CHECK_MSG(model_var_1 > 0.0 && model_var_4 > 0.0 && med_var_1 > 0.0 && med_var_4 > 0.0,
+              "IVAR-002(a2): both frames must yield positive model/product variance");
+    if (model_var_1 > 0.0 && model_var_4 > 0.0 && med_var_1 > 0.0 && med_var_4 > 0.0) {
+      const double r_model = model_var_4 / model_var_1;
+      const double r_prod = med_var_4 / med_var_1;
+      CHECK_MSG(r_model > 3.2 && r_model < 4.8,
+                ("IVAR-002(a2): x2 noise must quadruple the model variance (got " +
+                 std::to_string(r_model) + ")").c_str());
+      CHECK_MSG(r_prod / r_model > 0.8 && r_prod / r_model < 1.25,
+                ("IVAR-002(a2): product variance must track the block linearly"
+                 " (r_prod=" + std::to_string(r_prod) + " r_model=" +
+                 std::to_string(r_model) + ")").c_str());
+    }
+    cleanup_fixture(fx4);
+  }
+  // (b) 负例 1: 无星掩膜输入 ⇒ 显式降级（不挂块）
+  Fixture fx2 = make_fixture("ivar2neg");
+  RunContext ctx2;
+  Result<void> rc2;
+  json man2 = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx2), ctx2, &rc2);
+  CHECK_MSG(rc2.ok(), ("IVAR-002(b): drizzle must still succeed without mask input: " +
+                       (rc2.failed() ? rc2.error().message() : std::string())).c_str());
+  CHECK_MSG(man2.value("variance_product_status", std::string()) == "skipped",
+            "IVAR-002(b): missing star-mask input must degrade explicitly (status=skipped)");
+  const json vf2 = man2.value("variance_product_frames", json::array());
+  CHECK(!vf2.empty());
+  if (!vf2.empty())
+    CHECK_MSG(vf2[0].value("status", std::string()) == "skipped_no_star_mask_input",
+              ("IVAR-002(b): reason must be explicit, got " +
+               vf2[0].value("status", std::string())).c_str());
+  CHECK_MSG(!fs::exists(fs::path(frame_root(fx2) + "/variance/properties")),
+            "IVAR-002(b): no variance/ subproduct without the frame block");
+  CHECK_MSG(!fs::exists(fs::path(frame_root(fx2) + "/ivar/properties")),
+            "IVAR-002(b): no ivar/ subproduct without the frame block");
+  run_node(reg, "astrocs.phase1.writer", wr_cfg(fx2), ctx2, &rc2);
+  CHECK(rc2.ok());
+  json fin2 = json::object();
+  try { fin2 = json::parse(read_file(frame_root(fx2) + "/p1_final.json")); } catch (...) { CHECK(false); }
+  CHECK_MSG(fin2.value("uncertainty_available", true) == false,
+            "IVAR-002(b): writer must report uncertainty_available=false (fail-closed)");
+  CHECK(fin2.value("n_variance_tiles", -1) == 0);
+  CHECK(fin2.value("n_ivar_tiles", -1) == 0);
+  // (d) 不变性: 挂块 vs 不挂块 ⇒ signal/support 逐字节一致
+  {
+    const std::vector<std::string> sa = hips_leaf_tiles(frame_root(fx), "signal");
+    const std::vector<std::string> sb = hips_leaf_tiles(frame_root(fx2), "signal");
+    const std::vector<std::string> ua = hips_leaf_tiles(frame_root(fx), "support");
+    const std::vector<std::string> ub = hips_leaf_tiles(frame_root(fx2), "support");
+    CHECK_MSG(!sa.empty() && sa.size() == sb.size() && ua.size() == ub.size(),
+              "IVAR-002(d): signal/support tile sets must match with/without the block");
+    bool same = (sa.size() == sb.size() && ua.size() == ub.size());
+    for (size_t i = 0; same && i < sa.size(); ++i)
+      if (read_bytes(sa[i]) != read_bytes(sb[i])) same = false;
+    for (size_t i = 0; same && i < ua.size(); ++i)
+      if (read_bytes(ua[i]) != read_bytes(ub[i])) same = false;
+    CHECK_MSG(same,
+              "IVAR-002(d): attaching the variance block must not change signal/support"
+              " (bytewise; drizzle_engine.cpp:1919 drops pixels with variance<=0)");
+  }
+  // (c) 负例 2: A 退化（密集星掩膜 ⇒ plan infeasible）⇒ 显式降级
+  Fixture fx3 = make_fixture("ivar2deg");
+  {
+    std::vector<SrcRow> dense;
+    for (int gy = 0; gy < 8; ++gy)
+      for (int gx = 0; gx < 8; ++gx)
+        dense.push_back(SrcRow{2.0 + 4.0 * gx, 2.0 + 4.0 * gy, 1.0e4, 4.0});
+    write_p1_sources(fx3, "cleaned_light_1.fits", dense);
+  }
+  RunContext ctx3;
+  Result<void> rc3;
+  json man3 = run_node(reg, "astrocs.phase1.drizzle", drz_cfg(fx3), ctx3, &rc3);
+  CHECK_MSG(rc3.ok(), ("IVAR-002(c): drizzle must survive a degenerate noise model: " +
+                       (rc3.failed() ? rc3.error().message() : std::string())).c_str());
+  const json vf3 = man3.value("variance_product_frames", json::array());
+  CHECK(!vf3.empty());
+  if (!vf3.empty()) {
+    const std::string st3 = vf3[0].value("status", std::string());
+    CHECK_MSG(st3 == "skipped_degenerate_empty_support",
+              ("IVAR-002(c): degenerate model must skip the block explicitly, got " +
+               st3).c_str());
+    CHECK(vf3[0].value("degenerate", false) == true);
+  }
+  CHECK_MSG(!fs::exists(fs::path(frame_root(fx3) + "/variance/properties")),
+            "IVAR-002(c): degenerate model must not publish variance/");
+  CHECK_MSG(!fs::exists(fs::path(frame_root(fx3) + "/ivar/properties")),
+            "IVAR-002(c): degenerate model must not publish ivar/");
+  // 退化时 signal/support 必须完好（全零平面事故面的负例证明）
+  {
+    const std::vector<std::string> sc = hips_leaf_tiles(frame_root(fx3), "signal");
+    const std::vector<std::string> sb = hips_leaf_tiles(frame_root(fx2), "signal");
+    CHECK_MSG(!sc.empty() && sc.size() == sb.size(),
+              "IVAR-002(c): signal product must survive the degenerate model");
+    bool same = (sc.size() == sb.size());
+    for (size_t i = 0; same && i < sc.size(); ++i)
+      if (read_bytes(sc[i]) != read_bytes(sb[i])) same = false;
+    CHECK_MSG(same, "IVAR-002(c): degenerate skip must leave signal bytewise unchanged");
+  }
+  cleanup_fixture(fx);
+  cleanup_fixture(fx2);
+  cleanup_fixture(fx3);
+}
 // ── P0-21: 一组进一组出（ASTROCS_DESIGN §3.4「输出基数」）────────────────
 // 缺陷: drizzle/wcs 只取 input_lights[0] ⇒ N 帧只产 1 个 HiPS, 静默丢弃 N-1 帧
 // （L4 实测 49 帧只产 12 个产品）。本用例锁定:
@@ -3547,6 +3858,8 @@ int main() {
   test_b2a15_ghost_discontinuous_multiparent();
   // IVAR-001: Phase1 生产末端 variance/ivar 子产品 (§12.1/§12.2) + 注入面
   test_ivar001_phase1_variance_products();
+  // IVAR-002: 逐像素 variance 帧内命名块接入（定案 2 / ASTROCS_DESIGN §7.1a）
+  test_ivar002_frame_variance_block_wiring();
   test_b2a17_sip_bridge();
   // P17-NSIDE: drizzle 采样率合规 (1x-2x) + nside 来源/欠采样可见性
   test_p17_nside_sampling_compliance();

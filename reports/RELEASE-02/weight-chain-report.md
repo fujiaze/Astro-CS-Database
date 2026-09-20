@@ -13,7 +13,7 @@
 | B3/B4：`w = SNR²/F_ref²` 无实现 | 新增科学核心 `weight_chain.{h,cpp}`：由帧级/帧内 SNR 现场换算逆方差权重 | **已实现（代码 + Oracle）** |
 | B4：稀疏 SNR 层零实现 | 新增稀疏层重建（规则网格双线性 / 显式半径最近点）+ 帧级×帧内合成 | **已实现** |
 | legacy 静默降级（L3 假绿） | 模块内 `legacy_allow_weight_fallback` **恒 fail-closed** 且显式报「权重链未闭合」，绝不返回成功 | **科学侧已闭合**；scheduler 侧接线见 §6（**需前台实施，不在本文件面**） |
-| 科学文档口径冲突 | `CONTROL_WEIGHT_SNR.md` §2a/§7 与 `UNIFIED_MODEL.md`/`07_noise_snr.md` §4.1 互斥（文档已登记 UNRESOLVED） | **上呈负责人裁决，未改文档** |
+| 科学文档口径冲突 | `CONTROL_WEIGHT_SNR.md` §2a/§7 与 `UNIFIED_MODEL.md`/`07_noise_snr.md` §4.1 互斥（文档已登记 UNRESOLVED） | **已裁决**（订正 2026-09-20）：帧级 SNR = 通量型「真实信号/噪声」`F_ref/σ_F`（§9.39 C1，`GAP_AUDIT.md:1100-1110`）；稀疏层 = 帧级 × 帧内相对因子（§9.46:1360-1366）；键名冻结 `ASTROCS_FRAME_SNR`/`ASTROCS_REFERENCE_FLUX`（`ACCEPTANCE.md:113` SD-15）。**旧文 = 「上呈负责人裁决，未改文档」** |
 
 **关键等价**：`w = SNR²/F_ref² = 1/σ_F² = W_info`。即只要 HiPS 头写出通量型帧级 SNR（+ 可选稀疏层），Phase2 就能**自行恢复**逐帧逆方差权重，**不再依赖缺失的 per-frame ivar 产品**——这正是消除 legacy 等权降级的科学出路。
 
@@ -183,7 +183,13 @@ if (!w.ok) {
 
 ---
 
-## 7. 上呈负责人裁决（未擅自改文档）
+## 7. 已裁决事项（原「上呈负责人裁决（未擅自改文档）」；2026-09-20 订正）
+
+> **订正留痕（2026-09-20）**：本节标题旧文 =「## 7. 上呈负责人裁决（未擅自改文档）」；原三项「请负责人裁决」均已被裁决覆盖 ⇒ 标题订正为「已裁决事项」，**原三条正文保留为历史留痕**：
+> 1. frame_snr 语义互斥 ⇒ **已裁决**：帧级 SNR = 通量型 `F_ref/σ_F`（§9.39 C1，`工程控制/RELEASE-02/GAP_AUDIT.md:1100-1110`）；与 `CONTROL_WEIGHT_SNR` 的冲突经查是**命名冲突**（同名 `frame_snr` 指两个对象），改名消歧走变更 claim（SD-19，`工程控制/RELEASE-02/ACCEPTANCE.md:119`）。
+> 2. 稀疏层数值语义 ⇒ **已裁决**：「帧级平均 SNR × 附近稀疏控制点权重（插值）」（§9.46:1329-1331、:1360-1366）；即本报告采用的 `actual = frame × intra` 相对因子口径。
+> 3. HiPS 头 SNR 键名 ⇒ **已冻结**：`ASTROCS_FRAME_SNR` + `ASTROCS_REFERENCE_FLUX`（SD-15，`ACCEPTANCE.md:113`）。
+> ⚠ 另注（不构成冲突）：`F_ref` 的作用域已由 §9.66 A（`GAP_AUDIT.md:2439-2461`）定为**逐帧 `F_ref,k` + 公共锚 `F0`**（`WEIGHT-FREF-PERFRAME-001`）；本报告 §7 未就该点上呈。
 
 1. **frame_snr 语义互斥（文档已登记 UNRESOLVED）**：
    - `docs/science/CONTROL_WEIGHT_SNR.md:140` 自述：本文件把 `frame_snr` 定义为「相对质量权重场，不是科学信噪比」；

@@ -37,7 +37,10 @@ tile 产品（SIGNAL/SUPPORT/variance/ivar，tile_depth=9、nside≥512
 ## Ownership
 
 调用方分配 frame/result/输出缓冲；模块内 RAII（SNR 控制点 vector，
-api.cpp:609-613）；HiPS 目录树由模块写入、编排层负责 overwrite
+hp_drizzle_api.cpp；**2026-09-20 订正**：原锚 `api.cpp:609-613` 中的 `api.cpp` 在本仓
+**不存在**（实际文件 = `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`，
+依据 `ENGINEERING_SPEC.md:129`），且该行号已随实现漂移——行号待随实现复核，
+以符号名为准）；HiPS 目录树由模块写入、编排层负责 overwrite
 清理。
 
 ## Thread safety
@@ -50,9 +53,11 @@ geometry cache：per-thread LRU 8192 + per-run generation 原子清空
 
 ## Errors
 
-几何退化/无 WCS/非法参数 → 拒绝（文件通道正值 1..11；帧通道正负
-混用 -1..-8/-9/-12/-13，无集中枚举——登记缺陷）；值像素 NaN/Inf
-静默跳过（DISP-DRZ-004）；无 NO_DATA 语义输出（面亮度归一在
+几何退化/无 WCS/非法参数 → 拒绝（文件通道正值 1..12（+12=C 边界内部异常）；帧通道正负
+混用 -1..-8/-9/-12/-13，无集中枚举——登记缺陷）；**值像素 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**
+（**2026-09-20 订正**：原文「值像素 NaN/Inf 静默跳过（DISP-DRZ-004）」**已作废**——实现
+`drizzle_engine.cpp:1898-1902` 自述「旧 `isfinite(...)+continue` 静默吞像素已删除」，
+科学锚 `docs/science/DRIZZLE.md:116`，回归 `.../tests/p1drz/p1drz_tests_core.cpp:517-537`）；无 NO_DATA 语义输出（面亮度归一在
 finalize 层，covered_area≤0 → variance NaN）。
 
 ## Science IDs

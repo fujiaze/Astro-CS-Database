@@ -15,7 +15,7 @@
 | 项 | 路径 | 状态 |
 |---|---|---|
 | 本报告 | `reports/RELEASE-02/conform-fix-b.md` | 完成 |
-| 001 变更 claim **草案** | `工程控制/RELEASE-02/change-claims/CONFORM-FIX-B-001-tolerance-relative.md` | 草案，待负责人裁决 |
+| 001 变更 claim **草案** | `工程控制/RELEASE-02/change-claims/CONFORM-FIX-B-001-tolerance-relative.md` | **已批准**（§9.53:1737-1777；订正 2026-09-20，V5 分片 3：原「草案，待负责人裁决」作废） |
 | 判别力测试（红/绿） | `run/RELEASE-02/conform-fix-b/tests/cfb_tests.cpp` | **新实现 49 PASS / 0 FAIL；审计基线实现 34 PASS / 15 FAIL**（独立重链实测，日志 `logs/{new,old}.log`） |
 | 旧基线还原脚本 | `run/RELEASE-02/conform-fix-b/tests/revert_to_baseline.py` | 完成 |
 | 独立重链脚本 | `run/RELEASE-02/conform-fix-b/tests/build_and_run.sh` | 完成 |
@@ -53,7 +53,7 @@
 ### 001-2 修法（合规优先）
 
 `module_adapters.cpp:5239-5240` 回退为 `uc.tolerance = 1e-6; uc.tolerance_relative = 0;`。
-相对判据保留为**显式 opt-in** 覆盖键（`upm.tolerance_relative`，默认 0），未经裁决不得启用。
+相对判据保留为**显式 opt-in** 覆盖键（`upm.tolerance_relative`，默认 0），未经裁决不得启用。 **订正（2026-09-20，V5 分片 3）**：该「裁决」= §9.53 **已批准**（`:1737-1777`）；批准后按 §9.53 落地方向实施（无量纲停止判据 + `converged` 枚举 `0/1/2/3` + 三元组 `rms_z`/`Σw/Σraw_w`/`sigma_residual_dex`），不再是「未经裁决」。
 **未改冻结文档**；授权路径落变更 claim 草案（§001-4）。
 
 ### 001-3 数值验证（生产尺度合成集：4 帧 × 8×8 control，`control_ivar=5.6e-22`，`M~3e15`）
@@ -91,7 +91,7 @@
 
 ### 001-5 变更 claim 草案要点
 
-`工程控制/RELEASE-02/change-claims/CONFORM-FIX-B-001-tolerance-relative.md`（状态：**草案，待负责人裁决**）：
+`工程控制/RELEASE-02/change-claims/CONFORM-FIX-B-001-tolerance-relative.md`（状态：**已批准**（§9.53:1737-1777）—— **订正（2026-09-20，V5 分片 3）**：原「**草案，待负责人裁决**」作废）：
 
 1. **论证**：冻结门是**绝对**判据，而生产 `max|M|~3e15` ⇒ 冻结门低于该量级 ULP 5.7 个数量级，
    **物理上不可达**；恒不可达的门使「收敛控制」完全失效（永远跑满 100 轮），与冻结条文意图相反
@@ -200,7 +200,7 @@
   `0=profile 默认：wbpp/adaptive=2；astrocs_adaptive_pixel=3；extreme_prior opt-in=1`）——
   属 `docs/**`，**本分片不改**，已列 §7 上呈。
 
-### 009 `smoothing_lambda`：默认值语义对齐（**未定生产值**）
+### 009 `smoothing_lambda`：默认值语义对齐（**判不了/默认值未冻结**：§9.55 S5 与 §9.67 定案 5 是否同指未判定；订正 2026-09-20，V5 分片 3）
 
 - **冲突三方**：`CONFIG_SCHEMA.md:19`「`smoothing(auto→0.1)`」 vs `PHASE2_UPM_IMPL.md:382`
   「`0.0（默认关闭平滑）`」（该表自述冻结面） vs 负责人裁决 `GAP_AUDIT §9.39 A5`「**λ 不能为 0**」。
@@ -222,6 +222,7 @@
   ① node chain 现在可消费 `model.smoothing`（同语义）；② manifest 增
   `upm_smoothing_lambda_source="compiled_default_alg13_frozen_0.0"` 使该缺口**机器可见**；
   ③ 冲突上呈（§7），生产 λ 取值归 `SMOOTH-LAMBDA` 分片 + 变更流程。
+- ⚠ **订正（2026-09-20，V5 分片 3）—— 判不了（默认值未冻结），不写死 `0.1`**：① §9.55 S5（`工程控制/RELEASE-02/GAP_AUDIT.md:1846-1859`）前台裁决「**λ 生产默认取 0.1**（`P2_SMOOTHING_LAMBDA_AUTO=0.1`）…**保留** `λ=0` 作为**显式 opt-in**」；ALG §13 冻结值 `0.0 → 0.1` 走变更 claim 订正。② §9.67 定案 5（`:2584-2588`）「本期**不加**堆叠平滑项」+ 必须做实验验证。⇒ 上文「**未定生产值**」的「未定」性质已变（取值不再属负责人待决项），但**两条裁决是否同指未判定** ⇒ **默认值未冻结**。**缺什么证据**：§9.67 定案 5 原文未出现 `smoothing_lambda`／`P2_SMOOTHING_LAMBDA_AUTO` 字样，两条裁决的适用对象未在裁决文本中对齐（⑦ 批次 `run/RELEASE-02/merge/⑦.md` §4 判不了 1 同结论）⇒ `docs/plugins/algorithms_phase2/11_upm.md §5` 只登记字段、标「未冻结」，本条不擅自选边。
 
 ---
 
@@ -236,14 +237,15 @@
   的「选项 a」，其**前提**是 FIX-A 目标模型 `(raw−C−b_k)/g_k`；而 `FIX-A-UPM-001` 已被
   `FIX-SCI-SNR-CANON-001`（负责人 2026-09-19，纯加性）**否决**，该 claim §2/§3.1 明文
   「FIX-P2a 默认路径为**保留 C 去 δ**，`raw − C_k`，`g_k ≡ 1` 本期不启用」
-  ⇒ 默认路径下 δ **从不施加**（`module_adapters.cpp:5503` 起 `additive_mode` 默认 `"c"`，
-  且全仓 `config/`+`run/` **无任何**配置写 `additive_mode`）。
+  ⇒ ~~默认路径下 δ **从不施加**（`module_adapters.cpp:5503` 起 `additive_mode` 默认 `"c"`，
+  且全仓 `config/`+`run/` **无任何**配置写 `additive_mode`）。~~
+  **已作废（2026-09-20，V5 分片 3；依据 §9.67 定案 1，`GAP_AUDIT.md:2548-2555`）**：负责人定案 `additive_mode` 默认 = **`delta`** ⇒ `calibrated_k = raw_k − δ_k`、**保留公共天光面 `B_ref`**；`raw − C_k`（全减）**不再是默认**。故「δ 从不施加」不再成立（实现面默认仍为 `"c"` ⇒ 裁决**未落地**，⑦ 批次已登记）。
 - **修法**：`sky_plane.enabled` 缺省值由 `true` 改为 **`delta_wanted`（`additive_mode ∈ {delta,both}`）**，
   即**「要施加才构建」**；显式 `sky_plane.enabled` 始终优先；manifest 增
   `sky_plane_enabled` / `sky_plane_enabled_default_source`。
   ⇒ 默认路径不再产出无消费方的 `p2_sky_plane.bin`（稀疏样条拟合 + Schur 解是纯成本），
   且 `additive_mode=delta` 时不会静默退化为 c。
-  **登记**：本改动**取代** FIX-A 前提下的「选项 a」，请负责人在收口验证时确认。
+  **登记**：本改动**取代** FIX-A 前提下的「选项 a」；**已确认（§9.55 S8；订正 2026-09-20，V5 分片 3）** —— 原「请负责人在收口验证时确认」作废。⚠ **§9.67 定案 1 追加订正**：`additive_mode` 默认由 `c` 改为 `delta` ⇒ `sky_plane.enabled` 缺省（= `delta_wanted`）实际为 **true**；§9.55 S8 依据行「新默认与默认路径 `raw − C` 一致」**已被 §9.67 定案 1 取代**（冲突已登记）。
 
 ### 012 provenance 自洽
 
@@ -308,7 +310,7 @@ bash run/RELEASE-02/conform-fix-b/tests/build_and_run.sh new 004
 
 ---
 
-## 7 需上呈的规范侧问题（本分片**不改规范**）
+## 7 已裁决事项与裁决出处（原「需上呈的规范侧问题（本分片**不改规范**）」；**订正（2026-09-20，V5 分片 3）**）
 
 | # | 问题 | 位置 | 建议 |
 |---|---|---|---|
@@ -320,6 +322,10 @@ bash run/RELEASE-02/conform-fix-b/tests/build_and_run.sh new 004
 | S6 | `PHASE2_UPM_IMPL.md:389` 把「已被实现修掉的缺陷」（`s>1e-12`）写成现行规范 | `docs/algorithms/PHASE2_UPM_IMPL.md:388-393` | 拆分为「build 内尺度无关门」与「公共 API 应为同判据」（003 已修实现，文档待订正） |
 | S7 | sky_plane 模型地位：`UNIFIED_SCIENCE_MODEL.md:122` UNRESOLVED vs `PHASE2_UPM.md:182` 已关闭 | 两份 FROZEN 文档 | 按 `FIX-SCI-SNR-CANON-001` 订正 UNIFIED_SCIENCE_MODEL（与 011 的默认值裁决相关） |
 | S8 | 「选项 a（sky_plane 默认开启）」的前提已随 `FIX-A-UPM-001` 被否决而消失 | `ACCEPTANCE.md:11`、`FIX-A-report.md:73,140,156` | 确认 011 的新默认（按 additive_mode 绑定） |
+
+> **逐条裁决（2026-09-20，V5 分片 3 补登；上表「建议」列保留为 2026-09-19 写作时留痕）**：
+> S1 ⇒ **§9.53 批准**（`:1737-1777`，`CONFORM-FIX-B-001` 已批准）；S2 ⇒ §9.55「其余裁决」S2（**补登记**，与 §9.53 一并）；S3 ⇒ **§9.55 S3**（按 `ENGINEERING_SPEC §3` **补登记**三参数 + **闭合两路径**）；S4 ⇒ §9.55 S4（订正为 `0=按 profile 解析`；须同步删 `config_consistency_known_divergences.json` 台账条目）；S5 ⇒ **§9.55 S5**（λ 生产默认 `0.1`，`λ=0` 仅显式 opt-in；⚠ 与 §9.67 定案 5 是否同指**未判定**）；S6 ⇒ §9.55 S6（**订正**文档）；S7 ⇒ **§9.55 S7**（以「已关闭」为准，订正另一份）；S8 ⇒ **§9.55 S8**（**确认采纳**；⚠ 依据行「与默认路径 `raw − C` 一致」已被 **§9.67 定案 1** 取代 ⇒ 缺省实际为 true）。
+> ⇒ 上文标题原义「**需上呈**」与各行「请裁决 / 须走变更流程 / 确认」的上呈状态**全部作废**。
 
 ---
 
@@ -339,7 +345,7 @@ bash run/RELEASE-02/conform-fix-b/tests/build_and_run.sh new 004
    `phase2_routing`、`phase2_synthetic_gate`、`phase2_sampler*`、`p2002_unc_rej_prov_test`、
    `p2001_real_nodes_test`、`p2_seam_gate_test`。
 6. **011 的默认值改动取代了 FIX-A 前提下的「选项 a」**（`ACCEPTANCE.md:11`）——
-   有据可依（`FIX-SCI-SNR-CANON-001` 默认路径 raw−C），但**请负责人在收口验证时确认**。
+   有据可依（`FIX-SCI-SNR-CANON-001` 默认路径 raw−C），但**请负责人在收口验证时确认**。 ⇒ **已确认（§9.55 S8；订正 2026-09-20，V5 分片 3）**：`sky_plane.enabled` 缺省 = `delta_wanted`（`additive_mode ∈ {delta,both}`）；⚠ 依 **§9.67 定案 1**（`:2548-2555`）`additive_mode` 默认改 `delta` ⇒ 缺省实际为 true；原文「默认路径 raw−C」为 §9.54 前台裁决口径，**已被 §9.67 定案 1 取代**（冲突已登记）。
 
 ## 9 硬约束自查
 

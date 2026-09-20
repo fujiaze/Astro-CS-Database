@@ -32,11 +32,11 @@
       "theme": "帧间独立原则：测光标定逐帧独立、无组间对比门、异光学系统混装不得报错",
       "why_top_design": "它改写预检的判据来源（「不匹配的帧」只能按帧内可信度判、不得按跨帧一致性判），并直接约束 CLI error/warn 分级与退出码（§6.3）。若只落插件文档，预检实现仍会保留组间门（现实现 `P1_PHOT_MAX_SPREAD_DEX`，已造成 12/12 板块被拒）。",
       "where_to_add": "§3.5 运行前预检新增「测光面判据 = 帧内，不跨帧」条款 + §3.6 硬约束",
-      "proposed": "① 每帧独立用 Gaia 标定到同一测光坐标系；标定后所有帧已在同一体系；② 跨帧 k 不同是正常的、正确的（不同夜/望远镜透明度本就不同）⇒ 要求跨帧 k 一致 = 逻辑错误；③ 删除组间 k 散度门；④ 只做帧内极度异常值拒绝 + 抛错，其他合理范围一律接受；⑤ 不同光学系统的帧混装不得报错；⑥ 门只有一个 = 单帧标定是否可信（匹配星数、拟合残差、极度离群），与其它帧无关；⑦ 显式区分「帧间一致性」是语义目标（都标到同一 Gaia 绝对测光体系）而非门禁判据 —— 与 claim FIX-SCI-SNR-CANON-001 §3.6 的措辞需协调（见 D-01）。",
+      "proposed": "① 每帧独立用 Gaia 标定到同一测光坐标系；标定后所有帧已在同一体系；② 跨帧 k 不同是正常的、正确的（不同夜/望远镜透明度本就不同）⇒ 要求跨帧 k 一致 = 逻辑错误；③ 删除组间 k 散度门；④ 只做帧内极度异常值拒绝 + 抛错，其他合理范围一律接受；⑤ 不同光学系统的帧混装不得报错；⑥ 门只有一个 = 单帧标定是否可信（匹配星数、拟合残差、极度离群），与其它帧无关；⑦ 显式区分「帧间一致性」是语义目标（都标到同一 Gaia 绝对测光体系）而非门禁判据 —— 与 claim FIX-SCI-SNR-CANON-001 §3.6 的措辞需协调。**订正（2026-09-20，V5 分片 3）**：D-01 已裁决 = §9.49 定案 2 + §9.62（「帧间一致性」是语义目标、不作门禁；选项 C「维持现状」作废）。",
       "basis": "GAP_AUDIT §9.49 定案 2（:1487-1495，同时否掉 (b) 同夜分组 / (c) 跨夜另立判据）；reports/RELEASE-02/f-instr-conform-fix.md §4.4（:166-175）、§5（:184）",
       "needs_claim": true,
       "priority": "P0",
-      "status": "① 已裁决待落地（含一处需澄清，见 D-01）",
+      "status": "① 已裁决待落地（D-01 已裁决：§9.49 定案 2 / §9.62；订正 2026-09-20，V5 分片 3）",
       "current": "§3.5:204-207 把「不匹配的帧」列为 warn 级，但未限定「不匹配」只能按帧内判据；§3.6:218-220 无帧间独立条款；实现侧存在组间 k 散度门（`P1_PHOT_MAX_SPREAD_DEX`，f-instr-conform-fix §4.4）。",
       "rationale": "它改写预检的判据来源（「不匹配的帧」只能按帧内可信度判、不得按跨帧一致性判），并直接约束 CLI error/warn 分级与退出码（§6.3）。若只落插件文档，预检实现仍会保留组间门（现实现 `P1_PHOT_MAX_SPREAD_DEX`，已造成 12/12 板块被拒）。"
     },
@@ -64,11 +64,11 @@
       "theme": "帧级 SNR 定义式（点源 PSF 信号 SNR；F_ref 共同基准）",
       "why_top_design": "现条文只有「类似 PSF-SNR」「可靠且独立」的定性描述、无定义式；而帧级 SNR 是 Phase1 写入 HiPS 的唯一科学量、也是 Phase2 权重链的输入，定义必须冻结在最高设计（否则同名两义会再次分叉）。",
       "where_to_add": "§3.4 第 1 条（HiPS 帧级 SNR）+ §4.3（换算 w=SNR²/F_ref²）",
-      "proposed": "SNR_frame(k)=F_ref/σ_F,k；σ_i²=σ_sky²+(σ_R/g)²+max(F,0)·P_i/g；σ_F^-2=ΣP_i²/σ_i²（Horne 1986 对角近似）；gain 不可得时用天空受限分支 σ_F=σ_sky·sqrt(A_NEA)、SNR=F_ref·sqrt(ΣP_i²)/σ_sky；无量纲、对信号线性缩放严格不变；F_signal 已扣局部背景、天光只进 σ_F；固定 F_s 下 B↑ ⇒ SNR 单调下降、B→∞ ⇒ SNR→0；点源口径，不得与面亮度 SNR 混用；F_ref 必须组内公共且显式落盘（`reference_flux_scope=group`）。待负责人确认：是否改用固定星等（如「本帧对 20 等星的 SNR」）作为 F_ref 定义 ⇒ 完全帧间独立、连「组」都不需要（见 D-02）。",
+      "proposed": "SNR_frame(k)=F_ref/σ_F,k；σ_i²=σ_sky²+(σ_R/g)²+max(F,0)·P_i/g；σ_F^-2=ΣP_i²/σ_i²（Horne 1986 对角近似）；gain 不可得时用天空受限分支 σ_F=σ_sky·sqrt(A_NEA)、SNR=F_ref·sqrt(ΣP_i²)/σ_sky；无量纲、对信号线性缩放严格不变；F_signal 已扣局部背景、天光只进 σ_F；固定 F_s 下 B↑ ⇒ SNR 单调下降、B→∞ ⇒ SNR→0；点源口径，不得与面亮度 SNR 混用；~~F_ref 必须组内公共且显式落盘（`reference_flux_scope=group`）。待负责人确认：是否改用固定星等（如「本帧对 20 等星的 SNR」）作为 F_ref 定义 ⇒ 完全帧间独立、连「组」都不需要（见 D-02）。~~ ⇒ **订正（2026-09-20，V5 分片 3）**：D-02 已裁决 = 逐帧 `F_ref,k`（固定星等 `reference_mag=6.0`，`reference_flux_scope` 由 `group` 改为 `frame_independent_fixed_magnitude`）+ 公共锚 `F0`（§9.50 定案 7 / §9.60 / §9.66 A / §9.67 定案 4）；「组内公共」与「20 等星」举例均作废。",
       "basis": "GAP_AUDIT §9.38 D-4/A1（:1035-1066）、§9.39 C1（:1100-1110）、§9.49 定案 7（:1507-1514）；reverse_verify/docs/frame-snr-canon.md §0/§2.2/§2.3/§2.4；change-claim §3.4/§6.1",
       "needs_claim": true,
       "priority": "P0",
-      "status": "① 已裁决待落地 + 一处待确认（D-02）",
+      "status": "① 已裁决待落地（D-02 已裁决：固定星等 m_ref=6.0，§9.50 定案 7 / §9.60 / §9.67 定案 4；订正 2026-09-20，V5 分片 3）",
       "current": "§3.4:165-169 只写「类似 PSF-SNR 的信噪比」「要求**可靠且独立**」「SNR 是信噪比，不是权重」；**无定义式**、无 F_ref 条款、无 gain 缺省分支、无点源/面源边界。",
       "rationale": "现条文只有「类似 PSF-SNR」「可靠且独立」的定性描述、无定义式；而帧级 SNR 是 Phase1 写入 HiPS 的唯一科学量、也是 Phase2 权重链的输入，定义必须冻结在最高设计（否则同名两义会再次分叉）。"
     },
@@ -475,7 +475,7 @@
       "basis": "GAP_AUDIT §9.49 定案 1（:1480-1485）；§9.48 ②（:1404-1418）；CONFORM-SWEEP-1-002（:64-76）；reports/RELEASE-02/stardet-conform-invest.md §1（:24-197）",
       "needs_claim": true,
       "priority": "P0",
-      "status": "② 待负责人裁决（是否切 sdet：7–12 人日 + 全链重验收，见 D-04）"
+      "status": "① 已裁决待落地（D-04 已裁决：检测改星表引导，§9.49 定案 1；sdet 去留 = 前台按 §9.50 授权实测评估；订正 2026-09-20，V5 分片 3）"
     },
     {
       "id": "DG-B-12",
@@ -483,12 +483,12 @@
       "file": "docs/plugins/algorithms_phase1/06_photometry.md",
       "loc": "§1:6（边界，D-5 已订正）、§4（算法要点，:25-28）、§5 配置表（:30-34）",
       "current": "§4 只写「孔径测光 / PSF 测光 / 光度响应 a_k」；**无空间增益 m(x,y)**、无 F_instr 口径定案、无「归一化必须落到像素」的应用点与元数据要求。§5 配置表 `mode` 默认 `psf`、`aperture_radius` 默认 `2×FWHM`（与实现/README 冲突，见 S2-PH-05/PH-06）。",
-      "proposed": "① 补 `I_photo = k_photo·m(x,y)·I_cal` 的低阶空间增益（用星点估、低阶双线性/二次）；② 补 F_instr 口径（A6 定案后转录；F-INSTR-CONFORM-FIX 已实施 PSF 拟合域 `2πA·sxsy/3`，残留：噪声节点仍取盒和）；③ 补「归一化应用点 + photappl/photscal 如实落盘」；④ 消解 `mode`/`aperture_radius` 默认冲突（见 D-05）。",
+      "proposed": "① 补 `I_photo = k_photo·m(x,y)·I_cal` 的低阶空间增益（用星点估、低阶双线性/二次）；② 补 F_instr 口径（**订正（2026-09-20，V5 分片 3）**：A6 已定案 = PSF 拟合域 `2πA·sxsy/3`（§9.51 Q-C / §9.52 / §9.67 定案 6），原文「A6 定案后转录」作废；残留：噪声节点仍取盒和）；③ 补「归一化应用点 + photappl/photscal 如实落盘」；④ 消解 `mode`/`aperture_radius` 默认冲突（D-05 已裁决口径 = PSF 域；孔径默认值/`mode` 去留 = 前台按 §9.50 授权定案；订正 2026-09-20，V5 分片 3）。",
       "rationale": "06_photometry 是 Phase1 测光的唯一权威插件文档；P0 缺陷（apply_photometry 零调用者）之所以长期存活，正是因为该文档没有「应用」这一步。",
       "basis": "GAP_AUDIT §9.29（:753-795）；§9.37 指令 1（:1003-1007）；§9.39 A4/A6（:1072-1098）；reports/RELEASE-02/f-instr-conform-fix.md §1（:24-45）、§4.4（:166-175）",
       "needs_claim": true,
       "priority": "P0",
-      "status": "① 已裁决待落地（A4/A6 定案后转录）"
+      "status": "① 已裁决待落地（订正 2026-09-20，V5 分片 3：A6 已定案 = PSF 域 `2πA·sxsy/3`，§9.51 Q-C / §9.52 / §9.67 定案 6；A4 开启前置条件仍待实验）"
     },
     {
       "id": "DG-B-13",
@@ -527,7 +527,7 @@
       "basis": "reverse_verify/docs/frame-snr-canon.md §5（:511、:515）、§4.2 G10（:457）、§4.3 C5（:477）",
       "needs_claim": true,
       "priority": "P2",
-      "status": "① 已裁决待落地 + ② 改名属合同变更（D-06）"
+      "status": "① 已裁决待落地（D-06 已裁决：frame_snr 改名 `depth` / 加 `not_a_snr: true`，§9.67「前台须同时执行」第 4 条；订正 2026-09-20，V5 分片 3）"
     },
     {
       "id": "DG-B-16",
@@ -535,12 +535,12 @@
       "file": "docs/development/CONFIG_SCHEMA.md",
       "loc": ":3-4（工具自述）、:19（smoothing 默认）、配置行表",
       "current": ":3-4 自述「一致性由 tools/config_consistency_check.py 校验（V14 交付）」——该工具在 S3-017 时已失效（引用 4 条不存在路径）；:19 写 `smoothing auto→0.1`，与 ALG/模块「0.0 默认关」打架（S3-023）；缺 `snr_path`/`sparse_snr_spacing_px` 行。",
-      "proposed": "① 更新工具自述（路径与覆盖面；工具已由 GUARD-TOOLS-FIX 重写，见 DG-C-04）；② `smoothing` 默认按 §9.39 A5 裁决订正为「不得为 0」并标注取值待实验定（D-07）；③ 补 `snr_path`（mosaic）与 `sparse_snr_spacing_px`（normalize）两行。",
+      "proposed": "① 更新工具自述（路径与覆盖面；工具已由 GUARD-TOOLS-FIX 重写，见 DG-C-04）；② `smoothing` 默认取值 **未冻结（判不了）**：§9.55 S5（λ=0.1、`λ=0` 仅显式 opt-in）与 §9.67 定案 5（本期不加堆叠平滑项）是否同指未判定（订正 2026-09-20，V5 分片 3；缺证据见 md:808）；③ 补 `snr_path`（mosaic）与 `sparse_snr_spacing_px`（normalize）两行。",
       "rationale": "CONFIG_SCHEMA.md 自述是「默认值一致性」的规范锚点；它自述的门失效且默认值打架，是 C4 类缺陷无门的结构性原因。",
       "basis": "CONFORM-SWEEP-3-017（:228）；CONFORM-SWEEP-3-023（:289）；reports/RELEASE-02/snr-config-land.md §5.2（:105）；GAP_AUDIT §9.39 A5（:1080-1090）",
       "needs_claim": false,
       "priority": "P1",
-      "status": "① 已裁决待落地（工具面已在办；默认值面见 D-07）"
+      "status": "① 已裁决待落地（工具面已在办；D-07 判不了/默认值未冻结：§9.55 S5（λ=0.1）与 §9.67 定案 5（本期不加堆叠平滑项）是否同指未判定；订正 2026-09-20，V5 分片 3）"
     },
     {
       "id": "DG-B-S1-018",
@@ -705,11 +705,11 @@
       "loc": ":32（`aperture_radius` 默认 2×FWHM）；lib/algorithms/photometry/README.md:173-174（4.0 px）；实现 photometer.h:26-28 默认 4.0 px；module_adapters.cpp:3050 不读配置",
       "current": "插件规范写 `aperture_radius` 默认 `2×FWHM`，模块 README 与实现写 `4.0 px`；两条规范互相打架，且生产默认不可配。",
       "proposed": "二者取一为权威（建议：规范改为显式像素值并说明与 FWHM 的关系），并把 `aperture_radius`/`sky_annulus` 入 config/defaults.json 并由 module_adapters.cpp:3050 读取。",
-      "rationale": "孔径半径直接改测光口径与 F_instr；与 A6 定案（DG-B-12）耦合。报告标注需负责人裁决。",
+      "rationale": "孔径半径直接改测光口径与 F_instr；与 A6 定案（DG-B-12）耦合。报告原标注「需负责人裁决」；**订正（2026-09-20，V5 分片 3）**：口径已裁决 = PSF 拟合域（§9.51 Q-C / §9.52），孔径默认值与 mode 去留 = 前台按 §9.50 授权定案。",
       "basis": "CONFORM-SWEEP-2 PH-05（md:123-139）、§4 分列（md:713）",
       "needs_claim": true,
       "priority": "P1",
-      "status": "② 待负责人裁决（口径定案，见 D-05）"
+      "status": "① 已裁决待落地（口径 = PSF 域，§9.51 Q-C / §9.52；孔径默认值与 mode 去留 = 前台按 §9.50 授权定案；订正 2026-09-20，V5 分片 3）"
     },
     {
       "id": "DG-B-S2-PH-06",
@@ -722,7 +722,7 @@
       "basis": "CONFORM-SWEEP-2 PH-06（md:140-150）、§4 分列（md:713）",
       "needs_claim": true,
       "priority": "P1",
-      "status": "② 待负责人裁决（见 D-05）"
+      "status": "① 已裁决待落地（口径 = PSF 域，§9.51/§9.52；mode 键去留 = 前台按 §9.50 授权定案；订正 2026-09-20，V5 分片 3）"
     },
     {
       "id": "DG-B-S2-PR-02",
@@ -1107,7 +1107,7 @@
       "file": "docs/development/CONFIG_SCHEMA.md",
       "loc": ":19；docs/algorithms/PHASE2_UPM_IMPL.md:382；lib/algorithms/upm/README.md:138；upm.h:75",
       "current": "S2/S3-009/023 曾报 `smoothing_lambda` 默认冲突（auto→0.1 vs 0.0 默认关）。",
-      "proposed": "**已裁决（§9.39 A5）**：`smoothing_lambda` **不能为 0**（不能保持生产现值 0）；风险 = 真实亮结构（M16 核心）被过平滑压暗，取值须平衡「消台阶」与「保亮结构」；必须做合成实验（虚拟数据 + 加性天光）与真实数据实测，并给 λ 扫描曲线。**具体数值待实验**（见 D-07）。",
+      "proposed": "**已裁决（§9.39 A5）**：`smoothing_lambda` **不能为 0**（不能保持生产现值 0）；风险 = 真实亮结构（M16 核心）被过平滑压暗，取值须平衡「消台阶」与「保亮结构」；必须做合成实验（虚拟数据 + 加性天光）与真实数据实测，并给 λ 扫描曲线。~~**具体数值待实验**（见 D-07）。~~ ⇒ **订正（2026-09-20，V5 分片 3）—— 判不了（默认值未冻结）**：§9.55 S5（λ=0.1、`λ=0` 仅显式 opt-in）与 §9.67 定案 5（本期不加堆叠平滑项）是否同指**未判定**；缺什么证据：§9.67 定案 5 原文未出现 `smoothing_lambda` 字样、两条裁决适用对象未在裁决文本中对齐。",
       "rationale": "裁决已定方向，不得再写「默认 0.0 为规范」；剩余 = 取值定案 + 三处文档同步。",
       "basis": "GAP_AUDIT §9.39 A5（:1080-1090）；reports/RELEASE-02/seam-archaeology.md；reports/RELEASE-02/snr-config-land.md §6.3",
       "needs_claim": false,
@@ -1188,11 +1188,12 @@
     },
     "needs_claim_true": 33,
     "by_status": {
-      "① ": 35,
+      "① ": 38,
       "③ ": 41,
-      "② ": 4,
+      "② ": 1,
       "④ ": 6
     },
+    "by_status_note": "订正 2026-09-20（V5 分片 3）：DG-B-11 / DG-B-S2-PH-05 / DG-B-S2-PH-06 由 ② → ①（G21/G22/G29/G30，§9.49/§9.50/§9.51/§9.52）；DG-B-10 仍标 ②（B 报告 G27 判 KEEP，未改；按 §9.67 定案 5 已过期，待前台订正）",
     "by_priority": {
       "P0": 14,
       "P1": 40,

@@ -18,6 +18,12 @@ CMake target / 共址测试 / 有效合同引用）+ 产品清单 unit + 合同�
   dangling_contract_ref 某模块声明不存在的 DATA 合同（悬空合同引用）
   facade_session        entrypoint 直接转发整阶段 Session（facade）
   noop_entrypoint       entrypoint 函数体零调用（no-op/无可执行路径）
+  vtable_noop           query 型 entrypoint 交出操作 vtable，但 vtable 成员全是空壳
+                        （零调用）—— 必须仍然判红（M5 强化判据的判别力证明）
+
+正例（除 positive / legacy_contract_ok 外）：
+  vtable_query_ok       query 型 entrypoint 函数体零调用、交出九操作 vtable（≥3 个成员
+                        有定义且含真实调用）—— 必须绿（M5 强化判据的假阳订正证明）
 
 零副作用：只在调用方给的 root 下生成文件；不读也不改真实仓库（除只读取期望映射表）。
 """
@@ -40,6 +46,7 @@ MUTATIONS = (
     "dangling_contract_ref",
     "facade_session",
     "noop_entrypoint",
+    "vtable_noop",
 )
 
 
@@ -123,6 +130,29 @@ def _source_text(m, body=None):
     return default + impl
 
 
+def _vtable_source(entrypoint, live):
+    """query 型 entrypoint 合成源：函数体零调用 + 交出一张操作 vtable。
+
+    live=True  → vtable 的 3 个成员都有真实调用（应当判**实现到位**）；
+    live=False → vtable 的 3 个成员都是空壳（应当**仍然判红**）。
+    """
+    call = "    return vt_kernel(x);\n" if live else "    (void)x; return 0;\n"
+    kernel = ("static int vt_kernel(int x) { return x + 1; }\n" if live else "")
+    return (
+        "typedef int (*vt_fn)(const void *host, int x);\n"
+        "static int vt_op_a(const void *host, int x) { (void)host;\n" + call + "}\n"
+        "static int vt_op_b(const void *host, int x) { (void)host;\n" + call + "}\n"
+        "static int vt_op_c(const void *host, int x) { (void)host;\n" + call + "}\n"
+        + kernel +
+        "static vt_fn vt_table[3] = { vt_op_a, vt_op_b, vt_op_c };\n"
+        'extern "C" int ' + entrypoint + '(const void *host, const char *req, void **out_api) {\n'
+        "    (void)host; (void)req;\n"
+        "    *out_api = &vt_table;\n"
+        "    return 0;\n"
+        "}\n"
+    )
+
+
 def _cmake_text(m):
     verb = "add_executable" if m.get("entrypoint_kind") == "exe-main" else "add_library"
     return (
@@ -185,6 +215,8 @@ def build_repo(root, mutation=None, repo=None):
                     "    (void)host; (void)req; (void)out;\n"
                     "    return 0;\n"
                     "}")
+        if mutation in ("vtable_query_ok", "vtable_noop") and m is mods[7]:
+            body = _vtable_source(str(m["entrypoint"]), live=(mutation == "vtable_query_ok"))
         _write(mdir / "src" / (str(m["id"]) + ".cpp"), _source_text(m, body))
         _write(root / str(m["target_file"]), _cmake_text(m))
         _write(root / str(m["co_located_tests"]) / (str(m["id"]) + "_test.cpp"),

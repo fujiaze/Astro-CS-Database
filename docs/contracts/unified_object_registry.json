@@ -556,7 +556,7 @@
       "role": "config_contract",
       "owner": "CFG-001",
       "object_class": null,
-      "note": "CFG-001 产物：normalize 的 phase_config 科学参数合同（锚点见 docs/contracts/config_separation_anchors.json）。"
+      "note": "CFG-001 产物：normalize 的 phase_config 科学参数合同（锚点见 docs/contracts/config_separation_anchors.json）。GAP_AUDIT §9.68（2026-09-20）改写为多数据块形态：顶层 blocks[]（每块一组 light + 一套母版 + 运行参数 + 块级 output_dir）+ 平铺单块简写（互斥）；逐帧 {phase_name, config, inputs[]} 已删除。"
     },
     {
       "file": "contracts/schemas/phase_config_mosaic.schema.json",

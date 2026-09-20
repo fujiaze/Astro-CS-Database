@@ -7,7 +7,7 @@
 - 文档 ID：`CONTRACT-FREEZE-001-FROZEN-DATA`；机器可读冻结表 = `astrocs.v6.contract-freeze.v1.json`（唯一事实源）。
 - 覆盖：信号/协方差/PSF/effective PSF/W_info/PSFSW/weight_mode/provenance 的单位、字段、枚举、适用域、fail-closed 与迁移规则。
 - 上游：`docs/contracts/v6/data/**`（DATA-DESIGN-001 设计提案）与 `contracts/proposals/v6/data/**`（schema proposal）；本目录为正式冻结层。
-- schema 词表归一仍归 SCHEMA-INTEGRATE-001(W6)：本目录只冻结语义与取值域，不写生产 schema。
+- schema 词表归一**已由** SCHEMA-INTEGRATE-001(W6) 完成（机器事实源 `contracts/data/v6_weight_vocabulary_v1.json`，`status=PRODUCTION_INTEGRATED`；**2026-09-20 订正**，依据 `W6_SCHEMA_INTEGRATION.md:29,38,104`）：本目录只冻结语义与取值域，不写生产 schema。（原文「schema 词表归一**仍归** SCHEMA-INTEGRATE-001(W6)」所述「待归一」状态已结束，保留于此留痕。）
 
 ## 1. data 层冻结条款
 

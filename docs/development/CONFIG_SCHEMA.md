@@ -23,7 +23,7 @@ integration: precision(fp32) memory_limit_mb rejection{method
              none|sigma|winsorized_sigma|averaged_sigma|linear_fit|
              generalized_esd|rcr|percentile|median_sigma|minmax|auto
              profile(astrocs_adaptive_pixel(生产默认,自研)|wbpp_2_9_1(对照档)|wbpp_current alias|astrocs_adaptive)
-             underdetermined_n(2)
+             underdetermined_n(0=按 profile 解析；pixel=3/其余=2/extreme_prior=1)
              normalization(none|astrocs_median_center_v1|astrocs_median_scale_v1)
              normalization_floor(1e-12)
              large_scale{enabled(false) min_structure_pixels(8)
@@ -55,7 +55,8 @@ rejection.method 说明（V17 True Final Freeze）：
       nominal<6 → percentile；6..15 → winsorized_sigma；>15 → linear_fit；
   - `astrocs_adaptive` = AstroCS 自有策略（tile nominal depth 自适应，
     独立命名，不冒充 WBPP exact）；
-  - effective 候选数 <= underdetermined_n（默认 2）或 < 方法 minimum N →
+  - effective 候选数 <= underdetermined_n（**默认 0 = 按 profile 解析**：wbpp/adaptive=2；
+    astrocs_adaptive_pixel=3；显式 request=EXTREME_VALUE_PRIOR_SIGMA（opt-in）=1）或 < 方法 minimum N →
     REJECTION_UNDERDETERMINED（可全接受但必须记录，禁止偷偷换算法）；
   - normalization：判定工作域与科学值域分离（decision 作用于
     working stack，accepted mask 应用回原始 calibrated 值）；

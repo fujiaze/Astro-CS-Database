@@ -117,7 +117,12 @@ FINDING_SEVERITY = {
     "lifecycle_without_authority": "FAIL", "verification_evidence_missing": "FAIL",
     "schema_link_glob_unverifiable": "NOTE", "product_manifest_exempt": "NOTE",
     "not_verified": "NOTE", "legacy_paths_present": "NOTE",
+    "entrypoint_vtable_resolved": "NOTE",
 }
+
+# M5 强化判据阈值：query 型 entrypoint 交出的操作 vtable 至少要有这么多个成员
+# 能在同文件解析出函数定义（DESIGN §7.3 的九操作 vtable；取 3 为下限）。
+VTABLE_MIN_OPS = 3
 
 
 def _utc_now() -> str:
@@ -172,6 +177,62 @@ def find_function_body(text: str, symbol: str):
         body = _match_brace(clean, m.end() + brace)
         if body is not None:
             return body
+    return None
+
+
+def find_initializer_body(text: str, symbol: str):
+    """找 symbol 的聚合初始化体（`symbol ... = { ... }`），返回花括号内文本；找不到返回 None。"""
+    clean = strip_comments(text)
+    for m in re.finditer(r"\b%s\b" % re.escape(symbol), clean):
+        tail = clean[m.end():]
+        brace = tail.find("{")
+        if brace < 0:
+            continue
+        semi = tail.find(";")
+        if 0 <= semi < brace:
+            continue
+        eq = tail.find("=")
+        if eq < 0 or eq > brace:
+            continue
+        body = _match_brace(clean, m.end() + brace)
+        if body is not None:
+            return body
+    return None
+
+
+def resolve_entrypoint_vtable(text: str, body: str):
+    """M5 强化：entrypoint 体内零调用时，解析它交出的**操作 vtable**。
+
+    背景（口径订正，2026-09-20）：query 型 entrypoint 的合法形态是
+    `*out_api = &g_<x>_api;` —— 只赋值、不调用。旧判据「函数体内零调用 ⇒ noop」
+    把 calibration/cosmetic/drizzle/noise_snr/gaia_xpsd_client 五个**真实**
+    九操作 adapter 误判为 no-op（假阳）。强化判据要求三条**同时**满足：
+      ① entrypoint 体内出现 `= &<vtable>`，且该 vtable 能在同文件解析出聚合初始化体；
+      ② 初始化体内至少 VTABLE_MIN_OPS 个成员能在同文件解析出函数定义（九操作 vtable）；
+      ③ 至少 1 个成员函数体含真实调用（非空壳）。
+    任一不满足 → 返回 None，维持 noop_entrypoint 判定。判别力**只增不减**：
+    旧路径（体内有调用即算实现）保持不变，新路径比「符号存在」要求更多证据。
+    """
+    m = re.search(r"=\s*&\s*([A-Za-z_]\w*)", body)
+    if not m:
+        return None
+    vtable = m.group(1)
+    init = find_initializer_body(text, vtable)
+    if init is None:
+        return None
+    ops = []
+    for name in dict.fromkeys(re.findall(r"[A-Za-z_]\w*", init)):
+        if name == vtable:
+            continue
+        op_body = find_function_body(text, name)
+        if op_body is None:
+            continue
+        op_calls = [c for c in CALL_RE.findall(op_body)
+                    if c.lower() not in CALL_KEYWORDS and c != name]
+        ops.append((name, bool(op_calls)))
+    live = [n for n, has_call in ops if has_call]
+    if len(ops) >= VTABLE_MIN_OPS and live:
+        return {"vtable": vtable, "ops": [n for n, _ in ops], "live": live}
     return None
 
 
@@ -405,10 +466,13 @@ def evaluate_module(ctx: Ctx, m: dict, seen_keys: dict):
         entrypoint = str(m.get("entrypoint", ""))
         src_files = _source_files(module_dir)
         body = None
+        body_text = None
         for p in src_files:
-            found = find_function_body(p.read_text(encoding="utf-8", errors="ignore"), entrypoint)
+            ptext = p.read_text(encoding="utf-8", errors="ignore")
+            found = find_function_body(ptext, entrypoint)
             if found is not None:
                 body = found
+                body_text = ptext
                 break
         if body is None:
             declared = any(re.search(r"\b%s\b" % re.escape(entrypoint),
@@ -430,9 +494,20 @@ def evaluate_module(ctx: Ctx, m: dict, seen_keys: dict):
                     "entrypoint %s 直接转发到整阶段 Session：%s（DESIGN §7.3 禁止；判 NOT_IMPLEMENTED）"
                     % (entrypoint, ", ".join(session_calls))))
             elif not calls:
-                findings.append(Finding(
-                    mid, "noop_entrypoint",
-                    "entrypoint %s 函数体内零调用：导出符号存在但无可执行路径（判 NOT_IMPLEMENTED）" % entrypoint))
+                vt = resolve_entrypoint_vtable(body_text, body) if body_text else None
+                if vt is not None:
+                    items["implementation"] = True
+                    findings.append(Finding(
+                        mid, "entrypoint_vtable_resolved",
+                        "query 型 entrypoint %s 交出操作 vtable %s：%d 个操作有定义、%d 个含真实调用（%s）"
+                        % (entrypoint, vt["vtable"], len(vt["ops"]), len(vt["live"]),
+                           ", ".join(vt["live"][:4])),
+                        severity="NOTE"))
+                else:
+                    findings.append(Finding(
+                        mid, "noop_entrypoint",
+                        "entrypoint %s 函数体内零调用且未交出可解析的操作 vtable："
+                        "导出符号存在但无可执行路径（判 NOT_IMPLEMENTED）" % entrypoint))
             else:
                 items["implementation"] = True
 
@@ -702,7 +777,9 @@ def _selftest() -> int:
     failures = []
     # 正例两条：plain（无变异）与 legacy_contract_ok（引用 legacy 旧 ID 必须绿，证明门读了
     # legacy_contract_id_map 这份权威）；负例见 MUTATIONS（含 dangling_contract_ref = 未知 ID 必须红）。
-    cases = ([("positive", None, 0), ("legacy_contract_ok", "legacy_contract_ok", 0)]
+    # 正例：plain / legacy 合同 ID 映射 / query 型 entrypoint 交出真实操作 vtable（M5 强化判据）。
+    cases = ([("positive", None, 0), ("legacy_contract_ok", "legacy_contract_ok", 0),
+              ("vtable_query_ok", "vtable_query_ok", 0)]
              + [(name, name, 1) for name in fx.MUTATIONS])
     with tempfile.TemporaryDirectory(prefix="mod001-selftest-") as td:
         tmp = pathlib.Path(td)

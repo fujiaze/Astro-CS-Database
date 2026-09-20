@@ -102,7 +102,7 @@ M1–M2 分离直方图（60″ 半径）：SIP 下 141 个匹配落在 **0–2�
 - 全库 `apply_photometry()` **零生产调用点**（只有 `photometry_apply.cpp` 定义、`tests/` 与 aio 实验配置；drizzle 的 `config.apply_photometry` 恒被置 false，仅作元数据标记）。
 - 实测 L4 产物：`p1_phot.json` = `{photometry_applied:false, photscal:1.0}`；`p1_stack.json` `photappl=0, photscal=1.0, bunit=ADU`。
 
-⇒ **负责人印象属实且更强**：Phase1 是整帧单一系数乘法（`photometry_apply.h` 依据 02_FROZEN §7），但该系数**既未拟合也未施加**。现行生产 `corrected=(raw−C_k)−δ_k`（SD-22 方案 B，`module_adapters.cpp:4937-4939`，`ACCEPTANCE.md:123`）是**纯加性**。
+⇒ **负责人印象属实且更强**：Phase1 是整帧单一系数乘法（`photometry_apply.h` 依据 02_FROZEN §7），但该系数**既未拟合也未施加**。现行生产 `corrected = raw − δ_k`（保留公共天光面 `B_ref`；additive_mode 默认 delta，module_adapters.cpp:6129-6130，2026-09-20 复核）是**纯加性**。 订正留痕（2026-09-20）：旧文 =「现行生产 corrected=(raw−C_k)−δ_k（SD-22 方案 B，module_adapters.cpp:4937-4939，ACCEPTANCE.md:123）」—— 双扣除已废（§9.67 定案 1，工程控制/RELEASE-02/GAP_AUDIT.md:2548-2555）；B 报告要求改写为「生产默认 raw − C」（依据 §9.54 裁决 1 / §9.55 S8）已被更晚的 §9.67 定案 1 取代，本文件按 §9.67 改写。
 
 **(b) 单标量这个"形式"本身是够好的（一阶）。** 用星点 a_AB 拟合逐帧标量模型：
 

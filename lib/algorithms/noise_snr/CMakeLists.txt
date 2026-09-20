@@ -22,7 +22,12 @@
 # 科学域零改动 (scientific_change=false): 生产 TU 原样编译, 无本地副本;
 # kTrimMeanToSigma (noise_model.cpp:37) 挂账项不触碰。
 #
-# 注: 本子目录由根 CMakeLists.txt (hips 之后) 注册。
+# 注: 本子目录**未**由根 CMakeLists.txt 注册 —— 根 :240 `add_subdirectory(lib/algorithms/noise_snr)`
+# 自 F-CI-002-01 起注释停用, 本子图 `astrocs_p1_noise`(SHARED, :35) 不在根图。
+# ⚠ 2026-09-20 订正（V5 分片 5 / R-5）: 旧文「本子目录由根 CMakeLists.txt (hips 之后) 注册」
+#   **已作废**（依据实况 + GAP_AUDIT §9.67 定案 3）。生产噪声源不靠本子图注册接入:
+#   按 NOISE-MODEL-CANON-001, A = `cpp/src/noise_model.cpp` 已**源文件直接编入**根目标
+#   `astrocs_phase1_noise`（根 CMakeLists.txt:630-633）, B 已退役。本子图注册去留归 P1-NOISE-INT。
 
 # ── 生产源 (依赖闭包最小集, 全部指向唯一权威源, 无本地副本) ──
 set(NOISE_PROD_DIR "${CMAKE_SOURCE_DIR}/lib/algorithms/noise_snr/cpp")

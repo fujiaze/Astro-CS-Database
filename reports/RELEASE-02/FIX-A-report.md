@@ -153,9 +153,9 @@ RESULT: PASS
 
 ## 6 未决与风险
 
-1. **生产默认开启**：`sky_plane.enabled`/`frame_gain` 代码缺省 true（前台选项 a）。真实数据 L4 视觉复验仍须由 FIX-C/E2E 执行；ivar 合成场因欠定 fail-closed（已记日志），故无需改其期望值。
+1. **生产默认开启**：`sky_plane.enabled`/`frame_gain` 代码缺省 true（前台选项 a）。 **订正（2026-09-20）**：**已被取代** —— `sky_plane.enabled` 缺省 = `delta_wanted`（随 `additive_mode` 绑定；§9.55 S8，`工程控制/RELEASE-02/GAP_AUDIT.md:1861-1864`），现行实现 `module_adapters.cpp:5855`；「选项 a（默认开启）」作为**依据**已废（默认 `additive_mode=delta` ⇒ 缺省值仍为 true，但来源已变）。真实数据 L4 视觉复验仍须由 FIX-C/E2E 执行；ivar 合成场因欠定 fail-closed（已记日志），故无需改其期望值。
 2. **g_k 输入面与偏差**：MA 的 g 由空间结构定标，帧间纯加性差异会诱发伪增益（实测 ivar 观测偏 ~19%）。已用帧间直流比交叉校验 + fail-closed g=1 兜底；更根本的稳健做法是**恒星测光控制点**（现有 sampler 不产星点通量）。建议 FIX-C 评估补测光采样。
-3. **`docs/science/PHASE2_UPM.md:182`** 登记 UNRESOLVED：冻结加性模型 vs 目标乘法+天光。已按 ENGINEERING_SPEC §3 起草变更 claim `工程控制/RELEASE-02/change-claims/FIX-A-UPM-001.md`（问题/证据/前后/影响面）；**未改** SCI 文档，待前台/负责人裁决落地。
+3. **`docs/science/PHASE2_UPM.md:182`** 登记 UNRESOLVED：冻结加性模型 vs 目标乘法+天光。已按 ENGINEERING_SPEC §3 起草变更 claim `工程控制/RELEASE-02/change-claims/FIX-A-UPM-001.md`（问题/证据/前后/影响面）；**未改** SCI 文档，待前台/负责人裁决落地。 **订正（2026-09-20）**：`FIX-A-UPM-001` 的前提（把 UPM 改为**乘性**目标模型）**已被 §9.38 A2 否决**（UPM = 纯加性，`工程控制/RELEASE-02/GAP_AUDIT.md:1036-1043`；§9.50 定案 5）⇒ 该 claim **不落地**；`PHASE2_UPM.md:182` 的 UNRESOLVED 以「纯加性」**关闭**（§9.40 C3:`:1122-1127`）。
 4. **OPEN-P2S-02**（`astrocs.v6.contract-freeze.v1.json:2425`，UPM 乘法尺度 g_k 的生产数据面/schema 与空间模型表示）：FIX-A 已实现空间模型表示，但**生产 schema/数据面**的冻结登记仍需走合同流程。
 5. **doc 既有漂移**：`docs/algorithms/PHASE2_SAMPLER.md` 存在与本次改动无关的**历史锚漂移**（例：`grid` 行锚 `:499` 在 HEAD 即指向 `cfg.background_contamination_sigma`，非 `grid`；`kTileWidth :75` 实为 `:76`）。本次只按 diff 精确平移了我改动影响的行号，并订正了 `cell_side` 行锚。建议另开 SCI-ANCHOR 全量重审计。
 6. **性能**：`p2_sky_plane_eval` 逐像素按需求值；chunk 内 (ra,dec) 预计算一次，但大帧数 × 大像素仍为新增开销，需 E2E 基准（未在本 shard 实测真实数据耗时）。
@@ -169,4 +169,4 @@ RESULT: PASS
 4. 内存：真实规模（多帧 × 全 tile）下核对峰值 RSS 与「与帧数无关」的预期。
 5. 1/N worker：`cpu_workers>1` 下 sky_plane eval 与串行参考逐位一致（sky_plane 求解器为串行确定性；eval 无状态）。
 6. 提交顺序：`sky_plane` 模块 + 测试 + CMake 为一个原子提交；sampler 扩展、stage2 接线、doc 锚订正可各自独立提交。
-7. 变更 claim：`工程控制/RELEASE-02/change-claims/FIX-A-UPM-001.md`（PHASE2_UPM 冻结模型订正草案，待裁决）。
+7. 变更 claim：`工程控制/RELEASE-02/change-claims/FIX-A-UPM-001.md`（PHASE2_UPM 冻结模型订正草案，待裁决）。 **订正（2026-09-20）**：前提已被 §9.38 A2 否决（UPM = 纯加性）⇒ 本 claim 作废（旧文 = 待裁决）。

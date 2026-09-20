@@ -232,6 +232,8 @@ python3 -m unittest discover -s tests/quality -t tests/quality -p 'test_doc_line
 也未 waiver。**上呈事项**：`CHK-WARN` 的 60s 预算对「改了被广泛包含的生产头」的场景偏紧
 （冷重编 64s）；是否把该 step 预算调到能覆盖一次冷增量重编（例如 300s），请负责人裁决。
 
+> ✅ **订正（2026-09-20，V5 分片 3）—— 已裁决，上呈事项闭合**：§9.49 定案 6（`工程控制/RELEASE-02/GAP_AUDIT.md:1475` 负责人答「**a**」（=上调）+ 定案 6 `:1497-1498`「`CHK-WARN` 预算上调至 **180 s**（覆盖一次冷增量重编）」）+ §9.50 定案 6（`:1559`）+ §9.64 C（`:2378`「预算 → **180 s**（负责人 §9.50 已批）**PASS**」）。⇒ 上文「须负责人裁决 / 请负责人裁决」**作废**；`ci/checks.json` 的 `CHK-WARN` 预算已是 180 s。注：本条上呈建议的「例如 300s」未采纳，实际取 **180 s**。
+
 ---
 
 ## 6 自证与证据清单
@@ -281,7 +283,7 @@ python3 -m unittest discover -s tests/quality -t tests/quality -p 'test_doc_line
    「STATIC，**4 个 cpp**」在本轮 `7ae4b449` 把 `photometry_apply.cpp` 编入
    `astrocs_calibration`（现 5 个 cpp）后已不准确。按本分片约束「docs/algorithms 只允许同步锚点/台账」，
    **未改该措辞**，登记为负责人/文档分片事项。
-3. **`CHK-WARN` 60s 预算 vs 冷增量重编 64s**：见 §5，是否调预算请裁决（本分片未动注册表预算）。
+3. **`CHK-WARN` 60s 预算 vs 冷增量重编 64s**：见 §5，~~是否调预算请裁决~~（本分片未动注册表预算）。 ⇒ **已裁决（§9.49 定案 6 / §9.50 定案 6；订正 2026-09-20，V5 分片 3）**：预算 → **180 s**，§9.64 C 实测 **PASS**。
 4. **② 台账变更形式**：已落在 `tools/v6/v6_runtime_mutation_driver.py` 内的正式注记（§2.1）；
    若要求另立控制包 change-claim 文件，请指示。
 5. **linux-main 面未跑**：本分片未跑 `--profile linux-main`（会触发 `cmake`/`ninja`/`ctest`，

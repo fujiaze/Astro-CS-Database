@@ -141,7 +141,9 @@ class TestGolden(unittest.TestCase):
         with open(p, encoding="utf-8") as fh:
             doc = json.loads(fh.read())
         self.assertEqual(doc["schema_version"], "1")
-        self.assertIn("output_dir", doc)
+        # CLI-MULTIBLOCK（§9.68）: normalize 模板为多块形态 ⇒ output_dir 在块级
+        self.assertIn("blocks", doc)
+        self.assertIn("output_dir", doc["blocks"][0])
         # 三命令模板互不相同（各自独立产品）
         outs = {}
         for cmd in ("normalize", "mosaic", "export"):
@@ -213,10 +215,12 @@ class TestGolden(unittest.TestCase):
         self.assertEqual(r0.returncode, 0, r0.stderr)
         with open(uni, encoding="utf-8") as fh:
             self.assertEqual(json.load(fh)["schema_version"], "1")
-        # 非 ASCII 配置路径可被解析（预检读到 input_lights, 而不是 config not found）
+        # 非 ASCII 配置路径可被解析（预检读到块级 input_lights, 而不是 config not found）:
+        # 模板占位路径不在盘上 ⇒ 路径门 rc=3（§3.5 文件找不到），且诊断必须落在 blocks[0]
         r = run("normalize", "--json", uni, "-y")
-        self.assertEqual(r.returncode, 2)
+        self.assertEqual(r.returncode, 3, r.stderr[-300:])
         self.assertNotIn("config not found", r.stderr)
+        self.assertIn("blocks[0].input_lights", r.stderr)
 
     # ── 退出码单源(04 §6-3) ──
     def test_09_exit_codes_single_source(self):

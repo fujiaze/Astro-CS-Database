@@ -8,9 +8,10 @@
 - 基线 HEAD：`ac04289dea9d3ccb3dad8310dade53e75162447f`（`git rev-parse HEAD` 实测；controller C-007 已把 `docs/contracts/{DATA_SEMANTICS,PUBLIC_API}.md` 的 P33/P27 回退态固化为本基线）
 - 语义权威（唯一）：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8）
 
-> 权威分层：冻结宪章 `ASTROCS-CONSTITUTION-001` > `docs/owner/PROJECT_SPEC.md` > 三份 `docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md` >
+> 权威分层（**2026-09-20 订正**）：`ASTROCS_DESIGN.md` §0 权威链 > `docs/owner/PROJECT_SPEC.md` > 三份 `docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md` >
 > `docs/science/UNIFIED_SCIENCE_MODEL.md` / `docs/science/PSF_SIGNAL_WEIGHT.md` > W4 冻结表 > 本集成登记 > 代码/测试。
 > 本登记**不改变**任何冻结公式/容差/门/枚举，只做 schema 落位、词表归一、兼容/迁移与验证。
+> （**2026-09-20 订正留痕**：原顶层为「冻结宪章 `ASTROCS-CONSTITUTION-001` >」——**已作废**：宪章由 ROOT-007 删除、不作权威，依据 `ASTROCS_DESIGN.md:31` + `docs/owner/PROJECT_SPEC.md:9`；与 `:1` 的 DOC-001 溯源注记同口径。）
 
 ## 1. 交付物
 

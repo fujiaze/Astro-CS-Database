@@ -32,9 +32,12 @@ HELP_LINES = [
 
 # CLI-002/CLI-11: 子命令 --help 的字段表必须覆盖该命令的**关键必填键**
 # （与 --template 同源; 逐命令取最小必需集, 不做全文对照以免与模板演进耦合）。
+# CLI-MULTIBLOCK（GAP_AUDIT §9.68）: normalize 是多数据块形态，块内键在 --help 里
+# 以 blocks[].<key> 列出（前缀由 session_commands.h 的 scope 派生，与 --template 同源）。
 FIELDS_MIN = {
-    "normalize": ("schema_version", "input_lights", "master_bias", "master_dark",
-                  "master_flat", "output_dir", "drizzle", "wcs"),
+    "normalize": ("schema_version", "blocks", "blocks[].input_lights", "blocks[].master_bias",
+                  "blocks[].master_dark", "blocks[].master_flat", "blocks[].output_dir",
+                  "blocks[].drizzle", "blocks[].wcs"),
     "mosaic": ("schema_version", "hips_paths", "output_dir", "weight_mode"),
     "export": ("schema_version", "source", "output_dir", "center", "width_px",
                "height_px", "scale_deg_per_px"),
@@ -150,7 +153,11 @@ class TestCommandTree(unittest.TestCase):
             self.assertEqual(r.returncode, 0)
             outs[cmd] = json.loads(r.stdout)
             self.assertEqual(outs[cmd]["schema_version"], "1")
-            self.assertIn("output_dir", outs[cmd])
+            # §9.68: normalize 模板为多块形态（块级 output_dir）；mosaic/export 顶层。
+            if "blocks" in outs[cmd]:
+                self.assertIn("output_dir", outs[cmd]["blocks"][0])
+            else:
+                self.assertIn("output_dir", outs[cmd])
         self.assertEqual(len({json.dumps(v, sort_keys=True) for v in outs.values()}), 3,
                          "三个命令的模板必须互不相同（各自独立产品）")
 
