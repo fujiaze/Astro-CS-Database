@@ -44,6 +44,7 @@ flowchart LR
 - 每点携带该位置的 SNR：帧级 × 帧内（有稀疏 SNR 层时），无帧内层时用帧级；
 - **采样点权重 = 逆方差**：`w_ki = 1/σ²_ki ∝ SNR_ki²`——低 SNR 帧、光污染帧的采样点权重自然变小，无法把正常帧的天光面异常拉高；
 - 采样点经 WCS 映射到天球坐标，供跨帧联合拟合。
+- **公共面与逐帧梯度的分工**（§9.67 定案 1）：采样点用于**全部帧联合**拟合公共天光面 `B_ref(x)`；每帧只在其上拟合平缓梯度 `δ_k(x)`，归一施加量为 `δ_k`（**保留 `B_ref`**）；`raw − C_k`（全减，含 `B_ref`）**不再是默认**（详见 `11_upm.md` §4.1/§5）。
 
 ### 4.3 光度控制点
 
@@ -66,6 +67,8 @@ flowchart LR
 | `min_control_points` | —— | —— | 光度控制点数量下限 |
 | `min_sky_samples` | —— | —— | 每帧天光采样点数量下限 |
 | `local_estimator` | `robust_median` | —— | 局部背景估计器（robust_median/trimmed_mean） |
+
+采样/天光面的**施加侧**配置（`additive_mode`、`sky_plane.enabled`）登记在 `11_upm.md` §5（采样模块只产点表，不施加归一化）。
 
 ## 6. 接口/ABI
 

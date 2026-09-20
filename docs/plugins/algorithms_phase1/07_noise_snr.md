@@ -31,7 +31,7 @@
 ```text
 W_psf,k = a_k² P_kᵀ C_k⁻¹ P_k = 1/Var(F_hat_k)
 白噪声: W_psf,k = a_k² Σ_p P_k,p² / σ_pix,k² = a_k² / (σ_pix,k² A_NEA,k)
-SNR_k²(F_ref) = F_ref² W_psf,k
+SNR_k²(F_ref,k) = F_ref,k² W_psf,k
 ```
 
 ### 4.1 帧级 SNR（信噪比）（frame_snr）
@@ -61,18 +61,22 @@ SNR_k²(F_ref) = F_ref² W_psf,k
 - PixInsight 官方同样**不把权重存进图像**：校准阶段只把信号/噪声/背景分量写入元数据（FITS 关键字 PSFFLX/PSFMFL/PSFMST/PSFNST/NOISE 等），权重在 ImageIntegration 集成时才计算——与 AstroCS"数据库存原始 SNR、Phase2 消费时才算权重"的设计一致；
 - PSFSW 归一化常数（c1/c2）与 PSFSNR 常数（文章版 c3=1.350×10⁻⁷、c4=4.987×10⁺⁶；PCL 2.10.4 源码 c3=1.316×10⁻⁷，存在版本漂移，引用须带版本）均由 PixInsight 自造 1000 张 4096² 模拟图标定，**AstroCS 不照抄**：采用无量纲/物理量纲定义，常数由本项目合成数据（验收 L1）独立标定并冻结。
 
-**数学定义与换算**（公共参考通量 `F_ref`，见 `docs/science/PSF_SIGNAL_WEIGHT.md`）：
+**数学定义与换算**（**逐帧**参考通量 `F_ref,k` + 公共锚 `F0`，见 `docs/science/PSF_SIGNAL_WEIGHT.md`；基准定案 §9.60 `FREF-BASELINE-001` / §9.67 定案 4）：
 
 ```text
 # 帧级 SNR（未加权原始信噪比，写入文件头）：真实源信号 / 真实噪声（通量型口径，Horne 1986）
-SNR_k(F_ref) = F_ref · sqrt(W_psf,k) = F_ref / σ_F,k
+SNR_k(F_ref,k) = F_ref,k · sqrt(W_psf,k) = F_ref,k / σ_F,k
 W_psf,k = a_k² P_kᵀ C_k⁻¹ P_k  （点源信息，σ_F,k² = 1/W_psf,k；信噪比本身未做任何加权）
+F_ref,k = 10^(−0.4·(m_ref − ZP_k))，m_ref = 6.0；F_ref,k · k_photo,k = F0（公共锚，严格恒等）
 
 # Phase2 叠加时现场换算为逆方差权重（UPM 已归一到公共通量尺度）：
-w_k = 1/σ_F,k² = SNR_k(F_ref)² / F_ref²   ⇒  F_ref 为组内公共常数，w_k ∝ SNR_k²
+w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对性只在同一帧内成立）
 ```
 
-- **口径澄清（与 PixInsight 式[18]的区别）**：上式 frame_snr 是**通量型**信噪比 `F_ref/σ_F`（一次方比），逆方差换算 `w=SNR²/F_ref²=1/σ_F²` 严格成立；PixInsight 式[18] PSFSNR 是**功率比型** `(Σf)²/σ_n²`（平方比，本身已是 SNR² 量级），不能再做 `SNR²/F_ref²` 换算。AstroCS 只对标 PSFSNR 的方法学（恒星测光取信号、稳健噪声、独立背景），数学上采用通量型口径以保证与逆方差叠加严格自洽；
+- **逐帧 `F_ref,k`（不是组内公共常数）**：`F_ref,k = 10^(−0.4·(m_ref − ZP_k))` 由**该帧自己的** `ZP_k` 决定，`m_ref = 6.0`，`reference_flux_scope = frame_independent_fixed_magnitude`（§9.60 `FREF-BASELINE-001`）；公共锚 `F0 = 10^(−0.4·(m_ref − ZP_syn))` 与帧无关，严格恒等 `F_ref,k · k_photo,k = F0`（实测偏差 ≤ 4.3e-4）。
+  **旧写法「`F_ref` 为组内公共常数」已作废**（§9.49 定案 2 帧间独立；§9.66 A 变更 claim `WEIGHT-FREF-PERFRAME-001`）：配对性定理只要求**同一帧内** SNR 与 `F_ref` 同源，**不要求跨帧相等**；不同指向/不同光学系统的帧**合法地**有不同 `F_ref,k`（旧的组间 `F_ref` 硬闸门已删除——它曾使 `weight_mode=2` rc=2）。
+- **`m_ref = 6.0` 适用域警告**：`ZP_syn` 由 Gaia DR3 XP 绝对 XPSD 谱经本帧滤光片/QE **正向合成**，`F_ref,k` 是在**线性区外**的形式外推（实测：M42 Red 300 s 超饱和 1899×；HST M16 F657N 超 WFC3/UVIS 满井 1.9e4×）。作为**参考电平仍良定义**（天光限下 `SNR ∝ F_ref`），但**不得**表述为「本帧能测到的 6 等星」（§9.60 需前台处理项 2）。
+- **口径澄清（与 PixInsight 式[18]的区别）**：上式 frame_snr 是**通量型**信噪比 `F_ref,k/σ_F,k`（一次方比），逆方差换算 `w_k=SNR_k²/F_ref,k²=1/σ_F,k²` 严格成立；PixInsight 式[18] PSFSNR 是**功率比型** `(Σf)²/σ_n²`（平方比，本身已是 SNR² 量级），不能再做 `SNR_k²/F_ref,k²` 换算。AstroCS 只对标 PSFSNR 的方法学（恒星测光取信号、稳健噪声、独立背景），数学上采用通量型口径以保证与逆方差叠加严格自洽；
 
 - HiPS 是数据库：帧产品长期保存、可被任意多次、任意科学目标的叠加消费，因此入库的是客观的未加权 SNR（与具体集成无关的观测量），把"选哪种权重模式"留给 Phase2；
 - Phase2 默认 point_information 逆方差叠加；`weight_mode=psfsw_robust` 时使用 `psfsw_robust` 复合权重（信号/集中度/稳健噪声/稳健背景四分量独立存储，模式显式选择，不自动切换）；
@@ -101,11 +105,32 @@ w_k = 1/σ_F,k² = SNR_k(F_ref)² / F_ref²   ⇒  F_ref 为组内公共常数�
 - 标量降级门：仅当帧内 `W_psf(x,y)` 鲁棒相对离散与系统趋势低于阈值才存帧级标量；否则存 map/控制点/多项式/HEALPix，摘要带 p05/p50/p95、最大系统偏差、覆盖、模型误差；
 - PSFSW 是综合图像质量**权重**（含 FWHM/背景梯度），无量纲、组内相对、可驱动显式 `weight_mode=psfsw_robust` 集成，**不是信噪比、不是 ivar**；frame_snr 对标的是 PSFSNR（未加权原始信噪比）而非 PSFSW。
 
+### 4.4 噪声模型双实现登记（§9.66 B / §9.67 定案 3；**未闭合**）
+
+> 登记日期 2026-09-20；依据 `GAP_AUDIT.md` §9.66 B（2479–2509）与 §9.67 定案 3（2565–2568）。
+
+- **仓库内存在两套噪声实现**，而**生产调度路径用的是没有逐像素能力的那一套**：
+
+| | 插件/编排路径 | **生产调度路径** |
+|---|---|---|
+| 实现 | `lib/algorithms/noise_snr/cpp/src/noise_model.cpp` | `lib/algorithms/noise_snr/wrapper_phase1/noise_model.cpp` |
+| 接口 | `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**） | `astrocs::phase1::NoiseModel`（**标量**） |
+| 编入 | `astrocs_p1_noise`（SHARED，`lib/algorithms/noise_snr/CMakeLists.txt:35`） | `astrocs_phase1_noise`（STATIC，根 `CMakeLists.txt:620`） |
+| 调用者 | `orchestrator.cpp:4694–4839`（DLL 加载，挂 `variance` 块 → V19 方差/ivar 产品） | `module_adapters.cpp:4432`（**只挂 `data` 块**） |
+
+- **链路后果**：生产路径从不挂 `variance` 块 ⇒ `hp_drizzle_api.cpp:1024` 读不到 ⇒ `astro_sphere_sink.cpp:306–327` 不产出 variance/ivar 子产品面 ⇒ `p2_integrated.json` 报 `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）。
+- **裁决（§9.67 定案 3）**：**不是「哪套在跑就用哪套」**——须先做**公式级比对**（blank-sky 稳健方差、MAD→σ 常数、Poisson 项、饱和掩膜、平面场、scale law），**判定哪一套科学正确、用正确的那一套**，另一套删除或登记退役。
+- **接入义务（§9.67 定案 2）**：把 `orchestrator` 的**逐像素方差接线**（`orchestrator.cpp:4694-4839`）搬进 `scheduler`，使生产产出逐像素 `variance`/`ivar` 产品面；接入并验证后**删除** `lib/infrastructure/pipeline/orchestrator/cpp/` 与 v6 家族。
+- **架构选择须上呈（§9.66 B，属 `AGENTS.md` §9 第 1 类）**：补齐生产路径需在 ①编入静态库（可能重复符号/两套语义）/ ②加载插件共享库（改 ABI 与加载时序）/ ③在 `wrapper_phase1` 重新实现（**两套科学公式副本**，违「零公式副本」纪律）之间选型 ⇒ **不在本包内擅自选型**。
+- **影响面（诚实）**：**不影响** `weight_mode=2` 权重链（帧级 SNR 路径，`snr_chain_closure="closed"`，科学上正确）；**影响**逐像素**不确定度产品面**。凡「逐像素方差/不确定度已传播到产品」的主张，**只能引用插件路径证据**，**不得声称生产路径已产出**。
+- **状态**：**未闭合**（审计 S16 登记；`wrapper_phase1` 在 `docs/plugins/` 此前 0 命中，本条即其登记位）。
+- **行号说明**：本节的 `文件:行` 取自 §9.66 B 审计时点（2026-09-20）；工作树并发改动会使行号漂移，**以符号名/文件名核对为准**。
+
 ## 5. 配置项
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `reference_flux` | —— | e⁻/s | 固定参考通量（m5/SNR 定义必需） |
+| `reference_flux` | 逐帧 `F_ref,k` | 见说明 | 参考通量（m5/SNR 定义必需）。**逐帧**：`F_ref,k = 10^(−0.4·(m_ref − ZP_k))`，`m_ref = 6.0`，`reference_flux_scope = frame_independent_fixed_magnitude`；公共锚 `F0` 满足 `F_ref,k · k_photo,k = F0`。**已作废写法**：「`F_ref` 为组内公共常数」（§9.49 定案 2 / §9.66 A `WEIGHT-FREF-PERFRAME-001` / §9.60 `FREF-BASELINE-001`）。单位以产物字段 `reference_flux_common_unit` 为准（现行 = `F_syn (Gaia XPSD absolute spectral integral)`；显式 `snr.reference_flux_adu` 覆盖时为 ADU）。⚠ `m_ref = 6.0` 是**参考电平的形式外推**（M42 Red 300 s 超饱和 1899×；HST M16 F657N 超 WFC3/UVIS 满井 1.9e4×），**不得**表述为「本帧能测到的 6 等星」 |
 | `scalar_gate_rd` | —— | —— | 标量降级鲁棒离散门 |
 | `scalar_gate_trend` | —— | —— | 标量降级系统趋势门 |
 | `psfsw_enable` | true | —— | 是否生产 psfsw_robust 四分量 |
@@ -125,7 +150,8 @@ w_k = 1/σ_F,k² = SNR_k(F_ref)² / F_ref²   ⇒  F_ref 为组内公共常数�
 
 - 缺 `a_k`/PSF/方差 → fail-closed（信息权重不可凭空造）；
 - 标量门失败 → 自动升级为空间模型（不得静默用标量）；
-- reference_flux 未定义时 m5/SNR 不可输出；
+- `reference_flux` 未定义时 m5/SNR 不可输出；无 `photscale_fit` / `zero_point_valid=false` ⇒ 按显式回退 `group_median`（`reference_flux_scope` 落盘，**不伪造**），显式 `snr.reference_flux_adu` 优先；**逐帧中位数回退已删除（fail-closed），不得恢复**（§9.60）；
+- **禁止**把组内 `F_ref` 相等当作门（组间硬闸门已删除，§9.66 A）；缺 `variance` 块 ⇒ `uncertainty_available=false`，**不得**声称已产出逐像素方差（§4.4）；
 - 帧级 SNR（信噪比）无法计算（如缺真实信号参考）→ fail-closed，**不得用受天光影响的普通 SNR 代替**；
 - 指定 `sparse_reconstruct` 路径而输入无稀疏层 → 按帧级执行并**显式记录实际路径**（不静默）；稀疏层损坏/不可重建 → fail-closed；
 - `sparse_snr_density` 未定案 ⇒ 稀疏层不可生产（**联锁缺口**登记；不得编造数值）；
@@ -141,4 +167,5 @@ w_k = 1/σ_F,k² = SNR_k(F_ref)² / F_ref²   ⇒  F_ref 为组内公共常数�
 - 稀疏层：启用/不启用输出结构正确，稀疏层值可重建验证；**三路径精度对比（判据 SP-0）**：`dense` / `sparse_reconstruct` / `frame_reconstruct` 同输入重建稠密 SNR，报告精度差与存储量；无稀疏层而路径为 `sparse_reconstruct` 时实际路径须被显式记录（负例：静默降级判红）；
 - 点源/面亮度口径分离：把面亮度 SNR 当帧级 SNR 使用必须判红。
 - PSFSW 与 W_psf 分离性（PSFSW 驱动集成时 covariance 由实际组合系数传播）；
+- **逐帧 `F_ref,k` 独立性负例**：人为要求组内 `F_ref` 相等（组间硬闸门）⇒ 必须判红——不同指向/不同光学系统的帧合法地有不同 `F_ref,k`；`w_k = SNR_k²/F_ref,k²` 的配对性**只在同一帧内**成立（§9.66 A `WEIGHT-FREF-PERFRAME-001`）；
 - 1 worker vs N worker 一致。
