@@ -73,6 +73,8 @@
 #include "astro/phase2/rejection.h"
 #include "astro/phase2/integrate.h"
 #include "astro/phase2/sky_plane.h"   // FIX-A 稀疏天光面 (生产 mosaic 接线)
+#include "astro/phase2/stage2_common.h"  // CONFORM-FIX-B-009: P2_SMOOTHING_LAMBDA_AUTO
+                                         // 单一来源（stage2 工具与 node chain 同语义）
 #include "healpix/healpix_core.h"  // fits_index_to_nested_local (NESTED LUT 单一权威)
 // RELEASE-02 权重链: HiPS 头帧级 SNR → 逆方差权重 (w = SNR²/F_ref²)。
 #include "astrocs/v6/weight_chain.h"
@@ -1894,10 +1896,14 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
     }
     ++frames_ok;
     artifacts.push_back(outp);
+    // CONFORM-FIX-A ⑤ / CONFORM-SWEEP-1-008: dark_scale 必须记录**实际施加**的 K。
+    // CALIBRATION_ALGORITHMS.md F3.1/F3.2 (:149,154) 规定两个分支都令 actual_k = k,
+    // 且标准式 (dark_opt=0) 的 k = k_init = 调用方给出的 t_light/t_dark (不再强制 1.0)。
+    // 旧实现在标准式写 k_fixed (默认 1.0) 而算术用 k_use ⇒ K≠1 时每帧溯源字段系统性
+    // 错误 (B2-A13/BIAS-001 的判据面即此 manifest 字段)。
     per_frame.push_back(Json{{"input", p1_base_name(lp)},
                              {"output", "calibrated_" + p1_base_name(lp)},
-                             {"dark_scale", dark_opt ? static_cast<double>(actual_k)
-                                                     : static_cast<double>(k_fixed)}});
+                             {"dark_scale", static_cast<double>(actual_k)}});
   }
   st_cal["status"] = "ok";
   st_cal["frames"] = frames_ok;
@@ -2025,6 +2031,18 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
 //      测光（负责人 2026-09-14 裁决）; 全量 145,884 颗拟合实测 156.7 s/帧,
 //      最亮 5000 颗 ~4 s（REPORT.md §4）。完整精确路径保留为
 //      p1_op_star_psf_precise（inactive, kPrecisePsfEnabled=false）。
+// ── F-INSTR-CONFORM-FIX: Moffat4 (β=4) 整平面解析通量 ──────────────────────
+// 规范依据: docs/science/PSF.md (SCI-PSF-001 FROZEN) §2/§3/§5/§9a:
+//   I(r) = B + A/(1+Q)^4,  flux = 2πA·sxsy/3,  单位 ADU。
+// 与 lib/algorithms/psf/src/dpsf_psf.cpp:428 的解析式**逐字同式**（那里算出的
+// flux 因 psf_params 的 9 列 ABI（docs/contracts/PUBLIC_API.md:611 layout B）
+// 无处承载而被丢弃）。本函数由该 ABI 的权威列 A,sx,sy 复算同一量: 不新增列、
+// 不改 PSF 模块 ABI、不改任何科学公式/容差。
+// 唯一合法用途 = SCI-PHOT-001 §9a 的 F_instr（星点通量来自 PSF 拟合域）。
+inline double p1_psf_analytic_flux(double A, double sx, double sy) {
+  return 2.0 * M_PI * A * sx * sy / 3.0;
+}
+
 Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
@@ -2139,16 +2157,20 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       for (size_t k = 0; k < N_fit; ++k) {
         if (psf_status[k] != DPSF_PSF_STATUS_OK) continue;
         const size_t i = static_cast<size_t>(fit_idx[k]);   // PSF-FAST-001: 子集映射
+        const double* prow = &psf_params[static_cast<size_t>(row) * 9];
+        // ── F-INSTR-CONFORM-FIX (SCI-PSF-001 §2/§5/§9a; SCI-PHOT-001 §9a) ────
+        // 本列 = PSF 拟合域**解析通量** flux = 2πA·sxsy/3 (β=4, 单位 ADU;
+        // 与 dpsf_psf.cpp:428 同式)。它是测光 F_instr 的唯一合法来源。
+        // 修复前该量在 p1_psf.json 中无列承载 ⇒ 下游只能退回检测域 5×5
+        // 正性截断盒和（star_detector.cpp:151 s.flux = m00）——盒和捕获的
+        // PSF 能量份额随 seeing 变化（非测光量）, 给出假帧间差。
         psf_rows.push_back(Json{{"star_id", cat.sources[i].id},
-                                {"B", psf_params[static_cast<size_t>(row)*9+0]},
-                                {"A", psf_params[static_cast<size_t>(row)*9+1]},
-                                {"cx", psf_params[static_cast<size_t>(row)*9+2]},
-                                {"cy", psf_params[static_cast<size_t>(row)*9+3]},
-                                {"sx", psf_params[static_cast<size_t>(row)*9+4]},
-                                {"sy", psf_params[static_cast<size_t>(row)*9+5]},
-                                {"theta", psf_params[static_cast<size_t>(row)*9+6]},
-                                {"fwhm_x", psf_params[static_cast<size_t>(row)*9+7]},
-                                {"fwhm_y", psf_params[static_cast<size_t>(row)*9+8]}});
+                                {"B", prow[0]}, {"A", prow[1]},
+                                {"cx", prow[2]}, {"cy", prow[3]},
+                                {"sx", prow[4]}, {"sy", prow[5]},
+                                {"theta", prow[6]},
+                                {"fwhm_x", prow[7]}, {"fwhm_y", prow[8]},
+                                {"flux", p1_psf_analytic_flux(prow[1], prow[4], prow[5])}});
         ++row;
       }
     }
@@ -3165,14 +3187,17 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   //     scale 单位是 [F_syn 单位]/ADU, 其**绝对值**由未建模的仪器常数
   //     （口径·曝光·增益·hc, 见 §6「常数由 location 吸收」）决定, 可跨多个
   //     数量级 —— 故**不能**用绝对窗口（如 [0.1,10]）判"合理": 那会拒绝 100%
-  //     的真实 ADU→F_syn 标度（实测本 L4 数据 location=16.2 dex ⇒ k=6.27e-17,
-  //     散度仅 0.019 dex）。物理上受约束的是同一组内各帧的**相对**一致性
-  //     （同仪器/滤光片/曝光, 帧间零点差 << 1 mag）。修复前实测: 同批 11/12
-  //     板块 k=1.0（NO_DATA 占位）而 1 个板块 k=6.27e-17, 相差 16 dex; 若施加
-  //     则帧间落在不同测光坐标系。超限 ⇒ 整组不施加 + degraded_reason。
+  //     的真实 ADU→F_syn 标度（实测本 L4 数据 location=16.2 dex ⇒ k=6.27e-17）。
+  //     物理上受约束的是同一组内各帧的**相对**一致性（同仪器/滤光片/曝光）:
+  //     负责人判据 = 同组帧间 k 峰峰 ≤ 0.05 mag ⇒ 0.02 dex（1 dex = 2.5 mag）。
+  //     F-INSTR-CONFORM-FIX 收紧 (0.5 → 0.02): 旧值 0.5 dex = 1.25 mag 过松 ——
+  //     实测 seeing 2.0→4.0 px 的盒和口径假帧间差 0.50 mag、孔径扫描 M_seeing
+  //     达 1.35 mag 仍能过门（"1.35 mag 的假帧间差照样过门"）。旧口径下 L4 真实
+  //     帧对 t2_m1 的 k 散度 0.0427 dex = 0.107 mag 亦能过门, 而它是视宁度假信号。
+  //     超限 ⇒ 整组不施加 + degraded_reason（fail-closed, 不混装测光体系）。
   constexpr int P1_PHOT_MIN_FIT_STARS = 3;
   constexpr double P1_PHOT_MAX_SIGMA_DEX = 1.0;
-  constexpr double P1_PHOT_MAX_SPREAD_DEX = 0.5;
+  constexpr double P1_PHOT_MAX_SPREAD_DEX = 0.02;  // ≈0.05 mag 峰峰（负责人判据）
   struct P1FrameScale {
     std::string key;
     double k_photo = 1.0;
@@ -3180,6 +3205,16 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     double sigma_residual_dex = 0.0;
     std::string source;
     bool fitted = false;  // true ⇔ 来自真实拟合（fit_ok）, false ⇔ 外部/占位
+    // F-INSTR-CONFORM-FIX: F_instr 域 provenance（SCI-PHOT-001 §9a）
+    int64_t n_psf_domain = 0;   // F_instr 有效域星数（有 PSF 拟合行且 flux 有限 >0）
+    int64_t n_psf_skipped = 0;  // psf_status != OK / 未进拟合子集 ⇒ 跳过, 不回退盒和
+    // ── FREF-BASELINE-001: 绝对合成星等零点（帧自身测光零点）────────────
+    // mag = zero_point_mag - 2.5*log10(F_adu)，由 Gaia DR3 XP 绝对谱 + 本帧
+    // 滤光片/QE 曲线正向合成（frame_photometry_fit.cpp）。与帧无关 ⇒ 跨帧公共。
+    bool zero_point_valid = false;
+    double zero_point_mag = 0.0;
+    int zero_point_n_stars = 0;
+    double zero_point_scatter_mag = 0.0;
   };
   std::map<std::string, P1FrameScale> scales;
   std::string photscale_source = "none";
@@ -3220,32 +3255,82 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           break;
         }
         const Json& srcs = cat[i]["sources"];
-        std::vector<size_t> idx;
-        idx.reserve(srcs.size());
-        for (size_t s = 0; s < srcs.size(); ++s) {
-          const double fl = srcs[s].value("flux", 0.0);
-          if (std::isfinite(fl) && fl > 0.0) idx.push_back(s);
+        // ══ F-INSTR-CONFORM-FIX: F_instr 的唯一合法域 = PSF 拟合域 ══════════
+        // 规范依据: SCI-PHOT-001 §9a「星点通量来自 PSF 拟合域（PSF.md）」+
+        //   SCI-PSF-001 §2/§5「flux = 2πA·sxsy/3, 单位 ADU」。
+        // 缺陷（修复前）: F_instr 取 srcs[].flux = 检测器 5×5 正性截断盒和
+        //   (star_detector.cpp:151 s.flux = m00), 并把每颗检测星标为 status=0
+        //   （p1_sources 无拟合状态列）—— 盒和捕获的 PSF 能量份额依赖 seeing,
+        //   不是测光量; 且 psf_status 从未真正送达有效域门。
+        // 修复: (1) 按 star_id 关联 p1_psf.json 的 psf_params 行取 PSF 域解析
+        //   通量（PSF-FAST-001 子集映射: 只有拟合成功的星有行, 禁按行号关联）;
+        //   (2) psf_status != OK（拟合失败 / 未进入拟合子集）的星**跳过**,
+        //   显式以非零 status 送入（star_matcher matchWithKdTree 的有效域门
+        //   status==0 剔除; SCI-PHOT-001 §4「饱和/质量异常不参与定标」）
+        //   —— **不回退盒和**: 回退会把 seeing 依赖重新注入标度, 且与 §9a 冲突。
+        //   有效星不足时由 §4/§8 冻结门给 NO_DATA（fail-closed, 不伪造标度）。
+        std::map<std::string, const Json*> psf_row_by_id;
+        if (cat[i].contains("psf_params") && cat[i]["psf_params"].is_array()) {
+          for (const auto& r : cat[i]["psf_params"]) {
+            if (r.is_object() && r.contains("star_id") && r["star_id"].is_string())
+              psf_row_by_id.emplace(r["star_id"].get<std::string>(), &r);
+          }
         }
-        std::sort(idx.begin(), idx.end(), [&srcs](size_t a, size_t b) {
-          return srcs[a].value("flux", 0.0) > srcs[b].value("flux", 0.0);
-        });
-        if (max_stars > 0 && idx.size() > static_cast<size_t>(max_stars))
-          idx.resize(static_cast<size_t>(max_stars));
-        std::vector<double> pcx, pcy, pfl;
-        std::vector<int> pst;
-        std::vector<uint32_t> pqf;
-        pcx.reserve(idx.size()); pcy.reserve(idx.size()); pfl.reserve(idx.size());
-        pst.reserve(idx.size()); pqf.reserve(idx.size());
-        for (size_t s : idx) {
-          pcx.push_back(srcs[s].value("x", 0.0));
-          pcy.push_back(srcs[s].value("y", 0.0));
-          pfl.push_back(srcs[s].value("flux", 0.0));
-          pst.push_back(0);  // 检测成功 = PSF 输入有效（p1_sources 无拟合状态列）
+        struct P1PhotCand {
+          double x = 0.0, y = 0.0, flux = 0.0;
+          int status = DPSF_PSF_STATUS_FIT_FAILED;
+          uint32_t qf = 0u;
+        };
+        std::vector<P1PhotCand> cands;
+        cands.reserve(srcs.size());
+        int64_t n_psf_domain = 0, n_psf_skipped = 0;
+        for (const auto& s : srcs) {
+          const auto it = psf_row_by_id.find(s.value("id", std::string()));
+          P1PhotCand c;
+          c.x = s.value("x", 0.0);          // 位置口径不变（检测质心, 非本次改动）
+          c.y = s.value("y", 0.0);
+          if (it != psf_row_by_id.end()) {
+            c.flux = (*it->second).value("flux", 0.0);   // PSF 域解析通量 (ADU)
+            if (std::isfinite(c.flux) && c.flux > 0.0) {
+              c.status = DPSF_PSF_STATUS_OK;
+              ++n_psf_domain;
+            } else {
+              c.flux = 0.0;   // 非物理 PSF 通量 ⇒ 视同拟合无效, 不得进标度
+              ++n_psf_skipped;
+            }
+          } else {
+            ++n_psf_skipped;  // 拟合失败 / 未进入 PSF-FAST-001 拟合子集
+          }
           // P1-2: sdet 饱和位 = quality&1 (star_detector.cpp:170); 映射到
           // PC_QF_SATURATED (star_matcher.h:11, 1u<<1) ⇒ cleanAndScale 有效域
           // 过滤 (SCI-PHOT-001 §4/§10)。
-          const int64_t q = srcs[s].value("quality", int64_t{0});
-          pqf.push_back((q & 1) ? (1u << 1) : 0u);
+          const int64_t q = s.value("quality", int64_t{0});
+          c.qf = (q & 1) ? (1u << 1) : 0u;
+          cands.push_back(c);
+        }
+        // 排序: PSF 域有效星按 F_instr 降序在前; 无效星恒在尾部（先被 max_stars
+        // 截断丢弃 —— 它们本就不在有效域内）。稳定排序保证同亮度次序确定。
+        std::stable_sort(cands.begin(), cands.end(),
+                         [](const P1PhotCand& a, const P1PhotCand& b) {
+                           const bool av = (a.status == DPSF_PSF_STATUS_OK);
+                           const bool bv = (b.status == DPSF_PSF_STATUS_OK);
+                           if (av != bv) return av;
+                           return a.flux > b.flux;
+                         });
+        if (max_stars > 0 && cands.size() > static_cast<size_t>(max_stars))
+          cands.resize(static_cast<size_t>(max_stars));
+        std::vector<double> pcx, pcy, pfl;
+        std::vector<int> pst;
+        std::vector<uint32_t> pqf;
+        pcx.reserve(cands.size()); pcy.reserve(cands.size());
+        pfl.reserve(cands.size());
+        pst.reserve(cands.size()); pqf.reserve(cands.size());
+        for (const P1PhotCand& c : cands) {
+          pcx.push_back(c.x);
+          pcy.push_back(c.y);
+          pfl.push_back(c.flux);
+          pst.push_back(c.status);
+          pqf.push_back(c.qf);
         }
         // WCS: 逐帧 p1_wcs.json（回退 config.wcs）
         Json wj = Json::object();
@@ -3334,6 +3419,13 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         sc.sigma_residual_dex = fr.sigma_residual_dex;
         sc.source = "gaia_star_matcher_tukey_irls";
         sc.fitted = true;
+        sc.n_psf_domain = n_psf_domain;    // F-INSTR-CONFORM-FIX provenance
+        sc.n_psf_skipped = n_psf_skipped;
+        // FREF-BASELINE-001: 帧自身测光零点（正向合成, 与帧噪声无关）
+        sc.zero_point_valid = fr.zero_point_valid;
+        sc.zero_point_mag = fr.zero_point_mag;
+        sc.zero_point_n_stars = fr.zero_point_n_stars;
+        sc.zero_point_scatter_mag = fr.zero_point_scatter_mag;
         scales[key] = sc;
       }
       if (photscale_error.empty()) photscale_source = "gaia_star_matcher_tukey_irls";
@@ -3402,11 +3494,13 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     if (find_scale(lights[i].get<std::string>()) == nullptr) scales_complete = false;
   }
 
-  // ── P1-PHOT-BROKEN (c): 组内帧间标度一致性守卫 (fail-closed) ─────────────
-  // 依据 SCI-PHOT-001 §3/§6: scale 的绝对值含未建模仪器常数（可跨数量级）,
-  // 但同一组（同仪器/滤光片/曝光）各帧的**相对**零点差必须 << 1 mag。超限即
-  // 拒绝整组施加 —— 否则帧被拉到不同测光坐标系（比不归一化更糟）。显式降级,
-  // 不静默。
+  // ── P1-PHOT-BROKEN (c): 帧标度收集 + **组间一致性报告字段**（非门禁）─────
+  // 依据 SCI-PHOT-001 §3/§6: scale 的绝对值含未建模仪器常数（可跨数量级）。
+  // **负责人 2026-09-19 裁决（GAP_AUDIT §9.49 定案 2）：组间一致性不是门禁** ——
+  // 帧间独立标定，各帧只对「自己的标定是否可信」负责；不同光学系统混装不得报错。
+  // 此处仍**计算并落盘** `photscale_spread_dex`（PMM warning 范式，供人工审阅）。
+  double photscale_spread_dex = 0.0;
+  bool photscale_spread_warn = false;
   if (scales_complete) {
     double kmin = 0.0, kmax = 0.0;
     for (size_t i = 0; i < n_lights; ++i) {
@@ -3431,16 +3525,25 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         scales_complete = false;
       }
     }
-    if (scales_complete && kmin > 0.0) {
+    // ── 负责人 2026-09-19 裁决（GAP_AUDIT §9.49 定案 2）：**删除组间 k 散度门** ──
+    // 原话：「极度异常值拒绝，并抛出错误，其他的合理范围都可以接受。这玩意应该是
+    // 帧间独立的，为啥要组间对比」「不同光学系统的帧混装不得报错」「门只有一个：
+    // 单帧标定是否可信…与其它帧无关」。
+    // 独立佐证（PMM-STUDY §Q-B）：PhotometricMosaic 亦**没有任何「拒绝帧」的跨帧
+    // 一致性门**，其模型本身是相对的（scale 允许任意量级，注释显式支持 12bit vs
+    // 16bit、高达 2× 尺度差）；跨帧比例只用于**星点匹配预筛**，超限的后果是
+    // 「这一对星不匹配」而**不是「这一帧被拒绝」**。
+    // 实证（E2E 2026-09-20）：本门曾使 L4 真实数据 **photometry_applied=false**
+    // （t2_m1 两帧 k 散度 0.0311 dex = 0.078 mag > 0.02 dex）⇒ **测光归一化在
+    // 生产上完全不执行**，正是本裁决要消除的故障。
+    // 处置：**保留 spread_dex 的计算与落盘**（供人工审阅，PMM 的 warning 范式），
+    // **删除其 fail-closed 分支**；组间一致性是**语义目标，不是门禁**。
+    if (kmin > 0.0) {
       const double spread_dex = std::log10(kmax / kmin);
-      if (!std::isfinite(spread_dex) || spread_dex > P1_PHOT_MAX_SPREAD_DEX) {
-        photscale_error = "photscale inconsistent across frames (max/min=" +
-                          std::to_string(kmax / kmin) + " = " +
-                          std::to_string(spread_dex) + " dex > " +
-                          std::to_string(P1_PHOT_MAX_SPREAD_DEX) +
-                          " dex); refusing to apply a mixed photometric system";
-        scales_complete = false;
-      }
+      photscale_spread_dex = std::isfinite(spread_dex) ? spread_dex : 0.0;
+      // 仅提示，不阻断：超过参考值只在 provenance 记 warning 供审阅。
+      photscale_spread_warn = !(std::isfinite(spread_dex)) ||
+                              spread_dex > P1_PHOT_MAX_SPREAD_DEX;
     }
   }
 
@@ -3475,11 +3578,16 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       // photoscales 只承载标量（drz 消费口径不变）; 本对象记录该标量是否来自
       // 真实拟合（fitted/n_matched/sigma_residual_dex）, 使"applied=true"可被
       // 独立核对, 而不是只能自证。
+      // F-INSTR-CONFORM-FIX: 逐帧 F_instr 域 provenance —— 使"标度取自 PSF
+      // 拟合域解析通量（而非检测域盒和）"可被独立核对。
       photscale_detail[key] = Json{{"k_photo", sc->k_photo},
                                    {"n_matched", sc->n_matched},
                                    {"sigma_residual_dex", sc->sigma_residual_dex},
                                    {"fitted", sc->fitted},
-                                   {"source", sc->source}};
+                                   {"source", sc->source},
+                                   {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
+                                   {"n_psf_domain", sc->n_psf_domain},
+                                   {"n_psf_skipped", sc->n_psf_skipped}};
       ks.push_back(sc->k_photo);
     }
     std::sort(ks.begin(), ks.end());
@@ -3502,6 +3610,30 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         std::to_string(n_lights)));
   }
 
+  // ── FREF-BASELINE-001: 逐帧测光拟合证据表（**无条件**落盘）───────────────
+  // 组间 k 散度门只决定"是否把 k 施加到像素"（photometry_applied），**不得**
+  // 把已经算出的逐帧拟合结果丢弃：帧级 SNR 的绝对参考通量
+  //   F_ref,k = 10^(-0.4*(m_ref - ZP_k)),  ZP_k = ZP_syn,k - 2.5*log10(k_photo,k)
+  // 需要它，且按 §9.49 定案 2（帧间独立；跨帧 k 不同是正常的）必须逐帧可得。
+  // 无此表时 SNR 节点无法把 F_ref 锚到固定星等 ⇒ 只能退化为块级中位数。
+  Json photscale_fit = Json::object();
+  for (const auto& l : lights) {
+    if (!l.is_string()) continue;
+    const P1FrameScale* sc = find_scale(l.get<std::string>());
+    if (sc == nullptr) continue;
+    photscale_fit[sc->key] =
+        Json{{"k_photo", sc->k_photo},
+             {"n_matched", sc->n_matched},
+             {"sigma_residual_dex", sc->sigma_residual_dex},
+             {"fitted", sc->fitted},
+             {"source", sc->source},
+             {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
+             {"zero_point_valid", sc->zero_point_valid},
+             {"zero_point_mag", sc->zero_point_mag},
+             {"zero_point_n_stars", sc->zero_point_n_stars},
+             {"zero_point_scatter_mag", sc->zero_point_scatter_mag}};
+  }
+
   // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV-001) ─────────────
   // drizzle 消费本产物决定 PHOTSCAL/PHOTAPPL; 禁止硬编码 1。如实声明是否已对
   // 像素施加测光缩放（施加后 applied=true, operation 记录两步）。
@@ -3516,7 +3648,14 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                    {"photscal", photometry_applied ? photscal_rep : 1.0},
                    {"pixel_scaling", photometry_applied ? "applied" : "none"},
                    {"photscale_source", photscale_source},
+                   // 组间一致性：**报告字段，非门禁**（负责人 GAP_AUDIT §9.49 定案 2）。
+                   {"photscale_spread_dex", photscale_spread_dex},
+                   {"photscale_spread_warn", photscale_spread_warn},
+                   {"photscale_spread_gate", "none (owner ruling 9.49: frame-independent)"},
                    {"n_frames", frames.size()}};
+  // FREF-BASELINE-001: 逐帧拟合证据表无条件落盘（见上）。photscales/
+  // photscale_detail 保持原语义（只描述"已施加"的那组标度），不受影响。
+  prov["photscale_fit"] = photscale_fit;
   if (photometry_applied) {
     prov["apply_entry"] = "calibration::apply_photometry";
     prov["photscales"] = photscales;
@@ -3536,6 +3675,13 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   (*man)["photometry_applied"] = photometry_applied;
   (*man)["photscal"] = photometry_applied ? photscal_rep : 1.0;
   (*man)["photscale_source"] = photscale_source;
+  // 组间一致性报告字段（非门禁；负责人 GAP_AUDIT §9.49 定案 2：帧间独立，不设组间门）。
+  (*man)["photscale_spread_dex"] = photscale_spread_dex;
+  (*man)["photscale_spread_warn"] = photscale_spread_warn;
+  (*man)["photscale_spread_gate"] = "none (owner ruling 9.49: frame-independent)";
+  // F-INSTR-CONFORM-FIX (SCI-PHOT-001 §9a): 本节点 F_instr 的域 = PSF 拟合域
+  // 解析通量; 修复前 = 检测域 5×5 盒和。显式登记以便独立核对。
+  (*man)["f_instr_domain"] = "psf_analytic_flux_2pi_A_sx_sy_over_3";
   if (!photscale_error.empty()) (*man)["photscale_error"] = photscale_error;
   (*man)["photoapplied_artifacts"] = applied_artifacts;
   Json artifacts = Json::array({out_path, prov_path});
@@ -3728,6 +3874,89 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   if (std::isfinite(group_ref_flux) && group_ref_flux > 0.0)
     sci_cfg.reference_flux_adu = group_ref_flux;
 
+  // ── FREF-BASELINE-001: 固定参考星等的**绝对共同基准** ────────────────────
+  // 负责人裁决（GAP_AUDIT §9.49 定案 7）: 「直接用 6 等星（或一个数值表示比较
+  // 正常的星等来做基准就行）」。据此把帧级 SNR 的参考通量从"块级检出通量
+  // 中位数"（数据派生、随帧集漂移）改为**同一颗参考星**在各帧的仪器通量:
+  //
+  //     F_ref,k = 10^(-0.4*(m_ref - ZP_k))      [ADU]
+  //     ZP_k    = ZP_syn,k - 2.5*log10(k_photo,k)
+  //
+  // ZP_syn 由 Gaia DR3 XP **绝对**谱 + 本帧滤光片/QE 曲线正向合成
+  // （frame_photometry_fit.cpp），只依赖 (filter, QE, 天区星族)。
+  // 由此同时满足三条硬要求:
+  //   (i)  帧间可比: 各帧报的是**同一颗**参考星的 SNR, 不再混入本帧检出亮度;
+  //   (ii) 帧间独立: F_ref 只依赖本帧自身的测光标定 ⇒ **不需要"组"的概念**
+  //        （§9.49 定案 2; 跨帧 k_photo 不同是正常的, 不是错误）;
+  //   (iii) 配对性: 头部 ASTROCS_REFERENCE_FLUX 写**物理公共锚**
+  //        F0 = 10^(-0.4*(m_ref - ZP_syn_block)), 对同波段同星场恒为同一数
+  //        ⇒ 闸门恒过, 且 w = SNR_f²/F0² = a_f²/σ_f²（WEIGHT-SCI-001
+  //        Convention A; 逐帧 F_ref,f 会丢掉 a_f²）。
+  // ZP_syn 取块中位数: 它是 (filter, QE, 星族) 的系统常数, 逐帧差异只来自锥形
+  // 边界抽样; 取中位数使 F0 成为**单一常数**（闸门要求），而 F_ref,k 仍逐帧。
+  // 不可得（无 photscale_fit / zero_point_valid=false）⇒ 保持既有来源, 不伪造。
+  double ref_mag = 6.0;
+  if (doc.contains("snr") && doc["snr"].is_object())
+    ref_mag = doc["snr"].value("reference_mag", 6.0);
+  const bool ref_mag_usable = std::isfinite(ref_mag) && ref_mag > -30.0 && ref_mag < 60.0;
+
+  std::map<std::string, double> kphoto_of_key;   // p1_frame_key -> k_photo
+  std::map<std::string, double> zp_inst_of_key;  // p1_frame_key -> ZP_k [mag]
+  std::vector<double> zp_syn_vals;
+  bool phot_fit_available = false;
+  if (ref_mag_usable) {
+    const std::string pp = out_dir + "/p1_phot.json";
+    std::error_code pec;
+    if (std::filesystem::exists(std::filesystem::u8path(pp), pec)) {
+      std::ifstream pf(std::filesystem::u8path(pp), std::ios::binary);
+      if (pf) {
+        try {
+          const Json pj = Json::parse(std::string((std::istreambuf_iterator<char>(pf)),
+                                                 std::istreambuf_iterator<char>()));
+          if (pj.is_object() && pj.contains("photscale_fit") &&
+              pj["photscale_fit"].is_object()) {
+            for (const auto& l : doc["input_lights"]) {
+              if (!l.is_string()) continue;
+              const std::string key = p1_frame_key(l.get<std::string>());
+              if (!pj["photscale_fit"].contains(key)) continue;
+              const Json& e = pj["photscale_fit"][key];
+              if (!e.is_object()) continue;
+              if (!e.value("zero_point_valid", false)) continue;
+              const double kp = e.value("k_photo", 0.0);
+              const double zps = e.value("zero_point_mag", 0.0);
+              if (!(std::isfinite(kp) && kp > 0.0)) continue;
+              if (!std::isfinite(zps)) continue;
+              kphoto_of_key[key] = kp;
+              zp_inst_of_key[key] = zps - 2.5 * std::log10(kp);
+              zp_syn_vals.push_back(zps);
+            }
+          }
+        } catch (const std::exception&) {
+          kphoto_of_key.clear();
+          zp_inst_of_key.clear();
+          zp_syn_vals.clear();
+        }
+      }
+    }
+    phot_fit_available = !zp_syn_vals.empty();
+  }
+
+  double ref_flux_common = std::numeric_limits<double>::quiet_NaN();
+  double ref_zero_point_syn = std::numeric_limits<double>::quiet_NaN();
+  if (ref_mag_usable && phot_fit_available && !has_configured_ref_flux) {
+    std::vector<double> zs = zp_syn_vals;
+    std::sort(zs.begin(), zs.end());
+    const std::size_t zn = zs.size();
+    const double zp_syn = (zn % 2 == 1) ? zs[zn / 2]
+                                        : 0.5 * (zs[zn / 2 - 1] + zs[zn / 2]);
+    const double f0 = std::pow(10.0, -0.4 * (ref_mag - zp_syn));
+    if (std::isfinite(zp_syn) && std::isfinite(f0) && f0 > 0.0) {
+      ref_zero_point_syn = zp_syn;
+      ref_flux_common = f0;
+      ref_flux_source = "fixed_magnitude";
+    }
+  }
+
   Json frames = Json::array();
   for (const auto& l : doc["input_lights"]) {
     // cosmetic 下游（cos → psf → phot → snr）: 消费 artifact:cos 产物
@@ -3748,7 +3977,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
                       {"sigma", nr.sigma}, {"background", nr.background},
                       {"valid", nr.valid}, {"reason", nr.reason}};
     // ── P8: 逐源科学 SNR (仅当上游目录含同帧时附加) ──
-    frame["snr_schema"] = "DATA-P1-SNR/2";
+    frame["snr_schema"] = "DATA-P1-SNR/3";
     frame["snr_definition"] =
         "SNR_F = F/sigma_F (Horne 1986 optimal extraction; "
         "sigma_F^-2 = sum_i P_i^2/sigma_i^2); frame-level science benchmark = "
@@ -3768,6 +3997,28 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     } else {
       astrocs::phase1::SnrFrameScienceConfig cfg = sci_cfg;
       cfg.sigma_sky_adu = src_frame->value("noise_sigma", 0.0);
+      // ── FREF-BASELINE-001: 逐帧参考通量 = 固定星等 m_ref 在本帧的仪器通量 ──
+      // 只读本帧自身的测光标定（k_photo, ZP_syn）⇒ 帧间独立, 无组概念。
+      // 缺该帧标定 ⇒ reference_flux_adu=0 ⇒ 本帧 fail-closed（不伪造、不回退
+      // 到块级中位数, 否则同一批产品里混两种参考, 帧间不可比）。
+      const std::string fkey = p1_frame_key(l.get<std::string>());
+      double frame_zp_inst = std::numeric_limits<double>::quiet_NaN();
+      double frame_kphoto = std::numeric_limits<double>::quiet_NaN();
+      if (ref_flux_source == "fixed_magnitude") {
+        auto kp_it = kphoto_of_key.find(fkey);
+        auto zp_it = zp_inst_of_key.find(fkey);
+        if (kp_it != kphoto_of_key.end() && zp_it != zp_inst_of_key.end()) {
+          frame_kphoto = kp_it->second;
+          frame_zp_inst = zp_it->second;
+          const double fref = std::pow(10.0, -0.4 * (ref_mag - frame_zp_inst));
+          cfg.reference_flux_adu =
+              (std::isfinite(fref) && fref > 0.0) ? fref : 0.0;
+          // 修 G2（m_5 从不产出）: 帧自身测光零点 ⇒ m_5 = ZP_k - 2.5*log10(F_5)
+          cfg.zero_point_mag = frame_zp_inst;
+        } else {
+          cfg.reference_flux_adu = 0.0;
+        }
+      }
       // ── P14-N-08/N-09 (RQS V2-N-08 + V2-N-09): 交付 SNR 样本真实性 ──────
       // 交付样本 = DATA-P1-SOURCES.sources 的**全部测光有效源** (flux>0 且
       // fwhm_px>0), **不再**取 psf_params —— 后者是受性能开关 psf.max_stars
@@ -3818,11 +4069,31 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
       // WEIGHT-SCI-001 provenance: F_ref 的作用域与来源。scope="group" 表示
       // flux_adu 是**组内公共**参考通量 F0（snr_f 亦定义在该 F0 下，二者配对）;
       // reference_flux_source ∈ {"config","group_median","unavailable"}。
+      const bool fref_fixed = (ref_flux_source == "fixed_magnitude");
       frame["snr_reference"] = Json{
           {"profile", "median_fwhm_of_catalogue_sky_limited"},
-          {"scope", "group"},
+          // scope="group": flux_adu 是块级公共 F0, 且 snr_f 亦定义在该 F0 下
+          // （二者配对, 见 WEIGHT-SCI-001）。
+          // scope="frame_independent_fixed_magnitude": flux_adu 是**固定参考星等
+          // m_ref 在本帧的仪器通量** F_ref,k（逐帧, 只依赖本帧标定）; 头部写的是
+          // flux_common（物理公共锚 F0, 对同波段同星场恒为同一数）⇒ 配对性
+          // w = SNR_f²/F0² = a_f²/σ_f² 成立（Convention A）。
+          {"scope", fref_fixed ? "frame_independent_fixed_magnitude" : "group"},
           {"reference_flux_source", ref_flux_source},
           {"flux_adu", sci.reference_flux_adu},
+          {"flux_common", fref_fixed ? Json(ref_flux_common) : Json(nullptr)},
+          {"flux_common_unit",
+           fref_fixed ? Json("F_syn (Gaia XPSD absolute spectral integral)")
+                      : Json(nullptr)},
+          {"reference_mag", fref_fixed ? Json(ref_mag) : Json(nullptr)},
+          {"reference_mag_system",
+           fref_fixed ? Json("gaia_g_via_synthetic_xpsd") : Json(nullptr)},
+          {"reference_zero_point_syn_mag",
+           fref_fixed ? Json(ref_zero_point_syn) : Json(nullptr)},
+          {"frame_zero_point_mag",
+           std::isfinite(frame_zp_inst) ? Json(frame_zp_inst) : Json(nullptr)},
+          {"frame_k_photo",
+           std::isfinite(frame_kphoto) ? Json(frame_kphoto) : Json(nullptr)},
           {"fwhm_px", sci.reference_fwhm_px},
           {"snr_f", sci.reference_snr_f},
           {"sigma_f_adu", sci.reference_sigma_f_adu}};
@@ -3855,22 +4126,47 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     frames.push_back(frame);
   }
   const std::string out_path = out_dir + "/p1_snr.json";
+  const bool fref_fixed_out = (ref_flux_source == "fixed_magnitude");
   Json snr_out = Json{{"schema", "DATA-P1-SNR"},
-                      {"schema_version", "2"},
-                      // WEIGHT-SCI-001: 块级组内公共 F_ref provenance。
-                      {"snr_reference_scope", "group"},
+                      {"schema_version", "3"},
+                      // WEIGHT-SCI-001: 块级参考通量 provenance。
+                      // "group" ⇒ reference_flux_adu 为块级公共 F0（ADU）;
+                      // "frame_independent_fixed_magnitude" ⇒ 头部写
+                      // reference_flux_common（物理公共锚）, 逐帧 flux_adu 只作
+                      // 配对性核对（C1: snr_f == flux_adu/sigma_f_adu）。
+                      {"snr_reference_scope",
+                       fref_fixed_out ? "frame_independent_fixed_magnitude" : "group"},
                       {"reference_flux_source", ref_flux_source},
-                      {"reference_flux_adu", group_ref_flux},
+                      // fixed_magnitude 生效时 group_ref_flux（两遍法块中位数）**未被
+                      // 使用** ⇒ 写 null, 避免下游把陈旧的中位数当成生效值。
+                      {"reference_flux_adu",
+                       fref_fixed_out ? Json(nullptr) : Json(group_ref_flux)},
+                      {"reference_flux_common",
+                       fref_fixed_out ? Json(ref_flux_common) : Json(nullptr)},
+                      {"reference_flux_common_unit",
+                       fref_fixed_out
+                           ? Json("F_syn (Gaia XPSD absolute spectral integral)")
+                           : Json(nullptr)},
+                      {"reference_mag", fref_fixed_out ? Json(ref_mag) : Json(nullptr)},
+                      {"reference_mag_system",
+                       fref_fixed_out ? Json("gaia_g_via_synthetic_xpsd") : Json(nullptr)},
+                      {"reference_zero_point_syn_mag",
+                       fref_fixed_out ? Json(ref_zero_point_syn) : Json(nullptr)},
                       {"frames", frames}};
   if (!p1_write_text(out_path, snr_out.dump(2)))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
   (*man)["n_frames"] = frames.size();
-  (*man)["snr_schema"] = "DATA-P1-SNR/2";
+  (*man)["snr_schema"] = "DATA-P1-SNR/3";
   (*man)["snr_artifact"] = out_path;
-  // WEIGHT-SCI-001: 组内公共 F_ref provenance（块级）。
-  (*man)["snr_reference_scope"] = "group";
+  // WEIGHT-SCI-001 / FREF-BASELINE-001: 参考通量 provenance（块级）。
+  (*man)["snr_reference_scope"] =
+      fref_fixed_out ? "frame_independent_fixed_magnitude" : "group";
   (*man)["reference_flux_source"] = ref_flux_source;
-  (*man)["reference_flux_adu"] = group_ref_flux;
+  (*man)["reference_flux_adu"] =
+      fref_fixed_out ? Json(nullptr) : Json(group_ref_flux);
+  (*man)["reference_flux_common"] =
+      fref_fixed_out ? Json(ref_flux_common) : Json(nullptr);
+  (*man)["reference_mag"] = fref_fixed_out ? Json(ref_mag) : Json(nullptr);
   (*man)["artifacts"] = Json::array({out_path});
   return Result<void>::success();
 }
@@ -4818,6 +5114,118 @@ Result<void> p2_op_coverage(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
+// ── CONFORM-FIX-B-014: model 段 sampler 配置解析（唯一事实源 CONFIG_SCHEMA.md
+//    「model:」段；键集 = P2SamplerConfig 全部 17 字段，逐字段显式赋值）。
+//    旧实现只消费 __workers ⇒ node chain 采样参数钉死编译期默认值。
+//    域校验与 stage2_common.cpp:40-126 同口径（fail-closed，禁静默夹取）。
+//    patch_radius_leaf 为主名（CONFIG_SCHEMA），patch_radius_pixels 为 stage2
+//    工具名别名（"auto" → 2，与工具同语义）。──
+bool p2_sample_cfg_from_doc(const Json& doc, P2SamplerConfig* sc,
+                            std::string* err) {
+  if (!doc.contains("model")) return true;
+  if (!doc["model"].is_object()) {
+    *err = "model must be object";
+    return false;
+  }
+  const Json& m = doc["model"];
+  auto num = [&](const char* k, double* out) -> bool {
+    if (!m.contains(k)) return true;
+    if (!m[k].is_number()) { *err = std::string("model.") + k + " must be number"; return false; }
+    *out = m[k].get<double>();
+    return true;
+  };
+  auto i32 = [&](const char* k, int* out) -> bool {
+    if (!m.contains(k)) return true;
+    if (!m[k].is_number_integer()) { *err = std::string("model.") + k + " must be integer"; return false; }
+    *out = m[k].get<int>();
+    return true;
+  };
+  if (!i32("control_grid_per_tile", &sc->control_grid_per_tile)) return false;
+  if (sc->control_grid_per_tile < 1 || sc->control_grid_per_tile > 64) {
+    *err = "model.control_grid_per_tile 必须在 1..64";
+    return false;
+  }
+  if (m.contains("patch_radius_leaf") || m.contains("patch_radius_pixels")) {
+    const char* pk = m.contains("patch_radius_leaf") ? "patch_radius_leaf"
+                                                     : "patch_radius_pixels";
+    const Json& pv = m[pk];
+    if (pv.is_string()) {
+      if (pv.get<std::string>() != "auto") {
+        *err = std::string("model.") + pk + " 只支持 'auto' 或整数";
+        return false;
+      }
+      sc->patch_radius_leaf = 2;
+    } else if (pv.is_number_integer()) {
+      sc->patch_radius_leaf = pv.get<int>();
+      if (sc->patch_radius_leaf < 0 || sc->patch_radius_leaf > 64) {
+        *err = std::string("model.") + pk + " 必须在 0..64";
+        return false;
+      }
+    } else {
+      *err = std::string("model.") + pk + " 类型错误（'auto' 或整数）";
+      return false;
+    }
+  }
+  if (!i32("min_samples", &sc->min_samples)) return false;
+  if (sc->min_samples < 1) { *err = "model.min_samples 必须 >= 1"; return false; }
+  if (!num("snr_search_radius_deg", &sc->snr_search_radius_deg)) return false;
+  if (sc->snr_search_radius_deg <= 0.0) {
+    *err = "model.snr_search_radius_deg 必须 > 0"; return false;
+  }
+  if (!i32("background_patch_radius", &sc->background_patch_radius)) return false;
+  if (sc->background_patch_radius < 3) {
+    *err = "model.background_patch_radius 必须 >= 3"; return false;
+  }
+  if (!num("background_clip_sigma", &sc->background_clip_sigma)) return false;
+  if (sc->background_clip_sigma <= 0.0) {
+    *err = "model.background_clip_sigma 必须 > 0"; return false;
+  }
+  if (!i32("background_clip_iters", &sc->background_clip_iters)) return false;
+  if (sc->background_clip_iters < 1) {
+    *err = "model.background_clip_iters 必须 >= 1"; return false;
+  }
+  if (!num("background_max_contamination", &sc->background_max_contamination)) return false;
+  if (sc->background_max_contamination <= 0.0 ||
+      sc->background_max_contamination >= 1.0) {
+    *err = "model.background_max_contamination 必须在 (0,1)"; return false;
+  }
+  if (!num("background_contamination_sigma", &sc->background_contamination_sigma)) return false;
+  if (sc->background_contamination_sigma <= 0.0) {
+    *err = "model.background_contamination_sigma 必须 > 0"; return false;
+  }
+  if (!num("background_min_retained_fraction", &sc->background_min_retained_fraction)) return false;
+  if (sc->background_min_retained_fraction <= 0.0 ||
+      sc->background_min_retained_fraction > 1.0) {
+    *err = "model.background_min_retained_fraction 必须在 (0,1]"; return false;
+  }
+  if (!num("background_tolerance", &sc->background_tolerance)) return false;
+  if (sc->background_tolerance <= 0.0) {
+    *err = "model.background_tolerance 必须 > 0"; return false;
+  }
+  if (!i32("background_neighbor_radius", &sc->background_neighbor_radius)) return false;
+  if (sc->background_neighbor_radius < 1) {
+    *err = "model.background_neighbor_radius 必须 >= 1"; return false;
+  }
+  if (!i32("background_catalog_veto", &sc->background_catalog_veto)) return false;
+  if (sc->background_catalog_veto != 0 && sc->background_catalog_veto != 1) {
+    *err = "model.background_catalog_veto 必须 ∈ {0,1}"; return false;
+  }
+  // sampler.h:56-59 声明的 veto/掩膜口径（与 catalog veto 同源，见 005）
+  if (!num("control_k_corr", &sc->control_k_corr)) return false;
+  if (sc->control_k_corr <= 0.0) {
+    *err = "model.control_k_corr 必须 > 0"; return false;
+  }
+  if (!num("star_mask_snr_factor", &sc->star_mask_snr_factor)) return false;
+  if (!(sc->star_mask_snr_factor > 0.0)) {
+    *err = "model.star_mask_snr_factor 必须 > 0"; return false;
+  }
+  if (!num("star_mask_radius_deg", &sc->star_mask_radius_deg)) return false;
+  if (!(sc->star_mask_radius_deg > 0.0)) {
+    *err = "model.star_mask_radius_deg 必须 > 0"; return false;
+  }
+  return true;
+}
+
 // ── op: sample_frames（唯一真实入口 p2_frame_id + p2_sample_controls_cached;
 //      两阶段查询/回填; 消费上游 coverage artifact, 缺失即 DATA fail-closed）──
 Result<void> p2_op_sample(const Json& doc, Json* man) {
@@ -4844,9 +5252,21 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
   const std::string manifest_hash = p2_input_manifest_hash(view, frame_ids);
 
   P2SamplerConfig sc = p2_sampler_default_config();
+  // CONFORM-FIX-B-014：透传 cfg 的 sampler 配置键（CONFIG_SCHEMA.md:11-18
+  // 「model:」段；键集 = P2SamplerConfig 全字段）。缺键 = 编译期默认值
+  // （sampler.cpp:302-322 单一来源），非法值 = DATA fail-closed（不夹取）。
+  {
+    std::string sc_err;
+    if (!p2_sample_cfg_from_doc(doc, &sc, &sc_err))
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "sampler config rejected (fail-closed): " + sc_err));
+  }
   // CON-004: cpu_workers = Runtime lease 权威（P2NodeModule execute 注入
-  // __workers; budget 唯一权威, 禁硬编码; 1=串行 reference）
+  // __workers; budget 唯一权威, 禁硬编码; 1=串行 reference）。恒最后赋值，
+  // 不允许被 model.cpu_workers 覆盖（lease 是唯一权威）。
   sc.cpu_workers = std::max(1, doc.value("__workers", 1));
+  (*man)["sampler_config_source"] =
+      doc.contains("model") ? "config.model+defaults" : "compiled_defaults";
 
   uint64_t n_obs = 0, n_controls = 0;
   P2SampleStats stats{};
@@ -4904,6 +5324,26 @@ Result<void> p2_op_sample(const Json& doc, Json* man) {
                        {"entry", "p2_sample_controls_cached"},
                        {"input_manifest_hash", manifest_hash},
                        {"target_order", view.cov.target_order}, {"control_grid_per_tile", sc.control_grid_per_tile},
+                       // CONFORM-FIX-B-014: 生效 sampler 配置全量落盘（调参后
+                       // 重跑的可审计面；键名与 CONFIG_SCHEMA「model:」段一致）
+                       {"sampler_config", Json{
+                            {"control_grid_per_tile", sc.control_grid_per_tile},
+                            {"patch_radius_leaf", sc.patch_radius_leaf},
+                            {"min_samples", sc.min_samples},
+                            {"snr_search_radius_deg", sc.snr_search_radius_deg},
+                            {"background_patch_radius", sc.background_patch_radius},
+                            {"background_clip_sigma", sc.background_clip_sigma},
+                            {"background_clip_iters", sc.background_clip_iters},
+                            {"background_max_contamination", sc.background_max_contamination},
+                            {"background_contamination_sigma", sc.background_contamination_sigma},
+                            {"background_min_retained_fraction", sc.background_min_retained_fraction},
+                            {"background_tolerance", sc.background_tolerance},
+                            {"background_neighbor_radius", sc.background_neighbor_radius},
+                            {"background_catalog_veto", sc.background_catalog_veto},
+                            {"control_k_corr", sc.control_k_corr},
+                            {"star_mask_snr_factor", sc.star_mask_snr_factor},
+                            {"star_mask_radius_deg", sc.star_mask_radius_deg},
+                            {"cpu_workers", sc.cpu_workers}}},
                        {"frame_ids", fid_j},
                        {"n_obs", n_obs},
                        {"n_controls", n_controls},
@@ -4993,13 +5433,19 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   uc.snr_weight_mode = 0;          // snr2_normalized
   uc.huber_delta = 1.345;
   uc.max_iterations = 100;
-  // RELEASE-02 P2a-3（科学行为变更）：绝对 1e-6 在 max|M|~3e15 时低于
-  // ULP(0.5) 5-8 个数量级，原理上不可达（iterations=100,converged=0）。
-  // 生产改为相对判据 tolerance_relative=1 + 1e-3（论证见
-  // reports/RELEASE-02/fix-p2a-seam.md §4：实测每轮仅降 ~0.7%，
-  // rel_dM 稳定 1.15-1.32e-4，1e-6 即使相对也不可达）。
-  uc.tolerance = 1e-3;
-  uc.tolerance_relative = 1;
+  // CONFORM-FIX-B-001（合规回退）：FZ-UPM-CONVERGENCE 冻结
+  // tol=1e-6（docs/algorithms/v6/frozen/01_NUMERIC_THRESHOLD_FREEZE.md:45，
+  // 明文「改动 tol/σ_floor → rc!=0」），PHASE2_UPM_IMPL.md:379/:400-401 与
+  // DATA_SEMANTICS:1874 同值且标注「冻结面，任何修改必须走 SCI/合同变更」。
+  // 上一版实现就地改为 tolerance=1e-3 + tolerance_relative=1（未走变更流程）
+  // ⇒ 生产门 ≈1e-3·max|M| ≈3e12 ADU，比冻结门宽 18 个数量级，且与
+  // p2_session.cpp:204（仍 1e-6）分叉。现回退到冻结值，恢复符合性；
+  // 相对判据（尺度无关）的**授权路径**见变更 claim 草案
+  // 工程控制/RELEASE-02/change-claims/CONFORM-FIX-B-001-tolerance-relative.md
+  // （状态：草案，待负责人裁决）——未经裁决不得在实现内启用。
+  // 显式 opt-in 覆盖键 upm.tolerance / upm.tolerance_relative 保留（默认 0）。
+  uc.tolerance = 1e-6;
+  uc.tolerance_relative = 0;
   // RELEASE-02 P2a-2/P2a-4（科学行为变更）：阻尼 α=0.5（naive α=1 在
   // 链式/二部覆盖图有特征值 -1、周期 2 振荡）；M 全帧加权；末端残差场
   // gauge 使叠加 ≡ 公共场 ⇒ 覆盖子集突变处阶跃恒 0（q2-snr-smooth §4/§5）。
@@ -5023,8 +5469,53 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     uc.max_iterations = upm_cfg["max_iterations"].get<int>();
   if (upm_cfg.contains("huber_delta"))
     uc.huber_delta = upm_cfg["huber_delta"].get<double>();
+  // CONFORM-FIX-B-009：与 stage2 工具同一「smoothing」键语义
+  // （CONFIG_SCHEMA.md:19 smoothing(auto→0.1)；"auto" 的解析值单一来源 =
+  // P2_SMOOTHING_LAMBDA_AUTO）。缺键保持 upm.h:75 的编译期默认 0.0 ——
+  // 该默认属 docs/algorithms/PHASE2_UPM_IMPL.md §13「冻结面」，改动须走
+  // SCI/合同变更；与负责人裁决 GAP_AUDIT §9.39 A5「λ 不能为 0」的冲突已
+  // 登记上呈（生产 λ 取值归 SMOOTH-LAMBDA 分片），本节点不擅自改冻结默认。
+  {
+    const Json model_cfg = (doc.contains("model") && doc["model"].is_object())
+                               ? doc["model"] : Json::object();
+    if (model_cfg.contains("smoothing")) {
+      const Json& sm = model_cfg["smoothing"];
+      if (sm.is_string()) {
+        if (sm.get<std::string>() != "auto")
+          return Result<void>::fail(Error(ErrorDomain::DATA,
+              "model.smoothing 只支持 'auto' 或 number: " +
+              sm.get<std::string>()));
+        uc.smoothing_lambda = P2_SMOOTHING_LAMBDA_AUTO;
+      } else if (sm.is_number()) {
+        uc.smoothing_lambda = sm.get<double>();
+      } else {
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "model.smoothing 类型错误（'auto' 或 number）"));
+      }
+      if (!(uc.smoothing_lambda >= 0.0))
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "model.smoothing 必须 >= 0"));
+    } else if (model_cfg.contains("smoothing_lambda")) {
+      if (!model_cfg["smoothing_lambda"].is_number())
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "model.smoothing_lambda must be number"));
+      uc.smoothing_lambda = model_cfg["smoothing_lambda"].get<double>();
+      if (!(uc.smoothing_lambda >= 0.0))
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "model.smoothing_lambda 必须 >= 0"));
+    }
+  }
   if (upm_cfg.contains("smoothing_lambda"))
     uc.smoothing_lambda = upm_cfg["smoothing_lambda"].get<double>();
+  (*man)["upm_smoothing_lambda"] = uc.smoothing_lambda;
+  (*man)["upm_smoothing_lambda_source"] =
+      (upm_cfg.contains("smoothing_lambda")
+           ? "config.upm.smoothing_lambda"
+           : ((doc.contains("model") && doc["model"].is_object() &&
+               (doc["model"].contains("smoothing") ||
+                doc["model"].contains("smoothing_lambda")))
+                  ? "config.model.smoothing"
+                  : "compiled_default_alg13_frozen_0.0"));
   // M4-C-02: 与 stage2_common 对称的显式覆盖面；缺省保持 SCI §9a:133 λ0=1e-3。
   if (upm_cfg.contains("zero_anchor_weight"))
     uc.zero_anchor_weight = upm_cfg["zero_anchor_weight"].get<double>();
@@ -5156,7 +5647,33 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   {
     const Json sp_cfg = (doc.contains("sky_plane") && doc["sky_plane"].is_object())
                             ? doc["sky_plane"] : Json::object();
-    const bool sky_enabled = sp_cfg.value("enabled", true);
+    // CONFORM-FIX-B-011：默认值 = 「本次是否真的会施加 δ」。
+    // 依据：① FIX-SCI-SNR-CANON-001（负责人 2026-09-19）§2/§3.1 明文
+    //   「FIX-P2a 默认路径为**保留 C 去 δ**，raw − C_k，g_k ≡ 1 本期不启用」
+    //   ⇒ 生产默认 additive_mode = "c"（本文件 :5503 起），δ 从不施加；
+    //   ② docs/ 内**无任何**规定 sky_plane.enabled 默认值的条款
+    //   （grep docs/ 仅命中 UNIFIED_MODEL.md:49 对象描述与
+    //   UNIFIED_SCIENCE_MODEL.md:122 的 UNRESOLVED 登记）；
+    //   ③ 唯一「默认开启」记录是 FIX-A 目标模型前提下的前台选项 a
+    //   （工程控制/RELEASE-02/ACCEPTANCE.md:11、reports/RELEASE-02/FIX-A-report.md:73,140,156），
+    //   而 FIX-A-UPM-001 已被 FIX-SCI-SNR-CANON-001 否决 ⇒ 该前提消失。
+    // 处置：缺省 = (additive_mode ∈ {delta,both})，即「要施加才构建」；
+    // 显式 sky_plane.enabled 始终优先。默认路径不再产出无消费方的
+    // p2_sky_plane.bin（其稀疏样条拟合 + Schur 解是纯成本），
+    // 且 additive_mode=delta 时不会静默退化为 c。
+    const Json seam_pre =
+        (doc.contains("seam") && doc["seam"].is_object()) ? doc["seam"]
+                                                         : Json::object();
+    const std::string additive_mode_pre =
+        seam_pre.value("additive_mode", std::string("c"));
+    const bool delta_wanted =
+        (additive_mode_pre == "delta" || additive_mode_pre == "both");
+    const bool sky_enabled = sp_cfg.value("enabled", delta_wanted);
+    (*man)["sky_plane_enabled"] = sky_enabled;
+    (*man)["sky_plane_enabled_default_source"] =
+        sp_cfg.contains("enabled")
+            ? "config"
+            : (delta_wanted ? "additive_mode_applies_delta" : "additive_mode_c");
     if (!sky_enabled) {
       (*man)["sky_plane_status"] = "disabled";
       (*man)["sky_plane_degraded"] = true;   // 显式登记：本次 mosaic 无天光面扣除
@@ -5775,7 +6292,12 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   }
 
   const std::string out_path = out_dir + "/p2_corrected.json";
-  const bool sky_applied = (sky_guard.m != nullptr);
+  // CONFORM-FIX-B-012：provenance 自洽。sky_plane_loaded = 天光面产物被成功
+  // 载入；sky_plane_applied = δ_k **真的被扣除**。旧实现把 loaded 直接当
+  // applied ⇒ 同一 JSON 内 sky_plane_applied=true 与 delta_subtracted=false /
+  // sky_plane_mode="none" / additive_combination="raw_minus_C" 并列为互斥声明，
+  // 按「本次 mosaic 是否做了天光面扣除」取值的消费者必被误导。
+  const bool sky_loaded = (sky_guard.m != nullptr);
   // RELEASE-02 P2b-5: 过渡期诚实标记。方差面 = 残差制造者 PΣPᵀ（(c) 排除自身
   // 控制级耦合）+ 可选逐像素 Phase1 噪声 + 参数协方差 J_out C_θ J_outᵀ。
   // 当前生产 W2 模型无 C_θ API（参数项缺失）且 L4 输入帧无 variance 产品
@@ -5784,7 +6306,8 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   const bool param_cov_included = false;
   const bool uncertainty_available =
       any_var_ok && all_pixel_noise && param_cov_included;
-  const bool delta_applied = sub_delta && sky_applied;
+  const bool delta_applied = sub_delta && sky_loaded;
+  const bool sky_applied = delta_applied;   // CONFORM-FIX-B-012: applied == δ 实扣
   // RELEASE-02 P2a-1：单次加性扣除 provenance（组合语义对机器消费者可见）
   std::string combo;
   if (sub_c && delta_applied) combo = "raw_minus_C_minus_delta(legacy)";
@@ -5795,7 +6318,9 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
                        {"entry", "p2_upm_open/p2_upm_calibrate_block" +
                                      std::string(delta_applied ? "/p2_sky_plane_eval_delta_block" : "")},
                        {"model_hash", model_doc.value("model_hash", "")},
+                       // CONFORM-FIX-B-012: applied(实扣) 与 loaded(仅载入) 分离
                        {"sky_plane_applied", sky_applied},
+                       {"sky_plane_loaded", sky_loaded},
                        // RELEASE-02 P2a-1：单次加性扣除（默认 raw−C；双重扣除已
                        // 证有害：13.974% vs 0.131%，c-delta-ruling §2）。
                        {"additive_mode_requested", additive_mode},
@@ -5807,7 +6332,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
                        // 不是整个 b_k（旧口径会把背景归零并产生大量负像素）。
                        {"sky_plane_mode", delta_applied ? "delta_to_B_ref" : "none"},
                        {"sky_plane_artifact",
-                        sky_applied ? (out_dir + "/p2_sky_plane.bin") : std::string()},
+                        sky_loaded ? (out_dir + "/p2_sky_plane.bin") : std::string()},
                        {"n_pixels_total", total_pixels},
                        {"tile_leaf_span", kP2TileLeafSpan},
                        // ── RELEASE-02 P2b-1/5: 逐像素方差面与诚实标记 ──
@@ -5836,6 +6361,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   (*man)["corrected_artifact"] = out_path;
   (*man)["n_pixels_total"] = total_pixels;
   (*man)["sky_plane_applied"] = sky_applied;
+  (*man)["sky_plane_loaded"] = sky_loaded;   // CONFORM-FIX-B-012
   (*man)["variance_available"] = any_var_ok;
   (*man)["pixel_noise_included"] = any_var_ok && all_pixel_noise;
   (*man)["param_covariance_included"] = param_cov_included;
@@ -6476,6 +7002,14 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   bool use_snr_chain = false;                     // ivar 缺失时走 SNR 权重链
   std::vector<double> snr_weights;                // 逐帧 w = 1/σ_F² [ADU^-2]
   std::string snr_chain_closure = "not_used";
+  // 组间 F_ref 一致性：**报告字段，非门**（负责人 GAP_AUDIT §9.49 定案 2：
+  // 帧间独立；配对性只要求同帧内 SNR 与 F_ref 同源，不要求跨帧相等）。
+  double ref_flux_spread_rel = 0.0;
+  uint64_t ref_flux_spread_frame = 0;
+  bool ref_flux_spread_noncommon = false;
+  // CONFORM-FIX-B-004: uncertainty_available=false 的显式原因（§30.1
+  // 「diagnostics 标红计数」面）。空串 = 未降级（真值见 uncertainty_available）。
+  std::string uncertainty_unavailable_reason;
   if (corr_var_ready) {
     // P2b-2 priority 1：逐像素归一化方差面（唯一科学正确的权重来源）。
     weight_basis = "per_pixel_corrected_variance";
@@ -6519,7 +7053,6 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       std::vector<double> frame_gain(frames.size(), 1.0);
       double ref_flux = 0.0;
       bool ref_flux_set = false;
-      std::string ref_err;
       for (size_t f = 0; f < frames.size(); ++f) {
         const std::string p = frames[f].value("hips_path", "");
         AioHipsDataset* ds = aio_hips_open(p.c_str(), AIO_HIPS_RD_SIGNAL);
@@ -6544,21 +7077,26 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           in.gain = &frame_gain[f];
         }
         if (has_ref) {
-          // WEIGHT-SCI-001: 闸门**保持 fail-closed**（相对容差 1e-9 不放宽、
-          // 不删除）—— 组内 F_ref 必须是同一公共值。错误串补 expected/actual/
-          // frame_id 以便定位写侧是否漏写组内公共 F_ref（仅诊断信息增强，
-          // 判据不变）。
+          // ── 负责人 GAP_AUDIT §9.49 定案 2（帧间独立）──────────────
+          // 旧实现把「组内 F_ref 必须逐帧相等」当 fail-closed 闸门。该要求
+          // **科学上不成立**：配对性定理（WEIGHT-SCI-001）只要求**同一帧内**
+          // SNR 与 F_ref 同源（w_k = SNR_k²/F_ref,k²），**不要求跨帧相等**。
+          // FREF-BASELINE-001 的 scope="frame_independent_fixed_magnitude"
+          // 下 F_ref,k = 10^(−0.4(m_ref−ZP_k))，ZP_k 依赖**该帧自己的**光学
+          // 系统/滤镜 ⇒ 不同指向、不同光学系统的帧**合法地**有不同 F_ref,k。
+          // 旧闸门等价于「不同光学系统的帧混装即报错」，与 §9.49 定案 2
+          // 直接冲突，并使 weight_mode=2 在多指向拼接上完全不可用
+          // （实测：6 帧跨 t2_m1/t2_m2 两块 ⇒ 6/6 被拒，链路永不闭合）。
+          // ⇒ 逐帧用自己的 F_ref,k；跨帧一致性降级为**报告字段**
+          //   （reference_flux_spread_*），不再是门。
+          in.ref_flux = fref;
           if (!ref_flux_set) { ref_flux = fref; ref_flux_set = true; }
-          else if (std::fabs(fref - ref_flux) > 1e-9 * std::fabs(ref_flux)) {
-            char fref_buf[64];
-            char ref_buf[64];
-            std::snprintf(fref_buf, sizeof(fref_buf), "%.17g", fref);
-            std::snprintf(ref_buf, sizeof(ref_buf), "%.17g", ref_flux);
-            ref_err = std::string(
-                "ASTROCS_REFERENCE_FLUX 逐帧不一致（组内公共通量标度要求）: "
-                "expected=") + ref_buf + " actual=" + fref_buf +
-                " frame_id=" + std::to_string(frames[f].value("frame_id", 0ull));
+          const double rel = std::fabs(fref - ref_flux) / std::fabs(ref_flux);
+          if (rel > ref_flux_spread_rel) {
+            ref_flux_spread_rel = rel;
+            ref_flux_spread_frame = static_cast<uint64_t>(frames[f].value("frame_id", 0ull));
           }
+          if (rel > 1e-9) ref_flux_spread_noncommon = true;
         }
       }
       astrocs::v6::p2weight::WeightChainPolicy wpolicy;
@@ -6566,11 +7104,10 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       const WeightChainResult wres =
           astrocs::v6::p2weight::compute_inverse_variance_weights(
               winputs, ref_flux_set ? ref_flux : 0.0, wpolicy);
-      if (!ref_err.empty() || !wres.ok) {
-        const std::string tok = ref_err.empty()
-            ? std::string(astrocs::v6::p2weight::weight_closure_token(wres.closure))
-            : std::string("unclosed_invalid_reference_flux");
-        const std::string detail = ref_err.empty() ? wres.error : ref_err;
+      if (!wres.ok) {
+        const std::string tok =
+            std::string(astrocs::v6::p2weight::weight_closure_token(wres.closure));
+        const std::string detail = wres.error;
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "weight_mode=2 requires per-frame ivar products; " +
             std::to_string(ivar_missing) + "/" + std::to_string(frames.size()) +
@@ -6584,7 +7121,16 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       weight_source = wres.weight_source;
       weight_basis = "frame_snr_ivar";
       snr_chain_closure = astrocs::v6::p2weight::weight_closure_token(wres.closure);
-      uncertainty_available = true;   // SNR 权重 = 合法逆方差面
+      // CONFORM-FIX-B-004（fail-closed，DATA_SEMANTICS §30.1 唯一出口）：
+      // 帧级 SNR 链只是**积分权重**的显式降级路径，**不是**方差产品的来源。
+      // §30.1 合成公式的前提是 ivar_product_missing==0（全部输入帧 ivar 可用、
+      // 无 fallback），规则 2 明文：fallback 发生 ⇒ 不写 variance/ivar 子产品 +
+      // uncertainty_available=false。旧实现在此置 true ⇒ 用帧级常数权合成
+      // variance = F_ref²/Σ SNR² 落盘（不含任何逐像素噪声项，且 F_ref 正是
+      // CONFORM-SWEEP-1-004 的缺陷量）⇒ 违反 fail-closed。
+      // 处置：权重链保留（积分仍有权重、降级显式可见），但方差面 unavailable。
+      uncertainty_available = false;
+      uncertainty_unavailable_reason = "ivar_product_missing_frame_snr_fallback";
       std::fprintf(stderr,
                    ("[weight_chain] weight_mode=2: " + std::to_string(ivar_missing) +
                     "/" + std::to_string(frames.size()) +
@@ -6598,6 +7144,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
     }
   } else {
     uncertainty_available = false;   // mode 1: 等权非 ivar 语义面
+    uncertainty_unavailable_reason = "weight_mode_1_equal_non_ivar";   // §30.1 规则 1
     weight_basis = "unit_weight_mode1";
   }
   struct IvarGuard {
@@ -7042,12 +7589,23 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                        {"corrected_variance_used", corr_var_ready},
                        {"snr_chain_closure", snr_chain_closure},
                        {"snr_chain_used", use_snr_chain},
+                       // 组间 F_ref 一致性 = **报告字段，非门**（GAP_AUDIT §9.49
+                       // 定案 2）。逐帧 F_ref,k 合法地可不同（不同指向/不同光学
+                       // 系统 ⇒ 不同 ZP_k）；配对性只要求同帧内同源。
+                       {"reference_flux_spread_rel", ref_flux_spread_rel},
+                       {"reference_flux_spread_frame", ref_flux_spread_frame},
+                       {"reference_flux_noncommon", ref_flux_spread_noncommon},
+                       {"reference_flux_gate",
+                        "none (owner ruling 9.49: frame-independent; pairing is "
+                        "per-frame SNR_k^2/F_ref,k^2)"},
                        {"fallback", fallback},
                        {"legacy_allow_weight_fallback", allow_fallback},
                        {"ivar_product_missing_frames", missing_j.size()},
                        {"ivar_product_missing_frame_indices", missing_j},
                        {"variance_product_present_frames", variance_present_frames},
                        {"uncertainty_available", uncertainty_available},
+                       {"uncertainty_unavailable_reason",
+                        uncertainty_unavailable_reason},
                        {"tile_leaf_span", tile_span},
                        {"n_pixels", nrej_pix_cursor},
                        {"tiles", tiles_j},
@@ -7073,11 +7631,18 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   (*man)["corrected_variance_used"] = corr_var_ready;
   (*man)["snr_chain_closure"] = snr_chain_closure;
   (*man)["snr_chain_used"] = use_snr_chain;
+  (*man)["reference_flux_spread_rel"] = ref_flux_spread_rel;
+  (*man)["reference_flux_spread_frame"] = ref_flux_spread_frame;
+  (*man)["reference_flux_noncommon"] = ref_flux_spread_noncommon;
+  (*man)["reference_flux_gate"] =
+      "none (owner ruling 9.49: frame-independent; pairing is per-frame "
+      "SNR_k^2/F_ref,k^2)";
   (*man)["fallback"] = fallback;
   (*man)["legacy_allow_weight_fallback"] = allow_fallback;
   (*man)["ivar_product_missing_frames"] = static_cast<uint64_t>(missing_j.size());
   (*man)["variance_product_present_frames"] = variance_present_frames;
   (*man)["uncertainty_available"] = uncertainty_available;
+  (*man)["uncertainty_unavailable_reason"] = uncertainty_unavailable_reason;
   return Result<void>::success();
 }
 
@@ -7276,6 +7841,10 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   const std::string weight_basis = int_doc.value("weight_basis", std::string());
   const uint64_t ivar_missing_frames =
       int_doc.value("ivar_product_missing_frames", 0ull);
+  // CONFORM-FIX-B-004: 不可用原因随产品面落盘（§30.1「diagnostics 标红计数」），
+  // 使「为何没有 variance/ivar 子产品」在阶段交换面可判（禁静默缺键）。
+  const std::string uncertainty_unavailable_reason =
+      int_doc.value("uncertainty_unavailable_reason", std::string());
   Json final_out = Json{{"schema", "DATA-P2-RES"},
                         {"entry", "aio_hips_product_begin/write_signal_support_tile/write_variance_tile/finalize"},
                         {"hips_root", out_dir},
@@ -7288,6 +7857,8 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                         {"weight_mode", weight_mode},
                         {"weight_basis", weight_basis},
                         {"ivar_product_missing_frames", ivar_missing_frames},
+                        {"uncertainty_unavailable_reason",
+                         uncertainty_unavailable_reason},
                         {"provenance", Json{
                             {"ASTROCS_INPUT_MANIFEST_HASH", manifest_hash},
                             {"ASTROCS_MODEL_HASH", model_hash},
@@ -7317,6 +7888,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   (*man)["weight_mode"] = weight_mode;
   (*man)["weight_basis"] = weight_basis;
   (*man)["ivar_product_missing_frames"] = ivar_missing_frames;
+  (*man)["uncertainty_unavailable_reason"] = uncertainty_unavailable_reason;
   // B2-A10（宪章 §4.3）: 单位/坐标系/输入产品哈希随节点 manifest 上报，
   // 供 run manifest provenance 汇总（Phase2 mosaic 单位 = ADU，
   // 坐标系 = ICRS，P0-19 与 properties 的 hips_frame=equatorial 同源）。

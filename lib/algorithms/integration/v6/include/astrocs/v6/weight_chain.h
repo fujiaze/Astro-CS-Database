@@ -131,6 +131,18 @@ struct FrameWeightInput {
   FrameSnrKind kind = FrameSnrKind::kUnknown; /* 必须 kFluxTypeUnweightedSnr */
   bool has_frame_snr = false;
   double frame_snr = 0.0;                     /* F_ref/σ_F，>0 有限 */
+  /* 本帧**自己的**参考通量 F_ref,k（>0 有限；0 = 未提供，回退到组标量）。
+   * 为什么必须逐帧（负责人 GAP_AUDIT §9.49 定案 2「帧间独立」+ FREF-BASELINE-001）：
+   *   FREF-BASELINE 的 scope="frame_independent_fixed_magnitude" 下
+   *   F_ref,k = 10^(−0.4(m_ref−ZP_k))，ZP_k 依赖**该帧自己的**光学系统/滤镜
+   *   ⇒ 不同指向或不同光学系统的帧**合法地**有不同的 F_ref,k。
+   *   配对性定理（WEIGHT-SCI-001）只要求**分子分母同源**（同一帧的 SNR 与 F_ref），
+   *   **不要求**跨帧相等。旧实现把「组内公共 F_ref」当 fail-closed 闸门，
+   *   等价于「不同光学系统的帧混装即报错」—— 与 §9.49 定案 2 直接冲突，
+   *   并使 weight_mode=2 在多指向拼接上完全不可用（实测 6/6 帧被拒）。
+   *   ⇒ 跨帧一致性降级为**报告字段**（见 module_adapters 的
+   *   reference_flux_spread_*），不再是门。 */
+  double ref_flux = 0.0;
   const SparseSnrLayer* sparse = nullptr;     /* 可空；非空且 present 即参与合成 */
   double x = 0.0, y = 0.0;                    /* 该帧像素坐标系下输出像素位置 */
   /* 可空乘性光度响应 g_k（>0 有限）。归一化含 corrected=(y−ĝ)/g_k 时必填：
@@ -175,7 +187,10 @@ struct WeightChainResult {
   WeightClosure closure = WeightClosure::kUnclosedMissingFrameSnr;
   std::string error;              /* kClosed 时为空 */
   std::string weight_source;      /* "frame_snr" | "frame_snr_x_sparse_snr" | "none" */
-  double reference_flux = 0.0;
+  double reference_flux = 0.0;     /* 组标量（审计/回退用） */
+  /* 逐帧**实际生效**的 F_ref,k = (输入 ref_flux>0 ? 输入 : 组标量)。
+   * 权重 w_k = actual_snr_k² / reference_flux_k[k]² · g_k² 用的就是它。 */
+  std::vector<double> reference_flux_k;
   std::vector<double> intra_snr;   /* 逐帧（无层 = 1.0） */
   std::vector<double> actual_snr;  /* 逐帧 = frame_snr × intra_snr */
   std::vector<double> frame_gain;  /* 逐帧 g_k（未声明 = 1.0；审计用） */
