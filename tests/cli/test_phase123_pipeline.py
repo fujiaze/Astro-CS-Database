@@ -13,10 +13,20 @@ docs/api/CLI_PROTOCOL_V1.md §1 旧 phase1|2|3 run / verify / graph 均为已删
 不依赖已删命令）; graph --preset 退役判据保留为负例（rc=2）。
 
 负例矩阵(全非零且不写 complete):
-  空 input_lights→2; 缺输入文件→3; 缺 HiPS 输入→3; 默认 weight_mode=2 对无 ivar
-  产品→2; 无 ivar fixture mode=2→2。
-正例补充: 含 ivar 的合成 fixture + 默认 weight_mode=2 → rc=0 且
+  空 input_lights→2; 缺输入文件→3; 缺 HiPS 输入→3; 缺逐帧 ivar 产品→2;
+  无 ivar fixture→2。
+正例补充: 含 ivar 的合成 fixture → rc=0 且
 manifest.uncertainty_available=true（真实不确定度面可达）。
+Phase1 侧同源: light 帧用 --make-noisy（确定性噪声，校准后 σ≈1.8 ADU）⇒ 噪声模型
+  有合格 patch（σ>0）⇒ normalize 产出 variance/ivar 子产品 ⇒ normalize→mosaic
+  默认逐帧逆方差链可闭合（--make 的常量域帧 σ=0 ⇒ 整帧退化 ⇒ 默认链 fail-closed）。
+
+权重口径（ASTROCS_DESIGN §2.1 + GAP_AUDIT §9.73 裁决 A44「不存在权重模式」）:
+  HiPS 里**存**的是**帧级 SNR**（与稀疏相对 SNR 比值）; 权重是阶段二消费 SNR 时
+  按覆盖该像素的帧集合**现场算出的派生量**，不是配置键 ⇒ 配置面**不得**出现
+  weight_mode / legacy_allow_weight_fallback（CLI 白名单已摘除，出现即 rc=3）。
+  生产唯一路径 = 逐帧逆方差; 缺逐帧 ivar 时按 DATA-UNC-001 §30.1 fail-closed
+  （禁静默回退等权），故「无 ivar ⇒ rc=2」是本文件的负例判据。
 """
 import hashlib, json, os, re, shutil, signal, subprocess, sys, tempfile, time, unittest
 
@@ -126,8 +136,12 @@ class TestPhase123Pipeline(unittest.TestCase):
         assert r.returncode == 0, r.stderr[-800:]
         cls.p1data = os.path.join(cls.tmp, "p1data")
         os.makedirs(cls.p1data)
-        r = subprocess.run([cls.p1, "--make", cls.p1data], capture_output=True, text=True,
-                           timeout=120, cwd=run_cwd())
+        # --make-noisy（非 --make）：常量域 light 帧 σ=0 ⇒ 噪声模型整帧退化 ⇒
+        # Phase1 产品无 variance/ivar、无帧级 SNR ⇒ A44 后的默认（唯一）逐帧逆方差
+        # 权重链按 DATA-UNC-001 §30.1 fail-closed（mosaic rc=2，禁静默等权）。
+        # §2.1 要求 HiPS 存帧级 SNR，故端到端正例必须喂非退化噪声面。
+        r = subprocess.run([cls.p1, "--make-noisy", cls.p1data], capture_output=True,
+                           text=True, timeout=120, cwd=run_cwd())
         assert "FIXTURES_OK" in r.stdout, r.stderr
         # 含 variance/ivar 的 Phase2 fixture (B1-A5 真实不确定度面正例)
         cls.hips = os.path.join(cls.tmp, "hips")
@@ -135,7 +149,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         for m in ("--make", "--make-field", "--make-nan"):
             subprocess.run([cls.p2, m, cls.hips], capture_output=True, text=True, timeout=120,
                            cwd=run_cwd())
-        # 无 ivar 的 Phase2 fixture (默认 weight_mode=2 负例)
+        # 无 ivar 的 Phase2 fixture (默认逐帧逆方差负例; §2.1 / §9.73 A44)
         cls.noivar = os.path.join(cls.tmp, "noivar")
         os.makedirs(cls.noivar)
         subprocess.run([cls.p2, "--make-noivar", cls.noivar], capture_output=True,
@@ -186,7 +200,10 @@ class TestPhase123Pipeline(unittest.TestCase):
             "center": {"ra_deg": 210.0, "dec_deg": 34.0},
             "scale_deg_per_px": 0.5, "width_px": 20, "height_px": 20,
             "sampler": "bilinear", "projection": "TAN",
-            "coverage_output": "mask"})
+            "coverage_output": "mask",
+            # FZ-P3-MODES（FROZEN；docs/algorithms/v6/frozen/02_GATE_AND_MUTATION_FREEZE.md）：
+            # phase3 resample 节点要求显式声明 output_mode（缺键即 REJECT）。
+            "output_mode": "surface_brightness"})
 
     def _run(self, session, cfg, timeout=600, extra=None):
         return subprocess.run([EXE, session, "--json", cfg, "--events-jsonl", "-y",
@@ -269,13 +286,16 @@ class TestPhase123Pipeline(unittest.TestCase):
             self.assertGreater(os.path.getsize(
                 os.path.join(out, "calibrated_light_%d.fits" % idx)), 0)
 
-    # ── mosaic: 只读两个 normalize 持久化产品（独立进程），显式等权闭合 ──
+    # ── mosaic: 只读两个 normalize 持久化产品（独立进程），默认逐帧逆方差 ──
     def test_02_mosaic_consumes_normalize_products(self):
         # P0-21 §3.4: normalize 产品 = 逐帧目录；mosaic 直接消费 p1_products.json
         # 的 hips_paths（可串行衔接）。
+        # §2.1 / §9.73 裁决 A44: **无 weight_mode 配置键** —— 权重是阶段二消费帧级
+        # SNR 时按覆盖该像素的帧集合现场算出的派生量；生产路径恒为逐帧逆方差
+        # （normalize 产品已含 variance/ivar）。
         cfg = self._p2_cfg(self.p2out,
                            [os.path.join(self.p1a, "light_1"),
-                            os.path.join(self.p1b, "light_2")], {"weight_mode": 1})
+                            os.path.join(self.p1b, "light_2")])
         r = self._run("mosaic", cfg)
         self.assertEqual(r.returncode, 0, r.stderr[-500:])
         # 真链路必须产生重叠控制点（>=2 clean frame/UPM 几何前提）
@@ -284,8 +304,9 @@ class TestPhase123Pipeline(unittest.TestCase):
         self.assertGreater(smp.get("stats", {}).get("overlap_controls", 0), 0,
                            "mosaic 必须在两个 normalize 产品的重叠区取得控制点")
         man = self._assert_manifest_closed(r, self.p2out, 2, min_art=5)
-        # B1-A5: 显式 mode=1 → 等权, 无不确定度面（机器闭环, 非科学闭环）
-        self.assertIs(man.get("uncertainty_available"), False)
+        # B1-A5 + DATA-UNC-001 §30.1: 默认（唯一）生产路径 = 逐帧逆方差 ⇒
+        # 不确定度面必须真实可达（强于旧的「显式等权 ⇒ false」判据）
+        self.assertIs(man.get("uncertainty_available"), True)
         self.assertTrue(os.path.isfile(os.path.join(self.p2out, "signal", "properties")),
                         "mosaic 必须持久化 mosaic HiPS")
 
@@ -318,10 +339,11 @@ class TestPhase123Pipeline(unittest.TestCase):
         # c) mosaic 缺 HiPS 输入 → 3 (B1-A7 映射; SMOKE-001 D11)
         d = os.path.join(D, "neg_nohips")
         os.makedirs(d, exist_ok=True)
-        r = self._run("mosaic", self._p2_cfg(d, ["/nonexistent/does_not_exist.hips"],
-                                             {"weight_mode": 1}))
+        r = self._run("mosaic", self._p2_cfg(d, ["/nonexistent/does_not_exist.hips"]))
         self.assertEqual(r.returncode, 3, r.stderr[-400:])
-        # d) mosaic 默认 weight_mode=2 对无 ivar 的产品 → 2, 不写 complete
+        # 红必须是「缺输入」，不得是配置键被 CLI 白名单摘除（§9.73 A44）
+        self.assertNotIn("unknown key", r.stderr)
+        # d) mosaic 默认逐帧逆方差对无 ivar 的产品 → 2, 不写 complete
         #    定案 2（逐像素方差接入）后 normalize 产品**已含** variance/ivar ⇒
         #    本负例改为消费「剥掉 variance/ivar 的副本」：判据与意图（缺 ivar ⇒
         #    fail-closed，不写 complete）逐字不变，只是不再依赖「生产不产方差」这一
@@ -340,13 +362,13 @@ class TestPhase123Pipeline(unittest.TestCase):
         self.assertEqual(r.returncode, 2, r.stderr[-400:])
         self.assertIn("ivar", r.stderr)
         self.assertEqual(self._complete_manifests(d), [], "缺 ivar 不得写 complete")
-        # e) 无 ivar fixture + 默认 weight_mode=2 → 2
+        # e) 无 ivar fixture + 默认逐帧逆方差 → 2
         d = os.path.join(D, "neg_fxnoivar")
         os.makedirs(d, exist_ok=True)
         r = self._run("mosaic", self._p2_cfg(d, [os.path.join(self.noivar, "F1.hips"),
                                                  os.path.join(self.noivar, "F2.hips")]))
         self.assertEqual(r.returncode, 2, r.stderr[-400:])
-        # f) 含 ivar fixture + 默认 weight_mode=2 → 0 且 uncertainty_available=true
+        # f) 含 ivar fixture + 默认逐帧逆方差 → 0 且 uncertainty_available=true
         d = os.path.join(D, "pos_ivar")
         os.makedirs(d, exist_ok=True)
         r = self._run("mosaic", self._p2_cfg(d, [os.path.join(self.hips, "F1.hips"),

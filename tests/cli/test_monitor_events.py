@@ -86,6 +86,8 @@ class TestMonitorEvents(unittest.TestCase):
                 "scale_deg_per_px": 0.1, "width_px": 40, "height_px": 30,
                 "projection": "TAN", "sampler": "nearest",
                 "coverage_output": "mask",
+                # FZ-P3-MODES：phase3 resample 节点要求显式声明 output_mode（缺键即 REJECT）
+                "output_mode": "surface_brightness",
             }, fh)
 
     @classmethod
