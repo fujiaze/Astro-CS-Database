@@ -250,9 +250,15 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"longitude_parity", nullptr, "可选经度方向 east_left|east_right（缺省 east_left）"},
         {"coverage_output", nullptr, "可选覆盖率输出（当前唯一实现 mask）"},
         // DC-503（§5.3）: CLI 只识别并透传，不判科学值域；消费在 scheduler 面。
-        {"output_mode", nullptr,
-         "可选输出模式：surface_brightness / point_source_flux / visualization"
-         "（缺所选模式所需信息 → 拒绝或明确 unavailable）"},
+        // 模板骨架值 = **合同已登记默认**（phase_config_export.schema.json
+        // #/$defs/export_config/properties/output_mode 的 description：「默认
+        // surface_brightness」；config_registry.json:1238-1241 同源登记「默认
+        // surface_brightness 与插件一致」）。缺键即 REJECT（FZ-P3-MODES）⇒ 模板必须
+        // 给出该键（ASTROCS_DESIGN §3.3「模板与 --help 由同一份键表生成」；
+        // docs/contracts/CONFIG_CONTRACT.md:81 旧合同 required 即含 output_mode）。
+        {"output_mode", "\"surface_brightness\"",
+         "输出模式（必填；合同默认 surface_brightness）：surface_brightness / "
+         "point_source_flux / visualization（缺所选模式所需信息 → 拒绝或明确 unavailable）"},
     };
     switch (s) {
         case SESSION_NORMALIZE: return kNormalize;
@@ -341,6 +347,7 @@ inline std::string render_checks(const std::vector<CheckLine>& checks) {
     for (const auto& c : checks) {
         const char* mark = (c.level == "error")     ? "[error]"
                            : (c.level == "optimize") ? "[optimize]"
+                           : (c.level == "warn")     ? "[warn]"
                                                      : "[correct]";
         out += std::string("  ") + mark + " " + c.text + "\n";
     }

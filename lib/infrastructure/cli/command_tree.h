@@ -38,10 +38,12 @@ inline const std::set<std::string>& boolean_flags() {
         "--help", "-h",   // §6.2: 子命令帮助与字段说明
         "-y", "--yes",    // §6.3: 跳过运行确认
         "-force",         // §6.3: 越过可强制项（缺失校准帧等）
-        "--events-jsonl", // §6.3: 运行事件 JSONL 走 stdout
-        // §8/21_observability §8.4: 资源门「记录/裁决分离」的历史复现开关
-        // （record_only → enforce，exit 10）。消费者见 commands.cpp
-        // strict_resource_gate_arg；此前不在白名单 → unknown flag，§8 在 CLI 面不可达。
+        // §9.74 裁决 7-a 定案 1（ASTROCS_DESIGN §6.3）：运行事件流 = **默认输出**，
+        // 不再需要旗标开启；本旗标保留接受（等价默认行为，不再是开启开关）。
+        "--events-jsonl",
+        // §9.74 裁决 10（ASTROCS_DESIGN §3.5/§6.3）：一般性资源超限门（内存/CPU/线程）
+        // 已取消 ⇒ 本旗标保留接受但**不再**改变裁决（恒 record-only，无 rc=10 路径）；
+        // 登记为「历史复现开关，已随 §9.74 裁决 10 退役」。消费者见 commands.cpp。
         "--strict-resource-gate",
     };
     return k;

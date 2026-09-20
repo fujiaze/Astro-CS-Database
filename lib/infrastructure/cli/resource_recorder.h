@@ -277,7 +277,10 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
                          r.threads, r.active_compute_threads,
                          r.per_thread_cpu_max_pct, r.per_thread_cpu_sum_pct, r.io_wait_pct);
         }
-        std::fclose(f);
+        // §9.74 裁决 10 运行期臂: fclose 的失败（磁盘满/写盘失败）必须上报 —— 旧实现
+        // 忽略 fprintf/fclose 返回值 ⇒ 磁盘满时静默留下截断 CSV 且 write_all 仍返回 true
+        // （fail-open）。写失败由调用方经 disk_gate.h 归类 → error + exit 10。
+        if (std::fclose(f) != 0) return false;
     }
     // resource_summary.json
     {
@@ -312,7 +315,7 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
                             s.active_compute_threads_peak, s.io_wait_pct_mean);
         }
         std::fprintf(f, "]}\n");
-        std::fclose(f);
+        if (std::fclose(f) != 0) return false;
     }
     // worker_balance.csv: 每样本 active vs runnable(供不平衡分类)
     {
@@ -325,7 +328,7 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
             std::fprintf(f, "%.3f,%u,%u,%.2f\n", r.elapsed_seconds,
                          r.active_workers, r.runnable_workers, util);
         }
-        std::fclose(f);
+        if (std::fclose(f) != 0) return false;
     }
     return true;
 }

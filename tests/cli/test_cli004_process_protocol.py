@@ -26,7 +26,11 @@ test_phase1_inprocess 编译模式; fixture 源码路径用 ARCH-001 迁移后�
 import json, os, re, shutil, signal, subprocess, tempfile, time, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CLI_DIR = os.path.join(REPO, "cli")
+# ROOT-008: CLI 源目录已迁 lib/infrastructure/cli/（旧 REPO/cli 不存在 ⇒ test_06 自迁移起
+# 恒 FileNotFoundError）。FIX-208 顺带订正扫描路径（扫描面/断言不变），并保留旧路径回退。
+CLI_DIR = next((p for p in (os.path.join(REPO, "lib", "infrastructure", "cli"),
+                            os.path.join(REPO, "cli")) if os.path.isdir(p)),
+               os.path.join(REPO, "lib", "infrastructure", "cli"))
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
 from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
@@ -262,10 +266,15 @@ class TestCli004ProcessProtocol(unittest.TestCase):
 
     # ── 4. run directory 布局合同 ──
     def test_04_run_directory_layout(self):
+        # FIX-208: 预检 fail-closed 后「输入缺失」在预检即阻断（无事件、无 manifest）
+        # ⇒ 布局合同必须用**真实输入**证明（旧写法用 does_not_exist.fits，自预检修复起
+        # 恒无事件 → IndexError；本次一并改正）。
         out = os.path.join(self.tmp, "o4"); os.makedirs(out)
-        cfg = self._cfg(out, [os.path.join(self.data, "does_not_exist.fits")])
-        r = subprocess.run([EXE, "normalize", "--json", cfg, "--events-jsonl", "-y"],
-                           capture_output=True, text=True, timeout=120, cwd=run_cwd())
+        cfg = self._cfg(out, [os.path.join(self.data, "light_1.fits"),
+                              os.path.join(self.data, "light_2.fits")])
+        r = subprocess.run([EXE, "normalize", "--json", cfg, "-y"],
+                           capture_output=True, text=True, timeout=300, cwd=run_cwd())
+        self.assertEqual(r.returncode, 0, r.stderr[-400:])
         events = jsonl_lines(r.stdout)
         mf = [e for e in events if e["kind"] == "artifact" and e.get("role") == "run_manifest"][-1]
         self.assertEqual(os.path.dirname(os.path.abspath(mf["path"])),
@@ -290,17 +299,16 @@ class TestCli004ProcessProtocol(unittest.TestCase):
         r_mutex = subprocess.run([EXE, "normalize", "--json", cfg, "--template"],
                                  capture_output=True, text=True, timeout=60, cwd=run_cwd())
         self.assertEqual(r_mutex.returncode, 2)
-        # 非 events 模式 stdout 是 manifest 路径, 不混 JSONL 事件流
+        # FIX-208（§9.74 裁决 7-a 定案 1）: 事件流 = **默认输出** ⇒ stdout 恒为纯 JSONL
+        # 或空；人类摘要只走 stderr（不再有「非 events 模式 stdout 打 manifest 路径」）。
         r2 = subprocess.run([EXE, "normalize", "--json", cfg, "-y"],
                             capture_output=True, text=True, timeout=120, cwd=run_cwd())
         self.assertEqual(r2.returncode, 3)
-        self.assertNotIn('"kind"', r2.stdout)
-        # SMOKE-001 D7（§3 stdout 纪律）: 失败 run 的结果面不得与成功同形 ——
-        # stdout 只承载成功结果；incomplete manifest 路径走 stderr 诊断。
-        self.assertEqual(r2.stdout, "", "失败 run 不得在 stdout 打印 manifest 路径")
-        self.assertRegex(os.path.basename([l.split(": ")[-1] for l in r2.stderr.splitlines()
-                                           if "run manifest:" in l][-1]),
-                         r"^astrocs_run_[0-9a-f]{12}\.json$")
+        # 预检阻断（输入缺失）⇒ 无事件、无 manifest（fail-closed，不落看似完整的产物）
+        self.assertEqual(r2.stdout, "", "预检阻断不得在 stdout 打印任何文本/事件")
+        self.assertIn("astrocs:", r2.stderr)
+        self.assertEqual([f for f in os.listdir(out) if f.startswith("astrocs_run_")], [],
+                         "预检阻断不得写 run manifest")
 
     # ── 6. CLI 无 Qt/HiPS Browser 链接(源码 + 动态依赖) ──
     def test_06_no_qt_hips_browser_links(self):

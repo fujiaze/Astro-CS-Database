@@ -11,6 +11,20 @@
 | `../monitoring/` | LOG-002 起的生产资源监控伴生器 |
 | `../../docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md` | 权威合同文档（字段表、事件语义、脱敏、验收、LOG-001/LOG-002 边界） |
 
+## 边界：本目录**不是**运行事件流（RELEASE-03 GAP_AUDIT §4.3 Q6 裁决）
+
+- **运行事件流**（GUI/外部 harness 直接捕获的 CLI stdout JSONL）唯一 schema =
+  `lib/infrastructure/cli/protocol.h`（`ValidateEventV1` 发送侧硬闸）+
+  `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`）：字段
+  `schema_version/event_id/run_id/timestamp_utc/sequence/kind/severity/phase/stage/message`，
+  事件枚举键名 `kind`（progress/resource/artifact/backend/final），顺序键 `sequence`；
+  默认输出（无需旗标）。
+- **本目录 = LOG-001「结构化日志」合同**（人可读摘要 + 机器 JSONL 双通道同源）：
+  键名 `schema/seq/ts/run/task/node/module/phase/commit/host/level/event/units/elapsed/diagnostic`，
+  事件枚举键名 `event`，顺序键 `seq`。
+- 两份流**不得互相冒充**：键名不得混用（同一行同时出现 `sequence` 与 `seq` 等标识键即违例），
+  工件名各自独立。
+
 ## 边界（合同冻结范围）
 
 - LOG-001 冻结：字段语义、schema（JSON Schema + 参考实现）、小型验证。产物是**合同 + 检查器**，

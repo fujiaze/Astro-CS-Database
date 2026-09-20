@@ -70,7 +70,7 @@ enum class AllocGrowthVerdict {
     InsufficientSamples,  // 有效样本 < kAllocMinCurveSamples(含全哨兵) → 不判
     Stable,               // 稳健斜率 <= 预警线(负/近零 = 可解释回落方向)
     Growing,              // 预警线 < 斜率 < 失败线(早期预警, 不阻塞)
-    Unbounded,            // 斜率 >= 失败线 → gate MemoryGrowth(RESOURCE 10)
+    Unbounded,            // 斜率 >= 失败线 → 判 MemoryGrowth(记录项; §9.74 裁决 10 起不产生退出码)
 };
 
 // 回落判定(run 结束; 长 run 才判, 短 run 显式跳过非静默)。
@@ -278,7 +278,8 @@ inline bool write_alloc_report_json(const std::string& out_dir, const AllocRepor
         kAllocGrowthUnboundedMbPerS, kAllocGrowthWarnMbPerS,
         kAllocMinReclaimFrac, (unsigned long long)kAllocReclaimResidualTolBytes,
         r.alloc_sample_overhead_ms);
-    std::fclose(f);
+    // §9.74 裁决 10: fclose 失败（磁盘满/写盘失败）必须上报（旧实现忽略返回值 = fail-open）。
+    if (std::fclose(f) != 0) return false;
     return true;
 }
 
@@ -421,7 +422,7 @@ public:
                              (unsigned long long)p.alloc_outstanding_bytes,
                              (unsigned long long)p.cache_bytes);
             }
-            std::fclose(f);
+            if (std::fclose(f) != 0) return false;
         }
         // ---- alloc_report.json (schema v2; 序列化集中在 write_alloc_report_json) ----
         if (!write_alloc_report_json(out_dir, r)) return false;
