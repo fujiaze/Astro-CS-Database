@@ -1,12 +1,12 @@
 // P1-HIPS-TEST · SCI-F3-001 增补组: DATA-UNC-001 §30.2/§30.3 AIO 通道
 //
-// 控制包任务: SCI-F3-001 (AIO NREJ/NUSED 通道与五 provenance 键落盘)。
+// 控制包任务: SCI-F3-001 (AIO NREJ/NUSED 通道与四 provenance 键落盘)。
 // finding 锚: 05_FINDINGS_REGISTER §STD-F3（原 F-P2-002-03）。
 //
 // 覆盖 (被测量 = astrocs_hips 生产实现 aio_hips_writer/reader):
 //   §30.2  NREJ=32 / NUSED=64 int32 子产品通道
 //          (BITPIX=32, NESTED 512×512 tile, 无 precision 开关, 0 即"无"禁 −1 哨兵)
-//   §30.3  ASTROCS_* 五 provenance 键双写 (properties 大写键 + manifest.json 小写键)
+//   §30.3  ASTROCS_* 四 provenance 键双写 (properties 大写键 + manifest.json 小写键)
 //   verify 双向断言: available=true ⇒ variance/ivar 子产品必在 (HDU/PRODUCT);
 //          available=false ⇒ 禁占位 (子产品不得存在);
 //          诊断平面 manifest 声明 ↔ 磁盘事实双向; 值域 (负值 = 契约违反)
@@ -54,9 +54,10 @@ namespace p1hips {
 namespace {
 
 // ── 冻结常量 (DATA-UNC-001 §30.2/§30.3) ────────────────────────────────────
-const char* kProvKeys[5] = {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
+// FIX-201 / §9.73 A44: 旧「权重模式」provenance 键已删除 (5 → 4 键)。
+const char* kProvKeys[4] = {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
                             "ASTROCS_UNCERTAINTY_AVAILABLE",
-                            "ASTROCS_WEIGHT_MODE", "ASTROCS_REJECT_PROFILE"};
+                            "ASTROCS_REJECT_PROFILE"};
 constexpr uint32_t kSpan = 512u * 512u;
 // 64 hex 真实形态值 (形态即契约: sha256 十六进制)
 const char* kManifestHash =
@@ -64,7 +65,6 @@ const char* kManifestHash =
 const char* kModelHash =
     "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 const char* kProfile = "wbpp_2_9_1";
-constexpr int kWeightMode = 2;
 
 std::string dp_dir(const std::string& d, const char* sub) {
     return d + "/" + sub;
@@ -168,8 +168,7 @@ int dp_write_product(const std::string& dir, int flags, bool with_prov,
     if (!ps) return -100;
     if (with_prov) {
         const int prc = aio_hips_set_provenance(ps, kManifestHash, kModelHash,
-                                                uncertainty_available,
-                                                kWeightMode, kProfile);
+                                                uncertainty_available, kProfile);
         if (prc != 0) { aio_hips_abort(ps); return -101; }
     }
     FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 1.5, true, true,
@@ -213,7 +212,10 @@ const int kFullFlags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
 const int kDiagOnlyFlags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
                            AIO_HIPS_PRODUCT_NREJ | AIO_HIPS_PRODUCT_NUSED;
 
-// 五键齐备性 + 值对拍 (properties, 大写键)
+// 四键齐备性 + 值对拍 (properties, 大写键)
+// FIX-201 / §9.73 A44 收窄锁: 原断言把旧「权重模式」键当契约 (与最高设计
+// §2.1「全程只有 SNR, 不存在权重模式」相反) —— 现改为**反向锁**: 该族键必须
+// 缺席。任何人重新引入权重模式键, 本断言立即判红 (不放宽任何其它门禁)。
 int dp_check_prov_props(CheckState& cs, const std::string& dir,
                         const char* prod, const char* fault) {
     const std::string pp = dp_dir(dir, prod) + "/properties";
@@ -222,18 +224,22 @@ int dp_check_prov_props(CheckState& cs, const std::string& dir,
     for (const char* k : kProvKeys)
         if (kv.find(k) == kv.end()) ++missing;
     P1HIPS_CHECK_MSG(cs, missing == 0, fault,
-                     "%s/properties 五 provenance 键缺失 %d 个 (§30.3)", prod,
+                     "%s/properties 四 provenance 键缺失 %d 个 (§30.3)", prod,
                      missing);
     if (missing != 0) return 1;
     int bad = 0;
     bad += (kv.at("ASTROCS_INPUT_MANIFEST_HASH") != kManifestHash);
     bad += (kv.at("ASTROCS_MODEL_HASH") != kModelHash);
     bad += (kv.at("ASTROCS_REJECT_PROFILE") != kProfile);
-    bad += (kv.at("ASTROCS_WEIGHT_MODE") != std::to_string(kWeightMode));
     P1HIPS_CHECK_MSG(cs, bad == 0, fault,
                      "%s/properties provenance 值与 setter 输入不符 (%d 处)",
                      prod, bad);
-    return bad;
+    int wm = 0;
+    for (const auto& e : kv)
+        if (e.first.find("WEIGHT") != std::string::npos) ++wm;
+    P1HIPS_CHECK_MSG(cs, wm == 0, fault,
+                     "%s/properties 禁出现权重模式键 (§9.73 A44; got %d)", prod, wm);
+    return bad + wm;
 }
 
 // manifest.json 标量取值 (独立解析)
@@ -292,7 +298,7 @@ int test_diag_prov_units() {
                          "合同位值 NREJ=32/NUSED=64 与头文件不一致");
     }
 
-    // DP-U2/DP-U3 全产品写: 六通道 + 五键 + verify 双向 + int32 回读
+    // DP-U2/DP-U3 全产品写: 六通道 + 四键 + verify 双向 + int32 回读
     {
         const std::string dir = make_tmp_dir("dp2");
         DpProduct pr;
@@ -305,7 +311,7 @@ int test_diag_prov_units() {
                                     "nrej", "nused"})
                 P1HIPS_CHECK_MSG(cs, file_has(dp_dir(dir, sub) + "/properties"),
                                  "dp2_products", "%s/properties 缺失", sub);
-            // §30.3 五键 (每个 image 子产品 properties)
+            // §30.3 四键 (每个 image 子产品 properties)
             for (const char* sub : {"signal", "support", "variance", "ivar",
                                     "nrej", "nused"})
                 dp_check_prov_props(cs, dir, sub, "dp2_prov_keys");
@@ -324,7 +330,6 @@ int test_diag_prov_units() {
                 {"astrocs_input_manifest_hash", kManifestHash},
                 {"astrocs_model_hash", kModelHash},
                 {"astrocs_uncertainty_available", "true"},
-                {"astrocs_weight_mode", "2"},
                 {"astrocs_reject_profile", kProfile},
             };
             for (const auto& mp : mpairs) {
@@ -345,7 +350,7 @@ int test_diag_prov_units() {
             const int vrc = aio_hips_verify_product_set(dir.c_str(), &rep);
             P1HIPS_CHECK_MSG(cs, vrc == 0, "dp3_verify_bidir",
                              "verify rc=%d (%s)", vrc, aio_hips_last_error());
-            P1HIPS_CHECK_EQ(cs, rep.prov_keys_present, 5);
+            P1HIPS_CHECK_EQ(cs, rep.prov_keys_present, 4);
             P1HIPS_CHECK_EQ(cs, rep.uncertainty_available, 1);
             P1HIPS_CHECK_EQ(cs, rep.variance_present, 1);
             P1HIPS_CHECK_EQ(cs, rep.ivar_present, 1);
@@ -423,7 +428,7 @@ int test_diag_prov_units() {
         }
     }
 
-    // DP-U4 unavailable 面: 五键齐全且 =false, variance/ivar 不落盘, verify rc=0
+    // DP-U4 unavailable 面: 四键齐全且 =false, variance/ivar 不落盘, verify rc=0
     {
         const std::string dir = make_tmp_dir("dp4");
         const int rc = dp_write_product(dir, kDiagOnlyFlags, true, 0, true, nullptr);
@@ -450,7 +455,7 @@ int test_diag_prov_units() {
         }
     }
 
-    // DP-U5 legacy 面: 未调用 setter → 五键整体不写 (全或无, P1 产品面不变)
+    // DP-U5 legacy 面: 未调用 setter → 四键整体不写 (全或无, P1 产品面不变)
     {
         const std::string dir = make_tmp_dir("dp5");
         const int rc = dp_write_product(dir,
@@ -464,7 +469,7 @@ int test_diag_prov_units() {
             for (const char* k : kProvKeys)
                 if (kv.count(k)) ++present;
             P1HIPS_CHECK_MSG(cs, present == 0, "dp5_all_or_none",
-                             "未设置 provenance 时五键必须整体缺席 (got %d)",
+                             "未设置 provenance 时四键必须整体缺席 (got %d)",
                              present);
             AioHipsVerifyReport rep = make_verify_report();
             P1HIPS_CHECK_EQ(cs, aio_hips_verify_product_set(dir.c_str(), &rep), 0);
@@ -491,7 +496,7 @@ int test_diag_prov_units() {
             const std::string e = slurp(d1 + "/nused" + rel);
             P1HIPS_CHECK_MSG(cs, !c.empty() && c == e, "dp6_bitwise",
                              "nused tile 双跑必须 bitwise 相等");
-            // 五键行文本确定性 (properties 内 UTC 日期键除外)
+            // 四键行文本确定性 (properties 内 UTC 日期键除外)
             const std::string p0 = slurp(d0 + "/signal/properties");
             const std::string p1 = slurp(d1 + "/signal/properties");
             size_t p = 0;
@@ -505,14 +510,14 @@ int test_diag_prov_units() {
                 if (p1.find(line + "\n") == std::string::npos) all_eq = false;
             }
             P1HIPS_CHECK_MSG(cs, all_eq, "dp6_prov_lines",
-                             "五键行文本必须跨运行确定");
+                             "四键行文本必须跨运行确定");
         }
     }
 
     if (cs.failures == 0) {
         std::fprintf(stdout,
                      "[p1hips] diag_prov units: DP-U1..DP-U6 PASS "
-                     "(§30.2 int32 通道 + §30.3 五键双写 + verify 双向)\n");
+                     "(§30.2 int32 通道 + §30.3 四键双写 + verify 双向)\n");
         return 0;
     }
     std::fprintf(stderr, "[p1hips] diag_prov units: %d check(s) failed\n",
@@ -536,25 +541,23 @@ int test_diag_prov_negative() {
         P1HIPS_CHECK(cs, ps != nullptr, "dpn1_begin");
         if (ps) {
             P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(nullptr, kManifestHash,
-                                                        kModelHash, 1, 2, kProfile), 1);
+                                                        kModelHash, 1, kProfile), 1);
             P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, "short", kModelHash, 1,
-                                                        2, kProfile), 2);
+                                                        kProfile), 2);
             P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, nullptr, kModelHash, 1,
-                                                        2, kProfile), 2);
-            P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, kManifestHash, "", 1, 2,
+                                                        kProfile), 2);
+            P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, kManifestHash, "", 1,
                                                         kProfile), 2);
             // 非 hex (64 长度但含 'z')
             std::string bad(64, 'z');
             P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, bad.c_str(), kModelHash,
-                                                        1, 2, kProfile), 2);
+                                                        1, kProfile), 2);
             P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, kManifestHash, kModelHash,
-                                                        2, 2, kProfile), 2);
+                                                        2, kProfile), 2);
             P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, kManifestHash, kModelHash,
-                                                        1, 3, kProfile), 2);
+                                                        1, nullptr), 2);
             P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, kManifestHash, kModelHash,
-                                                        1, 2, nullptr), 2);
-            P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, kManifestHash, kModelHash,
-                                                        1, 2, ""), 2);
+                                                        1, ""), 2);
             // 参数非法后必须保持"未设置" (得不到半套 provenance)
             P1HIPS_CHECK_EQ(cs, aio_hips_finalize(ps), 0);
             const auto kv = parse_props(dir + "/signal/properties");
@@ -563,6 +566,39 @@ int test_diag_prov_negative() {
                 if (kv.count(k)) ++present;
             P1HIPS_CHECK_MSG(cs, present == 0, "dpn1_no_partial",
                              "setter 失败后禁写部分 provenance 键 (got %d)", present);
+        }
+    }
+
+    // DP-N1b (FIX-201 / §9.73 A44 收窄锁, 替代原「非法 weight_mode=3 → 拒绝」
+    // 用例 —— 该形参已删除, 用例对象不存在): 四键 setter 的**合法**形态必须
+    // rc==0 且落盘 properties **零**权重模式键。若旧形参被重新引入, 本调用点
+    // 编译期即失败 (比运行期断言更强); 若旧键被重新写出, 运行期判红。
+    {
+        const std::string dir = make_tmp_dir("dpn1b");
+        AioHipsProductSet* ps = aio_hips_product_begin(
+            dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT32,
+            AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
+            "ivo://t", "t", nullptr, 0.0, nullptr, 0);
+        P1HIPS_CHECK(cs, ps != nullptr, "dpn1b_begin");
+        if (ps) {
+            // available=0 + 仅 signal/support 位 = finalize 合法面 (§30.1)
+            P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, kManifestHash,
+                                                        kModelHash, 0, kProfile), 0);
+            FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 1.5, true, true,
+                                            AIO_HIPS_FLOAT32);
+            aio_hips_tile_view_abi_init(&fx.view);
+            P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &fx.view), 0);
+            P1HIPS_CHECK_EQ(cs, aio_hips_finalize(ps), 0);
+            const auto kv2 = parse_props(dir + "/signal/properties");
+            int wm = 0;
+            for (const auto& e2 : kv2)
+                if (e2.first.find("WEIGHT") != std::string::npos) ++wm;
+            P1HIPS_CHECK_MSG(cs, wm == 0, "dpn1b_no_weight_mode_key",
+                             "A44: properties 禁出现权重模式键 (got %d)", wm);
+            const std::string man = slurp(dir + "/manifest.json");
+            P1HIPS_CHECK_MSG(cs, man.find("weight") == std::string::npos,
+                             "dpn1b_manifest_no_weight_mode_key",
+                             "A44: manifest.json provenance 禁出现权重模式键");
         }
     }
 
@@ -575,7 +611,7 @@ int test_diag_prov_negative() {
             "ivo://t", "t", nullptr, 0.0, nullptr, 0);
         if (ps) {
             P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, kManifestHash, kModelHash,
-                                                        1, 2, kProfile), 0);
+                                                        1, kProfile), 0);
             FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 1.5, true, true,
                                             AIO_HIPS_FLOAT32);
             aio_hips_tile_view_abi_init(&fx.view);
@@ -596,7 +632,7 @@ int test_diag_prov_negative() {
             "ivo://t", "t", nullptr, 0.0, nullptr, 0);
         if (ps) {
             P1HIPS_CHECK_EQ(cs, aio_hips_set_provenance(ps, kManifestHash, kModelHash,
-                                                        0, 2, kProfile), 0);
+                                                        0, kProfile), 0);
             FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 1.5, true, true,
                                             AIO_HIPS_FLOAT32);
             aio_hips_tile_view_abi_init(&fx.view);
@@ -731,7 +767,7 @@ int test_diag_prov_negative() {
                          "未声明却存在 nused 子产品必须 rc=6 (禁占位)");
     }
     {
-        // e) 五键缺一 → rc=4 (禁静默缺键)
+        // e) 四键缺一 → rc=4 (禁静默缺键)
         const std::string d = make_tmp_dir("dpn4e");
         P1HIPS_CHECK_EQ(cs, dp_write_product(d, kDiagOnlyFlags, true, 0, true, nullptr), 0);
         const std::string pp = d + "/signal/properties";
@@ -747,7 +783,7 @@ int test_diag_prov_negative() {
         AioHipsVerifyReport rep = make_verify_report();
         P1HIPS_CHECK_MSG(cs, aio_hips_verify_product_set(d.c_str(), &rep) == 4,
                          "dpn4_partial_keys",
-                         "五键缺一必须 rc=4");
+                         "四键缺一必须 rc=4");
     }
     {
         // f) properties↔manifest 值分叉 → rc=8 (双写面禁止分叉)
@@ -793,7 +829,7 @@ int test_diag_prov_negative() {
 // ═══════════════════════════════════════════════════════════════════════════
 namespace {
 
-// 场景 1: 全产品正向 (五键 + verify rc=0)
+// 场景 1: 全产品正向 (四键 + verify rc=0)
 int dp_scenario_full(CheckState& cs) {
     const std::string dir = make_tmp_dir("dps1");
     const int rc = dp_write_product(dir, kFullFlags, true, 1, true, nullptr);
@@ -903,7 +939,7 @@ int test_diag_prov_selfcheck() {
     // 注入面: 库级等价缺陷 (env) → 对应场景必 FAIL
     const DpFaultCase faults[] = {
         {"ASTROCS_HIPS_PROV_FAULT", "missing_key", dp_scenario_full,
-         "prov_missing_key→五键断言"},
+         "prov_missing_key→四键断言"},
         {"ASTROCS_HIPS_PROV_FAULT", "value_drift", dp_scenario_full,
          "prov_value_drift→verify rc=8"},
         {"ASTROCS_HIPS_DIAG_FAULT", "sentinel", dp_scenario_diag_values,

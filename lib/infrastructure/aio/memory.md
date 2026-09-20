@@ -254,16 +254,18 @@
   （§30.2 未冻结诊断平面聚合语义，不臆造）。
 - **读通道**: `AIO_HIPS_RD_NREJ=5` / `AIO_HIPS_RD_NUSED=6` +
   `aio_hips_read_tile_i32`（BITPIX≠32 → `-6`，不接受 float 冒充）。
-- **§30.3 五 provenance 键**: `aio_hips_set_provenance(ps, input_manifest_hash,
-  model_hash, uncertainty_available, weight_mode, reject_profile)` —— 全或无
-  （未调用 → 五键整体不写, legacy P1 产品面零变化）；参数域 fail-closed
-  （两 hash 必须 64 hex、weight_mode∈{0,1,2}、profile 非空）。
+- **§30.3 四 provenance 键**（FIX-201 / §9.73 A44: 原五键中的旧「权重模式」键
+  已删除 —— 全程只有 SNR, provenance 不承载权重模式）:
+  `aio_hips_set_provenance(ps, input_manifest_hash, model_hash,
+  uncertainty_available, reject_profile)` —— 全或无
+  （未调用 → 四键整体不写, legacy P1 产品面零变化）；参数域 fail-closed
+  （两 hash 必须 64 hex、profile 非空、uncertainty_available∈{0,1}）。
   双写面：每个 image 子产品 `properties`（大写 `ASTROCS_*` 键）+
   finalize 的 `manifest.json`（同名小写 + `provenance` 块）。
 - **finalize 双向守卫（fail-closed）**: `uncertainty_available=true` 而
   variance|ivar 位未同时置位 → `-9`；`=false` 而置位 → `-10`（禁占位子产品）。
 - **verify 面**: `aio_hips_verify_product_set(out_dir, AioHipsVerifyReport*)`
-  双向一致性核验（V1..V6）：五键全或无；available=true ⇒ variance/ivar 子产品
+  双向一致性核验（V1..V6）：四键全或无；available=true ⇒ variance/ivar 子产品
   存在且 tile 数一致（HDU 必有）；=false ⇒ 禁占位；manifest products 声明 ↔
   磁盘事实双向；诊断平面逐 tile 回读值域；properties↔manifest 值分叉。
   rc: 0 自洽 / -1 参数或产品集缺失 / 2 available 缺 HDU / 3 unavailable 占位 /

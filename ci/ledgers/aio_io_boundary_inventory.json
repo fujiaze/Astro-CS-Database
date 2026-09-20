@@ -1,0 +1,1638 @@
+{
+  "schema": "astrocs-aio-io-boundary-inventory/v1",
+  "authority": "ASTROCS_DESIGN.md §9 + 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 U5",
+  "note": "棘轮上限台账：每个非 aio 命中文件逐条给出理由与归属。命中数只减不增（超过登记值判红）；文件转干净后须删除对应条目。本台账不是 waiver —— HARD 层（lib/algorithms/drizzle/hips/**、lib/algorithms/fits_output/**、块↔文件接口越界调用）不受其约束。",
+  "entries": [
+    {
+      "path": "lib/algorithms/calibration/tests/test_photometry_apply.cpp",
+      "hits": 4,
+      "rules": {
+        "filesystem": 4
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/coverage/hips_properties.cpp",
+      "hits": 8,
+      "rules": {
+        "cxx-stream": 2,
+        "fs-mutate": 6
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/coverage/src/sky_plane.cpp",
+      "hits": 2,
+      "rules": {
+        "fopen": 2
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/coverage/src/upm.cpp",
+      "hits": 1,
+      "rules": {
+        "cxx-stream": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/coverage/tests/ivar_wiring_test.cpp",
+      "hits": 19,
+      "rules": {
+        "cxx-stream": 4,
+        "filesystem": 15
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/coverage/tests/sampler_parallel_consistency_test.cpp",
+      "hits": 6,
+      "rules": {
+        "cxx-stream": 2,
+        "filesystem": 4
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/coverage/tests/synthetic_gate.cpp",
+      "hits": 102,
+      "rules": {
+        "cxx-stream": 25,
+        "filesystem": 76,
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/coverage/tools/calibrated_pair_diag.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "DEV-TOOL",
+      "reason": "开发/诊断命令行工具（非三命令生产路径）",
+      "owner": "无（工具面）"
+    },
+    {
+      "path": "lib/algorithms/coverage/tools/rejection_cli.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "DEV-TOOL",
+      "reason": "开发/诊断命令行工具（非三命令生产路径）",
+      "owner": "无（工具面）"
+    },
+    {
+      "path": "lib/algorithms/coverage/tools/stage2.cpp",
+      "hits": 14,
+      "rules": {
+        "cxx-stream": 5,
+        "filesystem": 9
+      },
+      "category": "DEV-TOOL",
+      "reason": "开发/诊断命令行工具（非三命令生产路径）",
+      "owner": "无（工具面）"
+    },
+    {
+      "path": "lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp",
+      "hits": 1,
+      "rules": {
+        "cxx-stream": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "drizzle 模块生产面残留 I/O（FIX-201 已收口 fits_reader.cpp 的 fopen 复制、astro_sphere_sink.cpp 的 p1_snr.json ifstream、hp_drizzle_api.cpp 的 operation_counts.json 直写）",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp",
+      "hits": 6,
+      "rules": {
+        "cxx-stream": 6
+      },
+      "category": "DIAGNOSTIC-TRACE",
+      "reason": "drizzle 内部 trace（ASTROCS_DRIZZLE_TRACE 环境变量显式开启才生效）的选择集读写与 lineage/leaf jsonl 落盘；非生产数据通路，属诊断面",
+      "owner": "后续控制包（诊断面 I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "drizzle 模块生产面残留 I/O（FIX-201 已收口 fits_reader.cpp 的 fopen 复制、astro_sphere_sink.cpp 的 p1_snr.json ifstream、hp_drizzle_api.cpp 的 operation_counts.json 直写）",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_acceptance_test.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "drizzle 模块生产面残留 I/O（FIX-201 已收口 fits_reader.cpp 的 fopen 复制、astro_sphere_sink.cpp 的 p1_snr.json ifstream、hp_drizzle_api.cpp 的 operation_counts.json 直写）",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/drizzle/healpix_drizzle/tests/drizzle_science_matrix_test.cpp",
+      "hits": 3,
+      "rules": {
+        "fopen": 3
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "drizzle 模块生产面残留 I/O（FIX-201 已收口 fits_reader.cpp 的 fopen 复制、astro_sphere_sink.cpp 的 p1_snr.json ifstream、hp_drizzle_api.cpp 的 operation_counts.json 直写）",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_thread_probe.cpp",
+      "hits": 2,
+      "rules": {
+        "fopen": 2
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "drizzle 模块生产面残留 I/O（FIX-201 已收口 fits_reader.cpp 的 fopen 复制、astro_sphere_sink.cpp 的 p1_snr.json ifstream、hp_drizzle_api.cpp 的 operation_counts.json 直写）",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/integration/v6/src/phase2_integrate.cpp",
+      "hits": 4,
+      "rules": {
+        "cxx-stream": 4
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/integration/v6_phase1/src/phase1_product.cpp",
+      "hits": 3,
+      "rules": {
+        "cxx-stream": 3
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/fsyn_export.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/photometry/cpp/test/test_spectrum_integrator.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/platesolve/cpp/ipv/include/ipv_log.h",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/platesolve/cpp/ipv/test/test_synthetic.cpp",
+      "hits": 1,
+      "rules": {
+        "cxx-stream": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp",
+      "hits": 3,
+      "rules": {
+        "filesystem": 2,
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/psf/src/dpsf_log.cpp",
+      "hits": 3,
+      "rules": {
+        "win32-fs": 1,
+        "filesystem": 1,
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/psf/tests/p1psf/p1psf_center_contract_gate.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/resample/p3_resample.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/shared/crypto/sha256.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/shared/dirent_win.h",
+      "hits": 4,
+      "rules": {
+        "fs-mutate": 3,
+        "win32-fs": 1
+      },
+      "category": "POSIX-SHIM",
+      "reason": "Windows dirent 兼容 shim（复刻第三方 POSIX API），非产品数据面 I/O",
+      "owner": "无（平台 shim）"
+    },
+    {
+      "path": "lib/algorithms/shared/healpix/tests/test_healpix_oracle.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/star_detection/src/sdet_log.cpp",
+      "hits": 3,
+      "rules": {
+        "win32-fs": 1,
+        "filesystem": 1,
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/star_detection/tests/p1star/p1star_tests_core.cpp",
+      "hits": 2,
+      "rules": {
+        "fopen": 2
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/algorithms/star_detection/tests/p1star/sdet_oom_interposer.c",
+      "hits": 3,
+      "rules": {
+        "open": 1,
+        "fopen": 2
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "算法面仍有模块自持日志/配置/属性文件 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/acr/examples/weighted_integration/route_profile_calibration.cpp",
+      "hits": 1,
+      "rules": {
+        "cxx-stream": 1
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/examples/weighted_integration/weighted_integration_benchmark.cpp",
+      "hits": 3,
+      "rules": {
+        "cxx-stream": 3
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/profile/profile_reader.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/qualification/benchmark_driver.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/qualification/focused/operation_profile.cpp",
+      "hits": 2,
+      "rules": {
+        "fopen": 2
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/qualification/profile_generator.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/routing/route_profile_v2.cpp",
+      "hits": 2,
+      "rules": {
+        "fopen": 2
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/tests/classic/e15_failure.cpp",
+      "hits": 1,
+      "rules": {
+        "cxx-stream": 1
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/tests/classic/e18_workpool.cpp",
+      "hits": 4,
+      "rules": {
+        "cxx-stream": 4
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/tests/classic/e20_fault_fallback.cpp",
+      "hits": 1,
+      "rules": {
+        "cxx-stream": 1
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/tests/fault/persistence.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/tests/unit/test_cpu_profile.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/tests/unit/test_qualification.cpp",
+      "hits": 1,
+      "rules": {
+        "cxx-stream": 1
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/tools/acr_classic_runner/main.cpp",
+      "hits": 3,
+      "rules": {
+        "cxx-stream": 3
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/acr/tools/acr_report/main.cpp",
+      "hits": 3,
+      "rules": {
+        "cxx-stream": 3
+      },
+      "category": "DORMANT",
+      "reason": "ACR dormant，不进生产（§1.3 非目标 / §7.1）",
+      "owner": "无（dormant）"
+    },
+    {
+      "path": "lib/infrastructure/benchmark/backend_host/backend_loader.cpp",
+      "hits": 4,
+      "rules": {
+        "filesystem": 3,
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "未分类生产面残留 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/benchmark/backend_host/bench_harness.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "未分类生产面残留 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp",
+      "hits": 7,
+      "rules": {
+        "cxx-stream": 4,
+        "filesystem": 3
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "未分类生产面残留 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "未分类生产面残留 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/benchmark/backend_host/profile_store.cpp",
+      "hits": 35,
+      "rules": {
+        "cxx-stream": 2,
+        "filesystem": 26,
+        "fs-mutate": 3,
+        "fopen": 1,
+        "open": 2,
+        "win32-fs": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "未分类生产面残留 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/cli/commands.cpp",
+      "hits": 69,
+      "rules": {
+        "cxx-stream": 15,
+        "filesystem": 54
+      },
+      "category": "OBSERVABILITY-FIXED-ARTIFACTS",
+      "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
+      "owner": "FIX-208 / 后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/cli/disk_gate.h",
+      "hits": 16,
+      "rules": {
+        "filesystem": 15,
+        "fopen": 1
+      },
+      "category": "OBSERVABILITY-FIXED-ARTIFACTS",
+      "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
+      "owner": "FIX-208 / 后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/cli/memory_report.h",
+      "hits": 5,
+      "rules": {
+        "fopen": 5
+      },
+      "category": "OBSERVABILITY-FIXED-ARTIFACTS",
+      "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
+      "owner": "FIX-208 / 后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/cli/monitor.h",
+      "hits": 8,
+      "rules": {
+        "fopen": 5,
+        "fs-mutate": 3
+      },
+      "category": "OBSERVABILITY-FIXED-ARTIFACTS",
+      "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
+      "owner": "FIX-208 / 后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/cli/parser.cpp",
+      "hits": 14,
+      "rules": {
+        "cxx-stream": 6,
+        "filesystem": 8
+      },
+      "category": "OBSERVABILITY-FIXED-ARTIFACTS",
+      "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
+      "owner": "FIX-208 / 后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/cli/process.cpp",
+      "hits": 1,
+      "rules": {
+        "open": 1
+      },
+      "category": "OBSERVABILITY-FIXED-ARTIFACTS",
+      "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
+      "owner": "FIX-208 / 后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/cli/resource_recorder.h",
+      "hits": 3,
+      "rules": {
+        "fopen": 3
+      },
+      "category": "OBSERVABILITY-FIXED-ARTIFACTS",
+      "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
+      "owner": "FIX-208 / 后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/cli/subcommand.h",
+      "hits": 16,
+      "rules": {
+        "cxx-stream": 5,
+        "filesystem": 11
+      },
+      "category": "OBSERVABILITY-FIXED-ARTIFACTS",
+      "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
+      "owner": "FIX-208 / 后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/cli/v6_mode_gate.h",
+      "hits": 3,
+      "rules": {
+        "cxx-stream": 2,
+        "filesystem": 1
+      },
+      "category": "OBSERVABILITY-FIXED-ARTIFACTS",
+      "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
+      "owner": "FIX-208 / 后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/gaia_xpsd_client/src/gaia_client.c",
+      "hits": 6,
+      "rules": {
+        "fopen": 1,
+        "open": 1,
+        "win32-fs": 1,
+        "fs-mutate": 3
+      },
+      "category": "LOCAL-CATALOG-READER",
+      "reason": "本地星表（XPSD）解析：非 FITS/HiPS/manifest 面；§2.4 离线零网络",
+      "owner": "后续控制包（星表面 I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/gaia_xpsd_client/test/test_gaia_race.c",
+      "hits": 6,
+      "rules": {
+        "fopen": 1,
+        "fs-mutate": 5
+      },
+      "category": "LOCAL-CATALOG-READER",
+      "reason": "本地星表（XPSD）解析：非 FITS/HiPS/manifest 面；§2.4 离线零网络",
+      "owner": "后续控制包（星表面 I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/hips_browser/healpix_browser_qt/app/browser_cli.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "NOT-IN-PRODUCT",
+      "reason": "§7.1：未来 GUI 可视化组件，不进产品 manifest",
+      "owner": "无（非产品）"
+    },
+    {
+      "path": "lib/infrastructure/hips_browser/healpix_browser_qt/core/browser_backend.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "NOT-IN-PRODUCT",
+      "reason": "§7.1：未来 GUI 可视化组件，不进产品 manifest",
+      "owner": "无（非产品）"
+    },
+    {
+      "path": "lib/infrastructure/hips_browser/healpix_browser_qt/core/hips_browser_backend.cpp",
+      "hits": 6,
+      "rules": {
+        "cxx-stream": 3,
+        "filesystem": 3
+      },
+      "category": "NOT-IN-PRODUCT",
+      "reason": "§7.1：未来 GUI 可视化组件，不进产品 manifest",
+      "owner": "无（非产品）"
+    },
+    {
+      "path": "lib/infrastructure/hips_browser/healpix_browser_qt/core/logger.h",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "NOT-IN-PRODUCT",
+      "reason": "§7.1：未来 GUI 可视化组件，不进产品 manifest",
+      "owner": "无（非产品）"
+    },
+    {
+      "path": "lib/infrastructure/hips_browser/healpix_browser_qt/tests/test_browser_dual_dtype.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "NOT-IN-PRODUCT",
+      "reason": "§7.1：未来 GUI 可视化组件，不进产品 manifest",
+      "owner": "无（非产品）"
+    },
+    {
+      "path": "lib/infrastructure/hips_browser/healpix_browser_qt/tests/trace_browser_lineage.cpp",
+      "hits": 3,
+      "rules": {
+        "cxx-stream": 2,
+        "fopen": 1
+      },
+      "category": "NOT-IN-PRODUCT",
+      "reason": "§7.1：未来 GUI 可视化组件，不进产品 manifest",
+      "owner": "无（非产品）"
+    },
+    {
+      "path": "lib/infrastructure/observability/probes/src/probe.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "未分类生产面残留 I/O",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/module_loader/module_registry.c",
+      "hits": 6,
+      "rules": {
+        "fopen": 3,
+        "fs-mutate": 3
+      },
+      "category": "BOOTSTRAP-TRUST-BOUNDARY",
+      "reason": "模块装载与安全加载器是 aio 自身的装载前置（自举信任边界），不能依赖 aio 才启动",
+      "owner": "后续控制包（AIO 装载面）"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/module_loader/secure_loader.c",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "BOOTSTRAP-TRUST-BOUNDARY",
+      "reason": "模块装载与安全加载器是 aio 自身的装载前置（自举信任边界），不能依赖 aio 才启动",
+      "owner": "后续控制包（AIO 装载面）"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/include/logger.h",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/checkpoint.cpp",
+      "hits": 19,
+      "rules": {
+        "cxx-stream": 5,
+        "filesystem": 13,
+        "win32-fs": 1
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/cli_command.cpp",
+      "hits": 1,
+      "rules": {
+        "cxx-stream": 1
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/dll_loader.cpp",
+      "hits": 3,
+      "rules": {
+        "cxx-stream": 3
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/json_config.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 1,
+        "filesystem": 1
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/logger.cpp",
+      "hits": 6,
+      "rules": {
+        "cxx-stream": 1,
+        "filesystem": 5
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/main.cpp",
+      "hits": 4,
+      "rules": {
+        "filesystem": 4
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp",
+      "hits": 30,
+      "rules": {
+        "cxx-stream": 5,
+        "filesystem": 21,
+        "fopen": 4
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/gate/orchestrator_saturation_wiring_gate.cpp",
+      "hits": 11,
+      "rules": {
+        "filesystem": 11
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/test_checkpoint.cpp",
+      "hits": 12,
+      "rules": {
+        "cxx-stream": 1,
+        "filesystem": 11
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/test_dll_loader.cpp",
+      "hits": 1,
+      "rules": {
+        "cxx-stream": 1
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/test_logger.cpp",
+      "hits": 15,
+      "rules": {
+        "cxx-stream": 3,
+        "filesystem": 12
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/test_orchestrator_cli.cpp",
+      "hits": 59,
+      "rules": {
+        "cxx-stream": 39,
+        "filesystem": 19,
+        "fopen": 1
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1_batchB_fixes.cpp",
+      "hits": 18,
+      "rules": {
+        "cxx-stream": 6,
+        "filesystem": 12
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1_batchH_star_coord.cpp",
+      "hits": 1,
+      "rules": {
+        "cxx-stream": 1
+      },
+      "category": "RETIRED-PENDING",
+      "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
+      "owner": "§7.1 退役计划 / 后续控制包"
+    },
+    {
+      "path": "lib/infrastructure/scheduler/src/canonical_hash.cpp",
+      "hits": 9,
+      "rules": {
+        "cxx-stream": 4,
+        "filesystem": 5
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（scheduler）仍直读配置/产品文件（ifstream / std::filesystem）",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "hits": 118,
+      "rules": {
+        "cxx-stream": 26,
+        "filesystem": 92
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（scheduler）仍直读配置/产品文件（ifstream / std::filesystem）",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/phase1_session/p1_session.cpp",
+      "hits": 2,
+      "rules": {
+        "filesystem": 2
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（阶段一会话）仍用 std::filesystem 探路径",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/phase1_session/tests/p1sess/p1sess_fixtures.hpp",
+      "hits": 5,
+      "rules": {
+        "fopen": 5
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（阶段一会话）仍用 std::filesystem 探路径",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/phase1_session/tests/p1sess/p1sess_oracle.hpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（阶段一会话）仍用 std::filesystem 探路径",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/phase1_session/tests/p1sess/p1sess_tests_negative.cpp",
+      "hits": 4,
+      "rules": {
+        "filesystem": 4
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（阶段一会话）仍用 std::filesystem 探路径",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/phase1_session/tests/p1sess/p1sess_tests_perf.cpp",
+      "hits": 4,
+      "rules": {
+        "filesystem": 4
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（阶段一会话）仍用 std::filesystem 探路径",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/phase1_session/tests/p1sess/p1sess_tests_properties.cpp",
+      "hits": 6,
+      "rules": {
+        "filesystem": 6
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（阶段一会话）仍用 std::filesystem 探路径",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/phase1_session/tests/p1sess/p1sess_tests_units.cpp",
+      "hits": 5,
+      "rules": {
+        "filesystem": 5
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（阶段一会话）仍用 std::filesystem 探路径",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/phase1_session/tests/test_p1_session_manifest.cpp",
+      "hits": 5,
+      "rules": {
+        "fopen": 2,
+        "filesystem": 3
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（阶段一会话）仍用 std::filesystem 探路径",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "lib/phase3_session/p3_v6_export.cpp",
+      "hits": 5,
+      "rules": {
+        "cxx-stream": 3,
+        "fs-mutate": 2
+      },
+      "category": "PRODUCTION-RESIDUAL",
+      "reason": "生产面（阶段三会话）仍自建目录（::_mkdir/::mkdir）",
+      "owner": "后续控制包（I/O 收口）"
+    },
+    {
+      "path": "tests/backend/bench_candidates_main.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/backend/hips_properties_probe_main.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/backend/loader_probe_main.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/backend/p3_output_fsync_interposer.cpp",
+      "hits": 3,
+      "rules": {
+        "open": 1,
+        "fs-mutate": 1,
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/backend/profile_gen_main.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/integration/v6_p1/v6_p1_integrate_test.cpp",
+      "hits": 65,
+      "rules": {
+        "cxx-stream": 5,
+        "filesystem": 60
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/integration/v6_p2/v6_p2_integrate_test.cpp",
+      "hits": 37,
+      "rules": {
+        "cxx-stream": 5,
+        "filesystem": 32
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/integration/v6_p3/p3_v6_export_e2e_test.cpp",
+      "hits": 4,
+      "rules": {
+        "cxx-stream": 2,
+        "fs-mutate": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/system/v6_runtime/v6_runtime_resource_record_test.cpp",
+      "hits": 5,
+      "rules": {
+        "cxx-stream": 2,
+        "filesystem": 3
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/ahpx_hips_format_test.cpp",
+      "hits": 7,
+      "rules": {
+        "fopen": 1,
+        "filesystem": 6
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/aio_abi_tests.cpp",
+      "hits": 4,
+      "rules": {
+        "fopen": 4
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/calibration_integration_test.cpp",
+      "hits": 5,
+      "rules": {
+        "fopen": 5
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/cli_process_test.cpp",
+      "hits": 11,
+      "rules": {
+        "cxx-stream": 3,
+        "filesystem": 8
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/core_pipeline_test.cpp",
+      "hits": 9,
+      "rules": {
+        "cxx-stream": 4,
+        "filesystem": 5
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/cosmetic_integration_test.cpp",
+      "hits": 5,
+      "rules": {
+        "fopen": 5
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/cpu001_negative_test.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/cpu006_bench_report_test.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/cpu007_profile_store_test.cpp",
+      "hits": 17,
+      "rules": {
+        "cxx-stream": 6,
+        "filesystem": 11
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/cpu_bench_test.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/cpu_fallback_test.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/cpu_provider_test.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/drizzle_adapter_impl.cpp",
+      "hits": 1,
+      "rules": {
+        "filesystem": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/drizzle_precision_default_test.cpp",
+      "hits": 5,
+      "rules": {
+        "filesystem": 5
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/gaia_cat_test.c",
+      "hits": 8,
+      "rules": {
+        "fs-mutate": 2,
+        "fopen": 6
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/gaia_integration_test.c",
+      "hits": 5,
+      "rules": {
+        "fopen": 5
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/gaia_magnitude_range_bounds_test.c",
+      "hits": 5,
+      "rules": {
+        "fs-mutate": 2,
+        "fopen": 3
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/gaia_module_manifest_bounds_test.c",
+      "hits": 3,
+      "rules": {
+        "fs-mutate": 2,
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/gaia_xpsd_fixture_gen.c",
+      "hits": 4,
+      "rules": {
+        "fopen": 4
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/io_adapter_test.cpp",
+      "hits": 12,
+      "rules": {
+        "cxx-stream": 10,
+        "filesystem": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/io_ownership_test.cpp",
+      "hits": 4,
+      "rules": {
+        "filesystem": 3,
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/ipv_platform_binding_test.cpp",
+      "hits": 4,
+      "rules": {
+        "filesystem": 4
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/mon001_recorder_test.cpp",
+      "hits": 6,
+      "rules": {
+        "cxx-stream": 4,
+        "filesystem": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/mon002_alloc_test.cpp",
+      "hits": 7,
+      "rules": {
+        "filesystem": 1,
+        "fopen": 6
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/mon002_gate_test.cpp",
+      "hits": 3,
+      "rules": {
+        "fopen": 1,
+        "filesystem": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p1001_real_nodes_test.cpp",
+      "hits": 211,
+      "rules": {
+        "cxx-stream": 29,
+        "filesystem": 181,
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p15_artifact_collect_test.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p1_hips/adapter_test.c",
+      "hits": 10,
+      "rules": {
+        "fs-mutate": 10
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p1_hips/publish_atomic_test.c",
+      "hits": 9,
+      "rules": {
+        "fs-mutate": 8,
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p1_hips_writer_test.cpp",
+      "hits": 3,
+      "rules": {
+        "cxx-stream": 3
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p1_ir_facade_test.cpp",
+      "hits": 3,
+      "rules": {
+        "cxx-stream": 3
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p1snr/p1snr_frame_parity_test.cpp",
+      "hits": 20,
+      "rules": {
+        "cxx-stream": 2,
+        "filesystem": 18
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p1snr/p1snr_fref_baseline_test.cpp",
+      "hits": 10,
+      "rules": {
+        "cxx-stream": 3,
+        "filesystem": 7
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p1wcs/p1wcs_tests_apbp.cpp",
+      "hits": 4,
+      "rules": {
+        "fopen": 2,
+        "filesystem": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p2001_real_nodes_test.cpp",
+      "hits": 110,
+      "rules": {
+        "cxx-stream": 7,
+        "filesystem": 103
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p2002_unc_rej_prov_test.cpp",
+      "hits": 91,
+      "rules": {
+        "cxx-stream": 7,
+        "filesystem": 84
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p2_ir_facade_test.cpp",
+      "hits": 2,
+      "rules": {
+        "cxx-stream": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p3002_real_nodes_test.cpp",
+      "hits": 42,
+      "rules": {
+        "cxx-stream": 3,
+        "filesystem": 39
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p3002_uncertainty_test.cpp",
+      "hits": 26,
+      "rules": {
+        "cxx-stream": 4,
+        "filesystem": 22
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p3_assembly_test.cpp",
+      "hits": 3,
+      "rules": {
+        "filesystem": 3
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p3_output_test.cpp",
+      "hits": 2,
+      "rules": {
+        "filesystem": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/p3_sampler_cache_test.cpp",
+      "hits": 3,
+      "rules": {
+        "filesystem": 3
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/rt001_unique_executor_test.cpp",
+      "hits": 22,
+      "rules": {
+        "cxx-stream": 3,
+        "filesystem": 19
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/v6_aio/v6_aio_test.cpp",
+      "hits": 28,
+      "rules": {
+        "cxx-stream": 4,
+        "fs-mutate": 17,
+        "fopen": 7
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/v6_p2_samp/v6_p2_samp_test.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/v6_p2_sky/v6_p2_sky_test.cpp",
+      "hits": 3,
+      "rules": {
+        "fopen": 1,
+        "filesystem": 2
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    },
+    {
+      "path": "tests/unit/xpsd_spectrum_count_bounds_test.c",
+      "hits": 3,
+      "rules": {
+        "fs-mutate": 2,
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具与负例构造（非生产数据通路）",
+      "owner": "无（测试面）"
+    }
+  ]
+}

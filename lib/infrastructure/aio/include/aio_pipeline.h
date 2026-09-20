@@ -19,8 +19,16 @@ extern "C" {
  * ---------------------------------------------------------------------------
  * PipelineFrame 是一个纯命名块容器，所有数据（header/data/psf/snr/...）
  * 都是按块名索引的块。模块按块名读取数据，计算结果写为新块或注入已有块。
- * 编排器按阶段丢弃不需要的块释放内存。任意阶段可 save_cache 保存所有块
- * 到 .aio 缓存文件，或 export_block_* 导出单个块用于调试。
+ * 编排器按阶段丢弃不需要的块释放内存。
+ *
+ * ⚠ 块↔文件接口的归属 (FIX-201 / ASTROCS_DESIGN §9):
+ *   本头下半部「缓存文件 (.aio)」与「调试导出」两组接口是**非生产/诊断**接口，
+ *   **禁止**任何阶段内节点用它们搬运数据 (设计逐字:「把内存块写成 FITS/XML」
+ *   「把整帧存成缓存文件再读回」这类接口**必须**删除或明确降级为非生产/诊断
+ *   并登记; **禁止**任何阶段内节点用它们搬运数据)。阶段间交换**只**走产品
+ *   文件 + 清单 (§7.1a 阶段间落盘), 不经过本组接口。
+ *   机器判据: ci/check_aio_io_boundary.py 的 DIAGNOSTIC-ONLY 规则 —— 本组
+ *   符号在 lib/infrastructure/aio/** 与 tests/** 之外的**任何**调用点判红。
  * =========================================================================== */
 
 typedef enum {
@@ -193,37 +201,49 @@ AIO_EXPORT double aio_frame_kv_get_double(const PipelineFrame* frame, const char
 
 /* ===========================================================================
  * 缓存文件 (.aio) - 无损读写所有块
+ * ---------------------------------------------------------------------------
+ * ⚠ 非生产 / 诊断接口 (FIX-201 降级登记; ASTROCS_DESIGN §9)。
+ *   设计条款 (逐字): 「块↔文件的导出/缓存接口不是生产接口: aio 合同里
+ *   『把内存块写成 FITS/XML』『把整帧存成缓存文件再读回』这类接口必须删除
+ *   或明确降级为非生产/诊断并登记; 禁止任何阶段内节点用它们搬运数据」。
+ *   本组接口 = **诊断/回归测试专用**; 生产调用点必须为 0
+ *   (机器判据: ci/check_aio_io_boundary.py DIAGNOSTIC-ONLY 规则)。
  * =========================================================================== */
 
-/* 保存所有块到缓存文件 (.aio 自定义二进制格式)
+/* [非生产/诊断] 保存所有块到缓存文件 (.aio 自定义二进制格式)
  * 返回: 0=成功, 非0=失败 */
 AIO_EXPORT int aio_frame_save_cache(const PipelineFrame* frame, const char* path);
 
-/* 从缓存文件加载所有块 (清除现有块后加载)
+/* [非生产/诊断] 从缓存文件加载所有块 (清除现有块后加载)
  * 返回: 0=成功, 非0=失败 */
 AIO_EXPORT int aio_frame_load_cache(PipelineFrame* frame, const char* path);
 
 /* ===========================================================================
- * 调试导出
+ * 调试导出 (非生产 / 诊断接口; FIX-201 降级登记; ASTROCS_DESIGN §9)
+ * ---------------------------------------------------------------------------
+ * 唯一在位的内部调用点 = aio_pipeline_engine 的显式调试通道
+ * (aio_pipeline_engine_set_debug 给出 debug_dir 时才触发; 未配置即不导出),
+ * 属诊断面, 不属任何阶段的数据通路。
  * =========================================================================== */
 
-/* 导出单个块为 FITS 文件 (仅 FLOAT32 / FLOAT64 / INT32 / INT16 块)
+/* [非生产/诊断] 导出单个块为 FITS 文件 (仅 FLOAT32 / FLOAT64 / INT32 / INT16 块)
  * dims 解释: 1D=[N], 2D=[H,W], 3D=[H,W,C]
  * 返回: 0=成功, 非0=失败 */
 AIO_EXPORT int aio_frame_export_block_fits(const PipelineFrame* frame,
     const char* block_name, const char* path);
 
-/* 导出单个块为 XML 文件 (任意类型，含元数据 + base64 数据)
+/* [非生产/诊断] 导出单个块为 XML 文件 (任意类型，含元数据 + base64 数据)
  * 返回: 0=成功, 非0=失败 */
 AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
     const char* block_name, const char* path);
 
-/* 导出所有块为 XML 文件 (含所有块的元数据 + 数据)
+/* [非生产/诊断] 导出所有块为 XML 文件 (含所有块的元数据 + 数据)
  * 返回: 0=成功, 非0=失败 */
 AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* path);
 
-/* 旧版 export_xml 兼容包装 (导出所有块为 XML)
- * 等价于 aio_frame_export_all_xml，保留是为了不破坏旧调用方 */
+/* [非生产/诊断] 旧名包装 (导出所有块为 XML), 等价于 aio_frame_export_all_xml。
+ * 身份 = 诊断别名, **不是**「兼容保留」的生产接口: 仓内生产调用点 = 0
+ * (FIX-201 grep 证据); 新调用方一律不得使用。 */
 AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
     const char* path, const char* comment);
 
@@ -253,7 +273,7 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
  *    - kv_set/kv_get 支持字符串形式
  *    - kv_set_double/kv_get_double 支持 double 形式 (自动字符串转换)
  *
- * 5. 缓存文件 (.aio) 格式：
+ * 5. [非生产/诊断, 见上方归属声明] 缓存文件 (.aio) 格式：
  *    [Magic: "AIO1"][Version: int32][N_Blocks: int32][Stages_Completed: int32]
  *    For each block:
  *      [Name_Len: int32][Name: bytes]

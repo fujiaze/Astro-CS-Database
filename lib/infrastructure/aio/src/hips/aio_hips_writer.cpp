@@ -522,12 +522,13 @@ struct AioHipsProductSet {
     bool frame_snr_set = false;
     double frame_snr = 0.0;        // F_ref/σ_F（信噪比, 非权重）
     double reference_flux = 0.0;   // 组内公共 F_ref
-    // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 五键
-    // （全或无: prov_set=false → 五键整体不写, legacy 产品面不变）
+    // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 四键
+    // （全或无: prov_set=false → 四键整体不写, legacy 产品面不变）
     bool prov_set = false;
     std::string prov_manifest_hash, prov_model_hash, prov_reject_profile;
     int prov_uncertainty_available = 0;
-    int prov_weight_mode = 0;
+    // FIX-201 / §9.73 A44: 旧「权重模式」成员 prov_weight_mode 已删除
+    // (全程只有 SNR, provenance 不承载权重模式; 见 aio_hips.h 四键通道注释)。
     // DATA-UNC-001 §30.2 诊断统计平面: 各通道是否真的写过 tile
     // （写 0 个 tile 的通道不 finalize, 禁空目录/空占位冒充产品）
     bool diag_nrej_tiles = false;
@@ -1184,9 +1185,10 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     // DATA-UNC-001 §30.2: 诊断统计平面固定 int32 (无 precision 开关)
     if (is_diag)
         kv.push_back({"astrocs_diag_dtype", value_dtype ? value_dtype : "int32"});
-    // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 五键。
-    // 全或无 (§30.3 冻结键名): prov_set=false → 五键整体不写 (legacy 面不变);
-    // prov_set=true → 五键齐备, 禁静默缺键 (注入面 ASTROCS_HIPS_PROV_FAULT=
+    // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 四键 (FIX-201: 原五键
+    // 中的旧「权重模式」键已按 §9.73 A44 删除, 见 aio_hips.h)。
+    // 全或无 (§30.3 冻结键名): prov_set=false → 四键整体不写 (legacy 面不变);
+    // prov_set=true → 四键齐备, 禁静默缺键 (注入面 ASTROCS_HIPS_PROV_FAULT=
     // missing_key 故意漏写一键, 用于证明"缺键"断言有判别力)。
     if (ps->prov_set) {
         if (!fault_injected("ASTROCS_HIPS_PROV_FAULT", "missing_key"))
@@ -1194,7 +1196,6 @@ static bool finalize_image_product(AioHipsProductSet* ps,
         kv.push_back({"ASTROCS_MODEL_HASH", ps->prov_model_hash});
         kv.push_back({"ASTROCS_UNCERTAINTY_AVAILABLE",
                       ps->prov_uncertainty_available ? "true" : "false"});
-        kv.push_back({"ASTROCS_WEIGHT_MODE", std::to_string(ps->prov_weight_mode)});
         kv.push_back({"ASTROCS_REJECT_PROFILE", ps->prov_reject_profile});
     }
     if (!data_range.empty()) kv.push_back({"hips_data_range", data_range});
@@ -1551,10 +1552,11 @@ int aio_hips_set_frame_snr(AioHipsProductSet* ps, double frame_snr,
     }
 }
 
-// ── DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 五键 setter ────────────
+// ── DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 四键 setter ────────────
 // 全或无: 参数任一不合法 → 返回非 0 且不置 prov_set (调用方得不到半套 provenance)。
 // 值语义校验面向"禁伪造": 两个 hash 必须 64 hex (§20.3 sha256 十六进制形态),
-// weight_mode ∈ {0,1,2}, reject_profile 非空, uncertainty_available ∈ {0,1}。
+// reject_profile 非空, uncertainty_available ∈ {0,1}。
+// FIX-201 / §9.73 A44: 旧「权重模式」形参与其 0/1/2 值域校验已删除。
 static bool is_sha256_hex(const char* s) {
     if (!s) return false;
     size_t n = 0;
@@ -1571,7 +1573,6 @@ int aio_hips_set_provenance(AioHipsProductSet* ps,
                             const char* input_manifest_hash,
                             const char* model_hash,
                             int uncertainty_available,
-                            int weight_mode,
                             const char* reject_profile)  {
     // P1 (R9-A) 同款 C 边界异常屏障
     try {
@@ -1588,10 +1589,6 @@ int aio_hips_set_provenance(AioHipsProductSet* ps,
             set_error("provenance: uncertainty_available 必须为 0/1 (§30.1 判定结果)");
             return 2;
         }
-        if (weight_mode < 0 || weight_mode > 2) {
-            set_error("provenance: weight_mode 必须为 0/1/2 (cfg.weight_mode)");
-            return 2;
-        }
         if (!reject_profile || !*reject_profile) {
             set_error("provenance: reject_profile 必须为非空版本化 profile 串");
             return 2;
@@ -1600,7 +1597,6 @@ int aio_hips_set_provenance(AioHipsProductSet* ps,
         ps->prov_manifest_hash = input_manifest_hash;
         ps->prov_model_hash = model_hash;
         ps->prov_uncertainty_available = uncertainty_available;
-        ps->prov_weight_mode = weight_mode;
         ps->prov_reject_profile = reject_profile;
         return 0;
 
@@ -1792,8 +1788,9 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                                  ? ps->leaf_ipix_list.size() : 0),
                     (size_t)(ps->flags & AIO_HIPS_PRODUCT_NUSED
                                  ? ps->leaf_ipix_list.size() : 0));
-                // DATA-UNC-001 §30.3: provenance 五键与 properties 双写
+                // DATA-UNC-001 §30.3: provenance 四键与 properties 双写
                 // (JSON 键同名小写; 调用方 schema 见 DATA-P2-PROV-001)
+                // FIX-201 / §9.73 A44: 旧「权重模式」JSON 键已删除 (四键 → 四键)。
                 if (ps->prov_set) {
                     const bool inj_drift =
                         fault_injected("ASTROCS_HIPS_PROV_FAULT", "value_drift");
@@ -1803,7 +1800,6 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                         "    \"astrocs_input_manifest_hash\": \"%s\",\n"
                         "    \"astrocs_model_hash\": \"%s\",\n"
                         "    \"astrocs_uncertainty_available\": %s,\n"
-                        "    \"astrocs_weight_mode\": %d,\n"
                         "    \"astrocs_reject_profile\": \"%s\"\n"
                         "  }\n",
                         ps->prov_manifest_hash.c_str(),
@@ -1812,7 +1808,6 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                         inj_drift ? std::string(64, '0').c_str()
                                   : ps->prov_model_hash.c_str(),
                         ps->prov_uncertainty_available ? "true" : "false",
-                        ps->prov_weight_mode,
                         ps->prov_reject_profile.c_str());
                     std::fprintf(f, "}\n");
                 } else {
@@ -1916,10 +1911,10 @@ bool json_scalar(const std::string& doc, const std::string& key, std::string* ou
     return true;
 }
 
-const char* const kProvKeys[5] = {
+// FIX-201 / §9.73 A44: 旧「权重模式」键已从四键表删除 (原 5 → 4)。
+const char* const kProvKeys[4] = {
     "ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
-    "ASTROCS_UNCERTAINTY_AVAILABLE", "ASTROCS_WEIGHT_MODE",
-    "ASTROCS_REJECT_PROFILE"};
+    "ASTROCS_UNCERTAINTY_AVAILABLE", "ASTROCS_REJECT_PROFILE"};
 
 int count_prov_keys(const std::map<std::string, std::string>& props) {
     int n = 0;
@@ -1961,12 +1956,12 @@ int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  
                 aio_hips_close(ds);
             }
         }
-        // V2: provenance 全或无 (五键齐备或整体不写; 禁静默缺键)
+        // V2: provenance 全或无 (四键齐备或整体不写; 禁静默缺键)
         out->prov_keys_present = count_prov_keys(sprops);
         if (out->prov_keys_present > 0) {
-            if (out->prov_keys_present != 5) {
+            if (out->prov_keys_present != 4) {
                 set_error("verify: provenance 键不完整 (present=" +
-                          std::to_string(out->prov_keys_present) + "/5, §30.3)");
+                          std::to_string(out->prov_keys_present) + "/4, §30.3)");
                 return 4;
             }
             const std::string ua = sprops.at("ASTROCS_UNCERTAINTY_AVAILABLE");
@@ -2097,11 +2092,10 @@ int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  
             return 7;
         }
         // V6: properties ↔ manifest.json 双写面值一致性 (§30.3 双写)
-        if (out->prov_keys_present == 5 && !mdoc.empty()) {
-            struct { const char* prop; const char* mkey; } pairs[4] = {
+        if (out->prov_keys_present == 4 && !mdoc.empty()) {
+            struct { const char* prop; const char* mkey; } pairs[3] = {
                 {"ASTROCS_INPUT_MANIFEST_HASH", "astrocs_input_manifest_hash"},
                 {"ASTROCS_MODEL_HASH", "astrocs_model_hash"},
-                {"ASTROCS_WEIGHT_MODE", "astrocs_weight_mode"},
                 {"ASTROCS_REJECT_PROFILE", "astrocs_reject_profile"},
             };
             int mkeys = 0;
@@ -2121,9 +2115,11 @@ int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  
                 }
             }
             out->manifest_keys_present = mkeys;
-            if (mkeys != 5) {
+            // FIX-201 / §9.73 A44: 双写面键数 = 4 (原五键中的「权重模式」键已删除;
+            // properties 侧同口径见 kProvKeys[4] 与 != 4 断言)。
+            if (mkeys != 4) {
                 set_error("verify: manifest.json provenance 块不完整 (present=" +
-                          std::to_string(mkeys) + "/5, §30.3 双写)");
+                          std::to_string(mkeys) + "/4, §30.3 双写)");
                 return 8;
             }
             if (out->value_mismatch != 0) {

@@ -213,27 +213,34 @@ AIO_HIPS_EXPORT int aio_hips_write_diag_tile(
     const AioHipsDiagTileView* view);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 五键通道
+// DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 四键通道
 //
-// 五键 (键名由 DATA_SEMANTICS §30.3 冻结, 值语义同表):
+// 四键 (键名由 DATA_SEMANTICS §30.3 冻结, 值语义同表):
 //   ASTROCS_INPUT_MANIFEST_HASH  64hex sha256 (§20.3 公式)
 //   ASTROCS_MODEL_HASH           UPM model_hash
 //   ASTROCS_UNCERTAINTY_AVAILABLE true/false (§30.1 unavailable 规则判定结果)
-//   ASTROCS_WEIGHT_MODE          0/1/2 (cfg.weight_mode)
 //   ASTROCS_REJECT_PROFILE       版本化 profile 串 (如 wbpp_2_9_1)
+//
+// **已删除的键: 旧「权重模式」provenance 键 (FIX-201, 2026-09-20)**。
+//   依据: ASTROCS_DESIGN §2.1 总纲(负责人 2026-09-20 裁决)「全程只有 SNR,
+//   不存在『权重模式』这个概念」+ GAP_AUDIT §9.73【裁决 A44】逐字:
+//   「在 HiPS 里面存的是帧级 SNR 和稀疏的相对 SNR 比值。全程都是 SNR 才对。
+//   只有阶段二消费 SNR 的时候, 根据这个位置上像素对应的集合计算权重」。
+//   ⇒ provenance 只承载帧级 SNR 与稀疏相对 SNR 比值, **不承载任何权重模式**;
+//   该键与其取值来源 (旧 int 权重模式形参 / cfg 的权重模式配置) 一并删除。
+//   变量名若要表达权重只能是阶段二现场派生的 weight, 不得再引入"模式"语义。
 //
 // 双写面 (§30.3 冻结): 每个 image 子产品 properties (文本键, ASTROCS_ 前缀)
 // + finalize 写出的 manifest.json (JSON, 键同名小写)。
 //
-// 通道策略 = 全或无: 未调用本 setter → 五键整体不写 (legacy 产品面, 如 P1);
-// 调用后五键必须齐备落盘 —— 参数不合法立即返回非 0 (禁静默缺键/占位值)。
+// 通道策略 = 全或无: 未调用本 setter → 四键整体不写 (legacy 产品面, 如 P1);
+// 调用后四键必须齐备落盘 —— 参数不合法立即返回非 0 (禁静默缺键/占位值)。
 // ═══════════════════════════════════════════════════════════════════════════
 AIO_HIPS_EXPORT int aio_hips_set_provenance(
     AioHipsProductSet* ps,
     const char* input_manifest_hash,   // 64 hex; 否则返回 2
     const char* model_hash,            // 64 hex; 否则返回 2
     int uncertainty_available,         // 0/1; §30.1 判定结果
-    int weight_mode,                   // 0/1/2
     const char* reject_profile);       // 非空版本化 profile 串
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -241,7 +248,7 @@ AIO_HIPS_EXPORT int aio_hips_set_provenance(
 //
 // 断言规则 (全部机器可判; 违反即返回非 0, 报告结构始终填充):
 //   V1 signal 子产品存在且 properties 可解析            → 违反 rc=-1
-//   V2 provenance 全或无: 五键计数 ∈ {0,5}             → 部分缺键 rc=4
+//   V2 provenance 全或无: 四键计数 ∈ {0,4}             → 部分缺键 rc=4
 //   V3 uncertainty_available=true  ⇒ variance/ivar 子产品
 //      存在且 tile 数 == signal tile 数                → 违反 rc=2
 //      uncertainty_available=false ⇒ variance/ivar 子产品不存在 (禁占位) → rc=3
@@ -249,7 +256,7 @@ AIO_HIPS_EXPORT int aio_hips_set_provenance(
 //      声明 nrej/nused ⇒ 目录存在且 tile 数 == signal tile 数 → rc=5
 //      未声明 ⇒ 目录不存在 (禁占位)                          → rc=6
 //   V5 诊断平面值域: 逐 tile 回读 nused/nrej, 负值 = 契约违反 → rc=7
-//   V6 properties 与 manifest.json 五键值逐键一致 (双写面禁止分叉) → rc=8
+//   V6 properties 与 manifest.json 四键值逐键一致 (双写面禁止分叉) → rc=8
 //
 // 返回 0 = 全部规则满足 (产品集自洽); 非 0 见上表; 报告结构在返回前填满,
 // 供调用方登记而不必重解析。
@@ -268,9 +275,9 @@ typedef struct {
     int nrej_present, nused_present;
     int nrej_declared, nused_declared;   // manifest.json products 声明
     int n_nrej_tiles, n_nused_tiles;
-    int prov_keys_present;          // 0..5 (signal/properties)
+    int prov_keys_present;          // 0..4 (signal/properties; A44: 原 0..5)
     int uncertainty_available;      // -1 未登记 / 0 false / 1 true
-    int manifest_keys_present;      // 0..5 (manifest.json provenance 块)
+    int manifest_keys_present;      // 0..4 (manifest.json provenance 块; A44: 原 0..5)
     int diag_negative_pixels;       // 诊断平面负值像素计数 (V5)
     int unreadable_tiles;           // 声明/存在的子产品中不可读的 tile 数 (V4)
     int value_mismatch;             // properties↔manifest 值分叉计数 (V6)

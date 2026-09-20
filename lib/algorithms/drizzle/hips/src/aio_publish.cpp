@@ -5,8 +5,17 @@
  * IO_003_ATOMIC_OUTPUT_PUBLISH.md §4; 失败/取消 → stage_discard → 目标根
  * 无 partial (DISP-HIPS-001/004 模块事务面收口; 生产 writer 零改动)。
  *
+ * I/O 归属 (FIX-201, ASTROCS_DESIGN §9 + GAP_AUDIT §9.73 裁决 U5):
+ *   「aio 是文件级唯一 I/O 边界」+ 机器判据「全仓文件打开 / 流式读写 /
+ *   文件系统写操作, 除 aio 内部外应为 0」。
+ *   ⇒ 本 TU **不再**自行调用任何文件系统原语 (mkdir/stat/opendir/readdir/
+ *   closedir/unlink/rmdir/open/fsync/close/rename/MoveFileEx/FindFirstFile);
+ *   全部机制经 lib/infrastructure/aio/src/aio_atomic_file.h
+ *   (namespace aio_atomic) —— 本 TU 只保留**策略**(publish v1 状态码映射、
+ *   路径词法、故障注入)。原实现内联的 POSIX/Win32 调用已整体搬入 aio。
+ *
  * 平台: Linux/macOS 全功能 (fsync/O_DIRECTORY/dirfd); Windows 编译保持
- * (_commit 落盘 / FindFirstFile 递归 / MoveFileEx 原子替换; 目录句柄 fsync
+ * (_commit 落盘 / 目录遍历 / MoveFileEx 原子替换; 目录句柄 fsync
  * Windows 语义缺失 → 尽力模式, 目录元数据随 promote 的 rename 收敛, 登记
  * 于 lib/algorithms/drizzle/hips/README.md §9)。验证平台 = Linux (CI 同 SHA)。
  *
@@ -14,45 +23,19 @@
  * 实现 TU 内 malloc/new 失败走状态码 (无跨边界异常); 递归深度上限 64
  * (HiPS 树深 ≤ Norder15 + 2 目录段, 上限不可达, 防御病态输入)。
  */
-#define _POSIX_C_SOURCE 200809L
-
 #include "astrocs/hips/publish.h"
 
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
-#ifdef _WIN32
-#include <direct.h>
-#include <io.h>
-#include <windows.h>
-#include <io.h>
-#define PUBLISH_MKDIR(p) _mkdir(p)
-#define PUBLISH_FSYNC_FD(fd) _commit(fd)
-#define PUBLISH_OPEN_RDONLY(p) _open(p, _O_RDONLY | _O_BINARY)
-#define PUBLISH_CLOSE_FD(fd) _close(fd)
-#define PUBLISH_UNLINK(p) _unlink(p)
-#define PUBLISH_RMDIR(p) _rmdir(p)
+#include <string>
+
+#include "aio_atomic_file.h"
+
+/* staging 路径缓冲上限 (publish.h v1 冻结推荐值 1024) */
 #define PUBLISH_PATH_MAX 1024
-#else
-#include <dirent.h>
-#include <fcntl.h>
-#include <unistd.h>
-#define PUBLISH_MKDIR(p) mkdir((p), 0755)
-#define PUBLISH_FSYNC_FD(fd) fsync(fd)
-#define PUBLISH_OPEN_RDONLY(p) open((p), O_RDONLY)
-#define PUBLISH_CLOSE_FD(fd) close(fd)
-#define PUBLISH_UNLINK(p) unlink(p)
-#define PUBLISH_RMDIR(p) rmdir(p)
-#ifndef O_DIRECTORY
-#define O_DIRECTORY 0
-#endif
-#define PUBLISH_DIR_FSYNC 1
-#define PUBLISH_PATH_MAX 1024
-#endif
 
 /* ═══════════════════ 故障注入 (口径见 publish.h) ═══════════════════ */
 
@@ -69,7 +52,7 @@ int hips_publish_fault_slow_write_v1(void) {
     return publish_fault_active("p1_stage_slow_write");
 }
 
-/* ═══════════════════ 路径 helper ═══════════════════ */
+/* ═══════════════════ 路径 helper (纯词法, 无 I/O) ═══════════════════ */
 
 static int publish_str_ok(const char* s) { return s && s[0] != '\0'; }
 
@@ -95,188 +78,63 @@ static void publish_split_dir(const char* path, char* parent, uint64_t parent_ca
     }
 }
 
-/* 逐段 mkdir -p (EEXIST 忽略; 对齐 writer make_dirs 语义) */
-static int publish_mkdir_parents(const char* path) {
-    char tmp[PUBLISH_PATH_MAX];
-    size_t n = strlen(path);
-    if (n == 0 || n >= sizeof(tmp)) return AIO_PUBLISH_ERR_PARAM;
-    memcpy(tmp, path, n + 1);
-    for (size_t i = 1; i < n; ++i) {
-        if (tmp[i] == '/' || tmp[i] == '\\') {
-            tmp[i] = '\0';
-            if (tmp[0] != '\0') PUBLISH_MKDIR(tmp);   /* EEXIST 忽略 */
-            tmp[i] = '/';
-        }
-    }
-    PUBLISH_MKDIR(tmp);                               /* EEXIST 忽略 */
+/* 推导 staging 路径: <parent(out_dir)>/.<base>.hips_staging.tmp。
+ * 返回 0 = 成功; 非 0 = publish v1 状态码 (路径溢出 = PARAM)。 */
+static int publish_stage_path(const char* out_dir_utf8, char* out, size_t cap,
+                              size_t* out_len) {
+    char parent[PUBLISH_PATH_MAX];
+    char base[PUBLISH_PATH_MAX];
+    publish_split_dir(out_dir_utf8, parent, sizeof(parent), base, sizeof(base));
+    const int n = snprintf(out, cap, "%s/.%s%s", parent, base,
+                           ASTROCS_HIPS_STAGE_BASENAME);
+    if (n <= 0 || (size_t)n >= cap) return AIO_PUBLISH_ERR_PARAM;
+    if (out_len) *out_len = (size_t)n;
     return AIO_PUBLISH_OK;
 }
 
-static int publish_stat_exists(const char* p, int* is_dir) {
-    struct stat st;
-    if (stat(p, &st) != 0) return 0;
-    if (is_dir) *is_dir = S_ISDIR(st.st_mode) ? 1 : 0;
-    return 1;
-}
+/* ═══════════════════ 发布树机制 (全部经 aio_atomic) ═══════════════════ */
 
-static uint64_t publish_dir_is_nonempty(const char* p, int* ok) {
-    *ok = 1;
-#ifdef _WIN32
-    WIN32_FIND_DATAA fd;
-    char pat[PUBLISH_PATH_MAX];
-    snprintf(pat, sizeof(pat), "%s\\*", p);
-    HANDLE h = FindFirstFileA(pat, &fd);
-    if (h == INVALID_HANDLE_VALUE) { *ok = 0; return 0; }
-    uint64_t n = 0;
-    do {
-        if (strcmp(fd.cFileName, ".") == 0 || strcmp(fd.cFileName, "..") == 0)
-            continue;
-        n++;
-    } while (FindNextFileA(h, &fd));
-    FindClose(h);
-    return n;
-#else
-    DIR* d = opendir(p);
-    if (!d) { *ok = 0; return 0; }
-    struct dirent* e;
-    uint64_t n = 0;
-    while ((e = readdir(d)) != NULL) {
-        if (strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0)
-            continue;
-        n++;
-    }
-    closedir(d);
-    return n;
-#endif
-}
-
-/* ═══════════════════ 递归删除 (RAII 收口) ═══════════════════ */
-
-static int publish_rmrf(const char* path, int depth) {
-    if (depth > 64) return AIO_PUBLISH_ERR_IO;
-    int is_dir = 0;
-    if (!publish_stat_exists(path, &is_dir)) return AIO_PUBLISH_ERR_IO;
-    if (!is_dir) {
-        if (PUBLISH_UNLINK(path) != 0 && errno != ENOENT)
-            return AIO_PUBLISH_ERR_IO;
-        return AIO_PUBLISH_OK;
-    }
-#ifdef _WIN32
-    WIN32_FIND_DATAA fd;
-    char pat[PUBLISH_PATH_MAX];
-    char child[PUBLISH_PATH_MAX];
-    snprintf(pat, sizeof(pat), "%s\\*", path);
-    HANDLE h = FindFirstFileA(pat, &fd);
-    if (h != INVALID_HANDLE_VALUE) {
-        do {
-            if (strcmp(fd.cFileName, ".") == 0 || strcmp(fd.cFileName, "..") == 0)
-                continue;
-            snprintf(child, sizeof(child), "%s\\%s", path, fd.cFileName);
-            int rc = publish_rmrf(child, depth + 1);
-            if (rc != AIO_PUBLISH_OK) { FindClose(h); return rc; }
-        } while (FindNextFileA(h, &fd));
-        FindClose(h);
-    }
-#else
-    DIR* d = opendir(path);
-    if (!d) return AIO_PUBLISH_ERR_IO;
-    struct dirent* e;
-    char child[PUBLISH_PATH_MAX];
-    while ((e = readdir(d)) != NULL) {
-        if (strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0)
-            continue;
-        snprintf(child, sizeof(child), "%s/%s", path, e->d_name);
-        int rc = publish_rmrf(child, depth + 1);
-        if (rc != AIO_PUBLISH_OK) { closedir(d); return rc; }
-    }
-    closedir(d);
-#endif
-    if (PUBLISH_RMDIR(path) != 0 && errno != ENOENT)
-        return AIO_PUBLISH_ERR_IO;
-    return AIO_PUBLISH_OK;
-}
-
-/* ═══════════════════ 递归 fsync + 计数 (校验面) ═══════════════════ */
-
-static int publish_fsync_file(const char* path) {
-    int fd = PUBLISH_OPEN_RDONLY(path);
-    if (fd < 0) return AIO_PUBLISH_ERR_IO;
-    int rc = AIO_PUBLISH_OK;
-    if (PUBLISH_FSYNC_FD(fd) != 0) {
-        rc = (errno == ENOSPC || errno == EDQUOT) ? AIO_PUBLISH_ERR_DISKFULL
-                                                  : AIO_PUBLISH_ERR_IO;
-    }
-    if (PUBLISH_CLOSE_FD(fd) != 0 && rc == AIO_PUBLISH_OK)
-        rc = AIO_PUBLISH_ERR_IO;
-    return rc;
-}
-
-static int publish_fsync_tree(const char* path, int depth,
+/* 递归 fsync + 计数 (后序: 先文件后子目录再自身)。返回 publish v1 状态码。 */
+static int publish_fsync_tree(const std::string& path, int depth,
                               uint64_t* n_files, uint64_t* total_bytes) {
     if (depth > 64) return AIO_PUBLISH_ERR_IO;
     int rc = AIO_PUBLISH_OK;
-#ifdef _WIN32
-    WIN32_FIND_DATAA fd;
-    char pat[PUBLISH_PATH_MAX];
-    char child[PUBLISH_PATH_MAX];
-    snprintf(pat, sizeof(pat), "%s\\*", path);
-    HANDLE h = FindFirstFileA(pat, &fd);
-    if (h == INVALID_HANDLE_VALUE) return AIO_PUBLISH_ERR_IO;
-    do {
-        if (strcmp(fd.cFileName, ".") == 0 || strcmp(fd.cFileName, "..") == 0)
-            continue;
-        snprintf(child, sizeof(child), "%s\\%s", path, fd.cFileName);
-        if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-            int crc = publish_fsync_tree(child, depth + 1, n_files, total_bytes);
-            if (crc != AIO_PUBLISH_OK && rc == AIO_PUBLISH_OK) rc = crc;
-        } else {
-            if (n_files) (*n_files)++;
-            if (total_bytes)
-                *total_bytes += ((uint64_t)fd.nFileSizeHigh << 32) | fd.nFileSizeLow;
-            int frc = publish_fsync_file(child);
-            if (frc != AIO_PUBLISH_OK && rc == AIO_PUBLISH_OK) rc = frc;
-        }
-    } while (FindNextFileA(h, &fd));
-    FindClose(h);
-#else
-    DIR* d = opendir(path);
-    if (!d) return AIO_PUBLISH_ERR_IO;
-    struct dirent* e;
-    char child[PUBLISH_PATH_MAX];
-    while ((e = readdir(d)) != NULL) {
-        if (strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0)
-            continue;
-        snprintf(child, sizeof(child), "%s/%s", path, e->d_name);
-        struct stat st;
-        if (lstat(child, &st) != 0) {
-            if (rc == AIO_PUBLISH_OK) rc = AIO_PUBLISH_ERR_IO;
-            continue;
-        }
-        if (S_ISDIR(st.st_mode)) {
-            int crc = publish_fsync_tree(child, depth + 1, n_files, total_bytes);
-            if (crc != AIO_PUBLISH_OK && rc == AIO_PUBLISH_OK) rc = crc;
-        } else if (S_ISREG(st.st_mode)) {
-            if (n_files) (*n_files)++;
-            if (total_bytes) *total_bytes += (uint64_t)st.st_size;
-            int frc = publish_fsync_file(child);
-            if (frc != AIO_PUBLISH_OK && rc == AIO_PUBLISH_OK) rc = frc;
-        }
-        /* 非常规项 (符号链接/fifo): 计数不计 fsync, 发布树不含 (writer 只产
-         * 常规文件; 病态输入由 promote 前 STATE/IO 兜底) */
-    }
-    closedir(d);
+    int abort_rc = 0;
+    const int walk = aio_atomic::for_each_child(
+        path,
+        [&](const std::string& child, int kind) -> int {
+            if (kind == 1) {                       /* 目录: 后序递归 */
+                const int crc = publish_fsync_tree(child, depth + 1, n_files,
+                                                   total_bytes);
+                if (crc != AIO_PUBLISH_OK && rc == AIO_PUBLISH_OK) rc = crc;
+            } else if (kind == 0) {                /* 常规文件: 计数 + fsync */
+                if (n_files) (*n_files)++;
+                /* 大小统计: 由 aio 机制原语回填 (不自行 stat) */
+                uint64_t sz = 0;
+                int is_d = 0;
+                if (aio_atomic::path_size(child, &sz, &is_d) && !is_d) {
+                    if (total_bytes) *total_bytes += sz;
+                }
+                const int frc = aio_atomic::fsync_path(child, 0);
+                if (frc != 0 && rc == AIO_PUBLISH_OK) {
+                    rc = (frc == ENOSPC || frc == EDQUOT) ? AIO_PUBLISH_ERR_DISKFULL
+                                                          : AIO_PUBLISH_ERR_IO;
+                }
+            }
+            /* kind == 2 (符号链接/fifo/设备): 计数不计 fsync, 发布树不含
+             * (writer 只产常规文件; 与原 publish v1 语义逐位一致 —— 不 open
+             * 非常规项, 避免 fifo 上 open 阻塞) */
+            return 0;   /* 逐项继续; 错误经 rc 汇总 */
+        },
+        &abort_rc);
+    if (walk != 0) return AIO_PUBLISH_ERR_IO;
+    if (abort_rc != 0 && rc == AIO_PUBLISH_OK) rc = abort_rc;
     /* 目录自身 fsync (后序: 子项已刷) */
-    int fd = open(path, O_RDONLY | O_DIRECTORY);
-    if (fd >= 0) {
-        if (fsync(fd) != 0 && rc == AIO_PUBLISH_OK) {
-            rc = (errno == ENOSPC || errno == EDQUOT) ? AIO_PUBLISH_ERR_DISKFULL
-                                                      : AIO_PUBLISH_ERR_IO;
-        }
-        close(fd);
-    } else if (rc == AIO_PUBLISH_OK) {
-        rc = AIO_PUBLISH_ERR_IO;
+    const int drc = aio_atomic::fsync_path(path, 1);
+    if (drc != 0 && rc == AIO_PUBLISH_OK) {
+        rc = (drc == ENOSPC || drc == EDQUOT) ? AIO_PUBLISH_ERR_DISKFULL
+                                              : AIO_PUBLISH_ERR_IO;
     }
-#endif
     return rc;
 }
 
@@ -289,46 +147,43 @@ int aio_publish_stage_create_v1(const char* out_dir_utf8,
     if (publish_fault_active("p1_stage_create_fail"))
         return AIO_PUBLISH_ERR_IO;
 
+    char stage[PUBLISH_PATH_MAX];
+    size_t n = 0;
+    int rc = publish_stage_path(out_dir_utf8, stage, sizeof(stage), &n);
+    if (rc != AIO_PUBLISH_OK) return rc;
+    if ((uint64_t)n >= stage_path_cap) return AIO_PUBLISH_ERR_PARAM;
+
+    /* RAII 自愈: 同名残留 (kill/崩溃) 先确定性删除 */
+    const std::string stage_s(stage);
+    if (aio_atomic::path_exists(stage_s, nullptr)) {
+        if (aio_atomic::remove_tree(stage_s, 0) != 0) return AIO_PUBLISH_ERR_IO;
+    }
+
+    /* 逐段 mkdir -p (aio 机制), 再独占建 staging 本身 */
     char parent[PUBLISH_PATH_MAX];
     char base[PUBLISH_PATH_MAX];
     publish_split_dir(out_dir_utf8, parent, sizeof(parent), base, sizeof(base));
-
-    char stage[PUBLISH_PATH_MAX];
-    int n = snprintf(stage, sizeof(stage), "%s/.%s%s", parent, base,
-                     ASTROCS_HIPS_STAGE_BASENAME);
-    if (n <= 0 || (size_t)n >= sizeof(stage) || (uint64_t)n >= stage_path_cap)
-        return AIO_PUBLISH_ERR_PARAM;
-
-    /* RAII 自愈: 同名残留 (kill/崩溃) 先确定性删除 */
-    int exists = 0;
-    if (publish_stat_exists(stage, &exists)) {
-        int rc = publish_rmrf(stage, 0);
-        if (rc != AIO_PUBLISH_OK) return rc;
-    }
-
-    int rc = publish_mkdir_parents(parent);
-    if (rc != AIO_PUBLISH_OK) return rc;
-    if (PUBLISH_MKDIR(stage) != 0) {
-        if (errno == EEXIST) return AIO_PUBLISH_ERR_STATE;  /* 病态并发占用 */
+    if (aio_atomic::make_dirs(std::string(parent)) != 0) return AIO_PUBLISH_ERR_IO;
+    const int mrc = aio_atomic::make_dir(stage_s);
+    if (mrc != 0) {
+        if (mrc == EEXIST) return AIO_PUBLISH_ERR_STATE;  /* 病态并发占用 */
         return AIO_PUBLISH_ERR_IO;
     }
-    memcpy(stage_path_buf, stage, (size_t)n + 1);
+    memcpy(stage_path_buf, stage, n + 1);
     return AIO_PUBLISH_OK;
 }
 
 int aio_publish_stage_discard_v1(const char* out_dir_utf8) {
     if (!publish_str_ok(out_dir_utf8)) return AIO_PUBLISH_ERR_PARAM;
     if (publish_fault_active("p1_discard_noop")) return AIO_PUBLISH_OK;
-    char parent[PUBLISH_PATH_MAX];
-    char base[PUBLISH_PATH_MAX];
-    publish_split_dir(out_dir_utf8, parent, sizeof(parent), base, sizeof(base));
     char stage[PUBLISH_PATH_MAX];
-    int n = snprintf(stage, sizeof(stage), "%s/.%s%s", parent, base,
-                     ASTROCS_HIPS_STAGE_BASENAME);
-    if (n <= 0 || (size_t)n >= sizeof(stage)) return AIO_PUBLISH_ERR_PARAM;
-    int exists = 0;
-    if (!publish_stat_exists(stage, &exists)) return AIO_PUBLISH_OK;  /* 幂等 */
-    return publish_rmrf(stage, 0);
+    const int rc = publish_stage_path(out_dir_utf8, stage, sizeof(stage), nullptr);
+    if (rc != AIO_PUBLISH_OK) return rc;
+    const std::string stage_s(stage);
+    if (!aio_atomic::path_exists(stage_s, nullptr))
+        return AIO_PUBLISH_OK;                            /* 幂等 */
+    return aio_atomic::remove_tree(stage_s, 0) == 0 ? AIO_PUBLISH_OK
+                                                    : AIO_PUBLISH_ERR_IO;
 }
 
 int aio_publish_tree_fsync_v1(const char* stage_path_utf8,
@@ -338,9 +193,10 @@ int aio_publish_tree_fsync_v1(const char* stage_path_utf8,
     if (n_files_out) *n_files_out = 0;
     if (total_bytes_out) *total_bytes_out = 0;
     int is_dir = 0;
-    if (!publish_stat_exists(stage_path_utf8, &is_dir) || !is_dir)
+    if (!aio_atomic::path_exists(std::string(stage_path_utf8), &is_dir) || !is_dir)
         return AIO_PUBLISH_ERR_IO;
-    return publish_fsync_tree(stage_path_utf8, 0, n_files_out, total_bytes_out);
+    return publish_fsync_tree(std::string(stage_path_utf8), 0, n_files_out,
+                              total_bytes_out);
 }
 
 int aio_publish_promote_v1(const char* out_dir_utf8, const char* stage_path_utf8) {
@@ -348,40 +204,32 @@ int aio_publish_promote_v1(const char* out_dir_utf8, const char* stage_path_utf8
         return AIO_PUBLISH_ERR_PARAM;
     if (publish_fault_active("p1_promote_fail")) return AIO_PUBLISH_ERR_STATE;
 
+    const std::string stage_s(stage_path_utf8);
+    const std::string out_s(out_dir_utf8);
+
     int stage_is_dir = 0;
-    if (!publish_stat_exists(stage_path_utf8, &stage_is_dir) || !stage_is_dir)
+    if (!aio_atomic::path_exists(stage_s, &stage_is_dir) || !stage_is_dir)
         return AIO_PUBLISH_ERR_STATE;
 
     int target_is_dir = 0;
-    if (publish_stat_exists(out_dir_utf8, &target_is_dir)) {
+    if (aio_atomic::path_exists(out_s, &target_is_dir)) {
         if (!target_is_dir) return AIO_PUBLISH_ERR_STATE;   /* 目标被文件占用 */
         int ok = 0;
-        uint64_t ne = publish_dir_is_nonempty(out_dir_utf8, &ok);
+        const int ne = aio_atomic::dir_is_nonempty(out_s, &ok);
         if (!ok) return AIO_PUBLISH_ERR_IO;
         if (ne != 0) return AIO_PUBLISH_ERR_STATE;          /* 唯一目标: 拒非空 */
     }
 
-#ifdef _WIN32
-    if (!MoveFileExA(stage_path_utf8, out_dir_utf8, MOVEFILE_REPLACE_EXISTING))
-        return (GetLastError() == ERROR_NOT_SAME_DEVICE) ? AIO_PUBLISH_ERR_IO
-                                                         : AIO_PUBLISH_ERR_STATE;
-#else
-    if (rename(stage_path_utf8, out_dir_utf8) != 0) {
-        if (errno == ENOTEMPTY || errno == EEXIST || errno == ENOENT)
-            return AIO_PUBLISH_ERR_STATE;
-        if (errno == EXDEV) return AIO_PUBLISH_ERR_IO;
-        return AIO_PUBLISH_ERR_IO;
-    }
+    /* 状态码映射 (与 publish v1 原实现逐位一致):
+     *   POSIX  rename ENOTEMPTY/EEXIST/ENOENT → STATE; EXDEV → IO; 其他 → IO
+     *   Win32  MoveFileExA ERROR_NOT_SAME_DEVICE → IO; 其他 → STATE */
+    const int prc = aio_atomic::promote_dir(stage_s, out_s);
+    if (prc == aio_atomic::PROMOTE_CROSS_DEVICE) return AIO_PUBLISH_ERR_IO;
+    if (prc == aio_atomic::PROMOTE_STATE) return AIO_PUBLISH_ERR_STATE;
+    if (prc != aio_atomic::PROMOTE_OK) return AIO_PUBLISH_ERR_IO;
+
     /* 父目录 fsync (rename 元数据落盘; 尽力 — ENOSPC 等不回滚已成功的
      * rename, 记录不失败: 树原子性已达成) */
-    char parent[PUBLISH_PATH_MAX];
-    char base[PUBLISH_PATH_MAX];
-    publish_split_dir(out_dir_utf8, parent, sizeof(parent), base, sizeof(base));
-    int fd = open(parent, O_RDONLY | O_DIRECTORY);
-    if (fd >= 0) {
-        (void)fsync(fd);
-        close(fd);
-    }
-#endif
+    aio_atomic::fsync_parent_dir(out_s);
     return AIO_PUBLISH_OK;
 }
