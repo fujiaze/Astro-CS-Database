@@ -21,11 +21,16 @@ def messages(errors):
 
 class TestNegativeFixturesMustFail(unittest.TestCase):
     def test_negative_01_unknown_filter_name(self):
-        errs = errors_for("contracts/schemas/phase_config_normalize.schema.json",
-                          NEG + "unknown_filter.phase_config.json")
+        """未知滤镜名必败；且同位置换成库键必过（红绿双向，防 anyOf 判据静默失效）。"""
+        schema_rel = "contracts/schemas/phase_config_normalize.schema.json"
+        fixture = NEG + "unknown_filter.phase_config.json"
+        errs = errors_for(schema_rel, fixture)
         self.assertTrue(errs, "未知滤镜名必须失败")
-        self.assertIn("enum", messages(errs))
-        self.assertIn("bader r", messages(errs))
+        self.assertIn("filter_passband", messages(errs), "错误须落在 filter_passband 字段")
+        ok = C.load_json(fixture)
+        ok["blocks"][0]["filter_passband"] = "Baader R"   # 逐字命中 config/filters.json
+        self.assertEqual([], C.validate(C.load_json(schema_rel), ok),
+                         "库内滤镜名必须通过（否则判据不是「未知滤镜」而是恒拒）")
 
     def test_negative_02_missing_output_dir(self):
         errs = errors_for("contracts/schemas/phase_config_normalize.schema.json",
@@ -34,11 +39,13 @@ class TestNegativeFixturesMustFail(unittest.TestCase):
         self.assertIn("required: missing 'output_dir'", messages(errs))
 
     def test_negative_03_precision_out_of_domain(self):
+        """drizzle.precision_mode 越界必须失败（0=FP32/1=FP64 显式，无 silent 缺省）。"""
         errs = errors_for("contracts/schemas/phase_config_normalize.schema.json",
                           NEG + "precision_out_of_domain.phase_config.json")
-        self.assertTrue(errs, "precision 越界必须失败")
+        self.assertTrue(errs, "precision_mode 越界必须失败")
         self.assertIn("enum", messages(errs))
-        self.assertIn("fp128", messages(errs))
+        self.assertIn("precision_mode", messages(errs))
+        self.assertIn("2", messages(errs))
 
     def test_negative_04_hardware_fields_in_phase_config(self):
         errs = errors_for("contracts/schemas/phase_config_normalize.schema.json",
@@ -70,15 +77,31 @@ class TestNegativeFixturesMustFail(unittest.TestCase):
         self.assertTrue(errs, "v2 缺 provider_build_ids 必须失败")
 
     def test_drizzle_pixfrac_domain_is_enforced(self):
-        """DRIZZLE.md:31 的 0 < pixfrac <= 1 必须是机器门（模板变异，不改模板本体）。"""
+        """DRIZZLE.md:31 的 0 < pixfrac <= 1 必须是机器门（模板变异，不改模板本体）。
+
+        GAP_AUDIT §9.68 后模板是多块形态：块内 algorithm_drizzle_pixfrac 与
+        drizzle.pixfrac 两条路径都必须受 0 < pixfrac <= 1 约束。
+        """
         schema = C.load_json("contracts/schemas/phase_config_normalize.schema.json")
         tpl = C.load_json("config/templates/normalize.phase_config.json")
-        for bad in (0, 0.0, -0.1, 1.5):
-            tpl["config"]["algorithm_drizzle_pixfrac"] = bad
-            self.assertTrue(C.validate(schema, tpl), "pixfrac=%r 必须失败（越出 (0,1]）" % bad)
-        for good in (0.5, 0.8, 1.0):
-            tpl["config"]["algorithm_drizzle_pixfrac"] = good
-            self.assertEqual([], C.validate(schema, tpl), "pixfrac=%r 必须合法" % good)
+        for field in ("algorithm_drizzle_pixfrac", "drizzle"):
+            for bad in (0, 0.0, -0.1, 1.5):
+                probe = C.load_json("config/templates/normalize.phase_config.json")
+                if field == "drizzle":
+                    probe["blocks"][0]["drizzle"]["pixfrac"] = bad
+                else:
+                    probe["blocks"][0][field] = bad
+                self.assertTrue(C.validate(schema, probe),
+                                "%s=%r 必须失败（越出 (0,1]）" % (field, bad))
+            for good in (0.5, 0.8, 1.0):
+                probe = C.load_json("config/templates/normalize.phase_config.json")
+                if field == "drizzle":
+                    probe["blocks"][0]["drizzle"]["pixfrac"] = good
+                else:
+                    probe["blocks"][0][field] = good
+                self.assertEqual([], C.validate(schema, probe),
+                                 "%s=%r 必须合法" % (field, good))
+        self.assertIn("blocks", tpl, "模板必须已是多块形态（§9.68）")
 
     def test_cpu_profile_v1_bad_kernel_row_fails(self):
         """kernel_v1（v1 kernels[] 项约束）必须真被施加：size_class 越界必红。"""
@@ -145,9 +168,12 @@ class TestNegativeFixturesMustFail(unittest.TestCase):
         import os
         expected = sorted([
             "unknown_filter.phase_config.json",              # ① 未知滤镜名
-            "missing_output_dir.phase_config.json",          # ② 缺 output_dir
-            "precision_out_of_domain.phase_config.json",     # ③ precision 越界
+            "missing_output_dir.phase_config.json",          # ② 缺 output_dir（块级）
+            "precision_out_of_domain.phase_config.json",     # ③ precision_mode 越界
             "hardware_fields_in_phase_config.json",          # ④ cpu_profile 字段混入
+            "normalize_mixed_forms.phase_config.json",       # §9.68 ③ blocks 与平铺键互斥
+            "normalize_block_unknown_key.phase_config.json", # §9.68 ⑤ 块内未知键
+            "normalize_perframe_inputs.phase_config.json",   # §9.68 ⑥ 逐帧 inputs[] 已退役
             "run_manifest_hardware_field.json",              # run_manifest 硬件字段
             "cpu_profile_v1_missing_required.json",          # legacy v1 缺必填
             "cpu_profile_v2_bad_os_abi.json",                # CFG-002：os_abi 越出冻结枚举

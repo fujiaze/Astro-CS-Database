@@ -20,6 +20,11 @@ NEGS = [
     ("missing_output_dir", "phase_config_normalize", "missing_output_dir.phase_config.json"),
     ("precision_out_of_domain", "phase_config_normalize", "precision_out_of_domain.phase_config.json"),
     ("hardware_fields", "phase_config_normalize", "hardware_fields_in_phase_config.json"),
+    # CLI-MULTIBLOCK（GAP_AUDIT §9.68，2026-09-20）：多数据块形态的三类新负例
+    # （形态互斥 / 块内未知键 / 已退役的逐帧 {phase_name, config, inputs[]} 形态）。
+    ("multi_block_mixed_forms", "phase_config_normalize", "normalize_mixed_forms.phase_config.json"),
+    ("multi_block_unknown_key", "phase_config_normalize", "normalize_block_unknown_key.phase_config.json"),
+    ("retired_perframe_inputs", "phase_config_normalize", "normalize_perframe_inputs.phase_config.json"),
 ]
 CPU = "contracts/schemas/cpu_profile.schema.json"
 MANIFEST = "contracts/schemas/run_manifest.schema.json"
@@ -46,7 +51,7 @@ for name, schema_key, fixture in NEGS:
     ok_neg = ok_neg and bool(errs)
     det_neg.append("%s=%s" % (name, "REJECTED" if errs else "ACCEPTED(BUG)"))
 gate("G1 三模板通过对应 schema", ok_tpl, " ".join(det_tpl))
-gate("G2 四个负例必败", ok_neg, " ".join(det_neg))
+gate("G2 负例必败（原 4 + §9.68 多块 3）", ok_neg, " ".join(det_neg))
 
 # 门 B：defaults 计数断言
 ddoc = C.load_json("config/defaults.json")

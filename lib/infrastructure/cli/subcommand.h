@@ -64,6 +64,22 @@ inline std::string json_type_of(const nlohmann::json& v) {
 inline std::vector<std::string> config_structure_errors(SessionId session,
                                                         const nlohmann::json& doc) {
     std::vector<std::string> errs;
+    // 防御：退役逐帧形态在 Subcommand::run 已提前拒绝（rc=3）；此处兜底避免
+    // 后续 doc["output_dir"] 取值抛出（nlohmann const operator[] 对缺失键抛异常）。
+    if (config_is_retired_perframe_form(doc)) {
+        errs.push_back(retired_perframe_form_message(session_cli_name(session)));
+        return errs;
+    }
+    // CLI-MULTIBLOCK（GAP_AUDIT §9.68/§9.71）：多块形态 —— 结构与运行期
+    // 同源（唯一实现 = parser.cpp session_blocks_errors），此处不另造判据。
+    // 多块形态自带块级 output_dir，故不要求顶层 output_dir。
+    if (config_has_blocks(doc)) {
+        int code = 0;
+        for (const auto& e : session_blocks_errors(session_cli_name(session), doc, &code,
+                                                   /*include_unknown_keys=*/false))
+            errs.push_back(e);
+        return errs;
+    }
     if (!doc.contains("output_dir") || !doc["output_dir"].is_string()) {
         errs.push_back("output_dir 必须是非空字符串（收到 " +
                        (doc.contains("output_dir") ? json_type_of(doc["output_dir"])
@@ -146,11 +162,14 @@ inline void check_input_path(std::vector<std::string>& errs, const std::string& 
 inline std::vector<std::string> input_path_errors(SessionId session,
                                                   const nlohmann::json& doc) {
     std::vector<std::string> errs;
-    auto check_array = [&](const char* key, bool want_dir) {
-        if (!doc.contains(key) || !doc[key].is_array()) return;
+    // CLI-MULTIBLOCK（§9.68）：块级路径按平铺同款纪律逐块核磁盘，标签带 blocks[i]. 前缀
+    // （一块一组 light + 一套母版；母版路径存在性 = 现有纪律：预检在盘上核实）。
+    auto check_array_in = [&](const nlohmann::json& host, const char* key, bool want_dir,
+                              const std::string& prefix) {
+        if (!host.contains(key) || !host[key].is_array()) return;
         std::size_t i = 0;
-        for (const auto& e : doc[key]) {
-            const std::string label = std::string(key) + "[" + std::to_string(i) + "]";
+        for (const auto& e : host[key]) {
+            const std::string label = prefix + key + "[" + std::to_string(i) + "]";
             if (!e.is_string())
                 errs.push_back(label + " 不是路径字符串（§3.5 error：路径问题）");
             else if (e.get<std::string>().empty())
@@ -160,6 +179,41 @@ inline std::vector<std::string> input_path_errors(SessionId session,
             ++i;
         }
     };
+    auto check_array = [&](const char* key, bool want_dir) {
+        check_array_in(doc, key, want_dir, "");
+    };
+
+    // §9.71 裁决 2（三命令同构块结构）：块内「一组输入帧」的判据按会话给 ——
+    // normalize 收 light 帧文件，mosaic/export 收 HiPS 目录；键名/形态来自
+    // input_contract(session)（单一声明），不在此手写第二份。
+    if (config_has_blocks(doc) && doc["blocks"].is_array()) {
+        const InputContract& ic = input_contract(session);
+        const bool want_dir = (session != SESSION_NORMALIZE);   // HiPS 目录 vs light 帧文件
+        std::size_t bi = 0;
+        for (const auto& b : doc["blocks"]) {
+            const std::string prefix = "blocks[" + std::to_string(bi) + "].";
+            if (b.is_object()) {
+                if (ic.object_field != nullptr) {
+                    if (b.contains(ic.key) && b[ic.key].is_object() &&
+                        b[ic.key].contains(ic.object_field) &&
+                        b[ic.key][ic.object_field].is_string() &&
+                        !b[ic.key][ic.object_field].get<std::string>().empty())
+                        check_input_path(errs, prefix + ic.key + "." + ic.object_field,
+                                         b[ic.key][ic.object_field].get<std::string>(), want_dir);
+                } else {
+                    check_array_in(b, ic.key, want_dir, prefix);
+                }
+                // 标定帧只在 normalize 会话存在（mosaic/export 不吃校准帧）。
+                if (session == SESSION_NORMALIZE)
+                    for (const char* k : {"master_bias", "master_dark", "master_flat"})
+                        if (b.contains(k) && b[k].is_string())
+                            check_input_path(errs, prefix + k, b[k].get<std::string>(),
+                                             /*want_dir=*/false);
+            }
+            ++bi;
+        }
+        return errs;
+    }
     switch (session) {
         case SESSION_NORMALIZE:
             check_array("input_lights", /*want_dir=*/false);
@@ -185,19 +239,35 @@ inline std::vector<std::string> input_path_errors(SessionId session,
 // 只陈述「该步将跳过」，不做科学判定（是否应该跳过属科学侧裁决）。
 // 已提供但磁盘不可读的路径不在此报 correct（避免 fail-open 假绿）；由
 // input_path_errors 报出具体原因。
-inline std::vector<CheckLine> calibration_checks(const nlohmann::json& doc) {
+inline std::vector<CheckLine> calibration_checks(SessionId session,
+                                                  const nlohmann::json& doc) {
     std::vector<CheckLine> checks;
-    for (const char* k : {"master_bias", "master_dark", "master_flat"}) {
-        const bool given = doc.contains(k) && doc[k].is_string() &&
-                           !doc[k].get<std::string>().empty();
-        if (!given) {
-            checks.push_back({"error", std::string(k) + " 未提供：本次运行不做该标定步骤"
-                                       "（如确无该标定帧，用 -force 越过）"});
-        } else if (path_readable_file(std::filesystem::u8path(doc[k].get<std::string>()))) {
-            checks.push_back({"correct", std::string(k) + " = " + doc[k].get<std::string>()});
+    // §9.71 裁决 2: 标定帧概念只属于 normalize 会话（mosaic/export 的输入是 HiPS 产品）。
+    if (session != SESSION_NORMALIZE) return checks;
+    // CLI-MULTIBLOCK（§9.68）：多块形态逐块给标定帧可见性，标签带 blocks[i]. 前缀
+    // （块级归属可见；缺校准帧仍是 -force 可越过的 error，逐块独立判定）。
+    auto checks_for = [&](const nlohmann::json& host, const std::string& prefix) {
+        for (const char* k : {"master_bias", "master_dark", "master_flat"}) {
+            const bool given = host.contains(k) && host[k].is_string() &&
+                               !host[k].get<std::string>().empty();
+            if (!given) {
+                checks.push_back({"error", prefix + k + " 未提供：本次运行不做该标定步骤"
+                                           "（如确无该标定帧，用 -force 越过）"});
+            } else if (path_readable_file(std::filesystem::u8path(host[k].get<std::string>()))) {
+                checks.push_back({"correct", prefix + k + " = " + host[k].get<std::string>()});
+            }
+            // given 但不可读 → 由 input_path_errors 报具体原因（不重复、不假绿）
         }
-        // given 但不可读 → 由 input_path_errors 报具体原因（不重复、不假绿）
+    };
+    if (config_has_blocks(doc) && doc["blocks"].is_array()) {
+        std::size_t bi = 0;
+        for (const auto& b : doc["blocks"]) {
+            if (b.is_object()) checks_for(b, "blocks[" + std::to_string(bi) + "].");
+            ++bi;
+        }
+        return checks;
     }
+    checks_for(doc, "");
     return checks;
 }
 
@@ -208,6 +278,36 @@ inline std::vector<CheckLine> calibration_checks(const nlohmann::json& doc) {
 // 不再在此另造一套。
 inline std::vector<CheckLine> precheck_config(SessionId session, const nlohmann::json& doc) {
     std::vector<CheckLine> checks;
+    // CLI-MULTIBLOCK（§9.68）：多块形态逐块给「块归属 + output_dir + light 条目数」
+    // 可见性（一块 = 一次运行 = 一个 output_dir / 一份 manifest）。
+    if (config_has_blocks(doc) && doc["blocks"].is_array()) {
+        const std::vector<std::string> berrs = config_structure_errors(session, doc);
+        if (berrs.empty()) {
+            const InputContract& ic = input_contract(session);
+            std::size_t bi = 0;
+            for (const auto& b : doc["blocks"]) {
+                const std::string label = "blocks[" + std::to_string(bi) + "]";
+                const std::string name =
+                    (b.is_object() && b.contains("name") && b["name"].is_string())
+                        ? (" '" + b["name"].get<std::string>() + "'") : std::string();
+                const std::string inputs =
+                    (ic.object_field != nullptr)
+                        ? (std::string(ic.key) + "." + ic.object_field + " = " +
+                           b[ic.key][ic.object_field].get<std::string>())
+                        : (std::string(ic.key) + " 条目数 = " +
+                           std::to_string(b[ic.key].size()));
+                checks.push_back({"correct", label + name + " output_dir = " +
+                                               b["output_dir"].get<std::string>() + "，" + inputs});
+                ++bi;
+            }
+            for (const auto& e : input_path_errors(session, doc))
+                checks.push_back({"error", e});
+        } else {
+            for (const auto& e : berrs) checks.push_back({"error", e});
+        }
+        for (const auto& c : calibration_checks(session, doc)) checks.push_back(c);
+        return checks;
+    }
     const std::vector<std::string> errs = config_structure_errors(session, doc);
     if (errs.empty()) {
         checks.push_back({"correct", "output_dir = " + doc["output_dir"].get<std::string>()});
@@ -226,7 +326,7 @@ inline std::vector<CheckLine> precheck_config(SessionId session, const nlohmann:
         for (const auto& e : errs) checks.push_back({"error", e});
     }
     if (session == SESSION_NORMALIZE) {
-        for (const auto& c : calibration_checks(doc)) checks.push_back(c);
+        for (const auto& c : calibration_checks(session, doc)) checks.push_back(c);
     }
     return checks;
 }
@@ -280,6 +380,16 @@ struct Subcommand {
             std::fprintf(stderr, "astrocs: %s -force: skipping precheck and confirmation\n", name);
             return session_dispatch(static_cast<int>(session), SessionOp::Run, p, ev);
         }
+        // CLI-MULTIBLOCK（§9.68 否决项）：退役的逐帧形态 {phase_name, config, inputs[]}
+        // 在预检面即**明确拒绝并给迁移提示**（不落进「output_dir 缺失」一类泛化诊断；
+        // 与运行期 validate_config_full 同文案、同退出码 3）。
+        if (config_is_retired_perframe_form(doc)) {
+            std::fputs(render_checks({{"error", retired_perframe_form_message(
+                                                         session_cli_name(session))}}).c_str(),
+                       stderr);
+            std::fprintf(stderr, "astrocs: %s blocked by config error(s); fix the config\n", name);
+            return astrocs::INPUT;                          // 3: 配置形态不可用
+        }
         const std::vector<CheckLine> checks = precheck_config(session, doc);
         const std::string page = render_checks(checks);
         // 阻断优先级（§3.5 + CLI_PROTOCOL §7）：
@@ -298,7 +408,7 @@ struct Subcommand {
         }
         {
             nlohmann::json validated;
-            const int vrc = validate_config_full(cfg, &validated, /*session_mode=*/true);
+            const int vrc = validate_config_full(cfg, &validated, /*session_mode=*/true, session_cli_name(session));
             if (vrc != astrocs::OK) return vrc;
         }
         if (!input_path_errors(session, doc).empty()) {

@@ -1,16 +1,21 @@
 {
-  "phase_name": "normalize",
-  "config": {
-    "output_dir": "path/to/out/normalize",
-    "precision": "fp128",
-    "sparse_snr_layer": false
-  },
-  "inputs": [
+  "schema_version": "1",
+  "blocks": [
     {
-      "light": "path/to/light1.fits",
-      "dark": "path/to/dark.fits",
-      "flat": "path/to/flat.fits",
-      "filter": "Baader R"
+      "name": "red",
+      "input_lights": [
+        "path/to/light1.fits"
+      ],
+      "master_bias": "path/to/bias.fits",
+      "master_dark": "path/to/dark.fits",
+      "master_flat": "path/to/flat.fits",
+      "output_dir": "path/to/out/red",
+      "filter_passband": "Baader R",
+      "drizzle": {
+        "nested": 1,
+        "pixfrac": 1,
+        "precision_mode": 2
+      }
     }
   ]
 }

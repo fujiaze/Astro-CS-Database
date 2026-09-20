@@ -1,6 +1,8 @@
 // astrocs CLI — parser (RT-008 拆分自 main.cpp)
 // 统一 parser + 参数校验帮助器 + CPU 指纹/hash 帮助器。
-// 定义在 namespace astrocs 外(与拆分前一致); 不 include 任何 session/科学内部头。
+// 定义在 namespace astrocs 外(与拆分前一致); 不 include 任何 session/科学内部头 ——
+// 只 include CLI 自身的单一声明头 session_commands.h（input_contract()/config_fields()，
+// 供 §9.71 三命令同构块结构派生键集，禁止在 parser 内手写第二份键集）。
 #include "cli_common.h"
 
 // CLI-001: 用户可见命令树唯一事实源（lib/infrastructure/cli/command_tree.h）。
@@ -8,6 +10,7 @@
 // 相对路径: 根 CMakeLists.txt 的 astrocs target include 目录尚未登记本模块
 // （登记属 INT-001 域），此处用工作区相对包含保证根图与 lib/infrastructure/cli/ 独立图都能编译。
 #include "command_tree.h"
+#include "session_commands.h"   // CLI-MULTIBLOCK: input_contract()/config_fields() 单一声明
 
 #include "sha256.h"
 #include "cpu_routing.h"
@@ -248,33 +251,20 @@ std::string local_cpu_signature() {
     return astrocs::crypto::sha256_hex(seed.data(), seed.size());
 }
 
-// pipeline_config.json v1 全量校验(合同: docs/api/MANIFEST_VERIFY_V1.md §1)
-// 返回 0 有效(doc 填充); 否则对应退出码, 诊断写 stderr。
-// session_mode=true (phaseN run): 追加接受 RT-008 平铺直通会话格式
-// (runtime_client phase_config 平铺分支), 未知键拒绝面与 V1 同强度;
-// config validate 顶层命令面恒为 V1 合同 (CLI-003 golden, session_mode=false)。
-int validate_config_full(const std::string& path, nlohmann::json* doc_out,
-                         bool session_mode) {
-    std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
-    if (!f) {
-        std::fprintf(stderr, "astrocs: config not found '%s'\n", path.c_str());
-        return astrocs::INPUT;                       // 04: 输入缺失 → 3
-    }
-    std::stringstream buf; buf << f.rdbuf();
-    nlohmann::json doc;
-    try {
-        doc = nlohmann::json::parse(buf.str());
-    } catch (const nlohmann::json::parse_error& e) {
-        std::fprintf(stderr, "astrocs: config malformed JSON: %s\n", sanitize(e.what()).c_str());
-        return astrocs::INPUT;                       // 04: 格式错 → 3
-    }
-    if (!doc.is_object()) {
-        std::fprintf(stderr, "astrocs: config is not a JSON object\n");
-        return astrocs::INPUT;
-    }
-    static const std::set<std::string> kAllowedKeys = {"schema_version", "inputs",
-                                                       "output_dir", "phase3"};
-    static const std::set<std::string> kSessionKeys = {
+// ── CLI-MULTIBLOCK（GAP_AUDIT §9.68 负责人裁决 2026-09-20）：normalize 多数据块 ──
+// 语义（逐字依据 §9.68）：
+//   ① 一个 JSON 内可写多个数据块（block），形如「一个 main 下面写很多个函数」；
+//   ② 每块自带：一组 input_lights + 一套母版 + 运行参数 + 块级 output_dir；
+//   ③ 同一组校准帧和运行参数支持一组 light（不得逐帧重复写校准帧）；
+//   ④ 平铺单块简写保留（只有一块时两种写法等价），两形态互斥（同时出现 → 明确报错）。
+// 块内键 = 平铺会话键集（session_keys()）+ 块级 name；块内不得再出现 blocks。
+// 本文件是「结构可达性」的唯一实现：运行期 validate_config_full 与 CLI 预检
+// （subcommand.h config_structure_errors）都调本函数，禁止各写一份。
+
+// 平铺会话键集（唯一声明）：phase1/2/3 平铺直通会话的顶层键白名单。
+// 多块形态（CLI-MULTIBLOCK）的块内键 = 本集合；块级 name 见 block_only_keys()。
+const std::set<std::string>& session_keys() {
+    static const std::set<std::string> k = {
         // phase1 平铺 (p1_session 消费面)
         "input_lights", "master_bias", "master_dark", "master_flat",
         "dark_optimization", "dark_scale_factor", "cosmetic",
@@ -327,9 +317,211 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         // CLI 只识别并透传到 pdoc；生产 resample/writer 的消费在 scheduler 面。
         "output_mode",
     };
+    return k;
+}
+
+// 块内允许键 = 平铺会话键集 + 块级键：
+//   name       —— 可选；manifest/日志的块归属标识（§9.68 建议形态）；
+//   output_dir —— 必填；块级运行产物落点（顶层平铺时是简写的运行级 output_dir，
+//                 多块形态下**只允许**写在块内 —— 两形态互斥由下面判据强制）。
+const std::set<std::string>& block_keys() {
+    static const std::set<std::string> k = {"name", "output_dir"};
+    return k;
+}
+
+// 退役的逐帧形态判别（§9.68 否决项）{phase_name, config, inputs[]}：
+//   phase_name 顶层键（该形态的 phase 判别键），或 inputs 为**数组**
+//   （V1 形态的 inputs 是对象；逐帧形态才是每帧一个对象的数组）。
+// 唯一实现：运行期 validate_config_full 与 CLI 预检同源（同文案、同退出码 3）。
+bool config_is_retired_perframe_form(const nlohmann::json& doc) {
+    if (!doc.is_object()) return false;
+    return doc.contains("phase_name") || (doc.contains("inputs") && doc["inputs"].is_array());
+}
+
+// 迁移提示（预检页与运行期共用同一份文案，禁止各写一份）。按会话给：
+//   * normalize：§9.68 否决的「每帧一个对象」旧写法 → 指向多块形态；
+//   * mosaic/export：合同形态 {phase_name, config, inputs[]}（键名与 CLI 不一致）→ 指向
+//     §9.71 裁决 2（块状结构统一；键名方案属定案 4 的前台裁量面）。
+std::string retired_perframe_form_message(const std::string& session_name) {
+    if (session_name != "normalize") {
+        return "config uses the phase_config contract form {phase_name, config, inputs[]}, "
+               "which is not the CLI session form — " + session_name +
+               " moves to the same block structure as normalize "
+               "(GAP_AUDIT §9.71 ruling 2: one block = {output name, run parameters, "
+               "one group of input frames}); the unified key-name scheme is pending "
+               "(ruling 2 定案 4). Use the block form "
+               "{\"schema_version\":\"1\",\"blocks\":[{...}]} once it lands; "
+               "see docs/contracts/CONFIG_CONTRACT.md §3";
+    }
+    return "config uses the retired per-frame phase_config form "
+           "{phase_name, config, inputs[]} — one entry per light is no longer supported "
+           "(GAP_AUDIT §9.68); migrate to the multi-block form: "
+           "{\"schema_version\":\"1\",\"blocks\":[{\"name\":\"<label>\","
+           "\"input_lights\":[...],\"master_bias\":\"...\",\"master_dark\":\"...\","
+           "\"master_flat\":\"...\",\"output_dir\":\"...\"}]} — one block per group of "
+           "lights sharing the same masters (ASTROCS_DESIGN.md §3.3)";
+}
+
+bool config_has_blocks(const nlohmann::json& doc) {
+    return doc.is_object() && doc.contains("blocks");
+}
+
+// 平铺单块简写特征：任一平铺会话键，或运行级 output_dir（简写必填、块形态禁顶层写）。
+bool config_has_flat_session_keys(const nlohmann::json& doc) {
+    if (!doc.is_object()) return false;
+    if (doc.contains("output_dir")) return true;
+    for (const auto& k : session_keys())
+        if (doc.contains(k)) return true;
+    return false;
+}
+
+// 多块形态结构校验（唯一实现）。判据（§9.68 + 现有 flat_session 纪律）：
+//   * blocks 与平铺键互斥（同时出现 → 报错，不静默取一）；
+//   * blocks 必须是非空数组，每项必须是对象；
+//   * 每块必须有非空 input_lights（非空字符串数组）与非空字符串 output_dir（禁 silent default）；
+//   * 块间 output_dir 不得重复 —— 否则两块会写同一份 run manifest，违反
+//     「每块独立 output_dir / 独立 manifest」；
+//   * 块内未知键拒绝（键集 = 平铺会话键集 + block_keys() = {name, output_dir}）；未知键先于运行期，
+//     与顶层 unknown key 同码（3）。
+// 母版路径存在性按现有纪律：不在本函数判盘（= 平铺同款），由 CLI 预检
+// （subcommand.h input_path_errors）逐块核磁盘；-force 越过预检的后果由用户承担。
+std::vector<std::string> session_blocks_errors(const std::string& session_name,
+                                               const nlohmann::json& doc, int* exit_code,
+                                               bool include_unknown_keys) {
+    std::vector<std::string> errs;
+    if (exit_code) *exit_code = astrocs::ARGS;             // 2: 结构/配置错
+    if (!doc.is_object() || !doc.contains("blocks")) {
+        errs.push_back("blocks 缺失或配置不是 JSON 对象");
+        return errs;
+    }
+    // §9.71 裁决 2：三命令同构块结构（一个块 = 输出名称 + 运行参数 + 一组输入帧）。
+    // 块内键集与「输入帧键」**从单一来源派生**，禁止手写副本：
+    //   * 键集 = 该会话 config_fields() 的键 + block_keys()（name/output_dir）；
+    //   * 输入判据 = input_contract(session)（数组形态 or 对象形态 + 必需子键）；
+    //   * §9.73 裁决 A44（「权重模式」概念不存在）⇒ 块面不收 weight_mode /
+    //     legacy_allow_weight_fallback（派生量，由 Phase2 消费 SNR 时现场算）。
+    const astrocs::cli::cmd::SessionId sess = astrocs::cli::cmd::session_of(session_name);
+    std::set<std::string> allowed = block_keys();
+    for (const auto& f : astrocs::cli::cmd::config_fields(sess)) {
+        const std::string k = f.key;
+        if (k == "schema_version" || k == "weight_mode" || k == "legacy_allow_weight_fallback")
+            continue;
+        allowed.insert(k);
+    }
+    const astrocs::cli::cmd::InputContract& ic = astrocs::cli::cmd::input_contract(sess);
+    if (config_has_flat_session_keys(doc)) {
+        errs.push_back("config mixes 'blocks' with flat single-block keys "
+                       "(output_dir/input_lights/master_*/...): the two forms are mutually "
+                       "exclusive — keep either blocks[] or the flat single-block shorthand "
+                       "(ASTROCS_DESIGN.md §3.3; GAP_AUDIT §9.68)");
+    }
+    const auto& blocks = doc["blocks"];
+    if (!blocks.is_array() || blocks.empty()) {
+        errs.push_back("blocks must be a non-empty array");
+        return errs;
+    }
+    std::set<std::string> seen_out;
+    for (std::size_t i = 0; i < blocks.size(); ++i) {
+        const std::string at = "blocks[" + std::to_string(i) + "]";
+        const auto& b = blocks[i];
+        if (!b.is_object()) {
+            errs.push_back(at + " must be a JSON object");
+            continue;
+        }
+        if (ic.object_field != nullptr) {
+            // 对象形态（如 export 的 source.hips_dir）：块 = 一组输入帧的入口对象。
+            if (!b.contains(ic.key) || !b[ic.key].is_object()) {
+                errs.push_back(at + "." + ic.key + " must be an object {\"" +
+                               ic.object_field + "\": \"<path>\"} "
+                               "(one block = one group of input frames)");
+            } else if (!b[ic.key].contains(ic.object_field) ||
+                       !b[ic.key][ic.object_field].is_string() ||
+                       b[ic.key][ic.object_field].get<std::string>().empty()) {
+                errs.push_back(at + "." + ic.key + "." + ic.object_field +
+                               " must be a non-empty string "
+                               "(one block = one group of input frames)");
+            }
+        } else if (!b.contains(ic.key) || !b[ic.key].is_array() || b[ic.key].empty()) {
+            errs.push_back(at + "." + ic.key + " must be a non-empty array "
+                                 "(one block = one group of input frames)");
+        } else {
+            for (const auto& l : b[ic.key]) {
+                if (!l.is_string() || l.get<std::string>().empty()) {
+                    errs.push_back(at + "." + ic.key + " items must be non-empty strings");
+                    break;
+                }
+            }
+        }
+        if (!b.contains("output_dir") || !b["output_dir"].is_string() ||
+            b["output_dir"].get<std::string>().empty()) {
+            errs.push_back(at + ".output_dir is required (block-level, no silent default; "
+                                 "each block writes its own products and run manifest)");
+        } else if (!seen_out.insert(b["output_dir"].get<std::string>()).second) {
+            errs.push_back(at + ".output_dir duplicates an earlier block's output_dir ('" +
+                           b["output_dir"].get<std::string>() +
+                           "'): blocks must not share output_dir (each block needs its own "
+                           "run manifest)");
+        }
+        if (b.contains("blocks")) errs.push_back(at + ".blocks is not allowed inside a block");
+    }
+    if (!errs.empty()) return errs;                        // 结构错优先（与平铺同序）
+    if (!include_unknown_keys) return errs;                // 预检页：结构错面
+    // 块内未知键（结构可达才报；与顶层 unknown key 同码 3）
+    for (std::size_t i = 0; i < blocks.size(); ++i) {
+        const std::string at = "blocks[" + std::to_string(i) + "]";
+        for (auto it = blocks[i].begin(); it != blocks[i].end(); ++it) {
+            if (allowed.count(it.key()) == 0) {
+                errs.push_back(at + " has unknown key '" + it.key() + "'");
+            }
+        }
+    }
+    if (!errs.empty() && exit_code) *exit_code = astrocs::INPUT;   // 3: 未知键
+    return errs;
+}
+
+// pipeline_config.json v1 全量校验(合同: docs/api/MANIFEST_VERIFY_V1.md §1)
+// 返回 0 有效(doc 填充); 否则对应退出码, 诊断写 stderr。
+// session_mode=true (phaseN run): 追加接受两种会话格式 —— RT-008 平铺直通
+// (runtime_client phase_config 平铺分支) 与 CLI-MULTIBLOCK 多块形态 (顶层 blocks[],
+// §9.68)；未知键拒绝面与 V1 同强度;
+// config validate 顶层命令面恒为 V1 合同 (CLI-003 golden, session_mode=false)。
+int validate_config_full(const std::string& path, nlohmann::json* doc_out,
+                         bool session_mode, const std::string& session_name) {
+    std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
+    if (!f) {
+        std::fprintf(stderr, "astrocs: config not found '%s'\n", path.c_str());
+        return astrocs::INPUT;                       // 04: 输入缺失 → 3
+    }
+    std::stringstream buf; buf << f.rdbuf();
+    nlohmann::json doc;
+    try {
+        doc = nlohmann::json::parse(buf.str());
+    } catch (const nlohmann::json::parse_error& e) {
+        std::fprintf(stderr, "astrocs: config malformed JSON: %s\n", sanitize(e.what()).c_str());
+        return astrocs::INPUT;                       // 04: 格式错 → 3
+    }
+    if (!doc.is_object()) {
+        std::fprintf(stderr, "astrocs: config is not a JSON object\n");
+        return astrocs::INPUT;
+    }
+    static const std::set<std::string> kAllowedKeys = {"schema_version", "inputs",
+                                                       "output_dir", "phase3"};
+    const std::set<std::string>& kSessionKeys = session_keys();
+    // CLI-MULTIBLOCK（§9.68 否决项）: 退役的逐帧形态 {phase_name, config, inputs[]}
+    // 必须**明确拒绝并给迁移提示**（不静默当成一条 unknown key 一笔带过）。
+    // 判别：phase_name 顶层键（该形态的 phase 判别键），或 inputs 为**数组**
+    // （V1 形态的 inputs 是对象；逐帧形态才是每帧一个对象的数组）。
+    if (session_mode && config_is_retired_perframe_form(doc)) {
+        std::fprintf(stderr, "astrocs: %s\n",
+                     retired_perframe_form_message(session_name).c_str());
+        return astrocs::INPUT;                       // 3: 配置形态不可用
+    }
     for (auto it = doc.begin(); it != doc.end(); ++it) {
+        // blocks 只在会话面（phaseN run / 预检）可达；V1 顶层合同（config validate 面）
+        // 仍以 kAllowedKeys 为唯一白名单。
         const bool allowed = kAllowedKeys.count(it.key()) != 0 ||
-                             (session_mode && kSessionKeys.count(it.key()) != 0);
+                             (session_mode &&
+                              (kSessionKeys.count(it.key()) != 0 || it.key() == "blocks"));
         if (!allowed) {
             std::fprintf(stderr, "astrocs: config has unknown key '%s'\n", it.key().c_str());
             return astrocs::INPUT;                   // 防拼写静默忽略 → 3
@@ -339,8 +531,21 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     const bool flat_session = session_mode &&
         std::any_of(kSessionKeys.begin(), kSessionKeys.end(),
                     [&](const std::string& k) { return doc.contains(k) != 0; });
+    // CLI-MULTIBLOCK: 多块形态（顶层 blocks）与平铺单块简写互斥；逐块结构校验
+    // （非空 input_lights + 块级 output_dir + 块内未知键 + output_dir 不重复）。
+    const bool has_blocks = session_mode && config_has_blocks(doc);
+    if (has_blocks) {
+        int bcode = astrocs::ARGS;
+        const std::vector<std::string> berrs = session_blocks_errors(session_name, doc, &bcode);
+        if (!berrs.empty()) {
+            for (const auto& e : berrs) std::fprintf(stderr, "astrocs: %s\n", e.c_str());
+            return bcode;                            // 2: 结构错 / 3: 块内未知键
+        }
+    }
+    // 会话面（平铺简写 或 多块）= 脱离 V1 顶层必填面
+    const bool session_form = flat_session || has_blocks;
     if (!doc.contains("schema_version")) {
-        if (!flat_session) {
+        if (!session_form) {
             std::fprintf(stderr, "astrocs: config missing 'schema_version'\n");
             return astrocs::INPUT;
         }
@@ -349,11 +554,11 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
         std::fprintf(stderr, "astrocs: config schema_version must be \"1\"\n");
         return astrocs::ARGS;                        // 版本错=配置错 → 2
     }
-    if (!flat_session && (!doc.contains("inputs") || !doc["inputs"].is_object())) {
+    if (!session_form && (!doc.contains("inputs") || !doc["inputs"].is_object())) {
         std::fprintf(stderr, "astrocs: config missing 'inputs' object\n");
         return astrocs::INPUT;
     }
-    if (!flat_session) {
+    if (!session_form) {
         for (const char* k : {"lights", "darks", "flats", "bias"}) {
             auto it = doc["inputs"].find(k);
             if (it == doc["inputs"].end() || !it->is_array()) {
@@ -374,7 +579,7 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
             }
         }
     }
-    if (!flat_session && (!doc.contains("output_dir") || !doc["output_dir"].is_string())) {
+    if (!session_form && (!doc.contains("output_dir") || !doc["output_dir"].is_string())) {
         std::fprintf(stderr, "astrocs: config missing 'output_dir'\n");
         return astrocs::INPUT;
     }
@@ -391,7 +596,8 @@ int validate_config_full(const std::string& path, nlohmann::json* doc_out,
     }
     std::error_code ec;
     // 平铺会话格式: session 自建输出目录, CLI 仅要求为字符串; V1 顶层格式仍要求已存在。
-    if (!flat_session &&
+    // 多块形态不走本条：output_dir 在块级（session_blocks_errors 已逐块校验）。
+    if (!session_form &&
         !std::filesystem::exists(std::filesystem::u8path(doc["output_dir"].get<std::string>()), ec)) {
         std::fprintf(stderr, "astrocs: config output_dir not found\n");
         return astrocs::INPUT;

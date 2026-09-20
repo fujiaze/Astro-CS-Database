@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/phase_config/normalize/v1",
-  "title": "AstroCS phase_config — normalize v1",
-  "description": "CFG-001 建立的 normalize 科学配置合同：只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
+  "title": "AstroCS phase_config — normalize v1（多数据块）",
+  "description": "CFG-001 建立的 normalize 科学配置合同；GAP_AUDIT §9.68 负责人裁决（2026-09-20）改写为**多数据块**形态：顶层 blocks[]，每块自带一组 input_lights + 一套母版（master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir（一块 = 一次运行 = 独立 output_dir / 独立 run manifest）。平铺单块简写（input_lights/master_*/output_dir 顶层平铺）保留为只有一块时的等价写法；两种形态**互斥**。只含科学参数、输入路径、output_dir 与算法选择；不含任何硬件字段（ISA/workers/block/CPU 型号）。",
   "x-astrocs-schema-family": "phase_config",
   "x-astrocs-phase": "normalize",
   "x-astrocs-config-class": "phase_config",
@@ -11,36 +11,21 @@
     "benchmark"
   ],
   "x-astrocs-authority": [
-    "ASTROCS_DESIGN.md §3.3（输入合同 JSON 数据块：config + inputs）",
+    "ASTROCS_DESIGN.md §3.3（输入合同 JSON 数据块：多块 blocks[] + 平铺单块简写 + 互斥规则）",
+    "GAP_AUDIT §9.68（负责人裁决 2026-09-20：normalize 配置 = 多数据块 JSON；同一组校准帧和运行参数支持一组 light）",
     "ASTROCS_DESIGN.md §3.5（运行前预检绿/橙/红）",
     "ASTROCS_DESIGN.md §6.1-§6.3（配置挂载 / 模板 / 机器输出）",
     "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
     "docs/plugins/infrastructure/18_cli.md §3-§5"
   ],
   "x-astrocs-notes": [
-    "字段名与 DATA-001 锚点 docs/contracts/config_separation_anchors.json 的关系：phase_config 顶层键 {phase_name, config, inputs} 与内层键（precision/output_dir/sparse_snr_layer/light/bias/dark/flat/cosmetic/filter 等）以 ASTROCS_DESIGN.md §3.3 的 JSON 数据块为准（最高权威）；锚点的 ^sci_*/^(input|output)_*/^algorithm_*/^phase_name$ 命名族用于「算法选择」与「输入输出路径」类字段（本 schema 的 algorithm_* 与 output_* 即该族）。",
-    "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。本 schema 用 additionalProperties:false 在 config 与 inputs 项两级做机器拒绝。",
+    "形态（§9.68）：① 多块 —— {\"schema_version\",\"blocks\":[normalize_block, ...]}（每块一组 light + 一套母版 + 运行参数 + 块级 output_dir）；② 平铺单块简写 —— 顶层 input_lights/master_*/output_dir/运行参数（只有一块时的等价写法，向后兼容）。二者互斥：顶层同时出现 blocks 与任一平铺键 → 本 schema 的 then 分支（propertyNames）与 CLI 解析器都报错，不静默取一。",
+    "顶层键闭包用 propertyNames 而非 additionalProperties：schema_version 与 cpu_profile 的同名键冲突登记（tests/config/test_cfg001_contracts.py::TestCrossClassDisjointness 的 phase_config ∩ cpu_profile == {precision}）必须保持，故 schema_version 不进 properties；块内（normalize_block）无此冲突，仍用 additionalProperties:false 做机器拒绝。",
+    "字段名与 DATA-001 锚点 docs/contracts/config_separation_anchors.json 的关系：本 schema 的顶层键 {schema_version, blocks} 与块内键（input_lights/master_*/output_dir/filter_passband/drizzle/wcs/...）以 ASTROCS_DESIGN.md §3.3 的 JSON 数据块为准（最高权威）；锚点的 ^sci_*/^(input|output)_*/^algorithm_*/^phase_name$ 命名族用于「算法选择」与「输入输出路径」类字段（本 schema 的 algorithm_* 与 output_* 即该族）。旧逐帧形态 {phase_name, config, inputs[]} 已按 §9.68 删除。",
+    "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。本 schema 用 additionalProperties:false 在块与 drizzle/wcs 两级做机器拒绝。",
     "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。"
   ],
   "type": "object",
-  "required": [
-    "phase_name",
-    "config",
-    "inputs"
-  ],
-  "additionalProperties": false,
-  "properties": {
-    "phase_name": {
-      "const": "normalize",
-      "description": "phase 判别键（锚点 ^phase_name$）"
-    },
-    "config": {
-      "$ref": "#/$defs/normalize_config"
-    },
-    "inputs": {
-      "$ref": "#/$defs/normalize_inputs"
-    }
-  },
   "$defs": {
     "filter_name": {
       "type": "string",
@@ -91,97 +76,394 @@
         "ZWO G",
         "ZWO R"
       ],
-      "description": "滤镜库键，必须逐字命中 config/filters.json 的 filters 键（未知滤镜 -> error，ASTROCS_DESIGN.md §3.3/:144；enum 由 tests/config 断言与滤镜库逐项相等）"
-    },
-    "precision": {
-      "enum": [
-        "fp32",
-        "fp64"
-      ],
-      "description": "科学计算精度，显式声明（ASTROCS_DESIGN.md §3.3:145）；默认 fp64 见 docs/science/SCIENCE_SCOPE.md:53"
+      "description": "滤镜库键，必须逐字命中 config/filters.json 的 filters 键（未知滤镜 -> error，ASTROCS_DESIGN.md §3.3；enum 由 tests/config 断言与滤镜库逐项相等）"
     },
     "output_dir": {
       "type": "string",
       "minLength": 1,
-      "description": "运行产物唯一落点；不得以进程 CWD 作隐式缺省（ASTROCS_DESIGN.md §6.3:340）"
+      "description": "运行产物唯一落点；不得以进程 CWD 作隐式缺省（ASTROCS_DESIGN.md §6.3）。多块形态下是**块级**必填（每块独立 output_dir ⇒ 独立 run manifest）"
     },
-    "normalize_config": {
-      "type": "object",
-      "required": [
-        "output_dir",
-        "precision"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "output_dir": {
-          "$ref": "#/$defs/output_dir"
-        },
-        "precision": {
-          "$ref": "#/$defs/precision"
-        },
-        "sparse_snr_layer": {
-          "type": "boolean",
-          "default": true,
-          "description": "是否产出稀疏帧内 SNR 层（Phase1 标准层，插入 HiPS 文件内）。默认 true：负责人 2026-09-19 裁决「默认稀疏路径要求稀疏层默认产出」（change-claim FIX-SCI-SNR-CANON-001 §3.2；docs/plugins/algorithms_phase1/07_noise_snr.md:112、08_drizzle.md:46）。本键只决定「是否产出稀疏层」，不决定 Phase2 走哪条重建路径（那是 mosaic 的 snr_path）——一个字段只承载一个含义（docs/design/UNIFIED_MODEL.md §2）。数值默认的机器可读承载 = 本 schema 的 default 与 config/templates/normalize.phase_config.json；不复制进 config/defaults.json（config/config_registry.json#rules.no_second_source：phase_config 行以本 schema 为唯一事实源）。"
-        },
-        "sparse_snr_spacing_px": {
-          "type": "integer",
-          "minimum": 1,
-          "default": 64,
-          "description": "稀疏 SNR 层控制点间隔 Δ（px），即负责人 2026-09-19 裁决的「稀疏层密度」像素域表述（GAP_AUDIT §9.45：「64 可以了，够密且占用空间可控」）：默认 Δ = 64 px，复用 Phase2 UPM 的 8×8/tile 控制网格（二者同一套几何）⇒ Δ = hips.tile_width / 8 = 512 / 8 = 64（config/defaults.json#hips.tile_width = 512）；实测 SNR 场相关长度 ℓ = 48 px ⇒ Δ/ℓ = 1.33（近临界采样，够密）。单位 px，非「点/度²」；与文档侧 07_noise_snr.md:113 的 sparse_snr_density（点/度²、pending_authority）不是同一字段（后者数值仍无 SCI/ALG 权威，本键不改其状态）。数值默认同时登记于 config/defaults.json#sparse_snr.spacing_px 与 config/templates/normalize.phase_config.json（三处同值 64）。"
-        },
-        "algorithm_drizzle_pixfrac": {
-          "type": "number",
-          "exclusiveMinimum": 0,
-          "maximum": 1,
-          "description": "drizzle drop 收缩因子 pixfrac（字段收录；语义/值域权威：docs/science/DRIZZLE.md:21,:27,:31 与 docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102——0 < pixfrac <= 1，非法值显式 NO_DATA 不夹逼）。数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority，归属 SCI-RES-01/R-005），本字段不声明数值默认。"
-        },
-        "algorithm_psf_model": {
-          "enum": [
-            "moffat4"
-          ],
-          "description": "PSF 模型选择；当前唯一实现路径为椭圆 Moffat4（docs/science/PSF.md:7,:81,:105；defaults.json psf.default_model）"
-        }
-      }
+    "block_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "块归属标识（可选）；写入日志与 run manifest 的 block.name，便于多块归属（§9.68）"
     },
-    "normalize_inputs": {
+    "input_lights": {
       "type": "array",
       "minItems": 1,
       "items": {
-        "type": "object",
-        "required": [
-          "light",
-          "filter"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "light": {
-            "type": "string",
-            "minLength": 1,
-            "description": "亮场帧路径"
-          },
-          "bias": {
-            "type": "string",
-            "minLength": 1
-          },
-          "dark": {
-            "type": "string",
-            "minLength": 1
-          },
-          "flat": {
-            "type": "string",
-            "minLength": 1
-          },
-          "cosmetic": {
-            "type": "string",
-            "minLength": 1,
-            "description": "宇宙线/坏点帧（ASTROCS_DESIGN.md §3.3:143 bias/dark/flat（+cosmetic））"
-          },
-          "filter": {
-            "$ref": "#/$defs/filter_name"
-          }
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "本块的一组亮场 FITS 路径（必填非空）。每帧独立处理、各自产出一个 HiPS 产品（§3.4）；全组共用本块的母版与运行参数（§9.68：同一组校准帧和运行参数支持一组 light）"
+    },
+    "master_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "母版校准帧 FITS 路径（块级共用；缺 → 预检 error，仅 -force 可越）"
+    },
+    "filter_passband": {
+      "type": "string",
+      "anyOf": [
+        {
+          "const": ""
+        },
+        {
+          "$ref": "#/$defs/filter_name"
+        }
+      ],
+      "description": "本块整组 light 共用的观测滤镜/波段标识；空串 = 显式无 filter；非空必须逐字命中 config/filters.json（未知滤镜 -> error，§3.3/§9.68）"
+    },
+    "drizzle_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "nested": {
+          "type": "integer",
+          "enum": [
+            0,
+            1
+          ],
+          "description": "HEALPix nested 布局（1 = nested，唯一生产路径）"
+        },
+        "nside": {
+          "type": [
+            "integer",
+            "string",
+            "object"
+          ],
+          "description": "HEALPix nside；缺省即 auto（由最细输入采样派生，docs/algorithms/DRIZZLE_GEOMETRY.md §3），显式填 nside 或 nside.mode 则按 explicit 校验"
+        },
+        "pixfrac": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "description": "drizzle drop 收缩因子 pixfrac（0 < pixfrac <= 1；语义/值域权威 docs/science/DRIZZLE.md + docs/algorithms/DRIZZLE_GEOMETRY.md；非法值显式 NO_DATA 不夹逼）"
+        },
+        "precision_mode": {
+          "enum": [
+            0,
+            1
+          ],
+          "description": "科学计算精度，必须显式：0=FP32 / 1=FP64（缺失即 DATA 拒绝，不 silent 降精度；docs/algorithms/DRIZZLE_GEOMETRY.md B2-A12）"
+        }
+      }
+    },
+    "wcs_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "gaia_data_dir": {
+          "type": "string",
+          "description": "Gaia 数据目录：走真实 IPV 解算（与显式线性 WCS 八参数二选一）"
+        },
+        "init_source": {
+          "enum": [
+            "header_pointing",
+            "config",
+            "neighbor_crval"
+          ],
+          "description": "可选指向来源（缺省 header_pointing）"
+        },
+        "crpix1": {
+          "type": "number"
+        },
+        "crpix2": {
+          "type": "number"
+        },
+        "crval1": {
+          "type": "number"
+        },
+        "crval2": {
+          "type": "number"
+        },
+        "cd11": {
+          "type": "number"
+        },
+        "cd12": {
+          "type": "number"
+        },
+        "cd21": {
+          "type": "number"
+        },
+        "cd22": {
+          "type": "number"
+        }
+      }
+    },
+    "master_units": {
+      "type": "object",
+      "description": "母版标度声明（UNIT-001 / SCI-CAL-001 §3）：{light|bias|dark|flat: \"ADU\"|\"normalized\"}；缺声明时消费边界 fail-closed（module_adapters p1_op_calibrate）"
+    },
+    "master_scale": {
+      "type": "object",
+      "description": "母版标度换算（ALG-CAL-001 §2 标度声明表）：{light|bias|dark|flat: <number>（ADU 因子）}"
+    },
+    "master_flat_normalize": {
+      "enum": [
+        "none",
+        "median"
+      ],
+      "description": "平场归一化方式；median 时按 SCI-CAL-001 §5 施加，配合 master_flat_median_range"
+    },
+    "master_flat_median_range": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "number"
+      },
+      "description": "平场中值归一化窗口 [lower, upper]（两个有限数且 lower < upper；消费侧 fail-closed）"
+    },
+    "cosmetic": {
+      "type": "object",
+      "description": "宇宙线/坏点配置块（cosmetic.enabled 等；值类型与默认见 docs/contracts/DATA_SEMANTICS.md §16.1）"
+    },
+    "snr": {
+      "type": "object",
+      "description": "可选 SNR 科学块（gain_e_per_adu/read_noise_e/zero_point_mag/sigma_logflux_dex/n_matches 等）；缺失 = 未知 gain/ZP（天空受限最优提取，m_5 = null），消费 = p1_op_noise"
+    },
+    "photometry": {
+      "type": "object",
+      "description": "可选测光归一配置块（fit.enabled/gaia_data_dir/filter/filters_json/qe_json/qe_name/max_stars）；缺失 = 不施加（如实中性 applied=false，不伪造 1.0），消费 = p1_op_photometry"
+    },
+    "sparse_snr_layer": {
+      "type": "boolean",
+      "default": true,
+      "description": "是否产出稀疏帧内 SNR 层（Phase1 标准层，插入 HiPS 文件内）。默认 true：负责人 2026-09-19 裁决「默认稀疏路径要求稀疏层默认产出」（change-claim FIX-SCI-SNR-CANON-001 §3.2；docs/plugins/algorithms_phase1/07_noise_snr.md:112、08_drizzle.md:46）。本键只决定「是否产出稀疏层」，不决定 Phase2 走哪条重建路径（那是 mosaic 的 snr_path）——一个字段只承载一个含义（docs/design/UNIFIED_MODEL.md §2）。数值默认的机器可读承载 = 本 schema 的 default 与 config/templates/normalize.phase_config.json；不复制进 config/defaults.json（config/config_registry.json#rules.no_second_source：phase_config 行以本 schema 为唯一事实源）。"
+    },
+    "sparse_snr_spacing_px": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 64,
+      "description": "稀疏 SNR 层控制点间隔 Δ（px），即负责人 2026-09-19 裁决的「稀疏层密度」像素域表述（GAP_AUDIT §9.45：「64 可以了，够密且占用空间可控」）：默认 Δ = 64 px，复用 Phase2 UPM 的 8×8/tile 控制网格（二者同一套几何）⇒ Δ = hips.tile_width / 8 = 512 / 8 = 64（config/defaults.json#hips.tile_width = 512）；实测 SNR 场相关长度 ℓ = 48 px ⇒ Δ/ℓ = 1.33（近临界采样，够密）。单位 px，非「点/度²」；与文档侧 07_noise_snr.md:113 的 sparse_snr_density（点/度²、pending_authority）不是同一字段（后者数值仍无 SCI/ALG 权威，本键不改其状态）。数值默认同时登记于 config/defaults.json#sparse_snr.spacing_px 与 config/templates/normalize.phase_config.json（三处同值 64）。"
+    },
+    "algorithm_drizzle_pixfrac": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1,
+      "description": "drizzle drop 收缩因子 pixfrac（字段收录；语义/值域权威：docs/science/DRIZZLE.md 与 docs/algorithms/DRIZZLE_GEOMETRY.md——0 < pixfrac <= 1，非法值显式 NO_DATA 不夹逼）。数值默认未冻结（defaults.json 的 drizzle.pixfrac 为 pending_authority，归属 SCI-RES-01/R-005），本字段不声明数值默认。"
+    },
+    "algorithm_psf_model": {
+      "enum": [
+        "moffat4"
+      ],
+      "description": "PSF 模型选择；当前唯一实现路径为椭圆 Moffat4（docs/science/PSF.md；defaults.json psf.default_model）"
+    },
+    "normalize_block": {
+      "type": "object",
+      "required": [
+        "input_lights",
+        "output_dir"
+      ],
+      "additionalProperties": false,
+      "description": "一个数据块 = 一组 light + 一套母版 + 运行参数 + 块级 output_dir（§9.68）。一块 = 一次运行（独立 output_dir / 独立 run manifest）。",
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/block_name"
+        },
+        "input_lights": {
+          "$ref": "#/$defs/input_lights"
+        },
+        "master_bias": {
+          "$ref": "#/$defs/master_path"
+        },
+        "master_dark": {
+          "$ref": "#/$defs/master_path"
+        },
+        "master_flat": {
+          "$ref": "#/$defs/master_path"
+        },
+        "cosmetic": {
+          "$ref": "#/$defs/cosmetic"
+        },
+        "dark_optimization": {
+          "type": "boolean",
+          "description": "dark 母版是否含 bias（true = 内部按 dark−bias 分离）；提供 dark 而未显式给出本键 ⇒ DATA 拒绝（UNIT-001 U3）"
+        },
+        "dark_scale_factor": {
+          "type": "number",
+          "description": "dark 缩放因子（K = t_light/t_dark 语义见 docs/science/CALIBRATION.md）；运行期兜底 1.0"
+        },
+        "master_units": {
+          "$ref": "#/$defs/master_units"
+        },
+        "master_scale": {
+          "$ref": "#/$defs/master_scale"
+        },
+        "master_flat_normalize": {
+          "$ref": "#/$defs/master_flat_normalize"
+        },
+        "master_flat_median_range": {
+          "$ref": "#/$defs/master_flat_median_range"
+        },
+        "filter_passband": {
+          "$ref": "#/$defs/filter_passband"
+        },
+        "output_dir": {
+          "$ref": "#/$defs/output_dir"
+        },
+        "drizzle": {
+          "$ref": "#/$defs/drizzle_config"
+        },
+        "wcs": {
+          "$ref": "#/$defs/wcs_config"
+        },
+        "snr": {
+          "$ref": "#/$defs/snr"
+        },
+        "photometry": {
+          "$ref": "#/$defs/photometry"
+        },
+        "sparse_snr_layer": {
+          "$ref": "#/$defs/sparse_snr_layer"
+        },
+        "sparse_snr_spacing_px": {
+          "$ref": "#/$defs/sparse_snr_spacing_px"
+        },
+        "algorithm_drizzle_pixfrac": {
+          "$ref": "#/$defs/algorithm_drizzle_pixfrac"
+        },
+        "algorithm_psf_model": {
+          "$ref": "#/$defs/algorithm_psf_model"
         }
       }
     }
+  },
+  "properties": {
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/normalize_block"
+      },
+      "description": "多数据块数组：每块 = 一组 light + 一套母版 + 运行参数 + 块级 output_dir（§9.68）"
+    },
+    "input_lights": {
+      "$ref": "#/$defs/input_lights"
+    },
+    "master_bias": {
+      "$ref": "#/$defs/master_path"
+    },
+    "master_dark": {
+      "$ref": "#/$defs/master_path"
+    },
+    "master_flat": {
+      "$ref": "#/$defs/master_path"
+    },
+    "cosmetic": {
+      "$ref": "#/$defs/cosmetic"
+    },
+    "dark_optimization": {
+      "type": "boolean",
+      "description": "dark 母版是否含 bias（true = 内部按 dark−bias 分离）；提供 dark 而未显式给出本键 ⇒ DATA 拒绝（UNIT-001 U3）"
+    },
+    "dark_scale_factor": {
+      "type": "number",
+      "description": "dark 缩放因子（K = t_light/t_dark 语义见 docs/science/CALIBRATION.md）；运行期兜底 1.0"
+    },
+    "master_units": {
+      "$ref": "#/$defs/master_units"
+    },
+    "master_scale": {
+      "$ref": "#/$defs/master_scale"
+    },
+    "master_flat_normalize": {
+      "$ref": "#/$defs/master_flat_normalize"
+    },
+    "master_flat_median_range": {
+      "$ref": "#/$defs/master_flat_median_range"
+    },
+    "filter_passband": {
+      "$ref": "#/$defs/filter_passband"
+    },
+    "output_dir": {
+      "$ref": "#/$defs/output_dir"
+    },
+    "drizzle": {
+      "$ref": "#/$defs/drizzle_config"
+    },
+    "wcs": {
+      "$ref": "#/$defs/wcs_config"
+    },
+    "snr": {
+      "$ref": "#/$defs/snr"
+    },
+    "photometry": {
+      "$ref": "#/$defs/photometry"
+    },
+    "sparse_snr_layer": {
+      "$ref": "#/$defs/sparse_snr_layer"
+    },
+    "sparse_snr_spacing_px": {
+      "$ref": "#/$defs/sparse_snr_spacing_px"
+    },
+    "algorithm_drizzle_pixfrac": {
+      "$ref": "#/$defs/algorithm_drizzle_pixfrac"
+    },
+    "algorithm_psf_model": {
+      "$ref": "#/$defs/algorithm_psf_model"
+    }
+  },
+  "if": {
+    "required": [
+      "blocks"
+    ]
+  },
+  "then": {
+    "required": [
+      "schema_version"
+    ],
+    "patternProperties": {
+      "^schema_version$": {
+        "const": "1"
+      }
+    },
+    "propertyNames": {
+      "enum": [
+        "schema_version",
+        "blocks"
+      ]
+    },
+    "description": "多块形态：顶层只允许 schema_version + blocks[]（与平铺单块简写互斥）"
+  },
+  "else": {
+    "required": [
+      "schema_version",
+      "input_lights",
+      "output_dir"
+    ],
+    "patternProperties": {
+      "^schema_version$": {
+        "const": "1"
+      }
+    },
+    "propertyNames": {
+      "enum": [
+        "schema_version",
+        "input_lights",
+        "master_bias",
+        "master_dark",
+        "master_flat",
+        "cosmetic",
+        "dark_optimization",
+        "dark_scale_factor",
+        "master_units",
+        "master_scale",
+        "master_flat_normalize",
+        "master_flat_median_range",
+        "filter_passband",
+        "output_dir",
+        "drizzle",
+        "wcs",
+        "snr",
+        "photometry",
+        "sparse_snr_layer",
+        "sparse_snr_spacing_px",
+        "algorithm_drizzle_pixfrac",
+        "algorithm_psf_model"
+      ]
+    },
+    "description": "平铺单块简写：只有一块时的等价写法（§9.68 向后兼容）；与 blocks[] 互斥"
   }
 }

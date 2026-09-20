@@ -962,28 +962,40 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     return astrocs::OK;
 }
 
-int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
-    // RUNTIME-CI-001: 显式模式路由门（--mode / legacy weight_mode）；reject → ARGS(2)。
-    {
-        const int mrc = astrocs::v6cli::mode_gate(p, 2, ev);
-        if (mrc != astrocs::OK) return mrc;
-    }
-    const std::string cfg = need_value(p, "--json");
-    std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
-    if (!f) {
-        std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
-        return astrocs::INPUT;
-    }
-    std::stringstream buf; buf << f.rdbuf();
-    const std::string cfg_text = buf.str();
-    bool ok = false;
-    const std::string cfg_sha = file_sha256(cfg, &ok);
-    if (!ok) return astrocs::INPUT;
-    // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
-    nlohmann::json cfg_doc;
-    const int vrc2 = validate_config_full(cfg, &cfg_doc, /*session_mode=*/true);
-    if (vrc2 != astrocs::OK) return vrc2;
-    const std::string cfg_out_dir = cfg_doc.value("output_dir", std::string("."));
+// ── CLI-MULTIBLOCK（GAP_AUDIT §9.68 / §9.71 裁决 2）：逐块会话执行的共用返回面 ──
+// 单块简写调用一次（block_count==1）；多块形态逐块调用 —— 每块独立 output_dir、
+// 独立 run manifest（不得把多块混成一个 manifest）；块名写入日志与 manifest。
+// cfg/cfg_sha = 用户配置文件（manifest provenance 面：多块时恒为原文件，使 verify 的
+// config 哈希仍锚在用户实际给的配置上）；cfg_text = 本块实际生效配置 JSON
+// （单块简写本身，或 blocks[i] 展开）。final 事件由调用方统一发一次（一次运行恰一个）。
+struct BlockOutcome {
+    int rc = astrocs::OK;
+    std::string kind = "ok";
+    std::string why = "complete";
+};
+
+// CLI-MULTIBLOCK（§9.71 裁决 2）：单块 phase2 会话执行（与 phase1 同构）。
+BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
+                              const std::string& cfg, const std::string& cfg_sha,
+                              const std::string& cfg_text, const std::string& block_name,
+                              int block_index, int block_count) {
+    BlockOutcome out;
+    const bool multi = block_count > 1;
+    const std::string tag =
+        multi ? (" (block " + std::to_string(block_index + 1) + "/" +
+                 std::to_string(block_count) +
+                 (block_name.empty() ? "" : " '" + block_name + "'") + ")")
+              : std::string();
+    // B1-A8: 取消/失败路径也用显式 output_dir（禁 CWD "." 残留）；多块形态的
+    // output_dir 在块级 ⇒ 从本块生效配置取（不是原文件的顶层）。
+    const std::string cfg_out_dir = [&] {
+        try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
+        catch (...) { return std::string("."); }
+    }();
+    if (multi)
+        std::fprintf(stderr, "astrocs: mosaic block %d/%d%s → %s\n", block_index + 1,
+                     block_count, block_name.empty() ? "" : (" '" + block_name + "'").c_str(),
+                     cfg_out_dir.c_str());
 
     // RT-008: phase2 走 Runtime 单 phase IR 子图（与 run --phases 2 同一路径）。
     ev.stage("phase2_session", true);
@@ -995,10 +1007,10 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
                 ev.stage("phase2_session", false);
                 const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "cancelled by user",
                                                    cfg, cfg_sha, {2});
-                if (wrc != astrocs::OK) return wrc;
-                ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
-                std::fprintf(stderr, "astrocs: cancelled\n");
-                return astrocs::CANCELLED;
+                if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
+                std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+                out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+                return out;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
@@ -1006,7 +1018,7 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // B2-A10: 同 phase3 —— 会话前落 run_context（§4.3 provenance 单一来源）。
     {
         const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
-        if (ctxrc != astrocs::OK) return ctxrc;
+        if (ctxrc != astrocs::OK) { out.rc = ctxrc; out.kind = "phase2_failed"; out.why = "run context write failed"; return out; }
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
@@ -1096,27 +1108,31 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         catch (...) { return std::string("."); }
     }();
 
+    // CLI-MULTIBLOCK（§9.71 裁决 2）: 块归属写进本块 manifest（单块简写不写，保持旧形态）。
+    if (multi)
+        extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
+
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg, cfg_sha, {2}, artifacts, extra);
-        if (wrc != astrocs::OK) return wrc;
-        ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
-        std::fprintf(stderr, "astrocs: cancelled\n");
-        return astrocs::CANCELLED;
+        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
+        std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+        out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+        return out;
     }
     if (rrc != astrocs::OK) {
         const std::string why = fail_reason.empty() ? ("phase2 failed (exit " + std::to_string(rrc) + ")")
                                                     : fail_reason;
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase2 failed: " + why,
                                            cfg, cfg_sha, {2}, artifacts, extra);
-        if (wrc != astrocs::OK) return wrc;
-        ev.emit_final(rrc, "phase2_failed", nullptr, why);
-        std::fprintf(stderr, "astrocs: phase2 failed: %s\n", sanitize(why).c_str());
-        return rrc;
+        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
+        std::fprintf(stderr, "astrocs: phase2 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
+        out.rc = rrc; out.kind = "phase2_failed"; out.why = why;
+        return out;
     }
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase2 ok", cfg, cfg_sha, {2},
                                        artifacts, extra);
-    if (wrc != astrocs::OK) return wrc;
+    if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase2_failed"; out.why = "manifest write failed"; return out; }
     // RT-008: 从节点 manifest 读真实科学值（session inspect 摘要）。
     // 节点 id 是节点图 id（coverage/sample/…/write），不含 "res"——按内容扫描
     // 任一带 n_obs 键的节点 manifest（旧 "res" 过滤是 CLI-002 拆分前 node id）。
@@ -1132,15 +1148,17 @@ int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     }
     emit_phase_stats_resource(ev, "phase2", "session summary",
                               {{"n_inputs", n_inputs}, {"n_obs", n_obs}}, &p2_summary);
-    ev.emit_final(astrocs::OK, "ok", nullptr, "phase2 complete");
-    return astrocs::OK;
+    out.rc = astrocs::OK;
+    out.kind = "ok";
+    out.why = multi ? ("phase2 complete" + tag) : std::string("phase2 complete");
+    return out;
 }
 
-
-int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
-    // RUNTIME-CI-001: 显式输出模式路由门（--export-mode）；reject → ARGS(2)。
+// CLI-MULTIBLOCK（§9.71 裁决 2）：mosaic 运行入口（形态判定 + 逐块派发；final 恰一个）。
+int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    // RUNTIME-CI-001: 显式模式路由门（--mode / legacy weight_mode）；reject → ARGS(2)。
     {
-        const int mrc = astrocs::v6cli::mode_gate(p, 3, ev);
+        const int mrc = astrocs::v6cli::mode_gate(p, 2, ev);
         if (mrc != astrocs::OK) return mrc;
     }
     const std::string cfg = need_value(p, "--json");
@@ -1154,6 +1172,68 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     bool ok = false;
     const std::string cfg_sha = file_sha256(cfg, &ok);
     if (!ok) return astrocs::INPUT;
+    nlohmann::json doc;
+    try { doc = nlohmann::json::parse(cfg_text); } catch (...) { doc = nlohmann::json(); }
+    if (!(doc.is_object() && doc.contains("blocks"))) {
+        // 平铺单块简写（原路径，向后兼容）
+        // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
+        nlohmann::json validated;
+        const int vrc2 = validate_config_full(cfg, &validated, /*session_mode=*/true, "mosaic");
+        if (vrc2 != astrocs::OK) return vrc2;
+        BlockOutcome o = run_phase2_block(p, ev, cfg, cfg_sha, cfg_text, std::string(), 0, 1);
+        ev.emit_final(o.rc, o.kind, nullptr, o.why);
+        return o.rc;
+    }
+    // 多块形态：结构校验（唯一实现 = parser.cpp session_blocks_errors，键集从 config_fields() 派生）
+    int bcode = astrocs::ARGS;
+    const std::vector<std::string> berrs = session_blocks_errors("mosaic", doc, &bcode);
+    if (!berrs.empty()) {
+        for (const auto& e : berrs) std::fprintf(stderr, "astrocs: %s\n", e.c_str());
+        ev.emit_final(bcode, "phase2_failed", nullptr, berrs.front());
+        return bcode;
+    }
+    const int nblocks = static_cast<int>(doc["blocks"].size());
+    BlockOutcome agg;
+    bool have_fail = false;
+    for (int i = 0; i < nblocks; ++i) {
+        nlohmann::json bdoc = doc["blocks"][i];
+        const std::string bname =
+            (bdoc.contains("name") && bdoc["name"].is_string()) ? bdoc["name"].get<std::string>()
+                                                                : std::string();
+        bdoc.erase("name");
+        if (!bdoc.contains("schema_version")) bdoc["schema_version"] = "1";
+        BlockOutcome o = run_phase2_block(p, ev, cfg, cfg_sha, bdoc.dump(), bname, i, nblocks);
+        if (o.rc != astrocs::OK && !have_fail) { agg = o; have_fail = true; }
+        if (o.rc == astrocs::CANCELLED) break;   // 用户已要求停：后续块不再起
+    }
+    if (!have_fail) agg.why = "phase2 complete (blocks=" + std::to_string(nblocks) + ")";
+    ev.emit_final(agg.rc, agg.kind, nullptr, agg.why);
+    return agg.rc;
+}
+
+
+// CLI-MULTIBLOCK（§9.71 裁决 2）：单块 phase3 会话执行（与 phase1/2 同构）。
+BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
+                              const std::string& cfg, const std::string& cfg_sha,
+                              const std::string& cfg_text, const std::string& block_name,
+                              int block_index, int block_count) {
+    BlockOutcome out;
+    const bool multi = block_count > 1;
+    const std::string tag =
+        multi ? (" (block " + std::to_string(block_index + 1) + "/" +
+                 std::to_string(block_count) +
+                 (block_name.empty() ? "" : " '" + block_name + "'") + ")")
+              : std::string();
+    // B1-A8: 取消/失败路径也用显式 output_dir（禁 CWD "." 残留）；多块形态的
+    // output_dir 在块级 ⇒ 从本块生效配置取（不是原文件的顶层）。
+    const std::string cfg_out_dir = [&] {
+        try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
+        catch (...) { return std::string("."); }
+    }();
+    if (multi)
+        std::fprintf(stderr, "astrocs: export block %d/%d%s → %s\n", block_index + 1,
+                     block_count, block_name.empty() ? "" : (" '" + block_name + "'").c_str(),
+                     cfg_out_dir.c_str());
 
     // CLI-002 实现漏迁恢复(原 cmd_run_pipeline 段, test_08 冻结验收): prior
     // astrocs_run_*.json 记录的 artifact 哈希链任一与磁盘不符 → 8(绝不静默跳过验证)。
@@ -1212,25 +1292,18 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
             } catch (...) { mismatch = true; }
         }
         if (mismatch) {
-            nlohmann::json cfg_doc0;
-            const int vrc0 = validate_config_full(cfg, &cfg_doc0, /*session_mode=*/true);
-            (void)vrc0;
-            const std::string out_dir0 = cfg_doc0.is_object()
-                ? cfg_doc0.value("output_dir", std::string(".")) : std::string(".");
-            const int wrc = write_run_manifest(out_dir0, ev, "incomplete", "resume hash mismatch",
+            // 多块形态: 落点取**本块** output_dir（顶层 output_dir 在块形态下不存在,
+            // 用 "." 会把 incomplete manifest 写到 CWD —— B1-A8 禁止）。
+            const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "resume hash mismatch",
                                                cfg, cfg_sha, {3});
-            if (wrc != astrocs::OK) return wrc;
-            ev.emit_final(astrocs::INTEGRITY, "resume_hash_mismatch", nullptr,
-                          "prior artifact hash mismatch");
-            std::fprintf(stderr, "astrocs: resume hash mismatch\n");
-            return astrocs::INTEGRITY;  // 04: 输出完整性验证失败 → 8
+            if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
+            std::fprintf(stderr, "astrocs: resume hash mismatch%s\n", tag.c_str());
+            out.rc = astrocs::INTEGRITY;
+            out.kind = "resume_hash_mismatch";
+            out.why = "prior artifact hash mismatch";
+            return out;  // 04: 输出完整性验证失败 → 8
         }
     }
-    // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
-    nlohmann::json cfg_doc3;
-    const int vrc3 = validate_config_full(cfg, &cfg_doc3, /*session_mode=*/true);
-    if (vrc3 != astrocs::OK) return vrc3;
-    const std::string cfg_out_dir = cfg_doc3.value("output_dir", std::string("."));
 
     // RT-008: phase3 走 Runtime 单 phase IR 子图（与 run --phases 3 同一路径）。
     ev.stage("phase3_session", true);
@@ -1242,10 +1315,10 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
                 ev.stage("phase3_session", false);
                 const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "cancelled by user",
                                                    cfg, cfg_sha, {3});
-                if (wrc != astrocs::OK) return wrc;
-                ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
-                std::fprintf(stderr, "astrocs: cancelled\n");
-                return astrocs::CANCELLED;
+                if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
+                std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+                out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+                return out;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
@@ -1254,7 +1327,7 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // 软件版本/源码 SHA 单一来源；缺上下文 = 节点 DATA fail-closed）。
     {
         const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
-        if (ctxrc != astrocs::OK) return ctxrc;
+        if (ctxrc != astrocs::OK) { out.rc = ctxrc; out.kind = "phase3_failed"; out.why = "run context write failed"; return out; }
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
@@ -1332,27 +1405,31 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         catch (...) { return std::string("."); }
     }();
 
+    // CLI-MULTIBLOCK（§9.71 裁决 2）: 块归属写进本块 manifest（单块简写不写，保持旧形态）。
+    if (multi)
+        extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
+
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg, cfg_sha, {3}, artifacts, extra);
-        if (wrc != astrocs::OK) return wrc;
-        ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
-        std::fprintf(stderr, "astrocs: cancelled\n");
-        return astrocs::CANCELLED;
+        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
+        std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+        out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+        return out;
     }
     if (rrc != astrocs::OK) {
         const std::string why = fail_reason.empty() ? ("phase3 failed (exit " + std::to_string(rrc) + ")")
                                                     : fail_reason;
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase3 failed: " + why,
                                            cfg, cfg_sha, {3}, artifacts, extra);
-        if (wrc != astrocs::OK) return wrc;
-        ev.emit_final(rrc, "phase3_failed", nullptr, why);
-        std::fprintf(stderr, "astrocs: phase3 failed: %s\n", sanitize(why).c_str());
-        return rrc;
+        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
+        std::fprintf(stderr, "astrocs: phase3 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
+        out.rc = rrc; out.kind = "phase3_failed"; out.why = why;
+        return out;
     }
     const int wrc = write_run_manifest(out_dir, ev, "complete", "phase3 ok", cfg, cfg_sha, {3},
                                        artifacts, extra);
-    if (wrc != astrocs::OK) return wrc;
+    if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase3_failed"; out.why = "manifest write failed"; return out; }
     // RT-009: phase3 run 成功路径补写运行图产物（static/observed/sidecar + L0 渲染）。
     // 此前 write_run_graphs 定义后无任何调用点（CLI-002 移除 cmd_run_pipeline/
     // cmd_graph 时漏接），RT-009 test_07 期望的 out/graph/* 恒缺失。
@@ -1360,8 +1437,65 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     write_run_graphs(out_dir, ev, cfg, cfg_sha, {3});
     emit_phase_stats_resource(ev, "phase3", "session summary",
                               {{"outputs", artifacts.size()}}, &p3_summary);
-    ev.emit_final(astrocs::OK, "ok", nullptr, "phase3 complete");
-    return astrocs::OK;
+    out.rc = astrocs::OK;
+    out.kind = "ok";
+    out.why = multi ? ("phase3 complete" + tag) : std::string("phase3 complete");
+    return out;
+}
+
+// CLI-MULTIBLOCK（§9.71 裁决 2）：export 运行入口（形态判定 + 逐块派发；final 恰一个）。
+int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    // RUNTIME-CI-001: 显式输出模式路由门（--export-mode）；reject → ARGS(2)。
+    {
+        const int mrc = astrocs::v6cli::mode_gate(p, 3, ev);
+        if (mrc != astrocs::OK) return mrc;
+    }
+    const std::string cfg = need_value(p, "--json");
+    std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
+    if (!f) {
+        std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
+        return astrocs::INPUT;
+    }
+    std::stringstream buf; buf << f.rdbuf();
+    const std::string cfg_text = buf.str();
+    bool ok = false;
+    const std::string cfg_sha = file_sha256(cfg, &ok);
+    if (!ok) return astrocs::INPUT;
+    nlohmann::json doc;
+    try { doc = nlohmann::json::parse(cfg_text); } catch (...) { doc = nlohmann::json(); }
+    if (!(doc.is_object() && doc.contains("blocks"))) {
+        // 平铺单块简写（原路径，向后兼容）
+        nlohmann::json validated;
+        const int vrc3 = validate_config_full(cfg, &validated, /*session_mode=*/true, "export");
+        if (vrc3 != astrocs::OK) return vrc3;
+        BlockOutcome o = run_phase3_block(p, ev, cfg, cfg_sha, cfg_text, std::string(), 0, 1);
+        ev.emit_final(o.rc, o.kind, nullptr, o.why);
+        return o.rc;
+    }
+    int bcode = astrocs::ARGS;
+    const std::vector<std::string> berrs = session_blocks_errors("export", doc, &bcode);
+    if (!berrs.empty()) {
+        for (const auto& e : berrs) std::fprintf(stderr, "astrocs: %s\n", e.c_str());
+        ev.emit_final(bcode, "phase3_failed", nullptr, berrs.front());
+        return bcode;
+    }
+    const int nblocks = static_cast<int>(doc["blocks"].size());
+    BlockOutcome agg;
+    bool have_fail = false;
+    for (int i = 0; i < nblocks; ++i) {
+        nlohmann::json bdoc = doc["blocks"][i];
+        const std::string bname =
+            (bdoc.contains("name") && bdoc["name"].is_string()) ? bdoc["name"].get<std::string>()
+                                                                : std::string();
+        bdoc.erase("name");
+        if (!bdoc.contains("schema_version")) bdoc["schema_version"] = "1";
+        BlockOutcome o = run_phase3_block(p, ev, cfg, cfg_sha, bdoc.dump(), bname, i, nblocks);
+        if (o.rc != astrocs::OK && !have_fail) { agg = o; have_fail = true; }
+        if (o.rc == astrocs::CANCELLED) break;   // 用户已要求停：后续块不再起
+    }
+    if (!have_fail) agg.why = "phase3 complete (blocks=" + std::to_string(nblocks) + ")";
+    ev.emit_final(agg.rc, agg.kind, nullptr, agg.why);
+    return agg.rc;
 }
 
 
@@ -1382,7 +1516,7 @@ int phase_ir_prereq(const Parsed& p, int phase, std::string* cfg_sha_out,
                     std::string* ir_out) {
     const std::string cfg_path = need_value(p, "--config");
     nlohmann::json doc;
-    const int rc = validate_config_full(cfg_path, &doc, /*session_mode=*/true);
+    const int rc = validate_config_full(cfg_path, &doc, /*session_mode=*/true, "normalize");
     if (rc != astrocs::OK) return rc;
     bool ok = false;
     const std::string sha = file_sha256(cfg_path, &ok);
@@ -1504,7 +1638,7 @@ int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
     nlohmann::json doc;
     // inspect 只要求 config 合法(session_mode)以取得 output_dir; 不要求 IR 可构建
     // (错相 config 也允许检视运行历史)。
-    const int rc = validate_config_full(cfg_path, &doc, /*session_mode=*/true);
+    const int rc = validate_config_full(cfg_path, &doc, /*session_mode=*/true, "normalize");
     if (rc != astrocs::OK) return rc;
     const std::string out_dir = doc.value("output_dir", std::string("."));
     std::error_code ec;
@@ -1608,24 +1742,38 @@ int cmd_phase_inspect(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
 }
 
 
-int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
-    const std::string cfg = need_value(p, "--json");
-    std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
-    if (!f) {
-        std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
-        return astrocs::INPUT;
-    }
-    std::stringstream buf; buf << f.rdbuf();
-    const std::string cfg_text = buf.str();
-    bool ok = false;
-    const std::string cfg_sha = file_sha256(cfg, &ok);
-    if (!ok) return astrocs::INPUT;
+// CLI-MULTIBLOCK（§9.68/§9.71）：单块 phase1 会话执行（结构体定义见文件上方）。
+
+BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
+                                    const std::string& cfg_path, const std::string& cfg_sha,
+                                    const std::string& block_text,
+                                    const std::string& block_name,
+                                    int block_index, int block_count) {
+    BlockOutcome out;
+    const bool multi = block_count > 1;
+    const std::string tag =
+        multi ? (" (block " + std::to_string(block_index + 1) + "/" +
+                 std::to_string(block_count) +
+                 (block_name.empty() ? "" : " '" + block_name + "'") + ")")
+              : std::string();
     // CLI-002: 单 phase 命令复用顶层 config 全量校验(unknown key→3), 与已移除的 run 路径同面。
+    // 多块形态校验的是**整个文件**（validate_config_full 逐块判）⇒ 每块调用同一路径。
     nlohmann::json cfg_doc1;
-    const int vrc1 = validate_config_full(cfg, &cfg_doc1, /*session_mode=*/true);
-    if (vrc1 != astrocs::OK) return vrc1;
-    // B1-A8: 取消路径也用显式 output_dir（禁 CWD "." 残留）
-    const std::string cfg_out_dir = cfg_doc1.value("output_dir", std::string("."));
+    const int vrc1 = validate_config_full(cfg_path, &cfg_doc1, /*session_mode=*/true, "normalize");
+    if (vrc1 != astrocs::OK) {
+        out.rc = vrc1; out.kind = "phase1_failed"; out.why = "config rejected";
+        return out;
+    }
+    // B1-A8: 取消路径也用显式 output_dir（禁 CWD "." 残留）。
+    // 多块形态的 output_dir 在块级 ⇒ 从本块生效配置取（不是原文件的顶层）。
+    const std::string cfg_out_dir = [&] {
+        try { return nlohmann::json::parse(block_text).value("output_dir", std::string(".")); }
+        catch (...) { return std::string("."); }
+    }();
+    if (multi)
+        std::fprintf(stderr, "astrocs: normalize block %d/%d%s → %s\n", block_index + 1,
+                     block_count, block_name.empty() ? "" : (" '" + block_name + "'").c_str(),
+                     cfg_out_dir.c_str());
 
     // RT-008: phase1 走 Runtime 单 phase IR 子图（与 run --phases 1 同一路径，不是第二条）。
     // 退出码映射保持旧协议：配置错→2; 输入缺→3; 科学失败→70; IO→7; 取消→9。
@@ -1637,12 +1785,12 @@ int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
         while (std::chrono::steady_clock::now() < deadline) {
             if (astrocs::is_cancelled()) {
                 ev.stage("phase1_session", false);
-                const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete", "cancelled by user",
-                                                   cfg, cfg_sha, {1});
-                if (wrc != astrocs::OK) return wrc;
-                ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
-                std::fprintf(stderr, "astrocs: cancelled\n");
-                return astrocs::CANCELLED;             // 04: 取消 → 9
+                const int wrc = write_run_manifest(cfg_out_dir, ev, "incomplete",
+                                                   "cancelled by user", cfg_path, cfg_sha, {1});
+                if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
+                std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+                out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+                return out;                            // 04: 取消 → 9
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
@@ -1650,12 +1798,12 @@ int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // B2-A10: 同 phase3 —— 会话前落 run_context（§4.3 provenance 单一来源）。
     {
         const int ctxrc = write_run_context(cfg_out_dir, ev.run_id());
-        if (ctxrc != astrocs::OK) return ctxrc;
+        if (ctxrc != astrocs::OK) { out.rc = ctxrc; out.kind = "phase1_failed"; out.why = "run context write failed"; return out; }
     }
     std::string fail_reason;
     const uint32_t budget = cli_affinity_cpu_count();
     astrocs::ProcessMonitor::Summary p1_summary;
-    const int rrc = run_with_resource_gate(ev, "phase1", cfg_text, budget, fail_reason,
+    const int rrc = run_with_resource_gate(ev, "phase1", block_text, budget, fail_reason,
                               &p1_summary, strict_resource_gate_arg(p));
     ev.stage("phase1_session", false);
 
@@ -1686,40 +1834,97 @@ int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
     // B2-A10（宪章 §4.3）: 同 phase2/3 的真实 provenance 子对象。
     nlohmann::json p1_extra = nlohmann::json::object();
     p1_extra["provenance"] = build_run_provenance(mans, artifacts);
-    const std::string out_dir = [&] {
-        try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
-        catch (...) { return std::string("."); }
-    }();
+    // CLI-MULTIBLOCK（§9.68）: 块归属写进本块 manifest（块级 name/index/count），
+    // 便于多块各自归属；单块简写不写本子对象（保持旧 manifest 逐字节形态）。
+    if (multi)
+        p1_extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
+    const std::string out_dir = cfg_out_dir;
 
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
-                                           cfg, cfg_sha, {1}, artifacts, p1_extra);
-        if (wrc != astrocs::OK) return wrc;
-        ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr, "cancelled by user");
-        std::fprintf(stderr, "astrocs: cancelled\n");
-        return astrocs::CANCELLED;                   // 04: 取消 → 9, manifest=incomplete
+                                           cfg_path, cfg_sha, {1}, artifacts, p1_extra);
+        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
+        std::fprintf(stderr, "astrocs: cancelled%s\n", tag.c_str());
+        out.rc = astrocs::CANCELLED; out.kind = "cancelled"; out.why = "cancelled by user";
+        return out;                                  // 04: 取消 → 9, manifest=incomplete
     }
     if (rrc != astrocs::OK) {
         const std::string why = fail_reason.empty() ? ("phase1 failed (exit " + std::to_string(rrc) + ")")
                                                     : fail_reason;
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "phase1 failed: " + why,
-                                           cfg, cfg_sha, {1}, artifacts, p1_extra);
-        if (wrc != astrocs::OK) return wrc;
-        ev.emit_final(rrc, "phase1_failed", nullptr, why);
-        std::fprintf(stderr, "astrocs: phase1 failed: %s\n", sanitize(why).c_str());
-        return rrc;  // RT-008: Runtime 退出码映射(Runtime 已按 04 合同映射)
+                                           cfg_path, cfg_sha, {1}, artifacts, p1_extra);
+        if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
+        std::fprintf(stderr, "astrocs: phase1 failed%s: %s\n", tag.c_str(), sanitize(why).c_str());
+        out.rc = rrc; out.kind = "phase1_failed"; out.why = why;
+        return out;  // RT-008: Runtime 退出码映射(Runtime 已按 04 合同映射)
     }
-    const int wrc = write_run_manifest(out_dir, ev, "complete", "phase1 ok", cfg, cfg_sha, {1},
+    const int wrc = write_run_manifest(out_dir, ev, "complete", "phase1 ok", cfg_path, cfg_sha, {1},
                                        artifacts, p1_extra);
-    if (wrc != astrocs::OK) return wrc;
+    if (wrc != astrocs::OK) { out.rc = wrc; out.kind = "phase1_failed"; out.why = "manifest write failed"; return out; }
     // RT-009/P1-001: phase1 成功路径补写运行图产物（static/observed/sidecar）。
     // 真实节点化后 phase1 trace 含每节点观测; best-effort: 函数内部只 warning
     // 不失败 run（"不失败 run"合同见其注释）。
-    write_run_graphs(out_dir, ev, cfg, cfg_sha, {1});
+    write_run_graphs(out_dir, ev, cfg_path, cfg_sha, {1});
     emit_phase_stats_resource(ev, "phase1", "frames processed",
                               {{"frames", artifacts.size()}}, &p1_summary);
-    ev.emit_final(astrocs::OK, "ok", nullptr, "phase1 complete");
-    return astrocs::OK;
+    out.rc = astrocs::OK;
+    out.kind = "ok";
+    out.why = multi ? ("phase1 complete" + tag) : std::string("phase1 complete");
+    return out;
+}
+
+// CLI-MULTIBLOCK（GAP_AUDIT §9.68）：normalize 运行入口。
+// 形态判定：顶层 blocks ⇒ 多块（逐块按序各自成一次运行：独立 output_dir、独立
+// run manifest、独立 run_context/graph；块级 name 写入日志与 manifest）；
+// 否则走平铺单块简写（原路径，向后兼容）。
+// 失败处置：逐块继续（块之间独立，后续块仍产出自己的 manifest），聚合返回**首个**
+// 非零 rc；取消（rc=9）立即停止后续块（用户已要求停）。final 事件恰一个。
+int cmd_session1_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
+    const std::string cfg = need_value(p, "--json");
+    std::ifstream f(std::filesystem::u8path(cfg), std::ios::binary);
+    if (!f) {
+        std::fprintf(stderr, "astrocs: config not found '%s'\n", cfg.c_str());
+        return astrocs::INPUT;
+    }
+    std::stringstream buf; buf << f.rdbuf();
+    const std::string cfg_text = buf.str();
+    bool ok = false;
+    const std::string cfg_sha = file_sha256(cfg, &ok);
+    if (!ok) return astrocs::INPUT;
+    nlohmann::json doc;
+    try { doc = nlohmann::json::parse(cfg_text); } catch (...) { doc = nlohmann::json(); }
+    if (!(doc.is_object() && doc.contains("blocks"))) {
+        BlockOutcome o = run_phase1_block(p, ev, cfg, cfg_sha, cfg_text, std::string(), 0, 1);
+        ev.emit_final(o.rc, o.kind, nullptr, o.why);
+        return o.rc;
+    }
+    // 多块形态：结构校验（唯一实现 = parser.cpp；含形态互斥/块级 output_dir/未知键）
+    int bcode = astrocs::ARGS;
+    const std::vector<std::string> berrs = session_blocks_errors("normalize", doc, &bcode);
+    if (!berrs.empty()) {
+        for (const auto& e : berrs) std::fprintf(stderr, "astrocs: %s\n", e.c_str());
+        ev.emit_final(bcode, "phase1_failed", nullptr, berrs.front());
+        return bcode;
+    }
+    const int nblocks = static_cast<int>(doc["blocks"].size());
+    BlockOutcome agg;
+    bool have_fail = false;
+    for (int i = 0; i < nblocks; ++i) {
+        const auto& b = doc["blocks"][i];
+        const std::string bname =
+            (b.contains("name") && b["name"].is_string()) ? b["name"].get<std::string>()
+                                                          : std::string();
+        nlohmann::json bdoc = b;
+        bdoc.erase("name");                       // name 是块归属标识，不是运行参数
+        if (!bdoc.contains("schema_version")) bdoc["schema_version"] = "1";
+        const std::string btext = bdoc.dump();
+        BlockOutcome o = run_phase1_block(p, ev, cfg, cfg_sha, btext, bname, i, nblocks);
+        if (o.rc != astrocs::OK && !have_fail) { agg = o; have_fail = true; }
+        if (o.rc == astrocs::CANCELLED) break;    // 用户已要求停：后续块不再起
+    }
+    if (!have_fail) agg.why = "phase1 complete (blocks=" + std::to_string(nblocks) + ")";
+    ev.emit_final(agg.rc, agg.kind, nullptr, agg.why);
+    return agg.rc;
 }
 
 // verify: 04 §3 — manifest→status→version→输入 hash→逐 artifact(存在→sha→size)

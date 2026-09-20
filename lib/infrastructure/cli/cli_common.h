@@ -90,8 +90,38 @@ std::string sanitize(const std::string& s);
 std::string sanitize_path(const std::string& p);
 std::string file_sha256(const std::string& u8path, bool* ok);
 std::string local_cpu_signature();
+
+// ── CLI-MULTIBLOCK（GAP_AUDIT §9.68 负责人裁决 2026-09-20）：normalize 多数据块配置 ──
+// 一个 JSON 内可并列多个数据块（block）：每块自带一组 input_lights + 一套母版
+// （master_bias/master_dark/master_flat）+ 运行参数 + 块级 output_dir；
+// 一块 = 一次运行（独立 output_dir / 独立 run manifest）。
+// 平铺单块简写（input_lights/master_*/output_dir 顶层平铺）保留，两者互斥。
+// 唯一实现 = lib/infrastructure/cli/parser.cpp（运行期 validate_config_full 与
+// subcommand.h 预检同源，禁止各写一份 ⇒ 防预检/运行期分叉）。
+bool config_has_blocks(const nlohmann::json& doc);
+bool config_has_flat_session_keys(const nlohmann::json& doc);
+// 退役的逐帧形态 {phase_name, config, inputs[]}（§9.68 否决项）判别 + 迁移提示
+// （唯一实现 = parser.cpp；预检与运行期同文案、同退出码 3）。
+// session_name ∈ {"normalize","mosaic","export"}：提示按会话给 —— normalize 的该形态是
+// 「每帧一个对象」的旧写法；mosaic/export 的**合同**形态同为 {phase_name, config, inputs[]}
+// （键名与 CLI 不一致，见 GAP_AUDIT §9.71 裁决 2 定案 3），其块化键名方案属**前台裁量面**
+// （定案 4），落地前 CLI 明确拒绝并指向该裁决（不静默按 normalize 键集解释）。
+bool config_is_retired_perframe_form(const nlohmann::json& doc);
+std::string retired_perframe_form_message(const std::string& session_name);
+// 多块形态结构校验（唯一实现）：返回诊断行（空 = 结构可达）；*exit_code = 2（结构/配置错）
+// 或 3（块内未知键，与顶层 unknown key 同码）。
+// include_unknown_keys=false ⇒ 只报结构错（预检页与运行期同序：结构错 2 优先，
+// 未知键交由 validate_config_full 报 3，与平铺路径逐字同序）。
+// session_name 决定块内**输入帧键**判据：normalize → input_lights[]（块 = 一组 light）；
+// mosaic/export 的块内键名方案待 §9.71 定案 4 ⇒ 此前对二者**显式不支持**（rc=2，
+// 不静默按 normalize 键集解释）。
+std::vector<std::string> session_blocks_errors(const std::string& session_name,
+                                               const nlohmann::json& doc, int* exit_code,
+                                               bool include_unknown_keys = true);
+
 int validate_config_full(const std::string& path, nlohmann::json* doc_out,
-                         bool session_mode = false);
+                         bool session_mode = false,
+                         const std::string& session_name = "normalize");
 int validate_cpu_profile(const std::string& path, nlohmann::json* prof_out);
 
 // RT-009: 当前 git HEAD 短 SHA（sidecar source_commit；无 git 环境返回 nullopt）。

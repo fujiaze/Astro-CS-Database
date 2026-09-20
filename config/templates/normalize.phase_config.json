@@ -1,26 +1,27 @@
 {
-  "phase_name": "normalize",
-  "config": {
-    "output_dir": "path/to/out/normalize",
-    "precision": "fp64",
-    "sparse_snr_layer": true,
-    "sparse_snr_spacing_px": 64,
-    "algorithm_psf_model": "moffat4"
-  },
-  "inputs": [
+  "schema_version": "1",
+  "blocks": [
     {
-      "light": "path/to/light1.fits",
-      "bias": "path/to/bias.fits",
-      "dark": "path/to/dark.fits",
-      "flat": "path/to/flat.fits",
-      "filter": "Baader R"
+      "name": "red",
+      "input_lights": ["path/to/light1.fits", "path/to/light2.fits"],
+      "master_bias": "path/to/bias.fits",
+      "master_dark": "path/to/dark.fits",
+      "master_flat": "path/to/flat_red.fits",
+      "output_dir": "path/to/out/red",
+      "drizzle": {"nested": 1, "pixfrac": 1.0, "precision_mode": 1},
+      "filter_passband": "Baader R",
+      "wcs": {"gaia_data_dir": "path/to/gaia"}
     },
     {
-      "light": "path/to/light2.fits",
-      "bias": "path/to/bias.fits",
-      "dark": "path/to/dark.fits",
-      "flat": "path/to/flat.fits",
-      "filter": "Baader R"
+      "name": "ha",
+      "input_lights": ["path/to/light3.fits"],
+      "master_bias": "path/to/bias.fits",
+      "master_dark": "path/to/dark.fits",
+      "master_flat": "path/to/flat_ha.fits",
+      "output_dir": "path/to/out/ha",
+      "drizzle": {"nested": 1, "pixfrac": 1.0, "precision_mode": 1},
+      "filter_passband": "Baader 7nm H-alpha",
+      "wcs": {"gaia_data_dir": "path/to/gaia"}
     }
   ]
 }

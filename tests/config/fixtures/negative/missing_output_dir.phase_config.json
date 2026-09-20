@@ -1,15 +1,15 @@
 {
-  "phase_name": "normalize",
-  "config": {
-    "precision": "fp64",
-    "sparse_snr_layer": false
-  },
-  "inputs": [
+  "schema_version": "1",
+  "blocks": [
     {
-      "light": "path/to/light1.fits",
-      "dark": "path/to/dark.fits",
-      "flat": "path/to/flat.fits",
-      "filter": "Baader R"
+      "name": "red",
+      "input_lights": [
+        "path/to/light1.fits"
+      ],
+      "master_bias": "path/to/bias.fits",
+      "master_dark": "path/to/dark.fits",
+      "master_flat": "path/to/flat.fits",
+      "filter_passband": "Baader R"
     }
   ]
 }
