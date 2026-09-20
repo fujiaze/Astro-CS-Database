@@ -4,36 +4,17 @@
 #include "p3_output.h"
 
 #if defined(_WIN32)
-// MSVC 无 unistd.h; 以 _ 前缀 CRT 提供 POSIX 文件操作为别名
+// MSVC 无 unistd.h; 以 _ 前缀 CRT 提供 pid 别名。
+// FIX-201: open/fsync/close/unlink 别名已删除 —— 这些文件系统原语现全部
+// 经 aio (aio_atomic_file.h), 本模块不再直接调用 (死宏清理)。
 #include <windows.h>
 #include <io.h>
 #include <process.h>
 #include <direct.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#ifndef O_RDONLY
-#define O_RDONLY _O_RDONLY
-#endif
 #ifndef getpid
 #define getpid _getpid
 #endif
-#ifndef unlink
-#define unlink _unlink
-#endif
-#ifndef fsync
-#define fsync _commit
-#endif
-#ifndef close
-#define close _close
-#endif
-#ifndef open
-#define open _open
-#endif
 #else
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 #endif
 
@@ -51,6 +32,12 @@
 // 成立; 该目录已由 astrocs_aio 的 PUBLIC include 面提供 ⇒ 扁平引用 (迁址无关)。
 #include "aio_cfitsio_mutex.h"
 #include "sha256.h"
+// FIX-201 (ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5):
+// 本模块**不再**自持文件系统原语 —— 临时文件/fsync/原子 rename/删除经 aio
+// 机制原语 (aio_atomic_file.h), 文件内容摘要经 aio 摘要原语
+// (aio_file_io.h)。二者均为 aio 内唯一实现 (header-only 机制面)。
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"
 
 #include <vector>
 
@@ -74,40 +61,29 @@ bool fits_write_std_chksum(fitsfile* f, std::string* why) {
 }
 
 bool make_temp_path(const std::string& out, std::string* tmp) {
-    char host[64] = {0};
-#if defined(_WIN32)
-    DWORD host_len = sizeof(host) - 1;
-    GetComputerNameA(host, &host_len);
-#else
-    gethostname(host, sizeof(host) - 1);
-#endif
+    // 死变量清理 (FIX-201): 原实现取 hostname 到 host[] 后从未读取, 且该
+    // 取值不参与临时名 ⇒ 删除 (临时名语义逐位不变: <out>.<pid>.tmp)。
     *tmp = out + "." + std::to_string(::getpid()) + ".tmp";
     // 若 out 无目录, 用当前目录; tmp 与 out 同目录保证 rename 原子
     return true;
 }
 
 // R10-C(bughunt p2): sha256_file 的失败可见封装。lib/algorithms/shared/crypto::sha256_file
-// 对 fopen 失败返回空串、对 fread 中途错误静默返回前缀(部分数据)哈希 —— 任一
-// 形态写进 provenance 即为无意义完整性锚。本封装逐项检查 fopen/ferror/fclose,
-// 只有完整读取成功才产出 64hex; 失败返回 false, 调用方必须把错误向上传播
+// 对文件打开失败返回空串、对读取中途错误静默返回前缀(部分数据)哈希 —— 任一
+// 形态写进 provenance 即为无意义完整性锚。FIX-201 起该纪律下沉到 aio
+// (aio_file_io.h): 只有完整读取成功才产出 64hex; 失败返回 false, 调用方必须把错误向上传播
 // (整体输出失败), 禁止把空串/前缀哈希当作结果。
 // ASTROCS_HASH_FAIL_INJECT (仅测试构建, -Dastrocs_hash_fail_inject 编入):
 // 在完整读出后于 final 前注入一次 I/O 错误 → 走失败分支, 供单测断言不写假哈希。
 bool sha256_file_checked(const char* path, std::string* hex_out) {
     hex_out->clear();
-    astrocs::crypto::Sha256 h;
-    std::FILE* f = std::fopen(path, "rb");
-    if (!f) return false;
-    unsigned char buf[64 * 1024];
-    size_t n;
-    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) h.update(buf, n);
-    const bool read_ok = (std::ferror(f) == 0);
-    const bool close_ok = (std::fclose(f) == 0);
-    if (!read_ok || !close_ok) return false;
+    // FIX-201: 文件打开/流式读取/关闭机制在 aio 内 (aio_file_io.h
+    // aio_file::sha256_hex) —— 本模块不再自持 FILE* 通道。R10-C 语义不变:
+    // 只有完整读取成功才产出 64hex, 失败返回 false 且清空输出。
+    if (!aio_file::sha256_hex(path, hex_out)) return false;
 #ifdef astrocs_hash_fail_inject
-    if (std::getenv("ASTROCS_HASH_FAIL_INJECT")) return false;
+    if (std::getenv("ASTROCS_HASH_FAIL_INJECT")) { hex_out->clear(); return false; }
 #endif
-    *hex_out = h.final_hex();
     return true;
 }
 
@@ -158,7 +134,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
     std::string tmp;
     make_temp_path(output_path, &tmp);
     // 清理历史残留 tmp
-    ::unlink(tmp.c_str());
+    aio_atomic::remove_file(tmp);
     fitsfile* f = nullptr;
     int status = 0;
 
@@ -168,12 +144,12 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         return P3_OUT_IO;
     }
     if (bitpix != -32 && bitpix != -64) {
-        ::unlink(tmp.c_str());
+        aio_atomic::remove_file(tmp);
         g_last_err = "bitpix must be -32|-64";
         return P3_OUT_PARAM;
     }
     if (fits_create_img(f, bitpix, 2, naxes, &status)) {
-        ::unlink(tmp.c_str());
+        aio_atomic::remove_file(tmp);
         g_last_err = "fits_create_img: " + std::to_string(status);
         return P3_OUT_IO;
     }
@@ -238,7 +214,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
     // Signal HDU 完成; 若取消于某行 → 不落盘
     if (cancelled_at_row >= 0) {
         fits_close_file(f, &status);
-        ::unlink(tmp.c_str());
+        aio_atomic::remove_file(tmp);
         return P3_OUT_CANCELLED;
     }
 
@@ -248,7 +224,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         if (!fits_write_std_chksum(f, &why)) {
             g_last_err = why;
             fits_close_file(f, &status);
-            ::unlink(tmp.c_str());
+            aio_atomic::remove_file(tmp);
             return P3_OUT_IO;
         }
     }
@@ -256,7 +232,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
     // 追加 coverage 扩展 HDU
     long cnaxes[2] = {width, height};
     if (fits_create_img(f, bitpix, 2, cnaxes, &status)) {
-        ::unlink(tmp.c_str());
+        aio_atomic::remove_file(tmp);
         g_last_err = "coverage create_img: " + std::to_string(status);
         return P3_OUT_IO;
     }
@@ -270,7 +246,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         if (!fits_write_std_chksum(f, &why)) {
             g_last_err = "coverage " + why;
             fits_close_file(f, &status);
-            ::unlink(tmp.c_str());
+            aio_atomic::remove_file(tmp);
             return P3_OUT_IO;
         }
     }
@@ -284,7 +260,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         std::string ivar_bunit = std::string("1/(") + unit + "^2)";
         for (int h = 0; h < 2; ++h) {
             if (fits_create_img(f, bitpix, 2, cnaxes, &status)) {
-                ::unlink(tmp.c_str());
+                aio_atomic::remove_file(tmp);
                 g_last_err = std::string(h == 0 ? "variance" : "ivar") +
                              " create_img: " + std::to_string(status);
                 return P3_OUT_IO;
@@ -301,7 +277,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
             if (!fits_write_std_chksum(f, &why)) {
                 g_last_err = std::string(h == 0 ? "variance " : "ivar ") + why;
                 fits_close_file(f, &status);
-                ::unlink(tmp.c_str());
+                aio_atomic::remove_file(tmp);
                 return P3_OUT_IO;
             }
         }
@@ -320,44 +296,28 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         if (fits_flush_file(f, &fstatus)) {
             g_last_err = "fits_flush_file: " + std::to_string(fstatus);
             fits_close_file(f, &fstatus);
-            ::unlink(tmp.c_str());
+            aio_atomic::remove_file(tmp);
             return P3_OUT_IO;
         }
         fits_close_file(f, &status);
-        if (status) { ::unlink(tmp.c_str()); g_last_err = "close: " + std::to_string(status); return P3_OUT_IO; }
-        // ② 内容已完整写出后再 fsync fd; 打开/fsync 失败都是发布失败
+        if (status) { aio_atomic::remove_file(tmp); g_last_err = "close: " + std::to_string(status); return P3_OUT_IO; }
+        // ② 内容已完整写出后再 fsync; 打开/fsync/关闭失败都是发布失败。
+        // FIX-201: fsync 机制在 aio (aio_atomic::fsync_path) —— Windows 的
+        // _commit 可写句柄语义 (R18 34201181796 诊断 errno=9 实证) 由 aio
+        // 承接; 本模块不再自行 open/fsync/close。
         {
-            const char* p = tmp.c_str();
-            // Windows: _commit(=fsync 映射, FlushFileBuffers) 要求可写句柄,
-            // O_RDONLY fd 必报 EBADF(R18 34201181796 诊断 errno=9 实证)。
-            // O_RDWR 打开(不改内容)后 fsync/_commit 语义与 POSIX 一致。
-#if defined(_WIN32)
-            int fd = ::open(p, O_RDWR);
-#else
-            int fd = ::open(p, O_RDONLY);
-#endif
-            if (fd < 0) {
-                g_last_err = std::string("open(tmp) for fsync: ") + std::strerror(errno);
-                ::unlink(tmp.c_str());
-                return P3_OUT_IO;
-            }
-            if (::fsync(fd) != 0) {
-                const int fsync_err = errno;
-                ::close(fd);
-                g_last_err = std::string("fsync: ") + std::strerror(fsync_err);
-                ::unlink(tmp.c_str());
-                return P3_OUT_IO;
-            }
-            if (::close(fd) != 0) {
-                g_last_err = std::string("close(fsync fd): ") + std::strerror(errno);
-                ::unlink(tmp.c_str());
+            const int frc = aio_atomic::fsync_path(tmp, 0);
+            if (frc != 0) {
+                g_last_err = std::string("fsync(tmp): ") + std::strerror(frc);
+                aio_atomic::remove_file(tmp);
                 return P3_OUT_IO;
             }
         }
     }
-    if (::rename(tmp.c_str(), output_path) != 0) {
+    // FIX-201: 原子 rename 机制在 aio (aio_atomic::atomic_replace)。
+    if (aio_atomic::atomic_replace(tmp, output_path) != 0) {
         g_last_err = std::string("rename: ") + std::strerror(errno);
-        ::unlink(tmp.c_str());
+        aio_atomic::remove_file(tmp);
         return P3_OUT_IO;
     }
 
@@ -367,7 +327,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         // R10-C: 哈希失败 = 完整性锚缺失 → 不写空串/前缀哈希, 整体输出失败
         if (!sha256_file_checked(output_path, &h)) {
             g_last_err = "sha256_file(published output) failed";
-            ::unlink(output_path);
+            aio_atomic::remove_file(output_path);
             return P3_OUT_IO;
         }
         std::snprintf(result->sha256, sizeof(result->sha256), "%s", h.c_str());

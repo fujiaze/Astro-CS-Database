@@ -497,7 +497,7 @@ int test_units() {
     }
 
     // --- DP (SCI-F3-001 增补): DATA-UNC-001 §30.2/§30.3 AIO 通道
-    //     (nrej/nused int32 子产品 + 五 provenance 键双写 + verify 双向断言;
+    //     (nrej/nused int32 子产品 + 四 provenance 键双写 + verify 双向断言;
     //      定义于 p1hips_tests_diag_prov.cpp, 并入既有 units 组 ⇒ 零新增 CTest 目标)
     {
         const int dp_rc = test_diag_prov_units();

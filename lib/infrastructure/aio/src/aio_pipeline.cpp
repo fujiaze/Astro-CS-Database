@@ -866,6 +866,9 @@ static int serialize_block_data(FILE* fp, const AioBlock* blk) {
     }
 }
 
+    /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_save_cache(const PipelineFrame* frame, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
     try {
@@ -1085,6 +1088,9 @@ static int load_cache_parse(PipelineFrame* frame, const char* path) {
     return 0;
 }
 
+    /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_load_cache(PipelineFrame* frame, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
     try {
@@ -1193,6 +1199,9 @@ static std::string block_to_xml(const AioBlock* blk, const char* block_name_over
     return xml;
 }
 
+    /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
     const char* block_name, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
@@ -1232,6 +1241,9 @@ AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
     }
 }
 
+    /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
     try {
@@ -1276,12 +1288,15 @@ AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* 
     }
 }
 
-/* 旧版兼容包装 */
+    /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
+/* 旧名包装 (非生产/诊断别名; **不是**「兼容保留」的生产接口) */
 AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
     const char* path, const char* comment)  {
     /* P1 (R9-A): C 边界异常屏障 */
     try {
-        (void)comment;  /* comment 参数忽略，保留是为了向后兼容 */
+        (void)comment;  /* comment 参数忽略 (旧签名残留; 非生产/诊断别名) */
         return aio_frame_export_all_xml(frame, path);
 
     }
@@ -1294,6 +1309,9 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
     }
 }
 
+    /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
+     * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
+     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
 /* FITS 导出: 简化版本，写入裸二进制 + 元数据头 */
 /* 注: 不依赖 cfitsio，使用简单的 FITS 2880 字节块格式 */
 AIO_EXPORT int aio_frame_export_block_fits(const PipelineFrame* frame,

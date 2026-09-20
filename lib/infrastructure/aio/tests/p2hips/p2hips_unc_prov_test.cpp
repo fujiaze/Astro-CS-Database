@@ -13,10 +13,10 @@
 //            U2 写值独立 oracle (不假设任何索引映射): 直方图对拍 ——
 //               写入的每个非零计数在 FITS 面**恰出现声明次数**, 其余全 0,
 //               且**无负值** (§30.2 invalid: 0 即"无", 禁 −1 哨兵)。
-//            U3 §30.3 五键双写: signal/support properties 文本键 +
+//            U3 §30.3 四键双写: signal/support properties 文本键 +
 //               manifest.json 同名小写键, 值逐键一致 (§30.3 冻结键名)。
 //            U4 verify 双向断言: available 面 rc==0 且 report 各字段与磁盘
-//               事实一致; unavailable 面 (§30.1) 五键仍全写、值为 false、
+//               事实一致; unavailable 面 (§30.1) 四键仍全写、值为 false、
 //               禁 variance/ivar 占位, verify 仍 rc==0。
 //            U5 确定性: 同输入两次独立构建 → nrej/nused tile **逐字节相等**
 //               (writer 单句柄串行, 无 worker 维度 ⇒ 无 1/N parity 面;
@@ -24,9 +24,9 @@
 //   negative N1 begin/写入参数域负例 (未启用通道、指针 NULL、负值哨兵、
 //              非法 flags) → 对应 rc, 且**不产生**产品文件。
 //            N2 set_provenance 参数域 (§30.3 全或无): 非法 hash / mode /
-//               空 profile → rc!=0 且**五键整体不落盘** (禁半套 provenance)。
+//               空 profile → rc!=0 且**四键整体不落盘** (禁半套 provenance)。
 //            N3 verify 篡改判别: 删除已声明子产品 / 伪造 unavailable 占位 /
-//               破坏五键一致性 → verify rc!=0。
+//               破坏四键一致性 → verify rc!=0。
 //   selfcheck S1 故障注入必败自检 (baseline 必 PASS + 注入必 FAIL 双向排除
 //               恒常): ASTROCS_HIPS_PROV_FAULT=missing_key 与
 //               ASTROCS_HIPS_DIAG_FAULT=sentinel。
@@ -71,8 +71,9 @@ const char* kModelHash =
     "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
 const char* kProfile = "wbpp_2_9_1";
 
-const char* kKeys[5] = {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
-                        "ASTROCS_UNCERTAINTY_AVAILABLE", "ASTROCS_WEIGHT_MODE",
+// FIX-201 / §9.73 A44: 旧「权重模式」provenance 键已删除 (5 → 4 键)。
+const char* kKeys[4] = {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
+                        "ASTROCS_UNCERTAINTY_AVAILABLE",
                         "ASTROCS_REJECT_PROFILE"};
 
 std::string read_file(const std::string& p) {
@@ -133,7 +134,7 @@ struct Built {
     std::string dir;
 };
 
-// 写一个 available 产品集 (signal|support|variance|ivar|nrej|nused + 五键)
+// 写一个 available 产品集 (signal|support|variance|ivar|nrej|nused + 四键)
 Built build_available(const std::string& dir, bool with_diag = true) {
     Built b;
     b.dir = dir;
@@ -145,7 +146,7 @@ Built build_available(const std::string& dir, bool with_diag = true) {
         "SCI-F3-001 TEST-P2HIPS-UNC-PROV-001", "R", 60.0,
         "2026-09-12T00:00:00Z", 0);
     if (!ps) return b;
-    if (aio_hips_set_provenance(ps, kManifestHash, kModelHash, 1, 2, kProfile) != 0) {
+    if (aio_hips_set_provenance(ps, kManifestHash, kModelHash, 1, kProfile) != 0) {
         aio_hips_abort(ps);
         return b;
     }
@@ -231,13 +232,13 @@ void units_diag_channel() {
     fs::remove_all(base, ec);
 }
 
-// ── U3: §30.3 五键双写 (properties + manifest.json) ────────────────────────
+// ── U3: §30.3 四键双写 (properties + manifest.json) ────────────────────────
 void units_provenance_keys() {
     const std::string base = group_base("u3");
     std::error_code ec;
     fs::remove_all(base, ec);
     const Built b = build_available(base);
-    P2H_CHECK(b.ok, "available 产品集构建 (含五键)");
+    P2H_CHECK(b.ok, "available 产品集构建 (含四键)");
     if (!b.ok) return;
 
     for (const char* sub : {"signal", "support"}) {
@@ -260,6 +261,15 @@ void units_provenance_keys() {
               "manifest.json products 声明 nrej/nused");
     P2H_CHECK(contains(man, kManifestHash) && contains(man, kModelHash),
               "manifest.json 含真实 hash 值 (非占位)");
+    // FIX-201 / §9.73 A44 收窄锁: 权重模式族键在双写两面都必须**缺席**
+    // (原断言把旧键当契约, 与最高设计 §2.1「全程只有 SNR」相反)。
+    for (const char* sub : {"signal", "support"}) {
+        const std::string props = read_file(std::string(base) + "/" + sub + "/properties");
+        P2H_CHECK(props.find("WEIGHT") == std::string::npos,
+                  (std::string(sub) + ": properties 禁出现权重模式键 (§9.73 A44)").c_str());
+    }
+    P2H_CHECK(man.find("weight") == std::string::npos,
+              "manifest.json provenance 禁出现权重模式键 (§9.73 A44)");
     fs::remove_all(base, ec);
 }
 
@@ -278,8 +288,8 @@ void units_verify_bidirectional() {
     const int rc = aio_hips_verify_product_set(base.c_str(), &r);
     P2H_CHECK(rc == 0, "V: available 产品集 rc==0");
     P2H_CHECK(r.signal_present == 1, "V: report.signal_present==1");
-    P2H_CHECK(r.prov_keys_present == 5, "V: report.prov_keys_present==5");
-    P2H_CHECK(r.manifest_keys_present == 5, "V: report.manifest_keys_present==5");
+    P2H_CHECK(r.prov_keys_present == 4, "V: report.prov_keys_present==4");
+    P2H_CHECK(r.manifest_keys_present == 4, "V: report.manifest_keys_present==4");
     P2H_CHECK(r.nrej_present == 1 && r.nused_present == 1,
               "V: report nrej/nused 子产品存在");
     P2H_CHECK(r.nrej_declared == 1 && r.nused_declared == 1,
@@ -288,7 +298,7 @@ void units_verify_bidirectional() {
     P2H_CHECK(r.value_mismatch == 0, "V: properties↔manifest 值零分叉");
     P2H_CHECK(r.diag_negative_pixels == 0, "V: 诊断平面零负值像素");
 
-    // unavailable 面 (§30.1): 五键仍全写, 值 false, 禁 variance/ivar 占位
+    // unavailable 面 (§30.1): 四键仍全写, 值 false, 禁 variance/ivar 占位
     const std::string d2 = base + "_unavail";
     const int flags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT;
     AioHipsProductSet* ps = aio_hips_product_begin(
@@ -296,9 +306,9 @@ void units_verify_bidirectional() {
         "SCI-F3-001 unavailable", "R", 60.0, "2026-09-12T00:00:00Z", 0);
     P2H_CHECK(ps != nullptr, "U: unavailable 产品集 begin");
     if (ps) {
-        P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 0, 1,
+        P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 0,
                                           kProfile) == 0,
-                  "U: unavailable 五键 setter rc==0");
+                  "U: unavailable 四键 setter rc==0");
         std::vector<float> sig(kSpan, 100.0f), area(kSpan, 1.0e-2f);
         AstroSphereTileView v{};
         v.parent_ipix = 0; v.leaf_order = 9; v.width = kTw;
@@ -362,7 +372,7 @@ void units_determinism() {
             };
             const std::string k1 = keyval(b1), k2 = keyval(b2);
             P2H_CHECK(!k1.empty() && k1 == k2,
-                      (std::string(sub) + ": 五键值面两跑逐字节相等").c_str());
+                      (std::string(sub) + ": 四键值面两跑逐字节相等").c_str());
         }
     }
     fs::remove_all(b1, ec);
@@ -458,22 +468,22 @@ void negative_provenance_params() {
     P2H_CHECK(ps != nullptr, "N2: begin 成功");
     if (!ps) return;
 
-    P2H_CHECK(aio_hips_set_provenance(ps, "short", kModelHash, 1, 2, kProfile) != 0,
+    P2H_CHECK(aio_hips_set_provenance(ps, "short", kModelHash, 1, kProfile) != 0,
               "N2: 非法 manifest hash (非 64hex) → 拒绝");
-    P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, "ZZ", 1, 2, kProfile) != 0,
+    P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, "ZZ", 1, kProfile) != 0,
               "N2: 非法 model hash (非 hex) → 拒绝");
-    P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 7, 2,
+    P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 7,
                                       kProfile) != 0,
               "N2: 非法 uncertainty_available (非 0/1) → 拒绝");
-    P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 1, 9,
-                                      kProfile) != 0,
-              "N2: 非法 weight_mode (非 0/1/2) → 拒绝");
-    P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 1, 2, "") != 0,
+    // FIX-201 / §9.73 A44: 原「非法 weight_mode (非 0/1/2) → 拒绝」用例的
+    // 形参已删除 (全程只有 SNR, 不存在权重模式)。其判别力由 units_provenance_keys
+    // 的反向锁承接: 合法四键 setter rc==0 且 properties/manifest **零**权重模式键。
+    P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 1, "") != 0,
               "N2: 空 reject_profile → 拒绝");
-    P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 1, 2, nullptr) != 0,
+    P2H_CHECK(aio_hips_set_provenance(ps, kManifestHash, kModelHash, 1, nullptr) != 0,
               "N2: NULL reject_profile → 拒绝");
 
-    // 全或无: 上述全部失败后, 五键必须整体不落盘 (禁半套 provenance)
+    // 全或无: 上述全部失败后, 四键必须整体不落盘 (禁半套 provenance)
     std::vector<float> sig(kSpan, 100.0f), area(kSpan, 1.0e-2f);
     AstroSphereTileView v{};
     v.parent_ipix = 0; v.leaf_order = 9; v.width = kTw;
@@ -498,9 +508,9 @@ void negative_provenance_params() {
         AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT, "x", "y", nullptr,
         0.0, nullptr, 0);
     if (ps2) {
-        P2H_CHECK(aio_hips_set_provenance(ps2, kManifestHash, kModelHash, 1, 2,
+        P2H_CHECK(aio_hips_set_provenance(ps2, kManifestHash, kModelHash, 1,
                                           kProfile) == 0,
-                  "N2: 合法五键 setter rc==0");
+                  "N2: 合法四键 setter rc==0");
         std::vector<float> s2(kSpan, 100.0f), a2(kSpan, 1.0e-2f);
         AstroSphereTileView v2{};
         v2.parent_ipix = 0; v2.leaf_order = 9; v2.width = kTw;
@@ -542,7 +552,7 @@ void negative_verify_tamper() {
             d.c_str(), kNside, kTw, AIO_HIPS_FLOAT32, flags, "x", "y", nullptr,
             0.0, nullptr, 0);
         if (ps) {
-            aio_hips_set_provenance(ps, kManifestHash, kModelHash, 0, 1, kProfile);
+            aio_hips_set_provenance(ps, kManifestHash, kModelHash, 0, kProfile);
             std::vector<float> s(kSpan, 1.0f), a(kSpan, 1.0e-2f);
             AstroSphereTileView v{};
             v.parent_ipix = 0; v.leaf_order = 9; v.width = kTw;
@@ -562,7 +572,7 @@ void negative_verify_tamper() {
                       "N3.T2: unavailable 面伪造 variance 占位 → verify 必败 (V3)");
         }
     }
-    // T3: 破坏 properties↔manifest 五键一致性 → V6 必败
+    // T3: 破坏 properties↔manifest 四键一致性 → V6 必败
     {
         const std::string d = base + "/t3";
         const Built b = build_available(d);
@@ -605,7 +615,7 @@ void selfcheck_injection() {
         const std::string man = read_file(base + "/manifest.json");
         bool detected = false;
         if (inj_missing) {
-            // 缺键 ⇒ 五键齐备断言必败
+            // 缺键 ⇒ 四键齐备断言必败
             for (const char* k : kKeys)
                 if (!contains(props, k)) detected = true;
         }

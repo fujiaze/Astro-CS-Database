@@ -14,6 +14,9 @@
 #include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
 #include "astro_sphere_sink.h"      // Phase1: Drizzle -> AIO HiPS 直写
 #include "hp_drizzle_internal.h"    // F-13: run_drizzle_internal / setErrorMsg (run_hips 已迁出本 TU)
+// FIX-201 (ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ 原子产品):
+// 产品面落盘一律经 aio 机制原语 (aio_atomic_file.h), 本 TU 不得自持文件通道。
+#include "aio_atomic_file.h"
 
 #include <cstdio>
 #include <cstring>
@@ -1179,48 +1182,60 @@ try {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 已直写 %s (无 HISS 中转)\n",
                 hips_dir);
         // 操作计数证据 (仅通用档; Phase1 档产物目录与旧 writer 保持同一文件集)
+        // FIX-201: 原实现自持 fopen/fprintf/fclose 直写产品目录 (非原子) ——
+        // 现改为经 aio 原子落盘原语 (aio_atomic::write_file_atomic:
+        // 临时文件 → fsync → 原子 rename), 既回到 §9 的 aio 边界, 又消除
+        // "半成品剖面文件" 风险。JSON 字节内容与旧实现逐字节一致。
         if (hips_profile != 1) {
             const std::string ops_path = std::string(hips_dir) + "/operation_counts.json";
-            FILE* f = std::fopen(ops_path.c_str(), "wb");
-            if (f) {
-                const double cand_eff = stats.op_candidates > 0
-                    ? (double)stats.op_true_overlaps / (double)stats.op_candidates
-                    : 0.0;
-                std::fprintf(f,
-                    "{\n"
-                    "  \"format\": \"astrocs-drizzle-operation-counts-v1\",\n"
-                    "  \"nside\": %d,\n"
-                    "  \"source_pixels\": %lld,\n"
-                    "  \"candidates\": %lld,\n"
-                    "  \"true_overlaps\": %lld,\n"
-                    "  \"quick_rejects\": %lld,\n"
-                    "  \"pix2radec_calls\": %lld,\n"
-                    "  \"boundary_builds\": %lld,\n"
-                    "  \"geometry_builds\": %lld,\n"
-                    "  \"spherical_overlap_calls\": %lld,\n"
-                    "  \"tile_lookups\": %lld,\n"
-                    "  \"hot_loop_heap_allocations\": %lld,\n"
-                    "  \"candidate_efficiency\": %.6f,\n"
-                    "  \"overlaps_per_source_pixel\": %.6f\n"
-                    "}\n",
-                    stats.nside,
-                    (long long)stats.op_source_pixels,
-                    (long long)stats.op_candidates,
-                    (long long)stats.op_true_overlaps,
-                    (long long)stats.op_quick_rejects,
-                    (long long)stats.op_pix2radec,
-                    (long long)stats.op_boundary_builds,
-                    (long long)stats.op_geometry_builds,
-                    (long long)stats.op_sh_calls,
-                    (long long)stats.op_tile_lookups,
-                    (long long)stats.op_heap_allocations,
-                    cand_eff,
-                    stats.op_source_pixels > 0
-                        ? (double)stats.op_true_overlaps /
-                              (double)stats.op_source_pixels : 0.0);
-                std::fclose(f);
-                std::fprintf(stderr, "[hp_drizzle_api] 操作计数已写 %s\n",
-                             ops_path.c_str());
+            const double cand_eff = stats.op_candidates > 0
+                ? (double)stats.op_true_overlaps / (double)stats.op_candidates
+                : 0.0;
+            char ops_buf[1024];
+            const int ops_n = std::snprintf(ops_buf, sizeof(ops_buf),
+                "{\n"
+                "  \"format\": \"astrocs-drizzle-operation-counts-v1\",\n"
+                "  \"nside\": %d,\n"
+                "  \"source_pixels\": %lld,\n"
+                "  \"candidates\": %lld,\n"
+                "  \"true_overlaps\": %lld,\n"
+                "  \"quick_rejects\": %lld,\n"
+                "  \"pix2radec_calls\": %lld,\n"
+                "  \"boundary_builds\": %lld,\n"
+                "  \"geometry_builds\": %lld,\n"
+                "  \"spherical_overlap_calls\": %lld,\n"
+                "  \"tile_lookups\": %lld,\n"
+                "  \"hot_loop_heap_allocations\": %lld,\n"
+                "  \"candidate_efficiency\": %.6f,\n"
+                "  \"overlaps_per_source_pixel\": %.6f\n"
+                "}\n",
+                stats.nside,
+                (long long)stats.op_source_pixels,
+                (long long)stats.op_candidates,
+                (long long)stats.op_true_overlaps,
+                (long long)stats.op_quick_rejects,
+                (long long)stats.op_pix2radec,
+                (long long)stats.op_boundary_builds,
+                (long long)stats.op_geometry_builds,
+                (long long)stats.op_sh_calls,
+                (long long)stats.op_tile_lookups,
+                (long long)stats.op_heap_allocations,
+                cand_eff,
+                stats.op_source_pixels > 0
+                    ? (double)stats.op_true_overlaps /
+                          (double)stats.op_source_pixels : 0.0);
+            if (ops_n > 0 && (size_t)ops_n < sizeof(ops_buf)) {
+                std::string ops_err;
+                if (aio_atomic::write_file_atomic(
+                        ops_path, std::string(ops_buf, (size_t)ops_n),
+                        &ops_err) == 0) {
+                    std::fprintf(stderr, "[hp_drizzle_api] 操作计数已写 %s\n",
+                                 ops_path.c_str());
+                } else {
+                    std::fprintf(stderr,
+                                 "[hp_drizzle_api] 操作计数写失败 (aio 原子落盘): %s\n",
+                                 ops_err.c_str());
+                }
             }
         }
         stamp(prof_hips);  // HiPS 直写结束
