@@ -13,6 +13,16 @@
 #include <string>
 #include <vector>
 
+// ── CONFORM-FIX-B-009: smoothing 键 "auto" 的唯一解析值（单一来源）──
+// 语义权威：docs/development/CONFIG_SCHEMA.md:19 「smoothing(auto→0.1)」；
+// 负责人裁决 GAP_AUDIT §9.39 A5「smoothing_lambda 不能为 0」（λ>0 必须）。
+// **不是**生产取值裁决面：具体生产 λ 由 SMOOTH-LAMBDA 分片扫描后裁决
+// （本常量只定义 "auto" 这个键值解析成什么，不定义生产链路的 λ）。
+// 注意与 docs/algorithms/PHASE2_UPM_IMPL.md:382「0.0（默认关闭平滑）」的
+// 冲突：该表自述「冻结面，任何修改必须走 SCI/合同变更」⇒ 本实现不擅自改
+// 冻结面，冲突已登记上呈（见 reports/RELEASE-02/conform-fix-b.md §009）。
+constexpr double P2_SMOOTHING_LAMBDA_AUTO = 0.1;
+
 struct P2Stage2Config {
     // CON-002 全局执行预算唯一来源（cpu/io workers、gpu route、deterministic、memory budget）。
     astro::phase2::ExecutionOptions exec = astro::phase2::default_execution_options();
@@ -37,7 +47,9 @@ struct P2Stage2Config {
     int robust_loss = 0;
     int snr_weight_mode = 0;
     double huber_delta = 1.345;
-    double smoothing_lambda = 0.0;
+    // CONFORM-FIX-B-009: struct 默认 == parser 默认 == CONFIG_SCHEMA「auto」
+    // 解析值（CONFIG_SCHEMA.md:3-4「C++ struct 默认值、parser 默认值…必须一致」）。
+    double smoothing_lambda = P2_SMOOTHING_LAMBDA_AUTO;
     double zero_anchor_weight = 1e-3;
     double sigma_floor = 1e-3;
     double support_power = 1.0;
@@ -66,8 +78,19 @@ struct P2Stage2Config {
     int precision = 0;
     std::uint64_t memory_limit_mb = 24576;
     int reject_method = P2_REJECT_AUTO;  // production default = auto
-    std::string reject_profile = "wbpp_2_9_1";  // 版本化 profile
-    std::uint32_t reject_underdetermined_n = 2;   // n<=2 → UNDERDETERMINED
+    // CONFORM-FIX-B-007: 生产默认 profile = AstroCS 自研档
+    // （负责人裁决 FIX-SCI-SNR-CANON-001 / GAP_AUDIT §9.40 C2「自研的 ⇒ 改文档
+    // 对齐代码」；docs/science/REJECTION.md:21,47、CONFIG_SCHEMA.md:25、
+    // contracts/data/phase2_uncertainty_rejection_provenance_v1.json:67 同值）。
+    // 旧默认 wbpp_2_9_1 是**对照档**，使工具链与交付 node chain 的排异方法
+    // 在 n=3/6..7/≥16 边界全部分叉。
+    std::string reject_profile = P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL;
+    // CONFORM-FIX-B-008: 0 = 「按 profile/request 默认」，唯一权威 =
+    // p2_reject_plan_resolve（rejection.h:230-234 冻结：wbpp/adaptive=2；
+    // astrocs_adaptive_pixel=3；显式 extreme_prior opt-in=1）。
+    // 旧默认 2 是本文件对同一默认值的第二份拷贝，且与 resolver 在
+    // extreme_prior 档分叉（tool=3 vs resolver=1）。
+    std::uint32_t reject_underdetermined_n = 0;
     // RejectionNormalizationPolicy（判定工作域；mask 应用回原始值）
     std::string reject_normalization = "astrocs_median_center_v1";
     double reject_normalization_floor = 1e-12;

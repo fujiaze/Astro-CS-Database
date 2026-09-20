@@ -30,6 +30,16 @@ struct FramePhotFitRequest {
   int width = 0;
   int height = 0;
   // PSF 星（逐星）: 位置像素坐标 + 通量 + 拟合状态(0=OK) + 质量位(可空)
+  //
+  // ── F-INSTR-CONFORM-FIX: psf_flux 的**域契约**（SCI-PHOT-001 §9a, FROZEN）──
+  // psf_flux[i] 必须且只能是 **PSF 拟合域解析通量**
+  //   F_instr = 2πA·s_x·s_y/3   (Moffat4, β=4; SCI-PSF-001 §2/§5, 单位 ADU)
+  // 即 p1_psf.json 的 psf_params[].flux（由 A,sx,sy 复算）或 orchestrator psf 块
+  // 的 row[2]（dpsf_psf.cpp:428）。
+  // **禁止**传入检测域 5×5 正性截断盒和（star_detector.cpp:151 s.flux = m00）:
+  // 盒和捕获的 PSF 能量份额随 seeing 变化（实测 seeing 2.0→4.0 px 时给出
+  // 0.50 mag 的假帧间差, 孔径扫描 M_seeing 1.35 mag）, 会把视宁度当成测光零点。
+  // psf_status[i] != 0（拟合失败/未进入拟合子集）的星不进入匹配（§4 有效域）。
   const double* psf_cx = nullptr;
   const double* psf_cy = nullptr;
   const double* psf_flux = nullptr;
@@ -77,6 +87,19 @@ struct FramePhotFitResult {
   int robust_iterations = 0;
   std::string degraded_reason;  // fit_ok=false 时说明退化分支（机器可读）
   std::string error;
+  // ── FREF-BASELINE-001: 绝对合成星等零点 ZP_syn ─────────────────────────
+  // 约定与 snr_science.cpp:234 的 m_5 = ZP - 2.5*log10(F) 一致:
+  //     mag = ZP_syn - 2.5*log10(F_syn)      [F_syn = XPSD 绝对谱积分]
+  // 取值 = 锥形搜索星族上 median_i( magG_i + 2.5*log10 F_syn,i )，由 Gaia DR3
+  // XP **绝对**谱 (XPSD: F(λ)=byte*flux_mul+flux_min) 经本帧滤光片+QE 曲线
+  // **正向**合成得到。只依赖 (filter, QE, 天区星族)，**与帧无关** ⇒ 可作跨帧
+  // 公共绝对参考锚（不依赖任何逐帧检出星群统计）。
+  // 严禁用它反推增益/口径/曝光（§9.42 物理闭合禁令）：它只是星等↔合成通量换算。
+  // zero_point_n_stars < kMinFitStars ⇒ zero_point_valid=false（不得使用）。
+  bool zero_point_valid = false;
+  double zero_point_mag = 0.0;          // ZP_syn [mag]
+  int zero_point_n_stars = 0;           // 参与中位数的锥形搜索星数
+  double zero_point_scatter_mag = 0.0;  // 1.4826*MAD(ZP_i) [mag]（星族 SED 散布）
 };
 
 // 运行单帧生产星匹配链, 返回 k_photo。

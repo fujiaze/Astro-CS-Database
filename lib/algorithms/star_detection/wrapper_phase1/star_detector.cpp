@@ -81,6 +81,24 @@ astrocs::core::Result<StarCatalog> StarDetector::detect(const float* image, int 
   }
   const double thr = cat.background + detection_sigma_ * cat.noise_sigma;
 
+  // 动态范围与饱和水平 (SCI-P1-STAR-001 §1 :20-23 / ALG-STARDET-001 §2 :37-42):
+  //   maxi        = max(img)                       (逐帧由数据算, 非编译期常数)
+  //   norm        = 65535                          (规范硬编码的 uint16 满量程, :39)
+  //   dynrange    = min(maxi, norm) − bg           (bg = 帧背景中位数)
+  //   minsatlevel = 0.7·dynrange ; satrange = 0.1·dynrange
+  // 旧实现用绝对字面量 peak>50000.0 (CONFORM-SWEEP-1-005) 与上述三套规范机制都不同,
+  // 对满井 <50000 的相机漏标、对高本底帧过标 ⇒ 已删除。
+  double maxi = 0.0;
+  {
+    const size_t n = static_cast<size_t>(w) * static_cast<size_t>(h);
+    for (size_t i = 0; i < n; ++i)
+      if (image[i] > maxi) maxi = image[i];
+  }
+  const double kNorm = 65535.0;   // 规范常数 (ALG-STARDET-001 :39, DISP-STAR-006)
+  const double dynrange = std::min(maxi, kNorm) - cat.background;
+  const double minsatlevel = 0.7 * dynrange;
+  const double satrange = 0.1 * dynrange;
+
   // 1) 局部峰候选: 3x3 局部最大且 > thr
   struct Cand { int x, y; double val; };
   std::vector<Cand> cands;
@@ -163,8 +181,34 @@ astrocs::core::Result<StarCatalog> StarDetector::detect(const float* image, int 
     s.ellipticity = (a >= b) ? (1.0 - b / a) : (1.0 - a / b);
     const double peak = image[static_cast<size_t>(c.y) * static_cast<size_t>(w) + static_cast<size_t>(c.x)];
     s.snr = (peak - cat.background) / cat.noise_sigma;
-    // 饱和: 绝对幅值接近/超过 16bit 满井 (ADU 域; 不因高 SNR 误判)
-    if (peak > 50000.0) s.quality |= 1;
+    // 饱和判定 = 3×3 邻域双条件 (SCI-P1-STAR-001 §1 :20-23, ALG-STARDET-001 §2 :41-42):
+    //   meanhigh/minhigh 取峰值 3×3 邻域中 ≥ thr 的像素 (超阈值像素)
+    //   saturated ⇔ (meanhigh − bg ≥ 0.7·dynrange) ∧ (pixel0 − minhigh ≤ 0.1·dynrange)
+    // 平台平坦性条件 (第二式) 使未达满井的纯高斯峰不再被误标; 满井平台星被正确标出。
+    // 邻域恒在界内 (候选来自 x∈[1,w−2], y∈[1,h−2])。
+    {
+      double meanhigh = 0.0;
+      double minhigh = 0.0;
+      int nhigh = 0;
+      for (int dy = -1; dy <= 1; ++dy)
+        for (int dx = -1; dx <= 1; ++dx) {
+          if (dx == 0 && dy == 0) continue;
+          const double v = image[static_cast<size_t>(c.y + dy) * static_cast<size_t>(w) +
+                                 static_cast<size_t>(c.x + dx)];
+          if (v >= thr) {
+            if (nhigh == 0 || v < minhigh) minhigh = v;
+            meanhigh += v;
+            ++nhigh;
+          }
+        }
+      if (nhigh > 0) {
+        meanhigh /= static_cast<double>(nhigh);
+        if (meanhigh - cat.background >= minsatlevel &&
+            peak - minhigh <= satrange) {
+          s.quality |= 1;
+        }
+      }
+    }
     s.id = "src-" + std::to_string(idx++);
     cat.sources.push_back(std::move(s));
     if (s.quality & 1) ++cat.n_saturated;

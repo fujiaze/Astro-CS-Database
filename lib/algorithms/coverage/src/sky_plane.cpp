@@ -412,7 +412,8 @@ P2SkyPlaneConfig p2_sky_plane_default_config(void) {
     c.min_samples_per_frame = 4;
     c.max_nodes = 2048;
     c.max_extrapolation_deg = 0.0;
-    c.cpu_workers = 1;
+    // 无 worker 数字段：本求解内在串行（Schur 消元 + 稳健 IRLS 整面一次），
+    // 不设并行路径；将来并行化须由 Runtime 预算/租约注入（QA-002/P2-002）。
     return c;
 }
 

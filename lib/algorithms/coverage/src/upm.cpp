@@ -1643,7 +1643,15 @@ int p2_upm_normalized_weights(const P2ControlObservation* obs,
     for (std::uint64_t i = 0; i < n_obs; ++i) {
         const auto it = sums.find(obs[i].control_id);
         const double s = (it != sums.end()) ? it->second : 0.0;
-        out_norm[i] = (s > 1e-12) ? raw[i] / s * rel : 0.0;
+        // CONFORM-FIX-B-003（与 build 内部 upm.cpp:646 同判据）：归一化
+        //   w_cell = w_UPM / Σ_cell w_UPM × control_reliability
+        // 的定义域是「Σ 有限且 > 0」（docs/science/PHASE2_UPM.md:56 只给
+        // 份额式定义，无任何绝对阈值）。旧门 s > 1e-12 是绝对阈值：生产
+        // control_ivar 中位 ≈5.6e-22、单 control Σ≈5.1e-21 ⇒ 全部 control
+        // 判假 ⇒ 本公共 API 对每个样本返回 0.0（应为 rel/n），与 build 内部
+        // 的尺度无关判据互斥。真零权重 Σ=0 仍得 0（不被当作有效观测）；
+        // 非法/缺失 ivar 已由 p2_upm_raw_weight rc!=0 显式拦下。
+        out_norm[i] = (s > 0.0 && std::isfinite(s)) ? raw[i] / s * rel : 0.0;
     }
     return 0;
 }

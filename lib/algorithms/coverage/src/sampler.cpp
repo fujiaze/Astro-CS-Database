@@ -881,8 +881,17 @@ static int p2_sample_controls_impl(
                         cs.n_retained.push_back(n_retained);
                         int veto = 0;
                         if (cfg.background_catalog_veto && !frames[frame_id].snr.empty() && frame_snr_med[frame_id] > 0.0) {
-                            const double thr = 10.0 * frame_snr_med[frame_id];
-                            const double rad = 0.012;
+                            // CONFORM-FIX-B-005：catalog veto 必须消费
+                            // cfg.star_mask_snr_factor / cfg.star_mask_radius_deg
+                            // （sampler.h:56-59 声明、sampler.cpp:318-319/:513-514
+                            // 已默认并修补；star_mask 路径 :1133/:1148 已是同款
+                            // 消费）。旧实现在此硬编码 10.0 / 0.012 ⇒ 调用方设
+                            // cfg 只改变 star_mask、不改变 veto（同文件同一物理量
+                            // 两套口径），DISP-P2SMP-004 的「未入配置面」缺口
+                            // 实际以「入了但不消费」形态残留。
+                            const double thr =
+                                cfg.star_mask_snr_factor * frame_snr_med[frame_id];
+                            const double rad = cfg.star_mask_radius_deg;
                             if (snr_idx[frame_id].any_above(thr, ra_deg, dec_deg, rad)) veto = 1;
                         }
                         double snr_val = 1.0;

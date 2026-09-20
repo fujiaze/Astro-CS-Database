@@ -4699,7 +4699,14 @@ TEST(Phase2Eligibility, V15FilterAllPolicies) {
 
 // config：typed rejection 解析 + production 默认 auto
 TEST(Phase2Config, V15RejectionTypedParseAndDefaultAuto) {
-    // 无 rejection.method → 默认 auto + profile wbpp_current
+    // 无 rejection.method → 默认 auto + profile = astrocs_adaptive_pixel（生产默认，自研档）
+    // 权威（CONFORM-FIX-B-007/008 落地后）：docs/science/REJECTION.md §2/§5
+    // （profile 行「astrocs_adaptive_pixel（**生产默认，AstroCS 自研**）/ wbpp_2_9_1（对照档）」）、
+    // docs/development/CONFIG_SCHEMA.md:25（同值）、
+    // contracts/data/phase2_uncertainty_rejection_provenance_v1.json:67
+    // （canonical=astrocs_adaptive_pixel）。underdetermined_n 缺键 ⇒ 0 = 按 profile 解析，
+    // 权威 = p2_reject_plan_resolve（rejection.h:230-234 冻结：astrocs_adaptive_pixel=3）。
+    // 本测试旧期望（wbpp_2_9_1 / 2u）是 CONFORM-FIX-B 之前的默认值，已按权威订正。
     const std::string j1 = R"({
       "version": 1,
       "inputs": {"hips": ["a.hips", "b.hips"]},
@@ -4712,8 +4719,8 @@ TEST(Phase2Config, V15RejectionTypedParseAndDefaultAuto) {
     ASSERT_TRUE(p2_stage2_parse_config(
         nlohmann::json::parse(j1), &cfg1, &err1)) << err1;
     EXPECT_EQ(cfg1.reject_method, P2_REJECT_AUTO);
-    EXPECT_EQ(cfg1.reject_profile, "wbpp_2_9_1");
-    EXPECT_EQ(cfg1.reject_underdetermined_n, 2u);
+    EXPECT_EQ(cfg1.reject_profile, P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL);
+    EXPECT_EQ(cfg1.reject_underdetermined_n, 3u);
 
     // typed 参数全解析
     const std::string j2 = R"({

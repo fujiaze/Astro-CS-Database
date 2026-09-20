@@ -369,19 +369,31 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                         // SNR_f=a_f·F_ref/σ_f ⇒ SNR_f²/F_ref²=a_f²/σ_f²=w_f 当且
                         // 仅当分子分母同源）。数据违反 → **不写帧级 SNR 键**
                         // （fail-closed；禁写非配对键冒充合法权重链）。
+                        // FREF-BASELINE-001: 两种合法写侧约定。
+                        //   scope="group" ⇒ 公共量 = flux_adu（块级公共 F0, ADU）;
+                        //   scope="frame_independent_fixed_magnitude" ⇒ 公共量 =
+                        //     flux_common（固定参考星等的**物理**公共锚 F0, 对同
+                        //     波段同星场恒为同一数）。此时逐帧 flux_adu 是**有意**
+                        //     逐帧的（F_ref,k = 10^(-0.4(m_ref-ZP_k))）, 不是缺陷;
+                        //     头部必须写 flux_common, 使配对性 w=SNR²/F0²=a_f²/σ_f²
+                        //     成立（WEIGHT-SCI-001 Convention A）。
+                        std::string scope_str = "group";
+                        if (sj.contains("snr_reference_scope") &&
+                            sj["snr_reference_scope"].is_string())
+                            scope_str = sj["snr_reference_scope"].get<std::string>();
+                        const bool use_common =
+                            (scope_str == "frame_independent_fixed_magnitude");
+                        const char* fref_key = use_common ? "flux_common" : "flux_adu";
+                        bool group_fref_ok =
+                            (scope_str == "group" || use_common);
                         double group_fref = 0.0;
                         bool group_fref_set = false;
-                        bool group_fref_ok = true;
-                        if (sj.contains("snr_reference_scope") &&
-                            sj["snr_reference_scope"].is_string() &&
-                            sj["snr_reference_scope"].get<std::string>() != "group")
-                            group_fref_ok = false;
                         for (const auto& fr : sj["frames"]) {
                             if (!fr.is_object()) continue;
                             if (!fr.contains("snr_reference") ||
                                 !fr["snr_reference"].is_object()) continue;
                             const double fv =
-                                fr["snr_reference"].value("flux_adu", 0.0);
+                                fr["snr_reference"].value(fref_key, 0.0);
                             if (!std::isfinite(fv) || !(fv > 0.0)) continue;
                             if (!group_fref_set) {
                                 group_fref = fv;
@@ -406,7 +418,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                             if (fr.contains("snr_reference") &&
                                 fr["snr_reference"].is_object()) {
                                 snr = fr["snr_reference"].value("snr_f", 0.0);
-                                fref = fr["snr_reference"].value("flux_adu", 0.0);
+                                fref = fr["snr_reference"].value(fref_key, 0.0);
                             }
                             if (std::isfinite(snr) && snr > 0.0 &&
                                 std::isfinite(fref) && fref > 0.0 &&
