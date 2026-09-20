@@ -381,3 +381,121 @@
   note         = {reverse_verify P1SG-R3; 核对: 本地源码 run/RELEASE-02/pmosaic/PhotometricMosaic/ 头部逐字}
 }
 
+% ===========================================================================
+% 帧级 SNR 定案（FRAME-SNR-CANON, RELEASE-02）新增条目
+% 完整调研: reverse_verify/references/frame-snr-survey.md
+% 定案:     reverse_verify/docs/frame-snr-canon.md
+% ===========================================================================
+
+@MISC{JonesSMTN002,
+  author       = {Jones, R. Lynne},
+  title        = {Calculating {LSST} limiting magnitudes and {SNR}},
+  howpublished = {Rubin Observatory / LSST Change-Controlled Document SMTN-002},
+  doi          = {10.71929/rubin/3408482},
+  url          = {https://smtn-002.lsst.io/},
+  note         = {reverse_verify FSNR-01; 唯一一手帧级 SNR 解析式; 核对: 页面 HTTP 200 + lsst/pipe_tasks commit 0e56ae0 源码行号}
+}
+
+@ARTICLE{Bosch2018HSC,
+  author  = {Bosch, James and Armstrong, Robert and Bickerton, Steven and others},
+  title   = {The Hyper Suprime-Cam Software Pipeline},
+  journal = {PASJ},
+  volume  = {70},
+  pages   = {S5},
+  year    = {2018},
+  eprint  = {1705.06766},
+  archivePrefix = {arXiv},
+  doi     = {10.1093/pasj/psx080},
+  note    = {reverse_verify FSNR-02; Eq(32) sigma_i^2 = b + alpha(phi_i + eps_i), b = 减除前的背景; 卷页待核对}
+}
+
+@ARTICLE{Magnier2020psphot,
+  author  = {Magnier, E. A. and Chambers, K. C. and Flewelling, H. A. and others},
+  title   = {Pan-STARRS Pixel Analysis: Source Detection and Characterization},
+  journal = {ApJS},
+  volume  = {251},
+  pages   = {5},
+  year    = {2020},
+  eprint  = {1612.05244},
+  archivePrefix = {arXiv},
+  doi     = {10.3847/1538-4365/abb82c},
+  note    = {reverse_verify FSNR-03; 源码 IPP Trac SVN export/HEAD (r43094); 注意: Waters 2020 ApJS 251,4 是 detrend 论文}
+}
+
+@ARTICLE{Abbott2021DESDR2,
+  author  = {Abbott, T. M. C. and Adamow, M. and Aguena, M. and others},
+  title   = {The Dark Energy Survey Data Release 2},
+  journal = {ApJS},
+  volume  = {255},
+  pages   = {20},
+  year    = {2021},
+  eprint  = {2101.05765},
+  archivePrefix = {arXiv},
+  doi     = {10.3847/1538-4365/ac00b3},
+  note    = {reverse_verify FSNR-04; SExtractor FLUXERR 式 + 官方 fork 文档; 纠正 arXiv:2101.02242 之误}
+}
+
+@ARTICLE{Bertin1996SExtractor,
+  author  = {Bertin, E. and Arnouts, S.},
+  title   = {{SExtractor}: Software for source extraction},
+  journal = {A&AS},
+  volume  = {117},
+  pages   = {393},
+  year    = {1996},
+  doi     = {10.1051/aas:1996164},
+  note    = {reverse_verify FSNR-05; master=2.29.0 src/param.h + src/winpos.c:289 SNR_WIN; FLUX_GAUSS 不存在}
+}
+
+@ARTICLE{Stetson1987DAOPHOT,
+  author  = {Stetson, P. B.},
+  title   = {{DAOPHOT}: A computer program for crowded-field stellar photometry},
+  journal = {PASP},
+  volume  = {99},
+  pages   = {191},
+  year    = {1987},
+  doi     = {10.1086/131977},
+  note    = {reverse_verify FSNR-06; 原文闭源未取得, 只引 IRAF apcomags.x:28-55 实现级公式}
+}
+
+@ARTICLE{Horne1986,
+  author  = {Horne, Keith},
+  title   = {An optimal extraction algorithm for {CCD} spectroscopy},
+  journal = {PASP},
+  volume  = {98},
+  pages   = {609},
+  year    = {1986},
+  doi     = {10.1086/131801},
+  note    = {reverse_verify FSNR-07; 定案式 (2.2)(2.3) 规范出处; 正文等式未逐字核对}
+}
+
+@ARTICLE{Naylor1998,
+  author  = {Naylor, Tim},
+  title   = {An optimal extraction algorithm for imaging photometry},
+  journal = {MNRAS},
+  volume  = {296},
+  pages   = {339--346},
+  year    = {1998},
+  doi     = {10.1046/j.1365-8711.1998.01314.x},
+  note    = {reverse_verify FSNR-08; 纠正任务书 DOI ...01407.x (该 DOI 是另一篇 ASCA 论文)}
+}
+
+@ARTICLE{Irwin1985,
+  author  = {Irwin, M. J.},
+  title   = {Automatic analysis of crowded fields},
+  journal = {MNRAS},
+  volume  = {214},
+  pages   = {575--604},
+  year    = {1985},
+  doi     = {10.1093/mnras/214.4.575},
+  note    = {reverse_verify FSNR-09; 纠正任务书 DOI 214.3.575 (Crossref 无记录); 正文待核对}
+}
+
+@MISC{PixInsightImageWeighting,
+  author       = {{PixInsight}},
+  title        = {New Image Weighting Algorithms},
+  howpublished = {PixInsight Reference Documentation},
+  url          = {https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html},
+  note         = {reverse_verify FSNR-10; 官方自述 standard SNR 式[20] 分子是图像方差, 加性内容会抬高它; 公式为图片未提取符号}
+}
+
+

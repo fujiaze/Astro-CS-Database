@@ -2,7 +2,7 @@
 # RELEASE-02 P2a 判别力 Oracle 构建/运行（链接真实 upm.cpp；零 ninja/cmake/ctest）
 # 用法: bash run/RELEASE-02/fix-p2a/build.sh
 set -euo pipefail
-export TMPDIR=${TMPDIR:-/dev/shm/fix_p2a}
+export TMPDIR="${TMPDIR:-/var/tmp/astrocs}"
 mkdir -p "$TMPDIR"
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$ROOT"

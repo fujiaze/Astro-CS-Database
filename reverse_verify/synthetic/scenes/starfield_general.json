@@ -1,0 +1,53 @@
+{
+  "scene_id": "starfield_general",
+  "kind": "starfield",
+  "description": "一般星场：中等密度、无星云、弱天光梯度；作为通用对照数据类型。",
+  "matrix_cells": [
+    "target:starfield",
+    "sky:dark_0.8eps",
+    "band:Red"
+  ],
+  "seed": 20260921,
+  "shape": [
+    1024,
+    1024
+  ],
+  "exposure_s": 300,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 2.6,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "vignette": 0.05
+  },
+  "sky": {
+    "level_e_per_s": 0.8,
+    "grad_x_e_per_s": 0.1,
+    "grad_y_e_per_s": 0.04,
+    "theta_deg": 40
+  },
+  "nebula": [],
+  "stars": {
+    "n": 900,
+    "flux_log10_range": [
+      2.5,
+      5.5
+    ],
+    "clustering": "uniform",
+    "seed": 6001
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 40,
+    "cr_mean_charge_e": 900,
+    "hot_pixel_fraction": 0.0002
+  }
+}

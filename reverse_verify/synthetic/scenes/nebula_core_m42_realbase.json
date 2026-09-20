@@ -1,0 +1,67 @@
+{
+  "scene_id": "nebula_core_m42_realbase",
+  "kind": "bright_nebula_core",
+  "description": "真实 L4 M42 归一化帧作底（真实星云核心 + 真实星场 + 真实背景结构），平滑去噪后作为期望电子面，再按物理噪声过程重采样；另注入已知通量星点供判据使用。",
+  "matrix_cells": [
+    "target:bright_nebula_core",
+    "real_instance:L4-rebuild/norm/t3_m2_red",
+    "band:Red"
+  ],
+  "seed": 20260920,
+  "shape": [
+    1024,
+    1024
+  ],
+  "exposure_s": 300,
+  "temp_c": -20,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000,
+    "dark_current_e_per_s": 0.02
+  },
+  "flat": {
+    "prnu_rms": 0.008,
+    "low_order": 0.015,
+    "vignette": 0.04
+  },
+  "sky": {
+    "level_e_per_s": 0.5,
+    "grad_x_e_per_s": 0.05,
+    "grad_y_e_per_s": 0.02,
+    "theta_deg": 25
+  },
+  "real_base": {
+    "path": "run/RELEASE-02/L4-rebuild/norm/t3_m2_red/cleaned_*.fts",
+    "glob_index": 0,
+    "auto_bright": {
+      "size": 1024,
+      "block": 256,
+      "mode": "mean"
+    },
+    "smooth_sigma_px": 2,
+    "target_p999_e": 60000,
+    "subtract_percentile": 5
+  },
+  "nebula": [],
+  "stars": {
+    "n": 60,
+    "flux_log10_range": [
+      3.5,
+      6
+    ],
+    "clustering": "uniform",
+    "seed": 5150
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 40,
+    "cr_mean_charge_e": 900,
+    "hot_pixel_fraction": 0.0002
+  }
+}

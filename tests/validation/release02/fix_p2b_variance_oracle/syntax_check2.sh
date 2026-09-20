@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 cd "/workspace/Astro CS Database"
-export TMPDIR=/dev/shm/fix-p2b
+export TMPDIR="${TMPDIR:-/var/tmp/astrocs}"
 check() {
   local tgt="$1"; local src="$2"; shift 2
   local DEFINES INCLUDES

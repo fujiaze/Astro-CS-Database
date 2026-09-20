@@ -1,0 +1,223 @@
+{
+  "audit": "SNR-EXP-AUDIT 2 -- SP-0 criterion, independent re-derivation + physical verification",
+  "declared_model_parameters": {
+    "G_e_per_adu": 1.3,
+    "RN_e": 10.0,
+    "status": "DECLARED, not measured"
+  },
+  "gap_audit_9_42": "no physical closed form evaluated",
+  "exact_form": "Var_approx/Var_opt = 1 + Var_p(delta)/(1+deltabar)^2",
+  "document_form": "Var_approx/Var_opt = 1 + Var_p(delta) + O(delta^3)",
+  "A_algebra": {
+    "n_trials": 200,
+    "max_abs_error_exact_form": 4.440892098500626e-16,
+    "max_abs_error_document_form": 0.139057992557845,
+    "verdict": "EXACT form verified to machine precision; the document form differs at O(delta^3) as stated"
+  },
+  "B_setup": {
+    "n_frames": 4,
+    "sky_scales": [
+      0.8500000000000001,
+      0.9500000000000001,
+      1.0500000000000003,
+      1.1500000000000001
+    ],
+    "sky_level_adu": 180.0,
+    "truth_sigma_adu": [
+      13.300872715357368,
+      13.811566487415245,
+      14.3040386843173,
+      14.78011084290641
+    ],
+    "frame_sigma_spread": 1.111213614264656,
+    "n_pixels": 4000000
+  },
+  "B_physical_poisson_verification": [
+    {
+      "delta_rms": 0.0,
+      "delta": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "var_p_delta": 0.0,
+      "delta_bar": 0.0,
+      "ratio_measured_poisson": 0.9994041944144048,
+      "ratio_exact_form": 1.0,
+      "ratio_document_form": 1.0,
+      "rel_err_exact_pct": -0.05958055855952438,
+      "rel_err_document_pct": -0.05958055855952438
+    },
+    {
+      "delta_rms": 0.01,
+      "delta": [
+        -0.003314337507600185,
+        -0.009831835400308752,
+        -0.01664463211856743,
+        0.0014822730012457356
+      ],
+      "var_p_delta": 4.432959977316194e-05,
+      "delta_bar": -0.007113976075393689,
+      "ratio_measured_poisson": 1.000655777350816,
+      "ratio_exact_form": 1.0000449671139942,
+      "ratio_document_form": 1.0000443295997732,
+      "rel_err_exact_pct": 0.061078277168324924,
+      "rel_err_document_pct": 0.061142064701025234
+    },
+    {
+      "delta_rms": 0.05,
+      "delta": [
+        -0.08345247181685986,
+        -0.01156661656857772,
+        0.08887463702673264,
+        0.06257317442368754
+      ],
+      "var_p_delta": 0.004658710655156289,
+      "delta_bar": 0.009256531900709726,
+      "ratio_measured_poisson": 1.0063876068728024,
+      "ratio_exact_form": 1.0045736465590935,
+      "ratio_document_form": 1.0046587106551563,
+      "rel_err_exact_pct": 0.1805701672467741,
+      "rel_err_document_pct": 0.17208791396619016
+    },
+    {
+      "delta_rms": 0.2,
+      "delta": [
+        -0.09876818462240905,
+        -0.35535176701876414,
+        0.024657649029574975,
+        -0.13236059502615205
+      ],
+      "var_p_delta": 0.01892678346063656,
+      "delta_bar": -0.1427568386429317,
+      "ratio_measured_poisson": 1.024902606885198,
+      "ratio_exact_form": 1.0257554270314735,
+      "ratio_document_form": 1.0189267834606366,
+      "rel_err_exact_pct": -0.08314069063650731,
+      "rel_err_document_pct": 0.5864821223233951
+    }
+  ],
+  "B_gaussian_comparison": [
+    {
+      "delta_rms": 0.0,
+      "ratio_measured_gaussian": 0.9989099630743006,
+      "ratio_exact_form": 1.0,
+      "rel_err_exact_pct": -0.10900369256994225
+    },
+    {
+      "delta_rms": 0.01,
+      "ratio_measured_gaussian": 1.0003565182514815,
+      "ratio_exact_form": 1.0000847009819152,
+      "rel_err_exact_pct": 0.02717942483265734
+    },
+    {
+      "delta_rms": 0.05,
+      "ratio_measured_gaussian": 1.0023392767338732,
+      "ratio_exact_form": 1.00333841558236,
+      "rel_err_exact_pct": -0.0995814406156037
+    },
+    {
+      "delta_rms": 0.2,
+      "ratio_measured_gaussian": 1.012483606025852,
+      "ratio_exact_form": 1.012011134941172,
+      "rel_err_exact_pct": 0.04668635238953556
+    }
+  ],
+  "C_negative_controls": {
+    "C1_zero_delta": {
+      "ratio": 1.0003775026258703,
+      "var_p_delta": 0.0,
+      "must_be": "1.000000"
+    },
+    "C2_common_mode_delta_37pct": {
+      "ratio_measured": 1.0003775026258699,
+      "ratio_exact": 1.0,
+      "var_p_delta": 0.0,
+      "delta_bar": 0.3700000000000001,
+      "must_be": "1.000000"
+    },
+    "C3_identical_sigma_fields": {
+      "ratio_exact": 1.0,
+      "var_p_delta": 0.0,
+      "must_be": "1.000000"
+    }
+  },
+  "D_self_estimated_weights": {
+    "rows": [
+      {
+        "estimator_pixels": 4096,
+        "delta_realised": [
+          -0.025777223057330878,
+          -0.0054735634170489655,
+          -0.02276188384011879,
+          -0.046496389565750196
+        ],
+        "ratio_measured": 1.0013669740677558,
+        "ratio_exact_form_from_realised_delta": 1.00021349906253,
+        "rel_err_exact_pct": 0.11532287919597817
+      },
+      {
+        "estimator_pixels": 256,
+        "delta_realised": [
+          -0.12625171963468274,
+          0.05226288648587629,
+          -0.09448363898133105,
+          0.008206957985744001
+        ],
+        "ratio_measured": 1.0057266746255638,
+        "ratio_exact_form_from_realised_delta": 1.0059833211099878,
+        "rel_err_exact_pct": -0.025512001942618046
+      },
+      {
+        "estimator_pixels": 64,
+        "delta_realised": [
+          -0.02689986866683458,
+          0.4525509089773343,
+          0.11718211860058725,
+          -0.05820666801271879
+        ],
+        "ratio_measured": 1.0324828039469018,
+        "ratio_exact_form_from_realised_delta": 1.0329149505446327,
+        "rel_err_exact_pct": -0.04183757796351051
+      },
+      {
+        "estimator_pixels": 1,
+        "delta_realised": [
+          Infinity,
+          Infinity,
+          Infinity,
+          Infinity
+        ],
+        "ratio_measured": NaN,
+        "ratio_exact_form_from_realised_delta": NaN,
+        "rel_err_exact_pct": NaN
+      }
+    ],
+    "note": "weights estimated from the same frames break assumption (c); the residual bias is reported as rel_err_exact_pct"
+  },
+  "E_correlated_common_mode_noise": {
+    "rows": [
+      {
+        "common_mode_sigma_fraction": 0.0,
+        "ratio_measured": 1.0002301487746064,
+        "ratio_diagonal_formula": 1.0,
+        "excess_pct": 0.023014877460636463
+      },
+      {
+        "common_mode_sigma_fraction": 0.02,
+        "ratio_measured": 1.001862334027721,
+        "ratio_diagonal_formula": 1.0,
+        "excess_pct": 0.18623340277210687
+      },
+      {
+        "common_mode_sigma_fraction": 0.1,
+        "ratio_measured": 1.0399036050157653,
+        "ratio_diagonal_formula": 1.0,
+        "excess_pct": 3.9903605015765287
+      }
+    ],
+    "note": "a common error term added to every frame (the physical analogue of a shared master frame) breaks assumption (b): the true variance grows but the inverse-variance formula does not see it"
+  },
+  "elapsed_s": 128.59564185142517
+}

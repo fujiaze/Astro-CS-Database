@@ -215,4 +215,105 @@
 - Tukey biweight 的 `c = 4.685` 常数出处：未能从可核对一手文献确认，**不收录**。该常数本轮**原样继承**主线冻结规范（`docs/science/PHOTOMETRY.md` SCI-PHOT-001 / `star_matcher.cpp` 的 `_TUKEY_C`），**未重新推导、未改动**。
 - Pan-STARRS1 测光定标（Schlafly et al.）：未能通过 arXiv 检索核对到正确 arXiv 号，**不收录**。
 - Beaton & Tukey (1974) Technometrics 16, 147：DOI 重定向到出版商域，本环境无法跟随跨域跳转完成逐字核对，**不收录**。
+---
+
+## 帧级 SNR 定案（FRAME-SNR-CANON）新增条目
+
+> 工作项 **FRAME-SNR-CANON**（RELEASE-02）。完整调研记录见 `frame-snr-survey.md`；
+> 定案见 `../docs/frame-snr-canon.md`。**本轮所有条目均为一手抓取核对**；
+> 未抓到的一律标「待核对」并写清尝试路径。
+
+### [FSNR-01] Jones, R. L. (2016/2026). Calculating LSST limiting magnitudes and SNR (SMTN-002)
+- **可核对标识**：https://smtn-002.lsst.io/ （HTTP 200，页面标注 DOI 10.71929/rubin/3408482，By: R. Lynne Jones）；
+  实现落点 `lsst/pipe_tasks` commit `0e56ae0` 的 `python/lsst/pipe/tasks/computeExposureSummaryStats.py:1262-1319`。
+- **借鉴点**：**唯一一手帧级 SNR 解析式** `SNR = C/sqrt(C/g + (B/g + σ_instr²)·n_eff)`，`n_eff = 2.266(FWHM/pixelScale)²`；
+  天光 `B` 只进分母。AstroCS 定案式 (2.4)(2.7) 与之同构（`n_eff → A_NEA = 1/ΣP_i²`）。
+- **不借鉴点**：仅用于深度/极限星等 m5，非产品字段；`n_eff` 的 2.266 系数是 LSST 解析近似；
+  它假设 gain 已知（AstroCS 的 FITS 头拿不到）。
+- **核对状态**：**已核对**（页面 + 源码 `grep -n` 行号 + commit 钉版本）。
+
+### [FSNR-02] Bosch, J. et al. (2018). The Hyper Suprime-Cam Software Pipeline. PASJ 70, S5. arXiv:1705.06766
+- **可核对标识**：https://arxiv.org/abs/1705.06766 ；全文 https://ar5iv.labs.arxiv.org/html/1705.06766 。
+- **借鉴点**：Eq(32) `σ_i² = b + α(φ_i + ε_i)`，逐字 "where **b is the level of the background (before it is subtracted)**" ——
+  「背景均值」与「背景噪声」分离的干净范式；matched filter Eq(28)(30)。
+- **不借鉴点**：**HSC 没有任何帧级 SNR 标量**（论文从未写出 `α_MF/σ_MF`）；CModel/SdssShape 不定义误差。
+- **场景差异**：HSC 分 coadd 与 visit 两层；AstroCS normalize 是单帧。
+- **核对状态**：**已核对**（ar5iv 全文逐字复核 Eq(28)/Eq(30)/Eq(32)/calexp 四处）。**待核对**：PASJ 卷页（OUP 403 Cloudflare）。
+
+### [FSNR-03] Magnier, E. A. et al. (2020). Pan-STARRS Pixel Analysis: Source Detection and Characterization. ApJS 251, 5. DOI 10.3847/1538-4365/abb82c. arXiv:1612.05244
+- **可核对标识**：源码 SVN `https://svn.panstarrs.ifa.hawaii.edu/trac/ipp/export/HEAD/trunk/` + `psModules/src/objects/pmSourceIO_CFF.c` 等；
+  版本钉扎 `export/43094` 与 `export/HEAD` 的 `psphotSourceStats.c` md5 一致。
+- **借鉴点**：局部天光**照测但不参与 SNR**（`psphotSourceStats.c:411-413` 逐字 "// the local sky is now ignored; kept here for reference only"）。
+- **不借鉴点**：`Var = Σ w σ²`（权重**未平方**，`pmSourceMoments.c:215`）数学上不是加权和的方差；
+  同名 `SN` 有三条不同口径（Kron/矩/PSF）；论文公式含 `s_i` 但实现 `sky ≡ 0`。
+- **⚠️ 纠正**：psphot 核心论文是 **Magnier et al. 2020 ApJS 251, 5**；
+  Waters et al. 2020 ApJS 251, 4（DOI ...abb82b）是 detrend/warp/stack 论文，全文 `psphot` 0 次。
+  `github.com/panstarrs/ipp` **不存在**（GitHub API 404）。
+- **核对状态**：**已核对**（SVN 原文 + `nl -ba` 行号 + arXiv API/Crossref 双核）。**部分核对**：方差图是否含天光泊松仅注释间接支持。
+
+### [FSNR-04] Abbott, T. M. C. et al. (2021). The Dark Energy Survey Data Release 2. ApJS 255, 20. DOI 10.3847/1538-4365/ac00b3. arXiv:2101.05765
+- **可核对标识**：https://sextractor.readthedocs.io/en/des_dr1/Photom.html （DES 官方 SExtractor fork，HTTP 200）；
+  配置 https://raw.githubusercontent.com/DarkEnergySurvey/multiepoch/master/etc/20160629_sex.config 。
+- **借鉴点**：`FLUXERR = sqrt(Σ(σ_i² + p_i/g_i))`，`p_i` 逐字 "**subtracted from the background**"，
+  `σ_i` 逐字 "estimated from the local background" —— 「分子扣背景 / 分母承载天光」的权威范式；
+  官方自承误差是 "a **lower limit** of the true uncertainty"（表述纪律）。
+- **不借鉴点**：误差完全外包给局部背景 RMS；`BACKPHOTO_TYPE GLOBAL` 在强梯度下不够。
+- **⚠️ 纠正**：DES DR2 论文是 **arXiv:2101.05765**（任务书给的 2101.02242 是 Brucalassi et al. 的 Ariel 光谱论文）。
+- **核对状态**：**已核对**（官方 fork 页 + DR1/DR2 PDF 抽文 + 配置文件行号）。
+
+### [FSNR-05] Bertin, E. & Arnouts, S. (1996). SExtractor: Software for source extraction. A&AS 117, 393. DOI 10.1051/aas:1996164
+- **可核对标识**：master 分支（`configure.ac` 版本 **2.29.0**）`src/param.h`、`src/winpos.c`、`doc/src/Photom.rst`。
+- **借鉴点**：孔径误差规范式 `FLUXERR = sqrt(Σ(σ_i² + p_i/g_i))`；
+  **`SNR_WIN = FLUX_WIN/FLUXERR_WIN`**（`src/winpos.c:289`，`src/param.h:134`）证明「窗口口径本身不会被天光抬高」。
+- **不借鉴点**：误差不含天光估计自身不确定度；手册与实现不同步（`SNR_WIN` 只在源码里）。
+- **⚠️ 纠正**：`FLUX_GAUSS` **不存在**（`param.h` 参数表零命中）。
+- **核对状态**：**已核对**（源码级）。**未做**：与 SExtractor 二进制对拍（本环境无可执行文件）。
+
+### [FSNR-06] Stetson, P. B. (1987). DAOPHOT: A computer program for crowded-field stellar photometry. PASP 99, 191. DOI 10.1086/131977
+- **可核对标识**：IRAF 官方帮助页 `https://iraf.readthedocs.io/en/latest/tasks/noao/digiphot/daophot/phot.html` 行 515–525；
+  源码 `noao/digiphot/apphot/phot/apcomags.x` 行 28–55。
+- **借鉴点**：`err = sqrt(flux/epadu + area·stdev² + area²·stdev²/nsky)` ——
+  **`nsky` 项（天光估计自身的不确定度）必须进误差**，否则亮天空下系统性高估 SNR。
+- **不借鉴点**：`epadu`/`readnoise`/`stdev` 全靠用户手填；天光是单一标量无空间变化。
+- **核对状态**：**书目已核对**（Crossref DOI 10.1086/131977）；**实现级公式已核对**（IRAF 官方帮助页 + 官方源码一致）；
+  **原文正文 待核对**（OpenAlex `oa_status: closed`；ADS 405 WAF、IOPscience 反爬）——
+  **不冒充原文逐字引用**。
+
+### [FSNR-07] Horne, K. (1986). An optimal extraction algorithm for CCD spectroscopy. PASP 98, 609. DOI 10.1086/131801
+- **可核对标识**：Crossref `https://api.crossref.org/works/10.1086/131801`。
+- **借鉴点**：`σ_F^-2 = Σ_i P_i²/σ_i²`、`SNR_F = F/σ_F` —— **本定案 (2.2)(2.3) 的规范出处**；
+  `A_NEA = 1/ΣP_i²` 是其在 `σ_i = σ` 常数下的直接推论。
+- **核对状态**：**书目已核对**（Crossref 逐字：PASP 98, 609, 1986-06）；**正文等式 待核对**（PASP 闭源）。
+
+### [FSNR-08] Naylor, T. (1998). An optimal extraction algorithm for imaging photometry. MNRAS 296, 339–346. DOI **10.1046/j.1365-8711.1998.01314.x**
+- **可核对标识**：Crossref 检索命中（标题/卷/页一致）。
+- **借鉴点**：Horne 1986 在二维成像情形下的推广；"最优提取 ≠ 固定孔径求和"。
+- **⚠️ 纠正**：任务书给的 DOI `10.1046/j.1365-8711.1998.01407.x` 是**另一篇论文**
+  （Crossref 逐字 *"Deep hard X-ray source counts from a fluctuation analysis of ASCA SIS images"*, MNRAS 297, 41）。
+- **核对状态**：**书目已核对**；**正文 待核对**。
+
+### [FSNR-09] Irwin, M. J. (1985). Automatic analysis of crowded fields. MNRAS 214, 575–604. DOI **10.1093/mnras/214.4.575**
+- **⚠️ 纠正**：任务书给的 `10.1093/mnras/214.3.575` 在 Crossref **无记录**；正确是 `.4.575`。
+- **核对状态**：**书目已核对（Crossref）**；**正文与误差式 待核对**。
+
+### [FSNR-10] PixInsight. New Image Weighting Algorithms（官方方法学文档）
+- **可核对标识**：https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html （`web_fetch` HTTP 200；`curl` 被 406 拒绝）。
+- **借鉴点（反面教材）**：官方自述 standard SNR（式[20]）"**corresponds to the ratio of powers standard
+  formulation of signal-to-noise ratio**"，且其 Figure 9 说明逐字承认
+  "a big airplane trail that introduces a **strong bias in the variance used as the numerator of the SNR
+  equation** (see Equation [20])" ⇒ **加性图像内容（天光/梯度/尾迹）会抬高该定义的分子**。
+  这是「假信噪比」的一手官方证据。
+- **不借鉴点**：功率比型不可做 `w = SNR²/F_ref²` 换算；`c3`/`c4` 随版本漂移。
+- **注意**：**PSFSNR（式[18]）的分子已扣局部背景**，故它本身不被天光均值抬高（与 standard SNR 不同）。
+  页面公式为**图片**，本轮**未逐字提取符号**。
+- **核对状态**：**已核对**（官方页面正文逐字；公式符号未提取）。
+
+### [FSNR-11] 本工作项明确**未**收录 / 未做
+- **`A_NEA = 1/ΣP_i²` 的一手出处**：**未定位** ⇒ 引用时必须写成"由 Horne 1986 推出"，**不得**安给某篇"提出 A_NEA 的论文"。
+- **Labbé et al. 2003**：任务书点名为"最优孔径与 SNR"来源，本轮**未能核对到任何相关内容** ⇒ **不收录**，不编造。
+- **Stetson 1987 / Naylor 1998 / Irwin 1985 正文**：闭源/不可达 ⇒ 只引实现级公式与书目。
+- **SExtractor 二进制对拍**：本环境无 `sex`/`extract` ⇒ **未做**（只做源码级核对）。
+- **HST/哈勃数据**：本工作区**无**（全仓 `find -iname '*hst*' / '*hubble*'` 命中 0）⇒ 真实数据实验改用真实实拍 M42 帧。
+- **DrizzlePac Handbook "proportional to the inverse variance"**：Confluence CQL 全文检索 `totalSize: 0` ⇒ **该说法不存在**，正确表述是 `W = 1/(Var × scale⁴)`。
+
 

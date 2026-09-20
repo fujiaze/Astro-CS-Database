@@ -1,0 +1,122 @@
+{
+  "scene_id": "nebula_core_m42_analytic",
+  "kind": "bright_nebula_core",
+  "description": "M42/M16 类突兀亮度峰值：陡幂律核（中心饱和）+ 宽晕 + 丝状结构 + 成团星场；解析场景（无真实底）。",
+  "matrix_cells": [
+    "target:bright_nebula_core",
+    "seeing:3.0px",
+    "sky:dark_0.5eps",
+    "band:Red",
+    "instrument:0.5m_0.97asp"
+  ],
+  "seed": 20260919,
+  "shape": [
+    1024,
+    1024
+  ],
+  "exposure_s": 300,
+  "temp_c": -20,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000,
+    "dark_current_e_per_s": 0.02,
+    "dark_ref_temp_c": -20,
+    "dark_double_temp_c": 6
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "tilt_x": 1,
+    "tilt_y": 0.5,
+    "vignette": 0.05
+  },
+  "sky": {
+    "level_e_per_s": 0.5,
+    "grad_x_e_per_s": 0.06,
+    "grad_y_e_per_s": 0.03,
+    "theta_deg": 25
+  },
+  "nebula": [
+    {
+      "type": "powerlaw_core",
+      "center": [
+        512,
+        512
+      ],
+      "peak_e_per_s": 900,
+      "core_radius_px": 6,
+      "slope": 2.6,
+      "truncation_px": 380
+    },
+    {
+      "type": "gaussian_blob",
+      "center": [
+        512,
+        512
+      ],
+      "peak_e_per_s": 120,
+      "sigma_px": 150
+    },
+    {
+      "type": "filament",
+      "p1": [
+        300,
+        200
+      ],
+      "p2": [
+        820,
+        460
+      ],
+      "peak_e_per_s": 40,
+      "width_px": 18
+    },
+    {
+      "type": "filament",
+      "p1": [
+        250,
+        700
+      ],
+      "p2": [
+        760,
+        880
+      ],
+      "peak_e_per_s": 25,
+      "width_px": 12
+    },
+    {
+      "type": "gaussian_ring",
+      "center": [
+        700,
+        300
+      ],
+      "peak_e_per_s": 15,
+      "radius_px": 160,
+      "sigma_px": 30
+    }
+  ],
+  "stars": {
+    "n": 600,
+    "flux_log10_range": [
+      3,
+      6.5
+    ],
+    "clustering": "clustered",
+    "cluster_n": 8,
+    "cluster_sigma_px": 180,
+    "seed": 4242,
+    "avoid_nebula_core": true
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 40,
+    "cr_mean_charge_e": 900,
+    "hot_pixel_fraction": 0.0002,
+    "hot_pixel_dark_gain": 50
+  }
+}

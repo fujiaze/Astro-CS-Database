@@ -1,0 +1,106 @@
+{
+  "scene_id": "sweep_seeing",
+  "kind": "seeing_sweep",
+  "description": "不同 seeing（FWHM 1.5-5.0 px）扫描：同一星场、同天光，只改 PSF FWHM（Moffat beta=4）。",
+  "matrix_cells": [
+    "condition:seeing_1.5_to_5.0px"
+  ],
+  "seed": 20260927,
+  "shape": [
+    512,
+    512
+  ],
+  "exposure_s": 300,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "vignette": 0.05
+  },
+  "sky": {
+    "level_e_per_s": 0.6,
+    "grad_x_e_per_s": 0.15,
+    "grad_y_e_per_s": 0.08,
+    "theta_deg": 30
+  },
+  "nebula": [
+    {
+      "type": "gaussian_blob",
+      "center": [
+        256,
+        256
+      ],
+      "peak_e_per_s": 30,
+      "sigma_px": 120
+    }
+  ],
+  "stars": {
+    "n": 350,
+    "flux_log10_range": [
+      3,
+      5.5
+    ],
+    "clustering": "uniform",
+    "seed": 1212
+  },
+  "frames": [
+    {
+      "frame_id": "seeing_1p5",
+      "psf": {
+        "fwhm_px": 1.5
+      }
+    },
+    {
+      "frame_id": "seeing_2p0",
+      "psf": {
+        "fwhm_px": 2
+      }
+    },
+    {
+      "frame_id": "seeing_2p5",
+      "psf": {
+        "fwhm_px": 2.5
+      }
+    },
+    {
+      "frame_id": "seeing_3p0",
+      "psf": {
+        "fwhm_px": 3
+      }
+    },
+    {
+      "frame_id": "seeing_3p5",
+      "psf": {
+        "fwhm_px": 3.5
+      }
+    },
+    {
+      "frame_id": "seeing_4p0",
+      "psf": {
+        "fwhm_px": 4
+      }
+    },
+    {
+      "frame_id": "seeing_4p5",
+      "psf": {
+        "fwhm_px": 4.5
+      }
+    },
+    {
+      "frame_id": "seeing_5p0",
+      "psf": {
+        "fwhm_px": 5
+      }
+    }
+  ]
+}

@@ -38,13 +38,13 @@ KEY_ANCHORS = [
     ("psf.moffat_beta", "docs/science/PSF.md", 92, "4"),
     ("noise.source_mask_radius_px", "docs/science/NOISE_MODEL.md", 84, "rmax"),
     ("noise.variance_floor", "docs/science/NOISE_MODEL.md", 21, "1e-12"),
-    ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", 56, "4.0/3.0/8"),
-    ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", 24, "3.0 mag"),
+    ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", 66, "4.0/3.0/8"),
+    ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", 25, "3.0 mag"),
     ("weight.default_mode", "docs/science/PSF_SIGNAL_WEIGHT.md", 12, "psf_information_weight"),
     ("precision.default", "docs/science/SCIENCE_SCOPE.md", 53, "FP64"),
     ("upm.k_corr", "docs/science/PHASE2_UPM.md", 22, "1.4"),
     ("hips.tile_width", "docs/science/PHASE3_HIPS_TO_FITS.md", 39, "512"),
-    ("drizzle.pixfrac", "docs/science/DRIZZLE.md", 31, "pixfrac"),
+    ("drizzle.pixfrac", "docs/science/DRIZZLE.md", 33, "pixfrac"),
 ]
 PENDING_EXPECTED = {
     # drizzle.pixfrac 已于 DOC-SCI-001 §3 裁决落地（defaults.json value=1.0，

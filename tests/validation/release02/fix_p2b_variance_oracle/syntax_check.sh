@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 cd "/workspace/Astro CS Database"
-export TMPDIR=/dev/shm/fix-p2b
+export TMPDIR="${TMPDIR:-/var/tmp/astrocs}"
 DEFINES=$(awk '/module_adapters.cpp.o:/{f=1} f&&/^  DEFINES =/{sub(/^  DEFINES = /,"");print;exit}' build/build.ninja)
 INCLUDES=$(awk '/module_adapters.cpp.o:/{f=1} f&&/^  INCLUDES =/{sub(/^  INCLUDES = /,"");print;exit}' build/build.ninja)
 INCLUDES="$INCLUDES -I\"/workspace/Astro CS Database/lib/algorithms/calibration/src\" -I\"/workspace/Astro CS Database/lib/algorithms/photometry/cpp/src\""

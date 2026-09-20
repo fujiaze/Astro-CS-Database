@@ -1,0 +1,432 @@
+{
+  "audit": "SNR-EXP-AUDIT 0 simulator validation + sky red line",
+  "declared_model_parameters": {
+    "G_e_per_adu": 1.3,
+    "RN_e": 10.0,
+    "status": "DECLARED, not measured"
+  },
+  "base_data": "real L4 calibrated frames, norm/t2_m2_red (no HST data in this repository; substitution declared)",
+  "gap_audit_9_42": "no physical closed form evaluated; no gain / aperture / exposure inferred from the data",
+  "template": {
+    "n_frames": 4,
+    "shifts": [
+      [
+        0,
+        0
+      ],
+      [
+        11,
+        27
+      ],
+      [
+        5,
+        43
+      ],
+      [
+        4,
+        44
+      ]
+    ],
+    "margin": 46,
+    "shape": [
+      932,
+      932
+    ],
+    "template_median_adu": 186.20895385742188,
+    "interframe_scatter_median_adu": 19.477394254496403,
+    "note": "interframe_scatter_median_adu is NOT noise; it contains real night-to-night sky/seeing differences"
+  },
+  "template_noise_model": {
+    "median_sigma_adu": 7.114396743773005,
+    "note": "Var(template)=Var(one frame)/N_frames; COMMON to all simulated frames (fixed pattern, not independent noise)"
+  },
+  "V1_independent_noise": {
+    "n_realisations": 40,
+    "block": [
+      256,
+      256
+    ],
+    "var_empirical_adu2": 205.74115676879882,
+    "var_model_adu2": 206.4946478475925,
+    "ratio": 0.9963510382150447,
+    "sigma_empirical_adu": 14.343680028807071,
+    "sigma_model_adu": 14.369921636793727,
+    "verdict": "PASS"
+  },
+  "V2_quantisation": {
+    "uniform_sky_adu": 200.0,
+    "var_with_quantisation_adu2": 153.86491316643315,
+    "var_without_adu2": 153.78424955491863,
+    "measured_extra_adu2": 0.08066361151452384,
+    "predicted_extra_adu2": 0.08333333333333333,
+    "sigma_quant_adu": 0.28867513459481287,
+    "verdict": "PASS"
+  },
+  "V3_flat_field": {
+    "sigma_flat": 0.01,
+    "var_measured_adu2": 155.56394251579306,
+    "var_expected_adu2": 152.04773304490993,
+    "expected_flat_term_adu2": 4.77399249514786,
+    "note": "flat term is multiplicative, y^2*sigma_flat^2, and must use E[y^2] (bright pixels dominate it); a pure multiplicative response leaves the SNR of a source UNCHANGED to first order because signal and noise are scaled together",
+    "verdict": "PASS"
+  },
+  "V4_template_term": {
+    "var_of_mean_of_16_adu2": 12.901286439100904,
+    "var_model_one_frame_over_16_adu2": 12.90591549047453,
+    "ratio": 0.9996413232848887,
+    "verdict": "PASS"
+  },
+  "G_noise_affinity_dimensionless": {
+    "pair": [
+      "calibrated_M42_M2_T2_flying_dutchman-20251224@033141-300S-Red.fts",
+      "calibrated_M42_M2_T2_flying_dutchman-20251224@033733-300S-Red.fts"
+    ],
+    "n_bins": 20,
+    "noise_affinity_adu2_per_adu": 0.5946314886937352,
+    "constant_term_adu2": 61.05570012309448,
+    "sky_level_median_adu": 172.76448799170691,
+    "read_fraction_b_over_aS": 0.5943247751116283,
+    "sky_fraction_of_variance": 0.6272247760372311,
+    "levels": [
+      {
+        "mean_adu": 149.16608549472153,
+        "var_diff_half_robust": 149.53460127773718,
+        "var_diff_half_plain": 144.28145432796242,
+        "n_pix": 50809
+      },
+      {
+        "mean_adu": 155.49484446645252,
+        "var_diff_half_robust": 149.41725573738978,
+        "var_diff_half_plain": 146.87527155281592,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 158.67415875462055,
+        "var_diff_half_robust": 150.6369557871315,
+        "var_diff_half_plain": 150.0331858553284,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 161.10641204884737,
+        "var_diff_half_robust": 151.62771014281864,
+        "var_diff_half_plain": 152.91638275321768,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 163.17874036040237,
+        "var_diff_half_robust": 152.99346965417507,
+        "var_diff_half_plain": 155.85304329780595,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 165.05305990852196,
+        "var_diff_half_robust": 153.99868015616897,
+        "var_diff_half_plain": 158.94514141066472,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 166.8240673403499,
+        "var_diff_half_robust": 152.98021307228834,
+        "var_diff_half_plain": 159.71980736367152,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 168.5261449266505,
+        "var_diff_half_robust": 154.04930504524432,
+        "var_diff_half_plain": 162.45563468474057,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 170.20373849413787,
+        "var_diff_half_robust": 172.35612190779668,
+        "var_diff_half_plain": 163.4481428400394,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 171.9004458910348,
+        "var_diff_half_robust": 173.8187918984965,
+        "var_diff_half_plain": 165.741497528015,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 173.62853009237904,
+        "var_diff_half_robust": 174.1133339884436,
+        "var_diff_half_plain": 166.7137156244409,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 175.41493185552682,
+        "var_diff_half_robust": 173.7287489514582,
+        "var_diff_half_plain": 168.128271340754,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 177.32568577529312,
+        "var_diff_half_robust": 173.129830576145,
+        "var_diff_half_plain": 167.9421592582318,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 179.38667305111605,
+        "var_diff_half_robust": 173.15993085936668,
+        "var_diff_half_plain": 168.89741016903946,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 181.65845255265367,
+        "var_diff_half_robust": 172.6925142937889,
+        "var_diff_half_plain": 170.61682391228916,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 184.2345422172036,
+        "var_diff_half_robust": 172.43089410904176,
+        "var_diff_half_plain": 169.51082066640924,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 187.2300566952729,
+        "var_diff_half_robust": 172.85168472416856,
+        "var_diff_half_plain": 170.10862047943507,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 190.91426066859765,
+        "var_diff_half_robust": 172.52543273511657,
+        "var_diff_half_plain": 170.07562155314181,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 195.8854657620487,
+        "var_diff_half_robust": 171.86189962660887,
+        "var_diff_half_plain": 171.04538374470854,
+        "n_pix": 50808
+      },
+      {
+        "mean_adu": 204.93898499959886,
+        "var_diff_half_robust": 172.96737633457744,
+        "var_diff_half_plain": 179.3404958423395,
+        "n_pix": 50808
+      }
+    ],
+    "note": "DIMENSIONLESS.  a is the Poisson coefficient dVar/dS in ADU; b collects read noise AND unresolved-source structure, so b (and the read fraction) is an UPPER bound.  No gain, aperture or exposure is inferred (GAP_AUDIT 9.42)."
+  },
+  "S_sky_red_line": {
+    "source_flux_e": 60000.0,
+    "fwhm_px": 3.31,
+    "annulus_sky_adu": 176.26154327392578,
+    "estimator": "PSF-weighted flux SNR, sigma_F = sigma_bg*sqrt(sum P^2); sigma_bg measured from the DIFFERENCE of two independent realisations (structure cancels), plane background on a source-free 3-6 FWHM annulus",
+    "n_realisations": 200,
+    "sky_level_adu": 177.5964241027832,
+    "rows": [
+      {
+        "delta_sky_adu": 0.0,
+        "armA_sigma_bg_adu": 13.924816230906277,
+        "armA_psf_snr": 667.2302862213678,
+        "armA_naive_global_snr": 726210.2128867173,
+        "armB_sigma_bg_adu": 13.977234135031654,
+        "armB_sigma_bg_scatter_adu": 0.6005854421531196,
+        "armB_psf_snr": 664.4332556682468,
+        "armB_sigma_ratio_predicted": 1.0,
+        "armB_snr_change_predicted_pct": 0.0,
+        "armA_snr_change_pct": 0.0,
+        "armA_naive_snr_change_pct": 0.0,
+        "armB_snr_change_pct": 0.0,
+        "armB_sigma_ratio_measured": 1.0
+      },
+      {
+        "delta_sky_adu": 50.0,
+        "armA_sigma_bg_adu": 13.924816230906277,
+        "armA_psf_snr": 667.2302862213678,
+        "armA_naive_global_snr": 927134.5777451283,
+        "armB_sigma_bg_adu": 15.167120558677702,
+        "armB_sigma_bg_scatter_adu": 0.6935772196368284,
+        "armB_psf_snr": 612.5542787832691,
+        "armB_sigma_ratio_predicted": 1.094296280451103,
+        "armB_snr_change_predicted_pct": -8.617070361623746,
+        "armA_snr_change_pct": 0.0,
+        "armA_naive_snr_change_pct": 27.667521234619908,
+        "armB_snr_change_pct": -7.808004256620327,
+        "armB_sigma_ratio_measured": 1.0851303206450402
+      },
+      {
+        "delta_sky_adu": 150.0,
+        "armA_sigma_bg_adu": 13.924816230906277,
+        "armA_psf_snr": 667.2302862213678,
+        "armA_naive_global_snr": 1328983.3074619502,
+        "armB_sigma_bg_adu": 17.57834414844502,
+        "armB_sigma_bg_scatter_adu": 0.7539391260554679,
+        "armB_psf_snr": 529.3708526305793,
+        "armB_sigma_ratio_predicted": 1.2619243433056346,
+        "armB_snr_change_predicted_pct": -20.755946637776944,
+        "armA_snr_change_pct": 0.0,
+        "armA_naive_snr_change_pct": 83.00256370385975,
+        "armB_snr_change_pct": -20.327459814128346,
+        "armB_sigma_ratio_measured": 1.2576411025689103
+      },
+      {
+        "delta_sky_adu": 400.0,
+        "armA_sigma_bg_adu": 13.924816230906277,
+        "armA_psf_snr": 667.2302862213678,
+        "armA_naive_global_snr": 2333605.131754005,
+        "armB_sigma_bg_adu": 22.361477899885628,
+        "armB_sigma_bg_scatter_adu": 0.8604203769933704,
+        "armB_psf_snr": 417.3494159940396,
+        "armB_sigma_ratio_predicted": 1.6061988654188972,
+        "armB_snr_change_predicted_pct": -37.74120866788188,
+        "armA_snr_change_pct": 0.0,
+        "armA_naive_snr_change_pct": 221.34016987695927,
+        "armB_snr_change_pct": -37.18715726016833,
+        "armB_sigma_ratio_measured": 1.5998499906244137
+      }
+    ],
+    "verdict_armA": "PASS (true effect is zero, metric returns zero)",
+    "verdict_armB": "PASS (photon sky moves SNR as predicted)"
+  },
+  "G_RN_invariance_scan": {
+    "scan": [
+      {
+        "G": 0.5,
+        "RN": 0.0,
+        "sky_fraction_of_variance": 1.0,
+        "sigma_ratio_150adu": 1.3581647913543118,
+        "snr_change_pct": -26.37123224179321
+      },
+      {
+        "G": 0.5,
+        "RN": 5.0,
+        "sky_fraction_of_variance": 0.7803128928887747,
+        "sigma_ratio_150adu": 1.2880455431907973,
+        "snr_change_pct": -22.36299366226131
+      },
+      {
+        "G": 0.5,
+        "RN": 10.0,
+        "sky_fraction_of_variance": 0.4703339670781437,
+        "sigma_ratio_150adu": 1.1820530972386107,
+        "snr_change_pct": -15.401431430102775
+      },
+      {
+        "G": 0.5,
+        "RN": 20.0,
+        "sky_fraction_of_variance": 0.18166640110798007,
+        "sigma_ratio_150adu": 1.0739820993816673,
+        "snr_change_pct": -6.888578443184645
+      },
+      {
+        "G": 1.0,
+        "RN": 0.0,
+        "sky_fraction_of_variance": 1.0,
+        "sigma_ratio_150adu": 1.3581647913543118,
+        "snr_change_pct": -26.37123224179321
+      },
+      {
+        "G": 1.0,
+        "RN": 5.0,
+        "sky_fraction_of_variance": 0.8766019681210327,
+        "sigma_ratio_150adu": 1.3192377311439372,
+        "snr_change_pct": -24.198650751682184
+      },
+      {
+        "G": 1.0,
+        "RN": 10.0,
+        "sky_fraction_of_variance": 0.6397648120893161,
+        "sigma_ratio_150adu": 1.2411094963241665,
+        "snr_change_pct": -19.426931873317223
+      },
+      {
+        "G": 1.0,
+        "RN": 20.0,
+        "sky_fraction_of_variance": 0.3074749369833009,
+        "sigma_ratio_150adu": 1.1223621958313021,
+        "snr_change_pct": -10.902202184444732
+      },
+      {
+        "G": 1.3,
+        "RN": 0.0,
+        "sky_fraction_of_variance": 1.0,
+        "sigma_ratio_150adu": 1.3581647913543118,
+        "snr_change_pct": -26.37123224179321
+      },
+      {
+        "G": 1.3,
+        "RN": 5.0,
+        "sky_fraction_of_variance": 0.9022961771436739,
+        "sigma_ratio_150adu": 1.327437312372732,
+        "snr_change_pct": -24.666875740252713
+      },
+      {
+        "G": 1.3,
+        "RN": 10.0,
+        "sky_fraction_of_variance": 0.6977713824951226,
+        "sigma_ratio_150adu": 1.2606925890694016,
+        "snr_change_pct": -20.67852157851071
+      },
+      {
+        "G": 1.3,
+        "RN": 20.0,
+        "sky_fraction_of_variance": 0.36596032931951905,
+        "sigma_ratio_150adu": 1.1441566061762414,
+        "snr_change_pct": -12.599377165509818
+      },
+      {
+        "G": 2.0,
+        "RN": 0.0,
+        "sky_fraction_of_variance": 1.0,
+        "sigma_ratio_150adu": 1.3581647913543118,
+        "snr_change_pct": -26.37123224179321
+      },
+      {
+        "G": 2.0,
+        "RN": 5.0,
+        "sky_fraction_of_variance": 0.9342438972274335,
+        "sigma_ratio_150adu": 1.3375624221959879,
+        "snr_change_pct": -25.237134102630034
+      },
+      {
+        "G": 2.0,
+        "RN": 10.0,
+        "sky_fraction_of_variance": 0.7803128928887747,
+        "sigma_ratio_150adu": 1.2880455431907973,
+        "snr_change_pct": -22.36299366226131
+      },
+      {
+        "G": 2.0,
+        "RN": 20.0,
+        "sky_fraction_of_variance": 0.4703339670781437,
+        "sigma_ratio_150adu": 1.1820530972386107,
+        "snr_change_pct": -15.401431430102775
+      },
+      {
+        "G": 4.0,
+        "RN": 0.0,
+        "sky_fraction_of_variance": 1.0,
+        "sigma_ratio_150adu": 1.3581647913543118,
+        "snr_change_pct": -26.37123224179321
+      },
+      {
+        "G": 4.0,
+        "RN": 5.0,
+        "sky_fraction_of_variance": 0.9660042340747089,
+        "sigma_ratio_150adu": 1.3475527381913424,
+        "snr_change_pct": -25.79140157867369
+      },
+      {
+        "G": 4.0,
+        "RN": 10.0,
+        "sky_fraction_of_variance": 0.8766019681210327,
+        "sigma_ratio_150adu": 1.3192377311439372,
+        "snr_change_pct": -24.198650751682184
+      },
+      {
+        "G": 4.0,
+        "RN": 20.0,
+        "sky_fraction_of_variance": 0.6397648120893161,
+        "sigma_ratio_150adu": 1.2411094963241665,
+        "snr_change_pct": -19.426931873317223
+      }
+    ],
+    "note": "The SIGN of the sky effect is invariant (SNR always falls).  The MAGNITUDE is set by the dimensionless sky fraction of the variance and is therefore stated without any physical unit."
+  },
+  "elapsed_s": 79.8696038722992
+}
