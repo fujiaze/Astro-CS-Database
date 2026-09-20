@@ -1263,6 +1263,27 @@ target_link_libraries(aio_abi_selfcheck PRIVATE astrocs_common)
 add_test(NAME aio_abi_selfcheck COMMAND aio_abi_selfcheck)
 
 # ----------------------------------------------------------------------------
+# FIX-202 (变更 AHPX-WEIGHT-RETIRE-20260920): .ahpx 格式内部权重枚举作废 —
+# 格式面负例/正例回归锁: 旧格式 (头 JSON 含已作废 "weight" 字段/块) ⇒ 读侧显式
+# 拒绝; 新格式读写往返逐位一致; 写侧拒绝携带已作废字段的元数据。
+# 被测面 = src/ahpx 的 writer/reader/api 直编 (ahpx 已废弃、不在生产 target 内,
+# 与 aio_abi_tests 直编先例同构; astro_image_io.h 的 aio_ahpx_write 声明已随
+# AHPX-WEIGHT-RETIRE-20260920 同步去掉权重参数, 声明与定义同形)。
+# 故障注入: ASTROCS_AHPX_FAULT=accept_legacy|writer_accept_legacy_meta|
+# writer_drop_snr 必败 (rc=1, P2-002/P3-002 先例同构)。
+# ----------------------------------------------------------------------------
+add_executable(ahpx_hips_format_test ahpx_hips_format_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/aio/src/ahpx/aio_ahpx_writer.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/aio/src/ahpx/aio_ahpx_reader.cpp)
+target_include_directories(ahpx_hips_format_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/aio/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/aio/src)
+target_link_libraries(ahpx_hips_format_test PRIVATE astrocs_aio)
+target_sources(ahpx_hips_format_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/aio/src/ahpx/aio_ahpx_api.cpp)
+add_test(NAME ahpx_hips_format COMMAND ahpx_hips_format_test)
+
+# ----------------------------------------------------------------------------
 # P3-001 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) — 版本化 projection registry 与
 # 冻结四投影 (TAN/SIN/CAR/AIT) 验证面
 # 合同锚: ALG-P3-PROJ-IMPL-001 §15 (docs/algorithms/PHASE3_PROJ_IMPL.md) +

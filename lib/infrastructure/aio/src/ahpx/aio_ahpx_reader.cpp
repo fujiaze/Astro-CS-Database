@@ -14,6 +14,16 @@
 namespace aio::ahpx {
 
 // ============================================================================
+// 测试用故障注入 (先例: P2-002/P3-002/AIO-001 的 ASTROCS_*_FAULT)
+// 仅供回归锁证明"能红"; 正常实现不读该变量。
+//   accept_legacy - 跳过"旧格式含已作废 weight 字段/块即拒绝"守卫
+// ============================================================================
+static bool ahpxFault(const char* name) {
+    const char* v = std::getenv("ASTROCS_AHPX_FAULT");
+    return v && std::string(v) == name;
+}
+
+// ============================================================================
 // UTF-8 路径文件打开辅助 (Windows 下支持中文路径)
 // ============================================================================
 static FILE* ahpx_fopen_utf8(const char* path, const char* mode) {
@@ -167,8 +177,9 @@ AhpxReader::~AhpxReader() {
 }
 
 bool AhpxReader::open(const std::string& path) {
-    // 防止重复打开
+    // 防止重复打开 (close() 不清 m_rejectReason, 故在此显式清零)
     close();
+    m_rejectReason.clear();
     m_path = path;
 
     m_fp = ahpx_fopen_utf8(path.c_str(), "rb");
@@ -258,7 +269,13 @@ bool AhpxReader::open(const std::string& path) {
 
     // -------- 解析 JSON 头 --------
     if (!parseHeader()) {
-        fprintf(stderr, "[aio][ahpx][reader] JSON 头解析失败: %s\n", path.c_str());
+        if (!m_rejectReason.empty()) {
+            // 显式拒绝 (旧格式/格式违规): 原因由 parseHeader 写入, 此处带上路径复述
+            fprintf(stderr, "[aio][ahpx][reader] 拒绝读取: %s (%s)\n",
+                    path.c_str(), m_rejectReason.c_str());
+        } else {
+            fprintf(stderr, "[aio][ahpx][reader] JSON 头解析失败: %s\n", path.c_str());
+        }
         close();
         return false;
     }
@@ -270,6 +287,10 @@ bool AhpxReader::open(const std::string& path) {
 
 const std::string& AhpxReader::getHeaderJson() const {
     return m_headerJson;
+}
+
+const std::string& AhpxReader::getRejectReason() const {
+    return m_rejectReason;
 }
 
 const std::vector<BlockIndex>& AhpxReader::getBlocks() const {
@@ -287,6 +308,17 @@ const BlockIndex* AhpxReader::findBlock(const std::string& id) const {
 
 bool AhpxReader::parseHeader() {
     m_blocks.clear();
+
+    // 旧格式显式拒绝 (变更 AHPX-WEIGHT-RETIRE-20260920; ASTROCS_DESIGN §2.1 /
+    // GAP_AUDIT §9.73 A44): 头 JSON 的 "weight" 字段是已作废权重模式
+    // (SCALAR/GRID/PIXEL) 的载体, 本格式不承载权重 ⇒ fail-closed, 禁静默忽略。
+    if (!ahpxFault("accept_legacy") && hasJsonKey(m_headerJson, RETIRED_WEIGHT_FIELD)) {
+        m_rejectReason = std::string("头 JSON 含已作废的 \"") + RETIRED_WEIGHT_FIELD +
+                         "\" 字段 (权重模式已作废, 变更 AHPX-WEIGHT-RETIRE-20260920); "
+                         "HiPS 只承载帧级 SNR 与稀疏相对 SNR 比值";
+        fprintf(stderr, "[aio][ahpx][reader] 拒绝读取: %s\n", m_rejectReason.c_str());
+        return false;
+    }
 
     // 查找 "blocks" 数组
     size_t pos = findKeyValue(m_headerJson, "blocks");
@@ -377,6 +409,16 @@ bool AhpxReader::parseHeader() {
         if (pos < m_headerJson.size() && m_headerJson[pos] == ',') {
             pos++;
             pos = skipWs(m_headerJson, pos);
+        }
+    }
+
+    // 同名数据块同样拒绝 (旧文件必带 "weight" 块; 防手工构造只改块不改键)
+    for (const auto& blk : m_blocks) {
+        if (!ahpxFault("accept_legacy") && std::strcmp(blk.id, RETIRED_WEIGHT_FIELD) == 0) {
+            m_rejectReason = std::string("数据块 \"") + RETIRED_WEIGHT_FIELD +
+                             "\" 属于已作废格式 (权重模式已作废, 变更 AHPX-WEIGHT-RETIRE-20260920)";
+            fprintf(stderr, "[aio][ahpx][reader] 拒绝读取: %s\n", m_rejectReason.c_str());
+            return false;
         }
     }
 
@@ -572,72 +614,6 @@ std::vector<float> AhpxReader::readSnr() {
     size_t floatCount = rawData.size() / sizeof(float);
     result.resize(floatCount);
     std::memcpy(result.data(), rawData.data(), rawData.size());
-
-    return result;
-}
-
-std::vector<float> AhpxReader::readWeight(WeightMode* outMode, uint16_t* outGw, uint16_t* outGh) {
-    std::vector<float> result;
-
-    // 默认输出值
-    if (outMode) *outMode = WeightMode::SCALAR;
-    if (outGw) *outGw = 0;
-    if (outGh) *outGh = 0;
-
-    // 从 JSON 头解析权重模式
-    WeightMode mode = WeightMode::SCALAR;
-    uint16_t gw = 0, gh = 0;
-
-    size_t wPos = findKeyValue(m_headerJson, "weight");
-    if (wPos != std::string::npos && wPos < m_headerJson.size() &&
-        m_headerJson[wPos] == '{') {
-        // 提取 weight 对象
-        int depth = 0;
-        size_t objEnd = wPos;
-        while (objEnd < m_headerJson.size()) {
-            char c = m_headerJson[objEnd];
-            if (c == '{') depth++;
-            else if (c == '}') {
-                depth--;
-                if (depth == 0) { objEnd++; break; }
-            }
-            objEnd++;
-        }
-        std::string wObj = m_headerJson.substr(wPos, objEnd - wPos);
-
-        // mode
-        size_t mPos = findKeyValue(wObj, "mode");
-        if (mPos != std::string::npos) {
-            mode = (WeightMode)(uint8_t)extractNumber(wObj, mPos, nullptr);
-        }
-        // grid_w
-        size_t gwPos = findKeyValue(wObj, "grid_w");
-        if (gwPos != std::string::npos) {
-            gw = (uint16_t)extractNumber(wObj, gwPos, nullptr);
-        }
-        // grid_h
-        size_t ghPos = findKeyValue(wObj, "grid_h");
-        if (ghPos != std::string::npos) {
-            gh = (uint16_t)extractNumber(wObj, ghPos, nullptr);
-        }
-    }
-
-    // 读取 weight 块
-    std::vector<uint8_t> rawData = readBlock("weight");
-    if (rawData.empty()) {
-        fprintf(stderr, "[aio][ahpx][reader] readWeight: weight 块为空\n");
-        return result;
-    }
-
-    // 转换为 float 数组
-    size_t floatCount = rawData.size() / sizeof(float);
-    result.resize(floatCount);
-    std::memcpy(result.data(), rawData.data(), rawData.size());
-
-    // 输出模式信息
-    if (outMode) *outMode = mode;
-    if (outGw) *outGw = gw;
-    if (outGh) *outGh = gh;
 
     return result;
 }

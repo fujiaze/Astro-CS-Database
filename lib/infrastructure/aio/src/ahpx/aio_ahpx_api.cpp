@@ -37,17 +37,15 @@
 // width/height/channels: 图像几何
 // snr: SNR 图 (float32, snr_w×snr_h), 可为 nullptr
 // snr_w/snr_h: SNR 图几何
-// weight_mode: 0=SCALAR, 1=GRID, 2=PIXEL
-// weight_data: 权重数据 (float32), 可为 nullptr (使用默认标量 1.0)
-// grid_w/grid_h: 仅 GRID 模式有效
 // metadata_json: 元数据 JSON 字符串, 可为 nullptr
 // zstd_level: ZSTD 压缩级别 (1-22, 0=不压缩, 推荐 5)
+//
+// 变更 AHPX-WEIGHT-RETIRE-20260920 (ASTROCS_DESIGN §2.1 / A44): 权重参数已作废,
+// 本入口不再接收也不写出任何权重; 声明 (astro_image_io.h) 与定义同形。
 // ============================================================================
 AIO_EXPORT int aio_ahpx_write(const char *path,
                                const void *pixels, int width, int height, int channels,
                                const float *snr, int snr_w, int snr_h,
-                               int weight_mode, const void *weight_data,
-                               int grid_w, int grid_h,
                                const char *metadata_json,
                                int zstd_level) {
     if (!path || !pixels || width <= 0 || height <= 0 || channels <= 0) {
@@ -71,35 +69,6 @@ AIO_EXPORT int aio_ahpx_write(const char *path,
     // 设置 SNR (如果提供)
     if (snr && snr_w > 0 && snr_h > 0) {
         writer.setSnr(snr, snr_w, snr_h);
-    }
-
-    // 设置权重
-    if (weight_mode == 0) {
-        // SCALAR 模式
-        if (weight_data) {
-            writer.setWeightScalar(*reinterpret_cast<const float*>(weight_data));
-        } else {
-            // 默认标量权重 1.0
-            writer.setWeightScalar(1.0f);
-        }
-    } else if (weight_mode == 1) {
-        // GRID 模式
-        if (!weight_data || grid_w <= 0 || grid_h <= 0) {
-            fprintf(stderr, "[aio][ahpx][api] write: GRID 模式缺少权重数据或网格参数\n");
-            return 2;
-        }
-        writer.setWeightGrid(reinterpret_cast<const float*>(weight_data),
-                             (uint16_t)grid_w, (uint16_t)grid_h);
-    } else if (weight_mode == 2) {
-        // PIXEL 模式
-        if (!weight_data) {
-            fprintf(stderr, "[aio][ahpx][api] write: PIXEL 模式缺少权重数据\n");
-            return 3;
-        }
-        writer.setWeightPixel(reinterpret_cast<const float*>(weight_data), width, height);
-    } else {
-        fprintf(stderr, "[aio][ahpx][api] write: 未知 weight_mode=%d\n", weight_mode);
-        return 4;
     }
 
     // 写入文件
@@ -139,7 +108,13 @@ AIO_EXPORT int aio_ahpx_read_header(const char *path,
     try {
     aio::ahpx::AhpxReader reader;
     if (!reader.open(path)) {
-        fprintf(stderr, "[aio][ahpx][api] read_header: 打开文件失败: %s\n", path);
+        if (!reader.getRejectReason().empty()) {
+            // 旧格式/格式违规: 显式拒绝, 原因随诊断输出 (禁静默忽略)
+            fprintf(stderr, "[aio][ahpx][api] read_header: 拒绝读取: %s (%s)\n",
+                    path, reader.getRejectReason().c_str());
+        } else {
+            fprintf(stderr, "[aio][ahpx][api] read_header: 打开文件失败: %s\n", path);
+        }
         return 2;
     }
 
@@ -194,7 +169,13 @@ AIO_EXPORT int aio_ahpx_read_pixels(const char *path,
     try {
     aio::ahpx::AhpxReader reader;
     if (!reader.open(path)) {
-        fprintf(stderr, "[aio][ahpx][api] read_pixels: 打开文件失败: %s\n", path);
+        if (!reader.getRejectReason().empty()) {
+            // 旧格式/格式违规: 显式拒绝, 原因随诊断输出 (禁静默忽略)
+            fprintf(stderr, "[aio][ahpx][api] read_pixels: 拒绝读取: %s (%s)\n",
+                    path, reader.getRejectReason().c_str());
+        } else {
+            fprintf(stderr, "[aio][ahpx][api] read_pixels: 打开文件失败: %s\n", path);
+        }
         return 3;
     }
 
@@ -267,7 +248,13 @@ AIO_EXPORT int aio_ahpx_read_snr(const char *path,
     try {
     aio::ahpx::AhpxReader reader;
     if (!reader.open(path)) {
-        fprintf(stderr, "[aio][ahpx][api] read_snr: 打开文件失败: %s\n", path);
+        if (!reader.getRejectReason().empty()) {
+            // 旧格式/格式违规: 显式拒绝, 原因随诊断输出 (禁静默忽略)
+            fprintf(stderr, "[aio][ahpx][api] read_snr: 拒绝读取: %s (%s)\n",
+                    path, reader.getRejectReason().c_str());
+        } else {
+            fprintf(stderr, "[aio][ahpx][api] read_snr: 打开文件失败: %s\n", path);
+        }
         return 3;
     }
 

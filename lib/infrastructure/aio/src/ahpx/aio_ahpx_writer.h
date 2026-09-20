@@ -13,21 +13,20 @@ namespace aio::ahpx {
 // ============================================================================
 // AhpxWriter - .ahpx 单帧存储格式写入器
 //
+// 数据面见 aio_ahpx_format.h (变更 AHPX-WEIGHT-RETIRE-20260920): 只写
+// "pixel" 与 "snr" 两类块, **不写任何权重** (权重是阶段二现场算的派生量)。
+//
 // 用法:
 // AhpxWriter writer;
 // writer.setMetadata(jsonStr);
 // writer.setPixels(pixelData, w, h, c);
 // writer.setSnr(snrData, w, h);
-// writer.setWeightScalar(1.0f);
 // writer.write("output.ahpx");
 // ============================================================================
 
 // 写入配置
 struct AhpxWriteConfig {
-    int        zstdLevel = 5;               // ZSTD 压缩级别 (1-22), 默认 5
-    WeightMode weightMode = WeightMode::SCALAR; // 权重模式
-    uint16_t   gridW = 0;                   // 仅 GRID 模式: 网格宽度
-    uint16_t   gridH = 0;                   // 仅 GRID 模式: 网格高度
+    int zstdLevel = 5;   // ZSTD 压缩级别 (1-22), 默认 5
 };
 
 class AhpxWriter {
@@ -37,6 +36,7 @@ public:
 
     // 设置元数据 JSON (调用方构建完整 JSON 字符串)
     // 必须包含 image/wcs/observation/calibration 字段
+    // 携带已作废的 "weight" 字段 ⇒ write() 显式拒绝 (不产出读侧必拒的文件)
     void setMetadata(const std::string& json);
 
     // 设置图像数据 (float32, HWC 或 CHW 排列由调用方约定, 这里只存原始字节)
@@ -44,15 +44,6 @@ public:
 
     // 设置 SNR 图 (W×H float32)
     void setSnr(const float* data, int width, int height);
-
-    // 设置权重 - 标量模式 (整图统一权重)
-    void setWeightScalar(float scalar);
-
-    // 设置权重 - 网格模式 (gw×gh float32)
-    void setWeightGrid(const float* grid, uint16_t gw, uint16_t gh);
-
-    // 设置权重 - 逐像素模式 (W×H float32)
-    void setWeightPixel(const float* data, int width, int height);
 
     // 写入文件
     // config.zstdLevel: JSON 头和数据块的压缩级别
@@ -67,10 +58,6 @@ private:
     int                 m_channels;       // 通道数
     std::vector<float>  m_snr;            // SNR 图
     bool                m_hasSnr;         // 是否设置了 SNR
-    WeightMode          m_weightMode;     // 权重模式
-    std::vector<float>  m_weightData;     // 权重数据
-    uint16_t            m_gridW;          // 网格宽度 (GRID 模式)
-    uint16_t            m_gridH;          // 网格高度 (GRID 模式)
 
     // 压缩并写入一个数据块, 返回块索引
     // fp: 已打开的文件指针
@@ -89,9 +76,8 @@ private:
     // 构建 blocks 索引 JSON 片段
     std::string buildBlocksJson(const std::vector<BlockIndex>& blocks);
 
-    // 将 blocks 数组和 weight 信息注入到元数据 JSON 中
-    std::string injectBlocksIntoJson(const std::vector<BlockIndex>& blocks,
-                                     const AhpxWriteConfig& config);
+    // 将 blocks 数组注入到元数据 JSON 中
+    std::string injectBlocksIntoJson(const std::vector<BlockIndex>& blocks);
 
     // UTF-8 路径文件打开
     FILE* openFile(const std::string& path, const char* mode);
