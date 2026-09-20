@@ -64,7 +64,7 @@
 | `MIG-NORM-DRIZZLE` | `w_jp=a_jp/A_drop` 前向归一 | 面亮度保持 + `flux_conservation_factor` | legacy 归一须带版本；缺 factor 禁绝对通量 | 语义兼容（非静默改变） |
 | `MIG-COVARIANCE-PRODUCT` | 只存对角 variance | 对角 + 相关核/可重建算子摘要 | 只对角无核 → REJECT | 强化（fail-closed） |
 | `MIG-DIAGNOSTIC-NOT-WEIGHT` | 诊断量作权重 | 仅诊断/深度/门 | 诊断别名命中 → REJECT | 撤销旧权重形态（已登记 `SUPERSEDED`） |
-| `MIG-PROVENANCE-KEYS` | `ASTROCS_WEIGHT_MODE` 整数 / 无 reason 的 unavailable | `weight_mode_version` + `unavailable.{flag,reason,scope}` | 缺 reason/scope → REJECT | reader 兼容（缺声明拒绝） |（已按 §9.73 A44 作废：该概念不存在）
+| `MIG-PROVENANCE-KEYS` | ASTROCS_WEIGHT_MODE 整数（**已删键**，见 A44 留痕）/ 无 reason 的 unavailable | `weight_mode_version` + `unavailable.{flag,reason,scope}` | 缺 reason/scope → REJECT | reader 兼容（缺声明拒绝） |（已按 §9.73 A44 作废：该概念不存在）
 | `MIG-SCHEMA-PLANE-OWNER` | exchange plane ∈ {signal,support,variance,ivar,mask} | v6 描述层对象 | science plane 扩展须 schema + runtime validator 同一提交 | **保持 OPEN（DI-06）**：runtime 不在本任务 write_scope，未改 exchange schema |
 
 **向后兼容声明**：既有平面语义（`signal/support/variance/ivar/mask`）、BUNIT 二次律、provenance 最小集**不被静默改变**；所有 legacy 记录由 reader 显式规范化或拒绝，不存在"静默按新语义重解释"。生产 writer 只产出 v6 canonical。
