@@ -59,6 +59,13 @@ constexpr int kProjectionRegistryVersion = 3;
 
 // registry 权威冻结集合（ASTROCS_DESIGN.md §5.3 首批八投影）。本层 kRegistry 是其
 // 已实现子集；新增投影必须先落在该集合内并附独立往返 Oracle（DESIGN §5.3）。
+//
+// ⚠ **本层是内核 registry, 不是产品声明**（FIX-205, 2026-09-20）：本表行只表示
+// 「内核已实现 + 单测/Oracle 覆盖」；**产品可声明集**的唯一权威 =
+// lib/algorithms/projection/p3_projection_registry.h（当前 D={TAN}）。本表中
+// 非产品声明的行必须在该文件冻结表内标为 kKernelOnly（跨注册表一致判据见
+// tests/p3wcs/p3_projection_registry_test.cpp C5）。**禁止**把本表行当作
+// 「已支持投影」对外声明（DESIGN §5.3「禁止声称支持」）。
 constexpr int kFrozenProjectionCount = 8;
 const char* const* registry_frozen_set(int* count);
 bool registry_is_frozen_code(const char* code);   // 冻结集合成员判定（大小写敏感）

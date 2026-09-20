@@ -61,6 +61,37 @@ P3WcsStatus p3_wcs_world2pix(const P3WcsDescriptor* d, double ra_deg, double dec
 /* FITS 关键字文本(CTYPE/CRPIX/CRVAL/CD/CUNIT; 含 END 前格式); 每行 80 字节内。 */
 std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);
 
+/* ---- 适用域声明（ASTROCS_DESIGN.md §5.3「每种投影必须声明适用域…违反 ⇒ 拒绝」）----
+ * 声明项: |CRVAL2| 上界 / FOV 上界 / 手性 det(CD)<0 / CRPIX 用 FITS 1-based
+ * 像素中心 / 往返误差上界(px)。未声明适用域的投影 → nullptr（fail-closed）。 */
+struct P3WcsApplicability {
+    const char* projection;                  // 投影码（冻结码字面量）
+    double max_abs_crval_dec_deg;            // TAN: 85.0（SCI/API/session 单一条件）
+    double max_fov_deg;                      // TAN: 20.0（SCI §9a-12 alpha 冻结）
+    bool require_negative_det_cd;            // true: 手性 det(CD)<0（SCI §9a-4/G1）
+    bool crpix_fits_1based_pixel_center;     // true: CRPIX=(W+1)/2,(H+1)/2（Paper I §2.1.1）
+    double roundtrip_tol_px;                 // 1e-6 px（SCI §7 冻结, 禁放宽）
+};
+const P3WcsApplicability* p3_wcs_applicability(const char* projection);
+
+/* FOV 冻结实现口径(deg): scale_deg_per_px × √(W²+H²) —— 帧对角全视场
+ * （一阶角距上界, 取帧内最大角距; 保守于单边跨度, 用于 20° 适用域门）。 */
+double p3_wcs_fov_deg(double scale_deg_per_px, int width_px, int height_px);
+
+/* 往返最大误差(px): 采样网格(四角/边中点/中心) pixel→world→pixel。
+ * 采样点越投影域(半球) → 返回该状态且 *max_err_px 不变（fail-closed）。
+ * 映射后 |dec|>85°（world2pix 冻结守卫, 世界域外）的采样点不计入误差 ——
+ * 该点按定义不可往返, 非往返误差; 域内采样点逐点判定（参考像素恒在域内）。 */
+P3WcsStatus p3_wcs_roundtrip_max_error_px(const P3WcsDescriptor* d,
+                                          double* max_err_px);
+
+/* 适用域检查(对已构造 descriptor): |CRVAL2|≤85°、FOV≤20°、det(CD)<0、
+ * CRPIX=(W+1)/2 FITS 1-based 像素中心、往返 <1e-6 px。
+ * 违规 → P3_WCS_PARAM（why 填具体项）; 未声明适用域的投影 → P3_WCS_UNSUPPORTED。
+ * p3_wcs_make 在返回前调用本函数: 违反适用域 ⇒ 拒绝且 *out 保持零初始化。 */
+P3WcsStatus p3_wcs_check_applicability(const P3WcsDescriptor* d,
+                                       std::string* why);
+
 }  // namespace astrocs::phase3
 
 #endif  // ASTROCS_P3_WCS_H

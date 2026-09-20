@@ -32,10 +32,15 @@
   P3-PROJ-INT 对齐，不作冻结依据）。
 - registry 行: MOD-astrocs-phase3-wcs；dll_target:
   astrocs_p3_projection.dll（合同值，未建）。
-- 域: 天球投影/WCS。**在役 v3**（DESIGN §5.3 八投影冻结集合）：已实现
-  TAN/SIN/CAR/AIT，STG/MOL/CEA/ZEA 未实现（registry_find 返回 nullptr，
-  fail-closed；实施归 P3-001/GAP-011）。新增投影必须落在冻结集合内并附
-  独立往返 Oracle。**legacy v1 已 RETIRED**（见上，仅作偏差对照）。
+- 域: 天球投影/WCS。**内核面**：在役 v3（DESIGN §5.3 八投影冻结集合）
+  已实现 TAN/SIN/CAR/AIT，STG/MOL/CEA/ZEA 未实现（registry_find 返回
+  nullptr，fail-closed；实施归 P3-001/GAP-011）。新增投影必须落在冻结集合内
+  并附独立往返 Oracle。**legacy v1 已 RETIRED**（见上，仅作偏差对照）。
+- **产品声明面（FIX-205, 2026-09-20）**：产品可声明集 = **仅 TAN**，唯一权威 =
+  `p3_projection_registry.h`（header-only）：冻结集 F(8) / 实现集 I(1) /
+  声明集 D(1)，判据 **D == I == 实际可运行集 R**（R = 生产路径黑盒实跑
+  `p3_proj_probe` 通过的码）。未实现/未冻结码请求 ⇒ 显式「不支持」+ 已支持
+  清单，**禁止**静默回落 TAN；内核行（v6 registry）**不是**产品声明。
 
 ## 2 合同链（ID 唯一权威落位）
 
@@ -104,5 +109,25 @@
 - PA 未接线: p3_session.cpp:160 rotation_pa_deg 恒 0.0（能力在内核，
   会话未消费）。
 - 20000 上限可编译期覆盖: ASTROCS_P3_MAX_SIDE（p3_wcs.cpp:18-22）。
-- projection 字段硬编码 "TAN"（p3_wcs.cpp:36），非 TAN 拒绝在
-  p3_wcs_make 前置于 descriptor 层。
+- ~~projection 字段硬编码 "TAN"（p3_wcs.cpp:36）~~ **FIX-205 已闭合**：
+  descriptor 携带的投影码取自注册表冻结码字面量（p3_proj_canonical_code），
+  非 TAN 请求由注册表显式拒绝（见 §7）。
+
+## 7 FIX-205 产品声明注册表与适用域门（2026-09-20）
+
+- 权威: `p3_projection_registry.h`（header-only/inline；DESIGN §5.3）。
+  API: p3_proj_{frozen_table,is_frozen_code,frozen_list,declared_codes,
+  is_declared,declared_list,implemented_codes,is_implemented,
+  canonical_code,declare,probe,registry_selfcheck}（namespace astrocs::phase3）。
+- 显式「不支持」: `p3_proj_declare` 返回 P3_WCS_UNSUPPORTED，why 含
+  **请求码 + 原因（冻结未实现/仅内核/未知码）+ 已支持清单**；
+  `p3_wcs_validate_request`（CLI 配置面与节点面唯一语义源）委托本门，
+  `p3_wcs_make` 另加声明/实现分离守卫 ⇒ 不产 TAN 半成品。
+- 适用域门（DESIGN §5.3「违反 ⇒ 拒绝」，`p3_wcs_check_applicability`）:
+  |CRVAL2|≤85°、FOV≤20°（`p3_wcs_fov_deg` = scale×√(W²+H²) 帧对角全视场）、
+  手性 det(CD)<0、CRPIX=(W+1)/2,(H+1)/2（FITS 1-based 像素中心）、
+  往返 <1e-6 px（`p3_wcs_roundtrip_max_error_px`，9 点采样）。
+- 可执行面: `tests/p3wcs/p3_projection_registry_test.cpp`（ctest
+  `p3_projection_registry` + 负例入口 `p3_projection_registry_selftest`）+
+  `tests/p3wcs/p3_projection_unsupported_cli.py`（ctest
+  `p3_projection_unsupported_cli`：8 码逐一 rc≠0 + 明确原因，TAN 对照过门）。
