@@ -542,10 +542,10 @@
       "unit": "mag",
       "constraint": "> 0；预过滤 |delta_i - median(delta)| > mag_tolerance 的星被拒（PHOTOMETRY.md:49）",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:25（mag_tolerance 星等一致性阈 3.0 mag）",
+      "source": "docs/science/PHOTOMETRY.md:28（mag_tolerance 星等一致性阈 3.0 mag）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 25
+        "line": 28
       },
       "pending_task": null,
       "note": "docs/algorithms/PHOTOMETRIC_FIT.md:20（F7 同一 3.0 mag）。"
@@ -570,10 +570,10 @@
       "unit": "iterations",
       "constraint": ">= 1；S>0 时 IRLS 迭代上限",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:39（S>0 时迭代 max_iter=50, tol=1e-6）",
+      "source": "docs/science/PHOTOMETRY.md:43（S>0 时迭代 max_iter=50, tol=1e-6）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 39
+        "line": 43
       },
       "pending_task": null,
       "note": "同文件 §5 :53（迭代直到 |loc_new-loc_old|<1e-6 或 50 步）。"
@@ -584,10 +584,10 @@
       "unit": "dex",
       "constraint": "> 0；IRLS location 收敛门",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:39（tol=1e-6）",
+      "source": "docs/science/PHOTOMETRY.md:43（tol=1e-6）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 40
+        "line": 43
       },
       "pending_task": null,
       "note": ""
@@ -598,10 +598,10 @@
       "unit": "count",
       "constraint": ">= 1；|r_consistent| >= 3 才进 IRLS，否则 NO_DATA",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:38（参考星数 |r_consistent|>=3 才进 IRLS）",
+      "source": "docs/science/PHOTOMETRY.md:42（参考星数 |r_consistent|>=3 才进 IRLS）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 38
+        "line": 42
       },
       "pending_task": null,
       "note": ""
@@ -612,10 +612,10 @@
       "unit": "count",
       "constraint": ">= 1；|r_inliers| >= 2 才估计 sigma_residual，否则 sigma_residual=0",
       "authority_status": "sourced",
-      "source": "docs/science/PHOTOMETRY.md:38（|r_inliers|>=2 才估计 sigma_residual）",
+      "source": "docs/science/PHOTOMETRY.md:42（|r_inliers|>=2 才估计 sigma_residual）",
       "source_ref": {
         "path": "docs/science/PHOTOMETRY.md",
-        "line": 38
+        "line": 42
       },
       "pending_task": null,
       "note": ""
@@ -710,12 +710,12 @@
       "key": "sparse_snr.spacing_px",
       "value": 64,
       "unit": "px",
-      "constraint": ">= 1（整数）；稀疏层控制点间隔 Δ（px）——负责人 §9.45「稀疏层密度」的像素域表述：默认 64 = hips.tile_width / 8 = 512 / 8（复用 Phase2 UPM 的 8×8/tile 控制网格，二者同一套几何）；实测 SNR 场相关长度 ℓ = 48 px ⇒ Δ/ℓ = 1.33 近临界采样（够密）",
+      "constraint": ">= 1（整数）；稀疏层控制点间隔 Δ（px）——负责人 §9.45「稀疏层密度」的像素域表述：默认 64 = hips.tile_width / 8 = 512 / 8（复用 Phase2 UPM 的 8×8/tile 控制网格，二者同一套几何）；实测 SNR 场相关长度 ℓ = 40.4–57.9 px 区间 ⇒ Δ/ℓ ≈ 1.1–1.6（够密）。（2026-09-20 订正：原写「ℓ = 48 px ⇒ Δ/ℓ = 1.33 近临界采样」——ℓ 单点值已作废，§9.48 更正表判「应写 40.4–57.9px 区间」；同步 docs/plugins/algorithms_phase1/07_noise_snr.md:138）",
       "authority_status": "owner_adjudicated",
       "source": "负责人裁决 2026-09-19（GAP_AUDIT §9.45：「64 可以了，够密且占用空间可控」——稀疏 SNR 层默认密度 Δ = 64 px，复用 Phase2 UPM 的 8×8/tile 控制网格）",
       "source_ref": null,
       "pending_task": null,
-      "note": "承载字段 = phase_config normalize 的 sparse_snr_spacing_px（contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_config/properties/sparse_snr_spacing_px）；三处同值 64（schema default / 本键 / config/templates/normalize.phase_config.json）。authority_status=owner_adjudicated 的依据同 calibration.dark_light_exposure_tolerance：§9.45 为负责人逐字裁决，数值不得由 Agent 另定，亦不得标 pending_authority。"
+      "note": "承载字段 = phase_config normalize 的块级 sparse_snr_spacing_px（contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_spacing_px；§9.68 多块形态后逐帧形态退役，键面不变）。两处同值 64（schema default / 本键）；config/templates/normalize.phase_config.json 自 §9.68 起与 --template 同源、只列必填骨架 + drizzle/wcs/filter_passband（不再逐键列可选键），故本键不再出现在模板里。authority_status=owner_adjudicated 的依据同 calibration.dark_light_exposure_tolerance：§9.45 为负责人逐字裁决，数值不得由 Agent 另定，亦不得标 pending_authority。"
     },
     {
       "key": "snr.path",
@@ -723,10 +723,10 @@
       "unit": "1",
       "constraint": "枚举 token ∈ {dense, sparse_reconstruct, frame_reconstruct}；默认 sparse_reconstruct = Phase2 默认消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR（负责人 2026-09-19 裁决 GAP_AUDIT §9.46：马赛克各帧天光/光污染空间分布不同 ⇒ 帧级标量精度不足）。三条路径全部保留供论文精度对比；SP-0（实测 Var_p 比值）为诊断量、不作默认开关。承载字段 = phase_config mosaic 的 snr_path（值域唯一事实源 = contracts/schemas/phase_config_mosaic.schema.json）",
       "authority_status": "owner_adjudicated",
-      "source": "负责人裁决 2026-09-19（GAP_AUDIT §9.46：Phase2 默认消费稀疏层 ⇒ snr_path = sparse_reconstruct，不再按 SP-0 判据决定；三条路径保留、JSON 可显式指定；SP-0 降为诊断量）；docs/plugins/algorithms_phase1/07_noise_snr.md:114（snr_path 默认 sparse_reconstruct，三条路径与 SP-0 判据）",
+      "source": "负责人裁决 2026-09-19（GAP_AUDIT §9.46：Phase2 默认消费稀疏层 ⇒ snr_path = sparse_reconstruct，不再按 SP-0 判据决定；三条路径保留、JSON 可显式指定；SP-0 降为诊断量）；docs/plugins/algorithms_phase1/07_noise_snr.md:140（snr_path 默认 sparse_reconstruct，三条路径与 SP-0 判据）",
       "source_ref": {
         "path": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-        "line": 114
+        "line": 140
       },
       "pending_task": null,
       "enum_token": "sparse_reconstruct",
@@ -734,7 +734,7 @@
         "schema": "contracts/schemas/phase_config_mosaic.schema.json",
         "pointer": "#/$defs/mosaic_config/properties/snr_path"
       },
-      "note": "键名依据：ASTROCS_DESIGN.md §3.3:124（最高设计 JSON 数据块）与 docs/design/UNIFIED_MODEL.md:46、docs/plugins/algorithms_phase1/07_noise_snr.md:114 均写 snr_path；change-claim FIX-SCI-SNR-CANON-001 §3.2/§4.1 表中的 algorithm_snr_path 为未落地的命名提议，按「与根设计/ASTROCS_DESIGN §3.3 一致」统一为 snr_path（依据见 reports/RELEASE-02/snr-config-land.md §4）。本键是 defaults.json 的 SNR 域默认值命名空间，与 phase_config 的 snr 块（P8-SNR-LINUX：gain_e_per_adu/read_noise_e 等噪声模型参数，normalize 面）不同类、不同层，不互为同名同义。enum_token/enum_target 是「默认值 → 字段取值域」的唯一登记（机器门 CFG002-03 断言 token ∈ snr_path enum）。"
+      "note": "键名依据：ASTROCS_DESIGN.md §4.3:381（Phase2 消费面；**2026-09-20 订正**：原写「§3.3:124」——§3.3 经 §9.56 裁决 4/§9.68 收口后为 CLI 平铺键集、**已不含 snr_path**，该行锚悬空）与 docs/design/UNIFIED_MODEL.md:46、docs/plugins/algorithms_phase1/07_noise_snr.md:114 均写 snr_path；change-claim FIX-SCI-SNR-CANON-001 §3.2/§4.1 表中的 algorithm_snr_path 为未落地的命名提议，按「与根设计/ASTROCS_DESIGN §3.3 一致」统一为 snr_path（依据见 reports/RELEASE-02/snr-config-land.md §4）。本键是 defaults.json 的 SNR 域默认值命名空间，与 phase_config 的 snr 块（P8-SNR-LINUX：gain_e_per_adu/read_noise_e 等噪声模型参数，normalize 面）不同类、不同层，不互为同名同义。enum_token/enum_target 是「默认值 → 字段取值域」的唯一登记（机器门 CFG002-03 断言 token ∈ snr_path enum）。"
     },
     {
       "key": "scalar_gate.rd",

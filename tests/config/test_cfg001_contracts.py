@@ -39,7 +39,7 @@ KEY_ANCHORS = [
     ("noise.source_mask_radius_px", "docs/science/NOISE_MODEL.md", 84, "rmax"),
     ("noise.variance_floor", "docs/science/NOISE_MODEL.md", 21, "1e-12"),
     ("rejection.sigma.lower_sigma", "docs/science/REJECTION.md", 66, "4.0/3.0/8"),
-    ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", 25, "3.0 mag"),
+    ("photometry.mag_tolerance", "docs/science/PHOTOMETRY.md", 28, "3.0 mag"),
     ("weight.default_mode", "docs/science/PSF_SIGNAL_WEIGHT.md", 12, "psf_information_weight"),
     ("precision.default", "docs/science/SCIENCE_SCOPE.md", 53, "FP64"),
     ("upm.k_corr", "docs/science/PHASE2_UPM.md", 22, "1.4"),
@@ -69,7 +69,15 @@ class TestPhaseConfigFamily(unittest.TestCase):
             tpl = C.load_json(tpl_rel)
             errs = C.validate(schema, tpl)
             self.assertEqual([], errs, "%s 模板未通过 %s: %s" % (tpl_rel, PHASE_SCHEMAS[phase], errs))
-            self.assertEqual(phase, tpl["phase_name"])
+            # phase 身份：mosaic/export 用模板的 phase_name 判别键；normalize 已按
+            # GAP_AUDIT §9.68 改为多数据块形态（无 phase_name），身份由 schema 的
+            # x-astrocs-phase 承载 + 模板必须给出非空 blocks[]。
+            self.assertEqual(phase, schema["x-astrocs-phase"])
+            if "phase_name" in tpl:
+                self.assertEqual(phase, tpl["phase_name"])
+            else:
+                self.assertIn("blocks", tpl, "%s 模板既无 phase_name 也无 blocks" % tpl_rel)
+                self.assertTrue(tpl["blocks"], "%s 模板 blocks 为空" % tpl_rel)
 
     def test_templates_have_no_hardware_field_names(self):
         banned = self._banned_names()
