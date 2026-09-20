@@ -31,7 +31,7 @@ downstream: [TEST-P2-INT-001]
   entrypoint=MISSING/memory.md；lib/algorithms/coverage/ 一目录一套已被 P2-COV
   占用，按 lib/algorithms/coverage/hips_p2/ 先例新建）。
 - 生产源：lib/algorithms/coverage/src/integrate.cpp（76 行，根 CMakeLists.txt
-  :336-346/:344 astrocs_phase2 静态库成员）+ 唯一权威签名头
+  :336-346/:344 astrocs_phase2 静态库成员）+ 签名头正本
   lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）。
 - 模块页：docs/modules/phase2_int.md。
 
@@ -67,7 +67,7 @@ NO_CANDIDATES、全拒→ALL_REJECTED、全零权重→ZERO_VALID_WEIGHT——
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/integrate.h
+- 签名头正本: lib/algorithms/coverage/include/astro/phase2/integrate.h
   （P2PixelStack :36-42 / P2IntegrateStatus :45-51 / P2PixelResult
   :53-63 / 函数声明 :58-66）。
 - 核心 symbol: p2_integrate_pixel（integrate.cpp:19-74，唯一生产

@@ -4,7 +4,7 @@
 > doc_status: ACTIVE_NORMATIVE
 > task_id: IO-002 · wave: W2 · owner: SA-IO-07
 > commit: `feat(io): IO-002 建立HiPS输入合同`（前台集成）
-> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-002 / `05_FIXED_SUBAGENT_BINDINGS.yaml`
+> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-002 / `05_FIXED_SUBAGENT_BINDINGS.yaml` —— **两份来源均已不在 git 跟踪面**（`tasks/` 目录不存在且无 git 历史；`05_FIXED_SUBAGENT_BINDINGS.yaml` 仅存 `run/` 内 gitignore 的历史归档副本，非规范面）；现行权威=`ASTROCS_DESIGN.md` §7.3/§9 + 本文件
 > SA-IO-07 / 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）、
 > F.4（接口字段/单位/shape/坐标/invalid/所有权逐项明确）、E（阶段间只经磁盘产品交换）
 > 上游: DOC-IO-INTERFACE-001（IO-001 FITS 流式接口）——IO-002 的 tile FITS 平面读取

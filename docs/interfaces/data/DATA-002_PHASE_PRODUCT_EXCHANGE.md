@@ -243,7 +243,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 文件路径或 storage_uri 尾段**；不访问磁盘内容；storage_uri 仅做 DATA-001 词法校验
 （禁裸路径）。
 
-## 6. 验收映射（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-002）
+## 6. 验收映射（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-002〔**来源已删除/不可考**；替代=本文件 §4 + `ASTROCS_DESIGN.md` §9〕）
 
 | 验收 | 实现 |
 |---|---|

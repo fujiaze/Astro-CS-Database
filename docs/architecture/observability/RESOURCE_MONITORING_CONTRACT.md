@@ -15,7 +15,7 @@ monitor，同一 run ID **每秒**采集 process/system CPU、active/granted wor
 RSS/private/commit、read/write bytes、queue/lock/io wait、provider/module，
 产出**不可手工合成**的原始 CSV，供运行图（LOG-003）、审计、容量分析消费。
 
-**验收（tasks/03_RUNTIME_DATA_IO_TASKS.md LOG-002）**：
+**验收（tasks/03_RUNTIME_DATA_IO_TASKS.md LOG-002〔来源已删除/不可考，替代=ASTROCS_DESIGN.md §9〕）**：
 - 无 monitor 的 `cpu_heavy` run **失败**（负测强制点）；
 - I/O 区间与初始化区间**分开**记录；
 - 原始 CSV **不可手工合成**（header 指纹链 + 写后只读 + 时间戳单调断言）；
@@ -178,7 +178,7 @@ JSONL，按 LOG-001 合同做适配（本任务交付 CSV + 指纹 + 校验闭�
 
 ## 10. 参考
 
-- 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-002
+- 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-002（**来源已删除/不可考**；**替代**=`ASTROCS_DESIGN.md` §9 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记）
 - LOG-001：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`
 - RT-006：`include/astrocs/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`

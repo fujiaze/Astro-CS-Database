@@ -62,6 +62,6 @@ astrocs CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 - 任务: ARCH-002(本文件)/ARCH-003(backend ABI)/ARCH-004(thread budget)/ARCH-005(Phase3 模块)/CLI-001(单一 target)/API-001..005
 - 文档: MODULE_MAP.md/DATA_FLOW.md/PIPELINE.md/ERROR_MODEL.md/THREADING_MODEL.md/OWNERSHIP_AND_LIFETIME.md/IO_AND_ATOMICITY.md/PERFORMANCE_MODEL.md
 - 迁移遗留: 旧 orchestrator/stage2 文档描述保留于 git 历史。
-- **权威（DOC-202 R14/R04 订正）**：本文件是详细文档层的一员，**不另立权威链、不自称「唯一权威」**
+- **权威（DOC-202 R14/R04 订正）**：本文件是详细文档层的一员，**不另立权威链、不作排他性权威自称**
   （最高设计 §0.1/§0.2）；架构问题的权威 = 最高设计 §7，科学/算法权威 = `docs/science/` + `docs/algorithms/`，
   与本文件冲突时一律以最高设计为准。

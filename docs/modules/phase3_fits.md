@@ -61,7 +61,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 - in：signal f32[W·H]（BUNIT 缺省 ADU，无覆盖=NaN）+ coverage
   f32[W·H]（二值门 >0.5f）+ P3WcsDescriptor（CRPIX FITS 1-based、
   CD deg/px、TAN、abs(dec)≤85° 四角同半球）+ bunit/prov/bitpix
-  （-32|-64）/output_path/cancelled_at_row——唯一权威=DATA-P3-FITS
+  （-32|-64）/output_path/cancelled_at_row——权威源=DATA-P3-FITS
   §27.1。
 - out：FITS 文件（BITPIX=-32/-64，CTYPE=RA---TAN/DEC--TAN，
   CUNIT=deg，BSCALE=1/BZERO=0，HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER
@@ -73,7 +73,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 内核消费面=API-P3-FITS-001（p3_output.h 64 行唯一权威签名头）：
+- 内核消费面=API-P3-FITS-001（p3_output.h 64 行签名头正本）：
   p3_output_write_atomic（h:45-53，实现 :117-321）/p3_output_verify
   （h:57-60，:296-368）+ P3Provenance/P3OutputResult/P3OutputStatus
   + p3_wcs_make/p3_wcs_pix2world/p3_wcs_world2pix/

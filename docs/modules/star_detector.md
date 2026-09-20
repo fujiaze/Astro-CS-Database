@@ -30,7 +30,7 @@ FP32/FP64 双通道（sdet_detect_ex / sdet_detect_ex_f64）；一帧一次权�
 API-STAR-001（docs/contracts/PUBLIC_API.md）：9 导出符号
 `sdet_create/sdet_destroy/sdet_detect/sdet_free_coords/sdet_detect_debug/
 sdet_free_debug_maps/sdet_detect_ex/sdet_detect_ex_f64/sdet_free_detect_ex`
-（唯一权威签名头 lib/algorithms/star_detection/include/star_detector.h:1-73）。
+（签名头正本 lib/algorithms/star_detection/include/star_detector.h:1-73）。
 
 ## Data contract
 

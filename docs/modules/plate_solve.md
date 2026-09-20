@@ -17,7 +17,7 @@ rms_px/rms_arcsec/n_pairs/trans_order）。
 
 ## Public API
 
-API-WCS-001（docs/contracts/PUBLIC_API.md；ipv_api.h 唯一权威签名头，
+API-WCS-001（docs/contracts/PUBLIC_API.md；ipv_api.h 签名头正本，
 12 导出，生产入口 ipv_solve_from_detections_v1）。
 
 ## Data contract
@@ -58,4 +58,4 @@ P1-WCS-TEST 落地。
 ## Source files
 
 lib/algorithms/platesolve/cpp/ipv/（ipv_entry.cpp 649 行 12 导出 + 内核 13821 行；
-唯一权威签名头 include/ipv_api.h）。
+签名头正本 include/ipv_api.h）。

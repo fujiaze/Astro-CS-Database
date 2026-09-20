@@ -37,7 +37,7 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
   lib/algorithms/sampling/→lib/algorithms/integration/→lib/algorithms/rejection/ 先例新建；
   lib/algorithms/coverage/ 一套已被 P2-COV 占用。
 - 生产源：lib/algorithms/coverage/src/upm.cpp（1565 行，根 CMakeLists.txt
-  :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 唯一权威
+  :337-346 astrocs_phase2 静态库成员，upm.cpp 列于 :338）+ 权威源
   签名头 lib/algorithms/coverage/include/astro/phase2/upm.h（184 行）。
 - owner SA-P2-U21；depends_on_int=P2-SAMP-INT;CPU-005；
   legacy_paths="lib/algorithms/coverage upm sources"。
@@ -80,7 +80,7 @@ rc=2 stale 拒绝（upm.h:166-167）。
 
 ## 公共 header、核心 symbol 与生命周期
 
-- 唯一权威签名头: lib/algorithms/coverage/include/astro/phase2/upm.h（184 行；
+- 签名头正本: lib/algorithms/coverage/include/astro/phase2/upm.h（184 行；
   P2ModelInfo :60-68、calibrate_block :113-、dense_read_block
   :166-。
 - 核心 symbol（upm.cpp 16 导出）: p2_upm_build（:929）、

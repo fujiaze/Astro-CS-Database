@@ -4,7 +4,7 @@
 > doc_status: ACTIVE_NORMATIVE
 > task_id: IO-003 · wave: W2 · owner: SA-IO-07
 > commit: `feat(io): IO-003 实现原子产物发布`（前台集成）
-> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-003 / `05_FIXED_SUBAGENT_BINDINGS.yaml`
+> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-003 / `05_FIXED_SUBAGENT_BINDINGS.yaml` —— **两份来源均已不在 git 跟踪面**（`tasks/` 目录不存在且无 git 历史；`05_FIXED_SUBAGENT_BINDINGS.yaml` 仅存 `run/` 内 gitignore 的历史归档副本，非规范面）；现行权威=`ASTROCS_DESIGN.md` §7.3/§9 + 本文件
 > SA-IO-07 / 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）、
 > A.3/A.4（阶段隔离与原子性）、E（科学公式不变）
 > 上游: DOC-IO-INTERFACE-001（IO-001 FITS 流式接口，fitsverify 算法族）、

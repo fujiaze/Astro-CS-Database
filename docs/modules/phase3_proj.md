@@ -27,7 +27,7 @@
 | DATA | DATA-P3-WCS | docs/contracts/DATA_SEMANTICS.md §28 | CONTRACT_READY |
 | API | API-P3-PROJ-001 | docs/contracts/PUBLIC_API.md（Phase3 投影公共消费面节） | CONTRACT_READY |
 | API(镜像) | API-P3-001 | PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像） | FROZEN 镜像 |
-| ARCH | ARCH-001 | docs/architecture/cpu/ARCH_CONTRACTS.md | VERIFIED |
+| ARCH | ARCH-001 | docs/contracts/ARCH-001.md（原写 docs/architecture/cpu/ARCH_CONTRACTS.md〔已删除〕，该路径不存在，DOC-204 订正） | VERIFIED |
 | TEST | TEST-P3-WCS-001 | 登记面=TEST-P3-WCS-DESIGN-001（ALG §12 + registry 页 §9 双重陈述 VERIFIED）；可执行面升级归 P3-PROJ-TEST | 见左 |
 | EVID | EVID-MISSING | 归 P3-PROJ-INT/验收补 | MISSING |
 
@@ -49,7 +49,7 @@
 
 ## 4 生产源
 
-- lib/algorithms/projection/p3_wcs.h（唯一权威签名头）+
+- lib/algorithms/projection/p3_wcs.h（签名头正本）+
   lib/algorithms/projection/p3_wcs.cpp——六符号（W4-A9 批次 1 由
   lib/phase3_session/ 迁入本模块）:
   P3WcsDescriptor/P3WcsStatus/p3_wcs_make/p3_wcs_pix2world/
@@ -65,7 +65,7 @@
 | 端口 | DATA | 必/可 | 说明 |
 |---|---|---|---|
 | props | DATA-P3-PROPS | 必 | descriptor 词汇，HiPS properties 面 |
-| wcs_plan | DATA-P3-WCS | 可 | §28 唯一权威（入参/映射/descriptor/关键词面） |
+| wcs_plan | DATA-P3-WCS | 可 | §28 权威源（入参/映射/descriptor/关键词面） |
 
 端口词汇为 descriptor 派生（module_adapters.cpp:406-423 占位
 module_id=astrocs.phase3.wcs），由 P3-PROJ-INT 对齐，不作冻结依据。
@@ -91,4 +91,4 @@ module_id=astrocs.phase3.wcs），由 P3-PROJ-INT 对齐，不作冻结依据。
 - API: docs/contracts/PUBLIC_API.md（API-P3-PROJ-001）
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）
 - 同域: docs/modules/phase3_fits.md（写出域）、
-  docs/modules/phase3_session.md（会话编排域）
+  docs/modules/phase3_session.md（**未建**：Session 型模块按 §7.3 不迁移、待删除，见 `cmake/ARCH-001-migration-manifest.md` §1；会话编排面现行权威=`docs/contracts/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`）

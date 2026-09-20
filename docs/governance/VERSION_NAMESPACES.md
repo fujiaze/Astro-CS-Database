@@ -40,7 +40,7 @@ AstroCS 的"版本号"不是一个量，而是五个生命周期独立的命名�
 
 ## 3. 产品版本唯一事实源（禁止手抄）
 
-- 根 `VERSION` 是产品版本的唯一权威：内容一行 `MAJOR.MINOR.PATCH-alpha.N`。
+- 根 `VERSION` 是产品版本的唯一来源：内容一行 `MAJOR.MINOR.PATCH-alpha.N`。
 - 机器检查豁免表内的数字三元组不是产品版本：FITS 4.0（格式规范）、
   HiPS 1.0/1.4（IVOA 格式版本）、DatabaseVersion（Gaia 库标识）、
   schema_version / ABI v1（见 §1 各命名空间定义点）、外部组件版本
