@@ -1,0 +1,81 @@
+{
+  "scene_id": "common_mode_overlap",
+  "kind": "common_mode_overlap",
+  "description": "同指向完全重叠（共模场景，**负例**）：6 帧同指向、同天光水平与梯度、同 seeing、同曝光，**只有噪声实现不同** —— 真值为「无帧间空间形状差异」，任何形状差异度量必须归零。",
+  "matrix_cells": [
+    "pointing:common_mode_overlap",
+    "negative_control:true"
+  ],
+  "seed": 20260925,
+  "shape": [
+    512,
+    512
+  ],
+  "exposure_s": 300,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "vignette": 0.05
+  },
+  "sky": {
+    "level_e_per_s": 0.6,
+    "grad_x_e_per_s": 0.35,
+    "grad_y_e_per_s": 0.2,
+    "theta_deg": 35
+  },
+  "nebula": [
+    {
+      "type": "gaussian_blob",
+      "center": [
+        256,
+        256
+      ],
+      "peak_e_per_s": 40,
+      "sigma_px": 110
+    }
+  ],
+  "stars": {
+    "n": 400,
+    "flux_log10_range": [
+      3,
+      5.5
+    ],
+    "clustering": "uniform",
+    "seed": 9090
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 12,
+    "cr_mean_charge_e": 900
+  },
+  "frames": [
+    {
+      "frame_id": "common_f0"
+    },
+    {
+      "frame_id": "common_f1"
+    },
+    {
+      "frame_id": "common_f2"
+    },
+    {
+      "frame_id": "common_f3"
+    },
+    {
+      "frame_id": "common_f4"
+    },
+    {
+      "frame_id": "common_f5"
+    }
+  ]
+}

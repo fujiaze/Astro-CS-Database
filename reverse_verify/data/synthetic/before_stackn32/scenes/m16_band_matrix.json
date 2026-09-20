@@ -1,0 +1,117 @@
+{
+  "$comment": "M16-SCENE 场景 ④：同一片天空的三个波段（H-alpha / [S II] / [O III]）——「按波段的数据类型」三连。",
+  "scene_id": "m16_band_matrix",
+  "renderer": "m16_scene",
+  "kind": "band_matrix_same_sky",
+  "description": "同一裁剪窗口 [5504,896,1024,1024] 在三个窄带上的三帧；三帧 WCS 逐位相同（同一天区），但谱线结构完全不同 => 三个波段本身就是「不同数据类型」。",
+  "matrix_cells": [
+    "band:Ha",
+    "band:SII",
+    "band:OIII",
+    "pointing:common_mode_overlap",
+    "real_instance:HST_M16(3 bands)"
+  ],
+  "seed": 20260924,
+  "shape": [
+    1024,
+    1024
+  ],
+  "exposure_s": 9600,
+  "stack_n": 1,
+  "temp_c": -20,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 2,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 3.1,
+    "bias_adu": 1000,
+    "full_well_e": 2240000,
+    "dark_current_e_per_s": 0.002,
+    "dark_ref_temp_c": -20,
+    "dark_double_temp_c": 6
+  },
+  "calibration": {
+    "$comment": "M16-SCENE-FIX-001：饱和预算重标定（P9 定位 m16_scene.py x t 缺陷的配套修复）。",
+    "rule": "full_well_e = NDRIZIM * 70000 = 32 * 70000 = 2240000 e-（真实 drz 是 NDRIZIM=32 的子曝光 drizzle 合成品：单次子曝光满阱 7e4 e-，32 次子曝光各自饱和时叠加电荷上限 = 32*7e4 e-）",
+    "ndrizim_from_real_header": 32,
+    "single_subexposure_full_well_e": 70000,
+    "subexposure_s": 300,
+    "exposure_s_kept": 9600,
+    "exposure_s_rationale": "合成曝光保持 = 真实 drz 的 EXPTIME，使天光基座电子数（= pedestal * t）与真实 drz 一致、噪声制度不变；只重标定饱和预算。",
+    "saturated_pixels_after": "Ha 帧 141 px（0.01345%）/ [S II]、[O III] 帧 0 px",
+    "residual_saturation_note": "残余饱和像素是真实帧本身就超过单次子曝光满阱的亮核（真实 F657N 窗口 raw 有 32 px > 233.33 e/s = 70000 e- / 300 s），已逐帧登记在 meta 的 adu_stats.saturated_pixels，不隐藏。",
+    "real_base": "F657N/F673N/F502N crop [5504, 896, 1024, 1024]"
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "tilt_x": 1,
+    "tilt_y": 0.5,
+    "vignette": 0.05
+  },
+  "sky": {
+    "mode": "from_real"
+  },
+  "photometric": {
+    "zeropoint": "ab",
+    "flux_scale": 1,
+    "anchor": null
+  },
+  "real_base": {
+    "band": "F657N",
+    "crop": [
+      5504,
+      896,
+      1024,
+      1024
+    ],
+    "smooth_sigma_px": 2,
+    "subtract_percentile": 5,
+    "flux_scale": 1,
+    "exclude_spike": false,
+    "invalid_fill": "nearest"
+  },
+  "inject_stars": {
+    "n": 0,
+    "mode": "abmag",
+    "mag_range": [
+      19,
+      23
+    ],
+    "seed": 1616,
+    "avoid_bright_base": true,
+    "avoid_k_sigma": 5,
+    "min_separation_px": 24
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 0,
+    "cr_mean_charge_e": 1000
+  },
+  "mode": "physical",
+  "frames": [
+    {
+      "frame_id": "m16_band_ha",
+      "real_base": {
+        "band": "F657N"
+      },
+      "exposure_s": 9600
+    },
+    {
+      "frame_id": "m16_band_sii",
+      "real_base": {
+        "band": "F673N"
+      },
+      "exposure_s": 14400
+    },
+    {
+      "frame_id": "m16_band_oiii",
+      "real_base": {
+        "band": "F502N"
+      },
+      "exposure_s": 16000
+    }
+  ]
+}

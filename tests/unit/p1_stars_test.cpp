@@ -1,6 +1,7 @@
 // P1-003 单元测试: StarDetector 5 场景 + completeness/false positive/tie breaker
 #include "star_detector.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <random>
@@ -64,16 +65,63 @@ static void test_moffat_overlap() {
   }
 }
 
+// 真饱和星: 核心像素被满井 plateau 截平 (1px 平台), 邻域严格递减
+// (多像素平台星在 wrapper 的 3×3 严格局部极大门下不产生候选 —— CONFORM-SWEEP-1-002)
+static void add_clipped_star(std::vector<float>& img, int w, int h,
+                             double cx, double cy, double sigma,
+                             double bg, double plateau) {
+  const double amp = (plateau - bg) / 0.985;   // 仅中心触顶
+  for (int y = 0; y < h; ++y)
+    for (int x = 0; x < w; ++x) {
+      double dx = x - cx, dy = y - cy;
+      double v = bg + amp * std::exp(-(dx * dx + dy * dy) / (2 * sigma * sigma));
+      img[static_cast<size_t>(y) * w + x] = static_cast<float>(std::min(v, plateau));
+    }
+}
+
+// CONFORM-FIX-A ④: 饱和判定 = 规范双条件 (SCI-P1-STAR-001 §1 :20-23 /
+// ALG-STARDET-001 §2 :37-42): dynrange=min(max,65535)−bg, minsatlevel=0.7·dynrange,
+// satrange=0.1·dynrange; 饱和 ⇔ (meanhigh−bg ≥ minsatlevel) ∧ (pixel0−minhigh ≤ satrange)。
+// 旧硬编码 peak>50000 无规范出处 (CONFORM-SWEEP-1-005) ⇒ 本用例固定满井 40000 (<50000)
+// 使硬编码回归不可复活。
 static void test_saturated_star() {
   const int w = 64, h = 64;
-  std::vector<float> img(static_cast<size_t>(w) * h, 100.0f);
-  add_gaussian(img, w, h, 32.0, 32.0, 60000.0, 3.0, 100.0);  // 极高幅 → 饱和
   StarDetector det;
-  auto r = det.detect(img.data(), w, h);
-  CHECK(r.ok());
-  if (r.ok()) {
-    CHECK(r.value().n_saturated >= 1);  // 质量位 1
-    CHECK((r.value().sources[0].quality & 1) != 0);
+  // 13a: 满井 40000 的真饱和星 (bg=200) → 饱和 (旧硬编码漏标)
+  {
+    std::vector<float> img(static_cast<size_t>(w) * h, 200.0f);
+    add_clipped_star(img, w, h, 32.0, 32.0, 4.0, 200.0, 40000.0);
+    auto r = det.detect(img.data(), w, h);
+    CHECK(r.ok());
+    if (r.ok()) {
+      CHECK(r.value().n_saturated >= 1);  // 质量位 1
+      CHECK((r.value().sources[0].quality & 1) != 0);
+    }
+  }
+  // 13b: 满井 16000 (深满井 CMOS) 的真饱和星 → 饱和 (旧硬编码漏标)
+  {
+    std::vector<float> img(static_cast<size_t>(w) * h, 500.0f);
+    add_clipped_star(img, w, h, 32.0, 32.0, 4.0, 500.0, 16000.0);
+    auto r = det.detect(img.data(), w, h);
+    CHECK(r.ok());
+    if (r.ok()) CHECK(r.value().n_saturated >= 1);
+  }
+  // 13c: 高本底 + 未饱和亮高斯峰 (peak 60000, 无平台) → 不得标饱和 (旧硬编码过标)
+  {
+    std::vector<float> img(static_cast<size_t>(w) * h, 30000.0f);
+    add_gaussian(img, w, h, 32.0, 32.0, 30000.0, 2.0, 30000.0);
+    auto r = det.detect(img.data(), w, h);
+    CHECK(r.ok());
+    if (r.ok() && !r.value().sources.empty())
+      CHECK((r.value().sources[0].quality & 1) == 0);
+  }
+  // 13d: 满井 65535 的真饱和星 (对照) → 饱和
+  {
+    std::vector<float> img(static_cast<size_t>(w) * h, 100.0f);
+    add_clipped_star(img, w, h, 32.0, 32.0, 4.0, 100.0, 65535.0);
+    auto r = det.detect(img.data(), w, h);
+    CHECK(r.ok());
+    if (r.ok()) CHECK(r.value().n_saturated >= 1);
   }
 }
 

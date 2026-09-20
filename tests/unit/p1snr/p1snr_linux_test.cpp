@@ -16,8 +16,13 @@
 //
 // 依据: docs/science/CONTROL_WEIGHT_SNR.md §2a/§4 (S4 重定义),
 //       run/release-rescue/science-phot/PHOTOMETRY_LITERATURE_REVIEW.md §C.3.1。
-// 用法: p1snr_linux_test [units|oracle|contract|negative|determinism|all]
+// 用法: p1snr_linux_test [units|oracle|contract|negative|determinism|mother_function|all]
 #include "snr_frame_science.h"
+
+// P5-SNR 权威科学实现的公开契约头 (snr_moffat4_profile_f64 / snr_source_snr_f64)。
+// 该头不在 astrocs_phase1_noise 的 PUBLIC include 面 (生产源以相对包含使用),
+// 故此处同款相对包含 (生产源零副本)。
+#include "../../../lib/algorithms/noise_snr/cpp/include/snr_estimator.h"
 
 #include <algorithm>
 #include <cmath>
@@ -54,9 +59,16 @@ void check_close(double got, double exp, double rtol, const char* what) {
 double nan_v() { return std::numeric_limits<double>::quiet_NaN(); }
 
 constexpr double kPi = 3.14159265358979323846;
-constexpr double kFwhmFactor = 1.230310;
+// 检测块母函数因子 (椭圆高斯, TWO_SQRT_2_LOG2; SCI-P1-STAR-001 §2/§5, ALG-STARDET-001 §2):
+// 输入行 fwhm_px (DATA-P1-SOURCES.sources[].fwhm_px) 属该块 ⇒ sigma = fwhm/kGaussFwhmFactor。
+constexpr double kGaussFwhmFactor = 2.3548200450309493;
+// PSF 块母函数因子 (各向同性 Moffat4 beta=4; SCI-PSF-001 §5): 只用于本块轮廓模型的
+// FWHM<->sigma 正向换算; **禁止**用它反解检测块列 (跨块混用, DISP-STAR-007)。
+constexpr double kMoffat4FwhmFactor = 1.230310;
 
-int ref_half(double fwhm) {
+// 网格半边长: 输入为本块 Moffat4 FWHM (= kMoffat4FwhmFactor*sigma), 与实现 autoHalf 同规则。
+int ref_half(double fwhm_moffat4) {
+  const double fwhm = fwhm_moffat4;
   int h = static_cast<int>(std::ceil(12.0 * fwhm));
   if (h < 30) h = 30;
   if (h > 256) h = 256;
@@ -80,8 +92,11 @@ struct Ref {
 
 Ref ref_source(double flux, double fwhm, double sky, double gain) {
   Ref o;
-  const long double sigma = static_cast<long double>(fwhm) / static_cast<long double>(kFwhmFactor);
-  const int half = ref_half(fwhm);
+  // fwhm 为**检测块**椭圆高斯 FWHM (DATA-P1-SOURCES 列) ⇒ 高斯因子换算 sigma;
+  // 网格用本块 Moffat4 模型的 FWHM = kMoffat4FwhmFactor*sigma。
+  const double sigma_d = fwhm / kGaussFwhmFactor;
+  const long double sigma = static_cast<long double>(sigma_d);
+  const int half = ref_half(sigma_d * kMoffat4FwhmFactor);
   const long double alpha2 = 2.0L * sigma * sigma;
   long double sum = 0.0L, sum2 = 0.0L;
   for (int j = -half; j <= half; ++j) {
@@ -127,16 +142,19 @@ struct RealSrc {
   double sigma_f;       // NumPy oracle 锚
 };
 constexpr double kRealSky = 260.8590110604006;
+// CONFORM-FIX-A ①: 锚值按**修复后口径** (检测块高斯 FWHM -> sigma = fwhm/2.3548200450309493)
+// 由独立 NumPy oracle (run/RELEASE-02/conform-fix-a/harness/conf1_oracle.py, 不调用被测
+// C++ 代码) 复算; 修复前锚值 (Moffat4 因子反解) 见 CONFORM-SWEEP-1-001。
 const RealSrc kReal[5] = {
-    {"src-145762", 2984.19140625, 1.4072320071088888, 4.7863380411985785, 623.4811207573439},
-    {"src-145763", 11900.705322265625, 2.9622233810299274, 8.57160022178874, 1388.3878172496197},
-    {"src-145764", 11581.213134765625, 3.0339454080028325, 8.14419621260785, 1422.0203974011586},
-    {"src-145774", 30877.013671875, 3.4166259417890283, 19.28103596308005, 1601.4188102236467},
-    {"src-145786", 11209.939697265625, 3.001042479230288, 7.96957476325257, 1406.5919487893211},
+    {"src-145762", 2984.19140625, 1.4072320071088888, 10.01518830728662, 297.96657982744375},
+    {"src-145763", 11900.705322265625, 2.9622233810299274, 16.95958883413694, 701.7095425280245},
+    {"src-145764", 11581.213134765625, 3.0339454080028325, 16.04022427426992, 722.0106737125251},
+    {"src-145774", 30877.013671875, 3.4166259417890283, 37.36271474205877, 826.4124779219297},
+    {"src-145786", 11209.939697265625, 3.001042479230288, 15.728210630590322, 712.7282283124464},
 };
 // NumPy oracle extract_v3 锚 (同一 5 源)
-constexpr double kOracleMedian = 8.14419621260785;
-constexpr double kOracleFlux5 = 7032.959743946604;
+constexpr double kOracleMedian = 16.04022427426992;
+constexpr double kOracleFlux5 = 3563.641141562232;
 // WEIGHT-SCI-001（2026-09-18 裁决）: 组内公共参考通量 F0。同一帧组的所有帧必须
 // 用**同一个** F0 定义 SNR 并写入 reference_flux_adu（配对性定理）。逐帧检出通量
 // 中位数回退已删除；本常量取 5 颗真实源通量的中位数作为冻结的公共参考值。
@@ -478,6 +496,65 @@ void group_common_ref() {
   }
 }
 
+// ── CONFORM-FIX-A ①: fwhm_px 母函数口径 (禁止跨块混用) ───────────────────────
+// 规范: 检测侧母函数 = 椭圆高斯 (FWHM = 2.3548200450309493*sigma; SCI-P1-STAR-001 §2,
+//   ALG-STARDET-001 §2); PSF 侧 = 椭圆 Moffat4 (FWHM = 1.230310*sigma; SCI-PSF-001 §5);
+//   同 sigma 下相差 1.914005x, **两列禁止跨块比较** (DISP-STAR-007)。
+// 被测面: DATA-P1-SOURCES.fwhm_px (检测块高斯列) 进入 snr_science 的换算因子。
+// 判别力: 输入列按高斯因子换算后必须与同 sigma 直传路径**逐位一致** (绿);
+//   旧路径按 PSF 块因子 1.230310 反解 ⇒ sigma 高估 1.914005x (红)。
+void group_mother_function() {
+  using astrocs::phase1::SnrFrameScienceConfig;
+  using astrocs::phase1::SnrSourceRow;
+
+  const double sigma_true = 1.25;                        // 已知 sigma [px]
+  const double fwhm_gauss = kGaussFwhmFactor * sigma_true;  // 检测块列 (高斯 FWHM)
+
+  double sp2_col = 0.0, pc_col = 0.0, sp2_sig = 0.0, pc_sig = 0.0;
+  check(snr_moffat4_profile_f64(fwhm_gauss, 0.0, 0, &sp2_col, &pc_col) == 0, "M1 col rc");
+  check(snr_moffat4_profile_f64(0.0, sigma_true, 0, &sp2_sig, &pc_sig) == 0, "M1 sigma rc");
+  check(sp2_col == sp2_sig && pc_col == pc_sig,
+        "M1 detection-block Gaussian fwhm == same sigma (bitwise)");
+
+  // 跨块因子恒等 (规范值): 2.3548200450309493/1.230310
+  check_close(kGaussFwhmFactor / kMoffat4FwhmFactor, 1.9140054498711294, 1e-15,
+              "M2 cross-block sigma bias = 1.914005");
+  // 非恒真锁: 按 PSF 块因子反解同一列必须给出不同结果 (旧行为可被本组抓住)
+  double sp2_bad = 0.0, pc_bad = 0.0;
+  check(snr_moffat4_profile_f64(kMoffat4FwhmFactor * sigma_true, 0.0, 0, &sp2_bad, &pc_bad) == 0,
+        "M3 cross-block rc");
+  check(sp2_bad != sp2_col && pc_bad != pc_col,
+        "M3 cross-block interpretation differs (non-vacuous)");
+
+  // 帧级路径 (wrapper): 已知 sigma 的合成行 (fwhm=高斯 FWHM) 必须与同 sigma 的解析
+  // 天空受限公式一致 (sigma_F = sky/sqrt(sum P^2); SNR_F = F/sigma_F)。
+  std::vector<SnrSourceRow> rows(1);
+  rows[0].id = "m1";
+  rows[0].flux_adu = 1.0e4;
+  rows[0].fwhm_px = fwhm_gauss;
+  SnrFrameScienceConfig cfg;
+  cfg.sigma_sky_adu = 20.0;
+  cfg.reference_flux_adu = 1.0e4;
+  const auto out = astrocs::phase1::compute_snr_frame_science(rows, cfg);
+  check(out.valid && out.n_used == 1, "M4 frame valid");
+  const double sigma_f_expect = cfg.sigma_sky_adu / std::sqrt(sp2_sig);
+  check_close(out.sigma_f_adu[0], sigma_f_expect, 1e-12,
+              "M4 sigma_F from Gaussian-fwhm column == sigma path");
+  check_close(out.snr_f[0], 1.0e4 / sigma_f_expect, 1e-12,
+              "M4b SNR_F from Gaussian-fwhm column == sigma path");
+  // 旧路径 (跨块) 等价于 sigma 放大 1.914005x: 用 1.914005x 更宽的**高斯列**复现该
+  // sigma ⇒ SNR 必须更低, 且比值落在 [1.85,2.15] (纯 sigma 因子 1.914005; 离散采样下
+  // sigma~1px 的 Moffat4 轮廓不满足 sum_p2 ∝ sigma^-2 的连续极限, 实测 1.981)。
+  std::vector<SnrSourceRow> wide_rows = rows;
+  wide_rows[0].fwhm_px = rows[0].fwhm_px * (kGaussFwhmFactor / kMoffat4FwhmFactor);
+  const auto wide = astrocs::phase1::compute_snr_frame_science(wide_rows, cfg);
+  check(wide.valid && wide.snr_f[0] < out.snr_f[0],
+        "M5 sigma x1.914 (old cross-block) yields lower SNR");
+  const double ratio = out.snr_f[0] / wide.snr_f[0];
+  check(ratio > 1.85 && ratio < 2.15,
+        "M5b SNR ratio ~1.914 direction (discrete-sampling bounded)");
+}
+
 struct Group {
   const char* name;
   void (*fn)();
@@ -489,6 +566,7 @@ const Group kGroups[] = {
     {"negative", group_negative},
     {"determinism", group_determinism},
     {"common_ref", group_common_ref},
+    {"mother_function", group_mother_function},
 };
 
 }  // namespace

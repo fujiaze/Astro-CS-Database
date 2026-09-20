@@ -1,0 +1,388 @@
+{
+  "audit": "SNR-EXP-AUDIT 4 -- SP-0 applicability in the mosaic regime (real L4 data, different pointings)",
+  "gap_audit_9_46": "SP-0 is a diagnostic, not a switch; its verdict must not be generalised from the common-mode case",
+  "n_frames_reduced": 43,
+  "A_same_tile_4_frames": {
+    "frames": [
+      "t2_m2_red/_dutchman-20251212@020002-300S-Red",
+      "t2_m2_red/_dutchman-20251216@033550-300S-Red",
+      "t2_m2_red/_dutchman-20251224@033141-300S-Red",
+      "t2_m2_red/_dutchman-20251224@033733-300S-Red"
+    ],
+    "tile_mix": [
+      "t2_m2_red"
+    ],
+    "airmass": [
+      1.45180732559,
+      1.13556358968,
+      1.11184030845,
+      1.1088527951
+    ],
+    "n_sky_points": 1556,
+    "sigma_median_adu": [
+      15.566788646570824,
+      15.6501797815673,
+      14.570850707109763,
+      14.588921760716588
+    ],
+    "sigma_spread": 1.0740745407494212,
+    "scalar_mean_of_patch_sigma": {
+      "penalty": 1.006367706880961,
+      "var_p_delta": 3.564622020910691e-05,
+      "delta_bar": -0.9246301082178257,
+      "sigma_penalty_pct": 0.3178801052415192
+    },
+    "scalar_whole_frame_mad": {
+      "penalty": 1.0125001057490821,
+      "var_p_delta": 51.21399034821377,
+      "delta_bar": 63.1903433505199,
+      "sigma_penalty_pct": 0.6230642422045296
+    },
+    "sparse_64px_bilinear": {
+      "penalty": 1.004948642143912,
+      "var_p_delta": 0.00442324190919354,
+      "delta_bar": -0.053427006510983185,
+      "sigma_penalty_pct": 0.24712674904512344
+    }
+  },
+  "B_cross_tile_pairs": [
+    {
+      "frames": [
+        "t2_m2_red/_dutchman-20251224@033733-300S-Red",
+        "t3_m2_red/_dutchman-20251128@050425-300S-Red"
+      ],
+      "tile_mix": [
+        "t2_m2_red",
+        "t3_m2_red"
+      ],
+      "airmass": [
+        1.1088527951,
+        1.11802393141
+      ],
+      "n_sky_points": 1440,
+      "sigma_median_adu": [
+        14.408944404423352,
+        17.257269884036894
+      ],
+      "sigma_spread": 1.1976775952261391,
+      "scalar_mean_of_patch_sigma": {
+        "penalty": 1.0768913887498335,
+        "var_p_delta": 0.0006015604583605241,
+        "delta_bar": -0.9115416828621127,
+        "sigma_penalty_pct": 3.7733775469331876
+      },
+      "scalar_whole_frame_mad": {
+        "penalty": 1.0889196947926274,
+        "var_p_delta": 483.00746602441876,
+        "delta_bar": 72.70066403035015,
+        "sigma_penalty_pct": 4.351315027297442
+      },
+      "sparse_64px_bilinear": {
+        "penalty": 1.003531858422743,
+        "var_p_delta": 0.003951622070846524,
+        "delta_bar": 0.005869384941884414,
+        "sigma_penalty_pct": 0.1764372705848949
+      },
+      "pair": [
+        "t2_m2_red/_dutchman-20251224@033733-300S-Red",
+        "t3_m2_red/_dutchman-20251128@050425-300S-Red"
+      ]
+    },
+    {
+      "frames": [
+        "t2_m2_red/_dutchman-20251224@033141-300S-Red",
+        "t3_m2_red/_dutchman-20251128@050425-300S-Red"
+      ],
+      "tile_mix": [
+        "t2_m2_red",
+        "t3_m2_red"
+      ],
+      "airmass": [
+        1.11184030845,
+        1.11802393141
+      ],
+      "n_sky_points": 1440,
+      "sigma_median_adu": [
+        14.358365471039821,
+        17.260260551008372
+      ],
+      "sigma_spread": 1.202104834691772,
+      "scalar_mean_of_patch_sigma": {
+        "penalty": 1.0684353416304733,
+        "var_p_delta": 0.0005564717311880279,
+        "delta_bar": -0.9101527871936661,
+        "sigma_penalty_pct": 3.365146042100342
+      },
+      "scalar_whole_frame_mad": {
+        "penalty": 1.0801618630074945,
+        "var_p_delta": 452.0329757258984,
+        "delta_bar": 73.8275137992468,
+        "sigma_penalty_pct": 3.93083579994411
+      },
+      "sparse_64px_bilinear": {
+        "penalty": 1.006554530689875,
+        "var_p_delta": 0.006634637088702273,
+        "delta_bar": -0.0401733126163487,
+        "sigma_penalty_pct": 0.3271912638779684
+      },
+      "pair": [
+        "t2_m2_red/_dutchman-20251224@033141-300S-Red",
+        "t3_m2_red/_dutchman-20251128@050425-300S-Red"
+      ]
+    },
+    {
+      "frames": [
+        "t2_m2_red/_dutchman-20251224@033733-300S-Red",
+        "t3_m2_red/_dutchman-20251213@024656-300S-Red"
+      ],
+      "tile_mix": [
+        "t2_m2_red",
+        "t3_m2_red"
+      ],
+      "airmass": [
+        1.1088527951,
+        1.25427821891
+      ],
+      "n_sky_points": 1443,
+      "sigma_median_adu": [
+        14.485105757508345,
+        16.352263258747286
+      ],
+      "sigma_spread": 1.1289018894647076,
+      "scalar_mean_of_patch_sigma": {
+        "penalty": 1.0644801893545135,
+        "var_p_delta": 0.0005110254440754326,
+        "delta_bar": -0.9104633154562266,
+        "sigma_penalty_pct": 3.1736492208409572
+      },
+      "scalar_whole_frame_mad": {
+        "penalty": 1.028232243783889,
+        "var_p_delta": 122.16207058576136,
+        "delta_bar": 65.40482752976281,
+        "sigma_penalty_pct": 1.4017871530817239
+      },
+      "sparse_64px_bilinear": {
+        "penalty": 1.0032085128212327,
+        "var_p_delta": 0.003410367122967304,
+        "delta_bar": 0.014982079918665748,
+        "sigma_penalty_pct": 0.1602971651558427
+      },
+      "pair": [
+        "t2_m2_red/_dutchman-20251224@033733-300S-Red",
+        "t3_m2_red/_dutchman-20251213@024656-300S-Red"
+      ]
+    },
+    {
+      "frames": [
+        "t2_m2_red/_dutchman-20251216@033550-300S-Red",
+        "t3_m2_red/_dutchman-20251128@050425-300S-Red"
+      ],
+      "tile_mix": [
+        "t2_m2_red",
+        "t3_m2_red"
+      ],
+      "airmass": [
+        1.13556358968,
+        1.11802393141
+      ],
+      "n_sky_points": 1515,
+      "sigma_median_adu": [
+        15.400085908259888,
+        17.322761426313875
+      ],
+      "sigma_spread": 1.1248483631524908,
+      "scalar_mean_of_patch_sigma": {
+        "penalty": 1.0600538403005204,
+        "var_p_delta": 0.0005164116471862325,
+        "delta_bar": -0.9067008577629841,
+        "sigma_penalty_pct": 2.95891609280472
+      },
+      "scalar_whole_frame_mad": {
+        "penalty": 1.0476578612957024,
+        "var_p_delta": 309.6525881190151,
+        "delta_bar": 80.18433961920258,
+        "sigma_penalty_pct": 2.3551591907170266
+      },
+      "sparse_64px_bilinear": {
+        "penalty": 1.0011179809713004,
+        "var_p_delta": 0.00124857148552024,
+        "delta_bar": 0.024662527980160574,
+        "sigma_penalty_pct": 0.05588343377416205
+      },
+      "pair": [
+        "t2_m2_red/_dutchman-20251216@033550-300S-Red",
+        "t3_m2_red/_dutchman-20251128@050425-300S-Red"
+      ]
+    },
+    {
+      "frames": [
+        "t2_m2_red/_dutchman-20251224@033141-300S-Red",
+        "t3_m2_red/_dutchman-20251213@024656-300S-Red"
+      ],
+      "tile_mix": [
+        "t2_m2_red",
+        "t3_m2_red"
+      ],
+      "airmass": [
+        1.11184030845,
+        1.25427821891
+      ],
+      "n_sky_points": 1443,
+      "sigma_median_adu": [
+        14.491581405557982,
+        16.352322750936402
+      ],
+      "sigma_spread": 1.1284015383348547,
+      "scalar_mean_of_patch_sigma": {
+        "penalty": 1.0586300262222228,
+        "var_p_delta": 0.0004753975810117942,
+        "delta_bar": -0.909305737364077,
+        "sigma_penalty_pct": 2.889748090964961
+      },
+      "scalar_whole_frame_mad": {
+        "penalty": 1.0245135963900187,
+        "var_p_delta": 108.24988667923607,
+        "delta_bar": 66.2294531478882,
+        "sigma_penalty_pct": 1.2182590440093843
+      },
+      "sparse_64px_bilinear": {
+        "penalty": 1.0080987630724523,
+        "var_p_delta": 0.00780105058520142,
+        "delta_bar": -0.027430862197300832,
+        "sigma_penalty_pct": 0.4041215823559874
+      },
+      "pair": [
+        "t2_m2_red/_dutchman-20251224@033141-300S-Red",
+        "t3_m2_red/_dutchman-20251213@024656-300S-Red"
+      ]
+    },
+    {
+      "frames": [
+        "t2_m2_red/_dutchman-20251216@033550-300S-Red",
+        "t3_m2_red/_dutchman-20251213@024656-300S-Red"
+      ],
+      "tile_mix": [
+        "t2_m2_red",
+        "t3_m2_red"
+      ],
+      "airmass": [
+        1.13556358968,
+        1.25427821891
+      ],
+      "n_sky_points": 1523,
+      "sigma_median_adu": [
+        15.497249599733056,
+        16.338042438019734
+      ],
+      "sigma_spread": 1.0542543264129371,
+      "scalar_mean_of_patch_sigma": {
+        "penalty": 1.0513676146523079,
+        "var_p_delta": 0.00043276131978124146,
+        "delta_bar": -0.906867175054834,
+        "sigma_penalty_pct": 2.536218705992277
+      },
+      "scalar_whole_frame_mad": {
+        "penalty": 1.0100232701800385,
+        "var_p_delta": 48.48270518201434,
+        "delta_bar": 70.96076012388546,
+        "sigma_penalty_pct": 0.499913939268537
+      },
+      "sparse_64px_bilinear": {
+        "penalty": 1.0024513161077224,
+        "var_p_delta": 0.0025453706395086543,
+        "delta_bar": 0.02543729473781386,
+        "sigma_penalty_pct": 0.12249078542354574
+      },
+      "pair": [
+        "t2_m2_red/_dutchman-20251216@033550-300S-Red",
+        "t3_m2_red/_dutchman-20251213@024656-300S-Red"
+      ]
+    },
+    {
+      "frames": [
+        "t2_m2_red/_dutchman-20251212@020002-300S-Red",
+        "t3_m2_red/_dutchman-20251128@050425-300S-Red"
+      ],
+      "tile_mix": [
+        "t2_m2_red",
+        "t3_m2_red"
+      ],
+      "airmass": [
+        1.45180732559,
+        1.11802393141
+      ],
+      "n_sky_points": 1435,
+      "sigma_median_adu": [
+        15.407390966405268,
+        17.528483665909917
+      ],
+      "sigma_spread": 1.1376672211492227,
+      "scalar_mean_of_patch_sigma": {
+        "penalty": 1.037304438973389,
+        "var_p_delta": 0.00037022942427633094,
+        "delta_bar": -0.9004100648664383,
+        "sigma_penalty_pct": 1.8481437716657112
+      },
+      "scalar_whole_frame_mad": {
+        "penalty": 1.0299124929205112,
+        "var_p_delta": 222.40481756555232,
+        "delta_bar": 85.23446138621276,
+        "sigma_penalty_pct": 1.4846043949776178
+      },
+      "sparse_64px_bilinear": {
+        "penalty": 1.0034353869710282,
+        "var_p_delta": 0.003560510519010837,
+        "delta_bar": -0.03611780007907351,
+        "sigma_penalty_pct": 0.1716220778633648
+      },
+      "pair": [
+        "t2_m2_red/_dutchman-20251212@020002-300S-Red",
+        "t3_m2_red/_dutchman-20251128@050425-300S-Red"
+      ]
+    },
+    {
+      "frames": [
+        "t2_m5_red/_dutchman-20251224@053804-300S-Red",
+        "t3_m5_red/_dutchman-20251228@043447-300S-Red"
+      ],
+      "tile_mix": [
+        "t2_m5_red",
+        "t3_m5_red"
+      ],
+      "airmass": [
+        1.19832230223,
+        1.12563239894
+      ],
+      "n_sky_points": 1443,
+      "sigma_median_adu": [
+        15.277343974006849,
+        16.757937676685383
+      ],
+      "sigma_spread": 1.0969143396389873,
+      "scalar_mean_of_patch_sigma": {
+        "penalty": 1.0337301568782735,
+        "var_p_delta": 6.669339766940029e-05,
+        "delta_bar": -0.9552285747979969,
+        "sigma_penalty_pct": 1.672521207958333
+      },
+      "scalar_whole_frame_mad": {
+        "penalty": 1.032621394946366,
+        "var_p_delta": 184.0962960443983,
+        "delta_bar": 74.64790631569569,
+        "sigma_penalty_pct": 1.6179804437367329
+      },
+      "sparse_64px_bilinear": {
+        "penalty": 1.0003748170608484,
+        "var_p_delta": 0.000362881425709514,
+        "delta_bar": -0.022580915386723046,
+        "sigma_penalty_pct": 0.018739097273590133
+      },
+      "pair": [
+        "t2_m5_red/_dutchman-20251224@053804-300S-Red",
+        "t3_m5_red/_dutchman-20251228@043447-300S-Red"
+      ]
+    }
+  ],
+  "C_extreme_airmass_mix": null,
+  "elapsed_s": 344.33734917640686
+}

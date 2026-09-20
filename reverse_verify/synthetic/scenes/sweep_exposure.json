@@ -1,0 +1,69 @@
+{
+  "scene_id": "sweep_exposure",
+  "kind": "exposure_sweep",
+  "description": "不同曝光扫描（30-600 s）：同天光率、同源率，检验 SNR ∝ sqrt(t) 与暗电流/读出的相对权重变化。",
+  "matrix_cells": [
+    "condition:exposure_30_to_600s"
+  ],
+  "seed": 20260929,
+  "shape": [
+    512,
+    512
+  ],
+  "exposure_s": 300,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000,
+    "dark_current_e_per_s": 0.05
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "vignette": 0.05
+  },
+  "sky": {
+    "level_e_per_s": 2,
+    "grad_x_e_per_s": 0.2,
+    "grad_y_e_per_s": 0.1,
+    "theta_deg": 30
+  },
+  "nebula": [],
+  "stars": {
+    "n": 250,
+    "flux_log10_range": [
+      3,
+      5
+    ],
+    "clustering": "uniform",
+    "seed": 5656
+  },
+  "frames": [
+    {
+      "frame_id": "exp_0030s",
+      "exposure_s": 30
+    },
+    {
+      "frame_id": "exp_0060s",
+      "exposure_s": 60
+    },
+    {
+      "frame_id": "exp_0120s",
+      "exposure_s": 120
+    },
+    {
+      "frame_id": "exp_0300s",
+      "exposure_s": 300
+    },
+    {
+      "frame_id": "exp_0600s",
+      "exposure_s": 600
+    }
+  ]
+}

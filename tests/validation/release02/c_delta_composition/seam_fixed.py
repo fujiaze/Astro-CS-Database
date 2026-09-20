@@ -41,7 +41,7 @@ for lbl in ('OLD','NEW'):
         lbl,np.median(s1),100*np.median(s1)/bgx,s1.size,
         np.median(s2),100*np.median(s2)/bgy1,
         np.median(s3),100*np.median(s3)/bgy2))
-np.save('/dev/shm/astrocs_cd/do.npy',D['OLD'].astype(np.float32))
-np.save('/dev/shm/astrocs_cd/dn.npy',D['NEW'].astype(np.float32))
-np.save('/dev/shm/astrocs_cd/cov.npy',(covref>0.5))
+np.save(os.path.join(os.environ.get('TMPDIR','/var/tmp/astrocs'),'astrocs_cd')+'/'do.npy',D['OLD'].astype(np.float32))
+np.save(os.path.join(os.environ.get('TMPDIR','/var/tmp/astrocs'),'astrocs_cd')+'/'dn.npy',D['NEW'].astype(np.float32))
+np.save(os.path.join(os.environ.get('TMPDIR','/var/tmp/astrocs'),'astrocs_cd')+'/'cov.npy',(covref>0.5))
 print('saved')

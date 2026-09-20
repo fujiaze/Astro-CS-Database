@@ -1,0 +1,59 @@
+{
+  "scene_id": "high_sky_low_snr",
+  "kind": "high_sky_low_snr",
+  "description": "高天光低 SNR：强月光/光污染光晕（空间非均匀）+ 短曝光 + 稀疏弱源；天光散粒噪声主导，用于检验 SNR 判据与方差闭合。",
+  "matrix_cells": [
+    "condition:high_sky_moon",
+    "condition:short_exposure",
+    "target:sparse_field"
+  ],
+  "seed": 20260926,
+  "shape": [
+    1024,
+    1024
+  ],
+  "exposure_s": 60,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3.4,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "vignette": 0.05
+  },
+  "sky": {
+    "level_e_per_s": 10,
+    "grad_x_e_per_s": 3,
+    "grad_y_e_per_s": 1.5,
+    "theta_deg": 60,
+    "moon_halo_e_per_s": 40,
+    "moon_center": [
+      120,
+      900
+    ],
+    "moon_scale_px": 420
+  },
+  "nebula": [],
+  "stars": {
+    "n": 120,
+    "flux_log10_range": [
+      2,
+      4.5
+    ],
+    "clustering": "uniform",
+    "seed": 3131
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 8,
+    "cr_mean_charge_e": 900,
+    "hot_pixel_fraction": 0.0005
+  }
+}

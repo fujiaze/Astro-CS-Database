@@ -1,0 +1,174 @@
+{
+  "scene_id": "sweep_band",
+  "kind": "band_sweep",
+  "description": "不同波段（Red/Green/Blue/Ha/OIII）：各波段的天光率、seeing、源通量标度与星云对比度不同（宽带受月光/光污染更重，窄带天光低但吞吐低）。",
+  "matrix_cells": [
+    "band:Red",
+    "band:Green",
+    "band:Blue",
+    "band:Ha",
+    "band:OIII"
+  ],
+  "seed": 20260930,
+  "shape": [
+    512,
+    512
+  ],
+  "exposure_s": 300,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "vignette": 0.05
+  },
+  "sky": {
+    "level_e_per_s": 1,
+    "grad_x_e_per_s": 0.15,
+    "grad_y_e_per_s": 0.08,
+    "theta_deg": 30
+  },
+  "nebula": [
+    {
+      "type": "powerlaw_core",
+      "center": [
+        256,
+        256
+      ],
+      "peak_e_per_s": 200,
+      "core_radius_px": 5,
+      "slope": 2.4,
+      "truncation_px": 220
+    }
+  ],
+  "stars": {
+    "n": 250,
+    "flux_log10_range": [
+      3,
+      5.5
+    ],
+    "clustering": "uniform",
+    "seed": 7878
+  },
+  "frames": [
+    {
+      "frame_id": "band_Red",
+      "sky": {
+        "level_e_per_s": 1
+      },
+      "psf": {
+        "fwhm_px": 2.6
+      },
+      "nebula": [
+        {
+          "type": "powerlaw_core",
+          "center": [
+            256,
+            256
+          ],
+          "peak_e_per_s": 200,
+          "core_radius_px": 5,
+          "slope": 2.4,
+          "truncation_px": 220
+        }
+      ]
+    },
+    {
+      "frame_id": "band_Green",
+      "sky": {
+        "level_e_per_s": 2.2
+      },
+      "psf": {
+        "fwhm_px": 3.1
+      },
+      "nebula": [
+        {
+          "type": "powerlaw_core",
+          "center": [
+            256,
+            256
+          ],
+          "peak_e_per_s": 150,
+          "core_radius_px": 5,
+          "slope": 2.4,
+          "truncation_px": 220
+        }
+      ]
+    },
+    {
+      "frame_id": "band_Blue",
+      "sky": {
+        "level_e_per_s": 4.5
+      },
+      "psf": {
+        "fwhm_px": 3.8
+      },
+      "nebula": [
+        {
+          "type": "powerlaw_core",
+          "center": [
+            256,
+            256
+          ],
+          "peak_e_per_s": 90,
+          "core_radius_px": 5,
+          "slope": 2.4,
+          "truncation_px": 220
+        }
+      ]
+    },
+    {
+      "frame_id": "band_Ha",
+      "sky": {
+        "level_e_per_s": 0.7
+      },
+      "psf": {
+        "fwhm_px": 2.8
+      },
+      "nebula": [
+        {
+          "type": "powerlaw_core",
+          "center": [
+            256,
+            256
+          ],
+          "peak_e_per_s": 420,
+          "core_radius_px": 5,
+          "slope": 2.2,
+          "truncation_px": 260
+        }
+      ]
+    },
+    {
+      "frame_id": "band_OIII",
+      "sky": {
+        "level_e_per_s": 0.6
+      },
+      "psf": {
+        "fwhm_px": 2.9
+      },
+      "nebula": [
+        {
+          "type": "powerlaw_core",
+          "center": [
+            256,
+            256
+          ],
+          "peak_e_per_s": 260,
+          "core_radius_px": 5,
+          "slope": 2.3,
+          "truncation_px": 240
+        }
+      ]
+    }
+  ]
+}

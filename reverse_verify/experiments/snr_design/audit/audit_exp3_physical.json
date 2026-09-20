@@ -1,0 +1,1077 @@
+{
+  "audit": "SNR-EXP-AUDIT 1 -- EXP-3 scalar/sparse weight penalty recomputed under a physical noise model",
+  "declared_model_parameters": {
+    "G_e_per_adu": 1.3,
+    "RN_e": 10.0,
+    "status": "DECLARED, not measured"
+  },
+  "gap_audit_9_42": "no physical closed form evaluated",
+  "audited_claim": "frame-scalar weight optimal to 0.063% (sigma); 64 px sparse layer costs 3.33% (sigma) / 6.78% (var)",
+  "PART_R_reproduction_on_real_frames": {
+    "tile": "t2_m2_red",
+    "n_frames": 4,
+    "patch_px": 32,
+    "grid": [
+      64,
+      64
+    ],
+    "window": [
+      16,
+      48,
+      16,
+      48
+    ],
+    "sigma_frame_median_adu": [
+      14.570804031246343,
+      14.902441714690298,
+      14.231644295225898,
+      14.237011534244765
+    ],
+    "sigma_frame_spread": 1.0471342176314387,
+    "scalar_only_penalty": 1.0902756656313266,
+    "scalar_only_sigma_penalty_pct": 4.416266243882072,
+    "scan": [
+      {
+        "spacing_px": 64,
+        "penalty": 1.0677884619785867,
+        "sigma_penalty_pct": 3.3338503094986205
+      },
+      {
+        "spacing_px": 128,
+        "penalty": 1.1611481557474026,
+        "sigma_penalty_pct": 7.756584752274076
+      },
+      {
+        "spacing_px": 256,
+        "penalty": 1.3116686366119998,
+        "sigma_penalty_pct": 14.52810295346727
+      },
+      {
+        "spacing_px": 512,
+        "penalty": 1.2850761480592823,
+        "sigma_penalty_pct": 13.361199184698203
+      }
+    ],
+    "note": "same estimator chain as EXP-3 Part B; the original script reported scalar 1.001269 (0.0634%) and 64 px 1.067788 (3.334%)"
+  },
+  "PART_R2_scalar_penalty_sensitivity": {
+    "rows": {
+      "full_4096_win_48_80__scalar_mean": {
+        "penalty": 1.001269244398189,
+        "sigma_pct": 0.06344209541209178
+      },
+      "full_4096_win_48_80__scalar_median": {
+        "penalty": 1.2810906237341528,
+        "sigma_pct": 13.185273942070431
+      },
+      "full_4096_win_48_80__scalar_whole_frame_mad": {
+        "penalty": 1.0009566871221878,
+        "sigma_pct": 0.047822920950557624
+      },
+      "central_2048_win_16_48__scalar_mean": {
+        "penalty": 1.0902756656313266,
+        "sigma_pct": 4.416266243882072
+      },
+      "central_2048_win_16_48__scalar_median": {
+        "penalty": 1.2639849966753973,
+        "sigma_pct": 12.427087335543717
+      },
+      "central_2048_win_16_48__scalar_whole_frame_mad": {
+        "penalty": 1.0009566871221878,
+        "sigma_pct": 0.047822920950557624
+      }
+    },
+    "finding": "the delivered 1.001269 (0.063%) is reproduced EXACTLY for the combination (full 4096 frame, scalar = mean of the 32 px patch sigma field, window = central 1024 px).  Changing only the evaluation window to the central 2048 px raises the SAME procedure to 1.0903 (4.42%): the number is a property of the window/normalisation choice, not a physical constant of the dataset.  The scalar production actually uses (whole-frame unclipped MAD) gives 0.048% / 0.023%."
+  },
+  "template": {
+    "n_frames": 4,
+    "shifts": [
+      [
+        0,
+        0
+      ],
+      [
+        11,
+        27
+      ],
+      [
+        5,
+        43
+      ],
+      [
+        5,
+        43
+      ]
+    ],
+    "margin": 45,
+    "shape": [
+      1958,
+      1958
+    ],
+    "template_median_adu": 232.76263046264648,
+    "interframe_scatter_median_adu": 22.139297079585237,
+    "note": "interframe_scatter_median_adu is NOT noise; it contains real night-to-night sky/seeing differences"
+  },
+  "physical_cases": [
+    {
+      "case": "S1_identical_sky",
+      "grid": [
+        61,
+        61
+      ],
+      "window": [
+        14,
+        46,
+        14,
+        46
+      ],
+      "n_frames": 4,
+      "oracle_pixel_weights_penalty": 1.0,
+      "scalar_production_MAD": {
+        "sigma": [
+          74.1301109252801,
+          74.1301109252801,
+          74.1301109252801,
+          74.1301109252801
+        ],
+        "penalty": 1.0,
+        "var_p_delta": 0.0,
+        "delta_bar": -0.9424824745646956,
+        "sigma_penalty_pct": 0.0
+      },
+      "scalar_ideal": {
+        "sigma": [
+          18.999239410261087,
+          18.999239410261087,
+          18.999239410261087,
+          18.999239410261087
+        ],
+        "penalty": 1.0,
+        "var_p_delta": 0.0,
+        "delta_bar": -0.12437719794063454,
+        "sigma_penalty_pct": 0.0
+      },
+      "measured_field_frame_spread": 1.0,
+      "sparse_from_measured_field": [
+        {
+          "spacing_px": 64,
+          "stride": 2,
+          "penalty_measured_field": 1.0029411400839057,
+          "var_p_delta": 0.0030166353905494167,
+          "sigma_penalty_pct": 0.14694903410217286,
+          "rmse_log_sigma_vs_measured_field": 0.0776009856453218,
+          "rmse_log_sigma_vs_true_noise": 0.07808223134083886,
+          "worstcase_independent": 1.0240876518925017
+        },
+        {
+          "spacing_px": 128,
+          "stride": 4,
+          "penalty_measured_field": 1.0022586529303519,
+          "var_p_delta": 0.002339461942458286,
+          "sigma_penalty_pct": 0.11286894951876292,
+          "rmse_log_sigma_vs_measured_field": 0.10063451142837573,
+          "rmse_log_sigma_vs_true_noise": 0.07561018554012197,
+          "worstcase_independent": 1.0405092195617116
+        },
+        {
+          "spacing_px": 256,
+          "stride": 8,
+          "penalty_measured_field": 1.0021968430575818,
+          "var_p_delta": 0.0024252741086671346,
+          "sigma_penalty_pct": 0.10978189255941295,
+          "rmse_log_sigma_vs_measured_field": 0.10588875679399859,
+          "rmse_log_sigma_vs_true_noise": 0.0784967139590342,
+          "worstcase_independent": 1.0448497152615144
+        },
+        {
+          "spacing_px": 512,
+          "stride": 16,
+          "penalty_measured_field": 1.0026858604666762,
+          "var_p_delta": 0.0031140122450074316,
+          "sigma_penalty_pct": 0.13420297114647983,
+          "rmse_log_sigma_vs_measured_field": 0.11155860821533078,
+          "rmse_log_sigma_vs_true_noise": 0.09145513529478895,
+          "worstcase_independent": 1.0497812922677667
+        }
+      ],
+      "sparse_oracle_nodes": [
+        {
+          "spacing_px": 64,
+          "penalty_oracle_nodes": 1.0,
+          "var_p_delta": 0.0,
+          "sigma_penalty_pct": 0.0
+        },
+        {
+          "spacing_px": 128,
+          "penalty_oracle_nodes": 1.0,
+          "var_p_delta": 0.0,
+          "sigma_penalty_pct": 0.0
+        },
+        {
+          "spacing_px": 256,
+          "penalty_oracle_nodes": 1.0,
+          "var_p_delta": 0.0,
+          "sigma_penalty_pct": 0.0
+        },
+        {
+          "spacing_px": 512,
+          "penalty_oracle_nodes": 1.0,
+          "var_p_delta": 0.0,
+          "sigma_penalty_pct": 0.0
+        }
+      ],
+      "negative_controls": {
+        "N1_identical_sigma_fields": {
+          "penalty": 1.0,
+          "var_p_delta": 0.0,
+          "must_be": "1.000000"
+        },
+        "N2_common_mode_weight_error": {
+          "penalty": 1.0,
+          "var_p_delta": 0.0,
+          "must_be": "1.000000"
+        },
+        "N3_common_mode_wrong_spatial_field": {
+          "penalty": 1.0,
+          "var_p_delta": 0.0,
+          "must_be": "1.000000 -- the efficiency metric is deliberately blind to a weight error that is identical in every frame"
+        },
+        "N4_frame_dependent_shuffled_controls": {
+          "penalty": 1.0838482220893693,
+          "var_p_delta": 0.06487681236339139,
+          "must_be": "> 1 + the true-layout penalty"
+        }
+      },
+      "sky_scales": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "gradient_tilt_adu_per_frame": 0.0
+    },
+    {
+      "case": "S2_real_like_diversity",
+      "grid": [
+        61,
+        61
+      ],
+      "window": [
+        14,
+        46,
+        14,
+        46
+      ],
+      "n_frames": 4,
+      "oracle_pixel_weights_penalty": 1.0,
+      "scalar_production_MAD": {
+        "sigma": [
+          71.1649064882689,
+          72.6475087067745,
+          75.6127131437857,
+          78.5779175807969
+        ],
+        "penalty": 1.0025287630790487,
+        "var_p_delta": 8.531986087217077e-06,
+        "delta_bar": -0.9428444981884856,
+        "sigma_penalty_pct": 0.12635832182497087
+      },
+      "scalar_ideal": {
+        "sigma": [
+          18.655618008223886,
+          18.885393646992583,
+          19.112407047124343,
+          19.336755494861812
+        ],
+        "penalty": 1.0000030399370723,
+        "var_p_delta": 2.963937773349752e-06,
+        "delta_bar": -0.12433392906767787,
+        "sigma_penalty_pct": 0.00015199673810695202
+      },
+      "measured_field_frame_spread": 1.0434782608695652,
+      "sparse_from_measured_field": [
+        {
+          "spacing_px": 64,
+          "stride": 2,
+          "penalty_measured_field": 1.0035044230995638,
+          "var_p_delta": 0.0035632682180824203,
+          "sigma_penalty_pct": 0.17506791111068232,
+          "rmse_log_sigma_vs_measured_field": 0.0777574782268233,
+          "rmse_log_sigma_vs_true_noise": 0.07836206794423693,
+          "worstcase_independent": 1.0241849016807796
+        },
+        {
+          "spacing_px": 128,
+          "stride": 4,
+          "penalty_measured_field": 1.0027871033049518,
+          "var_p_delta": 0.00297638931226178,
+          "sigma_penalty_pct": 0.13925820101483577,
+          "rmse_log_sigma_vs_measured_field": 0.10156528218874826,
+          "rmse_log_sigma_vs_true_noise": 0.07636904789365997,
+          "worstcase_independent": 1.0412620261843202
+        },
+        {
+          "spacing_px": 256,
+          "stride": 8,
+          "penalty_measured_field": 1.0019325035356843,
+          "var_p_delta": 0.0021037227288085054,
+          "sigma_penalty_pct": 0.09657853971254404,
+          "rmse_log_sigma_vs_measured_field": 0.1055034224760632,
+          "rmse_log_sigma_vs_true_noise": 0.07714973610085546,
+          "worstcase_independent": 1.0445238886166508
+        },
+        {
+          "spacing_px": 512,
+          "stride": 16,
+          "penalty_measured_field": 1.002981270880363,
+          "var_p_delta": 0.003200847295424112,
+          "sigma_penalty_pct": 0.14895260961858003,
+          "rmse_log_sigma_vs_measured_field": 0.11308754686126135,
+          "rmse_log_sigma_vs_true_noise": 0.09358947423959202,
+          "worstcase_independent": 1.0511551730203919
+        }
+      ],
+      "sparse_oracle_nodes": [
+        {
+          "spacing_px": 64,
+          "penalty_oracle_nodes": 1.000000367493572,
+          "var_p_delta": 7.791619784595425e-07,
+          "sigma_penalty_pct": 1.8374676913346377e-05
+        },
+        {
+          "spacing_px": 128,
+          "penalty_oracle_nodes": 1.000000480036784,
+          "var_p_delta": 3.457368529720472e-06,
+          "sigma_penalty_pct": 2.400183631845465e-05
+        },
+        {
+          "spacing_px": 256,
+          "penalty_oracle_nodes": 1.000000527725093,
+          "var_p_delta": 3.8555228582707756e-06,
+          "sigma_penalty_pct": 2.638625116180293e-05
+        },
+        {
+          "spacing_px": 512,
+          "penalty_oracle_nodes": 1.0000005640270735,
+          "var_p_delta": 3.7059781836524834e-06,
+          "sigma_penalty_pct": 2.8201349699941147e-05
+        }
+      ],
+      "negative_controls": {
+        "N1_identical_sigma_fields": {
+          "penalty": 1.0,
+          "var_p_delta": 0.0,
+          "must_be": "1.000000"
+        },
+        "N2_common_mode_weight_error": {
+          "penalty": 1.0,
+          "var_p_delta": 4.402860686268491e-33,
+          "must_be": "1.000000"
+        },
+        "N3_common_mode_wrong_spatial_field": {
+          "penalty": 1.0006515424210667,
+          "var_p_delta": 0.0007602088361359035,
+          "must_be": "1.000000 -- the efficiency metric is deliberately blind to a weight error that is identical in every frame"
+        },
+        "N4_frame_dependent_shuffled_controls": {
+          "penalty": 1.088954536423989,
+          "var_p_delta": 0.06450680894274538,
+          "must_be": "> 1 + the true-layout penalty"
+        }
+      },
+      "sky_scales": [
+        0.9436345966958212,
+        0.9812115322319404,
+        1.0187884677680596,
+        1.056365403304179
+      ],
+      "gradient_tilt_adu_per_frame": 0.0
+    },
+    {
+      "case": "S3_moderate_diversity",
+      "grid": [
+        61,
+        61
+      ],
+      "window": [
+        14,
+        46,
+        14,
+        46
+      ],
+      "n_frames": 4,
+      "oracle_pixel_weights_penalty": 1.0,
+      "scalar_production_MAD": {
+        "sigma": [
+          56.33888430321288,
+          68.19970205125769,
+          80.06051979930251,
+          91.92133754734732
+        ],
+        "penalty": 1.0607582713452417,
+        "var_p_delta": 0.00024593187052341964,
+        "delta_bar": -0.9373494220878751,
+        "sigma_penalty_pct": 2.993119738419492
+      },
+      "scalar_ideal": {
+        "sigma": [
+          17.35185672367055,
+          18.466448206550414,
+          19.517491820713722,
+          20.51475723907171
+        ],
+        "penalty": 1.0000696114968881,
+        "var_p_delta": 6.819141208382098e-05,
+        "delta_bar": -0.12342067353207165,
+        "sigma_penalty_pct": 0.003480514274500912
+      },
+      "measured_field_frame_spread": 1.3,
+      "sparse_from_measured_field": [
+        {
+          "spacing_px": 64,
+          "stride": 2,
+          "penalty_measured_field": 1.0092348374787354,
+          "var_p_delta": 0.009458118073968003,
+          "sigma_penalty_pct": 0.46068074021474725,
+          "rmse_log_sigma_vs_measured_field": 0.0799931258879272,
+          "rmse_log_sigma_vs_true_noise": 0.08647852377672487,
+          "worstcase_independent": 1.025595600757287
+        },
+        {
+          "spacing_px": 128,
+          "stride": 4,
+          "penalty_measured_field": 1.0106095341307157,
+          "var_p_delta": 0.011387456649853783,
+          "sigma_penalty_pct": 0.5290770936805078,
+          "rmse_log_sigma_vs_measured_field": 0.10246488795345902,
+          "rmse_log_sigma_vs_true_noise": 0.08612604700763785,
+          "worstcase_independent": 1.0419962130532596
+        },
+        {
+          "spacing_px": 256,
+          "stride": 8,
+          "penalty_measured_field": 1.0112437805140648,
+          "var_p_delta": 0.012018809418326119,
+          "sigma_penalty_pct": 0.5606175654298884,
+          "rmse_log_sigma_vs_measured_field": 0.10663068736810297,
+          "rmse_log_sigma_vs_true_noise": 0.08872019472118693,
+          "worstcase_independent": 1.0454804139543765
+        },
+        {
+          "spacing_px": 512,
+          "stride": 16,
+          "penalty_measured_field": 1.0130463627063584,
+          "var_p_delta": 0.014510736132692294,
+          "sigma_penalty_pct": 0.6502043071129782,
+          "rmse_log_sigma_vs_measured_field": 0.11336314649708198,
+          "rmse_log_sigma_vs_true_noise": 0.10539574537025385,
+          "worstcase_independent": 1.0514048119348756
+        }
+      ],
+      "sparse_oracle_nodes": [
+        {
+          "spacing_px": 64,
+          "penalty_oracle_nodes": 1.0000084611679017,
+          "var_p_delta": 1.7853074681849755e-05,
+          "sigma_penalty_pct": 0.00042305750018734045
+        },
+        {
+          "spacing_px": 128,
+          "penalty_oracle_nodes": 1.000011059713973,
+          "var_p_delta": 7.89532557831246e-05,
+          "sigma_penalty_pct": 0.0005529841696993998
+        },
+        {
+          "spacing_px": 256,
+          "penalty_oracle_nodes": 1.0000121573472907,
+          "var_p_delta": 8.799183836521638e-05,
+          "sigma_penalty_pct": 0.0006078655170327352
+        },
+        {
+          "spacing_px": 512,
+          "penalty_oracle_nodes": 1.0000129997796994,
+          "var_p_delta": 8.460807598770029e-05,
+          "sigma_penalty_pct": 0.000649986872547359
+        }
+      ],
+      "negative_controls": {
+        "N1_identical_sigma_fields": {
+          "penalty": 1.0,
+          "var_p_delta": 0.0,
+          "must_be": "1.000000"
+        },
+        "N2_common_mode_weight_error": {
+          "penalty": 1.0,
+          "var_p_delta": 4.09206769436084e-33,
+          "must_be": "1.000000"
+        },
+        "N3_common_mode_wrong_spatial_field": {
+          "penalty": 1.014271252061115,
+          "var_p_delta": 0.025027091583960458,
+          "must_be": "1.000000 -- the efficiency metric is deliberately blind to a weight error that is identical in every frame"
+        },
+        "N4_frame_dependent_shuffled_controls": {
+          "penalty": 1.0797535512585132,
+          "var_p_delta": 0.06747908474592212,
+          "must_be": "> 1 + the true-layout penalty"
+        }
+      },
+      "sky_scales": [
+        0.7391304347826086,
+        0.9130434782608695,
+        1.0869565217391304,
+        1.2608695652173914
+      ],
+      "gradient_tilt_adu_per_frame": 0.0
+    },
+    {
+      "case": "S4_large_diversity",
+      "grid": [
+        61,
+        61
+      ],
+      "window": [
+        14,
+        46,
+        14,
+        46
+      ],
+      "n_frames": 4,
+      "oracle_pixel_weights_penalty": 1.0,
+      "scalar_production_MAD": {
+        "sigma": [
+          42.99546433666246,
+          63.75189539574089,
+          84.50832645481931,
+          106.74735973240334
+        ],
+        "penalty": 1.207426603218843,
+        "var_p_delta": 0.0012473507801050393,
+        "delta_bar": -0.9234946315860707,
+        "sigma_penalty_pct": 9.882965159247625
+      },
+      "scalar_ideal": {
+        "sigma": [
+          15.96941415227152,
+          18.045907982177066,
+          19.906968665159294,
+          21.60833191086406
+        ],
+        "penalty": 1.0002541376901377,
+        "var_p_delta": 0.0002516919167749194,
+        "delta_bar": -0.12115394958522716,
+        "sigma_penalty_pct": 0.012706077284896367
+      },
+      "measured_field_frame_spread": 1.6111111111111112,
+      "sparse_from_measured_field": [
+        {
+          "spacing_px": 64,
+          "stride": 2,
+          "penalty_measured_field": 1.0252963666370074,
+          "var_p_delta": 0.02791568941438387,
+          "sigma_penalty_pct": 1.2569191036843286,
+          "rmse_log_sigma_vs_measured_field": 0.07770793906355257,
+          "rmse_log_sigma_vs_true_noise": 0.10402294758596939,
+          "worstcase_independent": 1.0241540951740191
+        },
+        {
+          "spacing_px": 128,
+          "stride": 4,
+          "penalty_measured_field": 1.0256358906068046,
+          "var_p_delta": 0.029231919449112794,
+          "sigma_penalty_pct": 1.2736831860481246,
+          "rmse_log_sigma_vs_measured_field": 0.09992977300561501,
+          "rmse_log_sigma_vs_true_noise": 0.10422545296240787,
+          "worstcase_independent": 1.039943838131815
+        },
+        {
+          "spacing_px": 256,
+          "stride": 8,
+          "penalty_measured_field": 1.0234940900707112,
+          "var_p_delta": 0.02621345875321968,
+          "sigma_penalty_pct": 1.167884729824764,
+          "rmse_log_sigma_vs_measured_field": 0.10325751720128548,
+          "rmse_log_sigma_vs_true_noise": 0.10291310833282244,
+          "worstcase_independent": 1.042648459434295
+        },
+        {
+          "spacing_px": 512,
+          "stride": 16,
+          "penalty_measured_field": 1.030056917452698,
+          "var_p_delta": 0.03235615704430011,
+          "sigma_penalty_pct": 1.4917197338136567,
+          "rmse_log_sigma_vs_measured_field": 0.11045104677102113,
+          "rmse_log_sigma_vs_true_noise": 0.11814975166852293,
+          "worstcase_independent": 1.0487977349312572
+        }
+      ],
+      "sparse_oracle_nodes": [
+        {
+          "spacing_px": 64,
+          "penalty_oracle_nodes": 1.0000313091785178,
+          "var_p_delta": 6.525768107190088e-05,
+          "sigma_penalty_pct": 0.0015654466727799132
+        },
+        {
+          "spacing_px": 128,
+          "penalty_oracle_nodes": 1.0000409995698014,
+          "var_p_delta": 0.000286053226464811,
+          "sigma_penalty_pct": 0.0020499574784338392
+        },
+        {
+          "spacing_px": 256,
+          "penalty_oracle_nodes": 1.000045059244712,
+          "var_p_delta": 0.0003183370943972254,
+          "sigma_penalty_pct": 0.0022529368569834674
+        },
+        {
+          "spacing_px": 512,
+          "penalty_oracle_nodes": 1.0000482340090324,
+          "var_p_delta": 0.00030635869831141597,
+          "sigma_penalty_pct": 0.0024116713708277615
+        }
+      ],
+      "negative_controls": {
+        "N1_identical_sigma_fields": {
+          "penalty": 1.0,
+          "var_p_delta": 0.0,
+          "must_be": "1.000000"
+        },
+        "N2_common_mode_weight_error": {
+          "penalty": 1.0,
+          "var_p_delta": 3.7463776819479694e-33,
+          "must_be": "1.000000"
+        },
+        "N3_common_mode_wrong_spatial_field": {
+          "penalty": 1.0470632094138133,
+          "var_p_delta": 0.13510362434465067,
+          "must_be": "1.000000 -- the efficiency metric is deliberately blind to a weight error that is identical in every frame"
+        },
+        "N4_frame_dependent_shuffled_controls": {
+          "penalty": 1.0818713846533288,
+          "var_p_delta": 0.07663220944977261,
+          "must_be": "> 1 + the true-layout penalty"
+        }
+      },
+      "sky_scales": [
+        0.5384615384615384,
+        0.8461538461538461,
+        1.1538461538461537,
+        1.4615384615384617
+      ],
+      "gradient_tilt_adu_per_frame": 0.0
+    },
+    {
+      "case": "S5_49frame_like_diversity",
+      "grid": [
+        61,
+        61
+      ],
+      "window": [
+        14,
+        46,
+        14,
+        46
+      ],
+      "n_frames": 4,
+      "oracle_pixel_weights_penalty": 1.0,
+      "scalar_production_MAD": {
+        "sigma": [
+          22.23903327758403,
+          56.33888430321288,
+          91.92133754734732,
+          127.50379079148178
+        ],
+        "penalty": 1.6753418580498451,
+        "var_p_delta": 0.020532874862472322,
+        "delta_bar": -0.8271278363219583,
+        "sigma_penalty_pct": 29.434997510327364
+      },
+      "scalar_ideal": {
+        "sigma": [
+          13.675593328382888,
+          17.406550962402505,
+          20.468370231411207,
+          23.128345021931974
+        ],
+        "penalty": 1.0010360694635922,
+        "var_p_delta": 0.001056084518879004,
+        "delta_bar": -0.11369440170538395,
+        "sigma_penalty_pct": 0.051790062126944036
+      },
+      "measured_field_frame_spread": 2.2857142857142856,
+      "sparse_from_measured_field": [
+        {
+          "spacing_px": 64,
+          "stride": 2,
+          "penalty_measured_field": 1.0672687674575623,
+          "var_p_delta": 0.09436583420719842,
+          "sigma_penalty_pct": 3.3087008657819883,
+          "rmse_log_sigma_vs_measured_field": 0.07540104652654439,
+          "rmse_log_sigma_vs_true_noise": 0.1394507896683284,
+          "worstcase_independent": 1.0227412712691923
+        },
+        {
+          "spacing_px": 128,
+          "stride": 4,
+          "penalty_measured_field": 1.067642262164557,
+          "var_p_delta": 0.09582308704825891,
+          "sigma_penalty_pct": 3.326775918178959,
+          "rmse_log_sigma_vs_measured_field": 0.09561528419937061,
+          "rmse_log_sigma_vs_true_noise": 0.1387629765871784,
+          "worstcase_independent": 1.0365691302901057
+        },
+        {
+          "spacing_px": 256,
+          "stride": 8,
+          "penalty_measured_field": 1.0718880360021144,
+          "var_p_delta": 0.10446375069521818,
+          "sigma_penalty_pct": 3.5320257699092084,
+          "rmse_log_sigma_vs_measured_field": 0.1014398962034192,
+          "rmse_log_sigma_vs_true_noise": 0.14010579379804777,
+          "worstcase_independent": 1.0411602101670419
+        },
+        {
+          "spacing_px": 512,
+          "stride": 16,
+          "penalty_measured_field": 1.074750807391251,
+          "var_p_delta": 0.09977465674271062,
+          "sigma_penalty_pct": 3.670188935452945,
+          "rmse_log_sigma_vs_measured_field": 0.10491987988910126,
+          "rmse_log_sigma_vs_true_noise": 0.15298538721315105,
+          "worstcase_independent": 1.0440327247837737
+        }
+      ],
+      "sparse_oracle_nodes": [
+        {
+          "spacing_px": 64,
+          "penalty_oracle_nodes": 1.0001333638539263,
+          "var_p_delta": 0.0002662241156815052,
+          "sigma_penalty_pct": 0.006667970387175259
+        },
+        {
+          "spacing_px": 128,
+          "penalty_oracle_nodes": 1.0001760117792646,
+          "var_p_delta": 0.0011277856036489894,
+          "sigma_penalty_pct": 0.00880020174547358
+        },
+        {
+          "spacing_px": 256,
+          "penalty_oracle_nodes": 1.0001933239008691,
+          "var_p_delta": 0.001249770980596604,
+          "sigma_penalty_pct": 0.009665727911967181
+        },
+        {
+          "spacing_px": 512,
+          "penalty_oracle_nodes": 1.0002075199759286,
+          "var_p_delta": 0.0012062235013156624,
+          "sigma_penalty_pct": 0.010375460545519744
+        }
+      ],
+      "negative_controls": {
+        "N1_identical_sigma_fields": {
+          "penalty": 1.0,
+          "var_p_delta": 0.0,
+          "must_be": "1.000000"
+        },
+        "N2_common_mode_weight_error": {
+          "penalty": 1.0,
+          "var_p_delta": 4.1476207204052965e-33,
+          "must_be": "1.000000"
+        },
+        "N3_common_mode_wrong_spatial_field": {
+          "penalty": 1.146810319134181,
+          "var_p_delta": 1.0009584378502343,
+          "must_be": "1.000000 -- the efficiency metric is deliberately blind to a weight error that is identical in every frame"
+        },
+        "N4_frame_dependent_shuffled_controls": {
+          "penalty": 1.1294897448729846,
+          "var_p_delta": 0.14804979717204664,
+          "must_be": "> 1 + the true-layout penalty"
+        }
+      },
+      "sky_scales": [
+        0.2422360248447204,
+        0.7474120082815734,
+        1.2525879917184266,
+        1.7577639751552796
+      ],
+      "gradient_tilt_adu_per_frame": 0.0
+    },
+    {
+      "case": "S6_real_like_plus_gradient",
+      "grid": [
+        61,
+        61
+      ],
+      "window": [
+        14,
+        46,
+        14,
+        46
+      ],
+      "n_frames": 4,
+      "oracle_pixel_weights_penalty": 1.0,
+      "scalar_production_MAD": {
+        "sigma": [
+          69.68230426976329,
+          71.1649064882689,
+          75.6127131437857,
+          81.54312201780812
+        ],
+        "penalty": 1.0056055126599692,
+        "var_p_delta": 2.0009954119339797e-05,
+        "delta_bar": -0.9425456412653853,
+        "sigma_penalty_pct": 0.27988395784914744
+      },
+      "scalar_ideal": {
+        "sigma": [
+          18.414987619172305,
+          18.806505649299805,
+          19.19003757409599,
+          19.56605299872235
+        ],
+        "penalty": 1.000044398021667,
+        "var_p_delta": 3.588606316160202e-05,
+        "delta_bar": -0.12451793563363159,
+        "sigma_penalty_pct": 0.0022198764440872765
+      },
+      "measured_field_frame_spread": 1.0909090909090908,
+      "sparse_from_measured_field": [
+        {
+          "spacing_px": 64,
+          "stride": 2,
+          "penalty_measured_field": 1.003973206801728,
+          "var_p_delta": 0.004056376642710847,
+          "sigma_penalty_pct": 0.19846340147777752,
+          "rmse_log_sigma_vs_measured_field": 0.07924969429036115,
+          "rmse_log_sigma_vs_true_noise": 0.07902132343766677,
+          "worstcase_independent": 1.0251220561804628
+        },
+        {
+          "spacing_px": 128,
+          "stride": 4,
+          "penalty_measured_field": 1.0035687452264255,
+          "var_p_delta": 0.0037542392341398936,
+          "sigma_penalty_pct": 0.17827834547894383,
+          "rmse_log_sigma_vs_measured_field": 0.10157935859191797,
+          "rmse_log_sigma_vs_true_noise": 0.07682284402437439,
+          "worstcase_independent": 1.041273464367782
+        },
+        {
+          "spacing_px": 256,
+          "stride": 8,
+          "penalty_measured_field": 1.0021656265980206,
+          "var_p_delta": 0.0022096658397086667,
+          "sigma_penalty_pct": 0.10822276906230499,
+          "rmse_log_sigma_vs_measured_field": 0.10433833174290874,
+          "rmse_log_sigma_vs_true_noise": 0.07726585493847586,
+          "worstcase_independent": 1.043545949883573
+        },
+        {
+          "spacing_px": 512,
+          "stride": 16,
+          "penalty_measured_field": 1.0028879127316621,
+          "var_p_delta": 0.00285612123267345,
+          "sigma_penalty_pct": 0.1442915363458086,
+          "rmse_log_sigma_vs_measured_field": 0.11595356656526146,
+          "rmse_log_sigma_vs_true_noise": 0.09628903911082634,
+          "worstcase_independent": 1.053780918396818
+        }
+      ],
+      "sparse_oracle_nodes": [
+        {
+          "spacing_px": 64,
+          "penalty_oracle_nodes": 1.0000009135026184,
+          "var_p_delta": 2.1268965948969927e-06,
+          "sigma_penalty_pct": 4.5675120485810794e-05
+        },
+        {
+          "spacing_px": 128,
+          "penalty_oracle_nodes": 1.0000011079106645,
+          "var_p_delta": 4.637578085307494e-06,
+          "sigma_penalty_pct": 5.539551788391606e-05
+        },
+        {
+          "spacing_px": 256,
+          "penalty_oracle_nodes": 1.0000013655484992,
+          "var_p_delta": 5.405850796895197e-06,
+          "sigma_penalty_pct": 6.827740164361273e-05
+        },
+        {
+          "spacing_px": 512,
+          "penalty_oracle_nodes": 1.0000014102942987,
+          "var_p_delta": 5.301336597954254e-06,
+          "sigma_penalty_pct": 7.05146900648046e-05
+        }
+      ],
+      "negative_controls": {
+        "N1_identical_sigma_fields": {
+          "penalty": 1.0,
+          "var_p_delta": 0.0,
+          "must_be": "1.000000"
+        },
+        "N2_common_mode_weight_error": {
+          "penalty": 1.0,
+          "var_p_delta": 4.53079878235089e-33,
+          "must_be": "1.000000"
+        },
+        "N3_common_mode_wrong_spatial_field": {
+          "penalty": 1.0022250095126555,
+          "var_p_delta": 0.0023853612256164265,
+          "must_be": "1.000000 -- the efficiency metric is deliberately blind to a weight error that is identical in every frame"
+        },
+        "N4_frame_dependent_shuffled_controls": {
+          "penalty": 1.0906195351852965,
+          "var_p_delta": 0.06694328995778137,
+          "must_be": "> 1 + the true-layout penalty"
+        }
+      },
+      "sky_scales": [
+        0.9436345966958212,
+        0.9812115322319404,
+        1.0187884677680596,
+        1.056365403304179
+      ],
+      "gradient_tilt_adu_per_frame": 23.27626304626465
+    }
+  ],
+  "G_RN_invariance_scan": [
+    {
+      "G": 0.5,
+      "RN": 0.0,
+      "scalar_penalty": 1.0004419176770778,
+      "scalar_sigma_pct": 0.02209344325272422,
+      "sparse64_penalty": 1.0034380641732596,
+      "sparse64_sigma_pct": 0.1717557085458843,
+      "sky_fraction_of_variance": 1.0
+    },
+    {
+      "G": 0.5,
+      "RN": 10.0,
+      "scalar_penalty": 1.0001328224098056,
+      "scalar_sigma_pct": 0.00664089998252404,
+      "sparse64_penalty": 1.0021172072786504,
+      "sparse64_sigma_pct": 0.10580439108665018,
+      "sky_fraction_of_variance": 0.5378528876530091
+    },
+    {
+      "G": 0.5,
+      "RN": 20.0,
+      "scalar_penalty": 1.0000260004947743,
+      "scalar_sigma_pct": 0.0013000162885079547,
+      "sparse64_penalty": 1.0020854920884896,
+      "sparse64_sigma_pct": 0.10422029507495267,
+      "sky_fraction_of_variance": 0.22537863357660012
+    },
+    {
+      "G": 1.0,
+      "RN": 0.0,
+      "scalar_penalty": 1.0004422360835334,
+      "scalar_sigma_pct": 0.02210936005766495,
+      "sparse64_penalty": 1.0021237986831086,
+      "sparse64_sigma_pct": 0.10613361243698716,
+      "sky_fraction_of_variance": 1.0
+    },
+    {
+      "G": 1.0,
+      "RN": 10.0,
+      "scalar_penalty": 1.000219289343296,
+      "scalar_sigma_pct": 0.010963866132995825,
+      "sparse64_penalty": 1.0022359720337526,
+      "sparse64_sigma_pct": 0.11173617682158632,
+      "sky_fraction_of_variance": 0.6994854865134105
+    },
+    {
+      "G": 1.0,
+      "RN": 20.0,
+      "scalar_penalty": 1.0000650234404458,
+      "scalar_sigma_pct": 0.00325111917340859,
+      "sparse64_penalty": 1.0023230650825805,
+      "sparse64_sigma_pct": 0.11608587447775598,
+      "sky_fraction_of_variance": 0.36785141735133964
+    },
+    {
+      "G": 1.3,
+      "RN": 0.0,
+      "scalar_penalty": 1.0004423096135433,
+      "scalar_sigma_pct": 0.02211303574541912,
+      "sparse64_penalty": 1.0021188100788005,
+      "sparse64_sigma_pct": 0.10588444636012717,
+      "sky_fraction_of_variance": 1.0
+    },
+    {
+      "G": 1.3,
+      "RN": 10.0,
+      "scalar_penalty": 1.0002519546671942,
+      "scalar_sigma_pct": 0.01259693994521971,
+      "sparse64_penalty": 1.0019801664137233,
+      "sparse64_sigma_pct": 0.09895935591555105,
+      "sky_fraction_of_variance": 0.7516092118927956
+    },
+    {
+      "G": 1.3,
+      "RN": 20.0,
+      "scalar_penalty": 1.0000874075181199,
+      "scalar_sigma_pct": 0.004370280409249361,
+      "sparse64_penalty": 1.0021395055372608,
+      "sparse64_sigma_pct": 0.10691811944172347,
+      "sky_fraction_of_variance": 0.43067907059424626
+    },
+    {
+      "G": 2.0,
+      "RN": 0.0,
+      "scalar_penalty": 1.000442395423029,
+      "scalar_sigma_pct": 0.022117325271064914,
+      "sparse64_penalty": 1.0015731764085276,
+      "sparse64_sigma_pct": 0.07862790868626846,
+      "sky_fraction_of_variance": 1.0
+    },
+    {
+      "G": 2.0,
+      "RN": 10.0,
+      "scalar_penalty": 1.000300791468473,
+      "scalar_sigma_pct": 0.015038442649850658,
+      "sparse64_penalty": 1.001941656058916,
+      "sparse64_sigma_pct": 0.0970357232878305,
+      "sky_fraction_of_variance": 0.8231732392707207
+    },
+    {
+      "G": 2.0,
+      "RN": 20.0,
+      "scalar_penalty": 1.0001328950366355,
+      "scalar_sigma_pct": 0.006644531082811156,
+      "sparse64_penalty": 1.0020505499442574,
+      "sparse64_sigma_pct": 0.10247499159334872,
+      "sky_fraction_of_variance": 0.5378528876530091
+    },
+    {
+      "G": 4.0,
+      "RN": 0.0,
+      "scalar_penalty": 1.0004424751268752,
+      "scalar_sigma_pct": 0.022121309582079363,
+      "sparse64_penalty": 1.0013062650460607,
+      "sparse64_sigma_pct": 0.06529193711777292,
+      "sky_fraction_of_variance": 1.0
+    },
+    {
+      "G": 4.0,
+      "RN": 10.0,
+      "scalar_penalty": 1.0003609521633852,
+      "scalar_sigma_pct": 0.018045979882308494,
+      "sparse64_penalty": 1.0012211008338254,
+      "sparse64_sigma_pct": 0.061036414471815625,
+      "sky_fraction_of_variance": 0.903011542227325
+    },
+    {
+      "G": 4.0,
+      "RN": 20.0,
+      "scalar_penalty": 1.000219368618114,
+      "scalar_sigma_pct": 0.010967829439278987,
+      "sparse64_penalty": 1.0016177729807176,
+      "sparse64_sigma_pct": 0.08085596060405376,
+      "sky_fraction_of_variance": 0.6994854865134105
+    }
+  ],
+  "elapsed_s": 205.05868554115295
+}

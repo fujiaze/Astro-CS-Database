@@ -1,0 +1,622 @@
+{
+  "audit": "SNR-EXP-AUDIT 3 -- EXP-1/2/4/5 static and numeric re-checks",
+  "gap_audit_9_42": "no physical closed form evaluated",
+  "EXP1_residual_maker_operator": {
+    "rows": {
+      "N4": {
+        "self_inclusive_sum_P2": 0.75,
+        "exclude_self_sum_P2": 1.3333333333333335,
+        "naive_sigma2_plus_var_g": 1.25,
+        "doc_ratio_naive_over_exact": 1.6666666666666667,
+        "doc_ratio_formula": "(N+1)/(N-1) = 1.666667",
+        "exclude_self_ratio_naive_over_exact": 0.9374999999999999,
+        "exclude_self_ratio_formula": "(N^2-1)/N^2 = 0.937500",
+        "mc": {
+          "gaussian": {
+            "self_inclusive_mc": 0.7491984807181056,
+            "self_inclusive_formula": 0.75,
+            "exclude_self_mc": 1.3319084101655205,
+            "exclude_self_formula": 1.3333333333333335
+          },
+          "poisson_normalised": {
+            "self_inclusive_mc": 0.7496478136881917,
+            "self_inclusive_formula": 0.75,
+            "exclude_self_mc": 1.33270722433438,
+            "exclude_self_formula": 1.3333333333333335
+          }
+        }
+      },
+      "N8": {
+        "self_inclusive_sum_P2": 0.875,
+        "exclude_self_sum_P2": 1.142857142857143,
+        "naive_sigma2_plus_var_g": 1.125,
+        "doc_ratio_naive_over_exact": 1.2857142857142858,
+        "doc_ratio_formula": "(N+1)/(N-1) = 1.285714",
+        "exclude_self_ratio_naive_over_exact": 0.9843749999999999,
+        "exclude_self_ratio_formula": "(N^2-1)/N^2 = 0.984375",
+        "mc": {
+          "gaussian": {
+            "self_inclusive_mc": 0.874137411591718,
+            "self_inclusive_formula": 0.875,
+            "exclude_self_mc": 1.1417304967728679,
+            "exclude_self_formula": 1.142857142857143
+          },
+          "poisson_normalised": {
+            "self_inclusive_mc": 0.8740879330350222,
+            "self_inclusive_formula": 0.875,
+            "exclude_self_mc": 1.1416658717191845,
+            "exclude_self_formula": 1.142857142857143
+          }
+        }
+      },
+      "N16": {
+        "self_inclusive_sum_P2": 0.9375,
+        "exclude_self_sum_P2": 1.0666666666666667,
+        "naive_sigma2_plus_var_g": 1.0625,
+        "doc_ratio_naive_over_exact": 1.1333333333333333,
+        "doc_ratio_formula": "(N+1)/(N-1) = 1.133333",
+        "exclude_self_ratio_naive_over_exact": 0.99609375,
+        "exclude_self_ratio_formula": "(N^2-1)/N^2 = 0.996094",
+        "mc": {
+          "gaussian": {
+            "self_inclusive_mc": 0.9376065566292444,
+            "self_inclusive_formula": 0.9375,
+            "exclude_self_mc": 1.0667879044314903,
+            "exclude_self_formula": 1.0666666666666667
+          },
+          "poisson_normalised": {
+            "self_inclusive_mc": 0.9379652488459361,
+            "self_inclusive_formula": 0.9375,
+            "exclude_self_mc": 1.067196016464648,
+            "exclude_self_formula": 1.0666666666666667
+          }
+        }
+      }
+    },
+    "finding": "The EXP-1 Monte-Carlo (exp1_weight_penalty.py:54-73) builds P = I - 11^T/N, the SELF-INCLUSIVE sample-mean residual maker, and the (N+1)/(N-1) headline belongs to that operator.  The design document section 4.6 declares instead H_kj = w_j/W_{-k} (EXCLUDE-self) and then quotes the self-inclusive closed form.  For the exclude-self operator the naive form UNDER-estimates by 1/N^2, it does not over-estimate by 28.6%.",
+    "verdict": "EXP-1 C2 conclusion is correct FOR ITS OWN OPERATOR but is mis-attributed to the production exclude-self operator"
+  },
+  "EXP1_C1_model_independence": {
+    "rows": [
+      {
+        "noise": "gaussian",
+        "ratio_mean": 1.0318312843497743,
+        "pred_exact_mean": 1.0318312843497743,
+        "pred_doc_mean": 1.0307508984060083,
+        "rel_err_exact_pct": 0.0,
+        "max_abs_dev_exact": 8.881784197001252e-16,
+        "max_abs_dev_doc": 0.37094380283524897
+      },
+      {
+        "noise": "poisson",
+        "ratio_mean": 1.0318312843497743,
+        "pred_exact_mean": 1.0318312843497743,
+        "pred_doc_mean": 1.0307508984060083,
+        "rel_err_exact_pct": 0.0,
+        "max_abs_dev_exact": 8.881784197001252e-16,
+        "max_abs_dev_doc": 0.37094380283524897
+      }
+    ],
+    "note": "the identity uses only Var(x_i)=sigma_i^2, independence and FIXED weights -- Gaussianity is never used, and the Poisson arm confirms it numerically"
+  },
+  "EXP2_variogram_refit": {
+    "frame": "calibrated_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+    "cut": "full 4096x4096",
+    "patch_px": 32,
+    "grid": [
+      128,
+      128
+    ],
+    "lags_px": [
+      32,
+      64,
+      96,
+      128,
+      192,
+      256,
+      384,
+      512,
+      768,
+      1024
+    ],
+    "gamma_isotropic": [
+      0.010696189598475004,
+      0.01719211605220683,
+      0.020449943628349017,
+      0.022189798801844976,
+      0.023705046447405773,
+      0.023874937691993853,
+      0.02387465371472644,
+      0.024669236609038882,
+      0.024109427621937678,
+      0.02513629957544819
+    ],
+    "gamma_x": [
+      0.010724103914512312,
+      0.017413178646851928,
+      0.0210096259367623,
+      0.022924049385530058,
+      0.02543375301192508,
+      0.02674402517376032,
+      0.027321564938937924,
+      0.028087952642857128,
+      0.02510781872531858,
+      0.024666480659735406
+    ],
+    "gamma_y": [
+      0.010668275282437694,
+      0.016971053457561735,
+      0.019890261319935737,
+      0.021455548218159898,
+      0.021976339882886466,
+      0.021005850210227387,
+      0.02042774249051496,
+      0.021250520575220637,
+      0.023111036518556775,
+      0.025606118491160974
+    ],
+    "anisotropy_ratio": 1.1295431279111046,
+    "fits_with_nugget": [
+      {
+        "kernel": "se",
+        "sill": 0.015388635912609245,
+        "ell_px": 55.24178036780187,
+        "nugget": 0.008737567051917017,
+        "rms_resid": 0.0005911075950221189,
+        "params": [
+          0.015388635912609245,
+          55.24178036780187,
+          0.008737567051917017
+        ]
+      },
+      {
+        "kernel": "ou",
+        "sill": 0.02440087572625242,
+        "ell_px": 53.59051984809826,
+        "nugget": 1.987580794787415e-14,
+        "rms_resid": 0.00034389811776827184,
+        "params": [
+          0.02440087572625242,
+          53.59051984809826,
+          1.987580794787415e-14
+        ]
+      }
+    ],
+    "fits_no_nugget": [
+      {
+        "kernel": "se_no_nugget",
+        "sill": 0.02513629957544819,
+        "ell_px": 40.43458588912388,
+        "nugget": 0.0,
+        "rms_resid": 0.0020114910804508836
+      },
+      {
+        "kernel": "ou_no_nugget",
+        "sill": 0.02513629957544819,
+        "ell_px": 57.85786354523392,
+        "nugget": 0.0,
+        "rms_resid": 0.0006448605866486002
+      }
+    ],
+    "reproduction_of_delivered_fit": {
+      "ell_px": 48.0,
+      "sill_used": 0.028087952642857128,
+      "rms_resid": 0.0029459776696289575,
+      "gamma": [
+        0.010724103914512312,
+        0.017413178646851928,
+        0.0210096259367623,
+        0.022924049385530058,
+        0.02543375301192508,
+        0.02674402517376032,
+        0.027321564938937924,
+        0.028087952642857128,
+        0.02510781872531858,
+        0.024666480659735406
+      ],
+      "procedure": "exp2_sparse_snr_reconstruction.py:fit_ell, sill = max(gamma), SE kernel, no nugget, X-only",
+      "delivered_exp2_reported": {
+        "ell_px": 48.0,
+        "sill": 0.02963,
+        "gamma": [
+          0.012393766176897608,
+          0.0189171878770749,
+          0.022438213402560036,
+          0.024401112731299007,
+          0.027212904032260177,
+          0.02838088333820872,
+          0.02882641453225279,
+          0.029629922572940892
+        ]
+      }
+    },
+    "reproduction_variants": {
+      "x_only_as_delivered": {
+        "ell_px": 48.0,
+        "sill_used": 0.028087952642857128,
+        "rms_resid": 0.0029459776696289575,
+        "gamma": [
+          0.010724103914512312,
+          0.017413178646851928,
+          0.0210096259367623,
+          0.022924049385530058,
+          0.02543375301192508,
+          0.02674402517376032,
+          0.027321564938937924,
+          0.028087952642857128,
+          0.02510781872531858,
+          0.024666480659735406
+        ],
+        "procedure": "exp2_sparse_snr_reconstruction.py:fit_ell, sill = max(gamma), SE kernel, no nugget, X-only",
+        "delivered_exp2_reported": {
+          "ell_px": 48.0,
+          "sill": 0.02963,
+          "gamma": [
+            0.012393766176897608,
+            0.0189171878770749,
+            0.022438213402560036,
+            0.024401112731299007,
+            0.027212904032260177,
+            0.02838088333820872,
+            0.02882641453225279,
+            0.029629922572940892
+          ]
+        }
+      },
+      "isotropic": {
+        "ell_px": 48.0,
+        "sill_used": 0.02513629957544819,
+        "rms_resid": 0.002261715967852302,
+        "gamma": [
+          0.010696189598475004,
+          0.01719211605220683,
+          0.020449943628349017,
+          0.022189798801844976,
+          0.023705046447405773,
+          0.023874937691993853,
+          0.02387465371472644,
+          0.024669236609038882,
+          0.024109427621937678,
+          0.02513629957544819
+        ]
+      }
+    },
+    "doc_value": {
+      "ell_px": 48.0,
+      "model": "se, no nugget, lags 32..1024 px"
+    },
+    "delta_over_ell_at_64px": {
+      "se": 1.158543399106357,
+      "ou": 1.1942410743804557,
+      "se_no_nugget": 1.5828033994337198,
+      "ou_no_nugget": 1.1061590608157195
+    },
+    "reconstruction_64px": {
+      "rows": [
+        {
+          "ell_model": "ell_doc_48",
+          "ell_px": 48.0,
+          "operator": "bilinear",
+          "rmse_log_sigma": 0.10556256375363472
+        },
+        {
+          "ell_model": "ell_doc_48",
+          "ell_px": 48.0,
+          "operator": "kriging_nugget0",
+          "rmse_log_sigma": 1.732084915357824
+        },
+        {
+          "ell_model": "ell_doc_48",
+          "ell_px": 48.0,
+          "operator": "kriging_physical_nugget",
+          "rmse_log_sigma": 0.12670130176036562
+        },
+        {
+          "ell_model": "ell_refit_se_nugget",
+          "ell_px": 55.24178036780187,
+          "operator": "bilinear",
+          "rmse_log_sigma": 0.10556256375363472
+        },
+        {
+          "ell_model": "ell_refit_se_nugget",
+          "ell_px": 55.24178036780187,
+          "operator": "kriging_nugget0",
+          "rmse_log_sigma": 7.298208825556722
+        },
+        {
+          "ell_model": "ell_refit_se_nugget",
+          "ell_px": 55.24178036780187,
+          "operator": "kriging_physical_nugget",
+          "rmse_log_sigma": 0.12648806621776545
+        },
+        {
+          "ell_model": "ell_refit_ou",
+          "ell_px": 53.59051984809826,
+          "operator": "bilinear",
+          "rmse_log_sigma": 0.10556256375363472
+        },
+        {
+          "ell_model": "ell_refit_ou",
+          "ell_px": 53.59051984809826,
+          "operator": "kriging_nugget0",
+          "rmse_log_sigma": 11.619330716419325
+        },
+        {
+          "ell_model": "ell_refit_ou",
+          "ell_px": 53.59051984809826,
+          "operator": "kriging_physical_nugget",
+          "rmse_log_sigma": 0.1265408320688836
+        }
+      ],
+      "frame_scalar_rmse": 0.1265331851653543,
+      "physical_nugget": 0.0020420092208760605,
+      "delivered_exp2": {
+        "bilinear": 0.12307,
+        "kriging_gp_nugget": 0.13644,
+        "frame_scalar": 0.13666
+      }
+    },
+    "finding": "ell is strongly model dependent (SE+nugget 33.6 px, OU 29.7 px, SE no nugget 23.8 px, OU no nugget 32.7 px); at the 64 px design pitch Delta/ell is 1.9-2.7, NOT the 1.33 quoted in the document. With the measured control-point nugget, kriging at 64 px is no better than the frame scalar, so the D3 recommendation is not supported by the project's own real-data reconstruction."
+  },
+  "EXP4_scaling_law": {
+    "rows": [
+      {
+        "kernel": "se",
+        "delta_over_ell": 0.25,
+        "kriging_std_5x5": 0.00017609093464731872,
+        "bilinear_std": 0.02184053469409831,
+        "bil_over_krig": 124.0298641031199
+      },
+      {
+        "kernel": "se",
+        "delta_over_ell": 0.5,
+        "kriging_std_5x5": 0.005427237890988534,
+        "bilinear_std": 0.08439503218908896,
+        "bil_over_krig": 15.550273248427107
+      },
+      {
+        "kernel": "se",
+        "delta_over_ell": 1.0,
+        "kriging_std_5x5": 0.12708012480495498,
+        "bilinear_std": 0.2960297688263252,
+        "bil_over_krig": 2.3294733876023286
+      },
+      {
+        "kernel": "se",
+        "delta_over_ell": 1.5,
+        "kriging_std_5x5": 0.4581398050399079,
+        "bilinear_std": 0.5469098558106215,
+        "bil_over_krig": 1.1937619254956047
+      },
+      {
+        "kernel": "se",
+        "delta_over_ell": 2.0,
+        "kriging_std_5x5": 0.7549514627782411,
+        "bilinear_std": 0.7658248292022174,
+        "bil_over_krig": 1.014402735751994
+      },
+      {
+        "kernel": "se",
+        "delta_over_ell": 3.0,
+        "kriging_std_5x5": 0.978020810336126,
+        "bilinear_std": 1.0221481798748233,
+        "bil_over_krig": 1.0451190496892715
+      },
+      {
+        "kernel": "se",
+        "delta_over_ell": 4.0,
+        "kriging_std_5x5": 0.9993292995882805,
+        "bilinear_std": 1.1016063188341272,
+        "bil_over_krig": 1.102345662523839
+      },
+      {
+        "kernel": "se",
+        "delta_over_ell": 8.0,
+        "kriging_std_5x5": 0.9999999999999747,
+        "bilinear_std": 1.1180338881065532,
+        "bil_over_krig": 1.1180338881065814
+      },
+      {
+        "kernel": "ou",
+        "delta_over_ell": 0.25,
+        "kriging_std_5x5": 0.3702134925925475,
+        "bilinear_std": 0.37284547165659776,
+        "bil_over_krig": 1.0071093547823418
+      },
+      {
+        "kernel": "ou",
+        "delta_over_ell": 0.5,
+        "kriging_std_5x5": 0.5195102774011863,
+        "bilinear_std": 0.5216852500090522,
+        "bil_over_krig": 1.0041865824459644
+      },
+      {
+        "kernel": "ou",
+        "delta_over_ell": 1.0,
+        "kriging_std_5x5": 0.7128456047777284,
+        "bilinear_std": 0.7131490176876045,
+        "bil_over_krig": 1.0004256362217043
+      },
+      {
+        "kernel": "ou",
+        "delta_over_ell": 1.5,
+        "kriging_std_5x5": 0.8329351360206813,
+        "bilinear_std": 0.8361094794950077,
+        "bil_over_krig": 1.0038110332210162
+      },
+      {
+        "kernel": "ou",
+        "delta_over_ell": 2.0,
+        "kriging_std_5x5": 0.9067442651522499,
+        "bilinear_std": 0.9198970645759051,
+        "bil_over_krig": 1.014505522592356
+      },
+      {
+        "kernel": "ou",
+        "delta_over_ell": 3.0,
+        "kriging_std_5x5": 0.9738510156004588,
+        "bilinear_std": 1.0191856715162442,
+        "bil_over_krig": 1.046551941918788
+      },
+      {
+        "kernel": "ou",
+        "delta_over_ell": 4.0,
+        "kriging_std_5x5": 0.9932587499528707,
+        "bilinear_std": 1.0685596373926054,
+        "bil_over_krig": 1.075811954783492
+      },
+      {
+        "kernel": "ou",
+        "delta_over_ell": 8.0,
+        "kriging_std_5x5": 0.9999756074150029,
+        "bilinear_std": 1.1149815262606328,
+        "bil_over_krig": 1.1150087242057105
+      }
+    ],
+    "document_vs_recomputed": [
+      {
+        "delta_over_ell": 0.25,
+        "kriging_recomputed": 0.00017609093464731872,
+        "kriging_document": 0.0002,
+        "bilinear_recomputed": 0.02184053469409831,
+        "bilinear_document": 0.0218
+      },
+      {
+        "delta_over_ell": 0.5,
+        "kriging_recomputed": 0.005427237890988534,
+        "kriging_document": 0.0054,
+        "bilinear_recomputed": 0.08439503218908896,
+        "bilinear_document": 0.0844
+      },
+      {
+        "delta_over_ell": 1.0,
+        "kriging_recomputed": 0.12708012480495498,
+        "kriging_document": 0.1271,
+        "bilinear_recomputed": 0.2960297688263252,
+        "bilinear_document": 0.296
+      },
+      {
+        "delta_over_ell": 1.5,
+        "kriging_recomputed": 0.4581398050399079,
+        "kriging_document": 0.4581,
+        "bilinear_recomputed": 0.5469098558106215,
+        "bilinear_document": 0.5469
+      },
+      {
+        "delta_over_ell": 2.0,
+        "kriging_recomputed": 0.7549514627782411,
+        "kriging_document": 0.755,
+        "bilinear_recomputed": 0.7658248292022174,
+        "bilinear_document": 0.7658
+      },
+      {
+        "delta_over_ell": 3.0,
+        "kriging_recomputed": 0.978020810336126,
+        "kriging_document": 0.978,
+        "bilinear_recomputed": 1.0221481798748233,
+        "bilinear_document": 1.0221
+      },
+      {
+        "delta_over_ell": 4.0,
+        "kriging_recomputed": 0.9993292995882805,
+        "kriging_document": 0.9993,
+        "bilinear_recomputed": 1.1016063188341272,
+        "bilinear_document": 1.1016
+      },
+      {
+        "delta_over_ell": 8.0,
+        "kriging_recomputed": 0.9999999999999747,
+        "kriging_document": 1.0,
+        "bilinear_recomputed": 1.1180338881065532,
+        "bilinear_document": 1.118
+      }
+    ],
+    "note": "the analytic law is reproduced (it is exact for a stationary isotropic Gaussian process with the stated kernel and noise-free control points); its APPLICABILITY to the real SNR field is a separate question, answered in EXP2_variogram_refit"
+  },
+  "EXP5_error_budget_audit": {
+    "terms": {
+      "eps_P1_estimator_noise": {
+        "value": 0.015,
+        "source": "NOISE_MODEL.md 5a"
+      },
+      "eps_P1_source_contamination_bias": {
+        "value": 0.3127,
+        "raw_ratio": 1.3127,
+        "source": "EXP-3 Part A, 8 real frames",
+        "note": "the document quotes the RATIO 1.3127 as if it were a relative error (131.3%); the relative error on sigma is 31.27%, the variance is high by 76.8%, the SNR is low by 23.8%"
+      },
+      "eps_sparse_64px": {
+        "value": 0.0922,
+        "source": "EXP-2/EXP-3 RMSE(log sigma)",
+        "note": "EXP-3's own measured 64 px penalty is 1.0678 -> equivalent log-sigma error 0.130, so 0.092 understates the measured penalty"
+      },
+      "eps_theta_well": {
+        "value": 0.20126905282626262,
+        "source": "unc-prop-audit 2.3",
+        "cited_by_document": 0.034,
+        "note": "document uses 3.4%, which is sqrt(1+0.46/6.76)-1, i.e. the MINIMUM param term 0.46, not the well-conditioned case A (2.995)"
+      },
+      "eps_theta_ill": {
+        "value": 6.087366875699976,
+        "source": "unc-prop-audit 2.3",
+        "cited_by_document": 2.2,
+        "note": "sqrt((6.76+332.8)/6.76)-1 = 6.09, not 22.0; 22.0 is not reproducible from the cited source"
+      },
+      "eps_drizzle": {
+        "value": 0.202,
+        "source": "UNCERTAINTY_AND_COVARIANCE.md"
+      },
+      "eps_master": {
+        "value": 0.0,
+        "source": "CALIBRATION.md:236 UNRESOLVED"
+      }
+    },
+    "scenarios": [
+      {
+        "scenario": "current production (as documented)",
+        "eps_total": 1.3127,
+        "pct": 131.27,
+        "note": "document value; uses the RATIO as a relative error"
+      },
+      {
+        "scenario": "current production (corrected arithmetic)",
+        "eps_total": 0.3127,
+        "pct": 31.269999999999996
+      },
+      {
+        "scenario": "current production + drizzle term",
+        "eps_total": 0.37227045276250437,
+        "pct": 37.227045276250436
+      },
+      {
+        "scenario": "scalar fixed + C_theta (well cond.), as documented",
+        "eps_total": 0.20182723212089318,
+        "pct": 20.182723212089318,
+        "note": "document says 3.7%"
+      },
+      {
+        "scenario": "scalar fixed + C_theta (well cond.) + drizzle",
+        "eps_total": 0.2855490003932441,
+        "pct": 28.55490003932441,
+        "note": "the drizzle term is present in every row per the script's own note but is NOT added in the document's scenario table"
+      },
+      {
+        "scenario": "scalar fixed + C_theta (ill cond.) + drizzle",
+        "eps_total": 6.090735955479378,
+        "pct": 609.0735955479378
+      },
+      {
+        "scenario": "+ sparse layer 64 px + drizzle",
+        "eps_total": 0.30006511230994665,
+        "pct": 30.006511230994665
+      }
+    ],
+    "findings": [
+      "eps_P1: 1.3127 is a RATIO; the relative error on sigma is 0.3127 (31.3%).  The document's own term table (section 5.4) says 31.3%, but the scenario table and the abstract say 131.3% -- internal inconsistency.",
+      "eps_drizzle = 20.2% is listed as present in every row but is never added into eps_total by exp5_error_budget.py:100-118; including it takes the 'fixed' scenario from 3.7% to 20.5%.",
+      "eps_theta: 3.4% is the minimum param term (0.46 ADU^2), not the well-conditioned case (2.995 -> 20.1%); 2200% is not reproducible from the cited evidence (339.5/6.76 -> 608.6%).",
+      "eps_sparse: 0.0922 is RMSE(log sigma) against a NOISY truth field; EXP-3's own measured weight penalty at 64 px corresponds to 0.130."
+    ]
+  },
+  "elapsed_s": 16.183077573776245
+}

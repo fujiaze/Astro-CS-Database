@@ -14,6 +14,8 @@
 #                             local_snr 相对质量权重场, 5sigma 深度, 否认旧构造)
 #   p1snr_linux_negative    — 退化输入 fail-closed (禁 1.0 伪装 unknown)
 #   p1snr_linux_determinism — 重复调用逐位相同 + 顺序无关
+#   p1snr_linux_common_ref  — 组内公共 F_ref（WEIGHT-SCI-001）
+#   p1snr_linux_mother_function — fwhm_px 母函数口径（CONFORM-FIX-A ①: 禁止跨块混用）
 # ============================================================================
 add_executable(p1snr_linux_test p1snr_linux_test.cpp)
 target_link_libraries(p1snr_linux_test PRIVATE astrocs_phase1_noise)
@@ -27,9 +29,12 @@ add_test(NAME p1snr_linux_negative COMMAND p1snr_linux_test negative)
 add_test(NAME p1snr_linux_determinism COMMAND p1snr_linux_test determinism)
 # WEIGHT-SCI-001: 组内公共 F_ref（逐帧中位数回退已删除 ⇒ fail-closed 负例）
 add_test(NAME p1snr_linux_common_ref COMMAND p1snr_linux_test common_ref)
+# CONFORM-FIX-A ①: fwhm_px 母函数口径（检测块高斯 vs PSF 块 Moffat4, 禁止跨块混用）
+add_test(NAME p1snr_linux_mother_function COMMAND p1snr_linux_test mother_function)
 set_tests_properties(
   p1snr_linux_units p1snr_linux_oracle p1snr_linux_contract
   p1snr_linux_negative p1snr_linux_determinism p1snr_linux_common_ref
+  p1snr_linux_mother_function
   PROPERTIES LABELS "p1snr")
 
 # ============================================================================
@@ -41,6 +46,23 @@ set_tests_properties(
 #      如实落到产物;
 #   C. snr.max_sources 人为截断 -> truncated=true 且数值确实不同 (非恒真)。
 # ============================================================================
+# ============================================================================
+# FREF-BASELINE-001 — 帧级 SNR 参考通量的**固定星等绝对共同基准** 判别力锁
+# ----------------------------------------------------------------------------
+# OLD 形态上游产物（p1_phot.json 无 photscale_fit）⇒ 参考通量只能是数据派生的
+# 块级中位数（帧不独立、无物理含义、丢 a_f²）⇒ N1–N5 全红;
+# NEW 形态 ⇒ 固定星等基准生效, 帧间独立且与帧集无关 ⇒ 全绿。
+# ============================================================================
+add_executable(p1snr_fref_baseline_test p1snr_fref_baseline_test.cpp)
+target_include_directories(p1snr_fref_baseline_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/phase1_session/tests/p1sess)
+target_link_libraries(p1snr_fref_baseline_test PRIVATE
+  astrocs_module_adapters astrocs_core astrocs_phase1_session)
+add_test(NAME p1snr_fref_baseline COMMAND p1snr_fref_baseline_test)
+set_tests_properties(p1snr_fref_baseline PROPERTIES LABELS "p1snr")
+
 add_executable(p1snr_frame_parity_test p1snr_frame_parity_test.cpp)
 target_include_directories(p1snr_frame_parity_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../include

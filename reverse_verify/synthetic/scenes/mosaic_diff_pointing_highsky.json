@@ -1,0 +1,252 @@
+{
+  "scene_id": "mosaic_diff_pointing_highsky",
+  "kind": "mosaic_diff_pointing",
+  "description": "不同指向马赛克（**月光/光污染光晕 + 大尺度星云复合体**，GAP_AUDIT §9.46 关键场景）：6 个板块共享同一片天区画布，但**指向不同 ⇒ 各帧看到的月光光晕位置/强度不同、星云内容不同**，天光水平 5-45 e-/pix/s 且带强空间结构（光晕）⇒ 同一片天区位置上各帧权重形状差异大，共模抵消不成立。",
+  "matrix_cells": [
+    "pointing:mosaic_diff_pointing",
+    "condition:high_sky_moon",
+    "condition:per_frame_sky_gradient",
+    "negative_control:common_mode_overlap"
+  ],
+  "seed": 20261010,
+  "shape": [
+    512,
+    512
+  ],
+  "exposure_s": 300,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "vignette": 0.05
+  },
+  "sky": {
+    "level_e_per_s": 12
+  },
+  "nebula": [
+    {
+      "type": "powerlaw_core",
+      "center": [
+        656,
+        656
+      ],
+      "peak_e_per_s": 150,
+      "core_radius_px": 60,
+      "slope": 2.2,
+      "truncation_px": 620
+    },
+    {
+      "type": "gaussian_blob",
+      "center": [
+        420,
+        900
+      ],
+      "peak_e_per_s": 12,
+      "sigma_px": 180
+    },
+    {
+      "type": "filament",
+      "p1": [
+        200,
+        200
+      ],
+      "p2": [
+        1100,
+        420
+      ],
+      "peak_e_per_s": 6,
+      "width_px": 40
+    },
+    {
+      "type": "filament",
+      "p1": [
+        300,
+        1000
+      ],
+      "p2": [
+        1000,
+        1150
+      ],
+      "peak_e_per_s": 4,
+      "width_px": 30
+    }
+  ],
+  "stars": {
+    "n": 700,
+    "flux_log10_range": [
+      2.5,
+      5
+    ],
+    "clustering": "clustered",
+    "cluster_n": 8,
+    "cluster_sigma_px": 130,
+    "seed": 555,
+    "canvas_margin_px": 210
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 12,
+    "cr_mean_charge_e": 900
+  },
+  "frames": [
+    {
+      "frame_id": "hsmosaic_tile0",
+      "pointing": {
+        "offset_px": [
+          0,
+          0
+        ]
+      },
+      "sky": {
+        "level_e_per_s": 5,
+        "grad_x_e_per_s": 1.6,
+        "grad_y_e_per_s": 0.4,
+        "theta_deg": 10,
+        "moon_halo_e_per_s": 0,
+        "moon_center": [
+          60,
+          60
+        ],
+        "moon_scale_px": 260
+      },
+      "psf": {
+        "fwhm_px": 2.2
+      },
+      "exposure_s": 300
+    },
+    {
+      "frame_id": "hsmosaic_tile1",
+      "pointing": {
+        "offset_px": [
+          0,
+          200
+        ]
+      },
+      "sky": {
+        "level_e_per_s": 9,
+        "grad_x_e_per_s": 3.4,
+        "grad_y_e_per_s": 0.7,
+        "theta_deg": 70,
+        "moon_halo_e_per_s": 12,
+        "moon_center": [
+          80,
+          430
+        ],
+        "moon_scale_px": 260
+      },
+      "psf": {
+        "fwhm_px": 3.1
+      },
+      "exposure_s": 240
+    },
+    {
+      "frame_id": "hsmosaic_tile2",
+      "pointing": {
+        "offset_px": [
+          0,
+          400
+        ]
+      },
+      "sky": {
+        "level_e_per_s": 16,
+        "grad_x_e_per_s": 2.2,
+        "grad_y_e_per_s": 2.8,
+        "theta_deg": 135,
+        "moon_halo_e_per_s": 30,
+        "moon_center": [
+          420,
+          90
+        ],
+        "moon_scale_px": 260
+      },
+      "psf": {
+        "fwhm_px": 4
+      },
+      "exposure_s": 180
+    },
+    {
+      "frame_id": "hsmosaic_tile3",
+      "pointing": {
+        "offset_px": [
+          200,
+          0
+        ]
+      },
+      "sky": {
+        "level_e_per_s": 24,
+        "grad_x_e_per_s": 0.9,
+        "grad_y_e_per_s": 4.2,
+        "theta_deg": 300,
+        "moon_halo_e_per_s": 55,
+        "moon_center": [
+          440,
+          440
+        ],
+        "moon_scale_px": 260
+      },
+      "psf": {
+        "fwhm_px": 2.7
+      },
+      "exposure_s": 300
+    },
+    {
+      "frame_id": "hsmosaic_tile4",
+      "pointing": {
+        "offset_px": [
+          200,
+          200
+        ]
+      },
+      "sky": {
+        "level_e_per_s": 34,
+        "grad_x_e_per_s": 5.5,
+        "grad_y_e_per_s": 1.2,
+        "theta_deg": 200,
+        "moon_halo_e_per_s": 95,
+        "moon_center": [
+          250,
+          250
+        ],
+        "moon_scale_px": 260
+      },
+      "psf": {
+        "fwhm_px": 3.6
+      },
+      "exposure_s": 120
+    },
+    {
+      "frame_id": "hsmosaic_tile5",
+      "pointing": {
+        "offset_px": [
+          200,
+          400
+        ]
+      },
+      "sky": {
+        "level_e_per_s": 45,
+        "grad_x_e_per_s": 2.6,
+        "grad_y_e_per_s": 3.1,
+        "theta_deg": 45,
+        "moon_halo_e_per_s": 160,
+        "moon_center": [
+          120,
+          120
+        ],
+        "moon_scale_px": 260
+      },
+      "psf": {
+        "fwhm_px": 4.6
+      },
+      "exposure_s": 300
+    }
+  ]
+}

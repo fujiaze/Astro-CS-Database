@@ -1,0 +1,107 @@
+{
+  "scene_id": "sweep_sky",
+  "kind": "sky_level_sweep",
+  "description": "不同天光水平扫描（暗夜 0.2 → 强月光 50 e-/pix/s，月相/光污染）：固定源通量与 seeing，**只通过泊松方差**改变 SNR。",
+  "matrix_cells": [
+    "condition:sky_0.2_to_50eps",
+    "negative_control:additive_arm"
+  ],
+  "seed": 20260928,
+  "shape": [
+    512,
+    512
+  ],
+  "exposure_s": 300,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "vignette": 0.05
+  },
+  "sky": {
+    "level_e_per_s": 0.5,
+    "grad_x_e_per_s": 0.12,
+    "grad_y_e_per_s": 0.06,
+    "theta_deg": 30
+  },
+  "nebula": [
+    {
+      "type": "gaussian_blob",
+      "center": [
+        256,
+        256
+      ],
+      "peak_e_per_s": 20,
+      "sigma_px": 100
+    }
+  ],
+  "stars": {
+    "n": 250,
+    "flux_log10_range": [
+      3,
+      5.5
+    ],
+    "clustering": "uniform",
+    "seed": 3434
+  },
+  "frames": [
+    {
+      "frame_id": "sky_0p2",
+      "sky": {
+        "level_e_per_s": 0.2
+      }
+    },
+    {
+      "frame_id": "sky_0p5",
+      "sky": {
+        "level_e_per_s": 0.5
+      }
+    },
+    {
+      "frame_id": "sky_1p0",
+      "sky": {
+        "level_e_per_s": 1
+      }
+    },
+    {
+      "frame_id": "sky_2p0",
+      "sky": {
+        "level_e_per_s": 2
+      }
+    },
+    {
+      "frame_id": "sky_5p0",
+      "sky": {
+        "level_e_per_s": 5
+      }
+    },
+    {
+      "frame_id": "sky_10p0",
+      "sky": {
+        "level_e_per_s": 10
+      }
+    },
+    {
+      "frame_id": "sky_20p0",
+      "sky": {
+        "level_e_per_s": 20
+      }
+    },
+    {
+      "frame_id": "sky_50p0",
+      "sky": {
+        "level_e_per_s": 50
+      }
+    }
+  ]
+}

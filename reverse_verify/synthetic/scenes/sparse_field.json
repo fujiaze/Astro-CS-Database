@@ -1,0 +1,52 @@
+{
+  "scene_id": "sparse_field",
+  "kind": "sparse_field",
+  "description": "稀疏场：星点稀少（无足够测光参考星），考验稀疏 SNR 层/重建类算法。",
+  "matrix_cells": [
+    "target:sparse_field",
+    "sky:dark_0.4eps"
+  ],
+  "seed": 20260922,
+  "shape": [
+    1024,
+    1024
+  ],
+  "exposure_s": 300,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 3.2,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 1.5,
+    "read_noise_e": 5,
+    "bias_adu": 1000,
+    "full_well_e": 120000
+  },
+  "flat": {
+    "prnu_rms": 0.01,
+    "low_order": 0.02,
+    "vignette": 0.05
+  },
+  "sky": {
+    "level_e_per_s": 0.4,
+    "grad_x_e_per_s": 0.08,
+    "grad_y_e_per_s": 0.05,
+    "theta_deg": 200
+  },
+  "nebula": [],
+  "stars": {
+    "n": 55,
+    "flux_log10_range": [
+      3,
+      5
+    ],
+    "clustering": "uniform",
+    "seed": 7001
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 40,
+    "cr_mean_charge_e": 900,
+    "hot_pixel_fraction": 0.0002
+  }
+}
