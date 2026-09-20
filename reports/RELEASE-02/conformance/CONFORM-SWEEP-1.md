@@ -63,6 +63,8 @@
 
 ### CONFORM-SWEEP-1-002 [C1] 科学链的生产检测器不是规范指定的「唯一权威生产源」，公式族整体不同
 
+> ⚠ 已取代横幅（2026-09-20 订正）：本条 ★002「**只登记，不改**…二者必须收敛其一」**已由 §9.49 定案 1 覆盖**：检测改**星表引导**（「根据 wcs 将 gaia 星表投影，能拟合的才是星点，拟合失败直接丢弃就好了」，工程控制/RELEASE-02/GAP_AUDIT.md:1464-1470）；「权威源收敛」在星表引导实现后评估（sdet 去留 = 前台按 §9.50 授权实测评估）。**原判定与证据正文保留为历史留痕，不物理删除。**
+
 - 规范：`docs/algorithms/STAR_DETECTION_ALGORITHMS.md:8-9`「**唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp**（2555 行实测，2026-09-17 LEDGER-DOC 按附录 G 机械重锚；源文件唯一在役副本）」
   规范：`docs/science/STAR_DETECTION.md:46-49`「生产路径 `sdet_detect_impl`，`sdet_api.cpp:1599-2353`」
   规范：`docs/algorithms/STAR_DETECTION_ALGORITHMS.md:33-82`（§2 全部 20 条公式：行差分 bgnoise、11×11 peaker 七步、GSL TR-LM 椭圆高斯 7 参、`mag=−2.5·log10(Σ_box)`、dedup 语义…）

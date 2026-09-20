@@ -8,14 +8,16 @@
 - 基线：`HEAD = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`（`git rev-parse HEAD` 实测，main）
 - 性质：**设计提案（PROPOSAL_NOT_FROZEN）**。本任务只设计 schema，不实现 schema 校验器、不改生产源码/合同、不改冻结门/容差。
 - 建议状态：**PASS**（任务正文逐项完成、独立结构 Oracle 25/25 rc=0、负向 mutation 25/25 全红、文档锚审计 4/4 判红、写域干净；
-  7 项开放项与 SO-01..07 按纪律只登记不擅改，均由 W3/W4/W6/负责人承接，见 `10_migration_and_open_items.md`）
+  5 项开放项（DI-02..DI-06；DI-01/DI-07 已由 W6 闭合并机器固化——**2026-09-20 订正**，依据 `W6_SCHEMA_INTEGRATION.md:104`）与 SO-01..07 按纪律只登记不擅改，均由 W3/W4/W6/负责人承接，见 `10_migration_and_open_items.md`）
 
-上位锚：冻结宪章 `ASTROCS-CONSTITUTION-001` §1.1/§4.1/§4.3/§6.3/§7.3；`docs/owner/PROJECT_SPEC.md` §3/§5/§6/§7/§8；
+上位锚：`ASTROCS_DESIGN.md` §0 权威链；`docs/owner/PROJECT_SPEC.md` §3/§5/§6/§7/§8；
+（**2026-09-20 订正**：原文「冻结宪章 `ASTROCS-CONSTITUTION-001` §1.1/§4.1/§4.3/§6.3/§7.3」已作废——宪章由 ROOT-007 删除、**不作权威**，依据 `ASTROCS_DESIGN.md:31` + `docs/owner/PROJECT_SPEC.md:9`；该引用仅存历史溯源，见本文件 `:1` DOC-001 注记）
 `docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md`；`docs/science/UNIFIED_SCIENCE_MODEL.md`；`docs/science/PSF_SIGNAL_WEIGHT.md`；
 `docs/science/v6/adjudication/SCI-ADJ-001_FREEZE_LIST.md`；`reports/v6/science-adjudication/adjudications.json`；`CONTROLLER_LOG.md` C-004。
 
-> 权威分层：冻结宪章 `ASTROCS-CONSTITUTION-001` > `docs/owner/PROJECT_SPEC.md` > 三份 `docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md` >
+> 权威分层（**2026-09-20 订正**）：`ASTROCS_DESIGN.md` §0 权威链 > `docs/owner/PROJECT_SPEC.md` > 三份 `docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md` >
 > `docs/science/UNIFIED_SCIENCE_MODEL.md` / `docs/science/PSF_SIGNAL_WEIGHT.md` > 专项 SCI/ALG/DATA/API > 代码/测试 > 历史文档。
+> （原文顶层为「冻结宪章 `ASTROCS-CONSTITUTION-001` >」——**已作废**：宪章由 ROOT-007 删除、不作权威，依据 `ASTROCS_DESIGN.md:31` + `docs/owner/PROJECT_SPEC.md:9`；保留于此留痕。）
 > 科学语义冻结源 = `docs/science/v6/adjudication/SCI-ADJ-001_FREEZE_LIST.md` + `reports/v6/science-adjudication/adjudications.json`；
 > 本设计**原样继承**，不重新解释、不新增科学口径。
 
@@ -66,7 +68,7 @@
 | `FZ-P3-MODES`/`FZ-P3-FAILCLOSED`/`FZ-P3-QW-RECOMPUTE`/`FZ-P3-KERNEL-REGISTRY` | `08_phase3.md`；`phase3.v1` |
 | C-004.1 `psf_snr_power` DEFERRED | `05…md`；`weight-mode.v1.deferred_modes_documented` + `G-DEFERRED-NOT-PRODUCTION` |
 | C-004.2 帧级 median(SNR_F) 仅诊断 | `G-DIAGNOSTIC-NOT-WEIGHT` + 禁止 token 集 |
-| C-004.3 schema 词表归 W6 | `weight-mode.v1` 保留两词表与双向映射，**不发明第三套**；归一归 W6 |
+| C-004.3 schema 词表归 W6 | `weight-mode.v1` **已归一**（canonical 单一权威 schema；旧写法「保留两词表与双向映射，**不发明第三套**；归一归 W6」**已作废**——2026-09-20，依据 `W6_SCHEMA_INTEGRATION.md:29,38,104`） |
 
 控制器级事项（F1 基线分歧、AR-033 根构建面 owner）与负责人签字项（SO-01..07）在本包**只登记不裁决**，见 `10_migration_and_open_items.md`。
 

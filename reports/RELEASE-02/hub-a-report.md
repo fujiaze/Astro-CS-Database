@@ -162,7 +162,13 @@ upm/rejection/sampler/coverage，与已链的 `astrocs_phase2` 重复符号）�
 
 ---
 
-## 6 上呈（需负责人裁决）
+## 6 已裁决事项（原「上呈（需负责人裁决）」；2026-09-20 订正）
+
+> **订正留痕（2026-09-20）**：标题旧文 =「## 6 上呈（需负责人裁决）」；原三项均已由 SD-15/SD-16/SD-17 裁决（`工程控制/RELEASE-02/ACCEPTANCE.md:113-115`），**原三条正文保留为历史留痕**：
+> 1. 权重链键名冻结 ⇒ **已裁决**：冻结 `ASTROCS_FRAME_SNR` + `ASTROCS_REFERENCE_FLUX`（SD-15，`ACCEPTANCE.md:113`）；Phase1 写侧补写。
+> 2. `coordinate_frame` 取值 ⇒ **已裁决**：取 `equatorial`（SD-16，`ACCEPTANCE.md:114`）。
+> 3. n=2 先验窗口口径 ⇒ **已裁决**：**保持逐像素**（SD-17，`ACCEPTANCE.md:115`）。
+> ⚠ 另注（不推翻第 3 项的裁决本身）：n=2 排异路径随后被 **SD-18**（`ACCEPTANCE.md:117`）收回为「低 n 走保守（不排异+加权积分）」——逐像素先验计算已从生产路径移除。
 
 1. **权重链键名冻结**：`ASTROCS_FRAME_SNR` / `ASTROCS_REFERENCE_FLUX` 为 weight-chain-report §7 建议名，
    尚无合同冻结、Phase1 写侧未实现。请裁决键名 + 由 Phase1 分片补写 HiPS properties（本实现已按该名读取，缺失即 fail-closed）。

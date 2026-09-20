@@ -101,19 +101,19 @@
 ## 六、未闭合 / 待你裁决
 
 **待裁决**：
-1. **结构性 rc（6/7/8）是否升为 fail-closed？**（现为显式记录后回退，已落 `sky_plane_degraded` 可见性字段）；
+1. **结构性 rc（6/7/8）是否升为 fail-closed？**（现为显式记录后回退，已落 `sky_plane_degraded` 可见性字段）； 订正（2026-09-20）：已裁决 —— SD-24（工程控制/RELEASE-02/ACCEPTANCE.md:125）：默认 fail-closed + 显式 `sky_plane.allow_degraded=true` 逃生阀（默认 false）。
 2. **是否按数据尺度归一 `roughness_penalty`**（SKY-FIT 判为**正确性修复**，但改科学默认）；
 3. **是否启用边界羽化**（唯一能压到 ≲0.7e11）；
-4. **天光面归零背景**（46% 像素为负）的约定变更是否接受；
-5. RELEASE-02 配置层是否**显式固定 `snr.reference_flux_adu`**（使 Phase2 闸门恒过）。
+4. **天光面归零背景**（46% 像素为负）的约定变更是否接受； 订正（2026-09-20）：已裁决 —— §9.67 定案 1（工程控制/RELEASE-02/GAP_AUDIT.md:2548-2555）：calibrated_k = raw_k − δ_k，保留公共天光面 B_ref（背景不归零）；raw − C_k（全减）不再是默认，旧文所指「归零背景」路径已废。（B 报告曾按 §9.54/§9.55 S8 记「天光面默认不构建」，该结论已被更晚的 §9.67 定案 1 取代：additive_mode 默认 delta ⇒ sky_plane.enabled 缺省 = delta_wanted = true，module_adapters.cpp:5855。）
+5. RELEASE-02 配置层是否**显式固定 `snr.reference_flux_adu`**（使 Phase2 闸门恒过）。 订正（2026-09-20）：已裁决/前提消失 —— F_ref = 固定参考星等 m_ref=6.0 + 逐帧 F_ref,k（§9.60:2122-2128、§9.66 A:2439-2461）；组间硬闸门已删除，「使闸门恒过」不再是目的。
 
 **未闭合**：
 1. Phase2 的 **cfitsio 全局锁**（P1：锁无关 tile 读路径，预计 654→~400s，需位级回归 + 压缩回退）；
 2. **S3.1**（sample 双扫描去重，**零科学风险省 ~20%**）未实现；
 3. **`p2_large_scale_apply` 未接入生产**（对 TRAIL 残留有效，对 OLD 无效）；
-4. `g_k` 乘性归一未接线；SNR 不含光度响应 `a_k`；
+4. `g_k` 乘性归一未接线；SNR 不含光度响应 `a_k`； 订正（2026-09-20）：g_k 已裁决 —— g_k ≡ 1 本期不启用（§9.38 A2，工程控制/RELEASE-02/GAP_AUDIT.md:1036-1043）；「SNR 不含 a_k」保留（不在已裁决清单）。
 5. 未逐帧普查全部 49 帧卫星线 ⇒ 不能排除其他板块有残余；
-6. `CONTROL_WEIGHT_SNR.md` 的 `frame_snr` **命名冲突**需改名消歧（claim 草案已备）；
+6. `CONTROL_WEIGHT_SNR.md` 的 `frame_snr` **命名冲突**需改名消歧（claim 草案已备）； 订正（2026-09-20）：已裁决 —— 通量型定义（§9.39 C1，工程控制/RELEASE-02/GAP_AUDIT.md:1100-1110）+ 改名消歧走 claim（SD-19，ACCEPTANCE.md:119）；§9.67 前台须执行 4 亦明列「D-06 frame_snr 改名（纯命名消歧）」（:2604-2609）。
 7. `p3_verify` 的 `covered_px` 与 FITS 有限像素数差 7.7%。
 
 ---

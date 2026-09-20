@@ -135,11 +135,11 @@ DOC_LINE_ANCHORS_FAIL:
 
 ### 4.1 配置 / schema
 
-- `config/templates/normalize.phase_config.json`：`sparse_snr_layer` false → **true**；补 `sparse_snr_density`（数值待定，见 §5）；
+- `config/templates/normalize.phase_config.json`：`sparse_snr_layer` false → **true**；补 `sparse_snr_density`（数值待定，见 §5）； **订正（2026-09-20）**：密度**已定案** —— §9.45「64 可以了，够密且占用空间可控」（工程控制/RELEASE-02/GAP_AUDIT.md:1299-1309）；承载字段 = `sparse_snr_spacing_px = 64`（config/defaults.json:710-718，authority_status=owner_adjudicated）。⚠ `sparse_snr_density`（点/度²）与 `spacing_px` 不是同一字段，前者仍 `pending_authority`（config/defaults.json:699-709），不得编造。旧文 =「补 sparse_snr_density（数值待定，见 §5）」。
 - `config/templates/mosaic.phase_config.json`：新增 `"algorithm_snr_path": "sparse_reconstruct"`；
 - `config/defaults.json`：新增 `snr.path`（默认 `sparse_reconstruct`）与 `sparse_snr_layer` 默认登记；**须守 `authority.transcription_rule`**（值只能转录自 `docs/science|docs/algorithms`）⇒ 先由 SCI 侧承接；
 - `contracts/schemas/phase_config_{normalize,mosaic}.schema.json`：增字段 + enum；
-- `ASTROCS_DESIGN.md` §3.3 示例 JSON `"sparse_snr_layer": false` 与默认稀疏裁决矛盾，**属根级最高设计、超出本分片文件域**，须前台/负责人授权订正。
+- `ASTROCS_DESIGN.md` §3.3 示例 JSON `"sparse_snr_layer": false` 与默认稀疏裁决矛盾，**属根级最高设计、超出本分片文件域**，须前台/负责人授权订正。 **订正（2026-09-20）**：**已获裁决授权**（§9.38 A3 / §9.46，工程控制/RELEASE-02/GAP_AUDIT.md:1045-1055、:1360-1366）且**已在位** —— ASTROCS_DESIGN.md:267-268 已写「可选（sparse_snr_layer=true 时；默认 true）…控制点间隔 Δ = 64 px（sparse_snr_spacing_px）」，本项无需再授权。旧文 =「须前台/负责人授权订正」。
 
 ### 4.2 代码
 
@@ -167,7 +167,7 @@ DOC_LINE_ANCHORS_FAIL:
 
 1. **帧级 SNR 具体定义式**：待分片 **FRAME-SNR-CANON** 文献结论补入；本 claim 只固化红线与方向（纯信号/噪声、已扣局部背景、天光只进 `σ_F`、单调性、点源口径、不得与面亮度 SNR 混用）；
 2. **A6 `F_instr` 测光口径**：负责人要求「查论文，科学软件算法等」定案（A4 前置）；本轮涉及星点通量口径处**只登记待 A6 定案**；
-3. **`sparse_snr_density` 数值**：仍 `pending_authority`；默认稀疏路径与「默认产出稀疏层」之间存在**联锁缺口**，数值定案前不得编造；
+3. **`sparse_snr_density` 数值**：仍 `pending_authority`；默认稀疏路径与「默认产出稀疏层」之间存在**联锁缺口**，数值定案前不得编造； **订正（2026-09-20）**：密度已定案为 `sparse_snr_spacing_px = 64`（§9.45，工程控制/RELEASE-02/GAP_AUDIT.md:1299-1309；config/defaults.json:710-718）；`sparse_snr_density`（点/度²）仍 `pending_authority` 且与前者**非同一字段**。
 4. **`ASTROCS_DESIGN.md` §3.3 示例 / `config/templates` / `config/defaults.json` / schema / 合同 JSON**：见 §4，超出本分片文件域，须前台执行。
 
 ## 6 纪律与环境

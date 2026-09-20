@@ -10,7 +10,10 @@
 
 ## 职责
 
-Phase1 单帧 light 权威星点检测：peaker 七步候选（11×11 局部极大/3×3
+Phase1 单帧 light **第一轮盲解**检测（**2026-09-20 订正**：本实现 = 最高设计 §3.2
+`:120` 点名的「第一轮盲解」生产源；**权威检测范式 = 星表引导拟合**——检测定义域是
+星表位置、用本帧 WCS 反向投影 Gaia 星表，见 `ASTROCS_DESIGN.md` §3.2 `:119-120` /
+§3.6 `:323-325` 与 §9.49 定案 1；全图盲检测连通域**不是**权威路径）：peaker 七步候选（11×11 局部极大/3×3
 meanhigh/二阶导零交叉 Sr,Sc/振幅 Ar,Ac/盒半径 R=ceil(3.7172·S)/对称门/候选
 去重）+ Moffat4（GSL trust-region LM，7 参数）逐候选拟合 + 饱和星
 （edge-walking 中心、A>dynrange 标记）+ mag 排序去重截断（SDetParams.maxStars）；

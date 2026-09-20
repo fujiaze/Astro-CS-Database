@@ -148,6 +148,8 @@
 - 影响：通量口径的**规范归属未定**——PH-01/PH-02 的修复方向取决于此裁决（PSF 域 vs 孔径）。
 - 修复面：负责人裁决 `06_photometry.md:31` 与 `PHOTOMETRY.md:96` 的优先序，并让生产节点读 `mode`。
 
+> 订正（2026-09-20）：PH-06 的「规范归属未定 / 取决于此裁决」已裁决（旧文 =「影响：通量口径的规范归属未定——PH-01/PH-02 的修复方向取决于此裁决（PSF 域 vs 孔径）」）—— A6 定案 = PSF 拟合域 2πA·sxsy/3（§9.39 A6「查论文，科学软件算法等」，工程控制/RELEASE-02/GAP_AUDIT.md:1092-1098；§9.51「A6 不要照搬 PMM 的口径」:1647-1651；§9.52 红绿例：PSF 域 0.0127 mag vs 5×5 盒和 0.3429 mag，:1705-1715）。上文 :144 所引「(a) 测光正式口径 = 孔径测光」为已被取代的旧裁决引用。残留：aperture_radius 默认值与 mode 键去留仍缺证据（见报告 §3 U-3）。
+
 ### PH-07 [C7] `DATA-P1-FLUX` 端口声明单位 `ELECTRON`，规范为 `ADU`（gain 不可得）
 - 规范：`docs/science/PHOTOMETRY.md:30`「`F_instr`: **ADU**（e⁻ 需 gain，**当前不可得**）」；`:15` 同。
 - 实现：`module_adapters.cpp:829`「`{"fluxes", "DATA-P1-FLUX", false, UnitId::ELECTRON, CoordinateFrame::ICRS}`」、
@@ -275,6 +277,8 @@
   `07_noise_snr.md:112` 的 true 不一致** ⇒ 登记册过期，SPEC-ERR 子项）
 - 影响：默认路径 `sparse_reconstruct`（`:114`）无输入，实际退化为帧级路径且未记 `snr_path_effective`。
 - 修复面：`config/config_registry.json:665`（默认值改 true）+ `module_adapters.cpp:3746+`（按开关产出/显式记路径）。
+
+> 订正（2026-09-20）：NS-05 的「密度未定案构成联锁」已裁决（旧文 =「规范歧义…密度未定案构成联锁」）—— 密度 = Δ 64 px（§9.45，工程控制/RELEASE-02/GAP_AUDIT.md:1299-1309；承载字段 sparse_snr.spacing_px = 64，config/defaults.json:710-718，authority_status=owner_adjudicated）；Phase1 默认产出（§9.38 A3:1045-1055）、Phase2 默认消费（§9.46:1360-1366）。剩余 = 实现落地 + config/config_registry.json 登记册过期（sparse_snr_layer declared_default 为 false）；sparse_snr.density（点/度²）与 spacing_px 不是同一字段，前者仍 pending_authority。
 
 ### NS-06 [符合] 逐源科学 SNR 的公式实现与规范一致（Horne 1986 最优提取 + Moffat4 β=4 解析孔径改正）
 - 规范：`docs/plugins/algorithms_phase1/07_noise_snr.md:68`「`SNR_k(F_ref) = F_ref·sqrt(W_psf,k) = F_ref/σ_F,k`」；

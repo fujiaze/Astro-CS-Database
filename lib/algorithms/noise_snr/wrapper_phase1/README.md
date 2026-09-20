@@ -1,8 +1,14 @@
 # phase1/noise — NoiseModel (L2 模块 README)
 
 - 合同: `P1-005` / SCI-NOISE-001 (docs/contracts/INDEX.yaml)
-- Header: `lib/algorithms/noise_snr/wrapper_phase1/noise_model.h`
-- Source: `lib/algorithms/noise_snr/wrapper_phase1/noise_model.cpp`
+- Header: `lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h`
+- Source: `lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp`
+  > 2026-09-20 订正（CHK-MODULE-MANIFEST / MODULE-READMES 悬空引用）：原文指向
+  > `wrapper_phase1/noise_model.{h,cpp}`，该二文件已不存在。现行文件为
+  > `snr_frame_science.{h,cpp}`（零公式副本，只调 `snr_science` C ABI）；
+  > 依据 `CMakeLists.txt:618-640` 的 NOISE-MODEL-CANON-001（负责人 §9.67 定案 3
+  > 「选对的那一套」）：旧 `noise_model.cpp` 是 `cpp/src/noise_model.cpp` 的退化子集，
+  > 已退役。
 - Test: `tests/unit/p1_noise_test.cpp` (6 组: blank sky/MC Poisson/低高信号/负值/gain 边界/ivar 不混)
 
 ## 职责

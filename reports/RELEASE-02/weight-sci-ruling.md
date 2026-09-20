@@ -245,6 +245,8 @@ convention_compare.json（组内公共取该组 F_ref 中位数）：
 4. **成立条件（诚实登记）**：在**现行冻结管线**下（UPM 纯加性、SNR 不含光度响应 a_k、默认 gain<=0 天空受限），(★) 退化为 1/σ_f²，Convention A 与 B **数值等价**。因此本裁决的**直接收益是「约定自洽 + 存头 SNR 可比较」**，而 a_f² 因子的恢复还依赖两项未闭合：①UPM 的乘性归一 g_k 接线；②SNR 计算引入光度响应 a_k（设计侧 W_psf,k = a_k²PᵀC⁻¹P，snr_science.cpp 现无此入参）。
 5. **备选方案（不推荐）**：若负责人决定不动 Phase1，则唯一自洽的替代是把权重链与闸门改成**逐帧 F_ref**（w=SNR²/F_ref,f²=1/σ_f²）。代价：与 DESIGN §4.3:256、07_noise_snr §4.1:63、UNIFIED_MODEL §2:42、aio_hips.h:302、SD-15 直接冲突，须走**最高设计变更**；且丢失存头 SNR 的可比较性与 w ∝ SNR²。**仅在冻结假设「帧间无乘性尺度差」永久成立时才可接受。**
 
+> **订正留痕（2026-09-20）**：本条「备选方案（不推荐）」**已被取代** —— §9.66 A（`工程控制/RELEASE-02/GAP_AUDIT.md:2439-2461`）实施的正是**逐帧 `F_ref,k`**（`WEIGHT-FREF-PERFRAME-001`：`weight_chain.h` 加逐帧 `ref_flux`/`reference_flux_k`；`module_adapters.cpp` 逐帧 `in.ref_flux=fref`、删硬失败分支），并由 §9.60（`:2122-2128`，公共锚 `F0 = 10^(−0.4·(m_ref−ZP_syn))`）使「逐帧 + 配对性」同时成立。**原「不推荐」判断作废**（旧文 = 「备选方案（不推荐）…须走最高设计变更…仅在冻结假设『帧间无乘性尺度差』永久成立时才可接受」）。
+
 ---
 
 ## 7 需改动的精确位置（本轮不改；前台统一改）
@@ -254,9 +256,9 @@ convention_compare.json（组内公共取该组 F_ref 中位数）：
 | # | 文件:行 | 现状 | 改法 |
 |---|---|---|---|
 | C1 | lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp:167-170 | ref_flux = cfg.reference_flux_adu>0 ? cfg.reference_flux_adu : median_of(used_flux) | **删除逐帧中位数回退**。reference_flux_adu 缺失/非有限/≤0 时：out.reason="reference_flux_adu required (group-common F_ref; per-frame median fallback removed)"; out.valid=false; return out;（fail-closed）。保留 :184-187 的成对输出。 |
-| C2 | lib/infrastructure/scheduler/src/module_adapters.cpp:3149-3163（p1_op_noise） | 逐帧 sci_cfg.reference_flux_adu = sc.value("reference_flux_adu", 0.0) | **为整个 input_lights 数据块算/取一个公共 F₀**，并对所有帧使用同一值。二选一：<br>（a）**首选**：要求 snr.reference_flux_adu 显式给出（缺失/≤0 → ErrorDomain::DATA fail-closed）。全局固定值 ⇒ 闸门恒过。<br>（b）**次选**：两遍法——先收集各帧检出通量中位数，取块级中位数作 F₀，再逐帧以该 F₀ 调 compute_snr_frame_science。仅当一次 Phase1 run 的帧即 Phase2 组时闸门才过。 |
+| C2 | lib/infrastructure/scheduler/src/module_adapters.cpp:3149-3163（p1_op_noise） | 逐帧 sci_cfg.reference_flux_adu = sc.value("reference_flux_adu", 0.0) | **为整个 input_lights 数据块算/取一个公共 F₀**，并对所有帧使用同一值。二选一：<br>（a）**首选**：要求 snr.reference_flux_adu 显式给出（缺失/≤0 → ErrorDomain::DATA fail-closed）。全局固定值 ⇒ 闸门恒过。<br>（b）**次选**：两遍法——先收集各帧检出通量中位数，取块级中位数作 F₀，再逐帧以该 F₀ 调 compute_snr_frame_science。仅当一次 Phase1 run 的帧即 Phase2 组时闸门才过。<br>**订正（2026-09-20）**：C2(a)/(b)「块级公共 F₀ 二选一」**已被取代** —— 现行裁决 = 固定参考星等 `m_ref=6.0`（§9.60:`GAP_AUDIT.md:2122-2128`）+ **逐帧 `F_ref,k` 合法**（§9.66 A:`:2439-2461`）⇒ 不再要求块级公共 F₀，也不存在「闸门恒过」问题（闸门已删）。旧文 =「**为整个 input_lights 数据块算/取一个公共 F₀**…二选一…」 |
 | C3 | lib/infrastructure/scheduler/src/module_adapters.cpp:3289-3294 | 写 snr_reference.{profile,flux_adu,fwhm_px,snr_f,sigma_f_adu} | 增写 provenance：snr_reference.scope="group"、reference_flux_source="config"|"group_median"；保证同组同值（%.17g 已由写头侧 round-trip）。 |
-| C4 | lib/infrastructure/scheduler/src/module_adapters.cpp:5377-5381 | 闸门只报「逐帧不一致」 | **保持 fail-closed**；建议错误串补 expected=<ref_flux> actual=<fref> frame=<id>，便于定位。**不得放宽容差、不得删除。** |
+| C4 | lib/infrastructure/scheduler/src/module_adapters.cpp:5377-5381 | 闸门只报「逐帧不一致」 | **已作废（订正 2026-09-20）**：该组间 `F_ref` 硬闸门**已按 §9.66 A（`工程控制/RELEASE-02/GAP_AUDIT.md:2458-2465`）删除**，降级为报告字段（`reference_flux_gate="none (owner ruling 9.49…)"`、`reference_flux_spread_rel` 仅报告）；同款先例 §9.62（`:2258-2264`）。**旧文 = 「保持 fail-closed…不得放宽容差、不得删除」**（与 §9.49 定案 2「帧间独立」`:1487-1495` 直接冲突）。 |
 | C5 | lib/algorithms/integration/v6/include/astrocs/v6/weight_chain.h:34-35,103-105 | 前置条件文字 | 澄清：reference_flux 必须**等于定义 frame_snr 时所用的参考通量**；配对性定理（无功能改动）。 |
 | C6 | lib/algorithms/integration/v6/src/weight_chain.cpp:78-96,271-282 | w=(SNR/F_ref)² | **不改**（正确）。可选：在 weight_from_snr 注释补配对性说明。 |
 | C7 | lib/infrastructure/aio/src/hips/aio_hips_writer.cpp:1522-1541、astro_sphere_sink.cpp:344-402 | 成对写入，已 fail-closed | **不改**；若 C2 改两遍法，sink 侧无需变（仍读 p1_snr.json）。 |
@@ -329,7 +331,9 @@ convention_compare.json（组内公共取该组 F_ref 中位数）：
 
 ## 9 未闭合项（上呈）
 
-1. **g_k 乘性归一未接线**：设计/插件要求 g·s+b，实现纯加性。在接线前，本裁决第 6.4 条的等价性成立；接线后必须重审 w=SNR²/F_ref² 是否携带 g_f²（本裁决 §2.2 的 (★) 要求携带）。
+1. **g_k 乘性归一未接线**：设计/插件要求 g·s+b，实现纯加性。在接线前，本裁决第 6.4 条的等价性成立；接线后必须重审 w=SNR²/F_ref² 是否携带 g_f²（本裁决 §2.2 的 (★) 要求携带）。 **订正（2026-09-20）**：`g_k ≡ 1` **本期不启用**（§9.38 A2，`工程控制/RELEASE-02/GAP_AUDIT.md:1036-1043`；§9.50 定案 5「UPM = 纯加性，定案」`:1550-1560`）⇒ 「接线」不再是本期待办，本条降为**登记项**（旧文 =「g_k 乘性归一未接线」）。
 2. **SNR 不含光度响应 a_k**：设计 W_psf,k=a_k²PᵀC⁻¹P（PSF_SIGNAL_WEIGHT.md:23），实现 snr_source_snr_f64 无 a_k 入参。这决定 a_f² 因子能否从存头量恢复；属 Phase1 科学面后续任务。
-3. **reference_flux 取固定配置值还是块级统计值**：本裁决只定「必须组内公共」；C2(a)/(b) 的取舍（全局固定 vs 块级）属负责人治理决定。建议 (a)（全局固定，闸门恒过）。
+3. **reference_flux 取固定配置值还是块级统计值**：本裁决只定「必须组内公共」；C2(a)/(b) 的取舍（全局固定 vs 块级）属负责人治理决定。建议 (a)（全局固定，闸门恒过）。 **订正（2026-09-20）**：**已裁决** —— `F_ref` 基准 = **固定参考星等 `m_ref=6.0`**（§9.60:`GAP_AUDIT.md:2122-2128`，候选 A 采用 / 候选 B 否决），且**逐帧 `F_ref,k` + 公共锚 `F0`**（§9.66 A:`:2439-2461`）⇒「全局固定 vs 块级统计」二选一与「闸门恒过」前提**均消失**（旧文 =「属负责人治理决定」）。
 4. **两遍法 vs 单遍法**：C2(b) 需一次预扫描；若选 (b) 须登记性能与确定性影响（不得改科学语义）。
+
+> **保留（非 DELETE，2026-09-20 复核）**：第 2 条（SNR 不含光度响应 `a_k`）与第 4 条（两遍法 vs 单遍法）**不在已裁决清单**（§9.38–§9.67 无对应裁决）⇒ 原样保留。

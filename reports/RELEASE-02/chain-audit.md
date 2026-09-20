@@ -315,10 +315,10 @@ IR：runtime_client.cpp:229-235；注册：module_adapters.cpp:8051-8057；分�
 
 ## 6. 诚实边界与待确认
 
-1. **X-03 cosmetic 空操作**：calibrated 与 cleaned sha256 相同（12/12 tag）——可能是该数据确无坏点/宇宙线，也可能是校正未生效；hot_fixed/cold_fixed 未持久化，**待确认**。
-2. **E-02 astrocs_adaptive_pixel**：是否为负责人裁决的生产默认？docs/** 零命中，工具/SCI 默认 wbpp_2_9_1，**待确认**。
+1. **X-03 cosmetic 空操作**：calibrated 与 cleaned sha256 相同（12/12 tag）——可能是该数据确无坏点/宇宙线，也可能是校正未生效；hot_fixed/cold_fixed 未持久化，**待确认**。 **已确证（2026-09-20）**：§9.44「009/010/016 cosmetic 节点恒传 nullptr ⇒ 检测永久禁用却报 ok」（`工程控制/RELEASE-02/GAP_AUDIT.md:1284`）⇒ 判为「校正未生效」，非「该数据确无坏点」。旧文 =「待确认」。
+2. **E-02 astrocs_adaptive_pixel**：是否为负责人裁决的生产默认？docs/** 零命中，工具/SCI 默认 wbpp_2_9_1，**待确认**。 **已确证（2026-09-20）**：§9.40 C2「C2，**我自研的**」（`工程控制/RELEASE-02/GAP_AUDIT.md:1116-1121`）⇒ `reject_profile` 以 `astrocs_adaptive_pixel` 为准。⚠ 但「生产默认」部分已被 **SD-18**（`ACCEPTANCE.md:117`）收回：低 n 档走保守路径（`n≤3→none`），该方法保留为显式 opt-in。旧文 =「待确认」。
 3. **p2_upm_normalized_weights（C-05）** 是否仅测试用，**待确认**。
-4. **D-01 两套模板**（schema 形状 vs CLI flat）哪套是目标态，**待确认**。
+4. **D-01 两套模板**（schema 形状 vs CLI flat）哪套是目标态，**待确认**。 **已确证（2026-09-20）**：§9.56 前台裁决 4「**以 CLI/schema 为准，订正最高设计示例**」（工程控制/RELEASE-02/GAP_AUDIT.md:1910-1911）。⚠ **冲突登记（以更晚裁决为准）**：ACCEPTANCE.md:109 SD-13 记「以设计 §3.3 嵌套形态为准」，而 §9.68（:2611-2642）定 normalize 配置为**多数据块 JSON**（顶层 blocks[] + 平铺单块简写），并**否决** phase_config_normalize.schema.json / normalize.phase_config.json 的逐帧 inputs[] 形态 ⇒ 本项目标态应以后续 §9.68 为准，需前台复核。旧文 =「待确认」。
 5. **D-16 defaults.json** 是否计划运行时读取（设计说读取，现状零消费者），**待确认**。
 6. 本报告**未运行** build/astrocs 全链重跑（仅只读运行 CLI 模板/校验，及读取既有 L4 产物）；X-01 的数值引自 C-DELTA 报告并由 phase2 子代理只读复跑 which_correction.py 逐行复现，未在本审计内独立重算全部 29336 个 control。
 7. 卫星线/接缝的最终数值验收以负责人裁决后的重跑为准；本审计只做链条与接线事实。

@@ -321,11 +321,22 @@ class TestPhase123Pipeline(unittest.TestCase):
         r = self._run("mosaic", self._p2_cfg(d, ["/nonexistent/does_not_exist.hips"],
                                              {"weight_mode": 1}))
         self.assertEqual(r.returncode, 3, r.stderr[-400:])
-        # d) mosaic 默认 weight_mode=2 对无 ivar 的 normalize 产品 → 2, 不写 complete
+        # d) mosaic 默认 weight_mode=2 对无 ivar 的产品 → 2, 不写 complete
+        #    定案 2（逐像素方差接入）后 normalize 产品**已含** variance/ivar ⇒
+        #    本负例改为消费「剥掉 variance/ivar 的副本」：判据与意图（缺 ivar ⇒
+        #    fail-closed，不写 complete）逐字不变，只是不再依赖「生产不产方差」这一
+        #    已被修复的缺陷。
         d = os.path.join(D, "neg_ivar")
         os.makedirs(d, exist_ok=True)
-        r = self._run("mosaic", self._p2_cfg(
-            d, [os.path.join(self.p1a, "light_1"), os.path.join(self.p1b, "light_2")]))
+        novar = []
+        for src in (os.path.join(self.p1a, "light_1"), os.path.join(self.p1b, "light_2")):
+            dst = os.path.join(D, "neg_ivar_frames", os.path.basename(src) + "_noivar")
+            if not os.path.isdir(dst):
+                shutil.copytree(src, dst)
+                for prod in ("variance", "ivar"):
+                    shutil.rmtree(os.path.join(dst, prod), ignore_errors=True)
+            novar.append(dst)
+        r = self._run("mosaic", self._p2_cfg(d, novar))
         self.assertEqual(r.returncode, 2, r.stderr[-400:])
         self.assertIn("ivar", r.stderr)
         self.assertEqual(self._complete_manifests(d), [], "缺 ivar 不得写 complete")

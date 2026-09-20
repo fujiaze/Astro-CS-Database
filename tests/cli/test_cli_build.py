@@ -177,7 +177,12 @@ class TestCliBuild(unittest.TestCase):
             self.assertEqual(t.returncode, 0, f"{cmd} --template")
             doc = json.loads(t.stdout)          # 模板必须是可直接改的 JSON
             self.assertEqual(doc["schema_version"], "1")
-            self.assertIn("output_dir", doc)
+            # CLI-MULTIBLOCK（§9.68）: normalize 模板是多块形态（块级 output_dir）；
+            # mosaic/export 仍是顶层 output_dir。
+            if "blocks" in doc:
+                self.assertIn("output_dir", doc["blocks"][0])
+            else:
+                self.assertIn("output_dir", doc)
 
     def test_03d_templates_key_complete_and_accepted(self):
         """§6.3 / E2E-D02: 三命令 --template 的键必须全部是运行期接受键（无 unknown key），
@@ -185,14 +190,19 @@ class TestCliBuild(unittest.TestCase):
         tmp = tempfile.mkdtemp(prefix="astrocs_tpl_")
         self.addCleanup(shutil.rmtree, tmp, True)
         # 各命令「只填路径」的最小填充（不填补即被预检阻断，无法走到键校验面）
+        # CLI-MULTIBLOCK（§9.68）: normalize 的路径/落点在**块级**，故逐块填充。
         fill = {
-            "normalize": lambda d: d.update({
+            "normalize": lambda d, out: [b.update({
                 "input_lights": [os.path.join(tmp, "light.fits")],
                 "master_bias": os.path.join(tmp, "b.fits"),
                 "master_dark": os.path.join(tmp, "d.fits"),
-                "master_flat": os.path.join(tmp, "f.fits")}),
-            "mosaic": lambda d: d.update({"hips_paths": [os.path.join(tmp, "F.hips")]}),
-            "export": lambda d: (d["source"].__setitem__("hips_dir", os.path.join(tmp, "F.hips"))),
+                "master_flat": os.path.join(tmp, "f.fits"),
+                "output_dir": os.path.join(out, b.get("name", "blk"))})
+                for b in d["blocks"]],
+            "mosaic": lambda d, out: (d.update({"hips_paths": [os.path.join(tmp, "F.hips")]}),
+                                      d.update({"output_dir": out})),
+            "export": lambda d, out: (d["source"].__setitem__("hips_dir", os.path.join(tmp, "F.hips")),
+                                      d.update({"output_dir": out})),
         }
         for cmd in ("normalize", "mosaic", "export"):
             t = self.run_cli(cmd, "--template")
@@ -201,8 +211,9 @@ class TestCliBuild(unittest.TestCase):
             self.assertEqual(doc["schema_version"], "1")
             out = os.path.join(tmp, cmd + "_out")
             os.makedirs(out, exist_ok=True)
-            doc["output_dir"] = out
-            fill[cmd](doc)
+            if "blocks" not in doc:
+                doc["output_dir"] = out
+            fill[cmd](doc, out)
             cfg = os.path.join(tmp, cmd + ".json")
             with open(cfg, "w", encoding="utf-8") as fh:
                 json.dump(doc, fh)
@@ -217,9 +228,13 @@ class TestCliBuild(unittest.TestCase):
             bad = self.run_cli(cmd, "--json", cfg, "-y")
             self.assertIn("unknown key", bad.stderr,
                           f"{cmd}: 未登记键未被判出（检查失去判别力）")
-        # E2E-D02 回归锚: normalize 模板必须带 drizzle.precision_mode（无 silent 缺省）
+        # E2E-D02 回归锚: normalize 模板必须带 drizzle.precision_mode（无 silent 缺省）；
+        # §9.68 后模板是多块形态 ⇒ 每块都要有（块 = 一次运行，逐块独立精度声明）。
         n = json.loads(self.run_cli("normalize", "--template").stdout)
-        self.assertIn("precision_mode", n["drizzle"])
+        self.assertIn("blocks", n)
+        for blk in n["blocks"]:
+            self.assertIn("precision_mode", blk["drizzle"])
+            self.assertIn("output_dir", blk)
         # D3 形态锚: export 模板的 source/center 必须是运行期对象形态
         e = json.loads(self.run_cli("export", "--template").stdout)
         self.assertIsInstance(e["source"], dict)

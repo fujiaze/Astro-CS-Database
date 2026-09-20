@@ -243,6 +243,20 @@ add_subdirectory(lib/algorithms/drizzle/hips)
 # 目录保持 untracked 锁死不收编, astrocs_p1_noise target 随之不在根图
 # (RPATH foreach 同步摘除; install_layout/tests/unit 均有 if(TARGET)/if(EXISTS)
 # 门卫, 收编后自动重新激活)。
+#
+# ⚠ 2026-09-20 订正（V5 分片 5 / R-1）: 上段旧文「该子图 CMakeLists.txt 为 V7 残留面,
+#   从未入库 / 目录保持 untracked 锁死不收编」**已作废**（依据: git ls-files 实测
+#   + GAP_AUDIT §9.67 定案 3）。
+#   ① 该子图**已在册**: `git ls-files lib/algorithms/noise_snr` = 39 文件（2026-09-20 实测;
+#      A 分片报告 §4 R-1 记 40, 以实测 39 为准）, 含 CMakeLists.txt / src/module_entry.cpp;
+#   ② 本 add_subdirectory 仍**保持注释**（未恢复）⇒ `astrocs_p1_noise`(SHARED, 子图 :35)
+#      仍不在根图; RPATH foreach / install_layout / tests 门卫现状不变, 该段其余陈述继续有效;
+#   ③ 「根图注册待 A-01 裁决后恢复」已被**更晚裁决取代**: §9.67 定案 3（2026-09-20「噪声模型 →
+#      选对的那一套」）已定案 —— 公式级比对（`run/RELEASE-02/consolidate/RULING3-noise-model.md`
+#      §0）判定 A = `cpp/src/noise_model.cpp` 科学正确、B = `wrapper_phase1/noise_model.cpp`
+#      退役; 落地取 §9.66-B 选项 1 = **源文件直接编入 `astrocs_phase1_noise`**（见本文件
+#      :620-633 NOISE-MODEL-CANON-001）, 不是恢复本子图注册。F-CI-002-01 的处置理由
+#      （「引用 untracked 文件必败」）随之失据; 本子图 SHARED target 的去留归 P1-NOISE-INT 收口。
 
 # astrocs_cpu_baseline: baseline backend DSO 技术预览 (Linux; legacy ABI,
 # 无导出标注 → 默认全导出)。正式 provider ABI/Windows DLL → CPU-002
@@ -692,8 +706,22 @@ target_include_directories(astrocs_p1_dpsf PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src)
 target_link_libraries(astrocs_p1_dpsf PUBLIC OpenMP::OpenMP_CXX)
 
-# P1-001: sdet 生产实现（lib/algorithms/star_detection 9 TU, ipv detector_handle 与
-# star-psf 检测的真实来源; lib/algorithms/star_detection/wrapper_phase1 仅为薄包装, 真实检测在此）
+# P1-001: sdet 生产实现（lib/algorithms/star_detection 9 TU, ipv detector_handle;
+# 规范权威源 = docs/algorithms/STAR_DETECTION_ALGORITHMS.md:8「唯一权威生产源」,
+# 生产检测器切换属 D-04 裁决面）
+# ⚠ 2026-09-20 订正（V5 分片 5 / R-8）: 上段旧文「star-psf 检测的真实来源; …
+#   wrapper_phase1 仅为薄包装, 真实检测在此」**已作废/失实**（依据 GAP_AUDIT §9.48②
+#   `:1404-1414` 同帧实测, M42 4096² 同参数）—— 两者是**两套独立盲检测算法**,
+#   不是包装关系:
+#   · wrapper_phase1 = `astrocs::phase1::StarDetector`（P1-003 桥接类; 现生产 star-psf
+#     节点实际调用, 见 lib/infrastructure/scheduler/src/module_adapters.cpp:5-7, :2102）
+#     ⇒ 345,960 条 / Gaia 外部纯度 0.212%（中位距离 56.1 px）/ 完备性 SNR 5–10 = 93.7%;
+#   · sdet（本 target）= 1,473 条 / 纯度 45.553%（中位 1.1 px）/ 完备性 44.4%,
+#     当前被 wcs-platesolve 节点使用（同文件 :2864 sdet_create, sp.maxStars=2000）。
+#   ⇒ 交付源 99.67%（344,808 条）无 sdet 对应; 下游已污染（`p1_snr.json`
+#   n_snr_input=345,960, 参考通量中位建立在非星结构上）。本 target 的编译面**不变**
+#   （下方 add_library 原样）; 「生产检测器权威源」择一归 D-04
+#   （GAP_AUDIT §9.67 前台须执行 #3 登记为已裁决, 落地另行）。
 add_library(astrocs_p1_sdet STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_api.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_detector.cpp
@@ -855,9 +883,14 @@ target_include_directories(astrocs_module_adapters PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}
   # RELEASE-02 权重链公共头 (astrocs/v6/weight_chain.h)
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/integration/v6/include)
-# P1-001 (attempt 2): drizzle 节点唯一真实入口 hp_drizzle_run(astrocs_drizzle 静态库
+# P1-001 (attempt 2): drizzle 节点唯一真实入口 hp_drizzle_run_phase1_hips(astrocs_drizzle 静态库
 # 直链) + 口径更新: star-psf→dpsf_fit_batch_f64(astrocs_p1_dpsf) /
 # wcs→ipv 求解器链(astrocs_p1_ipv, 含 gaia_client; 生产源零 diff 只读编译)。
+# ⚠ 2026-09-20 订正（V5 分片 5 / R-3）: 旧文入口名 `hp_drizzle_run` 已作废, 实为
+#   `hp_drizzle_run_phase1_hips` —— 生产调用点
+#   lib/infrastructure/scheduler/src/module_adapters.cpp:4745
+#   （2026-09-20 grep 复核; A 分片报告记 :4562, 行号已漂移）;
+#   `hp_drizzle_run` 全仓仅剩定义本身、零生产调用者（GAP_AUDIT A-04）。
 target_link_libraries(astrocs_module_adapters PUBLIC
   astrocs_core astrocs_common astrocs_contracts
   astrocs_phase1_session astrocs_phase2_session astrocs_phase3_session

@@ -40,7 +40,9 @@ master/校准/坏点（P1-CAL/P1-COS）；Phase2 统计合并；线程授予
 > （DATA_SEMANTICS §11，tile 累加量原始和 + finalize 归一在下游），
 > 引用对齐由 P1-DRZ-INT 处理。
 
-invalid：值像素 NaN/Inf 静默跳过（DISP-DRZ-004）；pixfrac∈(0,1]
+invalid：~~值像素 NaN/Inf 静默跳过（DISP-DRZ-004）~~ **已作废（2026-09-20）**——现行实现为
+值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1898-1902`；
+回归 `p1drz_tests_core.cpp:517-537`）；pixfrac∈(0,1]
 引擎层严格拒绝；仅 NESTED；covered_area≤0 → variance 记 NaN
 （finalize 层合法输出）。
 

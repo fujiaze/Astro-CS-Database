@@ -236,13 +236,20 @@
   （:78-96）；reverse: `int hp_drizzle_reverse_run(const
   HpReverseDrizzleInput* in, void* signal_out, void* coverage_out,
   HpReverseDrizzleResult* result)`。
-- 返回码：0=成功，非 0=失败；实测语义——文件通道正值 1..11
+- 返回码：0=成功，非 0=失败；实测语义——文件通道正值 1..12
   （1=null 参数、2=nside 非 2 幂、3=pixfrac 越界、4=读 FITS 失败、
   5=无 WCS、6/7=SNR 读/尺寸、8/9=权重读/尺寸、10=drizzle 失败、
-  11=写 legacy 容器失败，api.cpp:168-352）；帧通道混用负值 -1..-8（参数/
-  块校验）、-9=无 WCS（:541-545）、-12=HiPS dir 空（:1044-1048）、
-  -13=直写失败（:1066-1070）——正负两套并存无集中枚举（登记缺陷，
-  迁移整改点）。reverse 返回 1..6（api.cpp:39-143）。
+  11=写 legacy 容器失败、12=C 边界内部异常，hp_drizzle_api.cpp:185-396
+  `hp_drizzle_fits_to_ahpx`）；帧通道混用负值 -1..-8（参数/
+  块校验）、-9=无 WCS（read_wcs_params_from_frame，hp_drizzle_api.cpp:427-448）、
+  -12=HiPS dir 空（:1143-1145）、
+  -13=直写失败（:1175-1177）——正负两套并存无集中枚举（登记缺陷，
+  迁移整改点）。reverse 返回 1..6（+7=C 边界内部异常；hp_drizzle_api.cpp:46-163
+  `hp_drizzle_reverse_run`）。
+  （**2026-09-20 订正**：原文锚「api.cpp:168-352」「api.cpp:39-143」中的 `api.cpp` 在本仓
+  **不存在**（`find lib -name api.cpp` = 0 命中；实际文件 = `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`，
+  见本文件 `:213` 的 SRC 行），且行号已随实现漂移；上列为按现行文件复核后的锚。
+  依据 `ENGINEERING_SPEC.md:129`（锚存活）/ `:133`（无悬空引用）。）
 - 调用时序与所有权：无句柄对象；frame 及其块由调用方拥有（只读
   借用）；result 由调用方分配；reverse 的 signal_out/coverage_out
   由调用方分配（width×height，output_fp64 决定 double/float 视图）；
@@ -263,7 +270,11 @@
   ASTROCS_DRIZZLE_TRACE 控制（drizzle_engine.cpp:39-330）。
 - 已登记现状缺陷（不得静默使用，P1-DRZ-IMPL/INT 处理）：错误码
   正负两套混用；文件通道接受 pixfrac=0.0 而引擎层拒绝（DISP-DRZ-003）；
-  值像素 NaN 静默跳过无计数（DISP-DRZ-004）；shim 对非法 nside 容忍
+  ~~值像素 NaN 静默跳过无计数（DISP-DRZ-004）~~ **该登记已作废（2026-09-20）**：现行实现为
+  **值 NaN 经 `F_p` 传播、不掩膜**（`docs/science/DRIZZLE.md:116`；实现
+  `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1898-1902`「旧 `isfinite(...)+continue`
+  静默吞像素已删除」；回归 `.../tests/p1drz/p1drz_tests_core.cpp:517-537` `p1drz_negative`）；
+  shim 对非法 nside 容忍
   不抛。完整清单见 ALG-DRZ-001 §10（DISP-DRZ-001..008）。
 - 遗留通道（不在本合同）：模块 Makefile 产物 healpix_drizzle.dll
   （Python ctypes 专用，与 CMake 静态库同源码）——迁移去留由

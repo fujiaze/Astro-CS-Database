@@ -689,7 +689,12 @@ modules:
       expected_unit_ids: [MOD-CAT-GAIA]
       unit_kind: module
       exemption_reason: null
-    legacy_paths: [lib/infrastructure/gaia_xpsd_client]
+    # 2026-09-20 订正（CHK-MODULE-MANIFEST 结构缺口修复）：原值
+    # [lib/infrastructure/gaia_xpsd_client] 把 **target_dir 自身**写进 legacy_paths，
+    # 违反本表 §诚实性约定「禁止把 target_dir 自身或其子路径写进 legacy_paths」，
+    # 使 legacy_paths_present 这类 NOTE 退化成自证噪声。迁移前旧路径以
+    # cmake/ARCH-001-migration-manifest.md:27（lib/gaia_xpsd_client → lib/infrastructure/gaia_xpsd_client）为准。
+    legacy_paths: [lib/gaia_xpsd_client]
     note: 外部星表查询/缓存/坐标历元语义；产品清单已登记 MOD-CAT-GAIA。
   - id: hips_browser
     scope: infra

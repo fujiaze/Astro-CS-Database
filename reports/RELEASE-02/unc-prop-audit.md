@@ -43,7 +43,7 @@
 - 生产 `p2_op_upm_fit`（`:4466-4614`）只调 `p2_upm_build_geo`（`:4543`）建 **W2 模型**，
   从不建 MA 模型 ⇒ 生产链上**没有 `g_k`、也没有 `C_theta` 数据面**（与 FIX-GK 报告 §6 一致）。
 
-**结论**：生产归一化路径 `corrected = (raw − C_k) − δ_k` **没有计算任何方差**。
+**结论**：生产归一化路径 `corrected = (raw − C_k) − δ_k` **没有计算任何方差**。 订正（2026-09-20，§9.67 定案 1）：生产施加式已订正为 corrected = raw − δ_k（保留 B_ref；raw − C_k 全减不再是默认，工程控制/RELEASE-02/GAP_AUDIT.md:2548-2555；module_adapters.cpp:6129-6130 默认 delta）；「没有计算任何方差」的结论不变。旧文 =「corrected = (raw − C_k) − δ_k」。
 
 ### 1.2 参考路径：`lib/algorithms/coverage/tools/stage2.cpp`（FIX-GK 口径）
 
@@ -207,7 +207,8 @@
 corrected_k(p) = ( y_k(p) − C_k(p) − δ_k(p) ) / g_k
 ```
 
-生产 SD-22 方案 B 是 `g_k ≡ 1` 的特例（`corrected = y − C_k − δ_k`）。
+生产口径（订正 2026-09-20，§9.67 定案 1）：`corrected = y − δ_k`（保留公共天光面 `B_ref`；`g_k ≡ 1` 本期不启用）—— additive_mode 默认 "delta"（module_adapters.cpp:6129-6130，2026-09-20 复核）。
+> 订正留痕：旧文 =「生产 SD-22 方案 B 是 g_k ≡ 1 的特例（corrected = y − C_k − δ_k）」（双扣除，已废）。冲突登记：B 报告（依据 §9.54 裁决 1 / §9.55 S8）要求改写成「生产默认 raw − C」；该依据已被更晚的 §9.67 定案 1 取代（§9.54 的接缝判据经复核退化，工程控制/RELEASE-02/GAP_AUDIT.md:2551-2554）⇒ 本文件按 §9.67 改写，不写「raw−C 为默认」。
 
 ### 3.2 方差传播（三项齐全）
 

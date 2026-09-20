@@ -191,3 +191,5 @@
    Phase1→Phase2 权重链 E2E 复核。
 6. **文档口径冲突**：`CONTROL_WEIGHT_SNR.md` §2a/§7 vs `07_noise_snr.md` §4.1（帧级 SNR 定义）
    仍为 UNRESOLVED（weight-chain-report §7）；不在本任务文件面。
+
+> **订正留痕（2026-09-20）**：本条**已裁决**（旧文 =「仍为 UNRESOLVED」）—— §9.39 C1（`工程控制/RELEASE-02/GAP_AUDIT.md:1100-1110`）定帧级 SNR = 通量型「真实信号/噪声」`F_ref/σ_F`；SD-19（`ACCEPTANCE.md:119`）查明该冲突是**命名冲突**（同名 `frame_snr` 指两个对象），非公式冲突 ⇒ 改名消歧走变更 claim。另：`F_ref` 作用域已由 §9.66 A（`:2439-2461`）定为逐帧 `F_ref,k` + 公共锚 `F0`。

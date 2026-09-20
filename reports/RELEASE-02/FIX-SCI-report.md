@@ -100,8 +100,8 @@
 | §3-11 / §6-4 PHASE3 §9a-10 与更新块冲突 | PHASE3_HIPS_TO_FITS.md §1/§9a-10 | 同合同互斥 | **已落地** FIX-SCI-S2-P3-001 |
 | §3-7 PSF.md §4 BAD 状态 | PSF.md §8 | 现无 "BAD"（`:68-77` 已无该状态） | 无回退（RELEASE-01 已订正） |
 | §2-T3 / §6-6 SIP 系数单位与 FITS 头关系 | ASTROMETRY.md §5 | UNRESOLVED（astropy 对拍已过，倾向文档表述） | 登记待裁决（不在本次两项 P0 授权内） |
-| §2-T5 / §6-1 frame_snr 语义 | CONTROL_WEIGHT_SNR.md / UNIFIED_MODEL.md / 07_noise_snr.md | 两权威打架（UNRESOLVED） | 上呈负责人（需唯一 canonical 裁决） |
-| §2-T7 / §6-2 UPM 加性 vs 乘性 | PHASE2_UPM.md / 插件 docs | 设计-实现冲突（UNRESOLVED） | 上呈负责人 |
+| §2-T5 / §6-1 frame_snr 语义 | CONTROL_WEIGHT_SNR.md / UNIFIED_MODEL.md / 07_noise_snr.md | 两权威打架（UNRESOLVED） | **已裁决（订正 2026-09-20）**：帧级 SNR = 通量型「真实信号/噪声」`F_ref/σ_F`（§9.39 C1，`工程控制/RELEASE-02/GAP_AUDIT.md:1100-1110`）；与 `CONTROL_WEIGHT_SNR` 的冲突经查是**命名冲突** ⇒ 改名消歧走变更 claim（SD-19，`ACCEPTANCE.md:119`）。旧文 =「上呈负责人（需唯一 canonical 裁决）」 |
+| §2-T7 / §6-2 UPM 加性 vs 乘性 | PHASE2_UPM.md / 插件 docs | 设计-实现冲突（UNRESOLVED） | **已裁决（订正 2026-09-20）**：UPM = **纯加性**（§9.38 A2，`工程控制/RELEASE-02/GAP_AUDIT.md:1036-1043`；§9.40 C3:`:1122-1127`）⇒ `PHASE2_UPM.md:182` UNRESOLVED 关闭；`g_k ≡ 1` 本期不启用。旧文 =「上呈负责人」 |
 | §3-14 / §6-8 负 median flat 拒绝 | CALIBRATION.md §4/§5/§8 vs ALG/实现 | 文档-实现冲突（OWNER-04 未裁决） | 上呈负责人 |
 | §6-5 Phase3 只存对角方差（ρ=0.19） | UNCERTAINTY_AND_COVARIANCE.md | 已如实登记下界；是否补相关核未裁决 | 上呈负责人 |
 | §3-15 / §6-9 UNIT-001 换算落盘 | CLI/ALG | 声明制已冻结、落盘未闭环 | 归 CLI 域 |
@@ -162,6 +162,7 @@ STANDARDS_REGISTRY_PASS  (C4/C9 全 pass；本次 STD-F1 标签订正未破坏�
 4. **常数订正需协同**（PSF/NOISE trimmed-mean、Moffat FWHM）：改文档须同步实现常数与 `tools/docs_machine_consistency.py`，否则破坏 docs↔code 一致性门。本次只复算登记，未改。
 5. **CHK-SCI-REF 红来自并行分片**（P2SMP-CELLSIDE symbol binding），非本 claim；前台统一提交前需该分片收敛或协调。
 6. **UNRESOLVED 上呈**：frame_snr 语义、UPM 加性/乘性、负 median flat、Phase3 相关核、SIP 单位表述——均属"需唯一 canonical / 产品方向取舍"，按控制包 §3a 上呈负责人，本报告给出现状与证据位置。
+   **订正（2026-09-20）**：其中 **frame_snr 语义**（§9.39 C1，`工程控制/RELEASE-02/GAP_AUDIT.md:1100-1110`；SD-19）与 **UPM 加性/乘性**（§9.38 A2:`:1036-1043` + §9.40 C3:`:1122-1127`）**已裁决**，从本列表删除；**保留**：SIP 单位表述、负 median flat、Phase3 相关核（只存对角方差）、母版方差、MRS/N* 选型。旧文 = 上述五项并列为「上呈负责人」。
 
 ## 8 前台待跑的构建/回归命令（本次不构建）
 

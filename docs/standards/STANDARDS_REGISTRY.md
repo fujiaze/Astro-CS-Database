@@ -161,7 +161,8 @@
 - CLAUSES: §2（drop 与 pixfrac）/§3（线性重建与权重 w_jp=a_jp/A_pixel）/§4（欠采样图像重建）
 - COMPLIANCE: PARTIAL
 - EVIDENCE: docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz
-- DEVIATION: DISP-DRZ-001；DISP-DRZ-002；DISP-DRZ-003；DISP-DRZ-004；DISP-DRZ-005；DISP-DRZ-006；DISP-DRZ-007；DISP-DRZ-008；DISP-DRZ-009
+- DEVIATION: DISP-DRZ-001；DISP-DRZ-002；DISP-DRZ-003；DISP-DRZ-005；DISP-DRZ-006；DISP-DRZ-007；DISP-DRZ-008；DISP-DRZ-009
+  （**2026-09-20 闭环移除**：`DISP-DRZ-004` 已闭环——按 §3.1 登记纪律「偏差闭环后删除基线/豁免条目、清单行升 CONFORMANT、本表行改 CLOSED」处理。原文留痕：「…DISP-DRZ-002；DISP-DRZ-003；**DISP-DRZ-004**；DISP-DRZ-005…」）
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
@@ -169,7 +170,7 @@
 | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 一致加权均值，drop 面积在分子分母相消；每像素常量 ADU ⇒ S=C/A_pixel | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz | DISP-DRZ-009（源码仍用 legacy `w=a/A_drop`，pixfrac<1 的绝对面亮度偏 1/pixfrac²）；DISP-DRZ-002（面积实现为 S-H 裁剪+Eriksson 扇形剖分，非 Girard 定理，文档措辞已登记） |
 | §3（球面交叠面积与微小 drop 数值路径） | 交叠面积计算须数值稳定 | PROJECT_DEFINED | docs/algorithms/DRIZZLE_GEOMETRY.md | DISP-DRZ-005（角跨度 <1e-3 rad 时切平面分支为真路径，注释论证偏差 <4e-8；禁删） |
 | §4（欠采样重建与候选枚举完备性） | 重建须覆盖全部候选源像素，零漏选 | CONFORMANT | lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp；docs/algorithms/DRIZZLE_GEOMETRY.md | 无（9003 例全枚举 false_negative=0：4 pixfrac × 5 尺度 × 7 nside × RA 跨 0 × 极区 × face 边界） |
-| §3（方差/权重传播确定性） | 重建为线性加权，须确定性可复现 | CONFORMANT | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md | DISP-DRZ-004（值像素 NaN 静默 continue，无计数暴露）；DISP-DRZ-007（方差锚行号漂移） |
+| §3（方差/权重传播确定性） | 重建为线性加权，须确定性可复现 | CONFORMANT | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md | ~~DISP-DRZ-004（值像素 NaN 静默 continue，无计数暴露）~~ **已闭环（2026-09-20）**——现行实现为值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1898-1902`；回归 `p1drz_tests_core.cpp:517-537`）；DISP-DRZ-007（方差锚行号漂移） |
 | §2/§3（SIP 畸变场下的 drop 映射） | 源像素角点经 WCS 映射到球面多边形 | PARTIAL | docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests | DISP-DRZ-001（SIP 阶数校验 [0,5] 与注释 0..4 不符） |
 
 ### D.drizzle 偏差表
@@ -179,7 +180,7 @@
 | DISP-DRZ-001 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（SIP 阶数注释与校验不一致） |
 | DISP-DRZ-002 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（面积算法文档措辞 vs 实现） |
 | DISP-DRZ-003 | 中 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（pixfrac 双轨边界） |
-| DISP-DRZ-004 | 中 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（NaN 值像素静默跳过） |
+| DISP-DRZ-004 | 已闭环（2026-09-20） | docs/algorithms/DRIZZLE_GEOMETRY.md | **已闭环**：原登记「NaN 值像素静默跳过」与现行实现相反——值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1898-1902`「旧 `isfinite(...)+continue` 静默吞像素已删除」；回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537` `p1drz_negative`，注册于 `.../p1drz/CMakeLists.txt:22-51`）。依据 `ENGINEERING_SPEC.md:133`（活动文档禁陈旧状态冒充）。**残留**：`docs/algorithms/DRIZZLE_GEOMETRY.md:120,234` 仍写旧行为 ⇒ 走变更 claim（ALG 层只读，本分片未改） |
 | DISP-DRZ-005 | 中 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL / P1-DRZ-INT（微小 drop 切平面真路径须守护，禁按旧登记删除） |
 | DISP-DRZ-006 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（累加器字段数注释漂移） |
 | DISP-DRZ-007 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（方差锚行号漂移） |
@@ -267,7 +268,7 @@
 | DISP-DRZ-002 | drizzle | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 第 2 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-DRZ-009 | drizzle | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 第 2 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-DRZ-003 | drizzle | §2（drop 与 pixfrac 收缩因子） | 第 1 行 | TRACKED | P1-DRZ-IMPL |
-| DISP-DRZ-004 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | TRACKED | P1-DRZ-IMPL |
+| DISP-DRZ-004 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | CLOSED | P1-DRZ-IMPL（**2026-09-20 闭环**：值 NaN 经 `F_p` 传播、不掩膜；`drizzle_engine.cpp:1898-1902` + `p1drz_negative` 回归锁定） |
 | DISP-DRZ-005 | drizzle | §3（球面交叠面积与微小 drop 数值路径） | 第 3 行 | TRACKED | P1-DRZ-IMPL / P1-DRZ-INT |
 | DISP-DRZ-006 | drizzle | §2（drop 与 pixfrac 收缩因子） | 第 1 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-DRZ-007 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | TRACKED | P1-DRZ-IMPL |

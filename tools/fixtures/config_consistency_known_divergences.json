@@ -19,10 +19,10 @@
     {
       "id": "config_consistency_divergence:parser_sentinel:underdetermined_n",
       "kind": "known_divergence",
-      "reason": "stage2_common.cpp 缺 rejection.underdetermined_n 键时写哨兵 0（= 由 p2_reject_plan_resolve 按 profile/request 解析：wbpp/adaptive=2，astrocs_adaptive_pixel=3），而 docs/development/CONFIG_SCHEMA.md:26 自述 underdetermined_n(2)、struct 默认亦为 0。生产 profile=astrocs_adaptive_pixel 档的有效默认为 3，与 docs 的 2 不一致。",
-      "owner": "RELEASE-02 前台（文档订正）",
+      "reason": "stage2_common.cpp 缺 rejection.underdetermined_n 键时写哨兵 0（= 由 p2_reject_plan_resolve 按 profile/request 解析：wbpp/adaptive=2，astrocs_adaptive_pixel=3，EXTREME_VALUE_PRIOR_SIGMA=1）；struct 默认亦为 0。**docs 侧已于 2026-09-20 订正**（CONFIG_SCHEMA.md:26/:58 改「0=按 profile 解析；pixel=3/其余=2/extreme_prior=1」，依据 §9.55 S4 / GAP_AUDIT:1868-1869）——原文「docs/development/CONFIG_SCHEMA.md:26 自述 underdetermined_n(2)…与 docs 的 2 不一致」已不再成立。**本条目仍必须保留**：config_consistency_check.py 的 L7 判据（tools/config_consistency_check.py:626-635）对 parser 哨兵键**无条件**产出 finding，与 docs 文本无关 ⇒ 删除本条目会使该 finding 变为未登记、整项判红（实测 rc=1）。",
+      "owner": "RELEASE-02 前台（文档订正）→ 余项归 tools/config_consistency_check.py 维护方",
       "audit_ref": "CONFORM-SWEEP-3-008",
-      "exit_condition": "订正 docs/development/CONFIG_SCHEMA.md:26 为「underdetermined_n(2；astrocs_adaptive_pixel 档 3)」或等价写法，使 docs 自述与 resolver 逐档默认一致，随后删除本条目",
+      "exit_condition": "① 订正 docs/development/CONFIG_SCHEMA.md:26/:58 与 resolver 逐档默认一致（**2026-09-20 已完成**）；② 使 tools/config_consistency_check.py 的 L7 判据仅在「docs 自述 ≠ resolver 逐档默认」时报 finding（当前 :626-635 无条件产出，故本条不能按原文「随后删除本条目」执行）；② 完成后本条目方可删除（删除前须复跑该项确认 rc=0）",
       "evidence": [
         "docs/development/CONFIG_SCHEMA.md:26",
         "lib/algorithms/coverage/src/stage2_common.cpp（rj.value(\"underdetermined_n\", 0u) 与 p2_reject_plan_resolve 委托分支）",
