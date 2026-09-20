@@ -84,7 +84,7 @@
 #include "astrocs/probe.h"         // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
 
 #include "photometer.h"
-#include "noise_model.h"
+#include "snr_estimator.h"   // NOISE-MODEL-CANON-001: SCI-NOISE-001 §5/§5a 唯一实现 (A)
 // P8-SNR-LINUX: 逐源 SNR 帧级聚合 (lib/algorithms/noise_snr/wrapper_phase1), 其公式实现为
 // lib/algorithms/noise_snr/cpp/src/snr_science.cpp (已编入 astrocs_phase1_noise)。
 #include "snr_frame_science.h"
@@ -1151,6 +1151,52 @@ uint64_t p1_fits_primary_header_bytes(const std::string& path) {
     }
   }
   return 0;  // 主头无 END → fail-closed
+}
+
+// NOISE-MODEL-CANON-001（负责人 §9.67 定案 3）: 饱和电平读取。
+// SCI NOISE_MODEL §4「饱和域」(claim SC-008) 要求：未提供电平时调用方**必须**
+// 在帧产品写显式降级声明（禁止静默）。来源优先级 = cfg > SATURATE > DATAMAX，
+// 与 snr_estimator.h:134-136 的声明一致。
+// 返回 >0 = 有效电平（ADU）；0 = 未提供（调用方须写 DISABLED_NO_METADATA）。
+double p1_fits_saturation_level(const std::string& path) {
+  std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
+  if (!f) return 0.0;
+  char blk[2880];
+  double saturate = 0.0;
+  double datamax = 0.0;
+  auto parse_card = [](const char* c, double* out) -> bool {
+    // 形如 "SATURATE=        65535.0 / comment"
+    if (c[8] != '=') return false;
+    char val[71];
+    std::memcpy(val, c + 10, 70);
+    val[70] = '\0';
+    char* end = nullptr;
+    const double v = std::strtod(val, &end);
+    if (end == val) return false;           // 非数值（如 T/F 逻辑卡）
+    if (!std::isfinite(v) || v <= 0.0) return false;
+    *out = v;
+    return true;
+  };
+  for (uint64_t blocks = 1; blocks <= 100; ++blocks) {
+    if (!f.read(blk, sizeof(blk))) break;
+    for (int i = 0; i < 36; ++i) {
+      const char* c = blk + i * 80;
+      if (std::strncmp(c, "END", 3) == 0 && (c[3] == ' ' || c[3] == '\0')) {
+        if (saturate > 0.0) return saturate;
+        if (datamax > 0.0) return datamax;
+        return 0.0;
+      }
+      if (std::strncmp(c, "SATURATE", 8) == 0 && saturate <= 0.0) {
+        double v = 0.0;
+        if (parse_card(c, &v)) saturate = v;
+      } else if (std::strncmp(c, "DATAMAX", 7) == 0 && datamax <= 0.0) {
+        double v = 0.0;
+        if (parse_card(c, &v)) datamax = v;
+      }
+    }
+  }
+  if (saturate > 0.0) return saturate;
+  return datamax;
 }
 
 bool p1_image_sane(const P1Image& im, const std::string& path) {
@@ -3710,7 +3756,8 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
   const std::string out_dir = doc.value("output_dir", std::string("."));
-  const astrocs::phase1::NoiseModel model;
+  // NOISE-MODEL-CANON-001: 旧 wrapper_phase1::NoiseModel (B) 已退役 ——
+  // 本函数改用 snr_noise_model_v1 (A)，配置/模型对象在逐帧循环内构造与释放。
 
   // ── P8: 上游 DATA-P1-SOURCES = 逐源 SNR 目录的唯一来源 (fail-fast) ──
   const std::string src_path = out_dir + "/p1_sources.json";
@@ -3968,14 +4015,150 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     }
     const uint64_t n = static_cast<uint64_t>(im.w()) * static_cast<uint64_t>(im.h());
     std::vector<float> px(im.px(), im.px() + static_cast<size_t>(n));
-    auto r = model.estimate(px);
-    if (r.failed()) return Result<void>::fail(r.error());
-    const astrocs::phase1::NoiseResult& nr = r.value();
     const std::string base = p1_base_name(path);
+
+    // ── NOISE-MODEL-CANON-001（负责人 §9.67 定案 3「选对的」）──────────────
+    // 改用冻结 SCI-NOISE-001 §5/§5a 的**唯一实现**（docs/science/NOISE_MODEL.md:71/165;
+    // ALG §13.1:120「生产符号唯一源」）。旧 wrapper_phase1::NoiseModel 是它的
+    // **退化子集**（ALG §13.5:257-262）= 无掩膜/无 5σ 裁剪/无饱和过滤/无 patch 网格/
+    // 无平面场/无天空预算门的整帧兜底支；其公式在自述域（**空白背景像素集**）内正确，
+    // 但生产曾把**整帧**喂入 ⇒ 有星时整帧 MAD 偏差 +2.6%..+21.6%（超 SCI §7 的 2%
+    // 与 §11 的 5% oracle），而本实现全算法 <=0.35%（独立复现, 3 seed）。已退役。
+    SnrNoiseModelConfig ncfg{};
+    if (snr_noise_model_v1_default_config(&ncfg) != 0) {
+      (*man)["error_kind"] = "noise_model_config";
+      return Result<void>::fail(
+          Error(ErrorDomain::INTERNAL, "snr_noise_model_v1_default_config failed"));
+    }
+    const Json snr_cfg = (doc.contains("snr") && doc["snr"].is_object())
+                             ? doc["snr"] : Json::object();
+    // 自适应 patch 网格（调用方职责，非公式变更）：默认 8x8 网格要求每 patch
+    // >= min_patch_samples(64) 个天空样本；小画幅帧（如测试 fixture 32x32）
+    // 在 8x8 下每 patch 仅 16 px ⇒ 全部不合格 ⇒ 整帧退化（A 科学上正确）。
+    // 生产按画幅收缩网格，使每 patch 仍 >= 64 样本；下界 2（cfg 声明 >=2），
+    // 上界 = 配置值（默认 8，大画幅保持设计默认）。
+    {
+      const double px_total = static_cast<double>(im.w()) * static_cast<double>(im.h());
+      const double min_s = static_cast<double>(std::max(1, ncfg.min_patch_samples));
+      const int g_adapt = static_cast<int>(std::floor(std::sqrt(px_total / min_s)));
+      const int gx = std::max(2, std::min(ncfg.patch_grid_x, g_adapt));
+      const int gy = std::max(2, std::min(ncfg.patch_grid_y, g_adapt));
+      if (gx != ncfg.patch_grid_x || gy != ncfg.patch_grid_y) {
+        (*man)["noise_patch_grid_adapted"] = Json{{"from_x", ncfg.patch_grid_x},
+                                                  {"from_y", ncfg.patch_grid_y},
+                                                  {"to_x", gx}, {"to_y", gy}};
+      }
+      ncfg.patch_grid_x = gx;
+      ncfg.patch_grid_y = gy;
+      // 掩膜半径上界与天空预算同样必须**帧内可行**（调用方职责）：
+      //   rmax = source_mask_radius_px * mask_radius_scale 默认 10*6 = 60 px；
+      //   在 32x32 帧上一个中心星即盖满全帧 ⇒ 全部 patch 被掩 ⇒ 整帧退化。
+      //   掩膜大于画幅、预算大于画幅都是**无意义约束**，按画幅收缩。
+      const double side_min = static_cast<double>(std::min(im.w(), im.h()));
+      const double rmax_cap = std::max(2.0, side_min / 4.0);
+      const double rmax_now = ncfg.source_mask_radius_px *
+                              std::max(1.0, ncfg.mask_radius_scale);
+      if (rmax_now > rmax_cap && ncfg.source_mask_radius_px > 0.0) {
+        (*man)["noise_mask_rmax_adapted"] = Json{{"from", rmax_now}, {"to", rmax_cap}};
+        ncfg.mask_radius_scale = rmax_cap / ncfg.source_mask_radius_px;
+      }
+      const uint64_t px_u = static_cast<uint64_t>(im.w()) * static_cast<uint64_t>(im.h());
+      const uint32_t sky_cap = static_cast<uint32_t>(std::max<uint64_t>(64, px_u / 2));
+      if (ncfg.mask_budget_min_sky > sky_cap) {
+        (*man)["noise_mask_sky_budget_adapted"] =
+            Json{{"from", ncfg.mask_budget_min_sky}, {"to", sky_cap}};
+        ncfg.mask_budget_min_sky = sky_cap;
+      }
+      const uint32_t patch_cap = static_cast<uint32_t>(
+          std::max(4, (ncfg.patch_grid_x * ncfg.patch_grid_y) / 2));
+      if (ncfg.mask_budget_min_patches > patch_cap) {
+        (*man)["noise_mask_patch_budget_adapted"] =
+            Json{{"from", ncfg.mask_budget_min_patches}, {"to", patch_cap}};
+        ncfg.mask_budget_min_patches = patch_cap;
+      }
+    }
+    ncfg.gain_e_per_adu = snr_cfg.value("gain_e_per_adu", 0.0);
+    ncfg.read_noise_e = snr_cfg.value("read_noise_e", 0.0);
+    // 饱和电平：cfg 优先，其次帧头 SATURATE/DATAMAX；未提供必须**显式**声明降级
+    // （SCI NOISE_MODEL §4「饱和域」claim SC-008，禁止静默）。
+    double sat_level = snr_cfg.value("saturation_level", 0.0);
+    std::string sat_filter = "DISABLED_NO_METADATA";
+    std::string sat_source = "unset";
+    if (std::isfinite(sat_level) && sat_level > 0.0) {
+      sat_filter = "ENABLED";
+      sat_source = "config";
+    } else {
+      sat_level = 0.0;
+      const double hdr_sat = p1_fits_saturation_level(path);
+      if (std::isfinite(hdr_sat) && hdr_sat > 0.0) {
+        sat_level = hdr_sat;
+        sat_filter = "ENABLED";
+        sat_source = "fits_header";
+      }
+    }
+    ncfg.saturation_level = sat_level;
+    // 逐星掩膜四路输入（MASK-002/claim SC-009）：上游 p1_sources.json 的 sources[]
+    // 已含 x/y/flux/fwhm_px ⇒ 无需新上游产物。判据与 SNR 交付样本一致
+    // （flux>0 ∧ fwhm_px>0），保证掩膜与权重用同一批星。
+    const Json* nm_src = find_src_frame(base);
+    std::vector<double> nm_sx, nm_sy, nm_sf, nm_sw;
+    if (nm_src != nullptr) {
+      const Json srcs = all_sources_of(nm_src);
+      for (const auto& s : srcs) {
+        if (!s.is_object()) continue;
+        const double x = s.value("x", std::numeric_limits<double>::quiet_NaN());
+        const double y = s.value("y", std::numeric_limits<double>::quiet_NaN());
+        const double fl = s.value("flux", 0.0);
+        const double fw = s.value("fwhm_px", 0.0);
+        if (!std::isfinite(x) || !std::isfinite(y)) continue;
+        if (!(fl > 0.0) || !(fw > 0.0)) continue;
+        nm_sx.push_back(x); nm_sy.push_back(y);
+        nm_sf.push_back(fl); nm_sw.push_back(fw);
+      }
+    }
+    NoiseWeightModelV1 nm{};
+    const int nm_rc = snr_noise_model_v1(
+        im.px(), static_cast<int>(im.h()), static_cast<int>(im.w()), nullptr,
+        nm_sx.empty() ? nullptr : nm_sx.data(),
+        nm_sy.empty() ? nullptr : nm_sy.data(),
+        nm_sf.empty() ? nullptr : nm_sf.data(),
+        nm_sw.empty() ? nullptr : nm_sw.data(),
+        static_cast<int>(nm_sx.size()), &ncfg, &nm);
+    if (nm_rc == 3 || nm_rc == -9) {
+      (*man)["error_kind"] = "noise_model_abi_or_input";
+      return Result<void>::fail(
+          Error(ErrorDomain::DATA, "snr_noise_model_v1 rejected input"));
+    }
+    // rc=1 = 完全退化（无合格 patch 且全局兜底也退化）⇒ ivar=0，**不传播、不伪造权重**
+    // （SCI NOISE_MODEL §7:106「空 support 不传播」）。
+    const bool nm_degenerate = (nm_rc == 1) || (nm.degenerate != 0);
+    const double nm_sigma = nm_degenerate ? 0.0 : nm.sigma_bg_global;
+    const double nm_variance = nm_degenerate ? 0.0 : nm.variance_bg_global;
+    const double nm_ivar = nm_degenerate ? 0.0 : nm.ivar_bg_global;
     Json frame = Json{{"file", base},
-                      {"variance", nr.variance}, {"ivar", nr.ivar},
-                      {"sigma", nr.sigma}, {"background", nr.background},
-                      {"valid", nr.valid}, {"reason", nr.reason}};
+                      {"variance", nm_variance}, {"ivar", nm_ivar},
+                      {"sigma", nm_sigma},
+                      {"background", (nm_src != nullptr && nm_src->contains("background"))
+                                         ? (*nm_src)["background"] : Json(nullptr)},
+                      {"valid", !nm_degenerate},
+                      {"reason", nm_degenerate
+                                     ? std::string("DEGENERATE_EMPTY_SUPPORT")
+                                     : std::string("ok")}};
+    // NOISE-MODEL-CANON-001 诊断键（只增不改）：下游可据此 fail-closed。
+    frame["noise_model"] = "snr_noise_model_v1";
+    frame["noise_model_source"] = static_cast<int>(nm.source);
+    frame["noise_degenerate"] = nm_degenerate;
+    frame["noise_has_spatial_field"] = (nm.has_spatial_field != 0);
+    frame["noise_n_control_points"] = nm.n_control_points;
+    frame["noise_n_qualified_patches"] = nm.n_qualified_patches;
+    frame["noise_n_rejected_patches"] = nm.n_rejected_patches;
+    frame["noise_mask_degraded"] = nm.mask_degraded;
+    frame["noise_mask_radius_p50"] = nm.mask_radius_p50;
+    frame["noise_mask_frac"] = nm.mask_frac;
+    frame["noise_saturation_filter"] = sat_filter;
+    frame["noise_saturation_level"] = sat_level;
+    frame["noise_saturation_source"] = sat_source;
+    snr_noise_model_v1_free(&nm);   // 与 v1 成对，避免 DISP-NOISE-001/009 注册表泄漏
     // ── P8: 逐源科学 SNR (仅当上游目录含同帧时附加) ──
     frame["snr_schema"] = "DATA-P1-SNR/3";
     frame["snr_definition"] =
@@ -5664,8 +5847,9 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
     const Json seam_pre =
         (doc.contains("seam") && doc["seam"].is_object()) ? doc["seam"]
                                                          : Json::object();
+    // §9.67 定案 1：默认 "delta"（多退少补到公共天光面，保留 B_ref）
     const std::string additive_mode_pre =
-        seam_pre.value("additive_mode", std::string("c"));
+        seam_pre.value("additive_mode", std::string("delta"));
     const bool delta_wanted =
         (additive_mode_pre == "delta" || additive_mode_pre == "both");
     const bool sky_enabled = sp_cfg.value("enabled", delta_wanted);
@@ -5929,14 +6113,21 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   //   raw−C = 0.131% / raw−δ = 2.799% / raw−C−δ = 13.974%（比不校正的
   //   13.454% 还差）——C 已把每帧对齐到公共面，δ 是在已对齐场上的第二次
   //   扣除（c-delta-ruling §2）。
-  // 配置 doc["seam"]["additive_mode"] ∈ {"c"(默认), "delta", "both"}：
-  //   c     = raw − C_k         （默认；依据见 reports/RELEASE-02/fix-p2a-seam.md §2）
-  //   delta = raw − δ_k         （把 C 加回，只保留 δ 一次；需 p2_sky_plane.bin）
+  // 配置 doc["seam"]["additive_mode"] ∈ {"delta"(默认), "c", "both"}：
+  //   delta = raw − δ_k         （**默认**；多退少补到公共天光面，保留 B_ref）
+  //   c     = raw − C_k         （全减，含 B_ref ⇒ 背景被剪掉；仅对照）
   //   both  = raw − C_k − δ_k   （legacy 双重扣除，仅供对照/回归）
+  // ⚠ 默认值变更（2026-09-20，负责人 GAP_AUDIT §9.67 定案 1「**多退少补到公共天光面**」）：
+  //   原默认 "c" 的依据是 §9.54 裁决 1 的**接缝**判据；该判据经前台复核**是退化的**——
+  //   `raw−C` 把整张背景减掉后各帧都 ≈0，两帧相减自然 ≈0 ⇒ **接缝小是因为背景没了，
+  //   不是因为对齐做好了**。用「接缝」当判据必然收敛到「全减光」。
+  //   负责人定案：`calibrated_k = raw_k − δ_k`，**保留公共天光面 B_ref**。
+  //   实测（旧判据口径）：raw 13.454% / raw−δ 2.799% / raw−C 0.131%；
+  //   `raw−δ` 的 2.799% 是 **δ 拟合不足**（工程问题），不是概念错。
   const Json seam_cfg = (doc.contains("seam") && doc["seam"].is_object())
                             ? doc["seam"] : Json::object();
   std::string additive_mode =
-      seam_cfg.value("additive_mode", std::string("c"));
+      seam_cfg.value("additive_mode", std::string("delta"));
   if (additive_mode != "c" && additive_mode != "delta" &&
       additive_mode != "both")
     return Result<void>::fail(Error(ErrorDomain::DATA,

@@ -614,15 +614,28 @@ endif()
 
 # phase1 noise (P1-005 SCI-NOISE-001)
 # P8-SNR-LINUX (2026-09-14): Linux 生产路径 SNR 接线 —— 把 P5-SNR 唯一权威科学实现
-# lib/algorithms/noise_snr/cpp/src/snr_science.cpp 编入本目标 (此前未在根 CMake 主图,
-# 生产实际的 SNR 由另一份实现产出)。帧级聚合在
+# lib/algorithms/noise_snr/cpp/src/snr_science.cpp 编入本目标。帧级聚合在
 # lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp (零公式副本, 只调 snr_science C ABI)。
+#
+# NOISE-MODEL-CANON-001 (2026-09-20, 负责人 §9.67 定案 3「选对的」):
+#   `cpp/src/noise_model.cpp` (A) 是冻结 SCI-NOISE-001 §5/§5a 的唯一实现
+#   (docs/science/NOISE_MODEL.md:71/165 锚定; ALG §13.1:120「生产符号唯一源」)。
+#   原 `wrapper_phase1/noise_model.cpp` (B) 是 A 的**退化子集**
+#   (ALG §13.5:257-262「退化子集」= 无掩膜/无裁剪/无饱和/无网格/无平面场/无预算门的整帧兜底),
+#   其公式在自述域(空白背景像素集)内正确, 但生产调用点曾把**整帧**喂入
+#   ⇒ 有星时整帧 MAD 偏差 +2.6%..+21.6% (超 SCI §7 的 2% 与 §11 的 5% oracle),
+#   而 A 全算法 <=0.35% (独立复现, 3 seed)。B 已退役, 不再编入。
+#   逐像素 variance/ivar 产品面也只有 A 能给 (hp_drizzle_api.cpp:1018-1047 的 variance 块合同)。
+#   符号冲突核查: 全仓 snr_noise_model_v1* 定义仅 A 一处 ⇒ 无重复定义。
 add_library(astrocs_phase1_noise STATIC
-  lib/algorithms/noise_snr/wrapper_phase1/noise_model.cpp
+  lib/algorithms/noise_snr/cpp/src/noise_model.cpp
   lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp
   lib/algorithms/noise_snr/cpp/src/snr_science.cpp)
 target_include_directories(astrocs_phase1_noise PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/wrapper_phase1 ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/wrapper_phase1
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/cpp/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_noise PUBLIC astrocs_contracts)
 # P10-UTIL2-007: 噪声统计 (median/MAD 次序统计量选择) 与逐源 SNR 聚合使用 OpenMP。
 # 无 OpenMP 时 #pragma omp 被忽略 -> 串行回退且结果逐位不变; 线程数不在本库

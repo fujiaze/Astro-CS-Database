@@ -11,7 +11,19 @@
 //
 // 单位约定 (强制):
 //   flux_adu            [ADU]      总通量 (与输入图像同标度)
-//   fwhm_px/sigma_px    [pixel]    各向同性 Moffat4 尺度 (FWHM = 1.230310*sigma, SCI-PSF)
+//   fwhm_px             [pixel]    **检测块**母函数宽度 = 椭圆高斯 FWHM
+//                                  (FWHM = 2.3548200450309493*sigma, TWO_SQRT_2_LOG2;
+//                                   SCI-P1-STAR-001 §2/§5, ALG-STARDET-001 §2)。
+//                                  DATA-P1-SOURCES.fwhm_px 即该量 (wrapper 检测侧产出)。
+//   sigma_px            [pixel]    本块 Moffat4 轮廓的尺度参数 sigma [pixel]
+//                                  (与 fwhm_px 同一 sigma 尺度; fwhm_px<=0 时直接采用)
+//
+// 跨块口径 (SCI-P1-STAR-001 §2 :31-34 / ALG-STARDET-001 :64,253-258, DISP-STAR-007):
+//   检测块 FWHM_gauss = 2.3548200450309493*sigma, PSF 块 FWHM_moffat4 = 1.230310*sigma,
+//   同 sigma 下相差 1.914005x, **两列禁止跨块比较/互换**。本块消费的是检测块列
+//   (DATA-P1-SOURCES.fwhm_px) ⇒ 必须用**高斯因子**换算 sigma; 用 PSF 块因子 1.230310
+//   反解会使 sigma 高估 1.914005x (CONFORM-SWEEP-1-001 修复面)。本块自身的 Moffat4
+//   轮廓模型 FWHM 一律由 sigma 经 kMoffat4FwhmFactor 正向导出, 不与输入列比较。
 //   sigma_sky_adu       [ADU]      逐像素空背景 rms
 //   gain_e_per_adu      [e-/ADU]   未知传 <=0 (则不加源泊松项)
 //   read_noise_e        [e-]       仅在 gain>0 时进入
@@ -33,13 +45,20 @@ namespace {
 // log10↔ln 换算常数 kLn10: 本模块唯一定义点 = noise_model.cpp (V12-N-16；
 // 此处原为逐位等值的复制字面量且全文件零引用, 已删除)
 constexpr double kPi   = 3.14159265358979323846;
-// FWHM = 1.230310 * sigma (SCI-PSF-001 5, 各向同性 Moffat4 beta=4)
+// 检测块母函数因子: FWHM = 2.3548200450309493 * sigma (椭圆高斯, TWO_SQRT_2_LOG2;
+//   ALG-STARDET-001 §2 :63, SCI-P1-STAR-001 §5 :68)。DATA-P1-SOURCES.fwhm_px 属该块。
+constexpr double kGaussFwhmFactor = 2.3548200450309493;
+// PSF 块母函数因子: FWHM = 1.230310 * sigma (各向同性 Moffat4 beta=4; SCI-PSF-001 §5)。
+//   只用于本块**自身 Moffat4 模型**的 sigma -> FWHM 正向导出 (网格/孔径半径);
+//   **禁止**用它反解检测块输入的 fwhm_px (跨块比较, DISP-STAR-007)。
 constexpr double kMoffat4FwhmFactor = 1.230310;
 // 10-90% trimmed mean |residual| -> Gaussian sigma (noise_model.cpp:37 同源常数)
 constexpr double kTrimMeanToSigma = 0.7316727929211932;
 
-inline double moffat4SigmaFromFwhm(double fwhm_px) {
-    return fwhm_px / kMoffat4FwhmFactor;
+// 检测块高斯 FWHM -> sigma (与 snr_estimator.cpp 的 PSF 块路径 fwhm/1.230310 互斥:
+// 两条路径的输入列来自不同块, 因子必须随数据来源选择, 不得混用)。
+inline double detectionSigmaFromFwhm(double fwhm_px) {
+    return fwhm_px / kGaussFwhmFactor;
 }
 
 // 离散归一化 Moffat4 beta=4 轮廓: I(r) = 1/(1 + r^2/(2 sigma^2))^4
@@ -89,18 +108,21 @@ extern "C" {
 
 // ============================================================================
 // snr_moffat4_profile_f64 - 离散归一化 Moffat4 beta=4 轮廓统计 (oracle 锚)
-// half_px<=0 时按 autoHalf 规则取网格。返回 0=成功, 3=非法参数。
+// fwhm_px = 检测块高斯 FWHM (DATA-P1-SOURCES); sigma_px = 本块 Moffat4 sigma
+// (fwhm_px>0 时优先, 按 kGaussFwhmFactor 换算)。half_px<=0 时按 autoHalf 规则取网格。
+// 返回 0=成功, 3=非法参数。
 // ============================================================================
 SNR_API int snr_moffat4_profile_f64(double fwhm_px, double sigma_px, int half_px,
                                     double* out_sum_p2, double* out_p_center) {
     if (!out_sum_p2 || !out_p_center) return 3;
-    double sigma = (fwhm_px > 0.0) ? moffat4SigmaFromFwhm(fwhm_px) : sigma_px;
+    double sigma = (fwhm_px > 0.0) ? detectionSigmaFromFwhm(fwhm_px) : sigma_px;
     if (!std::isfinite(sigma) || !(sigma > 0.0)) {
         *out_sum_p2 = 0.0;
         *out_p_center = 0.0;
         return 3;
     }
-    double fwhm_eff = (fwhm_px > 0.0) ? fwhm_px : (sigma * kMoffat4FwhmFactor);
+    // 网格/孔径用的 Moffat4 FWHM 由本块 sigma 正向导出 (非输入列本身)
+    double fwhm_eff = sigma * kMoffat4FwhmFactor;
     const int half = (half_px > 0) ? half_px : autoHalf(fwhm_eff);
     moffat4Discrete(sigma, half, out_sum_p2, out_p_center);
     return 0;
@@ -108,6 +130,10 @@ SNR_API int snr_moffat4_profile_f64(double fwhm_px, double sigma_px, int half_px
 
 // ============================================================================
 // snr_source_snr_f64 - 逐源科学 SNR (Horne 1986 最优提取 + 孔径 CCD 方程)
+//
+// 输入宽度列: p->fwhm_px 属**检测块高斯** (FWHM=2.3548200450309493*sigma,
+//   SCI-P1-STAR-001 §2), p->sigma_px 为本块 Moffat4 sigma; 二者同一 sigma 尺度,
+//   禁止把 PSF 块的 Moffat4 FWHM 直接填入 fwhm_px (跨块混用, DISP-STAR-007)。
 //
 // 最优提取:
 //   sigma_i^2 = sigma_sky^2 + max(F*P_i,0)/gain + (read_noise_e/gain)^2   [gain>0]
@@ -126,7 +152,7 @@ SNR_API int snr_source_snr_f64(const SnrSourceParams* p, SnrSourceResult* out) {
     out->m5_mag = std::nan("");
     out->status = 1;
 
-    double sigma = (p->fwhm_px > 0.0) ? moffat4SigmaFromFwhm(p->fwhm_px) : p->sigma_px;
+    double sigma = (p->fwhm_px > 0.0) ? detectionSigmaFromFwhm(p->fwhm_px) : p->sigma_px;
     if (!std::isfinite(sigma) || !(sigma > 0.0)) return 0;
     if (!std::isfinite(p->flux_adu) || !(p->flux_adu > 0.0)) return 0;
     if (!std::isfinite(p->sigma_sky_adu) || !(p->sigma_sky_adu > 0.0)) return 0;

@@ -250,7 +250,13 @@ SNR_API double snr_noise_gain_variance(double signal,
 //   §A.4.5 旧 (A-B)/residual_scale 已由 SNR-008 宣布退休
 //
 // 单位/量纲 (强制, 见 §C.3.1):
-//   flux_adu [ADU]; fwhm_px/sigma_px [pixel]; sigma_sky_adu [ADU];
+//   flux_adu [ADU];
+//   fwhm_px [pixel] = **检测块**椭圆高斯 FWHM (DATA-P1-SOURCES; FWHM =
+//     2.3548200450309493*sigma, SCI-P1-STAR-001 §2 / ALG-STARDET-001 §2);
+//   sigma_px [pixel] = 本块 Moffat4 轮廓尺度 sigma (与 fwhm_px 同一 sigma 尺度;
+//     PSF 块行 (FWHM=1.230310*sigma) 的调用方必须先按 PSF 块因子换算为 sigma 再传入,
+//     禁止把 PSF 块 FWHM 填入 fwhm_px —— 跨块混用使 sigma 高估 1.914005x, DISP-STAR-007);
+//   sigma_sky_adu [ADU];
 //   gain_e_per_adu [e-/ADU]; read_noise_e [e-]; zero_point_mag [mag];
 //   snr_* [无量纲]; sigma_f_* [ADU]; flux5_adu [ADU]; m5_mag [mag]
 // ============================================================================
@@ -258,8 +264,9 @@ SNR_API double snr_noise_gain_variance(double signal,
 // 逐源 SNR 输入参数 (全部显式, 无隐式帧级标量)
 typedef struct {
     double flux_adu;            // F: 总通量 [ADU] (>0 必须)
-    double fwhm_px;             // Moffat4 FWHM [pixel]; <=0 时改用 sigma_px
-    double sigma_px;            // Moffat4 各向同性 sigma [pixel]
+    double fwhm_px;             // **检测块高斯** FWHM [pixel] (=2.3548200450309493*sigma);
+                                // <=0 时改用 sigma_px。PSF 块 FWHM 禁止填入本字段。
+    double sigma_px;            // 本块 Moffat4 各向同性 sigma [pixel] (与 fwhm_px 同尺度)
     double sigma_sky_adu;       // 逐像素空背景 rms [ADU] (>0 必须)
     double gain_e_per_adu;      // 增益 [e-/ADU]; <=0 = 未知 (不加源泊松项)
     double read_noise_e;        // 读出噪声 [e-]; 仅 gain>0 时进入
@@ -290,6 +297,8 @@ SNR_API int snr_source_snr_f64(const SnrSourceParams* params,
                                SnrSourceResult* out);
 
 // 离散归一化 Moffat4 beta=4 轮廓统计 (oracle 锚, 网格规则冻结)
+// fwhm_px = 检测块高斯 FWHM [pixel] (按 2.3548200450309493 换算 sigma; >0 优先);
+// sigma_px = 本块 Moffat4 sigma [pixel]; 网格半边长 half_px<=0 -> max(30,ceil(12*FWHM_moffat4))。
 // 输出 sum_i P_i^2 [1/pixel] 与中心像素 P [1]
 SNR_API int snr_moffat4_profile_f64(double fwhm_px, double sigma_px, int half_px,
                                     double* out_sum_p2, double* out_p_center);

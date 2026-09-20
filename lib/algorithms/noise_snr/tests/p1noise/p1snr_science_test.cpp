@@ -41,10 +41,20 @@ void checkClose(double got, double exp, double rtol, const char* what) {
 }
 
 constexpr double kPi = 3.14159265358979323846;
-constexpr double kFwhmFactor = 1.230310;
+// 检测块母函数因子 (椭圆高斯, TWO_SQRT_2_LOG2; SCI-P1-STAR-001 §2/§5): 公开 API
+// snr_source_snr_f64 / snr_moffat4_profile_f64 的 fwhm_px 入参属该块
+// (DATA-P1-SOURCES.sources[].fwhm_px 列) ⇒ sigma = fwhm / kGaussFwhmFactor。
+constexpr double kGaussFwhmFactor = 2.3548200450309493;
+// PSF 块母函数因子 (各向同性 Moffat4 beta=4; SCI-PSF-001 §5): PSF 块行
+// fwhm_x/fwhm_y 属该块 (snr_extract_model_v3 路径) ⇒ sigma = fwhm / kMoffat4FwhmFactor。
+// 两列同 sigma 下相差 1.914005x, **禁止跨块比较/互换** (DISP-STAR-007,
+// CONFORM-SWEEP-1-001)。
+constexpr double kMoffat4FwhmFactor = 1.230310;
 constexpr double kTrimToSigma = 0.7316727929211932;
 
-int refHalf(double fwhm) {
+// 网格半边长: 入参为本块 Moffat4 模型 FWHM (= kMoffat4FwhmFactor*sigma), 与实现 autoHalf 同规则。
+int refHalf(double fwhm_moffat4) {
+    const double fwhm = fwhm_moffat4;
     int h = (int)std::ceil(12.0 * fwhm);
     if (h < 30) h = 30;
     if (h > 256) h = 256;
@@ -58,11 +68,15 @@ struct RefResult {
     double flux5, m5;
 };
 
+// from_psf_block=false: fwhm 为检测块椭圆高斯 FWHM (公开 API 契约, DATA-P1-SOURCES)
+// from_psf_block=true : fwhm 为 PSF 块 Moffat4 FWHM (PSF 块行 fwhm_x/y, extract_v3 路径)
 RefResult refCompute(double flux, double fwhm, double sky, double gain,
-                     double rn, double r_ap, double n_sky, double zp) {
+                     double rn, double r_ap, double n_sky, double zp,
+                     bool from_psf_block = false) {
     RefResult o{};
-    const long double sigma = (long double)fwhm / (long double)kFwhmFactor;
-    const int half = refHalf(fwhm);
+    const double sigma_d = fwhm / (from_psf_block ? kMoffat4FwhmFactor : kGaussFwhmFactor);
+    const long double sigma = (long double)sigma_d;
+    const int half = refHalf(sigma_d * kMoffat4FwhmFactor);
     const long double alpha2 = 2.0L * sigma * sigma;
     long double sum = 0.0L, sum2 = 0.0L, center = 0.0L;
     for (int j = -half; j <= half; ++j) {
@@ -103,7 +117,7 @@ RefResult refCompute(double flux, double fwhm, double sky, double gain,
     o.snr_peak = flux * (double)Pc / sky;
     o.flux5 = 5.0 * o.sigma_f_optimal;
 
-    const double r = (r_ap > 0.0) ? r_ap : 1.5 * fwhm;
+    const double r = (r_ap > 0.0) ? r_ap : 1.5 * (double)(sigma * (long double)kMoffat4FwhmFactor);
     const long double u = 1.0L + (long double)(r * r) / alpha2;
     const long double f_in = 1.0L - 1.0L / (u * u * u);
     const long double n_pix = (long double)kPi * r * r;
@@ -153,11 +167,13 @@ const double kRealFlux[5] = {2984.19140625, 11900.705322265625, 11581.2131347656
 const double kRealFwhm[5] = {1.4072320071088888, 2.9622233810299274, 3.0339454080028325,
                              3.4166259417890283, 3.001042479230288};
 
-// NumPy oracle 锚值 (snr_oracle.py, 独立实现)
-const double kOracleSnrOptReal0 = 4.7863380411985785;
-const double kOracleSnrOptCcd   = 109.32793489787282;
-const double kOracleSnrOptSky   = 3.7103826382393557;
-const double kOracleSumP2Fwhm25 = 0.049598592587386636;
+// NumPy oracle 锚值 (独立实现; CONFORM-FIX-A ① 按修复后口径
+// fwhm_px(检测块高斯) -> sigma = fwhm/2.3548200450309493 复算, 见
+// run/RELEASE-02/conform-fix-a/harness/conf1_oracle.py; 修复前锚值见 CONFORM-SWEEP-1-001)
+const double kOracleSnrOptReal0 = 10.01518830728662;
+const double kOracleSnrOptCcd   = 126.30302219525699;
+const double kOracleSnrOptSky   = 7.323043993711507;
+const double kOracleSumP2Fwhm25 = 0.21277524024178185;
 const double kOracleZpSE        = 0.00443002398413372;
 
 }  // namespace
@@ -169,13 +185,53 @@ int main(int argc, char** argv) {
     if (all || grp == "units") {
         // Moffat4 离散轮廓: 生产 vs 独立参考
         const double fw[3] = {1.5, 2.5, 4.0};
-        const double expP2[3] = {0.14911446001389192, kOracleSumP2Fwhm25, 0.019358611004407937};
+        const double expP2[3] = {0.7036685056329084, kOracleSumP2Fwhm25, 0.0713561385540777};
         for (int i = 0; i < 3; ++i) {
             double sp2 = 0, pc = 0;
             check(snr_moffat4_profile_f64(fw[i], 0.0, 0, &sp2, &pc) == 0, "profile rc");
             RefResult e = refCompute(1.0, fw[i], 1.0, 0, 0, 0, 0, 0);
             checkClose(sp2, e.sum_p2, 1e-12, "profile sum_p2 vs ref");
             checkClose(sp2, expP2[i], 1e-12, "profile sum_p2 vs numpy oracle");
+        }
+        // ── CONFORM-FIX-A ①: fwhm_px 母函数口径 (禁止跨块混用) ──────────────
+        // 检测块列 (高斯 FWHM = 2.3548200450309493*sigma) 换算后必须与同 sigma
+        // 直传路径逐位一致 (绿); 按 PSF 块因子 1.230310 反解则 sigma 高估 1.914005x (红)。
+        {
+            const double sigma_true = 1.25;
+            double sp2_col = 0, pc_col = 0, sp2_sig = 0, pc_sig = 0;
+            check(snr_moffat4_profile_f64(kGaussFwhmFactor * sigma_true, 0.0, 0,
+                                          &sp2_col, &pc_col) == 0, "moffat4 col rc");
+            check(snr_moffat4_profile_f64(0.0, sigma_true, 0, &sp2_sig, &pc_sig) == 0,
+                  "moffat4 sigma rc");
+            check(sp2_col == sp2_sig && pc_col == pc_sig,
+                  "moffat4: detection-block Gaussian fwhm == same sigma (bitwise)");
+            checkClose(kGaussFwhmFactor / kMoffat4FwhmFactor, 1.9140054498711294, 1e-15,
+                       "cross-block sigma bias = 1.914005");
+            double sp2_bad = 0, pc_bad = 0;
+            check(snr_moffat4_profile_f64(kMoffat4FwhmFactor * sigma_true, 0.0, 0,
+                                          &sp2_bad, &pc_bad) == 0, "moffat4 cross-block rc");
+            check(sp2_bad != sp2_col && pc_bad != pc_col,
+                  "cross-block interpretation differs (non-vacuous)");
+            // 逐源路径同锁: 高斯列 vs 同 sigma (sigma_px 直传) 逐位一致
+            SnrSourceParams pc = makeParams(1.0e4, kGaussFwhmFactor * sigma_true, 20.0);
+            SnrSourceParams ps;
+            std::memset(&ps, 0, sizeof(ps));
+            ps.flux_adu = 1.0e4;
+            ps.sigma_px = sigma_true;
+            ps.sigma_sky_adu = 20.0;
+            SnrSourceResult rc, rs;
+            check(snr_source_snr_f64(&pc, &rc) == 0 && snr_source_snr_f64(&ps, &rs) == 0,
+                  "source snr rc (col/sigma)");
+            check(rc.snr_optimal == rs.snr_optimal &&
+                  rc.sigma_f_optimal_adu == rs.sigma_f_optimal_adu &&
+                  rc.sum_p2 == rs.sum_p2,
+                  "source snr: Gaussian-fwhm column == same sigma (bitwise)");
+            // 旧跨块口径等价于 sigma x1.914005 ⇒ SNR 更低 (方向锁)
+            SnrSourceParams pw = makeParams(1.0e4,
+                kGaussFwhmFactor * sigma_true * (kGaussFwhmFactor / kMoffat4FwhmFactor), 20.0);
+            SnrSourceResult rw;
+            check(snr_source_snr_f64(&pw, &rw) == 0 && rw.snr_optimal < rc.snr_optimal,
+                  "sigma x1.914 (old cross-block) yields lower SNR");
         }
         // 零点标准误 1.253*sigma/sqrt(N)
         checkClose(snr_calib_zero_point_standard_error(0.05, 200), kOracleZpSE, 1e-12, "zp_se n200");
@@ -247,7 +303,8 @@ int main(int argc, char** argv) {
         double old_ratio[5];
         for (int i = 0; i < n; ++i) {
             double* row = psf.data() + (size_t)i * 9;
-            const double sigma = kRealFwhm[i] / kFwhmFactor;
+            // 合成 PSF 块行: 宽度按 **PSF 块** Moffat4 口径 (fwhm_x = 1.230310*sigma)
+            const double sigma = kRealFwhm[i] / kMoffat4FwhmFactor;
             const double A = kRealFlux[i] * 3.0 / (2.0 * kPi * sigma * sigma);
             row[0] = 0.0; row[1] = 100.0; row[2] = kRealFlux[i];
             row[3] = 100.0 + i; row[4] = 100.0 + i; row[5] = kRealFwhm[i];
@@ -265,7 +322,8 @@ int main(int argc, char** argv) {
         if (m.points && m.value_dtype == 1) {
             auto* pts = (SnrControlPointF64V3*)m.points;
             for (uint32_t i = 0; i < m.n_points; ++i) {
-                RefResult e = refCompute(kRealFlux[i], kRealFwhm[i], kRealSky, 0, 0, 0, 0, 0);
+                // extract_v3 消费 PSF 块行 (Moffat4 FWHM 列) ⇒ oracle 走 PSF 块口径
+                RefResult e = refCompute(kRealFlux[i], kRealFwhm[i], kRealSky, 0, 0, 0, 0, 0, true);
                 char b[64];
                 std::snprintf(b, sizeof(b), "extract_v3 point%u == Horne SNR", i);
                 checkClose(pts[i].snr_psf, e.snr_optimal, 1e-12, b);
@@ -286,7 +344,9 @@ int main(int argc, char** argv) {
             std::sort(fw.begin(), fw.end());
             const double med_fwhm = fw[2];
             double sp2 = 0, pc = 0;
-            snr_moffat4_profile_f64(med_fwhm, 0.0, 0, &sp2, &pc);
+            // med_fwhm 取自 PSF 块列 (Moffat4 FWHM) ⇒ 按 PSF 块因子换算 sigma 后传入
+            // (与 snr_estimator.cpp frameDepthFromPsf 同款; PSF 路径数值不变)。
+            snr_moffat4_profile_f64(0.0, med_fwhm / kMoffat4FwhmFactor, 0, &sp2, &pc);
             checkClose(m.frame_depth_flux5_adu, 5.0 * kRealSky / std::sqrt(sp2), 1e-12,
                        "extract_v3 frame_depth_flux5_adu");
             check(std::isnan(m.frame_depth_m5_mag), "extract_v3 m5 NaN without ZP");
