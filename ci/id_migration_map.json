@@ -512,6 +512,12 @@
       "name": "真实数据 E2E（slow）",
       "doc": "docs/ci/01_CHECKS.md §2",
       "steps": []
+    },
+    "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "规范点名的权威实现必须在生产可达路径（CMake 根构建图闭包 + 生产节点调用点；登记表 ci/spec_named_impls.json；缺口台账 ci/ledgers/spec_named_impl_gaps.json）",
+      "doc": "docs/ci/01_CHECKS.md §2（DESIGN-GAP-LAND 登记，GAP_AUDIT §9.44 负责人令）"
     }
   },
   "reserved_targets": {
@@ -2298,6 +2304,30 @@
       "owner": "RELEASE-02 fix-gates",
       "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 ci/check_realdata_e2e.py --self-test。",
       "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "decision": "KEPT",
+      "target": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "DESIGN-GAP-LAND（2026-09-19）新增执行单元（非基线 146 项，absorbed）：GAP_AUDIT §9.44 负责人令新增门禁 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH，覆盖 S1-002/S2-NS-01/S4-P3X-06 三条同类缺陷；判据+可执行负例见 ci/check_spec_named_impl.py --self-test。"
+    },
+    {
+      "old_id": "SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "decision": "KEPT",
+      "target": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "DESIGN-GAP-LAND（2026-09-19）新增执行单元（非基线 146 项，absorbed）：GAP_AUDIT §9.44 负责人令新增门禁 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH，覆盖 S1-002/S2-NS-01/S4-P3X-06 三条同类缺陷；判据+可执行负例见 ci/check_spec_named_impl.py --self-test。"
+    },
+    {
+      "old_id": "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "DESIGN-GAP-LAND（2026-09-19）新增执行单元（非基线 146 项，absorbed）：GAP_AUDIT §9.44 负责人令新增门禁 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH，覆盖 S1-002/S2-NS-01/S4-P3X-06 三条同类缺陷；判据+可执行负例见 ci/check_spec_named_impl.py --self-test。"
     }
   ],
   "coverage": {
@@ -2350,7 +2380,10 @@
       "CHK-CONFIG-DEFAULTS",
       "CHK-PROD-SCALE",
       "CHK-PROVENANCE-CONSISTENCY",
-      "CHK-REALDATA-E2E"
+      "CHK-REALDATA-E2E",
+      "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

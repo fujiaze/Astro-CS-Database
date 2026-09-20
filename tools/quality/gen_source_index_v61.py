@@ -181,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
     # 1. parse CMake target sources
     target_map: dict[str, list[str]] = {}
     cmake_files = [root / "CMakeLists.txt"]
-    for sub in ("tests/unit/CMakeLists.txt", "cli/CMakeLists.txt"):
+    for sub in ("tests/unit/CMakeLists.txt", "lib/infrastructure/cli/CMakeLists.txt"):
         p = root / sub
         if p.is_file():
             cmake_files.append(p)

@@ -18,10 +18,11 @@ timeout 2400 cmake --build build/linux-control -j 2 --target astrocs
 # ASTROCS_TEST_BIN_DIR 重定向（仅 cmd_test_synthetic 读取，无副作用面）。
 timeout 1200 cmake --build build/linux-control -j 2 \
   --target p1_ir_facade_test p2_upm_synthetic_test
-# cli 子图 build/cli/astrocs 供 phaseN in-process 测试（UT-CLI 面 EXE）
-mkdir -p build/cli && cmake -S cli -B build/cli -DCMAKE_BUILD_TYPE=Release \
-  -DASTROCS_ENABLE_ACR=OFF >/dev/null
-timeout 2400 cmake --build build/cli -j 2 --target astrocs
+# ROOT-008 收口：旧 `cli/` 子图（`build/cli/astrocs`）已退役 —— 唯一产品二进制是
+# 根图的 `build/astrocs`（tests/cli/test_phase123_pipeline.py:24 逐字声明）。
+# 旧 `cli/CMakeLists.txt` 为布局重构前的遗留副本，其引用路径（`../lib/astro_image_io`、
+# `../lib/backend_host`、`../lib/acr`）在 ROOT-008 搬迁后已全部不存在，配置必然失败。
+# 本步曾因此恒红；此处删除该退役子构建，phaseN in-process 测试统一用根图 `build/astrocs`。
 # M8-F-003: UT-CLI test_cli_single_install 前置产物是根 build/ 构建树的
 # build/{astrocs,libastrocs_runtime.so} 双件; 旧步只 cp astrocs, 缺 .so ⇒
 # 该门 setUpClass 恒 SkipTest(CI 执行数为 0)。此处补建 runtime 平台库并落根树。
@@ -37,17 +38,19 @@ cp -f build/linux-control/libastrocs_runtime.so build/libastrocs_runtime.so
 cp -f build/linux-control/version_generated.h build/version_generated.h
 
 # V3 B3-A3/B3-A4: 独立 oracle 门 (UT-API) 与 lib/phase2 gtest 目标的链接输入。
-#   - lib/astro_image_io/astro_image_io.dll 是 gitignore 的共享库构建产物
+#   - lib/infrastructure/aio/astro_image_io.dll 是 gitignore 的共享库构建产物
 #     (干净检出无); tests/api 的 seam/UPM/reject 独立 oracle 门以 g++ 直接
 #     链接它。UT-API 的接缝门自本批起 fail-closed (缺库即红, 不再静默
 #     skip), 故此处必须真实构建。
 #   - build/linux-openmp-on/libphase2.a (P2_ENABLE_OPENMP=ON 归档) 同为
 #     上述 oracle 门的链接输入。
-#   - lib/astro_image_io Makefile 已补 -fPIC (共享对象必需; gcc14 对 TLS
+#   - lib/infrastructure/aio Makefile 已补 -fPIC (共享对象必需; gcc14 对 TLS
 #     local-exec 重定位报 R_X86_64_TPOFF32, 否则无法链接)。
 mkdir -p build/linux-openmp-on
-if [ ! -f lib/astro_image_io/astro_image_io.dll ]; then
-  timeout 1800 make -C lib/astro_image_io -j 2 all
+# ROOT-008 收口：AIO 已迁至 lib/infrastructure/aio/（旧 lib/astro_image_io 退役）。
+# 旧路径引用使本步在干净树恒红（make: *** lib/astro_image_io: 没有那个文件或目录）。
+if [ ! -f lib/infrastructure/aio/astro_image_io.dll ]; then
+  timeout 1800 make -C lib/infrastructure/aio -j 2 all
 fi
 if [ ! -f build/linux-openmp-on/libphase2.a ]; then
   timeout 900 cmake -S lib/phase2 -B build/linux-openmp-on \
@@ -55,4 +58,6 @@ if [ ! -f build/linux-openmp-on/libphase2.a ]; then
   timeout 900 cmake --build build/linux-openmp-on --target phase2 -j 2
 fi
 
-./build/astrocs version --json && ./build/cli/astrocs version --json
+# ROOT-008 收口：唯一产品二进制是根图 build/astrocs（build/cli/astrocs 已退役）；
+# 且 CLI 的版本入口是 `--version`（`version` 是未知子命令，旧写法使本步恒红）。
+./build/astrocs --version --json

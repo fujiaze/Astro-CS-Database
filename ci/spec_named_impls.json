@@ -1,0 +1,96 @@
+{
+  "manifest_schema": "astrocs.spec-named-impls/v1",
+  "purpose": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH 的可维护登记表：规范文档点名的权威实现 → 期望的生产可达性。新增条目只增不改语义；规范侧不再点名时必须同步改本表（否则门禁 fail-closed 判 ANCHOR_STALE）。",
+  "authority": "工程控制/RELEASE-02/GAP_AUDIT.md §9.44（负责人令「须新增门禁类 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH」）；reports/RELEASE-02/design-gap-synthesis.md DG-C-01",
+  "production_entry": "astrocs",
+  "defect_classes": [
+    "S1-002：规范点名 sdet_api.cpp，生产 star-psf 节点跑 wrapper_phase1::StarDetector",
+    "S2-NS-01：规范点名 noise_model.cpp，模块子图因根 CMakeLists.txt:240 注释不在构建图",
+    "S4-P3X-06/P3X-12：p3_v6_export.cpp 未编入生产 target，清单却标 production=yes"
+  ],
+  "entries": [
+    {
+      "id": "SNI-S1-002-PROD-PATH",
+      "kind": "prod_path",
+      "defect_ref": "CONFORM-SWEEP-1-002 / GAP_AUDIT §9.48② / DG-C-01",
+      "spec": {
+        "doc": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md",
+        "loc": "8",
+        "quote": "> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp"
+      },
+      "named": {
+        "file": "lib/algorithms/star_detection/src/sdet_api.cpp",
+        "symbol": "sdet_detect_impl"
+      },
+      "owner": "Phase1 star-detection 域主（前台裁决接线面）",
+      "exit_condition": "sdet_api.cpp 保持在生产闭包内（target astrocs_p1_sdet 经 astrocs_phase1_session → astrocs_module_adapters 链入 astrocs）；一旦该链被摘除即判红"
+    },
+    {
+      "id": "SNI-S1-002-CALL-SITE",
+      "kind": "call_site",
+      "defect_ref": "CONFORM-SWEEP-1-002（345,960 条 vs 1,473 条；Gaia 纯度 0.212%）/ GAP_AUDIT §9.49 定案 1",
+      "spec": {
+        "doc": "docs/algorithms/STAR_DETECTION_ALGORITHMS.md",
+        "loc": "8",
+        "quote": "> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp"
+      },
+      "named": {
+        "file": "lib/algorithms/star_detection/src/sdet_api.cpp",
+        "symbol": "sdet_create"
+      },
+      "call_site": {
+        "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+        "function": "p1_op_star_psf_impl",
+        "must_reference": "sdet_create"
+      },
+      "owner": "Phase1 star-detection 域主（负责人裁决 D-04 方案 A：先做星表引导检测，再评估切 sdet）",
+      "exit_condition": "生产 star-psf 检测节点改调 sdet 权威实现（sdet_create/sdet_detect_ex_f64），或负责人裁决把 ALG-STARDET-001:8 的权威源改指 wrapper 实现（规范变更 claim）"
+    },
+    {
+      "id": "SNI-S2-NS-01",
+      "kind": "prod_path",
+      "defect_ref": "CONFORM-SWEEP-2 NS-01 / DG-A-14",
+      "spec": {
+        "doc": "docs/algorithms/NOISE_ESTIMATION.md",
+        "loc": "120",
+        "quote": "生产符号唯一源 = `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`"
+      },
+      "named": {
+        "file": "lib/algorithms/noise_snr/cpp/src/noise_model.cpp",
+        "symbol": "snr_noise_model_v1"
+      },
+      "owner": "Phase1 noise-snr 域主（前台裁决接线面）",
+      "exit_condition": "根 CMakeLists.txt:240 的 add_subdirectory(lib/algorithms/noise_snr) 解注释收编（或把该 TU 编入 astrocs_phase1_noise），使点名文件进入 astrocs 生产闭包"
+    },
+    {
+      "id": "SNI-S4-P3X-06",
+      "kind": "prod_path",
+      "defect_ref": "CONFORM-SWEEP-4 P3X-06（E-09）",
+      "spec": {
+        "doc": "docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md",
+        "loc": "1",
+        "quote": "本规格定义 Phase3 的**算法层**"
+      },
+      "named": {
+        "file": "lib/phase3_session/p3_v6_export.cpp",
+        "symbol": "p3_v6_export"
+      },
+      "owner": "Phase3 export 域主（前台裁决接线面）",
+      "exit_condition": "把 p3_v6_export.cpp 编入生产 target（astrocs_phase3_session 或其新增库）并链入 astrocs，使 FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 在生产运行面有载体"
+    },
+    {
+      "id": "SNI-S4-P3X-12",
+      "kind": "inventory_claim",
+      "defect_ref": "CONFORM-SWEEP-4 P3X-12",
+      "spec": {
+        "doc": "docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md",
+        "loc": "1"
+      },
+      "named": {
+        "file": "lib/phase3_session/p3_v6_export.cpp"
+      },
+      "owner": "Phase3 export 域主（清单更正或完成接线）",
+      "exit_condition": "更正 docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv 的 classification/production_reachable，或按 P3X-06 完成接线后清单声明成立"
+    }
+  ]
+}

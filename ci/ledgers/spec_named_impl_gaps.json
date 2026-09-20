@@ -1,0 +1,36 @@
+{
+  "ledger_schema": "astrocs.ci-ledger/v1",
+  "ledger_id": "spec-named-impl-gaps",
+  "purpose": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH 的**缺口显式登记**（不是豁免）：承载本轮已确证、尚未接线的「规范点名权威实现不在生产路径」条目。每条命中仍计入 ledgered_gaps 并在 --strict 下判红；条目不再复现时判 ledger_stale（豁免必须存活，只减不增）。不得用本台账把门禁改绿：删条目即恢复判红。",
+  "generated_by": "reports/RELEASE-02/design-gap-synthesis.md DG-C-01 / 工程控制/RELEASE-02/GAP_AUDIT.md §9.44",
+  "entries": [
+    {
+      "id": "SNI-S1-002-CALL-SITE",
+      "kind": "known_gap",
+      "reason": "生产 star-psf 检测节点 p1_op_star_psf_impl（lib/infrastructure/scheduler/src/module_adapters.cpp:2046）使用 wrapper_phase1::StarDetector，未调用 ALG-STARDET-001:8 点名的 sdet 权威实现；实测生产检测器 345,960 条源 / Gaia 外部纯度 0.212%（sdet 1,473 条 / 45.553%）。",
+      "owner": "Phase1 star-detection 域主（负责人裁决 D-04 方案 A）",
+      "exit_condition": "生产节点改调 sdet_create/sdet_detect_ex_f64（或经星表引导检测落地后由负责人裁决权威源改指，走规范变更 claim）后删除本条目"
+    },
+    {
+      "id": "SNI-S2-NS-01",
+      "kind": "known_gap",
+      "reason": "ALG-NOISE（docs/algorithms/NOISE_ESTIMATION.md:120）点名的生产符号唯一源 lib/algorithms/noise_snr/cpp/src/noise_model.cpp 不在根构建图：根 CMakeLists.txt:240 的 add_subdirectory(lib/algorithms/noise_snr) 被注释（该子图 CMakeLists 为 V7 残留面）。生产噪声走 wrapper_phase1/noise_model.cpp。",
+      "owner": "Phase1 noise-snr 域主（前台裁决接线面）",
+      "exit_condition": "解注释收编 lib/algorithms/noise_snr 子图或把该 TU 编入 astrocs_phase1_noise，使点名文件进入 astrocs 生产闭包后删除本条目"
+    },
+    {
+      "id": "SNI-S4-P3X-06",
+      "kind": "known_gap",
+      "reason": "lib/phase3_session/p3_v6_export.cpp（V6 三模式导出链）不在任何生产 target 源列表，仅被 tests/integration/v6_p3 编译 ⇒ FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 四条 FROZEN 合同在生产运行面无载体（CONFORM-SWEEP-4 P3X-06，E-09）。",
+      "owner": "Phase3 export 域主（前台裁决接线面）",
+      "exit_condition": "把 p3_v6_export.cpp 编入生产 target 并链入 astrocs 后删除本条目"
+    },
+    {
+      "id": "SNI-S4-P3X-12",
+      "kind": "known_gap",
+      "reason": "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:338 把 p3_v6_export.cpp 标 production=yes，与该文件实际不在生产闭包冲突（CONFORM-SWEEP-4 P3X-12）；属清单反标。",
+      "owner": "Phase3 export 域主（清单更正或完成接线）",
+      "exit_condition": "清单更正 classification/production_reachable，或 P3X-06 接线完成后清单声明成立，然后删除本条目"
+    }
+  ]
+}

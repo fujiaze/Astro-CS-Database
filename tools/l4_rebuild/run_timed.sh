@@ -9,7 +9,7 @@
 # 只观测，不改科学参数；不写死线程数（AGENTS §5）。
 set -u
 cd '/workspace/Astro CS Database'
-export TMPDIR=/dev/shm/astrocs_l4
+export TMPDIR="${TMPDIR:-/var/tmp/astrocs}"
 mkdir -p "$TMPDIR"
 
 L4=run/RELEASE-02/L4-rebuild

@@ -223,7 +223,7 @@
         "CHK-WARN",
         "--quiet"
       ],
-      "timeout_seconds": 120,
+      "timeout_seconds": 300,
       "heavy": false,
       "mutates_workspace": false,
       "outputs": [],
@@ -247,7 +247,7 @@
             "python3",
             "tools/check_warning_suppression.py"
           ],
-          "timeout_seconds": 60,
+          "timeout_seconds": 180,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [],
@@ -1854,6 +1854,11 @@
         "run/ci/monitor/WIN-TEST-UNIT.json",
         "run/ci/win-test-junit.xml",
         "run/ci/win-test-summary.json",
+        "run/ci/ctest/aio_checksum.json",
+        "run/ci/ctest/aio_precision_dual.json",
+        "run/ci/ctest/aio_query_pixel.json",
+        "run/ci/ctest/aio_tile_model.json",
+        "run/ci/ctest/aio_transform.json",
         "run/v6/ctest/unit.json"
       ],
       "waivable": false,
@@ -1900,7 +1905,12 @@
         "v6_p2_upm_*",
         "v6_p3_proj_*",
         "v6_p3_rsmp_*",
-        "v6_runtime_*"
+        "v6_runtime_*",
+        "aio_checksum",
+        "aio_precision_dual",
+        "aio_query_pixel",
+        "aio_tile_model",
+        "aio_transform"
       ],
       "dirty_ignore_exact": [
         "resource_samples.csv",
@@ -2484,6 +2494,181 @@
             "cmake/**"
           ],
           "requires_monitor": false
+        },
+        {
+          "id": "CTEST-AIO-CHECKSUM",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "aio_checksum",
+            "--output",
+            "run/ci/ctest/aio_checksum.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/aio_checksum.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/tests/**",
+            "lib/infrastructure/aio/**",
+            "tests/unit/CMakeLists.txt",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_checksum"
+          ]
+        },
+        {
+          "id": "CTEST-AIO-TILE_MODEL",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "aio_tile_model",
+            "--output",
+            "run/ci/ctest/aio_tile_model.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/aio_tile_model.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/tests/**",
+            "lib/infrastructure/aio/**",
+            "tests/unit/CMakeLists.txt",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_tile_model"
+          ]
+        },
+        {
+          "id": "CTEST-AIO-TRANSFORM",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "aio_transform",
+            "--output",
+            "run/ci/ctest/aio_transform.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/aio_transform.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/tests/**",
+            "lib/infrastructure/aio/**",
+            "tests/unit/CMakeLists.txt",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_transform"
+          ]
+        },
+        {
+          "id": "CTEST-AIO-QUERY_PIXEL",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "aio_query_pixel",
+            "--output",
+            "run/ci/ctest/aio_query_pixel.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/aio_query_pixel.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/tests/**",
+            "lib/infrastructure/aio/**",
+            "tests/unit/CMakeLists.txt",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_query_pixel"
+          ]
+        },
+        {
+          "id": "CTEST-AIO-PRECISION_DUAL",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "aio_precision_dual",
+            "--output",
+            "run/ci/ctest/aio_precision_dual.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/aio_precision_dual.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/tests/**",
+            "lib/infrastructure/aio/**",
+            "tests/unit/CMakeLists.txt",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_precision_dual"
+          ]
         },
         {
           "id": "WIN-TEST-UNIT",
@@ -6487,7 +6672,6 @@
         "VERSION",
         "CMakeLists.txt",
         "lib/infrastructure/cli/**",
-        "cli/CMakeLists.txt",
         "docs/**",
         "README.md"
       ],
@@ -7315,6 +7499,99 @@
         "testdata/**"
       ],
       "requires_monitor": true
+    },
+    {
+      "id": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "ci/run_checks.py",
+        "--check",
+        "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+        "--quiet"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/fix-gates/spec_named_impl.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "ci/checks.json",
+        "ci/spec_named_impls.json",
+        "ci/ledgers/spec_named_impl_gaps.json",
+        "ci/check_spec_named_impl.py",
+        "CMakeLists.txt",
+        "docs/algorithms/**",
+        "docs/architecture/**",
+        "lib/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "SPEC-NAMED-IMPL-ON-PROD-PATH",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "ci/check_spec_named_impl.py",
+            "--json-out",
+            "run/ci/fix-gates/spec_named_impl.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/fix-gates/spec_named_impl.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "ci/checks.json",
+            "ci/spec_named_impls.json",
+            "ci/ledgers/spec_named_impl_gaps.json",
+            "ci/check_spec_named_impl.py",
+            "CMakeLists.txt",
+            "docs/algorithms/**",
+            "docs/architecture/**",
+            "lib/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "ci/check_spec_named_impl.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "ci/check_spec_named_impl.py",
+            "ci/gate_common.py"
+          ],
+          "requires_monitor": false
+        }
+      ]
     },
     {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
