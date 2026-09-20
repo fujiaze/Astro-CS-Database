@@ -120,6 +120,8 @@ class TestPhase3InProcess(unittest.TestCase):
                 "projection": "TAN", "sampler": "nearest",
                 "longitude_parity": "east_left", "bitpix": -32,
                 "coverage_output": "mask",
+                # FZ-P3-MODES：phase3 resample 节点要求显式声明 output_mode（缺键即 REJECT）
+                "output_mode": "surface_brightness",
                 "output_dir": cls.out, "max_tiles": 16,
             }, fh)
 
@@ -348,14 +350,28 @@ class TestPhase3InProcess(unittest.TestCase):
 
     def test_10_coverage_requires_filter_and_nested_ordering(self):
         """B2-A8: coverage 对缺 obs_filter / hips_ordering!=NESTED 的输入必须 fail-closed。
-        负例以 FIFO 生成的真实 HiPS 树构造，直接替换 properties 键。（mosaic 域, 不经 export）"""
+        三条臂共用同一份 FIFO 生成的真实 HiPS 树（properties 键直接替换）。（mosaic 域, 不经 export）
+
+        夹具选择（本用例单独生成，不动 setUpClass 的 --make-field）：
+        正例臂要求 mosaic 整链 rc=0，而默认权重是**逐帧逆方差**（权重 = Phase2 消费
+        帧级 SNR 时现场派生量，ASTROCS_DESIGN §2.1 / §9.73 裁决 A44），缺逐帧
+        variance/ivar 时按 DATA-UNC-001 §30.1 **禁止静默回退等权** ⇒ 用只有
+        SIGNAL|SUPPORT 的 --make-field 夹具时正例臂必然 rc=2（实测
+        "2/2 frames missing ivar ... weight chain NOT closed"）。
+        故此处用 --make（B1-A5：等权合成帧 σ=0.1 ⇒ 写 variance/ivar 子产品，
+        默认链可闭合），负例两臂同用该夹具以保持单一夹具口径。"""
         work = os.path.join(self.tmp, "cov_neg")
         os.makedirs(work, exist_ok=True)
+        fx = os.path.join(self.tmp, "cov_fx")
+        os.makedirs(fx, exist_ok=True)
+        r = subprocess.run([self.fixture, "--make", fx], capture_output=True, text=True,
+                           timeout=300, cwd=run_cwd())
+        assert "HIPS_FIXTURES_OK" in r.stdout, r.stderr
         ok = os.path.join(work, "F1.hips")
         if not os.path.isdir(ok):
-            shutil.copytree(self.hips, ok)
+            shutil.copytree(os.path.join(fx, "F1.hips"), ok)
         copy = os.path.join(work, "F2.hips")
-        shutil.copytree(ok, copy)
+        shutil.copytree(os.path.join(fx, "F2.hips"), copy)
         props = os.path.join(copy, "signal", "properties")
         self.assertTrue(os.path.isfile(props))
         with open(props, encoding="utf-8") as fh:
@@ -369,7 +385,7 @@ class TestPhase3InProcess(unittest.TestCase):
         cfg1 = os.path.join(work, "c1.json")
         with open(cfg1, "w", encoding="utf-8") as fh:
             json.dump({"schema_version": "1", "hips_paths": [ok, copy],
-                       "output_dir": out1, "weight_mode": 1}, fh)
+                       "output_dir": out1}, fh)
         r = self._run("mosaic", "--json", cfg1)
         self.assertNotEqual(r.returncode, 0, "缺 obs_filter 必须 fail-closed（B2-A8）")
         self.assertIn("obs_filter", r.stderr)
@@ -380,7 +396,7 @@ class TestPhase3InProcess(unittest.TestCase):
         cfg2 = os.path.join(work, "c2.json")
         with open(cfg2, "w", encoding="utf-8") as fh:
             json.dump({"schema_version": "1", "hips_paths": [ok, copy],
-                       "output_dir": out2, "weight_mode": 1}, fh)
+                       "output_dir": out2}, fh)
         r = self._run("mosaic", "--json", cfg2)
         self.assertNotEqual(r.returncode, 0, "hips_ordering=RING 必须 fail-closed（B2-A8）")
         self.assertIn("NESTED", r.stderr)
@@ -391,7 +407,7 @@ class TestPhase3InProcess(unittest.TestCase):
         cfg3 = os.path.join(work, "c3.json")
         with open(cfg3, "w", encoding="utf-8") as fh:
             json.dump({"schema_version": "1", "hips_paths": [ok, copy],
-                       "output_dir": out3, "weight_mode": 1}, fh)
+                       "output_dir": out3}, fh)
         r = self._run("mosaic", "--json", cfg3)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
 

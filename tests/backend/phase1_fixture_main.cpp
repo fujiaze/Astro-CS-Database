@@ -41,7 +41,12 @@ int main(int argc, char** argv) {
     // aio 不透明结构无直接分配导出 — 用 fitsio 裸头写入太重; 改为经 aio_read 循环?
     // 实际可行路径: aio_write_fits 要求完整结构, 而 AIOImageData 定义在 src/aio_fits.h。
     // fixture 与 CLI 同构: 本程序编进时 include src/aio_fits.h 直接构造完整结构。
-if (argc < 3) { std::fprintf(stderr, "usage: --make <dir> | --mean <fits>\n"); return 2; }
+    if (argc < 3) {
+        std::fprintf(stderr,
+                     "usage: --make <dir> | --make-noisy <dir> | --make-bad-flat <dir> |"
+                     " --mean <fits>\n");
+        return 2;
+    }
     const std::string mode = argv[1], arg = argv[2];
     if (mode == "--make") {
         const std::string& dir = arg;
@@ -64,6 +69,62 @@ if (argc < 3) { std::fprintf(stderr, "usage: --make <dir> | --mean <fits>\n"); r
             if (!im.data) return 3;
             for (int i = 0; i < W * H; ++i) im.data[i] = it.v;
             // FRAMETYPE 声明(校准元数据; io 侧只要求 geometry+data)
+            const std::string p = dir + "/" + it.name;
+            if (aio_write_fits(&im, p.c_str()) != 0) {
+                std::fprintf(stderr, "write failed: %s\n", p.c_str());
+                std::free(im.data);
+                return 4;
+            }
+            if (!add_exptime_key(p)) {
+                std::fprintf(stderr, "EXPTIME key write failed: %s\n", p.c_str());
+                std::free(im.data);
+                return 5;
+            }
+            std::free(im.data);
+        }
+        std::printf("FIXTURES_OK\n");
+        return 0;
+    }
+    // ── --make-noisy: 带确定性噪声的 light 帧（bias/dark/flat 仍为常量域）────────
+    // 为什么需要（ASTROCS_DESIGN §2.1：HiPS 里**存**帧级 SNR；DATA-UNC-001 §30.1：
+    // 缺逐帧 ivar 时**禁止静默回退等权**）：mosaic 的默认（唯一）生产权重 = 逐帧
+    // 逆方差，其 ivar 子产品来自 Phase1 drizzle 的方差传播，而方差传播只在噪声模型
+    // 有合格 patch（σ>0）时成立。--make 的常量域帧 σ=0 ⇒ 噪声模型整帧退化
+    // （n_qualified_patches=0，科学上正确）⇒ Phase1 产品无 variance/ivar、无帧级
+    // SNR ⇒ Phase2 默认链按 §30.1 fail-closed（rc=2）。故端到端正例需要非退化噪声面。
+    // 数值约定：light = V_LIGHT + n，n ~ U[-4,4] ADU（确定性哈希，无 RNG 状态）；
+    // 校准后 (light−bias−(dark−bias))/flat = 40 + n/1.25，均值仍为 40。
+    // --make 逐字节不变（其校准数值 oracle = 40 由其它用例断言）。
+    if (mode == "--make-noisy") {
+        const std::string& dir = arg;
+        struct { const char* name; float v; unsigned seed; } items[] = {
+            {"bias.fits", V_BIAS, 0u}, {"dark.fits", V_DARK, 0u},
+            {"flat.fits", V_FLAT, 0u}, {"light_1.fits", V_LIGHT, 1u},
+            {"light_2.fits", V_LIGHT, 2u}};
+        for (const auto& it : items) {
+            AIOImageData im{};
+            std::memset(&im, 0, sizeof(im));
+            im.width = W;
+            im.height = H;
+            im.channels = 1;
+            im.bits_per_sample = -32;
+            im.float_sample = 1;
+            im.dtype = 0;
+            std::strncpy(im.source_format, "fits", sizeof(im.source_format) - 1);
+            im.metadata.calibration.exptime = 1.0;
+            im.metadata.calibration.frame_type[0] = it.seed ? 'L' : 'B';
+            im.data = static_cast<float*>(std::malloc(sizeof(float) * W * H));
+            if (!im.data) return 3;
+            for (int i = 0; i < W * H; ++i) {
+                float n = 0.0f;
+                if (it.seed) {
+                    unsigned h = static_cast<unsigned>(i) * 2654435761u + 12345u +
+                                 it.seed * 7919u;
+                    h ^= h >> 13; h *= 2246822519u; h ^= h >> 17;
+                    n = (static_cast<float>(h % 4001u) - 2000.0f) / 500.0f;  // U[-4,4] ADU
+                }
+                im.data[i] = it.v + n;
+            }
             const std::string p = dir + "/" + it.name;
             if (aio_write_fits(&im, p.c_str()) != 0) {
                 std::fprintf(stderr, "write failed: %s\n", p.c_str());

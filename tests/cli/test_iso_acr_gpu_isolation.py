@@ -208,7 +208,8 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
                        "center": {"ra_deg": 210.0, "dec_deg": 34.0},
                        "scale_deg_per_px": 0.1, "width_px": 40, "height_px": 30,
                        "projection": "TAN", "sampler": "nearest",
-                       "coverage_output": "mask"}, fh)
+                       # FZ-P3-MODES：phase3 resample 节点要求显式声明 output_mode（缺键即 REJECT）
+                       "coverage_output": "mask", "output_mode": "surface_brightness"}, fh)
         r = subprocess.run([EXE, "export", "--json", cfg, "-y"],
                            capture_output=True, text=True, timeout=300, cwd=run_cwd())
         self.assertEqual(r.returncode, 0, r.stderr[-300:])
