@@ -178,10 +178,10 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"schema_version", "\"1\"", "配置合同版本（恒 \"1\"）"},
         {"hips_paths", "[]", "输入 HiPS 产品目录数组（必填非空；properties 严格校验）"},
         {"output_dir", "\".\"", "运行产物唯一落点（必填非空字符串）"},
-        {"weight_mode", "2",
-         "1=等权 / 2=ivar（科学方差面）；2 要求输入含 variance/ivar 子产品，缺失即 fail-closed"},
-        {"legacy_allow_weight_fallback", nullptr,
-         "可选：ivar 缺失时是否允许显式降级为等权（默认不允许）"},
+        // §9.73 裁决 A44（「权重模式」概念不存在）: 原 weight_mode / legacy_allow_weight_fallback
+        // 两键**已从 CLI 配置面摘除**（模板/help/白名单同撤）。权重是 Phase2 消费 SNR 时的
+        // 派生量（帧级 SNR + 稀疏相对 SNR 比），不是配置项；实现/冻结面（module_adapters /
+        // v6 provenance / mode gate legacy 分支）由另一分片处置。
         {"upm", nullptr, "可选 UPM 配置块（拒绝/拟合参数）"},
         {"reject", nullptr, "可选 rejection 配置块；reject_profile 选择档位"},
         // DC-401/DC-418/DC-419（§4.5.5）: CLI 只识别并透传，不判科学值域；

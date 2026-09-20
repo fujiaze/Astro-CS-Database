@@ -290,11 +290,12 @@ const std::set<std::string>& session_keys() {
         // phase2 平铺 (p2_session / canonical P2 节点链 消费面)
         // B1-A4: 节点实际消费键必须可达, 否则配置被 parser 拒绝而链路不可闭合。
         // 节点侧键集（module_adapters P2NodeModule::validate_config + op 读取）:
-        //   hips_paths, output_dir, upm, reject, weight_mode,
-        //   legacy_allow_weight_fallback, reject_profile,
+        //   hips_paths, output_dir, upm, reject, reject_profile,
         //   persist_upm/upm_save_path（UPM 持久化落盘键）。
+        // §9.73 裁决 A44: weight_mode / legacy_allow_weight_fallback **已摘除**
+        // （「权重模式」概念不存在；权重是消费 SNR 时的派生量）⇒ 配置里出现即 rc=3。
         "hips_paths", "upm", "upm_save_path", "persist_upm",
-        "reject", "reject_profile", "weight_mode", "legacy_allow_weight_fallback",
+        "reject", "reject_profile",
         // phase3 平铺 (p3_session 消费面)
         "source", "center", "scale_deg_per_px", "width_px", "height_px",
         "projection", "sampler", "longitude_parity", "bitpix",
@@ -309,9 +310,11 @@ const std::set<std::string>& session_keys() {
         // 4 键（CLI 判 unknown key 退出 3 ⇒ 配置不可达）。CLI 只识别并透传到
         // pdoc（phase_config 直通分支），科学消费在 scheduler 面。
         //   phase_config_normalize.schema.json: sparse_snr_layer / algorithm_psf_model
-        //   phase_config_mosaic.schema.json:    algorithm_weight_mode / algorithm_upm_gauge
+        //   phase_config_mosaic.schema.json:    algorithm_upm_gauge
+        // §9.73 裁决 A44: algorithm_weight_mode **已摘除**（同 weight_mode）。
+        // algorithm_upm_gauge 保留至 §9.71 定案 5 契约面整体重整（前台面）。
         // 键名与 config_separation_anchors.json 的 ^algorithm_* 族一致。
-        "algorithm_weight_mode", "algorithm_upm_gauge",
+        "algorithm_upm_gauge",
         "algorithm_psf_model", "sparse_snr_layer",
         // DC-503 (§5.3): 输出模式 surface_brightness/point_source_flux/visualization。
         // CLI 只识别并透传到 pdoc；生产 resample/writer 的消费在 scheduler 面。
