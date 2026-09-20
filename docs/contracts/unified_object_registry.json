@@ -28,7 +28,8 @@
           "file": "contracts/schemas/v6/astrocs.v6.signal.v1.schema.json",
           "kind": "product_family_specialization_not_equivalent",
           "status": "FROZEN_COMPATIBILITY",
-          "retire_after": "0.12.0",
+          "retire_after_change": "OWNER_DECISION",
+          "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
           "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
         }
       ]
@@ -50,7 +51,8 @@
           "file": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
           "kind": "product_family_specialization_not_equivalent",
           "status": "FROZEN_COMPATIBILITY",
-          "retire_after": "0.12.0",
+          "retire_after_change": "OWNER_DECISION",
+          "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
           "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
         }
       ]
@@ -72,7 +74,8 @@
           "file": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
           "kind": "product_family_specialization_not_equivalent",
           "status": "FROZEN_COMPATIBILITY",
-          "retire_after": "0.12.0",
+          "retire_after_change": "OWNER_DECISION",
+          "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
           "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
         }
       ]
@@ -136,7 +139,8 @@
           "file": "contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json",
           "kind": "product_family_specialization_not_equivalent",
           "status": "FROZEN_COMPATIBILITY",
-          "retire_after": "0.12.0",
+          "retire_after_change": "OWNER_DECISION",
+          "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
           "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
         }
       ]
@@ -228,7 +232,8 @@
           "file": "contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
           "kind": "product_family_specialization_not_equivalent",
           "status": "FROZEN_COMPATIBILITY",
-          "retire_after": "0.12.0",
+          "retire_after_change": "OWNER_DECISION",
+          "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
           "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
         }
       ]
@@ -584,7 +589,8 @@
     },
     "legacy_paths_are_compatibility_only": true,
     "no_second_equivalent_schema": true,
-    "retire_after": "0.12.0",
+    "retire_after_change": "OWNER_DECISION",
+    "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
     "object_retirements": {
       "psfsw_robust_weight": {
         "state": "retired",
@@ -606,85 +612,97 @@
         "old_path": "contracts/data/v6_data_dictionary_v1.json",
         "new_path": "contracts/schemas/unified/",
         "kind": "data_dictionary_index",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "contracts/data/v6_weight_vocabulary_v1.json",
         "new_path": "contracts/schemas/unified/",
         "kind": "weight_vocabulary",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "contracts/data/v6_migration_map_v1.json",
         "new_path": "docs/contracts/unified_object_registry.json#deprecation",
         "kind": "migration_map",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "contracts/schemas/v6/astrocs.v6.signal.v1.schema.json",
         "new_path": "contracts/schemas/unified/signal.schema.json",
         "kind": "object_contract",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
         "new_path": "contracts/schemas/unified/variance.schema.json",
         "kind": "object_contract",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
         "new_path": "contracts/schemas/unified/ivar.schema.json",
         "kind": "object_contract",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json",
         "new_path": "contracts/schemas/unified/point_information.schema.json",
         "kind": "object_contract",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
         "new_path": "contracts/schemas/unified/provenance.schema.json",
         "kind": "object_contract",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "contracts/data/phase2_uncertainty_rejection_provenance_v1.json",
         "new_path": "contracts/schemas/unified/rejection.schema.json",
         "kind": "product_contract",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "contracts/data/phase_product_exchange.schema.json",
         "new_path": "docs/contracts/unified_object_registry.json#port_contract",
         "kind": "exchange_planes",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "contracts/proposals/v6/data/",
         "new_path": "contracts/schemas/unified/",
         "kind": "proposal_design_archive",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       },
       {
         "old_path": "docs/contracts/v6/data/",
         "new_path": "docs/contracts/UNIFIED_OBJECTS.md",
         "kind": "human_readable_design_archive",
-        "deprecated_at": "0.11.0-alpha.2",
-        "retire_after": "0.12.0"
+        "deprecated_at_change": "CHG-2026-09-16-DATA001",
+        "retire_after_change": "OWNER_DECISION",
+        "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
       }
     ]
   },
