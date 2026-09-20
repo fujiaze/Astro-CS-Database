@@ -1,0 +1,19 @@
+{
+  "schema_version": "1",
+  "input_lights": [
+    "path/to/light1.fits"
+  ],
+  "master_bias": "path/to/bias.fits",
+  "master_dark": "path/to/dark.fits",
+  "master_flat": "path/to/flat.fits",
+  "output_dir": "path/to/out/normalize",
+  "filter_passband": "Baader R",
+  "drizzle": {
+    "nested": 1,
+    "pixfrac": 1,
+    "precision_mode": 1
+  },
+  "wcs": {
+    "gaia_data_dir": "path/to/gaia"
+  }
+}

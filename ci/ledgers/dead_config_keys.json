@@ -42,16 +42,17 @@
       ]
     },
     {
-      "id": "dead_config_key:sparse_snr_spacing_px",
+      "id": "dead_config_key:blocks[].sparse_snr_spacing_px",
       "kind": "dead_key",
-      "reason": "config/templates/normalize.phase_config.json#config.sparse_snr_spacing_px 在生产源码零命中。键已由合同登记：contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_config/properties/sparse_snr_spacing_px（integer >= 1，default 64）+ config/defaults.json#sparse_snr.spacing_px（owner_adjudicated，GAP_AUDIT §9.45：Δ = 64 px，复用 Phase2 UPM 8×8/tile 控制网格）。Phase1 稀疏层生产者（含控制点网格）为登记未实现的跟随项（FIX-SCI-SNR-CANON-001 §4.2）。另：CLI kSessionKeys 白名单尚未含本键 ⇒ 现实现判 unknown key 退出 3。",
-      "owner": "负责人裁决 2026-09-19（GAP_AUDIT §9.45）+ 分片 SNR-CONFIG-LAND（FIX-SCI-SNR-CANON-001 §4.1 落地）",
+      "reason": "键仍由合同登记：contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_spacing_px（integer >= 1，default 64）+ config/defaults.json#sparse_snr.spacing_px（owner_adjudicated，GAP_AUDIT §9.45：Δ = 64 px，复用 Phase2 UPM 8×8/tile 控制网格）；在 lib/** 生产源码零命中。Phase1 稀疏层生产者（含控制点网格）为登记未实现的跟随项（FIX-SCI-SNR-CANON-001 §4.2）。**§9.68（CFG-MULTIBLOCK-001）后状态**：config/templates/normalize.phase_config.json 已改写为多数据块形态，并与 `astrocs normalize --template` 输出同源（只列必填骨架 + drizzle/wcs/filter_passband），本键**不再出现在模板里** ⇒ CHK-CONFIG-CONSUMED 当前对本键零命中（模板键面 36 条、死键 3 条均属 export/mosaic）。本条按「只减不增」保留为**预备豁免**：若本键重回模板（块级 blocks[].sparse_snr_spacing_px），门仍须放行至出现生产读取点。",
+      "owner": "负责人裁决 2026-09-19（GAP_AUDIT §9.45）+ 分片 SNR-CONFIG-LAND（FIX-SCI-SNR-CANON-001 §4.1 落地）；§9.68 形态改写 = CFG-MULTIBLOCK-001",
       "exit_condition": "Phase1 按 sparse_snr_spacing_px 生成稀疏控制点 SNR 层（复用 UPM 8×8/tile 网格）出现生产读取点后删除本条；同时 CLI kSessionKeys 补 sparse_snr_spacing_px 使配置可达",
-      "template": "config/templates/normalize.phase_config.json",
+      "template": "config/templates/normalize.phase_config.json（§9.68 后本键不在模板键面；条目标注为预备豁免）",
       "evidence": [
-        "contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_config/properties/sparse_snr_spacing_px",
+        "contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_spacing_px",
         "config/defaults.json#fields[].key=sparse_snr.spacing_px",
-        "工程控制/RELEASE-02/change-claims/FIX-SCI-SNR-CANON-001.md §4.2"
+        "工程控制/RELEASE-02/change-claims/FIX-SCI-SNR-CANON-001.md §4.2",
+        "工程控制/RELEASE-02/change-claims/CFG-MULTIBLOCK-001.md"
       ]
     }
   ]

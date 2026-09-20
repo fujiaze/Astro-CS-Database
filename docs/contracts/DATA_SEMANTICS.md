@@ -283,13 +283,13 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 
 | 块/参数 | dtype/shape | 单位/域 | invalid / NULL 语义 |
 |---|---|---|---|
-| "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（api.cpp:486-503） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；值 NaN/Inf 静默跳过（等效掩膜，不进累加器，无计数暴露——DISP-DRZ-004，drizzle_engine.cpp:1712） |
-| "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（api.cpp:541-545）；CDELT+CROTA2 构造 CD（api.cpp:538） |
-| "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（api.cpp:552-557）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001）。**B2-A17**：编排 drizzle 节点从 `p1_wcs.json` 读回 `wcs.sip`，经 `p1_sip_write_header_frame` 写 frame header `CTYPE1/2`（含 `-SIP`）、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键（module_adapters.cpp p1_op_drizzle）。 |
+| "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（hp_drizzle_api.cpp:583-630） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；**值 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**（**2026-09-20 订正**：原文「值 NaN/Inf 静默跳过（等效掩膜，不进累加器，无计数暴露——DISP-DRZ-004，drizzle_engine.cpp:1712）」**已作废**——实现 `drizzle_engine.cpp:1898-1902` 自述「旧 `isfinite(...)+continue` 静默吞像素已删除」，科学锚 `docs/science/DRIZZLE.md:116`，回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537`（`p1drz_negative`）；原锚 `api.cpp:486-503` 的 `api.cpp` 在本仓不存在，已重锚为 `hp_drizzle_api.cpp`） |
+| "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（hp_drizzle_api.cpp:427-448，`read_wcs_params_from_frame`）；CDELT+CROTA2 构造 CD（hp_drizzle_api.cpp:434-443）。（**2026-09-20 订正**：原锚 `api.cpp:541-545` / `api.cpp:538` 的 `api.cpp` 在本仓不存在且行号已漂移，已重锚） |
+| "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（hp_drizzle_api.cpp:451-505；**2026-09-20 订正**：原锚 `api.cpp:552-557` 的 `api.cpp` 在本仓不存在且行号已漂移）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001）。**B2-A17**：编排 drizzle 节点从 `p1_wcs.json` 读回 `wcs.sip`，经 `p1_sip_write_header_frame` 写 frame header `CTYPE1/2`（含 `-SIP`）、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键（module_adapters.cpp p1_op_drizzle）。 |
 | "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界缺省 **FP64**（不再静默 FP32；权威 = docs/algorithms/DRIZZLE_GEOMETRY.md `RESCUE-FD-02 库边界精度缺省` + 实现锚 `hp_drizzle_api.cpp:956-991` + 回归 `tests/unit/drizzle_precision_default_test.cpp`；**语义不变**），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325）。**B2-A12**：P1 drizzle 节点不再写死 "0"，按 `drizzle.precision_mode` 写实际精度；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
 | "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`，引擎显式降级写 `BUNIT=ADU`（`drizzle_engine.cpp:1950-1956`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
 | "snr_model" 块（可选） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
-| nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（api.cpp:398-402）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
+| nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（hp_drizzle_api.cpp:208-211 文件通道 / `:557-561` 帧通道；**2026-09-20 订正**：原锚 `api.cpp:398-402` 的 `api.cpp` 在本仓不存在且行号已漂移）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
 | nested | int 1/0 | — | 仅 1=NESTED；0=RING 硬拒绝（drizzle_engine.cpp:1575-1579） |
 | pixfrac | double | drop 与源像素之比（无量纲） | 引擎层 (0,1] 严格拒绝 ≤0/>1（:1567-1574，不夹逼）；文件通道 API 层接受 0.0 的双轨见 DISP-DRZ-003 |
 | variance 面（可选，帧内块） | float32，随 data 布局 | ADU² | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
@@ -469,7 +469,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   var_ADU=max(signal,0)/gain+(rn/gain)² 仅诊断（SNR-005，不入生产——
   §4a/SCI §10 域外引用）。
 
-### 13.4 p1_snr.json 帧级科学 SNR 交付字段（DATA-P1-SNR/2，P14 样本真实性）
+### 13.4 p1_snr.json 帧级科学 SNR 交付字段（DATA-P1-SNR/3，P14 样本真实性 + FREF-BASELINE-001）
 
 > ID: DATA-P1-SNR（编排产物；registry descriptor data_id）  状态: ACTIVE
 > 生产落点: module_adapters.cpp::p1_op_noise → `<out_dir>/p1_snr.json`
@@ -492,6 +492,15 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | psf_mode | string | — | 上游 PSF 真实模式 fast/precise/unavailable（**非字面量**） |
 | n_fit_input | i64 | 颗 | 上游真正送入 Moffat4 拟合的星数（provenance；-1 = 上游未记录） |
 | psf_fit_truncated | bool | — | 上游拟合输入是否被 psf.max_stars 截断（provenance） |
+| reference_baseline | object | — | **FREF-BASELINE-001**：帧级 SNR 的参考通量基准对象（机器 schema = `contracts/schemas/unified/frame_snr.schema.json#reference_baseline`）。required 键 = `scope` / `reference_flux_source` / `reference_flux_common` / `reference_mag` / `reference_mag_system` |
+| reference_baseline.scope | string | — | `frame_independent_fixed_magnitude`（**现行**：逐帧 `F_ref,k`，只依赖本帧标定，无「组」概念）；`group` = 块级公共 `F0`（**旧口径**） |
+| reference_baseline.reference_mag | f64 | mag | **`m_ref = 6.0`**（§9.60 `FREF-BASELINE-001`；§9.67 定案 4 前台判定「取 6 等星那一支」） |
+| reference_baseline.reference_mag_system | string | — | 星等系统（现行 = `gaia_g_via_synthetic_xpsd`：Gaia DR3 XP 绝对 XPSD 谱经本帧滤光片/QE 正向合成） |
+| reference_baseline.reference_flux_source | string | — | `fixed_magnitude`（现行）/ `group_median`（**不得作默认**）/ `config` / `unavailable`（该帧 fail-closed，不写帧级 SNR 键） |
+| reference_baseline.reference_flux_common | f64 | 见 `reference_flux_common_unit` | **物理公共锚 `F0`**：对同波段同星场恒为同一数 |
+| reference_baseline.reference_flux_common_unit | string | — | 公共锚单位（现行 = `F_syn (Gaia XPSD absolute spectral integral)`；显式 `snr.reference_flux_adu` 覆盖时为 ADU） |
+| reference_flux_k | f64 | 同上 | **逐帧** `F_ref,k = 10^(−0.4·(m_ref − ZP_k))`（逐帧、只依赖本帧标定） |
+| reference_flux_adu | f64/null | ADU | 显式覆盖键 `snr.reference_flux_adu`（优先于合成谱）；缺省 null |
 
 **样本真实性约束（P14-N-08/N-09；机器锁 tests/unit/p1snr/
 p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）与
@@ -666,6 +675,12 @@ A/B/mad：**SNR_peak = A_fit / sigma_bg**（PSF 侧 A_fit=A、sigma_bg=mad·1.48
 
 ### 16.1 config JSON（p1_session_validate 键集，p1_session.cpp:115-143）
 
+> **多数据块形态（GAP_AUDIT §9.68，2026-09-20）**：CLI 的 `normalize --json` 顶层可以是
+> `{schema_version, blocks[]}`（每块 = 一组 light + 一套母版 + 运行参数 + 块级 `output_dir`）；
+> CLI 逐块把 `blocks[i]` 展开为**本节的单块键集**后各起一次运行（独立 `output_dir` / 独立 run manifest，
+> manifest 带 `block{name,index,count}` 归属）。本节因此仍是**会话层**配置数据面的唯一权威：
+> 会话永远只看到单块键集，多块只是它的外壳（形态定义见 `ASTROCS_DESIGN.md` §3.3）。
+
 | 键 | 必/可 | dtype | 默认 | 消费段 / 错误 |
 |---|---|---|---|---|
 | input_lights | 必 | UTF-8 string 非空数组 | 无 | io_read；缺失/非数组/空/元素非串 → ACS_ERR_PARAM（:116-127） |
@@ -772,6 +787,12 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   （全局阈值 `median+5·bgnoise` 作用于 σ=2 平滑图 ⇒ 同一场 SNR_peak=20 可检出
   0 星 / SNR_peak=50 检出 36/40，R-3 §2.9/§4.2）。唯一冻结定义与全部门值见
   docs/algorithms/GATES_AND_TOLERANCES.md §2/§3。
+  **2026-09-20 订正（检测范式）**：`sdet_api.cpp` 的全局阈值路径是**第一轮盲解**的实现
+  （全图盲检测 → 粗匹配 → 初解 WCS，只为星表投影提供近似指向；该轮星表**不是**权威
+  科学产品）。**权威检测范式 = 星表引导拟合**（检测定义域是星表位置，用本帧 WCS
+  反向投影 Gaia 星表；拟合成功即星点、失败直接丢弃）——见 `ASTROCS_DESIGN.md`
+  §3.2 `:119-120` / §3.6 `:323-325`；§9.49 定案 1。全图盲检测连通域路径
+  **不是**权威路径（如保留只能作**显式标注的可选诊断**）。
 
 ### 17.3 排序/截断/精度规则（汇总）
 

@@ -33,28 +33,44 @@ LEDGER = "ci/ledgers/dead_config_keys.json"
 
 
 def template_keys(repo: pathlib.Path):
-    """返回 [(key_path, leaf, template_rel)]，key_path 为 config 内相对路径。"""
+    """返回 [(key_path, leaf, template_rel)]。
+
+    两种模板形态（CLI-MULTIBLOCK / GAP_AUDIT §9.68）：
+      * phase_config 族：顶层 `config` 对象 → key_path 为 config 内相对路径（原口径）；
+      * normalize 多数据块：顶层 `blocks` 数组 → 每块一个数据块，块内键以
+        `blocks[].` 前缀登记（块内键集 = 平铺会话键集 + name/output_dir）。
+    两者都缺 ⇒ ANCHOR_STALE（fail-closed，不把「解析不到」当「无死键」）。
+    """
     out = []
     templates = sorted(repo.glob(TEMPLATE_GLOB))
     if not templates:
         raise gc.GateError("ANCHOR_MISSING: %s" % TEMPLATE_GLOB)
     for path in templates:
         doc = gc.read_json(path, path.relative_to(repo).as_posix())
-        config = doc.get("config")
-        if not isinstance(config, dict):
-            raise gc.GateError("ANCHOR_STALE: %s 无 config 对象" % path)
         rel = path.relative_to(repo).as_posix()
-        stack = [("", config)]
-        while stack:
-            prefix, node = stack.pop()
-            for key, value in node.items():
-                path_key = prefix + key
-                if isinstance(value, dict):
-                    stack.append((path_key + ".", value))
-                else:
-                    out.append((path_key, key, rel))
+        roots = []
+        config = doc.get("config")
+        if isinstance(config, dict):
+            roots.append(("", config))
+        blocks = doc.get("blocks")
+        if isinstance(blocks, list):
+            for blk in blocks:
+                if isinstance(blk, dict):
+                    roots.append(("blocks[].", blk))
+        if not roots:
+            raise gc.GateError("ANCHOR_STALE: %s 无 config 对象也无 blocks[] 数据块" % path)
+        for prefix, root in roots:
+            stack = [(prefix, root)]
+            while stack:
+                pfx, node = stack.pop()
+                for key, value in node.items():
+                    path_key = pfx + key
+                    if isinstance(value, dict):
+                        stack.append((path_key + ".", value))
+                    else:
+                        out.append((path_key, key, rel))
     if not out:
-        raise gc.GateError("ANCHOR_STALE: 模板 config 零叶子键")
+        raise gc.GateError("ANCHOR_STALE: 模板零叶子键")
     return out
 
 
@@ -103,14 +119,30 @@ _FIXTURE_SRC_OK = 'cfg.value("output_dir", "x"); cfg.value("precision", "fp64");
 _FIXTURE_SRC_BAD = 'cfg.value("output_dir", "x"); cfg.value("precision", "fp64");\n' \
                    'cfg.value("algorithm_weight_mode", "p"); cfg.value("projection","tan");\n'
 
+# CLI-MULTIBLOCK（GAP_AUDIT §9.68）夹具：多数据块模板（顶层 blocks[]）。
+_FIXTURE_BLOCKS_TEMPLATE = {
+    "schema_version": "1",
+    "blocks": [
+        {"name": "red", "input_lights": ["l1.fits"], "master_bias": "b.fits",
+         "output_dir": "out/red", "filter_passband": "Baader R"},
+        {"name": "ha", "input_lights": ["l2.fits"], "master_bias": "b.fits",
+         "output_dir": "out/ha", "filter_passband": "Baader 7nm H-alpha"},
+    ],
+}
+_FIXTURE_BLOCKS_SRC_OK = 'cfg.value("name", "x"); cfg.value("input_lights", 0);\n' \
+                         'cfg.value("master_bias", "b"); cfg.value("output_dir", "o");\n' \
+                         'cfg.value("filter_passband", "f");\n'
+_FIXTURE_BLOCKS_SRC_BAD = 'cfg.value("name", "x"); cfg.value("input_lights", 0);\n' \
+                          'cfg.value("master_bias", "b"); cfg.value("output_dir", "o");\n'
 
-def _write_fixture(root: pathlib.Path, src: str, ledger=None):
+
+def _write_fixture(root: pathlib.Path, src: str, ledger=None, template=None):
     import json
     (root / "config/templates").mkdir(parents=True, exist_ok=True)
     (root / "lib/prod").mkdir(parents=True, exist_ok=True)
     (root / "ci/ledgers").mkdir(parents=True, exist_ok=True)
     (root / "config/templates/mosaic.phase_config.json").write_text(
-        json.dumps(_FIXTURE_TEMPLATE), encoding="utf-8")
+        json.dumps(template or _FIXTURE_TEMPLATE), encoding="utf-8")
     (root / "lib/prod/consumer.cpp").write_text(src, encoding="utf-8")
     (root / LEDGER).write_text(json.dumps(
         ledger or {"ledger_schema": gc.LEDGER_SCHEMA, "ledger_id": "fixture", "entries": []}),
@@ -142,6 +174,13 @@ def _selftest() -> int:
         d_led = base / "ledgered"
         _write_fixture(d_led, _FIXTURE_SRC_BAD, ledger)
         cases.append(("green_ledgered", False, d_led))
+        # CLI-MULTIBLOCK（§9.68）：多数据块模板面（blocks[]）同样能红能绿
+        d_blk_ok = base / "blocks_ok"
+        _write_fixture(d_blk_ok, _FIXTURE_BLOCKS_SRC_OK, template=_FIXTURE_BLOCKS_TEMPLATE)
+        cases.append(("green_blocks_all_consumed", False, d_blk_ok))
+        d_blk_bad = base / "blocks_bad"
+        _write_fixture(d_blk_bad, _FIXTURE_BLOCKS_SRC_BAD, template=_FIXTURE_BLOCKS_TEMPLATE)
+        cases.append(("red_blocks_dead_key", True, d_blk_bad))
         rc = gc.selftest_main(cases, lambda repo: evaluate(repo)[0])
         # fail-closed：模板缺失
         d_missing = base / "missing"
@@ -152,6 +191,14 @@ def _selftest() -> int:
             failures.append("missing_template_should_raise: expected GateError")
         except gc.GateError:
             print("SELFTEST_PASS missing_template (fail-closed GateError)")
+        # fail-closed：模板既无 config 也无 blocks[]
+        d_stale = base / "stale"
+        _write_fixture(d_stale, _FIXTURE_SRC_OK, template={"schema_version": "1"})
+        try:
+            evaluate(d_stale)
+            failures.append("no_config_no_blocks_should_raise: expected GateError")
+        except gc.GateError:
+            print("SELFTEST_PASS no_config_no_blocks (fail-closed GateError)")
     if failures:
         for item in failures:
             print("SELFTEST_FAIL: " + item)

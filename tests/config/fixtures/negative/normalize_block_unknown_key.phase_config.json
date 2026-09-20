@@ -6,10 +6,9 @@
       "input_lights": [
         "path/to/light1.fits"
       ],
+      "output_dir": "path/to/out/red",
       "master_bias": "path/to/bias.fits",
-      "master_dark": "path/to/dark.fits",
-      "master_flat": "path/to/flat.fits",
-      "filter_passband": "Baader R"
+      "unknown_knob": 1
     }
   ]
 }

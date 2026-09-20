@@ -71,12 +71,15 @@ CLI 不得以进程 CWD(`"."`)作为隐式缺省写出,否则在工作区根散�
 UT-CLI `mutates_workspace=false` 的 dirty 判定。
 
 1. **必填**:`normalize|mosaic|export --json <config.json>` 的运行配置(CLI-001 唯一命令树;旧 `phase1|2|3` 的 `run`/`plan`/`validate`/`inspect` 用户命令已全部删除且 rc=2,见 §1 —— 「能力删除」登记:独立 `validate`/`plan`/`inspect` 命令面在新树下无载体,运行前预检由 §3.5 绿/橘/红页面 + `-y`/`-force` 承接,运行计划由产物 `run-plan.json`/`run-graph.json` 承接),
-   无论 V1 顶层形态(`inputs`)还是平铺会话形态(`input_lights`/`hips_paths`/
-   `phase3`),都必须显式给出 **非空字符串** `output_dir`。
-2. **缺失/非串/空串**:平铺会话形态 → 配置错 `exit 2`(禁 silent default);
+   无论 V1 顶层形态(`inputs`)、平铺会话形态(`input_lights`/`hips_paths`/
+   `phase3`)还是 **normalize 多数据块形态**(`blocks[]`,`GAP_AUDIT` §9.68),
+   都必须显式给出 **非空字符串** `output_dir`。
+2. **缺失/非串/空串**:平铺会话形态与多数据块形态 → 配置错 `exit 2`(禁 silent default);
    V1 顶层形态 → `exit 3`(见 `lib/infrastructure/cli/parser.cpp` `validate_config_full`)。
 3. **存在性**:V1 顶层形态要求 `output_dir` 目录已存在(`exit 3` if not found);
    平铺会话形态由 session/节点自建输出目录,不要求预先存在。
+   **多数据块形态**:`output_dir` 是**块级**必填(每块一个,块间不得重复 —— 否则两块会写同一份
+   run manifest);块 = 一次运行,CLI 逐块派发(独立 manifest / 独立 `run_context.json`)。
 4. **取消路径**:SIGINT 后的 `incomplete` manifest 也写 `output_dir`,
    不再写 CWD `"."`。
 5. 回归锚: `tests/cli/test_cli001_vpi.py`、`tests/cli/test_phase123_pipeline.py`

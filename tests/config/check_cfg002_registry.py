@@ -297,7 +297,7 @@ def _resolve_registration(repo, r, schemas, defaults_keys):
             if not pointer.endswith("[]"):
                 return False, "inputs_block 指针必须以 [] 结尾: %r" % at
             node = json_pointer(schema, "#" + pointer[:-2])
-            for _ in range(3):  # 本地 $ref 展开（properties.inputs -> $defs.<name>）
+            for _ in range(3):  # 本地 $ref 展开（properties.blocks -> $defs.<name>）
                 if isinstance(node, dict) and "$ref" in node and str(node["$ref"]).startswith("#/"):
                     node = json_pointer(schema, node["$ref"])
                 else:
@@ -306,6 +306,13 @@ def _resolve_registration(repo, r, schemas, defaults_keys):
                 return False, "指针不可解析: %s#%s" % (path, pointer)
             if isinstance(node, dict) and isinstance(node.get("items"), dict):
                 node = node["items"]  # 数组节点：属性面在 items 下
+                for _ in range(3):    # items 亦可能是本地 $ref（blocks[] -> $defs.normalize_block）
+                    if isinstance(node, dict) and "$ref" in node and str(node["$ref"]).startswith("#/"):
+                        node = json_pointer(schema, node["$ref"])
+                    else:
+                        break
+            if node is None:
+                return False, "指针不可解析: %s#%s（items $ref 悬空）" % (path, pointer)
             if leaf and leaf not in properties_of(node):
                 return False, "inputs 项无属性 %r: %s#%s" % (leaf, path, pointer)
             return True, "%s#%s" % (path, pointer)
@@ -405,7 +412,9 @@ def check_02_registration_targets(repo):
     schemas = {rel: load_json(repo, rel) for rel in PHASE_SCHEMAS.values()}
     phase_props = set()
     for s in schemas.values():
-        for sub in (s.get("$defs", {}).get("normalize_config"),
+        # §9.68：normalize 的块定义名为 normalize_block（旧 normalize_config 已随
+        # 逐帧形态退役）；mosaic/export 未变。
+        for sub in (s.get("$defs", {}).get("normalize_block"),
                     s.get("$defs", {}).get("mosaic_config"),
                     s.get("$defs", {}).get("export_config")):
             phase_props |= properties_of(sub)
