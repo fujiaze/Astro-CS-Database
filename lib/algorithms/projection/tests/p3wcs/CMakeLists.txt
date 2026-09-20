@@ -11,3 +11,26 @@ target_include_directories(p3_wcs_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../../../infrastructure/aio/include)
 target_link_libraries(p3_wcs_test PRIVATE astrocs_p3_projection_wcs astrocs_common)
 add_test(NAME p3_wcs COMMAND p3_wcs_test)
+# FIX-205: 投影产品声明注册表 + 显式「不支持」 + 适用域 + 机器判据
+# （声明集 == 实现集 == 实际可运行集; 8 冻结码逐一黑盒实跑探针）。
+# p3_proj_v6.cpp 一并编入以做跨注册表一致检查（内核行不得冒充产品声明）。
+add_executable(p3_projection_registry_test
+  p3_projection_registry_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../p3_proj_v6.cpp)
+target_include_directories(p3_projection_registry_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+target_link_libraries(p3_projection_registry_test PRIVATE
+  astrocs_p3_projection_wcs)
+add_test(NAME p3_projection_registry COMMAND p3_projection_registry_test)
+# 负例入口（ENGINEERING_SPEC §8）: 判据函数在变异输入下必红、真值输入必绿。
+add_test(NAME p3_projection_registry_selftest
+  COMMAND p3_projection_registry_test --self-test)
+
+# FIX-205 端到端负例: 请求未实现投影 ⇒ rc≠0 + 明确原因（不得静默回落 TAN）。
+find_program(PYTHON3_EXECUTABLE python3)
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME p3_projection_unsupported_cli
+    COMMAND ${PYTHON3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/p3_projection_unsupported_cli.py
+            $<TARGET_FILE:astrocs>)
+endif()

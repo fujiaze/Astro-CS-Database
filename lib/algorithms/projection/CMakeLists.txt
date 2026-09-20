@@ -12,6 +12,10 @@
 #     ENGINEERING_SPEC §3)。
 #   p3_projection.cpp / p3_proj_v6.cpp 的 target 声明归 P3-002 线 (本批次未动)。
 if(NOT TARGET astrocs_p3_projection_wcs)
+  # FIX-205: 产品声明注册表 p3_projection_registry.h 为 header-only(inline),
+  # p3_wcs.cpp 直接包含 —— 请求面门(p3_wcs_validate_request)与构造面门
+  # (p3_wcs_make) 共用同一份注册表数据, 不产生第二权威, 也不新增链接面
+  # (p3_wcs.cpp 另被 tests/unit 以同 TU 直编方式复用)。
   add_library(astrocs_p3_projection_wcs STATIC ${CMAKE_CURRENT_SOURCE_DIR}/p3_wcs.cpp)
   target_include_directories(astrocs_p3_projection_wcs PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR})

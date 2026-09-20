@@ -4,6 +4,8 @@
 // 数学: Calabretta & Greisen (2002) 标准球面三角公式(RA wrap 经 atan2+fmod 归一)。
 #include "p3_wcs.h"
 
+#include "p3_projection_registry.h"
+
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -60,13 +62,10 @@ inline double fits_pixel_0based(double x1based) {
 // 冻结拒清单一致; 未实现/未注册投影在此显式拒绝, 绝不放行也不静默改写为 TAN。
 P3WcsStatus p3_wcs_validate_request(const char* projection, const char* frame,
                                     const char* coverage_output, std::string* why) {
-    const std::string proj = projection ? std::string(projection) : std::string("TAN");
-    if (proj != "TAN") {
-        if (why)
-            *why = "projection must be TAN (Phase3 production path implements only TAN; "
-                   "unimplemented/unknown projection is rejected - ALG-P3-PROJ-IMPL-001)";
-        return P3_WCS_UNSUPPORTED;
-    }
+    // 投影: 唯一语义源 = 产品声明注册表（p3_projection_registry.h, DESIGN §5.3）。
+    // 未实现/未注册码显式报「不支持」+ 已支持清单; 绝不静默回落 TAN。
+    const P3WcsStatus pst = p3_proj_declare(projection, why);
+    if (pst != P3_WCS_OK) return pst;
     if (frame) {
         const std::string fr(frame);
         if (fr != "icrs" && fr != "ICRS") {
@@ -94,6 +93,10 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
         const P3WcsStatus pst = p3_wcs_validate_request(projection, nullptr, nullptr, &perr);
         if (pst != P3_WCS_OK) return pst;
     }
+    // 声明/实现分离守卫: 声明表放行但生产路径无内核 ⇒ 拒绝（禁静默回落 TAN）
+    const char* canon = p3_proj_canonical_code(projection ? projection : "TAN");
+    if (canon == nullptr) return P3_WCS_UNSUPPORTED;
+    if (!p3_proj_is_implemented(canon)) return P3_WCS_UNSUPPORTED;
     *out = P3WcsDescriptor{};
     if (parity == nullptr) parity = "east_left";
     const std::string par = parity;
@@ -103,13 +106,15 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
     if (width_px < 1 || width_px > kMaxSide || height_px < 1 || height_px > kMaxSide)
         return P3_WCS_PARAM;
 
-    out->crval_ra_deg = centre_ra_deg;
-    out->crval_dec_deg = centre_dec_deg;
-    out->crpix_x = (width_px + 1) / 2.0;    // pixel-center(FITS 1-based): (W+1)/2
-    out->crpix_y = (height_px + 1) / 2.0;
-    out->width_px = width_px;
-    out->height_px = height_px;
-    out->projection = "TAN";   // 已在入口校验; descriptor 携带已校验投影(非硬编码路径)
+    // 全部构造落在 tmp: 任一门失败 ⇒ *out 保持零初始化(不产半成品)。
+    P3WcsDescriptor tmp{};
+    tmp.crval_ra_deg = centre_ra_deg;
+    tmp.crval_dec_deg = centre_dec_deg;
+    tmp.crpix_x = (width_px + 1) / 2.0;    // pixel-center(FITS 1-based): (W+1)/2
+    tmp.crpix_y = (height_px + 1) / 2.0;
+    tmp.width_px = width_px;
+    tmp.height_px = height_px;
+    tmp.projection = canon;   // 已校验投影的冻结码字面量(静态存储, 非硬编码路径)
     // G1 (ALG-P3-002, docs/algorithms/PHASE3_RESAMPLE.md §2) 冻结输出 WCS 构造
     // (FITS 1-based, CD-only, 对角, PA=0 精确形式):
     //   east_left:  CD = diag(−s, +s)   (x 增 → RA 减, 北朝上)
@@ -134,10 +139,10 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
     const double s = scale_deg_per_px;
     const double cp = std::cos(pa);
     const double sp = std::sin(pa);
-    out->cd[0][0] = sgn_x * s * cp;
-    out->cd[0][1] = sgn_y * s * sp;
-    out->cd[1][0] = -sgn_x * s * sp;
-    out->cd[1][1] = sgn_y * s * cp;
+    tmp.cd[0][0] = sgn_x * s * cp;
+    tmp.cd[0][1] = sgn_y * s * sp;
+    tmp.cd[1][0] = -sgn_x * s * sp;
+    tmp.cd[1][1] = sgn_y * s * cp;
 
     // 输出四角同半球守卫(四角 world 变换全部成功)
     const double corners[4][2] = {{0, 0}, {double(width_px - 1), 0},
@@ -145,9 +150,140 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
                                   {double(width_px - 1), double(height_px - 1)}};
     for (const auto& c : corners) {
         double ra, dec;
-        const P3WcsStatus st = p3_wcs_pix2world(out, c[0], c[1], &ra, &dec);
+        const P3WcsStatus st = p3_wcs_pix2world(&tmp, c[0], c[1], &ra, &dec);
         if (st != P3_WCS_OK) return st;
     }
+    // 适用域门(DESIGN §5.3「违反 ⇒ 拒绝」): |CRVAL2|≤85° / FOV≤20° /
+    // det(CD)<0 / CRPIX=(W+1)/2 FITS 1-based 像素中心 / 往返 <1e-6 px。
+    {
+        std::string aerr;
+        const P3WcsStatus ast = p3_wcs_check_applicability(&tmp, &aerr);
+        if (ast != P3_WCS_OK) return ast;   // *out 保持零初始化
+    }
+    *out = tmp;
+    return P3_WCS_OK;
+}
+
+// ---- 适用域（ASTROCS_DESIGN.md §5.3）----
+namespace {
+
+// TAN 适用域声明（SCI §9a-12 alpha 冻结 + Paper I §2.1.1 + SCI §7 往返容差）。
+const P3WcsApplicability kTanApplicability = {
+    "TAN",   // projection
+    85.0,    // max_abs_crval_dec_deg（SCI/API/session 单一条件）
+    20.0,    // max_fov_deg（SCI §9a-12 alpha 冻结, 禁放宽）
+    true,    // require_negative_det_cd（G1/SCI §9a-4 手性冻结）
+    true,    // crpix_fits_1based_pixel_center（Paper I §2.1.1）
+    1e-6,    // roundtrip_tol_px（SCI §7 冻结, 禁放宽）
+};
+
+}  // namespace
+
+const P3WcsApplicability* p3_wcs_applicability(const char* projection) {
+    const char* c = projection ? projection : "TAN";
+    if (std::strcmp(c, "TAN") == 0) return &kTanApplicability;
+    return nullptr;   // 未声明适用域 ⇒ 不可作产品声明（fail-closed）
+}
+
+double p3_wcs_fov_deg(double scale_deg_per_px, int width_px, int height_px) {
+    if (!(scale_deg_per_px > 0.0) || width_px < 1 || height_px < 1) return -1.0;
+    const double w = static_cast<double>(width_px);
+    const double h = static_cast<double>(height_px);
+    return scale_deg_per_px * std::sqrt(w * w + h * h);
+}
+
+P3WcsStatus p3_wcs_roundtrip_max_error_px(const P3WcsDescriptor* d,
+                                          double* max_err_px) {
+    if (!d || !max_err_px) return P3_WCS_PARAM;
+    if (d->width_px < 1 || d->height_px < 1) return P3_WCS_PARAM;
+    const double xs[3] = {0.0, (d->width_px - 1) / 2.0,
+                          static_cast<double>(d->width_px - 1)};
+    const double ys[3] = {0.0, (d->height_px - 1) / 2.0,
+                          static_cast<double>(d->height_px - 1)};
+    double worst = 0.0;
+    int n_ok = 0;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            double ra = 0.0, dec = 0.0, x = 0.0, y = 0.0;
+            P3WcsStatus st = p3_wcs_pix2world(d, xs[i], ys[j], &ra, &dec);
+            if (st != P3_WCS_OK) return st;   // 采样点越投影域(半球) ⇒ fail-closed
+            // 世界域外采样点(|dec|>85°, world2pix 冻结守卫, 如中心恰在 85° 时
+            // 帧上缘越过 85°)按定义不可往返, 不计入误差; 域内点仍逐点判定。
+            // 参考像素恒映射到 CRVAL2(|CRVAL2|≤85°) ⇒ 恒有域内采样点。
+            if (std::fabs(dec) > kMaxAbsDec) continue;
+            st = p3_wcs_world2pix(d, ra, dec, &x, &y);
+            if (st != P3_WCS_OK) return st;
+            ++n_ok;
+            const double e = std::hypot(x - xs[i], y - ys[j]);
+            if (e > worst) worst = e;
+        }
+    }
+    if (n_ok < 1) return P3_WCS_PARAM;   // 无域内采样点 ⇒ fail-closed(兜底)
+    *max_err_px = worst;
+    return P3_WCS_OK;
+}
+
+P3WcsStatus p3_wcs_check_applicability(const P3WcsDescriptor* d,
+                                       std::string* why) {
+    if (!d) {
+        if (why) *why = "applicability: null descriptor";
+        return P3_WCS_PARAM;
+    }
+    const char* pj = (d->projection && *d->projection) ? d->projection : "TAN";
+    const P3WcsApplicability* ap = p3_wcs_applicability(pj);
+    if (ap == nullptr) {
+        if (why)
+            *why = std::string("applicability: projection '") + pj +
+                   "' has no declared applicability domain";
+        return P3_WCS_UNSUPPORTED;
+    }
+    if (!(std::fabs(d->crval_dec_deg) <= ap->max_abs_crval_dec_deg)) {
+        if (why)
+            *why = std::string("applicability: |CRVAL2| exceeds ") +
+                   std::to_string(ap->max_abs_crval_dec_deg) + " deg";
+        return P3_WCS_PARAM;
+    }
+    const double det = d->cd[0][0] * d->cd[1][1] - d->cd[0][1] * d->cd[1][0];
+    if (!(std::fabs(det) > 1e-300)) {
+        if (why) *why = "applicability: degenerate CD (det=0)";
+        return P3_WCS_PARAM;
+    }
+    if (ap->require_negative_det_cd && !(det < 0.0)) {
+        if (why) *why = "applicability: chirality violated (det(CD) >= 0)";
+        return P3_WCS_PARAM;
+    }
+    const double scale = std::sqrt(std::fabs(det));
+    const double fov = p3_wcs_fov_deg(scale, d->width_px, d->height_px);
+    if (!(fov <= ap->max_fov_deg)) {
+        if (why)
+            *why = std::string("applicability: FOV ") + std::to_string(fov) +
+                   " deg exceeds " + std::to_string(ap->max_fov_deg) + " deg";
+        return P3_WCS_PARAM;
+    }
+    if (ap->crpix_fits_1based_pixel_center) {
+        const double cx = (d->width_px + 1) / 2.0;
+        const double cy = (d->height_px + 1) / 2.0;
+        if (d->crpix_x != cx || d->crpix_y != cy) {
+            if (why)
+                *why = "applicability: CRPIX is not the FITS 1-based pixel center "
+                       "(W+1)/2,(H+1)/2";
+            return P3_WCS_PARAM;
+        }
+    }
+    double err = 0.0;
+    const P3WcsStatus rst = p3_wcs_roundtrip_max_error_px(d, &err);
+    if (rst != P3_WCS_OK) {
+        if (why) *why = "applicability: roundtrip sample outside projection domain";
+        return rst;
+    }
+    if (!(err < ap->roundtrip_tol_px)) {
+        if (why)
+            *why = std::string("applicability: roundtrip error ") +
+                   std::to_string(err) + " px exceeds " +
+                   std::to_string(ap->roundtrip_tol_px) + " px";
+        return P3_WCS_PARAM;
+    }
+    if (why) why->clear();
     return P3_WCS_OK;
 }
 
