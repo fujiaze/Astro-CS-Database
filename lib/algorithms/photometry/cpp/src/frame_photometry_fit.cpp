@@ -16,6 +16,7 @@
 #include "frame_photometry_fit.h"
 
 #include "pc_api_qf.h"          // pc_calibrate_simple_with_gaia_f64_v2_qf
+#include "spectrum_integrator.h" // prepare_filter_cache / compute_f_syn_cached_xpsd
 #include "../include/photometric_calib.h"
 
 extern "C" {
@@ -26,6 +27,7 @@ extern "C" {
 #include <cctype>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <sstream>
@@ -95,6 +97,11 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         out.error = "invalid frame pixels/size";
         return out;
     }
+    // F-INSTR-CONFORM-FIX: psf_flux 的域契约 = PSF 拟合域解析通量
+    // F_instr = 2πA·s_x·s_y/3 (β=4, ADU; SCI-PSF-001 §2/§5, SCI-PHOT-001 §9a)。
+    // 见 frame_photometry_fit.h 的逐字段契约 —— 调用方禁止传检测域 5×5 盒和。
+    // 域外输入（status!=0）由下游 matchWithKdTree 的有效域门剔除, 不在此处
+    // 静默降级: 有效星不足 ⇒ SCI-PHOT-001 §4/§8 的 NO_DATA（fail-closed）。
     if (req.n_psf <= 0 || req.psf_cx == nullptr || req.psf_cy == nullptr ||
         req.psf_flux == nullptr || req.psf_status == nullptr) {
         out.error = "no PSF stars (n_psf<=0 or null arrays)";
@@ -179,6 +186,72 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         req.sip_order, req.sip_a, req.sip_b, req.sip_ap, req.sip_bp,
         out_pixels.data(), &n_matched, &scale, &sigma_residual, &diag,
         req.psf_quality);
+
+    // ── FREF-BASELINE-001: 绝对合成星等零点 ZP_syn ──────────────────────
+    // 目的: 给帧级 SNR 提供一个**跨帧公共**的绝对参考锚（负责人裁决:
+    // "直接用 6 等星/一个数值表示比较正常的星等来做基准"）。定义与
+    // snr_science.cpp:234 的 m_5 约定一致: mag = ZP_syn - 2.5*log10(F_syn)。
+    //
+    // 取值 = median_i( magG_i + 2.5*log10 F_syn,i )，对**锥形搜索星族**统计。
+    // 由 Gaia DR3 XP 绝对谱 (XPSD) + 本帧滤光片/QE 曲线**正向**合成 ⇒ 只依赖
+    // (filter, QE, 天区星族)，与帧的噪声/检出深度/曝光无关。同一波段同一星场的
+    // 各帧得到同一个 ZP_syn（散布仅来自锥形边界处的星族抽样）。
+    //
+    // 严禁用它反推增益/口径/曝光（§9.42 物理闭合禁令）。
+    {
+        GaiaSpectrumStar* zp_stars = nullptr;
+        uint8_t* zp_spectra = nullptr;
+        int zp_n = 0;
+        const int zrc = gaia_client_cone_search_with_spectrum(
+            client, req.crval1, req.crval2, fov_radius_deg,
+            req.mag_min, req.mag_max, &zp_stars, &zp_spectra, &zp_n);
+        if (zrc == 0 && zp_stars != nullptr && zp_spectra != nullptr && zp_n > 0) {
+            const photo_calib::SpectrumIntegratorCache zcache =
+                photo_calib::prepare_filter_cache(
+                    filter_wl.data(), filter_trans.data(),
+                    static_cast<int>(filter_wl.size()),
+                    qe_wl.empty() ? nullptr : qe_wl.data(),
+                    qe_trans.empty() ? nullptr : qe_trans.data(),
+                    static_cast<int>(qe_wl.size()),
+                    spectrum_wl.data(), static_cast<int>(spectrum_wl.size()));
+            if (!zcache.spectrum_wl.empty()) {
+                std::vector<double> zp_vals;
+                zp_vals.reserve(static_cast<size_t>(zp_n));
+                for (int i = 0; i < zp_n; ++i) {
+                    const uint8_t* sp_i =
+                        zp_spectra + static_cast<size_t>(i) * static_cast<size_t>(wl_count);
+                    const double fsyn = photo_calib::compute_f_syn_cached_xpsd(
+                        zcache, sp_i, wl_count,
+                        zp_stars[i].flux_min, zp_stars[i].flux_mul);
+                    if (!(std::isfinite(fsyn) && fsyn > 0.0)) continue;
+                    if (!std::isfinite(zp_stars[i].magG)) continue;
+                    const double z = zp_stars[i].magG + 2.5 * std::log10(fsyn);
+                    if (std::isfinite(z)) zp_vals.push_back(z);
+                }
+                if (static_cast<int>(zp_vals.size()) >= kMinFitStars) {
+                    std::sort(zp_vals.begin(), zp_vals.end());
+                    const std::size_t zn = zp_vals.size();
+                    const double zmed = (zn % 2 == 1)
+                        ? zp_vals[zn / 2]
+                        : 0.5 * (zp_vals[zn / 2 - 1] + zp_vals[zn / 2]);
+                    std::vector<double> zdev;
+                    zdev.reserve(zn);
+                    for (std::size_t k = 0; k < zn; ++k)
+                        zdev.push_back(std::fabs(zp_vals[k] - zmed));
+                    std::sort(zdev.begin(), zdev.end());
+                    const double zmad = (zn % 2 == 1)
+                        ? zdev[zn / 2]
+                        : 0.5 * (zdev[zn / 2 - 1] + zdev[zn / 2]);
+                    out.zero_point_mag = zmed;
+                    out.zero_point_n_stars = static_cast<int>(zn);
+                    out.zero_point_scatter_mag = 1.4826 * zmad;
+                    out.zero_point_valid = true;
+                }
+            }
+        }
+        if (zp_stars) free(zp_stars);
+        if (zp_spectra) free(zp_spectra);
+    }
 
     gaia_client_destroy(client);
 

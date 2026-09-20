@@ -157,7 +157,14 @@ typedef struct {
     std::int32_t min_samples_per_frame;  // 每帧 δ_k 可辨识最少点；默认 4
     std::int32_t max_nodes;       // B_ref 系数上限（内存门）；默认 8192
     double max_extrapolation_deg; // 求值允许越域余量；默认 0（不外插）
-    int    cpu_workers;           // 预留：1=串行 reference
+    // 注：本求解（按帧 Schur 消元 + 稳健 IRLS，整面一次）内在串行，无并行路径，
+    // 故**不设 worker 数字段**——原「预留 cpu_workers=1」是零消费者的死字段，
+    // 且其字面量默认值违反 QA-002/P2-002（生产禁止 workers=1 硬编码）。按
+    // docs/standards/CONCURRENCY_STANDARD.md「线程数外部可配置，禁止硬编码」与
+    // docs/architecture/THREAD_BUDGET_ARCH.md §1（线程预算唯一来源 = Runtime
+    // lease），将来若引入并行，worker 数必须由 Runtime 预算/租约注入（形如
+    // P2SamplerConfig.cpu_workers，见 module_adapters.cpp CON-004），不得在此
+    // 以字面量预留。
 } P2SkyPlaneConfig;
 
 typedef struct {

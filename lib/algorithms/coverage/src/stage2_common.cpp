@@ -137,7 +137,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                         *err = "smoothing 只支持 'auto' 或 number";
                         return false;
                     }
-                    cfg->smoothing_lambda = 0.1;
+                    cfg->smoothing_lambda = P2_SMOOTHING_LAMBDA_AUTO;
                 } else if (sm.is_number()) {
                     cfg->smoothing_lambda = sm.get<double>();
                     if (cfg->smoothing_lambda < 0.0) {
@@ -252,10 +252,15 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     *err = "unsupported rejection method: " + method;
                     return false;
                 }
-                // 版本化 profile（wbpp_2_9_1 冻结；wbpp_current 仅
-                // migration alias，解析到 wbpp_2_9_1；astrocs_adaptive 独立）
-                cfg->reject_profile =
-                    rj.value("profile", std::string("wbpp_2_9_1"));
+                // 版本化 profile。CONFORM-FIX-B-007：生产默认 = 自研档
+                // astrocs_adaptive_pixel（负责人裁决 FIX-SCI-SNR-CANON-001 /
+                // GAP_AUDIT §9.40 C2；SCI REJECTION §4/§5/§7、CONFIG_SCHEMA.md:25、
+                // contracts provenance:67 同值）。wbpp_2_9_1 为**对照档**、
+                // wbpp_current 为 migration alias（规范化到 wbpp_2_9_1）。
+                // 与 node chain（module_adapters.cpp p2_op_reject 缺省）一致。
+                cfg->reject_profile = rj.value(
+                    "profile",
+                    std::string(P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL));
                 if (cfg->reject_profile == "wbpp_current")
                     cfg->reject_profile = "wbpp_2_9_1";   // alias 规范化
                 if (cfg->reject_profile != "wbpp_2_9_1" &&
@@ -265,19 +270,37 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                            "astrocs_adaptive / astrocs_adaptive_pixel";
                     return false;
                 }
-                // astrocs_adaptive_pixel（SD-18 低 n 保守路径）: n<=3 走 none
-                // （不排异 + 直接加权积分），故 underdetermined_n 默认 3；
-                // 其余 profile 维持冻结默认 2。显式传值优先。
-                // （extreme_prior 为显式 opt-in，需调用方显式传 underdetermined_n=1。）
-                const std::uint32_t undet_default =
-                    (cfg->reject_profile == "astrocs_adaptive_pixel")
-                        ? (std::uint32_t)3
-                        : (std::uint32_t)2;
-                cfg->reject_underdetermined_n =
-                    rj.value("underdetermined_n", undet_default);
-                if (cfg->reject_underdetermined_n < 1) {
-                    *err = "rejection.underdetermined_n 必须 >= 1";
-                    return false;
+                // CONFORM-FIX-B-008：underdetermined_n 默认值**单一来源** =
+                // p2_reject_plan_resolve 的 profile/request 规则（rejection.h:230-234
+                // 冻结：0 = 按 profile 默认；wbpp/adaptive=2；
+                // astrocs_adaptive_pixel=3（n<=3 保守 none）；显式
+                // extreme_prior opt-in=1）。旧实现在此复制了 2/3 两份字面量，
+                // 与 resolver 在 extreme_prior 档分叉（tool 恒 3 vs resolver 1）
+                // ⇒ 同一配置两条链路得到不同 underdetermined_n。现缺键时向
+                // 权威 resolver 查询，不再复制默认值。
+                if (rj.contains("underdetermined_n")) {
+                    cfg->reject_underdetermined_n =
+                        rj.value("underdetermined_n", 0u);
+                    if (cfg->reject_underdetermined_n < 1) {
+                        *err = "rejection.underdetermined_n 必须 >= 1";
+                        return false;
+                    }
+                } else {
+                    P2RejectionPlanRequest dreq{};
+                    dreq.request = cfg->reject_method;
+                    dreq.nominal_contributors = (std::uint32_t)cfg->hips.size();
+                    dreq.profile = cfg->reject_profile.c_str();
+                    dreq.underdetermined_n = 0;   // 0 = profile/request 默认
+                    P2RejectionPlan dplan{};
+                    char derr[160] = {0};
+                    if (p2_reject_plan_resolve(&dreq, &dplan, derr,
+                                               sizeof(derr)) != 0) {
+                        *err = std::string(
+                                   "rejection underdetermined_n 默认解析失败: ") +
+                               derr;
+                        return false;
+                    }
+                    cfg->reject_underdetermined_n = dplan.underdetermined_n;
                 }
                 // rejection normalization 独立命名（astrocs_*_v1；
                 // 旧 median_center/median_scale 为 migration alias）
