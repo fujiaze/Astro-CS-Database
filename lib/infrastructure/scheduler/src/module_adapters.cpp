@@ -6899,8 +6899,13 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
 //      层解析。**逐输出像素几何 n 路由**（DESIGN §4.5）: n = 该像素被多少帧
 //      footprint 覆盖（各帧 support 层 >0 计数; coverage 覆盖图）, 按 n 缓存
 //      plan; 不得用 frames.size()（整组帧数）, 不得用资格/掩膜后
-//      eligible_count（n_eff）。n<=3 走保守 none（不排异 + 加权积分, SD-18）,
-//      无逐像素先验计算。kernel 永不执行 AUTO）。rejected_low/high 语义 =
+//      eligible_count（n_eff）。**FIX-204（§9.71 裁决 3）路由 = WBPP 一手实测
+//      表**：N<6 → percentile（含 N≤3）/ 6≤N≤15 → winsorized / N>15 →
+//      linear fit；禁止 min/max 与 NoRejection（AUTO 命中即 fail-closed）。
+//      N≤3 的实际不排异来自 kernel underdetermined 闸（候选 ≤3 ⇒ 全接受 +
+//      UNDERDETERMINED，provenance 如实记录）；「N<6 档下界是否含 N≤3」是
+//      rejection.cpp 的**唯一决策点**（EXP-204 待定案）。无逐像素先验计算。
+//      kernel 永不执行 AUTO）。rejected_low/high 语义 =
 //      threshold 侧计数（禁原始值符号）; eligible<=underdetermined_n →
 //      UNDERDETERMINED 全接受并计入 provenance underdetermined_pixels。──
 Result<void> p2_op_reject(const Json& doc, Json* man) {
@@ -7219,9 +7224,15 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
             tile_mask[static_cast<size_t>(slot_s) * tile_span + p] = 1;
         }
       }
-      // SD-18：该像素 plan = 保守 none（几何 n<=3）且确有候选 → 未做排异。
-      // 如实计数（void 无候选像素不计, 它们由 candidates=0 表达）。
-      if (plan.method == P2_REJECT_NONE && eligible_count > 0)
+      // FIX-204：该像素**未做排异**的两种合法来源（如实计数, 不冒充排异成功）：
+      // ① 决策点路由到 none（EXP-204 保守档：几何 N ≤ 3）；
+      // ② kernel underdetermined 闸（候选数 ≤ plan.underdetermined_n；WBPP 表
+      //    下几何 N ≤ 3 走此路：路由记 percentile，实际全接受 + UNDERDETERMINED）。
+      // 判据只用 plan 字段（决策点/闸的唯一来源），不在此复制常量。
+      // （void 无候选像素不计, 它们由 candidates=0 表达。）
+      if (eligible_count > 0 &&
+          (plan.method == P2_REJECT_NONE ||
+           eligible_count <= plan.underdetermined_n))
         ++l_undet_low;
       accepted_bin[base + p] = acc;
       nrej_bin[base + p] = nrej;
@@ -7282,17 +7293,47 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::IO, "rejection bin write failed"));
 
   // provenance: 逐几何 n 的 plan（method/semantic_id/minimum_n/underdetermined_n/
-  // normalization/nominal_n）。SD-18 后低 n（n<=3）plan.method=NONE
-  // （semantic_id="astrocs.none.v1"）, 生产不再计算逐像素先验 ⇒ fallback=none。
+  // normalization/nominal_n）**+ 实际参数 + 合法性窗口告警码**。
+  // FIX-204 §6：实际使用的方法/参数/N 必须写入排异 provenance（可追溯）；
+  // §5：显式指定的合法性窗口（WBPP :1229-1293）只告警不硬阻断 ⇒ 告警码随
+  // provenance 落盘（不静默、不改算法、不降级）。
   Json plans_j = Json::array();
   for (const auto& kv : plan_cache) {
     const P2RejectionPlan& p = kv.second;
+    char warn_code[64] = {0};
+    const bool has_warn =
+        p2_rejection_applicability(p.method, kv.first, warn_code,
+                                   sizeof(warn_code)) != 0;
+    Json params = Json::object();
+    switch (p.method) {
+      case P2_REJECT_PERCENTILE:
+        params = Json{{"low_fraction", p.percentile.low_fraction},
+                      {"high_fraction", p.percentile.high_fraction}};
+        break;
+      case P2_REJECT_WINSORIZED_SIGMA:
+        params = Json{{"lower_sigma", p.winsorized.lower_sigma},
+                      {"upper_sigma", p.winsorized.upper_sigma},
+                      {"max_iterations", p.winsorized.max_iterations}};
+        break;
+      case P2_REJECT_LINEAR_FIT:
+        params = Json{{"lower", p.linear_fit.lower},
+                      {"upper", p.linear_fit.upper},
+                      {"max_iterations", p.linear_fit.max_iterations}};
+        break;
+      default:
+        // 其它方法（显式 opt-in 先验档 / EXP-204 保守 none 档）参数不在
+        // AUTO 映射值域内；method + nominal_n 已足够追溯。
+        break;
+    }
     plans_j.push_back(Json{{"nominal_n", kv.first},
                            {"method", p.method},
                            {"semantic_id", p2_rejection_semantic_id(p.method)},
                            {"minimum_n", p.minimum_n},
                            {"underdetermined_n", p.underdetermined_n},
-                           {"normalization", p.normalization}});
+                           {"normalization", p.normalization},
+                           {"params", params},
+                           {"applicability_warn",
+                            has_warn ? std::string(warn_code) : std::string()}});
   }
   const P2RejectionPlan& plan_max = plan_cache.at(n_max);
   const std::string fallback_token =
@@ -7301,9 +7342,36 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
   Json artifact = Json{{"schema", "DATA-P2-REJ"},
                        {"entry", "p2_reject_plan_resolve_n/p2_collect_candidate_stack/p2_reject_stack_ex"},
                        {"profile", profile},
-                       // SD-18：低 n（几何 n<=3）保守路径 = 不排异 + 加权积分。
+                       // 低 n（几何 n<=3）实际不排异 = 不排异 + 加权积分。
                        {"low_n_policy", "underdetermined_no_rejection"},
                        {"low_n_max_n", 3},
+                       // FIX-204：小 N 策略（**唯一决策点**在 rejection.cpp 的
+                       // kPixelSmallNPolicy；EXP-204 待定案）。路由按 WBPP 一手
+                       // 实测表（N<6 → percentile，含 N≤3）；N ≤ 3 的**实际
+                       // 执行**由 kernel underdetermined 闸决定（候选 ≤
+                       // underdetermined_n ⇒ 全接受 + UNDERDETERMINED）。
+                       {"small_n_policy",
+                        Json{{"decision_point",
+                              "lib/algorithms/coverage/src/rejection.cpp:"
+                              "kPixelSmallNPolicy"},
+                             {"exp_task", "EXP-204"},
+                             {"percentile_band_min_n",
+                              p2_rejection_percentile_band_min_n()},
+                             {"routing",
+                              "N<6 percentile / 6..15 winsorized_sigma / "
+                              ">15 linear_fit (WBPP BPP-FrameGroup.js:1304-1312)"},
+                             {"low_n_max_n", 3},
+                             {"low_n_effect",
+                              "underdetermined_gate_no_rejection"},
+                             // 闸触发条件与原因（**显式可见，非静默降级**）：
+                             // kernel 对候选数 ≤ underdetermined_n 的栈不做
+                             // 排异判定，全部接受并返回 P2_STATUS_UNDERDETERMINED。
+                             {"gate_trigger",
+                              "eligible_count <= plan.underdetermined_n"},
+                             {"gate_reason",
+                              "P2_STATUS_UNDERDETERMINED: candidates "
+                              "insufficient for a reliable rejection decision; "
+                              "all accepted and recorded (never silent)"}}},
                        // plan = 最大几何 n 档（确定性摘要; 逐 n 全表见 plans）
                        {"plan", Json{{"nominal_n", n_max},
                                      {"method", plan_max.method},
@@ -7341,6 +7409,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
   (*man)["reject_profile"] = profile;
   (*man)["reject_geometric_n_source"] = "frame_support_gt0";
   (*man)["reject_low_n_policy"] = "underdetermined_no_rejection";
+  (*man)["reject_percentile_band_min_n"] = p2_rejection_percentile_band_min_n();
   (*man)["reject_underdetermined_pixels"] = undet_low_n_pixels;
   (*man)["reject_prior_unavailable_pixels"] = prior_unavailable_pixels;
   (*man)["n_pixels"] = n_pixels_processed;
@@ -8318,7 +8387,10 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                             {"ASTROCS_MODEL_HASH", model_hash},
                             {"ASTROCS_UNCERTAINTY_AVAILABLE",
                              uncertainty_available ? "true" : "false"},
-                            {"ASTROCS_WEIGHT_MODE", weight_mode},
+                            // A44（GAP_AUDIT §9.73 / ASTROCS_DESIGN §2.1）：全程只有
+                            // SNR，**不存在「权重模式」** ⇒ 本 provenance 面不得承载
+                            // ASTROCS_WEIGHT_MODE（原键已删除；HiPS provenance 只承载
+                            // 帧级 SNR 与稀疏相对 SNR 比值）。
                             {"ASTROCS_REJECT_PROFILE", reject_profile}}},
                         {"properties", props},
                         {"pending_contracts", Json{

@@ -501,15 +501,19 @@ static void test_s302_kernel_semantics() {
           a.dec.rejected_high == b.dec.rejected_high &&
           a.dec.iterations == b.dec.iterations);
   }
-  // ── SD-18（2026-09-18）: astrocs_adaptive_pixel 逐几何 n 内置映射 ──
-  // n<=3 → none（保守：不排异 + 加权积分）；4..7 → percentile；
-  // 8..15 → winsorized；>=16 → linear_fit。extreme_prior 不再出现在 AUTO。
+  // ── FIX-204（ASTROCS_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
+  // + EXP-204 定案（保守读法）：astrocs_adaptive_pixel 逐几何 N 内置映射 ──
+  // 1≤N≤3 → none（不排异）；4≤N≤5 → percentile；6≤N≤15 → winsorized_sigma；
+  // N≥16 → linear_fit；N=0（void 像素占位，无候选栈）→ percentile。
+  // extreme_prior 不再出现在 AUTO。
   {
     struct MapCase { std::uint32_t n; int method; };
     const MapCase cases[] = {
-        {0u, P2_REJECT_NONE}, {1u, P2_REJECT_NONE}, {2u, P2_REJECT_NONE},
-        {3u, P2_REJECT_NONE}, {4u, P2_REJECT_PERCENTILE},
-        {7u, P2_REJECT_PERCENTILE}, {8u, P2_REJECT_WINSORIZED_SIGMA},
+        {0u, P2_REJECT_PERCENTILE}, {1u, P2_REJECT_NONE},
+        {2u, P2_REJECT_NONE}, {3u, P2_REJECT_NONE},
+        {4u, P2_REJECT_PERCENTILE}, {5u, P2_REJECT_PERCENTILE},
+        {6u, P2_REJECT_WINSORIZED_SIGMA}, {7u, P2_REJECT_WINSORIZED_SIGMA},
+        {8u, P2_REJECT_WINSORIZED_SIGMA},
         {15u, P2_REJECT_WINSORIZED_SIGMA}, {16u, P2_REJECT_LINEAR_FIT},
         {64u, P2_REJECT_LINEAR_FIT}};
     for (const MapCase& c : cases) {
@@ -692,8 +696,12 @@ static void test_f_p2002_01_rejection_parity() {
   for (const auto& pl : rej["plans"])
     plans_by_n[pl["nominal_n"].get<std::uint32_t>()] = pl;
   CHECK(plans_by_n.count(3u) == 1u);
-  // SD-18：n=3 档 plan = none（保守不排异）, underdetermined_n=3；provenance
-  // 顶层如实登记低 n 策略，且不得再出现显式先验 σ 档（31×31 先验已移出生产）。
+  // FIX-204（ASTROCS_DESIGN §4.5 下半节 / §9.71 裁决 3；原四档表**作废**）
+  // + EXP-204 定案（保守读法）：n=3 档**路由** = none（不排异 + 加权积分），
+  // underdetermined_n=3（闸默认保持 3；候选 ≤3 亦全接受并记
+  // P2_STATUS_UNDERDETERMINED）。provenance 顶层 small_n_policy/low_n_policy +
+  // stats.underdetermined_pixels 如实登记，非静默降级；不得再出现显式先验 σ 档
+  // （31×31 先验已移出生产）。
   CHECK(plans_by_n.at(3u).value("method", -1) == P2_REJECT_NONE);
   CHECK(plans_by_n.at(3u).value("underdetermined_n", 0u) == 3u);
   CHECK(std::string(plans_by_n.at(3u).value("semantic_id", "")) ==
@@ -810,7 +818,12 @@ static void test_f_p2002_01_rejection_parity() {
         ok_bin = cand_bins[fi] == k.eligible_count &&
                  acc_bins[fi] == 1 && nrej_bins[fi] == 0;
       }
-      if (plan.method == P2_REJECT_NONE && k.eligible_count > 0) ++low_n_px;
+      // FIX-204：与生产同式判据（module_adapters p2_op_reject）—— 未做排异的
+      // 两种合法来源：决策点路由 none（EXP-204 保守档）或 kernel
+      // underdetermined 闸（候选 ≤ plan.underdetermined_n）。
+      if (k.eligible_count > 0 &&
+          (plan.method == P2_REJECT_NONE ||
+           k.eligible_count <= plan.underdetermined_n)) ++low_n_px;
       if (!ok_bin) {
         ++mismatch;
         if (!has_bad) { has_bad = true; first_bad = fi; }
@@ -1349,10 +1362,11 @@ static void test_s303_provenance_keys(bool fault_inject) {
   catch (...) { CHECK(false); }
   CHECK(fin.value("schema", "") == "DATA-P2-RES");
   const json& prov = fin["provenance"];
-  // 五键全在（键名冻结; 禁静默缺键）
+  // 四键全在（键名冻结; 禁静默缺键）。A44（§9.73 / DESIGN §2.1）：全程只有
+  // SNR、不存在「权重模式」⇒ ASTROCS_WEIGHT_MODE 已从契约面删除（原五键）。
   static const char* keys[] = {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
                                "ASTROCS_UNCERTAINTY_AVAILABLE",
-                               "ASTROCS_WEIGHT_MODE", "ASTROCS_REJECT_PROFILE"};
+                               "ASTROCS_REJECT_PROFILE"};
   for (const char* k : keys)
     CHECK_MSG(prov.contains(k), (std::string("provenance key missing: ") + k).c_str());
   // 键值真实传递对拍（非伪造 64hex）
@@ -1370,7 +1384,6 @@ static void test_s303_provenance_keys(bool fault_inject) {
   CHECK_MSG(prov.value("ASTROCS_MODEL_HASH", "") == umd.value("model_hash", ""),
             "MODEL_HASH must equal p2_upm_model model_hash");
   CHECK(prov.value("ASTROCS_MODEL_HASH", "").size() == 64);
-  CHECK_MSG(prov.value("ASTROCS_WEIGHT_MODE", 0) == 2, "WEIGHT_MODE must be 2");
   CHECK_MSG(prov.value("ASTROCS_REJECT_PROFILE", "") == rej.value("profile", ""),
             "REJECT_PROFILE must equal rejection artifact profile");
   // RELEASE-02 HUB-A ①: 生产 reject 默认 profile 已改为逐输出像素几何 n 路由的
@@ -1447,11 +1460,17 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   const std::string mhash = smp.value("input_manifest_hash", std::string());
   const std::string modhash = umd.value("model_hash", std::string());
   const std::string profile = rej.value("profile", std::string());
-  const int wmode = intj.value("weight_mode", 0);
   const bool unc = intj.value("uncertainty_available", false);
   CHECK_MSG(mhash.size() == 64 && modhash.size() == 64 && !profile.empty(),
             "Phase2 artifacts must carry real 64hex hashes + profile");
-  CHECK_MSG(wmode == 2, "weight_mode must be 2 (ivar science default)");
+  // FIX-201 / §9.73 A44: 原断言 CHECK_MSG(wmode == 2, "weight_mode must be 2")
+  // 锁定的是已作废的「权重模式」概念（ASTROCS_DESIGN §2.1「全程只有 SNR,
+  // 不存在权重模式」）⇒ 该断言与其取值来源 (wmode) 一并删除。
+  // 替代锁（更严, 且不依赖被删概念）: 产品面**不得**携带 A44 provenance 键。
+  // 生产侧残留（module_adapters.cpp 仍向 p2_integrated.json / manifest 写小写
+  // weight_mode）属域外, 登记给前台/FIX-204。
+  CHECK_MSG(!intj.contains("ASTROCS_WEIGHT_MODE"),
+            "A44: p2_integrated.json 禁携带权重模式 provenance 键");
   CHECK_MSG(unc, "fixture carries ivar products → uncertainty_available=true");
 
   const int target_order = cov.value("target_order", 0);
@@ -1472,7 +1491,7 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   CHECK_MSG(ps != nullptr, "aio product_begin failed");
   if (!ps) { fs::remove_all(fx.root); return; }
   CHECK_EQ_INT(aio_hips_set_provenance(ps, mhash.c_str(), modhash.c_str(),
-                                       unc ? 1 : 0, wmode, profile.c_str()), 0);
+                                       unc ? 1 : 0, profile.c_str()), 0);
 
   // FITS 序 → NESTED local (writer view 合同; 与 p2_op_write 同一映射)
   std::vector<uint32_t> fits_to_local((size_t)span);
@@ -1559,7 +1578,6 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
   CHECK_MSG(pprov.value("ASTROCS_INPUT_MANIFEST_HASH", "") == mhash &&
                 pprov.value("ASTROCS_MODEL_HASH", "") == modhash &&
                 pprov.value("ASTROCS_REJECT_PROFILE", "") == profile &&
-                pprov.value("ASTROCS_WEIGHT_MODE", 0) == wmode &&
                 pprov.value("ASTROCS_UNCERTAINTY_AVAILABLE", "") ==
                     (unc ? "true" : "false"),
             "Phase2 manifest provenance must be the real artifact values");
@@ -1600,7 +1618,8 @@ static void test_s303_aio_channel_real_values(bool fault_inject) {
     const int vrc = aio_hips_verify_product_set(aio_dir.c_str(), &rep);
     CHECK_MSG(vrc == 0, ("aio verify must pass on real Phase2 product (rc=" +
                          std::to_string(vrc) + " : " + aio_hips_last_error() + ")").c_str());
-    CHECK_EQ_INT(rep.prov_keys_present, 5);
+    // FIX-201 / §9.73 A44 收窄锁: 四键 (原五键中的「权重模式」键已删除)。
+    CHECK_EQ_INT(rep.prov_keys_present, 4);
     CHECK_EQ_INT(rep.uncertainty_available, unc ? 1 : 0);
     CHECK_EQ_INT(rep.variance_present, unc ? 1 : 0);
     CHECK_EQ_INT(rep.ivar_present, unc ? 1 : 0);
@@ -1677,7 +1696,7 @@ static void test_s303_unavailable_explicit() {
     // §18.3 unavailable 显式登记: 键仍在、值为 false（禁静默缺键/空输出冒充）
     const json& prov = fin["provenance"];
     for (const char* k : {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
-                          "ASTROCS_UNCERTAINTY_AVAILABLE", "ASTROCS_WEIGHT_MODE",
+                          "ASTROCS_UNCERTAINTY_AVAILABLE",
                           "ASTROCS_REJECT_PROFILE"})
       CHECK_MSG(prov.contains(k), (std::string("unavailable face missing key: ") + k).c_str());
     CHECK(prov.value("ASTROCS_UNCERTAINTY_AVAILABLE", "true") == "false");
@@ -1732,9 +1751,16 @@ static void test_f_unc_003_no_plane_drift() {
       }
       CHECK(c.contains("provenance_keys"));
       if (c.contains("provenance_keys")) {
+        // FIX-201 / §9.73 A44 收窄锁: 只锁四键 (帧级 SNR 与稀疏相对 SNR 比值
+        // 之外无 provenance 面)。原断言把已作废的「权重模式」键当契约
+        // (与 ASTROCS_DESIGN §2.1「全程只有 SNR」相反) —— 该键名不再出现在
+        // 断言里, 也不得由任何人重新引入。
+        // 残留 (域外, 登记给前台): contracts/data/
+        // phase2_uncertainty_rejection_provenance_v1.json 的 provenance_keys
+        // 仍列该键 (contracts/** 属 FIX-201 禁改域), 须由合同层任务同步删除。
         for (const char* k : {"ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
                               "ASTROCS_UNCERTAINTY_AVAILABLE",
-                              "ASTROCS_WEIGHT_MODE", "ASTROCS_REJECT_PROFILE"})
+                              "ASTROCS_REJECT_PROFILE"})
           CHECK_MSG(c["provenance_keys"].contains(k),
                     (std::string("contract provenance key missing: ") + k).c_str());
       }

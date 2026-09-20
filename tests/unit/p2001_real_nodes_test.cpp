@@ -583,7 +583,8 @@ static void test_ivar_chain_real_operation() {
     CHECK(fin["provenance"].value("ASTROCS_INPUT_MANIFEST_HASH", "").size() == 64);
     CHECK(fin["provenance"].value("ASTROCS_MODEL_HASH", "").size() == 64);
     CHECK(fin["provenance"].value("ASTROCS_UNCERTAINTY_AVAILABLE", "") == "true");
-    CHECK(fin["provenance"].value("ASTROCS_WEIGHT_MODE", 0) == 2);
+    // A44（GAP_AUDIT §9.73 / ASTROCS_DESIGN §2.1）：全程只有 SNR，不存在
+    // 「权重模式」⇒ 原 ASTROCS_WEIGHT_MODE 契约断言已删（键已不存在）。
   }
   // 读回 variance/ivar tile（AIO reader; f32 容差）
   {
