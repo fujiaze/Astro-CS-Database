@@ -103,6 +103,13 @@ CHK-CONFIG-DEFAULTS / CHK-SPEC-NAMED-IMPL-ON-PROD-PATH）。
 - 余者全部落 `lib/**`、`tests/**`（**超本包文件域，只登记不改**）：`orchestrator.cpp` 5 站点 `-Wformat-truncation`（且不在 astrocs 闭包）、`rejection.cpp:100` `-Wunused-function`、`gaia_client.c:2072` `-Walloc-size-larger-than`、`p1_session.cpp`、`tests/unit/aio_abi_tests.cpp:108-119` `-Wenum-compare` ×28。
 - **口径缺口已上呈**：注册门 `CHK-WARN` 的文档语义是「增量单 TU 基线」，故仍绿；若改 `--clean-first` 会在 `lib/**` 未清零时立即判红。**本轮未改该口径**（避免把门打红），如实登记。
 
+### 3.3 `artifacts/KNOWN_FAILURES_BASELINE.json` 的语义（避免误判为脏树）
+
+- 该文件由 `CHK-KNOWN-FAILURES-BASELINE` 的 step `KNOWN-FAILURES-BASELINE` **在每次全门运行中自动重生成**（`source_commit` 刷为当次 HEAD）。
+- **前台复核结论**：`KNOWN-FAILURES-BASELINE-VERIFY` **不要求** `source_commit == HEAD`（实测 `source_commit=72c605cf` 而 `HEAD=243ac8dc` 时 VERIFY 仍 PASS），故不存在「提交即失效」的振荡；提交后再次跑门只会再刷 1 行 `source_commit`，属**预期行为**，非缺陷。
+- **单跑 `--check CHK-KNOWN-FAILURES-BASELINE` 会 FAIL，这是前置依赖顺序造成的假红**：其 `KNOWN-FAILURES-BASELINE-CHECK` step 消费同一次运行中由 ctest 步骤产出的结果；单独 `--check` 时读到陈旧结果，报 `new_failures: ["ctest:p1001_real_nodes"]`。**前台已独立复跑 `ctest -R "^p1001_real_nodes$"` → 100% passed, 0 failed out of 1** ⇒ 假红确认。**权威判定以 `--all` 为准**。
+- 权威全门（HEAD `243ac8dc` 上复跑）：**`verdict=PASS entries=52 steps=99 pass=99 fail=0`，rc=0**。
+
 ---
 
 ## 4. L3 文档-代码一致性 —— 越界项逐条
