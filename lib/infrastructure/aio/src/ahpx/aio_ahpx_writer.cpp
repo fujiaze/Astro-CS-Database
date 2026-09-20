@@ -15,6 +15,17 @@
 namespace aio::ahpx {
 
 // ============================================================================
+// 测试用故障注入 (先例: P2-002/P3-002/AIO-001 的 ASTROCS_*_FAULT)
+// 仅供回归锁证明"能红"; 正常实现不读该变量。
+//   writer_accept_legacy_meta - 跳过"元数据含已作废 weight 字段即拒绝"守卫
+//   writer_drop_snr           - 跳过 snr 块写出
+// ============================================================================
+static bool ahpxFault(const char* name) {
+    const char* v = std::getenv("ASTROCS_AHPX_FAULT");
+    return v && std::string(v) == name;
+}
+
+// ============================================================================
 // UTF-8 路径文件打开辅助 (Windows 下支持中文路径)
 // ============================================================================
 static FILE* ahpx_fopen_utf8(const char* path, const char* mode) {
@@ -54,10 +65,7 @@ AhpxWriter::AhpxWriter()
     : m_width(0)
     , m_height(0)
     , m_channels(0)
-    , m_hasSnr(false)
-    , m_weightMode(WeightMode::SCALAR)
-    , m_gridW(0)
-    , m_gridH(0) {
+    , m_hasSnr(false) {
 }
 
 AhpxWriter::~AhpxWriter() {
@@ -89,40 +97,6 @@ void AhpxWriter::setSnr(const float* data, int width, int height) {
     size_t count = (size_t)width * height;
     m_snr.assign(data, data + count);
     m_hasSnr = true;
-}
-
-void AhpxWriter::setWeightScalar(float scalar) {
-    m_weightMode = WeightMode::SCALAR;
-    m_weightData.clear();
-    m_weightData.push_back(scalar);
-    m_gridW = 0;
-    m_gridH = 0;
-}
-
-void AhpxWriter::setWeightGrid(const float* grid, uint16_t gw, uint16_t gh) {
-    if (!grid || gw == 0 || gh == 0) {
-        fprintf(stderr, "[aio][ahpx][writer] setWeightGrid: 无效参数 (grid=%p gw=%u gh=%u)\n",
-                (const void*)grid, gw, gh);
-        return;
-    }
-    m_weightMode = WeightMode::GRID;
-    size_t count = (size_t)gw * gh;
-    m_weightData.assign(grid, grid + count);
-    m_gridW = gw;
-    m_gridH = gh;
-}
-
-void AhpxWriter::setWeightPixel(const float* data, int width, int height) {
-    if (!data || width <= 0 || height <= 0) {
-        fprintf(stderr, "[aio][ahpx][writer] setWeightPixel: 无效参数 (data=%p w=%d h=%d)\n",
-                (const void*)data, width, height);
-        return;
-    }
-    m_weightMode = WeightMode::PIXEL;
-    size_t count = (size_t)width * height;
-    m_weightData.assign(data, data + count);
-    m_gridW = 0;
-    m_gridH = 0;
 }
 
 FILE* AhpxWriter::openFile(const std::string& path, const char* mode) {
@@ -236,16 +210,9 @@ std::string AhpxWriter::buildBlocksJson(const std::vector<BlockIndex>& blocks) {
     return json;
 }
 
-std::string AhpxWriter::injectBlocksIntoJson(const std::vector<BlockIndex>& blocks,
-                                              const AhpxWriteConfig& config) {
+std::string AhpxWriter::injectBlocksIntoJson(const std::vector<BlockIndex>& blocks) {
     // 构建 blocks JSON 片段
     std::string blocksJson = buildBlocksJson(blocks);
-
-    // 构建 weight JSON 片段
-    char weightJson[128];
-    std::snprintf(weightJson, sizeof(weightJson),
-        "\"weight\":{\"mode\":%u,\"grid_w\":%u,\"grid_h\":%u}",
-        (uint8_t)config.weightMode, config.gridW, config.gridH);
 
     // 如果元数据 JSON 为空, 创建一个基础结构
     if (m_metadataJson.empty()) {
@@ -253,15 +220,12 @@ std::string AhpxWriter::injectBlocksIntoJson(const std::vector<BlockIndex>& bloc
         result += "\"image\":{\"width\":" + std::to_string(m_width);
         result += ",\"height\":" + std::to_string(m_height);
         result += ",\"channels\":" + std::to_string(m_channels) + "}";
-        result += ",";
-        result += weightJson;
-        result += ",";
-        result += "\"blocks\":" + blocksJson;
+        result += ",\"blocks\":" + blocksJson;
         result += "}";
         return result;
     }
 
-    // 已有 JSON: 移除末尾的 '}', 追加 blocks 和 weight 字段
+    // 已有 JSON: 移除末尾的 '}', 追加 blocks 字段
     std::string result = m_metadataJson;
 
     // 移除末尾空白和 '}'
@@ -275,11 +239,9 @@ std::string AhpxWriter::injectBlocksIntoJson(const std::vector<BlockIndex>& bloc
 
     // 检查是否已有 blocks 字段 (简单查找)
     bool hasBlocks = (result.find("\"blocks\"") != std::string::npos);
-    bool hasWeight = (result.find("\"weight\"") != std::string::npos);
 
-    // 追加 weight 字段 (如果没有)
-    if (!hasWeight) {
-        // 检查是否需要逗号
+    // 追加 blocks 字段 (如果没有); 逗号由当前末尾字符决定 (禁前导逗号)
+    if (!hasBlocks) {
         while (!result.empty() && (result.back() == ' ' || result.back() == '\t' ||
                result.back() == '\n' || result.back() == '\r')) {
             result.pop_back();
@@ -287,12 +249,7 @@ std::string AhpxWriter::injectBlocksIntoJson(const std::vector<BlockIndex>& bloc
         if (!result.empty() && result.back() != '{') {
             result += ",";
         }
-        result += weightJson;
-    }
-
-    // 追加 blocks 字段 (如果没有)
-    if (!hasBlocks) {
-        result += ",\"blocks\":" + blocksJson;
+        result += "\"blocks\":" + blocksJson;
     }
 
     result += "}";
@@ -302,26 +259,26 @@ std::string AhpxWriter::injectBlocksIntoJson(const std::vector<BlockIndex>& bloc
 bool AhpxWriter::write(const std::string& path, const AhpxWriteConfig& config) {
     auto t0 = std::chrono::high_resolution_clock::now();
 
-    // 使用内部记录的 weightMode/gridW/gridH, 覆盖 config 中的值
-    // (实际模式由 setWeight* 调用决定, config 中的 weightMode 字段被忽略)
-    AhpxWriteConfig effectiveConfig = config;
-    effectiveConfig.weightMode = m_weightMode;
-    effectiveConfig.gridW = m_gridW;
-    effectiveConfig.gridH = m_gridH;
-
     // -------- 1. 验证输入 --------
     if (m_pixels.empty() || m_width <= 0 || m_height <= 0 || m_channels <= 0) {
         fprintf(stderr, "[aio][ahpx][writer] 未设置像素数据或几何无效\n");
         return false;
     }
-    if (m_weightData.empty()) {
-        fprintf(stderr, "[aio][ahpx][writer] 未设置权重数据\n");
+
+    // 已作废字段守卫 (变更 AHPX-WEIGHT-RETIRE-20260920; ASTROCS_DESIGN §2.1/A44):
+    // 调用方元数据携带旧 "weight" 字段 ⇒ 拒绝写出 (既不产出读侧必拒的文件,
+    // 也不静默丢弃调用方数据)。
+    if (!ahpxFault("writer_accept_legacy_meta") &&
+        hasJsonKey(m_metadataJson, RETIRED_WEIGHT_FIELD)) {
+        fprintf(stderr, "[aio][ahpx][writer] 拒绝写出: 元数据含已作废的 \"%s\" 字段 "
+                        "(权重模式已作废, 变更 AHPX-WEIGHT-RETIRE-20260920)\n",
+                RETIRED_WEIGHT_FIELD);
         return false;
     }
 
-    fprintf(stderr, "[aio][ahpx][writer] 开始写入: %s (w=%d h=%d c=%d pixels=%zu snr=%d weight=%zu)\n",
+    fprintf(stderr, "[aio][ahpx][writer] 开始写入: %s (w=%d h=%d c=%d pixels=%zu snr=%d)\n",
             path.c_str(), m_width, m_height, m_channels, m_pixels.size(),
-            m_hasSnr ? 1 : 0, m_weightData.size());
+            m_hasSnr ? 1 : 0);
 
     // -------- 2. 压缩所有数据块 (在内存中) --------
     std::vector<CompBlock> compBlocks;
@@ -332,13 +289,13 @@ bool AhpxWriter::write(const std::string& path, const AhpxWriteConfig& config) {
         std::memset(cb.id, 0, sizeof(cb.id));
         std::strncpy(cb.id, "pixel", sizeof(cb.id) - 1);
         cb.codec = (uint8_t)Codec::ZSTD;
-        cb.level = effectiveConfig.zstdLevel;
+        cb.level = config.zstdLevel;
 
         size_t srcBytes = m_pixels.size() * sizeof(float);
         size_t bound = aio::compressBoundZstd(srcBytes);
         cb.data.resize(bound);
         size_t compSize = aio::compressZstd(m_pixels.data(), srcBytes,
-                                       cb.data.data(), bound, effectiveConfig.zstdLevel);
+                                       cb.data.data(), bound, config.zstdLevel);
         if (compSize == 0 || compSize >= srcBytes) {
             // 回退到不压缩
             cb.codec = (uint8_t)Codec::NONE;
@@ -353,18 +310,18 @@ bool AhpxWriter::write(const std::string& path, const AhpxWriteConfig& config) {
     }
 
     // 2.2 压缩 snr 块 (如果有)
-    if (m_hasSnr && !m_snr.empty()) {
+    if (!ahpxFault("writer_drop_snr") && m_hasSnr && !m_snr.empty()) {
         CompBlock cb;
         std::memset(cb.id, 0, sizeof(cb.id));
         std::strncpy(cb.id, "snr", sizeof(cb.id) - 1);
         cb.codec = (uint8_t)Codec::ZSTD;
-        cb.level = effectiveConfig.zstdLevel;
+        cb.level = config.zstdLevel;
 
         size_t srcBytes = m_snr.size() * sizeof(float);
         size_t bound = aio::compressBoundZstd(srcBytes);
         cb.data.resize(bound);
         size_t compSize = aio::compressZstd(m_snr.data(), srcBytes,
-                                       cb.data.data(), bound, effectiveConfig.zstdLevel);
+                                       cb.data.data(), bound, config.zstdLevel);
         if (compSize == 0 || compSize >= srcBytes) {
             cb.codec = (uint8_t)Codec::NONE;
             compSize = srcBytes;
@@ -374,31 +331,6 @@ bool AhpxWriter::write(const std::string& path, const AhpxWriteConfig& config) {
         cb.compSize = compSize;
         compBlocks.push_back(std::move(cb));
         fprintf(stderr, "[aio][ahpx][writer] snr 块压缩完成: %zu -> %zu bytes (codec=%u)\n",
-                srcBytes, compSize, compBlocks.back().codec);
-    }
-
-    // 2.3 压缩 weight 块
-    {
-        CompBlock cb;
-        std::memset(cb.id, 0, sizeof(cb.id));
-        std::strncpy(cb.id, "weight", sizeof(cb.id) - 1);
-        cb.codec = (uint8_t)Codec::ZSTD;
-        cb.level = effectiveConfig.zstdLevel;
-
-        size_t srcBytes = m_weightData.size() * sizeof(float);
-        size_t bound = aio::compressBoundZstd(srcBytes);
-        cb.data.resize(bound);
-        size_t compSize = aio::compressZstd(m_weightData.data(), srcBytes,
-                                       cb.data.data(), bound, effectiveConfig.zstdLevel);
-        if (compSize == 0 || compSize >= srcBytes) {
-            cb.codec = (uint8_t)Codec::NONE;
-            compSize = srcBytes;
-            cb.data.resize(srcBytes);
-            std::memcpy(cb.data.data(), m_weightData.data(), srcBytes);
-        }
-        cb.compSize = compSize;
-        compBlocks.push_back(std::move(cb));
-        fprintf(stderr, "[aio][ahpx][writer] weight 块压缩完成: %zu -> %zu bytes (codec=%u)\n",
                 srcBytes, compSize, compBlocks.back().codec);
     }
 
@@ -428,15 +360,15 @@ bool AhpxWriter::write(const std::string& path, const AhpxWriteConfig& config) {
         }
 
         // 注入 blocks 到 JSON
-        finalJson = injectBlocksIntoJson(blkIdx, effectiveConfig);
+        finalJson = injectBlocksIntoJson(blkIdx);
         headerSize = (uint32_t)finalJson.size();
 
         // 压缩 JSON 头
-        if (effectiveConfig.zstdLevel > 0) {
+        if (config.zstdLevel > 0) {
             size_t bound = aio::compressBoundZstd(headerSize);
             compJson.resize(bound);
             size_t compSize = aio::compressZstd(finalJson.data(), headerSize,
-                                           compJson.data(), bound, effectiveConfig.zstdLevel);
+                                           compJson.data(), bound, config.zstdLevel);
             if (compSize == 0 || compSize >= headerSize) {
                 // 回退到不压缩
                 compJson.assign(finalJson.begin(), finalJson.end());
@@ -480,7 +412,7 @@ bool AhpxWriter::write(const std::string& path, const AhpxWriteConfig& config) {
             curOffset += cb.compSize;
         }
 
-        finalJson = injectBlocksIntoJson(blkIdx, effectiveConfig);
+        finalJson = injectBlocksIntoJson(blkIdx);
         uint32_t newHeaderSize = (uint32_t)finalJson.size();
         if (newHeaderSize == headerSize) {
             break;  // 收敛

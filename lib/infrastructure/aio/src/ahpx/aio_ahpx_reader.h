@@ -13,6 +13,12 @@ namespace aio::ahpx {
 // ============================================================================
 // AhpxReader - .ahpx 单帧存储格式读取器
 //
+// 数据面见 aio_ahpx_format.h (变更 AHPX-WEIGHT-RETIRE-20260920): 只读
+// "pixel" 与 "snr" 两类块, 本格式不承载任何权重。
+//
+// 旧格式显式拒绝: 头 JSON 携带已作废的 "weight" 字段 (权重模式载体) 或存在
+// 同名数据块时, open() 返回 false 且 getRejectReason() 给出原因 — 禁静默忽略。
+//
 // 用法:
 // AhpxReader reader;
 // if (!reader.open("frame.ahpx")) return;
@@ -27,10 +33,14 @@ public:
     ~AhpxReader();
 
     // 打开文件, 解析头. 成功返回 true
+    // 旧格式 (含已作废 weight 字段/块) ⇒ 返回 false, 原因见 getRejectReason()
     bool open(const std::string& path);
 
     // 获取 JSON 头 (已解压). open 成功后有效
     const std::string& getHeaderJson() const;
+
+    // 获取拒绝原因. open 失败时非空 (含旧格式显式拒绝的判据)
+    const std::string& getRejectReason() const;
 
     // 获取数据块索引列表
     const std::vector<BlockIndex>& getBlocks() const;
@@ -51,16 +61,6 @@ public:
     // 失败返回空 vector
     std::vector<float> readSnr();
 
-    // 读取权重
-    // mode 输出权重模式 (SCALAR/GRID/PIXEL)
-    // outGw 输出网格宽度 (仅 GRID 模式有效)
-    // outGh 输出网格高度 (仅 GRID 模式有效)
-    // SCALAR 模式: 返回 1 个 float
-    // GRID 模式: 返回 gw×gh 个 float
-    // PIXEL 模式: 返回 W×H 个 float
-    // 失败返回空 vector
-    std::vector<float> readWeight(WeightMode* outMode, uint16_t* outGw, uint16_t* outGh);
-
     // 关闭文件, 释放资源
     void close();
 
@@ -76,9 +76,10 @@ private:
     uint32_t                m_headerCompSize; // JSON 压缩后长度
     uint32_t                m_blockCount;  // 块数量
     std::string             m_headerJson;  // 解压后的 JSON 头
+    std::string             m_rejectReason; // 拒绝原因 (open 失败时非空)
     std::vector<BlockIndex> m_blocks;      // 块索引列表
 
-    // 解析 JSON 头, 填充 m_blocks
+    // 解析 JSON 头, 填充 m_blocks; 旧格式 ⇒ 置 m_rejectReason 并返回 false
     bool parseHeader();
 
     // 从 JSON 头解析图像几何信息

@@ -143,12 +143,15 @@ AIO_EXPORT size_t aio_compress_bound(size_t srcSize, int codec);
 
 // ============================================================================
 // .ahpx 读写 API (管线入口/出口的文件 I/O)
+//
+// 变更 AHPX-WEIGHT-RETIRE-20260920 (ASTROCS_DESIGN §2.1 / GAP_AUDIT §9.73 A44):
+// aio_ahpx_write 不再接收权重参数 (weight_mode/weight_data/grid_w/grid_h) —
+// .ahpx 只承载像素与帧级 SNR, 权重由阶段二现场计算。旧签名写出的文件在读取侧
+// 被显式拒绝 (见 aio_ahpx_format.h 兼容策略)。
 // ============================================================================
 AIO_EXPORT int aio_ahpx_write(const char *path,
                                const void *pixels, int width, int height, int channels,
                                const float *snr, int snr_w, int snr_h,
-                               int weight_mode, const void *weight_data,
-                               int grid_w, int grid_h,
                                const char *metadata_json,
                                int zstd_level);
 AIO_EXPORT int aio_ahpx_read_header(const char *path,
