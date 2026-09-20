@@ -32,6 +32,13 @@
 
 namespace {
 
+// PSF 块母函数因子: FWHM = 1.230310 * sigma (各向同性 Moffat4 beta=4; SCI-PSF-001 §5)。
+// 本文件消费的是 **PSF 块**行 (row[5] = fwhm_x/y = 1.230310*sigma), 故此处用 PSF 块
+// 因子把 FWHM 换算为 sigma 后, 经 SnrSourceParams.sigma_px 传入 snr_science.cpp。
+// snr_science 的 fwhm_px 参数契约属**检测块高斯**列 (DATA-P1-SOURCES, 因子
+// 2.3548200450309493): 两列禁止跨块互换 (SCI-P1-STAR-001 §2 / DISP-STAR-007)。
+constexpr double kMoffat4FwhmFactor = 1.230310;
+
 // 计算中位数 (会修改输入 vector 的顺序)
 double medianValue(std::vector<double>& v) {
     if (v.empty()) return 0.0;
@@ -50,6 +57,7 @@ double medianValue(std::vector<double>& v) {
 // 输入为 PSF 块的一行 [status,B,flux,cx,cy,fwhm,A,mad(residual_scale),ecc]:
 //   F              = flux [ADU] (缺失/非正时用 Moffat4 beta=4 解析积分 2*pi*A*sigma^2/3 兜底)
 //   sigma_px       = fwhm / 1.230310                      [SCI-PSF FWHM=1.230310*sigma]
+//   (PSF 块 FWHM 不得填入 fwhm_px —— 该参数属检测块高斯列; 见 kMoffat4FwhmFactor 注)
 //   sigma_sky_adu  = residual_scale / 0.7316727929211932  [10-90% trimmed mean -> Gaussian sigma]
 // gain 未知 (PSF 块无 gain) => 天空受限最优提取:
 //   SNR_F = F * sqrt(sum_i P_i^2) / sigma_sky
@@ -60,17 +68,18 @@ inline double sourceSnrFromPsfRow(const double* row) {
     const double residual_scale = row[7];
     double fwhm = row[5];
     if (!std::isfinite(residual_scale) || !(residual_scale > 0.0)) return 0.0;
-    if (!std::isfinite(fwhm) || !(fwhm > 0.0)) fwhm = 1.230310;  // 兜底 sigma=1px
+    if (!std::isfinite(fwhm) || !(fwhm > 0.0)) fwhm = kMoffat4FwhmFactor;  // 兜底 sigma=1px
+    const double sigma_moffat4 = fwhm / kMoffat4FwhmFactor;   // PSF 块因子 (非检测块)
     double F = flux;
     if (!std::isfinite(F) || !(F > 0.0)) {
-        const double sigma = fwhm / 1.230310;
-        F = 2.0 * M_PI * A * sigma * sigma / 3.0;
+        F = 2.0 * M_PI * A * sigma_moffat4 * sigma_moffat4 / 3.0;
     }
     if (!std::isfinite(F) || !(F > 0.0)) return 0.0;
     SnrSourceParams p;
     std::memset(&p, 0, sizeof(p));
     p.flux_adu = F;
-    p.fwhm_px = fwhm;
+    p.fwhm_px = 0.0;               // PSF 块 FWHM 不是检测块高斯列 (禁止跨块填列)
+    p.sigma_px = sigma_moffat4;    // 已按 PSF 块 Moffat4 因子换算的 sigma
     p.sigma_sky_adu = residual_scale / 0.7316727929211932;
     SnrSourceResult res;
     if (snr_source_snr_f64(&p, &res) != 0) return 0.0;
@@ -94,7 +103,7 @@ inline void frameDepthFromPsf(const double* psf, int n_stars,
         if (row[6] <= row[1]) continue;
         if (!(row[7] > 0.0)) continue;
         double f = row[5];
-        if (!std::isfinite(f) || !(f > 0.0)) f = 1.230310;
+        if (!std::isfinite(f) || !(f > 0.0)) f = kMoffat4FwhmFactor;
         fwhm.push_back(f);
         sig.push_back(row[7] / 0.7316727929211932);
     }
@@ -103,7 +112,10 @@ inline void frameDepthFromPsf(const double* psf, int n_stars,
     const double med_sigma = medianValue(sig);
     if (!(med_fwhm > 0.0) || !(med_sigma > 0.0)) return;
     double sum_p2 = 0.0, p_center = 0.0;
-    if (snr_moffat4_profile_f64(med_fwhm, 0.0, 0, &sum_p2, &p_center) != 0) return;
+    // PSF 块中位 FWHM -> Moffat4 sigma (PSF 块因子), 经 sigma_px 传入 (fwhm_px=0:
+    // 该参数属检测块高斯列, 禁止跨块填入; 数值与旧路径逐位一致)。
+    if (snr_moffat4_profile_f64(0.0, med_fwhm / kMoffat4FwhmFactor, 0,
+                                &sum_p2, &p_center) != 0) return;
     if (!(sum_p2 > 0.0)) return;
     if (out_flux5) *out_flux5 = 5.0 * med_sigma / std::sqrt(sum_p2);
 }

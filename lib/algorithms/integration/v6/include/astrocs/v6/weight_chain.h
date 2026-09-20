@@ -31,14 +31,22 @@
  *   reference_flux F_ref               : 与帧产品同通量标度 [ADU]
  *   weights w                          : [ADU^-2]（= 1/σ_F²，与 Phase1 W_info 同量纲）
  *
- * 前置条件（DESIGN §4.3:256 + WEIGHT-SCI-001 配对性定理）: 调用前帧已由 UPM
- *   归一到公共通量尺度，F_ref 为**组内公共常数**；且传入的 reference_flux 必须
- *   **等于定义帧级 frame_snr 时所用的那个参考通量**（配对性:
- *     SNR_f = a_f·F_ref/σ_f  ⇒  SNR_f²/F_ref² = a_f²/σ_f² = w_f
- *   成立当且仅当分子分母同源）。逐帧 F_ref（各帧自己的检出通量）会丢掉帧间标度
- *   因子 a_f²，且使存头 SNR 混入本帧检出亮度（帧间不可比较）⇒ **不得使用**。
- *   未归一化/分母与 SNR 定义不同源时换算不成立，调用方不得调用本模块。
- *   注: 本条为约定澄清，**签名与实现不变**（判为正确；缺陷在 Phase1 写侧）。
+ * 前置条件（DESIGN §4.3:256 + WEIGHT-SCI-001 配对性定理 + 负责人 GAP_AUDIT §9.49
+ *   定案 2「帧间独立」）: **配对性只要求同一帧内 SNR 与 F_ref 同源**，即
+ *     SNR_k = a_k·F_ref,k/σ_k  ⇒  SNR_k²/F_ref,k² = a_k²/σ_k² = w_k
+ *   成立当且仅当**该帧**的分子分母同源。**不要求跨帧相等。**
+ *
+ *   ⚠ 本节曾写「F_ref 为组内公共常数…逐帧 F_ref 不得使用」—— 该表述**已作废**：
+ *   FREF-BASELINE-001 的 scope="frame_independent_fixed_magnitude" 下
+ *   F_ref,k = 10^(−0.4(m_ref−ZP_k))，ZP_k 依赖**该帧自己的**光学系统/滤镜
+ *   ⇒ 不同指向、不同光学系统的帧**合法地**有不同的 F_ref,k；旧表述等价于
+ *   「不同光学系统的帧混装即报错」，与 §9.49 定案 2 直接冲突，并使 weight_mode=2
+ *   在多指向拼接上完全不可用（实测 6/6 帧被拒）。用组标量反而在跨指向时
+ *   **破坏**同源性。变更 claim: WEIGHT-FREF-PERFRAME-001。
+ *
+ *   现行为：逐帧取 f.ref_flux（>0）为准，未提供时回退组标量 reference_flux；
+ *   两者都非有限/非正 ⇒ fail-closed（kUnclosedInvalidReferenceFlux）。
+ *   未归一化/分母与 SNR 定义**不同帧或不同源**时换算仍不成立，调用方不得调用本模块。
  */
 #pragma once
 

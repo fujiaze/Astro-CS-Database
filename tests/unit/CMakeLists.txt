@@ -626,7 +626,9 @@ target_link_libraries(p1_wcs_phot_test PRIVATE astrocs_phase1_wcs astrocs_phase1
 add_test(NAME p1_wcs_phot COMMAND p1_wcs_phot_test)
 
 add_executable(p1_noise_test p1_noise_test.cpp)
+# NOISE-MODEL-CANON-001: 重锚到 A (SCI-NOISE-001 §5/§5a 唯一实现)
 target_include_directories(p1_noise_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/noise_snr/cpp/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/noise_snr/wrapper_phase1)
 target_link_libraries(p1_noise_test PRIVATE astrocs_phase1_noise)
 add_test(NAME p1_noise COMMAND p1_noise_test)

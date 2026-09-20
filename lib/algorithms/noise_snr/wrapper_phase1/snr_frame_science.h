@@ -16,7 +16,9 @@
 //   零点标准误 sigma_se = 1.253 * sigma_logflux_dex / sqrt(n_matches) [dex]
 //
 // 单位 (强制):
-//   flux_adu [ADU]; fwhm_px [pixel]; sigma_sky_adu [ADU]; gain [e-/ADU];
+//   flux_adu [ADU]; fwhm_px [pixel] = **检测块椭圆高斯** FWHM
+//   (DATA-P1-SOURCES.fwhm_px, FWHM = 2.3548200450309493*sigma; SCI-P1-STAR-001 §2);
+//   sigma_sky_adu [ADU]; gain [e-/ADU];
 //   read_noise_e [e-]; zero_point_mag [mag]; snr_f/local_snr [1];
 //   sigma_f_adu [ADU]; flux5_adu [ADU]; m5_mag [mag]; se_dex [dex]
 //
@@ -30,11 +32,15 @@
 
 namespace astrocs::phase1 {
 
-// 逐源输入行 (来自 p1_sources.json 的 PSF 有效星; 调用方负责提供)
+// 逐源输入行 (来自 p1_sources.json 的测光有效星; 调用方负责提供)
 struct SnrSourceRow {
   std::string id;        // star_id (可空; 仅用于追溯)
   double flux_adu = 0.0; // F 总通量 [ADU] (>0 才可计算)
-  double fwhm_px = 0.0;  // Moffat4 FWHM [pixel] (>0 才可计算)
+  // **检测块**母函数宽度 = 椭圆高斯 FWHM [pixel] (>0 才可计算)。
+  // 来源列固定为 DATA-P1-SOURCES.sources[].fwhm_px (与 psf.max_stars 解耦,
+  // DATA_SEMANTICS §13.4); 该列不得与 PSF 块 Moffat4 FWHM 列互换/比较
+  // (SCI-P1-STAR-001 §2 :31-34, DISP-STAR-007): 同 sigma 下相差 1.914005x。
+  double fwhm_px = 0.0;
 };
 
 // 帧级配置 (全部显式; 无隐式帧级 SNR 标量)
