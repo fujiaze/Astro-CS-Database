@@ -70,6 +70,7 @@
 | CHK-PROD-SCALE | 科学 | 关键算法生产尺度参数 | `python3 ci/check_prod_scale.py` | P0 |
 | CHK-PROVENANCE-CONSISTENCY | 科学 | 产品 provenance 自洽 | `python3 ci/check_provenance_consistency.py` | P0 |
 | CHK-REALDATA-E2E | 科学 | 真实数据 E2E（slow/heavy，linux-deep） | `python3 ci/check_realdata_e2e.py --execute` | P0 |
+| CHK-SPEC-NAMED-IMPL-ON-PROD-PATH | 治理 | 规范点名的权威实现必须在生产可达路径（CMake 根构建图闭包 + 生产节点调用点；登记表 `ci/spec_named_impls.json`，缺口台账 `ci/ledgers/spec_named_impl_gaps.json`；含 --self-test） | `python3 ci/check_spec_named_impl.py --json-out run/ci/fix-gates/spec_named_impl.json` | P0 |
 
 ### 2.1 检查器退役与预留
 

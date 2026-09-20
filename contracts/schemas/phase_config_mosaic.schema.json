@@ -146,6 +146,15 @@
             "sum"
           ],
           "description": "UPM 规范固定；默认 reference_frame（docs/plugins/algorithms_phase2/11_upm.md:36）"
+        },
+        "snr_path": {
+          "enum": [
+            "dense",
+            "sparse_reconstruct",
+            "frame_reconstruct"
+          ],
+          "default": "sparse_reconstruct",
+          "description": "Phase2 SNR 重建/消费路径（Phase1 产出形态 → 稠密 SNR），三条路径全部保留、由配置文件 JSON 显式指定（负责人 2026-09-19 裁决，change-claim FIX-SCI-SNR-CANON-001 §3.2；键名与 ASTROCS_DESIGN.md §3.3:124、docs/design/UNIFIED_MODEL.md:46、docs/plugins/algorithms_phase1/07_noise_snr.md:114 一致 = snr_path）：dense = 直接使用 Phase1 稠密逐像素 SNR 面（精度基准/论文对照）；sparse_reconstruct（默认）= 由 Phase1 稀疏控制点 SNR 层重建（负责人 §9.46：「每帧受光污染程度在不同区域不一样，帧级肯定没有稀疏精度高」⇒ 默认消费稀疏层，SNR(p) = SNR_frame × rho_c(p) 线性插值）；frame_reconstruct = 仅由帧级标量重建（单帧级对照）。SP-0（实测 Var_p 比值）为诊断量、不作默认开关（§9.46；其否定结论只在帧间形状相同的共模场景成立）。消费侧行为：输入无稀疏层而路径为 sparse_reconstruct（含默认）⇒ 按帧级执行但必须显式记录实际路径（snr_path_effective）并计数，不得静默；稀疏层损坏/不可重建 ⇒ fail-closed（07_noise_snr.md:95,:129；docs/plugins/algorithms_phase2/13_integration.md:21）。数值默认同时登记于 config/defaults.json#snr.path 与 config/templates/mosaic.phase_config.json（同值 sparse_reconstruct）。"
         }
       }
     },

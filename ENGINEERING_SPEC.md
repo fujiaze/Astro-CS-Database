@@ -107,6 +107,11 @@ run/（gitignore：临时产物/日志）  logs/（gitignore）
 
 - **任何新产物必须落位到对应目录，禁止散落根目录**；
 - 确需新增根目录条目，先登记并获得负责人确认；
+- **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）可在根目录以**具名目录**放置，
+  并**同时登记**于本节与 `ci/root_manifest.json` 的 `allowed_dirs`；已登记：`GaiaDR3/`、`GaiaDR3SP/`、
+  `BASS DR3/`（星表）、`HST_M16/`（HST WFC3/UVIS M16 三帧 `drz`，公开 HLSP，RELEASE-02 负责人上传）；
+  全部由 `.gitignore` 排除。**判据**：该目录**只读引用**、**不入库**、**不被根 `CMakeLists.txt` 引用**、
+  **不被任何检查器当作仓库内容**；若某数据集开始被代码消费或需入库，则**必须**移入 `testdata/` 或 `artifacts/`，**不得**留在根目录；
 - **`reverse_verify/` 为逆向验收工作区**（RELEASE-02 负责人确认新增）：主线做**正向推导**，该区从第一性原理与公开文献/开源实现**逆向验证**；**独立构建**（不得被根 `CMakeLists.txt` 引用），存放实验代码、合成数据代码、方案设计与参考文献；中间产物落 `run/reverse_verify/`；
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
 - 修改代码/测试后同步订正 `ci/checks.json`；禁止把运行产物产出到项目根目录；

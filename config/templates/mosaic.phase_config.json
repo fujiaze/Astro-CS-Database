@@ -5,7 +5,8 @@
     "precision": "fp64",
     "algorithm_weight_mode": "point_information",
     "algorithm_rejection_method": "auto",
-    "algorithm_upm_gauge": "reference_frame"
+    "algorithm_upm_gauge": "reference_frame",
+    "snr_path": "sparse_reconstruct"
   },
   "inputs": [
     {

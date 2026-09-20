@@ -124,7 +124,7 @@ MinGW 通道）+ `cpp/build.ps1:29`——未编入根 CMake 主构建（无
 snr_estimator CMake 目标，与 astrocs_hips/astrocs_drizzle 先例不同，
 CMake 集成归 P1-NOISE-IMPL），dll_loader.cpp:41/55 加载名与路径吻合）；`lib/algorithms/noise_snr/wrapper_phase1/noise_model.{h,cpp}` 为
 `astrocs::phase1::NoiseModel` 小封装（39+67 行，静态库
-`astrocs_phase1_noise`，CMakeLists.txt:559-571，主程序链接 :645；单测
+`astrocs_phase1_noise`，CMakeLists.txt:620-632，主程序链接 :706；单测
 tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:619-623 注册）。
 
 | ALG | 符号 | 源锚 |
@@ -257,8 +257,8 @@ tests/unit/p1_noise_test.cpp 经 tests/unit/CMakeLists.txt:619-623 注册）。
 - `lib/algorithms/noise_snr/wrapper_phase1/NoiseModel::estimate`（median+MAD 全像素集单值，无
   掩膜/patch/平面场）与 `NoiseModel::gain_variance`（signal/gain+rn²
   诊断）——P1-005 期封装，语义为 ALG-NOISE-001/003 的退化子集；随
-  `astrocs_phase1_noise` 静态库编译（CMakeLists.txt:559-571）并进主程序
-  （:645），属计划迁移旧符号：P1-NOISE-IMPL 决定改写为
+  `astrocs_phase1_noise` 静态库编译（CMakeLists.txt:620-632）并进主程序
+  （:706），属计划迁移旧符号：P1-NOISE-IMPL 决定改写为
   snr_noise_model_v1 薄封装或退出，去留登记其 TASK_RESULT。
 - 旧乘法 SNR 通道 `snr_estimate/snr_estimate_f64/snr_extract_model{,_v2,_v3}`
   （snr_estimator.h:329-350,538-570）——legacy heuristic/diagnostic，已由

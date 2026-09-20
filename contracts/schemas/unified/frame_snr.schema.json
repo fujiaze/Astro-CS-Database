@@ -297,6 +297,74 @@
       "enum": [
         "unique_frame_reference"
       ]
+    },
+    "reference_baseline": {
+      "description": "FREF-BASELINE-001：帧级 SNR 的**参考通量基准**。SNR_k(F_ref) = F_ref/σ_F,k 只有在参考通量统一时帧间才可比（GAP_AUDIT §9.49 定案 7）。本对象声明该基准的取法与其公共锚，使「帧级 SNR × 稀疏权重」有共同尺度。",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "reference_flux_source",
+        "reference_flux_common",
+        "reference_mag",
+        "reference_mag_system"
+      ],
+      "properties": {
+        "scope": {
+          "description": "参考通量的作用域。group = 块级公共 F0（reference_flux_common 为 ADU 常数）; frame_independent_fixed_magnitude = 固定参考星等 m_ref 在本帧的仪器通量 F_ref,k = 10^(-0.4*(m_ref-ZP_k))（逐帧、只依赖本帧标定，无「组」概念）。两种作用域下 reference_flux_common 都必须是**物理公共锚**且对同波段同星场恒为同一数。",
+          "enum": [
+            "group",
+            "frame_independent_fixed_magnitude"
+          ]
+        },
+        "reference_flux_source": {
+          "description": "参考通量的来源判据（机器可读）。fixed_magnitude = 由固定参考星等 + 本帧测光零点导出; group_median = 块级检出通量中位数（数据派生，帧间不独立）; config = 显式配置; unavailable = 不可得（该帧 fail-closed，不写帧级 SNR 键）",
+          "enum": [
+            "fixed_magnitude",
+            "group_median",
+            "config",
+            "unavailable"
+          ]
+        },
+        "reference_flux_common": {
+          "description": "**物理公共锚** F0（配对性定理的 F_ref）。fixed_magnitude 作用域下 = 10^(-0.4*(m_ref-ZP_syn))，ZP_syn 由 Gaia DR3 XP 绝对谱 (XPSD) 经本帧滤光片/QE 曲线正向合成，只依赖 (filter, QE, 天区星族) ⇒ 跨帧恒等。相位 2 的公共通量闸门（ASTROCS_REFERENCE_FLUX 组内一致，相对容差 1e-9）读此值。禁止用它反推增益/口径/曝光。",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reference_flux_common_unit": {
+          "description": "reference_flux_common 的单位口径。F_syn (Gaia XPSD absolute spectral integral) = 与 F_instr 同标度的合成通量单位（ADU 等价），非物理 W/m^2。",
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_mag": {
+          "description": "固定参考星等 m_ref（星等制见 reference_mag_system）。必须随产品落盘：SNR 数值只有配上 m_ref 才有物理含义。注意 m_ref 是**参考电平**，不是「本帧能测到的星」—— 亮端外推（如 m_ref=6 对深窄带数据）仍是良定义，但不得解释为可探测星。",
+          "type": "number"
+        },
+        "reference_mag_system": {
+          "description": "m_ref 所属星等制。gaia_g_via_synthetic_xpsd = Gaia G 星等，通量由 Gaia DR3 XP 绝对谱 + 本帧滤光片/QE 正向合成（与 k_photo 同一 F_syn 口径，无物理闭合反推）",
+          "enum": [
+            "gaia_g_via_synthetic_xpsd"
+          ]
+        },
+        "reference_zero_point_syn_mag": {
+          "description": "绝对合成星等零点 ZP_syn [mag]，满足 mag = ZP_syn - 2.5*log10(F_syn)。只依赖 (filter, QE, 天区星族)，与帧无关。",
+          "type": "number"
+        },
+        "frame_zero_point_mag": {
+          "description": "本帧测光零点 ZP_k = ZP_syn - 2.5*log10(k_photo,k) [mag]，满足 mag = ZP_k - 2.5*log10(F_adu)。F_ref,k = 10^(-0.4*(m_ref-ZP_k))。",
+          "type": "number"
+        },
+        "frame_k_photo": {
+          "description": "本帧测光标度 k_photo（I_photo = k_photo·I_cal）。帧间不同是正常的（不同夜透明度本就不一样，GAP_AUDIT §9.49 定案 2）。",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "pairing_identity": {
+          "description": "配对性核对式（WEIGHT-SCI-001）：帧级 SNR 的分子参考通量必须与换算权重用的公共锚配对 —— w = SNR_k²/F0² = a_k²/σ_k²。本字段记录该恒等式的机器可读形式。",
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   }
 }

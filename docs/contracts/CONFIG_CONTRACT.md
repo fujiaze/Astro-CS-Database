@@ -43,20 +43,20 @@
 | detection（σ 检测阈值） | 1 | `docs/science/STAR_DETECTION.md:19` |
 | psf（默认模型/β） | 2 | `docs/science/PSF.md:7`、`:92` |
 | noise（噪声模型默认配置） | 14 | `docs/science/NOISE_MODEL.md` §4/§5/§5a/§6 陈述行（:41,:49,:73,:95；逐字段 source_ref 见 defaults.json；MASK-002/SC-009 新增 5 键 k/r_min/fwhm_floor/nq≥8/N_sky≥9216 已含在 14 内）。旧锚 `NOISE_ESTIMATION.md:134` 为实现锚，按负责人指令撤出登记面 |
-| rejection（排异阈值表） | 18 | `docs/science/REJECTION.md:55-61`（§5「阈值冻结锚点」块；W5-CFG-002 重锚，原 :131 已因文档重排失效） |
+| rejection（排异阈值表） | 18 | `docs/science/REJECTION.md:66`（§5「阈值冻结锚点」块；W5-CFG-002 重锚，原 :131 已因文档重排失效） |
 | photometry（mag_tolerance / Tukey c / IRLS / 最小星数） | 6 | `docs/science/PHOTOMETRY.md:21,24,38,39` |
 | weight（默认权重模式） | 1 | `docs/science/PSF_SIGNAL_WEIGHT.md:12`、`:28` |
 | precision（默认精度） | 1 | `docs/science/SCIENCE_SCOPE.md:53` |
 | upm（k_corr） | 1 | `docs/science/PHASE2_UPM.md:22`（定义 + 冻结默认，:124 记不可接受变化；W5-CFG-002 重锚） |
 | hips（tile 宽） | 1 | `docs/science/PHASE3_HIPS_TO_FITS.md:39`（W 默认 512=2⁹；W5-CFG-002 重锚） |
-| drizzle（pixfrac） | 1 | 语义 `docs/science/DRIZZLE.md:21,27,31`；**数值 1.0 已落**（`defaults.json#drizzle.pixfrac`=1.0，authority_status=owner_adjudicated；DOC-SCI-001 §3 裁决 + `docs/science/DRIZZLE.md:79`（通量守恒条件不变量）+ E1 复算；v6 侧 FZ-COND-FLUX-CONSERV 逐字见 `config/defaults.json#drizzle.pixfrac` 的 source/note） |
+| drizzle（pixfrac） | 1 | 语义 `docs/science/DRIZZLE.md:23,27,31`；**数值 1.0 已落**（`defaults.json#drizzle.pixfrac`=1.0，authority_status=owner_adjudicated；DOC-SCI-001 §3 裁决 + `docs/science/DRIZZLE.md:79`（通量守恒条件不变量）+ E1 复算；v6 侧 FZ-COND-FLUX-CONSERV 逐字见 `config/defaults.json#drizzle.pixfrac` 的 source/note） |
 | sparse_snr / scalar_gate | 3 | **数值 pending** |
 
 - **pending_authority 三项（禁止编造，值必须为 null）**：
 
 | key | unit | 归属任务 | 依据 |
 |---|---|---|---|
-| `sparse_snr.density` | `点/度²` | SCI-RES-01/R-001 + 负责人批准 | ASTROCS_DESIGN §3.3 点名；`docs/science/**`、`docs/algorithms/**` 全库无数值（GAP-024）；单位见 `docs/plugins/algorithms_phase1/07_noise_snr.md:65` |
+| `sparse_snr.density` | `点/度²` | SCI-RES-01/R-001 + 负责人批准 | ASTROCS_DESIGN §3.3 点名；`docs/science/**`、`docs/algorithms/**` 全库无数值（GAP-024）；单位见 `docs/plugins/algorithms_phase1/07_noise_snr.md:112` |
 | `scalar_gate.rd` | unspecified | SCI-RES-01/R-002 + 负责人批准 | GAP-024；`07_noise_snr.md:61` 字段名，默认/单位列均为 —— |
 | `scalar_gate.trend` | unspecified | SCI-RES-01/R-002 + 负责人批准 | 同上（`07_noise_snr.md:62`） |
 
@@ -71,8 +71,8 @@
 
 | phase | 模板 | config 必填 | 可选算法选择（逐项权威） | inputs 项 |
 |---|---|---|---|---|
-| normalize | `config/templates/normalize.phase_config.json` | output_dir, precision | `algorithm_psf_model`（`docs/science/PSF.md:7,:81,:105`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ASTROCS_DESIGN.md` §3.4:161-164）；**`algorithm_drizzle_pixfrac`**（字段收录；语义/值域权威 `docs/science/DRIZZLE.md:21,:27,:31` + `docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 1.0 已落 defaults.json 的 `drizzle.pixfrac`，状态 owner_adjudicated；DOC-SCI-001 §3） | `{light, bias?, dark?, flat?, cosmetic?, filter}`，filter 必须命中滤镜库 |
-| mosaic | `config/templates/mosaic.phase_config.json` | output_dir, precision | `algorithm_weight_mode`（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（method/profile 词表 `docs/science/REJECTION.md:20-21`；默认路由 `:47-53`；W5-CFG-002 重锚）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:36`） | `{product, filter?}` |
+| normalize | `config/templates/normalize.phase_config.json` | output_dir, precision | `algorithm_psf_model`（`docs/science/PSF.md:7,:81,:105`，当前唯一实现 Moffat4）；`sparse_snr_layer`（`ASTROCS_DESIGN.md` §3.4:161-164）；**`algorithm_drizzle_pixfrac`**（字段收录；语义/值域权威 `docs/science/DRIZZLE.md:23,:27,:31` + `docs/algorithms/DRIZZLE_GEOMETRY.md:57,:61,:102`，schema 机器强制 `0 < pixfrac <= 1`；数值默认 1.0 已落 defaults.json 的 `drizzle.pixfrac`，状态 owner_adjudicated；DOC-SCI-001 §3） | `{light, bias?, dark?, flat?, cosmetic?, filter}`，filter 必须命中滤镜库 |
+| mosaic | `config/templates/mosaic.phase_config.json` | output_dir, precision | `algorithm_weight_mode`（`docs/plugins/algorithms_phase2/13_integration.md:67`；点源默认语义 `docs/science/PSF_SIGNAL_WEIGHT.md:28`）、`algorithm_rejection_method`（method/profile 词表 `docs/science/REJECTION.md:20-21`；默认路由 `:47-53`；W5-CFG-002 重锚）、`algorithm_upm_gauge`（`docs/plugins/algorithms_phase2/11_upm.md:76`） | `{product, filter?}` |
 | export | `config/templates/export.phase_config.json` | output_dir, precision, output_mode, wcs | `output_mode`（`ASTROCS_DESIGN.md` §5.3:267；默认 `surface_brightness` 见 `docs/plugins/algorithms_phase3/16_fits_output.md:41`）、`wcs.projection`（§5.3:264-266 首批 8 种 + 缺省 TAN；`14_projection.md:34`）、`wcs.{rotation_deg, crpix_px}`（`14_projection.md:35,38`） | `{product}` |
 
 - `precision` **必填**（`ASTROCS_DESIGN.md` §3.3:145「precision（FP32/FP64）显式声明」），值域 {fp32, fp64}；模板填 `fp64`（`docs/science/SCIENCE_SCOPE.md:53` 默认 FP64）。
