@@ -31,9 +31,23 @@ d_k = A_k x + n_k,    Cov(n_k) = C_k
 
 ## 3. 节点与先后关系
 
-`ingest → detector calibration → cosmetic/validity → background/noise → source detection → PSF → astrometry → photometry → sensitivity/information → spherical resampling → product validation → atomic publish`。
+**节点顺序以 `ASTROCS_DESIGN.md` §3.2 为唯一权威**（DOC-203 订正：原文「… → source detection → PSF → astrometry → photometry → …」漏掉**两轮 WCS** 与 **apply photometry**，与本设计相反，已删）：
+
+```text
+ingest → calibration → cosmetic/validity → background/noise
+       → platesolve 第一轮（盲检测粗解 WCS，只为星表投影提供近似坐标）
+       → star_detection（星表引导检测）→ psf
+       → platesolve 第二轮（用高纯度星表精化 WCS，此结果才是权威 WCS）
+       → photometry → apply photometry（测光归一化真正落到像素）
+       → noise_snr → drizzle → 产品验证 → 原子发布 HiPS+JSON
+```
 
 节点可由调度器安排，但科学依赖不可改变；每节点只执行声明 operation，不得通过多个 facade 重复运行整段 Phase1。
+**强制语义（不得放宽，细化见 §3.6）**：① 星表引导检测（检测定义域 = 星表位置，不是整幅图像）；
+② WCS **两轮**解算（第一轮盲解只为近似指向、其星表不是权威科学产品；第二轮精解才是权威 WCS）；
+③ **一次检测、一次通量积分、三处复用**（`star_detection` → `psf` → `photometry` → `noise_snr` 共用同一份
+检测结果与同一 `flux` 口径）；④ **测光归一化必须真正落到像素**（`I_photo = k_photo·m(x,y)·I_cal`；
+未启用时产品显式记 `degraded_reason` 并 fail-closed，元数据 `photappl`/`photscal` 如实落盘）。
 
 ## 4. 校准与方差传播
 

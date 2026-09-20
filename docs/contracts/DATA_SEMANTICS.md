@@ -680,15 +680,16 @@ A/B/mad：**SNR_peak = A_fit / sigma_bg**（PSF 侧 A_fit=A、sigma_bg=mad·1.48
 > schema/单位/dtype/shape，科学语义引用既有 DATA-P1-CAL（§9）、
 > DATA-P1-COS（§10）等冻结节。编排级合同 API-P1-001
 > （docs/api/PHASE1_API_V1.md，FROZEN）；入口符号合同 API-P1-SESSION
-> （PUBLIC_API.md）。本节是该会话数据面的唯一权威，禁止被编排层占位
-> 词汇反向改写。
+> （PUBLIC_API.md）。本节是该会话数据面单位/dtype/shape/invalid 的**依据**（上位 =
+> `ASTROCS_DESIGN.md` §0/§0.1；科学公式与算法推导以 `docs/science/`、`docs/algorithms/` 为准），
+> 禁止被编排层占位词汇反向改写（DOC-203 订正：删「唯一权威」自称，依 §0.1「禁止任何下级文档自称唯一权威」）。
 
 ### 16.1 config JSON（p1_session_validate 键集，p1_session.cpp:115-143）
 
 > **多数据块形态（GAP_AUDIT §9.68，2026-09-20）**：CLI 的 `normalize --json` 顶层可以是
 > `{schema_version, blocks[]}`（每块 = 一组 light + 一套母版 + 运行参数 + 块级 `output_dir`）；
 > CLI 逐块把 `blocks[i]` 展开为**本节的单块键集**后各起一次运行（独立 `output_dir` / 独立 run manifest，
-> manifest 带 `block{name,index,count}` 归属）。本节因此仍是**会话层**配置数据面的唯一权威：
+> manifest 带 `block{name,index,count}` 归属）。本节因此仍是**会话层**配置数据面的依据（上位 = `ASTROCS_DESIGN.md` §0/§0.1；DOC-203 订正：删「唯一权威」自称）：
 > 会话永远只看到单块键集，多块只是它的外壳（形态定义见 `ASTROCS_DESIGN.md` §3.3）。
 
 | 键 | 必/可 | dtype | 默认 | 消费段 / 错误 |
@@ -1368,7 +1369,11 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 > 「Min/Max rejection should not be used for production work」）。因此：
 > ① `contracts/schemas/phase_config_mosaic.schema.json` 的 `minmax` 枚举值**已删**（FIX-207 已落地）；
 > ② 本节以下对 `MINMAX` **实现分支**的描述只作**实现事实留痕**（内核里该分支仍存在），
-> **不是**可选生产路由——生产**不得**选择它；③ 该内核分支的删除/隔离归 **FIX-204**。
+> **不是**可选生产路由——生产**不得**选择它；③ 该内核分支的删除/隔离**仍开放**：
+> **实测** FIX-204（`5e8c09ce`）只把逐像素自动选择策略落到 `rejection.cpp:1139` `kPixelSmallNPolicy`
+> （4≤N≤5 / 6≤N≤15），**未删** `rejection.cpp` 的 `P2_REJECT_MINMAX` / `reject_minmax_impl` /
+> `p.minmax.*` 默认（:993/:1093/:1169/:1240-1241/:1878/:2149-2150/:2470-2471）⇒ 登记为**遗留缺口**，
+> 归属后续 FIX（原指派 FIX-204 未覆盖该面）。
 
 ### 22.1 输入（按消费路径分层；锚=rejection.h，未注文件者同）
 
