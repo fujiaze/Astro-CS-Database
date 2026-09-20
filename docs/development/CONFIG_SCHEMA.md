@@ -100,7 +100,11 @@ output.hips / diagnostics
 > 且该 fenced 块是 `tools/config_consistency_check.py` 的 docs 腿输入，故不改块内文字）。
 > **生产科学路由唯一权威** = `ASTROCS_DESIGN.md` §4.5（按 EXP-204 定案：`1≤N≤3` none / `4≤N≤5` percentile /
 > `6≤N≤15` winsorized / `N≥16` linear fit；逐像素按几何可贡献帧数 N 自动选；**min/max 禁用**）。
-> 两者的档界差异（4..7/8..15 vs 4..5/6..15）归 **FIX-204** 对齐实现；`docs/contracts/DATA_SEMANTICS.md` §22 首注同面。
+> 两者的档界差异（4..7/8..15 vs 4..5/6..15）：**内核侧已由 FIX-204（`5e8c09ce`）落为 4≤N≤5 / 6≤N≤15**
+> （`lib/algorithms/coverage/src/rejection.cpp:1139` `kPixelSmallNPolicy`）⇒ 本文 fenced 块内的 `4..7/8..15`
+> 只是 **legacy orchestrator profile 的历史描述，已由内核策略取代**（块内文字不改：它是
+> `tools/config_consistency_check.py` 的 docs 腿输入；若确需改块内文字，必须同步该检查器的 docs 腿）。
+> `docs/contracts/DATA_SEMANTICS.md` §22 首注同面。
 
 ## Stage1 config
 

@@ -12,13 +12,6 @@
       "exit_condition": "生产节点改调 sdet_create/sdet_detect_ex_f64（或经星表引导检测落地后由负责人裁决权威源改指，走规范变更 claim）后删除本条目"
     },
     {
-      "id": "SNI-S2-NS-01",
-      "kind": "known_gap",
-      "reason": "ALG-NOISE（docs/algorithms/NOISE_ESTIMATION.md:120）点名的生产符号唯一源 lib/algorithms/noise_snr/cpp/src/noise_model.cpp 不在根构建图：根 CMakeLists.txt:240 的 add_subdirectory(lib/algorithms/noise_snr) 被注释（该子图 CMakeLists 为 V7 残留面）。生产噪声走 wrapper_phase1/noise_model.cpp。",
-      "owner": "Phase1 noise-snr 域主（前台裁决接线面）",
-      "exit_condition": "解注释收编 lib/algorithms/noise_snr 子图或把该 TU 编入 astrocs_phase1_noise，使点名文件进入 astrocs 生产闭包后删除本条目"
-    },
-    {
       "id": "SNI-S4-P3X-06",
       "kind": "known_gap",
       "reason": "lib/phase3_session/p3_v6_export.cpp（V6 三模式导出链）不在任何生产 target 源列表，仅被 tests/integration/v6_p3 编译 ⇒ FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 四条 FROZEN 合同在生产运行面无载体（CONFORM-SWEEP-4 P3X-06，E-09）。",
