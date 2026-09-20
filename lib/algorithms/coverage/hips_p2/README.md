@@ -96,9 +96,11 @@
 ## 3. 输入/输出 ports、DATA ID、单位、dtype、shape、invalid
 
 唯一权威 = DATA-P2-HIPS（docs/contracts/DATA_SEMANTICS.md §20）。端口
-词汇（module_adapters.cpp:677-694 p2_write_descriptor：integrated
-DATA-P2-INT in / mosaic DATA-P2-RES out，UnitId::ADU、CoordinateFrame::
-PIXEL）为编排层词汇，以 DATA-P2-HIPS 为准修订，P2-XX-INT 对齐。
+词汇（module_adapters.cpp:1040-1057 p2_write_descriptor：integrated
+DATA-P2-INT in / mosaic DATA-P2-RES out，UnitId::SURFACE_BRIGHTNESS、
+CoordinateFrame::PIXEL）为编排层词汇，以 DATA-P2-HIPS 为准修订，P2-XX-INT 对齐。
+（EXP-203 C2 行锚订正：原写 :677-694 已漂移；C1 单位订正：原写 UnitId::ADU 与
+surface brightness 语义矛盾，改为 UnitId::SURFACE_BRIGHTNESS。）
 
 - 输入：N 个 Phase1 单帧 HiPS（signal/support 子产品必读 :536-537；ivar
   子产品 weight_mode=2 必读 :557）+ control 级 local_snr_map/local_ivar_map

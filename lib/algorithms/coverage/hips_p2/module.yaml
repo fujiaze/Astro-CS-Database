@@ -30,7 +30,7 @@
 # 顺序定序归并，输出与线程数无关），large_scale 激活强制串行；ThreadLease/
 # 取消检查点无接线（迁移整改点，与 DISP-COV-005 同构）。
 # entrypoint=MISSING：registry 入口未接；descriptor 现状占位 ID
-# （lib/infrastructure/scheduler/src/module_adapters.cpp:677-694 p2_write_descriptor 的
+# （lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057 p2_write_descriptor 的；EXP-203 C2 行锚订正：原写 :677-694 已漂移）
 # module_id=astrocs.phase2.write、sci_id=SCI-P2-WR-001/alg_id=ALG-P2-WR-001/
 # data_id=DATA-P2-RES/api_id=API-P2-001/test_id=TEST-P2-WR-001、ports
 # integrated/mosaic、坐标 PIXEL 与 NESTED 球面实际不符）为编排层词汇，
