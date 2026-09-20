@@ -1098,24 +1098,84 @@ const char* p2_rejection_semantic_id(int method) {
 }
 
 
-// AstroCS 自有「按几何 n」内置映射（astrocs_adaptive_pixel）：
-//   n <= 3  → none（SD-18 2026-09-18 裁决：低 n 出现在抖动边缘、最终丢弃，
-//             走保守路径 = 不排异 + 直接加权积分；不为低 n 发明排异方法。
-//             provenance 如实记 underdetermined_no_rejection / UNDERDETERMINED）
-//   4..7    → percentile（WBPP auto n<6 ∩ validator 要求 winsorized n>=8）
-//   8..15   → winsorized_sigma（卫星线去除主力档）
-//   n >= 16 → linear_fit
-// extreme_value_clip_prior_sigma（FIX-REJ §3 n=2 先验 σ 档）保留为**显式
-// opt-in**：不再出现在本映射，仅当调用方显式 request 该方法时执行。
-// 与 WBPP 的偏离（3 处）仍登记：n<=3 用 none（保守不排异；WBPP auto 会套
-// percentile）；6<=n<=7 用 percentile（消解 WBPP auto 与 validator 自相矛盾）；
-// 16<=n<20 linear_fit 由调用方发 WARN。本映射**独立命名**，不改变
-// wbpp_2_9_1 / astrocs_adaptive 的冻结 AUTO 路由。
+// =====================================================================
+// FIX-204（§9.71 裁决 3）逐像素按几何 N 自动选择 —— 唯一决策点 + WBPP 映射
+// =====================================================================
+// 权威：ASTROCS_DESIGN.md §4.5 下半节「逐像素排异：按该像素的输入集数量 N
+// 自动选择（负责人 2026-09-20 裁决，一手证据定案）」；一手实测
+// run/RELEASE-02/FIX-REJ/wbpp/BatchPreprocessing/BPP-FrameGroup.js:1304-1312
+// bestRejectionMethod()：n < 6 → PercentileClip；6 ≤ n ≤ 15（或 BIAS/DARK）
+// → WinsorizedSigmaClip；n > 15 → LinearFit。
+//
+// ╔════════════════════════════════════════════════════════════════════╗
+// ║ FIX-204 **唯一显式决策点**（EXP-204 定案后**只改这一处**）           ║
+// ╚════════════════════════════════════════════════════════════════════╝
+// 待定科学问题（工程控制/RELEASE-03/tasks/EXP-204.md）—— **已由 EXP-204 定案**：
+//   「N < 6 → percentile 档的**下界是否含 N ≤ 3**？」⇒ **不含**（保守读法）。
+//   - PixelSmallNPolicy::kConservativeNone（**EXP-204 定案值，当前生效**）：
+//     1 ≤ N ≤ 3 → none（不排异 + 直接加权积分；维持负责人 2026-09-19 原裁决）。
+//     依据：EXP-204 三数据面 + 6 轮独立复核 + 对抗轮（判据冻结 sha256 bd8982d6…）：
+//     低/中电平（≲2700 e⁻/pix）下强制 percentile 有损/无益/不可用（N=3 ρ−1 达
+//     0.3–27% ≫ τ_ρ=0.31%；N=2 A1s 83.5% 像素无输出）；「高电平占优」反例
+//     超出实验网格上界（1734 e⁻/pix）属外延。电平依赖与反例已记 GAP_AUDIT §5.8。
+//   - PixelSmallNPolicy::kWbppTable（**对称读法，未采用**）：N < 6 一律 percentile
+//     （含 N ≤ 3；N = 0 为 void 像素占位）。负责人若改判对称读法 ⇒ 只改下面 1 行。
+//   最终映射表（逐像素按几何 N）：
+//     1 ≤ N ≤ 3 → none / 4 ≤ N ≤ 5 → percentile /
+//     6 ≤ N ≤ 15（或 BIAS/DARK 类帧）→ winsorized_sigma / N ≥ 16 → linear_fit；
+//     N = 0（void 像素占位，无候选栈）→ percentile（永不进 kernel）。
+// 说明（不掩盖、不静默）：
+//   * 本决策点决定**路由表**（provenance 里记录的 method）；
+//   * N ≤ 3 的**实际执行**另受 kernel 的 underdetermined 闸约束：候选数
+//     ≤ underdetermined_n（astrocs_adaptive_pixel 默认 3）⇒ 全接受 +
+//     P2_STATUS_UNDERDETERMINED，provenance 如实记录（非静默降级）；
+//   * EXP-204 若要「N ≤ 3 **强制** percentile 排异」，除本决策点外还需把
+//     pixel profile 的 underdetermined_n 默认从 3 降到 2（见
+//     p2_reject_plan_resolve 的 undet_default）；两处都属 EXP-204 落地面，
+//     本任务只落 WBPP 表（kWbppTable）。
+// 原四档表（n ≤ 3 不排异 / 4–7 percentile / 8–15 winsorized / ≥16 linear）
+// **作废**（ASTROCS_DESIGN.md §4.5 已加作废横幅）。
+enum class PixelSmallNPolicy { kWbppTable, kConservativeNone };
+static constexpr PixelSmallNPolicy kPixelSmallNPolicy =
+    PixelSmallNPolicy::kConservativeNone;   // ← EXP-204 定案；改判对称读法只改本行
+
+std::uint32_t p2_rejection_percentile_band_min_n(void) {
+    // 4 = N ≤ 3 走保守 none（EXP-204 定案，当前）；
+    // 1 = 「N<6」档含 N ≤ 3（WBPP 对称读法，未采用）。
+    return (kPixelSmallNPolicy == PixelSmallNPolicy::kWbppTable) ? 1u : 4u;
+}
+
 static int astrocs_n_map_method(std::uint32_t n) {
-    if (n <= 3u) return P2_REJECT_NONE;
-    if (n <= 7u) return P2_REJECT_PERCENTILE;
+    // 保守分支仅在 EXP-204 定案「保留不排异」时可达；n = 0 为 void 像素占位，
+    // 不参与该分支 —— AUTO 路由表值域恒为
+    // {percentile, winsorized_sigma, linear_fit}。
+    if (kPixelSmallNPolicy == PixelSmallNPolicy::kConservativeNone &&
+        n >= 1u && n <= 3u)
+        return P2_REJECT_NONE;
+    if (n < 6u) return P2_REJECT_PERCENTILE;
     if (n <= 15u) return P2_REJECT_WINSORIZED_SIGMA;
     return P2_REJECT_LINEAR_FIT;
+}
+
+// FIX-204 §4：AUTO 路由**禁止**产出 min/max 与 NoRejection（已废弃 CCD clip
+// 在本枚举中无对应值 ⇒ 不可达）。WBPP BPP-FrameGroup.js:1237-1243 明文拒绝
+// （"Min/Max rejection should not be used for production work"），
+// BPP-engine.js:2695-2719 算法清单**不含** min/max。
+// 本函数是**生产路径守卫**：AUTO 解析命中禁止方法 ⇒ fail-closed（返回非 0），
+// 绝不静默改算法、绝不静默降级。显式指定（非 AUTO）不受此守卫约束 —— 按
+// §4.5「不合适只告警、不硬阻断」由 p2_rejection_applicability 出 WARN 码。
+static bool auto_method_forbidden(int method, std::uint32_t n,
+                                    bool pixel_profile) {
+    if (method == P2_REJECT_MINMAX) return true;
+    if (method == P2_REJECT_NONE) {
+        // 唯一合法的 NONE 来源 = 小 N 保守决策点本身（EXP-204 若定案
+        // 「保留不排异」时 PixelSmallNPolicy::kConservativeNone 对 1≤N≤3 的
+        // 显式选择）。任何**其它**路径产出 NONE ⇒ 视为路由缺陷 ⇒ fail-closed。
+        return !(pixel_profile &&
+                 kPixelSmallNPolicy == PixelSmallNPolicy::kConservativeNone &&
+                 n >= 1u && n <= 3u);
+    }
+    return false;
 }
 
 
@@ -1149,8 +1209,11 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     // underdetermined_n 默认（显式传值优先）：
     // - astrocs_adaptive_pixel：显式 request=EXTREME_VALUE_PRIOR_SIGMA
     //   （opt-in 先验 σ 档）→ 1（使 n=2 能进 kernel，n=1 由 minimum_n=2 拦下）；
-    //   其余（AUTO）→ 3（与 astrocs_n_map_method 的 n<=3 none 保守档一致：
-    //   n<=3 像素记 UNDERDETERMINED，不冒充排异成功）；
+    //   其余（AUTO）→ 3（**kernel 闸**：候选数 ≤3 不做排异判定，全接受并记
+    //   UNDERDETERMINED，不冒充排异成功。FIX-204 后该值与路由档**解耦**：
+    //   N ≤ 3 的路由由 astrocs_n_map_method 上方的唯一决策点决定（WBPP 表
+    //   ⇒ percentile），实际执行仍受本闸约束；EXP-204 若定案「强制
+    //   percentile 排异」需把本默认降到 2，见该决策点注释）；
     // - 其余冻结 profile → 2（逐位不变，含显式 extreme_prior）。
     std::uint32_t undet_default = 2u;
     if (pixel_profile) {
@@ -1192,7 +1255,9 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     if (method == P2_REJECT_AUTO) {
         const std::uint32_t n = req->nominal_contributors;
         if (pixel_profile) {
-            // FIX-REJ §3：AstroCS 自有按几何 n 映射（含 n=2 先验 σ 档）
+            // FIX-204：AstroCS 自有「按逐输出像素几何 N」映射 = WBPP 实测表
+            // （N<6 percentile / 6..15 winsorized / >15 linear fit），
+            // 唯一决策点在 astrocs_n_map_method 上方（EXP-204）。
             method = astrocs_n_map_method(n);
         } else {
             // WBPP 2.9.1 bestRejectionMethod 冻结路由（两 profile 共用；
@@ -1201,6 +1266,15 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
             else if (n <= 15u) method = P2_REJECT_WINSORIZED_SIGMA;
             else method = P2_REJECT_LINEAR_FIT;
         }
+    }
+    // FIX-204 §4 生产路径守卫：AUTO **禁止**产出 min/max / NoRejection
+    // （WBPP :1237-1243 明文拒绝）。命中 ⇒ fail-closed，绝不静默改算法。
+    if (req->request == P2_REJECT_AUTO &&
+        auto_method_forbidden(method, req->nominal_contributors, pixel_profile)) {
+        set_err(err, err_cap,
+                "p2_reject_plan_resolve: AUTO 路由命中禁用方法（min/max 或 "
+                "NoRejection；WBPP BPP-FrameGroup.js:1237-1243）");
+        return 1;
     }
     p.method = method;
     p.minimum_n = method_minimum_n(method);
@@ -2499,11 +2573,13 @@ int p2_rejection_applicability(int method, std::uint32_t nominal_n,
             if (nominal_n <= 4u) code = "W_NR_LE4";        // Siril N-r<=4
             break;
         case P2_REJECT_MEDIAN_SIGMA:
+            if (nominal_n <= 4u) code = "W_NR_LE4";        // Siril N-r<=4
+            break;
         case P2_REJECT_LINEAR_FIT:
-            if (nominal_n <= 4u) code = "W_NR_LE4";
-            if (method == P2_REJECT_LINEAR_FIT && nominal_n >= 8u &&
-                nominal_n < 20u)
-                code = "W_LF_LT20";                        // WBPP :1272-1276
+            // WBPP :1272-1278：n<8 ⇒ "requires at least 15 images"；
+            // 8≤n<20 ⇒ "may not be better than Winsorized"。
+            if (nominal_n < 8u) code = "W_LF_LT8";
+            else if (nominal_n < 20u) code = "W_LF_LT20";
             break;
         case P2_REJECT_AVERAGED_SIGMA:
             if (nominal_n < 8u || nominal_n > 10u) code = "W_AVG_RANGE";
