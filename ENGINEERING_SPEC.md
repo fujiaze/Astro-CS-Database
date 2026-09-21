@@ -52,6 +52,13 @@
 
 新增能力流程：定义合同 → 实现模块 → 注册 → 修改声明式 Pipeline → 加测试。一个任务只动该动的模块，不同时改 CLI/AIO/调度器等无关模块。
 
+### 4.1 管线纪律（对应最高设计 §8）
+
+- 模块只通过命名块与管线交换数据：读入参块、写新块、声明消费的旧块；不持有跨节点的大块数据副本，不跨阶段共享内存；
+- 每个块的生产者、消费者、生命周期在模块的 module.yaml 与管线 DAG 中显式声明，调度器据此销毁旧块、控制峰值工作集；
+- 三个阶段各自实例化调度器：normalize 异步工作流编排、mosaic 天球窗口并行、export 子块流式；模块不感知调度策略，只声明块依赖与线程安全性；
+- 调度器与模块预埋性能探针，编排参数的调优在功能与数值正确闭环后基于探针数据进行。
+
 ---
 
 ## 5. 测试规范
@@ -106,24 +113,27 @@ lib/
 │   ├── noise_snr drizzle coverage sampling upm rejection integration
 │   ├── projection resample fits_output
 │   └── shared/
-└── infrastructure/     基建（cli/ 下挂 normalize/mosaic/export 子命令 + scheduler/pipeline/aio/benchmark/observability/gaia/acr/hips_browser）
+├── include/            公共头
+├── third_party/        第三方依赖
+└── infrastructure/     基建（cli/{normalize,mosaic,export} + pipeline 命名块与块生命周期 +
+                          scheduler 三阶段调度器 + aio/benchmark/observability/gaia/acr/hips_browser）
 
-其他固定目录：lib/include/ lib/third_party/ eng/contracts/ docs/ eng/tests/ testdata/ eng/packaging/ gaia/
-eng/（工程支撑面，2026-09-21 由 ci/ tools/ cmake/ 合并而成）
+其他固定目录：eng/contracts/ docs/ eng/tests/ testdata/ eng/packaging/ gaia/
+eng/（工程支撑面）
   eng/ci/           机器门注册表与检查器（eng/ci/checks.json、eng/ci/run_checks.py）
   eng/tools/        工具与质量检查器（eng/tools/quality/**、eng/tools/doccheck/**）
-  eng/cmake/        CMake 模块（原 cmake/）
-  eng/build/        构建脚本（build.sh / toolchain.ps1；根 CMakeLists.txt 与 CMakePresets.json 因 CMake 入口约束留在根）
-eng/packaging/config/（程序根全局配置：filters.json / defaults.json）
+  eng/cmake/        CMake 模块
+  eng/build/        构建脚本（build.sh / toolchain.ps1；根 CMakeLists.txt 与 CMakePresets.json 为 CMake 入口留在根）
+eng/packaging/config/（程序全局配置：filters.json / defaults.json）
+docs/contracts/（合同的文档化说明，与 eng/contracts 的 schema 双向对应）
 实验/（科学实验单元：photometric-magnitude / absolute-snr / additive-sky-seamless + shared，随仓库维护）
 工程控制/（控制包工作区，收口后按 CONTROL_PACK_SPEC §9 清理）
-artifacts/（证据与产物，含 CI 运行产物 artifacts/ci/<sha>/ 与历史证据锚 artifacts/evidence/**）
+artifacts/（证据与产物，含 CI 运行产物 artifacts/ci/<sha>/ 与证据锚 artifacts/evidence/**）
 run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 与 eng/tools/round_start.sh）
 ```
 
 - 新产物落位到对应目录，不散落根目录；确需新增根目录条目，先登记并经负责人确认；
-- **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `eng/ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`gaia/GaiaDR3/`、`gaia/GaiaDR3SP/`。判据：只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容；一旦被代码消费或需入库，移入 `testdata/` 或 `artifacts/`；
-- **2026-09-21 ROOT-CONSOLIDATION（负责人直接指令）**：按上一条判据，`BASS DR3/` → `testdata/BASS_DR3/`（目录名去空格；元数据/索引/工具/日期表入库，FITS 与下载产物不入库）、`HST_M16/` → `testdata/HST_M16/`（770 MB FITS 不入库）——数据来源、PHOTFLAM 与下载方式见 `testdata/README.md`；`reverse_verify/` 按主题拆入 `实验/photometric-magnitude|absolute-snr|additive-sky-seamless/code/reverse_verify/` 与 `实验/shared/`（映射见 `实验/shared/REVERSE_VERIFY_MIGRATION.md`）；`engineering/`（0 文件空目录）、`scripts/`（仅退役登记，已并入 `eng/tools/README.md`）、`logs/`（空目录，并入 `run/<task>/logs/`）三个根条目删除；`reports/` 收编进 `artifacts/evidence/**` 后删除，`问题扫描/` 只留三件台账于 `artifacts/evidence/audit-2026-01/` 后删除；`ci/`+`tools/`+`cmake/`+`build.sh`+`toolchain.ps1` 合并为 `eng/`；`eng/packaging/`、`memory.md`、`FATDUCK_ACCESS.md` 补登记为固定条目；
+- **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `eng/ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`gaia/GaiaDR3/`、`gaia/GaiaDR3SP/`。判据：只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容；一旦被代码消费或需入库，移入 `testdata/` 或 `artifacts/`；testdata 下数据集（BASS_DR3、HST_M16 等）的入库范围与下载方式以 `testdata/README.md` 为准；
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
 - 修改代码/测试后同步订正 `eng/ci/checks.json`；
 - **Alpha 之前代码与产物中不含任何版本信息**（最高设计 §13）；发布 Alpha 时 CLI `--version` 输出 `0.0.1alpha`。
