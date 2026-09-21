@@ -98,7 +98,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
 - 结构体：P2MocCell（coverage.h:26-29）、P2HipsInputInfo（:31-38）、
   P2CoverageResult（:40-48）。
 - 计划迁移旧符号：无独立旧目录——legacy 即本目录
-  lib/algorithms/coverage/src/coverage.cpp + include/astro/phase2/coverage.h
+  lib/algorithms/coverage/src/coverage.cpp + lib/include/astro/phase2/coverage.h
   （MODULE_MIGRATION_MATRIX.csv P2-COV 行 legacy_paths="lib/algorithms/coverage
   coverage sources"）；迁移=P2-COV-IMPL 经 C ABI adapter 包装为
   astrocs_p2_coverage.dll，符号集不增减（去留登记其 TASK_RESULT）。
@@ -229,8 +229,8 @@ coverage/sampler/upm roundtrip/linear-fit/RCR）。
 
 目录：
 
-- `include/astro/phase2/`：冻结公共接口（upm/coverage/sampler/rejection/
+- `lib/include/astro/phase2/`：冻结公共接口（upm/coverage/sampler/rejection/
   block/integrate/acr_kernels）
 - `src/`：CPU reference 实现
 - `eng/tools/stage2.cpp`：正式入口
-- `tests/synthetic_gate.cpp`：合成 Gate
+- `eng/tests/synthetic_gate.cpp`：合成 Gate

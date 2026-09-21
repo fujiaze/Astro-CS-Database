@@ -125,8 +125,8 @@ origin/main 三 SHA 一致）；cprun run `Rmtxvlrtfa66eb7` rev23 / dispatch
 | 节点化（三 Phase） | `ctest -R "p1001_real_nodes\|p2001_real_nodes\|p3002_real_nodes\|p3002_uncertainty"` | 4/4 PASS |
 | 四投影 registry | `ctest -R "p3_projection_units\|p3_projection_fault"` | 2/2 PASS |
 | RT 唯一 executor | `ctest -R rt001_unique_executor` | PASS |
-| MOD 安装面/安全 loader | `python3 tests/abi/mod001_install_load_check.py --build-dir build` | 64/64 PASS（含负向注入必败） |
-| CLI 命令面 | `python3 -m pytest tests/cli/test_cli001_vpi.py -q` | 15/15 PASS |
+| MOD 安装面/安全 loader | `python3 eng/tests/abi/mod001_install_load_check.py --build-dir build` | 64/64 PASS（含负向注入必败） |
+| CLI 命令面 | `python3 -m pytest eng/tests/cli/test_cli001_vpi.py -q` | 15/15 PASS |
 | 遗留入口已删 | `build/cli/astrocs run --phases 1,2,3` | rc=2 `unknown command 'run'` |
 | doccheck 全套（历史时点） | `check_doc_index.py --strict` / `check_engineering_constraints.py` / `check_version_namespaces.py` / `check_l0_docs.py` / `check_standards_registry.py` / `check_api_docs.py` / `check_glossary.py` / `check_doc_symbols.py` | 当时全部 rc=0；DOC-001 复检：`check_l0_docs.py` rc=1（绑定已删除的 `REVIEW.md`/旧轮次评审集合）、`check_doc_index.py --strict` rc=1（残留项见 DOC-001 自证） |
 
@@ -137,7 +137,7 @@ origin/main 三 SHA 一致）；cprun run `Rmtxvlrtfa66eb7` rev23 / dispatch
    并在同提交注册 `eng/ci/checks.json` 显式检查项；
 3. 05 号 findings 登记册与 `eng/ci/checks.json` 均在写白名单外 → 本文与 `memory.md`
    如实登记，由前台并入登记册；
-4. **F-DOC-CONV-001-06（HEAD 预存 CI 红灯，非本任务引入）**：`tests/version`（UT-VERSION）在
+4. **F-DOC-CONV-001-06（HEAD 预存 CI 红灯，非本任务引入）**：`eng/tests/version`（UT-VERSION）在
    BASE=`da3c4b4a` 即失败 —— `eng/tools/check_version_consistency.py` rc=1，19 条
    findings 全部落在 `docs/standards/STANDARDS_REGISTRY.md`（该文件相对 HEAD 零
    diff），成因为注册表内 FITS WCS Paper I 与 IVOA HiPS 的**条款编号**（形如

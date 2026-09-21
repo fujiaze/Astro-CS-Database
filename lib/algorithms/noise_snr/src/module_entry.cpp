@@ -18,7 +18,7 @@
  *       注册表 miss → floor 回退 1e-12, DISP-NOISE-002 现状忠实跨 ABI);
  *     noise_diagnostic     = scale_law / gain_variance 标量诊断 (tiny 串行)。
  *
- * 科学纪律: scientific_change=false —— 本文件只做 config/manifest 解析、
+ * 科学纪律: scientific_change=false —— 本文件只做 eng/packaging/config/manifest 解析、
  *   base64 平面编解码、线程租约注入 (host executor lease)、结果转发;
  *   不触碰 blank-sky 稳健方差公式 (1.482602218505602·MAD、5σ cosmic 裁剪、
  *   fixed conservative 掩膜、LS 平面场)、scale law、Poisson 诊断公式
@@ -130,7 +130,7 @@ static acs_status strbuf_write_cstr(acs_strbuf_v1* out, const char* s,
     return strbuf_write(out, s, s ? (uint64_t)strlen(s) : 0, err);
 }
 
-/* ───────── mini JSON 读取器 (config/manifest 借入; 只读不分配) ───────── */
+/* ───────── mini JSON 读取器 (eng/packaging/config/manifest 借入; 只读不分配) ───────── */
 
 static int json_find_str(const char* obj, const char* key,
                          const char** out_val, uint64_t* out_len) {
@@ -682,7 +682,7 @@ static acs_status noise_describe(const acs_module_api_v1* self,
          * (secure_loader.c §5 既成合同; BLD-003 noop 先例同语义), 空=不指名, 直接
          * 返回静态描述; 非空仍严格校验 (错 ID → MISMATCH, 既有 adapter 测试锚不变)。
          * 空 ID 拒绝曾使科学 DLL 在安装树内被自家 loader 必拒 (DESCRIPTOR_MISMATCH),
-         * 本行为修复经 tests/abi/mod001_install_load_check.py 安装树逐 unit 加载闭环。 */
+         * 本行为修复经 eng/tests/abi/mod001_install_load_check.py 安装树逐 unit 加载闭环。 */
         if (module_id.size != 0 &&
             (module_id.size != strlen(kModuleId) ||
              memcmp(module_id.data, kModuleId, strlen(kModuleId)) != 0))

@@ -376,7 +376,7 @@ inline GateVerdict evaluate_heavy_run(const std::vector<GateFinding>& findings) 
 
 // =====================================================================
 // 确定性契约（FZ-RUNTIME-DETERMINISM）：同一输入在不同 worker 数/分块/调度下
-// 产物逐字节一致。键用于证据留痕，判定由 tests/system/v6_runtime 承担。
+// 产物逐字节一致。键用于证据留痕，判定由 eng/tests/system/v6_runtime 承担。
 // =====================================================================
 inline constexpr const char* kDeterminismContractId = "FZ-RUNTIME-DETERMINISM";
 inline constexpr const char* kDeterminismRule =

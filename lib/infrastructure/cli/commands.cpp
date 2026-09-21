@@ -148,7 +148,7 @@ nlohmann::json with_canonical_hash(const nlohmann::json& row, const std::string&
 
 // CLI-001: 合成测试门与 stub 用户命令已删除（不在 §6.2 唯一命令树内）——
 // 它们是开发期工具，不是产品命令面；旧入口现在解析失败 → exit 2。
-// 合成测试直接跑 build 树内测试二进制（tests/unit/**、tests/system/**）。
+// 合成测试直接跑 build 树内测试二进制（eng/tests/unit/**、eng/tests/system/**）。
 // B2-A10（宪章 §4.3/§4.2）: 运行上下文（run_id/source SHA/软件版本）在会话启动
 // 前写入 output_dir，供各 phase 的 provenance 消费端读取（禁节点级占位串）。
 // 生成逻辑唯一实现 = astrocs::core::write_run_context（node 级测试夹具同源复用）；
@@ -1606,7 +1606,7 @@ int cmd_session3_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
 
 
 // ── CLI-001(宪章对齐): phaseN validate|plan|inspect(宪章 §8.1 薄命令面补齐) ──
-// 语义(冻结于 tests/cli/test_cli001_vpi.py, 与 test_cli003_semantics 的 config validate
+// 语义(冻结于 eng/tests/cli/test_cli001_vpi.py, 与 test_cli003_semantics 的 config validate
 // 浅面相区分):
 //   validate = session_mode 全量 config 校验 + PipelineIR 静态构建; 零 Runtime 实例化、
 //              零科学执行、零 I/O 产物; 深层拒绝与 run 同面(IR 构建失败 → 2)。
@@ -2147,8 +2147,8 @@ int cmd_verify(const Parsed& p, astrocs::JsonlEmitter& ev) {
 // （cmd_modules_list / cmd_modules_verify / cmd_selftest 及 locate_product_manifest /
 // product_manifest_base_dir / unit_file_present / load_product_manifest）为零调用点
 // 死代码，按 ENGINEERING_SPEC §8「锚存活」显式退役；能力去向 = 安装树产品 manifest
-// astrocs.product.json + packaging/verify_install_tree.py + 装载器合同探针
-// （tests/abi/mod001_install_load_check.py S7/S8 逐条验证 units 计数 10 / 逐 unit 在位 /
+// astrocs.product.json + eng/packaging/verify_install_tree.py + 装载器合同探针
+// （eng/tests/abi/mod001_install_load_check.py S7/S8 逐条验证 units 计数 10 / 逐 unit 在位 /
 // 装配三校验 / 未登记必败 / 缺 DLL 必败）。
 
 // dispatch: 外部可见（cli_common.h 声明；main.cpp 调用）。
@@ -2188,7 +2188,7 @@ int dispatch(const Parsed& p) {
         // 落位 = doctor 的机器旗标 --run-manifest <manifest.json>（ASTROCS_DESIGN
         // §7.1 唯一命令树只有 normalize/mosaic/export/help/--version/doctor/
         // benchmark，无独立 verify；verify* 是已删别名 → rc=2，见
-        // docs/api/CLI_PROTOCOL_V1.md §1 + tests/cli/test_cli_protocol.py
+        // docs/api/CLI_PROTOCOL_V1.md §1 + eng/tests/cli/test_cli_protocol.py
         // test_03 的负例 ("verify", "--run-manifest", ...) → 2）。
         // 语义 = 04 §3 manifest→status→version→输入 hash→逐 artifact
         // （存在→sha256→size_bytes）；退出码：参数 2 / 输入 3 / 版本 5 /

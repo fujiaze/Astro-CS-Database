@@ -23,7 +23,7 @@ class JsonlEmitter;  // 定义见 jsonl.h
 //   任一 kernels[*].correctness_test != "oracle:pass" → "FAIL"(正确性筛选优先,
 //   恒不静默放行); 全部 oracle:pass → "PASS"; kernels 缺失/非对象/空 → "FAIL"
 //   (无正确性证据不判定成功)。输出 JSON 顶层登记 verdict 字段
-//   (v2 profile 无独立 schema 文档; 字段语义由本函数与 tests/cli 单测固化)。
+//   (v2 profile 无独立 schema 文档; 字段语义由本函数与 eng/tests/cli 单测固化)。
 inline std::string benchmark_profile_verdict(const nlohmann::json& profile) {
     if (!profile.is_object() || !profile.contains("kernels") ||
         !profile["kernels"].is_object() || profile["kernels"].empty())

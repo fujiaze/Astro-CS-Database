@@ -10,14 +10,14 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §7.1（命令树：benchmark）、§9（CPU 后端与资源）
-- `contracts/schemas/cpu_profile.schema.json`
+- `eng/contracts/schemas/cpu_profile.schema.json`
 
 ## 3. 输入/输出数据合同
 
 - **输入**：机器特征（CPU、ISA、OS、版本）、kernel 清单、配置。
 - **输出**：`cpu_profile`（ISA/workers/block、provider 选择、哈希绑定机器）。
 - **缓存位置：程序安装目录**；`benchmark` 直接输出 profile 到安装目录（自动生成/更新），后续运行时自动读取。
-- 参考：`contracts/schemas/cpu_profile.schema.json`。
+- 参考：`eng/contracts/schemas/cpu_profile.schema.json`。
 
 ## 4. 算法与公式要点
 

@@ -130,7 +130,7 @@ bool abi_ok_legacy_tile(const AioHipsTile* t, int idx) {
 
 // 故障注入 (ASTROCS_HIPS_*): 测试专用等价缺陷注入面。未设置环境变量时
 // 逐行零行为差异; 命中时按注入名产生等价缺陷, 使对应断言必败 (判别力证明)。
-// 先例: tests/unit/aio_abi_test_main.hpp ASTROCS_AIO_FAULT / p2002 FAULT=proj|prov。
+// 先例: eng/tests/unit/aio_abi_test_main.hpp ASTROCS_AIO_FAULT / p2002 FAULT=proj|prov。
 // (原定义在句柄结构之后; AIO-001 起 write_properties 需要同一注入面, 故上移至此。)
 bool fault_injected(const char* var, const char* name) {
     const char* v = std::getenv(var);

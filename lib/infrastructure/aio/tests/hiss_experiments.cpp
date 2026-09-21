@@ -26,7 +26,7 @@
 // -I../../healpix_db/healpix_drizzle \
 // -I../../healpix_db/healpix_stack \
 // -I../../calibration/include \
-// tests/hiss_experiments.cpp \
+// eng/tests/hiss_experiments.cpp \
 // src/hiss_codec.cpp src/hiss_common.cpp \
 // src/hiss_writer.cpp src/hiss_reader.cpp \
 // src/hiss_stream_writer.cpp src/hiss_tile_model.cpp \
@@ -40,7 +40,7 @@
 // ../../../algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp \
 // ../../healpix_db/healpix_stack/healpix_core.cpp \
 // -llz4 -lzstd -lpsapi -lm \
-// -o tests/hiss_experiments.exe
+// -o eng/tests/hiss_experiments.exe
 //
 // 运行:
 // ./tests/hiss_experiments.exe
@@ -87,7 +87,7 @@
 // ============================================================================
 // 全局常量
 // ============================================================================
-static const char* kResultsDir = "tests/results";
+static const char* kResultsDir = "eng/tests/results";
 static const int    kMeasureRounds = 5;   // 压缩/解压重复次数 (取中位数)
 static const double kMB = (1024.0 * 1024.0);
 
@@ -671,7 +671,7 @@ static bool run_dq002() {
 
         // 用 HissWriter 写入, 测量文件大小
         char path[256];
-        std::snprintf(path, sizeof(path), "tests/results/_dq002_occ%03d.hiss",
+        std::snprintf(path, sizeof(path), "eng/tests/results/_dq002_occ%03d.hiss",
                       (int)(target * 100));
         std::filesystem::remove(path);
         std::filesystem::remove(std::string(path) + ".tmppool");
@@ -823,7 +823,7 @@ static bool run_dq003() {
 
     for (const auto& cc : codec_confs) {
         char path[256];
-        std::snprintf(path, sizeof(path), "tests/results/_dq003_%s.hiss", cc.name);
+        std::snprintf(path, sizeof(path), "eng/tests/results/_dq003_%s.hiss", cc.name);
         std::filesystem::remove(path);
         std::filesystem::remove(std::string(path) + ".tmppool");
 
@@ -1176,7 +1176,7 @@ static bool run_dq005() {
 
     for (int n_tiles : tile_counts) {
         char path[256];
-        std::snprintf(path, sizeof(path), "tests/results/_dq005_%d.hiss", n_tiles);
+        std::snprintf(path, sizeof(path), "eng/tests/results/_dq005_%d.hiss", n_tiles);
         std::filesystem::remove(path);
         std::filesystem::remove(std::string(path) + ".tmppool");
 

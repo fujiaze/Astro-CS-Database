@@ -6,7 +6,7 @@
 
 ## D1 · HST M16 真实信号模板（真实观测）
 
-- 路径：`testdata/testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits`（仓库内既有）
+- 路径：`testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits`（仓库内既有）
 - 性质：HST/WFC3-UVIS F657N HLSP drz，单 HDU，8400×8000 float32，`BUNIT=ELECTRONS/S`，
   `EXPTIME=9600`，`PHOTFLAM=2.2290223e-18`，`PHOTPLAM=6566.60545`，`PHOTBW=41.015`
 - 用途：提供**真实的大尺度天光/星云结构**作为仿真背景；仅取 24×24 分块平均后的

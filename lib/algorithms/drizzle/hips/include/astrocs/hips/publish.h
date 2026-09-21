@@ -10,7 +10,7 @@
  *
  * 归属与导出面: 本 ABI 是 lib/algorithms/drizzle/hips 模块事务内核 (astrocs.p1.hips_writer DLL
  * 内部支撑, 与 module_entry.cpp 同编; 对外仍唯一导出 astrocs_module_query_v1,
- * 本头符号经 version-script/DEF 保持隐藏)。测试经 tests/unit/p1_hips/
+ * 本头符号经 version-script/DEF 保持隐藏)。测试经 eng/tests/unit/p1_hips/
  * adapter_entry_impl.cpp 直链 TU 使用。
  *
  * 发布状态机 (execute 事务化, module_entry.cpp 调用序):
@@ -47,7 +47,7 @@ extern "C" {
 #define ASTROCS_HIPS_STAGE_BASENAME ".hips_staging.tmp"
 
 /* ───────── 状态码 (v1 数值冻结) ─────────
- * 0..15 与 70 全域一致于 include/astrocs/io/aio_abi_v1.h aio_status
+ * 0..15 与 70 全域一致于 lib/include/astrocs/io/aio_abi_v1.h aio_status
  * (AIO-001 数值冻结; _Static_assert 编译期对齐证明)。 */
 typedef enum aio_publish_status_v1 {
     AIO_PUBLISH_OK = 0,

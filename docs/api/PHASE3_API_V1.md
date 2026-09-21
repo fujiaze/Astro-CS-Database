@@ -60,4 +60,4 @@ acs_status p3_session_destroy(acs_handle);
 
 ## 6 机器门
 
-tests/api/test_p3_api.py: 生命周期五函数/request 十字段/拒绝清单与 SCI-P3 文本同源交叉核对/锚点齐。
+eng/tests/api/test_p3_api.py: 生命周期五函数/request 十字段/拒绝清单与 SCI-P3 文本同源交叉核对/锚点齐。

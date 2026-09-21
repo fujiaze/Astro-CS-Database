@@ -141,7 +141,7 @@ N*9 以 int64 计（入口 n ≤ INT_MAX/9 拒绝，:810/:955）。
 
 现状（登记不改码，DISP-PSF-001..006 见 ALG §11.3；DISP-PSF-007 为**已关闭候选**：
 批 ABI 尺寸边界整改由 PSF-001 于 2026-09-10 落地，本文 r2 抬头与
-`tests/p1psf/p1psf_tests_core.cpp:717` 的 N4b 确定性拒绝用例为闭环证据，
+`eng/tests/p1psf/p1psf_tests_core.cpp:717` 的 N4b 确定性拒绝用例为闭环证据，
 故不登记为开放偏差、不占用 DISP 编号序列——L28e-E-008/M8a-E-003 口径）：
 - OpenMP `parallel for schedule(dynamic) reduction(+:success_count)` 4 处
   （dpsf_psf.cpp:593,718,842,986）；逐星独立、输出按索引写，无跨星共享可变状态，
@@ -183,8 +183,8 @@ TEST-PSF-DESIGN-001（STAR_PSF_ALGORITHMS.md §11.4，P1-PSF-TEST 执行）：
   PSF 为必需 stage（orchestrator.cpp:2071-2075，DLL 未加载→退出码 2）；
   orchestrator 现消费 `dpsf_free_results`（:2290）、`dpsf_fit_batch_d`（:2304）、
   `dpsf_fit_batch_f`（:2327）。
-- 测试：共址测试面 `tests/p1psf/`（P1-PSF-TEST 建立，root CMake 经
-  tests/unit/CMakeLists.txt:984 接入；`ctest -R p1psf_`：units/properties/
+- 测试：共址测试面 `eng/tests/p1psf/`（P1-PSF-TEST 建立，root CMake 经
+  eng/tests/unit/CMakeLists.txt:984 接入；`ctest -R p1psf_`：units/properties/
   oracle/negative/boundary/performance/selfcheck，故障注入
   `ASTROCS_P1PSF_FAULT=<name>` 必败自检）。批 ABI 尺寸边界负例 = negative 组
   N4b/N4c（PSF-001：w/h∈{0,-1,INT_MIN} × 5 入口 + w*h>INT_MAX，注入名
@@ -227,9 +227,9 @@ P14 起 `p1_op_noise` 的 SNR 样本 = `DATA-P1-SOURCES.sources` 的全部测光
   `p1_op_star_psf` 用 `if constexpr` 分发，恒 false ⇒ 精确分支被编译期丢弃，
   生产路径**永不进入**。**算法实现不删除**（负责人明确要求保留）。
 - 生产注册表（`register_phase_modules` 的 `p1_nodes[]`）**不注册**该路径。
-- 存活测试（防死代码清理）：`tests/unit/p1001_real_nodes_test.cpp::
+- 存活测试（防死代码清理）：`eng/tests/unit/p1001_real_nodes_test.cpp::
   test_psf_fast_cap_and_inactive_precise` 经公共钩子
-  `astrocs::core::p1_op_star_psf_precise_json`（声明见 include/astrocs/core/
+  `astrocs::core::p1_op_star_psf_precise_json`（声明见 lib/include/astrocs/core/
   module_adapters.h）直接调用它，断言全量拟合仍能跑出真实结果。
 - 未来启用接线要点（一段话）：把 `kPrecisePsfEnabled` 置 true（或把节点
   `psf.max_stars` 置 0 并把光测光口径改为 PSF 测光），同步在 DATA-P1-PSF

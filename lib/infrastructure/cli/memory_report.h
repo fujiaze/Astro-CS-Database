@@ -39,12 +39,12 @@
 #include <vector>
 
 #include "monitor.h"
-// G-RES-01 阈值唯一数值源（CMake 从 contracts/resource_gate_v1.json 生成）。
+// G-RES-01 阈值唯一数值源（CMake 从 eng/contracts/resource_gate_v1.json 生成）。
 #include "resource_gate_thresholds_generated.h"
 
 namespace astrocs {
 
-// ---- 阈值常量(G-RES-01; 数值唯一源 = contracts/resource_gate_v1.json) ----
+// ---- 阈值常量(G-RES-01; 数值唯一源 = eng/contracts/resource_gate_v1.json) ----
 // 增长判定: 稳健斜率(Unbounded)对齐 resource_gate.h GateConfig
 // memory_growth_limit_mb_per_s; **单位 MiB/s（1048576 B/s）, 判据方向 >=**
 // （契约 memory.growth_limit_mib_per_s / growth_predicate）。旧注释写「32 MB/s」

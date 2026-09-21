@@ -649,7 +649,7 @@ w.sip = Sip(sip_a, sip_b, None, None, w.wcs.crpix)
 
 ```
 lib/algorithms/platesolve/cpp/ipv/
-├── include/                  # 头文件
+├── lib/include/                  # 头文件
 │   ├── ipv_api.h
 │   ├── ipv_kvector.h
 │   ├── ipv_log.h

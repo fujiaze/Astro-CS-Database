@@ -55,10 +55,10 @@ ORCH_DIR = "lib/infrastructure/pipeline/orchestrator"
 ORCH_CPP_DIR = ORCH_DIR + "/cpp"
 LINK_ROOT_TARGET = "astrocs"
 CMAKE_SCAN_EXCLUDE = ("/third_party/", "/build/", "/run/", "/.git/")
-# 产品交付面 manifest（**只收真产品 manifest / 安装树合同**；packaging/dependency-lock.json
+# 产品交付面 manifest（**只收真产品 manifest / 安装树合同**；eng/packaging/dependency-lock.json
 # 这类依赖清单不是产品交付面，收进来会把"被列为依赖"误判成"进产品"）。
 PRODUCT_MANIFEST_GLOBS = ("*.product.json", "**/*.product.json",
-                          "packaging/install-tree.contract.json")
+                          "eng/packaging/install-tree.contract.json")
 BUILD_NINJA_CANDIDATES = ("build/root-cmake/build.ninja", "build/build.ninja",
                           "run/ci/build-gcc-release/build.ninja")
 
@@ -272,7 +272,7 @@ def binary_symbols(bin_path):
 
 
 def prod_sources(repo):
-    """生产源码集合（lib/ 与 lib/infrastructure/cli/ 下 *.cpp，排除 tests/tools/fixtures/benchmarks）。"""
+    """生产源码集合（lib/ 与 lib/infrastructure/cli/ 下 *.cpp，排除 eng/tests/tools/fixtures/benchmarks）。"""
     out = []
     for rel in PROD_SCAN_ROOTS:
         root = repo / rel

@@ -15,7 +15,7 @@ doc-revision/history 五个版本命名空间; CMake/CLI/L0 从根 VERSION 生�
   4. 反误报: FITS 4.0 / HiPS 1.0 / ABI v1 / schema_version /
      DatabaseVersion / CFITSIO / X.Y.Z 占位 不被当作产品版本漂移;
   5. mutation 合同: 伪造产品版本字面量必须使本 checker FAIL;
-  6. 他人路径遗留 (docs/VERSIONING.md、CMake project 字面量、tests/ 硬编码、
+  6. 他人路径遗留 (docs/VERSIONING.md、CMake project 字面量、eng/tests/ 硬编码、
      eng/tools/check_*.py 硬编码、DOCUMENT_INDEX base_product_version) 汇总为
      out_of_scope 列表输出, 不判 FAIL (集成协调项, 见 known_limits)。
 
@@ -275,9 +275,9 @@ def main() -> int:
     legacy = {
         "docs/VERSIONING.md": "VER-001 遗留: '当前冻结基线 0.10.0-alpha.2' (非允许路径, 需 GOV-005/前台收敛)",
         "CMakeLists.txt": "project(astrocs VERSION 0.10.0) 字面量 (BLD-002 配合从 VERSION 生成; 主串已 file(READ) 生成)",
-        "tests/version/test_version_consistency.py": "test_01/05 硬编码 0.10.0-alpha.2 断言 (QA 配合更新)",
-        "tests/quality/test_linux_release.py": "assertIn('astrocs 0.10.0') (QA 配合更新)",
-        "tests/backend/test_cpu_profile.py": "gen --version 0.10.0-alpha.2 (QA 配合更新)",
+        "eng/tests/version/test_version_consistency.py": "test_01/05 硬编码 0.10.0-alpha.2 断言 (QA 配合更新)",
+        "eng/tests/quality/test_linux_release.py": "assertIn('astrocs 0.10.0') (QA 配合更新)",
+        "eng/tests/backend/test_cpu_profile.py": "gen --version 0.10.0-alpha.2 (QA 配合更新)",
         "eng/tools/check_final_traceability.py": "checker 硬编码 == 0.10.0-alpha.2 (QA/前台配合)",
         "eng/tools/check_release_consistency.py": "checker 硬编码 == 0.10.0-alpha.2 (QA/前台配合)",
         "eng/tools/check_reproducible_build.py": "checker 硬编码 == 0.10.0-alpha.2 (QA/前台配合)",

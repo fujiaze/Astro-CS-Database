@@ -18,7 +18,7 @@
 - **输入**：定标+cosmetic 后信号、variance/ivar、validity、背景模型（若已有）、配置。
 - **输出**：source catalog（源 ID、像素坐标、天球坐标、质心/矩、局部 SNR、flags）+ selection function/completeness 参数。
 - 检测、PSF、WCS、测光、SNR 的 source row 绑定同一 `frame_id/source_id`。
-- 参考：`contracts/schemas/source_catalog.schema.json`。
+- 参考：`eng/contracts/schemas/source_catalog.schema.json`。
 
 ## 4. 算法与公式要点
 
@@ -32,7 +32,7 @@
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `detection_threshold` | 5.0 | σ（全局 bgnoise） | **第一轮盲解专用 / 显式声明的可选诊断**（**不是**模块主路径配置——主路径 = 星表引导拟合，不消费此键）；语义 = `median(img)+5.0·bgnoise`（σ=2 平滑图上判定），与 `config/defaults.json#detection.threshold_sigma` 同义（最高设计 §4.2/§4.3） |
+| `detection_threshold` | 5.0 | σ（全局 bgnoise） | **第一轮盲解专用 / 显式声明的可选诊断**（**不是**模块主路径配置——主路径 = 星表引导拟合，不消费此键）；语义 = `median(img)+5.0·bgnoise`（σ=2 平滑图上判定），与 `eng/packaging/config/defaults.json#detection.threshold_sigma` 同义（最高设计 §4.2/§4.3） |
 | `min_area` | 2 | px | 最小连通像素数。**仅第一轮盲解 / 连通域诊断**（星表引导路径不做连通域） |
 | `deblend` | true | —— | 是否解混。**仅第一轮盲解 / 显式声明的可选诊断**（星表引导路径按星表位置逐源拟合，不做盲解混） |
 | `selection_function` | true | —— | 是否输出 selection function |

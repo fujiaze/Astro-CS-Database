@@ -1,0 +1,597 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/unified/port/v1",
+  "title": "AstroCS 统一对象端口合同（跨对象引用只能同对象）",
+  "description": "UNIFIED_MODEL §2（数据对象禁止互相冒充）+ ENGINEERING_SPEC §4.7（端口引用有效 DATA 合同）。端口/连接声明必须写明接受的对象与 schema ID，且被连接文档的对象判别式必须与端口一致；例如把 source_snr 接进要求 variance 的端口必败。枚举 = UNIFIED_MODEL §2 的 13 个 canonical 数据对象（2026-09-20 起 14→13；retired 对象见 x-astrocs-object.retired_objects）。",
+  "x-astrocs-object": {
+    "name": "port_contract",
+    "canonical_file": "eng/contracts/schemas/unified/port_contract.schema.json",
+    "authority": "ENGINEERING_SPEC.md §4.7；docs/design/UNIFIED_MODEL.md §2",
+    "not_a_data_object": true,
+    "reference_catalog": "docs/contracts/unified_object_registry.json#port_contracts",
+    "note": "本文件是端口合同 canonical；docs/contracts/unified_object_registry.json#port_contracts 是一般合同登记表（登记示例端口，不重复定义本约束）。",
+    "retired_objects": [
+      {
+        "retired_object": "psfsw_robust_weight",
+        "state": "retired",
+        "retired_on": "2026-09-20",
+        "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
+        "canonical_schema_removed": true,
+        "basis_ref": "工程控制/RELEASE-03/GAP_AUDIT.md §4.5 C01；ASTROCS_DESIGN.md §2.1/§2.2/§2.3；工程控制/RELEASE-02/GAP_AUDIT.md §9.73 A44；run/RELEASE-02/design-merge/DESIGN-DRAFT.md §3.1-C01",
+        "rejection": "port_contract enum rejects the retired object: declaring unified_object=psfsw_robust_weight ⇒ enum FAIL (explicit reject, fail-closed, no silent accept)",
+        "migration_hint": "迁移提示：canonical schema 与 example 已删除，不存在等价替代对象；点源严格权重用 point_information（W_info=1/Var(F_hat)），帧级参考用 frame_snr（权重由 Phase2 逆方差叠加从 SNR 现场派生）。见 eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries。"
+      }
+    ]
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "port_id",
+    "direction",
+    "accepts_object",
+    "accepts_schema_id",
+    "connected_object_document"
+  ],
+  "propertyNames": {
+    "pattern": "^(?!(weight|value|mask|snr)$).+$"
+  },
+  "properties": {
+    "port_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "direction": {
+      "enum": [
+        "input",
+        "output"
+      ]
+    },
+    "accepts_object": {
+      "enum": [
+        "signal",
+        "variance",
+        "ivar",
+        "source_snr",
+        "depth_m5",
+        "frame_snr",
+        "point_information",
+        "sparse_snr_layer",
+        "support",
+        "coverage",
+        "validity",
+        "rejection",
+        "provenance"
+      ]
+    },
+    "accepts_schema_id": {
+      "enum": [
+        "https://astrocs.local/schemas/unified/signal/v1",
+        "https://astrocs.local/schemas/unified/variance/v1",
+        "https://astrocs.local/schemas/unified/ivar/v1",
+        "https://astrocs.local/schemas/unified/source_snr/v1",
+        "https://astrocs.local/schemas/unified/depth_m5/v1",
+        "https://astrocs.local/schemas/unified/frame_snr/v1",
+        "https://astrocs.local/schemas/unified/point_information/v1",
+        "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
+        "https://astrocs.local/schemas/unified/support/v1",
+        "https://astrocs.local/schemas/unified/coverage/v1",
+        "https://astrocs.local/schemas/unified/validity/v1",
+        "https://astrocs.local/schemas/unified/rejection/v1",
+        "https://astrocs.local/schemas/unified/provenance/v1"
+      ]
+    },
+    "connected_object_document": {
+      "type": "object",
+      "required": [
+        "unified_object",
+        "object_schema_id"
+      ],
+      "properties": {
+        "unified_object": {
+          "enum": [
+            "signal",
+            "variance",
+            "ivar",
+            "source_snr",
+            "depth_m5",
+            "frame_snr",
+            "point_information",
+            "sparse_snr_layer",
+            "support",
+            "coverage",
+            "validity",
+            "rejection",
+            "provenance"
+          ]
+        },
+        "object_schema_id": {
+          "enum": [
+            "https://astrocs.local/schemas/unified/signal/v1",
+            "https://astrocs.local/schemas/unified/variance/v1",
+            "https://astrocs.local/schemas/unified/ivar/v1",
+            "https://astrocs.local/schemas/unified/source_snr/v1",
+            "https://astrocs.local/schemas/unified/depth_m5/v1",
+            "https://astrocs.local/schemas/unified/frame_snr/v1",
+            "https://astrocs.local/schemas/unified/point_information/v1",
+            "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
+            "https://astrocs.local/schemas/unified/support/v1",
+            "https://astrocs.local/schemas/unified/coverage/v1",
+            "https://astrocs.local/schemas/unified/validity/v1",
+            "https://astrocs.local/schemas/unified/rejection/v1",
+            "https://astrocs.local/schemas/unified/provenance/v1"
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "signal"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/signal/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "signal"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/signal/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "variance"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/variance/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "variance"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/variance/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "ivar"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/ivar/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "ivar"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/ivar/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "source_snr"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/source_snr/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "source_snr"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/source_snr/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "depth_m5"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/depth_m5/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "depth_m5"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/depth_m5/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "frame_snr"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/frame_snr/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "frame_snr"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/frame_snr/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "point_information"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/point_information/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "point_information"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/point_information/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "sparse_snr_layer"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "sparse_snr_layer"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "support"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/support/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "support"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/support/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "coverage"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/coverage/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "coverage"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/coverage/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "validity"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/validity/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "validity"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/validity/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "rejection"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/rejection/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "rejection"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/rejection/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "accepts_object": {
+            "const": "provenance"
+          }
+        },
+        "required": [
+          "accepts_object"
+        ]
+      },
+      "then": {
+        "properties": {
+          "accepts_schema_id": {
+            "const": "https://astrocs.local/schemas/unified/provenance/v1"
+          },
+          "connected_object_document": {
+            "properties": {
+              "unified_object": {
+                "const": "provenance"
+              },
+              "object_schema_id": {
+                "const": "https://astrocs.local/schemas/unified/provenance/v1"
+              }
+            },
+            "required": [
+              "unified_object",
+              "object_schema_id"
+            ]
+          }
+        },
+        "required": [
+          "connected_object_document"
+        ]
+      }
+    }
+  ]
+}

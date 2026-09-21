@@ -3,7 +3,7 @@
 import math, os, re, shutil, subprocess, tempfile, unittest
 
 # W4-A9 批次 1: 本测试随 p3_wcs 生产源迁入 lib/algorithms/projection/ 共址测试目录
-# (原址 tests/backend/test_p3_wcs.py)。仓库深度 5 级; 驱动与头面同目录树。
+# (原址 eng/tests/backend/test_p3_wcs.py)。仓库深度 5 级; 驱动与头面同目录树。
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
 HOST = os.path.join(REPO, "lib", "algorithms", "projection")

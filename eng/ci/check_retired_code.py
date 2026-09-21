@@ -41,28 +41,28 @@ R2 文件级退役横幅无注释块（父代理 CLEAN-401 修订口径）：仅
 R3 保留块字段不全：出现 RETIRED-CODE-RETAINED 但同一注释块内 6 个 token 不全
    或字段空（冒号后 < 2 个非空白字符）⇒ 违规。
 R4 生产可达性报表（只报告、不判红）：lib/**/*.cpp（排除 third_party/ archive/
-   legacy/ tests/ test/ tools/ oracle/ aio/**）中，文件名未出现在任何
+   legacy/ eng/tests/ test/ tools/ oracle/ aio/**）中，文件名未出现在任何
    CMakeLists.txt 的文件清单 + 计数 → JSON 字段 unreferenced_sources /
    unreferenced_sources_count，stdout 打印前 20 条。R4 不参与 rc。
-R5 锚存活：硬编码扫描根 lib/ tests/ ci/ 任一不存在 ⇒ rc=2 ANCHOR_STALE
+R5 锚存活：硬编码扫描根 lib/ eng/tests/ eng/ci/ 任一不存在 ⇒ rc=2 ANCHOR_STALE
    （fail-closed；与 §10「锚存活」一致）。
-扫描面（默认）：lib/**/*.{cpp,h,hpp,cc,c,py} + tests/**/*.{cpp,h,hpp,cc,c,py}
-                + ci/**/*.py。
+扫描面（默认）：lib/**/*.{cpp,h,hpp,cc,c,py} + eng/tests/**/*.{cpp,h,hpp,cc,c,py}
+                + eng/ci/**/*.py。
 排除：lib/infrastructure/aio/**（他域，白名单并打印计数）、third_party/、build/、
       run/、任何 */oracle/* 与 *_oracle.py（独立 Oracle 允许自带历史对照）、
-      以及本检查器自身（ci/check_retired_code.py）。
+      以及本检查器自身（eng/ci/check_retired_code.py）。
 allowlist：--allowlist <file>（JSON 数组，元素为相对路径 glob）；默认
-      ci/retired_code_allowlist.json，不存在时按空表并打印提示，不判红；
+      eng/ci/retired_code_allowlist.json，不存在时按空表并打印提示，不判红；
       allowlist 只抑制 R2（"标记提及"），不抑制 R1/R3（硬缺陷），不做静默放宽。
       显式传入的 --allowlist 路径不存在 ⇒ rc=2（fail-closed）。
 
 用法
-  python3 ci/check_retired_code.py                       # 扫真实仓库
-  python3 ci/check_retired_code.py --json-out run/CLEAN-401/retired_code/baseline_before.json
-  python3 ci/check_retired_code.py --quiet               # 只打印结论行
-  python3 ci/check_retired_code.py --root <repo>         # 指向其它仓库根
-  python3 ci/check_retired_code.py --allowlist <file>    # 显式 allowlist
-  python3 ci/check_retired_code.py --self-test           # tempfile 正例+负例（能红能绿）
+  python3 eng/ci/check_retired_code.py                   # 扫真实仓库
+  python3 eng/ci/check_retired_code.py --json-out run/CLEAN-401/retired_code/baseline_before.json
+  python3 eng/ci/check_retired_code.py --quiet               # 只打印结论行
+  python3 eng/ci/check_retired_code.py --root <repo>         # 指向其它仓库根
+  python3 eng/ci/check_retired_code.py --allowlist <file>    # 显式 allowlist
+  python3 eng/ci/check_retired_code.py --self-test           # tempfile 正例+负例（能红能绿）
 
 退出码：0 PASS；1 FAIL（R1/R2/R3 命中；--self-test 有失败用例）；2 输入不可用
 （ANCHOR_STALE / allowlist 非法 / 文件不可读；fail-closed）。
@@ -89,13 +89,18 @@ REQUIRED_TOKENS = (MARKER,) + FIELD_TOKENS
 MIN_FIELD_CHARS = 2
 
 # ── 扫描面 / 锚 ─────────────────────────────────────────────────────────────
-SCAN_ROOTS = ("lib", "tests", "ci")          # 硬编码锚：缺一即 ANCHOR_STALE
+SCAN_ROOTS = ("lib", "tests", "eng/tests", "eng/ci")   # 候选扫描根（存在的才扫）
+# 2026-09-21 根目录整合：ci/ → eng/ci/；二次整合：tests/ → eng/tests/。
+# 同时登记新旧候选根，避免改名后静默漏扫；R5 的 fail-closed 语义由
+# REQUIRED_ROOTS + REQUIRED_TEST_ROOTS 承担（缺一即 ANCHOR_STALE rc=2）。
+REQUIRED_ROOTS = ("lib", "eng/ci")            # 必需锚：缺一即 rc=2
+REQUIRED_TEST_ROOTS = ("tests", "eng/tests")  # 测试面锚：全缺即 rc=2
 SRC_SUFFIXES = (".cpp", ".h", ".hpp", ".cc", ".c", ".py")
 PRUNE_DIRS = ("build", "run", ".git", "__pycache__", "node_modules",
               ".venv", "third_party")
 AIO_WHITELIST_PREFIX = "lib/infrastructure/aio/"
-SELF_REL = "ci/check_retired_code.py"
-DEFAULT_ALLOWLIST_REL = "ci/retired_code_allowlist.json"
+SELF_REL = "eng/ci/check_retired_code.py"
+DEFAULT_ALLOWLIST_REL = "eng/ci/retired_code_allowlist.json"
 
 # ── R2：文件级退役横幅（显式 token，逐字匹配；仅看文件前 BANNER_WINDOW 行） ──
 BANNER_WINDOW = 40
@@ -403,10 +408,12 @@ def evaluate(root: Path, allowlist_arg=None):
     root = Path(root)
     if not root.is_dir():
         raise InputError("ANCHOR_STALE: --root 不存在或不是目录: %s" % root)
-    missing = [name for name in SCAN_ROOTS if not (root / name).is_dir()]
+    missing = [name for name in REQUIRED_ROOTS if not (root / name).is_dir()]
+    if not any((root / name).is_dir() for name in REQUIRED_TEST_ROOTS):
+        missing.append("(%s 全缺)" % "|".join(REQUIRED_TEST_ROOTS))
     if missing:
         raise InputError(
-            "ANCHOR_STALE: 硬编码扫描根不存在: %s（在 %s 下）"
+            "ANCHOR_STALE: 必需扫描根不存在: %s（在 %s 下）"
             % (", ".join(missing), root))
 
     patterns, allow_info = load_allowlist(root, allowlist_arg)
@@ -459,7 +466,7 @@ def evaluate(root: Path, allowlist_arg=None):
                                  for tok in code_token_hits(ctext)})
                 if allowlisted(rel, patterns):
                     # CLEAN-401 校准：R1 假阳性（文档注释里的用法示例/公式/文件头说明块）
-                    # 逐条登记在 ci/retired_code_allowlist.json（每条带 reason，只减不增）。
+                    # 逐条登记在 eng/ci/retired_code_allowlist.json（每条带 reason，只减不增）。
                     suppressed += 1
                     continue
                 if R1_REQUIRE_STRONG and not (set(tokens) & set(R1_STRONG_TOKENS)):
@@ -670,7 +677,7 @@ def _case_green_full_block(root: Path):
     for name in SCAN_ROOTS:
         (root / name).mkdir(parents=True, exist_ok=True)
     _fixture(root, "lib/good/retained.cpp", FULL_BLOCK)
-    _fixture(root, "ci/good_tool.py", "VALUE = 1\n")
+    _fixture(root, "eng/ci/good_tool.py", "VALUE = 1\n")
 
 
 def _case_green_short_run(root: Path):
@@ -716,8 +723,8 @@ def _case_red_block_missing_exit(root: Path):
 
 def _case_red_anchor_missing(root: Path):
     (root / "tests").mkdir(parents=True, exist_ok=True)
-    (root / "ci").mkdir(parents=True, exist_ok=True)
-    _fixture(root, "ci/tool.py", "VALUE = 1\n")
+    (root / "eng/ci").mkdir(parents=True, exist_ok=True)
+    _fixture(root, "eng/ci/tool.py", "VALUE = 1\n")
 
 
 def _case_green_allowlisted_marker(root: Path):

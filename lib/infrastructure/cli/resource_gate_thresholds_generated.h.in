@@ -1,6 +1,6 @@
 // astrocs G-RES-01 资源门阈值生成头 —— 由 CMake 从唯一数值源生成, 禁止手改。
 //
-// 唯一数值源: contracts/resource_gate_v1.json
+// 唯一数值源: eng/contracts/resource_gate_v1.json
 // 判据语义权威: docs/plugins/infrastructure/21_observability.md §8
 //   「重计算负载资源门（G-RES-01）」
 //

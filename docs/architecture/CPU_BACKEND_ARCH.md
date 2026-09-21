@@ -47,7 +47,7 @@
 | §1 变体策略 | ISA-001..005(profile 证明/NOT_SHIPPED/NOT_APPLICABLE 证据) |
 | §2 编译隔离 | ABI-001(+CI opcode 扫描) |
 | §3 六查+信任边界 | ABI-002(fake manifest/hash/ISA/path injection 测试) |
-| §4 C ABI v1 | ABI-001(ABI layout tests/异常不跨边界) |
+| §4 C ABI v1 | ABI-001(ABI layout eng/tests/异常不跨边界) |
 | §5 kernel 表 | ABI-003(baseline 全 kernel+affinity 多线程) |
 | §6 回退 | BENCH-004(profile 失效/fallback)+API-002(exit) |
 | §7 发布 | BENCH-005(doctor)+09 打包 |

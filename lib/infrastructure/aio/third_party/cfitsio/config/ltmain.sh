@@ -11233,7 +11233,7 @@ func_mode_link ()
 	  # libtool variables, so we have to hard-code the OSs to which it
 	  # applies here; at the moment, that means platforms that use the PE
 	  # object format with DLL files.  See the long comment at the top of
-	  # tests/bindir.at for full details.
+	  # eng/tests/bindir.at for full details.
 	  tdlname=$dlname
 	  case $host,$output,$installed,$module,$dlname in
 	    *cygwin*,*lai,yes,no,*.dll | *mingw*,*lai,yes,no,*.dll | *windows*,*lai,yes,no,*.dll | *cegcc*,*lai,yes,no,*.dll)

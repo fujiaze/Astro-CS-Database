@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 // 合同锚: §11.4 TEST-STAR-DESIGN-001 F1-F6; §2 ALG-STARDET-001。
 // 被测面: lib/algorithms/star_detection 生产 sdet_* C API (sdet_detect_ex_f64 主面 +
-// sdet_detect_ex u16 量化面); 与 tests/unit/p1_stars_test.cpp (P1-003 桥接层
+// sdet_detect_ex u16 量化面); 与 eng/tests/unit/p1_stars_test.cpp (P1-003 桥接层
 // astrocs::phase1::StarDetector) 互补不重复。
 //
 // 负面组 OOM 注入: LD_PRELOAD sdet_oom_interposer.so (第 N 次 malloc 失败),

@@ -107,7 +107,7 @@ production 默认单一来源=p2_session.cpp:183-199。
   p2_session.cpp:197；无 hardware_concurrency）。
 - 确定性: worker-local tsums + tid 升序归并（determinism class D1，
   worker 数无关）；gauge/连通分量/收敛固定顺序；稠密缓存
-  bit-identical（:1387-1390）。既有验证=tests/api/
+  bit-identical（:1387-1390）。既有验证=eng/tests/api/
   test_upm_parallel.py test_02_one_t_same_as_n_t_scientific（1/N
   等价）。
 
@@ -138,10 +138,10 @@ aio_upm 读面；dense cache 同模型 hash/目标 order 校验（stale 拒
 
 可执行 `TEST-P2-UPM-001` MISSING（P2-UPM-TEST 建立，不冒认）；登记
 面=ALG-P2-UPM-IMPL-001 TEST-DESIGN 设计冻结 VERIFIED 承载锚。现状
-相邻证据（引用不冒认）: tests/api/test_upm_recovery_oracle.py
-（SYN-005 参数恢复/逐帧偏移/收敛确定性/星 flux 保留）、tests/api/
-test_upm_parallel.py（1/N 等价与内存有界）、tests/unit/
-p2_upm_synthetic_test.cpp、tests/backend/test_p2002_parallel_upm.py。
+相邻证据（引用不冒认）: eng/tests/api/test_upm_recovery_oracle.py
+（SYN-005 参数恢复/逐帧偏移/收敛确定性/星 flux 保留）、eng/tests/api/
+test_upm_parallel.py（1/N 等价与内存有界）、eng/tests/unit/
+p2_upm_synthetic_test.cpp、eng/tests/backend/test_p2002_parallel_upm.py。
 容差权威=ALG-P2-UPM-IMPL-001 TEST-DESIGN 冻结。
 
 ## 已知限制

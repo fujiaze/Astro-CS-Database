@@ -61,7 +61,7 @@ cpu profile(独立文件, `{"schema_version":"1","kind":"astrocs_cpu_profile","c
 
 ## 3 verify 合同(astrocs verify --run-manifest --json)
 
-校验序→错误码: manifest 语法/schema(3)→status=="complete"(否则 8)→astrocs_version 与本机一致(5, 版本不同不可 verify)→重算 config/profile hash(3, 输入已变)→逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0 并输出 JSON `{verify:"ok", checked:N, manifest:<path>}`。
+校验序→错误码: manifest 语法/schema(3)→status=="complete"(否则 8)→astrocs_version 与本机一致(5, 版本不同不可 verify)→重算 eng/packaging/config/profile hash(3, 输入已变)→逐 artifact 存在性(3)+sha256(8)+size(8)→全部过→0 并输出 JSON `{verify:"ok", checked:N, manifest:<path>}`。
 
 ## 4 show-effective 合同
 
@@ -69,5 +69,5 @@ cpu profile(独立文件, `{"schema_version":"1","kind":"astrocs_cpu_profile","c
 
 ## 5 落点映射与测试
 
-- 实现: lib/infrastructure/cli/main.cpp(cmd_config_validate 强化/cmd_show_effective/cmd_verify/cmd_run 收尾写 manifest);golden: tests/cli/test_cli_protocol.py 追加 mutation 组(schema_version 篡改/未知键/路径不存在/hash 篡改/stale profile/status incomplete/版本不一致), 每组断言退出码。
+- 实现: lib/infrastructure/cli/main.cpp(cmd_config_validate 强化/cmd_show_effective/cmd_verify/cmd_run 收尾写 manifest);golden: eng/tests/cli/test_cli_protocol.py 追加 mutation 组(schema_version 篡改/未知键/路径不存在/hash 篡改/stale profile/status incomplete/版本不一致), 每组断言退出码。
 - hash 工具: cli 内 sha256 实现(CRYPTO 公共层 lib/algorithms/shared/crypto 已有 sha256, 链接复用; CLI 侧封装 file_sha256)。

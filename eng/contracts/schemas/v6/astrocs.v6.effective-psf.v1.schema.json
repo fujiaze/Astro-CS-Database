@@ -1,0 +1,258 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/v6/effective-psf.v1.schema.json",
+  "title": "AstroCS V6 effective PSF 数据对象（生产，W6 集成）",
+  "description": "[生产 schema | SCHEMA-INTEGRATE-001/W6] 由 eng/contracts/proposals/v6/data/astrocs.v6.effective-psf.v1.schema.json 机械迁移；语义权威 = docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json（条款 id 见 x-astrocs-production.clause_ids）。词表归一：weight.kind / weight.units / group_normalized / normalization.scope 为唯一 canonical 名，legacy 别名与双向映射见 eng/contracts/data/v6_weight_vocabulary_v1.json 与 v6_migration_map_v1.json。PENDING_OWNER_SIGNOFF 条款生效前 fail-closed，不得放宽。原描述：effective PSF = 实际组合算子对单位通量点源的脉冲响应（操作式定义）。三生产模式均必输，缺即 REJECT（FZ-GATE-PSFSW-EPSF / FZ-GATE-PSFSW-EPSF / FZ-P3-FAILCLOSED）。只给 FWHM 标量不构成 effective PSF。归一约定必须按产品族显式声明。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "effective_psf_schema",
+    "schema_version",
+    "effective_psf_id",
+    "definition",
+    "product_family",
+    "formula_family",
+    "normalization",
+    "values_or_model",
+    "kernel_transfer",
+    "combination_coefficients_ref",
+    "input_psf_refs",
+    "reproducibility",
+    "provenance_ref"
+  ],
+  "properties": {
+    "effective_psf_schema": {
+      "const": "astrocs.v6.effective-psf/v1",
+      "x-astrocs": {
+        "anchor": "FZ-GATE-PSFSW-EPSF; SCI-P2-001 COVARIANCE_AND_EFFECTIVE_PSF §3",
+        "domain": "Phase1/2/3"
+      }
+    },
+    "schema_version": {
+      "const": 1,
+      "x-astrocs": {
+        "anchor": "宪章 §4.3",
+        "domain": "全部"
+      }
+    },
+    "effective_psf_id": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "FZ-GATE-PSFSW-EPSF",
+        "domain": "全部",
+        "fail_closed": "effective_psf_id 为空 -> REJECT",
+        "gate": "G-EPSF-PRESENT"
+      }
+    },
+    "definition": {
+      "const": "impulse_response_of_combination",
+      "x-astrocs": {
+        "anchor": "FZ-GATE-PSFSW-EPSF; SCI-P2-001 §3",
+        "domain": "全部",
+        "fail_closed": "definition 缺失或非操作式脉冲响应定义 -> REJECT",
+        "gate": "G-EPSF-PRESENT"
+      }
+    },
+    "product_family": {
+      "enum": [
+        "phase1_point_information",
+        "phase2_point_source",
+        "phase2_surface_brightness",
+        "phase2_psfsw_integration",
+        "phase3_point_source_flux",
+        "phase3_surface_brightness"
+      ],
+      "x-astrocs": {
+        "anchor": "DESIGN-P2 §9; DESIGN-P3 §5",
+        "domain": "全部",
+        "fail_closed": "product_family 未声明 -> 归一约定歧义 REJECT",
+        "gate": "G-EPSF-NORMALIZATION"
+      }
+    },
+    "formula_family": {
+      "enum": [
+        "conventional_coadd",
+        "matched_filter_proper_coadd"
+      ],
+      "x-astrocs": {
+        "anchor": "SCI-P2-001 COVARIANCE_AND_EFFECTIVE_PSF §3; Horne 1986; Zackay & Ofek 2017",
+        "domain": "全部"
+      }
+    },
+    "formula_ref": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "SCI-P2-001 §3 (P_eff 操作式)",
+        "domain": "全部"
+      }
+    },
+    "normalization": {
+      "enum": [
+        "peak",
+        "integral"
+      ],
+      "x-astrocs": {
+        "anchor": "FZ-GATE-PSFSW-EPSF; DESIGN-P1 §6",
+        "domain": "全部",
+        "fail_closed": "归一约定未显式声明 -> REJECT",
+        "gate": "G-EPSF-NORMALIZATION"
+      }
+    },
+    "values_or_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "values",
+            "model"
+          ]
+        },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "number"
+          }
+        },
+        "model": {
+          "type": "object"
+        }
+      },
+      "x-astrocs": {
+        "anchor": "FZ-GATE-PSFSW-EPSF; WEIGHT_PROVENANCE_GATE R7",
+        "domain": "全部",
+        "fail_closed": "values 与 model 同时为空 -> REJECT；只给 fwhm 标量 -> REJECT",
+        "gate": "G-EPSF-PRESENT"
+      }
+    },
+    "kernel_transfer": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "frame_id",
+          "kernel_id",
+          "kernel_version"
+        ],
+        "properties": {
+          "frame_id": {
+            "type": "string"
+          },
+          "kernel_id": {
+            "type": "string"
+          },
+          "kernel_version": {
+            "type": "string"
+          }
+        }
+      },
+      "x-astrocs": {
+        "anchor": "DESIGN-P3 §3; FZ-P3-KERNEL-REGISTRY; SCI-P2-001 §3",
+        "domain": "全部",
+        "fail_closed": "K_k/transfer 描述缺失 -> P_eff 不可复现 REJECT",
+        "gate": "G-EPSF-REPRODUCIBLE"
+      }
+    },
+    "combination_coefficients_ref": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "FZ-FORMULA-COV-PROP; SCI-P2-001 §3",
+        "domain": "全部",
+        "fail_closed": "缺实际组合系数 -> REJECT",
+        "gate": "G-EPSF-COEFFS"
+      }
+    },
+    "input_psf_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "x-astrocs": {
+        "anchor": "SCI-P2-001 §3",
+        "domain": "全部"
+      }
+    },
+    "fwhm_from_effective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit",
+        "role"
+      ],
+      "properties": {
+        "value": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "unit": {
+          "const": "px"
+        },
+        "role": {
+          "const": "derived_diagnostic"
+        }
+      },
+      "x-astrocs": {
+        "anchor": "SCI-P2-001 §3 (median(FWHM_k) != FWHM(P_eff))",
+        "domain": "诊断",
+        "fail_closed": "用逐帧 FWHM 摘要代替 P_eff -> REJECT",
+        "gate": "G-EPSF-FWHM-DERIVED"
+      }
+    },
+    "reproducibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "p_eff_hash",
+        "kernel_set_hash"
+      ],
+      "properties": {
+        "p_eff_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "kernel_set_hash": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "x-astrocs": {
+        "anchor": "宪章 §4.3; SCI-P2-001 §3",
+        "domain": "全部",
+        "fail_closed": "不可复现哈希缺失 -> REJECT",
+        "gate": "G-EPSF-REPRODUCIBLE"
+      }
+    },
+    "provenance_ref": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "FZ-PROV-MINIMAL-SET",
+        "domain": "全部"
+      }
+    }
+  },
+  "x-astrocs-production": {
+    "task": "SCHEMA-INTEGRATE-001",
+    "wave": 6,
+    "status": "PRODUCTION_INTEGRATED",
+    "source_proposal": "eng/contracts/proposals/v6/data/astrocs.v6.effective-psf.v1.schema.json",
+    "freeze_contract": "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json",
+    "clause_ids": [
+      "FZ-GATE-PSFSW-EPSF",
+      "FZ-P3-FAILCLOSED"
+    ],
+    "pending_owner_signoff_structural_refs": [],
+    "signoff_policy": "PENDING_OWNER_SIGNOFF 条款保持待签并 fail-closed；不得写成已冻结"
+  }
+}

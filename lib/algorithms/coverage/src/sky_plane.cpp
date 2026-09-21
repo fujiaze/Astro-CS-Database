@@ -1,6 +1,6 @@
 // lib/algorithms/coverage/src/sky_plane.cpp — Phase2 稀疏天光面实现
 //
-// 语义与权威见 include/astro/phase2/sky_plane.h 文件头。
+// 语义与权威见 lib/include/astro/phase2/sky_plane.h 文件头。
 //
 // 数值结构（为什么这样做）：
 // - B_ref 用切平面上的张量积均匀 B 样条（阶数 d=1 或 3），只存 nx*ny 系数；

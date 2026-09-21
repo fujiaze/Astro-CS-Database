@@ -8,7 +8,7 @@
 
 - 文档 ID：`DATA-DESIGN-001-SCHEMA-DESIGN`
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/DATA-DESIGN-001.md`（Wave 3，depends_on = SCI-ADJ-001）
-- 写域（tracked）：`docs/contracts/v6/data/`、`contracts/proposals/v6/data/`；工作区证据：`run/v6/data-design/`（`run/*` 受 `.gitignore` 约束）
+- 写域（tracked）：`docs/contracts/v6/data/`、`eng/contracts/proposals/v6/data/`；工作区证据：`run/v6/data-design/`（`run/*` 受 `.gitignore` 约束）
 - 基线：`HEAD = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`（`git rev-parse HEAD` 实测，main）
 - 性质：**设计提案（PROPOSAL_NOT_FROZEN）**。本任务只设计 schema，不实现 schema 校验器、不改生产源码/合同、不改冻结门/容差。
 - 建议状态：**PASS**（任务正文逐项完成、独立结构 Oracle 25/25 rc=0、负向 mutation 25/25 全红、文档锚审计 4/4 判红、写域干净；
@@ -44,7 +44,7 @@
 | 10 | 验证门 + 负向 mutation 判据 | `09_verification.md` | `astrocs.v6.data-design-catalog.v1.json`（gate_index） |
 | 11 | 迁移建议 + 开放项 + 签字项 | `10_migration_and_open_items.md` | catalog `migrations` / `open_items` |
 
-机器可读索引 `contracts/proposals/v6/data/astrocs.v6.data-design-catalog.v1.json` 由
+机器可读索引 `eng/contracts/proposals/v6/data/astrocs.v6.data-design-catalog.v1.json` 由
 `run/v6/data-design/tools/gen_catalog.py` 从上述 schema 与 `adjudications.json` 机械导出
 （与 SCI-ADJ-001 的 `render_freeze_list.py` 同构做法）：它登记冻结单位表、weight_mode 枚举、（已按 §9.73 A44 作废：该概念不存在）
 禁止项、**每个字段的条款锚/单位/适用域/fail-closed/门 id**、19 条 required freeze id 覆盖、迁移与开放项。
@@ -93,6 +93,6 @@ bash run/v6/data-design/tools/run_all.sh          # 单一 rc；失败即非 0
 
 ## 4. 边界声明
 
-- 本设计**不**写生产 schema（`contracts/schemas/`、`contracts/data/` 未改）、**不**实现校验器、**不**改 `docs/science/*.md` / `docs/owner/**` / `docs/design/**` / `docs/references/**`、**不**改测试与 CI。
+- 本设计**不**写生产 schema（`eng/contracts/schemas/`、`eng/contracts/data/` 未改）、**不**实现校验器、**不**改 `docs/science/*.md` / `docs/owner/**` / `docs/design/**` / `docs/references/**`、**不**改测试与 CI。
 - 本设计**不**宣布发布；**不**修改冻结门/容差；数值阈值（epsilon、deficit 阈值、PSFSW 指数与归一常数、k_corr 标定）**不**由本任务定值。
 - 未 commit / push / git add；未建分支/worktree；未 stash/reset/clean/rebase；未派生子代理。

@@ -70,7 +70,7 @@ VERIFIED；设计内容与容差来源=ALG-P2-INT-001（PHASE2_INTEGRATION.md
 §11.4，五项冻结容差）。现状相邻证据（引用不冒认）：
 lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Integrate 组（零权重合同
 :4702-4715 / support reducer :4737-4738 / 五态 :4741-4760）、
-tests/backend/test_p2004_reject_integrate.py（P2-004 生产 Oracle
+eng/tests/backend/test_p2004_reject_integrate.py（P2-004 生产 Oracle
 DRIVER_SRC 积分段 :66-126，含 max(accepted support) 注释 :124）。
 
 ## 链接

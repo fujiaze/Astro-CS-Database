@@ -39,7 +39,7 @@
      PixInsight 实践是把原生 16 位整数样本除以 `2¹⁶−1=65535` 归一（PCL 参考实现
      `UInt16PixelTraits::MaxSampleValue()=65535`，`NormalizeSamples` 把 [lower,upper] 映到
      [0, MaxSampleValue]），故此换算因子取 65535——但**必须由调用方显式声明**，不得由文件后缀
-     或目录名推断（`contracts/data/phase_product_exchange_matrix.json` R-NO-NAME-BINDING）。
+     或目录名推断（`eng/contracts/data/phase_product_exchange_matrix.json` R-NO-NAME-BINDING）。
 - **禁止静默混标度**：母版与亮场标度不一致（典型：XISF [0,1] 归一化母版 + ADU 亮场）时，
   按原样相减/相除会得到标度错的产物（实测 T2：master_flat median 0.206381 ⇒ 整帧被 ×4.845；
   master_bias 中位 0.015288 ⇒ 本底只减 0.0153 而应减 1001.87 ADU）。消费边界必须
@@ -99,7 +99,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
   声明面：`master_units`（各帧类单位 token）/`master_scale`（到 ADU 的线性换算因子）/
   `master_flat_normalize`（平场是否按 median 归一，枚举 `none`|`median`）；
 - **平场已归一（机器门）**：`flat` 约定为 `median≈1.0`（ALG-CAL-002 产物）。
-  消费边界按 `master_flat_median_range`（冻结默认 `[0.5, 2.0]`，见 `config/defaults.json`
+  消费边界按 `master_flat_median_range`（冻结默认 `[0.5, 2.0]`，见 `eng/packaging/config/defaults.json`
   `calibration.master_flat_median_range`）判定：中位数落在区间内即视为已归一；区间外**必须**
   显式声明 `master_flat_normalize="median"`（等价于 §5 `flat_norm` 的 `flat/median(flat)`，
   对已归一平场幂等，§7）才允许消费；既不归一又不落区间的整帧**拒绝**（禁止整帧被 `1/median` 静默缩放）；
@@ -189,7 +189,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
       声明非 ADU 的亮场未给换算 ⇒ 判红（拒绝）——即「**声明本身错也不得猜**」；
   (f) **正例对照（必须全绿，防过度拒绝）**：① 同一组归一化母版 + 显式声明（`master_units`/`master_scale`/
       `master_flat_normalize="median"`/`dark_optimization`）⇒ 通过，且校准产物中位数落在 §5 公式的
-      ADU 预测值附近（一致性判据的**可调容差数值**按 CFG-001 只登记在 `config/defaults.json` 的
+      ADU 预测值附近（一致性判据的**可调容差数值**按 CFG-001 只登记在 `eng/packaging/config/defaults.json` 的
       `calibration.dark_light_exposure_tolerance` 项，本文件只引用不复制数值；口径定义见 SCI-RES-01/R-003）：
       T2 NGC1727（曝光 600 s）逐像素 oracle `median[(raw−bias−K·(dark−bias))/flat_norm]` =
       **436.2 ADU**，现行错误实现 7048.6 ADU ⇒ **16.2×**；T4（曝光 180 s）361.2 vs 3650.4 ADU ⇒ 10.1×）；

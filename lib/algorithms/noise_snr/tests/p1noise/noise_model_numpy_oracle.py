@@ -14,7 +14,7 @@
   * 生产面仅作**被测对象**：把 lib/algorithms/noise_snr/cpp/src/noise_model.cpp
     (+snr_science.cpp) 编译成一次性可执行文件（生产源零改动）；Python 侧
     **不 import、不链接、不调用任何生产函数**。
-  * 与 tests/backend/test_noise_model_oracle.py 的区别：后者只在 Python 侧写
+  * 与 eng/tests/backend/test_noise_model_oracle.py 的区别：后者只在 Python 侧写
     不变量/解析式，没有 NumPy 对同 data 的复算（本轮实测该文件 numpy 命中 0）。
 
 容差口径：

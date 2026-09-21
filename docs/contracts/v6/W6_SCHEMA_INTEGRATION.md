@@ -8,7 +8,7 @@
 
 - 文档 ID：`DATA-V6-SCHEMA-INTEGRATION`
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCHEMA-INTEGRATE-001.md`（Wave 6，depends_on = CONTRACT-FREEZE-001）
-- write_scope：`contracts/schemas/`、`contracts/data/`、`docs/contracts/`、`tests/contracts/v6/`
+- write_scope：`eng/contracts/schemas/`、`eng/contracts/data/`、`docs/contracts/`、`eng/tests/contracts/v6/`
 - 基线 HEAD：`ac04289dea9d3ccb3dad8310dade53e75162447f`（`git rev-parse HEAD` 实测；controller C-007 已把 `docs/contracts/{DATA_SEMANTICS,PUBLIC_API}.md` 的 P33/P27 回退态固化为本基线）
 - 语义权威（唯一）：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8）
 
@@ -21,13 +21,13 @@
 
 | # | 类别 | 落点 | 说明 |
 |---|---|---|---|
-| 1 | 生产 schema（10 件） | `contracts/schemas/v6/astrocs.v6.*.v1.schema.json` | 由 `contracts/proposals/v6/data/*.v1.schema.json` 迁移；JSON Schema 2020-12；全部通过 meta-schema 校验 |
-| 2 | 数据字典 | `contracts/data/v6_data_dictionary_v1.json` | 单位表 / BUNIT / weight_mode 三分 / 禁止项 / provenance 最小集 / concentration 权威 / fail-closed / 条款注册表 / 签字与开放登记 |（已按 §9.73 A44 作废：该概念不存在）
-| 3 | 单一权重词表 | `contracts/data/v6_weight_vocabulary_v1.json` | canonical 字段 + 双词表双向映射 + 第三套词表禁止项 + legacy 整数处置（DI-01/DI-07 闭合） |
-| 4 | 迁移映射表 | `contracts/data/v6_migration_map_v1.json` | 文件级 + 记录级 legacy→v6 映射与 reader/writer 规则 |
-| 5 | 生产正例 | `contracts/data/examples/v6/*.example.json`（10 件） | 逐条通过目标 schema（含 concentration 单位修正） |
+| 1 | 生产 schema（10 件） | `eng/contracts/schemas/v6/astrocs.v6.*.v1.schema.json` | 由 `eng/contracts/proposals/v6/data/*.v1.schema.json` 迁移；JSON Schema 2020-12；全部通过 meta-schema 校验 |
+| 2 | 数据字典 | `eng/contracts/data/v6_data_dictionary_v1.json` | 单位表 / BUNIT / weight_mode 三分 / 禁止项 / provenance 最小集 / concentration 权威 / fail-closed / 条款注册表 / 签字与开放登记 |（已按 §9.73 A44 作废：该概念不存在）
+| 3 | 单一权重词表 | `eng/contracts/data/v6_weight_vocabulary_v1.json` | canonical 字段 + 双词表双向映射 + 第三套词表禁止项 + legacy 整数处置（DI-01/DI-07 闭合） |
+| 4 | 迁移映射表 | `eng/contracts/data/v6_migration_map_v1.json` | 文件级 + 记录级 legacy→v6 映射与 reader/writer 规则 |
+| 5 | 生产正例 | `eng/contracts/data/examples/v6/*.example.json`（10 件） | 逐条通过目标 schema（含 concentration 单位修正） |
 | 6 | 合同文档 | `docs/contracts/DATA_SEMANTICS.md` §31；`docs/contracts/PUBLIC_API.md`「V6 消费面」 | 单位表/BUNIT/weight_mode/provenance/fail-closed 消费语义 |（已按 §9.73 A44 作废：该概念不存在）
-| 7 | 验证 | `tests/contracts/v6/` | 独立 Oracle（对照冻结表）、schema 校验、词表归一、兼容/迁移、负向 mutation（≥12 必红） |
+| 7 | 验证 | `eng/tests/contracts/v6/` | 独立 Oracle（对照冻结表）、schema 校验、词表归一、兼容/迁移、负向 mutation（≥12 必红） |
 
 ## 2. 词表归一（C-004.3 / DI-01 / DI-07）
 
@@ -47,8 +47,8 @@
 ## 3. 已登记冲突的裁定：concentration 单位
 
 - **唯一权威**：`psfsw.concentration` 单位 = `component_flux_unit/px^2`（`A_NEA = 1/ΣP²`，单位 `px^2`），锚 = `ALG-P2-PSFSW-001` 单位一致性规则 + `FZ-FIELD-PSFSW-4COMP` + `FZ-COND-WHITENOISE`。
-- **登记文本错误（已由 W12 订正）**：`docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md` §4.2 表中曾写作 `ADU/px`。本任务（W6）不改 `docs/algorithms/`（不在 write_scope），只在数据字典 `concentration_unit_authority.registered_text_error` 登记，并使其在**生产合法域之外**：schema `concentration.units` 用 `pattern ^[A-Za-z][A-Za-z0-9_()^\-]*/px\^2$` 收紧，`ADU/px` 结构即红。**DOC-CONVERGE-001（W12，`reports/v6/release-review/01_CONVERGENCE_CORRECTIONS.md`）已把该文本与机器伴生 `alg_p1_001_spec.json` 的 concentration 单位订正为 `ADU/px²`（依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + 本 schema 的 `concentration.units` pattern；`A_NEA=px²`），不改变任何冻结公式/容差/门。** `contracts/**` 中 schema 的 `x-astrocs-concentration-unit-authority.registered_text_error` 仍描述订正前状态，需 `contracts/` owner（SCHEMA-INTEGRATE-001）同源刷新。
-- proposal 正例 `contracts/proposals/v6/data/examples/psfsw.example.json` 的 `ADU/px` 未被静默采纳：生产正例 `contracts/data/examples/v6/psfsw.example.json` 修正为 `ADU/px^2` 并新增 `component_flux_unit` 声明。
+- **登记文本错误（已由 W12 订正）**：`docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md` §4.2 表中曾写作 `ADU/px`。本任务（W6）不改 `docs/algorithms/`（不在 write_scope），只在数据字典 `concentration_unit_authority.registered_text_error` 登记，并使其在**生产合法域之外**：schema `concentration.units` 用 `pattern ^[A-Za-z][A-Za-z0-9_()^\-]*/px\^2$` 收紧，`ADU/px` 结构即红。**DOC-CONVERGE-001（W12，`reports/v6/release-review/01_CONVERGENCE_CORRECTIONS.md`）已把该文本与机器伴生 `alg_p1_001_spec.json` 的 concentration 单位订正为 `ADU/px²`（依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + 本 schema 的 `concentration.units` pattern；`A_NEA=px²`），不改变任何冻结公式/容差/门。** `eng/contracts/**` 中 schema 的 `x-astrocs-concentration-unit-authority.registered_text_error` 仍描述订正前状态，需 `eng/contracts/` owner（SCHEMA-INTEGRATE-001）同源刷新。
+- proposal 正例 `eng/contracts/proposals/v6/data/examples/psfsw.example.json` 的 `ADU/px` 未被静默采纳：生产正例 `eng/contracts/data/examples/v6/psfsw.example.json` 修正为 `ADU/px^2` 并新增 `component_flux_unit` 声明。
 - 修正 FROZEN 正文本身须 DOC-CONVERGE-001(W12) + 负责人签字（宪章 §1.2）。
 
 ## 4. P33-COEF / P27 回退态保持（不得重新引入）
@@ -75,22 +75,22 @@
 
 | 命令（仓库根） | 期望 rc |
 |---|---|
-| `python3 tests/contracts/v6/tools/gen_production_schemas.py` | 0 |
-| `python3 tests/contracts/v6/tools/gen_data_dictionary.py` | 0 |
-| `python3 -m unittest discover -s tests/contracts -t tests/contracts`（CI `UT-CONTRACTS`） | 0 |
-| `python3 tests/contracts/v6/run_all.py` | 0（单聚合 rc，含独立 Oracle + ≥12 负向 mutation 全红） |
+| `python3 eng/tests/contracts/v6/tools/gen_production_schemas.py` | 0 |
+| `python3 eng/tests/contracts/v6/tools/gen_data_dictionary.py` | 0 |
+| `python3 -m unittest discover -s eng/tests/contracts -t eng/tests/contracts`（CI `UT-CONTRACTS`） | 0 |
+| `python3 eng/tests/contracts/v6/run_all.py` | 0（单聚合 rc，含独立 Oracle + ≥12 负向 mutation 全红） |
 
-实测 rc、Oracle 逐项结论与 mutation 明细见 `tests/contracts/v6/evidence/rc_summary.json`、`evidence/oracle_report.json`、`evidence/mutations.json` 与 `evidence/logs/`。
+实测 rc、Oracle 逐项结论与 mutation 明细见 `eng/tests/contracts/v6/evidence/rc_summary.json`、`evidence/oracle_report.json`、`evidence/mutations.json` 与 `evidence/logs/`。
 
 ### 6.1 实测 rc（基线 HEAD = ac04289da9d3ccb3dad8310dade53e75162447f）
 
 | 命令（仓库根） | 实测 rc | 结果 |
 |---|---|---|
-| `python3 tests/contracts/v6/tools/gen_production_schemas.py` | 0 | GEN_PASS 10 schemas（可重跑，产物 sha256 不变） |
-| `python3 tests/contracts/v6/tools/gen_data_dictionary.py` | 0 | DICT_PASS |
-| `python3 tests/contracts/v6/v6_oracle.py` | 0 | ORACLE_PASS 40/40（独立对照 W4 冻结合同） |
-| `python3 -B -m unittest discover -s tests/contracts -t tests/contracts`（CI `UT-CONTRACTS`） | 0 | Ran 28 tests OK（含既有 9） |
-| `python3 tests/contracts/v6/run_all.py` | 0 | RUN_ALL_PASS（Oracle 40/40 + **34** 条负向 mutation 全红 + 10/10 正例） |
+| `python3 eng/tests/contracts/v6/tools/gen_production_schemas.py` | 0 | GEN_PASS 10 schemas（可重跑，产物 sha256 不变） |
+| `python3 eng/tests/contracts/v6/tools/gen_data_dictionary.py` | 0 | DICT_PASS |
+| `python3 eng/tests/contracts/v6/v6_oracle.py` | 0 | ORACLE_PASS 40/40（独立对照 W4 冻结合同） |
+| `python3 -B -m unittest discover -s eng/tests/contracts -t eng/tests/contracts`（CI `UT-CONTRACTS`） | 0 | Ran 28 tests OK（含既有 9） |
+| `python3 eng/tests/contracts/v6/run_all.py` | 0 | RUN_ALL_PASS（Oracle 40/40 + **34** 条负向 mutation 全红 + 10/10 正例） |
 | `python3 eng/tools/check_data_artifacts.py` | 0 | DATA_ARTIFACTS_PASS schemas=28 |
 | `python3 eng/tools/check_contract_graph.py` | 0 | CONTRACT_GRAPH_PASS contracts=100 |
 | `python3 eng/tools/check_agents_gov.py` | 0 | GOV_CHECK_PASS 10/10 |
@@ -98,7 +98,7 @@
 
 - 负向 mutation **34** 条（要求 ≥12）：单位错 / psfsw 写成 ivar / group_normalized=false / scope=global / median_target≠1 / 缺 component_flux_unit / concentration 放宽为 `ADU/px` / validity 白名单越界 / 禁止键守卫清空 / weight.kind=ivar / `psf_snr_power` 进生产 / legacy 整数放行 / deferred 登记被抹 / `k_corr=1` / 缺 k_corr / variance_from 含权重 / propagation 改写 / signal 幂次门移除 / 缺 effective_psf_id / 字典单位错 / 禁止来源漏 fwhm / 待签写成 FROZEN / 计数错 / concentration 权威改回 `ADU/px` / mode 单位错 / canonical 单位反向 / legacy 0 放行 / 迁移覆盖不全 / 正例 concentration 错 / 正例 `k_corr=1` / 删 §31 / 重新引入 P33 段 / 重新引入 P27 段 / PENDING 数值写成 FROZEN。
 - 每条 mutation 均由 `Oracle.overrides` 在临时影子文件上重跑**同一** Oracle，断言失败且指定检查项变红（不是"同实现自证"）。
-- 产物确定性：`gen_*` 重跑后 `contracts/schemas/v6/*` 与 `contracts/data/v6_*.json` 的 sha256 不变。
+- 产物确定性：`gen_*` 重跑后 `eng/contracts/schemas/v6/*` 与 `eng/contracts/data/v6_*.json` 的 sha256 不变。
 - PENDING 派生结构门（`PSFSW-T-NMIN` 的 n_common 下限、`FZ-PROV-KCORR-VALUE`）在 schema 内以 `x-astrocs.signoff=PENDING_OWNER_SIGNOFF` 显式标注，并由 Oracle `O32` 守卫（写成 FROZEN 即红，见 mutation M34）。
 
 ## 7. 未决风险与待签
@@ -111,5 +111,5 @@
 ## 8. 边界声明
 
 - 未 commit / push / git add / 建分支 / worktree / stash / reset / clean / rebase；未派生子代理。
-- 只写 `contracts/schemas/`、`contracts/data/`、`docs/contracts/`、`tests/contracts/v6/`；未改 `docs/science/**`、`docs/owner/**`、`docs/design/**`、`docs/references/**`、生产源码、CI、根 CMakeLists。
+- 只写 `eng/contracts/schemas/`、`eng/contracts/data/`、`docs/contracts/`、`eng/tests/contracts/v6/`；未改 `docs/science/**`、`docs/owner/**`、`docs/design/**`、`docs/references/**`、生产源码、CI、根 CMakeLists。
 - 未改冻结公式/容差/门；未解冻 `psf_snr_power`；未让 `median(SNR_F)`/support/coverage/FWHM 进权重面；未宣布发布。

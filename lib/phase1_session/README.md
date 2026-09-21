@@ -87,7 +87,7 @@ DLL 显式加载（dll_loader），与本库（B 线静态库）并存；两条�
 委托不产生第二套调度顺序——B 线 session 对 3..8 号节点只提供 registry
 注册与兼容 adapter，不提供算法实现（§3 差距声明）。
 
-**p1_session 内部节点（canonical 4 段，tests/unit/p1_ir_facade_test.cpp:33-40
+**p1_session 内部节点（canonical 4 段，eng/tests/unit/p1_ir_facade_test.cpp:33-40
 静态断言与源码注释一致）**：`io_read` → `calibrate` → `cosmetic` →
 `io_write`（p1_session.cpp:168/195/283/319 段首行号）。
 
@@ -141,7 +141,7 @@ registry 端口存在、P1-001 后工厂真实 operation 委托（p1_nodes[]）�
 | `dark_optimization` | 可 | bool | false（:141-143） | calibrate |
 | `dark_scale_factor` | **validate 不验** | float | 1.0（run :225 `value()` 兜底） | calibrate |
 
-**host services（include/astrocs/common_abi_v1.h:110-117
+**host services（lib/include/astrocs/common_abi_v1.h:110-117
 `astrocs_host_services_v1`）**：`allocator`/`logger`/`cancel`/`budget`
 （thread budget :100-108：`available_cpus`=affinity∩cgroup∩Job Object、
 `max_workers`=本次 worker 上限、原子 acquire/release；cancel :92-97 单向
@@ -194,10 +194,10 @@ module_adapters.cpp:61-91）：
 
 ## 7 验证
 
-- 生命周期五函数登记一致性：`tests/api/test_p1_api.py`（API-003
+- 生命周期五函数登记一致性：`eng/tests/api/test_p1_api.py`（API-003
   doc-symbol-signature 合同；`test_02_lifecycle_five_functions` :50-55
   校验 PHASE1_API_V1.md 含五函数与四段式表述）。
-- facade 语义与 canonical 节点集：`tests/unit/p1_ir_facade_test.cpp`
+- facade 语义与 canonical 节点集：`eng/tests/unit/p1_ir_facade_test.cpp`
   （:33-40 四节点声明断言；:49-57 只作 facade——委托
   `ac_calibrate_frame`/`ac_correct_frame`，禁内联校准公式；:60-72
   委托层可调用验证）。
@@ -209,13 +209,13 @@ module_adapters.cpp:61-91）：
 - 本合同验收：DATA-P1-SESSION=docs/contracts/DATA_SEMANTICS.md §16；
   API-P1-SESSION=docs/contracts/PUBLIC_API.md「Phase1 装配会话」节；
   矩阵行=MOD-astrocs-phase1-session（docs/traceability/）。
-  TEST-P1-SESSION-001 锚 tests/unit/p1_ir_facade_test.cpp（可执行测试
+  TEST-P1-SESSION-001 锚 eng/tests/unit/p1_ir_facade_test.cpp（可执行测试
   已接线登记）。
 - complete 门 fail-closed（P1-001, 2026-09-10）：run 成功路径 manifest
   `status="partial"`（不写 complete）+ `availability` 8 域如实报告
   （calibration/cosmetic=available，star_psf/wcs/photometry/noise_snr/
   drizzle/writer=unavailable）；PROD-P0-001 Phase1 侧整改锚
-  `tests/unit/p1001_real_nodes_test.cpp::test_complete_gate_fail_closed`。
+  `eng/tests/unit/p1001_real_nodes_test.cpp::test_complete_gate_fail_closed`。
   既有 u1/u1b/u7/w1/p2 断言同步迁移 partial（run 链不完整期间 complete
   语义冻结，链完整迁移完成后按控制包门禁恢复）。
 

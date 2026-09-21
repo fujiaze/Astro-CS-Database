@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""TST-001 机器校验器：tests/testkit 测试元数据合同全量校验 + module:<id> 选择
+"""TST-001 机器校验器：eng/tests/testkit 测试元数据合同全量校验 + module:<id> 选择
 + 期望来源审计（禁止生产函数生成期望）+ 故障注入检查。
 
-规则（详见 tests/testkit/testkit.spec.md §7，exit 0 = TESTKIT_PASS）：
-  K1 文件存在且被 Git 跟踪：tests/testkit/schemas/test_metadata.schema.json、
+规则（详见 eng/tests/testkit/testkit.spec.md §7，exit 0 = TESTKIT_PASS）：
+  K1 文件存在且被 Git 跟踪：eng/tests/testkit/schemas/test_metadata.schema.json、
      registry.json（若存在）；
   K2 registry 每项过 JSON Schema（test_metadata.schema.json）——缺字段/坏类型/
      坏格式 → SCHEMA_VIOLATION；空字符串 → EMPTY_VIOLATION（空缺写 MISSING）；
@@ -33,8 +33,8 @@ import re
 import subprocess
 import sys
 
-REGISTRY_REL = "tests/testkit/registry.json"
-SCHEMA_REL = "tests/testkit/schemas/test_metadata.schema.json"
+REGISTRY_REL = "eng/tests/testkit/registry.json"
+SCHEMA_REL = "eng/tests/testkit/schemas/test_metadata.schema.json"
 # 生产符号域：禁止 oracle/期望生成引用这些符号（生产=被测代码）
 PRODUCTION_SYMBOL_RE = re.compile(
     r"\b(?:acs_cap_detect_v1|acs_cap_classify_v1|astrocs_module_query_v1|"
@@ -253,24 +253,24 @@ def _fault_injection_demo(root, selected) -> list:
     """
     out: list[dict] = []
     # F1：篡改期望 —— check_constant.py 的期望即命令行参数（registry command 用 4）
-    r1 = _bash_run("python3 tests/testkit/examples/check_constant.py 5", root)
+    r1 = _bash_run("python3 eng/tests/testkit/examples/check_constant.py 5", root)
     if r1.returncode == 0:
         out.append(err("FORBIDDEN_PASS", "F1 篡改期望(4→5)后 harness 仍 exit 0（故障注入未生效）"))
 
     # F2：断链 fixture —— 临时改名 demo_fixture.txt，跑完恢复
-    fx = os.path.join(root, "tests/testkit/fixtures/demo_fixture.txt")
+    fx = os.path.join(root, "eng/tests/testkit/fixtures/demo_fixture.txt")
     bak = fx + ".inj.bak"
     if os.path.isfile(fx):
         os.replace(fx, bak)
         try:
-            r2 = _bash_run("python3 tests/testkit/examples/fixture_hash.py {root}", root)
+            r2 = _bash_run("python3 eng/tests/testkit/examples/fixture_hash.py {root}", root)
             if r2.returncode == 0:
                 out.append(err("FORBIDDEN_PASS", "F2 断链 fixture 后 harness 仍 exit 0（故障注入未生效）"))
         finally:
             os.replace(bak, fx)
 
     # F3：registry 注入坏项 —— oracle 引用生产符号（用被测代码生成期望）→ 检查器必须 FAIL
-    reg = os.path.join(root, "tests/testkit/registry.json")
+    reg = os.path.join(root, "eng/tests/testkit/registry.json")
     if os.path.isfile(reg):
         with open(reg, encoding="utf-8") as f:
             orig = f.read()

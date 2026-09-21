@@ -16,7 +16,7 @@
 
 - **输入**：HiPS 产品（signal/variance/coverage/...，只读）。
 - **输出**：可视化（渲染图像、导航状态、诊断视图）。
-- 参考：`contracts/schemas/hips_product.schema.json`（读侧复用）。
+- 参考：`eng/contracts/schemas/hips_product.schema.json`（读侧复用）。
 
 ## 4. 算法与公式要点
 

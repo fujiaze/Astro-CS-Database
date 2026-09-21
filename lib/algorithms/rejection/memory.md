@@ -70,9 +70,9 @@
   Phase2Rejection 组 :2639-2725（R1/G4 等）+ G6 组 :2779-2863
   （ESD NIST Rosner 54/掩蔽/winsor≠sigma/permutation）+ V15-V17 组
   :4138-4864（V16GatherStridedFp32Fp64 :4592、V17InvalidMethodStatus
-  :4763、V17LargeScale* :4798-4864）；tests/backend/
+  :4763、V17LargeScale* :4798-4864）；eng/tests/backend/
   test_p2004_reject_integrate.py（P2-004 生产 Oracle）与
-  tests/unit/p2_rejection_test.cpp（P2-005）。可执行 TEST-P2-REJ-001
+  eng/tests/unit/p2_rejection_test.cpp（P2-005）。可执行 TEST-P2-REJ-001
   MISSING（P2-REJ-TEST 建立）；登记面=TEST-P2-REJ-DESIGN-001 设计
   冻结 VERIFIED（registry 页 astrocs.phase2.reject.md §独立
   synthetic 验证节 :126-129 + ALG §11.4 F1-F8 容差 :554-609）。
@@ -90,7 +90,7 @@
 - 任务: IMPL-P2-REJ-001（wave 5，depends_on CONTRACT-FREEZE-001）。只改
   write_scope：`lib/algorithms/coverage/src/rejection.cpp`、
   `lib/algorithms/coverage/include/astro/phase2/rejection.h`、`lib/algorithms/rejection/`、
-  `tests/unit/v6_p2_rej/`；未改 docs/、eng/ci/、根/测试公共 CMakeLists。
+  `eng/tests/unit/v6_p2_rej/`；未改 docs/、eng/ci/、根/测试公共 CMakeLists。
 - 新增接口（头 `rejection.h`；实现 `rejection.cpp` 末尾 V6 段）:
   - `p2_reject_classify`：按预测残差方差
     `sigma_eff^2 = sigma_phase1^2 + J C_theta J^T` 的阈值判定；
@@ -110,7 +110,7 @@
   `sigma_eff^2<=0` → `INVALID_INPUT`；`method=AUTO` → `INVALID_METHOD`；
   继承阈值或 profile 常量被改 / PERCENTILE×norm≠MEDIAN_CENTER /
   RCR×norm≠NONE → `INVALID_CONFIGURATION`；空栈 → `MIN_SAMPLES`。
-- 证据: `tests/unit/v6_p2_rej/`（`oracle_rej.py` 独立 Oracle +
+- 证据: `eng/tests/unit/v6_p2_rej/`（`oracle_rej.py` 独立 Oracle +
   `oracle_expected.inc` + `p2_rej_v6_test.cpp` 六组 + 自注册 CMakeLists）；
   12 条负向 mutation 全部被检出；shadow ctest 6/6 PASS；生产 flags
   (`-O3 -std=gnu++17 -Wall -Wextra -Wpedantic -Wconversion`) 编译零告警。

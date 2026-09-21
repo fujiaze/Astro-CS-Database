@@ -43,7 +43,7 @@
     {
       "id": "config_default_divergence:height_px",
       "kind": "known_divergence",
-      "reason": "0.0 为结构体未初始化哨兵（调用方必填），512 为 config/templates/export.phase_config.json 示例值；非科学默认冲突。",
+      "reason": "0.0 为结构体未初始化哨兵（调用方必填），512 为 eng/packaging/config/templates/export.phase_config.json 示例值；非科学默认冲突。",
       "owner": "RELEASE-02 fix-gates",
       "exit_condition": "在模板中标注示例值语义，或代码改用显式 Required",
       "values": [

@@ -3,7 +3,7 @@
 > 工作项：**FRAME-SNR-CANON**（RELEASE-02）。调研记录：`实验/SCI-B/docs/surveys/frame-snr-survey.md`。
 > 实验代码：`实验/SCI-B/code/reverse_verify/frame_snr/`（**纯 Python，独立构建，不并入主线**）。
 > 中间产物：`run/reverse_verify/frame_snr/`（gitignore）。
-> 硬约束遵守情况：**未改** `lib/` `docs/` `tests/` `ci/`；**零 git 写**；**未跑** `ninja`/`cmake`/`ctest`。
+> 硬约束遵守情况：**未改** `lib/` `docs/` `eng/tests/` `ci/`；**零 git 写**；**未跑** `ninja`/`cmake`/`ctest`。
 > 唯一的外部编译是 `g++` 直编生产 TU（只读）用于对拍，见 §3 P12。
 
 ---

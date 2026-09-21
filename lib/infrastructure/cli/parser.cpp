@@ -430,7 +430,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
     //     mosaic 4 个、export 5 个；真实 testdata 多块形态因此无任何可运行配置
     //     （留键 ⇒ rc=3 unknown key；去键 ⇒ cal 节点 fail-closed rc=2）。平铺门本身即
     //     session_keys() 的并集，故块内门同源 = 两形态等价（机器判据见
-    //     tests/cli/test_fix210_block_key_parity.py）。
+    //     eng/tests/cli/test_fix210_block_key_parity.py）。
     //   * 输入判据 = input_contract(session)（数组形态 or 对象形态 + 必需子键）；
     //   * §9.73 裁决 A44（「权重模式」概念不存在）⇒ 块面不收 weight_mode /
     //     legacy_allow_weight_fallback（派生量，由 Phase2 消费 SNR 时现场算）。

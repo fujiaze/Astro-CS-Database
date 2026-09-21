@@ -96,7 +96,7 @@ HIST = re.compile(r"(?:控制包|审计轮次|审计记录|审计\s*[§:：]|号
 
 
 def is_test_file(p: str) -> bool:
-    return "tests/" in p or p.endswith("_test.cpp") or "test/" in p
+    return "eng/tests/" in p or p.endswith("_test.cpp") or "test/" in p
 
 
 def transform_line(p: str, raw: str) -> str:

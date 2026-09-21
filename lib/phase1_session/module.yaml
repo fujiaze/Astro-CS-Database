@@ -20,7 +20,7 @@
 # 冻结依据（P1-PSF-DOC 先例）。
 # complete 门（P1-001，PROD-P0-001 Phase1 侧）：run 成功 status="partial"
 # + availability 8 域如实报告（链不完整禁写 complete，链完整后按门禁
-# 恢复）；锚 tests/unit/p1001_real_nodes_test.cpp。
+# 恢复）；锚 eng/tests/unit/p1001_real_nodes_test.cpp。
 # 构建=根 CMakeLists.txt:448-452（STATIC 库 astrocs_phase1_session，链接
 # astrocs_contracts/astrocs_calibration/astrocs_aio）+ :496/:514/:530 编入
 # astrocs 主可执行。MODULE_MIGRATION_MATRIX 无 P1-SESSION 行：assembly 层

@@ -129,7 +129,7 @@ DOT 头注释同步上述字段；SVG `<desc>` 同步 metrics + main_sha。**SVG
 
 ## 7. 真实入口与字段语义（与 RT-006 对齐）
 
-TraceEvent（`include/astrocs/core/contracts.h`）JSONL 字段：type/run_id/
+TraceEvent（`lib/include/astrocs/core/contracts.h`）JSONL 字段：type/run_id/
 node_id/module_id/module_version/dll_name/dll_sha256/build_id/entry/
 call_count/workers/granted_workers/provider/kernel_id/status/error/
 artifact_id/artifact_sha256/artifact_size/cpu_ms/wall_ms/seq。聚合语义与
@@ -166,7 +166,7 @@ hash 等观测字段一律只来自 trace 事件。
 ## 10. 参考
 
 - 依据：`ASTROCS_DESIGN.md` §6.3 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
-- RT-006：`include/astrocs/core/contracts.h` TraceEvent、
+- RT-006：`lib/include/astrocs/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`
 - RT-001：`lib/infrastructure/pipeline/typed_dag.py`、
   `lib/infrastructure/pipeline/typed_dag.schema.json`

@@ -9,7 +9,7 @@
 //
 // 噪声模型本体（snr_noise_model_v1 / _f64 / _default_config / _fill / _free）
 // **不是替身**：由生产源 lib/algorithms/noise_snr/cpp/src/noise_model.cpp 提供
-// （见 tests/CMakeLists.txt 的 orchestrator_gate_module_snr 目标）。
+// （见 eng/tests/CMakeLists.txt 的 orchestrator_gate_module_snr 目标）。
 //
 // 语义：返回 0（成功）+ n_points=0（无控制点，合法：snr_model 块仍按 52B 头写）
 // ⇒ run_stage_snr 不触发 ret==1/2/3 的提前返回，继续执行 NoiseWeightModelV1。

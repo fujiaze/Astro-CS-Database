@@ -6,7 +6,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 if(NOT AIO_V6_THIRD_PARTY_DIR)
-  set(AIO_V6_THIRD_PARTY_DIR "../../../../third_party")
+  set(AIO_V6_THIRD_PARTY_DIR "../../../../lib/third_party")
 endif()
 
 if(NOT TARGET astrocs_v6_aio)

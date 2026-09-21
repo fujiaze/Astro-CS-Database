@@ -15,7 +15,7 @@
 > `{point_information, surface_gls, psfsw_robust}`；文档基线 = `{equal, pixel_ivar}`；
 > `psf_snr_power` = **DEFERRED 且生产拒绝**。语义权威 =
 > `docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 /
-> PENDING_OWNER_SIGNOFF 49 / OPEN 8）；单一权重词表 = `contracts/data/v6_weight_vocabulary_v1.json`。
+> PENDING_OWNER_SIGNOFF 49 / OPEN 8）；单一权重词表 = `eng/contracts/data/v6_weight_vocabulary_v1.json`。
 > 其来源 V6 控制包已由 ROOT-007 删除（不再可解析），
 > 文档中的该路径只作历史任务溯源，**不作现状引用**。当前**未发布**（NOT_READY_FOR_RELEASE）。
 
@@ -82,12 +82,12 @@ lib/algorithms/      科学算法唯一家（并联放置；phase 为内部指�
 lib/infrastructure/  基建：cli/{normalize,mosaic,export} + scheduler pipeline aio
                      benchmark observability gaia_xpsd_client acr hips_browser
 lib/phase{1,2,3}_session  三阶段会话编排（引用算法模块，不重复实现）
-include/astrocs/     公共头（ABI/core/io；版本化 C ABI）
-contracts/           合同 schema（唯一事实源：schemas/data/config）
+lib/include/astrocs/     公共头（ABI/core/io；版本化 C ABI）
+eng/contracts/           合同 schema（唯一事实源：schemas/data/config）
 eng/cmake/              平台相关构建与安装布局
-config/             程序根全局配置（filters.json / defaults.json）
+eng/packaging/config/             程序根全局配置（filters.json / defaults.json）
 docs/               文档体系（science/algorithms/plugins/ci/design/architecture/...）
-tests/              测试（与模块共址可复用）；testdata/ 真实数据与合成数据
+eng/tests/              测试（与模块共址可复用）；testdata/ 真实数据与合成数据
 工程控制/            控制包（一个控制包一个子目录）
 run/                临时产物/日志（gitignore，不入库）
 ```

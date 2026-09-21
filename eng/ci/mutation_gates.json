@@ -19,8 +19,8 @@
       "in_ctest": true,
       "default_on": true,
       "ctest_name": "v6_aio_impl_mutations",
-      "driver": "tests/unit/v6_aio/mutations/mutate_and_check.py",
-      "registration": "tests/unit/v6_aio/CMakeLists.txt:55-58",
+      "driver": "eng/tests/unit/v6_aio/mutations/mutate_and_check.py",
+      "registration": "eng/tests/unit/v6_aio/CMakeLists.txt:55-58",
       "evidence": "build/v6_aio/CTestTestfile.cmake:23-24（LABELS v6_aio_slow, TIMEOUT 2400）"
     },
     {
@@ -29,8 +29,8 @@
       "in_ctest": false,
       "default_on": false,
       "ctest_name": "v6_p3_rsmp_mutation_driver",
-      "driver": "tests/unit/v6_p3_rsmp/run_mutations.py",
-      "registration": "tests/unit/v6_p3_rsmp/CMakeLists.txt:43-50（option(V6_P3RSMP_ENABLE_MUTATION_DRIVER ... OFF)）",
+      "driver": "eng/tests/unit/v6_p3_rsmp/run_mutations.py",
+      "registration": "eng/tests/unit/v6_p3_rsmp/CMakeLists.txt:43-50（option(V6_P3RSMP_ENABLE_MUTATION_DRIVER ... OFF)）",
       "reason": "默认 OFF，不进 ctest 默认面；20 条注入只在手动 ON 或 run/ 脚本下执行。",
       "evidence": "run/v6/p3-rsmp/mutation_summary.json（历史运行）"
     },
@@ -49,19 +49,19 @@
       "approximation": "V6 schema/Oracle（psfsw/weight-mode/provenance/covariance/signal/effective-psf）",
       "in_ctest": false,
       "default_on": true,
-      "driver": "tests/contracts/v6/test_v6_negative_mutations.py",
-      "registration": "CHK-CONTRACT-TEST → UT-CONTRACTS（unittest discover tests/contracts）",
+      "driver": "eng/tests/contracts/v6/test_v6_negative_mutations.py",
+      "registration": "CHK-CONTRACT-TEST → UT-CONTRACTS（unittest discover eng/tests/contracts）",
       "result": "total=34 detected=34 missed=0 wrong_gate=0",
-      "evidence": "tests/contracts/v6/evidence/mutations.json"
+      "evidence": "eng/tests/contracts/v6/evidence/mutations.json"
     },
     {
       "id": "docchk002_mutation",
       "approximation": "文档检查器自证（注入违规文档必须判红）",
       "in_ctest": false,
       "default_on": true,
-      "driver": "tests/quality/test_docchk002_mutation.py",
-      "registration": "CHK-UNIT → UT-QUALITY（unittest discover tests/quality；heavy）",
-      "reason": "随 tests/quality heavy 面执行；不在 ctest。"
+      "driver": "eng/tests/quality/test_docchk002_mutation.py",
+      "registration": "CHK-UNIT → UT-QUALITY（unittest discover eng/tests/quality；heavy）",
+      "reason": "随 eng/tests/quality heavy 面执行；不在 ctest。"
     },
     {
       "id": "p2_samp_mutations",
@@ -104,7 +104,7 @@
       "approximation": "P1 PSF 权重 sigma_F=1/sqrt(W)",
       "in_ctest": false,
       "default_on": false,
-      "driver": "tests/unit/v6_p1_psfw/p1psfw_tests_oracle.cpp（ASTROCS_P1PSFW_FAULT 故障注入）",
+      "driver": "eng/tests/unit/v6_p1_psfw/p1psfw_tests_oracle.cpp（ASTROCS_P1PSFW_FAULT 故障注入）",
       "registration": "v6_p1_psfw_selfcheck（ctest）内的 fault-injection 自检",
       "reason": "以故障注入而非独立 mutation driver 形式进 ctest selfcheck；另 run/v6/IMPL-P1-PSFW-001/{mutants,summary.json} 为历史一次性证据。"
     }

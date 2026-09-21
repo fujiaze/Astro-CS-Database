@@ -1,7 +1,6 @@
 # 第三方源码与数据库（参考/适配用，不入仓库）
 siril-1.4.3/
-GaiaDR3/
-GaiaDR3SP/
+gaia/
 
 # BASS DR3 单帧归档索引（2026-09-21 ROOT-CONSOLIDATION：由根目录 `BASS DR3/` 移入 `testdata/BASS_DR3/`，
 # 目录名去掉空格）。依据 ENGINEERING_SPEC §7「外部只读数据集……一旦被代码消费或需入库，移入 testdata/」：
@@ -168,3 +167,6 @@ run/RELEASE-02/paper/
 # 2026-09-21 ROOT-CONSOLIDATION：由根目录 `HST_M16/` 移入 `testdata/HST_M16/`（ENGINEERING_SPEC §7）。
 # 770 MB FITS 仍不入库（全局 `*.fits` + 本条目兜底）；来源/PHOTFLAM/下载方式见 testdata/README.md。
 testdata/HST_M16/
+
+# 本机路径覆盖（用户手动配置绝对路径，不入库）
+eng/packaging/config/local.paths.json

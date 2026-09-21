@@ -59,7 +59,7 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 //             `*sigma < 1e-9` 改为 `!(*sigma > 0.0)`。detect()（:120-123）已对该 false 做
 //             fail-closed（ErrorDomain::DATA "background estimation failed"）。有限输入的
 //             逐位结果不变（转换循环的数值路径未改）。
-//             回归锁定：tests/unit/p1_stars_test.cpp 的 noise_sigma 组（NaN ⇒ 必败；
+//             回归锁定：eng/tests/unit/p1_stars_test.cpp 的 noise_sigma 组（NaN ⇒ 必败；
 //             25 星 |σ/σ_true−1| ≤ 2%；纯噪声 −3% ≤ bias ≤ 0%）。
 // EXIT:       本块无删除条件（该项裁决为保留）。仅当出现下列情形时改写：
 //             ① 若 FIX 域另行改造 NaN 处置 ⇒ 同步本块「已知缺陷」段（当前状态：已修）；

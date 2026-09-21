@@ -220,7 +220,7 @@ ADS 记录页（`ui.adsabs.harvard.edu`）对脚本返回 405/JS 挑战；OUP(MN
 
 ### [F-15] LSST / Rubin DM：`PsfFlux` 与 `apCorr`。官方文档 `https://pipelines.lsst.io/api/lsst.meas.base.PsfFluxAlgorithm.html`、`.../ApplyApCorrTask.html`、`.../modules/lsst.meas.base/index.html`（版本 v30_0_11 / Current 2026-08-06）`[page]` ；谱系论文 Bosch, J. et al. (2018). The Hyper Suprime-Cam software pipeline. PASJ 70, S5. DOI 10.1093/pasj/psx080 `[CR]` `[arXiv:1705.06766]`
 - **通量定义**（**源码逐字原文，已核对**，`lsst/meas_base@main`）：
-  `include/lsst/meas/base/PsfFlux.h`：
+  `lib/include/lsst/meas/base/PsfFlux.h`：
   > "A measurement algorithm that estimates instFlux using **a linear least-squares fit with the Psf model**"
   > "we do a least-squares fit of the Psf model (evaluated at a given position) to the data. **For point sources, this provides the optimal instFlux measurement in the limit where the Psf model is correct.**"
   `python/lsst/meas/base/plugins.py`（登记为**需要孔径改正**）：

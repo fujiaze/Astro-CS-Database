@@ -2,7 +2,7 @@
 """SCI-A · Gaia DR3SP XP 谱读取（本地星表，零网络）
 
 星表读取走仓内 gaia_xpsd_client（编译 code/gaia_xp_dump.c），本模块只解析其 CSV。
-星表来源：仓库根 GaiaDR3SP/gdr3sp-1.0.0-*.xpsd（PixInsight XPSD 格式，Gaia DR3 BP/RP
+星表来源：仓库根 gaia/GaiaDR3SP/gdr3sp-1.0.0-*.xpsd（PixInsight XPSD 格式，Gaia DR3 BP/RP
 平均谱，343 点 336–1020 nm @2 nm，uint8 + flux_min/flux_mul 线性标定）。
 """
 from __future__ import annotations

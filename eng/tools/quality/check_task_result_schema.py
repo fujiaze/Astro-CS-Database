@@ -101,7 +101,7 @@ def validate_one(doc: dict, path: Path) -> list[str]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--schema", type=Path,
-                        # F-CI-002-02(CI-002): 唯一事实源=contracts/schemas/
+                        # F-CI-002-02(CI-002): 唯一事实源=eng/contracts/schemas/
                         # (目录规范 2026-09-09 后根 schemas/ 不存在, 旧默认路径
                         # 使本检查 fail-closed exit2, Windows run 34601822033 实证)
                         default=Path(__file__).resolve().parents[3] / "contracts" / "schemas" / "task_result.schema.json")

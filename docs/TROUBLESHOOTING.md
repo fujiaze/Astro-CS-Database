@@ -37,6 +37,6 @@ py -3.12 tools\astrocs_diagnose.py run\logs --json diag.json
 
 ## 外部依赖与网络
 
-- GaiaDR3/GaiaDR3SP: 本地只读目录, 禁止删除
+- gaia/GaiaDR3/GaiaDR3SP: 本地只读目录, 禁止删除
 - 所有外部进程/网络等待必须带 timeout
 - 不跑 BASS 大数据（不在当前范围）

@@ -42,7 +42,7 @@ def main():
                 continue
             # 引用的 header/source/test 必须真实存在
             # (原实现生成器真值判断写反: not/and 优先级使检查从未触发 — E-P2 修复:
-            #  lib/ 下找不到才先试 tests/unit/, 两个位置都找不到才报错)
+            #  lib/ 下找不到才先试 eng/tests/unit/, 两个位置都找不到才报错)
             in_lib = (REPO / "lib").glob("**/" + ref)
             found_lib = next(iter(in_lib), None) is not None
             if not found_lib and not (REPO / "lib" / ref).exists() \

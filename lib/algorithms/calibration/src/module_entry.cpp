@@ -7,7 +7,7 @@
 //   - 唯一导出 astrocs_module_query_v1 (12 §1 / ABI-006); vtable 九操作时序
 //     query → describe/validate_config/plan → create → execute* → inspect
 //     → request_cancel → destroy (module_api_v1.h / lifecycle_v1.h)。
-//   - 科学域零改动 (scientific_change=false): 本文件只做 config/manifest 解析、
+//   - 科学域零改动 (scientific_change=false): 本文件只做 eng/packaging/config/manifest 解析、
 //     内存平面装配、线程租约注入与事务输出; 算法全部转发 legacy AC_API
 //     (ac_generate_master_* / ac_calibrate_frame* / ac_correct_frame*)。
 //   - 线程模型 host_executor_lease: execute 期经 host executor acquire/release
@@ -1082,7 +1082,7 @@ static acs_status cal_describe(const acs_module_api_v1* self,
          * (secure_loader.c §5 既成合同; BLD-003 noop 先例同语义), 空=不指名, 直接
          * 返回静态描述; 非空仍严格校验 (错 ID → MISMATCH, calibration_adapter_test
          * 既有锚不变)。空 ID 拒绝曾使科学 DLL 在安装树内被自家 loader 必拒
-         * (DESCRIPTOR_MISMATCH), 本行为修复经 tests/abi/mod001_install_load_check.py
+         * (DESCRIPTOR_MISMATCH), 本行为修复经 eng/tests/abi/mod001_install_load_check.py
          * 安装树逐 unit 加载验证闭环。 */
         if (module_id.size != 0 &&
             (module_id.size != std::strlen(ASTROCS_CAL_MODULE_ID) ||

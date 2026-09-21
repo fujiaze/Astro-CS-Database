@@ -25,7 +25,7 @@
   - **`frame_snr`**：帧级 SNR，**写入 HiPS 文件头**；语义 = **点源（PSF）信号 SNR**（纯信号/噪声，红线见 §4.1）；
   - **`sparse_snr_layer`**（`sparse_snr_layer=true` 时）：帧内稀疏控制点 SNR 层，作为标准层插入 HiPS 文件内；**默认产出**（默认稀疏路径，§4.2）。
   - **不输出**：Phase2/Phase3 产物不含 SNR 面/块；Phase2 只在集成中现场消费本模块产出的单帧 SNR 换算逆方差权重，不复用本模块的 SNR 产物。
-- 参考：`contracts/schemas/noise_snr_output.schema.json`。
+- 参考：`eng/contracts/schemas/noise_snr_output.schema.json`。
 
 ## 4. 算法与公式要点
 

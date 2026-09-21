@@ -305,7 +305,7 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   coverage.h:7）。整改（已完成）: (a) inspect_frame 对 `obs_filter` **键缺失**
   fail-closed（:92-104）；(b) build 层对全部帧做**全等**比较（:215-225，含空串）；
   (c) 跨帧 `hips_frame` 相等（:227-233）；(d) `hips_ordering` 非 NESTED 拒绝
-  （:126-133）。真实 filter/ordering 负例见 tests/cli/test_phase3_inprocess.py
+  （:126-133）。真实 filter/ordering 负例见 eng/tests/cli/test_phase3_inprocess.py
   `test_10_coverage_requires_filter_and_nested_ordering`。
 - DISP-COV-004 overlap/intersection/missing-tiles 产品缺失（合同范围
   缺口，非公式错误）: matrix P2-COV 专项要求 union/intersection/

@@ -10,13 +10,13 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §7.2（配置、事件与退出码：JSONL 事件流）、§9（CPU 后端与资源：资源记录与重计算资源门）、§10（I/O 与原子产品：run 产物）
-- `contracts/schemas/events.schema.json`
-- `contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，见 §8）
+- `eng/contracts/schemas/events.schema.json`
+- `eng/contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，见 §8）
 
 ## 3. 输入/输出数据合同
 
 - **输出**：JSONL 事件流（schema_version/event_id/run_id/kind：progress/resource/artifact/backend/final）、run-graph.json、resource_timeseries.csv、resource_summary.json、worker_balance.csv、日志。
-- 参考：`contracts/schemas/events.schema.json`、`run_*.schema.json`。
+- 参考：`eng/contracts/schemas/events.schema.json`、`run_*.schema.json`。
 
 ## 4. 算法与公式要点
 
@@ -45,7 +45,7 @@
 ## 8. 重计算负载资源门（G-RES-01）
 
 > **本节是 G-RES-01 判据的唯一语义权威**（`ASTROCS_DESIGN.md` §0：具体硬约束与细节写入下级文档）。
-> **数值唯一源 = `contracts/resource_gate_v1.json`**；实现侧（C++ / Python 冻结门 / 外挂 judge）不得再出现字面量阈值。
+> **数值唯一源 = `eng/contracts/resource_gate_v1.json`**；实现侧（C++ / Python 冻结门 / 外挂 judge）不得再出现字面量阈值。
 > 维护规则：**改数值只改契约，改语义只改本节**；两侧必须同一次提交内保持一致。
 
 ### 8.1 判定域（applicability）
@@ -117,4 +117,4 @@
 - 事件与 run 产物一致性（trace 反映实际）；
 - 取消/失败路径事件完整；
 - 脱敏测试（无凭据泄漏）；
-- G-RES-01：判据边界（10 s 严格界 / ≥10 s 窗）、分母三分量与哨兵、record_and_justify 不改退出码、fail-closed 注入（抹掉样本必翻转）—— 见 `tests/monitoring/test_frozen_gate.py`。
+- G-RES-01：判据边界（10 s 严格界 / ≥10 s 窗）、分母三分量与哨兵、record_and_justify 不改退出码、fail-closed 注入（抹掉样本必翻转）—— 见 `eng/tests/monitoring/test_frozen_gate.py`。

@@ -10,7 +10,7 @@
  *   3) 所有权: 只读路径 out 缓冲由调用方分配; opaque handle 仅经 open/close 对管理;
  *      无跨边界托管分配 (骨架无跨边界 free 义务)。
  *   4) 文本公共格式 UTF-8 定长数组; 禁 STL/异常/RTTI。
- *   5) 错误码数值与 include/astrocs/common_abi_v1.h 的 acs_status 一致, 并扩展 IO 专属码。
+ *   5) 错误码数值与 lib/include/astrocs/common_abi_v1.h 的 acs_status 一致, 并扩展 IO 专属码。
  *
  * 纯 C11 可编译 (extern "C" 兼容 C++17)。
  */

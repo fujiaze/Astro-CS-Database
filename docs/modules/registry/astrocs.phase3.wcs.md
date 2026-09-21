@@ -31,7 +31,7 @@ downstream: [TEST-P3-WCS-001]
   phase3_fits 先例新建）。
 - 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录签名头正本
   p3_wcs.h；源码位 = lib/phase3_session/ 已迁入本模块（ASTROCS_DESIGN §7.1「projection」行），
-  同批迁入共址测试 tests/p3wcs/**（ctest p3_wcs）。
+  同批迁入共址测试 eng/tests/p3wcs/**（ctest p3_wcs）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
   V5 SCI-007）→ ALG-P3-PROJ-IMPL-001
   （docs/algorithms/PHASE3_PROJ_IMPL.md，兼承接 ALG-P3-002 本域
@@ -158,9 +158,9 @@ downstream: [TEST-P3-WCS-001]
 - 双重陈述（C7 锚）: 本节承载 TEST-P3-WCS-001 登记面；可执行面
   升级归 P3-PROJ-TEST（验收级 oracle=WCSLIB，矩阵 notes）。
 - 现状执行测试（相邻证据，引用不冒认）:
-  tests/unit/p3_wcs_test.cpp（90 行，WCS 完整性/溢出检查）+
-  tests/backend/test_p1002_gaps.py（独立解析解回归 :115-138）+
-  tests/backend/p3_wcs_main.cpp（探针 make/p2w/w2p/kw）。
+  eng/tests/unit/p3_wcs_test.cpp（90 行，WCS 完整性/溢出检查）+
+  eng/tests/backend/test_p1002_gaps.py（独立解析解回归 :115-138）+
+  eng/tests/backend/p3_wcs_main.cpp（探针 make/p2w/w2p/kw）。
 - EVIDENCE: EVID-MISSING（归 P3-PROJ-INT/验收补）。
 
 ## 10 合同链接

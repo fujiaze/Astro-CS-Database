@@ -7,8 +7,8 @@ template / docs 五面）。
   本工具是 docs/development/CONFIG_SCHEMA.md:3-4 自述的默认值一致性唯一校验器，
   但四条事实源路径**全部失效**，只输出 env_missing×4 ⇒ C4（默认值不符）类缺陷
   在全仓无机器门。根因两条：
-    1. 模块搬迁：lib/phase2/{include/astro/phase2,src}/stage2_common.{h,cpp}
-       → lib/algorithms/coverage/{include/astro/phase2,src}/stage2_common.{h,cpp}
+    1. 模块搬迁：lib/phase2/{lib/include/astro/phase2,src}/stage2_common.{h,cpp}
+       → lib/algorithms/coverage/{lib/include/astro/phase2,src}/stage2_common.{h,cpp}
        （AGENTS.md §6 lib/algorithms/ 并联放置；CMakeLists 同步改名）；
     2. 控制包归档：工程控制/{schemas/stage2.schema.json,configs/stage2.template.json}
        在 GOV-002（commit b7b2dea70dbcdacdcf6eb762609a908abdeab697

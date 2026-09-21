@@ -177,7 +177,7 @@
   （不再静默 FP32）；帧头显式 `fp32`/`fp64` 生效；未知 KV 值或参数
   非 -1/0/1 → 显式拒绝（返回非零，不写产物）。生产节点仍由
   `drizzle.precision_mode`（0|1）显式门把关（B2-A12）。
-  （hp_drizzle_api.cpp:956-991；回归 tests/unit/drizzle_precision_default_test.cpp）
+  （hp_drizzle_api.cpp:956-991；回归 eng/tests/unit/drizzle_precision_default_test.cpp）
 - **B2-A14 测光 provenance（禁硬编码 PHOTAPPL=1）**: PHOTSCAL/PHOTAPPL
   由真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，
   `p1_op_photometry` 产出）决定；未应用测光 → PHOTAPPL=0 + 帧头
@@ -248,7 +248,7 @@ _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性�
 `weight = overlap_area * (pixfrac*pixfrac) / drop_area`（等价 `overlap_area/A_pixel,j`，
 因 `A_drop,j=pixfrac²·A_pixel,j`）；`sumArea`/`sumVarNum` 语义与
 `variance=sumVarNum/sumArea²` 不变。pixfrac=1 时数值逐位不变（默认
-`config/defaults.json` `drizzle.pixfrac=1.0`）。验证：重跑 `p1drz` 常量面亮度门
+`eng/packaging/config/defaults.json` `drizzle.pixfrac=1.0`）。验证：重跑 `p1drz` 常量面亮度门
 （`FZ-GATE-CONST-SB`，覆盖 pixfrac∈(0,1]）、`variance_propagation_test`、
 `candidate_oracle_test` 9003 例、以及 `ctest -R 'p1drz|drizzle'`。
 
@@ -271,7 +271,7 @@ _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性�
   CONTRACT_READY；lib/algorithms/drizzle/README.md 实现事实）；SRC-DRZ-001
   （lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.h 等签名源）。
 - TEST: TEST-DRZ-DESIGN-001（本文档 §9）；可执行 TEST-P1-DRZ-001
-  由 P1-DRZ-TEST 建立（既有 lib 内 tests/*.cpp 为科学门基线）。
+  由 P1-DRZ-TEST 建立（既有 lib 内 eng/tests/*.cpp 为科学门基线）。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 

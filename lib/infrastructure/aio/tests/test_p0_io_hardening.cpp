@@ -14,10 +14,10 @@
 //       缺省, has_ccd_temp=1), 修复前 std::stod throw → terminate
 //   T6  合法 XISF/FITS 回归: 正常文件 header_only/metadata 仍成功 (校验不误伤)
 //
-// 落位依据: 本模块 tests/ 目录既有独立 g++ 驱动模式
+// 落位依据: 本模块 eng/tests/ 目录既有独立 g++ 驱动模式
 // (test_snr_unknown_block.cpp / test_precision_dual.cpp 同款)。
 //
-// 编译 (tests/ 目录, Linux mingw/wsl 通用):
+// 编译 (eng/tests/ 目录, Linux mingw/wsl 通用):
 //   g++ -std=c++17 -O1 -g -DAIO_ENABLE_FITS -DAIO_ENABLE_XISF \
 //     -DAIO_ENABLE_HEALPIX -I../include -I../src -I../../third_party \
 //     test_p0_io_hardening.cpp \

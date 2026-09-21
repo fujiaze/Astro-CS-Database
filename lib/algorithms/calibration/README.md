@@ -9,7 +9,7 @@
 > 实现侧整改归 P1-CAL-IMPL。
 > 本 README 由源码逐函数核对后全面重写（P1-CAL-DOC，wave W1）：函数、单位、
 > 坐标、dtype、shape、invalid、错误、并发、内存、I/O 均以
-> `include/astro_calibration.h` + `src/{master_generator,calibrator,
+> `lib/include/astro_calibration.h` + `src/{master_generator,calibrator,
 > cosmetic_corrector,ac_api}.cpp`（CMake `astrocs_calibration`，唯一生产构建）
 > 为准；旧版 README 中与源码不符的黄金分割搜索、Python 封装、GitHub 仓库
 > 等陈述已删除。权威合同：SCI-CAL-001 → ALG-CAL-001..006 → DATA-P1-CAL /
@@ -66,7 +66,7 @@ float32 / f64 ABI double。
 | ALG | ALG-CAL-001..006 | docs/algorithms/CALIBRATION_ALGORITHMS.md（§3 逐公式源码锚定） |
 | DATA | DATA-P1-CAL | docs/contracts/DATA_SEMANTICS.md §9 |
 | API | API-CAL-001 / API-P1-001 | docs/contracts/PUBLIC_API.md / docs/api/PHASE1_API_V1.md |
-| MOD/SRC | MOD-astrocs-phase1-calibration / SRC-CAL-001 | docs/traceability/TRACEABILITY_MATRIX.json；include/astro_calibration.h（14 AC_API 符号） |
+| MOD/SRC | MOD-astrocs-phase1-calibration / SRC-CAL-001 | docs/traceability/TRACEABILITY_MATRIX.json；lib/include/astro_calibration.h（14 AC_API 符号） |
 | TEST | TEST-CAL-DESIGN-001 | docs/algorithms/CALIBRATION_ALGORITHMS.md §9（可执行 TEST-P1-CAL-001 由 P1-CAL-TEST 落地） |
 
 ## 5. 实现事实（源码核对）

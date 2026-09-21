@@ -34,7 +34,7 @@ add_library(astrocs_orchestrator_jsv STATIC
   third_party/json-schema-validator/json-schema-draft7.json.cpp)
 target_include_directories(astrocs_orchestrator_jsv PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/json-schema-validator
-  ${CMAKE_SOURCE_DIR}/third_party)
+  ${CMAKE_SOURCE_DIR}/lib/third_party)
 if(MSVC)
   target_compile_options(astrocs_orchestrator_jsv PRIVATE /w)
 else()
@@ -75,7 +75,7 @@ target_include_directories(astrocs_infra_orchestrator PRIVATE
   ${CMAKE_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src
   ${CMAKE_SOURCE_DIR}/lib/algorithms/star_detection/include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party/json-schema-validator
-  ${CMAKE_SOURCE_DIR}/third_party)
+  ${CMAKE_SOURCE_DIR}/lib/third_party)
 target_link_libraries(astrocs_infra_orchestrator
   PUBLIC astrocs_common
   PRIVATE astrocs_orchestrator_jsv ${CMAKE_DL_LIBS})

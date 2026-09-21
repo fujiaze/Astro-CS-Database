@@ -1,6 +1,6 @@
 # Phase1 低阶空间乘法增益（P1-SPATIAL-GAIN）—— 方案设计与独立验收
 
-- 工作项：`实验/SCI-A/code/reverse_verify/p1_spatial_gain/`（逆向验收区；**不改** `lib/` `docs/` `tests/` `ci/`）
+- 工作项：`实验/SCI-A/code/reverse_verify/p1_spatial_gain/`（逆向验收区；**不改** `lib/` `docs/` `eng/tests/` `ci/`）
 - 报告日期：2026-09-19；主线基线：`git rev-parse HEAD` = `b7287fed6090b0fd21cfd895a0c1f483742e3f61`
 - 环境：`TMPDIR=/dev/shm/astrocs_p1sg`；独立构建 `cmake -S reverse_verify -B run/reverse_verify/build -G Ninja`
 - 负责人指令：**「phase1 的校准应该对能拟合出来的低阶乘法增益校准。也就是把主要残差去掉。不管高阶。」**
@@ -489,12 +489,12 @@ python3 analyze_real.py         # -> ../data/real_analysis.json (覆盖/幅度/�
 
 ## 8 与主线资产的关系（落位迁移说明）
 
-- 本工作项最初把脚本/数据写在 `tests/validation/release02/p1_spatial_gain/`（主线验证资产目录）。
+- 本工作项最初把脚本/数据写在 `eng/tests/validation/release02/p1_spatial_gain/`（主线验证资产目录）。
   按负责人新指令（`reverse_verify/` 独立区），已**全部迁移**到 `reverse_verify/`：
   - 实验代码 → `实验/SCI-A/code/reverse_verify/p1_spatial_gain/src/`；
   - 合成数据生成代码 → `实验/shared/synthetic/`（`synth_gain.py` + 共享拟合库 `gainlib.py`）；
   - 报告 → 本文件；参考文献 → `实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md`（P1SG-R1..R3）；
   - 大产物/日志 → `run/reverse_verify/p1-spatial-gain/`。
-- `tests/validation/release02/p1_spatial_gain/` 目录**已删除**。**注意**：前台在此之前的某次 `git add` 已把
+- `eng/tests/validation/release02/p1_spatial_gain/` 目录**已删除**。**注意**：前台在此之前的某次 `git add` 已把
   该目录加入索引，现处于 `AD`（staged-added + worktree-deleted）状态，**需要前台 `git reset` 该路径**清理索引。
-- 本工作区**未**修改 `lib/` `docs/` `tests/` `ci/` 中的任何文件。
+- 本工作区**未**修改 `lib/` `docs/` `eng/tests/` `ci/` 中的任何文件。

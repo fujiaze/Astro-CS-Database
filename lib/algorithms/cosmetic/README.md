@@ -11,7 +11,7 @@
 > 坐标、dtype、shape、invalid、错误、并发、内存、I/O 均以现行唯一生产
 > 实现 `lib/algorithms/calibration/src/cosmetic_corrector.cpp` + `src/ac_api.cpp`
 > （CMake `astrocs_calibration`，CMakeLists.txt:321-333）+ 唯一权威签名源
-> `include/astro_calibration.h` 为准；`lib/algorithms/cosmetic/` 是 P1-COS 迁移目标
+> `lib/include/astro_calibration.h` 为准；`lib/algorithms/cosmetic/` 是 P1-COS 迁移目标
 > 目录（astrocs_p1_cosmetic.dll 与 src/module_entry.cpp 已由 P1-COS-IMPL 落地在位）。权威合同：SCI-CAL-001 → ALG-COS-001..005 →
 > DATA-P1-COS / API-COS-001（链接见 §4）。与 P1-CAL-DOC 冻结的
 > lib/algorithms/calibration 合同共存不重叠：本模块只冻结 cosmetic 路径

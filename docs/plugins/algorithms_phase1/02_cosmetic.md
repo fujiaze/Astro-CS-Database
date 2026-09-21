@@ -17,7 +17,7 @@
 
 - **输入**：定标信号 `y`、cosmetic map、饱和/非线性状态、坏点列表（可含注入）。
 - **输出**：修正后信号（或标记）、validity map（坏点/饱和/cosmetic/边界/插值）、修正记录（哪些像素被改、用什么）。
-- 参考：`contracts/schemas/cosmetic_output.schema.json`。
+- 参考：`eng/contracts/schemas/cosmetic_output.schema.json`。
 
 ## 4. 算法与公式要点
 

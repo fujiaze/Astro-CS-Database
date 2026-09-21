@@ -21,8 +21,8 @@ output_ports:
   - cli.exit_code
 science_contracts: []
 data_contracts:
-  - contracts/schemas/jsonl_event_v1.schema.json
-  - contracts/schemas/v6/phase_config.schema.json
+  - eng/contracts/schemas/jsonl_event_v1.schema.json
+  - eng/contracts/schemas/v6/phase_config.schema.json
 authority:
   - ASTROCS_DESIGN.md §1.2（三命令平级、禁止隐式串接）
   - ASTROCS_DESIGN.md §6.1/§6.2/§6.3（薄入口、唯一命令树、退出码）

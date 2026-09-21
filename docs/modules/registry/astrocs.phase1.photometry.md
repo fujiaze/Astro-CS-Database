@@ -28,7 +28,7 @@ downstream: [TEST-P1-PHOT-001]
 > run_stage_photometric → :2714 pc_calibrate_simple_with_gaia_f64_v2 /
 > :2790 _v2（dll_loader.cpp:40/:54）；lib/algorithms/photometry/wrapper_phase1（Photometer
 > aperture 旧符号，CMakeLists.txt:429-432 静态库，仅单测
-> tests/unit/p1_wcs_phot_test）为计划迁移旧符号（README §9）。
+> eng/tests/unit/p1_wcs_phot_test）为计划迁移旧符号（README §9）。
 > DISP-PHOT-001..009 登记（PHOTOMETRIC_FIT §13.3），整改归
 > P1-PHOT-IMPL/INT。
 

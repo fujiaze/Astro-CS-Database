@@ -27,7 +27,7 @@
 #      docs/ 路径）由 doc-index 门拦截。
 #
 # 扫描口径（downstream）：git 跟踪文件，排除 问题扫描/、reports/、artifacts/、run/、
-#   build/、third_party/、实验/、工程控制/、logs/ 等过程与证据目录。
+#   build/、lib/third_party/、实验/、工程控制/、logs/ 等过程与证据目录。
 #   （2026-09-21 ROOT-CONSOLIDATION：reverse_verify/ 根条目解散、内容迁入 实验/，
 #     排除面等量替换，扫描面不增不减。）
 
@@ -137,7 +137,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "定标算法推导与逐符号实现锚定"
       upstream: "ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
-      downstream: "CMakeLists.txt、config/defaults.json、docs/API_REFERENCE.md、docs/ARCHITECTURE.md 等 32 处"
+      downstream: "CMakeLists.txt、eng/packaging/config/defaults.json、docs/API_REFERENCE.md、docs/ARCHITECTURE.md 等 32 处"
     - path: "docs/algorithms/COSMETIC_ALGORITHMS.md"
       status: ACTIVE_NORMATIVE
       duty: "坏点检测/修复算法推导与逐符号锚定"
@@ -148,7 +148,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "Drizzle 几何与重采样核推导"
       upstream: "ASTROCS_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）"
-      downstream: "contracts/schemas/phase_config_normalize.schema.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml、docs/TRACEABILITY.csv 等 28 处"
+      downstream: "eng/contracts/schemas/phase_config_normalize.schema.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml、docs/TRACEABILITY.csv 等 28 处"
     - path: "docs/algorithms/GAIA_QUERY.md"
       status: ACTIVE_NORMATIVE
       duty: "Gaia 星表查询与匹配算法"
@@ -180,7 +180,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "噪声估计算法推导与实现锚定"
       upstream: "ASTROCS_DESIGN.md §2.2（创新点二）、§4.2（Phase1 节点流程）"
-      downstream: "eng/ci/check_spec_named_impl.py、eng/ci/spec_named_impls.json、config/defaults.json、docs/API_REFERENCE.md 等 25 处"
+      downstream: "eng/ci/check_spec_named_impl.py、eng/ci/spec_named_impls.json、eng/packaging/config/defaults.json、docs/API_REFERENCE.md 等 25 处"
       notes: "P1-NOISE-DOC 冻结（2026-09-07）：§13 CONTRACT_READY 增补（逐符号源码锚 §13.1 / DISP-NOISE-001..009 §13.3 / TEST-NOISE-DESIGN-001 §13.4），ALG-NOISE-001..003 根公式不变"
     - path: "docs/algorithms/PHASE2_COVERAGE.md"
       status: ACTIVE_NORMATIVE
@@ -227,19 +227,19 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "Phase3 FITS 写出实现级算法合同"
       upstream: "ASTROCS_DESIGN.md §6.2（export 流程）、§10（I/O 与原子产品）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/anchors/ANCHOR_CONTRACT.md、docs/algorithms/anchors/anchor_contract.json 等 15 处"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/anchors/ANCHOR_CONTRACT.md、docs/algorithms/anchors/anchor_contract.json 等 15 处"
       notes: "ALG-P3-FITS-IMPL-001（P3-FITS-DOC 冻结，2026-09-08，SA-P3-F27）：Phase3 FITS 写出实现级合同（p3_output.h:45-60/p3_output.cpp 370 行逐符号行号锚定+F1-F4 原子发布/完整性/二值门/NaN 回环合同+§8 lint 关键词表+SCI-P3-WR-001⇒SCI-P3-001 映射声明 §5+TEST-P3-WR-DESIGN-001 T1-T7 §12+DISP-P3FITS-001..002 §14；SCI-P3-001 FROZEN 零改动）"
     - path: "docs/algorithms/PHASE3_PROJ_IMPL.md"
       status: ACTIVE_NORMATIVE
       duty: "Phase3 投影实现级算法合同"
       upstream: "ASTROCS_DESIGN.md §6.3（投影算法）"
-      downstream: "contracts/schemas/projection_registry.schema.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/DATA_SEMANTICS.md、docs/contracts/INDEX.yaml 等 20 处"
+      downstream: "eng/contracts/schemas/projection_registry.schema.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/DATA_SEMANTICS.md、docs/contracts/INDEX.yaml 等 20 处"
       notes: "ALG-P3-PROJ-IMPL-001（P3-PROJ-DOC 冻结，2026-09-11，SA-P3-P25）：Phase3 投影/WCS 实现级合同（p3_wcs.h:11-59/p3_wcs.cpp 165 行逐符号行号锚定+G1 CD 构造/PA 推广展开式/P0 bughunt_p0_wcs 修复陈述 §6+G2 正反映射冻结式 §7+错误语义表 §9+并发确定性合同 §10+实测偏差登记(PA 未接线/kMaxSide 编译期覆盖/TAN 硬编码/dll 未建) §11+TEST-P3-WCS-DESIGN-001 T1-T7 §12+SCI-P3-WCS-001⇒SCI-P3-001 映射声明 §5；SCI-P3-001 FROZEN 零改动，ALG-P3-002 公式零改动）"
     - path: "docs/algorithms/PHASE3_RESAMPLE.md"
       status: ACTIVE_NORMATIVE
       duty: "Phase3 重采样算法与核语义"
       upstream: "ASTROCS_DESIGN.md §6.2（export 流程）、§6.3（投影算法）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/PHASE3_FITS_IMPL.md、docs/algorithms/PHASE3_PROJ_IMPL.md 等 17 处"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/PHASE3_FITS_IMPL.md、docs/algorithms/PHASE3_PROJ_IMPL.md 等 17 处"
       notes: "P3-PROJ-DOC (2026-09-11) 补记: 本文件零改动；ALG-P3-002 (G1/G2 WCS) 本域子面承接声明=ALG-P3-PROJ-IMPL-001 §5，INDEX.yaml 条目 status DRAFT→ACTIVE 按索引规则 DERIVED→ACTIVE 收敛 + downstream 增补 ALG-P3-PROJ-IMPL-001。P3-RSMP-DOC (2026-09-12) 表述级修订: ALG-P3-003 本域子面承接声明=ALG-P3-RSMP-IMPL-001 §5 (G3/G4 公式零改动)；§3 伪代码 cache 注释 LRU→FIFO 更正 (实测 p3_resample.cpp:22-36 keys.erase(begin()) 最旧插入逐出，DISP-P3RSMP-002)；状态行补实现锚 ALG-P3-RSMP-IMPL-001 (PHASE3_RSMP_IMPL.md)"
     - path: "docs/algorithms/PHASE3_RSMP_IMPL.md"
       status: ACTIVE_NORMATIVE
@@ -251,7 +251,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "测光拟合算法推导与星等定标"
       upstream: "ASTROCS_DESIGN.md §2.1（创新点一）、§4.4（输出合同）"
-      downstream: "config/defaults.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml、docs/algorithms/anchors/anchor_contract.json 等 20 处"
+      downstream: "eng/packaging/config/defaults.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml、docs/algorithms/anchors/anchor_contract.json 等 20 处"
       notes: "P1-PHOT-DOC (2026-09-07) 追加 §13 冻结增补: ALG-PHOT-001..002 逐符号源码锚定(star_matcher/spectrum_integrator/pc_api/photometer)+实现事实修订(双向匹配/1.0nm 网格/mag_max 静默覆盖)+DISP-PHOT-001..009+TEST-PHOT-DESIGN-001 冻结容差+legacy 通道(§13.5)"
     - path: "docs/algorithms/PLATESOLVE.md"
       status: ACTIVE_NORMATIVE
@@ -310,12 +310,12 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "docs/algorithms/v6/frozen/02_GATE_AND_MUTATION_FREEZE.md"
       upstream: "ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、lib/algorithms/noise_snr/include/astrocs/v6/information_weight.h、lib/algorithms/photometry/include/astrocs/v6/psfsw.h、tests/cli/test_phase123_pipeline.py"
+      downstream: "docs/DOCUMENT_INDEX.yaml、lib/algorithms/noise_snr/include/astrocs/v6/information_weight.h、lib/algorithms/photometry/include/astrocs/v6/psfsw.h、eng/tests/cli/test_phase123_pipeline.py"
     - path: "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md"
       status: ACTIVE_NORMATIVE
       duty: "`ALG-P1-001` — Phase1 V6 算法实施规格（calibration covariance / PSF information / PSFSW 四分量 / Drizzle）"
       upstream: "ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）"
-      downstream: "contracts/data/v6_data_dictionary_v1.json、contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/v6/frozen/01_NUMERIC_THRESHOLD_FREEZE.md 等 15 处"
+      downstream: "eng/contracts/data/v6_data_dictionary_v1.json、eng/contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/v6/frozen/01_NUMERIC_THRESHOLD_FREEZE.md 等 15 处"
     - path: "docs/algorithms/v6/phase1/ALG_P1_001_TEST_MATRIX.md"
       status: ACTIVE_NORMATIVE
       duty: "ALG-P1-001 测试矩阵（Phase1 算法实施规格）"
@@ -365,7 +365,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "Phase2 `psfsw_robust` 算法主规格"
       upstream: "ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/v6/data/10_migration_and_open_items.md、docs/science/PSF_SIGNAL_WEIGHT.md 等 6 处"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/v6/data/10_migration_and_open_items.md、docs/science/PSF_SIGNAL_WEIGHT.md 等 6 处"
     - path: "docs/algorithms/v6/phase2-psfsw/PSFSW_BASELINE_COMPARISON.md"
       status: ACTIVE_NORMATIVE
       duty: "PSFSW 基线比较协议"
@@ -380,7 +380,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "PSFSW 门目录与负向 mutation 册"
       upstream: "ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、tests/unit/v6_p1_psfw/p1psfw_tests_record.cpp"
+      downstream: "docs/DOCUMENT_INDEX.yaml、eng/tests/unit/v6_p1_psfw/p1psfw_tests_record.cpp"
     - path: "docs/algorithms/v6/phase2-psfsw/README.md"
       status: ACTIVE_NORMATIVE
       duty: "Phase2 PSFSW 算法规格包（ALG-P2-PSFSW-001）"
@@ -445,12 +445,12 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "CLI 输入输出协议与事件流 schema"
       upstream: "ASTROCS_DESIGN.md §7.1（命令树）、§7.2（配置、事件与退出码）"
-      downstream: "README.md、contracts/schemas/jsonl_event_v1.schema.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/API-001.md 等 20 处"
+      downstream: "README.md、eng/contracts/schemas/jsonl_event_v1.schema.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/API-001.md 等 20 处"
     - path: "docs/api/COMMON_ABI_V1.md"
       status: ACTIVE_NORMATIVE
       duty: "公共 C ABI v1 合同"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/owner/ARCHITECTURE_OVERVIEW.md、include/astrocs/common_abi_v1.h"
+      downstream: "docs/DOCUMENT_INDEX.yaml、docs/owner/ARCHITECTURE_OVERVIEW.md、lib/include/astrocs/common_abi_v1.h"
     - path: "docs/api/MANIFEST_VERIFY_V1.md"
       status: ACTIVE_NORMATIVE
       duty: "manifest 校验接口合同"
@@ -470,7 +470,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "Phase3 模块 API 合同"
       upstream: "ASTROCS_DESIGN.md §6（export）、§8.4（模块与 ABI）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/owner/SCIENCE_OVERVIEW.md、lib/infrastructure/cli/session_commands.h、tests/backend/test_phase3_reproject_oracle.py"
+      downstream: "docs/DOCUMENT_INDEX.yaml、docs/owner/SCIENCE_OVERVIEW.md、lib/infrastructure/cli/session_commands.h、eng/tests/backend/test_phase3_reproject_oracle.py"
     - path: "docs/architecture/ARCHITECTURE.md"
       status: ACTIVE_NORMATIVE
       duty: "AstroCS Architecture (V5 单一 CLI 冻结版)"
@@ -530,7 +530,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "整数/位操作 ISA 变体评估 (ISA-005) — NOT_APPLICABLE"
       upstream: "ASTROCS_DESIGN.md §8（软件架构）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、tests/backend/test_isa_bit_manip.py"
+      downstream: "docs/DOCUMENT_INDEX.yaml、eng/tests/backend/test_isa_bit_manip.py"
     - path: "docs/architecture/ISA_VARIANTS.md"
       status: ACTIVE_NORMATIVE
       duty: "ISA 变体决策台账 (ISA-001..004 冻结 — V5)"
@@ -639,7 +639,7 @@ doc_index:
       status: GENERATED
       duty: "docs/architecture/production_call_paths_stage1.csv"
       upstream: "ASTROCS_DESIGN.md §8（软件架构）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、lib/phase1_session/README.md、tests/api/test_p1_api.py"
+      downstream: "docs/DOCUMENT_INDEX.yaml、lib/phase1_session/README.md、eng/tests/api/test_p1_api.py"
       notes: "机器生成清单（api/execution/production inventory）"
     - path: "docs/architecture/production_call_paths_stage2.csv"
       status: GENERATED
@@ -719,29 +719,29 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "三类配置的键表、块结构与默认值合同"
       upstream: "ASTROCS_DESIGN.md §3.2（三类配置）、§7.2（配置、事件与退出码）"
-      downstream: "eng/ci/ledgers/dead_config_keys.json、config/config_registry.json、contracts/schemas/cpu_profile.schema.json、contracts/schemas/phase_config_export.schema.json 等 13 处"
-      notes: "CFG-001 程序根全局配置合同（config/filters.json、config/defaults.json）；CI-003（2026-09-16）补入活动索引（原缺口：check_doc_index.py::docs_fully_covered 报未覆盖）"
+      downstream: "eng/ci/ledgers/dead_config_keys.json、eng/packaging/config/config_registry.json、eng/contracts/schemas/cpu_profile.schema.json、eng/contracts/schemas/phase_config_export.schema.json 等 13 处"
+      notes: "CFG-001 程序根全局配置合同（eng/packaging/config/filters.json、eng/packaging/config/defaults.json）；CI-003（2026-09-16）补入活动索引（原缺口：check_doc_index.py::docs_fully_covered 报未覆盖）"
     - path: "docs/contracts/DATA_ARTIFACTS.md"
       status: ACTIVE_NORMATIVE
       duty: "产品工件清单与原子发布合同"
       upstream: "ASTROCS_DESIGN.md §10（I/O 与原子产品）"
-      downstream: "eng/ci/ci_repair_round.py、contracts/data/phase_product_exchange.schema.json、contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml 等 11 处"
+      downstream: "eng/ci/ci_repair_round.py、eng/contracts/data/phase_product_exchange.schema.json、eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml 等 11 处"
     - path: "docs/contracts/DATA_SEMANTICS.md"
       status: ACTIVE_NORMATIVE
       duty: "数据语义唯一正本（逐 DATA-* 条款与标准块表）"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      downstream: "eng/ci/ci_repair_round.py、eng/ci/tests/test_impact_map.py、contracts/data/phase2_uncertainty_rejection_provenance_v1.json、contracts/data/phase_product_exchange.schema.json 等 124 处"
+      downstream: "eng/ci/ci_repair_round.py、eng/ci/tests/test_impact_map.py、eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json、eng/contracts/data/phase_product_exchange.schema.json 等 124 处"
       notes: "P1-WCS-DOC (2026-09-07) 追加 §18 DATA-P1-WCS: detections [n,6] +0.5 契约/IpvWcsResult 权威源/编排写回 KV 键表/inlier [n,9]/失败-置信度语义(DISP-WCS-001); P2-COV-DOC (2026-09-07) 追加 §19 DATA-COV-001: HiPS 兼容域/union MOC P2MocCell[K] NESTED 坐标契约/P2HipsInputInfo 逐字段/coverage≠support≠validity 与 no-use-as-weight 负向条款"
     - path: "docs/contracts/INDEX.yaml"
       status: ACTIVE_NORMATIVE
       duty: "AstroCS Contract Index (DOC-001)"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      downstream: "eng/ci/tests/test_impact_map.py、contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/DATA_SEMANTICS.md 等 26 处"
+      downstream: "eng/ci/tests/test_impact_map.py、eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/DATA_SEMANTICS.md 等 26 处"
     - path: "docs/contracts/PUBLIC_API.md"
       status: ACTIVE_NORMATIVE
       duty: "对外 API 合同（API-* 条款）"
       upstream: "ASTROCS_DESIGN.md §7（CLI 合同）、§8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、contracts/data/v6_migration_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/CALIBRATION_ALGORITHMS.md 等 91 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、eng/contracts/data/v6_migration_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/CALIBRATION_ALGORITHMS.md 等 91 处"
       notes: "P1-WCS-DOC (2026-09-07) 追加 API-WCS-001: WCS 求解 C API 12 导出符号锚(ipv_api.h/ipv_entry.cpp)+IpvWcsResult 内存所有权+失败-置信度语义(DISP-WCS-001 退化禁冒充解)+生产调用方 run_stage_platesolve; P2-COV-DOC (2026-09-07) 追加 API-COV-001: p2_coverage_build/p2_coverage_free 2 导出符号锚(coverage.h:52/:56)+两阶段容量协议+调用方所有权(纯 memset 释放)+生产调用方 p2_session coverage 阶段"
     - path: "docs/contracts/RT-001.md"
       status: ACTIVE_NORMATIVE
@@ -752,28 +752,28 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "合同—测试映射矩阵"
       upstream: "ASTROCS_DESIGN.md §12.4（验证层级与四层验收）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/contracts/INDEX.yaml、tests/backend/test_p3006_production_pipeline.py"
+      downstream: "docs/DOCUMENT_INDEX.yaml、docs/contracts/INDEX.yaml、eng/tests/backend/test_p3006_production_pipeline.py"
     - path: "docs/contracts/UNIFIED_OBJECTS.md"
       status: ACTIVE_NORMATIVE
       duty: "统一对象注册表与兼容映射"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/contracts/INDEX.yaml、docs/contracts/unified_object_registry.json、tests/contracts/test_unified_object_contract.py"
+      downstream: "docs/DOCUMENT_INDEX.yaml、docs/contracts/INDEX.yaml、docs/contracts/unified_object_registry.json、eng/tests/contracts/test_unified_object_contract.py"
       notes: "统一对象登记（DOC-001 补登）"
     - path: "docs/contracts/config_separation_anchors.json"
       status: GENERATED
       duty: "docs/contracts/config_separation_anchors.json"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      downstream: "contracts/schemas/cpu_profile.schema.json、contracts/schemas/phase_config_normalize.schema.json、contracts/schemas/run_manifest.schema.json、docs/contracts/CONFIG_CONTRACT.md 等 8 处"
+      downstream: "eng/contracts/schemas/cpu_profile.schema.json、eng/contracts/schemas/phase_config_normalize.schema.json、eng/contracts/schemas/run_manifest.schema.json、docs/contracts/CONFIG_CONTRACT.md 等 8 处"
     - path: "docs/contracts/unified_object_registry.json"
       status: GENERATED
       duty: "docs/contracts/unified_object_registry.json"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）"
-      downstream: "eng/ci/ID_MIGRATION_MAP.md、eng/ci/id_migration_map.json、contracts/data/unified_object_compatibility_map_v1.json、contracts/schemas/unified/port_contract.schema.json 等 10 处"
+      downstream: "eng/ci/ID_MIGRATION_MAP.md、eng/ci/id_migration_map.json、eng/contracts/data/unified_object_compatibility_map_v1.json、eng/contracts/schemas/unified/port_contract.schema.json 等 10 处"
     - path: "docs/contracts/v6/W6_SCHEMA_INTEGRATION.md"
       status: ACTIVE_NORMATIVE
       duty: "W6 生产 schema 集成登记（SCHEMA-INTEGRATE-001）"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/contracts/DATA_SEMANTICS.md、docs/contracts/v6/data/05_point_information_and_weight_mode.md、tests/contracts/v6/v6_oracle.py"
+      downstream: "docs/DOCUMENT_INDEX.yaml、docs/contracts/DATA_SEMANTICS.md、docs/contracts/v6/data/05_point_information_and_weight_mode.md、eng/tests/contracts/v6/v6_oracle.py"
     - path: "docs/contracts/v6/data/00_README.md"
       status: ACTIVE_NORMATIVE
       duty: "DATA-DESIGN-001 — 跨 Phase signal / covariance / PSF / W_info / PSFSW / weight_mode / effective PSF / provenanc"
@@ -783,12 +783,12 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "01 — 单位表与 BUNIT 语义（frozen units / FZ-UNIT-* / FZ-BUNIT-SEMANTICS）"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、lib/algorithms/fits_output/p3_output.cpp、lib/infrastructure/scheduler/src/module_adapters.cpp、tests/backend/phase2_fixture_main.cpp 等 5 处"
+      downstream: "docs/DOCUMENT_INDEX.yaml、lib/algorithms/fits_output/p3_output.cpp、lib/infrastructure/scheduler/src/module_adapters.cpp、eng/tests/backend/phase2_fixture_main.cpp 等 5 处"
     - path: "docs/contracts/v6/data/02_signal.md"
       status: ACTIVE_NORMATIVE
       duty: "02 — signal 对象 schema（Phase1 Drizzle 面亮度 / Phase2 马赛克 / Phase3 平面）"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）"
-      downstream: "config/defaults.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/DRIZZLE_GEOMETRY.md"
+      downstream: "eng/packaging/config/defaults.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/DRIZZLE_GEOMETRY.md"
     - path: "docs/contracts/v6/data/03_covariance.md"
       status: ACTIVE_NORMATIVE
       duty: "03 — covariance / variance / correlation 对象 schema"
@@ -823,12 +823,12 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "09 — 验证门与负向 mutation 判据（可实施、可验证）"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）"
-      downstream: "contracts/proposals/v6/data/astrocs.v6.data-design-catalog.v1.json、docs/DOCUMENT_INDEX.yaml"
+      downstream: "eng/contracts/proposals/v6/data/astrocs.v6.data-design-catalog.v1.json、docs/DOCUMENT_INDEX.yaml"
     - path: "docs/contracts/v6/data/10_migration_and_open_items.md"
       status: ACTIVE_NORMATIVE
       duty: "10 — 迁移建议、开放项与需裁决/签字项（只登记不擅改）"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）"
-      downstream: "contracts/data/v6_migration_map_v1.json、docs/DOCUMENT_INDEX.yaml"
+      downstream: "eng/contracts/data/v6_migration_map_v1.json、docs/DOCUMENT_INDEX.yaml"
     - path: "docs/contracts/v6/frozen/00_README.md"
       status: ACTIVE_NORMATIVE
       duty: "docs/contracts/v6/frozen/00_README.md"
@@ -848,7 +848,7 @@ doc_index:
       status: GENERATED
       duty: "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）"
-      downstream: "README.md、contracts/data/v6_data_dictionary_v1.json、contracts/data/v6_migration_map_v1.json、contracts/data/v6_weight_vocabulary_v1.json 等 38 处"
+      downstream: "README.md、eng/contracts/data/v6_data_dictionary_v1.json、eng/contracts/data/v6_migration_map_v1.json、eng/contracts/data/v6_weight_vocabulary_v1.json 等 38 处"
     - path: "docs/design/PHASE1_DETAILED_DESIGN.md"
       status: ACTIVE_NORMATIVE
       duty: "normalize 阶段的目标态详细设计"
@@ -871,7 +871,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "统一观测模型、数据对象表与三类配置的唯一正本"
       upstream: "ASTROCS_DESIGN.md §3.1（数据对象）、§3.2（三类配置）"
-      downstream: "ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、README.md、config/config_registry.json 等 44 处"
+      downstream: "ASTROCS_DESIGN.md、ENGINEERING_SPEC.md、README.md、eng/packaging/config/config_registry.json 等 44 处"
       notes: "数据对象与三类配置分离（ASTROCS_DESIGN §0/§2 指名）"
     - path: "docs/development/CODE_STYLE.md"
       status: ACTIVE_INFORMATIVE
@@ -903,7 +903,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "阶段间产品交换合同"
       upstream: "ASTROCS_DESIGN.md §8.2（阶段内内存管线，阶段间落盘）、§10"
-      downstream: "contracts/data/phase_product_exchange.schema.json、contracts/data/phase_product_exchange_matrix.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/DRIZZLE_GEOMETRY.md 等 13 处"
+      downstream: "eng/contracts/data/phase_product_exchange.schema.json、eng/contracts/data/phase_product_exchange_matrix.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/DRIZZLE_GEOMETRY.md 等 13 处"
       notes: "DATA-002 三阶段产品交换合同（GOV-002 base 之后集成，补登）"
     - path: "docs/interfaces/data/DATA-003_PRODUCTION_ARTIFACT_STORE.md"
       status: ACTIVE_NORMATIVE
@@ -939,7 +939,7 @@ doc_index:
       status: ACTIVE_INFORMATIVE
       duty: "AstroCS 模块一致性映射表（MOD-001 / CHK-MODULE-MANIFEST）"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "README.md、eng/cmake/ARCH-001-migration-manifest.md、contracts/data/unified_object_compatibility_map_v1.json、contracts/schemas/projection_registry.schema.json 等 21 处"
+      downstream: "README.md、eng/cmake/ARCH-001-migration-manifest.md、eng/contracts/data/unified_object_compatibility_map_v1.json、eng/contracts/schemas/projection_registry.schema.json 等 21 处"
       notes: "模块八元组映射（MOD-001；指向 docs/plugins 23 篇）"
     - path: "docs/modules/acr.md"
       status: ACTIVE_INFORMATIVE
@@ -955,7 +955,7 @@ doc_index:
       status: ACTIVE_INFORMATIVE
       duty: "masterBias/Dark/Flat 生成（sigma-clip + median/mean 合并）、单帧图像校准"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/CALIBRATION_ALGORITHMS.md、docs/audit/doc_classification.csv 等 7 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/CALIBRATION_ALGORITHMS.md、docs/audit/doc_classification.csv 等 7 处"
     - path: "docs/modules/common.md"
       status: ACTIVE_INFORMATIVE
       duty: "共享权威基础库：HEALPix 核心（NESTED 唯一实现）+ SHA-256 + 标量精度抽象。作为全链路通用基础设施，被上层科学/IO/浏览器复用，不承载业务科学语义"
@@ -970,7 +970,7 @@ doc_index:
       status: ACTIVE_INFORMATIVE
       duty: "解析 PixInsight XPSD 格式本地星表（Gaia DR3 / DR3SP，离线、零网络）"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/contracts/UNIFIED_OBJECTS.md 等 8 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/contracts/UNIFIED_OBJECTS.md 等 8 处"
     - path: "docs/modules/healpix_browser_qt.md"
       status: ACTIVE_INFORMATIVE
       duty: "HiPS/HEALPix 球面浏览器（Qt6 + OpenGL，STF 显示，可选构建）"
@@ -980,7 +980,7 @@ doc_index:
       status: ACTIVE_INFORMATIVE
       duty: "球面 Drizzle：HEALPix NESTED 网格重投影（tiled）+ 通量守恒累加"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/contracts/UNIFIED_OBJECTS.md 等 6 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/audit/doc_classification.csv、docs/contracts/UNIFIED_OBJECTS.md 等 6 处"
     - path: "docs/modules/hips_p2.md"
       status: ACTIVE_INFORMATIVE
       duty: "输入哈希链：p2_frame_id → canonical manifest（frame_id|filter=;order="
@@ -1020,13 +1020,13 @@ doc_index:
       status: ACTIVE_INFORMATIVE
       duty: "三阶段 background-clean 控制点采样——Stage A 候选 patch"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 7 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 7 处"
       notes: "P2-SAMP-DOC (2026-09-09, commit e654d4c2) 新建: astrocs.p2.sampling 模块页——合同落位 lib/algorithms/sampling/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 合同 ID=SCI-UPM-001(共享 FROZEN)/ALG-P2-SMP-001/DATA-P2-SMP(§23)/API-P2-SMP-001/TEST-P2-SMP-001(MISSING); 生产源 lib/algorithms/coverage/src/sampler.cpp + sampler.h; 消费链 stage2.cpp; registry 手写页=docs/modules/registry/astrocs.phase2.sample.md。本条目为 P2-SESSION-DOC (2026-09-10) 补登: 该文件在 e654d4c2 提交但漏登 DOCUMENT_INDEX (GOV-002 docs_fully_covered 缺口), 机械修复不改动文件内容"
     - path: "docs/modules/phase2_upm.md"
       status: ACTIVE_INFORMATIVE
       duty: "fit 职责：消费 DATA-P2-SMP 控制观测（P2ControlObservation[]"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 6 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 6 处"
       notes: "P2-UPM-DOC (2026-09-10) 新建: astrocs.p2.upm 模块页 (fit/apply 同页)——合同落位 lib/algorithms/upm/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/algorithms/sampling/phase2_int/phase2_rej 先例新建, lib/algorithms/coverage/ 三件套已被 P2-COV 占用); 合同 ID=SCI-UPM-001(共享 FROZEN, 映射 SCI-P2-UPM-001/002⇒SCI-UPM-001)/ALG-P2-UPM-IMPL-001/ALG-UPM-001/DATA-P2-UPM(§25)/DATA-P2-COR(§26)/API-P2-UPM-001/API-P2-001/TEST-P2-UPM-001..002(MISSING); 生产源 lib/algorithms/coverage/src/upm.cpp 1565 行 + upm.h 184 行 (16 导出符号行号锚); registry 手写页=astrocs.phase2.upm-fit.md/upm-apply.md"
     - path: "docs/modules/phase3_fits.md"
       status: ACTIVE_INFORMATIVE
@@ -1039,7 +1039,7 @@ doc_index:
       duty: "TAN(gnomonic) 投影正/反映射（G2，pixel↔world，RA wrap 归一）"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
       downstream: "docs/DOCUMENT_INDEX.yaml、docs/algorithms/PHASE3_PROJ_IMPL.md、docs/modules/phase3_rsmp.md、docs/modules/registry/astrocs.phase3.wcs.md 等 8 处"
-      notes: "P3-PROJ-DOC (2026-09-11) 新建: astrocs.p3.projection 模块页——合同落位 lib/algorithms/projection/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2→phase3_fits 先例新建, lib/phase3_session/ 为会话编排域共享源不整目录归属); 合同 ID=SCI-P3-001(共享 FROZEN, 映射 SCI-P3-WCS-001⇒SCI-P3-001)/ALG-P3-PROJ-IMPL-001(兼承接 ALG-P3-002 G1/G2 本域子面)/DATA-P3-WCS(§28)/API-P3-PROJ-001/API-P3-001(镜像)/TEST-P3-WCS-001(登记面=TEST-P3-WCS-DESIGN-001 VERIFIED, 验收级 WCSLIB oracle 归 P3-PROJ-TEST); 生产源 lib/algorithms/projection/p3_wcs.cpp + p3_wcs.h（W4-A9 批次 1 迁入本目录 + 共址 tests/p3wcs/**）; registry 手写页=astrocs.phase3.wcs.md"
+      notes: "P3-PROJ-DOC (2026-09-11) 新建: astrocs.p3.projection 模块页——合同落位 lib/algorithms/projection/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING, 迁移目标目录按 lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2→phase3_fits 先例新建, lib/phase3_session/ 为会话编排域共享源不整目录归属); 合同 ID=SCI-P3-001(共享 FROZEN, 映射 SCI-P3-WCS-001⇒SCI-P3-001)/ALG-P3-PROJ-IMPL-001(兼承接 ALG-P3-002 G1/G2 本域子面)/DATA-P3-WCS(§28)/API-P3-PROJ-001/API-P3-001(镜像)/TEST-P3-WCS-001(登记面=TEST-P3-WCS-DESIGN-001 VERIFIED, 验收级 WCSLIB oracle 归 P3-PROJ-TEST); 生产源 lib/algorithms/projection/p3_wcs.cpp + p3_wcs.h（W4-A9 批次 1 迁入本目录 + 共址 eng/tests/p3wcs/**）; registry 手写页=astrocs.phase3.wcs.md"
     - path: "docs/modules/phase3_rsmp.md"
       status: ACTIVE_INFORMATIVE
       duty: "HiPS tile 重采样（G4）：NEAREST 精确 cell / BILINEAR 一阶插值"
@@ -1062,25 +1062,25 @@ doc_index:
       status: GENERATED
       duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 6 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 6 处"
       notes: "eng/tools/quality/gen_module_readmes.py 生成"
     - path: "docs/modules/registry/astrocs.phase1.cosmetic.md"
       status: GENERATED
       duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责:"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 7 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 7 处"
       notes: "eng/tools/quality/gen_module_readmes.py 生成"
     - path: "docs/modules/registry/astrocs.phase1.drizzle.md"
       status: GENERATED
       duty: "Registry production 模块（唯一源=module_adapters.cpp descriptor）"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 6 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 6 处"
       notes: "eng/tools/quality/gen_module_readmes.py 生成"
     - path: "docs/modules/registry/astrocs.phase1.hips-writer.md"
       status: ACTIVE_NORMATIVE
       duty: "生产实现=lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（CMake"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 10 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 10 处"
       notes: "P1-HIPS-DOC 手写合同页（registry 无 hips_writer descriptor，生成器不覆盖；gen_module_readmes.py 以 module_adapters.cpp 为源——重生成时须排除/保留本页）"
     - path: "docs/modules/registry/astrocs.phase1.noise-snr.md"
       status: GENERATED
@@ -1104,13 +1104,13 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "模块 astrocs.p1.star_detection"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 7 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 7 处"
       notes: "P1-STAR-DOC 手写合同页（2026-09-07，registry 无 astrocs.p1.star_detection descriptor——现行占位 descriptor 为 astrocs.phase1.star-psf；gen_module_readmes.py 以 module_adapters.cpp 为源，重生成时须排除/保留本页）"
     - path: "docs/modules/registry/astrocs.phase1.star-psf.md"
       status: GENERATED
       duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 7 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 7 处"
       notes: "eng/tools/quality/gen_module_readmes.py 生成"
     - path: "docs/modules/registry/astrocs.phase1.wcs-platesolve.md"
       status: ACTIVE_NORMATIVE
@@ -1146,13 +1146,13 @@ doc_index:
       status: GENERATED
       duty: "Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 6 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 6 处"
       notes: "eng/tools/quality/gen_module_readmes.py 生成"
     - path: "docs/modules/registry/astrocs.phase2.sample.md"
       status: GENERATED
       duty: "三阶段 background-clean 控制点采样（Stage A 候选 patch →"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 9 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/UNIFIED_OBJECTS.md、docs/contracts/unified_object_registry.json 等 9 处"
       notes: "eng/tools/quality/gen_module_readmes.py 生成"
     - path: "docs/modules/registry/astrocs.phase2.session.md"
       status: ACTIVE_NORMATIVE
@@ -1170,7 +1170,7 @@ doc_index:
       status: ACTIVE_INFORMATIVE
       duty: "职责（fit）：消费 DATA-P2-SMP 控制观测，联合求解唯一 UPM——"
       upstream: "ASTROCS_DESIGN.md §8.4（模块与 ABI）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/PHASE2_UPM_IMPL.md、docs/contracts/UNIFIED_OBJECTS.md 等 9 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/PHASE2_UPM_IMPL.md、docs/contracts/UNIFIED_OBJECTS.md 等 9 处"
       notes: "P2-UPM-DOC (2026-09-10) 重写为手写合同页 (registry 页保留先例 astrocs.phase1.session.md/astrocs.phase2.coverage.md/astrocs.phase2.reject.md): astrocs.p2.upm 合同 fit 职能 (registry 行 ID 沿用 MOD-astrocs-phase2-upm-fit)——SCI-UPM-001(共享 FROZEN)/ALG-P2-UPM-IMPL-001/ALG-UPM-001/DATA-P2-UPM(§25)/API-P2-UPM-001/API-P2-001; 合同落位 lib/algorithms/upm/ 三件套 (README r1 + module.yaml CONTRACT_READY entrypoint=MISSING); 生产源 lib/algorithms/coverage/src/upm.cpp 1565 行 + upm.h 184 行 (16 导出符号行号锚); TEST-P2-UPM-001 MISSING (设计面=ALG-P2-UPM-IMPL-001 TEST-DESIGN VERIFIED, 可执行归 P2-UPM-TEST); 旧 descriptor 派生词汇 (module_id=astrocs.phase2.upm-fit、SCI-P2-UPM-001、ALG-P2-UPM-001) 由 P2-XX-INT 对齐修订"
     - path: "docs/modules/registry/astrocs.phase2.write.md"
       status: ACTIVE_INFORMATIVE
@@ -1277,7 +1277,7 @@ doc_index:
       status: ACTIVE_INFORMATIVE
       duty: "性能基线数字与测量口径"
       upstream: "ASTROCS_DESIGN.md §9（CPU 后端与资源）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/architecture/PERFORMANCE_MODEL.md、docs/audit/doc_classification.csv、tests/testkit/examples/registry.example.json 等 5 处"
+      downstream: "docs/DOCUMENT_INDEX.yaml、docs/architecture/PERFORMANCE_MODEL.md、docs/audit/doc_classification.csv、eng/tests/testkit/examples/registry.example.json 等 5 处"
     - path: "docs/performance/OPTIMIZATION.md"
       status: ACTIVE_INFORMATIVE
       duty: "性能优化记录与热点分析"
@@ -1293,139 +1293,139 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "把原始 light 帧转换为定标后的信号（减偏置、暗流、平场），并传播不确定度"
       upstream: "ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase1/02_cosmetic.md"
       status: ACTIVE_NORMATIVE
       duty: "生成/应用坏点、热像素、宇宙线与异常像素的修正与 validity 标志"
       upstream: "ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase1/03_star_detection.md"
       status: ACTIVE_NORMATIVE
       duty: "检测图像中的源（星点/延展源），输出位置、质心/矩、源身份与 selection function 参数"
       upstream: "ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml、docs/research/PHOTOMETRY_RESEARCH_PACK.md 等 6 处"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml、docs/research/PHOTOMETRY_RESEARCH_PACK.md 等 6 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase1/04_psf.md"
       status: ACTIVE_NORMATIVE
       duty: "估计空间变化的 PSF 模型 `P_k(u,v;x,y)` 及其参数、残差与适用域"
       upstream: "ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase1/05_platesolve.md"
       status: ACTIVE_NORMATIVE
       duty: "从检测源与参考星表（Gaia/离线）解算天体测量解，生成 ICRS WCS 并验证"
       upstream: "ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml、docs/plugins/infrastructure/22_gaia_xpsd_client.md 等 5 处"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml、docs/plugins/infrastructure/22_gaia_xpsd_client.md 等 5 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase1/06_photometry.md"
       status: ACTIVE_NORMATIVE
       duty: "对检测源做 **PSF 拟合域**测光（孔径测光**仅作显式声明的诊断/交叉验证**，非生产口径——依据 `ASTROCS_DESIGN.md`「全链只有一个 `flux` 口径」），把本帧 signal 映射到统一线性"
       upstream: "ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml、docs/research/PHOTOMETRY_RESEARCH_PACK.md 等 5 处"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml、docs/research/PHOTOMETRY_RESEARCH_PACK.md 等 5 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase1/07_noise_snr.md"
       status: ACTIVE_NORMATIVE
       duty: "从校准方差、背景、PSF 与光度响应估计逐像素噪声、逐源 SNR、深度 `m5`、点源信息量 `point_information` 与**帧级 SNR**（写入 HiPS 文件头的唯一帧级参考）。**Phase1 的 "
       upstream: "ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
-      downstream: "ASTROCS_DESIGN.md、config/config_registry.json、config/defaults.json、contracts/schemas/phase_config_mosaic.schema.json 等 13 处"
+      downstream: "ASTROCS_DESIGN.md、eng/packaging/config/config_registry.json、eng/packaging/config/defaults.json、eng/contracts/schemas/phase_config_mosaic.schema.json 等 13 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase1/08_drizzle.md"
       status: ACTIVE_NORMATIVE
       duty: "把定标后单帧图像按 WCS 重采样到球面 HEALPix/HiPS 格点，输出标准化单帧产品（HiPS + 结构化 JSON）"
       upstream: "ASTROCS_DESIGN.md §4.2（Phase1 节点流程）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase2/09_coverage.md"
       status: ACTIVE_NORMATIVE
       duty: "建立输入帧/区域的重叠图与几何有效域，输出 coverage 产品与连通分量"
       upstream: "ASTROCS_DESIGN.md §5.2（固定科学流程）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/PHASE2_COVERAGE.md、docs/modules/MODULE_MAP.yaml"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/PHASE2_COVERAGE.md、docs/modules/MODULE_MAP.yaml"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase2/10_sampling.md"
       status: ACTIVE_NORMATIVE
       duty: "为 UPM 拟合提供两类稀疏采样——① 光度控制点（定每帧**加性**校正场；本期 `g_k ≡ 1`，不做乘性响应）；② **天光背景采样点**（定加性天光面 `C_k(x)`）；同时生成星点掩膜，保证模型可辨识"
       upstream: "ASTROCS_DESIGN.md §5.2（固定科学流程）"
-      downstream: "ASTROCS_DESIGN.md、config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/PHASE2_SAMPLER.md 等 9 处"
+      downstream: "ASTROCS_DESIGN.md、eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/PHASE2_SAMPLER.md 等 9 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase2/11_upm.md"
       status: ACTIVE_NORMATIVE
       duty: "对重叠区域拟合**加性天光亮度平面**的统一相对模型（UPM）：全部帧联合构建**公共天光面 `B_ref(x)`**，每帧只拟合自己的**平缓梯度 `δ_k(x)`**，并把各帧**「多退少补」对齐到该公共面**（`c"
       upstream: "ASTROCS_DESIGN.md §5.2（固定科学流程）"
-      downstream: "ASTROCS_DESIGN.md、config/config_registry.json、contracts/schemas/phase_config_mosaic.schema.json、docs/DOCUMENT_INDEX.yaml 等 8 处"
+      downstream: "ASTROCS_DESIGN.md、eng/packaging/config/config_registry.json、eng/contracts/schemas/phase_config_mosaic.schema.json、docs/DOCUMENT_INDEX.yaml 等 8 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase2/12_rejection.md"
       status: ACTIVE_NORMATIVE
       duty: "估计潜在污染状态（cosmic ray、卫星线、坏列、移动源、云/梯度、失焦/拖线），输出 mask/count/reason/probability"
       upstream: "ASTROCS_DESIGN.md §5.2（固定科学流程）"
-      downstream: "ASTROCS_DESIGN.md、config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/architecture/DATA_FLOW.md 等 7 处"
+      downstream: "ASTROCS_DESIGN.md、eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/architecture/DATA_FLOW.md 等 7 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase2/13_integration.md"
       status: ACTIVE_NORMATIVE
       duty: "按明确科学目标把归一化+排异后的帧集成为马赛克：扩展源 GLS、点源 Q/W、PSF 信号权重复合分量的诊断/基线对照"
       upstream: "ASTROCS_DESIGN.md §5.2（固定科学流程）"
-      downstream: "config/config_registry.json、contracts/schemas/phase_config_mosaic.schema.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/CONFIG_CONTRACT.md 等 6 处"
+      downstream: "eng/packaging/config/config_registry.json、eng/contracts/schemas/phase_config_mosaic.schema.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/CONFIG_CONTRACT.md 等 6 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase3/14_projection.md"
       status: ACTIVE_NORMATIVE
       duty: "管理 export 支持的 WCS 投影 registry（**内置多种投影算法**：TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），定义适用域、奇点、坐标语义与正反变换合同"
       upstream: "ASTROCS_DESIGN.md §6.2（export 流程）"
-      downstream: "eng/ci/ledgers/dead_config_keys.json、config/config_registry.json、contracts/schemas/phase_config_export.schema.json、contracts/schemas/projection_registry.schema.json 等 8 处"
+      downstream: "eng/ci/ledgers/dead_config_keys.json、eng/packaging/config/config_registry.json、eng/contracts/schemas/phase_config_export.schema.json、eng/contracts/schemas/projection_registry.schema.json 等 8 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase3/15_resample.md"
       status: ACTIVE_NORMATIVE
       duty: "对每个输出像素中心做 WCS inverse 定位输入 HEALPix，按产品语义采样核重采样，并传播不确定度/相关描述"
       upstream: "ASTROCS_DESIGN.md §6.2（export 流程）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/algorithms_phase3/16_fits_output.md"
       status: ACTIVE_NORMATIVE
       duty: "把重采样后的平面产品流式写出为测量意义明确的 FITS 文件（PRIMARY + 扩展 HDU + WCS + provenance）"
       upstream: "ASTROCS_DESIGN.md §6.2（export 流程）"
-      downstream: "config/config_registry.json、contracts/schemas/phase_config_export.schema.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/CONFIG_CONTRACT.md 等 6 处"
+      downstream: "eng/packaging/config/config_registry.json、eng/contracts/schemas/phase_config_export.schema.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/CONFIG_CONTRACT.md 等 6 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/infrastructure/17_aio.md"
       status: ACTIVE_NORMATIVE
       duty: "FITS/HiPS/manifest 的**唯一 I/O 边界**：读、写、校验、原子提交、缓存"
       upstream: "ASTROCS_DESIGN.md §10（I/O 与原子产品）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml、lib/infrastructure/aio/src/aio_atomic_file.h 等 5 处"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml、lib/infrastructure/aio/src/aio_atomic_file.h 等 5 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/infrastructure/18_cli.md"
       status: ACTIVE_NORMATIVE
       duty: "三个平级命令（`normalize` / `mosaic` / `export`）的入口：命令解析、配置校验、检查页面（绿/橙/红 + yes 确认）、模板生成、帮助、机器输出、取消与退出码；科学公式实现在 `lib/a"
       upstream: "ASTROCS_DESIGN.md §7.1（命令树）、§7.2（配置、事件与退出码）"
-      downstream: "config/config_registry.json、contracts/schemas/phase_config_export.schema.json、contracts/schemas/phase_config_mosaic.schema.json、contracts/schemas/phase_config_normalize.schema.json 等 8 处"
+      downstream: "eng/packaging/config/config_registry.json、eng/contracts/schemas/phase_config_export.schema.json、eng/contracts/schemas/phase_config_mosaic.schema.json、eng/contracts/schemas/phase_config_normalize.schema.json 等 8 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/infrastructure/19_runtime.md"
       status: ACTIVE_NORMATIVE
       duty: "typed DAG 的执行（注册、依赖、调度）、统一线程预算、**locality-aware 编排**、流式内存管理、资源监控、取消与 checkpoint"
       upstream: "ASTROCS_DESIGN.md §8.1（顶层结构）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/infrastructure/20_benchmark.md"
       status: ACTIVE_NORMATIVE
       duty: "`benchmark` 按 kernel 测量数值误差、吞吐、线程扩展、内存带宽、block/worker，生成机器绑定的 `cpu_profile`"
       upstream: "ASTROCS_DESIGN.md §9（CPU 后端与资源）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/infrastructure/21_observability.md"
       status: ACTIVE_NORMATIVE
       duty: "结构化日志、事件流（JSONL）、运行图、资源监控与诊断，贯穿 CLI 到科学模块"
       upstream: "ASTROCS_DESIGN.md §8.1（顶层结构）"
-      downstream: "CMakeLists.txt、config/config_registry.json、contracts/resource_gate_v1.json、docs/DOCUMENT_INDEX.yaml 等 12 处"
+      downstream: "CMakeLists.txt、eng/packaging/config/config_registry.json、eng/contracts/resource_gate_v1.json、docs/DOCUMENT_INDEX.yaml 等 12 处"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/infrastructure/22_gaia_xpsd_client.md"
       status: ACTIVE_NORMATIVE
       duty: "查询 Gaia（及 XPSD 等外部服务）星表数据，管理网络、**多级缓存与查询合并**、坐标/历元语义与版本，供 platesolve 等消费"
       upstream: "ASTROCS_DESIGN.md §8.1（顶层结构）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml、docs/plugins/algorithms_phase1/05_platesolve.md"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml、docs/plugins/algorithms_phase1/05_platesolve.md"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/plugins/infrastructure/23_hips_browser.md"
       status: ACTIVE_NORMATIVE
       duty: "未来 GUI 可视化组件，浏览 HiPS 产品（渲染、缩放、导航）与工程诊断"
       upstream: "ASTROCS_DESIGN.md §8.1（顶层结构）"
-      downstream: "config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
+      downstream: "eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml、docs/modules/MODULE_MAP.yaml"
       notes: "插件规范（§0 权威链 ⑥；DOC-001 补登）"
     - path: "docs/quality/complexity_baseline_v1.md"
       status: ACTIVE_INFORMATIVE
@@ -1476,7 +1476,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "定标科学公式（bias/dark/flat 与不确定度传播）"
       upstream: "ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§4.6（硬约束）"
-      downstream: "config/defaults.json、contracts/schemas/phase_config_normalize.schema.json、docs/API_REFERENCE.md、docs/ARCHITECTURE.md 等 53 处"
+      downstream: "eng/packaging/config/defaults.json、eng/contracts/schemas/phase_config_normalize.schema.json、docs/API_REFERENCE.md、docs/ARCHITECTURE.md 等 53 处"
     - path: "docs/science/CONTROL_WEIGHT_SNR.md"
       status: ACTIVE_NORMATIVE
       duty: "控制点权重与 SNR 三口径的适用域与公式"
@@ -1486,7 +1486,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "Drizzle 重采样科学公式与面亮度归一"
       upstream: "ASTROCS_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）"
-      downstream: "config/config_registry.json、config/defaults.json、contracts/schemas/phase_config_normalize.schema.json、docs/API_REFERENCE.md 等 47 处"
+      downstream: "eng/packaging/config/config_registry.json、eng/packaging/config/defaults.json、eng/contracts/schemas/phase_config_normalize.schema.json、docs/API_REFERENCE.md 等 47 处"
     - path: "docs/science/INTEGRATION.md"
       status: ACTIVE_NORMATIVE
       duty: "逆方差叠加与 SNR 重建的科学公式"
@@ -1496,48 +1496,48 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "噪声模型与 σ 估计的科学公式（含星点掩膜与天空预算）"
       upstream: "ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§4.2（Phase1 节点流程）"
-      downstream: "CMakeLists.txt、config/defaults.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml 等 36 处"
+      downstream: "CMakeLists.txt、eng/packaging/config/defaults.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml 等 36 处"
     - path: "docs/science/PHASE2_UPM.md"
       status: ACTIVE_NORMATIVE
       duty: "统一相对模型（UPM）的科学公式与可辨识性"
       upstream: "ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）"
-      downstream: "config/config_registry.json、config/defaults.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml 等 42 处"
+      downstream: "eng/packaging/config/config_registry.json、eng/packaging/config/defaults.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml 等 42 处"
     - path: "docs/science/PHASE3_HIPS_TO_FITS.md"
       status: ACTIVE_NORMATIVE
       duty: "HiPS→FITS 投影导出的科学公式与核语义"
       upstream: "ASTROCS_DESIGN.md §6.2（export 流程）、§6.3（投影算法）"
-      downstream: "config/config_registry.json、config/defaults.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/HIPS_WRITER.md 等 38 处"
+      downstream: "eng/packaging/config/config_registry.json、eng/packaging/config/defaults.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/HIPS_WRITER.md 等 38 处"
     - path: "docs/science/PHOTOMETRY.md"
       status: ACTIVE_NORMATIVE
       duty: "测光科学公式与测光一致性判据的误差预算"
       upstream: "ASTROCS_DESIGN.md §2.1（创新点一：测光星等坐标系）、§4.4（输出合同）"
-      downstream: "ASTROCS_DESIGN.md、config/defaults.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml 等 35 处"
+      downstream: "ASTROCS_DESIGN.md、eng/packaging/config/defaults.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml 等 35 处"
     - path: "docs/science/PSF.md"
       status: ACTIVE_NORMATIVE
       duty: "PSF 模型、FWHM 与质心/形状参数的科学定义"
       upstream: "ASTROCS_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）"
-      downstream: "config/defaults.json、contracts/schemas/phase_config_normalize.schema.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml 等 27 处"
+      downstream: "eng/packaging/config/defaults.json、eng/contracts/schemas/phase_config_normalize.schema.json、docs/API_REFERENCE.md、docs/DOCUMENT_INDEX.yaml 等 27 处"
     - path: "docs/science/PSF_SIGNAL_WEIGHT.md"
       status: ACTIVE_NORMATIVE
       duty: "PSF 信号权重与帧级 SNR 的科学定义"
       upstream: "ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§4.4（输出合同）"
-      downstream: "ASTROCS_DESIGN.md、README.md、config/config_registry.json、docs/DOCUMENT_INDEX.yaml 等 21 处"
+      downstream: "ASTROCS_DESIGN.md、README.md、eng/packaging/config/config_registry.json、docs/DOCUMENT_INDEX.yaml 等 21 处"
       notes: "SCI-PSFW-001：严格 point information 与 PixInsight-style psfsw_robust 可选集成双轨合同"
     - path: "docs/science/REJECTION.md"
       status: ACTIVE_NORMATIVE
       duty: "逐像素排异的科学定义与合法性窗口"
       upstream: "ASTROCS_DESIGN.md §5.5（逐像素排异）"
-      downstream: "ASTROCS_DESIGN.md、config/config_registry.json、config/defaults.json、contracts/schemas/phase_config_mosaic.schema.json 等 35 处"
+      downstream: "ASTROCS_DESIGN.md、eng/packaging/config/config_registry.json、eng/packaging/config/defaults.json、eng/contracts/schemas/phase_config_mosaic.schema.json 等 35 处"
     - path: "docs/science/SCIENCE_SCOPE.md"
       status: ACTIVE_NORMATIVE
       duty: "科学范围与三个创新点的边界"
       upstream: "ASTROCS_DESIGN.md §1（项目定位）、§2（核心科学方法）"
-      downstream: "config/defaults.json、contracts/schemas/phase_config_export.schema.json、contracts/schemas/phase_config_mosaic.schema.json、docs/DOCUMENT_INDEX.yaml 等 16 处"
+      downstream: "eng/packaging/config/defaults.json、eng/contracts/schemas/phase_config_export.schema.json、eng/contracts/schemas/phase_config_mosaic.schema.json、docs/DOCUMENT_INDEX.yaml 等 16 处"
     - path: "docs/science/STAR_DETECTION.md"
       status: ACTIVE_NORMATIVE
       duty: "星点检测科学定义与检测阈值口径"
       upstream: "ASTROCS_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）"
-      downstream: "config/config_registry.json、config/defaults.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/GATES_AND_TOLERANCES.md 等 17 处"
+      downstream: "eng/packaging/config/config_registry.json、eng/packaging/config/defaults.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/GATES_AND_TOLERANCES.md 等 17 处"
       notes: "P1-STAR-DOC (2026-09-07) 冻结: SCI-P1-STAR-001 冻结层落点（matrix P1-STAR 行 sci_doc），共享 SCI 引用不改动"
     - path: "docs/science/UNCERTAINTY_AND_COVARIANCE.md"
       status: ACTIVE_NORMATIVE
@@ -1564,7 +1564,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "SCI-ADJ-001 冻结清单（字段 / 公式 / mode / 适用域 / 降级 / 验证门）"
       upstream: "ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）"
-      downstream: "contracts/proposals/v6/data/astrocs.v6.units.v1.schema.json、contracts/schemas/v6/astrocs.v6.units.v1.schema.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/v6/frozen/01_NUMERIC_THRESHOLD_FREEZE.md 等 11 处"
+      downstream: "eng/contracts/proposals/v6/data/astrocs.v6.units.v1.schema.json、eng/contracts/schemas/v6/astrocs.v6.units.v1.schema.json、docs/DOCUMENT_INDEX.yaml、docs/algorithms/v6/frozen/01_NUMERIC_THRESHOLD_FREEZE.md 等 11 处"
     - path: "docs/science/v6/frozen/00_README.md"
       status: ACTIVE_NORMATIVE
       duty: "docs/science/v6/frozen/00_README.md"
@@ -1700,13 +1700,13 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "docs/traceability/TRACEABILITY_LAYERS.csv"
       upstream: "ASTROCS_DESIGN.md §12.4（验证层级与四层验收）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、docs/traceability/TRACEABILITY_SPEC.md、tests/traceability/fixtures/bad_id_format.json、tests/traceability/fixtures/chain_break.json 等 10 处"
+      downstream: "docs/DOCUMENT_INDEX.yaml、docs/traceability/TRACEABILITY_SPEC.md、eng/tests/traceability/fixtures/bad_id_format.json、eng/tests/traceability/fixtures/chain_break.json 等 10 处"
       notes: "DOC-001 机器追溯合同 CSV schema（八层必填/取值域/空串禁止）"
     - path: "docs/traceability/TRACEABILITY_MATRIX.csv"
       status: ACTIVE_NORMATIVE
       duty: "docs/traceability/TRACEABILITY_MATRIX.csv"
       upstream: "ASTROCS_DESIGN.md §12.4（验证层级与四层验收）"
-      downstream: "contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/DATA_ARTIFACTS.md、docs/contracts/UNIFIED_OBJECTS.md 等 9 处"
+      downstream: "eng/contracts/data/unified_object_compatibility_map_v1.json、docs/DOCUMENT_INDEX.yaml、docs/contracts/DATA_ARTIFACTS.md、docs/contracts/UNIFIED_OBJECTS.md 等 9 处"
       notes: "DOC-001 八层追溯矩阵 CSV 视图（与 JSON 同构，gen_traceability_csv.py 生成）"
     - path: "docs/traceability/TRACEABILITY_MATRIX.json"
       status: ACTIVE_NORMATIVE
@@ -1718,7 +1718,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "八层追溯矩阵的机器合同（ID 格式/唯一性/跨层链）"
       upstream: "ASTROCS_DESIGN.md §12.4（验证层级与四层验收）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、tests/testkit/examples/registry.example.json、tests/testkit/registry.json、tests/testkit/testkit.spec.md 等 5 处"
+      downstream: "docs/DOCUMENT_INDEX.yaml、eng/tests/testkit/examples/registry.example.json、eng/tests/testkit/registry.json、eng/tests/testkit/testkit.spec.md 等 5 处"
       notes: "DOC-001 机器追溯合同标准（ID 格式/唯一性/跨层链/SOURCE SYMBOL）"
     - path: "docs/traceability/traceability_warn_baseline.json"
       status: GENERATED
@@ -1745,7 +1745,7 @@ doc_index:
       status: ACTIVE_NORMATIVE
       duty: "独立 Oracle、零用例即红与负向 mutation 政策（QA-MATRIX-001）"
       upstream: "ASTROCS_DESIGN.md §12（验证体系）"
-      downstream: "docs/DOCUMENT_INDEX.yaml、tests/unit/v6_p3_rsmp/p3_rsmp_oracle.h"
+      downstream: "docs/DOCUMENT_INDEX.yaml、eng/tests/unit/v6_p3_rsmp/p3_rsmp_oracle.h"
     - path: "docs/validation/v6/P0_GATE_FAMILY.md"
       status: ACTIVE_NORMATIVE
       duty: "P0 门族：历史根因 R1/R2/R4/R5/R10 与 785 合并层账本（QA-MATRIX-001）"

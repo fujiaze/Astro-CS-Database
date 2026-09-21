@@ -3,7 +3,7 @@
 - 合同: `P1-004` / SCI-WCS-001 (docs/contracts/INDEX.yaml)
 - Header: `lib/algorithms/platesolve/wrapper_phase1/wcs_tan.h`
 - Source: `lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp`
-- Test: `tests/unit/p1_wcs_phot_test.cpp` (roundtrip <1e-6 deg)
+- Test: `eng/tests/unit/p1_wcs_phot_test.cpp` (roundtrip <1e-6 deg)
 
 ## 职责
 TAN 投影 pixel↔sky (ICRS deg)。pixel→sky→pixel roundtrip <1e-6。

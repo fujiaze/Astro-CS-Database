@@ -5,7 +5,7 @@
 //   本 registry 已退场：唯一在役 registry = v6 线 p3_proj_v6.h/.cpp
 //   （kProjectionRegistryVersion=3，CAR/AIT CRVAL2 旋转 + AIT A≤1 + CAR native 极行
 //   fail-closed）。本头文件仅为 (a) 历史测试面、(b) legacy 偏差对照证据门
-//   （tests/unit/v6_p3_proj/p3_proj_legacy_deviation.py 的 LEGACY_DEVIATION_TABLE）
+//   （eng/tests/unit/v6_p3_proj/p3_proj_legacy_deviation.py 的 LEGACY_DEVIATION_TABLE）
 //   保留，**禁止新消费方引用**，其行为不得再变（偏差集合只减不增）。
 //
 // v1 已登记偏差（相对 FITS WCS Paper II 标准；四项均保留为对照，不在此修正）:

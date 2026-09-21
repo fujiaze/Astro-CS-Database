@@ -4,10 +4,10 @@
 
 Freezes the Windows x64 release toolchain per control-package
 09_WINDOWS_TOOLCHAIN_LOCK.md and validates the repository's frozen
-contract (packaging/schemas/preset-contract.json) against:
+contract (eng/packaging/schemas/preset-contract.json) against:
 
   * CMakePresets.json            -- the only formal Windows preset surface
-  * packaging/windows/.vsconfig  -- the only VS Build Tools component list
+  * eng/packaging/windows/.vsconfig  -- the only VS Build Tools component list
 
 Rules enforced here (any violation exits non-zero, i.e. FAIL fast):
 
@@ -22,7 +22,7 @@ Rules enforced here (any violation exits non-zero, i.e. FAIL fast):
      (/MD /MDd) is applied; ACR is OFF on the formal path.
   4. Forbidden tokens (latest/evergreen, MinGW/MSYS, VS2026, v144/v145,
      Ninja, Win32/ARM/ARM64, /MT) never appear on the formal Windows
-     surface (CMakePresets.json windows presets + packaging/windows/.vsconfig).
+     surface (CMakePresets.json windows presets + eng/packaging/windows/.vsconfig).
   5. The .vsconfig component list matches the frozen list exactly and does
      not add MFC/ATL/C++CLI/UWP/WinUI/Windows App SDK/ARM components.
   6. The Linux preset is light validation only and never overrides or
@@ -43,9 +43,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-CONTRACT_RELPATH = "packaging/schemas/preset-contract.json"
+CONTRACT_RELPATH = "eng/packaging/schemas/preset-contract.json"
 PRESETS_RELPATH = "CMakePresets.json"
-VSCONFIG_RELPATH = "packaging/windows/.vsconfig"
+VSCONFIG_RELPATH = "eng/packaging/windows/.vsconfig"
 
 # ---------------------------------------------------------------- helpers --
 

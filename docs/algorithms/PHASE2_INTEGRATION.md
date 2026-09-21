@@ -174,7 +174,7 @@ eligibility（逐候选 i，候选索引固定序）:
   SCI §5:58 已订正为 `max_{accepted} support[i]`（SCI-FIX-WEIGHT / SC-005），
   与 integrate.h:17-19、SCI §2:21/§5:63/§7:75 一致。实现把 `sup_max` 更新
   置于权重分支**之前**（integrate.cpp:44-50），零权重 accepted 样本的
-  support 进入 max；回归门 tests/unit/p2_output_semantics_test.cpp:85-107
+  support 进入 max；回归门 eng/tests/unit/p2_output_semantics_test.cpp:85-107
   （4b/4c，B2-A7；`ctest -R p2_output_semantics` Passed）。
   **旧登记「实现现状 = max over {valid ∧ W>0}」已过期**（实现位置为
   `:49-50`，不在 `w==0 continue` 之后），不得据此整改实现。

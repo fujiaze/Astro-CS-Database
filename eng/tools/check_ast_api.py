@@ -33,9 +33,9 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 
 # 检查的核心 public 头 (各含合同声明)
 CORE_HEADERS = [
-    "include/astrocs/core/contracts.h",
-    "include/astrocs/core/artifact.h",
-    "include/astrocs/io/io_adapter.h",
+    "lib/include/astrocs/core/contracts.h",
+    "lib/include/astrocs/core/artifact.h",
+    "lib/include/astrocs/io/io_adapter.h",
 ]
 API_CSV = "docs/contracts/API_CONTRACTS.csv"
 
@@ -45,7 +45,7 @@ SKIP_NAMES = {"if", "for", "while", "sizeof", "return", "static_assert", "switch
 
 
 def include_flags(header: pathlib.Path) -> list[str]:
-    """header 自解析所需 include 路径：include/ + 各模块 include/ 与 cpp/ 根。"""
+    """header 自解析所需 include 路径：lib/include/ + 各模块 lib/include/ 与 cpp/ 根。"""
     flags = ["-I", str(REPO / "include")]
     roots = []
     for base in (REPO / "lib", REPO / "include"):

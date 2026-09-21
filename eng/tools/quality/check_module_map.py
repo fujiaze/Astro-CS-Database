@@ -8,7 +8,7 @@
   - ASTROCS_DESIGN.md §7.1（顶层结构唯一）/§7.3（模块与 DLL/SO 边界，单一 entrypoint，
     不隐藏整阶段 Session；每个生产 DAG 节点映射唯一真实 module/导出入口）/§11.3（状态阶梯，唯一口径）
   - docs/ci/01_CHECKS.md §2（CHK-MODULE-MANIFEST = manifest/注册表/构建 target/产品清单一致，P0）
-  - contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 astrocs_module_query_v1）
+  - eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 astrocs_module_query_v1）
 
 输入
   docs/modules/MODULE_MAP.yaml（期望映射，23 行；本表不含 status 字段——状态一律现场算）
@@ -21,12 +21,12 @@
      CMake target（独立 DLL/SO）/ 共址可复用测试。
   M3 module.yaml 字段：ID / 版本 / ABI / 端口 / schema 链接 / entrypoint 与映射表一致。
   M4 合同引用有效：DATA 合同能在 docs/contracts/INDEX.yaml 解析；
-     schema 链接能在 contracts/schemas/ 找到（§4 第 7 项：contracts/schemas/ 唯一事实源）；
+     schema 链接能在 eng/contracts/schemas/ 找到（§4 第 7 项：eng/contracts/schemas/ 唯一事实源）；
      glob 形式的 schema 引用无法逐条证明 → 只记 NOTE，不得当通过证据。
   M5 facade/no-op 识别（DESIGN §7.3 / 任务卡步骤 3）：导出符号存在但无可执行路径
      （函数体内零调用）、或 entrypoint 直接转发到整阶段 Session → 判 NOT_IMPLEMENTED，
      绝不因为「符号存在」算 IMPLEMENTED。
-  M6 产品清单一致（ENGINEERING_SPEC §8）：packaging/astrocs.product.json 中存在
+  M6 产品清单一致（ENGINEERING_SPEC §8）：eng/packaging/astrocs.product.json 中存在
      对应 unit 且状态非 SKELETON；00_INDEX §2 明示「不进产品 manifest」的模块
      （hips_browser）以豁免理由登记（required=false + 权威引用）。
   M7 状态词只取 ASTROCS_DESIGN §11.3 词表；VERIFIED 必须有证据文件在仓库内，
@@ -43,7 +43,7 @@
        * 已登记缺口          → GAP(declared_absent_registered)  逐条出机器表，不静默、不判绿。
   M9 块名词表（FIX-404 / GAP_AUDIT G1-5）：aio_pipeline.h「标准块定义表」是帧内命名块的
      唯一登记处，且必须与 aio_pipeline.cpp 的 kStandardBlockNames 逐名一致（声明↔实现）；
-     生产源（非 tests/fixture）里的 aio_frame_add_block / add_block_move / kv_set 调用点
+     生产源（非 eng/tests/fixture）里的 aio_frame_add_block / add_block_move / kv_set 调用点
      只准使用标准名或同文件 aio_block_name_register 显式注册的扩展名。
        * 表解析失败/行数不足 → FAIL(block_table_parse_failed)   fail-closed；
        * 表↔实现名集不一致   → FAIL(block_table_code_drift)；
@@ -339,8 +339,8 @@ class Ctx:
         self.repo = repo
         self.doc = doc
         conv = doc.get("conventions") or {}
-        self.schema_dir = conv.get("schema_dir", "contracts/schemas")
-        self.product_manifest_file = conv.get("product_manifest_file", "packaging/astrocs.product.json")
+        self.schema_dir = conv.get("schema_dir", "eng/contracts/schemas")
+        self.product_manifest_file = conv.get("product_manifest_file", "eng/packaging/astrocs.product.json")
         self.contract_index_file = conv.get("contract_index_file", "docs/contracts/INDEX.yaml")
         self.module_yaml_keys = tuple(conv.get("module_yaml_required_keys") or MODULE_YAML_DEFAULT_KEYS)
         self.contract_ids = self._load_contract_ids()
@@ -624,7 +624,7 @@ def evaluate_module(ctx: Ctx, m: dict, seen_keys: dict):
                     findings.append(Finding(mid, "module_yaml_contract_drift",
                                             "module.yaml data_contracts 多出映射表未登记项：%s" % cid))
 
-        header_glob = (ctx.doc.get("conventions") or {}).get("public_header_glob", "include/**/*.h")
+        header_glob = (ctx.doc.get("conventions") or {}).get("public_header_glob", "lib/include/**/*.h")
         headers = [p for p in module_dir.glob(header_glob) if p.is_file()]
         if not headers:
             headers = [p for p in module_dir.rglob("*")

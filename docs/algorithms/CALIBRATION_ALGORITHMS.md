@@ -48,13 +48,13 @@ floor 0.1，即约定入参 master_flat 已是 median≈1.0 的归一化平场�
 
 **标度声明（SCI-CAL-001 §3/§6）**：本层 C ABI 单位盲，
 入参必须已同标度；把母版文件解释成该标度是**调用方（io_read/编排）义务**，且必须**显式声明**
-（禁止按后缀/目录名推断，`contracts/data/phase_product_exchange_matrix.json` R-NO-NAME-BINDING）：
+（禁止按后缀/目录名推断，`eng/contracts/data/phase_product_exchange_matrix.json` R-NO-NAME-BINDING）：
 
 | 文件形态 | 文件自身声明 | 到 ADU 的换算 | 违反时 |
 |---|---|---|---|
 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU；[0,65535]） | — |
 | XISF `Float32` `bounds="0:1"` | **可表示域**（黑/白点），非物理单位（XISF 1.0 §Image，浮点实型必须带 `bounds`） | 换算因子**不由文件给出**：须声明 `master_units=normalized` + `master_scale`（16 位原生数据取 65535，PCL `NormalizeSamples`/`UInt16 MaxSampleValue`） | 消费边界 DATA 拒绝（rc=2），诊断点名文件 |
-| master_flat（任一形态） | 无 | 归一化是**独立维度**：`median(flat)` 须落在 `master_flat_median_range`（默认 [0.5,2.0]，`config/defaults.json`），否则须显式声明 `master_flat_normalize="median"`（= §2 `flat_norm`，幂等） | 未声明且不落区间 ⇒ DATA 拒绝（rc=2） |
+| master_flat（任一形态） | 无 | 归一化是**独立维度**：`median(flat)` 须落在 `master_flat_median_range`（默认 [0.5,2.0]，`eng/packaging/config/defaults.json`），否则须显式声明 `master_flat_normalize="median"`（= §2 `flat_norm`，幂等） | 未声明且不落区间 ⇒ DATA 拒绝（rc=2） |
 | master_dark | `dark_optimization`（bool）声明是否含 bias | — | 提供 dark 而未声明 ⇒ DATA 拒绝（rc=2） |
 
 **四条机器规则（`eng/tools/quality/check_master_unit_guard.py --self-test` 可执行正负例）**：
@@ -258,7 +258,7 @@ F6.4  in-place 安全（逐元素无依赖）；每次调用向 stderr 输出两
         [51,62]
 ```
 
-**现状**: 不在 CMake 构建清单，无生产调用方；`tests/
+**现状**: 不在 CMake 构建清单，无生产调用方；`eng/tests/
 test_photometry_apply.cpp` 为其共址测试（同样未挂接 CMake 测试目标）。
 k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-006）。
 
@@ -362,7 +362,7 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 - 目标模块边界: `astrocs.p1.calibration` / `astrocs_p1_calibration.dll`
   （MODULE_MIGRATION_MATRIX.csv P1-CAL 行；DLL 当前不存在，现状产物为
   CMake 静态库 `astrocs_calibration` 与非生产 MinGW DLL）。
-- 三方一致: `acs_module_descriptor_v1`（include/astrocs/abi/module_api_v1.h:40-53，
+- 三方一致: `acs_module_descriptor_v1`（lib/include/astrocs/abi/module_api_v1.h:40-53，
   字段 module_id/sci_id/alg_id/api_id/execution_class/parallel_ok）与
   module.yaml、运行 manifest 一致校验（12 号标准 §5）。descriptor 取值:
   sci_id=SCI-CAL-001、alg_id=ALG-CAL-001、api_id=API-P1-001、
@@ -517,8 +517,8 @@ oracle 同容差；actual_k 精确相等。
   违反即 DATA 拒绝（rc=2）并点名文件 + 观测值 + 缺失声明项；
   ③`eng/tools/quality/check_master_unit_guard.py`：**四条负例（U1–U4）+ 两条正例**（显式声明组合 /
   本就合规组合），合成与真实 T2 双模式，门内逐像素 NumPy oracle，`--self-test` 为期望 token 变异注入；
-  ④`config/defaults.json` 登记 `calibration.master_flat_median_range`（[0.5,2.0]）；
-  ⑤与 U3 冲突的既有节点级夹具（`tests/unit/p1001_real_nodes_test.cpp` 9 处 doc）补显式
+  ④`eng/packaging/config/defaults.json` 登记 `calibration.master_flat_median_range`（[0.5,2.0]）；
+  ⑤与 U3 冲突的既有节点级夹具（`eng/tests/unit/p1001_real_nodes_test.cpp` 9 处 doc）补显式
   `dark_optimization=false`（该夹具 `vd=5 < vb=10` = 已减 bias 的暗电流，声明后数值不变）。
   **残留（登记待裁定）**：⑥**未新增 ctest 目标**（新目标必须在 `eng/ci/checks.json` 的
   `ctest_targets` 登记）⇒ U1–U4 的机器覆盖由上述门脚本承担；

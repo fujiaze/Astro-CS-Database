@@ -25,7 +25,7 @@
  *     调用方 strbuf 两阶段提交 (尺寸查询→写入; 不足→PARAM+BUFFER_TOO_SMALL,
  *     不半写)。行数据 base64 (GaiaStar 等结构体原样字节, 供 direct-vs-plugin
  *     bitwise 对比与消费方解码)。
- *   - 输入 typed: config JSON 键词表冻结于 include/astrocs/gaia/types.h;
+ *   - 输入 typed: config JSON 键词表冻结于 lib/include/astrocs/gaia/types.h;
  *     catalog_dir 为数据集 port (catalog.xpsd_dir), 模块不自拼路径。
  *
  * 编译合同: 纯 C11; 无 STL/异常/RTTI; -fno-exceptions 亦可编译;
@@ -468,7 +468,7 @@ static acs_status gaia_describe(const acs_module_api_v1* self,
      * (secure_loader.c §5 既成合同; BLD-003 noop 先例同语义), 空=不指名, 直接
      * 返回静态描述; 非空仍严格校验 (错 ID → MISMATCH, 既有 adapter 测试锚不变)。
      * 空 ID 拒绝曾使本 DLL 在安装树内被自家 loader 必拒 (DESCRIPTOR_MISMATCH),
-     * 本行为修复经 tests/abi/mod001_install_load_check.py 安装树逐 unit 加载闭环。 */
+     * 本行为修复经 eng/tests/abi/mod001_install_load_check.py 安装树逐 unit 加载闭环。 */
     if (module_id.size != 0 &&
         (module_id.size != strlen(kModuleId) ||
          memcmp(module_id.data, kModuleId, strlen(kModuleId)) != 0))

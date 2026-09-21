@@ -26,10 +26,10 @@ IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不�
 | FITS 流核心（C 实现、私有，DLL 内） | `lib/infrastructure/aio/io/fits_core.c` |
 | FITS 流 C ABI（只被 astrocs_io.dll 导出） | `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` |
 | 模块公开 ABI 占位（module query 入口） | `lib/infrastructure/aio/io/include/astrocs/io/io_module_api_v1.h`（**该文件不存在**：全仓零命中，如实登记为缺口；现行 io ABI 面 = `lib/infrastructure/aio/io/include/astrocs/io/fits_stream_v1.h` + `hips_input_v1.h`） |
-| 契约/负测（Python，依赖 numpy/astropy 作 oracle） | `tests/io/` |
+| 契约/负测（Python，依赖 numpy/astropy 作 oracle） | `eng/tests/io/` |
 | C 层自检驱动 | `lib/infrastructure/aio/io/tests/` |
 
-允许写路径：`lib/infrastructure/aio/io/** lib/infrastructure/aio/io/** lib/infrastructure/aio/** lib/infrastructure/aio/healpix_db/** lib/infrastructure/aio/io/** tests/io/** docs/interfaces/io/**`。
+允许写路径：`lib/infrastructure/aio/io/** lib/infrastructure/aio/io/** lib/infrastructure/aio/** lib/infrastructure/aio/healpix_db/** lib/infrastructure/aio/io/** eng/tests/io/** docs/interfaces/io/**`。
 
 ## 3. DLL 边界与所有权
 
@@ -171,7 +171,7 @@ typedef struct acs_fio_trace_hooks_v1 {
   st = fits_compute_file_datadigest_v1(path, buf10, &len, err);
 ```
 
-## 12. 契约/负测验收映射（tests/io/）
+## 12. 契约/负测验收映射（eng/tests/io/）
 
 | 验收 | 测试 |
 | --- | --- |
@@ -189,9 +189,9 @@ typedef struct acs_fio_trace_hooks_v1 {
 
 - `lib/infrastructure/aio`（AIO，含 CFITSIO 静态链）：全图像读写（aio_read/write_fits），
   保留作兼容层；**IO-001 不迁移/不修改**，其内部 CFITSIO 用法同样不跨 DLL 边界。
-- `lib/infrastructure/aio/io` + `include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（IO-001 原型），保留。
+- `lib/infrastructure/aio/io` + `lib/include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（IO-001 原型），保留。
 - `lib/infrastructure/aio/io/fits_core.c` 是本接口新增的 fits 流 C 核心（无 CFITSIO 依赖）。
-- DATA-001 `include/astrocs/contracts/artifact_abi_v1.h`：产物 manifest C ABI；fits 流接口不重复其职责。
+- DATA-001 `lib/include/astrocs/contracts/artifact_abi_v1.h`：产物 manifest C ABI；fits 流接口不重复其职责。
 - trace/bytes：由宿主注入 hook（14 标准）；本接口只冻结 hook 契约并累计，运行时落点由 RT 接线。
 - HiPS/manifest 输入输出（IO-002/IO-003）在本接口之上扩展，本接口不实现。
 

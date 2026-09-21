@@ -72,7 +72,7 @@
     "CHK-CONTRACT-REF": {
       "kind": "doc",
       "grade": "P0",
-      "name": "端口引用有效 DATA 合同（canonical=contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）",
+      "name": "端口引用有效 DATA 合同（canonical=eng/contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）",
       "doc": "docs/ci/01_CHECKS.md §2",
       "steps": [
         "CONTRACT-GRAPH",
@@ -671,7 +671,7 @@
       "old_id": "TRACEABILITY-CODE",
       "decision": "RETIRED",
       "authority": "GAP-032 + 前台裁决 2026-09-16（docs/ci/01_CHECKS.md §2.1 退役记录）",
-      "reason": "唯一默认输入 artifacts/prerelease_v5/tables/TRACEABILITY.csv 随 artifacts/ 按负责人裁决删除而断供；本 CI 规范/最高设计/工程规范对「追溯」零命中；内容未丢（git show b1290525^:…）",
+      "reason": "唯一默认输入 artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv 随 artifacts/ 按负责人裁决删除而断供；本 CI 规范/最高设计/工程规范对「追溯」零命中；内容未丢（git show b1290525^:…）",
       "note": "不得记为本波「丢失的注册项」；本波 146 项输入 = 147 - TRACEABILITY-CODE"
     }
   ],
@@ -897,7 +897,7 @@
       "kind": "doc",
       "grade": "P0",
       "order_in_target": 0,
-      "note": "端口引用有效 DATA 合同（canonical=contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）"
+      "note": "端口引用有效 DATA 合同（canonical=eng/contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）"
     },
     {
       "old_id": "CTEST-AIO-ABI-NEGATIVE",
@@ -1329,7 +1329,7 @@
       "kind": "doc",
       "grade": "P0",
       "order_in_target": 1,
-      "note": "端口引用有效 DATA 合同（canonical=contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）"
+      "note": "端口引用有效 DATA 合同（canonical=eng/contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）"
     },
     {
       "old_id": "DEEP-CLANG-BUILD",
@@ -2211,7 +2211,7 @@
       "kind": "doc",
       "grade": "P0",
       "order_in_target": 18,
-      "note": "W5-CFG-002（2026-09-17）交付 tests/config（47 例 rc=0）；W4-A3 注册为 CHK-UNIT 执行单元（原无 CI 步骤）"
+      "note": "W5-CFG-002（2026-09-17）交付 eng/tests/config（47 例 rc=0）；W4-A3 注册为 CHK-UNIT 执行单元（原无 CI 步骤）"
     },
     {
       "old_id": "CTEST-P1CAL-BIAS-INFLUENCE-GATE",

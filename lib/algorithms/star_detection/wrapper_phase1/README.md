@@ -3,7 +3,7 @@
 - 合同: `P1-003` / SCI-PSF-001 / SCI-PHOT-001 (docs/contracts/INDEX.yaml)
 - Header: `lib/algorithms/star_detection/wrapper_phase1/star_detector.h`
 - Source: `lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp`
-- Test: `tests/unit/p1_stars_test.cpp` (7 组: 孤立/重叠/饱和/边缘/纯噪声/tie-breaker/catalog)
+- Test: `eng/tests/unit/p1_stars_test.cpp` (7 组: 孤立/重叠/饱和/边缘/纯噪声/tie-breaker/catalog)
 
 ## 职责
 局部峰检测 + 质心/二阶矩 (FWHM/ellipticity) + sigma-clip 背景估计。

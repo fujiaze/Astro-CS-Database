@@ -74,7 +74,7 @@ docs/plugins/
 
 1. **职责与边界** —— 一句话职责 + "不是做什么"；
 2. **权威依据** —— 最高设计节号 + docs/science + docs/algorithms 具体引用；
-3. **输入/输出数据合同** —— 引用 contracts/schemas，不复制 schema；
+3. **输入/输出数据合同** —— 引用 eng/contracts/schemas，不复制 schema；
 4. **算法与公式要点** —— 关键公式（引用权威推导，不重复展开）；
 5. **配置项** —— phase_config 字段、默认值、单位、约束；
 6. **接口/ABI** —— entrypoint、端口、所有权；

@@ -18,12 +18,12 @@
 //   T6 A_ORDER=2 合法       → 不因 SIP 拒绝
 //   T7 无 A_ORDER           → 不因 SIP 拒绝 (向后兼容)
 //
-// 落位依据: 本模块 tests/ 目录既有独立 g++ 驱动模式 (drizzle_l0_test.cpp 等)。
+// 落位依据: 本模块 eng/tests/ 目录既有独立 g++ 驱动模式 (drizzle_l0_test.cpp 等)。
 //
 // 编译 (healpix_drizzle/ 目录):
 //   g++ -O1 -g -std=c++17 -fopenmp -DAIO_ENABLE_HEALPIX \
 //     -I. -I../../astro_image_io/include -I../../astro_image_io/src -I../../../common \
-//     tests/p0_sip_order_guard_test.cpp \
+//     eng/tests/p0_sip_order_guard_test.cpp \
 //     hp_drizzle_api.cpp drizzle_engine.cpp fits_reader.cpp wcs_sip.cpp \
 //     poly_clip.cpp spherical_overlap.cpp reverse_drizzle.cpp astro_sphere_sink.cpp \
 //     ../../common/healpix/healpix_core.cpp healpix_core.cpp snr_evaluator.cpp \
@@ -34,7 +34,7 @@
 //     ../../astro_image_io/src/aio_fits.cpp \
 //     ../../astro_image_io/third_party/cfitsio/*.o \
 //     -lzstd -llz4 -lz -lm -lpthread \
-//     -o tests/p0_sip_order_guard_test
+//     -o eng/tests/p0_sip_order_guard_test
 //   ./tests/p0_sip_order_guard_test
 // ============================================================================
 #include "hp_drizzle_api.h"

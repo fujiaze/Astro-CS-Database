@@ -19,7 +19,7 @@ timeout 2400 cmake --build build/linux-control -j 2 --target astrocs
 timeout 1200 cmake --build build/linux-control -j 2 \
   --target p1_ir_facade_test p2_upm_synthetic_test
 # ROOT-008 收口：旧 `cli/` 子图（`build/cli/astrocs`）已退役 —— 唯一产品二进制是
-# 根图的 `build/astrocs`（tests/cli/test_phase123_pipeline.py:24 逐字声明）。
+# 根图的 `build/astrocs`（eng/tests/cli/test_phase123_pipeline.py:24 逐字声明）。
 # 旧 `cli/CMakeLists.txt` 为布局重构前的遗留副本，其引用路径（`../lib/astro_image_io`、
 # `../lib/backend_host`、`../lib/acr`）在 ROOT-008 搬迁后已全部不存在，配置必然失败。
 # 本步曾因此恒红；此处删除该退役子构建，phaseN in-process 测试统一用根图 `build/astrocs`。
@@ -32,14 +32,14 @@ timeout 1200 cmake --build build/linux-control -j 2 \
 timeout 2400 cmake --build build/linux-control -j 2 --target   astrocs_runtime astrocs_io astrocs_noop astrocs_cpu_baseline   astrocs_catalog_gaia astrocs_p1_drizzle astrocs_p1_calibration   astrocs_p1_cosmetic astrocs_p1_hips_writer
 mkdir -p build && cp -f build/linux-control/astrocs build/astrocs
 cp -f build/linux-control/libastrocs_runtime.so build/libastrocs_runtime.so
-# tests/backend oracle fixture(如 test_phase3_reproject_oracle)用
+# eng/tests/backend oracle fixture(如 test_phase3_reproject_oracle)用
 # -IREPO/build 取 version_generated.h; 根 build/ 仅被 cp 二进制,
 # 需补生成头(R19 34204130361 UT-BACKEND setUpClass 实证)。
 cp -f build/linux-control/version_generated.h build/version_generated.h
 
 # V3 B3-A3/B3-A4: 独立 oracle 门 (UT-API) 与 lib/phase2 gtest 目标的链接输入。
 #   - lib/infrastructure/aio/astro_image_io.dll 是 gitignore 的共享库构建产物
-#     (干净检出无); tests/api 的 seam/UPM/reject 独立 oracle 门以 g++ 直接
+#     (干净检出无); eng/tests/api 的 seam/UPM/reject 独立 oracle 门以 g++ 直接
 #     链接它。UT-API 的接缝门自本批起 fail-closed (缺库即红, 不再静默
 #     skip), 故此处必须真实构建。
 #   - build/linux-openmp-on/libphase2.a (P2_ENABLE_OPENMP=ON 归档) 同为

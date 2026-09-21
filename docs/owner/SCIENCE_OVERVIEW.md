@@ -59,9 +59,9 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 
 - 数据语义权威（**依最高设计 §2 的引用，不是本文自立的权威链**）：
   `docs/contracts/DATA_SEMANTICS.md`、`DATA_ARTIFACTS.md`。
-- DATA-001 类型化产物合同：`contracts/data/artifact_manifest.schema.json`、
+- DATA-001 类型化产物合同：`eng/contracts/data/artifact_manifest.schema.json`、
   `artifact_types.registry.json`（type_id schema_version=1）。
-- DATA-002 三阶段产品交换合同：`contracts/data/phase_product_exchange.schema.json` +
+- DATA-002 三阶段产品交换合同：`eng/contracts/data/phase_product_exchange.schema.json` +
   `phase_product_exchange_matrix.json` + `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md`；
   角色 `phase1_product_v1 / phase2_mosaic_v1 / phase3_planar_fits_v1` 与 registry type
   强绑定，跨 Phase **仅磁盘交换**（约束 §A.6）。
@@ -82,7 +82,7 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 |---|---|---|
 | SCI 权威冻结 | PASS | `docs/science/*.md` ACTIVE_NORMATIVE + contract-index 登记（静态可核） |
 | 实现源码在位（calibration/noise/photometry/stars/wcs/drizzle 引擎） | PASS | `lib/algorithms/calibration/`、`lib/phase1/{noise,photometry,stars,wcs}/`、`lib/algorithms/drizzle/healpix_drizzle/`、`lib/phase1_session/p1_session.cpp`（io_read→calibrate→cosmetic→io_write 链） |
-| 合成/单元测试文件在位 | `IMPLEMENTED` | `tests/unit/p1_*.cpp`、`tests/api/test_p1_api.py` 存在于当前提交 |
+| 合成/单元测试文件在位 | `IMPLEMENTED` | `eng/tests/unit/p1_*.cpp`、`eng/tests/api/test_p1_api.py` 存在于当前提交 |
 | **Phase1 节点化（IR 节点唯一真实 operation，`ASTROCS_DESIGN.md` §3.2；原引「宪章 §F.1」已废止）** | **`IMPLEMENTED`** | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257 八节点（calibrate/cosmetic/star-psf/wcs/photo/noise-snr/drizzle/writer）各绑唯一真实 operation；ctest `p1001_real_nodes` 本提交实测 PASS（P1-001 `9e09941a`） |
 | 合成执行验收（当前提交复跑） | 部分 `IMPLEMENTED` | 节点化/消费者用例本提交实测绿（`p1001_real_nodes`）；原生像素域全量合成链路（真实数据）仍未复跑 → 见下 |
 | 真实数据（BASS/32R）验证 | `NOT_VERIFIED` | `docs/RELEASE_STATUS.md`/`docs/KNOWN_LIMITATIONS.md`：FINAL_REAL_DATA_VALIDATION=PENDING；REAL-000 `9f6b72b5` 数据集审计/索引 v1.2/确定性匹配计划已 IMPLEMENTED |
@@ -95,7 +95,7 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 | UPM/采样/排异/积分 ALG 权威冻结 | PASS | `docs/algorithms/{UPM_SOLVER,PHASE2_SAMPLER,REJECTION_ALGORITHMS,INTEGRATION_ALGORITHMS}.md` + INDEX.yaml |
 | 实现源码在位（coverage/sample/upm/reject/integrate/write） | PASS | `lib/algorithms/coverage/src/*.cpp`、`lib/phase2_session/p2_session.cpp`（coverage→sample→upm→reject→integrate→write 链） |
 | **Phase2 节点化（IR 七节点唯一真实 operation）** | **`IMPLEMENTED`** | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4282 七节点（coverage/sample/upm_fit/upm_apply/reject/integrate/write）；ctest `p2001_real_nodes`、`p2002_unc_rej_prov` 本提交实测 PASS（P2-001 `439f9f20`、P2-002 `9e0fa3a8`） |
-| 不确定度/排异/provenance 产品（DATA-UNC-001 §30） | `IMPLEMENTED` | `contracts/data/phase2_uncertainty_rejection_provenance_v1.json` + `tests/unit/p2002_unc_rej_prov_test.cpp` 本提交实测 PASS；已知遗留 F-P2-002-01/02/03 由 lib/infrastructure/scheduler 与 AIO 域处置 |
+| 不确定度/排异/provenance 产品（DATA-UNC-001 §30） | `IMPLEMENTED` | `eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json` + `eng/tests/unit/p2002_unc_rej_prov_test.cpp` 本提交实测 PASS；已知遗留 F-P2-002-01/02/03 由 lib/infrastructure/scheduler 与 AIO 域处置 |
 | 真实数据/接缝/32R 在 Windows 最终验收 | `NOT_VERIFIED` | 待 Fatduck（约束 §E.5；FATDUCK_ACCESS.md） |
 
 ### Phase3（HiPS → 平面 FITS + WCS/coverage/validity/provenance）
@@ -106,8 +106,8 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 | 会话路径 TAN 投影 + WCS + nearest/bilinear 重采样 + FITS 原子写 | `IMPLEMENTED` | `lib/phase3_session/{p3_session,p3_wcs,p3_resample,p3_output}.cpp`（会话路径仍 TAN-only，`p3_wcs.cpp`:36）；ctest `p3_wcs`/`p3_interp`/`p3_output` 家族在本提交全量构建中 rc=0 |
 | **Phase3 节点化（IR 五节点唯一真实 operation）** | **`IMPLEMENTED`** | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4309 五节点（properties/wcs/resample/writer/verify）各绑唯一真实 operation；typed artifact 链 `p3_props.json→p3_wcs.json→p3_resampled.{json,bin}→output_phase3.fits→p3_verify.json`，节点 call_count=1；ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 PASS（P3-002 `1a56ffb7`，科学面 `9662afa8`） |
 | **投影集合（DOC-202 R26 订正 2026-09-20）** | **`CONTRACT_READY`**（声明面）/ **仅 TAN `IMPLEMENTED`** | **设计冻结 8 种** = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`（`ASTROCS_DESIGN.md` §5.3）；**当前登记：仅 `TAN` 已实现**（声明集 D = 实现集 I = `{TAN}`，`lib/algorithms/projection/p3_projection_registry.h`；在役 registry = `p3_proj_v6.cpp`（v3）；`p3_projection.cpp` 的 v1 四行 registry 已 `RETIRED`，仅历史测试面/偏差对照）。**未实现的必须显式报「不支持」**（`p3_proj_declare` → `P3_WCS_UNSUPPORTED` + 请求码 + 原因 + 已支持清单）。**未 INSTALLED**：`lib/algorithms/projection/module.yaml` `entrypoint: MISSING`，生产会话/DLL 尚未挂载 registry → 不得表述为已安装/已验证。~~原「冻结四投影 TAN/SIN/CAR/AIT / registry v1 恰四行」表述作废~~（与 §5.3 八投影及现行 registry 均不符，DOC-202 R26 订正）。 |
-| Phase3 合成/单元测试文件在位 | `IMPLEMENTED` | `tests/unit/p3_{assembly,coverage,interp,output,wcs}_test.cpp`、`tests/api/test_p3_api.py`、`tests/unit/p3002_*_test.cpp`、`tests/unit/p3_projection_test.cpp` 存在于当前提交 |
-| **`healpix_interp4` 四点插值** | **`NOT_IMPLEMENTED`** | `lib/`、`cli/`、`include/`、`runtime/` 全域无 `interp4` 实现符号；当前采样为 nearest/bilinear（G4 冻结权重） |
+| Phase3 合成/单元测试文件在位 | `IMPLEMENTED` | `eng/tests/unit/p3_{assembly,coverage,interp,output,wcs}_test.cpp`、`eng/tests/api/test_p3_api.py`、`eng/tests/unit/p3002_*_test.cpp`、`eng/tests/unit/p3_projection_test.cpp` 存在于当前提交 |
+| **`healpix_interp4` 四点插值** | **`NOT_IMPLEMENTED`** | `lib/`、`cli/`、`lib/include/`、`runtime/` 全域无 `interp4` 实现符号；当前采样为 nearest/bilinear（G4 冻结权重） |
 | **流式 FITS 输出接入 Phase3 writer** | **`NOT_IMPLEMENTED`** | IO-001 冻结 `astrocs.io.fits_stream_v1`（`runtime/io/fits_core.c` + 头 + 契约测试，接口面 `IMPLEMENTED`）；Phase3 writer 走 CFITSIO 原子写（`lib/algorithms/fits_output/p3_output.cpp`），未见流式写接线 |
 
 > 诚实标注：原宪章 §18.1（已废止）冻结的首批投影为 **TAN+SIN+CAR+AIT**（现行 = `ASTROCS_DESIGN.md` §5.3 八投影），其 registry 实现

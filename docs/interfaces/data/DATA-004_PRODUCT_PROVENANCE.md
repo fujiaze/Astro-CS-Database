@@ -8,7 +8,7 @@
 > DATA-003（生产 ArtifactStore：原子发布 + 唯一 producer + manifest hash sidecar）
 > 机器形态：`lib/infrastructure/aio/runtime/artifact_store/provenance.py`（provenance 层，执行校验器）、
 > `lib/infrastructure/aio/runtime/artifact_store/production_store.py`（DATA-004 接线：provenance sidecar /
-> 版本门 / 消费门）、`tests/artifact/test_provenance.py`（验收测试）
+> 版本门 / 消费门）、`eng/tests/artifact/test_provenance.py`（验收测试）
 > 下游：RT-002（phase-isolated runtime 消费门接线）、RT-006（trace 溯源字段）、
 > IO-003（原子 HiPS/manifest 输出复用 provenance sidecar 语义）、LOG-001（脱敏语义对齐）
 
@@ -147,8 +147,8 @@ provenance 顶层字段结构上也不携带任何文件系统路径（storage_u
 | privacy scan 不泄露绝对用户路径/凭据 | §5 + `make_provenance_doc` 隐私门 | `TestPrivacyScanNoLeak` |
 | 接线：sidecar 原子发布/恢复加载/digest 可复算 | §3 production_store 接线 | `TestStoreProvenanceIntegration` |
 
-测试：`tests/artifact/test_provenance.py`（61 测试，无第三方依赖）；DATA-003 基线
-`tests/artifact/test_production_store.py` 30/30 保持通过（未配置 Store 行为不变）。
+测试：`eng/tests/artifact/test_provenance.py`（61 测试，无第三方依赖）；DATA-003 基线
+`eng/tests/artifact/test_production_store.py` 30/30 保持通过（未配置 Store 行为不变）。
 
 ## 7. 边界（非目标）
 
@@ -164,4 +164,4 @@ provenance 顶层字段结构上也不携带任何文件系统路径（storage_u
 ## 8. 文档追溯
 
 `DATA-001/002/003` → `DATA-004 产物溯源（本文档 + provenance.py + production_store 接线）` →
-`tests/artifact/test_provenance.py`。
+`eng/tests/artifact/test_provenance.py`。

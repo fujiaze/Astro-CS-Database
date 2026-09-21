@@ -2,7 +2,7 @@
 """ARCH-004 静态 checker: 未登记线程创建 / 硬编码线程数 / 私有线程池扫描 (§5 合同实现)。
 
 RT-001 加固 (P0 M5a-G-005; 依据 ASTROCS_DESIGN.md §8 + ENGINEERING_SPEC.md §8/§10):
-  1) 扫描面 = 生产源码面 lib/ providers/ lib/infrastructure/cli/ runtime/ include/（tests/fixtures/archive/
+  1) 扫描面 = 生产源码面 lib/ providers/ lib/infrastructure/cli/ runtime/ lib/include/（eng/tests/fixtures/archive/
      third_party 除外）—— 不再只扫 lib/（closing: "扫描面仍只 lib/"）。
   2) PATTERNS 增加 thread_pool (std::vector<std::thread>)：私有线程池声明必须显式登记
      （closing: 全仓 14 处池声明此前对正则不可见）。
@@ -129,7 +129,7 @@ def scan():
                     continue
                 full = os.path.join(dirpath, fn)
                 rel = _posix(os.path.relpath(full, REPO))
-                if "/tests/" in rel or rel.startswith("tests/"):
+                if "/tests/" in rel or rel.startswith("eng/tests/"):
                     continue
                 scanned += 1
                 is_exempt = any(_posix(k) in rel for k in EXEMPT)

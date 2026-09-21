@@ -1,7 +1,7 @@
 // test_stf_engine.cpp - STFEngine 单元测试
 // 模块：healpix_browser_qt / tests
 // 用途：验证 MTF 公式、预设、MAD 自动拉伸、GPU uniform 转换
-// 编译：make tests/test_stf_engine.exe
+// 编译：make eng/tests/test_stf_engine.exe
 
 #include <cassert>
 #include <cmath>

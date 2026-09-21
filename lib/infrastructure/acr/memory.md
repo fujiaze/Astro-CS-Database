@@ -177,7 +177,7 @@ focused 测试 4+4+3 全过；真实 RTX 3060 Ti Mixed 正确。期间修复 pla
    mem_peak_estimates/mem_peak_actions/mem_vram_actions/mem_peak_max；
    3 项新测试（Peak*）全通过。
 7. `test(acr): add compute-sanitizer and cpu sanitizer evidence runner`
-   （a388209）：tests/sanitizer/run_acr_sanitizers.ps1 统一运行 MSVC ASan
+   （a388209）：eng/tests/sanitizer/run_acr_sanitizers.ps1 统一运行 MSVC ASan
    （4 组件）与 compute-sanitizer memcheck/racecheck（warm-up + 明确 timeout +
    exit code 记录）；memcheck 0 errors、racecheck 0 hazards。
 8. `test(acr): mark unstable holdout curves unqualified instead of flaky assert`
@@ -268,7 +268,7 @@ focused 测试 4+4+3 全过；真实 RTX 3060 Ti Mixed 正确。期间修复 pla
 
 **已完成（按计划章节）**：
 1. **§1 内核 ABI 分层**（`refactor(acr): separate cpu callbacks...` 0a3de3d）：
-   - `include/astro/compute/kernel_registry.hpp`：KernelRegistration（OperationId +
+   - `lib/include/astro/compute/kernel_registry.hpp`：KernelRegistration（OperationId +
      KernelArgSchema + Cpu/Cuda/Hip launcher + NumericPolicy）、KernelInvocation
      （id/domain/buffers/scalars/traits/token_id）、KernelRegistry（稳定节点存储、
      线程安全）；
@@ -339,7 +339,7 @@ GTEST_SKIP、ASan 实际开启、外部单 HEAD Evidence 生成中）。**尚未
   4. `task_descriptor.hpp` 未声明 `task_traits_valid`/`task_descriptor_summary`（实现在 .cpp）→ 测试无法链接。补声明到头文件
 - **CMake 集成**：
   - `core/CMakeLists.txt`：acr_core 加入 `task_descriptor.cpp`
-  - `tests/unit/CMakeLists.txt`：注册 3 个新测试目标（acr_test_task_descriptor 链 acr_core+acr_api；acr_test_hardware_profile 链 acr_api；acr_test_cost 链 acr_cost）
+  - `eng/tests/unit/CMakeLists.txt`：注册 3 个新测试目标（acr_test_task_descriptor 链 acr_core+acr_api；acr_test_hardware_profile 链 acr_api；acr_test_cost 链 acr_cost）
 - **清理的警告**：移除 dispatcher.cpp 未用变量 `total_work`；cost_estimator.cpp 未用变量 `bytes_per_item`（range_chunk_thunk 警告系 incomplete-type 错误级联，修复后自动消失）
 - **测试结果**：376/376 通过（1 skipped 是 Phase B 别名声明性）。新增 71 测试：test_task_descriptor 17、test_hardware_profile 33、test_cost 21。366/366 非 smoke 测试并行全通过；10 个 SanitizerSmoke 并行负载下偶发 SEGFAULT（-j1 串行 10/10 稳定通过），系预存并发测试 flaky，与本次改动无关（未触及 sanitizer/event/tiles 代码）。
 
@@ -377,9 +377,9 @@ Phase D 完成。下一阶段：Phase E（Qualification/路由）依赖 B/C/D，
 - **backends/cuda/cuda_buffer.hpp**：CudaBuffer<T> 模板（cudaMalloc/cudaFree RAII，移动语义，禁止拷贝）+ copy_h2d/copy_d2h（async + stream sync）+ cuda_event 类（record/sync/elapsed_since）。全部 #ifdef ACR_BUILD_CUDA 保护
 - **backends/cuda/cuda_buffer.cpp**：query_device_memory 非模板辅助
 - **backends/cuda/CMakeLists.txt**：ACR_BUILD_CUDA=OFF 时 return()；ON 时校验 CMAKE_CUDA_COMPILER，CUDA 标准 17，CMAKE_CUDA_HOST_COMPILER 用 MinGW g++（如未指定），target acr_cuda 静态库链接 cuda+cudart+acr_diagnostics，PUBLIC ACR_BUILD_CUDA=1 传递给消费者
-- **tests/unit/test_cuda.cpp**：13 个 GoogleTest（#ifdef ACR_BUILD_CUDA 保护）：设备枚举/幂等/stream、AXPY MatchesCpu/Empty/Null/NonAligned、CudaBuffer RoundTrip/Move/OutOfBounds、cuda_event Timing、DegradePath、GpuReportCallbackRegistered
+- **eng/tests/unit/test_cuda.cpp**：13 个 GoogleTest（#ifdef ACR_BUILD_CUDA 保护）：设备枚举/幂等/stream、AXPY MatchesCpu/Empty/Null/NonAligned、CudaBuffer RoundTrip/Move/OutOfBounds、cuda_event Timing、DegradePath、GpuReportCallbackRegistered
 - **examples/cuda_axpy.cu**：RTX 3060 Ti AXPY 示例，打印设备信息+H2D/Kernel/D2H 耗时+结果校验
-- **更新 tests/unit/CMakeLists.txt + examples/CMakeLists.txt**：ACR_BUILD_CUDA 条件编译 test_cuda.cpp + cuda_axpy.cu
+- **更新 eng/tests/unit/CMakeLists.txt + examples/CMakeLists.txt**：ACR_BUILD_CUDA 条件编译 test_cuda.cpp + cuda_axpy.cu
 - **构建验证**：
   1. **CPU-only 构建通过**（ACR_BUILD_CUDA=OFF）：cmake configure (0.1s) + build 成功，无 acr_cuda target，无任何 CUDA 引用（ADR-009 门禁满足），ctest 52/52 通过（1 skipped 是 Phase B 别名声明性）
   2. **CUDA 构建工具链问题**（已记录）：nvcc 11.8 + MinGW g++ 16.1.0 host **不支持**（`Failed to preprocess host compiler properties` / `Host compiler targets unsupported OS`）。nvcc 11.8 在 Windows 硬编码要求 MSVC host compiler。尝试 `--allow-unsupported-compiler` 无效（MinGW 目标三元组被拒）。nvcc 11.8 + MSVC cl.exe 14.44（VS2022 BuildTools）+ `--allow-unsupported-compiler` 可编译运行 CUDA kernel，但 ACR 依赖 MSYS2 MinGW ABI（oneTBB/hwloc/gtest），与 MSVC ABI 不兼容，无法用 MSVC 编译整个 ACR
@@ -388,19 +388,19 @@ Phase D 完成。下一阶段：Phase E（Qualification/路由）依赖 B/C/D，
 - **本机环境**：nvcc 11.8.89（C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\bin\nvcc.exe）、MinGW g++ 16.1.0、ninja 1.13.2、MSVC 14.44.35207（VS2022 BuildTools）+ 14.50.35717（VS2026 BuildTools，nvcc 11.8 不支持）、RTX 3060 Ti 驱动 595.79 / 8192 MiB
 
 ### 2026-08-02 Phase C 完成
-- **公共头** `include/astro/compute/topology.hpp`：IsaLevel 位掩码枚举（SSE/SSE2/SSE3/SSSE3/SSE41/SSE42/AVX/AVX2/FMA/AVX512F/CD/BW/DQ/VL）+ CpuIsaCaps（has/has_isa 安全门禁）+ HwlocTopology（PIMPL）+ detect_topology/detect_isa_caps/generate_hardware_report + GpuReportCallback 回调注册（Phase D 用）
+- **公共头** `lib/include/astro/compute/topology.hpp`：IsaLevel 位掩码枚举（SSE/SSE2/SSE3/SSSE3/SSE41/SSE42/AVX/AVX2/FMA/AVX512F/CD/BW/DQ/VL）+ CpuIsaCaps（has/has_isa 安全门禁）+ HwlocTopology（PIMPL）+ detect_topology/detect_isa_caps/generate_hardware_report + GpuReportCallback 回调注册（Phase D 用）
 - **topology/hwloc_topo.cpp**：hwloc 拓扑枚举（package/core/PU/L1L2L3 cache/NUMA/PCI 设备）+ JSON 序列化。无 hwloc 时 `__has_include` 降级返回 `{"status":"unavailable"}`，不抛异常
 - **topology/cpu_features.cpp**：CpuIsaCaps 检测。无 cpu_features 库时用 `__builtin_cpu_supports`（GCC/Clang）降级。AVX-512 子集独立 bit（ADR-004 关键约束）
 - **backends/cpu/isa/{scalar,sse,avx,avx2,avx512,dispatch}.cpp**：AXPY kernel 实现。用 `__attribute__((target("...")))` 函数级启用 ISA intrinsics（TU 默认 baseline，无需全局 -mavx*）。`kernel_<name>_axpy_safe` 运行时门禁（caps 不支持返回 false 不调用，无 SIGILL）。`dispatch_axpy` 自动选最优 kernel（AVX-512 > AVX2 > AVX > SSE > scalar）
 - **diagnostics/hardware_report.cpp**：合并 topology+isa+GPU 回调为 hardware.json（schema=acr.hardware.v1）。GPU 回调用 atomic CAS 首次生效
-- **tests/unit/test_topology.cpp**：18 tests（HwlocTopology JSON/降级、CpuIsaCaps SSE2 必有/AVX-512 门禁/子集独立、AXPY dispatch 正确性、hardware_report schema/GPU 回调）
+- **eng/tests/unit/test_topology.cpp**：18 tests（HwlocTopology JSON/降级、CpuIsaCaps SSE2 必有/AVX-512 门禁/子集独立、AXPY dispatch 正确性、hardware_report schema/GPU 回调）
 - **依赖获取**：
   - hwloc：MSYS2 mingw-w64-x86_64-hwloc 已装（C:/msys64/mingw64/include/hwloc.h + libhwloc.dll.a），无 cmake config，用 find_path/find_library
   - cpu_features：MSYS2 无包，用 `__builtin_cpu_supports` 降级（g++ 16.1.0 支持）。FetchContent 未启用（ADR-008 工具链问题已知）
 - **工具链问题与解决**：
   1. `__builtin_cpu_supports` 参数必须是字符串字面量，不能用变量传入（g++ 报 "parameter to builtin must be a string constant or literal"）。改为直接展开 14 个 if 语句
   2. gtest_discover_tests 默认 POST_BUILD 模式在 build 时运行 exe 发现测试，但 hwloc.dll 不在 PATH 导致 discovery 失败。改用 `DISCOVERY_MODE PRE_TEST`（ctest 运行时才发现）
-  3. ctest "No tests found" 因顶层缺 `enable_testing()`。在 lib/infrastructure/acr/CMakeLists.txt 顶层加 enable_testing()（tests/CMakeLists.txt 也有，但顶层才生成根 CTestTestfile.cmake）
+  3. ctest "No tests found" 因顶层缺 `enable_testing()`。在 lib/infrastructure/acr/CMakeLists.txt 顶层加 enable_testing()（eng/tests/CMakeLists.txt 也有，但顶层才生成根 CTestTestfile.cmake）
   4. ctest 每个测试独立进程，全局变量在测试间重置。FirstCallbackWins 测试改为单测试内注册 cb1+cb2 验证 CAS 首次生效
 - **构建验证**：cmake configure (0.8s) + build 成功 + ctest 52/52 通过（1 skipped 是 Phase B 别名声明性）。path_guard 通过（所有改动在 lib/infrastructure/acr/ 内）
 - **本机 ISA 检测结果**：SSE/SSE2/SSE3/SSSE3/SSE4.1/SSE4.2/AVX/AVX2/FMA = true，AVX-512 全子集 = false（RTX 3060 Ti 的 CPU 不支持 AVX-512）
@@ -468,7 +468,7 @@ Mixed 样例，形成"允许开始修改业务代码"的最终 Evidence。
   min/p90、weighted_integration_report.schema.json）；
 - 桥接新增 weighted_integration host/resident 提交 + upload_persistent_slot
   （slot0=frames、slot1=weights）+ 真实上传计数 upload_count；
-- `tests/integration/`：CorrectnessQuickAllPaths（全模式 + 非整除尾块）、
+- `eng/tests/integration/`：CorrectnessQuickAllPaths（全模式 + 非整除尾块）、
   ForcedMixedBothNonZero、ResidentReuseFramesUploadOnce（frames 上传保持 1）、
   StreamConsistency（1/2 stream 结果一致）。
 

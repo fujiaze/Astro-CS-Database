@@ -62,6 +62,6 @@ downstream: [DATA-P2-SESSION, API-P2-SESSION-001, TEST-P2-SESSION-001]
   本页不另行编号）。
 - 测试：TEST-P2-SESSION-001=**MISSING**（DORMANT 登记；设计冻结面=
   ALG-P2-SESSION-001 TEST-DESIGN，引用 id 不引节号）；共址现状=
-  tests/unit/p2_ir_facade_test.cpp:27-67 静态结构断言（canonical
+  eng/tests/unit/p2_ir_facade_test.cpp:27-67 静态结构断言（canonical
   节点声明/facade 委托），无可执行会话行为测试；lib/phase2_session/
   下无 tests 目录（现状如实）。

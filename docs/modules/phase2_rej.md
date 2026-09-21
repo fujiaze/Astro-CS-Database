@@ -162,8 +162,8 @@ typed params 逐位、Python oracle rtol 1e-12、gather 逐元素精确；
 F1-F6/F8 无 epsilon 门、F7 rtol 1e-12、large_scale mask 精确）。
 现状相邻证据（引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp
 R1/R2/LinearFit/Rcr/G4（:2639-2725）+ G6（ESD NIST Rosner54
-:2779-2863）+ V15-V17（:4138-4864）；tests/backend/
-test_p2004_reject_integrate.py（P2-004 生产 Oracle）；tests/unit/
+:2779-2863）+ V15-V17（:4138-4864）；eng/tests/backend/
+test_p2004_reject_integrate.py（P2-004 生产 Oracle）；eng/tests/unit/
 p2_rejection_test.cpp（P2-005 语义 id/解析面）。
 
 ## 已知限制

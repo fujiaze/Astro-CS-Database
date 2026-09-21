@@ -106,8 +106,8 @@ flowchart LR
 lib/algorithms/      科学算法（并联放置；phase 为内部指代）
 lib/infrastructure/  基建（cli/normalize·mosaic·export + scheduler/pipeline/aio/benchmark/observability/gaia/acr/hips_browser）
 docs/                自解释文档集（science 公式 / algorithms 推导 / plugins 插件 / design 设计 / contracts 合同 / ci 规范）
-contracts/           合同 schema（唯一事实源）
-tests/               测试（与模块共址可复用）
+eng/contracts/           合同 schema（唯一事实源）
+eng/tests/               测试（与模块共址可复用）
 实验/                 科学实验单元（SCI-A/B/C 等，随仓库维护、可独立复核）
 工程控制/             控制包（收口后按 CONTROL_PACK_SPEC §9 清理）
 run/                 临时产物/日志（gitignore，不入库）

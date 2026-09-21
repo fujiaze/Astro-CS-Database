@@ -59,7 +59,7 @@ void p3_sampler_attach_cache(P3Sampler* dst, const P3Sampler* src);
 
  * 语义: open_failures = 真实打进"不存在的 tile 文件"的 open 次数 (无论是否开了
  * 负缓存), 是"未覆盖区域代价"的**可观测计数器** —— 回归用例
- * tests/unit/p3_sampler_cache_test.cpp 据此断言"重复采样不线性增长底层 open 次数"。 */
+ * eng/tests/unit/p3_sampler_cache_test.cpp 据此断言"重复采样不线性增长底层 open 次数"。 */
 struct P3CacheStats {
     unsigned long long cap_tiles = 0;         // 容量 (tile 数)
     unsigned long long resident_tiles = 0;    // 当前常驻 (含已知缺失项)
@@ -74,7 +74,7 @@ void p3_sampler_cache_stats(const P3Sampler* s, P3CacheStats* out);
 
 /* P30 回归对照专用: 开关"缺失 tile 负缓存"(默认 1=开)。
  * enabled=0 精确退化为修复前语义 (每个缺失像素重试一次失败 open) —— 仅用于
- * tests/unit/p3_sampler_cache_test.cpp 的**阴性对照**, 生产路径不得关闭。
+ * eng/tests/unit/p3_sampler_cache_test.cpp 的**阴性对照**, 生产路径不得关闭。
  * 同一输入下开关只影响 open 次数与耗时, 不改变任何像素值。 */
 void p3_sampler_set_absent_cache(P3Sampler* s, int enabled);
 

@@ -4,7 +4,7 @@
  * 角色: CPU-004 冻结的 AMD64 AVX-512 provider (target 单独
  * -mavx512f -mavx512cd -mavx512bw -mavx512dq -mavx512vl; Windows
  * /arch:AVX512) 的 kernel 注册合同。provider 本体导出唯一入口
- * astrocs_provider_query_v1 (include/astrocs/abi/module_api_v1.h 冻结;
+ * astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结;
  * ARC-001 §1.2 / 15 §1), 消费 CPU-001 capability 判定
  * (lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h) 完成
  * "所需 AVX-512 子集 ∈ os_safe" (OSXSAVE + XGETBV XMM|YMM|opmask|ZMM 状态)
@@ -14,14 +14,14 @@
  *
  * 冻结合同:
  *   - 热点 profile 台账 = ISA-004 实测 (docs/architecture/ISA_VARIANTS.md
- *     §1.6 + artifacts/prerelease_v5/ISA-004/MEASUREMENTS.csv; SA-CPU-09
+ *     §1.6 + artifacts/evidence/prerelease-v5/ISA-004/MEASUREMENTS.csv; SA-CPU-09
  *     冻结): hips-bulk-transform avx512 +29.5% vs baseline (≈avx2 +28.3%
  *     同档) —— 唯一实测可能获益 kernel; calibration +3.8% (远低 avx2
  *     +11.7%) 与 drizzle-accumulate −22.5% 均 NOT_SHIPPED (防 AVX-512 降频
  *     使全局性能变差 —— 只注册实测获益 kernel, 不机械堆砌);
- *   - include/astrocs/abi/module_api_v1.h (provider ABI: acs_provider_api_v1 /
+ *   - lib/include/astrocs/abi/module_api_v1.h (provider ABI: acs_provider_api_v1 /
  *     acs_kernel_desc_v1 / run_kernel 签名; ABI-001);
- *   - include/astrocs/abi/lifecycle_v1.h (self_test 语义 / host_abi 协商; ABI-002);
+ *   - lib/include/astrocs/abi/lifecycle_v1.h (self_test 语义 / host_abi 协商; ABI-002);
  *   - lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h (CPU-001 os_safe
  *     平面: AVX-512 组须 F/CD/BW/DQ/VL 五子集 hw 全置 + XCR0.0xE0 全置);
  *   - lib/infrastructure/benchmark/cpu/baseline/include/astrocs/cpu/baseline_provider_v1.h

@@ -14,7 +14,7 @@
   2. 根目录出现 astrocs_run_* 等运行产物（无论是否被 .gitignore 覆盖）；
   3. §7 要求存在的条目缺失。
 
-能绿能红：见 tests/quality/test_root_cleanliness.py（1 正例 + 3 负例）。
+能绿能红：见 eng/tests/quality/test_root_cleanliness.py（1 正例 + 3 负例）。
 输出：机器 JSON（stdout + 可选 --json-out）。
 """
 from __future__ import annotations

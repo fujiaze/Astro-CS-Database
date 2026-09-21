@@ -17,7 +17,7 @@
 
 - **输入**：合同兼容 HiPS（signal、variance/correlation、coverage/validity、PSF 或 point-source statistics）、WCS 计划、采样核、配置。
 - **输出**：平面重采样产品（信号/统计、variance、correlation、coverage、validity、effective PSF 或明确不支持点源）。
-- 参考：`contracts/schemas/export_product.schema.json`。
+- 参考：`eng/contracts/schemas/export_product.schema.json`。
 
 ## 4. 算法与公式要点
 

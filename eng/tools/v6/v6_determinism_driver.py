@@ -2,7 +2,7 @@
 """RUNTIME-CI-001 确定性驱动：V6 三模式入口 + Phase1/2/3 写盘路径的逐字节一致回归。
 
 方法：
-  * 独立（standalone）构建 tests/integration/v6_p1 | v6_p2 | v6_p3 的写盘测试；
+  * 独立（standalone）构建 eng/tests/integration/v6_p1 | v6_p2 | v6_p3 的写盘测试；
   * 同一输入在**不同 CPU 预算**（taskset 1/2/4/8 核）下重复运行；
   * 对每个产物目录做**内容摘要**（相对路径 + 文件内容 SHA-256，排序后聚合；
     目录名/日志不参与），要求跨预算逐字节一致；
@@ -28,13 +28,13 @@ DEFAULT_REPO = pathlib.Path(__file__).resolve().parents[3]
 
 # V6 三模式入口 + Phase1/2/3 写盘路径（各自 standalone 构建）。
 SPECS = [
-    {"name": "v6_p1_phase1_write", "source": "tests/integration/v6_p1",
+    {"name": "v6_p1_phase1_write", "source": "eng/tests/integration/v6_p1",
      "binary": "v6_p1_integrate_test", "args": ["positive", "{work}"],
      "products": "{work}"},
-    {"name": "v6_p2_three_modes_write", "source": "tests/integration/v6_p2",
+    {"name": "v6_p2_three_modes_write", "source": "eng/tests/integration/v6_p2",
      "binary": "v6_p2_integrate_test", "args": ["write", "{work}"],
      "products": "{work}"},
-    {"name": "v6_p3_export_write", "source": "tests/integration/v6_p3",
+    {"name": "v6_p3_export_write", "source": "eng/tests/integration/v6_p3",
      "binary": "v6_p3_export_test", "args": ["positive", "{art}"],
      "products": "{art}"},
 ]

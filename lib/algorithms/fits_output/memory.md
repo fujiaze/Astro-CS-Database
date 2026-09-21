@@ -114,9 +114,9 @@
   :273-296（aio_fits 等 6 源 + astrocs_cfitsio vendored + z）；
   cfitsio 进程锁单例 lib/infrastructure/aio/src/aio_cfitsio_mutex.h
   :9-15（aio_fits.cpp:529 读路径 + p3_output.cpp:125 写路径共用，
-  RT-008）。tests/unit/CMakeLists.txt:442-447 p3_output_test
+  RT-008）。eng/tests/unit/CMakeLists.txt:442-447 p3_output_test
   （链 astrocs_phase3_session+astrocs_hips+astrocs_common）。
-- 执行测试锚（tests/unit/p3_output_test.cpp，116 行，4 段）:
+- 执行测试锚（eng/tests/unit/p3_output_test.cpp，116 行，4 段）:
   ①原子写+mask（:62-88，64×48 渐变场+分段 mask、prov 全字段、
   BITPIX=-32、res.coverage_ok/reopen_ok/sha256 len==64）、
   ②独立 verify（:89-100）、③无 .tmp 残留（:101-113，
@@ -140,7 +140,7 @@
     make_temp_path 生成 `out_path.<pid>.tmp`（p3_output.cpp:81，
     无前置点、保留 .fits 扩展名）；同目录保证 rename 原子性语义
     不变，但执行测试残留检查前缀 ".astrocs_p3_out_test."
-    （tests/unit/p3_output_test.cpp:102-103）与实际命名恒不匹配
+    （eng/tests/unit/p3_output_test.cpp:102-103）与实际命名恒不匹配
     → 残留检查弱匹配空转（不误报，也捕不到本实现形态的残留）。
     登记不改码，命名统一归 P3-FITS-IMPL。
   - 整改项（非缺陷）: manifest_hash 恒 nullptr（p3_session.cpp
@@ -150,7 +150,7 @@
 - 五门基线与产出（本任务跑数见 selfcheck 输出）: traceability
   modules=30 errors=0 warns=4（基线 warns=4 均为存量 EVID/API
   authority WARN，本任务新增 WARN 计数须持平=4）；pytest
-  tests/traceability 9 passed；contract graph 80→86（+6 条目）；
+  eng/tests/traceability 9 passed；contract graph 80→86（+6 条目）；
   doccheck 修复存量缺口 docs/algorithms/PHASE2_UPM_IMPL.md 未登
   DOCUMENT_INDEX（UPM-DOC 漏登，机械补登条目不改动文件内容——照
   P2-SAMP e654d4c2 补登先例）+ 本任务新文件登记 → verdict

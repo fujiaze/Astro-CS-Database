@@ -12,7 +12,7 @@ test_drizzle.py - HEALPix Drizzle 单元测试
 
 运行:
     cd lib/algorithms/drizzle/healpix_drizzle
-    python -m pytest tests/test_drizzle.py -v -s
+    python -m pytest eng/tests/test_drizzle.py -v -s
 
 依赖:
     - healpix_drizzle.dll (healpix_drizzle/ 目录下)
@@ -38,9 +38,9 @@ import pytest
 # 路径设置: 添加 healpix_drizzle 和 healpix_io 模块路径
 # ============================================================================
 _TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-# healpix_drizzle 模块目录 (tests/ 的上级)
+# healpix_drizzle 模块目录 (eng/tests/ 的上级)
 _DRIZZLE_MODULE_DIR = os.path.normpath(os.path.join(_TEST_DIR, ".."))
-# healpix_io 模块目录 (tests/ 的上上级的 healpix_io/ 子目录)
+# healpix_io 模块目录 (eng/tests/ 的上上级的 healpix_io/ 子目录)
 _HEALPIX_IO_MODULE_DIR = os.path.normpath(os.path.join(_TEST_DIR, "..", "..", "..", "..", "healpix_io"))
 
 for _p in (_DRIZZLE_MODULE_DIR, _HEALPIX_IO_MODULE_DIR):

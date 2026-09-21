@@ -35,7 +35,7 @@ psf_snr_power:       DEFERRED（生产拒绝）
 |---|---|---|
 | RELEASE-01 | **不满足 `READY_FOR_OWNER_REVIEW`**：L1 有条件通过（合成 ctest 442 全绿，但存在空/恒真断言与未链产品库的"假测试"）；**L2 合成/真实性能不通过**（4/4 normalize、3/4 mosaic 违约，mosaic 近单线程利用率 5.6–6.4%，Phase1 峰值 RSS 无界增长）；L3 通过；**L4 视觉判定 FAIL**（接缝/背景均匀不通过）；P0 16 条全 OPEN | Windows 腿未构建/未验收 |
 | RELEASE-02 | `SUMMARY.md` 为**未填写空模板**（未宣布收口）；其目标（接缝、逆方差链、性能、测试、科学订正）由 RELEASE-03 承接，收口基线见下 | 接缝结论见 `docs/KNOWN_LIMITATIONS.md` §15 |
-| RELEASE-03 | **机器门全绿**：`eng/ci/run_checks.py --all` = `verdict=PASS entries=52 steps=99 pass=99 fail=0`（timeout/prereq/skip=0）；`ctest` 472/472；`ninja` rc=0 0 error；**零豁免**（`eng/ci/exemptions.json`=`[]`）。开工基线为 `entries=40 steps=86 pass=81 fail=5`。遗留 18 项如实登记（已由当前控制包差距清单承接） | 未覆盖面：Windows 腿、linux-main/deep 重型档、`tests/cli` 余 5 红（非本包）、SIGTERM exit 9 路径 |
+| RELEASE-03 | **机器门全绿**：`eng/ci/run_checks.py --all` = `verdict=PASS entries=52 steps=99 pass=99 fail=0`（timeout/prereq/skip=0）；`ctest` 472/472；`ninja` rc=0 0 error；**零豁免**（`eng/ci/exemptions.json`=`[]`）。开工基线为 `entries=40 steps=86 pass=81 fail=5`。遗留 18 项如实登记（已由当前控制包差距清单承接） | 未覆盖面：Windows 腿、linux-main/deep 重型档、`eng/tests/cli` 余 5 红（非本包）、SIGTERM exit 9 路径 |
 | PROJECT-GOVERNANCE-01/02 | 治理包只完成编制/部分执行，未宣布收口；未闭合项见 `docs/KNOWN_LIMITATIONS.md` §C 与当前控制包 | — |
 | SCI-RES-01 | **从未执行**（5 课题全 `NOT_STARTED`，`run/SCI-RES-01/` 不存在）⇒ 无研究结论可沉淀 | 研究课题去向由前台按当前控制包登记 |
 

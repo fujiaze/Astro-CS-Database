@@ -1,4 +1,4 @@
-# lib/algorithms/coverage/tools/config_smoke.py — G7 Stage2 config/schema smoke
+# lib/algorithms/coverage/tools/config_smoke.py — G7 Stage2 eng/packaging/config/schema smoke
 #
 # 校验：
 #   1. official template 通过 production schema（jsonschema）；

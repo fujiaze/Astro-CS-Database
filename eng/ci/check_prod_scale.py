@@ -33,8 +33,8 @@ import gate_common as gc  # noqa: E402
 
 CHECK_ID = "CHK-PROD-SCALE"
 LEDGER = "eng/ci/ledgers/prod_scale_params.json"
-SCAN_GLOBS = ("lib/**/tests/**/*.cpp", "lib/**/tests/**/*.h", "tests/**/*.cpp",
-              "lib/**/tests/**/*.hpp", "tests/**/*.hpp")
+SCAN_GLOBS = ("lib/**/tests/**/*.cpp", "lib/**/tests/**/*.h", "eng/tests/**/*.cpp",
+              "lib/**/tests/**/*.hpp", "eng/tests/**/*.hpp")
 _LIT = r"(-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?)"
 _CONST_DEF_RE = re.compile(
     r"\b(?:const|constexpr)\s+[A-Za-z_][A-Za-z0-9_:<>,\s\*&]*?\b"

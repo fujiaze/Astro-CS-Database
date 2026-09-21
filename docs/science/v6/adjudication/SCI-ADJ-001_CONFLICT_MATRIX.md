@@ -166,7 +166,7 @@
 | 事项 | 事实 | 本任务处置 |
 |---|---|---|
 | F1 基线分歧 | 工作树相对 HEAD：16 tracked 回退 + 10 tracked 删除，未裁决（C-004.6：W5 派发前必须裁定） | 只登记（CTRL-F1）。本任务全部输入公式锚点在 W1 双态核验一致，科学结论不依赖 F1；本任务一切生产面描述以 HEAD=bc166e9d 为准 |
-| AR-033 根构建面 owner | 根 CMakeLists.txt、tests/unit/CMakeLists.txt、tests/unit/p1snr/CMakeLists.txt 无 V6 owner；W5 测试无法注册 | 只登记（CTRL-AR033）。遵守 C-004.4：W5 各 IMPL 只在自身 write_scope 注册；根构建面由控制器 W5 后独立集成提交（归 RUNTIME-CI-001/W9） |
+| AR-033 根构建面 owner | 根 CMakeLists.txt、eng/tests/unit/CMakeLists.txt、eng/tests/unit/p1snr/CMakeLists.txt 无 V6 owner；W5 测试无法注册 | 只登记（CTRL-AR033）。遵守 C-004.4：W5 各 IMPL 只在自身 write_scope 注册；根构建面由控制器 W5 后独立集成提交（归 RUNTIME-CI-001/W9） |
 | AR-036/AR-019/AR-026 | 宪章 §10.5/§17.6「记录 vs 自动判决」需负责人签字；V6 无承载 | 只登记（CTRL-AR036）+ 签字项 SO-05；不代裁 |
 
 ---

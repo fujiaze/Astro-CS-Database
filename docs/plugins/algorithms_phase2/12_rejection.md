@@ -16,7 +16,7 @@
 
 - **输入**：归一化产品组、预测残差方差（含 Phase1 噪声 + UPM 参数不确定度）、validity、配置。
 - **输出**：rejection mask、count、reason 分类、probability、方法版本。
-- 参考：`contracts/schemas/rejection_output.schema.json`。
+- 参考：`eng/contracts/schemas/rejection_output.schema.json`。
 
 ## 4. 算法与公式要点
 

@@ -26,7 +26,7 @@ photometric scale、新 runtime I/O DLL。
 - **W3 coverage 真实实现**（`src/coverage.cpp`）：AIO reader 读取每帧
   properties/tiles，兼容校验（hips_frame/obs_filter/tile_width/version），
   MOC union（NESTED parent 聚合），target_order = min(输入 max order)。
-- **W4 control sampler**（`include/astro/phase2/sampler.h` +
+- **W4 control sampler**（`lib/include/astro/phase2/sampler.h` +
   `src/sampler.cpp`）：union 内 control cell 网格（默认 8×8/tile），patch
   estimator（support>0 + finite 过滤，median 位置 + MAD 尺度），SNR 来自
   Phase1 SNR Catalogue 邻近星点（不重新检测星点），保留负值。
@@ -156,7 +156,7 @@ photometric scale、新 runtime I/O DLL。
 ## P2-COV-DOC 冻结（2026-09-07，SA-P2-S20）
 
 - 范围：astrocs.p2.coverage（matrix P2-COV 行）合同冻结——coverage
-  生产源=本目录 src/coverage.cpp（239 行）+ include/astro/phase2/
+  生产源=本目录 src/coverage.cpp（239 行）+ lib/include/astro/phase2/
   coverage.h（59 行），legacy 即本目录（legacy_paths="lib/algorithms/coverage
   coverage sources"）；sampler/upm/rejection/integrate 归 P2-SAMP/
   P2-UPM/P2-REJ/P2-INT 各自 DOC。本任务 lib/algorithms/coverage 生产源零 diff
@@ -186,16 +186,16 @@ photometric scale、新 runtime I/O DLL。
   include（:47-51）+ 两阶段全量重扫 + ThreadLease 未接线。
 - 验收基线（本任务自检）：check_traceability_matrix rc=0 errors=0
   warns=4（基线不变）；check_contract_graph rc=0 contracts=55；
-  check_doc_index PASS；pytest tests/traceability 4 passed；生产源
+  check_doc_index PASS；pytest eng/tests/traceability 4 passed；生产源
   diff=0。日志 run/local/agent_p2_cov_doc/（不提交）。
 
 ### P2-002（2026-09-10，控制包 ASTROCS-CONSTITUTION-ALIGNMENT-V1）
 
-- §30.2/§30.3 白名单内落地：contracts/data/
+- §30.2/§30.3 白名单内落地：eng/contracts/data/
   phase2_uncertainty_rejection_provenance_v1.json（AIO 子产品位分配
   NREJ=32/NUSED=64 冻结登记 + §30.3 五键冻结表 + 诊断平面不入 science
   planes（F-UNC-003 零断链，schema/validator 零修改）+ pending AIO 通道
-  登记）+ tests/unit/p2002_unc_rej_prov_test.cpp（kernel 语义直调（正确
+  登记）+ eng/tests/unit/p2002_unc_rej_prov_test.cpp（kernel 语义直调（正确
   gather 契约）+ 集成投影对拍 + §30.3 五键对拍 + unavailable 显式登记 +
   确定性/1v4 parity + ASTROCS_P2002_FAULT=proj|prov 故障注入必败）。
 - §30.1（P2-001 已落地）不动；本任务生产源零修改（scientific_change=
@@ -216,7 +216,7 @@ photometric scale、新 runtime I/O DLL。
 
 - 目标：F-P2-002-02（STD-F2）integrate 剔除 kernel 拒绝样本，使 §30.2
   n_ineligible = depth − nused − nrej 恒等式在部分拒绝场景成立。
-- **缺陷本体在写白名单（lib/algorithms/coverage/ + tests/）之外**，未越界修改：
+- **缺陷本体在写白名单（lib/algorithms/coverage/ + eng/tests/）之外**，未越界修改：
   `lib/infrastructure/scheduler/src/module_adapters.cpp` 两处——
   (1) `:2511-2545`（p2_op_reject）把 kernel 的逐样本 reason 塌缩为**像素级**
   accepted(u8)"任一接受即 1"（`:2532-2536`），nrej 为像素级计数（`:2537`）；
@@ -229,7 +229,7 @@ photometric scale、新 runtime I/O DLL。
   再过 p2_integrate_pixel。⇒ 违规面唯一 = lib/infrastructure/scheduler 节点链（Stage2 CLI 与
   ACR 均不产出 §30.2 的 nused/nrej/variance/ivar 产品）。
 - 本任务 in-scope 交付（白名单内，source 面零改动于 lib/algorithms/coverage/src、
-  include、tools）：tests/unit/p2002_unc_rej_prov_test.cpp 新增 2c/2d/2e 三节
+  include、tools）：eng/tests/unit/p2002_unc_rej_prov_test.cpp 新增 2c/2d/2e 三节
   + 订正 2 节被缺陷行为编码的旧期望——（a）§30.2 恒等式逐像素断言
   （n_ineligible == 0，depth 由 candidates bins 机器佐证，非测试自述）；
   （b）§30.1 ivar_mosaic = Σ ivar_i 必须只含**入栈样本**（nrej>0 像素

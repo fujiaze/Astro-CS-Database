@@ -93,7 +93,7 @@
 lib/algorithms/star_detection/
 ├── archive/
 │   └── V4.66_pre_cleanup/       # 原始代码归档 (含第三方项目引用)
-├── include/
+├── lib/include/
 │   └── star_detector.h          # 公共 API (未修改)
 ├── python/
 │   ├── star_detector.py         # Python 绑定

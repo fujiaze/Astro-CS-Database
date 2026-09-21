@@ -5,7 +5,7 @@
 >       / 03_TARGET_PRODUCT_AND_ARCHITECTURE.md（lib/infrastructure/benchmark/cpu 目标树）
 > 下游: CPU-002 baseline、CPU-003 AVX2/FMA、CPU-004 AVX-512、CPU-005 路由
 > 实现: lib/infrastructure/benchmark/cpu/common/（capability_v1.h + capability_detect.c）
-> 测试: tests/cpu/dispatch/（probe + feature matrix 模拟负测 + schema 校验）
+> 测试: eng/tests/cpu/dispatch/（probe + feature matrix 模拟负测 + schema 校验）
 
 ## 1. 目标与验收
 
@@ -69,14 +69,14 @@ AVX512DQ=1<<11, AVX512VL=1<<12`。
 
 - `acs_cap_result_v1` 等 POD 前两字段 `struct_size + abi_version`
   （`ACS_CAP_ABI_VERSION_V1=1`）；失配返回 `ACS_CAP_ERR_ABI_MISMATCH`，不做布局猜测。
-- 错误码数值与 `include/astrocs/abi/status_codes.h` `acs_status` 对齐
+- 错误码数值与 `lib/include/astrocs/abi/status_codes.h` `acs_status` 对齐
   （OK=0/ERR_PARAM=1/ERR_ABI_MISMATCH=2/ERR_UNSUPPORTED=5）。
 - 纯 C11（extern "C" 兼容 C++17）；禁 STL/异常/RTTI；无第三方依赖；
   跨边界无托管分配、无 opaque handle。
 
 ## 6. 模拟 feature matrix（测试事实源）
 
-`tests/cpu/dispatch/cpu_capability_matrix_test.c` 以合成
+`eng/tests/cpu/dispatch/cpu_capability_matrix_test.c` 以合成
 `acs_cap_result_v1`（直接置 CPUID 证据 + XCR0/OSXSAVE）驱动与生产同一的
 `cap_classify` 语义（经公开 API `acs_cap_detect_v1` 后绕开不可注入的实测分支，
 复用 `acs_cap_os_safe_satisfies_v1` 判定）——负测不触碰生产探测路径外的代码，

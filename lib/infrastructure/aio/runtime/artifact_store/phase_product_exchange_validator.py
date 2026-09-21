@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """DATA-002 phase product exchange 校验器（运行时 schema 层，自包含语义校验，无第三方依赖）。
 
-职责（与 contracts/data/phase_product_exchange.schema.json 一一对应；schema 为权威文档形态，
-本文件为执行形态；二者须同步修改——机器检查见 tests/artifact/test_phase_product_exchange.py）：
+职责（与 eng/contracts/data/phase_product_exchange.schema.json 一一对应；schema 为权威文档形态，
+本文件为执行形态；二者须同步修改——机器检查见 eng/tests/artifact/test_phase_product_exchange.py）：
 
   1. 严格 JSON 解析: 拒绝 NaN/Infinity 字面量与重复 key（复用 DATA-001 load_strict_json）。
   2. 结构校验（自包含，不依赖 jsonschema 库）:

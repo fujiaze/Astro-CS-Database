@@ -36,7 +36,7 @@ inline bool is_frozen_exit_code_v1(int c) {
 }
 
 // §4 kind 注册表 v1 —— **10 类开放 kind 全登记**（FIX-405 G3-10）。
-// 登记面 = 实现正本（本表）↔ 机器 schema（contracts/schemas/jsonl_event_v1.schema.json
+// 登记面 = 实现正本（本表）↔ 机器 schema（eng/contracts/schemas/jsonl_event_v1.schema.json
 // 的 properties.kind.enum + 同名 allOf 分支）↔ 人类可读合同
 // （docs/api/CLI_PROTOCOL_V1.md §4）；三者必须同面。
 // 未登记 kind ⇒ ValidateEventV1 拒发（fail-closed；新增 kind 必须同时登记两处，只增不改）。
@@ -51,7 +51,7 @@ inline const std::vector<std::string>& registered_event_kinds_v1() {
         "stage_end",      // §4 重计算 stage 退出（JsonlEmitter::stage(false)）
         "graph",          // RT-009 运行图渲染告警（非致命；path 必填）
         "resource_gate",  // §9.74 裁决 10 资源判据 record-only 记录
-        "v6_mode_route",  // v6 模式路由裁决（config/CLI 面 legacy 令牌）
+        "v6_mode_route",  // v6 模式路由裁决（eng/packaging/config/CLI 面 legacy 令牌）
     };
     return k;
 }
@@ -116,13 +116,13 @@ inline bool ValidateEventV1(const nlohmann::json& ev, unsigned long long expect_
     }
     const std::string kind = ev.value("kind", std::string());
     // FIX-405 G3-10: kind 注册表硬闸 —— 未登记 kind 一律拒发（fail-closed）。
-    // 注册面 = registered_event_kinds_v1()（与 contracts/schemas/jsonl_event_v1.schema.json
+    // 注册面 = registered_event_kinds_v1()（与 eng/contracts/schemas/jsonl_event_v1.schema.json
     // 的 kind enum + docs/api/CLI_PROTOCOL_V1.md §4 同面）。
     if (!is_registered_event_kind_v1(kind)) {
         std::fprintf(stderr,
                      "astrocs: protocol: unregistered event kind '%s' rejected "
                      "(registered=%zu kinds; register in protocol.h + "
-                     "contracts/schemas/jsonl_event_v1.schema.json)\n",
+                     "eng/contracts/schemas/jsonl_event_v1.schema.json)\n",
                      kind.c_str(), registered_event_kinds_v1().size());
         return false;
     }

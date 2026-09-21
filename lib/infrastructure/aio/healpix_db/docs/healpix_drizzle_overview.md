@@ -43,7 +43,7 @@ FITS 图像 (含 WCS+SIP) → Drizzle 引擎 → .ahpx (HEALPix 单帧) → heal
 | `drizzle_engine.h/.cpp` | Drizzle 核心引擎 (6 步流水线 + OpenMP 并行) |
 | `hp_drizzle_api.h/.cpp` | C API 导出层 |
 | `healpix_drizzle.py` | Python ctypes 绑定 |
-| `tests/test_drizzle.py` | 单元测试 |
+| `eng/tests/test_drizzle.py` | 单元测试 |
 
 ## 依赖
 - `ahpx_io/compressor` (压缩, 静态链接)

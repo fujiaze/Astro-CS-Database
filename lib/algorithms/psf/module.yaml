@@ -135,7 +135,7 @@ notes: >-
   -> -1 不外抛跨 C ABI，修复前 h<0 触发 (size_t)w*h 下溢 -> length_error ->
   SIGABRT，即 DISP-PSF-007 候选）；逐星 patch 分配失败星级隔离为
   INVALID_PARAMS/NaN 占位；f32/f64 NaN 初始化 N*9 以 int64 计（入口
-  n>INT_MAX/9 拒绝）。负例锚 tests/p1psf negative 组 N4b/N4c（注入名
+  n>INT_MAX/9 拒绝）。负例锚 eng/tests/p1psf negative 组 N4b/N4c（注入名
   batch_boundary）。
   拟合失败语义（P1-PSF-DOC 冻结，STAR_PSF_ALGORITHMS §11.2）：DPSF_FIT_OK=0
   （||Δx||<tol*(||x||+1e-30)，:164）；DPSF_FIT_NO_CONVERGENCE=1（验证链三关：
@@ -159,7 +159,7 @@ notes: >-
   psf.max_stars 颗(节点配置, 默认 5000; 0=不截断)。完整精确路径
   (p1_op_star_psf_precise = n_fit_limit 0) **保留但 inactive**: 开关
   kPrecisePsfEnabled=false + if constexpr 编译期丢弃, 生产注册表不注册,
-  存活直调测试 tests/unit/p1001_real_nodes_test.cpp::
+  存活直调测试 eng/tests/unit/p1001_real_nodes_test.cpp::
   test_psf_fast_cap_and_inactive_precise(钩子 p1_op_star_psf_precise_json)。
   依据: psf 端口死边 + psf_params 零消费者 + 测光正式口径=孔径测光(负责人
   2026-09-14)。同批纯性能: pow(1+Q,4) 展开(末位 ulp 可变)、lm_solve 缓冲

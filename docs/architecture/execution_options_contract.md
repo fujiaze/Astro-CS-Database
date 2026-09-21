@@ -46,7 +46,7 @@
 
 约束：`cpu_workers/io_workers` 属于 [0,1024]（`0` = auto ⇒ 由 profile 与预算对象决定）。
 违反即 `p2_stage2_parse_config` 返回 false（带错误信息）。schema 见
-`contracts/schemas/phase_config_*.schema.json` 的 `config` 段（生产配置 schema）。
+`eng/contracts/schemas/phase_config_*.schema.json` 的 `config` 段（生产配置 schema）。
 
 ## CLI 覆盖
 

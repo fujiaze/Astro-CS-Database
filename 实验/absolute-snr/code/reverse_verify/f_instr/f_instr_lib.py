@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """F-INSTR (裁决 A6) 公共库: 物理正向渲染 + 星点通量口径估计器 + 度量.
 
-只读研究脚本; 不改 lib/ docs/ tests/ ci/; 中间产物落 run/reverse_verify/f_instr/.
+只读研究脚本; 不改 lib/ docs/ eng/tests/ ci/; 中间产物落 run/reverse_verify/f_instr/.
 
 ======================================================================
 噪声模型 (报告中"方法"节照抄)

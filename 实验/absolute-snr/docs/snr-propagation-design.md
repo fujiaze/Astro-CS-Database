@@ -3,7 +3,7 @@
 > **论文雏形** — 本文是 AstroCS RELEASE-02 `SNR-DESIGN` 工作项的设计文档，可直接扩写为论文的方法节。
 > 工作区：`reverse_verify/`（逆向验收区）。所有数值证据由 `实验/SCI-B/code/reverse_verify/snr_design/exp1..exp5` 独立产出，
 > 中间产物落 `run/reverse_verify/snr_design/`。
-> **性质**：只做方案设计，不改任何生产代码（`lib/`、`docs/`、`tests/`、`ci/` 零改动），零 git 写。
+> **性质**：只做方案设计，不改任何生产代码（`lib/`、`docs/`、`eng/tests/`、`ci/` 零改动），零 git 写。
 
 ---
 
@@ -348,7 +348,7 @@ intra_k(x,y) = sqrt( W_info,k(x,y) / ⟨W_info,k⟩ )        （组内归一，�
 - **换算红线**：`rho` 是 **SNR** 的相对因子，**不是权重**——`w(p) = w_frame · rho(p)²`（差一个平方就会系统性偏权）。
   负责人裁定的 `SNR(p) = SNR_frame × rho_c(p)`（线性插值）与本式**逐字一致**，核对见 §13.9；
 - 控制点存**未加权 SNR**（`07_noise_snr.md:70`），不是权重；
-- 契约载体已存在：`contracts/schemas/unified/sparse_snr_layer.schema.json`，
+- 契约载体已存在：`eng/contracts/schemas/unified/sparse_snr_layer.schema.json`，
   `control_points[{x, y, sparse_snr_value}]`，`role = intra_frame_reference`，
   `object_weight_capability = false`（"该层是参考层，不是 variance/ivar，不承载帧级权重"）。
 - **本文的设计增量**：冻结 `sparse_snr_value` 的**数值语义**与**控制点值的支撑尺度**（§3.1）。
@@ -477,7 +477,7 @@ intra_k(x,y) = sqrt( W_info,k(x,y) / ⟨W_info,k⟩ )        （组内归一，�
 
 ### 3.3 控制点存什么值（口径必须冻结）
 
-现行 schema（`contracts/schemas/unified/sparse_snr_layer.schema.json`）只写 `control_points[{x, y, sparse_snr_value}]` 与
+现行 schema（`eng/contracts/schemas/unified/sparse_snr_layer.schema.json`）只写 `control_points[{x, y, sparse_snr_value}]` 与
 `role = "intra_frame_reference"`，**未冻结数值语义**。本文冻结为：
 
 ```text
@@ -1188,7 +1188,7 @@ uncertainty_available = true 的真值条件（三条同时成立，fail-closed�
 
 | # | 现状 | 目标 | 差距 | 修复面 |
 |---|---|---|---|---|
-| X-1 | `sparse_snr_layer.schema.json` 只写 `control_points[{x,y,sparse_snr_value}]`，**未冻结数值语义与支撑尺度** | 冻结 `value_semantics` ∈ {绝对/相对/天光} 与 `support_scale_px` | 语义未冻结 ⇒ 重建算子会把点值误当点采样 | 合同（`contracts/schemas/unified/sparse_snr_layer.schema.json` 只增不改） |
+| X-1 | `sparse_snr_layer.schema.json` 只写 `control_points[{x,y,sparse_snr_value}]`，**未冻结数值语义与支撑尺度** | 冻结 `value_semantics` ∈ {绝对/相对/天光} 与 `support_scale_px` | 语义未冻结 ⇒ 重建算子会把点值误当点采样 | 合同（`eng/contracts/schemas/unified/sparse_snr_layer.schema.json` 只增不改） |
 | X-2 | 无重建算子实现（除 v6 的 `bilinear_regular_grid_v1`） | kriging/GP + **返回预测方差** | 无方差 ⇒ 无法进权重分母 | 新增算子 + oracle |
 | X-3 | 无 `correlation_length_px` 的测量入口 | 每帧实测 ℓ | 重建误差不可预测 | 变差函数估计器（EXP-2 已有原型） |
 | X-4 | 无增益判据 SP-0 的实现 | 式 (3.3) | 会无条件启用稀疏层 ⇒ 实测净亏 6.8% | 加判据门 |
@@ -1315,12 +1315,12 @@ TMPDIR=/dev/shm/astrocs_snrd ./run_all.sh    # 结果落 run/reverse_verify/snr_
 
 ## 12 交付边界声明
 
-- 本文**只做方案设计**：`lib/`、`docs/`、`tests/`、`ci/` **零改动**（已核）；
+- 本文**只做方案设计**：`lib/`、`docs/`、`eng/tests/`、`ci/` **零改动**（已核）；
 - 全部实验代码与报告落 `reverse_verify/`；中间产物落 `run/reverse_verify/snr_design/`；
 - **零 git 写权限**：本轮未做任何 git 操作；
 - **未运行** `ninja`/`cmake`/`ctest`（`reverse_verify/CMakeLists.txt` 是 standalone 占位，本轮实验均为 Python，无需构建）；
-- 原本误落在 `tests/validation/release02/snr_design/` 的 5 个脚本与 4 个结果 JSON **已迁移**至
-  `实验/SCI-B/code/reverse_verify/snr_design/`，原目录已删除，`tests/` 树恢复原状（已核：`tests/validation/release02/` 下无 `snr_design`）。
+- 原本误落在 `eng/tests/validation/release02/snr_design/` 的 5 个脚本与 4 个结果 JSON **已迁移**至
+  `实验/SCI-B/code/reverse_verify/snr_design/`，原目录已删除，`eng/tests/` 树恢复原状（已核：`eng/tests/validation/release02/` 下无 `snr_design`）。
 
 **可复现性信息**：
 

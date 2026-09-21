@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """SCI-A 步骤 2 · HST 真实模板上的完整物理前向仿真（最高设计 §12.2 第 1 类）
 
-模板：testdata/testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits（真实 HST 数据，
+模板：testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits（真实 HST 数据，
       BUNIT=ELECTRONS/S，带 PHOTFLAM/PHOTPLAM/PHOTBW 与 TAN WCS）
 做法：24×24 块平均到 0.95"/px（与 testdata FLI/KAF-16803 系统同量级），
       模板只作**纯信号模板**（提供真实星云大尺度结构 = 天光空间结构），
@@ -26,7 +26,7 @@ import scia_common as sc
 import scia_gaia as sg
 import scia_sim as ss
 
-HST = "testdata/testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits"
+HST = "testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits"
 QE_MODEL = "KAF-16803"        # 流水线模型通带用的 QE（生产口径）
 QE_INJECT = "GSENSE400BSI"    # 注入用"真实仪器" QE（制造非零颜色项，避免自证式 Oracle）
 BIN = 24

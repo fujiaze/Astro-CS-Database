@@ -1,4 +1,4 @@
-/* P1-STAR-TEST OOM interposer (tests/p1star 域内复制, 参照批次 R 样板
+/* P1-STAR-TEST OOM interposer (eng/tests/p1star 域内复制, 参照批次 R 样板
  * run/local/bughunt_batchR/oom_inject.c): 第 N 次 malloc/calloc/realloc/strdup
  * 返回 NULL, 支持 OOM_MIN/OOM_MAX 字节过滤与 OOM_TOTAL 末值上报。
  * 用法: OOM_FAIL_AT=N OOM_COUNTDOWN=1 OOM_MIN=a OOM_MAX=b OOM_TOTAL=path program */

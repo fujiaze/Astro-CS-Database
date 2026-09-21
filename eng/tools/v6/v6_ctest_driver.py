@@ -2,7 +2,7 @@
 """RUNTIME-CI-001 V6 CTest 门驱动（逐名验收锚 + fail-closed）。
 
 语义（任务卡 + CONTROLLER_LOG C-004.4 / C-007 AR-033/AR-034）：
-  * 根构建面（CMakeLists.txt / tests/unit/CMakeLists.txt / tests/integration/*）由控制器在
+  * 根构建面（CMakeLists.txt / eng/tests/unit/CMakeLists.txt / eng/tests/integration/*）由控制器在
     W9 之后以独立集成提交注册 V6 目标；本驱动不注册目标，只**按名验收**。
   * 目标尚未注册（build 树无 CTestTestfile，或期望名不存在）时：**清晰 FAIL（rc 2）**，
     绝不静默通过；输出明确写出「等待控制器集成提交」与缺失名单。

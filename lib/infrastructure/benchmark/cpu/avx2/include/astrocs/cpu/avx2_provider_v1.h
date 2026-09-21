@@ -3,7 +3,7 @@
  *
  * 角色: CPU-003 冻结的 AMD64 AVX2/FMA provider (target 单独 -mavx2 -mfma;
  * Windows /arch:AVX2) 的 kernel 注册合同。provider 本体导出唯一入口
- * astrocs_provider_query_v1 (include/astrocs/abi/module_api_v1.h 冻结;
+ * astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结;
  * ARC-001 §1.2 / 15 §1), 消费 CPU-001 capability 判定
  * (lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h) 完成
  * "AVX2/FMA ∈ os_safe" (OSXSAVE + XGETBV XMM|YMM) 平面检查后才提供
@@ -12,11 +12,11 @@
  *
  * 冻结合同:
  *   - docs/architecture/cpu/CPU_003_AVX2_PROVIDER.md (DOC-ARCH-CPU-003;
- *     热点 profile 台账 = ISA-001/003 实测, artifacts/prerelease_v5/
+ *     热点 profile 台账 = ISA-001/003 实测, artifacts/evidence/prerelease-v5/
  *     ISA-001/MEASUREMENTS.csv);
- *   - include/astrocs/abi/module_api_v1.h (provider ABI: acs_provider_api_v1 /
+ *   - lib/include/astrocs/abi/module_api_v1.h (provider ABI: acs_provider_api_v1 /
  *     acs_kernel_desc_v1 / run_kernel 签名; ABI-001);
- *   - include/astrocs/abi/lifecycle_v1.h (self_test 语义 / host_abi 协商; ABI-002);
+ *   - lib/include/astrocs/abi/lifecycle_v1.h (self_test 语义 / host_abi 协商; ABI-002);
  *   - lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h (CPU-001 os_safe 平面);
  *   - lib/infrastructure/benchmark/cpu/baseline/include/astrocs/cpu/baseline_provider_v1.h
  *     (CPU-002 冻结参数 POD —— 本 provider 只迁移热点 kernel 的 ISA 变体,

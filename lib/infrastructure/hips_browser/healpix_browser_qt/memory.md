@@ -202,7 +202,7 @@ cmake --build build
 **新建文件 (3个)**:
 - `core/gl_renderer.h` - GLRenderer 类声明（RenderMode/RenderParams + init/render/update_stf/cleanup）
 - `core/gl_renderer.cpp` - 实现（OpenGL 3.3 Core 渲染核心，无 Qt 依赖）
-- `include/healpix_browser_core.h` - 统一头文件（引入 browser_backend/stf_engine/healpix_math/gl_renderer）
+- `lib/include/healpix_browser_core.h` - 统一头文件（引入 browser_backend/stf_engine/healpix_math/gl_renderer）
 
 **关键设计决策**:
 - OpenGL 函数加载: wglGetProcAddress 加载 1.2+ 函数指针, opengl32.lib 链接 1.1 函数
@@ -231,7 +231,7 @@ cmake --build build
 **新建文件 (3个)**:
 - `core/healpix_math.h` - HealpixMath 类声明（pix2ang_nest/ang2pix_nest/query_disc/ud_grade/angular_distance）
 - `core/healpix_math.cpp` - 实现（NESTED 排序，三区域分块：北极/赤道/南极）
-- `tests/test_healpix_math.cpp` - 5 项单元测试
+- `eng/tests/test_healpix_math.cpp` - 5 项单元测试
 
 **关键 bug 修复**: fact2 系数错误
 - 错误: `fact2 = 4.0 / (3.0 * npface)` （多了一个因子 4）
@@ -251,7 +251,7 @@ cmake --build build
 **新建文件 (3个)**:
 - `core/browser_backend.h` - ViewParams/LeafData 结构体 + BrowserBackend 类声明
 - `core/browser_backend.cpp` - 实现（移植自 healpix_browser_cpp，用 HealpixMath 替代内部坐标计算）
-- `tests/test_browser_backend.cpp` - 4 项单元测试
+- `eng/tests/test_browser_backend.cpp` - 4 项单元测试
 
 **关键改动（vs healpix_browser_cpp）**:
 - ipix_to_angle/angular_distance 改为 static，转发到 HealpixMath（支持任意 nside）
@@ -272,9 +272,9 @@ cmake --build build
 **新建文件 (3个)**:
 - `core/stf_engine.h` - STFParams 结构体 + STFEngine 类声明（mtf/get_preset/auto_stretch/to_uniforms）
 - `core/stf_engine.cpp` - 实现（MTF 公式 + 4 预设 + MAD 自动拉伸 + GPU uniform 转换）
-- `tests/test_stf_engine.cpp` - 4 项单元测试
+- `eng/tests/test_stf_engine.cpp` - 4 项单元测试
 
-**编译**: `make tests/test_stf_engine.exe` 成功（g++ -O2 -std=c++17 -Wall -Wextra -fopenmp）
+**编译**: `make eng/tests/test_stf_engine.exe` 成功（g++ -O2 -std=c++17 -Wall -Wextra -fopenmp）
 **测试**: 4/4 PASS ✓
 - test_mtf: 验证 MTF 三个不动点（0, 1, m→0.5）
 - test_presets: 验证 linear/sqrt/asinh/log 四个预设的 midtones/compression

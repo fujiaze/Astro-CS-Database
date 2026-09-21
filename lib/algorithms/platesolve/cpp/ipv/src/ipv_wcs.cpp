@@ -746,7 +746,7 @@ void extract_wcs_sip(
             }
         }
         // (c)(d) 残差/内点最小充分条件 —— 与 DISP-WCS-001 冻结语义一致
-        // (tests/unit/p1wcs/p1wcs_tests_negative.cpp: "rms>0.5 或 n_inliers<12 的
+        // (eng/tests/unit/p1wcs/p1wcs_tests_negative.cpp: "rms>0.5 或 n_inliers<12 的
         //  success 解 = 冒充"): 真实 874 有头 WCS 干净帧实测 n_pairs∈[21,56]、
         // rms_px∈[0.03,0.322]; 而 M42_M4 误配解 n_pairs∈[6,21]、rms_px∈[0.94,2.17]。
         // 该门把"大残差/内点枯竭"的解确定性 fail-closed, 不放宽任何既有阈值。

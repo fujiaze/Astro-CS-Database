@@ -11,7 +11,7 @@
 | `README.md`（本文件） | 本目录的锚（`eng/ci/impact_map.json` 路径域探针 + `eng/ci/root_manifest.json` required_dirs），不得删除 |
 | `v6/science-adjudication/`、`v6/qa-design/` | V6 产品族**活动设计档案**（`docs/{science,contracts,algorithms,validation}/v6/**`）的裁决与 QA 证据锚 |
 | `v6/release-review/01_CONVERGENCE_CORRECTIONS.md`、`v6/contract-review/{03_SUPERSEDED_SCI_SECTIONS,04_OPEN_ITEMS_AND_SIGNOFF}.md` | 同上（v6 文档逐条反引号引用的收敛订正/签字记录） |
-| `v6/performance/PERF-SCALE-001.md` | 活测试 `tests/monitoring/test_frozen_gate.py` 判据依据（16-worker 实测 65.09%） |
+| `v6/performance/PERF-SCALE-001.md` | 活测试 `eng/tests/monitoring/test_frozen_gate.py` 判据依据（16-worker 实测 65.09%） |
 | `v6/{real-science,review-audit}/`、`v19r7_quality/` | 保留候选（未裁决的 P1/P2 闭环状态与真实科学轮结论），处置见 `run/CLEAN-402/RETAIN_CANDIDATES.md` |
 | `PROJECT-GOVERNANCE-01/research/` | 六份正式科学/算法/合同文档引用的**证据锚**（R-1/R-2/R-3/R-5/MASK-001/DOC-SCI-001 等） |
 | `PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md` | 退役工具/注册项的复原坐标唯一记录（4 处工具 docstring 引用） |

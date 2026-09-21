@@ -373,28 +373,28 @@ namespace {
 // WHY-KEPT:   这两处不是无主死代码，而是**冻结合同的在役执行面**：
 //             语义源 = docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json:196-197
 //             （forbidden.weight_source_tokens）与 :73-77（weight_modes.production 含 psfsw_robust），
-//             且被 tests/unit/v6_p2_samp/v6_p2_samp_test.cpp:148-216 逐项锁定。
-//             统一对象 psfsw_robust_weight 已退役（14→13，contracts/schemas/unified/ 现存 13 个
+//             且被 eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp:148-216 逐项锁定。
+//             统一对象 psfsw_robust_weight 已退役（14→13，eng/contracts/schemas/unified/ 现存 13 个
 //             对象 + port_contract.schema.json）、weight_modes 概念已按 §9.73 裁决 A44 作废
 //             （frozen 文件 :72/:218 的 _a44_deprecation_note），但**冻结合同层与 docs/**
-//             属 DOC-402 域、contracts/** 不属本任务域**；本任务按硬规则「不动 SCI/ALG 冻结
+//             属 DOC-402 域、eng/contracts/** 不属本任务域**；本任务按硬规则「不动 SCI/ALG 冻结
 //             定义」，不得单方面收窄该表（收窄会让 psfsw 重新成为合法权重来源 = 放宽科学门）。
 // STATUS:     非产品目标态、但仍是生产可达的合同门：p2_weight_mode_check /
 //             p2_weight_source_token_reject 由 lib/algorithms/integration/v6/src/phase2_integrate.cpp:1811,1814
 //             调用，并在 astrocs_p3_projection_wcs 之外的 coverage target 内编译。
 //             退役对象 canonical psfsw_robust_weight 已由 port_contract enum 显式拒绝
-//             （contracts/schemas/unified/port_contract.schema.json:15,21 + 负例 n5）。
+//             （eng/contracts/schemas/unified/port_contract.schema.json:15,21 + 负例 n5）。
 // EXIT:       删除（ENGINEERING_SPEC §2 第 1 种处置），需同批完成：
 //             ① DOC-402 把 docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json 的
 //                forbidden.weight_source_tokens 与 weight_modes 两段整体退役（含 A44 留痕）；
-//             ② 同提交收缩 tests/unit/v6_p2_samp/v6_p2_samp_test.cpp 与
+//             ② 同提交收缩 eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp 与
 //                lib/algorithms/coverage/include/astro/phase2/coverage.h:149-165 的声明；
 //             ③ 确认 phase2_integrate.cpp 的调用点不再需要该门（或改指新门）。
 //             条件 ① 完成前删除本分支 = 擅自放宽冻结科学门，禁止。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）/§3（科学代码红线：
 //             不动冻结定义）；工程控制/RELEASE-04/GAP_AUDIT.md G2-2；
 //             docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json:72,196-197,218；
-//             contracts/data/unified_object_compatibility_map_v1.json:133-143（14→13 退役登记）。
+//             eng/contracts/data/unified_object_compatibility_map_v1.json:133-143（14→13 退役登记）。
 // ──────────────────────────────────────────────────────────────────────
 // 冻结 forbidden.weight_source_tokens（大小写不敏感全等匹配）。
 // 语义源 = docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json。

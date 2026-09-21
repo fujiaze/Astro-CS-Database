@@ -225,7 +225,7 @@ Result<void> Scheduler::run(
         // （ThreadBudget::acquire 取 min(want, available)），后派发者得空租约降级为
         // 1 线程并持续整个节点。份额只约束本节点并行度，不改变 acquire/释放/降级判定
         // 语义，也不改变 DAG 并发语义（Σ 在途份额 ≤ budget；两条 cpu_heavy 节点仍并发，
-        // 见 tests/unit/core_scheduler_test.cpp CORE-006）。
+        // 见 eng/tests/unit/core_scheduler_test.cpp CORE-006）。
         // "声明需要整份预算"的 cpu_heavy 节点互斥执行（见下方 heavy_gate）：使每个
         // 都能拿到它声明的满额，而不是被先到者挤成 1 线程。
         heavy_node = (nit != nodes_.end() &&
@@ -243,7 +243,7 @@ Result<void> Scheduler::run(
         }
       }
       // P7-UTIL-003: 仅在"多个节点都声明需要整份预算"时互斥（声明需求不冲突的
-      // independent 节点仍并发 —— tests/unit/core_scheduler_test.cpp CORE-006）。
+      // independent 节点仍并发 —— eng/tests/unit/core_scheduler_test.cpp CORE-006）。
       std::unique_lock<std::mutex> heavy_gate;
       if (heavy_node) heavy_gate = std::unique_lock<std::mutex>(heavy_mu);
       // 执行

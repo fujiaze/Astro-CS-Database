@@ -6,7 +6,7 @@
 
 上位锚：`FZ-P3-MODES`、`FZ-P3-FAILCLOSED`、`FZ-P3-QW-RECOMPUTE`、`FZ-P3-KERNEL-REGISTRY`、`FZ-P3-BUNIT-QUADRATIC`、`FZ-FORMULA-COV-PROP`；
 DESIGN-P3 §1/§2/§3/§4/§5；PHASE3_REVIEW C-P3-PROP-1..16；ADJ-P3-01/ADJ-S4；F3-01..06；Calabretta & Greisen 2002。
-机器：`contracts/proposals/v6/data/astrocs.v6.phase3.v1.schema.json`（`phase3.v1`）；正例 `examples/phase3.example.json`。
+机器：`eng/contracts/proposals/v6/data/astrocs.v6.phase3.v1.schema.json`（`phase3.v1`）；正例 `examples/phase3.example.json`。
 
 ## 1. 三输出模式与 measurement 语义
 

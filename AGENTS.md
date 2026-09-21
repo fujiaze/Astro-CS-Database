@@ -106,13 +106,13 @@ flowchart LR
 lib/algorithms/      科学算法（并联放置；phase 为内部指代）
 lib/infrastructure/  基建（cli/ 下挂 normalize/mosaic/export 子命令 + scheduler/pipeline/aio/benchmark/observability/gaia/acr/hips_browser）
 docs/                自解释文档集（science 公式 / algorithms 推导 / plugins 插件 / design 设计 / contracts 合同 / ci 规范 / references 文献）
-contracts/           合同 schema（唯一事实源）
-tests/               测试（与模块共址可复用）
+eng/contracts/           合同 schema（唯一事实源）
+eng/tests/               测试（与模块共址可复用）
 eng/                 工程支撑面（2026-09-21 由 ci/ tools/ cmake/ 合并）
   eng/ci/            机器门注册表与检查器（eng/ci/checks.json、eng/ci/run_checks.py）
   eng/tools/         工具与质量检查器（quality/、doccheck/）
   eng/cmake/         CMake 模块；eng/build/ 构建脚本（build.sh / toolchain.ps1）
-include/ config/ packaging/ contracts/   公共头、全局配置、打包、合同 schema（唯一事实源）
+lib/include/ eng/packaging/config/ eng/packaging/ eng/contracts/   公共头、全局配置、打包、合同 schema（唯一事实源）
 实验/                 科学实验单元（photometric-magnitude / absolute-snr / additive-sky-seamless，可独立复核）
   实验/shared/        三单元共用（synthetic/ 合成数据生成、data/ 真值场景与真实实例索引）
 testdata/            真实数据与外部只读数据集（只读；testdata/README.md 为入库/下载策略的唯一说明）
@@ -121,7 +121,7 @@ testdata/            真实数据与外部只读数据集（只读；testdata/RE
 artifacts/           证据与产物（artifacts/ci/<sha>/ 为 CI 产物；artifacts/evidence/** 为历史证据锚）
 工程控制/             控制包（收口后按 CONTROL_PACK_SPEC §9 清理）
 run/                 临时产物/日志（gitignore，不入库）；日志一律落 run/<task>/logs/
-GaiaDR3/ GaiaDR3SP/  根级外部只读数据集（gitignore；只读引用、不入库）
+gaia/GaiaDR3/ gaia/GaiaDR3SP/  根级外部只读数据集（gitignore；只读引用、不入库）
 ```
 
 **开新一轮运行先跑 `eng/tools/round_start.sh <轮次ID>`**：它回收旧轮次产物（`eng/tools/run_gc.py`，保留清单 `eng/tools/run_keep.txt`）

@@ -50,7 +50,7 @@ static bool safe_pixel_count(int w, int h, std::uint64_t* out) {
 //   4. parity: east_left/east_right 均无 parity 翻转, det(CD) < 0 冻结不变量;
 //   5. 确定性: 同输入重复计算逐位 (bitwise) 一致。
 // 证据导出 (JSON): FITS 关键字 + 每格统计 + 确定性抽样点, 供 astropy 第三方
-// 对拍 (tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py)。路径由环境变量
+// 对拍 (eng/tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py)。路径由环境变量
 // STD_F1_P3_EXPORT 覆盖, 默认 run/std_f1_adj/p3_nine_grid_export.json
 // (AGENTS.md 目录规范: 运行产物一律落 run/, 不落仓库根)。
 // ===========================================================================

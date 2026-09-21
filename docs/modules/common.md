@@ -62,4 +62,4 @@ SCI-DRZ-* / SCI-UPM-*（HEALPix 几何）；DATA-FRAME-ID-001（frame_id）；�
 
 ## Source files
 
-`lib/algorithms/shared/{healpix/healpix_core.h,healpix_core.cpp,crypto/sha256.h,sha256.cpp,include/astro_scalar.h,include/precision_context.h,Makefile}`。
+`lib/algorithms/shared/{healpix/healpix_core.h,healpix_core.cpp,crypto/sha256.h,sha256.cpp,lib/include/astro_scalar.h,lib/include/precision_context.h,Makefile}`。

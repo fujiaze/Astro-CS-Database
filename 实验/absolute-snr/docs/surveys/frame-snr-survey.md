@@ -79,7 +79,7 @@ sigma_instr^2 = (readNoise^2 + darkCurrent*expTime) * n_exp
 
 - **SNR 定义**：**不定义 SNR。** `meas_base` 全仓库 `grep -rn -i "\bsnr\b"` = **0 命中**（唯一
   "signal-to-noise" 在 `python/lsst/meas/base/tests.py:451` 的测试辅助 docstring）。
-  星表只有 `instFlux` / `instFluxErr`（`include/lsst/meas/base/FluxUtilities.h:42-43`：
+  星表只有 `instFlux` / `instFluxErr`（`lib/include/lsst/meas/base/FluxUtilities.h:42-43`：
   `instFlux` "Measured instFlux in DN"；`instFluxErr` "Standard deviation of instFlux in DN"）。
   - `base_CircularApertureFlux`（`src/ApertureFlux.cc:165-171, 206-218`）：
     `instFlux = Σ image·w`，**`instFluxErr = sqrt(Σ variance·w²)`**。

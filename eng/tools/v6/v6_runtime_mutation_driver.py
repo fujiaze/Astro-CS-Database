@@ -37,7 +37,7 @@ COPY_SET = [
     "lib/infrastructure/cli/resource_recorder.h",
     "lib/infrastructure/scheduler/v6_budget.py",
     "eng/ci/checks.json",
-    "tests/system/v6_runtime/v6_runtime_determinism_test.cpp",
+    "eng/tests/system/v6_runtime/v6_runtime_determinism_test.cpp",
 ]
 
 # (id, rel, old, new) —— old 必须精确命中一次

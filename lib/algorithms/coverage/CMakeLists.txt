@@ -7,7 +7,7 @@
 #   - astrocs-stage2 / calibrated_pair_diag / rejection_cli 为按需工具
 #     (EXCLUDE_FROM_ALL, 非正式 ALL target), 不进入默认构建与任何 install;
 #   - 禁止正式 install (BLD-002): 安装/发布规则只允许存在于根 CMakeLists.txt;
-#   - 本文件保留 enable_testing()/GTest 分支仅供模块独立自测 (tests/cli 不依赖)。
+#   - 本文件保留 enable_testing()/GTest 分支仅供模块独立自测 (eng/tests/cli 不依赖)。
 cmake_minimum_required(VERSION 3.24)
 project(astro_phase2 LANGUAGES CXX)
 
@@ -76,7 +76,7 @@ target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../algor
 # 带 third_party (v3_12_0); 两者混链时 p2_stage2_parse_config 之类的符号
 # mangling 不一致 (旧 astro_image_io.dll 恰好掩盖了该不一致)。统一到仓内
 # vendored json。
-target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../third_party)
+target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
 if(P2_ENABLE_OPENMP AND OpenMP_CXX_FOUND)
     target_link_libraries(phase2 PUBLIC OpenMP::OpenMP_CXX)
     # CON-004: 把 P2_ENABLE_OPENMP 作为编译宏定义（原为装饰性 option，源内 #if 恒假）。
@@ -92,7 +92,7 @@ if(GTest_FOUND)
     # 产物 (ELF .so 误名 .dll; 旧 AstroSphereTileView 布局, 无版本化 ABI 头)。
     # 它与本仓当前 aio_hips.h 不一致时字段整体错位 —— 实测 writer 读到的
     # width=0 ⇒ rc=-2 "view 与产品集不匹配", 或更糟: 静默错位写数据。
-    # 根图构建一律走 astrocs_hips/astrocs_aio 静态目标 (与 tests/unit/p1_hips*
+    # 根图构建一律走 astrocs_hips/astrocs_aio 静态目标 (与 eng/tests/unit/p1_hips*
     # 同口径); 仅模块独立 configure (无根目标) 才回退到该历史产物。
     if(TARGET astrocs_hips AND TARGET astrocs_aio)
         set(P2_AIO_LINK astrocs_hips astrocs_aio)
@@ -107,7 +107,7 @@ if(GTest_FOUND)
     # 未跟踪的 astro_image_io.dll 是历史构建产物 (旧结构布局, 无版本化 ABI 头),
     # 与本仓当前 aio_hips.h 不一致时读取字段整体错位 (实测 width 读成 0 →
     # writer rc=-2 "view 与产品集不匹配")。根图构建走 astrocs_hips/astrocs_aio
-    # 静态目标 (与 tests/unit/p1_hips_writer 同口径); 模块独立 configure 保留
+    # 静态目标 (与 eng/tests/unit/p1_hips_writer 同口径); 模块独立 configure 保留
     # DLL 后备。
     if(TARGET astrocs_hips AND TARGET astrocs_aio)
         target_link_libraries(phase2_ivar_wiring PRIVATE phase2 GTest::gtest_main
@@ -125,7 +125,7 @@ if(GTest_FOUND)
     # 旧直链 ../../infrastructure/aio/astro_image_io.dll 是源树内**未跟踪**的
     # 历史构建产物（缺版本化 ABI 初始化/新字段布局），与当前 aio_hips.h 不一致
     # 会让 fixture 写入失败（实测 make_synth_frame=false）。根图构建下改走
-    # astrocs_hips/astrocs_aio 静态目标（与 tests/unit/p1_hips_writer 同口径）；
+    # astrocs_hips/astrocs_aio 静态目标（与 eng/tests/unit/p1_hips_writer 同口径）；
     # 模块独立 configure（无根目标）时保留 DLL 后备。
     if(TARGET astrocs_hips AND TARGET astrocs_aio)
         target_link_libraries(phase2_sampler_parallel PRIVATE phase2 GTest::gtest_main

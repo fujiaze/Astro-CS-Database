@@ -1,0 +1,590 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/v6/provenance.v1.schema.json",
+  "title": "AstroCS V6 provenance 数据对象（生产，W6 集成）",
+  "description": "[生产 schema | SCHEMA-INTEGRATE-001/W6] 由 eng/contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json 机械迁移；语义权威 = docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json（条款 id 见 x-astrocs-production.clause_ids）。词表归一：weight.kind / weight.units / group_normalized / normalization.scope 为唯一 canonical 名，legacy 别名与双向映射见 eng/contracts/data/v6_weight_vocabulary_v1.json 与 v6_migration_map_v1.json。PENDING_OWNER_SIGNOFF 条款生效前 fail-closed，不得放宽。原描述：provenance 最小集（FZ-PROV-MINIMAL-SET）的 V6 目标态 schema。含共享系统项三形式（FZ-PROV-SHARED-SYSTEMATIC）、k_corr 可复现口径（FZ-PROV-KCORR）、flux_conservation_factor（FZ-COND-FLUX-CONSERV）、降级标量摘要（FZ-DEGRADE-SCALAR）与 unavailable 显式登记。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "provenance_schema",
+    "schema_version",
+    "product",
+    "software_sha",
+    "run_id",
+    "input_product_hashes",
+    "config_hash",
+    "units",
+    "coordinate",
+    "pixel_semantics",
+    "sampling",
+    "algorithm_ids",
+    "module",
+    "provider",
+    "approximations",
+    "degradations",
+    "normalization_version",
+    "weight_mode_version",
+    "correlation_summary",
+    "flux_conservation_factor",
+    "k_corr",
+    "generated_utc",
+    "output_hash"
+  ],
+  "properties": {
+    "provenance_schema": {
+      "const": "astrocs.v6.provenance/v1",
+      "x-astrocs": {
+        "anchor": "FZ-PROV-MINIMAL-SET; 宪章 §4.3",
+        "domain": "全部产品"
+      }
+    },
+    "schema_version": {
+      "const": 1,
+      "x-astrocs": {
+        "anchor": "宪章 §4.3",
+        "domain": "全部"
+      }
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type_id",
+        "schema_version"
+      ],
+      "properties": {
+        "type_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "x-astrocs": {
+        "anchor": "宪章 §4.3; ADJ-GEN-03",
+        "domain": "全部"
+      }
+    },
+    "software_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "x-astrocs": {
+        "anchor": "宪章 §4.3",
+        "domain": "全部",
+        "fail_closed": "非完整 SHA -> REJECT",
+        "gate": "G-PROV-MINIMAL-SET"
+      }
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "宪章 §4.3",
+        "domain": "全部"
+      }
+    },
+    "input_product_hashes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "x-astrocs": {
+        "anchor": "宪章 §4.3",
+        "domain": "全部",
+        "fail_closed": "缺输入哈希 -> REJECT",
+        "gate": "G-PROV-MINIMAL-SET"
+      }
+    },
+    "config_hash": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "宪章 §4.3",
+        "domain": "全部"
+      }
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bunit",
+        "pixel_semantics",
+        "pixel_area_power"
+      ],
+      "properties": {
+        "bunit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pixel_semantics": {
+          "enum": [
+            "surface_brightness",
+            "integrated_flux"
+          ]
+        },
+        "pixel_area_power": {
+          "type": "integer",
+          "allOf": [
+            {
+              "not": {
+                "const": null
+              }
+            }
+          ]
+        },
+        "target_pixel_area": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "x-astrocs": {
+        "anchor": "FZ-BUNIT-SEMANTICS; FZ-UNIT-SIGNAL-SB",
+        "domain": "全部",
+        "fail_closed": "BUNIT=ADU 且无 pixel_semantics=surface_brightness+pixel_area_power=-2 -> 单位不可判 REJECT",
+        "gate": "G-BUNIT-SEMANTICS"
+      }
+    },
+    "coordinate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame"
+      ],
+      "properties": {
+        "frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "epoch": {
+          "type": "string"
+        }
+      },
+      "x-astrocs": {
+        "anchor": "宪章 §4.3; DATA_SEMANTICS §1",
+        "domain": "全部"
+      }
+    },
+    "pixel_semantics": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "宪章 §4.3; ADJ-GEN-03",
+        "domain": "全部"
+      }
+    },
+    "sampling": {
+      "type": "object",
+      "minProperties": 1,
+      "x-astrocs": {
+        "anchor": "宪章 §4.3; ADJ-GEN-03",
+        "domain": "全部"
+      }
+    },
+    "algorithm_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "x-astrocs": {
+        "anchor": "宪章 §4.3",
+        "domain": "全部"
+      }
+    },
+    "module": {
+      "type": "object",
+      "minProperties": 1,
+      "x-astrocs": {
+        "anchor": "宪章 §4.3",
+        "domain": "全部"
+      }
+    },
+    "provider": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "宪章 §4.3; §10.2",
+        "domain": "全部"
+      }
+    },
+    "approximations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "x-astrocs": {
+        "anchor": "PROJECT_SPEC §3; ADJ-GEN-03",
+        "domain": "全部",
+        "fail_closed": "近似未登记 -> REJECT",
+        "gate": "G-PROV-APPROX-DEGRADE"
+      }
+    },
+    "degradations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "reason",
+          "p05",
+          "p50",
+          "p95",
+          "max_systematic_deviation",
+          "sampling_coverage",
+          "model_error",
+          "domain",
+          "gates"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "p05": {
+            "type": "number"
+          },
+          "p50": {
+            "type": "number"
+          },
+          "p95": {
+            "type": "number"
+          },
+          "max_systematic_deviation": {
+            "type": "number",
+            "minimum": 0
+          },
+          "sampling_coverage": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "model_error": {
+            "type": "number",
+            "minimum": 0
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gates": {
+            "type": "object"
+          }
+        }
+      },
+      "x-astrocs": {
+        "anchor": "FZ-DEGRADE-SCALAR; ADJ-GEN-04",
+        "domain": "全部",
+        "fail_closed": "标量降级缺分位数/门结果 -> REJECT",
+        "gate": "G-DEGRADE-SCALAR"
+      }
+    },
+    "normalization_version": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "SC-ADJ-F02; ADJ-GEN-03",
+        "domain": "Phase1/psfsw",
+        "fail_closed": "归一版本缺失 -> REJECT",
+        "gate": "G-NORM-VERSION"
+      }
+    },
+    "weight_mode_version": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "FZ-FIELD-WEIGHTMODE; ADJ-GEN-03",
+        "domain": "Phase2"
+      }
+    },
+    "correlation_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "representation"
+      ],
+      "properties": {
+        "representation": {
+          "enum": [
+            "correlation_kernel",
+            "low_rank_factors",
+            "common_master",
+            "full_matrix_unavailable"
+          ]
+        },
+        "kernel_id": {
+          "type": "string"
+        },
+        "scale": {
+          "type": "number"
+        },
+        "low_rank_ref": {
+          "type": "string"
+        },
+        "master_id": {
+          "type": "string"
+        },
+        "alpha_m": {
+          "type": "number"
+        },
+        "mean_abs_rho": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_abs_rho": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "x-astrocs": {
+        "anchor": "FZ-PROV-SHARED-SYSTEMATIC; FZ-GATE-PARENT-VAR; ADJ-AR-02",
+        "domain": "全部 covariance 产品",
+        "fail_closed": "只出对角 variance 而无相关核/低秩/master 摘要 -> REJECT",
+        "gate": "G-SHARED-SYSTEMATIC"
+      }
+    },
+    "flux_conservation_factor": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "x-astrocs": {
+        "anchor": "FZ-COND-FLUX-CONSERV",
+        "domain": "Phase1 flux 换算/aperture",
+        "fail_closed": "pixfrac<1 且缺该因子 -> 不可用于绝对通量",
+        "gate": "G-FLUX-CONSERV-FACTOR"
+      }
+    },
+    "k_corr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "definition",
+        "domain",
+        "value",
+        "calibration"
+      ],
+      "properties": {
+        "definition": {
+          "const": "k_corr = Var(median)/[pi sigma_bg^2/(2 N_retained)]"
+        },
+        "value": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "not": {
+            "const": 1
+          },
+          "x-astrocs": {
+            "anchor": "FZ-PROV-KCORR; ALG-P2-SURF-UPM §6",
+            "domain": "Phase2 UPM control_variance",
+            "fail_closed": "k_corr=1 忽略相关 → REJECT；跨域外推 → REJECT",
+            "signoff": "PENDING_OWNER_SIGNOFF: FZ-PROV-KCORR-VALUE / SO-07；生效前 fail-closed",
+            "gate": "G-KCORR-DOMAIN"
+          }
+        },
+        "domain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "geometry",
+            "pixfrac",
+            "patch_size",
+            "estimator",
+            "spherical"
+          ],
+          "properties": {
+            "geometry": {
+              "type": "string"
+            },
+            "pixfrac": {
+              "type": "number"
+            },
+            "patch_size": {
+              "type": "integer"
+            },
+            "estimator": {
+              "type": "string"
+            },
+            "spherical": {
+              "type": "boolean"
+            }
+          },
+          "x-astrocs": {
+            "anchor": "FZ-PROV-KCORR; ADJ-F-OBS-05",
+            "domain": "Phase2 UPM",
+            "fail_closed": "适用域缺失或跨域外推 -> REJECT",
+            "gate": "G-KCORR-DOMAIN"
+          }
+        },
+        "calibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "script",
+            "seed",
+            "calibration_run_id"
+          ],
+          "properties": {
+            "script": {
+              "type": "string"
+            },
+            "seed": {
+              "type": "integer"
+            },
+            "calibration_run_id": {
+              "type": "string"
+            }
+          },
+          "x-astrocs": {
+            "anchor": "FZ-PROV-KCORR; ADJ-F-OBS-05",
+            "domain": "Phase2 UPM",
+            "fail_closed": "标定脚本/固定种子缺失 -> 不可独立复现 REJECT",
+            "gate": "G-KCORR-CALIBRATION"
+          }
+        },
+        "lookup_table_ref": {
+          "type": "string",
+          "x-astrocs": {
+            "anchor": "FZ-PROV-KCORR (按尺度查找表)",
+            "domain": "Phase2 UPM"
+          }
+        }
+      },
+      "x-astrocs": {
+        "anchor": "FZ-PROV-KCORR; ADJ-F-OBS-05",
+        "domain": "Phase2 UPM control_variance",
+        "fail_closed": "k_corr=1 忽略相关或未复跑前跨域外推 -> REJECT",
+        "gate": "G-KCORR-DOMAIN"
+      }
+    },
+    "unavailable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flag",
+        "reason",
+        "scope"
+      ],
+      "properties": {
+        "flag": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "x-astrocs": {
+        "anchor": "ADJ-GEN-03; 宪章 §18.3",
+        "domain": "全部",
+        "fail_closed": "unavailable 无原因/占位键 -> REJECT",
+        "gate": "G-UNAVAILABLE-REASON"
+      }
+    },
+    "generated_utc": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "宪章 §4.3",
+        "domain": "全部"
+      }
+    },
+    "output_hash": {
+      "type": "string",
+      "minLength": 1,
+      "x-astrocs": {
+        "anchor": "宪章 §4.3",
+        "domain": "全部",
+        "fail_closed": "缺输出哈希 -> REJECT",
+        "gate": "G-PROV-MINIMAL-SET"
+      }
+    }
+  },
+  "x-astrocs-production": {
+    "task": "SCHEMA-INTEGRATE-001",
+    "wave": 6,
+    "status": "PRODUCTION_INTEGRATED",
+    "source_proposal": "eng/contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json",
+    "freeze_contract": "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json",
+    "clause_ids": [
+      "FZ-PROV-MINIMAL-SET",
+      "FZ-PROV-SHARED-SYSTEMATIC",
+      "FZ-PROV-KCORR",
+      "FZ-DEGRADE-SCALAR",
+      "FZ-BUNIT-SEMANTICS",
+      "FZ-COND-FLUX-CONSERV"
+    ],
+    "pending_owner_signoff_structural_refs": [
+      "FZ-PROV-KCORR-VALUE"
+    ],
+    "signoff_policy": "PENDING_OWNER_SIGNOFF 条款保持待签并 fail-closed；不得写成已冻结"
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "units"
+        ],
+        "properties": {
+          "units": {
+            "properties": {
+              "bunit": {
+                "const": "ADU"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "units": {
+            "properties": {
+              "pixel_semantics": {
+                "const": "surface_brightness"
+              },
+              "pixel_area_power": {
+                "const": -2
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "units": {
+            "properties": {
+              "bunit": {
+                "pattern": "/px\\^2$"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "units": {
+            "properties": {
+              "pixel_area_power": {
+                "const": -2
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -13,7 +13,7 @@
 //             ③ docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:338 与
 //                docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md 仍点名本文件（docs/** 属 DOC-402 域）。
 // STATUS:     未接入生产。不在任何生产 target 的源列表内（grep -c p3_v6_export CMakeLists.txt = 0），
-//             仅被 tests/integration/v6_p3 编译；生产 export 路径 = lib/phase3_session/p3_session.cpp
+//             仅被 eng/tests/integration/v6_p3 编译；生产 export 路径 = lib/phase3_session/p3_session.cpp
 //             → lib/algorithms/projection/p3_wcs.cpp（TAN），不依赖本文件任何符号
 //             （p3_session.cpp:3-17 的 include 面无 p3_v6_export.h）。
 // EXIT:       删除（ENGINEERING_SPEC §2 第 1 种处置），需同批完成：
@@ -23,7 +23,7 @@
 //                eng/ci/ledgers/spec_named_impl_gaps.json 的 SNI-S4-P3X-06 条；
 //             ③ DOC-402 退役 docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md 并把
 //                PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
-//             ④ 删除 tests/integration/v6_p3/** 与 CMakeLists.txt:980 的 add_subdirectory。
+//             ④ 删除 eng/tests/integration/v6_p3/** 与 CMakeLists.txt:980 的 add_subdirectory。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §6.3
 //             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
 //             工程控制/RELEASE-04/GAP_AUDIT.md G2-1/G3-2；eng/ci/spec_named_impls.json SNI-S4-P3X-06。
@@ -38,7 +38,7 @@
 //   aio::verify_fits_file / validate_provenance_json / validate_bunit_law -> 重开独立验证
 //
 // 产品 HDU 布局的 schema 依据（W6 生产 schema，SCHEMA-INTEGRATE-001）:
-//   contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json#allOf 规定：
+//   eng/contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json#allOf 规定：
 //     units.bunit == "ADU"  =>  units.pixel_semantics == "surface_brightness"
 //                              且 units.pixel_area_power == -2；
 //     units.bunit 匹配 /px\^2$ => units.pixel_area_power == -2。

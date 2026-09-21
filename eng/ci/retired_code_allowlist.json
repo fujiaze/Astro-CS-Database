@@ -55,17 +55,17 @@
    "reason": "复核为段头注释引用规范条文（宪章 §7.2/§8.2 原文），非被注释掉的旧逻辑；该文件属 FIX-402 并发域，本任务未改"
   },
   {
-   "pattern": "tests/cpu/avx512/provider_avx512_handshake_test.c",
+   "pattern": "eng/tests/cpu/avx512/provider_avx512_handshake_test.c",
    "rule": "R1",
    "reason": "复核为文件头断言清单说明块，非被注释掉的旧逻辑"
   },
   {
-   "pattern": "tests/unit/gaia_integration_test.c",
+   "pattern": "eng/tests/unit/gaia_integration_test.c",
    "rule": "R1",
    "reason": "复核为文件头断言清单说明块，非被注释掉的旧逻辑"
   },
   {
-   "pattern": "tests/unit/gaia_magnitude_range_bounds_test.c",
+   "pattern": "eng/tests/unit/gaia_magnitude_range_bounds_test.c",
    "rule": "R1",
    "reason": "复核为文件头断言清单说明块（含伪代码行 if (...continue;)，非被注释掉的旧逻辑"
   }

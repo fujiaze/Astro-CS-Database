@@ -18,8 +18,8 @@
      - input_digests: 数组, 每项 {artifact_id, digest}, artifact_id 唯一(重复拒绝);
      - status ∈ {COMPLETE,INCOMPLETE,FAILED,CANCELLED,PENDING};
      - created_utc 格式。
-  3. 与 contracts/data/artifact_manifest.schema.json 的约束一一对应（schema 为权威文档形态,
-     本文件为执行形态; 二者须同步修改——机器检查见 tests/artifact/）。
+  3. 与 eng/contracts/data/artifact_manifest.schema.json 的约束一一对应（schema 为权威文档形态,
+     本文件为执行形态; 二者须同步修改——机器检查见 eng/tests/artifact/）。
 
 本文件是 DATA-001 冻结合同的机器侧; DATA-003 接入生产 ArtifactStore 时由 Store 调用同一逻辑。
 """

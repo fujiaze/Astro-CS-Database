@@ -6,12 +6,12 @@
 生效，实际 no-op（静默失效）。
 
 判据（fail-closed）：
-  C1 每个 config/templates/*.json#config 的叶子键，必须在 lib/** 生产源码里
+  C1 每个 eng/packaging/config/templates/*.json#config 的叶子键，必须在 lib/** 生产源码里
      以带引号 token 出现（JSON 键读取面），或由 eng/ci/ledgers/dead_config_keys.json
      显式登记（带 consumed_as 别名 / 理由 / 负责人 / 解除条件）；
   C2 模板键集合解析为空 / 模板目录缺失 ⇒ rc=2（不得把「解析不到」当「无死键」）。
 
-锚点：config/templates/*.json（至少一份）、lib/** 生产源码、台账。
+锚点：eng/packaging/config/templates/*.json（至少一份）、lib/** 生产源码、台账。
 
 用法：
   python3 eng/ci/check_config_consumed.py [--repo ROOT] [--json-out F] [--self-test]
@@ -28,7 +28,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import gate_common as gc  # noqa: E402
 
 CHECK_ID = "CHK-CONFIG-CONSUMED"
-TEMPLATE_GLOB = "config/templates/*.json"
+TEMPLATE_GLOB = "eng/packaging/config/templates/*.json"
 LEDGER = "eng/ci/ledgers/dead_config_keys.json"
 
 
@@ -105,7 +105,7 @@ def evaluate(repo: pathlib.Path):
 # --------------------------------------------------------------------------- selftest ----
 # §9.73 裁决 A44（不存在「权重模式」）：夹具不再使用已作废键名
 # algorithm_weight_mode（该键已从 phase_config_mosaic 合同、config_registry.json 登记与
-# config/defaults.json 注销）；红/绿语义不变（BAD 仍缺 wcs 两个叶子键）。
+# eng/packaging/config/defaults.json 注销）；红/绿语义不变（BAD 仍缺 wcs 两个叶子键）。
 _FIXTURE_TEMPLATE = {
     "phase_name": "mosaic",
     "config": {
@@ -140,10 +140,10 @@ _FIXTURE_BLOCKS_SRC_BAD = 'cfg.value("name", "x"); cfg.value("input_lights", 0);
 
 def _write_fixture(root: pathlib.Path, src: str, ledger=None, template=None):
     import json
-    (root / "config/templates").mkdir(parents=True, exist_ok=True)
+    (root / "eng/packaging/config/templates").mkdir(parents=True, exist_ok=True)
     (root / "lib/prod").mkdir(parents=True, exist_ok=True)
     (root / "eng/ci/ledgers").mkdir(parents=True, exist_ok=True)
-    (root / "config/templates/mosaic.phase_config.json").write_text(
+    (root / "eng/packaging/config/templates/mosaic.phase_config.json").write_text(
         json.dumps(template or _FIXTURE_TEMPLATE), encoding="utf-8")
     (root / "lib/prod/consumer.cpp").write_text(src, encoding="utf-8")
     (root / LEDGER).write_text(json.dumps(
@@ -187,7 +187,7 @@ def _selftest() -> int:
         # fail-closed：模板缺失
         d_missing = base / "missing"
         _write_fixture(d_missing, _FIXTURE_SRC_OK)
-        (d_missing / "config/templates/mosaic.phase_config.json").unlink()
+        (d_missing / "eng/packaging/config/templates/mosaic.phase_config.json").unlink()
         try:
             evaluate(d_missing)
             failures.append("missing_template_should_raise: expected GateError")

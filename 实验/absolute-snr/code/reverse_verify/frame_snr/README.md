@@ -53,4 +53,4 @@ python3 -m pip install --quiet --target /dev/shm/astrocs_fsnr/frame_snr_canon/py
 - **本工作区无哈勃数据**（全仓 `find -iname '*hst*' / '*hubble*'` 命中 0）；真实数据作底改用
   `run/RELEASE-02/perf-drz/norm_t2_m1_red/cleaned_M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts`。
 - **SExtractor 二进制对拍未做**（本环境无 `sex`/`extract`）——只做源码级核对。
-- 本目录**不修改** `lib/` `docs/` `tests/` `ci/`，**零 git 写**。
+- 本目录**不修改** `lib/` `docs/` `eng/tests/` `ci/`，**零 git 写**。

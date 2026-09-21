@@ -60,7 +60,7 @@ endif()
 
 # ── include 路径 (生产源口径 = 生产头目录; adapter 闭包最小集) ──
 target_include_directories(astrocs_p1_noise PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/lib/include
     ${NOISE_PROD_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

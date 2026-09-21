@@ -10,7 +10,7 @@
 | 项 | 值 |
 |---|---|
 | 组件 ID | `astrocs.cpu.capability` (CPU-001) |
-| 交付形态 | 纯 C11 源码单元 `src/capability_detect.c` + 公共头 `include/astrocs/cpu/capability_v1.h`（本轮不建 SHARED target；CPU-002 起 provider DLL 链接本单元） |
+| 交付形态 | 纯 C11 源码单元 `src/capability_detect.c` + 公共头 `lib/include/astrocs/cpu/capability_v1.h`（本轮不建 SHARED target；CPU-002 起 provider DLL 链接本单元） |
 | ABI | C ABI v1（`ACS_CAP_ABI_VERSION_V1`，POD 前两字段 struct_size+abi_version） |
 | 平台 | AMD64（Linux 实测；Windows `_M_X64` 同源契约，实机验证由 WIN-* 承担） |
 | 科学变更 | 无（纯探测/判定基础设施，`scientific_change=false`） |
@@ -55,7 +55,7 @@
 | ARCH | DOC-ARCH-CPU-001 | `docs/architecture/cpu/CPU_001_CAPABILITY_PROBE.md` |
 | API | API-CPU-001 | `lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h` |
 | DATA | CPU-CAP-JSON-001 | `lib/infrastructure/benchmark/cpu/common/schemas/cpu_capability.schema.json` |
-| TEST | TEST-CPU001-* | `tests/cpu/dispatch/`（probe + feature matrix 模拟 + schema 校验） |
+| TEST | TEST-CPU001-* | `eng/tests/cpu/dispatch/`（probe + feature matrix 模拟 + schema 校验） |
 | 标准 | 15 §2 / C §C6 | 15_CPU_PROVIDER_AND_RESOURCE_STANDARD.md / AstroCS_ENGINEERING_CONSTRAINTS.md §C |
 
 ## 5. 公共 API 与主要符号
@@ -93,8 +93,8 @@ avx512_subset_os_safe}`。
 ```bash
 # 纯 C11 编译 (gcc/clang 严格 warning)
 gcc   -std=c11 -Wall -Wextra -Wpedantic -Wconversion -Ilib/infrastructure/benchmark/cpu/common/include -c lib/infrastructure/benchmark/cpu/common/src/capability_detect.c
-# probe + feature matrix + schema 校验 (tests/cpu/dispatch)
-python3 tests/cpu/dispatch/run_cpu_capability_checks.py
+# probe + feature matrix + schema 校验 (eng/tests/cpu/dispatch)
+python3 eng/tests/cpu/dispatch/run_cpu_capability_checks.py
 ```
 
 Windows：`_M_X64` 分支经 `__cpuidex`/`_xgetbv` 同源编译面存在，实机验证由

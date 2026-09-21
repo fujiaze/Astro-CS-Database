@@ -56,7 +56,7 @@ TEST-PHOT-DESIGN-001（PHOTOMETRIC_FIT §13.4，冻结容差）。
 冻结测试设计 TEST-PHOT-DESIGN-001（fixture F1-F6/不变量 I1-I6/负面矩阵/
 SCI-PHOT-001 §11 容差：注入 rtol 1e-4、20% 离群 Δlocation<0.1 dex、
 NumPy rtol 1e-9）；可执行 TEST-P1-PHOT-001 由 P1-PHOT-TEST 落地；现状
-既有锚 tests/unit/p1_wcs_phot_test.cpp（Photometer 4 组）+
+既有锚 eng/tests/unit/p1_wcs_phot_test.cpp（Photometer 4 组）+
 lib/algorithms/photometry/cpp/test/test_photometric_calib.py（旧测，对齐重锚）。
 
 ## Source files

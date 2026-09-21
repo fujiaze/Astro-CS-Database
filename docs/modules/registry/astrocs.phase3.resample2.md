@@ -187,11 +187,11 @@ downstream: [TEST-P3-RES-001]
 - 双重陈述（C7 锚）: 本节承载 TEST-P3-RES-001 登记面（矩阵
   test_status=DORMANT）；可执行面升级归 P3-RSMP-TEST。
 - 现状执行测试（相邻证据，引用不冒认）:
-  tests/backend/p3_resample_probe_main.cpp（探针六模式）+
-  tests/backend/test_p3_resample.py（156 行，test_05_nan_semantics/
+  eng/tests/backend/p3_resample_probe_main.cpp（探针六模式）+
+  eng/tests/backend/test_p3_resample.py（156 行，test_05_nan_semantics/
   test_06_no_silent_default_open/seam 域界 1e8-1..12e8+1 连续性
-  1e-5°）+ tests/backend/test_p3003_parallel_resampler.py（104 行）+
-  tests/unit/p3_interp_test.cpp（109 行）/p3_coverage_test.cpp
+  1e-5°）+ eng/tests/backend/test_p3003_parallel_resampler.py（104 行）+
+  eng/tests/unit/p3_interp_test.cpp（109 行）/p3_coverage_test.cpp
   （106 行，独立参考实现非生产自证）。
 - EVIDENCE: EVID-MISSING（归 P3-RSMP-INT/验收补）。
 

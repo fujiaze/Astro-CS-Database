@@ -712,7 +712,7 @@ module_adapters.cpp:153-216）。
 ### 返回码
 
 ACS_OK；ACS_ERR_ABI_MISMATCH（host 结构/ABI :91-93）；ACS_ERR_PARAM
-（config/键集/类型/尺寸匹配 :110-143/:218-221/:236-239/:152）；ACS_ERR_IO
+（eng/packaging/config/键集/类型/尺寸匹配 :110-143/:218-221/:236-239/:152）；ACS_ERR_IO
 （文件读写 :183-187/:233-235/:261-267/:306-310/:323-327）；ACS_ERR_INTERNAL
 （ac_* 委托非 OK :249-253/:301-305）；ACS_ERR_NOMEM（:96/:351）；
 ACS_ERR_CANCELLED（文件/帧粒度取消点 :177-181/:228-231/:289）。取消语义：
@@ -773,7 +773,7 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
 - 迁移：MODULE_MIGRATION_MATRIX 无 P1-SESSION 行（assembly 层不设独立
   DLL）；registry descriptor 占位词汇（ALG-002/004/005、TEST-P1-*-001）
   不作冻结依据（P1-PSF-DOC 先例）。测试锚 TEST-P1-SESSION-001=
-  tests/unit/p1_ir_facade_test.cpp（facade/canonical 节点集/委托语义）。
+  eng/tests/unit/p1_ir_facade_test.cpp（facade/canonical 节点集/委托语义）。
 
 ## 星点检测 C API（API-STAR-001）
 
@@ -1584,7 +1584,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > SRC: lib/phase2_session/p2_session.cpp（282 行，静态库
 > astrocs_phase2_session 成员，根 CMakeLists.txt:454-458）+ 唯一
 > 权威签名头 lib/phase2_session/p2_session.h（39 行）；DATA:
-> DATA-P2-SESSION（DATA_SEMANTICS §24，config/manifest/错误码唯一
+> DATA-P2-SESSION（DATA_SEMANTICS §24，eng/packaging/config/manifest/错误码唯一
 > 权威）；ALG: ALG-P2-SESSION-001（docs/algorithms/PHASE2_SESSION.md，
 > 四段调用序逐源码行号锚）；MOD: astrocs.p2.session（迁移目标
 > astrocs_p2_session.dll 为矩阵合同值，尚未存在——MISSING 如实
@@ -1927,7 +1927,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - 测试语义: TEST-P3-WR-001 MISSING——登记面=TEST-P3-WR-DESIGN-001
   设计冻结 VERIFIED（ALG-P3-FITS-IMPL-001 §12 T1-T7 + registry
   手写页 docs/modules/registry/astrocs.phase3.writer.md §独立
-  synthetic 验证节，双重陈述）；现状执行测试 tests/unit/
+  synthetic 验证节，双重陈述）；现状执行测试 eng/tests/unit/
   p3_output_test.cpp（116 行 4 段）=相邻证据引用不冒认；可执行
   归 P3-FITS-TEST 落地 + EVIDENCE；INDEX 登记 status: DORMANT
   （照 TEST-P2-INT-001 先例）。
@@ -2016,9 +2016,9 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - 测试语义: TEST-P3-WCS-001——登记面=TEST-P3-WCS-DESIGN-001 设计
   冻结 VERIFIED（ALG-P3-PROJ-IMPL-001 §12 T1-T7 + registry 手写页
   docs/modules/registry/astrocs.phase3.wcs.md §9，双重陈述）；
-  现状执行测试 tests/unit/p3_wcs_test.cpp（90 行）+
-  tests/backend/test_p1002_gaps.py（独立解析解回归）+
-  tests/backend/p3_wcs_main.cpp（探针）=相邻证据引用不冒认；
+  现状执行测试 eng/tests/unit/p3_wcs_test.cpp（90 行）+
+  eng/tests/backend/test_p1002_gaps.py（独立解析解回归）+
+  eng/tests/backend/p3_wcs_main.cpp（探针）=相邻证据引用不冒认；
   验收级（WCSLIB oracle）归 P3-PROJ-TEST 落地 + EVIDENCE。
 - 下游: TEST-P3-WCS-001（登记面如上）；上游 SCI-P3-001（FROZEN）/
   ALG-P3-PROJ-IMPL-001 / DATA-P3-WCS（§28）；域际: API-P3-FITS-001
@@ -2114,9 +2114,9 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - 测试语义: TEST-P3-RES-001——登记面=TEST-P3-RSMP-DESIGN-001 设计
   冻结 VERIFIED（ALG-P3-RSMP-IMPL-001 §12 + registry 手写页
   docs/modules/registry/astrocs.phase3.resample2.md §9，双重陈述）；
-  现状执行测试 tests/backend/p3_resample_probe_main.cpp（探针）+
-  tests/backend/test_p3_resample.py（seam/NaN/无静默默认）+
-  tests/unit/p3_interp_test.cpp / p3_coverage_test.cpp（独立参考
+  现状执行测试 eng/tests/backend/p3_resample_probe_main.cpp（探针）+
+  eng/tests/backend/test_p3_resample.py（seam/NaN/无静默默认）+
+  eng/tests/unit/p3_interp_test.cpp / p3_coverage_test.cpp（独立参考
   实现）=相邻证据引用不冒认；可执行面升级归 P3-RSMP-TEST + EVIDENCE。
 - 下游: TEST-P3-RES-001（登记面如上）；上游 SCI-P3-001（FROZEN）/
   ALG-P3-RSMP-IMPL-001 / DATA-P3-RES（§29）；域际: API-P3-FITS-001
@@ -2127,8 +2127,8 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 
 > 条款 ID：`API-V6-WEIGHTMODE-001`　状态：**已作废（A44）+ 设计档案 / 产品族专用投影（非生产目标态）**（DOC-203 / Q2 前置裁决 2026-09-20；原「ACTIVE（V6 目标态消费面集成，2026-09-15）」措辞已删）
 > 语义权威：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`；数据合同：`docs/contracts/DATA_SEMANTICS.md` §31（`DATA-V6-SCHEMA`）；
-> 生产 schema：`contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json`（及 `point-information`/`psfsw`/`covariance`/`effective-psf`/`provenance`）；
-> 词表：`contracts/data/v6_weight_vocabulary_v1.json`；迁移：`contracts/data/v6_migration_map_v1.json`。本节只定义**消费面语义**，不实现公式、不改既有 API/ABI 布局。
+> 生产 schema：`eng/contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json`（及 `point-information`/`psfsw`/`covariance`/`effective-psf`/`provenance`）；
+> 词表：`eng/contracts/data/v6_weight_vocabulary_v1.json`；迁移：`eng/contracts/data/v6_migration_map_v1.json`。本节只定义**消费面语义**，不实现公式、不改既有 API/ABI 布局。
 
 ### 1. ~~配置面 `weight_mode`（取代 legacy 整数）~~ **已删键** （已按 §9.73 A44 作废：键不存在；权重是派生量）
 
@@ -2164,4 +2164,4 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - 帧级 `median(SNR_F)` 只作诊断/深度表达，不得接入任何权重面（`C-004.2`）；本文不重新加回被 `ac04289d` 回退的帧级单一 SNR 系数落位段或参数登记回退节。
 - UPM fit 的 `upm_weight_source`（原 `snr_weight_mode`，（已按 §9.73 A44 作废：键不存在；权重是派生量）；`DATA_SEMANTICS` §25）与 `use_ivar_weight` 是拟合内部诊断开关，**不是** Phase2 集成权重枚举；不得互相映射。
 - `SO-01`..`SO-07` 的待签条款保持 `PENDING_OWNER_SIGNOFF` 并 fail-closed；本节不使任何待签条款生效。
-- 验证：`tests/contracts/v6/`（独立 Oracle 对照冻结表 + 负向 mutation ≥12 条必红）。
+- 验证：`eng/tests/contracts/v6/`（独立 Oracle 对照冻结表 + 负向 mutation ≥12 条必红）。

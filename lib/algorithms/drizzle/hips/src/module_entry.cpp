@@ -9,7 +9,7 @@
  * 职责: 把 lib/infrastructure/aio/src/hips/aio_hips_writer.cpp 的 legacy C 接口
  *   (aio_hips.h 九导出, API-HIPS-001 冻结) 包装成九操作模块 vtable。
  *
- * 科学纪律: scientific_change=false —— 本文件只做 config/manifest 解析、
+ * 科学纪律: scientific_change=false —— 本文件只做 eng/packaging/config/manifest 解析、
  *   base64 平面解码、线程租约注入 (host executor lease; 事务内串行, HI-3)、
  *   结果/产物转发; 不触碰产品语义 (surface brightness/support/variance 公式、
  *   MOC UNIQ、层次累加顺序 —— ALG-HIPS-001..005, 生产源零改动)。
@@ -134,7 +134,7 @@ static acs_status strbuf_write_cstr(acs_strbuf_v1* out, const char* s,
     return strbuf_write(out, s, s ? (uint64_t)strlen(s) : 0, err);
 }
 
-/* ───────── mini JSON 读取器 (config/manifest 借入; 只读不分配) ───────── */
+/* ───────── mini JSON 读取器 (eng/packaging/config/manifest 借入; 只读不分配) ───────── */
 
 static int json_find_str(const char* obj, const char* key,
                          const char** out_val, uint64_t* out_len) {
@@ -580,7 +580,7 @@ static acs_status hips_describe(const acs_module_api_v1* self,
      * (secure_loader.c §5 既成合同; BLD-003 noop 先例同语义), 空=不指名, 直接
      * 返回静态描述; 非空仍严格校验 (错 ID → MISMATCH, 既有 adapter 测试锚不变)。
      * 空 ID 拒绝曾使科学 DLL 在安装树内被自家 loader 必拒 (DESCRIPTOR_MISMATCH),
-     * 本行为修复经 tests/abi/mod001_install_load_check.py 安装树逐 unit 加载闭环。 */
+     * 本行为修复经 eng/tests/abi/mod001_install_load_check.py 安装树逐 unit 加载闭环。 */
     if (module_id.size != 0 &&
         (module_id.size != strlen(kModuleId) ||
          memcmp(module_id.data, kModuleId, strlen(kModuleId)) != 0))

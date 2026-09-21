@@ -8,9 +8,9 @@
 # 被测生产源: src/ipv_wcs.cpp + src/ipv_sip.cpp (零改动直编, 与 ipv Makefile
 # SRCS 同名同选项; 不新建生产 target — 对齐 p1star/p1psf 先例)。
 #
-# 注册方式: 本文件位于模块自带测试目录, 由 tests/unit/CMakeLists.txt 一条
+# 注册方式: 本文件位于模块自带测试目录, 由 eng/tests/unit/CMakeLists.txt 一条
 #   add_subdirectory(../../lib/algorithms/platesolve/cpp/ipv/test p1ipvtest)
-# 挂入。该钩子属 B2 写域 (tests/unit/CMakeLists.txt), 见 REPORT "越域残余"。
+# 挂入。该钩子属 B2 写域 (eng/tests/unit/CMakeLists.txt), 见 REPORT "越域残余"。
 # ============================================================================
 
 set(P1IPVTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR})

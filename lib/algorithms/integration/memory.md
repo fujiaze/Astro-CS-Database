@@ -46,7 +46,7 @@
   :2628-2643、weight policy 门 :2941-2990（equal/snr/snr2/
   support_x_snr2/inverse_variance 等 bias/rmse 门）；W9 ACR 等价门
   :3021-3160（LegacyLauncherEquivalent）；P2-004 生产 Oracle
-  tests/backend/test_p2004_reject_integrate.py（DRIVER_SRC :18-141，
+  eng/tests/backend/test_p2004_reject_integrate.py（DRIVER_SRC :18-141，
   积分段 :66-126: 状态门 :67-101、signal 10.75/support 0.5 :113-126）。
 - descriptor 占位（不改码）: lib/infrastructure/scheduler/src/module_adapters.cpp
   p2_integrate_descriptor :657-675（module_id=astrocs.phase2.integrate、
@@ -57,7 +57,7 @@
   不提交。
 - 验证（P2-INT-DOC 完成，2026-09-09，本任务实测）:
   ①check_traceability_matrix rc=0 errors=0 warns=4（基线 4 条
-  REF_OUT_OF_SCOPE 不变，均不涉本模块）②pytest tests/traceability
+  REF_OUT_OF_SCOPE 不变，均不涉本模块）②pytest eng/tests/traceability
   9 passed ③check_contract_graph PASS contracts=66（+4: ALG-P2-INT-
   001/DATA-P2-INT/API-P2-INT-001/TEST-P2-INT-001，双向边一致）④
   check_doc_index PASS 219 条（新文档已登记）⑤自检

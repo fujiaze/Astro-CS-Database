@@ -123,7 +123,7 @@ P2PixelResult 调用方分配，integrate.h:36-42/:53-63）；无内部 cache
 rtol 1e-12/并行 1..N 线程 bitwise+ACR↔CPU 等价）。现状相邻证据
 （引用不冒认）: lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Integrate
 组 :4690-4760 + weight policy 门 :2941-2990 + W9 ACR 等价
-:3021-3160；tests/backend/test_p2004_reject_integrate.py（P2-004
+:3021-3160；eng/tests/backend/test_p2004_reject_integrate.py（P2-004
 DRIVER_SRC :18-141）。
 
 ## 已知限制

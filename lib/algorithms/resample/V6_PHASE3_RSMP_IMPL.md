@@ -1,7 +1,7 @@
 # V6 Phase3 科学重采样传播实现（IMPL-P3-RSMP-001）
 
 > 任务：IMPL-P3-RSMP-001（Wave 5，depends_on CONTRACT-FREEZE-001）
-> 写域：`lib/algorithms/resample/`、`tests/unit/v6_rsmp/`（本文件与生产源、共址测试同域）
+> 写域：`lib/algorithms/resample/`、`eng/tests/unit/v6_rsmp/`（本文件与生产源、共址测试同域）
 > 基线 HEAD：`44e1cb65`（开工时 `git rev-parse HEAD` 复核；未 commit/push）
 > 上位：`docs/algorithms/v6/phase3/ALG-P3-001_{SPEC,KERNEL_REGISTRY,VERIFICATION}.md`、
 > `docs/contracts/v6/frozen/*`、`docs/algorithms/v6/frozen/*`、`docs/science/v6/phase3/PHASE3_PROPAGATION_REVIEW.md`
@@ -35,23 +35,23 @@
 
 ## 4. 独立 Oracle 与负向门
 
-- Oracle：`tests/unit/v6_p3_rsmp/p3_rsmp_oracle.h`（仅标准库，不 include/不调用生产实现）：
+- Oracle：`eng/tests/unit/v6_p3_rsmp/p3_rsmp_oracle.h`（仅标准库，不 lib/include/不调用生产实现）：
   解析双线性误差界、显式稠密矩阵转写、固定种子 MC（`SEED=20260915`）、独立高斯消元解。
 - 共址测试：`p3_rsmp_core_test`（101 checks）、`p3_rsmp_oracle_test`（36）、`p3_rsmp_gate_test`（127）。
-- 负向 mutation 驱动：`tests/unit/v6_p3_rsmp/run_mutations.py` —— 对生产源影子副本注入 20 条违反冻结的实现，断言测试变红。
+- 负向 mutation 驱动：`eng/tests/unit/v6_p3_rsmp/run_mutations.py` —— 对生产源影子副本注入 20 条违反冻结的实现，断言测试变红。
 
 ## 5. 构建与验证（不修改根构建面）
 
 ```text
-bash tests/unit/v6_p3_rsmp/run_verification.sh      # 单一 rc；日志 run/v6/p3-rsmp/logs/
-cmake -S tests/unit/v6_p3_rsmp -B run/v6/p3-rsmp/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+bash eng/tests/unit/v6_p3_rsmp/run_verification.sh      # 单一 rc；日志 run/v6/p3-rsmp/logs/
+cmake -S eng/tests/unit/v6_p3_rsmp -B run/v6/p3-rsmp/build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build run/v6/p3-rsmp/build -j 8
 ctest --test-dir run/v6/p3-rsmp/build --output-on-failure
-python3 tests/unit/v6_p3_rsmp/run_mutations.py
+python3 eng/tests/unit/v6_p3_rsmp/run_mutations.py
 ```
 
-根 `CMakeLists.txt`/`tests/unit/CMakeLists.txt` 非本任务写域（C-004.4）；注册由控制器统一以独立集成提交完成。
-`lib/algorithms/resample/CMakeLists.txt` 与 `tests/unit/v6_p3_rsmp/CMakeLists.txt` 为本模块的 add_subdirectory 面。
+根 `CMakeLists.txt`/`eng/tests/unit/CMakeLists.txt` 非本任务写域（C-004.4）；注册由控制器统一以独立集成提交完成。
+`lib/algorithms/resample/CMakeLists.txt` 与 `eng/tests/unit/v6_p3_rsmp/CMakeLists.txt` 为本模块的 add_subdirectory 面。
 
 ## 6. 未决风险 / 需裁决
 

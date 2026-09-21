@@ -50,7 +50,7 @@ endif()
 
 # ── include 路径 (与根 astrocs_calibration :338 一致) ──
 target_include_directories(astrocs_p1_calibration PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/lib/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/include
 )

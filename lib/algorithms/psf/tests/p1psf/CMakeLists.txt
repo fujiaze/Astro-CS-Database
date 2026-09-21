@@ -6,7 +6,7 @@
 # (P1-PSF-DOC 冻结); lib/algorithms/psf/README.md r1 + module.yaml
 # (CONTRACT_READY, 7 导出 C API, legacy lib/algorithms/psf)。
 #
-# 结构 (模块 tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
+# 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1psf/p1psf_fixtures.hpp      — FIX-PSF-A..E/PREF 固定 seed fixture
 #                                   (splitmix64; 解析 Moffat4 场, 不内嵌生产算法)
 #   p1psf/p1psf_oracle.hpp        — 独立 oracle (旋转主轴投影直接公式, 与生产

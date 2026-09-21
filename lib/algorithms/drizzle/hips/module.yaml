@@ -8,7 +8,7 @@
 # host_executor_lease 硬租约 detail 105 / entry cancel DISP-HIPS-001 事务化
 # abort），见 lib/algorithms/drizzle/hips/CMakeLists.txt 与 src/module_entry.cpp。可执行测试由
 # P1-HIPS-TEST 建立（TEST-HIPS-DESIGN-001 → TEST-P1-HIPS-001），adapter 契约
-# 测试 hips_writer_adapter 由 P1-HIPS-IMPL 交付（tests/unit/p1_hips/）。
+# 测试 hips_writer_adapter 由 P1-HIPS-IMPL 交付（eng/tests/unit/p1_hips/）。
 # 字段遵循 11_MODULE_SOURCE_TEST_STANDARD.md §4；source_symbols 为源码核对清单
 # （P1-HIPS-DOC，2026-09-07，逐符号在 lib/infrastructure/aio/include/aio_hips.h
 # 亲核可见），禁止手抄他版。
@@ -80,7 +80,7 @@ source_symbols:
 test_ids:
   - TEST-HIPS-DESIGN-001
   # AIO-002: 原子发布与临时目录清理 (ctest: hips_publish_atomic_units /
-  # hips_publish_atomic; 测试源 tests/unit/p1_hips/publish_atomic_test.c)
+  # hips_publish_atomic; 测试源 eng/tests/unit/p1_hips/publish_atomic_test.c)
   - TEST-P1-HIPS-PUBLISH-001
 threading_model: host_executor_lease
 resource_class: cpu_heavy

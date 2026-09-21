@@ -9,13 +9,13 @@
 ## 2. 权威依据
 
 - 最高设计 `ASTROCS_DESIGN.md` §6（CLI 合同）、§4.5（运行前预检）
-- `contracts/schemas/phase_config*.schema.json`
+- `eng/contracts/schemas/phase_config*.schema.json`
 
 ## 3. 输入/输出数据合同
 
 - **输入**：命令行参数 + `--json` 挂载的 phase_config。
 - **输出**：stdout 机器 JSON（`--json` 时恰一个 JSON 文档）、JSONL 事件、退出码；运行产物落 `output_dir`。
-- 参考：`contracts/schemas/cli_output.schema.json`、`contracts/schemas/events.schema.json`。
+- 参考：`eng/contracts/schemas/cli_output.schema.json`、`eng/contracts/schemas/events.schema.json`。
 
 ## 4. 算法与公式要点
 
@@ -43,7 +43,7 @@
 ## 6. 接口/ABI
 
 - entrypoint：`main()` → 解析 → 预检 → 确认 → 调度执行 → 退出码；
-- 退出码唯一源 `include/astrocs/exit_codes.h`（0/2/3/4/5/6/7/8/9/10/70）。
+- 退出码唯一源 `lib/include/astrocs/exit_codes.h`（0/2/3/4/5/6/7/8/9/10/70）。
 
 ## 7. 错误与边界
 

@@ -6,10 +6,10 @@ Linux 真实实现的安全动态加载器; Windows 契约同源(实现在 WIN-*
 
 | 文件 | 角色 |
 |---|---|
-| `secure_loader.h` | 合同头(固定宽度 POD、head、错误码枚举、UTF-8 span、opaque handle; 与 `include/astrocs/abi/` 冻结风格一致) |
+| `secure_loader.h` | 合同头(固定宽度 POD、head、错误码枚举、UTF-8 span、opaque handle; 与 `lib/include/astrocs/abi/` 冻结风格一致) |
 | `secure_loader.c` | Linux 实现: canonical 路径 + ELF64 校验 + FIPS 180-4 sha256 + dlopen + 加载后符号/握手/describe 校验 |
-| `tests/abi/abi003_loader_probe.c` | 验收探针(包装 load/describe/release, 输出机器可读结果) |
-| `tests/abi/test_secure_loader.py` | 全部正/负场景编排(36 checks) |
+| `eng/tests/abi/abi003_loader_probe.c` | 验收探针(包装 load/describe/release, 输出机器可读结果) |
+| `eng/tests/abi/test_secure_loader.py` | 全部正/负场景编排(36 checks) |
 
 ## 语义(12_DLL_ABI_AND_LOADER_STANDARD.md §6)
 
@@ -36,7 +36,7 @@ acs_status st = acs_secure_loader_load_v1(&opt, &err, &h);
 ## 运行测试
 
 ```bash
-python3 tests/abi/test_secure_loader.py   # 退出码 0 = 36/36 PASS
+python3 eng/tests/abi/test_secure_loader.py   # 退出码 0 = 36/36 PASS
 ```
 
 ## 状态

@@ -66,8 +66,8 @@
   - 另注（现状差距登记，非 DISP 编号）: output_dir validate 必填但
     run 不消费；输出目录语义归 P2-SESSION-IMPL 接 HIPS 写盘段
     （ALG §5 注入面 + DATA §24.1 + registry 页如实登记）。
-- 验证锚（相邻证据，引用不冒认）: tests/unit/p2_ir_facade_test.cpp
-  （P2-007，91 行，ctest p2_ir_facade 注册 tests/unit/CMakeLists.txt
+- 验证锚（相邻证据，引用不冒认）: eng/tests/unit/p2_ir_facade_test.cpp
+  （P2-007，91 行，ctest p2_ir_facade 注册 eng/tests/unit/CMakeLists.txt
   :407-409，build/ ctest 实测 Passed 2026-09-10）——IR 4 节点全链
   :33-40 / facade 委托 :44-53 / 阶段序 :56-66 / manifest trace :69-74。
   可执行 TEST-P2-SESSION-001 MISSING（归 P2-SESSION-TEST）。

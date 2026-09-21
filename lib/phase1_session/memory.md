@@ -33,7 +33,7 @@
   p1_nodes[]；子节点禁调 phase_session_run，ARCH-P0-001 整改）；
   P1Api/SessionModule 保留兼容面。complete 门：run 成功 status="partial"+
   availability 8 域（PROD-P0-001 Phase1 侧；p1_session.cpp run 成功路径）。
-  测试锚：tests/unit/p1001_real_nodes_test.cpp + p1sess 五组（断言已迁移
+  测试锚：eng/tests/unit/p1001_real_nodes_test.cpp + p1sess 五组（断言已迁移
   partial）。
 - P1-001 attempt 2 三域真实化（2026-09-10 口径更新落地）：star-psf=
   sdet(lib/algorithms/star_detection 生产源)+dpsf_fit_batch_f64(lib/algorithms/psf
@@ -80,7 +80,7 @@
 - 五项基线：check_traceability_matrix rc=0（基线 warns=4：conformance-noop
   EVID-BLD-003 / providers-cpu EVID-CPU-001 / services-io API-IO-STREAM-V1
   与 EVID-IO-001 的 REF_OUT_OF_SCOPE——不得新增）；pytest
-  tests/traceability/test_traceability_matrix.py 全过；check_contract_graph
+  eng/tests/traceability/test_traceability_matrix.py 全过；check_contract_graph
   rc=0；check_doc_index rc=0；自包含 selfcheck ALL PASS。
 - 禁改：lib 生产源码（p1_session.cpp/.h 零 diff）、docs/science/、根科学
   公式；禁止运行 v19r3_traceability.py 与 gen_module_readmes.py。
@@ -109,7 +109,7 @@
   链接追加 4 个 lib/phase1 静态库（wcs/phot/noise/stars，源零修改只读
   委托）+ astrocs_module_adapters 追加 astrocs_drizzle（hp_drizzle_run
   直链）；V7 残留追加块零触碰。
-- 测试：tests/unit/p1001_real_nodes_test.cpp 新增（RED 锚定→GREEN；
+- 测试：eng/tests/unit/p1001_real_nodes_test.cpp 新增（RED 锚定→GREEN；
   operation/entry/artifact/call_count=1/complete 门/负向/确定性）；
   p1sess 五组 + p1_session_manifest 断言迁移 partial。
 

@@ -76,7 +76,7 @@ HIST = re.compile(r"V19R4\s*[：:]|（\s*V19R4\s*[）)]|本轮修复|本轮")
 
 
 def is_test_file(p: str) -> bool:
-    return "tests/" in p or "test/" in p or p.endswith("_test.cpp")
+    return "eng/tests/" in p or "test/" in p or p.endswith("_test.cpp")
 
 
 def transform_line(p: str, raw: str) -> str:

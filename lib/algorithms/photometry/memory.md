@@ -123,7 +123,7 @@
 ```
 lib/algorithms/photometry/
 ├── cpp/                # C++ DLL（简化版全局scale校正，2026-07-12新建）
-│   ├── include/photometric_calib.h   # C API 声明
+│   ├── lib/include/photometric_calib.h   # C API 声明
 │   ├── src/
 │   │   ├── pc_api.cpp              # C API 包装
 │   │   ├── star_matcher.cpp/.h     # 暴力最近邻匹配 + MAD清洗
@@ -406,7 +406,7 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
   不同）——CMake 集成归 P1-PHOT-IMPL。
 - lib/algorithms/photometry/wrapper_phase1/（Photometer aperture 测光）=静态库
   astrocs_phase1_phot（CMakeLists.txt:429-432，主程序链接 :513）+ 单测
-  tests/unit/p1_wcs_phot_test（tests/unit/CMakeLists.txt:305-310，4 组）；
+  eng/tests/unit/p1_wcs_phot_test（eng/tests/unit/CMakeLists.txt:305-310，4 组）；
   未接 orchestrator 管线（grep 无生产调用方）——计划迁移旧符号，aperture
   合同并入 README §9。
 - 帧级 QA 下游：sigma_residual(dex)→snr_estimator snr_phot_cal_quality
@@ -461,7 +461,7 @@ static constexpr double _IRLS_CONVERGE = 1e-6;   // IRLS 收敛阈值
 - **决策**: 用户审阅 PROJECT_OVERVIEW.md 后纠正——stage1 不做曲面拟合和图像亮度修正（那是 stage2 马赛克阶段的事），PSF 后只做测光坐标系校准（PHOTOMETRIC 已完成）。
 - **操作**: 
   - lib/algorithms/photometry/cpp/gradient_2d/ 整目录归档到 lib/algorithms/photometry/archive/gradient_2d/
-  - 保留全部代码（include/ + src/ + build.ps1），不删改文件内容
+  - 保留全部代码（lib/include/ + src/ + build.ps1），不删改文件内容
   - orchestrator 中删除 PipelineStageV2::GRADIENT_2D 枚举 + run_stage_gradient_2d 函数
   - stage1 重排为 7 节点：READ_FITS/CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/SNR/DRIZZLE
 - **保留原因**: stage2 马赛克阶段若需要曲面拟合可参考此实现（IRLS+Tukey+Ridge+LOOCV 算法本身正确，只是不应在 stage1 单帧预处理中做）

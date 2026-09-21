@@ -49,18 +49,18 @@
       "category": "LEGACY_V7_GATED",
       "owner": "SA-AIO",
       "owner_note": "F-AIO-001 登记 owner=负责人裁决（HANDOVER.md:62）；实现域为 AIO/Phase1 噪声适配器（SA-AIO）",
-      "reason": "F-AIO-001：p1_noise_adapter 是 V7 残留组合态下的预存唯一 FAIL（BASE 冻结快照口径，HANDOVER.md:62,109）。tests/unit/CMakeLists.txt:1081 以 if(TARGET p1noise_under_test AND TARGET astrocs_p1_noise) 门卫化——门卫关闭时该 CTest 目标零注册零执行（当前状态），V7 残留（lib/snr_estimator untracked 面）收编后门卫自动重新激活，该目标即以预存失败形态出现在全量 ctest 中。故登记为 conditional：不出现＝绿（不得判 stale），出现且失败＝KNOWN（不得判新失败）。",
+      "reason": "F-AIO-001：p1_noise_adapter 是 V7 残留组合态下的预存唯一 FAIL（BASE 冻结快照口径，HANDOVER.md:62,109）。eng/tests/unit/CMakeLists.txt:1081 以 if(TARGET p1noise_under_test AND TARGET astrocs_p1_noise) 门卫化——门卫关闭时该 CTest 目标零注册零执行（当前状态），V7 残留（lib/snr_estimator untracked 面）收编后门卫自动重新激活，该目标即以预存失败形态出现在全量 ctest 中。故登记为 conditional：不出现＝绿（不得判 stale），出现且失败＝KNOWN（不得判新失败）。",
       "first_seen_commit": "ae147df369ba8a4403ab485033c19fa2f510d64b",
-      "first_seen_note": "ae147df3（tests/unit/CMakeLists.txt 首次注册 add_test(NAME p1_noise_adapter)，失败面自此存在）；F-AIO-001 作为 finding 首次登记于 eb315b20（HANDOVER.md）",
+      "first_seen_note": "ae147df3（eng/tests/unit/CMakeLists.txt 首次注册 add_test(NAME p1_noise_adapter)，失败面自此存在）；F-AIO-001 作为 finding 首次登记于 eb315b20（HANDOVER.md）",
       "finding_first_registered_commit": "eb315b20",
       "source_sha": "f8778bbbf010e92f49670dd9d2fbef7fe98d6731",
-      "activation": "tests/unit/CMakeLists.txt:1081 门卫 if(TARGET p1noise_under_test AND TARGET astrocs_p1_noise) 成立时（V7 残留 lib/snr_estimator 收编、根图 astrocs_p1_noise 恢复）该 CTest 目标才被注册并执行",
+      "activation": "eng/tests/unit/CMakeLists.txt:1081 门卫 if(TARGET p1noise_under_test AND TARGET astrocs_p1_noise) 成立时（V7 残留 lib/snr_estimator 收编、根图 astrocs_p1_noise 恢复）该 CTest 目标才被注册并执行",
       "reproducer": "python3 eng/tools/quality/deep_ci_driver.py ctest-full --build-dir run/ci/build-gcc-release --junit run/ci/build-gcc-release/ctest-full.junit.xml（门卫激活后 p1_noise_adapter 出现在 JUnit 中并失败）",
       "expiry": "2026-12-31T00:00:00Z",
       "expected": "conditional",
       "removal_condition": "V7 残留收编后按 F-AIO-001 修复 p1_noise_adapter（或经负责人裁决维持 V7 残留不收编纪律并删除本项）；任一路径落地即删除本项。",
       "evidence": [
-        "tests/unit/CMakeLists.txt:1077-1096（P1-NOISE-IMPL 门卫块，f74fc20f 引入门卫化）",
+        "eng/tests/unit/CMakeLists.txt:1077-1096（P1-NOISE-IMPL 门卫块，f74fc20f 引入门卫化）",
         "HANDOVER.md:62,109（F-AIO-001=p1_noise_adapter 全量唯一 FAIL，BASE 冻结快照口径）",
         "lib/phase1_session/memory.md:118（rt005_registry/rt009_node_trace/p1_noise_adapter 同族 V7 残留）",
         "run/ci/ci-baseline-001/ctest_full_pre.log（当前门卫关闭：168 目标中无 p1_noise_adapter，零失败）"
@@ -72,7 +72,7 @@
     {
       "check_id": "UT-CLI",
       "removed_utc": "2026-09-14T04:31:22Z",
-      "reason": "removal_condition 满足：tests/cli 已把 CLI/夹具子进程 cwd 统一落 run/test_cli_cwd（显式 run/ 落位路径），UT-CLI 由 FAIL(dirty) 转绿（干净检出 174 OK / 0 failures；FD-14 commit fa5581a0），且 F-13 符号用例亦已转绿（f849860a）。07 合同：修复后必须删除基线项，不能重新增加。",
+      "reason": "removal_condition 满足：eng/tests/cli 已把 CLI/夹具子进程 cwd 统一落 run/test_cli_cwd（显式 run/ 落位路径），UT-CLI 由 FAIL(dirty) 转绿（干净检出 174 OK / 0 failures；FD-14 commit fa5581a0），且 F-13 符号用例亦已转绿（f849860a）。07 合同：修复后必须删除基线项，不能重新增加。",
       "verified_by": "FRONT-DESK",
       "evidence": [
         "run/release-rescue/fd-utcli/REPORT.md",

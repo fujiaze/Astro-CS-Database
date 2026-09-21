@@ -6,7 +6,7 @@
 #        (P1-CAL-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-CAL (MOD
 #        astrocs.p1.calibration, TEST-P1-CAL-001)。
 #
-# 结构 (模块 tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
+# 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1cal/p1cal_fixtures.hpp     — FIX-CAL-A..F 固定 seed fixture generator
 #   p1cal/p1cal_oracle.hpp       — 独立 oracle (不调用被测函数, sort-path 统计
 #                                  + double 域代数重算 + BFS/IDW 直接复算)
@@ -62,7 +62,7 @@ add_test(NAME p1cal_selfcheck COMMAND p1cal_selfcheck_test)
 # BIAS-001: bias 参与门 + ignore-bias/ignore-K 变异注入（可执行负例面）
 # 编译 bias_influence_harness.cpp 对**生产源**断言（提供 vs 缺失 bias 必须不同、
 # K 必须施加、兼容式必须分离），并对源码注入三种变异要求逐一本门判红。
-# 注: 本目录在 tests/unit/CMakeLists.txt 的 find_package(Python3) 之前被
+# 注: 本目录在 eng/tests/unit/CMakeLists.txt 的 find_package(Python3) 之前被
 # add_subdirectory 引入, 故此处显式取解释器 (缺失即配置期报错, 不静默跳过)。
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 add_test(NAME p1cal_bias_influence_gate

@@ -6,7 +6,7 @@
 
 | 项 | 值 |
 |---|---|
-| 路径 | `testdata/testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits` |
+| 路径 | `testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits` |
 | 用途 | B3 的 `hst_m16` 面：以真实高对比结构作为 σ 场载体 |
 | 处理 | 读入后取中心 2048² 裁剪；通量线性缩放到中位 200 e⁻；再按完整物理链加天光 200 e⁻/px、暗流 0.5 e⁻/px、读出噪声 10 e⁻、增益 1.3 e⁻/ADU |
 | 真值 | 逐像素解析 σ（含源泊松项），无需 MC |

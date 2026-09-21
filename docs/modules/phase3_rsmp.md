@@ -63,10 +63,10 @@
   :258-263（cancel）/:265-277（provenance）；域际消费:
   lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/
   nested_local_to_fits_index/ang2pix/pix2ang 权威函数）。
-- 执行面: tests/backend/p3_resample_probe_main.cpp（探针六模式）+
-  tests/backend/test_p3_resample.py（156 行，seam/NaN/无静默默认）+
-  tests/backend/test_p3003_parallel_resampler.py（104 行）+
-  tests/unit/p3_interp_test.cpp（109 行）/p3_coverage_test.cpp
+- 执行面: eng/tests/backend/p3_resample_probe_main.cpp（探针六模式）+
+  eng/tests/backend/test_p3_resample.py（156 行，seam/NaN/无静默默认）+
+  eng/tests/backend/test_p3003_parallel_resampler.py（104 行）+
+  eng/tests/unit/p3_interp_test.cpp（109 行）/p3_coverage_test.cpp
   （106 行，独立参考实现）。
 
 ## 5 端口与 DATA

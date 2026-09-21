@@ -7,7 +7,7 @@
 # P1-STAR (MOD astrocs.phase1.star_detection, TEST-P1-STAR-001); 冻结合同
 # lib/algorithms/star_detection/README.md (CONTRACT_READY)。
 #
-# 结构 (模块 tests/{unit,properties,oracle,fixtures,negative,performance} 对应;
+# 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应;
 # 结构先例 P1-HIPS-TEST commit c19b4a59 六组 CTest 对齐):
 #   p1star/p1star_fixtures.hpp     — FIX-STAR-A..G 固定 seed fixture generator
 #                                    (mt19937_64/splitmix64, 容差来源注记=§11.4)
@@ -35,7 +35,7 @@
 #                         必败, 三阶段 rc 双向判定, 无 WILL_FAIL 依赖)
 #
 # 域基线: HEAD dc2f5f3e (批次 R sdet malloc 事务化发布, 17 处静默失败全修);
-# 与 tests/unit/p1_stars_test.cpp (P1-003 桥接层 astrocs::phase1::StarDetector)
+# 与 eng/tests/unit/p1_stars_test.cpp (P1-003 桥接层 astrocs::phase1::StarDetector)
 # 互补不重复 — 本验证面为生产 sdet_* C API。
 #
 # 注: 生产 5 src 不在根 CMake 构建 (独立 Makefile) — 此处直接编入测试目标,

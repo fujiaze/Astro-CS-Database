@@ -17,7 +17,7 @@
 
 - **输入**：原始 light（float 语义）、master bias/dark/flat、cosmetic map、曝光/增益/读出噪声/饱和/非线性/温度/滤镜/观测站元数据（输入为参数 + 路径，见最高设计 §4.3）。
 - **输出**：定标信号 `y`（单位声明）、`V(y)`/ivar、validity 标志、写入 manifest 的校准口径。
-- 参考：`contracts/schemas/data_light.schema.json`、`contracts/schemas/calibration_output.schema.json`。
+- 参考：`eng/contracts/schemas/data_light.schema.json`、`eng/contracts/schemas/calibration_output.schema.json`。
 
 ## 4. 算法与公式要点
 

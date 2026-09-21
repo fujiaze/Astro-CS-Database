@@ -2,7 +2,7 @@
 
 - 合同: `P3-002..006` / ALG-P3-003/004 (docs/contracts/INDEX.yaml)
 - Headers: `p3_session.h`（本目录）/ `p3_wcs.h`（W4-A9 批次 1 → `lib/algorithms/projection/`）/ `p3_resample.h`（批次 2 → `lib/algorithms/resample/`，TU 暂留本库，批次 4 收口）/ `p3_output.h`（批次 3 → `lib/algorithms/fits_output/`）/ `hips_properties.h`（本目录，批次 4 → `lib/algorithms/coverage/`）
-- Tests: `p3_wcs_test.cpp`（批次 1 → `lib/algorithms/projection/tests/p3wcs/`）/ `p3_interp_test.cpp` / `p3_coverage_test.cpp` / `p3_output_test.cpp` / `p3_assembly_test.cpp`（后四条在 `tests/unit/`）
+- Tests: `p3_wcs_test.cpp`（批次 1 → `lib/algorithms/projection/tests/p3wcs/`）/ `p3_interp_test.cpp` / `p3_coverage_test.cpp` / `p3_output_test.cpp` / `p3_assembly_test.cpp`（后四条在 `eng/tests/unit/`）
 
 ## 职责
 > W4-A9（2026-09-17）后本目录只保留会话 facade 与尚未迁出的 `hips_properties*`；

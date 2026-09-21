@@ -59,9 +59,9 @@
   DORMANT；登记面=TEST-P3-RSMP-DESIGN-001 设计冻结 VERIFIED 承载于
   ALG-P3-RSMP-IMPL-001 §12 + registry 手写页 §9 双重陈述——照
   P3-PROJ/P3-FITS 先例；可执行面升级归 P3-RSMP-TEST，不冒认。现状
-  执行测试四处如实登记: tests/backend/p3_resample_probe_main.cpp
-  探针 + tests/backend/test_p3_resample.py 156 行 +
-  test_p3003_parallel_resampler.py 104 行 + tests/unit/
+  执行测试四处如实登记: eng/tests/backend/p3_resample_probe_main.cpp
+  探针 + eng/tests/backend/test_p3_resample.py 156 行 +
+  test_p3003_parallel_resampler.py 104 行 + eng/tests/unit/
   p3_interp_test.cpp 109 行 / p3_coverage_test.cpp 106 行独立参考
   实现）。
 - 生产源锚（read/grep 实测，2026-09-12）:
@@ -91,7 +91,7 @@
   den=dx·dy2-dx2·dy≤0 跳过背面/|dx|>1e-300 防 0 除/u,v clamp [0,1]/
   四权重 FP64 Σ=1/any_nan→nanf("")/coverage 恒 1/(void)y1 压
   unused）、p3_sample_nearest :232-239（ang2pix 精确 cell）。
-  会话消费: p3_session.cpp :16 include/:167-178 主 sampler open_ex :171
+  会话消费: p3_session.cpp :16 lib/include/:167-178 主 sampler open_ex :171
   （实际 order/BUNIT）/:179-194 max_tiles 内存守卫（默认
   min(1024, ceil(W·H/512²)+16)，请求超默认→ACS_ERR_BUDGET 可降
   不可升）/:196-199 p3_order_select（max_order=输入实际 order，
@@ -106,12 +106,12 @@
   请求守卫: parse_request :95-129（projection 仅 TAN/frame 仅 icrs/
   |dec|≤85°/scale>0/W,H∈[1,20000]/sampler∈{nearest,bilinear} 缺省
   bilinear/parity/bitpix∈{-32,-64}/coverage_output 仅 mask）。
-  执行面: tests/backend/p3_resample_probe_main.cpp 探针
+  执行面: eng/tests/backend/p3_resample_probe_main.cpp 探针
   （order/mode/open/nearest/bilinear/pix2ang 六模式）+
-  tests/backend/test_p3_resample.py 156 行（test_05_nan_semantics
+  eng/tests/backend/test_p3_resample.py 156 行（test_05_nan_semantics
   tile 内 NaN→C=1+值 NaN/test_06_no_silent_default_open/seam 域界
   1e8-1..12e8+1 连续性 1e-5°）+ test_p3003_parallel_resampler.py
-  104 行 + tests/unit/p3_interp_test.cpp 109 行/p3_coverage_test.cpp
+  104 行 + eng/tests/unit/p3_interp_test.cpp 109 行/p3_coverage_test.cpp
   106 行（独立参考实现，非生产自证）。
 - 实测偏差（如实登记，DISP/整改不修码）:
   1) DISP-P3RSMP-001: bilinear=切平面四象限最近中心双线性
@@ -133,5 +133,5 @@
   errors=0 warns=4 基线、gate2 pytest 9 passed、gate3 contracts
   增长、gate4 doccheck rc=0、红线域 git status 零输出）。
 - 红线遵守: docs/science/ 根公式零改动；lib/phase3_session/ 生产源
-  .cpp/.h 零改动；eng/ci/、.github/、eng/tools/、tests/ 零改动；批次 P
-  （tests/backend、tests/cli）在途域只读不动；本任务零 git 操作。
+  .cpp/.h 零改动；eng/ci/、.github/、eng/tools/、eng/tests/ 零改动；批次 P
+  （eng/tests/backend、eng/tests/cli）在途域只读不动；本任务零 git 操作。

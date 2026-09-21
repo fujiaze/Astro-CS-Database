@@ -70,7 +70,7 @@
 | B-10 | B | hips_core.c 是否被在途批次纳入构建（决定 MOC 溢出与 NULL 解引用两族定级） | L24 §6F | 需读构建配置或 RESCUE-V3 任务书 |
 | B-11 | B | mod001 64/64、两棵命令面差异、SparseEqualsDense 实跑、FOV 出片形态、inlier 语义、p1noise 追踪、avx512 exit-77 记账、fault-injection WILL_FAIL | M5b §6 + M1a §6 + L23 R1-R6 | 需构建/ctest |
 | B-12 | B | 外部标准原文核验（Paper I §3.3.3 CROTA2 符号；HiPS 1.0 hips_frame 枚举行；IVOA 响应格式 search_radius 单位） | M1a/M2b/L26 §6 | 需可达外网（多代理 fetch 受阻，已拒用记忆替代） |
-| B-13 | B | 真实数据面核对（GaiaDR3/GaiaDR3SP 与外部 HiPS/MOC 产品可达性；Fatduck 侧 astropy 交叉 oracle） | M2a/L23 R4 | 需数据目录与 Windows 节点 |
+| B-13 | B | 真实数据面核对（testdata/GaiaDR3/GaiaDR3SP 与外部 HiPS/MOC 产品可达性；Fatduck 侧 astropy 交叉 oracle） | M2a/L23 R4 | 需数据目录与 Windows 节点 |
 
 | B-14 | **已授权（负责人 2026 裁定）** | **ASan/UBSan 与 Windows 覆盖写、增量 CI 选择集、导出面符号表、真实数据可达性**四类的合并申请：是否允许在**并发工作结束后**由 R 层执行**白名单命令**（仅 ctest/ls-files/nm/--changed-from 干跑，不改源码不产根目录物） | 40 文件 B-01~B-13 汇总 | 需你授权一次 |
 

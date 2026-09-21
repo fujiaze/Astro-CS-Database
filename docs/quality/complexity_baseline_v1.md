@@ -23,7 +23,7 @@
 | max_file_cyclomatic | 1048（`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp`） |
 
 cli 域 top1：`cli/commands.cpp`（332）；include 域 top1：
-`include/astrocs/core/contracts.h`（29）。
+`lib/include/astrocs/core/contracts.h`（29）。
 
 ## hosted 后待补字段
 

@@ -1474,7 +1474,7 @@ int main(int argc, char* argv[]) {
     if (argc > 1) {
         output_dir = argv[1];
     } else {
-        // 默认输出到交付目录 (相对于 tests/ 目录)
+        // 默认输出到交付目录 (相对于 eng/tests/ 目录)
         output_dir = "../../../AstroCS_Stage1_HISS_Delivery/reports/experiments";
     }
     std::filesystem::create_directories(output_dir);

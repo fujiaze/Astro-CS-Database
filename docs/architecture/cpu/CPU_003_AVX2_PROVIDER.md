@@ -8,9 +8,9 @@
 > 下游: CPU-004 AVX-512 provider、CPU-005 逐 kernel 路由（以 kernel_id 选 provider）
 > 实现: lib/infrastructure/benchmark/cpu/avx2/（avx2_provider_v1.h + avx2_provider.cpp；target 单独
 >       `-mavx2 -mfma`；Windows `/arch:AVX2`）
-> 测试: tests/cpu/avx2/（gate stub 负测 + handshake + so_load + 对照 oracle runner）
+> 测试: eng/tests/cpu/avx2/（gate stub 负测 + handshake + so_load + 对照 oracle runner）
 > profile 台账: docs/architecture/ISA_VARIANTS.md（ISA-001/003 实测）·
->       artifacts/prerelease_v5/ISA-001/MEASUREMENTS.csv
+>       artifacts/evidence/prerelease-v5/ISA-001/MEASUREMENTS.csv
 
 ## 1. 目标与验收
 
@@ -30,7 +30,7 @@ target 单独 `/arch:AVX2`（Linux `-mavx2 -mfma`）；函数入口由 provider 
 
 `docs/architecture/ISA_VARIANTS.md` 冻结的 ISA-001/003 实测（vm-bj，
 median-of-5，best-of baseline 对变体最保守；工件
-`artifacts/prerelease_v5/ISA-001/MEASUREMENTS.csv`）：
+`artifacts/evidence/prerelease-v5/ISA-001/MEASUREMENTS.csv`）：
 
 | kernel | baseline ns | avx2 变体 ns | 增益 | 决策 |
 |---|---|---|---|---|
@@ -76,7 +76,7 @@ OSXSAVE + XGETBV）+ `acs_cap_os_safe_satisfies_v1(cap, required)`，其中
 | XGETBV negative（硬件有 AVX2 但 OS 不保存 YMM） | osxsave=0 / xcr0 缺 0x6 → os_safe 清除 AVX 家族 | 拒 |
 | AVX2 机（OS 保存 XMM\|YMM） | os_safe 含 AVX\|AVX2\|FMA | 通过 |
 
-负测以 stub 探测注入（tests/cpu/avx2/provider_avx2_capability_gate_test.c
+负测以 stub 探测注入（eng/tests/cpu/avx2/provider_avx2_capability_gate_test.c
 链接期替换 `acs_cap_detect_v1`/`acs_cap_os_safe_satisfies_v1`，同 CPU-002
 gate 测试法）；正测经真实 CPUID/XGETBV（本机 Xeon Gold 6148 含 AVX2+FMA）。
 
@@ -134,7 +134,7 @@ baseline provider TU (无 -mavx*)  objdump: 0 处 ymm/vfmadd/vfnmadd
 
 ## 9. 测试证据
 
-tests/cpu/avx2/（runner: `python3 tests/cpu/avx2/run_provider_avx2_checks.py`）：
+eng/tests/cpu/avx2/（runner: `python3 eng/tests/cpu/avx2/run_provider_avx2_checks.py`）：
 1. capability gate stub 负测：非 amd64 / 无 AVX2 hw / OS 禁 YMM → 拒；AVX2 机
    → 过（`provider_avx2_capability_gate_test` ALL PASS）；
 2. handshake：真实 query OK + ABI 负测 + kernel_list=2（kernel_id 与

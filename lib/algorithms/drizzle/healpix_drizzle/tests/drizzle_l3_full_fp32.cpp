@@ -6,7 +6,7 @@
 // 验收: Drizzle 计算 <= 90s (目标 60s); 输出像素与基线参考一致 (61,592,234);
 // 通量闭合; 无 NaN/Inf; 峰值 RSS 显著低于旧多 hash 结构
 //
-// 编译 (tests/ 目录): 同 drizzle_l0_test.cpp
+// 编译 (eng/tests/ 目录): 同 drizzle_l0_test.cpp
 // ============================================================================
 #include "drizzle_engine.h"
 #include "hiss_format.h"

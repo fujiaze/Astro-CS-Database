@@ -37,6 +37,6 @@
 
 ```bash
 python3 -m py_compile lib/infrastructure/observability/logging/log_event.py eng/tools/monitoring/check_log_contract.py
-python3 -m unittest discover -s tests/monitoring -v
+python3 -m unittest discover -s eng/tests/monitoring -v
 python3 eng/tools/monitoring/check_log_contract.py --selfcheck
 ```

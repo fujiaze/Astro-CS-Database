@@ -63,7 +63,7 @@ FROZEN，w_UPM 唯一冻结式 PHASE2_UPM.md §5）；P3 HiPS→FITS。
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
 | `integrated` | `DATA-P2-INT` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL`（descriptor 词汇） |
-| `mosaic` | `DATA-P2-RES`→`DATA-P2-HIPS` | 可 | **`UnitId::SURFACE_BRIGHTNESS`**（signal = **面亮度**；枚举已存在，`include/astrocs/core/artifact.h:36`，phase3 在用） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
+| `mosaic` | `DATA-P2-RES`→`DATA-P2-HIPS` | 可 | **`UnitId::SURFACE_BRIGHTNESS`**（signal = **面亮度**；枚举已存在，`lib/include/astrocs/core/artifact.h:36`，phase3 在用） | NESTED 球面（HEALPix nside=2^(target_order+9)，tile 512×512） |
 
 权威源 = DATA-P2-HIPS（DATA_SEMANTICS §20）：descriptor 端口表
 （**`module_adapters.cpp:1040-1057`** `p2_write_descriptor`，坐标 PIXEL 与 NESTED
@@ -115,7 +115,7 @@ diagnostics.json；所有权=stage2 进程内缓冲，输入由 IO-002 读合同
 
 ## 错误、日志、指标、取消和 checkpoint
 
-退出码 2=config/CLI、3=coverage/target_order、4=frame_id/sampler、
+退出码 2=eng/packaging/config/CLI、3=coverage/target_order、4=frame_id/sampler、
 5=UPM、6=tile 读写/块不可行/finalize、7=ivar 门/HIPS_VERIFY；日志
 run/logs/phase2/<YYYYMMDD>/stage2.log（:161-165）+ stderr；指标=
 diagnostics.json（rejection_resolved_methods/reject_hist/pixels_depth_*/
@@ -131,7 +131,7 @@ TEST-DESIGN 与容差来源=ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md
 §8/§9：NumPy 参考 signal/sup_max rtol=1e-12、序转换恒等往返、ivar 门
 现状相邻证据（引用不冒认）：phase2_synthetic_gate ACR
 mosaic_reject_legacy↔CPU 等价（synthetic_gate.cpp:3021-3160）、
-tests/api/test_reject_integration_oracle.py。
+eng/tests/api/test_reject_integration_oracle.py。
 
 ## 已知限制
 

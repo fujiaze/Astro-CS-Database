@@ -17,7 +17,7 @@
 
 - **输入**：run-plan（节点图、模块 ID、配置、输出路径）、cpu_profile、内存预算（可选）。
 - **输出**：run-graph、run-trace（JSONL）、资源时间序列、artifact-manifest、run-summary；调度指标（worker 空转率、缓存命中率、数据搬运量、上下文切换次数、RSS 峰值）。
-- 参考：`contracts/schemas/run_*.schema.json`。
+- 参考：`eng/contracts/schemas/run_*.schema.json`。
 
 ## 4. 算法与公式要点
 
@@ -107,6 +107,6 @@ flowchart LR
   `module_id: astrocs.infra.scheduler` / `target_dir: lib/infrastructure/scheduler`；
   `docs/plugins/00_INDEX.md` §2 第 2 列 = `scheduler`。
 - `runtime` **不是模块名**，不得作为职责名/模块名引用；本页文件名 `19_runtime.md` 是
-  `config/config_registry.json` 与 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
+  `eng/packaging/config/config_registry.json` 与 `docs/DOCUMENT_INDEX.yaml` 登记在册的文档路径，仅作路径使用。
 - `pipeline` 在 `docs/modules/MODULE_MAP.yaml` 中随 `index_module_count = 23` 的登记规模
   一并维护；本页与 `00_INDEX.md` 已覆盖其名。

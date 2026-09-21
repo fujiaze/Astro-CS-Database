@@ -248,14 +248,14 @@
 
 | 文件 | 说明 |
 |------|------|
-| tests/hiss_experiments.cpp | 实验程序源码 (DQ-001~DQ-007) |
-| tests/hiss_experiments.exe | 编译后可执行文件 |
-| tests/results/dq001_codec_comparison.csv | codec/transform 压缩率对比 (108 组合) |
-| tests/results/dq002_occupancy_mode.csv | Tile 占用模式体积对比 (4 占用率) |
-| tests/results/dq003_random_read_latency.csv | 磁盘随机读取延迟 (RAW/Zstd) |
-| tests/results/dq004_drizzle_profile.csv | Drizzle 各阶段耗时 profile |
-| tests/results/dq005_writer_memory.csv | Writer 流式写入内存测试 (3 规模) |
-| tests/results/dq006_auto_nside.csv | 自动 NSIDE 选择验证 (3 样本) |
-| tests/results/dq007_signal_support_semantics.csv | signal/support 语义验证 (3 样本) |
-| tests/results/performance_report.md | 本报告 |
-| tests/experiment_log.txt | 实验运行日志 |
+| eng/tests/hiss_experiments.cpp | 实验程序源码 (DQ-001~DQ-007) |
+| eng/tests/hiss_experiments.exe | 编译后可执行文件 |
+| eng/tests/results/dq001_codec_comparison.csv | codec/transform 压缩率对比 (108 组合) |
+| eng/tests/results/dq002_occupancy_mode.csv | Tile 占用模式体积对比 (4 占用率) |
+| eng/tests/results/dq003_random_read_latency.csv | 磁盘随机读取延迟 (RAW/Zstd) |
+| eng/tests/results/dq004_drizzle_profile.csv | Drizzle 各阶段耗时 profile |
+| eng/tests/results/dq005_writer_memory.csv | Writer 流式写入内存测试 (3 规模) |
+| eng/tests/results/dq006_auto_nside.csv | 自动 NSIDE 选择验证 (3 样本) |
+| eng/tests/results/dq007_signal_support_semantics.csv | signal/support 语义验证 (3 样本) |
+| eng/tests/results/performance_report.md | 本报告 |
+| eng/tests/experiment_log.txt | 实验运行日志 |

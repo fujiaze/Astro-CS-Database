@@ -31,7 +31,7 @@
 | API | API-P3-RSMP-001 | docs/contracts/PUBLIC_API.md（Phase3 重采样公共消费面节） | CONTRACT_READY |
 | ARCH | ARCH-001 | eng/cmake/ARCH-001-migration-manifest.md | VERIFIED |
 | API(镜像) | API-P3-001 | docs/contracts/PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像，不变） | FROZEN 镜像 |
-| TEST | TEST-P3-RES-001 | 登记面=TEST-P3-RSMP-DESIGN-001（设计冻结 VERIFIED，ALG-P3-RSMP-IMPL-001 §12 + registry 页 §9 双重陈述）；现状执行证据=tests/backend/p3_resample_probe_main.cpp + test_p3_resample.py（162 行，2026-09-16 实测）+ test_p3003_parallel_resampler.py + tests/unit/p3_interp_test.cpp / p3_coverage_test.cpp；验收升级归 P3-RSMP-TEST | 见右 |
+| TEST | TEST-P3-RES-001 | 登记面=TEST-P3-RSMP-DESIGN-001（设计冻结 VERIFIED，ALG-P3-RSMP-IMPL-001 §12 + registry 页 §9 双重陈述）；现状执行证据=eng/tests/backend/p3_resample_probe_main.cpp + test_p3_resample.py（162 行，2026-09-16 实测）+ test_p3003_parallel_resampler.py + eng/tests/unit/p3_interp_test.cpp / p3_coverage_test.cpp；验收升级归 P3-RSMP-TEST | 见右 |
 | EVID | EVID-MISSING | 待 P3-RSMP-INT/验收补 | MISSING |
 
 ## 3 生产源（冻结实测，2026-09-12）

@@ -106,7 +106,7 @@ path/to/file.ext:N（symbol）    path/to/file.ext:N + backticked symbol
 
 ## 7 负向验收（必败）
 
-`tests/quality/test_doc_line_anchors.py`（由既有 CI 检查项 `UT-QUALITY` 覆盖）含注入用例：
+`eng/tests/quality/test_doc_line_anchors.py`（由既有 CI 检查项 `UT-QUALITY` 覆盖）含注入用例：
 目标删除、目标截断越界、符号移出锚范围、符号整体消失、锚指向不存在文件、锚越界、
 同名分歧未登记 resolver、缺失豁免登记、陈旧豁免；每条均要求检查器 **rc≠0**，
 并在还原后回到 **rc=0**（证明失败由注入引起）。确定性：同 cwd 双跑与跨 cwd 跑的

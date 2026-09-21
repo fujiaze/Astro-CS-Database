@@ -106,7 +106,7 @@
   },
   "trace_contract": {
     "event_type": "module_call",
-    "standard": "RT-006 TraceEvent (include/astrocs/core/contracts.h; 观测值禁止 config 冒充, 14 §4)",
+    "standard": "RT-006 TraceEvent (lib/include/astrocs/core/contracts.h; 观测值禁止 config 冒充, 14 §4)",
     "real_value_fields": {
       "module_id": "describe().module_id (模块静态输出)",
       "module_version": "describe().version",
@@ -126,7 +126,7 @@
     "per_node_sequence": "validate_config(1) -> plan(1) -> create(1) -> execute 事务(1 次 host 驱动 = 两阶段 strbuf 2 次 API: 尺寸查询遍 + 写入遍, 每遍完整执行科学计算并成对租借) -> inspect(1) -> destroy(1)",
     "lease_balance": "每遍 execute 各租借一次: 一个事务 acquire/release = 2/2 (cpu_heavy 硬租约: acquire 失败/executor 缺失 → ACS_ERR_BUDGET+105, 禁单线程降级, AGENTS.md 重计算纪律; 观测 want = host max_workers 与 config.max_workers 取小)",
     "repeat_failure": "执行中同实例重入 → ACS_ERR_STATE (state!=CREATED 护栏, 真实存在); 事务完成后模块 state 回 CREATED (v1 可重复语义), host 重复驱动 = 调用方协议违规, 由 RT-006 runtime call counts / 重放违规检测拒绝 (inspect.exec_count 线性递增可巡检); per-node 恰一次由 RT 驱动协议保证, 模板 INT §5",
-    "local_test": "tests/unit/cosmetic_integration_test.cpp (CTest name: cosmetic_integration)"
+    "local_test": "eng/tests/unit/cosmetic_integration_test.cpp (CTest name: cosmetic_integration)"
   },
   "failure_contract": {
     "missing_dll": "loader: 缺 DLL 必须失败 (模板 INT §5)",

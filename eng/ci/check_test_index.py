@@ -3,7 +3,7 @@
 """eng/ci/check_test_index.py — Python 测试聚合判据门 (RELEASE-02 CI-HYGIENE)。
 
 缺陷背景 (DESIGN-CONFORMANCE SUB-D-35):
-  tests/test_index.csv 是 tests/** Python 套件的聚合登记面。旧版只有自由文本
+  eng/tests/test_index.csv 是 eng/tests/** Python 套件的聚合登记面。旧版只有自由文本
   notes, 无机器 verdict 列 ⇒ 含 errors/failures/skip 的套件与"通过"无法机器区分,
   聚合结论只能人工转述 ⇒ "Python 测试绿灯"不可信 (多套件含 errors/failures/skip
   仍被当作通过)。
@@ -11,7 +11,7 @@
 本门把"聚合判据"机器化 (fail-closed, 逐行判据见 R1~R7):
   R1 列齐全: path,type,runner_command,requires_compiler,local_runnable,
      hosted_only,verdict,cases,failed,errored,skipped,notes;
-  R2 path 唯一, 且 tests/config 必须登记 (与 CFG002-07 同口径);
+  R2 path 唯一, 且 eng/tests/config 必须登记 (与 CFG002-07 同口径);
   R3 verdict ∈ 封闭词表 {PASS,FAIL,ENV_FAIL,SKIP_ONLY,HOSTED,HEAVY,SCRIPT};
   R4 unittest 套件: PASS ⇔ failed==0 ∧ errored==0; FAIL/ENV_FAIL ⇒ failed+errored>0;
      HOSTED/HEAVY/SCRIPT/SKIP_ONLY 用 NA 计数 (未本地执行, 不得伪装成 0);
@@ -30,7 +30,7 @@
 
 用法:
   python3 eng/ci/check_test_index.py
-  python3 eng/ci/check_test_index.py --csv tests/test_index.csv
+  python3 eng/ci/check_test_index.py --csv eng/tests/test_index.csv
   python3 eng/ci/check_test_index.py --self-test      # tempfile 夹具正/负例
 只读 (--self-test 只写 tempfile); 仅 stdlib。
 """
@@ -44,7 +44,7 @@ import os
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DEFAULT_CSV = "tests/test_index.csv"
+DEFAULT_CSV = "eng/tests/test_index.csv"
 REQUIRED_COLUMNS = ("path", "type", "runner_command", "requires_compiler",
                     "local_runnable", "hosted_only", "verdict", "cases",
                     "failed", "errored", "skipped", "notes")
@@ -145,8 +145,8 @@ def validate(csv_text: str) -> tuple:
         if (failed or errored or skipped) and not notes:
             problems.append("R6 行 %d (%s): 存在 errors/failures/skip 但 notes 为空 "
                             "—— 不得静默" % (n, path))
-    if "tests/config" not in seen:
-        problems.append("R2: tests/test_index.csv 未登记 tests/config (CFG002-07 口径)")
+    if "eng/tests/config" not in seen:
+        problems.append("R2: eng/tests/test_index.csv 未登记 eng/tests/config (CFG002-07 口径)")
     return problems, rows, worst
 
 
@@ -196,7 +196,7 @@ def _row(path, typ, verdict, cases="NA", failed="NA", errored="NA",
 def _fixture(extra_rows="", drop_config=False):
     body = HDR
     if not drop_config:
-        body += _row("tests/config", "unittest", "PASS", 10, 0, 0, 0)
+        body += _row("eng/tests/config", "unittest", "PASS", 10, 0, 0, 0)
     body += extra_rows
     return body
 
@@ -215,33 +215,33 @@ def self_test() -> int:
         cases.append((name, rc, want_rc, ok, blob[:160]))
 
     add("pos_consistent", _fixture(
-        _row("tests/api", "unittest", "FAIL", 39, 0, 2, 0, "errors=2")), 0)
+        _row("eng/tests/api", "unittest", "FAIL", 39, 0, 2, 0, "errors=2")), 0)
     add("pos_hosted", _fixture(
-        _row("tests/unit", "ctest", "HOSTED", "NA", "NA", "NA", "NA", "hosted")), 0)
+        _row("eng/tests/unit", "ctest", "HOSTED", "NA", "NA", "NA", "NA", "hosted")), 0)
     add("neg_pass_with_failure", _fixture(
-        _row("tests/api", "unittest", "PASS", 39, 1, 0, 0, "x")), 1,
+        _row("eng/tests/api", "unittest", "PASS", 39, 1, 0, 0, "x")), 1,
         "不得记通过")
     add("neg_fail_without_counts", _fixture(
-        _row("tests/api", "unittest", "FAIL", 39, 0, 0, 0, "x")), 1, "判据不符")
+        _row("eng/tests/api", "unittest", "FAIL", 39, 0, 0, 0, "x")), 1, "判据不符")
     add("neg_all_skip_masquerade", _fixture(
-        _row("tests/api", "unittest", "PASS", 5, 0, 0, 5, "x")), 1, "SKIP_ONLY")
+        _row("eng/tests/api", "unittest", "PASS", 5, 0, 0, 5, "x")), 1, "SKIP_ONLY")
     add("neg_unknown_verdict", _fixture(
-        _row("tests/api", "unittest", "GREEN", 5, 0, 0, 0, "x")), 1, "不在词表")
+        _row("eng/tests/api", "unittest", "GREEN", 5, 0, 0, 0, "x")), 1, "不在词表")
     add("neg_duplicate_path", _fixture(
-        _row("tests/config", "unittest", "PASS", 10, 0, 0, 0)), 1, "重复")
+        _row("eng/tests/config", "unittest", "PASS", 10, 0, 0, 0)), 1, "重复")
     add("neg_skip_only_row", _fixture(
-        _row("tests/api", "unittest", "SKIP_ONLY", 5, 0, 0, 5, "all skip")), 1,
+        _row("eng/tests/api", "unittest", "SKIP_ONLY", 5, 0, 0, 5, "all skip")), 1,
         "SKIP_ONLY")
     add("neg_silent_skips", _fixture(
-        _row("tests/api", "unittest", "PASS", 5, 0, 0, 3, "")), 1, "不得静默")
+        _row("eng/tests/api", "unittest", "PASS", 5, 0, 0, 3, "")), 1, "不得静默")
     # 缺列
     problems, rows, agg = validate("path,type\ntests/config,unittest\n")
     cases.append(("neg_missing_columns", 1 if problems else 0, 1,
                   bool(problems), "缺列"))
-    # 缺 tests/config
+    # 缺 eng/tests/config
     add("neg_missing_config_row", _fixture(
-        _row("tests/api", "unittest", "PASS", 5, 0, 0, 0), drop_config=True),
-        1, "未登记 tests/config")
+        _row("eng/tests/api", "unittest", "PASS", 5, 0, 0, 0), drop_config=True),
+        1, "未登记 eng/tests/config")
 
     ok = True
     for name, rc, want, good, blob in cases:

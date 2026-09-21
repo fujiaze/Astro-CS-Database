@@ -6,7 +6,7 @@
 // ALG-NOISE-001..003 + §13.3 DISP-NOISE-001..009 现状行为断言 +
 // SCI-NOISE-001..015 (NOISE_MODEL.md, FROZEN T104, 冻结容差不放宽)。
 //
-// 组结构 (模块 tests/{unit,properties,oracle,negative} 语义落位; fill 语义
+// 组结构 (模块 eng/tests/{unit,properties,oracle,negative} 语义落位; fill 语义
 // FIX-NOISE-G 单列组; performance 与故障注入自检为独立可执行, 见
 // CMakeLists.txt):
 //   units      : FIX-NOISE-A σ 5% (4 seed) + oracle bitwise 复算

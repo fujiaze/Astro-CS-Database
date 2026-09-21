@@ -56,11 +56,11 @@ lib/algorithms/resample/p3_resample.h        58 行  唯一权威签名头（10 
 lib/algorithms/resample/p3_resample.cpp     239 行  全部实现（§6 逐符号）
 lib/phase3_session/p3_session.cpp      343 行  会话编排消费（§8）
 lib/algorithms/shared/healpix/healpix_core.{h,cpp}         权威球面函数（禁止第二套核心）
-tests/backend/p3_resample_probe_main.cpp        探针（order/mode/open/nearest/bilinear/pix2ang 六模式）
-tests/backend/test_p3_resample.py      156 行  最近邻邻接测试（编译探针+seam/NaN/无静默默认）
-tests/backend/test_p3003_parallel_resampler.py 104 行  并行域邻接测试
-tests/unit/p3_interp_test.cpp          109 行  单元参考实现（独立参考，非生产自证）
-tests/unit/p3_coverage_test.cpp        106 行  同上（coverage 语义）
+eng/tests/backend/p3_resample_probe_main.cpp        探针（order/mode/open/nearest/bilinear/pix2ang 六模式）
+eng/tests/backend/test_p3_resample.py      156 行  最近邻邻接测试（编译探针+seam/NaN/无静默默认）
+eng/tests/backend/test_p3003_parallel_resampler.py 104 行  并行域邻接测试
+eng/tests/unit/p3_interp_test.cpp          109 行  单元参考实现（独立参考，非生产自证）
+eng/tests/unit/p3_coverage_test.cpp        106 行  同上（coverage 语义）
 ```
 
 - p3_resample.cpp 内部结构: :18 `kTileWidth=512`（编译期常量，SCI
@@ -284,15 +284,15 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   TEST-P3-RES-001 状态 **DORMANT**。本节冻结**设计**（登记面
   TEST-P3-RSMP-DESIGN-001，VERIFIED），不冒认可执行覆盖。
 - 现有证据（引用不冒认，均测试独立参考实现或探针，非生产自证）:
-  - tests/backend/p3_resample_probe_main.cpp（探针六模式: order 选择/
+  - eng/tests/backend/p3_resample_probe_main.cpp（探针六模式: order 选择/
     mode 守卫/open/nearest/bilinear/pix2ang——pix2ang 用 nside=4 首子
     像素中心技巧）。
-  - tests/backend/test_p3_resample.py（156 行）: test_05_nan_semantics
+  - eng/tests/backend/test_p3_resample.py（156 行）: test_05_nan_semantics
     （tile 内 NaN → C=1 + 值 NaN，§6.6 行 2）、test_06_no_silent_
     default_open（open 失败必须带原因）、seam 域界断言（1e8-1..
     12e8+1）与连续性（1e-5° 位移）——SYN-007 判据邻接。
-  - tests/backend/test_p3003_parallel_resampler.py（104 行，并行域）。
-  - tests/unit/p3_interp_test.cpp（109 行）/p3_coverage_test.cpp
+  - eng/tests/backend/test_p3003_parallel_resampler.py（104 行，并行域）。
+  - eng/tests/unit/p3_interp_test.cpp（109 行）/p3_coverage_test.cpp
     （106 行）: 独立参考实现核对插值/覆盖语义。
 - P3-RSMP-TEST 设计要求（合同）: ①order 选择等价性（对拍
   pixel_resolution_arcsec 公式，§6.1）②seam 连续性（SYN-007 预冻结

@@ -206,12 +206,12 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 ## 5. fast/reference/oracle 与测试设计（TEST-GAIA-DESIGN-001，冻结）
 
 > 状态: DESIGN_FROZEN（本节为 CAT-GAIA-DOC 冻结的测试设计与容差合同）。
-> 可执行测试（tests/{unit,properties,oracle,fixtures,negative,performance}）
+> 可执行测试（eng/tests/{unit,properties,oracle,fixtures,negative,performance}）
 > 由 CAT-GAIA-TEST 建立；本文不声明任何测试已 PASS。
 
 - **合成 fixture**：固定 seed 生成微型 XPSD（≥2 文件 × 4 树，含 Equirect 与
   AzimuthalEquidistant、LZ4 与 zlib+shuffle 两种压缩、含/不含光谱记录、极区
-  星、RA≈0/360 环绕星、mag 边界星）；生成器入 tests/fixtures（不提交大二进制）。
+  星、RA≈0/360 环绕星、mag 边界星）；生成器入 eng/tests/fixtures（不提交大二进制）。
 - **独立 oracle**：Python 参考实现——直接解包同一 fixture 数据集，暴力全枚举
   球面角距 + 独立星等过滤；不调用被测 C 符号、不复制剪枝逻辑；解压用标准
   zlib/lz4 库（隔离参考，非本文件 lz4_decompress/byte_unshuffle）。

@@ -1,7 +1,7 @@
 // AstroCS CPU baseline provider — lib/infrastructure/benchmark/cpu/baseline/src/baseline_provider.cpp (CPU-002)
 //
 // 职责: AMD64 baseline provider DLL (仅 SSE2, 编译不带 /arch:AVX* / -mavx* 旗标)。
-//   - 唯一导出 astrocs_provider_query_v1 (include/astrocs/abi/module_api_v1.h 冻结;
+//   - 唯一导出 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结;
 //     12 §1 / ARC-001 §1.2: provider DLL 不得导出其他符号);
 //   - query 握手: host_abi 失配 → ACS_ERR_ABI_MISMATCH (不降级猜测);
 //     host 必填 allocator; out_api = 静态 provider 表;
@@ -50,7 +50,7 @@
 
 /* ───────────────────────── 能力门 (query 期) ─────────────────────────
  * baseline 只需 SSE2 (amd64 恒备)。生产链接真实 capability_detect.c; 能力
- * 不足负测由测试以 stub 探测注入 (tests/cpu/baseline/provider_capability_gate_test.c
+ * 不足负测由测试以 stub 探测注入 (eng/tests/cpu/baseline/provider_capability_gate_test.c
  * 链接期替换 acs_cap_detect_v1/acs_cap_os_safe_satisfies_v1)。本函数为
  * extern "C" 顶层符号 (host/测试可直接判定; 不属 provider 导出白名单)。 */
 extern "C" int acs_cpu_baseline_cap_gate(acs_cap_result_v1* out) {

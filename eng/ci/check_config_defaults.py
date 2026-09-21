@@ -6,13 +6,13 @@
 在 stage2_common.cpp 的 "auto" 缺省 0.1、在 upm.cpp 的缺省 0.0）⇒ 静默双口径。
 
 判据（fail-closed）：
-  D1 **配置键集合** = config/templates/*.json 叶子键 ∪ config/defaults.json
-     fields[].key 末段 ∪ contracts/schemas/phase_config_*.schema.json 的 config
+  D1 **配置键集合** = eng/packaging/config/templates/*.json 叶子键 ∪ eng/packaging/config/defaults.json
+     fields[].key 末段 ∪ eng/contracts/schemas/phase_config_*.schema.json 的 config
      属性 ∪ 台账 watch_keys；仅该集合内的键参与比较（避免把局部变量当配置键）；
   D2 集合内某键的不同字面量缺省**跨「权威单元」（源文件::所在函数）**出现 ⇒ finding。
      **同一函数内**同一键取多个字面量 = **一个决策点的多个出口**（if/else 链把入参/帧头
      映射到不同取值），**不是**两套缺省 ⇒ 不判 finding（与本节开头「不同生产代码路径」
-     的立意一致）。模板值一律视为独立单元（'config/templates'）。
+     的立意一致）。模板值一律视为独立单元（'eng/packaging/config/templates'）。
   D3 生产源码零默认字面量命中 ⇒ rc=2（不得空扫描判绿）。
 
 豁免唯一途径：eng/ci/ledgers/config_default_divergences.json 的
@@ -72,9 +72,9 @@ def _leaf(key: str) -> str:
 
 def config_key_set(repo: pathlib.Path, watch_keys):
     keys = set(watch_keys)
-    templates = sorted(repo.glob("config/templates/*.json"))
+    templates = sorted(repo.glob("eng/packaging/config/templates/*.json"))
     if not templates:
-        raise gc.GateError("ANCHOR_MISSING: config/templates/*.json")
+        raise gc.GateError("ANCHOR_MISSING: eng/packaging/config/templates/*.json")
     for path in templates:
         doc = gc.read_json(path, path.relative_to(repo).as_posix())
         stack = [doc.get("config") or {}]
@@ -87,13 +87,13 @@ def config_key_set(repo: pathlib.Path, watch_keys):
                     stack.append(value)
                 else:
                     keys.add(key)
-    defaults = repo / "config/defaults.json"
+    defaults = repo / "eng/packaging/config/defaults.json"
     if defaults.is_file():
-        doc = gc.read_json(defaults, "config/defaults.json")
+        doc = gc.read_json(defaults, "eng/packaging/config/defaults.json")
         for field in doc.get("fields") or []:
             if isinstance(field, dict) and field.get("key"):
                 keys.add(_leaf(str(field["key"])))
-    for path in sorted(repo.glob("contracts/schemas/phase_config_*.schema.json")):
+    for path in sorted(repo.glob("eng/contracts/schemas/phase_config_*.schema.json")):
         doc = gc.read_json(path, path.relative_to(repo).as_posix())
         for name, definition in (doc.get("$defs") or {}).items():
             if not name.endswith("_config") or not isinstance(definition, dict):
@@ -152,7 +152,7 @@ def scan_defaults(repo: pathlib.Path, key_set):
 
 def template_defaults(repo: pathlib.Path, key_set):
     out = {}
-    for path in sorted(repo.glob("config/templates/*.json")):
+    for path in sorted(repo.glob("eng/packaging/config/templates/*.json")):
         doc = gc.read_json(path, path.relative_to(repo).as_posix())
         stack = [doc.get("config") or {}]
         while stack:
@@ -190,7 +190,7 @@ def evaluate(repo: pathlib.Path):
             for entry in templates[key]:
                 tv = entry.split("=", 1)[1]
                 sources.add(tv)
-                unit_by_value.setdefault(tv, set()).add("config/templates")
+                unit_by_value.setdefault(tv, set()).add("eng/packaging/config/templates")
         if len(sources) < 2:
             continue
         # D2：不同取值必须来自**互不相交**的权威单元集合，才算「两套缺省」。
@@ -226,11 +226,11 @@ def _write_fixture(root: pathlib.Path, a: str, b: str, extra_entries=None):
     import json
     (root / "lib/modA").mkdir(parents=True, exist_ok=True)
     (root / "lib/modB").mkdir(parents=True, exist_ok=True)
-    (root / "config/templates").mkdir(parents=True, exist_ok=True)
+    (root / "eng/packaging/config/templates").mkdir(parents=True, exist_ok=True)
     (root / "eng/ci/ledgers").mkdir(parents=True, exist_ok=True)
     (root / "lib/modA/a.cpp").write_text(a, encoding="utf-8")
     (root / "lib/modB/b.cpp").write_text(b, encoding="utf-8")
-    (root / "config/templates/t.json").write_text(json.dumps({"config": {"precision": "fp64"}}),
+    (root / "eng/packaging/config/templates/t.json").write_text(json.dumps({"config": {"precision": "fp64"}}),
                                                   encoding="utf-8")
     entries = [_WATCH_LEDGER_ENTRY] + list(extra_entries or [])
     (root / LEDGER).write_text(json.dumps(

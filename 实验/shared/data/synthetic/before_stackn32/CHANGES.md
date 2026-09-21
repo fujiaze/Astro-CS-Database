@@ -40,5 +40,5 @@
 
 - **任何判据阈值 / 容差**（A6 的 0.05 / 0.30 / 5× / 0.02；方差闭合的 5% / 2% / 3√2σ_v；
   回归的 1e-9 / [0.5,2] / 0.30；P7 的 R1–R5 / S1–S6 / P1–P6）—— **一字未改**；
-- `lib/** docs/** tests/** ci/** contracts/** config/**` —— 未触碰；
+- `lib/** docs/** eng/tests/** ci/** eng/contracts/** eng/packaging/config/**` —— 未触碰；
 - 未跑 `ci/run_checks.py`、未跑 ninja/cmake；**零 git 写**。

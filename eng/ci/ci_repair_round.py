@@ -99,7 +99,7 @@ ATTRIBUTION = {
     "UT-ARCH": {
         "domain": "ARCH",
         "owner_node": "ARCH-AUDIT-P1",
-        "root_cause": "tests/arch 3 项失败：thread budget 2 项（同 THREAD-BUDGET 根因）+ test_inventory 幂等（docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv 落后于 eng/tools/arch/build_production_execution_inventory.py 生成器）",
+        "root_cause": "eng/tests/arch 3 项失败：thread budget 2 项（同 THREAD-BUDGET 根因）+ test_inventory 幂等（docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv 落后于 eng/tools/arch/build_production_execution_inventory.py 生成器）",
         "root_cause_path": "docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv",
         "in_whitelist": False,
         "minimal_patch": "用 eng/tools/arch/build_production_execution_inventory.py 重新生成并提交 CSV（含 p1hips_tests 等新 target 行）",
@@ -107,7 +107,7 @@ ATTRIBUTION = {
     "UT-BACKEND": {
         "domain": "SCI",
         "owner_node": "BASE-UTIL-001|SCI-F2-001|SCI-F3-001",
-        "root_cause": "tests/backend 多项后端面失败：calibration oracle 10x 偏差（CAL0/CAL1、MASTER_FLAT[0]=0.0）、phase2 integrate weight_mode=2 缺 per-frame ivar（DATA-UNC-001 §30.1 拒绝路径）、p2003 UPM persist 缺失、p2006/p2007/p3006 resource gate utilization_p75_low 与 resource 事件缺失",
+        "root_cause": "eng/tests/backend 多项后端面失败：calibration oracle 10x 偏差（CAL0/CAL1、MASTER_FLAT[0]=0.0）、phase2 integrate weight_mode=2 缺 per-frame ivar（DATA-UNC-001 §30.1 拒绝路径）、p2003 UPM persist 缺失、p2006/p2007/p3006 resource gate utilization_p75_low 与 resource 事件缺失",
         "root_cause_path": "lib/calibration/",
         "in_whitelist": False,
         "minimal_patch": "按冻结宪章 §10.5 四类归因逐项落到域主任务（BASE-UTIL-001 已在诊断 utilization_p75_low；calibration oracle 10x 偏差与 ivar 缺失须独立域任务）",
@@ -118,7 +118,7 @@ ATTRIBUTION = {
         "root_cause": "mutates_workspace=false 的检查改写了工作区：astrocs graph 落 graph/*.json、memory-report 落 alloc_report.json/alloc_samples.csv，目标目录解析为 CWD(=仓库根)",
         "root_cause_path": "cli/commands.cpp",
         "in_whitelist": False,
-        "minimal_patch": "cli 侧把运行产物默认落 run/resource/（AGENTS.md 目录规范），或 tests/cli 显式传 --out-dir run/...；禁以 dirty_ignore 登记掩盖「运行产物落根目录」违规",
+        "minimal_patch": "cli 侧把运行产物默认落 run/resource/（AGENTS.md 目录规范），或 eng/tests/cli 显式传 --out-dir run/...；禁以 dirty_ignore 登记掩盖「运行产物落根目录」违规",
     },
     "WIN-BUILD-RELEASE": {
         "domain": "BUILD",

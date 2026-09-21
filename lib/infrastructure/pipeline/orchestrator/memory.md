@@ -17,7 +17,7 @@
 - **spec**: `docs/superpowers/specs/2026-07-18-gradient-2d-archive.md` + `2026-07-18-gradient-2d-archive-checklist.md`
 - **代码归档**:
   - `lib/algorithms/photometry/cpp/gradient_2d/` 整体移动到 `lib/algorithms/photometry/archive/gradient_2d/`（保留全部代码不删改，供 stage2 设计时参考）
-  - 包含 include/gradient_2d.h + src/gradient_fitter.h/cpp + src/gradient_2d_api.cpp + src/image_corrector.h/cpp + src/star_matcher.h/cpp + src/wcs_transform.h/cpp + build.ps1 + gradient_2d.dll
+  - 包含 lib/include/gradient_2d.h + src/gradient_fitter.h/cpp + src/gradient_2d_api.cpp + src/image_corrector.h/cpp + src/star_matcher.h/cpp + src/wcs_transform.h/cpp + build.ps1 + gradient_2d.dll
 - **orchestrator 代码修改** (5 文件):
   - `cpp/include/dll_loader.h`: ModuleId 枚举删除 GRADIENT_2D，注释改为"9 节点（2026-07-18 归档 GRADIENT_2D, stage1 改 7 节点）"，stage 注释重排
   - `cpp/src/dll_loader.cpp`: 删除所有 GRADIENT_2D 相关 case（get_module_name/get_dll_filename/get_default_path/构造函数init/load_all/unload_all/get_version/set_num_threads 共 8 处）
@@ -213,7 +213,7 @@
 
 ### 2026-07-13 C++ CLI 项目骨架 (Task 1) 完成
 - 在 lib/infrastructure/pipeline/orchestrator/cpp/ 下创建 C++ CLI 项目骨架
-- 目录结构: include/ (3 个 .h) + src/ (4 个 .cpp) + Makefile + .gitignore
+- 目录结构: lib/include/ (3 个 .h) + src/ (4 个 .cpp) + Makefile + .gitignore
 - 核心: orchestrator.h/.cpp 实现 Orchestrator 类 (5 阶段骨架: CALIBRATE/PLATESOLVE/PSF/PHOTOMETRIC/DRIZZLE)
 - 入口: main.cpp 根据 argc 决定启动 REPL (无参数) 或单次命令 (有参数)
 - 交互式: cli_repl.h/.cpp 实现 REPL 循环, 支持 load/run/run-batch/status/pause/resume/interrupt/checkpoint/help/exit
@@ -254,7 +254,7 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 动态DLL加载)
 **修改文件 (3个)**:
 - `lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h` - 新增 #include "dll_loader.h"，新增 init_dlls/is_dlls_loaded/get_dll_loader 方法，新增 dll_loader_ 和 dlls_loaded_ 成员
 - `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` - 实现 init_dlls (调用 dll_loader_.load_all，收集错误信息，设置 CALIBRATE 线程数)，5 个 run_stage_* 方法中检查 dlls_loaded_ 和具体模块加载状态，未加载则跳过
-- `lib/infrastructure/pipeline/orchestrator/cpp/Makefile` - SRCS 增加 src/dll_loader.cpp，HEADERS 增加 include/dll_loader.h，新增 test_dll_loader 和 run_test 目标，clean 增加 test_dll_loader.exe 清理
+- `lib/infrastructure/pipeline/orchestrator/cpp/Makefile` - SRCS 增加 src/dll_loader.cpp，HEADERS 增加 lib/include/dll_loader.h，新增 test_dll_loader 和 run_test 目标，clean 增加 test_dll_loader.exe 清理
 
 **编译结果**:
 - orchestrator.exe: g++ -O2 -std=c++17 -Wall -fopenmp -static -o orchestrator.exe 5 个 .cpp -lm (成功)
@@ -315,7 +315,7 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段3: JSON检查点断点续�
   11. fully_completed 标记覆盖完整性
 
 **修改文件 (5个)**:
-- `lib/infrastructure/pipeline/orchestrator/cpp/Makefile` - SRCS 增加 src/checkpoint.cpp, HEADERS 增加 include/checkpoint.h, 新增 test_checkpoint 目标, run_test 增加 test_checkpoint 执行, clean 增加清理
+- `lib/infrastructure/pipeline/orchestrator/cpp/Makefile` - SRCS 增加 src/checkpoint.cpp, HEADERS 增加 lib/include/checkpoint.h, 新增 test_checkpoint 目标, run_test 增加 test_checkpoint 执行, clean 增加清理
 - `lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h` - #include "checkpoint.h", 新增 set_checkpoint_dir/set_fresh_start/set_enable_checkpoint/get_checkpoint_manager 方法, 新增 checkpoint_mgr_ 成员
 - `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` - load_config 末尾设置检查点目录为 <output_dir>/.checkpoint/, run_single 集成断点续传 (fresh_start 删除检查点/检查点存在则恢复/每阶段完成调用 update_stage/fully_completed 自动跳过), save_checkpoint/load_checkpoint 改为调用 CheckpointManager, 新增 set_checkpoint_dir 实现
 - `lib/infrastructure/pipeline/orchestrator/cpp/include/cli_command.h` - cmd_run 增加 fresh 参数, 注释更新
@@ -374,7 +374,7 @@ spec: .trae/specs/orchestrator-cpp-cli/spec.md (阶段1: 集成日志系统)
   - 级别设置/获取、DEBUG 过滤、INFO/WARN/ERROR 输出、文件创建、格式验证、级别转换、stderr 开关、多线程安全 (10 线程×100 条无丢失)、文件路径、shutdown 后不写
 
 **修改文件 (5个)**:
-- `lib/infrastructure/pipeline/orchestrator/cpp/Makefile` - SRCS 增加 src/logger.cpp, HEADERS 增加 include/logger.h, 新增 test_logger 目标, run_test 增加执行 test_logger
+- `lib/infrastructure/pipeline/orchestrator/cpp/Makefile` - SRCS 增加 src/logger.cpp, HEADERS 增加 lib/include/logger.h, 新增 test_logger 目标, run_test 增加执行 test_logger
 - `lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h` - #include "logger.h", 新增 init_logger 方法
 - `lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp` - 构造函数调用 Logger::instance().init() 初始化日志系统
 - `lib/infrastructure/pipeline/orchestrator/cpp/include/cli_command.h` - cmd_run 增加 log_level 参数

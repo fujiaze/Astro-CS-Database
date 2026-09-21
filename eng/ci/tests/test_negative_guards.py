@@ -590,7 +590,7 @@ class TestN11ArtifactExfil(unittest.TestCase):
 
     def test_header_member_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
-            entries = _good_zip_manifest({"include/extra.h": b"#pragma once\n"})
+            entries = _good_zip_manifest({"lib/include/extra.h": b"#pragma once\n"})
             proc = _validate_zip(_make_zip(Path(tmp), "header", entries))
             self.assertEqual(proc.returncode, 1)
             self.assertIn("excluded_entry_in_zip", proc.stdout)

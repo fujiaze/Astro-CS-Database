@@ -1,4 +1,4 @@
-// tests/backend/p3_wcs_main.cpp — P3-002 WCS 探针(供 Python 独立参考比对)
+// eng/tests/backend/p3_wcs_main.cpp — P3-002 WCS 探针(供 Python 独立参考比对)
 // 用法:
 //   p3_wcs make <ra> <dec> <scale> <W> <H> <east_left|east_right> <pa_deg>
 //       → "OK <crpix_x> <crpix_y> <cd11> <cd12> <cd21> <cd22>" | "FAIL <code>"

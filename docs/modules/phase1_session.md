@@ -61,8 +61,8 @@ CALIBRATION.md）+ ALG-CAL-001..006 / ALG-COS-001..005 既有冻结合同。
 
 ## Tests
 
-TEST-P1-SESSION-001 = tests/unit/p1_ir_facade_test.cpp（facade 语义/
-canonical 4 节点/委托）；生命周期登记=tests/api/test_p1_api.py。
+TEST-P1-SESSION-001 = eng/tests/unit/p1_ir_facade_test.cpp（facade 语义/
+canonical 4 节点/委托）；生命周期登记=eng/tests/api/test_p1_api.py。
 
 ## Source files
 

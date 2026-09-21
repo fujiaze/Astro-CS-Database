@@ -51,45 +51,45 @@
 
 ## 2. 迁移同步义务核对（移动模块 -> 受影响引用 -> 是否已同步）
 
-| 旧路径 | tests/** | docs/** | eng/ci/** | lib/infrastructure/cli/** | eng/tools/其他 | 同步状态 |
+| 旧路径 | eng/tests/** | docs/** | eng/ci/** | lib/infrastructure/cli/** | eng/tools/其他 | 同步状态 |
 |---|---|---|---|---|---|---|
-| `lib/phase2_rej` | 2 | 2 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase2_samp` | 2 | 2 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase2_upm` | 2 | 1 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase3_fits` | 2 | 2 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase2_int` | 5 | 3 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase3_proj` | 4 | 6 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase3_rsmp` | 3 | 2 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/common` | 0 | 10 | 0 | 16 | 14 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/drizzle` | 0 | 3 | 0 | 0 | 1 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/hips` | 0 | 1 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/healpix_db/healpix_drizzle` | 2 | 7 | 1 | 3 | 29 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/healpix_db/healpix_browser_qt` | 0 | 0 | 1 | 0 | 12 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/astro_image_io` | 3 | 7 | 12 | 17 | 473 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/io` | 0 | 0 | 0 | 0 | 3 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/orchestrator` | 0 | 1 | 0 | 0 | 394 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/backend_host` | 3 | 0 | 0 | 11 | 4 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/gaia_xpsd_client` | 1 | 4 | 9 | 4 | 11 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/calibration` | 8 | 26 | 3 | 9 | 69 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/cosmetic` | 2 | 4 | 3 | 0 | 1 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/star_detector` | 6 | 3 | 1 | 10 | 44 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/dynamic_psf` | 3 | 4 | 1 | 6 | 36 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/plate_solve` | 3 | 12 | 6 | 2 | 228 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/photometric_calib` | 3 | 8 | 1 | 0 | 38 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/snr_estimator` | 4 | 13 | 5 | 2 | 74 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase1/noise` | 0 | 5 | 0 | 4 | 1 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase1/photometry` | 1 | 2 | 0 | 2 | 1 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase1/stars` | 0 | 3 | 0 | 2 | 1 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase1/wcs` | 0 | 3 | 0 | 2 | 1 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase1/v6` | 0 | 0 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase1/tests` | 0 | 0 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/phase2` | 1 | 41 | 5 | 13 | 218 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/acr` | 0 | 0 | 3 | 3 | 41 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/hips_p2` | 0 | 0 | 0 | 0 | 0 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/core` | 25 | 4 | 5 | 12 | 31 | tests/docs 已同步；eng/ci/cli 见下 |
-| `lib/healpix_db` | 2 | 7 | 4 | 3 | 49 | tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase2_rej` | 2 | 2 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase2_samp` | 2 | 2 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase2_upm` | 2 | 1 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase3_fits` | 2 | 2 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase2_int` | 5 | 3 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase3_proj` | 4 | 6 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase3_rsmp` | 3 | 2 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/common` | 0 | 10 | 0 | 16 | 14 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/drizzle` | 0 | 3 | 0 | 0 | 1 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/hips` | 0 | 1 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/healpix_db/healpix_drizzle` | 2 | 7 | 1 | 3 | 29 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/healpix_db/healpix_browser_qt` | 0 | 0 | 1 | 0 | 12 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/astro_image_io` | 3 | 7 | 12 | 17 | 473 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/io` | 0 | 0 | 0 | 0 | 3 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/orchestrator` | 0 | 1 | 0 | 0 | 394 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/backend_host` | 3 | 0 | 0 | 11 | 4 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/gaia_xpsd_client` | 1 | 4 | 9 | 4 | 11 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/calibration` | 8 | 26 | 3 | 9 | 69 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/cosmetic` | 2 | 4 | 3 | 0 | 1 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/star_detector` | 6 | 3 | 1 | 10 | 44 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/dynamic_psf` | 3 | 4 | 1 | 6 | 36 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/plate_solve` | 3 | 12 | 6 | 2 | 228 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/photometric_calib` | 3 | 8 | 1 | 0 | 38 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/snr_estimator` | 4 | 13 | 5 | 2 | 74 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase1/noise` | 0 | 5 | 0 | 4 | 1 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase1/photometry` | 1 | 2 | 0 | 2 | 1 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase1/stars` | 0 | 3 | 0 | 2 | 1 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase1/wcs` | 0 | 3 | 0 | 2 | 1 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase1/v6` | 0 | 0 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase1/tests` | 0 | 0 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/phase2` | 1 | 41 | 5 | 13 | 218 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/acr` | 0 | 0 | 3 | 3 | 41 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/hips_p2` | 0 | 0 | 0 | 0 | 0 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/core` | 25 | 4 | 5 | 12 | 31 | eng/tests/docs 已同步；eng/ci/cli 见下 |
+| `lib/healpix_db` | 2 | 7 | 4 | 3 | 49 | eng/tests/docs 已同步；eng/ci/cli 见下 |
 
-- `tests/**`：已随迁移同步（CMake + Python 内的 lib 路径字符串）。
+- `eng/tests/**`：已随迁移同步（CMake + Python 内的 lib 路径字符串）。
 - `docs/**`：已同步 2136 处（120 文件）。**`docs/algorithms/**` 未动**——按前台令等 TEST-GREEN-001 交棒后由本任务接手（锚点同步）。
 - `eng/ci/**`：按前台令**只登记不改**（CI-001 窗口订正）。
 - `lib/infrastructure/cli/**`：按前台令**不改**（CLI-001 文件域；该文件当前不在构建图内）。
@@ -101,7 +101,7 @@
 | 迁移前基线构建 | `ninja -C build -k 0` | 854/854，EXIT=0（logs/00_baseline_build.log） |
 | 迁移后完整构建 | `cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && ninja -C build -k 0` | rc=0 / rc=0，0 FAILED（logs/60_final_build.log） |
 | 全量测试 | `ctest --test-dir build --output-on-failure` | 见 logs/61_ctest.log |
-| diff 仅路径串 | `python3 run/PROJECT-GOVERNANCE-01/ARCH-001/verify_pathonly2.py` | 2251 行由迁移映射解释 + 86 行由相对路径掩码解释；残余 64 行全部属他线并发改写（tests/cli、tests/api） |
+| diff 仅路径串 | `python3 run/PROJECT-GOVERNANCE-01/ARCH-001/verify_pathonly2.py` | 2251 行由迁移映射解释 + 86 行由相对路径掩码解释；残余 64 行全部属他线并发改写（eng/tests/cli、eng/tests/api） |
 | rename 而非删除+新增 | `git status --porcelain=v1` / `git log --follow` | `R`/`RM`（见 logs/71_renames.txt） |
 | 迁移中逐步验证 | 每模块 cmake+ninja | 46 次 GREEN 判定（logs/9*_driver*.log） |
 
@@ -136,5 +136,5 @@
 | cli/CMakeLists.txt（43 处旧路径命中） | CLI-001 文件域 | **明确结论：该文件属「兼容图」，不参与任何构建目标**（根 CMakeLists.txt 无 `add_subdirectory(cli)`，cli 相关 target 由根 CMake 直接以显式源清单声明）。其路径同步归 CLI-001/INT-001 收口，**不计入 ARCH-001 的「旧路径零命中」验收门**。 |
 | eng/ci/**（checks.json、ci_repair_round.py 等） | 前台令：只登记不改 | CI-001 订正 |
 | docs/algorithms/**、anchor_contract.json | 前台令：等 TEST-GREEN-001 交棒 | 锚点同步（6 条已红需订正）归本任务后续 |
-| docs/modules/MODULE_MAP.yaml、eng/tools/quality/**、tests/quality/** | MOD-001 事实源/前台禁改 | legacy_paths 应同步为 target_dir |
+| docs/modules/MODULE_MAP.yaml、eng/tools/quality/**、eng/tests/quality/** | MOD-001 事实源/前台禁改 | legacy_paths 应同步为 target_dir |
 

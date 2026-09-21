@@ -1,6 +1,6 @@
 // lib/infrastructure/scheduler/src/executor_runtime.h — RT-001 Runtime 唯一 work-unit executor 注册点
 //
-// 归属: lib/infrastructure/scheduler（Runtime 适配层）内部头, 不进安装面 include/（include/ 不在
+// 归属: lib/infrastructure/scheduler（Runtime 适配层）内部头, 不进安装面 lib/include/（lib/include/ 不在
 // RT-001 写入白名单）。RT-004 冻结合同头 astrocs/core/executor.h 语义不变:
 // 全进程唯一共享 CPU heavy executor（per Runtime/预算源一个）；本注册点是它
 // 在生产执行路径的接入面（此前 executor.cpp 未编入任何生产 target, 唯一池

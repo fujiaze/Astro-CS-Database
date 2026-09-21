@@ -23,7 +23,7 @@
 // 已支持清单; **不得**静默回落 TAN, **不得**声称支持（DESIGN §5.3）。
 //
 // 实现形态 = header-only（inline）: 生产内核 p3_wcs.cpp 被多个 target 以「同 TU
-// 直编」方式复用（如 tests/unit/p3_projection_test），头内实现使这些既有 target
+// 直编」方式复用（如 eng/tests/unit/p3_projection_test），头内实现使这些既有 target
 // 零构建改动即取得同一份注册表, 不产生第二权威, 也不新增链接面。
 #ifndef ASTROCS_P3_PROJECTION_REGISTRY_H
 #define ASTROCS_P3_PROJECTION_REGISTRY_H
@@ -96,7 +96,7 @@ inline const P3ProjFrozenEntry* p3_proj_frozen_table(int* count) {
 // ⇒ 判定为**实现条件数缺陷**（非双精度固有极限），但**不是产品声明**（SIN 行 =
 // kKernelOnly），故不影响本表产品声明集与 TAN 容差合同。
 // 实验表: run/FIX-406/SIN_ROUNDTRIP_ORACLE.md；复现门（durable，入库）:
-// tests/unit/v6_p3_proj/sin_roundtrip_gate.py —— 编译真实内核实测投影中心邻域最大往返误差：
+// eng/tests/unit/v6_p3_proj/sin_roundtrip_gate.py —— 编译真实内核实测投影中心邻域最大往返误差：
 // 偏差仍复现 ⇒ rc 0（本段登记成立）；内核被修好 ⇒ rc 1（修好即转红），强制同步本段与
 // p3_proj_v6.h/.cpp 的 ENGINEERING_SPEC §2 保留注释块之已知缺陷登记。CLEAN-401 实测（2026-09-21，
 // 中心邻域 0.25 px 步长密扫）：worst 7.39e-5 px @0.5″/px、4.40e-3 px @0.05″/px —— 与

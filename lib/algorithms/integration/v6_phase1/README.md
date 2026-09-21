@@ -67,7 +67,7 @@
 自包含（不需根 CMake 注册）：
 
 ```bash
-cmake -S tests/integration/v6_p1 -B build/v6_p1_int -DCMAKE_BUILD_TYPE=Release
+cmake -S eng/tests/integration/v6_p1 -B build/v6_p1_int -DCMAKE_BUILD_TYPE=Release
 cmake --build build/v6_p1_int -j 8
 ctest --test-dir build/v6_p1_int --output-on-failure
 ```

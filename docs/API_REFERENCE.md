@@ -138,7 +138,7 @@
 
 | 模块 | 头文件 | 前缀 | 函数/类型(签名节选) | 参数/返回值/错误码要点 | 追溯ID |
 |---|---|---|---|---|---|
-| acr | `core/api` `scheduler/*` `backends/cuda/bridge/*` `include/astro/compute/*` | `acr::*` | `struct TaskDescriptor {id,stage,kernel,inputs,outputs,priority}` / `class KernelRegistry {register_kernel/descriptor,lookup}` / `void register_phase2_acr_kernels()` / `class Scheduler {submit/schedule}` / `class DeviceExecutor/CudaBridge` | `register_phase2_acr_kernels` 幂等；`acr_route auto` 由 `stage2_common` 决定；科学语义不变仅路由；`work_pool+device_executor` 并发 | ACR-IVAR-001 `docs/modules/acr.md` `docs/architecture/THREADING_MODEL.md` |
+| acr | `core/api` `scheduler/*` `backends/cuda/bridge/*` `lib/include/astro/compute/*` | `acr::*` | `struct TaskDescriptor {id,stage,kernel,inputs,outputs,priority}` / `class KernelRegistry {register_kernel/descriptor,lookup}` / `void register_phase2_acr_kernels()` / `class Scheduler {submit/schedule}` / `class DeviceExecutor/CudaBridge` | `register_phase2_acr_kernels` 幂等；`acr_route auto` 由 `stage2_common` 决定；科学语义不变仅路由；`work_pool+device_executor` 并发 | ACR-IVAR-001 `docs/modules/acr.md` `docs/architecture/THREADING_MODEL.md` |
 
 ---
 

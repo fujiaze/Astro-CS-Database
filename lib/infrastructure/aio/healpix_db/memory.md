@@ -167,7 +167,7 @@ Healpix天球分块数据库，提供LOD金字塔分层、球面浏览器可视�
 
 ### 2026-07-13 healpix_browser_cpp C++ 渲染后端实现完成 (Task 7)
 - 新建基于 WebView2/系统浏览器 + winsock2 HTTP 服务器的 C++ 后端, 替代 PyQt5 浏览器
-- 7 个文件: include/(browser_backend.h 已存在 + http_server.h) + src/(browser_backend.cpp + http_server.cpp + browser_main.cpp) + Makefile + build.ps1 + README.md
+- 7 个文件: lib/include/(browser_backend.h 已存在 + http_server.h) + src/(browser_backend.cpp + http_server.cpp + browser_main.cpp) + Makefile + build.ps1 + README.md
 - BrowserBackend: .hiss 全量加载 / .hcsd 按需 hcsd_read_leaf 加载
 - 视角相关压缩: 中心 nside=8192 / 中间 2048 / 边缘 256
 - ud_grade 降采样: NESTED 排序 ipix_coarse = ipix_fine >> (2*log2(ratio)), 4 相邻像素均值合并
@@ -198,7 +198,7 @@ Healpix天球分块数据库，提供LOD金字塔分层、球面浏览器可视�
 - 子叶块索引: 49152 项 (12×64²), 每项 24 字节, O(1) 定位, 支持按需加载
 - 编译: healpix_io.dll 1778.8 KB, 6个导出符号验证通过
 - 测试: 4/4 通过 (.hiss往返 + .hcsd往返 + .hcsd按子叶读取 + .hiss空数据)
-- 文件: include/healpix_io.h, src/healpix_io.cpp, Makefile, build.ps1, test_healpix_io.py
+- 文件: lib/include/healpix_io.h, src/healpix_io.cpp, Makefile, build.ps1, test_healpix_io.py
 
 ### 2026-07-12 hp_drizzle_run命名块直通完成
 - 完成hp_drizzle_run命名块直通接口，对接PipelineFrame
@@ -273,7 +273,7 @@ Healpix天球分块数据库，提供LOD金字塔分层、球面浏览器可视�
 2. **归档遗留代码到 archive/legacy/**:
    - `healpix_browser/`（PyQt5+vispy）→ `archive/legacy/healpix_browser_python/`
    - `healpix_lod/` → `archive/legacy/healpix_lod/`（被 healpix_browser_qt 内存 ud_grade 替代）
-   - `tests/test_e2e_integration.py` → `archive/legacy/tests/`（依赖已删除模块，静默 skip）
+   - `eng/tests/test_e2e_integration.py` → `archive/legacy/tests/`（依赖已删除模块，静默 skip）
    - 创建 `archive/legacy/README.md` 说明归档原因
 3. **依赖迁移**: healpix_browser_qt 依赖从 `../healpix_io/` 迁移至 `lib/infrastructure/aio/`（aio 模块）
    - CMakeLists.txt: HIO_DIR → AIO_DIR（../../astro_image_io），链接库名 healpix_io → astro_image_io，添加 AIO_ENABLE_HEALPIX 定义

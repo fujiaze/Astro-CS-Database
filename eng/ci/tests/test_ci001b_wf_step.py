@@ -48,7 +48,7 @@ def valid_candidate_members() -> dict:
         "schema_version": 1, "algorithm": "sha256", "file_count": 2,
         "files": [
             {"path": "README.md", "sha256": _sha256(readme)},
-            {"path": "include/astrocs.h", "sha256": _sha256(dll)},
+            {"path": "lib/include/astrocs.h", "sha256": _sha256(dll)},
         ],
     }).encode("utf-8")
     members = {"README.txt": readme, "lib/astrocs.dll": dll,

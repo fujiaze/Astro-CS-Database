@@ -5,7 +5,7 @@
 | 项 | 值 |
 | --- | --- |
 | 数据源 | PixInsight XPSD 格式 Gaia DR3/SP 数据库 (`XPSD0100`) |
-| 文件 | `GaiaDR3SP/gdr3sp-1.0.0-*.xpsd` × 20, 每文件 ~3.2 GB, 约 1127 万源/文件 |
+| 文件 | `gaia/GaiaDR3SP/gdr3sp-1.0.0-*.xpsd` × 20, 每文件 ~3.2 GB, 约 1127 万源/文件 |
 | 数据库标识 | `GaiaDR3SP`, `DatabaseVersion=1.0.0` |
 | 创建 | 2022-11-09, PCL 2.4.30 (Linux) |
 | 基础数据 | Gaia DR3 (Gaia Collaboration 2016b/2022k; Babusiaux et al. 2022), BP/RP 平均光谱 |

@@ -2,7 +2,7 @@
 
 > 工作项：**F-INSTR-SURVEY**（裁决 A6）。实验代码：`实验/SCI-B/code/reverse_verify/f_instr/`。
 > 逐条文献/开源软件记录：`实验/SCI-B/docs/surveys/f-instr-survey.md`（本文件引用其编号 `[F-xx]`，**核对状态以该文件为准**）。
-> 中间产物：`run/reverse_verify/f_instr/`。**本工作项不改 `lib/` `docs/` `tests/` `ci/`，零 git 写。**
+> 中间产物：`run/reverse_verify/f_instr/`。**本工作项不改 `lib/` `docs/` `eng/tests/` `ci/`，零 git 写。**
 
 ---
 

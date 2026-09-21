@@ -28,7 +28,7 @@
   2. `point_source`：Q、W、flux、detection statistic、effective/proper PSF；
   3. `psfsw_integration`（被选择时）：四分量、相对权重、conventional coadd、variance/correlation、effective PSF、基线比较；
   4. support、coverage、validity、rejection；UPM 参数/协方差/残差；manifest。
-- 参考：`contracts/schemas/mosaic_product.schema.json`。
+- 参考：`eng/contracts/schemas/mosaic_product.schema.json`。
 
 ## 4. 算法与公式要点
 

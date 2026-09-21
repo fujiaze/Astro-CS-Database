@@ -7,7 +7,7 @@
 > （`ASTROCS_DESIGN.md` §11.4 状态词表），禁止在登记面自证。
 
 - 目录现状（**如实登记**，2026-09-20 实测 `git ls-files lib/infrastructure/pipeline | wc -l` = **62**，目录**非空**）：
-  - `orchestrator/`（50）：`cpp/`（include/src/tests + CMakeLists/Makefile）、`configs/`（stage1 schema/模板/三份 panel 配置）、`README.md`；§7.1 退役计划内（见 `docs/modules/orchestrator.md`）；
+  - `orchestrator/`（50）：`cpp/`（lib/include/src/tests + CMakeLists/Makefile）、`configs/`（stage1 schema/模板/三份 panel 配置）、`README.md`；§7.1 退役计划内（见 `docs/modules/orchestrator.md`）；
   - `module_loader/`（5）：`module_registry.c/.h`、`secure_loader.c/.h`、`README.md`；
   - 阶段内内存块管线合同与工具（7）：`typed_dag.py`、`typed_dag.schema.json`、`typed_dag_contract.h`、`module_ports.registry.json`、`trace_replay.py`、`fixtures/phase2_typed_dag.json`、本文件。
 - 待办（INT-001）：`lib/infrastructure/scheduler` 内 pipeline/artifact 实现按 §7.1 迁入本目录。

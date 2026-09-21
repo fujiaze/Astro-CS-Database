@@ -40,12 +40,12 @@ IO-002 在 IO-001（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**
 | 本冻结合同 | `docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md` |
 | HiPS 输入 C ABI | `lib/infrastructure/aio/io/include/astrocs/io/hips_input_v1.h` |
 | HiPS 输入核心（C 实现、私有、DLL 内） | `lib/infrastructure/aio/io/hips_core.c` |
-| 契约/负测（Python，astropy/astropy_healpix 可选 oracle） | `tests/io/` |
+| 契约/负测（Python，astropy/astropy_healpix 可选 oracle） | `eng/tests/io/` |
 | C 层自检驱动 | `lib/infrastructure/aio/io/tests/hips_core_selftest.c` |
-| fixture 重建生成器 | `tests/io/make_hips_fixture.py` |
+| fixture 重建生成器 | `eng/tests/io/make_hips_fixture.py` |
 
 允许写路径：`lib/infrastructure/aio/io/** lib/infrastructure/aio/io/** lib/infrastructure/aio/** lib/infrastructure/aio/healpix_db/**
-lib/infrastructure/aio/io/** tests/io/** docs/interfaces/io/**`。
+lib/infrastructure/aio/io/** eng/tests/io/** docs/interfaces/io/**`。
 
 ## 3. 输入合同（IVOA HiPS 兼容子集）
 
@@ -219,7 +219,7 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 
 ## 7. fixture 可重建（验收）
 
-`tests/io/make_hips_fixture.py` 是 **fixture 重建生成器**：以固定随机种子合成
+`eng/tests/io/make_hips_fixture.py` 是 **fixture 重建生成器**：以固定随机种子合成
 小 HiPS（可选 order，默认 K=1，TW=512 数据为梯度块）并写
 
 ```text
@@ -244,7 +244,7 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
   6. parent fallback（请求缺 tile ipix，父 order 存在同族 tile）→ TILE_MISSING
      （**不返回父 tile 内容/不回退**）。
 
-## 8. 验收映射（tests/io/）
+## 8. 验收映射（eng/tests/io/）
 
 | 验收 | 测试 |
 | --- | --- |

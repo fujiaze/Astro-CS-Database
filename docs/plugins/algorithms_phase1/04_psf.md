@@ -18,7 +18,7 @@
 - **输入**：定标信号、variance/ivar、validity、检测目录（候选星；来自星表引导检测，检测定义域 = 星表位置，最高设计 §4.2）、配置。
 - **输出**：PSF 家族、参数、FWHM/椭率、有效域、拟合残差；空间变化模型及协方差；`A_NEA = 1/ΣP²`（白噪声）；信息核 `PᵀC⁻¹P`。
 - 产品至少提供 PSF 模型/地图 + 摘要。
-- 参考：`contracts/schemas/psf_output.schema.json`。
+- 参考：`eng/contracts/schemas/psf_output.schema.json`。
 
 ## 4. 算法与公式要点
 

@@ -15,8 +15,8 @@
     },
     {
       "id": "public_headers",
-      "note": "lib/**、include/** 公开头中真实定义的枚举常量/宏（api_inventory.csv 只登记函数签名）",
-      "source": "lib/**/*.h, include/**/*.h"
+      "note": "lib/**、lib/include/** 公开头中真实定义的枚举常量/宏（api_inventory.csv 只登记函数签名）",
+      "source": "lib/**/*.h, lib/include/**/*.h"
     }
   ],
   "registered_symbols": [

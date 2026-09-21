@@ -25,7 +25,7 @@ TraceSnapshotObserver —— 从 RT-006 TraceStore 快照（真实事件流）�
 
 禁止 config 冒充的硬约束：本模块**不读计划/配置 JSON**，只读 trace 事件
 （JSONL 行或 TraceStore 快照 dict 列表）。事件字段名与
-`include/astrocs/core/contracts.h` TraceEvent JSONL 完全一致（type/run_id/
+`lib/include/astrocs/core/contracts.h` TraceEvent JSONL 完全一致（type/run_id/
 node_id/module_id/provider/workers/granted_workers/status 等）。
 
 实现还提供 emit_metric_events(): 把采样摘要作为 LOG-001 结构化事件写出

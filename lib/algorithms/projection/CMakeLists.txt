@@ -15,7 +15,7 @@ if(NOT TARGET astrocs_p3_projection_wcs)
   # FIX-205: 产品声明注册表 p3_projection_registry.h 为 header-only(inline),
   # p3_wcs.cpp 直接包含 —— 请求面门(p3_wcs_validate_request)与构造面门
   # (p3_wcs_make) 共用同一份注册表数据, 不产生第二权威, 也不新增链接面
-  # (p3_wcs.cpp 另被 tests/unit 以同 TU 直编方式复用)。
+  # (p3_wcs.cpp 另被 eng/tests/unit 以同 TU 直编方式复用)。
   add_library(astrocs_p3_projection_wcs STATIC ${CMAKE_CURRENT_SOURCE_DIR}/p3_wcs.cpp)
   target_include_directories(astrocs_p3_projection_wcs PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR})
@@ -28,6 +28,6 @@ endif()
 
 # 共址可复用测试 (ENGINEERING_SPEC §4.6): 仅根图 (ASTROCS_BUILD_TESTS=ON) 注册,
 # 模块独立 configure 时不新增测试面。
-if(ASTROCS_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt)
+if(ASTROCS_BUILD_TESTS AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/eng/tests/CMakeLists.txt)
   add_subdirectory(tests)
 endif()

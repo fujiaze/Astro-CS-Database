@@ -122,7 +122,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 - SRC 层引用格式：`<repo-relative-path>::<symbol>[,<symbol>...]`，多符号用逗号分隔。
 - 文件必须存在且受 Git 跟踪；符号必须在文件文本中可见（宽松匹配标识符边界）。
 - 无符号可锚时写 `<path>::MISSING`（文件存在但符号待补）——禁止留空、禁止裸路径冒充。
-- 表达示例：`tests/conformance/noop/src/noop_module.c::astrocs_module_query_v1`、
+- 表达示例：`eng/tests/conformance/noop/src/noop_module.c::astrocs_module_query_v1`、
   `lib/infrastructure/benchmark/cpu/common/README.md::MISSING`。
 
 ## 6. 初始矩阵（基线）
@@ -130,7 +130,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 `docs/traceability/TRACEABILITY_MATRIX.json` 覆盖仓库**全部已注册模块**：
 
 - `lib/infrastructure/aio/io`（IO-001/IO-002 落地）：`astrocs.services.io`
-- `tests/conformance/noop`（BLD-003 SKELETON）：`astrocs.conformance.noop`
+- `eng/tests/conformance/noop`（BLD-003 SKELETON）：`astrocs.conformance.noop`
 - `docs/modules/registry/astrocs.phase*.md` 声明的 22 个 registry 生产模块
   （module_id 以 `astrocs.phase1./phase2./phase3.` 开头，唯一源 `lib/infrastructure/scheduler/src/module_adapters.cpp`）
 - `lib/infrastructure/benchmark/cpu`（CPU-001 落地，provider 能力清单）
@@ -159,8 +159,8 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 
 - exit 0 且仅当零 ERROR；输出一行 `TRACEABILITY_MATRIX_PASS modules=<n> rows=<n> errors=0`。
 - 任何未捕获异常 → 打印 `TOOLING_FAILURE` 并 exit 3（不允许伪 PASS）。
-- 负面 fixture 在 `tests/traceability/fixtures/`，试金石测试
-  `tests/traceability/test_traceability_matrix.py` 用 mutation 证明：删任意层/填空串/
+- 负面 fixture 在 `eng/tests/traceability/fixtures/`，试金石测试
+  `eng/tests/traceability/test_traceability_matrix.py` 用 mutation 证明：删任意层/填空串/
   造重复 ID/悬空引用 → 检查器必失败且不崩溃。
 
 ## 8. 状态与演进

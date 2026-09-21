@@ -106,7 +106,7 @@
 
 ## 测试
 
-- 现状：tests/unit/p2_ir_facade_test.cpp（P2-007，91 行，ctest
+- 现状：eng/tests/unit/p2_ir_facade_test.cpp（P2-007，91 行，ctest
   `p2_ir_facade`）= 静态 facade 断言（IR 4 节点全链声明 :33-40、
   facade 委托 p2_* 不内联科学 :44-53、阶段序 coverage→sample→upm
   :56-66、manifest trace stages/kind :69-74）。

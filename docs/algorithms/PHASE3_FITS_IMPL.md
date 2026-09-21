@@ -275,7 +275,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   READONLY + 逐 HDU 回环 + sha256 重算，不复用写缓冲状态）；
   SCI-P3 §11 全集为真值面（Oracle 不调用本模块——独立小规模球面
   reference + 独立 FITS/WCS 读取器，PHASE3_RESAMPLE.md §8 同源）。
-- 执行测试现状锚（相邻证据，引用不冒认）：tests/unit/
+- 执行测试现状锚（相邻证据，引用不冒认）：eng/tests/unit/
   p3_output_test.cpp 4 段（§12）；WCS oracle=p3_wcs roundtrip
   （:114-131）。
 
@@ -287,15 +287,15 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 - T1 原子写+mask：64×48 渐变场+分段 mask（x<40），BITPIX=-32，
   prov 全字段 → rc=0、coverage_ok=1、reopen_ok=1、sha256 64hex
-  （tests/unit/p3_output_test.cpp:62-88）。
+  （eng/tests/unit/p3_output_test.cpp:62-88）。
 - T2 独立 verify：重开 dims/WCS/BUNIT/checksum/mask 一致 →
   reopen_ok=1、coverage_ok=1、sha256 64hex（:89-100）。
   **T2b（B2-A9 新增，已执行）** WCS 篡改负例：写后翻转 CRPIX1 +1 →
-  重开 verify `reopen_ok=0`；恢复后 `reopen_ok=1`（tests/unit/
+  重开 verify `reopen_ok=0`；恢复后 `reopen_ok=1`（eng/tests/unit/
   p3_output_test.cpp 3b 段，覆盖 verify 对 WCS 的鉴别力）。
   **T2c（B2-A9 新增，已执行）** 标准校验和：astropy `fits.verify`/
   `checksum=True` 逐 HDU 无警告，DATASUM/CHECKSUM 为 32-bit 数字串 +
-  16 字符；BSCALE/BZERO 存在时为 float（tests/cli/test_phase3_inprocess.py
+  16 字符；BSCALE/BZERO 存在时为 float（eng/tests/cli/test_phase3_inprocess.py
   `test_09_fits_standard_checksum_and_wcs_provenance`）。
 - T3 原子性：无 .tmp 残留（filesystem 目录遍历，WIN-001 替代
   popen；前缀匹配弱匹配偏差 DISP-P3FITS-002 如实，不误报）
@@ -337,7 +337,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏文件形态），实测
   make_temp_path 生成 `out_path.<pid>.tmp`（:81，无前置点、保留
   .fits 扩展名）；同目录 rename 原子性语义不变；执行测试残留检查
-  前缀 ".astrocs_p3_out_test."（tests/unit/p3_output_test.cpp:102-103）
+  前缀 ".astrocs_p3_out_test."（eng/tests/unit/p3_output_test.cpp:102-103）
   与实际命名恒不匹配 → 残留检查弱匹配空转（不误报亦捕不到本实现
   形态残留）。命名统一归 P3-FITS-IMPL（含测试修正）。
 - **整改项（B2-A9/A10 已闭合）**: (a) `prov.manifest_hash` 不再恒 nullptr——
@@ -391,7 +391,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   手写页 + docs/modules/phase3_fits.md。
 - 零改动声明：docs/science/（SCI-P3 FROZEN）、docs/algorithms/
   PHASE3_RESAMPLE.md（公式/容差零改动）、lib/ 生产源、third_party/
-  cfitsio、eng/ci/、eng/tools/、tests/ 本任务零触碰；发现的实现偏差全部
+  cfitsio、eng/ci/、eng/tools/、eng/tests/ 本任务零触碰；发现的实现偏差全部
   登记（§14）不反向修改 SCI（模板红线）。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐

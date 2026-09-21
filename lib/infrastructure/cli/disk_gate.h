@@ -14,7 +14,7 @@
 //   3) 运行期 fail-closed：写盘失败/磁盘满 ⇒ error 事件 + exit 10（由调用方按本模块判定落码）；
 //   4) **阈值自由**：本模块不引入经验系数/魔法字节数 —— 预估需求下限 = 配置声明输入的字节和
 //      （「喂进去多少，至少要能再放得下多少」），可用空间由 statvfs/GetDiskFreeSpaceEx 实测。
-//      ⇒ 无需 contracts/resource_gate_v1.json 新增数值键（该文件仍是资源**观测**阈值唯一数值源）。
+//      ⇒ 无需 eng/contracts/resource_gate_v1.json 新增数值键（该文件仍是资源**观测**阈值唯一数值源）。
 #pragma once
 
 #include <nlohmann/json.hpp>

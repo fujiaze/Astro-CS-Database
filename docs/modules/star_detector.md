@@ -79,6 +79,6 @@ NON_PRODUCTION_TOOL_ONLY 手工验证程序）。
 ## Source files
 
 lib/algorithms/star_detection/（生产源 src/sdet_api.cpp:1599-2353 sdet_detect_impl，
-合同头 include/star_detector.h）；lib/algorithms/star_detection/wrapper_phase1/（P1-003 桥接层独立
+合同头 lib/include/star_detector.h）；lib/algorithms/star_detection/wrapper_phase1/（P1-003 桥接层独立
 sigma-clip 实现，与生产 sdet_api.cpp 非同一算法路径，matrix legacy_paths
 第二路径，整合归 P1-STAR-IMPL）。

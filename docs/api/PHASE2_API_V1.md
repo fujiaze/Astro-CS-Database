@@ -52,4 +52,4 @@ coverage ──→ sampler ──→ UPM build ──→ calibrate_block ──�
 
 ## 5 与 API-003 同构 checker
 
-tests/api/test_p2_api.py 机器门: 文档符号↔头文件实跑核对+所有权图完整(七对象)+禁止隐藏全局状态声明+预算绑定引用。
+eng/tests/api/test_p2_api.py 机器门: 文档符号↔头文件实跑核对+所有权图完整(七对象)+禁止隐藏全局状态声明+预算绑定引用。

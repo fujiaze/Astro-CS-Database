@@ -40,8 +40,8 @@ void normalize_ra(double* ra) {
 //     像素坐标 xp = x + 1, 中间坐标 (xi,eta) = CD·(xp − CRPIX);
 //   - 桥接责任方 = **Phase3 导出边界 (本文件)**; 除本文件之外不得再施加一次 +1
 //     (双重桥接 = 恒定 1px 系统偏移), 由负向注入用例锁定:
-//     tests/unit/p3_wcs_test.cpp (九宫格 + 双桥接/无桥接必败) 与
-//     tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py (astropy 四向桥接扫描)。
+//     eng/tests/unit/p3_wcs_test.cpp (九宫格 + 双桥接/无桥接必败) 与
+//     eng/tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py (astropy 四向桥接扫描)。
 // 数学内容不变: 纯原点平移 (标量 +1), 不改 CD/SIP/CRVAL/CRPIX 任何数值,
 // 不放宽任何容差; 冻结门 1e-4 px 与 CRPIX=w/2+0.5 不变量均不在此处变更。
 // ---------------------------------------------------------------------------

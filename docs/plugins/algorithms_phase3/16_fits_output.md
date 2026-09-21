@@ -25,7 +25,7 @@
     ⚠ **BUNIT 语义未闭合**：实测 `p3_props.json#bunit="ADU"` 与 `flux_sum/covered_area`（面亮度量纲）不一致；正确写法 = 澄清 BUNIT 或写 `ADU/px^2/sr`。澄清前**不得**据 `BUNIT` 作单位声明/换算；
   - provenance：源 product/hash、软件完整 SHA、配置、投影、核、order、近似、生成时间。
 - 所有 HDU shape/WCS 对齐。
-- 参考：`contracts/schemas/fits_product.schema.json`。
+- 参考：`eng/contracts/schemas/fits_product.schema.json`。
 
 ## 4. 算法与公式要点
 
