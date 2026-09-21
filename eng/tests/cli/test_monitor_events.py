@@ -49,7 +49,7 @@ class TestMonitorEvents(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="mon002_")
         cls.hips = None
         # 建合成 FIELD.hips fixture（export 会话的输入产品）
-        incs = [f"-I{os.path.join(REPO, 'include')}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
                 f"-I{SHARED}", f"-I{os.path.dirname(HEALPIX_SRC)}"]
@@ -192,7 +192,7 @@ int main(){
 }
 ''')
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{CLI}",
-                            f"-I{os.path.join(REPO, 'third_party')}",
+                            f"-I{os.path.join(REPO, 'lib', 'third_party')}",
                             drv, "-o", os.path.join(self.tmp, "enum")],
                            capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
@@ -217,7 +217,7 @@ int main(){
 }
 ''')
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{CLI}",
-                            f"-I{os.path.join(REPO, 'third_party')}",
+                            f"-I{os.path.join(REPO, 'lib', 'third_party')}",
                             drv, "-o", os.path.join(self.tmp, "classify")],
                            capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])

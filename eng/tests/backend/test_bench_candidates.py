@@ -6,6 +6,20 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
 
+# 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
+# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
+# （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
+AIO_INCS = [
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'include')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'src')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'third_party', 'cfitsio')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
+    f"-I{os.path.join(REPO, 'lib', 'third_party')}",
+]
+
+
 
 class TestBenchCandidates(unittest.TestCase):
     @classmethod
@@ -16,12 +30,12 @@ class TestBenchCandidates(unittest.TestCase):
                   os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
                   f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}"]
         cls.probe = os.path.join(cls.tmp, "cprobe")
-        r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{INC}", f"-I{HOST}",
+        r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{INC}", f"-I{HOST}", *AIO_INCS,
                             os.path.join(REPO, "eng", "tests", "backend", "candidates_probe_main.cpp"),
                             *common, "-o", cls.probe], capture_output=True, text=True, timeout=180)
         assert r.returncode == 0, r.stderr
         cls.runner = os.path.join(cls.tmp, "bcand")
-        r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{INC}", f"-I{HOST}",
+        r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{INC}", f"-I{HOST}", *AIO_INCS,
                             os.path.join(REPO, "eng", "tests", "backend", "bench_candidates_main.cpp"),
                             os.path.join(HOST, "baseline_backend.cpp"), *common, "-ldl",
                             "-o", cls.runner], capture_output=True, text=True, timeout=240)

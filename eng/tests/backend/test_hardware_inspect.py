@@ -26,6 +26,20 @@ SCHEMA = json.load(open(os.path.join(REPO, "eng", "contracts", "schemas", "hardw
 sys.path.insert(0, os.path.join(REPO, "eng", "tools"))
 import gen_version  # noqa: E402
 
+# 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
+# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
+# （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
+AIO_INCS = [
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'include')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'src')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'third_party', 'cfitsio')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
+    f"-I{os.path.join(REPO, 'lib', 'third_party')}",
+]
+
+
 
 def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
@@ -115,8 +129,8 @@ class TestHardwareInspectProbe(unittest.TestCase):
                 os.path.join(HOST, "backend_loader.cpp"),   # file_sha256_hex
                 os.path.join(CRYPTO, "sha256.cpp")]
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-Wno-format-truncation",
-                            f"-I{os.path.join(REPO, 'include')}", f"-I{HOST}",
-                            f"-I{CRYPTO}", f"-I{os.path.join(REPO, 'third_party')}",
+                            f"-I{os.path.join(REPO, 'lib', 'include')}", f"-I{HOST}", *AIO_INCS,
+                            f"-I{CRYPTO}", f"-I{os.path.join(REPO, 'lib', 'third_party')}",
                             main, *srcs, "-ldl", "-o", cls.probe],
                            capture_output=True, text=True, timeout=600)
         assert r.returncode == 0, "硬件探针编译失败（lib 路径迁移中间态?）:\n" + r.stderr[-800:]

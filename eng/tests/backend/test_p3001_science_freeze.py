@@ -60,7 +60,10 @@ class TestP3001ScienceFreeze(unittest.TestCase):
     def test_04_sci_frozen(self):
         """SCI 文档状态 FROZEN。"""
         s = open(SCI, encoding="utf-8").read()
-        self.assertIn("状态: FROZEN", s.splitlines()[2] if len(s.splitlines()) > 2 else "")
+        # 判据锚在**文档头块**（前 12 行）而不是固定行号：SCI 合同头部插入了
+        # 「> 上游：…」行后，原 splitlines()[2] 断言变成对无关行的断言（GATE-502）。
+        head = "\n".join(s.splitlines()[:12])
+        self.assertIn("状态: FROZEN", head, "SCI 合同头块必须声明 状态: FROZEN")
 
 
 if __name__ == "__main__":

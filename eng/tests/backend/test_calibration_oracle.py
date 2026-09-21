@@ -202,7 +202,7 @@ class TestCalibrationOracle(unittest.TestCase):
                  "dark_optimizer.cpp", "ac_api.cpp"]]
         cls.exe = os.path.join(cls.tmp, "cal_drv")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-fopenmp",
-                            f"-I{CAL_INC}", f"-I{os.path.join(REPO, 'include')}", f"-I{AIO_INC}",
+                            f"-I{CAL_INC}", f"-I{os.path.join(REPO, 'lib', 'include')}", f"-I{AIO_INC}",
                             drv, *srcs, "-lgomp", "-pthread", "-o", cls.exe],
                            capture_output=True, text=True, timeout=600)
         assert r.returncode == 0, "[compile]\n" + r.stderr[-1200:]

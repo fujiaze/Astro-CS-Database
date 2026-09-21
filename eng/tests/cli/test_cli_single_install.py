@@ -3,7 +3,7 @@
 import os, re, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-CLI = os.path.join(REPO, "cli")
+CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 
 # 非发布(旧 phase/benchmark/tool/test)exe 名: 泄漏到 install 树任一都是违规
 LEGACY_EXES = re.compile(

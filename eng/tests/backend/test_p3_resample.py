@@ -13,7 +13,7 @@ class TestP3Resample(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="p3rs_")
-        incs = [f"-I{os.path.join(REPO, 'include')}", f"-I{HOST}", f"-I{COV}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}", f"-I{HOST}", f"-I{COV}",
                 f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
                 f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'healpix')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",

@@ -45,7 +45,7 @@ class TestP2001ParallelSampler(unittest.TestCase):
         cls.hips_dir = os.path.join(cls.tmp, "hips")
         os.makedirs(cls.hips_dir, exist_ok=True)
         # 编译 fixture 生成 F1/F2.hips(与 test_phase2_inprocess 同源)
-        incs = [f"-I{os.path.join(REPO, 'include')}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                 f"-I{os.path.join(AIO, 'include')}",
                 f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",

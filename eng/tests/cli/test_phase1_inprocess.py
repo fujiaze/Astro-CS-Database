@@ -60,7 +60,7 @@ def build_fixture(tmp):
                         "-c", c, "-o", o], check=True, capture_output=True, timeout=300)
         objs.append(o)
     r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS",
-                        f"-I{os.path.join(REPO, 'include')}",
+                        f"-I{os.path.join(REPO, 'lib', 'include')}",
                         f"-I{os.path.join(AIO, 'include')}",
                         f"-I{os.path.join(AIO, 'src')}",
                         f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",

@@ -87,7 +87,7 @@ class TestFix401HipsAtomic(unittest.TestCase):
             subprocess.run(["gcc", "-O2", "-w", f"-I{cdir}", "-c", os.path.join(cdir, f),
                             "-o", o], check=True, capture_output=True, timeout=300)
             objs.append(o)
-        incs = [f"-I{os.path.join(REPO, 'include')}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{cdir}", f"-I{SHARED}", f"-I{os.path.dirname(HEALPIX_SRC)}"]
         cls.p1fx = os.path.join(cls.tmp, "p1fx")

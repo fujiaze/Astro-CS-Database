@@ -18,14 +18,30 @@ hips_status=private master
 """
 
 
+# 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
+# + third_party/cfitsio + lib/algorithms/shared + lib/third_party（见根 CMakeLists.txt:
+# target_include_directories(astrocs_aio PUBLIC ...)）。测试侧独立编译必须同面，否则
+# aio_atomic_file.h / aio_file_io.h / crypto/sha256.h 找不到
+# （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
+AIO_INCS = [
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'include')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'src')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'third_party', 'cfitsio')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
+    f"-I{os.path.join(REPO, 'lib', 'third_party')}",
+]
+
+
 class TestHipsProperties(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="p3prop_")
         cls.exe = os.path.join(cls.tmp, "probe")
         r = subprocess.run(
             ["g++", "-std=c++17", "-O2", "-Wall", "-Wextra",
-             f"-I{HOST}", f"-I{COV}", os.path.join(REPO, "eng", "tests", "backend", "hips_properties_probe_main.cpp"),
+             f"-I{HOST}", f"-I{COV}", *AIO_INCS, os.path.join(REPO, "eng", "tests", "backend", "hips_properties_probe_main.cpp"),
              os.path.join(COV, "hips_properties.cpp"), "-o", cls.exe],
             capture_output=True, text=True, timeout=180)
         assert r.returncode == 0, r.stderr

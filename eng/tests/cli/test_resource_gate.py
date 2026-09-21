@@ -61,7 +61,7 @@ int main(int argc, char** argv){
         build_root = os.path.dirname(os.path.abspath(
             os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))))
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{CLI}",
-                            f"-I{os.path.join(REPO, 'third_party')}",
+                            f"-I{os.path.join(REPO, 'lib', 'third_party')}",
                             f"-I{build_root}",
                             src, "-o", cls.exe], capture_output=True, text=True, timeout=180)
         assert r.returncode == 0, r.stderr

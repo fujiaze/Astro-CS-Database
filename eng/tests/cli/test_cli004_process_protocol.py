@@ -31,7 +31,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 # ROOT-008: CLI 源目录已迁 lib/infrastructure/cli/（旧 REPO/cli 不存在 ⇒ test_06 自迁移起
 # 恒 FileNotFoundError）。FIX-208 顺带订正扫描路径（扫描面/断言不变），并保留旧路径回退。
 CLI_DIR = next((p for p in (os.path.join(REPO, "lib", "infrastructure", "cli"),
-                            os.path.join(REPO, "cli")) if os.path.isdir(p)),
+                            os.path.join(REPO, "lib", "infrastructure", "cli")) if os.path.isdir(p)),
                os.path.join(REPO, "lib", "infrastructure", "cli"))
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
@@ -135,7 +135,7 @@ def build_fixture(tmp):
                         "-o", o], check=True, capture_output=True, timeout=300)
         objs.append(o)
     r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS",
-                        f"-I{os.path.join(REPO, 'include')}",
+                        f"-I{os.path.join(REPO, 'lib', 'include')}",
                         f"-I{os.path.join(AIO, 'include')}",
                         f"-I{os.path.join(AIO, 'src')}",
                         f"-I{cdir}",
