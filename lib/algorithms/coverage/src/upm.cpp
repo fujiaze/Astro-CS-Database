@@ -95,7 +95,17 @@ struct Model {
     double objective{0.0};
     // M7-H-101: 收敛状态（1 = 在 cfg.max_iterations 内 max_dM/max_dC 均达到
     // cfg.tolerance；0 = 迭代耗尽未达容差，或旧模型文件未记录该标志）。
+    // SCI-502 FIX-2（状态枚举 0/1/2/3，见 docs/plugins/algorithms_phase2/11_upm.md 4.6）:
+    //   0 = max_iter（迭代耗尽未达容差）
+    //   1 = converged（tol_step 与 tol_obj 同时满足）
+    //   2 = stalled（目标相对改善量连续 stall_patience 次低于数值地板）
+    //   3 = invalid（目标非有限 / 无有效数据项）
+    // 旧模型文件未记录该标志时一律读作 0（不证明收敛）。
     int converged{0};
+    // SCI-502 FIX-1/FIX-2 provenance（随模型持久化，供只读诊断）
+    double scale_obs{0.0};      // 观测量稳健尺度（相对容差的分母基准; 非 max|M|）
+    double rel_improve{0.0};    // 末轮 |dobj|/max(|obj_old|,eps)
+    int stall_count{0};         // 连续低改善轮数（达到 stall_patience ⇒ converged=2）
     std::size_t component_count{1};
     // 几何/无观测节点独立统计（不混入数据分量）
     std::size_t geometry_component_count{1};
@@ -691,6 +701,25 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
     // RELEASE-02 P2a-2：w 提升到迭代循环外——末端残差场 gauge 必须复用
     // 最后一轮的拟合权重（"拟合权重 = 叠加权重"同源，q2-snr-smooth §5）。
     std::vector<double> w(n_obs, 0.0);
+    // SCI-502 FIX-1: 相对容差的尺度基准 = **观测量的稳健尺度**（11_upm.md 4.6:
+    // 「分母用观测量的尺度，**不得**用 max|M|」）。取 |value| 的中位数，退化时 0。
+    // 与 max(scale,1.0) 组合：scale_obs<1 时退化为 legacy 绝对容差（近零尺度保护）。
+    {
+        std::vector<double> absv;
+        absv.reserve((std::size_t)n_obs);
+        for (std::uint64_t i = 0; i < n_obs; ++i)
+            absv.push_back(std::fabs(obs[i].value));
+        if (!absv.empty()) {
+            const std::size_t mid = absv.size() / 2;
+            std::nth_element(absv.begin(), absv.begin() + mid, absv.end());
+            const double med = absv[mid];
+            m->scale_obs = (std::isfinite(med) && med > 0.0) ? med : 0.0;
+        }
+    }
+    const double kStallPatience = 5;      // 连续低改善轮数阈值
+    const double kObjImproveFloor = 1e-12;  // 相对改善数值地板
+    double obj_prev = std::numeric_limits<double>::quiet_NaN();
+    int stall_run = 0;
     for (int iter = 0; iter < cfg.max_iterations; ++iter) {
         // 1. 权重（每轮：raw per-control 归一化 + Huber）
         {
@@ -987,22 +1016,39 @@ static int build_impl(const P2ControlObservation* obs, std::uint64_t n_obs,
         //   阈值 = tolerance × max(scale, 1.0)，scale = max|M| / max|C|；
         // max(...,1.0) 保证小尺度合成数据与 legacy 绝对判据逐位等价。
         // tolerance_relative=0 时 tol_M=tol_C=cfg.tolerance（legacy，逐位不变）。
+        // SCI-502 FIX-1: 相对判据的分母 = **观测量尺度** scale_obs（不是 max|M|）。
+        // max(scale_obs, 1.0) 保留近零尺度下的绝对容差保护（小尺度合成数据逐位不变）。
         double tol_M = cfg.tolerance;
         double tol_C = cfg.tolerance;
         if (cfg.tolerance_relative) {
-            double scale_M = 0.0, scale_C = 0.0;
-            for (std::size_t k = 0; k < K; ++k)
-                scale_M = std::max(scale_M, std::fabs(M[k]));
-            for (std::size_t f = 0; f < F; ++f)
-                for (std::size_t k = 0; k < K; ++k)
-                    scale_C = std::max(scale_C, std::fabs(m->C[f][k]));
-            tol_M = cfg.tolerance * std::max(scale_M, 1.0);
-            tol_C = cfg.tolerance * std::max(scale_C, 1.0);
+            const double s_eff = std::max(m->scale_obs, 1.0);
+            tol_M = cfg.tolerance * s_eff;
+            tol_C = cfg.tolerance * s_eff;
+        }
+        // SCI-502 FIX-2: 状态枚举 + stalled 检测（可证伪：改善量低于数值地板连续 N 次）
+        m->rel_improve = std::isfinite(obj_prev)
+                             ? std::fabs(m->objective - obj_prev) /
+                                   std::max(std::fabs(obj_prev), 1e-300)
+                             : 1.0;
+        if (!std::isfinite(m->objective)) {
+            m->converged = 3;   // invalid: 目标非有限
+            break;
         }
         if (max_dM < tol_M && max_dC < tol_C) {
             m->converged = 1;
             break;
         }
+        if (std::isfinite(m->rel_improve) && m->rel_improve < kObjImproveFloor) {
+            ++stall_run;
+        } else {
+            stall_run = 0;
+        }
+        m->stall_count = stall_run;
+        if (static_cast<double>(stall_run) >= kStallPatience) {
+            m->converged = 2;   // stalled
+            break;
+        }
+        obj_prev = m->objective;
     }
 
     // ===== RELEASE-02 FIX-REGRESS：无观测几何节点的调和延拓 =====
@@ -1198,7 +1244,10 @@ int p2_upm_save(const void* model, const char* path) {
     j["input_manifest_hash"] = m->input_manifest_hash;
     j["iterations"] = m->iterations;
     j["objective"] = m->objective;
-    j["converged"] = m->converged;
+    j["converged"] = m->converged;   // SCI-502 FIX-2: 0/1/2/3（见 upm.h / 11_upm.md 4.6）
+    j["scale_obs"] = m->scale_obs;   // SCI-502 FIX-1 provenance（相对容差基准）
+    j["rel_improve"] = m->rel_improve;
+    j["stall_count"] = m->stall_count;
     j["component_count"] = m->component_count;
     j["geometry_component_count"] = m->geometry_component_count;
     j["unobserved_geometry_nodes"] = m->unobserved_geometry_nodes;
@@ -1311,6 +1360,9 @@ int p2_upm_open(const char* path, void** out_model) {
         m->objective = j.value("objective", 0.0);
         // 旧模型文件无该键 → 0（未经证明的收敛，fail-closed 读法）。
         m->converged = j.value("converged", 0);
+        m->scale_obs = j.value("scale_obs", 0.0);
+        m->rel_improve = j.value("rel_improve", 0.0);
+        m->stall_count = j.value("stall_count", 0);
         m->component_count = j.value("component_count", (std::size_t)1);
         m->info.component_count = (std::uint32_t)m->component_count;
         m->grid = (int)j.value("grid", 8);
@@ -1529,7 +1581,9 @@ int p2_upm_convergence(const void* model, std::uint64_t* out_iterations,
     if (out_iterations != nullptr)
         *out_iterations = (std::uint64_t)m->iterations;
     if (out_objective != nullptr) *out_objective = m->objective;
-    // 0 = 迭代耗尽（或旧模型未记录）；1 = 在 max_iterations 内达 tolerance。
+    // SCI-502 FIX-2 状态枚举（11_upm.md 4.6 / PHASE2_UPM_IMPL 496）:
+    //   0 = max_iter / 1 = converged / 2 = stalled / 3 = invalid；
+    //   旧模型文件未记录 ⇒ 0（一律按未证明收敛处理）。
     if (out_converged != nullptr) *out_converged = m->converged;
     return 0;
 }

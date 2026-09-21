@@ -5983,7 +5983,11 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   // （状态：草案，待负责人裁决）——未经裁决不得在实现内启用。
   // 显式 opt-in 覆盖键 upm.tolerance / upm.tolerance_relative 保留（默认 0）。
   uc.tolerance = 1e-6;
-  uc.tolerance_relative = 0;
+  // SCI-502 FIX-1 定案（DOC-502 / 11_upm.md 4.6 / PHASE2_UPM_IMPL 496）：
+  // 收敛判据必须**无量纲**、分母用观测量尺度。绝对容差 1e-6 在 ~300 e⁻ 尺度
+  // 永不收敛（300 次迭代 converged=0，SCI-C C1 A7b）⇒ 生产默认走相对判据；
+  // upm.cpp 内部以 max(scale_obs, 1.0) 保留近零尺度下的绝对容差保护。
+  uc.tolerance_relative = 1;
   // RELEASE-02 P2a-2/P2a-4（科学行为变更）：阻尼 α=0.5（naive α=1 在
   // 链式/二部覆盖图有特征值 -1、周期 2 振荡）；M 全帧加权；末端残差场
   // gauge 使叠加 ≡ 公共场 ⇒ 覆盖子集突变处阶跃恒 0（q2-snr-smooth §4/§5）。
@@ -6252,8 +6256,35 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
       if (sp_cfg.contains("max_nodes")) spc.max_nodes = sp_cfg["max_nodes"].get<int>();
       char sperr[512] = {0};
       void* spm = nullptr;
-      const int src = p2_sky_plane_build(sky_samples.data(), sky_samples.size(),
-                                         &spc, &spm, sperr, sizeof(sperr));
+      // ── SCI-502 FIX-3 定案（DOC-502 / PHASE2_UPM 7a）: 近奇异自适应 ────────
+      // 天光面正规方程条件数 kappa 可观测；kappa > kappa_max 时**不直接放弃**，
+      // 而是按粗糙度正则化（roughness_penalty）逐级自适应重试（bounded），并把
+      // 所走分支、尝试次数、生效惩罚与最终 kappa 全部写 provenance。
+      // 真实 M42 样本实测 kappa=3.16e7（SCI-C C7 R2）⇒ 默认 1e-3 惩罚下即可能触顶。
+      // 放宽 kappa_max 求绿属禁止项（FZ-AP2S-KAPPA-MAX 负例）。
+      constexpr int kKappaAdaptiveMaxAttempts = 6;
+      const double kappa_penalty0 = spc.roughness_penalty;
+      int kappa_attempts = 0;
+      int src = p2_sky_plane_build(sky_samples.data(), sky_samples.size(),
+                                   &spc, &spm, sperr, sizeof(sperr));
+      while (src == P2_SKY_PLANE_KAPPA_EXCEEDED &&
+             kappa_attempts + 1 < kKappaAdaptiveMaxAttempts) {
+        if (spm) { p2_sky_plane_close(spm); spm = nullptr; }
+        spc.roughness_penalty =
+            (spc.roughness_penalty > 0.0) ? spc.roughness_penalty * 10.0 : 1e-3;
+        ++kappa_attempts;
+        sperr[0] = '\0';
+        std::fprintf(stderr,
+                     "[sky_plane] kappa exceeded -> adaptive roughness retry #%d (penalty=%.3g)\n",
+                     kappa_attempts, spc.roughness_penalty);
+        src = p2_sky_plane_build(sky_samples.data(), sky_samples.size(),
+                                 &spc, &spm, sperr, sizeof(sperr));
+      }
+      (*man)["sky_plane_kappa_adaptive_attempts"] = kappa_attempts;
+      (*man)["sky_plane_kappa_adaptive_used"] = (kappa_attempts > 0);
+      (*man)["sky_plane_roughness_penalty_configured"] = kappa_penalty0;
+      (*man)["sky_plane_roughness_penalty_used"] = spc.roughness_penalty;
+      (*man)["sky_plane_kappa_max"] = spc.kappa_max;
       if (src != P2_SKY_PLANE_OK) {
         std::fprintf(stderr,
                      "[sky_plane] build FAILED rc=%d %s -> explicit fallback to UPM C field\n",
@@ -6287,6 +6318,13 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
           (*man)["sky_plane_n_nodes"] = spinfo.n_nodes;
           (*man)["sky_plane_n_frames"] = spinfo.n_frames;
           (*man)["sky_plane_n_used"] = spinfo.n_used;
+          // SCI-502 FIX-3 provenance: 条件数/秩/迭代如实落盘（可观测、可审计）
+          (*man)["sky_plane_kappa"] = spinfo.kappa;
+          (*man)["sky_plane_rank"] = spinfo.rank;
+          (*man)["sky_plane_n_params"] = spinfo.n_params;
+          (*man)["sky_plane_iterations"] = spinfo.iterations;
+          (*man)["sky_plane_chi2_red"] = spinfo.chi2_red;
+          (*man)["sky_plane_node_spacing_deg"] = spinfo.node_spacing_deg;
           std::fprintf(stderr,
                        "[sky_plane] ok n_used=%llu n_nodes=%llu n_frames=%llu rms_w=%.6g\n",
                        static_cast<unsigned long long>(spinfo.n_used),
