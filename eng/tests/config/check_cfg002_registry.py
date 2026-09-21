@@ -6,7 +6,7 @@
   CFG002-01  docs/plugins/** 配置表 <-> eng/packaging/config/config_registry.json 一一对应（缺登记/多登记/默认值漂移）
   CFG002-02  登记目标可解析（defaults.json 键 / phase_config 指针 / cpu_profile 指针 / 文档行号）与分类闭包
   CFG002-03  defaults.json 的 enum_target/enum_token 必须落进目标 phase_config 字段的 enum（默认值 -> 字段值域）
-  CFG002-04  滤镜名匹配语义（exact + 无别名）与正反例（含 ASTROCS_DESIGN §3.3 示例串）
+  CFG002-04  滤镜名匹配语义（exact + 无别名）与正反例（登记负例 + 现行库派生近失配 + ASTROCS_DESIGN §4.3 示例块）
   CFG002-05  cpu_profile.host.os_abi 值域 = 生产者字面量集合（fail-closed 枚举）
   CFG002-06  lib/**/module.yaml 键闭包（旋钮声明字段出现即判红）
   CFG002-07  索引归属唯一（eng/packaging/config/** vs eng/contracts/config/**；DOCUMENT_INDEX；eng/tests/test_index.csv）
@@ -550,63 +550,126 @@ def check_04_filter_name_policy(repo):
     if dead != sorted(reg["filter_name_policy"]["dead_filter_enum_phases"]):
         problems.append("未消费 filter_name 的 phase %r != 登记 %r"
                         % (dead, reg["filter_name_policy"]["dead_filter_enum_phases"]))
-    # non_key_examples：必须不是库键，且 where 锚点（文件:行）必须真的含该串
+    # non_key_examples：① 不得是库键；② 不得可被「大小写/空白折叠」解析回库键
+    # （否则登记形同虚设：任何轻量归一化都会把它变成合法键）；③ where 必须是
+    # 「文件:行」锚点，文件真实存在且该行真的含该串（fail-closed，锚点失效即判红）。
+    # GATE-502：RELEASE-04 换版后最高设计 §3.3 的 "bader r" 反例行已删（原
+    # ASTROCS_DESIGN.md:221 锚点失效）⇒ 登记已按现行合同重锚到
+    # docs/contracts/CONFIG_CONTRACT.md §10 负例表；值与判据未变。
+    reg_lits = {ex.get("literal") for ex in look.get("non_key_examples", [])}
+    low_keys = {k.lower() for k in keys}
+    fold_keys = {" ".join(k.split()).lower() for k in keys}
     for ex in look.get("non_key_examples", []):
         lit = ex.get("literal")
         if lit in keys:
             problems.append("non_key_examples 含库键 %r（示例不得是合法键）" % lit)
+        if lit.lower() in low_keys or " ".join(lit.split()).lower() in fold_keys:
+            problems.append("non_key_examples %r 可被大小写/空白折叠解析为库键（归一化必须保持关闭）" % lit)
         m = re.match(r"^(.+?):(\d+)$", ex.get("where", ""))
-        if m:
-            lines = read_text(repo, m.group(1)).split("\n")
-            ln = int(m.group(2))
-            if ln > len(lines) or lit not in lines[ln - 1]:
-                problems.append("non_key_examples %r 的 where 锚点不成立: %s" % (lit, ex.get("where")))
-    # 正反例（红绿双向）
+        if not m:
+            problems.append("non_key_examples %r 的 where 不是「文件:行」锚点: %r"
+                            % (lit, ex.get("where")))
+            continue
+        anchor_rel, anchor_ln = m.group(1), int(m.group(2))
+        if not os.path.isfile(os.path.join(repo, anchor_rel)):
+            problems.append("non_key_examples %r 的 where 文件不存在: %s" % (lit, anchor_rel))
+            continue
+        lines = read_text(repo, anchor_rel).split("\n")
+        if anchor_ln > len(lines) or lit not in lines[anchor_ln - 1]:
+            problems.append("non_key_examples %r 的 where 锚点不成立: %s" % (lit, ex.get("where")))
+    # 现行库派生的近失配反例（不依赖任何历史文档示例；GATE-502 按任务书「改用现行
+    # filters.json 中真实存在的失配反例」补）：真键的大小写/空白变体 + 一个「品牌在库、
+    # 型号不在库」的缺号反例。它们必须既不等于库键，也不可被已登记归一化解析回库键。
+    derived_negatives = []
+    for k in ("Baader R", "Johnson V", "SDSS r"):
+        derived_negatives += [k.lower(), k.upper(), k.replace(" ", "  "), " " + k]
+    derived_negatives.append("Baader V")   # Baader 品牌在库（B/G/R/UV-IR/H-alpha/OIII），无 V 曲线
+    # 注意口径差别：派生变体是**故意的近失配**（折叠后能落到真键上），因此只要求
+    # 「字节精确下不是库键」；「折叠也不可解析」的要求只对 non_key_examples 生效
+    # （它们是权威文本里明确要拒的拼写，例如 bader ≠ Baader 折叠加空白折叠都救不回）。
+    for v in derived_negatives:
+        if v in keys:
+            problems.append("派生反例 %r 竟是库键（库事实变化，必须换反例）" % v)
+    # 正反例（红绿双向）：必须覆盖**每一个**消费滤镜键的 phase —— normalize 的键位是
+    # blocks[].filter_passband、mosaic 是 inputs[].filter。旧实现只认 inputs[] 形态，
+    # normalize 被静默 continue 掉（恒真面）；现按形状分派 + 覆盖自证（不足即判红）。
     validator = _validator(repo)
+    exercised = []
     for phase, rel in PHASE_SCHEMAS.items():
         schema = schemas[rel]
         tpl = load_json(repo, TEMPLATES[phase])
-        if "filter" not in json.dumps(tpl, ensure_ascii=False):
-            continue
         probe = json.loads(json.dumps(tpl))
-        target = next((it for it in probe.get("inputs", []) if "filter" in it), None)
+        field = None
+        target = None
+        if isinstance(probe.get("blocks"), list) and probe["blocks"]:
+            target, field = probe["blocks"][0], "filter_passband"
+            if field not in target:
+                target, field = None, None
+        if target is None:
+            target = next((it for it in probe.get("inputs", []) if "filter" in it), None)
+            field = "filter" if target is not None else None
+        if target is None and phase == "mosaic":
+            # mosaic 模板是块形态，而块面**不含** filter；承载 filter enum 的是 schema 的
+            # 旧合同分支 inputs[]（合同留痕，§9.71 裁决 2 定案 4）。反例必须打到真正带
+            # enum 的那个字段上，否则「未被拒绝」是假绿（字段根本不在被校验的文档里）。
+            # 形状漂移不会静默：正例校验会先失败（正例被拒），且 exercised 覆盖自证兜底。
+            probe = {"phase_name": "mosaic",
+                     "config": {"output_dir": "path/to/out/mosaic", "precision": "fp64"},
+                     "inputs": [{"product": "path/to/p1_hips_a", "filter": "Baader R"}]}
+            target, field = probe["inputs"][0], "filter"
         if target is None:
             continue
+        exercised.append(phase)
         for lit in reg["filter_name_policy"]["declared_negatives"]:
-            target["filter"] = lit["literal"]
+            target[field] = lit["literal"]
             if not validator.validate(probe, schema):
                 problems.append("%s: 反例 %r 未被拒绝（匹配语义漏判）" % (phase, lit["literal"]))
+        for v in derived_negatives:
+            target[field] = v
+            if not validator.validate(probe, schema):
+                problems.append("%s: 现行库派生近失配反例 %r 未被拒绝" % (phase, v))
         for lit in reg["filter_name_policy"]["declared_positives"]:
-            target["filter"] = lit
+            target[field] = lit
             errs = validator.validate(probe, schema)
             if errs:
                 problems.append("%s: 正例 %r 被拒: %s" % (phase, lit, errs[:2]))
-    # ASTROCS_DESIGN §3.3 示例块：引号串必须是库键或已登记示例（大小写变体亦不得静默通过）
+    want = sorted(reg["filter_name_policy"]["phases_consuming_filter"])
+    if sorted(exercised) != want:
+        problems.append("红绿双向只覆盖 %r，登记消费滤镜的 phase=%r（不得静默跳过）"
+                        % (sorted(exercised), want))
+    # ASTROCS_DESIGN §4.3 输入合同示例块（现行权威；旧 §3.3 锚点在 RELEASE-04 换版后
+    # 已不含滤镜示例）：引号串必须是库键或已登记示例（近失配变体不得静默通过），
+    # 且示例块必须至少含一个合法库键 —— 否则判据空转（假绿）。
     design = read_text(repo, "ASTROCS_DESIGN.md").split("\n")
     start = end = None
     for i, ln in enumerate(design):
-        if ln.startswith("### 3.3"):
+        if ln.startswith("### 4.3"):
             start = i
         elif start is not None and ln.startswith("### ") and i > start:
             end = i
             break
     if start is None:
-        problems.append("ASTROCS_DESIGN.md 缺 §3.3 段（锚点失效）")
+        problems.append("ASTROCS_DESIGN.md 缺 §4.3 段（示例锚点失效）")
     else:
         block = design[start:end or len(design)]
-        reg_lits = {ex.get("literal") for ex in look.get("non_key_examples", [])}
-        low_keys = {k.lower() for k in keys}
+        positives = 0
         for ln in block:
             for s in re.findall(r'"([^"]+)"', ln):
-                if s in keys or s in reg_lits:
+                if s in keys:
+                    positives += 1
+                    continue
+                if s in reg_lits:
                     continue
                 if s.lower() in low_keys:
-                    problems.append("§3.3 出现未登记的库键变体 %r（近失配必须显式登记）" % s)
+                    problems.append("§4.3 出现未登记的库键变体 %r（近失配必须显式登记）" % s)
+        if positives == 0:
+            problems.append("§4.3 示例块不含任何合法滤镜键 —— 判据空转（示例锚点失效）")
     if problems:
         raise Fail("滤镜名语义问题: %s" % problems[:6])
-    return "keys=%d negatives=%d positives=%d" % (
+    return "keys=%d negatives=%d positives=%d derived_neg=%d phases=%s" % (
         len(keys), len(reg["filter_name_policy"]["declared_negatives"]),
-        len(reg["filter_name_policy"]["declared_positives"]))
+        len(reg["filter_name_policy"]["declared_positives"]), len(derived_negatives),
+        ",".join(sorted(exercised)))
 
 
 def check_10_cpu_profile_kernel_link(repo):

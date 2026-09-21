@@ -133,15 +133,20 @@ class TestApiDocsCommandTreeFailClosed(unittest.TestCase):
     「能红能绿」：无产物必须红，有产物且 --help 与文档一致必须绿；全程不动真实仓库。
     """
 
-    SANDBOX_LINKS = ("docs", "lib", "include", "cli", "contracts")
+    # 根目录整合后 schema 落在 eng/contracts/schemas（原根级 contracts/ 已迁走）；
+    # 沙箱必须同时提供 eng/contracts，否则检查器报「无任何 *.schema.json 可校验」
+    # 而让正例恒红（GATE-502：测试侧路径过时，按现行目录修）。
+    SANDBOX_LINKS = ("docs", "lib", "include", "cli", "contracts", "eng/contracts")
 
     def _sandbox(self):
         td = tempfile.mkdtemp(prefix="apidocs_failclosed_")
         self.addCleanup(shutil.rmtree, td, ignore_errors=True)
         for name in self.SANDBOX_LINKS:
-            src = os.path.join(REPO, name)
+            src = os.path.join(REPO, *name.split("/"))
             if os.path.isdir(src):
-                os.symlink(src, os.path.join(td, name))
+                dst = os.path.join(td, *name.split("/"))
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                os.symlink(src, dst)
         return td
 
     def _doc_commands(self):
