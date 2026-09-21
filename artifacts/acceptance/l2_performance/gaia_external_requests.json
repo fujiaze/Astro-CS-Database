@@ -1,0 +1,28 @@
+{
+ "xpsd_openat_total": 20,
+ "distinct_files": 20,
+ "per_file": {
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-11.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-07.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-13.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-15.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-16.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-01.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-12.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-03.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-02.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-18.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-09.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-05.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-08.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-06.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-19.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-10.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-17.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-04.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-14.xpsd": 1,
+  "/workspace/Astro CS Database/gaia/GaiaDR3SP/gdr3sp-1.0.0-20.xpsd": 1
+ },
+ "strace_log": "run/PERF-401/logs/gaia_strace_openat.txt",
+ "run_log": "run/PERF-401/logs/gaia_strace_run.log"
+}

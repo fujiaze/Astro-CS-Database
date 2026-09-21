@@ -1687,9 +1687,15 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
   （:1046）；catalogue 缺失 → snr_available=0 + snr=整帧精确中位
   （:860-861，:623 frame_snr_med_exact）；σ_bg=0 → 1e-12 floor
   （:818/:829）；空/全 NaN patch → reason=1 拒绝（:793-800）。
-- 并发/重入: g_aio_mu 锁仅覆盖 read_tile_pair（:161/:166）；并行
-  路径 per-worker 独立 AIO 句柄（:894）无共享可变全局态，
-  reentrant yes；无取消检查点（ThreadLease 接线归 P2-SAMP-IMPL，
+- 并发/重入（PERF-401 订正）: **读路径无进程级锁** —— 原 `g_aio_mu`
+  （:169/:174，已删除）把全部 tile 读串行化成一条流，实测使 16 worker
+  的 Phase2 并行区间均值只有 1.09 等效核（G3-14）；现每次
+  `aio_hips_read_tile_*` 调用各自 open→read→close，句柄只在该调用栈帧内
+  （线程私有、不跨线程转移），并发安全由 cfitsio `_REENTRANT` 构建保证
+  —— 依据与机器判据见 `docs/architecture/EXECUTION_MODEL.md` §2/§3 与
+  `check_execution_contracts.py::EXEC-AIO-READ-NO-GLOBAL-LOCK`。
+  并行路径 per-worker 独立 AIO 句柄（:938 `rdr.init_own`）无共享可变
+  全局态，reentrant yes；无取消检查点（ThreadLease 接线归 P2-SAMP-IMPL，
   与 DISP-COV-005 同构）。
 - 缺陷登记（不改码）: DISP-P2SMP-001（cfg `<=0→默认` 吞显式 0，
   :485-502）；DISP-P2SMP-002（insufficient_retained 双计数

@@ -596,6 +596,12 @@ int test_diag_prov_negative() {
             P1HIPS_CHECK_MSG(cs, wm == 0, "dpn1b_no_weight_mode_key",
                              "A44: properties 禁出现权重模式键 (got %d)", wm);
             const std::string man = slurp(dir + "/manifest.json");
+            // BLD-401 空断言充数修复（AGENTS.md §9）：manifest 缺失/为空 ⇒
+            // find("weight")==npos 恒真 ⇒ 该 A44 判据静默变成恒真门。
+            // failname=nullptr: 只作可读性守卫, 不新增可注入故障名。
+            P1HIPS_CHECK_MSG(cs, !man.empty(), nullptr,
+                             "dpn1b_manifest_readable: manifest.json 不可读/为空"
+                             "（A44 判据会退化为恒真）");
             P1HIPS_CHECK_MSG(cs, man.find("weight") == std::string::npos,
                              "dpn1b_manifest_no_weight_mode_key",
                              "A44: manifest.json provenance 禁出现权重模式键");

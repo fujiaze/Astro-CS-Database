@@ -1512,8 +1512,10 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   >1e6 :634-638、cells>2e8 :644-648/:1071-1077、首 tile 越界
   :656-669、exception 兜底 :1089-1097）；容量不足**不报错**：
   按 capacity 截断拷贝、out_n_* 返回真实需求量（:1098-1117）。
-  线程安全=reentrant yes / threadsafe no（g_aio_mu :161/:166 串行
-  路径锁 + per-worker 独立 AIO 句柄；无共享可变全局态）；无取消
+  线程安全=reentrant yes / threadsafe yes（PERF-401 订正：原 `g_aio_mu`
+  串行路径锁已删除，读路径无进程级共享可变状态；per-worker 独立 AIO
+  句柄 :938，每次读各自 open→read→close、句柄线程私有不跨线程转移；
+  依据见 `docs/architecture/EXECUTION_MODEL.md` §2/§3）；无取消
   检查点（ThreadLease 接线归 P2-SAMP-IMPL，与 DISP-COV-005
   同构）。
 

@@ -1,0 +1,35 @@
+{
+ "tag": "real16_bitwise",
+ "tree_a": "run/PERF-401/out/real16_w1",
+ "tree_b": "run/PERF-401/out/real16_w16",
+ "files_a": 3094,
+ "files_b": 3094,
+ "only_in_a": [
+  "astrocs_run_6377c66a6289.json"
+ ],
+ "only_in_b": [
+  "astrocs_run_62ae40479b79.json"
+ ],
+ "byte_identical": 3077,
+ "fits_header_only_diff": 0,
+ "fits_data_section_diff": [],
+ "non_fits_diff": [
+  "alloc_report.json",
+  "alloc_samples.csv",
+  "ivar/properties",
+  "p2_corrected.json",
+  "p2_final.json",
+  "p2_integrated.json",
+  "p2_rejection.json",
+  "p2_samples.json",
+  "p2_upm_model.json",
+  "resource_summary.json",
+  "resource_timeseries.csv",
+  "run_context.json",
+  "signal/properties",
+  "support/properties",
+  "variance/properties",
+  "worker_balance.csv"
+ ],
+ "verdict": "FAIL"
+}

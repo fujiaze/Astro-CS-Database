@@ -1,0 +1,36 @@
+{
+ "verdict": "PASS",
+ "files_total": 3094,
+ "byte_identical": 3077,
+ "fits_files_byte_identical": 3077,
+ "fits_header_only_diff": 0,
+ "fits_data_section_diff": [],
+ "only_in_a": [
+  "astrocs_run_6377c66a6289.json"
+ ],
+ "only_in_b": [
+  "astrocs_run_62ae40479b79.json"
+ ],
+ "unpaired_are_run_id_bookkeeping": true,
+ "non_identical_classified": {
+  "alloc_report.json": "measurement",
+  "alloc_samples.csv": "measurement",
+  "ivar/properties": "bookkeeping",
+  "p2_corrected.json": "bookkeeping",
+  "p2_final.json": "bookkeeping",
+  "p2_integrated.json": "bookkeeping",
+  "p2_rejection.json": "bookkeeping",
+  "p2_samples.json": "run_config[('/sampler_config/cpu_workers', 1, 16)]",
+  "p2_upm_model.json": "bookkeeping",
+  "resource_summary.json": "measurement",
+  "resource_timeseries.csv": "measurement",
+  "run_context.json": "bookkeeping",
+  "signal/properties": "bookkeeping",
+  "support/properties": "bookkeeping",
+  "variance/properties": "bookkeeping",
+  "worker_balance.csv": "measurement"
+ },
+ "real_differences": {},
+ "criterion": "逐字节；唯一允许的差异类别 = 输出根绝对路径 + 文档化时钟/运行簿记（compare_products.py 既有忽略表）+ 测量序列",
+ "note": "全部 3032 个 FITS 瓦片文件与全部 43 个 .bin 科学面 sha256 逐字节相同；FITS 头块与数据段均无差异。"
+}

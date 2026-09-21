@@ -202,7 +202,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
     }
     if (result) std::memset(result, 0, sizeof(*result));
     // RT-008: cfitsio 全局表非线程安全 → 进程级串行化（覆盖内部 verify 重开）
-    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
+    aio::CfitsioLockGuard cfitsio_guard;
 
     std::string tmp;
     make_temp_path(output_path, &tmp);

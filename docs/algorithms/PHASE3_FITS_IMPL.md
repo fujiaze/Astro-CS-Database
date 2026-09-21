@@ -237,7 +237,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   | `hardware_concurrency` | p3_session.cpp:242（仅注释，禁用声明） | 合规 |
   | `std::thread` | p3_session.cpp:335（采样池，非写面） | §8 声明面 |
   | `#pragma omp`（AIO 域） | aio_fits.cpp:1154 唯一 `parallel for schedule(static)` | 属 AIO 域非本域（QA-001 -fopenmp 编译处理），登记不改 |
-  | `cfitsio_io_mutex` | p3_output.cpp:205 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:11 | RT-008 合规 |
+  | `CfitsioLockGuard`（计数式 `cfitsio_io_mutex` 守卫） | p3_output.cpp:205 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:32（`cfitsio_io_mutex` 定义）/:72（`CfitsioLockGuard` 定义） | RT-008 合规；PERF-401 起取锁点统一走计数式守卫，阻塞等待进 `resource_timeseries.csv` 的 `lock_wait_ns`（**Phase2 读路径已不使用本锁**，见 EXECUTION_MODEL §2/§3） |
 - **取消点**：内核级 cancelled_at_row 参数（h:52，行粒度，session
   层恒 -1 :292）；会话级取消在采样循环 :228-229；写面一旦进入
   R10-C 发布序不可中断（半成品不可见，符合 IO_003 §6）。

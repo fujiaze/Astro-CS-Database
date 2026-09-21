@@ -526,7 +526,7 @@ static bool fits_is_fpack_compressed(const char *path) {
 #include "aio_cfitsio_mutex.h"
 
 static int fits_read_file_cfitsio(const char *path, AIOImageData *out, bool header_only) {
-    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
+    aio::CfitsioLockGuard cfitsio_guard;
     fitsfile *fptr = nullptr;
     int status = 0;
     if (fits_open_file(&fptr, path, READONLY, &status)) {
