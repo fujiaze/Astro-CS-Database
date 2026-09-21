@@ -1,5 +1,8 @@
 // P2-006 单元测试: writer 输出语义 (mosaic/support/实际权重类型/UPM surface/diagnostics)
 #include "astro/phase2/integrate.h"
+#include "astro/phase2/rejection.h"
+
+#include <string>
 
 #include <cmath>
 #include <cstdio>
@@ -132,8 +135,37 @@ int main() {
   // 5) UPM surface + rejection diagnostics 语义: 输出 artifact 含明确名
   {
     // UPM surface = 帧校正场 C_f (control plane); rejection diagnostics =
-    // 每帧 reason 计数; 均不以模糊 "weight" 命名 (P2-001 映射表 §UPM)
-    CHECK(true);
+    // 每帧 reason 计数; 均不以模糊 "weight" 命名 (P2-001 映射表 §UPM)。
+    // GATE-502 空断言普查：原为 CHECK(true) 占位 ⇒ 改为对**生产 API 返回值**断言：
+    // rejection diagnostics 的机器可读语义 id 必须是显式命名（astrocs.*），
+    // 且不得含模糊 token "weight"（§9.73 裁决 A44：权重模式已注销）。
+    int ids = 0;
+    for (int m = P2_REJECT_NONE; m <= P2_REJECT_MINMAX; ++m) {
+      const char* sid = p2_rejection_semantic_id(m);
+      CHECK(sid != nullptr && sid[0] != '\0');
+      if (!sid) continue;
+      ++ids;
+      const std::string s(sid);
+      CHECK(s.rfind("astrocs.", 0) == 0);              // 显式命名空间前缀
+      CHECK(s.find("weight") == std::string::npos);    // 禁模糊 weight 命名
+    }
+    CHECK(ids >= 10);   // 判据非退化：10 个方法逐个取到语义 id（不是空循环）
+    // 产物的显式类型名集合（signal/support/ivar/variance）与 integrate 结果字段同义；
+    // 裸 "weight" 与已注销的 "weight_mode" 都不得出现在命名面上。
+    P2PixelStack in{};
+    double vals[2] = {4.0, 6.0};
+    double sup[2] = {1.0, 1.0};
+    std::uint8_t acc[2] = {1, 1};
+    in.values = vals;
+    in.count = 2;
+    in.weights = nullptr;
+    in.support = sup;
+    in.accepted = acc;
+    P2PixelResult out{};
+    CHECK(p2_integrate_pixel(&in, &out) == 0);
+    CHECK(out.status == P2_INTEGRATE_OK);
+    CHECK(out.n_used == 2);
+    CHECK(out.n_positive_weight == 2);   // 等权路径 = 隐式正权，样本全计
   }
 
   if (failures == 0) {

@@ -118,11 +118,23 @@ int main() {
     CHECK(std::fabs(ratio - 1.0) < 0.15);  // 加性校正后亮度一致 (非乘性)
   }
 
-  // 6) 禁 zero-support 生成值: 无重叠单帧区不虚构值 (harmonic continuation 只填覆盖)
+  // 6) 禁 zero-support 生成值: 无重叠单帧区不虚构值（C_f 只在有 overlap 的 cell 定义）
+  //    GATE-502 空断言普查：原为 CHECK(true) 占位 ⇒ 改为**双向对照**实测：
+  //    污染"仅 A 覆盖"区 ⇒ pairwise 观测逐位不变（单覆盖区不进 pairwise）；
+  //    污染 A∩B 重叠区 ⇒ pairwise 观测必须改变（证明上一条不是"常量恒等"）。
   {
-    // C 的左上区 (全局 (2,2) 仅 A 覆盖) 不生成 B/C 的值 — 无跨帧推断
-    // 验证: 单覆盖区不参与 pairwise, 无虚构控制
-    CHECK(true);  // 语义: 合成框架无单覆盖污染 (C_f 只在有 overlap 的 cell 定义)
+    Frame A2 = A;
+    for (int y = 0; y < 16; ++y)                       // 全局 x<16 ∧ y<16：仅 A 覆盖
+      for (int x = 0; x < 16; ++x)
+        A2.px[static_cast<size_t>(y) * A2.w + x] += 500.0;
+    const double dAB_single = overlap_med(A2, 16, 0, B, 0, 0, 16, 32);
+    CHECK(dAB_single == dAB);                          // 单覆盖区污染不进 pairwise
+    Frame A3 = A;
+    for (int y = 0; y < 16; ++y)                       // 全局 x∈[16,32) ∧ y<16：A∩B 内
+      for (int x = 16; x < 32; ++x)
+        A3.px[static_cast<size_t>(y) * A3.w + x] += 500.0;
+    const double dAB_overlap = overlap_med(A3, 16, 0, B, 0, 0, 16, 32);
+    CHECK(std::fabs(dAB_overlap - dAB) > 100.0);       // 重叠区污染必改 pairwise（对照）
   }
 
   if (failures == 0) {

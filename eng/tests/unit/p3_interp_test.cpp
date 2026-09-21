@@ -2,6 +2,7 @@
 // 语义: 每 tile 独立 buffer (无共享像素 data race); 1-thread reference 仅测试;
 // production 从 Runtime 取 >=2 workers。
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <vector>
 
@@ -85,8 +86,35 @@ int main() {
 
   // 5) coverage mask: 零覆盖区不生成值
   {
-    // 语义: coverage=0 (tile 缺失) → 采样返回 NaN (见 #4 边界语义)
-    CHECK(true);
+    // 语义: coverage=0 (tile 缺失) → 采样返回 NaN，且**同一坐标**在 coverage=1 时
+    // 必须出值 —— 后半句是判据非退化的对照（证明 NaN 来自 coverage 而非坐标）。
+    // GATE-502 空断言普查：原为 CHECK(true) 占位。
+    const int w = 4, h = 4;
+    std::vector<double> tile(static_cast<size_t>(w) * h, 7.0);
+    std::vector<std::uint8_t> cov(static_cast<size_t>(w) * h, 1);
+    for (int y = 0; y < h; ++y) cov[static_cast<size_t>(y) * w + 0] = 0;   // 第 0 列零覆盖
+    auto sample_cov = [&](double x, double y, bool* ok) -> double {
+      *ok = false;
+      if (x < 0 || x > w - 1 || y < 0 || y > h - 1) return NAN;
+      const int x0 = static_cast<int>(std::floor(x)), y0 = static_cast<int>(std::floor(y));
+      const int x1 = std::min(x0 + 1, w - 1), y1 = std::min(y0 + 1, h - 1);
+      const size_t idx[4] = {static_cast<size_t>(y0) * w + x0, static_cast<size_t>(y0) * w + x1,
+                             static_cast<size_t>(y1) * w + x0, static_cast<size_t>(y1) * w + x1};
+      for (size_t k = 0; k < 4; ++k)
+        if (!cov[idx[k]]) return NAN;              // 任一支撑像素零覆盖 → 不生成值
+      bool ib = false;
+      const double v = bilinear(tile, w, h, x, y, &ib);
+      *ok = ib;
+      return v;
+    };
+    bool ok = true;
+    CHECK(std::isnan(sample_cov(0.5, 2.0, &ok)) && !ok);          // 零覆盖列 → NaN
+    CHECK(std::isnan(sample_cov(0.0, 1.0, &ok)) && !ok);          // 零覆盖格点 → NaN
+    const double v_ok = sample_cov(2.5, 2.0, &ok);                // 有覆盖：同一 tile
+    CHECK(ok && std::fabs(v_ok - 7.0) < 1e-9);
+    for (int y = 0; y < h; ++y) cov[static_cast<size_t>(y) * w + 0] = 1;   // 恢复覆盖
+    const double v_same = sample_cov(0.5, 2.0, &ok);              // 同一坐标、仅 coverage 变
+    CHECK(ok && std::fabs(v_same - 7.0) < 1e-9);                  // 判据非退化对照
   }
 
   // 6) tile 分工: 独立 buffer 无共享 (每 tile 独立数组, 采样不跨 tile 写)

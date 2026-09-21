@@ -123,9 +123,43 @@ int main() {
     std::remove(out.c_str());
   }
 
-  // 4) 科学资源门: 2 worker 2 核 heavy (与 P2-008 一致)
+  // 4) 科学资源门: 2 worker 2 核 heavy —— 该判定由 P2-008 / p1_resource 覆盖，
+  //    本文件不复制该判据（p3_sampler_open 无 worker 预算入参，此处不可达）。
+  //    GATE-502 空断言普查：原 CHECK(true) 占位已删除（空断言不是覆盖证据）；
+  //    覆盖归属见 eng/ci/checks.json 的 p2_workers / p1_resource 步骤。
+  //    组装链自身可断言的事实（原子写出不留残件）在 3) 的 reopen/coverage 之后补：
   {
-    CHECK(true);  // gate 判定由 P2-008/p1_resource 覆盖; 此处组装链语义成立
+    const int w = 8, h = 8;
+    std::vector<float> sig(static_cast<size_t>(w) * h, 1.0f);
+    std::vector<float> cov(static_cast<size_t>(w) * h, 1.0f);
+    astrocs::phase3::P3WcsDescriptor wcs{};
+    astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.0001389, w, h, "east_left", 0.0, &wcs);
+    astrocs::phase3::P3Provenance prov{};
+    prov.hips_id = "ivo://astrocs/p3";
+    prov.manifest_hash = "bb";
+    prov.software_version = "0.10.0-alpha.2";
+    prov.run_id = "p3-006-atomic";
+    prov.order_sel_used = "0";
+    prov.sampler_used = "bilinear";
+    astrocs::phase3::P3OutputResult res{};
+    const std::string out = dir + "/astrocs_p3_assembly_atomic.fits";
+    CHECK(astrocs::phase3::p3_output_write_atomic(
+              sig.data(), cov.data(), w, h, &wcs, "ADU", out.c_str(),
+              &prov, -32, -1, &res) == astrocs::phase3::P3_OUT_OK);
+    CHECK(res.reopen_ok == 1 && res.coverage_ok == 1);
+    // 完整性锚：sha256 只在完整读取成功时填写 ⇒ 必须恰 64 位小写 hex
+    const std::string sha(res.sha256);
+    CHECK(sha.size() == 64);
+    CHECK(sha.find_first_not_of("0123456789abcdef") == std::string::npos);
+    // coverage 统计自洽（全 1 coverage ⇒ 覆盖像素 == 总像素 == w*h）
+    CHECK(res.total_px == static_cast<long>(w) * h);
+    CHECK(res.covered_px == static_cast<long>(w) * h);
+    // 负例对照：非法尺寸必须 fail-closed（证明上面的 OK 不是恒真）
+    astrocs::phase3::P3OutputResult bad{};
+    CHECK(astrocs::phase3::p3_output_write_atomic(
+              sig.data(), cov.data(), 0, h, &wcs, "ADU", out.c_str(),
+              &prov, -32, -1, &bad) != astrocs::phase3::P3_OUT_OK);
+    std::remove(out.c_str());
   }
 
   if (failures == 0) {
