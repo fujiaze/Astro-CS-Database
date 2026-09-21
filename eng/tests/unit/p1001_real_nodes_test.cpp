@@ -37,6 +37,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -2208,21 +2209,34 @@ static void test_psf_partial_fit_identity() {
   CHECK(fs::exists(fs::path(fx.out_dir + "/calibrated_light_1.fits")));
   TwoStarCfg tc{100.0f, 8000.0f, 2000.0f};
   CHECK(p1sess::write_fits_file(cleaned1, kW, kH, two_star_pixel, &tc) == 0);
-  // 破坏第二星 (22,22) 整个 17x17 拟合窗 → 该星补丁全非有限, LM 必败
-  // (N8/README §4 同语义); 星 1 (10,10) 保持可拟合 → 真正的部分失败。
+  // 破坏第二星 (22,22) 整个 17x17 拟合窗 ⇒ 该星 LM 必败; 星 1 (10,10) 保持可拟合
+  // ⇒ 真正的"部分失败"。
+  // SCI-506 订正（RELEASE-05）：**不得**用 NaN 注入制造该场景——
+  // star_detector.cpp:81-92（CLEAN-401 fail-closed）对任一非有限像素在**入口**拒绝
+  // 整帧（合同：非有限像素须在 cosmetic 上游消除，检测域不接受 NaN）。故改用
+  // **有限**的 1e9 平台：像素全有限（不触发入口门），幅度远超拟合参数域 ⇒ 该星
+  // 拟合失败，与"补丁不可拟合"语义等价。非有限帧的 fail-closed 由下一用例锁定。
   {
     std::FILE* fp = std::fopen(cleaned1.c_str(), "r+b");
     CHECK(fp != nullptr);
     if (fp) {
-      auto put_nan = [&](int x, int y) {
-        const unsigned char be[4] = {0x7F, 0xC0, 0x00, 0x00};  // +qNaN (big-endian)
-        const long off = 80L * 6 + (static_cast<long>(y) * kW + x) * 4;
+      CHECK(std::fseek(fp, 0, SEEK_END) == 0);
+      const long fsize = std::ftell(fp);
+      const long data_off = fsize - static_cast<long>(kW) * kH * 4;  // 头长按实际文件推导
+      CHECK(data_off > 0);
+      auto put_val = [&](int x, int y, float v) {
+        unsigned char be[4];
+        std::memcpy(be, &v, 4);
+        std::reverse(be, be + 4);   // host → big-endian
+        const long off = data_off + (static_cast<long>(y) * kW + x) * 4;
         std::fseek(fp, off, SEEK_SET);
         std::fwrite(be, 1, 4, fp);
       };
-      for (int y = 22 - 8; y <= 22 + 8; ++y)
-        for (int x = 22 - 8; x <= 22 + 8; ++x)
-          if (x >= 0 && x < kW && y >= 0 && y < kH) put_nan(x, y);
+      // 只把第二星中心改成**单像素有限尖峰**（1e6 ADU）：
+      //   * 峰值远高于局部噪声 ⇒ 仍被检测到（保持 det=2，制造真正的部分失败）；
+      //   * 轮廓退化为 δ 函数 ⇒ Moffat4 拟合必然失败（sx 塌到参数域外）。
+      // 不用整窗平台：那会把局部背景尺度抬高到让第二星漏检（实测 det 掉到 1）。
+      put_val(22, 22, 1.0e6f);
       std::fclose(fp);
     }
   }
@@ -2277,6 +2291,49 @@ static void test_psf_partial_fit_identity() {
   std::printf("[B2-A2] psf partial-fit identity: det=%zu ok=%zu rows=%zu valid_total=%zu "
               "partial=%d\n", n_det_1, n_ok_1, rows.size(), n_valid,
               (n_ok_1 < n_det_1) ? 1 : 0);
+  cleanup_fixture(fx);
+}
+
+// ══ 10b. SCI-506: 非有限像素帧在检测入口 fail-closed（CLEAN-401 合同锁）══
+// 合同：star_detector.cpp:81-92 —— 任一非有限像素 ⇒ 整帧拒绝（ErrorDomain::DATA），
+// 不得静默产出（下游 nth_element 对 NaN 是 UB）。本用例把该行为**锁死**，防止
+// 为了让"部分失败"用例变绿而删掉入口门。
+static void test_psf_nonfinite_frame_fail_closed() {
+  Fixture fx = make_fixture("psfnan");
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  const std::string cfg = p1001_full_chain_cfg(fx);
+  json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+  CHECK(man_cal.value("status", "") == "ok");
+  const std::string cleaned1 = fx.out_dir + "/cleaned_light_1.fits";
+  TwoStarCfg tc{100.0f, 8000.0f, 2000.0f};
+  CHECK(p1sess::write_fits_file(cleaned1, kW, kH, two_star_pixel, &tc) == 0);
+  {
+    std::FILE* fp = std::fopen(cleaned1.c_str(), "r+b");
+    CHECK(fp != nullptr);
+    if (fp) {
+      CHECK(std::fseek(fp, 0, SEEK_END) == 0);
+      const long fsize = std::ftell(fp);
+      const long data_off = fsize - static_cast<long>(kW) * kH * 4;
+      CHECK(data_off > 0);
+      const unsigned char nan_be[4] = {0x7F, 0xC0, 0x00, 0x00};  // +qNaN (big-endian)
+      const long off = data_off + (static_cast<long>(10) * kW + 10) * 4;
+      std::fseek(fp, off, SEEK_SET);
+      std::fwrite(nan_be, 1, 4, fp);
+      std::fclose(fp);
+    }
+  }
+  Result<void> rc;
+  json man = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx, &rc);
+  CHECK_MSG(!rc.ok(), "含 NaN 的帧必须 fail-closed（CLEAN-401 入口门）");
+  if (!rc.ok()) {
+    CHECK_MSG(rc.error().domain() == ErrorDomain::DATA,
+              ("非有限帧必须以 DATA 域拒绝, 实际: " + rc.error().message()).c_str());
+  }
+  CHECK_MSG(man.value("status", "") != "ok", "fail-closed 时不得报 status=ok");
+  std::printf("[SCI-506] non-finite frame fail-closed: rc=%s\n",
+              rc.ok() ? "ok(WRONG)" : "fail(correct)");
   cleanup_fixture(fx);
 }
 
@@ -3874,6 +3931,7 @@ int main() {
   test_worker_parity_bitwise();
   test_torn_artifact_fault_injection();
   test_psf_partial_fit_identity();
+  test_psf_nonfinite_frame_fail_closed();
   test_psf_fast_cap_and_inactive_precise();
   test_golden_parity();
   // P0-21: 一组进一组出（N 帧 ⇒ N 个 HiPS 产品）+ fail-closed 负例
