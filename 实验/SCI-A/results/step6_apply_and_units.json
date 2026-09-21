@@ -1,0 +1,100 @@
+{
+  "step": "6_apply_and_units",
+  "seed": 20260921,
+  "apply": {
+    "tag": "A",
+    "apply_photometry": {
+      "k_photo": 2.07278579295233e-17,
+      "m_degree": 2,
+      "m_hat_range": [
+        0.962037878015391,
+        1.0791649856214218
+      ],
+      "m_hat_semantics": "m(x,y) = 10^(+0.4·poly(x,y)) = 1/m_gain(x,y)：设计 §4.2 里的 m 是**归一化修正场**（乘性改正），不是仪器增益本身",
+      "independent_recompute_max_rel_diff": 0.0,
+      "note": "I_photo = k_photo·m(x,y)·I_cal（设计 §4.2），与独立复算逐像素一致"
+    },
+    "downstream_consumption": {
+      "note": "drizzle 式重采样与帧级 SNR 都消费归一化后的像素；未启用时显式 degraded_reason 且 fail-closed",
+      "drizzle_scale_ratio_median": 2.0605959498598527e-17,
+      "drizzle_scale_ratio_expected": 2.0605814118015737e-17,
+      "star_flux_before": 61816.0,
+      "star_flux_after": 1.2693036554566164e-12,
+      "flux_ratio_after_over_before": 2.0533577964549896e-17,
+      "degraded_reason_on_disabled_path": "fail-closed: 产品未归一化到测光星等坐标系，禁止继续下游",
+      "fail_closed": true
+    },
+    "magnitude_only": {
+      "note": "产物只以星等/相对星等表达：标定后星等对合成星等的残差即测光一致性",
+      "n": 48,
+      "resid_mag_median": 0.005106310487555277,
+      "resid_mag_mad_sigma": 0.0197324689456575,
+      "resid_mag_mad_sigma_no_m": 0.04534425693654346,
+      "m_correction_improves": true,
+      "sigma_obs_mag": 0.045344256936544786,
+      "n_inliers": 48
+    }
+  },
+  "unit_elimination": {
+    "degenerate_family": [
+      {
+        "label": "ref (A,t,g)=(1,300,1.333)",
+        "aperture_scale": 1.0,
+        "exp_time": 300.0,
+        "gain": 1.333,
+        "A_t_over_g": 225.05626406601652,
+        "median_flux_adu": 4831.245542507086,
+        "scatter_F_adu": 5766.965635714945,
+        "k_photo": 3.4213218332047574e-16,
+        "sigma_obs_mag": 0.018911341581220396,
+        "resid_mag_mad": 0.02063656868909552,
+        "note": "标定后星等 = -2.5log10(F·k_photo)，与仪器参数无关"
+      },
+      {
+        "label": "A/2, 2t, g",
+        "aperture_scale": 0.5,
+        "exp_time": 600.0,
+        "gain": 1.333,
+        "A_t_over_g": 225.05626406601652,
+        "median_flux_adu": 4865.119392561064,
+        "scatter_F_adu": 5799.310011128387,
+        "k_photo": 3.421433619328531e-16,
+        "sigma_obs_mag": 0.018118954342609933,
+        "resid_mag_mad": 0.019736868147803833,
+        "note": "标定后星等 = -2.5log10(F·k_photo)，与仪器参数无关"
+      },
+      {
+        "label": "A, 2t, 2g",
+        "aperture_scale": 1.0,
+        "exp_time": 600.0,
+        "gain": 2.666,
+        "A_t_over_g": 225.05626406601652,
+        "median_flux_adu": 4840.249463808985,
+        "scatter_F_adu": 5711.388498277238,
+        "k_photo": 3.418050700778876e-16,
+        "sigma_obs_mag": 0.013437813591311475,
+        "resid_mag_mad": 0.014842230707352647,
+        "note": "标定后星等 = -2.5log10(F·k_photo)，与仪器参数无关"
+      }
+    ],
+    "note": "标定系数 k_photo 只把 A·t/g 与通带归一一起吸收；由 k_photo 反解 (A,t,g) 是欠定的 2 参数族。表内三行的 A·t/g 相同 ⇒ 期望图像相同；第二、三行的噪声不同（PTC 斜率可给 g），但 (A,t) 仍不可分。**本实验不使用任何物理闭合式**（SCI-PHOT-001 §1/§10 明令禁止 k = g·h·c·1e9/(A·t)）。",
+    "zero_point_shift_invariance": {
+      "note": "SCI-PHOT-001 §7 零点平移不变量：F_instr 同乘 c ⇒ location 增 log10 c、k_photo 除 c、sigma_residual 不变",
+      "shift_applied": 7.3,
+      "location_delta": 0.8633228601204621,
+      "location_delta_expected": 0.8633228601204559,
+      "k_photo_ratio": 0.13698630136986106,
+      "k_photo_ratio_expected": 0.136986301369863,
+      "sigma_residual_delta": 0.0
+    },
+    "no_absolute_window": {
+      "note": "判据只含星等散度（尺度无关），不存在 k_photo 的绝对窗口",
+      "gate_inputs": [
+        "sigma_obs(mag)",
+        "sigma_floor(mag)",
+        "sigma_ceiling(mag)"
+      ],
+      "k_photo_in_gate": false
+    }
+  }
+}

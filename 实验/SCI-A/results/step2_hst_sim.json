@@ -1,0 +1,113 @@
+{
+  "shape": [
+    350,
+    333
+  ],
+  "bin": 24,
+  "inject_scale": 2.5950775206716316e+16,
+  "n_injected": 71,
+  "sky": {
+    "sky_adu_med": 199.6,
+    "grad": [
+      0.06,
+      -0.04
+    ],
+    "sky_median": 198.24569875623874,
+    "sky_p10": 136.58777218679495,
+    "sky_p90": 237.7965575139654
+  },
+  "m_coeffs": [
+    1.0,
+    0.035,
+    -0.028,
+    0.012,
+    -0.009,
+    0.007
+  ],
+  "wcs": {
+    "crval": [
+      274.721587,
+      -13.841549
+    ],
+    "crpix": [
+      167.14583333333334,
+      175.47916666666666
+    ],
+    "cd": [
+      [
+        -0.0002184403958879784,
+        -0.0001529566049472192
+      ],
+      [
+        -0.0001529539294774272,
+        0.00021844466966187262
+      ]
+    ],
+    "ctype": [
+      "RA---TAN",
+      "DEC--TAN"
+    ]
+  },
+  "instrument": {
+    "gain": 1.333,
+    "read_noise": 8.59,
+    "dark_rate": 0.002,
+    "fwhm_px": 2.2,
+    "beta_fit": 4.0,
+    "beta_inject": 3.5,
+    "ellipticity": 0.08,
+    "saturation_adu": 65535.0
+  },
+  "frames": [
+    {
+      "tag": "A",
+      "transparency": 1.0,
+      "inject_scale": 2.5950775206716316e+16,
+      "extended_field": false,
+      "n_stars": 71,
+      "img_median_adu": 197.0,
+      "img_p01": 77.0,
+      "img_p99": 472.50999999999476,
+      "img_max": 65535.0,
+      "n_saturated": 4,
+      "bg_rms_adu_adjacent_diff": 13.628655072597898,
+      "f_syn_median": 7632.240575711594,
+      "f_syn_model_median": 1.5448344782499097e-13,
+      "mag_eff_median": 16.372284832880254
+    },
+    {
+      "tag": "B",
+      "transparency": 0.62,
+      "inject_scale": 1.6089480628164116e+16,
+      "extended_field": false,
+      "n_stars": 71,
+      "img_median_adu": 197.0,
+      "img_p01": 76.0,
+      "img_p99": 407.0,
+      "img_max": 64124.0,
+      "n_saturated": 0,
+      "bg_rms_adu_adjacent_diff": 13.628655072597898,
+      "f_syn_median": 4730.904946945439,
+      "f_syn_model_median": 1.544480520341819e-13,
+      "mag_eff_median": 16.371860383314836
+    },
+    {
+      "tag": "C",
+      "transparency": 1.0,
+      "inject_scale": 2.5950775206716316e+16,
+      "extended_field": true,
+      "n_stars": 500,
+      "img_median_adu": 204.0,
+      "img_p01": 76.0,
+      "img_p99": 4318.039999999979,
+      "img_max": 65535.0,
+      "n_saturated": 152,
+      "bg_rms_adu_adjacent_diff": 16.773729320120488,
+      "f_syn_median": 5041.6235171413555,
+      "f_syn_model_median": 1.0302917981117977e-13,
+      "mag_eff_median": 17.192017567730762
+    }
+  ],
+  "qe_inject": "GSENSE400BSI",
+  "qe_model": "KAF-16803"
+}

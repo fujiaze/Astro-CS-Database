@@ -1,0 +1,269 @@
+{
+  "step": "7_negatives",
+  "seed": 20260921,
+  "negatives": [
+    {
+      "id": "N0",
+      "kind": "退化输入检查：真值无效应 ⇒ 归零/判红",
+      "provides_injection_response": false,
+      "setup": "F_instr = inject_scale·F_syn（无噪声、无平场、无 PSF 误差）⇒ r_i 严格全等",
+      "sigma_obs_mag": 0.0,
+      "sigma_floor": 0.008188092863493063,
+      "sigma_ceiling": 0.0,
+      "verdict": "BELOW_FLOOR",
+      "expected": "sigma_obs=0 且 BELOW_FLOOR（判红）",
+      "pass_": true
+    },
+    {
+      "id": "N1",
+      "kind": "注入-响应：乘性平场残差（幅度扫描）",
+      "provides_injection_response": true,
+      "setup": "帧乘 (1+amp·smooth(x,y))；amp=0 即无效应基线",
+      "rows": [
+        {
+          "injected_flat_residual_amp": 0.0,
+          "sigma_obs_mag": 0.045344256936544786,
+          "sigma_floor": 0.009820409697024506,
+          "sigma_ceiling": 0.04998654336192913,
+          "verdict": "PASS"
+        },
+        {
+          "injected_flat_residual_amp": 0.01,
+          "sigma_obs_mag": 0.04718542726711006,
+          "sigma_floor": 0.00960746359313753,
+          "sigma_ceiling": 0.050345441413154605,
+          "verdict": "PASS"
+        },
+        {
+          "injected_flat_residual_amp": 0.02,
+          "sigma_obs_mag": 0.04797565994083329,
+          "sigma_floor": 0.009659394459655548,
+          "sigma_ceiling": 0.050372237206845694,
+          "verdict": "PASS"
+        },
+        {
+          "injected_flat_residual_amp": 0.04,
+          "sigma_obs_mag": 0.07617511311896087,
+          "sigma_floor": 0.009521626028255847,
+          "sigma_ceiling": 0.050238643196091504,
+          "verdict": "ABOVE_CEILING"
+        },
+        {
+          "injected_flat_residual_amp": 0.08,
+          "sigma_obs_mag": 0.09879453082278805,
+          "sigma_floor": 0.009872505727141623,
+          "sigma_ceiling": 0.04999258293170827,
+          "verdict": "ABOVE_CEILING"
+        },
+        {
+          "injected_flat_residual_amp": 0.16,
+          "sigma_obs_mag": 0.1595879701684266,
+          "sigma_floor": 0.009247884461660463,
+          "sigma_ceiling": 0.0494448876032913,
+          "verdict": "ABOVE_CEILING"
+        }
+      ],
+      "monotone": true,
+      "response_ratio": 3.5194748122514308,
+      "first_red_amp": 0.04,
+      "expected": "sigma_obs 随 amp 单调上升；amp=0 回到基线；足够大时判红",
+      "pass_": true
+    },
+    {
+      "id": "N2",
+      "kind": "注入-响应：加性天光（Poisson 物理口径，天光抬升 0.5×–4×）",
+      "provides_injection_response": true,
+      "setup": "按物理前向重画帧：期望电子图 + Δsky 后重新走 Poisson→读出→增益→饱和→量化",
+      "rows": [
+        {
+          "sky_multiplier": 0.5,
+          "sky_adu": 99.12284851074219,
+          "sigma_obs_mag": 0.03522583917474766,
+          "sigma_floor": 0.008215218634530763,
+          "sigma_ceiling": 0.04652463735121811,
+          "verdict": "PASS"
+        },
+        {
+          "sky_multiplier": 1.0,
+          "sky_adu": 198.24569702148438,
+          "sigma_obs_mag": 0.025199407972781862,
+          "sigma_floor": 0.009141330952864731,
+          "sigma_ceiling": 0.05060370263310675,
+          "verdict": "PASS"
+        },
+        {
+          "sky_multiplier": 2.0,
+          "sky_adu": 396.49139404296875,
+          "sigma_obs_mag": 0.0481130219735644,
+          "sigma_floor": 0.010510146880184555,
+          "sigma_ceiling": 0.055067275264805926,
+          "verdict": "PASS"
+        },
+        {
+          "sky_multiplier": 4.0,
+          "sky_adu": 792.9827880859375,
+          "sigma_obs_mag": 0.0733541784782176,
+          "sigma_floor": 0.0017577953493010411,
+          "sigma_ceiling": 0.07257390868633788,
+          "verdict": "ABOVE_CEILING"
+        }
+      ],
+      "monotone": true,
+      "baseline_multiplier": 1.0,
+      "response_ratio": 2.910948485672687,
+      "response_ratio_vs_lowest_multiplier": 2.0823969051332916,
+      "monotone_scope": "只在 mult>=1 的子族上判定（0.5× 属另一个噪声抽样，不与 1× 基线可比）",
+      "note": "8× 一档被 measure() 的质量选择剔除（返回 None），故实际行只有 0.5/1/2/4；这是如实记录，不是把 8× 当作已测。",
+      "arithmetic_gradient_control": [
+        {
+          "arithmetic_gradient_adu_per_px": 0.0,
+          "sigma_obs_mag": 0.045344256936544786,
+          "verdict": "PASS"
+        },
+        {
+          "arithmetic_gradient_adu_per_px": 0.1,
+          "sigma_obs_mag": 0.048152664632654836,
+          "verdict": "PASS"
+        },
+        {
+          "arithmetic_gradient_adu_per_px": 0.4,
+          "sigma_obs_mag": 0.048967603629865054,
+          "verdict": "ABOVE_CEILING"
+        }
+      ],
+      "arithmetic_gradient_note": "**算术相加**的确定性梯度（无散粒噪声）被 PSF 局部背景吸收，σ_obs 只变 1.08×——这正是 §12.2 禁止的注入形态，故只作对照记录，不作为通过依据",
+      "expected": "sigma_obs 随天光单调上升；预算同步抬升 ⇒ 判定保持可判",
+      "pass_": true
+    },
+    {
+      "id": "N3",
+      "kind": "注入-响应：预算漏掉颜色项（幅度扫描）",
+      "provides_injection_response": true,
+      "setup": "用真实 Gaia XP 谱在两个 QE 曲线下的通带失配构造颜色项，扫描其幅度；对比预算含/不含 sigma_color 的判定",
+      "real_color_sigma_mag": 0.005735571503748419,
+      "strong_passband_mismatch_sigma_mag": 0.008335155002166104,
+      "discriminating_amplitude_mag": 0.04,
+      "ratio_discriminating_over_real": 6.9740216775012644,
+      "sweep": [
+        {
+          "injected_color_amp_mag": 0.0,
+          "sigma_obs_mag": 0.03085844800576374,
+          "ceiling_with_color": 0.05678842844876573,
+          "ceiling_without_color": 0.056745582813462266,
+          "verdict_with_color": "PASS",
+          "verdict_without_color": "PASS"
+        },
+        {
+          "injected_color_amp_mag": 0.02,
+          "sigma_obs_mag": 0.04064350309127547,
+          "ceiling_with_color": 0.063613072832957,
+          "ceiling_without_color": 0.05698181392707912,
+          "verdict_with_color": "PASS",
+          "verdict_without_color": "PASS"
+        },
+        {
+          "injected_color_amp_mag": 0.04,
+          "sigma_obs_mag": 0.05777552213781353,
+          "ceiling_with_color": 0.08019980940548886,
+          "ceiling_without_color": 0.056859251934586005,
+          "verdict_with_color": "PASS",
+          "verdict_without_color": "ABOVE_CEILING"
+        },
+        {
+          "injected_color_amp_mag": 0.06,
+          "sigma_obs_mag": 0.06672356042191482,
+          "ceiling_with_color": 0.10213331032455537,
+          "ceiling_without_color": 0.05678892213105311,
+          "verdict_with_color": "PASS",
+          "verdict_without_color": "ABOVE_CEILING"
+        },
+        {
+          "injected_color_amp_mag": 0.08,
+          "sigma_obs_mag": 0.09979950002858617,
+          "ceiling_with_color": 0.12672310559237912,
+          "ceiling_without_color": 0.05627806184338389,
+          "verdict_with_color": "PASS",
+          "verdict_without_color": "ABOVE_CEILING"
+        },
+        {
+          "injected_color_amp_mag": 0.12,
+          "sigma_obs_mag": 0.14462214914042265,
+          "ceiling_with_color": 0.1789541627529169,
+          "ceiling_without_color": 0.05743111399438468,
+          "verdict_with_color": "PASS",
+          "verdict_without_color": "ABOVE_CEILING"
+        }
+      ],
+      "note": "本仪器的**真实**颜色项散度只有 0.006–0.008 mag ⇒ 漏项不改变判定（如实记录）；扫描给出漏项翻红的阈值。该负例证明「漏项会被判红」这一机制存在，但不证明真实量级下会被判红。",
+      "pass_": true
+    },
+    {
+      "id": "N4",
+      "kind": "错误门禁反例：跨帧 k 一致性门会误杀正确帧",
+      "provides_injection_response": false,
+      "setup": "用 step5 **实测**的两帧 k_photo（各自独立标定，透明度比 0.62 为已知真值），检验若加 |k_B/k_A − 1| < tol 的组间门会发生什么",
+      "k_photo_A_measured": 2.07278579295233e-17,
+      "k_photo_B_measured": 3.336901807409466e-17,
+      "k_ratio_measured": 1.6098633147502515,
+      "k_ratio_expected": 1.6129032258064517,
+      "relative_deviation_from_expected": 0.0018847448548441337,
+      "gate_would_reject_at_5pct": true,
+      "note": "跨帧 k 散度是**正确物理**（不同透明度）；把它当门会稳定误杀。变更 claim PHOT-GATE-DROP-001 / 负责人 §9.49 定案 2",
+      "pass_": true
+    },
+    {
+      "id": "N5",
+      "kind": "退化输入检查：过度裁剪真实样本 ⇒ 度量归零/判红",
+      "provides_injection_response": false,
+      "setup": "对帧 A 的**实测**通量按 |r−median(r)| < tol 逐步过裁剪；tol=None 为不裁剪基线",
+      "rows": [
+        {
+          "trim_tol": null,
+          "n": 48,
+          "sigma_obs_mag": 0.045344256936544786,
+          "sigma_floor": 0.009638090644493802,
+          "sigma_ceiling": 0.05019802048484425,
+          "verdict": "PASS"
+        },
+        {
+          "trim_tol": 0.05,
+          "n": 45,
+          "sigma_obs_mag": 0.03803062290714205,
+          "sigma_floor": 0.008585787530352211,
+          "sigma_ceiling": 0.049330946066319825,
+          "verdict": "PASS"
+        },
+        {
+          "trim_tol": 0.01,
+          "n": 22,
+          "sigma_obs_mag": 0.019761689945809305,
+          "sigma_floor": 0.0029260418161071384,
+          "sigma_ceiling": 0.05131631586541814,
+          "verdict": "PASS"
+        },
+        {
+          "trim_tol": 0.002,
+          "n": 5,
+          "sigma_obs_mag": 0.003561550215411633,
+          "sigma_floor": -0.004911249342677107,
+          "sigma_ceiling": 0.07221774507290575,
+          "verdict": "PASS"
+        },
+        {
+          "trim_tol": 0.001,
+          "n": 3,
+          "sigma_obs_mag": null,
+          "verdict": null
+        }
+      ],
+      "note": "**本负例未通过，且暴露判据的真实弱点**：裁剪越狠 σ_obs 确实单调下降（0.0453 → 0.0036），但 σ_floor 下降得更快，n≤22 时 rho_lo=1−3·1.166/√n 变负、下界变成负数 ⇒ **BELOW_FLOOR 不可达**，过裁剪样本反而全部 PASS。即该判据的下界对「把样本做干净」没有判别力（n 小的时候下界是空的）。",
+      "finding": "sigma_floor 在 n < (3·1.166)² = 12.2 附近变为非正；n≤22 时已接近失效。建议：下界改用 max(rho_lo, 0)·sigma_fit 或对 n 设最小样本量硬门槛。",
+      "pass_": false
+    }
+  ],
+  "n_negatives": 6,
+  "n_pass": 5,
+  "n_injection_response": 3,
+  "n_injection_response_pass": 3,
+  "summary": "5/6 条通过；其中**注入-响应**型 3/3 条全部通过（N1 乘性平场残差、N2 Poisson 天光抬升、N3 预算漏颜色项）。N0/N4 是退化输入与错误门禁反例；**N5 未通过**并暴露判据下界在 n≲22 时失效（σ_floor 变负）——如实记录，不掩盖。"
+}

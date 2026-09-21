@@ -1,0 +1,231 @@
+{
+  "step": "1_analytic",
+  "seed": 20260921,
+  "catalog": {
+    "csv": "run/SCI-401/data_cache/gaia_xp_m16.csv",
+    "sha256": "9779013c8148ea3c8ab60f681228e87f7a88c0da69a918614791d497cb5ea440",
+    "n_src": 208,
+    "grid": "336..1020 nm @2 nm x343",
+    "magG_min": 8.798,
+    "magG_max": 20.322
+  },
+  "n_degenerate_spectra": 0,
+  "field": {
+    "n": 600,
+    "mag_min": 14.000144080304437,
+    "mag_max": 18.994299426622884,
+    "f_syn_median": 4.608279385009821e-13,
+    "inject_scale": 2.1700073204174204e+16,
+    "k_photo_true": 4.608279385009821e-17,
+    "median_F_instr_adu": 10000.0
+  },
+  "integral_convention_vs_dense_linear": {
+    "note": "冻结约定(Akima+Simpson) vs 独立高分辨率线性插值+梯形；随 oversample 收敛到常数⇒ 残差来自 Akima 与线性插值的曲线重建差，不是求积误差",
+    "rows": [
+      {
+        "oversample": 4,
+        "median_rel": 0.0001643377455788244,
+        "max_rel": 0.00047288322789090483,
+        "median_abs_mag": 0.00017842744018325984
+      },
+      {
+        "oversample": 16,
+        "median_rel": 0.00019486864210641974,
+        "max_rel": 0.0004979253393545037,
+        "median_abs_mag": 0.0002115759399069944
+      },
+      {
+        "oversample": 64,
+        "median_rel": 0.00020246993841794927,
+        "max_rel": 0.000504791686512105,
+        "median_abs_mag": 0.0002198289425155164
+      },
+      {
+        "oversample": 256,
+        "median_rel": 0.00020438242022245505,
+        "max_rel": 0.000506546139632683,
+        "median_abs_mag": 0.0002219053932516095
+      }
+    ]
+  },
+  "quadrature_only_convergence": {
+    "note": "同一被积函数网格上 Simpson(冻结) vs 复合梯形",
+    "median_rel_diff": 8.487579698206833e-05,
+    "max_rel_diff": 0.0002893753194801648
+  },
+  "oracle_zero_point_m1": {
+    "note": "SCI-PHOT-001 §11 合成注入门：估计 location≈log10(inject_scale)（rtol 1e-4）",
+    "location": 16.336461198922965,
+    "location_true": 16.336461198922965,
+    "rtol": 0.0,
+    "k_photo": 4.6082793850098367e-17,
+    "k_photo_true": 4.608279385009821e-17,
+    "k_rel_err": 3.3306690738754696e-15,
+    "sigma_obs_mag": 0.0,
+    "n_inliers": 592
+  },
+  "negative_N0_no_effect": {
+    "note": "真值无效应：F_instr=inject_scale·F_syn 精确、m≡1、无噪声 ⇒ r_i 全等 ⇒ sigma_obs 必须归零，且判据必须判红（BELOW_FLOOR）",
+    "sigma_obs_mag": 0.0,
+    "sigma_floor": 0.01198726319842051,
+    "verdict": "BELOW_FLOOR",
+    "n_inliers": 592
+  },
+  "spatial_gain_recovery": {
+    "note": "已知 m(x,y)（deg2）；m_degree=0 时 sigma_obs 即 m 引起的散度；m_degree=2 拟合后 delta_after_m 应显著下降",
+    "sigma_obs_no_m_model": 0.03720079020453805,
+    "sigma_obs_with_m_model": 0.00036516034225241733,
+    "location_with_m": 16.334764344336985,
+    "location_true": 16.336461198922965,
+    "loc_offset_dex": -0.001696854585979679,
+    "m_coeffs_true": [
+      1.0,
+      0.05,
+      -0.04,
+      0.02,
+      0.01,
+      -0.015
+    ],
+    "m_coeffs_fit": [
+      -0.018126970288574736,
+      -0.053472549944114524,
+      0.04244111933441251,
+      -0.021083392732653874,
+      -0.0093091137567426,
+      0.015646292822697555
+    ],
+    "m_pred_expected": [
+      null,
+      -0.052973,
+      0.044322,
+      -0.0215,
+      -0.010803,
+      0.016409
+    ]
+  },
+  "oracle_robustness_20pct": {
+    "note": "注入 20% 离群 ⇒ |Δlocation| < 0.1 dex（SCI-PHOT-001 §7/§11）",
+    "location": 16.33384011069647,
+    "location_clean": 16.334764344336985,
+    "dloc": 0.0009242336405144158,
+    "outlier_rate": 0.13705583756345174
+  },
+  "oracle_S0_degenerate": {
+    "note": "常数 r 场 ⇒ S=0 ⇒ 取 median，不迭代",
+    "S": 0.0,
+    "location": 0.6989700043360189,
+    "location_expected": 0.6989700043360189
+  },
+  "sigma_fit_composition_form": {
+    "note": "**自由背景简并的代价**（不是文档错误，见 DOC_CORRECTIONS C8）：权威文档 run/RELEASE-02/parallel/06.md §2.2 给的是 Horne 1986 最优提取结构 sigma_F/F = sqrt(1/(gF) + N_eff·sigma_pix²/F²)，它假定**背景已知**、无自由背景参数；本实验的精确式是 (幅度, 常数背景) 线性拟合的 Fisher 矩阵解 Var=H11/(H00·H11−H01²)，多一个自由背景参数 ⇒ 多出 H01 交叉项，方差更大。两者之差即下表的比值。（06.md 的 sigma_fit=0.0140 是生产拟合器 200 次重复拟合的实测值，不是该解析式的取值。）",
+    "rows": [
+      {
+        "sky_mult": 0.25,
+        "F_median_adu": 7437.62429844392,
+        "sigma_mag_first_order": 0.006151676926895523,
+        "sigma_mag_exact_fisher": 0.01321782522096905,
+        "underestimate_factor": 2.1486539976083394
+      },
+      {
+        "sky_mult": 1.0,
+        "F_median_adu": 7437.62429844392,
+        "sigma_mag_first_order": 0.008665790284914876,
+        "sigma_mag_exact_fisher": 0.015004470541173761,
+        "underestimate_factor": 1.7314601493753032
+      },
+      {
+        "sky_mult": 4.0,
+        "F_median_adu": 7437.62429844392,
+        "sigma_mag_first_order": 0.014970206754050867,
+        "sigma_mag_exact_fisher": 0.019987312316588284,
+        "underestimate_factor": 1.3351393634680302
+      },
+      {
+        "sky_mult": 16.0,
+        "F_median_adu": 7437.62429844392,
+        "sigma_mag_first_order": 0.028638291957563584,
+        "sigma_mag_exact_fisher": 0.032416097346362575,
+        "underestimate_factor": 1.131914479899743
+      }
+    ]
+  },
+  "noise_scaling": {
+    "note": "天光抬升 64×（全部经 Poisson 散粒）⇒ sigma_obs 必须单调上升且落在双边界内；窄星等窗 15–17 mag 保证匹配样本通量跨度与真实生产样本同量级",
+    "rows": [
+      {
+        "sky_mult": 0.25,
+        "sky_adu": 49.9,
+        "n_matched": 204,
+        "sigma_obs_mag": 0.013351751087369091,
+        "sigma_floor": 0.009699262798889769,
+        "sigma_ceiling": 0.015919977207044633,
+        "verdict": "PASS",
+        "ratio_to_floor": 1.3765738040315194,
+        "sigma_fit_white_mc": 0.01284515724330472,
+        "flux_med": 7221.322115143391,
+        "flux_p10": 3667.4004014397738,
+        "flux_p90": 16550.98344804275,
+        "k_photo": 4.726481894543952e-17,
+        "k_rel_err": 0.025650031098077397
+      },
+      {
+        "sky_mult": 1.0,
+        "sky_adu": 199.6,
+        "n_matched": 202,
+        "sigma_obs_mag": 0.013603189944292335,
+        "sigma_floor": 0.010934074938680207,
+        "sigma_ceiling": 0.018086291475446492,
+        "verdict": "PASS",
+        "ratio_to_floor": 1.2441098145550393,
+        "sigma_fit_white_mc": 0.014503703559531149,
+        "flux_med": 7198.340133113604,
+        "flux_p10": 3676.6391868038527,
+        "flux_p90": 16486.236535518852,
+        "k_photo": 4.744677868722167e-17,
+        "k_rel_err": 0.029598570814962644
+      },
+      {
+        "sky_mult": 4.0,
+        "sky_adu": 798.4,
+        "n_matched": 204,
+        "sigma_obs_mag": 0.019148884436580308,
+        "sigma_floor": 0.014484691635236354,
+        "sigma_ceiling": 0.023979453985763833,
+        "verdict": "PASS",
+        "ratio_to_floor": 1.3220084292300398,
+        "sigma_fit_white_mc": 0.019182709607238273,
+        "flux_med": 7208.4806822924165,
+        "flux_p10": 3617.542227618099,
+        "flux_p90": 16375.817564376914,
+        "k_photo": 4.765134847975356e-17,
+        "k_rel_err": 0.03403775028826739
+      },
+      {
+        "sky_mult": 16.0,
+        "sky_adu": 3193.6,
+        "n_matched": 205,
+        "sigma_obs_mag": 0.03458664320532992,
+        "sigma_floor": 0.02306911382909185,
+        "sigma_ceiling": 0.037939461921264725,
+        "verdict": "PASS",
+        "ratio_to_floor": 1.4992618902297676,
+        "sigma_fit_white_mc": 0.030527255669168432,
+        "flux_med": 7190.760763130648,
+        "flux_p10": 3632.0479279812607,
+        "flux_p90": 16314.4950164877,
+        "k_photo": 4.782002116407366e-17,
+        "k_rel_err": 0.03769795988555824
+      }
+    ]
+  },
+  "flux_distribution_composition": {
+    "note": "同一帧、同一噪声：星等窗 14–19（跨度 100×）时，06.md 的『中位通量代表整帧』合成口径与逐星 MC 合成口径的差；用于判断该近似是否需要订正（→ DOC_CORRECTIONS）",
+    "sigma_obs_mag": 0.010632496915093362,
+    "n_matched": 545,
+    "sigma_fit_white_median_flux_form": 0.012500913151156147,
+    "sigma_fit_white_mc": 0.012358216467061655,
+    "ratio_mc_over_median_form": 0.988585099154833,
+    "verdict_with_median_form": "PASS",
+    "verdict_with_mc_form": "PASS"
+  }
+}
