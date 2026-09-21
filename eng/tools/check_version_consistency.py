@@ -21,7 +21,7 @@ exit 0 = PASS; 任何伪造/漂移版本字面量 => 非 0 (mutation 必须失�
 照旧必须等于唯一源基础号(见 eng/tests/version/test_version_consistency.py 的
 lifecycle boundary 正/负例)。
 """
-import os, re, subprocess, sys
+import argparse, os, re, subprocess, sys, tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BASE_RE = re.compile(r"(?<![\w.])(\d+\.\d+\.\d+)(?![\d.])")  # 排除 127.0.0.1 等 IP/更长子串
@@ -139,6 +139,58 @@ LIFECYCLE_BOUNDARY_RE = re.compile(
     r'"(?:' + "|".join(LIFECYCLE_KEYS) + r')"\s*:\s*"(\d+\.\d+\.\d+)"')
 
 
+# ── 第三方工具版本口径 (BLD-401 R3) ─────────────────────────────────────────
+# 事由: docs/research/*RESEARCH_PACK.md 的「开源对照」表把**第三方工具版本**
+#       (SWarp 2.41.5 / DeepSkyStacker-DSS 6.2.2 / SExtractor 2.28.2) 写在表里,
+#       被 BASE_RE 当"未知产品版本字面量" ⇒ UT-VERSION 在真仓恒 FAIL(7 条),
+#       遮蔽 test_04/test_13。这些是**外部工具/文献的版本**，不是本项目版本声明。
+# 依据: 研究包是「项目+版本+文件:行」的一手对照锚（DOC-404 逐字锚校验），版本号是
+#       溯源证据；严禁为过检查改写研究包内容 —— 与 R-08 / W4-A3 同款：修口径。
+# 形态收窄（只准更精确、不准更宽松）: 只挖**紧贴第三方工具名**的版本字面量 ——
+#   ① 工具名与该字面量之间不得再出现别的版本字面量（否则那才是被声明的版本）;
+#   ② 工具名与该字面量之间不得出现本项目版本语境词（本项目/项目版本/产品版本/
+#      AstroCS/VERSION/版本源）—— 那是**产品版本声明**, 必须照旧 FAIL;
+#   ③ 间隔长度上限 EXTERNAL_TOOL_GAP_MAX，防止跨语义单元误吸附。
+# 同行其它位置的产品版本字面量照旧必须等于唯一源基础号（负例见 --self-test 与
+# eng/tests/version/test_version_consistency.py::TestExternalToolVersionExemption）。
+EXTERNAL_TOOL_NAMES = ("swarp", "deepskystacker", "sextractor", "scamp", "siril",
+                       "astropy", "photutils", "gaiaxpy", "cfitsio", "wcsliber")
+EXTERNAL_TOOL_NAME_RE = re.compile(
+    r"(?<![A-Za-z0-9_])(?:" + "|".join(sorted(set(EXTERNAL_TOOL_NAMES), key=len, reverse=True))
+    + r")(?![A-Za-z0-9_])", re.IGNORECASE)
+PROJECT_VERSION_CONTEXT_RE = re.compile(r"本项目|项目版本|产品版本|AstroCS|VERSION|版本源")
+EXTERNAL_TOOL_GAP_MAX = 120
+
+
+def mask_external_tool_versions(line):
+    """把**紧贴第三方工具名**的版本字面量挖成等长空白后返回。
+
+    只挖"工具名 → 版本"这一对本身; 同一行别处的产品版本声明照旧会被 BASE_RE 抓到
+    （例如 `SWarp 2.41.5 | 产品版本 9.9.9` 里只有 2.41.5 被挖）。
+    """
+    spans = []
+    for m in BASE_RE.finditer(line):
+        gap_start = None
+        for tool in EXTERNAL_TOOL_NAME_RE.finditer(line, 0, m.start()):
+            gap_start = tool.end()          # 最近的一个工具名
+        if gap_start is None:
+            continue
+        gap = line[gap_start:m.start()]
+        if len(gap) > EXTERNAL_TOOL_GAP_MAX:
+            continue
+        if BASE_RE.search(gap):             # 中间还夹着别的版本字面量 ⇒ 不是"工具名+版本"
+            continue
+        if PROJECT_VERSION_CONTEXT_RE.search(gap):
+            continue
+        spans.append(m.span(1))
+    if not spans:
+        return line
+    chars = list(line)
+    for s, e in spans:
+        chars[s:e] = [" "] * (e - s)
+    return "".join(chars)
+
+
 def mask_lifecycle_boundaries(line):
     """把生命周期边界字段的版本值挖成等长空白后返回, 供版本字面量扫描使用。
 
@@ -233,15 +285,82 @@ def check_file(path, base_num, alpha_n, errors):
             # 误报面, 不放宽漂移判定。
             if lifecycle_table:
                 allowed = LIFECYCLE_BOUNDARY_VALUES
-                scan_line = mask_standard_clause_numbers(line)
+                scan_line = mask_external_tool_versions(mask_standard_clause_numbers(line))
             else:
                 allowed = {base_num}
-                scan_line = mask_lifecycle_boundaries(mask_standard_clause_numbers(line))
+                scan_line = mask_external_tool_versions(mask_lifecycle_boundaries(mask_standard_clause_numbers(line)))
             for m in BASE_RE.finditer(scan_line):
                 if m.group(1) not in allowed:
                     errors.append(f"{rel}:{i}: 未知版本字面量 {m.group(1)} != 唯一源基础号 {base_num}: {line.strip()[:90]}")
 
+def self_test():
+    """可执行正/负例面（ENGINEERING_SPEC §8 / docs/ci/01_CHECKS.md §1）。
+
+    正例（必须不报）: 研究包形态的**第三方工具版本**行（SWarp / DeepSkyStacker-DSS /
+      SExtractor 的 4 种实测写法），并附"修复前必被抓"的先红证据。
+    负例（必须判红）: ① 真把项目版本号写错; ② 工具名后紧跟**产品版本语境**的字面量;
+      ③ 同一行"工具版本 + 产品版本"里的产品版本; ④ alpha 漂移不得被豁免掩盖;
+      ⑤ 工具名过远(超出间隔上限)的字面量不得被吸附豁免。
+    """
+    base_num, alpha_n = base_version()
+    cases, problems = [], []
+
+    def run_line(line, b=None, a=None):
+        with tempfile.TemporaryDirectory() as td:
+            p = os.path.join(td, "PROBE.md")
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.write(line + chr(10))
+            errs = []
+            check_file(p, b or base_num, alpha_n if a is None else a, errs)
+        return errs
+
+    def case(name, line, want_hit, b=None, a=None):
+        errs = run_line(line, b, a)
+        ok = bool(errs) == want_hit
+        cases.append((name, ok, want_hit, errs[:1]))
+        if not ok:
+            problems.append(name)
+
+    EXTERNAL_LINES = [
+        "| O7 | **SWarp**（GPL-3.0） | 2.41.5 | `src/coadd.c:292`（`coadd_fields()`） |",
+        "| **SWarp**（GPL-3.0） | 2.41.5 | `src/coadd.c:292`；`src/back.c:413` |",
+        "| SWarp `coadd.c:1279-1311` | SWarp 2.41.5 | **有效**：`COADD_WEIGHTED` 分支 |",
+        "| DeepSkyStacker `RegisterEngine.cpp:86-118` | DeepSkyStacker/DSS 6.2.2 | **有效** |",
+        "| SExtractor `analyse.c:200-203,304-310` | SExtractor 2.28.2 | **有效** |",
+    ]
+    for i, line in enumerate(EXTERNAL_LINES, 1):
+        # 先红证据: 修复前（BASE_RE 直扫原始行）这些行必被抓, 用例才有回归意义
+        if not BASE_RE.findall(line):
+            problems.append("pre_fix_red_evidence_%d" % i)
+        case("external_tool_version_not_flagged_%d" % i, line, False)
+
+    case("product_version_typo_still_flagged", "发布版本: 1.2.3 正式版", True)
+    case("project_context_gap_not_exempted", "SWarp 对照：本项目版本 9.9.9", True)
+    case("product_version_after_tool_version_flagged",
+         "| SWarp | 2.41.5 | 产品版本 9.9.9 |", True)
+    case("alpha_drift_not_masked_by_tool_exemption",
+         "| SWarp 2.41.5 | 当前版本 %s-alpha.%d |" % (base_num, alpha_n + 1), True)
+    case("distant_literal_not_absorbed_by_tool_name",
+         "SWarp " + ("x" * (EXTERNAL_TOOL_GAP_MAX + 10)) + " 9.9.9", True)
+
+    for name, ok, want, sample in cases:
+        print("SELFTEST_%s %s (want_hit=%s%s)"
+              % ("PASS" if ok else "FAIL", name, want,
+                 "" if ok else " got=%r" % (sample,)))
+    if problems:
+        print("SELF_TEST FAIL cases=%d problems=%s" % (len(cases), problems))
+        return 1
+    print("SELF_TEST PASS cases=%d" % len(cases))
+    return 0
+
+
 def main():
+    ap = argparse.ArgumentParser(description="VER-001 版本一致性检查器（唯一版本源单源门）")
+    ap.add_argument("--self-test", action="store_true", dest="self_test",
+                    help="正/负例自检（可执行负例面，ENGINEERING_SPEC §8）")
+    args = ap.parse_args()
+    if args.self_test:
+        return self_test()
     base_num, alpha_n = base_version()
     errors = []
     for path in iter_files():

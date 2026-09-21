@@ -370,7 +370,10 @@ static void test_pipeline_ir_fixtures() {
   std::string base;
   for (const char* root : {repo, ".", "..", "../..", "../../.."}) {
     if (!root) continue;
-    std::string cand = std::string(root) + "/tests/unit/fixtures/core_pipeline/";
+    // BLD-401: 路径随 2026-09-21 根目录整合订正（tests/ → eng/tests/）。
+    // 夹具就在 eng/tests/unit/fixtures/core_pipeline/（本文件同址），旧后缀
+    // "/tests/unit/..." 在现行树恒不命中 ⇒ 夹具判定恒红（GAP-036 的残余）。
+    std::string cand = std::string(root) + "/eng/tests/unit/fixtures/core_pipeline/";
     // 探测/读取统一走 utf8_path: Windows 下窄路径按 ACP 解释, UTF-8 中文段
     // 必须转宽 (CreateFileW) 才能命中磁盘真实目录名。
     std::ifstream f(utf8_path(cand + "valid_pipeline.json"));

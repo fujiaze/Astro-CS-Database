@@ -99,9 +99,39 @@ for l in rg(r"acr_route|acr_registered|p2_acr", ["lib"]):
 
 # 7 I/O writer
 io_files = sorted({l.split(":")[0] for l in rg(r"aio_frame_add_block|aio_write|fits_create_file|hips.*writer|atomic_write", ["lib"])})
+
+# 7b 非生产可达面登记（CLEAN-401 B2 / CONFORM-SWEEP-4 P3X-06）
+# 规则 7 是"符号命中 ⇒ production"的**模式级**声明；对只被测试目标编译的遗留实现
+# 会过度声明（清单与事实不符）。登记项 = 已由机器判据核实"不在生产入口 astrocs 的
+# 传递闭包内"的文件：按既有列语义改标 classification=test / production_reachable=no
+# （它仍被编译，但只在测试面），依据写进 risk_note。
+# 反向存活（fail-closed）：该事实由 eng/ci/ledgers/spec_named_impl_gaps.json 的
+# SNI-S4-P3X-06 台账承载 —— 一旦文件被接进生产闭包，该台账即 stale，
+# CHK-SPEC-NAMED-IMPL-ON-PROD-PATH 判红，强制删掉本登记项（登记项不得成为免检区）。
+PRODUCTION_UNREACHABLE = {
+    "lib/phase3_session/p3_v6_export.cpp":
+        "CLEAN-401 B2 / CONFORM-SWEEP-4 P3X-06：v6 导出实现未接入生产命名块管线；"
+        "仅由 eng/tests/integration/v6_p3 的 v6_p3_export_test 编译；"
+        "不在生产入口 astrocs 的传递闭包内（判据 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH E3）；"
+        "待 CLEAN-401 退役处置",
+}
 for f in io_files:
-    add("io_writer", os.path.basename(f), f, "production", "yes", "Phase1/2/3",
-        "aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md", f)
+    if f in PRODUCTION_UNREACHABLE:
+        add("io_writer", os.path.basename(f), f, "test", "no", "Phase1/2/3",
+            "aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md", f, PRODUCTION_UNREACHABLE[f])
+    else:
+        add("io_writer", os.path.basename(f), f, "production", "yes", "Phase1/2/3",
+            "aio 原子写(tmp+rename)契约见 IO_AND_ATOMICITY.md", f)
+# 锚存活（ENGINEERING_SPEC §8）：登记项不得静默失效。只在"登记文件所在目录存在"
+# 时判（生成器也被 eng/tests/arch/test_inventory_generator.py 拷到临时树里跑，
+# 临时树没有 lib/phase3_session/ —— 那是夹具不是真仓，不适用本锚）。
+for _rel in PRODUCTION_UNREACHABLE:
+    _p = os.path.join(REPO, _rel)
+    if os.path.isdir(os.path.dirname(_p)):
+        if not os.path.isfile(_p):
+            raise SystemExit("PRODUCTION_UNREACHABLE 锚缺失(目录在/文件没了): %s" % _rel)
+        if _rel not in io_files:
+            raise SystemExit("PRODUCTION_UNREACHABLE 登记项已失效(不再命中 I/O 符号面): %s" % _rel)
 
 with open(OUT, "w", newline="", encoding="utf-8") as fh:
     w = csv.DictWriter(fh, fieldnames=COLS, lineterminator="\n")

@@ -210,10 +210,18 @@ static void test_atomic_write() {
 static void test_io_adapter_no_scheduler_include() {
   // IO-001: io_adapter.h 不 include Runtime scheduler/模块实现
   const char* repo = std::getenv("ASTROCS_REPO");
-  std::string hp = (repo ? repo : "..") + std::string("/include/astrocs/io/io_adapter.h");
+  // BLD-401: 路径随 2026-09-21 根目录整合订正（include/ → lib/include/）。
+  // 且**禁止空内容退化**：旧路径在现行树不存在 ⇒ content 为空 ⇒ 下面 5 条
+  // find()==npos 全部恒真（空断言充数，AGENTS.md §9）。先 fail-closed 断言非空。
+  std::string hp = (repo ? repo : "..") + std::string("/lib/include/astrocs/io/io_adapter.h");
   std::ifstream h(hp);
   std::string content((std::istreambuf_iterator<char>(h)),
                       std::istreambuf_iterator<char>());
+  CHECK(!content.empty());
+  if (content.empty()) {
+    std::fprintf(stderr, "io_adapter: 公共头缺失或不可读（判据会退化为恒真）: %s\n", hp.c_str());
+    return;
+  }
   CHECK(content.find("scheduler.h") == std::string::npos);
   CHECK(content.find("phase1") == std::string::npos);
   CHECK(content.find("phase2") == std::string::npos);

@@ -110,7 +110,8 @@ def main():
     ap.add_argument("--repo", required=True)
     args = ap.parse_args()
 
-    sys.path.insert(0, os.path.join(args.repo, "tests", "contracts", "v6"))
+    # BLD-401: 路径随 2026-09-21 根目录整合订正（tests/ → eng/tests/）
+    sys.path.insert(0, os.path.join(args.repo, "eng", "tests", "contracts", "v6"))
     try:
         import jsonschema_min  # noqa: E402
     except Exception as exc:  # pragma: no cover
@@ -125,7 +126,8 @@ def main():
         ("effective-psf", "effective_psf"),
         ("provenance", "provenance"),
     ]:
-        path = os.path.join(args.repo, "contracts", "schemas", "v6",
+        # BLD-401: 路径随 2026-09-21 根目录整合订正（contracts/ → eng/contracts/）
+        path = os.path.join(args.repo, "eng", "contracts", "schemas", "v6",
                             "astrocs.v6.%s.v1.schema.json" % name)
         schemas[key] = load_json(path)
 

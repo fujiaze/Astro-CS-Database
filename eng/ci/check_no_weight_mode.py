@@ -16,6 +16,10 @@
       （历史/归档/冻结层允许保留原文 + 同行留痕；活文档层应当无该串。）
   R2  中文概念：同一扫描面中每一行含「权重模式」的行，必须同行含「不存在」或「已作废」。
   R3  fail-closed：`docs/` 或 `README.md` 缺失 ⇒ rc=2（禁止把「文件不存在」当「无违规」）。
+  R4  派生登记地图收窄（BLD-401 R4）：`docs/DOCUMENT_INDEX.yaml` 的**登记字段行**
+      （path/status/duty/upstream/downstream/notes）与注释行是"地图"内容 —— 路径
+      字面量、机器扫描出的引用表、所登记文档标题的截断副本 —— 不判为活键；地图里
+      任何其它行（裸键 `weight_mode: 2`、正文、表格）照旧全量判红。
 
 用法
   python3 eng/ci/check_no_weight_mode.py                 # 扫真实仓库，rc=0 全绿
@@ -28,6 +32,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -40,6 +45,30 @@ SCAN_DIR = "docs"
 SCAN_FILE = "README.md"
 SKIP_DIRS = {".git", "build", "run", "__pycache__", ".venv", "node_modules"}
 TEXT_EXT = {".md", ".json", ".yaml", ".yml", ".csv", ".txt", ".py", ".rst"}
+
+# ── 派生登记地图（不是活文档）──────────────────────────────────────────────
+# docs/DOCUMENT_INDEX.yaml 是全文档集的「地图」（ASTROCS_DESIGN.md §0.2：全文档集
+# 唯一索引地图，由 eng/tools/doccheck/check_doc_index.py 校验）。它的字段内容是
+# **登记与派生**面：path = 仓库路径字面量；downstream = 机器扫描出的引用方路径表；
+# duty = 所登记文档标题的截断副本。它们不是在引入 weight_mode 作为活键/枚举/
+# 配置项/产物。
+# 判定依据（2026-09-21 BLD-401 R4 实测的 4 处命中形态）：
+#   ① docs/DOCUMENT_INDEX.yaml:70  README.md 条目的 downstream 计数串里出现
+#      eng/ci/check_no_weight_mode.py —— **门自己的文件名**自指误报；
+#   ② :776 W6_SCHEMA_INTEGRATION.md 条目的 downstream 里出现被登记文档**路径**
+#      docs/contracts/v6/data/05_point_information_and_weight_mode.md；
+#   ③ :802 同一路径的 path 条目本身；
+#   ④ :779 docs/contracts/v6/data/00_README.md 的 duty —— 该文档 H1 的 100 字
+#      截断副本（截断把源文档 H1 同行的「已按 §9.73 A44 作废：该概念不存在」切掉）。
+# 不遮蔽（关键）：地图 path 登记的文档本体仍在 docs/** 扫描面内被逐行直扫 ——
+#   05_point_information_and_weight_mode.md 的 duty 行自带 A44 留痕、00_README.md
+#   全文自带留痕，故排除地图不会放过任何活文档里的裸键。
+# 收窄（只准更精确、不准更宽松）：只跳过地图自身的**登记字段行与注释行**；地图里
+#   任何其它行（裸键 weight_mode: 2、正文、表格）照旧全量判红（负例见 --self-test）。
+# 锚存活：DERIVED_MAP_REL 不存在时豁免集自然为空 ⇒ 判据只会更严，不会更松。
+DERIVED_MAP_REL = "docs/DOCUMENT_INDEX.yaml"
+DERIVED_MAP_FIELD_RE = re.compile(
+    r"^\s*(?:#|-\s*path\s*:|(?:path|status|duty|upstream|downstream|notes)\s*:)")
 
 
 def iter_scan_files(root):
@@ -73,8 +102,11 @@ def scan(root):
         except OSError:
             return None, 0, 0
         rel = os.path.relpath(path, root).replace(os.sep, "/")
+        is_derived_map = (rel == DERIVED_MAP_REL)
         for idx, line in enumerate(lines, start=1):
             lines_total += 1
+            if is_derived_map and DERIVED_MAP_FIELD_RE.match(line):
+                continue  # R4：地图的登记字段行/注释行（路径字面量与标题截断副本）
             if ASCII_TOKEN in line and ASCII_MARK not in line:
                 findings.append({"rule": "R1-ASCII-KEY", "file": rel, "line": idx,
                                  "observed": line.strip()[:160],
@@ -163,6 +195,43 @@ def self_test():
         _write(os.path.join(red3, "README.md"), "# 仓库\n")
         rc = run(red3)
         cases.append(("red_marker_without_a44", rc, 1))
+        # 正例（绿）：派生登记地图 docs/DOCUMENT_INDEX.yaml 的 4 处实测误报形态
+        # （门自己的文件名 / 被登记文档路径 / path 条目 / duty 截断副本）
+        green2 = os.path.join(tmp, "green-map")
+        _write(os.path.join(green2, "docs", "DOCUMENT_INDEX.yaml"),
+               "# AstroCS 文档机器索引（DOCUMENT_INDEX）——全文档集唯一索引地图\n"
+               "doc_index:\n"
+               "  active:\n"
+               "    - path: \"README.md\"\n"
+               "      status: ACTIVE_INFORMATIVE\n"
+               "      duty: \"仓库入口说明\"\n"
+               "      downstream: \"eng/ci/check_no_weight_mode.py、eng/ci/check_version.py 等 161 处\"\n"
+               "    - path: \"docs/contracts/v6/data/00_README.md\"\n"
+               "      status: ACTIVE_NORMATIVE\n"
+               "      duty: \"DATA-DESIGN-001 — 跨 Phase signal / covariance / PSF / W_info / PSFSW / weight_mode / effective PSF / provenanc\"\n"
+               "      downstream: \"docs/DOCUMENT_INDEX.yaml、docs/contracts/v6/data/05_point_information_and_weight_mode.md\"\n"
+               "    - path: \"docs/contracts/v6/data/05_point_information_and_weight_mode.md\"\n"
+               "      status: ACTIVE_NORMATIVE\n"
+               "      duty: \"05 — W_info 与 weight_mode 对象 schema（已按 §9.73 A44 作废：该概念不存在）\"\n")
+        _write(os.path.join(green2, "README.md"), "# 仓库\n")
+        rc = run(green2)
+        cases.append(("green_derived_index_map_registration", rc, 0))
+        # 负例（红）：同一地图里出现**裸活键** ⇒ 地图豁免不得变成免检区
+        red4 = os.path.join(tmp, "red-map-bare-key")
+        _write(os.path.join(red4, "docs", "DOCUMENT_INDEX.yaml"),
+               "doc_index:\n  active:\n    - path: \"README.md\"\n"
+               "      weight_mode: 2\n")
+        _write(os.path.join(red4, "README.md"), "# 仓库\n")
+        rc = run(red4)
+        cases.append(("red_map_bare_live_key", rc, 1))
+        # 负例（红）：同一地图里出现含该词的**正文** ⇒ 照旧判红
+        red5 = os.path.join(tmp, "red-map-prose")
+        _write(os.path.join(red5, "docs", "DOCUMENT_INDEX.yaml"),
+               "doc_index:\n  active:\n    - path: \"README.md\"\n"
+               "      说明：Phase2 生产 weight_mode = point_information\n")
+        _write(os.path.join(red5, "README.md"), "# 仓库\n")
+        rc = run(red5)
+        cases.append(("red_map_prose_mention", rc, 1))
         # fail-closed：缺 docs/
         bad = os.path.join(tmp, "failclosed")
         _write(os.path.join(bad, "README.md"), "# 仓库\n")
