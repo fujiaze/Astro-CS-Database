@@ -98,7 +98,11 @@ LEDGER_MAX = 104  # 冻结上限（只减不增；增加须显式评审并同步
 
 # 现行控制包（ENGINEERING_SPEC §7：工程控制/ = 控制包工作区，收口后按
 # CONTROL_PACK_SPEC §9 清理）。本目录以外的 工程控制/** 一律视为旧包残留。
-CURRENT_CONTROL_PACK = "工程控制/RELEASE-04"
+CURRENT_CONTROL_PACK = "工程控制/RELEASE-05"
+# 已收口归档包白名单（RELEASE-05 开工时 RELEASE-04 尚未按 §9 出库；负责人裁决前
+# 不删除其 ACCEPTANCE 台账）。**白名单条目必须自带 SUMMARY.md**（收口证明），
+# 缺 SUMMARY.md 的条目仍判红；未登记的 工程控制/** 一律判红（本门保持有牙）。
+ARCHIVED_CONTROL_PACKS = ("工程控制/RELEASE-04",)
 
 # 扫描面排除（各自有据，不是"看不见"）：
 #   * memory.md —— history/日志命名空间驻留点（GOV-003 §2/§4 只警告不硬判）
@@ -501,8 +505,14 @@ def run_checks(root: str, strict: bool) -> tuple:
     # --- 根无散落旧控制包（非 ASCII 路径必须能被看见：core.quotepath=false）---
     # 现行控制包目录允许在位；其余 工程控制/** 一律判红（旧包残留）。
     pack_prefix = CURRENT_CONTROL_PACK + "/"
+    allowed_prefixes = (pack_prefix,) + tuple(x + "/" for x in ARCHIVED_CONTROL_PACKS)
     leftover = [p for p in tracked_all
-                if p.startswith("工程控制/") and not p.startswith(pack_prefix)]
+                if p.startswith("工程控制/") and not p.startswith(allowed_prefixes)]
+    # 白名单条目必须自带 SUMMARY.md（收口证明），否则仍判红
+    for ap in ARCHIVED_CONTROL_PACKS:
+        present = any(t.startswith(ap + "/") for t in tracked_all)
+        if present and not any(t == ap + "/SUMMARY.md" for t in tracked_all):
+            leftover = leftover + [ap + "/ (归档白名单条目缺 SUMMARY.md：未收口)"]
     pack_visible = [p for p in tracked_all if p.startswith(pack_prefix)]
     # 反向自证（防 core.quotepath 转义回归）：目录在磁盘上存在却"看不见"任何
     # tracked 文件 ⇒ 非 ASCII 路径被转义，判红并点名。
@@ -953,9 +963,9 @@ def self_test() -> int:
         cases.append(("S14-legacy-control-nonascii-path",) + _red(r14, "s14", True,
                                                                   "no_legacy_工程控制_left"))
 
-        # S14b 正例：现行控制包（工程控制/RELEASE-04/**）在位不得判红
+        # S14b 正例：现行控制包（CURRENT_CONTROL_PACK/**）在位不得判红
         r14b = _mk_repo(tmp, "s14b")
-        _write(os.path.join(r14b, "工程控制/RELEASE-04/00_README.md"), "# 现行控制包\n")
+        _write(os.path.join(r14b, CURRENT_CONTROL_PACK, "00_README.md"), "# 现行控制包\n")
         _git_init(r14b)
         cases.append(("S14b-current-control-pack-ok",) + _res(r14b, "s14b", True, 0,
                                                              "no_legacy_工程控制_left"))
