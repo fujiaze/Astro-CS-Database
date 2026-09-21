@@ -975,7 +975,13 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
             model->coeff[static_cast<std::size_t>(idx)] = (best >= 0) ? B[static_cast<std::size_t>(best)] : 0.0;
         }
 
-    // ---- 诊断（未惩罚约化数据矩阵 H_red；无 jitter Cholesky） ----
+    // ---- 诊断：秩/条件数 ----
+    // SCI-502 FIX-3 订正（SCI-505 复核 + 本测试实证）：**门控 κ 必须取实际求解矩阵**
+    //   H_solve = H_red + λ·DᵀD，
+    // 而不是未惩罚的数据矩阵 H_red。原因：在 H_red 上度量时提高 roughness_penalty
+    // 不会改变 κ，于是「κ 超限 ⇒ 走粗糙度正则化」的自适应重试**永远不可能成功**，
+    // 条款形同虚设（实测：λ 从 1e-3 提到 1e6，H_red 的 κ 恒为 2.497e9）。
+    // 未惩罚 κ 仍作为独立观测量保留（info.kappa_data / JSON kappa_data）。
     std::vector<double> Ld;
     if (!chol_spd(H_red, n_free, Ld)) {
         sky_plane_free(model);
@@ -984,12 +990,12 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     }
     const double lam_max = lambda_max_power(H_red, n_free);
     const double lam_min = lambda_min_inverse(H_red, Ld, n_free);
-    double kappa = 0.0;
+    double kappa_data = 0.0;
     std::uint64_t rank = 0;
     if (!(lam_min > 0.0) || !std::isfinite(lam_min) || !std::isfinite(lam_max)) {
         rank = 0;
     } else {
-        kappa = lam_max / lam_min;
+        kappa_data = lam_max / lam_min;
         rank = (lam_min > cfg.rank_rtol * lam_max) ? static_cast<std::uint64_t>(n_free) : 0;
     }
     if (rank == 0) {
@@ -997,9 +1003,21 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
         if (err && err_size) std::snprintf(err, err_size, "rank-deficient reduced system (lambda_min=%.3e)", lam_min);
         return P2_SKY_PLANE_RANK_DEFICIENT;
     }
+    // 门控 κ：求解矩阵（含惩罚）。λ=0 时 H_solve == H_red ⇒ 与旧口径逐位一致。
+    double kappa = kappa_data;
+    if (static_cast<std::size_t>(n_free) * static_cast<std::size_t>(n_free) == H_solve.size()) {
+        std::vector<double> Ls;
+        if (chol_spd(H_solve, n_free, Ls)) {
+            const double s_max = lambda_max_power(H_solve, n_free);
+            const double s_min = lambda_min_inverse(H_solve, Ls, n_free);
+            if (s_min > 0.0 && std::isfinite(s_min) && std::isfinite(s_max)) kappa = s_max / s_min;
+        }
+    }
     if (kappa > cfg.kappa_max) {
         sky_plane_free(model);
-        if (err && err_size) std::snprintf(err, err_size, "kappa=%.3e > kappa_max=%.3e", kappa, cfg.kappa_max);
+        if (err && err_size)
+            std::snprintf(err, err_size, "kappa=%.3e > kappa_max=%.3e (kappa_data=%.3e, lambda=%.3e)",
+                          kappa, cfg.kappa_max, kappa_data, cfg.roughness_penalty);
         return P2_SKY_PLANE_KAPPA_EXCEEDED;
     }
 
@@ -1043,7 +1061,8 @@ int p2_sky_plane_build(const P2SkySample* samples, std::uint64_t n,
     info.n_nodes = static_cast<std::uint64_t>(n_full);
     info.n_params = static_cast<std::uint64_t>(n_free) + static_cast<std::uint64_t>(n_frames - 1) * static_cast<std::uint64_t>(m);
     info.rank = rank;
-    info.kappa = kappa;
+    info.kappa = kappa;            // 门控值 = 求解矩阵（含惩罚）的条件数
+    info.kappa_data = kappa_data;  // 未惩罚数据矩阵的条件数（诊断，SCI-502 FIX-3）
     info.rms_weighted = (sw > 0.0) ? std::sqrt(swr2 / sw) : 0.0;
     info.rms_unweighted = std::sqrt(sr2 / static_cast<double>(used.size()));
     const double dof = static_cast<double>(used.size()) - static_cast<double>(info.n_params);
@@ -1293,7 +1312,8 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
             {"n_samples", m->info.n_samples}, {"n_used", m->info.n_used},
             {"n_frames", m->info.n_frames}, {"n_nodes", m->info.n_nodes},
             {"n_params", m->info.n_params}, {"rank", m->info.rank},
-            {"kappa", m->info.kappa}, {"rms_weighted", m->info.rms_weighted},
+            {"kappa", m->info.kappa},
+            {"kappa_data", m->info.kappa_data}, {"rms_weighted", m->info.rms_weighted},
             {"rms_unweighted", m->info.rms_unweighted},
             {"chi2_red", m->info.chi2_red}, {"iterations", m->info.iterations},
             {"n_masked", m->info.n_masked}, {"n_rejected", m->info.n_rejected},
@@ -1364,6 +1384,7 @@ int p2_sky_plane_open(const char* path, void** out_model) {
             m->info.n_params = i.value("n_params", (std::uint64_t)0);
             m->info.rank = i.value("rank", (std::uint64_t)0);
             m->info.kappa = i.value("kappa", 0.0);
+            m->info.kappa_data = i.value("kappa_data", 0.0);
             m->info.rms_weighted = i.value("rms_weighted", 0.0);
             m->info.rms_unweighted = i.value("rms_unweighted", 0.0);
             m->info.chi2_red = i.value("chi2_red", 0.0);

@@ -6324,6 +6324,8 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
           (*man)["sky_plane_n_used"] = spinfo.n_used;
           // SCI-502 FIX-3 provenance: 条件数/秩/迭代如实落盘（可观测、可审计）
           (*man)["sky_plane_kappa"] = spinfo.kappa;
+          // SCI-502 FIX-3：未惩罚数据矩阵条件数（独立诊断量；λ=0 时与 kappa 逐位相等）
+          (*man)["sky_plane_kappa_data"] = spinfo.kappa_data;
           (*man)["sky_plane_rank"] = spinfo.rank;
           (*man)["sky_plane_n_params"] = spinfo.n_params;
           (*man)["sky_plane_iterations"] = spinfo.iterations;

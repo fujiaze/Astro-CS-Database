@@ -700,6 +700,24 @@
       "name": "全门禁 fail-closed 普查（缺失证据 / 坏证据 / 无输出三注入；适用面必须判红）",
       "doc": "docs/ci/01_CHECKS.md §2",
       "steps": []
+    },
+    "CHK-ARCH501-BLOCK-FRAME": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "ARCH-501 命名块与块生命周期",
+      "doc": "docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
+      "steps": [
+        "CTEST-CORE-BLOCK-FRAME"
+      ]
+    },
+    "CHK-SCI502-SKY-KAPPA": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "SCI-502 天光面 κ 自适应",
+      "doc": "docs/science/PHASE2_UPM.md",
+      "steps": [
+        "CTEST-V6-P2-SKY-KAPPA"
+      ]
     }
   },
   "reserved_targets": {
@@ -2799,6 +2817,24 @@
       "kind": "extension",
       "grade": "P0",
       "note": "新增执行单元（GATE-501，普查自身能红能绿）（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "CTEST-CORE-BLOCK-FRAME",
+      "decision": "KEPT",
+      "target": "CHK-ARCH501-BLOCK-FRAME",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "ARCH-501 命名块生命周期 ctest 目标（新增执行单元）"
+    },
+    {
+      "old_id": "CTEST-V6-P2-SKY-KAPPA",
+      "decision": "KEPT",
+      "target": "CHK-SCI502-SKY-KAPPA",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "SCI-502 FIX-3 κ 自适应 ctest 目标（新增执行单元）"
     }
   ],
   "coverage": {
@@ -2809,7 +2845,7 @@
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。",
     "absorbed_entries": [
       "CHK-SECRET-HYGIENE",
       "STD-REG",
@@ -2889,7 +2925,9 @@
       "CHK-GATE-FAILCLOSED-SELFTEST",
       "CHK-FAILCLOSED-SURVEY",
       "FAILCLOSED-SURVEY",
-      "FAILCLOSED-SURVEY-SELFTEST"
+      "FAILCLOSED-SURVEY-SELFTEST",
+      "CTEST-CORE-BLOCK-FRAME",
+      "CTEST-V6-P2-SKY-KAPPA"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

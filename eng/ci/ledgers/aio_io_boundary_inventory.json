@@ -552,7 +552,7 @@
     },
     {
       "path": "eng/tests/unit/p1001_real_nodes_test.cpp",
-      "hits": 211,
+      "hits": 212,
       "rules": {
         "cxx-stream": 29,
         "filesystem": 181,
@@ -602,7 +602,8 @@
         "write_p1_sources",
         "write_p21_scatter_hips",
         "write_sparse_hips",
-        "write_sparse_hips_var"
+        "write_sparse_hips_var",
+        "test_psf_nonfinite_frame_fail_closed"
       ]
     },
     {
