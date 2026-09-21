@@ -82,7 +82,7 @@ class TestP3004SphericalOracle(unittest.TestCase):
                     os.path.join(AIO, "src", "aio_log.cpp"),
                     os.path.join(AIO, "src", "aio_compressor.cpp"),
                     os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp")]
-            incs = [f"-I{os.path.join(REPO, 'include')}",
+            incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                     f"-I{os.path.join(AIO, 'include')}",
                     f"-I{os.path.join(AIO, 'src')}",
                     f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
@@ -116,6 +116,9 @@ class TestP3004SphericalOracle(unittest.TestCase):
                "center": {"ra_deg": ra, "dec_deg": dec},
                "scale_deg_per_px": scale, "width_px": w, "height_px": h,
                "sampler": sampler, "projection": "TAN",
+               # CONFIG_CONTRACT §3：output_mode 必填且必须显式（缺键即 REJECT，
+               # FIX-207 fail-closed）；GATE-502 按现行合同补齐。
+               "output_mode": "surface_brightness",
                "coverage_output": "mask", "output_dir": out}
         c = os.path.join(self.tmp, "c.json")
         json.dump(cfg, open(c, "w"))

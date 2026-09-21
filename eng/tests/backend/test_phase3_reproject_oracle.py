@@ -33,8 +33,8 @@ RSMP = os.path.join(REPO, "lib", "algorithms", "resample")
 COV = os.path.join(REPO, "lib", "algorithms", "coverage")   # W8: hips_properties.cpp 迁此
 FOUT = os.path.join(REPO, "lib", "algorithms", "fits_output")
 FITS_INCS = [f"-I{INC}", f"-I{HOST}", f"-I{P3W}", f"-I{RSMP}", f"-I{FOUT}", f"-I{COV}", f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
-             f"-I{CASTRO}", f"-I{os.path.join(REPO, 'third_party', 'nlohmann')}",
-             f"-I{os.path.join(REPO, 'third_party')}",  # nlohmann/json.hpp 以 <nlohmann/json.hpp> 引用
+             f"-I{CASTRO}", f"-I{os.path.join(REPO, 'lib', 'third_party', 'nlohmann')}",
+             f"-I{os.path.join(REPO, 'lib', 'third_party')}",  # nlohmann/json.hpp 以 <nlohmann/json.hpp> 引用
              f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}", f"-I{C}", f"-I{os.path.join(C, 'crypto')}",
              f"-I{os.path.join(REPO, 'build')}"]  # version_generated.h(根 CMake configure_file 生成)
 FITS_SRCS = [os.path.join(RSMP, "p3_resample.cpp"), os.path.join(COV, "hips_properties.cpp"),
@@ -260,11 +260,23 @@ class TestPhase3ReprojOracle(unittest.TestCase):
 
 
     def test_09_unsupported_projection_reject(self):
-        """projection≠TAN / |dec|>85°(距极点<5°) 显式拒; hemisphere-crossing 像素保持 NaN/0。"""
-        hdr, s_vals, cov_hdr, cov_vals = self._fits(self.const, 0.0, 30.0, 0.5, 60, 60, "bilinear")
-        # 60px @0.5° → 跨度 ±15°, 均在半球内, 不应有 NaN
+        """projection≠TAN / |dec|>85° / FOV>20° 显式拒; 域内输出无 NaN。
+
+        GATE-502：原用例用 0.5°/px × 60px = **FOV 30°**，超出 TAN 冻结适用域
+        （p3_wcs.cpp kTanApplicability.max_fov_deg=20.0「SCI §9a-12 alpha 冻结,
+        禁放宽」）⇒ 构造期即被拒，用例前提失效。改为域内 0.15°/px（FOV 9°），
+        并把「FOV>20° 必须拒」补成显式负例（判据未放宽，反而更严）。
+        """
+        hdr, s_vals, cov_hdr, cov_vals = self._fits(self.const, 0.0, 30.0, 0.15, 60, 60, "bilinear")
         nan_cnt = sum(1 for v in s_vals if v != v)
         self.assertEqual(nan_cnt, 0, "半球内输出不应有 NaN")
+        # 适用域负例：FOV=0.5°×60=30° > 20° ⇒ WCS 构造期拒绝, 不产半成品
+        r_fov = subprocess.run([os.path.join(self.tmp, "probe"), "run", self.const, "0.0", "30.0",
+                                "0.5", "60", "60", "bilinear", self.out],
+                               capture_output=True, text=True, timeout=180)
+        self.assertNotEqual(r_fov.returncode, 0, "FOV>20° 必须被拒（冻结适用域）")
+        self.assertIn("WCS construction rejected", r_fov.stdout,
+                      "FOV 越域必须报 WCS 构造拒绝: " + r_fov.stdout[-200:])
         # 冻结合同(docs/api/PHASE3_API_V1.md + docs/science/PHASE3_HIPS_TO_FITS.md §36):
         # abs(dec)<=85°(距极点>=5°) 单一条件, abs(dec)>85° → ACS_ERR_PARAM。
         # R12 终判: 原测试以 dec=3.0(距极点 87°, 合法) 期望拒绝属误读合同 —

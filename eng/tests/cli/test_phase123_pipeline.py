@@ -78,7 +78,7 @@ def _cfitsio_objs(tmp):
 
 
 def _common_incs():
-    return [f"-I{os.path.join(REPO, 'include')}",
+    return [f"-I{os.path.join(REPO, 'lib', 'include')}",
             f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
             f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
             f"-I{SHARED}", f"-I{os.path.dirname(HEALPIX_SRC)}"]

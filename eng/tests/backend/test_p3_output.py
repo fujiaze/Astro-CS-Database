@@ -26,7 +26,7 @@ class TestP3Output(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="p3out_")
         cls.fsync_probe = None
         cls.interposer_so = None
-        incs = [f"-I{os.path.join(REPO, 'include')}", f"-I{HOST}", f"-I{FITS}", f"-I{PROJ}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}", f"-I{HOST}", f"-I{FITS}", f"-I{PROJ}",
                 f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
                 f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
@@ -67,7 +67,7 @@ class TestP3Output(unittest.TestCase):
         """构建带 hash-fail 注入钩子的探针 (正常路径行为与 probe_main 同源)。"""
         if getattr(cls, "fsync_probe", None):
             return cls.fsync_probe
-        incs = [f"-I{os.path.join(REPO, 'include')}", f"-I{HOST}", f"-I{FITS}", f"-I{PROJ}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}", f"-I{HOST}", f"-I{FITS}", f"-I{PROJ}",
                 f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
                 f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",

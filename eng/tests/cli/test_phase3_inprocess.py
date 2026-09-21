@@ -84,7 +84,7 @@ class TestPhase3InProcess(unittest.TestCase):
     def setUpClass(cls):
         assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
         cls.tmp = tempfile.mkdtemp(prefix="p3cli_")
-        incs = [f"-I{os.path.join(REPO, 'include')}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
                 f"-I{SHARED}",
@@ -220,12 +220,24 @@ class TestPhase3InProcess(unittest.TestCase):
                             "%s 缺输出" % samp)
 
     def test_06_stdout_pure_json_when_jsonl(self):
-        """--events-jsonl 模式 stdout 必须纯 JSON(日志进 stderr, 无污染)。"""
+        """--events-jsonl 模式 stdout 必须纯 JSON(日志进 stderr, 无污染)。
+
+        GATE-502 空断言普查：原实现只在循环里 json.loads(line)，stdout **为空**时
+        循环体一次都不执行 ⇒ 空跑也通过（恒真面）。现补：返回码 + 非空 + 逐行可解析
+        + 事件流含终态 final（非退化判据）。
+        """
         r = self._run("export", "--json", self.cfg, "--events-jsonl")
-        for line in r.stdout.splitlines():
-            if not line.strip():
-                continue
-            json.loads(line)   # 任何非 JSON 行都会抛异常 → 失败
+        self.assertEqual(r.returncode, 0, r.stderr[-400:])
+        lines = [l for l in r.stdout.splitlines() if l.strip()]
+        self.assertGreater(len(lines), 0, "事件流不得为空（空 stdout 不是通过证据）")
+        events = []
+        for i, line in enumerate(lines):
+            try:
+                events.append(json.loads(line))       # 任何非 JSON 行都会抛异常 → 失败
+            except json.JSONDecodeError as e:
+                self.fail("stdout 第 %d 行不是纯 JSON（日志污染）: %s | %r" % (i + 1, e, line[:120]))
+        kinds = [e.get("kind") for e in events]
+        self.assertIn("final", kinds, "事件流必须含终态 final 事件")
 
     def test_07_run_phase3_complete_manifest(self):
         """export 生产编排 → complete manifest(phases==[3]) + phase3_output artifact。"""

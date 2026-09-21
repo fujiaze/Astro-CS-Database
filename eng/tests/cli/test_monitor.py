@@ -56,7 +56,7 @@ class TestMonitor(unittest.TestCase):
             f.write(MON_DRIVER)
         cls.exe = os.path.join(cls.tmp, "mon_driver")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-pthread",
-                            f"-I{CLI}", f"-I{os.path.join(REPO, 'third_party')}",
+                            f"-I{CLI}", f"-I{os.path.join(REPO, 'lib', 'third_party')}",
                             src, "-o", cls.exe], capture_output=True, text=True, timeout=180)
         assert r.returncode == 0, r.stderr
 

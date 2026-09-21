@@ -13,6 +13,10 @@ INC = os.path.join(REPO, "lib", "include")
 AIO_INCS = [
     f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'include')}",
     f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'src')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'third_party', 'cfitsio')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
+    f"-I{os.path.join(REPO, 'lib', 'third_party')}",
 ]
 
 

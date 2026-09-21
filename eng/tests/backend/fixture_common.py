@@ -50,7 +50,7 @@ def _build_fixture_exe():
     if _BUILT and os.path.isfile(_FIXTURE_EXE):
         return _FIXTURE_EXE
     os.makedirs(os.path.dirname(_FIXTURE_EXE), exist_ok=True)
-    incs = [f"-I{os.path.join(REPO, 'include')}",
+    incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
             f"-I{os.path.join(AIO, 'include')}",
             f"-I{os.path.join(AIO, 'src')}",
             f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",

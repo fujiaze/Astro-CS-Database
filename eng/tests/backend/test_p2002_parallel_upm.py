@@ -45,7 +45,7 @@ class TestP2002ParallelUpm(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="p2002_")
         cls.hips_dir = os.path.join(cls.tmp, "hips")
         os.makedirs(cls.hips_dir, exist_ok=True)
-        incs = [f"-I{os.path.join(REPO, 'include')}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                 f"-I{os.path.join(AIO, 'include')}",
                 f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",

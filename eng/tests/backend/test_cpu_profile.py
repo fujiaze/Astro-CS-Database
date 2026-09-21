@@ -5,12 +5,24 @@ import hashlib, json, os, re, shutil, subprocess, sys, tempfile, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
+# 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面见根 CMakeLists.txt
+# target_include_directories(astrocs_aio PUBLIC ...)；测试侧独立编译必须同面，否则
+# aio_atomic_file.h / aio_file_io.h / crypto/sha256.h 找不到
+# （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
+AIO_INCS = [
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'include')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'src')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'third_party', 'cfitsio')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
+    f"-I{os.path.join(REPO, 'lib', 'third_party')}",
+]
 # SCHEMA 断链修复 (DEEP-COV-PY/CODE_FAIL, V8-CI-012 R6.5): 旧路径 工程控制/RELEASE_V5/
 # 为 untracked 控制包布局, tracked 工作区与 hosted checkout 永不存在 → import 期
 # FileNotFoundError。产品 schema 唯一事实源 = schemas/ (与姊妹 hardware_inspect.schema
 # 同构), 内容取 tracked archive RELEASE_V5 的 v1 副本 (ad740dbd, 与本测试消费语义匹配)。
 SCHEMA = json.load(open(os.path.join(
-    REPO, "contracts", "schemas", "cpu_profile.schema.json"), encoding="utf-8"))
+    REPO, "eng", "contracts", "schemas", "cpu_profile.schema.json"), encoding="utf-8"))
 COMMIT = subprocess.run(["git", "-C", REPO, "rev-parse", "HEAD"],
                         capture_output=True, text=True).stdout.strip()
 sys.path.insert(0, os.path.join(REPO, "eng", "tools"))
@@ -27,7 +39,7 @@ def common_srcs():
             os.path.join(HOST, "profile_gen.cpp"),
             os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
             f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
-            f"-I{os.path.join(REPO, 'third_party')}", "-ldl"]
+            f"-I{os.path.join(REPO, 'lib', 'third_party')}", "-ldl"]
 
 
 # VER-001 版本单源：探针 build 串由 gen_version 派生（不得写死版本字面量——否则
@@ -52,7 +64,7 @@ class TestCpuProfile(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="prof_")
         cls.gen = os.path.join(cls.tmp, "pgen")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-Wno-format-truncation",
-                            f"-I{INC}", f"-I{HOST}", f"-I{os.path.join(REPO, 'third_party')}",
+                            f"-I{INC}", f"-I{HOST}", *AIO_INCS,
                             os.path.join(REPO, "eng", "tests", "backend", "profile_gen_main.cpp"),
                             *common_srcs(), "-o", cls.gen], capture_output=True, text=True,
                            timeout=300)
@@ -68,9 +80,7 @@ class TestCpuProfile(unittest.TestCase):
         cls.hwprobe = os.path.join(cls.tmp, "hwprobe")
         r_hw = subprocess.run(
             ["g++", "-std=c++17", "-O2", "-Wno-format-truncation",
-             f"-I{INC}", f"-I{HOST}",
-             f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
-             f"-I{os.path.join(REPO, 'third_party')}",
+             f"-I{INC}", f"-I{HOST}", *AIO_INCS,
              hw_main,
              os.path.join(HOST, "hardware_inspect.cpp"),
              os.path.join(HOST, "cpu_features.cpp"),
@@ -202,8 +212,7 @@ int main() {
 '''
         src_path = os.path.join(self.tmp, "pol.cpp")
         open(src_path, "w").write(src)
-        r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
-                            f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}", src_path,
+        r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}", *AIO_INCS, src_path,
                             os.path.join(HOST, "bench_harness.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
                             os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
@@ -237,8 +246,7 @@ int main() {
 '''
         src_path = os.path.join(self.tmp, "nm.cpp")
         open(src_path, "w").write(src)
-        r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
-                            f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}", src_path,
+        r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}", *AIO_INCS, src_path,
                             os.path.join(HOST, "bench_harness.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
                             os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),

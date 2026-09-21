@@ -54,6 +54,11 @@ def _ensure_mon001_fixture():
     --make-field 生成; cfg 为 V1 顶层合同 + phase3 子对象(40x30 nearest TAN,
     output_dir=/tmp/mon001_run_out)。exe 复用 fixture_common 进程级缓存。
     """
+    # 配置必须**每轮重写**：旧缓存会让合同新增的必填键永不生效 —— GATE-502 实测
+    # run/temp/mon001_cfg.json 缺 output_mode（CONFIG_CONTRACT §3 必填）使 export
+    # 恒报 missing output_mode。删掉后由下面的块按现行合同重建。
+    if os.path.isfile(MON001_CFG):
+        os.remove(MON001_CFG)
     if not (os.path.isdir(FIELD_HIPS) and os.path.isfile(MON001_CFG)):
         exe = fixture_common._build_fixture_exe()  # 进程级缓存, 已存在则免编译
         if not os.path.isdir(FIELD_HIPS):
@@ -76,6 +81,8 @@ def _ensure_mon001_fixture():
                 "height_px": 30,
                 "projection": "TAN",
                 "sampler": "nearest",
+                # CONFIG_CONTRACT §3：output_mode 必填且必须显式（缺键即 REJECT）。
+                "output_mode": "surface_brightness",
                 "coverage_output": "mask",
                 "output_dir": TMP,
                 # P3-006/DOC-003 内存守卫: max_tiles 只降不升(默认

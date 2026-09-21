@@ -18,7 +18,7 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 INC = os.path.join(REPO, "lib", "include")
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
-CLI = os.path.join(REPO, "cli")
+CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 
 
 @unittest.skipUnless(shutil.which("g++"), "需要 g++")

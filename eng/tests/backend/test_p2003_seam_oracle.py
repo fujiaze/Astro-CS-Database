@@ -67,7 +67,7 @@ DIAG_INCS = [f"-I{os.path.join(REPO, 'lib', 'algorithms', 'coverage', 'include')
              f"-I{DIAG_ACR}",
              f"-I{DIAG_ACR}{os.sep}backends{os.sep}cuda{os.sep}bridge",
              f"-I{DIAG_ACR}{os.sep}scheduler",
-             f"-I{os.path.join(REPO, 'third_party')}",
+             f"-I{os.path.join(REPO, 'lib', 'third_party')}",
              f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}"]
 DIAG_P2_SRCS = [os.path.join(REPO, "lib", "algorithms", "coverage", "src", f)
                 for f in ("upm.cpp", "coverage.cpp", "sampler.cpp", "block.cpp",
@@ -91,7 +91,7 @@ def build_pair_diag(tmp):
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}"]
     objs = []
     aio_common_incs = aio_incs + [f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
-                                  f"-I{os.path.join(REPO, 'third_party')}"]
+                                  f"-I{os.path.join(REPO, 'lib', 'third_party')}"]
     for src, extra_inc in ([(DIAG_SRC, DIAG_INCS + aio_incs)] +
                            [(s, aio_common_incs) for s in DIAG_AIO_SRCS] +
                            [(s, DIAG_INCS + aio_incs) for s in DIAG_P2_SRCS] +
@@ -135,7 +135,7 @@ class TestP2003SeamOracle(unittest.TestCase):
         cls.hips_dir = os.path.join(cls.tmp, "seam")
         os.makedirs(cls.hips_dir, exist_ok=True)
         # 编译 fixture(含 --make-seam) 生成三块 mini HiPS
-        incs = [f"-I{os.path.join(REPO, 'include')}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                 f"-I{os.path.join(AIO, 'include')}",
                 f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",

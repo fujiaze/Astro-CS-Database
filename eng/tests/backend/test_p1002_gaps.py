@@ -32,6 +32,20 @@ P3_INC = os.path.join(REPO, "lib", "algorithms", "projection")
 PHOT_INC = os.path.join(REPO, "lib", "algorithms", "photometry", "wrapper_phase1")
 CORE_INC = os.path.join(REPO, "lib", "include")
 
+# 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
+# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
+# （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
+AIO_INCS = [
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'include')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'src')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'third_party', 'cfitsio')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
+    f"-I{os.path.join(REPO, 'lib', 'third_party')}",
+]
+
+
 # ---------- 预冻结常量(写死, 不事后放宽) ----------
 FWHM_2SIG = 2.3548200450309493          # FWHM = 2*sqrt(2*ln2)*σ
 CENTROID_TOL_PX = 0.5                    # centroid 误差上限(px)
@@ -223,6 +237,7 @@ def _compile(name, driver, extra_inc, sources, extra_libs=()):
     cmd = ["g++", "-std=c++17", "-O2", "-fopenmp"]
     for inc in extra_inc:
         cmd.append(f"-I{inc}")
+    cmd += AIO_INCS
     cmd += [drv] + list(sources) + list(extra_libs) + ["-pthread", "-o", exe]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
     if r.returncode != 0:

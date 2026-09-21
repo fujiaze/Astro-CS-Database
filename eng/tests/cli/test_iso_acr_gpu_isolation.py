@@ -64,7 +64,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
         cls.tmp = tempfile.mkdtemp(prefix="iso001_")
         cls.hips = None
         # phase2 合成 fixture(为 export/manifest 运行测试提供带 variance 的 HiPS 产品)
-        incs = [f"-I{os.path.join(REPO, 'include')}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
                 f"-I{SHARED}",

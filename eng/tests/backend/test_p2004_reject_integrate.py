@@ -137,10 +137,10 @@ class TestP2004RejectIntegrate(unittest.TestCase):
         with open(drv, "w") as f:
             f.write(DRIVER_SRC)
         cls.exe = os.path.join(cls.tmp, "d")
-        incs = [f"-I{os.path.join(REPO, 'include')}",
+        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                 f"-I{os.path.join(REPO, 'lib', 'algorithms', 'coverage', 'include')}",
                 f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
-                f"-I{os.path.join(REPO, 'third_party')}"]
+                f"-I{os.path.join(REPO, 'lib', 'third_party')}"]
         srcs = [os.path.join(REPO, "lib", "algorithms", "coverage", "src", "rejection.cpp"),
                 os.path.join(REPO, "lib", "algorithms", "coverage", "src", "integrate.cpp"),
                 os.path.join(REPO, "lib", "algorithms", "coverage", "src", "stage2_common.cpp")]

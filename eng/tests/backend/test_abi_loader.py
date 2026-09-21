@@ -6,6 +6,20 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
 
+# 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
+# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
+# （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
+AIO_INCS = [
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'include')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'src')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'third_party', 'cfitsio')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
+    f"-I{os.path.join(REPO, 'lib', 'third_party')}",
+]
+
+
 FIXTURE_SRC = os.path.join(REPO, "eng", "tests", "backend", "fixture_backend.cpp")
 
 
@@ -40,8 +54,8 @@ class TestBackendLoader(unittest.TestCase):
         """编译+运行 loader 测试 TU; 返回 (rc, stdout)。"""
         exe = os.path.join(self.tmp, "loader_tu")
         src = os.path.join(REPO, "eng", "tests", "backend", "loader_probe_main.cpp")
-        r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
-                            f"-I{os.path.join(REPO, 'third_party')}",
+        r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}", *AIO_INCS,
+                            f"-I{os.path.join(REPO, 'lib', 'third_party')}",
                             f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
                             src, os.path.join(HOST, "backend_loader.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
@@ -55,7 +69,7 @@ class TestBackendLoader(unittest.TestCase):
 
     def test_01_cpu_features_and_affinity(self):
         exe = os.path.join(self.tmp, "cpu_probe")
-        r = subprocess.run(["g++", "-std=c++17", f"-I{HOST}", "-x", "c++", "-",
+        r = subprocess.run(["g++", "-std=c++17", f"-I{HOST}", *AIO_INCS, "-x", "c++", "-",
                             os.path.join(HOST, "cpu_features.cpp"), "-o", exe],
                            input="#include \"cpu_features.h\"\n"
                                  "#include <cstdio>\n"

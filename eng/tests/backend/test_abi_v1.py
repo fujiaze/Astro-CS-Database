@@ -4,13 +4,27 @@ import os, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HDR = os.path.join(REPO, "lib", "include", "astrocs", "common_abi_v1.h")
+
+# 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
+# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
+# （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
+AIO_INCS = [
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'include')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'src')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'third_party', 'cfitsio')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared')}",
+    f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
+    f"-I{os.path.join(REPO, 'lib', 'third_party')}",
+]
+
 SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 MAIN = os.path.join(REPO, "eng", "tests", "backend", "abi_selftest_main.cpp")
 
 
 def compile_and_run(build_dir, cxx, flags):
     exe = os.path.join(build_dir, "abi_selftest")
-    cmd = [cxx, "-std=c++17", f"-I{os.path.join(REPO, 'include')}",
+    cmd = [cxx, "-std=c++17", f"-I{os.path.join(REPO, 'lib', 'include')}", *AIO_INCS,
            *flags,
            MAIN, os.path.join(SRC, "host_services.cpp"), os.path.join(SRC, "baseline_backend.cpp"),
            "-o", exe]
@@ -32,7 +46,7 @@ class TestAbiV1(unittest.TestCase):
                         'astrocs_backend_api_v1 a; a.abi_version=ACS_ABI_VERSION_V1;'
                         'return a.abi_version==1u?0:1;}\n')
             r = subprocess.run(["gcc", "-std=c11", "-Wall", "-Wextra", "-pedantic",
-                                f"-I{os.path.join(REPO, 'include')}", "-c", src, "-o",
+                                f"-I{os.path.join(REPO, 'lib', 'include')}", *AIO_INCS, "-c", src, "-o",
                                 os.path.join(td, "c_tu.o")],
                                capture_output=True, text=True, timeout=60)
             self.assertEqual(r.returncode, 0, f"C11 编译失败: {r.stderr}")
@@ -42,7 +56,7 @@ class TestAbiV1(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             r = subprocess.run(["g++", "-std=c++17", "-Wall", "-Wextra", "-fno-exceptions",
                                 "-DASTROCS_NO_EXCEPTIONS",
-                                f"-I{os.path.join(REPO, 'include')}", "-c",
+                                f"-I{os.path.join(REPO, 'lib', 'include')}", *AIO_INCS, "-c",
                                 os.path.join(SRC, "baseline_backend.cpp"), "-o",
                                 os.path.join(td, "b.o")],
                                capture_output=True, text=True, timeout=60)

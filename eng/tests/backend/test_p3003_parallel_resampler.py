@@ -43,6 +43,8 @@ class TestP3003ParallelResampler(unittest.TestCase):
                 "center": {"ra_deg": 0.0, "dec_deg": 30.0},
                 "scale_deg_per_px": 0.01, "width_px": 64, "height_px": 48,
                 "sampler": sampler, "projection": "TAN",
+                # CONFIG_CONTRACT §3：output_mode 必填且必须显式（缺键即 REJECT）。
+                "output_mode": "surface_brightness",
                 "coverage_output": "mask",
                 "output_dir": out}
 
