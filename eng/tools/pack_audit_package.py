@@ -27,7 +27,10 @@ from __future__ import annotations
 import datetime, hashlib, json, os, pathlib, re, sys, zipfile
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
-OUT = REPO / "artifacts/prerelease_v5"
+# D-14（GATE-501）：陈旧根级 artifacts/prerelease_v5/ 已清零；本工具已退役
+# （见文件头 RETIRED 说明，无参运行打印 PACK_AUDIT_PACKAGE_RETIRED 并 exit 2），
+# 常量仅指向当前证据树，避免残留陈旧路径。
+OUT = REPO / "artifacts/evidence/prerelease-v5"
 
 # 顶层贡献: 这些路径作为"代码"或"证据"收录
 # ROOT-008 收口：根 cli/ 已退役并物理删除（GAP-003/§7，CLI 归 lib/infrastructure/cli/）。

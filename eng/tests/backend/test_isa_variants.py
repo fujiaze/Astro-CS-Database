@@ -6,6 +6,16 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 INC = os.path.join(REPO, "lib", "include")
 
+# 根目录整合后 aio 落 lib/infrastructure/aio，其 PUBLIC include 面 = include/ + src/
+# （见根 CMakeLists.txt: target_include_directories(astrocs_aio PUBLIC ...)）。
+# 测试侧独立编译必须同面，否则 aio_atomic_file.h / aio_file_io.h 找不到
+# （GATE-502：修复根目录整合后测试侧遗留的过时 include 面）。
+AIO_INCS = [
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'include')}",
+    f"-I{os.path.join(REPO, 'lib', 'infrastructure', 'aio', 'src')}",
+]
+
+
 
 class TestIsaVariants(unittest.TestCase):
     @classmethod
@@ -15,14 +25,14 @@ class TestIsaVariants(unittest.TestCase):
         cls.vso = os.path.join(cls.tmp, "avx2_backend.so")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG", "-mavx2", "-mfma",
                             "-fPIC", "-shared", "-Wall", "-Wextra",
-                            f"-I{INC}", f"-I{HOST}",
+                            f"-I{INC}", f"-I{HOST}", *AIO_INCS,
                             os.path.join(HOST, "avx2_backend.cpp"), "-o", cls.vso],
                            capture_output=True, text=True, timeout=180)
         assert r.returncode == 0, r.stderr
         # bench 可执行(基线)
         cls.bench = os.path.join(cls.tmp, "kbench")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-Wall", "-Wextra",
-                            f"-I{INC}", f"-I{HOST}",
+                            f"-I{INC}", f"-I{HOST}", *AIO_INCS,
                             os.path.join(REPO, "eng", "tests", "backend", "kernel_bench_main.cpp"),
                             os.path.join(HOST, "baseline_backend.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
@@ -40,7 +50,7 @@ class TestIsaVariants(unittest.TestCase):
     def test_01_baseline_clean_variant_has_vex(self):
         """主/baseline 无 ISA 污染; 变体 TU 必须真含 VEX(ISA-001 双向证明)。"""
         base_obj = os.path.join(self.tmp, "base.o")
-        subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG", f"-I{INC}", f"-I{HOST}", "-c",
+        subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG", f"-I{INC}", f"-I{HOST}", *AIO_INCS, "-c",
                         os.path.join(HOST, "baseline_backend.cpp"), "-o", base_obj],
                        capture_output=True, text=True, timeout=120)
         scan = subprocess.run(["python3", os.path.join(REPO, "eng", "tools", "check_baseline_opcodes.py"),
@@ -76,7 +86,11 @@ class TestIsaVariants(unittest.TestCase):
         self.assertGreater(imp_hips, 5.0, f"hips 变体应显著更快(实测 {imp_hips:+.1f}%)")
         # 完整测量工件(决策可审计)
         import csv
-        out = os.path.join(REPO, "artifacts", "prerelease_v5", "ISA-001", "MEASUREMENTS.csv")
+        # D-14（GATE-501）：输出统一到已跟踪证据路径（artifacts/evidence/prerelease-v5/），
+        # 陈旧根级 artifacts/prerelease_v5/ 路径清零；写入面在 eng/ci/checks.json
+        # 的 CHK-UNIT dirty_ignore_prefixes 显式登记。
+        out = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "ISA-001",
+                           "MEASUREMENTS.csv")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w", newline="") as f:
             w = csv.writer(f)
@@ -99,8 +113,8 @@ class TestIsaVariants(unittest.TestCase):
         """错误变体(required 超集/假 hash)绝不入候选——预检拒绝。"""
         probe_src = os.path.join(REPO, "eng", "tests", "backend", "loader_probe_main.cpp")
         exe = os.path.join(self.tmp, "probe")
-        r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
-                            f"-I{os.path.join(REPO, 'third_party')}",
+        r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}", *AIO_INCS,
+                            f"-I{os.path.join(REPO, 'lib', 'third_party')}",
                             f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
                             probe_src, os.path.join(HOST, "backend_loader.cpp"),
                             os.path.join(HOST, "host_services.cpp"),

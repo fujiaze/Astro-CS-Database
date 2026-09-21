@@ -145,7 +145,7 @@ def _discover_case_gap(where: str, target: pathlib.Path, cmd: list[str]) -> list
 STEP_REQUIRED = ("id", "command", "timeout_seconds", "profiles", "platform")
 STEP_OPT_FIELDS = ("heavy", "mutates_workspace", "outputs", "waivable", "changed_paths",
                    "requires_monitor", "prerequisite_tools", "ctest_targets",
-                   "reads_run_results",
+                   "reads_run_results", "fingerprint",
                    "dirty_ignore_exact", "dirty_ignore_prefixes")
 
 
@@ -249,7 +249,8 @@ def validate(registry_path: pathlib.Path, strict: bool) -> tuple[list[str], int]
         if missing:
             errors.append(f"R2 {where}: missing fields {missing}")
             continue
-        extra = [f for f in c if f not in REQUIRED + OPT_STR_LIST_FIELDS + ("steps",)]
+        extra = [f for f in c
+                 if f not in REQUIRED + OPT_STR_LIST_FIELDS + ("steps", "fingerprint")]
         if extra:
             errors.append(f"R2 {where}: unexpected fields {extra}")
         for f in OPT_STR_LIST_FIELDS:

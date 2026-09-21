@@ -100,8 +100,8 @@ LINUX-MAIN-FIXTURES / LINUX-MAIN-BUILD-TREE）与 6 个 step 声明逐条适用�
 
 ### 6.4 fail-closed 普查
 
-`CHK-FAILCLOSED-SURVEY` 对 228 个执行单元注入「缺失证据 / 坏证据 / 无输出」
-三面，224 个适用面全部判红、4 个显式无适用面（`SILENT_OK_UNITS` 静默豁免 2 个 +
+`CHK-FAILCLOSED-SURVEY` 对 230 个执行单元（78 个注册项）注入「缺失证据 / 坏证据 /
+无输出」三面，226 个适用面全部判红、4 个显式无适用面（`SILENT_OK_UNITS` 静默豁免 2 个 +
 `TESTKIT-LIST`/`UT-CPU-AVX512` 无证据面）；普查表见
 `artifacts/evidence/release-05/FAILCLOSED_SURVEY.md`。
 

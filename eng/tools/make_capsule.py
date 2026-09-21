@@ -50,7 +50,9 @@ def legacy_main():
     subject = git("log", "-1", "--format=%s", commit).strip()
     files = git("diff-tree", "--no-commit-id", "--name-only", "-r", commit).split()
     patch = git("diff-tree", "-p", "--no-commit-id", commit)
-    outdir = os.path.join(REPO, "artifacts", "prerelease_v5", "capsules")
+    # D-14（GATE-501）：陈旧根级 artifacts/prerelease_v5/ 已清零；本工具已退役
+    # （见文件头 RETIRED），常量与文件头声明的当前证据树一致。
+    outdir = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "capsules")
     os.makedirs(outdir, exist_ok=True)
     zpath = os.path.join(outdir, f"{task_id}_{c12}.zip")
     capsule = {

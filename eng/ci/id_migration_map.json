@@ -644,6 +644,62 @@
       "name": "CLI 取消矩阵（SIGTERM/SIGINT + Windows 控制台事件；CTRL_CLOSE 平台限制显式登记）",
       "doc": "docs/ci/01_CHECKS.md §2",
       "steps": []
+    },
+    "CHK-REGISTRY-VALIDATE": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "注册表结构校验器（R1-R15）成为真正的门：eng/ci/checks.json 唯一注册表结构一致",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "L2-FROZEN-GATE-SELFTEST": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "L2 冻结判据裁决器红/绿双向自测（缺失证据/坏证据/空文件/门不适用/分母未声明/合同缺失）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "L2-FROZEN-GATE-REPLAY": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "RELEASE-04 归档 L2 违规证据回放：历史 verdict=pass 必须现判红（恒真门改真判红）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "WORKER-BALANCE-METRIC-SELFTEST": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "worker_balance 利用率指标判别力自测（正确算法 + 两组负载输出不同 + 退化判红）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "WORKER-BALANCE-METRIC-REPLAY": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "归档 worker_balance 退化件判红 + 权威时间序列按正确算法复算非常数",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "PSFSW-RETIRED-STATIC-SELFTEST": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "psfsw 退役面静态门的可执行正负例面（残留红 / 锚缺失 fail-closed）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-GATE-FAILCLOSED-SELFTEST": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "门禁 fail-closed 契约红绿自测（requires_monitor 证据强制 + L2 冻结判据 + mutates_workspace 可写面 + 登记输出存在性）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-FAILCLOSED-SURVEY": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "全门禁 fail-closed 普查（缺失证据 / 坏证据 / 无输出三注入；适用面必须判红）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
     }
   },
   "reserved_targets": {
@@ -2599,6 +2655,150 @@
       "grade": "P0",
       "order_in_target": 999,
       "note": "CI-INCREMENTAL：eng/tests/runtime 的集成型用例拆出（真实会话/子进程），只进 integration 档"
+    },
+    {
+      "old_id": "CHK-REGISTRY-VALIDATE",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRY-VALIDATE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/validate_registry.py --registry eng/ci/checks.json --strict"
+    },
+    {
+      "old_id": "L2-FROZEN-GATE-SELFTEST",
+      "decision": "KEPT",
+      "target": "L2-FROZEN-GATE-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_frozen_gate.py --self-test"
+    },
+    {
+      "old_id": "L2-FROZEN-GATE-REPLAY",
+      "decision": "KEPT",
+      "target": "L2-FROZEN-GATE-REPLAY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_frozen_gate.py --replay --json-out run/ci/l2-frozen-gate/replay.json"
+    },
+    {
+      "old_id": "WORKER-BALANCE-METRIC-SELFTEST",
+      "decision": "KEPT",
+      "target": "WORKER-BALANCE-METRIC-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_worker_balance.py --self-test"
+    },
+    {
+      "old_id": "WORKER-BALANCE-METRIC-REPLAY",
+      "decision": "KEPT",
+      "target": "WORKER-BALANCE-METRIC-REPLAY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_worker_balance.py --replay-archived --json-out run/ci/worker-balance/replay.json"
+    },
+    {
+      "old_id": "PSFSW-RETIRED-STATIC-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-PSFSW-RETIRED-STATIC",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_psfsw_retired.py --self-test"
+    },
+    {
+      "old_id": "CON-EXECUTION-CONTRACTS-SELFTEST",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-AIO-CHECKSUM",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-AIO-HIPS-ATOMIC-PUBLISH",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-AIO-PRECISION_DUAL",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-AIO-QUERY_PIXEL",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-AIO-TILE_MODEL",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-AIO-TRANSFORM",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-FIX402-PHASE3-SEMANTIC-GUARD",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CHK-GATE-FAILCLOSED-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-GATE-FAILCLOSED-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "CHK-FAILCLOSED-SURVEY",
+      "decision": "KEPT",
+      "target": "CHK-FAILCLOSED-SURVEY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "新增聚合项（GATE-501）（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "FAILCLOSED-SURVEY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-FAILCLOSED-SURVEY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "新增执行单元（GATE-501）（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "FAILCLOSED-SURVEY-SELFTEST",
+      "decision": "MERGED-INTO",
+      "target": "CHK-FAILCLOSED-SURVEY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "新增执行单元（GATE-501，普查自身能红能绿）（非本波 146 项基线，absorbed）"
     }
   ],
   "coverage": {
@@ -2609,7 +2809,7 @@
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。",
     "absorbed_entries": [
       "CHK-SECRET-HYGIENE",
       "STD-REG",
@@ -2671,10 +2871,28 @@
       "DOC-INDEX-SELFTEST",
       "CHK-RETIRED-CODE",
       "CHK-RETIRED-CODE-SELFTEST",
-      "CHK-FIX406-SIGTERM"
+      "CHK-FIX406-SIGTERM",
+      "CHK-REGISTRY-VALIDATE",
+      "L2-FROZEN-GATE-SELFTEST",
+      "L2-FROZEN-GATE-REPLAY",
+      "WORKER-BALANCE-METRIC-SELFTEST",
+      "WORKER-BALANCE-METRIC-REPLAY",
+      "PSFSW-RETIRED-STATIC-SELFTEST",
+      "CON-EXECUTION-CONTRACTS-SELFTEST",
+      "CTEST-AIO-CHECKSUM",
+      "CTEST-AIO-HIPS-ATOMIC-PUBLISH",
+      "CTEST-AIO-PRECISION_DUAL",
+      "CTEST-AIO-QUERY_PIXEL",
+      "CTEST-AIO-TILE_MODEL",
+      "CTEST-AIO-TRANSFORM",
+      "CTEST-FIX402-PHASE3-SEMANTIC-GUARD",
+      "CHK-GATE-FAILCLOSED-SELFTEST",
+      "CHK-FAILCLOSED-SURVEY",
+      "FAILCLOSED-SURVEY",
+      "FAILCLOSED-SURVEY-SELFTEST"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,
-    "result_entry_count": 42
+    "result_entry_count": 76
   }
 }

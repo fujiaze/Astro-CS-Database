@@ -1,7 +1,7 @@
 op,baseline_ns,avx_variant_ns,improvement_pct,decision
-calibration,1326668,1020010,+23.1,"NOT_SHIPPED(avx子集,avx2主导)"
-driz_accum,1723088,1640076,+4.8,
-hips,11401335,7135022,+37.4,"NOT_SHIPPED(avx子集,avx2主导)"
-integration,2343612,,,
-noise,23706954,,,
-spmv,1182646,,,
+calibration,1063945,842725,+20.8,"NOT_SHIPPED(avx子集,avx2主导)"
+driz_accum,1771415,1727174,+2.5,
+hips,10866240,7066642,+35.0,"NOT_SHIPPED(avx子集,avx2主导)"
+integration,2335795,,,
+noise,23366037,,,
+spmv,1203468,,,

@@ -38,6 +38,9 @@ import time
 import uuid
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import monitor_evidence as _mon_ev  # noqa: E402  (eng/ci/monitor_evidence.py：证据判定单一实现点)
+
 SCHEMA_VERSION = 1
 PROFILES = ("fast", "linux-main", "windows-main", "linux-deep", "fatduck")
 
@@ -109,56 +112,29 @@ EMPTY_OUTPUT_SILENCE_EXEMPT = frozenset({
 def monitor_gate_requested(check: dict) -> bool:
     """检查命令是否请求了资源门判定（监控参数区含 --gate-required/--gate-workers）。
 
-    F-CI-002-04/06（owner 裁决原则一致化应用, 2026-09-11）：CI 注册表当前
-    零旗标（构建/打包/单测非重计算面）；本合同面向未来注册的重计算检查
-    （REAL-001 等）——请求判定就必须兑现判定证据。旗标必须在 `--` 之前的
-    监控包装器参数区（`--` 后属被监控子命令，不算请求）。
+    实现已收敛到 eng/ci/monitor_evidence.gate_requested（run.py / run_checks.py
+    单一实现点）；旗标必须在 `--` 之前的监控包装器参数区（`--` 后属被监控
+    子命令，不算请求）。
     """
-    cmd = check.get("command", [])
-    head = cmd[:cmd.index("--")] if "--" in cmd else cmd
-    return "--gate-required" in head or "--gate-workers" in head
+    return _mon_ev.gate_requested(list(check.get("command", [])))
 
 
-def monitor_gate_evidence_gap(check: dict, repo: Path) -> str | None:
-    """CI-001：请求了资源门判定的检查，监控证据必须含 frozen_gate（evaluate 已调用）。
+def monitor_gate_evidence_gap(check: dict, repo: Path,
+                             require_frozen_gate: bool | None = None) -> str | None:
+    """requires_monitor 监控证据的 fail-closed 判定（委托单一实现点）。
 
-    F-CI-002-04/06 收窄（owner 裁决原则一致化应用, 2026-09-11）：仅当命令
-    请求了判定（monitor_gate_requested）才校验；未请求判定的监控检查
-    （requires_monitor 仅采样留证）不强制 frozen_gate。
-
-    在登记 outputs 中定位监控证据 JSON（含 "cpu_samples" 键，即 run_monitored
-    证据结构）并校验 frozen_gate.verdict ∈ {pass, not_applicable}：
-      - verdict == "fail"：run_monitored 约定以 exit 10 传导门禁失败，走到本
-        判定说明退出码与证据矛盾（伪造/旧版监控器），一律 fail-closed；
-      - frozen_gate 缺失/非法：监控未调用 evaluate 或证据被篡改，fail-closed；
-      - outputs 中无任何监控证据 JSON：requires_monitor 检查必须有监控证据。
+    GATE-501（D-12 二选一落地，取「真强制」分支）语义：
+      1. requires_monitor=true ⇒ 必须产出监控证据（outputs 含 cpu_samples）；
+         缺失/不可解析 ⇒ FAIL(monitor_gate_missing)（不再只看命令旗标）；
+      2. 命令请求了判定（--gate-required/--gate-workers）⇒ 证据必须含
+         frozen_gate.verdict ∈ {pass, not_applicable}；
+      3. 证据含 frozen_gate ⇒ 四条 L2 冻结判据 fail-closed 复核，违规即红
+         （D-10「恒真门」在 CI 裁决面的堵口）。
 
     返回 None = 证据齐备；否则返回原因串（verdict 判 FAIL(monitor_gate_missing)）。
     """
-    found = False
-    for rel in check.get("outputs", []):
-        path = repo / rel
-        if not path.is_file():
-            continue
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            continue
-        if not isinstance(data, dict) or "cpu_samples" not in data:
-            continue
-        found = True
-        gate = data.get("frozen_gate")
-        if not isinstance(gate, dict):
-            return (f"监控证据 {rel} 缺 frozen_gate 判定"
-                    "（监控未调用 evaluate → FAIL(monitor_gate_missing), fail-closed）")
-        verdict = gate.get("verdict")
-        if verdict not in ("pass", "not_applicable"):
-            return (f"监控证据 {rel} 的 frozen_gate.verdict 非法或与退出码矛盾："
-                    f"{verdict!r}（fail-closed）")
-    if not found:
-        return ("登记 outputs 中未找到含 cpu_samples 的监控证据 JSON"
-                "（requires_monitor 检查必须产出含 frozen_gate 的监控证据, fail-closed）")
-    return None
+    return _mon_ev.monitor_evidence_gap(check, repo,
+                                        require_frozen_gate=require_frozen_gate)
 
 
 def silent_failure(check: dict, stdout_tail: str, stderr_tail: str) -> bool:
@@ -786,7 +762,13 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
     if strict_workspace:
         ignore_exact |= set(check.get("dirty_ignore_exact", []))
         ignore_prefixes += list(check.get("dirty_ignore_prefixes", []))
-    dirty_checked = strict_workspace and not check["mutates_workspace"]
+    # GATE-501（D-12 二选一落地，取「真强制」分支）：mutates_workspace=true
+    # **不再**无条件跳过前后对比（旧行为是自我豁免）。语义改为「声明可写面」：
+    #   * false：登记 outputs / dirty_ignore_* 之外的任何改动 = FAIL(dirty)（不变）；
+    #   * true ：可写面 = 登记 outputs ∪ dirty_ignore_*；写出该面之外 = FAIL(dirty)。
+    # 运行期可写面由登记面决定（写共享树必须显式登记），是否独占执行由
+    # eng/ci/run_checks.py 的分道器按同一字段裁决。
+    dirty_checked = strict_workspace
     before = snapshot_status(repo) if dirty_checked else {}
 
     env = dict(os.environ)
@@ -946,13 +928,14 @@ def execute_check(check: dict, repo: Path, out_root: Path, platform: str,
                 "exit 0 且 stdout/stderr 均为空：空 outputs 检查无任何内容级"
                 "证据（静默失败不可发现）；如架构上必须静默，请登记"
                 " waivable 或产生 stdout/stderr 留痕")
-        elif monitor_gate_requested(check):
-            # CI-001 + F-CI-002-04/06（owner 裁决原则一致化应用, 2026-09-11）：
-            # 仅"命令请求了资源门判定"的检查要求监控证据含 frozen_gate 合法
-            # 判定（请求判定就必须兑现判定证据），缺失/非法/矛盾一律
-            # FAIL(monitor_gate_missing)；verdict=fail 路径已在 rc!=0 前置分支
-            # 记 V_FAIL（run_monitored 约定 gate fail → exit 10）。未请求判定
-            # 的监控检查（requires_monitor 仅采样留证）不强制 frozen_gate。
+        elif check.get("requires_monitor"):
+            # GATE-501（D-12 二选一落地，取「真强制」分支）：
+            # requires_monitor=true 即必须监控——证据缺失/不可解析一律
+            # FAIL(monitor_gate_missing)（fail-closed，不再只看命令旗标）；
+            # 命令请求了判定（--gate-required/--gate-workers）时证据还必须含
+            # 合法 frozen_gate，且四条 L2 冻结判据按 fail-closed 复核（违规即红）。
+            # verdict=fail 路径已在 rc!=0 前置分支记 V_FAIL（run_monitored 约定
+            # gate fail → exit 10）。
             gap = monitor_gate_evidence_gap(check, repo)
             if gap is not None:
                 result["verdict"] = V_GATE_MISSING
