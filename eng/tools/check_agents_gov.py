@@ -36,8 +36,14 @@
   python3 eng/tools/check_agents_gov.py --self-test
 
 --self-test（ENGINEERING_SPEC §8「可执行负例面」）：在 tempfile 造的 mini-repo 上跑
-4 正例 + 6 负例（§5 科学红线反转 / 语义族整条删除 / 「本文档」自称唯一最高 /
-旧权威回归 / 旧权威对象同名重建 / 扫描面为空 fail-closed），全部符合预期则自身 exit 0。
+6 正例 + 10 负例（科学红线反转 / 语义族整条删除 / 「本文档」自称唯一最高 /
+旧权威回归 / 旧权威对象同名重建 / 扫描面为空 fail-closed / **硬禁令节标题被删** /
+**硬禁令节正文被清空** / **§0 权威声明被删** / **权威声明被反转**；
+正例含**硬禁令节编号平移**与**权威声明同义表述**），全部符合预期则自身 exit 0。
+
+口径修复（2026-09-21 BLD-401 R2；AGENTS.md / ASTROCS_DESIGN.md 逐字节冻结，只能改
+检查器）：[1] 三节结构断言按**标题**定位而非按节号（现行 AGENTS.md 硬禁令在 §6）；
+[5] §0 权威声明按**语义**判定（接受「以本文为准」/「以本文档为准」等等价自指表述）。
 能红能绿历史证据（1 正例 + 7 负例）：run/PROJECT-GOVERNANCE-01/GOV-001/fixtures/
 （runtime 验证脚本 verify_checkers.py，正例 = 真实仓库 rc=0）。
 exit 0 = PASS；任一断言不成立 = exit 1（打印机器 JSON）。
@@ -76,6 +82,19 @@ NON_BINDING_MARKERS = ["ARCHIVED_NON_NORMATIVE", "ARCHIVED", "已删", "已删�
 LEGACY_BINDING_STRONG = ["权威", "上位", "最高", "FROZEN", "ACTIVE_NORMATIVE", "必读",
                          "冻结", "约束", "依据"]
 SELF_AUTHORITY_RE = re.compile(r"唯一\s*最高(权威|约束|规范|文档)")
+# §0 权威声明：按**语义**判定「本文件与其它文档冲突时以本文件为准」。
+# 口径修复（2026-09-21 BLD-401 R2）：旧判据要求逐字「以本文为准」，而
+# ASTROCS_DESIGN.md §0 写的是「以本文档为准」⇒ 真仓恒判红。自指表述
+# （本文/本文档/本文件/本设计/本规范）在语义上等价，一律接受；判据仍要求
+# **不可让渡**的声明本身（"以本 X 为准"），"以别的文档为准"这类反转照旧判红
+# （见 --self-test N9/N10）。
+DESIGN_AUTHORITY_RE = re.compile(r"以\s*本(?:文档|文件|设计|规范|文)\s*为准")
+# [1] 结构断言：三节一律**按标题**定位（节号可随文档重排移动）
+STRUCTURE_SECTIONS = (
+    ("开工前必读", ("开工前必读",)),
+    ("硬禁令", ("硬禁令",)),
+    ("停止点", ("停止点", "停下来问负责人")),
+)
 # 声明"唯一最高"时必须出现的自指文件（ASTROCS_DESIGN.md 自身或其等价描述）
 DESIGN_SELF_RE = re.compile(r"(本文|本文件|本设计|ASTROCS_DESIGN\.md)")
 
@@ -146,9 +165,25 @@ def read(path: str) -> str:
 
 
 def section(text: str, num: int) -> str:
-    """取 ## <num>. 标题到下一个同级标题之间的正文。"""
+    """取 ## <num>. 标题到下一个同级标题之间的正文（按节号；仅历史用途）。"""
     m = re.search(r"^##\s*%d\.[^\n]*\n(.*?)(?=^##\s|\Z)" % num, text, re.S | re.M)
     return m.group(1) if m else ""
+
+
+def section_by_title(text: str, keywords):
+    """按**标题**（而不是节号）定位 `## <num>. <标题>` 节，返回 (节号, 正文)。
+
+    为什么按标题（口径修复，2026-09-21 BLD-401 R2）：**节号是排版，标题才是语义锚**。
+    现行 AGENTS.md 把硬禁令放在 §6（§5 是「科学工作纪律」），而旧判据把节号 5 写死
+    ⇒ 在真实仓库恒定误报 13 条（"语义族在硬禁令中无对应条款" + 条数/否定式），
+    把 P0 判据变成噪声、且真正删掉硬禁令节时反而看不出来。按标题定位后判据对
+    「文档重排 / 在中间插入新节 / 节号平移」免疫，同时**仍然**要求该标题节真实存在
+    且非空 —— 删掉节或清空正文照旧判红（见 --self-test N7/N8）。
+    """
+    for m in re.finditer(r"^##\s*(\d+)\.([^\n]*)\n(.*?)(?=^##\s|\Z)", text, re.S | re.M):
+        if any(k in m.group(2) for k in keywords):
+            return int(m.group(1)), m.group(3)
+    return None, ""
 
 
 def bullets(block: str) -> list:
@@ -229,9 +264,9 @@ def check_authority_chain(root: str, v: list, notes: dict) -> None:
     if not sec0.strip():
         v.append({"check": "design_authority_declaration", "detail": "§0 权威声明缺失或为空"})
         return
-    if "以本文为准" not in sec0:
+    if not DESIGN_AUTHORITY_RE.search(sec0):
         v.append({"check": "design_authority_declaration",
-                  "detail": "§0 未声明「以本文为准」（最高权威不可让渡）"})
+                  "detail": "§0 未声明「以本文档为准」（最高权威不可让渡）"})
     # 权威链顺序：按 §0 mermaid 权威节点标签在本节中的出现次序
     labels = re.findall(r'^\s*([A-Za-z][A-Za-z0-9]*)\["([^"]+)"\]', sec0, re.M)
     mapped = []
@@ -327,30 +362,33 @@ def run_check(root: str):
     else:
         text = read(apath)
 
-    # [1] 结构
-    secs = {n: section(text, n) for n in (1, 5, 8)}
-    for n, name in ((1, "开工前必读"), (5, "硬禁令"), (8, "停止点")):
-        ok = bool(secs[n].strip())
-        checks.append({"check": "section_%d_present" % n, "pass": ok, "detail": name})
+    # [1] 结构：按**标题**定位（节号是排版，标题才是语义锚；见 section_by_title）
+    secs = {}
+    for name, keys in STRUCTURE_SECTIONS:
+        num, body = section_by_title(text, keys)
+        secs[name] = body
+        ok = bool(body.strip())
+        checks.append({"check": "section_present:" + name, "pass": ok,
+                       "detail": "标题含「%s」（实测 §%s）" % ("/".join(keys), num)})
         if not ok:
-            violations.append({"check": "section_%d_present" % n,
-                              "detail": "§%d %s 缺失或为空" % (n, name)})
+            violations.append({"check": "section_present:" + name,
+                              "detail": "标题含「%s」的节缺失或为空" % "/".join(keys)})
 
     # [2] 硬禁令逐条抽取
-    clause_list = bullets(secs[5])
+    clause_list = bullets(secs["硬禁令"])
     clauses = [c for c in clause_list if len(c) >= CLAUSE_MIN_CHARS]
     notes["hard_rule_count"] = len(clauses)
     if len(clauses) < FAMILY_MIN:
         violations.append({"check": "hard_rule_count",
-                          "detail": "§5 硬禁令条数 %d < %d" % (len(clauses), FAMILY_MIN)})
+                          "detail": "硬禁令节条数 %d < %d" % (len(clauses), FAMILY_MIN)})
     empties = [c for c in clause_list if len(c) < CLAUSE_MIN_CHARS]
     if empties:
         violations.append({"check": "hard_rule_nonempty",
-                          "detail": "§5 存在空/占位禁令: %s" % empties[:3]})
+                          "detail": "硬禁令节存在空/占位禁令: %s" % empties[:3]})
     neg = [c for c in clauses if not NEG_FORM_RE.search(c)]
     if neg:
         violations.append({"check": "hard_rule_negative_form",
-                          "detail": "§5 非否定式/硬约束式条款: %s" % [c[:40] for c in neg[:3]]})
+                          "detail": "硬禁令节非否定式/硬约束式条款: %s" % [c[:40] for c in neg[:3]]})
 
     # [3] 语义族覆盖
     covered = []
@@ -360,7 +398,7 @@ def run_check(root: str):
             covered.append(name)
         else:
             violations.append({"check": "family:" + name,
-                              "detail": "§5 语义族「%s」在硬禁令中无对应条款" % name})
+                              "detail": "语义族「%s」在硬禁令节中无对应条款" % name})
     notes["families_covered"] = covered
 
     # [3b] 语义族反转/松绑检测（CI-003-E）
@@ -371,7 +409,7 @@ def run_check(root: str):
             if not forbidden_hit(c, pat):
                 continue
             violations.append({"check": "family_reversal:" + fam,
-                              "detail": "§5 语义族「%s」被改写成反转/松绑措辞: %s —— %s"
+                              "detail": "语义族「%s」被改写成反转/松绑措辞: %s —— %s"
                               % (fam, c[:70], why)})
             break
 
@@ -382,7 +420,7 @@ def run_check(root: str):
             if base.endswith((".md", ".json", ".yaml")) or "/" in base:
                 if base not in CITED_ALLOWED and not base.startswith("docs/"):
                     violations.append({"check": "clause_authority_ref",
-                                      "detail": "§5 条款引用未知权威: %s" % base})
+                                      "detail": "硬禁令条款引用未知权威: %s" % base})
     violations += violations_legacy_binding(text, AGENTS)
 
     # [5] 权威链
@@ -610,6 +648,50 @@ def self_test() -> int:
         _mini_repo(p4)
         _write(os.path.join(p4, "AstroCS_ENGINEERING_CONSTRAINTS.md"), SELFTEST_LEGACY_ARCHIVED)
         case("P4 同名重建但正文标明历史参照（正例）", "pass", p4)
+
+        # P5：硬禁令节编号平移（§5→§7）仍绿 —— 证明判据按标题而非节号定位
+        p5 = os.path.join(tmp, "p5-renumbered")
+        _mini_repo(p5)
+        _edit(os.path.join(p5, AGENTS),
+              "## 5. 硬禁令（违反即回退）", "## 7. 硬禁令（违反即回退）")
+        case("P5 硬禁令节编号平移（§5→§7）仍绿", "pass", p5)
+
+        # P6：权威声明同义表述「以本文档为准」仍绿（ASTROCS_DESIGN.md §0 现行写法）
+        p6 = os.path.join(tmp, "p6-authority-synonym")
+        _mini_repo(p6)
+        _edit(os.path.join(p6, DESIGN), "以本文为准", "以本文档为准")
+        case("P6 权威声明同义表述「以本文档为准」仍绿", "pass", p6)
+
+        # N7：硬禁令节的**标题**被改掉（节号还在、正文还在）⇒ 判红
+        n7 = os.path.join(tmp, "n7-hardrules-renamed")
+        _mini_repo(n7)
+        _edit(os.path.join(n7, AGENTS),
+              "## 5. 硬禁令（违反即回退）", "## 5. 工作纪律")
+        case("N7 硬禁令节标题被删（改名）⇒ 判红", "fail", n7, "section_present:硬禁令")
+
+        # N8：硬禁令节标题还在、正文被整段清空 ⇒ 判红（空骨架冒充）
+        n8 = os.path.join(tmp, "n8-hardrules-emptied")
+        _mini_repo(n8)
+        _p8 = os.path.join(n8, AGENTS)
+        _t8 = read(_p8)
+        _s8 = _t8.index("## 5. 硬禁令（违反即回退）")
+        _e8 = _t8.index("## 8. 何时必须停下来问负责人")
+        _write(_p8, _t8[:_s8] + "## 5. 硬禁令（违反即回退）\n\n" + _t8[_e8:])
+        case("N8 硬禁令节正文被整段清空 ⇒ 判红", "fail", n8, "section_present:硬禁令")
+
+        # N9：§0 权威声明被整句删掉 ⇒ 判红（最高权威不可让渡）
+        n9 = os.path.join(tmp, "n9-authority-gone")
+        _mini_repo(n9)
+        _edit(os.path.join(n9, DESIGN),
+              "本设计为项目最高权威，与其他文档冲突时以本文为准。\n", "")
+        case("N9 §0 权威声明被删 ⇒ 判红", "fail", n9, "design_authority_declaration")
+
+        # N10：权威声明被反转（以别的文档为准）⇒ 判红
+        n10 = os.path.join(tmp, "n10-authority-reversed")
+        _mini_repo(n10)
+        _edit(os.path.join(n10, DESIGN), "以本文为准", "以别的文档为准")
+        case("N10 权威声明反转（以别的文档为准）⇒ 判红", "fail", n10,
+             "design_authority_declaration")
 
         ok = all(r["ok"] for r in results)
         report = {"tool": "eng/tools/check_agents_gov.py", "mode": "self-test",

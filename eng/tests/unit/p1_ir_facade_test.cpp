@@ -73,7 +73,8 @@ int main() {
 
   // 5) 每个声明阶段有对应测试 (TEST 层覆盖) — 4 阶段映射到既有测试
   {
-    std::string unit_dir = base + "/tests/unit";
+    // BLD-401: 路径随 2026-09-21 根目录整合订正（tests/ → eng/tests/）
+    std::string unit_dir = base + "/eng/tests/unit";
     // 检查 unit 测试目录存在 (P1-002/003/004/007 已覆盖各阶段)
     std::ifstream d(unit_dir + "/p1_calibration_test.cpp");
     CHECK(d.is_open());

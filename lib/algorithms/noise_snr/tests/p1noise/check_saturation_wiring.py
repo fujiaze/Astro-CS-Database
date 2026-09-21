@@ -21,7 +21,11 @@ import sys
 
 def find_repo(start: pathlib.Path) -> pathlib.Path:
     for p in [start, *start.parents]:
-        if (p / "config" / "defaults.json").exists() and (p / "docs" / "science").is_dir():
+        # BLD-401: 路径随 2026-09-21 根目录整合订正（config/ → eng/packaging/config/）。
+        # 旧锚点在现行树恒不命中 ⇒ find_repo 回退到脚本自身目录 ⇒ W1/W2/W3 全部
+        # 以"文件不存在"失败（判据未真正执行）。
+        if (p / "eng" / "packaging" / "config" / "defaults.json").exists() \
+                and (p / "docs" / "science").is_dir():
             return p
     return start
 
@@ -42,8 +46,8 @@ def fail(cid, msg):
 # ---- W1: defaults.json 登记 ----
 try:
     # 2026-09-21 根目录整合：config/ → eng/packaging/config/。
-        defaults = json.loads((REPO / "eng" / "packaging" / "config"
-                               / "defaults.json").read_text(encoding="utf-8"))
+    defaults = json.loads((REPO / "eng" / "packaging" / "config"
+                           / "defaults.json").read_text(encoding="utf-8"))
     fields = {f["key"]: f for f in defaults["fields"]}
     sat = fields.get("noise.saturation_level")
     if sat is None:

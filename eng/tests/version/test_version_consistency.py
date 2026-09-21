@@ -320,6 +320,129 @@ class TestLifecycleBoundary(unittest.TestCase):
                             f"未登记的生命周期边界值必须 FAIL(fail-closed): {errs_bad}")
 
 
+# ── BLD-401 R3: 第三方工具版本口径 ───────────────────────────────────────────
+class TestExternalToolVersionExemption(unittest.TestCase):
+    """docs/research/*RESEARCH_PACK.md 的**第三方工具版本**不得被判为产品版本;
+    同时真产品版本漂移仍须 FAIL —— 口径只准更精确、不准更宽松。
+
+    事由: 研究包「开源对照」表把 SWarp 2.41.5 / DeepSkyStacker-DSS 6.2.2 /
+    SExtractor 2.28.2 写在表里, 旧口径当"未知产品版本字面量" ⇒ 真仓恒 FAIL(7 条),
+    遮蔽 test_04/test_13。这些是外部工具/文献版本(溯源锚, DOC-404 逐字校验),
+    不是本项目版本声明 —— 与 R-08 / W4-A3 同款: 修口径, 不改研究包。
+
+    覆盖形态（均为研究包实测写法）:
+      P 表格"工具名单元格 | 版本单元格"与单元格内"工具名 版本";
+      N1 真项目版本号写错必须 FAIL;
+      N2 工具名与字面量之间出现产品版本语境词 ⇒ 必须 FAIL;
+      N3 同行"工具版本 + 产品版本"里的产品版本必须 FAIL;
+      N4 alpha 漂移不得被工具豁免掩盖;
+      N5 间隔超出上限的字面量不得被吸附豁免。
+    """
+
+    EXTERNAL_LINES = [
+        # docs/research/PHOTOMETRY_RESEARCH_PACK.md:134 实测行
+        "| O7 | **SWarp**（GPL-3.0） | 2.41.5 | `src/coadd.c:292`（`coadd_fields()`：逐像素组合主入口） |",
+        # docs/research/SNR_WEIGHT_RESEARCH_PACK.md:172 实测行
+        "| **SWarp**（GPL-3.0） | 2.41.5 | `src/coadd.c:292`（`coadd_fields`）；`src/back.c:413`（`backstat`） |",
+        # docs/research/SNR_WEIGHT_RESEARCH_PACK.md:198-199 实测行
+        "| SWarp `coadd.c:1279-1311` | SWarp 2.41.5 | **有效**：`COADD_WEIGHTED` 分支的逐像素逆方差组合循环 |",
+        # docs/research/SNR_WEIGHT_RESEARCH_PACK.md:200-201 实测行
+        "| DeepSkyStacker `RegisterEngine.cpp:86-118` | DeepSkyStacker/DSS 6.2.2 | **有效**：`:86` 为 `CRegisteredFrame::ComputeScore` |",
+        # docs/research/SNR_WEIGHT_RESEARCH_PACK.md:202 实测行
+        "| SExtractor `analyse.c:200-203,304-310` | SExtractor 2.28.2 | **有效**：`:200-203` 为 FLUXERR 方差累加 |",
+    ]
+
+    def test_19_external_tool_versions_not_flagged(self):
+        """P: 修复前必被抓（先红证据）+ 修复后零误报。"""
+        m = load_checker()
+        b, a = _base_alpha()
+        for line in self.EXTERNAL_LINES:
+            self.assertTrue(m.BASE_RE.findall(line),
+                            f"样本必须能被旧口径命中, 否则用例失去回归意义: {line}")
+        with tempfile.TemporaryDirectory() as td:
+            os.makedirs(os.path.join(td, "docs"))
+            p = os.path.join(td, "docs", "PACK.md")
+            with open(p, "w", encoding="utf-8") as f:
+                f.write("\n".join(self.EXTERNAL_LINES) + "\n")
+            errs = []
+            m.check_file(p, b, a, errs)
+            self.assertEqual(errs, [], f"第三方工具版本不得判为产品版本: {errs}")
+
+    def test_20_product_version_drift_still_fails(self):
+        """N1/N2/N3: 真产品版本漂移必须 FAIL —— 豁免不得把研究包变成"免检区"。"""
+        m = load_checker()
+        b, a = _base_alpha()
+        with tempfile.TemporaryDirectory() as td:
+            os.makedirs(os.path.join(td, "docs"))
+            p = os.path.join(td, "docs", "MIXED.md")
+            cases = [
+                "发布版本: 1.2.3 正式版",
+                "SWarp 对照：本项目版本 9.9.9",
+                "| SWarp | 2.41.5 | 产品版本 9.9.9 |",
+            ]
+            for line in cases:
+                with open(p, "w", encoding="utf-8") as f:
+                    f.write(line + "\n")
+                errs = []
+                m.check_file(p, b, a, errs)
+                self.assertTrue(any("9.9.9" in e or "1.2.3" in e for e in errs),
+                                f"产品版本漂移必须 FAIL: {line!r} -> {errs}")
+            # 对照: 同一文件只留第三方工具版本行时必须回到零误报
+            with open(p, "w", encoding="utf-8") as f:
+                f.write("| SWarp | 2.41.5 |\n")
+            errs_ok = []
+            m.check_file(p, b, a, errs_ok)
+            self.assertEqual(errs_ok, [], f"对照行必须零误报: {errs_ok}")
+
+    def test_21_alpha_drift_and_gap_limit_not_masked(self):
+        """N4/N5: alpha 漂移与超距字面量都不得被工具名豁免吸附。"""
+        m = load_checker()
+        b, a = _base_alpha()
+        with tempfile.TemporaryDirectory() as td:
+            os.makedirs(os.path.join(td, "docs"))
+            p = os.path.join(td, "docs", "GUARD.md")
+            with open(p, "w", encoding="utf-8") as f:
+                f.write("| SWarp 2.41.5 | 当前版本 %s-alpha.%d |\n" % (b, a + 1))
+            errs = []
+            m.check_file(p, b, a, errs)
+            self.assertTrue(any("alpha 版本漂移" in e for e in errs),
+                            f"工具豁免不得掩盖 alpha 漂移: {errs}")
+            with open(p, "w", encoding="utf-8") as f:
+                f.write("SWarp " + ("x" * (m.EXTERNAL_TOOL_GAP_MAX + 10)) + " 9.9.9\n")
+            errs2 = []
+            m.check_file(p, b, a, errs2)
+            self.assertTrue(any("9.9.9" in e for e in errs2),
+                            f"超出间隔上限的字面量不得被吸附豁免: {errs2}")
+
+    def test_22_real_research_packs_zero_false_positive(self):
+        """负例: 真实研究包零误报, 且第三方版本锚必须原样保留（DOC-404 禁改写）。"""
+        m = load_checker()
+        b, a = _base_alpha()
+        packs = {
+            os.path.join("docs", "research", "PHOTOMETRY_RESEARCH_PACK.md"):
+                ("**SWarp**（GPL-3.0） | 2.41.5",),
+            os.path.join("docs", "research", "SNR_WEIGHT_RESEARCH_PACK.md"):
+                ("SWarp 2.41.5", "DeepSkyStacker/DSS 6.2.2", "SExtractor 2.28.2"),
+        }
+        for rel, anchors in packs.items():
+            path = os.path.join(REPO, rel)
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+            for anchor in anchors:
+                self.assertIn(anchor, text, f"第三方版本锚是溯源证据, 不得改写: {rel} {anchor}")
+            errs = []
+            m.check_file(path, b, a, errs)
+            self.assertEqual(errs, [], f"研究包第三方工具版本必须零误报: {rel} {errs}")
+
+    def test_23_checker_self_test_cli_passes(self):
+        """--self-test（可执行负例面）必须 rc=0, 且与 CI 同 argv 形态。"""
+        r = subprocess.run([sys.executable, "-B", CHECKER, "--self-test"],
+                           capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", cwd=REPO, timeout=120)
+        self.assertEqual(r.returncode, 0, f"检查器 --self-test 必须全绿:\n{r.stdout}\n{r.stderr}")
+        self.assertIn("SELF_TEST PASS", r.stdout)
+
+
 # ── 故障注入守卫 (裁决 R-08 自证: 新用例必须"注入必败"、未注入必绿) ──────────
 # 本类把上面的条款号用例当作被试对象做 meta 测试: 对检查器施加"过宽/过窄"两类
 # 故障注入, 断言子进程里的用例必须变红; 未注入时必须全绿。
@@ -329,6 +452,9 @@ MUTATION_GUARD_ENV = "CI_VER_CHK_MUTATION_GUARD"
 # 注入锚点随判据更新（锚必须逐字命中现行源码，否则守卫本身失效 ——
 # test_14 的 assertIn 就是这条要求的机器判据）。
 MASK_CALL = "for m in BASE_RE.finditer(scan_line):"
+# BLD-401 R3: 第三方工具版本豁免在 scan_line 组装链上（锚必须逐字命中现行源码）
+EXT_MASK_CALL = ("scan_line = mask_external_tool_versions("
+                 "mask_lifecycle_boundaries(mask_standard_clause_numbers(line)))")
 MUTATIONS = {
     # 过窄: 取消条款号豁免 → §2.1.1 等再现 19 条误报
     "masking_disabled": (MASK_CALL, "for m in BASE_RE.finditer(line):"),
@@ -354,6 +480,16 @@ MUTATIONS = {
         "        for i, line in enumerate(f, 1):",
         "        for i, _raw in enumerate(f, 1):\n"
         "            line = ' ' * len(_raw) if '\u00a7' in _raw else _raw"),
+    # BLD-401 R3 第三方工具版本口径的双向守卫:
+    # 过窄: 取消工具版本豁免 → 研究包 7 条误报再现 (test_19/test_22 必败)
+    "external_tool_mask_disabled": (
+        EXT_MASK_CALL,
+        "scan_line = mask_lifecycle_boundaries(mask_standard_clause_numbers(line))"),
+    # 过宽: 行内出现工具名即挖空整行 → 同行产品版本漂移被放行 (test_20/test_21 必败)
+    "external_tool_mask_whole_line": (
+        EXT_MASK_CALL,
+        "scan_line = (' ' * len(line)) if EXTERNAL_TOOL_NAME_RE.search(line) "
+        "else mask_lifecycle_boundaries(mask_standard_clause_numbers(line))"),
 }
 CHILD_TESTS = [
     "test_version_consistency.TestStandardClauseExclusion." + n for n in (
@@ -367,6 +503,11 @@ CHILD_TESTS = [
         "test_16_lifecycle_boundary_value_is_not_product_version",
         "test_17_product_version_claim_in_same_object_still_fails",
         "test_18_lifecycle_table_column_is_fail_closed",
+    )] + [
+    "test_version_consistency.TestExternalToolVersionExemption." + n for n in (
+        "test_19_external_tool_versions_not_flagged",
+        "test_20_product_version_drift_still_fails",
+        "test_21_alpha_drift_and_gap_limit_not_masked",
     )]
 
 

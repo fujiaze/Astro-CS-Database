@@ -44,6 +44,59 @@ HELP_LINES = [
 ]
 
 
+def _strip_cpp_literals(text):
+    """去掉 C++ 注释与字符串/字符字面量，只留代码骨架。
+
+    BLD-401 口径修复（2026-09-21）：退出码单源判据问的是"退出码**数值表**有没有被
+    复制到别的**代码**里"；诊断**消息文本**里出现 `rc=10)` 不是数值表。
+    实测：commands.cpp:796 的字符串
+    `"pipeline failed (rc=10): disk full classified at the failure site "`
+    触发旧正则 `=\\s*(70|10)\\s*[,;/)]` ⇒ UT-CLI 唯一一条假红。
+    只挖注释/字面量，**代码面**的 `= 10;` / `= 70;` 照旧被抓（负例见 test_10）。
+    """
+    out = []
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < n else ""
+        if ch == "/" and nxt == "/":                      # 行注释
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+        elif ch == "/" and nxt == "*":                    # 块注释
+            j = text.find("*/", i + 2)
+            i = n if j < 0 else j + 2
+        elif ch in "\"'":                                # 字符串/字符字面量
+            quote = ch
+            i += 1
+            while i < n:
+                if text[i] == "\\":
+                    i += 2
+                    continue
+                if text[i] == quote:
+                    i += 1
+                    break
+                if text[i] == "\n":                      # 未闭合（原始串/续行）→ 停在本行
+                    break
+                i += 1
+            out.append('""')
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
+
+
+def _exit_code_numeric_leaks(cli_dir):
+    """返回把退出码数值写进 exit_codes.h 之外文件的文件名（只算**代码**面）。"""
+    hits = []
+    for fn in sorted(os.listdir(cli_dir)):
+        if fn.endswith((".cpp", ".h")) and fn != "exit_codes.h":
+            with open(os.path.join(cli_dir, fn), encoding="utf-8") as fh:
+                code = _strip_cpp_literals(fh.read())
+            if re.search(r"=\s*(70|10)\s*[,;/)]", code) or "ARGS  = 2" in code:
+                hits.append(fn)
+    return hits
+
+
 def cli_binary():
     env = os.environ.get("ASTROCS_CLI_BIN")
     if env and os.path.isfile(env):
@@ -224,16 +277,34 @@ class TestGolden(unittest.TestCase):
 
     # ── 退出码单源(04 §6-3) ──
     def test_09_exit_codes_single_source(self):
-        hits = []
-        for fn in os.listdir(CLI):
-            if fn.endswith((".cpp", ".h")) and fn != "exit_codes.h":
-                with open(os.path.join(CLI, fn), encoding="utf-8") as fh:
-                    text = fh.read()
-                if re.search(r"=\s*(70|10)\s*[,;/)]", text) or "ARGS  = 2" in text:
-                    hits.append(fn)
+        hits = _exit_code_numeric_leaks(CLI)
         self.assertEqual(hits, [], "退出码数值表泄漏到: %s" % hits)
         with open(os.path.join(CLI, "exit_codes.h"), encoding="utf-8") as fh:
             self.assertIn("INTERNAL      = 70", fh.read())
+
+    def test_10_exit_code_leak_detector_red_green(self):
+        """判据自证（BLD-401）: 真把数值写进**代码**必红; 消息文本/注释里的 rc=10 不红。
+
+        旧判据把诊断字符串当数值表 ⇒ 假红（commands.cpp:796）；本用例锁定"能红能绿"：
+        去掉字面量后判据只收窄误报面，代码面的数值复制照旧必须抓到。
+        """
+        with tempfile.TemporaryDirectory() as td:
+            with open(os.path.join(td, "msg.cpp"), "w", encoding="utf-8") as fh:
+                fh.write('const char* m = "pipeline failed (rc=10): disk full";\n'
+                         "// 兜底: rc=10) 归并\n"
+                         "/* INTERNAL = 70 归并路径 */\n"
+                         "int rc = astrocs::RESOURCE;\n")
+            self.assertEqual(_exit_code_numeric_leaks(td), [],
+                             "诊断消息文本/注释不得被判为退出码数值表")
+            with open(os.path.join(td, "leak.cpp"), "w", encoding="utf-8") as fh:
+                fh.write("static const int kInternal = 70;\n")
+            self.assertEqual(_exit_code_numeric_leaks(td), ["leak.cpp"],
+                             "退出码数值写进代码必须判红")
+            os.remove(os.path.join(td, "leak.cpp"))
+            with open(os.path.join(td, "leak2.cpp"), "w", encoding="utf-8") as fh:
+                fh.write("int code = 10;  // RESOURCE\n")
+            self.assertEqual(_exit_code_numeric_leaks(td), ["leak2.cpp"],
+                             "退出码数值写进代码必须判红(赋值形态)")
 
 
 class TestManifestIncomplete(unittest.TestCase):

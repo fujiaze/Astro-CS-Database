@@ -933,6 +933,10 @@ static void test_determinism() {
     // FIX-405 G3-12（ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）：
     // 真实 Phase2 产物不得再承载 weight_mode 键；方差面状态由语义键承接
     // （非退化：替代键必须同时在位，缺键 fail-closed 面不因删键而消失）。
+    // BLD-401 空断言充数修复（AGENTS.md §9）：产物文件缺失 ⇒ intj/finj 为空 ⇒
+    // 下面两条 find(...)==npos 恒真（"禁 weight_mode 键"会静默变成恒真门）。
+    CHECK_MSG(!intj.empty() && !finj.empty(),
+              "p2_integrated.json / p2_final.json must be readable (fail-closed)");
     CHECK_MSG(intj.find("\"weight_mode\"") == std::string::npos,
               "p2_integrated.json must not carry the retired weight_mode key");
     CHECK_MSG(finj.find("\"weight_mode\"") == std::string::npos,
