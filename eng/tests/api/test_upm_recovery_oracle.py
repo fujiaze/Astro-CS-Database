@@ -75,7 +75,7 @@ class TestUpmRecoveryOracle(unittest.TestCase):
             f.write(DRIVER)
         cls.exe = os.path.join(cls.tmp, "u")
         r = subprocess.run(["g++", "-std=c++17", "-O3", "-DNDEBUG", "-fopenmp",
-                            f"-I{PH2_INC}", f"-I{PH2}", f"-I{ICOMMON}", f"-I{os.path.join(REPO, 'include')}",
+                            f"-I{PH2_INC}", f"-I{PH2}", f"-I{ICOMMON}", f"-I{os.path.join(REPO, 'lib', 'include')}",
                             f"-I{AIO}", drv, OMP_LIB, os.path.join(AIO, "astro_image_io.dll"),
                             "-lgomp", "-lz", "-lzstd", "-llz4", "-pthread", "-o", cls.exe],
                            capture_output=True, text=True, timeout=600)

@@ -63,7 +63,7 @@ class TestUpmParallel(unittest.TestCase):
         cls.exe = os.path.join(cls.tmp, "upm_drv")
         r = subprocess.run(["g++", "-std=c++17", "-O3", "-DNDEBUG", "-fopenmp",
                             f"-I{PH2_INC}", f"-I{PH2}", f"-I{os.path.join(REPO, 'lib', 'common')}",
-                            f"-I{os.path.join(REPO, 'include')}",
+                            f"-I{os.path.join(REPO, 'lib', 'include')}",
                             f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                             f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
                             cls.drv, OMP_LIB, os.path.join(AIO, "astro_image_io.dll"),

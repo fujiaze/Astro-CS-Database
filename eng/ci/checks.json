@@ -8874,6 +8874,63 @@
       "id": "CHK-SCI502-SKY-KAPPA"
     },
     {
+      "id": "CHK-TEST-DISCRIMINATIVE",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-TEST-DISCRIMINATIVE",
+        "--quiet"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/test-discriminative/test_discriminative.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tests/**",
+        "lib/**",
+        "eng/tools/quality/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CHK-TEST-DISCRIMINATIVE-STEP",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_test_discriminative.py",
+            "--json-out",
+            "run/ci/test-discriminative/test_discriminative.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/test-discriminative/test_discriminative.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "eng/tools/quality/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",
