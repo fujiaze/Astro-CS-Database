@@ -22,7 +22,7 @@ import sys
 import tempfile
 import unittest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 CHECKER = REPO / "eng" / "tools" / "quality" / "check_root_cleanliness.py"
 MANIFEST = REPO / "eng" / "ci" / "root_manifest.json"
 

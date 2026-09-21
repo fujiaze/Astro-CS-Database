@@ -1,9 +1,9 @@
 {
   "schema": "astrocs.known-failures-baseline/v1",
   "repo": "/workspace/Astro CS Database",
-  "source_commit": "9a2b5d11f8c04f741f1b6a2e4b0c2d903d480083",
+  "source_commit": "ee99ca2610238de5f44cc72b08225d6abc5922a9",
   "finding_count": 40,
-  "reproduced_count": 16,
+  "reproduced_count": 15,
   "findings": [
     {
       "finding_id": "F-001",
@@ -283,7 +283,7 @@
     {
       "finding_id": "F-028",
       "severity": "P1",
-      "status": "REPRODUCED",
+      "status": "NOT_REPRODUCED_WITH_EVIDENCE",
       "minimal_command": "grep -n 'prerelease_v5\\|66' eng/tools/check_traceability.py",
       "evidence": [
         "默认读 artifacts/prerelease_v5 或硬编码 66 claims"

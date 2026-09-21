@@ -26,7 +26,7 @@ import unittest
 
 import yaml
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 TOOL = REPO / "eng" / "tools" / "quality" / "check_module_map.py"
 MAP = REPO / "docs" / "modules" / "MODULE_MAP.yaml"
 INDEX = REPO / "docs" / "plugins" / "00_INDEX.md"

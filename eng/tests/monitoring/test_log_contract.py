@@ -23,7 +23,7 @@ import sys
 import tempfile
 import unittest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO))
 
 from lib.infrastructure.observability.logging import log_event as le  # noqa: E402

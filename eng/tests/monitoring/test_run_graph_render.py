@@ -36,7 +36,7 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "pipeline"))
 

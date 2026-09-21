@@ -34,7 +34,7 @@ import sys
 import tempfile
 import unittest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 CHECKER = REPO / "eng" / "tools" / "quality" / "check_secret_hygiene.py"
 PACKER = REPO / "eng" / "tools" / "pack_audit_package.py"
 

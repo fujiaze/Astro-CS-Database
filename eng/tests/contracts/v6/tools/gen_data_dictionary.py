@@ -7,7 +7,7 @@ eng/tests/contracts/v6/v6_oracle.py 独立对拍 —— 生产字典与冻结合
 """
 import json, pathlib, sys
 
-REPO = pathlib.Path(__file__).resolve().parents[4]
+REPO = pathlib.Path(__file__).resolve().parents[5]
 FREEZE = REPO / "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json"
 OUT = REPO / "eng/contracts/data/v6_data_dictionary_v1.json"
 

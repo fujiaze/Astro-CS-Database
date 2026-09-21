@@ -26,8 +26,7 @@ import subprocess
 import sys
 import tempfile
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
 INC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "include")
 SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "src", "capability_detect.c")
 SCHEMA = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "schemas",

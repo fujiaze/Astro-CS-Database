@@ -16,7 +16,7 @@ import pathlib
 import sys
 import unittest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "aio" / "runtime" / "artifact_store"))
 
 from artifact_manifest_validator import Validator, load_strict_json  # noqa: E402

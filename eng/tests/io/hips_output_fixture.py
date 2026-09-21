@@ -18,7 +18,7 @@ import tempfile
 
 import numpy as np
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 INCLUDE = REPO / "lib" / "infrastructure" / "aio" / "io" / "include"
 FITS_CORE = REPO / "lib" / "infrastructure" / "aio" / "io" / "fits_core.c"
 LIB_SO = REPO / "lib" / "infrastructure" / "aio" / "io" / "libfits_core_test.so"
