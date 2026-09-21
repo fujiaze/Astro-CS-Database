@@ -231,7 +231,7 @@
 |---|---|---|---|
 | N1 | **退化判据**（全减背景后看帧间差）对注入 50 e⁻ 的响应 | **0.092σ**（不翻红） | `meta`：恒真反证 |
 | N2 | 非退化判据（保留背景 + off-locus）分离度 | **36.44σ** | `data` |
-| N3 | 样本外假阳性 / A=10 e⁻ 检出率（双边、|D−μ|>5σ，μ=−5.102，σ=0.6266） | **0/60 = 0.0** / **0.975** | `data` |
+| N3 | 样本外假阳性 / A=10 e⁻ 检出率（双边、\|D−μ\|>5σ，μ=−5.102，σ=0.6266） | **0/60 = 0.0** / **0.975** | `data` |
 | N4 | 5σ 检测限（响应斜率 0.449 外推，双边） | **6.975 e⁻** | `data` |
 | N5 | 强平滑**公共**梯度下的假阳性 | 0.0 | `data` |
 | N6 | null 分布高斯性（偏度 / Shapiro p） | 0.074 / 0.858 | `data` |
@@ -260,7 +260,7 @@
 
 | 门 | 量 | 实测 |
 |---|---|---|
-| E1 | dense cache vs sparse `calibrate_block` | **max|Δ| = 3.109e-15**（1,048,576 点；门限 1e-12） |
+| E1 | dense cache vs sparse `calibrate_block` | **max\|Δ\| = 3.109e-15**（1,048,576 点；门限 1e-12） |
 | E2 | 持久化体积 | 稀疏 **14,001 B** vs 稠密 **8,389,129 B**（**0.167%**） |
 | E3 | 峰值 RSS | 按需 64² 块 **11,744 kB** < 稠密物化 512² **14,520 kB** |
 | E4 | 天光面节点占比 / 子集一致性 | 49/262,144 = **1.87e-4**；子集 δ_k、b_k 逐位相同（0.0） |
@@ -287,9 +287,9 @@ SCI-502（commit `d77fd11f`）已在生产代码落地三处修复。**下表区
 
 | 缺陷 | 修复内容（代码事实） | 位置 | 可执行证据 |
 |---|---|---|---|
-| FIX-1 容差 | 生产默认 `tolerance_relative = 1`；相对判据分母 = **观测量稳健尺度** `scale_obs`（`|value|` 中位数），阈值 = `tolerance × max(scale_obs, 1.0)`（近零尺度退化为绝对保护） | `module_adapters.cpp:5994`；`upm.cpp:707-718, 1023-1026` | 有：`synthetic_gate.cpp:5826-5904`（生产尺度下 legacy 绝对容差 converged=0、相对容差 converged=1） |
+| FIX-1 容差 | 生产默认 `tolerance_relative = 1`；相对判据分母 = **观测量稳健尺度** `scale_obs`（`\|value\|` 中位数），阈值 = `tolerance × max(scale_obs, 1.0)`（近零尺度退化为绝对保护） | `module_adapters.cpp:5994`；`upm.cpp:707-718, 1023-1026` | 有：`synthetic_gate.cpp:5826-5904`（生产尺度下 legacy 绝对容差 converged=0、相对容差 converged=1） |
 | FIX-2 状态机 | `converged` 四态 **0=max_iter / 1=converged / 2=stalled / 3=invalid**；stalled 判据 = 相对改善量 < 1e-12 连续 **5** 轮；目标非有限 ⇒ invalid；`scale_obs/rel_improve/stall_count` 随模型持久化 | `upm.cpp:96-108, 1028-1050, 1247-1248` | **无专项测试**：全仓无 `converged==2/3` 用例；仅 59 项既有套件通过 |
-| FIX-3 近奇异 | `p2_sky_plane_build` 返回 `KAPPA_EXCEEDED` 时按 `roughness_penalty` **逐级 ×10** 重试，**上限 6 次总尝试**（1 初 + ≤5 重试）；provenance 落 `sky_plane_kappa`/`_rank`/`_n_params`/`_iterations`/`_chi2_red`/`_node_spacing_deg`/`_roughness_penalty_configured|used`/`_kappa_adaptive_attempts|used`/`_kappa_max`；不放宽 `kappa_max` 求绿 | `module_adapters.cpp:6269-6291, 6325-6331`；`sky_plane.cpp:1000-1003` | **无专项测试**：全仓无 `KAPPA_EXCEEDED`/`kappa_adaptive` 用例 |
+| FIX-3 近奇异 | `p2_sky_plane_build` 返回 `KAPPA_EXCEEDED` 时按 `roughness_penalty` **逐级 ×10** 重试，**上限 6 次总尝试**（1 初 + ≤5 重试）；provenance 落 `sky_plane_kappa`/`_rank`/`_n_params`/`_iterations`/`_chi2_red`/`_node_spacing_deg`/`_roughness_penalty_configured\|used`/`_kappa_adaptive_attempts\|used`/`_kappa_max`；不放宽 `kappa_max` 求绿 | `module_adapters.cpp:6269-6291, 6325-6331`；`sky_plane.cpp:1000-1003` | **无专项测试**：全仓无 `KAPPA_EXCEEDED`/`kappa_adaptive` 用例 |
 
 **验收门对照（SCI-502 任务书验收门）**：
 
@@ -333,7 +333,7 @@ SCI-502（commit `d77fd11f`）已在生产代码落地三处修复。**下表区
 | 要素 | 本域内的裁决 | 证据 |
 |---|---|---|
 | 拟合/堆叠权重同源 | **不可检验**：异源与同源偏差 0.023619 vs 0.023174（差 1.9%，远小于门限 20%） | C1 A8b |
-| 末端残差场扣除 | **近似 no-op**：`m_full_frame=1` 时 |Δ(C+G)| = **3.7e-3 e⁻**；且它是「每 cell 一个常数、对所有帧同减」，**不能**修复子集依赖 | C1 A9 |
+| 末端残差场扣除 | **近似 no-op**：`m_full_frame=1` 时 \|Δ(C+G)\| = **3.7e-3 e⁻**；且它是「每 cell 一个常数、对所有帧同减」，**不能**修复子集依赖 | C1 A9 |
 | 阻尼 α≈0.5 | **本链路不需要**：α=1 亦收敛（4 次迭代，`legacy_rel_tol` converged=1） | C1 相邻门 |
 
 **必须在产品/报告中如实标注**：这三条在本实验域内不可检验，不得把该域内的恒真 PASS 当作「四要素都必要」的证据。四要素中真正被实测支撑的是**排除自身的参考面**（由 C3 B3/B4 与 C4 N2/N3 支撑）与**多退少补保留 B_ref**；权重同源与末端扣除只在含噪/非精确拟合域才可能起作用（本单元的含噪域对照是 C5，只覆盖权重一项）。
@@ -418,4 +418,134 @@ SCI-502（commit `d77fd11f`）已在生产代码落地三处修复。**下表区
 
 ---
 
-<!--APPEND-->
+## 附录 A 数字索引表（关键数字 → 证据文件:字段）
+
+> 统计口径：接缝汇总 = 6 条边界 |值| 的中位（`un_med`/`d_med`）与最大值。C1 的 `excess` 汇总由逐边界字段复算（JSON 未存汇总字段），与 `REVIEW.md` 独立重跑一致。
+
+| # | 数字 | 值 | 证据文件:字段 |
+|---|---|---|---|
+| 1 | 未校正接缝中位 / max（C1） | 4.802 / 6.544 e⁻ | `results/c1_additive.json:seam_summary.un_med,un_max` |
+| 2 | `raw−δ_k` 接缝中位 / max（C1） | 0.383 / 0.850 e⁻ | `results/c1_additive.json:seam_summary.d_med,d_max` |
+| 3 | 全减臂产品中位（C1，退化对照） | 0.845 e⁻ | `results/c1_additive.json:gates.rows[A5].value` |
+| 4 | 全减臂接缝中位（C1） | 0.275 e⁻ | `results/c1_additive.json:seam_summary.b_med` |
+| 5 | 阶跃-注入比值 / 预言斜率 / δ 臂斜率 | 0.9747 / 0.8235 / 0.008678 | `results/c1_additive.json:curve_step_vs_injection.*` |
+| 6 | 失效边界 slope / Pearson / Spearman / 短长比 | 0.7976 / 0.8964 / 0.7714 / 5.072 | `results/c1_additive.json:oob_prediction.*` |
+| 7 | 基外扫描 6 点 (RMS, seam_max) | 见 §4.2 表 | `results/c1_additive.json:out_of_basis_sweep[]` |
+| 8 | 子集不变性 max dev（同源/异源） | 0.023619 / 0.023174 e⁻ | `results/c1_additive.json:element_necessity.weights_same_source.*` |
+| 9 | `final_gauge` no-op | 3.719e-3 e⁻ | `results/c1_additive.json:final_gauge_noop.max_abs_diff` |
+| 10 | 星点通量守恒（相对最大） | 6.60e-6 | `results/c1_additive.json:star_flux.rel_max` |
+| 11 | 绝对容差缺陷（legacy 臂） | converged=0, 300 轮 | `results/c1_additive.json:gates.rows[A7b].value` |
+| 12 | Phase1 后 / 前帧间乘性比偏离 1 | 5.892e-4 / 0.55994 | `results/c2_multiplicative.json:gates.rows[M1].value` |
+| 13 | 未做/做了 Phase1 的接缝 | 27.367 / 6.314 e⁻（4.334×） | `results/c2_multiplicative.json:seam_arms.*.median,seam_ratio_none_over_loworder` |
+| 14 | MA g_k 残差（flat/gradient）与 Phase1 | 0.0376 / 0.1073 / 5.892e-4 | `results/c2_multiplicative.json:ma_g_errors.*` |
+| 15 | 高频匹配滤波 10% / 1% | 0.6926±0.00526（58.4σ）/ 0.6721±0.02302 | `results/c2_multiplicative.json:hf_matched_filter_10pct.*,hf_matched_filter.*` |
+| 16 | PSD 峰 vs 预期（bin=4） | k=26 vs 21.33（`psd_peak_at_injected=false`） | `results/c2_multiplicative.json:hf_component.psd_k_peak,psd_k_expected` |
+| 17 | 高频对电平接缝 max\|Δseam\| / 基线 | 2.139 / 17.496 e⁻（Spearman 0.50） | `results/c2_multiplicative.json:hf_seam_contribution.*` |
+| 18 | 产品中位 vs B_ref 中位（C3） | 299.168 / 297.331 e⁻ | `results/c3_public_plane.json:product.delta_median,Bref_median` |
+| 19 | 全减臂产品中位 / 负值占比（C3） | 0.711 e⁻ / 48.4% | `results/c3_public_plane.json:product.full_median,full_neg_frac` |
+| 20 | gauge 0↔1 δ_k 常数偏移 / 接缝差 | 5.33e-15 / 0.0 | `results/c3_public_plane.json:gauge.per_frame_const_spread,delta_seam` |
+| 21 | 未校正→δ 臂接缝（C3） | 5.188 → 0.386 e⁻ | `results/c3_public_plane.json:seam.none_med,delta_med` |
+| 22 | 退化判据响应 / 非退化分离度 | 0.0923σ / 36.443σ | `results/c4_seam_criterion.json:separation.deg_50,nondeg_50` |
+| 23 | 样本外假阳性 / A=10 检出率 | 0/60 / 0.975 | `results/c4_seam_criterion.json:false_positive_rate,detect_rate.10.0` |
+| 24 | 5σ 检测限 / 响应斜率 / 阈值 | 6.975 e⁻ / 0.4492 / 双边距离 3.133 | `results/c4_seam_criterion.json:detection_limit_e,response.slope,detector_calibration.*` |
+| 25 | 公共梯度假阳性 / null 偏度 | 0.0 / 0.0737 | `results/c4_seam_criterion.json:false_positive_smooth_gradient,null_normality.skew` |
+| 26 | 三臂 RMS（control_ivar/uniform/SNR²） | 1.532 / 1.674 / 2.069 e⁻ | `results/c5_weights.json:rms_median.*` |
+| 27 | 三臂伪影漏入 | 0.0245 / 0.0651 / 0.3203 e⁻ | `results/c5_weights.json:leak_median.*` |
+| 28 | 相对 uniform / SNR² 优势 | 8.46% / 25.9% | `results/c5_weights.json:margin_vs_uniform,margin_vs_snr2` |
+| 29 | 完整链路采样 / 掩膜 / χ²_red | 1374 点 / 命中率 1.0 / 0.771 | `results/c5_weights.json:chain.*` |
+| 30 | 生产收敛枚举（converged/maxiter/stalled 臂） | 1 / 0 / 0（轮数 4,1,300） | `results/c5_weights.json:production_convergence.*` |
+| 31 | dense vs sparse max\|Δ\|（1,048,576 点） | 3.109e-15 | `results/c6_sparse_dense.json:upm_memory.dense_vs_sparse_max_abs` |
+| 32 | 稀疏 / 稠密体积与比值 | 14,001 B / 8,389,129 B / 0.167% | `results/c6_sparse_dense.json:upm_memory.sparse_bytes,dense_bytes,size_ratio` |
+| 33 | 峰值 RSS（64² 块 / 512² 全网格） | 11,744 / 14,520 kB | `results/c6_sparse_dense.json:upm_memory.rss_64block_kb,rss_full_grid_kb` |
+| 34 | 天光面节点占比 / 子集一致性 | 1.869e-4 / 0.0 | `results/c6_sparse_dense.json:sky_plane.node_ratio,delta_subset_max_abs` |
+| 35 | 真实 `level_ratio` 中位与范围 | 0.9805（0.9386–1.0503） | `results/c7_realdata.json:mismatch_summary.level_ratio.*` |
+| 36 | 真实斜率中位 / corr(slope,intercept) / 杠杆臂 | 0.9946 / −0.9981 / 8.5 ADU | `results/c7_realdata.json:mismatch_summary.slope.median,corr_slope_intercept,median_bin_span_adu` |
+| 37 | 真实天光面 κ / rank / χ²_red | 3.156e7 / 49 / 1.0037 | `results/c7_realdata.json:sky_build_real.kappa,rank,chi2_red` |
+| 38 | 真实接缝 excess / step 与压缩比 | 21.836→0.583（37.5×）/ 20.886→0.460（45.4×） | `results/c7_realdata.json:real_seam.un_excess_med,d_excess_med,un_med,d_med` |
+| 39 | 真实相对接缝度量 | 3.904e-4 | `results/c7_realdata.json:real_seam.d_rel_med` |
+| 40 | C1 `excess` 汇总（复算） | 5.108 → 0.355 e⁻（14.4×） | `results/c1_additive.json:seam_native.*[].excess`（复算；同 `results/REVIEW.md` 重要问题 8） |
+| 41 | 节点间距（本单元） | h=0.0355° ≈ 127.8 px | `code/c3_public_plane.py:26-28`；`run/SCI-403/sky_c1_amp_0.json:cfg.node_spacing_deg` |
+
+---
+
+## 附录 B 复现命令
+
+    # 一键（编译探针 + c1..c7 + 出图；固定 seed，无网络，零 git 写）
+    bash 实验/additive-sky-seamless/code/run_all.sh
+
+    # 分步（需先有 build/libastrocs_phase2.a；build_probes.sh 缺失时会 flock 后 ninja）
+    bash 实验/additive-sky-seamless/code/build_probes.sh
+    python3 实验/additive-sky-seamless/code/c1_additive.py     # → results/c1_additive.json
+    python3 实验/additive-sky-seamless/code/c2_multiplicative.py
+    python3 实验/additive-sky-seamless/code/c3_public_plane.py
+    python3 实验/additive-sky-seamless/code/c4_seam_criterion.py
+    python3 实验/additive-sky-seamless/code/c5_weights.py
+    python3 实验/additive-sky-seamless/code/c6_sparse_dense.py
+    python3 实验/additive-sky-seamless/code/c7_realdata.py
+    python3 实验/additive-sky-seamless/code/make_figures.py
+
+环境：Python 3.13 + numpy 2.2.4 / scipy 1.15.3 / astropy 7.0.1 / matplotlib 3.11.2；探针编译 ~2 min；运行时间 C1 ~4 min、C2 ~12 min、C3 ~3 min、C4 ~6 min、C5 ~20 min、C6 ~2 min、C7 ~3 min。日志落 `run/SCI-403/logs/`。
+
+**复现注意（审稿复现性检查结论）**：(a) `build_probes.sh` 已加「缺库先构建」；(b) 归档结果来自**多次手动分步跑**，不是一次 `run_all.sh`；(c) 归档结果与探针二进制均**早于 SCI-502 修复**，复跑前请先重建生产库并重新编译探针。
+
+---
+
+## 附录 C 与正式科学文档/上游材料的口径冲突
+
+> 处理原则：**以 `results/*.json` 的实测为准**（任务要求「以 results/ 为准复核」），下列冲突登记待 DOC 域收敛。
+
+| # | 冲突点 | 正式文档/上游写法 | results/ 实测 | 影响 |
+|---|---|---|---|---|
+| C-1 | 基外高频分量的 PSD 峰位 | `PHASE2_UPM.md` §16.2、`11_upm.md` §9.3 写「k=4 vs 预期 5.33」；`README.md` §9 验收门表同 | **k=26 vs 预期 21.33**（`c2_multiplicative.json:hf_component`；`bin=4`，`kexp = nb/(24/BIN)`）；`README.md` §4.2/§11.1 已改为 26/21.33 | 文档滞后一版；k=4/5.33 是「把分块数组当原始像素」的单位错位值，**不得再引用** |
+| C-2 | 1% 高频分量「未检出」 | `README.md` §4.2 与 §6 第 12 条写「1% 幅度：未检出（amp −0.0004 ± 0.038）」 | JSON/日志均为 **amp1 = 0.6721 ± 0.0230**，3σ 上界 0.069；`detected_at_1pct=false` 来自把 `n_sigma=\|amp−1\|/err` 当作「检出显著性」的标签错误 | 「−0.0004±0.038」**在 results/ 中不可回溯**；1% 分量实际被匹配滤波显著检出（相对 0 约 29σ），只是恢复幅度为下界 |
+| C-3 | 参考面节点间距 | `PHASE2_UPM.md` §7a：「节点间距 ≈ `hips.tile_width/8` = 64 px」 | 本单元 h = **0.0355° ≈ 127.8 px**（2× control cell），49 节点/512² tile | §7a 的 64 px 描述的是 UPM 8×8 control cell；「≲2×节点间距（≈256 px）」只有取 h≈128 px 才自洽 |
+| C-4 | κ 上限 | `PHASE2_UPM.md` §7a：「`kappa_max` 默认 1e6（FZ-AP2S-KAPPA-MAX）」 | `sky_plane.cpp:414/441` 默认 **1e8**；冻结常量 1e6 属 UPM/GLS（`upm.h:281`） | 真实 M42 κ=3.16e7 在 1e8 下**不触发**自适应；口径不统一会让 FIX-3 形同虚设 |
+| C-5 | 施加模式实现现状 | `11_upm.md` §5：`additive_mode`「实现现状…仍默认 `c`，须按现行口径改默认」 | `module_adapters.cpp:6512-6526`（及 `:6213-6214`）已默认 **`delta`**（2026-09-20 定案） | 文档滞后；生产已符合「多退少补」口径 |
+| C-6 | FIX-1 行号 | `PHASE2_UPM.md` §16.3 写 `module_adapters.cpp:5941-5942`；`README.md` §10 写 `:5948-5949` | 当前赋值在 `:5989-5994`（`uc.tolerance=1e-6` / `uc.tolerance_relative=1`） | 行号漂移；引用生产代码应带内容锚点（本报告已改） |
+| C-7 | C6 峰值 RSS | `README.md` §4.6：11,688 / 14,568 kB | JSON：**11,744 / 14,520 kB** | README 与 JSON 不一致（疑为旧一次运行）；以 JSON 为准 |
+| C-8 | `smoothing_lambda` 默认 | `11_upm.md` §5 表格：「默认 0.1（生产常量 `P2_SMOOTHING_LAMBDA_AUTO`）」 | `module_adapters.cpp:6020-6023`：键缺省保持编译期默认 **0.0**；`auto` 才解析为 0.1 | 该默认值决定「不可检验域」是否就是生产域，需在 DOC 域写明 |
+| C-9 | `README.md` 文本缺陷 | §4.1 末尾（第 137 行）「…（代理量 σ=64 px 高通在」句子**未写完**（悬空括号） | — | 属报告自身缺陷，结论不受影响（§6 已完整登记边界） |
+
+---
+
+## 附录 D 诚实边界清单（完整）
+
+**A. 证据强度类**
+
+1. **A10 的横轴是代理量**：σ=64 px 一维高通不是生产样条的实际零空间；它给出正确的量级与趋势（slope 0.80），但**不应读作精确的样条投影**。
+2. **A10 无误差棒**：每波长仅 1 次实现；C4 null 的单边界 std≈0.61 e⁻ 与部分点间差异同量级 ⇒ 6 点差异大多不显著；**不得称「线性标度律」**，只能说「线性上界量级 + 显著正相关」。
+3. **C2 M5 的恢复幅度是下界**：分块（4 px）估计器有 sinc 衰减、比值是信号加权平均 ⇒ 0.693 不是无偏幅度；1% 幅度的恢复值同样偏低。
+4. **PSD 定位只到「量级相符」**：峰 k=26 vs 预期 21.33，`psd_peak_at_injected=false`（未落 ±2 bin），峰对应 19.7 px ≠ 24 px。
+5. **C7 的斜率/截距不可辨识**：杠杆臂 8.5 ADU、corr=−0.9981；只有 `level_ratio`（±5%）可用，「乘性失配 ≤±30%」应降级。
+6. **C7 的覆盖图案是人工施加的**：真实 M42 帧不构成条带覆盖；R3 是混合实验。
+7. **C6 E3 内存证据偏弱**：余量 ~19%、单次测量、两臂工作量不同。
+8. **C7 目检裁图只作互证**，不作无接缝的科学证据（判据是度量数字）。
+9. **C5 的「伪影漏入」应读作「污染帧对公共面的扰动」**：伪影在污染帧覆盖区内是常数、可被其自身 δ_k 吸收；被度量的是二阶噪声/过加权效应。
+10. **C5 W2 无阈值/误差棒**：只有中位比较；统计显著性由 JSON 的 mean/std/N 反推（≈5.5σ/6.2σ），非 JSON 直接字段。
+
+**B. 判据/分级类**
+
+11. **`meta` 级门不构成实现验证**：C3 B2（定义式）、C4 N1（恒真反证）、C5 W4（状态机转写）。
+12. **恒真/构造性门与能力门混计**：A5/B4（全减臂 ≈0 是构造）、C6 E4（子集一致性近乎构造）、C7 R1（只检查有限性）、C7 R4（只检查图存在）⇒ `11/11 PASS` 不等于 11 条独立能力证据。
+13. **8 处判据放松已披露但仍属放松**（§5.5）：其中 A10/M4/M6/N4 的阈值改动**没有独立依据**，只是「实测值落在哪就改到哪」；A2 的预言比对相对更强，属正当改进。
+14. **C4 检测器标定在未校正产品上**，且 μ=−5.102 e⁻ 本身是真实结构造成的边界系统偏置 ⇒ 「样本外假阳性 0/60」应读作「不把既有的 ~5 e⁻ 未校正接缝判红」；真正「真值无效应」的臂是 N5。
+15. **C4 检测限为双边距离外推**（3.133/0.449=6.98 e⁻），依赖响应线性假设（5 点、线性良好但未做残差检验）。
+
+**C. 覆盖范围类**
+
+16. **不可检验域**：`smoothing_lambda=0` 下「权重同源」与「末端残差场扣除」不可检验（§5.3）；且该域是当前生产编译期默认域。
+17. **阻尼 α 非必要**：本链路 α=1 亦收敛（4 轮）⇒ 四要素中的阻尼项在本实验域内无证据价值。
+18. **Galaxy Center T4 未纳入**本版，真实数据只有 M42 一路。
+19. **λs 扫描线未回填**：`docs/smooth-lambda.md` §0 结论表仍是 `X/Y/N` 占位符（`results/REVERSE_VERIFY_CANON.md` 已登记「从未回填」）；`code/reverse_verify/` 各分片**不作为本报告证据**。
+20. **C2 的乘性响应是注入的**（低阶多项式 + 正弦高频），非真实平场；真实平场残差功率谱形状不同。
+21. **C2 M4 的绝对残差 6.31 e⁻ 是 C1 纯加性世界 0.383 e⁻ 的 16 倍**，oracle Phase1 臂也有 6.20 e⁻ ⇒ 该世界残余来自 Phase1 的 m̂ 拟合误差（resid_std 0.35%–0.52%），不是加性链路；任务原文要求的「残余归零」**实测未归零**。
+
+**D. 工程/复现类**
+
+22. **归档结果早于 SCI-502 修复**：c1–c7 JSON（2026-09-21 20:48–20:56）与探针二进制（20:47）都早于 commit `d77fd11f`（2026-09-22 01:35）；`build/libastrocs_phase2.a` 现为 01:32 版本。**未复跑**。
+23. **FIX-2 的 stalled 分支无实验证据**：C5 W5 的「stalled」臂实际跑满 300 轮（max_iter），不是真 stall；全仓无 `converged==2/3` 测试。
+24. **FIX-3 的 κ 自适应无测试且在真实样本上按代码默认不触发**（C-4）。
+25. **归档结果不是一次 `run_all.sh` 的产物**（多次手动分步跑）；`README.md` §11.1 已承认。
+26. **「零生产代码改动」无法用 git 证明**：`实验/additive-sky-seamless/` 整目录在本轮期间未被 git 跟踪，工作树另有大量并行任务改动；该命题只由「证据方向」（所有写操作落 `run/SCI-403/` 与 `results/`、探针只读 `p2_*`）支撑。
+27. **C4 图的 null 直方图面板是合成高斯叠加**（`make_figures.py` 用 `np.random.default_rng(0)` 生成 4000 点作拟合示意），不是 120 个真实实现；读图时以 JSON 的 120 次实现统计为准。
+28. **本报告自身的边界**：所有数字为对 `results/*.json` 与 `README.md` 的**只读复核**，未重跑任何实验；除 §4.2/附录 A#40 明确标注的 `excess` 中位复算外，未做新的数值推导。
