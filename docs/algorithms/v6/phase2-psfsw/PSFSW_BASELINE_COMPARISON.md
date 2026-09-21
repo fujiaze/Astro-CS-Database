@@ -4,6 +4,8 @@
 
 # PSFSW 基线比较协议
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-PSFSW-001-BASELINE`
 - 协议 ID：`PSFSW-BASELINE-COMPARISON-V1`；机器可读同源 `psfsw_spec.json` → `baseline_comparison`
 - 上游：`DESIGN-P2-001` §6.3/§10；`SCI-PSFW-001` §4 表/§5/§7.4；`SCI-P2-001` §4.4；`FZ-MODE-BASELINE`

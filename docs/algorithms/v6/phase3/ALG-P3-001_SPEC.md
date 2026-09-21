@@ -2,6 +2,8 @@
 
 # ALG-P3-001 — Phase3 算法实施规格（三模式采样 / 传播 / QW / effective PSF / 流式原子 FITS）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 > 文档 ID：`ALG-P3-001-SPEC`
 > 状态：`ALG_PROPOSED`（W4 `CONTRACT-FREEZE-001` 正式冻结）
 > 上位：`DESIGN-P3-001` §1–§7；`ASTROCS-SCIENCE-MODEL-001` §2/§4/§6/§7/§8/§9/§10/§11；

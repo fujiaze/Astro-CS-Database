@@ -21,6 +21,11 @@
 
 #include "crypto/sha256.h"
 
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读写机制
+// 一律经 aio 唯一实现 (header-only 机制面), 本 TU 不自持 fopen/fread/fwrite。
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"
+
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -1293,12 +1298,12 @@ int p2_sky_plane_save(const void* model_in, const char* path) {
             {"chi2_red", m->info.chi2_red}, {"iterations", m->info.iterations},
             {"n_masked", m->info.n_masked}, {"n_rejected", m->info.n_rejected},
             {"model_hash", std::string(m->info.model_hash)}};
-        std::FILE* f = std::fopen(path, "wb");
-        if (!f) return P2_SKY_PLANE_IO_ERROR;
+        // CLEAN-403 (§10 aio 唯一 I/O 边界): 落盘经 aio 原子写原语
+        // (临时文件 → fflush → fsync → 原子 rename), 本 TU 不再自持 FILE*。
         const std::string s = j.dump(2);
-        const std::size_t wrote = std::fwrite(s.data(), 1, s.size(), f);
-        std::fclose(f);
-        if (wrote != s.size()) return P2_SKY_PLANE_IO_ERROR;
+        std::string werr;
+        if (aio_atomic::write_file_atomic(path, s, &werr) != 0)
+            return P2_SKY_PLANE_IO_ERROR;
     } catch (...) {
         return P2_SKY_PLANE_IO_ERROR;
     }
@@ -1309,13 +1314,10 @@ int p2_sky_plane_open(const char* path, void** out_model) {
     if (!path || !out_model) return P2_SKY_PLANE_INVALID_ARGS;
     *out_model = nullptr;
     try {
-        std::FILE* f = std::fopen(path, "rb");
-        if (!f) return P2_SKY_PLANE_IO_ERROR;
+        // CLEAN-403 (§10 aio 唯一 I/O 边界): 整文件读取经 aio 唯一实现
+        // (aio_file::read_all); 打开/读取/关闭任一失败 ⇒ 判 IO_ERROR (fail-closed)。
         std::string s;
-        char buf[65536];
-        std::size_t got = 0;
-        while ((got = std::fread(buf, 1, sizeof(buf), f)) > 0) s.append(buf, got);
-        std::fclose(f);
+        if (!aio_file::read_all(path, &s)) return P2_SKY_PLANE_IO_ERROR;
         nlohmann::json j = nlohmann::json::parse(s);
         if (j.value("format", std::string()) != "astrocs-sky-plane-v1") return P2_SKY_PLANE_IO_ERROR;
         SkyPlaneModel* m = new (std::nothrow) SkyPlaneModel();

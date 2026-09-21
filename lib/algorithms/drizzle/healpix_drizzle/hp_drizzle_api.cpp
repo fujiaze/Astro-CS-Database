@@ -1256,6 +1256,11 @@ try {
     result->nested           = stats.nested ? 1 : 0;
     result->pixfrac          = config.pixfrac;
     result->elapsed_sec      = stats.elapsedSec;
+    // FIX-405 G3-5: 样本级掩膜强制计数（DATA-002 §2a；禁静默剔除）
+    result->n_rejected_nonfinite          = stats.n_rejected_nonfinite;
+    result->n_rejected_nonfinite_value    = stats.n_rejected_nonfinite_value;
+    result->n_rejected_nonfinite_variance = stats.n_rejected_nonfinite_variance;
+    result->n_rejected_nonpositive_weight = stats.n_rejected_nonpositive_weight;
 
     // G4: 清理 trace 状态 (文件已由 drizzleTiledImpl 写出)
     drizzle_trace::reset();

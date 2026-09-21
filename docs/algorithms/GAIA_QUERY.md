@@ -1,6 +1,8 @@
 # Gaia XPSD 查询（ALG-GAIA-001）
 
 > ID: ALG-GAIA-001  状态: CONTRACT_READY
+> 上游：ASTROCS_DESIGN.md §3.3（科学量与星表）、§4.2（Phase1 节点流程）
+
 > 上游 SCI: SCI-AST-001（docs/science/ASTROMETRY.md，别名 SCI-WCS-001）
 > 模块: lib/infrastructure/gaia_xpsd_client（module_id astrocs.catalog.gaia）
 > 权威源码: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c（本文件全部离散公式、常量、

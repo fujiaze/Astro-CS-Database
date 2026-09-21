@@ -233,7 +233,7 @@ public:
     //
     // 用途: 在 solve_* 之后调用, 获取求解器内部最终 inlier 对应关系,
     // 避免外部诊断工具用 kd-tree 重新匹配导致误配。
-    // 详见 docs/24_WCS_VALIDATION_V2_SPEC.md 与 docs/25_AUTHORITATIVE_MATCH_PAIR_CONTRACT.md
+    // 详见 docs/algorithms/PLATESOLVE.md（IPV 解算）与 docs/contracts/PUBLIC_API.md（ipv_* C API）
     // ========================================================================
 
     // 获取最后一次成功求解的 inlier 数量

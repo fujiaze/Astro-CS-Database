@@ -10,6 +10,8 @@ downstream: [TEST-P3-RES-001]
 
 # 模块 astrocs.phase3.resample2
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > Registry 行 ID 沿用 MOD-astrocs-phase3-resample2；矩阵权威 module_id=
 > **astrocs.p3.resample**（MODULE_MIGRATION_MATRIX P3-RSMP 行）。
 > frontmatter upstream/downstream（SCI-P3-RES-001/ALG-P3-003/API-P3-001/

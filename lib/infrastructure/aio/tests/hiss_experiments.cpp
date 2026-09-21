@@ -2,7 +2,7 @@
 // hiss_experiments.cpp - WP-I-2 真实数据 C++ 实验 (步骤16) + 性能报告基础
 //
 // 依据:
-// - docs/stage1_fix/spec.md 步骤16/17
+// - docs/standards/BENCHMARK_STANDARD.md (实验/基准)
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §11/§12 (Tile 占用编码)
 // - lib/infrastructure/aio/tests/test_report.md (WP-I-1 已通过的真实数据集成)
 //

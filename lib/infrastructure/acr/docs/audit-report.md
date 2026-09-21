@@ -47,11 +47,11 @@ MSYS2 mingw64/include 下也无这些库的头文件。
 ## 6. astro_toolkit.py 自检
 
 ```
-python tools/astro_toolkit.py tools/_acr_selfcheck.json --log run/logs/toolkit_acr_selfcheck.log
+python eng/tools/astro_toolkit.py eng/tools/_acr_selfcheck.json --log run/logs/toolkit_acr_selfcheck.log
 → ok: true
 → git_status + list_dir step 通过
 ```
-路径: `tools/astro_toolkit.py`（主仓库），后续 commit 编排通过此工具。
+路径: `eng/tools/astro_toolkit.py`（主仓库），后续 commit 编排通过此工具。
 
 ## 7. 现有 lib/ 模块（禁止修改区）
 

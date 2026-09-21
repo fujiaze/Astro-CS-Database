@@ -30,9 +30,9 @@
 | `AstroCS.wiki/` | Wiki 仓库本地副本 |
 | `README.md` | 仓库说明 |
 | `.gitignore` / `.gitattributes` | git 配置（如需调整须单独授权） |
-| `tools/astro_toolkit.py` | 主工具 |
-| `tools/gen_audit_pack.py` | 审查包生成器 |
-| `tools/vq-commit.ps1` | 备用提交脚本 |
+| `eng/tools/astro_toolkit.py` | 主工具 |
+| `eng/tools/gen_audit_pack.py` | 审查包生成器 |
+| `eng/tools/vq-commit.ps1` | 备用提交脚本 |
 | `testdata/` | 只读测试数据 |
 | `工程控制/`（除 `tasks/acr/`、`evidence/acr/` 外的现有内容） | 工程控制包 |
 

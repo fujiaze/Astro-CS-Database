@@ -4,6 +4,8 @@
 
 # SCI-P2-001 主正文 — point_information / surface_gls / psfsw_robust 独立复核
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 文档 ID：`SCI-P2-001-REVIEW`
 任务：SCI-P2-001（wave 1，depends_on BASE-OWN-001）
 基线：`HEAD = main = 4b508f28bbcada66c417a8a9324aca7eb92869ff`

@@ -2,7 +2,7 @@
 """REAL-000 匹配器测试：正例 / 策略例 / 四类负例 / T1 空集 / 滤镜归一。
 
 全部用例确定性：构造合成文件名与母版清单（不读真实数据、不写 testdata），
-匹配语义冻结于 tools/realdata/match_plan.py 顶部常量。
+匹配语义冻结于 eng/tools/realdata/match_plan.py 顶部常量。
 """
 import importlib.util
 import json

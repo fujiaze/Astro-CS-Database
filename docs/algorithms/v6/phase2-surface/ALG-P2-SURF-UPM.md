@@ -2,6 +2,8 @@
 
 # ALG-P2-SURF-UPM — UPM 乘法/加性分离 / gauge / 秩 / 条件数 / 参数协方差
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-SURF-UPM`（`ALG-P2-SURF-001` 子文档）
 - 上位：`DESIGN-P2-001 §4`；宪章 §6.3；`UNIFIED §6`；`PROJECT_SPEC §3/§8`；`ADJ-OBS-01` / `ADJ-F-OBS-04` / `ADJ-F-OBS-05`
 - 既有实现级合同：`docs/algorithms/UPM_SOLVER.md`（`ALG-UPM-001`）、`docs/algorithms/PHASE2_UPM_IMPL.md`（`ALG-P2-UPM-IMPL-001`）——本文件是**目标态乘加分离规格**，不复制其逐行锚；冲突以 `DESIGN-P2 §4` 为准。

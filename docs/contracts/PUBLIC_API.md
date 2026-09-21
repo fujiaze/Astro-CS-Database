@@ -1,5 +1,7 @@
 # AstroCS Public / Internal API
 
+> 上游：ASTROCS_DESIGN.md §7（CLI 合同）、§8.4（模块与 ABI）
+
 ## C ABI（`extern "C"`，不跨边界抛 C++ exception）
 
 - `lib/infrastructure/aio`：`aio_*`（image/HiPS I/O、writer/reader、pipeline）。
@@ -56,7 +58,7 @@
 当前生产入口 = `normalize --json <config.json>`（CLI-001 唯一命令树；旧 `phase1 run`/`run --phases` 已删除且 rc=2））。
 - `healpix_browser_qt.exe`（HiPS 浏览器；`--hips/--standard-hips/--view/
   --screenshot/--lod/--exit`）。
-- `toolchain.ps1 check|build|run|review`（统一工程入口）。
+- `eng/build/toolchain.ps1 check|build|run|review`（统一工程入口）。
 
 ## JSON schema（config）
 
@@ -740,8 +742,8 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
   NoiseModel、drizzle→hp_drizzle_run、writer→aio_write_fits；子节点不调
   完整 phase_session_run，ARCH-P0-001 整改）；P1Api/SessionModule 保留
   兼容面。无 CLI/测试外的其他直接调用方（生产可达性由
-  tools/quality/check_prod_reachability.py:42 与
-  tools/check_pipeline_trace.py:16 登记锚）。
+  eng/tools/quality/check_prod_reachability.py:42 与
+  eng/tools/check_pipeline_trace.py:16 登记锚）。
 - **P1-001 attempt 2 三域真实化（2026-09-10）**：star-psf→lib/algorithms/star_detection
   生产检测（sdet C 头，StarDetector C++ 类仅薄包装）+lib/algorithms/psf
   `dpsf_fit_batch_f64`（Moffat4 FP64 批量 PSF 拟合，DATA-P1-PSF 携
@@ -1993,7 +1995,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - 并发语义: 四函数纯函数无状态（0 处 thread/mutex/omp/全局可变
   量，:12-28）——const-only 入口多线程并发安全（descriptor
   parallel_ok=true 与此一致）；确定性 bitwise（ALG-P3-PROJ-IMPL-001
-  §10）。roundtrip 冻结容差 <1e-6 px（SCI-P3-001 §7，禁放宽）。
+  §10）。roundtrip 冻结容差 <1e-8 px（SCI-P3-001 §7，禁放宽；FIX-406 由 1e-6 收紧，生产注册表 p3_wcs.cpp:191）。
 - 会话消费锚（编排面 API-P3-001 镜像）: p3_session.cpp:160
   p3_wcs_make（rotation_pa_deg 恒 0.0——PA 未接线整改项，不改码）
   /:163 状态映射（UNSUPPORTED→ACS_ERR_UNSUPPORTED，其余非 OK→

@@ -2,17 +2,16 @@
 #include <cstdio>
 #include <cstdarg>
 #include <ctime>
-#ifndef _WIN32
-#include <filesystem>
-#endif
 #include <mutex>
 #include <string>
-#ifdef _WIN32
-#include <windows.h>
-#endif
+
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 日志落盘经 aio
+// 唯一实现 (aio_atomic::make_dirs + append_open/append_write), 本 TU 不自持
+// std::filesystem / FILE* 通道。
+#include "aio_atomic_file.h"
 
 static std::mutex g_sdet_log_mutex;
-static FILE* g_sdet_log_file = nullptr;
+static aio_atomic::AppendSink* g_sdet_log_file = nullptr;
 static int g_sdet_log_level = -1;
 
 static int sdet_get_log_level() {
@@ -29,22 +28,20 @@ static int sdet_get_log_level() {
 
 static void sdet_ensure_log_file() {
     if (g_sdet_log_file) return;
-    {
+    (void)aio_atomic::make_dirs(
 #ifdef _WIN32
-        const char* dir = "lib\\star_detector\\logs";
-        CreateDirectoryA(dir, nullptr);
-        (void)dir;
+        "lib\\star_detector\\logs"
 #else
-        std::filesystem::create_directories("lib/algorithms/star_detection/logs");
+        "lib/algorithms/star_detection/logs"
 #endif
-    }
-    g_sdet_log_file = std::fopen(
+    );
+    g_sdet_log_file = aio_atomic::append_open(
 #ifdef _WIN32
         "lib\\star_detector\\logs\\star_detector.log",
 #else
         "lib/algorithms/star_detection/logs/star_detector.log",
 #endif
-        "a");
+        nullptr);
 }
 
 static const char* sdet_level_name(int level) {
@@ -87,7 +84,6 @@ void sdet_log(int level, const char* module, const char* fmt, ...) {
 
     sdet_ensure_log_file();
     if (g_sdet_log_file) {
-        std::fprintf(g_sdet_log_file, "%s", line);
-        std::fflush(g_sdet_log_file);
+        (void)aio_atomic::append_write_str(g_sdet_log_file, line);
     }
 }

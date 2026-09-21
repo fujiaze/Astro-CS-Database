@@ -1,5 +1,7 @@
 # astrocs.p2.hips_writer — Phase2 HiPS 马赛克写出模块（P2-HIPS）
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 合同三件套落位
 > `lib/algorithms/coverage/hips_p2/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
 > entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/drizzle/hips/`（P1-HIPS）先例新建；

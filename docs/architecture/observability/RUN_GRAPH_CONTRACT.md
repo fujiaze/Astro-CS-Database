@@ -1,8 +1,10 @@
 # AstroCS 运行图渲染工具合同（LOG-003）
 
+> 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
+
 > 文档 ID：`ARCH-LOG-RUNGRAPH-003`（归属 `docs/architecture/observability/`）
 > 状态：ACTIVE_NORMATIVE（LOG-003 冻结）
-> 机器可读事实源：`tools/graph/render_run_graph.py`（渲染工具 + 机器验证）、
+> 机器可读事实源：`eng/tools/graph/render_run_graph.py`（渲染工具 + 机器验证）、
 > `lib/infrastructure/pipeline/trace_replay.py`（RT-006 权威 replay 聚合）、
 > `lib/infrastructure/pipeline/typed_dag.py`（RT-001 typed DAG 编译器，只读消费）。
 > 本文档是视图；字段定义与验收以工具/标准为权威。
@@ -34,7 +36,7 @@ artifact hash。旧手绘图/静态架构示意图不再作为规范来源——
 | 静态/声明图 | typed plan（`astrocs.typed-dag/v1` / `astrocs.plan-graph/v1`） | resource_class、数据边、operation | 不表示实际调用/耗时/hash |
 | 真实运行图 | RT-006 trace JSONL（`astrocs.trace-event/v1`） | 真实入口/调用计数/workers/provider/耗时/DLL/artifact hash | 静态计划不得冒充运行事实 |
 
-`tools/graph/render_run_graph.py render --trace <jsonl> [--plan <plan.json>]`
+`eng/tools/graph/render_run_graph.py render --trace <jsonl> [--plan <plan.json>]`
 把二者合成一张运行图：节点=真实执行入口（trace 观测），计划声明属性
 （`resource_class`/`operation`）标注 `source=plan`，计划声明但未运行的节点
 标 `PLAN_ONLY`（不冒充观测）。
@@ -44,7 +46,7 @@ artifact hash。旧手绘图/静态架构示意图不再作为规范来源——
 生成链（policy §2）：trace JSONL +（可选）plan → `graph-runtime.json` +
 `graph-runtime.dot`（+ `--svg` 时 `graph-runtime.svg`）。每张图含：
 
-- `generator.tool/version`（`tools/graph/render_run_graph.py` v1.0.0）；
+- `generator.tool/version`（`eng/tools/graph/render_run_graph.py` v1.0.0）；
 - `source.main_sha`（当前提交 SHA，`--sha` 显式传入，禁止默认猜测）；
 - `source.inputs.*.sha256`（trace/plan 输入文件 hash）；
 - `metrics`（node_count / module_call_total / scheduler_concurrency_max /
@@ -112,7 +114,7 @@ DOT 头注释同步上述字段；SVG `<desc>` 同步 metrics + main_sha。**SVG
 
 ## 6. 机器验证（验收：图与 trace 计数/hash 一致）
 
-`tools/graph/render_run_graph.py verify --verify <graph.json> --trace <jsonl>`：
+`eng/tools/graph/render_run_graph.py verify --verify <graph.json> --trace <jsonl>`：
 
 1. 图节点集合 == trace replay 节点集合（剔除 replay 空 node_id 聚合）；
 2. 每节点 `call_count` == replay `call_count` == 原始 `module_call` 计数；
@@ -141,7 +143,7 @@ hash 等观测字段一律只来自 trace 事件。
 `evidence/**` 下的 `*.dot`（如 `v6_1_rework` PROD_REACHABILITY）是**一次性手写产物**
 （归档性质，非当前规范来源）。运行图规范来源：
 
-- 运行图规范来源 = `tools/graph/render_run_graph.py` 从**当前提交**可复现
+- 运行图规范来源 = `eng/tools/graph/render_run_graph.py` 从**当前提交**可复现
   生成的 `graph-runtime.{json,dot}`（含 generator/source/输入 hash 头）；
 - 静态架构示意图（`docs/architecture/DATA_FLOW.md` 等 ASCII 流程、ARCH-001
   mermaid、历史 evidence DOT）是**信息性视图**，不作运行事实规范来源；

@@ -1,5 +1,7 @@
 # Module: phase2
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## 职责
 
 Phase2 多帧统一模型：coverage → sampler → UPM → block calibrate →

@@ -1,5 +1,7 @@
 # Phase2 Rejection Algorithms（P2-REJ / astrocs.p2.rejection）
 
+> 上游：ASTROCS_DESIGN.md §5.5（逐像素排异）
+
 > ID: ALG-P2-REJ-001  状态: CONTRACT_READY
 > 模块: lib/algorithms/coverage/src/rejection.cpp（2076 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头

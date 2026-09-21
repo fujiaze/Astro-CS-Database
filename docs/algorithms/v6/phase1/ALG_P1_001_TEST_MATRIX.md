@@ -4,9 +4,11 @@
 
 # ALG-P1-001 测试矩阵（Phase1 算法实施规格）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P1-001-TEST-MATRIX`
 - 语义源（唯一权威）：`alg_p1_001_test_matrix.json`（本文件为机械渲染视图，保证人读正文与机器表一致）
-- 上位规格：`ALG_P1_001_PHASE1_ALGORITHM_SPEC.md`；验证器：`tools/verify_alg_p1_001.py`
+- 上位规格：`ALG_P1_001_PHASE1_ALGORITHM_SPEC.md`；验证器：`eng/tools/verify_alg_p1_001.py`
 - 基线：`125bc0999363be1a42a1f2df3254601e0cc7b8fb`
 - 容差政策：仅沿用已冻结数值容差（常量场 |S_p/B0-1|<1e-3、缩放律精确、GLS rel<3% 类）。本规格提案但未签字的阈值一律标 PENDING_SO07，门在未签字时 fail-closed（不得声明精确/可用）。
 
@@ -57,7 +59,7 @@
 ## 负向 mutation
 
 每条门必须有至少一个 mutation 能把门变红；mutation 清单与期望见验证器 `MUTATIONS`（39 项），
-运行 `python3 tools/verify_alg_p1_001.py --all-mutations` 要求 39/39 CAUGHT（rc=0）；单条 `--mutation <ID>` 在捕获时 rc=2。
+运行 `python3 eng/tools/verify_alg_p1_001.py --all-mutations` 要求 39/39 CAUGHT（rc=0）；单条 `--mutation <ID>` 在捕获时 rc=2。
 
 ## 声明
 

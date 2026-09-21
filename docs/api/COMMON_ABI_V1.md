@@ -1,5 +1,7 @@
 # AstroCS 公共 C ABI 基础层 v1 (Common Foundation — API-001 冻结)
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > ID: API-COMMON-001  状态: FROZEN  上游: ARCH-002/ARCH-003(backend host services 同构)  下游: API-002..005, ABI-001, CLI-001..003
 > 头文件: `include/astrocs/common_abi_v1.h`(单一头, C/C++ 双可编译, 无 STL/exception/RTTI 跨边界)。
 

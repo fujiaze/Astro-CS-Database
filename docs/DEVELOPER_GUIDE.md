@@ -1,6 +1,8 @@
 # AstroCS 开发者指南
 
-> 上游：`AGENTS.md` §3（环境与构建：唯一根 CMake + presets、Linux 开发节点、`python3 ci/run_checks.py`）、
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
+> 上游：`AGENTS.md` §3（环境与构建：唯一根 CMake + presets、Linux 开发节点、`python3 eng/ci/run_checks.py`）、
 > `ENGINEERING_SPEC.md` §1（语言/编译器/平台）/§6（Git 与提交：只 `main`，禁止分支/worktree）、
 > `ASTROCS_DESIGN.md` §12（Alpha 前无版本信息）。
 

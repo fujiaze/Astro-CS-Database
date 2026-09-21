@@ -315,12 +315,12 @@
           "description": "投影中心 Dec（ICRS deg，|dec| ≤ 85°；TAN 极区排除）"
         }
       },
-      "description": "投影中心对象 {ra_deg, dec_deg}（CLI 键；等价于旧合同 export_wcs.center_deg 的 [RA,Dec] 数组——旧键已在 ci/ledgers/dead_config_keys.json 登记 consumed_as=center.ra_deg+center.dec_deg）"
+      "description": "投影中心对象 {ra_deg, dec_deg}（CLI 键；等价于旧合同 export_wcs.center_deg 的 [RA,Dec] 数组——旧键已在 eng/ci/ledgers/dead_config_keys.json 登记 consumed_as=center.ra_deg+center.dec_deg）"
     },
     "scale_deg_per_px": {
       "type": "number",
       "exclusiveMinimum": 0,
-      "description": "输出像元角尺度 deg/px（必须 > 0；CLI 键；等价于旧合同 export_wcs.s_out_deg——旧键已在 ci/ledgers/dead_config_keys.json 登记 consumed_as=scale_deg_per_px。权威 docs/algorithms/PHASE3_HIPS_TO_FITS.md s_out>0）"
+      "description": "输出像元角尺度 deg/px（必须 > 0；CLI 键；等价于旧合同 export_wcs.s_out_deg——旧键已在 eng/ci/ledgers/dead_config_keys.json 登记 consumed_as=scale_deg_per_px。权威 docs/algorithms/PHASE3_HIPS_TO_FITS.md s_out>0）"
     },
     "projection_code": {
       "enum": [

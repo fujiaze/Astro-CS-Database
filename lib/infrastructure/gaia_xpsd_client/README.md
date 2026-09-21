@@ -1,7 +1,7 @@
 # lib/infrastructure/gaia_xpsd_client — astrocs.catalog.gaia（CAT-GAIA）
 
 > 状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05）｜doc revision: r2
-> **现状复测（LEDGER-DOC，2026-09-17；`python3 tools/quality/check_module_map.py`）**：
+> **现状复测（LEDGER-DOC，2026-09-17；`python3 eng/tools/quality/check_module_map.py`）**：
 > 本模块生产源 `lib/infrastructure/gaia_xpsd_client/src/module_entry.c` 与 CMake SHARED target `astrocs_catalog_gaia`（`lib/infrastructure/gaia_xpsd_client/CMakeLists.txt:15`）均在位，
 > `astrocs_module_query_v1` 导出存在但**函数体零调用**（检查器 finding `noop_entrypoint`）
 > ⇒ 机读状态 = **NOT_IMPLEMENTED**。下文旧基线中「仅合同文件/无源码/无 CMake target/

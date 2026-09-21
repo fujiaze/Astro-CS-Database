@@ -2,6 +2,8 @@
 
 # ALG-P2-POINT-001 — 门目录与负向 mutation 目录
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：ALG-P2-POINT-001-GATES
 - 上位：ALG-P2-POINT-001_SPEC.md；机器源：run/v6/alg-p2-point/spec/phase2_point_spec.json
 - 基线：HEAD = main = 125bc0999363be1a42a1f2df3254601e0cc7b8fb

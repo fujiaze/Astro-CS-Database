@@ -1,5 +1,7 @@
 # AstroCS 已知限制（Known Limitations）
 
+> 上游：ASTROCS_DESIGN.md §1.3（非目标）
+
 > 口径：本页只登记**现行**限制（限制内容 + 现状 + 归属/去向），不复制历史报告原文；历史过程由 git 历史承载。
 > 历史轮次节点（V19R2/V19R8 等）中**仍成立**的限制已并入下列条目，随节点失效者不再登记。
 > 状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；发布结论见 `docs/RELEASE_STATUS.md` 与 `docs/owner/RELEASE_STATUS.md`。

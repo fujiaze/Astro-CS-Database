@@ -202,7 +202,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
   UPMW-005 的 MC 证据源 `control_median_mc_test` **未注册（MISSING，构建孤儿）** ⇒ 该项
   只有常数冻结定义（§5/§10），没有可执行证据；收进 ctest 前不得称"已过"；
 - §7 不变量门全过；
-- `tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
+- `eng/tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
 - 解析不变量→SYN-005 转换：已知低阶光度面恢复、重叠图 gauge/退化强度扫描、接缝指标预冻结门槛（SYN-005 数据与不变量表），参数恢复/残差/接缝降低且不破坏星 flux 全过。
 
 ## 16 SCI-C 实验结论（RELEASE-04 / SCI-403，仓内实测）

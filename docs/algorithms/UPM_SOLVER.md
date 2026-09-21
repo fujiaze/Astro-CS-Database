@@ -1,5 +1,7 @@
 # UPM Solver Algorithms (ALG-UPM)
 
+> 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）
+
 > ID: ALG-UPM-001  范围: ALG-UPM-001..003  上游 SCI: SCI-UPM-001  状态: DERIVED  模块: phase2/upm
 > 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/algorithms/PHASE2_UPM_IMPL.md)
 

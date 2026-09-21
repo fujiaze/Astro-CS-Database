@@ -1,5 +1,7 @@
 # Module: calibration
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页为 calibration 模块摘要页：生产调用方、线程模型、错误语义、
 > 诊断/测试陈述、现状缺陷一律以 lib/algorithms/calibration 现行源码为准；
 > 模块级合同与算法细节见

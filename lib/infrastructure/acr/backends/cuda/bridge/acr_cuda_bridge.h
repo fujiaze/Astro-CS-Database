@@ -5,7 +5,7 @@
 // 由 MinGW 侧加载器（cuda_bridge_loader.cpp）LoadLibrary 动态调用——
 // 与项目现有 DLL 模块架构一致，无 ABI 冲突。
 //
-// 构建（证据命令记录于 docs/cuda_bridge_build.md）：
+// 构建（证据命令落 run/ 下构建日志，不入库）：
 // vcvars64 → nvcc -arch=sm_86 --allow-unsupported-compiler \
 // -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH -shared \
 // acr_cuda_bridge.cu -o acr_cuda_bridge.dll

@@ -1,5 +1,7 @@
 # Ownership & Lifetime
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 ## 规则
 
 - C API 返回的 handle（model/cache/reader）由调用方负责 close/free：

@@ -4,7 +4,7 @@
 # 编译策略：
 #   1. acr_classic_experiments 静态库：所有 eXX_*.cpp（不含 main），暴露 run_eXX() 函数
 #   2. acr_test_classic 可执行文件：classic_main.cpp + 链接静态库，用于 ctest
-#   3. acr_classic_obj OBJECT 库：供 tools/acr_classic_runner 复用 run_eXX()
+#   3. acr_classic_obj OBJECT 库：供 eng/tools/acr_classic_runner 复用 run_eXX()
 if(NOT ACR_BUILD_TESTS)
     return()
 endif()

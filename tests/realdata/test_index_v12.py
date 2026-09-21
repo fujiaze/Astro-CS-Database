@@ -15,7 +15,7 @@ _REPO = os.path.normpath(os.path.join(_HERE, "..", ".."))
 INDEX_PATH = os.path.join(_REPO, "testdata", "index.json")
 
 import importlib.util
-_TOOL = os.path.join(_REPO, "tools", "realdata", "match_plan.py")
+_TOOL = os.path.join(_REPO, "eng", "tools", "realdata", "match_plan.py")
 _spec = importlib.util.spec_from_file_location("match_plan", _TOOL)
 mp = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(mp)

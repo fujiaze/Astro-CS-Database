@@ -12,6 +12,8 @@ downstream: [TEST-P1-STAR-001]
 
 # 模块 astrocs.p1.star_detection
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 手写合同页：registry 无
 > astrocs.p1.star_detection descriptor——现行占位 descriptor 为
 > astrocs.phase1.star-psf（lib/infrastructure/scheduler/src/module_adapters.cpp:492-510，编排层

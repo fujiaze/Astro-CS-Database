@@ -1,5 +1,7 @@
 # Phase3 HiPS 重采样模块（astrocs.p3.resample）
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 模块总页；registry
 > 手写合同页=docs/modules/registry/astrocs.phase3.resample2.md（行
 > MOD-astrocs-phase3-resample2）；合同三件套=lib/algorithms/resample/
@@ -101,4 +103,4 @@ module_id=astrocs.phase3.resample2），由 P3-RSMP-INT 对齐，不作
 - SCI: docs/science/PHASE3_HIPS_TO_FITS.md（FROZEN，零改动）
 - 同域: docs/modules/phase3_proj.md（WCS 域）、
   docs/modules/phase3_fits.md（写出域）、
-  docs/modules/phase3_session.md（**未建**：Session 型模块按 §7.3 不迁移、待删除，见 `cmake/ARCH-001-migration-manifest.md` §1；会话编排面现行权威=`docs/contracts/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`）
+  phase3_session 模块页（**未建**：Session 型模块按 §7.3 不迁移、待删除，见 `eng/cmake/ARCH-001-migration-manifest.md` §1；会话编排面现行权威=`docs/contracts/RT-001.md` + `docs/modules/registry/astrocs.phase3.*`）

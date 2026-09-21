@@ -2,6 +2,8 @@
 
 # 权重来源机器判据门（median SNR / support / coverage / FWHM / residual 不得冒充权重）
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 文档 ID：`SCI-P2-001-WEIGHT-GATE`
 实现：`run/v6/sci-p2/oracle/weight_provenance_gate.py`（独立合同门，只读 JSON，不调用生产实现）
 驱动器：`run/v6/sci-p2/oracle/run_gate_and_mutations.py`

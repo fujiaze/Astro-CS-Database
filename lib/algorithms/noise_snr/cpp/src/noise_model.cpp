@@ -30,6 +30,9 @@
 namespace {
 
 static std::unordered_map<const NoiseWeightModelV1*, double> g_model_floor;
+// FIX-405 G3-6: variance_floor 钳位触发计数（build 期间被 floor 抬升的数值个数:
+// 全局兜底 + 逐控制点）。0 = 未触发。注册表与 g_model_floor 同生命周期。
+static std::unordered_map<const NoiseWeightModelV1*, int64_t> g_model_floor_clamp;
 
 constexpr double kLn10 = 2.302585092994045684017991454684; // NOISE_ESTIMATION.md / NOISE_MODEL.md 科学定义 log10↔ln 换算
 // trimmed-mean-abs-residual → Gaussian σ 换算因子:
@@ -303,7 +306,16 @@ int noise_model_impl(const T* data, int h, int w,
     std::memset(out_model, 0, sizeof(NoiseWeightModelV1));
     out_model->struct_size = (uint32_t)sizeof(NoiseWeightModelV1);
     out_model->abi_version = SNR_NOISE_MODEL_ABI_VERSION;
+    // FIX-405 G3-6 (钳位 fail-open → fail-closed): variance_floor 是**保护下限**,
+    // 不是可选项。NaN/≤0 的 floor 会让 std::max(x, floor) 静默失效
+    // （NaN 比较恒 false ⇒ 返回 x; ≤0 ⇒ 等于不设防），并使 fill 侧注册表
+    // 判据 it->second > 0 落空 → 静默回退 1e-12（配置被无声忽略）。
+    // 故此处显式拒绝: 非法 floor ⇒ SNR_FLOOR_UNBOUND(-10), 不产出模型。
+    if (!std::isfinite(c.variance_floor) || c.variance_floor <= 0.0) {
+        return SNR_FLOOR_UNBOUND;
+    }
     g_model_floor[out_model] = c.variance_floor;
+    g_model_floor_clamp[out_model] = 0;   // 钳位计数随 build 清零 (触发即计数)
 
     const int gx = std::max(2, c.patch_grid_x);
     const int gy = std::max(2, c.patch_grid_y);
@@ -472,6 +484,8 @@ int noise_model_impl(const T* data, int h, int w,
     if (!patch_var.empty()) {
         std::vector<double> vc = patch_var;
         const double vmed = robust_median(vc);
+        // FIX-405 G3-6: 钳位触发即计数（不改变数值, 只把静默钳位变为可登记状态）
+        if (vmed < c.variance_floor) ++g_model_floor_clamp[out_model];
         out_model->variance_bg_global = std::max(vmed, c.variance_floor);
         out_model->sigma_bg_global = std::sqrt(out_model->variance_bg_global);
         out_model->ivar_bg_global = 1.0 / out_model->variance_bg_global;
@@ -504,6 +518,7 @@ int noise_model_impl(const T* data, int h, int w,
             return 1;
         }
         out_model->sigma_bg_global = sig;
+        if (sig * sig < c.variance_floor) ++g_model_floor_clamp[out_model];
         out_model->variance_bg_global = std::max(sig * sig, c.variance_floor);
         out_model->ivar_bg_global = 1.0 / out_model->variance_bg_global;
         out_model->degenerate = 1;  // 无空间分辨, 全局兜底
@@ -526,6 +541,7 @@ int noise_model_impl(const T* data, int h, int w,
         return 3;
     }
     for (std::size_t i = 0; i < n; ++i) {
+        if (patch_var[i] < c.variance_floor) ++g_model_floor_clamp[out_model];
         const double var = std::max(patch_var[i], c.variance_floor);
         out_model->ctrl_x_px[i] = ctrl_x[i];
         out_model->ctrl_y_px[i] = ctrl_y[i];
@@ -694,8 +710,10 @@ namespace {
 
 
 // 最小二乘平面填充内核（variance field， 冻结；float 输出）
-void fill_impl(const NoiseWeightModelV1* m, int h, int w,
-               float* out_variance, float* out_ivar) {
+// FIX-405 G3-6: 返回 0=成功, SNR_FLOOR_UNBOUND=floor 未绑定/非法 (fail-closed)。
+// 原签名 void + 入口恒 return 0 会把显式拒绝码静默吞掉。
+int fill_impl(const NoiseWeightModelV1* m, int h, int w,
+              float* out_variance, float* out_ivar) {
     if (m->has_spatial_field && m->n_control_points >= 4) {
         // 平滑方差场: 最小二乘平面拟合 var(x,y) = a + b·x + c·y
         // （对平滑噪声梯度统计最优；负预测 clamp 到 variance_floor）。
@@ -727,10 +745,19 @@ void fill_impl(const NoiseWeightModelV1* m, int h, int w,
         const double a = mv - b * mx - c * my;
         for (int y = 0; y < h; ++y) {
             for (int x = 0; x < w; ++x) {
-                // W1-NOISE-002: floor propagation via internal registry (model ptr keyed), fallback 1e-12
-                double floor = 1e-12;
+                // W1-NOISE-002 / FIX-405 G3-6: floor 传播只经内部注册表（按模型
+                // 指针键控）。**fail-closed**: 模型未绑定 floor（或绑定值非法）时
+                // 显式拒绝（SNR_FLOOR_UNBOUND），不再静默回退 1e-12 —— 后者会让
+                // 配置的 variance_floor 在生产 fill 路径上被无声忽略。
+                // 绑定途径: snr_noise_model_v1[_f64] build, 或
+                // snr_noise_model_v1_bind_variance_floor。
+                double floor = 0.0;
                 auto it = g_model_floor.find(m);
-                if (it != g_model_floor.end() && it->second > 0.0) floor = it->second;
+                if (it == g_model_floor.end() || !std::isfinite(it->second) ||
+                    it->second <= 0.0) {
+                    return SNR_FLOOR_UNBOUND;
+                }
+                floor = it->second;
                 const double var = std::max(a + b * (double)x + c * (double)y, floor);
                 if (out_variance) out_variance[(std::size_t)y * w + x] = (float)var;
                 if (out_ivar) out_ivar[(std::size_t)y * w + x] = (float)(1.0 / var);
@@ -744,6 +771,7 @@ void fill_impl(const NoiseWeightModelV1* m, int h, int w,
             if (out_ivar) out_ivar[i] = (float)ivar;
         }
     }
+    return 0;
 }
 
 }  // namespace
@@ -755,13 +783,39 @@ SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
     if (!out_variance && !out_ivar) return 3;
     // ABI fail-closed: 模型必须由本版本 build 产出 (无头部 = 旧/手工拼装 ⇒ 拒绝)
     if (snr_noise_model_v1_abi_check_model(model) != 0) return SNR_ABI_MISMATCH;
-    try { fill_impl(model, h, w, out_variance, out_ivar); } catch (const std::exception& e) { (void)e; return 3; } catch (...) { return 3; }
+    // FIX-405 G3-6: fill_impl 的显式拒绝码 (SNR_FLOOR_UNBOUND) 必须原样上抛 ——
+    // 原实现丢弃返回值恒 return 0, 会把 fail-closed 门静默吞掉。
+    int frc = 0;
+    try { frc = fill_impl(model, h, w, out_variance, out_ivar); }
+    catch (const std::exception& e) { (void)e; return 3; }
+    catch (...) { return 3; }
+    return frc;
+}
+
+// FIX-405 G3-6: 显式绑定 variance_floor（与 build 内部登记同一注册表）。
+// floor 必须有限且 > 0 ⇒ 否则 SNR_FLOOR_UNBOUND(-10) 显式拒绝（禁静默通过）。
+SNR_API int snr_noise_model_v1_bind_variance_floor(NoiseWeightModelV1* model,
+                                                   double floor_var) {
+    if (!model) return 3;
+    if (!std::isfinite(floor_var) || floor_var <= 0.0) return SNR_FLOOR_UNBOUND;
+    if (snr_noise_model_v1_abi_check_model(model) != 0) return SNR_ABI_MISMATCH;
+    g_model_floor[model] = floor_var;
     return 0;
+}
+
+// FIX-405 G3-6: 钳位触发计数（build 期间被 floor 抬升的数值个数; 0 = 未触发）。
+// 未注册模型返回 -1（显式"未知", 不冒充 0）。
+SNR_API int64_t snr_noise_model_v1_floor_clamp_count(
+    const NoiseWeightModelV1* model) {
+    if (!model) return -1;
+    auto it = g_model_floor_clamp.find(model);
+    return it == g_model_floor_clamp.end() ? (int64_t)-1 : it->second;
 }
 
 SNR_API void snr_noise_model_v1_free(NoiseWeightModelV1* model) {
     if (!model) return;
     g_model_floor.erase(model);
+    g_model_floor_clamp.erase(model);
     std::free(model->ctrl_x_px);
     std::free(model->ctrl_y_px);
     std::free(model->ctrl_sigma);

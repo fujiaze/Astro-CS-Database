@@ -1,5 +1,7 @@
 # Module: healpix_drizzle
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 合同 ID = ALG-DRZ-001（唯一合同引用，registry 登记名同此）；
 > 模块合同落位 lib/algorithms/drizzle/（迁移目标目录，astrocs.p1.drizzle）；
 > 本页登记职责、端口、线程/确定性、错误与测试面，

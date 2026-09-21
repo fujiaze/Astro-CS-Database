@@ -44,6 +44,10 @@
 # ============================================================================
 
 set(P1STAR_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+# CLEAN-403: 被测生产源 sdet_log.cpp 的日志追加写经 aio 机制原语
+# (aio_atomic_file.h, header-only) ⇒ 本目录测试目标需要 aio/src include 面。
+# 仅构建接线; 测试桩与其 I/O 未改动 (白名单登记见 eng/ci/ledgers)。
+include_directories(${P1STAR_DIR}/../../../../infrastructure/aio/src)
 set(SDET_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../src)
 set(SDET_SRC
   ${SDET_SRC_DIR}/sdet_api.cpp

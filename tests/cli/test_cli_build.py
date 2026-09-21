@@ -79,7 +79,7 @@ from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
 
 
 def _repo_version():
-    """版本单源: 根 VERSION 文件(cli/CMakeLists.txt 与 tools/gen_version.py 同源读取)。"""
+    """版本单源: 根 VERSION 文件(cli/CMakeLists.txt 与 eng/tools/gen_version.py 同源读取)。"""
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as fh:
         return fh.read().strip()
 
@@ -107,7 +107,7 @@ LEGACY_COMMANDS = [
     ["benchmark", "cpu", "--quick"], ["graph", "--preset", "1"], ["run", "--phases", "1"],
 ]
 
-@unittest.skipUnless(shutil.which("cmake") and shutil.which("g++"), "需要 cmake/g++")
+@unittest.skipUnless(shutil.which("cmake") and shutil.which("g++"), "需要 eng/cmake/g++")
 class TestCliBuild(unittest.TestCase):
     """被测对象 = **根产品图**产出的唯一 exe（build/astrocs; ASTROCS_CLI_BIN 可覆盖）。
 

@@ -1,5 +1,7 @@
 # Phase3 模块架构 (HiPS reader → WCS → resampler → FITS writer)
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > ID: ARCH-P3-001  状态: FROZEN  上游: ALG-007(PHASE3_RESAMPLE.md)/ARCH-002/ARCH-004  下游: API-005/CODE-P3/SYN-007
 > 原则: **科学选择全部落在 ALG-007 冻结公式(G1–G5),本架构只定义模块边界/数据结构/并发与内存上界——不把科学决策藏进 cache/loader。**
 

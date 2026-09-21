@@ -4,6 +4,8 @@
 
 # 10 — 迁移建议、开放项与需裁决/签字项（只登记不擅改）
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 上位锚：`ASTROCS_DESIGN.md` §0 权威链；PROJECT_SPEC §11（迁移原则）；CONTROLLER_LOG C-004.1..6；SCI-ADJ-001 §7/§8。
 （**2026-09-20 订正**：原文「宪章 §1.2/§14.5/§16.2」已作废——宪章 `ASTROCS-CONSTITUTION-001` 由 ROOT-007 删除、**不作权威**，依据 `ASTROCS_DESIGN.md:31` + `docs/owner/PROJECT_SPEC.md:9`；该引用仅存历史溯源，见本文件 `:1` 的 DOC-001 注记。）
 机器：`contracts/proposals/v6/data/astrocs.v6.data-design-catalog.v1.json` 的 `migrations` / `open_items` / `signoff_items` / `controller_only_items`。

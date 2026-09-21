@@ -23,6 +23,10 @@ extern "C" {
 #include "astro_image_io.h"
 #include "astrocs/probe.h"  // RELEASE-02 探针 (ASTROCS_PROBES=OFF 时宏为空语句)
 
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 产物存在性探测
+// 经 aio 机制原语 (aio_atomic::path_exists), 本 TU 不再直用 std::filesystem。
+#include "aio_atomic_file.h"
+
 namespace {
 
 using json = nlohmann::json;
@@ -483,7 +487,7 @@ acs_status run_session(SessionState* s, const json& doc) {
     {
         json& st = s->manifest["stages"].emplace_back(json{{"name", "io_write"}, {"status", "running"}});
         for (const auto& a : s->manifest["artifacts"]) {
-            if (!std::filesystem::exists(std::filesystem::u8path(a.get<std::string>()))) {
+            if (!aio_atomic::path_exists(a.get<std::string>(), nullptr)) {
                 s->last_error = "artifact missing after write: " + a.get<std::string>();
                 st["status"] = "fail";
                 return ACS_ERR_IO;

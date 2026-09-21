@@ -40,8 +40,36 @@ KIND_EXT = {
     "artifact": {"role", "path", "sha256", "size_bytes"},
     "backend": {"kernel", "backend_id", "isa", "workers", "block_size", "reason"},
     "final": {"exit_code", "status", "run_manifest", "summary"},
+    # FIX-405 G3-10: 10 类开放 kind 全登记（封闭注册表；未登记 kind 判红）
+    "stage_start": set(),
+    "stage_end": set(),
+    "graph": {"path"},
+    "resource_gate": {"diag", "enforcement", "strict", "enforced", "work_core_seconds",
+                      "workload_floor_core_seconds", "workload_floor_reached"},
+    "v6_mode_route": {"route_kind", "token", "surface", "source", "reason",
+                      "implicit_phase_chain", "budget_source_owner",
+                      "budget_allocated_cores", "one_budget_source_rule"},
 }
-BASE_KINDS = set(KIND_EXT)
+BASE_KINDS = {"progress", "resource", "artifact", "backend", "final"}
+# §4 kind 注册表（封闭枚举，10 类）—— 实现正本 = lib/infrastructure/cli/protocol.h
+# registered_event_kinds_v1()；机器 schema = contracts/schemas/jsonl_event_v1.schema.json。
+REGISTERED_KINDS = set(KIND_EXT)
+SCHEMA_PATH = os.path.join(REPO, "contracts", "schemas", "jsonl_event_v1.schema.json")
+PROTOCOL_H = os.path.join(REPO, "lib", "infrastructure", "cli", "protocol.h")
+
+
+def protocol_h_registered_kinds():
+    """从实现正本解析 §4 kind 注册表（跨源一致性用，避免只信 schema）。"""
+    with open(PROTOCOL_H, encoding="utf-8") as fh:
+        src = fh.read()
+    block = src.split("registered_event_kinds_v1()", 1)[1].split("};", 1)[0]
+    return set(re.findall(r'"([a-z0-9_]+)"', block))
+
+
+def schema_registered_kinds():
+    with open(SCHEMA_PATH, encoding="utf-8") as fh:
+        schema = json.load(fh)
+    return set(schema["properties"]["kind"]["enum"])
 EXIT_DOMAIN = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 70}          # 04 §2 冻结 11 条
 # Q6：LOG-001「结构化日志」的标识键 —— 与运行事件流同现即「两种字段命名混用」⇒ 判红。
 # （phase 是两份合同共有的字段名，不作标识键；见 Q6「字段名/枚举唯一」。）
@@ -84,6 +112,10 @@ def validate_run_event(ev, expect_seq):
             ev.get("sequence"), expect_seq)
     if not ev["event_id"].startswith("evt-%s-" % ev["run_id"]):
         return "event_id not run-bound: %r" % ev["event_id"]
+    # FIX-405 G3-10: kind 必须是注册表内成员（未登记 kind 判红，不再是开放字符串）
+    if ev["kind"] not in REGISTERED_KINDS:
+        return "kind %r is not in the §4 registry (%d kinds)" % (
+            ev["kind"], len(REGISTERED_KINDS))
     ext = KIND_EXT.get(ev["kind"])
     if ext:
         miss = ext - set(ev)
@@ -171,6 +203,41 @@ class TestRunEventStreamDefault(unittest.TestCase):
         self.assertEqual([e["sequence"] for e in self.events],
                          list(range(len(self.events))),
                          "sequence 必须从 0 单调无空洞（唯一顺序键）")
+
+    def test_06_kind_registry_consistent_and_unregistered_rejected(self):
+        """FIX-405 G3-10: 10 类 kind 全登记（三源同面），未登记 kind 被拒。"""
+        proto = protocol_h_registered_kinds()
+        schema = schema_registered_kinds()
+        # (a) 三源同面: 读侧名册 / 实现正本 protocol.h / 机器 schema enum
+        self.assertEqual(len(REGISTERED_KINDS), 10, "§4 kind 注册表必须是 10 类")
+        self.assertEqual(proto, REGISTERED_KINDS,
+                         "protocol.h registered_event_kinds_v1 与 §4 名册不同面")
+        self.assertEqual(schema, REGISTERED_KINDS, "schema kind enum 与 §4 名册不同面")
+        # (b) 真跑观测到的每个 kind 都必须在册（本任务前 5 类之外无人校验）
+        observed = {e["kind"] for e in self.events}
+        self.assertTrue(observed <= REGISTERED_KINDS,
+                        "真实事件流出现未登记 kind: %s" % sorted(observed - REGISTERED_KINDS))
+        self.assertTrue(BASE_KINDS <= observed,
+                        "基础五类必须齐备（缺 %s）" % sorted(BASE_KINDS - observed))
+        # (c) 负例（能红）: 未登记 kind 必须判红 —— 两个方向都验
+        base = dict(self.events[0])
+        self.assertIsNone(validate_run_event(base, 0), "未注入时必须判绿")
+        bogus = dict(base, kind="bogus_kind")
+        self.assertIsNotNone(validate_run_event(bogus, 0),
+                             "未登记 kind 必须判红（封闭注册表）")
+        self.assertNotIn("bogus_kind", proto)
+        self.assertNotIn("bogus_kind", schema)
+        # (d) 已登记 kind 缺冻结扩展字段也必须判红（注册表不是免检牌）
+        g = dict(base, kind="graph")          # graph 必须带 path
+        self.assertIsNotNone(validate_run_event(g, 0), "graph 缺 path 必须判红")
+        g_ok = dict(g, path="run_graphs/x.dot")
+        self.assertIsNone(validate_run_event(g_ok, 0), "graph 带 path 必须判绿")
+        # (e) 事件流 schema 的 allOf 分支与注册表一一对应
+        with open(SCHEMA_PATH, encoding="utf-8") as fh:
+            sch = json.load(fh)
+        branches = {c["if"]["properties"]["kind"]["const"] for c in sch["allOf"]}
+        self.assertEqual(branches, REGISTERED_KINDS,
+                         "schema allOf 分支集 != kind 注册表")
 
     def test_02_negative_second_field_naming_is_red(self):
         """负例注入第二种字段命名 ⇒ 判红（能红能绿）。"""

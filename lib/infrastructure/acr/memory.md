@@ -350,7 +350,7 @@ GTEST_SKIP、ASan 实际开启、外部单 HEAD Evidence 生成中）。**尚未
 - 9 个 ADR 创建：alpaka/oneTBB/hwloc/cpu_features/Google Benchmark/GoogleTest/StarPU 评估/FetchContent/CPU-only 门禁
 - dependency-lock.json 创建（12 个依赖，版本锁定）
 - forbidden-paths.md 创建（11 个算法目录 + 顶层文件只读）
-- ci/path_guard.ps1 创建并验证（中文路径用 git pathspec 排除，pwsh 执行）
+- eng/ci/path_guard.ps1 创建并验证（中文路径用 git pathspec 排除，pwsh 执行）
 - CMakeLists.txt 骨架（Phase A 只声明 FetchContent 不 MakeAvailable，CPU-only 默认不拉 GPU 依赖）
 - spec.md + checklist.md + tasks.md 三件套就位
 

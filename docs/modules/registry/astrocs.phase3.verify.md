@@ -10,6 +10,8 @@ downstream: [TEST-P3-VER-001]
 
 # 模块 astrocs.phase3.verify
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## 职责与明确非职责
 
 Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责由

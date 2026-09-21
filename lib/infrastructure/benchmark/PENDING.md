@@ -1,8 +1,8 @@
 # PENDING — 迁移登记（INT-001）
 
 > 依据：`ASTROCS_DESIGN.md` §7.1（顶层结构唯一：`lib/infrastructure/benchmark`）、§8（CPU 后端与资源：`cpu_profile` 由 benchmark 生成）；
-> `cmake/ARCH-001-migration-manifest.md` §1 第 16 行（`lib/backend_host` → `lib/infrastructure/benchmark/backend_host`，**DONE**）。
-> **本文件不作模块状态声明**：模块状态一律由 `tools/quality/check_module_map.py` 现场计算
+> `eng/cmake/ARCH-001-migration-manifest.md` §1 第 16 行（`lib/backend_host` → `lib/infrastructure/benchmark/backend_host`，**DONE**）。
+> **本文件不作模块状态声明**：模块状态一律由 `eng/tools/quality/check_module_map.py` 现场计算
 > （`ASTROCS_DESIGN.md` §11.4 状态词表），禁止在登记面自证。
 
 - 目录现状（**如实登记**，2026-09-20 实测 `git ls-files lib/infrastructure/benchmark | wc -l` = **38**，目录**非空**）：
@@ -10,4 +10,4 @@
   - `cpu/`（10）：`baseline`/`avx2`/`avx512` provider（include+src）、`common/`（`capability_detect.c`、`capability_v1.h`、`cpu_capability.schema.json`、`README.md`）。
 - 待办（INT-001）：本目录内容归位后的模块边界收口（`docs/modules/MODULE_MAP.yaml` 已有 `benchmark` 条目）。
 - 已知缺口：本目录**缺** `README.md` 与 `module.yaml`，而 `docs/modules/MODULE_MAP.yaml` 已声明 `readme: lib/infrastructure/benchmark/README.md` ⇒ 该声明当前不解析（S09 类缺口，登记不改）。
-- 权威清单：`cmake/ARCH-001-migration-manifest.md` §1/§4。
+- 权威清单：`eng/cmake/ARCH-001-migration-manifest.md` §1/§4。

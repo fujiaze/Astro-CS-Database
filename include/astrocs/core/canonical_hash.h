@@ -1,7 +1,7 @@
 // include/astrocs/core/canonical_hash.h — 规范产品哈希（canonical product hash）
 //
-// 口径（唯一权威定义 = tools/canonical_product_hash.py, 本文件是其 C++ 同构实现;
-// 两者必须逐字节同值, 由 tools/canonical_product_hash.py compare 与 CLI 侧
+// 口径（唯一权威定义 = eng/tools/canonical_product_hash.py, 本文件是其 C++ 同构实现;
+// 两者必须逐字节同值, 由 eng/tools/canonical_product_hash.py compare 与 CLI 侧
 // manifest 字段的交叉核对守住）:
 //
 //   完整性面 integrity_sha256  = 整文件字节 sha256  -> 防改动/损坏
@@ -16,7 +16,7 @@
 // 明确**不排除**: DATE-OBS(观测时刻)/BUNIT/CRPIX/CRVAL/CD/CTYPE/SIP/像素数据 等。
 //
 // 依据与外部标准引用见 spec 文档与工具头注释; 部署内既有裁决
-// tools/quality/compare_products.py（P26 T3, 负责人裁决 4）的墙钟清单与本清单一致。
+// eng/tools/quality/compare_products.py（P26 T3, 负责人裁决 4）的墙钟清单与本清单一致。
 #pragma once
 
 #include <string>

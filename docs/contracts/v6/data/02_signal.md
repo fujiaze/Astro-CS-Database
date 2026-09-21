@@ -2,6 +2,8 @@
 
 # 02 — signal 对象 schema（Phase1 Drizzle 面亮度 / Phase2 马赛克 / Phase3 平面）
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 上位锚：`FZ-FORMULA-DRIZZLE-SB`、`FZ-GATE-CONST-SB`、`FZ-COND-FLUX-CONSERV`、`FZ-DEGRADE-SCALAR`；
 DESIGN-P1 §9:120-126；UNIFIED §7；ADJ-F-OBS-02/S2/S3；宪章 §4.1/§5.3。
 机器：`contracts/proposals/v6/data/astrocs.v6.signal.v1.schema.json`（`signal.v1`）；正例 `examples/signal.example.json`。

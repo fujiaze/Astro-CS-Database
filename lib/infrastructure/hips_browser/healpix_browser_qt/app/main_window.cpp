@@ -2,7 +2,7 @@
 // 功能: 实现 QMainWindow 容器, 菜单栏 + 文件选择 + STF 控制面板 + 状态栏
 // 用途: demo exe 入口容器, 按扩展名路由 .hiss/.hcsd → SphereView (统一球面渲染)
 // 依赖: Qt6::Widgets, widgets/ (AbstractView/SphereView), app/ (STFPanel)
-// 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §4.1, §8, §9
+// 设计文档: docs/modules/healpix_browser_qt.md
 
 #include "main_window.h"
 #include "stf_panel.h"

@@ -1,5 +1,7 @@
 # 插件文档：star_detection（源探测）
 
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+
 ## 1. 职责与边界
 
 - **职责**：检测图像中的源（星点/延展源），输出位置、质心/矩、源身份与 selection function 参数。

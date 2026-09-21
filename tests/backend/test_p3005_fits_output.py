@@ -39,6 +39,8 @@ class TestP3005FitsOutput(unittest.TestCase):
                "scale_deg_per_px": 0.05, "width_px": 16, "height_px": 16,
                "sampler": "nearest", "projection": "TAN",
                "coverage_output": "mask", "output_dir": out,
+               # FZ-P3-MODES: 输出模式显式声明（缺键即 REJECT）。
+               "output_mode": "surface_brightness",
                "bitpix": bitpix}
         c = os.path.join(out, "c.json")
         json.dump(cfg, open(c, "w"))
@@ -74,7 +76,9 @@ class TestP3005FitsOutput(unittest.TestCase):
                    "BUNIT", "BSCALE", "BZERO", "HIPSID", "ORDERSEL", "SAMPLER",
                    "SWVER", "RUNID"):
             self.assertIn(kw, h, f"缺关键字 {kw}")
-        self.assertEqual(h["BUNIT"], "ADU")   # P3-002: 面亮度, 非 Jy/beam
+        # FIX-402: 面亮度输入声明 canonical "ADU/px^2"（冻结单位表 signal_sb）
+        # ⇒ 输出主 HDU BUNIT 逐字继承（禁 loose "ADU" 缺省, 非 Jy/beam）。
+        self.assertEqual(h["BUNIT"], "ADU/px^2")
         self.assertEqual(h["CTYPE1"], "RA---TAN")
         # coverage 扩展
         self.assertTrue(len(fits.open(f)) >= 2, "应含 coverage 扩展")

@@ -10,8 +10,8 @@
      target_dir 之下（迁移清单外的同名历史面除外，见 NOT_MIGRATED）。
   T2 check_module_map 负例：把 legacy_paths 写回现存 target_dir ⇒ 必报
      legacy_paths_present；正例：真实仓库 23/23 且真实 FAIL 数 > 0（不为绿放宽）。
-  T3 tools/check_module_readmes.py 正例 rc=0 / 负例（README 路径指向不存在文件）rc=1。
-  T4 tools/check_warning_suppression.py 正例 rc=0 / 负例（生产源注入 -w 抑制）rc=1。
+  T3 eng/tools/check_module_readmes.py 正例 rc=0 / 负例（README 路径指向不存在文件）rc=1。
+  T4 eng/tools/check_warning_suppression.py 正例 rc=0 / 负例（生产源注入 -w 抑制）rc=1。
      ⚠ ARCH-001 前该检查器读旧路径全空 ⇒ static_scan 恒空跑（假绿）；本测试钉死
      「注入必红」，防止再次退化成空跑。
   T5 docs/modules、docs/contracts 除 MODULE_MAP 的 legacy_paths/note 历史键外，
@@ -76,7 +76,7 @@ def _link_tree(src: pathlib.Path, dst: pathlib.Path) -> None:
 
 
 def make_mirror(name: str) -> pathlib.Path:
-    """在 run/... 下造一棵镜像树（真目录 + 文件级 symlink；tools/ 为真实副本）。"""
+    """在 run/... 下造一棵镜像树（真目录 + 文件级 symlink；eng/tools/ 为真实副本）。"""
     root = PROBE_ROOT / name
     if root.exists():
         shutil.rmtree(root)
@@ -89,8 +89,8 @@ def make_mirror(name: str) -> pathlib.Path:
             _link_tree(entry, dst)
         else:
             os.symlink(entry, dst)
-    shutil.rmtree(root / "tools")
-    shutil.copytree(REPO / "tools", root / "tools", symlinks=False)
+    shutil.rmtree(root / "eng" / "tools")
+    shutil.copytree(REPO / "eng" / "tools", root / "eng" / "tools", symlinks=False)
     return root
 
 
@@ -136,7 +136,7 @@ class TestModuleMapLegacyPathsCannotSelfCertify(unittest.TestCase):
             bad_map = tmp / "MODULE_MAP.yaml"
             bad_map.write_text(mutated, encoding="utf-8")
             out = tmp / "bad.json"
-            proc = run([PY, "tools/quality/check_module_map.py",
+            proc = run([PY, "eng/tools/quality/check_module_map.py",
                         "--repo-root", str(REPO), "--map", str(bad_map),
                         "--json-out", str(out), "--quiet"])
             data = json.loads(out.read_text(encoding="utf-8"))
@@ -149,7 +149,7 @@ class TestModuleMapLegacyPathsCannotSelfCertify(unittest.TestCase):
         """正例：真实仓库 + 真实映射表可跑通，23/23 与真实 FAIL 数如实给出。"""
         with tempfile.TemporaryDirectory(prefix="mod002-map-real-") as td:
             out = pathlib.Path(td) / "real.json"
-            proc = run([PY, "tools/quality/check_module_map.py",
+            proc = run([PY, "eng/tools/quality/check_module_map.py",
                         "--json-out", str(out), "--quiet"])
             data = json.loads(out.read_text(encoding="utf-8"))
             self.assertEqual(data["summary"]["modules_total"], 23)
@@ -169,13 +169,13 @@ class TestModuleReadmeCheckerCanRedAndGreen(unittest.TestCase):
         shutil.rmtree(PROBE_ROOT, ignore_errors=True)
 
     def test_t10_positive_real_repo_green(self):
-        proc = run([PY, "tools/check_module_readmes.py"])
+        proc = run([PY, "eng/tools/check_module_readmes.py"])
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn("DOC-003_PASS", proc.stdout)
 
     def test_t11_negative_missing_readme_is_red(self):
         mirror = make_mirror("readme")
-        p = mirror / "tools/check_module_readmes.py"
+        p = mirror / "eng/tools/check_module_readmes.py"
         src = p.read_text(encoding="utf-8")
         mutated = src.replace(
             "lib/algorithms/noise_snr/wrapper_phase1/README.md",
@@ -202,7 +202,7 @@ class TestWarningSuppressionCheckerCanRedAndGreen(unittest.TestCase):
         shutil.rmtree(PROBE_ROOT, ignore_errors=True)
 
     def test_t20_positive_real_repo_green(self):
-        proc = run([PY, "tools/check_warning_suppression.py"])
+        proc = run([PY, "eng/tools/check_warning_suppression.py"])
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
     def test_t21_negative_injected_suppression_is_red(self):
@@ -211,7 +211,7 @@ class TestWarningSuppressionCheckerCanRedAndGreen(unittest.TestCase):
         src_real = REPO / self.TARGET
         # B 已按 EXP-206 定案退役：该路径**不得再被 Git 跟踪**（HEAD 1fc88989 已删）。
         # 不变量取「未被跟踪」而非「工作树不存在」——untracked 的 0 字节同名文件由域外
-        # `tools/check_warning_suppression.py:104` 的 `rel_src.touch()` 产生（DOC-205 回执已登记）。
+        # `eng/tools/check_warning_suppression.py:104` 的 `rel_src.touch()` 产生（DOC-205 回执已登记）。
         tracked = subprocess.run(["git", "ls-files", "--error-unmatch", self.RETIRED],
                                  cwd=str(REPO), capture_output=True, text=True)
         self.assertNotEqual(tracked.returncode, 0,
@@ -223,7 +223,7 @@ class TestWarningSuppressionCheckerCanRedAndGreen(unittest.TestCase):
         target.write_text("// MOD-002 negative probe -w" + chr(10)
                           + src_real.read_text(encoding="utf-8"), encoding="utf-8")
         self.assertTrue(src_real.is_file(), "真实仓库源文件必须仍在（负例不得写穿镜像树）")
-        checker = mirror / "tools/check_warning_suppression.py"
+        checker = mirror / "eng/tools/check_warning_suppression.py"
         proc = run([PY, str(checker)], cwd=mirror)
         shutil.rmtree(mirror, ignore_errors=True)
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)

@@ -4,6 +4,8 @@
 
 # SCI-ADJ-001 冲突矩阵（冲突项 → 各方立场 → 控制器/本任务裁定 → 生效条款）
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 - 文档 ID：SCI-ADJ-001-CONFLICT-MATRIX
 - 基线：HEAD = main = bc166e9d4828b45ef32b679156e12d954640534a
 - 机器可读伴生：reports/v6/science-adjudication/adjudications.json（每条裁决的 id/topic/input/positions/ruling/clauses/effective_scope/implementation_owner/verification_gate/owner_signoff_required）

@@ -1,6 +1,8 @@
 # Phase2 Coverage Union Algorithms (ALG-COV-001)
 
 > 状态: ACTIVE
+> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）
+
 > 上游 SCI: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，共享引用不改动）；
 > 三概念分离权威=SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，共享引用不改动）；
 > 处理链位置=SCI-SCOPE-001 §处理链第 5 步（coverage union 为 Phase2 首节点）。
@@ -240,7 +242,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   并发五字段（p2_coverage_build/free: yes/no(独立对象)/none/无/TST-COV-*）
   + 所有权图（docs/api/PHASE2_API_V1.md:28/:15）——编排级合同，与本节
   并行不互斥。
-- ARC-001（docs/architecture/CPU_ADAPTIVE_V1.md）: cpu_heavy 资源类、
+- ARC-001（CPU 自适应资源合同；现行 CPU 后端设计见 docs/architecture/CPU_BACKEND_ARCH.md）: cpu_heavy 资源类、
   单线程（internal_parallel=none）与 host_executor_lease 合同值依据。
 - TST: TEST-COV-DESIGN-001（§11.4，P2-COV-TEST 落 TEST-P2-COV-001）。
 

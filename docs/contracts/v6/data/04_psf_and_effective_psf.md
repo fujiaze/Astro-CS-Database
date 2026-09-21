@@ -2,6 +2,8 @@
 
 # 04 — PSF 与 effective PSF 对象 schema
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 上位锚：`FZ-GATE-PSFSW-EPSF`、`FZ-GATE-MEDIAN-SNR`、`FZ-GATE-SUPPORT-COVERAGE`、`FZ-COND-WHITENOISE`、`FZ-P3-FAILCLOSED`；
 DESIGN-P1 §6/§8.3；SCI-P2-001 `COVARIANCE_AND_EFFECTIVE_PSF.md` §3；PHASE3_REVIEW C-P3-PROP-11/12/13；Horne 1986；Naylor 1998；Zackay & Ofek 2017。
 机器：`astrocs.v6.psf.v1.schema.json`（`psf.v1`）、`astrocs.v6.effective-psf.v1.schema.json`（`effective-psf.v1`）。

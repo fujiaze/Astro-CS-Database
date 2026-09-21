@@ -60,5 +60,5 @@ ASTROCS_PROBE_FLUSH();                                 // 手动 flush（可选�
 
 ## 系统监视器
 
-`tools/l4_rebuild/sysmon.py` 与程序同步启动，从 `/proc` 采样整机/进程树利用率写 CSV，
+`eng/tools/l4_rebuild/sysmon.py` 与程序同步启动，从 `/proc` 采样整机/进程树利用率写 CSV，
 无第三方依赖。见 `reports/RELEASE-02/probe-report.md`。

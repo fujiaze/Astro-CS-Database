@@ -150,7 +150,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
 
     def test_04_release_package_scan_no_acr_gpu(self):
         """发行包工具不得引入 ACR/GPU/CUDA 后端; ACR 目录必须被显式排除。"""
-        pure = ["tools/make_capsule.py", "tools/gen_backends_manifest.py"]
+        pure = ["eng/tools/make_capsule.py", "eng/tools/gen_backends_manifest.py"]
         for rel in pure:
             p = os.path.join(REPO, rel)
             if not os.path.isfile(p):
@@ -160,7 +160,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
             hits = [l for l in content.splitlines()
                     if re.search(r'\b(acr|cuda|gpu)\b', l, re.IGNORECASE)]
             self.assertEqual(hits, [], f"{rel} 含 ACR/GPU/CUDA 引用: {hits[:3]}")
-        pkg = os.path.join(REPO, "tools", "assemble_v17_review_pkg.py")
+        pkg = os.path.join(REPO, "eng", "tools", "assemble_v17_review_pkg.py")
         if os.path.isfile(pkg):
             with open(pkg, encoding="utf-8", errors="replace") as fh:
                 content = fh.read()

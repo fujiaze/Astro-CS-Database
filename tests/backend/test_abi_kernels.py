@@ -170,7 +170,7 @@ class TestBaselineKernels(unittest.TestCase):
                             os.path.join(HOST, "baseline_backend.cpp"), "-o", obj],
                            capture_output=True, text=True, timeout=120)
         self.assertEqual(r.returncode, 0, r.stderr)
-        scan = subprocess.run(["python3", os.path.join(REPO, "tools", "check_baseline_opcodes.py"),
+        scan = subprocess.run(["python3", os.path.join(REPO, "eng", "tools", "check_baseline_opcodes.py"),
                                obj], capture_output=True, text=True, timeout=120)
         self.assertEqual(scan.returncode, 0, scan.stdout)
         self.assertIn("BASELINE_OPCODE_PASS", scan.stdout)

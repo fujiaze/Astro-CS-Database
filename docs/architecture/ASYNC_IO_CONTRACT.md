@@ -1,5 +1,7 @@
 # Async I/O Contract（CON-008 有界异步 I/O 合同）
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > 状态：CON-008 PASS
 > 关联代码：`lib/algorithms/coverage/include/astro/phase2/async_io.h`
 > 目标：HiPS/FITS/XISF 读取与计算解耦，使用有界 producer/consumer；

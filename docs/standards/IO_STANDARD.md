@@ -1,5 +1,7 @@
 # AstroCS I/O Standard
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## science product 写盘
 
 temp write → validate → atomic promote（同目录临时文件 + rename），

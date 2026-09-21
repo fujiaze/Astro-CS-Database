@@ -11,6 +11,8 @@ downstream: [TEST-P1-PHOT-001]
 
 # 模块 astrocs.phase1.photometry
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页由源码核对后修订——
 > 合同 ID 由占位（SCI-P1-PHOT-001/ALG-002/TEST-P1-PHOT-001）更正为真实
 > 冻结 ID（SCI-PHOT-001 / ALG-PHOT-001..002 / DATA-P1-PHOT / API-PHOT-001 /

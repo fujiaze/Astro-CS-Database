@@ -191,7 +191,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         // 模板值 = 合同默认 sparse_reconstruct（schema default 与 config/defaults.json#snr.path
         // 同值；本表只作可运行骨架，默认值唯一家仍是 schema/defaults.json，不构成第二份来源）。
         // ⚠ 生产科学消费点尚未落地（Phase2 SNR 消费 = FIX-SCI-SNR-CANON-001 §4.2 跟随项）
-        //   ⇒ 已在 ci/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
+        //   ⇒ 已在 eng/ci/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
         {"snr_path", "\"sparse_reconstruct\"",
          "Phase2 SNR 重建/消费路径 dense|sparse_reconstruct|frame_reconstruct"
          "（默认 sparse_reconstruct = 消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR；"
@@ -230,7 +230,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         // crpix_px 模板值 [512.5, 512.5] = 本模板 1024×1024 输出的几何中心（FITS 1-based，
         // (1+1024)/2；「缺省 = 中心」），是示例占位、不是数值默认。
         // ⚠ 两键生产科学消费点尚未落地（p3 投影/重采样面）⇒ 已在
-        //   ci/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
+        //   eng/ci/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
         {"rotation_deg", "0.0",
          "投影旋转角（度；合同默认 0，见 phase_config_export.schema.json；"
          "生产消费点未落地，见死键台账）"},

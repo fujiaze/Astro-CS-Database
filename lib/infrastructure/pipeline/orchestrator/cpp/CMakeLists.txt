@@ -67,6 +67,8 @@ target_include_directories(astrocs_infra_orchestrator PRIVATE
   ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/crypto
   ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/healpix
   ${CMAKE_SOURCE_DIR}/lib/algorithms/platesolve/cpp/ipv/include
+  # CLEAN-403: ipv_log.h 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
+  ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_SOURCE_DIR}/lib/algorithms/psf/include
   ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/include
   ${CMAKE_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle

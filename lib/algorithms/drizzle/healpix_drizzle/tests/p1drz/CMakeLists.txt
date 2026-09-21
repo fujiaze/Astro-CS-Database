@@ -27,8 +27,9 @@
 #                        NaN 面/零尺寸/非法 nside)
 #   p1drz_performance  — perf 基线哨兵 (parity 4x/trend 0.4x)
 #   p1drz_selfcheck    — 故障注入必败自检 (验收: 注入可失败)
-# 域基线: HEAD 09ee5363 (P1-DRZ-NONFINITE 删除值侧 isfinite 静默掩膜);
-# 与 drizzle_nonfinite_test (负面值合同) 互补不重复。
+# 域基线: FIX-405 G3-5 (DATA-002 §2a / NAN-SAMPLE-MASK-COVERAGE-NAN: 样本级
+# 掩膜 + 重归一 + 强制计数; 原 09ee5363「删除值侧 isfinite 静默掩膜 ⇒ 传播」
+# 口径已按同一 rule_id 反转); 与 drizzle_nonfinite_test (负面值合同) 互补不重复。
 # ============================================================================
 
 set(P1DRZ_DIR ${CMAKE_CURRENT_SOURCE_DIR})

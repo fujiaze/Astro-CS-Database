@@ -1,5 +1,7 @@
 # 插件文档：cli（命令行入口）
 
+> 上游：ASTROCS_DESIGN.md §7.1（命令树）、§7.2（配置、事件与退出码）
+
 ## 1. 职责与边界
 
 - **职责**：三个平级命令（`normalize` / `mosaic` / `export`）的入口：命令解析、配置校验、检查页面（绿/橙/红 + yes 确认）、模板生成、帮助、机器输出、取消与退出码；科学公式实现在 `lib/algorithms/` 各模块，FITS/HiPS 读写由 `infrastructure/aio` 承担，线程池由 scheduler/runtime 统一管理；**薄入口**。

@@ -1,5 +1,7 @@
 # Module: dynamic_psf
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页为模块说明页；PSF 模块合同页 =
 > lib/algorithms/psf/README.md（r1，CONTRACT_READY）+ lib/algorithms/psf/
 > module.yaml（astrocs.p1.psf，迁移目标 astrocs_p1_psf.dll）；冻结合同

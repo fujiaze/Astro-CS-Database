@@ -25,7 +25,7 @@
 //
 // 本 TU 不新增 CTest 目标 (零注册债): 正向用例挂入既有 units 组、
 // 负向用例挂入既有 negative 组、注入自检挂入既有 selfcheck 可执行 ——
-// 三者均为 ci/ctest_baseline.json 冻结存量目标, CTEST-REGISTRATION 闭包不变。
+// 三者均为 eng/ci/ctest_baseline.json 冻结存量目标, CTEST-REGISTRATION 闭包不变。
 #include "p1hips_test_main.hpp"
 #include "p1hips_fixtures.hpp"
 #include "p1hips_oracle.hpp"

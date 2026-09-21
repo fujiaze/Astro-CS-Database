@@ -2,6 +2,8 @@
 
 # ALG-P2-SURF-001 验证与证据（命令 / rc / Oracle / mutation）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-SURF-VERIFICATION`（`ALG-P2-SURF-001` 子文档）
 - 机器摘要：`run/v6/alg-p2-surf/summary.json`；日志：`run/v6/alg-p2-surf/logs/`
 - 本任务条款：`ALG-P2S-VER.1..4`

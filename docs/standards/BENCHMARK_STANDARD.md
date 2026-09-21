@@ -1,5 +1,7 @@
 # AstroCS Benchmark Standard
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 - benchmark 只跑 Release；记录 toolchain/CPU/线程/数据规模。
 - 性能断言需 variance 报告（多次运行）；禁止单次计时作结论。
 - 输出到 run/ 或 reports/，禁止写入 testdata。

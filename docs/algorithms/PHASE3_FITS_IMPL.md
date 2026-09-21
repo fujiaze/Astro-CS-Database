@@ -1,5 +1,7 @@
 # Phase3 FITS Write-out Algorithms（P3-FITS / astrocs.p3.fits_writer）
 
+> 上游：ASTROCS_DESIGN.md §6.2（export 流程）、§10（I/O 与原子产品）
+
 > ID: ALG-P3-FITS-IMPL-001  状态: CONTRACT_READY。本文件是 Phase3 HiPS→FITS 写出域的**实现级算法合同**：
 > 逐符号源码行号锚定 + 冻结容差 + 现状缺陷登记。科学语义权威=SCI-P3-001
 > （docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN，
@@ -318,7 +320,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   值显式拒（session :127/:129）。
 - max_tiles 默认 min(1024, ceil(W·H/512²)+16)，请求可降不可升
   （:179-193）；order_sel ≤ min(20, 输入实际 order)（:196-199）。
-- 容差：WCS roundtrip ≤1e-6 px（SCI-P3 §7；执行测试取 1e-4 px
+- 容差：WCS roundtrip ≤1e-8 px（SCI-P3 §7 + 生产注册表 `p3_wcs.cpp:191`；执行测试取 1e-4 px
   观测阈 :128-129）；常数场 0（bilinear 权重和=1 构造保证）；
   回环逐值精确（F4 NaN 语义）；sha256 64hex 小写。
 - R10-C 发布序（F1）与 sha256 严格封装（F2）为冻结协议，整改归
@@ -389,7 +391,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   手写页 + docs/modules/phase3_fits.md。
 - 零改动声明：docs/science/（SCI-P3 FROZEN）、docs/algorithms/
   PHASE3_RESAMPLE.md（公式/容差零改动）、lib/ 生产源、third_party/
-  cfitsio、ci/、tools/、tests/ 本任务零触碰；发现的实现偏差全部
+  cfitsio、eng/ci/、eng/tools/、tests/ 本任务零触碰；发现的实现偏差全部
   登记（§14）不反向修改 SCI（模板红线）。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐

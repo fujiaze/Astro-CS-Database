@@ -3,13 +3,13 @@
 import json, os, re, shutil, subprocess, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(REPO, "tools"))
+sys.path.insert(0, os.path.join(REPO, "eng", "tools"))
 import gen_version  # noqa: E402
 import importlib.util
 
 def load_checker():
     spec = importlib.util.spec_from_file_location(
-        "cvc", os.path.join(REPO, "tools", "check_version_consistency.py"))
+        "cvc", os.path.join(REPO, "eng", "tools", "check_version_consistency.py"))
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return m
@@ -63,7 +63,7 @@ class TestVersionContract(unittest.TestCase):
         os.unlink(bad)
 
     def test_04_real_repo_checker_pass(self):
-        r = subprocess.run([sys.executable, os.path.join(REPO, "tools", "check_version_consistency.py")],
+        r = subprocess.run([sys.executable, os.path.join(REPO, "eng", "tools", "check_version_consistency.py")],
                            capture_output=True, text=True, cwd=REPO)
         self.assertEqual(r.returncode, 0, f"真实仓库一致性必须 PASS:\n{r.stdout}{r.stderr}")
         self.assertIn("VERSION_CONSISTENCY_PASS", r.stdout)
@@ -89,8 +89,8 @@ class TestVersionContract(unittest.TestCase):
 
 
 # ── CI-VER-CHK-001 / 裁决 R-08: 标准条款号口径 ────────────────────────────────
-CHECKER = os.path.join(REPO, "tools", "check_version_consistency.py")
-CHECKER_REL = os.path.join("tools", "check_version_consistency.py")
+CHECKER = os.path.join(REPO, "eng", "tools", "check_version_consistency.py")
+CHECKER_REL = os.path.join("eng/tools", "check_version_consistency.py")
 TEST_REL = os.path.join("tests", "version", "test_version_consistency.py")
 
 
@@ -118,9 +118,9 @@ def _tmp_repo(td, version=None):
 
 
 def _run_checker(root):
-    """以 CI 同构口径跑检查器 (同一 argv 形态; CI 侧由 ci/run.py 注入 UTF-8 环境)。"""
+    """以 CI 同构口径跑检查器 (同一 argv 形态; CI 侧由 eng/ci/run.py 注入 UTF-8 环境)。"""
     return subprocess.run(
-        [sys.executable, "-B", os.path.join(root, "tools", "check_version_consistency.py")],
+        [sys.executable, "-B", os.path.join(root, "eng", "tools", "check_version_consistency.py")],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
         cwd=root, timeout=120)
 
@@ -369,7 +369,7 @@ CHILD_TESTS = [
 
 
 def _child_env():
-    """子进程强制 UTF-8: 与 CI (ci/run.py PYTHONUTF8=1) 同口径, 且免疫宿主 cp1252。"""
+    """子进程强制 UTF-8: 与 CI (eng/ci/run.py PYTHONUTF8=1) 同口径, 且免疫宿主 cp1252。"""
     env = dict(os.environ)
     env["PYTHONUTF8"] = "1"
     env["PYTHONIOENCODING"] = "utf-8"
@@ -383,7 +383,7 @@ def _child_tree(td, checker_source):
     os.makedirs(os.path.join(td, "tests", "version"))
     with open(os.path.join(td, CHECKER_REL), "w", encoding="utf-8") as f:
         f.write(checker_source)
-    shutil.copyfile(os.path.join(REPO, "tools", "gen_version.py"),
+    shutil.copyfile(os.path.join(REPO, "eng", "tools", "gen_version.py"),
                     os.path.join(td, "tools", "gen_version.py"))
     shutil.copyfile(os.path.join(REPO, "VERSION"), os.path.join(td, "VERSION"))
     shutil.copyfile(os.path.join(REPO, TEST_REL), os.path.join(td, TEST_REL))

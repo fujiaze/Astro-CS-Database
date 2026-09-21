@@ -3,11 +3,10 @@ siril-1.4.3/
 GaiaDR3/
 GaiaDR3SP/
 
-# BASS DR3 备用测试数据集（用户数据区，原地保留不入仓库——2026-09-09 收紧：索引/坐标/压缩产物全部 gitignore）
-BASS DR3/
-BASS DR3/logs/
-BASS DR3/index.csv
-BASS DR3/coords.csv
+# BASS DR3 单帧归档索引（2026-09-21 ROOT-CONSOLIDATION：由根目录 `BASS DR3/` 移入 `testdata/BASS_DR3/`，
+# 目录名去掉空格）。依据 ENGINEERING_SPEC §7「外部只读数据集……一旦被代码消费或需入库，移入 testdata/」：
+# 元数据/索引/工具/日期表**入库**（GitHub 可见），只有 FITS 与下载/再生成产物不入库。
+# 具体规则见下方「testdata 段」（testdata/BASS_DR3/）。
 
 # IDE 配置
 .trae/
@@ -38,11 +37,25 @@ Debug/
 # 归档目录（GOV-002 起归档文件须受 Git 跟踪）
 archive/
 !docs/archive/
-!engineering/control/archive/
 
-# 测试数据与图像 (testdata 目录内容全部忽略，仅 index.json 入仓库)
+# 测试数据与图像 (testdata 目录内容默认忽略；仅索引与具名登记的元数据入仓库)
 testdata/*
 !testdata/index.json
+!testdata/README.md
+# BASS DR3 元数据面入库（2026-09-21 ROOT-CONSOLIDATION）：先放行目录，再逐类排除 FITS/下载产物。
+# gitignore 语义：父目录被排除时无法再放行子文件，故 `!testdata/BASS_DR3/` 必须在 `testdata/*` 之后。
+!testdata/BASS_DR3/
+!testdata/BASS_DR3/**
+# 仅 FITS（fpack .fits.fz / 标准 .fits）与下载、可再生成产物不入库（全局 *.fits 之外的兜底）
+testdata/BASS_DR3/**/*.fits
+testdata/BASS_DR3/**/*.fits.gz
+testdata/BASS_DR3/**/*.fits.fz
+testdata/BASS_DR3/**/*.fz
+testdata/BASS_DR3/index.csv
+testdata/BASS_DR3/coords.csv
+testdata/BASS_DR3/data/
+testdata/BASS_DR3/downloads/
+testdata/BASS_DR3/logs/
 test_data/
 test_output/
 *.png
@@ -60,10 +73,6 @@ test_output/
 *.hcsd
 *.npy
 *.npz
-
-# 工作产物目录 (含已求解 FITS 等大文件)
-engineering_v1.2/evidence/P10-006/calibrated/
-engineering_v1.2/evidence/P11-002/work/
 
 # 临时文件
 *.tmp
@@ -133,7 +142,7 @@ alloc_samples.csv
 
 # 根目录整洁兜底 (2026-09-16 ROOT-002 / CHK-ROOT-CLEAN): 本地保留但不入库
 # 保留理由与清理条件见 工程控制/PROJECT-GOVERNANCE-01/ROOT_LEDGER.md §9；
-# 机器门见 tools/quality/check_root_cleanliness.py + ci/root_manifest.json。
+# 机器门见 eng/tools/quality/check_root_cleanliness.py + eng/ci/root_manifest.json。
 # 注意：机器门不使用 .gitignore 判定，物理根目录出现未登记条目仍判红。
 /p*-files.patch
 /run_context.json
@@ -144,7 +153,7 @@ alloc_samples.csv
 
 # 安全（ROOT-006 / CHK-SECRET-HYGIENE）: 凭据/接入类文档不入库——精确条目，不加宽通配
 # 注意：忽略规则对**已 tracked** 文件无效；本条目只是「误加回」护栏，不解决存量。
-# 存量处置 = 审计包白名单移除 + 排除保证（tools/pack_audit_package.py）；
+# 存量处置 = 审计包白名单移除 + 排除保证（eng/tools/pack_audit_package.py）；
 # 是否 git rm --cached 见 reports/PROJECT-GOVERNANCE-01/security/EXPOSURE_NOTE.md（负责人裁决）。
 FATDUCK_ACCESS.md
 
@@ -156,4 +165,6 @@ FATDUCK_ACCESS.md
 run/RELEASE-02/paper/
 
 # 外部只读数据集（RELEASE-02：HST WFC3/UVIS M16 三帧 drz，公开 HLSP）
-HST_M16/
+# 2026-09-21 ROOT-CONSOLIDATION：由根目录 `HST_M16/` 移入 `testdata/HST_M16/`（ENGINEERING_SPEC §7）。
+# 770 MB FITS 仍不入库（全局 `*.fits` + 本条目兜底）；来源/PHOTFLAM/下载方式见 testdata/README.md。
+testdata/HST_M16/

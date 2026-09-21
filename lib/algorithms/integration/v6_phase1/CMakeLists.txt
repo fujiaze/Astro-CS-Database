@@ -36,6 +36,9 @@ if(NOT TARGET astrocs_v6_phase1_product)
   target_include_directories(astrocs_v6_phase1_product PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${V6P1_REPO}/lib/infrastructure/aio/v6/include"
+    # CLEAN-403: phase1_product.cpp 的文本读写经 aio 机制原语
+    # (aio_atomic_file.h / aio_file_io.h, header-only)。
+    "${V6P1_REPO}/lib/infrastructure/aio/src"
     "${V6P1_REPO}/third_party"
     "${V6P1_REPO}/lib/algorithms/calibration/include"
     "${V6P1_REPO}/lib/algorithms/psf/include"

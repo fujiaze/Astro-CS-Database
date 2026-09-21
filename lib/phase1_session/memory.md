@@ -116,8 +116,8 @@
 ### 如实边界
 
 - rt005_registry / rt009_node_trace / p1_noise_adapter（F-AIO-001）与
-  tools/arch/check_thread_budget.py（3× module_entry.cpp 未登记宏）、
-  tools/check_p1_symbol_map.py（docs/refactor 旧路径断链）为 BASE 预存
+  eng/tools/arch/check_thread_budget.py（3× module_entry.cpp 未登记宏）、
+  eng/tools/check_p1_symbol_map.py（docs/refactor 旧路径断链）为 BASE 预存
   失败/断链，本任务零触碰，登记 findings 移交前台。
 - wcs-platesolve 为配置/初始 WcsTan 标定语义（真实求解器接线归各 IMPL
   任务）；star-psf PSF 特性=StarSource fwhm_px/ellipticity（不接

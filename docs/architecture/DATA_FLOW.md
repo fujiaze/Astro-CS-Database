@@ -1,5 +1,7 @@
 # Data Flow
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > 本文按最高设计 §3.2 / §4.2 / §4.5 / §7.1a 描述；入口 = 唯一 CLI 的 `normalize` / `mosaic` / `export` 三个子命令。
 
 ## Phase1（normalize：单帧管线）
@@ -21,7 +23,7 @@ FITS/XISF 亮场 + 母版
 
 - 入口 = 唯一 CLI 的 `normalize` 子命令（最高设计 §6.2）。
 - 阶段内节点之间**传内存块**（`PipelineFrame` 命名块），**不落中间文件**（最高设计 §7.1a）；
-  当前生产实现仍用磁盘 JSON/FITS 传递，属**已登记缺口**（迁移归 FIX 代码任务）。
+  当前生产实现仍用磁盘 JSON/FITS 传递，属**现行设计缺口**（生产节点覆盖率 **1/20**、相邻节点传块 **0**）。
 
 ## Phase2（mosaic：多帧统一模型）
 

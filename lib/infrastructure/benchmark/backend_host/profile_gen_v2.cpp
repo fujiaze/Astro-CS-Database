@@ -14,13 +14,16 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
-#include <fstream>
 #include <map>
 #include <set>
 #include <sstream>
 #include <vector>
 
 #include <nlohmann/json.hpp>
+
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): manifest 读取经
+// aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
+#include "aio_file_io.h"
 
 #include "astrocs/common_abi_v1.h"
 #include "backend_loader.h"
@@ -350,12 +353,12 @@ ProfileBundle generate_profile_v2(const std::string& mode, const std::string& bu
         base.ok = true;
         providers.push_back(std::move(base));
     }
-    std::ifstream mf(backends_dir + "/backends.manifest.json");
-    if (mf) {
-        std::stringstream mbuf; mbuf << mf.rdbuf();
+    std::string mbuf;
+    if (aio_file::read_all(
+            (backends_dir + "/backends.manifest.json").c_str(), &mbuf)) {
         std::vector<ManifestEntry> entries;
         std::string merr;
-        if (parse_backends_manifest(mbuf.str(), &entries, &merr)) {
+        if (parse_backends_manifest(mbuf, &entries, &merr)) {
             for (const auto& e : entries) {
                 LoadedProvider lp;
                 std::string reason;

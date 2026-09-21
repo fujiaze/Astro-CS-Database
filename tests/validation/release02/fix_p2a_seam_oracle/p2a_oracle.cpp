@@ -6,7 +6,7 @@
 //   3) P2a-3：绝对 1e-6 与相对 1e-3 的收敛可见性
 //   4) 阻尼 alpha=1 vs 0.5
 // 生产尺度：sky~1e13 ADU，control_ivar~6.25e-22（=1/(4e10)^2），与 c-delta/q2 报告一致。
-// 编译（本文件同目录 build.sh）：g++ 链接 upm.cpp + healpix_core.cpp + sha256.cpp。
+// 编译（本文件同目录 eng/build/build.sh）：g++ 链接 upm.cpp + healpix_core.cpp + sha256.cpp。
 #include "astro/phase2/upm.h"
 #include "healpix/healpix_core.h"
 

@@ -21,8 +21,8 @@ lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:313:    // PHOTOMETRIC
 lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:945:    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal 乘入像素值,
 lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:819:    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 已把 photscal 乘入像素值,
 lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1050:    // PHOTOMETRIC 阶段 (pc_calibrate_simple) 应已把 photscal 乘入像素值,
-tools/check_api_docs.py:288:                  "ipv_solve_create", "pc_calibrate_simple", "snr_noise_model_v1"],
-tools/quality/v19r3_traceability.py:251:     "pc_calibrate_simple; pc_calibrate_simple_with_gaia",
+eng/tools/check_api_docs.py:288:                  "ipv_solve_create", "pc_calibrate_simple", "snr_noise_model_v1"],
+eng/tools/quality/v19r3_traceability.py:251:     "pc_calibrate_simple; pc_calibrate_simple_with_gaia",
 
 === [2] apply_photometry callers in live tree ===
 lib/infrastructure/aio/tests/hiss_experiments.cpp:266:    config.apply_photometry = false;

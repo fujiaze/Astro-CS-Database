@@ -1,0 +1,234 @@
+{
+  "$comment": "DATA-TYPE-MATRIX 合成数据集注册表：矩阵单元 → 场景配方 → 产物目录 → 示范判据。产物落 run/reverse_verify/data_matrix/（gitignore）。",
+  "$stack_n": "STACKN32-001（A4 前台裁决，2026-09-20）：4 个 m16_* 数据集的场景 JSON 已全局统一 stack_n=32（叠加等效读出噪声 sqrt(32)*3.1 = 17.536 e-，对应真实 drz 的 NDRIZIM=32）。非 m16_* 数据集是解析玩具仪器（renderer=\"render\"），无叠加语义、不含 stack_n 字段。stack_n=1 的旧交付版备份：实验/shared/data/synthetic/before_stackn32/ 与 run/RELEASE-02/paper/data/STACKN32/before_stackn32/。",
+  "outdir_root": "run/reverse_verify/data_matrix",
+  "datasets": [
+    {
+      "id": "nebula_core_analytic",
+      "scene": "synthetic/scenes/nebula_core_m42_analytic.json",
+      "outdir": "nebula_core_analytic",
+      "cells": [
+        "target:bright_nebula_core",
+        "sky:dark_0.5eps",
+        "seeing:3.0px",
+        "band:Red",
+        "instrument:0.5m_0.97asp"
+      ],
+      "criteria": [
+        "exp1_sky_poisson_snr"
+      ],
+      "demo": true
+    },
+    {
+      "id": "nebula_core_realbase",
+      "scene": "synthetic/scenes/nebula_core_m42_realbase.json",
+      "outdir": "nebula_core_realbase",
+      "cells": [
+        "target:bright_nebula_core",
+        "real_instance:L4-rebuild/norm/t3_m2_red",
+        "band:Red"
+      ],
+      "criteria": [
+        "exp1_sky_poisson_snr",
+        "exp3_variance_closure"
+      ],
+      "demo": true
+    },
+    {
+      "id": "mosaic_diff_pointing_analytic",
+      "scene": "synthetic/scenes/mosaic_diff_pointing_analytic.json",
+      "outdir": "mosaic_diff_pointing_analytic",
+      "cells": [
+        "pointing:mosaic_diff_pointing"
+      ],
+      "criteria": [
+        "exp2_mosaic_shape_difference"
+      ],
+      "demo": true
+    },
+    {
+      "id": "mosaic_diff_pointing_realbase",
+      "scene": "synthetic/scenes/mosaic_diff_pointing_realbase.json",
+      "outdir": "mosaic_diff_pointing_realbase",
+      "cells": [
+        "pointing:mosaic_diff_pointing",
+        "real_instance:L4-rebuild/norm(6 plates)"
+      ],
+      "criteria": [
+        "exp2_mosaic_shape_difference"
+      ],
+      "demo": true
+    },
+    {
+      "id": "mosaic_diff_pointing_highsky",
+      "scene": "synthetic/scenes/mosaic_diff_pointing_highsky.json",
+      "outdir": "mosaic_diff_pointing_highsky",
+      "cells": [
+        "pointing:mosaic_diff_pointing",
+        "condition:high_sky_moon"
+      ],
+      "criteria": [
+        "exp2_mosaic_shape_difference"
+      ],
+      "demo": true
+    },
+    {
+      "id": "common_mode_overlap",
+      "scene": "synthetic/scenes/common_mode_overlap.json",
+      "outdir": "common_mode_overlap",
+      "cells": [
+        "pointing:common_mode_overlap",
+        "negative_control:true"
+      ],
+      "criteria": [
+        "exp2_mosaic_shape_difference"
+      ],
+      "demo": true
+    },
+    {
+      "id": "high_sky_low_snr",
+      "scene": "synthetic/scenes/high_sky_low_snr.json",
+      "outdir": "high_sky_low_snr",
+      "cells": [
+        "condition:high_sky_moon",
+        "condition:short_exposure"
+      ],
+      "criteria": [
+        "exp3_variance_closure"
+      ],
+      "demo": true
+    },
+    {
+      "id": "starfield_general",
+      "scene": "synthetic/scenes/starfield_general.json",
+      "outdir": "starfield_general",
+      "cells": [
+        "target:starfield"
+      ],
+      "criteria": []
+    },
+    {
+      "id": "sparse_field",
+      "scene": "synthetic/scenes/sparse_field.json",
+      "outdir": "sparse_field",
+      "cells": [
+        "target:sparse_field"
+      ],
+      "criteria": []
+    },
+    {
+      "id": "sweep_seeing",
+      "scene": "synthetic/scenes/sweep_seeing.json",
+      "outdir": "sweep_seeing",
+      "cells": [
+        "condition:seeing_1.5_to_5.0px"
+      ],
+      "criteria": []
+    },
+    {
+      "id": "sweep_sky",
+      "scene": "synthetic/scenes/sweep_sky.json",
+      "outdir": "sweep_sky",
+      "cells": [
+        "condition:sky_0.2_to_50eps"
+      ],
+      "criteria": [
+        "exp1_sky_poisson_snr"
+      ]
+    },
+    {
+      "id": "sweep_exposure",
+      "scene": "synthetic/scenes/sweep_exposure.json",
+      "outdir": "sweep_exposure",
+      "cells": [
+        "condition:exposure_30_to_600s"
+      ],
+      "criteria": []
+    },
+    {
+      "id": "sweep_band",
+      "scene": "synthetic/scenes/sweep_band.json",
+      "outdir": "sweep_band",
+      "cells": [
+        "band:Red",
+        "band:Green",
+        "band:Blue",
+        "band:Ha",
+        "band:OIII"
+      ],
+      "criteria": []
+    },
+    {
+      "id": "sweep_instrument",
+      "scene": "synthetic/scenes/sweep_instrument.json",
+      "outdir": "sweep_instrument",
+      "cells": [
+        "instrument:0.2m_cmos",
+        "instrument:0.35m",
+        "instrument:0.5m_fli",
+        "instrument:1.0m"
+      ],
+      "criteria": []
+    },
+    {
+      "id": "m16_nebula_core",
+      "renderer": "m16_scene",
+      "scene": "synthetic/scenes/m16_nebula_core.json",
+      "outdir": "m16_nebula_core",
+      "cells": [
+        "target:bright_nebula_core",
+        "real_instance:HST_M16/F657N",
+        "band:Ha",
+        "instrument:HST_WFC3_UVIS"
+      ],
+      "criteria": [
+        "exp_a6_seeing_aperture"
+      ],
+      "demo": true,
+      "status_note": "真实哈勃 M16 F657N 星云核心窗口；前向渲染接口 m16_scene.py（PHOTFLAM 星等尺度 + 有效域掩膜 + 9.41 物理噪声）"
+    },
+    {
+      "id": "m16_starfield",
+      "renderer": "m16_scene",
+      "scene": "synthetic/scenes/m16_starfield.json",
+      "outdir": "m16_starfield",
+      "cells": [
+        "target:starfield",
+        "real_instance:HST_M16/F502N",
+        "band:OIII",
+        "instrument:HST_WFC3_UVIS"
+      ],
+      "criteria": [],
+      "demo": true
+    },
+    {
+      "id": "m16_dark_lowsnr",
+      "renderer": "m16_scene",
+      "scene": "synthetic/scenes/m16_dark_lowsnr.json",
+      "outdir": "m16_dark_lowsnr",
+      "cells": [
+        "target:dark_lowsnr",
+        "real_instance:HST_M16/F673N",
+        "band:SII",
+        "instrument:HST_WFC3_UVIS"
+      ],
+      "criteria": [],
+      "demo": true
+    },
+    {
+      "id": "m16_band_matrix",
+      "renderer": "m16_scene",
+      "scene": "synthetic/scenes/m16_band_matrix.json",
+      "outdir": "m16_band_matrix",
+      "cells": [
+        "band:Ha",
+        "band:SII",
+        "band:OIII",
+        "pointing:common_mode_overlap",
+        "real_instance:HST_M16(3 bands)"
+      ],
+      "criteria": [],
+      "demo": true
+    }
+  ]
+}

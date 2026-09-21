@@ -482,7 +482,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         with open(mods, "w", encoding="utf-8") as fh:
             json.dump({"astrocs.phase3.resample": {"module_id": "astrocs.phase3.resample",
                                                    "module_version": "1.x"}}, fh)
-        c = subprocess.run([sys.executable, os.path.join(REPO, "tools", "quality",
+        c = subprocess.run([sys.executable, os.path.join(REPO, "eng", "tools", "quality",
                             "check_pipeline_graph.py"),
                             "--ir", os.path.join(gdir, "static_graph.json"),
                             "--module-index", mods,

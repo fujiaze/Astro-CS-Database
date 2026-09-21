@@ -1,9 +1,11 @@
 # AstroCS 资源监控伴随器合同（LOG-002）
 
+> 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
+
 > 文档 ID：`ARCH-LOG-MONITOR-002`（归属 `docs/architecture/observability/`）
 > 状态：ACTIVE_NORMATIVE（LOG-002 冻结）
 > 机器可读事实源：`lib/infrastructure/observability/monitoring/monitor.py`（合同列/指纹/校验）、
-> `tools/monitoring/verify_monitor_csv.py`（检查器）、
+> `eng/tools/monitoring/verify_monitor_csv.py`（检查器）、
 > `lib/infrastructure/observability/monitoring/linux_procfs.py`（Linux 采集）、
 > `lib/infrastructure/observability/monitoring/windows_pdh_etw.py`（Windows 显式未实现 stub）。
 > 本文档是视图；字段定义与验收以 schema/检查器为权威。
@@ -117,7 +119,7 @@ fp(seq=n)    = sha256(salt | fp(seq=n-1) | json(行字符串形态) | n)
 
 ## 5. 机器校验（verify_csv）
 
-`tools/monitoring/verify_monitor_csv.py --csv <file> [--run-id R] [--stats]`：
+`eng/tools/monitoring/verify_monitor_csv.py --csv <file> [--run-id R] [--stats]`：
 exit 0 = PASS；违例 => 非 0 + machine JSON verdict=FAIL。检查：
 
 1. header 精确等于合同 HEADER；

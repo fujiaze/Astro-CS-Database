@@ -2,8 +2,7 @@
 // 功能: 球面渲染(.hiss像素多边形/.hcsd球面网格), 球心相机, 切平面导航+滚轮/+-键FOV+箭头键朝向
 // 用途: 显示天球 HEALPix 数据, 从球心向外看, 旋转朝向, 调整FOV
 // 依赖: Qt6::Gui (QMouseEvent/QWheelEvent/QKeyEvent/QTouchEvent), core/ (GLRenderer + HealpixMath)
-// 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §3.3, §5.2, §5.3
-// docs/superpowers/specs/2026-07-14-sphere-view-tangent-plane-navigation.md
+// 设计文档: docs/modules/healpix_browser_qt.md（模块页；原 superpowers 设计稿已删）
 // 交互: 球心相机, 相机朝向由(center_ra, center_dec)决定
 // 拖动/箭头键: 切平面离散旋转(gnomonic逆变换), 极区无奇点
 // 滚轮/+-键: 改变FOV(放大/缩小视场)

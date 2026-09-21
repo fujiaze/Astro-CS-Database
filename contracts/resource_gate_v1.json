@@ -7,8 +7,8 @@
   "readers": [
     "cli/resource_gate.h（经 CMake configure_file 生成 resource_gate_thresholds_generated.h）",
     "cli/memory_report.h（同上）",
-    "tools/monitoring/run_monitored.py（运行期读本文件）",
-    "tools/quality/resource_monitor.py（运行期读本文件）"
+    "eng/tools/monitoring/run_monitored.py（运行期读本文件）",
+    "eng/tools/quality/resource_monitor.py（运行期读本文件）"
   ],
   "applicability": {
     "min_effective_cpus": 2,
@@ -74,7 +74,7 @@
     "in_process_default": "record_only",
     "in_process_hard_fail": "retired",
     "in_process_hard_fail_retired_by": "GAP_AUDIT(RELEASE-02) §9.74 裁决 10 + ASTROCS_DESIGN.md §3.5/§6.3（一般性资源超限门已取消：内存 / CPU / 线程不设门）",
-    "adjudication_point": "外部裁决面（CI 重计算检查 CHK-RESOURCE / RESOURCE-GATE-REAL + 发布验收）—— 该面的退出码属外部程序（tools/monitoring/run_monitored.py / tools/quality/resource_monitor.py），**不是** AstroCS CLI 的退出码",
+    "adjudication_point": "外部裁决面（CI 重计算检查 CHK-RESOURCE / RESOURCE-GATE-REAL + 发布验收）—— 该面的退出码属外部程序（eng/tools/monitoring/run_monitored.py / eng/tools/quality/resource_monitor.py），**不是** AstroCS CLI 的退出码",
     "cli_exit_code_for_resource_utilization": null,
     "cli_exit_code_source": "lib/infrastructure/cli/exit_codes.h",
     "cli_exit_10_meaning": "磁盘写满 / 写盘失败（唯一 in-process 资源门 = 磁盘门，见 disk_gate）"

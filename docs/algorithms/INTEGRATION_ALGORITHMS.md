@@ -1,5 +1,7 @@
 # Integration Algorithms (ALG-INT)
 
+> 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）
+
 > ID: ALG-INT-001  范围: ALG-INT-001..003  上游 SCI: SCI-INT-001  状态: DERIVED  模块: phase2/integrate
 
 ## 1 上游 SCI 与输入输出
@@ -20,7 +22,7 @@
 
 - 唯一事实源: `lib/algorithms/coverage/include/astro/phase2/integrate.h` (`enum P2IntegrateStatus`)；
 - 本表为**取值（代码事实）抄录**，不引入新判据：F5 的分支语义与上表逐值对应；
-- 机器门: `tools/docs_machine_consistency.py :: integration_status_full_set`（全集合比对，禁 subset）。
+- 机器门: `eng/tools/docs_machine_consistency.py :: integration_status_full_set`（全集合比对，禁 subset）。
 
 
 ## 2 离散公式

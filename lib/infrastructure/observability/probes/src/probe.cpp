@@ -20,6 +20,11 @@
 #include <string>
 #include <unordered_map>
 
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 探针 sink 的追加写
+// 经 aio 唯一实现 (aio_atomic::append_open/append_write/append_flush), 本 TU 不
+// 自持 FILE* 通道。
+#include "aio_atomic_file.h"
+
 namespace astrocs {
 namespace probe {
 namespace {
@@ -55,7 +60,7 @@ const RuntimeConfig& config() noexcept {
 // ── 文件 sink (故意泄漏: 线程退出期 TLS 析构仍需其存活) ─────────────────────
 struct Sink {
   std::mutex mu;
-  std::FILE* file = nullptr;
+  aio_atomic::AppendSink* file = nullptr;
   bool tried = false;
 };
 
@@ -71,11 +76,11 @@ void sink_write(const char* data, std::size_t n) noexcept {
   if (!s.tried) {
     s.tried = true;
     const char* p = config().path;
-    if (p != nullptr) s.file = std::fopen(p, "ab");
+    if (p != nullptr) s.file = aio_atomic::append_open(p, nullptr);
   }
   if (s.file == nullptr) return;
-  std::fwrite(data, 1, n, s.file);
-  std::fflush(s.file);
+  (void)aio_atomic::append_write(s.file, data, n);
+  (void)aio_atomic::append_flush(s.file);
 }
 
 // ── 文本工具 ────────────────────────────────────────────────────────────────

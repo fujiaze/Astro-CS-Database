@@ -1,5 +1,7 @@
 # AstroCS Comment Standard
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## 原则
 
 Comment 解释 WHY / SCIENCE / INVARIANT / OWNERSHIP / THREAD-SAFETY /
@@ -41,4 +43,4 @@ scientific model version。
 
 ## 审计
 
-每个 production 文件记录 comment_hygiene = PASS/FAIL，由 `ci/run_checks.py` 的注释卫生检查项产出并落 `run/ci/`。
+每个 production 文件记录 comment_hygiene = PASS/FAIL，由 `eng/ci/run_checks.py` 的注释卫生检查项产出并落 `run/ci/`。

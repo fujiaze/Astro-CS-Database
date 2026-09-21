@@ -98,7 +98,7 @@ class TestP1003DrizzlePath(unittest.TestCase):
 
     def test_04_prod_callgraph_no_hp_drizzle(self):
         """生产可达性检查: CLI 生产路径无 hp_drizzle 直连(REACH_PASS)。"""
-        checker = os.path.join(REPO, "tools", "quality", "check_prod_reachability.py")
+        checker = os.path.join(REPO, "eng", "tools", "quality", "check_prod_reachability.py")
         if not os.path.isfile(checker):
             self.skipTest("reachability checker 缺失")
         # checker 需要 compile_commands.json 做 TU 级调用图; 纯 CMake 构建产物
@@ -108,13 +108,13 @@ class TestP1003DrizzlePath(unittest.TestCase):
         if not os.path.isfile(cc):
             # 跨域缺口（不在 CLI-002 改动面）: ① CI 构建步未开
             # CMAKE_EXPORT_COMPILE_COMMANDS（登记面 V17-N-03 / 归属 CI-001）；
-            # ② tools/quality/check_prod_reachability.py:92 锚点仍指向已退役 cli/
+            # ② eng/tools/quality/check_prod_reachability.py:92 锚点仍指向已退役 cli/
             # （tools 域）。二者修好后本用例自动转为实跑；此处不放宽判据。
             self.skipTest("compile_commands.json 缺失：CI 构建步未开 "
                           "CMAKE_EXPORT_COMPILE_COMMANDS (V17-N-03/CI-001)")
         # FIX-UTCLI-HYGIENE: checker 把可达图证据硬写到
         # <repo>/evidence/v6_1_rework/tasks/CHK-001/（tracked 受控文件，
-        # tools/quality/check_prod_reachability.py:140）。UT-CLI 以
+        # eng/tools/quality/check_prod_reachability.py:140）。UT-CLI 以
         # mutates_workspace=false 执行，重写 tracked evidence 即 dirty 违规，而
         # checker 无输出目录开关（产品域禁改）。测试侧用 run/ 下 scratch repo 视图：
         # 只读符号链接 lib/infrastructure/cli/include/lib（checker 扫描面与真 repo 逐字节一致）+

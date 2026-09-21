@@ -1,7 +1,9 @@
 # AstroCS 最高设计细节规范
 
+> 上游：ASTROCS_DESIGN.md §0.1（唯一权威链）、§0.2（详细文档层与双向索引）
+
 文档 ID：`ASTROCS-PROJECT-SPEC-002`  
-文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）  
+文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）  
 定位：`ASTROCS_DESIGN.md` 之下，项目目标态设计的细节总入口。本文描述 AstroCS 必须做到什么，不描述某次工程修复流水账。
 
 ## 1. 权威体系

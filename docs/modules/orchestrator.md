@@ -1,5 +1,7 @@
 # Module: orchestrator
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## 职责
 
 Phase1 编排：stage1.json 驱动 READ/CALIBRATE/STAR/PSF/PLATESOLVE/
@@ -66,7 +68,7 @@ lib/infrastructure/pipeline/orchestrator/cpp/。
   代码实体是 `lib/infrastructure/scheduler/src/{pipeline,artifact,artifact_store}.cpp` 与
   `lib/infrastructure/runtime/**`（MODULE_MAP id=`runtime`），**不是**本模块。
 - **物理位 = `lib/infrastructure/pipeline/orchestrator/**`**：ARCH-001 迁移清单 #15
-  （`cmake/ARCH-001-migration-manifest.md`）登记的 DONE 位，该条依据写的是
+  （`eng/cmake/ARCH-001-migration-manifest.md`）登记的 DONE 位，该条依据写的是
   「7.1 infrastructure/pipeline（typed DAG 编排）」。
 - ⇒ **位置与职责分离（登记 ORCH-HOME-01，待收敛）**：位置搬迁 = `git mv` + 引用/锚同步。
   因此：任何按目录推断归属的判据（检查器/清单/文档）**不得**把本模块当作 pipeline 的
@@ -84,4 +86,4 @@ lib/infrastructure/pipeline/orchestrator/cpp/。
 C++17 (`-std=c++17`, 见 `lib/infrastructure/pipeline/orchestrator/cpp/Makefile:CXXFLAGS`；
 正式构建入口 = 根 CMake 的 `astrocs_infra_orchestrator`)；C ABI 经 `DllLoader`
 纯 C 调用（`docs/standards/C_ABI_STANDARD.md`）；退出码与 `docs/architecture/ERROR_MODEL.md`
-全集合一致（`tools/docs_machine_consistency.py` 校验）[B4-24]。
+全集合一致（`eng/tools/docs_machine_consistency.py` 校验）[B4-24]。

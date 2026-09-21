@@ -406,7 +406,7 @@ class TestRegressionLog001(unittest.TestCase):
     def test_log001_checker_selfcheck_still_passes(self):
         spec = importlib.util.spec_from_file_location(
             "check_log_contract",
-            REPO / "tools" / "monitoring" / "check_log_contract.py")
+            REPO / "eng" / "tools" / "monitoring" / "check_log_contract.py")
         clc = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(clc)
         schema = REPO / "lib" / "infrastructure" / "observability" / "logging" / "log_event_v1.schema.json"

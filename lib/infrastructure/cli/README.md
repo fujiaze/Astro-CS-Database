@@ -40,6 +40,6 @@ help / --version / doctor / benchmark
 
 ## 4. 测试
 
-- `tools/check_cli_command_layer.py`（机器检查，含负例）：命令树完整 + 旧命令 rc=2 + 退出码稳定；
+- `eng/tools/check_cli_command_layer.py`（机器检查，含负例）：命令树完整 + 旧命令 rc=2 + 退出码稳定；
 - `tests/cli/test_command_tree.py`：rc 矩阵与平级独立性实测；
 - `tests/cli/test_cli_build.py`：单 target 构建 + `--help` golden。

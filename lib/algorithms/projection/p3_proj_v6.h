@@ -1,3 +1,38 @@
+// ── RETIRED-CODE-RETAINED (ENGINEERING_SPEC §2 保留则注释) ─────────────
+// WHAT:       V6 Phase3 投影内核层（registry v3：TAN/SIN/CAR/AIT 四内核 + 逐像素立体角 Ω'
+//             + R/S 行/列归一二元语义 + 计划/奇点/wrap）。合同锚 = p3_proj_v6.h 头注。
+// WHY-KEPT:   ① contracts/schemas/projection_registry.schema.json:5,9 把本文件登记为
+//             projection registry 的 implementation 导出锚（contracts/** 不属本任务文件域）；
+//             ② 任务书 CLEAN-401 步骤 7 明令「v6 SIN 内核容差问题转 FIX-406，不在本任务删」，
+//             且 FIX-406 正在本文件上做往返 Oracle 复核（run/FIX-406/ 实时在写）；
+//             ③ 本内核是 p3_projection_registry.h 冻结表 SIN/CAR/AIT = kKernelOnly 的
+//             「实现未声明 = 隐藏能力（禁止）」判据的对照面。
+// STATUS:     内核-only，非产品声明，未接入生产。生产 projection target
+//             astrocs_p3_projection_wcs 只编 p3_wcs.cpp（TAN，lib/algorithms/projection/
+//             CMakeLists.txt:19）；本文件仅被 tests/unit/v6_p3_proj、tests/integration/v6_p3、
+//             lib/algorithms/projection/tests/p3wcs 三个测试 target 编译。
+//             **已知缺陷（FIX-406 交接）**：p3_proj_v6.cpp:195 sin_world2pix 用
+//             ctheta = sqrt(1 - stheta^2)，投影中心 theta→pi/2 时灾难性消去 ⇒ 往返误差
+//             ∝ 1/离轴距离 × 1/像素角尺度、无上界：0.5"/px 实测 2.5e-5 px、0.05"/px 1.0e-4 px、
+//             精确参考像素最坏 6.1e-3 px（0.5"/px）/ 1.7e-2 px（0.05"/px）；
+//             独立 Oracle（astropy 7.0.1 / WCSLIB 8.4）与独立切基式同 WCS 可达 ~2.5e-10 px
+//             ⇒ 属实现条件数缺陷，非双精度固有极限。证据 run/FIX-406/SIN_ROUNDTRIP_ORACLE.md。
+//             复现门（修好即转红）：tests/unit/v6_p3_proj/sin_roundtrip_gate.py
+//             —— 偏差仍复现 = rc 0（绿）；内核被修好 = rc 1（红），强制同步本登记块与
+//             p3_projection_registry.h 的已知偏差登记。
+// EXIT:       ① FIX-406 裁决「修好」⇒ 本块改为在役说明、删除已知缺陷段、把 SIN 行从
+//             kKernelOnly 提升为产品声明（需独立往返 Oracle + 适用域声明）；
+//             ② FIX-406 裁决「退役」⇒ 随 v6 家族整体删除，删除需同批改
+//             contracts/schemas/projection_registry.schema.json:5,9、
+//             lib/algorithms/projection/tests/p3wcs/CMakeLists.txt:16-19 与
+//             p3_projection_registry_test.cpp、tests/unit/v6_p3_proj/**、
+//             tests/integration/v6_p3/**，以及 eng/ci/checks.json 的 v6_p3_proj_* ctest_targets
+//             （DOC-403 文件域）。
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §6.3
+//             （未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
+//             lib/algorithms/projection/p3_projection_registry.h「已知偏差登记（FIX-406）」；
+//             工程控制/RELEASE-04/GAP_AUDIT.md G3-6 / G2-1。
+// ──────────────────────────────────────────────────────────────────────
 // lib/algorithms/projection/p3_proj_v6.h — V6 Phase3 投影实现层（标准 FITS WCS Paper II
 // registry v3 已实现四投影 + 逐像素立体角 Ω + R/S 行/列归一二元语义 + 计划/奇点/wrap）
 //

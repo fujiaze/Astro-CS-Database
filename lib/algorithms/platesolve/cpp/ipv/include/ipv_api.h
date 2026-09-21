@@ -235,7 +235,7 @@ IPV_API void ipv_get_default_params(IpvParams* params);
 // 获取求解器内部最终权威 inlier 对应关系,
 // 避免外部诊断工具用 kd-tree 重新匹配导致误配。
 //
-// 详见 docs/24_WCS_VALIDATION_V2_SPEC.md 与 docs/25_AUTHORITATIVE_MATCH_PAIR_CONTRACT.md
+// 详见 docs/algorithms/PLATESOLVE.md（IPV 解算）与 docs/contracts/PUBLIC_API.md（ipv_* C API）
 //
 // 字段约定 (out_buffer 每行 9 个 double, 行数 = 返回值):
 // [0] det_x_px - 检测器 x (像素, 图像中心原点, Y 轴向上)

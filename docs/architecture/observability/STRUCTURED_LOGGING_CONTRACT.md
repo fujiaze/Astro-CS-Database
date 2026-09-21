@@ -1,9 +1,11 @@
 # AstroCS 结构化日志合同（LOG-001）
 
+> 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
+
 > 文档 ID：`ARCH-LOG-STRUCTURED-001`（归属 `docs/architecture/observability/`）
 > 状态：ACTIVE_NORMATIVE（LOG-001 冻结）
 > 机器可读事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（JSON Schema v1）、
-> `lib/infrastructure/observability/logging/log_event.py`（参考实现）、`tools/monitoring/check_log_contract.py`（检查器）。
+> `lib/infrastructure/observability/logging/log_event.py`（参考实现）、`eng/tools/monitoring/check_log_contract.py`（检查器）。
 > 本文档是视图；字段定义与验收以 schema/检查器为权威（16 标准：JSON/JSONL 输出为真相）。
 
 ## 1. 目的与边界
@@ -27,7 +29,7 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 | 面 | 唯一源 | 事件键名 | 事件枚举 | 工件 |
 |---|---|---|---|---|
 | **运行事件流**（run event stream） | `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`） | `kind` | `progress` / `resource` / `artifact` / `backend` / `final` | CLI JSONL 事件流（默认输出，最高设计 §6.3） |
-| **结构化日志**（本合同 LOG-001） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + `tools/monitoring/check_log_contract.py` | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`astrocs.log.event.v1`） |
+| **结构化日志**（本合同 LOG-001） | `lib/infrastructure/observability/logging/log_event_v1.schema.json` + `log_event.py` + `eng/tools/monitoring/check_log_contract.py` | `event` | `start` / `progress` / `end` / `warn` / `error` / `metric` / `checkpoint` / `cancel` / `trace` | 结构化日志 JSONL（`astrocs.log.event.v1`） |
 
 - **两份流各用不同工件名，不得互相冒充**；
 - **键名 `event`（本合同）与 `kind`（运行事件流）不得混用**：本合同的 `event` 字段
@@ -121,7 +123,7 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 
 - 单行（含 `\n`）上限 **4096 字节**（`MAX_LINE_BYTES`）；超限按 UTF-8 边界截断 + 省略号，不切坏多字节字符；
 - 日志文件总量上限与轮转策略由 LOG-002/运行配置定义（本任务冻结单行上限）；
-- 机器检查器 `tools/monitoring/check_log_contract.py` 提供：schema 校验（缺字段被拒）、
+- 机器检查器 `eng/tools/monitoring/check_log_contract.py` 提供：schema 校验（缺字段被拒）、
   seq 单调性、error 载荷、级别/事件枚举、脱敏样例、单行大小；输出机器 JSON 判定。
 
 ## 7. 与运行事件流 / 既有 Core 日志的关系
@@ -154,4 +156,4 @@ LOG-002 在 Runtime 集成时以本合同为单一事实源做适配，双写/�
 
 - 依据：`ASTROCS_DESIGN.md` §6.3 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
 - 依据：`ASTROCS_DESIGN.md` §7.1a/§9 + `docs/architecture/ARCHITECTURE.md`
-- 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`、`tools/monitoring/check_log_contract.py`
+- 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`、`eng/tools/monitoring/check_log_contract.py`

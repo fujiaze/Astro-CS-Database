@@ -28,7 +28,7 @@
 # MISSING，禁止空串）。
 # entrypoint=p1_session_run：真实导出符号（p1_session.cpp:149 定义，
 # p1_session.h:23 声明；验收口径=登记符号可见，符号存在性由 selfcheck 与
-# tools/check_p1_symbol_map.py 复核）。
+# eng/tools/check_p1_symbol_map.py 复核）。
 # threading_model=host_executor_lease：B 线 registry 通道经 SessionModule
 # ThreadLease 租借（module_adapters.cpp:156-162）+ ac_set_num_threads(
 # budget.max_workers) 注入（p1_session.cpp:162-165，迁移整改点，禁硬编码

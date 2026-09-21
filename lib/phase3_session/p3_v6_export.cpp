@@ -1,3 +1,33 @@
+// ── RETIRED-CODE-RETAINED (ENGINEERING_SPEC §2 保留则注释) ─────────────
+// WHAT:       Phase3 V6 三模式产品导出接线层（OutputGrid / ExportInputs / build_output_grid /
+//             export_product / verify_product_on_disk；承载 FZ-P3-MODES / FZ-P3-QW-RECOMPUTE /
+//             FZ-P3-BUNIT-QUADRATIC / FZ-P3-KERNEL-REGISTRY 四条 v6 合同）。
+// WHY-KEPT:   删除会同时打断三处他域锚，本轮不能删：
+//             ① eng/ci/checks.json CHK-CONTRACT-TEST 以 ctest_targets 登记 v6_p3_export_positive /
+//                v6_p3_export_negative / v6_p3_export_oracle（并在 V6-CTEST-INTEGRATION step 的
+//                --expect 列出），eng/tools/quality/check_ctest_registration.py 的 C4 对
+//                「ctest_targets 匹配不到现存目标」fail-closed ⇒ 删测试即判红；eng/ci/checks.json 属
+//                DOC-403 文件域，本任务无权同步；
+//             ② eng/ci/spec_named_impls.json SNI-S4-P3X-06/P3X-12 与 eng/ci/ledgers/spec_named_impl_gaps.json
+//                以本文件为锚（删除须同提交改表，属 CI 登记面，需与 DOC-403 同批）；
+//             ③ docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:338 与
+//                docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md 仍点名本文件（docs/** 属 DOC-402 域）。
+// STATUS:     未接入生产。不在任何生产 target 的源列表内（grep -c p3_v6_export CMakeLists.txt = 0），
+//             仅被 tests/integration/v6_p3 编译；生产 export 路径 = lib/phase3_session/p3_session.cpp
+//             → lib/algorithms/projection/p3_wcs.cpp（TAN），不依赖本文件任何符号
+//             （p3_session.cpp:3-17 的 include 面无 p3_v6_export.h）。
+// EXIT:       删除（ENGINEERING_SPEC §2 第 1 种处置），需同批完成：
+//             ① DOC-403 从 eng/ci/checks.json 移除 v6_p3_export_* 三个 ctest_targets 及
+//                V6-CTEST-INTEGRATION step 的三条 --expect；
+//             ② 同提交删除 eng/ci/spec_named_impls.json 的 SNI-S4-P3X-06/SNI-S4-P3X-12 两条与
+//                eng/ci/ledgers/spec_named_impl_gaps.json 的 SNI-S4-P3X-06 条；
+//             ③ DOC-402 退役 docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md 并把
+//                PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
+//             ④ 删除 tests/integration/v6_p3/** 与 CMakeLists.txt:980 的 add_subdirectory。
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §6.3
+//             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
+//             工程控制/RELEASE-04/GAP_AUDIT.md G2-1/G3-2；eng/ci/spec_named_impls.json SNI-S4-P3X-06。
+// ──────────────────────────────────────────────────────────────────────
 // lib/phase3_session/p3_v6_export.cpp — Phase3 V6 三模式产品导出接线实现。
 //
 // 接线关系（不修改任何底层模块）:

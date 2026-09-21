@@ -3,7 +3,7 @@
 import importlib.util, os, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-spec = importlib.util.spec_from_file_location("scl", os.path.join(REPO, "tools", "science_contract_lint.py"))
+spec = importlib.util.spec_from_file_location("scl", os.path.join(REPO, "eng", "tools", "science_contract_lint.py"))
 scl = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scl)
 REAL = open(os.path.join(REPO, "docs", "science", "CALIBRATION.md"), encoding="utf-8").read()
@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
 class TestAlgLint(unittest.TestCase):
     def test_06_alg_doc_passes(self):
-        r = __import__("subprocess").run([sys.executable, os.path.join(REPO, "tools", "science_contract_lint.py"),
+        r = __import__("subprocess").run([sys.executable, os.path.join(REPO, "eng", "tools", "science_contract_lint.py"),
                                           "--kind", "alg", "docs/algorithms/CALIBRATION_ALGORITHMS.md"],
                                          capture_output=True, text=True, cwd=REPO)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)

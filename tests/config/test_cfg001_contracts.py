@@ -331,7 +331,7 @@ class TestCpuProfileMigration(unittest.TestCase):
             self.assertIn(who, self.schema["x-astrocs-not-writable-by"])
 
     def test_legacy_accessors_preserved(self):
-        """既有读取面（tests/backend + tools/validate_cpu_profile.py）不得失去访问路径。"""
+        """既有读取面（tests/backend + eng/tools/validate_cpu_profile.py）不得失去访问路径。"""
         self.assertIsInstance(self.schema["required"], list)
         self.assertIn("build", self.schema["required"])
         self.assertIn("kernels", self.schema["required"])

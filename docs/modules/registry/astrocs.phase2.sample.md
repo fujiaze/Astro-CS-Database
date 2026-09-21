@@ -12,6 +12,8 @@ downstream: [TEST-P2-SMP-001]
 
 # 模块 astrocs.phase2.sample
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页自 gen_module_readmes 派生页事实修订
 > 为手写合同页（手写 registry 先例 astrocs.phase2.reject.md/
 > astrocs.phase2.coverage.md/astrocs.phase2.integrate.md）。

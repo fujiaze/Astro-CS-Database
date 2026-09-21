@@ -19,7 +19,7 @@ namespace astrocs {
 class JsonlEmitter;  // 定义见 jsonl.h
 
 // B8-P1-2: benchmark cpu verdict 推导(单一实现; dispatch 与共址单测共用)。
-// 规则(与 tools/validate_cpu_profile.py "oracle 失败 → verdict FAIL" 语义一致):
+// 规则(与 eng/tools/validate_cpu_profile.py "oracle 失败 → verdict FAIL" 语义一致):
 //   任一 kernels[*].correctness_test != "oracle:pass" → "FAIL"(正确性筛选优先,
 //   恒不静默放行); 全部 oracle:pass → "PASS"; kernels 缺失/非对象/空 → "FAIL"
 //   (无正确性证据不判定成功)。输出 JSON 顶层登记 verdict 字段

@@ -11,7 +11,7 @@
       "doc": "docs/algorithms/COSMETIC_ALGORITHMS.md",
       "basename": "cosmetic_corrector.cpp",
       "path": "lib/algorithms/calibration/src/cosmetic_corrector.cpp",
-      "why": "生产唯一源（遗留 cc_* 通道在文档中以全路径 lib/calibration/cpp/ 出现，走 exact 解析）"
+      "why": "生产唯一源（cc_* 通道在文档中以全路径 lib/calibration/cpp/ 出现，走 exact 解析）"
     },
     {
       "doc": "docs/algorithms/CALIBRATION_ALGORITHMS.md",
@@ -23,37 +23,37 @@
       "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
       "basename": "api.cpp",
       "path": "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp",
-      "why": "§10 DISP-DRZ 表的 api.cpp = drizzle C API 实现（同目录 hp_drizzle_api.h:93 为其头）；2026-09-16 ARCH-001 迁移 lib/healpix_db/healpix_drizzle → lib/algorithms/drizzle/healpix_drizzle"
+      "why": "§10 DISP-DRZ 表的 api.cpp = drizzle C API 实现（同目录 hp_drizzle_api.h:93 为其头）；现址 lib/algorithms/drizzle/healpix_drizzle（ARCH-001 迁移后）"
     },
     {
       "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
       "basename": "healpix_core.h",
       "path": "lib/algorithms/drizzle/healpix_drizzle/healpix_core.h",
-      "why": "shim 构造容忍 nside 非法（:25-27）；2026-09-16 ARCH-001 迁移 lib/healpix_db/healpix_drizzle → lib/algorithms/drizzle/healpix_drizzle"
+      "why": "shim 构造容忍 nside 非法（:25-27）；ARCH-001 迁移后现址 lib/algorithms/drizzle/healpix_drizzle"
     },
     {
       "doc": "docs/algorithms/HIPS_WRITER.md",
       "basename": "healpix_core.h",
       "path": "lib/algorithms/shared/healpix/healpix_core.h",
-      "why": "tile 排布/leaf_to_tile_nest 权威在 lib/algorithms/shared/healpix（HiPS 打包注释 :43-45）；2026-09-16 23acb453 由 lib/common/healpix 纯移动（内容逐字节相同）"
+      "why": "tile 排布/leaf_to_tile_nest 权威在 lib/algorithms/shared/healpix（HiPS 打包注释 :43-45）；由 lib/common/healpix 纯移动而来（内容逐字节相同）"
     },
     {
       "doc": "docs/algorithms/HIPS_WRITER.md",
       "basename": "healpix_core.cpp",
       "path": "lib/algorithms/shared/healpix/healpix_core.cpp",
-      "why": "ang2pix_nest 实现 :233-243；2026-09-16 23acb453 由 lib/common/healpix 纯移动（内容逐字节相同）"
+      "why": "ang2pix_nest 实现 :233-243；由 lib/common/healpix 纯移动而来（内容逐字节相同）"
     },
     {
       "doc": "docs/algorithms/NOISE_ESTIMATION.md",
       "basename": "build.ps1",
       "path": "lib/algorithms/noise_snr/cpp/build.ps1",
-      "why": "legacy MinGW 通道 cpp/build.ps1"
+      "why": "MinGW 通道 cpp/build.ps1"
     },
     {
       "doc": "docs/algorithms/PHOTOMETRIC_FIT.md",
       "basename": "build.ps1",
       "path": "lib/algorithms/photometry/cpp/build.ps1",
-      "why": "本模块 legacy MinGW 通道"
+      "why": "本模块 MinGW 通道"
     },
     {
       "doc": "docs/algorithms/PLATESOLVE.md",
@@ -89,13 +89,13 @@
       "doc": "docs/algorithms/DRIZZLE_GEOMETRY.md",
       "basename": "DRIZZLE.md",
       "path": "docs/science/DRIZZLE.md",
-      "why": "裸 DRIZZLE.md 锚指 SCI 冻结文档；reports/ 下的同名审计报告使 basename 不再唯一（2026-09-18 出现），显式钉死到 docs/science/DRIZZLE.md"
+      "why": "裸 DRIZZLE.md 锚指 SCI 冻结文档；同名审计报告使 basename 不再唯一，显式钉死到 docs/science/DRIZZLE.md"
     },
     {
       "doc": "docs/algorithms/HIPS_WRITER.md",
       "basename": "DRIZZLE.md",
       "path": "docs/science/DRIZZLE.md",
-      "why": "同上（reports/RELEASE-02/SCI-AUDIT/per-doc/DRIZZLE.md 引入同名）"
+      "why": "同上（同名审计报告引入同名 basename）"
     },
     {
       "doc": "docs/algorithms/NOISE_ESTIMATION.md",

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""DOC-001 试金石测试：tools/traceability/check_traceability_matrix.py 的 mutation 验证。
+"""DOC-001 试金石测试：eng/tools/traceability/check_traceability_matrix.py 的 mutation 验证。
 
 用 tests/traceability/fixtures/*.json 六类负面样本证明检查器：
   - 空单元格（空串）必 FAIL（验收：不能以空字符串通过）；
@@ -21,7 +21,7 @@ import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CHECKER = os.path.join(REPO, "tools", "traceability", "check_traceability_matrix.py")
+CHECKER = os.path.join(REPO, "eng", "tools", "traceability", "check_traceability_matrix.py")
 FIXTURES = os.path.join(REPO, "tests", "traceability", "fixtures")
 # 检查器以固定相对路径解析：把 fixture 作为 docs/traceability/TRACEABILITY_MATRIX.json，
 # 并复制 schema/LAYERS（视图 CSV 不复制，避免 parity 噪音；缺 CSV 的 MISSING_FILE 不掩盖断言代码）

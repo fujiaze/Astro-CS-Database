@@ -7,7 +7,7 @@
 import json, os, re, shlex, shutil, subprocess, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CHECKER = os.path.join(REPO, "tools", "check_api_docs.py")
+CHECKER = os.path.join(REPO, "eng", "tools", "check_api_docs.py")
 
 
 def run_check(repo, docs_dir=None, exit_codes_h=None):

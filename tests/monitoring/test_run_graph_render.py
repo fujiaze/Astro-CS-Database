@@ -44,12 +44,12 @@ from trace_replay import replay_from_jsonl  # noqa: E402
 
 SPEC = importlib.util.spec_from_file_location(
     "render_run_graph",
-    REPO / "tools" / "graph" / "render_run_graph.py")
+    REPO / "eng" / "tools" / "graph" / "render_run_graph.py")
 RG = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(RG)
 
-TOOL_PY = REPO / "tools" / "graph" / "render_run_graph.py"
+TOOL_PY = REPO / "eng" / "tools" / "graph" / "render_run_graph.py"
 
 NODES = ["coverage", "sample", "upm_fit", "upm_apply", "reject",
          "integrate", "write"]

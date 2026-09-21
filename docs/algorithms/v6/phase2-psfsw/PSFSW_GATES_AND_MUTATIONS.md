@@ -4,9 +4,11 @@
 
 # PSFSW 门目录与负向 mutation 册
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-PSFSW-001-GATES`
 - 机器可读同源：`psfsw_spec.json` → `gates` / `validation_gates` / `fail_closed` / `forbidden_*`
-- 参考实现：`run/v6/alg-p2-psfsw/tools/psfsw_gate.py`（合同门，rc 0/1/2）+ `tools/psfsw_oracle.py`（独立数值 Oracle）
+- 参考实现：`run/v6/alg-p2-psfsw/tools/psfsw_gate.py`（合同门，rc 0/1/2）+ `eng/tools/psfsw_oracle.py`（独立数值 Oracle）
 
 ## 1. 门清单 PSFSW-G01..G25
 

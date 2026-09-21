@@ -13,7 +13,7 @@ SCHEMA = json.load(open(os.path.join(
     REPO, "contracts", "schemas", "cpu_profile.schema.json"), encoding="utf-8"))
 COMMIT = subprocess.run(["git", "-C", REPO, "rev-parse", "HEAD"],
                         capture_output=True, text=True).stdout.strip()
-sys.path.insert(0, os.path.join(REPO, "tools"))
+sys.path.insert(0, os.path.join(REPO, "eng", "tools"))
 import gen_version  # noqa: E402  # 版本单源派生（与 VER-001 根 VERSION 一致）
 
 
@@ -31,7 +31,7 @@ def common_srcs():
 
 
 # VER-001 版本单源：探针 build 串由 gen_version 派生（不得写死版本字面量——否则
-# check_version_consistency 判 alpha 漂移；见 tools/check_version_consistency.py）。
+# check_version_consistency 判 alpha 漂移；见 eng/tools/check_version_consistency.py）。
 PROBE_MAIN = r"""
 #include <cstdio>
 #include <string>
@@ -98,7 +98,7 @@ class TestCpuProfile(unittest.TestCase):
             a += ["--hardware", hw if isinstance(hw, str) else hw]
         if commit:
             a += ["--commit", commit]
-        return subprocess.run(["python3", os.path.join(REPO, "tools", "validate_cpu_profile.py"),
+        return subprocess.run(["python3", os.path.join(REPO, "eng", "tools", "validate_cpu_profile.py"),
                                *a], capture_output=True, text=True, timeout=60)
 
     def test_01_profile_schema_valid(self):

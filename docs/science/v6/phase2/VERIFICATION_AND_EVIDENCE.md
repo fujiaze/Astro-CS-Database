@@ -4,6 +4,8 @@
 
 # SCI-P2-001 验证与证据（命令 / rc / 结果）
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 文档 ID：`SCI-P2-001-VERIFICATION`
 机器摘要：`run/v6/sci-p2/summary.json`；日志：`run/v6/sci-p2/logs/`
 

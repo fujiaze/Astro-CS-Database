@@ -25,8 +25,8 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-TOOL = REPO / "tools" / "quality" / "compare_products.py"
-sys.path.insert(0, str(REPO / "tools" / "quality"))
+TOOL = REPO / "eng" / "tools" / "quality" / "compare_products.py"
+sys.path.insert(0, str(REPO / "eng" / "tools" / "quality"))
 import compare_products as cp  # noqa: E402
 
 

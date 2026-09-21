@@ -11,7 +11,7 @@
 ## 1 身份与范围
 
 - MOD ID：`MOD-astrocs-phase1-session`；模块词汇 `astrocs.phase1.session`
-  （归档映射表 docs/archive/refactor/P1_SYMBOL_MAP.md:14 既有词汇，现行
+  （归档映射表 P1_SYMBOL_MAP.md 既有词汇，该文件已随治理清理删除、见 git 历史；现行
   registry descriptor 无此 module_id——P1-001 真实节点化（2026-09-10）
   前 p1_session 函数族经 `P1Api` 被 8 个 Phase1 descriptor 工厂委托；
   现行 8 descriptor 各自委托唯一真实 operation（§2，ARCH-P0-001 整改），
@@ -201,10 +201,10 @@ module_adapters.cpp:61-91）：
   （:33-40 四节点声明断言；:49-57 只作 facade——委托
   `ac_calibrate_frame`/`ac_correct_frame`，禁内联校准公式；:60-72
   委托层可调用验证）。
-- 符号映射完整性：`tools/check_p1_symbol_map.py`（p1_session.h 导出 API
-  ↔ docs/archive/refactor/P1_SYMBOL_MAP.md 映射表）。
-- 生产可达性：`tools/quality/check_prod_reachability.py:42` 与
-  `tools/check_pipeline_trace.py:16` 将 lib/phase1_session/p1_session.cpp
+- 符号映射完整性：`eng/tools/check_p1_symbol_map.py`（p1_session.h 导出 API
+  ↔ 归档映射表 P1_SYMBOL_MAP.md（已删，见 git 历史））。
+- 生产可达性：`eng/tools/quality/check_prod_reachability.py:42` 与
+  `eng/tools/check_pipeline_trace.py:16` 将 lib/phase1_session/p1_session.cpp
   列为 p1 生产锚。
 - 本合同验收：DATA-P1-SESSION=docs/contracts/DATA_SEMANTICS.md §16；
   API-P1-SESSION=docs/contracts/PUBLIC_API.md「Phase1 装配会话」节；
@@ -259,4 +259,4 @@ module_adapters.cpp:61-91）：
 - 公共 API：docs/contracts/PUBLIC_API.md（API-P1-SESSION 节）。
 - 架构：docs/contracts/ARCH-001.md；生产路径表
   docs/architecture/production_call_paths_stage1.csv。
-- 旧映射（历史）：docs/archive/refactor/P1_SYMBOL_MAP.md。
+- 旧映射（历史）：归档映射表 P1_SYMBOL_MAP.md（已删，见 git 历史）。

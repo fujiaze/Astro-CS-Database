@@ -11,6 +11,8 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
 
 # 模块 astrocs.phase2.upm-apply
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 手写合同页（registry 页保留先例
 > astrocs.phase1.session.md/astrocs.phase2.coverage.md/
 > astrocs.phase2.reject.md）：`astrocs.p2.upm` 合同（registry 行 ID

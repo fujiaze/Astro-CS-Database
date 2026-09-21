@@ -3,8 +3,8 @@
 //
 // 依据:
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §14 (HISS 容器)
-// - docs/stage1_fix/00_COMMON_CONTRACTS.md §4.5/§4.6 (流式写入/原子替换)
-// - docs/stage1_fix/spec.md 步骤10 (流式写入)
+// - docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md (流式写入/原子替换)
+// - docs/architecture/IO_AND_ATOMICITY.md (流式写入)
 //
 // 实现要点:
 // 1. 临时子块池 (temp_pool) 是一个独立文件, add_tile 时压缩数据立即追加

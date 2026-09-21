@@ -4,11 +4,13 @@
 
 # `ALG-P1-001` — Phase1 V6 算法实施规格（calibration covariance / PSF information / PSFSW 四分量 / Drizzle）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P1-001-PHASE1-ALG`
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P1-001.md`（wave 3，`depends_on = SCI-ADJ-001`）
 - 写域：`docs/algorithms/v6/phase1/`（仅此一处）
 - 机器可读伴生：alg_p1_001_spec.json、alg_p1_001_test_matrix.json
-- 可复跑验证器：`tools/verify_alg_p1_001.py`
+- 可复跑验证器：`eng/tools/verify_alg_p1_001.py`
 - 基线：`HEAD = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`（执行时 `git rev-parse HEAD` 复核一致）
 - 性质：**目标态算法规格 + 独立 Oracle + 负向 mutation**。本任务不改上位规范、不改冻结公式/容差/冻结门、不改生产源码、不 commit/push、不派生子代理。
 
@@ -364,7 +366,7 @@ deficit          = (exact − diag) / exact
 
 - 人读矩阵：`ALG_P1_001_TEST_MATRIX.md`（34 行，逐行给输入/期望/容差/门/条款锚）；
 - 机器可读矩阵：`alg_p1_001_test_matrix.json`；
-- 验证器：`tools/verify_alg_p1_001.py`（38 项基线门 + 39 项负向 mutation；含规格/测试矩阵门覆盖一致性门）。
+- 验证器：`eng/tools/verify_alg_p1_001.py`（38 项基线门 + 39 项负向 mutation；含规格/测试矩阵门覆盖一致性门）。
 
 容差政策：只沿用已冻结数值容差（常量场 `abs(S_p/B0−1) < 1e-3`、缩放律精确、GLS/Q-W rel < 1e-9 类）。本规格提案但未签字的阈值一律标 PENDING_SO07，未签字时相应面 fail-closed（不得声明精确/可用）。
 

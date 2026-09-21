@@ -27,7 +27,7 @@ extern "C" {
  *   「把整帧存成缓存文件再读回」这类接口**必须**删除或明确降级为非生产/诊断
  *   并登记; **禁止**任何阶段内节点用它们搬运数据)。阶段间交换**只**走产品
  *   文件 + 清单 (§7.1a 阶段间落盘), 不经过本组接口。
- *   机器判据: ci/check_aio_io_boundary.py 的 DIAGNOSTIC-ONLY 规则 —— 本组
+ *   机器判据: eng/ci/check_aio_io_boundary.py 的 DIAGNOSTIC-ONLY 规则 —— 本组
  *   符号在 aio 目录与 tests 目录之外的**任何**调用点判红 (路径见该检查器)。
  * =========================================================================== */
 
@@ -127,11 +127,28 @@ AIO_EXPORT void* aio_realloc(void* ptr, size_t size);
 AIO_EXPORT void  aio_free(void* ptr);
 
 /* ===========================================================================
+ * 块名词表 API（标准块定义表 = 帧内命名块的唯一登记处）
+ * ---------------------------------------------------------------------------
+ * 契约（FIX-404 / GAP_AUDIT G1-5）：
+ *   - aio_frame_add_block / aio_frame_add_block_move 只接受**标准块定义表**中的
+ *     块名（见文件末「标准块定义表」），或经 aio_block_name_register 显式注册的
+ *     扩展名；两者之外的任意自定义名一律拒绝（返回 9，frame 不变）。
+ *   - 扩展必须**显式注册**（带权威引用），不得靠"未列出的名字也允许"隐式放行；
+ *     注册只在进程内生效，不改变标准表。
+ * 返回: aio_block_name_is_standard 1=标准/已注册, 0=否;
+ *       aio_block_name_register 0=成功, 非0=失败(名字非法/重复/容量满)
+ * =========================================================================== */
+AIO_EXPORT int aio_block_name_is_standard(const char* name);
+AIO_EXPORT int aio_block_name_register(const char* name, const char* authority);
+AIO_EXPORT int aio_block_name_count(void);
+AIO_EXPORT const char* aio_block_name_at(int index);
+
+/* ===========================================================================
  * 块管理 API
  * =========================================================================== */
 
 /* 添加块（拷贝数据到 frame 内部 buffer）
- * 返回: 0=成功, 非0=失败 */
+ * 返回: 0=成功, 9=块名不在标准块定义表且未显式注册, 其余非0=失败 */
 AIO_EXPORT int aio_frame_add_block(PipelineFrame* frame,
     const char* name, AioBlockType type,
     const void* data, int64_t count,
@@ -207,7 +224,7 @@ AIO_EXPORT double aio_frame_kv_get_double(const PipelineFrame* frame, const char
  *   『把内存块写成 FITS/XML』『把整帧存成缓存文件再读回』这类接口必须删除
  *   或明确降级为非生产/诊断并登记; 禁止任何阶段内节点用它们搬运数据」。
  *   本组接口 = **诊断/回归测试专用**; 生产调用点必须为 0
- *   (机器判据: ci/check_aio_io_boundary.py DIAGNOSTIC-ONLY 规则)。
+ *   (机器判据: eng/ci/check_aio_io_boundary.py DIAGNOSTIC-ONLY 规则)。
  * =========================================================================== */
 
 /* [非生产/诊断] 保存所有块到缓存文件 (.aio 自定义二进制格式)
@@ -300,8 +317,19 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
  * | cal_stats     | KV       | [N_kv]       | 校准统计信息                       |
  * | photo_stats   | KV       | [N_kv]       | 光度统计信息                       |
  * | healpix       | RAW      | [N]          | HEALPix 数据包                    |
+ * | variance      | FLOAT32  | [H,W]        | 逐像素方差 (signal 单位²; ivar=1/variance; 无信息=0 显式不可用) |
+ * | ivar          | FLOAT32  | [H,W]        | 逆方差 1/variance (variance 缺失/≤0 ⇒ 0 显式不可用) |
+ * | star_measurements | FLOAT64 | [N,15]    | 星点权威测量块 (orchestrator 生产块; DATA_SEMANTICS §15/§18) |
+ * | photometric_match | FLOAT64 | [N,6]     | 测光逐星匹配块 (orchestrator 生产块; DATA_SEMANTICS §18) |
+ * | snr_model     | RAW      | [N]          | SNR 稀疏控制点模型块 (orchestrator 生产块; DATA_SEMANTICS §11.1) |
  * ---------------------------------------------------------------------------
- * 注: 块名大小写敏感。未列出的自定义块名也允许（模块可自由扩展）。
+ * 注: 块名大小写敏感。**本表是帧内命名块的唯一登记处**：块名 ∉ 本表且未经
+ *     aio_block_name_register 显式注册 ⇒ aio_frame_add_block /
+ *     aio_frame_add_block_move 拒绝（返回 9），不存在"未列出的名字也允许"的隐式放行。
+ *     扩展路径只有一条 = 显式注册（先在本表增行、给出权威引用，再注册）。
+ *     variance / ivar 的语义正本 = docs/design/UNIFIED_MODEL.md §2 +
+ *     contracts/schemas/unified/{variance,ivar}.schema.json；
+ *     消费面登记 = docs/contracts/DATA_SEMANTICS.md §11.1（FIX-404 / GAP_AUDIT G1-5）。
  * ===========================================================================
  *
  * ===========================================================================

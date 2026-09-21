@@ -2,6 +2,8 @@
 
 # 基线比较矩阵（QA-MATRIX-001）
 
+> 上游：ASTROCS_DESIGN.md §12（验证体系）
+
 - 文档 ID：`QA-MATRIX-001-BASELINE-MATRIX`
 - 机器规格：`reports/v6/qa-design/data/baseline_matrix.json`；渲染块由 `render_docs.py` 机械写入，`check_docs.py` 校验逐字一致。
 - 上位锚：`FZ-MODE-PRODUCTION`/`FZ-MODE-BASELINE`/`FZ-MODE-DEFERRED`、`ADJ-S1`、`ADJ-P2-01/02/03`、

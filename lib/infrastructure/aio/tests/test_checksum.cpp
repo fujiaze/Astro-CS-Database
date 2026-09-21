@@ -4,7 +4,7 @@
 // 依据:
 // - hiss_format.h §13.1 ChecksumRegistry (INTERIM_BASELINE_NOT_FROZEN)
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §15 (子块目录 checksum_type/checksum 字段)
-// - docs/stage1_fix/00_COMMON_CONTRACTS.md §5.1 (测试要求: 零软通过)
+// - docs/standards/TEST_STANDARD.md (测试要求: 零软通过)
 //
 // 测试范围 (4 个测试用例):
 // 01. Writer 启用 CRC32C → 写入 Tile → Reader 读取 → 校验通过 (正常往返)

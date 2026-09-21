@@ -27,6 +27,17 @@ typedef struct {
     double  pixfrac;
     double  elapsed_sec;
     char    error_msg[512];     // 错误信息
+    // ── FIX-405 G3-5 / DATA-002 §2a（rule_id NAN-SAMPLE-MASK-COVERAGE-NAN）──
+    // 样本级掩膜强制计数（禁静默剔除）。**只增不改**：新字段一律追加在尾部，
+    // 既有字段偏移不变（已编译的 DLL/ctypes 消费者不受影响）。
+    // 语义: 不合格样本 = ¬isfinite(x_j) ∨ ¬isfinite(V_j) ∨ V_j ≤ 0；
+    //       被剔除样本从 F_p（分子）、D_p（分母）、Var_p（方差）三项一并剔除
+    //       并重新归一；仅 D_p=0 时输出 signal=NaN ∧ support≤0。
+    // n_rejected_nonfinite = value + variance + nonpositive_weight（可加、互斥）。
+    int64_t n_rejected_nonfinite;            // 合计（按原因分类见下三字段）
+    int64_t n_rejected_nonfinite_value;      // 值非有限 (NaN/Inf)
+    int64_t n_rejected_nonfinite_variance;   // 方差面非有限 (NaN/Inf)
+    int64_t n_rejected_nonpositive_weight;   // 权重非有限或 ≤0
 } HpDrizzleResult;
 
 // 执行 Drizzle: FITS → .hiss

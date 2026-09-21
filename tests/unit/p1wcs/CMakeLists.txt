@@ -54,6 +54,9 @@
 # ============================================================================
 
 set(P1WCS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+# CLEAN-403: 被测生产源 ipv_*.cpp 经 ipv_log.h 依赖 aio 机制原语
+# (aio_atomic_file.h, header-only) ⇒ 本目录测试目标需要 aio/src include 面。
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/infrastructure/aio/src)
 set(P1WCS_IPV ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/algorithms/platesolve/cpp/ipv)
 set(P1WCS_TAN ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/algorithms/platesolve/wrapper_phase1)
 
@@ -172,5 +175,5 @@ set_tests_properties(p1wcs_std_f1_bridge_cross PROPERTIES LABELS "p1wcs")
 # fail-closed 必红; 不依赖真实数据, 只用 astropy/numpy/scipy (独立 oracle,
 # 不导入生产代码)。
 add_test(NAME p1wcs_closure_metric_gate
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/astrometry/closure_metric.py selftest)
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/eng/tools/astrometry/closure_metric.py selftest)
 set_tests_properties(p1wcs_closure_metric_gate PROPERTIES LABELS "p1wcs")

@@ -51,6 +51,79 @@ std::string g_last_err;
 // 逐 HDU 写出并由 cfitsio 自行归属。旧实现自算 "little-endian 无进位字节和"
 // 并以 TINT 整数写入保留字 DATASUM，是非法关键字值（astropy checksum=True
 // 报 Datasum verification failed），已删除。
+// FIX-402 (FZ-P3-BUNIT-QUADRATIC / docs/contracts/v6/data/01_units_and_bunit.md §1):
+// variance BUNIT = (signal BUNIT)^2, ivar = 1/variance —— 用**冻结单位表的 canonical
+// 串**（ADU^a/px^p 幂次代数），禁朴素字符串拼接（"ADU/px^2" + "^2" = "ADU/px^2^2"
+// 既非 canonical 也不可判）。解析失败 → false（调用方显式拒绝，禁写出非二次律 BUNIT）。
+bool bunit_square_canonical(const std::string& signal, std::string* variance,
+                            std::string* ivar) {
+    // 解析 ADU^a / px^p（幂次可省略=1、可带负号；"1" = 0/0）
+    auto parse_pow = [](const std::string& s, const char* base, int* out) -> bool {
+        if (s.rfind(base, 0) != 0) return false;
+        const size_t bl = std::strlen(base);
+        if (s.size() == bl) { *out = 1; return true; }
+        if (s.size() > bl + 1 && s[bl] == '^') {
+            try {
+                size_t used = 0;
+                const int v = std::stoi(s.substr(bl + 1), &used);
+                if (used != s.size() - bl - 1) return false;
+                *out = v;
+                return true;
+            } catch (...) { return false; }
+        }
+        return false;
+    };
+    // 冻结表书写形式（分母正幂次）: {+1,-2} → "ADU/px^2"; {+2,-4} → "ADU^2/px^4";
+    // {-2,+4} → "px^4/ADU^2"; {+1,0} → "ADU"; {-2,0} → "ADU^-2"。
+    auto canon = [](int adu, int px) -> std::string {
+        if (adu == 0 && px == 0) return "1";
+        if (adu > 0) {
+            std::string s = "ADU";
+            if (adu != 1) s += "^" + std::to_string(adu);
+            if (px != 0) {
+                s += "/px";
+                if (px != -1) s += "^" + std::to_string(-px);
+            }
+            return s;
+        }
+        if (adu < 0) {
+            if (px != 0) {
+                std::string s = "px";
+                if (px != 1) s += "^" + std::to_string(px);
+                s += "/ADU";
+                if (adu != -1) s += "^" + std::to_string(-adu);
+                return s;
+            }
+            // 纯 ADU 负幂次: 冻结表写带符号指数（flux ivar = "ADU^-2"）
+            return std::string("ADU^-") + std::to_string(-adu);
+        }
+        std::string s = "px";
+        if (px != 1) s += "^" + std::to_string(px);
+        return s;
+    };
+    std::string t;
+    for (char c : signal) {
+        if (c != ' ' && c != '\t') t += c;
+    }
+    if (t.empty()) return false;
+    int adu = 0, px = 0;
+    if (t == "1") {
+        adu = 0; px = 0;
+    } else {
+        const size_t slash = t.find('/');
+        const std::string left = (slash == std::string::npos) ? t : t.substr(0, slash);
+        if (!parse_pow(left, "ADU", &adu)) return false;
+        if (slash != std::string::npos) {
+            int written = 0;
+            if (!parse_pow(t.substr(slash + 1), "px", &written)) return false;
+            px = -written;   // 分母形式 "px^N" ⇒ 带符号幂次 -N
+        }
+    }
+    if (variance) *variance = canon(adu * 2, px * 2);
+    if (ivar) *ivar = canon(-adu * 2, -px * 2);
+    return true;
+}
+
 bool fits_write_std_chksum(fitsfile* f, std::string* why) {
     int status = 0;
     if (fits_write_chksum(f, &status)) {
@@ -256,8 +329,16 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
     // 与主/扩展 HDU 同一原子发布序 (取消不落盘语义由上方 cancelled 分支保持)。
     if (variance && ivar) {
         const char* unit = (bunit && *bunit) ? bunit : "ADU";
-        std::string var_bunit = std::string(unit) + "^2";
-        std::string ivar_bunit = std::string("1/(") + unit + "^2)";
+        // FIX-402: 二次律 canonical 推导（FZ-P3-BUNIT-QUADRATIC）; 单位不在冻结
+        // 表内 → 显式拒绝, 不写出不可判的 variance BUNIT。
+        std::string var_bunit, ivar_bunit;
+        if (!bunit_square_canonical(unit, &var_bunit, &ivar_bunit)) {
+            g_last_err = std::string("variance BUNIT undecidable for signal BUNIT '") +
+                         unit + "' (FZ-P3-BUNIT-QUADRATIC)";
+            fits_close_file(f, &status);
+            aio_atomic::remove_file(tmp);
+            return P3_OUT_PARAM;
+        }
         for (int h = 0; h < 2; ++h) {
             if (fits_create_img(f, bitpix, 2, cnaxes, &status)) {
                 aio_atomic::remove_file(tmp);

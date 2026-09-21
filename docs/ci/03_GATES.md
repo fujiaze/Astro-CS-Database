@@ -1,8 +1,10 @@
 # CI 门禁与状态（Gates & States）
 
+> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+
 ## 1. 门禁原则
 
-- P0 红灯无豁免；P1 红灯须负责人登记豁免（`ci/exemptions.json`，只减不增）；
+- P0 红灯无豁免；P1 红灯须负责人登记豁免（`eng/ci/exemptions.json`，只减不增）；
 - 豁免只豁免"检查项"，不豁免科学/工程硬约束；
 - 机器门禁通过后自动推进，不设频繁人工 checkpoint。
 
@@ -33,7 +35,7 @@
 
 **RESERVED（文档曾承诺但无实现，不进本表）**：`CHK-FMT`、`CHK-DUAL-TOL`、`CHK-AGENT-HARD-RULES`
 （语义继任者 `AGENTS-GOV`）。逐条依据与重新注册前置条件见 `01_CHECKS.md §2.3`；机器可读面见
-`ci/id_migration_map.json::reserved_targets`。**保留一个不存在的 P0 门 = 把假绿写进本表。**
+`eng/ci/id_migration_map.json::reserved_targets`。**保留一个不存在的 P0 门 = 把假绿写进本表。**
 
 ## 4. 禁止事项
 

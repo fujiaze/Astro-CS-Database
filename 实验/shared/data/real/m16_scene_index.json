@@ -1,0 +1,755 @@
+{
+ "$comment": "M16-SCENE 真实数据实例登记（DATA-TYPE-MATRIX 的 real_instance 列）。掩膜与合成帧落 run/ 不入库；本文件只登记元数据与可复跑入口。",
+ "generated_at": "2026-09-19T23:51:52",
+ "generated_by": [
+  "实验/shared/synthetic/m16_mask.py",
+  "实验/shared/synthetic/m16_scene.py",
+  "实验/SCI-C/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py"
+ ],
+ "dataset": {
+  "id": "HST_M16",
+  "short": "M16 / Eagle Nebula (Hubble Heritage HLSP)",
+  "telescope": "HST",
+  "instrument": "WFC3/UVIS",
+  "detector": "UVIS",
+  "proposal": 13926,
+  "target_name_in_header": "LBN67-UVIS",
+  "pointing": "CRVAL 274.721587 / -13.841549 (M16 核心场)",
+  "pixscale_arcsec": 0.04,
+  "fov_arcmin": [
+   5.33,
+   5.6
+  ],
+  "product_type": "drizzled (drz) mosaic, NDRIZIM=32",
+  "bunit": "ELECTRONS/S",
+  "why_template_only": "drz 合成品：噪声已被 32 次曝光 + drizzle 压低并相关化，不是独立泊松样本 => 只能当**结构模板**，噪声必须前向重建（9.41）",
+  "calibration_note": "PHOTFLAM/PHOTPLAM 为 STScI 一手绝对流量标定，直接给 AB/ST 零点；**不含**任何增益/口径/曝光的物理闭合反推（9.42）"
+ },
+ "frames": {
+  "F657N": {
+   "line": "H-alpha",
+   "path": "testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits",
+   "bytes": 268917120,
+   "shape": [
+    8400,
+    8000
+   ],
+   "bitpix": -32,
+   "bunit": "ELECTRONS/S",
+   "ndrizim": 32,
+   "exptime_s": 9600.0,
+   "texptime_s": 9600.0,
+   "darktime_s": 603.715296,
+   "filter": "F657N",
+   "aperture": "UVIS1-FIX",
+   "targname": "LBN67-UVIS",
+   "proposid": 13926,
+   "cal_ver": "3.1.6(15-Nov-2013)",
+   "crval": [
+    274.721587,
+    -13.841549
+   ],
+   "crpix": [
+    4000.0,
+    4200.0
+   ],
+   "ctype": [
+    "RA---TAN",
+    "DEC--TAN"
+   ],
+   "orientat_deg": -35.0,
+   "wcs_note": "纯 TAN 无 SIP；三帧 CRVAL/CRPIX/CD 逐位相同 => 同一输出网格",
+   "photometric_scale": {
+    "photflam": 2.2290223e-18,
+    "photplam": 6566.605450000002,
+    "photzpt": -21.10000000000001,
+    "zp_ab": 22.635009352698738,
+    "zp_st": 23.029713966620726,
+    "e_per_s_for_ab_20": 11.324101179485508,
+    "e_per_s_for_ab_25": 0.11324101179485507
+   },
+   "observed_e_per_s": {
+    "median_full_frame": 0.23161,
+    "min": -444234.5625,
+    "max": 25237.349609375,
+    "note": "全帧正值分位（p50）实测；min/max 为含异常值的全帧极值"
+   }
+  },
+  "F673N": {
+   "line": "[S II]",
+   "path": "testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f673n_v1_drz.fits",
+   "bytes": 268917120,
+   "shape": [
+    8400,
+    8000
+   ],
+   "bitpix": -32,
+   "bunit": "ELECTRONS/S",
+   "ndrizim": 32,
+   "exptime_s": 14400.0,
+   "texptime_s": 14400.0,
+   "darktime_s": 903.843296,
+   "filter": "F673N",
+   "aperture": "UVIS1-FIX",
+   "targname": "LBN67-UVIS",
+   "proposid": 13926,
+   "cal_ver": "3.1.6(15-Nov-2013)",
+   "crval": [
+    274.721587,
+    -13.841549
+   ],
+   "crpix": [
+    4000.0,
+    4200.0
+   ],
+   "ctype": [
+    "RA---TAN",
+    "DEC--TAN"
+   ],
+   "orientat_deg": -35.00000010001074,
+   "wcs_note": "纯 TAN 无 SIP；三帧 CRVAL/CRPIX/CD 逐位相同 => 同一输出网格",
+   "photometric_scale": {
+    "photflam": 2.23971949999999e-18,
+    "photplam": 6765.915800000002,
+    "photzpt": -21.10000000000001,
+    "zp_ab": 22.564882978016744,
+    "zp_st": 23.024515922055357,
+    "e_per_s_for_ab_20": 10.615811325125525,
+    "e_per_s_for_ab_25": 0.10615811325125521
+   },
+   "observed_e_per_s": {
+    "median_full_frame": 0.02132,
+    "min": -0.015895521268248558,
+    "max": 100.08999633789062,
+    "note": "全帧正值分位（p50）实测；min/max 为含异常值的全帧极值"
+   }
+  },
+  "F502N": {
+   "line": "[O III]",
+   "path": "testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f502n_v1_drz.fits",
+   "bytes": 268917120,
+   "shape": [
+    8400,
+    8000
+   ],
+   "bitpix": -32,
+   "bunit": "ELECTRONS/S",
+   "ndrizim": 32,
+   "exptime_s": 16000.0,
+   "texptime_s": 16000.0,
+   "darktime_s": 1003.715296,
+   "filter": "F502N",
+   "aperture": "UVIS1-FIX",
+   "targname": "LBN67-UVIS",
+   "proposid": 13926,
+   "cal_ver": "3.1.6(15-Nov-2013)",
+   "crval": [
+    274.721587,
+    -13.841549
+   ],
+   "crpix": [
+    4000.0,
+    4200.0
+   ],
+   "ctype": [
+    "RA---TAN",
+    "DEC--TAN"
+   ],
+   "orientat_deg": -35.00000010001074,
+   "wcs_note": "纯 TAN 无 SIP；三帧 CRVAL/CRPIX/CD 逐位相同 => 同一输出网格",
+   "photometric_scale": {
+    "photflam": 5.2676009e-18,
+    "photplam": 5009.64235,
+    "photzpt": -21.10000000000001,
+    "zp_ab": 22.288934233595754,
+    "zp_st": 22.09596784200798,
+    "e_per_s_for_ab_20": 8.233295320802076,
+    "e_per_s_for_ab_25": 0.08233295320802074
+   },
+   "observed_e_per_s": {
+    "median_full_frame": 0.02797,
+    "min": -7577.96875,
+    "max": 46365.21484375,
+    "note": "全帧正值分位（p50）实测；min/max 为含异常值的全帧极值"
+   }
+  }
+ },
+ "masks": {
+  "F657N": {
+   "product": "run/reverse_verify/m16_scene/masks/F657N_{valid,flags}.fits",
+   "valid_fits": "/workspace/Astro CS Database/run/reverse_verify/m16_scene/masks/F657N_valid.fits",
+   "flags_fits": "/workspace/Astro CS Database/run/reverse_verify/m16_scene/masks/F657N_flags.fits",
+   "meta_json": "/workspace/Astro CS Database/run/reverse_verify/m16_scene/masks/F657N_mask_meta.json",
+   "committed": false,
+   "committed_note": "大产物（各 67.2 MB x2）不入库；由 m16_mask.py 可复跑重建",
+   "shape": [
+    8400,
+    8000
+   ],
+   "valid_fraction": 0.8974800744047619,
+   "invalid_primary_reason": {
+    "NONFINITE": 0,
+    "ZERO": 6888255,
+    "NEGATIVE": 993,
+    "EDGE": 0,
+    "EXTREME_NEG": 91
+   },
+   "invalid_by_bit_any": {
+    "NONFINITE": 0,
+    "ZERO": 6888255,
+    "NEGATIVE": 993,
+    "EDGE": 6888255,
+    "EXTREME_NEG": 1048
+   },
+   "zero_fraction": 0.10250379464285714,
+   "negative_fraction": 1.4776785714285715e-05,
+   "nonfinite_fraction": 0.0,
+   "interior_zero_pixels": 0,
+   "n_edge_components_touching_border": 1,
+   "border_1px_zero_fraction": 0.8504085864129772,
+   "edge_zero_stats": {
+    "row0_zero_frac": 1.0,
+    "rowN_zero_frac": 0.38675,
+    "col0_zero_frac": 1.0,
+    "colN_zero_frac": 1.0,
+    "outer1px_border_zero_frac": 0.8504085864129772,
+    "outer10rows_zero_frac": 1.0,
+    "outer10cols_zero_frac": 1.0,
+    "outer100rows_zero_frac": 0.64786375,
+    "outer100cols_zero_frac": 1.0,
+    "allzero_rows": 141,
+    "allzero_cols": 394
+   },
+   "valid_rect_max_px": [
+    4255,
+    950,
+    6200,
+    7830
+   ],
+   "valid_rect_max_shape": [
+    1945,
+    6880
+   ],
+   "footprint_rect_px": [
+    601,
+    538,
+    8238,
+    7588
+   ],
+   "footprint_rect_shape": [
+    7637,
+    7050
+   ],
+   "spike_count": 185,
+   "spike_criterion": {
+    "k_sigma": 10.0,
+    "r_gt": 0.8,
+    "abs_floor_e": 0.0,
+    "note": "只标记不剔除；见模块 docstring 的 PSF 上界标定"
+   },
+   "spike_top5": [
+    [
+     6818,
+     1266,
+     13891.12109375
+    ],
+    [
+     6495,
+     4323,
+     6078.0537109375
+    ],
+    [
+     3970,
+     3145,
+     5885.75244140625
+    ],
+    [
+     3060,
+     4333,
+     5577.8330078125
+    ],
+    [
+     2829,
+     1071,
+     4938.328125
+    ]
+   ],
+   "criteria": {
+    "block": 64,
+    "chunk_rows": 1024,
+    "k_extreme": 20.0,
+    "k_spike_sigma": 10.0,
+    "r_spike": 0.8,
+    "spike_abs_floor_e": 0.0,
+    "sigma_floor": 1e-09
+   },
+   "criteria_text": [
+    "bit0 NONFINITE: 非有限值 -> 无效",
+    "bit1 ZERO: 值==0.0 -> 无效",
+    "bit2 NEGATIVE: 值<0 -> 无效",
+    "bit3 EDGE: 与画幅边框 4-连通的 (ZERO|NONFINITE) 连通域 -> 无效",
+    "bit4 EXTREME_NEG: v < bg - 20*sigma_blk(64px 块稳健 MAD) -> 无效",
+    "bit5 SPIKE: (v-bg)>10*sigma_blk 且 (v-max8)/(v-bg)>0.80 -> 可疑，**不置无效**"
+   ],
+   "limitations": [
+    "只有 SCI HDU（PrimaryHDU 单 HDU），无 _wht 权重帧、无 DQ 帧 => 覆盖信息只能由零值几何反推，无法区分「无覆盖的零」与「真零通量」",
+    "SPIKE 判据在星云丝状结构上灵敏度下降 => 是坏点**下界**，不是完备集"
+   ]
+  },
+  "F673N": {
+   "product": "run/reverse_verify/m16_scene/masks/F673N_{valid,flags}.fits",
+   "valid_fits": "/workspace/Astro CS Database/run/reverse_verify/m16_scene/masks/F673N_valid.fits",
+   "flags_fits": "/workspace/Astro CS Database/run/reverse_verify/m16_scene/masks/F673N_flags.fits",
+   "meta_json": "/workspace/Astro CS Database/run/reverse_verify/m16_scene/masks/F673N_mask_meta.json",
+   "committed": false,
+   "committed_note": "大产物（各 67.2 MB x2）不入库；由 m16_mask.py 可复跑重建",
+   "shape": [
+    8400,
+    8000
+   ],
+   "valid_fraction": 0.8974757291666666,
+   "invalid_primary_reason": {
+    "NONFINITE": 0,
+    "ZERO": 6887062,
+    "NEGATIVE": 2569,
+    "EDGE": 0,
+    "EXTREME_NEG": 0
+   },
+   "invalid_by_bit_any": {
+    "NONFINITE": 0,
+    "ZERO": 6887062,
+    "NEGATIVE": 2569,
+    "EDGE": 6887062,
+    "EXTREME_NEG": 309
+   },
+   "zero_fraction": 0.10248604166666667,
+   "negative_fraction": 3.822916666666667e-05,
+   "nonfinite_fraction": 0.0,
+   "interior_zero_pixels": 0,
+   "n_edge_components_touching_border": 1,
+   "border_1px_zero_fraction": 0.8501646542261251,
+   "edge_zero_stats": {
+    "row0_zero_frac": 1.0,
+    "rowN_zero_frac": 0.38575,
+    "col0_zero_frac": 1.0,
+    "colN_zero_frac": 1.0,
+    "outer1px_border_zero_frac": 0.8501646542261251,
+    "outer10rows_zero_frac": 1.0,
+    "outer10cols_zero_frac": 1.0,
+    "outer100rows_zero_frac": 0.64732625,
+    "outer100cols_zero_frac": 1.0,
+    "allzero_rows": 141,
+    "allzero_cols": 394
+   },
+   "valid_rect_max_px": [
+    672,
+    753,
+    7233,
+    6124
+   ],
+   "valid_rect_max_shape": [
+    6561,
+    5371
+   ],
+   "footprint_rect_px": [
+    602,
+    538,
+    8238,
+    7588
+   ],
+   "footprint_rect_shape": [
+    7636,
+    7050
+   ],
+   "spike_count": 305,
+   "spike_criterion": {
+    "k_sigma": 10.0,
+    "r_gt": 0.8,
+    "abs_floor_e": 0.0,
+    "note": "只标记不剔除；见模块 docstring 的 PSF 上界标定"
+   },
+   "spike_top5": [
+    [
+     7515,
+     2805,
+     87.70243072509766
+    ],
+    [
+     449,
+     3428,
+     19.82835578918457
+    ],
+    [
+     524,
+     2568,
+     17.33994483947754
+    ],
+    [
+     1027,
+     291,
+     12.593008041381836
+    ],
+    [
+     751,
+     6992,
+     11.492528915405273
+    ]
+   ],
+   "criteria": {
+    "block": 64,
+    "chunk_rows": 1024,
+    "k_extreme": 20.0,
+    "k_spike_sigma": 10.0,
+    "r_spike": 0.8,
+    "spike_abs_floor_e": 0.0,
+    "sigma_floor": 1e-09
+   },
+   "criteria_text": [
+    "bit0 NONFINITE: 非有限值 -> 无效",
+    "bit1 ZERO: 值==0.0 -> 无效",
+    "bit2 NEGATIVE: 值<0 -> 无效",
+    "bit3 EDGE: 与画幅边框 4-连通的 (ZERO|NONFINITE) 连通域 -> 无效",
+    "bit4 EXTREME_NEG: v < bg - 20*sigma_blk(64px 块稳健 MAD) -> 无效",
+    "bit5 SPIKE: (v-bg)>10*sigma_blk 且 (v-max8)/(v-bg)>0.80 -> 可疑，**不置无效**"
+   ],
+   "limitations": [
+    "只有 SCI HDU（PrimaryHDU 单 HDU），无 _wht 权重帧、无 DQ 帧 => 覆盖信息只能由零值几何反推，无法区分「无覆盖的零」与「真零通量」",
+    "SPIKE 判据在星云丝状结构上灵敏度下降 => 是坏点**下界**，不是完备集"
+   ]
+  },
+  "F502N": {
+   "product": "run/reverse_verify/m16_scene/masks/F502N_{valid,flags}.fits",
+   "valid_fits": "/workspace/Astro CS Database/run/reverse_verify/m16_scene/masks/F502N_valid.fits",
+   "flags_fits": "/workspace/Astro CS Database/run/reverse_verify/m16_scene/masks/F502N_flags.fits",
+   "meta_json": "/workspace/Astro CS Database/run/reverse_verify/m16_scene/masks/F502N_mask_meta.json",
+   "committed": false,
+   "committed_note": "大产物（各 67.2 MB x2）不入库；由 m16_mask.py 可复跑重建",
+   "shape": [
+    8400,
+    8000
+   ],
+   "valid_fraction": 0.897550119047619,
+   "invalid_primary_reason": {
+    "NONFINITE": 0,
+    "ZERO": 6884155,
+    "NEGATIVE": 477,
+    "EDGE": 0,
+    "EXTREME_NEG": 0
+   },
+   "invalid_by_bit_any": {
+    "NONFINITE": 0,
+    "ZERO": 6884155,
+    "NEGATIVE": 477,
+    "EDGE": 6884155,
+    "EXTREME_NEG": 190
+   },
+   "zero_fraction": 0.10244278273809523,
+   "negative_fraction": 7.098214285714286e-06,
+   "nonfinite_fraction": 0.0,
+   "interior_zero_pixels": 0,
+   "n_edge_components_touching_border": 1,
+   "border_1px_zero_fraction": 0.8502256372728382,
+   "edge_zero_stats": {
+    "row0_zero_frac": 1.0,
+    "rowN_zero_frac": 0.386,
+    "col0_zero_frac": 1.0,
+    "colN_zero_frac": 1.0,
+    "outer1px_border_zero_frac": 0.8502256372728382,
+    "outer10rows_zero_frac": 1.0,
+    "outer10cols_zero_frac": 1.0,
+    "outer100rows_zero_frac": 0.647469375,
+    "outer100cols_zero_frac": 1.0,
+    "allzero_rows": 141,
+    "allzero_cols": 394
+   },
+   "valid_rect_max_px": [
+    1010,
+    805,
+    4390,
+    7711
+   ],
+   "valid_rect_max_shape": [
+    3380,
+    6906
+   ],
+   "footprint_rect_px": [
+    601,
+    537,
+    8238,
+    7588
+   ],
+   "footprint_rect_shape": [
+    7637,
+    7051
+   ],
+   "spike_count": 328,
+   "spike_criterion": {
+    "k_sigma": 10.0,
+    "r_gt": 0.8,
+    "abs_floor_e": 0.0,
+    "note": "只标记不剔除；见模块 docstring 的 PSF 上界标定"
+   },
+   "spike_top5": [
+    [
+     8369,
+     4311,
+     265.7570495605469
+    ],
+    [
+     4297,
+     321,
+     32.02334976196289
+    ],
+    [
+     5599,
+     309,
+     14.682321548461914
+    ],
+    [
+     5465,
+     292,
+     12.923872947692871
+    ],
+    [
+     4320,
+     7708,
+     12.044642448425293
+    ]
+   ],
+   "criteria": {
+    "block": 64,
+    "chunk_rows": 1024,
+    "k_extreme": 20.0,
+    "k_spike_sigma": 10.0,
+    "r_spike": 0.8,
+    "spike_abs_floor_e": 0.0,
+    "sigma_floor": 1e-09
+   },
+   "criteria_text": [
+    "bit0 NONFINITE: 非有限值 -> 无效",
+    "bit1 ZERO: 值==0.0 -> 无效",
+    "bit2 NEGATIVE: 值<0 -> 无效",
+    "bit3 EDGE: 与画幅边框 4-连通的 (ZERO|NONFINITE) 连通域 -> 无效",
+    "bit4 EXTREME_NEG: v < bg - 20*sigma_blk(64px 块稳健 MAD) -> 无效",
+    "bit5 SPIKE: (v-bg)>10*sigma_blk 且 (v-max8)/(v-bg)>0.80 -> 可疑，**不置无效**"
+   ],
+   "limitations": [
+    "只有 SCI HDU（PrimaryHDU 单 HDU），无 _wht 权重帧、无 DQ 帧 => 覆盖信息只能由零值几何反推，无法区分「无覆盖的零」与「真零通量」",
+    "SPIKE 判据在星云丝状结构上灵敏度下降 => 是坏点**下界**，不是完备集"
+   ]
+  }
+ },
+ "cross_band_diagnostics": {
+  "spike_count_per_band": {
+   "F657N": 185,
+   "F673N": 305,
+   "F502N": 328
+  },
+  "spike_pairwise_coincidence": {
+   "F657N_F673N": 1,
+   "F657N_F502N": 5,
+   "F673N_F502N": 12
+  },
+  "spike_all_three": 1,
+  "spike_any_band": 801,
+  "spike_all_three_over_any": 0.0012484394506866417,
+  "interpretation": "三帧同指向同网格：检测器固定坏点应在三帧同时出现。实测三帧共同/任一 = 0.0012 => SPIKE 检出的主体是**逐帧瞬变**（宇宙线幸存者/瞬变热像素），**不是**固定坏点图样；固定坏点在这三帧上至多 1 个像素。",
+  "negative_pixels_per_band": {
+   "F657N": 993,
+   "F673N": 2569,
+   "F502N": 477
+  },
+  "most_negative_pixels": {
+   "F657N": [
+    {
+     "y": 2828,
+     "x": 1071,
+     "value_e_per_s": -444234.5625,
+     "dist_to_border_px": 1071
+    },
+    {
+     "y": 6381,
+     "x": 2689,
+     "value_e_per_s": -362206.875,
+     "dist_to_border_px": 2018
+    },
+    {
+     "y": 2828,
+     "x": 1070,
+     "value_e_per_s": -224171.703125,
+     "dist_to_border_px": 1070
+    },
+    {
+     "y": 6652,
+     "x": 2816,
+     "value_e_per_s": -190154.234375,
+     "dist_to_border_px": 1747
+    },
+    {
+     "y": 2928,
+     "x": 2701,
+     "value_e_per_s": -166553.546875,
+     "dist_to_border_px": 2701
+    }
+   ],
+   "F673N": [
+    {
+     "y": 7054,
+     "x": 7784,
+     "value_e_per_s": -0.015895521268248558,
+     "dist_to_border_px": 215
+    },
+    {
+     "y": 7031,
+     "x": 7701,
+     "value_e_per_s": -0.01469356007874012,
+     "dist_to_border_px": 298
+    },
+    {
+     "y": 6744,
+     "x": 273,
+     "value_e_per_s": -0.014585012570023537,
+     "dist_to_border_px": 273
+    },
+    {
+     "y": 6510,
+     "x": 7810,
+     "value_e_per_s": -0.014319583773612976,
+     "dist_to_border_px": 189
+    },
+    {
+     "y": 7489,
+     "x": 7701,
+     "value_e_per_s": -0.013826306909322739,
+     "dist_to_border_px": 298
+    }
+   ],
+   "F502N": [
+    {
+     "y": 8092,
+     "x": 4183,
+     "value_e_per_s": -7577.96875,
+     "dist_to_border_px": 307
+    },
+    {
+     "y": 8091,
+     "x": 4183,
+     "value_e_per_s": -4910.11474609375,
+     "dist_to_border_px": 308
+    },
+    {
+     "y": 7989,
+     "x": 2548,
+     "value_e_per_s": -1538.851318359375,
+     "dist_to_border_px": 410
+    },
+    {
+     "y": 8254,
+     "x": 2676,
+     "value_e_per_s": -1234.8349609375,
+     "dist_to_border_px": 145
+    },
+    {
+     "y": 8191,
+     "x": 1064,
+     "value_e_per_s": -1049.26171875,
+     "dist_to_border_px": 208
+    }
+   ]
+  },
+  "negative_location_note": "极端负值全部位于**画幅内部**（距边框 145-2789 px），不是拼接边缘效应 => 判为 drizzle 权重/CR 残差的灾难性离群，由 EXTREME_NEG 位剔除。"
+ },
+ "scenes": [
+  {
+   "id": "m16_nebula_core",
+   "file": "synthetic/scenes/m16_nebula_core.json",
+   "kind": "bright_nebula_core",
+   "band": "F657N",
+   "line": "H-alpha",
+   "crop": [
+    5504,
+    896,
+    1024,
+    1024
+   ],
+   "outdir": "run/reverse_verify/m16_scene/frames/m16_nebula_core",
+   "matrix_cells": [
+    "target:bright_nebula_core",
+    "band:Ha",
+    "real_instance:HST_M16/F657N"
+   ]
+  },
+  {
+   "id": "m16_starfield",
+   "file": "synthetic/scenes/m16_starfield.json",
+   "kind": "starfield_general",
+   "band": "F502N",
+   "line": "[O III]",
+   "crop": [
+    3136,
+    768,
+    1024,
+    1024
+   ],
+   "outdir": "run/reverse_verify/m16_scene/frames/m16_starfield",
+   "matrix_cells": [
+    "target:starfield",
+    "band:OIII",
+    "real_instance:HST_M16/F502N"
+   ]
+  },
+  {
+   "id": "m16_dark_lowsnr",
+   "file": "synthetic/scenes/m16_dark_lowsnr.json",
+   "kind": "dark_lowsnr",
+   "band": "F673N",
+   "line": "[S II]",
+   "crop": [
+    7360,
+    6784,
+    1024,
+    1024
+   ],
+   "outdir": "run/reverse_verify/m16_scene/frames/m16_dark_lowsnr",
+   "matrix_cells": [
+    "target:dark_lowsnr",
+    "band:SII",
+    "real_instance:HST_M16/F673N"
+   ]
+  },
+  {
+   "id": "m16_band_matrix",
+   "file": "synthetic/scenes/m16_band_matrix.json",
+   "kind": "band_matrix_same_sky",
+   "band": "F657N/F673N/F502N",
+   "line": "Ha/[S II]/[O III]",
+   "crop": [
+    5504,
+    896,
+    1024,
+    1024
+   ],
+   "outdir": "run/reverse_verify/m16_scene/frames/m16_band_matrix",
+   "matrix_cells": [
+    "band:Ha",
+    "band:SII",
+    "band:OIII",
+    "pointing:common_mode_overlap"
+   ]
+  }
+ ],
+ "demo_experiment": {
+  "id": "exp_a6_seeing_aperture",
+  "path": "实验/SCI-C/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py",
+  "criterion": "A6: 固定真值通量、只改 seeing => PSF 域口径回收通量必须与 seeing 无关",
+  "result": "run/reverse_verify/m16_scene/a6_seeing/result.json"
+ },
+ "rerun": [
+  "export TMPDIR=/dev/shm/astrocs_m16",
+  "python3 实验/shared/synthetic/m16_mask.py --selftest",
+  "python3 实验/shared/synthetic/m16_mask.py --frames-dir testdata/HST_M16 --outdir run/reverse_verify/m16_scene/masks",
+  "python3 实验/shared/synthetic/m16_scene.py --selftest",
+  "python3 实验/shared/data/synthetic/generate.py --only m16_nebula_core,m16_starfield,m16_dark_lowsnr,m16_band_matrix",
+  "python3 实验/SCI-C/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py"
+ ]
+}

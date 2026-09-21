@@ -46,7 +46,12 @@ const std::set<std::string>& cmd_value_tokens() {
     static const std::set<std::string> k = {"--json",  "-o",       "--output", "--template",
                                             "--cpu-profile", "--mode", "--export-mode",
                                             // §8/21_observability §8.4: 资源门 enforce 显式写法。
-                                            "--on-resource-gate"};
+                                            "--on-resource-gate",
+                                            // FIX-405 G3-11: doctor 的 verify 能力旗标
+                                            // --run-manifest <manifest.json>（取值；
+                                            // 命令树登记见 command_tree.h value_flags()
+                                            // 与 doctor 的 allowed 表；不写进 help）。
+                                            "--run-manifest"};
     return k;
 }
 // 允许裸用（不取值）的旗标: 顶层 --version --json / doctor 的 --json /
@@ -302,7 +307,7 @@ const std::set<std::string>& session_keys() {
         // 合同声明名（禁止新造同义键）：
         //   phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
         // 只识别并透传到 pdoc（phase_config 直通分支）；科学消费点在 scheduler 面。
-        // 生产零读取期间由 ci/ledgers/dead_config_keys.json 显式登记（不得静默 no-op）。
+        // 生产零读取期间由 eng/ci/ledgers/dead_config_keys.json 显式登记（不得静默 no-op）。
         "snr_path",
         // phase3 平铺 (p3_session 消费面)
         "source", "center", "scale_deg_per_px", "width_px", "height_px",
@@ -316,7 +321,7 @@ const std::set<std::string>& session_keys() {
         // 计算精度口径（ASTROCS_DESIGN §3.3:256；FIX-203 前台裁决）：阶段一 =
         // drizzle.precision_mode(0=FP32/1=FP64)；阶段二/三 = 位深键 bitpix(-32/-64)。
         // **不新造 precision(fp32/fp64) 同义键**——合同旧键 precision 由死键台账登记
-        // （ci/ledgers/dead_config_keys.json#dead_config_key:precision），CLI 面拒绝。
+        // （eng/ci/ledgers/dead_config_keys.json#dead_config_key:precision），CLI 面拒绝。
         // phase3 平铺直通特征键 (runtime_client phase_config 平铺判定)
         "output_fits_path", "sampler_used", "mode",
         // DC-401/DC-418/DC-419 (§4.5.5): 排异算法选择键（留空/0/auto = 按 n 自动；

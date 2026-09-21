@@ -1,5 +1,5 @@
 // IO-002 单元测试: AIOImageData canonical deleter 全覆盖
-// (配合 tools/check_aio_ownership.py 静态扫描; 此处验证 deleter 行为)
+// (配合 eng/tools/check_aio_ownership.py 静态扫描; 此处验证 deleter 行为)
 //
 // 退出语义(M8-F-002 修复): 任一 CHECK 失败 → main 返回非零; 修复前唯一 CHECK
 // 只 ++failures 且 main 恒 return 0, 该 ctest 不可能失败(门恒绿)。
@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
 
   if (failures == 0) {
     std::printf("IO-002 TESTS PASS (canonical deleter null-safe + 真分配/释放全覆盖; "
-                "ownership scan 见 tools/check_aio_ownership.py)\n");
+                "ownership scan 见 eng/tools/check_aio_ownership.py)\n");
     return 0;
   }
   std::fprintf(stderr, "IO-002 TESTS FAIL (%d)\n", failures);

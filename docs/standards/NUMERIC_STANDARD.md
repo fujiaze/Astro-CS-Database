@@ -1,5 +1,7 @@
 # AstroCS Numeric Standard
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## 每个科学 double/float 必须文档化
 
 - 单位（ADU / e- / mag / deg / arcsec / 无单位比率）；

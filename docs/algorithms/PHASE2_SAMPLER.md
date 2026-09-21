@@ -2,6 +2,8 @@
 
 > ID: ALG-P2-SMP-001  状态: CONTRACT_READY。本文件是 Phase2 控制点采样模块（control sampler）
 > 算法层**唯一权威**：逐公式源码行号锚定 + 冻结容差 + 实现偏差登记。
+> 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）
+
 > 上游 SCI: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，共享引用
 > 不改动；页头明示"模块: phase2 (upm/sampler)"；
 > descriptor 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明见 §11.4）。

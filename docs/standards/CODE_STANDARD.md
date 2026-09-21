@@ -1,5 +1,7 @@
 # AstroCS Code Standard
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 权威来源：`ENGINEERING_SPEC.md` §1（C++17 双平台工具链：**Windows = MSVC v143**；Linux = GCC 或 Clang）
 与 §4（每模块必备项）+ `ASTROCS_DESIGN.md` §10.2（官方 Windows 工具链 = MSVC）。本文件是这些要求的实现级展开。
 

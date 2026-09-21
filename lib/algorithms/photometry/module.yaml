@@ -118,7 +118,7 @@ notes: >-
   DISP-PHOT-001..009 全部登记（PHOTOMETRIC_FIT §13.3，登记不改码）：
   001 star_matcher 头注释与 PhotometricDiag 注释称无双向过滤、实现实为
   双向互最近邻唯一配对且 rejected_ambiguous 实际统计；002 旧 README/
-  docs/algorithm.md 大面积失实（暴力最近邻 3px/scale=median/MAD 清洗/
+  旧算法文档（已删，见 git 历史）大面积失实（暴力最近邻 3px/scale=median/MAD 清洗/
   0.1nm 网格/v1.0 曲面拟合叙述），本 README r1 重写修正、legacy 仅存档；
   003 ImageCorrector::computeScale 死代码无调用方；004 无取消检查点与
   plan/execute/cancel/inspect 生命周期；005 入参静默失效（mag_max 被自适应

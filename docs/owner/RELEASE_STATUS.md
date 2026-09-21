@@ -1,7 +1,9 @@
 # 发布状态（Release Status）
 
+> 上游：ASTROCS_DESIGN.md §12.5（状态阶梯）、§13（版本与发布权）
+
 > 文档 ID：DOC-GOV-OWNER-RELEASE-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
+> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
 > 目标产品：`0.11.0-alpha.2`（根 `VERSION`，GOV-003 唯一源；生成串
 > `0.11.0-alpha.2+g<commit12>`，见 `docs/governance/VERSION_NAMESPACES.md`）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
@@ -22,7 +24,7 @@
 |---|---|---|
 | `CONTRACT_READY` | 权威文档/合同/schema 冻结在位；**文档与合同类对象以此为终态** | 权威文档 + `module.yaml`/registry 条目 + 机器检查器 rc=0 |
 | `IMPLEMENTED` | 生产（或注册测试面）源码在位，且**当前提交内实际执行通过** | 文件锚 + 命令 + rc=0（ctest/pytest 实测） |
-| `INSTALLED` | 除 IMPLEMENTED 外，已进入构建安装树 + 产品清单，并可被 CLI/loader 实际发现 | `cmake/install_layout.cmake` + `packaging/astrocs.product.json` + `modules list/verify` 实测 |
+| `INSTALLED` | 除 IMPLEMENTED 外，已进入构建安装树 + 产品清单，并可被 CLI/loader 实际发现 | `eng/cmake/install_layout.cmake` + `packaging/astrocs.product.json` + `modules list/verify` 实测 |
 | `VERIFIED` | 除 INSTALLED 外，已在正式平台（Windows x64）与真实数据上通过验收 | Fatduck/真实数据证据（**当前无此项**） |
 | `NOT_IMPLEMENTED` | 能力不在当前基线（符号/路径不存在） | 全域 grep 零命中 |
 | `NOT_VERIFIED` | 能力可能存在但当前提交未复跑执行验收 | 无当前提交证据 |
@@ -51,7 +53,7 @@ Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_
 
 - 产品版本唯一源：根 `VERSION` = `0.11.0-alpha.2`（GOV-003）。
   版本命名空间：product / module / ABI(v1) / data-schema(schema_version=1) /
-  doc-revision / history（机器检查器 `tools/doccheck/check_version_namespaces.py`）。
+  doc-revision / history（机器检查器 `eng/tools/doccheck/check_version_namespaces.py`）。
 - Windows 正式发布候选：**未产生**（`NOT_VERIFIED`）。DLL 化安装树的
   **Linux 技术预览安装面已 `INSTALLED`**（五科学模块 + noop 入 `modules/`，
   产品清单 10 units，安全 loader 实测 64/64 PASS），Windows 侧复验未执行。
@@ -65,24 +67,24 @@ Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_
 | 面 | 状态 | 主要依据（文件锚 / 命令 / rc） |
 |---|---|---|
 | 最高设计 | `CONTRACT_READY` | `ASTROCS_DESIGN.md`（§0 权威链，唯一最高权威） |
-| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ASTROCS_DESIGN.md` §0 权威链 + `ENGINEERING_SPEC.md`；旧 `AstroCS_ENGINEERING_CONSTRAINTS.md` 与 `tools/doccheck/check_engineering_constraints.py` 已随 ROOT-007/RETIRE-001 退役（历史条目） |
-| 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定 ROOT-007 已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
+| 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ASTROCS_DESIGN.md` §0 权威链 + `ENGINEERING_SPEC.md`；旧 `AstroCS_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已随 ROOT-007/RETIRE-001 退役（历史条目） |
+| 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`eng/tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定 ROOT-007 已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
 | 内核标准注册表 | `CONTRACT_READY` | `docs/standards/STANDARDS_REGISTRY.md` + `docs/standards/checks/check_standards_registry.py` → STANDARDS_REGISTRY_PASS（STD-REG-001 `fb7f232a`） |
 | 版本单源 | `CONTRACT_READY` | `VERSION` + `docs/governance/VERSION_NAMESPACES.md`；检查器 rc=0（GOV-003） |
 | C ABI v1 / DLL 边界 / 安全 loader 合同 | `CONTRACT_READY` | `include/astrocs/abi/*.h`（ABI-001）、`contracts/config/module_dll_contract.schema.json`（ARC-001）、`runtime/module_loader/secure_loader.h`（ABI-003） |
 | 类型化产物 / 三阶段交换 / 不确定度合同 | `CONTRACT_READY` | DATA-001/002 + DATA-UNC-001（`99713034`）+ `contracts/data/*` |
 | Runtime 类型化运行图 + 节点绑定表 | `IMPLEMENTED` | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`；节点绑定经 ctest 节点化用例复核 |
 | 三 Phase 节点化（`ASTROCS_DESIGN.md` §3.2/§4.2/§5.2 每节点唯一真实 operation；原引「宪章 §F.1」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257/:4282/:4309（P1 8 / P2 7 / P3 5 节点）；ctest `p1001_real_nodes`/`p2001_real_nodes`/`p3002_real_nodes`/`p3002_uncertainty` 4/4 PASS |
-| RT 唯一 executor + 实测资源门（`ASTROCS_DESIGN.md` §8/§10 + `ENGINEERING_SPEC.md` §10；原引「宪章 §10.4/§10.5/§18.2」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
+| RT 唯一 executor + 实测资源门（`ASTROCS_DESIGN.md` §8/§10 + `ENGINEERING_SPEC.md` §10；原引「宪章 §10.4/§10.5/§18.2」已废止） | `IMPLEMENTED` | `lib/infrastructure/scheduler/src/executor_runtime.h`、`module_adapters.cpp`:3777-3793、`eng/tools/monitoring/run_monitored.py:evaluate_frozen_gate()`；ctest `rt001_unique_executor` PASS（RT-001 `91440c16`） |
 | Phase3 四投影 registry（TAN/SIN/CAR/AIT） | `IMPLEMENTED` | `lib/algorithms/projection/p3_projection.{h,cpp}`:267-273（registry v1 恰四行）；ctest `p3_projection_units`/`p3_projection_fault` 2/2 PASS；CI `CTEST-P3-PROJECTION-UNITS/FAULT` |
-| MOD 科学模块安装面 + 产品清单 | `INSTALLED` | `cmake/install_layout.cmake`:104-105；`packaging/astrocs.product.json` units=10；`tests/abi/mod001_install_load_check.py` 64/64 PASS（MOD-001 `59fdeab3`；`f74fc20f` 摘出 p1_noise） |
+| MOD 科学模块安装面 + 产品清单 | `INSTALLED` | `eng/cmake/install_layout.cmake`:104-105；`packaging/astrocs.product.json` units=10；`tests/abi/mod001_install_load_check.py` 64/64 PASS（MOD-001 `59fdeab3`；`f74fc20f` 摘出 p1_noise） |
 | CLI 薄命令面（validate/plan/inspect） | `INSTALLED` | `cli/parser.cpp` kRules（9 条新命令）；`build/cli/astrocs --help` 实测；`tests/cli/test_cli001_vpi.py` 15/15 PASS（CLI-001 `026717fd`） |
 | 三 Phase 隔离（独立命令，无进程内连跑） | `IMPLEMENTED` | `astrocs run --phases 1,2,3` → rc=2 `unknown command 'run'`（CLI-002 删除）；DATA-002 磁盘交换合同冻结 |
 | 结构化日志合同 | `CONTRACT_READY` | LOG-001（schema/JSONL 契约） |
 | Windows 工具链 preset | `CONTRACT_READY` | BLD-001 + `packaging/schemas/preset-contract.json` |
 | 唯一根 CMake 构建图 | `IMPLEMENTED` | BLD-002；根 `ninja -C build` 本提交实测 rc=0（全量 28 步） |
 | FITS 流式接口 | `IMPLEMENTED` | IO-001（接口 + 实现 + 契约测试）；**未接入 Phase3 writer**（见 §4） |
-| L0 负责人入口 | `CONTRACT_READY` | `docs/owner/*` + `docs/README-DOCS.md` + `docs/DOCUMENT_INDEX.yaml`（根 `REVIEW.md` 已由 ROOT-007 删除）；`tools/check_l0_docs.py` 仍绑定旧 `docs/review/**` 集合 → DOC-001 实测 rc=1，登记 GAP-001/GAP-016 |
+| L0 负责人入口 | `CONTRACT_READY` | `docs/owner/*` + `docs/README-DOCS.md` + `docs/DOCUMENT_INDEX.yaml`（根 `REVIEW.md` 已由 ROOT-007 删除，旧轮次评审副本已由 CLEAN-402 删除）；`eng/tools/check_l0_docs.py` 现行绑定 `docs/owner/**`（DOC-001 后实测 rc=0，GAP-001/GAP-016 关闭）|
 
 > 本表"实测"级证据（IMPLEMENTED/INSTALLED）全部来自 BASE=`da3c4b4a` 的命令日志
 > `run/docconv001/logs/{focused_rebuild_test.log,mod001_install_check.log,cli001_vpi.log}`；

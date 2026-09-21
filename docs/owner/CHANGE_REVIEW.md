@@ -1,7 +1,9 @@
 # 变更审查（Change Review）
 
+> 上游：ASTROCS_DESIGN.md §12.5（状态阶梯）
+
 > 文档 ID：DOC-GOV-OWNER-CHANGE-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
+> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004 工作树检出的基）
 > 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
 > 目标产品：`0.11.0-alpha.2`（根 VERSION）
@@ -42,11 +44,11 @@
 | `docs/owner/CHANGE_REVIEW.md` | 新增 | 本轮变化汇总、影响、验证、已知限制（本文） |
 | `docs/DOCUMENT_INDEX.yaml` | 更新 | 登记 docs/owner/*.md + 补登 docs/governance/VERSION_NAMESPACES.md、docs/interfaces/data/*、docs/interfaces/io/*（修复 check_doc_index docs_fully_covered FAIL） |
 
-> 旧 REVIEW.md 指向的 `docs/review/*.md`（旧轮次顶层文档）在 GOV-002 归档为
-> `docs/archive/review/*`（ARCHIVED_NON_NORMATIVE），故旧链接已失效；GOV-004
+> 旧 REVIEW.md 指向的旧轮次顶层文档在 GOV-002 归档（该归档树已由 CLEAN-402 删除，
+> 路径明细见 `docs/DOCUMENT_INDEX.yaml` 抬头迁移记录与 git 历史），故旧链接已失效；GOV-004
 > 按任务规格在 `docs/owner/` 重建负责人文档并重写 REVIEW 入口（新命名空间与
 > 控制包 03 目录规范 `docs/owner/` 一致）。
-> **DOC-001 补充（2026-09-16）**：根 `REVIEW.md` 与 `docs/review/**` 现均判定为历史——
+> **DOC-001 补充（2026-09-16）**：根 `REVIEW.md` 与旧轮次评审副本现均判定为历史——
 > 前者已由 ROOT-007 删除，后者已在 `docs/DOCUMENT_INDEX.yaml` 标 `ARCHIVED_NON_NORMATIVE`；
 > 负责人入口以 `docs/README-DOCS.md` + 本目录为准。
 
@@ -59,9 +61,9 @@
 
 | 检查 | 命令 | 预期 | 状态 |
 |---|---|---|---|
-| 文档索引覆盖与归档边界 | `python3 tools/doccheck/check_doc_index.py --root .` | DOC_INDEX_PASS / exit 0 | 基线时 FAIL（3 项未覆盖）→ 本 patch 后 PASS（将留日志） |
-| 工程约束机器修订关系 | `python3 tools/doccheck/check_engineering_constraints.py --root . [--base-sha caee3e6...]` | CONSTRAINTS_PASS / exit 0 | PASS（不修改该文件） |
-| 版本命名空间扫描 | `python3 tools/doccheck/check_version_namespaces.py --root .` | VERSION_NAMESPACES_PASS / exit 0 | PASS（docs/owner 纳入扫描；文档内无版本漂移） |
+| 文档索引覆盖与归档边界 | `python3 eng/tools/doccheck/check_doc_index.py --root .` | DOC_INDEX_PASS / exit 0 | 基线时 FAIL（3 项未覆盖）→ 本 patch 后 PASS（将留日志） |
+| 工程约束机器修订关系 | `python3 eng/tools/doccheck/check_engineering_constraints.py --root . [--base-sha caee3e6...]` | CONSTRAINTS_PASS / exit 0 | PASS（不修改该文件） |
+| 版本命名空间扫描 | `python3 eng/tools/doccheck/check_version_namespaces.py --root .` | VERSION_NAMESPACES_PASS / exit 0 | PASS（docs/owner 纳入扫描；文档内无版本漂移） |
 | L0 可达性（历史条目） | 人工核对：旧 `REVIEW.md` 5 链接 → docs/owner/* 全部存在 | 可到达 | 本 patch 时点值；`REVIEW.md` 已删除，现行路由 = `docs/README-DOCS.md` + `docs/DOCUMENT_INDEX.yaml` |
 
 ## 5. 已知限制与诚实缺口（验收项之一：无未验证"已实现"）
@@ -126,17 +128,17 @@ origin/main 三 SHA 一致）；cprun run `Rmtxvlrtfa66eb7` rev23 / dispatch
 | MOD 安装面/安全 loader | `python3 tests/abi/mod001_install_load_check.py --build-dir build` | 64/64 PASS（含负向注入必败） |
 | CLI 命令面 | `python3 -m pytest tests/cli/test_cli001_vpi.py -q` | 15/15 PASS |
 | 遗留入口已删 | `build/cli/astrocs run --phases 1,2,3` | rc=2 `unknown command 'run'` |
-| doccheck 全套（历史时点） | `check_doc_index.py --strict` / `check_engineering_constraints.py` / `check_version_namespaces.py` / `check_l0_docs.py` / `check_standards_registry.py` / `check_api_docs.py` / `check_glossary.py` / `check_doc_symbols.py` | 当时全部 rc=0；DOC-001 复检：`check_l0_docs.py` rc=1（绑定已删除的 `REVIEW.md`/旧 `docs/review` 集合）、`check_doc_index.py --strict` rc=1（残留项见 DOC-001 自证） |
+| doccheck 全套（历史时点） | `check_doc_index.py --strict` / `check_engineering_constraints.py` / `check_version_namespaces.py` / `check_l0_docs.py` / `check_standards_registry.py` / `check_api_docs.py` / `check_glossary.py` / `check_doc_symbols.py` | 当时全部 rc=0；DOC-001 复检：`check_l0_docs.py` rc=1（绑定已删除的 `REVIEW.md`/旧轮次评审集合）、`check_doc_index.py --strict` rc=1（残留项见 DOC-001 自证） |
 
 域外项（DOC-CONV-001 写白名单 = 根 `REVIEW.md`（已删除）/ `docs/` / `memory.md`，以下均未改动）：
 
 1. `lib/*/README.md`（任务目标提及）不在写白名单内 → 未改动，移交 lib/ 写域任务；
-2. 跨 L0 文档状态词一致性目前**无 CI 检查项** → 建议 tools/+ci/ 域任务补 checker
-   并在同提交注册 `ci/checks.json` 显式检查项；
-3. 05 号 findings 登记册与 `ci/checks.json` 均在写白名单外 → 本文与 `memory.md`
+2. 跨 L0 文档状态词一致性目前**无 CI 检查项** → 建议 eng/tools/+eng/ci/ 域任务补 checker
+   并在同提交注册 `eng/ci/checks.json` 显式检查项；
+3. 05 号 findings 登记册与 `eng/ci/checks.json` 均在写白名单外 → 本文与 `memory.md`
    如实登记，由前台并入登记册；
 4. **F-DOC-CONV-001-06（HEAD 预存 CI 红灯，非本任务引入）**：`tests/version`（UT-VERSION）在
-   BASE=`da3c4b4a` 即失败 —— `tools/check_version_consistency.py` rc=1，19 条
+   BASE=`da3c4b4a` 即失败 —— `eng/tools/check_version_consistency.py` rc=1，19 条
    findings 全部落在 `docs/standards/STANDARDS_REGISTRY.md`（该文件相对 HEAD 零
    diff），成因为注册表内 FITS WCS Paper I 与 IVOA HiPS 的**条款编号**（形如
    §a.b.c 的节号）被版本一致性检查器误判为"未知版本字面量"，疑为 STD-REG-001

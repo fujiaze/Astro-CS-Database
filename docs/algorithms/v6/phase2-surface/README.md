@@ -2,6 +2,8 @@
 
 # Phase2 扩展源（surface_gls）V6 算法规格 — 索引与冻结常量
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-SURF-001`（本目录整体）
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P2-SURF-001.md`
 - wave：3；depends_on：`SCI-ADJ-001`

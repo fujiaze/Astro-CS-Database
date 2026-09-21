@@ -7,8 +7,8 @@
 // 依据:
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §14 (HISS 容器: 流式生成临时子块池, 再生成
 // 最终 Header, 组装 .partial, flush 后原子重命名)
-// - docs/stage1_fix/00_COMMON_CONTRACTS.md §4.5 (流式写入)
-// - docs/stage1_fix/spec.md 步骤10 (流式写入)
+// - docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md (流式写入)
+// - docs/architecture/IO_AND_ATOMICITY.md (流式写入)
 //
 // 职责:
 // - 管理 .partial 临时子块池 (一个临时文件)

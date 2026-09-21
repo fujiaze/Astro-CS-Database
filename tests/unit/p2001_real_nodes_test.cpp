@@ -460,11 +460,14 @@ static void test_ivar_chain_real_operation() {
           std::string(man_rej.value("reject_semantic_id", "")));
     CHECK(rej.value("n_pixels", 0ull) == 512ull * 512ull);
   }
-  // integrate: weight_mode=2 + ivar 齐备 → uncertainty_available=true
+  // integrate: 逐样本 ivar 齐备 → uncertainty_available=true
   json man_int = run_node(reg, "astrocs.phase2.integrate", ivar_cfg(fx), ctx2);
   CHECK(man_int.value("operation", "") == "integrate_frames");
   CHECK(man_int.value("entry", "") == "astrocs_phase2_integrate_v1");
-  CHECK(man_int.value("weight_mode", 0) == 2);
+  // FIX-405 G3-12（ASTROCS_DESIGN §3.1）: 产物/manifest 不再承载「权重模式」键;
+  // 方差面状态由语义键如实表达（非退化: 替代键必须在位）。
+  CHECK(man_int.find("weight_mode") == man_int.end());
+  CHECK(man_int.value("weight_basis", std::string()) == "per_sample_ivar");
   CHECK(man_int.value("uncertainty_available", false) == true);
   {
     json intj;
@@ -927,6 +930,19 @@ static void test_determinism() {
     CHECK_MSG(ff.ok(), ff.ok() ? "" : ff.error().message().c_str());
     const std::string intj = read_file(fx.out + "/p2_integrated.json");
     const std::string finj = read_file(fx.out + "/p2_final.json");
+    // FIX-405 G3-12（ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）：
+    // 真实 Phase2 产物不得再承载 weight_mode 键；方差面状态由语义键承接
+    // （非退化：替代键必须同时在位，缺键 fail-closed 面不因删键而消失）。
+    CHECK_MSG(intj.find("\"weight_mode\"") == std::string::npos,
+              "p2_integrated.json must not carry the retired weight_mode key");
+    CHECK_MSG(finj.find("\"weight_mode\"") == std::string::npos,
+              "p2_final.json must not carry the retired weight_mode key");
+    CHECK_MSG(intj.find("\"uncertainty_available\"") != std::string::npos &&
+                  finj.find("\"uncertainty_available\"") != std::string::npos,
+              "uncertainty_available must stay in phase2 products (fail-closed surface)");
+    CHECK_MSG(intj.find("\"corrected_variance_used\"") != std::string::npos &&
+                  intj.find("\"snr_chain_used\"") != std::string::npos,
+              "phase2 variance-surface semantic keys must stay in p2_integrated.json");
     std::vector<double> sigbin;
     CHECK(read_bin<double>(fx.out + "/p2_integrated_signal.bin", 0, 512ull * 512ull, &sigbin));
     std::string sigbytes(reinterpret_cast<const char*>(sigbin.data()),
@@ -1054,15 +1070,16 @@ static void test_ivar001_weight_mode_domain_and_audit() {
       const Result<void> v = m.value()->validate_config(ivar_cfg(fx, R"(,"weight_mode":"2")"));
       CHECK_MSG(v.failed(), "weight_mode string must be rejected by validate_config");
     }
-    // 默认（缺键）= 2: ivar 齐备 → 成功 + 审计面 weight_basis=per_sample_ivar
+    // 默认路径: ivar 齐备 → 成功 + 审计面 weight_basis=per_sample_ivar
+    // （FIX-405 G3-12: 产物不再落「权重模式」键, 只留语义键）
     Result<void> okrc;
     run_p2_chain(reg, ivar_cfg(fx), ctx, 6, &okrc);
-    CHECK_MSG(okrc.ok(), ("default weight_mode must be 2 (ivar fixture): " +
+    CHECK_MSG(okrc.ok(), ("default per-sample ivar chain must succeed: " +
                           (okrc.failed() ? okrc.error().message() : std::string())).c_str());
     if (okrc.ok()) {
       json intj;
       try { intj = json::parse(read_file(fx.out + "/p2_integrated.json")); } catch (...) {}
-      CHECK(intj.value("weight_mode", 0) == 2);
+      CHECK(intj.find("weight_mode") == intj.end());
       CHECK(intj.value("weight_basis", std::string()) == "per_sample_ivar");
       CHECK(intj.value("ivar_product_missing_frames", -1) == 0);
       CHECK(intj.value("uncertainty_available", false) == true);
@@ -1125,7 +1142,10 @@ static void test_ivar001_weight_mode_domain_and_audit() {
     }
   }
 
-  // (d) write 节点: 集成产物缺/非法 weight_mode → fail-closed（禁 legacy 缺省 0）
+  // (d) write 节点: 集成产物缺/不自洽的方差面声明 → fail-closed
+  //     （FIX-405 G3-12: 原判据以整数 weight_mode 承载, 现改为语义键:
+  //      缺 uncertainty_available / 逐样本面缺失 / ivar 缺帧 / SNR 链降级
+  //      都必须拒写 —— 判据强度不变, 只是不再引入「权重模式」词汇）
   {
     IvarFixture fx = make_ivar_fixture("wrgate");
     Result<void> rc6;
@@ -1135,26 +1155,34 @@ static void test_ivar001_weight_mode_domain_and_audit() {
       const std::string ip = fx.out + "/p2_integrated.json";
       json intj;
       try { intj = json::parse(read_file(ip)); } catch (...) {}
-      // d1: 缺 weight_mode
-      json d1 = intj; d1.erase("weight_mode");
+      CHECK(intj.find("weight_mode") == intj.end());
+      // d1: 缺 uncertainty_available（禁静默缺省）
+      json d1 = intj; d1.erase("uncertainty_available");
       { std::ofstream f(ip, std::ios::binary); f << d1.dump(2); }
       Result<void> w1;
       run_node(reg, "astrocs.phase2.write", ivar_cfg(fx), ctx, &w1);
-      CHECK_MSG(w1.failed(), "write must fail closed when integrated artifact lacks weight_mode");
+      CHECK_MSG(w1.failed(),
+                "write must fail closed when integrated artifact lacks uncertainty_available");
       CHECK_MSG(!fs::exists(fs::path(fx.out + "/p2_final.json")),
                 "fail-closed write must not leave p2_final.json");
-      // d2: 非法值 0（legacy）→ 拒
-      json d2 = intj; d2["weight_mode"] = 0;
+      // d2: 非逐样本权重面（帧级 SNR 链降级）却声明 uncertainty_available → 拒
+      json d2 = intj;
+      d2["weight_basis"] = "frame_snr_ivar";
+      d2["snr_chain_used"] = true;
       { std::ofstream f(ip, std::ios::binary); f << d2.dump(2); }
       Result<void> w2;
       run_node(reg, "astrocs.phase2.write", ivar_cfg(fx), ctx, &w2);
-      CHECK_MSG(w2.failed(), "write must reject legacy weight_mode=0");
-      // d3: uncertainty_available=true 而 mode=1 → 拒（§30.1 规则 1）
-      json d3 = intj; d3["weight_mode"] = 1; d3["uncertainty_available"] = true;
+      CHECK_MSG(w2.failed(),
+                "write must reject uncertainty_available without a per-sample weight surface");
+      // d3: 有 ivar 缺帧（ivar_product_missing_frames>0）却声明可用 → 拒（§30.1 规则 1）
+      json d3 = intj;
+      d3["uncertainty_available"] = true;
+      d3["ivar_product_missing_frames"] = 1;
       { std::ofstream f(ip, std::ios::binary); f << d3.dump(2); }
       Result<void> w3;
       run_node(reg, "astrocs.phase2.write", ivar_cfg(fx), ctx, &w3);
-      CHECK_MSG(w3.failed(), "write must reject uncertainty_available with weight_mode=1");
+      CHECK_MSG(w3.failed(),
+                "write must reject uncertainty_available with missing ivar frames");
     }
     fs::remove_all(fx.root);
   }

@@ -2,6 +2,8 @@
 
 # Phase2 PSFSW 算法规格包（ALG-P2-PSFSW-001）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 文档包 ID：`ALG-P2-PSFSW-001`
 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P2-PSFSW-001.md`（wave 3，`depends_on = SCI-ADJ-001`）
 write_scope（tracked）：`docs/algorithms/v6/phase2-psfsw/`（本目录）

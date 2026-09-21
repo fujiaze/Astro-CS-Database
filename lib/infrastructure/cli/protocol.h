@@ -35,8 +35,37 @@ inline bool is_frozen_exit_code_v1(int c) {
            c == RESOURCE || c == INTERNAL;
 }
 
+// §4 kind 注册表 v1 —— **10 类开放 kind 全登记**（FIX-405 G3-10）。
+// 登记面 = 实现正本（本表）↔ 机器 schema（contracts/schemas/jsonl_event_v1.schema.json
+// 的 properties.kind.enum + 同名 allOf 分支）↔ 人类可读合同
+// （docs/api/CLI_PROTOCOL_V1.md §4）；三者必须同面。
+// 未登记 kind ⇒ ValidateEventV1 拒发（fail-closed；新增 kind 必须同时登记两处，只增不改）。
+inline const std::vector<std::string>& registered_event_kinds_v1() {
+    static const std::vector<std::string> k = {
+        "progress",       // §4 进度（emit_progress）
+        "resource",       // §4 资源摘要/超限记录（emit_resource_summary / 资源门）
+        "artifact",       // §4 产物登记（manifest / graph_dir / phase3 输出）
+        "backend",        // §4 实际 backend 选择（emit_backend_event）
+        "final",          // §4 运行收尾（emit_final）
+        "stage_start",    // §4 重计算 stage 进入（JsonlEmitter::stage(true)）
+        "stage_end",      // §4 重计算 stage 退出（JsonlEmitter::stage(false)）
+        "graph",          // RT-009 运行图渲染告警（非致命；path 必填）
+        "resource_gate",  // §9.74 裁决 10 资源判据 record-only 记录
+        "v6_mode_route",  // v6 模式路由裁决（config/CLI 面 legacy 令牌）
+    };
+    return k;
+}
+
+inline bool is_registered_event_kind_v1(const std::string& kind) {
+    for (const auto& k : registered_event_kinds_v1())
+        if (k == kind) return true;
+    return false;
+}
+
 // §4 kind 扩展字段冻结名册(04 §4 逐字; final 扩展由 emit_final 固定)。
-// 返回缺失的必含扩展字段; kind 在基础五类之外 → 空串(开放 kind, 扩展字段不校验)。
+// 10 类 kind 全部登记：未在册 kind 由 ValidateEventV1 直接拒绝（不再有"开放 kind
+// 不校验扩展字段"的旁路）；stage_start/stage_end 除 10 必含字段外无冻结扩展字段。
+// 返回缺失的必含扩展字段; 全部在位 → 空串。
 inline std::string missing_required_extension_v1(const std::string& kind,
                                                  const nlohmann::json& ev) {
     static const std::map<std::string, std::vector<std::string>> kExt = {
@@ -46,9 +75,18 @@ inline std::string missing_required_extension_v1(const std::string& kind,
         {"artifact", {"role", "path", "sha256", "size_bytes"}},
         {"backend", {"kernel", "backend_id", "isa", "workers", "block_size", "reason"}},
         {"final", {"exit_code", "status", "run_manifest", "summary"}},
+        {"stage_start", {}},
+        {"stage_end", {}},
+        {"graph", {"path"}},
+        {"resource_gate", {"diag", "enforcement", "strict", "enforced",
+                           "work_core_seconds", "workload_floor_core_seconds",
+                           "workload_floor_reached"}},
+        {"v6_mode_route", {"route_kind", "token", "surface", "source", "reason",
+                           "implicit_phase_chain", "budget_source_owner",
+                           "budget_allocated_cores", "one_budget_source_rule"}},
     };
     auto it = kExt.find(kind);
-    if (it == kExt.end()) return {};
+    if (it == kExt.end()) return {};   // 未登记 kind 由 ValidateEventV1 拒绝
     for (const auto& f : it->second) {
         if (!ev.contains(f)) return f;
     }
@@ -77,6 +115,17 @@ inline bool ValidateEventV1(const nlohmann::json& ev, unsigned long long expect_
         return false;
     }
     const std::string kind = ev.value("kind", std::string());
+    // FIX-405 G3-10: kind 注册表硬闸 —— 未登记 kind 一律拒发（fail-closed）。
+    // 注册面 = registered_event_kinds_v1()（与 contracts/schemas/jsonl_event_v1.schema.json
+    // 的 kind enum + docs/api/CLI_PROTOCOL_V1.md §4 同面）。
+    if (!is_registered_event_kind_v1(kind)) {
+        std::fprintf(stderr,
+                     "astrocs: protocol: unregistered event kind '%s' rejected "
+                     "(registered=%zu kinds; register in protocol.h + "
+                     "contracts/schemas/jsonl_event_v1.schema.json)\n",
+                     kind.c_str(), registered_event_kinds_v1().size());
+        return false;
+    }
     const std::string missing = missing_required_extension_v1(kind, ev);
     if (!missing.empty()) {
         std::fprintf(stderr,

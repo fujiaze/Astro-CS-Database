@@ -11,6 +11,8 @@ downstream: [TEST-P2-INT-001]
 
 # 模块 astrocs.phase2.integrate
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页自 gen_module_readmes 派生页事实修订为
 > 手写合同页（手写 registry 先例 astrocs.phase2.write.md/
 > astrocs.phase2.coverage.md）。frontmatter 的 source_commit/upstream/

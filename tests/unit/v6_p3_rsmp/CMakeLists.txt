@@ -23,7 +23,7 @@ set(V6_P3RSMP_SOURCES
 # 生产源直接编入各测试可执行（自足；不依赖 astrocs_p3_rsmp target，
 # 使本目录既可被根 add_subdirectory 也可独立 configure）。
 # 可执行名字保留 p3_rsmp_*_test；**ctest 用例名统一加 v6_ 前缀**
-# （控制器 AR-034 处置）：与 ci/checks.json 的 V6-CTEST-UNIT 期望 glob
+# （控制器 AR-034 处置）：与 eng/ci/checks.json 的 V6-CTEST-UNIT 期望 glob
 # v6_p3_rsmp_* 一致，且使 CTEST-REGISTRATION 静态检查能看到具体用例名。
 function(v6_p3rsmp_test name src)
   add_executable(${name} ${src} ${V6_P3RSMP_SOURCES})

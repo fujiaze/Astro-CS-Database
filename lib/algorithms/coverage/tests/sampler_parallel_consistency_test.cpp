@@ -105,7 +105,7 @@ namespace {
 
 // 测试用临时目录（合成 fixture 根）与清理：两个用例共用同一对 I/O 原语，
 // 避免重复文件系统原语命中（AIO 边界台账对本文件的命中数**只减不增**：
-// ci/ledgers/aio_io_boundary_inventory.json#entries[5]）。
+// eng/ci/ledgers/aio_io_boundary_inventory.json#entries[5]）。
 std::string sampler_tmp_dir(const char* leaf) {
     return (std::filesystem::temp_directory_path() / leaf).string();
 }
@@ -120,8 +120,16 @@ void remove_test_dir(const std::string& dir) {
 // —— tile 仍在文件里（coverage 的 tile 集合不变），但该帧在这些 tile 上
 // patch 有效样本 = 0 < min_samples ⇒ pass1 产生 insufficient_support 拒绝对
 // （FIX-210 D2 门的非退化输入：全覆盖 fixture 的 insuff 恒 0，门会退化成空门）。
+// spike_grid：>0 时在 x%64==32 ∧ y%64==32 的像素写亮异常值（每 patch 恰 1 个）。
+// 用途 = FIX-405 / DISP-P2SMP-002 门：亮端 clipping 必剔除该像素 ⇒
+// n_retained = n_total-1 < 1.0·n_total（background_min_retained_fraction=1.0）
+// ⇒ 第二遍置 reason=2；另一帧保持 clean ⇒ nclean=1 ⇒ 第三遍可达。
+// spike_period: 亮斑注入步长（像素）。默认 64 = 稀疏亮点（旧调用方不变）；
+// FIX-405 的 retained 拒绝用例需要"每个 5×5 patch 内必有亮点" ⇒ 传 8。
 bool make_synth_frame(const std::string& path, float flux,
-                      std::uint64_t support_tiles = 12) {
+                      std::uint64_t support_tiles = 12,
+                      float spike_value = 0.0f,
+                      std::uint32_t spike_period = 64) {
     constexpr std::uint32_t kW = 512;
     constexpr float kArea = 1.0e-8f;
     std::error_code ec;
@@ -139,6 +147,11 @@ bool make_synth_frame(const std::string& path, float flux,
         return false;
     }
     std::vector<float> sig((std::size_t)kW * kW, flux);
+    if (spike_value > 0.0f && spike_period > 0) {
+        for (std::uint32_t y = spike_period / 2; y < kW; y += spike_period)
+            for (std::uint32_t x = spike_period / 2; x < kW; x += spike_period)
+                sig[(std::size_t)y * kW + x] = spike_value;
+    }
     std::vector<float> area((std::size_t)kW * kW, kArea);
     for (std::uint64_t ipix = 0; ipix < 12; ++ipix) {
         const float a = (ipix < support_tiles) ? kArea : 0.0f;
@@ -349,6 +362,102 @@ TEST(Phase2SamplerParallel, SparseSupportStatsBitwiseIdenticalAcrossWorkers) {
     // ④ 观测序列逐位一致
     ASSERT_EQ(o1.size(), oN.size());
     for (std::size_t i = 0; i < o1.size(); ++i) check_bitwise_same(o1[i], oN[i], i);
+
+    p2_coverage_free(&cov);
+    remove_test_dir(dir);
+}
+
+// =====================================================================
+// FIX-405 / DISP-P2SMP-002：rejected_insufficient_retained **恰好计一次**
+//
+// 缺陷（登记项 DISP-P2SMP-002，本轮修复）：第二遍在置 reason=2 的同一分支内
+// 已 ++rejected_insufficient_retained（sampler.cpp 第二遍），第三遍又对
+// reason==2 帧重复 ++（原第三遍 :1071）⇒ 同一帧计两次，统计面
+// candidate = accepted + Σrejected 恒等式被破坏（obs 输出不受影响）。
+//
+// 门（非退化）：F2 每个背景 patch 中心有 1 个亮异常像素 ⇒ clipping 必剔除
+// ⇒ n_retained = n_total-1；令 background_min_retained_fraction = 1.0
+// ⇒ F2 每 cell 置 reason=2；F1 保持 clean ⇒ nclean=1 ⇒ 第三遍可达（旧码
+// 必双计）。修复后：retained 恰 = 每个 union cell 一帧，且恒等式缺口 = 0。
+// 负例注入自证：把第三遍的 ++ 加回 ⇒ identity_gap != 0 ⇒ 本门判红。
+// =====================================================================
+TEST(Phase2SamplerParallel, RetainedRejectionCountedExactlyOnce) {
+    const std::string dir = sampler_tmp_dir("astrocs_p2_sampler_retained");
+    const std::string p0 = dir + "/F1.hips";
+    const std::string p1 = dir + "/F2.hips";
+    ASSERT_TRUE(make_synth_frame(p0, 100.0f));
+    // 亮斑步长 8 ⇒ 任意 5×5 patch 内必含亮斑 ⇒ 第一遍 clipping 必然剔除样本
+    // （n_retained < n_total）⇒ reason=2 分支被确定性触发（非空门）。
+    ASSERT_TRUE(make_synth_frame(p1, 100.0f, /*support_tiles=*/12,
+                                 /*spike_value=*/1000.0f, /*spike_period=*/8));
+
+    const char* paths[2] = {p0.c_str(), p1.c_str()};
+    P2CoverageResult cov{};
+    P2HipsInputInfo infos[2]{};
+    cov.n_inputs = 2;
+    cov.inputs = infos;
+    ASSERT_EQ(p2_coverage_build(paths, 2, &cov), 0);
+    ASSERT_GT(cov.n_union_cells, 0u);
+    std::vector<P2MocCell> cells(cov.n_union_cells);
+    cov.union_cells = cells.data();
+    ASSERT_EQ(p2_coverage_build(paths, 2, &cov), 0);
+
+    char err[512] = {0};
+    auto sample = [&](int workers, P2SampleStats* st) {
+        P2SamplerConfig cfg{};
+        cfg.control_grid_per_tile = 8;
+        cfg.patch_radius_leaf = 2;
+        cfg.min_samples = 5;
+        cfg.snr_search_radius_deg = 0.05;
+        cfg.cpu_workers = workers;
+        // 保留比例下限 = 1.0 ⇒ 任何 clipping 剔除都触发 reason=2。
+        // 同时把前两级门（亮端 tolerance / 污染占比）放宽到不可达，使被 spike
+        // 触发的 clipping **只能**落在 reason=2 分支 —— 否则 1000 vs 100 的
+        // 亮点会先被 tolerance 门（reason=3）吃掉，本门退化为空门。
+        cfg.background_min_retained_fraction = 1.0;
+        cfg.background_tolerance = 1.0e9;
+        cfg.background_max_contamination = 1.0;
+        std::uint64_t n = 0, c = 0;
+        if (p2_sample_controls(&cov, paths, &cfg, nullptr, 0, &n, &c, nullptr,
+                               nullptr, 0, err, sizeof(err)) != 0)
+            return 1;
+        std::vector<P2ControlObservation> obs(n);
+        if (p2_sample_controls(&cov, paths, &cfg, obs.data(), n, &n, &c, st,
+                               nullptr, 0, err, sizeof(err)) != 0)
+            return 1;
+        return 0;
+    };
+
+    auto identity_gap = [](const P2SampleStats& s) -> long long {
+        const std::uint64_t rej = s.rejected_insufficient_support +
+                                  s.rejected_insufficient_retained +
+                                  s.rejected_bright_tolerance +
+                                  s.rejected_high_contamination +
+                                  s.rejected_catalog_veto +
+                                  s.rejected_lt_two_clean_frames;
+        return static_cast<long long>(s.candidate_observations) -
+               static_cast<long long>(s.accepted_observations + rej);
+    };
+
+    for (int workers : {1, 2}) {
+        P2SampleStats st{};
+        ASSERT_EQ(sample(workers, &st), 0) << err << " (workers=" << workers << ")";
+        // ① 非退化自证：fixture 必须真的踩到 retained 拒绝路径
+        ASSERT_GT(st.rejected_insufficient_retained, 0u)
+            << "fixture 未触发 retained 拒绝 ⇒ 门为空门（workers=" << workers << "）";
+        // ② 精确计数：union tile 内每个 control cell（grid²=64）恰有 1 帧
+        //    （F2，带亮斑）被 retained 拒绝 ⇒ 恰好 1×；第三遍再计一次即 2×。
+        //    （cov.n_union_cells 是 **union tile** 数；cell = tile × grid²。）
+        const std::uint64_t grid = 8;   // cfg.control_grid_per_tile
+        EXPECT_EQ(st.rejected_insufficient_retained,
+                  static_cast<std::uint64_t>(cov.n_union_cells) * grid * grid)
+            << "retained 计数 != union cell 数（DISP-P2SMP-002 双计数回归）"
+            << " workers=" << workers;
+        // ③ 计数恒等式：双计数必然破坏（缺口 = -reason2 帧数）
+        EXPECT_EQ(0, identity_gap(st))
+            << "candidate != accepted + Σrejected（DISP-P2SMP-002 双计数）"
+            << " workers=" << workers;
+    }
 
     p2_coverage_free(&cov);
     remove_test_dir(dir);

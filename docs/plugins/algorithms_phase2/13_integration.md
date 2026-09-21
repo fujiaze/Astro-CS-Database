@@ -1,5 +1,7 @@
 # 插件文档：integration（科学目标集成）
 
+> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）
+
 ## 1. 职责与边界
 
 - **职责**：按明确科学目标把归一化+排异后的帧集成为马赛克：扩展源 GLS、点源 Q/W、PSF 信号权重复合分量的诊断/基线对照。
@@ -64,7 +66,6 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `weight_mode` | `point_information` | —— | 本键在本项目中**不存在**（已按 §9.73 A44 作废：全程只有 SNR，权重是 Phase2 集成时按天球像素对应输入帧集合现场计算的派生量）。本行仅为 config/config_registry.json#plugin_knobs 登记锚点的对应行（config/ 不属文档文件域） |
 | `target_product` | 全 | —— | 输出产品族选择 |
 | `correlation_approx` | —— | —— | 相关噪声近似方式 |
 | `baseline_compare` | true | —— | 是否输出基线比较 |
@@ -91,3 +92,10 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 - 扩展源常量场、梯度、总通量、方差无偏；
 - PSF 信号权重复合分量与基线比较 + covariance 传播正确；
 - M42/银心真实数据检查。
+
+### 权重来源禁止表的锁定状态
+
+- `coverage.cpp` 的 `kForbiddenWeightSourceTokens`（含 `psfsw_robust_weight`、`psfsw` 等 token）与其同文件内的权重来源检查门、以及 `rejection.cpp` 的同源词表，是 `docs/contracts/v6/frozen` **冻结合同段在役的执行面**——**不是死代码**，不得按「残留清理」删除。
+- **解锁条件 = 冻结合同段失效**；顺序不可颠倒：先让冻结合同段失效，再收缩代码词表。反序会**放宽**冻结科学门（使 `psfsw` 重新成为合法权重来源）。
+- 生产权重来源仍是单一现场派生量（逐样本 ivar）；该禁止表只负责**拒绝**非法来源，不产生权重。
+

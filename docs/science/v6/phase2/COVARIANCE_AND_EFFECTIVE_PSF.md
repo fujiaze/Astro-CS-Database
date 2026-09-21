@@ -2,6 +2,8 @@
 
 # 三模式 covariance 传播与 effective PSF 定义（SCI-P2-001 强制交付项）
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 文档 ID：`SCI-P2-001-COVARIANCE-EPSF`
 上位：`DESIGN-P3-001` §4（C_y = R C_x Rᵀ）；`ASTROCS-SCIENCE-MODEL-001` §6/§7；`SCI-PSFW-001` §5；
      `DESIGN-P2-001` §4/§6.1/§6.2/§6.3/§9；冻结宪章 §6.3/§4.1。

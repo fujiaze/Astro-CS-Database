@@ -1,5 +1,7 @@
 # Photometric Fit Algorithms (ALG-PHOT)
 
+> 上游：ASTROCS_DESIGN.md §2.1（创新点一）、§4.4（输出合同）
+
 > ID: ALG-PHOT-001  范围: ALG-PHOT-001..002  上游 SCI: SCI-PHOT-001  状态: DERIVED  模块: photometric_calib
 
 ## 1 上游 SCI 与输入输出

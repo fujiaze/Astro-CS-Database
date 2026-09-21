@@ -1,5 +1,7 @@
 # AstroCS C ABI Standard
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 - 异常禁止越界：C 边界函数内 try/catch 全包裹（如 p2_upm_open）。
 - 输出在失败时重置：`*out_model = nullptr` 语义由实现保证；调用方不得依赖
   半初始化对象。

@@ -264,6 +264,10 @@ struct DrizzleOpCounters {
     int64_t sh_calls = 0;         // 球面重叠调用数
     int64_t tile_lookups = 0;     // tile 累加器访问数
     int64_t heap_allocations = 0; // 热循环堆分配数 (目标 ~0)
+    // FIX-405 G3-5: 样本级掩膜计数（DATA-002 §2a 强制计数；整数, 归约序无关）
+    int64_t rejected_nonfinite_value = 0;      // 值非有限 (NaN/Inf)
+    int64_t rejected_nonfinite_variance = 0;   // 方差面非有限 (NaN/Inf)
+    int64_t rejected_nonpositive_weight = 0;   // 权重非有限或 ≤0
 };
 
 // 合并线程计数 (原地累加)
@@ -282,6 +286,9 @@ void merge_op_counters(DrizzleOpCounters& dst, const DrizzleOpCounters& src) {
     dst.sh_calls        += src.sh_calls;
     dst.tile_lookups    += src.tile_lookups;
     dst.heap_allocations += src.heap_allocations;
+    dst.rejected_nonfinite_value    += src.rejected_nonfinite_value;
+    dst.rejected_nonfinite_variance += src.rejected_nonfinite_variance;
+    dst.rejected_nonpositive_weight += src.rejected_nonpositive_weight;
 }
 
 // 定点优化：每线程 target-ipix geometry cache（bounded LRU）。
@@ -1894,13 +1901,23 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         }
 
         for (int x = 0; x < img.width; x++) {
-            // (P1-DRZ-NONFINITE) 冻结合同 docs/science/DRIZZLE.md §8 :96:
-            // 源像素 NaN/Inf 经 F_p=Σx_j·w_jp 直接传播, drizzle 层**不掩膜**;
-            // 非有限值由下游积分 INVALID_INPUT 合同 (SCI-INT) 处理。
-            // 旧 isfinite(...)+continue 静默吞像素已删除; 仅保留
-            // weight/variance 的 <=0 合法数据边界 (零权重/零方差像素无贡献,
-            // SCI-INT 认可语义; NaN 不满足 <=0, 自然落入传播路径)。
+            // ── FIX-405 G3-5 / DISP-DRZ-004 收口 ───────────────────────────
+            // 冻结合同（唯一口径文字 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
+            // §2a；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN，EXP-202 定案）:
+            //   合格样本 = isfinite(x_j) ∧ isfinite(V_j) ∧ V_j > 0；
+            //   不合格样本 → **样本级掩膜**（从分子 F_p、分母 D_p、方差项
+            //   Var_p 三项一并剔除 ⇒ 重归一自动成立；禁止让单个不合格样本使
+            //   整像素变 NaN；禁止把被剔除样本的权重留在分母里）；
+            //   仅当 D_p = 0（零合格样本）时输出 signal = NaN ∧ support ≤ 0；
+            //   **强制计数**：被剔除样本按原因分类计数（禁静默剔除）。
+            // 旧行为（NaN 经 F_p 直接传播 + 无计数）已作废（原注释引用的
+            // DRIZZLE.md §8「不掩膜」行亦已按同一 rule_id 反转）。
+            DrizzleOpCounters& tc = threadCounters[static_cast<size_t>(tid)];
             Scalar pixelValue = pixels[(size_t)y * (size_t)img.width + (size_t)x];
+            if (!std::isfinite((double)pixelValue)) {
+                ++tc.rejected_nonfinite_value;      // 原因 1: 值非有限
+                continue;
+            }
 
             float snrValue = 1.0f;
             if (snrData) {
@@ -1910,13 +1927,22 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             float weightValue = 1.0f;
             if (weightData) {
                 weightValue = weightData[(size_t)y * (size_t)img.width + (size_t)x];
-                if (weightValue <= 0.0f) continue;  // 合法数据边界, 非掩膜
+                if (!std::isfinite(weightValue) || weightValue <= 0.0f) {
+                    ++tc.rejected_nonpositive_weight;   // 原因 3: 权重非正/非有限
+                    continue;
+                }
             }
 
             float varianceValue = 0.0f;
             if (varianceData) {
                 varianceValue = varianceData[(size_t)y * (size_t)img.width + (size_t)x];
-                if (varianceValue <= 0.0f) continue;  // 合法数据边界, 非掩膜
+                if (!std::isfinite(varianceValue)) {
+                    ++tc.rejected_nonfinite_variance;   // 原因 2: 方差非有限
+                    continue;
+                }
+                // variance == 0（无方差面的合法数据边界，如全零方差面不挂帧）
+                // 仍按原语义跳过，但不计入 n_rejected_nonfinite（非"非有限"类）。
+                if (varianceValue <= 0.0f) continue;
             }
 
             // P15a: 源像素总数由 per-thread 操作计数确定性求和得到 (不使用 reduction)
@@ -2074,6 +2100,13 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     stats.op_sh_calls        = totalOps.sh_calls;
     stats.op_tile_lookups    = totalOps.tile_lookups;
     stats.op_heap_allocations = totalOps.heap_allocations;
+    // FIX-405 G3-5: 样本级掩膜计数（强制暴露；合计 = 三原因之和）
+    stats.n_rejected_nonfinite_value    = totalOps.rejected_nonfinite_value;
+    stats.n_rejected_nonfinite_variance = totalOps.rejected_nonfinite_variance;
+    stats.n_rejected_nonpositive_weight = totalOps.rejected_nonpositive_weight;
+    stats.n_rejected_nonfinite = stats.n_rejected_nonfinite_value +
+                                 stats.n_rejected_nonfinite_variance +
+                                 stats.n_rejected_nonpositive_weight;
 
     // 汇总线程池 thread_local 阶段计时 (P15a: 去掉 atomic 累加, 改为按 tid 写入
     // 定长数组后固定顺序求和 —— 消除竞争热点, 且与线程调度无关)。

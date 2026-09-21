@@ -2,17 +2,16 @@
 #include <cstdio>
 #include <cstdarg>
 #include <ctime>
-#ifndef _WIN32
-#include <filesystem>
-#endif
 #include <mutex>
 #include <string>
-#ifdef _WIN32
-#include <windows.h>
-#endif
+
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 日志落盘经 aio
+// 唯一实现 (aio_atomic::make_dirs + append_open/append_write), 本 TU 不自持
+// std::filesystem / FILE* 通道。
+#include "aio_atomic_file.h"
 
 static std::mutex g_dpsf_log_mutex;
-static FILE* g_dpsf_log_file = nullptr;
+static aio_atomic::AppendSink* g_dpsf_log_file = nullptr;
 static int g_dpsf_log_level = -1;
 
 static int dpsf_get_log_level() {
@@ -30,22 +29,20 @@ static int dpsf_get_log_level() {
 
 static void dpsf_ensure_log_file() {
     if (g_dpsf_log_file) return;
-    {
+    (void)aio_atomic::make_dirs(
 #ifdef _WIN32
-        const char* dir = "lib\\dynamic_psf\\logs";
-        CreateDirectoryA(dir, nullptr);
-        (void)dir;
+        "lib\\dynamic_psf\\logs"
 #else
-        std::filesystem::create_directories("lib/algorithms/psf/logs");
+        "lib/algorithms/psf/logs"
 #endif
-    }
-    g_dpsf_log_file = std::fopen(
+    );
+    g_dpsf_log_file = aio_atomic::append_open(
 #ifdef _WIN32
         "lib\\dynamic_psf\\logs\\dynamic_psf.log",
 #else
         "lib/algorithms/psf/logs/dynamic_psf.log",
 #endif
-        "a");
+        nullptr);
 }
 
 static const char* dpsf_level_name(int level) {
@@ -90,7 +87,7 @@ void dpsf_log(int level, const char* module, const char* fmt, ...) {
     if (level >= LOG_WARN) {
         dpsf_ensure_log_file();
         if (g_dpsf_log_file) {
-            std::fprintf(g_dpsf_log_file, "%s", line);
+            (void)aio_atomic::append_write_str(g_dpsf_log_file, line);
             // 不再每条fflush，由操作系统缓冲
         }
     }

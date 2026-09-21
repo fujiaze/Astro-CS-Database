@@ -1,8 +1,8 @@
-> **ARCHIVED_NON_NORMATIVE（DOC-001，2026-09-16）**：本文属旧文档体系，已由 docs/DOCUMENT_INDEX.yaml 移出活动索引，不再作为当前权威；替代见该索引 replacement 字段（API_REFERENCE -> docs/api/**；ARCHITECTURE -> docs/architecture/**；docs/review -> docs/owner/**）。保留仅作历史追溯。
+> **ARCHIVED_NON_NORMATIVE（DOC-001，2026-09-16）**：本文属旧文档体系，已由 docs/DOCUMENT_INDEX.yaml 移出活动索引，不再作为当前权威；替代见该索引 replacement 字段（API_REFERENCE -> docs/api/**；ARCHITECTURE -> docs/architecture/**；旧轮次评审副本 -> docs/owner/**）。保留仅作历史追溯。
 
 # AstroCS Architecture (Engineering Anchor — Stage C)
 
-> 阶段: Stage C 只读锚定 (V19R3 True Final Freeze) — `lib/*/include/*.h` `lib/*/src/*.cpp` `CMakeLists.txt` `lib/infrastructure/pipeline/orchestrator/configs/stage1_*.json` `lib/algorithms/coverage/configs/*.json` `tools/*.py` 为唯一输入；本文件不改代码，仅锚定职责/接口/签名/错误/线程/所有权与科学/算法追溯 ID。机检见 `tools/docs_machine_consistency.py 9/9` + `tools/config_consistency_check.py 0 mismatches`。
+> 阶段: Stage C 只读锚定 (V19R3 True Final Freeze) — `lib/*/include/*.h` `lib/*/src/*.cpp` `CMakeLists.txt` `lib/infrastructure/pipeline/orchestrator/configs/stage1_*.json` `lib/algorithms/coverage/configs/*.json` `eng/tools/*.py` 为唯一输入；本文件不改代码，仅锚定职责/接口/签名/错误/线程/所有权与科学/算法追溯 ID。机检见 `eng/tools/docs_machine_consistency.py 9/9` + `eng/tools/config_consistency_check.py 0 mismatches`。
 
 权威链: `Wiki(核心约束) → Science(L1) → Algorithm(L2) → Architecture(L3, 本文) → Standards(L4) → Modules(L5) → Source → Test → Diagnostics → Release`；与 `docs/README-DOCS.md` L0-L5 及 `docs/validation/SCIENCE_FREEZE.md` 一致，矛盾以 Wiki 为准。
 
@@ -54,7 +54,7 @@ orchestrator / stage2 CLI / browser                Application
 | orchestrator | `lib/infrastructure/pipeline/orchestrator/cpp` | `orchestrator.exe` | Phase1 编排(DllLoader 动态加载，stage1.json 驱动) | `orchestrator.h` `json_config.h` `dll_loader.h` `checkpoint.h` `logger.h` 等 | `lib/infrastructure/pipeline/orchestrator/cpp/Makefile` (C++17, `-Wl,--stack,33554432`) |
 | acr | `lib/infrastructure/acr` | `lib*.a` + `acr_cuda_bridge.dll` | 异构计算抽象(CPU/CUDA)，phase2 ACR kernels | `acr/include/*` `scheduler/*` `backends/cuda/bridge/*` | `lib/infrastructure/acr/CMakeLists.txt` |
 
-`healpix_stack`(`lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack`) 已归档不重建，当前 HCSD 由 `phase2+astro_image_io` 承担(见 `docs/architecture/MODULE_MAP.md`)；`tools/` 仓根脚本不计入 shipping modules。
+`healpix_stack`(`lib/infrastructure/aio/healpix_db/archive/legacy/healpix_stack`) 已归档不重建，当前 HCSD 由 `phase2+astro_image_io` 承担(见 `docs/architecture/MODULE_MAP.md`)；`eng/tools/` 仓根脚本不计入 shipping modules。
 
 完整职责/接口/数据含义/线程/所有权/测试见 `docs/modules/<module>.md`(L5) 与本文 §5 API 一览、`docs/API_REFERENCE.md`。
 
@@ -105,30 +105,30 @@ Phase1 HiPS集 → p2_coverage_build(MOC union, target_order=min leaf)
 | orchestrator | orchestrator/cpp | `orchestrator.h` `json_config.h` 等 | `Orchestrator::{run_stage1,run_stage2,set_stage1_config,init_dlls,request_cancel}` `PipelineStageV2` `PrecisionMode` `AstroCsExitCode(0..10,20..28)` `Stage1Config/parse_stage1_config` | 全链编排，`ERROR_MODEL.md` 全集合一致(机检) |
 | `acr::*` | acr | `core/api/scheduler/*` | `register_phase2_acr_kernels` `TaskDescriptor` `KernelRegistry` | `ACR-IVAR-001`, `docs/modules/acr.md` |
 
-返回/错误码/线程/所有权等逐函数契约见各头文件注释与 `docs/API_REFERENCE.md`；错误码与 `docs/architecture/ERROR_MODEL.md`(AstroCsExitCode 0-10 进程码+20-28 numeric_code+100 base) 全集合一致(工具 `tools/docs_machine_consistency.py` error_taxonomy 全量校验)，stage IDs `P1.*/P2.*` 与 `ERROR_MODEL.md` 一致。
+返回/错误码/线程/所有权等逐函数契约见各头文件注释与 `docs/API_REFERENCE.md`；错误码与 `docs/architecture/ERROR_MODEL.md`(AstroCsExitCode 0-10 进程码+20-28 numeric_code+100 base) 全集合一致(工具 `eng/tools/docs_machine_consistency.py` error_taxonomy 全量校验)，stage IDs `P1.*/P2.*` 与 `ERROR_MODEL.md` 一致。
 
 ## 6. Configs & Tooling
 
 - Stage1: `lib/infrastructure/pipeline/orchestrator/configs/stage1.schema.json`(v1.1) + `stage1.template.json`(pixfrac 默认 0.8, 生产默认收缩滴落) + `stage1_gc_panel{1,2,3}_Red.json`(32=11+11+10, panel1↔panel2/panel2↔panel3 连通, GC 三面板 pixfrac=1.0 无收缩分支用于最大覆盖)；`precision` fp32/fp64、`gaia_data_dir` 必填、`nside` auto/explicit、`pixfrac` (0,1] 默认 0.8 / GC 1.0 分支见 `lib/infrastructure/pipeline/orchestrator/configs/`；校验 `validate_stage1_schema` (nlohmann-json-schema-validator v2.4.0，`orchestrator.h` 锚点)。
-- Stage2: `lib/algorithms/coverage/configs/stage2_*.json`(inputs/model/integration/output/diagnostics)；`model` control 网格/sigma_floor/support_power/use_ivar_weight 等，`reject_method/profile/normalization/large_scale/typed params` 冻结(V17)，~~`weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量）（逆方差权重由阶段二现场算），`acr_route` auto；默认值单一来源 `lib/algorithms/coverage/src/stage2_common.cpp`，与 `docs/development/CONFIG_SCHEMA.md` + `tools/config_consistency_check.py` 一致(`mismatches=[]`)。
-- 工具: `tools/docs_machine_consistency.py`(9 checks，见 §7)，`config_consistency_check.py`，`api_doc_consistency.py`，`no_legacy_production_reference.py` 等。
+- Stage2: `lib/algorithms/coverage/configs/stage2_*.json`(inputs/model/integration/output/diagnostics)；`model` control 网格/sigma_floor/support_power/use_ivar_weight 等，`reject_method/profile/normalization/large_scale/typed params` 冻结(V17)，~~`weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量）（逆方差权重由阶段二现场算），`acr_route` auto；默认值单一来源 `lib/algorithms/coverage/src/stage2_common.cpp`，与 `docs/development/CONFIG_SCHEMA.md` + `eng/tools/config_consistency_check.py` 一致(`mismatches=[]`)。
+- 工具: `eng/tools/docs_machine_consistency.py`(9 checks，见 §7)，`config_consistency_check.py`，`api_doc_consistency.py`，`no_legacy_production_reference.py` 等。
 
 ## 7. Machine Consistency (S8 gate, 本版实测)
 
 ```
-tools/docs_machine_consistency.py PASS 9/9
+eng/tools/docs_machine_consistency.py PASS 9/9
   config_weight_mode_ivar （已按 §9.73 A44 作废：键不存在；权重是派生量）, frame_id_contract_exact(DATA-FRAME-ID-001 exact),
   error_taxonomy_exit_codes(AstroCsExitCode name+value 全集合==orchestrator.h 0-10),
   integration_status_full_set(P2_INTEGRATE_*==INTEGRATION_ALGORITHMS.md),
   rejection_status_full_set(P2_REASON_*/P2_STATUS_*==REJECTION_ALGORITHMS.md),
   stage_ids_docs_vs_orchestrator, snr_constants(1.482602218505602/0.7316727929211932),
   product_contracts(signal/support/variance/ivar), drizzle_variance_formula(sumVarNum)
-tools/config_consistency_check.py PASS mismatches=[]
+eng/tools/config_consistency_check.py PASS mismatches=[]
 ```
 
 ## 8. Traceability
 
-- 科学 → 算法 → 工程映射见 `docs/TRACEABILITY.csv`(76 行，SCI-/ALG-/DATA-/ENG- 全 VERIFIED，`MUST` family `docs/TRACEABILITY_family.json` + `gen_v19_source_snapshot` 绑定实现符号/测试)；Stage C 由 `reports/science_doc_review.md`(10+2 PASS P0=0) + `reports/algorithm_doc_review.md`(11/11 PASS P0=0) 延续，本文件为工程锚定增量。
+- 科学 → 算法 → 工程映射见 `docs/TRACEABILITY.csv`(76 行，SCI-/ALG-/DATA-/ENG- 全 VERIFIED，`MUST` family `docs/traceability/TRACEABILITY_MATRIX.json` + `gen_v19_source_snapshot` 绑定实现符号/测试)；Stage C 由 `reports/science_doc_review.md`(10+2 PASS P0=0) + `reports/algorithm_doc_review.md`(11/11 PASS P0=0) 延续，本文件为工程锚定增量。
 - 模块级追溯见 `docs/modules/*.md`(13 份 L5) 与本文件 §5/附录。
 
 ---

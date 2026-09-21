@@ -146,6 +146,21 @@ std::string hips_properties_text(const char* bunit) {
   return s;
 }
 
+// FIX-402/§10: 手写产品树同样需要完成清单 —— aio_hips_open 消费侧对无清单
+// 产品根 fail-closed（FIX-401「没有完成清单就不算成功对象」）。本 fixture 只含
+// signal 子产品，故清单只声明 signal。
+bool fix402_write_completion_manifest(const std::string& root) {
+  const std::string body =
+      "{\n  \"format_version\": 1,\n  \"product\": \"HiPS\",\n"
+      "  \"hips_order\": 0,\n  \"hips_tile_width\": 512,\n"
+      "  \"data_type\": \"float32\",\n  \"n_leaf_tiles\": 1,\n"
+      "  \"products\": [\"signal\"]\n}\n";
+  std::ofstream m(fs::path(root + "/manifest.json"), std::ios::binary);
+  if (!m) return false;
+  m << body;
+  return true;
+}
+
 bool write_signal_hips(const std::string& root) {
   const std::string root_posix = fs::path(root).generic_string();
   std::error_code ec;
@@ -153,9 +168,13 @@ bool write_signal_hips(const std::string& root) {
   if (ec) return false;
   std::ofstream p(fs::path(root_posix + "/signal/properties"), std::ios::binary);
   if (!p) return false;
-  p << hips_properties_text("ADU");
+  // FIX-402: 显式面亮度单位声明（见 p3002_real_nodes_test 同注）。
+  p << hips_properties_text("ADU/px^2");
+  p << "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
+  p << "ASTROCS_PIXEL_AREA_POWER = -2\n";
   p.close();
   float v = kSigVal;
+  if (!fix402_write_completion_manifest(root_posix)) return false;
   return p1sess::write_fits_file(
              root_posix + "/signal/Norder0/Dir0/Npix0.fits", 512, 512,
              const_px, &v) == 0;

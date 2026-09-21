@@ -19,7 +19,7 @@ def _real_cmake_build_dir() -> str:
 
     M8-F-001: CI 根 build/ 只被 cp 了 astrocs + libastrocs_runtime.so, 不是
     CMake 树; mod001 需要 build 树里的模块 .so / libastrocs_aio.a / install
-    规则。linux-control(ci/steps/linux_build_root_graph.sh 产出)才是完整树,
+    规则。linux-control(eng/ci/steps/linux_build_root_graph.sh 产出)才是完整树,
     故优先之; 本地开发树 build/ 亦为完整 Ninja 树时回退使用。
     """
     for cand in ("build/linux-control", "build"):

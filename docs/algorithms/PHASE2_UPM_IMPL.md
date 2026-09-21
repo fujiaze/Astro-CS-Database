@@ -1,5 +1,7 @@
 # Phase2 UPM Fit/Apply Algorithms（P2-UPM / astrocs.p2.upm）
 
+> 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）
+
 > ID: ALG-P2-UPM-IMPL-001  状态: CONTRACT_READY。本文件是 Phase2 Unified Photometric Model（UPM）
 > fit+apply+persist+reload 的**实现级算法合同**：逐符号源码行号锚定 +
 > 冻结容差 + 现状缺陷登记。科学语义权威=SCI-UPM-001（docs/science/

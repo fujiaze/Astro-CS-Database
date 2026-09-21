@@ -4,7 +4,7 @@ name: AstroCS Fatduck Validation
 # 触发仅两种：Windows CI 成功（workflow_run）与每 6 小时 schedule；
 # 不开放手动触发（负向测试 V8-CI-009 注入手动触发器必须被拒绝）。
 # workflow_run 定义只会在默认分支生效；select-candidate 内仍显式校验
-# head_branch == main 且 conclusion == success（双重防线，ci/select_candidate.py）。
+# head_branch == main 且 conclusion == success（双重防线，eng/ci/select_candidate.py）。
 # Fatduck 边界（toolchain.policy.json fatduck 节）：build_source=
 # github_windows_candidate_only、compile_allowed=false、checkout_allowed=false。
 
@@ -44,7 +44,7 @@ jobs:
       no_candidate_reason: ${{ steps.sel.outputs.no_candidate_reason }}
     steps:
       - name: Checkout exact SHA (hosted job only)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (ci/actions.lock.json)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (eng/ci/actions.lock.json)
         with:
           persist-credentials: false
           fetch-depth: 1
@@ -57,7 +57,7 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts
           set +e
-          python3 ci/select_candidate.py \
+          python3 eng/ci/select_candidate.py \
             --event "$GITHUB_EVENT_NAME" \
             --head-branch "${{ github.event.workflow_run.head_branch }}" \
             --conclusion "${{ github.event.workflow_run.conclusion }}" \
@@ -88,7 +88,7 @@ jobs:
           fi
       - name: Upload selection log
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (ci/actions.lock.json)
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (eng/ci/actions.lock.json)
         with:
           name: fatduck-select-log-${{ github.run_id }}
           path: artifacts/select_candidate_log.jsonl
@@ -113,14 +113,14 @@ jobs:
       # download-artifact（锁定 SHA、指定 run-id）-> 固定本地 harness 入口
       # -> upload-artifact（固定 publish 白名单目录）。任何失败 fail 全 job。
       - name: Download candidate artifact from triggering CI run
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1 (ci/actions.lock.json)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1 (eng/ci/actions.lock.json)
         with:
           name: ${{ needs.select-candidate.outputs.artifact_name }}
           run-id: ${{ needs.select-candidate.outputs.windows_run_id }}
           github-token: ${{ github.token }}
           path: 'D:\AstroCSRunner\runs\incoming'
       - name: Download CI evidence artifact from triggering CI run
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1 (ci/actions.lock.json)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1 (eng/ci/actions.lock.json)
         with:
           name: windows-ci-${{ needs.select-candidate.outputs.source_sha }}
           run-id: ${{ needs.select-candidate.outputs.windows_run_id }}
@@ -163,7 +163,7 @@ jobs:
           -ResultDir 'D:\AstroCSRunner\runs\publish\${{ needs.select-candidate.outputs.source_sha }}'
       - name: Upload public validation results (publish whitelist dir only)
         if: success()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (ci/actions.lock.json)
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (eng/ci/actions.lock.json)
         with:
           name: fatduck-public-${{ needs.select-candidate.outputs.source_sha }}
           path: 'D:\AstroCSRunner\runs\publish\${{ needs.select-candidate.outputs.source_sha }}\public'
@@ -182,7 +182,7 @@ jobs:
     steps:
       - name: Download public validation results
         if: needs.fatduck-validate.result == 'success'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1 (ci/actions.lock.json)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1 (eng/ci/actions.lock.json)
         with:
           name: fatduck-public-${{ needs.select-candidate.outputs.source_sha }}
           run-id: ${{ github.run_id }}

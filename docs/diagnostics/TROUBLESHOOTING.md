@@ -1,5 +1,7 @@
 # AstroCS Troubleshooting
 
+> 上游：ASTROCS_DESIGN.md §7.2（配置、事件与退出码）
+
 每个 high-risk 错误按固定条目：symptom → likely stage → metrics/log →
 error code → minimal reproduction → expected invariant → source/doc/test。
 
@@ -28,4 +30,4 @@ error code → minimal reproduction → expected invariant → source/doc/test�
 
 ## 诊断工具
 
-tools/astrocs_diagnose.py <run_dir> 输出小 bundle（stage/error/metrics）。
+eng/tools/astrocs_diagnose.py <run_dir> 输出小 bundle（stage/error/metrics）。

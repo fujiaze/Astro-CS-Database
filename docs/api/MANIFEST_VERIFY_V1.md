@@ -1,5 +1,7 @@
 # AstroCS run manifest 与 verify 合同 v1 (CLI-003 冻结)
 
+> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
+
 > ID: API-MANIFEST-001  状态: FROZEN  上游: API-002(final 事件/verify 命令) §4-5  下游: CODE-P*/TST-P*/REL-002
 > 分离原则(硬性): **科学 config(pipeline_config.json)与 CPU profile(cpu_profile.json)是两个独立文件、独立校验、独立 hash**;profile 陈旧→确定错误, 不猜测。
 

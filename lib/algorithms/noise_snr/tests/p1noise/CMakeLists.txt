@@ -51,7 +51,7 @@ set(P1NOISE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 # :157（aba_layout 门之后）⇒ 全新 build 目录首次 configure 时该变量为空，命令退化成
 # 裸 .py 路径（无执行位）⇒ p1noise_abi_layout = BAD_COMMAND 假红；再 configure 一次
 # （缓存已写入）后 100% 通过 —— 绿色只取决于目录是否被 configure 过。
-# 判据由 tools/quality/check_cmake_usebeforedef.py 常设扫描（C1 use_before_define）。
+# 判据由 eng/tools/quality/check_cmake_usebeforedef.py 常设扫描（C1 use_before_define）。
 # 缺 python3 一律 fail-closed（禁止静默退化）。
 find_program(P1NOISE_PYTHON3 NAMES python3 python)
 if(NOT P1NOISE_PYTHON3)
@@ -168,7 +168,7 @@ add_test(NAME p1noise_saturation_selfcheck COMMAND p1noise_saturation_test selfc
 #   numpy 或 g++ 缺失时脚本自身 SKIP 并返回 0。
 # ============================================================================
 # find_program(P1NOISE_PYTHON3 ...) 已上移到文件顶部（首次 configure 即需有效，
-# 见该处注释与 tools/quality/check_cmake_usebeforedef.py）。
+# 见该处注释与 eng/tools/quality/check_cmake_usebeforedef.py）。
 if(P1NOISE_PYTHON3)
   add_test(NAME p1noise_numpy_oracle
            COMMAND ${P1NOISE_PYTHON3} ${P1NOISE_DIR}/noise_model_numpy_oracle.py)

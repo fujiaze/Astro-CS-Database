@@ -1,5 +1,7 @@
 # Photometry Science (SCI-PHOT)
 
+> 上游：ASTROCS_DESIGN.md §2.1（创新点一：测光星等坐标系）、§4.4（输出合同）
+
 > ID: SCI-PHOT-001  状态: FROZEN (T103 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-PHOT-001..  模块: photometric_calib (flux_calibrator)
 
 ## 1 目的与非目标
@@ -159,7 +161,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 - §11 Oracle 全过：合成注入 `location≈log10 k`（rtol 1e-4）、20% 离群鲁棒门 `<0.1 dex`、S=0 退化门、NumPy 复算 rtol 1e-9；
 - §7 四不变量门全过（零点平移/尺度单调/鲁棒性/S=0）；
-- `tools/science_contract_lint.py` PASS；
+- `eng/tools/science_contract_lint.py` PASS；
 - 解析不变量→SYN-002 转换：已知 flux/background 星场、photometric scale 恢复、离群注入用例登记 SYN-002。
 
 ---

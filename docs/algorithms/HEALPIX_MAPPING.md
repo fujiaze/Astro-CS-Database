@@ -1,5 +1,7 @@
 # HEALPix Mapping
 
+> 上游：ASTROCS_DESIGN.md §6.3（投影算法）、§3.1（数据对象）
+
 关联：SCI-DRZ-001；模块：lib/algorithms/shared/healpix（唯一权威实现，drizzle 依赖该单源；机器门禁保证仓内只有这一份实现）。
 
 ## 输入

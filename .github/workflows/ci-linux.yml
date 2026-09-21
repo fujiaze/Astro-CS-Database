@@ -1,13 +1,13 @@
 name: AstroCS Linux CI
 
 # CI-001B｜workflow ↔ 注册表联动核死：
-# - 本文件 run: 体只允许三类调用：ci/run.py（执行 ci/checks.json 注册检查）、
-#   ci/wf_step.py（派发 ci/workflow_binding.json 声明步）、ci/bootstrap.py 与
-#   ci/select_profile.py（CI 入口）；其余步只能是 host-provisioning / artifact-upload
+# - 本文件 run: 体只允许三类调用：eng/ci/run.py（执行 eng/ci/checks.json 注册检查）、
+#   eng/ci/wf_step.py（派发 eng/ci/workflow_binding.json 声明步）、eng/ci/bootstrap.py 与
+#   eng/ci/select_profile.py（CI 入口）；其余步只能是 host-provisioning / artifact-upload
 #   （纯外部工具安装，不含仓库路径与构建命令）。
-# - 绑定声明：ci/workflow_binding.json（每步唯一一条，双向漂移即 FAIL）；
-# - 静态核死：python3 ci/validate_workflow_binding.py；
-# - actions 全部锁 ci/actions.lock.json 完整 SHA（复验：ci/verify_actions_lock.py）。
+# - 绑定声明：eng/ci/workflow_binding.json（每步唯一一条，双向漂移即 FAIL）；
+# - 静态核死：python3 eng/ci/validate_workflow_binding.py；
+# - actions 全部锁 eng/ci/actions.lock.json 完整 SHA（复验：eng/ci/verify_actions_lock.py）。
 # - 手动触发（G-CI 核验）与 push 分属不同 concurrency 组（group 含 event_name），
 #   手动 run 不会被后继 push 在 pending 态取代。
 
@@ -49,7 +49,7 @@ jobs:
       ASTROCS_TEST_BIN_DIR: build/linux-control/tests/unit
     steps:
       - name: Checkout exact SHA
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (ci/actions.lock.json)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (eng/ci/actions.lock.json)
         with:
           persist-credentials: false
           # HOSTFIX-23①: 默认 fetch-depth: 1 是浅克隆, REMOTE_RELATION 的
@@ -57,11 +57,11 @@ jobs:
           # 全历史克隆后该检查与 WORKSPACE-ADOPTION 均可解析 HEAD 祖先链。
           fetch-depth: 0
       - name: Bootstrap locked toolchain
-        run: python3 ci/bootstrap.py --policy ci/toolchain.policy.json --platform linux
+        run: python3 eng/ci/bootstrap.py --policy eng/ci/toolchain.policy.json --platform linux
       - name: Select profile
         id: profile
         shell: bash
-        run: python3 ci/select_profile.py --event "$GITHUB_EVENT_NAME" --requested "${{ inputs.profile }}" >> "$GITHUB_OUTPUT"
+        run: python3 eng/ci/select_profile.py --event "$GITHUB_EVENT_NAME" --requested "${{ inputs.profile }}" >> "$GITHUB_OUTPUT"
       - name: Install linux-main python deps (numpy for UT-IO)
         if: steps.profile.outputs.profile == 'linux-main'
         shell: bash
@@ -112,7 +112,7 @@ jobs:
           # DEEP-COV-* 双检查 prerequisite 探测失败 → waivable 跳过，coverage 基线缺位。
           # 工具清单实读依据：DEEP-COV-CPP = cmake + llvm-profdata + llvm-cov
           # （CMakeLists.txt ASTROCS_BUILD_COVERAGE find_program 硬依赖）；
-          # DEEP-COV-PY = pytest（tools/quality/ci_coverage_runner.py 以 --cov 调用，
+          # DEEP-COV-PY = pytest（eng/tools/quality/ci_coverage_runner.py 以 --cov 调用，
           # 需 pytest-cov 插件随装）。版本对齐 clang-18 时代包名（llvm-18）。
           # 仅安装验证工具，不联网拉任何业务依赖；apt 双超时保护，最小输出。
           # V8-CI-012 R7（numpy×6 ENV_FAIL + sdet GSL）：hosted 镜像缺
@@ -138,17 +138,17 @@ jobs:
           command -v pytest
           echo "deep coverage tools ready: pytest=$(command -v pytest), llvm-18 bin=/usr/lib/llvm-18/bin"
       - name: Run registered checks
-        run: python3 ci/run.py --profile "${{ steps.profile.outputs.profile }}"
+        run: python3 eng/ci/run.py --profile "${{ steps.profile.outputs.profile }}"
       - name: Collect bootstrap diagnostics
         if: failure()
         shell: bash
         run: |
-          # CI-001B 目标 1：内联诊断体迁入 ci/steps/collect_bootstrap_diag.py（两平台共用）。
+          # CI-001B 目标 1：内联诊断体迁入 eng/ci/steps/collect_bootstrap_diag.py（两平台共用）。
           # 仅失败路径调用，不掩盖首要失败原因。
-          python3 ci/wf_step.py --step LINUX-BOOTSTRAP-DIAG
+          python3 eng/ci/wf_step.py --step LINUX-BOOTSTRAP-DIAG
       - name: Upload small evidence
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (ci/actions.lock.json)
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (eng/ci/actions.lock.json)
         with:
           name: linux-ci-${{ github.sha }}
           path: artifacts/ci/

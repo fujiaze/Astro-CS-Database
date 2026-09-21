@@ -140,7 +140,7 @@ inline constexpr double kMon001QueueUtilMinPercent =
 // 即 10 核·秒 = 10 线程秒。低于下限的运行**不进入利用率裁决**(只记录事实),
 // 避免把极小冒烟/启动阶段跑成"低利用率失败"。
 // 落地分工: 程序内 work_core_seconds/gate_workload_above_floor() 只做**事实标记**
-// 与报告字段; PASS/FAIL/WARN 的建议由外挂 tools/quality/resource_monitor.py --judge
+// 与报告字段; PASS/FAIL/WARN 的建议由外挂 eng/tools/quality/resource_monitor.py --judge
 // 按可配置阈值给出(裁决已移出程序, 见 REPORT.md 治理提示)。
 // 历史复现开关 --strict-resource-gate 按定义不咨询本下限(它复现的是变更前的
 // rc=10 行为, 供既有断言使用), 属测试面而非生产面。
@@ -253,7 +253,7 @@ inline bool gate_workload_above_floor(const GateConfig& g) {
 //                 已取消，内存/CPU/线程不设门)。枚举值保留以免破坏既有 ABI/测试引用，
 //                 但 gate_enforcement() 恒返回 RecordOnly —— CLI 面**不存在**由 CPU/内存
 //                 判据产生 rc=10 的路径（exit 10 只属磁盘写满/写盘失败，见 disk_gate.h）。
-// 注意: 工作量下限仍只作用于记录面标记与外部裁决(tools/quality/resource_monitor.py --judge)。
+// 注意: 工作量下限仍只作用于记录面标记与外部裁决(eng/tools/quality/resource_monitor.py --judge)。
 enum class GateEnforcement { RecordOnly, Enforced };
 // 「判定有无违规」的统一谓词: Ok = 判过且通过; NotApplicable = 判定域不成立(未判)。
 // 二者都不是违规 —— 调用方一律用本谓词, 不得再写 d == GateDiag::Ok（那会把
@@ -281,7 +281,7 @@ inline const char* gate_enforcement_name(GateEnforcement e) {
 // 观测是权威分母, 不被 available_cpus 封顶(见 mon001_gate_test 18a)。
 // 禁止以机器有效核单独充当已分配容量（这正是 run_monitored.py --gate-required
 // 旧语义的结构性误报根因, R-4 E7b）。
-// 与 tools/monitoring/run_monitored.py::resolve_allocated_capacity 同义。
+// 与 eng/tools/monitoring/run_monitored.py::resolve_allocated_capacity 同义。
 inline uint32_t allocated_capacity_cores(const GateConfig& g) {
     return (g.granted_workers > 0)
                ? g.granted_workers

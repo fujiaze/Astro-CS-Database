@@ -1,5 +1,7 @@
 # 插件文档：observability（可观测性）
 
+> 上游：ASTROCS_DESIGN.md §8.1（顶层结构）
+
 ## 1. 职责与边界
 
 - **职责**：结构化日志、事件流（JSONL）、运行图、资源监控与诊断，贯穿 CLI 到科学模块。
@@ -106,8 +108,8 @@
 | 实现 | 落点 | 与本节的关系 |
 |---|---|---|
 | C++ CLI | `lib/infrastructure/cli/resource_gate.h`、`memory_report.h`（阈值经 CMake 从契约生成的 `resource_gate_thresholds_generated.h` 引入） | 程序内 record_only；① 用 `workers_p50` |
-| Python 冻结门 | `tools/monitoring/run_monitored.py::evaluate_frozen_gate` / `resolve_allocated_capacity` | CI 判定点实现；① 用 `threads_p50` |
-| 外挂 judge（建议面） | `tools/quality/resource_monitor.py` | 只给建议，不做发布判定；阈值同契约 |
+| Python 冻结门 | `eng/tools/monitoring/run_monitored.py::evaluate_frozen_gate` / `resolve_allocated_capacity` | CI 判定点实现；① 用 `threads_p50` |
+| 外挂 judge（建议面） | `eng/tools/quality/resource_monitor.py` | 只给建议，不做发布判定；阈值同契约 |
 
 ## 9. 测试与 Oracle
 

@@ -1,5 +1,7 @@
 # AstroCS Data Semantics（跨阶段唯一数据合同）
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§10（I/O 与原子产品）
+
 权威：本文档。任何模块/文档不得出现第二套定义。
 
 ## 1. Sky coordinates
@@ -187,7 +189,7 @@ free）；`out_spectra` 为 `out_count × global_spec_count` 字节（global_spe
 
 **审计口径（与实现一致，UNIT-001 批次 B 实测）**：
 - **拒绝路径（已落盘）**：结构化诊断（token + 点名文件 + 观测中位数 + 缺失声明项）随
-  `ErrorDomain::DATA` 进入 run manifest 的 `error.message`（机检：`tools/quality/check_master_unit_guard.py`），
+  `ErrorDomain::DATA` 进入 run manifest 的 `error.message`（机检：`eng/tools/quality/check_master_unit_guard.py`），
   且该路径不产出任何 `calibrated_*`。
 - **接受路径（部分落盘，登记残留）**：`p1_op_calibrate` 把声明、观测中位数、实际换算因子、
   平场归一前后 median 写入**节点 manifest**（`stages.calibrate.master_unit_guard` + 顶层
@@ -286,9 +288,15 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 > 可缺性）。**下表只作引用**（本模块消费哪些块、块的 dtype/域/invalid 语义），**不得**自称第二套
 > 登记处；块名 ∉ 标准表 ⇒ 机器判红。`lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:3211-3213`
 > 的 6 个名字**不是块词表**（是 `stage_trace.jsonl` 的跟踪子集），只作引用。
-> **`variance` 块**：按 GAP_AUDIT §4.4 处置①纳入标准表登记范围——**代码侧入表归 FIX-201**
-> （截至 DOC-203 实测：`aio_pipeline.h` 标准表**尚未含** `variance` 行，且仍保留
-> 「未列出的自定义块名也允许」一句，同属 FIX-201 处置②）⇒ **本表不得据此声称已入表**。
+> **`variance` / `ivar` 块**：按 GAP_AUDIT §4.4 处置①与 G1-5 纳入标准表登记范围。
+> **FIX-404 已收口（2026-09-21）**：`aio_pipeline.h` 标准块定义表已含 `variance`、`ivar` 两行，
+> 并补齐编排层实测生产块 `star_measurements` / `photometric_match` / `snr_model`（原表遗漏，
+> 由 `orchestrator_saturation_wiring_gate` 实测暴露）；「未列出的自定义块名也允许」一句已删除——
+> 块名 ∉ 标准表且未经 `aio_block_name_register` 显式注册 ⇒ `aio_frame_add_block` /
+> `aio_frame_add_block_move` 拒绝（返回 9），KV 自动创建与缓存回读同口径；
+> 机器判据 = `eng/tools/quality/check_module_map.py`（标准表↔`kStandardBlockNames` 逐名一致 +
+> 生产调用点白名单，含 dlsym 别名形态）。语义正本 = `docs/design/UNIFIED_MODEL.md` §2
+> （canonical 对象 variance / ivar）+ `contracts/schemas/unified/{variance,ivar}.schema.json`。
 
 | 块/参数 | dtype/shape | 单位/域 | invalid / NULL 语义 |
 |---|---|---|---|
@@ -297,11 +305,12 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（hp_drizzle_api.cpp:451-505；**2026-09-20 订正**：原锚 `api.cpp:552-557` 的 `api.cpp` 在本仓不存在且行号已漂移）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001）。**B2-A17**：编排 drizzle 节点从 `p1_wcs.json` 读回 `wcs.sip`，经 `p1_sip_write_header_frame` 写 frame header `CTYPE1/2`（含 `-SIP`）、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键（module_adapters.cpp p1_op_drizzle）。 |
 | "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界缺省 **FP64**（不再静默 FP32；权威 = docs/algorithms/DRIZZLE_GEOMETRY.md `RESCUE-FD-02 库边界精度缺省` + 实现锚 `hp_drizzle_api.cpp:956-991` + 回归 `tests/unit/drizzle_precision_default_test.cpp`；**语义不变**），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325）。**B2-A12**：P1 drizzle 节点不再写死 "0"，按 `drizzle.precision_mode` 写实际精度；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
 | "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`，引擎显式降级写 `BUNIT=ADU`（`drizzle_engine.cpp:1950-1956`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
-| "snr_model" 块（可选） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
+| "snr_model" 块（可选；**标准块定义表已登记**，见本节首注） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
 | nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（hp_drizzle_api.cpp:208-211 文件通道 / `:557-561` 帧通道；**2026-09-20 订正**：原锚 `api.cpp:398-402` 的 `api.cpp` 在本仓不存在且行号已漂移）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
 | nested | int 1/0 | — | 仅 1=NESTED；0=RING 硬拒绝（drizzle_engine.cpp:1575-1579） |
 | pixfrac | double | drop 与源像素之比（无量纲） | 引擎层 (0,1] 严格拒绝 ≤0/>1（:1567-1574，不夹逼）；文件通道 API 层接受 0.0 的双轨见 DISP-DRZ-003 |
-| variance 面（可选，帧内块；块名 = `variance`，登记处见本节首注） | float32，随 data 布局 | ADU² | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
+| "variance" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | ADU²（signal 单位²；UNIFIED_MODEL §2 variance 对象） | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
+| "ivar" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | ADU⁻²（= 1/variance，有限域互为倒数） | variance 缺失/≤0 → ivar=0（显式不可用，禁 1/0→Inf；§4a）；非有限或 ≤0 → 跳过该像素 |
 | ~~weight 面（可选，文件通道 FITS）~~ **已作废** | — | — | **已删面**（DOC-203 / R06，按 §9.73 A44）：阶段一/阶段三**不产生也不消费**权重；HiPS 只存**帧级 SNR** + **稀疏的相对 SNR 比值**，权重是**阶段二按天球像素对应帧集合现场算出的派生量**（`ASTROCS_DESIGN.md` §2.1）。该面仅存在于**已作废**的 legacy 文件通道 API `hp_drizzle_run(…, weight_path, …)`（`hp_drizzle_api.h:39,49`；**零生产调用者**，GAP_AUDIT A-04；生产末端 = `hp_drizzle_run_hips`）⇒ 该形参的退役归 legacy API 退役面，**不得**作为输入通道使用 |
 | snr 面（可选，文件通道 FITS） | float32 `[H][W]` | 无量纲 | 读失败 rc=8/9；尺寸不匹配 rc=7/9；非有限/≤0 跳过 |
 
@@ -2370,7 +2379,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 - 单位唯一权威=本节：天球角量=deg（ICRS，CUNIT1/2='deg' 冻结）；
   CD 单位 deg/px；像素量=px（crpix 1-based 约定、映射入参/出参
   0-based，两种约定并存如实冻结，实现内部换算）。
-- dtype 唯一权威=本节：接口面 float64（FP64，roundtrip <1e-6 px
+- dtype 唯一权威=本节：接口面 float64（FP64，roundtrip <1e-8 px
   冻结容差的精度前提）；尺寸 int；parity/关键词 char 文本。
 - 确定性：纯函数无状态（0 处 thread/mutex/omp/全局可变量，:12-28
   匿名命名空间常量）——同入参跨线程/跨 worker bitwise 一致；
@@ -2401,7 +2410,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 ### 28.5 交叉引用
 
 - 上游: SCI-P3-001（§5 连续定义 + §9a-4/-6/-12 + §7 roundtrip
-  <1e-6 px，FROZEN 零改动）；ALG-P3-002（G1/G2 施工规格，
+  <1e-8 px，FROZEN 零改动）；ALG-P3-002（G1/G2 施工规格，
   PHASE3_RESAMPLE.md，公式零改动）；ALG-P3-PROJ-IMPL-001（实现级
   合同）；DATA-P3-PROPS（descriptor 端口词汇，HiPS properties 面）。
 - 下游: API-P3-PROJ-001（p3_wcs_make/p3_wcs_pix2world/
@@ -2425,7 +2434,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 > ID: DATA-UNC-001  状态: FROZEN_TARGET_CONTRACT（DATA-001 冻结 2026-09-09；
 > **上位依据订正 2026-09-16**：原引「宪章 ASTROCS-CONSTITUTION-001
 > §6.1/§6.3/§7.1/§7.3/§16.2/§18.3」在现行活动树中无载体——R-1 §1.4 全文核查
-> 仅 docs/archive、docs/contracts/v6 旧世代档案有引注，故改为下列**在役**权威）
+> 仅旧世代档案（docs/contracts/v6/**）有引注，故改为下列**在役**权威）
 > 上位约束: docs/science/UNCERTAINTY_AND_COVARIANCE.md（Phase2/Phase3 方差与
 > 协方差唯一计算权威）+ docs/science/INTEGRATION.md §5（积分权重=ivar）+
 > docs/science/PHASE3_HIPS_TO_FITS.md §5/§7（采样核与不变量）+ 本节
@@ -2647,7 +2656,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
   - V4 确定性: 1T/2T/repeat bitwise + 帧置换不变；
   - V5 provenance: properties/manifest 双键实测值 == input_manifest_hash/
     model_hash 计算值；UNCERTAINTY_AVAILABLE 与实际子产品存在性一致。
-- **TEST-P3-UNC-DESIGN-001**（Phase3，WCS roundtrip 1e-6 px 不变）:
+- **TEST-P3-UNC-DESIGN-001**（Phase3，WCS roundtrip 1e-8 px 不变）:
   - W1 nearest 正向: var_out==u_in 逐像素；
   - W2 bilinear 正向+防错: 解析 4-leaf u 与冻结权重 → var_out==Σc_k²·u_k
     （FP64 rtol 1e-12）；常数 u 场断言 var_out==u·Σc_k²（≠u，防 Σc_k=1

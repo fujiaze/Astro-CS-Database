@@ -26,7 +26,7 @@ Phase I AuditPack 审计发现以下问题：
    - 删除 `schemas/route_profile.schema.json` / `schemas/route_profile.example.json`
    - 清理 `qualification/profile_generator.cpp` 中 `routes.json` 生成逻辑
    - 清理 `qualification/profile_schema.hpp` 中 `RouteEntry` / `ProfileBundle` 结构
-   - 删除 `tools/acr_invalidate/`（仅用于删除 `routes.json`）
+   - 删除 `eng/tools/acr_invalidate/`（仅用于删除 `routes.json`）
 
 2. **删除 `preferred_backend` 字段**：
    - `DispatcherConfig::preferred_backend` — 删除

@@ -2,6 +2,8 @@
 
 # ALG-P2-SURF-PIXIVAR-GATE — pixel-ivar 近似门（ε 数值冻结）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-SURF-PIXIVAR-GATE`（`ALG-P2-SURF-001` 子文档）
 - 上位：`FZ-GATE-PIXIVAR-APPROX`（`SCI-ADJ-001` FREEZE_LIST §3.8）；`ADJ-P2-02`（`SC-ADJ-P202.1..3`）；`UNIFIED §5`；`DESIGN-P2 §6.1`；`PROJECT_SPEC §3`
 - 本任务条款：`ALG-P2S-PXIV.1..7`

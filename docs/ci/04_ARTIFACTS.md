@@ -1,5 +1,7 @@
 # CI 产物与留存（Artifacts & Retention）
 
+> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）、§12.4（验证层级与四层验收）
+
 ## 1. 产物清单
 
 每次 CI 运行留存：

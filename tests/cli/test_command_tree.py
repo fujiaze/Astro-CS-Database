@@ -305,7 +305,7 @@ class TestCommandTree(unittest.TestCase):
             self.assertIn("precision", r.stderr)
         # 既有精度载体必须在键面上（复用、非新造；ASTROCS_DESIGN §3.3:256）：
         #   阶段一 drizzle.precision_mode(0/1)、阶段三 bitpix(-32/-64)。
-        # 阶段二（mosaic）当前无被消费的精度键（实测登记于 ci/ledgers/dead_config_keys.json
+        # 阶段二（mosaic）当前无被消费的精度键（实测登记于 eng/ci/ledgers/dead_config_keys.json
         # 的 dead_config_key:precision 残留缺口），故此处不断言 mosaic 载体。
         for cmd, carrier in (("normalize", "precision_mode"), ("export", "bitpix")):
             r = self.cli(cmd, "--help")

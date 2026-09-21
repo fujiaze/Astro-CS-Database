@@ -1,5 +1,7 @@
 # Execution & Lifetime Model (ARC-EXEC)
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > 关联: ARC-EXEC-001..00N  模块: phase2/acr  状态: FROZEN
 
 > ⚠ **休眠面不得写成生产执行层**：
@@ -88,3 +90,13 @@
 | ARC-EXEC-007 | Orchestrator cancel/timeout propagation |
 
 见 `THREADING_MODEL.md`, `IO_AND_ATOMICITY.md`, `ERROR_MODEL.md` 子契约。
+
+---
+
+## 在役生产/CI 面（不得标为 DORMANT）
+
+- `lib/infrastructure/cli/v6_runtime_contract.h`：由 `lib/infrastructure/cli/commands.cpp` include 并**编入产品 `astrocs`** ⇒ **在役生产**。
+- `lib/infrastructure/cli/v6_mode_gate.h`：同链 include ⇒ **在役生产**。
+- `lib/infrastructure/scheduler/v6_budget.py`：由 `eng/tools/v6/check_v6_runtime_closure.py` 调用其 `selftest`、`eng/tools/v6/v6_runtime_oracle.py` 锚定 ⇒ **在役 CI 面**。
+- 上述三者与本节开头的 `DORMANT` 面（ACR/CUDA/GPU、Qt 浏览器、orchestrator）**分属不同类别**，不得混列。
+

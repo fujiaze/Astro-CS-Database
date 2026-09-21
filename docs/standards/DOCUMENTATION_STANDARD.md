@@ -1,5 +1,7 @@
 # AstroCS Documentation Standard
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 权威文档分层（L0-L5）见 docs/README-DOCS.md。
 
 - 每份 science 文档：目的、科学定义、公式、变量/单位、假设、有效域、

@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdio>
+#include <functional>
 #include <string>
 
 #include "crypto/sha256.h"
@@ -39,6 +40,78 @@ inline bool read_all(const char* path, std::string* out) {
     std::size_t n = 0;
     while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) out->append(buf, n);
     const bool read_ok = (std::ferror(f) == 0);
+    const bool close_ok = (std::fclose(f) == 0);
+    if (!read_ok || !close_ok) { out->clear(); return false; }
+    return true;
+}
+
+// 只读文件头至多 max_bytes 字节 (格式探测; CLEAN-403 补能力)。
+// 返回 true = 成功打开并读完头部 (out 为实际读到的前缀, 可能短于 max_bytes);
+// false = 打开失败或读取出错 (out 已清空)。不把整个文件载入内存。
+inline bool read_head(const char* path, std::size_t max_bytes, std::string* out) {
+    if (out) out->clear();
+    if (!path || !*path || !out) return false;
+    if (max_bytes == 0) return true;
+    std::FILE* f = aio_fopen_utf8(path, "rb");
+    if (!f) return false;
+    std::string buf(max_bytes, '\0');
+    const std::size_t n = std::fread(&buf[0], 1, max_bytes, f);
+    const bool read_ok = (std::ferror(f) == 0);
+    const bool close_ok = (std::fclose(f) == 0);
+    if (!read_ok || !close_ok) { out->clear(); return false; }
+    buf.resize(n);
+    *out = buf;
+    return true;
+}
+
+// 分块流式读取 (内存极简: 峰值 = 单块 64 KiB; CLEAN-403 补能力)。
+// 对每块调用 fn(data, n); fn 返回 false ⇒ 立即中止且本函数返回 false。
+// 返回 true = 完整读完且关闭成功。err 非空时写失败原因。
+inline bool read_stream(const char* path,
+                        const std::function<bool(const char*, std::size_t)>& fn,
+                        std::string* err) {
+    if (err) err->clear();
+    if (!path || !*path || !fn) {
+        if (err) *err = "invalid args";
+        return false;
+    }
+    std::FILE* f = aio_fopen_utf8(path, "rb");
+    if (!f) {
+        if (err) *err = std::string("open failed: ") + path;
+        return false;
+    }
+    char buf[64 * 1024];
+    bool ok = true;
+    std::size_t n = 0;
+    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) {
+        if (!fn(buf, n)) { ok = false; break; }
+    }
+    if (std::ferror(f) != 0) ok = false;
+    if (std::fclose(f) != 0) ok = false;
+    if (!ok && err) *err = std::string("read failed: ") + path;
+    return ok;
+}
+
+// 从 offset 起读取恰好 count 字节 (分块; 峰值内存 = count; CLEAN-403 补能力)。
+// 返回 true = out 恰为 count 字节; false = 打开失败/越界/短读 (out 已清空)。
+inline bool read_range(const char* path, std::uint64_t offset, std::size_t count,
+                       std::string* out) {
+    if (out) out->clear();
+    if (!path || !*path || !out) return false;
+    if (count == 0) return true;
+    std::FILE* f = aio_fopen_utf8(path, "rb");
+    if (!f) return false;
+#ifdef _WIN32
+    if (_fseeki64(f, static_cast<long long>(offset), SEEK_SET) != 0) {
+#else
+    if (fseeko(f, static_cast<off_t>(offset), SEEK_SET) != 0) {
+#endif
+        std::fclose(f);
+        return false;
+    }
+    out->resize(count);
+    const std::size_t n = std::fread(&(*out)[0], 1, count, f);
+    const bool read_ok = (std::ferror(f) == 0) && (n == count);
     const bool close_ok = (std::fclose(f) == 0);
     if (!read_ok || !close_ok) { out->clear(); return false; }
     return true;

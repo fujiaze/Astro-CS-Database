@@ -1,7 +1,9 @@
 # Config / Schema（单一事实来源）
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 规则：C++ struct 默认值、parser 默认值、JSON schema、template config、
-docs、tests 必须一致；一致性由 `tools/config_consistency_check.py` 校验。
+docs、tests 必须一致；一致性由 `eng/tools/config_consistency_check.py` 校验。
 
 > **文档范围与 `output_mode` 口径（依 `ASTROCS_DESIGN.md` §0.2「详细层不得与本设计相反」）**
 > - 本文描述的是 **orchestrator 的 Stage2 配置**（parser = `lib/algorithms/coverage/src/stage2_common.cpp`，
@@ -52,7 +54,7 @@ integration: precision(fp32) memory_limit_mb rejection{method
                     min_kept 4}
              rcr{technique ss_median_dl}
              （low/high/max_iterations/min_samples 不是现行键（出现即硬错误），
-              旧 config 必须 tools/migrate_stage2_config.py 迁移）}
+              旧 config 必须 eng/tools/migrate_stage2_config.py 迁移）}
              weight_mode(auto) acr_route(cpu/auto)   # （已按 §9.73 A44 作废：键不存在；权重是派生量）
 
 rejection.method 说明（V17 冻结）：
@@ -86,7 +88,7 @@ rejection.method 说明（V17 冻结）：
   - winsorized_sigma: robust 版（median 位置 + 1.5σ winsorize 迭代，
       对齐 Siril 1.4.3 rejection_float.c）。
   - V17：旧顶层 low/high/max_iterations/min_samples 已从 parser 删除，
-      出现即硬错误（提示 tools/migrate_stage2_config.py）。
+      出现即硬错误（提示 eng/tools/migrate_stage2_config.py）。
 output.hips / diagnostics
 ```
 
@@ -97,7 +99,7 @@ output.hips / diagnostics
 > **生产科学路由唯一权威** = `ASTROCS_DESIGN.md` §5.5：`1≤N≤3` none / `4≤N≤5` percentile /
 > `6≤N≤15` winsorized / `N≥16` linear fit；N = 该输出像素的**几何可贡献帧数**，逐像素自动路由；
 > **min/max 不用于生产**。内核同值见 `lib/algorithms/coverage/src/rejection.cpp:1139`
-> `kPixelSmallNPolicy`。上方 fenced 块是 `tools/config_consistency_check.py` 的 docs 腿输入，
+> `kPixelSmallNPolicy`。上方 fenced 块是 `eng/tools/config_consistency_check.py` 的 docs 腿输入，
 > 其 `astrocs_adaptive_pixel` 档位与本条同值；WBPP 对照档（`nominal<6 / 6..15 / >15`）只描述
 > `wbpp_2_9_1` 对照 profile 自身。
 > `docs/contracts/DATA_SEMANTICS.md` §22 首注同面。

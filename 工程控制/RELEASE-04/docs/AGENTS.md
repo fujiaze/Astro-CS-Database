@@ -44,7 +44,7 @@ ninja -C build
 # 测试（最小到全量按需）
 ctest --test-dir build --output-on-failure
 # 机器一致性检查
-python3 ci/run_checks.py            # 具体以 docs/ci/CI_SPEC.md 为准
+python3 eng/ci/run_checks.py            # 具体以 docs/ci/CI_SPEC.md 为准
 ```
 
 - 构建/测试/检查先于任何"完成"声明；

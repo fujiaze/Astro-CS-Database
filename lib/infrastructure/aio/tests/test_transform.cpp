@@ -2,8 +2,8 @@
 // test_transform.cpp - WP-G 步骤12 Transform 正式路径单元测试
 //
 // 依据:
-// - docs/stage1_fix/spec.md 步骤12 (transform 正式路径)
-// - docs/stage1_fix/00_COMMON_CONTRACTS.md §5.1 (测试要求)
+// - docs/algorithms/HIPS_WRITER.md (transform 正式路径)
+// - docs/standards/TEST_STANDARD.md (测试要求)
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §15 (子块目录 transform_id 字段)
 //
 // 测试范围:

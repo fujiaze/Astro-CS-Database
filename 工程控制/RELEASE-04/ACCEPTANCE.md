@@ -7,7 +7,7 @@
 | 任务 | 状态 | 机器门结果 | 证据路径 | 前台结论 |
 |---|---|---|---|---|
 | DOC-401 | PASS | 五份根文档与包内逐字节一致（cmp 全 OK）；无日期/任务编号/历史叙事 | 提交 344bf67f | 前台复跑一致 |
-| DOC-402 | NOT_STARTED | | | |
+| DOC-402 | PASS | doc402_gate.py scan findings=0（基线 1829）；selftest 8/8；canon 6/6；check_no_weight_mode.py PASS（files=311） | 提交 d1ccfa1b；run/DOC-402/ | 前台复跑 scan/selftest/canon/no-weight-mode 全一致；10 项跨域项已转派 |
 | DOC-403 | NOT_STARTED | | | |
 | DOC-404 | PASS | check_pack_refs.py rc=0（doi 45/45、arxiv 10/10、url 24/24）；check_pack_oss_anchors.py rc=0（36/36 锚逐字命中） | 提交 dde5c4bd；run/DOC-404/ | 前台独立复跑一致 |
 | SCI-401 | NOT_STARTED | | | |

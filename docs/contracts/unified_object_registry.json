@@ -469,7 +469,7 @@
       "role": "traceability_contract",
       "owner": "GOV-001",
       "object_class": null,
-      "note": "可追溯矩阵形状；由 tools/traceability/check_traceability_matrix.py 消费。"
+      "note": "可追溯矩阵形状；由 eng/tools/traceability/check_traceability_matrix.py 消费。"
     },
     {
       "file": "contracts/schemas/cpu_profile.schema.json",
@@ -497,7 +497,7 @@
       "role": "task_result_contract",
       "owner": "CI-001",
       "object_class": null,
-      "note": "任务结果合同；由 tools/quality/check_task_result_schema.py 消费。"
+      "note": "任务结果合同；由 eng/tools/quality/check_task_result_schema.py 消费。"
     },
     {
       "file": "contracts/schemas/v6/astrocs.v6.units.v1.schema.json",

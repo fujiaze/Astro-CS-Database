@@ -1,5 +1,7 @@
 # ACR Equivalence Algorithms (ALG-ACR-EQUIV)
 
+> 上游：ASTROCS_DESIGN.md §1.3（非目标）
+
 > 上游 SCI: SCI-ACR-EQUIV-001  状态: DERIVED  模块: acr×phase2
 
 ## 1 上游 SCI 与输入输出

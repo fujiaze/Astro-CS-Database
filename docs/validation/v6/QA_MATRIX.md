@@ -4,6 +4,8 @@
 
 # QA-MATRIX-001 科学 QA 矩阵（解析 / Monte Carlo / 注入源 / 真实数据 / 负向 mutation / 基线比较）
 
+> 上游：ASTROCS_DESIGN.md §12（验证体系）
+
 - 文档 ID：`QA-MATRIX-001-QA-MATRIX`
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/QA-MATRIX-001.md`（wave 3，depends_on = SCI-ADJ-001）
 - write_scope：`docs/validation/v6/`、`reports/v6/qa-design/`（本任务未写任何其他路径）

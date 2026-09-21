@@ -10,6 +10,8 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
 
 # 模块 astrocs.p2.upm
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 冻结合同 `astrocs.p2.upm`
 > （fit/apply 两职能同页，registry 行 ID 沿用
 > `MOD-astrocs-phase2-upm-fit`/`MOD-astrocs-phase2-upm-apply`）。合同

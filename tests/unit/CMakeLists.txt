@@ -173,14 +173,14 @@ add_test(NAME executor_provider_race COMMAND executor_provider_race_test)
 # 固有模式(仅存诊断返回码, 不参与数据流; 锁互斥语义正确)。TSan 对该写写
 # 竞争必然报 race (ffopen/fits_store_Fptr/fits_clear_Fptr, 全部位于
 # third_party 内部), 测试进程以非零退出码收场 → ctest FAIL。
-# 治理: 仓库既有先例 tools/quality/tsan/cfitsio.supp (QA-002, owner+expiry
+# 治理: 仓库既有先例 eng/tools/quality/tsan/cfitsio.supp (QA-002, owner+expiry
 # 注明仅限第三方 cfitsio 内部符号, 自有代码 race 一律不豁免) — configure 时
 # 复制进 build 树再挂到测试环境。必须走 build 树副本: sanitizer flag 解析按
 # 空白切 token, 源树路径若含空格 (如本地 checkout) 会破坏 TSAN_OPTIONS。
 # 非 TSan 构建下该环境变量无运行时消费, 无副作用。
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/tsan)
 configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/quality/tsan/cfitsio.supp
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../eng/tools/quality/tsan/cfitsio.supp
   ${CMAKE_BINARY_DIR}/tsan/cfitsio.supp COPYONLY)
 set_tests_properties(io_reentrant PROPERTIES
   ENVIRONMENT "TSAN_OPTIONS=suppressions=${CMAKE_BINARY_DIR}/tsan/cfitsio.supp")
@@ -488,7 +488,8 @@ add_subdirectory(../../lib/algorithms/cosmetic/tests/p1cos p1cos)
 # fixture / 独立 oracle / negative / performance / 故障注入自检); 合同锚
 # ALG-DRZ §9 TEST-DRZ-DESIGN-001 (P1-DRZ-DOC 冻结) + SCI-DRZ-001 §5/§7/§8。
 # 注意: p1drz_selfcheck_test 与 p1drz_tests 共享 p1drz_tests_core.cpp TU;
-# 域基线 09ee5363 (NaN/Inf 传播), 与 drizzle_nonfinite_test 互补不重复。
+# 域基线 FIX-405 G3-5 (NaN/Inf 样本级掩膜 + 强制计数; DATA-002 §2a), 与
+# drizzle_nonfinite_test 互补不重复。
 # ----------------------------------------------------------------------------
 add_subdirectory(../../lib/algorithms/drizzle/healpix_drizzle/tests/p1drz p1drz)
 
@@ -1377,12 +1378,14 @@ add_test(NAME rt001_unique_executor COMMAND rt001_unique_executor_test)
 # 断言: C ABI rc=0；空 Gaia 星表必失败(不得静默成功)；失败必带非空 error_msg
 # (ALG-WCS-001 §11.4 F4)；非 Windows 直连静态绑定下检测回调必须触发
 # (修复前平台 stub 在检测前返回 → 0 回调 → 此门必红)。
-# ci/checks.json 注册条目由前台单写者登记 (ctest_targets=["ipv_platform_binding"])。
+# eng/ci/checks.json 注册条目由前台单写者登记 (ctest_targets=["ipv_platform_binding"])。
 # ----------------------------------------------------------------------------
 add_executable(ipv_platform_binding_test ipv_platform_binding_test.cpp)
 target_include_directories(ipv_platform_binding_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/platesolve/cpp/ipv/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/algorithms/star_detection/include
+  # CLEAN-403: ipv_log.h 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/infrastructure/gaia_xpsd_client/src)
 target_link_libraries(ipv_platform_binding_test PRIVATE
   astrocs_p1_ipv astrocs_p1_sdet astrocs_aio)
@@ -1417,12 +1420,25 @@ if(Python3_Interpreter_FOUND)
   # 现行事实: control_median_mc_test / kcorr_matrix_test 属 tracked-but-unbuilt，
   # PHASE2_UPM.md 必须显式标 MISSING。
   # 机器可执行负例: python3 tests/quality/test_sci_evidence_registration.py --self-test
-  # (4/4 注入判红)。ci/checks.json 注册面由前台单写者登记（转 CI-003）。
+  # (4/4 注入判红)。eng/ci/checks.json 注册面由前台单写者登记（转 CI-003）。
   # --------------------------------------------------------------------------
   add_test(NAME sci_evidence_registration_quality
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../quality/test_sci_evidence_registration.py --root "${CMAKE_SOURCE_DIR}")
   set_tests_properties(sci_evidence_registration_quality PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" TIMEOUT 600)
+  # --------------------------------------------------------------------------
+  # FIX-402: Phase3 输入语义守卫 + 写端口单位（端到端真跑 build/astrocs export）。
+  # 判据非退化: 负例矩阵（缺 BUNIT / 裸 ADU 无 provenance / 积分通量 / 方差面 /
+  # ivar 面 / 冻结表外单位）必须 exit 3|4 且不留半成品; 正例必须真产出 canonical
+  # BUNIT 产品; variance 传播 nearest 逐像素对拍 + bilinear Σc_k² 判别。
+  # --------------------------------------------------------------------------
+  add_test(NAME fix402_phase3_semantic_guard
+    COMMAND ${Python3_EXECUTABLE} -m unittest -v
+            tests.backend.test_fix402_phase3_semantic_guard)
+  set_tests_properties(fix402_phase3_semantic_guard PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}"
+    TIMEOUT 1800)
 else()
   message(WARNING "P26 quality-tool tests skipped: Python3 interpreter not found")
 endif()

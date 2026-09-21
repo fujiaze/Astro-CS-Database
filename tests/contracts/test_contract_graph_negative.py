@@ -3,7 +3,7 @@
 import importlib.util, os, pathlib, tempfile, unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location("ccg", REPO / "tools" / "check_contract_graph.py")
+spec = importlib.util.spec_from_file_location("ccg", REPO / "eng" / "tools" / "check_contract_graph.py")
 ccg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ccg)
 

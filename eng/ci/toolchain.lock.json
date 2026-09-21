@@ -1,0 +1,144 @@
+{
+  "schema_version": 2,
+  "scope": "agent-host",
+  "generated_utc": "2026-09-06T10:14:47Z",
+  "repo_root_discovered": "/workspace/Astro CS Database",
+  "git_head_sha": "52e718048312fa05c694c5a32e7dec52263bf0cc",
+  "hosted_ci_versions_required": false,
+  "host_reprovisioning": false,
+  "acr": false,
+  "inventory_source": "measured live on agent host at refresh time (V81-ADOPT-004 post-install re-inventory); every version below comes verbatim from captured stdout (run/local/V81-ADOPT-004-refresh-evidence.txt)",
+  "cmake": {
+    "path": "/usr/bin/cmake",
+    "version": "3.31.6",
+    "version_line": "cmake version 3.31.6",
+    "present": true,
+    "source_cmd": "cmake --version"
+  },
+  "compilers": {
+    "gcc": {
+      "path": "/usr/bin/gcc",
+      "version": "14.2.0",
+      "version_line": "gcc (Debian 14.2.0-19) 14.2.0",
+      "present": true,
+      "source_cmd": "gcc --version"
+    },
+    "gxx": {
+      "path": "/usr/bin/g++",
+      "version": "14.2.0",
+      "version_line": "g++ (Debian 14.2.0-19) 14.2.0",
+      "present": true,
+      "source_cmd": "g++ --version"
+    },
+    "clang": {
+      "path": "/usr/local/bin/clang",
+      "version": "18.1.8",
+      "version_line": "Debian clang version 18.1.8 (18+b1)",
+      "present": true,
+      "source_cmd": "clang --version"
+    },
+    "clang++": {
+      "path": "/usr/local/bin/clang++",
+      "version": "18.1.8",
+      "version_line": "Debian clang version 18.1.8 (18+b1)",
+      "present": true,
+      "source_cmd": "clang++ --version"
+    }
+  },
+  "generator": {
+    "ninja": {
+      "path": "/usr/bin/ninja",
+      "version": "1.12.1",
+      "version_line": "1.12.1",
+      "present": true,
+      "source_cmd": "ninja --version"
+    },
+    "make": {
+      "path": "/usr/bin/make",
+      "version": "4.4.1",
+      "version_line": "GNU Make 4.4.1",
+      "present": true,
+      "source_cmd": "make --version"
+    }
+  },
+  "python": {
+    "path": "/usr/bin/python3",
+    "version": "3.13.5",
+    "version_line": "Python 3.13.5",
+    "present": true,
+    "source_cmd": "python3 --version"
+  },
+  "git": {
+    "path": "/usr/bin/git",
+    "version": "2.47.3",
+    "version_line": "git version 2.47.3",
+    "present": true,
+    "source_cmd": "git --version"
+  },
+  "optional": {
+    "ccache": {
+      "path": null,
+      "version": null,
+      "version_line": null,
+      "present": false,
+      "source_cmd": "ccache --version"
+    },
+    "zstd": {
+      "path": "/usr/bin/zstd",
+      "version": "1.5.7",
+      "version_line": "*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***",
+      "present": true,
+      "source_cmd": "zstd --version"
+    },
+    "pytest": {
+      "path": "/usr/bin/pytest",
+      "version": "8.3.5",
+      "version_line": "pytest 8.3.5",
+      "present": true,
+      "source_cmd": "pytest --version"
+    }
+  },
+  "additional_observed": {
+    "xz": {
+      "path": "/usr/bin/xz",
+      "version": "5.8.1",
+      "version_line": "xz (XZ Utils) 5.8.1",
+      "present": true,
+      "source_cmd": "xz --version"
+    },
+    "llvm-profdata": {
+      "path": "/usr/local/bin/llvm-profdata",
+      "version": "18.1.8",
+      "version_line": "Debian LLVM version 18.1.8",
+      "present": true,
+      "source_cmd": "llvm-profdata --version"
+    },
+    "llvm-cov": {
+      "path": "/usr/local/bin/llvm-cov",
+      "version": "18.1.8",
+      "version_line": "Debian LLVM version 18.1.8",
+      "present": true,
+      "source_cmd": "llvm-cov --version"
+    }
+  },
+  "cmake_presets_found": [
+    "base-msvc",
+    "win-msvc-17.14.39-x64",
+    "linux-control"
+  ],
+  "cmake_minimum_required_observed": {
+    "CMakePresets.json": "3.31.0",
+    "CMakeLists.txt": "3.24"
+  },
+  "missing_tools": [
+    "ccache"
+  ],
+  "toolchain_constraints_read": {
+    "CMakePresets.json": "cmakeMinimumRequired 3.31.0; Windows formal frozen: Visual Studio 17 2022 / x64 / v143 14.44.35207 / SDK 10.0.26100.0 / cmake_pin 3.31.12; configurePresets: base-msvc(hidden), win-msvc-17.14.39-x64, linux-control(Unix Makefiles, non-Windows host)",
+    "CMakeLists.txt": "cmake_minimum_required(VERSION 3.24); CMAKE_CXX_STANDARD 17 REQUIRED; sanitizer GCC/Clang only (QA-002); MSVC /utf-8 branch; OpenMP linked on UNIX when found; version single-source root VERSION (VER-001)",
+    "AGENTS.md": "Linux amd64 = agent control node (control/static analysis/light build/small synthetic experiments), bash+git+Linux toolchain, no Git Bash/PowerShell as dev default; Windows x64 = formal dev/client/release platform via remote node, offline does not block Linux tasks; external commands need timeout + saved logs",
+    "eng/build/build.sh": "BLD-001 root Linux configure/build/test entry; requires cmake (default generator => make toolchain), nproc; builds lib/phase2 targets with P2_ENABLE_OPENMP=ON",
+    "eng/build/toolchain.ps1": "Windows-side unified toolchain entry (MSYS2 MinGW64 C:\\msys64\\mingw64\\bin, formal Python 3.12 path, gh CLI; check/build via g++/make). Windows-host concerns only; not applicable to this Linux agent host inventory"
+  },
+  "policy_file_sha256": "650986a389433070ac5d420a5ccb66f6ceb123ded8eabdddb307eafe007babfb"
+}

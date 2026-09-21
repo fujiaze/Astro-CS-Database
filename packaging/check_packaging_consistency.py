@@ -21,7 +21,7 @@
   C5 LOCK-VS-CMAKE          根 CMakeLists 链接的外部库名必须全部在锁内登记；
                             production 依赖必须显式声明引用面（referenced_by）或
                             显式登记为 UNREFERENCED + 理由，不得静默多列。
-  C6 RULES-VS-CONTRACT      cmake/install_layout.cmake 的 install(TARGETS ...) 目标
+  C6 RULES-VS-CONTRACT      eng/cmake/install_layout.cmake 的 install(TARGETS ...) 目标
                             必须与合同 unit 一一对应；schemas/licenses 不得按目录通配
                             安装（白名单原则）。
   C7 LICENSE-REGISTRY       production 依赖必须有随包许可文本且已在安装树合同登记；
@@ -50,12 +50,12 @@ from pathlib import Path
 VERSION_FILE = "VERSION"
 CONTRACT = "packaging/install-tree.contract.json"
 LINUX_MANIFEST = "packaging/astrocs.product.json"
-WIN_TEMPLATE = "cmake/astrocs.product.windows.json.in"
+WIN_TEMPLATE = "eng/cmake/astrocs.product.windows.json.in"
 LOCK = "packaging/dependency-lock.json"
 SCHEMA_DIR = "packaging/schemas"
 LICENSE_DIR = "packaging/licenses"
-INSTALL_RULES = "cmake/install_layout.cmake"
-CFITSIO_SOURCES = "cmake/cfitsio_sources.cmake"
+INSTALL_RULES = "eng/cmake/install_layout.cmake"
+CFITSIO_SOURCES = "eng/cmake/cfitsio_sources.cmake"
 ROOT_CMAKE = "CMakeLists.txt"
 MANIFEST_BASENAME = "astrocs.product.json"
 DL_LIBS_TOKEN = "$" + "{CMAKE_DL_LIBS}"
@@ -304,7 +304,7 @@ def check_lock_vs_tree(root: Path, findings: list, allow_missing_git: bool = Fal
 # ── C5 依赖锁 ↔ CMake 实际依赖 ───────────────────────────────────────────────
 def _declared_source_roots(root: Path) -> list:
     paths = [root / ROOT_CMAKE, root / "cli" / "CMakeLists.txt"]
-    paths.extend(sorted((root / "cmake").glob("*")))
+    paths.extend(sorted((root / "eng" / "cmake").glob("*")))
     paths.extend(sorted(root.glob("lib/*/CMakeLists.txt")))
     paths.extend(sorted(root.glob("lib/*/*/CMakeLists.txt")))
     return [p for p in paths if p.is_file()]

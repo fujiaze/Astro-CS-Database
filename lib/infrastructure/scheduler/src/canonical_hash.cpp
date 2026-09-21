@@ -1,6 +1,6 @@
 // lib/infrastructure/scheduler/src/canonical_hash.cpp — 规范产品哈希 C++ 实现
 //
-// 与 tools/canonical_product_hash.py 逐字节同构（同一 spec id、同一域分隔前缀、
+// 与 eng/tools/canonical_product_hash.py 逐字节同构（同一 spec id、同一域分隔前缀、
 // 同一规范文本编码）。规范文本刻意避开语言相关的浮点格式化: 数字一律用
 // "%.17g"（C 与 Python 同义）, FITS 卡用**原始 80 字节卡文本**（尾随 0x20/0x00
 // 裁剪后）而非重排版, 因此两种实现不存在格式化漂移面。
@@ -20,10 +20,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <filesystem>
-#include <fstream>
 #include <string>
 #include <vector>
+
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件读取/存在性/
+// 头部探测/流式分块读取一律经 aio 唯一实现 (aio_file_io.h / aio_atomic_file.h,
+// 均为 header-only 机制面 —— 不引入 cfitsio 或产品 IO 库链接依赖, core 依赖图
+// 保持原样)。
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"
 
 namespace astrocs::core {
 
@@ -69,11 +74,17 @@ std::string trim_ws(const std::string& s) {
 }
 
 std::string read_file_bytes(const std::string& path, bool* ok) {
-  std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
-  if (!f) { if (ok) *ok = false; return std::string(); }
-  std::string out((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-  if (ok) *ok = true;
-  return out;
+  // CLEAN-403: 整文件读取经 aio (aio_file::read_all); 失败 ⇒ ok=false 且空串。
+  std::string out;
+  const bool got = aio_file::read_all(path.c_str(), &out);
+  if (ok) *ok = got;
+  return got ? out : std::string();
+}
+
+// 纯字符串路径取文件名 (无文件系统调用; 与 std::filesystem::path::filename 同义)。
+std::string file_name(const std::string& path) {
+  const std::size_t s = path.find_last_of("/\\");
+  return (s == std::string::npos) ? path : path.substr(s + 1);
 }
 
 std::string sha256_str(const std::string& s) {
@@ -310,29 +321,27 @@ bool parse_fits_canonical(const std::string& b, std::string* out,
 
 CanonicalHashResult canonical_product_hash_file(const std::string& u8path) {
   CanonicalHashResult r;
-  std::error_code ec;
-  if (!std::filesystem::is_regular_file(std::filesystem::u8path(u8path), ec)) {
+  int is_dir = 0;
+  if (!aio_atomic::path_size(u8path, nullptr, &is_dir) || is_dir) {
     r.error = "not a regular file: " + u8path;
     return r;
   }
-  const std::filesystem::path p = std::filesystem::u8path(u8path);
-  std::string lower_name = p.filename().string();
+  const std::string name = file_name(u8path);
+  std::string lower_name = name;
   for (char& c : lower_name) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
   const bool is_json = lower_name.size() > 5 &&
                        lower_name.compare(lower_name.size() - 5, 5, ".json") == 0;
-  const bool is_props_name = p.filename().string() == "properties";
+  const bool is_props_name = name == "properties";
   const std::string kSimple = "SIMPLE  ", kXtension = "XTENSION";
 
   // PERF-P2 S2: 头 8 字节探测（FITS 判定只需前 8 字节）—— 使 raw 分支可在
   // **不把整文件读入 std::string** 的前提下判定格式。
   std::string head;
   {
-    std::ifstream hf(p, std::ios::binary);
-    if (!hf) { r.error = "cannot read: " + u8path; return r; }
-    char hb[8] = {0};
-    hf.read(hb, 8);
-    const std::streamsize got = hf.gcount();
-    if (got > 0) head.assign(hb, static_cast<std::size_t>(got));
+    if (!aio_file::read_head(u8path.c_str(), 8, &head)) {
+      r.error = "cannot read: " + u8path;
+      return r;
+    }
   }
 
   // raw 分支（无格式特化产品, 如 *.bin）**单遍流式**: 完整性 sha256 与规范
@@ -341,21 +350,20 @@ CanonicalHashResult canonical_product_hash_file(const std::string& u8path) {
   // 文件名非 properties」时进入 —— 与旧分支判定逐字节同值（properties 仍需
   // bytes.find('=') 判定, 故一律走下方整读路径）。
   if (head != kSimple && head != kXtension && !is_json && !is_props_name) {
-    std::ifstream f(p, std::ios::binary);
-    if (!f) { r.error = "cannot read: " + u8path; return r; }
     astrocs::crypto::Sha256 h_int, h_can;
     h_can.update(kDomain, sizeof(kDomain) - 1);
     static const char kRawTag[] = "RAW\n";
     h_can.update(kRawTag, sizeof(kRawTag) - 1);
-    char buf[65536];
-    while (f) {
-      f.read(buf, sizeof(buf));
-      const std::streamsize got = f.gcount();
-      if (got > 0) {
-        h_int.update(buf, static_cast<std::size_t>(got));
-        h_can.update(buf, static_cast<std::size_t>(got));
-      }
-    }
+    // CLEAN-403: 单遍流式读取经 aio (aio_file::read_stream, 峰值 = 64 KiB)。
+    const bool stream_ok = aio_file::read_stream(
+        u8path.c_str(),
+        [&](const char* data, std::size_t n) {
+          h_int.update(data, n);
+          h_can.update(data, n);
+          return true;
+        },
+        nullptr);
+    if (!stream_ok) { r.error = "cannot read: " + u8path; return r; }
     r.integrity_sha256 = h_int.final_hex();
     r.format = "raw";
     r.canonical_sha256 = h_can.final_hex();

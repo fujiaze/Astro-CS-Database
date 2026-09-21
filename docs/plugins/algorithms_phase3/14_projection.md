@@ -1,5 +1,7 @@
 # 插件文档：projection（投影 registry）
 
+> 上游：ASTROCS_DESIGN.md §6.2（export 流程）
+
 ## 1. 职责与边界
 
 - **职责**：管理 export 支持的 WCS 投影 registry（**内置多种投影算法**：TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA），定义适用域、奇点、坐标语义与正反变换合同。

@@ -1,12 +1,14 @@
 # Testing
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 ## 测试入口
 
 - `phase2_synthetic_gate.exe`（Phase2 合成门，V2–V13 逐轮累积）。
 - `lib/infrastructure/aio/tests/*`（tile mapping oracle、sanitize）。
 - `v13_synth_test.exe`（background-clean sampler 真值：多星/多 PSF/多亮度
   recall/false-reject/connectivity）。
-- `toolchain.ps1 check|build` 做环境与编译验证。
+- `eng/build/toolchain.ps1 check|build` 做环境与编译验证。
 
 ## 关键回归集
 
@@ -22,5 +24,5 @@
 
 ```powershell
 py -3.12 lib/algorithms/coverage/build/phase2_synthetic_gate.exe
-.\toolchain.ps1 check
+.\eng/build/toolchain.ps1 check
 ```

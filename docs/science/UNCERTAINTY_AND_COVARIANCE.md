@@ -1,5 +1,7 @@
 # Uncertainty & Covariance
 
+> 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）、§3.1（数据对象）
+
 ## 目的
 
 给出产品方差/ivar 与相邻像素相关性的权威说明。

@@ -1,5 +1,7 @@
 # 全局 Thread Budget 与执行架构 (V5)
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > ID: ARCH-THREAD-001  状态: FROZEN  上游: ARCH-002/ARCH-003  下游: BENCH-003(worker/block 候选)/BENCH-004(profile)/07 资源门
 > 本文件为线程架构权威;THREADING_MODEL.md 的分层与确定性锚点保留有效(§6 引用),冲突处以本文件为准。
 
@@ -35,7 +37,7 @@
 
 ## 5 静态 checker 合同(验收)
 
-`tools/arch/check_thread_budget.py`(BENCH-003 前落地,ARCH-004 先立合同):
+`eng/tools/arch/check_thread_budget.py`(BENCH-003 前落地,ARCH-004 先立合同):
 1. 扫描 lib/ 生产源: `std::thread`/`std::async`/`_beginthread`/`CreateThread` 出现处必须在 `THREAD_BUDGET_EXEMPT` 登记表(当前: orchestrator watchdog/resource_monitor/logger;tests/ 全豁免);
 2. `omp_set_num_threads(`/`num_threads(` 字面量=0 容忍;
 3. 未登记即 FAIL(exit 1)——保证"未登记线程创建"机器可查。

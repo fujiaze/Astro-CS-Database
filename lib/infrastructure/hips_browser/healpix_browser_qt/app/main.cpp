@@ -2,7 +2,7 @@
 // 功能: QApplication 入口, 创建 MainWindow, 解析命令行参数
 // 用途: 启动 demo 程序, 可选命令行参数直接打开文件
 // 依赖: Qt6::Widgets (QApplication/QCommandLineParser), app/ (MainWindow)
-// 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §4.3
+// 设计文档: docs/modules/healpix_browser_qt.md
 // 用法: healpix_browser_qt.exe [file.hiss|file.hcsd|hips_dir]
 // healpix_browser_qt.exe --hips <dir> [--preset <name>]
 // [--layer signal|support] [--screenshot <png>] [--exit]

@@ -1,5 +1,7 @@
 # Phase1 目标态详细设计
 
+> 上游：ASTROCS_DESIGN.md §4（normalize：单帧标准化）
+
 文档 ID：`DESIGN-P1-001`  
 状态：`TARGET_NORMATIVE`  
 上位：`ASTROCS_DESIGN.md`（§0 权威链，最高设计）、`docs/owner/PROJECT_SPEC.md`  

@@ -6,7 +6,7 @@
 // OpenGL 3.3 Core (wglGetProcAddress 加载 1.2+ 函数, opengl32.lib 链接 1.1 函数)
 // 编译: g++ -O2 -std=c++17 -Wall -Wextra -Icore -Iinclude -I../../astro_image_io/include
 // -c core/gl_renderer.cpp -o core/gl_renderer.o -lopengl32 -lgdi32
-// 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-core-design.md §3.4
+// 设计文档: docs/modules/healpix_browser_qt.md
 
 #include "gl_renderer.h"
 #include "healpix_math.h"

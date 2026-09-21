@@ -27,10 +27,10 @@ import unittest
 import yaml
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-TOOL = REPO / "tools" / "quality" / "check_module_map.py"
+TOOL = REPO / "eng" / "tools" / "quality" / "check_module_map.py"
 MAP = REPO / "docs" / "modules" / "MODULE_MAP.yaml"
 INDEX = REPO / "docs" / "plugins" / "00_INDEX.md"
-sys.path.insert(0, str(REPO / "tools" / "quality" / "fixtures"))
+sys.path.insert(0, str(REPO / "eng" / "tools" / "quality" / "fixtures"))
 import module_map_fixture as fx  # noqa: E402
 
 VOCABULARY = {

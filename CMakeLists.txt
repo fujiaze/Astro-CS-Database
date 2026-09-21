@@ -11,7 +11,7 @@
 cmake_minimum_required(VERSION 3.24)
 # project() VERSION 只接受数字三元组(CMake 语法); alpha 后缀由根 VERSION 唯一承载,
 # 生成串 ASTROCS_VERSION_STRING = VERSION + g<commit> (V81-ADOPT-006 统一规则)。
-# 同步规则: 此三元组必须 == 根 VERSION 的 major.minor.patch (ci/check_version.py 校验)。
+# 同步规则: 此三元组必须 == 根 VERSION 的 major.minor.patch (eng/ci/check_version.py 校验)。
 project(astrocs VERSION 0.11.0 LANGUAGES C CXX)
 
 # ── 选项 (03/BLD-001 冻结) ──
@@ -92,8 +92,8 @@ string(JSON ASTROCS_RG_WORKLOAD_FLOOR_CORE_SECONDS GET "${ASTROCS_RESOURCE_GATE_
 configure_file(lib/infrastructure/cli/resource_gate_thresholds_generated.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/resource_gate_thresholds_generated.h @ONLY)
 
-# vendored cfitsio 显式清单 (BLD-001 禁 GLOB; 由 tools/gen_cfitsio_list.py 生成)
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/cfitsio_sources.cmake)
+# vendored cfitsio 显式清单 (BLD-001 禁 GLOB; 由 eng/tools/gen_cfitsio_list.py 生成)
+include(${CMAKE_CURRENT_SOURCE_DIR}/eng/cmake/cfitsio_sources.cmake)
 
 # OpenMP 探测提前: 遗留模块 (calibration/aio/drizzle) 含 omp pragma, 编译需 -fopenmp
 # (QA-001: 自有遗留 target target-local 编译, 不污染主程序; 第三方 cfitsio 仍 -w 隔离)
@@ -139,7 +139,7 @@ target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
 
 # ── BLD-003 平台 SHARED 骨架 (G2: SHARED astrocs_runtime/io/noop/baseline targets) ──
 # 契约 (BLD-003 + 03_TARGET §4.1 + ARC-001):
-#   - 唯一 install 规则源 = cmake/install_layout.cmake (文末 include);
+#   - 唯一 install 规则源 = eng/cmake/install_layout.cmake (文末 include);
 #     install 树与 ARC-001 dll_units 计划一一对应; clean install 仅白名单。
 #   - astrocs_runtime / astrocs_io: 平台 SHARED DLL 骨架。当前以已冻结、
 #     自包含的 C ABI 源 (DATA-001 artifact / IO-001 fits stream) 起步,
@@ -300,12 +300,17 @@ add_library(astrocs_core STATIC
   lib/infrastructure/scheduler/src/checkpoint.cpp
   lib/infrastructure/scheduler/src/logging.cpp
   # DET-001: 规范产品哈希（canonical product hash）—— 与
-  # tools/canonical_product_hash.py 逐字节同构的 C++ 实现; 进 core 使 CLI run
+  # eng/tools/canonical_product_hash.py 逐字节同构的 C++ 实现; 进 core 使 CLI run
   # manifest 与 P3 writer/verify 节点共用同一实现（无第二份口径）。
   lib/infrastructure/scheduler/src/canonical_hash.cpp)
 target_include_directories(astrocs_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+# CLEAN-403: canonical_hash.cpp 的文件读取/存在性/头部探测/流式读取经 aio 机制
+# 原语 (aio_atomic_file.h / aio_file_io.h, header-only)。仅 PRIVATE include 面:
+# 不新增链接依赖, core 依赖图仍不含 cfitsio / 产品 IO 库 (原注释语义不变)。
+target_include_directories(astrocs_core PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src)
 # astrocs_common 提供 SHA-256（lib/algorithms/shared/crypto/sha256.cpp）; 无环
 #（astrocs_common 不依赖 core）。core 仍不依赖 cfitsio: FITS 结构由
 # canonical_hash.cpp 内的最小头解析处理, 保持 core 依赖图不含产品 IO 库。
@@ -320,7 +325,9 @@ if(ASTROCS_PROBES)
   add_library(astrocs_probes STATIC
     lib/infrastructure/observability/probes/src/probe.cpp)
   target_include_directories(astrocs_probes PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/observability/probes/include)
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/observability/probes/include
+    # CLEAN-403: probe.cpp 的 sink 追加写经 aio 机制原语 (aio_atomic_file.h)。
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src)
   target_compile_definitions(astrocs_probes PUBLIC ASTROCS_PROBES=1)
   target_link_libraries(astrocs_probes PUBLIC Threads::Threads)
   if(NOT MSVC)
@@ -364,12 +371,12 @@ target_include_directories(astrocs_cfitsio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio)
 if(MSVC)
   # WIN-001: cfitsio 依赖适配 — 源码 `-w` 为 GCC 旗标 (MSVC 忽略并告警 D9002);
-  # _REENTRANT 需 pthread.h → 用 cmake/win32_pthread_shim (SRWLOCK 映射, MSVC 专用);
+  # _REENTRANT 需 pthread.h → 用 eng/cmake/win32_pthread_shim (SRWLOCK 映射, MSVC 专用);
   # zcompress.c 需 zlib (ACS_ZLIB_ROOT, MSVC 编译的 zlib 安装, 见 fatduck C:/Users/fujia/zlib-msvc)。
   # 注意: 不可用 MSYS2 mingw64 include (gcc 头无法被 MSVC 编译)。
   target_compile_options(astrocs_cfitsio PRIVATE /w)
   target_include_directories(astrocs_cfitsio PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/win32_pthread_shim)
+    ${CMAKE_CURRENT_SOURCE_DIR}/eng/cmake/win32_pthread_shim)
   target_link_libraries(astrocs_cfitsio PUBLIC kernel32)  # SRWLock API (shim)
   set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH "MSVC zlib install root (include/zlib.h + lib/<zlib>.lib)；hosted runner 经 vcpkg 注入 env")
   if(ACS_ZLIB_ROOT)
@@ -511,7 +518,11 @@ if(NOT TARGET astrocs_hips_properties)
   add_library(astrocs_hips_properties STATIC
     lib/algorithms/coverage/hips_properties.cpp)
   target_include_directories(astrocs_hips_properties PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage)
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/coverage
+    # CLEAN-403: hips_properties.cpp 的目录枚举/整文件读取经 aio 机制原语
+    # (aio_atomic_file.h / aio_file_io.h, header-only) ⇒ 需要 aio/src include 面。
+    # 仅 include 面, 不新增链接依赖 (aio_file_io.h 的 sha256 来自 astrocs_common)。
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src)
   target_link_libraries(astrocs_hips_properties PUBLIC astrocs_common)
   set_target_properties(astrocs_hips_properties PROPERTIES
     CXX_STANDARD 17
@@ -567,6 +578,9 @@ add_library(astrocs_cpu STATIC
 target_include_directories(astrocs_cpu PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
+  # CLEAN-403: backend_host 各 TU 的文件读写经 aio 机制原语 (header-only)。
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
 target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 
@@ -620,6 +634,10 @@ target_include_directories(astrocs_phase1_photcal PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/cpp/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/cpp/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src
+  # CLEAN-403: frame_photometry_fit.cpp 的 filters.json 读取经 aio 机制原语
+  # (aio_file_io.h, header-only) ⇒ 需要 aio/src 与 shared include 面。
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_phase1_photcal PUBLIC astrocs_contracts astrocs_p1_ipv)
 if(UNIX AND OpenMP_CXX_FOUND)
@@ -692,6 +710,8 @@ target_include_directories(astrocs_p1_ipv PUBLIC
   # RESCUE-FD-05: 非 Windows 直连 C API 需要生产头面 (与 DLL 导入等价的 ABI 面)
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
+  # CLEAN-403: ipv_log.h 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_link_libraries(astrocs_p1_ipv PUBLIC z Threads::Threads)
 set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
@@ -703,7 +723,9 @@ add_library(astrocs_p1_dpsf STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src/dpsf_log.cpp)
 target_include_directories(astrocs_p1_dpsf PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/psf/src
+  # CLEAN-403: dpsf_log.cpp 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src)
 target_link_libraries(astrocs_p1_dpsf PUBLIC OpenMP::OpenMP_CXX)
 
 # P1-001: sdet 生产实现（lib/algorithms/star_detection 9 TU, ipv detector_handle;
@@ -730,7 +752,9 @@ add_library(astrocs_p1_sdet STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src/sdet_background.cpp)
 target_include_directories(astrocs_p1_sdet PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/src
+  # CLEAN-403: sdet_log.cpp 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src)
 target_link_libraries(astrocs_p1_sdet PUBLIC OpenMP::OpenMP_CXX)
 # sdet PSF 拟合 trust-region LM 求解器依赖 GSL（star_detector Makefile 同款 -lgsl -lgslcblas）
 target_link_libraries(astrocs_p1_sdet PUBLIC gsl gslcblas m)
@@ -994,14 +1018,14 @@ if(NOT WIN32 AND NOT MSVC)
     message(FATAL_ERROR "qa-sanitize 与 qa-sanitize-tsan 互斥 (QA-006): 单选")
   endif()
   if(ASTROCS_BUILD_COVERAGE)
-    # 报告合并逻辑在 cmake/qa_coverage_report.sh（多目标 -object 列表展开）
+    # 报告合并逻辑在 eng/cmake/qa_coverage_report.sh（多目标 -object 列表展开）
     add_custom_target(ccov
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} -j2
       COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/coverage
       COMMAND ${CMAKE_COMMAND} -E env
               LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/%p-%m.profraw
               ${CMAKE_CTEST_COMMAND} --test-dir ${CMAKE_BINARY_DIR} --output-on-failure
-      COMMAND /bin/sh ${CMAKE_SOURCE_DIR}/cmake/qa_coverage_report.sh
+      COMMAND /bin/sh ${CMAKE_SOURCE_DIR}/eng/cmake/qa_coverage_report.sh
               ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR}
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       COMMENT "QA-006 覆盖基线测量 (lib+cli, LLVM source-based; ctest 全量)"
@@ -1017,7 +1041,7 @@ if(NOT WIN32 AND NOT MSVC)
       set(_QA_SAN_TGT qa-sanitize-tsan)
       # TSan suppression: vendored cfitsio 4.6.4 内部诊断状态写竞争
       # (Fitsio_Pthread_Status, fitsio2.h FFLOCK/FFUNLOCK 宏, 上游固有模式)
-      # — 仓库既有先例 tools/quality/tsan/cfitsio.supp (QA-002, 仅限第三方
+      # — 仓库既有先例 eng/tools/quality/tsan/cfitsio.supp (QA-002, 仅限第三方
       # 符号)。全量 ctest 环境统一挂载 (与下方 ASan 分支 ASAN_OPTIONS 同
       # 模式); 路径取 qa-sanitize 子 build 树副本 (tests/unit configure 时
       # 生成, 不含空格) — sanitizer flag 解析按空白切 token, 源树路径含
@@ -1045,6 +1069,6 @@ endif()
 
 # ── BLD-003 模块化安装骨架: 唯一 install 规则源 (白名单 install 树) ──
 # include 于全部 target 声明之后; 本文件只允许在根 CMake 出现 (BLD-002)。
-include(cmake/install_layout.cmake)
+include(eng/cmake/install_layout.cmake)
 
 message(STATUS "AstroCS ${ASTROCS_VERSION_STRING} root target graph ready (ACR=${ASTROCS_ENABLE_ACR})")

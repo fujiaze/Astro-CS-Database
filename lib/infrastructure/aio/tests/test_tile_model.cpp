@@ -1,7 +1,7 @@
 // ============================================================================
 // test_tile_model.cpp - WP-A Tile 模型与 signal/support 语义单元测试
 //
-// 测试范围 (依据 docs/stage1_fix/tasks.md WP-A 验收):
+// 测试范围 (依据 lib/infrastructure/aio/docs/HEALPIX_FORMAT_SPEC.md WP-A 验收):
 // 1. NSIDE=64, tile_nside=16 → n_leaf_per_tile = 16 (4^2, 不是 3072)
 // 2. NSIDE=32768, tile_nside=64 → n_leaf_per_tile = 262144 (4^9, 满 Tile 上限)
 // 3. NSIDE=4096, tile_nside=16 → n_leaf_per_tile = 65536 (4^8)

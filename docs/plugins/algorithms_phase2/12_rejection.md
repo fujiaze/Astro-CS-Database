@@ -1,5 +1,7 @@
 # 插件文档：rejection（排异推断）
 
+> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）
+
 ## 1. 职责与边界
 
 - **职责**：估计潜在污染状态（cosmic ray、卫星线、坏列、移动源、云/梯度、失焦/拖线），输出 mask/count/reason/probability。

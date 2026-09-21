@@ -1,6 +1,8 @@
 # ARCH-001 — Runtime 与职责边界（V6 目标架构合同）
 
 > 状态: ACTIVE  版本: 1.0.0  owner: AstroCS
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > 上游: 03_TARGET_ARCHITECTURE.md (控制包)  下游: API-001, BLD-001, CORE-*, LEG-*
 > ⚠ **DOC-202 R04 订正（2026-09-20）**：原句「本文件是 V6 架构的**唯一权威**；与
 > docs/architecture/* 冲突时以本文件为准」**已删除**——它违反最高设计 §0.1「**禁止**任何

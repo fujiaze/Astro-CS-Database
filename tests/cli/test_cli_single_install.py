@@ -13,7 +13,7 @@ LEGACY_EXES = re.compile(
     r"phase2_routing|phase2_async_io|phase2_sampler_parallel)$", re.I)
 
 
-@unittest.skipUnless(shutil.which("cmake") and shutil.which("g++"), "需要 cmake/g++")
+@unittest.skipUnless(shutil.which("cmake") and shutil.which("g++"), "需要 eng/cmake/g++")
 class TestCliSingleInstall(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -34,7 +34,7 @@ class TestCliSingleInstall(unittest.TestCase):
             cls.bdir, p)) for p in ("astrocs", "libastrocs_runtime.so"))
         if not have_tree:
             msg = ("需根图构建树 build/{astrocs,libastrocs_runtime.so} "
-                   "(BLD-002; ci/steps/linux_build_root_graph.sh 产出)")
+                   "(BLD-002; eng/ci/steps/linux_build_root_graph.sh 产出)")
             # M8-F-003: CI 面缺前置产物是硬失败(门失效), 不得静默 SKIP;
             # 仅本地开发环境(无 CI 标记)允许跳过。
             if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):

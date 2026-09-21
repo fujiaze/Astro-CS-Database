@@ -64,6 +64,9 @@ target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infra
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/acr/backends/cuda/bridge)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/acr/scheduler)
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/include)
+# CLEAN-403: sky_plane.cpp 的文件读写经 aio 机制原语 (aio_atomic_file.h /
+# aio_file_io.h, header-only) ⇒ compatibility 目标同样需要 aio/src include 面。
+target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/aio/src)
 # RELEASE-02 性能探针头面 (ASTROCS_PROBES 默认 OFF; 未定义时 astrocs/probe.h 的宏
 # 全部为空语句)。独立 configure 不走根图 astrocs_probes target, 故此处显式登记。
 target_include_directories(phase2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/observability/probes/include)

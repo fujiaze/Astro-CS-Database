@@ -1,5 +1,7 @@
 # DATA-001 DataArtifact 注册表与 weight 歧义映射
 
+> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
+
 > 权威: docs/contracts/DATA_SEMANTICS.md（语义）+ 本表（artifact schema 登记 + 歧义映射）
 > 生成: V6 重构 DATA-001
 
@@ -121,5 +123,5 @@ DATA-001），不在本任务写域。
 
 ## 3. 机器校验
 
-- `tools/check_data_artifacts.py`（DATA-001 新增）：校验本表 schema_id 唯一、
+- `eng/tools/check_data_artifacts.py`（DATA-001 新增）：校验本表 schema_id 唯一、
   DATA-SEMANTICS.md 中声明的 DATA-* ID 全部在本表登记、无重复。

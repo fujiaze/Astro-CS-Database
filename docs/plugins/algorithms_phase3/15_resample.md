@@ -1,5 +1,7 @@
 # 插件文档：resample（反向映射与重采样）
 
+> 上游：ASTROCS_DESIGN.md §6.2（export 流程）
+
 ## 1. 职责与边界
 
 - **职责**：对每个输出像素中心做 WCS inverse 定位输入 HEALPix，按产品语义采样核重采样，并传播不确定度/相关描述。

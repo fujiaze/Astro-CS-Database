@@ -1,5 +1,7 @@
 # Module: acr
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## 职责
 
 异构计算运行时：kernel registry、CPU/GPU 调度、device executor、
@@ -48,4 +50,4 @@ GPU kernel 仅 phase2 `mosaic_reject_legacy` launcher 注册。
 ## Source files
 
 lib/infrastructure/acr/（api/backends/core/cost/diagnostics/profile/routing/scheduler/
-tools/tests）。
+eng/tools/tests）。

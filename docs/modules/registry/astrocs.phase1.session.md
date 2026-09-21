@@ -10,6 +10,8 @@ downstream: [DATA-P1-SESSION, API-P1-SESSION, TEST-P1-SESSION-001]
 
 # 模块 astrocs.phase1.session
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 手写合同页：registry 无
 > astrocs.phase1.session descriptor——gen_module_readmes.py 以
 > module_adapters.cpp 为源仅生成 8 个 Phase1 descriptor 页

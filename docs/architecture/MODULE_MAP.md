@@ -1,11 +1,13 @@
 # Module Map
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > 文档 ID：DOC-ARCH-MODULE-MAP
 > 状态：ACTIVE_INFORMATIVE（DOC-CONV-001 按 BASE=`da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540` 实际收敛）
 > 状态词：**唯一口径 = `ASTROCS_DESIGN.md` §11.4（状态阶梯）**；操作层判据见
 > `docs/owner/RELEASE_STATUS.md` §0（该节引 §11.4，不另立阶梯）。
 > ⚠ 本文件**不声明第二套状态阶梯**，也不复述状态词清单；
-> 本表**不写状态字段**，状态一律由 `tools/quality/check_module_map.py` **现场计算**
+> 本表**不写状态字段**，状态一律由 `eng/tools/quality/check_module_map.py` **现场计算**
 > （最高设计 §0.2/§11.4：登记表与映射表禁止写状态字段，防「表内自证绿」）。
 > 本表按 **`lib/` 实际目录** 登记（不再描述已不存在或尚未建立的产物）；
 > 每行给出可核证据锚。详细 L5 文档见 `docs/modules/`。
@@ -24,7 +26,7 @@
 | CLI 平台单元 | `lib/infrastructure/cli/` | INSTALLED | `astrocs` | unit `PLATFORM-CLI`；`lib/infrastructure/cli/parser.cpp` kRules 12 条 phase 命令；`tests/cli/test_cli001_vpi.py` 15/15 实测 |
 | runtime / io 平台单元 | `lib/infrastructure/scheduler`、`lib/infrastructure/aio/io` | INSTALLED（骨架） | `libastrocs_runtime.so`、`libastrocs_io.so` | units `PLATFORM-RUNTIME`/`PLATFORM-IO` 状态 = SKELETON（不冒认实现完成度） |
 
-> 安装面唯一源：`cmake/install_layout.cmake`（:104-105 五科学模块 SHARED + `$ORIGIN`
+> 安装面唯一源：`eng/cmake/install_layout.cmake`（:104-105 五科学模块 SHARED + `$ORIGIN`
 > RPATH）+ `packaging/astrocs.product.json`（units=10）+ `packaging/install-tree.contract.json`。
 > 当前为 **Linux 技术预览** 安装面；Windows 侧复验 NOT_VERIFIED。
 
@@ -41,7 +43,7 @@
 | Phase3 会话 | `lib/phase3_session` | IMPLEMENTED | properties / WCS（TAN）/ nearest+bilinear 重采样 / CFITSIO 原子写 / verify | `lib/phase3_session` 的 p3_session/p3_wcs/p3_resample/p3_output 四源文件；ctest `p3002_real_nodes`/`p3002_uncertainty` 实测 |
 | 三阶段产品交换 | `lib/infrastructure/aio/runtime/artifact_store` | CONTRACT_READY | 跨 Phase 仅磁盘产品交换（role↔type 强绑定） | `contracts/data/phase_product_exchange.schema.json` + `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py` |
 | 结构化日志 | `lib/infrastructure/observability/logging` | CONTRACT_READY | JSONL 事件合同 | LOG-001 schema/契约 |
-| 监控与资源门 | `tools/monitoring` | IMPLEMENTED | 冻结阈值判定（现行 = `ASTROCS_DESIGN.md` §8 + `contracts/resource_gate_v1.json`；原引「宪章 §10.5/§18.2」已废止） | `tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；pytest `tests/monitoring` |
+| 监控与资源门 | `eng/tools/monitoring` | IMPLEMENTED | 冻结阈值判定（现行 = `ASTROCS_DESIGN.md` §8 + `contracts/resource_gate_v1.json`；原引「宪章 §10.5/§18.2」已废止） | `eng/tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；pytest `tests/monitoring` |
 | AIO 图像 I/O | `lib/infrastructure/aio` | IMPLEMENTED | FITS/XISF/HiPS 读写、唯一 AIO C ABI v1 | `lib/infrastructure/aio/src/aio_abi.cpp`（编入生产 target `astrocs_aio`，MOD-001 实测握手 abi=1/status_count=71） |
 | HEALPix / Drizzle 内核 | `lib/infrastructure/aio/healpix_db` | IMPLEMENTED | `healpix_drizzle`（生产）+ `healpix_io`；`archive/` 归档目录与 `healpix_browser_qt` 不重建 | `lib/algorithms/drizzle/healpix_drizzle`、`lib/infrastructure/aio/healpix_db/archive` |
 | 公共工具 | `lib/algorithms/shared` | IMPLEMENTED | HEALPix core / SHA-256 / compute traits（header-only + 静态） | `lib/algorithms/shared` |

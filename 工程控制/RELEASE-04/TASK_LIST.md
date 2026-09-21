@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | DOC-401 | 替换五份根文档 | 仓库根 5 份 .md | — | 根文档与包内逐字节一致；`ci --all` 文档门通过 |
 | DOC-402 | 下级文档对齐新最高设计 | docs/plugins、docs/science、docs/algorithms、docs/design | DOC-401 | 无日期/任务编号/历史叙事；术语与最高设计一致；五档排异/control_ivar/面亮度/NaN 掩膜/噪声模型 A 口径一致；`ci --all` 全绿 |
-| DOC-403 | 双向层级索引闭合 | docs/DOCUMENT_INDEX.yaml、各文档抬头、ci/checks.json | DOC-401 | 最高设计每节索引指针可达；每份下级文档有上游条款；悬空索引门红/绿双向测试 |
+| DOC-403 | 双向层级索引闭合 | docs/DOCUMENT_INDEX.yaml、各文档抬头、eng/ci/checks.json | DOC-401 | 最高设计每节索引指针可达；每份下级文档有上游条款；悬空索引门红/绿双向测试 |
 | DOC-404 | 研究包与测光文档补齐 | docs/research、docs/science/PHOTOMETRY.md | DOC-401 | 最高设计附录 B 引用的研究包全部存在；测光文档含 Gaia XP×QE×透过率积分的完整方法学与文献 |
 | SCI-401 | 实验单元 SCI-A：测光星等坐标系 | 实验/SCI-A、docs/science/PHOTOMETRY.md（只读引用，订正走 DOC-402 协调） | DOC-401、DOC-404 | 报告八要素齐全；三重佐证；非退化负例；独立审稿；判据表逐项 PASS |
 | SCI-402 | 实验单元 SCI-B：绝对 SNR 传递链 | 实验/SCI-B、docs/research/SNR_WEIGHT_RESEARCH_PACK.md | DOC-401 | 报告八要素；天光抬升 SNR 趋零负例；三口径适用域图谱；ΣSNR² 集成对拍；独立审稿 |

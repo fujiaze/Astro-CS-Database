@@ -1,5 +1,7 @@
 # 插件文档：benchmark（CPU profile）
 
+> 上游：ASTROCS_DESIGN.md §9（CPU 后端与资源）
+
 ## 1. 职责与边界
 
 - **职责**：`benchmark` 按 kernel 测量数值误差、吞吐、线程扩展、内存带宽、block/worker，生成机器绑定的 `cpu_profile`。

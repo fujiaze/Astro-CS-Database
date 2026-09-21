@@ -1,5 +1,7 @@
 # ISA 变体决策台账 (ISA-001..004 冻结 — V5)
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > ID: ARCH-ISA-001  状态: FROZEN  上游: ABI-003/05 §1-2  下游: BENCH-005(逐 kernel 选路)/ABI-002(manifest)
 > 原则(05 §1): 先 profile 证明热点→只为热点做变体→共享合同禁漂移→逐 kernel Oracle→无收益 NOT_SHIPPED 但须完整测量(见 artifacts/prerelease_v5/ISA-001/MEASUREMENTS.csv)。
 

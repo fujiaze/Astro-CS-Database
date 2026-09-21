@@ -2,7 +2,7 @@
 """PAR-007 测试: 统一 thread budget 合同 — 嵌套 stress 下 Σ(active) ≤ max_workers 不超标。
 验收(03 PAR-007): nested stress 时 threads/CPU/RAM 不超合同; 端到端利用率 PASS。
 对接 ARCH-004: backend kernel 经 host->budget.acquire/release 租借(CAS: Σ(active)+n≤max_workers);
-禁硬编码线程数(static checker: tools/arch/check_thread_budget.py 未登记线程创建=0 硬编码线程数=0)。
+禁硬编码线程数(static checker: eng/tools/arch/check_thread_budget.py 未登记线程创建=0 硬编码线程数=0)。
 本测试验证 budget acquire 合同在并发压力下不超标(失败即快速释放/重试, 05 §6)。
 """
 import os, re, shutil, subprocess, tempfile, unittest
@@ -89,7 +89,7 @@ class TestBudgetContract(unittest.TestCase):
 
     def test_03_static_checker_no_hardcoded_threads(self):
         """ARCH-004 static checker: 生产源无未登记线程创建/硬编码线程数。"""
-        r = subprocess.run([os.sys.executable, os.path.join(REPO, "tools", "arch", "check_thread_budget.py")],
+        r = subprocess.run([os.sys.executable, os.path.join(REPO, "eng", "tools", "arch", "check_thread_budget.py")],
                            capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("未登记线程创建=0", r.stdout)

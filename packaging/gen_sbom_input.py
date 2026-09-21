@@ -5,7 +5,7 @@
   1. dependency-lock.json 与 DEPENDENCIES.md 语义一致 (生产依赖/系统依赖/
      test-only oracle 分离);
   2. fresh configure 不读取机器绝对路径: 对 CMake 作用域 (CMakeLists.txt,
-     CMakePresets.json, cmake/**, packaging/**, DEPENDENCIES.md) 扫描禁止
+     CMakePresets.json, eng/cmake/**, packaging/**, DEPENDENCIES.md) 扫描禁止
      模式 (F:/ C:/Users/<user> /home/<user> C:\\msys64 等), 冻结工具链安装
      约定 (C:/AstroCS/toolchains, preset 显式声明) 为白名单例外;
   3. 生成 SBOM 输入: 以 dependency-lock.json 为权威源输出扁平 SBOM 输入
@@ -200,13 +200,13 @@ def gen_sbom_input(root: Path, lock: dict) -> list:
 def _build_fixture(base: Path) -> Path:
     """最小自洽夹具: 锁 + vendored 文件 + 源清单 + DEPENDENCIES.md。"""
     root = base / "repo"
-    (root / "cmake").mkdir(parents=True)
+    (root / "eng" / "cmake").mkdir(parents=True)
     (root / "packaging" / "licenses").mkdir(parents=True)
     (root / "vendor").mkdir(parents=True)
     srcs = ["vendor/a.c", "vendor/b.c"]
     for s in srcs:
         (root / s).write_text("int x;\n", encoding="utf-8")
-    (root / "cmake" / "cfitsio_sources.cmake").write_text(
+    (root / "eng" / "cmake" / "cfitsio_sources.cmake").write_text(
         "set(ASTROCS_CFITSIO_SOURCES\n" +
         "".join(f"  {s}\n" for s in srcs) + ")\n", encoding="utf-8")
     (root / "packaging" / "licenses" / "FAKE_LICENSE.txt").write_text(
@@ -228,7 +228,7 @@ def _build_fixture(base: Path) -> Path:
             "file_sha256_of": "vendor/a.c",
             "aggregate_sha256": aggregate_sha256(root, algo, srcs),
             "aggregate_sha256_algo": algo,
-            "aggregate_sha256_sources": "cmake/cfitsio_sources.cmake",
+            "aggregate_sha256_sources": "eng/cmake/cfitsio_sources.cmake",
             "license": "fixture", "license_file": "packaging/licenses/FAKE_LICENSE.txt",
             "license_file_sha256": sha256_file(
                 root / "packaging" / "licenses" / "FAKE_LICENSE.txt"),

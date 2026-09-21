@@ -1,5 +1,7 @@
 # AstroCS 版本合同（VER-001）
 
+> 上游：ASTROCS_DESIGN.md §13（版本与发布权）
+
 ## 1. 唯一版本源
 
 - 仓库根 `VERSION` 是产品版本号的**唯一来源**（`ASTROCS_DESIGN.md` §12），内容一行：`MAJOR.MINOR.PATCH-alpha.N`。
@@ -10,11 +12,11 @@
 
 ## 2. 生成接口（禁止多处手填）
 
-- `tools/gen_version.py`：读 `VERSION` + git HEAD/dirty → 输出合同对象与版本串。
+- `eng/tools/gen_version.py`：读 `VERSION` + git HEAD/dirty → 输出合同对象与版本串。
   - 开发构建：`X.Y.Z-alpha.N+g<commit12>.dirty`（工作树有未提交修改）。
   - 正式 alpha 包：必须来自 clean main，显示 `X.Y.Z-alpha.N+g<commit12>`。
 - `--version --json` 输出至少：`version, prerelease(=alpha), commit, dirty, build_id, abi_version, cli_schema_version`，schema 见 `schemas/version.schema.json`。
-- `abi_version` / `cli_schema_version` 的唯一定义点在 `tools/gen_version.py`；ABI-001 / API-002 冻结时置 1。
+- `abi_version` / `cli_schema_version` 的唯一定义点在 `eng/tools/gen_version.py`；ABI-001 / API-002 冻结时置 1。
 
 ## 3. 同步矩阵（机器检查覆盖）
 
@@ -27,9 +29,9 @@
 
 ## 4. 机器检查
 
-`tools/check_version_consistency.py`：
+`eng/tools/check_version_consistency.py`：
 - `VERSION` 格式必须为 `X.Y.Z-alpha.N`；出现 `stable/rc/beta` 预发布标记即 FAIL。
-- 扫描 `docs/ schemas/ tools/ launch/ tests/` 与根级 README/CHANGELOG/build.sh/toolchain.ps1：任何 `X.Y.Z` 字面量必须等于唯一源（豁免：hips_version、DatabaseVersion、schema_version、外部组件版本、`X.Y.Z`/`MAJOR.MINOR.PATCH` 占位写法）。
+- 扫描 `docs/ schemas/ eng/tools/ launch/ tests/` 与根级 README/CHANGELOG/build.sh/toolchain.ps1：任何 `X.Y.Z` 字面量必须等于唯一源（豁免：hips_version、DatabaseVersion、schema_version、外部组件版本、`X.Y.Z`/`MAJOR.MINOR.PATCH` 占位写法）。
 - **mutation 合同：任何一处伪造/漂移版本字面量必须使本 checker FAIL**（tests/version 有固定试金石）。
 
 ## 5. 豁免清单（非产品版本的三元组）

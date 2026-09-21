@@ -2,6 +2,8 @@
 
 # Phase3 算法实施规格（ALG-P3-001）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 > 文档 ID：`ALG-P3-001`（本目录为 W3 任务 ALG-P3-001 交付物）
 > 状态：`ALG_PROPOSED`（算法层规格；正式冻结由 W4 `CONTRACT-FREEZE-001` 写入 `docs/algorithms/v6/frozen/`）
 > 任务：ALG-P3-001（wave 3，`depends_on: SCI-ADJ-001`）

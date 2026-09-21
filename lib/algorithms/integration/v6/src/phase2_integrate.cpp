@@ -8,12 +8,17 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <limits>
 #include <set>
 #include <sstream>
 
 #include <nlohmann/json.hpp>
+
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文本读写与 FITS
+// 平面读取一律经 aio 唯一实现 (aio_file::read_all / aio_atomic::write_file_atomic),
+// 本 TU 不自持 fstream 通道。
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"
 
 #include "astro/aio/v6_bunit.h"
 #include "astro/aio/v6_product_io.h"
@@ -82,17 +87,18 @@ bool invert(const Mat& a, int n, Mat* out) {
 
 /* ──────── 文本/哈希/JSON ───────── */
 bool read_text(const std::string& p, std::string* out, std::string* err) {
-  std::ifstream in(p, std::ios::binary);
-  if (!in) { *err = "cannot open " + p; return false; }
-  std::ostringstream ss; ss << in.rdbuf(); *out = ss.str();
+  // CLEAN-403: 整文件读取经 aio (打开/读取/关闭任一失败 ⇒ false)。
+  if (!aio_file::read_all(p.c_str(), out)) { *err = "cannot open " + p; return false; }
   return true;
 }
 
 bool write_text(const std::string& p, const std::string& s, std::string* err) {
-  std::ofstream os(p, std::ios::binary | std::ios::trunc);
-  if (!os) { *err = "cannot write " + p; return false; }
-  os << s; os.close();
-  if (!os) { *err = "write failed " + p; return false; }
+  // CLEAN-403: 落盘经 aio 原子写原语 (临时文件 → fsync → 原子 rename)。
+  std::string werr;
+  if (aio_atomic::write_file_atomic(p, s, &werr) != 0) {
+    *err = "cannot write " + p + ": " + werr;
+    return false;
+  }
   return true;
 }
 
@@ -237,18 +243,22 @@ int route_weight_mode(const char* mode, WeightMode* out, char* err,
 bool read_fits_plane_f64(const std::string& path, const std::string& extname,
                          std::vector<double>* values, std::string* bunit,
                          std::vector<std::uint64_t>* naxis, std::string* err) {
-  std::ifstream in(path, std::ios::binary);
-  if (!in) { if (err) *err = "cannot open " + path; return false; }
+  // CLEAN-403 (§10 aio 唯一 I/O 边界): 整文件读取经 aio_file::read_all;
+  // 解析在内存按偏移进行, 与逐段 seekg/read 同判据 (越界即截断)。
+  std::string blob;
+  if (!aio_file::read_all(path.c_str(), &blob)) {
+    if (err) *err = "cannot open " + path;
+    return false;
+  }
+  const std::uint64_t total = static_cast<std::uint64_t>(blob.size());
   std::uint64_t offset = 0;
   while (true) {
-    in.seekg(static_cast<std::streamoff>(offset));
-    std::vector<char> hdr(2880, 0);
-    in.read(hdr.data(), 2880);
-    if (in.gcount() != 2880) { if (err) *err = "truncated FITS header"; return false; }
+    if (offset + 2880 > total) { if (err) *err = "truncated FITS header"; return false; }
+    const char* hdr = blob.data() + offset;
     std::string cur_name; int bitpix = 0; std::vector<std::uint64_t> ax;
     std::string cur_bunit;
     for (int c = 0; c < 36; ++c) {
-      const char* card = hdr.data() + c * 80;
+      const char* card = hdr + c * 80;
       std::string key(card, card + 8);
       while (!key.empty() && key.back() == ' ') key.pop_back();
       if (key == "END") break;
@@ -283,13 +293,12 @@ bool read_fits_plane_f64(const std::string& path, const std::string& extname,
     const std::uint64_t padded = ((data_bytes + 2879) / 2880) * 2880;
     if (cur_name == extname) {
       if (bitpix != -64) { if (err) *err = "plane bitpix != -64"; return false; }
-      std::vector<std::uint8_t> raw(static_cast<std::size_t>(data_bytes));
-      in.seekg(static_cast<std::streamoff>(offset + 2880));
-      in.read(reinterpret_cast<char*>(raw.data()), static_cast<std::streamsize>(data_bytes));
-      if (static_cast<std::uint64_t>(in.gcount()) != data_bytes) {
+      if (offset + 2880 + data_bytes > total) {
         if (err) *err = "truncated FITS data"; return false;
       }
-      values->resize(raw.size() / 8);
+      const unsigned char* raw =
+          reinterpret_cast<const unsigned char*>(blob.data() + offset + 2880);
+      values->resize(static_cast<std::size_t>(data_bytes) / 8);
       for (std::size_t i = 0; i < values->size(); ++i) {
         std::uint64_t u = 0;
         for (int b = 0; b < 8; ++b) u = (u << 8) | raw[i * 8 + static_cast<std::size_t>(b)];
@@ -301,12 +310,9 @@ bool read_fits_plane_f64(const std::string& path, const std::string& extname,
     }
     offset += 2880 + padded;
     if (offset > (1ull << 40)) { if (err) *err = "FITS plane not found"; return false; }
-    in.clear();
-    in.seekg(0, std::ios::end);
-    if (static_cast<std::uint64_t>(in.tellg()) <= offset) {
+    if (total <= offset) {
       if (err) *err = "FITS plane '" + extname + "' not found"; return false;
     }
-    in.clear();
   }
 }
 

@@ -2,6 +2,8 @@
 
 # SCI-P3-001 主正文 — Phase3 投影/采样下 signal、variance/correlation、effective PSF、Q/W 传播独立复核
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 文档 ID：`SCI-P3-001-REVIEW`
 任务：SCI-P3-001（wave 1，depends_on BASE-OWN-001）
 write_scope：`docs/science/v6/phase3/`、`run/v6/sci-p3/`

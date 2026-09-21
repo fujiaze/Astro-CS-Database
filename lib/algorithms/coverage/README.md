@@ -84,7 +84,7 @@ DISP-COV-003；K=0（空 MOC）合法 rc=0。
   C API）+ 编排级 **API-P2-001**（docs/api/PHASE2_API_V1.md，FROZEN，
   所有权图 Coverage 行 / §2 并发五字段行 1）。
 - ARCH: **ARCH-001**（cpu_heavy 资源类/单线程 internal_parallel=none/
-  host_executor_lease 合同值依据 docs/architecture/CPU_ADAPTIVE_V1.md）。
+  host_executor_lease 合同值依据 docs/algorithms/PHASE2_COVERAGE.md）。
 - MOD: docs/modules/registry/astrocs.phase2.coverage.md（本模块 registry
   合同页）+ docs/modules/phase2.md（legacy 诊断页事实修订）。
 
@@ -232,5 +232,5 @@ coverage/sampler/upm roundtrip/linear-fit/RCR）。
 - `include/astro/phase2/`：冻结公共接口（upm/coverage/sampler/rejection/
   block/integrate/acr_kernels）
 - `src/`：CPU reference 实现
-- `tools/stage2.cpp`：正式入口
+- `eng/tools/stage2.cpp`：正式入口
 - `tests/synthetic_gate.cpp`：合成 Gate

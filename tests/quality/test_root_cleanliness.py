@@ -9,7 +9,7 @@
   * test_negative_missing_required_entry_is_red      —— §7 要求存在的条目缺失 rc!=0。
 
 以及清单保真度证据：
-  * test_manifest_matches_engineering_spec_section7  —— ci/root_manifest.json 的
+  * test_manifest_matches_engineering_spec_section7  —— eng/ci/root_manifest.json 的
     allowed_files/allowed_dirs 与 ENGINEERING_SPEC.md §7 逐条对照（不比文档更宽）。
 """
 from __future__ import annotations
@@ -23,8 +23,8 @@ import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-CHECKER = REPO / "tools" / "quality" / "check_root_cleanliness.py"
-MANIFEST = REPO / "ci" / "root_manifest.json"
+CHECKER = REPO / "eng" / "tools" / "quality" / "check_root_cleanliness.py"
+MANIFEST = REPO / "eng" / "ci" / "root_manifest.json"
 
 
 def load_manifest() -> dict:

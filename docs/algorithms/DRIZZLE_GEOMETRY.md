@@ -1,5 +1,7 @@
 # Drizzle Geometry Algorithms (P1-DRZ)
 
+> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）
+
 > ID 覆盖: ALG-DRZ-001  状态: CONTRACT_READY  上游: SCI-DRZ-001  下游: DATA-P1-DRZ / API-DRZ-001 / TEST-DRZ-DESIGN-001
 > 本文档由源码逐函数核对后登记。实现唯一生产源 =
 > `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `astrocs_drizzle`，

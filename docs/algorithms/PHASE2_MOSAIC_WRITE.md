@@ -1,6 +1,8 @@
 # Phase2 HiPS Mosaic Write Algorithms (ALG-P2-HIPS-001..004)
 
 > ID: ALG-P2-HIPS-001..004  状态: FROZEN
+> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
+
 > 上游 SCI（只读引用，全部 FROZEN，共享引用不改动）: SCI-UPM-001（docs/science/PHASE2_UPM.md §5 w_UPM 公式）、
 > SCI-INT-001（docs/science/INTEGRATION.md §5 signal/sup_max 公式）、SCI-REJ-001（docs/science/REJECTION.md，
 > SCI-REJ-001..008）、SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md）。共享 SCI 引用不改动；

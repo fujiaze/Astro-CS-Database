@@ -1,5 +1,7 @@
 # Module: healpix_browser_qt
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## 职责
 
 HiPS/HEALPix 球面浏览器（Qt6 + OpenGL，STF 显示，可选构建）。

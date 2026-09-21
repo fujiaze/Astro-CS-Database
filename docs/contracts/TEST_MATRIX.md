@@ -1,6 +1,8 @@
 # TEST-001 — 科学测试矩阵（V6）
 
 > 状态: ACTIVE  版本: 1.0.0  owner: AstroCS
+> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+
 > 上游: SCI-001..003, DATA-001  下游: 各模块 P1-*/P2-*/P3-* 测试任务, CPU-006
 > 规则: 每个 SCI/ALG ID 至少一个独立 TEST; 容差事前冻结; 影响触发按 07 矩阵。
 
@@ -30,7 +32,7 @@
 | SCI/ALG | TEST ID（现有） | Oracle 类型 | 容差 | 测试文件 |
 |---|---|---|---|---|
 | SCI-CAL-001 | TEST-CAL-001 | analytic | max_abs=0 / rtol=1e-6 | lib/algorithms/calibration/tests/test_photometry_apply.cpp |
-| SCI-WCS-001 | TEST-IPV-001 | high-precision | WCS roundtrip 1e-6px | lib/algorithms/platesolve/cpp/ipv/test/test_synthetic.cpp |
+| SCI-WCS-001 | TEST-IPV-001 | high-precision | WCS roundtrip 1e-8px（FIX-406 收紧） | lib/algorithms/platesolve/cpp/ipv/test/test_synthetic.cpp |
 | SCI-PHOT-001 | TEST-PHOT-001 | analytic | flux rtol=1e-6 | lib/algorithms/photometry/... |
 | SCI-PSF-001 | TEST-PSF-001 | high-precision | centroid/FWHM 门 | lib/algorithms/psf/... |
 | SCI-NOISE-001 | TEST-NOISE-001..015 | analytic+MC | 固定 seed 统计界 | lib/algorithms/noise_snr/.../noise_model_science_test.cpp |
@@ -39,7 +41,7 @@
 | SCI-REJ-001 | TEST-REJ-001..008 | property+boundary | precision/recall 门 | lib/algorithms/coverage/tests/... |
 | SCI-INT-001 | TEST-INT-001 | analytic | mean/weighted mean 解析 | lib/algorithms/coverage/tests/... |
 | SCI-CW-001 | TEST-CW-001..008 | property | snr 扰动不变 | lib/algorithms/coverage/tests/... |
-| SCI-P3-001 | SYN-007 五件套 | analytic+property | WCS 1e-6px; 常数场 | tools/validation/phase3 (待建, P3-006) |
+| SCI-P3-001 | SYN-007 五件套 | analytic+property | WCS 1e-6px; 常数场 | eng/tools/validation/phase3 (待建, P3-006) |
 
 ## 4. 影响触发（扩大验证条件）
 

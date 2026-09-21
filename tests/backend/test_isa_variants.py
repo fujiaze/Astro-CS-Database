@@ -43,7 +43,7 @@ class TestIsaVariants(unittest.TestCase):
         subprocess.run(["g++", "-std=c++17", "-O2", "-DNDEBUG", f"-I{INC}", f"-I{HOST}", "-c",
                         os.path.join(HOST, "baseline_backend.cpp"), "-o", base_obj],
                        capture_output=True, text=True, timeout=120)
-        scan = subprocess.run(["python3", os.path.join(REPO, "tools", "check_baseline_opcodes.py"),
+        scan = subprocess.run(["python3", os.path.join(REPO, "eng", "tools", "check_baseline_opcodes.py"),
                                base_obj], capture_output=True, text=True, timeout=120)
         self.assertEqual(scan.returncode, 0, "baseline 不得含 AVX opcode")
         dis = self._objdump(self.vso)

@@ -124,7 +124,5 @@ setCentralWidget(view);
 
 ## 设计文档
 
-- 核心算法：`docs/superpowers/specs/2026-07-13-cpp-qt-browser-core-design.md`
-- UI 前端：`docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md`
-- 实现计划：`docs/superpowers/plans/2026-07-13-cpp-qt-browser.md`
+- 核心算法 / UI 前端 / 实现计划：`docs/modules/healpix_browser_qt.md`（模块页；原 superpowers 设计稿已删，见 git 历史）
 - 模块记忆：`memory.md`

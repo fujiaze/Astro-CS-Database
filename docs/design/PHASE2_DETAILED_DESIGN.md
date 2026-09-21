@@ -1,5 +1,7 @@
 # Phase2 目标态详细设计
 
+> 上游：ASTROCS_DESIGN.md §5（mosaic：相对定标·排异·集成）
+
 文档 ID：`DESIGN-P2-001`  
 状态：`TARGET_NORMATIVE`  
 使命：把一组合同兼容的 Phase1 球面产品相对定标、排异并合成为可继续测量的马赛克；对不同科学目标提供明确的最优统计量，而不是一个万能 weight。

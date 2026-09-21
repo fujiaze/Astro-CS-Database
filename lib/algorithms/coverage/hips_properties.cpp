@@ -3,14 +3,13 @@
 
 #include <cstdio>
 #include <cstring>
-#if defined(_WIN32)
-#include "dirent_win.h"
-#else
-#include <dirent.h>
-#endif
-#include <sys/stat.h>
 
-#include <fstream>
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 目录枚举与
+// 整文件读取一律经 aio 唯一实现 (aio_atomic::for_each_child / aio_file::read_all),
+// 本 TU 不再 include <dirent.h>/<fstream> 自持 I/O 通道。
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"
+
 #include <sstream>
 
 namespace astrocs::phase3 {
@@ -134,35 +133,43 @@ bool hips_product_validate(const std::string& product_dir, HipsProperties* out,
     const auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
     if (!path_is_safe(product_dir, err)) return false;
     const std::string props_path = product_dir + "/properties";
-    std::ifstream f(props_path, std::ios::binary);
-    if (!f) return fail("properties not found: " + props_path);
-    std::stringstream buf; buf << f.rdbuf();
-    if (!hips_properties_parse(buf.str(), out, err)) return false;
-    // 缺 tile 探测: Norder<order>/Dir*/Npix*.fits 至少 1
+    std::string props_text;
+    if (!aio_file::read_all(props_path.c_str(), &props_text))
+        return fail("properties not found: " + props_path);
+    if (!hips_properties_parse(props_text, out, err)) return false;
+    // 缺 tile 探测: Norder<order>/Dir*/Npix*.fits 至少 1 (目录枚举经 aio)
     const std::string order_dir = product_dir + "/Norder" + std::to_string(out->order);
-    DIR* d = opendir(order_dir.c_str());
-    if (!d) return fail("order directory missing (no tiles): " + order_dir);
+    int order_is_dir = 0;
+    if (!aio_atomic::path_exists(order_dir, &order_is_dir) || !order_is_dir)
+        return fail("order directory missing (no tiles): " + order_dir);
     bool found = false;
-    const dirent* e;
-    while ((e = readdir(d)) != nullptr) {
-        const std::string n = e->d_name;
-        if (n.rfind("Dir", 0) != 0) continue;
-        const std::string subdir = order_dir + "/" + n;
-        DIR* d2 = opendir(subdir.c_str());
-        if (!d2) continue;
-        const dirent* e2;
-        while ((e2 = readdir(d2)) != nullptr) {
-            const std::string t = e2->d_name;
-            if (t.rfind("Npix", 0) == 0 &&
-                t.size() > 5 && t.compare(t.size() - 5, 5, ".fits") == 0) {
-                found = true;
-                break;
-            }
-        }
-        closedir(d2);
-        if (found) break;
-    }
-    closedir(d);
+    auto base_name = [](const std::string& p) {
+        const std::size_t s = p.find_last_of("/\\");
+        return (s == std::string::npos) ? p : p.substr(s + 1);
+    };
+    int abort_rc = 0;
+    const int rc = aio_atomic::for_each_child(
+        order_dir,
+        [&](const std::string& subdir, int kind) -> int {
+            if (kind != 1) return 0;                 // 只下钻目录 (opendir 语义等价)
+            if (base_name(subdir).rfind("Dir", 0) != 0) return 0;
+            (void)aio_atomic::for_each_child(
+                subdir,
+                [&](const std::string& tile, int tkind) -> int {
+                    if (tkind != 0) return 0;
+                    const std::string t = base_name(tile);
+                    if (t.rfind("Npix", 0) == 0 && t.size() > 5 &&
+                        t.compare(t.size() - 5, 5, ".fits") == 0) {
+                        found = true;
+                        return 1;                    // 中止本层枚举
+                    }
+                    return 0;
+                },
+                nullptr);
+            return found ? 1 : 0;                    // 已找到 ⇒ 中止外层
+        },
+        &abort_rc);
+    if (rc != 0) return fail("order directory unreadable: " + order_dir);
     if (!found) return fail("no Npix*.fits tile under " + order_dir + " (missing tiles)");
     return true;
 }

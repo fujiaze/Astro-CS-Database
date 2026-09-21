@@ -1,5 +1,7 @@
 # AstroCS CLI 协议合同 v1（API-002 冻结）
 
+> 上游：ASTROCS_DESIGN.md §7.1（命令树）、§7.2（配置、事件与退出码）
+
 > ID: API-CLI-001  状态: FROZEN  上游: API-001/ARCH-002  下游: CLI-001/002/003, API-003..005(handler 追溯), BENCH-005
 > 命令树 = `ASTROCS_DESIGN.md` §6.1/§6.2 的**唯一命令树**：用户命令只有
 > normalize/mosaic/export + help/--version/doctor/benchmark；`phase1|2|3` 用户命令与
@@ -54,7 +56,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 > 与本流的 `kind` **不得混用**，两份流各用**不同工件名**、不得互相冒充。
 
 - 每行必含: `schema_version,event_id,run_id,timestamp_utc,sequence,kind,severity,phase,stage,message`;`sequence` 从 0 单调递增。
-- kind 扩展字段: progress{completed,total,unit,rate,eta_seconds} / resource{cpu_cores_used,rss_bytes,io_read_bytes,io_write_bytes,threads} / artifact{role,path,sha256,size_bytes,integrity_sha256,canonical_sha256,canonical_hash_spec,canonical_format}（**DET-001**：sha256=整文件字节摘要(完整性)，canonical_sha256=规范产品哈希(像素数据+科学元数据，排除易变卡/键；口径 spec=astrocs.canonical-product-hash/v1，见 tools/canonical_product_hash.py --spec)；可复现性判据用 canonical_sha256，不得用 sha256） / backend{kernel,backend_id,isa,workers,block_size,reason} / final{exit_code,status,run_manifest,summary}。
+- kind 扩展字段: progress{completed,total,unit,rate,eta_seconds} / resource{cpu_cores_used,rss_bytes,io_read_bytes,io_write_bytes,threads} / artifact{role,path,sha256,size_bytes,integrity_sha256,canonical_sha256,canonical_hash_spec,canonical_format}（**DET-001**：sha256=整文件字节摘要(完整性)，canonical_sha256=规范产品哈希(像素数据+科学元数据，排除易变卡/键；口径 spec=astrocs.canonical-product-hash/v1，见 eng/tools/canonical_product_hash.py --spec)；可复现性判据用 canonical_sha256，不得用 sha256） / backend{kernel,backend_id,isa,workers,block_size,reason} / final{exit_code,status,run_manifest,summary}。
 - 重计算 stage 必发 `stage_start/stage_end`+实际 backend 事件;GUI/未来客户端只消费本协议(禁链接科学库绕过 CLI)。
 - schema: `contracts/schemas/jsonl_event_v1.schema.json`(CLI-002 golden 用;**派生件**，不得自成第二份定义)。
 
@@ -64,7 +66,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 - 取消后: 关 writer→写 incomplete manifest→删除/隔离临时产物→exit 9;**不得留下看似完整的 HiPS/结果**(与 ARCH-002 §5/ARCH-005 §3 原子单元一致)。
 - 未捕获异常→70+run_id/阶段/最小脱敏 crash report(不泄露凭据)。
 
-## 6 机器化一致性检查器合同(API-002 建立 `tools/check_cli_protocol.py`)
+## 6 机器化一致性检查器合同(API-002 建立 `eng/tools/check_cli_protocol.py`)
 
 1. `--help` golden 树与 §1 逐行一致;
 2. JSON/JSONL 样例对 schema 有效(jsonschema 或 stdlib 等价校验);

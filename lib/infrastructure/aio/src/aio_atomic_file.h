@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
+#include <new>
 #include <string>
 
 #ifdef _WIN32
@@ -198,6 +199,86 @@ inline int write_file_atomic_stream(const std::string& final_path,
 }
 
 // ============================================================================
+// 追加写句柄 (日志/诊断面; aio 唯一实现) — CLEAN-403 补能力
+// ----------------------------------------------------------------------------
+// 依据: ASTROCS_DESIGN.md §10「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」。
+// 语义: 打开 <path> 追加 (不存在则创建; 父目录由调用方经 make_dirs 建) →
+//       多次 append_write → append_close (flush + close)。调用方只持有**不透明
+//       句柄**, 不接触 FILE*, 本仓无第二处追加写实现。
+// 失败: append_open 返回 nullptr; append_write 返回 0 成功 / errno; 
+//       append_close 返回 0 或 errno (句柄必被释放)。
+// ============================================================================
+struct AppendSink {
+    std::FILE* f;
+    std::string path;
+};
+
+inline AppendSink* append_open(const std::string& path, std::string* err) {
+    std::FILE* f = aio_fopen_utf8(path.c_str(), "ab");
+    if (!f) {
+        if (err) *err = "append open failed: " + path;
+        return nullptr;
+    }
+    AppendSink* s = new (std::nothrow) AppendSink();
+    if (!s) {
+        std::fclose(f);
+        if (err) *err = "append alloc failed: " + path;
+        return nullptr;
+    }
+    s->f = f;
+    s->path = path;
+    return s;
+}
+
+inline int append_write(AppendSink* s, const void* data, std::size_t n) {
+    if (!s || !s->f) return EINVAL;
+    if (n != 0 && std::fwrite(data, 1, n, s->f) != n)
+        return errno ? errno : EIO;
+    return 0;
+}
+
+inline int append_write_str(AppendSink* s, const std::string& text) {
+    return append_write(s, text.data(), text.size());
+}
+
+// 顺序写句柄 (truncate/create; 与 append_open 同句柄类型, 差异只在打开模式
+// "wb" vs "ab")。CLEAN-403 补能力: 供逐块顺序写大二进制产品。
+inline AppendSink* write_open_trunc(const std::string& path, std::string* err) {
+    std::FILE* f = aio_fopen_utf8(path.c_str(), "wb");
+    if (!f) {
+        if (err) *err = "write open failed: " + path;
+        return nullptr;
+    }
+    AppendSink* s = new (std::nothrow) AppendSink();
+    if (!s) {
+        std::fclose(f);
+        if (err) *err = "write alloc failed: " + path;
+        return nullptr;
+    }
+    s->f = f;
+    s->path = path;
+    return s;
+}
+
+// 立即刷出缓冲 (崩溃可见性; 与 std::ofstream::flush 同语义)。返回 0 或 errno。
+inline int append_flush(AppendSink* s) {
+    if (!s || !s->f) return EINVAL;
+    if (std::fflush(s->f) != 0) return errno ? errno : EIO;
+    return 0;
+}
+
+inline int append_close(AppendSink* s) {
+    if (!s) return 0;
+    int rc = 0;
+    if (s->f) {
+        if (std::fflush(s->f) != 0) rc = errno ? errno : EIO;
+        if (std::fclose(s->f) != 0 && rc == 0) rc = errno ? errno : EIO;
+    }
+    delete s;
+    return rc;
+}
+
+// ============================================================================
 // 文件系统机制原语 (aio 唯一实现)
 // ----------------------------------------------------------------------------
 // 依据: ASTROCS_DESIGN.md §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5
@@ -241,6 +322,34 @@ inline int path_size(const std::string& path, uint64_t* size, int* is_dir) {
     if (size) *size = static_cast<uint64_t>(st.st_size);
 #endif
     return 1;
+}
+
+// 绝对化路径 (相对路径按当前工作目录展开; 不做符号链接解析; CLEAN-403 补能力)。
+// 返回 true = out 已回填 (POSIX 绝对 = 以 '/' 开头; Windows = 盘符或 UNC 前缀)。
+inline bool absolute_path(const std::string& path, std::string* out) {
+    if (!out) return false;
+    if (path.empty()) { out->clear(); return false; }
+#ifdef _WIN32
+    const bool is_abs = (path.size() >= 2 && path[1] == ':') ||
+                        (path.size() >= 2 && (path[0] == '\\' || path[0] == '/') &&
+                         (path[1] == '\\' || path[1] == '/'));
+#else
+    const bool is_abs = (path[0] == '/');
+#endif
+    if (is_abs) { *out = path; return true; }
+#ifdef _WIN32
+    char cwd[4096];
+    if (_getcwd(cwd, sizeof(cwd)) == nullptr) { out->clear(); return false; }
+    const char sep = '\\';
+#else
+    char cwd[4096];
+    if (getcwd(cwd, sizeof(cwd)) == nullptr) { out->clear(); return false; }
+    const char sep = '/';
+#endif
+    std::string base(cwd);
+    if (!base.empty() && base.back() != '/' && base.back() != '\\') base.push_back(sep);
+    *out = base + path;
+    return true;
 }
 
 // 逐段 mkdir -p (EEXIST 忽略)。返回 0 或 errno。
@@ -424,6 +533,43 @@ inline int remove_tree(const std::string& path, int depth) {
     closedir(d);
     if (rmdir(path.c_str()) != 0 && errno != ENOENT) return errno;
 #endif
+    return 0;
+}
+
+// 复制文件 (机制; CLEAN-403 补能力)。流式 64 KiB 分块 → 临时文件 → fflush →
+// fsync → 原子 rename 覆盖目标 (不出现半写副本; 同目录 ⇒ 不跨文件系统)。
+// overwrite=false 且目标已存在 ⇒ 返回 EEXIST (不覆盖)。返回 0 或 errno。
+inline int copy_file(const std::string& src, const std::string& dst, bool overwrite) {
+    if (!overwrite && path_exists(dst, nullptr)) return EEXIST;
+    std::FILE* in = aio_fopen_utf8(src.c_str(), "rb");
+    if (!in) return errno ? errno : EIO;
+    const std::string tmp = make_tmp_path(dst);
+    std::FILE* out = aio_fopen_utf8(tmp.c_str(), "wb");
+    if (!out) { std::fclose(in); return errno ? errno : EIO; }
+    char buf[64 * 1024];
+    std::size_t n = 0;
+    int rc = 0;
+    while ((n = std::fread(buf, 1, sizeof(buf), in)) > 0) {
+        if (std::fwrite(buf, 1, n, out) != n) { rc = errno ? errno : EIO; break; }
+    }
+    if (rc == 0 && std::ferror(in) != 0) rc = errno ? errno : EIO;
+    if (std::fclose(in) != 0 && rc == 0) rc = errno ? errno : EIO;
+    if (rc == 0 && std::fflush(out) != 0) rc = errno ? errno : EIO;
+#ifdef _WIN32
+    if (rc == 0 && _commit(_fileno(out)) != 0) rc = errno ? errno : EIO;
+#else
+    if (rc == 0 && fsync(fileno(out)) != 0) rc = errno ? errno : EIO;
+#endif
+    if (std::fclose(out) != 0 && rc == 0) rc = errno ? errno : EIO;
+    if (rc != 0) { std::remove(tmp.c_str()); return rc; }
+    if (atomic_replace(tmp, dst) != 0) {
+        const int are = errno ? errno : EIO;
+        std::remove(tmp.c_str());
+        return are;
+    }
+    const std::size_t slash = dst.find_last_of("/\\");
+    if (slash != std::string::npos && slash != 0)
+        (void)fsync_path(dst.substr(0, slash), 1);   // 父目录 fsync (尽力)
     return 0;
 }
 

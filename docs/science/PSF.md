@@ -1,5 +1,7 @@
 # PSF Science (SCI-PSF)
 
+> 上游：ASTROCS_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）
+
 > ID: SCI-PSF-001  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-STARPSF-001..  模块: dynamic_psf
 
 ## 1 目的与非目标
@@ -145,7 +147,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 - §11 Oracle 全过：FWHM 缩放不变量、解析/数值积分一致性、参数拒门；
 - §7/§8 全过；
-- `tools/science_contract_lint.py` PASS；
+- `eng/tools/science_contract_lint.py` PASS；
 - 解析不变量→SYN-002 转换：解析 PSF 星场（已知 A/σ/θ）、q_psf 边界、饱和标志用例登记 SYN-002。
 
 > 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门不得引用表外阈值）。

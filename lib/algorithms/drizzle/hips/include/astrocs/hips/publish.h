@@ -1,8 +1,8 @@
 /* publish.h - HiPS 原子发布原语 v1 合同头 (AIO-002)
  *
  * 任务: AIO-002 (ASTROCS-CONSTITUTION-ALIGNMENT-V1) "实现HiPS原子发布与临时
- * 目录清理"。对齐 IO-003 发布流水线 (docs/interfaces/io/IO_003_ATOMIC_OUTPUT_
- * PUBLISH.md §4: 临时写 → 关闭/fsync → 校验 → 原子 rename → 完成标记) 的
+ * 目录清理"。对齐 IO-003 发布流水线 (docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md
+ * §4: 临时写 → 关闭/fsync → 校验 → 原子 rename → 完成标记) 的
  * C ABI 化最小面; 收口 DISP-HIPS-001 (abort 不清理已写文件) / DISP-HIPS-004
  * (无原子发布, aio_hips_writer.cpp:185-186 remove+create 直写) 的模块事务面;
  * 临时目录 RAII 自愈对齐 V7 历史登记 (make_tmp_dir 无清理, 24G tmpfs 填满

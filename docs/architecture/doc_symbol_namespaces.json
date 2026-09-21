@@ -10,7 +10,7 @@
     },
     {
       "id": "glossary_terms",
-      "note": "docs/GLOSSARY.md = 唯一术语权威（DOC-001 冻结，18 术语，机器门 tools/check_glossary.py）",
+      "note": "docs/GLOSSARY.md = 唯一术语权威（冻结定义，18 术语，机器门 eng/tools/check_glossary.py）",
       "source": "docs/GLOSSARY.md"
     },
     {
@@ -66,7 +66,7 @@
       "token": "p2_write_descriptor",
       "namespace": "registry_descriptor",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057",
-      "reason": "Phase2 write 节点的 registry descriptor 构造器（编排层词汇；api_inventory 只登记函数签名 ⇒ 需显式登记命名空间）。行锚 = EXP-203 C1b 同面实测 `grep -n p2_write_descriptor → :1040`，函数体止于 :1057"
+      "reason": "Phase2 write 节点的 registry descriptor 构造器（编排层词汇；api_inventory 只登记函数签名 ⇒ 需显式登记命名空间）。行锚 = 同面实测 `grep -n p2_write_descriptor → :1040`，函数体止于 :1057"
     }
   ]
 }

@@ -37,6 +37,11 @@
 #include "aio_hips_reader.h"
 #include "hips_properties.h"
 
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 子产品 properties
+// 的整文件读取经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 FILE*。
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"
+
 namespace astrocs::phase3 {
 
 namespace {
@@ -428,15 +433,14 @@ P3ResampleStatus p3_uncertainty_open(const char* product_dir, int signal_order,
     const std::string root = std::string(product_dir);
     for (const auto& c : cands) {
         const std::string props_path = root + "/" + c.sub + "/properties";
-        std::FILE* pf = std::fopen(props_path.c_str(), "rb");
-        if (!pf) continue;                       // 子产品不存在 → 试下一候选
+        // CLEAN-403: 读取经 aio (aio_file::read_all)。
+        // 子产品不存在 → 试下一候选 (与原 fopen 失败同语义);
+        // 存在但读取失败 → P3_RS_IO (fail-closed, 不静默跳过)。
+        int props_is_dir = 0;
+        if (!aio_atomic::path_exists(props_path, &props_is_dir) || props_is_dir)
+            continue;
         std::string text;
-        char buf[4096];
-        size_t n;
-        while ((n = std::fread(buf, 1, sizeof(buf), pf)) > 0) text.append(buf, n);
-        const bool read_ok = (std::ferror(pf) == 0);
-        std::fclose(pf);
-        if (!read_ok) return P3_RS_IO;
+        if (!aio_file::read_all(props_path.c_str(), &text)) return P3_RS_IO;
         // properties 存在 → 键集严格解析 + order 一致性 (无 silent default)
         HipsProperties p{};
         std::string err;

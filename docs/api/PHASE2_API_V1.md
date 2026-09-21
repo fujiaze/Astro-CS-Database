@@ -1,5 +1,7 @@
 # Phase2 API 定义 v1 (API-004 冻结 — 数据所有权/thread budget/逐函数)
 
+> 上游：ASTROCS_DESIGN.md §5（mosaic）、§8.4（模块与 ABI）
+
 > ID: API-P2-001  范围: API-P2-001..012  状态: FROZEN；**用户命令面 = `mosaic`**  上游: API-001/002/003  下游: 用户命令 `mosaic`(CLI-001;`phase2 run` 不在命令面上, rc=2)/TST-P2-*
 > 签名权威=现存头文件(lib/algorithms/coverage/include/astro/phase2/*.h);本文件登记并发合同、**数据所有权**与 thread budget 绑定;禁止隐藏全局状态(验收)。
 

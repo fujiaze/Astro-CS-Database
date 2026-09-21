@@ -93,6 +93,21 @@ std::string hips_properties_text(const char* bunit) {
 }
 
 // 手写 signal-only HiPS (同 p3002_uncertainty_test fixture 规则)
+// FIX-402/§10: 手写产品树同样需要完成清单 —— aio_hips_open 消费侧对无清单
+// 产品根 fail-closed（FIX-401「没有完成清单就不算成功对象」）。本 fixture 只含
+// signal 子产品，故清单只声明 signal。
+bool fix402_write_completion_manifest(const std::string& root) {
+  const std::string body =
+      "{\n  \"format_version\": 1,\n  \"product\": \"HiPS\",\n"
+      "  \"hips_order\": 0,\n  \"hips_tile_width\": 512,\n"
+      "  \"data_type\": \"float32\",\n  \"n_leaf_tiles\": 1,\n"
+      "  \"products\": [\"signal\"]\n}\n";
+  std::ofstream m(fs::path(root + "/manifest.json"), std::ios::binary);
+  if (!m) return false;
+  m << body;
+  return true;
+}
+
 bool write_signal_hips(const std::string& root) {
   const std::string root_posix = fs::path(root).generic_string();
   std::error_code ec;
@@ -101,9 +116,15 @@ bool write_signal_hips(const std::string& root) {
   if (ec) return false;
   std::ofstream p(fs::path(root_posix + "/signal/properties"), std::ios::binary);
   if (!p) return false;
-  p << hips_properties_text("ADU");
+  // FIX-402: 生产 Phase3 输入语义守卫只放行**显式声明**的面亮度输入
+  // （ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）: 裸 "ADU" 无像素语义声明
+  // 按"单位不可判"拒绝 ⇒ fixture 按冻结单位表写 canonical signal_sb 串。
+  p << hips_properties_text("ADU/px^2");
+  p << "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
+  p << "ASTROCS_PIXEL_AREA_POWER = -2\n";
   p.close();
   float v = kSigVal;
+  if (!fix402_write_completion_manifest(root_posix)) return false;
   return p1sess::write_fits_file(
              root_posix + "/signal/Norder0/Dir0/Npix0.fits", 512, 512,
              const_px, &v) == 0;
@@ -279,7 +300,12 @@ static void test_nodes_real_operation() {
     } catch (...) { props = json::object(); CHECK(false); }
     CHECK(props.value("schema", "") == "DATA-P3-PROPS");
     CHECK(props.value("hips_order", -1) == 0);      // properties 实测 order
-    CHECK(props.value("bunit", "") == "ADU");
+    // FIX-402: 节点面 bunit = 冻结单位表 canonical 面亮度串（输入声明
+    // BUNIT=ADU/px^2 + 像素语义 ⇒ 守卫归一为 signal_sb 并逐字下传）。
+    CHECK(props.value("bunit", "") == "ADU/px^2");
+    CHECK(props.value("bunit_input", "") == "ADU/px^2");
+    CHECK(props.value("pixel_semantics", "") == "surface_brightness");
+    CHECK(props.value("pixel_area_power", 0) == -2);
     json res;
     try {
       res = json::parse(read_file(fx.out + "/p3_resampled.json"));

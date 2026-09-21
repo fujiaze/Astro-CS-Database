@@ -1,5 +1,7 @@
 # AstroCS Architecture (V5 单一 CLI 冻结版)
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > ID: ARCH-ARCH-001  状态: FROZEN  上游: ARCH-001  下游: API-001..005/ARCH-003..005/CLI-001
 
 ## 1 总览与单一入口

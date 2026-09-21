@@ -3,14 +3,14 @@
 import importlib.util, os, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-spec = importlib.util.spec_from_file_location("ctb", os.path.join(REPO, "tools", "arch", "check_thread_budget.py"))
+spec = importlib.util.spec_from_file_location("ctb", os.path.join(REPO, "eng", "tools", "arch", "check_thread_budget.py"))
 ctb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ctb)
 
 class TestThreadBudget(unittest.TestCase):
     def test_01_real_repo_passes(self):
         import subprocess
-        r = subprocess.run([sys.executable, os.path.join(REPO, "tools", "arch", "check_thread_budget.py")],
+        r = subprocess.run([sys.executable, os.path.join(REPO, "eng", "tools", "arch", "check_thread_budget.py")],
                            capture_output=True, text=True, cwd=REPO, timeout=300)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("未登记线程创建=0 硬编码线程数=0", r.stdout)

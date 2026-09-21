@@ -2,6 +2,8 @@
 
 # PSFSW 冻结阈值册（ALG-P2-PSFSW-001 落定值）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-PSFSW-001-THRESHOLDS`
 - 机器可读同源：`run/v6/alg-p2-psfsw/spec/psfsw_spec.json` → `frozen_thresholds`
 - 授权来源：`PSFW_FREEZE_RESEARCH` §11-R6/R7 与 `SCI-P2-001` §6 open item 4 **显式委托** W3 `ALG-P2-PSFSW-001` 落定；正式冻结由 `CONTRACT-FREEZE-001`(W4) 执行。

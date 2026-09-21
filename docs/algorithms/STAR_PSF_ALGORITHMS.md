@@ -1,5 +1,7 @@
 # PSF Algorithms (ALG-PSF)
 
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+
 > ID: ALG-STARPSF-001  上游 SCI: SCI-PSF-001  状态: DERIVED  模块: star_detector + dynamic_psf
 
 ## 1 上游 SCI 与输入输出

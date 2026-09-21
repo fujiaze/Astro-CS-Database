@@ -1,5 +1,7 @@
 # AstroCS Public API Standard
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## 公共 API（C ABI DLL 边界）
 
 - 头文件必须 extern "C" + 导出宏（AC_API / AIO_* / P2_API 等）。

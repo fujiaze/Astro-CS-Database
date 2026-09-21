@@ -2,6 +2,8 @@
 
 # 03 — covariance / variance / correlation 对象 schema
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 上位锚：`FZ-FORMULA-COV-PROP`、`FZ-PROV-SHARED-SYSTEMATIC`、`FZ-GATE-PARENT-VAR`、`FZ-GATE-PIXIVAR-APPROX`；
 UNIFIED §6/§7/§8；DESIGN-P3 §4；ADJ-AR-02/ADJ-OBS-01/ADJ-P2-02；`RULINGS.md` #5；PROJECT_SPEC §3。
 机器：`contracts/proposals/v6/data/astrocs.v6.covariance.v1.schema.json`（`covariance.v1`）。

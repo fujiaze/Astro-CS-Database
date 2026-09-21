@@ -26,6 +26,10 @@
 # ============================================================================
 
 set(P1PSF_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+# CLEAN-403: 被测生产源 dpsf_log.cpp/sdet_log.cpp 的日志追加写经 aio 机制原语
+# (aio_atomic_file.h, header-only) ⇒ 本目录测试目标需要 aio/src include 面。
+# 仅构建接线; 测试桩与其 I/O 未改动 (白名单登记见 eng/ci/ledgers)。
+include_directories(${P1PSF_DIR}/../../../../infrastructure/aio/src)
 set(P1PSF_SRC ${P1PSF_DIR}/../../src)
 set(P1PSF_INC ${P1PSF_DIR}/../../include)
 
@@ -98,7 +102,7 @@ add_test(NAME p1psf_prodpath_centroid COMMAND p1psf_prodpath_check_test)
 # 相差恰 0.5000 px, 而 ipv 去重阈值是严格 < 0.5 px ⇒ 同星双份进 ipv。
 # 本 target 链接 **两条支路的真实生产源** (sdet 5 TU + dpsf 2 TU) 与生产坐标
 # 契约头 star_coord_contract.h (orchestrator 写端/读端唯一事实源)。
-# 判据与阈值来源: docs/science/GATES_AND_TOLERANCES.md G-P1-CENTROID-1 行
+# 判据与阈值来源: docs/algorithms/GATES_AND_TOLERANCES.md G-P1-CENTROID-1 行
 # (median <= 0.1 px / p95 <= 0.3 px / 双支路分离 <= 0.05 px / dpsf 系 0.05 px)。
 # 正例 p1psf_centroid_gate 必 PASS; 负例 p1psf_centroid_gate_neg 用修复前映射
 # 重算, 必须以 >= 0.4 px 分离被检出 (能红能绿, ENGINEERING_SPEC §8)。

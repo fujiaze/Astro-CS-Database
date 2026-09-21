@@ -1,5 +1,7 @@
 # 插件文档：aio（I/O 与原子提交）
 
+> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
+
 ## 1. 职责与边界
 
 - **职责**：FITS/HiPS/manifest 的**唯一 I/O 边界**：读、写、校验、原子提交、缓存。

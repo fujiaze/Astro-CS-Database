@@ -1,5 +1,7 @@
 # Phase3 HiPS → 平面 WCS FITS 科学合同 (SCI-P3)
 
+> 上游：ASTROCS_DESIGN.md §6.2（export 流程）、§6.3（投影算法）
+
 > ID: SCI-P3-001  范围: SCI-P3-001..020  状态: FROZEN  上游: SCI-WCS/SCI-DRZ/SCI-SCOPE  下游 ALG: ALG-P3-001..  模块: phase3 (未实现,本合同为施工边界)
 
 ## 1 目的与非目标
@@ -78,7 +80,7 @@ coverage:
 
 ## 7 独立不变量
 
-- **WCS 往返不变量**：`pixel→world→pixel` 误差 `<1e-6 px`（FP64）。
+- **WCS 往返不变量**：`pixel→world→pixel` 误差 `<1e-8 px`（FP64；生产注册表 `kTanApplicability.roundtrip_tol_px`，`p3_wcs.cpp:191`）。
 - **常数场不变量**：常数球面面亮度场 `B0` → 有效区输出恒 `B0`（nearest 与 bilinear 均）。
 - **bilinear 权重和**：4 邻域权重和 = 1 ± k·ULP（FP64 累加；**不作逐位/精确断言**——
   IEEE-754 下「恒为 1」不可满足；k 由累加 dtype 决定，测试以相对容差判）。
@@ -123,7 +125,7 @@ coverage:
 11. **FITS 关键字**：`BITPIX=-32/-64`；`BSCALE=1,BZERO=0`；`BUNIT` 按 properties（缺省 'ADU'）；WCS=`CRPIX/CRVAL/CD1_1,1_2,2_1,2_2/CTYPE=TAN/CUNIT=deg`；`HISTORY+provenance`（源 HiPS 标识/order_sel/sampler/软件版本/manifest hash）必写。
     `CRVAL=(center.RA, center.Dec)` 且**两个分量都进映射**；LONPOLE 取 Paper II 标准默认
     （δ0≥θ0 ⇒ 0° 否则 180°），读方无需额外关键字即可复现。
-12. **插值误差/投影畸变/容差/FOV**：nearest 无插值误差，bilinear O(h²) 且 h≤s_out；TAN 畸变随 FOV 增长——**alpha 适用 FOV ≤20°** 冻结（中心距极点 ≥5°）；容差：WCS roundtrip 1e-6 px、解析场容差由 SYN-007 **预冻结**。
+12. **插值误差/投影畸变/容差/FOV**：nearest 无插值误差，bilinear O(h²) 且 h≤s_out；TAN 畸变随 FOV 增长——**alpha 适用 FOV ≤20°** 冻结（中心距极点 ≥5°）；容差：WCS roundtrip 1e-8 px（生产注册表 `p3_wcs.cpp:191`）、解析场容差由 SYN-007 **预冻结**。
 
 ## 10 不可接受变化
 
@@ -142,7 +144,7 @@ coverage:
 
 ## 13 追溯与测试
 
-权威文件: 本文件（SCI-P3-001）；实现: 待建（CLI-006/P3-001..004）；测试: SYN-007 五件套（`tools/validation/phase3`，SYN-007 任务建立）。
+权威文件: 本文件（SCI-P3-001）；实现: 待建（CLI-006/P3-001..004）；测试: SYN-007 五件套（`eng/tools/validation/phase3`，SYN-007 任务建立）。
 
 ## 14 Primary literature（引用定位声明）
 
@@ -185,7 +187,7 @@ coverage:
 
 - §11 Oracle 十二项全过且 Oracle 独立性成立（不调生产路径）；
 - `UNRESOLVED-SCIENCE=0`（§9a 十二项全部冻结，无 TBD/二选一）；
-- `tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
+- `eng/tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
 - alpha 最小范围=13 §4 候选清单（单通道/ICRS/NESTED/TAN/显式 center-scale-W-H/nearest+bilinear/coverage/float32+64），**收窄不扩大**。
 
 ## 16 登记面：§5.3 输入语义守卫与产品 provenance 现状
