@@ -1,5 +1,7 @@
 # Phase2 UPM (Control Photometry) Science (SCI-UPM)
 
+> 上游：ASTROCS_DESIGN.md §5.4（天光平面与统一相对模型）
+
 > ID: SCI-UPM-001  范围: SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 + SCI-UPM-PERSIST-001  状态: FROZEN (T106 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-UPM-001..  模块: phase2 (upm/sampler)
 
 ## 1 目的与非目标
@@ -202,3 +204,44 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 - §7 不变量门全过；
 - `tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
 - 解析不变量→SYN-005 转换：已知低阶光度面恢复、重叠图 gauge/退化强度扫描、接缝指标预冻结门槛（SYN-005 数据与不变量表），参数恢复/残差/接缝降低且不破坏星 flux 全过。
+
+## 16 SCI-C 实验结论（RELEASE-04 / SCI-403，仓内实测）
+
+实验单元：`实验/SCI-C/`（报告 `README.md`，机器可读结果 `results/*.json`，
+一键复跑 `code/run_all.sh`）。**本节只记录已定稿的实测结论，不改变任何公式或默认容差。**
+
+### 16.1 已证实的结论（data 级，生产代码实测）
+
+1. **多退少补正确**：产品 `calibrated_k = raw_k − δ_k`（**保留 B_ref**）在覆盖子集突变处把
+   背景电平接缝从 4.80 e⁻ 压到 **0.383 e⁻（12.5×）**；产品中位 299.17 e⁻ ≈ B_ref 297.33 e⁻。
+   全减背景臂（`raw − b_k`）产品中位 0.845 e⁻ ⇒ **退化，不得用作无接缝证据**。
+2. **B_ref 是规范零点**：`b_k − δ_k` 与帧无关（5.7e-14）；gauge 0↔1 只造成 δ_k 的逐帧常数
+   偏移（5.3e-15），接缝度量不变（差 0.0）。
+3. **权重**：`control_ivar` 的伪影漏入 0.0245 e⁻，比 uniform（0.0651）小 2.7×、比 SNR²（0.3203）
+   小 13×；噪声 RMS 亦为三臂最小（1.532 < 1.674 < 2.069 e⁻）。与 SCI-402 的独立结论一致。
+4. **稀疏现场求值**：dense cache 与 sparse `calibrate_block` 在 1,048,576 点上 max|Δ| = 3.1e-15；
+   稀疏模型 14,001 B vs 稠密 8,389,129 B（0.167%）；按需求值 64² 块峰值 RSS 低于稠密物化 512²。
+
+### 16.2 适用域边界（**新增，必须与结论一同引用**）
+
+1. **无接缝 ⟺ 公共面可表示**。当帧间天光差含「B_ref 不可表示且沿 y 相干」的分量时，
+   残余接缝 ≈ 0.80 × 该分量 RMS（Pearson 0.896）；空间尺度 ≲2× 节点间距（≈256 px）时显著
+   （1600→50 px 扫描使残余接缝 ×5.07）。
+2. **纯加性前提**：帧间乘性差必须先在 Phase1 吸收（实测 5.89e-4）。未做 Phase1 归一时
+   （历史 `photometry_applied=false`/`photscal=1.0`，1.56× 帧差），纯加性 UPM 后接缝 27.37 e⁻，
+   做了 Phase1 后 6.31 e⁻（**4.33×**）。基外高频乘性分量（1%@24 px）对**电平**接缝贡献有界
+   （<50% 基线），但会被分块 PSD 检出（k=4 vs 预期 5.33）。
+3. **不可检验域**：`smoothing_lambda=0` 时 per-(frame,cell) 自由加性场恰好定解，公共场 M 只是
+   每 cell 的规范选择 ⇒「拟合/堆叠权重同源」与「末端残差场扣除」在该域内**不可检验**；
+   `final_gauge` 在 `m_full_frame=1` 时近似 no-op（3.7e-3 e⁻），且**不能**修复子集依赖。
+
+### 16.3 生产缺陷登记（FIX，本单元未改任何生产代码）
+
+| ID | 位置 | 现象 | 实测 |
+|---|---|---|---|
+| FIX-1 | `lib/infrastructure/scheduler/src/module_adapters.cpp:5941-5942` | 绝对容差 `tolerance=1e-6`, `tolerance_relative=0` 在 ~300 e⁻ 尺度**永不收敛** | 300 次迭代 `converged=0` |
+| FIX-2 | 同上 `out_converged` | 只有 0/1，**无法区分** max_iter 与 stalled（规范要求 0/1/2/3） | 两例均返回 0 |
+| FIX-3 | 天光面正规方程 | 真实 M42 样本 κ = 3.16e7（近奇异） | χ²_red 1.004 但条件数逼近默认 `kappa_max` |
+
+建议（供前台裁决）：FIX-1 启用 `tolerance_relative=1` 或按观测尺度归一；
+FIX-2 按 §7 语义补 `stalled` 分支；FIX-3 提高粗糙度惩罚或节点数自适应。

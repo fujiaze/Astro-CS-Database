@@ -1,0 +1,154 @@
+{
+  "sampling": {
+    "n_samples": 1396,
+    "per_frame": {
+      "A": 382,
+      "B": 379,
+      "C": 379,
+      "D": 256
+    }
+  },
+  "sky_build": {
+    "rc_build": 0,
+    "n_used": 1396,
+    "n_frames": 4,
+    "n_nodes": 49,
+    "n_params": 58,
+    "rank": 49,
+    "kappa": 3003010.370895054,
+    "rms_weighted": 3.863948985651632,
+    "chi2_red": 1.524026974035178,
+    "iterations": 20,
+    "gauge_shift": 0.0,
+    "n_masked": 0,
+    "n_rejected": 3,
+    "model_hash": "607f93dae3158e7b764f167f3bea41eb6305c178eaa1e68adb1790b0de41fdf4"
+  },
+  "B_ref_frame_independence": {
+    "max_dev": 5.684341886080802e-14,
+    "median": 297.33105962109374
+  },
+  "product": {
+    "delta_median": 299.1680830296443,
+    "full_median": 0.7114752728699898,
+    "none_median": 302.54570224188626,
+    "Bref_median": 297.33105962109374,
+    "delta_neg_frac": 0.0,
+    "full_neg_frac": 0.4839820861816406,
+    "delta_p01": 254.08526335301315
+  },
+  "gauge": {
+    "gauge_shift_ref": 0.0,
+    "gauge_shift_sum": 3.9829249754873475,
+    "per_frame_const_spread": 5.329070518200751e-15,
+    "delta_seam": 0.0,
+    "seam_ref": [
+      -0.350524040739856,
+      -1.1984914868760654,
+      -0.4217860419127817,
+      -0.0912674393736097,
+      0.5719953151748314,
+      0.16008653251864757
+    ],
+    "seam_sum": [
+      -0.350524040739856,
+      -1.1984914868760654,
+      -0.4217860419127817,
+      -0.0912674393736097,
+      0.5719953151748314,
+      0.16008653251864757
+    ]
+  },
+  "seam": {
+    "none": [
+      1.5784875900109228,
+      1.3203874521941827,
+      -5.13358870398676,
+      -5.243079178644507,
+      6.830144458769638,
+      6.131499698867827
+    ],
+    "delta": [
+      -0.350524040739856,
+      -1.1984914868760654,
+      -0.4217860419127817,
+      -0.0912674393736097,
+      0.5719953151748314,
+      0.16008653251864757
+    ],
+    "none_med": 5.1883339413156335,
+    "delta_med": 0.38615504132631884
+  },
+  "gates": {
+    "n": 7,
+    "n_pass": 7,
+    "n_fail": 0,
+    "rows": [
+      {
+        "id": "B1_build_ok",
+        "desc": "生产 p2_sky_plane_build rc=0，每帧 δ_k 非空",
+        "value": 0,
+        "ok": true,
+        "level": "data",
+        "note": ""
+      },
+      {
+        "id": "B2_Bref_shared",
+        "desc": "b_k − δ_k 与帧无关（max 帧间偏差 < 1e-9）",
+        "value": 5.684341886080802e-14,
+        "ok": true,
+        "level": "data",
+        "note": ""
+      },
+      {
+        "id": "B3_background_kept",
+        "desc": "calibrated=raw−δ_k 产品保留背景（中位 > 50 e- 且 ≈ B_ref 中位 ±20%）",
+        "value": {
+          "med": 299.1680830296443,
+          "bref": 297.33105962109374
+        },
+        "ok": true,
+        "level": "data",
+        "note": ""
+      },
+      {
+        "id": "B4_full_subtract_zero",
+        "desc": "全减臂 raw−b_k 产品中位 ≈ 0（对照）",
+        "value": 0.7114752728699898,
+        "ok": true,
+        "level": "data",
+        "note": ""
+      },
+      {
+        "id": "B5_no_negative",
+        "desc": "产品 <0 像素占比 < 1e-3",
+        "value": 0.0,
+        "ok": true,
+        "level": "data",
+        "note": ""
+      },
+      {
+        "id": "B6_gauge_zero_point",
+        "desc": "gauge 规范只差常数（帧内 δ 差 spread < 1e-9）且接缝不变（|Δ|<1e-9）",
+        "value": {
+          "spread": 5.329070518200751e-15,
+          "dseam": 0.0
+        },
+        "ok": true,
+        "level": "data",
+        "note": ""
+      },
+      {
+        "id": "B7_delta_reduces_seam",
+        "desc": "δ_k 多退少补后接缝 < 未校正臂（比值 > 2）",
+        "value": {
+          "none": 5.1883339413156335,
+          "delta": 0.38615504132631884
+        },
+        "ok": true,
+        "level": "data",
+        "note": ""
+      }
+    ]
+  }
+}

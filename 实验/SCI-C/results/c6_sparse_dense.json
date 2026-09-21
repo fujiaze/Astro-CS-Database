@@ -1,0 +1,72 @@
+{
+  "upm_memory": {
+    "sparse_bytes": 14001,
+    "dense_bytes": 8389129,
+    "dense_vs_sparse_max_abs": 3.1086244689504383e-15,
+    "dense_vs_sparse_n": 1048576,
+    "rss_full_grid_kb": 14696,
+    "rss_64block_kb": 11804,
+    "rc_materialize": 0
+  },
+  "size_ratio": 0.0016689456080601454,
+  "sky_plane": {
+    "n_nodes": 49,
+    "n_params": 58,
+    "n_pixels": 262144,
+    "node_ratio": 0.000186920166015625,
+    "delta_subset_max_abs": 0.0,
+    "b_subset_max_abs": 0.0,
+    "model_hash_full": "e6df48461dfdf7154800ce1db209f61addd7adf73c47280cb2103e0a4dd5ce72",
+    "model_hash_sub": "e6df48461dfdf7154800ce1db209f61addd7adf73c47280cb2103e0a4dd5ce72"
+  },
+  "gates": {
+    "n": 4,
+    "n_pass": 4,
+    "n_fail": 0,
+    "rows": [
+      {
+        "id": "E1_dense_equals_sparse",
+        "desc": "生产 dense cache 与 sparse calibrate_block 数值等价（max|Δ| ≤ 1e-12）",
+        "value": 3.1086244689504383e-15,
+        "ok": true,
+        "level": "data",
+        "note": ""
+      },
+      {
+        "id": "E2_sparse_much_smaller",
+        "desc": "稀疏模型持久化体积 < 5% 稠密栅格",
+        "value": {
+          "sparse": 14001,
+          "dense": 8389129,
+          "ratio": 0.0016689456080601454
+        },
+        "ok": true,
+        "level": "data",
+        "note": ""
+      },
+      {
+        "id": "E3_rss_scales_with_block",
+        "desc": "按需求值 64x64 块峰值 RSS < 稠密物化全网格峰值 RSS",
+        "value": {
+          "blk": 11804,
+          "full": 14696
+        },
+        "ok": true,
+        "level": "data",
+        "note": ""
+      },
+      {
+        "id": "E4_sky_on_demand",
+        "desc": "天光面 n_nodes ≪ 像素数 且子集现场求值与全网格逐位一致（≤1e-12）",
+        "value": {
+          "node_ratio": 0.000186920166015625,
+          "dmax": 0.0,
+          "bmax": 0.0
+        },
+        "ok": true,
+        "level": "data",
+        "note": ""
+      }
+    ]
+  }
+}
