@@ -38,7 +38,7 @@
 3. PCL API 文档中 `pcl::PSFSignalEstimator`（PSFSignalWeight()/PSFSNR() 等接口签名与语义，用于核对输入输出量纲）：
    https://pixinsight.com/developer/pcl/doc/html/functions_p.html
 4. PixInsight 官方论坛 PSFEstimation 讨论（官方人员对 "SNR weight = (MedDev/MSRNoise)²，即 ImageIntegration 噪声评价权重的未归一化估计" 的说明）：
-   https://pixinsight.com/forum.old/index.php?topic=4010.15
+   https://pixinsight.com/forum/index.php?topic=4010.15 （原 `forum.old` 链接已 404，DOC-404 核验订正）
 
 精读要求：把 PSFSNR、PSFSW、标准 SNR、PSF flux、mean PSF flux、M* 背景、N*/MRS 噪声每个量的**完整公式、量纲、归一化常数、标定数据条件**整理成推导笔记，标注页码/章节。
 
@@ -48,7 +48,7 @@
 |---|---|---|---|
 | **Siril** | GPL-3.0 | https://gitlab.com/free-astro/siril ；重点 `src/stacking/median_and_mean.c:1111-1230`（帧权重 `w_i=1/(pscale_i²·bgnoise_i²)`、wFWHM、星数）、`src/algos/`（PSF 拟合、统计、`bgnoise` 背景噪声估计）、IKSS 归一化实现 | 逆方差型帧权重、稳健背景噪声、加权叠加与拒绝的工程实现；注意 Siril 直接把权重当叠加系数并按帧均值归一，与本项目组内中值归一的无量纲权重不同 |
 | **SWarp** | GPL-3.0 | https://www.astromatic.net/software/swarp/ （源码随发行包；用户手册 PDF）；重点 `src/coadd.c:1279-1311`、`src/back.c:361-389` | 逐像素 ivar 组合 `out=Σ(x_k/var_k)/Σ(1/var_k)`、`var_out=1/Σ(1/var_k)`（与本项目对角协方差传播同构）、`RESCALE_WEIGHTS` 按实测噪声重标定、大图像虚拟内存映射与缓冲（对照流式内存设计） |
-| **DeepSkyStacker** | BSD-3-Clause | https://github.com/DeepSkyStacker/DeepSkyStacker ；重点 `RegisterEngine.cpp:86-118`、`avx_output.cpp:463-575` | 帧评分（圆度加权质量，与 SNR/FWHM 乘积无关）、稳健叠加权重 `w=1/(1+(x−µ)²/σ²)`；无 ivar/读噪项，与本项目设计不同，仅作工程对照 |
+| **DeepSkyStacker** | BSD-3-Clause | https://github.com/DeepSkyStacker/DSS （原 `DeepSkyStacker/DeepSkyStacker` 链接已 404，DOC-404 核验订正）；重点 `RegisterEngine.cpp:86-118`、`avx_output.cpp:463-575` | 帧评分（圆度加权质量，与 SNR/FWHM 乘积无关）、稳健叠加权重 `w=1/(1+(x−µ)²/σ²)`；无 ivar/读噪项，与本项目设计不同，仅作工程对照 |
 | **Source Extractor / SEP** | SExtractor 为 GPL-3.0；SEP 为 LGPL-3.0 | SExtractor：https://www.astromatic.net/software/sextractor/ （重点 `src/analyse.c:200-203,304-310`）；SEP：https://github.com/kbarbary/sep （重点 `src/aperture.c:516-570`） | 背景网格（Background2D）、FLUXERR 误差传播 `Var(F)=Σ(σ_bkg²+F_pix/gain)`、孔径方差 `σ²_sum=Σvar_pix·w²+Σ/gain`（与本项目 CCD 方程同构） |
 | **photutils / astropy** | BSD-3-Clause | https://github.com/astropy/photutils ；重点 `photutils/utils/errors.py:91-92`、`photutils/background/core.py:464-531` | aperture/PSF 测光通量与误差、Background2D、SigmaClip、SNR 计算（已数值对拍，通量差 <1%） |
 | **properimage** | BSD-3-Clause | https://pypi.org/project/properimage/ ；重点 `properimage/operations.py:457-577` | Zackay & Ofek Paper II 的频域参考实现（`R=IFFT(Ŝ/√P̂)`、有效 PSF P_r），核对 proper coaddition 与本项目信息层的等价性 |
@@ -105,3 +105,123 @@
 - 合成数据证明 frame_snr 对天光梯度/光污染不敏感、对真实信号/噪声变化敏感；
 - 至少三个开源对照实现的行为比对记录归档；
 - 所有经验常数有本项目自己的标定记录，无照抄常数、无复制 GPL 代码。
+
+---
+
+## 8. DOC-404 增补：一手出处核验与行锚（2026-09-20）
+
+> **状态声明**：本增补**不改写** §1–§7 的历史正文（其概念性作废声明继续有效：本项目全程只有 SNR，权重是阶段二按天球像素对应帧集合现场算出的派生量）。本增补只做三件事：① 把 §3–§5 的文献/官方文档补成**可解析、带行锚**的一手出处；② 明确「信噪比 vs 权重」「PSF 有效面积 vs 功率口径」的对应关系；③ 留下核验记录与复跑命令。核验证据：`run/DOC-404/evidence/`。
+
+### 8.1 PixInsight 官方方法学（公开文档，非开源代码；闭源实现不复制）
+
+**权威 URL（`[URL]` HTTP 200，138 604 B）**：https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html
+
+**版本化行锚（官方 Reference-Documentation 仓库，`master` = commit `08b8eb85ae17`，2024-06-21）**：
+`gitlab.com/pixinsight/Reference-Documentation` → `docs/ImageWeighting/02-PSF_Flux_Weighting_Algorithms.pidoc`
+
+| 内容 | 文件:行 |
+|---|---|
+| “hybrid PSF/aperture photometry” 与 “ratio of powers paradigm” 总述 | `02-PSF_Flux_Weighting_Algorithms.pidoc:5` |
+| PSF 通量评价（FWTM 椭圆测量域、逐像素减拟合局部背景） | 同文件 `:78-122`（测量域定义在 `:88`） |
+| **拟合振幅 A 不用于通量**（通量只由采样像素算出 → hybrid 口径） | 同文件 `:122` |
+| 稳健噪声估计（MRS / N*，默认 MRS） | 同文件 `:204-235` |
+| **PSFSW（权重，式[16]）**：`w_PSF = c1·(Σf_j)·(Σ f̄_j) / (c2·σ_n·M*)`；归一常数 c1=8.0832e-6、c2=9.0e+6（1000 张 4096² 合成图标定） | 同文件 `:236-278`（公式 `:240-245`，常数 `:261-266`） |
+| **PSFSNR（信噪比，式[18]）**：`SNR_PSF = c3·(Σf_j)² / (c4·σ_n²)`；c3=1.350e-7、c4=4.987e+6；标定目标 median(SNR)=median(PSFSNR)=3.029 | 同文件 `:279-302`（公式 `:283-287`，常数 `:294-299`） |
+| 标准 SNR（式[20]）：全局尺度估计/噪声方差，官方指出受背景梯度与天光正向影响 | 同文件 `:303-320` |
+
+**PCL 接口面（量纲/输入输出语义核对）**：`pcl::PSFSignalEstimator`（`PSFSignalWeight()`/`PSFSNR()` 等）见 PCL Doxygen https://pixinsight.com/developer/pcl/doc/html/functions_p.html `[URL]` HTTP 200。
+
+**两个量的性质差异（本项目的口径立场）**：
+
+| 量 | 数学形态 | 性质 | AstroCS 立场 |
+|---|---|---|---|
+| PSFSNR | 功率比 `(Σf)²/σ_n²`（本身即 SNR² 量级） | **未加权的原始信噪比**；信号 = FWTM 孔径内减局部背景的像素和，噪声 = 稳健噪声 | `frame_snr` **对标其方法学**（恒星测光取信号、稳健噪声、独立背景），数学上采用**通量型** `F_ref/σ_F` 以保证 `w=SNR²/F_ref²` 严格成立；不照抄 c3/c4 |
+| PSFSW | 信号总量 × 集中度 /（稳健噪声 × 稳健背景） | **权重**（含分辨率/FWHM 与背景惩罚），不是信噪比 | 本项目**不产出该权重对象**；HiPS 只存 SNR，权重在 Phase2 现场算（A44 裁决） |
+
+**PSF 有效面积 / 功率口径的对应**（术语对齐，避免混用）：
+
+- 本项目的“PSF 有效面积”是 `A_NEA = 1/Σ_p P_p²`（噪声等效面积），出现在白噪声近似的点源信息 `W_psf = a²/(σ_pix²·A_NEA)`（`docs/science/PSF_SIGNAL_WEIGHT.md` §2；`docs/plugins/algorithms_phase1/07_noise_snr.md` §4）——它是**通量型**口径的方差因子，与“随帧级 SNR 一并落盘”的产品字段同源（`ASTROCS_DESIGN.md` §4.4）；
+- PixInsight 的“功率口径”指 `(Σf)²/σ_n²` 这一 **ratio-of-powers** 形态（上表），它没有显式的 `A_NEA` 因子，且不能再做 `SNR²/F_ref²` 换算（`07_noise_snr.md` §4.1 口径澄清）；
+- 因此两者**不可互换**：引用 PixInsight 常数或公式时必须带版本，且不得把功率比数值与本项目通量型 SNR 直接比较。
+
+### 8.2 Horne 1986：最优提取与 `PᵀC⁻¹P` 结构
+
+- Horne, K. 1986, *An optimal extraction algorithm for CCD spectroscopy*, PASP **98**, 609 — `[DOI]` 10.1086/131801（Crossref：PASP vol 98, p 609, 1986, a0=Horne）。
+- 定位：已知 profile 与方差下的**逆方差最优加权提取**（`PᵀC⁻¹P` 结构）的经典源头；本项目的 `W_psf = a²PᵀC⁻¹P`、`Var(F_hat)=1/W` 是其在点源成像上的同构（`docs/science/PSF_SIGNAL_WEIGHT.md` §2）。
+- **边界**：Horne 1986 是**光谱**最优提取；成像测光的对应处理见 Naylor 1998, MNRAS **296**, 339 — `[DOI]` 10.1046/j.1365-8711.1998.01314.x。二者都只给“给定 profile/方差下的最优加权”，不替代本项目的定标语义。
+
+### 8.3 Zackay & Ofek COAAD：point information 最优组合
+
+- Zackay, B., & Ofek, E. O. 2017, *How to COAAD Images. I. Optimal Source Detection and Photometry of Point Sources Using Ensembles of Images*, ApJ **836**, 187 — `[DOI]` 10.3847/1538-4357/836/2/187；`[ARXIV]` 1512.06872（arXiv API 标题核对一致）。
+- 结论要点（本项目 `point_information` 模式的依据）：每帧先用**各自 PSF** 做 matched filter 再加权求和才最优；先做 PSF 均质化再叠加会损失灵敏度。对应设计 `ASTROCS_DESIGN.md` §5.3 的 `w = 1/σ² = SNR²/F_ref²`（不是直接用 SNR 加权）。
+- Zackay, B., & Ofek, E. O. 2017, *How to COAAD Images. II. A Coaddition Image that is Optimal for Any Purpose in the Background-dominated Noise Limit*, ApJ **836**, 188 — `[DOI]` 10.3847/1538-4357/836/2/188；`[ARXIV]` 1512.06879。背景主导噪声极限下的 proper coaddition。
+- **配对性条件**（本项目写法）：`w ∝ SNR²` 只在**同一帧内** `SNR` 与 `F_ref` 同源时成立（`07_noise_snr.md` §4.1）；跨帧 `F_ref,k` 合法地不同，不要求相等。
+
+### 8.4 ZOGY（与 COAAD I 消歧）
+
+- Zackay, B., Ofek, E. O., & Gal-Yam, A. 2016, *Proper Image Subtraction—Optimal Transient Detection, Photometry, and Hypothesis Testing*, ApJ **830**, 27 — `[DOI]` 10.3847/0004-637X/830/1/27；`[ARXIV]` 1601.02655（arXiv API 标题：“Proper image subtraction - optimal transient detection, photometry and hypothesis testing”）。
+- **消歧**：这是**图像相减/暂现源检测**论文，**不是** COAAD I（后者 ApJ 836, 187，无 Gal-Yam）；引用时不得混号（§5.1 已登记同一消歧）。
+
+### 8.5 Siril / SWarp 加权对照（开源，GPL；只读引用，不复制代码）
+
+| 项目（许可证） | 版本/tag | 入口 文件:行 | 对照点 |
+|---|---|---|---|
+| **Siril**（GPL-3.0） | 1.4.4 | `src/stacking/median_and_mean.c:1091-1094` | 帧权重 `1/(pscale²·bgnoise²)` 与其按帧数归一化：逆方差型帧权重 + 稳健背景噪声（`bgnoise`）的工程实现。**差异**：Siril 直接把权重当叠加系数并按帧均值归一；本项目入库的是**未加权 SNR**，权重在 Phase2 现场算 |
+| **SWarp**（GPL-3.0） | 2.41.5 | `src/coadd.c:292`（`coadd_fields`）；`src/back.c:413`（`backstat`）；`src/back.c:642`（`backguess`） | 逐像素加权组合与背景统计；官方页 https://www.astromatic.net/software/swarp/ `[URL]` 200 |
+| **SCAMP**（GPL-3.0） | v2.15.0 | `src/photsolve.c:117`（`photsolve_fgroups`）；`src/astrsolve.c:117`（`astrsolve_fgroups`） | 相对光度零点 + 天体测量解算；**不引其为天光面/UPM 依据**（核心无像素背景归一，§4 已登记） |
+
+### 8.6 增补核验到的其他一手出处（供 §5 补卷期）
+
+| 主题 | 引用 | 核验 |
+|---|---|---|
+| MRS 稳健噪声 | Starck, J.-L., & Murtagh, F. 1998, PASP **110**, 193 | `[DOI]` 10.1086/316124 |
+| 稳健离群（RCR） | Maples, M. P., et al. 2018, ApJS **238**, 2 | `[DOI]` 10.3847/1538-4365/aad23d |
+| CCD 噪声模型 | Mortara, L., & Fowler, A. 1981, SPIE **290**, 28；Merline, W. J., & Howell, S. B. 1995, Exp. Astron. **6**, 163 | `[DOI]` 10.1117/12.965833；10.1007/bf00421131 |
+| MAD/MedDev 与 Tukey biweight | Rousseeuw & Croux 1993, JASA **88**, 1273；Beaton & Tukey 1974, Technometrics **16**, 147 | `[DOI]` 10.1080/01621459.1993.10476408；10.1080/00401706.1974.10489171 |
+| 背景网格与 FLUXERR | Bertin & Arnouts 1996, A&AS **117**, 393 | `[DOI]` 10.1051/aas:1996164 |
+| 多帧点源最优组合 | Zackay & Ofek 2017（§8.3 两条） | `[DOI]`×2 |
+
+### 8.7 未找到一手出处（`[NONE]`，如实登记）
+
+- PixInsight **PCL 源码**（PSFSignalEstimator 实现）：闭源商业软件，无公开一手实现可核验——只核验到公开 Doxygen 接口页（`[URL]` 200）；常数与实现细节以官方文档行锚为准（§8.1）。
+- PixInsight 文档中 PSFSW/PSFSNR 常数的**独立复现记录**：官方只给“1000 张 4096² 合成图、单位中值归一”的条件描述，未发布数据与脚本 ⇒ 本项目不照抄常数，自行用 L1 合成图标定（§6 第 5 条）。
+
+### 8.8 历史 §4 表的版本化核验补齐（不重写历史表）
+
+§4 的对照表是历史留痕（无版本列）。为满足「开源对照均给出 项目+版本+文件:行」，本小节按 tag 逐条复验并给出**版本化锚**；语义漂移者如实标注。证据：`run/DOC-404/evidence/oss/` 与 `run/DOC-404/evidence/oss_legacy/`。
+
+| §4 历史锚 | 项目@版本 | 复验结论（版本化锚） |
+|---|---|---|
+| Siril `median_and_mean.c:1111-1230` | Siril 1.4.4 | **有效（行号需精确化）**：该区间落在 `compute_wfwhm_weights`（函数声明在 `:1106`）函数体内，区间内逐字命中 `weighted_fwhm`；逆方差型权重 `1/(pscale²·bgnoise²)` 在 `:1091-1094` |
+| SWarp `coadd.c:1279-1311` | SWarp 2.41.5 | **有效**：`COADD_WEIGHTED` 分支的逐像素逆方差组合循环 |
+| SWarp `back.c:361-389` | SWarp 2.41.5 | **有效**：权重/方差重标定分支（`VAR_FIELD/WEIGHT_FIELD` 比例统计） |
+| DeepSkyStacker `RegisterEngine.cpp:86-118` | DeepSkyStacker/DSS 6.2.2 | **有效**：`:86` 为 `CRegisteredFrame::ComputeScore`（帧评分） |
+| DeepSkyStacker `avx_output.cpp:463-575` | DeepSkyStacker/DSS 6.2.2 | **有效**：`:463` 为 `doProcessAutoAdaptiveWeightedAverage`（自适应加权平均） |
+| SExtractor `analyse.c:200-203,304-310` | SExtractor 2.28.2 | **有效**：`:200-203` 为 FLUXERR 方差累加（`pix/gain` 项）；`:304-310` 为 `flux/fluxerr` 赋值 |
+| SEP `aperture.c:516-570` | SEP v1.4.1 | **有效**：孔径方差累加（`sumvar += scale2·varpix`） |
+| photutils `utils/errors.py:91-92` | photutils 3.0.0 | **语义漂移**：`:91-92` 是 docstring 中的 `σ_tot` 公式；函数入口 `calc_total_error` 在 `:12` |
+| photutils `background/core.py:464-531` | photutils 3.0.0 | **语义漂移**：该范围在 `BackgroundBase.calc_background` 文档串内；`Background2D` 已迁至 `background/background_2d.py:33` |
+| properimage `operations.py:457-577` | properimage v0.7.2 | **有效**：`:457-579` 为 `coadd()`（R 估计量合成，对应 COAAD II） |
+| SCAMP `src/photsolve.c`（原无行号） | SCAMP v2.15.0 | **补行号**：`:117` `photsolve_fgroups`；天体测量侧 `src/astrsolve.c:117` `astrsolve_fgroups` |
+
+- 另：§4 表中 DeepSkyStacker 与 PixInsight 论坛两条 URL 原为 404，DOC-404 已就地订正为可解析链接（`https://github.com/DeepSkyStacker/DSS`、`https://pixinsight.com/forum/index.php?topic=4010.15`，均 HTTP 200）。
+
+### 8.9 核验记录与复跑命令
+
+```bash
+# PixInsight 官方文档（HTML）与 pidoc 行锚
+curl -sL -A "Mozilla/5.0 AstroCS" -o run/DOC-404/evidence/pixinsight-weighting.html \
+  https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html
+curl -sL -A "Mozilla/5.0 AstroCS" -o run/DOC-404/evidence/pixinsight_02_pidoc.txt \
+  "https://gitlab.com/api/v4/projects/pixinsight%2FReference-Documentation/repository/files/docs%2FImageWeighting%2F02-PSF_Flux_Weighting_Algorithms.pidoc/raw?ref=master"
+grep -n 'subsection' run/DOC-404/evidence/pixinsight_02_pidoc.txt   # 236 = PSFSW；279 = PSF SNR
+# 开源行锚（Siril/SWarp/SCAMP/SExtractor/SEP/photutils/astrometry.net/astropy/DeepSkyStacker/properimage）
+# 非退化判据：逐条断言「锚行/锚区间逐字命中预期符号」，符号不在锚位置即判红
+python3 run/DOC-404/check_pack_oss_anchors.py   # 期望 anchors=36 ok=36 bad=0
+python3 run/DOC-404/verify_oss.py && python3 run/DOC-404/verify_oss2.py && python3 run/DOC-404/verify_oss3.py
+# DOI/arXiv（§8.2–§8.6）
+python3 run/DOC-404/verify_refs.py doi 10.1086/131801 10.1046/j.1365-8711.1998.01314.x \
+  10.3847/1538-4357/836/2/187 10.3847/1538-4357/836/2/188 10.3847/0004-637X/830/1/27
+```
+
+**行锚证据文件**：`run/DOC-404/evidence/oss_line_anchors.txt`（含每个 tag 的 raw URL、字节数、命中行）；**pidoc 行锚**：`run/DOC-404/evidence/pixinsight_02_pidoc.txt`；**DOI 落盘**：`run/DOC-404/evidence/crossref/*.json`。

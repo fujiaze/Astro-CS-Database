@@ -161,3 +161,65 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 - §7 四不变量门全过（零点平移/尺度单调/鲁棒性/S=0）；
 - `tools/science_contract_lint.py` PASS；
 - 解析不变量→SYN-002 转换：已知 flux/background 星场、photometric scale 恢复、离群注入用例登记 SYN-002。
+
+---
+
+## 16 方法链与方法学（DOC-404 增补；不改 §5 公式与常数）
+
+> **上游**：`ASTROCS_DESIGN.md` §2.1（创新点一：测光校准到测光星等坐标系）、§4.2（Phase1 节点流程：两轮 WCS → 星表引导检测 → PSF → photometry → **apply photometry**）、§4.4（测光输出语义）；研究包：`docs/research/PHOTOMETRY_RESEARCH_PACK.md`（一手出处与开源对照）。
+> **边界**：本节只写方法链与论证，**不引入新公式、常数或门限**；§5 的 IRLS/Tukey 定义、§7 不变量、§10 不可接受变化全部不变；误差预算的**数值与实验**属 SCI-401（推导落点见 §16.4）。
+
+### 16.1 方法链（逐步对应最高设计 §4.2 的节点顺序）
+
+| 步 | 做什么 | 节点（§4.2） | 权威/细则 |
+|---|---|---|---|
+| ① **Gaia XP 逆映射定位** | 第一轮全图盲检测给粗 WCS（仅供投影）；第二轮用本帧 WCS 把 Gaia DR3 星表（ICRS/J2000，自行/视差传播到观测历元）**逆投影到像素域**，只在星表位置做质心/PSF 拟合；拟合失败直接丢弃（不计虚警、不报错）；上限按亮度取 top 2–5 万，极限星等按焦距/画幅/曝光派生估计 | `platesolve`（两轮）+ `star_detection` | `docs/plugins/algorithms_phase1/03_star_detection.md` §4、`docs/plugins/algorithms_phase1/05_platesolve.md`；研究包 §6（astrometry.net 盲解+精化、SCAMP 星表解算、astropy WCS 逆投影） |
+| ② **星点测光** | 在星表位置做 **PSF 拟合域**测光（全链唯一 `flux` 口径 `flux = 2πA·sx·sy/3`；孔径测光只作显式诊断）；`F_hat = Q/W`、`Var(F_hat)=1/W`；饱和/质量异常不入定标 | `psf` → `photometry` | `docs/plugins/algorithms_phase1/06_photometry.md` §4、`docs/science/PSF_SIGNAL_WEIGHT.md` §2；研究包 §6（DAOPHOT/Anderson & King 的星表引导 PSF 测光族、photutils/SEP 的独立对照） |
+| ③ **光谱 × QE × 透过率积分（正向合成期望测光量）** | 用 Gaia DR3 XP 星点光谱 × 系统响应在**模型通带**内积分得 `F_syn`（本文件 §2/§5 的定义式）；XP 采样网格 = 336–1020 nm、步长 2 nm、343 点，谱插值按 §14a；`Q(λ)≡1` 与网格外无数据是**显式未建模项**，不外推 | `photometry`（参考侧） | 研究包 §3（Gaia DR3 官方文档 §20.12.3/§20.12.4、Montegriffo 2023、De Angeli 2023）、§4（合成测光标准方法：Bessell 1990、Bessell & Murphy 2012、Sirianni 2005、synphot/pysynphot） |
+| ④ **拟合 `k_photo` 与低阶空间增益 `m(x,y)`** | 逐星 `r_i = log10(F_instr/F_syn)` → 星等一致性预过滤 → IRLS/Tukey 稳健位置（§5）；同时用星点残差在帧内估计**低阶乘性空间增益** `m(x,y)`（平场/光学大尺度响应的低阶残余），与 `k_photo` 一并作为标定面 | `photometry` | 本文件 §5；`ASTROCS_DESIGN.md` §4.2「apply photometry」；研究包 §7 ④（平场/大尺度残余的预算出处） |
+| ⑤ **应用到像素** | `I_photo = k_photo·m(x,y)·I_cal` 施加到**整帧像素**（不只星点）；其后所有节点与 drizzle 消费归一化后的像素；该步不可用时产品显式记录 `degraded_reason` 并 **fail-closed** | `apply photometry` | `ASTROCS_DESIGN.md` §4.2（含 fail-closed 条款） |
+| ⑥ **星等坐标系表达** | 产物通量以**星等/相对星等**表达；零点锚在**同一模型通带**的 Gaia XP 合成刻度上；标定系数绝对值无物理意义 | `noise_snr` 及其后 | `ASTROCS_DESIGN.md` §2.1/§4.4；本文件 §1/§6 |
+
+- **一次检测、一次通量积分、三处复用**：检测、PSF、测光与 SNR 共用同一份星点绑定行与同一通量口径（`ASTROCS_DESIGN.md` §4.2），本节不另立口径。
+- **每帧独立标定**：不同夜/不同透明度的帧 `k_photo` 不同是正常的、正确的；「帧间一致性」是语义目标与报告字段，**不是门禁**（`PHOT-GATE-DROP-001`；本文件 §1/§10）。
+
+### 16.2 物理单位消除的论证（为什么产物只能是星等）
+
+- 可观测链是 `I_cal = (g·t·A_eff·η·… ) · ∫F_λ T Q λ dλ + 噪声` 形态的**乘积**：增益 `g`（e⁻/ADU）、曝光 `t`、有效口径 `A_eff`、光学/大气透过率 `η` 等量在本项目数据面上**不可得**（设计前提：FITS 头拿不到这些量），且它们与模型通带归一常数在数学上**只有乘积可辨识**；
+- 因此从「仪器计数 + Gaia XP 合成通量」这一组观测里，可辨识量只有**乘性标定面** `k_photo·m(x,y)`；任何对 `(g, t, A_eff, η)` 的拆分都需要引入数据中不存在的外部先验，属**不可辨识**（degenerate）问题；
+- 星等/相对星等表达对这种退化**天然免疫**：乘性因子在 `log10` 下变成加性零点，零点平移不变量（§7）保证残差散度 `sigma_residual` 与判据不变；
+- 故 §3 明确 `F_instr`（ADU）与 `F_syn`（模型通带积分辐照度）**量纲不同**、其比值的对数即 `location`；§6 明确不宣称绝对通量刻度。这与最高设计 §2.1「消除物理单位」与 §4.4「通量以星等/相对星等表达」一致。
+
+### 16.3 禁止物理闭合反推的理由（§10 条款的论证）
+
+1. **欠定**：单个乘性观测无法同时定出 `g、t、A_eff、η、消光`（未知数多于独立方程），反推必须假定未测量的先验；
+2. **不可证伪**：若为 `k_photo`/`scale` 设绝对数值窗口，该窗口是未知仪器参数的函数，任何取值都能被某组未知参数“解释”，因此**没有证据资格**（AGENTS.md §5「判据必须非退化」）；
+3. **如实性**：把反推值写入产品等于报告**未测量量**（AGENTS.md §6 禁令；`ASTROCS_DESIGN.md` §4.4）；
+4. **唯一有意义的判据是尺度无关的测光一致性**：施加标定后星点**星等**对 Gaia 的残差散度（§5 的 `sigma_residual/sigma_mag`）；门只有一个 = 单帧标定是否可信，与其它帧无关（§1/§10）。
+   ⇒ 因此 §10 把「用物理闭合式反推仪器参数」与「为 `k_photo`/`scale` 设绝对窗口」列为**不可接受变化**；本节的论证即该条款的依据，不新增任何阈值。
+
+### 16.4 误差预算的构成与出处（数值属 SCI-401）
+
+判据形态（**已由误差预算推导**，本节不复述数值）与逐项实测见 `docs/plugins/algorithms_phase1/06_photometry.md` §4.1（推导与复算脚本落点 `run/RELEASE-02/parallel/06.md`）。预算项与一手出处：
+
+| 预算项 | 一手出处（研究包 §7） | 仓内状态 |
+|---|---|---|
+| 光子噪声（源+天光）与读出/量化 | Mortara & Fowler 1981；Merline & Howell 1995 | 由 variance/ivar 传播 |
+| PSF 拟合不确定度 | Stetson 1987；Irwin 1985；Anderson & King 2000；Naylor 1998 | `σ_fit`（逐帧自算） |
+| 最优提取/信息下界 | Horne 1986；Zackay & Ofek 2017（COAAD I） | `σ_floor` 的物理下限锚 |
+| 平场/大尺度响应残余 | Stubbs & Tonry 2006；Regnault et al. 2009；Padmanabhan et al. 2008 | `σ_flat,hf`；大尺度残差**判不了**（已登记） |
+| 天光/背景估计残余 | Bertin & Arnouts 1996；Starck & Murtagh 1998；Maples et al. 2018 | `σ_skyres` |
+| 颜色项/通带失配（QE 未建模、XP 谱误差） | Bessell 1990；Bessell & Murphy 2012；Fukugita 1996；Sirianni 2005；Montegriffo 2023；De Angeli 2023 | `σ_color`（生产 `Q(λ)≡1`）；`F_syn` 定标误差**判不了**（已登记） |
+| 星等定标误差（零点/参考网络） | Bessell & Murphy 2012；Burke et al. 2017；Schlafly et al. 2012；Bohlin et al. 2014/2019/2020 | `σ_Gaia`（当前为假设值，已登记） |
+| 大气/差分消光（**未建模**） | Schlafly & Finkbeiner 2011 | 无仓内曲线 ⇒ 未测项按「不加」处理（上限偏严、fail-closed） |
+| 稳健统计与离群处理 | Rousseeuw & Croux 1993；Beaton & Tukey 1974；Maples et al. 2018 | §5 的 MAD/Tukey 层 |
+| 拟合算法与谱插值 | Marquardt 1963；Akima 1970（§14a） | PSF/零点拟合与 `F_syn` 数值积分 |
+
+- 未测项**不得**用估计值填充；预算上限按未测项不加处理，因此**偏严**（fail-closed），与 `06_photometry.md` §4.1 一致。
+
+### 16.5 指针
+
+- 一手出处与开源对照（项目+版本+文件:行）：`docs/research/PHOTOMETRY_RESEARCH_PACK.md`；
+- 模块算法与配置：`docs/plugins/algorithms_phase1/06_photometry.md`、`docs/plugins/algorithms_phase1/07_noise_snr.md`；
+- PSF 信息权重与最优性声明：`docs/science/PSF_SIGNAL_WEIGHT.md`；
+- 方差与协方差传播：`docs/science/UNCERTAINTY_AND_COVARIANCE.md`。
