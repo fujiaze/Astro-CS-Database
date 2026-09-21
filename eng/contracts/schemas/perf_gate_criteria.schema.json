@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "astrocs.perf-gate-criteria/v1",
+  "title": "L2 冻结性能判据（fail-closed）",
+  "x-doc": "docs/contracts/PERF_GATE_CONTRACT.md",
+  "type": "object",
+  "required": [
+    "schema",
+    "enforcement",
+    "criteria"
+  ],
+  "properties": {
+    "schema": {
+      "const": "astrocs.perf-gate-criteria/v1"
+    },
+    "enforcement": {
+      "const": "fail-closed"
+    },
+    "criteria": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "metric",
+          "op",
+          "threshold",
+          "on_violation"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "metric": {
+            "enum": [
+              "mean_utilization",
+              "p50_utilization",
+              "frac_windows_ge_0.85",
+              "low_util_window_no_backlog"
+            ]
+          },
+          "op": {
+            "enum": [
+              ">=",
+              "<=",
+              "absent"
+            ]
+          },
+          "threshold": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "on_violation": {
+            "const": "red"
+          }
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "properties": {
+        "window_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "backlog_definition": {
+          "type": "string"
+        },
+        "replay_required": {
+          "const": true
+        }
+      }
+    }
+  }
+}

@@ -721,6 +721,30 @@ doc_index:
       upstream: "ASTROCS_DESIGN.md §3.2（三类配置）、§7.2（配置、事件与退出码）"
       downstream: "eng/ci/ledgers/dead_config_keys.json、eng/packaging/config/config_registry.json、eng/contracts/schemas/cpu_profile.schema.json、eng/contracts/schemas/phase_config_export.schema.json 等 13 处"
       notes: "CFG-001 程序根全局配置合同（eng/packaging/config/filters.json、eng/packaging/config/defaults.json）；CI-003（2026-09-16）补入活动索引（原缺口：check_doc_index.py::docs_fully_covered 报未覆盖）"
+    - path: "docs/contracts/DUAL_LINE_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+      duty: "RELEASE-05 双线文件域、冻结与合并点规则（CONTRACT-501）"
+      upstream: "ASTROCS_DESIGN.md §8（软件架构）、ENGINEERING_SPEC.md §4.1（管线纪律）"
+      downstream: "eng/contracts/schemas/dual_line_file_domain.schema.json、工程控制/RELEASE-05/ACCEPTANCE.md"
+      notes: "CONTRACT-501 冻结点；双向对应由 eng/tools/contract_doc_sync.py 机器校验（含 --self-test 红绿双向）"
+    - path: "docs/contracts/PIPELINE_BLOCK_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+      duty: "阶段内命名块元数据、生命周期状态机、provenance 流转（CONTRACT-501）"
+      upstream: "ASTROCS_DESIGN.md §8.1/§8.2（命名块内存管线与块生命周期）"
+      downstream: "eng/contracts/schemas/pipeline_block.schema.json、docs/contracts/SCHEDULER_CONTRACT.md"
+      notes: "CONTRACT-501 冻结点；DAG 四条非法图判据（消费不存在/重复生产/生命周期不一致/退化面挂帧）"
+    - path: "docs/contracts/SCHEDULER_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+      duty: "三阶段调度器统一 entrypoint、DAG 声明、资源声明与探针事件 schema（CONTRACT-501）"
+      upstream: "ASTROCS_DESIGN.md §8.1/§8.3（三独立调度器）、§9（探针驱动优化）"
+      downstream: "eng/contracts/schemas/scheduler_probe_event.schema.json、eng/contracts/schemas/jsonl_event_v1.schema.json"
+      notes: "CONTRACT-501 冻结点；normalize 异步工作流 / mosaic 空间窗口 / export 子块流式；探针 8 类事件"
+    - path: "docs/contracts/PERF_GATE_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+      duty: "L2 冻结性能判据（fail-closed）与监控字段执行语义（CONTRACT-501）"
+      upstream: "ASTROCS_DESIGN.md §9（CPU 后端与资源）、ENGINEERING_SPEC.md §10"
+      downstream: "eng/contracts/schemas/perf_gate_criteria.schema.json、eng/contracts/schemas/monitor_field_semantics.schema.json、eng/ci/checks.json"
+      notes: "CONTRACT-501 冻结点；GAP_AUDIT G2-1/G2-2（D-10 恒真门、D-12 监控字段语义）的判据依据"
     - path: "docs/contracts/DATA_ARTIFACTS.md"
       status: ACTIVE_NORMATIVE
       duty: "产品工件清单与原子发布合同"

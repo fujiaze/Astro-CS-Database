@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "astrocs.pipeline-block/v1",
+  "title": "阶段内命名块元数据与生命周期",
+  "x-doc": "docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
+  "type": "object",
+  "required": [
+    "schema",
+    "blocks"
+  ],
+  "properties": {
+    "schema": {
+      "const": "astrocs.pipeline-block/v1"
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "shape",
+          "dtype",
+          "unit",
+          "optional",
+          "producer",
+          "consumers",
+          "lifecycle"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "shape": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "dtype": {
+            "enum": [
+              "f64",
+              "f32",
+              "i32",
+              "u8"
+            ]
+          },
+          "unit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "producer": {
+            "type": "string",
+            "minLength": 1
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "lifecycle": {
+            "enum": [
+              "short",
+              "frame",
+              "run"
+            ]
+          },
+          "provenance": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "dag_rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

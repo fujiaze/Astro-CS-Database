@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "astrocs.monitor-field-semantics/v1",
+  "title": "监控字段执行语义（requires_monitor / mutates_workspace）",
+  "x-doc": "docs/contracts/PERF_GATE_CONTRACT.md",
+  "type": "object",
+  "required": [
+    "schema",
+    "requires_monitor",
+    "mutates_workspace"
+  ],
+  "properties": {
+    "schema": {
+      "const": "astrocs.monitor-field-semantics/v1"
+    },
+    "requires_monitor": {
+      "type": "object",
+      "required": [
+        "semantics",
+        "on_missing_evidence"
+      ],
+      "properties": {
+        "semantics": {
+          "const": "enforced"
+        },
+        "on_missing_evidence": {
+          "const": "red"
+        },
+        "renamed_alternative": {
+          "const": "monitor_capable"
+        }
+      }
+    },
+    "mutates_workspace": {
+      "type": "object",
+      "required": [
+        "semantics",
+        "on_unexplained_change"
+      ],
+      "properties": {
+        "semantics": {
+          "const": "enforced"
+        },
+        "on_unexplained_change": {
+          "const": "red"
+        }
+      }
+    },
+    "declared_checks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
