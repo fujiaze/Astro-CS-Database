@@ -1,6 +1,6 @@
 # P1-SPATIAL-GAIN —— Phase1 低阶空间乘法增益（逆向验收实验）
 
-工作项报告：`实验/SCI-A/docs/p1-spatial-gain.md`。参考文献：`实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md` 的 P1SG-R1..R3。
+工作项报告：`实验/photometric-magnitude/docs/p1-spatial-gain.md`。参考文献：`实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md` 的 P1SG-R1..R3。
 
 ## 一句话
 
@@ -44,7 +44,7 @@ ninja -C run/reverse_verify/build
 cd 实验/shared/synthetic && python3 synth_gain.py --nproc 12
 
 # 真实数据 (49 帧)
-cd 实验/SCI-A/code/reverse_verify/p1_spatial_gain/src
+cd 实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/src
 python3 real_gain.py && python3 real_ridge.py && python3 real_pixel_check.py \
   && python3 aperture_probe.py && python3 analyze_real.py
 ```

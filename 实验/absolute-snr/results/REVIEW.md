@@ -1,7 +1,7 @@
 # SCI-B 独立审稿记录
 
 > **审稿人**：独立审稿子代理（非作者，零 git 写权限，未修改本单元以外的任何文件）
-> **审稿对象**：`实验/SCI-B/`（跨帧绝对 SNR 传递链，SCI-402）
+> **审稿对象**：`实验/absolute-snr/`（跨帧绝对 SNR 传递链，SCI-402）
 > **审稿时刻**：2026-09-21T05:20Z（CST 13:20）
 > **被审版本（md5，快照于 05:19–05:20Z）**
 
@@ -30,12 +30,12 @@
 
 ```bash
 # ① 备份 + 版本快照（不改仓库）
-cp -a 实验/SCI-B/results /tmp/SCI-B-backup/results
-md5sum 实验/SCI-B/results/*.json
+cp -a 实验/absolute-snr/results /tmp/SCI-B-backup/results
+md5sum 实验/absolute-snr/results/*.json
 
 # ② 可复现性抽检（实跑；脚本会覆写 results/*.json）
-cd 实验/SCI-B && python3 code/b6_gates_audit.py          # 0.25 s
-cd 实验/SCI-B && python3 code/b5_phase3_transfer.py      # 3.5 s
+cd 实验/absolute-snr && python3 code/b6_gates_audit.py          # 0.25 s
+cd 实验/absolute-snr && python3 code/b5_phase3_transfer.py      # 3.5 s
 python3 code/b6_gates_audit.py --self-test               # 新增自检，exit 0，9/9 PASS
 # 语义比对（去掉 generated_at/wall_s/elapsed_s）：
 diff <(python3 -c "import json;d=json.load(open('/tmp/SCI-B-backup/results/b6_gates_audit.json'));d.pop('generated_at');d.pop('wall_s');print(json.dumps(d,indent=1,sort_keys=True))") \
@@ -152,7 +152,7 @@ git status --short ; git diff --stat ; git status --short docs/research/ docs/sc
 #### **I3｜`N1_flat_field_sparse_never_wins` 是恒真门，却被计入"非退化负例 PASS"**
 
 - **位置**：`code/b3_domain_map.py:277-289`。
-- **复现**：`python3 -c "import json;j=json.load(open('实验/SCI-B/results/b3_domain_map.json'));print(j['gates']['N1_flat_field_sparse_never_wins'])"`；再查 5 个 s=0 面的 `frame_median.rmse_log_rho` ⇒ 全部 **精确 0.000000**。
+- **复现**：`python3 -c "import json;j=json.load(open('实验/absolute-snr/results/b3_domain_map.json'));print(j['gates']['N1_flat_field_sparse_never_wins'])"`；再查 5 个 s=0 面的 `frame_median.rmse_log_rho` ⇒ 全部 **精确 0.000000**。
 - **期望 vs 实际**：s=0 时真值场恒为常数 1.0 ⇒ 常数臂中位归一后 RMSE ≡ 0 ⇒ `sparse < 0` 在数学上不可能，**任何数据都不可能让它翻红**。报告在 README:124 脚注与 DOC_CORRECTIONS D3 已**诚实承认**该场景判据退化，但 README:266 附录 B 仍把它列为通过的门、README §4"非退化负例 PASS"仍以"平坦场归零"作为四处归零之一 ⇒ **同一文档内自相矛盾**。
 
 #### **I4｜§8「未复现 Δ/ℓ≈1 边界」未被所交 JSON 支持（详见 B1）**
@@ -164,7 +164,7 @@ git status --short ; git diff --stat ; git status --short docs/research/ docs/sc
 #### **I5｜b4 `part_c` 的等权解析预言错了 K=3 倍**
 
 - **位置**：`code/b4_integration.py:168` `var_equal_pred=float(np.mean([1/Ws[c["name"]] for c in cfgs]))`（3 帧平均的方差应为 `mean(σ²)/K`，漏除 K）。
-- **复现**：`python3 -c "import json;c=json.load(open('实验/SCI-B/results/b4_integration.json'))['part_c'];s=[f['sigma_f'] for f in c['frames']];import numpy as np;print('JSON pred',c['mc']['var_equal_pred'],'正确 pred',np.mean(np.square(s))/3,'实测',c['mc']['var_equal'])"`
+- **复现**：`python3 -c "import json;c=json.load(open('实验/absolute-snr/results/b4_integration.json'))['part_c'];s=[f['sigma_f'] for f in c['frames']];import numpy as np;print('JSON pred',c['mc']['var_equal_pred'],'正确 pred',np.mean(np.square(s))/3,'实测',c['mc']['var_equal'])"`
   ⇒ JSON pred **11494.99**、正确 **3831.66**、实测 **3953.29**。
 - **期望 vs 实际**：同一 JSON 里 `var_qw_pred`（1260.41 vs 实测 1275.12）与 `var_single_pred`（1794.26 vs 1751.09）都对，只有等权预言差 3 倍且无门把关；README §3.4 新版已改成只讲"等权 3953.29（3.1×）"而不再引用该预言，但机器可读结果里仍留着错值。
 

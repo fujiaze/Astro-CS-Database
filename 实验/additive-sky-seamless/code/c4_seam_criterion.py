@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 实验/SCI-C/code/c4_seam_criterion.py
+# 实验/additive-sky-seamless/code/c4_seam_criterion.py
 """C4 非退化接缝判据：定义、红/绿双向、检测限、退化判据反证。
 
 判据 D（非退化，保留背景）：

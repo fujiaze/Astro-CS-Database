@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # FRAME-SNR-CANON (RELEASE-02) 一键复跑
 # 判据先行：所有阈值写在各脚本源码里；本脚本只负责按序跑并汇总 PASS/FAIL。
-# 用法:  bash 实验/SCI-B/code/reverse_verify/frame_snr/run_all.sh
+# 用法:  bash 实验/absolute-snr/code/reverse_verify/frame_snr/run_all.sh
 set -u
 
 REPO="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../../../.." && pwd )"
-EXP="${REPO}/reverse_verify/experiments/frame_snr"
+EXP="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"   # 本实验目录（迁移后位于 实验/<unit>/code/reverse_verify/frame_snr）
 OUT="${REPO}/run/reverse_verify/frame_snr"
 PYLIBS="${FRAME_SNR_PYLIBS:-/dev/shm/astrocs_fsnr/frame_snr_canon/pylibs}"
 

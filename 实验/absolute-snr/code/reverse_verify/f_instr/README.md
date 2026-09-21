@@ -1,7 +1,7 @@
 # F-INSTR — 星点通量口径调研与定案 (RELEASE-02 裁决 A6)
 
 > 逆向验收工作区工作项 **F-INSTR-SURVEY**。对应报告：
-> `实验/SCI-B/docs/f-instr-canon.md`（定案）与 `实验/SCI-B/docs/surveys/f-instr-survey.md`（逐条文献/软件记录）。
+> `实验/absolute-snr/docs/f-instr-canon.md`（定案）与 `实验/absolute-snr/docs/surveys/f-instr-survey.md`（逐条文献/软件记录）。
 
 ## 这是什么
 
@@ -35,7 +35,7 @@ Phase1 用 `F_instr`（单帧实测星点通量）与 Gaia XP 合成通量 `F_sy
 
 ```bash
 export TMPDIR=/dev/shm/astrocs_finstr
-bash 实验/SCI-B/code/reverse_verify/f_instr/run_all.sh
+bash 实验/absolute-snr/code/reverse_verify/f_instr/run_all.sh
 ```
 
 全程约 2.5 分钟（exp0–exp5）。依赖 `numpy`/`scipy`/`astropy`（本机已具备；`photutils`/`sep` 未安装，故 PSF 拟合自实现，见报告 §1 核对状态）。

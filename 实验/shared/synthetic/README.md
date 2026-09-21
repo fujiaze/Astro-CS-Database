@@ -25,7 +25,7 @@ python3 synth_gain.py            # 150 MC/配置, 约 7 min (16 核)
 python3 synth_gain.py --quick    # 40 MC/配置, 约 100 s
 ```
 
-输出 `实验/SCI-A/code/reverse_verify/p1_spatial_gain/data/synth_results.json`。
+输出 `实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/data/synth_results.json`。
 
 ## 约定（重要，容易搞反）
 
@@ -60,7 +60,7 @@ frames）**再重建**；**不是**多帧叠加/排异/接缝的数据源。
 |---|---|
 | `m16_sampling.py` | **真实信号模板 → 仿真采样帧生成器**。真实帧去噪成期望率面（画布）→ 按可控**采样几何**（指向 / 抖动 / 像素尺度 / 滚转角）、**曝光**、**seeing（PSF FWHM）**、**天光**（含梯度/月光光晕）、**增益/读出噪声**生成多帧观测；噪声**全部**由 `noise_model.expose()` 按 §9.41 物理过程重建。落盘 = SCI 帧（只主 HDU，带 TAN WCS + OBJCTRA/OBJCTDEC/FOCALLEN/XPIXSZ）+ 真值文件 + meta JSON + **合成校准母版**（bias/dark/flat，与生成所用探测器模型严格一致）。带 `--selftest`（V1–V7，能红能绿） |
 | `scenes/m16_sampling_*.json` | 4 个采样配方：①同指向重叠（共模负例）②同指向重叠（条件差异）③不同指向马赛克（§9.46 关键场景）④不同滚转角 |
-| `实验/SCI-C/code/reverse_verify/m16_sampling/run_reconstruct.py` | **重建驱动**：仿真采样帧 → `astrocs normalize` → `mosaic` → `export` → 与真值画布比对（标度/位置/结构/测光） |
+| `实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py` | **重建驱动**：仿真采样帧 → `astrocs normalize` → `mosaic` → `export` → 与真值画布比对（标度/位置/结构/测光） |
 
 **采样几何精确性**：帧 WCS 由「视场中心天球坐标 + CD=scale·R(θ)·CD_canvas」构造，
 生成按 **pixel → all_pix2world(帧 WCS) → all_world2pix(画布 WCS) → 三次样条**两步精确映射
@@ -75,7 +75,7 @@ python3 实验/shared/synthetic/m16_sampling.py --list-scenes
 python3 实验/shared/synthetic/m16_sampling.py \
     --scene scenes/m16_sampling_mosaic_diff_pointing.json \
     --out ../../run/reverse_verify/m16_sampling/mosaic_diff_pointing
-python3 实验/SCI-C/code/reverse_verify/m16_sampling/run_reconstruct.py \
+python3 实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py \
     --dataset run/reverse_verify/m16_sampling/mosaic_diff_pointing \
     --out     run/reverse_verify/m16_sampling/recon/mosaic_diff_pointing
 ```

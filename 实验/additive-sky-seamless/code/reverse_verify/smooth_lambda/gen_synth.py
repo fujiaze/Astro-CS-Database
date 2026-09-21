@@ -16,7 +16,8 @@
 import argparse, json, math, os, sys
 import numpy as np
 
-ROOT = "/workspace/Astro CS Database"
+_HERE = os.path.dirname(os.path.abspath(__file__))   # .../实验/<unit>/code/reverse_verify/smooth_lambda
+ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "..", ".."))   # 仓库根（从脚本自身位置推导）
 REAL = os.path.join(ROOT, "run/RELEASE-02/L4-rebuild/mosaic_out/p2_samples.json")
 OUTDIR = os.path.join(ROOT, "run/reverse_verify/smooth_lambda")
 K_CORR = 1.4

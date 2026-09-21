@@ -5,7 +5,7 @@
 CLI::
 
     export TMPDIR=/dev/shm/astrocs_m16
-    python3 实验/SCI-C/code/reverse_verify/m16_scene/exp_variance_closure.py
+    python3 实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_variance_closure.py
 
 判据
 ----

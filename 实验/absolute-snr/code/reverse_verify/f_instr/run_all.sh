@@ -3,8 +3,9 @@
 set -euo pipefail
 export TMPDIR=${TMPDIR:-/dev/shm/astrocs_finstr}
 mkdir -p "$TMPDIR"
-cd "$(dirname "$0")/../../../../.."   # 仓库根
-D=实验/SCI-B/code/reverse_verify/f_instr
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # 本实验目录（从脚本自身位置推导）
+cd "$HERE/../../../../.."                              # 仓库根
+D="${HERE#"$PWD"/}"                                   # 仓库根相对路径，供日志/复现命令使用
 mkdir -p run/reverse_verify/f_instr/logs
 for s in exp0_scene_and_noise exp1_recovery exp2_aperture_dependence exp3_seeing_null exp4_gain_recovery exp5_psf_shape; do
   echo "=== $s ==="

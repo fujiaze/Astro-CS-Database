@@ -12,7 +12,7 @@
     python3 实验/shared/data/synthetic/generate.py --only nebula_core_analytic,sweep_sky
     python3 实验/shared/data/synthetic/generate.py --list
 
-判据与示范实验在 实验/SCI-C/code/reverse_verify/data_matrix/。
+判据与示范实验在 实验/additive-sky-seamless/code/reverse_verify/data_matrix/。
 
 STACKN32-001（A4 前台裁决，2026-09-20）：M16 场景的 `stack_n` 全局统一为 **32**
 （真实 drz 是 NDRIZIM=32 的子曝光 drizzle 合成品，交付帧曝光 = 真实 drz 的**总**曝光

@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §2.2 / §4.4 / §5.3 / §12.3；`ENGINEERING_SPEC.md §9`
 > 来源：`reverse_verify/docs/{frame-snr-canon,f-instr-canon,snr-propagation-design}.md`
-> （2026-09-21 ROOT-CONSOLIDATION 迁入 `实验/SCI-B/docs/`）。本文件只登记**现行结论**。
+> （2026-09-21 ROOT-CONSOLIDATION 迁入 `实验/absolute-snr/docs/`）。本文件只登记**现行结论**。
 
 ## 1. 帧级 SNR 定案（`frame-snr-canon.md §0`，逐字）
 
@@ -43,11 +43,11 @@
 ## 5. 复跑
 
 ```bash
-bash 实验/SCI-B/code/reverse_verify/f_instr/run_all.sh
-bash 实验/SCI-B/code/reverse_verify/frame_snr/run_all.sh
-bash 实验/SCI-B/code/reverse_verify/p7_noise/run_all.sh      # 若存在
-bash 实验/SCI-B/code/reverse_verify/snr_design/run_all.sh
-bash 实验/SCI-B/code/reverse_verify/snr_design/audit/run_all_audit.sh
+bash 实验/absolute-snr/code/reverse_verify/f_instr/run_all.sh
+bash 实验/absolute-snr/code/reverse_verify/frame_snr/run_all.sh
+bash 实验/absolute-snr/code/reverse_verify/p7_noise/run_all.sh      # 若存在
+bash 实验/absolute-snr/code/reverse_verify/snr_design/run_all.sh
+bash 实验/absolute-snr/code/reverse_verify/snr_design/audit/run_all_audit.sh
 ```
 
 实测与退役登记见 `run/ROOT-CONSOLIDATION/logs/migration_rerun.md`。

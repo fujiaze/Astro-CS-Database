@@ -7,9 +7,10 @@
 """
 import json, os, sys, importlib.util
 import numpy as np
-ROOT = "/workspace/Astro CS Database"
+_HERE = os.path.dirname(os.path.abspath(__file__))   # .../实验/<unit>/code/reverse_verify/smooth_lambda
+ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "..", ".."))   # 仓库根（从脚本自身位置推导）
 D = os.path.join(ROOT, "run/reverse_verify/smooth_lambda")
-spec = importlib.util.spec_from_file_location("an", os.path.join(ROOT, "实验/SCI-C/code/reverse_verify/smooth_lambda/analyze.py"))
+spec = importlib.util.spec_from_file_location("an", os.path.join(_HERE, "analyze.py"))
 an = importlib.util.module_from_spec(spec); spec.loader.exec_module(an)
 
 def main():

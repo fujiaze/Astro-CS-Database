@@ -13,20 +13,20 @@
         "n_fit_failed": 0,
         "false_alarms": 0,
         "note": "拟合失败直接丢弃，不计虚警（设计 §4.2）",
-        "wall_time_s": 0.4677145970053971,
+        "wall_time_s": 0.46067438600584865,
         "n_psf_fits": 71,
-        "sec_per_fit": 0.006587529535287283
+        "sec_per_fit": 0.006488371633885192
       },
       "blind": {
         "n_detections": 19,
         "n_matched_truth": 16,
         "match_rate": 0.22535211267605634,
         "n_false_alarms": 3,
-        "wall_time_s": 0.12063183200370986,
+        "wall_time_s": 0.12953449800261296,
         "n_psf_fits": 19,
-        "sec_per_fit": 0.00634904378966894
+        "sec_per_fit": 0.006817605158032261
       },
-      "time_ratio_blind_over_guided": 0.2579176120994955,
+      "time_ratio_blind_over_guided": 0.2811845024111421,
       "fits_ratio_blind_over_guided": 0.2676056338028169,
       "match_rate_gain": 0.7605633802816901,
       "coarse_wcs_robustness": [
@@ -103,8 +103,8 @@
           "n_matched": 16,
           "match_rate": 0.22535211267605634,
           "n_false_alarms": 3,
-          "wall_time_s": 0.11372552200919017,
-          "sec_per_matched_star": 0.007107845125574386
+          "wall_time_s": 0.11373229199671187,
+          "sec_per_matched_star": 0.007108268249794492
         },
         {
           "k_sigma": 4.0,
@@ -113,8 +113,8 @@
           "n_matched": 17,
           "match_rate": 0.23943661971830985,
           "n_false_alarms": 8,
-          "wall_time_s": 0.27153827899019234,
-          "sec_per_matched_star": 0.01597283994059955
+          "wall_time_s": 0.28097759500087705,
+          "sec_per_matched_star": 0.016528093823581003
         },
         {
           "k_sigma": 3.0,
@@ -123,8 +123,8 @@
           "n_matched": 17,
           "match_rate": 0.23943661971830985,
           "n_false_alarms": 6,
-          "wall_time_s": 0.14830763899954036,
-          "sec_per_matched_star": 0.008723978764678845
+          "wall_time_s": 0.16225912200752646,
+          "sec_per_matched_star": 0.00954465423573685
         },
         {
           "k_sigma": 2.5,
@@ -133,8 +133,8 @@
           "n_matched": 17,
           "match_rate": 0.23943661971830985,
           "n_false_alarms": 5,
-          "wall_time_s": 0.13859943598799873,
-          "sec_per_matched_star": 0.008152907999294043
+          "wall_time_s": 0.15107113900012337,
+          "sec_per_matched_star": 0.008886537588242552
         },
         {
           "k_sigma": 2.0,
@@ -143,8 +143,8 @@
           "n_matched": 17,
           "match_rate": 0.23943661971830985,
           "n_false_alarms": 6,
-          "wall_time_s": 0.14006829999561887,
-          "sec_per_matched_star": 0.008239311764448169
+          "wall_time_s": 0.13740662300551776,
+          "sec_per_matched_star": 0.008082742529736339
         },
         {
           "k_sigma": 1.5,
@@ -153,13 +153,13 @@
           "n_matched": 17,
           "match_rate": 0.23943661971830985,
           "n_false_alarms": 10,
-          "wall_time_s": 0.44477647299936507,
-          "sec_per_matched_star": 0.02616332194113912
+          "wall_time_s": 0.42387689399765804,
+          "sec_per_matched_star": 0.02493393494103871
         }
       ],
       "cost_per_matched_star": {
-        "guided_s": 0.006681637100077101,
-        "blind_k5_s": 0.007539489500231866,
+        "guided_s": 0.006581062657226409,
+        "blind_k5_s": 0.00809590612516331,
         "note": "以**每颗成功匹配星**计的成本；引导路径在同等完备度下成本更低"
       }
     },
@@ -174,20 +174,20 @@
         "n_fit_failed": 0,
         "false_alarms": 0,
         "note": "拟合失败直接丢弃，不计虚警（设计 §4.2）",
-        "wall_time_s": 0.2672885610081721,
+        "wall_time_s": 0.254999137003324,
         "n_psf_fits": 71,
-        "sec_per_fit": 0.00376462761983341
+        "sec_per_fit": 0.0035915371408918872
       },
       "blind": {
         "n_detections": 19,
         "n_matched_truth": 14,
         "match_rate": 0.19718309859154928,
         "n_false_alarms": 5,
-        "wall_time_s": 0.134308320004493,
+        "wall_time_s": 0.13032030100293923,
         "n_psf_fits": 19,
-        "sec_per_fit": 0.007068858947604895
+        "sec_per_fit": 0.006858963210681013
       },
-      "time_ratio_blind_over_guided": 0.5024843543543438,
+      "time_ratio_blind_over_guided": 0.5110617335196725,
       "fits_ratio_blind_over_guided": 0.2676056338028169,
       "match_rate_gain": 0.7887323943661972,
       "coarse_wcs_robustness": [
@@ -264,8 +264,8 @@
           "n_matched": 14,
           "match_rate": 0.19718309859154928,
           "n_false_alarms": 5,
-          "wall_time_s": 0.13255944500269834,
-          "sec_per_matched_star": 0.009468531785907024
+          "wall_time_s": 0.13547230199037585,
+          "sec_per_matched_star": 0.009676592999312561
         },
         {
           "k_sigma": 4.0,
@@ -274,8 +274,8 @@
           "n_matched": 14,
           "match_rate": 0.19718309859154928,
           "n_false_alarms": 4,
-          "wall_time_s": 0.14251058000081684,
-          "sec_per_matched_star": 0.010179327142915489
+          "wall_time_s": 0.147954172003665,
+          "sec_per_matched_star": 0.010568155143118929
         },
         {
           "k_sigma": 3.0,
@@ -284,8 +284,8 @@
           "n_matched": 13,
           "match_rate": 0.18309859154929578,
           "n_false_alarms": 2,
-          "wall_time_s": 0.09024710798985325,
-          "sec_per_matched_star": 0.006942085229988711
+          "wall_time_s": 0.09261051000794396,
+          "sec_per_matched_star": 0.007123885385226458
         },
         {
           "k_sigma": 2.5,
@@ -294,8 +294,8 @@
           "n_matched": 13,
           "match_rate": 0.18309859154929578,
           "n_false_alarms": 5,
-          "wall_time_s": 0.24763981200521812,
-          "sec_per_matched_star": 0.0190492163080937
+          "wall_time_s": 0.24464465001074132,
+          "sec_per_matched_star": 0.018818819231595486
         },
         {
           "k_sigma": 2.0,
@@ -304,8 +304,8 @@
           "n_matched": 13,
           "match_rate": 0.18309859154929578,
           "n_false_alarms": 7,
-          "wall_time_s": 0.3918714299943531,
-          "sec_per_matched_star": 0.030143956153411776
+          "wall_time_s": 0.386793472993304,
+          "sec_per_matched_star": 0.029753344076408002
         },
         {
           "k_sigma": 1.5,
@@ -314,13 +314,13 @@
           "n_matched": 12,
           "match_rate": 0.16901408450704225,
           "n_false_alarms": 5,
-          "wall_time_s": 0.12495682100416161,
-          "sec_per_matched_star": 0.010413068417013468
+          "wall_time_s": 0.12280069499684032,
+          "sec_per_matched_star": 0.010233391249736693
         }
       ],
       "cost_per_matched_star": {
-        "guided_s": 0.0038184080144024585,
-        "blind_k5_s": 0.009593451428892357,
+        "guided_s": 0.0036428448143332,
+        "blind_k5_s": 0.009308592928781374,
         "note": "以**每颗成功匹配星**计的成本；引导路径在同等完备度下成本更低"
       }
     }

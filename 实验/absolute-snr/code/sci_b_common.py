@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """SCI-B 公共库：物理前向仿真、Horne 最优提取、生产口径镜像、稳健统计。
 
-实验单元：实验/SCI-B/（跨帧绝对 SNR 传递链）
+实验单元：实验/absolute-snr/（跨帧绝对 SNR 传递链）
 权威依据：ASTROCS_DESIGN.md §2.2/§4.4/§5.3/§12.3；ACCEPTANCE_SPEC.md §2.2；
           docs/science/PSF_SIGNAL_WEIGHT.md；docs/plugins/algorithms_phase1/07_noise_snr.md §4.1/§4.2。
 生产口径镜像对象：lib/algorithms/noise_snr/cpp/src/snr_science.cpp（只读引用，不改）。

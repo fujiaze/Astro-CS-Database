@@ -1,4 +1,4 @@
-// 实验/SCI-C/code/reverse_verify/smooth_lambda/upm_sweep.cpp
+// 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/upm_sweep.cpp
 // RELEASE-02 A5（SMOOTH-LAMBDA）λs 扫描 Oracle。
 // 链接**真实** lib/algorithms/coverage/src/upm.cpp（非复刻），生产配置标志。
 // 输入：UPMB v1 二进制（obs+nodes，由 Python 生成：真实 L4 p2_samples.json 或合成场景）。

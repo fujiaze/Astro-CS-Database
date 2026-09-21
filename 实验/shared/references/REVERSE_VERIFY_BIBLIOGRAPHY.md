@@ -180,7 +180,7 @@
 
 # 附：P1-SPATIAL-GAIN（Phase1 低阶空间乘法增益）参考文献
 
-> 工作项：`实验/SCI-A/code/reverse_verify/p1_spatial_gain/`（报告 `docs/p1-spatial-gain.md`）。
+> 工作项：`实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/`（报告 `docs/p1-spatial-gain.md`）。
 > 规则同上（`../README.md §5`）。核对方式：arXiv Atom API（标题/作者/摘要逐字）、本地源码逐字核对。
 > 与上文 SNR 条目的交叉核对：**上文 §10.3 指出 ubercal 只含乘性、加性+乘性同拟合的一手来源是 Burke et al. (2018)**；
 > 本工作项独立复核后**同意**该判断，并在 R1 的『借鉴点』中只主张乘性/空间结构与相对-绝对解耦，不主张加性。

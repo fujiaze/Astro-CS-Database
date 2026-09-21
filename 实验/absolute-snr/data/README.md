@@ -32,7 +32,7 @@
 ## 4. 复现
 
 ```bash
-bash 实验/SCI-B/code/run_all.sh          # 一键（固定 seed，构建/测试串行加锁）
+bash 实验/absolute-snr/code/run_all.sh          # 一键（固定 seed，构建/测试串行加锁）
 ```
 
-产物：`实验/SCI-B/results/`（JSON + 图）；运行日志与临时驱动：`run/SCI-402/`（不入库）。
+产物：`实验/absolute-snr/results/`（JSON + 图）；运行日志与临时驱动：`run/SCI-402/`（不入库）。

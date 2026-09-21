@@ -1,10 +1,10 @@
 # SCI-B — 跨帧绝对 SNR 传递链 · 实验报告（实验单元）
 
-> **单元目录**：`实验/SCI-B/`（报告 `README.md` / 代码 `code/` / 结果 `results/` / 数据指针 `data/README.md`）
+> **单元目录**：`实验/absolute-snr/`（报告 `README.md` / 代码 `code/` / 结果 `results/` / 数据指针 `data/README.md`）
 > **权威依据**：`ASTROCS_DESIGN.md` §2.2、§4.4、§5.3、§12.3；`ACCEPTANCE_SPEC.md` §2.2；
 > `docs/science/PSF_SIGNAL_WEIGHT.md`、`docs/science/CONTROL_WEIGHT_SNR.md`、`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1/§4.2。
 > **固定 seed**：`20260921`（`code/sci_b_common.py:SEED_BASE`）；无任何时间/环境相关随机源。
-> **复跑**：`bash 实验/SCI-B/code/run_all.sh`（构建/测试串行加锁；产物落 `results/`，日志落 `run/SCI-402/`）。
+> **复跑**：`bash 实验/absolute-snr/code/run_all.sh`（构建/测试串行加锁；产物落 `results/`，日志落 `run/SCI-402/`）。
 > **吸收的先行工作**：EXP-205（`run/RELEASE-02/实验/E11-SNR三口径精度/`，`run/` 不入库）与 E01-SNR链条；本单元独立重写全部代码与判据，差异见 §8。
 
 ---
@@ -192,18 +192,18 @@
 
 ```bash
 # 一键复跑（固定 seed；构建/测试串行加锁；约 25–35 min）
-bash 实验/SCI-B/code/run_all.sh
+bash 实验/absolute-snr/code/run_all.sh
 
 # 分步
-bash 实验/SCI-B/code/build_prod_driver.sh          # 生产 C++ 驱动（只读链接 snr_science.cpp）
-python3 实验/SCI-B/code/fetch_evidence.py          # 三重佐证外部核验（含缓存回退）
-python3 实验/SCI-B/code/b1_sky_scan.py             # 天光扫描 + 核心负例
-python3 实验/SCI-B/code/b2_noise_terms.py          # 噪声项组成 + C++ 对拍
-python3 实验/SCI-B/code/b3_domain_map.py           # 三口径适用域图谱
-python3 实验/SCI-B/code/b4_integration.py          # 逆方差集成对拍
-python3 实验/SCI-B/code/b5_phase3_transfer.py      # Phase3 方差传递
-python3 实验/SCI-B/code/b6_gates_audit.py          # 退化门审查 + fail-closed
-python3 实验/SCI-B/code/make_figures.py            # 图件
+bash 实验/absolute-snr/code/build_prod_driver.sh          # 生产 C++ 驱动（只读链接 snr_science.cpp）
+python3 实验/absolute-snr/code/fetch_evidence.py          # 三重佐证外部核验（含缓存回退）
+python3 实验/absolute-snr/code/b1_sky_scan.py             # 天光扫描 + 核心负例
+python3 实验/absolute-snr/code/b2_noise_terms.py          # 噪声项组成 + C++ 对拍
+python3 实验/absolute-snr/code/b3_domain_map.py           # 三口径适用域图谱
+python3 实验/absolute-snr/code/b4_integration.py          # 逆方差集成对拍
+python3 实验/absolute-snr/code/b5_phase3_transfer.py      # Phase3 方差传递
+python3 实验/absolute-snr/code/b6_gates_audit.py          # 退化门审查 + fail-closed
+python3 实验/absolute-snr/code/make_figures.py            # 图件
 
 # 仓内相关测试（串行加锁）
 flock /tmp/astrocs_build.lock ctest --test-dir build --output-on-failure -R "p1snr_science|p1noise_numpy_oracle"
@@ -243,7 +243,7 @@ flock /tmp/astrocs_build.lock ctest --test-dir build --output-on-failure -R "p1s
 ## 附录 A. 文件清单
 
 ```
-实验/SCI-B/
+实验/absolute-snr/
   README.md                     本报告（八要素）
   data/README.md                数据指针与只读声明
   code/sci_b_common.py          公共库（仿真/Moffat4/Horne/生产镜像/稳健统计/效率损失）

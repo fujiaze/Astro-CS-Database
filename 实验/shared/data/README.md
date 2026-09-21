@@ -61,7 +61,7 @@ Hα（F657N）亮星云丝状结构 + 密集星场；[S II]（F673N）极暗（�
 | `实验/shared/synthetic/m16_scene.py` | **前向渲染接口**：真实 M16 结构 + PHOTFLAM 星等尺度 + §9.41 物理噪声链 |
 | `实验/shared/data/synthetic/generate.py` | 统一生成入口（`renderer` 键派发；M16 场景走 `m16_scene`） |
 | `run/reverse_verify/m16_scene/make_index.py` | 重建 `实验/shared/data/real/m16_scene_index.json` |
-| `实验/SCI-C/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py` | 示范判据（A6 seeing 红绿例 + 负例） |
+| `实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py` | 示范判据（A6 seeing 红绿例 + 负例） |
 
 ## 4. 判据登记（每类数据都要能红能绿）
 

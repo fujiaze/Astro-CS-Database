@@ -1,7 +1,7 @@
-# 实验/SCI-C/code/sci_c_common.py
+# 实验/additive-sky-seamless/code/sci_c_common.py
 """SCI-C（加性天光与无接缝叠加）公共库：仿真、真值、度量、生产驱动封装。
 
-设计约束（见 实验/SCI-C/README.md §2）：
+设计约束（见 实验/additive-sky-seamless/README.md §2）：
 - 固定 seed：SEED_BASE=20260923，所有随机性由 derive_rng(tag) 派生，无时间/环境随机源；
 - 所有度量在**保留背景**的前提下定义（退化判据单列，用于反证）；
 - 仓内实测一律经 run/SCI-403/{upm_probe,sky_probe}（只读链接生产 libastrocs_phase2.a）。
@@ -19,10 +19,11 @@ import numpy as np
 
 SEED_BASE = 20260923
 ROOT = Path(__file__).resolve().parents[3]
-RUN = ROOT / "run" / "SCI-403"
-CODE = ROOT / "实验" / "SCI-C" / "code"
-RESULTS = ROOT / "实验" / "SCI-C" / "results"
+CODE = Path(__file__).resolve().parent          # 本单元 code/（从脚本自身位置推导，随目录改名不失效）
+UNIT = CODE.parent                              # 本单元根（实验/additive-sky-seamless/）
+RESULTS = UNIT / "results"
 FIGS = RESULTS / "figs"
+RUN = ROOT / "run" / "SCI-403"
 
 TILE_PX = 512          # 一个 HEALPix tile = 512x512（leaf order = target_order+9）
 GRID = 8               # 8x8 control cell / tile（生产 M7-C-001 冻结常量）

@@ -2,7 +2,8 @@
 """成品层台阶：两次运行在**同一边集合**上的配对比较（消除 nused 边界集差异的混杂）。"""
 import json, os, sys
 import numpy as np
-ROOT = "/workspace/Astro CS Database"
+_HERE = os.path.dirname(os.path.abspath(__file__))   # .../实验/<unit>/code/reverse_verify/smooth_lambda
+ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "..", ".."))   # 仓库根（从脚本自身位置推导）
 
 def load(out_dir):
     integ = json.load(open(os.path.join(out_dir, "p2_integrated.json")))

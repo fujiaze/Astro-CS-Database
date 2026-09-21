@@ -1,7 +1,7 @@
 # F-INSTR 定案 —— AstroCS 星点通量口径（RELEASE-02 裁决 A6）
 
-> 工作项：**F-INSTR-SURVEY**（裁决 A6）。实验代码：`实验/SCI-B/code/reverse_verify/f_instr/`。
-> 逐条文献/开源软件记录：`实验/SCI-B/docs/surveys/f-instr-survey.md`（本文件引用其编号 `[F-xx]`，**核对状态以该文件为准**）。
+> 工作项：**F-INSTR-SURVEY**（裁决 A6）。实验代码：`实验/absolute-snr/code/reverse_verify/f_instr/`。
+> 逐条文献/开源软件记录：`实验/absolute-snr/docs/surveys/f-instr-survey.md`（本文件引用其编号 `[F-xx]`，**核对状态以该文件为准**）。
 > 中间产物：`run/reverse_verify/f_instr/`。**本工作项不改 `lib/` `docs/` `eng/tests/` `ci/`，零 git 写。**
 
 ---
@@ -497,8 +497,8 @@ accept_mag     = 0.02      # exp5: |PSF 总通量偏差| <= 0.02 mag
 
 ```bash
 export TMPDIR=/dev/shm/astrocs_finstr
-bash 实验/SCI-B/code/reverse_verify/f_instr/run_all.sh      # exp0-exp4, 约 2 min
-python3 实验/SCI-B/code/reverse_verify/f_instr/exp5_psf_shape.py   # 约 5 s
+bash 实验/absolute-snr/code/reverse_verify/f_instr/run_all.sh      # exp0-exp4, 约 2 min
+python3 实验/absolute-snr/code/reverse_verify/f_instr/exp5_psf_shape.py   # 约 5 s
 ```
 
 产物：`run/reverse_verify/f_instr/{exp0_noise_validation,exp1_recovery,exp2_aperture_dependence,exp3_seeing_null,exp4_gain_recovery,exp5_psf_shape}.json`。

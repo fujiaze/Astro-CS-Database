@@ -27,7 +27,7 @@ ROOT = HERE.parents[5]                          # 仓库根
 P7 = ROOT / "run" / "RELEASE-02" / "paper" / "data" / "P7"
 FIG = P7 / "figs"
 FIG.mkdir(parents=True, exist_ok=True)
-sys.path.insert(0, str(ROOT / "reverse_verify" / "experiments" / "p7_noise"))
+sys.path.insert(0, str(HERE.parent))            # 本实验目录（迁移后位于 实验/<unit>/code/reverse_verify/p7_noise）
 
 plt.rcParams.update({"figure.dpi": 130, "savefig.dpi": 130, "font.size": 9,
                      "axes.grid": True, "grid.alpha": 0.3})
@@ -201,7 +201,7 @@ def fig6():
     from astropy.io import fits
     import importlib.util
     spec = importlib.util.spec_from_file_location(
-        "p7lib", str(ROOT / "reverse_verify" / "experiments" / "p7_noise" / "p7lib.py"))
+        "p7lib", str(HERE.parent / "p7lib.py"))
     P = importlib.util.module_from_spec(spec); spec.loader.exec_module(P)
     fr_dir = ROOT / "run" / "reverse_verify" / "m16_scene" / "frames"
     items = [("m16_nebula_core", "m16_nebula_core_f00.fits", "bright nebula core (Ha)"),

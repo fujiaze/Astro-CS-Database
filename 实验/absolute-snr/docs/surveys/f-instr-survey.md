@@ -1,6 +1,6 @@
 # F-INSTR 逐条记录 —— 星点通量口径（文献 / 开源科学软件 / 本仓权威）
 
-> 工作项 **F-INSTR-SURVEY**（RELEASE-02 裁决 A6）。配套定案：`实验/SCI-B/docs/f-instr-canon.md`。
+> 工作项 **F-INSTR-SURVEY**（RELEASE-02 裁决 A6）。配套定案：`实验/absolute-snr/docs/f-instr-canon.md`。
 > 规则（`reverse_verify/README.md §5`）：每条给**可核对标识** + 四要素。**禁止编造引用。**
 
 ## 核对方式与标记

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 实验/SCI-C/code/c3_public_plane.py
+# 实验/additive-sky-seamless/code/c3_public_plane.py
 """C3 多退少补与公共面：calibrated = raw − δ_k，B_ref 保留，gauge 承载零点。
 
 判据：

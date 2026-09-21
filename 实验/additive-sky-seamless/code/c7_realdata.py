@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 实验/SCI-C/code/c7_realdata.py
+# 实验/additive-sky-seamless/code/c7_realdata.py
 """C7 真实数据衔接：M42 真实帧的帧间失配量化 + 真实样本上的接缝度量分布。
 
 数据：testdata/M42_T2T3_mosaic_Flying_dutchman/T3/M1/*Red.fts（只读，真实观测）

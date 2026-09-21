@@ -42,7 +42,7 @@ def svo_curve(filt):
     p = os.path.join(sc.CACHE, f"svo_HST_WFC3_UVIS2_{filt}.txt")
     if not os.path.exists(p):
         raise FileNotFoundError(
-            f"缺少外部通带曲线 {p}。复现命令：bash 实验/SCI-A/code/step0_fetch_refs.sh")
+            f"缺少外部通带曲线 {p}。复现命令：bash {sc.CODE}/step0_fetch_refs.sh")
     d = np.loadtxt(p)
     return d[:, 0], d[:, 1], sc.sha256_file(p)
 

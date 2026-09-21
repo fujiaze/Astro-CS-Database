@@ -30,9 +30,9 @@
 
 ```bash
 export TMPDIR=/dev/shm/astrocs_m16
-python3 实验/SCI-C/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py
-python3 实验/SCI-C/code/reverse_verify/m16_scene/exp_variance_closure.py
-python3 实验/SCI-C/code/reverse_verify/m16_scene/exp_realbase_consistency.py   # 真实底传输回归判据
+python3 实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py
+python3 实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_variance_closure.py
+python3 实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_realbase_consistency.py   # 真实底传输回归判据
 ```
 
 前置：先建掩膜与场景帧（见 `reports/RELEASE-02/m16-scene.md` §7 复跑清单）。
@@ -41,7 +41,7 @@ python3 实验/SCI-C/code/reverse_verify/m16_scene/exp_realbase_consistency.py  
 
 - 物理噪声链：`实验/shared/synthetic/noise_model.py`；
 - 前向渲染接口：`实验/shared/synthetic/m16_scene.py`；
-- 测光估计器：`实验/SCI-B/code/reverse_verify/f_instr/f_instr_lib.py`（`est_box5` / `est_psf_optimal` / `dmag`）。
+- 测光估计器：`实验/absolute-snr/code/reverse_verify/f_instr/f_instr_lib.py`（`est_box5` / `est_psf_optimal` / `dmag`）。
 
 ## 诚实边界
 

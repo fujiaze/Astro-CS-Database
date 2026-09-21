@@ -15,8 +15,10 @@ def L(name):
 def main():
     b1, b2, b3, b4, b5, b6 = (L("b1_sky_scan.json"), L("b2_noise_terms.json"), L("b3_domain_map.json"),
                               L("b4_integration.json"), L("b5_phase3_transfer.json"), L("b6_gates_audit.json"))
+    # 生成命令里的单元路径从本文件位置推导，不写死目录名
+    rel = os.path.relpath(os.path.dirname(os.path.abspath(__file__)), C.ROOT).replace(os.sep, "/")
     o = ["# SCI-B 对比表（由 results/*.json 自动生成，勿手改）", "",
-         "生成命令：«BT»python3 实验/SCI-B/code/make_tables.py«BT»", ""]
+         "生成命令：«BT»python3 %s/make_tables.py«BT»" % rel, ""]
     o += ["## T1 天光扫描（亮源 F=3000 e-，N_MC=1000）", "",
           "| B [e-/px] | SNR_def | SNR_MC | MC 95% CI | prod skyonly+RN | prod empirical+RN | prod empirical only | 传统口径 | 不扣背景 | 算术常数 |",
           "|---|---|---|---|---|---|---|---|---|---|"]

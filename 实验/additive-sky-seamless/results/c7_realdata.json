@@ -300,7 +300,7 @@
     "x": 384,
     "step": 1.5607072052380317,
     "rel": 0.0013286031928399652,
-    "fig": "/workspace/Astro CS Database/实验/SCI-C/results/figs/fig_c7_real_crop.png"
+    "fig": "/workspace/Astro CS Database/实验/additive-sky-seamless/results/figs/fig_c7_real_crop.png"
   },
   "gates": {
     "n": 5,
@@ -369,7 +369,7 @@
           "x": 384,
           "step": 1.5607072052380317,
           "rel": 0.0013286031928399652,
-          "fig": "/workspace/Astro CS Database/实验/SCI-C/results/figs/fig_c7_real_crop.png"
+          "fig": "/workspace/Astro CS Database/实验/additive-sky-seamless/results/figs/fig_c7_real_crop.png"
         },
         "ok": true,
         "level": "data",

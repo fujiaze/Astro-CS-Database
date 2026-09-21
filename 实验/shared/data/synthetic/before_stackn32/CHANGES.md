@@ -23,13 +23,13 @@
    - `M16_DEFAULTS["stack_n"]`: `1` → `32`（原 171 行）
    - `render_m16_frame` 内 `stack_n = int(sc.get("stack_n", 1))` → `... , 32))`（原 498 行）
    - **噪声链公式、读出噪声字段 `detector.read_noise_e = 3.1`、满阱、曝光、平场、天光路径一字未改**
-3. `实验/SCI-B/code/reverse_verify/p7_noise/p7lib.py`
+3. `实验/absolute-snr/code/reverse_verify/p7_noise/p7lib.py`
    - `det_of()` 的兜底默认 `scene.get("stack_n", 1)` → `..., 32)`（无行为影响：场景总是显式给值）
 4. `实验/shared/data/synthetic/generate.py`
    - **无 `stack_n` 硬编码**（已逐行核对：该文件从不读写 `stack_n`）；只在 docstring 追加 STACKN32-001 说明
 5. `实验/shared/data/synthetic/datasets.json`
    - 新增顶层 `$stack_n` 登记项（纯文档，无行为影响）
-6. `实验/SCI-B/code/reverse_verify/p7_noise/exp{1,3,4}_*.py`
+6. `实验/absolute-snr/code/reverse_verify/p7_noise/exp{1,3,4}_*.py`
    - 只改**注释/说明字符串**（原文"不改场景 JSON 默认值"已过时）；**判据、阈值、臂设计一字未改**
    - exp1 的 `design.stack_n_rationale` 与 exp4 的 `criteria.P2_note` 同步订正（见 STACKN32-001 §5.4）
 7. `run/RELEASE-02/paper/data/M16FIX/src/a6_before_repro.py`

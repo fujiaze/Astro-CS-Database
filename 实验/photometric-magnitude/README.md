@@ -2,7 +2,7 @@
 
 - **任务**：`SCI-401`（控制包 RELEASE-04，最高优先级科学实验单元 SCI-A）
 - **固定种子**：`20260921`（所有 RNG 由 `scia_common.rng(tag)` SHA256 派生）
-- **一键复跑**：`bash 实验/SCI-A/code/run_all.sh`（`quick` 跳过最慢的 step6）
+- **一键复跑**：`bash 实验/photometric-magnitude/code/run_all.sh`（`quick` 跳过最慢的 step6）
 - **判据表**：`results/GATES.md`（机读 `results/gates.json`）
 - **规范依据**：`ASTROCS_DESIGN.md` §2.1 / §4.2 / §4.4 / §12.1–12.3；
   `ACCEPTANCE_SPEC.md` §2.1 判据表；`docs/plugins/algorithms_phase1/06_photometry.md` **§4.1**
@@ -332,7 +332,7 @@ N0/N4 是退化输入与错误门禁反例；**N5 未通过并暴露判据真实
    只解析该代码块开头的"仓库根固定条目"清单（第 98–101 行）与 `eng/ci/root_manifest.json` 的
    `allowed_dirs`，两者都不含 `实验` ⇒ 规范已认可、机器白名单未同步。
    本实验单元按任务书与 AGENTS.md §7
-   落位 `实验/SCI-A/`，**未越权修改根级登记文件**（`eng/ci/root_manifest.json` / `ENGINEERING_SPEC.md`），
+   落位 `实验/photometric-magnitude/`，**未越权修改根级登记文件**（`eng/ci/root_manifest.json` / `ENGINEERING_SPEC.md`），
    该缺口登记为需负责人处理项。其余 11 项失败与本实验单元无关（`实验/` 未被任何检查项引用，
    `grep -c 实验 run/SCI-401/logs/ci_fast.log = 0`），来自并发的 DOC/SCI-B 改动与既有仓库状态。
 
@@ -342,23 +342,23 @@ N0/N4 是退化输入与错误门禁反例；**N5 未通过并暴露判据真实
 
 ```bash
 cd <repo root>
-bash 实验/SCI-A/code/run_all.sh          # 全量；日志落 run/SCI-401/logs/
-bash 实验/SCI-A/code/run_all.sh quick    # 跳过 step6
+bash 实验/photometric-magnitude/code/run_all.sh          # 全量；日志落 run/SCI-401/logs/
+bash 实验/photometric-magnitude/code/run_all.sh quick    # 跳过 step6
 ```
 
 单步：
 
 ```bash
-bash 实验/SCI-A/code/step0_fetch_refs.sh            # 外部通带曲线（唯一需网络）
-python3 实验/SCI-A/code/step1_analytic.py           # 解析合成 / Oracle / 负例
-python3 实验/SCI-A/code/step2_hst_sim.py            # HST 模板 → 前向仿真帧 A/B/C
-python3 实验/SCI-A/code/step3_forward_vs_photflam.py
-python3 实验/SCI-A/code/step4_guided_vs_blind.py
-python3 实验/SCI-A/code/step5_calibration_gate.py
-python3 实验/SCI-A/code/step6_apply_and_units.py
-python3 实验/SCI-A/code/step7_negatives.py
-python3 实验/SCI-A/code/step8_real_frame.py
-python3 实验/SCI-A/code/step9_collect.py            # → results/GATES.md
+bash 实验/photometric-magnitude/code/step0_fetch_refs.sh            # 外部通带曲线（唯一需网络）
+python3 实验/photometric-magnitude/code/step1_analytic.py           # 解析合成 / Oracle / 负例
+python3 实验/photometric-magnitude/code/step2_hst_sim.py            # HST 模板 → 前向仿真帧 A/B/C
+python3 实验/photometric-magnitude/code/step3_forward_vs_photflam.py
+python3 实验/photometric-magnitude/code/step4_guided_vs_blind.py
+python3 实验/photometric-magnitude/code/step5_calibration_gate.py
+python3 实验/photometric-magnitude/code/step6_apply_and_units.py
+python3 实验/photometric-magnitude/code/step7_negatives.py
+python3 实验/photometric-magnitude/code/step8_real_frame.py
+python3 实验/photometric-magnitude/code/step9_collect.py            # → results/GATES.md
 ```
 
 ---

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # λs 扫描（链接真实 upm.cpp）。SW_W=4 SW_MI=60 SW_LAM="..." bash sweep_all.sh <场景名...>
 set -u
-cd "/workspace/Astro CS Database"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # 本实验目录（从脚本自身位置推导）
+cd "$HERE/../../../../.."                               # 仓库根
 export TMPDIR=/dev/shm/astrocs_lambda
 S=$TMPDIR/upm_sweep
 R=run/reverse_verify/smooth_lambda
