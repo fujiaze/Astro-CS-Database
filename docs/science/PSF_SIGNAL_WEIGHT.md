@@ -1,5 +1,7 @@
 # PSF Signal Weight 科学定义与可选集成模式
 
+> 上游：ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§4.4（输出合同）
+
 文档 ID：SCI-PSFW-001
 状态：TARGET_NORMATIVE
 上位：docs/science/UNIFIED_SCIENCE_MODEL.md
@@ -96,6 +98,19 @@ C_out = R C_in Rᵀ
 5. 分别报告点源 detection power、photometric variance、effective PSF、扩展源偏差和伪影；不得只以“看起来更好”通过；
 6. 零星、少星、拥挤、严重梯度、云、拖线、不同 FOV 和不同波段都有 fail-closed 测试；
 7. 权重分量和最终权重的负向 mutation 必须使门变红。
+
+## 7a. SCI-B 定案结论（跨帧绝对 SNR 传递链，实验闭环）
+
+> 依据：实验单元 `实验/SCI-B/`（报告 `README.md`、结果 `results/b1..b6*.json`、复跑 `code/run_all.sh`，固定 seed 20260921）。
+> 本节只**确认**已有定义与给出实验判据，不改 §2/§3/§5 公式、不改默认容差。
+
+1. **入库量是通量型未加权原始 SNR**：帧级 `SNR=F_signal/σ_F`，`σ_F⁻²=ΣP_i²/σ_i²`，`σ_i²=(sky+dark+RN²+F·P_i)/g²`（Horne 1986, PASP 98, 609, DOI 10.1086/131801）。天光只进噪声项、不进信号项；MC 真值在 26+29 个扫描点上全部 ≤3σ（max|z|=2.68）。
+2. **PSFSNR / PSFSW 都不入库**：PixInsight PSFSNR 是功率比口径、PSFSW 是权重；二者只作方法学对照。权重在 Phase2 消费时由 `w_k=SNR_k²/F_ref,k²≡1/σ_F,k²` **现场换算**（恒等相对偏差 1.1e-16，`results/b4_integration.json`）。
+3. **F_ref 锚定**：`F_ref,k=10^(-0.4(m_ref−ZP_k))`、`m_ref=6.0`、逐帧独立、**必须同帧配对**；锚定权重相对该源电平 oracle 权重的散度惩罚在 `|m−m_ref|≤4` 内 ≤0.6%、6 等（10 倍通量）处 3.6%；定义 F_ref 与换算 F_ref 不同源时效率损失随 ZP 散度 1.0 mag 达 30.1%（散度=0 时严格归零）。
+4. **拟合权重 ≠ 堆叠权重**：带杠杆 `h` 的拟合值方差为 `σ²h`，不能按 `1/σ²` 当独立测量堆叠（实测方差高 52.3%，解析 50.4%）；等杠杆时两者严格等价（损失≡0）。稳健拟合（Huber k=1.345, IRLS）在 5%×10σ 离群下把偏差从 0.426 压到 0.084，干净数据下不损失。
+5. **Phase3 传递**：`C_out=R C_in Rᵀ`（对角元 MC/解析 0.9980）；点源信息量必须按**输出 PSF**与**完整 C_out** 重算（`Var=1/(P_outᵀC_out⁻¹P_out)`，实测 9.105 vs 解析 9.071）；只取对角 `Σc_k²u_k` 使输出方差低估 1.37 倍，其"宣称方差"只有实际散度的 32.5%。
+6. **非退化判据（强制）**：空间权重/σ 场的精度判据用**权重效率损失** `E=Var_w/Var_opt−1`（E=0 ⇔ σ̂∝σ_true，全局尺度相消）；"帧级臂 RMSE ≤ K·s_field"类判据对任意真值场恒真（对抗场下 E=7.17 仍绿），**不得充当证据**（`results/b6_gates_audit.json`）。
+7. **三口径适用域**：默认 `sparse_reconstruct`(Δ=64) 在地面视宁度受限域三帧全部胜出帧级标量；HST 类高对比结构域帧级标量更优（cell 稳健 MAD 偏差随 Δ 从 +0.029 增到 +0.301 dex）。稠密口径 4096² = 67,108,864 B = 64 MiB/帧 = 1 MiB 预算的 64 倍，**稠密超门结论成立**。
 
 ## 8. 禁止事项
 

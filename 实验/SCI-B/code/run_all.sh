@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# SCI-B 一键复跑（固定 seed = 20260921；产物落 results/ 与 run/SCI-402/）。
+# 构建/测试串行化：flock /tmp/astrocs_build.lock；CI 检查用 /tmp/astrocs_ci.lock。
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$HERE/../../.." && pwd)"
+OUT="$ROOT/run/SCI-402"
+mkdir -p "$OUT" "$HERE/../results/figs"
+cd "$HERE/.."
+echo "== [0/9] 编译生产 C++ 驱动（仓内实测） =="
+bash "$HERE/build_prod_driver.sh" "$OUT"
+echo "== [1/9] 外部三重佐证抓取/核验 =="
+python3 code/fetch_evidence.py | tee "$OUT/evidence.log"
+echo "== [2/9] B1 物理 MC 真值 + 天光扫描 + 核心负例 =="
+python3 code/b1_sky_scan.py | tee "$OUT/b1.log"
+echo "== [3/9] B2 噪声项组成对拍 =="
+python3 code/b2_noise_terms.py | tee "$OUT/b2.log"
+echo "== [4/9] B3 三口径适用域图谱 =="
+python3 code/b3_domain_map.py 2>&1 | grep -v Warning | tee "$OUT/b3.log"
+echo "== [5/9] B4 逆方差集成对拍 =="
+python3 code/b4_integration.py | tee "$OUT/b4.log"
+echo "== [6/9] B5 Phase3 方差传递 =="
+python3 code/b5_phase3_transfer.py | tee "$OUT/b5.log"
+echo "== [7/9] B6 退化门审查 + fail-closed =="
+python3 code/b6_gates_audit.py | tee "$OUT/b6.log"
+echo "== [8/9] 图件 + 对比表 =="
+python3 code/make_figures.py | tee "$OUT/figs.log"
+python3 code/make_tables.py | tee "$OUT/tables.log"
+echo "== [9/9] 仓内 ctest（P5-SNR 科学面，串行加锁） =="
+flock /tmp/astrocs_build.lock ctest --test-dir "$ROOT/build" --output-on-failure \
+  -R "p1snr_science|p1noise_numpy_oracle" | tee "$OUT/ctest_snr.log"
+echo "ALL DONE. results: $HERE/../results  logs: $OUT"

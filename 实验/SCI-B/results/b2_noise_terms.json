@@ -1,0 +1,1714 @@
+{
+ "experiment": "SCI-B / B2 sigma_F noise-term composition vs Horne 1986 + production cross-check",
+ "frozen_config": {
+  "base": {
+   "gain": 1.3,
+   "rn": 10.0,
+   "dark": 0.5,
+   "sigma_psf": 1.5,
+   "F_e": 1000.0,
+   "sky_e_per_px": 100.0,
+   "half": 30,
+   "n_mc": 1000
+  },
+  "scans": {
+   "read_noise_e": [
+    0.0,
+    2.0,
+    5.0,
+    10.0,
+    20.0,
+    50.0
+   ],
+   "dark_e_per_px": [
+    0.0,
+    1.0,
+    10.0,
+    100.0,
+    1000.0
+   ],
+   "psf_sigma_px": [
+    0.8,
+    1.0,
+    1.5,
+    2.0,
+    3.0,
+    5.0
+   ],
+   "gain_e_per_adu": [
+    0.5,
+    1.0,
+    1.3,
+    2.0,
+    4.0
+   ],
+   "source_flux_e": [
+    10.0,
+    30.0,
+    100.0,
+    300.0,
+    1000.0,
+    3000.0,
+    10000.0
+   ]
+  },
+  "annulus_px": [
+   10.0,
+   30.0
+  ],
+  "seed_base": 20260921
+ },
+ "scans": {
+  "read_noise_e": [
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 0.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 37.94662058427504,
+    "sigma_f_mc_adu": 39.26199531850435,
+    "snr_def": 20.271390637340076,
+    "snr_mc": 19.59224850878191,
+    "sigma_f_oracle_adu": 39.24597951701995,
+    "sigma_f_total_adu": [
+     38.41649273743844,
+     0.8105923084131893
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     37.94218211366811,
+     0.5061483715004489
+    ],
+    "sigma_f_empirical_rn_adu": [
+     38.41649273743844,
+     0.8105923084131893
+    ],
+    "pred_doublecount_bias": 0.0,
+    "source_term_dominance": 2.7424524193795587,
+    "sky_limited_sigma_f_pred_adu": 25.3301107933433,
+    "axis": "read_noise_e",
+    "axis_value": 0.0,
+    "z_def_vs_mc": -1.497527721793469,
+    "z_total_vs_mc": -0.9621780834417729,
+    "z_skyonly_rn_vs_mc": -1.5023314258847444,
+    "z_empirical_rn_vs_mc": -0.9621780834417729,
+    "bias_empirical_rn": -0.02153488568797768,
+    "ratio_emp_over_skyonly": 1.012500878899094
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 2.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 38.31298314208444,
+    "sigma_f_mc_adu": 37.791981349573135,
+    "snr_def": 20.077548291608146,
+    "snr_mc": 20.354338189242828,
+    "sigma_f_oracle_adu": 37.79291586007728,
+    "sigma_f_total_adu": [
+     38.351528580114916,
+     0.6545955581960913
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     38.317533514481866,
+     0.4951644804138235
+    ],
+    "sigma_f_empirical_rn_adu": [
+     38.71287064586427,
+     0.6487603292302564
+    ],
+    "pred_doublecount_bias": 0.009439303736612281,
+    "source_term_dominance": 2.63747816410054,
+    "sky_limited_sigma_f_pred_adu": 25.829274260710633,
+    "axis": "read_noise_e",
+    "axis_value": 2.0,
+    "z_def_vs_mc": 0.6162221399689387,
+    "z_total_vs_mc": 0.661614026976181,
+    "z_skyonly_rn_vs_mc": 0.6214975784723743,
+    "z_empirical_rn_vs_mc": 1.0888741498430223,
+    "bias_empirical_rn": 0.02436731982303275,
+    "ratio_emp_over_skyonly": 1.0103173950701443
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 5.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 40.16364246467292,
+    "sigma_f_mc_adu": 40.598702708024426,
+    "snr_def": 19.15241551877094,
+    "snr_mc": 18.947176089908137,
+    "sigma_f_oracle_adu": 40.59190708400048,
+    "sigma_f_total_adu": [
+     40.178365098425324,
+     0.7210326331632791
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     40.16237428405942,
+     0.5196185447748392
+    ],
+    "sigma_f_empirical_rn_adu": [
+     42.24661805940687,
+     0.6874586560986499
+    ],
+    "pred_doublecount_bias": 0.0514993299527895,
+    "source_term_dominance": 2.196147156590638,
+    "sky_limited_sigma_f_pred_adu": 28.30583178433041,
+    "axis": "read_noise_e",
+    "axis_value": 5.0,
+    "z_def_vs_mc": -0.4789994161297635,
+    "z_total_vs_mc": -0.46264410399044814,
+    "z_skyonly_rn_vs_mc": -0.4803170809570742,
+    "z_empirical_rn_vs_mc": 1.8138280810410812,
+    "bias_empirical_rn": 0.040590345047077925,
+    "ratio_emp_over_skyonly": 1.0518954322920768
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 46.03323302675906,
+    "sigma_f_mc_adu": 45.46367010352994,
+    "snr_def": 16.710335526153816,
+    "snr_mc": 16.91968042789057,
+    "sigma_f_oracle_adu": 45.46402443122881,
+    "sigma_f_total_adu": [
+     46.02376450056008,
+     0.8535489457429958
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     46.02807020296849,
+     0.5103737551935523
+    ],
+    "sigma_f_empirical_rn_adu": [
+     52.70224846530433,
+     0.746958939790156
+    ],
+    "pred_doublecount_bias": 0.14500914320209946,
+    "source_term_dominance": 1.3746457264781093,
+    "sky_limited_sigma_f_pred_adu": 35.77760351954974,
+    "axis": "read_noise_e",
+    "axis_value": 10.0,
+    "z_def_vs_mc": 0.5599831517872755,
+    "z_total_vs_mc": 0.5504800794720353,
+    "z_skyonly_rn_vs_mc": 0.5548373165808378,
+    "z_empirical_rn_vs_mc": 7.114910585691501,
+    "bias_empirical_rn": 0.15921676242350613,
+    "ratio_emp_over_skyonly": 1.1450023481954583
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 20.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 63.8462310043813,
+    "sigma_f_mc_adu": 67.56167033439533,
+    "snr_def": 12.048178210832562,
+    "snr_mc": 11.385609109772963,
+    "sigma_f_oracle_adu": 67.57120514776776,
+    "sigma_f_total_adu": [
+     63.8570463775621,
+     1.2587692899344067
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     63.860301084790855,
+     0.5820350955461263
+    ],
+    "sigma_f_empirical_rn_adu": [
+     81.54673294771608,
+     0.9872599248032541
+    ],
+    "pred_doublecount_bias": 0.27702733555712644,
+    "source_term_dominance": 0.5506822540771567,
+    "sky_limited_sigma_f_pred_adu": 56.527021113793474,
+    "axis": "read_noise_e",
+    "axis_value": 20.0,
+    "z_def_vs_mc": -2.458145229570997,
+    "z_total_vs_mc": -2.4501402297482673,
+    "z_skyonly_rn_vs_mc": -2.448654883417977,
+    "z_empirical_rn_vs_mc": 9.250584099700157,
+    "bias_empirical_rn": 0.20699699317826092,
+    "ratio_emp_over_skyonly": 1.2769550340741733
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 50.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 132.3562595316428,
+    "sigma_f_mc_adu": 136.59462988612663,
+    "snr_def": 5.811820097914349,
+    "snr_mc": 5.6314861709574195,
+    "sigma_f_oracle_adu": 136.57468460442823,
+    "sigma_f_total_adu": [
+     132.3241801674729,
+     2.959464754165622
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     132.34022283763156,
+     0.608005752961819
+    ],
+    "sigma_f_empirical_rn_adu": [
+     182.97418329339627,
+     2.139818587970886
+    ],
+    "pred_doublecount_bias": 0.38252382643948457,
+    "source_term_dominance": 0.10598595199740941,
+    "sky_limited_sigma_f_pred_adu": 128.84942581470565,
+    "axis": "read_noise_e",
+    "axis_value": 50.0,
+    "z_def_vs_mc": -1.3869570724670737,
+    "z_total_vs_mc": -1.3967997959875853,
+    "z_skyonly_rn_vs_mc": -1.3921773375929745,
+    "z_empirical_rn_vs_mc": 15.173446317789656,
+    "bias_empirical_rn": 0.33954155771668604,
+    "ratio_emp_over_skyonly": 1.382604467259267
+   }
+  ],
+  "dark_e_per_px": [
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.0,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 45.997061314596884,
+    "sigma_f_mc_adu": 47.320426996480634,
+    "snr_def": 16.723476397103187,
+    "snr_mc": 16.255786730072813,
+    "sigma_f_oracle_adu": 47.32915118977843,
+    "sigma_f_total_adu": [
+     45.9940548075108,
+     0.8669124749217318
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     45.985631444168746,
+     0.5368014483611807
+    ],
+    "sigma_f_empirical_rn_adu": [
+     52.67651331578519,
+     0.7593580636734883
+    ],
+    "pred_doublecount_bias": 0.14523481648950698,
+    "source_term_dominance": 1.3780823407941636,
+    "sky_limited_sigma_f_pred_adu": 35.73296519459451,
+    "axis": "dark_e_per_px",
+    "axis_value": 0.0,
+    "z_def_vs_mc": -1.2500545213226801,
+    "z_total_vs_mc": -1.2524746054296962,
+    "z_skyonly_rn_vs_mc": -1.260689145489437,
+    "z_empirical_rn_vs_mc": 5.058071446583299,
+    "bias_empirical_rn": 0.11318761598881832,
+    "ratio_emp_over_skyonly": 1.1454994019107874
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 1.0,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 46.06937156423306,
+    "sigma_f_mc_adu": 46.00357177254736,
+    "snr_def": 16.697227314209293,
+    "snr_mc": 16.721109678918623,
+    "sigma_f_oracle_adu": 45.97390314248455,
+    "sigma_f_total_adu": [
+     46.05124893759092,
+     0.8793850271745749
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     46.07366786164172,
+     0.5186097602143299
+    ],
+    "sigma_f_empirical_rn_adu": [
+     52.7263067243094,
+     0.7701835125433265
+    ],
+    "pred_doublecount_bias": 0.1447842135188384,
+    "source_term_dominance": 1.3712262097457162,
+    "sky_limited_sigma_f_pred_adu": 35.822186220359214,
+    "axis": "dark_e_per_px",
+    "axis_value": 1.0,
+    "z_def_vs_mc": 0.0639338280241732,
+    "z_total_vs_mc": 0.04630822518266935,
+    "z_skyonly_rn_vs_mc": 0.06809964485179694,
+    "z_empirical_rn_vs_mc": 6.530262017265771,
+    "bias_empirical_rn": 0.14613506501192663,
+    "ratio_emp_over_skyonly": 1.1443913448055716
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 10.0,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 46.7143058578477,
+    "sigma_f_mc_adu": 47.704391578518184,
+    "snr_def": 16.466706613848643,
+    "snr_mc": 16.124946651183418,
+    "sigma_f_oracle_adu": 47.647230384220165,
+    "sigma_f_total_adu": [
+     46.71198930762182,
+     0.8875088194258818
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     46.70667358643576,
+     0.5319331075010565
+    ],
+    "sigma_f_empirical_rn_adu": [
+     53.29424326559422,
+     0.7800876923488265
+    ],
+    "pred_doublecount_bias": 0.140858370748852,
+    "source_term_dominance": 1.31245937218748,
+    "sky_limited_sigma_f_pred_adu": 36.615393507075794,
+    "axis": "dark_e_per_px",
+    "axis_value": 10.0,
+    "z_def_vs_mc": -0.9277098713084546,
+    "z_total_vs_mc": -0.9295591146741573,
+    "z_skyonly_rn_vs_mc": -0.9347452069982171,
+    "z_empirical_rn_vs_mc": 5.236289870994825,
+    "bias_empirical_rn": 0.11717687831476731,
+    "ratio_emp_over_skyonly": 1.1410412939591479
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 100.0,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 52.67743607367897,
+    "sigma_f_mc_adu": 53.6917447248202,
+    "snr_def": 14.602661529594192,
+    "snr_mc": 14.32679778191628,
+    "sigma_f_oracle_adu": 53.65369127316897,
+    "sigma_f_total_adu": [
+     52.61992876606299,
+     0.987330567510908
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     52.667757474280236,
+     0.5483455235182351
+    ],
+    "sigma_f_empirical_rn_adu": [
+     58.483013791797916,
+     0.8889164775959602
+    ],
+    "pred_doublecount_bias": 0.11115046196531253,
+    "source_term_dominance": 0.9187215605419975,
+    "sky_limited_sigma_f_pred_adu": 43.763765861693784,
+    "axis": "dark_e_per_px",
+    "axis_value": 100.0,
+    "z_def_vs_mc": -0.8444235852418402,
+    "z_total_vs_mc": -0.8919978013245561,
+    "z_skyonly_rn_vs_mc": -0.8523923173639993,
+    "z_empirical_rn_vs_mc": 3.987694670406445,
+    "bias_empirical_rn": 0.08923660595374261,
+    "ratio_emp_over_skyonly": 1.1104139723503037
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 1000.0,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 92.55282653338062,
+    "sigma_f_mc_adu": 91.35029855239758,
+    "snr_def": 8.311261773872827,
+    "snr_mc": 8.420670555220424,
+    "sigma_f_oracle_adu": 91.31345258996909,
+    "sigma_f_total_adu": [
+     92.66042017232502,
+     2.018595567924961
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     92.59232509179093,
+     0.5680295187720331
+    ],
+    "sigma_f_empirical_rn_adu": [
+     96.05314057409447,
+     1.947006681182323
+    ],
+    "pred_doublecount_bias": 0.03667997589487104,
+    "source_term_dominance": 0.22968039014020747,
+    "sky_limited_sigma_f_pred_adu": 87.52753172338757,
+    "axis": "dark_e_per_px",
+    "axis_value": 1000.0,
+    "z_def_vs_mc": 0.5884139514534777,
+    "z_total_vs_mc": 0.6407485582908236,
+    "z_skyonly_rn_vs_mc": 0.6077176811487623,
+    "z_empirical_rn_vs_mc": 2.3001235276473144,
+    "bias_empirical_rn": 0.05148140833934334,
+    "ratio_emp_over_skyonly": 1.0373769151911099
+   }
+  ],
+  "psf_sigma_px": [
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 0.8,
+    "sum_p2": 0.4492786953842541,
+    "sigma_f_def_adu": 32.173195331510286,
+    "sigma_f_mc_adu": 32.24985308403564,
+    "snr_def": 23.909057254172946,
+    "snr_mc": 23.852225534991806,
+    "sigma_f_oracle_adu": 32.23801264442489,
+    "sigma_f_total_adu": [
+     32.17047825160108,
+     0.5373059693815221
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     32.16792567991233,
+     0.4859994095312785
+    ],
+    "sigma_f_empirical_rn_adu": [
+     34.393938249134024,
+     0.5112375119506102
+    ],
+    "pred_doublecount_bias": 0.06908141725763439,
+    "source_term_dominance": 4.258110247458737,
+    "sky_limited_sigma_f_pred_adu": 16.25009572611735,
+    "axis": "psf_sigma_px",
+    "axis_value": 0.8,
+    "z_def_vs_mc": -0.10624930153485015,
+    "z_total_vs_mc": -0.10998473821975802,
+    "z_skyonly_rn_vs_mc": -0.11352739922195519,
+    "z_empirical_rn_vs_mc": 2.9710026030353345,
+    "bias_empirical_rn": 0.06648356380140386,
+    "ratio_emp_over_skyonly": 1.0691997547921392
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.0,
+    "sum_p2": 0.2499565660723998,
+    "sigma_f_def_adu": 36.20234415497247,
+    "sigma_f_mc_adu": 38.51204870088619,
+    "snr_def": 21.2480928289588,
+    "snr_mc": 19.973769123663075,
+    "sigma_f_oracle_adu": 38.51563424418479,
+    "sigma_f_total_adu": [
+     36.17585115949959,
+     0.6707990534769075
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     36.18647481904406,
+     0.548817529444881
+    ],
+    "sigma_f_empirical_rn_adu": [
+     39.67953160593696,
+     0.622934202963416
+    ],
+    "pred_doublecount_bias": 0.09667954037807602,
+    "source_term_dominance": 2.993440583852099,
+    "sky_limited_sigma_f_pred_adu": 21.786203769933966,
+    "axis": "psf_sigma_px",
+    "axis_value": 1.0,
+    "z_def_vs_mc": -2.6807576187933275,
+    "z_total_vs_mc": -2.7106852732058173,
+    "z_skyonly_rn_vs_mc": -2.6986289285348746,
+    "z_empirical_rn_vs_mc": 1.354684518939742,
+    "bias_empirical_rn": 0.030314744201699773,
+    "ratio_emp_over_skyonly": 1.0965293470657327
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 46.03323302675906,
+    "sigma_f_mc_adu": 44.79207045397295,
+    "snr_def": 16.710335526153816,
+    "snr_mc": 17.17336933601247,
+    "sigma_f_oracle_adu": 44.7883755169505,
+    "sigma_f_total_adu": [
+     46.00654932070167,
+     0.8395722060771248
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     46.03790930281543,
+     0.5060664011901248
+    ],
+    "sigma_f_empirical_rn_adu": [
+     52.687904330584324,
+     0.7341608977870772
+    ],
+    "pred_doublecount_bias": 0.14500914320209946,
+    "source_term_dominance": 1.3746457264781093,
+    "sky_limited_sigma_f_pred_adu": 35.77760351954974,
+    "axis": "psf_sigma_px",
+    "axis_value": 1.5,
+    "z_def_vs_mc": 1.2385834576223544,
+    "z_total_vs_mc": 1.211530054625566,
+    "z_skyonly_rn_vs_mc": 1.2430915075616638,
+    "z_empirical_rn_vs_mc": 7.8773126572969,
+    "bias_empirical_rn": 0.17627749279250016,
+    "ratio_emp_over_skyonly": 1.144446069086856
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 2.0,
+    "sum_p2": 0.05120810555979516,
+    "sigma_f_def_adu": 56.19942563592143,
+    "sigma_f_mc_adu": 58.251406689862186,
+    "snr_def": 13.687520121897721,
+    "snr_mc": 13.205359543096538,
+    "sigma_f_oracle_adu": 58.215096187728655,
+    "sigma_f_total_adu": [
+     56.17749148083129,
+     1.1362734193604258
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     56.18724622056472,
+     0.5438474463882483
+    ],
+    "sigma_f_empirical_rn_adu": [
+     65.75342833639297,
+     0.9710262013268499
+    ],
+    "pred_doublecount_bias": 0.17028300807695018,
+    "source_term_dominance": 0.7739300546033325,
+    "sky_limited_sigma_f_pred_adu": 48.13317184584521,
+    "axis": "psf_sigma_px",
+    "axis_value": 2.0,
+    "z_def_vs_mc": -1.57457978351471,
+    "z_total_vs_mc": -1.590806294109263,
+    "z_skyonly_rn_vs_mc": -1.5837877045758741,
+    "z_empirical_rn_vs_mc": 5.755050145575305,
+    "bias_empirical_rn": 0.12878696108529186,
+    "ratio_emp_over_skyonly": 1.1702554006344414
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 3.0,
+    "sum_p2": 0.02273663853909045,
+    "sigma_f_def_adu": 77.95321070550139,
+    "sigma_f_mc_adu": 75.21322395237628,
+    "snr_def": 9.867852295870634,
+    "snr_mc": 10.227334088455414,
+    "sigma_f_oracle_adu": 75.19165976220087,
+    "sigma_f_total_adu": [
+     77.97654977028029,
+     1.6394800932144171
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     77.95366344324736,
+     0.5267288759684532
+    ],
+    "sigma_f_empirical_rn_adu": [
+     93.21895599517337,
+     1.3704923945203393
+    ],
+    "pred_doublecount_bias": 0.19552189381767593,
+    "source_term_dominance": 0.3439771952382856,
+    "sky_limited_sigma_f_pred_adu": 72.23550401913604,
+    "axis": "psf_sigma_px",
+    "axis_value": 3.0,
+    "z_def_vs_mc": 1.6283659045815286,
+    "z_total_vs_mc": 1.6414572793652298,
+    "z_skyonly_rn_vs_mc": 1.6285551762376476,
+    "z_empirical_rn_vs_mc": 10.697204966167106,
+    "bias_empirical_rn": 0.23939582824156047,
+    "ratio_emp_over_skyonly": 1.1958252104859652
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 5.0,
+    "sum_p2": 0.008186444342573188,
+    "sigma_f_def_adu": 123.94731227345659,
+    "sigma_f_mc_adu": 125.40790710234639,
+    "snr_def": 6.20611092827626,
+    "snr_mc": 6.133829891627119,
+    "sigma_f_oracle_adu": 125.39365951931947,
+    "sigma_f_total_adu": [
+     123.95577896501956,
+     2.7256163147342867
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     123.98923708043228,
+     0.5659058558451802
+    ],
+    "sigma_f_empirical_rn_adu": [
+     150.3264075578801,
+     2.24736950592307
+    ],
+    "pred_doublecount_bias": 0.21270156258169481,
+    "source_term_dominance": 0.12384135398696776,
+    "sky_limited_sigma_f_pred_adu": 120.38328203475665,
+    "axis": "psf_sigma_px",
+    "axis_value": 5.0,
+    "z_def_vs_mc": -0.520598102191879,
+    "z_total_vs_mc": -0.5173362585880784,
+    "z_skyonly_rn_vs_mc": -0.5056446064382066,
+    "z_empirical_rn_vs_mc": 8.87882383000841,
+    "bias_empirical_rn": 0.19869959583327956,
+    "ratio_emp_over_skyonly": 1.2124149732477407
+   }
+  ],
+  "gain_e_per_adu": [
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 0.5,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 119.68640586957358,
+    "sigma_f_mc_adu": 120.2364426093709,
+    "snr_def": 16.710335526153816,
+    "snr_mc": 16.63389199310963,
+    "sigma_f_oracle_adu": 120.23418583258527,
+    "sigma_f_total_adu": [
+     119.63339459705776,
+     2.1457480958854838
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     119.71114288276011,
+     1.3542038841909136
+    ],
+    "sigma_f_empirical_rn_adu": [
+     137.00297488137528,
+     1.8798442986965476
+    ],
+    "pred_doublecount_bias": 0.14500914320209946,
+    "source_term_dominance": 0.5287098947992728,
+    "sky_limited_sigma_f_pred_adu": 93.02176915082934,
+    "axis": "gain_e_per_adu",
+    "axis_value": 0.5,
+    "z_def_vs_mc": -0.20448117060747925,
+    "z_total_vs_mc": -0.22411729960200003,
+    "z_skyonly_rn_vs_mc": -0.19526021779237096,
+    "z_empirical_rn_vs_mc": 6.2315896305381235,
+    "bias_empirical_rn": 0.13944634345575402,
+    "ratio_emp_over_skyonly": 1.1444463028437548
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.0,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 59.84320293478679,
+    "sigma_f_mc_adu": 59.609589008526086,
+    "snr_def": 16.710335526153816,
+    "snr_mc": 16.7758244375241,
+    "sigma_f_oracle_adu": 59.548980975592436,
+    "sigma_f_total_adu": [
+     59.81381845733376,
+     1.0823303488214222
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     59.846928957120305,
+     0.6708155468259361
+    ],
+    "sigma_f_empirical_rn_adu": [
+     68.49861399996612,
+     0.9481277042487687
+    ],
+    "pred_doublecount_bias": 0.14500914320209946,
+    "source_term_dominance": 1.0574197895985455,
+    "sky_limited_sigma_f_pred_adu": 46.51088457541467,
+    "axis": "gain_e_per_adu",
+    "axis_value": 1.0,
+    "z_def_vs_mc": 0.17517831431292788,
+    "z_total_vs_mc": 0.15309358513470347,
+    "z_skyonly_rn_vs_mc": 0.17794980683615508,
+    "z_empirical_rn_vs_mc": 6.663862196123353,
+    "bias_empirical_rn": 0.14912072267716225,
+    "ratio_emp_over_skyonly": 1.1445635589596361
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 46.03323302675906,
+    "sigma_f_mc_adu": 46.524184468239724,
+    "snr_def": 16.710335526153816,
+    "snr_mc": 16.53399792006872,
+    "sigma_f_oracle_adu": 46.52654683052591,
+    "sigma_f_total_adu": [
+     46.020278438910374,
+     0.8540075674125379
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     46.035957941540474,
+     0.5253944312390157
+    ],
+    "sigma_f_empirical_rn_adu": [
+     52.69954821437835,
+     0.7487689970456047
+    ],
+    "pred_doublecount_bias": 0.14500914320209946,
+    "source_term_dominance": 1.3746457264781093,
+    "sky_limited_sigma_f_pred_adu": 35.77760351954974,
+    "axis": "gain_e_per_adu",
+    "axis_value": 1.3,
+    "z_def_vs_mc": -0.47169091587587664,
+    "z_total_vs_mc": -0.48397439718252305,
+    "z_skyonly_rn_vs_mc": -0.469013152509263,
+    "z_empirical_rn_vs_mc": 5.931563254408823,
+    "bias_empirical_rn": 0.13273448673462096,
+    "ratio_emp_over_skyonly": 1.144747509790059
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 2.0,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 29.921601467393394,
+    "sigma_f_mc_adu": 30.451679994451084,
+    "snr_def": 16.710335526153816,
+    "snr_mc": 16.419455349954752,
+    "sigma_f_oracle_adu": 30.438315797416085,
+    "sigma_f_total_adu": [
+     29.894211031282893,
+     0.5676476919405853
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     29.91842927969219,
+     0.3430765721980039
+    ],
+    "sigma_f_empirical_rn_adu": [
+     34.23825059968871,
+     0.4975863435584357
+    ],
+    "pred_doublecount_bias": 0.14500914320209946,
+    "source_term_dominance": 2.114839579197091,
+    "sky_limited_sigma_f_pred_adu": 23.255442287707336,
+    "axis": "gain_e_per_adu",
+    "axis_value": 2.0,
+    "z_def_vs_mc": -0.7780843789796129,
+    "z_total_vs_mc": -0.8180059649310362,
+    "z_skyonly_rn_vs_mc": -0.7826414922548375,
+    "z_empirical_rn_vs_mc": 5.556697221819237,
+    "bias_empirical_rn": 0.12434685396430067,
+    "ratio_emp_over_skyonly": 1.144386634726466
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 4.0,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 14.960800733696697,
+    "sigma_f_mc_adu": 15.080128115636098,
+    "snr_def": 16.710335526153816,
+    "snr_mc": 16.578108493705905,
+    "sigma_f_oracle_adu": 15.088781378778977,
+    "sigma_f_total_adu": [
+     14.952213314088697,
+     0.27237522959180505
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     14.960544460669189,
+     0.16811132462186704
+    ],
+    "sigma_f_empirical_rn_adu": [
+     17.12354670180782,
+     0.23850383101520062
+    ],
+    "pred_doublecount_bias": 0.14500914320209946,
+    "source_term_dominance": 4.229679158394182,
+    "sky_limited_sigma_f_pred_adu": 11.627721143853668,
+    "axis": "gain_e_per_adu",
+    "axis_value": 4.0,
+    "z_def_vs_mc": -0.3536981783046761,
+    "z_total_vs_mc": -0.37902863342807364,
+    "z_skyonly_rn_vs_mc": -0.35441379892978303,
+    "z_empirical_rn_vs_mc": 6.055382089591323,
+    "bias_empirical_rn": 0.13550406007843963,
+    "ratio_emp_over_skyonly": 1.1445804493830485
+   }
+  ],
+  "source_flux_e": [
+   {
+    "F_e": 10.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 35.90665441720845,
+    "sigma_f_mc_adu": 36.35396946226917,
+    "snr_def": 0.21423069949455145,
+    "snr_mc": 0.2115947118317117,
+    "sigma_f_oracle_adu": 36.3565097124578,
+    "sigma_f_total_adu": [
+     36.06151582692226,
+     0.9174274808720569
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     36.094192878390444,
+     0.3956105609640121
+    ],
+    "sigma_f_empirical_rn_adu": [
+     44.03637474410719,
+     0.7518922849090374
+    ],
+    "pred_doublecount_bias": 0.22277476046528322,
+    "source_term_dominance": 0.013746457265337636,
+    "sky_limited_sigma_f_pred_adu": 35.77760351954974,
+    "axis": "source_flux_e",
+    "axis_value": 10.0,
+    "z_def_vs_mc": -0.5499958460584469,
+    "z_total_vs_mc": -0.35935757027763016,
+    "z_skyonly_rn_vs_mc": -0.31937030484027873,
+    "z_empirical_rn_vs_mc": 9.441861082287673,
+    "bias_empirical_rn": 0.2113223231320418,
+    "ratio_emp_over_skyonly": 1.2200404339965647
+   },
+   {
+    "F_e": 30.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 36.162216719022666,
+    "sigma_f_mc_adu": 36.133918702543056,
+    "snr_def": 0.6381501238220211,
+    "snr_mc": 0.6386498864652328,
+    "sigma_f_oracle_adu": 36.12028004988651,
+    "sigma_f_total_adu": [
+     36.25943007867107,
+     0.930364936832317
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     36.239323406316885,
+     0.45416416307898555
+    ],
+    "sigma_f_empirical_rn_adu": [
+     44.199147446677934,
+     0.7644401051995986
+    ],
+    "pred_doublecount_bias": 0.21993116254617373,
+    "source_term_dominance": 0.04123937179597917,
+    "sky_limited_sigma_f_pred_adu": 35.77760351954974,
+    "axis": "source_flux_e",
+    "axis_value": 30.0,
+    "z_def_vs_mc": 0.03500569254041887,
+    "z_total_vs_mc": 0.1551594872134802,
+    "z_skyonly_rn_vs_mc": 0.1303689421381931,
+    "z_empirical_rn_vs_mc": 9.972528219701722,
+    "bias_empirical_rn": 0.2232038216095078,
+    "ratio_emp_over_skyonly": 1.2196460444670876
+   },
+   {
+    "F_e": 100.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 37.0316707018964,
+    "sigma_f_mc_adu": 36.783461430517995,
+    "snr_def": 2.0772240480939916,
+    "snr_mc": 2.0912408438879666,
+    "sigma_f_oracle_adu": 36.82196684779323,
+    "sigma_f_total_adu": [
+     37.03895191729982,
+     0.9863830035554801
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     37.04762266981514,
+     0.5752362033324319
+    ],
+    "sigma_f_empirical_rn_adu": [
+     44.845679366928536,
+     0.8166103704594335
+    ],
+    "pred_doublecount_bias": 0.2107258611020888,
+    "source_term_dominance": 0.1374645726528704,
+    "sky_limited_sigma_f_pred_adu": 35.77760351954974,
+    "axis": "source_flux_e",
+    "axis_value": 100.0,
+    "z_def_vs_mc": 0.3016220910490667,
+    "z_total_vs_mc": 0.3102473766583127,
+    "z_skyonly_rn_vs_mc": 0.32092840726775596,
+    "z_empirical_rn_vs_mc": 9.792328019652809,
+    "bias_empirical_rn": 0.21918051273232253,
+    "ratio_emp_over_skyonly": 1.2104873709876918
+   },
+   {
+    "F_e": 300.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 39.33472182619388,
+    "sigma_f_mc_adu": 40.22673193161912,
+    "snr_def": 5.866807239388085,
+    "snr_mc": 5.736713366661559,
+    "sigma_f_oracle_adu": 40.26226446068874,
+    "sigma_f_total_adu": [
+     39.3425846904246,
+     0.9597564388995389
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     39.35635378131324,
+     0.5732246863887089
+    ],
+    "sigma_f_empirical_rn_adu": [
+     46.79538511376434,
+     0.8109927365574434
+    ],
+    "pred_doublecount_bias": 0.18940120757329404,
+    "source_term_dominance": 0.41239371795523816,
+    "sky_limited_sigma_f_pred_adu": 35.77760351954974,
+    "axis": "source_flux_e",
+    "axis_value": 300.0,
+    "z_def_vs_mc": -0.9911805357050474,
+    "z_total_vs_mc": -0.9818852997743439,
+    "z_skyonly_rn_vs_mc": -0.9669474884496051,
+    "z_empirical_rn_vs_mc": 7.295970224439056,
+    "bias_empirical_rn": 0.16329074888089812,
+    "ratio_emp_over_skyonly": 1.1890172899091893
+   },
+   {
+    "F_e": 1000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 46.03323302675906,
+    "sigma_f_mc_adu": 46.714639878037005,
+    "snr_def": 16.710335526153816,
+    "snr_mc": 16.466588873190155,
+    "sigma_f_oracle_adu": 46.7053300586418,
+    "sigma_f_total_adu": [
+     46.009331188520804,
+     0.8614345073768568
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     46.03245749280389,
+     0.532088889724558
+    ],
+    "sigma_f_empirical_rn_adu": [
+     52.690049502929185,
+     0.7551220251587674
+    ],
+    "pred_doublecount_bias": 0.14500914320209946,
+    "source_term_dominance": 1.3746457264781093,
+    "sky_limited_sigma_f_pred_adu": 35.77760351954974,
+    "axis": "source_flux_e",
+    "axis_value": 1000.0,
+    "z_def_vs_mc": -0.6520054600413933,
+    "z_total_vs_mc": -0.6746468369839633,
+    "z_skyonly_rn_vs_mc": -0.6526629471134116,
+    "z_empirical_rn_vs_mc": 5.716090338000633,
+    "bias_empirical_rn": 0.12791299773460385,
+    "ratio_emp_over_skyonly": 1.1446282117604965
+   },
+   {
+    "F_e": 3000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 59.994716690028774,
+    "sigma_f_mc_adu": 61.90607460979783,
+    "snr_def": 38.46492549694547,
+    "snr_mc": 37.27731603462176,
+    "sigma_f_oracle_adu": 61.86183061753699,
+    "sigma_f_total_adu": [
+     59.992993182266396,
+     0.7582053044510021
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     59.9793673841371,
+     0.49852495986432577
+    ],
+    "sigma_f_empirical_rn_adu": [
+     65.67098190120008,
+     0.6873614298929275
+    ],
+    "pred_doublecount_bias": 0.0946332900874074,
+    "source_term_dominance": 4.123937179097032,
+    "sky_limited_sigma_f_pred_adu": 35.77760351954974,
+    "axis": "source_flux_e",
+    "axis_value": 3000.0,
+    "z_def_vs_mc": -1.380087097182241,
+    "z_total_vs_mc": -1.3811245943811432,
+    "z_skyonly_rn_vs_mc": -1.3910798742801582,
+    "z_empirical_rn_vs_mc": 2.7180990608683215,
+    "bias_empirical_rn": 0.06081644354181659,
+    "ratio_emp_over_skyonly": 1.09489287342114
+   },
+   {
+    "F_e": 10000.0,
+    "sky_e_per_px": 100.0,
+    "dark_e_per_px": 0.5,
+    "read_noise_e": 10.0,
+    "gain_e_per_adu": 1.3,
+    "psf_sigma_px": 1.5,
+    "sum_p2": 0.09268408746165036,
+    "sigma_f_def_adu": 91.24835881835298,
+    "sigma_f_mc_adu": 91.72295417533627,
+    "snr_def": 84.30077857751587,
+    "snr_mc": 83.86458723956044,
+    "sigma_f_oracle_adu": 91.70460651313466,
+    "sigma_f_total_adu": [
+     91.2280102497945,
+     0.6399103086402632
+    ],
+    "sigma_f_skyonly_rn_adu": [
+     91.25137318532926,
+     0.47394820738476773
+    ],
+    "sigma_f_empirical_rn_adu": [
+     95.78783866257127,
+     0.5972443493428744
+    ],
+    "pred_doublecount_bias": 0.04993095137016956,
+    "source_term_dominance": 13.746457259721646,
+    "sky_limited_sigma_f_pred_adu": 35.77760351954974,
+    "axis": "source_flux_e",
+    "axis_value": 10000.0,
+    "z_def_vs_mc": -0.23128272374066408,
+    "z_total_vs_mc": -0.24118738599822095,
+    "z_skyonly_rn_vs_mc": -0.22980761434805455,
+    "z_empirical_rn_vs_mc": 1.9808405713620296,
+    "bias_empirical_rn": 0.044316981760799345,
+    "ratio_emp_over_skyonly": 1.0497139420360126
+   }
+  ]
+ },
+ "cpp_crosscheck": {
+  "available": true,
+  "n_points": 40,
+  "worst_rel_diff": 2.2392380996639857e-14,
+  "tolerance": 1e-12,
+  "pass_": true,
+  "rows": [
+   {
+    "F_adu": 11.661038075955407,
+    "sigma_px": 2.8144995078040127,
+    "sigma_sky_adu": 68.90059630578645,
+    "gain": 4.995045016798211,
+    "rn_e": 22.49398712452632,
+    "half": 30,
+    "rel_snr_optimal": 4.345815321560437e-15,
+    "rel_sigma_f": 4.366413077399287e-15,
+    "rel_snr_aperture": 1.4056728177949856e-16,
+    "rel_sum_p2": 1.1953181299725204e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 251.75001233203983,
+    "sigma_px": 1.9747317958882133,
+    "sigma_sky_adu": 37.88839167115198,
+    "gain": 2.683806828920805,
+    "rn_e": 54.194996093041276,
+    "half": 30,
+    "rel_snr_optimal": 4.635162216619834e-15,
+    "rel_sigma_f": 4.542921876451868e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 5.283165277852243e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 2209.8854225177397,
+    "sigma_px": 2.04182249410338,
+    "sigma_sky_adu": 105.06135287057721,
+    "gain": 1.547585735468942,
+    "rn_e": 28.993194202157227,
+    "half": 30,
+    "rel_snr_optimal": 7.776487646352887e-16,
+    "rel_sigma_f": 7.050800161403453e-16,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 4.096614545495871e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 827.9341964573896,
+    "sigma_px": 4.961251620271611,
+    "sigma_sky_adu": 5.714565103833577,
+    "gain": 3.293732159449342,
+    "rn_e": 30.49639211914146,
+    "half": 30,
+    "rel_snr_optimal": 5.964588835509677e-15,
+    "rel_sigma_f": 5.9961445234484996e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 5.42442703793007e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 3963.119035490809,
+    "sigma_px": 1.8181215973323726,
+    "sigma_sky_adu": 37.71289911354411,
+    "gain": 3.4157178086554976,
+    "rn_e": 50.3037066888432,
+    "half": 30,
+    "rel_snr_optimal": 4.811056655362497e-15,
+    "rel_sigma_f": 4.745050346361337e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 8.60486767184773e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 2229.7698020286343,
+    "sigma_px": 5.5458251214499485,
+    "sigma_sky_adu": 12.88747213091392,
+    "gain": 1.8681104843341334,
+    "rn_e": 54.56927211155744,
+    "half": 30,
+    "rel_snr_optimal": 2.6654329226125482e-15,
+    "rel_sigma_f": 2.7438170012664667e-15,
+    "rel_snr_aperture": 1.3943762945626513e-16,
+    "rel_sum_p2": 1.0426303334787367e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 160.5100572897161,
+    "sigma_px": 2.7993859467708133,
+    "sigma_sky_adu": 0.4989890947448824,
+    "gain": 4.604488862891332,
+    "rn_e": 43.53797699426279,
+    "half": 30,
+    "rel_snr_optimal": 1.1270105556381674e-14,
+    "rel_sigma_f": 1.1193405337160604e-14,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 1.6209752639573212e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 104.29471959219973,
+    "sigma_px": 3.7028324394259537,
+    "sigma_sky_adu": 15.90405284760778,
+    "gain": 3.1015778772224163,
+    "rn_e": 56.318453499171994,
+    "half": 30,
+    "rel_snr_optimal": 8.418515564797191e-16,
+    "rel_sigma_f": 8.6252923989963685e-16,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 4.184310025194834e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 13.880886850287895,
+    "sigma_px": 2.316664940035009,
+    "sigma_sky_adu": 2.3007884753932286,
+    "gain": 2.487240723748713,
+    "rn_e": 59.205585399778826,
+    "half": 30,
+    "rel_snr_optimal": 7.34835741738522e-16,
+    "rel_sigma_f": 6.960420174191938e-16,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 2.183609653078383e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 3291.0450905331923,
+    "sigma_px": 1.61573441225698,
+    "sigma_sky_adu": 5.275616616321651,
+    "gain": 1.9330989071872438,
+    "rn_e": 59.672949892503595,
+    "half": 30,
+    "rel_snr_optimal": 5.0093579003707e-15,
+    "rel_sigma_f": 4.887619630778617e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 7.012112370889908e-16,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 30.751590711328557,
+    "sigma_px": 1.3395532539744799,
+    "sigma_sky_adu": 0.451208922122572,
+    "gain": 3.3335645213538334,
+    "rn_e": 34.856658349554095,
+    "half": 30,
+    "rel_snr_optimal": 2.4271171167780566e-15,
+    "rel_sigma_f": 2.5577463922505417e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 5.821215925872929e-16,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 8515.192429249355,
+    "sigma_px": 2.530625078786691,
+    "sigma_sky_adu": 1365.4101742860878,
+    "gain": 1.7564212600349736,
+    "rn_e": 16.057354740188654,
+    "half": 30,
+    "rel_snr_optimal": 6.1751139859339746e-15,
+    "rel_sigma_f": 6.191073942868751e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 3.0401429011327565e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 1108.2430966530776,
+    "sigma_px": 5.000025716198606,
+    "sigma_sky_adu": 1.8642596921636982,
+    "gain": 0.49927301220674075,
+    "rn_e": 2.9757996507397166,
+    "half": 30,
+    "rel_snr_optimal": 4.397055712708075e-15,
+    "rel_sigma_f": 4.3358961006617675e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 5.933315454253352e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 1873.5829997296626,
+    "sigma_px": 4.6215397768903115,
+    "sigma_sky_adu": 1.2869651791833705,
+    "gain": 4.655170102620752,
+    "rn_e": 42.653008362166425,
+    "half": 30,
+    "rel_snr_optimal": 7.588158834785739e-15,
+    "rel_sigma_f": 7.57108736920721e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 2.082053553384226e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 12.502041720146053,
+    "sigma_px": 1.0381118681636021,
+    "sigma_sky_adu": 0.4131332946557165,
+    "gain": 1.806696357227847,
+    "rn_e": 7.144198677258185,
+    "half": 30,
+    "rel_snr_optimal": 2.2395240246911324e-15,
+    "rel_sigma_f": 2.1694741972738712e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 3.931040741192368e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 13795.550320693737,
+    "sigma_px": 4.791138338603121,
+    "sigma_sky_adu": 1835.3081655034414,
+    "gain": 2.6586031457890527,
+    "rn_e": 25.18640836148763,
+    "half": 30,
+    "rel_snr_optimal": 3.2850231476379892e-15,
+    "rel_sigma_f": 3.3688737088794215e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 1.2452819333761799e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 25298.53690178884,
+    "sigma_px": 3.6132864479299602,
+    "sigma_sky_adu": 1.7764575798202247,
+    "gain": 4.186267439082043,
+    "rn_e": 55.52727309527695,
+    "half": 30,
+    "rel_snr_optimal": 3.944233512153019e-15,
+    "rel_sigma_f": 3.845350893429557e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 7.968786087205216e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 3812.938025400022,
+    "sigma_px": 2.77461599221294,
+    "sigma_sky_adu": 2647.3483494239413,
+    "gain": 2.393104505244212,
+    "rn_e": 57.09461176433217,
+    "half": 30,
+    "rel_snr_optimal": 4.846443296391037e-15,
+    "rel_sigma_f": 4.816702659326762e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 1.1355747522799781e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 30.17119005704753,
+    "sigma_px": 0.7662512110749196,
+    "sigma_sky_adu": 8.061968102981405,
+    "gain": 4.683810354297523,
+    "rn_e": 57.10802624078554,
+    "half": 30,
+    "rel_snr_optimal": 1.6955959245870247e-15,
+    "rel_sigma_f": 1.6962049024722247e-15,
+    "rel_snr_aperture": 1.1117741687253835e-16,
+    "rel_sum_p2": 3.574586198540063e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 27701.771913447177,
+    "sigma_px": 2.750197158795202,
+    "sigma_sky_adu": 0.370366859895504,
+    "gain": 0.8369191503133037,
+    "rn_e": 26.672583548797945,
+    "half": 30,
+    "rel_snr_optimal": 2.931331358093771e-15,
+    "rel_sigma_f": 2.984346060708951e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 3.4624360144232865e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 7432.05696494822,
+    "sigma_px": 1.3037742157598107,
+    "sigma_sky_adu": 139.7841515099982,
+    "gain": 4.8289300903528,
+    "rn_e": 58.28346527606332,
+    "half": 30,
+    "rel_snr_optimal": 0.0,
+    "rel_sigma_f": 0.0,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 1.7492315551112528e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 971.4129914400681,
+    "sigma_px": 1.30765851301642,
+    "sigma_sky_adu": 13.57718156477999,
+    "gain": 3.817304308795592,
+    "rn_e": 13.925567840785805,
+    "half": 30,
+    "rel_snr_optimal": 3.402656002792172e-15,
+    "rel_sigma_f": 3.3679609583122268e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 8.146769243935613e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 24.44745563340045,
+    "sigma_px": 1.9439261316705405,
+    "sigma_sky_adu": 155.6403239786586,
+    "gain": 0.9335281303701737,
+    "rn_e": 54.22828434454553,
+    "half": 30,
+    "rel_snr_optimal": 3.037360644326926e-15,
+    "rel_sigma_f": 3.027716903969462e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 4.862447027762227e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 5289.153505910376,
+    "sigma_px": 2.753832259169371,
+    "sigma_sky_adu": 72.33407405115126,
+    "gain": 4.079112245975436,
+    "rn_e": 18.62256989999039,
+    "half": 30,
+    "rel_snr_optimal": 1.7869733701558936e-15,
+    "rel_sigma_f": 1.6665975895735406e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 5.014526930714672e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 1538.6659899481042,
+    "sigma_px": 3.1053559085325744,
+    "sigma_sky_adu": 59.68310086482914,
+    "gain": 1.803633181891164,
+    "rn_e": 58.79252120753861,
+    "half": 30,
+    "rel_snr_optimal": 6.080796286499976e-15,
+    "rel_sigma_f": 6.070551129214055e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 1.9783316490153162e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 1457.5595621728419,
+    "sigma_px": 5.797520665645345,
+    "sigma_sky_adu": 23.919303889134163,
+    "gain": 4.949754413706672,
+    "rn_e": 22.53937931864872,
+    "half": 30,
+    "rel_snr_optimal": 4.9542375965657724e-15,
+    "rel_sigma_f": 4.908111022777131e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 2.421057777399243e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 2172.5705994431755,
+    "sigma_px": 0.9634613505076373,
+    "sigma_sky_adu": 304.8428892214868,
+    "gain": 4.088364699677456,
+    "rn_e": 46.61658367504915,
+    "half": 30,
+    "rel_snr_optimal": 1.780886168501004e-15,
+    "rel_sigma_f": 1.7615870827080288e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 2.6095518553229518e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 287.6773942910781,
+    "sigma_px": 2.109398084133262,
+    "sigma_sky_adu": 2.176372087413918,
+    "gain": 2.901339033960218,
+    "rn_e": 30.877606961992704,
+    "half": 30,
+    "rel_snr_optimal": 5.144140272222642e-15,
+    "rel_sigma_f": 5.049211748584075e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 3.016157152211137e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 4547.489536196703,
+    "sigma_px": 3.7169964124744923,
+    "sigma_sky_adu": 5.454443144995856,
+    "gain": 2.019909233243434,
+    "rn_e": 23.536516864588314,
+    "half": 30,
+    "rel_snr_optimal": 2.249604384324723e-15,
+    "rel_sigma_f": 2.2504397594090745e-15,
+    "rel_snr_aperture": 1.7209241402226717e-16,
+    "rel_sum_p2": 1.4288843157593203e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 191.65465765604125,
+    "sigma_px": 5.623961296648314,
+    "sigma_sky_adu": 1929.4369398178749,
+    "gain": 3.995137610435319,
+    "rn_e": 27.862085999425396,
+    "half": 30,
+    "rel_snr_optimal": 1.5196141015689774e-15,
+    "rel_sigma_f": 1.5168260110684275e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 2.412429630963082e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 1835.7720611297884,
+    "sigma_px": 0.8160265452094693,
+    "sigma_sky_adu": 62.871333717961356,
+    "gain": 1.1960103169080796,
+    "rn_e": 51.60524498656589,
+    "half": 30,
+    "rel_snr_optimal": 2.065606692736738e-15,
+    "rel_sigma_f": 2.0370676425073197e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 3.63115169234637e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 37.758718557872896,
+    "sigma_px": 5.527453300570169,
+    "sigma_sky_adu": 26.98785860000782,
+    "gain": 1.2413744826241793,
+    "rn_e": 1.7620128525078105,
+    "half": 30,
+    "rel_snr_optimal": 6.068918948047372e-16,
+    "rel_sigma_f": 5.163725034851041e-16,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 3.8840232841375295e-16,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 11351.947820223862,
+    "sigma_px": 2.828354548279099,
+    "sigma_sky_adu": 9946.33507120397,
+    "gain": 2.5865670963409615,
+    "rn_e": 56.991106230776005,
+    "half": 30,
+    "rel_snr_optimal": 8.971100746439562e-15,
+    "rel_sigma_f": 8.89180403443996e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 1.9802125695897596e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 2996.5798947840217,
+    "sigma_px": 3.1620715577100427,
+    "sigma_sky_adu": 5361.970737058536,
+    "gain": 2.2475193882338784,
+    "rn_e": 3.2372757827084464,
+    "half": 30,
+    "rel_snr_optimal": 6.769718266844781e-15,
+    "rel_sigma_f": 6.7943293965041505e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 2.373351035200889e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 327.94802701572945,
+    "sigma_px": 0.6786216945174663,
+    "sigma_sky_adu": 5.746624659305658,
+    "gain": 3.6682414825745773,
+    "rn_e": 49.08051884565817,
+    "half": 30,
+    "rel_snr_optimal": 1.3693233125648818e-15,
+    "rel_sigma_f": 1.3491201510129085e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 3.4960279914472444e-16,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 1043.10435788979,
+    "sigma_px": 4.752386358468414,
+    "sigma_sky_adu": 28.290816735535653,
+    "gain": 4.375924166265158,
+    "rn_e": 32.94442705149682,
+    "half": 30,
+    "rel_snr_optimal": 9.182418534975396e-16,
+    "rel_sigma_f": 9.224304108632963e-16,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 1.5315327423138278e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 387.2129601323321,
+    "sigma_px": 2.378166872876514,
+    "sigma_sky_adu": 2683.3832706829335,
+    "gain": 4.746064565687799,
+    "rn_e": 24.564430974967134,
+    "half": 30,
+    "rel_snr_optimal": 1.011170373625824e-15,
+    "rel_sigma_f": 1.031563989366123e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 3.2600168029435807e-15,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 196.8293097732372,
+    "sigma_px": 2.9070592453573307,
+    "sigma_sky_adu": 19.48128798476994,
+    "gain": 3.281534210835269,
+    "rn_e": 36.445573615071496,
+    "half": 30,
+    "rel_snr_optimal": 3.7471769665659875e-15,
+    "rel_sigma_f": 3.7391930186682925e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 1.5188161827801114e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 84.2666442676542,
+    "sigma_px": 2.2894795089359903,
+    "sigma_sky_adu": 2687.5442176371807,
+    "gain": 1.881200729181602,
+    "rn_e": 3.753189894369242,
+    "half": 30,
+    "rel_snr_optimal": 5.8798928047396874e-15,
+    "rel_sigma_f": 5.884469119410356e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 2.2392380996639857e-14,
+    "rel_f_in": 0.0
+   },
+   {
+    "F_adu": 32.47814950856462,
+    "sigma_px": 2.5396804524754137,
+    "sigma_sky_adu": 0.11813135748314169,
+    "gain": 3.699056345929524,
+    "rn_e": 3.1486350776479566,
+    "half": 30,
+    "rel_snr_optimal": 3.423339379569135e-15,
+    "rel_sigma_f": 3.4269386665716755e-15,
+    "rel_snr_aperture": 0.0,
+    "rel_sum_p2": 5.46775823248402e-15,
+    "rel_f_in": 0.0
+   }
+  ],
+  "driver": "lib/algorithms/noise_snr/cpp/src/snr_science.cpp + code/prod_snr_driver.cpp"
+ },
+ "gates": {
+  "G1_def_all_within_3sigma": true,
+  "G1_def_max_abs_z": 2.6807576187933275,
+  "G1_def_n_points": 29,
+  "G2_total_all_within_3sigma": true,
+  "G2_total_max_abs_z": 2.7106852732058173,
+  "G4a_skyonly_rn_all_within_3sigma": true,
+  "G4a_skyonly_rn_max_abs_z": 2.6986289285348746,
+  "G4c_pred_vs_measured_mc_max_abs_diff": 0.07003034237886552,
+  "G4c_pred_vs_arm_ratio_max_abs_diff": 0.012500878899093903,
+  "FINDING_doublecount_pred_matches_arm_ratio_2pp": true,
+  "G4c_max_bias_over_all_points": 0.33954155771668604,
+  "G4c_bias_at_base_point": 0.12791299773460385,
+  "G3_sky_limited_check": [
+   {
+    "axis": "source_flux_e",
+    "value": 10.0,
+    "sigma_px": 1.5,
+    "sigma_f_def": 35.90665441720845,
+    "sigma_f_sky_limited_pred": 35.77760351954974,
+    "rel_diff": 0.0036070302357784634
+   },
+   {
+    "axis": "source_flux_e",
+    "value": 30.0,
+    "sigma_px": 1.5,
+    "sigma_f_def": 36.162216719022666,
+    "sigma_f_sky_limited_pred": 35.77760351954974,
+    "rel_diff": 0.010750110729545126
+   }
+  ],
+  "G3_sky_limited_n_points": 2,
+  "G3_sky_limited_max_rel_diff": 0.010750110729545126,
+  "G5_cpp_mirror_pass": true,
+  "G5_cpp_worst_rel_diff": 2.2392380996639857e-14
+ },
+ "generated_at": "2026-09-21T05:40:04Z",
+ "wall_s": 19.17435312271118
+}
