@@ -63,7 +63,10 @@ class TestIsaBitManip(unittest.TestCase):
                          "NOT_APPLICABLE 结论不应留下入库的空 DLL/变体源")
         self.assertFalse(os.path.isfile(os.path.join(HOST, "bmi2_backend.so")))
         # 证据表存在且 instruction_count=0
-        mea = os.path.join(REPO, "artifacts", "prerelease_v5", "ISA-005", "MEASUREMENTS.csv")
+        # D-14（GATE-501）：读取路径统一到证据树（ISA-005 证据缺位事实不变，
+        # 仍按下方显式 skipTest 处理，不静默删除判据）。
+        mea = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "ISA-005",
+                           "MEASUREMENTS.csv")
         if not os.path.isfile(mea):
             # ISA-005 计数证据不在树内(artifacts/prerelease_v5 仅有 ISA-001/002/003);
             # NOT_APPLICABLE 决定与"不写空 DLL"由 docs/architecture/

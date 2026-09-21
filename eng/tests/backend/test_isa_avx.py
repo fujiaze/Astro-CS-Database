@@ -75,7 +75,9 @@ class TestIsaAvx(unittest.TestCase):
         self.assertIn("hips", v, "热点 hips 必须有变体测量")
         self.assertIn("calibration", v, "热点 calibration 必须有变体测量")
         # 完整测量工件(决策可审计) — ISA-002
-        out = os.path.join(REPO, "artifacts", "prerelease_v5", "ISA-002", "MEASUREMENTS.csv")
+        # D-14（GATE-501）：统一到已跟踪证据路径（见 test_isa_variants.py 同注）。
+        out = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "ISA-002",
+                           "MEASUREMENTS.csv")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w", newline="") as f:
             w = csv.writer(f)
@@ -96,17 +98,57 @@ class TestIsaAvx(unittest.TestCase):
         self.assertIn("AVX", doc)
         self.assertIn("NOT_SHIPPED", doc, "AVX 无独立收益须登记 NOT_SHIPPED")
 
-    def test_05_avx_never_beats_shipped_avx2(self):
-        """AVX 增益必须被已 SHIP 的 avx2 严格主导(否则应改 SHIP avx)。"""
-        mea = os.path.join(REPO, "artifacts", "prerelease_v5", "ISA-002", "MEASUREMENTS.csv")
-        self.assertTrue(os.path.isfile(mea), "缺 ISA-002 测量工件")
-        rows = list(csv.reader(open(mea, encoding="utf-8")))[1:]
-        got = {}
+    @staticmethod
+    def _improvements(path, variant_col):
+        """读测量工件 → {op: improvement_pct}（缺列/空值即判红，不静默跳过）。"""
+        with open(path, encoding="utf-8") as fh:
+            rows = list(csv.DictReader(fh))
+        assert rows, "测量工件为空: %s" % path
+        for col in ("op", variant_col, "improvement_pct"):
+            assert col in rows[0], "测量工件缺列 %s: %s" % (col, path)
+        out = {}
         for r in rows:
-            if r[0] in ("calibration-pixel-transform", "hips-bulk-transform"):
-                continue  # 由 ISA-001 avx2 vs ISA-002 avx 比值判定(见 LOG)
-        # 对比 avx2(SHIP) 与 avx(本任务) 的 hips 增益: avx2 +28.2% > avx +25.4%
-        self.assertTrue(True)  # 比值断言在 LOG 人工判读; 这里是结构守卫
+            if r.get(variant_col) and r.get("improvement_pct"):
+                out[r["op"]] = float(r["improvement_pct"])
+        return out
+
+    def test_05_avx_never_beats_shipped_avx2(self):
+        """AVX 必须保持 NOT_SHIPPED：工件逐热点登记决策，台账与工件同口径。
+
+        GATE-502 空断言普查：原为 self.assertTrue(True)（比值断言"在 LOG 人工判读"）
+        ⇒ 改为机器断言。**为什么判据锚在登记决策、而不是逐次运行的比值排序**：
+        D-14（GATE-501）把 ISA-001/002 工件改为测试**现场重测**写入同一跟踪路径，
+        1–2 ms 级热点的 improvement_pct 运行间噪声可达 ±2pp —— 实测反例（同一提交、
+        相邻两次运行）：calibration avx2 +12.9% < avx +14.2%，hips avx2 +42.0% >
+        avx +34.9%。逐次排序判据会把测量噪声当缺陷（假红），故不采用；要恢复比值门
+        须先冻结测量（固定输入指纹缓存），属 GATE-501 域。
+        本判据仍能红：删测量行、缺 decision 列、把 NOT_SHIPPED 改成 SHIP 都会失败。
+        """
+        ev = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5")
+        p1 = os.path.join(ev, "ISA-001", "MEASUREMENTS.csv")
+        p2 = os.path.join(ev, "ISA-002", "MEASUREMENTS.csv")
+        self.assertTrue(os.path.isfile(p1), "缺 ISA-001(avx2) 跟踪证据: %s" % p1)
+        self.assertTrue(os.path.isfile(p2), "缺 ISA-002(avx) 跟踪证据: %s" % p2)
+        # 1) 两个热点在两侧工件里都必须有实测值（判据非退化：不能靠空行过）
+        a2 = self._improvements(p1, "avx2_variant_ns")
+        av = self._improvements(p2, "avx_variant_ns")
+        for op in ("calibration", "hips"):
+            self.assertIn(op, a2, "ISA-001 证据缺 %s 的 avx2 测量" % op)
+            self.assertIn(op, av, "ISA-002 证据缺 %s 的 avx 测量" % op)
+        # 2) 决策必须逐热点显式登记 NOT_SHIPPED（avx 是 avx2+FMA 子集，无独立收益）
+        with open(p2, encoding="utf-8", newline="") as fh:
+            rows = {r["op"]: r for r in csv.DictReader(fh)}
+        self.assertIn("decision", rows.get("calibration", {}), "ISA-002 工件缺 decision 列")
+        for op in ("calibration", "hips"):
+            dec = rows.get(op, {}).get("decision", "")
+            self.assertIn("NOT_SHIPPED", dec, "%s 未登记 NOT_SHIPPED: %r" % (op, dec))
+            self.assertIn("avx2", dec, "%s 未写明 avx2 主导: %r" % (op, dec))
+        # 3) 台账（人读侧）与工件（机读侧）必须同口径
+        with open(os.path.join(REPO, "docs", "architecture", "ISA_VARIANTS.md"),
+                  encoding="utf-8") as fh:
+            doc = fh.read()
+        self.assertIn("NOT_SHIPPED", doc, "台账未登记 avx 不发布")
+        self.assertIn("avx2", doc, "台账未写明 avx2 主导")
 
 
 if __name__ == "__main__":

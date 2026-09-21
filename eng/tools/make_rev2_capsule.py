@@ -30,7 +30,9 @@ import time
 import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-OUT = os.path.join(REPO, "artifacts", "prerelease_v5", "capsules")
+# D-14（GATE-501）：陈旧根级 artifacts/prerelease_v5/ 已清零；本工具已退役
+# （见文件头 RETIRED），常量与文件头声明的当前证据树一致。
+OUT = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "capsules")
 MAX_BYTES = 5 * 1024 * 1024
 MAX_TOTAL = 25 * 1024 * 1024
 

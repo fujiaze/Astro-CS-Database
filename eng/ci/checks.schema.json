@@ -120,6 +120,46 @@
             "type": "boolean",
             "description": "CI-INCREMENTAL：该执行单元读取同 run 其它 step 的 per-step 结果（聚合门）⇒ 调度器必须把它排在最后串行执行，不得与其它 step 并发"
           },
+          "fingerprint": {
+            "type": "object",
+            "description": "CI_SPEC.md §2.6 输入指纹缓存（重步骤只跑一次）：commit + 相关配置 SHA256 + 数据清单 SHA256 + worker 数命中 ⇒ 复用归档并打印 reused_fingerprint；归档证据缺失时照常执行（fail-closed，不以复用为名跳过判定）",
+            "required": [
+              "archive"
+            ],
+            "properties": {
+              "commit": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "config": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "workers": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "extra": {
+                "type": "object"
+              },
+              "archive": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
           "steps": {
             "type": "array",
             "minItems": 1,
@@ -224,6 +264,46 @@
                 },
                 "reads_run_results": {
                   "type": "boolean"
+                },
+                "fingerprint": {
+                  "type": "object",
+                  "description": "CI_SPEC.md §2.6 输入指纹缓存（step 级，语义同顶层）",
+                  "required": [
+                    "archive"
+                  ],
+                  "properties": {
+                    "commit": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "config": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "workers": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "extra": {
+                      "type": "object"
+                    },
+                    "archive": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false

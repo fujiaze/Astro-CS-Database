@@ -71,6 +71,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import incremental as _inc  # noqa: E402  (eng/ci/incremental.py：范围计算正本)
+import monitor_evidence as _mon_ev  # noqa: E402  (eng/ci/monitor_evidence.py：证据判定单一实现点)
 
 SCHEMA_VERSION = 1
 RUNNER = "eng/ci/run_checks.py"
@@ -101,7 +102,23 @@ V_SKIP_WAIVABLE = "SKIPPED(waivable)"
 V_PREREQ = "FAIL(prerequisite)"
 V_REUSED = "PASS(reused_fingerprint)"
 V_SCOPE = "FAIL(scope)"
-FAIL_VERDICTS = (V_FAIL, V_TIMEOUT, V_PREREQ, V_SCOPE)
+# GATE-501（D-12 / ENGINEERING_SPEC §10 fail-closed）：exit 0 只是必要条件，
+# 不是充分条件。执行单元还必须兑现内容级证据面：
+#   V_MISSING_OUTPUT  登记 outputs 在执行后不存在（"文件不存在按无违规通过"= 假绿）
+#   V_EMPTY_OUTPUT    outputs 为空且 stdout/stderr 全空（静默失败不可发现）
+#   V_GATE_MISSING    requires_monitor=true 却无监控证据 / 证据违反 L2 冻结判据
+V_MISSING_OUTPUT = "FAIL(missing_output)"
+V_EMPTY_OUTPUT = "FAIL(empty_outputs)"
+V_GATE_MISSING = "FAIL(monitor_gate_missing)"
+FAIL_VERDICTS = (V_FAIL, V_TIMEOUT, V_PREREQ, V_SCOPE,
+                 V_MISSING_OUTPUT, V_EMPTY_OUTPUT, V_GATE_MISSING)
+
+# outputs 为空且按设计静默成功的执行单元（显式登记，不设全局兜底）；
+# 新增检查不得进入本表（新防线要求留痕或登记 waivable）。
+SILENT_OK_UNITS = frozenset({
+    "API-DOCS",        # eng/tools/check_api_docs.py：rc=0 静默成功
+    "UNIT-CLOSURE",    # eng/tools/check_unit_closure.py：rc=0 静默成功
+})
 
 # fail-closed 判据 ID（CI_SPEC.md §2.4）；命中即判红，不允许静默跳过。
 SCOPE_UNCOVERED = "UNCOVERED_CHANGED_PATHS"
@@ -281,6 +298,34 @@ def _terminate(process: subprocess.Popen) -> None:
             pass
 
 
+def evidence_verdict(step: dict, repo: Path, stdout_tail: str,
+                    stderr_tail: str) -> tuple[str, str] | None:
+    """exit 0 之后的内容级证据判定（fail-closed；None = 证据齐备）。
+
+    三重证据面（ENGINEERING_SPEC §10 / docs/ci/CI_SPEC.md §9）：
+      1. 登记 outputs 必须存在（缺失 ⇒ FAIL(missing_output)）——"文件不存在
+         按无违规通过"是假绿；
+      2. outputs 为空且 stdout/stderr 全空 ⇒ FAIL(empty_outputs)（静默失败
+         不可发现；显式登记的 SILENT_OK_UNITS 除外）；
+      3. requires_monitor=true ⇒ 必须兑现监控证据，证据含 frozen_gate 时四条
+         L2 冻结判据按 fail-closed 复核（违规 ⇒ FAIL(monitor_gate_missing)）。
+    """
+    missing = [rel for rel in (step.get("outputs") or [])
+               if not _mon_ev.path_exists(repo, str(rel))]
+    if missing:
+        return (V_MISSING_OUTPUT, f"exit 0 但登记输出缺失：{missing}")
+    if (not step.get("outputs") and not step.get("waivable")
+            and step["id"] not in SILENT_OK_UNITS
+            and not stdout_tail and not stderr_tail):
+        return (V_EMPTY_OUTPUT,
+                "exit 0 且 stdout/stderr 均为空：空 outputs 单元无任何内容级证据"
+                "（静默失败不可发现）；如架构上必须静默，请登记 waivable 或留痕")
+    gap = _mon_ev.monitor_evidence_gap(step, repo)
+    if gap is not None:
+        return (V_GATE_MISSING, gap)
+    return None
+
+
 def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
     sid = step["id"]
     started = utc_now()
@@ -347,10 +392,18 @@ def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
             )
             archive = repo / str(fp_cfg.get("archive", ""))
             if _inc.fingerprint_hit(archive, fp):
-                result["fingerprint"] = fp["sha256"]
-                return finish(V_REUSED,
-                              f"reused_fingerprint {fp['sha256'][:16]}：输入指纹命中，"
-                              f"复用归档 {fp_cfg.get('archive')}")
+                # fail-closed：指纹命中只说明"输入相同"，复用前还必须确认归档证据
+                # 仍在（登记 outputs / 监控证据齐备）；归档缺失则照常执行，不得
+                # 以"复用"为名跳过判定。
+                reuse_gap = evidence_verdict(
+                    step, repo, f"reused_fingerprint {fp['sha256'][:16]}", "")
+                if reuse_gap is None:
+                    result["fingerprint"] = fp["sha256"]
+                    return finish(V_REUSED,
+                                  f"reused_fingerprint {fp['sha256'][:16]}：输入指纹命中，"
+                                  f"复用归档 {fp_cfg.get('archive')}")
+                result["fingerprint_error"] = (
+                    f"指纹命中但归档证据缺失（{reuse_gap[1]}）→ 照常执行")
         except Exception as exc:  # noqa: BLE001 - 缓存故障不得导致跳过
             fp = None
             result["fingerprint_error"] = f"指纹计算失败（照常执行）：{exc}"
@@ -398,6 +451,10 @@ def execute_step(step: dict, repo: Path, run_root: Path, platform: str) -> dict:
                 result["fingerprint"] = fp["sha256"]
             except OSError as exc:
                 result["fingerprint_error"] = f"指纹写入失败：{exc}"
+        # GATE-501：exit 0 不是充分条件——必须兑现内容级证据面（fail-closed）
+        gap = evidence_verdict(step, repo, result["stdout_tail"], result["stderr_tail"])
+        if gap is not None:
+            return finish(gap[0], gap[1])
         return finish(V_PASS)
     if proc.returncode == SKIP_EXIT_CODE:
         # 合同化 skip（ctest SKIP_RETURN_CODE=77 同语义）**只对 waivable 执行单元有效**：
@@ -683,6 +740,27 @@ def scheduler_self_test() -> list:
     cases.append({"case": "S4_result_order_deterministic",
                   "ok": [r["id"] for r in res] == [s["id"] for s in seq],
                   "order": [r["id"] for r in res]})
+
+    # S6 并行/串行等价性（G2-9 未完成项）：同一 step 集在 --serial 与 --jobs=4
+    #    下必须给出**逐项相同**的结果序列（id 顺序 + verdict），即并行化不改变
+    #    判定结果，只改变墙钟。
+    spans.clear()
+    mix = [mk("S6-A", outputs=["run/ci/selftest/s6-a.json"]),
+           mk("S6-MON", command=["python3", "eng/ci/resource_monitor.py", "--timeout", "1",
+                                 "--output", "run/ci/selftest/s6-mon.json", "--",
+                                 "python3", "-c", "pass"]),
+           mk("S6-B", outputs=["run/ci/selftest/s6-b.json"]),
+           mk("S6-BAR", reads_run_results=True),
+           mk("S6-C", outputs=["run/ci/selftest/s6-c.json"])]
+    serial_res, _p1 = run_scheduled(mix, Path("."), Path("."), "linux", jobs=1,
+                                    serial=True, executor=make_executor(0.05))
+    par_res, _p2 = run_scheduled(mix, Path("."), Path("."), "linux", jobs=4,
+                                 serial=False, executor=make_executor(0.05))
+    key = lambda rs: [(r["id"], r["verdict"]) for r in rs]
+    cases.append({"case": "S6_serial_parallel_equivalence",
+                  "ok": key(serial_res) == key(par_res) and len(par_res) == len(mix),
+                  "serial": key(serial_res), "parallel": key(par_res),
+                  "note": "并行化只改墙钟，不改逐项判定与结果顺序"})
     return cases
 
 
@@ -890,6 +968,79 @@ def explain_lines(selection: dict, selected: list) -> list:
     return out
 
 
+def evidence_verdict_self_test() -> list:
+    """证据面 fail-closed 自测（GATE-501）：缺失证据 / 坏证据 / 无输出三注入必红。
+
+    直接驱动 execute_step 使用的同一判定函数 evidence_verdict（单一实现点），
+    在临时目录内构造 6 个用例（4 红 2 绿），不写主工作区。
+    """
+    import shutil as _shutil
+    import tempfile as _tempfile
+    cases: list = []
+    good_metrics = {"effective_cpus": 16, "allocated": 16, "interval_seconds": 60.0,
+                    "avg_utilization": 0.95, "p50_utilization": 0.97,
+                    "sample_pass_fraction": 1.0, "max_low_window_seconds": 0.0,
+                    "utilization_evaluated": True}
+    bad_metrics = dict(good_metrics, avg_utilization=0.245275, p50_utilization=0.038825,
+                       sample_pass_fraction=0.069272, max_low_window_seconds=142.049,
+                       interval_seconds=389.278)
+    repo_root = Path(__file__).resolve().parents[2]
+    with _tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "eng" / "contracts").mkdir(parents=True, exist_ok=True)
+        _shutil.copy2(repo_root / "eng" / "contracts" / "resource_gate_v1.json",
+                      root / "eng" / "contracts" / "resource_gate_v1.json")
+        mon = root / "run" / "ci" / "monitor" / "SELFTEST.json"
+        mon.parent.mkdir(parents=True, exist_ok=True)
+
+        def mk(sid, **kw):
+            base = {"id": sid, "command": ["python3", "-c", "pass"], "outputs": [],
+                    "waivable": False, "requires_monitor": False, "heavy": False,
+                    "mutates_workspace": False, "platform": "any", "profiles": ["fast"],
+                    "timeout_seconds": 60}
+            base.update(kw)
+            return base
+
+        def expect(name, step, stdout_tail, want):
+            got = evidence_verdict(step, root, stdout_tail, "")
+            got_verdict = got[0] if got else V_PASS
+            cases.append({"case": name, "ok": got_verdict == want,
+                          "got": got_verdict, "want": want,
+                          "reason": (got[1] if got else "")[:160]})
+
+        # N4 缺失证据：登记输出不存在 ⇒ 判红
+        expect("N4_missing_declared_output",
+               mk("E-N4", outputs=["run/ci/monitor/ABSENT.json"]), "ok", V_MISSING_OUTPUT)
+        # N5 无输出：outputs 为空且 stdout/stderr 全空 ⇒ 判红
+        expect("N5_empty_outputs_silent", mk("E-N5"), "", V_EMPTY_OUTPUT)
+        # N6 缺失证据：requires_monitor 但无监控证据 ⇒ 判红
+        expect("N6_monitor_evidence_missing",
+               mk("E-N6", requires_monitor=True), "ok", V_GATE_MISSING)
+        # N7 坏证据：证据存在但四条 L2 冻结判据违规 ⇒ 判红
+        mon.write_text(json.dumps(
+            {"duration_seconds": 389.278, "poll_interval": 0.2,
+             "cpu_samples": [{"t": 0.0, "cpu_percent": 100.0}],
+             "frozen_gate": {"verdict": "pass", "violations": [], "recorded": [],
+                             "metrics": bad_metrics}}, ensure_ascii=False),
+            encoding="utf-8")
+        expect("N7_frozen_gate_violation",
+               mk("E-N7", requires_monitor=True, outputs=["run/ci/monitor/SELFTEST.json"]),
+               "ok", V_GATE_MISSING)
+        # P3 正例：合规监控证据 ⇒ 绿
+        mon.write_text(json.dumps(
+            {"duration_seconds": 60.0, "poll_interval": 0.2,
+             "cpu_samples": [{"t": 0.0, "cpu_percent": 100.0}],
+             "frozen_gate": {"verdict": "pass", "violations": [], "recorded": [],
+                             "metrics": good_metrics}}, ensure_ascii=False),
+            encoding="utf-8")
+        expect("P3_compliant_evidence_green",
+               mk("E-P3", requires_monitor=True, outputs=["run/ci/monitor/SELFTEST.json"]),
+               "ok", V_PASS)
+        # P4 正例：无 requires_monitor、无 outputs 但有留痕 ⇒ 绿
+        expect("P4_plain_step_with_stdout_green", mk("E-P4"), "ok", V_PASS)
+    return cases
+
+
 def run_self_test(repo: Path, registry: dict, *, profile: str, platform: str) -> int:
     """fail-closed 负例面（CI_SPEC.md §2.4 末段）：必须能红，且正例能绿。"""
     steps, _owner, _dupes = index_steps(registry)
@@ -932,6 +1083,7 @@ def run_self_test(repo: Path, registry: dict, *, profile: str, platform: str) ->
     case("P2_no_changes_green", injected([], "P2"), expect_scope="changed")
 
     cases.extend(scheduler_self_test())
+    cases.extend(evidence_verdict_self_test())
     passed = sum(1 for c in cases if c["ok"])
     for c in cases:
         if 'scope' in c:

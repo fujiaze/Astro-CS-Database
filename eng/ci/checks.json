@@ -1256,6 +1256,13 @@
           "platform": "linux",
           "command": [
             "python3",
+            "eng/ci/resource_monitor.py",
+            "--timeout",
+            "7100",
+            "--output",
+            "run/ci/monitor/V6-CTEST-INTEGRATION.json",
+            "--",
+            "python3",
             "eng/tools/v6/v6_ctest_driver.py",
             "--group",
             "integration",
@@ -1294,6 +1301,7 @@
           "heavy": true,
           "mutates_workspace": true,
           "outputs": [
+            "run/ci/monitor/V6-CTEST-INTEGRATION.json",
             "run/v6/ctest/integration.json"
           ],
           "waivable": false,
@@ -2008,10 +2016,7 @@
         "worker_balance.csv"
       ],
       "dirty_ignore_prefixes": [
-        "artifacts/evidence/prerelease-v5/",
-        "astrocs_run_",
-        "run/",
-        "run/v6/"
+        "artifacts/evidence/prerelease-v5/"
       ],
       "steps": [
         {
@@ -2851,6 +2856,13 @@
           "platform": "linux",
           "command": [
             "python3",
+            "eng/ci/resource_monitor.py",
+            "--timeout",
+            "7100",
+            "--output",
+            "run/ci/monitor/V6-CTEST-UNIT.json",
+            "--",
+            "python3",
             "eng/tools/v6/v6_ctest_driver.py",
             "--group",
             "unit",
@@ -2883,6 +2895,7 @@
           "heavy": true,
           "mutates_workspace": true,
           "outputs": [
+            "run/ci/monitor/V6-CTEST-UNIT.json",
             "run/v6/ctest/unit.json"
           ],
           "waivable": false,
@@ -5774,6 +5787,13 @@
           "platform": "linux",
           "command": [
             "python3",
+            "eng/ci/resource_monitor.py",
+            "--timeout",
+            "7100",
+            "--output",
+            "run/ci/monitor/V6-DETERMINISM.json",
+            "--",
+            "python3",
             "eng/tools/v6/v6_determinism_driver.py",
             "--budgets",
             "1,2,4,8",
@@ -5784,6 +5804,7 @@
           "heavy": true,
           "mutates_workspace": true,
           "outputs": [
+            "run/ci/monitor/V6-DETERMINISM.json",
             "run/v6/determinism/determinism.json"
           ],
           "waivable": false,
@@ -5957,7 +5978,21 @@
           "prerequisite_tools": [
             "cmake",
             "clang"
-          ]
+          ],
+          "fingerprint": {
+            "commit": null,
+            "config": [
+              "CMakeLists.txt",
+              "CMakePresets.json",
+              "eng/cmake"
+            ],
+            "data": [],
+            "workers": 4,
+            "extra": {
+              "purpose": "CI_SPEC §2.6 输入指纹缓存（重步骤只跑一次）"
+            },
+            "archive": "run/ci/fingerprints/DEEP-SAN-ASAN"
+          }
         },
         {
           "id": "DEEP-SAN-TSAN",
@@ -6002,7 +6037,21 @@
           "prerequisite_tools": [
             "cmake",
             "clang"
-          ]
+          ],
+          "fingerprint": {
+            "commit": null,
+            "config": [
+              "CMakeLists.txt",
+              "CMakePresets.json",
+              "eng/cmake"
+            ],
+            "data": [],
+            "workers": 4,
+            "extra": {
+              "purpose": "CI_SPEC §2.6 输入指纹缓存（重步骤只跑一次）"
+            },
+            "archive": "run/ci/fingerprints/DEEP-SAN-TSAN"
+          }
         }
       ]
     },
@@ -6090,7 +6139,21 @@
             "cmake",
             "llvm-profdata",
             "llvm-cov"
-          ]
+          ],
+          "fingerprint": {
+            "commit": null,
+            "config": [
+              "CMakeLists.txt",
+              "CMakePresets.json",
+              "eng/cmake"
+            ],
+            "data": [],
+            "workers": 4,
+            "extra": {
+              "purpose": "CI_SPEC §2.6 输入指纹缓存（重步骤只跑一次）"
+            },
+            "archive": "run/ci/fingerprints/DEEP-COV-CPP"
+          }
         },
         {
           "id": "DEEP-COV-PY",
@@ -6130,7 +6193,21 @@
           "requires_monitor": true,
           "prerequisite_tools": [
             "pytest"
-          ]
+          ],
+          "fingerprint": {
+            "commit": null,
+            "config": [
+              "CMakeLists.txt",
+              "CMakePresets.json",
+              "eng/cmake"
+            ],
+            "data": [],
+            "workers": 2,
+            "extra": {
+              "purpose": "CI_SPEC §2.6 输入指纹缓存（重步骤只跑一次）"
+            },
+            "archive": "run/ci/fingerprints/DEEP-COV-PY"
+          }
         }
       ]
     },
@@ -7734,6 +7811,13 @@
       "platform": "linux",
       "command": [
         "python3",
+        "eng/ci/resource_monitor.py",
+        "--timeout",
+        "19900",
+        "--output",
+        "run/ci/monitor/CHK-REALDATA-E2E.json",
+        "--",
+        "python3",
         "eng/ci/check_realdata_e2e.py",
         "--execute",
         "--work-dir",
@@ -7745,6 +7829,7 @@
       "heavy": true,
       "mutates_workspace": false,
       "outputs": [
+        "run/ci/monitor/CHK-REALDATA-E2E.json",
         "run/ci/fix-gates/realdata_e2e.json",
         "run/ci/fix-gates/e2e/**"
       ],
@@ -7755,7 +7840,23 @@
         "eng/tests/**",
         "testdata/**"
       ],
-      "requires_monitor": true
+      "requires_monitor": true,
+      "fingerprint": {
+        "commit": null,
+        "config": [
+          "CMakeLists.txt",
+          "CMakePresets.json",
+          "eng/cmake"
+        ],
+        "data": [
+          "testdata/README.md"
+        ],
+        "workers": 8,
+        "extra": {
+          "purpose": "CI_SPEC §2.6 输入指纹缓存（重步骤只跑一次）"
+        },
+        "archive": "run/ci/fingerprints/CHK-REALDATA-E2E"
+      }
     },
     {
       "id": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
@@ -8215,9 +8316,8 @@
           ],
           "platform": "linux",
           "command": [
-            "bash",
-            "-lc",
-            "! grep -rn 'psfsw_robust_weight' eng/contracts/schemas/unified/ | grep -v '已退役\\|retired'"
+            "python3",
+            "eng/ci/check_psfsw_retired.py"
           ],
           "timeout_seconds": 120,
           "heavy": false,
@@ -8226,6 +8326,29 @@
           "waivable": false,
           "changed_paths": [
             "eng/contracts/schemas/unified/**",
+            "eng/ci/checks.json"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "PSFSW-RETIRED-STATIC-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_psfsw_retired.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_psfsw_retired.py",
             "eng/ci/checks.json"
           ],
           "requires_monitor": false
@@ -8362,6 +8485,253 @@
         "eng/tests/cli/**"
       ],
       "requires_monitor": false
+    },
+    {
+      "id": "CHK-REGISTRY-VALIDATE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/validate_registry.py",
+        "--registry",
+        "eng/ci/checks.json",
+        "--strict"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/checks.json",
+        "eng/ci/validate_registry.py",
+        "eng/ci/id_migration_map.json",
+        "docs/ci/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "L2-FROZEN-GATE-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_frozen_gate.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        "eng/contracts/resource_gate_v1.json",
+        "docs/ci/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "L2-FROZEN-GATE-REPLAY",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_frozen_gate.py",
+        "--replay",
+        "--json-out",
+        "run/ci/l2-frozen-gate/replay.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/l2-frozen-gate/replay.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        "eng/contracts/resource_gate_v1.json",
+        "artifacts/acceptance/l2_performance/**",
+        "docs/ci/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "WORKER-BALANCE-METRIC-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_worker_balance.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        "docs/ci/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "WORKER-BALANCE-METRIC-REPLAY",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_worker_balance.py",
+        "--replay-archived",
+        "--json-out",
+        "run/ci/worker-balance/replay.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/worker-balance/replay.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        "artifacts/acceptance/l2_performance/**",
+        "docs/ci/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-GATE-FAILCLOSED-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "eng/ci/tests",
+        "-t",
+        "eng/ci/tests",
+        "-p",
+        "test_gate_failclosed_selftest.py"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        "docs/ci/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-FAILCLOSED-SURVEY",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-FAILCLOSED-SURVEY",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/failclosed-survey/survey.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        "docs/ci/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "FAILCLOSED-SURVEY",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/failclosed_survey.py",
+            "--json-out",
+            "run/ci/failclosed-survey/survey.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/failclosed-survey/survey.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            "docs/ci/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "FAILCLOSED-SURVEY-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/failclosed_survey.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            "docs/ci/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
     },
     {
       "id": "CHK-KNOWN-FAILURES-BASELINE",

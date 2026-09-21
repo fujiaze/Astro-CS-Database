@@ -72,7 +72,9 @@ class TestIsaAvx512(unittest.TestCase):
             if m:
                 v[m.group(1)] = float(m.group(2))
         self.assertIn("hips", v)
-        out = os.path.join(REPO, "artifacts", "prerelease_v5", "ISA-004", "MEASUREMENTS.csv")
+        # D-14（GATE-501）：统一到证据树路径（见 test_isa_variants.py 同注）。
+        out = os.path.join(REPO, "artifacts", "evidence", "prerelease-v5", "ISA-004",
+                           "MEASUREMENTS.csv")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         with open(out, "w", newline="") as f:
             w = csv.writer(f)
