@@ -3,7 +3,7 @@
 ## 原则
 
 Comment 解释 WHY / SCIENCE / INVARIANT / OWNERSHIP / THREAD-SAFETY /
-NON-OBVIOUS PERFORMANCE；Code 解释 WHAT；历史进 CHANGELOG/ADR/git。
+NON-OBVIOUS PERFORMANCE；Code 解释 WHAT；历史沿革进 ADR 与 git 提交消息。
 
 ## 必须注释
 
@@ -41,5 +41,4 @@ scientific model version。
 
 ## 审计
 
-每个 production 文件记录 comment_hygiene = PASS/FAIL（见
-reports/v19r2/file_audit_inventory.csv）。
+每个 production 文件记录 comment_hygiene = PASS/FAIL，由 `ci/run_checks.py` 的注释卫生检查项产出并落 `run/ci/`。

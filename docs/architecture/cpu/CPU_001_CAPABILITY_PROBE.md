@@ -1,7 +1,7 @@
 # CPU 能力探测与安全矩阵 (CPU-001)
 
-> ID: DOC-ARCH-CPU-001 · owner: SA-CPU-09 · 状态: FROZEN (CPU-001, 2026-09-02)
-> 上游: `ASTROCS_DESIGN.md` §8（CPU 后端与资源）/ `ENGINEERING_SPEC.md` §10（资源与性能）；旧编号标准与旧工程约束已退役
+> ID: DOC-ARCH-CPU-001 · 状态: FROZEN (CPU-001)
+> 上游: `ASTROCS_DESIGN.md` §8（CPU 后端与资源）/ `ENGINEERING_SPEC.md` §10（资源与性能）
 >       / 03_TARGET_PRODUCT_AND_ARCHITECTURE.md（lib/infrastructure/benchmark/cpu 目标树）
 > 下游: CPU-002 baseline、CPU-003 AVX2/FMA、CPU-004 AVX-512、CPU-005 路由
 > 实现: lib/infrastructure/benchmark/cpu/common/（capability_v1.h + capability_detect.c）

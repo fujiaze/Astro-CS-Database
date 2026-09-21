@@ -10,7 +10,7 @@ upstream: [SCI-P3-WR-001, ALG-P3-004, API-P3-001]
 downstream: [TEST-P3-WR-001]
 ---
 
-# 模块 astrocs.phase3.writer（P3-FITS-DOC 手写合同页，2026-09-08）
+# 模块 astrocs.phase3.writer
 
 > Registry 行 ID 沿用 MOD-astrocs-phase3-writer；矩阵权威 module_id=
 > **astrocs.p3.fits_writer**（MODULE_MIGRATION_MATRIX P3-FITS 行）。
@@ -29,10 +29,9 @@ downstream: [TEST-P3-WR-001]
   lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2 先例
   新建；lib/phase3_session/ 为会话编排域共享源，不整目录归属）。
 - 生产源: lib/algorithms/fits_output/p3_output.cpp（370 行）+ 签名头正本
-  p3_output.h（64 行）+ WCS 关键字源 p3_wcs.h（50 行），实测
-  2026-09-08。
+  p3_output.h（64 行）+ WCS 关键字源 p3_wcs.h（50 行）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
-  V5 SCI-007 2026-08-28）→ ALG-P3-FITS-IMPL-001
+  V5 SCI-007）→ ALG-P3-FITS-IMPL-001
   （docs/algorithms/PHASE3_FITS_IMPL.md，兼承接 ALG-P3-002/004 本域
   子面）→ DATA-P3-FITS（DATA_SEMANTICS §27）+ API-P3-FITS-001
   （PUBLIC_API.md Phase3 FITS 写出公共消费面节）→ TEST-P3-WR-001
@@ -181,3 +180,11 @@ downstream: [TEST-P3-WR-001]
   32-bit 数值校验和非 FITS 标准 ASCII CHECKSUM（如实冻结）。
 - 其余: 见 docs/KNOWN_LIMITATIONS.md 与 ALG-P3-FITS-IMPL-001
   §14 合同边界；SCI-P3 FROZEN 零改动声明（本页不承载公式）。
+
+## NaN 与写端口
+
+- NaN 规则（权威 = `ASTROCS_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
+  禁止静默剔除。无覆盖/无数据 = NaN，禁 0 或 ±Inf 冒充。
+- signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
+  （`surface_brightness` / `point_source_flux` / `visualization`，最高设计 §6.3）。
+

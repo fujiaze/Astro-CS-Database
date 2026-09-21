@@ -5,8 +5,7 @@
 - common 可被任何模块依赖，不得反向依赖。
 - healpix_drizzle 依赖 common/healpix_core，禁止自带重复实现（B4-01 去重，DRZ-01）。
 - phase2 依赖 common/healpix + astro_image_io（aio_upm/aio_hips_reader）。
-  ⛔ **订正（DOC-202 R18）**：原文为「+ acr（kernel_registry/cuda_bridge_loader/device_executor）」
-  —— **生产构建不得链入 ACR/CUDA**（最高设计 §8「**禁止**生产目标编译或链接 ACR 的任何源文件；
+  ⛔ **生产构建不得链入 ACR/CUDA**（最高设计 §8「**禁止**生产目标编译或链接 ACR 的任何源文件；
   **禁止**任何 GPU 路由开关与第二个可执行入口」）。ACR 是 `DORMANT`：保留源码与隔离测试，
   **不进生产构建/加载/路由/benchmark/发布**（最高设计 §1.3/§8）。
 - orchestrator 依赖所有模块头文件，通过 DllLoader 动态加载 DLL（不静态链接）。

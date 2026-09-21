@@ -2,18 +2,16 @@
 
 > doc_id: DOC-IO-INTERFACE-002
 > doc_status: ACTIVE_NORMATIVE
-> task_id: IO-002 · wave: W2 · owner: SA-IO-07
-> commit: `feat(io): IO-002 建立HiPS输入合同`（前台集成）
-> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-002 / `05_FIXED_SUBAGENT_BINDINGS.yaml` —— **两份来源均已不在 git 跟踪面**（`tasks/` 目录不存在且无 git 历史；`05_FIXED_SUBAGENT_BINDINGS.yaml` 仅存 `run/` 内 gitignore 的历史归档副本，非规范面）；现行权威=`ASTROCS_DESIGN.md` §7.3/§9 + 本文件
-> SA-IO-07 / 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）、
+> 上游权威：`ASTROCS_DESIGN.md` §7.3/§9 + 本文件
+> 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）、
 > F.4（接口字段/单位/shape/坐标/invalid/所有权逐项明确）、E（阶段间只经磁盘产品交换）
 > 上游: DOC-IO-INTERFACE-001（IO-001 FITS 流式接口）——IO-002 的 tile FITS 平面读取
 > 全部复用 IO-001 的 fits_core 契约与错误码
 
 ## 1. 目标与范围
 
-IO-002 在 IO-001（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**（W2 宿主基础设施，
-非 W3 科学迁移）：给定一个 IVOA HiPS 1.4 兼容目录（Phase1/Phase2 在磁盘上产出的
+IO-002 在 IO-001（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**（宿主基础设施，
+不含科学算法迁移）：给定一个 IVOA HiPS 1.4 兼容目录（Phase1/Phase2 在磁盘上产出的
 标准 HiPS 产品集或子产品目录），IO-002 负责：
 
 1. 解析并校验 `properties` 元数据（hips_version/order/tile_width/tile_format/frame/…）；
@@ -31,7 +29,7 @@ IO-002 在 IO-001（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**
    映射稳定错误码；**不做父 order 静默回退**（调用方请求 order K tile 缺失时，
    绝不返回 order K′<K 的父 tile 内容或把低阶 hierarchy 当该 tile 交付）。
 
-本任务**不改科学公式**（`scientific_change=false`）；不做 tiles 解码、投影/天球坐标
+本合同**不改科学公式**（`scientific_change=false`）；不做 tiles 解码、投影/天球坐标
 转换（科学层属于 P1/P2/P3 模块）；不做 HiPS 输出/原子发布（IO-003 范围）；
 `lib/infrastructure/aio`（aio_hips_*，CFITSIO 静态链）与 `lib/infrastructure/aio/healpix_db` 保持原样不修改。
 
@@ -67,7 +65,7 @@ IO-002 读取的 HiPS 目录是 **磁盘上已发布的 HiPS 产品**。两档�
 | `hips_order` | tile order K | 十进制整数，0 ≤ K ≤ 29；K 与 NSIDE=2^(K+9) 一致 |
 | `hips_tile_width` | tile 宽 TW | 十进制整数；**必须为 2 的幂**且 1 ≤ TW ≤ 16384；TW=512 标准 |
 | `hips_tile_format` | tile 格式 | **必须为 `fits`**（科学平面 FITS-only；png/jpg/tsv 等拒绝） |
-| `hips_frame` | 参考系 | 必须为 `icrs`（IVOA REC-HIPS-1.0 §4.4.1 标准值域 {icrs,galactic,ecliptic} 内的 ICRS 项；M1a-B-005 起写出侧写 `icrs`，读侧另接受旧版非标准别名 `equatorial`；galactic/ecliptic 值域合法但本实现无转换 ⇒ 显式拒绝） |
+| `hips_frame` | 参考系 | 写出侧写 `equatorial`（IVOA REC-HIPS-1.0 §4.4.1 标准值域 {equatorial,galactic,ecliptic} 内的 ICRS 项）；读侧接受 `equatorial` 与非标准别名 `icrs`；galactic/ecliptic 值域合法但本实现无转换 ⇒ 显式拒绝 |
 
 ### 3.2 建议键（可选，存在则校验自洽）
 
@@ -148,7 +146,7 @@ tile FITS 头内卡（存在时校验一致）：
 | 2 | `ACS_HIPS_ERR_ABI_MISMATCH` | ABI 版本/结构大小失配（同 IO-001 语义） |
 | 3 | `ACS_HIPS_ERR_NOMEM` | 内存不足 |
 | 4 | `ACS_HIPS_ERR_IO` | 底层 I/O 失败 |
-| 5 | `ACS_HIPS_ERR_UNSUPPORTED` | 不支持（非 fits 格式/非 icrs 且非旧别名 equatorial/非 NESTED 等） |
+| 5 | `ACS_HIPS_ERR_UNSUPPORTED` | 不支持（非 fits 格式/`hips_frame` ∉ {equatorial, icrs}/非 NESTED 等） |
 | 6 | `ACS_HIPS_ERR_CANCELLED` | 取消（透传 IO-001 取消语义） |
 | 7 | `ACS_HIPS_ERR_STATE` | 句柄状态错误 |
 | 8 | `ACS_HIPS_ERR_PROPERTIES` | properties 缺失/非法键值（必填键缺/值不合法） |
@@ -264,32 +262,32 @@ plane 读回后按调用方 dtype 目标转换；`NAXIS1!=NAXIS2!=TW`、卡冲�
 ## 9. 与相邻接口/实现的边界
 
 - IO-001 fits_core：tile FITS 平面读取的唯一底层（§6）；错误码 0–7 对齐。
-- `lib/infrastructure/aio`（aio_hips_*，CFITSIO 链）：历史 HiPS 读写实现（writer 产线、
+- `lib/infrastructure/aio`（aio_hips_*，CFITSIO 链）：HiPS 读写实现（writer 产线、
   reader 供浏览器）；**IO-002 不修改**。IO-002 是 lib/infrastructure/aio/io 下与 IO-001
   同层的输入合同骨架；产线 writer 与 IO-002 的磁盘布局合同相同（§3.3）。
-- `lib/infrastructure/aio/healpix_db`：浏览器/历史参考；不修改。
+- `lib/infrastructure/aio/healpix_db`：浏览器参考；不修改。
 - DATA-001 artifact schema / DATA-HIPS-*：科学 dtype/unit/invalid 语义权威；
   IO-002 只透出 header/plane，不做单位换算。
-- IO-003：HiPS 原子输出/manifest —— 在 IO-002 读端之外；本任务不实现写端。
+- IO-003：HiPS 原子输出/manifest —— 在 IO-002 读端之外；本接口不实现写端。
 - MOC 解析：读端只解析 IO-002 支持的叶级 UNIQ 集合（BINTABLE+`UNIQ`+`MOCORDER`），
   与 `aio_hips_reader` 的 MOC 用法语义一致（optional）。
 
 ## 10. 已知限制（v1 骨架）
 
-1. Linux 控制节点（本任务执行环境）无 MSVC/Windows DLL 构建；产出 C ABI + C 核心 +
-   Linux `.so` 技术预览与全部契约/负测。Windows 正式 DLL 构建（astrocs_io.dll）在
-   W6 用同一源码执行。
-2. 只支持 `hips_frame=icrs`（旧产品别名 `equatorial` 只读兼容）、`ORDERING=NESTED`、
+1. Linux 控制节点（本接口执行环境）无 MSVC/Windows DLL 构建；产出 C ABI + C 核心 +
+   Linux `.so` 技术预览与全部契约/负测。Windows 正式 DLL 构建（astrocs_io.dll）
+   用同一源码执行。
+2. 只支持 `hips_frame` ∈ {`equatorial`（写出值）, `icrs`（只读兼容别名）}、`ORDERING=NESTED`、
    `hips_tile_format=fits`；galactic/tsv/png/jpg 目录拒绝（科学平面 FITS-only）。
 3. MOC 仅作 optional hint：无 MOC 时 tile 枚举接口返回 0；单个 ipix 定位不受影响。
-   **MOC 读侧显式不 fail-closed（登记项，M2b-B-02 收口）**：`Moc.fits` 存在但
+   **MOC 读侧显式不 fail-closed（登记项）**：`Moc.fits` 存在但
    不可解析（含 DISP-HIPS-005 的「低阶 UNIQ 对本 reader 无效」）同样降级为
    「枚举面 0 tile」，不使 open 失败。理由：单 tile 定位与读取不依赖 MOC；
    若 fail-closed 会把「MOC 不可用但 tile 完好」的合法产品判死。写侧已按
    IVOA REC-MOC 2.0 §6 Table 3 补齐 `ORDERING='NUNIQ'`/`COORDSYS='C'`。
 4. 不做父 order 静默回退；也**不提供**显式父 tile 定位/层级回退接口（v1 最小合同；
-   浏览器 LOD 需要时由上层按 Norder 拼接，超出本任务范围）。
+   浏览器 LOD 需要时由上层按 Norder 拼接，超出本接口范围）。
 5. `tile_status` 只区分 PRESENT/MISSING/INVALID；不细分 FITS 内部错误（透传 err 文本）。
 6. u8 tile（BITPIX=8）在支持域内（DATA-IMG-SUPPORT-001 u8 语义），但 HiPS 标准
    图像产品一般存 f32/f64；f32/f64 接口读取时提升。
-7. 大数据 tile 树扫描/远程 HiPS（http）不在本任务（磁盘输入合同；网络属未来 GUI/服务层）。
+7. 大数据 tile 树扫描/远程 HiPS（http）不在本接口（磁盘输入合同；网络属未来 GUI/服务层）。

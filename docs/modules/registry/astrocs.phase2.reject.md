@@ -9,9 +9,9 @@ upstream: [SCI-REJ-001, ALG-P2-REJ-001, API-P2-001]
 downstream: [TEST-P2-REJ-001]
 ---
 
-# 模块 astrocs.phase2.reject（P2-REJ-DOC 事实修订，2026-09-09）
+# 模块 astrocs.phase2.reject
 
-> P2-REJ-DOC（SA-xxx）将本页自 gen_module_readmes 派生页事实修订为
+> 本页自 gen_module_readmes 派生页事实修订为
 > 手写合同页（手写 registry 先例 astrocs.phase2.write.md/
 > astrocs.phase2.coverage.md/astrocs.phase2.integrate.md）。
 > frontmatter 的 source_commit/upstream/downstream 为 registry 生成词
@@ -47,7 +47,7 @@ downstream: [TEST-P2-REJ-001]
   不减，cosmic 不生长，默认关闭）。阈值/迭代权威锚定
   rejection.cpp:1-11 冻结头注释。
 - 非职责：不合并/积分（P2-INT 下游）；权重策略（weights 外置
-  Stage2 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；RCR 消费同栈 weights 属官方加权语义）；像素外
+  Stage2；RCR 消费同栈 weights 属官方加权语义）；像素外
   结构重建；session 依赖（无状态纯函数）；瞬变/卫星语义区分
   （SCI §1）。
 
@@ -143,3 +143,10 @@ LinearFit/Rcr/G4（:2639-2725）+ G6（:2779-2863）+ V15-V17
 DISP-P2REJ-001/002/003/004（上节，登记不改码）；本页旧派生内容
 （"错误码=ACS_ERR_*"、"取消=host cancel 回调"等 session 层词汇）
 以本合同页与 DATA_SEMANTICS §22 为准修订。
+
+## 排异档位（权威 = `ASTROCS_DESIGN.md` §5.5 / `docs/science/REJECTION.md`）
+
+按 N = 该输出像素的**几何覆盖帧数**自动路由：`1≤N≤3` none（不排异）/ `4≤N≤5` percentile /
+`6≤N≤15` winsorized sigma clipping / `N≥16` linear fit clipping。生产算法集 = none / percentile /
+winsorized / linear fit；**min/max 不用于生产**。实际方法、参数与 N 写入 `rejection` provenance。
+

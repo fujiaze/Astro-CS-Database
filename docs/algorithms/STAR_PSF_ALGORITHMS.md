@@ -1,6 +1,6 @@
 # PSF Algorithms (ALG-PSF)
 
-> ID: ALG-STARPSF-001  上游 SCI: SCI-PSF-001  状态: DERIVED (T201 冻结; V5 ALG-002 重验 2026-08-28)  模块: star_detector + dynamic_psf
+> ID: ALG-STARPSF-001  上游 SCI: SCI-PSF-001  状态: DERIVED  模块: star_detector + dynamic_psf
 
 ## 1 上游 SCI 与输入输出
 
@@ -126,10 +126,10 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 - API: `dynamic_psf.h: dpsf_fit, dpsf_fit_batch`, `star_detector.h: sdet_detect`
 - TST: `TST-PSF-001` 合成恢复, `TST-PSF-INV` q_psf解耦, `TST-PSF-FAIL` 饱和/平坦拒
 
-## 11 P1-PSF-DOC 冻结附录（2026-09-07，SRC-PSF-001 源码实测）
+## 11 冻结附录（SRC-PSF-001 源码实测）
 
-> 本节为 P1-PSF-DOC 冻结附录：只登记现状与测试设计，不改 §1–§10 科学公式。
-> 实测基准 = `lib/algorithms/psf/src/dpsf_psf.cpp`（934 行，2026-09-07 工作区）与
+> 本节为冻结附录：只登记现状与测试设计，不改 §1–§10 科学公式。
+> 实测基准 = `lib/algorithms/psf/src/dpsf_psf.cpp`（934 行）与
 > `lib/algorithms/psf/include/dynamic_psf.h`。模块合同入口 =
 > `lib/algorithms/psf/README.md`（r1）+ `lib/algorithms/psf/module.yaml`（CONTRACT_READY）。
 

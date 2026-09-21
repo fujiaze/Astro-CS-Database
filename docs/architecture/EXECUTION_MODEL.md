@@ -1,12 +1,12 @@
 # Execution & Lifetime Model (ARC-EXEC)
 
-> 关联: ARC-EXEC-001..00N  模块: orchestrator/phase2/acr  状态: FROZEN (T303 2026-08-23)
+> 关联: ARC-EXEC-001..00N  模块: phase2/acr  状态: FROZEN
 
-> ⚠ **DOC-202 订正（R12，2026-09-20）——休眠面不得写成生产执行层**：
+> ⚠ **休眠面不得写成生产执行层**：
 > 本文件的 **ACR / CUDA / GPU 行与 §2/§5 的 H2D/D2H、GPU buffer、GPU fallback 全部标
 > `DORMANT`**（保留源码与隔离测试，**不进生产构建/加载/路由/benchmark/发布**，
 > 最高设计 §8/§1.3）；**浏览器（Qt）标「工具分类（非发布）」**（最高设计 §7.1/§10.1：
-> HiPS Browser 不进产品 manifest）；**orchestrator 标「历史保留」**（最高设计 §7.1 退役计划：
+> HiPS Browser 不进产品 manifest）；**orchestrator 标「历史保留」**（最高设计 §7.1：
 > 接入后删除）。上述三类**均不是生产执行层**，任何发布/性能结论不得引用其行。
 
 ## 1 串/并行分层
@@ -29,7 +29,7 @@
 | HiPS write | async_io | `aio_hips_writer` 异步刷盘, 事务提交；合同见 [ASYNC_IO_CONTRACT.md](ASYNC_IO_CONTRACT.md) |
 | HiPS read | serial or critical | `aio_read critical(aio_read)` 若 OpenMP 开启则串行化 |
 | ~~ACR H2D/D2H~~ **DORMANT** | — | 保留源码与隔离测试，**不进生产**；原行：async via CUDA stream / `cuda_bridge_api` H2D>0 in cold Mixed (BDR D gate) |
-| Fallback | sync fallback | 生产 fallback **只有一条**：无 cpu_profile → baseline 后端 + 动态 worker（保守合法，最高设计 §8）。~~原「纯逆方差权重 → CPU canonical (ACR-IVAR-001)」面**DORMANT**~~（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） |
+| Fallback | sync fallback | 生产 fallback **只有一条**：无 cpu_profile → baseline 后端 + 动态 worker（保守合法，最高设计 §8） |
 
 ## 3 锁/原子与 I/O 串行
 

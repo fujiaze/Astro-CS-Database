@@ -1,6 +1,6 @@
 # Cache Policy
 
-> ⚠ **DOC-202 订正（R12，2026-09-20）**：下表**生产缓存 = 前 3 行**（UPM dense cache /
+> ⚠ 下表**生产缓存 = 前 3 行**（UPM dense cache /
 > Gaia 查询缓存 / Drizzle geometry cache）；**Browser tile cache 属「工具分类（非发布）」**，
 > 不是生产缓存（最高设计 §7.1/§10.1：HiPS Browser 不进产品 manifest）。
 

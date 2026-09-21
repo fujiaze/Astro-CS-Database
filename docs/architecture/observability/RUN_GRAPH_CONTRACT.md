@@ -1,6 +1,6 @@
 # AstroCS 运行图渲染工具合同（LOG-003）
 
-> 文档 ID：`ARCH-LOG-RUNGRAPH-003`（归属 `docs/architecture/observability/`，owner SA-LOG-08）
+> 文档 ID：`ARCH-LOG-RUNGRAPH-003`（归属 `docs/architecture/observability/`）
 > 状态：ACTIVE_NORMATIVE（LOG-003 冻结）
 > 机器可读事实源：`tools/graph/render_run_graph.py`（渲染工具 + 机器验证）、
 > `lib/infrastructure/pipeline/trace_replay.py`（RT-006 权威 replay 聚合）、
@@ -14,7 +14,7 @@ AstroCS 需要一个**运行图渲染工具**：从 plan/trace 生成 DOT/SVG/JS
 artifact hash。旧手绘图/静态架构示意图不再作为规范来源——每次生成都从当前
 提交可复现，且机器可验证与 trace 一致。
 
-**验收（tasks/03_RUNTIME_DATA_IO_TASKS.md LOG-003〔来源已删除/不可考，替代=ASTROCS_DESIGN.md §6.3〕+ 标准 14 §5〔同上〕+ 23 政策）**：
+**验收（依据=`ASTROCS_DESIGN.md` §6.3 + 本文件）**：
 - 图与 trace 调用计数一致：图节点 `call_count` == replay `call_count` ==
   原始 `module_call` 事件计数（`--verify` exit 0 = GRAPH_CONSISTENT）；
 - 图与 trace 的 DLL hash、artifact hash 一致（从 trace 事件真实字段取；
@@ -138,9 +138,8 @@ hash 等观测字段一律只来自 trace 事件。
 
 ## 8. 旧手绘图不再作为规范来源
 
-本工具交付前，仓库无产自工具的运行图规范来源；`evidence/**`（已由 ROOT-007 清运至 `run/archive/legacy-control-packs/`）下历史
-`*.dot`（如 `v6_1_rework` PROD_REACHABILITY）是**旧审计期手写/一次性产物**
-（归档性质，非当前规范来源）。LOG-003 之后：
+`evidence/**` 下的 `*.dot`（如 `v6_1_rework` PROD_REACHABILITY）是**一次性手写产物**
+（归档性质，非当前规范来源）。运行图规范来源：
 
 - 运行图规范来源 = `tools/graph/render_run_graph.py` 从**当前提交**可复现
   生成的 `graph-runtime.{json,dot}`（含 generator/source/输入 hash 头）；
@@ -164,7 +163,7 @@ hash 等观测字段一律只来自 trace 事件。
 
 ## 10. 参考
 
-- 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-003（**来源已删除/不可考**；**替代**=`ASTROCS_DESIGN.md` §6.3 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记）
+- 依据：`ASTROCS_DESIGN.md` §6.3 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
 - RT-006：`include/astrocs/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`
 - RT-001：`lib/infrastructure/pipeline/typed_dag.py`、

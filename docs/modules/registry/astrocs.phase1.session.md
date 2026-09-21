@@ -10,15 +10,14 @@ downstream: [DATA-P1-SESSION, API-P1-SESSION, TEST-P1-SESSION-001]
 
 # 模块 astrocs.phase1.session
 
-> P1-SESSION-DOC 手写合同页（2026-09-07，SA-P1-R19）：registry 无
+> 手写合同页：registry 无
 > astrocs.phase1.session descriptor——gen_module_readmes.py 以
 > module_adapters.cpp 为源仅生成 8 个 Phase1 descriptor 页
 >（calibration/cosmetic/star-psf/wcs-platesolve/photometry/noise-snr/
 > drizzle/writer），本页为其装配底座（p1_session 函数族）手写登记，
 > 重生成时须保留。权威签名头 lib/phase1_session/p1_session.h。
 
-- 模块词汇：`astrocs.phase1.session`（归档映射
-  docs/archive/refactor/P1_SYMBOL_MAP.md:14 既有词汇；现行 registry
+- 模块词汇：`astrocs.phase1.session`（现行 registry
   descriptor 无此 module_id，五函数经 P1Api 被 8 descriptor 工厂委托——
   lib/infrastructure/scheduler/src/module_adapters.cpp:755-762/:790-797/:817-832）。
 - 层级：assembly（编排），不设独立 DLL（MODULE_MIGRATION_MATRIX 无

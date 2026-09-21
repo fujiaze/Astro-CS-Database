@@ -7,7 +7,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §4.2（控制采样）、§4.4（天光亮度平面）
+- 最高设计 `ASTROCS_DESIGN.md` §5.2（固定科学流程：控制采样）、§5.4（天光平面与统一相对模型）
 - `docs/design/PHASE2_DETAILED_DESIGN.md` §4（UPM 控制点要求）
 - `docs/plugins/algorithms_phase1/07_noise_snr.md`（帧级/帧内 SNR）
 
@@ -42,9 +42,9 @@ flowchart LR
 - **稀疏而非稠密**：按空间分层网格在每帧掩膜外取一批采样点（数量由天光面自由度决定，远少于像素数）；不生成逐像素背景栅格；
 - 每点在格内做局部稳健背景估计（如 σ-clipping/中位数小窗），记录值与 variance；
 - 每点携带该位置的 SNR：帧级 × 帧内（有稀疏 SNR 层时），无帧内层时用帧级；
-- **采样点权重 = 逆方差**：`w_ki = control_ivar_ki = N_retained/(k_corr·(π/2)·σ_bg²)`（= `1/control_variance`，冻结式 `control_variance = k_corr·(π/2)·σ_bg²/N_retained` 见 `docs/modules/phase2_samp.md` §6 / `docs/contracts/DATA_SEMANTICS.md` §23）——低 SNR 帧、光污染帧的采样点权重自然变小，无法把正常帧的天光面异常拉高；**为什么不是 `SNR²`**（EXP-201 定案，判据冻结 sha256 `0d41e29b…`，三数据面 + 刚性扫描复核 5/5）：`w = 1/σ² = SNR²/F_ref² ∝ SNR²` 的 `∝` **以固定参考通量 `F_ref` 为前提**；天光控制点的**被估量本身在变**（估的是天光面/背景电平，不是固定源通量）⇒ `SNR²` **不是**有效逆方差代理，控制点权重一律取 `control_ivar`，`SNR` 只作 veto/质量门（`docs/modules/phase2_samp.md` §6、`docs/science/CONTROL_WEIGHT_SNR.md`）。
+- **采样点权重 = 逆方差**：`w_ki = control_ivar_ki = N_retained/(k_corr·(π/2)·σ_bg²)`（= `1/control_variance`，冻结式 `control_variance = k_corr·(π/2)·σ_bg²/N_retained` 见 `docs/modules/phase2_samp.md` §6 / `docs/contracts/DATA_SEMANTICS.md` §23）——低 SNR 帧、光污染帧的采样点权重自然变小，无法把正常帧的天光面异常拉高；**为什么不是 `SNR²`**：`w = 1/σ² = SNR²/F_ref² ∝ SNR²` 的 `∝` 以**固定参考通量** `F_ref` 为前提，而天光控制点的**被估量本身在变**（估的是天光面/背景电平，不是固定源通量）⇒ `SNR²` **不是**有效逆方差代理；控制点权重一律取 `control_ivar`，SNR 只作 veto/质量门（推导与依据见 `docs/science/CONTROL_WEIGHT_SNR.md` 与 `docs/modules/phase2_samp.md` §6）。
 - 采样点经 WCS 映射到天球坐标，供跨帧联合拟合。
-- **公共面与逐帧梯度的分工**（§9.67 定案 1）：采样点用于**全部帧联合**拟合公共天光面 `B_ref(x)`；每帧只在其上拟合平缓梯度 `δ_k(x)`，归一施加量为 `δ_k`（**保留 `B_ref`**）；`raw − C_k`（全减，含 `B_ref`）**不再是默认**（详见 `11_upm.md` §4.1/§5）。
+- **公共面与逐帧梯度的分工**：采样点用于**全部帧联合**拟合公共天光面 `B_ref(x)`；每帧只在其上拟合平缓梯度 `δ_k(x)`，归一施加量为 `δ_k`（**保留 `B_ref`**）；`raw − C_k`（全减，含 `B_ref`）不是默认路径（详见 `11_upm.md` §4.1/§5）。
 
 ### 4.3 光度控制点
 
@@ -86,7 +86,7 @@ flowchart LR
 
 - 构造已知背景梯度/已知加性天光面 `C_k(x)` 场景 → 采样点估计无偏、覆盖与统计符合预期；
 - 亮星/坏点/星云边缘排除验证；
-- **SNR 加权验证**：注入低 SNR/光污染帧，联合天光面不被拉高（与等权拟合对照，偏差显著减小）；
+- **control_ivar 加权验证**：注入低 SNR/光污染帧，联合天光面不被拉高（与等权拟合对照，偏差显著减小）；
 - 稀疏性验证：采样点数量级远低于像素数，内存占用随点数而非像素数增长；
 - 欠定检测（点数不足/连通性断裂时报错）；
 - 1 worker vs N worker 一致。

@@ -10,7 +10,7 @@ downstream: [TEST-DRZ-DESIGN-001]
 
 # 模块 astrocs.phase1.drizzle
 
-> P1-DRZ-DOC（2026-09-07）源码核对修订：本页旧占位 ID
+> 本页源码核对修订：registry 占位 ID
 > SCI-P1-DRIZ-001/ALG-005/TEST-P1-DRIZ-001 更正为 SCI-DRZ-001/
 > ALG-DRZ-001/TEST-DRZ-DESIGN-001（与 docs/traceability/
 > TRACEABILITY_MATRIX.json P1-DRZ 行、lib/algorithms/drizzle/module.yaml 一致；
@@ -23,10 +23,10 @@ downstream: [TEST-DRZ-DESIGN-001]
 Registry production 模块（唯一源=module_adapters.cpp descriptor）。
 职责：tiled 球面 drizzle（drop 收缩 footprint × HEALPix NESTED leaf
 交叠，S-H+Eriksson 面积加权累加 sumFlux/sumArea/sumVarNum/nContrib）、
-auto nside、FP32/FP64 通道、HiPS 直写/legacy HISS 输出、反向 drizzle。
+auto nside、FP32/FP64 通道、HiPS 直写/HISS 输出、反向 drizzle。
 不做：S_p=F_p/D_p 归一与 variance finalize（astro_image_io 层）；
 master/校准/坏点（P1-CAL/P1-COS）；Phase2 统计合并；线程授予
-（现状 omp 遗留 + Runtime lease，ThreadLease 迁移整改点）。
+（omp 内部通道 + Runtime lease，ThreadLease 迁移整改点）。
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
@@ -40,7 +40,7 @@ master/校准/坏点（P1-CAL/P1-COS）；Phase2 统计合并；线程授予
 > （DATA_SEMANTICS §11，tile 累加量原始和 + finalize 归一在下游），
 > 引用对齐由 P1-DRZ-INT 处理。
 
-invalid：~~值像素 NaN/Inf 静默跳过（DISP-DRZ-004）~~ **已作废（2026-09-20）**——现行实现为
+invalid：现行实现为
 值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1898-1902`；
 回归 `p1drz_tests_core.cpp:517-537`）；pixfrac∈(0,1]
 引擎层严格拒绝；仅 NESTED；covered_area≤0 → variance 记 NaN
@@ -69,13 +69,13 @@ header KV "PRECISION"）；版本化 schema 由 P1-DRZ-IMPL 冻结。
 tile 累加器，drizzle_engine.cpp:1670-1671）；**1/N 确定性**=同输入
 同线程数 bitwise 可复现（按线程序合并 touched leaf，
 :1762-1785）；跨线程数浮点和序不同不保证 bitwise。ThreadLease
-现状零命中（omp 遗留通道，CMakeLists.txt:379-382）——迁移整改。
+零命中（omp 内部通道，CMakeLists.txt:379-382）——迁移整改。
 
 ## 内存/cache/I-O/所有权
 
 tile 累加器 leaf 连续数组（禁 per-leaf 全局 map）；TargetGeomCache
 per-thread LRU 8192 + run generation 清空；I/O=HiPS 直写（AIO API）
-+ legacy .hiss + operation_counts.json；stdout 无日志（全部 stderr）；
++ .hiss 输出 + operation_counts.json；stdout 无日志（全部 stderr）；
 buffer 所有权=调用方。
 
 ## 错误、日志、指标、取消和 checkpoint
@@ -97,4 +97,4 @@ checkpoint 无（HiPS 由编排层 overwrite 清理）。
 
 ALG-DRZ-001 §10（DISP-DRZ-001..008）+ README §9（NaN 无计数、
 pixfrac 双轨、错误码混用、无取消、static 条带负载不均、poly_clip
-legacy 零调用）；docs/KNOWN_LIMITATIONS.md。
+零调用）；docs/KNOWN_LIMITATIONS.md。

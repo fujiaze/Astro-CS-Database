@@ -1,6 +1,6 @@
 # Phase3 HiPS→FITS Resample Algorithms (ALG-P3)
 
-> ID: ALG-P3-001  范围: ALG-P3-001..004  上游 SCI: SCI-P3-001  状态: DERIVED (V6 ALG-008, 2026-09-16；V5 ALG-007 2026-08-28)  模块: phase3 (施工规格; 重采样域实现级合同=ALG-P3-RSMP-IMPL-001 docs/algorithms/PHASE3_RSMP_IMPL.md, 投影域=ALG-P3-PROJ-IMPL-001, 写出域=ALG-P3-FITS-IMPL-001; 生产源 lib/algorithms/resample/p3_resample.cpp 239 行实测在库)
+> ID: ALG-P3-001  范围: ALG-P3-001..004  上游 SCI: SCI-P3-001  状态: DERIVED  模块: phase3 (施工规格; 重采样域实现级合同=ALG-P3-RSMP-IMPL-001 docs/algorithms/PHASE3_RSMP_IMPL.md, 投影域=ALG-P3-PROJ-IMPL-001, 写出域=ALG-P3-FITS-IMPL-001; 生产源 lib/algorithms/resample/p3_resample.cpp 239 行实测在库)
 
 ## 1 上游 SCI 与输入输出
 
@@ -21,8 +21,7 @@ G1 (ALG-P3-002) 输出 WCS 构造 (FITS 1-based, CD-only):
 G2 (ALG-P3-002) 反向映射 (逐输出像素 (x,y), 1-based→中间平面):
   (iwc1,iwc2) = CD · ((x+1)−CRPIX1, (y+1)−CRPIX2)   # deg 偏移；Paper I §2.1.1: 中间坐标 = CD·(p−CRPIX)
   world = proj^{-1}(iwc; CRVAL) → (RA,Dec)∈[0,360)×[−90,90]
-  # 订正（SCI-FIX-PROJ 2026-09-16，M1a-A-007）：原写 iwc = CD^{-1}·(…) 方向反；
-  # 实现 p3_proj_v6.cpp pix_to_plane / p3_wcs.cpp 均为 CD·δp（正确），本条改文档。
+  # 中间坐标 = CD·δp（Paper I §2.1.1）；实现锚 p3_proj_v6.cpp pix_to_plane / p3_wcs.cpp
   TAN 参考点含 CRVAL2（θ0=CRVAL2，Paper II §2.2；CRPIX 处 world == CRVAL）
   gnomonic: (ξ,η)=atan2 形式; 球面角差按 RA wrap 归一
 
@@ -36,18 +35,20 @@ G4 (ALG-P3-003) leaf 采样:
   leaf_order = order_sel + log2(W)                  # W=hips_tile_width（支持子集 W=512 ⇒ +9）
   ipix = ang2pix_NESTED(nside=2^leaf_order, RA, Dec)
   tile = ipix >> (2·log2(W));  local = ipix & ((1<<2·log2(W))−1); (lx,ly)=nested_local_to_xy(local)
-  # 订正（SCI-FIX-PROJ 2026-09-16，M7-A-117）：>>(2·log2 W) 是 **索引位移**（tile 内 leaf 数 W²），
-  # 不是 order 偏移；order 偏移是 log2(W)（W=512 ⇒ +9）。账本原处方 +2·log2(W) 会使 nside 偏大
-  # 2^(2log2 W−log2 W)=W 倍（W=512 ⇒ 512×），已按研究结论在 FIX_LEDGER 备注订正，不按处方改码。
+  # >>(2·log2 W) 是 **索引位移**（tile 内 leaf 数 W²），不是 order 偏移；
+  # order 偏移是 log2(W)（W=512 ⇒ +9）。
   nearest: S = tile[lx,ly]（**存在判定→coverage**：tile 像素存在即 C=1，值 NaN 照传）
   bilinear: 邻域 4 leaf 权重 w=面积重叠分数(投影线性化), **Σw = 1 ± k·ULP**(k 由累加 dtype 定),
             S=Σ w·tile_value, 跨 tile 读相邻 tile（NESTED 面邻接含轴翻转/镜像）
-            **邻域非有限规则（D10 冻结，2026-09-17）**: 4 邻域中任一 leaf 值为 NaN
-            ⇒ S=NaN，且**不**对剩余有效邻域重归一化（权重仍按几何 Σw=1 计，
-            已算出的有限加权和被丢弃）；C 不变（4 个 tile 均可读则 C=1）。
-            ±Inf 不单列判定，按 IEEE 进入加权和（0·Inf ⇒ NaN）
+            **邻域非有限规则（NaN 处置口径 rule_id NAN-SAMPLE-MASK-COVERAGE-NAN）**:
+            不合格邻域样本（¬isfinite，含 ±Inf）按**样本级掩膜**从分子、分母、方差三项
+            一并剔除，并对剩余有效邻域**重归一**；仅当零合格样本时 S=NaN
+            （**覆盖级 NaN**），且每个输出像素**必须暴露**被剔除样本计数
+            （**强制计数**，禁止静默剔除）；C 只判足迹内有无 tile 像素，值 NaN 不改 C
+            （4 个 tile 均可读则 C=1）。
             实现锚: lib/algorithms/resample/p3_resample.cpp 的 p3_sample_bilinear_ex
-            （any_nan → *value=NaN, *coverage=1；不重归一化）
+            （现状 any_nan → *value=NaN, *coverage=1：尚未重归一化、未暴露剔除计数，
+            待实现侧对齐本口径）
 
 G5 (ALG-P3-004) FITS 写:
   BITPIX=−32/−64, BSCALE=1, BZERO=0, BUNIT=properties(缺省 'ADU')
@@ -66,10 +67,9 @@ G5 (ALG-P3-004) FITS 写:
 function phase3_resample(hips_dir, params):
   props = read_properties(hips_dir)                    # ALG-P3-001: 必需键校验, 非法显式拒
   validate(params): frame=icrs, W,H∈[1,20000], s_out>0, |center.Dec|≤85°(距极点 ≥5°), pixfrac N/A
-    # 订正（SCI-FIX-PROJ 2026-09-16，M1a-A-007）：原写 |center.Dec|≥5° 与 SCI §4 的
-    # abs(dec)<=85° 语义相反；正确为 |center.Dec| ≤ 85°。
+    # |center.Dec| ≤ 85°（离两极 ≥5°），与 SCI-P3 §4 的 abs(dec)<=85° 一致。
   order_sel = G3(props.hips_order, W=props.hips_tile_width, s_out)
-  cd = G1(params); tiles = TileCache(order_sel)        # 有界缓存按 (ipix_tile); 逐出 FIFO 最旧插入 (P3-RSMP-DOC 2026-09-12 表述更正: 原记 LRU, 实测 p3_resample.cpp:22-36 keys.erase(begin()) 无访问序更新, DISP-P3RSMP-002)
+  cd = G1(params); tiles = TileCache(order_sel)        # 有界缓存按 (ipix_tile); 逐出 FIFO 最旧插入（实测 p3_resample.cpp:22-36 keys.erase(begin()) 无访问序更新, DISP-P3RSMP-002）
   parallel for row_band in rows(out):                  # worker pool by affinity, 禁硬编码线程数
     if cancelled(row_band): return CANCELLED           # 行带粒度
     for y in row_band:
@@ -86,10 +86,10 @@ function phase3_resample(hips_dir, params):
 | 条件 | 行为 |
 |---|---|
 | 缺 tile 文件 | 该足迹 C=0, S=NaN, provenance 记 missing, 不中断 |
-| tile 内 NaN（nearest） | S=NaN, C=1(mask 语义=coverage+NaN 判定) |
-| bilinear 四邻域**部分** NaN | S=NaN 且**不重归一化**剩余有效邻域（权重按几何 Σw=1，有限加权和被丢弃）；C=1（4 tile 均可读）——非有限优先于加权，禁「有效邻域重归一化」与「零填」两种替代语义 |
+| tile 内 NaN（nearest，单样本） | 零合格样本 ⇒ S=NaN（覆盖级 NaN）, C=1(mask 语义=coverage+NaN 判定) |
+| bilinear 四邻域**部分**非有限 | 不合格邻域样本按**样本级掩膜**剔除、剩余有效邻域**重归一**后求加权和，并暴露被剔除样本计数（**强制计数**）；C=1（4 tile 均可读）——禁「零填」替代语义 |
 | bilinear 四邻域 tile 全缺失 | 该足迹 C=0, S=NaN, provenance 记 missing |
-| bilinear 邻域含 ±Inf | 不单列判定，按 IEEE 进加权和（0·Inf ⇒ NaN）；coverage 规则同上 |
+| bilinear 邻域含 ±Inf | ±Inf 与 NaN 同属不合格样本，按样本级掩膜剔除并重归一；coverage 规则同上 |
 | RA wrap 0/360 | 球面角差归一, 无接缝 |
 | 中心距极点 <5° / 输出跨 TAN 半球 | 显式拒(G2 前) |
 | properties 非法/缺键 | 显式拒(ALG-P3-001), 无 silent default |

@@ -8,9 +8,9 @@ upstream: [SCI-UPM-001, ALG-P2-UPM-IMPL-001, ALG-UPM-001, API-P2-001]
 downstream: [DATA-P2-UPM, API-P2-UPM-001, TEST-P2-UPM-001]
 ---
 
-# 模块 astrocs.phase2.upm-fit（P2-UPM-DOC 重写，2026-09-10）
+# 模块 astrocs.phase2.upm-fit
 
-> P2-UPM-DOC（2026-09-10）重写为手写合同页（registry 页保留先例
+> 手写合同页（registry 页保留先例
 > astrocs.phase1.session.md/astrocs.phase2.coverage.md/
 > astrocs.phase2.reject.md）：`astrocs.p2.upm` 合同（registry 行 ID
 > 沿用 MOD-astrocs-phase2-upm-fit/upm-apply）——SCI-UPM-001（共享
@@ -145,7 +145,7 @@ p2_upm_synthetic_test.cpp、tests/backend/test_p2002_parallel_upm.py。
 ## 已知限制
 
 DISP-P2UPM-001..004（上节，登记不改码）；ALG 边界=外推锚只引用真
-实存在 cell、单帧区 harmonic continuation、legacy snr 权重仅
+实存在 cell、单帧区 harmonic continuation、snr 权重仅
 ablation（SNR-015）；本页旧派生内容（"错误码=ACS_ERR_*"、"取消=
 host cancel 回调"等 session 层词汇）以本合同页与 SCI-UPM-001/
 ALG-UPM-001 为准修订。

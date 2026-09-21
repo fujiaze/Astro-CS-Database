@@ -19,8 +19,8 @@
   - PRIMARY：所选科学 signal/flux/statistic；
   - 扩展 HDU：VARIANCE/IVAR（语义择一且一致）、COVERAGE、VALIDITY、SUPPORT、REJECTION（若存在）、POINT_INFORMATION/W（若模式需要）；
   - PSF 表/图和 correlation 描述；
-  - 标准 WCS（**直接计算生成**）、BUNIT、DATASUM/CHECKSUM；
-    ⚠ **BUNIT 语义未闭合**（§9.61 R61-1/R61-2）：实测 `p3_props.json#bunit="ADU"` 与 `flux_sum/covered_area`（面亮度量纲）不一致；**待裁决** = 澄清 BUNIT 或写 `ADU/px^2/sr`。裁决前**不得**据 `BUNIT` 作单位声明/换算；
+  - 标准 WCS（**直接计算生成**）、BUNIT（写端口单位 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area` = 面亮度）、DATASUM/CHECKSUM；
+    ⚠ **BUNIT 语义未闭合**：实测 `p3_props.json#bunit="ADU"` 与 `flux_sum/covered_area`（面亮度量纲）不一致；正确写法 = 澄清 BUNIT 或写 `ADU/px^2/sr`。澄清前**不得**据 `BUNIT` 作单位声明/换算；
   - provenance：源 product/hash、软件完整 SHA、配置、投影、核、order、近似、生成时间。
 - 所有 HDU shape/WCS 对齐。
 - 参考：`contracts/schemas/fits_product.schema.json`。
@@ -49,7 +49,7 @@
 ## 7. 错误与边界
 
 - 输出模式缺所需科学层 → 拒绝或明确 unavailable；
-- BUNIT 与实际量纲不一致（`bunit="ADU"` vs `flux_sum/covered_area`）⇒ 必须显式失败或标注 unavailable，**不得**静默按 `"ADU"` 声明（§9.61）；
+- BUNIT 与实际量纲不一致（`bunit="ADU"` vs `flux_sum/covered_area`）⇒ 必须显式失败或标注 unavailable，**不得**静默按 `"ADU"` 声明；
 - >2 GiB、长 UTF-8 路径、Windows CFITSIO、取消、缺 tile 必须正确处理；
 - 取消 → 无可见半成品（临时文件隔离 + 原子 rename）。
 

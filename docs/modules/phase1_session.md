@@ -1,6 +1,6 @@
 # Module: phase1_session
 
-> P1-SESSION-DOC 冻结页（2026-09-07）：Phase1 进程内装配会话模块合同页 =
+> Phase1 进程内装配会话模块合同页 =
 > lib/phase1_session/README.md（CONTRACT_READY，assembly 层）+ lib/
 > phase1_session/module.yaml（astrocs.phase1.session，静态库
 > astrocs_phase1_session，根 CMakeLists.txt:448-452）。合同 ID：

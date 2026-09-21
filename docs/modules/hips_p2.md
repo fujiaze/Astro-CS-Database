@@ -1,6 +1,6 @@
 # astrocs.p2.hips_writer — Phase2 HiPS 马赛克写出模块（P2-HIPS）
 
-> P2-HIPS-DOC（2026-09-09，SA-P2-I23）新建模块页。合同三件套落位
+> 合同三件套落位
 > `lib/algorithms/coverage/hips_p2/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
 > entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/drizzle/hips/`（P1-HIPS）先例新建；
 > `lib/algorithms/coverage/` 三件套已被 P2-COV（astrocs.p2.coverage）占用，不可覆盖。
@@ -34,11 +34,11 @@
 - 马赛克编排生命周期 DISCOVER→COVERAGE_UNION→CONTROL_SAMPLE→UPM_FIT→
   UPM_PERSIST→BLOCK_PLAN→REJECT+INTEGRATE+HIPS_WRITE→HIPS_VERIFY；
   target_order 禁插值伪装分辨率（高于输入最高 order → rc=3）。
-- 逐 tile 排异+加权积分（纯逆方差权重门 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）：缺 ivar 产品 →
+- 逐 tile 排异+加权积分（缺 ivar 产品 →
   rc=7 显式科学错误）→ 逆归一
   （area=sup×A_cell、flux=signal×area）——
   ⚠ **该 `flux` 是 writer 视图的中间量**（writer 入参口径），
-  **落盘值仍 = `flux_sum / covered_area` = 面亮度**（EXP-203 C1b：**不得**读成「产品是通量」）→
+  **落盘值 = `flux_sum / covered_area` = 面亮度**（写端口 `UnitId::SURFACE_BRIGHTNESS`；**不得**读成「产品是通量」）→
   FITS 序→NESTED 序转换
   （HIPS-IMG-001）→ writer 库写 signal+support 两产品 → HIPS_VERIFY 回读。
 - 非职责：叶级归一/FITS 写盘/hierarchy/MOC/properties（writer 库 P1 域）；
@@ -63,6 +63,6 @@
 可执行 `TEST-P2-HIPS-001` MISSING（P2-HIPS-TEST 建立）；登记面=设计冻结 VERIFIED；
 设计内容与容差来源=
 ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md §8/§9）。现状相邻证据：
-phase2_synthetic_gate W9 ACR mosaic_reject legacy↔CPU 等价
+phase2_synthetic_gate ACR mosaic_reject_legacy↔CPU 等价
 （synthetic_gate.cpp:3021-3160）、tests/api/test_reject_integration_oracle.py
 （引用不冒认）。

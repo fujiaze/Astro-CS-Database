@@ -1,10 +1,8 @@
 # AstroCS Pipeline（Phase1 → Phase2）
 
-> ⚠ **DOC-202 订正（R15 / R16 / R17 / R21 / R22，2026-09-20）**：本文按最高设计
-> §3.2 / §4.2 / §4.5 / §6.2 / §7.1a 重写。
+> 本文按最高设计 §3.2 / §4.2 / §4.5 / §6.2 / §7.1a 描述。
 > **入口只有一个**：`ACSD Cli` / `acsd_cli` 的 `normalize` / `mosaic` / `export` 三个子命令
-> （最高设计 §6.2）。旧 `orchestrator.exe` / `astrocs-stage2` **不是入口**
-> （最高设计 §7.1/§11「旧可执行程序不是入口」），已从本文入口位删除（仅在本注留痕）。
+> （最高设计 §6.2）。
 > **阶段内走内存块管线，阶段间落盘**（最高设计 §7.1a）。
 
 ## Phase1（normalize：单帧 → 单帧 HiPS）
@@ -40,7 +38,7 @@ admit（兼容性校验） → coverage（重叠图 union） → sampling（控�
 
 - 入口：`mosaic --json <config.json>`（唯一 CLI 子命令）。
 - **排异不是「7 种任选」**：排异算法**逐像素按该像素几何可贡献帧数 N 自动选择**；
-  **冻结映射表（EXP-204 定案 + WBPP 一手实测）**：
+  **排异档位映射表（WBPP 一手实测）**：
   `1≤N≤3` **none（不排异）** / `4≤N≤5` percentile / `6≤N≤15`（或 BIAS/DARK）winsorized /
   `N≥16` linear fit；**禁止 min/max**。
   冻结表落位 = `docs/plugins/algorithms_phase2/12_rejection.md` §9（**只引用，不复制**）。
@@ -51,6 +49,6 @@ admit（兼容性校验） → coverage（重叠图 union） → sampling（控�
 ## 关键不变量
 
 - **科学冻结权威 = `docs/science/`（公式）与 `docs/algorithms/`（推导）**
-  （最高设计 §0.1/§1.1）。~~原引 `SCIENCE_FREEZE.md` **不存在**，已作废~~（R22）。
-- 序列化：V11（外部 oracle 冻结）；sampler/UPM：V13/V14（历史内部指代）。
+  （最高设计 §0.1/§1.1）。
+- 序列化：V11（外部 oracle 冻结）；sampler/UPM：V13/V14（内部指代）。
 - Browser 不拥有科学数据解释权（**工具分类，非发布**；最高设计 §7.1/§10.1）。

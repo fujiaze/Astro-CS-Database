@@ -10,9 +10,9 @@ upstream: [SCI-P2-SMP-001, ALG-P2-SMP-001, API-P2-001]
 downstream: [TEST-P2-SMP-001]
 ---
 
-# 模块 astrocs.phase2.sample（P2-SAMP-DOC 事实修订，2026-09-09）
+# 模块 astrocs.phase2.sample
 
-> P2-SAMP-DOC（SA-P2-S20）将本页自 gen_module_readmes 派生页事实修订
+> 本页自 gen_module_readmes 派生页事实修订
 > 为手写合同页（手写 registry 先例 astrocs.phase2.reject.md/
 > astrocs.phase2.coverage.md/astrocs.phase2.integrate.md）。
 > frontmatter 的 source_commit/upstream/downstream 为 registry 生成词
@@ -159,7 +159,7 @@ DISP-P2SMP-001..005（上节，登记不改码）；本页旧派生内容
 
 - 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md）
 - 模块页：docs/modules/phase2_samp.md
-- SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106，零
+- SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零
   改动；descriptor 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明=ALG
   §11.4）
 - ALG：docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）；

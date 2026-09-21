@@ -23,7 +23,7 @@ snr_estimator DLL（noise_model 主实现）。
 
 ## Thread safety
 
-patch OpenMP；median 局部。
+patch 串行（单线程顺序）；median 局部。
 
 ## Errors
 
@@ -31,7 +31,7 @@ patch OpenMP；median 局部。
 
 ## Science IDs
 
-SCI-NOISE-001..015；ALG-NOISE-MAD-001..。
+SCI-NOISE-001..015；ALG-NOISE-001..003。
 
 ## Tests
 
@@ -44,11 +44,8 @@ lib/algorithms/noise_snr/cpp/。
 
 ---
 
-> **P1-NOISE-DOC 增补（2026-09-07）**：本页为 P1-005 期 legacy
-> ACTIVE_INFORMATIVE 摘要，部分表述已过时（"patch OpenMP" 实测现状为
-> 单线程顺序；"ALG-NOISE-MAD-001" 占位 ID 已由 ALG-NOISE-001..003 取代）。
-> 模块合同权威已冻结于 `lib/algorithms/noise_snr/README.md`（r1，
+> 本页为 ACTIVE_INFORMATIVE 摘要。模块合同权威 = `lib/algorithms/noise_snr/README.md`（r1，
 > CONTRACT_READY）+ `lib/algorithms/noise_snr/module.yaml`（MOD-astrocs-phase1-
 > noise-snr），逐符号源码锚定与 DISP-NOISE-001..009 登记
-> 见 `docs/algorithms/NOISE_ESTIMATION.md` §13；本页不据此更新正文，
-> 冲突时以冻结合同为准。
+> 见 `docs/algorithms/NOISE_ESTIMATION.md` §13；冲突时以冻结合同为准。
+> **噪声模型 A 为唯一生产模型**；噪声 σ 来源 = 局部 patch + 星点掩膜 + 饱和过滤。

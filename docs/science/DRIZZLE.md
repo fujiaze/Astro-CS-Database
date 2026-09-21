@@ -1,7 +1,6 @@
 # Drizzle / Spherical Resampling Science (SCI-DRIZZLE)
 
-> ID: SCI-DRZ-001  集合: SCI-DRZ-001,014,015,016  状态: FROZEN (T105 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-DRZ-001..  模块: healpix_drizzle
-> 变更: §5/§7/§11 归一化订正为**面亮度保持** `S_p=Σ_j B_j a_jp/Σ_j a_jp`（claim FIX-SCI-DRZ-001，2026-09-18；依据 Fruchter & Hook 2002 PASP 114,144 式(5)、DESIGN-P1 §9:120-126、`FZ-FORMULA-DRIZZLE-SB`；原 `w_jp=a_jp/A_drop,j` 的 legacy 归一对 `pixfrac<1` 偏差 `1/pixfrac²`，登记 DISP-DRZ-009）
+> ID: SCI-DRZ-001  集合: SCI-DRZ-001,014,015,016  状态: FROZEN（冻结定义）  上游: SCI-SCOPE-001  下游 ALG: ALG-DRZ-001..  模块: healpix_drizzle
 
 ## 1 目的与非目标
 
@@ -20,8 +19,8 @@
 | `w_jp` | `a_jp/A_pixel,j` 面亮度保持权重（`= pixfrac²·a_jp/A_drop,j`） | 重建式 |
 | `F_p, D_p, S_p` | 累积通量/覆盖/归一信号 | 同上 |
 | `sumVarNum` | `Σ v_j·w_jp²` 方差分子 | `TileLeafAccumulator` |
-| `pixfrac` | drop 收缩因子 (0,1] | `drizzle_engine:half=0.5*pixfrac` |
 | `hp_res` | HEALPix 像素尺度 `√(π/3)/nside rad` | `spherical_overlap.cpp:40` |
+| `pixfrac` | drop 收缩因子 (0,1]（`drizzle.pixfrac`，默认 1.0） | `drizzle_engine:half=0.5*pixfrac` |
 | `C=π/2, C45=π/(2√2)` | 极区 Lipschitz 常数 | 极区 prune |
 
 ## 3 物理量和单位
@@ -37,7 +36,7 @@
 ## 5 连续定义
 
 ```text
-Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一, claim FIX-SCI-DRZ-001):
+Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
   源像素 j → 目标像素 p:
     B_j  = x_j / A_pixel,j          # 源像素积分通量 → 源像素面亮度
     w_jp = a_jp / A_pixel,j         # 面亮度保持权重 (= pixfrac²·a_jp/A_drop,j)
@@ -50,11 +49,11 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一, claim FIX-SCI-
     AstroCS 取 w_i=1、a_jp = drop∩目标 球面交叠面积、B_j = x_j/A_pixel,j
     ⇒ S_p = Σ_j B_j a_jp / Σ_j a_jp
     drop 面积 A_drop,j 在分子分母相消(均匀 drop 尺度下), 只决定 footprint;
-    legacy 归一 w_legacy = a_jp/A_drop,j 满足 w_jp = pixfrac²·w_legacy,
-    故 S_p(SB) = S_p(legacy)/pixfrac²（DISP-DRZ-009：现实现仍用 legacy）
+    按 A_drop,j 归一的权重 a_jp/A_drop,j 满足 w_jp = pixfrac²·(a_jp/A_drop,j)，
+    故两种归一下的信号相差 1/pixfrac²（DISP-DRZ-009：现实现仍用 a_jp/A_drop,j 归一）
 
 语义固定（SCI-003: flux vs surface-brightness 二选一）:
-  【输入 x_j = 源像素积分通量】(ADU/e⁻), 由天体面亮度场 B(Ω) 对像素积分:
+  【输入 x_j = 源像素积分通量】(单位统一为 ADU/e⁻), 由天体面亮度场 B(Ω) 对像素积分:
      x_j = ∫_{pixel_j} B(Ω) dΩ = B0 × A_pixel_j   (常数面亮度场 B0)
   【输出 S_p = 面亮度】(ADU/px²); 因此 S_p = F/D 把通量按覆盖面积归一为面亮度。
   【禁止】把"每像素常量 ADU"(常数通量 x_j=C 任意等值) 与"常量天空面亮度"
@@ -69,15 +68,15 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一, claim FIX-SCI-
   缩放律: x' = α·x ⇒ var' = α²·var, ivar' = ivar/α² (SNR-002)
   sumVarNum 为 TileLeafAccumulator 中间分子，归一在 sink/writer finalize
   权重一致性: 信号与方差必须用同一 w_jp=a_jp/A_pixel,j（S_p=ΣB_j a_jp/Σa_jp 的
-    组合系数 c_jp=a_jp/D_p, Var(S_p)=Σ v_j c_jp²/A_pixel,j²）。legacy 权重
-    a_jp/A_drop,j 使 variance_p 额外乘 1/pixfrac⁴（信号乘 1/pixfrac²），
+    组合系数 c_jp=a_jp/D_p, Var(S_p)=Σ v_j c_jp²/A_pixel,j²）。按 a_jp/A_drop,j
+    归一的权重使 variance_p 额外乘 1/pixfrac⁴（信号乘 1/pixfrac²），
     故 SNR 不变但绝对面亮度标度错（DISP-DRZ-009）。
 
 球面几何 (ALG-DRZ-GEOM):
   drop 多边形: pixelToSky((x±0.5·pixfrac, y±0.5·pixfrac)) → Vec3 单位向量
   目标边界: NESTED leaf 4 角（赤道菱形/极区退化），nside≥256 用 boundary4，
             低 nside 自适应细分；面积经 Sutherland–Hodgman + Girard 定理
-
+  通量守恒条件不变量：Σ_p w_jp·A_drop,p 与输入总通量在容差内一致（§7）。
 缓冲三层 (spherical_overlap.cpp:40, HP_CIRCUMRADIUS_FACTOR=1.25·hp_res):
   1) overlap quick-reject:  lim = max_angle + 1.25·hp_res
   2) candidate 保守查询圆: query_radius = max_angle + 3.0·hp_res
@@ -96,7 +95,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一, claim FIX-SCI-
   = pixfrac²·Σ_j x_j`（重建线性性）。`pixfrac=1` 时严格 `Σ_p F_p = Σ_j x_j`；
   `pixfrac<1` 时总输出通量按 `pixfrac²` 衰减，用于绝对通量/孔径换算必须乘
   `provenance.flux_conservation_factor = pixfrac²`，否则产生 `1/pixfrac²` 光度零点偏差。
-- **常量场不变量（面亮度语义，SCI-003 修正）**：常数**面亮度**场 `B(Ω)=B0` 时源像素通量
+- **常量场不变量（面亮度语义）**：常数**面亮度**场 `B(Ω)=B0` 时源像素通量
   `x_j=B0×A_pixel_j`（随像素面积变化，**非每像素常量 ADU**），输出 `S_p=B0`（面亮度），
   **对全部 `pixfrac∈(0,1]` 成立**（drop 面积在分子分母相消）；`variance_p=V·(Σ w_jp²/D_p²)`
   量纲一致，无空间调制偏差。特例：对每像素常量 ADU `x_j=C`，由 `S_p=F_p/D_p=(C/A_pixel)`
@@ -113,9 +112,9 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一, claim FIX-SCI-
 | RING ordering | 拒绝（HISS 统一 NESTED） | `drizzle:拒绝RING` |
 | 多通道图像 | 拒绝 | `drizzle:拒绝多通道` |
 | WCS 无效/尺度非法 | 拒绝 `compute_auto_nside` 失败 | `drizzle_engine.cpp:631` |
-| 源像素 NaN/Inf（值） | **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`；唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项中一并剔除并**重新归一**——**禁止**让单个不合格样本使整个输出像素变为 NaN，**禁止**保留被剔除样本的权重在分母里；仅当 `D_p = 0`（零合格样本）时输出 `signal = NaN ∧ support ≤ 0`（NaN 是无效的**唯一**表示，**禁止**用 0/±Inf 冒充），且每个输出像素**必须**暴露被剔除样本计数 `n_rejected_nonfinite`（**禁止**静默剔除）。EXP-202 定案「掩膜」（三数据面：传播支 L1 污染率 1.0000、L2 0.0473–0.0662；判据冻结 sha256 `539d83a0…`） | 本行原「经 `F_p` 直接传播、不掩膜」表述**已作废**（`DISP-DRZ-004` 撤销闭环，见 `docs/standards/STANDARDS_REGISTRY.md`）；`spherical_overlap.cpp:192`（几何 NaN 显式拒绝）不变 |
+| 源像素 NaN/Inf（值） | **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`；唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项中一并剔除并**重新归一**——**禁止**让单个不合格样本使整个输出像素变为 NaN，**禁止**保留被剔除样本的权重在分母里；仅当 `D_p = 0`（零合格样本）时输出 `signal = NaN ∧ support ≤ 0`（NaN 是无效的**唯一**表示，**禁止**用 0/±Inf 冒充），且每个输出像素**必须**暴露被剔除样本计数 `n_rejected_nonfinite`（**禁止**静默剔除）。 | `spherical_overlap.cpp:192`（几何 NaN 显式拒绝） |
 | 无覆盖/几何退化 | `NO_DATA`，不产伪信号 | `drizzleTiled` |
-| 微小交集 `max_angle<1e-3 rad` | 切平面面积近似保持交叠面积 `a_jp` 一致（legacy 权重 `overlap/drop_area` 同路径） | `spherical_overlap.cpp:75` |
+| 微小交集 `max_angle<1e-3 rad` | 切平面面积近似保持交叠面积 `a_jp` 一致（按 `overlap/drop_area` 归一的权重同路径） | `spherical_overlap.cpp:75` |
 | RA 跨0/极区/face边界 | `boundary_fallback` 保守 queryDisc，`false_negative=0` | `spherical_overlap` |
 | 极区 `θ_q+radius>90°` | 保守不剪枝，遍历极冠树 | `gaia_client.c` 复用 |
 
@@ -127,7 +126,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一, claim FIX-SCI-
 
 - 改变 `pixfrac` 语义或 `HP_CIRCUMRADIUS_FACTOR=1.25` 保守半径而不重跑 `9003` 例零漏选；
 - 将 `S_p` 定义为 `F_p`（漏 `D_p` 归一）；
-- 将 `S_p` 用 legacy 归一 `w_jp=a_jp/A_drop,j` 计算并宣称绝对面亮度（`pixfrac<1` 偏 `1/pixfrac²`，FZ-FORMULA-DRIZZLE-SB / DISP-DRZ-009）；
+- 将 `S_p` 用 `w_jp=a_jp/A_drop,j` 归一计算并宣称绝对面亮度（`pixfrac<1` 偏 `1/pixfrac²`，FZ-FORMULA-DRIZZLE-SB / DISP-DRZ-009）；
 - 将方差传播写为 `var_p=Σ v_j·w_jp`（漏 `²` 与 `/D²`）；
 - 在微小区用 `float` 面积致 0.05% 偏差。
 
@@ -137,7 +136,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一, claim FIX-SCI-
 - **方差缩放律**：`α` 缩放输入的 `variance_propagation_test` 逐像素 `variance_p` 按 `α²` 精确（`TEST-DRZ-VAR-001`）。
 - **常量面亮度门（FZ-GATE-CONST-SB）**：按 `B0` 构造 `x_j=B0·A_pixel,j`，对全部
   `pixfrac∈(0,1]` 断言 `|S_p/B0−1|<1e-3` 全像素；负向注入（按每像素常量 ADU 构造、
-  `S_p=F_p` 漏归一、legacy `w=a/A_drop`）必须判红。
+  `S_p=F_p` 漏归一、`w=a/A_drop` 归一）必须判红。
 - **Python 参考**：`healpy` 球面多边形面积对同 `drop` 的 `a_jp` 复算（`rtol 1e-9`）。
 - **几何缓存等价**：`TargetGeomCache` 命中/未命中结果 `max_abs==0`（`DRIZZLE_TARGETED`）。
 
@@ -175,23 +174,23 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一, claim FIX-SCI-
 2. pixfrac 语义（drop 与像素之比、pixfrac=1 等价 overlap、缩小时权重场变化）：同上文献；实践语义另见 [DrizzlePac Handbook](https://www.stsci.edu/files/live/sites/www/files/home/scientific-community/software/drizzlepac/_documents/drizzlepac-handbook-v1.pdf)（STScI，节级定位）。
 3. HEALPix 网格：Górski et al. 2005, ApJ 622, 759（bibcode 2005ApJ...622..759G，文章级；NESTED/`nside=2^order` 语义见 DATA_SEMANTICS §2，逐式核验留 SCI-P3/ALG-007）。
 
-## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 14a 参考文献与参考代码库（含许可证）
 
-> 本节补出处与参考实现；§5/§7 的归一化订正见文件头「变更」注记（claim FIX-SCI-DRZ-001）。
+> 本节只补出处与参考实现，不改动 §5/§7 的公式、常数与容差。
 
-- **Drizzle 线性重建/drop/pixfrac**：Fruchter, A. S. & Hook, R. N. 2002, PASP 114, 144（DOI 10.1086/338393；arXiv:astro-ph/9808087v2 §2 式(2)-(5) 逐字核验 2026-09-18）。式(5) 为**一致加权均值**
+- **Drizzle 线性重建/drop/pixfrac**：Fruchter, A. S. & Hook, R. N. 2002, PASP 114, 144（DOI 10.1086/338393；arXiv:astro-ph/9808087v2 §2 式(2)-(5)）。式(5) 为**一致加权均值**
   `I_p = Σ_i d_i a_ip w_i s² / Σ_i a_ip w_i`（`a_ip`=drop 与目标像素的分数交叠、`s²=A_out/A_in`），
   `A_drop` 同时出现在分子与分母、在均匀 drop 尺度下相消；对常数面亮度场输出面亮度 `=B0`，
   与 pixfrac 无关。**AstroCS 取 w_i=1、按输出像素面积归一 ⇒ §5 的 `S_p=Σ_j B_j a_jp/Σ_j a_jp`**
   （`B_j=x_j/A_pixel,j`）。**差异**：原始 Drizzle 在切平面上实施；AstroCS 在球面 HEALPix 上实施（§5），属 Project-defined 迁移。
   **独立实现对照**：drizzlepac `src/cdrizzlebox.c` `update_data()`（`output=(output·vc+dow·d)/(vc+dow)`）与 `do_kernel_square()` 的
-  `dover/=jaco`（`jaco=A_drop`）后 `dow=dover·w`——drop 面积同入分子分母，是一致加权均值，**非** legacy 混合式；
+  `dover/=jaco`（`jaco=A_drop`）后 `dow=dover·w`——drop 面积同入分子分母，是一致加权均值；
   DrizzlePac Handbook §2.3.2（p.17）“the weights of the individual output pixels … are independent of the choice of p [pixfrac]”；
   SWarp `src/resample.c` 以 `A_out/A_in` 面积比保面亮度（无 drop/pixfrac 概念）。
-  **legacy 混合式**（分子 `x_j·a_jp/A_drop,j`、分母 `Σ a_jp`）给出 `S_p=B0/pixfrac²`，仅 pixfrac=1 正确——现实现 `drizzle_engine.cpp:1531` 仍是此式，登记 DISP-DRZ-009。
+  **按 `A_drop,j` 归一的混合式**（分子 `x_j·a_jp/A_drop,j`、分母 `Σ a_jp`）给出 `S_p=B0/pixfrac²`，仅 pixfrac=1 正确——现实现 `drizzle_engine.cpp:1531` 仍是此式，登记 DISP-DRZ-009。
 - **Drizzle 实践与相关噪声**：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
 - **HEALPix 几何/order**：Górski, K. M. et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；独立实现 astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0，只对照不复制）。
-- **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207，Girard 定理）；**实现实为 Sutherland–Hodgman + Eriksson 2018 扇形三角剖分**（spherical_overlap.cpp:152-186,218），本文件 §5/§12 的“Girard 定理”命名与实现不符，已在 run/RELEASE-01/science/SCI-S2-topics.md §3-18 登记（DISP-DRZ-002），待变更 claim 处理。Eriksson, F. 2018, “The area of a spherical triangle”（代码 :178 已引）。
+- **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207，Girard 定理）；**实现实为 Sutherland–Hodgman + Eriksson 2018 扇形三角剖分**（spherical_overlap.cpp:152-186,218），本文件 §5/§12 的“Girard 定理”命名与实现不符，登记 `DISP-DRZ-002`，待变更流程处理。Eriksson, F. 2018, “The area of a spherical triangle”（代码 :178 已引）。
 - **多边形裁剪（Sutherland–Hodgman）**：Sutherland, I. E. & Hodgman, G. W. 1974, Comm. ACM 17, 32（DOI 10.1145/360767.360802）。
 - **HiPS/MOC 层级**：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）；Fernique et al. 2015, A&A 578, A114。
 - **HP_CIRCUMRADIUS_FACTOR=1.25、三层缓冲**：Project-defined（§5/§8），以 9003 例零漏选门承载。
@@ -212,5 +211,5 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一, claim FIX-SCI-
 
 - §11 Oracle 全过（常量场/解析场/方差传播/边界，以 §11 列门为准）；
 - §7 不变量门全过；
-- `tools/science_contract_lint.py` PASS（15 节+claim ID+锚点）；
+- `tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
 - 解析不变量→SYN-004 转换：常数/点源/梯度/旋转/亚像素 shift/pixfrac 扫描/tile boundary 用例，flux 或 brightness/support/variance/coverage 不变量全过（§15 SYN-004 数据与不变量表）。

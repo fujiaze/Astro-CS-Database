@@ -1,12 +1,12 @@
 # DATA-003 生产 ArtifactStore 接线（设计权威）
 
-> owner: SA-DATA-06 · 权威文档形态（本文）+ 执行形态
+> 权威文档形态（本文）+ 执行形态
 > (`lib/infrastructure/aio/runtime/artifact_store/production_store.py`) + 验收测试
 > (`tests/artifact/test_production_store.py`)。三形态必须同步修改。
 > 前序合同: DATA-001（typed manifest schema + 唯一 producer）、DATA-002（三阶段
 > 产品交换、跨 Phase 仅磁盘交换）；运行时隔离: RT-002（phase-isolated Runtime）。
 
-## 1. 目标（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-003〔**来源已删除/不可考**；替代=本文件 + `ASTROCS_DESIGN.md` §9〕）
+## 1. 目标（依据：本文件 + `ASTROCS_DESIGN.md` §9）
 
 > Runtime 启动真实 Store；模块 `execute` 只能拿已校验 handle/reader/writer；
 > 写临时对象 → 完整校验 → hash → 原子 publish；cancel/fail 无成功对象。
@@ -15,7 +15,7 @@
 
 约束来源: `ASTROCS_DESIGN.md` §1.2/§9（三 Phase 隔离产品命令；
 阶段间只通过原子发布、哈希和 provenance 完整的磁盘产品/manifest 交换）；
-`13_DATA_PIPELINE_AND_ARTIFACT_STANDARD` §1〔**来源已删除/不可考**，git 跟踪面零命中；替代=`ASTROCS_DESIGN.md` §9 + `docs/architecture/ARCHITECTURE.md`〕（Pipeline edge 传递 ArtifactHandle，
+`docs/architecture/ARCHITECTURE.md`（Pipeline edge 传递 ArtifactHandle，
 不是路径字符串）；DATA-001 manifest 合同（storage_uri 解析只发生在 Store 内部）。
 
 ## 2. 接线结构
@@ -99,7 +99,7 @@ spy.writes/reads/publishes 非空，且内容字节只经 Store 事件读取 —
 
 ## 8. 边界（非目标）
 
-- 本任务不改科学公式/常数；不改 DATA-001/002 已冻结 schema/registry/validator/
+- 本合同不改科学公式/常数；不改 DATA-001/002 已冻结 schema/registry/validator/
   C ABI；不做 RT-007 checkpoint 表、不做 LOG/RT 溯源字段（DATA-004 范围）。
 - 本文件为 Python 执行语义（Linux 控制/轻合成验证）；Windows 正式 DLL 交付按
   同语义 C 接线复刻，属于 DATA-004/WIN 后续范围。

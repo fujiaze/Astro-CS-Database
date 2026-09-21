@@ -1,6 +1,6 @@
-# GATES_AND_TOLERANCES — P1 星检测 / PSF / WCS 冻结门表与 SNR 定义（F-2 整改）
+# GATES_AND_TOLERANCES — P1 星检测 / PSF / WCS 冻结门表与 SNR 定义
 
-> ID: ALG-GATES-001  状态: FROZEN（SCI-FIX-PSF 第 9 项 F-2 整改，2026-09-16）
+> ID: ALG-GATES-001  状态: FROZEN
 > 范围: P1 星检测（star_det）、PSF（dpsf）、WCS（plate solve / ipv）三条支路的
 > **全部可执行门与容差**（含端到端坐标契约门）。
 > 上游（本表**不新设阈值**，每行阈值必须回指到既有 SCI/ALG 条款或本表标注的标定证据）:
@@ -9,9 +9,8 @@
 > ALG-STARDET-001 §11.4（docs/algorithms/STAR_DETECTION_ALGORITHMS.md）、
 > ALG-STARPSF-001 §11.4（docs/algorithms/STAR_PSF_ALGORITHMS.md）、
 > ALG-WCS-001 §11.4（docs/algorithms/PLATESOLVE.md）。
-> 标定证据面: `reports/PROJECT-GOVERNANCE-01/research/R-3_PSF质心科学门与容差.md`
-> 与 `run/PROJECT-GOVERNANCE-01/R-3/**`（探针直链本树 sdet+dpsf 静态库 +
-> scipy 独立复算）、`run/PROJECT-GOVERNANCE-01/SCI-FIX-PSF/**`（本任务门红绿证据）。
+> 标定证据面: 本表各行「来源」列所引 SCI/ALG 条款与对应 `ctest` 目标
+> （探针直链本树 sdet+dpsf 静态库 + scipy 独立复算）。
 > 机器校验: `tools/check_gates_and_tolerances.py`（本表即机器可校验事实源）。
 
 ## 1 规则（冻结）
@@ -20,9 +19,8 @@
   先在本表登记（门ID / 判据式 / 量测域 / 统计量 / SNR 定义 / 阈值 / 来源 / 证据）。
 - **R2 证据必需**：`发布门=Y` 的行，证据ID 必须解析到可执行目标（`ctest:<test 名>`
   或仓内存在的测试源路径）；无证据者把 `发布门` 置 `N`，证据ID 写 `UNJUSTIFIED`。
-- **R3 量测域独立**：`量测域` 不得与「拟合/生成域」重合（禁止自证门；反例：原
-  SCI-WCS-001 §7「7×7 网格上往返 <1e-6 px」既是拟合域又是检验域，已由
-  SCI-FIX-PSF 第 8 项废止，见 G-P1-WCS-RT）。
+- **R3 量测域独立**：`量测域` 不得与「拟合/生成域」重合（禁止自证门；例如
+  「7×7 网格上往返 <1e-6 px」既是拟合域又是检验域，不作门，见 G-P1-WCS-RT）。
 - **R4 统计量显式**：必须是 `max` / `median` / `p95` / `rms` / `bitwise` / `精确` 之一，
   禁止只写「误差 ≤ x」而不说统计量。
 - **R5 SNR 统一**：凡门引用 SNR，必须使用 §2 已登记的定义（`SNR_peak` / `SNR_det`；`SNR_phot` 不属本域），并写明所用列
@@ -57,11 +55,11 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 | G-P1-STAR-RECALL | 召回率 = 检出真星数 / 注入真星数 | 合成星场，域 = `SNR_peak ≥ 10` | 比例（逐场） | SNR_peak（检测侧） | ≥99% | 设计冻结：ALG-STARDET-001 §11.4 F1 | ctest:p1star_units | Y |
 | G-P1-STAR-FP | 虚警密度 | 合成纯噪声场（无注入星，与 G-P1-STAR-RECALL 异场） | 计数密度（每千像素） | n/a | ≤0.1 /千像素 | 设计冻结：ALG-STARDET-001 §11.4 F1 | ctest:p1star_units | Y |
 | G-P1-STAR-DET | 输出 bitwise 一致（含 mag 全序 + NaN 末尾 + maxStars 保最亮） | 合成星场，同输入、线程数 1/2/4 | bitwise / 精确 | n/a | 完全相等 | 解析：ALG-STARDET-001 §5 全序与串行归约 | ctest:p1star_properties | Y |
-| G-P1-WCS-F1 | `rms_arcsec`（″） | **trans 拟合内点集（n_pairs ≥ 12）+ 合成线性场（order=1，已知 CD/CRVAL/CRPIX）**；**不是**产品级天测精度门 | rms | n/a | 0.5″ | 标定：**无有效标定**——历史锚 `Galaxy_Center 0.1431″` 在当前版本 T4 帧上不可复现（实测 0.2803–0.3588″）、只在 T2/T3 档场复现，已标为历史值（claim「天测精度外部闭环口径冻结」（编号待前台集中分配） / SCI-WCS-001 §11a）；量测域由 SCI-FIX-PSF 第 4 项冻结 | UNJUSTIFIED（无可执行 F1 目标，落地归 P1-WCS-TEST） | N |
-| G-P1-WCS-CLOSURE | `median{d_i : d_i ≤ 1.0″}`（角秒；像素换算 `median_px = median_arcsec/s0`），**必须同报** `n_matched` / `match_rate` / `p95` / `max` | **产品级外部闭环 + 真实帧**：检出星样本 = `x,y` 有限 ∧ `snr>20`（`SNR_det`，超 20000 按 flux 降序截断并记录 `sample_capped`），星表 = 本地 Gaia DR3 XPSD 视场单锥 `G<18`；WCS 口径 solved(CD+SIP) 与 frame_header **分别报告**（`wcs_flavor`），禁止合并比较；独立工具不导入生产代码 | median / p95 / max | `SNR_det`（§2；门槛 20） | 分档阈值 UNJUSTIFIED（实测参考：T2/T3 档 s0≈0.96″/px ⇒ 0.4202–0.5644 px；T4 档 s0≈6.31″/px 见 §4a） | UNJUSTIFIED：口径已冻结（SCI-WCS-001 §11a），**阈值仍未标定**——现有实测值取自 UNIT-001（XISF 母版单位）未修复的输入，修复后必须整体复跑才可定阈；历史台账值 0.897 px 系 v1.2 legacy 工具 × 2 帧、半径/星选/统计量均未冻结（改半径 1″→5″ median 漂 14%），**不可复现，不作门** | UNJUSTIFIED（口径实现 `tools/astrometry/closure_metric.py`） | N |
+| G-P1-WCS-F1 | `rms_arcsec`（″） | **trans 拟合内点集（n_pairs ≥ 12）+ 合成线性场（order=1，已知 CD/CRVAL/CRPIX）**；**不是**产品级天测精度门 | rms | n/a | 0.5″ | 标定：**无有效标定**——`Galaxy_Center 0.1431″` 在当前版本 T4 帧上不可复现（实测 0.2803–0.3588″），只在 T2/T3 档场复现，为历史值（SCI-WCS-001 §11a）；量测域 = trans 拟合内点集 + 合成线性场 | UNJUSTIFIED（无可执行 F1 目标，落地归 P1-WCS-TEST） | N |
+| G-P1-WCS-CLOSURE | `median{d_i : d_i ≤ 1.0″}`（角秒；像素换算 `median_px = median_arcsec/s0`），**必须同报** `n_matched` / `match_rate` / `p95` / `max` | **产品级外部闭环 + 真实帧**：检出星样本 = `x,y` 有限 ∧ `snr>20`（`SNR_det`，超 20000 按 flux 降序截断并记录 `sample_capped`），星表 = 本地 Gaia DR3 XPSD 视场单锥 `G<18`；WCS 口径 solved(CD+SIP) 与 frame_header **分别报告**（`wcs_flavor`），禁止合并比较；独立工具不导入生产代码 | median / p95 / max | `SNR_det`（§2；门槛 20） | 分档阈值 UNJUSTIFIED（实测参考：T2/T3 档 s0≈0.96″/px ⇒ 0.4202–0.5644 px；T4 档 s0≈6.31″/px 见 §4a） | UNJUSTIFIED：口径已冻结（SCI-WCS-001 §11a），**阈值仍未标定**——现有实测值取自 XISF 母版单位未修复的输入，修复后必须整体复跑才可定阈；台账中 0.897 px 一项用 v1.2 工具 × 2 帧、半径/星选/统计量均未冻结（改半径 1″→5″ median 漂 14%），**不可复现，不作门** | UNJUSTIFIED（口径实现 `tools/astrometry/closure_metric.py`） | N |
 | G-P1-WCS-CLOSURE-REPRO | 同输入同口径两次运行：`median_px(A) = median_px(B)`（**完全相等**）∧ `n_matched(A) = n_matched(B)`；且每份记录声明的 `n_matched/median/p95/max/match_rate` 必须能由**该记录自带的残差向量 + 声明半径**重新导出，且 `params` 必须逐项等于冻结口径 | **产品级真实帧**（同输入两跑记录）+ 记录面（`params` / 残差向量 / 输入 sha256）；合成场自检同在 ctest 目标内 | median / 精确 | `SNR_det`（§2；样本门槛 20） | 0 px（完全相等）/ `n_matched` 精确相等 | 实测漂移 0：E2E-001 §5.1/§5.3 全链科学面产物逐字节相等、规范哈希全等 ⇒ 同输入同口径指标漂移 = 0；记录内 `1e-9 px` 仅为 JSON 浮点往返护栏，**不是科学容差** | ctest:p1wcs_closure_metric_gate | Y |
 | G-P1-WCS-F2 | astropy WCS 前向/逆向 `\|Δ\|`（px） | 合成 SIP 场（order=2，注入已知 A/B），中心 90% 区域 | max | n/a | 1e-4 px | 预冻结（ALG-WCS-001 §8/§11.4 F2 承接，不放宽） | ctest:p1wcs_apbp | Y |
-| G-P1-WCS-RT | roundtrip `max‖(x,y) − WCS⁻¹(WCS(x,y))‖`（px） | **独立密集域**：中心 90% + 四边 + 四角 + ≥1000 随机点（**不是**拟合采样网格） | max | n/a | 1e-4 px | 解析+实测：与 ALG-WCS-001 §11.4 F2 同值。原「7×7 网格上 <1e-6 px」为**自证门**（自网格 1.8e-12 px vs 离网格 3.10 px，R-3 §2.7），已废止（SCI-FIX-PSF 第 8 项） | ctest:p1wcs_apbp | Y |
+| G-P1-WCS-RT | roundtrip `max‖(x,y) − WCS⁻¹(WCS(x,y))‖`（px） | **独立密集域**：中心 90% + 四边 + 四角 + ≥1000 随机点（**不是**拟合采样网格） | max | n/a | 1e-4 px | 解析+实测：与 ALG-WCS-001 §11.4 F2 同值。「7×7 网格上 <1e-6 px」为**自证门**（自网格 1.8e-12 px vs 离网格 3.10 px），不作门 | ctest:p1wcs_apbp | Y |
 | G-P1-WCS-CRPIX | CRPIX 精确相等 | 任意帧 | 精确 | n/a | 精确 = (w/2+0.5, h/2+0.5)（1-based） | 冻结：SCI-WCS-001 §7 CRPIX 不变量 | ctest:p1wcs_apbp | Y |
 | G-P1-WCS-BRIDGE | 九宫格（中心 1 + 四角 4 + 四边中点 4，两 parity 共 18 格）逐像素 roundtrip + 第三方 astropy 交叉 + 负向注入（移除/错置 `+1` 桥接必须 ≥1 px 偏差） | 导出边界（`lib/algorithms/projection/p3_wcs.cpp`），1024×1024 帧 | max + 注入必败 | n/a | <1e-6 px；注入 ≥1 px 必败 | 标定：STD-F1 实测 3.2e-10 px、astropy 前向 ≤7.7e-14°（SCI-WCS-001 §5a） | ctest:p1wcs_std_f1_bridge_cross | Y |
 | G-P1-CENTROID-BRANCH-ORDER | `star_measurements` 写端契约：PSF 支路**恒等**（dpsf 输出即 index-is-center）、fallback 支路 `−0.5`（sdet 连续系）；读端统一 `+0.5` | 契约函数级（`star_coord_contract.h`）+ 端到端（G-P1-CENTROID-1） | 精确 / max | n/a | 精确相等（fallback 输出 − sdet 原始坐标 = 0） | 解析：DATA-P1-STAR §17.2 + dpsf 采样式 dpsf_psf.cpp:295 / sdet 采样式 sdet_api.cpp:127-131（R-3 §3.1/§3.4 实测） | ctest:p1psf_centroid_gate | Y |
@@ -72,13 +70,12 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 |---|---|---|
 | `lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/gate2_psf_oracle.py` 的 `fwhm_median_le_1pct` / `ell_median_le_0.005` / `flux_median_le_1pct` / `photutils_oracle_centroid_p95_le_0.05px` | Windows 专用脚本，未注册进 `ci/checks.json`（`grep -c gate2 ci/checks.json` = 0），4 个阈值在活动 `docs/**` 零命中（R-3 §3.5） | 降级为**诊断脚本**：不得引用为发布门；如需升格，必须先在 §3 登记门ID/域/统计量/来源并注册 CI 检查（转 CI-003） |
 
-## 4a 台账重锚实测值（E2E-FIX-001；**UNIT-001 修复后须整体复跑**）
+## 4a 台账实测值（**XISF 母版单位修复后须整体复跑**）
 
 > 口径 = §3 的 G-P1-WCS-CLOSURE v1（样本 `snr>20`、星表 `G<18`、半径 1″、median，
 > 同报匹配率；solved 与 header 分别报告）。
-> 记录落盘：`run/PROJECT-GOVERNANCE-01/E2E-FIX-001/out/rec_*`；生成命令见该目录上级
-> `自证摘要.md`。**输入单位缺陷 UNIT-001（XISF 母版按 [0,1] 归一化消费）未修复
-> ⇒ 下表绝对量值是方法学重锚，不是可定阈的科学结论**（相对量：solved↔header 比较、
+> **输入单位缺陷（XISF 母版按 [0,1] 归一化消费）未修复 ⇒ 下表绝对量值是方法学
+> 重锚，不是可定阈的科学结论**（相对量：solved↔header 比较、
 > 两跑一致性、容差敏感性不受影响）。
 
 | 帧（真实数据） | s0（″/px） | 内部解 rms_px / rms_arcsec（n_pairs） | 外部闭环 **solved** median（″ / px；matched） | 外部闭环 **header** median（″ / px；matched） | solved 匹配率 |
@@ -87,23 +84,15 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 | T2 LDN43 Hα 1200s | 0.9669 | 0.1521 / 0.1472（48） | 0.4062 / **0.4202**（705） | 0.3507 / 0.3627（750） | 3.52% |
 | T4 Galaxy_Center panel1 Red 180s | 6.3076 | 0.0580 / 0.3588（41） | 0.6791 / **0.1077**（6265） | 0.6793 / 0.1077（4460） | 31.32% |
 
-- **内部解（T4）六帧范围**：0.2803–0.3588″（n_pairs 39–46，median 0.3231″）——旧台账
-  单值 `0.1431″` 只与 T2/T3 档场（0.1472/0.1584″）同量级，见 SCI-WCS-001 §11a 历史值表。
+- **内部解（T4）六帧范围**：0.2803–0.3588″（n_pairs 39–46，median 0.3231″）；
+  台账单值 `0.1431″` 只与 T2/T3 档场（0.1472/0.1584″）同量级，见 SCI-WCS-001 §11a。
 - **两跑一致性（发布门 G-P1-WCS-CLOSURE-REPRO，容差 0 px）**：T4 用 `det2/n1` 与
   `det3/n1`（同一帧的两次独立全链路运行、同一星表）⇒ 两份记录逐位相同（median
   0.107658 px、n_matched 6265），门 PASS。
 - **采样口径对量值的影响（如实登记）**：同一帧同一 WCS，仅把样本从「flux 前 20000」
-  （E2E §4.3 旧样本）换成 §3 冻结样本 ⇒ T2 solved median 0.4449→0.4202 px（−5.6%）、
+  换成 §3 冻结样本 ⇒ T2 solved median 0.4449→0.4202 px（−5.6%）、
   matched 1497→705（−53%）；T3 0.5642→0.5644 px（+0.04%）、matched 874→875；
-  T4 0.1075→0.1077 px、matched 5608→6265。探针：
-  `run/PROJECT-GOVERNANCE-01/E2E-FIX-001/probe_sample_def.py`。
-
-## 5 变更记录
-
-| 日期 | 变更 | 依据 |
-|---|---|---|
-| 2026-09-16 | 建表（F-2）：登记本域 16 条门 + 1 个 SNR 定义；新增 G-P1-CENTROID-1（端到端绝对位置门）、G-P1-PSF-SCIPY-ORACLE、G-P1-CENTROID-BRANCH-ORDER；补 G-P1-WCS-F1 量测域；废止 G-P1-WCS-RT 的 7×7 自网格口径；gate2 四阈值降级为诊断 | R-3 §4.1/§4.2/§4.3/§4.7/§5.6；SCI-FIX-PSF 第 1/2/3/4/6/8/9 项 |
-| 2026-09-17 | **天测口径冻结（claim「天测精度外部闭环口径冻结」（编号待前台集中分配））**：G-P1-WCS-CLOSURE 由「全帧头域残差 median/p95（阈值待定）」重写为 G-P1-WCS-CLOSURE v1 冻结口径（样本 `snr>20` + 星表 `G<18` + 半径 1″ + median + 必报 match_rate + solved/header 分别报告）；新增可复现门 **G-P1-WCS-CLOSURE-REPRO**（容差 0 px，含负例注入）；§2 登记 `SNR_det` 定义行；G-P1-WCS-F1 的 `0.1431″` 标定改为历史值；新增 §4a 台账重锚表 | E2E-001 §4.2/§4.3 实测（半径 1″→5″ median 漂 14%；4–28% 匹配率 ⇒ 错配主导）；`run/PROJECT-GOVERNANCE-01/E2E-FIX-001/probe_sample_def.py`（LDN43：legacy 样本 1497 匹配中 813 来自 `snr≤20`）；`ctest:p1wcs_closure_metric_gate` 自检 |
+  T4 0.1075→0.1077 px、matched 5608→6265。探针口径见 §3。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 
@@ -122,4 +111,12 @@ R-3 §2.9 实测同一 Moffat4 场 `SNR_peak=20` 时 sdet 检出 **0 星**、
 - healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
 - NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
+
+---
+
+## 接缝与 WCS 基线（回归对照）
+
+- **接缝判据**：在**保留公共天光面 `B_ref`** 的前提下比较帧间一致性与边界跳变，残余阶跃门 = **≤ 2×** 参考水平；把整张背景减掉后再比帧间差是**退化判据**（背景归零时差值天然为零），不得使用（依据 `ASTROCS_DESIGN.md` §5.4 与 `docs/science/PHASE2_UPM.md`）。
+- **WCS 真实数据基线值**：绝对零点残差 **0.1028″**（典型）/ **0.3242″**（最坏）。二者是既有实测**基线**，用于回归对照与验收叙事，**不是**新增科学门；门表以上文 §3 为唯一来源。
 

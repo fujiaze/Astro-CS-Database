@@ -1,7 +1,7 @@
 # Cosmetic Correction Algorithms (P1-COS)
 
-> ID 覆盖: ALG-COS-001..005  状态: CONTRACT_READY (P1-COS-DOC 冻结, 2026-09-07)  上游: SCI-CAL-001  下游: DATA-P1-COS / API-COS-001 / API-P1-002 / TEST-COS-DESIGN-001
-> 本文档由源码逐函数核对后重写（P1-COS-DOC，wave W1）。实现唯一生产源 =
+> ID 覆盖: ALG-COS-001..005  状态: CONTRACT_READY  上游: SCI-CAL-001  下游: DATA-P1-COS / API-COS-001 / API-P1-002 / TEST-COS-DESIGN-001
+> 实现唯一生产源 =
 > `lib/algorithms/calibration/src/cosmetic_corrector.cpp`（CMake 目标
 > `astrocs_calibration`，CMakeLists.txt:446-465；C ABI 导出
 > `lib/algorithms/calibration/src/ac_api.cpp:108,228`，签名权威
@@ -14,7 +14,7 @@
 
 ## 0 范围与 ALG-CAL-004 重叠界定
 
-SCI-CAL-001 §12 将坏点检测/修复登记为 `ALG-CAL-004`（引用遗留符号
+SCI-CAL-001 §12 将坏点检测/修复登记为 `ALG-CAL-004`（引用 cc_* 通道符号
 cc_detect_hot/cold + cc_correct_median）。本模块按迁移矩阵独立冻结为
 ALG-COS-001..005，逐公式锚定 **现行唯一生产实现**
 `ac::detect_hot_pixels/detect_cold_pixels/filter_by_structure_size/
@@ -25,9 +25,9 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   现行生产实现，ALG-CAL-004 为 P1-CAL 合同视角的摘要引用；本模块文档是
   cosmetic 域逐公式的权威登记（P1-COS-IMPL 迁移落码、P1-COS-TEST 落测试
   均以本文档为准）。
-- 遗留 cc_* 通道（`lib/algorithms/calibration/cpp/cosmetic_corrector.cpp`：
+- 非生产 cc_* 通道（`lib/algorithms/calibration/cpp/cosmetic_corrector.cpp`：
   cc_detect_hot/cc_detect_cold/cc_correct_median/cc_last_error）**未编译
-  进 CMake 主构建**，仅作为计划迁移旧符号登记（见 §8 与 module.yaml），
+  进 CMake 主构建**，仅作为待迁移符号登记（见 §8 与 module.yaml），
   其公式（局部窗口中值修复、window 3..15）与生产 ac_* 通道不同。
 
 ## 1 ALG-COS-001 全局阈值检测（热/冷像素）
@@ -70,9 +70,7 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
      团簇），剔除大连通域**（SCI-CAL-001 §6 假设：坏点稀疏、与天体源
      不混淆，大结构按非坏点处理）；
   4. 背景 label 0 的 size 记为 `max_size`（cosmetic_corrector.cpp:70），
-     保证 `0 >= max_size` 不成立、非候选像素永不被误清（遗留通道曾出现
-     背景 label 泄漏 bug，本实现已修复——lib/algorithms/calibration/memory.md
-     2026-07-10 记录）。
+     保证 `0 >= max_size` 不成立、非候选像素永不被误清。
 - 复杂度: O(n)（每像素至多入队一次）+ O(n) 额外内存
   （labels + sizes 向量，int×n）。
 - 并行: 判定/清理阶段 `#pragma omp parallel for schedule(static)`
@@ -148,11 +146,11 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
     `cold_sigma<=0` → 冷检测关闭；两者皆关 → `all_bad` 全 0，
     interpolate_pixels 逐像素拷贝（恒等映射），**模块退化为空转 pass**；
   - **现网生产调用点** `lib/phase1_session/p1_session.cpp:294-301`
-    （cosmetic stage，2026-09-01 c5629be6 引入）以
+    （cosmetic stage）以
     `master_dark=nullptr, master_bias=nullptr` 调用（两检测全禁用），
     `out_hot/out_cold=0`，帧逐像素原样复制回写
     （p1_session.cpp:305-307 memcpy 后 aio_write_fits）——即**当前生产
-    cosmetic 阶段从未执行过真实检测/修复**（no fabrication of valid
+    cosmetic 阶段不执行真实检测/修复**（no fabrication of valid
     coverage：不做假修复；检测生效需 P1-COS-IMPL/配置接线母版）。
   - 输出可等于输入缓冲? 现行 API 无别名约束登记（out 由调用方分配；
     in-place `data==out` 未定义，见 §7 DATA-P1-COS invalid 行）。
@@ -213,19 +211,19 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
   全 false（hot）或全 false（cold）→ **NaN 输入可使检测静默失效**
   （DISP-COS-002；负面测试必须覆盖）。
 - 无 fast-math（CMake 主构建，CMakeLists.txt astrocs_calibration 无
-  相关 flag；遗留 MinGW 通道除外，非生产）。
+  相关 flag；非生产 MinGW 通道除外）。
 
-## 8 遗留通道与迁移旧符号（非生产）
+## 8 非生产通道与待迁移符号
 
 - `lib/algorithms/calibration/cpp/cosmetic_corrector.{cpp,h}`: cc_* 通道
   （cc_correct_median[data,bad_mask,H,W,window 奇数 3..15]/cc_detect_hot/
   cc_detect_cold/cc_last_error；局部窗口中值修复，非全局阈值检测），
   经 Makefile 编译为 cosmetic_corrector.dll；**未编译进 CMake 主构建**
-  （lib/algorithms/calibration/README.md §9）。属计划迁移旧符号，公式与 ALG-COS-001..005
+  （lib/algorithms/calibration/README.md §9）。属待迁移符号，公式与 ALG-COS-001..005
   不同，不得作为现状依据。
 - 迁移落点: `lib/algorithms/cosmetic/`（P1-COS-IMPL 建 astrocs_p1_cosmetic.dll +
   C ABI adapter + plan/execute/cancel/inspect + ThreadLease 接线）；
-  本 DOC 不改任何生产代码。
+  本文档不改任何生产代码。
 
 ## 9 测试设计 TEST-COS-DESIGN-001（冻结容差）
 
@@ -272,8 +270,8 @@ interpolate_pixels/correct_frame`（cosmetic_corrector.cpp:61-265，经
 
 ## 10 缺陷清单（DISP-COS，登记不改码）
 
-> 均为**现行实现事实**，迁移整改由 P1-COS-IMPL/INT 处理；本 DOC 阶段
-> 禁止据此修改生产代码。编号与 ALG-CAL §10（DISP-CAL-001..011）独立。
+> 均为**现行实现事实**，迁移整改由 P1-COS-IMPL/INT 处理；本文档不改
+> 生产代码。编号与 ALG-CAL §10（DISP-CAL-001..011）独立。
 
 | ID | 缺陷（现状事实） | 锚 |
 |---|---|---|

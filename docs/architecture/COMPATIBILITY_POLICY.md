@@ -21,4 +21,4 @@
 ## 版本
 
 - FITS/HiPS/protocol 版本号允许出现在注释/文档；开发轮次版本号只进
-  CHANGELOG/ADR。
+  版本说明/ADR。

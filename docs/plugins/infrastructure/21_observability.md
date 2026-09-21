@@ -7,7 +7,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §6.3（JSONL 事件）、§8（资源记录与重计算资源门）、§9（run 产物）
+- 最高设计 `ASTROCS_DESIGN.md` §7.2（配置、事件与退出码：JSONL 事件流）、§9（CPU 后端与资源：资源记录与重计算资源门）、§10（I/O 与原子产品：run 产物）
 - `contracts/schemas/events.schema.json`
 - `contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，见 §8）
 
@@ -21,7 +21,7 @@
 - 事件类型统一 schema，跨模块一致；
 - stdout 无日志污染（CLI 合同）：日志走文件/JSONL；
 - 运行图（run-graph）是实际观测（trace），`plan` 是预期，**禁止把计划值伪装成实际值**；
-- 资源监控字段见 runtime 文档；与退出码联动（exit 10 资源门禁）。
+- 资源监控字段见 `19_runtime.md`（scheduler + pipeline）；与退出码联动（exit 10 资源门禁）。
 
 ## 5. 配置项
 
@@ -44,7 +44,7 @@
 
 > **本节是 G-RES-01 判据的唯一语义权威**（`ASTROCS_DESIGN.md` §0：具体硬约束与细节写入下级文档）。
 > **数值唯一源 = `contracts/resource_gate_v1.json`**；实现侧（C++ / Python 冻结门 / 外挂 judge）不得再出现字面量阈值。
-> 变更规则：**改数值只改契约，改语义只改本节**；两侧必须同一次提交内保持一致。
+> 维护规则：**改数值只改契约，改语义只改本节**；两侧必须同一次提交内保持一致。
 
 ### 8.1 判定域（applicability）
 
@@ -79,7 +79,7 @@
 | ④ | 平均利用率 | 计算区间均值 < **85%** | **record_and_justify** | 记录 + 超标登记（不改退出码） |
 | ⑤ | 利用率 p50 | 样本中位数 < **90%** | **record_and_justify** | 记录 + 超标登记 |
 | ⑥ | 逐样本利用率 | 单样本 ≥ **85%** 的样本占比 < **0.70** | **record_and_justify** | 记录 + 超标登记 |
-| ⑦ | 工作量下限 | 线程秒（等效核·秒）< **10** | 事实标记 | 只记录，不参与裁决 |
+| ⑦ | 工作量下限 | 线程秒（等效核·秒）< **10** | 事实标记 | 只记录，不参与判定 |
 
 硬失败（enforce）由分母无关的 ①②③ 承担；④⑤⑥ 为分母敏感的统计项，记录并要求超标登记。
 
@@ -89,10 +89,10 @@
 - ②的队列有工作：在低利用窗内，**就绪线程数（`/proc` R 态）中位数 > 已分配容量核数**（就绪线程多于可用槽位即有线程在排队），且同时 ≥ 2。并行宽度不足（如 2 线程在 16 核配额上）归记录项 ④⑤⑥。证据面不可得时沿用无前置判据。
 - ③的单位统一为 **MiB·s⁻¹（1048576 B/s）**，方向统一 **≥**。
 
-### 8.4 record / enforce 划分与裁决点
+### 8.4 record / enforce 划分与判定点
 
 - **程序内默认 record_only**：CLI 运行期只记录与报告，不因资源判据改变退出码（`--strict-resource-gate` / `--on-resource-gate strict` 可复现 enforce 语义）。
-- **唯一裁决点 = CI 重计算检查（`CHK-RESOURCE` 的 `RESOURCE-GATE-REAL` 步骤）+ 发布验收**，以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式执行。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
+- **唯一判定点 = CI 重计算检查（`CHK-RESOURCE` 的 `RESOURCE-GATE-REAL` 步骤）+ 发布验收**，以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式执行。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
 - **exit 10（RESOURCE）** 的充分条件：判定域内 ①②③ 任一违约且处于 enforce 面。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。
 
 ### 8.5 豁免与不可豁免面
@@ -106,8 +106,8 @@
 | 实现 | 落点 | 与本节的关系 |
 |---|---|---|
 | C++ CLI | `lib/infrastructure/cli/resource_gate.h`、`memory_report.h`（阈值经 CMake 从契约生成的 `resource_gate_thresholds_generated.h` 引入） | 程序内 record_only；① 用 `workers_p50` |
-| Python 冻结门 | `tools/monitoring/run_monitored.py::evaluate_frozen_gate` / `resolve_allocated_capacity` | CI 裁决点实现；① 用 `threads_p50` |
-| 外挂 judge（建议面） | `tools/quality/resource_monitor.py` | 只给建议，不做发布裁决；阈值同契约 |
+| Python 冻结门 | `tools/monitoring/run_monitored.py::evaluate_frozen_gate` / `resolve_allocated_capacity` | CI 判定点实现；① 用 `threads_p50` |
+| 外挂 judge（建议面） | `tools/quality/resource_monitor.py` | 只给建议，不做发布判定；阈值同契约 |
 
 ## 9. 测试与 Oracle
 

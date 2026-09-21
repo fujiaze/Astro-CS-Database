@@ -8,9 +8,9 @@ upstream: [SCI-P2-SMP-001, ALG-P2-SMP-001, API-P2-001]
 downstream: [TEST-P2-SMP-001]
 ---
 
-# 模块 astrocs.p2.sampling（P2-SAMP-DOC 新建，2026-09-09）
+# 模块 astrocs.p2.sampling
 
-> P2-SAMP-DOC（SA-P2-S20）新建模块页。合同三件套落位
+> 合同三件套落位
 > `lib/algorithms/sampling/`（README/module.yaml/memory.md，按
 > `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/` 先例新建；`lib/algorithms/coverage/` 一目录
 > 一套已被 P2-COV 占用，不可覆盖）；合同权威=三件套 +
@@ -73,8 +73,8 @@ downstream: [TEST-P2-SMP-001]
 | `coverage` | `DATA-P2-COV` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL` |
 | `samples` | `DATA-P2-SMP` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
-内核级真实 I/O 合同=DATA-P2-SMP（DATA_SEMANTICS §23，P2-SAMP-DOC
-同批冻结）:
+内核级真实 I/O 合同=DATA-P2-SMP（DATA_SEMANTICS §23）:
+
 
 - 输入 P2CoverageResult（n_union 上限 1e6、cells 上限 2e8）+
   hips_paths/frame_ids（cached 版可空=内部重算；0=非法哨兵
@@ -182,7 +182,7 @@ lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Sampler 组
 
 - 合同三件套：`lib/algorithms/sampling/`（README/module.yaml/memory.md）
 - registry 页：docs/modules/registry/astrocs.phase2.sample.md
-- SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106，零
+- SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零
   改动；descriptor 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明=ALG
   §11.4）
 - ALG：docs/algorithms/PHASE2_SAMPLER.md（ALG-P2-SMP-001）；

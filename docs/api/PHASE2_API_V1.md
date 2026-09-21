@@ -1,6 +1,6 @@
 # Phase2 API 定义 v1 (API-004 冻结 — 数据所有权/thread budget/逐函数)
 
-> ID: API-P2-001  范围: API-P2-001..012  状态: FROZEN (V5 API-004, 2026-08-28)；**handler 名称经 CLI-001 切换**  上游: API-001/002/003  下游: 用户命令 `mosaic`(CLI-001;旧 `phase2 run` 已删除, rc=2)/TST-P2-*
+> ID: API-P2-001  范围: API-P2-001..012  状态: FROZEN；**用户命令面 = `mosaic`**  上游: API-001/002/003  下游: 用户命令 `mosaic`(CLI-001;`phase2 run` 不在命令面上, rc=2)/TST-P2-*
 > 签名权威=现存头文件(lib/algorithms/coverage/include/astro/phase2/*.h);本文件登记并发合同、**数据所有权**与 thread budget 绑定;禁止隐藏全局状态(验收)。
 
 ## 1 阶段流水与所有权图(谁分配/谁持有/谁释放)
@@ -38,11 +38,11 @@ coverage ──→ sampler ──→ UPM build ──→ calibrate_block ──�
 | `p2_integrate_pixel` | yes | yes(纯函数) | none(像素内固定序) | 无(行带由调用方切) | TST-INT-* |
 | `p2_large_scale_apply` | yes | yes | 邻域读行带 | 行带 | TST-REJ-* |
 | `p2_frame_id` / `p2_stats_median` / `p2_stats_mad` / `p2_rejection_semantic_id` | yes | yes | none | 无 | TEST-P2SAMPLE-*/TST-REJ-* |
-| `p2_acr_block_eligible`/`p2_block_plan` | yes | yes | none | 无 | 配置守卫(ACR-IVAR-001; V5: 非 cpu/auto 拒) |
+| `p2_acr_block_eligible`/`p2_block_plan` | yes | yes | none | 无 | 配置守卫(ACR-IVAR-001; 非 cpu/auto 拒) |
 
 ## 3 thread budget 绑定(ARCH-004 实例化)
 
-- `mosaic` 运行预算分配冻结(内部会话 2;CLI-001 前称 `phase2 run`): sampler=1(串行 reference);upm build=blocks(budget);rejection/integration=行带(budget);async I/O=1;**Σ≤全局 budget**;每 stage_start 事件携带 workers 实际值(API-002 backend 事件)。
+- `mosaic` 运行预算分配冻结(内部会话 2): sampler=1(串行 reference);upm build=blocks(budget);rejection/integration=行带(budget);async I/O=1;**Σ≤全局 budget**;每 stage_start 事件携带 workers 实际值(API-002 backend 事件)。
 
 ## 4 错误码映射
 

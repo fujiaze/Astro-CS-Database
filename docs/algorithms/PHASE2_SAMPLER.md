@@ -1,10 +1,9 @@
 # Phase2 Sampler Algorithms（P2-SAMP / astrocs.p2.sampling）
 
-> ID: ALG-P2-SMP-001  状态: CONTRACT_READY（P2-SAMP-DOC 冻结，2026-09-09，
-> owner SA-P2-S20）。本文件是 Phase2 控制点采样模块（control sampler）
+> ID: ALG-P2-SMP-001  状态: CONTRACT_READY。本文件是 Phase2 控制点采样模块（control sampler）
 > 算法层**唯一权威**：逐公式源码行号锚定 + 冻结容差 + 实现偏差登记。
-> 上游 SCI: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN T106
-> 2026-08-23，共享引用不改动；页头明示"模块: phase2 (upm/sampler)"；
+> 上游 SCI: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，共享引用
+> 不改动；页头明示"模块: phase2 (upm/sampler)"；
 > descriptor 占位 SCI-P2-SMP-001⇒SCI-UPM-001 映射声明见 §11.4）。
 > 辅助 SCI: SCI-UPM-WEIGHT-001（control_variance 公式权威）、
 > SCI-NOISE-001（robust 统计量的科学定义上游）、SCI-SCOPE-001
@@ -12,7 +11,7 @@
 > 关联 ALG: ALG-UPM-CONTROL-IVAR-001（本文件 §5.4 冻结承接，见 §12）；
 > ALG-UPM-001（UPM 拟合，下游消费方）。
 > 模块: lib/algorithms/coverage/src/sampler.cpp（1156 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行，实测 2026-09-09）；
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行，实测）；
 > DATA: DATA-P2-SMP（DATA_SEMANTICS §23）；API: API-P2-SMP-001
 > （PUBLIC_API.md）；MOD: astrocs.p2.sampling（合同三件套
 > lib/algorithms/sampling/，迁移目标 astrocs_p2_sampling.dll 为矩阵合同值
@@ -59,7 +58,7 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 control_ivar=1/ADU²、ra_deg/dec_deg=度（J2000）、snr=无量纲；
 连续数学定义见 §5，dtype/shape 唯一权威=DATA_SEMANTICS §23。
 
-## 3 逐符号锚（sampler.cpp 1156 行 / sampler.h 136 行，2026-09-09 实测）
+## 3 逐符号锚（sampler.cpp 1156 行 / sampler.h 136 行，实测）
 
 **导出符号（sampler.h 声明 / sampler.cpp 实现）**：
 
@@ -187,7 +186,7 @@ n_ret            = max(N_retained, 1.0)                    # :838 防零除
   1.4（:83，UPMW-005 MC 实证 1.3883 @pixfrac=0.8，保守上取；**该 MC 证据源
   `control_median_mc_test` 未注册/MISSING（构建孤儿），常数按 SCI-UPM §5/§10 冻结**）；
   **定义域 1 ≤ k_corr**（k_corr<1 ⇔ N_eff>N_retained，物理不可达；越界显式拒）；
-- **K_CORR_DOMAIN 选项 B（逐帧标定）：scale 维已退役（SCI-FIX-WEIGHT / SC-005）**：
+- **K_CORR_DOMAIN 选项 B（逐帧标定）：仅 pixfrac 维参与标定（SC-005）**：
   仅当帧 Drizzle provenance 的源像素角尺度落在**标定域 [300,600]″/px** 才取
   kcorr_lookup(pixfrac, scale)（:93-112）；**域外（含生产真帧 0.9586″/px 与
   provenance 实写 0.009856″）不得 clamp 到 300″ 档，一律保留 kcorr=0 并打
@@ -266,7 +265,7 @@ SHA 流 = 9 关键 properties（creator_did/obs_title/obs_filter/
 → 0（调用方 :512-523 拒绝 rc=1；禁止静默继续）。
 ```
 
-禁止描述为 FNV-1a/路径派生（sampler.h:97 注释冻结；旧文档已修正）。
+禁止描述为 FNV-1a/路径派生（sampler.h:97 注释冻结）。
 
 ### 5.7 统计量共享实现（:191-204/:440-459）
 
@@ -309,7 +308,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
 | patch robust median/MAD 保留负值 | :802-829（无符号过滤） | 一致 |
 | SNR 来自 Catalogue 禁止重检测 | :851-867 纯查询 | 一致 |
 | control_variance 公式（SCI-UPM-WEIGHT-001） | :840-842 逐项一致 | 一致 |
-| k_corr MC 校准非猜测（sampler.h:50-51） | :83/:89-112（选项 B 逐帧，scale 维已退役） | 常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 `control_median_mc_test` 未注册（MISSING，构建孤儿）⇒ 不可复跑** |
+| k_corr MC 校准非猜测（sampler.h:50-51） | :83/:89-112（选项 B 逐帧，pixfrac 维） | 常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 `control_median_mc_test` 未注册（MISSING，构建孤儿）⇒ 不可复跑** |
 | per-control `control_reliability`（旧名 geometric_reliability）参与归一化 | 采样器不产出 per-control 可靠度；UPM 侧实现为**配置常量 1.0**（`upm.cpp:565` 归一化消费） | 不在本模块域（UPM 侧缺陷，已登记 SC-005） |
 | wiki 语义版本 34A532A2...B2EB308 | sampler.cpp:3/:85-87 注释锚定 | 一致 |
 
@@ -368,7 +367,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
 7. 输出 obs 序列 bitwise 独立于 worker 数（:886-934 槽位设计）；
 8. 禁止重新检测星点（SNR 纯查询 ：851-867）。
 
-## 11 P2-SAMP-DOC 冻结附录（2026-09-09，SRC-P2-SMP-001 源码实测）
+## 11 冻结附录（SRC-P2-SMP-001 源码实测）
 
 ### 11.1 返回码/错误语义（p2_sample_controls / p2_sample_controls_cached）
 
@@ -419,20 +418,19 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
 n_union/cells 上限 rc=1、probe 容量协议（out_obs=null 查量→分配→
 fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制。
 
-### 11.4 SCI 层状态声明（本任务零 SCI 改动）
+### 11.4 SCI 层状态声明（本域零 SCI 改动）
 
 - 采样语义权威已有 FROZEN SCI：SCI-UPM-001（docs/science/
-  PHASE2_UPM.md，T106 2026-08-23 冻结，集合 SCI-UPM-001..010 +
-  SCI-UPM-WEIGHT-001 + SCI-UPM-PERSIST-001；页头明示模块
-  "phase2 (upm/sampler)"）。**不因本任务改动**（共享 SCI 引用不
-  改动；P1-WCS-DOC SCI-WCS-001=共享 ASTROMETRY.md、P2-COV-DOC
-  SCI-UPM-001/SCI-INT-001、P2-INT-DOC SCI-INT-001、P2-REJ-DOC
-  SCI-REJ-001 先例）。
+  PHASE2_UPM.md，集合 SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
+  SCI-UPM-PERSIST-001；页头明示模块 "phase2 (upm/sampler)"）。
+  **共享 SCI 引用不改动**（P1-WCS SCI-WCS-001=共享 ASTROMETRY.md、
+  P2-COV SCI-UPM-001/SCI-INT-001、P2-INT SCI-INT-001、P2-REJ
+  SCI-REJ-001 同构）。
 - matrix P2-SAMP 行 science_id=SCI-P2-SMP-001（descriptor 占位
   词汇，module_adapters.cpp:657）的语义映射由本节声明——
   **SCI-P2-SMP-001 ⇒ SCI-UPM-001**（docs/science/PHASE2_UPM.md，
   矩阵 science_doc=docs/science/PHASE2_UPM.md，
-  MOD-astrocs-phase2-sample 行，2026-09-09 P2-SAMP-DOC 冻结）。
+  MOD-astrocs-phase2-sample 行）。
   SCI 公式语义不在此重复定义，两处冲突时以 docs/science/ 为准并
   回改本文档（禁止反向）。辅助语义锚：control_variance 权威=
   SCI-UPM-WEIGHT-001（§5.4 承接）；robust 统计上游=SCI-NOISE-001；
@@ -450,9 +448,8 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
   全集，ALG-UPM-CONTROL-IVAR-001 为其方差子面（UPM 权重消费方
   引用），本文件为两 ID 共同权威页（多 ID 同文档先例：
   NOISE_ESTIMATION.md 承载 ALG-NOISE-001..003）。
-- 旧词汇 `ALG-P2SAMPLE-001..N` / `TEST-P2SAMPLE-*`（旧版本文档
-  尾节遗留）⇒ 由 ALG-P2-SMP-001 / TEST-P2-SMP-001 替代，旧 ID 不
-  注册 INDEX、不入矩阵（本节即为退役声明）。
+- 本域 ID 一律用 `ALG-P2-SMP-001` / `TEST-P2-SMP-001`；二者注册
+  INDEX 与矩阵，不另设同义 ID。
 - `UPMW-004/005/007`（MC 验证项词汇）⇒ 测试锚对应本文件 §11.3
   F3（UPMW-004/007）与 k_corr 校准来源（UPMW-005，§5.4）。
 

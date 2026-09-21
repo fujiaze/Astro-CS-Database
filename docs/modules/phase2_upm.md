@@ -8,9 +8,9 @@ upstream: [SCI-UPM-001, ALG-P2-UPM-IMPL-001, ALG-UPM-001, API-P2-001]
 downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-UPM-002]
 ---
 
-# 模块 astrocs.p2.upm（P2-UPM-DOC 新建，2026-09-10）
+# 模块 astrocs.p2.upm
 
-> P2-UPM-DOC（SA-P2-U21）新建模块页，冻结合同 `astrocs.p2.upm`
+> 冻结合同 `astrocs.p2.upm`
 > （fit/apply 两职能同页，registry 行 ID 沿用
 > `MOD-astrocs-phase2-upm-fit`/`MOD-astrocs-phase2-upm-apply`）。合同
 > 三件套落位 `lib/algorithms/upm/`（README/module.yaml/memory.md，按
@@ -64,7 +64,7 @@ downstream: [DATA-P2-UPM, DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-001, TEST-P2-
   区经全局平滑/Laplacian 延拓（harmonic continuation）。
 - apply 职责：按 frame_id 绑定逐块校准——**默认只扣偏差 δ_k、保留公共天光面
   B_ref**：`calibrated_k(x) = raw_k(x) − δ_k(x)`（最高设计 §4.4「公共面语义：
-  只扣「多退少补」的偏差，不剪掉整个背景」，§9.67 定案 1）。
+  只扣「多退少补」的偏差，不剪掉整个背景」）。
   ⚠ **记法消歧（强制）**：`C_k ≡ B_ref + δ_k` 是**表示层全量**；**全量扣除
   `raw − C_k`（含 `B_ref`）不再是默认**，凡写 `raw − C_k` 处必须写明
   「全量」还是「仅偏差」——本页原写 `calibrated = raw − C_f(p)` **无消歧，已按
@@ -117,7 +117,7 @@ DATA-P2-UPM（DATA_SEMANTICS §25；P2ModelInfo version/precision
 component_count/model_hash[65] + C[frame][control] FP64）；apply 输
 出 DATA-P2-COR（§26）**默认语义 = 只扣偏差**：`calibrated_k(x) = raw_k(x) − δ_k(x)`
   （FP64 ADU，**保留公共天光面 `B_ref`**）；全量扣除 `raw − C_k` 非默认，
-  使用时必须显式声明（最高设计 §4.4 / §9.67 定案 1）。
+  使用时必须显式声明（最高设计 §5.4）。
 - invalid: null 参数/n_obs=0/frame 绑定不一致/open/parse 失败 →
   rc=1；production 模式 control_ivar≤0/非有限 → p2_upm_raw_weight
   rc=2 → build rc=2（显式 INVALID，禁静默回退 support/SNR，
@@ -163,7 +163,7 @@ SCI-P2-UPM-002/ALG-P2-UPM-002/DATA-P2-COR/TEST-P2-UPM-002；
 DISP-P2UPM-004=descriptor 端口占位语义 persist→reload（ports 静态
 声明与内核 probe/fill 语义的桥接未验证）。配置=P2UpmBuildConfig 16
 字段（upm.h:71-92；production 默认单一来源=p2_session.cpp:183-199:
-robust_loss=0 huber、upm_weight_source=0 snr2_normalized（原 snr_weight_mode，（已按 §9.73 A44 作废：键不存在；权重是派生量））、
+robust_loss=0 huber、upm_weight_source=0 snr2_normalized、
 huber_delta=1.345、max_iterations=100、tolerance=1e-6、
 target_order=coverage 实测、sigma_floor=1e-3、support_power=1.0、
 use_ivar_weight=1、control_reliability=1.0；upm/smoothing_lambda/
@@ -241,7 +241,7 @@ F6 dense/sparse 1e-12 等价基线）。
 - ALG 边界: 覆盖并集非凸区外推仅经 tile 内 cell 界锚点（外推锚只引
   用真实存在 cell，upm.cpp tile_gx/gy_bounds）；单帧区=harmonic
   continuation 非数据约束解（SCI-UPM-001 §4）；quality_mode=1
-  legacy snr²/(1+snr²)/unc² 权重仅 ablation/诊断（SNR-015）。
+  snr²/(1+snr²)/unc² 权重仅 ablation/诊断（SNR-015）。
 - 本页若引用旧派生词汇（"错误码=ACS_ERR_*"、"取消=host cancel
   回调"等 session 层词汇），以本合同页与 SCI-UPM-001/ALG-UPM-001
   为准修订。
@@ -251,7 +251,7 @@ F6 dense/sparse 1e-12 等价基线）。
 - 合同三件套：`lib/algorithms/upm/`（README/module.yaml/memory.md）
 - registry 手写页：docs/modules/registry/astrocs.phase2.upm-fit.md、
   docs/modules/registry/astrocs.phase2.upm-apply.md
-- SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN T106，零改
+- SCI：docs/science/PHASE2_UPM.md（SCI-UPM-001，FROZEN，零改
   动；descriptor 占位 SCI-P2-UPM-001/002⇒SCI-UPM-001 映射声明=
   PHASE2_UPM_IMPL.md 映射节）
 - ALG：docs/algorithms/UPM_SOLVER.md（ALG-UPM-001，权威推导）+

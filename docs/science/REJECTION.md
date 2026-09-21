@@ -1,6 +1,6 @@
 # Rejection / Outlier Science (SCI-REJ)
 
-> ID: SCI-REJ-001  范围: SCI-REJ-001..008 (legacy RJ-001..008)  状态: FROZEN (T107 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-REJ-001..008  模块: phase2 (rejection)
+> ID: SCI-REJ-001  范围: SCI-REJ-001..008  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-REJ-001..008  模块: phase2 (rejection)
 
 ## 1 目的与非目标
 
@@ -33,7 +33,7 @@
 - 方法合法且 `method != AUTO` 才进 kernel；`n <= underdetermined_n(=2)` 或 `n < minimum_n` ⇒ `UNDERDETERMINED`（`rejection.h:153-154`）。
 - **全拒容错域（SC-005 登记）**：`n = 4` ∧ 方法核全拒 ⇒ 降级 `UNDERDETERMINED` 全接受
   （`rejection.cpp:1860-1874`）。该容错的**可达域恰为 n=4**：n≤2 已被白名单截走；
-  奇数 n 的百分位带必含中位样本（不可全拒）；n≥5 全拒仍 `ALL_REJECTED`。**可达域三条件（EXP-204 复核补充，2026-09-20）**：① 该输出像素**几何 `n = 4`**（`1 ≤ n ≤ 3` 由内核闸 `underdetermined_n = 3` 判 `UNDERDETERMINED`、永不进方法核——**不得**用 `plan.method` 断言「N≤3 ⇒ none」，该档 `plan.method` 仍解析为 `percentile`）；② 路由把 `n = 4` 分派给 `percentile`（本文件 §5 两个 profile 均命中）；③ 百分位带**退化**（近零天光 `median → 0` ∧ `scale = |median|` ⇒ 带宽 → 0，§8a），否则带非空、不可能全拒。**电平依赖（EXP-204 如实登记）**：小 N 段优劣**由电平决定、不由 N 决定**——低/中电平（≲2700 e⁻/pix，含真实数据 NGC1727 1110 ADU、LDN43 2664 ADU）下 `N=3` 强制 percentile **有损**（`ρ−1` = 0.3%–27% ≫ `τ_ρ` = 0.31%）、`N=2` **不可用**（83.5% 像素无输出）；高电平（≳3400 e⁻/pix）对抗轮 R5 实测 `N=3` 占优，翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）⇒ 生产默认取保守读法 `1 ≤ N ≤ 3 → none`。
+  奇数 n 的百分位带必含中位样本（不可全拒）；n≥5 全拒仍 `ALL_REJECTED`。**可达域三条件**：① 该输出像素**几何 `n = 4`**（`1 ≤ n ≤ 3` 由内核闸 `underdetermined_n = 3` 判 `UNDERDETERMINED`、永不进方法核——**不得**用 `plan.method` 断言「N≤3 ⇒ none」，该档 `plan.method` 仍解析为 `percentile`）；② 路由把 `n = 4` 分派给 `percentile`（本文件 §5 两个 profile 均命中）；③ 百分位带**退化**（近零天光 `median → 0` ∧ `scale = |median|` ⇒ 带宽 → 0，§8a），否则带非空、不可能全拒。**电平依赖**：小 N 段优劣**由电平决定、不由 N 决定**——低/中电平（≲2700 e⁻/pix，含真实数据 NGC1727 1110 ADU、LDN43 2664 ADU）下 `N=3` 强制 percentile **有损**（`ρ−1` = 0.3%–27% ≫ `τ_ρ` = 0.31%）、`N=2` **不可用**（83.5% 像素无输出）；高电平（≳3400 e⁻/pix）对抗轮 R5 实测 `N=3` 占优，翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）⇒ 生产默认取保守读法 `1 ≤ N ≤ 3 → none`。
 - `support/weights` 有限性在资格层校验，非有限 ⇒ `INVALID_INPUT` hard fail。
 - `profile` 合法集 = {`astrocs_adaptive_pixel`（**生产默认，AstroCS 自研**）, `wbpp_2_9_1`（**对照档**，路由阈值表采纳自 WBPP 2.9.1 `bestRejectionMethod`）, `wbpp_current`（历史 alias，解析为 `wbpp_2_9_1`）, `astrocs_adaptive`（可调档，与对照档同阈）}；其余值 ⇒ `rc=1` + 显式错误（配置非法）。
 
@@ -45,12 +45,12 @@
   None / Sigma / Winsorized / AveragedSigma / LinearFit / GeneralizedESD / RCR
 
 生产默认 auto + profile = astrocs_adaptive_pixel (AstroCS 自研，按逐输出像素几何 n):
-  n ≤ 3          → none（保守：不排异 + 直接加权积分；provenance 记 underdetermined_no_rejection。**偏离代价量化（EXP-204）**：不排异的代价 = 污染**泄漏**——注入实验实测 `N=2` 泄漏 **1/2**、`N=3` 泄漏 **1/3**；收益 = **不误剔真信号**——低/中电平（≲2700 e⁻/pix）下强制 percentile 使 `N=3` 精度损失 `ρ−1` = **0.3%–27%**（≫ `τ_ρ` = 0.31%）、`N=2` **83.5% 像素无输出**）
-  4 ≤ n ≤ 7      → percentile (low 0.2 / high 0.1, scale=|median|)
-  8 ≤ n ≤ 15     → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
+  1 ≤ n ≤ 3      → none（不排异 + 直接逆方差加权积分；provenance 记 underdetermined_no_rejection。**偏离代价**：不排异的代价 = 污染**泄漏**——注入实验实测 `N=2` 泄漏 **1/2**、`N=3` 泄漏 **1/3**；收益 = **不误剔真信号**——低/中电平（≲2700 e⁻/pix）下强制 percentile 使 `N=3` 精度损失 `ρ−1` = **0.3%–27%**（≫ `τ_ρ` = 0.31%）、`N=2` **83.5% 像素无输出**）
+  4 ≤ n ≤ 5      → percentile (low 0.2 / high 0.1, scale=|median|)
+  6 ≤ n ≤ 15     → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
   n ≥ 16         → linear_fit (lower 5.0 / upper 3.5 / 8 iter)
-  与 WBPP 的三处明示偏离（**科学依据 + 实验编号 = EXP-204**：三数据面 + 6 轮独立复核，判据冻结 sha256 `bd8982d6…`；一手实测 `BPP-FrameGroup.js:1304-1312`/`:1229-1293`、`BPP-engine.js:2695-2719`）：n≤3 用 none（科学依据：低电平强制 percentile 有损、`N=2` 不可用，且维持负责人 2026-09-19 原裁决）；6≤n≤7 用 percentile（消解 WBPP auto 与 validator 自相矛盾）；
-  16≤n<20 linear_fit 由调用方发 WARN。extreme_value_clip_prior_sigma 为显式 opt-in，永不参与 AUTO 路由。**电平依赖（EXP-204）**：翻转边界 ≈3000–3400 e⁻/pix（对抗轮 R5 反例）——判据**由电平决定、不由 N 决定**；该区间**超出实验网格上界 1734 e⁻/pix，属外延**。
+  与 WBPP 档界的差异（一手实测 `BPP-FrameGroup.js:1304-1312`/`:1229-1293`、`BPP-engine.js:2695-2719`）：WBPP 的档界为 6 / 16 两处（即 percentile 上限 5、winsorized 上限 15）；本表把 `1 ≤ N ≤ 3` 改为 none、percentile 收窄到 `4 ≤ N ≤ 5`。差异依据：低电平强制 percentile 有损（`N=3` 的 `ρ−1` = 0.3%–27% ≫ `τ_ρ` = 0.31%）、`N=2` 时 83.5% 像素无输出 ⇒ 小 N 段不排异更接近真值；`N ≥ 4` 起 percentile 偏差进入容差内。
+  显式指定算法时 `16≤n<20` linear_fit 由调用方发 WARN。extreme_value_clip_prior_sigma 为显式 opt-in，永不参与 AUTO 路由。**电平依赖**：翻转边界 ≈3000–3400 e⁻/pix——判据**由电平决定、不由 N 决定**；该区间**超出实验网格上界 1734 e⁻/pix，属外延**。
 对照档 wbpp_2_9_1 (WBPP 2.9.1 bestRejectionMethod；仅对照/回归基线):
   n < 6          → percentile (low 0.2 / high 0.1, scale=|median|)
   6 ≤ n ≤ 15     → winsorized_sigma (lower 4.0 / upper 3.0 / 8 iter)
@@ -119,9 +119,9 @@ large_scale 结构生长:
 - 生产 `auto` 路由把 `n ≥6` 交给 `winsorized_sigma`（实测全拒 0/200k），因此该塌缩
   在当前 auto 路径上被掩盖；只有 `n=4` 恰好落在 percentile 分支且可全拒（§4 容错域）。
 - **这是真实缺陷，不由 §4 容错掩盖**：是否把尺度改为 `max(|median|, MAD)`（WBPP 对齐面）
-  需单独裁决与重标定；本文件只登记事实与影响面。
+  需单独评估与重标定；本文件只登记事实与影响面。
 - 证据：`reports/PROJECT-GOVERNANCE-01/research/R-2_phase2权重与UPM语义.md` §3.6 /
-  `run/PROJECT-GOVERNANCE-01/R-2/logs/probe_r2.log`（[REJX]/[MC] 行）。**SC-005 可达域条件与 EXP-204 关联见文末 §16（复核补充）**。
+  **SC-005 可达域条件见文末 §16（复核补充）**。
 
 ## 9 精度策略
 
@@ -177,8 +177,8 @@ large_scale 结构生长:
 
 > 本节只补出处与参考实现，不改动 §5 阈值表与 §10 禁改清单。
 
-- **Generalized ESD**：Rosner, B. 1983, Technometrics 25, 165-172（DOI 10.1080/00401706.1983.10487848，Crossref 逐字核验 2026-09-17）；独立可执行实现与临界值表见 NIST/SEMATECH e-Handbook of Statistical Methods §1.3.5.17/§7.1.6。
-- **六类排异核（sigma/winsorized/averaged-sigma/linear-fit/percentile/minmax）的祖先**：IRAF imcombine（reject=sigclip|avsigclip|pclip|lfitclip|minmax、winsorize 参数；IRAF/NOAO 许可，非 OSI）；可执行独立对照 ccdproc.combine（BSD-3-Clause，clip_extrema=IRAF-like minmax、sigma_clip_low/high_thresh）与 astropy SigmaClip（BSD-3-Clause）。**溯源注**：本文件 §5/§14 称阈值“采纳自 WBPP 2.9.1”，但代码语义注册表 rejection.cpp:1016-1021 为 *_SIRIL、注释 :1298/1398 与测试 :2903 均锚 Siril 1.4.3；“路由+阈值=WBPP，方法核=Siril”应在正文同处说明（见报告 §3-24）。**生产默认档自研说明**：`astrocs_adaptive_pixel` 的路由与低 n 保守档为项目自定（负责人 2026-09-19 裁决 C2，claim `FIX-SCI-SNR-CANON-001`）；WBPP/Siril 仅作对照来源，不作为生产算法归属。
+- **Generalized ESD**：Rosner, B. 1983, Technometrics 25, 165-172（DOI 10.1080/00401706.1983.10487848）；独立可执行实现与临界值表见 NIST/SEMATECH e-Handbook of Statistical Methods §1.3.5.17/§7.1.6。
+- **六类排异核（sigma/winsorized/averaged-sigma/linear-fit/percentile/minmax）的祖先**：IRAF imcombine（reject=sigclip|avsigclip|pclip|lfitclip|minmax、winsorize 参数；IRAF/NOAO 许可，非 OSI）；可执行独立对照 ccdproc.combine（BSD-3-Clause，clip_extrema=IRAF-like minmax、sigma_clip_low/high_thresh）与 astropy SigmaClip（BSD-3-Clause）。**来源归属**：生产默认档 `astrocs_adaptive_pixel` 的路由与低 n 保守档为项目自定；方法核的语义注册表 `rejection.cpp:1016-1021` 为 `*_SIRIL`、注释 `:1298/1398` 与测试 `:2903` 均锚 Siril 1.4.3；WBPP 2.9.1 提供档界对照（`BPP-FrameGroup.js`）。WBPP/Siril 仅作对照来源，不作为生产算法归属。
 - **预测残差方差阈值/最优检验（若采用）**：Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27）。
 - **RCR（Robust Chauvenet Rejection）**：**论文出处补齐**——Maples, M. P., Reichart, D. E., Konz, N. C., et al. 2018, ApJS 238, 2（DOI 10.3847/1538-4365/aad23d；arXiv:1807.05276）；后续方法学 Konz, N. & Reichart, D. E. 2023, arXiv:2301.07838。现行 §14 第 4 条只登记“官方 RCR 2.4.7 软件参考”，缺该论文引用。
 - **winsorization 与稳健尺度**：Hoaglin, Mosteller & Tukey (eds.) 1983, Understanding Robust and Exploratory Data Analysis, Wiley（ISBN 0-471-09777-2）。
@@ -206,7 +206,7 @@ large_scale 结构生长:
 - `tools/science_contract_lint.py` PASS；
 - 解析不变量→SYN-006 转换：卫星线/宇宙线/坏帧注入、small-N 分位、frame identity 保持、reject set 与 identity 解析可验用例登记 SYN-006。
 
-## 16 复核补充：SC-005 可达域条件与小 N 档位（EXP-204 / DOC-205，2026-09-20）
+## 16 复核补充：SC-005 可达域条件与小 N 档位
 
 > 本节为**登记补充**，不改动 §4/§5/§7/§8a 的任何公式、阈值、门与冻结锚点。
 
@@ -215,10 +215,10 @@ large_scale 结构生长:
   这与「`plan.method` 对 `n ≤ 3` 解析为 `percentile`」并不矛盾——**不得**用 `plan.method` 断言「N≤3 ⇒ none」）；
   ② 路由把 `n = 4` 分派给 `percentile`（§5 两个 profile 均命中）；
   ③ 百分位带**退化**（近零天光 `median → 0` ∧ `scale = |median|` ⇒ 带宽 → 0，§8a），否则带非空、不可能全拒。
-- **EXP-204 关联（判据冻结 sha256 `bd8982d6…`；三数据面 + 6 轮独立复核 + 对抗轮 R5）**：
+- **依据**：
   低/中电平（≲2700 e⁻/pix，含真实数据 NGC1727 1110 ADU、LDN43 2664 ADU）下 `N=3` 强制 percentile 精度损失
   `ρ−1` = **0.3%–27%**（≫ `τ_ρ` = 0.31%）、`N=2` **83.5% 像素无输出** ⇒ 生产默认取 `1 ≤ N ≤ 3 → none`
-  （保守读法，维持负责人 2026-09-19 原裁决）；高电平（≳3400 e⁻/pix）对抗轮 R5 反例显示 `N=3` 反而占优，
+  （保守读法）；高电平（≳3400 e⁻/pix）实测显示 `N=3` 反而占优，
   翻转边界 ≈3000–3400 e⁻/pix（**超出实验网格上界 1734 e⁻/pix，属外延**）。
   **§8a 的尺度塌缩缺陷与上述档位取舍是两件事**，不得互相掩盖。
 - **档位表归属**：逐像素冻结映射表见 `docs/plugins/algorithms_phase2/12_rejection.md` §9（`1≤N≤3` none / `4≤N≤5` percentile /

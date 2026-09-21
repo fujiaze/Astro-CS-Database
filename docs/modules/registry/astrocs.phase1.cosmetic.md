@@ -10,7 +10,7 @@ downstream: [TEST-P1-COS-001]
 
 # 模块 astrocs.phase1.cosmetic
 
-> P1-COS-DOC 事实修订（2026-09-07，wave W1）：本页由源码核对后修订——
+> 本页由源码核对后修订——
 > 合同 ID 由 W3 骨架占位（SCI-P1-COS-001/ALG-P1-COS-001）更正为真实
 > 冻结 ID；模块级事实以 lib/algorithms/cosmetic/README.md（r1，CONTRACT_READY）
 > 与现行生产实现 lib/algorithms/calibration/src/cosmetic_corrector.cpp 为准；
@@ -22,7 +22,7 @@ downstream: [TEST-P1-COS-001]
 Registry production 模块(唯一源=module_adapters.cpp descriptor)。职责:
 坏点检测/修复（热/冷像素全局阈值检测 + 8 连通结构过滤 + 中值/IDW
 插值），ALG-COS-001..005（docs/algorithms/COSMETIC_ALGORITHMS.md，
-CONTRACT_READY，P1-COS-DOC 冻结）。不做: master 生成/校准算术
+CONTRACT_READY）。不做: master 生成/校准算术
 （P1-CAL）、FITS 读写（astro_image_io）、参数接线决策（调用方）——
 现状生产调用 p1_session.cpp:294-307 未接线母版（检测全禁用、恒等
 pass，DISP-COS-009）。
@@ -36,7 +36,7 @@ pass，DISP-COS-009）。
 
 invalid = NaN（透传，不判坏——DISP-COS-002）；掩码极性 1=坏点
 （SCI-CAL-001 §9a）；数据语义 DATA_SEMANTICS §10（DATA-P1-COS，
-P1-COS-DOC 冻结；DATA-P1-COSMETIC 为 descriptor 占位名，合同以
+DATA-P1-COSMETIC 为 descriptor 占位名，合同以
 DATA-P1-COS 为准）。
 
 ## 公共 header、核心 symbol 与生命周期

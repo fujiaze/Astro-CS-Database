@@ -1,17 +1,16 @@
 # Phase3 HiPS Resample 实现级算法合同（ALG-P3-RSMP-IMPL-001）
 
-> ID: ALG-P3-RSMP-IMPL-001  状态: CONTRACT_READY（P3-RSMP-DOC 冻结，
-> 2026-09-12，SA-P3-R）  模块: astrocs.p3.resample（迁移合同值；
+> ID: ALG-P3-RSMP-IMPL-001  状态: CONTRACT_READY  模块: astrocs.p3.resample（迁移合同值；
 > registry 生产 descriptor 占位 astrocs.phase3.resample2 由 P3-RSMP-INT
 > 对齐）  上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，
-> FROZEN V5 SCI-007 2026-08-28，零改动；矩阵行 science_id 引用的
+> FROZEN，零改动；矩阵行 science_id 引用的
 > SCI-P3-RES-001 为 MISSING 占位，本域全部科学内容映射声明为
 > SCI-P3-001，见 §5）。承接既有 ALG-P3-003 本域子面（G3/G4 施工规格，
 > docs/algorithms/PHASE3_RESAMPLE.md，公式零改动）。
 > 本文档为 HiPS 重采样域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
 > 生产源: lib/algorithms/resample/p3_resample.h（58 行，唯一权威签名头）+
-> lib/algorithms/resample/p3_resample.cpp（239 行），实测 2026-09-12。
+> lib/algorithms/resample/p3_resample.cpp（239 行）。
 > 代码中不得出现第二套数学核心（healpix 权威函数唯一，见 §6）。
 
 ## 1 目的与非目标
@@ -26,29 +25,29 @@
   （SCI §9a-8 显式拒）；不做 alpha channel/BLANK int tile（SCI §9a-9
   显式拒）；不改投影（G1/G2 属 ALG-P3-PROJ-IMPL-001）与 FITS 原子写
   （G5 属 writer 域）；不引入第三种采样核（nearest/bilinear 之外显式拒）。
-- 本任务（P3-RSMP-DOC）为合同冻结层：只登记，不修生产码；缺陷走 DISP
-  登记（§13），由后续 IMPL/INT 任务整改。
+- 本层为合同冻结层：只登记，不修生产码；缺陷走 DISP 登记（§13），
+  由实现层与集成层整改。
 
 ## 2 身份与落位
 
 | 项 | 合同值 | 实测 |
 |---|---|---|
 | module_id（矩阵 CSV 权威） | astrocs.p3.resample | MODULE_MIGRATION_MATRIX.csv P3-RSMP 行 |
-| registry 生产 descriptor | astrocs.phase3.resample2（module_adapters.cpp:700 `p3_resample2_descriptor`，module_id 同名；DOC-205 行锚订正：原写 `:697` 已漂移，`grep -n` 实测 `:700`） | 实测 |
+| registry 生产 descriptor | astrocs.phase3.resample2（module_adapters.cpp:700 `p3_resample2_descriptor`，module_id 同名；`grep -n` 实测 `:700`） | 实测 |
 | dll_target | astrocs_p3_resample.dll | 矩阵 CSV；entrypoint 实测未建（DISP-P3RSMP-005） |
 | owner | SA-P3-S26 | 矩阵 CSV |
-| 合同目录 | lib/algorithms/resample/（本任务新建，仅合同文件，无源码） | 生产源仍在 lib/phase3_session/ |
+| 合同目录 | lib/algorithms/resample/（本域合同文件，无源码） | 生产源仍在 lib/phase3_session/ |
 | 依赖 | lib/algorithms/shared/healpix（leaf_to_tile_nest/tile_to_leaf_nest/nested_local_to_fits_index/ang2pix/pix2ang）、lib/phase3_session/hips_properties（properties 严格校验经 p3_sampler_open 间接消费） | §3 |
 | 下游 | P3-RSMP-IMPL（实现）、P3-RSMP-TEST（可执行测试）、P3-RSMP-INT（descriptor 对齐 astrocs.p3.resample） | — |
 
 - 静态库落位: astrocs_phase3_session（根 CMakeLists.txt:460-465，
   p3_resample.cpp 为五源文件之一）。
 - 会话编排消费: lib/phase3_session/p3_session.cpp（§8 逐点锚定）。
-- descriptor 端口绑定（module_adapters.cpp:707-711；DOC-205 行锚订正：原写 `:702-706` 已漂移）: 输入
+- descriptor 端口绑定（module_adapters.cpp:707-711）: 输入
   DATA-P3-WCS（必需）+ DATA-HIPS-001（必需），输出 DATA-P3-RES
   （可选产出）。
 
-## 3 生产源图（实测，2026-09-12）
+## 3 生产源图（实测）
 
 ```text
 lib/algorithms/resample/p3_resample.h        58 行  唯一权威签名头（10 个公共符号，§4）
@@ -101,8 +100,7 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（10 个）：
   科学内容以 **SCI-P3-001**（docs/science/PHASE3_HIPS_TO_FITS.md，
   FROZEN）为唯一权威，映射关系
   `SCI-P3-RES-001 ⇒ SCI-P3-001`；矩阵行 id 占位保持原样（
-  占位词汇与权威文档分离，照 P3-PROJ-DOC 先例），由 SCI 层收编任务
-  统一改名，本任务不改 docs/science/。
+  占位词汇与权威文档分离），由 SCI 层统一改名，本域不改 docs/science/。
 - ALG 层: docs/algorithms/PHASE3_RESAMPLE.md（ALG-P3-003 施工规格）
   §2 的 **G3（order 选择）与 G4（leaf 采样）** 为本域子面；本合同承接
   其全部公式（零改动，§6 给出等价性核对）。G1/G2（投影）属
@@ -234,7 +232,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 | 消费点 | 锚 | 合同 |
 |---|---|---|
 | sampler 打开 | :171（映射 :175-176） | 主线程 open_ex 暴露输入实际 order/BUNIT；失败映射 P3_RS_IO→ACS_ERR_IO、UNSUPPORTED→ACS_ERR_UNSUPPORTED、PARAM→ACS_ERR_PARAM |
-| max_tiles 守卫 | :179-194 | 默认 `min(1024, ceil(W·H/512²)+16)`；请求 > 默认 → `ACS_ERR_BUDGET`（可降不可升，P3-006/DOC-003） |
+| max_tiles 守卫 | :179-194 | 默认 `min(1024, ceil(W·H/512²)+16)`；请求 > 默认 → `ACS_ERR_BUDGET`（可降不可升） |
 | order 选择 | :196-199 | max_order=输入实际 order（clamp ≤20），p3_order_select 就地选择 |
 | worker 池 | :211-214/:246-255 | n_workers=budget.max_workers（禁 hardware_concurrency）；>hpx clamp 行带不空；<2 或未注入 budget → 串行；每 worker 独立 sampler+cache（:217-244 闭包，worker open_ex :222，§7） |
 | 采样分派 | :236-237 | nearest/bilinear 按请求 `sampler` 字段分派（缺省 bilinear，parse_request :116-119 白名单） |

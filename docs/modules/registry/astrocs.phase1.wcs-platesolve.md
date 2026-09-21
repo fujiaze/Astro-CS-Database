@@ -12,10 +12,10 @@ downstream: [DATA-P1-WCS, API-WCS-001, TEST-P1-WCS-001]
 
 # 模块 astrocs.phase1.wcs-platesolve
 
-> P1-WCS-DOC 事实修订（2026-09-07）：本页 registry descriptor 占位 ID
+> 本页 registry descriptor 占位 ID
 > （SCI-P1-WCS-001/ALG-002/TEST-P1-WCS-001）保留为编排层词汇，由
 > P1-WCS-INT 对齐；冻结合同 = SCI-WCS-001（docs/science/ASTROMETRY.md，
-> FROZEN T102 2026-08-23，共享引用不改动）/ ALG-WCS-001（PLATESOLVE.md
+> FROZEN，共享引用不改动）/ ALG-WCS-001（PLATESOLVE.md
 > §11 逐符号锚）/ DATA-P1-WCS（DATA_SEMANTICS §18）/ API-WCS-001
 > （PUBLIC_API WCS 节）；模块级事实以 lib/algorithms/platesolve/README.md（r1，
 > CONTRACT_READY）+ lib/algorithms/platesolve/module.yaml（astrocs.p1.wcs，迁移

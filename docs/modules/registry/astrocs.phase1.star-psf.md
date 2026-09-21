@@ -12,7 +12,7 @@ downstream: [TEST-P1-PSF-001]
 
 # 模块 astrocs.phase1.star-psf
 
-> P1-PSF-DOC 事实修订（2026-09-07）：本页 registry descriptor 占位 ID
+> 本页 registry descriptor 占位 ID
 > （ALG-002/TEST-P1-PSF-001）保留为编排层词汇，由 P1-PSF-INT 对齐；冻结
 > 合同 = SCI-P1-PSF-001（STAR_PSF_ALGORITHMS §11.5）/ ALG-STARPSF-001
 > （§11.1）/ DATA-P1-PSF（DATA_SEMANTICS §15）/ API-PSF-001（PUBLIC_API

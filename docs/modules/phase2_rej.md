@@ -8,9 +8,9 @@ upstream: [SCI-REJ-001, ALG-P2-REJ-001, API-P2-001]
 downstream: [TEST-P2-REJ-001]
 ---
 
-# 模块 astrocs.p2.rejection（P2-REJ-DOC 新建，2026-09-09）
+# 模块 astrocs.p2.rejection
 
-> P2-REJ-DOC（SA-xxx）新建模块页。合同三件套落位 `lib/algorithms/rejection/`
+> 合同三件套落位 `lib/algorithms/rejection/`
 > （README/module.yaml/memory.md，按 `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/`
 > 先例新建；`lib/algorithms/coverage/` 一目录一套已被 P2-COV 占用，不可覆盖）；
 > 合同权威=三件套 + docs/algorithms/PHASE2_REJECTION.md
@@ -55,7 +55,7 @@ downstream: [TEST-P2-REJ-001]
 - 工作域归一 NONE/MEDIAN_CENTER/MEDIAN_SCALE（floor 1e-12，不除零）；
   mask 应用回原始 calibrated 值（经 source_indices 回映射）。
 - 非职责：不合并/积分样本（P2-INT 下游）；不做权重策略（weights
-  数组外置，构造在 Stage2 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；RCR 核消费同栈 weights 数组
+  数组外置，构造在 Stage2；RCR 核消费同栈 weights 数组
   属官方加权语义，非策略）；不做像素外结构重建（large_scale 仅对
   已拒 mask 做 8 邻域扩张，只增不减）；无 session 依赖（无状态纯
   函数）；不做瞬变/卫星语义区分（SCI §1 非目标）；单帧无排异
@@ -71,8 +71,8 @@ downstream: [TEST-P2-REJ-001]
 | `corrected` | `DATA-P2-COR` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `accepted_mask` | `DATA-P2-REJ` | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL` |
 
-内核级真实 I/O 合同=DATA-P2-REJ（DATA_SEMANTICS §22，P2-REJ-DOC
-同批冻结）:
+内核级真实 I/O 合同=DATA-P2-REJ（DATA_SEMANTICS §22）:
+
 
 - 输入 P2CandidateStack（values f64 ADU / weights f64 1/ADU² 可空=
   等权 / frame_ids u64 / count u32）+ P2RejectionPlan（typed params
@@ -175,8 +175,15 @@ p2_rejection_test.cpp（P2-005 语义 id/解析面）。
 
 - 合同三件套：`lib/algorithms/rejection/`（README/module.yaml/memory.md）
 - registry 页：docs/modules/registry/astrocs.phase2.reject.md
-- SCI：docs/science/REJECTION.md（SCI-REJ-001，FROZEN T107，零改动；
+- SCI：docs/science/REJECTION.md（SCI-REJ-001，FROZEN，零改动；
   descriptor 占位 SCI-P2-REJ-001⇒SCI-REJ-001 映射声明=ALG §11.5）
 - ALG：docs/algorithms/PHASE2_REJECTION.md（ALG-P2-REJ-001）；
   DATA：DATA_SEMANTICS §22（DATA-P2-REJ）；API：API-P2-REJ-001
   （PUBLIC_API.md）+ 编排层 API-P2-001（FROZEN）
+
+## 排异档位（权威 = `ASTROCS_DESIGN.md` §5.5 / `docs/science/REJECTION.md`）
+
+按 N = 该输出像素的**几何覆盖帧数**自动路由：`1≤N≤3` none（不排异）/ `4≤N≤5` percentile /
+`6≤N≤15` winsorized sigma clipping / `N≥16` linear fit clipping。生产算法集 = none / percentile /
+winsorized / linear fit；**min/max 不用于生产**。实际方法、参数与 N 写入 `rejection` provenance。
+

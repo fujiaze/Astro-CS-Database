@@ -1,6 +1,6 @@
 # AstroCS 公共 C ABI 基础层 v1 (Common Foundation — API-001 冻结)
 
-> ID: API-COMMON-001  状态: FROZEN (V5 API-001, 2026-08-28)  上游: ARCH-002/ARCH-003(backend host services 同构)  下游: API-002..005, ABI-001, CLI-001..003
+> ID: API-COMMON-001  状态: FROZEN  上游: ARCH-002/ARCH-003(backend host services 同构)  下游: API-002..005, ABI-001, CLI-001..003
 > 头文件: `include/astrocs/common_abi_v1.h`(单一头, C/C++ 双可编译, 无 STL/exception/RTTI 跨边界)。
 
 ## 1 命名与版本
@@ -75,7 +75,7 @@ typedef struct {
 - ABI layout 测试: 静态断言 `sizeof/offsetof` 全字段(双平台同布局, amd64 LP64/LLP64 差异仅指针宽度已避用 long);
 - 无 exception 跨边界: `-fno-exceptions` 可编译 backend TU。
 
-## 5 任务映射
+## 5 落点映射
 
 | 本文件 | 落点 |
 |---|---|

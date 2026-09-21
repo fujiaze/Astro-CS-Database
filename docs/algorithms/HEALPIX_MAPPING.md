@@ -1,6 +1,6 @@
 # HEALPix Mapping
 
-关联：SCI-DRZ-001；模块：lib/algorithms/shared/healpix（权威实现）；B4-01 去重为单源（drizzle 转依赖 lib/algorithms/shared/healpix，另一份 deprecated shim + 机器门禁）。
+关联：SCI-DRZ-001；模块：lib/algorithms/shared/healpix（唯一权威实现，drizzle 依赖该单源；机器门禁保证仓内只有这一份实现）。
 
 ## 输入
 

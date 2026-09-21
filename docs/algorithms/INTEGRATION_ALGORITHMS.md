@@ -1,6 +1,6 @@
 # Integration Algorithms (ALG-INT)
 
-> ID: ALG-INT-001  范围: ALG-INT-001..003  上游 SCI: SCI-INT-001  状态: DERIVED (T208 冻结; V5 ALG-006 重验 2026-08-28)  模块: phase2/integrate
+> ID: ALG-INT-001  范围: ALG-INT-001..003  上游 SCI: SCI-INT-001  状态: DERIVED  模块: phase2/integrate
 
 ## 1 上游 SCI 与输入输出
 

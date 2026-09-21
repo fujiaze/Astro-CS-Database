@@ -1,25 +1,24 @@
 # Science Freeze（V17 True Final Freeze）
 
-> 状态机：V17 Round0-6 clean-tree 终验已完成（self_review/round6），
-> ACCEPTANCE_GATES.md G1-G10 全部 PASS、known P0/P1 = 0，
+> 冻结结论：`ACCEPTANCE_GATES.md` G1-G10 全部 PASS、known P0/P1 = 0，
 > `ASTROCS_FOUNDATION_FINAL_FREEZE = PASS`。
 
-## V17 冻结状态（2026-08-14，V17 TrueFinal 控制包）
+## V17 冻结状态
 
 ```text
-PHASE1_BASE_ALGORITHMS = FROZEN（V14 审核通过后；V17 只审计与性能，
-                        不改冻结算法）
+PHASE1_BASE_ALGORITHMS = FROZEN（冻结算法不因审计与性能工作改变）
 PHASE2_BASE_ALGORITHMS = FROZEN
 REJECTION_SEMANTICS    = FROZEN（canonical semantic IDs + typed params +
                         eligibility/rejection 分层 + per-sample reason +
                         RejectionNormalizationPolicy）
-ASTROCS_REJECT_PROFILE = FROZEN（生产默认 astrocs_adaptive_pixel = AstroCS
-                        自研「按逐输出像素几何 n」内置映射：n≤3→none；
-                        4..7→percentile；8..15→winsorized；≥16→linear_fit）
+ASTROCS_REJECT_PROFILE = FROZEN（生产科学路由 = ASTROCS_DESIGN.md
+                        §5.5 五档表，N = 几何覆盖帧数：1≤N≤3→none；
+                        4≤N≤5→percentile；6≤N≤15→winsorized sigma；
+                        N≥16→linear_fit；min/max 不用于生产）
 WBPP_AUTO_POLICY       = FROZEN（对照档 wbpp_2_9_1 = WBPP 2.9.1
                         bestRejectionMethod；nominal<6→percentile；
-                         6..15→winsorized；>15→linear_fit；wbpp_current 仅
-                         历史 alias，运行期解析并序列化为 wbpp_2_9_1）
+                         6..15→winsorized；>15→linear_fit；wbpp_current 为
+                         alias，运行期解析并序列化为 wbpp_2_9_1）
 WBPP_LARGE_SCALE       = SUPPORTED（astrocs.large_scale_rejection.v1：
                         connected-component grow，min structure size，
                         low/high 独立半径；默认关闭 = WBPP
@@ -29,7 +28,7 @@ REJECTION_NORMALIZATION = FROZEN（astrocs_median_center_v1 默认；
                         astrocs_median_scale_v1；none）
 SATELLITE_REJECTION_GATE = PASS（受控注入 recall=1.0；n<=2 →
                         REJECTION_UNDERDETERMINED，不宣称可剔除；真实
-                        16 帧只报 observed_rejection_rate，不再叫
+                        16 帧只报 observed_rejection_rate，不称
                         false reject）
 INTEGRATION_CONTRACT   = FROZEN（显式状态 OK/NO_CANDIDATES/ALL_REJECTED/
                         ZERO_VALID_WEIGHT/INVALID_INPUT；非 finite 权重/
@@ -42,17 +41,14 @@ CROSS_STAGE_CONTRACTS  = FROZEN
 HIPS_BROWSER_BASE      = FROZEN
 PERFORMANCE_BASELINE   = FINAL（真实 16 帧 Phase1：cold median 145.4s /
                         warm median 142.4s（platesolve hint）；Drizzle
-                        主导且冻结；65s 历史差异已解释；3 runs before/
-                        after；无 >5% 回归；Phase2 24.0-25.1s；Browser
-                        pan p50 34.7ms）
-FINALIZATION_SELF_REVIEW = PASS（V17 Round0-6 见 self_review/，含
-                        clean-tree 74/74 gate + 真实 16 帧 E2E + 受控
-                        truth + external browser + no_legacy）
-ASTROCS_FOUNDATION_FINAL_FREEZE = PASS（V17 控制包 G1-G10 全部满足）
+                        主导且冻结；无 >5% 回归；Phase2 24.0-25.1s；
+                        Browser pan p50 34.7ms）
+FINALIZATION_SELF_REVIEW = PASS（含 clean-tree 74/74 gate + 真实 16 帧
+                        E2E + 受控 truth + external browser + no_legacy）
+ASTROCS_FOUNDATION_FINAL_FREEZE = PASS（G1-G10 全部满足）
 ```
 
-> 上述冻结由 V17 审核包证据支撑；用户外部复核若发现新 P0/P1，按
-> 冻结后变更流程（科学等价门）处理。
+> 冻结后若发现新 P0/P1，按变更流程（科学等价门）处理。
 
 PIXINSIGHT_EXACT_COMPATIBILITY = NOT_CLAIMED（WBPP profile 仅提供 Auto
 routing 政策与参数映射，不宣称与 PixInsight 内核 bit-exact）。
@@ -61,7 +57,7 @@ routing 政策与参数映射，不宣称与 PixInsight 内核 bit-exact）。
 
 - HiPS 几何/序列化/hierarchy：V11（外部 oracle）。
 - background-clean sampler / standardized Huber / smooth global
-  continuation：V13（用户 ACCEPTED）。
+  continuation：V13（ACCEPTED）。
 - UPM component 语义：V14（data/geometry/unobserved 分开）。
 - Phase2 rejection：V15-V17（typed params、normalization、large-scale、
   integration status/support 契约；74/74 synthetic gate）。
@@ -73,8 +69,8 @@ routing 政策与参数映射，不宣称与 PixInsight 内核 bit-exact）。
 
 ## 冻结后不允许
 
-- 恢复 legacy config aliases（low/high/max_iterations/min_samples 已删除，
-  旧 config 必须经 tools/migrate_stage2_config.py 迁移）；
-- 重新引入 active legacy Stage2/healpix_stack 科学路径
+- 恢复 `low`/`high`/`max_iterations`/`min_samples` 等 config alias
+  （这些键不存在于现行 parser；旧 config 必须经 tools/migrate_stage2_config.py 迁移）；
+- 重新引入 active Stage2/healpix_stack 科学路径
   （no_legacy_production_reference gate 必须持续 PASS）；
 - 把真实 16 帧 observed rejection rate 命名为 false reject。

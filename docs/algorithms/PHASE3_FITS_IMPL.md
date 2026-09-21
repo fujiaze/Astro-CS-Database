@@ -1,14 +1,13 @@
 # Phase3 FITS Write-out Algorithms（P3-FITS / astrocs.p3.fits_writer）
 
-> ID: ALG-P3-FITS-IMPL-001  状态: CONTRACT_READY（P3-FITS-DOC 冻结，2026-09-08，
-> owner SA-P3-F27）。本文件是 Phase3 HiPS→FITS 写出域的**实现级算法合同**：
+> ID: ALG-P3-FITS-IMPL-001  状态: CONTRACT_READY。本文件是 Phase3 HiPS→FITS 写出域的**实现级算法合同**：
 > 逐符号源码行号锚定 + 冻结容差 + 现状缺陷登记。科学语义权威=SCI-P3-001
-> （docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN V5 SCI-007 2026-08-28，
+> （docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN，
 > 集合 SCI-P3-001..020，零改动）；推导级算法权威=ALG-P3-001..004
-> （docs/algorithms/PHASE3_RESAMPLE.md，DERIVED 施工规格，本任务不改动其
+> （docs/algorithms/PHASE3_RESAMPLE.md，DERIVED 施工规格，本域不改动其
 > 公式；G1/G2 WCS 构造与 G5 FITS 写公式的本域实现子面由本文档承接）。
-> 模块: lib/algorithms/fits_output/p3_output.cpp（556 行，B2-A9 后实测）+ 唯一权威签名头
-> lib/algorithms/fits_output/p3_output.h（64 行）+ WCS 关键字源
+> 模块: lib/algorithms/fits_output/p3_output.cpp（520 行）+ 唯一权威签名头
+> lib/algorithms/fits_output/p3_output.h（99 行）+ WCS 关键字源
 > lib/algorithms/projection/p3_wcs.h（W4-A9 批次 1 迁入）；
 > API: API-P3-FITS-001（PUBLIC_API.md「Phase3 FITS 写出公共消费面」节）；
 > DATA: DATA-P3-FITS（DATA_SEMANTICS §27）；MOD: astrocs.p3.fits_writer
@@ -47,17 +46,15 @@
 | DATASUM/CHECKSUM | string | 标准 CFITSIO `fits_write_chksum`（IAU FITS 4.0 §4.4.2.5），逐 HDU 归属 PRIMARY/COVERAGE/VARIANCE/IVAR | p3_output.cpp:63-70 / :241-249 / :263-271 / :294-302 |
 | sha256 | char[65] | 输出文件 SHA-256 hex 小写（完整读出才填） | p3_output.h:27 / :92-114 |
 
-## 3 逐符号锚（p3_output.cpp 520 行 / p3_output.h 99 行 / p3_wcs.h 66 行，2026-09-20 实测）
+## 3 逐符号锚（p3_output.cpp 520 行 / p3_output.h 99 行 / p3_wcs.h 66 行，实测）
 
-> **2026-09-20 行锚重定基（DOC-205）**：FIX-201 使 `p3_output.cpp` 556 → 520 行，上表 8 组符号锚（CTYPE1/2、CUNIT1/2、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、BUNIT、HIPSID..SWVER、`cfitsio_io_mutex`）已按 `grep -n` 现址订正；**语义不变**（`ANCHOR_CONTRACT.md` §2/§5：只改数字、不动符号/公式/门）。
+> 行锚按 `grep -n` 现址登记，覆盖 CTYPE1/2、CUNIT1/2、CRPIX1/2、CRVAL1/2、CD1_1..CD2_2、BUNIT、HIPSID..SWVER、`cfitsio_io_mutex`；**语义不变**（`ANCHOR_CONTRACT.md` §2/§5：只改数字、不动符号/公式/门）。
 
 - 平台宏（Windows _unlink/_commit/_close/_open 映射）:19-31；
   头包含 aio_fits.h/fitsio.h/aio_cfitsio_mutex.h/sha256.h :47-54。
-- ~~`fdatasum`（:59-67）: 32-bit 字节和 checksum（LE 4 字节字累加）~~
-  **B2-A9 已删除**：非标准自算字节和 + TINT 写入保留字 DATASUM，astropy
-  `checksum=True` 逐 HDU 报 "Datasum verification failed"。替代 =
-  `fits_write_std_chksum`（:63-70），转调 CFITSIO `fits_write_chksum`，
-  由 cfitsio 按 HDU 写出标准 DATASUM 十进制串 + CHECKSUM 16 字符。
+- `fits_write_std_chksum`（:63-70）: 转调 CFITSIO `fits_write_chksum`，
+  由 cfitsio 按 HDU 写出标准 DATASUM 十进制串 + CHECKSUM 16 字符，
+  astropy `checksum=True` 逐 HDU 校验通过。
 - `make_temp_path`（:72-84）: tmp = `out + "." + pid + ".tmp"`（:81），
   同目录保证 rename 原子（:82 注释）——**与 h:41-44 协议注
   `<dir>/.<base>.<pid>.tmp` 形态偏差**（DISP-P3FITS-002）。
@@ -89,8 +86,7 @@
      "COVERAGE" :211 + fits_write_pix :212）。
   10. 标准校验和（B2-A9）: PRIMARY 在写 signal 后调 `fits_write_std_chksum`
       （:241-249，cfitsio `fits_write_chksum` → DATASUM+CHECKSUM 逐 HDU），
-      COVERAGE :263-271、VARIANCE/IVAR :294-302 同；旧 `fdatasum`
-      TINT DATASUM 已删除。
+      COVERAGE :263-271、VARIANCE/IVAR :294-302 同。
   11. R10-C 原子发布序 :221-273（注释 :221-224 冻结：cfitsio 内部
       缓冲 flush → fsync(fd) → 原子 rename；原实现在 close 前 fsync
       只能落已入内核页缓存前缀，崩溃可丢数据或留半成品，违反
@@ -158,12 +154,11 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   return P3_OUT_OK
 ```
 
-## 5 上游 SCI 与映射声明（本任务零 SCI 改动）
+## 5 上游 SCI 与映射声明（本域零 SCI 改动）
 
 - 语义权威已有 FROZEN SCI：**SCI-P3-001**（docs/science/
-  PHASE3_HIPS_TO_FITS.md；冻结集合 SCI-P3-001..020，V5 SCI-007
-  2026-08-28）。**不因本任务改动**（共享 SCI 引用不改动；P2-SAMP/
-  P2-REJ/P2-UPM 先例同构）。FITS 关键字面权威=SCI-P3 §96（BITPIX
+  PHASE3_HIPS_TO_FITS.md；冻结集合 SCI-P3-001..020）。**共享 SCI 引用不改动**
+  （P2-SAMP/P2-REJ/P2-UPM 同构）。FITS 关键字面权威=SCI-P3 §96（BITPIX
   -32/-64、BSCALE=1/BZERO=0、BUNIT 按 properties 缺省 ADU、WCS
   CRPIX/CRVAL/CD/CTYPE=TAN/CUNIT=deg、HISTORY+provenance 必写）。
 - **descriptor 占位映射声明**（占位 ID 是矩阵/descriptor 词汇，不注册
@@ -233,7 +228,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   std::thread 池（worker 数=host budget.max_workers :212-213，
   :209 注释禁 hardware_concurrency；每 worker 独立 sampler+值拷贝
   WCS :217-235；取消点=行 :228-229）。
-- **lint 关键词实测清单**（2026-09-08 grep 实测，唯一权威=本表）:
+- **lint 关键词实测清单**（grep 实测）:
   | 关键词 | 命中 | 处置 |
   |---|---|---|
   | `#pragma omp` | lib/phase3_session/*.cpp **0 处** | 无 |
@@ -247,14 +242,14 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 
 ## 9 复杂度
 
-- 时间 O(W·H)（fits_write_pix 两次全帧 + sha256 全文件 + fdatasum
+- 时间 O(W·H)（fits_write_pix 两次全帧 + sha256 全文件 + 校验和
   O(4·W·H) 字节）；verify O(W·H)（两次 read_pix 回环 + sha256）。
 - 空间 O(W·H)×2×4B（sig/cov 调用方缓冲，本域不复制；verify 内
   逐 HDU 临时 vector W·H×4B）；磁盘 O(W·H)×(bitpix/8)×2 HDU+
   header 块（2880B 对齐）。内存不依赖 tile 数（tile 缓冲在上游
   P3-RSMP 域，max_tiles 守卫 p3_session.cpp:179-193）。
 
-## 10 边界与错误（rc 语义表，2026-09-08 实测锚）
+## 10 边界与错误（rc 语义表，实测锚）
 
 | rc | 枚举 | 触发（p3_output.cpp 锚） | 会话层映射（p3_session.cpp） |
 |---|---|---|---|
@@ -282,7 +277,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   p3_output_test.cpp 4 段（§12）；WCS oracle=p3_wcs roundtrip
   （:114-131）。
 
-## 12 TEST-DESIGN（TEST-P3-WR-DESIGN-001 冻结，2026-09-08）
+## 12 TEST-DESIGN（TEST-P3-WR-DESIGN-001 冻结）
 
 可执行 TEST-P3-WR-001 MISSING（P3-FITS-TEST 建立，不冒认）；设计
 冻结面如下（承载于 registry 手写页 §独立 synthetic 验证节 + 本节；
@@ -313,7 +308,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
 - T7（设计面，现状未覆盖）bitpix=-64 全链：写入/回环/校验和
   dtype 语义（归 P3-FITS-TEST）。
 
-## 13 容差与冻结清单（2026-09-08 实测）
+## 13 容差与冻结清单（实测）
 
 - BITPIX ∈ {-32,-64}（kernel :140-145；session 默认 -32 :285）；
   BSCALE=1/BZERO=0 恒定；BUNIT 缺省 "ADU"；CTYPE=TAN/CUNIT=deg。

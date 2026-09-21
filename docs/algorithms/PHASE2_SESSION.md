@@ -1,7 +1,6 @@
 # Phase2 Session Assembly（P2-SESSION / astrocs.p2.session）
 
-> ID: ALG-P2-SESSION-001  状态: CONTRACT_READY（P2-SESSION-DOC 冻结，
-> 2026-09-10，owner SA-P2-X24）。本文件是 Phase2 进程内装配会话
+> ID: ALG-P2-SESSION-001  状态: CONTRACT_READY。本文件是 Phase2 进程内装配会话
 > （lib/phase2_session/）的**装配合同唯一权威**：DAG 拓扑 + 端口 +
 > 生命周期 + 错误/并发/取消语义逐锚冻结。定位=assembly 编排层——
 > 不含任何科学公式，科学实现全部委托既有冻结 C API：coverage=
@@ -18,8 +17,7 @@
 > **尚未建立**，MISSING 如实登记；现状构建=静态库
 > astrocs_phase2_session（根 CMakeLists.txt:454-458），编入 astrocs
 > 可执行（:501-506）。权威源: lib/phase2_session/p2_session.h（39 行）
-> + p2_session.cpp（298 行，2026-09-17 LEDGER-DOC 复测；旧记 282 行为 2026-09-10 实测值；本文件行号
-> 禁止手抄他版）。
+> + p2_session.cpp（298 行，实测；本文件行号禁止手抄他版）。
 
 ## 1 目的与非目标
 
@@ -55,8 +53,8 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
   :504，块 :501-506）；astrocs_module_adapters 亦链接之（:538）。
 - **QA-001**（:517-529）：astrocs_phase2_session 列入自有生产 targets
   严格警告层 -Wall -Wextra -Wpedantic -Wconversion（:522，MSVC /W4）。
-- **先例同构**：lib/phase1_session/（P1-SESSION-DOC，registry 页
-  astrocs.phase1.session.md）同址三件套布局；p2_session.h 五函数与
+- **先例同构**：lib/phase1_session/（registry 页 astrocs.phase1.session.md）
+  同址三件套布局；p2_session.h 五函数与
   p1_session.h:16-28 逐一同型（run 无 async_io_depth 参数差异）。
 
 ## 3 DAG 拓扑：canonical 四段
@@ -117,7 +115,8 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes（:16）。
 3. **p2_session_run**（:100-248）：parse（:103-110，失败文案
    "config parse failed (validate first)"）→ hips 装配（:111-114）→
    预算日志（:115-117）→ 四段（§3）。常量面（:184-194 冻结首版值）：
-   robust_loss=0（huber）、upm_weight_source=0（snr2_normalized （已按 §9.73 A44 作废：键不存在；权重是派生量））、
+   robust_loss=0（huber）、upm_weight_source=0、weight 由 Phase2 按该天球像素
+   对应帧集合现场算出（逐样本 ivar；SNR 只作 veto/质量门）、
    huber_delta=1.345、max_iterations=100、tolerance=1e-6、
    sigma_floor=1e-3、support_power=1.0、use_ivar_weight=1、
    control_reliability=1.0、target_order=cov 实测值（:189）；config
@@ -176,7 +175,7 @@ passthrough 交会话拒——两道防线，语义一致。
 | p2_upm_save（upm.h:108） | — | — | — | :230 | 0..1（条件 :222） |
 | p2_upm_close（upm.h:192） | — | — | — | :224/:231/:241 | 恰 1（正常 :241；persist 取消 :224；save 失败 :231） |
 
-反断言（grep 实测 2026-09-10）：p2_session.cpp 不含 p2_integrate_
+反断言（grep 实测）：p2_session.cpp 不含 p2_integrate_
 pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
 链其余四域不在现状 4 段（§11.4 差距表）。承载测试=p2_ir_facade_test
 .cpp:44-52（p2_coverage_build/p2_sample_controls/p2_upm_build 委托
@@ -229,7 +228,7 @@ pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
 8. NODE-CALL 唯一性（§7 矩阵）；facade 不内联科学（p2_ir_facade_test
    .cpp:41-52）。
 
-## 11 P2-SESSION-DOC 冻结附录（2026-09-10，SRC-P2-SESSION-001 源码实测）
+## 11 冻结附录（SRC-P2-SESSION-001 源码实测）
 
 ### 11.1 返回码/错误映射（ACS_ERR_* 全清单）
 
@@ -277,7 +276,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 
 ### 11.4 IMPL-COMPLETE 全链 artifact 目标合同与现状差距表
 
-| # | artifact | 现状（2026-09-10 实测） | 差距归属 |
+| # | artifact | 现状（实测） | 差距归属 |
 |---|---|---|---|
 | 1 | astrocs_p2_session.dll（独立迁移目标） | 不存在（MISSING）；现状=静态库 astrocs_phase2_session（CMakeLists.txt:454-458）编入 astrocs 可执行（:501-506/:504） | P2-SESSION-IMPL |
 | 2 | coverage 域产物（union MOC+target_order，P2CoverageResult 进程内） | 已实现（lib/algorithms/coverage/src/coverage.cpp，ALG-COV-001 域） | 已存在（P2-COV 域） |
@@ -286,7 +285,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 | 5 | persist 段=HiPS writer 域马赛克写产品 | **不在会话**：p2_session persist 段仅 upm_save 单产物；upm_apply/reject/integrate/write 四域未编排（PUBLIC_API.md:1088-1090） | P2-SESSION-IMPL（typed DAG 扩面） |
 | 6 | typed phase2 DAG 全链执行（"full execution no partial facade"） | 现状=4 段 facade 直调（p2_ir_facade_test.cpp:41-52 契合现状口径） | P2-SESSION-IMPL（台账 :187） |
 | 7 | module integration descriptor + typed ports | registry 无 astrocs.p2.session descriptor；占位 descriptor 工厂委托（§4） | P2-SESSION-INT（台账 :188） |
-| 8 | registry 页 astrocs.phase2.session.md / README / memory | 不存在；由并行任务生成（本任务仅本文件+module.yaml） | P2-SESSION-DOC 并行面/主 agent |
+| 8 | registry 页 astrocs.phase2.session.md / README / memory | 不存在；归 registry 面登记 | registry 面 |
 | 9 | TEST-P2-SESSION-001 可执行测试 | MISSING（不冒认） | P2-SESSION-TEST（台账 :186） |
 
 ### 11.5 TEST-P2-SESSION-DESIGN-001 冻结测试设计（可执行 TEST-P2-SESSION-001 由 P2-SESSION-TEST 落地，MISSING 如实登记）
@@ -321,13 +320,13 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   fixture 先例）；host services 用假 host（logger/cancel/budget/
   allocator 可编程）。
 
-### 11.6 SCI 层状态声明（本任务零 SCI 改动）
+### 11.6 SCI 层状态声明（本域零 SCI 改动）
 
 - 本会话共享引用 SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
-  （docs/science/，FROZEN）——**不因本任务改动**（共享 SCI 引用不改
-  动；P1-WCS-DOC SCI-WCS-001=共享 ASTROMETRY.md、P2-COV-DOC
-  SCI-UPM-001/SCI-INT-001、P2-INT-DOC SCI-INT-001、P2-REJ-DOC
-  SCI-REJ-001 先例）。现状 4 段实际消费面=SCI-UPM-001（coverage/
+  （docs/science/，FROZEN）——**共享 SCI 引用不改动**
+  （P1-WCS SCI-WCS-001=共享 ASTROMETRY.md、P2-COV
+  SCI-UPM-001/SCI-INT-001、P2-INT SCI-INT-001、P2-REJ
+  SCI-REJ-001 同构）。现状 4 段实际消费面=SCI-UPM-001（coverage/
   sampler/upm 域均在其集合 SCI-UPM-001..010 内）；SCI-INT-001/
   SCI-REJ-001 为会话下游 typed DAG 扩面（upm_apply/reject/integrate/
   write 四域）的共享 SCI 引用，现状未由本会话直接调用——如实登记，
@@ -351,7 +350,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   （P2-SESSION-TEST 落地）；`TEST-P2-SESSION-DESIGN-001` = 本文件
   §11.5（双面登记不冒认）。
 - `SRC-P2-SESSION-001` = lib/phase2_session/ 源码实测面（p2_session.h
-  39 行 + p2_session.cpp 298 行（2026-09-17 复测）+ 根 CMakeLists.txt:454-458/:501-506/
+  39 行 + p2_session.cpp 298 行（复测）+ 根 CMakeLists.txt:454-458/:501-506/
   :517-529），本文件全部行号锚的权威。
 - `MOD-astrocs-phase2-session` = lib/phase2_session/module.yaml（本
   任务同批建立）+ registry 页（并行任务生成）。
@@ -359,12 +358,12 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 ## 13 追溯
 
 - 实现：lib/phase2_session/p2_session.h（39 行）+ p2_session.cpp
-  （298 行，2026-09-17 复测）；构建：静态库 astrocs_phase2_session（CMakeLists.txt
+  （298 行，复测）；构建：静态库 astrocs_phase2_session（CMakeLists.txt
   :454-458）→ astrocs 可执行（:501-506）+ QA-001 严格警告层
   （:517-529）。
 - 编排消费面：CLI 直调（CLI-005）与 RT-005/RT-008 SessionModule
   （module_adapters.cpp:777-784 P2Api，注册 :746-751/:782-794）。
-- 对拍先例：lib/phase1_session/（P1-SESSION-DOC）+ registry 页
+- 对拍先例：lib/phase1_session/ + registry 页
   astrocs.phase1.session.md；PHASE2_SAMPLER.md §11/§12 结构。
 - 消费域：ALG-COV-001（PHASE2_COVERAGE.md）/ ALG-P2-SMP-001
   （PHASE2_SAMPLER.md）/ ALG-UPM-001（UPM_SOLVER.md）。

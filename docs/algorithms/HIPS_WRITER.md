@@ -1,11 +1,11 @@
 # ALG-HIPS-001..005 — astrocs.p1.hips_writer HiPS 产品集写出算法
 
-> ID 覆盖: ALG-HIPS-001 ALG-HIPS-002 ALG-HIPS-003 ALG-HIPS-004 ALG-HIPS-005  状态: CONTRACT_READY (P1-HIPS-DOC 冻结, 2026-09-07)
-> SCI 上游: SCI-DRZ-001（docs/science/DRIZZLE.md，FROZEN T105 2026-08-23，共享引用不改动；
+> ID 覆盖: ALG-HIPS-001 ALG-HIPS-002 ALG-HIPS-003 ALG-HIPS-004 ALG-HIPS-005  状态: CONTRACT_READY
+> SCI 上游: SCI-DRZ-001（docs/science/DRIZZLE.md，FROZEN，共享引用不改动；
 > :130 实现锚 finalize_tile 方差语义、:145 support=D_p 归一语义）
 > 与 SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md，产品目标）；读侧消费合同
 > SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，只读引用）。
-> 实现源（逐公式锚定，P1-HIPS-DOC 亲核）: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
+> 实现源（逐公式锚定）: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp
 > （合同头 lib/infrastructure/aio/include/aio_hips.h）。
 > 数据语义权威: docs/contracts/DATA_SEMANTICS.md §12（DATA-P1-HIPS；上游 §11 DATA-P1-DRZ、
 > §4a DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001、§3 FITS 局部像素映射、§5 帧身份）。
@@ -13,14 +13,13 @@
 > （Górski et al. 2005）——经 SCI-P3-001 :120-124 收录的文献锚，本文件不另立外部断言。
 > 本文件为逐公式"算法+源码锚点"登记：凡 SCI 层无覆盖而实现自带的语义（HiPS 写出
 > 合同细节），以实现为准登记并标注；凡实现与 SCI 语义冲突处，登记 DISP- 条目，
-> 不反向修改 SCI（P1-HIPS-DOC 纪律）。
+> 不反向修改 SCI。
 >
-> **行号锚漂移声明（SCI-FIX-AIO，2026-09-16）**：本轮跨边界结构 ABI 头/校验、
-> 共用 `fmt_sky_fraction`、未钳制面积归约与钳制计数使 `aio_hips_writer.cpp`
-> 行号整体推移（+57 起，最大约 +147）。本文件 §4 (4b)(4c)、§5 (5a)(5b)、§9 的
-> 锚已按修订后行号重标；§1–§3 与 §10 DISP 表的裸 `:NNN` 仍为修订前锚（**符号名
-> 为准**）——`docs/algorithms/anchors/anchor_contract.json` 未对 aio 文件声明
-> symbol binding，故 C4 机器门不覆盖此漂移；全量重标定登记为后续文档任务。
+> **行号锚声明**：跨边界结构 ABI 头/校验、共用 `fmt_sky_fraction`、未钳制面积
+> 归约与钳制计数使 `aio_hips_writer.cpp` 行号整体推移（+57 起，最大约 +147）。
+> 本文件 §4 (4b)(4c)、§5 (5a)(5b)、§9 的锚已按修订后行号重标；§1–§3 与 §10 DISP
+> 表的裸 `:NNN` 以**符号名**为准。`docs/algorithms/anchors/anchor_contract.json`
+> 未对 aio 文件声明 symbol binding，故 C4 机器门不覆盖此漂移。
 
 ## 0. 范围界定
 
@@ -193,7 +192,7 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
   失败静默 return；键序 finalize_image_product :707-771）：IVOa 关键字
   creator_did（:707，缺省 ivo://astrocs/phase1）/ obs_title / obs_creator=
   "AstroCS"（:710）/ **hips_version="1.4"** / hips_order=K /
-  hips_tile_width="512" / hips_frame="icrs"（IVOA REC-HIPS-1.0 §4.4.1 值域；
+  hips_tile_width="512" / hips_frame="equatorial"（IVOA REC-HIPS-1.0 §4.4.1 标准值域 {equatorial, galactic, ecliptic}；
   M1a-B-005 前写非标准值 "equatorial"）/ dataproduct_type="image" /
   dataproduct_subtype（signal=surface brightness、support=coverage fraction、
   variance=variance、ivar=inverse variance，:716 由 finalize :1030-1052
@@ -345,7 +344,7 @@ round-trip（(5c)）。容差冻结见 §9。
   >824.5167388361774″ rc=2，每次拒绝 last_error 必须点名原因（N5）；
   跨边界结构 ABI（V11-N-01）：struct_size/abi_version 与调用方编译期布局不符
   ⇒ 入口 rc=−9 且 last_error 点名 ABI（view/variance/diag/snr 数组逐元素/
-  legacy tile 数组，N11）**。
+  兼容入口 tile 数组，N11）**。
 - **冻结容差**：f64 通路逐像素 bitwise（同序确定性）；f32 存储 rtol=1e-7
   （单次乘除舍入界）；hierarchy f64 累加对 oracle bitwise、f32 累加路径
   rtol=1e-6（f32 累加器漂移界，DISP-HIPS-009 修复前口径）；sky fraction
@@ -364,11 +363,11 @@ round-trip（(5c)）。容差冻结见 §9。
 | DISP-HIPS-001 | 高 | abort 仅 `delete ps`，不删除已写文件；aio_hips.h:151 注释称"清理已写部分(尽力)"——合同与实现不符，部分失败产品残留无 rollback。matrix 专项"partial failure rollback"如实登记为缺口 | aio_hips_writer.cpp:1140-1144; aio_hips.h:151 | IMPL 事务化（写临时目录+发布切换）或头注释降级声明+文档化调用方清理责任（与 IO-003 对齐） |
 | DISP-HIPS-002 | 中 | properties `hips_estsize="1000000"`、`hips_initial_fov="60"`（image 与 SNR 两处）硬编码占位，无真实估算/校验 | :721; :745; :954 | 按产品目录真实字节数与天区极值估算；tests/io/make_hips_fixture.py:168/:170 照抄需同步 |
 | DISP-HIPS-003 | 低 | properties `hips_status` 恒 "private master"，无公开/克隆状态参数化 | :718; :931 | 参数化或确认产品定位恒私有 |
-| DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写（:185-186/:251/:770）、make_dirs 无 fsync（:110-133）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在 DATA-P1-HIPS §12.5 登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（hiss_stream_writer.cpp:259-260,:644-655）但 writer 未采用 | :185-186,:251,:770,:110-133,:1086-1128; docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属裁决 |
+| DISP-HIPS-004 | 高 | C++ 写出无原子发布：FITS/MOC/metadata 先 remove 后 create 直写（:185-186/:251/:770）、make_dirs 无 fsync（:110-133）、properties/manifest 直写、manifest 无 COMPLETE 状态字/树哈希；finalize 中途失败（−3..−8）已写子产品残留；同 out_dir 重跑与旧运行残留混合。原子语义由 IO-003 Python 发布层承接（临时写→fsync→fitsverify→sha256→原子 rename→manifest COMPLETE）——两合同边界在 DATA-P1-HIPS §12.5 登记对齐，writer 层不冒认已原子。对照：HISS 容器有 .partial/.tmppool+atomic_replace（hiss_stream_writer.cpp:259-260,:644-655）但 writer 未采用 | :185-186,:251,:770,:110-133,:1086-1128; docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | INT 层接线（writer 写 staging 由 IO-003 消费）或 writer 内嵌事务；tree hash 归属待定 |
 | DISP-HIPS-005 | 低/中 | 入参 moc_order 静默 clamp（min 与 tile_order）无告警；且 moc_order<K 时 Moc.fits 含低阶 UNIQ，而自家读侧 aio_hips_reader.cpp:166-175 仅保留 order==K——低阶 MOC 对自家 reader 无效（Moc.fits 为 optional hint，不影响覆盖判定） | :419; aio_hips_reader.cpp:166-175 | 强制 moc_order=K 或 reader 兼容低阶 UNIQ |
 | DISP-HIPS-006 | 中 | CFITSIO 裸调未包装进程级互斥锁（同库 aio_fits.cpp:502、aio_hips_reader.cpp:91/:140/:293 均用 aio::cfitsio_io_mutex）——writer 写路径完全无锁；单句柄串行使用无影响，未来多句柄/多线程写同进程将静默竞争（现生产链=drizzle 合并后单线程写，astro_sphere_sink.cpp:97，暂无并发场景） | aio_hips_writer.cpp 全文件无 mutex | 统一包装 mutex 或显式登记单句柄使用约束 |
 | DISP-HIPS-007 | 低 | 错误码无集中枚举且正负混用（write/finalize 负码 −1..−9（含 ABI 不匹配 −9，V11-N-01）vs provenance 正码 1/2；语义仅注释）——ABI 演进风险；last_error 每入口 clear，跨调用不可追溯 | :398/:426/:573, :513/:521/:632/:648/:658/:1036-1072, :1007-1016 | 集中枚举 + 头文件公开 |
-| DISP-HIPS-008 | 低 | `aio_hips_write` 兼容入口旧语义：signal=F、support=uint8 0..255 → covered_area=su/255·A_cell、flux_sum=signal·su/255（8bit 量化损失），flags 固定 ALL（无 variance/ivar），与新 AstroSphereTileView 连续 support 语义并存易混用 | :1146; :1182-1199 | 标记 deprecated 或内部转换告警 |
+| DISP-HIPS-008 | 低 | `aio_hips_write` 兼容入口旧语义：signal=F、support=uint8 0..255 → covered_area=su/255·A_cell、flux_sum=signal·su/255（8bit 量化损失），flags 固定 ALL（无 variance/ivar），与新 AstroSphereTileView 连续 support 语义并存易混用 | :1146; :1182-1199 | 标记为非推荐入口或内部转换告警 |
 | DISP-HIPS-009 | 中 | f32 产品下 AncestorAcc 以 float 累加 Σflux/Σarea/Σvar_num（f64 通道仅 f64 产品使用）——多子 tile 大和有 f32 舍入漂移风险，影响低阶 hierarchy 精度 | :322-331; :536-557 | f32 产品仍用 double 累加（存储时再截断）或登记精度边界（TEST-HIPS-DESIGN-001 容差已按 1e-6 冻结） |
 | DISP-HIPS-010 | 低 | fits_str 对 FITS 头字符串 68 字符静默截断（obs_title 等超长丢尾无告警）；properties key=value 裸写无转义（值含换行/=会破坏格式，现状值域受控）；write_properties/SNR tile fopen 失败静默或仅 set_error（properties 缺失时 finalize 仍返回成功路径） | :139-157; :285-293; :906 | 截断告警；properties 值转义/校验；失败传播到返回码 |
 | DISP-HIPS-011 | 低 | hierarchy 空 acc（count 全 0 的父 cell）照写全 NaN tile（:797-823 不检查 count），文件量虚增；hierarchy 目录无独立 MOC；finalize 每层重新分配 4×262144 缓冲（:794-795）内存峰值 | :794-795; :797-823 | count==0 跳过；缓冲入句柄 scratch 复用 |

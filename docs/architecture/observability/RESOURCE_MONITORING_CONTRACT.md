@@ -1,6 +1,6 @@
 # AstroCS 资源监控伴随器合同（LOG-002）
 
-> 文档 ID：`ARCH-LOG-MONITOR-002`（归属 `docs/architecture/observability/`，owner SA-LOG-08）
+> 文档 ID：`ARCH-LOG-MONITOR-002`（归属 `docs/architecture/observability/`）
 > 状态：ACTIVE_NORMATIVE（LOG-002 冻结）
 > 机器可读事实源：`lib/infrastructure/observability/monitoring/monitor.py`（合同列/指纹/校验）、
 > `tools/monitoring/verify_monitor_csv.py`（检查器）、
@@ -15,7 +15,7 @@ monitor，同一 run ID **每秒**采集 process/system CPU、active/granted wor
 RSS/private/commit、read/write bytes、queue/lock/io wait、provider/module，
 产出**不可手工合成**的原始 CSV，供运行图（LOG-003）、审计、容量分析消费。
 
-**验收（tasks/03_RUNTIME_DATA_IO_TASKS.md LOG-002〔来源已删除/不可考，替代=ASTROCS_DESIGN.md §9〕）**：
+**验收（依据=`ASTROCS_DESIGN.md` §9）**：
 - 无 monitor 的 `cpu_heavy` run **失败**（负测强制点）；
 - I/O 区间与初始化区间**分开**记录；
 - 原始 CSV **不可手工合成**（header 指纹链 + 写后只读 + 时间戳单调断言）；
@@ -38,7 +38,7 @@ LOG-001/RT-006 已冻结语义；不实现 Windows PDH/ETW 真实采集。
 
 ## 3. CSV 合同（原始时序数据）
 
-### 3.0 工件名与「两工件不互替」声明（DOC-202 R09 / GAP_AUDIT §4.2 Q4 裁决）
+### 3.0 工件名与「两工件不互替」声明
 
 > ⚠ **强制消歧（唯一口径）**：仓库里有**两个不同的资源时序工件**，**不同名、不互替**：
 
@@ -178,7 +178,7 @@ JSONL，按 LOG-001 合同做适配（本任务交付 CSV + 指纹 + 校验闭�
 
 ## 10. 参考
 
-- 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-002（**来源已删除/不可考**；**替代**=`ASTROCS_DESIGN.md` §9 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记）
+- 依据：`ASTROCS_DESIGN.md` §9 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
 - LOG-001：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`
 - RT-006：`include/astrocs/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`

@@ -1,6 +1,6 @@
 # AstroCS 结构化日志合同（LOG-001）
 
-> 文档 ID：`ARCH-LOG-STRUCTURED-001`（归属 `docs/architecture/observability/`，owner SA-LOG-08）
+> 文档 ID：`ARCH-LOG-STRUCTURED-001`（归属 `docs/architecture/observability/`）
 > 状态：ACTIVE_NORMATIVE（LOG-001 冻结）
 > 机器可读事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（JSON Schema v1）、
 > `lib/infrastructure/observability/logging/log_event.py`（参考实现）、`tools/monitoring/check_log_contract.py`（检查器）。
@@ -19,7 +19,7 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 **边界（本任务冻结范围）**：LOG-001 只冻结合同 + schema + 小型验证，**不实现生产 logger、
 不接监控**。LOG-002 把生产 Runtime/模块/资源监控接入本合同的 JSONL 输出。
 
-### 1.1 身份声明：本合同**不是**运行事件流（DOC-202 R08 / GAP_AUDIT §4.3 Q6 裁决）
+### 1.1 身份声明：本合同**不是**运行事件流
 
 > ⚠ **强制消歧（唯一口径）**：LOG-001 的身份 = **「结构化日志合同」**（人可读摘要 + 机器 JSONL
 > 双通道同源），**它⛔不是运行事件流（run event stream）**，不得被当作运行事件流消费或冒充。
@@ -78,7 +78,7 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 
 | 子字段 | 语义 | 约束示例 |
 |---|---|---|
-| `source` | 错误来源（模块 id 或仓库内相对路径） | 禁止绝对用户路径（脱敏）；`lib/algorithms/noise_snr/wrapper_phase1/noise_model.cpp（已删除：B 已按 EXP-206 退役，此处仅作路径形态示例）` |
+| `source` | 错误来源（模块 id 或仓库内相对路径） | 禁止绝对用户路径（脱敏）；`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`（路径形态示例） |
 | `symbol` | 出错符号 | `astrocs::noise::estimate_sigma` |
 | `status` | 稳定错误码 | `ACS_ERR_IO`、`ACS_ERR_CANCELLED`、`ACS_ERR_BUDGET` |
 
@@ -126,14 +126,14 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 
 ## 7. 与运行事件流 / 既有 Core 日志的关系
 
-- **与运行事件流的关系（DOC-202 R08）**：本合同**不是**运行事件流，见 §1.1；
+- **与运行事件流的关系**：本合同**不是**运行事件流，见 §1.1；
   运行事件流的唯一 schema = `lib/infrastructure/cli/protocol.h` + `jsonl.h`。
   两者**可以并存**（日志面向操作员/审计，事件流面向 GUI/机器消费），但**不得互相替代**，
   也不得把任一方的字段名搬到另一方。
 
 
 `include/astrocs/core/logging.h`（CORE-008 Logger/MetricsAggregator）是既有运行时组件
-（owner SA-RT-05 路径）；LOG-001 **不修改它**。本合同是其事件语义的冻结外部化：
+LOG-001 **不修改它**。本合同是其事件语义的冻结外部化：
 既有字段 `ts/component/event/message/seq/node_id/run_id/progress/wall_us` 的
 等价语义映射到合同字段表 2.2（`component→module/phase` 归属、`message→diagnostic` 等）。
 LOG-002 在 Runtime 集成时以本合同为单一事实源做适配，双写/映射细节由 LOG-002 冻结。
@@ -152,6 +152,6 @@ LOG-002 在 Runtime 集成时以本合同为单一事实源做适配，双写/�
 
 ## 9. 参考
 
-- 任务规格：`tasks/03_RUNTIME_DATA_IO_TASKS.md` LOG-001（**来源已删除/不可考**：`tasks/` 目录不在 git 跟踪面且无 git 历史；**替代**=`ASTROCS_DESIGN.md` §6.3 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记）
-- 控制包标准：`14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md` §4/§5、`13_DATA_PIPELINE_AND_ARTIFACT_STANDARD.md` §5（**两份来源均已删除/不可考**，git 跟踪面零命中；**替代**=`ASTROCS_DESIGN.md` §7.1a/§9 + `docs/architecture/ARCHITECTURE.md`）
+- 依据：`ASTROCS_DESIGN.md` §6.3 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
+- 依据：`ASTROCS_DESIGN.md` §7.1a/§9 + `docs/architecture/ARCHITECTURE.md`
 - 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`、`tools/monitoring/check_log_contract.py`

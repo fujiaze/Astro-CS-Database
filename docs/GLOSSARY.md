@@ -1,4 +1,4 @@
-# AstroCS 术语与单位词典（DOC-001 冻结）
+# AstroCS 术语与单位词典
 
 本词典是**唯一术语权威**。每个核心术语恰一个含义;legacy alias 列出迁移去向。
 任何文档/代码/接口与本文冲突时,以本文锚点所指的权威文件为准并回改词典——禁止两套定义并存。
@@ -9,8 +9,8 @@
 | electron | DRIZZLE 域允许的信号等价标注(增益标定后) | 信号单位(=ADU 等价标注) | e⁻ → electron | docs/science/DRIZZLE.md#27 |
 | variance | 逐像素随机方差,Drizzle 传播 variance_p=Σ v_j·w_jp²/D_p²;无覆盖像素=0 | 信号单位²(ADU²) | - | docs/contracts/DATA_SEMANTICS.md#4a |
 | ivar | 逆方差=1/variance;variance=0/缺失 → ivar=0(显式不可用,禁止伪装);NaN/负 variance=产品损坏 | ADU⁻² | - | docs/contracts/DATA_SEMANTICS.md#4a |
-| pixel_weight | 像素级科学权重=ivar(UPM/integration/ACR);legacy snr² 权重仅 ablation 域 | 无量纲 | snr²-weight → pixel_weight(ivar) | docs/contracts/DATA_SEMANTICS.md#4a |
-| frame_quality_weight | 帧质量权重=support×snr_v²(SCI-CW 域专用;**legacy/非生产** （已按 §9.73 A44 作废：键不存在；权重是派生量）；生产=逐样本 ivar);禁止 snr=1.0 伪装 unknown | 无量纲 | - | docs/science/CONTROL_WEIGHT_SNR.md#42 |
+| pixel_weight | 像素级科学权重=ivar(UPM/integration);snr² 权重只用于 ablation 对照 | 无量纲 | snr²-weight → pixel_weight(ivar) | docs/contracts/DATA_SEMANTICS.md#4a |
+| frame_quality_weight | 帧质量权重=support×snr_v²（SCI-CW 域专用，非生产；权重是阶段二按天球像素对应帧集合现场算出的派生量）；生产=逐样本 ivar；禁止 snr=1.0 伪装 unknown | 无量纲 | - | docs/science/CONTROL_WEIGHT_SNR.md#42 |
 | support | 覆盖/有效支持度,连续 [0,1];0=无覆盖 | 无量纲 | coverage → support | docs/contracts/DATA_SEMANTICS.md#4 |
 | invalid | 非法样本判定:NaN 或 support<=0;有效样本=finite 且 support>0 | 布尔判定 | - | docs/contracts/DATA_SEMANTICS.md#4 |
 | nan | 非法值唯一载体;无有效样本必须有明确 status,禁止静默输出 0 或 ±Inf | 浮点值 | - | docs/contracts/DATA_SEMANTICS.md#4 |

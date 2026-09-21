@@ -31,7 +31,7 @@ d_k = A_k x + n_k,    Cov(n_k) = C_k
 
 ## 3. 节点与先后关系
 
-**节点顺序以 `ASTROCS_DESIGN.md` §3.2 为唯一权威**（DOC-203 订正：原文「… → source detection → PSF → astrometry → photometry → …」漏掉**两轮 WCS** 与 **apply photometry**，与本设计相反，已删）：
+**节点顺序以 `ASTROCS_DESIGN.md` §3.2 为唯一权威**：
 
 ```text
 ingest → calibration → cosmetic/validity → background/noise
@@ -75,7 +75,7 @@ V(y_p) = {V(r_p)+V(b_p)+alpha²[V(d_p)+V(b_p)]+y_p²V(f_p)} / f_p²
 
 - 背景模型 (B(x,y)) 与随机噪声 (C) 分开；Phase1 可估计背景但不得把背景校正和 UPM 混成同一层；
 - validity 包含 NaN/Inf、坏点、饱和、cosmetic、边界、插值、星轨/严重形变；
-- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/STAR_DETECTION.md:18-19`）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`，整改归 P1-STAR-IMPL/INT）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
+- 检测阈值的**冻结定义**为全局背景噪声倍数 `median(img)+5.0·bgnoise`（`docs/science/STAR_DETECTION.md:18-19`）；以逐像素 variance/ivar 做**局部噪声自适应**为目标态、当前未实现（`DISP-STAR-002`）；输出 selection function 和 completeness 相关参数；检测目录不是图像灵敏度本身；
 - 检测、PSF、WCS、测光、SNR 的 source row 都绑定同一 frame_id/source_id。
 
 ## 6. PSF 模型
@@ -96,39 +96,31 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 - 相对标度不足时标记不可跨帧合并，不用“median stellar flux”静默代替；
 - astrometry/photometry 的系统误差与随机误差分开。
 
-## 8. SNR、PSF Signal Weight 与 Phase2 输入
+## 8. SNR、点源信息量与 Phase2 输入
 
 ### 8.1 三个不同对象
 
 1. **逐源 SNR**：`SNR_s = F_hat_s / sigma_F,s`，用于源测量诊断；依赖真实源亮度。
 2. **参考通量深度**：`m_5 = ZP - 2.5 log10[5 sigma_F(ref)]`，用于帧/位置深度表达。
-3. **点源信息权重**：
+3. **点源信息量**：
 
 ```text
 W_psf,k(x,y) = a_k(x,y)^2 P_kᵀ C_k⁻¹ P_k = 1 / Var(F_hat_k)
 ```
 
-用于 Phase2 点源最优合并。白噪声时：
+用于 Phase2 点源最优合并（Phase1 产出的是该信息量，不产出叠加权重）。白噪声时：
 
 ```text
 W_psf,k = a_k² Σ_p P_k,p² / sigma_pix,k² = a_k² / (sigma_pix,k² A_NEA,k)
 ```
 
-固定参考通量下 `SNR_k²(F_ref) = F_ref² W_psf,k`。所以 Phase2 消费的是信息权重或等价充分统计量，不是未平方 SNR，也不是实际星表的 median SNR。
+固定参考通量下 `SNR_k²(F_ref) = F_ref² W_psf,k`。所以 Phase2 消费的是点源信息量或等价充分统计量，不是未平方 SNR，也不是实际星表的 median SNR。
 
-### 8.2 PSF Signal Weight（**已退役**；DOC-203 / A44 + C01 订正 2026-09-20）
+### 8.2 Phase1 的 SNR 与信息量产品边界
 
-> **订正**：`psfsw_robust_weight` 数据对象已按负责人 2026-09-20 **裁决 B 真删**（14→13；`GAP_AUDIT.md` §4.5 C01；
-> 变更 claim `CHG-2026-09-20-PSFSW-RETIRE`），且 `ASTROCS_DESIGN.md` §2.1 定案「**全程只有 SNR，不存在「权重模式」**；
-> 阶段一、阶段三**不产生、也不消费任何权重**」，§2.3 定案「PSF 拟合质量代理**只作诊断**，**禁止**计入阶段二科学叠加权重」。
-> 因此本节原文的「两类 PSF 权重」「Phase2 conventional integration 的可选相对帧权重」**已作废**：
-> Phase1 **只**产出帧级 SNR（与 `W_psf` 作为点源充分统计量），**不得**把 PSFSW 相对权重写进任何产品；
-> 权重一律由**阶段二**按该天球像素对应的帧集合**现场算出**（派生量）。以下原文只作**历史留痕**（不得据此实现或验收）：
-
-- ~~`psf_information_weight`：上述 `W_psf=PᵀC⁻¹P` 信息权重，是点源检测/测光默认科学产品；~~
-- ~~`psfsw_robust_weight`：受 PixInsight PSFSW 启发，综合共同星集的 PSF 总 signal、signal concentration、稳健 noise 和稳健 background，是 Phase2 conventional integration 的可选相对帧权重。~~
-
-~~Phase1 必须把 PSFSW 的四个分量、共同星集/selection function、归一和有效性分别输出。该相对无量纲权重不写成 ivar，也不取代 `W_psf`；详细合同见 `docs/science/PSF_SIGNAL_WEIGHT.md`。~~
+Phase1 **只**产出帧级 SNR、稀疏控制点上的相对 SNR，以及 `W_psf = PᵀC⁻¹P` 作为点源充分统计量（`point_source_information`）；
+**不产生、不消费**任何叠加权重。叠加权重由**阶段二**按该天球像素对应的输入帧集合**现场算出**（派生量）。
+PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**禁止**计入阶段二科学叠加权重（`ASTROCS_DESIGN.md` §2、§3.1）。
 
 ### 8.3 标量降级门
 
@@ -150,7 +142,7 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 
 - HiPS signal；pixel variance/ivar；support；coverage/validity；
 - PSF 模型/地图；photometric response；WCS；背景/噪声模型；
-- `point_source_information`（map/model + summary）；~~`psfsw_robust`（四分量 + 相对权重 + validity）~~（**已退役**：对象真删 14→13，见 §8.2 订正）；`depth_m5`（map/model + summary）；
+- `point_source_information`（map/model + summary）；`depth_m5`（map/model + summary）；
 - source catalog（逐源 flux、variance、SNR、flags）；
 - drizzle correlation/transfer 描述；
 - product manifest：schema、算法/模块/provider、完整 SHA、输入/配置哈希、单位、参考尺度、近似和降级。
@@ -162,7 +154,7 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 - 校准解析/Monte Carlo 方差一致；共同 master 相关性不被误当独立；
 - 注入点源：理论 `sigma_F = 1/sqrt(W_psf)` 与实测散度一致；
 - 改变源亮度分布不改变同一图像的 `W_psf`，但会改变 median source SNR；
-- seeing、背景、透明度按理论改变信息权重；
+- seeing、背景、透明度按理论改变点源信息量；
 - 帧级标量门失败时必须升级为空间模型；
 - Drizzle 常量面亮度、积分通量、variance 与 correlation oracle 全过；
 - 产品从磁盘独立重开后足以执行 Phase2，不依赖进程内状态。

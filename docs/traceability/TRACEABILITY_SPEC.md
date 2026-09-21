@@ -1,10 +1,9 @@
 # 机器追溯合同（TRACEABILITY_SPEC v1）
 
-> 建立：DOC-001（SA-QA-29，wave W1）base_main_sha=0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
+> 矩阵基线 base_main_sha=0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
 > 状态：ACTIVE_NORMATIVE —— 本文件冻结追溯 ID 格式、唯一性、跨层关系、CSV/JSON schema
 > 与 source symbol 表达；仓库内所有模块追溯矩阵与机器检查器必须与本文件一致。
 > 权威顺序与分层语义按 `ASTROCS_DESIGN.md` §0（权威链）与 `ENGINEERING_SPEC.md` §8（机器一致性检查）；
-> 旧控制包标准 `16_SCIENCE_DOCUMENT_AND_TRACEABILITY_STANDARD.md` 与 `AstroCS_ENGINEERING_CONSTRAINTS.md`（源 doc_id DOC-GOV-CONSTRAINTS-001）已随 ROOT-007 退役，仅作历史溯源；
 > 本文件不重复公式、不改科学定义、不放宽既有工程约束。
 
 ## 1. 目的与范围
@@ -76,7 +75,7 @@ API      ^API-[A-Z0-9]+(-[A-Z0-9]+)*$          例如 API-P1-001、API-ABI-001
 ARCH     ^ARCH-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 ARCH-001
 MOD      ^MOD-[A-Z0-9]+(-[A-Z0-9]+)*$          例如 MOD-astrocs-phase1-calibration
 TEST     ^TEST-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 TEST-P1-CAL-001、TEST-BLD003-NOOP-HANDSHAKE
-EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-DOC-001-MATRIX
+EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 ```
 
 - 占位符 ID 是合法 ID 的超集特例：`SCI-MISSING`、`TEST-MISSING` 等（见 2.1）。
@@ -84,13 +83,13 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-DOC-001-MATRIX
   EVIDENCE 层 id（非占位）全矩阵唯一。SCI/ALG/DATA/API/ARCH/TEST 是**合同层**，
   ID 可被多个模块行共享（如 `API-P2-001` 被 8 个 phase2 模块共同承载、
   `TEST-P3-RES-001` 由 phase3.resample/resample2 共享——registry 文档既定事实），
-  其**真实唯一性裁决归合同注册表**（`docs/contracts/INDEX.yaml` +
+  其**真实唯一性以合同注册表为准**（`docs/contracts/INDEX.yaml` +
   `tools/check_contract_graph.py`），本矩阵对共享引用只登记不判重。
 - 状态 `MISSING` 的层允许保留 **descriptor/registry 已预留的真实 ID**（ID 占用
   命名空间但独立 authority 文档/实现尚未落地），也允许占位符 ID；空串一律禁止。
 - 状态 `VERIFIED` 的层必须满足：id 非占位，且锚可机器解析（见 §4/§5 与 §7）。
-- 旧表（docs/TRACEABILITY.csv、docs/contracts/*）沿用各自历史格式，不由本合同重写；
-  本矩阵是新模块化事实源（第 5 节给出与旧表的关系）。
+- `docs/TRACEABILITY.csv`、`docs/contracts/*` 沿用各自格式，不由本合同重写；
+  本矩阵是模块化事实源（第 5 节给出两表关系）。
 
 ## 4. 跨层 parent→child 关系
 
@@ -105,7 +104,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-DOC-001-MATRIX
      （SRC `MISSING` 时 TEST 必须 `MISSING`，禁止“有测试无实现”）；
   2. **承载层引用**：API `VERIFIED` 的行应能通过 API 注册表/API_CONTRACTS.csv
      找到对应 ID（由扩展检查给出具体缺失，不崩溃）；
-  3. **证据锚**：EVIDENCE `VERIFIED` 时 evidence_id 应能在 `reports/`、`artifacts/`（`evidence/**` 已由 ROOT-007 清运）
+  3. **证据锚**：EVIDENCE `VERIFIED` 时 evidence_id 应能在 `reports/`、`artifacts/`
      、`returns/` 或 TASK_STATE evidence_refs 中解析（同 2 语义）；
   4. 一行内不允许出现“下层 VERIFIED 而上层同链 MISSING”的科学链断裂
      （SCI MISSING 但 ALG VERIFIED 之类）→ 判 `CHAIN_BREAK`（给出 module_id 与层）。
@@ -113,7 +112,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-DOC-001-MATRIX
      MISSING 而 DATA/API/ARCH/VERIFIED 属宿主/服务边界语义，notes 已给出原因。
   5. TEST 层 `VERIFIED` 时该行 SRC 层必须也 `VERIFIED`（有实现才有测试证据），
      SRC `MISSING` 而 TEST `VERIFIED` 判 `CHAIN_BREAK`（给出 module_id）。
-- 说明：矩阵是**模块↔锚**机器合同；旧 TRACEABILITY.csv 的逐 claim 细粒度
+- 说明：矩阵是**模块↔锚**机器合同；`docs/TRACEABILITY.csv` 的逐条细粒度
   （authority/anchor/oracle）仍由 `tools/check_traceability.py` 负责，二者互补不冲突。
 
 ## 5. SOURCE SYMBOL 表达
@@ -124,7 +123,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-DOC-001-MATRIX
 - 表达示例：`tests/conformance/noop/src/noop_module.c::astrocs_module_query_v1`、
   `lib/infrastructure/benchmark/cpu/common/README.md::MISSING`。
 
-## 6. 初始矩阵（DOC-001 基线）
+## 6. 初始矩阵（基线）
 
 `docs/traceability/TRACEABILITY_MATRIX.json` 覆盖仓库**全部已注册模块**：
 
@@ -164,8 +163,8 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-DOC-001-MATRIX
 
 ## 8. 状态与演进
 
-- 本文件 + 矩阵 + 检查器由 DOC-001 建立；后续模块填充由对应任务推进并把行状态
+- 本文件 + 矩阵 + 检查器构成机器合同；模块填充把行状态
   `MISSING` → `VERIFIED`，同时补 `EVID-*` 证据锚。
 - 科学公式/单位/容差以 docs/science、docs/algorithms 与测试 oracle 为权威；
-  本合同只做机器身份与断链报告，不裁决科学正确性。
+  本合同只做机器身份与断链报告，不判定科学正确性。
 - 冻结约束（项目负责人）优先于本文件；本文件只可在负责人确认后修订。

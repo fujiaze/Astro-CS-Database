@@ -11,8 +11,8 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
 
 # 模块 astrocs.p2.coverage
 
-> P2-COV-DOC 手写合同页（2026-09-07，SA-P2-S20）：本页重写旧 registry
-> 占位页（旧页以 module_adapters.cpp descriptor 为唯一源——编排层
+> 手写合同页：本页重写 registry
+> 占位页（占位页以 module_adapters.cpp descriptor 为唯一源——编排层
 > 词汇不得作为冻结依据，本页手写登记事实修订；registry 页保留先例
 > astrocs.phase1.session.md / astrocs.phase1.star-detection.md）。模块级
 > 事实以 lib/algorithms/coverage/README.md（r1，CONTRACT_READY）+ module.yaml
@@ -35,7 +35,7 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
   PHASE2_UPM.md §1 覆盖并集 + docs/science/INTEGRATION.md §5
   support/validity 分离 + docs/science/SCIENCE_SCOPE.md §处理链第 5
   步；共享 SCI 不改动，状态声明=docs/algorithms/PHASE2_COVERAGE.md
-  §11.5，P1-WCS-DOC SCI-WCS-001=共享 ASTROMETRY.md 先例）/
+  §11.5，SCI-WCS-001=共享 ASTROMETRY.md 先例）/
   ALG-COV-001（PHASE2_COVERAGE.md §2 逐公式行号锚）/ DATA-COV-001
   （DATA_SEMANTICS §19）/ API-COV-001（PUBLIC_API Coverage union C API
   节）/ 编排上游 API-P2-001（PHASE2_API_V1 FROZEN §1 所有权图
@@ -71,7 +71,7 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
   005 extern "C" include+两阶段全量重扫+ThreadLease。
 - 测试设计：TEST-COV-DESIGN-001（PHASE2_COVERAGE.md §11.4，冻结容差
   =整数/bitwise 断言零数值容差），由 P2-COV-TEST 执行落
-  TEST-P2-COV-001 + EVIDENCE；legacy gate Phase2Coverage.RealHipsUnion
+  TEST-P2-COV-001 + EVIDENCE；gate Phase2Coverage.RealHipsUnion
   （synthetic_gate.cpp:3374）/ FilterMismatchRejected（:3410）依赖
   Fatduck 本地路径 GTEST_SKIP（:3376/:3413），合成 fixture 归
   P2-COV-TEST。

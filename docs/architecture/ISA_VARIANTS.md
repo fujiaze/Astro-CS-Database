@@ -1,9 +1,9 @@
 # ISA 变体决策台账 (ISA-001..004 冻结 — V5)
 
-> ID: ARCH-ISA-001  状态: FROZEN (V5 ISA-001, 2026-08-28)  上游: ABI-003/05 §1-2  下游: BENCH-005(逐 kernel 选路)/ABI-002(manifest)
+> ID: ARCH-ISA-001  状态: FROZEN  上游: ABI-003/05 §1-2  下游: BENCH-005(逐 kernel 选路)/ABI-002(manifest)
 > 原则(05 §1): 先 profile 证明热点→只为热点做变体→共享合同禁漂移→逐 kernel Oracle→无收益 NOT_SHIPPED 但须完整测量(见 artifacts/prerelease_v5/ISA-001/MEASUREMENTS.csv)。
 
-## 0 ISA-002 补充测量与决策(2026-08-28, vm-bj, AVX(无 FMA)变体)
+## 0 ISA-002 补充测量与决策(vm-bj, AVX(无 FMA)变体)
 
 - 变体 `lib/infrastructure/benchmark/backend_host/avx_backend.cpp` → `avx_backend.so`, TU 局部旗标 `-mavx`(无 -mfma/-mavx2), 共享 baseline_kernels_impl.inc/backend_table.inc 同源(零复制漂移)。
 - 逐 kernel 实测(median-of-5 × 3 轮, best-of baseline 对变体最保守):
@@ -35,7 +35,7 @@
 - 方法: tests/backend/kernel_bench_main.cpp, median-of-5 计时×2 轮, baseline 取最优(对变体最保守); 变体=avx2_backend.cpp(-mavx2 -mfma, 共享 baseline_kernels_impl.inc 同一源, **零复制漂移**)。
 - SHIP 阈值: ≥+10% 且方向稳定; REMEASURE 带宽±10% 内交 BENCH-005。
 
-## 1.5 ISA-003 AVX2+FMA 独立复测与 capability 登记(2026-08-28, vm-bj)
+## 1.5 ISA-003 AVX2+FMA 独立复测与 capability 登记(vm-bj)
 
 - ISA-001 已 SHIP `avx2_backend.so`(AVX2+FMA, `-mavx2 -mfma`); ISA-003 独立复测确认该能力 **SHIP** 成立(不重复实现, 只复验+登记 capability)。
 - 能力证明: 反汇编含 **vfnmadd231ss**(FMA 指令, AVX2+FMA 定义特征)+ **34× ymm**(AVX2 256-bit); baseline 扫描零 VEX(`BASELINE_OPCODE_PASS`)。变体"真 AVX2+FMA"成立。
@@ -50,7 +50,7 @@
 - 完整性: 测量工件 `artifacts/prerelease_v5/ISA-003/MEASUREMENTS.csv`。
 - 与 ISA-002"AVX NOT_SHIPPED"判读一致: AVX2+FMA 是受控热点的最优 SHIP 档; AVX(无FMA)被其严格主导。ISA-004(AVX512)/ISA-005(BMI2/POPCNT)属 Windows 域, 本机不评估。
 
-## 1.6 ISA-004 AVX512 复测与判定(2026-08-28, vm-bj)
+## 1.6 ISA-004 AVX512 复测与判定(vm-bj)
 
 - vm-bj CPU 支持 AVX512(F/BW/VL/DQ/CD, `/proc/cpuinfo` 验证), 故按任务规则**可以**在 Linux 完整验证(规则只禁止"CPU 不支持时不验证就谎报 PASS", 本机支持→必须验证)。
 - 变体 `lib/infrastructure/benchmark/backend_host/avx512_backend.cpp` → `avx512_backend.so`(`-mavx512f -mavx512bw -mavx512vl -mavx512dq`), 共享 impl/table 同源。

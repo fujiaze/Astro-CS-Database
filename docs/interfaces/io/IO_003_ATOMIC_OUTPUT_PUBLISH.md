@@ -2,29 +2,27 @@
 
 > doc_id: DOC-IO-INTERFACE-003
 > doc_status: ACTIVE_NORMATIVE
-> task_id: IO-003 · wave: W2 · owner: SA-IO-07
-> commit: `feat(io): IO-003 实现原子产物发布`（前台集成）
-> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-003 / `05_FIXED_SUBAGENT_BINDINGS.yaml` —— **两份来源均已不在 git 跟踪面**（`tasks/` 目录不存在且无 git 历史；`05_FIXED_SUBAGENT_BINDINGS.yaml` 仅存 `run/` 内 gitignore 的历史归档副本，非规范面）；现行权威=`ASTROCS_DESIGN.md` §7.3/§9 + 本文件
-> SA-IO-07 / 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）、
+> 上游权威：`ASTROCS_DESIGN.md` §7.3/§9 + 本文件
+> 冻结约束 `ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）、
 > A.3/A.4（阶段隔离与原子性）、E（科学公式不变）
 > 上游: DOC-IO-INTERFACE-001（IO-001 FITS 流式接口，fitsverify 算法族）、
-> DOC-IO-INTERFACE-002（IO-002 HiPS 输入合同，读端接收本任务产出）、
+> DOC-IO-INTERFACE-002（IO-002 HiPS 输入合同，读端接收本接口产出）、
 > DATA-003（生产 ArtifactStore 原子 publish 语义）、DATA-004（provenance sidecar）
 
 ## 1. 目标与范围
 
 IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原子 HiPS/manifest
-输出发布** 合同（W2 宿主基础设施，非 W3 科学迁移）：把"磁盘上产出的 HiPS 子产品目录
+输出发布** 合同（宿主基础设施，不含科学算法迁移）：把"磁盘上产出的 HiPS 子产品目录
 （properties + NorderK/DirD/NpixN.fits tiles + 可选 Moc.fits）"以 **原子、可恢复、
 唯一目标** 的方式发布，并在发布完成后落 **完成 manifest**（唯一完成标记）。IO-002
-读端/跨 Phase 消费只接受本任务发布的完整产物（DATA-002 R-DISK-ONLY）。
+读端/跨 Phase 消费只接受本接口发布的完整产物（DATA-002 R-DISK-ONLY）。
 
 发布流水线（每个产物文件）：
 `临时写（run 私有 stage）→ 关闭/fsync → fitsverify（结构 + DATASUM）→ sha256 →
 原子 rename → 最后原子落 manifest.json(COMPLETE) = 完成标记`。
 
-本任务**不改科学公式**（`scientific_change=false`），不做 tile 生成/投影（科学层属
-P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原样不修改。本任务冻结**输出端**语义；
+本合同**不改科学公式**（`scientific_change=false`），不做 tile 生成/投影（科学层属
+P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原样不修改。本接口冻结**输出端**语义；
 读端（IO-002）与产物交换资格（DATA-002）是独立冻结面，不在此重复。
 
 ## 2. 模块归属与目录
@@ -154,7 +152,7 @@ P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原
 
 ## 7. 验收映射
 
-| 验收（tasks IO-003） | 覆盖 |
+| 验收 | 覆盖 |
 | --- | --- |
 | 每个输出以唯一用户路径或 run ID 目录 | §3.1 + `TestUniqueRunDirIsolation` |
 | 临时写、关闭、fitsverify、SHA256、原子 rename、最终完成 manifest | §4 + `TestAtomicPublishPipeline`（spy 证据） |
@@ -167,8 +165,8 @@ P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原
 
 ## 8. 已知限制
 
-1. Linux 控制节点（本任务执行环境）无 MSVC/Windows DLL 构建；产出 Python 语义层 +
-   全部契约/负测。Windows 正式 DLL 构建（astrocs_io.dll）在 W6 用同一状态机源码执行。
+1. Linux 控制节点（本接口执行环境）无 MSVC/Windows DLL 构建；产出 Python 语义层 +
+   全部契约/负测。Windows 正式 DLL 构建（astrocs_io.dll）用同一状态机源码执行。
 2. `Moc.fits`（BINTABLE 扩展）不做内容校验（IO-001 §14.2：表扩展 UNSUPPORTED；
    IO-002 MOC optional hint 语义：缺失/损坏不阻塞读/写）。
 3. 并发安全以 run 目录隔离 + 单次发布单线程为前提；单 run 内并发发布同一

@@ -1,9 +1,9 @@
 # Module: healpix_drizzle
 
-> P1-DRZ-DOC（2026-09-07）事实修订：合同 ID 收敛为 ALG-DRZ-001（旧
-> ALG-DRZ-CAND-001/ALG-DRZ-OVERLAP-001/ALG-DRZ-VAR-* 为历史登记名，
-> 不再作合同引用）；模块合同落位 lib/algorithms/drizzle/（迁移目标目录，
-> astrocs.p1.drizzle）；实现源不变。
+> 合同 ID = ALG-DRZ-001（唯一合同引用，registry 登记名同此）；
+> 模块合同落位 lib/algorithms/drizzle/（迁移目标目录，astrocs.p1.drizzle）；
+> 本页登记职责、端口、线程/确定性、错误与测试面，
+> 全部条目以现行源码与冻结合同为准。
 
 ## 职责
 
@@ -17,7 +17,7 @@ aio_hips_writer finalize_tile 完成——DISP-DRZ-007）。
 ## 非职责
 
 不做多帧统计合并（Phase2）；不做 master/校准/坏点（P1-CAL/
-P1-COS）；不做线程授予（omp 为遗留内部通道，生产调度走 Runtime
+P1-COS）；不做线程授予（omp 为内部通道，生产调度走 Runtime
 lease，CMakeLists.txt:379-382；ThreadLease 由 P1-DRZ-IMPL 接线）。
 
 ## Public API
@@ -37,9 +37,7 @@ tile 产品（SIGNAL/SUPPORT/variance/ivar，tile_depth=9、nside≥512
 ## Ownership
 
 调用方分配 frame/result/输出缓冲；模块内 RAII（SNR 控制点 vector，
-hp_drizzle_api.cpp；**2026-09-20 订正**：原锚 `api.cpp:609-613` 中的 `api.cpp` 在本仓
-**不存在**（实际文件 = `lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp`，
-依据 `ENGINEERING_SPEC.md:129`），且该行号已随实现漂移——行号待随实现复核，
+hp_drizzle_api.cpp（依据 `ENGINEERING_SPEC.md:129`）；行号待随实现复核，
 以符号名为准）；HiPS 目录树由模块写入、编排层负责 overwrite
 清理。
 
@@ -55,9 +53,8 @@ geometry cache：per-thread LRU 8192 + per-run generation 原子清空
 
 几何退化/无 WCS/非法参数 → 拒绝（文件通道正值 1..12（+12=C 边界内部异常）；帧通道正负
 混用 -1..-8/-9/-12/-13，无集中枚举——登记缺陷）；**值像素 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**
-（**2026-09-20 订正**：原文「值像素 NaN/Inf 静默跳过（DISP-DRZ-004）」**已作废**——实现
-`drizzle_engine.cpp:1898-1902` 自述「旧 `isfinite(...)+continue` 静默吞像素已删除」，
-科学锚 `docs/science/DRIZZLE.md:116`，回归 `.../tests/p1drz/p1drz_tests_core.cpp:517-537`）；无 NO_DATA 语义输出（面亮度归一在
+（实现 `drizzle_engine.cpp:1898-1902` 对值像素直接传播；
+科学锚 `docs/science/DRIZZLE.md:116`，回归
 finalize 层，covered_area≤0 → variance NaN）。
 
 ## Science IDs

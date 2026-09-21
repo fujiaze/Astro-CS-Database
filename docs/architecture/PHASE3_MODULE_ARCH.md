@@ -1,6 +1,6 @@
 # Phase3 模块架构 (HiPS reader → WCS → resampler → FITS writer)
 
-> ID: ARCH-P3-001  状态: FROZEN (V5 ARCH-005, 2026-08-28)  上游: ALG-007(PHASE3_RESAMPLE.md)/ARCH-002/ARCH-004  下游: API-005/CODE-P3/SYN-007
+> ID: ARCH-P3-001  状态: FROZEN  上游: ALG-007(PHASE3_RESAMPLE.md)/ARCH-002/ARCH-004  下游: API-005/CODE-P3/SYN-007
 > 原则: **科学选择全部落在 ALG-007 冻结公式(G1–G5),本架构只定义模块边界/数据结构/并发与内存上界——不把科学决策藏进 cache/loader。**
 
 ## 1 模块与数据结构(lib/phase3,四单元单向流)
@@ -32,11 +32,11 @@
 
 ## 4 错误/回退
 
-- reader 拒绝类(properties 非法/lossy tile/frame≠icrs)=启动前显式拒(ALG-P3-001 拒绝码表)——**不进入半成品 run**;
+- reader 拒绝类(properties 非法/lossy tile/`hips_frame` ∉ {equatorial, icrs})=启动前显式拒(ALG-P3-001 拒绝码表)——**不进入半成品 run**;
 - 运行中 tile IO 错误(非缺失)=stage 安全中止(ARCH-003 §6-2 同款, 禁静默降级 nearest);
 - FitsWriter 落盘失败=tmp 清理+错误码, 目录无残留产物。
 
-## 5 追溯(逐 claim 到 ALG-007)
+## 5 追溯(逐条到 ALG-007)
 
 | 架构声明 | ALG-007 锚 |
 |---|---|

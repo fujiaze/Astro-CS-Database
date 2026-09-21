@@ -1,6 +1,6 @@
 # Phase3 HiPS 重采样模块（astrocs.p3.resample）
 
-> P3-RSMP-DOC 冻结（2026-09-12，SA-P3-R）。模块总页；registry
+> 模块总页；registry
 > 手写合同页=docs/modules/registry/astrocs.phase3.resample2.md（行
 > MOD-astrocs-phase3-resample2）；合同三件套=lib/algorithms/resample/
 > {README.md,module.yaml,memory.md}。
@@ -30,7 +30,7 @@
 | DATA | DATA-P3-RES | docs/contracts/DATA_SEMANTICS.md §29 | CONTRACT_READY |
 | API | API-P3-RSMP-001 | docs/contracts/PUBLIC_API.md（Phase3 重采样公共消费面节） | CONTRACT_READY |
 | API(镜像) | API-P3-001 | PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像） | FROZEN 镜像 |
-| ARCH | ARCH-001 | docs/contracts/ARCH-001.md（原写 docs/architecture/cpu/ARCH_CONTRACTS.md〔已删除〕，该路径不存在，DOC-204 订正） | VERIFIED |
+| ARCH | ARCH-001 | docs/contracts/ARCH-001.md | VERIFIED |
 | TEST | TEST-P3-RES-001 | 登记面=TEST-P3-RSMP-DESIGN-001（ALG §12 + registry 页 §9 双重陈述 VERIFIED）；矩阵 test_status=DORMANT，可执行面升级归 P3-RSMP-TEST | 见左 |
 | EVID | EVID-MISSING | 归 P3-RSMP-INT/验收补 | MISSING |
 

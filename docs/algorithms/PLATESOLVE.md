@@ -1,6 +1,6 @@
 # WCS / PlateSolve Algorithms (ALG-WCS)
 
-> ID: ALG-WCS-001  范围: ALG-WCS-001..002  上游 SCI: SCI-WCS-001  状态: DERIVED (T202 冻结; V5 ALG-002 重验 2026-08-28)  模块: plate_solve/cpp/ipv
+> ID: ALG-WCS-001  范围: ALG-WCS-001..002  上游 SCI: SCI-WCS-001  状态: DERIVED  模块: plate_solve/cpp/ipv
 
 ## 1 上游 SCI 与输入输出
 
@@ -91,7 +91,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 - API: `ipv_api.h: ipv_solve_from_detections_v1`, `ipv_wcs.h: build_wcs`
 - TST: `TST-WCS-001` 合成恢复, `TST-WCS-INV` 极区保守, `TST-WCS-FAIL` 退化
 
-## 11 P1-WCS-DOC 冻结附录（2026-09-07，SRC-WCS-001 源码实测）
+## 11 实现锚定附录（SRC-WCS-001 源码实测）
 
 ### 11.1 ALG-WCS-001 逐符号锚
 
@@ -108,7 +108,7 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | ipv_get_default_params | ipv_entry.cpp:366（ipv_api.h:227） | IpvParams 默认值（log_dir 空=无日志） |
 | ipv_get_last_inlier_count | ipv_entry.cpp:407（ipv_api.h:253） | inlier 计数查询 |
 | ipv_get_last_inliers | ipv_entry.cpp:421（ipv_api.h:261） | inlier 9 列缓冲（ipv_api.h:232-250：det_x/det_y/gaia_ra/gaia_dec/pred_x/pred_y/residual_x/residual_y/residual_dist） |
-| ipv_solve | ipv_entry.cpp:438（ipv_api.h:126） | 文件路径入口（legacy） |
+| ipv_solve | ipv_entry.cpp:438（ipv_api.h:126） | 文件路径入口（非生产） |
 | ipv_solve_from_memory | ipv_entry.cpp:473（ipv_api.h:139） | PipelineFrame 内存入口 |
 | **ipv_solve_from_detections_v1** | ipv_entry.cpp:623（ipv_api.h:175） | **生产入口**（检测坐标 double 数组直入） |
 | ipv_solve_from_memory_with_callback | ipv_entry.cpp:668（ipv_api.h:194） | 回调进度变体 |
@@ -167,8 +167,8 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   :148-170 cosc<1e-12 → xi=eta=1e6 哨兵（:154-155）无标志位；skyToPixel
   缺 AP/BP 时 3 迭代牛顿近似（:221-240）无收敛判据——均静默返回可疑值。
 - DISP-WCS-003 双 SIP 拟合路径并存：生产 extract_wcs_sip（TRANS 解析 A/B
-  + 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）反变换 AP/BP，ipv_wcs.cpp:322-478）与 legacy fit_sip IRLS+Huber
-  （ipv_sip.cpp:268；irls_huber_fit :161-263，δ=1.345·MAD :241）仅被 legacy
+  + 采样网格 ≥7×7（实现 AP/BP 41×41 阶 5；APx/BPx 81×81 阶 7，DISP-WCS-008）反变换 AP/BP，ipv_wcs.cpp:322-478）与非生产 fit_sip IRLS+Huber
+  （ipv_sip.cpp:268；irls_huber_fit :161-263，δ=1.345·MAD :241），后者仅被非生产
   build_wcs（ipv_wcs.cpp:157-165，AP/BP 显式清零）消费；两实现行为漂移，
   去留归 P1-WCS-IMPL。
 - DISP-WCS-004 AP/BP 拟合奇异半静默：ipv_wcs.cpp:477 仅 logger warn（写
@@ -183,29 +183,24 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   ——像素中心契约不一致（§11.2 双契约），维护歧义，去留归
   P1-WCS-IMPL/P1-PHOT-IMPL。
 - DISP-WCS-008 SIP 逆映射网格/阶扩展 + 迭代反演：生产 `ipv_wcs.cpp` AP/BP 用
-  41×41 网格（`NB_GRID=41`）、APx/BPx 用 81×81（`NB_GRID_X=81`，阶 7），SCI
-  §7/§11 原写「7×7 网格」为陈旧口径（自证门），已改为「采样网格 ≥7×7 + 独立
+  41×41 网格（`NB_GRID=41`）、APx/BPx 用 81×81（`NB_GRID_X=81`，阶 7）；SCI
+  §7/§11 的现行口径为「采样网格 ≥7×7 + 独立
   密集域不变量 ≤1e-4 px」；本机 `p1wcs_tests apbp` low/mid/high 三档独立域
   roundtrip max 3.299e-10/1.518e-9/1.655e-9 px 全过（R-3 §3.6）⇒ 「1e-4 px
-  数学不可达」对当前实现为假。维护歧义已消除；注册表 SIP 行承载本口径的旧登记
-  DISP-WCS-006 相应作废（见注册表）；本清单 DISP-WCS-006 为「三套 TAN 实现并
-  存」，与注册表 SIP 行旧口径同号不同义，不受影响、保持有效。
+  数学不可达」对当前实现为假。维护歧义已消除；本清单 DISP-WCS-006 为
+  「三套 TAN 实现并存」，保持有效。
 
 ### 11.4 TEST-WCS-DESIGN-001 冻结测试设计（可执行 TEST-P1-WCS-001 由 P1-WCS-TEST 落地）
 
 - F1 合成线性场（order=1，已知 CD/CRVAL/CRPIX 合成星表）：求解成功且
   n_pairs≥12；rms_arcsec ≤0.5″；CD 元素相对误差 ≤2%（§9 尺度容差 0.002 同源）；
-  |ΔCRVAL|≤1″。**历史锚已废止**：旧文所引「实测锚 Galaxy_Center=0.1431″
-  （memory.md 2026-07-12）」在当前版本 T4 帧上不可复现（实测 0.2803–0.3588″，
-  2.0–2.5×）、只在 T2/T3 档场复现（0.1472/0.1584″）⇒ 该单值不再作为任何门的
-  标定依据；产品级外部闭环口径已冻结在 SCI-WCS-001 §11a 与
-  GATES_AND_TOLERANCES §3（G-P1-WCS-CLOSURE / -REPRO，claim「天测精度外部闭环口径冻结」（编号待前台集中分配））。
+  |ΔCRVAL|≤1″。F1 不以任何单一实场实测值为标定依据；产品级外部闭环口径已冻结在
+  SCI-WCS-001 §11a 与 GATES_AND_TOLERANCES §3（G-P1-WCS-CLOSURE / -REPRO）。
   **量测域冻结**：本项 `rms_arcsec` 定义在 `trans` 拟合的**内点集**（`n_pairs≥12`）
   与**合成线性场**（order=1，已知 CD/CRVAL/CRPIX 合成星表）上；它**不是**产品级
   天测精度门。产品级外部闭环量（全帧头域 median/p95）另立证据面
-  **G-P1-WCS-CLOSURE**，其阈值需另行标定（`lib/algorithms/platesolve/memory.md:55-56`
-  的 0.897 px 系 v1.2 legacy 工具、2 帧台账值，量测域与门均不同，**不作为 F1
-  超标证据**）。门表见 `docs/algorithms/GATES_AND_TOLERANCES.md`。
+  **G-P1-WCS-CLOSURE**，其阈值需另行标定；该门与 F1 量测域不同，两者**不得
+  互为证据**。门表见 `docs/algorithms/GATES_AND_TOLERANCES.md`。
 - F2 SIP 场 oracle（注入已知 A/B，order=2）：astropy WCS（隔离 test-only
   oracle，§5 规则）前向/逆向 |Δ|≤1e-4 px 于中心 90% 区域（承接 §8 预冻结
   值，不放宽）；AP/BP 逆向一致性 roundtrip 同容差。
@@ -219,21 +214,17 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
   1/2/4 下 bitwise 一致（投票归并为整数求和 ipv_triangle.cpp:347-357、
   拟合单线程，无跨线程浮点重结合——§5c 禁令；若实测违背，P1-WCS-TEST
   如实登记不得放宽语义）。
-- F6 legacy 桥回归：WcsTan pix2sky/sky2pix roundtrip <1e-6 deg
-  （tests/unit/p1_wcs_phot_test.cpp:50 冻结值）；B2-A1（2026-09-13）修复
-  pix2sky ξ/η deg→rad 单位错后另加**独立前向交叉绝对门**：pix2sky 输出与
+- F6 WcsTan 桥回归：WcsTan pix2sky/sky2pix roundtrip <1e-6 deg
+  （tests/unit/p1_wcs_phot_test.cpp:50 冻结值）；另有**独立前向交叉绝对门**：pix2sky 输出与
   独立 TAN 逆投影参考解（module_adapters.cpp 内 p1_tan_forward_reference，
   与 WcsTan 的 atan(R)/asin 式不同源）角距 **≤1e-9 deg**；测试锚
   tests/unit/p1wcs negative `n1_wcs_tan_unit_anchor` 与 units
   `u1_f6_abs_cross`，生产门同在 p1_op_wcs。roundtrip 仅作次级不变量
-  （对 ξ/η 成对单位错零鉴别力，见 AUD-COORD F-01/F-06）；原"lib/algorithms/platesolve/wrapper_phase1
-  源码零改动"断言已由该修复取代。
-- 回归锚：Galaxy_Center 实场 fixture。**基线值已重锚**：`rms_arcsec=0.1431″`
-  为历史值（不可复现，见 F1 条与 SCI-WCS-001 §11a 历史值表），当前版本实测
-  T4 Galaxy_Center panel1 Red 为 0.2803–0.3588″（六帧）——**该重锚值须在
-  UNIT-001（XISF 母版单位）修复后整体复跑**，在此之前 P1-WCS-TEST 不得把它
-  写死为冻结数值。容差冻结：其余数值在 TEST 落地时逐项写死，不得放宽；
-  fixture 生成器注记容差来源（本节）。
+  （对 ξ/η 成对单位错零鉴别力，见 AUD-COORD F-01/F-06）。
+- 回归锚：Galaxy_Center 实场 fixture。当前版本实测 T4 Galaxy_Center panel1 Red
+  `rms_arcsec=0.2803–0.3588″`（六帧）；该值须在 UNIT-001（XISF 母版单位）落地后
+  整体复跑，在此之前 P1-WCS-TEST 不得把它写死为冻结数值。容差冻结：其余数值
+  在 TEST 落地时逐项写死，不得放宽；fixture 生成器注记容差来源（本节）。
 
 ### 11.5 SCI-WCS-001 状态声明
 
@@ -241,8 +232,8 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 与 §11.1 生产通道；ICRS/J2000=RADESYS=ICRS/EQUINOX=2000 写回
 （orchestrator.cpp:2007，ASTROMETRY.md §3a）；degenerate conditions=
 ASTROMETRY §8 ↔ DISP-WCS-001 退化语义（坍缩禁冒充解）；astropy oracle=
-ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN T102
-2026-08-23）不因本附录改动；本节禁止被编排层词汇反向改写（descriptor
+ASTROMETRY §11 ↔ F2。共享 SCI（ASTROMETRY.md SCI-WCS-001，FROZEN）
+不因本附录改动；本节禁止被编排层词汇反向改写（descriptor
 astrocs.phase1.wcs-platesolve 占位 ID SCI-P1-WCS-001/ALG-002/DATA-P1-WCS/
 API-P1-004/TEST-P1-WCS-001，module_adapters.cpp:516-530，由 P1-WCS-INT
 对齐本合同，不作冻结依据）。

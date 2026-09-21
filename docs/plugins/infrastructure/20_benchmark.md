@@ -7,7 +7,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §6.2（benchmark）、§8（CPU 后端与资源）
+- 最高设计 `ASTROCS_DESIGN.md` §7.1（命令树：benchmark）、§9（CPU 后端与资源）
 - `contracts/schemas/cpu_profile.schema.json`
 
 ## 3. 输入/输出数据合同
@@ -35,7 +35,7 @@
 ## 6. 接口/ABI
 
 - entrypoint：`benchmark`（直接运行，程序输出到安装目录）；
-- runtime 读取安装目录 profile 决定线程/ISA。
+- scheduler 读取安装目录 profile 决定线程/ISA。
 
 ## 7. 错误与边界
 

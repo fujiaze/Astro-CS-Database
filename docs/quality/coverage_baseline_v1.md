@@ -1,16 +1,13 @@
-# 覆盖率基线（首次 deep CI，V8-CI-005）
+# 覆盖率基线（首次 deep CI）
 
 - status: ACTIVE
-- owner: SA-CI-32
-- source_task: V8-CI-005（控制包 V8.1，07_CI_MACHINE_CONTRACT.md）
-- created_utc: 2026-09-05
-- scope: linux-deep profile（DEEP-COV 检查）
+- scope: linux-deep profile（DEEP-COV-CPP / DEEP-COV-PY 检查，见 `ci/checks.json`）
 
 ## 合同约束
 
-`docs/standards/07_CI_MACHINE_CONTRACT.md` 规定：**第一次 deep CI 只测量并
-记录覆盖基线，不虚构覆盖率阈值**。本文件即该基线的登记处；覆盖率阈值
-（per-module `--cov-fail-under` 或全局 gate）冻结由后续质量任务完成，冻结前
+**第一次 deep CI 只测量并记录覆盖基线，不虚构覆盖率阈值**（deep profile 检查
+见 `ci/checks.json`）。本文件即该基线的登记处；覆盖率阈值
+（per-module `--cov-fail-under` 或全局 gate）待冻结，冻结前
 `tools/quality/ci_coverage_runner.py` 的 `threshold` 字段保持 `null`。
 
 ## 基线获取方式
