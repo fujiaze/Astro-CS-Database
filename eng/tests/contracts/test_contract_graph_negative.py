@@ -2,7 +2,7 @@
 """DOC-001 negative fixtures: 校验器必须抓到悬空引用/重复 ID/ACTIVE依赖OBSOLETE。"""
 import importlib.util, os, pathlib, tempfile, unittest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location("ccg", REPO / "eng" / "tools" / "check_contract_graph.py")
 ccg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ccg)

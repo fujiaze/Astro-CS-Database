@@ -34,7 +34,7 @@ import unittest
 
 import yaml
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 PY = sys.executable
 PROBE_ROOT = REPO / "run" / "PROJECT-GOVERNANCE-01" / "MOD-002" / "negprobe"
 

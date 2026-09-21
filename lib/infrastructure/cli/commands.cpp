@@ -470,7 +470,7 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
         if (!f.good()) return;
     }
     // RT-009: 渲染 DOT/SVG/L0（best-effort; 工具缺失/失败不失败 run）。
-    // 仅当 eng/tools/quality/gen_run_graphs.py 存在时调用; timeout 30s 防悬挂。
+    // 仅当 eng/eng/tools/quality/gen_run_graphs.py 存在时调用; timeout 30s 防悬挂。
     // B8-P1-1b: 弃用 std::system 拼接（gdir 无引号+单引号逃逸+返回值丢弃 →
     // 渲染失败时主平台成功 run 的图产物静默缺失）→ 进程 API argv 传参 +
     // 显式检查子进程 exit code，失败 warning 事件 + stderr（不静默；不失败 run，
@@ -478,7 +478,7 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
     {
         const char* env_repo = std::getenv("ASTROCS_REPO");
         const std::string repo = (env_repo && env_repo[0]) ? env_repo : ".";
-        const std::string renderer = repo + "/tools/quality/gen_run_graphs.py";
+        const std::string renderer = repo + "/eng/tools/quality/gen_run_graphs.py";
         std::error_code ec;
         if (std::filesystem::is_regular_file(std::filesystem::u8path(renderer), ec)) {
             const astrocs::process::RunResult cr = astrocs::process::run_process(

@@ -20,7 +20,7 @@ import unittest
 
 import numpy as np
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 FITS_CORE = REPO / "lib" / "infrastructure" / "aio" / "io" / "fits_core.c"
 INCLUDE = REPO / "lib" / "infrastructure" / "aio" / "io" / "include"
 LIB_SO = REPO / "lib" / "infrastructure" / "aio" / "io" / "libfits_core_test.so"

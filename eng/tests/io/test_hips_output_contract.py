@@ -28,7 +28,7 @@ import tempfile
 import threading
 import unittest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "aio" / "io"))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 

@@ -24,20 +24,15 @@
   "allowed_dirs": [
     ".github",
     "lib",
-    "include",
-    "contracts",
-    "docs",
-    "tests",
-    "testdata",
-    "third_party",
-    "packaging",
     "eng",
-    "config",
-    "实验",
-    "工程控制",
+    "docs",
+    "testdata",
     "artifacts",
+    "工程控制",
     "run",
-    "gaia"
+    "gaia",
+    "build",
+    "实验"
   ],
   "required_files": [
     "README.md",
@@ -60,20 +55,13 @@
   "required_dirs": [
     ".github",
     "lib",
-    "include",
-    "contracts",
-    "docs",
-    "tests",
-    "testdata",
-    "third_party",
-    "packaging",
     "eng",
-    "config",
-    "实验",
-    "工程控制",
+    "docs",
+    "testdata",
     "artifacts",
+    "工程控制",
     "run",
-    "gaia"
+    "实验"
   ],
   "implicit_entries": [
     ".git"

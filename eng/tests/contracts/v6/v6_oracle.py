@@ -751,7 +751,7 @@ class Oracle:
 
 
 def main():
-    root = pathlib.Path(__file__).resolve().parents[3]
+    root = pathlib.Path(__file__).resolve().parents[4]
     o = Oracle(root)
     _, failures = o.run()
     rep = o.report()

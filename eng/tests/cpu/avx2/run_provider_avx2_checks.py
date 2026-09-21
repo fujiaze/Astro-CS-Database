@@ -28,8 +28,7 @@ import os
 import subprocess
 import sys
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
 AVX2_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx2", "src",
                         "avx2_provider.cpp")
 BASE_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "baseline", "src",

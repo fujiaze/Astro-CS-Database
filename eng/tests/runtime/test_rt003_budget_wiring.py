@@ -23,7 +23,7 @@ import sys
 import tempfile
 import unittest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 INC = REPO / "include"
 CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
 

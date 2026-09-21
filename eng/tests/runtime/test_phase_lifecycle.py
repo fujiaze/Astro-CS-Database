@@ -22,7 +22,7 @@ import subprocess
 import sys
 import unittest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "scheduler" / "core"))
 sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "pipeline"))
 sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "aio" / "runtime" / "artifact_store"))

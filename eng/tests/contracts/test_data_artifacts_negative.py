@@ -2,7 +2,7 @@
 """DATA-001 negative fixtures: 校验器必须抓重复 schema_id / 缺字段 / 未登记 DATA ID。"""
 import importlib.util, pathlib, tempfile, unittest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location("cda", REPO / "eng" / "tools" / "check_data_artifacts.py")
 cda = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cda)

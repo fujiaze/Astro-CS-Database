@@ -26,7 +26,7 @@ import time
 import unittest
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "eng" / "tools" / "quality" / "resource_monitor.py"
 sys.path.insert(0, str(REPO / "eng" / "tools" / "quality"))
 import resource_monitor as rm  # noqa: E402

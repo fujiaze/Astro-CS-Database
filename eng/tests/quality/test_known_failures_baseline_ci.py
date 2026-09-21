@@ -42,7 +42,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[3]
 TOOL = REPO / "eng" / "tools" / "quality" / "known_failures_baseline.py"
 BASELINE = REPO / "eng" / "ci" / "known_failures.json"
 SCHEMA_ID = "astrocs.known-failures-baseline/v2"

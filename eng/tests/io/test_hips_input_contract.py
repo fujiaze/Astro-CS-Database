@@ -27,7 +27,7 @@ import unittest
 
 import numpy as np
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import make_hips_fixture as mhf  # noqa: E402
 

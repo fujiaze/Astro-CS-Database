@@ -12,7 +12,7 @@ BUNIT=ASTROCS_RELATIVE_FLUX（相对通量）却未应用测光 ⇒ 下游把 AD
   P2 消费侧守卫：hiss_writer.cpp 必须存在
      BUNIT=ASTROCS_RELATIVE_FLUX 且 PHOTAPPL=FALSE 的显式拒绝；
   P3 数据侧：扫描产品 JSON（--products-root，默认 eng/ci/fixtures/provenance +
-     存在的 run/RELEASE-01/e2e/evidence），对每个含 provenance 键的记录断言
+     存在的 run/RELEASE-04/e2e/evidence），对每个含 provenance 键的记录断言
      photometry_applied=false ⇒ photscal==1.0 且 bunit != ASTROCS_RELATIVE_FLUX；
      photometry_applied=true ⇒ photscal 有限且 > 0；
   P3b 数据侧补盲（P1-PHOT-BROKEN）：schema==DATA-P1-PHOTPROV-001 且
@@ -50,7 +50,7 @@ CHECK_ID = "CHK-PROVENANCE-CONSISTENCY"
 ADAPTERS = "lib/infrastructure/scheduler/src/module_adapters.cpp"
 HISS_WRITER = "lib/infrastructure/aio/src/hiss_writer.cpp"
 LEDGER = "eng/ci/ledgers/provenance_exceptions.json"
-DEFAULT_ROOTS = ("eng/ci/fixtures/provenance", "run/RELEASE-01/e2e/evidence", "run/RELEASE-02")
+DEFAULT_ROOTS = ("eng/ci/fixtures/provenance", "run/RELEASE-04/e2e/evidence", "run/RELEASE-04")
 PRODUCT_GLOBS = ("**/p1_phot.json", "**/manifest.json", "**/*product*.json",
                  "**/*provenance*.json")
 MAX_FILES = 4000

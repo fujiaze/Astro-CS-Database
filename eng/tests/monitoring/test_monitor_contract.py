@@ -30,7 +30,7 @@ import tempfile
 import time
 import unittest
 
-REPO = pathlib.Path(__file__).resolve().parents[2]
+REPO = pathlib.Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO))
 
 from lib.infrastructure.observability.monitoring import linux_procfs, windows_pdh_etw  # noqa: E402
