@@ -1,8 +1,0 @@
-manifest tasks: 35  ledger rows: 35
-in manifest not ledger: set()
-in ledger not manifest: set()
-missing evidence paths (not on disk now): 1
-   MISSING BASE-OWN-001 run/v6/base/logs/21_verify.log
-missing task spec files: []
-   scope path does not exist: OWNER-PACK-001 reports/v6/owner-package/
-   scope path does not exist: OWNER-PACK-001 artifacts/v6/owner-package/

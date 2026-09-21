@@ -1,7 +1,0 @@
-4850	run/p2upmdoc/UPM_SOLVER.md.before
-3268	run/p2upmdoc/revision.diff
-1276	run/p2upmdoc/lint.log
-973	run/p2upmdoc/lint_before.log
-913	run/p2upmdoc/lint_after.log
-105	run/p2upmdoc/lint_impl_alg.log
-56	run/p2upmdoc/lint_solver_alg.log

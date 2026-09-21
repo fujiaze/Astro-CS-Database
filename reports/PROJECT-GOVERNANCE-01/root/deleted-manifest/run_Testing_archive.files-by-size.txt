@@ -1,2 +1,0 @@
-121	run/Testing_archive/Testing/Temporary/LastTest.log
-4	run/Testing_archive/Testing/Temporary/CTestCostData.txt

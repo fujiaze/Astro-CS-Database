@@ -1,2 +1,0 @@
-4	run/t_fi_discard/units_root/units/target_promoted/properties
-4	run/t_fi_discard/units_root/units/target_promoted/Norder0/Dir0/Npix0.fits

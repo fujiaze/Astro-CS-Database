@@ -1,4 +1,0 @@
-### CMD: git log -1 --format=%H%n%ci%n%s
-ecf6ad6fe55102c08a156564cc0dd30cea3a7cdc
-2026-09-16 13:56:26 +0800
-docs(governance): 新增根目录清洁任务 ROOT-001/002/003（29 任务）
