@@ -24,7 +24,7 @@
 | A 类文档 | DOC-201 / DOC-202 / DOC-203 / DOC-204 / DOC-205（补充分片） | 全部 **PASS**（5 份变更 claim + 3 份实验落地 claim） |
 | B 类代码 | FIX-201 / 202 / 203 / 204 / 205 / 206 / 207 / 208 / 209 | 全部 **PASS**（其中 FIX-201 附残留、FIX-206 由 EXP-206 定案 + FIX-201 A44 收口） |
 | 实验 | EXP-201 / 202 / 203 / 204 / 205 / 206 | 全部 **CLOSED**，结论已落文档（见 §3） |
-| 构建 | BLD-201 | **PASS**（附 1 条已登记已知分歧 + 1 项未达成，见 §6） |
+| 构建 | BLD-201 | **PASS**（附 1 项未达成：全量 0 警告，负责人已裁决不收紧，见 §6） |
 | 端到端 | E2E-201 | **PASS**（附 2 项已登记例外/口径，见 §6） |
 | 派生 | FIX-210（E2E 发现） | **PASS**（修 D1 阻断缺陷 + D2 并行归约丢计数） |
 | 验收 | ACC-201 | **PASS**（本文件 + `ACCEPTANCE.md`） |
@@ -62,7 +62,7 @@ af3c1043  BLD-201  全量构建与全部机器门转绿 + 新判据登记
 | `ci/run_checks.py --all` | — | **`rc=0 verdict=PASS entries=52 steps=99 pass=99 fail=0`**（timeout=0 / prereq=0 / skip_platform=0 / skip_waivable=0） |
 | `ctest --test-dir build` | — | **100% tests passed, 0 failed out of 472** |
 | `ninja -C build` | — | rc=0，0 error |
-| waiver | — | `ci/exemptions.json` **零新增**（但有 1 条「已登记已知分歧」，见 §6） |
+| waiver | — | **零豁免**：`ci/exemptions.json` = `[]`；唯一一条已知分歧经查明为检查器缺陷，已修检查器 + 撤销登记（见 §6 #2） |
 
 **转绿的既有红灯**：STD-REG（DOC-202）、CHK-CONFIG-CONSUMED（FIX-203）、CHK-CONTRACT-REF（DOC-203/FIX-209）、
 CHK-SCI-REF / CHK-DANGLING / CHK-CONTRACT-TEST（DOC-205）、CHK-SPEC-NAMED-IMPL-ON-PROD-PATH（BLD-201）、
@@ -174,20 +174,21 @@ CTEST-REGISTRATION（BLD-201）、CHK-CONFIG-DEFAULTS（BLD-201，见 §6）。
 
 ## 6. 必须上呈负责人复核的事项（`GAP_AUDIT §6` + 本节）
 
-| # | 事项 | 为什么必须复核 |
-|---|---|---|
-| 1 | **三处 `ASTROCS_DESIGN.md` 订正**（§4.4 天光权重、§4.5 排异映射表、§4.3 SP-0 门退化） | §0 规定改本文须负责人明确批准；本包按 §9.72 + 00_README §5 执行并登记 |
-| 2 | **`ci/ledgers/config_default_divergences.json` 的 1 条已登记已知分歧**（`precision_mode`） | 该台账功能上是绕过 `ci/exemptions.json`「负责人批准 + 高水位 + expiry」纪律的 **de-facto 豁免通道**；本轮沿用未改机制。**ACCEPTANCE 口径 = 「1 条已登记已知分歧」，不是「无任何豁免」** |
-| 3 | **「全量重建 0 警告」未达成** | `BLD-201.md` 验收门要求 0 警告；实测全量 clean 重建 59 条 warning 行（本包引入的 1 条已修）。`CHK-WARN` 的文档语义是「增量单 TU 基线」故仍绿 —— 该口径缺口是否收紧需负责人裁决 |
-| 4 | **EXP-204 跨配置聚合口径** | 实验网格内判据由**电平**决定；保守读法（保留 `N≤3 → none`）维持负责人 2026-09-19 原裁决；对称读法（对齐 WBPP）只需改 `rejection.cpp:1139` **1 行** |
-| 5 | **`docs/DOCUMENT_INDEX.yaml` 的 334 条 per-entry `status`** | §0.2「登记表不得写状态字段」与 `DOC-INDEX`（`waivable:false`）要求该键**直接冲突**；本包取「保住门禁 + 表内注明 + 登记」，彻底清零须先改 `tools/doccheck/check_doc_index.py` |
+| # | 事项 | 负责人裁决（2026-09-20） | 落实 |
+|---|---|---|---|
+| 1 | **三处 `ASTROCS_DESIGN.md` 订正**（§4.3 `:493` 边界句 / §4.3 `:519` SP-0 门退化 / §4.4 `:538` 天光权重改 `control_ivar` / §4.5 `:597-603` 旧四档表作废） | ✅ **「1 批准」** | 已按 §0 要求留痕：`GAP_AUDIT.md §6` 标注「负责人已批准（追认）」，提交 `4c7542c5`。三处均未改动任何科学公式/常数/容差 |
+| 2 | **`precision_mode` 分歧登记**（原拟登记为「已知分歧」） | ✅ 追问「是否是检查器有问题」⇒ **查明是检查器缺陷** | **改检查器，非改代码、非加豁免**：`ci/check_config_defaults.py` 原实现**分支盲**（全局聚合取值、无「权威单元」概念，粗于其 docstring 自述的「不同生产代码路径」）⇒ 引入**权威单元 = 源文件::所在函数**，不同取值须来自**互不相交**的单元才算两套缺省。自检新增 `green_same_unit_decision_point`（同函数 if/else ⇒ 绿）与 `red_cross_function_default`（同文件跨函数 ⇒ 红）双向锁定；**撤销** `ci/ledgers/config_default_divergences.json` 的该条登记（8→7）⇒ **本包零豁免** |
+| 3 | **「全量重建 0 警告」未达成**（全量 clean 重建 59 条，本包引入的 1 条已修） | ✅ **「不用管他」** | 维持 `CHK-WARN` 现口径（增量单 TU 基线），**不收紧为 `--clean-first`**；58 条既有警告登记为**技术债**，留给后续「清警告」控制包（需放行 `lib/**` + `tests/**`） |
+| 4 | **EXP-204 跨配置聚合口径**（保守读法 vs 对称读法） | ✅ **「同意，那就不排异」** | 维持**保守读法** `1≤N≤3 → none`；`rejection.cpp:1139-1140` 现值即 `kConservativeNone`，**无需改动**，与负责人 2026-09-19 原裁决一致 ⇒ 该问题**不再待定**。日后改判仍只需改这 1 行 |
+| 5 | **`docs/DOCUMENT_INDEX.yaml` 334 条 `status` 与 §0.2 冲突** | ✅ **「5a」** | 承认该文件为**已注明的例外**，字段保留（`DOC-INDEX` 门保持绿），**不动**检查器与最高设计；彻底清零（改 `tools/doccheck/check_doc_index.py` 现场派生状态）留待后续包 |
+
 
 ---
 
 ## 7. 结论
 
 - **详细层缺口 100% 有归宿**：DOC-201..205 + FIX-201..210 + 六项实验全部落地或明确登记，无「两边并存」。
-- **机器门全绿**：`ci/run_checks.py --all` = `verdict=PASS entries=52 steps=99 pass=99 fail=0`；`ctest` 472/472；`ninja` rc=0 0 error；waiver 零新增。
+- **机器门全绿**：`ci/run_checks.py --all` = `verdict=PASS entries=52 steps=99 pass=99 fail=0`；`ctest` 472/472；`ninja` rc=0 0 error；**零豁免**（`ci/exemptions.json` = `[]`，已知分歧台账零新增）。
 - **端到端跑通**：三命令真实数据 rc=0，多块形态（含 normalize）rc=0 且逐块独立 manifest，1/N worker 逐位一致，事件流默认输出且 schema 唯一。
-- **诚实边界**：3 项须负责人复核（§6 #1–#3），18 项遗留已登记，Windows/重型档未覆盖，`tests/cli` 余 6 红（非本包）。
+- **诚实边界**：§6 五项上呈事项**已全部获负责人裁决并落实**（#1 批准 / #2 查明为检查器缺陷并修 / #3 不收紧 / #4 维持保守读法 / #5 承认为已注明例外）；18 项遗留已登记；Windows 腿与 linux-main/deep 等重型档未覆盖。`tests/cli` 余 5 红（`test_cli_single_install`，非本包；`test_iso_acr_gpu_isolation` 已修复复跑 6 passed）。
 - **本包不宣布发布**。

@@ -15,8 +15,8 @@
 | **L3 文档-代码一致性** | 逐任务核对改动与任务声明文件域一致；越界项逐条列出并给出授权依据（见 §4） |
 | **构建** | `ninja -C build` rc=0，0 error |
 | **测试** | `ctest --test-dir build --output-on-failure` → **100% tests passed, 0 failed out of 471** |
-| **waiver** | `ci/exemptions.json` 零新增；**但有 1 条「已登记已知分歧」**（见 §3），不得写成「无任何豁免」 |
-| **未达成项** | 「全量重建 0 警告」未达成（见 §3）——如实登记，不以口径掩盖 |
+| **waiver** | **零豁免**：`ci/exemptions.json` = `[]`（`high_water.max_entries=0`）；唯一一条「已登记已知分歧」(`precision_mode`) 经查明是**检查器缺陷**，已修检查器并**撤销该豁免**（见 §3.1） ⇒ **本包未使用任何豁免、未新增任何已知分歧登记** |
+| **未达成项** | 「全量重建 0 警告」未达成（见 §3.2）——如实登记；负责人 2026-09-20 裁决「不用管他」⇒ 维持 `CHK-WARN` 现口径，58 条既有警告登记为技术债 |
 
 ---
 
@@ -87,21 +87,33 @@ CHK-CONFIG-DEFAULTS / CHK-SPEC-NAMED-IMPL-ON-PROD-PATH）。
 
 ---
 
-## 3. 必须如实登记的两项（禁止掩盖）
+## 3. 两项原「须登记」事项的最终处置（禁止掩盖）
 
-### 3.1 「1 条已登记已知分歧」（不是 waiver，但也不是「无任何豁免」）
-- **finding 原文**：`config_default_divergence:precision_mode values=['0.0', '1.0']`
-- **性质**：登记于 `ci/ledgers/config_default_divergences.json` 的 `known_divergence`（该台账是检查器 docstring 指定的**唯一**入口，五字段 + 可执行 `exit_condition`）。
-- **为何不能改 config/**：分歧源只在 `lib/`（`hp_drizzle_api.cpp:988/992/995`），而 `ci/check_config_defaults.py::scan_defaults()` **只扫 `repo/lib`**（`gate_common.py:85-96`）；`precision_mode` 进键集的唯一来源是 `contracts/schemas/phase_config_normalize.schema.json` 的 `$defs.drizzle_config`。⇒ **任何 config/** 改动都不可能改变该 finding**。
-- **权威面无分歧**：`ASTROCS_DESIGN.md §3.3:256` + `module_adapters.cpp:4510-4528`（缺失即拒绝）。
-- **exit_condition**：收敛 `hp_drizzle_api.cpp:981-1009` 的 PRECISION 优先级为单一决定点后删除本条。
-- **前台定性（如实）**：该台账在功能上是**绕过 `ci/exemptions.json`「负责人批准 + 高水位只减不增 + expiry」纪律的 de-facto 豁免通道**（唯一保护是 `load_ledger` 强制的五字段）；既有 7 条同形先例（RELEASE-02）。**本条已上呈负责人复核。**
+### 3.1 `precision_mode` 分歧 —— **根因是检查器缺陷，已修；豁免已撤销，现零豁免**
+
+**负责人追问「这个 bug 是什么原因、是否是检查器有问题」⇒ 结论：是检查器的问题，不是代码的问题。**
+
+- **finding 原文**：`config_default_divergence:precision_mode values=['0.0', '1.0']`（BLD-201 曾按检查器 docstring 指定入口登记为 `known_divergence`）。
+- **根因（检查器实现粗于自身立意）**：`ci/check_config_defaults.py` 的 docstring 首段写明防的是「同一逻辑键在**不同生产代码路径**取不同缺省」，但 `scan_defaults()` 的实际实现是把 `lib/**` 内**全部**字面量命中**全局聚合**成一个取值集合，**没有任何「路径 / 权威单元」概念** ⇒ **分支盲**。
+- **被误判的代码**：`hp_drizzle_api.cpp:981-1009` 是**一个决策点** —— 把（入参 `precision_mode`，帧头 KV `PRECISION`）映射到 `config.precision_mode ∈ {0,1}` 的**同一条 if/else 链**（`:988` 无帧头⇒1、`:992` fp64⇒1、`:995` fp32⇒0，非法值 `:1000`/`:1006` 显式拒绝）。这些是**一个决策点的多个出口**，不是两套缺省。**代码无需改动。**
+- **修复（改检查器，非改代码、非加豁免）**：引入**权威单元** = `源文件::所在函数`（深度 0 上的函数头切分，含 `A::B` 限定名；轻量括号深度跟踪，不引入 C++ 解析器，漏认时退化为 `<top>`）。**新判据 D2**：不同取值必须来自**互不相交**的单元集合才算「两套缺省」；若某单元同时产出这些取值（典型 if/else 链），那是**一个决策点**，不判 finding。模板值一律视为独立单元 `config/templates`。
+- **双向锁定（能红能绿，非放宽）**：`--self-test` 新增两例并全 PASS —— `green_same_unit_decision_point`（同函数内 if/else 两取值 ⇒ 必须绿）与 `red_cross_function_default`（同文件**不同函数**两取值 ⇒ 必须红）；原有 `red_divergent_default`（跨文件两取值 ⇒ 红）与 `green_ledgered` 保持。
+- **豁免撤销**：`ci/ledgers/config_default_divergences.json` 中 `config_default_divergence:precision_mode` **已删除**（条目 8 → 7，回到 RELEASE-02 高水位，**只减不增**）。复跑 `ci/check_config_defaults.py` → `PASS config_keys=64 scanned=29 divergent=2`（余 2 条 `precision` / `max_iterations` 为 RELEASE-02 既有登记，非本包引入）。
+- **本包最终豁免口径**：`ci/exemptions.json` = `[]`（`high_water.max_entries=0`），`config_default_divergences.json` **零新增** ⇒ **本包未使用任何豁免，也未新增任何已知分歧登记。**
 
 ### 3.2 「全量重建 0 警告」未达成
 - `BLD-201.md` 验收门要求 `ninja -C build` **0 警告**。**实测未达成**：全量 clean 重建 59 条 warning 行（生产面 18 / 测试面 41）。
 - 其中 **1 条由本包引入**（`lib/infrastructure/aio/include/aio_pipeline.h:31` 的 `-Wcomment`，FIX-201 新增注释里的 `aio/**` 字面）⇒ **前台已修**（改注释写法），复编后该警告消失（前台独立复跑 #23）。
 - 余者全部落 `lib/**`、`tests/**`（**超本包文件域，只登记不改**）：`orchestrator.cpp` 5 站点 `-Wformat-truncation`（且不在 astrocs 闭包）、`rejection.cpp:100` `-Wunused-function`、`gaia_client.c:2072` `-Walloc-size-larger-than`、`p1_session.cpp`、`tests/unit/aio_abi_tests.cpp:108-119` `-Wenum-compare` ×28。
 - **口径缺口已上呈**：注册门 `CHK-WARN` 的文档语义是「增量单 TU 基线」，故仍绿；若改 `--clean-first` 会在 `lib/**` 未清零时立即判红。**本轮未改该口径**（避免把门打红），如实登记。
+- ✅ **负责人裁决 2026-09-20：「不用管他」** ⇒ 维持 `CHK-WARN` 现有口径（增量单 TU 基线），**不收紧为 `--clean-first`**；上述 58 条既有警告作为**已登记技术债**留给后续「清警告」控制包，本包不改 `lib/**` / `tests/**`。
+
+### 3.4 其余两项上呈事项的负责人裁决（2026-09-20）
+
+| # | 事项 | 负责人裁决 | 落实 |
+|---|---|---|---|
+| ④ | EXP-204 小 N 排异：保守读法（`1≤N≤3 → none`）还是对称读法（WBPP `n<6 → percentile`） | **「同意，那就不排异」** ⇒ 维持**保守读法** | **无需改动**：`lib/algorithms/coverage/src/rejection.cpp:1139-1140` 现值即 `kPixelSmallNPolicy = PixelSmallNPolicy::kConservativeNone`，与负责人 2026-09-19 原裁决一致。该裁决现已由负责人二次确认，**不再视为「待定」** |
+| ⑤ | `docs/DOCUMENT_INDEX.yaml` 334 条 `status` 与 `ASTROCS_DESIGN.md §0.2`「登记表不得写状态字段」冲突 | **「5a」** ⇒ 承认该文件为**已注明的例外**，**不动**检查器与最高设计 | **无需改动**：字段保留（`DOC-INDEX` 门保持绿），文件内已注明「该 `status` 是文档活动分类、由检查器现场校验，**不是** §11.4 交付阶梯」；冲突本身登记在 `SUMMARY.md §6`。彻底清零（改 `tools/doccheck/check_doc_index.py` 现场派生状态）**留待后续包** |
 
 ### 3.3 `artifacts/KNOWN_FAILURES_BASELINE.json` 的语义（避免误判为脏树）
 
