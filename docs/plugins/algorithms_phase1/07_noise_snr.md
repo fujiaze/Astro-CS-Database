@@ -97,6 +97,26 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **不静默降级**：输入无稀疏层而路径为 `sparse_reconstruct`（含默认）⇒ 按帧级执行但**必须显式记录实际路径**（`snr_path_effective`）并计数；稀疏层存在但损坏/不可重建 ⇒ 显式失败；
 - 存储量/精度折中与显式指定口径见 §5 配置项。
 
+### 4.2a σ_sky 口径冻结（防读出噪声双计；SCI-B D1 定案）
+
+- **唯一口径规则**：逐像素噪声 `σ_i² = σ_sky,i² + (RN/g)² + F·P_i/g`，**读噪只出现一次**。`sigma_sky_adu` 这个入参**只承载一种语义**，调用方必须显式声明是哪种，禁止静默择一。
+- **入参语义枚举（二选一，必填）**：
+
+| `sigma_sky_source` | 含义 | 是否再加 `(RN/g)²` |
+|---|---|---|
+| `shot_noise_only` | 天光 + 暗流的**散粒**方差（不含读噪） | **加**（默认路径，需 `gain_e_per_adu>0 && read_noise_e>0`） |
+| `empirical_total_rms` | 经验**总** rms（含读出噪声，如 `noise_model` 的空天稳健尺度 `noise_sigma`） | **不加**（已含读噪） |
+
+- **决策树（调用点实现口径）**：
+  1. `sigma_sky_source=shot_noise_only` 且 `gain_e_per_adu>0 && read_noise_e>0` ⇒ 走 `σ_sky,散粒² + (RN/g)² + F·P_i/g`（设计本意路径）；
+  2. `sigma_sky_source=empirical_total_rms` ⇒ 只加源泊松项 `F·P_i/g`，**不再加** `(RN/g)²`；
+  3. `gain_e_per_adu<=0`（gain 未知，PSF 行路径）⇒ 只加源泊松项，不加 `(RN/g)²`；
+  4. 声明与实际来源不一致（声称散粒而来源为经验总 rms，或反之）⇒ **fail-closed 拒绝**，不得静默择一、不得只告警。
+- **实测证据**（`实验/absolute-snr/results/b2_noise_terms.json`，N_MC=1000，复现 `python3 实验/absolute-snr/code/b2_noise_terms.py`）：双计使 `σ_F` 高估 **+12.8%**（基准点 F=1000 e⁻、B=100 e⁻/px、RN=10 e⁻、g=1.3、D=0.5）至 **+34.0%**（RN=50 e⁻ 最坏点）；天光主导点（B≥10⁵）偏差 <1%；正确口径臂在全部扫描点 ≤3σ。
+- **帧级 SNR 实证**（`实验/absolute-snr/results/b1_sky_scan.json`）：B=0 时双计臂 SNR=38.47 vs 定义式/真值 43.32/43.21（**−11.2%**）。
+- **必须保持的不变量**：固定源通量、天光 B 增大 ⇒ SNR 单调下降、斜率 −1/2；双计会破坏该斜率。
+- **修复与负例保护**：SCI-501（FIX-407）；负例 = 旧组合方式（经验总 rms 再加 `(RN/g)²`）必须被新测试判红。
+
 ### 4.3 其他要点
 
 - 白噪声时为简单形式；相关噪声时用完整信息核；
@@ -156,7 +176,8 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **禁止**把组内 `F_ref` 相等当作门；缺 `variance` 块 ⇒ `uncertainty_available=false`，**不得**声称已产出逐像素方差（§4.4）；
 - 帧级 SNR 无法计算（如缺真实信号参考）→ fail-closed，**不得用受天光影响的普通 SNR 代替**；
 - 指定 `sparse_reconstruct` 路径而输入无稀疏层 → 按帧级执行并**显式记录实际路径**（不静默）；稀疏层损坏/不可重建 → fail-closed；
-- 任何信号项未扣局部背景、被天光/背景抬高的 SNR → 判红（红线 §4.1）。
+- 任何信号项未扣局部背景、被天光/背景抬高的 SNR → 判红（红线 §4.1）；
+- **σ_sky 双计判红（§4.2a）**：`sigma_sky_source=empirical_total_rms` 时再加 `(RN/g)²` ⇒ 必须判红（保护负例）；`sigma_sky_source` 缺失或与实际来源不一致 ⇒ fail-closed 拒绝。
 
 ## 8. 测试与 Oracle
 

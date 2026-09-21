@@ -150,6 +150,20 @@ for 每个控制星 s（半径内）:
 5. **生产调用点存在已知口径缺陷（转 FIX，不在本节改定义）**：`module_adapters.cpp:4258` 把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu`，而 gain>0 时 `snr_science.cpp` 再加一次 `(RN/g)²` ⇒ 读噪双计，σ_F 高估（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失）。PSF 行路径（`snr_estimator.cpp:83`，gain 未知不加 RN 项）不受影响。量化与建议见 `实验/SCI-B/results/DOC_CORRECTIONS.md` D1。
 6. **误差预算常数单位**：`NOISE_MODEL.md:86` 的 `1.44/√N` 是**相对**标准误（实测 1.166/√N），换算到 dex 为 `1.44/ln10/√N`；直接当 dex 常数用会高估 2.303 倍（`DOC_CORRECTIONS.md` D2）。
 
+## 8b. 三口径适用域图谱（SCI-B 定案；选型依据）
+
+> 依据：`实验/absolute-snr/results/b3_domain_map.json`（`gates.delta64_detail`、`faces.synthetic_grf`、`faces.hst_m16`）与 `b6_gates_audit.json`。三条口径指 `dense` / `sparse_reconstruct`(Δ=64) / `frame_reconstruct`（§4.2 路径表）。
+
+| 口径 | 优的域 | 劣的域 | 依据 |
+|---|---|---|---|
+| `sparse_reconstruct`（**默认**） | **地面视宁度受限域**（σ 场有空间结构、源污染低）：三帧全部胜出帧级标量 | 高对比结构域（HST 类）：cell 稳健 MAD 被 cell 内**未分辨结构**抬偏，偏差随 Δ 从 +0.029 增到 +0.301 dex | `b3_domain_map.json` |
+| `frame_reconstruct` | **HST 类高对比结构域**：帧级标量更优 | 有明显帧内 σ 梯度时丢失空间信息 | 同上 |
+| `dense` | 精度基准 | **存储门**：4096² = 67,108,864 B = 64 MiB/帧 = 1 MiB 预算的 **64 倍** ⇒ 稠密超门结论成立 | 同上 |
+
+- **失效边界不是单一 `Δ/ℓ≈1`，而是「`Δ/ℓ` × σ 场幅度 × 未分辨结构污染」三因子联合判据**：无源污染合成面上 sparse 在 Δ=512 px 仍胜（余量 ℓ=16 → 0.6%、ℓ=32 → 1.8%、ℓ=64 → 2.8%、ℓ=128 → 16%、ℓ=256 → 35%），而 HST M16 真实结构面上 Δ*=16 px（Δ/ℓ=0.50）；
+- **判据必须非退化**：空间权重/σ 场的精度判据用**权重效率损失** `E = Var_w/Var_opt − 1`（全局尺度相消；`E=0 ⇔ σ̂ ∝ σ_true`）。「帧级臂 RMSE ≤ K·s_field」类判据对**任意**真值场恒真（对抗打乱场下 E=7.17 仍绿），**不得充当证据**（`b6_gates_audit.json::tautology_demo`）；平坦 σ 场（真值无空间效应）时任何「空间口径优于帧级」的排序判据都退化，须走 `N1_flat_field_sparse_never_wins` 用例；
+- **兜底**：HST 类数据默认给**帧级标量兜底**，不静默用稀疏口径冒充空间精度。
+
 ## 9 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 
 > 本节只补出处与参考实现，不改动 §2a/§4 任何定义与权重语义。
