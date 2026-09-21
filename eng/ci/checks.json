@@ -8891,7 +8891,7 @@
       "heavy": false,
       "mutates_workspace": false,
       "outputs": [
-        "run/ci/test-discriminative/test_discriminative.json"
+        "run/ci/quality/test_discriminative.json"
       ],
       "waivable": false,
       "changed_paths": [
@@ -8912,13 +8912,13 @@
             "python3",
             "eng/tools/quality/check_test_discriminative.py",
             "--json-out",
-            "run/ci/test-discriminative/test_discriminative.json"
+            "run/ci/quality/test_discriminative.json"
           ],
           "timeout_seconds": 600,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [
-            "run/ci/test-discriminative/test_discriminative.json"
+            "run/ci/quality/test_discriminative.json"
           ],
           "waivable": false,
           "changed_paths": [
