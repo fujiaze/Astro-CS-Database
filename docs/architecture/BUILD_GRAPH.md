@@ -1,8 +1,8 @@
-# Build Graph (T304)
+# Build Graph
 
 > 生产构建图: target/source/define/link 与 CMake File API/compile_commands.json 对应
 
-> ⚠ **DOC-202 订正（R18，2026-09-20）——生产构建不得链入 ACR/CUDA**：
+> ⚠ **生产构建不得链入 ACR/CUDA**：
 > 最高设计 §8「**禁止**生产目标编译或链接 ACR 的任何源文件；**禁止**任何 GPU 路由开关与
 > 第二个可执行入口」；ACR 状态 = `DORMANT`（保留源码与隔离测试，不进生产构建/加载/路由/
 > benchmark/发布）。因此 **§1/§2/§3/§4 中的 ACR 源集、ACR 编译定义、ACR 链接行与
@@ -46,7 +46,7 @@
 | astrocs-stage2 EXEC | `astrocs-stage2` target | `tools/stage2.cpp` compile command |
 | orchestrator EXEC | `orchestrator` target | `cpp/src/*.cpp` commands |
 
-验证: `cmake --build --verbose` 显示命令含 `-std=c++20` + `-D` + `-I` 与声明一致; File-API `reply/codemodel-v2-*.json` 的 `targets[].sources` 与上表一致 (T600 contracts configure 时落地)。
+验证: `cmake --build --verbose` 显示命令含 `-std=c++20` + `-D` + `-I` 与声明一致; File-API `reply/codemodel-v2-*.json` 的 `targets[].sources` 与上表一致 (contracts configure 时落地)。
 
 ## 5 验证方法
 

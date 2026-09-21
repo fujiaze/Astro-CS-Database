@@ -1,11 +1,11 @@
 # Phase2 Rejection Algorithms（P2-REJ / astrocs.p2.rejection）
 
-> ID: ALG-P2-REJ-001  状态: CONTRACT_READY（P2-REJ-DOC 冻结，2026-09-09）
+> ID: ALG-P2-REJ-001  状态: CONTRACT_READY
 > 模块: lib/algorithms/coverage/src/rejection.cpp（2076 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/rejection.h（329 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-REJ-001
-> （docs/science/REJECTION.md，FROZEN T107 2026-08-23，集合
+> （docs/science/REJECTION.md，FROZEN，集合
 > SCI-REJ-001..008，零改动；descriptor 占位 SCI-P2-REJ-001 ⇒
 > SCI-REJ-001 映射声明见 §11.5）。共享 L2: ALG-REJ-001
 > （docs/algorithms/REJECTION_ALGORITHMS.md，DERIVED，零改动，语义
@@ -16,7 +16,7 @@
 > 建立，本文件不声明 IMPLEMENTED；descriptor 占位
 > module_id=astrocs.phase2.reject（module_adapters.cpp:705-724）由
 > P2-XX-INT 对齐，不作冻结依据。
-> 关联: DATA=DATA-P2-REJ（docs/contracts/DATA_SEMANTICS.md §22，P2-REJ-DOC 同批冻结）；API=API-P2-REJ-001（docs/contracts/PUBLIC_API.md 末节，同批）；MOD 页=docs/modules/phase2_rej.md + registry docs/modules/registry/astrocs.phase2.reject.md（同批手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
+> 关联: DATA=DATA-P2-REJ（docs/contracts/DATA_SEMANTICS.md §22）；API=API-P2-REJ-001（docs/contracts/PUBLIC_API.md 末节）；MOD 页=docs/modules/phase2_rej.md + registry docs/modules/registry/astrocs.phase2.reject.md（手写合同页）；TEST 登记面=registry 页 §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED）。
 
 ## 1 目的与非目标
 
@@ -27,7 +27,7 @@
   本文件为阈值/迭代权威锚定文档（rejection.cpp:1-11 冻结头注释
   "本文件为阈值/迭代权威实现，禁止阈值漂移"）。
 - **非目标**：不合并/积分样本（SCI-INT-001 / ALG-P2-INT-001）；不
-  做权重策略（weights 数组外置，构造在 Stage2 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；RCR 核
+  做权重策略（weights 数组外置，由 Stage2 按该天球像素对应帧集合现场计算派生量；RCR 核
   消费同栈 weights 数组属官方加权语义，非策略）；不做像素外结构
   重建（large_scale 仅对已拒 mask 做 8 邻域扩张，只增不减）；无
   session 依赖（无状态纯函数）；不做瞬变/卫星语义区分（SCI §1
@@ -49,13 +49,13 @@
 | `alpha` | ESD 显著性水平 | 无量纲 0.05 | rejection.cpp:1059（默认） |
 | `iterations` | 外层迭代计数（kernel 计量） | 无量纲 u32 | rejection.h:281 |
 
-权重语义（调用方构造，本层无知）: 纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） → ivar（经
+权重语义（调用方构造，本层无知）: 逐样本 ivar（权重是阶段二按该天球
+像素对应帧集合现场算出的派生量，经
 `source_indices` 回映射原始 slot，stage2.cpp:1098/:1361/:1379）；
-历史 legacy 分支 （已按 §9.73 A44 作废：键不存在；权重是派生量） → support×snr²（legacy/诊断，ACR 域 acr_kernels.cpp:158）；
 null → 等权。reducer 只消费权重数组本身（与 ALG-P2-INT-001 §2
 同一政策）。
 
-## 3 逐符号锚（rejection.cpp 2076 行 / rejection.h 329 行，2026-09-09 实测）
+## 3 逐符号锚（rejection.cpp 2076 行 / rejection.h 329 行，实测）
 
 | 符号/段 | 锚（rejection.cpp） | 语义 |
 |---|---|---|
@@ -180,18 +180,20 @@ typed 默认值（冻结阈值表;SCI §5 阈值冻结锚点逐项一致）:
   minmax = (low 1, high 1, min_kept 4)                       :1063-1064
   rcr.technique = 0（SS_MEDIAN_DL 唯一支持）                  :1065
   large_scale = (enabled 0, min_structure 8, low 2, high 2)  :1066-1069
-AUTO 路由（nominal n 一次解析；两 profile 共用阈值表）:       :1071-1079
-  request==AUTO: n<6 → PERCENTILE; 6≤n≤15 → WINSORIZED_SIGMA;
-                 n>15 → LINEAR_FIT
+AUTO 路由（N = 该输出像素的几何覆盖帧数，一次解析；两 profile 共用阈值表）:  :1071-1079
+  1 ≤ N ≤ 3  → NONE（不排异，直接逆方差加权积分；underdetermined_n 默认 3）
+  4 ≤ N ≤ 5  → PERCENTILE
+  6 ≤ N ≤ 15 → WINSORIZED_SIGMA
+  N ≥ 16     → LINEAR_FIT
+  min/max 不用于生产（AUTO 禁止产出 min/max 与 NoRejection，生产路径守卫 fail-closed）
   minimum_n = method_minimum_n(method)                        :921-935
 profile 合法集 = {astrocs_adaptive_pixel(生产默认, AstroCS 自研),
-                  wbpp_2_9_1(对照档), wbpp_current(历史 alias),
+                  wbpp_2_9_1(对照档), wbpp_current(别名),
                   astrocs_adaptive(可调档)}                        :1039-1046
-  （nullptr → wbpp_2_9_1；其余 rc=1；wbpp_current 为历史别名（解析为
-  wbpp_2_9_1），仅保留 group active count 一次解析历史语义；
-  astrocs_adaptive=tile nominal depth；astrocs_adaptive_pixel=逐输出像素
-  几何 n 内置映射（n≤3 none / 4..7 percentile / 8..15 winsorized /
-  ≥16 linear_fit，underdetermined_n 默认 3）——canonical/adaptive
+  （nullptr → wbpp_2_9_1；其余 rc=1；wbpp_current 解析为 wbpp_2_9_1，
+  仅保留 group active count 一次解析语义；astrocs_adaptive=tile nominal
+  depth；astrocs_adaptive_pixel=逐输出像素几何 N 映射（上表）；与 WBPP
+  档界的差异及其依据见 docs/science/REJECTION.md——canonical/adaptive
   区别仅在 nominal 来源，h:174-177/:182-190 冻结注释。
   生产布局与现行语义详见 DATA_SEMANTICS §22 生产表）
 ```
@@ -414,8 +416,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
   scratch 注释冻结 :1290-1291 + thread id 定序归并 :1310-1317；
   large_scale 激活强制串行 :742-746/:1280）与串行路径
   （:1325-1543）。ivar
-  权重经 source_indices 回映射原始 slot（:1098/:1361/:1379）；
-  历史 legacy 分支 snr² 加权在 ACR 域 （已按 §9.73 A44 作废：键不存在；权重是派生量）（acr_kernels.cpp:147-158）。
+  权重经 source_indices 回映射原始 slot（:1098/:1361/:1379）。
 - **确定性合同（matrix 专项）**: 同输入同 plan 同 fid → decision
   bitwise 确定且与 worker 数无关（每像素独立决策树；无共享累加
   器；ESD tie-break=frame_id :1515-1518；linear_fit 排序
@@ -487,7 +488,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 | s≤1e-12（尺度退化） | break（不除零） | :1263/:1311/:1367/:1508/:1629 |
 | linear_fit N<4 | break | :1416 |
 | minmax 删后 <min_kept | 全栈 UNDERDETERMINED, iterations=0 | :1657-1664 |
-| winsor/median_sigma 保底 (nc−r)≤4 | 本轮剩余冻结接受 | :1332/:1633 |
+| winsor/median_sigma 保底 (nc−r)≤4 | 剩余样本冻结接受 | :1332/:1633 |
 | large_scale 参数非法/disabled | rc=1 / noop rc=0 | :2054-2061 |
 | radius=0 | mask 不变（仅 pixel 级拒绝） | :1986 |
 | 质量指针 | 现状 control 级数据模型，stage2 传 nullptr 并记录（h:236-237） | gather :1199-1203 |
@@ -518,11 +519,11 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 12. policy/reducer 分离镜像: 本层不引入权重策略（RCR 官方加权
     语义除外）；weights 数组外置。
 
-## 11 P2-REJ-DOC 冻结附录（2026-09-09，SRC-P2-REJ-001 源码实测）
+## 11 冻结附录（SRC-P2-REJ-001 源码实测）
 
 ### 11.1 逐符号锚
 
-见 §3 表（锚=2026-09-09 grep/read 实测；禁止手抄他版行号）。
+见 §3 表（锚=`grep -n`/read 实测；禁止手抄他版行号）。
 
 ### 11.2 返回码/并发合同
 
@@ -561,7 +562,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 ### 11.4 TEST-P2-REJ-DESIGN-001 冻结测试设计（可执行 TEST-P2-REJ-001 由 P2-REJ-TEST 落地）
 
 锚归属声明: 本节及 §6 全部测试 `:N` 行号锚 =
-`lib/algorithms/coverage/tests/synthetic_gate.cpp`（2026-09-09 实测；与其余
+`lib/algorithms/coverage/tests/synthetic_gate.cpp`（实测；与其余
 小节 rejection.cpp/h 锚不同文件）。
 
 - **F1 ESD NIST 门**（SCI §11）: 54 值 NIST Rosner 集恰拒
@@ -572,9 +573,8 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 - **F2 AUTO 路由/profile 门**（SCI §11 阈值不变量）:
   V15AutoPlanResolvesByNominal :4213（n=2/5→PERCENTILE、6/15→
   WINSORIZED、16/20→LINEAR_FIT；非法 profile rc≠0）；
-  V16ProfileGroupVsAdaptive :4646（wbpp_current（V16 遗留别名，
-  migration：V17 G6 起 canonical=wbpp_2_9_1）group 一次 vs
-  astrocs_adaptive tile depth）。容差=方法枚举精确。
+  V16ProfileGroupVsAdaptive :4646（wbpp_current（wbpp_2_9_1 的别名）
+  group 一次 vs astrocs_adaptive tile depth）。容差=方法枚举精确。
 - **F3 small-N/状态穷尽门**（SCI §7/§8）:
   V15SatelliteN2Underdetermined :4241（n=2 全 UNDERDETERMINED、
   accepted_count=2）；R2MinSamples :2658（status==1）；
@@ -615,19 +615,18 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
   F7 = rtol 1e-12（Python 参考域）；large_scale=mask 精确。本层
   禁引入其他 epsilon（ESD tie 1e-15、RCR isEqual rel 1e-8、winsor
   收敛 5e-4·σ 为实现内部冻结常数，非门容差）。
-- 登记面: 本节容差同步登记于 docs/modules/registry/astrocs.phase2.reject.md §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED，承载 TEST-P2-REJ-001 登记锚；P2-INT-DOC registry 承载先例）。
+- 登记面: 本节容差同步登记于 docs/modules/registry/astrocs.phase2.reject.md §独立 synthetic 验证节（TEST-P2-REJ-DESIGN-001 设计冻结 VERIFIED，承载 TEST-P2-REJ-001 登记锚）。
 
-### 11.5 SCI 层状态声明（本任务零 SCI 改动）
+### 11.5 SCI 层状态声明（本域零 SCI 改动）
 
 - 排异语义权威已有 FROZEN SCI: SCI-REJ-001（docs/science/
-  REJECTION.md，T107 2026-08-23 冻结，集合 SCI-REJ-001..008，
-  legacy RJ-001..008）。**不因本任务改动**（共享 SCI 引用不改动；
-  P1-WCS/P2-COV/P2-INT/P2-HIPS 先例）。
+  REJECTION.md，集合 SCI-REJ-001..008）。**共享 SCI 引用不改动**
+  （P1-WCS/P2-COV/P2-INT/P2-HIPS 同构）。
 - matrix P2-REJ 行 science_id=SCI-P2-REJ-001（descriptor 占位词汇，
   module_adapters.cpp:715）的语义映射由本节声明——
   **SCI-P2-REJ-001 ⇒ SCI-REJ-001**（docs/science/REJECTION.md，
   矩阵 science_doc=docs/science/REJECTION.md，MOD-astrocs-phase2-
-  reject 行，2026-09-09 P2-REJ-DOC 冻结）。descriptor 占位
+  reject 行）。descriptor 占位
   SCI-P2-REJ-001 不入矩阵（无 docs/science 权威页）；SCI 公式语义
   不在此重复定义，两处冲突时以 docs/science/ 为准并回改本文档
   （禁止反向）。
@@ -653,9 +652,8 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
   分层（F1/F10/F12/F13/F14）。共享 ID 不抢注、不重复登记
   （INDEX.yaml ALG-REJ-001 path 维持 REJECTION_ALGORITHMS.md，
   downstream 追加 ALG-P2-REJ-001 指向语义承接）。
-- legacy `RJ-001..008` = SCI-REJ-001..008 别名（SCI 头注）；冻结
-  整改记录 RJ-002（NONE NaN）、RJ-004/RJ-005（ESD 双→单 sqrt，
-  :1507 注释）由本文档 §5 冻结承接。
+- `RJ-001..008` = SCI-REJ-001..008 别名（SCI 头注）；NONE NaN、
+  ESD 单 sqrt（:1507 注释）由本文档 §5 冻结承接。
 
 ## 13 追溯
 
@@ -674,10 +672,9 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
   （P2-005 语义 id/解析面）/ tests/backend/test_p2004_reject_
   integrate.py（P2-004 生产 Oracle）/ module_adapters.cpp:704-721
   descriptor 占位。
-- SCI: docs/science/REJECTION.md（SCI-REJ-001..008，FROZEN T107，
-  零改动）。
+- SCI: docs/science/REJECTION.md（SCI-REJ-001..008，FROZEN，零改动）。
 
-## 14 合同落位（P2-REJ-DOC 同批产物）
+## 14 合同落位
 
 - DATA-P2-REJ = docs/contracts/DATA_SEMANTICS.md §22：输入
   eligibility/gather/kernel 三层 + P2RejectionDecision 输出 +
@@ -696,8 +693,8 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
   SCI 权威永远在 docs/science/（禁止反向）。
 - 缺陷联动: DISP-P2REJ-001..004 同时登记于 registry 页与
   module.yaml known_defects；本文件 §7 为权威表述。
-- TRACEABILITY_MATRIX.json MOD-astrocs-phase2-reject 行由
-  P2-REJ-DOC 更新: science_id=SCI-REJ-001（映射 §11.5）/
+- TRACEABILITY_MATRIX.json MOD-astrocs-phase2-reject 行:
+  science_id=SCI-REJ-001（映射 §11.5）/
   algorithm_id=ALG-P2-REJ-001（本文件）/data_id=DATA-P2-REJ/
   api_id=API-P2-REJ-001/src_id=SRC-P2-REJ-001（src_path=lib/
   phase2/include/astro/phase2/rejection.h::p2_reject_plan_resolve,
@@ -725,4 +722,14 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 - healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
 - NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
+
+---
+
+## 对照档 `wbpp_2_9_1` 的过拒率证据（受控真值）
+
+- **true sample FPR = 1.88%（565 / 30000）**；与冻结的 Siril 1.4.3 harness 同源 case 上 **8000 decisions 逐样本 100% 一致**（Siril 自身 1.8375%）⇒ 该过拒率是 **frozen Siril reference 的行为**，不是 AstroCS 过拒。
+- **pixel any-rejection FPR = 26.3%**（任一帧被拒即计）。
+- 科学量偏差：星点通量 **−0.07%**、FWHM **+0.012%**、faint structure **−0.29%**、背景噪声效率 **1.045**、三类 outlier recall = **1.0**。
+- 该组数字只作**对照档行为证据**登记，不改变 §5 五档路由与阈值表。
 

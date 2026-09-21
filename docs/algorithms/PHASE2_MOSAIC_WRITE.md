@@ -1,20 +1,20 @@
 # Phase2 HiPS Mosaic Write Algorithms (ALG-P2-HIPS-001..004)
 
-> ID: ALG-P2-HIPS-001..004  状态: FROZEN（P2-HIPS-DOC 冻结，2026-09-07）
+> ID: ALG-P2-HIPS-001..004  状态: FROZEN
 > 上游 SCI（只读引用，全部 FROZEN，共享引用不改动）: SCI-UPM-001（docs/science/PHASE2_UPM.md §5 w_UPM 公式）、
 > SCI-INT-001（docs/science/INTEGRATION.md §5 signal/sup_max 公式）、SCI-REJ-001（docs/science/REJECTION.md，
-> SCI-REJ-001..008）、SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md）。共享 SCI 不因本任务改动；
-> 本文件登记实现级语义（P1-WCS-DOC 共享 SCI 先例：SCI 公式语义不在本文重复定义，两处冲突以
+> SCI-REJ-001..008）、SCI-SCOPE-001（docs/science/SCIENCE_SCOPE.md）。共享 SCI 引用不改动；
+> 本文件登记实现级语义（SCI 公式语义不在本文重复定义，两处冲突以
 > docs/science/ 为准并回改本文档，禁止反向）。
 > 实现源（唯一权威生产源）: lib/algorithms/coverage/tools/stage2.cpp（1762 行实测；入口 main :112）。
 > 公式与默认容差以 SCI 层为权威，本文只登记实现锚点与实现自带语义；
-> 本任务 no root science formula change（w_UPM / signal / sup_max / rejection 判据一律不改）。
-> 下游: DATA-P2-INT / DATA-P2-RES（DATA_SEMANTICS §20 DATA-P2-HIPS——P2-HIPS-DOC 新增）、
-> API-P2-001（docs/api/PHASE2_API_V1.md）+ PUBLIC_API Phase2 mosaic write 节（P2-HIPS-DOC 新增）、
+> no root science formula change（w_UPM / signal / sup_max / rejection 判据一律不改）。
+> 下游: DATA-P2-INT / DATA-P2-RES（DATA_SEMANTICS §20 DATA-P2-HIPS）、
+> API-P2-001（docs/api/PHASE2_API_V1.md）+ PUBLIC_API Phase2 mosaic write 节、
 > 模块 MOD-astrocs-phase2-hips-writer（registry 现状实测 astrocs.phase2.write.md =
 > MOD-astrocs-phase2-write，二者对齐归 P2-HIPS-INT，见 §11.6）。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json（module_id=astrocs.phase2.write 现状域）。
-> 纪律声明: 本文档由 P2-HIPS-DOC 冻结；所有 stage2.cpp:NNN 行锚逐条 grep/sed 实测；
+> 纪律声明: 所有 stage2.cpp:NNN 行锚逐条 `grep -n`/`sed` 实测；
 > 未持有源码锚的语句不得声称 IMPLEMENTED；缺陷以 DISP-P2HIPS-* 登记，不反向修改 SCI。
 
 ## 1 上游 SCI 与输入输出
@@ -28,12 +28,12 @@
   注释 "support 唯一 canonical reducer（max accepted support）由 p2_integrate_pixel
   计算，Stage2 只消费" :1525-1526），writer 视图换算 `flux=signal×area`、
   `area=support×A_cell`（:1227-1228/:1531-1532，见 §2）。
-- SCI-REJ-001（REJECTION.md SCI-REJ-001..008，T107 冻结）: rejection 判据权威。
+- SCI-REJ-001（REJECTION.md SCI-REJ-001..008，FROZEN）: rejection 判据权威。
   stage2 侧只做计划解析与 kernel 调度（§2），不改任何判据。
 - SCI-SCOPE-001: 处理链位置权威（Phase2 末节点 coverage→…→马赛克写出）。
 - 输入: N 个 Phase1 单帧 HiPS 目录（`cfg.hips`），每帧消费 signal/support 两数据集
   （`aio_hips_open(AIO_HIPS_RD_SIGNAL/:AIO_HIPS_RD_SUPPORT)` :536-537）+
-  纯逆方差权重时 ivar 数据集 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（`AIO_HIPS_RD_IVAR` :557）；SNR Catalogue 仅供
+  ivar 数据集（生产权重 = 逐样本 ivar，由 Phase2 按该天球像素对应帧集合现场算出；`AIO_HIPS_RD_IVAR` :557）；SNR Catalogue 仅供
   frame 级 median fallback（`frame_snr_medians` :74-95，`AIO_HIPS_RD_SNR` :77，
   注释 "禁止重新检测星点" :73）。
 - 输出: 单个 Phase2 马赛克 HiPS 目录（`cfg.out_hips`），仅 signal/support 两产品
@@ -104,9 +104,9 @@
     `chunk_pixels = min(n_leaf, max(1, plan.block_pixels))`（:795-797）、
     `n_chunk = ceil(n_leaf/chunk_pixels)`（:798-799）、working_bytes log（:800-817）。
 - **ACR 块路径**（:863-1058，与 CPU reference 同一科学合同，路由仅执行域）:
-  - weight_compact 8×8 网格（:864-899）: 纯逆方差权重 → local_ivar_map （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
+  - weight_compact 8×8 网格（:864-899）: 逐样本 ivar 权重 → local_ivar_map
     per-cell ivar（:877-884，缺失 key 时 `(ivar_product_missing==0) ? 1.0 : 0.0`）；
-    mode 0 → local_snr_map + frame_snr fallback（:886-894）。
+    非生产 ablation/诊断分支 → local_snr_map + frame_snr fallback（:886-894）。
   - 逐 chunk 逐帧读 tile + UPM 空间校准 `p2_upm_calibrate_block`（:911-937，
     调用 :927-930，chunk_leaves=全局叶 ipix `(tile_ipix<<18)+local_lut[i]`
     :825-836）。
@@ -115,7 +115,7 @@
     3=weight_compact(Input) / 4=out_sup(Output) / 5=out_rej(Output) /
     6=out_valid(Output)（:945-959）；scalars = cnt、depth、rplan.method、
     underdetermined_n、sigma lower/upper/max_iterations、chunk 偏移 p0、
-    权重分支 （已按 §9.73 A44 作废：键不存在；权重是派生量）、acr_workers（:960-977）；cuda 可用走 `acr_reg->cuda`
+    逐样本 ivar 权重分支、acr_workers（:960-977）；cuda 可用走 `acr_reg->cuda`
     否则 `legacy_parallel`（:979-983），异常时 fallback CPU（:984-988）。
   - 输出逆变换（writer 视图）: `valid = out_sup > 0`；
     `area = out_sup × A_cell`；`flux = out_sig × area`（:989-1004，
@@ -137,15 +137,16 @@
     `p2_collect_candidate_stack`（并行 :1084-1105 / 串行 :1330-1353），
     `gout.source_indices` 为 eligible→原 frame slot 稳定映射
     （:1344-1346 注释 "compact eligible → 原始 frame slot 稳定映射"）。
-  - 权重口径（并行 :1106-1140 / 串行 :1354-1400）（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）:
-    mode 2（默认）= 逐像素 ivar `weights[s] = ivarv[orig×chunk_pixels+i]`
-    （ivar==0 合法零权重 ZERO_VALID_WEIGHT，注释 :1366-1368；nonfinite →
+  - 权重口径（并行 :1106-1140 / 串行 :1354-1400）:
+    生产权重 = 逐样本 ivar `weights[s] = ivarv[orig×chunk_pixels+i]`
+    （权重是 Phase2 按该天球像素对应帧集合现场算出的派生量；
+    ivar==0 合法零权重 ZERO_VALID_WEIGHT，注释 :1366-1368；nonfinite →
     `p2_validate_candidate_weights` 拒绝 hard fail，合同注释 :1366 "nonfinite
     ivar → INVALID_INPUT（validator 拒绝）"；缺 ivar 产品仅在显式 fallback
     路径可达（打开时已 gate :565-577），降级 support 并计数 :1372-1375）；
-    mode 0（legacy/诊断）= `support × snr²`（local_snr_map 64×64 cell，
+    非生产 ablation/诊断分支 = `support × snr²`（local_snr_map 64×64 cell，
     key=(fid,tile_ipix,px/64,py/64)，:1377-1397，注释 :1357 "仅 ablation/
-    诊断"）；mode 1 = 等权（:1398-1400）。validator 失败 → 诊断透出
+    诊断"）；等权（weights=null）= 1.0（:1398-1400）。validator 失败 → 诊断透出
     首 tile/像素 + rc=6（:1402-1431；并行版 :1141-1167 fail 原子位）。
   - rejection: `p2_reject_stack_ex(&cstack, &rplan, &rdec)`（:1441-1452）；
     仅 `P2_STATUS_OK / P2_STATUS_UNDERDETERMINED` 可继续，其余 hard fail
@@ -207,8 +208,8 @@ main(stage2.json, CLI overrides):
   BLOCK_PLAN（全局估算 tile_pixels=262144）失败 → rc=6          # :502-521
   # ALG-P2-HIPS-002 tile 循环
   nside=1<<(target_order+9); n_leaf=512×512; A_cell=4π/(12·nside²); dtype  # :525-529
-  for f: open signal+support（失败 rc=6）; 纯逆方差权重时 open ivar （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）  # :533-548
-  ivar 门: 缺失>0 且 !legacy_allow_weight_fallback （已按 §9.73 A44 作废：键不存在；权重是派生量） → rc=7  # :565-574
+  for f: open signal+support（失败 rc=6）; 逐样本 ivar 权重时 open ivar  # :533-548
+  ivar 门: 缺失>0 且 !legacy_allow_weight_fallback → rc=7        # :565-574
   out_hips 存在且非目录 → rc=6;                                  # :586-589
   aio_hips_product_begin(signal|support, creator, title, filter) # :592-596
   for ci in 0..cov.n_union_cells:                                # :659
@@ -226,7 +227,7 @@ main(stage2.json, CLI overrides):
         for s in frames: 读 sig/sup + ivar; UPM 校准 cal          # :1245-1277
         if OMP && !large_scale && workers>1:                      # :1280
             parallel for pixel: per-worker scratch
-            eligibility → weights(逐样本 ivar / 等权 （已按 §9.73 A44 作废：键不存在；权重是派生量）)
+            eligibility → weights(逐样本 ivar / 等权)
             → validate(hard fail rc=6) → reject_stack_ex
             → accepted(reasons) → integrate_pixel
             → area=sup×A_cell, flux=sig×area                      # :1299-1237
@@ -255,7 +256,7 @@ main(stage2.json, CLI overrides):
 - 阶段间数据传递为进程内 vector/POD 借用（cov/obs/ctrl_nodes/model），
   无跨进程序列化合同；UPM 持久化（upm_sparse.json + upm_dense.cache）
   仅 diagnostics 路径（:449-495）。
-- 并发合同: writer 单句柄串行（P1-HIPS-DOC ALG-HIPS-001..005 域合同，
+- 并发合同: writer 单句柄串行（ALG-HIPS-001..005 域合同，
   aio_hips_writer.cpp；DISP-HIPS-006 单互斥锁缺口在 P1 域登记）；
   stage2 像素并行仅 CPU reference 内部（CON-006，:1279-1322），OMP
   worker 不触碰 `ps` 写句柄——`aio_hips_write_signal_support_tile` 仅在
@@ -277,8 +278,8 @@ main(stage2.json, CLI overrides):
 
 - 空帧集 tile: probe 全失败 → `continue`（:669），不写该 tile。
 - 输入打开失败: signal/support 任一失败 → 关闭已开句柄 + rc=6（:538-547）。
-- ivar 门（纯逆方差权重默认 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））: 逐帧 `AIO_HIPS_RD_IVAR` 失败计数
-  ivar_product_missing（:553-563）；>0 且 `legacy_allow_weight_fallback=false` （已按 §9.73 A44 作废：键不存在；权重是派生量）
+- ivar 门（生产权重 = 逐样本 ivar，由 Phase2 按该天球像素对应帧集合现场算出）: 逐帧 `AIO_HIPS_RD_IVAR` 失败计数
+  ivar_product_missing（:553-563）；>0 且 `legacy_allow_weight_fallback=false`
   （默认）→ 显式科学错误 rc=7，log "拒绝继续，防止在非逆方差语义下冒充
   ivar coadd"（:565-574）；显式 true 才降级 support 并 diagnostics 标红
   （:576-577）。
@@ -291,7 +292,7 @@ main(stage2.json, CLI overrides):
 - output path: out_hips 存在且非目录 → rc=6（:586-589）；磁盘可用量仅 log
   告警不阻断（:583、UPM persist 侧 :458-470）。
 - writer 层 NaN/Inf 防护: `std::isfinite(flux)&&std::isfinite(area)` 才累加
-  （aio_hips_writer.cpp:477，P1-HIPS-DOC 域，本模块消费该合同）。
+  （aio_hips_writer.cpp:477，writer 域合同，本模块消费）。
 - large_scale: apply 失败 rc=6（:1551-1553）；pre/post rejected 统计差 =
   grown（:1599-1600）。
 
@@ -315,12 +316,14 @@ main(stage2.json, CLI overrides):
 
 ## 7 合同负向条款（科学红线，P2-HIPS 专项）
 
-- **四概念分离红线**: `signal`（SCI-INT §5 加权积分输出，ADU）、
-  `variance/ivar`（输入侧逐帧产品消费，w_i=ivar_i，纯逆方差权重默认 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）），
+- **四概念分离红线**: `signal`（SCI-INT §5 加权积分输出；产品语义 = **面亮度**，
+  写端口 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）、
+  `variance/ivar`（输入侧逐帧产品消费，w_i=ivar_i；生产权重 = 逐样本 ivar，
+  由 Phase2 按该天球像素对应帧集合现场算出），
   `support`（SCI-INT §5 sup_max=max(accepted support)，几何覆盖 [0,1]，
   A_cell 归一）、`mask`（rejection reasons→accepted 掩码，large_scale grow
   后处理）在缓冲/产品/命名上严格分离；**禁止 support 当科学权重冒充
-  ivar**——纯逆方差权重缺 ivar 产品 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） → rc=7 或显式标红 fallback（:565-577），
+  ivar**——缺 ivar 产品 → rc=7 或显式标红 fallback（:565-577），
   像素级缺 ivar 仅显式 fallback 路径可达并降级 support 计数（:1372-1375）；
   **禁止 valid_mask 入权重式**（valid_mask 仅 writer 视图层
   `view.valid_mask` :1628，权重式只取 ivar/support）。
@@ -355,10 +358,10 @@ main(stage2.json, CLI overrides):
   - 序转换往返恒等: `nested_local_to_fits_index(i,9,512)` ↔
     `fits_index_to_nested_local`（stage2.cpp:825-827 消费后者）对全
     262144 索引双射断言（整数精确，无容差）。
-  - ivar 门负测: 纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） 且 ivar 产品缺失、legacy_allow_weight_fallback
+  - ivar 门负测: 逐样本 ivar 权重且 ivar 产品缺失、legacy_allow_weight_fallback
     未显式置 true → rc=7（:565-574）；置 true → rc=0 且 diagnostics
     ivar_product_missing>0。
-- 既有可执行测试（legacy gate，迁移基线，实测）:
+- 既有可执行测试（实测）:
   lib/algorithms/coverage/tests/ivar_wiring_test.cpp
   `Phase2IvarWiring.WireProductionStage2PerFrameIvar`（:223 起）——
   直接跑生产 astrocs-stage2（:3 注释，:147 run_stage2），3 帧合成
@@ -399,9 +402,9 @@ main(stage2.json, CLI overrides):
   §5）、SCI-REJ-001（REJECTION.md，SCI-REJ-001..008）、SCI-SCOPE-001
   （SCIENCE_SCOPE.md）——全部共享只读引用，不改动（§引言纪律声明）。
 - ALG 上游: ALG-UPM-001（docs/algorithms/UPM_SOLVER.md）、
-  ALG-REJ-001..008（docs/algorithms/REJECTION_ALGORITHMS.md，DERIVED T207
-  冻结）、ALG-COV-001（docs/algorithms/PHASE2_COVERAGE.md，P2-COV-DOC
-  冻结）、ALG-HIPS-001..005（docs/algorithms/HIPS_WRITER.md，writer 库
+  ALG-REJ-001..008（docs/algorithms/REJECTION_ALGORITHMS.md，DERIVED）、
+  ALG-COV-001（docs/algorithms/PHASE2_COVERAGE.md，ACTIVE）、
+  ALG-HIPS-001..005（docs/algorithms/HIPS_WRITER.md，writer 库
   lib/infrastructure/aio/src/hips/aio_hips_writer.cpp——P2 马赛克共用其
   ALG-HIPS-002 归一公式 signal=flux_sum/covered_area、
   support=covered_area/A_cell 钳 1.0（:477-479）与 finalize manifest.json
@@ -409,11 +412,10 @@ main(stage2.json, CLI overrides):
   是 stage2 侧编排与集成语义，writer 域合同不在此重登记）。
 - DATA: DATA-P2-INT（integrated，registry astrocs.phase2.integrate.md:22）、
   DATA-P2-RES（mosaic，astrocs.phase2.write.md:23）；逐字段唯一权威见
-  DATA_SEMANTICS §20（P2-HIPS-DOC 新增）。
+  DATA_SEMANTICS §20。
 - API: API-P2-001（docs/api/PHASE2_API_V1.md，FROZEN，所有权/并发合同）+
-  PUBLIC_API Phase2 mosaic write 节（P2-HIPS-DOC 新增；现状 PUBLIC_API.md
-  :54 登记 astrocs-stage2 CLI 为 V5 遗留 LEG-004 已退出生产，生产入口 =
-  `astrocs phase2 run` 编排——本节登记其底层写出实现）。
+  PUBLIC_API Phase2 mosaic write 节（生产入口 = `astrocs phase2 run` 编排；
+  本节登记其底层写出实现 lib/algorithms/coverage/tools/stage2.cpp）。
 - 模块: MOD-astrocs-phase2-hips-writer（registry 现状实测
   astrocs.phase2.write.md，module_id=astrocs.phase2.write，execution_class=io；
   对齐归 P2-HIPS-INT，见 §11.6）。
@@ -423,12 +425,12 @@ main(stage2.json, CLI overrides):
 - 相邻不改: aio_hips_reader.cpp（P3/HIPS_VERIFY 后端）、
   lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp（P1 写通道）、
   p2_session.cpp（编排层，hips_paths 验证 :81-92，不做 HiPS 写）。
-- TST: TEST-P2-HIPS-001（登记面 = 本文档 §11.4 设计冻结 VERIFIED，
-  依 P2-COV-DOC TEST-COV-DESIGN-001 先例：VERIFIED 对象为设计+容差，
+- TST: TEST-P2-HIPS-001（登记面 = 本文档 §11.4 设计冻结 VERIFIED；
+  VERIFIED 对象为设计+容差，
   可执行测试显式 MISSING 归 P2-HIPS-TEST）；既有基线
   Phase2IvarWiring/Phase2Routing/test_p2004_reject_integrate.py（§8）。
 
-## 11 P2-HIPS-DOC 冻结附录（2026-09-07，stage2.cpp 1762 行源码实测）
+## 11 冻结附录（stage2.cpp 1762 行源码实测）
 
 ### 11.1 ALG-P2-HIPS-001..004 逐符号/逐段锚
 
@@ -454,7 +456,7 @@ main(stage2.json, CLI overrides):
 
 | ID | 严重度 | 描述 | 源码锚 | 整改去向 |
 |---|---|---|---|---|
-| DISP-P2HIPS-001 | 中 | 马赛克输出仅 signal/support 两产品（flags=AIO_HIPS_PRODUCT_SIGNAL\|AIO_HIPS_PRODUCT_SUPPORT），输入侧消费 ivar（纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））但输出侧无 variance/ivar 产品——方差传播止于加权积分，无逐像素方差输出供下游（P3/统计）消费；writer 层 variance 通道（aio_hips_writer.cpp:1067-1073）未被 P2 启用 | stage2.cpp:594; :553-563; aio_hips_writer.cpp:1067-1073 | P2-HIPS-IMPL 评估 variance 产品接入（writer 侧已具备，属接线缺口非能力缺口） |
+| DISP-P2HIPS-001 | 中 | 马赛克输出仅 signal/support 两产品（flags=AIO_HIPS_PRODUCT_SIGNAL\|AIO_HIPS_PRODUCT_SUPPORT），输入侧消费逐样本 ivar（生产权重 = Phase2 按该天球像素对应帧集合现场算出的派生量）但输出侧无 variance/ivar 产品——方差传播止于加权积分，无逐像素方差输出供下游（P3/统计）消费；writer 层 variance 通道（aio_hips_writer.cpp:1067-1073）未被 P2 启用 | stage2.cpp:594; :553-563; aio_hips_writer.cpp:1067-1073 | P2-HIPS-IMPL 评估 variance 产品接入（writer 侧已具备，属接线缺口非能力缺口） |
 | DISP-P2HIPS-002 | 中 | input_manifest_hash 与 model_hash 仅进入 UPM 持久层与 diagnostics.json，未写入 HiPS properties/manifest.json——全文件 `aio_hips_set_drizzle_provenance` grep 零命中（实测 0 处），provenance 链断在 products 元数据层，跨 run 溯源依赖 run 目录约定 | stage2.cpp:245; :427-430; :1746; 全文件 grep 零命中 | P2-HIPS-INT 经 writer provenance 通道接线（aio_hips.h provenance API），不改 SCI |
 | DISP-P2HIPS-003 | 低 | stage2 直写 cfg.out_hips（aio_hips_product_begin :592），无 staging 目录；原子发布语义依赖 IO-003 Python 发布层（docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md）在编排层承接，stage2 单体运行时无该保护；与 writer 层 DISP-HIPS-004 同源 | stage2.cpp:592; docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md | P2-HIPS-INT 编排层接线（与 DISP-HIPS-004 整改同域） |
 | DISP-P2HIPS-004 | 低 | 覆盖帧探测逐 tile 逐帧 aio_hips_read_tile_f32 probe，n 帧×n_tile 次重复 FITS 读，大 N 输入时 I/O 放大（O(T·N) probe）；无 MOC 缓存探测 | stage2.cpp:663-668 | P2-HIPS-IMPL 引入逐帧 MOC/tile 集合缓存（coverage 层已有逐帧 tile 列表可复用，ALG-COV-001 输出） |
@@ -466,17 +468,15 @@ main(stage2.json, CLI overrides):
 f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记容差来源
 （§9）。EVIDENCE 显式 MISSING，不冒认 IMPLEMENTED。
 
-### 11.5 SCI 层状态声明（本任务零 SCI 改动）
+### 11.5 SCI 层状态声明（本域零 SCI 改动）
 
-- 覆盖链全部语义权威已有 FROZEN SCI: SCI-UPM-001（T106 2026-08-23）、
-  SCI-INT-001（T108 2026-08-23）、SCI-REJ-001（T107 2026-08-23）、
-  SCI-SCOPE-001。四者均**不因本任务改动**（共享 SCI 引用不改动；
-  P1-WCS-DOC 共享 SCI 先例）。
+- 覆盖链全部语义权威已有 FROZEN SCI: SCI-UPM-001、SCI-INT-001、
+  SCI-REJ-001、SCI-SCOPE-001。四者均**共享引用不改动**。
 - matrix P2 域 science_id 占位（registry astrocs.phase2.write.md:7
   upstream=SCI-P2-WR-001/ALG-P2-WR-001）无 docs/science 权威页：语义映射
   由本节声明——SCI-P2-WR-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=INTEGRATION.md
-  §5 + PHASE2_UPM.md §5 + REJECTION.md + SCIENCE_SCOPE.md，矩阵行
-  P2-HIPS-DOC 冻结时修订）；ALG-P2-WR-001 ⇒ ALG-P2-HIPS-001..004（本文档
+  §5 + PHASE2_UPM.md §5 + REJECTION.md + SCIENCE_SCOPE.md）；
+  ALG-P2-WR-001 ⇒ ALG-P2-HIPS-001..004（本文档
   §2/§7）。两处冲突以 docs/science/ 为准并回改本文档（禁止反向）。
 
 ### 11.6 与任务给定事实的实测差异记录（以实测为准，供 P2-HIPS-INT 对齐）
@@ -492,13 +492,13 @@ f32 产品存取粒度所致，f64 oracle 不沿用）；fixture 生成器注记
   其余给定锚全部实测吻合。
 - 模块 ID: MOD-astrocs-phase2-hips-writer 在 matrix/registry 无现状
   （实测 MOD-astrocs-phase2-write / astrocs.phase2.write.md，execution_class=io）。
-- DATA_SEMANTICS 现状止于 §19（DATA-COV-001）；§20 DATA-P2-HIPS 为
-  P2-HIPS-DOC 新增登记位（DATA-P2-INT/DATA-P2-RES 现定义于
+- DATA_SEMANTICS 现状止于 §19（DATA-COV-001）；§20 DATA-P2-HIPS 为新增登记位
+  （DATA-P2-INT/DATA-P2-RES 现定义于
   TRACEABILITY_MATRIX.json 与 registry astrocs.phase2.integrate.md:22/
   astrocs.phase2.write.md:23）。
-- PUBLIC_API.md 现状无 Phase2 mosaic write 节，且 :54 登记 astrocs-stage2
-  CLI 为 V5 遗留（LEG-004 已退出生产，生产入口 astrocs phase2 run）——
-  本文档登记对象为该 CLI 背后的底层写出实现 lib/algorithms/coverage/tools/stage2.cpp。
+- PUBLIC_API.md :54 的 astrocs-stage2 CLI 条目为历史登记；生产入口 =
+  `astrocs phase2 run`，本文档登记其底层写出实现
+  lib/algorithms/coverage/tools/stage2.cpp。
 - 测试现状: 无名为 TEST-P2-HIPS-001 的测试；实测基线 = ivar_wiring_test.cpp
   （直接跑生产 astrocs-stage2）、routing_test.cpp、synthetic_gate.cpp
   Phase2Integrate/Phase2Robust（reducer 级，:2622/:3360）、

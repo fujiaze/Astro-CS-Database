@@ -1,7 +1,6 @@
 # Data Flow
 
-> ⚠ **DOC-202 订正（R15 / R16 / R17 / R21，2026-09-20）**：本文按最高设计 §3.2 / §4.2 / §4.5 / §7.1a 重写；
-> 旧 `orchestrator.exe` / `astrocs-stage2` **不是入口**（§7.1/§11），已从本文入口位删除。
+> 本文按最高设计 §3.2 / §4.2 / §4.5 / §7.1a 描述；入口 = 唯一 CLI 的 `normalize` / `mosaic` / `export` 三个子命令。
 
 ## Phase1（normalize：单帧管线）
 
@@ -34,7 +33,7 @@ FITS/XISF 亮场 + 母版
   → upm persist（sparse JSON via aio_upm；dense cache 可选）
   → block plan / upm apply（每帧 frame_id → δ_k(frame, leaf)；**默认只扣偏差、保留公共天光面**）
   → rejection（**逐像素按几何可贡献帧数 N 自动选择**：`1≤N≤3` none / `4≤N≤5` percentile /
-      `6≤N≤15` winsorized / `N≥16` linear fit；映射表 = EXP-204 定案冻结表；
+      `6≤N≤15` winsorized / `N≥16` linear fit；映射表见 `ASTROCS_DESIGN.md` §5.5；
       禁 min/max —— 表落 `docs/plugins/algorithms_phase2/12_rejection.md` §9，**只引用**）
   → integration（加权均值 + support reducer）
   → 产品验证 → 原子发布马赛克 HiPS + verify
@@ -42,7 +41,7 @@ FITS/XISF 亮场 + 母版
 
 - 入口 = 唯一 CLI 的 `mosaic` 子命令（最高设计 §6.2）。
 - 排异**不是「7 种任选」**：**逐像素按 N 自动选择**，冻结映射表落位
-  `docs/plugins/algorithms_phase2/12_rejection.md` §9（EXP-204 定案；**只引用，不复制**）。
+  `docs/plugins/algorithms_phase2/12_rejection.md` §9（权威 = `ASTROCS_DESIGN.md` §5.5 / `docs/science/REJECTION.md`；**只引用，不复制**）。
 
 ## 数据契约
 

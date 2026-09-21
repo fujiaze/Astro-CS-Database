@@ -6,7 +6,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §6（CLI 合同）、§3.5（运行前预检）
+- 最高设计 `ASTROCS_DESIGN.md` §6（CLI 合同）、§4.5（运行前预检）
 - `contracts/schemas/phase_config*.schema.json`
 
 ## 3. 输入/输出数据合同
@@ -19,7 +19,7 @@
 
 - 命令树（唯一）见最高设计 §6.2：`help / --version / doctor / benchmark / normalize|mosaic|export --json|--template|--help`；
 - 三个命令直接以命令名调用（`normalize` / `mosaic` / `export`），是平级独立命令；`phase1|2|3` 仅为内部命名；
-- **运行前预检（检查页面）**：见最高设计 §3.5——三级提示（绿色 correct / 橘色 optimize / 红色 error），无论是否全 correct 都显示页面并需用户输入 `yes` 运行；`-y` 跳过确认；存在 error 强制阻断（`-y` 也不行）；仅 `-force` 可在缺少校准帧等情况下无阻塞运行；
+- **运行前预检（检查页面）**：见最高设计 §4.5——三档（🟢 correct / 🟠 warn 不阻塞 / 🔴 error 阻塞），三档都显示完整检查页面；**无 error 时（correct 与 warn）都需用户输入 `yes` 确认才运行**，`-y`/`-yes` 跳过确认；存在 error 时 `-y`/`-yes` 不能越过；`-force` 跳过整个检查步骤直接运行（后果由用户承担）；
 - `benchmark` 直接输出 profile 到**安装目录**（自动生成/更新），后续运行时自动读取；
 - `help` 直接输入即为详细帮助；
 - 取消：协作取消 → 关 writer → incomplete manifest → 隔离临时产物 → exit 9；
@@ -36,7 +36,7 @@
 | `output` | stdout | 模板输出路径 |
 | `help` | —— | 帮助与字段说明 |
 | `-y` | —— | 跳过运行确认（自动 yes） |
-| `-force` | —— | 强制越过缺失校准帧等可强制项（其余 error 仍阻断） |
+| `-force` | —— | 跳过整个检查步骤直接运行（后果由用户承担） |
 
 ## 6. 接口/ABI
 
@@ -46,13 +46,13 @@
 ## 7. 错误与边界
 
 - 参数错误 → 2；输入缺失/格式错 → 3；科学验证失败 → 4；ABI/加载失败 → 5；执行失败 → 6；I/O → 7；输出完整性 → 8；取消/超时 → 9；资源门禁 → 10；未分类 → 70；
-- 存在 error 时**强制阻断**运行（`-y` 不能越过，只有 `-force` 可越过可强制项）；
+- 存在 error 时**强制阻断**运行（`-y`/`-yes` 不能越过；`-force` 跳过整个检查步骤）；
 - 未捕获异常 → 脱敏 crash report，不泄露凭据。
 
 ## 8. 测试与 Oracle
 
 - 命令树/帮助/模板输出测试；
-- 预检页面测试：全 correct / 有 optimize / 有 error 三种展示与阻断行为；
+- 预检页面测试：correct / warn / error 三档展示与阻断行为；
 - 每个退出码的可达测试；
 - 取消路径（Ctrl-C）无半成品；
 - `--json` 输出恰一个 JSON 文档、无日志污染；

@@ -1,6 +1,6 @@
 # Rejection Algorithms (ALG-REJ)
 
-> ID: ALG-REJ-001  范围: ALG-REJ-001..008  上游 SCI: SCI-REJ-001  状态: DERIVED (T207 冻结; V5 ALG-006 重验 2026-08-28)  模块: phase2/rejection
+> ID: ALG-REJ-001  范围: ALG-REJ-001..008  上游 SCI: SCI-REJ-001  状态: DERIVED  模块: phase2/rejection
 
 ## 1 上游 SCI 与输入输出
 
@@ -34,7 +34,11 @@
 ## 2 离散公式
 
 ```text
-F1: plan resolve: n<6→percentile 0.2/0.1, 6≤n≤15→winsorized 4/3/8, n>15→linear_fit 5/3.5/8 (nominal n)
+F1: plan resolve（N = 该输出像素的几何覆盖帧数，一次解析）:
+      1≤N≤3 → none（不排异，直接逆方差加权积分）; 4≤N≤5 → percentile 0.2/0.1;
+      6≤N≤15 → winsorized 4/3/8; N≥16 → linear_fit 5/3.5/8
+      min/max 不用于生产（AUTO 路由禁止产出 min/max 与 NoRejection，fail-closed）
+      与 WBPP 档界的差异及其依据见 docs/science/REJECTION.md
 F2: sigma: median ws, MAD→σ=1.482602218505602·MAD, thresholds 4.0 low /3.0 high 8iter
 F3: winsorized: winsor at σ阈, 再sigma
 F4: linear_fit: 线性拟合残差MAD尺度 5/3.5 8iter

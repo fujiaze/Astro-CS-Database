@@ -1,26 +1,26 @@
 # Drizzle Geometry Algorithms (P1-DRZ)
 
-> ID 覆盖: ALG-DRZ-001  状态: CONTRACT_READY (P1-DRZ-DOC 冻结, 2026-09-07)  上游: SCI-DRZ-001  下游: DATA-P1-DRZ / API-DRZ-001 / TEST-DRZ-DESIGN-001
-> 本文档由源码逐函数核对后重写（P1-DRZ-DOC）。实现唯一生产源 =
+> ID 覆盖: ALG-DRZ-001  状态: CONTRACT_READY  上游: SCI-DRZ-001  下游: DATA-P1-DRZ / API-DRZ-001 / TEST-DRZ-DESIGN-001
+> 本文档由源码逐函数核对后登记。实现唯一生产源 =
 > `lib/algorithms/drizzle/healpix_drizzle/`（CMake 目标 `astrocs_drizzle`，
 > CMakeLists.txt:356-366；C ABI 导出 `lib/algorithms/drizzle/healpix_drizzle/
 > hp_drizzle_api.h:42,62,70,130,139,140`）；迁移目标目录 `lib/algorithms/drizzle/`
 > （落码由 P1-DRZ-IMPL 执行，尚未存在生产符号）。科学定义见
-> `docs/science/DRIZZLE.md`（SCI-DRZ-001，FROZEN T105 2026-08-23，
-> 集合 SCI-DRZ-001/014/015/016）。本文档只登记离散算法与实现事实，
+> `docs/science/DRIZZLE.md`（SCI-DRZ-001，FROZEN，集合 SCI-DRZ-001/014/015/016）。
+> 本文档只登记离散算法与实现事实，
 > 不修改 SCI；源码与 SCI 的差异全部登记于 §10（DISP-DRZ-*），
 > 禁止根据代码错误反向修改 SCI。禁止声明 IMPLEMENTED。
 
 ## 0 范围界定
 
-本文档将旧版 `ALG-DRZ-001..016` 区间收缩为单一 **ALG-DRZ-001**（drizzle
-几何与累加合同），覆盖现行唯一生产 tiled 实现全链路
+本文档以单一 **ALG-DRZ-001**（drizzle 几何与累加合同）覆盖现行唯一
+生产 tiled 实现全链路
 （`drizzleTiled[_f64]` → `processPixelSharedTiled/processPixelTiled` →
 球面几何 → tile 累加器），P1-DRZ-IMPL/TEST 均以本文档为准：
 
-- 候选缓冲/几何合同旧名 `ALG-DRZ-GEOM-CACHE-001`、`ALG-DRZ-VAR`、
-  `TEST-ALG-DRZ-*` 为历史登记名（源码注释中仍可见），现行合同一律引用
-  ALG-DRZ-001 与 TEST-DRZ-DESIGN-001，不再使用旧名登记新事实。
+- 候选缓冲/几何合同一律引用 ALG-DRZ-001 与 TEST-DRZ-DESIGN-001；
+  源码注释中出现的 `ALG-DRZ-GEOM-CACHE-001`、`ALG-DRZ-VAR`、`TEST-ALG-DRZ-*`
+  为同义登记名，不另立合同。
 - S_p=F_p/D_p 面亮度归一与 variance/ivar finalize 属 astro_image_io
   下游（astro_sphere_sink.cpp:100 传出原始累加量后由
   aio_hips_writer finalize_tile 完成，见 DISP-DRZ-007），不在本模块。
@@ -34,10 +34,10 @@
   A_drop,j = drop 球面总面积 [sr]（S-H 裁剪前，双精度角点累积，
   <1e-20 拒绝，drizzle_engine.cpp:1439-1441）。
 - 离散公式（逐条源码锚）:
-  - 权重（**legacy，见 DISP-DRZ-009**）: `w_jp = a_jp / A_drop,j`，a_jp = drop ∩
+  - 权重: `w_jp = a_jp / A_drop,j`，a_jp = drop ∩
     target p 球面交叠面积 [sr]（drizzle_engine.cpp:1508；w≤0 拒绝 :1509-1512）。
-    SCI-DRZ-001 §5 目标态为面亮度保持权重 `w_SB=a_jp/A_pixel,j=pixfrac²·w_jp`；
-    本模块源码仍用 legacy，`pixfrac<1` 时 `S_p` 偏 `1/pixfrac²`。
+    SCI-DRZ-001 §5 的目标态为面亮度保持权重 `w_SB=a_jp/A_pixel,j=pixfrac²·w_jp`；
+    现行源码用 `w_jp`，`pixfrac<1` 时 `S_p` 偏 `1/pixfrac²`（DISP-DRZ-009）。
   - 通量: `F_p = Σ_j x_j · w_jp`（`acc.sumFlux += Scalar(pixelValue *
     weight)`，:1530）。
   - 支撑面积: `D_p = Σ_j a_jp`（`acc.sumArea += Scalar(overlap_area)`，
@@ -117,7 +117,7 @@
 | channels≠1 多通道 | 拒绝 | :1583-1591 |
 | 缺 WCS（CD 与 CDELT+CROTA2 均无） | 拒绝（帧通道返回 -9） | api.cpp:541-545 |
 | 尺寸/空指针非法 | 拒绝 | drizzle_engine.cpp:1597-1606 |
-| **值像素 NaN/Inf** | **实现现状（未闭合偏差）**：主循环 `!isfinite → continue`（等效掩膜、不进累加器）但**无计数暴露** ⇒ 违反 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 的「**禁止**静默剔除、必须暴露 `n_rejected_nonfinite`」；**产品口径已定案 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（唯一文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a；EXP-202 定案，判据冻结 sha256 `539d83a0…`）；代码侧补计数归 P1-DRZ-IMPL | :1715（DISP-DRZ-004，TRACKED/OPEN） |
+| **值像素 NaN/Inf** | 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项一并剔除并重新归一，仅零合格样本输出 `NaN ∧ support≤0`，每个输出像素必须暴露被剔除样本计数 `n_rejected_nonfinite`。**实现现状（未闭合偏差）**：主循环 `!isfinite → continue`（等效掩膜、不进累加器）但无计数暴露 ⇒ 缺「强制计数」一项；代码侧补计数归 P1-DRZ-IMPL | :1715（DISP-DRZ-004，TRACKED/OPEN） |
 | SNR/权重/variance 面非有限或 ≤0 | 静默跳过该像素 | :1718-1732 |
 | 几何 NaN（ra/dec 非有限） | 显式拒绝该像素 | :1322-1323 |
 | 半球检查失败（max_ang≥π/2） | 返回 NAN 面积 | spherical_overlap.cpp:196-216 |
@@ -139,7 +139,7 @@
 - **1/N 确定性成立**: 同输入同线程数 bitwise 可复现（schedule(static)
   行→线程映射固定 + 合并序固定）；跨线程数时 leaf 内浮点和顺序不同，
   不保证 bitwise（差异 ≤ 浮点结合律界，测试门 §9 覆盖 1/2/4 线程）。
-- ThreadLease: 模块内零命中；omp 为遗留内部通道，生产调度走 Runtime
+- ThreadLease: 模块内零命中；omp 为模块内部通道，生产调度走 Runtime
   lease（CMakeLists.txt:379-382 注释）——ThreadLease 迁移整改点
   （P1-DRZ-IMPL），迁移必须保持本节合并序。
 
@@ -150,7 +150,7 @@
 - 内存: tile 累加器 leaf 连续数组 O(1) 寻址（禁 per-leaf 全局 map，
   :1525 注释）；target 缓存 per-thread bounded 8192 LRU；单交集
   O(顶点数≤8) 无整帧副本；SNR 控制点 RAII vector（api.cpp:609-613，
-  修复 legacy free 泄漏）。
+  已消除 free 泄漏）。
 
 ## 8 数据布局
 
@@ -161,8 +161,8 @@
 - HiPS 直写: tile_depth 必须 =9、nside≥512（astro_sphere_sink.cpp:36-51），
   leaf tile 512×512 1:1，产品 SIGNAL/SUPPORT + V19 variance/ivar
   （有 variance 输入时）；provenance 写 pixfrac/源像素尺度。
-- legacy HISS: HissWriter 流式（writeHisTilesT，drizzle_engine.cpp:1265
-  finalize），测光 gate :1950-1956；operation_counts.json 剖面
+- HissWriter 流式（writeHisTilesT，drizzle_engine.cpp:1265 finalize），
+  测光 gate :1950-1956；operation_counts.json 剖面
   （api.cpp:1091-1134）。
 - **B2-A12 精度 provenance（无 silent 缺省）**: 累加精度由
   `drizzle.precision_mode`（整数 0=FP32 / 1=FP64）显式给出；缺失或非整数
@@ -231,12 +231,12 @@
 | DISP-DRZ-001 | hp_drizzle_api.h:93 注释 sip_order "0..4" | hp_drizzle_api.cpp:98-103 校验 [0,5]（6×6 系数组支持 5 阶下标） | hp_drizzle_api.h:93 vs hp_drizzle_api.cpp:98-103 |
 | DISP-DRZ-002 | 面积="S-H + Girard 定理"（DRIZZLE.md:63,:124） | S-H 裁剪 + Eriksson 扇形三角剖分，无 Girard 实现 | DRIZZLE.md:63,124 vs spherical_overlap.cpp:186-239 |
 | DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs drizzle_engine.cpp:1570 |
-| DISP-DRZ-004 | **（2026-09-20 反转，EXP-202 定案）** 原记「值像素 NaN 经 `F_p` 传播、不掩膜」**已作废**（`DRIZZLE.md:116` 已按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 改为样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数）；现行文档口径 = 不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | 主循环 `!isfinite→continue` 静默跳过（不进累加器），**无计数暴露** ⇒ 掩膜方向一致但**缺强制计数**，属未闭合偏差（P1-DRZ-IMPL） | DRIZZLE.md:116 vs drizzle_engine.cpp:1715 |
-| DISP-DRZ-005 | **（原登记已反转，2026-09 实测复核 @f7fa3160）** 原记"全文无 1e-3 切平面分支，现行统一球面 S-H"与代码相反 | **存在三处 `max_angle < 1e-3` 切平面活分支 = 微小 drop（角跨度 < 1e-3 rad ≈ 206″）的实际执行路径，必须保留**：:1091 `g.drop_area` 微小 drop 用切平面面积、:1288-1289 nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、:1331-1332 三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差）。注释论证锚 :1001-1007（θ<1e-3 时切平面偏差 <4e-8，球面 double 相消噪声 ~1e-4~5e-5）。按原登记迁移会删除真路径、引入数值回归——禁行 | DRIZZLE.md:98 vs spherical_overlap.cpp:1091,1288-1289,1331-1332（注释 :1001-1007,:1078-1079） |
+| DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`DRIZZLE.md:116`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | 主循环 `!isfinite→continue`（不进累加器），**无计数暴露** ⇒ 掩膜方向一致但**缺强制计数**，属未闭合偏差（P1-DRZ-IMPL） | DRIZZLE.md:116 vs drizzle_engine.cpp:1715 |
+| DISP-DRZ-005 | `max_angle < 1e-3` 切平面分支是**实际执行路径，必须保留**：微小 drop（角跨度 < 1e-3 rad ≈ 206″）用切平面面积 | 三处活分支：:1091 `g.drop_area` 微小 drop 用切平面面积、:1288-1289 nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、:1331-1332 三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差） | spherical_overlap.cpp:1091,1288-1289,1331-1332（注释 :1001-1007,:1078-1079）；θ<1e-3 时切平面偏差 <4e-8，球面 double 相消噪声 ~1e-4~5e-5 |
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:62-63 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:62-63 vs 64-71 |
 | DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:131 vs drizzle_engine.cpp:2-3 |
-| DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用（legacy） | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
-| DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`，claim FIX-SCI-DRZ-001） | 源码用 legacy `w_jp=a_jp/A_drop,j`（drizzle_engine.cpp:1531）后 `S_p=sumFlux/sumArea`，`pixfrac<1` 偏 `1/pixfrac²`（pixfrac=0.8→1.5625×） | DRIZZLE.md:40-54 vs drizzle_engine.cpp:1531,1553-1554；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/v6/data/02_signal.md:38） |
+| DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用 | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
+| DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`） | 源码用 `w_jp=a_jp/A_drop,j`（drizzle_engine.cpp:1531）后 `S_p=sumFlux/sumArea`，`pixfrac<1` 偏 `1/pixfrac²`（pixfrac=0.8→1.5625×） | DRIZZLE.md:40-54 vs drizzle_engine.cpp:1531,1553-1554；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/v6/data/02_signal.md:38） |
 
 无差异项（核对通过）: F/D/sumVarNum 结构、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。

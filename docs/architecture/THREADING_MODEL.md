@@ -6,8 +6,7 @@
   执行与取消；最高设计 §7.1/§8）。一个进程只有一个全局执行顺序与线程预算源。
 - 科学模块：内部并行 region 由宿主按预算注入；每模块文档化 parallel/shared/
   thread-local/reduction/determinism/float accumulation order。
-- ~~编排层：orchestrator/stage2 顺序 stage~~ **历史保留 / 非入口**（最高设计 §7.1：
-  旧可执行程序不是入口；orchestrator 在退役计划内）。
+- 编排层由 CLI 的 pipeline driver 承担；唯一入口 = `ACSD Cli` / `acsd_cli`（最高设计 §7.1）。
 - ~~ACR：work_pool + device_executor 调度；CPU reference 与 GPU 等价契约。~~
   **DORMANT**：保留源码与隔离测试，**不进生产构建/加载/路由/benchmark/发布**
   （最高设计 §8）。

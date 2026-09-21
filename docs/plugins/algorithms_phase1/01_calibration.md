@@ -7,13 +7,13 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §3.6（硬约束：校准方差传播）
+- 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：校准方差传播）
 - `docs/science/NOISE_MODEL.md`（噪声模型与方差传播公式）
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §4（校准与方差传播）
 
 ## 3. 输入/输出数据合同
 
-- **输入**：原始 light（float 语义）、master bias/dark/flat、cosmetic map、曝光/增益/读出噪声/饱和/非线性/温度/滤镜/观测站元数据（输入为参数 + 路径，见最高设计 §3.3）。
+- **输入**：原始 light（float 语义）、master bias/dark/flat、cosmetic map、曝光/增益/读出噪声/饱和/非线性/温度/滤镜/观测站元数据（输入为参数 + 路径，见最高设计 §4.3）。
 - **输出**：定标信号 `y`（单位声明）、`V(y)`/ivar、validity 标志、写入 manifest 的校准口径。
 - 参考：`contracts/schemas/data_light.schema.json`、`contracts/schemas/calibration_output.schema.json`。
 

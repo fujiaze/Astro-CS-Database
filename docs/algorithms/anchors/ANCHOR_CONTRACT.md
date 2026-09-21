@@ -37,8 +37,9 @@ path/to/file.ext:N（symbol）    path/to/file.ext:N + backticked symbol
 2. **doc-relative**：相对锚所在文档目录解析；
 3. **contract-rule**：`anchor_contract.json.resolvers` 中按 `doc`/`doc_prefix` +
    `basename` 匹配的显式规则（**唯一**处理同名多候选的合法手段）；
-4. **basename-unique**：全仓（排除 `/archive/`、`/legacy/`、`third_party/`、`build/`、
-   `out/`、`run/`、`worktrees/`、`.git/`）唯一同名文件。
+4. **basename-unique**：全仓（排除归档标记目录，清单 = `ARCHIVE_MARKERS`，
+   `tools/doccheck/check_alg_line_anchors.py:64-65`：archive / 历史实现 / `.git` /
+   `third_party` / `build` / `out` / `run` / `worktrees`）唯一同名文件。
 
 四步皆不命中 → `C2_anchor_resolved` FAIL。目标必须是 **Git 跟踪**文件。
 
@@ -71,7 +72,7 @@ path/to/file.ext:N（symbol）    path/to/file.ext:N + backticked symbol
 - **新增 `bindings`**：只允许绑定**可逐字复测**的符号（函数名、宏、FITS 关键字、
   CMake 目标名），禁止绑定泛词（如 signal、pixel）——泛词绑定不产生检测力。
 
-## 6 SCI-ANCHOR-001 全量复测结果（2026-09-12）
+## 6 SCI-ANCHOR-001 全量复测结果
 
 复测基线：执行时最新 main（三 SHA 一致，见任务证据包）。全量 793 锚复测结论：
 

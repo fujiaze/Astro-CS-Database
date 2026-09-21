@@ -10,7 +10,5 @@
   source map。
 - 每份 troubleshooting：symptom、likely stage、log/metric/error、
   minimal reproduction、expected invariant、source/doc/test path。
-- 历史材料迁 **`docs/archive/history/`**，不得作为 current authority。
-  > ⚠ **DOC-202 S12-Y3 订正（2026-09-20）**：原文写 `docs/history/`，**该路径不存在**；
-  > 实际归档位 = `docs/archive/history/`（已在位）。
+- 正式文档集只保留现行设计；历史材料不入库，也不得作为 current authority。
 - 机器一致性：docs_machine_consistency.py 必须 PASS（S8）。

@@ -11,7 +11,7 @@
 
 ## API 契约 ID
 
-每个稳定公共 API 关联 API-* ID（见 `docs/contracts/API_CONTRACTS.csv` / `docs/traceability/TRACEABILITY_MATRIX.json`；旧 `docs/TRACEABILITY.csv` 追溯门已退役），例如
+每个稳定公共 API 关联 API-* ID（见 `docs/contracts/API_CONTRACTS.csv` / `docs/traceability/TRACEABILITY_MATRIX.json`），例如
 API-AIO-001（FITS/XISF/HiPS 读写）、API-P2-REJECT-001（rejection 规划）、
 API-P2-UPM-001（UPM build/save/open/calibrate）。
 

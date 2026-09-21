@@ -1,8 +1,7 @@
 # DATA-004 产物溯源与版本语义（Product Provenance）
 
 > 文档 ID：DOC-DATA-PRODUCT-PROVENANCE-001
-> 状态：ACTIVE_NORMATIVE（DATA-004 冻结语义，本任务交付）
-> Owner：SA-DATA-06 ｜ 前序基线：`0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da`（DATA-004 base）
+> 状态：ACTIVE_NORMATIVE
 > 上游权威：`ASTROCS_DESIGN.md` §1.2/§9（三阶段仅通过原子发布、
 > 哈希与 provenance 完整的磁盘产品/manifest 交换）、DATA-001（typed manifest schema）、
 > DATA-002（三阶段产品交换合同，R-DISK-ONLY / R-EVIDENCE-REQUIRED）、
@@ -15,8 +14,8 @@
 
 ## 0. 目的与范围
 
-DATA-003 建立了生产 ArtifactStore 的原子发布与校验读；本任务（DATA-004）在其上
-补全**产物溯源（provenance）与版本语义**：
+DATA-003 建立了生产 ArtifactStore 的原子发布与校验读；本合同在其上
+定义**产物溯源（provenance）与版本语义**：
 
 1. 区分 **revision 类别**：product / module / ABI / data schema / doc revision /
    history——每类有独立语义与校验规则，不允许混为一谈；
@@ -24,7 +23,7 @@ DATA-003 建立了生产 ArtifactStore 的原子发布与校验读；本任务�
    science IDs**；
 3. **确定性 provenance digest**：同输入配置 ⇒ 同 digest（运行时间/目录等运行
    事实不参与 digest）；
-4. **旧 product 版本不静默接收**：发布门（history 已替换版本拒绝重发）+
+4. **被替换的 product 版本不静默接收**：发布门（history 已替换版本拒绝重发）+
    消费门（min_product_version 门槛）+ data_schema 绑定（新数据旧 schema /
    旧数据新 schema 一律拒绝）；
 5. **privacy scan**：provenance 相关文本/诊断不泄露绝对用户路径与凭据。
@@ -44,7 +43,7 @@ sidecar 旁路持久化，manifest hash 语义不变）。
 | ABI | `revision.abi` | C ABI / 文档形态版本 | DATA-001 manifest_schema 形态（v1） | `v1` |
 | data schema | `revision.data_schema` | type_id 数据 schema revision | manifest `type_id.schema_version` → `v{sv}` | `v1` |
 | doc revision | `doc_revision`（旁路） | manifest 文档形态自身修订 | DATA-004 冻结：当前 `v1`；非当前拒绝 | `v1` |
-| history | `history`（旁路） | 旧 product 版本链（被替换版本显式记录） | `build_history`（replaced 升序 + superseded_by） | — |
+| history | `history`（旁路） | 被替换的 product 版本链（被替换版本显式记录） | `build_history`（replaced 升序 + 接替者条目） | — |
 
 规则：
 
@@ -87,7 +86,7 @@ provenance_digest = sha256(canonical_json({
   产生“同输入不同 digest”的假象；
 - **旁路 digest 可复算**：`provenance_digest` 字段随文档持久化；`validate_doc`
   复算核对一致（消费门对篡改 digest 硬拒绝）；
-- `history` / `doc_revision` 是文档形态与旧链展示，不参与 digest（拒收语义由
+- `history` / `doc_revision` 是文档形态与替换链展示，不参与 digest（拒收语义由
   发布门/消费门强制，不靠混淆 digest 实现）。
 
 ## 3. 接线（production_store.py DATA-004）
@@ -110,22 +109,22 @@ provenance_digest = sha256(canonical_json({
   对象仍按基线索引）；DATA-004 产品消费必须走 `bind_product_input`（要求 provenance
   完整 + digest 复算一致 + data_schema 绑定 + 可选 min_product_version）。
 
-## 4. 发布/消费语义门（旧 product 版本不静默接收）
+## 4. 发布/消费语义门（被替换的 product 版本不静默接收）
 
 | 门 | 位置 | 规则 | 对应验收 |
 |---|---|---|---|
 | data_schema 绑定 | publish（`_build_publish_provenance`） | `revision.data_schema` 必须 = manifest `v{schema_version}` | 新/旧 schema 冒充拒 |
-| 历史拒收 | publish | revision.product ∈ history.replaced → 硬拒（已替换版本不得静默重发） | 旧 product 版本不静默接收 |
+| 历史拒收 | publish | revision.product ∈ history.replaced → 硬拒（已替换版本不得静默重发） | 被替换版本不静默接收 |
 | 隐私门 | publish（`make_provenance_doc`） | 文档任一字符串字段命中敏感模式 → 拒 | privacy scan 不泄露 |
 | 消费溯源门 | `bind_product_input` | provenance sidecar 存在 + 校验通过 + digest 复算一致 | 缺 provenance 拒绑定 |
-| 版本门槛 | `bind_product_input(min_product_version)` | 输入 product 版本 ≥ 阈值才放行 | 旧 product 版本不静默接收 |
+| 版本门槛 | `bind_product_input(min_product_version)` | 输入 product 版本 ≥ 阈值才放行 | 被替换版本不静默接收 |
 
 `assert_not_superseded(revision, history, category)` 语义：
 
 - revision 未声明该类别 → 放行（该类别无版本语义）；
 - revision 版本 ∈ history.replaced → 显式拒绝（须显式升版本 supersede）；
-- history.superseded_by 是接替者（= 当前发布版本），不构成拒收——本函数只拦
-  “旧版本回归”，当前版本发布通过。
+- history 的接替者条目是当前发布版本，不构成拒收——本函数只拦
+  「被替换版本再次发布」，当前版本发布通过。
 
 ## 5. privacy scan（不泄露绝对用户路径/凭据）
 
@@ -137,14 +136,14 @@ api_key/credential/private_key 等）→ 命中即报告泄露（不静默改写
 provenance 顶层字段结构上也不携带任何文件系统路径（storage_uri/artifact_id 词法
 层由 DATA-001 拒绝裸路径）——绝对用户路径/凭据在溯源通道不出现。
 
-## 6. 验收映射（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-004〔**来源已删除/不可考**；替代=本文件 + `ASTROCS_DESIGN.md` §9〕）
+## 6. 验收映射（依据：本文件 + `ASTROCS_DESIGN.md` §9）
 
 | 验收 | 实现 | 测试 |
 |---|---|---|
 | 区分 product/module/ABI/data schema/doc revision/history | §1 + `build_revision`/`build_history`/`assert_doc_revision_is_current` | `TestRevisionCategories` / `TestDocRevisionHistory` |
 | 写 source commit/config/provider/worker/input hashes、science IDs | §2 `provenance_digest_hex` + `make_provenance_doc` + `with_provenance` | `TestProvenanceDigestFields` / `TestMakeProvenanceDoc` |
 | 同输入配置产生相同 provenance digest | §2 公式（运行事实不参与；排序稳定） | `TestDeterministicDigest` |
-| 旧 product 版本不静默接收 | §4 发布门 + 消费门 + data_schema 绑定 | `TestOldVersionNotSilentlyAccepted` |
+| 被替换的 product 版本不静默接收 | §4 发布门 + 消费门 + data_schema 绑定 | `TestOldVersionNotSilentlyAccepted` |
 | privacy scan 不泄露绝对用户路径/凭据 | §5 + `make_provenance_doc` 隐私门 | `TestPrivacyScanNoLeak` |
 | 接线：sidecar 原子发布/恢复加载/digest 可复算 | §3 production_store 接线 | `TestStoreProvenanceIntegration` |
 
@@ -153,7 +152,7 @@ provenance 顶层字段结构上也不携带任何文件系统路径（storage_u
 
 ## 7. 边界（非目标）
 
-- 本任务**不改科学公式/常数**；不改 DATA-001/002 已冻结 schema/registry/
+- 本合同**不改科学公式/常数**；不改 DATA-001/002 已冻结 schema/registry/
   validator；不改 DATA-003 manifest hash 语义（provenance 以独立 sidecar 旁路，
   不附加 manifest 字段）；
 - source_commit 由调用方/运行图显式给出；本模块绝不自行执行 git 或猜测 commit；
@@ -165,4 +164,4 @@ provenance 顶层字段结构上也不携带任何文件系统路径（storage_u
 ## 8. 文档追溯
 
 `DATA-001/002/003` → `DATA-004 产物溯源（本文档 + provenance.py + production_store 接线）` →
-`tests/artifact/test_provenance.py` → `TASK_RESULT.json / TEST_EVIDENCE.json`（DATA-004 证据）。
+`tests/artifact/test_provenance.py`。

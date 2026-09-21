@@ -1,6 +1,6 @@
 # AstroCS Architecture (V5 单一 CLI 冻结版)
 
-> ID: ARCH-ARCH-001  状态: FROZEN (V5 ARCH-002, 2026-08-28)  上游: GOV-001/ARCH-001  下游: API-001..005/ARCH-003..005/CLI-001
+> ID: ARCH-ARCH-001  状态: FROZEN  上游: ARCH-001  下游: API-001..005/ARCH-003..005/CLI-001
 
 ## 1 总览与单一入口
 
@@ -47,7 +47,7 @@ astrocs CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 ## 6 线程与执行
 
 - 全局 thread budget 与串行 I/O/异步 pipeline/backpressure 见 ARCH-004（冻结前置）；每 kernel 预算来源=PERFORMANCE_MODEL + benchmark profile；无硬编码线程数（ARCH-001 门+AGENTS 硬约束）。
-- 历史路径的执行语义存量证据：`production_call_paths_stage1/2.csv`（symbol 级）+`PRODUCTION_EXECUTION_INVENTORY.csv`（**338 行**，实测 `wc -l`；DOC-202 S11 订正，原写「217 行」）；stage2 迁移后其 ACR Dispatcher 接线标记为不可达（ACR 不接入）。
+- 执行语义存量证据：`production_call_paths_stage1/2.csv`（symbol 级）+`PRODUCTION_EXECUTION_INVENTORY.csv`（**338 行**，实测 `wc -l`）；其中 ACR Dispatcher 接线标记为不可达（ACR 不接入）。
 
 ## 7 不变量（机器可验）
 
@@ -61,7 +61,6 @@ astrocs CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 
 - 任务: ARCH-002(本文件)/ARCH-003(backend ABI)/ARCH-004(thread budget)/ARCH-005(Phase3 模块)/CLI-001(单一 target)/API-001..005
 - 文档: MODULE_MAP.md/DATA_FLOW.md/PIPELINE.md/ERROR_MODEL.md/THREADING_MODEL.md/OWNERSHIP_AND_LIFETIME.md/IO_AND_ATOMICITY.md/PERFORMANCE_MODEL.md
-- 迁移遗留: 旧 orchestrator/stage2 文档描述保留于 git 历史。
-- **权威（DOC-202 R14/R04 订正）**：本文件是详细文档层的一员，**不另立权威链、不作排他性权威自称**
+- **权威**：本文件是详细文档层的一员，**不另立权威链、不作排他性权威自称**
   （最高设计 §0.1/§0.2）；架构问题的权威 = 最高设计 §7，科学/算法权威 = `docs/science/` + `docs/algorithms/`，
   与本文件冲突时一律以最高设计为准。

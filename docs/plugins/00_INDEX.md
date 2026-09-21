@@ -13,7 +13,7 @@ docs/plugins/
 └── infrastructure/             基建模块（7 篇）
 ```
 
-**代码落位**：所有科学算法模块在 `lib/algorithms/` 下**并联放置**；`phase1/2/3` 是设计层面的内部指代，代码目录统一为 `lib/algorithms/` 平铺 + `lib/infrastructure/cli/{normalize,mosaic,export}`，引用对应算法模块。（见最高设计 §7.1）
+**代码落位**：所有科学算法模块在 `lib/algorithms/` 下**并联放置**；`phase1/2/3` 是设计层面的内部指代，代码目录统一为 `lib/algorithms/` 平铺 + `lib/infrastructure/cli/{normalize,mosaic,export}`，引用对应算法模块。（见最高设计 §7.1/§8.1）
 
 ---
 
@@ -58,7 +58,7 @@ docs/plugins/
 |---|---|---|
 | `17_aio.md` | aio | FITS/HiPS/manifest 唯一 I/O、原子提交 |
 | `18_cli.md` | cli | 命令解析、JSON/JSONL、取消、退出码 |
-| `19_runtime.md` | scheduler | 模块名 = `scheduler` + `pipeline`（最高设计 §7.1；`runtime` 不是模块名）；typed DAG、调度、线程预算、资源监控 |
+| `19_runtime.md` | scheduler | 模块名 = `scheduler` + `pipeline`（最高设计 §8.1；`runtime` 不是模块名）；typed DAG、调度、线程预算、资源监控 |
 | `20_benchmark.md` | benchmark | CPU profile 生成与校验 |
 | `21_observability.md` | observability | 日志、事件、运行图 |
 | `22_gaia_xpsd_client.md` | gaia_xpsd_client | 外部星表查询、缓存、坐标/历元语义 |
@@ -96,3 +96,15 @@ docs/plugins/
 - 插件文档与代码/合同同步更新；改合同必须先改插件文档（文档先行）；
 - 插件文档不得与最高设计冲突；冲突以最高设计为准并修订本文档；
 - 新增模块 = 新增插件文档 + module.yaml 注册 + 测试；删除模块 = 反向操作并登记。
+
+---
+
+## 6. 三个创新点与实验单元
+
+AstroCS 的科学核心是三个紧密相连的创新点（最高设计 §2），插件文档集按它们组织：
+
+1. **测光校准到测光星等坐标系**（§2.1）：Gaia DR3 XP 星点光谱 × CCD QE 曲线 × 滤镜透过率曲线积分，正向合成期望测光量并与实测通量拟合，结果应用到整帧像素，**整帧消除物理单位**；
+2. **跨帧可用的绝对信噪比**（§2.2）：**帧级 SNR**（点源 PSF 信号口径，写入 HiPS 文件头）+ **稀疏控制点上的区域相对 SNR**（无量纲相对场，中位归一），Phase2 消费时插值**重建为稠密 SNR**；
+3. **加性天光与无接缝叠加**（§2.3）：UPM 在全部帧上联合建立**连续的绝对天光参考平面**，各帧按「**多退少补**」用加法扣除偏差、保留公共天光平面。
+
+三个创新点各自是一个独立实验单元（最高设计 §12.3）：实验报告、固定 seed 的代码、结果与数据见 `实验/SCI-A`（测光星等坐标系）、`实验/SCI-B`（绝对 SNR 传递链）、`实验/SCI-C`（加性天光与无接缝）；公式与推导正本见 `docs/science/`、`docs/algorithms/`。

@@ -9,9 +9,9 @@ upstream: [SCI-P2-INT-001, ALG-P2-INT-001, API-P2-001]
 downstream: [TEST-P2-INT-001]
 ---
 
-# 模块 astrocs.phase2.integrate（P2-INT-DOC 事实修订，2026-09-09）
+# 模块 astrocs.phase2.integrate
 
-> P2-INT-DOC（SA-P2-I23）将本页自 gen_module_readmes 派生页事实修订为
+> 本页自 gen_module_readmes 派生页事实修订为
 > 手写合同页（手写 registry 先例 astrocs.phase2.write.md/
 > astrocs.phase2.coverage.md）。frontmatter 的 source_commit/upstream/
 > downstream 为 registry 生成词，保持不动；合同权威=lib/algorithms/integration/
@@ -57,8 +57,8 @@ downstream: [TEST-P2-INT-001]
 | `corrected` | `DATA-P2-COR` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `integrated` | `DATA-P2-INT` | 可 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 
-内核级真实 I/O 合同=DATA-P2-INT（DATA_SEMANTICS §21，P2-INT-DOC
-冻结）: 输入 P2PixelStack（values f64 ADU/weights f64 1/ADU² 可空=
+内核级真实 I/O 合同=DATA-P2-INT（DATA_SEMANTICS §21）:
+输入 P2PixelStack（values f64 ADU/weights f64 1/ADU² 可空=
 等权/support f64 [0,1] 可空=1.0/accepted u8 可空=全接受/count u32）；
 输出 P2PixelResult（signal f64 ADU/support f64 [0,1]/五计数器/status
 0..4）。invalid 显式化: 非法输入→INVALID_INPUT、无候选→
@@ -75,14 +75,14 @@ NO_CANDIDATES、全拒→ALL_REJECTED、全零权重→ZERO_VALID_WEIGHT——
   stage2.cpp:1141/:1402 预检）。
 - 编排生命周期 create→validate→run→inspect→destroy 由 session
   承接（module_adapters.cpp:752-757 工厂），本内核为无状态纯函数。
-- C API 面: API-P2-INT-001（PUBLIC_API.md，P2-INT-DOC 登记）+
+- C API 面: API-P2-INT-001（PUBLIC_API.md 登记）+
   编排级 API-P2-001（FROZEN）。
 
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.phase2.integrate`（占位）；execution_class=
 `cpu_heavy`；parallel_ok=True（像素间）；配置=phase config JSON
-（权重策略在 Stage2 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），本内核无策略配置——weights 数组
+（权重策略在 Stage2，本内核无策略配置——weights 数组
 外置）。
 
 ## Execution class、并行轴、ThreadBudget lease、确定性

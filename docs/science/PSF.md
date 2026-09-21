@@ -1,11 +1,11 @@
 # PSF Science (SCI-PSF)
 
-> ID: SCI-PSF-001  状态: FROZEN (T101 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-STARPSF-001..  模块: dynamic_psf
+> ID: SCI-PSF-001  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-STARPSF-001..  模块: dynamic_psf
 
 ## 1 目的与非目标
 
 - **目的**：描述点源响应（椭圆 Moffat4），估计 PSF 形状/位置及拟合质量代理 `q_psf`，用于 Astrometry/Photometry 的星点建模与剔星/QA。
-- **非目标**：不处理超出椭圆 Moffat4 的高阶色差/空间变异（仅一阶椭率 `e,θ`）；不直接输出图像噪声 SNR（`q_psf`≠SNR，见 NOISE_MODEL）；不进入 Phase2 逐像素 science weight（SNR-008 已退休旧 `(A−B)/mad` 路径）。
+- **非目标**：不处理超出椭圆 Moffat4 的高阶色差/空间变异（仅一阶椭率 `e,θ`）；不直接输出图像噪声 SNR（`q_psf`≠SNR，见 NOISE_MODEL）；不进入 Phase2 逐像素科学叠加权重（`q_psf` 只作诊断）。
 
 ## 2 符号表
 
@@ -25,7 +25,7 @@
 
 ## 3 物理量和单位
 
-- `I,A,B,residual_scale`: ADU；`r,dx,dy,σ,sx,sy,fwhm`: px；`θ`: rad；`Q,e,q_psf`: 无量纲；`flux`: **ADU**（由 `I=B+A/(1+Q)^4`，`I` 与 `B` 单位为 ADU/pixel，对探测器平面二维积分后单位为 ADU；各向同性解析值 `2πAσ²/3`）。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S3) -->
+- `I,A,B,residual_scale`: ADU；`r,dx,dy,σ,sx,sy,fwhm`: px；`θ`: rad；`Q,e,q_psf`: 无量纲；`flux`: **ADU**（由 `I=B+A/(1+Q)^4`，`I` 与 `B` 单位为 ADU/pixel，对探测器平面二维积分后单位为 ADU；各向同性解析值 `2πAσ²/3`）。
 
 ## 3a 坐标 frame
 
@@ -84,7 +84,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 - **WCS frame/pixel convention**：不涉及；像素域窗口拟合（§3a），中心 `(cx+x0, cy+y0)` 供 Astrometry 质心域。
 - **PSF 参数**：七参数含义/单位见 §2/§3；`FWHM=1.230310·σ`（各向同性不变量 §7）；椭率一阶 `e,θ`。
-- **aperture/flux/background**：解析通量 `flux=2πA·sxsy/3`，单位 **ADU**（`I,B` 为 ADU/pixel，对探测器平面二维积分后为 ADU；β=4 整平面延伸假设，Project-defined 推导；§3）；背景 `B` 模型内联合拟合，无独立孔径 annulus。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S3) -->
+- **aperture/flux/background**：解析通量 `flux=2πA·sxsy/3`，单位 **ADU**（`I,B` 为 ADU/pixel，对探测器平面二维积分后为 ADU；β=4 整平面延伸假设，Project-defined 推导；§3）；背景 `B` 模型内联合拟合，无独立孔径 annulus。
 - **photometric scale 与不确定度**：`q_psf=A/residual_scale` 为拟合质量代理，**不是 SNR/光度不确定度**（§1 非目标）；`robust_residual_sigma=residual_scale/0.7316727929211932` 为高斯假设换算（10–90% trimmed mean）。
 
 ## 10 不可接受变化
@@ -118,7 +118,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 2. β=4 解析通量 `flux=2πA·sxsy/3` 与 `FWHM/σ=1.230310`：**Project-defined derivation**（§5 对 (1+Q)^{−4} 解析积分，各向同性极限 πα²/3·A=2πAσ²/3 自洽），不引用外部公式号。
 3. trimmed-mean→σ 换算系数 `0.7316727929211932`：高斯假设下 10–90% trimmed mean 的标准化常数（Project-defined 采纳，数值由高斯分位积分确定）。
 
-## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 14a 参考文献与参考代码库（含许可证）
 
 > 本节只补出处与参考实现，不改动 §5 公式与 §7/§11 容差。
 
@@ -126,7 +126,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 - **β=4 解析通量 flux=2πA·sxsy/3 与 FWHM/σ=1.230310**：**Project-defined 解析积分**（对 (1+Q)^(−4) 的整平面积分）；建议用独立符号/数值积分（SciPy quad 或 sympy，BSD-3-Clause）复算，不作文献引用。
 - **LM 阻尼最小二乘**：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, Lecture Notes in Math. 630, 105。实现对照 GSL gsl_multifit_nlinear（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - **10–90% trimmed mean → σ 常数 0.7316727929211932**：**Project-defined 高斯分位积分**（可用 scipy.stats.truncnorm 复算）；**注意**该常数是 trimmed mean 的标准化因子，与 MAD 常数 1.482602218505602 **不可互换**（NOISE_MODEL §9）。
-- **空间变异 PSF / PSF 采样基**：Bertin, E. 2011, ASP Conf. Ser. 442, 435（PSFEx；<http://aspbooks.org/custom/publications/paper/442-0435.html>，标题逐字核验 2026-09-17）；photutils（BSD-3-Clause）MoffatPSF/GaussianPSF。**差异**：AstroCS 现状为块状共享 7 参数 Moffat4，不做空间变异多项式基（§1 非目标）。
+- **空间变异 PSF / PSF 采样基**：Bertin, E. 2011, ASP Conf. Ser. 442, 435（PSFEx；<http://aspbooks.org/custom/publications/paper/442-0435.html>）；photutils（BSD-3-Clause）MoffatPSF/GaussianPSF。**差异**：AstroCS 现状为块状共享 7 参数 Moffat4，不做空间变异多项式基（§1 非目标）。
 - **拥挤场 PSF 拟合测光**：Stetson, P. B. 1987, PASP 99, 191（DAOPHOT；DOI 10.1086/131977）。
 - **q_psf=A/residual_scale**：**Project-defined 质量代理**，非 SNR、非 Fisher information（UNIFIED_SCIENCE_MODEL §3/§11；SCI-PSF §1 非目标）。
 

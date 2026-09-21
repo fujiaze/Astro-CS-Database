@@ -25,3 +25,18 @@ Browser shot      2.43s；zoom 0.30s/f；pan 0.22s/f
 - 优化前后 science 输出 hash/数值等价；
 - 无 >5% 无解释总体回退；
 - 未安全优化项标注 `NO_SAFE_OPTIMIZATION_FOUND`。
+
+---
+
+## V18R2 资源驱动轮（性能基线）
+
+```text
+Phase1            ~67.35 s/frame
+Drizzle           ~64 s/frame（16-frame batch）
+资源驱动轮        126.65 s -> 67.35 s
+RSS               37.5 GB -> 1.2 GB
+PLATESOLVE        15 s -> 0.16 s
+```
+
+规则同前：优化前后 science 输出 hash/数值等价；无 >5% 无解释总体回退；未安全优化项标注 `NO_SAFE_OPTIMIZATION_FOUND`。
+

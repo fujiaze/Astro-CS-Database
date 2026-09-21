@@ -15,14 +15,14 @@
 # tools/quality/check_module_map.py 现场计算，状态词只取 §11.3 词表；
 # 禁止在本表写 status 字段（防「表内自证绿」）。
 #
-# 诚实性约定：legacy_paths 保存**迁移前**的旧路径（历史键），只作 ARCH-001 的定位线索，
-# **不参与实现/安装判定**；实现只认 target_dir 下的生产源。因迁移已完成，旧路径在树中
-# 一律不存在（清单与逐条映射见 cmake/ARCH-001-migration-manifest.md §1，MOD-002 已核对
-# 23/23 条）。禁止把 target_dir 自身或其子路径写进 legacy_paths——否则「legacy 存在」
+# 诚实性约定：legacy_paths 保存**迁移前**的路径（历史键），只作 ARCH-001 的定位线索，
+# **不参与实现/安装判定**；实现只认 target_dir 下的生产源。迁移完成后这些路径在树中
+# 一律不存在（清单与逐条映射见 cmake/ARCH-001-migration-manifest.md §1，23/23 条已核对）。
+# 禁止把 target_dir 自身或其子路径写进 legacy_paths——否则「声明路径存在」
 # 这类 NOTE 会被自身目录触发，把历史键退化成自证。
 #
 # 维护：本表随 DATA-001（合同/schema 面）与 ARCH-001/INT-001（目录迁移/装配）更新；
-# 修改本表必须同时过 CHK-MODULE-MANIFEST（MOD-002 迁移后引用刷新，2026-09-16）。
+# 修改本表必须同时过 CHK-MODULE-MANIFEST（引用刷新）。
 
 schema_version: 1
 tool: tools/quality/check_module_map.py
@@ -64,7 +64,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-CAL]
-    data_contracts_source: lib/algorithms/calibration/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/calibration/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/data_light.schema.json, contracts/schemas/calibration_output.schema.json]
     schema_links_source: docs/plugins/algorithms_phase1/01_calibration.md §3
     schema_link_globs: []
@@ -76,7 +76,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/calibration]
-    note: legacy 源 = lib/calibration（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 18）。
+    note: 源 = lib/calibration（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 18）。
   - id: cosmetic
     scope: phase1
     group: algorithms
@@ -93,7 +93,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-CAL, DATA-P1-COS]
-    data_contracts_source: lib/algorithms/cosmetic/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/cosmetic/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/cosmetic_output.schema.json]
     schema_links_source: docs/plugins/algorithms_phase1/02_cosmetic.md §3
     schema_link_globs: []
@@ -105,7 +105,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/cosmetic]
-    note: legacy 源 = lib/cosmetic（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 19）。
+    note: 源 = lib/cosmetic（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 19）。
   - id: star_detection
     scope: phase1
     group: algorithms
@@ -122,7 +122,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-STAR]
-    data_contracts_source: lib/algorithms/star_detection/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/star_detection/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/source_catalog.schema.json]
     schema_links_source: docs/plugins/algorithms_phase1/03_star_detection.md §3
     schema_link_globs: []
@@ -134,7 +134,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/star_detector]
-    note: legacy 源 = lib/star_detector（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 20）。
+    note: 源 = lib/star_detector（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 20）。
   - id: psf
     scope: phase1
     group: algorithms
@@ -152,7 +152,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-PSF, DATA-P1-SOURCES, DATA-P1-COSMETIC]
-    data_contracts_source: lib/algorithms/psf/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/psf/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/psf_output.schema.json]
     schema_links_source: docs/plugins/algorithms_phase1/04_psf.md §3
     schema_link_globs: []
@@ -164,7 +164,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/dynamic_psf]
-    note: legacy 源 = lib/dynamic_psf（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 21）。
+    note: 源 = lib/dynamic_psf（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 21）。
   - id: platesolve
     scope: phase1
     group: algorithms
@@ -182,7 +182,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-WCS]
-    data_contracts_source: lib/algorithms/platesolve/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/platesolve/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/wcs_output.schema.json]
     schema_links_source: docs/plugins/algorithms_phase1/05_platesolve.md §3
     schema_link_globs: []
@@ -194,7 +194,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/plate_solve]
-    note: legacy 源 = lib/plate_solve（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 22）。
+    note: 源 = lib/plate_solve（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 22）。
   - id: photometry
     scope: phase1
     group: algorithms
@@ -211,7 +211,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-PHOT]
-    data_contracts_source: lib/algorithms/photometry/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/photometry/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/photometry_output.schema.json]
     schema_links_source: docs/plugins/algorithms_phase1/06_photometry.md §3
     schema_link_globs: []
@@ -223,7 +223,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/photometric_calib]
-    note: legacy 源 = lib/photometric_calib（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 23）。
+    note: 源 = lib/photometric_calib（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 23）。
   - id: noise_snr
     scope: phase1
     group: algorithms
@@ -241,7 +241,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-NOISE]
-    data_contracts_source: lib/algorithms/noise_snr/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/noise_snr/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/noise_snr_output.schema.json]
     schema_links_source: docs/plugins/algorithms_phase1/07_noise_snr.md §3
     schema_link_globs: []
@@ -253,7 +253,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/snr_estimator, lib/phase1/noise]
-    note: legacy 源 = lib/snr_estimator + lib/phase1/noise 薄包装（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 24/25）。
+    note: 源 = lib/snr_estimator + lib/phase1/noise 薄包装（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 24/25）。
   - id: drizzle
     scope: phase1
     group: algorithms
@@ -270,7 +270,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P1-CAL, DATA-P1-DRZ]
-    data_contracts_source: lib/algorithms/drizzle/module.yaml（legacy 声明面，观察值；entrypoint 记 MISSING）
+    data_contracts_source: lib/algorithms/drizzle/module.yaml（声明面，观察值；entrypoint 记 MISSING）
     schema_links: [contracts/schemas/hips_product.schema.json, contracts/schemas/manifest.schema.json]
     schema_links_source: docs/plugins/algorithms_phase1/08_drizzle.md §3
     schema_link_globs: []
@@ -282,7 +282,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/healpix_db/healpix_drizzle, lib/hips]
-    note: legacy 源 = lib/healpix_db/healpix_drizzle（生产源）+ lib/hips（P1-HIPS 目标目录）（ARCH-001 已迁入 target_dir 子目录；不动点=迁移 map 条目 10/11）。
+    note: 源 = lib/healpix_db/healpix_drizzle（生产源）+ lib/hips（P1-HIPS 目标目录）（ARCH-001 已迁入 target_dir 子目录；不动点=迁移 map 条目 10/11）。
   - id: coverage
     scope: phase2
     group: algorithms
@@ -299,7 +299,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-COV-001]
-    data_contracts_source: lib/algorithms/coverage/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/coverage/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/coverage_output.schema.json]
     schema_links_source: docs/plugins/algorithms_phase2/09_coverage.md §3
     schema_link_globs: []
@@ -311,7 +311,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/phase2, lib/hips_p2]
-    note: legacy 源 = lib/phase2（生产源拆分属 INT-001 架构边界）+ lib/hips_p2（P2-HIPS 合同目录）（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 31/33）。
+    note: 源 = lib/phase2（生产源拆分属 INT-001 架构边界）+ lib/hips_p2（P2-HIPS 合同目录）（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 31/33）。
   - id: sampling
     scope: phase2
     group: algorithms
@@ -329,7 +329,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P2-SMP]
-    data_contracts_source: lib/algorithms/sampling/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/sampling/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/control_points.schema.json]
     schema_links_source: docs/plugins/algorithms_phase2/10_sampling.md §3
     schema_link_globs: []
@@ -341,7 +341,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/phase2_samp]
-    note: legacy 源 = lib/phase2_samp（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 2）。
+    note: 源 = lib/phase2_samp（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 2）。
   - id: upm
     scope: phase2
     group: algorithms
@@ -358,7 +358,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P2-UPM, DATA-P2-COR]
-    data_contracts_source: lib/algorithms/upm/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/upm/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/upm_output.schema.json]
     schema_links_source: docs/plugins/algorithms_phase2/11_upm.md §3
     schema_link_globs: []
@@ -370,7 +370,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/phase2_upm]
-    note: legacy 源 = lib/phase2_upm（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 3）。
+    note: 源 = lib/phase2_upm（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 3）。
   - id: rejection
     scope: phase2
     group: algorithms
@@ -387,7 +387,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P2-REJ]
-    data_contracts_source: lib/algorithms/rejection/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/rejection/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/rejection_output.schema.json]
     schema_links_source: docs/plugins/algorithms_phase2/12_rejection.md §3
     schema_link_globs: []
@@ -399,7 +399,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/phase2_rej]
-    note: legacy 源 = lib/phase2_rej（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 1）。
+    note: 源 = lib/phase2_rej（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 1）。
   - id: integration
     scope: phase2
     group: algorithms
@@ -416,7 +416,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P2-INT]
-    data_contracts_source: lib/algorithms/integration/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/integration/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/integration_output.schema.json]
     schema_links_source: docs/plugins/algorithms_phase2/13_integration.md §3（surface_brightness/point_source/psfsw_integration 产品族）
     schema_link_globs: []
@@ -428,7 +428,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/phase2_int, lib/phase1/v6]
-    note: legacy 源 = lib/phase2_int + lib/phase1/v6（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 5/29）。
+    note: 源 = lib/phase2_int + lib/phase1/v6（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 5/29）。
   - id: projection
     scope: phase3
     group: algorithms
@@ -445,7 +445,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P3-WCS]
-    data_contracts_source: lib/algorithms/projection/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/projection/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/projection_registry.schema.json]
     schema_links_source: docs/plugins/algorithms_phase3/14_projection.md §3
     schema_link_globs: []
@@ -457,7 +457,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/phase3_proj]
-    note: legacy 源 = lib/phase3_proj（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 6）。
+    note: 源 = lib/phase3_proj（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 6）。
   - id: resample
     scope: phase3
     group: algorithms
@@ -474,7 +474,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P3-RES]
-    data_contracts_source: lib/algorithms/resample/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/resample/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/export_product.schema.json]
     schema_links_source: docs/plugins/algorithms_phase3/15_resample.md §3
     schema_link_globs: []
@@ -486,7 +486,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/phase3_rsmp]
-    note: legacy 源 = lib/phase3_rsmp（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 7）。
+    note: 源 = lib/phase3_rsmp（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 7）。
   - id: fits_output
     scope: phase3
     group: algorithms
@@ -504,7 +504,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-P3-FITS]
-    data_contracts_source: lib/algorithms/fits_output/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/algorithms/fits_output/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/fits_product.schema.json]
     schema_links_source: docs/plugins/algorithms_phase3/16_fits_output.md §3
     schema_link_globs: []
@@ -516,7 +516,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/phase3_fits]
-    note: legacy 源 = lib/phase3_fits（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 4）。
+    note: 源 = lib/phase3_fits（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 4）。
   - id: aio
     scope: infra
     group: infrastructure
@@ -545,7 +545,7 @@ modules:
       unit_kind: io
       exemption_reason: null
     legacy_paths: [lib/astro_image_io, lib/io, lib/healpix_db]
-    note: FITS/HiPS/manifest 唯一 I/O；legacy 源 = lib/astro_image_io + lib/io + lib/healpix_db（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 13/14/35）。
+    note: FITS/HiPS/manifest 唯一 I/O；源 = lib/astro_image_io + lib/io + lib/healpix_db（ARCH-001 已迁入 target_dir；不动点=迁移 map 条目 13/14/35）。
   - id: cli
     scope: infra
     group: infrastructure
@@ -574,7 +574,7 @@ modules:
       unit_kind: exe
       exemption_reason: null
     legacy_paths: [cli]
-    note: 唯一入口 exe（DESIGN §6.2 命令树唯一）；target=astrocs，非 DLL/SO，故 entrypoint=main。legacy 面 lib/infrastructure/cli/ 与 target_dir 同名（不在 ARCH-001 迁移清单内）。
+    note: 唯一入口 exe（DESIGN §6.2 命令树唯一）；target=astrocs，非 DLL/SO，故 entrypoint=main。源面 lib/infrastructure/cli/ 与 target_dir 同名（不在 ARCH-001 迁移清单内）。
   - id: scheduler
     scope: infra
     group: infrastructure
@@ -604,14 +604,14 @@ modules:
       exemption_reason: null
     legacy_paths: [lib/core]
     note: >-
-      DOC-202 R27（2026-09-20）改名对齐 ASTROCS_DESIGN §7.1：本条目覆盖 §7.1 顶层结构的
+      本条目对齐 ASTROCS_DESIGN §7.1：覆盖 §7.1 顶层结构的
       scheduler（注册、资源预算、执行、取消、checkpoint；物理位 lib/infrastructure/scheduler）
       与 pipeline（typed DAG、artifact、内存/数据管线；物理位 lib/infrastructure/pipeline）。
       「runtime」不是模块名（禁第二名字）：plugin_doc 文件名 19_runtime.md 仅为历史路径，
       不得作为职责名引用。物理位与 target 如实登记：scheduler 源集编入根 CMakeLists.txt:292
       的 astrocs_core STATIC（本项目唯一根 CMake，无逐模块 CMakeLists.txt）；
       readme 在位；module_yaml / 共址 tests 缺失属已登记缺口（见文件头「声明路径缺失登记」）。
-      lib 侧 legacy 源 = lib/core（ARCH-001 已迁入 target_dir）。
+      lib 侧源 = lib/core（已迁入 target_dir）。
   - id: benchmark
     scope: infra
     group: infrastructure
@@ -640,7 +640,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: [lib/backend_host]
-    note: legacy 源 = lib/backend_host（ARCH-001 已迁入 target_dir/backend_host；不动点=迁移 map 条目 16）。CPU profile 生成面散在 tools/gen_provider_manifests.py + providers/**（信息性）。
+    note: 源 = lib/backend_host（ARCH-001 已迁入 target_dir/backend_host；不动点=迁移 map 条目 16）。CPU profile 生成面散在 tools/gen_provider_manifests.py + providers/**（信息性）。
   - id: observability
     scope: infra
     group: infrastructure
@@ -669,7 +669,7 @@ modules:
       unit_kind: module
       exemption_reason: null
     legacy_paths: []
-    note: 日志/事件/运行图/资源监控；ARCH-001 迁移清单内的 legacy 源 = 无（lib 侧无对应旧目录）；scheduler/ 与 pipeline/ 与 tools/monitoring 不在迁移清单内，仍待 ARCH-001/INT-001 收口。
+    note: 日志/事件/运行图/资源监控；ARCH-001 迁移清单内的源 = 无（lib 侧无对应目录）；scheduler/ 与 pipeline/ 与 tools/monitoring 不在迁移清单内，仍待 ARCH-001/INT-001 收口。
   - id: gaia_xpsd_client
     scope: infra
     group: infrastructure
@@ -686,7 +686,7 @@ modules:
     entrypoint: astrocs_module_query_v1
     entrypoint_kind: c-abi
     data_contracts: [DATA-GAIA-001]
-    data_contracts_source: lib/infrastructure/gaia_xpsd_client/module.yaml（legacy 声明面，观察值）
+    data_contracts_source: lib/infrastructure/gaia_xpsd_client/module.yaml（声明面，观察值）
     schema_links: [contracts/schemas/catalog_query.schema.json]
     schema_links_source: docs/plugins/infrastructure/22_gaia_xpsd_client.md §3
     schema_link_globs: []
@@ -697,10 +697,9 @@ modules:
       expected_unit_ids: [MOD-CAT-GAIA]
       unit_kind: module
       exemption_reason: null
-    # 2026-09-20 订正（CHK-MODULE-MANIFEST 结构缺口修复）：原值
-    # [lib/infrastructure/gaia_xpsd_client] 把 **target_dir 自身**写进 legacy_paths，
-    # 违反本表 §诚实性约定「禁止把 target_dir 自身或其子路径写进 legacy_paths」，
-    # 使 legacy_paths_present 这类 NOTE 退化成自证噪声。迁移前旧路径以
+    # CHK-MODULE-MANIFEST 结构约定：legacy_paths 只登记迁移前路径，
+    # **不得**含 **target_dir 自身**或其子路径（否则 legacy_paths_present 这类 NOTE
+    # 会退化成自证噪声）。迁移前路径以
     # cmake/ARCH-001-migration-manifest.md:27（lib/gaia_xpsd_client → lib/infrastructure/gaia_xpsd_client）为准。
     legacy_paths: [lib/gaia_xpsd_client]
     note: 外部星表查询/缓存/坐标历元语义；产品清单已登记 MOD-CAT-GAIA。
@@ -736,20 +735,20 @@ modules:
 
 
 # ===========================================================================
-# 声明路径缺失登记（缺口，逐条）—— DOC-202 S09 / GAP_AUDIT D05
+# 声明路径缺失登记（缺口，逐条）
 # ---------------------------------------------------------------------------
 # 本表是**期望映射**：下列 target_dir/readme/module_yaml/target_file/co_located_tests
 # 声明指向的路径**当前在树中不存在**（实测 os.path.exists=false）。此处**如实登记为缺口**，
 # 不得读作「该路径已存在」；实现只认 target_dir 下的真实生产源，缺口不参与实现/安装判定。
 # 处置归属：模块落地任务（MOD-002 / P*-IMPL / INT-001 / BLD-201）；本表只登记，不伪造。
-# 规模：32 条（R27 把 id: runtime→scheduler 后由 35 条降为 32 条）。
+# 规模：32 条。
 # 校验：python3 tools/quality/check_module_map.py（每条缺失各产生一条 FAIL finding，不静默）。
 # ===========================================================================
 declared_absent_paths:
   note: >-
     下列声明路径在登记时点实测不存在。这是**已登记缺口**，不是「已存在」声明；
     逐条处置由模块落地任务承接（创建真实文件）或由 MOD-002 在落地批内修正声明。
-  checked_at: "2026-09-20"
+  checked_at: 登记时点实测
   count: 32
   items:
     - module: star_detection

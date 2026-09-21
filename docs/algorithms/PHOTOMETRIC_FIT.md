@@ -1,12 +1,12 @@
 # Photometric Fit Algorithms (ALG-PHOT)
 
-> ID: ALG-PHOT-001  范围: ALG-PHOT-001..002  上游 SCI: SCI-PHOT-001  状态: DERIVED (T203 冻结; V5 ALG-002 重验 2026-08-28)  模块: photometric_calib
+> ID: ALG-PHOT-001  范围: ALG-PHOT-001..002  上游 SCI: SCI-PHOT-001  状态: DERIVED  模块: photometric_calib
 
 ## 1 上游 SCI 与输入输出
 
 - 上游: `SCI-PHOT-001` (r=log10(F_instr/F_syn) IRLS Tukey c=4.685, mag_tolerance=3.0)
 - 输入: 仪器流量 `F_instr` + 合成流量 `F_syn` (Gaia XP)
-- 输出: `PhotometricCalibrationQuality` (sigma_mag, sigma_cal_rel) + scale<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S4：删除无定义式、结构体无字段的 zero_point) -->
+- 输出: `PhotometricCalibrationQuality` (sigma_mag, sigma_cal_rel) + scale（无 zero_point 字段：无定义式、结构体无字段）
 
 ## 2 离散公式
 
@@ -75,14 +75,13 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 - API: `pc_api.h: pc_calibrate_simple, pc_calibrate_simple_with_gaia`
 - TST: `TST-PHOT-*` 合成注入/鲁棒
 
-## 13 P1-PHOT-DOC 冻结增补（2026-09-07，wave W1，SA-P1-N17）
+## 13 实现锚定与测试设计增补
 
-> 冻结范围: 本节登记 P1-PHOT-DOC 冻结产物——§13.1 逐符号实现锚定、
-> §13.2 实现事实修订（仅 ALG 文档事实层，不改根科学公式；SCI-PHOT-001
-> docs/science/PHOTOMETRY.md FROZEN T103 2026-08-23 共享引用不改动）、
-> §13.3 已登记现状缺陷 DISP-PHOT-001..009、§13.4 冻结测试设计
-> TEST-PHOT-DESIGN-001、§13.5 legacy 通道与迁移旧符号。行号均为
-> 2026-09-07 grep 实测（lib/algorithms/photometry/cpp/），后续重构以 grep
+> 本节内容: §13.1 逐符号实现锚定、§13.2 实现事实（仅 ALG 文档事实层，
+> 不改根科学公式；SCI-PHOT-001 docs/science/PHOTOMETRY.md FROZEN
+> 共享引用不改动）、§13.3 已登记现状缺陷 DISP-PHOT-001..009、§13.4 冻结测试设计
+> TEST-PHOT-DESIGN-001、§13.5 非生产通道与待迁移符号。行号为
+> lib/algorithms/photometry/cpp/ 的 grep 实测，后续重构以 grep
 > 重锚为准。禁止声明 IMPLEMENTED（迁移落码归 P1-PHOT-IMPL）。
 
 ### 13.1 逐符号实现锚定
@@ -131,24 +130,21 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 **图像校正**: ImageCorrector::correctImage I_cal=I·scale（image_corrector.cpp:63-77，OpenMP static :74-76）。
 
-**aperture 测光旧符号**（lib/algorithms/photometry/wrapper_phase1/photometer.cpp，§13.5）: 天空环收集 d∈[sky_inner,sky_outer] :31-42; 背景中值 :47-51; 孔径积分 d²≤r² Σ(pixel−background) :53-62; σ_sky=1.482602218505602·MAD :69-70; flux_error=sqrt(max(sum,0)+n_in·σ_sky²) :72-80; snr :81。
+**aperture 测光非生产符号**（lib/algorithms/photometry/wrapper_phase1/photometer.cpp，§13.5）: 天空环收集 d∈[sky_inner,sky_outer] :31-42; 背景中值 :47-51; 孔径积分 d²≤r² Σ(pixel−background) :53-62; σ_sky=1.482602218505602·MAD :69-70; flux_error=sqrt(max(sum,0)+n_in·σ_sky²) :72-80; snr :81。
 
 ### 13.2 实现事实修订（ALG 文档事实层；不改根科学公式）
 
-- 匹配为**双向最近邻互为最近邻唯一配对**（KD-tree），非 §2/§3 旧稿的
-  暴力最近邻；match_radius=2.0px（§13.1 锚）。
-- 清洗为**星等预过滤 + IRLS/Tukey 稳健位置估计**，非简单 MAD 3σ 截断；
-  scale=10^(−location)（IRLS 直出），median(F_syn/F_instr) 仅为旧符号
-  computeScale 残留（DISP-PHOT-003）。
-- F_syn 网格为**1.0nm**（spectrum_integrator.cpp:247-255），旧
-  lib/algorithms/photometry/docs/algorithm.md:107/:346 "0.1nm" 失实。
+- 匹配为**双向最近邻互为最近邻唯一配对**（KD-tree），match_radius=2.0px（§13.1 锚）。
+- 清洗为**星等预过滤 + IRLS/Tukey 稳健位置估计**；
+  scale=10^(−location)（IRLS 直出），median(F_syn/F_instr) 仅为
+  computeScale 残留符号（DISP-PHOT-003）。
+- F_syn 网格为**1.0nm**（spectrum_integrator.cpp:247-255）。
 - 生产 XPSD 光谱为 uint8 编码 F(λ)=byte·flux_mul+flux_min（:62-64/:409-454），
   非 float 原始光谱。
 - 自适应星等锥搜 mag_max_arr={12,13,14,15,16}（pc_api.cpp:836-866）实际
   覆盖 mag_max 入参（DISP-PHOT-005）。
 - 构建现状=cpp/Makefile:11 + build.ps1:9（photometric_calib.dll，链接
-  gaia_client.dll），未编入根 CMake 主构建——"编入 CMake"表述如见旧稿
-  以本条为准（CMake 集成归 P1-PHOT-IMPL）。
+  gaia_client.dll），未编入根 CMake 主构建（CMake 集成归 P1-PHOT-IMPL）。
 - OpenMP：F_syn 逐星 schedule(dynamic,64)（整数 reduction 次序无关）、
   像素校正 schedule(static) 逐元素——科学结果 bitwise 与线程数无关。
 
@@ -158,9 +154,9 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
   注释（photometric_calib.h:32-38 "当前无双向过滤/rejected_ambiguous
   保持 0"）失实——实现为双向互最近邻唯一配对，rejected_ambiguous 实际
   统计（:342-346）。
-- **DISP-PHOT-002**: 旧 README v2.0 与 docs/algorithm.md 大面积失实
-  （暴力最近邻 3px/scale=median/MAD 清洗 σ=3/0.1nm 网格/v1.0 2D 曲面拟合
-  叙述）——README r1 重写修正，legacy docs 仅存档。
+- **DISP-PHOT-002**: `lib/algorithms/photometry/docs/algorithm.md` 的部分
+  表述（暴力最近邻 3px/scale=median/MAD 清洗 σ=3/0.1nm 网格/2D 曲面拟合）
+  与现行实现不符；现行事实以本文档 §2/§13.1 为准。
 - **DISP-PHOT-003**: ImageCorrector::computeScale（image_corrector.cpp:26-57）
   死代码，生产无调用方。
 - **DISP-PHOT-004**: 无取消检查点；无 plan/execute/cancel/inspect 生命周期
@@ -198,16 +194,16 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
   handle=null(rc=−2)；断言错误码与退化登记齐全。
 - 可执行 TEST-P1-PHOT-001 由 P1-PHOT-TEST 落地后更新矩阵 test 层。
 
-### 13.5 legacy 通道与迁移旧符号（去留归 P1-PHOT-IMPL 登记）
+### 13.5 非生产通道与待迁移符号（去留归 P1-PHOT-IMPL 登记）
 
-- 旧 ABI 兼容通道保留: pc_calibrate_simple/:103、pc_calibrate_simple_f64/:185、
+- ABI 兼容通道保留: pc_calibrate_simple/:103、pc_calibrate_simple_f64/:185、
   pc_calibrate_simple_with_gaia/:153、pc_calibrate_simple_with_gaia_f64/:201
-  （with-gaia 系为 v2 封装 :1048 前旧实现路径 :154-385/:508-727）；生产主
+  （with-gaia 系为 v2 封装 :1048 前的实现路径 :154-385/:508-727）；生产主
   路径=v2/_f64_v2。
-- ImageCorrector::computeScale（image_corrector.cpp:26-57）=迁移旧符号
+- ImageCorrector::computeScale（image_corrector.cpp:26-57）=待迁移符号
   （median 回退，无调用方，DISP-PHOT-003）。
 - astrocs::phase1::Photometer（lib/algorithms/photometry/wrapper_phase1/photometer.{h,cpp}）
-  =aperture 测光迁移旧符号（静态库 astrocs_phase1_phot，CMakeLists.txt:429-432，
+  =aperture 测光待迁移符号（静态库 astrocs_phase1_phot，CMakeLists.txt:429-432，
   单测 tests/unit/p1_wcs_phot_test tests/unit/CMakeLists.txt:305-310，
   未接 orchestrator 管线），aperture 合同并入 lib/algorithms/photometry/
   README.md §9。

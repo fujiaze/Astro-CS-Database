@@ -1,13 +1,12 @@
 # Phase2 UPM Fit/Apply Algorithms（P2-UPM / astrocs.p2.upm）
 
-> ID: ALG-P2-UPM-IMPL-001  状态: CONTRACT_READY（P2-UPM-DOC 冻结，2026-09-10，
-> owner SA-P2-U21）。本文件是 Phase2 Unified Photometric Model（UPM）
+> ID: ALG-P2-UPM-IMPL-001  状态: CONTRACT_READY。本文件是 Phase2 Unified Photometric Model（UPM）
 > fit+apply+persist+reload 的**实现级算法合同**：逐符号源码行号锚定 +
 > 冻结容差 + 现状缺陷登记。科学语义权威=SCI-UPM-001（docs/science/
 > PHASE2_UPM.md，FROZEN 集合，零改动）；推导级算法权威=ALG-UPM-001
-> （docs/algorithms/UPM_SOLVER.md，本批原位修订，公式与容差零改动）。
+> （docs/algorithms/UPM_SOLVER.md，公式与容差零改动）。
 > 模块: lib/algorithms/coverage/src/upm.cpp（1565 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/upm.h（184 行，实测 2026-09-10）；
+> lib/algorithms/coverage/include/astro/phase2/upm.h（184 行，实测）；
 > API: API-P2-UPM-001（矩阵词汇；PUBLIC_API.md 尚未落页，见 §16）；
 > DATA: DATA-P2-UPM / DATA-P2-COR；MOD: astrocs.p2.upm
 > （TRACEABILITY_MATRIX.csv :21/:22 两行）；TEST: TEST-P2-UPM-001/002
@@ -63,9 +62,9 @@
 
 禁止单位漂移：C/M/raw/calibrated/σ_bg=ADU、control_variance=ADU²、
 control_ivar=ADU⁻²、quality/support 无量纲、frame_id 无量纲 uint64
-（SCI-UPM-001 §3 冻结面，2026-09-10 实测复核）。
+（SCI-UPM-001 §3 冻结面，实测复核）。
 
-## 3 逐符号锚（upm.cpp 1565 行 / upm.h 184 行，2026-09-10 实测）
+## 3 逐符号锚（upm.cpp 1565 行 / upm.h 184 行，实测）
 
 **导出符号（upm.h 声明 / upm.cpp 实现）**：
 
@@ -129,12 +128,12 @@ function calibrate_block(model, frame_id, leaves, in, out, n):   # :1240-1269
   out[i] = in[i] − evaluate_c_field(model, fi, tile, x, y)       # :1263-1266
 ```
 
-## 5 上游 SCI 与映射声明（本任务零 SCI 改动）
+## 5 上游 SCI 与映射声明（本域零 SCI 改动）
 
 - 语义权威已有 FROZEN SCI：**SCI-UPM-001**（docs/science/PHASE2_UPM.md；
   冻结集合 = SCI-UPM-001..010 + SCI-UPM-WEIGHT-001 +
-  SCI-UPM-PERSIST-001）。**不因本任务改动**（共享 SCI 引用不改动；
-  P2-SAMP-DOC/P2-REJ-DOC 先例同构）。单位面（§2）直接承接
+  SCI-UPM-PERSIST-001）。**共享 SCI 引用不改动**
+  （P2-SAMP/P2-REJ 同构）。单位面（§2）直接承接
   SCI-UPM-001 §3 实测文本。
 - **descriptor 占位映射声明**（仿 PHASE2_SAMPLER.md §11.4/§12 写法；
   占位 ID 是矩阵/descriptor 词汇，不注册 INDEX、不入合同）：
@@ -161,11 +160,13 @@ production（use_ivar_weight=1，默认）: raw_w = quality_factor × control_iv
 ablation（use_ivar_weight=0，仅诊断 SNR-015）:
   raw_w = qf · support^support_power · snr²/(1+snr²) / max(unc², sigma_floor²)
                                                    # :1315-1322
+  # 天光控制点的被估量是**变化的背景电平**，SNR² 在该处不是有效逆方差代理；
+  # 生产一律取 control_ivar，SNR 只作 veto/质量门（SCI-UPM-001 §5）
 quality_factor: flags&16→0.0; &2→0.1; &1→1.0; 未知→0.5     # :177-186
 control_variance = k_corr·(π/2)·σ_bg²/N_retained; control_ivar = 1/control_variance
   （sampler 域 ALG-UPM-CONTROL-IVAR-001 承接产出；upm.h:43-50 冻结注释）
 rc=2 门: control_ivar≤0/非有限 → rc=2 显式拒绝（:1311；build 内 :602-610
-  升级 build rc=2，禁止静默回退 legacy；DATA-UPM-CONTROL-UNC-001）
+  升级 build rc=2，禁止静默降级；DATA-UPM-CONTROL-UNC-001）
 ```
 
 **F2 per-control 归一化**（out_norm = raw/Σraw × control_reliability）：
@@ -260,7 +261,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 
 ## 8 并行语义与 SIMD 安全
 
-- **无 OpenMP**（2026-09-10 实测 grep `#pragma omp` 于 upm.cpp 零命中）；
+- **无 OpenMP**（实测 grep `#pragma omp` 于 upm.cpp 零命中）；
   并行路径全部为 **std::thread 池**，共 5 段：
   1. compute_raw raw+归一化聚合：cworkers :515，池 ：521-534，tsums 合并
      :537-539（段 ：509-561）；
@@ -276,7 +277,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
   p2_session.cpp:155 sampler / :195 upm 传 budget.max_workers；
   upm.cpp:242 注释"默认 1(串行 reference); 生产由 p2_session 传
   lease"；:511-514 注释禁 hardware_concurrency——**无硬件探测**，
-  2026-09-10 实测 grep hardware_concurrency 仅命中该注释行 :512）；
+  实测 grep hardware_concurrency 仅命中该注释行 :512）；
 - **SIMD 安全**：残差/Huber 权重逐观测独立（w[i] 写不相交 ：613 注释；
   raw_w[i] 同构 ：524-531）；加权 M/C 聚合为观测/控制索引固定序累加
   （FP64，禁止重结合；归并顺序 §7 冻结）；dense 每 (f,tile) 输出
@@ -298,7 +299,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 - 内存 O(n_ctrl + F×K)（C/obs_w 稠密矩阵，Model :74/:76；
   dense 求值缓冲上界 kChunk×512²×8 字节 = 16×512²×8（:1386/:1482））。
 
-## 10 边界与错误（rc 语义表，2026-09-10 实测锚）
+## 10 边界与错误（rc 语义表，实测锚）
 
 | 面 | rc | 条件 | 锚 |
 |---|---|---|---|
@@ -324,7 +325,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 - 哨兵条款（M7-H-103）：**不可用一律 NaN**，禁止用与合法值冲突的 0.0
   （gauge 参考帧合法 C=0）；`p2_upm_evaluate_c(nullptr,…)` 与未知 frame_id 同码。
   开放项：缺失 cell（tile 不在模型 control 图内）仍返回 0.0=无校正（调用契约要求
-  frame+leaf 在覆盖域内；升级为显式错误需单独裁决，SC-005 登记）。
+  frame+leaf 在覆盖域内；升级为显式错误需另行变更，SC-005 登记）。
 - 收敛可观测（M7-H-101）：`p2_upm_build` 的 rc=0 **只**表示构建成功；"迭代耗尽"
   由 `p2_upm_convergence` 的 `converged=0` 报告，禁止以 rc=0 冒充已收敛。
 - 错误粒度 = rc 二值/三值 + AIO 层 aio_upm_last_error 文本；编排层
@@ -345,7 +346,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 - **save→open 幂等 oracle**：重开值 max_abs==0（帧绑定门；
   UPM_SOLVER.md §12 承接，DATA-UPM-MODEL-001）。
 
-## 12 TEST-DESIGN（TEST-P2-UPM-DESIGN 冻结，2026-09-10）
+## 12 TEST-DESIGN（TEST-P2-UPM-DESIGN 冻结）
 
 **双语声明**：本节为设计冻结面 **VERIFIED**（引用既有测试源容差）；
 可执行 TEST-P2-UPM-001/002 登记为 **MISSING**（归 P2-UPM-TEST 落地，
@@ -367,7 +368,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 frames 重复 rc=1、C 行数≠frame 数 rc=1、dense stale rc=2。fixture
 由固定 seed 合成输入生成（测试源内嵌驱动），不提交大二进制。
 
-## 13 容差与冻结清单（默认值 2026-09-10 实测）
+## 13 容差与冻结清单（默认值实测）
 
 **P2UpmBuildConfig 默认值**（cfg_in=null 缺省面 ：218-245；两处生产组装
 p2_session.cpp:187-195 与 module_adapters.cpp:3152-3176 均显式赋 zero_anchor_weight=1e-3）：
@@ -404,14 +405,13 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 
 | ID | 锚 | 内容 | 整改去向 |
 |---|---|---|---|
-| DISP-P2UPM-001 | upm.h:166-168 与 :173-175 | p2_upm_materialize_dense **重复声明**（复制粘贴遗留；同头文件重复声明同一函数 C++ 合法、非 ODR 违例，运行无影响；纯合同卫生问题） | P2-UPM-IMPL |
+| DISP-P2UPM-001 | upm.h:166-168 与 :173-175 | p2_upm_materialize_dense **重复声明**（同头文件重复声明同一函数 C++ 合法、非 ODR 违例，运行无影响；纯合同卫生问题） | P2-UPM-IMPL |
 | DISP-P2UPM-002 | upm.h:89-91 | cpu_workers 注释漂移：前半句"CON-005 … 仅 P2_ENABLE_OPENMP 时并行 compute_raw/聚合"与实现不符（现无 OpenMP、std::thread 五段池，§8）；:91 后半句 Runtime lease 语义正确 | P2-UPM-IMPL（随 001 一并清） |
 | DISP-P2UPM-003 | p2_session.cpp:196-202 | upm 配置覆盖键仅 {max_iterations,huber_delta,smoothing_lambda}；zero_anchor_weight/tolerance 无 config 键（build 缺省修补面 ：244-245 只拦非法值，session 面不可配） | P2-SESSION-IMPL |
 | DISP-P2UPM-004 | lib/infrastructure/scheduler/src/module_adapters.cpp:665-698 | descriptor 端口语义占位：fit 行 upm_model=可选输出（:608 required=false）、apply 行 upm_model=必选输入（:626 required=true），与真实数据流（fit 进程内 build→persist 落盘 upm_sparse.json；apply/reload 经文件+p2_upm_open）不符 | P2-XX-INT |
 
-登记原则：本批只登记不改码（P2-UPM-DOC 冻结范围=文档）；001/002
-整改编入 P2-UPM-IMPL 任务面，003 归 P2-SESSION-IMPL，004 归
-P2-XX-INT 对齐。
+登记原则：本域只登记不改码；001/002 整改编入 P2-UPM-IMPL 面，
+003 归 P2-SESSION-IMPL，004 归 P2-XX-INT 对齐。
 
 ## 15 消费链（生产编排与 apply/reload 面）
 
@@ -447,8 +447,7 @@ P2-XX-INT 对齐。
 - 下游 DATA：DATA-P2-UPM（fit 产物）/ DATA-P2-COR（apply 产物）
   （descriptor data_id :612/:632；矩阵行 ：21/:22）。
 - API 面：**API-P2-UPM-001**（矩阵/descriptor 词汇；PUBLIC_API.md
-  2026-09-10 实测尚未落 upm 节——落位归 P2-UPM-DOC 其余产物或后续
-  合同任务，本文件只登记词汇不冒认条目存在）。
+  尚未落 upm 节，本文件只登记词汇、不冒认条目存在）。
 - TEST：TEST-P2-UPM-001（fit 面）/ TEST-P2-UPM-002（apply 面）
   ——设计冻结=本文档 §12；可执行 MISSING 归 P2-UPM-TEST。
 - MOD：astrocs.p2.upm（fit/apply 两模块页
@@ -464,10 +463,9 @@ P2-XX-INT 对齐。
 - 占位 ID 与本文件关系：矩阵 algorithm_id=ALG-P2-UPM-001/002 为
   descriptor 占位词汇，其语义由 §5 映射声明分解为 ALG-UPM-001
   （推导，UPM_SOLVER.md）+ ALG-P2-UPM-IMPL-001（本文件实现合同）；
-  占位 ID 本身不注册 INDEX、不入合同（SAMPLER §12 退役先例同构）。
-- 本文件属 P2-UPM-DOC 批次（2026-09-10 冻结，owner SA-P2-U21）；
-  同批原位修订 ALG-UPM-001（UPM_SOLVER.md）：行号/并行表述如实更新，
-  公式与容差零改动（其头部修订声明为证）。
+  占位 ID 本身不注册 INDEX、不入合同（与 PHASE2_SAMPLER.md §12 同构）。
+- ALG-UPM-001（UPM_SOLVER.md）与本文档同步登记：行号/并行表述按实测，
+  公式与容差零改动。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 
@@ -487,4 +485,13 @@ P2-XX-INT 对齐。
 - healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
 - NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
+
+---
+
+## 收敛容差与报告字段（现行登记）
+
+- **尺度无关收敛判据**：`max_dM/max(scale_obs,eps) < tol_step` ∧ `|Δobj|/max(|obj_old|,eps) < tol_obj`；`converged` 状态枚举 `0=max_iter / 1=converged / 2=stalled / 3=invalid`。原单标量 `tolerance` 已由 `tol_step`/`tol_obj` 取代，不再作为收敛门。
+- **求解入口四参数须登记**：`gs_damping`、`m_full_frame`、`final_gauge`、`tolerance_relative`。
+- **参考通量报告字段**：`reference_flux_spread_rel` / `reference_flux_spread_gate` / `reference_flux_spread_noncommon`。逐帧 `F_ref,k` 的配对性只在**同一帧内**成立；**组间一致不是门**（组内一致容差 1e-9 一类的闸门已撤销）。
 

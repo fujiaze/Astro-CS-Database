@@ -7,7 +7,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §5.4（反向映射与采样）
+- 最高设计 `ASTROCS_DESIGN.md` §6.2（流程：反向映射 + 重采样）与 §6.3（投影算法：输入语义守卫与输出模式）
 - `docs/design/PHASE3_DETAILED_DESIGN.md` §3-§4
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（重采样方差传播）
 
@@ -43,7 +43,7 @@
 
 ## 7. 错误与边界
 
-- 缺 tile/非有限 → validity 标记，不以零填充；
+- 缺 tile/非有限 → validity 标记，不以零填充；**无覆盖/无数据 = NaN**（与支撑度 ≤0 一致），不用 0 或 ±Inf 冒充无效；NaN 采用**样本级掩膜**：被掩除的样本不参与该输出像素，剩余样本权重**重归一**；整个输出像素无有效覆盖则置 NaN 并**强制计数**（最高设计 §5.5/§10）；
 - point-source 模式缺 Q/W/PSF → fail-closed（不得插普通 signal 冒充）；
 - 采样核语义未声明 → 拒绝。
 

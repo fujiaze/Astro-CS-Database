@@ -8,9 +8,9 @@ upstream: [SCI-P3-001, ALG-P3-FITS-IMPL-001, ALG-P3-002, ALG-P3-004, API-P3-001]
 downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 ---
 
-# 模块 astrocs.p3.fits_writer（P3-FITS-DOC 新建，2026-09-08）
+# 模块 astrocs.p3.fits_writer
 
-> P3-FITS-DOC（SA-P3-F27，MODULE_MIGRATION_MATRIX P3-FITS 行）新建
+> 按 MODULE_MIGRATION_MATRIX P3-FITS 行新建
 > 模块页，冻结合同 `astrocs.p3.fits_writer`（registry 行 ID 沿用
 > `MOD-astrocs-phase3-writer`；任务指派文字 astrocs.p3.fits 与矩阵
 > astrocs.p3.fits_writer 冲突——矩阵权威，决策记录 lib/algorithms/fits_output/
@@ -22,7 +22,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 > :460-465），不整目录归属，矩阵 legacy_paths="lib/phase3_session
 > fits sources" 只圈 fits sources）。合同权威=三件套 +
 > docs/science/PHASE3_HIPS_TO_FITS.md（SCI-P3-001，共享 FROZEN V5
-> SCI-007 2026-08-28）+ docs/algorithms/PHASE3_RESAMPLE.md
+> SCI-007）+ docs/algorithms/PHASE3_RESAMPLE.md
 > （ALG-P3-001..004 施工规格，公式零改动）+
 > docs/algorithms/PHASE3_FITS_IMPL.md（ALG-P3-FITS-IMPL-001，实现级
 > 合同，SCI-P3-WR-001⇒SCI-P3-001 映射声明在其 §5）。descriptor 词汇

@@ -2,13 +2,11 @@
 
 > doc_id: DOC-IO-INTERFACE-001
 > doc_status: ACTIVE_NORMATIVE
-> task_id: IO-001 · wave: W2 · owner: SA-IO-07
-> commit: `feat(io): IO-001 建立FITS流式接口`（前台集成）
-> source: `tasks/03_RUNTIME_DATA_IO_TASKS.md` IO-001 / `05_FIXED_SUBAGENT_BINDINGS.yaml` SA-IO-07 —— **两份来源均已不在 git 跟踪面**（`tasks/` 目录不存在且无 git 历史；`05_FIXED_SUBAGENT_BINDINGS.yaml` 仅存 `run/` 内 gitignore 的历史归档副本，非规范面）；现行权威=`ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）+ 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
+> 上游权威：`ASTROCS_DESIGN.md` §7.3（DLL C ABI 边界）+ 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
 
 ## 1. 目标与范围
 
-IO-001 是 **FITS 流式 I/O 接口冻结 + 骨架实现**（W2 宿主基础设施，非 W3 科学迁移）：
+IO-001 是 **FITS 流式 I/O 接口 + 骨架实现**（宿主基础设施，不含科学算法迁移）：
 
 1. 把 FITS 第三方库（CFITSIO 等）隔离在 `astrocs_io.dll` **内部**；公开边界是纯 C ABI，
    **CFITSIO 类型/句柄（`fitsfile*` 等）绝不跨 DLL 边界**。
@@ -16,8 +14,8 @@ IO-001 是 **FITS 流式 I/O 接口冻结 + 骨架实现**（W2 宿主基础设�
 3. 可观测性：每次 read/write 的 **bytes 累计到 trace 计数器**（宿主注入），供运行时 I/O 监控使用。
 4. 验收负测覆盖：非法 header、截断、dtype/shape/unit mismatch、checksum error、NaN/Inf、取消、磁盘满。
 
-本任务**不改科学公式**（`scientific_change=false`），不迁移任何科学/图像处理算法；
-`lib/infrastructure/aio`（aio_fits 等历史全图像读写实现）与 `lib/infrastructure/aio/io`（io_adapter）**保持原样、不删除**。
+本合同**不改科学公式**（`scientific_change=false`），不迁移任何科学/图像处理算法；
+`lib/infrastructure/aio`（aio_fits 等全图像读写实现）与 `lib/infrastructure/aio/io`（io_adapter）**保持原样**。
 
 ## 2. 模块归属与目录
 
@@ -35,7 +33,7 @@ IO-001 是 **FITS 流式 I/O 接口冻结 + 骨架实现**（W2 宿主基础设�
 
 ## 3. DLL 边界与所有权
 
-- 目标 DLL：`astrocs_io.dll`（Windows）/ `libastrocs_io.so`（Linux 技术预览）；本任务骨架。
+- 目标 DLL：`astrocs_io.dll`（Windows）/ `libastrocs_io.so`（Linux 技术预览）。
 - **第三方隔离**：CFITSIO 只在 `astrocs_io.dll` 内部编译；fits_core 不包含任何 CFITSIO 头，
   不出现 `fitsfile` 等类型；若未来以 CFITSIO 实现读写，均封装在 DLL 内私有层。
 - 跨边界类型：POD 结构 + 固定宽度整数 + 定长 UTF-8 字符数组 + opaque handle + 回调；禁 STL/异常/RTTI。
@@ -189,18 +187,18 @@ typedef struct acs_fio_trace_hooks_v1 {
 
 ## 13. 与相邻接口/实现的边界
 
-- `lib/infrastructure/aio`（AIO，含 CFITSIO 静态链）：历史全图像读写（aio_read/write_fits），
-  保留作兼容层；**IO-001 不迁移/不修改/不删除**，其内部 CFITSIO 用法同样不跨 DLL 边界。
-- `lib/infrastructure/aio/io` + `include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（历史 IO-001 原型），保留。
-- `lib/infrastructure/aio/io/fits_core.c` 是本任务新增的 fits 流 C 核心（无 CFITSIO 依赖）。
-- DATA-001 `include/astrocs/contracts/artifact_abi_v1.h`（原写作 `astrocs/contracts/artifact_abi_v1.h`，路径形式不可解析，已订正）：产物 manifest C ABI；fits 流接口不重复其职责。
-- trace/bytes：由宿主注入 hook（14 标准）；本任务只冻结 hook 契约并累计，运行时落点由后续 RT 任务接线。
-- HiPS/manifest 输入输出（IO-002/IO-003）在本接口之上扩展，本任务不实现。
+- `lib/infrastructure/aio`（AIO，含 CFITSIO 静态链）：全图像读写（aio_read/write_fits），
+  保留作兼容层；**IO-001 不迁移/不修改**，其内部 CFITSIO 用法同样不跨 DLL 边界。
+- `lib/infrastructure/aio/io` + `include/astrocs/io/io_adapter.h`：Artifact 事务 + FileIoAdapter（IO-001 原型），保留。
+- `lib/infrastructure/aio/io/fits_core.c` 是本接口新增的 fits 流 C 核心（无 CFITSIO 依赖）。
+- DATA-001 `include/astrocs/contracts/artifact_abi_v1.h`：产物 manifest C ABI；fits 流接口不重复其职责。
+- trace/bytes：由宿主注入 hook（14 标准）；本接口只冻结 hook 契约并累计，运行时落点由 RT 接线。
+- HiPS/manifest 输入输出（IO-002/IO-003）在本接口之上扩展，本接口不实现。
 
 ## 14. 已知限制（v1 骨架）
 
-1. Linux 控制节点（本任务执行环境）无 MSVC/Windows DLL 构建；产出 C ABI + 模块骨架 +
-   Linux `.so` 技术预览与全部契约/负测。Windows 正式 DLL 构建（astrocs_io.dll）在 W6 用同一源码执行。
+1. Linux 控制节点（本接口执行环境）无 MSVC/Windows DLL 构建；产出 C ABI + 模块骨架 +
+   Linux `.so` 技术预览与全部契约/负测。Windows 正式 DLL 构建（astrocs_io.dll）用同一源码执行。
 2. 只支持基本图像 HDU（NAXIS 0–3）；表/随机群/压缩扩展 → `UNSUPPORTED`（后续任务扩展）。
 3. 不自动应用 BSCALE/BZERO（避免隐式标度）；调用方显式处理。
 4. CHECKSUM 卡写路径默认关闭；verify 支持标准 HDU CHECKSUM 校验。

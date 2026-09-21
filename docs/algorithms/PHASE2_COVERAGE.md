@@ -1,15 +1,14 @@
 # Phase2 Coverage Union Algorithms (ALG-COV-001)
 
-> 状态: ACTIVE（P2-COV-DOC 冻结，2026-09-07，SA-P2-S20）
-> 上游 SCI: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN T106 2026-08-23，
-> 共享引用不改动）；三概念分离权威=SCI-INT-001（docs/science/INTEGRATION.md，
-> FROZEN T108 2026-08-23，共享引用不改动）；处理链位置=SCI-SCOPE-001 §处理链
-> 第 5 步（coverage union 为 Phase2 首节点）。本任务零 SCI 层改动（§11.5）。
+> 状态: ACTIVE
+> 上游 SCI: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，共享引用不改动）；
+> 三概念分离权威=SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，共享引用不改动）；
+> 处理链位置=SCI-SCOPE-001 §处理链第 5 步（coverage union 为 Phase2 首节点）。
+> 本域零 SCI 层改动（§11.5）。
 > 下游: DATA-COV-001（DATA_SEMANTICS §19）、API-COV-001（PUBLIC_API）、
 > MOD-astrocs-phase2-coverage（registry）
-> 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（454 行，2026-09-17 LEDGER-DOC 复测；
-> 旧记 239 行为迁移前行数）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/coverage.h（168 行，同上；旧记 60 行）；禁止手抄他版。
+> 唯一权威生产源: lib/algorithms/coverage/src/coverage.cpp（454 行，复测）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/coverage.h（168 行，同上）；禁止手抄他版。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json
 > MOD-astrocs-phase2-coverage（matrix P2-COV，legacy_paths=lib/algorithms/coverage coverage
 > sources，迁移目标 astrocs_p2_coverage.dll，module_id=astrocs.p2.coverage）。
@@ -60,7 +59,7 @@
 - B2-A8 filter/passband 身份（inspect_frame :92-104, build :215-225）: `obs_filter`
   **键缺失 → rc=1 "missing obs_filter property ..."**（:92-104，fail-closed）；
   键存在时（含空串）其值进入 `P2HipsInputInfo.filter_passband` 并在 build 层
-  做跨帧**全等**比较（§2 filter 公式）。旧实现只在双方非空时比较，使"带 filter
+  做跨帧**全等**比较（§2 filter 公式）；只在双方非空时比较会使"带 filter
   的帧 + 未声明 filter 的帧"被静默并入同一 union（DISP-COV-003，已关闭）。
 - B2-A8 tile 编号方案（inspect_frame :126-133）: `hips_ordering` 存在且 ≠ "NESTED"
   → rc=1 "unsupported hips_ordering=%s (NESTED required)"（fail-closed）；本模块
@@ -77,8 +76,8 @@
   "filter mismatch: %s vs %s" rc=1（:219-225）。**空串参与全等比较**，
   不再跳过（B2-A8；键缺失已在 inspect_frame 层拒绝）。
 - 跨帧坐标系一致性（build :227-233）: `hips_frame` 必须逐帧相等；
-  equatorial 与 icrs 混用 → "hips_frame mismatch: %s vs %s" rc=1（旧实现
-  只逐帧校验 ∈{equatorial,icrs}，不比较跨帧一致性）。
+  equatorial 与 icrs 混用 → "hips_frame mismatch: %s vs %s" rc=1（逐帧校验
+  ∈{equatorial,icrs} 之外还须比较跨帧一致性）。
 - union MOC 父单元聚合（:204-214）:
   对每帧叶级 tile t（hips_order = f.max_leaf_order，:209-210）与目标
   order o=target_order，令 `s = f.max_leaf_order − o`（:207），
@@ -212,7 +211,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
     （union 幂等）；混合 order 7/8 单 tile → K=1 且 target_order=7。
   - 负例: 空输入/NULL 路径/filter mismatch/tile_width 512 以外/
     frame 非法 → rc=1 且 error 载因。
-- 既有可执行测试（legacy gate，迁移基线）:
+- 既有可执行测试:
   lib/algorithms/coverage/tests/synthetic_gate.cpp `Phase2Coverage.RealHipsUnion`
   （:3374-3407，真实 HiPS 三帧 T2/T3/t4_crop union/target_order=7/
   filter=Red/两阶段协议/cells[0].order=7）与
@@ -245,7 +244,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
   单线程（internal_parallel=none）与 host_executor_lease 合同值依据。
 - TST: TEST-COV-DESIGN-001（§11.4，P2-COV-TEST 落 TEST-P2-COV-001）。
 
-## 11 P2-COV-DOC 冻结附录（2026-09-07，SRC-COV-001 源码实测）
+## 11 冻结附录（SRC-COV-001 源码实测）
 
 ### 11.1 ALG-COV-001 逐符号锚
 
@@ -354,20 +353,20 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   （DISP-COV-005 整改基线）。容差冻结: F1-F6 全部整数/bitwise 断言，
   无数值容差；fixture 生成器注记容差来源（§9）。
 
-### 11.5 SCI 层状态声明（本任务零 SCI 改动）
+### 11.5 SCI 层状态声明（本域零 SCI 改动）
 
 - 覆盖度几何语义已有 FROZEN 权威：SCI-UPM-001（docs/science/
-  PHASE2_UPM.md，T106 2026-08-23 冻结）§1 目的句「在多帧覆盖并集上」、
-  SCI-INT-001（docs/science/INTEGRATION.md，T108 2026-08-23 冻结）§5
+  PHASE2_UPM.md）§1 目的句「在多帧覆盖并集上」、
+  SCI-INT-001（docs/science/INTEGRATION.md）§5
   support「覆盖并集保守下界」、SCI-SCOPE-001 §处理链第 5 步
-  「coverage union → 控制采样 → …」。三者均**不因本任务改动**（共享
-  SCI 引用不改动；P1-WCS-DOC SCI-WCS-001=共享 ASTROMETRY.md 先例）。
-- 因此本任务不新建 docs/science/ 冻结层文档：matrix P2-COV 行
+  「coverage union → 控制采样 → …」。三者均**共享 SCI 引用不改动**
+  （P1-WCS SCI-WCS-001=共享 ASTROMETRY.md 同构）。
+- 本域不新建 docs/science/ 冻结层文档：matrix P2-COV 行
   science_id=SCI-P2-COV-001 的语义映射由本节声明——
   SCI-P2-COV-001 ⇒ 指向既有 FROZEN 共享 SCI（权威=PHASE2_UPM.md §1
   覆盖并集 + INTEGRATION.md §5 support/validity 分离 + SCIENCE_SCOPE.md
   §处理链），矩阵 science_doc=docs/science/PHASE2_UPM.md
-  （MOD-astrocs-phase2-coverage 行，2026-09-07 P2-COV-DOC 冻结）。
+  （MOD-astrocs-phase2-coverage 行）。
   三概念分离/union 离散公式/负向条款的算法定义权威=ALG-COV-001
   （本文档 §2/§7），SCI 公式语义不在此重复定义，两处冲突时以
   docs/science/ 为准并回改本文档（禁止反向）。

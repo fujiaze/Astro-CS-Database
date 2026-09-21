@@ -9,7 +9,7 @@ upstream: [SCI-P3-WCS-001, ALG-P3-002, API-P3-001]
 downstream: [TEST-P3-WCS-001]
 ---
 
-# 模块 astrocs.phase3.wcs（P3-PROJ-DOC 手写合同页，2026-09-11）
+# 模块 astrocs.phase3.wcs
 
 > Registry 行 ID 沿用 MOD-astrocs-phase3-wcs；矩阵权威 module_id=
 > **astrocs.p3.projection**（MODULE_MIGRATION_MATRIX P3-PROJ 行）。
@@ -28,11 +28,10 @@ downstream: [TEST-P3-WCS-001]
   lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→hips_p2→
   phase3_fits 先例新建）。
 - 生产源: lib/algorithms/projection/p3_wcs.cpp + 同目录签名头正本
-  p3_wcs.h，实测 2026-09-11；**W4-A9 批次 1（2026-09-17）由
-  lib/phase3_session/ 迁入本模块**（ASTROCS_DESIGN §7.1「projection」行），
+  p3_wcs.h；源码位 = lib/phase3_session/ 已迁入本模块（ASTROCS_DESIGN §7.1「projection」行），
   同批迁入共址测试 tests/p3wcs/**（ctest p3_wcs）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
-  V5 SCI-007 2026-08-28）→ ALG-P3-PROJ-IMPL-001
+  V5 SCI-007）→ ALG-P3-PROJ-IMPL-001
   （docs/algorithms/PHASE3_PROJ_IMPL.md，兼承接 ALG-P3-002 本域
   子面 G1/G2）→ DATA-P3-WCS（DATA_SEMANTICS §28）+ API-P3-PROJ-001
   （PUBLIC_API.md Phase3 投影公共消费面节）→ TEST-P3-WCS-001
@@ -52,13 +51,13 @@ downstream: [TEST-P3-WCS-001]
   域）、不做 FITS 文件读写（ALG-P3-FITS-IMPL-001 域）、不做请求
   解析与编排（p3_session run 段）、**除 TAN 以外的投影**、不改 SCI 公式
   （SCI-P3 FROZEN 零改动）。
-- **投影集口径（DOC-202 R26 订正，最高设计 §5.3）**：**设计冻结 8 种**
+- **投影集口径（最高设计 §5.3）**：**设计冻结 8 种**
   （`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`）；**当前登记：仅 `TAN` 已实现**
   （声明集 D = 实现集 I = `{TAN}`，`p3_projection_registry.h`）；
   **未实现的必须显式报「不支持」，禁止声称支持**（`p3_proj_declare` →
   `P3_WCS_UNSUPPORTED` + 请求码 + 原因 + 已支持清单）。
-  ~~原「不实现 SIN/ZEA/CAR/AIT（矩阵 notes 扩展清单）」表述作废~~；
-  新增投影须同时进实现集与声明集（`p3_proj_registry_selfcheck` 判红）+ 独立往返 Oracle + 新 claim。
+
+  新增投影须同时进实现集与声明集（`p3_proj_registry_selfcheck` 判红）+ 独立往返 Oracle + 追溯条目。
 
 ## 3 输入输出端口、DATA、单位、坐标、invalid
 
@@ -139,8 +138,7 @@ downstream: [TEST-P3-WCS-001]
   无会话消费方）→ P3-PROJ-IMPL/INT。
 - kMaxSide=20000 可 ASTROCS_P3_MAX_SIDE 编译期覆盖（:18-22）——
   默认值语义如实冻结。
-- ~~projection 硬编码 "TAN"（:36/:89），UNSUPPORTED 枚举无产生点；
-  SIN/ZEA/CAR/AIT 扩展 TODO。~~ **已闭合（DOC-202 R26 复核 2026-09-20）**：
+- 产品声明门 `p3_proj_declare` 对非 TAN 码**显式返回 `P3_WCS_UNSUPPORTED`**
   产品声明门 `p3_proj_declare` 对非 TAN 码**显式返回 `P3_WCS_UNSUPPORTED`**
   （含已支持清单），`p3_wcs.cpp:98-99` 经 `p3_proj_is_implemented` 产生该状态；
   8 冻结码 = `TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，声明/实现集当前 = `{TAN}`。
@@ -173,3 +171,11 @@ downstream: [TEST-P3-WCS-001]
 - API: docs/contracts/PUBLIC_API.md（API-P3-PROJ-001 节）
 - 模块总页: docs/modules/phase3_proj.md；合同三件套:
   lib/algorithms/projection/{README.md,module.yaml,memory.md}
+
+## NaN 与输出语义
+
+- NaN 规则（权威 = `ASTROCS_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
+  禁止静默剔除。无覆盖/无数据 = NaN，禁 0 或 ±Inf 冒充。
+- 输出语义守卫：只接受**面亮度**语义输入，端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式
+  `surface_brightness` / `point_source_flux` / `visualization` 显式声明（最高设计 §6.3）。
+

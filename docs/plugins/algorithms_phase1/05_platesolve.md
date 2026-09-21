@@ -7,7 +7,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §3.6（硬约束：WCS 为 ICRS）
+- 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：WCS 为 ICRS）与 §4.2（WCS 两轮解算）
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §7（天体测量与测光）
 - `docs/algorithms/PLATESOLVE.md`（解算算法推导）
 - `docs/plugins/infrastructure/22_gaia_xpsd_client.md`（星表查询依赖）
@@ -16,7 +16,7 @@
 
 - **输入**：检测目录（像素坐标）、参考星表匹配集、初始猜测（可空）、配置。
 - **输出**：WCS（ICRS，像素中心/轴向/单位/SIP/PV 域明确）、匹配表、残差统计、验证记录。
-- 正反变换一致，独立星表残差验证。
+- 正反变换一致，独立星表残差验证。第一轮盲检测粗解只为星表逆映射提供近似指向；第二轮用星表引导检测后的高纯度星表精解，精解结果才是权威 WCS（最高设计 §4.2）。
 - 参考：`contracts/schemas/wcs_output.schema.json`。
 
 ## 4. 算法与公式要点

@@ -3,17 +3,17 @@
 ## 1. 职责与边界
 
 - **职责**：估计空间变化的 PSF 模型 `P_k(u,v;x,y)` 及其参数、残差与适用域。
-- **不是**：不做检测（star_detection）；不做测光；**PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入科学权重**。
+- **不是**：不做检测（star_detection）；不做测光；**PSF 拟合质量代理（FWHM、残差尺度等）只作诊断，不计入科学叠加权重**（最高设计 §3.1）。
 
 ## 2. 权威依据
 
-- 最高设计 §3.6（硬约束：PSF 产品）；数据对象见 `docs/design/UNIFIED_MODEL.md` §1（观测模型）
+- 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：PSF 产品）与 §4.2（星表引导检测：候选星来自星表位置拟合）；数据对象见 `docs/design/UNIFIED_MODEL.md` §1（观测模型）
 - `docs/science/PSF_SIGNAL_WEIGHT.md`（PSF 与信息权重）
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §6（PSF 模型）
 
 ## 3. 输入/输出数据合同
 
-- **输入**：定标信号、variance/ivar、validity、检测目录（候选星）、配置。
+- **输入**：定标信号、variance/ivar、validity、检测目录（候选星；来自星表引导检测，检测定义域 = 星表位置，最高设计 §4.2）、配置。
 - **输出**：PSF 家族、参数、FWHM/椭率、有效域、拟合残差；空间变化模型及协方差；`A_NEA = 1/ΣP²`（白噪声）；信息核 `PᵀC⁻¹P`。
 - 产品至少提供 PSF 模型/地图 + 摘要。
 - 参考：`contracts/schemas/psf_output.schema.json`。
@@ -43,7 +43,7 @@
 
 - 候选星不足 → 明确失败或降级（记录），不静默给帧级 PSF 当空间模型；
 - 残差超门 → validity 标记，不得当"拟合好"；
-- PSF 拟合质量不做权重（§1 红线）。
+- PSF 拟合质量代理只作诊断，不计入科学叠加权重（§1；最高设计 §3.1）。
 
 ## 8. 测试与 Oracle
 

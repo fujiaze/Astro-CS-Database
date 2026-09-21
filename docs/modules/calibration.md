@@ -1,13 +1,13 @@
 # Module: calibration
 
-> P1-CAL-DOC 事实修订（2026-09-07）：本页由源码核对后修订——生产调用方、
-> 线程模型、错误语义、诊断/测试陈述以 lib/algorithms/calibration 现行源码为准；
-> 旧版与源码不符处（"16 线程块并行"、每帧日志/母版 hash、Python 对照
-> 测试等）已删除或修正。算法细节见 docs/algorithms/CALIBRATION_ALGORITHMS.md
+> 本页为 calibration 模块摘要页：生产调用方、线程模型、错误语义、
+> 诊断/测试陈述、现状缺陷一律以 lib/algorithms/calibration 现行源码为准；
+> 模块级合同与算法细节见
+> docs/algorithms/CALIBRATION_ALGORITHMS.md
 > （ALG-CAL-001..006）；数据语义见 docs/contracts/DATA_SEMANTICS.md §9
 > （DATA-P1-CAL）；API 合同见 docs/contracts/PUBLIC_API.md（API-CAL-001）
 > 与 docs/api/PHASE1_API_V1.md（API-P1-001）。
-> P1-COS-DOC 增补（2026-09-07）：cosmetic 域合同已独立冻结为
+> cosmetic 域合同已独立冻结为
 > astrocs.p1.cosmetic（lib/algorithms/cosmetic/，ALG-COS-001..005 =
 > docs/algorithms/COSMETIC_ALGORITHMS.md，DATA-P1-COS = DATA_SEMANTICS
 > §10，API-COS-001 = PUBLIC_API.md）——与本页 P1-CAL 合同共享同一编译
@@ -18,7 +18,7 @@
 
 masterBias/Dark/Flat 生成（sigma-clip + median/mean 合并）、单帧图像校准
 （bias/dark/flat，dark_opt 双分支）、热/冷像素检测与插值修复（cosmetic）。
-模块级状态 CONTRACT_READY（P1-CAL-DOC 冻结）；迁移目标 astrocs.p1.calibration /
+模块级状态 CONTRACT_READY；迁移目标 astrocs.p1.calibration /
 astrocs_p1_calibration.dll 由 P1-CAL-IMPL 建立。
 
 ## 非职责
@@ -29,10 +29,10 @@ astrocs_p1_calibration.dll 由 P1-CAL-IMPL 建立。
 
 ## Production callers
 
-当前生产调用点（P1-COS-DOC 增补核对，2026-09-07）：
+当前生产调用点：
 `lib/phase1_session/p1_session.cpp:243` 调 `ac_calibrate_frame`
 （calibrate stage）与 `:294` 调 `ac_correct_frame`（cosmetic stage，
-2026-09-01 c5629be6 引入；master_dark/master_bias 传 nullptr → 检测
+c5629be6 引入；master_dark/master_bias 传 nullptr → 检测
 全禁用、恒等 pass，DISP-COS-009——cosmetic 域现状与整改见
 lib/algorithms/cosmetic/README.md）。`ac_generate_master_*`、`ac_set_num_threads`
 当前无生产调用方（master 由外部预生成；ac_set_num_threads 由
@@ -44,8 +44,7 @@ astro_calibration.h：12 个科学/工具导出（5 f32 科学 + 5 f64 变体 +
 ac_set_num_threads + ac_version）。登记合同 API-CAL-001
 （docs/contracts/PUBLIC_API.md；cosmetic 路径 ac_correct_frame(+_f64)/
 ac_set_num_threads 另由 API-COS-001 独立登记，模块级合同视角）。
-遗留通道（cc_* DLL、optimize_dark_k、apply_photometry）未编译进
-CMake 主构建，属计划迁移旧符号。
+未编译进 CMake 主构建：cc_* DLL、optimize_dark_k、apply_photometry。
 
 ## Data contract
 
@@ -70,7 +69,7 @@ AC_OK(0)/AC_ERR_PARAM(-1)（astro_calibration.h:21-24）；AC_ERR_MEMORY(-2)/
 AC_ERR_INTERNAL(-3) 定义但从未返回（无 extern "C" 异常屏障，
 DISP-CAL-001）。母版缺失/滤镜不匹配 → orchestrator 层 CONFIG/NO_DATA。
 flat floor 0.1 下界与 median 归一行为见 ALG-CAL §3（F1–F3）。
-遗留 cc_* 通道：window 偶数/<3/>15 → −1（cpp/cosmetic_corrector.cpp，
+cc_* 通道：window 偶数/<3/>15 → −1（cpp/cosmetic_corrector.cpp，
 非 ac_correct_frame）。
 
 ## Config
@@ -101,7 +100,7 @@ O(pixels) 单 pass（校准/检测/插值）；O(max_iter·n_frames·npix)（mas
 
 stderr 日志：generate_master/generate_master_flat 每次调用 2 行
 （ac_log：参数+耗时）；apply_photometry 2 行。无每帧 FITS 头写入、无母版
-hash 诊断（旧版陈述已删除）。actual_k/out_hot/out_cold 为可选输出统计。
+actual_k/out_hot/out_cold 为可选输出统计。
 
 ## Tests
 
@@ -115,5 +114,5 @@ Python 对照为历史层（当前树无 python/ 目录）。
 
 lib/algorithms/calibration/{include,src}/（CMake astrocs_calibration：
 calibrator/master_generator/cosmetic_corrector/ac_api.cpp）；
-未编译：dark_optimizer.cpp、photometry_apply.cpp；遗留双实现：
+未编译：dark_optimizer.cpp、photometry_apply.cpp；双实现：
 cpp/cosmetic_corrector.cpp（cc_* 通道）。

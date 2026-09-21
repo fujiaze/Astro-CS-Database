@@ -1,6 +1,6 @@
 # Calibration Science (SCI-CAL)
 
-> ID: SCI-CAL-001  状态: FROZEN (T100 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-CAL-001..  模块: calibration
+> ID: SCI-CAL-001  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-CAL-001..  模块: calibration
 
 ## 1 目的与非目标
 
@@ -26,7 +26,7 @@
 ## 3 物理量和单位
 
 - `raw/bias/dark/flat/cal`: ADU（同滤镜/增益下标度）；`t_expo`: s；`K`: 无量纲；`flat_norm`: 无量纲（median=1.0, floor 0.1）；`sigma`: 无量纲倍数（以 MAD 转 sigma）；像素坐标无量纲。
-- **标度/域声明（UNIT-001 冻结，2026-09-17）**：本层（calibration C ABI）是**单位盲**的逐像素算术
+- **标度/域声明**：本层（calibration C ABI）是**单位盲**的逐像素算术
   层——入参按 §5 输入合同已经同标度；**把磁盘文件解释成该合同是调用方（io_read/编排）的义务**。
   两类母版文件的解释规则：
   1. **FITS 整数帧**：物理值 = `BSCALE·样本 + BZERO`（FITS 标准 §4.2.1/§4.3；16 位相机的
@@ -41,7 +41,7 @@
 - **禁止静默混标度**：母版与亮场标度不一致（典型：XISF [0,1] 归一化母版 + ADU 亮场）时，
   按原样相减/相除会得到标度错的产物（实测 T2：master_flat median 0.206381 ⇒ 整帧被 ×4.845；
   master_bias 中位 0.015288 ⇒ 本底只减 0.0153 而应减 1001.87 ADU）。消费边界必须
-  **声明 + 校验 + fail-closed**（§5/§6/§8、DATA-P1-CAL §9.1）。
+  **声明 + 校验 + fail-closed**（§5/§6/§8、`docs/contracts/DATA_SEMANTICS.md` §9 DATA-P1-CAL 标度条款）。
 
 ## 3a 坐标 frame
 
@@ -75,8 +75,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 ```
 
 - `K` 是**暗电流的曝光线性缩放因子**（§6「dark 与曝光线性」），不是增益、不是本底缩放；
-  **两个分支都必须施加 K**（旧实现只在 `dark_opt=1` 施加、标准分支强制 `k=1.0`，
-  属缺陷，登记 ALG-CAL-001 DISP-CAL-012）。
+  **两个分支都必须施加 K**（标准分支强制 `k=1.0` 属缺陷，登记 ALG-CAL-001 DISP-CAL-012）。
 - `dark_opt=1` 与 `dark_opt=0` 的唯一差别是**入参 master_dark 的约定**：
   `dark_opt=1` 接受含 bias 的暗场母版（`dark_total = bias + dark`），先分离再缩放；
   `dark_opt=0`（默认）接受已减 bias 的暗电流母版。二者在 `K=1` 时**代数恒等**
@@ -91,13 +90,13 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 
 - `bias` 与曝光无关；`dark` 与曝光线性（**两分支**均经 `K=t_light/t_dark` 线性缩放）；
 - `flat` 光谱形状与 Light 滤镜匹配；
-- **单位一致（UNIT-001 起为机器门）**：`raw/bias/dark/flat` 与 `cal` 同标度、同增益（ADU；§3）。
+- **单位一致（机器门）**：`raw/bias/dark/flat` 与 `cal` 同标度、同增益（ADU；§3）。
   母版与亮场标度不一致（如 XISF [0,1] 归一化浮点母版配 ADU 亮场）属**输入合同违背**：
   本层仍不作自动换算（C ABI 单位盲），但**消费边界（io_read/编排）必须显式声明标度并校验，
-  违反即 fail-closed**（结构化诊断点名文件 + 观测中位数 + 应声明项；见 §8 表与 DATA-P1-CAL §9.1）。
+  违反即 fail-closed**（结构化诊断点名文件 + 观测中位数 + 应声明项；见 §8 表与 `docs/contracts/DATA_SEMANTICS.md` §9 DATA-P1-CAL 标度条款）。
   声明面：`master_units`（各帧类单位 token）/`master_scale`（到 ADU 的线性换算因子）/
   `master_flat_normalize`（平场是否按 median 归一，枚举 `none`|`median`）；
-- **平场已归一（UNIT-001 起为机器门）**：`flat` 约定为 `median≈1.0`（ALG-CAL-002 产物）。
+- **平场已归一（机器门）**：`flat` 约定为 `median≈1.0`（ALG-CAL-002 产物）。
   消费边界按 `master_flat_median_range`（冻结默认 `[0.5, 2.0]`，见 `config/defaults.json`
   `calibration.master_flat_median_range`）判定：中位数落在区间内即视为已归一；区间外**必须**
   显式声明 `master_flat_normalize="median"`（等价于 §5 `flat_norm` 的 `flat/median(flat)`，
@@ -130,9 +129,9 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 | `t_light/t_dark` 极端 | `K` 仍按比值应用，溢出由 FP32 饱和语义界定，不静默 clamp | `calibrate: k=k_init` 直通 |
 | `bias` 未提供而 `dark` 在位（标准式） | 本底不去除：`cal = (raw − K·dark)/flat`；运行必须在预检/manifest 显式登记（`optimize`/error 行） | §5；ALG-CAL-003 F3.2 |
 | `dark` 未提供而 `bias` 在位 | `cal = (raw − bias)/flat`，`K` 不进入算术 | §5 |
-| 母版与亮场标度不一致（含 XISF [0,1] 归一化母版配 ADU 亮场，且未声明标度） | **UNIT-001 起 fail-closed**：消费边界 DATA 拒绝（rc=2），诊断点名文件 + 观测中位数 + 缺失声明项；禁止按原样消费 | §3/§6；ALG DISP-CAL-013；`p1_op_calibrate` 前置校验 |
+| 母版与亮场标度不一致（含 XISF [0,1] 归一化母版配 ADU 亮场，且未声明标度） | **fail-closed**：消费边界 DATA 拒绝（rc=2），诊断点名文件 + 观测中位数 + 缺失声明项；禁止按原样消费 | §3/§6；ALG DISP-CAL-013；`p1_op_calibrate` 前置校验 |
 | 母版标度与亮场不一致但**已显式声明** `master_units=normalized` + `master_scale`（如 65535） | 按声明换算到 ADU 后消费；换算因子与声明写入 manifest（可审计） | §3；ALG DISP-CAL-013 |
-| 平场母版未归一（`median` 落在 `master_flat_median_range` 外）且未声明 `master_flat_normalize` | **UNIT-001 起 fail-closed**：DATA 拒绝（rc=2），诊断点名文件 + 实测 median + 区间 | §6；ALG DISP-CAL-013 |
+| 平场母版未归一（`median` 落在 `master_flat_median_range` 外）且未声明 `master_flat_normalize` | **fail-closed**：DATA 拒绝（rc=2），诊断点名文件 + 实测 median + 区间 | §6；ALG DISP-CAL-013 |
 | 平场母版未归一但已声明 `master_flat_normalize="median"` | 按 §5 `flat_norm` 归一（幂等）后消费；归一动作写入 manifest | §5/§7 |
 | 坏点全帧 | `cc_correct_median` 仅修复 `bad_mask=1` 像素，其余不变 | `cosmetic_corrector.cpp` |
 
@@ -168,14 +167,14 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 - **解析解**：常数场 `raw/dark/flat` 组合验证公式精确性（`max_abs==0`）。
 - **Python 参考**：NumPy 对同一 `raw/bias/dark/flat/K` 的双分支公式逐像素比对，FP32 `rtol=1e-6, atol=1e-7`。
 - **不变性门**：常量场、空平场、幂等归一、确定性四门（见 `TST-CAL-INV-*`）。
-- **bias 参与门（新增，BIAS-001）**：同一输入下「提供 master_bias」与「不提供 master_bias」
+- **bias 参与门**：同一输入下「提供 master_bias」与「不提供 master_bias」
   的 `cal` **必须不同**（逐像素判据；`dark==NULL` 时差值恒为 `bias/max(flat,0.1)`，
   §7）。凡产物逐位相同即判红——这是「标定输入被静默忽略」的机器可判据。
-- **K 参与门（新增，BIAS-001）**：`dark≠NULL` 时，改 `K` 必须改变 `cal`；
+- **K 参与门**：`dark≠NULL` 时，改 `K` 必须改变 `cal`；
   缺 EXPTIME 时必须 fail-closed 而非静默取 `K=1`。
 - **失败注入**：空指针/零维度/NaN 输入显式错误码 `AC_ERR_PARAM`（见 `TST-CAL-FAIL-*`）；
   **ignore-bias 变异注入**：把实现里的 bias 项去掉后，上面两道门必须判红（可执行负例入口）。
-- **标度/归一化门（新增，UNIT-001；可执行正负例入口 `tools/quality/check_master_unit_guard.py --self-test`）**：
+- **标度/归一化门（可执行正负例入口 `tools/quality/check_master_unit_guard.py --self-test`）**：
   以真实数据的独立统计为判据（不依赖文件名/目录名）：
   (a) **单位门**：亮场观测中位数 > 1 ADU 而某 bias/dark 母版观测中位数 ≤ 1.0 且未声明
       `master_units=normalized` + `master_scale` ⇒ 判红（拒绝）；
@@ -194,8 +193,8 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
       **436.2 ADU**，现行错误实现 7048.6 ADU ⇒ **16.2×**；T4（曝光 180 s）361.2 vs 3650.4 ADU ⇒ 10.1×）；
       ② 母版本就 ADU（观测中位数 > 1）+ 平场本就归一（`median(flat)` ∈ 带内）+ 约定已声明
       ⇒ **无需任何标度声明**即通过（回归锚：门不是「一律拒绝」）。
-  四条负例（a/b/c/e）必须能同时判红，两条正例（f①②）必须同时判绿（红→绿对照见
-  `run/PROJECT-GOVERNANCE-01/UNIT-001/`）。
+  四条负例（a/b/c/e）必须能同时判红，两条正例（f①②）必须同时判绿（红→绿对照由
+  `tools/quality/check_master_unit_guard.py --self-test` 给出）。
 
 ## 12 关联 ALG ID
 
@@ -216,16 +215,16 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 1. Newberry, M. V. 1991, PASP, 103, 122, "Signal-to-Noise Considerations for Sky-Subtracted CCD Data"（DOI 10.1086/132801）。定位：全文 S/N 模型含 bias/dark/read-noise 分量。**本合同不引用其具体公式号**（原文公式映射未在本次核验范围内逐式确认）；§5 连续定义为 Project-defined derivation，文献仅作概念上下文，不得以其覆盖本合同。
 2. Janesick, J. R. 2001, *Scientific Charge-Coupled Devices*, SPIE Press Monograph PM83（ISBN 0-8194-3698-4），Ch.2 photon transfer（gain/read-noise 测量上下文；Ch.2 定位经 Janesick et al. 2004 EM-CCD 论文二次引用核对）。
 3. HST ACS Data Handbook §4.4 "Flat-Field Reference Files"（<https://hst-docs.stsci.edu/acsdhb/chapter-4-acs-data-processing-considerations/4-4-flat-field-reference-files>；URL 即节定位）：flat-field=像素响应校正、P-flat 结构与低频修正分离的实践上下文。
-4. **ccdproc (astropy affiliated package), "Reduction toolbox"**（<https://ccdproc.readthedocs.io/en/latest/reduction_toolbox.html>，逐字核验 2026-09-17）：原文 "Assume in this section that you have created a master bias image called master_bias and a master dark image called master_dark **that has been bias-subtracted** so that it can be scaled by exposure time if necessary."；顺序为 trimming/overscan → `subtract_bias` → `subtract_dark(..., scale=True)` → `flat_correct`；`subtract_dark` API 文档（<https://ccdproc.readthedocs.io/en/latest/api/ccdproc.subtract_dark.html>）参数 `dark_exposure`/`data_exposure`/`scale`。**据此冻结：master_dark 是"已减 bias 的暗电流母版"，bias 必须显式减除，dark 按曝光比缩放，flat 最后除。**
-5. **LSST Science Pipelines `lsst.ip.isr`**（ISR = instrument signature removal；<https://pipelines.lsst.io/modules/lsst.ip.isr/index.html>）：模块自述 "corrections for overscans, crosstalk, **bias and dark frames**"；源码 `python/lsst/ip/isr/isrFunctions.py`（<https://raw.githubusercontent.com/lsst/ip_isr/main/python/lsst/ip/isr/isrFunctions.py>，逐字核验 2026-09-17）：`biasCorrection` 执行 `maskedImage -= biasMaskedImage`，`darkCorrection(maskedImage, darkMaskedImage, expScale, darkScale, ...)` 的 Notes 逐字为 "The dark correction is applied by calculating: maskedImage -= dark * expScaling / darkScaling"（即 `−dark·t_light/t_dark`），`flatCorrection` 执行除法且 flat 标度取自数据（`scalingType` MEAN/MEDIAN/USER，不假设已归一）；`isrTask.py` 的 `IsrTask.run` 处理顺序自述为 doBias → doCrosstalk → doBrighterFatter → **doDark** → doFringe → doStrayLight → **doFlat**。**据此冻结：bias → dark(×K) → flat 的顺序与 K 的物理含义（曝光比）。**
-6. **XISF Version 1.0 Specification**（PixInsight/Pleiades Astrophoto；<http://pixinsight.com/xisf/xisf-1.0.xsd> 为随规范发布的 XML Schema，本次以镜像全文逐字核验 2026-09-17）：§Image 元素 `bounds="lower:upper"` —— "This attribute shall be specified for all Image elements serializing floating point real pixel data. … The bounds attribute defines the representable range of a real or integer image … `lower` … the black point … `upper` … the white point"；"There is no default representable range for real images whose pixel samples are encoded as floating point scalars, so in these cases the representable range must be declared explicitly"；整数图像默认可表示域 `[0, 2ⁿ−1]`。`FITSKeyword` 元素只是 FITS 兼容元数据层（"provides a compatibility layer with image data stored as legacy FITS files"），**不承担像素域/单位语义**。**据此冻结：XISF 浮点 `bounds="0:1"` 是渲染可表示域，不是 ADU；ADU 换算因子必须由调用方声明。**
-7. **PCL（PixInsight Class Library）参考实现 `src/pcl/XISFReader.cpp`**（<https://gitlab.com/pixinsight/PCL/-/raw/master/src/pcl/XISFReader.cpp>，逐字核验 2026-09-17）：`NormalizeSamples`/`NORMALIZE_FLOAT_IMAGE` 把文件可表示域线性映射到目标类型域——浮点目标 `*i=(*i−lower)/range`（→[0,1]），整数目标 `*i=(*i−lower)·MaxSampleValue/range`（→[0,2ⁿ−1]）；`UInt16` 的 `MaxSampleValue()=65535`。同一物理数据在 Float32 [0,1] 与 UInt16 [0,65535] 两种表示间的换算因子即 **65535**。**据此冻结：XISF Float32 `bounds="0:1"` 母版换算到 16 位 ADU 的声明因子取 65535（声明制，非推断制）。**
+4. **ccdproc (astropy affiliated package), "Reduction toolbox"**（<https://ccdproc.readthedocs.io/en/latest/reduction_toolbox.html>）：原文 "Assume in this section that you have created a master bias image called master_bias and a master dark image called master_dark **that has been bias-subtracted** so that it can be scaled by exposure time if necessary."；顺序为 trimming/overscan → `subtract_bias` → `subtract_dark(..., scale=True)` → `flat_correct`；`subtract_dark` API 文档（<https://ccdproc.readthedocs.io/en/latest/api/ccdproc.subtract_dark.html>）参数 `dark_exposure`/`data_exposure`/`scale`。**据此冻结：master_dark 是"已减 bias 的暗电流母版"，bias 必须显式减除，dark 按曝光比缩放，flat 最后除。**
+5. **LSST Science Pipelines `lsst.ip.isr`**（ISR = instrument signature removal；<https://pipelines.lsst.io/modules/lsst.ip.isr/index.html>）：模块自述 "corrections for overscans, crosstalk, **bias and dark frames**"；源码 `python/lsst/ip/isr/isrFunctions.py`（<https://raw.githubusercontent.com/lsst/ip_isr/main/python/lsst/ip/isr/isrFunctions.py>）：`biasCorrection` 执行 `maskedImage -= biasMaskedImage`，`darkCorrection(maskedImage, darkMaskedImage, expScale, darkScale, ...)` 的 Notes 逐字为 "The dark correction is applied by calculating: maskedImage -= dark * expScaling / darkScaling"（即 `−dark·t_light/t_dark`），`flatCorrection` 执行除法且 flat 标度取自数据（`scalingType` MEAN/MEDIAN/USER，不假设已归一）；`isrTask.py` 的 `IsrTask.run` 处理顺序自述为 doBias → doCrosstalk → doBrighterFatter → **doDark** → doFringe → doStrayLight → **doFlat**。**据此冻结：bias → dark(×K) → flat 的顺序与 K 的物理含义（曝光比）。**
+6. **XISF Version 1.0 Specification**（PixInsight/Pleiades Astrophoto；<http://pixinsight.com/xisf/xisf-1.0.xsd> 为随规范发布的 XML Schema）：§Image 元素 `bounds="lower:upper"` —— "This attribute shall be specified for all Image elements serializing floating point real pixel data. … The bounds attribute defines the representable range of a real or integer image … `lower` … the black point … `upper` … the white point"；"There is no default representable range for real images whose pixel samples are encoded as floating point scalars, so in these cases the representable range must be declared explicitly"；整数图像默认可表示域 `[0, 2ⁿ−1]`。`FITSKeyword` 元素只是 FITS 兼容元数据层，**不承担像素域/单位语义**。**据此冻结：XISF 浮点 `bounds="0:1"` 是渲染可表示域，不是 ADU；ADU 换算因子必须由调用方声明。**
+7. **PCL（PixInsight Class Library）参考实现 `src/pcl/XISFReader.cpp`**（<https://gitlab.com/pixinsight/PCL/-/raw/master/src/pcl/XISFReader.cpp>）：`NormalizeSamples`/`NORMALIZE_FLOAT_IMAGE` 把文件可表示域线性映射到目标类型域——浮点目标 `*i=(*i−lower)/range`（→[0,1]），整数目标 `*i=(*i−lower)·MaxSampleValue/range`（→[0,2ⁿ−1]）；`UInt16` 的 `MaxSampleValue()=65535`。同一物理数据在 Float32 [0,1] 与 UInt16 [0,65535] 两种表示间的换算因子即 **65535**。**据此冻结：XISF Float32 `bounds="0:1"` 母版换算到 16 位 ADU 的声明因子取 65535（声明制，非推断制）。**
 8. **FITS Standard 3.0 §4.2.1/§4.3**（`BSCALE`/`BZERO`：物理值 = `BSCALE·样本 + BZERO`；16 位相机 `BZERO=32768` 伪无符号约定）。本仓真实亮场（T2/T4）实测 `BITPIX=16, BZERO=32768`，读入域 [0,65535] ADU——这就是亮场一侧的"ADU 域"定义。
 9. IRAF `ccdproc`/`zerocombine` 家族（NOAO/IRAF：zero → dark → flat 的经典归约顺序，dark 帧先在 zero 校正后合并）。**本次核验状态**：`iraf.net` 帮助页对本节点返回 403（Cloudflare 人机校验），**未能逐字取原文**；因此本文只按 ccdproc 文档中明示的 IRAF 等价关系（"Those transitioning from IRAF to ccdproc … BIASSEC and TRIMSEC conventions"）与经典实践引用，不作为冻结判据的唯一来源（冻结判据以第 4、5 条为准）。
 
-## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 14a 参考文献与参考代码库（含许可证）
 
-> 本节只补出处与参考实现，不改动 §5/§9 任何公式、常数与容差。原有 §14 条目继续有效。
+> 本节只补出处与参考实现，不改动 §5/§9 任何公式、常数与容差；§14 与本节的条目同时有效。
 
 - **母版约定（master_dark 已减 bias、dark 按曝光比缩放、flat 最后除）**：ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）reduction_toolbox/subtract_dark；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）isrFunctions.py 的 biasCorrection/darkCorrection/flatCorrection。仅行为对照。
 - **探测器噪声/gain/read noise**：Janesick 2001（SPIE PM83）Ch.2；Newberry 1991 PASP 103, 122；Howell, S. B. 2006, Handbook of CCD Astronomy, 2nd ed., CUP（ISBN 978-0-521-85215-9）Ch.4。
@@ -250,10 +249,10 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 
 - §11 Oracle 全过（解析解 max_abs==0、NumPy FP32 rtol=1e-6/atol=1e-7）；
 - §7 四不变量门（常量场/空平场/幂等归一/确定性）全过；
-- §11 **bias 参与门**与 **K 参与门**全过，且 ignore-bias 变异注入可判红（BIAS-001）；
+- §11 **bias 参与门**与 **K 参与门**全过，且 ignore-bias 变异注入可判红；
 - §11 **标度/归一化门**四条负例（单位混用 / 平场未归一 / dark bias 约定未声明 / 声明自洽）与
   两条正例（显式声明组合 / 本就合规组合=防过度拒绝）全过，
-  且负例为**真实二进制端到端**判红（UNIT-001；`tools/quality/check_master_unit_guard.py --self-test`）；
+  且负例为**真实二进制端到端**判红（`tools/quality/check_master_unit_guard.py --self-test`）；
 - 单位经 `tools/check_glossary.py`（GLOSSARY_PASS）且本文件无被禁 alias；
 - §9a 专属问题逐项有锚点回答，无 TBD/二选一（`tools/science_contract_lint.py` PASS）；
 - 解析不变量可转 SYN-001：常量场→SYN-001 constant/ramp 用例；NaN/饱和→SYN-001 invalid 边界用例（映射登记于 SYN-001 任务）。

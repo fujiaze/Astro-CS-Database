@@ -1,6 +1,6 @@
 # Module: photometric_calib
 
-> P1-PHOT-DOC 事实修订（2026-09-07，wave W1）：本页由源码核对后修订——
+> 本页由源码核对后修订——
 > 模块合同冻结落位 lib/algorithms/photometry/README.md（r1，CONTRACT_READY）+
 > module.yaml（astrocs.p1.photometry，迁移目标 astrocs_p1_photometry.dll，
 > entrypoint=MISSING）；合同 ID=SCI-PHOT-001 / ALG-PHOT-001..002

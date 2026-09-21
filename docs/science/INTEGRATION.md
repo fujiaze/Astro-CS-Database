@@ -1,6 +1,6 @@
 # Integration / Coaddition Science (SCI-INT)
 
-> ID: SCI-INT-001  集合: SCI-INT-001,002,004,008  状态: FROZEN (T108 冻结, 2026-08-23)  上游: SCI-SCOPE-001  下游 ALG: ALG-INT-001..  模块: phase2 (integrate)
+> ID: SCI-INT-001  集合: SCI-INT-001,002,004,008  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-INT-001..  模块: phase2 (integrate)
 
 ## 1 目的与非目标
 
@@ -127,6 +127,7 @@
 - **归一**：`signal=Σ_{valid,W>0} w_i·x_i / wsum`（wsum=权重归一）；`support`=canonical reducer `max(accepted support)`（禁止 mean/sum 二次聚合，§10）。
 - **mask/eligibility**：`valid(i)=accepted ∧ finite(x) ∧ (support>0) ∧ (w≥0)`；`accepted` 为排异层产物（SCI-REJ）；非法输入显式 `INVALID_INPUT`，无正权显式 `ALL_REJECTED/ZERO_VALID_WEIGHT`，禁止静默 0（§5 状态码）。
 - **frame identity**：聚合输出不携带逐样本身份，但 `n_accepted/n_used` 与 accepted 掩膜保证可追溯；重复 frame_id 由 UPM 构建层显式拒绝（DATA_SEMANTICS §5）。
+- **NaN/非有限样本**：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**由调用方（排异层）按 `ASTROCS_DESIGN.md` §5.5 施加；本层对进入 reducer 的非有限 `values/support/weights` 一律显式 `INVALID_INPUT`（fail-closed），**禁止静默剔除**，也不产生伪 0 或伪有效信号。
 
 ## 14 Primary literature（引用定位声明）
 
@@ -134,7 +135,7 @@
 2. `support=max` canonical reducer：**Project-defined**（覆盖并集保守下界，§5 注释）；无外部公式。
 3. 无外部文献依赖；协方差不存矩阵（UNCERTAINTY_AND_COVARIANCE.md 文档化）。
 
-## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 14a 参考文献与参考代码库（含许可证）
 
 > 本节只补出处与参考实现，不改动 §5 公式与 §10 禁改清单。
 

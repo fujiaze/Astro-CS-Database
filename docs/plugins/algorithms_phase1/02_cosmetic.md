@@ -7,7 +7,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §3.6（硬约束：cosmetic/validity）
+- 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：cosmetic/validity）
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §5（有效性域）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（修正对协方差的影响）
 

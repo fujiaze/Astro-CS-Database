@@ -10,7 +10,7 @@ downstream: [DATA-P2-SESSION, API-P2-SESSION-001, TEST-P2-SESSION-001]
 
 # 模块 astrocs.phase2.session
 
-> P2-SESSION-DOC 手写合同页（2026-09-10，SA-P2-X24）：registry
+> 手写合同页：registry
 > descriptor 无 astrocs.p2.session 词汇（module_adapters.cpp:643 起
 > descriptor 族为 p2_sample_descriptor 等编排占位，无 session 条目；
 > 编排委托=lib/infrastructure/scheduler/src/module_adapters.cpp:23-26 五 C ABI 声明，

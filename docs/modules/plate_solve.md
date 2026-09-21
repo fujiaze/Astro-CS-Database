@@ -1,6 +1,6 @@
 # Module: plate_solve (ipv)
 
-> P1-WCS-DOC 修订（2026-09-07）：本页为模块导览旧页；冻结合同落位
+> 本页为模块导览页；冻结合同落位
 > lib/algorithms/platesolve/（README.md r1 + module.yaml + memory.md 三件套，
 > CONTRACT_READY，entrypoint=MISSING）；registry 页
 > docs/modules/registry/astrocs.phase1.wcs-platesolve.md 已同步修订。

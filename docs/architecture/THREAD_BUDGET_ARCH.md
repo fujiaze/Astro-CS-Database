@@ -1,7 +1,7 @@
 # 全局 Thread Budget 与执行架构 (V5)
 
-> ID: ARCH-THREAD-001  状态: FROZEN (V5 ARCH-004, 2026-08-28)  上游: ARCH-002/ARCH-003  下游: BENCH-003(worker/block 候选)/BENCH-004(profile)/07 资源门
-> 本文件为 V5 权威线程架构;旧 THREADING_MODEL.md 的分层与确定性锚点保留有效(§6 引用),冲突处以本文件为准。
+> ID: ARCH-THREAD-001  状态: FROZEN  上游: ARCH-002/ARCH-003  下游: BENCH-003(worker/block 候选)/BENCH-004(profile)/07 资源门
+> 本文件为线程架构权威;THREADING_MODEL.md 的分层与确定性锚点保留有效(§6 引用),冲突处以本文件为准。
 
 ## 1 全局 thread budget(单一来源)
 
@@ -29,9 +29,9 @@
 
 ## 4 并发正确性合同(承接旧锚点)
 
-- 浮点归约顺序冻结(旧 THREADING_MODEL.md §确定性锚点全部有效: upm.cpp:495/sampler 串行/drizzle_engine.cpp:1662,1751,1834,1843);tile 合并=thread-local 累加后 **t=1..num_threads 固定序串行合并**(与线程数无关的确定性: 结果序列由 budget 快照唯一化)。
+- 浮点归约顺序冻结(THREADING_MODEL.md §确定性锚点全部有效: upm.cpp:495/sampler 串行/drizzle_engine.cpp:1662,1751,1834,1843);tile 合并=thread-local 累加后 **t=1..num_threads 固定序串行合并**(与线程数无关的确定性: 结果序列由 budget 快照唯一化)。
 - 计数器: atomic 或 thread-local 聚合;cache(UPM dense/Gaia/tile)线程安全或单线程互斥;无裸 data race。
-- V5 修正: 旧文档"ACR work_pool+GPU 等价契约"与"浏览器层"**dormant/not-shipped**(ACR 不接入;browser 为 tool 分类)。
+- ACR 与浏览器层**dormant/not-shipped**(ACR 不接入;browser 为 tool 分类)。
 
 ## 5 静态 checker 合同(验收)
 

@@ -29,7 +29,6 @@ d_k = A_k x + n_k, Cov(n_k)=C_k。A_k 包含光度响应、PSF、像素响应、
 | source SNR | F_hat/sigma_F，依赖源亮度 | 不直接作帧权重 |
 | depth m5 | 固定参考 PSF/孔径下 5σ 深度 | 摘要，不直接作权重 |
 | point-source information | a² Pᵀ C⁻¹ P = 1/Var(F_hat) | 点源目标的严格权重 |
-| psfsw_robust_weight | 共同星集 PSF signal/集中度/稳健噪声/背景组成的相对复合权重 | 可用于显式 psfsw_robust conventional integration；不是 ivar |
 | support | 有效输入/面积贡献 | 否 |
 | coverage | 几何/数据有效域 | 否 |
 | validity | 坏点/缺失/越界等状态 | 门，不是权重 |
@@ -50,9 +49,10 @@ Var(F_hat_k) = 1/W_k
 
 独立帧：Q=ΣQ_k、W=ΣW_k、F_hat=Q/W、Var=1/W。固定参考通量时 SNR²=F_ref²W。相关帧必须使用联合 C，不能简单求和。
 
-## 4.1 PSF Signal Weight 双轨
+## 4.1 叠加权重的来源
 
-AstroCS 同时支持严格 `psf_information_weight` 与可选 `psfsw_robust_weight`。后者不是 QA-only：它可在 Phase2 显式选择 `psfsw_robust` 口径时驱动 conventional coadd （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），但无量纲、组内相对、必须使用共同星集/selection-function 门，并从实际组合系数另行传播 covariance。完整定义见 `docs/science/PSF_SIGNAL_WEIGHT.md`。
+权重是 Phase2 集成时按天球像素对应的输入帧集合**现场计算的派生量**；Phase1 与 Phase3 不产生、不消费权重。PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，不计入科学叠加权重。
+单一权重口径：`weight.default_mode = psf_information_weight`（token `point_information`），不存在其它权重模式。
 
 ## 5. 扩展源最优统计
 
@@ -74,6 +74,8 @@ Cov(x_hat) = (Aᵀ C⁻¹ A)⁻¹
 ## 7. 重采样与 Drizzle
 
 重采样是线性算子 R：C_out=R C_in Rᵀ。输出只存对角 variance 时，必须另存 correlation kernel/scale 或可重建算子摘要。Drizzle 的 signal 单位、源/目标像素面积、pixfrac 和归一必须统一；常量面亮度和总积分通量 Oracle 同时成立。
+
+非有限输入按**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**处理：不合格样本从信号、分母与方差三项中一并剔除并重新归一，仅零合格样本的输出像素取 NaN（NaN 是无效的唯一表示），且必须暴露被剔除样本计数；**禁止静默剔除**（`ASTROCS_DESIGN.md` §5.5；正本见 `docs/science/DRIZZLE.md` 与 `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）。
 
 ## 8. 空间模型与标量压缩
 
@@ -101,16 +103,16 @@ Phase2→Phase3：surface-brightness 和/或 point-source 产品族、variance/c
 - 点源与扩展源目标分别相对基线证明无损或改善；
 - 每个近似有 mutation 能使门变红。
 
-## 11. 已撤销历史口径
+## 11. 口径禁止项
 
-- median(source SNR) 作为 Phase2 科学权重；
-- support×snr² 中 snr 未绑定固定参考通量/信息模型；
-- PSF fit quality 或 PSFSW 复合权重自动等于 1/Var(F_hat)；PSFSW 可以显式参与 conventional integration，但不能混名为 Fisher information/ivar；
-- 像素 ivar average 对任意 PSF 点源目标都最优；
-- variance 足以描述所有 Drizzle 相关噪声；
-- 一帧内 SNR 无条件常数。
+- 禁止把 median(source SNR) 作为 Phase2 科学权重；
+- 禁止使用未绑定固定参考通量/信息模型的 support×snr² 作为权重；
+- 禁止把 PSF 拟合质量或复合质量权重当作 1/Var(F_hat)，也禁止把它混名为 Fisher information/ivar；
+- 禁止宣称像素 ivar average 对任意 PSF 点源目标都最优；
+- 禁止宣称 variance 足以描述所有 Drizzle 相关噪声（相关核/可重建算子摘要必须同存）；
+- 禁止宣称一帧内 SNR 无条件常数。
 
-## 12 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 12 参考文献与参考代码库（含许可证）
 
 > 本节只补出处与参考实现，不改动 §2–§11 任何定义。
 
@@ -119,7 +121,7 @@ Phase2→Phase3：surface-brightness 和/或 point-source 产品族、variance/c
 - **广义最小二乘 x̂=(AᵀC⁻¹A)⁻¹AᵀC⁻¹d、Cov=(AᵀC⁻¹A)⁻¹**：Aitken, A. C. 1935, Proc. Roy. Soc. Edinburgh 55, 42（GLS 原始出处）；教科书级。
 - **C_out=R C_in Rᵀ**：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II, ApJ 836, 188。
 - **5σ 深度 m5**：Tonry et al. 2012, ApJ 750, 99；Ivezić et al. 2019, ApJ 873, 111。
-- **UNRESOLVED（跨文档口径冲突）**：本文件 §3 表的 frame_snr（未加权原始信噪比）与 docs/science/CONTROL_WEIGHT_SNR.md §2a（相对质量权重，非科学信噪比）互斥；本文件 §2 的 sky_plane（稀疏样条天光面）与 docs/science/PHASE2_UPM.md §1/§5（纯加性 8×8 control cell，乘性尺度已撤销）模型不同。前者属“目标规范 vs 现行冻结”的设计-实现差，后者属同一字段语义冲突。**登记 UNRESOLVED，上呈负责人裁决**（本任务不改公式）。
+- **跨文档口径**：本文件 §3 表的 frame_snr（未加权原始信噪比）与 `docs/science/CONTROL_WEIGHT_SNR.md` §2a（相对质量权重，非科学信噪比）是不同对象，不得互相替代；天光面的现行口径为 `docs/science/PHASE2_UPM.md` 的**纯加性**（Phase2 只做加性校正，乘性空间残留由 Phase1 低阶空间增益处理）。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。

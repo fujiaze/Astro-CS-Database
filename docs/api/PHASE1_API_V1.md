@@ -1,12 +1,12 @@
 # Phase1 API 定义 v1 (API-003 冻结 — 逐函数 create/validate/run/inspect)
 
-> ID: API-P1-001  范围: API-P1-001..010  状态: FROZEN (V5 API-003, 2026-08-28)；**handler 名称经 CLI-001 切换**  上游: API-001(API-COMMON-001)/API-002  下游: 用户命令 `normalize`(CLI-001;旧 `phase1 run` 已删除, rc=2)/TST-P1-*
-> 模式: Phase1 = 现有 C ABI 模块链(calibration/star_detector/dynamic_psf/ipv/photometric_calib/algorithms/noise_snr/healpix_drizzle)的**编排合同**;每函数按五字段并发合同模板(API-001 §3)登记;此为 V5 冻结层,V4 既有函数签名以现存头文件为准(不重写,新增仅 orchestrator 侧)。
+> ID: API-P1-001  范围: API-P1-001..010  状态: FROZEN；**用户命令面 = `normalize`**  上游: API-001(API-COMMON-001)/API-002  下游: 用户命令 `normalize`(CLI-001;`phase1 run` 不在命令面上, rc=2)/TST-P1-*
+> 模式: Phase1 = 现有 C ABI 模块链(calibration/star_detector/dynamic_psf/ipv/photometric_calib/algorithms/noise_snr/healpix_drizzle)的**编排合同**;每函数按五字段并发合同模板(API-001 §3)登记;既有函数签名以现存头文件为准(不重写,新增仅 orchestrator 侧)。
 
 ## 1 生命周期合同(编排级,`normalize` 命令 handler 直调)
 
-> CLI-001 说明: 本节四段式 C ABI **不变**(内部会话 1 的冻结合同);变的是**用户命令名** ——
-> 旧 `phase1 run` 用户命令已删除并返回 rc=2, 由 `normalize --json <config.json>` 承载
+> CLI-001 说明: 本节四段式 C ABI **不变**(内部会话 1 的冻结合同);**用户命令名** = `normalize`
+> —— `phase1 run` 不在命令面上并返回 rc=2, 由 `normalize --json <config.json>` 承载
 > (ASTROCS_DESIGN §6.2; phase 仅为内部指代)。
 
 ```c
@@ -28,7 +28,7 @@ acs_status p1_session_destroy(acs_handle);                                      
 | `ac_generate_master_bias/dark/flat(+_f64)`(astro_calibration.h) | yes | yes(无共享可变) | omp(budget, pixel 域) | 无(短任务) | TST-CAL-001 |
 | `ac_calibrate_frame(+_f64)`(同上) | yes | yes | omp(budget, 行带) | 行带 | TST-CAL-001 |
 | `ac_correct_frame(+_f64)`(同上, cosmetic) | yes | yes | omp(坏点域) | 无 | TST-CAL-FAIL-001 |
-| `ac_set_num_threads(int)`(同上) | yes | yes | — | — | TB-ARCH-004(checker 管控; **V5 迁移整改点**: 由 p1 budget 注入取代, ABI-001 收编) |
+| `ac_set_num_threads(int)`(同上) | yes | yes | — | — | TB-ARCH-004(checker 管控; 由 p1 budget 注入取代, ABI-001 收编) |
 | `sdet_create/destroy/detect/detect_ex`(star_detector.h) | handle 级 no | no(单 handle 单线程) | omp(星批) | 星批 | TST-SDET-* |
 | `dpsf_fit/batch/batch_f/free_results`(dynamic_psf.h) | yes | yes | omp(星批) | 星批 | TST-DPSF-* |
 | `ipv_solve_create/destroy/solve(_from_memory)`(ipv_api.h) | handle 级 no | no | omp(triangle/vote, 帧内) | 帧(星表行块) | TST-IPV-001 |
@@ -45,4 +45,4 @@ acs_status p1_session_destroy(acs_handle);                                      
 
 ## 4 doc-symbol-signature checker 合同(验收)
 
-`tools/check_api_docs.py`(API-003 建立合同, CLI-002 落地全量): 对每个登记函数——① 头文件存在该符号;② 文档表此行存在;③ 签名(参数数)一致;④ 直接 test ID 非空;⑤ 五字段并发合同齐全。任一缺失 FAIL。本任务先以 §2 表+tests/api/test_p1_api.py 机器门立约。
+`tools/check_api_docs.py`(API-003 建立合同, CLI-002 落地全量): 对每个登记函数——① 头文件存在该符号;② 文档表此行存在;③ 签名(参数数)一致;④ 直接 test ID 非空;⑤ 五字段并发合同齐全。任一缺失 FAIL。机器门 = §2 表 + `tests/api/test_p1_api.py`。

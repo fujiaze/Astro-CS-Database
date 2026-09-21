@@ -1,10 +1,9 @@
 # SCI-P1-STAR-001 — Phase1 星点检测（P1-STAR 冻结层）
 
-> 状态: FROZEN（P1-STAR-DOC 冻结，2026-09-07，SA-P1-S15）
-> 性质: P1-STAR 任务的 SCI 冻结层落点。共享 SCI（PSF / PHOTOMETRY /
-> ASTROMETRY，docs/science/ 既有文档）不因本任务改动；本页仅声明
-> matrix P1-STAR 行的 sci_doc 指向与语义映射，格式沿用 STAR_PSF_ALGORITHMS
-> §11.5 先例。
+> 状态: FROZEN
+> 性质: 本页是 Phase1 星点检测的 SCI 冻结层落点，声明共享 SCI（PSF / PHOTOMETRY /
+> ASTROMETRY，`docs/science/` 既有文档）的语义映射与 matrix 指向，格式沿用
+> `STAR_PSF_ALGORITHMS` §11.5 先例。
 > ALG 权威: ALG-STARDET-001（docs/algorithms/STAR_DETECTION_ALGORITHMS.md §11）。
 
 ## 1 语义要求（semantic anchors，公式锚见 ALG-STARDET-001 §2/§11.1）
@@ -15,12 +14,12 @@
   见 `docs/algorithms/GATES_AND_TOLERANCES.md`（G-P1-CENTROID-SCI 行）。
 - completeness / false positive (synthetic fields): 完备性与虚警由合成星场
   验收（召回 ≥99% @SNR≥10；虚警 ≤0.1/千像素，纯噪声场）——检测是经验性
-  图像处理流程，不宣称解析保证；全局检测阈值为
+  图像处理流程，不宣称解析保证。
+- 全局检测阈值（`detection.threshold_sigma`）：
   `threshold = median(img) + 5.0·bgnoise`（5σ 语义）。
 - saturation / blend / edge: 饱和判定=3×3 邻域双条件
   （meanhigh−bg ≥ 0.7·dynrange 且 pixel0−minhigh ≤ 0.1·dynrange）；饱和平台
-  中心=edge-walking 几何中心；饱和与正常星重叠（d²<4.0）丢正常星保饱和星；
-  距边界 <2px 允许丢弃。
+  中心=edge-walking 几何中心；饱和与正常星重叠（d²<4.0）丢正常星保饱和星；距边界 <2px 允许丢弃。
 - deterministic ordering: 输出按 mag 升序全序确定（NaN 恒排末尾），
   dedup/sort/maxStars 截断串行，输出与线程数 bitwise 无关
   （ALG-STARDET-001 §5）。
@@ -31,7 +30,7 @@
   plate solve 的输入；**检测侧母函数 = 椭圆高斯**（本页 §1/§3，
   ALG-STARDET-001 §2），**PSF 侧 = 椭圆 Moffat4**（SCI-PSF-001 §5）；
   两模型**宽度列不可跨块比较**：同 sx 下 `FWHM_gauss/FWHM_moffat =
-  2.354820/1.230310 = 1.9140×`（DISP-STAR-007；证据 R-3 §2.2）。
+  2.354820/1.230310 = 1.9140×`（DISP-STAR-007）。
 - SCI-PHOT-001（PHOTOMETRY）：正常星 mag=−2.5·log10(Σ_box(pixel−B_fit))
   为粗测光（检测侧自估），最终测光归 PHOTOMETRY 域；饱和星 mag 量纲差异
   已登记 DISP-STAR-004（ALG-STARDET-001 §11.3）。
@@ -43,13 +42,11 @@
 
 - 基线算法=peaker 七步候选 + 椭圆高斯 GSL trust-region LM 拟合
   （7 参数，`fwhm=2.3548·sx`；高斯拟合 Moffat4 真星质心无偏 median 0.0047 px，
-  但 FWHM 报值/真值=1.086、解析流量比=0.902，R-3 §2.4；生产路径
-  sdet_detect_impl，sdet_api.cpp:1599-2353）；旧 CC 结构图路径
-  （sdet_detect/:992-1274）为 DISP-STAR-005 登记的遗留双实现，不作为
-  基线（去留归 P1-STAR-IMPL 整改）。
+  但 FWHM 报值/真值=1.086、解析流量比=0.902；生产路径
+  `sdet_detect_impl`，`sdet_api.cpp:1599-2353`）。
 - 现状缺陷不隐瞒（DISP-STAR-001..005 显式登记，ALG-STARDET-001 §11.3）；
-  本 SCI 冻结不声称缺陷已修复，整改项由 P1-STAR-IMPL/P1-STAR-INT 承接。
-- 本页与 ALG-STARDET-001/DATA-P1-STAR/API-STAR-001 组成 P1-STAR 冻结层；
+  本层不声称缺陷已修复。
+- 本页与 ALG-STARDET-001/DATA-P1-STAR/API-STAR-001 组成 Phase1 星点检测冻结层；
   禁止编排层词汇（descriptor astrocs.phase1.star-psf）反向改写本层。
 
 ## 4 测试设计锚
@@ -58,7 +55,7 @@ TEST-STAR-DESIGN-001（ALG-STARDET-001 §11.4）为冻结测试设计：
 F1 合成场统计（质心/FWHM/召回/虚警）、F2 饱和/混合/边缘专项、F3 确定性
 （线程数 bitwise 一致+全序断言）、F4 FP64 独立 oracle 与 FP32 量化容差
 （FP32 项只覆盖 FP32→uint16 量化通道，非端到端位置门；端到端绝对位置门=
-G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-001 由 P1-STAR-TEST 按本设计
+G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-001 按本设计
 落地，容差冻结不得放宽。
 
 ## 5 物理量和单位（units）
@@ -79,7 +76,7 @@ G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-
 
 > 本域门与容差的量测域/统计量/SNR 定义/阈值来源见 `docs/algorithms/GATES_AND_TOLERANCES.md`（F-2 冻结门表；门不得引用表外阈值）。
 
-## 6 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 6 参考文献与参考代码库（含许可证）
 
 > 本节只补出处与参考实现；§1–§5 语义与 ALG-STARDET-001 公式锚不变。
 
@@ -88,7 +85,7 @@ G-P1-CENTROID-1）、F5 状态码负例、F6 回归锚。可执行 TEST-P1-STAR-
 - **椭圆高斯 LM 拟合**：Levenberg 1944, Quart. Appl. Math. 2, 164；Marquardt 1963, SIAM J. Appl. Math. 11, 431；Moré 1978, Lecture Notes in Math. 630, 105；实现对照 GSL gsl_multifit_nlinear（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - **IIR 递归高斯平滑**：Young, I. T. & van Vliet, L. J. 1995, Signal Processing 44, 139。**核验状态**：文章级。
 - **SNR_peak 与门**：docs/algorithms/GATES_AND_TOLERANCES.md §2（本域唯一 SNR 定义）与 §3 门表。
-- **饱和/边缘处理**：无直接文献，Project-defined（ALG-STARDET-001 §2）；历史对照见 Stetson 1987 与 IRAF/DAOPHOT（IRAF/NOAO 许可，非 OSI）。
+- **饱和/边缘处理**：无直接文献，Project-defined（ALG-STARDET-001 §2）；对照见 Stetson 1987 与 IRAF/DAOPHOT（IRAF/NOAO 许可，非 OSI）。
 - **与 PSF 侧的模型差**：检测侧椭圆高斯 FWHM=2.3548·σ 与 PSF 侧 Moffat4 FWHM=1.230310·σ 相差 1.9140×（DISP-STAR-007），两列不可跨块比较；Moffat 出处见 Moffat 1969, A&A 3, 455 与 docs/science/PSF.md §14。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：

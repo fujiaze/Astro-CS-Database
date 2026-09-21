@@ -1,8 +1,8 @@
 # astrocs.p2.integration — Phase2 逐像素加权积分模块页（P2-INT）
 
-> P2-INT-DOC（2026-09-09，SA-P2-I23）新建模块页。合同三件套落位
+> 合同三件套落位
 > `lib/algorithms/integration/`（README r1 + module.yaml + memory.md，CONTRACT_READY，
-> entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/coverage/hips_p2/`（P2-HIPS-DOC）
+> entrypoint=MISSING）——迁移目标目录按 `lib/algorithms/coverage/hips_p2/`
 > 先例新建；`lib/algorithms/coverage/` 三件套已被 P2-COV（astrocs.p2.coverage）占用，
 > 不可覆盖。生产源 `lib/algorithms/coverage/src/integrate.cpp`（76 行，根 CMakeLists
 > astrocs_phase2 静态库成员 :336-346/:344；lib/algorithms/coverage/CMakeLists.txt:42-49
@@ -19,8 +19,8 @@
   P2-INT-IMPL）。
 - owner SA-P2-I23；depends_on_int=P2-REJ-INT;P1-NOISE-INT;CPU-005；
   legacy_paths="lib/algorithms/coverage integration sources"。
-- 合同链：SCI-INT-001（docs/science/INTEGRATION.md，FROZEN T108
-  2026-08-23，零改动；SCI-P2-INT-001⇒SCI-INT-001 映射声明见 ALG
+- 合同链：SCI-INT-001（docs/science/INTEGRATION.md，FROZEN，零改动；
+  SCI-P2-INT-001⇒SCI-INT-001 映射声明见 ALG
   文档 §11.5）→ ALG-P2-INT-001（docs/algorithms/PHASE2_INTEGRATION.md）
   → DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001（PUBLIC_API）
   → TEST-P2-INT-001（MISSING；登记面=ALG §11.4 设计冻结 VERIFIED，

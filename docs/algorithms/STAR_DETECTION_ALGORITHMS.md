@@ -1,11 +1,11 @@
 # Star Detection Algorithms (ALG-STARDET-001)
 
-> 状态: ACTIVE（P1-STAR-DOC 冻结，2026-09-07，SA-P1-S15）
-> 上游 SCI: SCI-PSF-001（docs/science/PSF.md，FROZEN 共享引用不改动）；本任务冻结层
+> 状态: ACTIVE
+> 上游 SCI: SCI-PSF-001（docs/science/PSF.md，FROZEN 共享引用不改动）；本域冻结层
 > SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
 > 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
 > MOD-astrocs-phase1-star（registry）
-> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2555 行实测，2026-09-17 LEDGER-DOC 按附录 G 机械重锚；源文件唯一在役副本）；合同头
+> 唯一权威生产源: lib/algorithms/star_detection/src/sdet_api.cpp（2555 行实测；源文件唯一在役副本）；合同头
 > lib/algorithms/star_detection/include/star_detector.h（73 行）；禁止手抄他版。
 > 矩阵行: docs/traceability/TRACEABILITY_MATRIX.json MOD-astrocs-phase1-star
 > （matrix P1-STAR，legacy_paths=lib/algorithms/star_detection;lib/algorithms/star_detection/wrapper_phase1，
@@ -184,7 +184,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1749-2499
   由 P1-STAR-TEST 落地。
 - DATA: DATA-P1-STAR（DATA_SEMANTICS §17，star_det v1 [N,6] 权威块十数组语义）。
 
-## 11 P1-STAR-DOC 冻结附录（2026-09-07，SRC-STAR-001 源码实测）
+## 11 冻结附录（SRC-STAR-001 源码实测）
 
 ### 11.1 ALG-STARDET-001 逐符号锚
 

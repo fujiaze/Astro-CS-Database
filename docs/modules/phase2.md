@@ -44,18 +44,16 @@ ALG-REJ-001..008、SCI-INT-001/002/004/008、SCI-NOISE-015、
 SCI-UPM-WEIGHT-001、ALG-UPM-CONTROL-IVAR-001、DATA-UPM-CONTROL-UNC-001
 （V19R3 冻结）。
 
-## V19R3 接口变更（ABI：P2ControlObservation 尾部新增
-control_variance/control_ivar；P2PixelStack.weight_mode 删除 （已按 §9.73 A44 作废：键不存在；权重是派生量））
+## ABI 接口（P2ControlObservation 尾部新增 control_variance/control_ivar）
 
 - p2_upm_raw_weight：production=quality×control_ivar（缺 control ivar
-  显式 rc=2）；use_ivar_weight=0 才走 legacy snr² ablation；
+显式 rc=2）；use_ivar_weight=0 走 snr² ablation 诊断域；
 - sampler：uncertainty=SE(patch median)，N_retained + k_corr=1.4
   （UPMW-005 MC 校准）；obs.ivar 弃用为诊断；
 - stage2：use_ivar_weight 显式透传（默认 1）；weight_policy=ivar 时
-  ACR 块强制 CPU（ACR-IVAR-001）；ivar 产品整体缺失默认硬科学错误，
-  历史 legacy 降级键 legacy_allow_weight_fallback=true （已按 §9.73 A44 作废：键不存在；权重是派生量） 才降级并标红；
+   ACR 块强制 CPU（ACR-IVAR-001）；ivar 产品整体缺失 = 硬科学错误；
 - integration：零权重合法（ZERO_VALID_WEIGHT），NaN/Inf/负 INVALID；
-  reducer 不再持有 weight_mode （已按 §9.73 A44 作废：键不存在；权重是派生量）（policy/reducer 分离）。
+  reducer 不持有权重键（policy/reducer 分离）。
 
 ## 性能特征
 
@@ -77,13 +75,13 @@ control_median_mc_test.cpp（2000 实现 Drizzle MC，k_corr=1.3883）。
 
 ## Known limitations
 
-W9 ACR 仅 legacy CPU launcher（无 CUDA kernel）；输出仅 signal/support。
+ACR 仅 `mosaic_reject_legacy` CPU launcher（无 CUDA kernel）；输出仅 signal/support。
 
 ## Source files
 
 lib/algorithms/coverage/{src,include/astro/phase2,tools,tests}/。
 
-## Coverage 子模块合同（P2-COV-DOC 2026-09-07，事实修订）
+## Coverage 子模块合同
 
 - coverage 环节=astrocs.p2.coverage（matrix P2-COV 行）：生产源
   lib/algorithms/coverage/src/coverage.cpp（239 行）+ include/astro/phase2/
@@ -94,7 +92,7 @@ lib/algorithms/coverage/{src,include/astro/phase2,tools,tests}/。
   lib/algorithms/coverage/README.md r1 + module.yaml。
 - 本页早先"coverage → sampler → …"指处理链阶段序，非本模块归属：
   coverage 仅为几何 union MOC + 兼容校验（hips_order/tile_width=512/
-  hips_version/hips_frame/filter），无 weight_mode/config 参与 （已按 §9.73 A44 作废：键不存在；权重是派生量）；输出
+  hips_version/hips_frame/filter），无权重键参与；输出
   P2MocCell[P2CoverageResult.n_union_cells]（HEALPix NESTED，坐标
   非 PIXEL）。coverage/support/validity 三概念分离；coverage 禁作
   隐式科学权重（w_UPM 唯一冻结式 PHASE2_UPM.md §5）。与 UPM/

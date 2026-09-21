@@ -9,9 +9,9 @@ upstream: [SCI-UPM-001, ALG-P2-UPM-IMPL-001, ALG-UPM-001, API-P2-001]
 downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
 ---
 
-# 模块 astrocs.phase2.upm-apply（P2-UPM-DOC 重写，2026-09-10）
+# 模块 astrocs.phase2.upm-apply
 
-> P2-UPM-DOC（2026-09-10）重写为手写合同页（registry 页保留先例
+> 手写合同页（registry 页保留先例
 > astrocs.phase1.session.md/astrocs.phase2.coverage.md/
 > astrocs.phase2.reject.md）：`astrocs.p2.upm` 合同（registry 行 ID
 > 沿用 MOD-astrocs-phase2-upm-fit/upm-apply）——SCI-UPM-001（共享
@@ -45,8 +45,8 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
 ## 职责与明确非职责
 
 - 职责（apply）：按 frame_id 稳定绑定逐块校准——**默认只扣偏差 δ_k、保留公共
-  天光面 B_ref**：`calibrated_k(x) = raw_k(x) − δ_k(x)`（最高设计 §4.4 / §9.67 定案 1；
-  R24 订正：本页原写 `calibrated=raw − C_f(p)` **无消歧**，全量扣除**不再是默认**，
+  天光面 B_ref**：`calibrated_k(x) = raw_k(x) − δ_k(x)`（最高设计 §5.4；
+  全量扣除**不是默认**，
   凡写 `raw − C_k` 必须写明「全量」还是「仅偏差」）。
   内核锚 = p2_upm_calibrate_block :1240，与 p2_upm_evaluate_c :1271
   sparse/dense 同一科学语义，ALG-UPM-001 F4；dense cache 物化/
@@ -73,7 +73,7 @@ downstream: [DATA-P2-COR, API-P2-UPM-001, TEST-P2-UPM-002]
 内核级真实 I/O 合同=DATA-P2-UPM（§25）模型 + DATA-P2-CAL 帧 →
 DATA-P2-COR（§26）校准输出：**默认 `calibrated_k(x) = raw_k(x) − δ_k(x)`（FP64 ADU，
 保留公共天光面 `B_ref`）**；全量扣除 `raw − C_k` 非默认，使用时必须显式声明
-（最高设计 §4.4 / §9.67 定案 1）。sparse/dense 同一科学语义。invalid: null 参数 → rc=1；未知
+（最高设计 §5.4）。sparse/dense 同一科学语义。invalid: null 参数 → rc=1；未知
 frame_id → p2_upm_evaluate_c 返回 NaN（显式不可用，禁 frame 0 参数
 伪装，upm.cpp:1277-1280）；dense_read_block source hash 不匹配 →
 rc=2 stale 拒绝（upm.h:166-167）。

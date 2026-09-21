@@ -6,7 +6,7 @@
 
 ## 逐像素方差
 
-- 输入方差：NoiseWeightModelV1（空背景稳健方差，SCI-NOISE-001..015）；
+- 输入方差：噪声模型 A = `NoiseWeightModelV1`（空背景稳健方差，唯一生产模型，SCI-NOISE-001..015）；
 - Drizzle 传播：var_p = Σ v_j w_jp² / D_p²（SCI-DRZ-014）；与 `lib/algorithms/noise_snr` 的 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
 - 产品：HiPS variance + ivar（1/variance）。
 
@@ -18,18 +18,18 @@
 Cov(S_p, S_q) = Σ_j c_jp c_jq v_j
 ```
 
-V19 不保存完整 covariance matrix；Monte Carlo 量化（SNR-012）：
+不保存完整 covariance matrix；Monte Carlo 量化（SNR-012）：
 nside=512 合成帧相邻像素 mean|ρ|≈0.19、max|ρ|≈0.57。
 
 ## 对使用的约束
 
-- pixel variance ≠ aperture variance（**aperture variance 未建模**：V19 仅提供逐像素方差/ivar，未对 aperture 求和建模协方差；aperture 误差须显式加入 `Cov` 项，量化见 SNR-012——nside=512 mean|ρ|≈0.19、max|ρ|≈0.57）；
+- pixel variance ≠ aperture variance（**aperture variance 未建模**：本管线仅提供逐像素方差/ivar，未对 aperture 求和建模协方差；aperture 误差须显式加入 `Cov` 项，量化见 SNR-012——nside=512 mean|ρ|≈0.19、max|ρ|≈0.57）；
 - 下游科学（如光度测量）如需 aperture 误差须显式考虑 pixfrac/resampling
   协方差；ivar 权重默认只用于逐像素最优组合。
 
-## V19R3 control estimator 方差（ALG-UPM-CONTROL-IVAR-001）
+## UPM control estimator 方差（ALG-UPM-CONTROL-IVAR-001）
 
-(本节公式隶属Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于lib/algorithms/noise_snr的NoiseWeightModelV1；后者仅提供σ_bg，经sampler阶段乘k_corr缩放，且 k_corr = N_retained/N_eff ≥ 1（原括注"k_corr=N_eff"为勘误：N_eff ≤ N_retained，见 SCI-UPM §5/§6 与 SCI-FIX-WEIGHT SC-005）)
+(本节公式隶属 Phase2 UPM/ALG-UPM-CONTROL-IVAR-001，不属于 `lib/algorithms/noise_snr` 的 `NoiseWeightModelV1`；后者仅提供 σ_bg，经 sampler 阶段乘 k_corr 缩放，且 k_corr = N_retained/N_eff ≥ 1，见 SCI-UPM §5/§6)
 
 UPM 的 control estimator 是 background-clean patch **median**，其方差
 不是单 leaf 像素方差：
@@ -39,19 +39,19 @@ control_variance = k_corr × (π/2) × sigma_bg² / N_retained
 control_ivar     = 1 / control_variance
 ```
 
-- 独立 Gaussian 基线 Var(median) ≈ πσ²/(2N)（UPMW-004 实证 ratio 0.997）；
-- k_corr 表征 Drizzle 输出协方差导致的 N_eff<N_retained：UPMW-005 MC
+- 独立 Gaussian 基线 Var(median) ≈ πσ²/(2N)（实证 ratio 0.997）；
+- k_corr 表征 Drizzle 输出协方差导致的 N_eff<N_retained：MC
   （pixfrac=0.8，2000 实现）k_corr=1.3883，N_eff≈181/251；冻结 1.4；
-- N_retained 用 clipping 后保留样本（UPMW-007 patch vs truth 验证）；
+- N_retained 用 clipping 后保留样本（patch vs truth 验证）；
 - 生产 UPM 权重 = quality × control_reliability × control_ivar（SCI-UPM-WEIGHT-001；
-  旧名 geometric_reliability，**实现为配置常量 1.0，不是按覆盖度算出的几何量**，缺陷登记
+  `control_reliability` **实现为配置常量 1.0，不是按覆盖度算出的几何量**，缺陷登记
   SC-005），禁止再用单像素 ivar/support/SNR 乘因子。
 - k_corr 定义域 1 ≤ k_corr：k_corr<1 ⇔ N_eff>N_retained（正相关样本的有效样本量不可能
   大于样本数），`p2_upm_control_variance` 与 `p2_upm_ma_build` 显式拒（rc=1 / rc=7）。
 
-## Phase2 马赛克合成方差（DATA-P2-VAR-001，DATA-UNC-001 冻结 2026-09-09）
+## Phase2 马赛克合成方差（DATA-P2-VAR-001）
 
-马赛克加权积分（SCI-INT §5，w_i=逐样本 ivar，纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），无 fallback）的
+马赛克加权积分（SCI-INT §5，w_i=逐样本 ivar，权重是阶段二按该天球像素对应帧集合现场算出的派生量，无 fallback）的
 方差传播是 SCI-DRZ-014 一般式 `var_p = Σ_j v_j w_jp²/D_p²` 在积分权重下的
 直接特例（w_i=1/v_i）：
 
@@ -67,18 +67,18 @@ variance_mosaic(p) = 1 / W(p)
   variance 产品严格分离。
 - invalid（输出面）：无有效样本（n_used=0）→ variance/ivar=NaN（signal=NaN
   同态，writer 通道 DATA_SEMANTICS §12.4）；输入 ivar 非有限 → hard fail。
-- unavailable（fail-closed）：权重非纯逆方差 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） 或 ivar 帧缺失 fallback 发生 →
+- unavailable（fail-closed）：权重非逐样本 ivar 或 ivar 帧缺失 fallback 发生 →
   不写 variance/ivar 产品 + manifest uncertainty_available=false（禁伪值）。
 - 产品/manifest 表达与验证门：DATA_SEMANTICS §30.1/§30.5（DATA-P2-VAR-001）。
 
-## Phase3 重采样方差传播（DATA-P3-UNC-001，DATA-UNC-001 冻结 2026-09-09）
+## Phase3 重采样方差传播（DATA-P3-UNC-001）
 
 反向映射重采样（SCI-P3 §5 冻结采样核）把输入逐像素方差 u 传播到输出平面；
 这是方差二次型在重采样权重下的直接应用（同 SCI-DRZ-014 二次形式、SCI-NOISE-002
 缩放律同源）：
 
 ```text
-# 主式（一般式，允许多个输入像素相关；SCI-FIX-PROJ 2026-09-16 订正，M7-A-114）
+# 主式（一般式，允许多个输入像素相关）
 bilinear:  var_out(i) = [ R C_in Rᵀ ]_ii
            R = 本输出像素对各输入 leaf 的重采样权重行向量（ALG-P3-003 G4 冻结权重 c_k，
                Σ_k c_k = 1）；C_in = 输入逐像素协方差阵
@@ -91,9 +91,9 @@ ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同�
   `Cov(S_p,S_q)=Σ_j c_jp c_jq v_j`，且自报 mean|ρ|≈0.19、max|ρ|≈0.57
   （SNR-012，nside=512）。只写 `Σ c_k²u_k` 等于假设 C_in 对角，**系统性低估**
   输出方差：偏差因子 ≈ 1+0.75ρ（两像素近邻近似），ρ=0.19 ⇒ 方差低估 36.3%、
-  σ 低估 20.2%（R-1 §2.5 MC 复算 0.39415 vs 理论 0.39250）。
+  σ 低估 20.2%（MC 复算 0.39415 vs 理论 0.39250）。
   与 ALG-P3-001 §3（`C_y = R C_x Rᵀ`）同式；`Σc_k²` 标量式**只在 C_in 对角时**
-  成立，禁止当通用式（原式与本文件 :18 互斥，已降为特例）。
+  成立，禁止当通用式（标量式只是 C_in 对角时的特例）。
 - **Σc_k² ≠ 1 是正确物理**：bilinear 平均降低独立像素方差但引入相邻相关
   （§上协方差机制），禁止误用 Σc_k=1 归一 variance（常数信号场不变量
   SCI-P3 §7 只对 signal 成立，对 variance 不成立）。
@@ -104,15 +104,12 @@ ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同�
   u=1/ivar；两者皆无 → uncertainty unavailable（输出无 VARIANCE/IVAR HDU +
   manifest uncertainty_available=false，DATA_SEMANTICS §30.4 unavailable 模式）；
   负/Inf = 产品损坏显式错误；NaN 传播（C=1）；**ivar==0 像素 = 零权重 ⇒
-  u 无效（NaN 传播态），不是硬错误，也不得导出 1/0→Inf**（M1a-A-009；
-  DATA_SEMANTICS §30.4-1/-3 已同步）。
+  u 无效（NaN 传播态），不是硬错误，也不得导出 1/0→Inf**（DATA_SEMANTICS §30.4-1/-3）。
 - invalid（输出面）：无覆盖（C=0）→ variance/ivar=NaN（signal=NaN 同态）；
   覆盖不一致（leaf signal 有限而 u 缺失）→ 输出 NaN + provenance 计数。
 - 产品/FITS 表达（EXTNAME=VARIANCE/IVAR、BUNIT 派生）与验证门：
   DATA_SEMANTICS §30.4/§30.5（DATA-P3-UNC-001）；SCI-P3 §9a-10 的
-  variance/ivar 拒绝语义由此 supersession（**权威 = 本节 + DATA_SEMANTICS
-  §30.4**；原引「宪章 §7.1/§7.3」在现行活动树无载体，SCI-FIX-PROJ
-  2026-09-16 改为实质条款，见 SCIENCE_CORRECTNESS.md SC-001）。
+  variance/ivar 拒绝语义的**权威 = 本节 + DATA_SEMANTICS §30.4**。
 
 ## 数值精度
 
@@ -124,13 +121,13 @@ SCI-NOISE-011/012；ALG-DRZ-VAR-*；ALG-UPM-CONTROL-IVAR-001；
 DATA-UPM-CONTROL-UNC-001；DATA-P2-VAR-001；DATA-P3-UNC-001
 （DATA-UNC-001，DATA_SEMANTICS §30）。
 
-## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 参考文献与参考代码库（含许可证）
 
 > 本节只补出处与参考实现，不改动本文件任何公式与容差。
 
 - **线性方差二次型 C_out = R C_in Rᵀ**：线性误差传播（教科书级）；数值稳定性与归约误差见 Higham 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）。
 - **Drizzle 后相邻像素相关与方差低估**：Fruchter & Hook 2002, PASP 114, 144（§5 相关噪声）；DrizzlePac Handbook（STScI）；Zackay & Ofek 2017, ApJ 836, 188（相关噪声下的信息保持组合）。**差异**：AstroCS 只存对角 variance，协方差仅文档化（§协方差节），与上述文献的完整 C_out 表述存在系统性低估，已在 §对使用的约束 与 §Phase3 重采样方差传播 中如实登记。
-- **var(median) ≈ πσ²/(2N)**：Laplace 分布/正态样本中位数渐近方差的教科书结论（见 Kendall & Stuart, The Advanced Theory of Statistics, Vol.1，或 Hoaglin et al. 1983）；UPMW-004 的 0.997 实证 ratio 见 SCI-UPM §11。
+- **var(median) ≈ πσ²/(2N)**：Laplace 分布/正态样本中位数渐近方差的教科书结论（见 Kendall & Stuart, The Advanced Theory of Statistics, Vol.1，或 Hoaglin et al. 1983）；0.997 实证 ratio 见 SCI-UPM §11。
 - **像素 ivar 与孔径方差不等价**：aperture 方差须显式加 Cov 项；相关噪声处理见 Zackay & Ofek 2017 II。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：

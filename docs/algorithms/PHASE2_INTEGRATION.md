@@ -1,19 +1,17 @@
 # Phase2 Integration Algorithms（P2-INT / astrocs.p2.integration）
 
-> ID: ALG-P2-INT-001  状态: CONTRACT_READY（P2-INT-DOC 冻结，2026-09-09）
-> 模块: lib/algorithms/coverage/src/integrate.cpp（81 行，2026-09-17 LEDGER-DOC 复测；旧记 76 行为迁移前行数，astrocs_phase2 静态库成员，
+> ID: ALG-P2-INT-001  状态: CONTRACT_READY
+> 模块: lib/algorithms/coverage/src/integrate.cpp（81 行，astrocs_phase2 静态库成员，
 > 根 CMakeLists.txt:336-346/:344）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）
 > 权威: 本文档（算法级逐符号锚）。SCI 上游: SCI-INT-001
-> （docs/science/INTEGRATION.md，FROZEN T108 2026-08-23，集合
+> （docs/science/INTEGRATION.md，FROZEN，集合
 > SCI-INT-001/002/004/008，零改动）。DATA: DATA-P2-INT（DATA_SEMANTICS
 > §21）。API: API-P2-INT-001（PUBLIC_API.md）。TEST: TEST-P2-INT-001
 > （MISSING，P2-INT-TEST 落地；设计冻结面=本文档 §11.4）。
-> 本文档承接 audit PH2-05 建议（reports/v19r7_quality/
-> audit_findings_phase2.md:29：B2-12 在 INTEGRATION_ALGORITHMS.md 补
-> integrate.cpp:55,70 行号）——旧 INTEGRATION_ALGORITHMS.md 行号锚缺失
-> 且含 worker pool 旧表述，本文件为算法级权威重建；ALG-INT-001/002
-> ID 语义由本文件 §12 映射承接。
+> 本文档为 Phase2 逐像素加权积分 reducer 的算法级权威（逐符号锚 +
+> 冻结公式 + 状态语义 + 并行归约容差）；ALG-INT-001/002 ID 语义由
+> 本文件 §12 映射承接。
 
 ## 1 目的与非目标
 
@@ -41,12 +39,13 @@
 | `vs` | Σ wᵢxᵢ | ADU/ADU² | integrate.cpp:59-60 |
 | `sup_max` | max(accepted support)（现状=R3-A 缺陷语义，§11.3） | 无量纲 | integrate.cpp:61-61 |
 
-权重语义（integrate.h:8-11 注释冻结）: mode=0 →
-`stack.support_x_snr2.v1`（support×snr²）；mode=1 或 weights=null →
-`stack.equal.v1`（等权）。mode/策略属于调用方（stage2.cpp:1106-1140
-构造 numeric weights），reducer 只消费权重数组本身。
+权重语义（integrate.h:8-11 注释冻结）: 权重是 Phase2 按该天球像素
+对应帧集合现场算出的派生量——逐样本 `ivar`（`1/ADU²`），由调用方构造
+并先经 `p2_validate_candidate_weights`（stage2.cpp:1106-1140）；
+`weights=null` → 等权 1.0。reducer 只消费权重数组本身，本层不编码
+ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
 
-## 3 逐符号锚（integrate.cpp 81 行 / integrate.h 74 行，2026-09-17 LEDGER-DOC 复测；旧记 76 行）
+## 3 逐符号锚（integrate.cpp 81 行 / integrate.h 74 行，实测）
 
 | 符号/段 | 锚（integrate.cpp） | 语义 |
 |---|---|---|
@@ -122,16 +121,16 @@ eligibility（逐候选 i，候选索引固定序）:
                          status = OK                            :77
 ```
 
-- 权重语义（调用方构造，本层无知）: **纯逆方差 = 逐样本 `ivar`（1/ADU²，（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），
-  逆方差权重），无任何 fallback** —— 缺失 ivar 是显式科学错误
+- 权重语义（调用方构造，本层无知）: **逐样本 `ivar`（1/ADU²），无任何
+  fallback** —— 缺失 ivar 是显式科学错误
   （产品级 stage2.cpp:565-575 rc=7 / 像素级 stage2.cpp:1106-1122 fail=2），
-  与 SCI-UPM §5:54、DATA-UNC-001 §51（「纯逆方差权重，无 fallback」（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））、
-  DESIGN §4.3/§4.4 一致；历史 legacy 分支 （已按 §9.73 A44 作废：键不存在；权重是派生量） → `support×snr²`（**legacy/ablation/
-  诊断**，被 DESIGN §4.3「不是直接用 SNR 加权」与 SCI-UPM §5:54 禁入生产，
-  stage2.cpp:1123-1141）；
-  等权分支/weights=null → 等权 1.0 （已按 §9.73 A44 作废：键不存在；权重是派生量）（stage2.cpp:1139）。
-  `ivar_valid?ivar:support` 只是历史 legacy 降级键 `legacy_allow_weight_fallback=true` （已按 §9.73 A44 作废：键不存在；权重是派生量）（默认 false）
-  时的**显式降级路径**（stage2.cpp:1113-1120），**不是纯逆方差的定义** （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；
+  与 SCI-UPM §5:54、DATA-UNC-001 §51（「逆方差权重，无 fallback」）、
+  DESIGN §3.1/§5.3 一致；权重是 Phase2 按该天球像素对应帧集合现场算出
+  的派生量，SNR 只作 veto/质量门、不直接加权；
+  等权分支/weights=null → 等权 1.0（stage2.cpp:1139）。
+  `ivar_valid?ivar:support` 是降级键 `legacy_allow_weight_fallback=true`
+  （默认 false）时的**显式降级路径**（stage2.cpp:1113-1120），
+  **不是逐样本 ivar 的定义**；
   该降级发生时 DATA-UNC-001 §67-68 要求不写 variance/ivar 产品。
 - 禁止（SCI §10 逐条承接，本层为合同）: support 改 mean/sum 二次
   聚合；w==0 改判 INVALID_INPUT；INVALID_INPUT 并入
@@ -178,8 +177,8 @@ eligibility（逐候选 i，候选索引固定序）:
   **旧登记「实现现状 = max over {valid ∧ W>0}」已过期**（实现位置为
   `:49-50`，不在 `w==0 continue` 之后），不得据此整改实现。
 - SCI §5:63 声称与 "integrate.cpp:10-79" / "integrate.h:1-75"
-  一致——实测文件为 81 行/74 行（2026-09-17 复测；旧记 76 行，锚漂移，行号如实以本文档 §3
-  为准；语义一致不含该行号范围漂移）。
+  一致——实测文件为 81 行/74 行（行号如实以本文档 §3 为准；
+  语义一致不含该行号范围漂移）。
 
 ## 8 单位与 dtype 登记（唯一权威=DATA_SEMANTICS §21）
 
@@ -215,11 +214,11 @@ eligibility（逐候选 i，候选索引固定序）:
 6. 调用方禁止对 pr.support 二次 max/mean（stage2.cpp:1525-1526
    注释冻结；ACR 同型）。
 
-## 11 P2-INT-DOC 冻结附录（2026-09-09，SRC-P2-INT-001 源码实测）
+## 11 冻结附录（SRC-P2-INT-001 源码实测）
 
 ### 11.1 逐符号锚
 
-见 §3 表（锚=2026-09-09 grep/read 实测；禁止手抄他版行号）。
+见 §3 表（锚=`grep -n`/read 实测；禁止手抄他版行号）。
 
 ### 11.2 返回码/状态码语义
 
@@ -276,18 +275,17 @@ eligibility（逐候选 i，候选索引固定序）:
 - 冻结容差汇总: F1/F2/F4/F5/F7 = bitwise/rtol 0；F6 = rtol 1e-12
   （NumPy 参考域）；无其他容差（本层禁引入 epsilon）。
 
-### 11.5 SCI 层状态声明（本任务零 SCI 改动）
+### 11.5 SCI 层状态声明（本域零 SCI 改动）
 
 - 积分语义权威已有 FROZEN SCI: SCI-INT-001（docs/science/
-  INTEGRATION.md，T108 2026-08-23 冻结，集合
-  SCI-INT-001/002/004/008）。**不因本任务改动**（共享 SCI 引用
-  不改动；P1-WCS-DOC SCI-WCS-001=共享 ASTROMETRY.md、P2-COV-DOC
-  SCI-UPM-001/SCI-INT-001、P2-HIPS-DOC SCI-UPM/INT/REJ 先例）。
+  INTEGRATION.md，集合 SCI-INT-001/002/004/008）。**共享 SCI 引用
+  不改动**（P1-WCS SCI-WCS-001=共享 ASTROMETRY.md、P2-COV
+  SCI-UPM-001/SCI-INT-001、P2-HIPS SCI-UPM/INT/REJ 同构）。
 - matrix P2-INT 行 science_id=SCI-P2-INT-001（descriptor 占位词汇）
   的语义映射由本节声明——**SCI-P2-INT-001 ⇒ SCI-INT-001**
   （docs/science/INTEGRATION.md，矩阵 science_doc=
-  docs/science/INTEGRATION.md，MOD-astrocs-phase2-integrate 行，
-  2026-09-09 P2-INT-DOC 冻结）。SCI 公式语义不在此重复定义，
+  docs/science/INTEGRATION.md，MOD-astrocs-phase2-integrate 行）。
+  SCI 公式语义不在此重复定义，
   两处冲突时以 docs/science/ 为准并回改本文档（禁止反向）。
   ALG-INT-001/002（SCI §12）⇒ 本文档 §3/§5 算法定义承接。
 - 本节禁止被编排层词汇反向改写（descriptor astrocs.phase2.integrate
@@ -302,18 +300,18 @@ eligibility（逐候选 i，候选索引固定序）:
   ⇒ 本文档 §3/:10-17。两 ID 为共享 SCI 层 ALG 词汇，本文件不
   抢注、不重复登记（INDEX.yaml ALG-INT-001 path 绑定本文件后，
   经 §13 指向语义承接）。
-- `INTEGRATION_ZERO_WEIGHT_CONTRACT`（冻结名，integrate.h:5 注释、
-  audit PH2-05）= §5 零权重条款 + §10.3 冻结项。
+- `INTEGRATION_ZERO_WEIGHT_CONTRACT`（冻结名，integrate.h:5 注释）
+  = §5 零权重条款 + §10.3 冻结项。
 
 ## 13 追溯
 
-- 实现: lib/algorithms/coverage/src/integrate.cpp（81 行，2026-09-17 复测）+
+- 实现: lib/algorithms/coverage/src/integrate.cpp（81 行）+
   lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）。
 - 合同: DATA-P2-INT（DATA_SEMANTICS §21）/ API-P2-INT-001
   （PUBLIC_API.md）/ TEST-P2-INT-001（MISSING，§11.4 设计冻结）。
 - 交叉: docs/modules/phase2_int.md + lib/algorithms/integration/ 三件套；
   registry astrocs.phase2.integrate.md；
-  INTEGRATION_ALGORITHMS.md（旧 L2 文档，ID 让位本文件）。
+  INTEGRATION_ALGORITHMS.md（L2 文档，ID 语义由本文件承接）。
 - 消费者: stage2.cpp（DATA_SEMANTICS §20 域）/ acr_kernels.cpp
   （ACR 域）/ module_adapters.cpp:723-741 descriptor 占位。
 

@@ -14,6 +14,8 @@
 
 每步产物持久或可重建，七个 operation 不得由同一个全阶段调用伪装。
 
+SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。实际 SNR = 帧级 × 帧内相对因子；叠加权重由 SNR **现场换算**为逆方差，不由上游落盘（`ASTROCS_DESIGN.md` §5.3）。
+
 ## 3. Coverage 与重叠图
 
 建立帧/区域重叠图，记录有效面积、信息量和连通分量。无连接分量不能假装在同一零点/背景基准；输出分组件或 fail-closed。coverage 是几何/有效域，不是权重。
@@ -23,10 +25,11 @@
 对重叠区域拟合每帧**加性**天光背景（UPM 加性校正场）：
 
 ```text
-y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（本期决议，g_k ≡ 1）
+y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（g_k ≡ 1）
 ```
 
-- `C_k(x)` 是加性天光背景（校正场）；**不引入乘性 `g_k`**（本期恒等；乘性残留归 Phase1 低阶空间增益，见 `docs/science/PHASE2_UPM.md` §14a）；
+- `C_k(x)` 是加性天光背景（校正场）；**不引入乘性 `g_k`**（恒等；乘性残留归 Phase1 低阶空间增益，见 `docs/science/PHASE2_UPM.md` §14a）；
+- 星点掩膜之外每帧取稀疏背景采样点，采样点权重取**噪声逆方差 `control_ivar`**：被估量是变化的背景电平，`SNR²` 在该处不是有效逆方差代理；SNR 只作 veto/质量门（`ASTROCS_DESIGN.md` §5.4）；
 - 约束 gauge，报告秩、连通性、条件数、残差和参数协方差；
 - 控制点避开源、饱和、坏点和高结构区域；
 - 校准参数不确定度必须传播到最终 covariance；
@@ -40,7 +43,21 @@ y_k(x) = s(x) + C_k(x) + epsilon_k(x)      # 纯加性（本期决议，g_k ≡ 
 - 阈值使用预测残差方差，包含 Phase1 噪声和 UPM 参数不确定度；
 - 小样本规则、迭代上限和方法版本化；
 - 输出 rejection mask/count/reason/probability；
-- 移动源等科学信号可选择保留到独立层，不默认当缺陷删除。
+- 移动源等科学信号可选择保留到独立层，不默认当缺陷删除；
+- NaN 采用**样本级掩膜**：污染样本掩除后**重归一**、覆盖级缺数置 NaN 并**强制计数**，**禁止静默剔除**。
+
+### 5.1 逐像素排异路由（最终五档表）
+
+路由依据 `N` = 该输出像素的**几何覆盖帧数**（coverage footprint 一次解析），与掩膜后存活数、整组帧数都无关：
+
+| N（几何覆盖帧数） | 算法 |
+|---|---|
+| 1 ≤ N ≤ 3 | none：不排异，直接逆方差加权积分 |
+| 4 ≤ N ≤ 5 | percentile clipping |
+| 6 ≤ N ≤ 15 | winsorized sigma clipping |
+| N ≥ 16 | linear fit clipping |
+
+生产排异算法集 = none / percentile / winsorized / linear fit；min/max 极值法**不用于生产**。实际方法、参数与 N 写入 `rejection` provenance（权威表见 `ASTROCS_DESIGN.md` §5.5；算法出处、合法性窗口与合成 Oracle 正负例见 `docs/science/REJECTION.md`）。
 
 ## 6. 两类目标产品，不能混用权重
 
@@ -76,17 +93,10 @@ Q = Σ_k Q_k,    W = Σ_k W_k,    F_hat = Q/W,    Var(F_hat) = 1/W
 - effective/proper coadd PSF；
 - 或经证明信息保持的 proper coadd 表示。
 
-### 6.3 ~~PSFSW 稳健集成模式~~ **已作废**（DOC-203 / A44 + C01 订正 2026-09-20）
+### 6.3 权重的来源
 
-> **订正**：`psfsw_robust_weight` 数据对象已按负责人 2026-09-20 **裁决 B 真删**（14→13；`GAP_AUDIT.md` §4.5 C01；
-> `CHG-2026-09-20-PSFSW-RETIRE`），且 `ASTROCS_DESIGN.md` §2.1 定案「**全程只有 SNR，不存在「权重模式」**」、
-> §2.3 定案「PSF 拟合质量代理（`q_psf`、残差尺度）**只作诊断**，**禁止**计入阶段二科学叠加权重」。
-> ⇒ 本节的 `psfsw_robust` 口径**不存在**：Phase2 **不消费**任何"PSFSW 相对权重"产品；
-> 权重一律**按该天球像素对应的帧集合现场算出**（派生量，见 §1.2/§4.3）。以下原文只作**历史留痕**：
-
-~~Phase2 支持显式选择 `psfsw_robust` 口径：使用 Phase1 输出的 `psfsw_robust_weight` 进行 conventional image integration，兼顾 signal、PSF concentration、noise 和 background。该口径与默认 `point_information`、`surface_gls` 并列，不是 QA-only。~~
-
-~~它必须使用共同星集/selection-function 门，传播实际线性组合的 covariance，输出 effective PSF，并与等权、exposure、pixel-ivar 和 `W_info` 基线比较。不得宣称 Fisher 最优，除非专项证明。median source SNR、单独 FWHM penalty 仍只能作为诊断或显式实验指标。详细定义见 `docs/science/PSF_SIGNAL_WEIGHT.md`。~~
+Phase2 **不消费**任何来自 Phase1 的相对权重产品：权重一律**按该天球像素对应的帧集合现场算出**（派生量）；
+Phase1 与 Phase3 **不产生、不消费**权重。PSF 拟合质量代理（`q_psf`、残差尺度）**只作诊断**，**禁止**计入科学叠加权重（`ASTROCS_DESIGN.md` §2、§3.1）。
 
 ## 7. 空间变化与压缩
 
@@ -102,10 +112,9 @@ Phase1 的 PSF/information/noise 若为空间模型，Phase2 必须在输出位�
 
 1. `surface_brightness`：signal、variance、correlation、effective PSF；
 2. `point_source`：Q、W、flux、detection statistic、effective/proper PSF；
-3. ~~`psfsw_integration`（被选择时）：四分量、相对权重、conventional coadd、variance/correlation、effective PSF 与基线比较；~~（**已退役**：`psfsw_robust_weight` 对象真删 14→13，见 §6.3 订正）；
-4. support、coverage、validity、rejection；
-5. UPM 参数、协方差和残差诊断；
-6. manifest：输入列表/哈希、目标函数、权重口径 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）、权重模型、近似、排异和 provider。
+3. support、coverage、validity、rejection；
+4. UPM 参数、协方差和残差诊断；
+5. manifest：输入列表/哈希、目标函数、权重模型、近似、排异和 provider。
 
 不得只写一张图和一个语义不明的 weight。
 

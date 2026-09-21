@@ -1,8 +1,7 @@
 # DATA-002 三阶段产品交换合同（Phase Product Exchange）
 
 > 文档 ID：DOC-DATA-PRODUCT-EXCHANGE-001
-> 状态：ACTIVE_NORMATIVE（DATA-002 冻结）
-> Owner：SA-DATA-06 ｜ 冻结基线：`b7b2dea70dbcdacdcf6eb762609a908abdeab697` ｜ 冻结日期：2026-09-02
+> 状态：ACTIVE_NORMATIVE
 > 上游权威：`ASTROCS_DESIGN.md` §1.2（三命令平级独立）/§9（I/O 与原子产品）、
 > `docs/contracts/DATA_SEMANTICS.md`（跨阶段唯一数据合同）、
 > `docs/science/PHASE3_HIPS_TO_FITS.md`（SCI-P3 units/planes）、
@@ -14,8 +13,8 @@
 
 ## 0. 目的与范围
 
-本任务（DATA-002）在三阶段隔离运行（Phase1 / Phase2 / Phase3 各自独立进程，约束 §A3/A4）
-之上冻结**产品级交换合同**：定义三个阶段产品角色
+本合同在三阶段隔离运行（Phase1 / Phase2 / Phase3 各自独立进程，约束 §A3/A4）
+之上定义**产品级交换合同**：定义三个阶段产品角色
 `phase1_product_v1` / `phase2_mosaic_v1` / `phase3_planar_fits_v1` 的输入/输出兼容矩阵，
 并声明跨 Phase **仅磁盘交换**。
 
@@ -30,7 +29,7 @@
 
 ## 1. 阶段产品角色与 type 绑定（role ↔ type）
 
-角色命名（本任务冻结）：`phase1_product_v1` / `phase2_mosaic_v1` / `phase3_planar_fits_v1`。
+角色命名：`phase1_product_v1` / `phase2_mosaic_v1` / `phase3_planar_fits_v1`。
 角色是**交换语义名**；type_id 是 DATA-001 已登记的类型化产物标识。二者**强绑定**——
 role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role 的歧义）。
 
@@ -83,12 +82,6 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
 }
 ```
 
-> ✅ **DOC-202 R30 处置（2026-09-20）**：本节 §2a「product_content = **units 载体**；
-> DATA-001 manifest 顶层无 units 字段」的归属表述**保留不改**——它是**对的**，
-> 与最高设计 §9「**单位 / 坐标 / 平面 / 无效值策略不写进清单**（清单 schema 无该字段且
-> 禁止额外字段）——它们由**产品内容证据**块显式声明，缺失即不许消费」逐条一致。
-> **订正在设计侧**（DESIGN-DRAFT C13）；本合同侧为权威承载面。
-
 ### 2a. 组成块
 
 - **artifact_manifest**：DATA-001 冻结合并 manifest（`artifact_manifest.schema.json` 15 必填字段 +
@@ -101,22 +94,19 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
   - `geometry`：format + 结构子块（hips→ordering/tile_width；fits→projection/wcs）。
   - `planes`：每平面显式 `plane_id/units/dtype/invalid_policy`；plane_id 集合
     `{signal, support, variance, ivar, mask, sparse_snr}`；units 非空、禁止占位/空串/首尾空白。
-    - ⚠ **DOC-202 R31 订正（2026-09-20）**：原集合 `{signal, support, variance, ivar, mask}`
-      **没有稀疏 SNR 层的位置**，与最高设计 §1.4「**稀疏 SNR 层必须在交换合同里有位置**」相反
-      ⇒ 本集合**新增 `sparse_snr`**（GAP_AUDIT G09）。
-    - **`sparse_snr` 的语义（最高设计 §3.4，强制）**：稀疏控制点层作为**标准层插入 HiPS 文件内**，
+    - `sparse_snr` 是稀疏 SNR 层在交换合同中的位置（GAP_AUDIT G09）。
+    - **`sparse_snr` 的语义（最高设计 §4.4，强制）**：稀疏控制点层作为**标准层插入 HiPS 文件内**，
       存**无量纲相对场** `rho_c = SNR_c / SNR_frame`（`p50 = 1`），**不是**绝对 SNR；
       实际 SNR = `SNR_frame × rho_c(p)`。`units` = `dimensionless`（无量纲比值）。
-      **禁止**把它当作权重、**禁止**把权重面写进 HiPS（最高设计 §2.1：HiPS 里只**存**
+      **禁止**把它当作权重、**禁止**把权重面写进 HiPS（最高设计 §3.1：HiPS 里只**存**
       **帧级 SNR** 与**稀疏的相对 SNR 比值**；权重是阶段二现场派生量）。
       该层**可选**（`sparse_snr_layer=true` 时存在，默认 true），**不属于** §1 的最小平面集。
-    - **交接**：机器形态的 plane_id 枚举同步（`contracts/data/phase_product_exchange.schema.json`
-      的 `plane_id` 枚举）**不在 DOC-202 文件域**（`contracts/**`）⇒ 交 **DOC-203**；
-      未同步前本合同与 schema **两边并存即为不一致**，须以本合同为准补齐 schema。
+    - **机器形态**：`plane_id` 枚举同步落在 `contracts/data/phase_product_exchange.schema.json`；
+      本合同与该 schema 不一致时，以本合同为准补齐 schema。
   - `invalid_policy`：全局 `nan_or_support_le_0`（NaN 或 support<=0 视为无效；
     DATA_SEMANTICS §4）。
-  - `invalid_handling`（**DOC-202 补，EXP-202 定案「掩膜」的产品内容证据块**；
-    文字稿逐字采用 `run/RELEASE-02/实验/E08-NaN处置/results/evidence_block_draft.md` §2/§4）：
+  - `invalid_handling`（**产品内容证据块**；规则依据 `ASTROCS_DESIGN.md` §5.5，drizzle 侧正本见
+    `docs/science/DRIZZLE.md`）：
 
     ```jsonc
     "invalid_policy": "nan_or_support_le_0",
@@ -130,7 +120,7 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     }
     ```
 
-    **定义（精确定义，替代含糊表述）**
+    **定义（精确定义）**
 
     | 术语 | 定义 |
     |---|---|
@@ -140,7 +130,7 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     | **无效输出** | `signal = NaN` **且** `support ≤ 0`；两者**必须同时**成立（互推） |
     | **有效输出** | `signal` 有限 **且** `support > 0` |
 
-    **处置规则（样本级掩膜 + 覆盖级 NaN + 强制计数）** —— 对**每一个聚合算子**
+    **处置规则（样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数）** —— 对**每一个聚合算子**
     （Phase 1 的 drizzle drop、Phase 2 的帧间集成、Phase 3 的投影重采样）：
 
     1. **样本级掩膜**：不合格样本**从该输出像素的分子、分母、方差三项中一并剔除**
@@ -153,7 +143,7 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
        `n_rejected_nonfinite`（按原因分类：值非有限 / 方差非有限 / 权重非正）。
        计数为 0 与「字段缺失」**必须可区分**；缺失该计数的产品**不得**声称满足本规则。
     4. **帧间集成**：某帧在该像素的输出非有限时，该帧作为**候选被剔除并计数**；
-       **不得**因单帧非有限而把该像素整体判为 `INVALID_INPUT`（现行 `integrate.cpp` 合同须收窄为
+       **不得**因单帧非有限而把该像素整体判为 `INVALID_INPUT`（`integrate.cpp` 合同：仅
        「全部候选非有限」才报无效）。零合格候选 ⇒ 规则 2。
 
     **与两类输入的对应**
@@ -169,16 +159,16 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     **完全分开**（实验判据 C3c 实测 100% 可分）。因此「无覆盖」与「有覆盖但全坏」在**诊断层**
     可区分，在**科学语义层**同为「无效」。
 
-    **一句话版本**：**NaN 在重采样与集成中按「样本级掩膜、覆盖级 NaN、强制计数」处置**：
+    **一句话版本**：**NaN 在重采样与集成中按「样本级掩膜、重归一、覆盖级 NaN、强制计数」处置**：
     不合格样本从聚合的分子/分母/方差中一并剔除并重新归一（**不得**传播为使整像素无效的 NaN，
     **不得**以 0 替代，**不得**静默剔除）；仅当零合格样本时输出 `signal=NaN ∧ support≤0`，
     且每个输出像素必须暴露被剔除样本计数。
 
-    **唯一口径声明**：本块的 `rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN` 是**全仓唯一**的 NaN 处置口径；
+    **口径归属**：NaN 处置以 `rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN` 为准（`ASTROCS_DESIGN.md` §5.5）；
     `docs/standards/NUMERIC_STANDARD.md`（§MUST）与 `docs/standards/STANDARDS_REGISTRY.md`
-    （D.drizzle `DISP-DRZ-004`）**只引用同一份文字，不得出现第二套**。
-    **交接**：机器形态的 `invalid_handling` 键（`contracts/data/phase_product_exchange.schema.json`）
-    **不在 DOC-202 文件域**（`contracts/**`）⇒ 交 **DOC-203**；未同步前以本块为准。
+    （D.drizzle `DISP-DRZ-004`）引用同一份文字。
+    **机器形态**：`invalid_handling` 键同步落在 `contracts/data/phase_product_exchange.schema.json`；
+    不一致时以本块为准。
 - **origin**：`astrocs`（本产品任一 AstroCS phase run 原子发布产物）或
   `external_fixture`（AstroCS 之外生成、完整满足证据要求的合同兼容 HiPS/FITS 测试/审核对象）。
   origin 只描述来源，**不放松任何证据要求**。
@@ -243,7 +233,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 文件路径或 storage_uri 尾段**；不访问磁盘内容；storage_uri 仅做 DATA-001 词法校验
 （禁裸路径）。
 
-## 6. 验收映射（tasks/03_RUNTIME_DATA_IO_TASKS.md DATA-002〔**来源已删除/不可考**；替代=本文件 §4 + `ASTROCS_DESIGN.md` §9〕）
+## 6. 验收映射（依据：本文件 §4 + `ASTROCS_DESIGN.md` §9）
 
 | 验收 | 实现 |
 |---|---|
@@ -261,26 +251,20 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 
 ## 7. 边界与禁止
 
-- 本任务**不改科学公式/单位/坐标/平面语义**——units 只做显式声明与强制呈现，不发明单位
+- 本合同**不重定义科学公式/单位/坐标/平面语义**——units 只做显式声明与强制呈现，不发明单位
   （`ADU`/`ADU^2`/`dimensionless`/`bitmask` 源自 DATA_ARTIFACTS.md / DATA_SEMANTICS.md）；
   不新增 registry type（沿用 DATA-001 三产品 type + calibrated_frame 内部类型）。
 - 禁止把 `support`/`coverage` 当科学权重（DATA_ARTIFACTS.md §1）；禁止 flux-per-pixel
   冒充 surface brightness（SCI-P3 §9a.8）——本合同只要求显式声明与强制校验，不重定义科学。
 - 禁止同进程自动串联；禁止把另一 phase 的 run 上下文当输入；禁止以文件名/路径识别角色。
 - 非目标（alpha 拒绝项延续 SCI-P3 §1）：多通道/RGBA/lossy HiPS。
-- ⚠ **DOC-202 R32 订正（2026-09-20）——阶段三接受域（GAP_AUDIT U09）**：
-  **删除原「Phase3 不支持 variance/ivar 输入产品，显式拒绝」表述**（它与 §4 的
-  `E-P2-OUT-P3-IN`/`E-P1-OUT-P3-IN`「Phase3 接受任一合同兼容 HiPS」以及 §1/§2b 的
-  phase1 最小平面集含 `variance` **自相矛盾**：phase1 产品必含 variance ⇒ 若拒收则
-  export 永远吃不到 normalize 产品）。
-  **现行口径（最高设计 §5.1/§5.3）**：export **接受任一合同兼容 HiPS**（含来自 `normalize`
-  的单帧产品）；**variance/ivar 按显式消费并传播**（输出 `VARIANCE`/`IVAR` 扩展 HDU），
-  两者皆无时**显式 `unavailable`**（不静默）；**禁止**以「Phase3 不接受方差类输入」为由拒收
-  带方差的兼容产品；**禁止**把方差/逆方差静默丢弃。
+- **阶段三接受域（最高设计 §5.1/§5.3）**：export **接受任一合同兼容 HiPS**（含来自 `normalize`
+  的单帧产品，见 §4 `E-P2-OUT-P3-IN`/`E-P1-OUT-P3-IN`）；**variance/ivar 按显式消费并传播**
+  （输出 `VARIANCE`/`IVAR` 扩展 HDU），两者皆无时**显式 `unavailable`**（不静默）；
+  **禁止**以「Phase3 不接受方差类输入」为由拒收带方差的兼容产品；**禁止**把方差/逆方差静默丢弃。
   （`weight`/`support` 冒充方差/逆方差仍**显式拒绝**；flux-per-pixel 输入仍显式拒绝。）
 
 ## 8. 文档追溯
 
 `SCI-P3 / SCI-DRZ / DATA-SEMANTICS` → `DATA-002 交换合同（本文档 + schema + matrix）` →
-`phase_product_exchange_validator.py` → `test_phase_product_exchange.py` →
-`TASK_RESULT.json / TEST_EVIDENCE.json`（DATA-002 证据）。
+`phase_product_exchange_validator.py` → `test_phase_product_exchange.py`。

@@ -43,7 +43,7 @@ unit/classic/fault/integration 套件；cuda 不可用 GTEST_SKIP。
 
 ## Known limitations
 
-GPU kernel 仅 phase2 legacy launcher 注册（W9）。
+GPU kernel 仅 phase2 `mosaic_reject_legacy` launcher 注册。
 
 ## Source files
 

@@ -1,6 +1,6 @@
 # Phase3 API 定义 v1 (API-005 冻结 — request/result/HiPS source/WCS output/sampler/coverage/FITS)
 
-> ID: API-P3-001  范围: API-P3-001..006  状态: FROZEN (V5 API-005, 2026-08-28)；**handler 名称经 CLI-001 切换**  上游: API-001/002/004, ALG-P3-001..004, ARCH-P3-001  下游: 用户命令 `export`(CLI-001;旧 `phase3 run` 已删除, rc=2)/CODE-P3/SYN-007
+> ID: API-P3-001  范围: API-P3-001..006  状态: FROZEN；**用户命令面 = `export`**  上游: API-001/002/004, ALG-P3-001..004, ARCH-P3-001  下游: 用户命令 `export`(CLI-001;`phase3 run` 不在命令面上, rc=2)/CODE-P3/SYN-007
 > Phase3 为新建模块:本文件=施工规格合同;实现(CODE-P3)必须逐字段落地,布局测试随 ABI-001 模板建立。
 
 ## 1 生命周期(与 p1/p2 session 同构)
@@ -30,7 +30,7 @@ acs_status p3_session_destroy(acs_handle);
 
 ## 3 result(inspect JSON)
 
-`{run_id, exit_code, output_fits_path, sha256, order_sel_used, sampler_used, provenance{hips_id, manifest_hash, missing_tiles[], software_version}, coverage_stats{covered_px, total_px}, timings}`;输出 FITS 本体=原子产物(S+C 合成或 COV 扩展, 由 CODE-P3 按 04/API-002 manifest 落实, 二选一在 CLI-002 前冻结)。
+`{run_id, exit_code, output_fits_path, sha256, order_sel_used, sampler_used, provenance{hips_id, manifest_hash, missing_tiles[], software_version}, coverage_stats{covered_px, total_px}, timings}`;输出 FITS 本体=原子产物(S+C 合成或 COV 扩展, 由 CODE-P3 按 API-002 manifest 落实, 二选一在实现中冻结)。
 
 ## 4 显式拒绝清单(输入不明确→确定错误, 禁猜测)
 
@@ -46,7 +46,7 @@ acs_status p3_session_destroy(acs_handle);
 | tile 内 NaN | 非错误:S=NaN+C=1(§8) |
 | IO/运行失败 | ACS_ERR_IO/安全中止(ARCH-P3 §4) |
 
-## 5 逐 claim 追溯
+## 5 逐条追溯
 
 | API 声明 | 锚 |
 |---|---|

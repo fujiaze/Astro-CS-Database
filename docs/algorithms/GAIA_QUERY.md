@@ -1,11 +1,11 @@
 # Gaia XPSD 查询（ALG-GAIA-001）
 
-> ID: ALG-GAIA-001  状态: CONTRACT_READY（CAT-GAIA-DOC 冻结，2026-09-05）
+> ID: ALG-GAIA-001  状态: CONTRACT_READY
 > 上游 SCI: SCI-AST-001（docs/science/ASTROMETRY.md，别名 SCI-WCS-001）
 > 模块: lib/infrastructure/gaia_xpsd_client（module_id astrocs.catalog.gaia）
 > 权威源码: lib/infrastructure/gaia_xpsd_client/src/gaia_client.c（本文件全部离散公式、常量、
-> 行为边界均从该文件逐函数核对；与 lib/infrastructure/gaia_xpsd_client/README.md 旧版性能
-> 摘要冲突时以本文与源码为准）。
+> 行为边界均从该文件逐函数核对；与 lib/infrastructure/gaia_xpsd_client/README.md 的
+> 性能摘要冲突时以本文与源码为准）。
 
 ## 1. 科学定义（连续层面，源自 SCI-AST-001）
 
@@ -140,7 +140,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 | 项 | 性质 | 依据 |
 |---|---|---|
 | 极冠剪枝 | 数学保守（C45/C 双 Lipschitz），false_negative=0 | 本节 2.5；V18R3 属性测试 80270 例 |
-| 赤道带 bbox 1.2 裕量 | 经验保守（差分验证），非数学证明 | 2.4；memory.md 2026-08-15 |
+| 赤道带 bbox 1.2 裕量 | 经验保守（差分验证），非数学证明 | 2.4；memory.md |
 | Equirectangular 反投影 | 线性恒等（XPSD 格式定义，非真球面投影） | 2.3；源码 1228-1230 |
 | AE 反投影 r>90° 域 | 反射语义（asin(cos r)），由 2.5 不剪枝分支兜底 | 2.3/2.5 |
 | 星等/位置量化 | 0.001 mag / 2 µas / 10 µas LSB | 2.2/2.3 |
@@ -160,7 +160,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
 ### 2.9 误差来源（限制结论，不改 SCI 容差）
 
 1. 星等量化 0.001 mag 与 DR3SP 光谱 8-bit 量化（残差 median 0.21%/p95 1.8%，
-   memory.md 2026-08-08）；
+   memory.md）；
 2. 位置量化 2 µas + dra 修正 10 µas LSB；
 3. `acos` 在 ρ→0 时相对误差放大（double 域 ~1e-16 rad 绝对）；
 4. 赤道带 bbox 1.2 裕量属保守近似（多查不少查，不漏星）；

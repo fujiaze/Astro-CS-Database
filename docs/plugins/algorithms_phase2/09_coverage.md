@@ -7,7 +7,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §4.2（coverage 重叠图）
+- 最高设计 `ASTROCS_DESIGN.md` §5.2（固定科学流程：coverage 重叠图）与 §5.6（coverage 不作权重）
 - `docs/design/PHASE2_DETAILED_DESIGN.md` §3
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（有效域语义）
 

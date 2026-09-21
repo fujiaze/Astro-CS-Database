@@ -12,7 +12,7 @@ downstream: [TEST-P1-STAR-001]
 
 # 模块 astrocs.p1.star_detection
 
-> P1-STAR-DOC 手写合同页（2026-09-07，SA-P1-S15）：registry 无
+> 手写合同页：registry 无
 > astrocs.p1.star_detection descriptor——现行占位 descriptor 为
 > astrocs.phase1.star-psf（lib/infrastructure/scheduler/src/module_adapters.cpp:492-510，编排层
 > 词汇，占位 ID ALG-002/TEST-P1-PSF-001 由 P1-PSF-INT/P1-STAR-INT 对齐），
@@ -33,10 +33,10 @@ downstream: [TEST-P1-STAR-001]
   引用不改动）/ ALG-STARDET-001（STAR_DETECTION_ALGORITHMS §11 逐符号锚）/
   DATA-P1-STAR（DATA_SEMANTICS §17）/ API-STAR-001（PUBLIC_API 星点检测节）/
   编排上游 API-P1-003（PHASE1_API_V1 §2 一帧一次权威检测）。
-- 生产调用：run_stage_psf（PSF/STAR_MEASURE 阶段的**第一轮盲解**检测——**2026-09-20 订正**：
+- 生产调用：run_stage_psf（PSF/STAR_MEASURE 阶段的**第一轮盲解**检测：
   权威检测范式 = **星表引导拟合**（星表位置为定义域），本实现在最高设计 §3.2 `:120` 中
   被点名为第一轮盲解的生产源；全图盲检测连通域**不是**权威路径，见 `ASTROCS_DESIGN.md`
-  §3.2 `:119-120` / §3.6 `:323-325` + §9.49 定案 1；
+  §3.2 `:119-120` / §3.6 `:323-325`；
   orchestrator.cpp:2067；sdet_create 参数构造 :1593-1612；FP64/FP32 通道
   :2172-2198；star_det 权威块 FLOAT64[N,6] 写入 :2218-2246）；PLATESOLVE
   fallback 读块禁重检测（:1748-1755、:1826-1829）。

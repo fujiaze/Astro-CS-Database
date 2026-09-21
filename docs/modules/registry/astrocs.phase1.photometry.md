@@ -11,7 +11,7 @@ downstream: [TEST-P1-PHOT-001]
 
 # 模块 astrocs.phase1.photometry
 
-> P1-PHOT-DOC 事实修订（2026-09-07，wave W1）：本页由源码核对后修订——
+> 本页由源码核对后修订——
 > 合同 ID 由占位（SCI-P1-PHOT-001/ALG-002/TEST-P1-PHOT-001）更正为真实
 > 冻结 ID（SCI-PHOT-001 / ALG-PHOT-001..002 / DATA-P1-PHOT / API-PHOT-001 /
 > SRC-PHOT-001 / TEST-PHOT-DESIGN-001）；模块级事实以
@@ -41,7 +41,8 @@ SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展。
 |---|---|---|---|---|
 | `psf` | `DATA-P1-PSF` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL` |
 | `sources` | `DATA-P1-SOURCES` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
-| `fluxes` | `DATA-P1-FLUX` | 可 | `UnitId::ADU`（与 DATA_SEMANTICS §14.1 psf_flux 一致） | `CoordinateFrame::ICRS`<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S8) --> |
+| `fluxes` | `DATA-P1-FLUX` | 可 | `UnitId::ADU`（与 DATA_SEMANTICS §14.1 psf_flux 一致） | `CoordinateFrame::ICRS` |
+
 
 invalid = NaN/coverage=0(按 DATA 合同)。
 

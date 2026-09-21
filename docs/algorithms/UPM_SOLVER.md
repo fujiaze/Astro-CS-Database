@@ -1,7 +1,7 @@
 # UPM Solver Algorithms (ALG-UPM)
 
-> ID: ALG-UPM-001  范围: ALG-UPM-001..003  上游 SCI: SCI-UPM-001  状态: DERIVED (T206 冻结; V5 ALG-005 重验 2026-08-28)  模块: phase2/upm
-> P2-UPM-DOC (2026-09-10) 原位修订：行号/并行表述如实更新，公式与容差零改动；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/algorithms/PHASE2_UPM_IMPL.md)
+> ID: ALG-UPM-001  范围: ALG-UPM-001..003  上游 SCI: SCI-UPM-001  状态: DERIVED  模块: phase2/upm
+> 行号与并行表述按源码实测登记；实现级合同见 ALG-P2-UPM-IMPL-001 (docs/algorithms/PHASE2_UPM_IMPL.md)
 
 ## 1 上游 SCI 与输入输出
 
@@ -12,8 +12,10 @@
 ## 2 离散公式
 
 ```text
-F1: w_UPM = quality·control_ivar（绝对式，ADU⁻²，production）或
-    qf·support^p·snr²/(1+snr²)/unc²（ablation/诊断）
+F1: w_UPM = quality·control_ivar（绝对式，ADU⁻²，唯一生产式）或
+    qf·support^p·snr²/(1+snr²)/unc²（非生产：use_ivar_weight=0 的 ablation/诊断域）
+    天光控制点的被估量是**变化的背景电平**，SNR² 在该处不是有效逆方差代理，
+    生产一律取 control_ivar，SNR 只作 veto/质量门（docs/science/PHASE2_UPM.md §5）
     control_ivar=1/(k_corr·π/2·σ²/N_retained)，定义域 1 ≤ k_corr
 F2: w_cell = w_UPM / Σ_cell w_UPM · control_reliability（份额式，无量纲，
     Σ_cell w_cell = control_reliability；求解器实际消费的就是它，upm.cpp:565）
@@ -26,7 +28,7 @@ F5: 連通分量 gauge = min frame_id per component, harmonic continuation 单�
 F6: hash = SHA256(C), persist: sparse json + dense cache materialize, 1e-12等价
 ```
 
-来源 (2026-09-10 实测复核): `upm.cpp:1-27`(冻结头注释) `upm.cpp:203-213`(Huber rho/w) `upm.cpp:500-889`(Huber IRLS) `upm.cpp:942`(p2_upm_build) `upm.cpp:1323`(raw weight) `upm.cpp:1356`(per-control 归一化) `upm.cpp:953-1020`(sparse persist) `sampler.cpp:855-859`(control_variance/control_ivar, k_corr 承接 ALG-UPM-CONTROL-IVAR-001; 原 `sampler.cpp:689` 锚漂移)
+来源（实测复核）: `upm.cpp:1-27`(冻结头注释) `upm.cpp:203-213`(Huber rho/w) `upm.cpp:500-889`(Huber IRLS) `upm.cpp:942`(p2_upm_build) `upm.cpp:1323`(raw weight) `upm.cpp:1356`(per-control 归一化) `upm.cpp:953-1020`(sparse persist) `sampler.cpp:855-859`(control_variance/control_ivar, k_corr 承接 ALG-UPM-CONTROL-IVAR-001)
 
 ## 3 伪代码
 
@@ -53,7 +55,7 @@ function p2_upm_build(observations, cfg):
 
 ## 5 确定性与归约
 
-- 求解串行reference; **无 OpenMP**（2026-09-10 实测 grep `#pragma omp` 于 upm.cpp 零命中; 原"块级求值OpenMP按control索引固定顺序"表述为历史漂移, 已更正）。并行=std::thread 池五段: raw+归一化聚合 :509-561、Huber w :612-650、M 更新 :656-764、C 更新逐帧 CG :773-858、dense materialize (kChunk=16, :1407) :1479-1502; worker-local 分块 + 按 tid 升序合并（确定性三档见 §9：同配置重复位精确；跨 worker 数 1e-12，非位精确——`compute_raw` 的 per-control 求和结合顺序随 worker 数变化）, worker 数=cfg.cpu_workers (Runtime lease 唯一来源, p2_session.cpp:195; 无 hardware_concurrency 硬件探测, upm.cpp:518-521); IRLS 迭代顺序固定。
+- 求解串行reference; **无 OpenMP**（实测 grep `#pragma omp` 于 upm.cpp 零命中）。并行=std::thread 池五段: raw+归一化聚合 :509-561、Huber w :612-650、M 更新 :656-764、C 更新逐帧 CG :773-858、dense materialize (kChunk=16, :1407) :1479-1502; worker-local 分块 + 按 tid 升序合并（确定性三档见 §9：同配置重复位精确；跨 worker 数 1e-12，非位精确——`compute_raw` 的 per-control 求和结合顺序随 worker 数变化）, worker 数=cfg.cpu_workers (Runtime lease 唯一来源, p2_session.cpp:195; 无 hardware_concurrency 硬件探测, upm.cpp:518-521); IRLS 迭代顺序固定。
 
 ## 6 复杂度
 
@@ -76,7 +78,7 @@ function p2_upm_build(observations, cfg):
 
 - 1e-12 (dense/sparse)，预冻结；
 - **跨 worker 数（1..N）= 1e-12 绝对容差**（实测 ΔC_max=2.22e-15 ≈ 1 ulp @10 ADU，
-  `run/PROJECT-GOVERNANCE-01/SCI-FIX-WEIGHT/logs/probe_1t2t.log`）；**同配置重复 = 位精确 +
+  见 `docs/science/PHASE2_UPM.md` §11）；**同配置重复 = 位精确 +
   `model_hash` 逐字相同**（`synthetic_gate.cpp` CON-009 门）；跨后端等价不允许。
 
 ## 10 关联 ARC/API/TST

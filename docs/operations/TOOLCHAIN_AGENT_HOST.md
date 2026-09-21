@@ -1,8 +1,7 @@
-# TOOLCHAIN_AGENT_HOST — Agent 主机工具链快照（V81-ADOPT-004）
+# TOOLCHAIN_AGENT_HOST — Agent 主机工具链快照
 
-- 任务：`V81-ADOPT-004`（owner=`SA-ADOPT-31`，mode=write）
 - 生成依据：`ci/toolchain.lock.json`（schema_version=2，scope=`agent-host`）
-- 证据日志：`evidence/v8_1_ci_control/tasks/V81-ADOPT-004/logs/`（每项命令 stdout/stderr 原文 + `commands.jsonl`）
+- 证据日志：每项采集命令的 stdout/stderr 原文 + `commands.jsonl`
 - 采集方式：全部为**本机实测**（`command -v` 探测路径 + `--version` 采集输出，外部命令均带 `timeout` 并落盘日志）；缺失工具如实标注 `missing`，未安装、未重配服务器。
 - 盘点基准 SHA：`98c2354fcd59423e80ae9592f19b5b9094d20fc1`（main）
 
@@ -40,7 +39,7 @@
 
 ## 3. 与 hosted CI 版本策略的关系
 
-策略文件 `ci/toolchain.policy.json`（自控制包原样复制，SHA256 `7c66e1a5ff33c192653b60f2b71ffbd856d1af6821b520f8c301ae98d2881469`）的 `agent_host` 段规定：
+策略文件 `ci/toolchain.policy.json`（SHA256 `7c66e1a5ff33c192653b60f2b71ffbd856d1af6821b520f8c301ae98d2881469`）的 `agent_host` 段规定：
 
 | 策略项 | 值 | 本机对应状态 |
 |---|---|---|
@@ -58,4 +57,4 @@
 1. 本机可用：`python3 3.13.5`、`git 2.47.3`、`zstd 1.5.7`（附加观察 `xz 5.8.1`）——满足控制/静态/取证类任务需求。
 2. 缺失 9 项构建/测试工具（cmake、gcc、g++、clang、clang++、ninja、make、ccache、pytest），全部如实登记于 `ci/toolchain.lock.json` 的 `missing_tools`，**未安装任何组件、未重新配置服务器**，符合 `host_reprovisioning=false`。
 3. 版本数据 100% 来自实测输出（`evidence/.../logs/*.log` 原文可复核），无臆造、无占位值；验收脚本 `ci/verify_toolchain.py --policy ci/toolchain.policy.json --actual ci/toolchain.lock.json --scope agent-host` 通过（exit 0）。
-4. Agent 主机与 hosted CI 版本不要求一致（policy `require_exact_hosted_versions=false`）；后续任务若需要本机编译，须由控制面在遵守该策略的前提下另行处理，本任务只负责如实盘点。
+4. Agent 主机与 hosted CI 版本不要求一致（policy `require_exact_hosted_versions=false`）；后续任务若需要本机编译，须由控制面在遵守该策略的前提下另行处理，本文档只负责如实盘点。

@@ -68,23 +68,20 @@ lib/infrastructure/pipeline/orchestrator/cpp/。
 - **物理位 = `lib/infrastructure/pipeline/orchestrator/**`**：ARCH-001 迁移清单 #15
   （`cmake/ARCH-001-migration-manifest.md`）登记的 DONE 位，该条依据写的是
   「7.1 infrastructure/pipeline（typed DAG 编排）」。
-- ⇒ **位置与职责分离（登记 ORCH-HOME-01，待收敛）**：位置搬迁 = `git mv` + 引用/锚同步，
-  属迁移类改动；前台裁决（2026-09-17）**本轮不动物理位置**（迁移在飞，避免构建图再震荡）。
+- ⇒ **位置与职责分离（登记 ORCH-HOME-01，待收敛）**：位置搬迁 = `git mv` + 引用/锚同步。
   因此：任何按目录推断归属的判据（检查器/清单/文档）**不得**把本模块当作 pipeline 的
-  typed DAG 实现；收敛方案与影响面见 `run/PROJECT-GOVERNANCE-01/ORCH-001/自证摘要.md` §1.3，
-  由前台在所有迁移停稳后统一排期。
-- **构建 target（ORCH-001 批次 1 起，改前本目录不在任何构建图）**：
+  typed DAG 实现。
+- **构建 target**：
   `astrocs_infra_orchestrator`（静态库；`cpp/CMakeLists.txt` 声明，根 `CMakeLists.txt`
   经 `add_subdirectory` 注册），vendored json-schema-validator 独立为
-  `astrocs_orchestrator_jsv`；legacy 入口可执行 `orchestrator_legacy_cli` 为**非产品**
+  `astrocs_orchestrator_jsv`；入口可执行 `orchestrator_legacy_cli` 为**非产品**
   （不进 install 白名单、不进产品 manifest；`ASTROCS_DESIGN §6.2` 的唯一命令树仍是产品
   `astrocs`）。共址测试 6 条 ctest（`cpp/tests/CMakeLists.txt`）：logger 单测、checkpoint
-  单测、CLI 集成、legacy CLI 冒烟 ×2、可执行级饱和接线门。
+  单测、CLI 集成、`orchestrator_legacy_cli` 冒烟 ×2、可执行级饱和接线门。
 
 ## 构建/契约锚点
 
 C++17 (`-std=c++17`, 见 `lib/infrastructure/pipeline/orchestrator/cpp/Makefile:CXXFLAGS`；
-该 Makefile 为 MSYS2 时代遗留通道，**自 ORCH-001 起正式构建入口 = 根 CMake 的
-`astrocs_infra_orchestrator`**，遗留通道去留随 ORCH-HOME-01 一并裁决)；C ABI 经 `DllLoader`
+正式构建入口 = 根 CMake 的 `astrocs_infra_orchestrator`)；C ABI 经 `DllLoader`
 纯 C 调用（`docs/standards/C_ABI_STANDARD.md`）；退出码与 `docs/architecture/ERROR_MODEL.md`
 全集合一致（`tools/docs_machine_consistency.py` 校验）[B4-24]。

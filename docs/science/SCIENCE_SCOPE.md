@@ -13,7 +13,7 @@ AstroCS 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal�
 
 1. 单帧校准（bias/dark/flat/cosmetic）；
 2. 星点检测/PSF/astrometry/photometric calibration；
-3. 空背景噪声模型（NoiseWeightModelV1 → ivar）；
+3. 空背景噪声模型（噪声模型 A = `NoiseWeightModelV1`，唯一生产模型 → ivar）；
 4. 球面 Drizzle（线性通量守恒重建 + 方差传播）；
 5. Phase2：coverage union → 控制采样 → UPM 联合加性校准 → 排异 →
    ivar 加权积分 → HiPS。
@@ -35,7 +35,7 @@ AstroCS 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal�
 
 ## 不保证
 
-- 不保证完整 covariance matrix 产品（V19 文档化相邻像素相关）；
+- 不保证完整 covariance matrix 产品（相邻像素相关已文档化）；
 - 不保证光谱/运动学产品（非本管线范围）。
 
 ## 失效条件
@@ -56,7 +56,7 @@ AstroCS 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal�
 
 Fruchter & Hook (2002)；Zackay & Ofek (2017)；IVOA HiPS 规范。
 
-## 参考文献（SCI-001-S2 补齐，含参考代码库与许可证）
+## 参考文献（含参考代码库与许可证）
 
 - Fruchter, A. S. & Hook, R. N. 2002, PASP 114, 144（DOI 10.1086/338393）：Drizzle 线性重建。
 - Zackay, B. & Ofek, E. O. 2017, ApJ 836, 187/188：多图像点源最优检测/测光与 proper coadd。
@@ -74,4 +74,4 @@ Fruchter & Hook (2002)；Zackay & Ofek (2017)；IVOA HiPS 规范。
 ## ID
 
 SCI-SCOPE-001（本文件范围/假设/失效域入口）；SCI-CAL-* / SCI-AST-* / SCI-PHOT-* / SCI-PSF-* / SCI-NOISE-* /
-SCI-DRZ-* / SCI-UPM-* / SCI-REJ-* / SCI-INT-*。 # B5-06 同步在 TRACEABILITY.csv 增 SCI-SCOPE-001 行（doc=SCIENCE_SCOPE.md, status=VERIFIED）但本任务不改csv，仅文档。
+SCI-DRZ-* / SCI-UPM-* / SCI-REJ-* / SCI-INT-*。

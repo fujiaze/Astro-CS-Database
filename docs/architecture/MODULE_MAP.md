@@ -4,7 +4,7 @@
 > 状态：ACTIVE_INFORMATIVE（DOC-CONV-001 按 BASE=`da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540` 实际收敛）
 > 状态词：**唯一口径 = `ASTROCS_DESIGN.md` §11.4（状态阶梯）**；操作层判据见
 > `docs/owner/RELEASE_STATUS.md` §0（该节引 §11.4，不另立阶梯）。
-> ⚠ **DOC-202 R23 订正**：本文件**不声明第二套状态阶梯**，也不复述状态词清单；
+> ⚠ 本文件**不声明第二套状态阶梯**，也不复述状态词清单；
 > 本表**不写状态字段**，状态一律由 `tools/quality/check_module_map.py` **现场计算**
 > （最高设计 §0.2/§11.4：登记表与映射表禁止写状态字段，防「表内自证绿」）。
 > 本表按 **`lib/` 实际目录** 登记（不再描述已不存在或尚未建立的产物）；
@@ -43,14 +43,14 @@
 | 结构化日志 | `lib/infrastructure/observability/logging` | CONTRACT_READY | JSONL 事件合同 | LOG-001 schema/契约 |
 | 监控与资源门 | `tools/monitoring` | IMPLEMENTED | 冻结阈值判定（现行 = `ASTROCS_DESIGN.md` §8 + `contracts/resource_gate_v1.json`；原引「宪章 §10.5/§18.2」已废止） | `tools/monitoring/run_monitored.py` `evaluate_frozen_gate()`；pytest `tests/monitoring` |
 | AIO 图像 I/O | `lib/infrastructure/aio` | IMPLEMENTED | FITS/XISF/HiPS 读写、唯一 AIO C ABI v1 | `lib/infrastructure/aio/src/aio_abi.cpp`（编入生产 target `astrocs_aio`，MOD-001 实测握手 abi=1/status_count=71） |
-| HEALPix / Drizzle 内核 | `lib/infrastructure/aio/healpix_db` | IMPLEMENTED | `healpix_drizzle`（生产）+ `healpix_io`；`archive/legacy` 与 `healpix_browser_qt` 不重建 | `lib/algorithms/drizzle/healpix_drizzle`、`lib/infrastructure/aio/healpix_db/archive` |
+| HEALPix / Drizzle 内核 | `lib/infrastructure/aio/healpix_db` | IMPLEMENTED | `healpix_drizzle`（生产）+ `healpix_io`；`archive/` 归档目录与 `healpix_browser_qt` 不重建 | `lib/algorithms/drizzle/healpix_drizzle`、`lib/infrastructure/aio/healpix_db/archive` |
 | 公共工具 | `lib/algorithms/shared` | IMPLEMENTED | HEALPix core / SHA-256 / compute traits（header-only + 静态） | `lib/algorithms/shared` |
 
 ## 3. 合同/迁移目标目录（尚无独立 DLL 产物）
 
 | 迁移目标 | 路径 | 交付状态 | 现状与去向 |
 | --- | --- | --- | --- |
-| p3 projection | `lib/algorithms/projection` | IMPLEMENTED（registry）/ `entrypoint: MISSING` | **设计冻结 8 种投影**（`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，最高设计 §5.3）；**已实现并可作为产品声明的以实际注册表为准**（`lib/algorithms/projection/p3_projection.cpp` registry，实测行锚见 FIX-205 复核），**未实现的必须显式报「不支持」、禁止声称支持**（最高设计 §5.3）；DLL 挂载与生产会话切换归 P3-PROJ-INT；**未 INSTALLED** |
+| p3 projection | `lib/algorithms/projection` | IMPLEMENTED（registry）/ `entrypoint: MISSING` | **设计冻结 8 种投影**（`TAN/SIN/CAR/AIT/STG/MOL/CEA/ZEA`，最高设计 §5.3）；**已实现并可作为产品声明的以实际注册表为准**（`lib/algorithms/projection/p3_projection.cpp` registry，行锚以该注册表为准），**未实现的必须显式报「不支持」、禁止声称支持**（最高设计 §5.3）；DLL 挂载与生产会话切换归 P3-PROJ-INT；**未 INSTALLED** |
 | p3 resample | `lib/algorithms/resample` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_resample.dll`；生产实现在 `lib/algorithms/resample/p3_resample.cpp`（W4-A3 改绑：原 `lib/phase3_session/` 路径已随投影/重采样迁出删除）；顶层占位 descriptor `astrocs.phase3.resample` 归 P3-RSMP-INT（DEFERRED） |
 | p3 fits | `lib/algorithms/fits_output` | CONTRACT_READY（合同目录） | 目标 `astrocs_p3_fits.dll`；生产实现在 `lib/algorithms/fits_output/p3_output.cpp`；流式 FITS 接入 NOT_IMPLEMENTED |
 | phase2 upm / samp / rej / int | `lib/algorithms/upm`、`lib/algorithms/sampling`、`lib/algorithms/rejection`、`lib/algorithms/integration` | CONTRACT_READY（合同目录） | 生产实现在 `lib/algorithms/coverage`（节点化已 IMPLEMENTED）；独立 DLL 化为迁移目标 |
@@ -64,8 +64,8 @@
 | `lib/infrastructure/acr` | DORMANT | 异构计算抽象；根 `CMakeLists.txt`:17 ACR 默认 OFF，生产 target 不链；保留源码与隔离测试 |
 | `lib/infrastructure/pipeline/orchestrator` | 历史保留 | Phase1 编排已并入 CLI pipeline driver，无独立 exe |
 | `lib/infrastructure/hips_browser/healpix_browser_qt` | 工具分类（非发布） | HiPS 浏览器（optional，不入 product manifest） |
-| `lib/algorithms/noise_snr` | 不在根构建图（如实） | F-CI-002-01（owner 裁决 2026-09-11）摘出 `add_subdirectory`；`tests/unit` 门卫为 `if(EXISTS)`/`if(TARGET)`，收编后自动恢复 |
-| 旧 `aio_pipeline_engine` 越权编排 | 保留中（DEFERRED） | `lib/infrastructure/aio/src/aio_pipeline_engine.cpp` 仍在位，ARCH-001 §7 登记，LEG-003 迁移；不宣称已删除 |
+| `lib/algorithms/noise_snr` | 不在根构建图（如实） | 已摘出 `add_subdirectory`；`tests/unit` 门卫为 `if(EXISTS)`/`if(TARGET)`，收编后自动恢复 |
+| `aio_pipeline_engine` 越权编排 | 保留中（DEFERRED） | `lib/infrastructure/aio/src/aio_pipeline_engine.cpp` 仍在位，ARCH-001 §7 登记，LEG-003 迁移 |
 
 ## 5. 每模块详细文档
 

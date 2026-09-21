@@ -1,19 +1,18 @@
 # Module: star_detector
 
-> P1-STAR-DOC 事实修订（2026-09-07）：本页为 legacy 诊断页（ACTIVE_INFORMATIVE，
-> 不属 gen_module_readmes.py 生成范围）。模块冻结合同页 =
-> docs/modules/registry/astrocs.phase1.star-detection.md（手写，P1-STAR-DOC）；
+> 本页为诊断页（ACTIVE_INFORMATIVE，不属 gen_module_readmes.py 生成范围）。模块冻结合同页 =
+> docs/modules/registry/astrocs.phase1.star-detection.md；
 > 合同入口 = lib/algorithms/star_detection/README.md r1（CONTRACT_READY）+ module.yaml
 > （MOD-astrocs-phase1-star，module_id=astrocs.p1.star_detection，
-> dll_target=astrocs_p1_star_detection.dll，entrypoint=MISSING）。本页旧描述
-> 以冻结合同为准修订，禁止反向改写合同层。
+> dll_target=astrocs_p1_star_detection.dll，entrypoint=MISSING）。本页
+> 以冻结合同为准，禁止反向改写合同层。
 
 ## 职责
 
-Phase1 单帧 light **第一轮盲解**检测（**2026-09-20 订正**：本实现 = 最高设计 §3.2
+Phase1 单帧 light **第一轮盲解**检测（本实现 = 最高设计 §3.2
 `:120` 点名的「第一轮盲解」生产源；**权威检测范式 = 星表引导拟合**——检测定义域是
 星表位置、用本帧 WCS 反向投影 Gaia 星表，见 `ASTROCS_DESIGN.md` §3.2 `:119-120` /
-§3.6 `:323-325` 与 §9.49 定案 1；全图盲检测连通域**不是**权威路径）：peaker 七步候选（11×11 局部极大/3×3
+§3.6 `:323-325`；全图盲检测连通域**不是**权威路径）：peaker 七步候选（11×11 局部极大/3×3
 meanhigh/二阶导零交叉 Sr,Sc/振幅 Ar,Ac/盒半径 R=ceil(3.7172·S)/对称门/候选
 去重）+ Moffat4（GSL trust-region LM，7 参数）逐候选拟合 + 饱和星
 （edge-walking 中心、A>dynrange 标记）+ mag 排序去重截断（SDetParams.maxStars）；
@@ -57,8 +56,7 @@ dedup/sort/maxStars 截断串行，输出 bitwise 与线程数无关；ThreadBud
 入口 rc：0=成功（含 0 星空场：输出全 NULL + count=0，非错误）；−1=参数
 无效/句柄 NULL/分配失败。拟合级 SDET_FIT_*（非 OK 候选丢弃）；质量门
 reject_star SfError 五码；编排级 det_ret≠0 或 count≤0 → 退出码
-STAR_DETECT_FAILED（orchestrator.cpp:2200-2212）。「无星点 → NO_DATA」旧
-描述作废。
+STAR_DETECT_FAILED（orchestrator.cpp:2200-2212）。
 
 ## Science IDs
 

@@ -1,10 +1,11 @@
 # ACR Work-Domain Equivalence Science (SCI-ACR-EQUIV)
 
-> ID: SCI-ACR-EQUIV-001  状态: FROZEN (T109 冻结, 2026-08-23)  上游: SCI-SCOPE-001 + SCI-INT/REJ/UPM/DRIZZLE  下游 ALG: ALG-ACR-EQUIV-001..  模块: acr × phase2 (acr_kernels)
+> ID: SCI-ACR-EQUIV-001  状态: FROZEN  上游: SCI-SCOPE-001 + SCI-INT/REJ/UPM/DRIZZLE  下游 ALG: ALG-ACR-EQUIV-001..  模块: acr × phase2 (acr_kernels)
 
 ## 1 目的与非目标
 
 - **目的**：定义 CPU / GPU / 混合分块的工作域 `equiv`、数值等价边界与失败回退语义，使 `phase2` 加权叠加在任意 `ACR` 调度下科学结果一致，允许的数值差异仅来自编译器/FMA/归约阶且预冻结冻结。
+- **生产地位**：`ACR` 是隔离实验，生产不可达（`ASTROCS_DESIGN.md` §1.3/§8.1）；本文件定义其工作域等价边界，供隔离实验与回归使用。
 - **非目标**：不决定 `ACR` 资源调度/性能优化（见 `PERFORMANCE_MODEL.md`）；不定义 `ACR` 通用硬件画像（聚焦 `phase2` 热点）；不改变 `phase2` 权重/排异科学（`acr_kernels.cpp: CPU reference 是权威 science semantics`）。
 
 ## 2 符号表
@@ -16,9 +17,9 @@
 | `px` | `pixel_count`（该子域像素数） | `scalars[0]` |
 | `depth` | `stack_depth`（候选深度） | `scalars[sizeof_t]` |
 | `p0` | tile 内偏移（`inv.scalars`） | `scalars+p0` |
-| `wmode` | ~~`weight_mode`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量）（历史分支号 0 legacy / 1 equal / 2 ivar 为实现事实） | `scalars+wmode` |
+| `wmode` | 实现标量槽（分支号 0/1/2 为实现事实；权重是阶段二按该天球像素对应帧集合现场算出的派生量） | `scalars+wmode` |
 | `mosaic_reject_legacy` | CPU reference launcher（逐像素 `rejection+integrate`） | `acr_kernels.cpp` |
-| 纯逆方差（逐像素 ivar）权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） | 逐像素 ivar 产品权重 | `stage2_common.cpp:378` |
+| 逐像素 ivar 权重 | 阶段二按该天球像素对应帧集合现场算出的派生量 | `stage2_common.cpp:378` |
 | `ACR-IVAR-001` | ivar 时 ACR 块禁用 → CPU canonical | `stage2_common.cpp:391` |
 
 ## 3 物理量和单位
@@ -29,8 +30,8 @@
 
 - `inv.buffers` 含 `buffer0=out signal`, `buffer1=values` 必备，否则 `throw runtime_error`；`buffer2/3/4/5/6` 可空（`support/snr/out_sup/out_rej/out_valid`）。
 - `scalars` 须 `px>0 && depth>0`，否则 `throw`；`method/underdetermined_n/sigma_lower+upper/max_iterations/p0/wmode` 均有缺省（`1u/2u/-4.0/3.0/8/0/0`）。
-- 纯逆方差（逐像素 ivar）权重时 `ACR` 块禁用 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），走 CPU `canonical p2_integrate_pixel` 路径（`ACR-IVAR-001`），不进入 `GPU/Mixed` 分块。
-- 历史权重分支 `{auto,ivar,equal,support_x_snr2}` （已按 §9.73 A44 作废：键不存在；权重是派生量），`acr_route∈{auto,cpu}`（`auto==cpu` 语义，见 `stage2_common.cpp:391-392`）。
+- 逐像素 ivar 权重时 `ACR` 块禁用，走 CPU `canonical p2_integrate_pixel` 路径（`ACR-IVAR-001`），不进入 `GPU/Mixed` 分块。
+- `acr_route∈{auto,cpu}`（`auto==cpu` 语义，见 `stage2_common.cpp:391-392`）。
 
 ## 5 连续定义
 
@@ -49,7 +50,7 @@
     GPU kernel 后续在 profile 后添加但不改变语义。
 
 失败回退 (不得改变科学语义):
-  ivar 生产路径（纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））→ 强制 CPU canonical (ACR-IVAR-001)
+  逐像素 ivar 权重路径 → 强制 CPU canonical (ACR-IVAR-001)
   无画像/无画像信任 (model_available≠model_trusted) → OpenMP fallback (acr memory.md: BDR Reviewed)
   候选栈 non-finite / UNDERDETERMINED / ALL_REJECTED 等冻结语义在任意设备上一致
 ```
@@ -66,7 +67,7 @@
 
 - **分块不变量**：任意 `split`（含 `1×total` 与 `N×1` 极端）`signal/support` 等价。
 - **设备不变量**：`cpu_only` vs 单设备 `gpu_only` vs `mixed`（同 `total_pixels`）结果等价。
-- **回退不变量**：回退到 CPU 的结果与直接 CPU 一致，无相位内权重分支偷换 （已按 §9.73 A44 作废：键不存在；权重是派生量）。
+- **回退不变量**：回退到 CPU 的结果与直接 CPU 一致，无相位内分支偷换。
 - **常量场不变量**：常数 `values=C` 时 `signal=C` 与设备/分块无关。
 
 ## 8 极端/退化条件
@@ -75,7 +76,7 @@
 |---|---|---|
 | `px==0` / `depth==0` | `throw runtime_error missing scalars` | `acr_kernels.cpp` |
 | 缺 `buffer0/1` | `throw missing buffers` | 同上 |
-| 纯逆方差权重 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） | 禁 ACR，CPU canonical | `ACR-IVAR-001` |
+| 逐像素 ivar 权重 | 禁 ACR，CPU canonical | `ACR-IVAR-001` |
 | 无画像信任 | OpenMP fallback | `acr memory.md BDR` |
 | 非有限 candidate | `INVALID_INPUT` 一致 | `integrate.cpp` |
 
@@ -90,7 +91,7 @@
 ## 10 不可接受变化
 
 - 在 `GPU/Mixed` 分块中改变 `rejection` 阈值/归一化/large_scale 语义；
-- 在纯逆方差权重时仍走 `GPU` 分块 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（违反 `ACR-IVAR-001`）；
+- 在逐像素 ivar 权重时仍走 `GPU` 分块（违反 `ACR-IVAR-001`）；
 - 将 `status` 的 `UNDERDETERMINED/INVALID` 语义改写为设备相关；
 - 以放宽 `1e-6/1e-12` 容差掩盖分块越界或 `p0` 错位。
 
@@ -98,7 +99,7 @@
 
 - **CPU/GPU/Mixed 等价门**：同 `total_pixels` 的 `cpu_only vs gpu_only vs mixed(2/4/8 splits)` 的 `signal max_abs ≤ 1e-6`、`support exact`（`synthetic_gate` 变种）。
 - **分块不变量门**：`1×N` vs `N×1` 切分结果等价。
-- **回退门**：纯逆方差（ivar）权重的 `ACR` 强制 CPU 与纯 CPU `canonical` 等价 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（`ivar_wiring_test`）。
+- **回退门**：逐像素 ivar 权重的 `ACR` 强制 CPU 与纯 CPU `canonical` 等价（`ivar_wiring_test`）。
 - **流量守恒门**：常数场 `C` 的 `signal==C` 与分块无关。
 - **Python 参考**：NumPy 对同分块的 `rejection+integrate` 复算 `signal/support`（`rtol 1e-9`）。
 
@@ -110,17 +111,17 @@
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/ACR_EQUIVALENCE.md` (SCI-ACR-EQUIV-001)
-- 实现: `lib/algorithms/coverage/src/acr_kernels.cpp` (`kOpMosaicReject, mosaic_reject_legacy`), `lib/algorithms/coverage/src/stage2_common.cpp` (权重分支 （已按 §9.73 A44 作废：键不存在；权重是派生量）/`ACR-IVAR-001`), `lib/infrastructure/acr/scheduler/*` (Dispatcher/Profile)
+- 实现: `lib/algorithms/coverage/src/acr_kernels.cpp` (`kOpMosaicReject, mosaic_reject_legacy`), `lib/algorithms/coverage/src/stage2_common.cpp` (`ACR-IVAR-001`), `lib/infrastructure/acr/scheduler/*` (Dispatcher/Profile)
 - 公开 API: `register_phase2_acr_kernels, kOpMosaicReject`
 - 测试: `TST-ACR-001` CPU/GPU等价、`TST-ACR-INV-001` 分块不变量、`TST-ACR-FAIL-001` 极端回退（新增/映射见 `docs/TRACEABILITY.csv`）
 
-## 14 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
+## 14 参考文献与参考代码库（含许可证）
 
 > 本节只补出处与参考实现，不改动 §5 等价定义与 §9 容差。
 
 - **浮点语义与归约非结合**：IEEE 754-2019, IEEE Standard for Floating-Point Arithmetic；Goldberg, D. 1991, ACM Computing Surveys 23, 5（DOI 10.1145/103162.103163）。
 - **归约误差界/确定性求和**：Higham, N. J. 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）；可复现求和技术见 Demmel, J. & Nguyen, H. D. 2013, “Fast Reproducible Floating-Point Summation”, Proc. 21st IEEE Symp. Computer Arithmetic (ARITH)。
-- **并行执行语义**：OpenMP Application Programming Interface（OpenMP ARB）——本模块 fallback 路径（§5）的语义基础；ACR 现处 dormant（AGENTS §2）。
+- **并行执行语义**：OpenMP Application Programming Interface（OpenMP ARB）——本模块 fallback 路径（§5）的语义基础；ACR 为隔离实验，生产不可达（`ASTROCS_DESIGN.md` §1.3/§8.1）。
 - **CPU reference 为权威 science semantics**：Project-defined（§5）；GPU/Mixed 仅加速热点，不改变 rejection/integrate 语义。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：

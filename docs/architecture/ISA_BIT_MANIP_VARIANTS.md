@@ -1,6 +1,6 @@
 # 整数/位操作 ISA 变体评估 (ISA-005) — NOT_APPLICABLE
 
-> ID: ARCH-ISA-005  状态: 结论 NOT_APPLICABLE (V5 ISA-005, 2026-08-28, vm-bj)  上游: ISA-004/05 §1-3  下游: WIN-003/manifest
+> ID: ARCH-ISA-005  状态: 结论 NOT_APPLICABLE  上游: ISA-004/05 §1-3  下游: WIN-003/manifest
 > 依据(03 §91): "只评估整数/位操作热点；VNNI 等与算法无关则写 NOT_APPLICABLE 证据，不写空 DLL；capability 与热点对应；无机械指令集堆砌"。
 
 ## 1 整数/位操作热点审计(12 ABI-003 kernel)
@@ -33,7 +33,7 @@
 
 - 本 kernel 集**无整数/位操作热点**适用于 BMI2/POPCNT。按 03 §91 → 登记 **NOT_APPLICABLE**, **不写空 DLL**(不创建位操作变体文件入库)。
 - 测噪验证: 变体 DSO 仅作为瞬时测量工件(/tmp), **不 SHPI/不入 manifest**。
-- 若未来引入整数/位密集型 kernel(如 binarization/高位计数), 需重新评估(本轮无)。
+- 若未来引入整数/位密集型 kernel(如 binarization/高位计数), 需重新评估(当前无)。
 
 ## 4 完整性
 - 测量工件: artifacts/prerelease_v5/ISA-005/MEASUREMENTS.csv(含 bmi2_popcnt_instruction_count=0 证据列)。

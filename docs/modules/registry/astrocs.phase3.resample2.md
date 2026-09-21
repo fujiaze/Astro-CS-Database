@@ -8,7 +8,7 @@ upstream: [SCI-P3-RES-001, ALG-P3-003, API-P3-001]
 downstream: [TEST-P3-RES-001]
 ---
 
-# 模块 astrocs.phase3.resample2（P3-RSMP-DOC 手写合同页，2026-09-12）
+# 模块 astrocs.phase3.resample2
 
 > Registry 行 ID 沿用 MOD-astrocs-phase3-resample2；矩阵权威 module_id=
 > **astrocs.p3.resample**（MODULE_MIGRATION_MATRIX P3-RSMP 行）。
@@ -29,9 +29,9 @@ downstream: [TEST-P3-RES-001]
   lib/algorithms/projection→phase3_fits 先例新建；lib/phase3_session/ 为会话
   编排域共享源，不整目录归属）。
 - 生产源: lib/algorithms/resample/p3_resample.cpp（239 行）+ 权威源
-  签名头 p3_resample.h（58 行），实测 2026-09-12。
+  签名头 p3_resample.h（58 行）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
-  V5 SCI-007 2026-08-28；矩阵 science_id 占位 SCI-P3-RES-001 映射
+  V5 SCI-007；矩阵 science_id 占位 SCI-P3-RES-001 映射
   声明⇒SCI-P3-001）→ ALG-P3-003（docs/algorithms/PHASE3_RESAMPLE.md
   G3/G4 施工规格，公式零改动）+ ALG-P3-RSMP-IMPL-001
   （docs/algorithms/PHASE3_RSMP_IMPL.md 实现级合同）→ DATA-P3-RES
@@ -203,3 +203,11 @@ downstream: [TEST-P3-RES-001]
 - API: docs/contracts/PUBLIC_API.md（API-P3-RSMP-001 节）
 - 模块总页: docs/modules/phase3_rsmp.md；合同三件套:
   lib/algorithms/resample/{README.md,module.yaml,memory.md}
+
+## NaN 与写端口
+
+- NaN 规则（权威 = `ASTROCS_DESIGN.md` §5.5）：**样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**；
+  禁止静默剔除。无覆盖/无数据 = NaN，禁 0 或 ±Inf 冒充。
+- signal 语义 = **面亮度**，写端口 `UnitId::SURFACE_BRIGHTNESS`；输出模式显式声明
+  （`surface_brightness` / `point_source_flux` / `visualization`，最高设计 §6.3）。
+
