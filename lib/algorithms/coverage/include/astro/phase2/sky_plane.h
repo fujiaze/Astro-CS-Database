@@ -192,6 +192,10 @@ typedef struct {
     std::uint64_t n_masked;       // 被掩膜/低支持剔除的点
     std::uint64_t n_rejected;     // 稳健迭代剔除的点
     char model_hash[65];
+    // SCI-502 FIX-3：门控 kappa 取**求解矩阵**（H_red + λ·DᵀD）的条件数——只有它
+    // 随 roughness_penalty 下降，自适应重试才可能成功；本字段保留**未惩罚**数据
+    // 矩阵的条件数作为独立诊断量（λ=0 时两者逐位相等）。
+    double kappa_data;
 } P2SkyPlaneInfo;
 
 enum {

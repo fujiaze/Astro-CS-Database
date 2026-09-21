@@ -176,7 +176,7 @@
   ]
  },
  "forbidden": {
-  "_retirement_note": "weight_source_tokens 是权重来源 token 黑名单的历史留痕（禁止把 median source SNR / support / coverage / fwhm / residual / psfsw 当作权重来源）。按全程只有 SNR 口径，其规范内容已由 weight_modes 的 _a44_deprecation_note 覆盖；代码侧（p3_rsmp_failclosed.cpp、coverage.cpp 词表）删除与注册表解除归 CLEAN-501，删净前本表保持与代码一致、不得单方面移除。",
+  "_retirement_note": "weight_source_tokens 是权重来源 token 黑名单的历史留痕（禁止把 median source SNR / support / coverage / fwhm / residual / psfsw 当作权重来源）。按全程只有 SNR 口径，其规范内容已由 weight_modes 的 _a44_deprecation_note 覆盖；代码侧（p3_rsmp_failclosed.cpp、coverage.cpp 词表）删除与注册表解除归 CLEAN-501，删净前本表保持与代码一致、不得单方面移除。本键已按 §9.73 A44 作废，仅作历史留痕，不承载任何生效语义。",
   "weight_source_tokens": [
    "median_source_snr",
    "median_snr",

@@ -125,6 +125,7 @@
 - 天光面正规方程条件数 `κ = cond_2(D⁻¹AᵀWA D⁻¹)` 必须**可观测**并写入 provenance（真实 M42 样本实测 κ = **3.16e7**，`实验/additive-sky-seamless/results/c7_realdata.json`；χ²_red 1.004 但 κ 逼近默认上限）；
 - **κ 上限有两个口径，必须区分（SCI-505 复核登记）**：① **天光面求解器** `sky_plane.cpp:414/441` 默认 `kappa_max = 1e8`；② **UPM/GLS** `upm.h:281` 默认 `1e6`（冻结值 `FZ-AP2S-KAPPA-MAX = 1e6`）。真实 M42 样本 κ = 3.16e7 ⇒ 在 1e8 下**不触发**自适应、在 1e6 下**超限**；**统一两个口径属未决项**（登记 OPEN_QUESTIONS）；统一前任何「自适应已触发」的陈述必须写明所用上限；
 - `κ > kappa_max` ⇒ 必须走**粗糙度正则化**（`roughness_penalty`）或**节点数自适应**，并在 provenance 记录所走分支、所用参数与 κ；**禁止**静默产出欠定解、**禁止**放宽 `kappa_max` 求绿；
+- **门控 κ 的口径（SCI-502 FIX-3 实证订正）**：门控值必须取**实际求解矩阵** `H_solve = H_red + λ·DᵀD` 的条件数，**不得**取未惩罚数据矩阵 `H_red` 的条件数。理由（实测，`eng/tests/unit/v6_p2_sky_kappa`）：`H_red` 的 κ 与 λ 无关（λ 从 1e-3 提到 1e6 恒为 2.497e9），在它上面设门会让「κ 超限 ⇒ 走粗糙度正则化」**永远无法成功**，条款形同虚设；改用 `H_solve` 后同一算例 λ=0 时 κ=2.497e9（超限拒绝）、λ=1e-3（生产默认）时 κ=8.311e3（通过），正则化成为**有效**手段。未惩罚 κ 保留为独立诊断量（`P2SkyPlaneInfo.kappa_data` / JSON `kappa_data` / provenance `sky_plane_kappa_data`）。λ=0 时两者逐位相等（回归锁 A5）。注意 λ 过大反而抬高 `H_solve` 的 κ（惩罚算子自身的谱展布），故自适应重试必须**有界**并以实测 κ 为准；
 - provenance 最小集：`gauge_mode`、每分量 `ref_frame_id`、`rank`、`rank_rtol`、`kappa`、`kappa_max`、`k_corr`、`model_hash`、`any_fail_closed_reason`。
 
 ## 8 极端/退化条件

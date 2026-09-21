@@ -15,7 +15,7 @@
 | 4 | 无「连续 ≥142 s 低利用窗且无积压」 | 无 | red |
 
 - **enforcement = fail-closed**：任一判据违规 ⇒ `verdict=red`；`record_and_justify` **不得**用于掩盖违规（GATE-501 须把 L2 门从 record_and_justify 改为 fail-closed，并用 RELEASE-04 归档违规数据回放证明改前绿、改后红）；
-- 判据阈值本身**不得放宽**求绿；如确有硬件/算法上限 ⇒ 给证据化上限并登记 `OPEN_QUESTIONS`，不 waiver。
+- 判据阈值本身**不得放宽**求绿；如确有硬件/算法上限 ⇒ 给证据化上限并登记到未决问题台账（随审核包交付），不 waiver。
 
 ## 2 测量口径（冻结）
 

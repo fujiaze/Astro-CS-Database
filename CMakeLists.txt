@@ -999,6 +999,8 @@ if(ASTROCS_BUILD_TESTS)
   add_subdirectory(eng/tests/unit/v6_p2_samp v6_p2_samp)
   add_subdirectory(eng/tests/unit/v6_p2_upm v6_p2_upm)
   add_subdirectory(eng/tests/unit/v6_p2_sky v6_p2_sky)
+  # SCI-502 FIX-3：天光面 κ 可观测 + 粗糙度自适应红/绿双向
+  add_subdirectory(eng/tests/unit/v6_p2_sky_kappa v6_p2_sky_kappa)
   add_subdirectory(eng/tests/unit/v6_p3_proj v6_p3_proj)
   add_subdirectory(eng/tests/unit/v6_p3_rsmp v6_p3_rsmp)
   add_subdirectory(eng/tests/integration/v6_p1 v6_p1_integration)

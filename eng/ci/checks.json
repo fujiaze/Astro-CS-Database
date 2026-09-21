@@ -8734,6 +8734,146 @@
       ]
     },
     {
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-ARCH501-BLOCK-FRAME",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/core_block_frame.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**",
+        "lib/infrastructure/**",
+        "eng/tests/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "core_block_frame"
+      ],
+      "steps": [
+        {
+          "id": "CTEST-CORE-BLOCK-FRAME",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "core_block_frame",
+            "--output",
+            "run/ci/ctest/core_block_frame.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/core_block_frame.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "lib/infrastructure/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "core_block_frame"
+          ]
+        }
+      ],
+      "id": "CHK-ARCH501-BLOCK-FRAME"
+    },
+    {
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-SCI502-SKY-KAPPA",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/v6_p2_sky_kappa.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**",
+        "lib/infrastructure/**",
+        "eng/tests/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "v6_p2_sky_kappa"
+      ],
+      "steps": [
+        {
+          "id": "CTEST-V6-P2-SKY-KAPPA",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "v6_p2_sky_kappa",
+            "--output",
+            "run/ci/ctest/v6_p2_sky_kappa.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/v6_p2_sky_kappa.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "lib/infrastructure/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "v6_p2_sky_kappa"
+          ]
+        }
+      ],
+      "id": "CHK-SCI502-SKY-KAPPA"
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",

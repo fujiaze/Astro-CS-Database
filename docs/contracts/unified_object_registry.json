@@ -575,6 +575,41 @@
       "owner": "SCI-FIX-PROJ(W4)",
       "object_class": null,
       "note": "投影注册表 v3 导出合同（SCI-FIX-PROJ 于 808e7a8d 建立，claim SC-001）；权威=ASTROCS_DESIGN.md §5.3 八投影 + docs/algorithms/PHASE3_PROJ_IMPL.md §15；实现导出=lib/algorithms/projection/p3_proj_v6.h registry_frozen_set()。不承载 UNIFIED_MODEL §2 的 13 个数据对象语义。"
+    },
+    {
+      "file": "eng/contracts/schemas/dual_line_file_domain.schema.json",
+      "role": "release05_dual_line_contract",
+      "owner": "CONTRACT-501",
+      "object_class": null,
+      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
+    },
+    {
+      "file": "eng/contracts/schemas/pipeline_block.schema.json",
+      "role": "release05_pipeline_block_contract",
+      "owner": "CONTRACT-501",
+      "object_class": null,
+      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
+    },
+    {
+      "file": "eng/contracts/schemas/scheduler_probe_event.schema.json",
+      "role": "release05_scheduler_probe_event",
+      "owner": "CONTRACT-501",
+      "object_class": null,
+      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
+    },
+    {
+      "file": "eng/contracts/schemas/perf_gate_criteria.schema.json",
+      "role": "release05_perf_gate_criteria",
+      "owner": "CONTRACT-501",
+      "object_class": null,
+      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
+    },
+    {
+      "file": "eng/contracts/schemas/monitor_field_semantics.schema.json",
+      "role": "release05_monitor_field_semantics",
+      "owner": "CONTRACT-501",
+      "object_class": null,
+      "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
     }
   ],
   "deprecation": {

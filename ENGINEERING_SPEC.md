@@ -116,7 +116,7 @@ lib/
 ├── include/            公共头
 ├── third_party/        第三方依赖
 └── infrastructure/     基建（cli/{normalize,mosaic,export} + pipeline 命名块与块生命周期 +
-                          scheduler 三阶段调度器 + aio/benchmark/observability/gaia/acr/hips_browser）
+                          调度器（scheduler/，三阶段）+ aio/benchmark/observability/gaia/acr/hips_browser）
 
 其他固定目录：eng/contracts/ docs/ eng/tests/ testdata/ eng/packaging/ gaia/
 eng/（工程支撑面）
