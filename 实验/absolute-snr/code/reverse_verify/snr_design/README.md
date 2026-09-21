@@ -1,6 +1,6 @@
 # SNR-DESIGN 数值实验
 
-支撑 `实验/SCI-B/docs/snr-propagation-design.md` 的 5 个独立数值实验。
+支撑 `实验/absolute-snr/docs/snr-propagation-design.md` 的 5 个独立数值实验。
 全部为 Python（numpy/scipy/astropy），**无需构建**。
 
 > **复核分片 SNR-EXP-AUDIT**：本目录下的 `audit/` 是对上述 5 个实验的**方法论复核**
@@ -10,7 +10,7 @@
 ## 复跑
 
 ```bash
-cd 实验/SCI-B/code/reverse_verify/snr_design
+cd 实验/absolute-snr/code/reverse_verify/snr_design
 TMPDIR=/dev/shm/astrocs_snrd ./run_all.sh                     # 原 5 个实验
 TMPDIR=/dev/shm/astrocs_snraudit ./audit/run_all_audit.sh     # 复核分片（4 脚本，约 6 分钟）
 ```

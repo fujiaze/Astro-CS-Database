@@ -13,7 +13,7 @@
 
 与既有 F-INSTR 工作的关系（**不另起炉灶**）
 ----------------------------------------
-估计器与 seeing 臂的构造沿用 `实验/SCI-B/code/reverse_verify/f_instr/`：
+估计器与 seeing 臂的构造沿用 `实验/absolute-snr/code/reverse_verify/f_instr/`：
   * `f_instr_lib.render_psf / est_psf_optimal / est_box5 / aperture_curve / dmag`；
   * 但**底图换成真实哈勃 M16**（`m16_scene.py` 前向渲染接口），噪声为 §9.41 物理过程，
     不是 F-INSTR 的「真实 L4 帧 + 注入」；

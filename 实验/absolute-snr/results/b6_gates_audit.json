@@ -135,6 +135,6 @@
   "H4_silent_fallback_detected": true,
   "H4_scope_note": "按 docs/plugins/algorithms_phase1/07_noise_snr.md §4.2 转写的**语义自检**；lib/ 实现侧尚无该状态机（无 sparse_reconstruct/snr_path_effective/FZ-SNR 符号），因此不构成对实现的验证，也不得据此外推实现行为"
  },
- "generated_at": "2026-09-21T05:28:28Z",
- "wall_s": 0.23401594161987305
+ "generated_at": "2026-09-21T12:27:13Z",
+ "wall_s": 0.22001433372497559
 }

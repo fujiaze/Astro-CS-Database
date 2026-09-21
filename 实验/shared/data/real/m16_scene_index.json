@@ -4,7 +4,7 @@
  "generated_by": [
   "实验/shared/synthetic/m16_mask.py",
   "实验/shared/synthetic/m16_scene.py",
-  "实验/SCI-C/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py"
+  "实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py"
  ],
  "dataset": {
   "id": "HST_M16",
@@ -740,7 +740,7 @@
  ],
  "demo_experiment": {
   "id": "exp_a6_seeing_aperture",
-  "path": "实验/SCI-C/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py",
+  "path": "实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py",
   "criterion": "A6: 固定真值通量、只改 seeing => PSF 域口径回收通量必须与 seeing 无关",
   "result": "run/reverse_verify/m16_scene/a6_seeing/result.json"
  },
@@ -750,6 +750,6 @@
   "python3 实验/shared/synthetic/m16_mask.py --frames-dir testdata/HST_M16 --outdir run/reverse_verify/m16_scene/masks",
   "python3 实验/shared/synthetic/m16_scene.py --selftest",
   "python3 实验/shared/data/synthetic/generate.py --only m16_nebula_core,m16_starfield,m16_dark_lowsnr,m16_band_matrix",
-  "python3 实验/SCI-C/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py"
+  "python3 实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_a6_seeing_aperture.py"
  ]
 }

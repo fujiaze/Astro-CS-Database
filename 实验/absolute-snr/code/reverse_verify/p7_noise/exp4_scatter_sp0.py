@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """P7-EXP4 —— **散差扫描**：SP-0 判据在"帧间空间形状差异"下的表现（§9.46）。
 
-判据的代数（SP-0，与 实验/SCI-B/docs/frame-snr-canon.md 一致）
+判据的代数（SP-0，与 实验/absolute-snr/docs/frame-snr-canon.md 一致）
 -----------------------------------------------------------------
     逐帧逐像素逆方差权重   w_f(p) = 1/var_f(p)
     帧级标量权重           W_f = 1 / mean_p(var_f(p))
@@ -104,7 +104,7 @@ def main() -> int:
     ap.add_argument("--out", default=str(P.P7_DATA / "exp4_scatter_sp0.json"))
     a = ap.parse_args()
     res = {"experiment": "P7-EXP4 SP-0 scatter scan",
-           "criterion": "SP-0 (实验/SCI-B/docs/frame-snr-canon.md)",
+           "criterion": "SP-0 (实验/absolute-snr/docs/frame-snr-canon.md)",
            "scene": SCENE, "smooth_px": 31, "stack_n": STACK_N,
            "stack_n_note": ("A4 前台裁决：stack_n 1 -> 32（叠加等效读出噪声 17.536 e-）；"
                             "stack_n=1 交付版备份见 data/P7/before_stackn32/exp4_scatter_sp0.json"),

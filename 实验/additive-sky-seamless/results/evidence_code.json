@@ -468,7 +468,7 @@
     "SWarp 的 subbackline() 函数体已不在本仓库: src/back.c:1031 注释 \"NOTES Most of the code is a copy of subbackline(), for optimization reasons.\" 指向它, 但全仓 grep 无 subbackline 定义; SWarp 改为在 src/data.c:206 内联执行加性扣除。SExtractor 中该函数定义在 src/back.c:1098。",
     "SWarp 的 BACK_SIZE/BACK_FILTERSIZE 配置项不在 src/prefs.c 而在 src/preflist.h (关键字表与默认值串); src/prefs.c:745-755 只负责把单帧参数按输入帧数广播到每帧 (back_size/back_fsize/back_type/back_default 逐帧数组), 这本身也是背景参数逐帧独立的旁证。",
     "SWarp 版本号取自 configure.ac:36 AC_INIT(SWarp, 2.42.0); SExtractor 版本号取自 configure.ac:38 AC_INIT([SExtractor],[2.29.0]); Siril 最新发行 tag 1.4.4 取自 GitLab API tags; photutils 最新发行 tag v0.7.2 取自 GitHub API tags, main 分支版本由 setuptools_scm 动态生成 (pyproject.toml:33 dynamic=['version']), 故按 commit 记录。",
-    "行原文片段均 <= 200 字符, 仅用于出处标注; 未将任何 GPL 代码复制进仓库, 本文件只写 实验/SCI-C/results/evidence_code.json, 未改动仓库其他文件, 零 git 写。",
+    "行原文片段均 <= 200 字符, 仅用于出处标注; 未将任何 GPL 代码复制进仓库, 本文件只写 实验/additive-sky-seamless/results/evidence_code.json, 未改动仓库其他文件, 零 git 写。",
     "对照文献核验结论: 5 个实现全部与各自引用的文献/标准一致 —— 逐帧独立估计天光 (SWarp/Siril)、网格+中位数+中值滤波 (SWarp/SExtractor/photutils, 均溯源到 Bertin & Arnouts 1996 的 mesh + kappa-sigma + median filter)、加性减除 (SWarp data.c:206, SExtractor subbackline, Siril remove_gradient:1025, photutils 由调用方 data - bkg.background)。",
     "与 SCI-C \"加性天光与无接缝叠加\" 的相关性: 四个实现都把天光当作**加性偏置**逐帧移除, 且都在叠加前完成 (SWarp 每帧 make_back -> 减除 -> 逆方差加权平均), 即成熟实现中\"无接缝\"是靠逐帧独立背景扣除 + 逆方差加权, 而非在 coadd 阶段再拟合全局背景; photutils 不参与 coadd, 只提供加性背景图。"
   ],

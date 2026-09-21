@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 实验/SCI-C/code/c6_sparse_dense.py
+# 实验/additive-sky-seamless/code/c6_sparse_dense.py
 """C6 稀疏现场求值 vs 稠密表示：数值等价 + 内存随节点/分块而非像素增长。
 
 判据（证据分级见 README §5）：

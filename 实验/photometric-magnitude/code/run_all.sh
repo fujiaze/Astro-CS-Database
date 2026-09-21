@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # SCI-A 一键复跑（固定种子 20260921）
-#   用法：bash 实验/SCI-A/code/run_all.sh            # 全量
-#         bash 实验/SCI-A/code/run_all.sh quick      # 跳过最慢的 step6 单元消除族
+#   用法：bash 实验/photometric-magnitude/code/run_all.sh            # 全量
+#         bash 实验/photometric-magnitude/code/run_all.sh quick      # 跳过最慢的 step6 单元消除族
 # 约定：构建/测试/检查串行化锁见 AGENTS.md §3；本脚本只跑实验，不碰 build/。
+# 路径一律从脚本自身位置推导（BASH_SOURCE），不写死单元目录名。
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UNIT="$(cd "$HERE/.." && pwd)"
+ROOT="$(cd "$HERE/../../.." && pwd)"
 cd "$ROOT"
-CODE="实验/SCI-A/code"
+CODE="$HERE"
 LOG="run/SCI-401/logs"
 mkdir -p "$LOG" run/SCI-401/sim run/SCI-401/data_cache run/SCI-401/bin
 
@@ -42,4 +45,4 @@ python3 -u "$CODE/step8_real_frame.py" 2>&1 | tee "$LOG/step8.log"
 echo "== 9) 汇总判据表 =="
 python3 -u "$CODE/step9_collect.py" 2>&1 | tee "$LOG/step9.log"
 
-echo "全部完成。判据表：实验/SCI-A/results/GATES.md"
+echo "全部完成。判据表：$UNIT/results/GATES.md"

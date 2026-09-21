@@ -6,7 +6,7 @@
 # 其唯一 target rv_p1sg_oracle 由本脚本等价承担（g++ -O2 -Wall，无外部依赖）。
 # 构建目录落 run/reverse_verify/p1_spatial_gain/（gitignore），不污染主线 build/。
 #
-#   用法：bash 实验/SCI-A/code/reverse_verify/p1_spatial_gain/build_oracle.sh
+#   用法：bash 实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/build_oracle.sh
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../../../../.." && pwd)"

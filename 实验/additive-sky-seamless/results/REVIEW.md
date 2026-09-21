@@ -1,7 +1,7 @@
 # SCI-C 独立对抗审稿记录
 
-审稿对象：`实验/SCI-C/`（报告 `README.md`、代码 `code/*.py|cpp|sh`、结果 `results/*.json`、图 `results/figs/*.png`）
-对照：任务 `/tmp/astrocs_pkg/extracted/AstroCS工程包_RELEASE-04/tasks/SCI-403.md`（只读）、上游 `实验/SCI-B/results/*.json`
+审稿对象：`实验/additive-sky-seamless/`（报告 `README.md`、代码 `code/*.py|cpp|sh`、结果 `results/*.json`、图 `results/figs/*.png`）
+对照：任务 `/tmp/astrocs_pkg/extracted/AstroCS工程包_RELEASE-04/tasks/SCI-403.md`（只读）、上游 `实验/absolute-snr/results/*.json`
 审稿方式：全文精读 + 逐门复核 JSON `gates.rows` + 用当前代码**只写 /tmp** 重跑 C1（A4/A10）、C3（B7）关键路径 + 解析复算预测子/统计量 + Crossref 核验文献元数据 + git 只读检查
 审稿人立场：对抗性。凡我攻不动的结论，在"已核实为站得住"一节明确写出。
 
@@ -12,7 +12,7 @@
 ### 致命问题（必须修）
 
 **1. README §4.1 的 A10 表格与归档结果 `results/c1_additive.json` 完全不符，且归档数据不支持"随基外 RMS 线性/单调增长"的表述。**
-- 位置：`实验/SCI-C/README.md:131-134`（表格）与 `README.md:124-125,17-18,240-241`（结论）；数据源 `实验/SCI-C/results/c1_additive.json` → `out_of_basis_sweep`。
+- 位置：`实验/additive-sky-seamless/README.md:131-134`（表格）与 `README.md:124-125,17-18,240-241`（结论）；数据源 `实验/additive-sky-seamless/results/c1_additive.json` → `out_of_basis_sweep`。
 - 问题：A10 是本单元自称的"主要发现/可证伪边界"（§0.2、§5.1"失效（C1 A10）"），但报告里那张 6 点表**不是**归档结果里的数。
 - 证据（逐点对照，我原样打印 JSON）：
 
@@ -192,8 +192,8 @@
 
 ### 生产代码改动检查结果
 
-1. **本单元自身没有写生产代码的路径**：`grep` 全部 SCI-C 代码，写操作只落在 `S.RUN=run/SCI-403`、`S.RESULTS=实验/SCI-C/results`、`S.FIGS=.../figs`；`build_probes.sh` 只 `g++ ... -o run/SCI-403/<probe>`；探针 C++ 只 `p2_*` 只读调用，无写生产文件的代码。这一点与 README"零生产代码改动"一致。
-2. **但 git status 无法支持"只动 实验/SCI-C/** 与 docs"**：工作树共有 **357** 个已跟踪文件被改（docs 275、lib 46、tests 20、ci 4、artifacts 4、tools 2、config 2、contracts 1、README.md、工程控制 1），另有 `?? 实验/SCI-C/`（整目录未跟踪）。也就是说 `实验/SCI-C/**` 本身是新增未跟踪目录，而**仓库里另有大量与 SCI-C 无关的未提交改动**（projection / aio / cli / drizzle / noise_snr / star_detection 等子系统，mtime 13:11–15:01）。
+1. **本单元自身没有写生产代码的路径**：`grep` 全部 SCI-C 代码，写操作只落在 `S.RUN=run/SCI-403`、`S.RESULTS=实验/additive-sky-seamless/results`、`S.FIGS=.../figs`；`build_probes.sh` 只 `g++ ... -o run/SCI-403/<probe>`；探针 C++ 只 `p2_*` 只读调用，无写生产文件的代码。这一点与 README"零生产代码改动"一致。
+2. **但 git status 无法支持"只动 实验/additive-sky-seamless/** 与 docs"**：工作树共有 **357** 个已跟踪文件被改（docs 275、lib 46、tests 20、ci 4、artifacts 4、tools 2、config 2、contracts 1、README.md、工程控制 1），另有 `?? 实验/additive-sky-seamless/`（整目录未跟踪）。也就是说 `实验/additive-sky-seamless/**` 本身是新增未跟踪目录，而**仓库里另有大量与 SCI-C 无关的未提交改动**（projection / aio / cli / drizzle / noise_snr / star_detection 等子系统，mtime 13:11–15:01）。
 3. **与 SCI-C 引用直接相关的两个生产文件在 SCI-C 时间窗内被改过**（不能排除是并行任务）：
    - `lib/infrastructure/scheduler/src/module_adapters.cpp`：mtime **14:27:41**，diff 735 行，内容含 "CONFORM-FIX-B-001（合规回退）… 上一版实现就地改为 tolerance=1e-3 + tolerance_relative=1（未走变更流程）⇒ 现回退到冻结值"——即 SCI-C 的 FIX-1 建议已被另一条线作为变更草案处理，且该文件正在被改。**README §10 引用的 `:5941-5942` 现在是注释文本，实际赋值在 `:5948-5949`。**
    - `lib/algorithms/coverage/src/sampler.cpp`：mtime **14:58:14**（c2 结果写出后 1 分钟），diff 5 行；`build/libastrocs_phase2.a` 于 14:54:36 重建。

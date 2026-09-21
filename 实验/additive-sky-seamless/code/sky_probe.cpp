@@ -1,4 +1,4 @@
-// 实验/SCI-C/code/sky_probe.cpp
+// 实验/additive-sky-seamless/code/sky_probe.cpp
 //
 // SCI-C 仓内实测驱动：直接链接生产 Phase2 稀疏天光面（只读），
 // 调用 p2_sky_plane_build / p2_sky_plane_info / p2_sky_plane_eval /

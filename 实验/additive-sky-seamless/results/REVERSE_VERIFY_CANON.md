@@ -1,7 +1,7 @@
 # reverse_verify 定案结论 · SCI-C（UPM 控制点平滑 λs）
 
 > 上游：ASTROCS_DESIGN.md §2.3 / §12.3；`ENGINEERING_SPEC.md §9`
-> 来源：`reverse_verify/docs/smooth-lambda.md`（2026-09-21 ROOT-CONSOLIDATION 迁入 `实验/SCI-C/docs/smooth-lambda.md`）
+> 来源：`reverse_verify/docs/smooth-lambda.md`（2026-09-21 ROOT-CONSOLIDATION 迁入 `实验/additive-sky-seamless/docs/smooth-lambda.md`）
 
 ## 1. 现行结论（原文 §0 结论速览）
 
@@ -32,10 +32,10 @@
 ## 3. 复跑
 
 ```bash
-bash 实验/SCI-C/code/reverse_verify/smooth_lambda/build.sh          # 链接真实 upm.cpp，零 ninja/cmake
-bash 实验/SCI-C/code/reverse_verify/smooth_lambda/gen_all.sh        # 生成全部合成场景
-SW_LAM="0,1e-3,0.01,0.03,0.1,0.3,1,10,1000" bash 实验/SCI-C/code/reverse_verify/smooth_lambda/sweep_all.sh <场景名...>
-bash 实验/SCI-C/code/reverse_verify/smooth_lambda/run_mosaic_ls.sh <lambda> <tag> [n_frames]
+bash 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/build.sh          # 链接真实 upm.cpp，零 ninja/cmake
+bash 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/gen_all.sh        # 生成全部合成场景
+SW_LAM="0,1e-3,0.01,0.03,0.1,0.3,1,10,1000" bash 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/sweep_all.sh <场景名...>
+bash 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/run_mosaic_ls.sh <lambda> <tag> [n_frames]
 ```
 
 实测与退役登记见 `run/ROOT-CONSOLIDATION/logs/migration_rerun.md`。

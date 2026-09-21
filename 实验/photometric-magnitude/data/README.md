@@ -16,7 +16,7 @@
 ## D2 · Gaia DR3 XP 光谱（真实天体 SED）
 
 - 来源：仓库内 `lib/infrastructure/gaia_xpsd_client`（本地 DR3SP 库）+ 仓库内
-  `gaia_client.c`（`实验/SCI-A/code/gaia_xp_dump.c` 直接链接它，只读）
+  `gaia_client.c`（`实验/photometric-magnitude/code/gaia_xp_dump.c` 直接链接它，只读）
 - 查询：M16 场 `(274.7216, −13.8415)` r=0.075°，G<21.5 → 208 源；
   真实帧场 `(83.2833557851, −6.37428025059)` r=0.30°，G<18.0
 - 缓存：`run/SCI-401/data_cache/gaia_xp_*.csv`
@@ -33,7 +33,7 @@
 ## D4 · 外部通带曲线（唯一需要网络）
 
 - 来源：SVO Filter Profile Service，`HST/WFC3_UVIS2.{F657N,F673N,F502N}` 总系统透过率
-- 复现：`bash 实验/SCI-A/code/step0_fetch_refs.sh`
+- 复现：`bash 实验/photometric-magnitude/code/step0_fetch_refs.sh`
 - 缓存与 SHA256（写入 `run/SCI-401/data_cache/`）：
 
 | 曲线 | SHA256 |
@@ -49,7 +49,7 @@
 
 | 文件 | 内容 | 生成命令 |
 |---|---|---|
-| `run/SCI-401/sim/frame_A.npz` | HST 模板 + Gaia XP 注入，透明度 1.0 | `python3 实验/SCI-A/code/step2_hst_sim.py` |
+| `run/SCI-401/sim/frame_A.npz` | HST 模板 + Gaia XP 注入，透明度 1.0 | `python3 实验/photometric-magnitude/code/step2_hst_sim.py` |
 | `run/SCI-401/sim/frame_B.npz` | 同上，透明度 0.62 | 同上 |
 | `run/SCI-401/sim/frame_C.npz` | 同模板 + 500 星解析合成位置场 | 同上 |
 

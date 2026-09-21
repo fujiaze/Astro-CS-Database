@@ -298,18 +298,18 @@ rank 49 = n_nodes，χ²_red 0.771，δ_k 非零。
 ## 7. 复现命令
 
     # 一键（编译探针 + c1..c7 + 出图；固定 seed，无网络，零 git 写）
-    bash 实验/SCI-C/code/run_all.sh
+    bash 实验/additive-sky-seamless/code/run_all.sh
 
     # 分步
-    bash 实验/SCI-C/code/build_probes.sh                      # 需 flock /tmp/astrocs_build.lock
-    python3 实验/SCI-C/code/c1_additive.py                    # → results/c1_additive.json
-    python3 实验/SCI-C/code/c2_multiplicative.py
-    python3 实验/SCI-C/code/c3_public_plane.py
-    python3 实验/SCI-C/code/c4_seam_criterion.py
-    python3 实验/SCI-C/code/c5_weights.py
-    python3 实验/SCI-C/code/c6_sparse_dense.py
-    python3 实验/SCI-C/code/c7_realdata.py
-    python3 实验/SCI-C/code/make_figures.py
+    bash 实验/additive-sky-seamless/code/build_probes.sh                      # 需 flock /tmp/astrocs_build.lock
+    python3 实验/additive-sky-seamless/code/c1_additive.py                    # → results/c1_additive.json
+    python3 实验/additive-sky-seamless/code/c2_multiplicative.py
+    python3 实验/additive-sky-seamless/code/c3_public_plane.py
+    python3 实验/additive-sky-seamless/code/c4_seam_criterion.py
+    python3 实验/additive-sky-seamless/code/c5_weights.py
+    python3 实验/additive-sky-seamless/code/c6_sparse_dense.py
+    python3 实验/additive-sky-seamless/code/c7_realdata.py
+    python3 实验/additive-sky-seamless/code/make_figures.py
 
 环境：Python 3.13 + numpy 2.2.4 / scipy 1.15.3 / astropy 7.0.1 / matplotlib 3.11.2。
 运行时间（本机）：C1 ~4 min、C2 ~12 min、C3 ~3 min、C4 ~6 min、C5 ~20 min、
@@ -353,7 +353,7 @@ C6 ~2 min、C7 ~3 min；探针编译 ~2 min。
 ### 8.3 仓内实测
 
 全部数字见 `results/*.json`（机器可读，含 `gates.rows` 每门的 id/判据/实测值/是否通过）。
-上游证据：`实验/SCI-B/results/*.json`（SCI-402：帧 SNR = F_signal/σ_F；天光只进噪声；
+上游证据：`实验/absolute-snr/results/*.json`（SCI-402：帧 SNR = F_signal/σ_F；天光只进噪声；
 天光扫描斜率 −0.4879/−0.4972 vs 理论 −0.5；三孔径域图；`SNR_comb² = ΣSNR_k²`（2.2e-16）；
 **天光采样权重必须用 control_ivar**）。本单元 C5 独立复现了该权重结论。
 
@@ -363,7 +363,7 @@ C6 ~2 min、C7 ~3 min；探针编译 ~2 min。
 
 | 任务要求 | 结论 | 可复跑命令 | 实测数字 |
 |---|---|---|---|
-| 纯加性世界 + 四要素表述 | 完成 | `python3 实验/SCI-C/code/c1_additive.py` | A1–A11 全 PASS |
+| 纯加性世界 + 四要素表述 | 完成 | `python3 实验/additive-sky-seamless/code/c1_additive.py` | A1–A11 全 PASS |
 | 阶跃-注入幅度曲线 | 完成 | 同上 | 比值 0.975（预测 0.824）；δ_k 臂平坦 0.0087 e⁻ |
 | 乘性张力：低阶 m + Phase1 + g_k≡1 | 完成 | `python3 .../c2_multiplicative.py` | 5.89e-4（未做 0.560）；接缝 4.33× |
 | 不可吸收部分的幅度/空间频率/来源 | 完成 | 同上 | 1%@24 px；PSD k=4（预期 5.33±2）；来源 = 未施加的 Phase1 归一 |
@@ -377,7 +377,7 @@ C6 ~2 min、C7 ~3 min；探针编译 ~2 min。
 | 真实数据接缝度量分布 + VIS-401 对照 | 完成（M42 一路） | `python3 .../c7_realdata.py` | 20.89 → 0.460 e⁻（45×）；相对 3.9e-4 |
 | 三类证据互相佐证 | 完成 | 见 §8 | 文献 11 + 开源 35 + 仓内实测 |
 | 独立子代理对抗审稿 | 见 `results/REVIEW.md` | — | 见 REVIEW |
-| 一键复跑（固定 seed） | 完成 | `bash 实验/SCI-C/code/run_all.sh` | — |
+| 一键复跑（固定 seed） | 完成 | `bash 实验/additive-sky-seamless/code/run_all.sh` | — |
 
 ---
 
@@ -433,8 +433,8 @@ FIX-2 按 `docs/algorithms` 的 0/1/2/3 语义补 `stalled` 分支；FIX-3 提�
 - **C2 M5 的 0.693 是下界**，不是无偏幅度估计（分块 sinc 衰减 + 信号加权）；
 - **C5 W5 无实验证据**支持 stalled 分支缺失（只有代码事实）；
 - **C7 的斜率/截距不可辨识**（杠杆臂 8.5 ADU），只有 `level_ratio` 可用；
-- **`实验/SCI-C/` 整目录未被 git 跟踪**（工作树有 357 个并行任务的改动），故"零生产代码改动"
-  由**证据方向**（本单元所有写操作只落在 `实验/SCI-C/**`、`run/SCI-403/**`）与
+- **`实验/additive-sky-seamless/` 整目录未被 git 跟踪**（工作树有 357 个并行任务的改动），故"零生产代码改动"
+  由**证据方向**（本单元所有写操作只落在 `实验/additive-sky-seamless/**`、`run/SCI-403/**`）与
   `grep` 探针只读 `p2_*` 支撑，无法用 git 证实；
 - **`lib/infrastructure/scheduler/src/module_adapters.cpp` 在本轮期间被并行任务改动**
   （FIX-1 那条线），行号已重新核对；`lib/algorithms/coverage/src/sampler.cpp` 同期被改。
@@ -446,13 +446,13 @@ FIX-2 按 `docs/algorithms` 的 0/1/2/3 语义补 `stalled` 分支；FIX-3 提�
 
 | 路径 | 内容 |
 |---|---|
-| `实验/SCI-C/README.md` | 本报告 |
-| `实验/SCI-C/data/README.md` | 数据指针与真值口径 |
-| `实验/SCI-C/code/sci_c_common.py` | 世界构造 / 生产探针封装 / 接缝度量 / 门 |
-| `实验/SCI-C/code/{upm_probe,sky_probe}.cpp` + `build_probes.sh` | 生产代码只读驱动 |
-| `实验/SCI-C/code/c1..c7_*.py` | 七个实验（固定 seed） |
-| `实验/SCI-C/code/{make_figures.py,run_all.sh}` | 出图 / 一键复跑 |
-| `实验/SCI-C/results/*.json` | 机器可读结果 + `gates.rows` |
-| `实验/SCI-C/results/evidence_{lit,code}.json` | 文献/开源证据（含核验状态） |
-| `实验/SCI-C/results/figs/*.png` | 6 张图 |
-| `实验/SCI-C/results/REVIEW.md` | 独立对抗审稿记录 |
+| `实验/additive-sky-seamless/README.md` | 本报告 |
+| `实验/additive-sky-seamless/data/README.md` | 数据指针与真值口径 |
+| `实验/additive-sky-seamless/code/sci_c_common.py` | 世界构造 / 生产探针封装 / 接缝度量 / 门 |
+| `实验/additive-sky-seamless/code/{upm_probe,sky_probe}.cpp` + `build_probes.sh` | 生产代码只读驱动 |
+| `实验/additive-sky-seamless/code/c1..c7_*.py` | 七个实验（固定 seed） |
+| `实验/additive-sky-seamless/code/{make_figures.py,run_all.sh}` | 出图 / 一键复跑 |
+| `实验/additive-sky-seamless/results/*.json` | 机器可读结果 + `gates.rows` |
+| `实验/additive-sky-seamless/results/evidence_{lit,code}.json` | 文献/开源证据（含核验状态） |
+| `实验/additive-sky-seamless/results/figs/*.png` | 6 张图 |
+| `实验/additive-sky-seamless/results/REVIEW.md` | 独立对抗审稿记录 |

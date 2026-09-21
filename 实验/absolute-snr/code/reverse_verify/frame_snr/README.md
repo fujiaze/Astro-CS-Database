@@ -3,7 +3,7 @@
 > 工作项 **FRAME-SNR-CANON**（RELEASE-02）。**纯 Python，无外部构建依赖**，
 > 因此 **未在 `reverse_verify/CMakeLists.txt` 登记**（该文件只登记 C++ Oracle 目标；
 > 本目录不动它，避免与并行工作项冲突）。
-> 定案文档：`实验/SCI-B/docs/frame-snr-canon.md`；调研记录：`实验/SCI-B/docs/surveys/frame-snr-survey.md`。
+> 定案文档：`实验/absolute-snr/docs/frame-snr-canon.md`；调研记录：`实验/absolute-snr/docs/surveys/frame-snr-survey.md`。
 
 ## 文件
 
@@ -23,7 +23,7 @@
 
 ```bash
 export TMPDIR=/dev/shm/astrocs_fsnr
-bash 实验/SCI-B/code/reverse_verify/frame_snr/run_all.sh
+bash 实验/absolute-snr/code/reverse_verify/frame_snr/run_all.sh
 ```
 
 外部对拍库（可选，缺省则该两项登记为 UNAVAILABLE）：

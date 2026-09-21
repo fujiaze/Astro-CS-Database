@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 实验/SCI-C/code/build_probes.sh
+# 实验/additive-sky-seamless/code/build_probes.sh
 # 编译 SCI-C 仓内实测驱动：只读链接生产 Phase2 静态库（不修改任何生产代码）。
 # 产物落 run/SCI-403/（gitignore，不入库）。构建串行化加锁。
 set -euo pipefail

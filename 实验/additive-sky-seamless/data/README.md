@@ -15,7 +15,7 @@
 
 ## 2. 纯解析代数合成（§12.2 第 2 类）
 
-由 `实验/SCI-C/code/sci_c_common.py` 在内存中构造，固定 seed `SEED_BASE=20260923`
+由 `实验/additive-sky-seamless/code/sci_c_common.py` 在内存中构造，固定 seed `SEED_BASE=20260923`
 （`derive_rng(tag)` = SHA-256 派生，无时间/环境随机源）：
 
     raw_k(x,y) = Poisson( s(x,y) + b_k(x,y) ) + N(0, RN²)        # 电子域，gain=1 e-/ADU
@@ -49,7 +49,7 @@ C7 取 4 帧，中心裁剪 512×512（origin 3000,3000，背景为主区域）�
 
 ## 5. 复跑
 
-    bash 实验/SCI-C/code/run_all.sh          # 编译探针 + 跑 c1..c7 + 出图
+    bash 实验/additive-sky-seamless/code/run_all.sh          # 编译探针 + 跑 c1..c7 + 出图
 
 产物：`run/SCI-403/`（日志/二进制/中间 JSON，gitignore）与
-`实验/SCI-C/results/*.json` + `results/figs/*.png`（入库）。
+`实验/additive-sky-seamless/results/*.json` + `results/figs/*.png`（入库）。

@@ -2,9 +2,9 @@
 
 > 分片：RELEASE-02 / A5（SMOOTH-LAMBDA）。执行者：SubAgent（UPM 平滑参数实验分片）。
 > 性质：**只做实验，不改生产代码/文档**；零 git 写；未跑 ninja/cmake/ctest。
-> 独立构建：`实验/SCI-C/code/reverse_verify/smooth_lambda/build.sh`（g++ 直接编译，链接**真实** `lib/algorithms/coverage/src/upm.cpp`，非复刻）。
+> 独立构建：`实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/build.sh`（g++ 直接编译，链接**真实** `lib/algorithms/coverage/src/upm.cpp`，非复刻）。
 > 中间产物 `run/reverse_verify/smooth_lambda/`；大产物 `run/RELEASE-02/smooth-lambda/`。
-> 判据**先于结果**登记在 `实验/SCI-C/code/reverse_verify/smooth_lambda/CRITERIA.md`。
+> 判据**先于结果**登记在 `实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/CRITERIA.md`。
 
 ---
 
@@ -146,11 +146,11 @@ control 位置 / tile / `leaf_ipix` / 逐帧覆盖子集**全部照搬** `run/RE
 
 ``bash
 export TMPDIR=/dev/shm/astrocs_lambda
-bash 实验/SCI-C/code/reverse_verify/smooth_lambda/build.sh                       # 编译 oracle（g++，链接真实 upm.cpp）
-python3 实验/SCI-C/code/reverse_verify/smooth_lambda/convert_real.py             # 真实 p2_samples.json -> UPMB
-bash 实验/SCI-C/code/reverse_verify/smooth_lambda/gen_all.sh                     # 合成场景（物理噪声链）
-SW_W=4 SW_MI=60 bash 实验/SCI-C/code/reverse_verify/smooth_lambda/sweep_all.sh real49 A_base A_vary B_prod
-python3 实验/SCI-C/code/reverse_verify/smooth_lambda/analyze.py --upmb <...> --prefix run/reverse_verify/smooth_lambda/sw_<name> \
+bash 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/build.sh                       # 编译 oracle（g++，链接真实 upm.cpp）
+python3 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/convert_real.py             # 真实 p2_samples.json -> UPMB
+bash 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/gen_all.sh                     # 合成场景（物理噪声链）
+SW_W=4 SW_MI=60 bash 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/sweep_all.sh real49 A_base A_vary B_prod
+python3 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/analyze.py --upmb <...> --prefix run/reverse_verify/smooth_lambda/sw_<name> \
         --truth run/reverse_verify/smooth_lambda/<name>.truth.npz --out run/reverse_verify/smooth_lambda/sw_<name>
-python3 实验/SCI-C/code/reverse_verify/smooth_lambda/report.py
+python3 实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/report.py
 ``

@@ -1,7 +1,7 @@
 # 帧级 SNR 定案（FRAME-SNR-CANON）
 
-> 工作项：**FRAME-SNR-CANON**（RELEASE-02）。调研记录：`实验/SCI-B/docs/surveys/frame-snr-survey.md`。
-> 实验代码：`实验/SCI-B/code/reverse_verify/frame_snr/`（**纯 Python，独立构建，不并入主线**）。
+> 工作项：**FRAME-SNR-CANON**（RELEASE-02）。调研记录：`实验/absolute-snr/docs/surveys/frame-snr-survey.md`。
+> 实验代码：`实验/absolute-snr/code/reverse_verify/frame_snr/`（**纯 Python，独立构建，不并入主线**）。
 > 中间产物：`run/reverse_verify/frame_snr/`（gitignore）。
 > 硬约束遵守情况：**未改** `lib/` `docs/` `eng/tests/` `ci/`；**零 git 写**；**未跑** `ninja`/`cmake`/`ctest`。
 > 唯一的外部编译是 `g++` 直编生产 TU（只读）用于对拍，见 §3 P12。
@@ -22,7 +22,7 @@
 
 ## 1 调研结论：各类科学文献与主流实现到底用什么（分类归纳）
 
-> 逐条记录见 `实验/SCI-B/docs/surveys/frame-snr-survey.md`；此处只给归纳与判定。
+> 逐条记录见 `实验/absolute-snr/docs/surveys/frame-snr-survey.md`；此处只给归纳与判定。
 
 ### 1.1 分类归纳
 
@@ -205,8 +205,8 @@ SNR_frame  --(逐源/逐像素)-->  sigma_F = F_ref / SNR_frame
 
 ## 3 红线测试结果（能红能绿）
 
-> 全部代码：`实验/SCI-B/code/reverse_verify/frame_snr/`；结果 JSON：`run/reverse_verify/frame_snr/`。
-> 复跑：`bash 实验/SCI-B/code/reverse_verify/frame_snr/run_all.sh`。
+> 全部代码：`实验/absolute-snr/code/reverse_verify/frame_snr/`；结果 JSON：`run/reverse_verify/frame_snr/`。
+> 复跑：`bash 实验/absolute-snr/code/reverse_verify/frame_snr/run_all.sh`。
 > 判据**先写死**（见各脚本 docstring），**未事后放宽**；唯一一次调整是把"MC 在 SNR≪1 区间不可分辨"
 > 如实登记并把极限改由解析式断言（见 P8 说明），**不是放宽而是改对了工具**。
 
@@ -460,7 +460,7 @@ HiPS writer     ASTROCS_FRAME_SNR / ASTROCS_FRAME_REFERENCE_FLUX
 
 > ⚠️ **易变性登记**：`run/` 是并行工作项共用的**活目录**，随时被重写/删除。
 > 本节的数字来自 **2026-09-19T11:43:23Z**（盘点）与 **11:50:14Z**（分支判别）两次快照，
-> 复跑脚本：`实验/SCI-B/code/reverse_verify/frame_snr/inventory_p1_snr.py` 与 `branch_discriminator.py`。
+> 复跑脚本：`实验/absolute-snr/code/reverse_verify/frame_snr/inventory_p1_snr.py` 与 `branch_discriminator.py`。
 > 本会话更早的一次盘点（对象是 `norm_phot/*` 那批产品）已**无法复现**，见 §4.1 的历史快照登记。
 
 快照实测（`run/reverse_verify/frame_snr/p1_snr_inventory.json`）：
@@ -508,7 +508,7 @@ HiPS writer     ASTROCS_FRAME_SNR / ASTROCS_FRAME_REFERENCE_FLUX
 | `docs/science/CONTROL_WEIGHT_SNR.md:33` | `\| frame_snr \| 整帧 Phase1 SNR 目录值的**中位数（回退质量基准）**\|` | **provenance 不准**：Phase1 写进 HiPS 的帧级量是 `snr_reference.snr_f`（**参考源** SNR，不是目录中位数）；目录中位数是 `median_source_snr`（另一个字段） | 改为"来源 = Phase1 `p1_snr.json` 的 `snr_reference.snr_f`（**参考通量 `F_ref` 上的 PSF SNR**）；**不是** `median_source_snr`（后者是目录中位数，语义不同）" |
 | `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 数学定义 | `W_psf,k = a_k² P_kᵀ C_k⁻¹ P_k` | **未实现**（实现是对角 `1/ΣP_i²/σ_i²`，无 `a_k`、无 `C`） | 加一行**实现状态**：`W_psf` 是**目标规范**；当前实现为 `W_psf ≈ 1/sigma_F²` 且 `sigma_F² = Σ P_i²/σ_i²`（对角、白噪声），`a_k` 与协方差 `C` **未接入**（附 file:line）；或明确写"实现跟随项" |
 | `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 | 未声明 `F_ref` 的单位与参考轮廓 | `F_ref` 是 ADU、参考轮廓是"目录天限星 FWHM 中位数"（`snr_reference.profile`），但文档未写 | 补：`F_ref` [ADU]；参考轮廓 = `median_fwhm_of_catalogue_sky_limited`；**组内公共**（`snr_reference_scope="group"`，实测偏差 0.0） |
-| `docs/design/UNIFIED_MODEL.md:42` | `… 天光散粒噪声计入 σ_n`（已符合定案） | 缺少**可复算判据**的指向 | 补一句"红线判据与数值见 `实验/SCI-B/docs/frame-snr-canon.md` §3；`B→∞ ⇒ SNR→0` 的解析断言见 §3.1" |
+| `docs/design/UNIFIED_MODEL.md:42` | `… 天光散粒噪声计入 σ_n`（已符合定案） | 缺少**可复算判据**的指向 | 补一句"红线判据与数值见 `实验/absolute-snr/docs/frame-snr-canon.md` §3；`B→∞ ⇒ SNR→0` 的解析断言见 §3.1" |
 | `docs/science/CONTROL_WEIGHT_SNR.md` §2a | `唯一帧级科学基准是 5σ 点源深度 m_5` | `m_5` **从不产出**（G2），而 `snr_reference.snr_f` **实际是**帧级科学量 | 改为"帧级科学量有二：**帧级 SNR**（`snr_reference.snr_f`，已产出）与 **`m_5`**（需 ZP，**当前未产出**，属实现缺口 G2）"；并把 `m_5` 的产出接入登记为跟随项 |
 | `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 | 未声明**源自身泊松**的取舍 | 调研结论：各家取舍不同（SDSS 不进 / SExtractor·HSC·JWST·LSST 进） | 显式声明：生产 **gain 未知 ⇒ 源泊松项未计入**（`snr_science.cpp:176-177`），故 `sigma_F` 在亮源端**偏低** ⇒ `SNR` **偏高**；须作为已知偏差登记 |
 | `docs/science/CONTROL_WEIGHT_SNR.md` §2a | `sigma_F` 的 `sigma_sky` 来源未声明 | 实际是**整帧** MAD（G1），会把天光梯度/星云误当噪声 | 补：`sigma_sky` 当前为**整帧**稳健估计（`star_detector.cpp:30-60`），**局部化**登记为跟随项（G1） |
@@ -538,7 +538,7 @@ HiPS writer     ASTROCS_FRAME_SNR / ASTROCS_FRAME_REFERENCE_FLUX
 export TMPDIR=/dev/shm/astrocs_fsnr
 # 外部对拍库（可选，仅对拍项需要；不装则该两项登记为 UNAVAILABLE）
 python3 -m pip install --quiet --target /dev/shm/astrocs_fsnr/frame_snr_canon/pylibs photutils sep
-bash 实验/SCI-B/code/reverse_verify/frame_snr/run_all.sh
+bash 实验/absolute-snr/code/reverse_verify/frame_snr/run_all.sh
 # 产物: run/reverse_verify/frame_snr/redlines.json
 #       run/reverse_verify/frame_snr/redlines_physical.json
 #       run/reverse_verify/frame_snr/external_crosscheck.json

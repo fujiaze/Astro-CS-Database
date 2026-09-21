@@ -1,7 +1,7 @@
 # SCI-A → 文档订正建议（交前台合并；本轮**未改** `docs/`）
 
 > 本轮任务域不含 `docs/`（`docs/science/PHOTOMETRY.md` 正由 DOC-404 重写）。
-> 下列每条都由 `实验/SCI-A` 内的实测支持，给出复现命令与实测数字，供前台按变更流程合并。
+> 下列每条都由 `实验/photometric-magnitude` 内的实测支持，给出复现命令与实测数字，供前台按变更流程合并。
 >
 > **修订记录（轮次 1 独立审稿后）**：原 C1 是**稻草人**，已**撤回**（见文末"已撤回"节）。
 > 现 C1 为审稿后新增的真实发现。
@@ -13,7 +13,7 @@
 - **判据原文**：`sigma_floor = (1 − 3·1.166/√n)·sigma_fit(白)`。
 - **问题**：`1 − 3·1.166/√n` 在 `n < (3·1.166)² ≈ 12.2` 时为负；即使 n 稍大，floor 也迅速趋零。
   于是**把样本裁剪到只剩同质星**（σ_obs 单调下降）时，σ_obs 仍高于 floor ⇒ 判据不判红。
-- **实测**（`step7_negatives.json → N5`，复现 `python3 实验/SCI-A/code/step7_negatives.py`）：
+- **实测**（`step7_negatives.json → N5`，复现 `python3 实验/photometric-magnitude/code/step7_negatives.py`）：
   对帧 A 的**实测**通量按 `|r − median(r)| < tol` 逐步裁剪：
 
 | 裁剪 tol | n | σ_obs [mag] | σ_floor | 判定 |
@@ -31,7 +31,7 @@
 ## C2（建议订正）σ_psfsys 的「PSF vs 大孔径」估计量在强星云场被结构污染，可达真值 10 倍
 
 - **原文口径**：用 PSF 域通量与独立孔径通量之比的中位绝对偏差作为 σ_psfsys。
-- **实测**（`step5_calibration_gate.json → items_measured`，复现 `python3 实验/SCI-A/code/step5_calibration_gate.py`）：
+- **实测**（`step5_calibration_gate.json → items_measured`，复现 `python3 实验/photometric-magnitude/code/step5_calibration_gate.py`）：
 
 | 帧 | r=10 px 孔径估计 | r=4 px 孔径估计 | 真值口径 |
 |---|---|---|---|
@@ -60,7 +60,7 @@
 
 ## C4（事实订正）HLSP drz 头部 WCS 与 Gaia DR3 有 ~1.6″ 系统偏移；二轮精化必须是**平移**精化
 
-- **实测**（`step3_forward_vs_photflam.json → wcs_refinement`，复现 `python3 实验/SCI-A/code/step3_forward_vs_photflam.py`）：
+- **实测**（`step3_forward_vs_photflam.json → wcs_refinement`，复现 `python3 实验/photometric-magnitude/code/step3_forward_vs_photflam.py`）：
   - F657N：shift = (23.10, 33.32) px = **1.622″**，精化后 83/88 在 4 px 内匹配；
   - F673N：shift = (23.12, 33.52) px = **1.629″**，80/88 匹配。
 - **对照**：testdata 真实帧（FLI M42）的头部 WCS 残余仅 `(−0.263, −0.319)` px = **0.0068″**，827/827 匹配
@@ -92,7 +92,7 @@
 ## C6（建议订正）"由标定系数反解增益/口径/曝光"的闭合式必须删除或降级
 
 - **若 `docs/science/PHOTOMETRY.md` 仍保留形如 `k = g·h·c·1e9/(A·t)` 的闭合式**：本实验给出反例。
-- **实测**（`step6_apply_and_units.json → unit_elimination.degenerate_family`，复现 `python3 实验/SCI-A/code/step6_apply_and_units.py`）：
+- **实测**（`step6_apply_and_units.json → unit_elimination.degenerate_family`，复现 `python3 实验/photometric-magnitude/code/step6_apply_and_units.py`）：
 
 | 参数组 | A·t/g | 中位 F [ADU] | σ_obs [mag] |
 |---|---|---|---|

@@ -5,7 +5,8 @@ Read-only. Output: run/reverse_verify/smooth_lambda/real_probe.json
 import json, os, sys, math
 import numpy as np
 
-ROOT = "/workspace/Astro CS Database"
+_HERE = os.path.dirname(os.path.abspath(__file__))   # .../实验/<unit>/code/reverse_verify/smooth_lambda
+ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "..", ".."))   # 仓库根（从脚本自身位置推导）
 SRC = os.path.join(ROOT, "run/RELEASE-02/L4-rebuild/mosaic_out/p2_samples.json")
 OUT = os.path.join(ROOT, "run/reverse_verify/smooth_lambda/real_probe.json")
 

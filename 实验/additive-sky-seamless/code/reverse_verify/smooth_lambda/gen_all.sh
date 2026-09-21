@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # 生成全部合成场景（并行）。用法: bash gen_all.sh
 set -u
-cd "/workspace/Astro CS Database"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # 本实验目录（从脚本自身位置推导）
+cd "$HERE/../../../../.."                               # 仓库根
 export TMPDIR=/dev/shm/astrocs_lambda
-G=实验/SCI-C/code/reverse_verify/smooth_lambda/gen_synth.py
+G="$HERE/gen_synth.py"
 common="--core-sigma 0.05 --core-amp 3.0e5 --core-ra 83.82 --core-dec -5.39"
 # A: 光子散粒噪声主导（tex=0；天光逐帧差 0.5% 天空；read/dark/gain 物理）
 A="--sky-base 1.0e4 --gain 2.0 --read-e 5.0 --dark-e 3.0 --tex-mad 0.0"

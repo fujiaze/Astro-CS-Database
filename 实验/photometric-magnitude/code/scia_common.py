@@ -100,7 +100,8 @@ def _json_default(o):
 # --------------------------------------------------------------------------
 def load_filter(name: str):
     """从仓内 eng/packaging/config/filters.json 取滤镜曲线（逐字转录自 response_curves/filters.json）。"""
-    with open(os.path.join(REPO, "config", "filters.json"), encoding="utf-8") as f:
+    with open(os.path.join(REPO, "eng", "packaging", "config", "filters.json"),
+              encoding="utf-8") as f:
         lib = json.load(f)
     if name not in lib["filters"]:
         raise KeyError(f"filter {name!r} not in eng/packaging/config/filters.json; have {len(lib['filters'])}")

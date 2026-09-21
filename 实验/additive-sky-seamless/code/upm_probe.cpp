@@ -1,4 +1,4 @@
-// 实验/SCI-C/code/upm_probe.cpp
+// 实验/additive-sky-seamless/code/upm_probe.cpp
 //
 // SCI-C 仓内实测驱动：直接链接生产 Phase2 UPM（只读，不修改任何生产代码）。
 //   - UPM 段（scenario 含 "obs"）：p2_upm_build / p2_upm_calibrate_block /

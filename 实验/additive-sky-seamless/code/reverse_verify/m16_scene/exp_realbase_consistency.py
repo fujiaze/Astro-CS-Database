@@ -34,7 +34,7 @@ C3 **结构相关**：3-px 平滑后真实 vs 合成的 Pearson r >= 0.30（剔�
 CLI::
 
     export TMPDIR=/dev/shm/astrocs_m16fix
-    python3 实验/SCI-C/code/reverse_verify/m16_scene/exp_realbase_consistency.py --out run/RELEASE-02/paper/data/M16FIX/regression.json
+    python3 实验/additive-sky-seamless/code/reverse_verify/m16_scene/exp_realbase_consistency.py --out run/RELEASE-02/paper/data/M16FIX/regression.json
 """
 from __future__ import annotations
 

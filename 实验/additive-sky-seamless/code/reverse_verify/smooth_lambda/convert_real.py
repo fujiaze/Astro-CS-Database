@@ -2,7 +2,8 @@
 """真实 L4 p2_samples.json -> UPMB v1（喂给 upm_sweep，链接真实 upm.cpp）。只读转换。"""
 import json, os, sys
 import numpy as np
-ROOT = "/workspace/Astro CS Database"
+_HERE = os.path.dirname(os.path.abspath(__file__))   # .../实验/<unit>/code/reverse_verify/smooth_lambda
+ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "..", ".."))   # 仓库根（从脚本自身位置推导）
 SRC = os.path.join(ROOT, "run/RELEASE-02/L4-rebuild/mosaic_out/p2_samples.json")
 OUT = os.path.join(ROOT, "run/reverse_verify/smooth_lambda/real49.upmb")
 

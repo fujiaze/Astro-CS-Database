@@ -1,7 +1,7 @@
 # 帧级 SNR（frame-level SNR）文献与开源实现调研记录
 
-> 工作项：**FRAME-SNR-CANON**（RELEASE-02）。代码：`实验/SCI-B/code/reverse_verify/frame_snr/`；
-> 定案：`实验/SCI-B/docs/frame-snr-canon.md`；中间产物：`run/reverse_verify/frame_snr/`。
+> 工作项：**FRAME-SNR-CANON**（RELEASE-02）。代码：`实验/absolute-snr/code/reverse_verify/frame_snr/`；
+> 定案：`实验/absolute-snr/docs/frame-snr-canon.md`；中间产物：`run/reverse_verify/frame_snr/`。
 >
 > **记录规则**（`../README.md §5`）：每条给 **①可核对标识 ②SNR 定义 ③是否扣背景/天光如何进入
 > ④借鉴点 ⑤不借鉴点 ⑥场景差异 ⑦证据（逐字）⑧核对状态**。

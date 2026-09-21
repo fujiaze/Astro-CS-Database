@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 实验/SCI-C/code/c5_weights.py
+# 实验/additive-sky-seamless/code/c5_weights.py
 """C5 天光采样权重：control_ivar vs SNR² vs uniform；完整链路；收敛枚举对拍。
 
 设计：一帧被污染（低 SNR：5× 读出噪声 + x≥256 的加性系统伪影）。

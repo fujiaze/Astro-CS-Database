@@ -4,7 +4,7 @@
 
 **判据先行**：各 exp 脚本顶部写死阈值，本库只提供估计量，不提供阈值。
 
-估计量约定（与 实验/SCI-B/docs/frame-snr-canon.md 一致）
+估计量约定（与 实验/absolute-snr/docs/frame-snr-canon.md 一致）
     sigma_sky   : 逐像素空背景 rms [ADU]，由**分块 sigma 裁剪 std 的中位数**稳健估计
     P_i         : 离散归一化 PSF（sum=1），真值核（合成实验里 PSF 是配置量）
     sigma_i^2   : sigma_sky^2 + max(F,0)*P_i/g          [ADU^2]（天光散粒已含在 sigma_sky）

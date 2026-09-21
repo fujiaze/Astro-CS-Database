@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """汇总 λs 扫描指标 → markdown 表 + ASCII 曲线（供 docs/smooth-lambda.md 引用）。"""
 import json, os, sys, math
-ROOT = "/workspace/Astro CS Database"
+_HERE = os.path.dirname(os.path.abspath(__file__))   # .../实验/<unit>/code/reverse_verify/smooth_lambda
+ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "..", ".."))   # 仓库根（从脚本自身位置推导）
 D = os.path.join(ROOT, "run/reverse_verify/smooth_lambda")
 FENCE = chr(96) * 3
 SCENES = [("A_base","合成 A 基础：加性天光 + 突兀亮峰（各帧一致）+ 光子散粒噪声"),

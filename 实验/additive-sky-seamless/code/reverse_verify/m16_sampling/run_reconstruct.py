@@ -5,7 +5,7 @@
 用法::
 
     export TMPDIR=/var/tmp/astrocs
-    python3 实验/SCI-C/code/reverse_verify/m16_sampling/run_reconstruct.py \
+    python3 实验/additive-sky-seamless/code/reverse_verify/m16_sampling/run_reconstruct.py \
         --dataset run/reverse_verify/m16_sampling/mosaic_diff_pointing \
         --out     run/reverse_verify/m16_sampling/recon/mosaic_diff_pointing \
         [--weight-mode 1] [--skip-generate]
@@ -37,7 +37,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[5]
-sys.path.insert(0, str(ROOT / "reverse_verify" / "synthetic"))
+sys.path.insert(0, str(ROOT / "实验" / "shared" / "synthetic"))   # 迁移后合成数据生成代码落 实验/shared/synthetic
 import m16_sampling as MS  # noqa: E402
 
 ASTROCS = ROOT / "build" / "astrocs"
@@ -249,7 +249,7 @@ def main() -> int:
             # header_pointing：逐帧从帧头 OBJCTRA/OBJCTDEC + FOCALLEN/XPIXSZ 取初始指向与
             # 板尺度，再走真实 IPV 解算链（必须给 gaia_data_dir，无 silent default）
             "wcs": {"init_source": "header_pointing",
-                    "gaia_data_dir": str((ROOT / "GaiaDR3").resolve())},
+                    "gaia_data_dir": str((ROOT / "gaia" / "GaiaDR3").resolve())},
         }],
     }
     (out / "configs" / "normalize.json").write_text(

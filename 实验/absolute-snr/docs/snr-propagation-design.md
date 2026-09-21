@@ -1,7 +1,7 @@
 # 信噪比（SNR）在全流程中的传播：从单帧校准到成品的方案设计
 
 > **论文雏形** — 本文是 AstroCS RELEASE-02 `SNR-DESIGN` 工作项的设计文档，可直接扩写为论文的方法节。
-> 工作区：`reverse_verify/`（逆向验收区）。所有数值证据由 `实验/SCI-B/code/reverse_verify/snr_design/exp1..exp5` 独立产出，
+> 工作区：`reverse_verify/`（逆向验收区）。所有数值证据由 `实验/absolute-snr/code/reverse_verify/snr_design/exp1..exp5` 独立产出，
 > 中间产物落 `run/reverse_verify/snr_design/`。
 > **性质**：只做方案设计，不改任何生产代码（`lib/`、`docs/`、`eng/tests/`、`ci/` 零改动），零 git 写。
 
@@ -1204,7 +1204,7 @@ uncertainty_available = true 的真值条件（三条同时成立，fail-closed�
 1. **已知真值**：每个合成实验给出真值（EXP-1 的解析式、EXP-4 的核）；
 2. **能红能绿**：每个判据都配一个**必须变差**的负例（打乱控制点、`1e-10` nugget、朴素方差式、功率比 SNR 换算…）；
 3. **判据先行**：阈值在跑之前写入脚本常量，**不得**事后放宽（EXP-1 的解析式先于 MC、EXP-3 的 SP-0 先于实测）；
-4. **可复跑**：`实验/SCI-B/code/reverse_verify/snr_design/run_all.sh` 一键复现全部 JSON。
+4. **可复跑**：`实验/absolute-snr/code/reverse_verify/snr_design/run_all.sh` 一键复现全部 JSON。
 
 **本轮已经红了的判据（诚实登记，不得掩盖）**：
 
@@ -1279,12 +1279,12 @@ uncertainty_available = true 的真值条件（三条同时成立，fail-closed�
 | `audit/audit_exp1245.py` | `audit_exp1245.json` | EXP-1 算子核对 / EXP-2 变差函数独立重拟合 / EXP-4 逐格复算 / EXP-5 预算算术复核 |
 | `audit/audit_mosaic_shape.py` | `audit_mosaic_shape.json` | **真实跨板块**对照：同指向 vs 不同指向/气团下 SP-0 的适用域 |
 
-复跑：`TMPDIR=/dev/shm/astrocs_snraudit 实验/SCI-B/code/reverse_verify/snr_design/audit/run_all_audit.sh`
+复跑：`TMPDIR=/dev/shm/astrocs_snraudit 实验/absolute-snr/code/reverse_verify/snr_design/audit/run_all_audit.sh`
 
 复跑：
 
 ```bash
-cd 实验/SCI-B/code/reverse_verify/snr_design
+cd 实验/absolute-snr/code/reverse_verify/snr_design
 TMPDIR=/dev/shm/astrocs_snrd ./run_all.sh    # 结果落 run/reverse_verify/snr_design/
 ```
 
@@ -1320,7 +1320,7 @@ TMPDIR=/dev/shm/astrocs_snrd ./run_all.sh    # 结果落 run/reverse_verify/snr_
 - **零 git 写权限**：本轮未做任何 git 操作；
 - **未运行** `ninja`/`cmake`/`ctest`（`reverse_verify/CMakeLists.txt` 是 standalone 占位，本轮实验均为 Python，无需构建）；
 - 原本误落在 `eng/tests/validation/release02/snr_design/` 的 5 个脚本与 4 个结果 JSON **已迁移**至
-  `实验/SCI-B/code/reverse_verify/snr_design/`，原目录已删除，`eng/tests/` 树恢复原状（已核：`eng/tests/validation/release02/` 下无 `snr_design`）。
+  `实验/absolute-snr/code/reverse_verify/snr_design/`，原目录已删除，`eng/tests/` 树恢复原状（已核：`eng/tests/validation/release02/` 下无 `snr_design`）。
 
 **可复现性信息**：
 

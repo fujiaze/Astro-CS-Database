@@ -11,24 +11,24 @@
 
 | 旧路径 | 新路径 | 依据 |
 |---|---|---|
-| `reverse_verify/experiments/frame_snr/` | `实验/SCI-B/code/reverse_verify/frame_snr/` | 帧级 SNR 定案 ↔ SCI-B 跨帧绝对 SNR 传递链 |
-| `reverse_verify/experiments/p7_noise/` | `实验/SCI-B/code/reverse_verify/p7_noise/` | 噪声项/SNR 标定 ↔ SCI-B |
-| `reverse_verify/experiments/snr_design/` | `实验/SCI-B/code/reverse_verify/snr_design/` | SNR 传播设计数值估算 ↔ SCI-B |
-| `reverse_verify/experiments/f_instr/` | `实验/SCI-B/code/reverse_verify/f_instr/` | 星点通量口径（进 SNR 分子）↔ SCI-B |
-| `reverse_verify/experiments/p1_spatial_gain/` | `实验/SCI-A/code/reverse_verify/p1_spatial_gain/` | 低阶空间乘法增益 ↔ SCI-A 测光星等坐标系 |
-| `reverse_verify/experiments/smooth_lambda/` | `实验/SCI-C/code/reverse_verify/smooth_lambda/` | UPM 控制点平滑 λs ↔ SCI-C 加性天光与无接缝 |
-| `reverse_verify/experiments/m16_sampling/` | `实验/SCI-C/code/reverse_verify/m16_sampling/` | M16 采样/重建 ↔ SCI-C |
-| `reverse_verify/experiments/m16_scene/` | `实验/SCI-C/code/reverse_verify/m16_scene/` | M16 场景前向渲染判据 ↔ SCI-C |
-| `reverse_verify/experiments/data_matrix/` | `实验/SCI-C/code/reverse_verify/data_matrix/` | 数据类型矩阵判据 ↔ SCI-C |
+| `reverse_verify/experiments/frame_snr/` | `实验/absolute-snr/code/reverse_verify/frame_snr/` | 帧级 SNR 定案 ↔ SCI-B 跨帧绝对 SNR 传递链 |
+| `reverse_verify/experiments/p7_noise/` | `实验/absolute-snr/code/reverse_verify/p7_noise/` | 噪声项/SNR 标定 ↔ SCI-B |
+| `reverse_verify/experiments/snr_design/` | `实验/absolute-snr/code/reverse_verify/snr_design/` | SNR 传播设计数值估算 ↔ SCI-B |
+| `reverse_verify/experiments/f_instr/` | `实验/absolute-snr/code/reverse_verify/f_instr/` | 星点通量口径（进 SNR 分子）↔ SCI-B |
+| `reverse_verify/experiments/p1_spatial_gain/` | `实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/` | 低阶空间乘法增益 ↔ SCI-A 测光星等坐标系 |
+| `reverse_verify/experiments/smooth_lambda/` | `实验/additive-sky-seamless/code/reverse_verify/smooth_lambda/` | UPM 控制点平滑 λs ↔ SCI-C 加性天光与无接缝 |
+| `reverse_verify/experiments/m16_sampling/` | `实验/additive-sky-seamless/code/reverse_verify/m16_sampling/` | M16 采样/重建 ↔ SCI-C |
+| `reverse_verify/experiments/m16_scene/` | `实验/additive-sky-seamless/code/reverse_verify/m16_scene/` | M16 场景前向渲染判据 ↔ SCI-C |
+| `reverse_verify/experiments/data_matrix/` | `实验/additive-sky-seamless/code/reverse_verify/data_matrix/` | 数据类型矩阵判据 ↔ SCI-C |
 | `reverse_verify/synthetic/` | `实验/shared/synthetic/` | 合成数据生成代码，三单元共用 ⇒ 新建 `实验/shared/` |
 | `reverse_verify/data/` | `实验/shared/data/` | 真值场景 JSON / 真实实例索引，被共用代码引用 |
-| `reverse_verify/docs/frame-snr-canon.md` | `实验/SCI-B/docs/frame-snr-canon.md` | 论文雏形原文（不搬进 docs/ 正式文档） |
-| `reverse_verify/docs/f-instr-canon.md` | `实验/SCI-B/docs/f-instr-canon.md` | 同上 |
-| `reverse_verify/docs/snr-propagation-design.md` | `实验/SCI-B/docs/snr-propagation-design.md` | 同上 |
-| `reverse_verify/docs/p1-spatial-gain.md` | `实验/SCI-A/docs/p1-spatial-gain.md` | 同上 |
-| `reverse_verify/docs/smooth-lambda.md` | `实验/SCI-C/docs/smooth-lambda.md` | 同上 |
-| `reverse_verify/references/frame-snr-survey.md` | `实验/SCI-B/docs/surveys/frame-snr-survey.md` | 调研记录（见 §4 落位说明） |
-| `reverse_verify/references/f-instr-survey.md` | `实验/SCI-B/docs/surveys/f-instr-survey.md` | 同上 |
+| `reverse_verify/docs/frame-snr-canon.md` | `实验/absolute-snr/docs/frame-snr-canon.md` | 论文雏形原文（不搬进 docs/ 正式文档） |
+| `reverse_verify/docs/f-instr-canon.md` | `实验/absolute-snr/docs/f-instr-canon.md` | 同上 |
+| `reverse_verify/docs/snr-propagation-design.md` | `实验/absolute-snr/docs/snr-propagation-design.md` | 同上 |
+| `reverse_verify/docs/p1-spatial-gain.md` | `实验/photometric-magnitude/docs/p1-spatial-gain.md` | 同上 |
+| `reverse_verify/docs/smooth-lambda.md` | `实验/additive-sky-seamless/docs/smooth-lambda.md` | 同上 |
+| `reverse_verify/references/frame-snr-survey.md` | `实验/absolute-snr/docs/surveys/frame-snr-survey.md` | 调研记录（见 §4 落位说明） |
+| `reverse_verify/references/f-instr-survey.md` | `实验/absolute-snr/docs/surveys/f-instr-survey.md` | 同上 |
 | `reverse_verify/references/bibliography.md` | `实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md` | 参考文献（见 §4.3 落位偏离说明） |
 | `reverse_verify/references/bibliography.bib` | `实验/shared/references/reverse_verify_bibliography.bib` | 同上（机器可读版） |
 | `reverse_verify/references/README.md` | 并入 `实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md §0`（逐字保留） | 记录规则，避免新建第 3 份 formal doc |
@@ -63,7 +63,7 @@
 唯一被它登记的 target `rv_p1sg_oracle` 改由等价的最小构建脚本承担（**不新增第二套构建入口**）：
 
 ```bash
-bash 实验/SCI-A/code/reverse_verify/p1_spatial_gain/build_oracle.sh
+bash 实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/build_oracle.sh
 run/reverse_verify/p1_spatial_gain/p1sg_oracle        # 退出码 0 = 全部 PASS
 ```
 
@@ -74,7 +74,7 @@ run/reverse_verify/p1_spatial_gain/p1sg_oracle        # 退出码 0 = 全部 PAS
    `docs/DOCUMENT_INDEX.yaml` 登记 + 加「上游」抬头，且两份 survey 内含 `docs/frame-snr-canon.md`、
    `docs/f-instr-canon.md` 等**迁移后不再存在的 `docs/` 指针** ⇒ 直接判红 DOC-INDEX 门
    （台账 `tools/doccheck/dangling_ledger.json` 为**只减不增**，不得新增条目）。
-   故按任务卡总则「论文雏形原文放 `实验/SCI-X/docs/`」落 `实验/SCI-B/docs/surveys/`。
+   故按任务卡总则「论文雏形原文放 `实验/SCI-X/docs/`」落 `实验/absolute-snr/docs/surveys/`。
 2. **`reverse_verify/references/README.md` 未单独成文**：其内容是「参考文献记录规则」，
    并入 `实验/shared/references/REVERSE_VERIFY_BIBLIOGRAPHY.md §0`（逐字保留），避免为 17 行规则
    新建第 3 份需索引登记的正式文档。
@@ -93,9 +93,9 @@ run/reverse_verify/p1_spatial_gain/p1sg_oracle        # 退出码 0 = 全部 PAS
 
 | 单元 | 定案结论落位 | 论文雏形原文 |
 |---|---|---|
-| SCI-A | `实验/SCI-A/results/REVERSE_VERIFY_CANON.md` | `实验/SCI-A/docs/p1-spatial-gain.md` |
-| SCI-B | `实验/SCI-B/results/REVERSE_VERIFY_CANON.md` | `实验/SCI-B/docs/{frame-snr-canon,f-instr-canon,snr-propagation-design}.md` |
-| SCI-C | `实验/SCI-C/results/REVERSE_VERIFY_CANON.md` | `实验/SCI-C/docs/smooth-lambda.md` |
+| SCI-A | `实验/photometric-magnitude/results/REVERSE_VERIFY_CANON.md` | `实验/photometric-magnitude/docs/p1-spatial-gain.md` |
+| SCI-B | `实验/absolute-snr/results/REVERSE_VERIFY_CANON.md` | `实验/absolute-snr/docs/{frame-snr-canon,f-instr-canon,snr-propagation-design}.md` |
+| SCI-C | `实验/additive-sky-seamless/results/REVERSE_VERIFY_CANON.md` | `实验/additive-sky-seamless/docs/smooth-lambda.md` |
 
 ## 6. 运行产物命名空间
 

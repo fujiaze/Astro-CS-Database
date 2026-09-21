@@ -7,13 +7,13 @@
 
 ```bash
 # 全量（含最慢的 step6 单元消除族，总计约 10–20 分钟，取决于 CPU）
-bash 实验/SCI-A/code/run_all.sh
+bash 实验/photometric-magnitude/code/run_all.sh
 
 # 快速（跳过 step6）
-bash 实验/SCI-A/code/run_all.sh quick
+bash 实验/photometric-magnitude/code/run_all.sh quick
 ```
 
-日志落 `run/SCI-401/logs/step*.log`，结果落 `实验/SCI-A/results/*.json`，
+日志落 `run/SCI-401/logs/step*.log`，结果落 `实验/photometric-magnitude/results/*.json`，
 中间产物（仿真帧、缓存）落 `run/SCI-401/`（不入库）。
 
 ## 文件清单

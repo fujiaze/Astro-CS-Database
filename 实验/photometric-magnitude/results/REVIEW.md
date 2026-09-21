@@ -31,8 +31,8 @@ step1/step3/step4/step5/step6/step7 的数字我逐条核对**全部与 README/G
 ### R1 归档的 step8 JSON 与交付代码/数据不自洽，README §4.7 的机读证据不存在
 严重度：**高**  类型：可复现性 / 证据不足
 
-- 位置：`实验/SCI-A/results/step8_real_frame.json`（sha256 `02cd66073fd0…`）；
-  `实验/SCI-A/README.md:203-221`（§4.7 表）；`results/GATES.md:11,14`（G4/G7）
+- 位置：`实验/photometric-magnitude/results/step8_real_frame.json`（sha256 `02cd66073fd0…`）；
+  `实验/photometric-magnitude/README.md:203-221`（§4.7 表）；`results/GATES.md:11,14`（G4/G7）
 - 问题：该 JSON 是**另一份（更早的、BZERO 处理错误的）代码**的产物，被当作 §4.7 的证据文件引用。
 - 证据（我亲自核对）：
   - JSON `in_frame_instrument`：`sky_median_adu = -31566.0`、`img_p01 = -31615.0`、`img_p99 = -31349.0`、
@@ -114,7 +114,7 @@ step1/step3/step4/step5/step6/step7 的数字我逐条核对**全部与 README/G
     `σ_F/F = sqrt( 1/(g·F) + N_eff·σ_pix²/F² )`（Horne 1986），**没有** `ΣP³/ΣP²` 权重；
     §2.1 的 σ_fit(白)=0.0140 出处是 `out/psf_fit_noise.csv`（生产 `dpsf_fit_batch_d` 200 次重复拟合的**实测**），
     噪声前向模型 `σ_i²=σ_pix²+I_i/g` —— 与实验自称的"精确 Fisher"是**同一个模型**。
-  - 全仓 `grep -rn "P\*\*3|P\^3|np.sum(p \*\* 3)"`（排除 `实验/SCI-A`）**无命中** ⇒ 被攻击的"一阶展开"不存在于任何文档或实现。
+  - 全仓 `grep -rn "P\*\*3|P\^3|np.sum(p \*\* 3)"`（排除 `实验/photometric-magnitude`）**无命中** ⇒ 被攻击的"一阶展开"不存在于任何文档或实现。
 - 影响：README §4.1 的"一阶展开 σ vs 精确 Fisher σ，低估 2.149×"整张表没有可订正的对象；
   C1 若被前台按字面合并，会向文档写入一条**基于误引的订正**。
 - 建议：撤回 C1，或改写为"本实验的精确 Fisher 与 `run/RELEASE-02/parallel/06.md` §2.2 的 Horne 形式在
@@ -187,7 +187,7 @@ step1/step3/step4/step5/step6/step7 的数字我逐条核对**全部与 README/G
 严重度：**中**  类型：可复现性
 
 - 位置：`code/run_all.sh:31-34`、`code/step9_collect.py:34,63`；`README.md:5,266`、`code/README.md`
-- 证据：我把 `实验/SCI-A` 复制到 `/tmp/scia_quick`，删除 `results/step6_apply_and_units.json` 后运行
+- 证据：我把 `实验/photometric-magnitude` 复制到 `/tmp/scia_quick`，删除 `results/step6_apply_and_units.json` 后运行
   `python3 code/step9_collect.py`：
   `File "…/step9_collect.py", line 63, in main / ue = s6["unit_elimination"] / TypeError: 'NoneType' object is not subscriptable`。
   `run_all.sh` 有 `set -euo pipefail`，因此 `quick` 会在最后一步中止（或在使用**上一次**残留的

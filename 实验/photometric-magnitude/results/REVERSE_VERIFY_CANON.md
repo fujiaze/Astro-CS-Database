@@ -1,7 +1,7 @@
 # reverse_verify 定案结论 · SCI-A（低阶空间乘法增益）
 
 > 上游：ASTROCS_DESIGN.md §2.1 / §4.2 / §12.3；`ENGINEERING_SPEC.md §9`（有长期价值的结论并入正式文档）
-> 来源：`reverse_verify/docs/p1-spatial-gain.md`（2026-09-21 ROOT-CONSOLIDATION 迁入 `实验/SCI-A/docs/p1-spatial-gain.md`）
+> 来源：`reverse_verify/docs/p1-spatial-gain.md`（2026-09-21 ROOT-CONSOLIDATION 迁入 `实验/photometric-magnitude/docs/p1-spatial-gain.md`）
 > 本文件只登记**现行结论**；完整推导、逐条数值与复跑细节见原文。
 
 ## 1. 定案（现行结论）
@@ -14,7 +14,7 @@
 | 4 | 真实数据（49 帧）有效吗？ | **未获验证（关键负面结果）** | 拟合孔径 r=4 px 内：3×3 峰峰 6.75% → 4.59%（order 1，70% 帧对改善，**in-sample**）；换独立孔径 r=6 px **反而变差**（3.81%→4.86%、3.49%→6.08%）。孔径探针 r=3/4/6/10 = 7.78%/4.93%/3.81%/4.25% ⇒ 主要是**孔径/PSF 系统差**，不是纯乘法增益 |
 | 5 | 空间乘法能不能从**背景**拟合？ | **不能**（数学退化） | m→m+δ/(a·S0), g→g−δ 给出同一个 y：`max\|Δy\| = 2.27e−13 ADU`（梯度自身 pp 69 ADU）；同一对模型在星点上流量比 pp **9.78%** |
 | 6 | 与 `k_photo` 的关系 | **m 归一化到星集合几何均值 1** | order=0 时严格退化为现有标量 `k_photo=10^(−location)` |
-| 7 | 实现改动面 | **新增，不改冻结 ABI**；但**前置条件未满足** | 1 个新 C++ 入口 + 1 个新 apply 函数 + `p1_op_photometry` 内 1 处替换。**前置**：`F_instr` 必须换成 PSF 稳健口径并做孔径无关性验收（见 `实验/SCI-B/results/REVERSE_VERIFY_CANON.md`） |
+| 7 | 实现改动面 | **新增，不改冻结 ABI**；但**前置条件未满足** | 1 个新 C++ 入口 + 1 个新 apply 函数 + `p1_op_photometry` 内 1 处替换。**前置**：`F_instr` 必须换成 PSF 稳健口径并做孔径无关性验收（见 `实验/absolute-snr/results/REVERSE_VERIFY_CANON.md`） |
 
 ## 2. 诚实登记（未达标项，不得放宽）
 
@@ -27,14 +27,14 @@
 
 ```bash
 # (A) 独立 C++ Oracle（判据内嵌源码顶部；退出码 0 = 全 PASS）
-bash 实验/SCI-A/code/reverse_verify/p1_spatial_gain/build_oracle.sh
+bash 实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/build_oracle.sh
 run/reverse_verify/p1_spatial_gain/p1sg_oracle
 
 # (B) 合成实验（150 MC，约 7 min）
 python3 实验/shared/synthetic/synth_gain.py
 
 # (C) 真实数据（49 帧；联合拟合约 9 min）
-python3 实验/SCI-A/code/reverse_verify/p1_spatial_gain/src/real_gain.py
+python3 实验/photometric-magnitude/code/reverse_verify/p1_spatial_gain/src/real_gain.py
 ```
 
 实测见 `run/ROOT-CONSOLIDATION/logs/migration_rerun.md`。

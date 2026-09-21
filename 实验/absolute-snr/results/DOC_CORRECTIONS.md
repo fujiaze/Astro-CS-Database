@@ -2,7 +2,7 @@
 
 > **归属声明**：本文件属 SCI-B 实验单元。`docs/research/SNR_WEIGHT_RESEARCH_PACK.md` 由 DOC-404 负责修订，本单元**只读**，故所有补充/订正写在本文件，供 DOC-404 与研究包维护者采纳。
 > 每条含：现象 → 证据（文件:行 / 可复现命令 / 实测数字）→ 建议处理（FIX/DOC 域）→ 本单元是否已闭环。
-> 复现：`bash 实验/SCI-B/code/run_all.sh`；原始数据 `results/b1..b6*.json`。
+> 复现：`bash 实验/absolute-snr/code/run_all.sh`；原始数据 `results/b1..b6*.json`。
 
 ---
 

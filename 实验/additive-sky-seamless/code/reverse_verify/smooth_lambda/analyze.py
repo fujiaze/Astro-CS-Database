@@ -7,7 +7,8 @@
 import argparse, glob, json, math, os, re, sys
 import numpy as np
 
-ROOT = "/workspace/Astro CS Database"
+_HERE = os.path.dirname(os.path.abspath(__file__))   # .../实验/<unit>/code/reverse_verify/smooth_lambda
+ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "..", ".."))   # 仓库根（从脚本自身位置推导）
 D = os.path.join(ROOT, "run/reverse_verify/smooth_lambda")
 
 def read_upmb(path):

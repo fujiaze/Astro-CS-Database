@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 实验/SCI-C/code/c1_additive.py
+# 实验/additive-sky-seamless/code/c1_additive.py
 """C1 纯加性世界：多退少补（sky plane δ_k）、UPM 四要素、阶跃-对-注入幅度曲线。
 
 世界（电子域，gain=1 e-/ADU）：raw_k = Poisson(s + b_k) + N(0,RN²)

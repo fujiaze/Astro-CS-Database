@@ -1,6 +1,6 @@
 # SCI-B 对比表（由 results/*.json 自动生成，勿手改）
 
-生成命令：`python3 实验/SCI-B/code/make_tables.py`
+生成命令：`python3 实验/absolute-snr/code/make_tables.py`
 
 ## T1 天光扫描（亮源 F=3000 e-，N_MC=1000）
 

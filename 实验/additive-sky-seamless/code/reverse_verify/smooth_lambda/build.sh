@@ -3,7 +3,8 @@
 set -euo pipefail
 export TMPDIR=${TMPDIR:-/dev/shm/astrocs_lambda}
 mkdir -p "$TMPDIR"
-ROOT="$(cd "$(dirname "$0")/../../../../.." && pwd)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"   # 本实验目录（从脚本自身位置推导）
+ROOT="$(cd "$HERE/../../../../.." && pwd)"
 cd "$ROOT"
 INC=(-Ilib/algorithms/coverage/include -Ilib/algorithms/shared
      -Ilib/algorithms/shared/healpix -Ilib/algorithms/shared/crypto
@@ -11,7 +12,7 @@ INC=(-Ilib/algorithms/coverage/include -Ilib/algorithms/shared
      -Ilib/infrastructure/observability/probes/include
      -Ilib/infrastructure/acr/include -Ithird_party)
 g++ -std=c++20 -O2 -ffunction-sections -fdata-sections "${INC[@]}" \
-  实验/SCI-C/code/reverse_verify/smooth_lambda/upm_sweep.cpp \
+  "$HERE/upm_sweep.cpp" \
   lib/algorithms/coverage/src/upm.cpp \
   lib/algorithms/shared/healpix/healpix_core.cpp \
   lib/algorithms/shared/crypto/sha256.cpp \

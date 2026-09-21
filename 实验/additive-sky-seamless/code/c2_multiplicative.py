@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 实验/SCI-C/code/c2_multiplicative.py
+# 实验/additive-sky-seamless/code/c2_multiplicative.py
 """C2 乘性世界（关键张力）：低阶空间乘性响应 m(x,y) + 帧间乘性增益 g_k。
 
 物理模型（电子域）：raw_k = Poisson(g_k·m(x,y)·s + b_k) + N(0,RN²)

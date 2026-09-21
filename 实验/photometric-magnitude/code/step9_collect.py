@@ -34,7 +34,10 @@ def main():
     s5 = load("step5_calibration_gate.json"); s6 = load("step6_apply_and_units.json")
     s7 = load("step7_negatives.json"); s8 = load("step8_real_frame.json")
     rows = []
-    CMD = "bash 实验/SCI-A/code/run_all.sh"
+    # 复现命令里的单元路径从本文件位置推导（sc.EXP = 本单元根），不写死目录名。
+    REL = os.path.relpath(sc.EXP, sc.REPO).replace(os.sep, "/")   # 实验/photometric-magnitude
+    CODE_REL = f"{REL}/code"
+    CMD = f"bash {CODE_REL}/run_all.sh"
 
     missing = [n for n, v in (("step1", s1), ("step2", s2), ("step3", s3), ("step4", s4),
                               ("step5", s5), ("step6", s6), ("step7", s7), ("step8", s8))
@@ -54,7 +57,7 @@ def main():
                   f"{fmt(fA['budget']['sigma_ceiling'])}] → {fA['verdict']}；"
                   f"帧B σ_obs={fmt(fB['sigma_obs_mag'])} → {fB['verdict']}；"
                   f"帧C(n={fC['n_selected']}) σ_obs={fmt(fC['sigma_obs_mag'])} → {fC['verdict']}"),
-        repro=f"{CMD}（或 python3 实验/SCI-A/code/step5_calibration_gate.py）",
+        repro=f"{CMD}（或 python3 {CODE_REL}/step5_calibration_gate.py）",
         files=["results/step5_calibration_gate.json"]))
     rows.append(dict(
         id="G1b", item="误差预算逐项（光子噪声/PSF 拟合/平场/天光/颜色/参考侧/量化）在**仿真帧上**由本帧推导",
@@ -71,7 +74,7 @@ def main():
     if s6 is None:
         rows.append(dict(id="G2", item="物理单位消除（产物只以星等表达；标定系数无绝对窗口；不可反解仪器参数）",
                          verdict="NOT_RUN", evidence="step6 未运行（quick 模式）",
-                         repro="python3 实验/SCI-A/code/step6_apply_and_units.py",
+                         repro=f"python3 {CODE_REL}/step6_apply_and_units.py",
                          files=["results/step6_apply_and_units.json"]))
         ue = None
     else:
@@ -88,7 +91,7 @@ def main():
                          fmt(ue["zero_point_shift_invariance"]["location_delta"], 10),
                          fmt(ue["zero_point_shift_invariance"]["location_delta_expected"], 10),
                          fmt(ue["zero_point_shift_invariance"]["sigma_residual_delta"], 3))),
-            repro="python3 实验/SCI-A/code/step6_apply_and_units.py",
+            repro=f"python3 {CODE_REL}/step6_apply_and_units.py",
             files=["results/step6_apply_and_units.json"]))
     fi = s5["frame_independence"]
     rows.append(dict(
@@ -120,7 +123,7 @@ def main():
                          "blind_detections", 0)
                          / max((s8 or {}).get("guided_vs_blind_real", {}).get(
                              "guided_candidates", 1), 1), 3))),
-        repro="python3 实验/SCI-A/code/step4_guided_vs_blind.py",
+        repro=f"python3 {CODE_REL}/step4_guided_vs_blind.py",
         files=["results/step4_guided_vs_blind.json"]))
     ap = None if s6 is None else s6["apply"]
     rows.append(dict(
@@ -137,7 +140,7 @@ def main():
                      fmt(ap["magnitude_only"]["resid_mag_mad_sigma_no_m"], 4),
                      ap["magnitude_only"]["m_correction_improves"],
                      ap["downstream_consumption"]["degraded_reason_on_disabled_path"])),
-        repro="python3 实验/SCI-A/code/step6_apply_and_units.py",
+        repro=f"python3 {CODE_REL}/step6_apply_and_units.py",
         files=["results/step6_apply_and_units.json"]))
     rows.append(dict(
         id="G6", item="非退化负例（真值无效应 ⇒ 归零/判红；有注入 ⇒ 度量变大）",
@@ -149,7 +152,7 @@ def main():
                   "N3 漏颜色项阈值 0.04 mag（真实值 0.0057 的 7.0×）判 ABOVE_CEILING。"
                   "N0 真值无效应→BELOW_FLOOR；N4 实测 k_B/k_A=1.6099 证明跨帧 k 门会误杀正确帧；"
                   "**N5 未通过**：过裁剪真实样本时 σ_floor 下降更快、n=5 时变负 ⇒ 下界失效（已单列）"),
-        repro="python3 实验/SCI-A/code/step7_negatives.py",
+        repro=f"python3 {CODE_REL}/step7_negatives.py",
         files=["results/step7_negatives.json"]))
     rows.append(dict(
         id="G7", item="三类实验数据互证（HST 物理前向 / 纯解析合成 / testdata 真实帧；真实帧 σ_color/σ_gaia 不可自算 ⇒ 上界不完整）",
@@ -169,13 +172,13 @@ def main():
                             for k, v in pf.items())
                   + f"；同星跨滤镜 n={s3['cross_filter']['n']} 中位差="
                     f"{fmt(s3['cross_filter']['median_diff'],4)}"),
-        repro="bash 实验/SCI-A/code/step0_fetch_refs.sh && python3 实验/SCI-A/code/step3_forward_vs_photflam.py",
+        repro=f"bash {CODE_REL}/step0_fetch_refs.sh && python3 {CODE_REL}/step3_forward_vs_photflam.py",
         files=["results/step3_forward_vs_photflam.json"]))
     out = dict(step="9_collect", seed=sc.SCIA_SEED, gates=rows, n_gates=len(rows),
                n_pass=int(sum(1 for r in rows if r["verdict"] == "PASS")))
     sc.jdump(out, os.path.join(sc.RESULTS, "gates.json"))
     lines = ["# SCI-A 验收判据逐项结果", "",
-             f"固定种子 {sc.SCIA_SEED}；一键复跑 bash 实验/SCI-A/code/run_all.sh。", "",
+             f"固定种子 {sc.SCIA_SEED}；一键复跑 {CMD}。", "",
              "| # | 判据 | 结论 | 实测证据 | 复现命令 |", "|---|---|---|---|---|"]
     for r in rows:
         lines.append(f"| {r['id']} | {r['item']} | **{r['verdict']}** | {r['evidence']} | {r['repro']} |")

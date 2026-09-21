@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# 实验/SCI-C/code/make_figures.py
+# 实验/additive-sky-seamless/code/make_figures.py
 """从 results/*.json 生成图（不改任何数字，只画已落盘的实测值）。"""
 from __future__ import annotations
 

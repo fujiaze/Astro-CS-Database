@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# 实验/SCI-C/code/run_all.sh —— SCI-C 一键复跑（固定 seed，无网络，无 git 写）
+# 实验/additive-sky-seamless/code/run_all.sh —— SCI-C 一键复跑（固定 seed，无网络，无 git 写）
 #
-#   bash 实验/SCI-C/code/run_all.sh            # 全量
-#   SKIP_BUILD=1 bash 实验/SCI-C/code/run_all.sh
+#   bash 实验/additive-sky-seamless/code/run_all.sh            # 全量
+#   SKIP_BUILD=1 bash 实验/additive-sky-seamless/code/run_all.sh
 #
-# 产物：run/SCI-403/{logs,*.bin,*.json}（gitignore）与 实验/SCI-C/results/*.json + figs/
+# 产物：run/SCI-403/{logs,*.bin,*.json}（gitignore）与 <本单元>/results/*.json + figs/
+# 路径一律从脚本自身位置推导（BASH_SOURCE），不写死单元目录名。
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UNIT="$(cd "$HERE/.." && pwd)"
 ROOT="$(cd "$HERE/../../.." && pwd)"
 cd "$ROOT"
-mkdir -p run/SCI-403/logs 实验/SCI-C/results/figs
+mkdir -p run/SCI-403/logs "$UNIT/results/figs"
 
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
   bash "$HERE/build_probes.sh" 2>&1 | tee run/SCI-403/logs/build_probes.log
@@ -26,6 +28,6 @@ for step in c1_additive c2_multiplicative c3_public_plane c4_seam_criterion \
   fi
   tail -n 20 "run/SCI-403/logs/${step%%_*}.log" | sed 's/^/   /'
 done
-python3 "$HERE/make_figures.py"
+timeout 3600 python3 "$HERE/make_figures.py"
 echo "== SCI-C done rc=$rc"
 exit $rc

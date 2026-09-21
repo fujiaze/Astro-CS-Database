@@ -8,7 +8,8 @@
 """
 import json, os, sys, math
 import numpy as np
-ROOT = "/workspace/Astro CS Database"
+_HERE = os.path.dirname(os.path.abspath(__file__))   # .../实验/<unit>/code/reverse_verify/smooth_lambda
+ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", "..", "..", ".."))   # 仓库根（从脚本自身位置推导）
 def main():
     out_dir, tag = sys.argv[1], sys.argv[2]
     integ = json.load(open(os.path.join(out_dir, "p2_integrated.json")))
