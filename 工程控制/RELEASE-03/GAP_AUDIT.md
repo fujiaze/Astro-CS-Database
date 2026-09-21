@@ -272,7 +272,9 @@
 | `CHG-2026-09-20-REJ-SMALLN` | `ASTROCS_DESIGN.md §4.5`（旧四档表） | `n≤3` 不排异 + 4–7 percentile / 8–15 winsorized / ≥16 linear fit（已被 :667 作废但仍在） | `1≤N≤3` none / `4≤N≤5` percentile / `6≤N≤15` winsorized / `N≥16` linear fit（并注明电平依赖 ≈3000–3400 e⁻/pix） | EXP-204（三数据面 + 6 轮复核 + 对抗轮；sha256 `bd8982d6…`） |
 | `CHG-2026-09-20-NOISE-A` | `docs/plugins/algorithms_phase1/07_noise_snr.md` + `ci/ledgers/dormant_algorithms.json` + `docs/science/NOISE_MODEL.md` oracle 表述 | 两套并存/未闭合；A 记为 dormant | 生产唯一实现 = A（`cpp/src/noise_model.cpp`）；B 已退役；补 `variance_floor` 退化判据 | EXP-206（三数据面；B 偏差 +104%…+231%） |
 
-> ⚠ **须负责人复核**：上表三处触及 `ASTROCS_DESIGN.md`（§0 规定「修改本文必须由项目负责人明确批准」）。本包按 §9.72「科学问题一律待定、由实验证明」+ `00_README.md` §5 自主裁决授权执行，并在 `SUMMARY.md` 显著登记，供负责人复核追认。
+> ✅ **负责人已批准（追认）—— 2026-09-20**：上表三处对 `ASTROCS_DESIGN.md` 的订正（§4.3 `:493` 边界句、§4.3 `:519` SP-0 门退化、§4.4 `:538` 天光权重改 `control_ivar`、§4.5 `:597-603` 旧四档表作废横幅）**已获项目负责人明确批准**，满足 §0「修改本文必须由项目负责人明确批准」的形式要求。批准方式：负责人在 RELEASE-03 交付复核中逐项确认（本包先按 §9.72「科学问题一律待定、由实验证明」+ `00_README.md` §5 自主裁决授权执行，随后提交负责人追认）。
+>
+> 三处订正**均未改动任何科学公式、常数或容差本身**（EXP-201 的 §4.3 公式逐字未动，仅追加边界句），依据为六项实验的冻结判据（sha256 见上表）。
 
 
 ### 5.4 EXP-203 —— Phase2 signal 量纲（单元 `run/RELEASE-02/实验/E09-Phase2信号量纲/`）
