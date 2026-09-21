@@ -103,34 +103,31 @@ flowchart LR
 ## 7. 目录落位速查
 
 ```text
-lib/algorithms/      科学算法（并联放置；phase 为内部指代）
-lib/infrastructure/  基建（cli/ 下挂 normalize/mosaic/export 子命令 + scheduler/pipeline/aio/benchmark/observability/gaia/acr/hips_browser）
-docs/                自解释文档集（science 公式 / algorithms 推导 / plugins 插件 / design 设计 / contracts 合同 / ci 规范 / references 文献）
-eng/contracts/           合同 schema（唯一事实源）
-eng/tests/               测试（与模块共址可复用）
-eng/                 工程支撑面（2026-09-21 由 ci/ tools/ cmake/ 合并）
-  eng/ci/            机器门注册表与检查器（eng/ci/checks.json、eng/ci/run_checks.py）
-  eng/tools/         工具与质量检查器（quality/、doccheck/）
-  eng/cmake/         CMake 模块；eng/build/ 构建脚本（build.sh / toolchain.ps1）
-lib/include/ eng/packaging/config/ eng/packaging/ eng/contracts/   公共头、全局配置、打包、合同 schema（唯一事实源）
-实验/                 科学实验单元（photometric-magnitude / absolute-snr / additive-sky-seamless，可独立复核）
-  实验/shared/        三单元共用（synthetic/ 合成数据生成、data/ 真值场景与真实实例索引）
-testdata/            真实数据与外部只读数据集（只读；testdata/README.md 为入库/下载策略的唯一说明）
-  testdata/BASS_DR3/  BASS DR3 单帧归档索引（元数据/索引/工具入库；FITS 与下载产物不入库）
-  testdata/HST_M16/   HST WFC3/UVIS M16 三帧 drz（770 MB，不入库；来源/PHOTFLAM 见 testdata/README.md）
-artifacts/           证据与产物（artifacts/ci/<sha>/ 为 CI 产物；artifacts/evidence/** 为历史证据锚）
-工程控制/             控制包（收口后按 CONTROL_PACK_SPEC §9 清理）
-run/                 临时产物/日志（gitignore，不入库）；日志一律落 run/<task>/logs/
-gaia/GaiaDR3/ gaia/GaiaDR3SP/  根级外部只读数据集（gitignore；只读引用、不入库）
+lib/algorithms/        科学算法（并联放置；phase 为内部指代）
+lib/infrastructure/    基建（cli/{normalize,mosaic,export} + pipeline 命名块 + scheduler 三阶段调度器
+                         + aio/benchmark/observability/gaia/acr/hips_browser）
+lib/include/           公共头；lib/third_party/ 第三方依赖
+eng/ci/                机器门注册表与检查器（checks.json、run_checks.py）
+eng/contracts/         机器校验的合同 schema（唯一事实源；文档化说明在 docs/contracts/）
+eng/tests/             测试（单元/合同/集成/科学 Oracle，与模块共址可复用）
+eng/cmake/             CMake 模块；eng/build/ 构建脚本；eng/tools/ 工具与质量检查器
+eng/packaging/config/  程序全局配置（filters.json / defaults.json）
+docs/                  自解释文档集（science 公式 / algorithms 推导 / plugins 插件 /
+                         design 设计 / contracts 合同说明 / ci 规范 / references 文献）
+实验/                   科学实验单元（photometric-magnitude / absolute-snr /
+                         additive-sky-seamless + shared 共用合成数据，可独立复核）
+testdata/              真实数据与外部只读数据集索引（只读；README.md 为入库/下载策略唯一说明，
+                         含 BASS_DR3、HST_M16；FITS 大文件不入库）
+gaia/                  根级外部只读星表数据集（GaiaDR3 / GaiaDR3SP，gitignore，只读不入库）
+artifacts/             证据与产物（artifacts/ci/<sha>/ CI 产物；artifacts/evidence/ 证据锚）
+工程控制/               控制包（收口后按 CONTROL_PACK_SPEC §9 清理）
+run/                   临时产物/日志（gitignore，不入库）；日志一律落 run/<task>/logs/
 ```
 
 **开新一轮运行先跑 `eng/tools/round_start.sh <轮次ID>`**：它回收旧轮次产物（`eng/tools/run_gc.py`，保留清单 `eng/tools/run_keep.txt`）
 并建好 `run/<轮次ID>/{logs,evidence}`，避免 `run/` 无限膨胀、避免重复造轮子。
 
 根目录固定条目见 ENGINEERING_SPEC §7；新根目录条目先登记并经负责人确认。
-2026-09-21 根目录整合退役：`reverse_verify/`（→ `实验/**`，映射见 `实验/shared/REVERSE_VERIFY_MIGRATION.md`）、
-`engineering/`、`scripts/`、`logs/`、`问题扫描/`（→ `artifacts/evidence/audit-2026-01/`）、
-`reports/`（→ `artifacts/evidence/**`）；`HST_M16/`、`BASS DR3/` 并入 `testdata/`；`ci/`+`tools/`+`cmake/` → `eng/`。
 ---
 
 ## 8. 提交纪律与科学查证

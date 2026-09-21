@@ -8,14 +8,14 @@
 
 ## 1. 权威体系
 
-1. 最高权威是根 `ASTROCS_DESIGN.md`（§0 权威链）；旧宪章 `ASTROCS_PROJECT_CONSTITUTION.md` 已由 ROOT-007 删除，不作权威。
+1. 最高权威是根 `ASTROCS_DESIGN.md`（§0 权威链）；本文是其下的项目目标态细节总入口。
 2. 本文冻结产品目标、科学目标、Phase 边界和目标态组成。
 3. 三阶段详细设计分别位于：
    - `docs/design/PHASE1_DETAILED_DESIGN.md`
    - `docs/design/PHASE2_DETAILED_DESIGN.md`
    - `docs/design/PHASE3_DETAILED_DESIGN.md`
 4. 跨阶段科学量与公式由 `docs/science/UNIFIED_SCIENCE_MODEL.md` 统一；专项 SCI/ALG/DATA/API 必须向它收敛。
-5. 文献总档案为 `docs/references/SCIENTIFIC_REFERENCES.md`；历史报告和控制包只证明演进，不定义现在的目标。
+5. 文献总档案为 `docs/references/SCIENTIFIC_REFERENCES.md`；现行目标只由本设计文档集定义。
 
 ## 2. 项目使命
 
@@ -49,23 +49,21 @@ Phase1 必须从一帧 light 和校准资料生成完整单帧观测模型，而
 
 ## 5. Phase2 必须做到什么
 
-Phase2 必须验证输入兼容，建立 overlap graph，联合求解乘法光度响应和加性背景，传播参数不确定度，执行可解释排异，然后按用户科学目标产生不同产品：
+Phase2 验证输入兼容并建立 overlap graph；帧间乘性光度响应已在 Phase1 测光归一化中吸收，Phase2 只处理加性天光（UPM），随后执行可解释排异与逆方差集成，产出统一的面亮度球面层级。
 
-- 扩展源：广义最小二乘或经证明适用的像素 inverse-variance 近似；
-- 点源：消费每帧 PSF、光度响应和 covariance，以 `Q=aPᵀC⁻¹d`、`W=a²PᵀC⁻¹P` 合并，达到最大检测功率/最小通量方差；
-- PSFSW 稳健集成：正式支持 `psfsw_robust` 口径，以共同星集的 PSF signal/concentration、稳健 noise/background 复合相对权重驱动 conventional coadd；它与 Q/W、surface GLS 并列，但不冒充统计 ivar/Fisher information。（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
-
-Phase2 配置必须显式选择 `point_information`、`surface_gls` 或 `psfsw_robust` 等冻结口径 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）。输出不得只有一张 signal 和一个模糊 weight；必须包含目标函数、权重分量、variance/correlation、effective PSF、coverage/validity/rejection、UPM 和 provenance。PSFSW 详细定义见 `docs/science/PSF_SIGNAL_WEIGHT.md`。
+- 产品信号统一为面亮度（surface brightness），以天球像素为单位消费各帧该像素的 SNR 现场计算权重 w=SNR²/F_ref² 做逆方差集成，权重是消费时的派生量，不存在独立的 weight 产品或权重模式；
+- 点源检测功率以 `Q=aPᵀC⁻¹d`、`W=a²PᵀC⁻¹P`（point information）作为统计最优性的对拍与验证口径（实验单元二已对拍），不作为用户选择的独立产品模式；
+- 输出包含 signal、variance、effective PSF、coverage/validity/rejection、UPM 参数与 provenance；不输出语义模糊的 weight 图。
 
 ## 6. Phase3 必须做到什么
 
-Phase3 接收任意兼容 HiPS，按 surface-brightness、point-source 或 visualization 模式生成 WCS FITS。它负责投影、采样、不确定度/PSF 传播、流式 FITS 和原子发布，不重新计算上游质量权重。
+Phase3 接收任意兼容 HiPS，按选定投影与采样导出标准 WCS 平面 FITS。它负责投影、重采样、不确定度/PSF 传播、流式 FITS 和原子发布，不重新计算上游质量权重。
 
-TAN/SIN/CAR/AIT、HEALPix/HiPS、FITS 关键字和像素中心遵循外部标准。采样核是产品语义，不能由现有代码倒推冻结；variance、correlation、PSF 和离散 mask 分别传播。
+投影（TAN/SIN/CAR/AIT 等）、HEALPix/HiPS、FITS 关键字和像素中心遵循外部标准；投影算法内置多种，启用口径以科学验证为准（当前冻结 TAN）。采样核是产品语义，由科学文档冻结，不能由现有代码倒推；variance、PSF 和离散 mask 分别传播。
 
 ## 7. 数据对象不可混淆
 
-`signal`、`variance/ivar`、`source_snr`、`depth_m5`、`point_information`、`quality`、`support`、`coverage`、`validity`、`rejection` 和 `provenance` 是不同合同对象。禁止模糊 `weight/value/mask/snr` 承载多个含义。
+`signal`、`variance/ivar`、帧级 SNR 与稀疏相对 SNR 层、`quality`、`support`、`coverage`、`validity`、`rejection`、UPM 参数和 `provenance` 是不同合同对象。禁止模糊 `weight/value/mask/snr` 承载多个含义；权重是 Phase2 消费 SNR 时的现场派生量，不是独立合同对象。
 
 ## 8. 科学正确性门
 
@@ -83,7 +81,7 @@ TAN/SIN/CAR/AIT、HEALPix/HiPS、FITS 关键字和像素中心遵循外部标准
 
 ## 10. 状态与发布
 
-每个 Phase 分别标 CONTRACT_READY、IMPLEMENTED、INSTALLED、VERIFIED 或 unavailable。合成测试或历史可用节点不等于真实数据/Windows VERIFIED。允许只发布通过验收的 Phase1/2；只有负责人作最终发布决定。
+每个 Phase 分别标 CONTRACT_READY、IMPLEMENTED、INSTALLED、VERIFIED 或 unavailable。合成测试或其他平台上的可用节点不等于真实数据/Windows VERIFIED。允许只发布通过验收的 Phase1/2；只有负责人作最终发布决定。
 
 ## 11. 当前迁移原则
 
