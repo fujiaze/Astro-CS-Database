@@ -1,0 +1,323 @@
+{
+ "generated_at": "2026-09-21T05:08:36Z",
+ "entries": {
+  "pixinsight_doc": {
+   "url": "https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html",
+   "ok": true,
+   "stale": false,
+   "status": 200,
+   "bytes": 138582,
+   "greps": {
+    "psfsnr": [
+     {
+      "line": 63,
+      "text": "<li class=\"pidoc_tocSubitem\"><a href=\"#__PSF_Flux_Weighting_Algorithms_:_The_PSF_SNR_Robust_Estimator_of_SignalToNoise_Ratio__\">2.6&emsp;The PSF SNR Robust Estimator of Signal-To-Noise Ratio</a></li>"
+     },
+     {
+      "line": 128,
+      "text": "<p>PSF Signal Weight (PSFSW) is a new image quality estimation algorithm based on a hybrid PSF/aperture photometry measurement methodology. PSFSW has been designed to be a robust, comprehensive estimator able to capture "
+     },
+     {
+      "line": 402,
+      "text": "<h4 class=\"pidoc_subsectionTitle\">2.6&emsp;The PSF SNR Robust Estimator of Signal-To-Noise Ratio</h4>"
+     },
+     {
+      "line": 403,
+      "text": "<p>The PSF SNR estimator is a realization of the signal-to-noise ratio formulation based on the ratio of powers paradigm:</p>"
+     },
+     {
+      "line": 405,
+      "text": "<p>Used directly for image weighting, this estimator is a good option when one wants to maximize SNR exclusively in the integrated image, disregarding other quality variables. The normalization factors were derived from "
+     },
+     {
+      "line": 425,
+      "text": "<img src='images/eqn_0058.svg' alt=''/>\">[20]</a>). Neither PSFSW nor PSF SNR have these problems. In this example, note that PSFSW is plotted in the graph along with SNR, showing it is resistant to the airplane trail in"
+     }
+    ],
+    "psfsw": [
+     {
+      "line": 62,
+      "text": "<li class=\"pidoc_tocSubitem\"><a href=\"#__PSF_Flux_Weighting_Algorithms_:_The_PSF_Signal_Weight_Estimator_of_Image_Quality__\">2.5&emsp;The PSF Signal Weight Estimator of Image Quality</a></li>"
+     },
+     {
+      "line": 128,
+      "text": "<p>PSF Signal Weight (PSFSW) is a new image quality estimation algorithm based on a hybrid PSF/aperture photometry measurement methodology. PSFSW has been designed to be a robust, comprehensive estimator able to capture "
+     },
+     {
+      "line": 226,
+      "text": "<p>The next component of the PSFSW algorithm is a robust estimate of <em>mean background</em>. This estimate allows us to characterize the mean large-scale illumination level of each subframe in a data set, thus making P"
+     },
+     {
+      "line": 375,
+      "text": "<h4 class=\"pidoc_subsectionTitle\">2.5&emsp;The PSF Signal Weight Estimator of Image Quality</h4>"
+     },
+     {
+      "line": 376,
+      "text": "<p>We now have all of the necessary elements to build our PSFSW estimator, which we define as:</p>"
+     },
+     {
+      "line": 379,
+      "text": "<p>In this equation, the sum of PSF flux estimates provides a measurement of the total signal in the evaluated image. Obviously, more signal means a stronger image. The sum of mean PSF flux estimates, on the other hand, "
+     }
+    ],
+    "eq18": [
+     {
+      "line": 404,
+      "text": "<a id=\"__equation_18__\"></a><div class=\"pidoc_equation\"><img src=\"images/eqn_0055.svg\" alt=\"\"/><span class=\"pidoc_equation_number\">[18]</span></div>"
+     }
+    ],
+    "eq16": [
+     {
+      "line": 377,
+      "text": "<a id=\"__equation_16__\"></a><div class=\"pidoc_equation\"><img src=\"images/eqn_0051.svg\" alt=\"\"/><span class=\"pidoc_equation_number\">[16]</span></div>"
+     }
+    ],
+    "standard_snr": [
+     {
+      "line": 413,
+      "text": "<a id=\"__equation_20__\"></a><div class=\"pidoc_equation\"><img src=\"images/eqn_0058.svg\" alt=\"\"/><span class=\"pidoc_equation_number\">[20]</span></div>"
+     },
+     {
+      "line": 425,
+      "text": "<img src='images/eqn_0058.svg' alt=''/>\">[20]</a>). Neither PSFSW nor PSF SNR have these problems. In this example, note that PSFSW is plotted in the graph along with SNR, showing it is resistant to the airplane trail in"
+     },
+     {
+      "line": 992,
+      "text": "<img src='images/eqn_0058.svg' alt=''/>\">[20]</a> and the discussion on the referred section), when the SNR property shows no issues a counter-test with it is important to assess the overall reliability of any quality or"
+     },
+     {
+      "line": 1126,
+      "text": "<img src='images/eqn_0058.svg' alt=''/>\">[20]</a>). The problem is not that SNR is wrong, but that SNR is not the appropriate estimator for this data set. In general, SNR cannot be used for image weighting for sets with "
+     }
+    ]
+   }
+  },
+  "crossref_horne1986": {
+   "url": "https://api.crossref.org/works/10.1086/131801",
+   "ok": true,
+   "stale": false,
+   "status": 200,
+   "bytes": 1643,
+   "greps": {},
+   "meta": {
+    "title": [
+     "An optimal extraction algorithm for CCD spectroscopy"
+    ],
+    "container": [
+     "Publications of the Astronomical Society of the Pacific"
+    ],
+    "volume": "98",
+    "page": "609",
+    "year": 1986,
+    "DOI": "10.1086/131801"
+   }
+  },
+  "crossref_zackay2017": {
+   "url": "https://api.crossref.org/works/10.3847/1538-4357/836/2/187",
+   "ok": true,
+   "stale": false,
+   "status": 200,
+   "bytes": 11193,
+   "greps": {},
+   "meta": {
+    "title": [
+     "How to COAAD Images. I. Optimal Source Detection and Photometry of Point Sources Using Ensembles of Images"
+    ],
+    "container": [
+     "The Astrophysical Journal"
+    ],
+    "volume": "836",
+    "page": "187",
+    "year": 2017,
+    "DOI": "10.3847/1538-4357/836/2/187"
+   }
+  },
+  "arxiv_1512.06872": {
+   "url": "https://arxiv.org/abs/1512.06872",
+   "ok": true,
+   "stale": false,
+   "status": 200,
+   "bytes": 45007,
+   "greps": {
+    "title": [
+     {
+      "line": 4,
+      "text": "<head><script>document.documentElement.classList.add('js');</script>  <title>[1512.06872] How to coadd images? I. Optimal source detection and photometry using ensembles of images</title>"
+     }
+    ]
+   }
+  },
+  "arxiv_1512.06879": {
+   "url": "https://arxiv.org/abs/1512.06879",
+   "ok": true,
+   "stale": false,
+   "status": 200,
+   "bytes": 46584,
+   "greps": {
+    "title": [
+     {
+      "line": 4,
+      "text": "<head><script>document.documentElement.classList.add('js');</script>  <title>[1512.06879] How to coadd images? II. A coaddition image that is optimal for any purpose in the background dominated noise limit</title>"
+     }
+    ]
+   }
+  },
+  "siril_median_and_mean_1_2_4": {
+   "url": "https://gitlab.com/free-astro/siril/-/raw/1.2.4/src/stacking/median_and_mean.c",
+   "ok": true,
+   "stale": false,
+   "status": 200,
+   "bytes": 52415,
+   "greps": {
+    "frame_weight": [
+     {
+      "line": 868,
+      "text": "pweights[layer][i] = 1.f /"
+     },
+     {
+      "line": 870,
+      "text": "args->seq->stats[layer][idx]->bgnoise * args->seq->stats[layer][idx]->bgnoise);"
+     },
+     {
+      "line": 911,
+      "text": "pweights[layer][i] = (1. / (args->seq->regparam[args->reglayer][idx].weighted_fwhm * args->seq->regparam[args->reglayer][idx].weighted_fwhm) - invfwhmax2) * invdenom;"
+     },
+     {
+      "line": 914,
+      "text": "pweights[layer][i] = 0.;"
+     },
+     {
+      "line": 956,
+      "text": "pweights[layer][i] = 1.;"
+     },
+     {
+      "line": 959,
+      "text": "pweights[layer][i] = (double)(args->seq->regparam[args->reglayer][idx].number_of_stars - starmin) *"
+     }
+    ],
+    "pscale": [
+     {
+      "line": 309,
+      "text": "double scale = args->seq->upscale_at_stacking;"
+     },
+     {
+      "line": 869,
+      "text": "(args->coeff.pscale[layer][i] * args->coeff.pscale[layer][i] *"
+     },
+     {
+      "line": 1317,
+      "text": "double scale = args->seq->upscale_at_stacking;"
+     },
+     {
+      "line": 1356,
+      "text": "tmp = fpixel * args->coeff.pscale[layer][frame];"
+     },
+     {
+      "line": 1363,
+      "text": "tmp = (double)pixel * args->coeff.pscale[layer][frame];"
+     },
+     {
+      "line": 1375,
+      "text": "tmp = fpixel * args->coeff.pscale[layer][frame];"
+     }
+    ]
+   }
+  },
+  "swarp_coadd": {
+   "url": "https://raw.githubusercontent.com/astromatic/swarp/master/src/coadd.c",
+   "ok": true,
+   "stale": false,
+   "status": 200,
+   "bytes": 71800,
+   "greps": {
+    "weighted_mean": [
+     {
+      "line": 60,
+      "text": "#include \"weight.h\""
+     },
+     {
+      "line": 279,
+      "text": "Input weight field ptr array,"
+     },
+     {
+      "line": 282,
+      "text": "Output weight field ptr,"
+     },
+     {
+      "line": 565,
+      "text": "/* Open output weight file and save header */"
+     },
+     {
+      "line": 573,
+      "text": "/* Only for WRITING the weights */"
+     },
+     {
+      "line": 574,
+      "text": "set_weightconv(outwfield);"
+     }
+    ],
+    "variance": [
+     {
+      "line": 808,
+      "text": "var_to_weight(wpix, outwidth);"
+     },
+     {
+      "line": 1167,
+      "text": "NOTES   Requires many global variables (for multithreading)."
+     },
+     {
+      "line": 1252,
+      "text": "NOTES\tRequires many global variables (for multithreading)."
+     }
+    ]
+   }
+  },
+  "photutils_errors": {
+   "url": "https://raw.githubusercontent.com/astropy/photutils/main/photutils/utils/errors.py",
+   "ok": true,
+   "stale": false,
+   "status": 200,
+   "bytes": 8039,
+   "greps": {
+    "calc_total_error": [
+     {
+      "line": 12,
+      "text": "def calc_total_error(data, bkg_error, effective_gain):"
+     },
+     {
+      "line": 22,
+      "text": "bkg_error : array_like or `~astropy.units.Quantity`"
+     },
+     {
+      "line": 24,
+      "text": "``bkg_error`` should include all sources of \"background\" error"
+     },
+     {
+      "line": 25,
+      "text": "but *exclude* the Poisson error of the sources. ``bkg_error``"
+     },
+     {
+      "line": 27,
+      "text": "``bkg_error`` are `~astropy.units.Quantity` objects, then they"
+     },
+     {
+      "line": 30,
+      "text": "effective_gain : float, array_like, or `~astropy.units.Quantity`"
+     }
+    ]
+   }
+  }
+ },
+ "verdict": {
+  "pixinsight_resolvable": true,
+  "pixinsight_psfsnr_found": true,
+  "pixinsight_psfsw_found": true,
+  "horne_doi_resolvable": true,
+  "zackay_doi_resolvable": true,
+  "arxiv_1512_06872_resolvable": true,
+  "arxiv_1512_06879_resolvable": true,
+  "siril_source_resolvable": true,
+  "swarp_source_resolvable": true,
+  "photutils_source_resolvable": true
+ }
+}

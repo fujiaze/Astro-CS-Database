@@ -1,0 +1,140 @@
+{
+ "experiment": "SCI-B / B6 degenerate-gate audit, error-budget unit audit, fail-closed path audit",
+ "tautology": {
+  "K": 1.25,
+  "rows": [
+   {
+    "case": "smooth_grf",
+    "rmse_frame": 0.10094626989020931,
+    "s_field": 0.10094197695637709,
+    "gate_tau": 0.12617747119547137,
+    "gate_green": true,
+    "ratio_rmse_over_sfield": 1.0000425287275092,
+    "eff_loss": 0.24088978643657177
+   },
+   {
+    "case": "adversarial_scramble",
+    "rmse_frame": 0.34649474463346286,
+    "s_field": 0.346494744633462,
+    "gate_tau": 0.43311843079182755,
+    "gate_green": true,
+    "ratio_rmse_over_sfield": 1.0000000000000024,
+    "eff_loss": 7.166950732109671
+   },
+   {
+    "case": "flat",
+    "rmse_frame": 0.0,
+    "s_field": 0.0,
+    "gate_tau": 0.0,
+    "gate_green": true,
+    "ratio_rmse_over_sfield": null,
+    "eff_loss": 0.0
+   }
+  ],
+  "all_green": true,
+  "note": "RMSE(constant, median-normalized truth) 恒等于 std(log10 truth) ⇒ 恒真门"
+ },
+ "eff_loss_injection": [
+  {
+   "case": "unbiased",
+   "eff_loss": 0.0,
+   "red": false
+  },
+  {
+   "case": "uniform_scale_1.10_E_must_be_0",
+   "eff_loss": 0.0,
+   "red": false
+  },
+  {
+   "case": "split_half_pm10pct_multiplicative",
+   "eff_loss": 0.02741978194116923,
+   "red": true
+  },
+  {
+   "case": "fault_shuffle",
+   "eff_loss": 0.8773009847459672,
+   "red": true
+  },
+  {
+   "case": "null_sigma_propto_truth",
+   "eff_loss": 0.0,
+   "red": false
+  }
+ ],
+ "c_est_audit": {
+  "n": 1024,
+  "n_mc": 4000,
+  "rel_se_measured": 0.03622939185926757,
+  "rel_se_formula_1p166": 0.0364375,
+  "rel_se_doc_1p44": 0.045,
+  "dex_se_measured": 0.015759702661116863,
+  "dex_se_correct_from_doc": 0.01954325168564633,
+  "dex_se_e11_used": 0.045,
+  "e11_over_correct_factor": 2.302585092994046,
+  "measured_over_e11_factor": 0.3502156146914859
+ },
+ "fail_closed": {
+  "cases": [
+   {
+    "case": "sparse_present",
+    "status": "ok",
+    "effective": "sparse_reconstruct",
+    "reason": null,
+    "matches_expectation": true
+   },
+   {
+    "case": "sparse_absent_explicit_fallback",
+    "status": "ok",
+    "effective": "frame_reconstruct",
+    "reason": "SNR_PATH_FALLBACK_FRAME",
+    "matches_expectation": true
+   },
+   {
+    "case": "sparse_corrupt",
+    "status": "fail",
+    "effective": null,
+    "reason": "FZ-SNR-SPARSE-CORRUPT",
+    "matches_expectation": true
+   },
+   {
+    "case": "dense_missing",
+    "status": "fail",
+    "effective": null,
+    "reason": "FZ-SNR-DENSE-MISSING",
+    "matches_expectation": true
+   },
+   {
+    "case": "frame_path",
+    "status": "ok",
+    "effective": "frame_reconstruct",
+    "reason": null,
+    "matches_expectation": true
+   }
+  ],
+  "all_match": true,
+  "silent_variant": {
+   "status": "ok",
+   "effective": "sparse_reconstruct",
+   "reason": null,
+   "detected_as_violation": true
+  }
+ },
+ "gates": {
+  "H1_tautology_all_green": true,
+  "H1_tautology_rmse_within_5pct_of_sfield": true,
+  "H1_adversarial_case_green_but_eff_loss": 7.166950732109671,
+  "H2_unbiased_green": true,
+  "H2_uniform_scale_cancels": true,
+  "H2_split_half_bias_red": true,
+  "H2_shuffle_red": true,
+  "H2_null_proportional_zero": true,
+  "H3_e11_dex_constant_overestimates": true,
+  "H3_factor": 2.302585092994046,
+  "H3_note": "因子按构造恰为 ln10（单位换算恒等式），属定义型检查，不携带数据信息",
+  "H4_spec_transcription_cases_match": true,
+  "H4_silent_fallback_detected": true,
+  "H4_scope_note": "按 docs/plugins/algorithms_phase1/07_noise_snr.md §4.2 转写的**语义自检**；lib/ 实现侧尚无该状态机（无 sparse_reconstruct/snr_path_effective/FZ-SNR 符号），因此不构成对实现的验证，也不得据此外推实现行为"
+ },
+ "generated_at": "2026-09-21T05:28:28Z",
+ "wall_s": 0.23401594161987305
+}

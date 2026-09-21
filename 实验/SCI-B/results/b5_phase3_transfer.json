@@ -1,0 +1,39 @@
+{
+ "experiment": "SCI-B / B5 Phase3 variance transfer C_out=R C_in R^T and output-PSF point information",
+ "frozen_config": {
+  "patch": 24,
+  "sigma_corr_px": 0.6,
+  "sigma_psf_px": 1.2,
+  "shift_px": 0.3,
+  "n_mc": 2000,
+  "F_true_adu": 100.0,
+  "seed_base": 20260921
+ },
+ "rho_in_neighbor": 0.24935220877729622,
+ "rho_out_neighbor": 0.5190910286382748,
+ "gates": {
+  "H1_rel_frobenius_band": 0.07513972992191255,
+  "H1_band_lt_0p10": true,
+  "H1_band_note": "5x5 对角带内 Frobenius；元素级 MC 噪声 sqrt((CiiCjj+Cij^2)/(n-1)) 主导",
+  "H1_diag_ratio_mc_over_analytic": 0.9979891432243022,
+  "H1_diag_within_2pct": true,
+  "H2_diag_approx_underestimates": true,
+  "H2_full_over_diag_measured": 1.372997279682159,
+  "H2_pred_1_plus_0p75rho": 1.389318271478706,
+  "H2_pred_matches_measured_10pct": true,
+  "H3_var_full_pred": 9.07135458880918,
+  "H3_var_full_mc": 9.104769406654922,
+  "H3_full_matches_mc": true,
+  "H3_diag_pred": 4.578281210452827,
+  "H3_diag_underestimates": true,
+  "H3_input_only_pred": 6.448130873008354,
+  "H3_input_only_underestimates": true,
+  "H3_mc_diag_extractor_var": 14.102973868066625,
+  "H3_diag_extractor_suboptimal": true,
+  "H3_diag_claim_underestimates_actual": true,
+  "H3_diag_claim_over_actual": 0.32463232601029157,
+  "H3_flux_unbiased": true
+ },
+ "generated_at": "2026-09-21T05:12:45Z",
+ "wall_s": 3.326727867126465
+}

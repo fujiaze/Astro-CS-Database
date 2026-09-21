@@ -1,5 +1,7 @@
 # Control-Weight SNR / Frame Quality Science (SCI-CW)
 
+> 上游：ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§5.3（SNR 重建与逆方差叠加）
+
 > ID: SCI-CW-001..008  状态: FROZEN (2026-08-27, G3 SCI-002 补冻)  上游: SCI-SCOPE-001,
 > SCI-NOISE (逐像素 σ/variance/ivar)  下游 ALG: ALG-CW-001..  模块: `phase2` sampler/
 > stage2 控制权重 (local_snr_map, frame_snr_medians, quality)
@@ -136,6 +138,17 @@ for 每个控制星 s（半径内）:
 - 公开 API：见 `docs/TRACEABILITY.csv`；测试：见 `lib/algorithms/coverage/tests/synthetic_gate.cpp`
   （UPMW-* 权重相关）。
 - 权威文件：本文件 `docs/science/CONTROL_WEIGHT_SNR.md`（SCI-CW-001..008）。
+
+## 8a. SCI-B 定案结论（帧级 SNR 定义与跨帧可比性，实验闭环）
+
+> 依据：`实验/SCI-B/`（`results/b1_sky_scan.json`、`b2_noise_terms.json`、`b4_integration.json`，复跑 `code/run_all.sh`）。本节确认 §2a 的帧级定义并给出实验边界，不改任何定义与权重语义。
+
+1. **定义已被物理 MC 证实**：固定真实源通量、只抬升天光时，`SNR=F_signal/σ_F` 单调下降，天光主导段 log-log 斜率 −0.4879（亮源）/−0.4972（暗源）（理论 −1/2），`SNR(10⁶)/SNR(0)=2.11%/1.07%`；定义式与 MC 经验散度 max|z|=2.06（26 点）。
+2. **"信号含天光"的传统口径失真可量化**：同一天光范围内传统口径上升 3 个数量级（B=10⁶ 时相对真值 ×3419 亮源 / ×1.0e5 暗源）；不扣局部背景的帧级臂 ×8040 ⇒ **必须独立估计并扣除局部背景**（1% SNR 偏差对应背景偏差 δB*=2.78 e⁻ ≈ 0.28% 天光；实测 1% 交叉 3.44 e⁻）。
+3. **跨帧可比性硬约束**：逐帧 `F_ref,k`、同帧配对、`m_ref=6.0`；`SNR_combined²=ΣSNR_k²` 相对偏差 2.2e-16，Q/W 信息量 `Var=1/ΣW` 实测 1275 vs 解析 1260（+1.2%）；逆方差组合严格优于等权与 `w∝SNR`。
+4. **量纲区隔复核**：`quality_weight`（无量纲相对质量）与 `variance/ivar`（ADU²）不混用——§5/§6 的不变量在本单元以数值方式复核（权重换算恒等、组合方差解析对拍）。
+5. **生产调用点存在已知口径缺陷（转 FIX，不在本节改定义）**：`module_adapters.cpp:4258` 把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu`，而 gain>0 时 `snr_science.cpp` 再加一次 `(RN/g)²` ⇒ 读噪双计，σ_F 高估（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失）。PSF 行路径（`snr_estimator.cpp:83`，gain 未知不加 RN 项）不受影响。量化与建议见 `实验/SCI-B/results/DOC_CORRECTIONS.md` D1。
+6. **误差预算常数单位**：`NOISE_MODEL.md:86` 的 `1.44/√N` 是**相对**标准误（实测 1.166/√N），换算到 dex 为 `1.44/ln10/√N`；直接当 dex 常数用会高估 2.303 倍（`DOC_CORRECTIONS.md` D2）。
 
 ## 9 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 

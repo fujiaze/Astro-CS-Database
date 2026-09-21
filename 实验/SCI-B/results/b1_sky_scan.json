@@ -1,0 +1,1360 @@
+{
+ "experiment": "SCI-B / B1 physical Monte-Carlo truth + sky scan + negative controls",
+ "frozen_config": {
+  "gain_e_per_adu": 1.3,
+  "read_noise_e": 10.0,
+  "dark_e_per_px": 0.5,
+  "sigma_psf_px": 1.5,
+  "fwhm_moffat4_px": 1.845465,
+  "F_bright_e": 3000.0,
+  "F_faint_e": 100.0,
+  "half": 30,
+  "n_mc": 1000,
+  "sky_scan_e_per_px": [
+   0.0,
+   1.0,
+   3.0,
+   10.0,
+   30.0,
+   100.0,
+   300.0,
+   1000.0,
+   3000.0,
+   10000.0,
+   30000.0,
+   100000.0,
+   1000000.0
+  ],
+  "annulus_px": [
+   10.0,
+   30.0
+  ],
+  "seed_base": 20260921,
+  "prod_arms": {
+   "skyonly_plus_rn": "σ_sky=天光+暗流散粒（不含 RN），再 + (RN/g)² —— 生产头文件设计意图",
+   "empirical_plus_rn": "σ_sky=经验空天总 rms（含 RN），再 + (RN/g)² —— 调度器 snr 配置给 gain/RN 时",
+   "empirical_only": "σ_sky=经验空天总 rms（含 RN），不加 RN 项 —— PSF 行路径（gain 未知）"
+  },
+  "n_sky_annulus": 2516,
+  "mc_ci": "chi2 95pct CI of std; N_MC=1000"
+ },
+ "sky_scan_bright": [
+  {
+   "sky_e_per_px": 0.0,
+   "n_sky_bg": 2516,
+   "snr_def": 43.3195817770732,
+   "sigma_f_def": 53.27134318996701,
+   "snr_emp": 43.20693370496678,
+   "snr_emp_ci95": [
+    41.312137742552366,
+    45.10060203756504
+   ],
+   "F_hat_mean_adu": 2305.2479705076007,
+   "F_hat_std_adu": 53.410230946960965,
+   "sigma_sky_hat_med_adu": 7.726126956246658,
+   "sigma_sky_true_total_adu": 7.711514482985931,
+   "snr_prod_skyonly_rn": 43.33694138962821,
+   "snr_prod_empirical_rn": 38.467426007616304,
+   "snr_prod_empirical_only": 43.321961011804795,
+   "sigma_f_mc": 53.410230946960965,
+   "sigma_f_prod_skyonly_rn": [
+    53.25000412337834,
+    0.4859176836503313
+   ],
+   "sigma_f_prod_empirical_rn": [
+    59.99081683384272,
+    0.527582372958785
+   ],
+   "sigma_f_prod_empirical_only": [
+    53.26841753685815,
+    0.5908456877450378
+   ],
+   "snr_arm_oracle": 43.197803347105555,
+   "snr_arm_const": 43.20693370496678,
+   "snr_arm_trad": 38.89098538191016,
+   "snr_arm_raw_frame": 43.44487510391931,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.8784728050231934
+  },
+  {
+   "sky_e_per_px": 1.0,
+   "n_sky_bg": 2516,
+   "snr_def": 43.25817834071484,
+   "sigma_f_def": 53.34695995555353,
+   "snr_emp": 42.6048757010501,
+   "snr_emp_ci95": [
+    40.73648237768316,
+    44.472157107323305
+   ],
+   "F_hat_mean_adu": 2305.393054759754,
+   "F_hat_std_adu": 54.16498158297477,
+   "sigma_sky_hat_med_adu": 7.759795451541546,
+   "sigma_sky_true_total_adu": 7.749785261388416,
+   "snr_prod_skyonly_rn": 43.27281793755635,
+   "snr_prod_empirical_rn": 38.43155145676148,
+   "snr_prod_empirical_only": 43.26597576046553,
+   "sigma_f_mc": 54.16498158297477,
+   "sigma_f_prod_skyonly_rn": [
+    53.32891218275546,
+    0.4909585208347445
+   ],
+   "sigma_f_prod_empirical_rn": [
+    60.04681622829208,
+    0.5433507039220421
+   ],
+   "sigma_f_prod_empirical_only": [
+    53.337345734866595,
+    0.6101016384090489
+   ],
+   "snr_arm_oracle": 42.592891615312126,
+   "snr_arm_const": 42.6048757010501,
+   "snr_arm_trad": 39.02593210504425,
+   "snr_arm_raw_frame": 43.74675131411825,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9012877941131592
+  },
+  {
+   "sky_e_per_px": 3.0,
+   "n_sky_bg": 2516,
+   "snr_def": 43.13645232531163,
+   "sigma_f_def": 53.49749882741745,
+   "snr_emp": 44.25030157110418,
+   "snr_emp_ci95": [
+    42.309749776221544,
+    46.18969850598758
+   ],
+   "F_hat_mean_adu": 2306.492312406405,
+   "F_hat_std_adu": 52.15088317498044,
+   "sigma_sky_hat_med_adu": 7.8178501534953195,
+   "sigma_sky_true_total_adu": 7.825765365144539,
+   "snr_prod_skyonly_rn": 43.15172078735791,
+   "snr_prod_empirical_rn": 38.359677048328656,
+   "snr_prod_empirical_only": 43.1528272999137,
+   "sigma_f_mc": 52.15088317498044,
+   "sigma_f_prod_skyonly_rn": [
+    53.47856969746589,
+    0.48300458322931117
+   ],
+   "sigma_f_prod_empirical_rn": [
+    60.15932576243768,
+    0.5270508276765945
+   ],
+   "sigma_f_prod_empirical_only": [
+    53.4771984151528,
+    0.5895911423472762
+   ],
+   "snr_arm_oracle": 44.248205652137145,
+   "snr_arm_const": 44.25030157110415,
+   "snr_arm_trad": 39.30224656693324,
+   "snr_arm_raw_frame": 44.33484967447372,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9615144729614258
+  },
+  {
+   "sky_e_per_px": 10.0,
+   "n_sky_bg": 2516,
+   "snr_def": 42.72128608722899,
+   "sigma_f_def": 54.017388497631494,
+   "snr_emp": 44.07191938232012,
+   "snr_emp_ci95": [
+    42.13919035619452,
+    46.00349820392785
+   ],
+   "F_hat_mean_adu": 2311.1632259822672,
+   "F_hat_std_adu": 52.36196517045865,
+   "sigma_sky_hat_med_adu": 8.08553144849884,
+   "sigma_sky_true_total_adu": 8.086075400626399,
+   "snr_prod_skyonly_rn": 42.69251344633834,
+   "snr_prod_empirical_rn": 38.05487046986912,
+   "snr_prod_empirical_only": 42.68564423708598,
+   "sigma_f_mc": 52.36196517045865,
+   "sigma_f_prod_skyonly_rn": [
+    54.05379354375385,
+    0.48147286896125757
+   ],
+   "sigma_f_prod_empirical_rn": [
+    60.64118151497795,
+    0.5371440990546524
+   ],
+   "sigma_f_prod_empirical_only": [
+    54.062492178280095,
+    0.6009254155964084
+   ],
+   "snr_arm_oracle": 44.05053180479299,
+   "snr_arm_const": 44.07191938232013,
+   "snr_arm_trad": 40.16620561309364,
+   "snr_arm_raw_frame": 46.34157565383326,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 1.0781779289245605
+  },
+  {
+   "sky_e_per_px": 30.0,
+   "n_sky_bg": 2516,
+   "snr_def": 41.61819286143313,
+   "sigma_f_def": 55.449123304698,
+   "snr_emp": 41.75867581557006,
+   "snr_emp_ci95": [
+    39.927391724192404,
+    43.588870074277466
+   ],
+   "F_hat_mean_adu": 2307.0467275080987,
+   "F_hat_std_adu": 55.26258346611331,
+   "sigma_sky_hat_med_adu": 8.78638782036963,
+   "sigma_sky_true_total_adu": 8.787430506766047,
+   "snr_prod_skyonly_rn": 41.62223602777809,
+   "snr_prod_empirical_rn": 37.36161270342046,
+   "snr_prod_empirical_only": 41.630831106360695,
+   "sigma_f_mc": 55.26258346611331,
+   "sigma_f_prod_skyonly_rn": [
+    55.44373700039053,
+    0.47838039023276024
+   ],
+   "sigma_f_prod_empirical_rn": [
+    61.76639980749648,
+    0.5694713479257031
+   ],
+   "sigma_f_prod_empirical_only": [
+    55.4322901168245,
+    0.6374197401823208
+   ],
+   "snr_arm_oracle": 41.77622951087702,
+   "snr_arm_const": 41.75867581557006,
+   "snr_arm_trad": 42.462502589298595,
+   "snr_arm_raw_frame": 51.795054529042574,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9991433620452881
+  },
+  {
+   "sky_e_per_px": 100.0,
+   "n_sky_bg": 2516,
+   "snr_def": 38.46492549694547,
+   "sigma_f_def": 59.994716690028774,
+   "snr_emp": 40.23838584052036,
+   "snr_emp_ci95": [
+    38.47377251374946,
+    42.00194901168574
+   ],
+   "F_hat_mean_adu": 2311.1152086224647,
+   "F_hat_std_adu": 57.35051890099538,
+   "sigma_sky_hat_med_adu": 10.87917919155227,
+   "sigma_sky_true_total_adu": 10.89215558346638,
+   "snr_prod_skyonly_rn": 38.45598061749747,
+   "snr_prod_empirical_rn": 35.138538265906604,
+   "snr_prod_empirical_only": 38.465222491448905,
+   "sigma_f_mc": 57.35051890099538,
+   "sigma_f_prod_skyonly_rn": [
+    60.00867148976843,
+    0.46799598067294984
+   ],
+   "sigma_f_prod_empirical_rn": [
+    65.6741122874585,
+    0.6754337517254969
+   ],
+   "sigma_f_prod_empirical_only": [
+    59.9942534637704,
+    0.7465823225803687
+   ],
+   "snr_arm_oracle": 40.28250061445694,
+   "snr_arm_const": 40.23838584052036,
+   "snr_arm_trad": 49.8187158615259,
+   "snr_arm_raw_frame": 69.5224061178156,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 1.003737449645996
+  },
+  {
+   "sky_e_per_px": 300.0,
+   "n_sky_bg": 2516,
+   "snr_def": 32.623556636115914,
+   "sigma_f_def": 70.7369933153633,
+   "snr_emp": 33.446769347961585,
+   "snr_emp_ci95": [
+    31.979995428084028,
+    34.91267036223958
+   ],
+   "F_hat_mean_adu": 2310.4426380595296,
+   "F_hat_std_adu": 68.9959703935636,
+   "sigma_sky_hat_med_adu": 15.379414277566923,
+   "sigma_sky_true_total_adu": 15.394227766299615,
+   "snr_prod_skyonly_rn": 32.614133032950775,
+   "snr_prod_empirical_rn": 30.613670959791065,
+   "snr_prod_empirical_only": 32.621574329849224,
+   "sigma_f_mc": 68.9959703935636,
+   "sigma_f_prod_skyonly_rn": [
+    70.7574322261087,
+    0.4958875762345898
+   ],
+   "sigma_f_prod_empirical_rn": [
+    75.38110377952718,
+    0.9346090273310067
+   ],
+   "sigma_f_prod_empirical_only": [
+    70.74129177084917,
+    1.0029380473644678
+   ],
+   "snr_arm_oracle": 33.447172421461644,
+   "snr_arm_const": 33.44676934796158,
+   "snr_arm_trad": 66.4805048083204,
+   "snr_arm_raw_frame": 111.2864028445502,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9790520668029785
+  },
+  {
+   "sky_e_per_px": 1000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 23.513597338415813,
+   "sigma_f_def": 98.14288619810925,
+   "snr_emp": 22.95020451867979,
+   "snr_emp_ci95": [
+    21.943746732169924,
+    23.956063342646317
+   ],
+   "F_hat_mean_adu": 2305.154881041048,
+   "F_hat_std_adu": 100.55214566014061,
+   "sigma_sky_hat_med_adu": 25.530064444504504,
+   "sigma_sky_true_total_adu": 25.5182960236898,
+   "snr_prod_skyonly_rn": 23.518711037256367,
+   "snr_prod_empirical_rn": 22.764338754451412,
+   "snr_prod_empirical_only": 23.519861171964113,
+   "sigma_f_mc": 100.55214566014061,
+   "sigma_f_prod_skyonly_rn": [
+    98.1215468839536,
+    0.5557740052312351
+   ],
+   "sigma_f_prod_empirical_rn": [
+    101.37313157146083,
+    1.7023352039857056
+   ],
+   "sigma_f_prod_empirical_only": [
+    98.11674868400574,
+    1.7612908341588236
+   ],
+   "snr_arm_oracle": 22.965013939605576,
+   "snr_arm_const": 22.95020451867979,
+   "snr_arm_trad": 105.92335382381387,
+   "snr_arm_raw_frame": 212.2966867548834,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9307925701141357
+  },
+  {
+   "sky_e_per_px": 3000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 15.384644964011107,
+   "sigma_f_def": 149.9997116014462,
+   "snr_emp": 16.08134092420692,
+   "snr_emp_ci95": [
+    15.376110137373875,
+    16.78615201452473
+   ],
+   "F_hat_mean_adu": 2312.128874672302,
+   "F_hat_std_adu": 143.50123653050503,
+   "sigma_sky_hat_med_adu": 42.77966242142563,
+   "sigma_sky_true_total_adu": 42.83241044600904,
+   "snr_prod_skyonly_rn": 15.382790918381355,
+   "snr_prod_empirical_rn": 15.171538049521523,
+   "snr_prod_empirical_only": 15.386097583076188,
+   "sigma_f_mc": 143.50123653050503,
+   "sigma_f_prod_skyonly_rn": [
+    150.01779065558105,
+    0.5493474654459142
+   ],
+   "sigma_f_prod_empirical_rn": [
+    152.10668161393744,
+    3.102336712204545
+   ],
+   "sigma_f_prod_empirical_only": [
+    149.9855499571662,
+    3.1464851892124788
+   ],
+   "snr_arm_oracle": 16.075029985107154,
+   "snr_arm_const": 16.08134092420692,
+   "snr_arm_trad": 175.1986332375525,
+   "snr_arm_raw_frame": 385.8661909932686,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9284348487854004
+  },
+  {
+   "sky_e_per_px": 10000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 8.899549272565823,
+   "sigma_f_def": 259.30440261801914,
+   "snr_emp": 8.930776493795943,
+   "snr_emp_ci95": [
+    8.53912640917712,
+    9.322193499855556
+   ],
+   "F_hat_mean_adu": 2309.2074206649777,
+   "F_hat_std_adu": 258.39772267231433,
+   "sigma_sky_hat_med_adu": 77.26393858651201,
+   "sigma_sky_true_total_adu": 77.30864905646011,
+   "snr_prod_skyonly_rn": 8.899479207472893,
+   "snr_prod_empirical_rn": 8.860554972022355,
+   "snr_prod_empirical_only": 8.902585959919735,
+   "sigma_f_mc": 258.39772267231433,
+   "sigma_f_prod_skyonly_rn": [
+    259.30644410681225,
+    0.5902486923010977
+   ],
+   "sigma_f_prod_empirical_rn": [
+    260.4455719736474,
+    5.852519712571025
+   ],
+   "sigma_f_prod_empirical_only": [
+    259.21595344114075,
+    5.880368738474596
+   ],
+   "snr_arm_oracle": 8.931169352962097,
+   "snr_arm_const": 8.930776493795944,
+   "snr_arm_trad": 314.3967629142302,
+   "snr_arm_raw_frame": 723.3364540341566,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9223306179046631
+  },
+  {
+   "sky_e_per_px": 30000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 5.22670618759876,
+   "sigma_f_def": 441.51942444511155,
+   "snr_emp": 5.283744425787052,
+   "snr_emp_ci95": [
+    5.0520312088118775,
+    5.51531974573403
+   ],
+   "F_hat_mean_adu": 2286.923975438907,
+   "F_hat_std_adu": 436.7532041159542,
+   "sigma_sky_hat_med_adu": 133.5000987339153,
+   "sigma_sky_true_total_adu": 133.4576589992576,
+   "snr_prod_skyonly_rn": 5.227048638442189,
+   "snr_prod_empirical_rn": 5.221834254372137,
+   "snr_prod_empirical_only": 5.230394774158697,
+   "sigma_f_mc": 436.7532041159542,
+   "sigma_f_prod_skyonly_rn": [
+    441.4904982365089,
+    0.5922862350232959
+   ],
+   "sigma_f_prod_empirical_rn": [
+    441.9313588439011,
+    9.958995823943013
+   ],
+   "sigma_f_prod_empirical_only": [
+    441.20805547866075,
+    9.97541210779912
+   ],
+   "snr_arm_oracle": 5.283641070996949,
+   "snr_arm_const": 5.283744425787052,
+   "snr_arm_trad": 541.8721829046438,
+   "snr_arm_raw_frame": 1264.3546761078576,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9060626029968262
+  },
+  {
+   "sky_e_per_px": 100000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 2.8804754515449447,
+   "sigma_f_def": 801.1497915924177,
+   "snr_emp": 2.9548718387737103,
+   "snr_emp_ci95": [
+    2.8252889512725576,
+    3.084377608985979
+   ],
+   "F_hat_mean_adu": 2322.951079980636,
+   "F_hat_std_adu": 780.978815192883,
+   "sigma_sky_hat_med_adu": 243.40543745767678,
+   "sigma_sky_true_total_adu": 243.3743312035133,
+   "snr_prod_skyonly_rn": 2.8804358109894905,
+   "snr_prod_empirical_rn": 2.878379921417538,
+   "snr_prod_empirical_only": 2.879811161915974,
+   "sigma_f_mc": 780.978815192883,
+   "sigma_f_prod_skyonly_rn": [
+    801.1608170152441,
+    0.585938369100575
+   ],
+   "sigma_f_prod_empirical_rn": [
+    801.7330479972986,
+    18.043867806792395
+   ],
+   "sigma_f_prod_empirical_only": [
+    801.3345938130789,
+    18.05284486155334
+   ],
+   "snr_arm_oracle": 2.954949214217525,
+   "snr_arm_const": 2.9548718387737103,
+   "snr_arm_trad": 987.121365393673,
+   "snr_arm_raw_frame": 2313.839350850398,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.8820619583129883
+  },
+  {
+   "sky_e_per_px": 1000000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 0.9130772445691898,
+   "sigma_f_def": 2527.379059568096,
+   "snr_emp": 0.9082308183077124,
+   "snr_emp_ci95": [
+    0.8684012830942018,
+    0.9480366501925473
+   ],
+   "F_hat_mean_adu": 2351.677513068797,
+   "F_hat_std_adu": 2540.8654509127787,
+   "sigma_sky_hat_med_adu": 767.7992681985857,
+   "sigma_sky_true_total_adu": 769.269422105794,
+   "snr_prod_skyonly_rn": 0.9130527852259577,
+   "snr_prod_empirical_rn": 0.9147875258574976,
+   "snr_prod_empirical_only": 0.9148334379792218,
+   "sigma_f_mc": 2540.8654509127787,
+   "sigma_f_prod_skyonly_rn": [
+    2527.446764341463,
+    0.5144604840877656
+   ],
+   "sigma_f_prod_empirical_rn": [
+    2522.653886790966,
+    55.606901533969385
+   ],
+   "sigma_f_prod_empirical_only": [
+    2522.5272840811062,
+    55.60970203959378
+   ],
+   "snr_arm_oracle": 0.9082433094533442,
+   "snr_arm_const": 0.9082308183077124,
+   "snr_arm_trad": 3123.0828890103953,
+   "snr_arm_raw_frame": 7342.101595475349,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.943810224533081
+  }
+ ],
+ "gates_bright": {
+  "G1_spearman_rho_def": -1.0,
+  "G1_spearman_p_def": 0.0,
+  "G1_strict_monotone_def": true,
+  "G1_spearman_rho_emp": -0.9560439560439561,
+  "G1_spearman_p_emp": 3.365097276351456e-07,
+  "G1_emp_rank_monotone": true,
+  "G1_no_significant_increase_emp": true,
+  "G1_significant_decrease_B_ge_1000": true,
+  "G2_large_sky_slope_def": -0.4879107345007782,
+  "G2_slope_within_15pct_of_minus_half": true,
+  "G2_snr_max_over_min": 0.021077702210237727,
+  "G2_tends_to_zero_below_3pct": true,
+  "G3_def_in_mc_ci95_frac": 0.9230769230769231,
+  "G3_frac_within_ci_ge_0p90": true,
+  "G3_max_abs_z_sigma": 2.0608877035580258,
+  "G3_all_within_3sigma": true,
+  "G3_mean_z": -0.5869851586054641,
+  "G3_max_rel_dev_def_vs_emp": 0.044073844080221525,
+  "G4a_skyonly_rn_max_abs_z": 2.071626266966724,
+  "G4a_skyonly_rn_all_within_3sigma": true,
+  "G4a_skyonly_rn_max_rel_dev": 0.04634923344567876,
+  "G4a_skyonly_rn_rel_dev_at_B0": -0.0029999275558598715,
+  "G4a_skyonly_rn_rel_dev_at_max_sky": -0.00528114803028823,
+  "G4a_skyonly_rn_abs_z_at_max_sky": 0.23606199063413483,
+  "G4a_skyonly_rn_all_within_3sigma_except_B0": true,
+  "G4b_empirical_only_max_abs_z": 2.0601779150669355,
+  "G4b_empirical_only_all_within_3sigma": true,
+  "G4b_empirical_only_max_rel_dev": 0.04609783160530623,
+  "G4b_empirical_only_rel_dev_at_B0": -0.0026551731304745863,
+  "G4b_empirical_only_rel_dev_at_max_sky": -0.007217291582710339,
+  "G4b_empirical_only_abs_z_at_max_sky": 0.32245140425524577,
+  "G4b_empirical_only_all_within_3sigma_except_B0": true,
+  "G4c_empirical_rn_max_abs_z": 7.066842047311398,
+  "FINDING_doublecount_all_within_3sigma": false,
+  "G4c_empirical_rn_max_rel_dev": 0.15811508062325808,
+  "G4c_empirical_rn_rel_dev_at_B0": 0.12320833986688062,
+  "G4c_empirical_rn_rel_dev_at_max_sky": -0.007167464973507398,
+  "G4c_empirical_rn_abs_z_at_max_sky": 0.32022528540702805,
+  "FINDING_doublecount_all_within_3sigma_except_B0": false,
+  "G4c_doublecount_detected_where_RN_dominates": true,
+  "G4c_doublecount_vanishes_at_high_sky_3sigma": true,
+  "G4c_bias_ratio_B0_over_maxsky": 17.18994656022555,
+  "G5_arith_null_max_rel_change": 6.661338147750939e-16,
+  "G5_arith_null_exact_zero": true,
+  "G6_trad_monotone_increasing": true,
+  "G6_trad_distortion_at_max_sky": 3419.3928611581327,
+  "G6_raw_frame_distortion_at_max_sky": 8040.05199110456,
+  "G6_negative_control_detected": true,
+  "G7_leak_first_red_beta": 0.001,
+  "G7_gate_has_teeth": true
+ },
+ "sky_scan_faint": [
+  {
+   "sky_e_per_px": 0.0,
+   "n_sky_bg": 2516,
+   "snr_def": 2.8436632727746516,
+   "sigma_f_def": 27.050698182004037,
+   "snr_emp": 2.8387352087960815,
+   "snr_emp_ci95": [
+    2.714245374624578,
+    2.963150956653488
+   ],
+   "F_hat_mean_adu": 76.8188143018256,
+   "F_hat_std_adu": 27.09765838135368,
+   "sigma_sky_hat_med_adu": 7.704292392814473,
+   "sigma_sky_true_total_adu": 7.711514482985931,
+   "snr_prod_skyonly_rn": 2.845036584950346,
+   "snr_prod_empirical_rn": 2.0778339012891704,
+   "snr_prod_empirical_only": 2.8459938062777015,
+   "sigma_f_mc": 27.09765838135368,
+   "sigma_f_prod_skyonly_rn": [
+    27.037640686233726,
+    0.5742101374424631
+   ],
+   "sigma_f_prod_empirical_rn": [
+    37.02080174712271,
+    0.5897496550629887
+   ],
+   "sigma_f_prod_empirical_only": [
+    27.028546848345126,
+    0.7999239949120345
+   ],
+   "snr_arm_oracle": 2.836043182866847,
+   "snr_arm_const": 2.838735208796081,
+   "snr_arm_trad": 2.0629865929410554,
+   "snr_arm_raw_frame": 3.1885574995540704,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9324791431427002
+  },
+  {
+   "sky_e_per_px": 1.0,
+   "n_sky_bg": 2516,
+   "snr_def": 2.8312965230632483,
+   "sigma_f_def": 27.16885225424993,
+   "snr_emp": 2.7620062209895586,
+   "snr_emp_ci95": [
+    2.640881258236349,
+    2.8830590999288956
+   ],
+   "F_hat_mean_adu": 76.35792571351372,
+   "F_hat_std_adu": 27.850435795006025,
+   "sigma_sky_hat_med_adu": 7.736121419153626,
+   "sigma_sky_true_total_adu": 7.749785261388416,
+   "snr_prod_skyonly_rn": 2.8335724795718193,
+   "snr_prod_empirical_rn": 2.074194719060695,
+   "snr_prod_empirical_only": 2.8366291447868397,
+   "sigma_f_mc": 27.850435795006025,
+   "sigma_f_prod_skyonly_rn": [
+    27.147029933993696,
+    0.5883309288084397
+   ],
+   "sigma_f_prod_empirical_rn": [
+    37.085754879325776,
+    0.5901282813316252
+   ],
+   "sigma_f_prod_empirical_only": [
+    27.117777120934626,
+    0.798935384930645
+   ],
+   "snr_arm_oracle": 2.756483123590595,
+   "snr_arm_const": 2.762006220989558,
+   "snr_arm_trad": 2.456950768976815,
+   "snr_arm_raw_frame": 3.8369663529444846,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9445836544036865
+  },
+  {
+   "sky_e_per_px": 3.0,
+   "n_sky_bg": 2516,
+   "snr_def": 2.8070415884374276,
+   "sigma_f_def": 27.40361141777634,
+   "snr_emp": 2.8067021309542515,
+   "snr_emp_ci95": [
+    2.683617074705034,
+    2.929713936899952
+   ],
+   "F_hat_mean_adu": 77.80889002247835,
+   "F_hat_std_adu": 27.406925756287443,
+   "sigma_sky_hat_med_adu": 7.812611212103119,
+   "sigma_sky_true_total_adu": 7.825765365144539,
+   "snr_prod_skyonly_rn": 2.8060728796913135,
+   "snr_prod_empirical_rn": 2.062633976350068,
+   "snr_prod_empirical_only": 2.8072546020022084,
+   "sigma_f_mc": 27.406925756287443,
+   "sigma_f_prod_skyonly_rn": [
+    27.413071656050132,
+    0.5713214157448062
+   ],
+   "sigma_f_prod_empirical_rn": [
+    37.29361476881908,
+    0.5895602984023449
+   ],
+   "sigma_f_prod_empirical_only": [
+    27.401532040668254,
+    0.7943508470616374
+   ],
+   "snr_arm_oracle": 2.806052092534467,
+   "snr_arm_const": 2.806702130954251,
+   "snr_arm_trad": 3.252206148400325,
+   "snr_arm_raw_frame": 5.201313889977029,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.964322566986084
+  },
+  {
+   "sky_e_per_px": 10.0,
+   "n_sky_bg": 2516,
+   "snr_def": 2.726831348928116,
+   "sigma_f_def": 28.20969362601557,
+   "snr_emp": 2.717364162167169,
+   "snr_emp_ci95": [
+    2.5981969313231046,
+    2.8364604742815795
+   ],
+   "F_hat_mean_adu": 76.18027192767131,
+   "F_hat_std_adu": 28.307975056875982,
+   "sigma_sky_hat_med_adu": 8.083702099553928,
+   "sigma_sky_true_total_adu": 8.086075400626399,
+   "snr_prod_skyonly_rn": 2.7292500249131475,
+   "snr_prod_empirical_rn": 2.0325927643020667,
+   "snr_prod_empirical_only": 2.7326745068696927,
+   "sigma_f_mc": 28.307975056875982,
+   "sigma_f_prod_skyonly_rn": [
+    28.184694044483827,
+    0.5775362881413495
+   ],
+   "sigma_f_prod_empirical_rn": [
+    37.8448050559159,
+    0.616532536560273
+   ],
+   "sigma_f_prod_empirical_only": [
+    28.149374076458564,
+    0.8212200626040076
+   ],
+   "snr_arm_oracle": 2.7209467411583788,
+   "snr_arm_const": 2.7173641621671685,
+   "snr_arm_trad": 5.691008208693747,
+   "snr_arm_raw_frame": 9.603344859502927,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 1.1805970668792725
+  },
+  {
+   "sky_e_per_px": 30.0,
+   "n_sky_bg": 2516,
+   "snr_def": 2.5308649289825706,
+   "sigma_f_def": 30.393987463408667,
+   "snr_emp": 2.509137878553591,
+   "snr_emp_ci95": [
+    2.399102198773846,
+    2.6191080739667756
+   ],
+   "F_hat_mean_adu": 76.41969696893625,
+   "F_hat_std_adu": 30.657174155538925,
+   "sigma_sky_hat_med_adu": 8.786396543448777,
+   "sigma_sky_true_total_adu": 8.787430506766047,
+   "snr_prod_skyonly_rn": 2.532170005526793,
+   "snr_prod_empirical_rn": 1.946377041070169,
+   "snr_prod_empirical_only": 2.532935092006298,
+   "sigma_f_mc": 30.657174155538925,
+   "sigma_f_prod_skyonly_rn": [
+    30.378322448801708,
+    0.57612709828955
+   ],
+   "sigma_f_prod_empirical_rn": [
+    39.52115921013053,
+    0.6749052133764751
+   ],
+   "sigma_f_prod_empirical_only": [
+    30.369146515376105,
+    0.8727325379919221
+   ],
+   "snr_arm_oracle": 2.5088028997674847,
+   "snr_arm_const": 2.509137878553591,
+   "snr_arm_trad": 11.708735360894538,
+   "snr_arm_raw_frame": 21.086445762579462,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 1.0869603157043457
+  },
+  {
+   "sky_e_per_px": 100.0,
+   "n_sky_bg": 2516,
+   "snr_def": 2.0772240480939916,
+   "sigma_f_def": 37.0316707018964,
+   "snr_emp": 2.091678893750948,
+   "snr_emp_ci95": [
+    1.99995045151504,
+    2.1833527466123233
+   ],
+   "F_hat_mean_adu": 76.2556974340904,
+   "F_hat_std_adu": 36.77575805392049,
+   "sigma_sky_hat_med_adu": 10.900846812933406,
+   "sigma_sky_true_total_adu": 10.89215558346638,
+   "snr_prod_skyonly_rn": 2.0780196184116275,
+   "snr_prod_empirical_rn": 1.7155772150403255,
+   "snr_prod_empirical_only": 2.0773188297789993,
+   "sigma_f_mc": 36.77575805392049,
+   "sigma_f_prod_skyonly_rn": [
+    37.01749311773798,
+    0.5756564597794802
+   ],
+   "sigma_f_prod_empirical_rn": [
+    44.83801501249759,
+    0.813128314606898
+   ],
+   "sigma_f_prod_empirical_only": [
+    37.02998106037511,
+    0.9820814487389068
+   ],
+   "snr_arm_oracle": 2.0916962214581396,
+   "snr_arm_const": 2.0916788937509487,
+   "snr_arm_trad": 26.17984585572325,
+   "snr_arm_raw_frame": 52.28124640227281,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9584667682647705
+  },
+  {
+   "sky_e_per_px": 300.0,
+   "n_sky_bg": 2516,
+   "snr_def": 1.4946134030291183,
+   "sigma_f_def": 51.46687214712358,
+   "snr_emp": 1.531190785571939,
+   "snr_emp_ci95": [
+    1.4640419770497008,
+    1.5982996325362522
+   ],
+   "F_hat_mean_adu": 76.6027084723877,
+   "F_hat_std_adu": 50.23742152049601,
+   "sigma_sky_hat_med_adu": 15.39543273567282,
+   "sigma_sky_true_total_adu": 15.394227766299615,
+   "snr_prod_skyonly_rn": 1.4944911745296205,
+   "snr_prod_empirical_rn": 1.341553114547491,
+   "snr_prod_empirical_only": 1.4946255950572027,
+   "sigma_f_mc": 50.23742152049601,
+   "sigma_f_prod_skyonly_rn": [
+    51.47108141825451,
+    0.5503427910792167
+   ],
+   "sigma_f_prod_empirical_rn": [
+    57.338823255628796,
+    1.185758451467808
+   ],
+   "sigma_f_prod_empirical_only": [
+    51.46645231920633,
+    1.3208521450453445
+   ],
+   "snr_arm_oracle": 1.5323997062767443,
+   "snr_arm_const": 1.5311907855719389,
+   "snr_arm_trad": 50.41514220991518,
+   "snr_arm_raw_frame": 109.56006131765474,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.944983959197998
+  },
+  {
+   "sky_e_per_px": 1000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 0.9117390912658434,
+   "sigma_f_def": 84.36961589118461,
+   "snr_emp": 0.9045270662923702,
+   "snr_emp_ci95": [
+    0.8648599553418812,
+    0.9441705705760117
+   ],
+   "F_hat_mean_adu": 75.75404142478754,
+   "F_hat_std_adu": 85.04231635475801,
+   "sigma_sky_hat_med_adu": 25.535471235146048,
+   "sigma_sky_true_total_adu": 25.5182960236898,
+   "snr_prod_skyonly_rn": 0.9112313723734728,
+   "snr_prod_empirical_rn": 0.8731352582080836,
+   "snr_prod_empirical_only": 0.9114477827186757,
+   "sigma_f_mc": 85.04231635475801,
+   "sigma_f_prod_skyonly_rn": [
+    84.41662486083678,
+    0.5125107220825313
+   ],
+   "sigma_f_prod_empirical_rn": [
+    88.09984043130325,
+    1.9254251596523935
+   ],
+   "sigma_f_prod_empirical_only": [
+    84.39658133089094,
+    2.010167103627074
+   ],
+   "snr_arm_oracle": 0.9049192137164496,
+   "snr_arm_const": 0.9045270662923702,
+   "snr_arm_trad": 96.48329316483095,
+   "snr_arm_raw_frame": 220.39105056393987,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9074649810791016
+  },
+  {
+   "sky_e_per_px": 3000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 0.5454735474671291,
+   "sigma_f_def": 141.02072828327647,
+   "snr_emp": 0.5235817614133064,
+   "snr_emp_ci95": [
+    0.500620617854866,
+    0.5465292403500127
+   ],
+   "F_hat_mean_adu": 75.86174065619335,
+   "F_hat_std_adu": 146.9170291864983,
+   "sigma_sky_hat_med_adu": 42.818021765210304,
+   "sigma_sky_true_total_adu": 42.83241044600904,
+   "snr_prod_skyonly_rn": 0.5450304024487556,
+   "snr_prod_empirical_rn": 0.5369543925603962,
+   "snr_prod_empirical_only": 0.5455109815243314,
+   "sigma_f_mc": 146.9170291864983,
+   "sigma_f_prod_skyonly_rn": [
+    141.13538726917042,
+    0.47016927654909685
+   ],
+   "sigma_f_prod_empirical_rn": [
+    143.25812022186722,
+    3.2496470609447883
+   ],
+   "sigma_f_prod_empirical_only": [
+    141.0110511581808,
+    3.301459959710168
+   ],
+   "snr_arm_oracle": 0.5235672795308651,
+   "snr_arm_const": 0.5235817614133064,
+   "snr_arm_trad": 169.64270998055372,
+   "snr_arm_raw_frame": 394.5579725013954,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9217736721038818
+  },
+  {
+   "sky_e_per_px": 10000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 0.30270491395247906,
+   "sigma_f_def": 254.1190227759332,
+   "snr_emp": 0.29623929155078577,
+   "snr_emp_ci95": [
+    0.28324801988657117,
+    0.30922283185734034
+   ],
+   "F_hat_mean_adu": 60.70417547145384,
+   "F_hat_std_adu": 259.6653418943571,
+   "sigma_sky_hat_med_adu": 77.41099909305618,
+   "sigma_sky_true_total_adu": 77.30864905646011,
+   "snr_prod_skyonly_rn": 0.30253939294555465,
+   "snr_prod_empirical_rn": 0.3009148592559075,
+   "snr_prod_empirical_only": 0.3023964019142387,
+   "sigma_f_mc": 259.6653418943571,
+   "sigma_f_prod_skyonly_rn": [
+    254.25805272545148,
+    0.40601134017302126
+   ],
+   "sigma_f_prod_empirical_rn": [
+    255.63070269540628,
+    5.712286575236101
+   ],
+   "sigma_f_prod_empirical_only": [
+    254.37828107787053,
+    5.740398700678703
+   ],
+   "snr_arm_oracle": 0.29626090278414524,
+   "snr_arm_const": 0.29623929155078577,
+   "snr_arm_trad": 311.1190916598512,
+   "snr_arm_raw_frame": 728.2483824666034,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9708666801452637
+  },
+  {
+   "sky_e_per_px": 30000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 0.17543291330808247,
+   "sigma_f_def": 438.475742507851,
+   "snr_emp": 0.1741890250112132,
+   "snr_emp_ci95": [
+    0.16655014317012087,
+    0.18182336080560868
+   ],
+   "F_hat_mean_adu": 79.92688643594302,
+   "F_hat_std_adu": 441.60690903531435,
+   "sigma_sky_hat_med_adu": 133.47495452681358,
+   "sigma_sky_true_total_adu": 133.4576589992576,
+   "snr_prod_skyonly_rn": 0.1753546806470897,
+   "snr_prod_empirical_rn": 0.1750529892003821,
+   "snr_prod_empirical_only": 0.175343258942697,
+   "sigma_f_mc": 441.60690903531435,
+   "sigma_f_prod_skyonly_rn": [
+    438.671363884997,
+    0.38697431747692324
+   ],
+   "sigma_f_prod_empirical_rn": [
+    439.4273829567317,
+    10.498930759474066
+   ],
+   "sigma_f_prod_empirical_only": [
+    438.6999385486256,
+    10.516350997557899
+   ],
+   "snr_arm_oracle": 0.17418734839210895,
+   "snr_arm_const": 0.1741890250112132,
+   "snr_arm_trad": 539.8667623097508,
+   "snr_arm_raw_frame": 1266.5473765398774,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9297659397125244
+  },
+  {
+   "sky_e_per_px": 100000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 0.09621726039455188,
+   "sigma_f_def": 799.4727412487474,
+   "snr_emp": 0.09300311144164754,
+   "snr_emp_ci95": [
+    0.08892455494756904,
+    0.09707924070767572
+   ],
+   "F_hat_mean_adu": 89.35776593848465,
+   "F_hat_std_adu": 827.1021875578901,
+   "sigma_sky_hat_med_adu": 243.25791436416125,
+   "sigma_sky_true_total_adu": 243.3743312035133,
+   "snr_prod_skyonly_rn": 0.09618982581172063,
+   "snr_prod_empirical_rn": 0.09616704972574125,
+   "snr_prod_empirical_only": 0.09621508939770534,
+   "sigma_f_mc": 827.1021875578901,
+   "sigma_f_prod_skyonly_rn": [
+    799.7007612181778,
+    0.3853393887980843
+   ],
+   "sigma_f_prod_empirical_rn": [
+    799.8901613645609,
+    18.445107799003303
+   ],
+   "sigma_f_prod_empirical_only": [
+    799.4907805481026,
+    18.454316862585056
+   ],
+   "snr_arm_oracle": 0.09300546856054544,
+   "snr_arm_const": 0.09300311144164754,
+   "snr_arm_trad": 986.4087807038401,
+   "snr_arm_raw_frame": 2316.38886152528,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.8772859573364258
+  },
+  {
+   "sky_e_per_px": 1000000.0,
+   "n_sky_bg": 2516,
+   "snr_def": 0.030442310828141354,
+   "sigma_f_def": 2526.8474971344162,
+   "snr_emp": 0.030071813058465617,
+   "snr_emp_ci95": [
+    0.028753044400760302,
+    0.031389796891372626
+   ],
+   "F_hat_mean_adu": 50.48182214679321,
+   "F_hat_std_adu": 2557.9793534072282,
+   "sigma_sky_hat_med_adu": 768.7002369976783,
+   "sigma_sky_true_total_adu": 769.269422105794,
+   "snr_prod_skyonly_rn": 0.03043953848254529,
+   "snr_prod_empirical_rn": 0.030463221612877584,
+   "snr_prod_empirical_only": 0.03046474758704682,
+   "sigma_f_mc": 2557.9793534072282,
+   "sigma_f_prod_skyonly_rn": [
+    2527.077635135182,
+    0.36073114248203725
+   ],
+   "sigma_f_prod_empirical_rn": [
+    2525.113000213988,
+    57.12448831091342
+   ],
+   "sigma_f_prod_empirical_only": [
+    2524.986517721339,
+    57.12735115233647
+   ],
+   "snr_arm_oracle": 0.030071715985427218,
+   "snr_arm_const": 0.030071813058465617,
+   "snr_arm_trad": 3120.881247911323,
+   "snr_arm_raw_frame": 7334.031234691437,
+   "r_ap_px": 2.7681975,
+   "n_pix_ap": 24.07376500578344,
+   "elapsed_s": 0.9027595520019531
+  }
+ ],
+ "gates_faint": {
+  "G1_spearman_rho_def": -1.0,
+  "G1_spearman_p_def": 0.0,
+  "G1_strict_monotone_def": true,
+  "G1_spearman_rho_emp": -0.9945054945054945,
+  "G1_spearman_p_emp": 3.909411051466979e-12,
+  "G1_emp_rank_monotone": true,
+  "G1_no_significant_increase_emp": true,
+  "G1_significant_decrease_B_ge_1000": true,
+  "G2_large_sky_slope_def": -0.49719839095455826,
+  "G2_slope_within_15pct_of_minus_half": true,
+  "G2_snr_max_over_min": 0.010705314908272468,
+  "G2_tends_to_zero_below_3pct": true,
+  "G3_def_in_mc_ci95_frac": 1.0,
+  "G3_frac_within_ci_ge_0p90": true,
+  "G3_max_abs_z_sigma": 1.7939289672078422,
+  "G3_all_within_3sigma": true,
+  "G3_mean_z": 0.4436247784389495,
+  "G3_max_rel_dev_def_vs_emp": 0.04181159021798253,
+  "G4a_skyonly_rn_max_abs_z": 1.759026374008789,
+  "G4a_skyonly_rn_all_within_3sigma": true,
+  "G4a_skyonly_rn_max_rel_dev": 0.03935310936616199,
+  "G4a_skyonly_rn_rel_dev_at_B0": -0.0022148664757414283,
+  "G4a_skyonly_rn_rel_dev_at_max_sky": -0.012080519035810533,
+  "G4a_skyonly_rn_abs_z_at_max_sky": 0.5399870284393534,
+  "G4a_skyonly_rn_all_within_3sigma_except_B0": true,
+  "G4b_empirical_only_max_abs_z": 1.7959674197678486,
+  "G4b_empirical_only_all_within_3sigma": true,
+  "G4b_empirical_only_max_rel_dev": 0.04019941092615187,
+  "G4b_empirical_only_rel_dev_at_B0": -0.002550461447108243,
+  "G4b_empirical_only_rel_dev_at_max_sky": -0.012898007031191483,
+  "G4b_empirical_only_abs_z_at_max_sky": 0.5762408809310102,
+  "G4b_empirical_only_all_within_3sigma_except_B0": true,
+  "G4c_empirical_rn_max_abs_z": 16.360999713847313,
+  "FINDING_doublecount_all_within_3sigma": false,
+  "G4c_empirical_rn_max_rel_dev": 0.36619929390641737,
+  "G4c_empirical_rn_rel_dev_at_B0": 0.36619929390641737,
+  "G4c_empirical_rn_rel_dev_at_max_sky": -0.012848560778828122,
+  "G4c_empirical_rn_abs_z_at_max_sky": 0.5740318123063117,
+  "FINDING_doublecount_all_within_3sigma_except_B0": false,
+  "G4c_doublecount_detected_where_RN_dominates": true,
+  "G4c_doublecount_vanishes_at_high_sky_3sigma": true,
+  "G4c_bias_ratio_B0_over_maxsky": 28.501191706221377,
+  "G5_arith_null_max_rel_change": 4.440892098500626e-16,
+  "G5_arith_null_exact_zero": true,
+  "G6_trad_monotone_increasing": true,
+  "G6_trad_distortion_at_max_sky": 102516.88261179999,
+  "G6_raw_frame_distortion_at_max_sky": 240914.72010071398,
+  "G6_negative_control_detected": true
+ },
+ "bias_boundary": {
+  "sky_e_per_px": 1000.0,
+  "sensitivity_dF_dB": 10.789338573503974,
+  "delta_bg_star_1pct_adu": 2.1388635568073155,
+  "delta_bg_star_1pct_e": 2.78052262384951,
+  "delta_bg_star_1pct_frac_of_sky": 0.0027805226238495104,
+  "rows": [
+   {
+    "bias_frac": 0.0,
+    "delta_bg_e": 0.0,
+    "delta_bg_adu": 0.0,
+    "snr_true": 23.513597338415813,
+    "snr_biased": 23.603274041230325,
+    "snr_rel_dev": 0.003813823190210064,
+    "flux_rel_dev": 0.003813823190210064
+   },
+   {
+    "bias_frac": 0.001,
+    "delta_bg_e": 1.0,
+    "delta_bg_adu": 0.7692307692307692,
+    "snr_true": 23.513597338415813,
+    "snr_biased": 23.5086677184256,
+    "snr_rel_dev": -0.00020964975793646978,
+    "flux_rel_dev": -0.00020964975793646978
+   },
+   {
+    "bias_frac": 0.003,
+    "delta_bg_e": 3.0,
+    "delta_bg_adu": 2.3076923076923075,
+    "snr_true": 23.513597338415813,
+    "snr_biased": 23.319638014474208,
+    "snr_rel_dev": -0.008248815404554022,
+    "flux_rel_dev": -0.008248815404554022
+   },
+   {
+    "bias_frac": 0.01,
+    "delta_bg_e": 10.0,
+    "delta_bg_adu": 7.692307692307692,
+    "snr_true": 23.513597338415813,
+    "snr_biased": 22.659964593217783,
+    "snr_rel_dev": -0.03630379192567834,
+    "flux_rel_dev": -0.03630379192567834
+   },
+   {
+    "bias_frac": 0.03,
+    "delta_bg_e": 30.0,
+    "delta_bg_adu": 23.076923076923077,
+    "snr_true": 23.513597338415813,
+    "snr_biased": 20.79197727994975,
+    "snr_rel_dev": -0.11574664732476136,
+    "flux_rel_dev": -0.11574664732476136
+   },
+   {
+    "bias_frac": 0.1,
+    "delta_bg_e": 100.0,
+    "delta_bg_adu": 76.92307692307692,
+    "snr_true": 23.513597338415813,
+    "snr_biased": 14.460476890866786,
+    "snr_rel_dev": -0.38501639358935136,
+    "flux_rel_dev": -0.38501639358935136
+   },
+   {
+    "bias_frac": 0.3,
+    "delta_bg_e": 300.0,
+    "delta_bg_adu": 230.76923076923077,
+    "snr_true": 23.513597338415813,
+    "snr_biased": -1.7727830183215527,
+    "snr_rel_dev": -1.0753939515424649,
+    "flux_rel_dev": -1.0753939515424649
+   }
+  ]
+ },
+ "gradient_boundary": {
+  "sky_base_e_per_px": 1000.0,
+  "grad_star_1pct_e_per_px2_centered": NaN,
+  "grad_star_1pct_e_per_px2_offset2px": 2.0110061677702102,
+  "rows": [
+   {
+    "grad_e_per_px2": 0.0,
+    "bg_bias_e": -0.16994614541852116,
+    "flux_rel_dev": 0.002801973084627818
+   },
+   {
+    "grad_e_per_px2": 0.1,
+    "bg_bias_e": -0.15122652835646022,
+    "flux_rel_dev": 0.0005685573291933643
+   },
+   {
+    "grad_e_per_px2": 0.3,
+    "bg_bias_e": -0.1658560510895768,
+    "flux_rel_dev": -0.0001879341449406713
+   },
+   {
+    "grad_e_per_px2": 1.0,
+    "bg_bias_e": -0.20455725688759685,
+    "flux_rel_dev": 0.0004155620046173425
+   },
+   {
+    "grad_e_per_px2": 3.0,
+    "bg_bias_e": -0.44383033570329644,
+    "flux_rel_dev": -0.000727536440361054
+   },
+   {
+    "grad_e_per_px2": 10.0,
+    "bg_bias_e": -0.38065395615899433,
+    "flux_rel_dev": 0.0031053380440866363
+   },
+   {
+    "grad_e_per_px2": 30.0,
+    "bg_bias_e": -0.3259797763049619,
+    "flux_rel_dev": 0.006607366229639533
+   }
+  ],
+  "rows_offset": [
+   {
+    "grad_e_per_px2": 0.0,
+    "annulus_offset_px": 2.0,
+    "bg_bias_e": -0.09886168277590741,
+    "flux_rel_dev": 0.0035000883191618204
+   },
+   {
+    "grad_e_per_px2": 0.1,
+    "annulus_offset_px": 2.0,
+    "bg_bias_e": 0.1331728178338267,
+    "flux_rel_dev": 0.00024177295060701098
+   },
+   {
+    "grad_e_per_px2": 0.3,
+    "annulus_offset_px": 2.0,
+    "bg_bias_e": 0.4918460012284868,
+    "flux_rel_dev": -0.0034899742820621027
+   },
+   {
+    "grad_e_per_px2": 1.0,
+    "annulus_offset_px": 2.0,
+    "bg_bias_e": 1.6408057625386163,
+    "flux_rel_dev": -0.005258180413338254
+   },
+   {
+    "grad_e_per_px2": 3.0,
+    "annulus_offset_px": 2.0,
+    "bg_bias_e": 5.06413659378444,
+    "flux_rel_dev": -0.014638577364070815
+   },
+   {
+    "grad_e_per_px2": 10.0,
+    "annulus_offset_px": 2.0,
+    "bg_bias_e": 17.697552046379123,
+    "flux_rel_dev": -0.06333020658228561
+   },
+   {
+    "grad_e_per_px2": 30.0,
+    "annulus_offset_px": 2.0,
+    "bg_bias_e": 53.867942748495544,
+    "flux_rel_dev": -0.19355040411763946
+   }
+  ]
+ },
+ "leak_injection": [
+  {
+   "beta": 0.0,
+   "snr_by_sky": [
+    41.23083622180415,
+    23.71564701000919,
+    9.498983636529882
+   ],
+   "monotone_decreasing": true
+  },
+  {
+   "beta": 0.0001,
+   "snr_by_sky": [
+    41.74384926319793,
+    26.646105063434117,
+    21.13888029950253
+   ],
+   "monotone_decreasing": true
+  },
+  {
+   "beta": 0.001,
+   "snr_by_sky": [
+    46.35300115861036,
+    53.046494807251705,
+    125.9878619539784
+   ],
+   "monotone_decreasing": false
+  },
+  {
+   "beta": 0.003,
+   "snr_by_sky": [
+    56.529813074472244,
+    111.72275301943878,
+    358.73278633384194
+   ],
+   "monotone_decreasing": false
+  },
+  {
+   "beta": 0.01,
+   "snr_by_sky": [
+    90.94871984665029,
+    311.5555542640377,
+    1142.103797588951
+   ],
+   "monotone_decreasing": false
+  },
+  {
+   "beta": 0.03,
+   "snr_by_sky": [
+    170.78914883181068,
+    743.6247230810247,
+    2718.671039749883
+   ],
+   "monotone_decreasing": false
+  },
+  {
+   "beta": 0.1,
+   "snr_by_sky": [
+    266.7195317209746,
+    1117.72219485841,
+    3895.837968715039
+   ],
+   "monotone_decreasing": false
+  }
+ ],
+ "generated_at": "2026-09-21T05:40:35Z",
+ "wall_s": 30.660479068756104
+}
