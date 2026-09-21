@@ -281,6 +281,17 @@ SNR_API double snr_noise_gain_variance(double signal,
 //   snr_* [无量纲]; sigma_f_* [ADU]; flux5_adu [ADU]; m5_mag [mag]
 // ============================================================================
 
+// σ_sky 入参语义 (SCI-B D1 定案; 口径正本 docs/plugins/algorithms_phase1/07_noise_snr.md §4.2a):
+//   逐像素噪声 sigma_i^2 = sigma_sky^2 + (RN/g)^2 + F*P_i/g  —— **读噪只出现一次**。
+//   sigma_sky_source 声明 sigma_sky 承载哪一种语义, 调用方**必须显式给出**:
+//     SHOT_ONLY            : 天光+暗流**散粒**(不含读噪) => 组合时加 (RN/g)^2
+//     EMPIRICAL_TOTAL_RMS  : 经验**总** rms(含读噪, 如 noise_model 空天稳健尺度)
+//                            => 组合时**不得**再加 (RN/g)^2 (否则读噪双计)
+//   UNSPECIFIED 为 legacy 缺省(等价 SHOT_ONLY 组合, 保持既有调用点逐位不变)。
+#define SNR_SIGMA_SKY_UNSPECIFIED          0
+#define SNR_SIGMA_SKY_SHOT_ONLY            1
+#define SNR_SIGMA_SKY_EMPIRICAL_TOTAL_RMS  2
+
 // 逐源 SNR 输入参数 (全部显式, 无隐式帧级标量)
 typedef struct {
     double flux_adu;            // F: 总通量 [ADU] (>0 必须)
@@ -294,6 +305,7 @@ typedef struct {
     double n_sky;               // 天空环像素数; <=0 -> n_pix
     double zero_point_mag;      // 零点 [mag]; 0 -> m5_mag = NaN
     int    profile_half_px;     // 轮廓网格半边长 [pixel]; 0 -> auto max(30,ceil(12*FWHM))
+    int    sigma_sky_source;    // sigma_sky 语义: SNR_SIGMA_SKY_* (见上方块注释; 0=legacy)
 } SnrSourceParams;
 
 // 逐源 SNR 输出 (单位见上)
@@ -307,6 +319,10 @@ typedef struct {
     double n_pix;                  // 孔径面积 pi*r^2 [pixel]
     double sum_p2;                 // sum_i P_i^2 (匹配滤波因子) [1/pixel]
     double snr_peak;               // 峰值型 SNR (仅诊断, 不得作科学输出) [无量纲]
+    int    sigma_sky_source_effective;  // 实际生效组合 provenance:
+                                        //   1=(RN/g)^2 已加(散粒口径);
+                                        //   2=(RN/g)^2 未加(经验总 rms 已含读噪);
+                                        //   3=gain<=0 不可加(天空受限)
     double flux5_adu;              // 5*sigma_F,opt [ADU]
     double m5_mag;                 // 5-sigma 点源深度 [mag]; zero_point<=0 时 NaN
     int    status;                 // 0=ok, 1=退化输入 (NaN/非正)

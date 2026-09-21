@@ -137,6 +137,8 @@ SNR_API int snr_moffat4_profile_f64(double fwhm_px, double sigma_px, int half_px
 //
 // 最优提取:
 //   sigma_i^2 = sigma_sky^2 + max(F*P_i,0)/gain + (read_noise_e/gain)^2   [gain>0]
+//   sigma_i^2 = sigma_sky^2 + (RN/g)^2 + F*P_i/g   [gain>0, sigma_sky=散粒]
+//   sigma_i^2 = sigma_sky^2 + F*P_i/g              [gain>0, sigma_sky=经验总 rms(含读噪)]
 //   sigma_i^2 = sigma_sky^2                                               [gain<=0]
 //   Var(F) = 1 / sum_i (P_i^2/sigma_i^2) ; SNR_F = F / sqrt(Var(F))
 //
@@ -170,10 +172,14 @@ SNR_API int snr_source_snr_f64(const SnrSourceParams* p, SnrSourceResult* out) {
     double p_center = 0.0;
     if (p->gain_e_per_adu > 0.0) {
         const double alpha2 = 2.0 * sigma * sigma;
-        const double rn_term = (p->read_noise_e > 0.0)
+        // SCI-B D1 定案 (07_noise_snr.md 4.2a): sigma_sky 声明为经验总 rms(含读噪)时
+        // **不得**再加 (RN/g)^2 —— 否则读噪双计, sigma_F 高估 +12.8%~+34.0%。
+        const bool rn_in_sky = (p->sigma_sky_source == SNR_SIGMA_SKY_EMPIRICAL_TOTAL_RMS);
+        const double rn_term = (!rn_in_sky && p->read_noise_e > 0.0)
                                    ? (p->read_noise_e / p->gain_e_per_adu) *
                                          (p->read_noise_e / p->gain_e_per_adu)
                                    : 0.0;
+        out->sigma_sky_source_effective = rn_in_sky ? 2 : 1;
         double sum = 0.0;
         std::vector<double> v;
         v.reserve((size_t)(2 * half + 1) * (2 * half + 1));
@@ -201,6 +207,7 @@ SNR_API int snr_source_snr_f64(const SnrSourceParams* p, SnrSourceResult* out) {
     } else {
         moffat4Discrete(sigma, half, &sum_p2, &p_center);
         var_f = (sum_p2 > 0.0) ? (sig_sky * sig_sky / sum_p2) : 0.0;
+        out->sigma_sky_source_effective = 3;   // gain<=0: 天空受限, (RN/g)^2 不可加
     }
     if (!(var_f > 0.0)) return 0;
     out->sum_p2 = sum_p2;

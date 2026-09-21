@@ -24,7 +24,12 @@
 
 **建议处理（FIX 域，本单元不改生产码）**：在 `07_noise_snr.md` 明确 `sigma_sky_adu` 的口径（**天光+暗流散粒，不含读噪**），并在调用点做**显式契约检查**：当 `gain_e_per_adu>0 && read_noise_e>0` 而 `sigma_sky_adu` 来源为经验总 rms 时，要么扣除 RN 项，要么 fail-closed 拒绝（禁止静默双计）。补一条负例锁定：RN 主导点 σ_F 偏差 ≤5%。
 
-**闭环状态**：本单元已量化 + 登记；生产码修改属 FIX 任务。
+**闭环状态（RELEASE-05 / SCI-501 已闭环）**：生产码已按 DOC-502 冻结口径修复 ——
+`SnrSourceParams.sigma_sky_source` 显式声明语义（`SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS`），
+生产调用点 `module_adapters.cpp` 对 `noise_sigma`（经验总 rms）声明 `EMPIRICAL_TOTAL_RMS`，
+`snr_science.cpp` 据此**不再**叠加 `(RN/g)²`；`SnrSourceResult.sigma_sky_source_effective`
+落 provenance（1=已加 / 2=未加 / 3=gain≤0）。保护测试：`p1snr_science_skysource`
+（MC 3σ 双向：正确口径 zA=1.27 绿、双计臂 zB=25.6 红；legacy 缺省与双计臂逐位一致）。
 
 ---
 

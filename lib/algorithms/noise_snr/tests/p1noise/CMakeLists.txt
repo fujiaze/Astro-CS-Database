@@ -141,6 +141,8 @@ add_test(NAME p1snr_science_oracle COMMAND p1snr_science_test oracle)
 add_test(NAME p1snr_science_negative COMMAND p1snr_science_test negative)
 add_test(NAME p1snr_science_production COMMAND p1snr_science_test production)
 add_test(NAME p1snr_science_determinism COMMAND p1snr_science_test determinism)
+# SCI-501 (FIX-407): sigma_sky 语义 / 读噪双计负例保护（MC 3sigma 双向）
+add_test(NAME p1snr_science_skysource COMMAND p1snr_science_test skysource)
 
 # ============================================================================
 # SAT-001（claim SC-008）：饱和域门 —— 「饱和过滤在默认配置下必须生效，

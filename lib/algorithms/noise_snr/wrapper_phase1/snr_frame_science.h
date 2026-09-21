@@ -57,6 +57,8 @@ struct SnrFrameScienceConfig {
   // 组内公共参考通量 F_ref [ADU]（WEIGHT-SCI-001）。缺失/非有限/<=0 ->
   // fail-closed（逐帧检出通量中位数回退已删除；调用方必须为整个帧组传入同一 F0）。
   double reference_flux_adu = 0.0;
+  // sigma_sky 语义 (SCI-B D1; 07_noise_snr.md 4.2a): SNR_SIGMA_SKY_* 常量, 见 snr_estimator.h
+  int sigma_sky_source = 0;
 };
 
 // 帧级聚合结果。snr_f/sigma_f_adu/local_snr 与输入 sources 逐行对齐;

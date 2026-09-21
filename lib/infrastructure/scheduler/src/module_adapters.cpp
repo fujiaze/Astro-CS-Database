@@ -4304,6 +4304,10 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     } else {
       astrocs::phase1::SnrFrameScienceConfig cfg = sci_cfg;
       cfg.sigma_sky_adu = src_frame->value("noise_sigma", 0.0);
+      // SCI-B D1 定案 (07_noise_snr.md 4.2a): noise_sigma 来自 noise_model 的空天
+      // 稳健尺度 (1.4826*MAD), 是**含读出噪声的经验总 rms** ⇒ 声明语义, 禁止在
+      // snr_science 里再加一次 (RN/g)^2 (修复前读噪双计: sigma_F 高估 +12.8%~+34.0%)。
+      cfg.sigma_sky_source = SNR_SIGMA_SKY_EMPIRICAL_TOTAL_RMS;
       // ── FREF-BASELINE-001: 逐帧参考通量 = 固定星等 m_ref 在本帧的仪器通量 ──
       // 只读本帧自身的测光标定（k_photo, ZP_syn）⇒ 帧间独立, 无组概念。
       // 缺该帧标定 ⇒ reference_flux_adu=0 ⇒ 本帧 fail-closed（不伪造、不回退
