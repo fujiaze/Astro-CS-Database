@@ -8,10 +8,7 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
-#include <filesystem>
-#include <fstream>
 #include <random>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -23,11 +20,14 @@
 #if defined(_WIN32)
 #include <windows.h>
 #else
-#include <fcntl.h>
 #include <unistd.h>
 #endif
 
-namespace fs = std::filesystem;
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 临时文件/fsync/
+// 原子 rename/目录创建/目录枚举/删除/存在性一律经 aio 唯一实现
+// (aio_atomic_file.h / aio_file_io.h), 本 TU 不自持 std::filesystem / FILE* / fd。
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"
 
 namespace astrocs::backend_host {
 
@@ -74,70 +74,45 @@ long process_pid() {
 #endif
 }
 
-#if !defined(_WIN32)
-bool fsync_path_fd(int fd) {
-    return ::fsync(fd) == 0;
-}
-#endif
-
 // 写全文 + fsync + close; 成功 true。失败清理半成品。
+// CLEAN-403: 机制经 aio (临时文件 → fflush → fsync → 原子 rename)。
 bool write_file_fsync(const std::string& path, const std::string& text) {
-#if defined(_WIN32)
-    FILE* f = std::fopen(path.c_str(), "wb");
-    if (!f) return false;
-    const size_t n = text.size();
-    if (n && std::fwrite(text.data(), 1, n, f) != n) { std::fclose(f); return false; }
-    if (std::fflush(f) != 0) { std::fclose(f); return false; }
-    if (_commit(_fileno(f)) != 0) { std::fclose(f); return false; }
-    std::fclose(f);
-    return true;
-#else
-    const int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd < 0) return false;
-    const char* p = text.data();
-    size_t left = text.size();
-    while (left > 0) {
-        const ssize_t w = ::write(fd, p, left);
-        if (w <= 0) { ::close(fd); return false; }
-        p += w; left -= static_cast<size_t>(w);
-    }
-    if (!fsync_path_fd(fd)) { ::close(fd); return false; }
-    ::close(fd);
-    return true;
-#endif
+    return aio_atomic::write_file_atomic(path, text, nullptr) == 0;
 }
 
-// rename 原子替换(Windows 走 MoveFileEx 覆盖语义)
+// rename 原子替换 (Windows = MoveFileEx(REPLACE_EXISTING), POSIX = rename(2))。
+// CLEAN-403: 机制经 aio (aio_atomic::atomic_replace)。
 bool atomic_rename(const std::string& from, const std::string& to) {
-    std::error_code ec;
-    fs::rename(from, to, ec);
-    if (!ec) return true;
-#if defined(_WIN32)
-    // 跨 fs::rename 实现差异的兜底: 目标存在时 MoveFileEx 覆盖。
-    if (!::MoveFileExA(from.c_str(), to.c_str(), MOVEFILE_REPLACE_EXISTING))
-        return false;
-    return true;
-#else
-    return false;
-#endif
+    return aio_atomic::atomic_replace(from, to) == 0;
 }
 
+// 父目录 fsync (rename 元数据落盘; 尽力)。CLEAN-403: 机制经 aio。
 void fsync_directory(const std::string& dir) {
-#if !defined(_WIN32)
-    const int fd = ::open(dir.c_str(), O_RDONLY | O_DIRECTORY);
-    if (fd >= 0) { ::fsync(fd); ::close(fd); }
-#else
-    (void)dir;
-#endif
+    (void)aio_atomic::fsync_path(dir, 1);
 }
 
+// 整文件读取; CLEAN-403: 机制经 aio (aio_file::read_all)。
 std::string read_all(const std::string& path, bool* ok) {
-    std::ifstream f(path, std::ios::binary);
-    if (!f) { if (ok) *ok = false; return {}; }
-    std::ostringstream ss;
-    ss << f.rdbuf();
-    if (ok) *ok = true;
-    return ss.str();
+    std::string out;
+    const bool got = aio_file::read_all(path.c_str(), &out);
+    if (ok) *ok = got;
+    return got ? out : std::string();
+}
+
+// 纯字符串路径工具 (无文件系统调用)。
+std::string parent_dir(const std::string& path) {
+    const std::size_t s = path.find_last_of("/\\");
+    if (s == std::string::npos) return std::string();
+    if (s == 0) return path.substr(0, 1);
+#ifdef _WIN32
+    if (s == 2 && path.size() > 2 && path[1] == ':') return path.substr(0, 3);
+#endif
+    return path.substr(0, s);
+}
+
+std::string base_name(const std::string& path) {
+    const std::size_t s = path.find_last_of("/\\");
+    return (s == std::string::npos) ? path : path.substr(s + 1);
 }
 
 // 源码树防线: profile 原始数据不得进入源码/审核包。
@@ -145,16 +120,14 @@ std::string read_all(const std::string& path, bool* ok) {
 // 实用实现: 若 target_path 是相对路径, 或其绝对化路径的任一祖先含 CMakeLists.txt,
 // 判为源码树内。审核包=源码树子集, 同一防线覆盖。
 bool looks_like_source_tree(const std::string& target_path) {
-    std::error_code ec;
-    fs::path abs = fs::absolute(fs::path(target_path), ec);
-    if (ec) return true;   // 无法判定 → 保守拒绝
-    fs::path p = abs;
+    // CLEAN-403: 绝对化/祖先遍历/存在性判定经 aio 机制原语 (无 std::filesystem)。
+    std::string p;
+    if (!aio_atomic::absolute_path(target_path, &p)) return true;   // 无法判定 → 保守拒绝
     while (true) {
-        std::error_code e2;
-        if (fs::exists(p / "CMakeLists.txt", e2)) return true;
-        if (fs::exists(p / ".git", e2)) return true;
-        fs::path parent = p.parent_path();
-        if (parent == p) break;
+        if (aio_atomic::path_exists(p + "/CMakeLists.txt", nullptr)) return true;
+        if (aio_atomic::path_exists(p + "/.git", nullptr)) return true;
+        const std::string parent = parent_dir(p);
+        if (parent.empty() || parent == p) break;
         p = parent;
     }
     return false;
@@ -251,35 +224,38 @@ SaveResult save_profile_atomic_v1(const std::string& json_text,
         }
     }
 
-    // 3) 目录准备(parent 逐级创建)。
-    const fs::path target(target_path);
-    std::error_code ec;
-    fs::path parent = target.parent_path();
-    if (parent.empty()) parent = fs::path(".");
-    fs::create_directories(parent, ec);
-    if (ec && !fs::is_directory(parent)) {
-        r.reason = "create_directories: " + ec.message();
-        return r;
-    }
-    const std::string dir = parent.string();
-
-    // 4) 清理上次崩溃残留的孤儿临时文件(目标文件零接触)。
-    for (const auto& e : fs::directory_iterator(parent, ec)) {
-        if (ec) break;
-        const std::string n = e.path().filename().string();
-        if (n.rfind(target.filename().string() + ".tmp-", 0) == 0) {
-            std::error_code ec2;
-            fs::remove(e.path(), ec2);
+    // 3) 目录准备(parent 逐级创建)。CLEAN-403: 经 aio (make_dirs / path_exists)。
+    std::string parent = parent_dir(target_path);
+    if (parent.empty()) parent = ".";
+    const int mkrc = aio_atomic::make_dirs(parent);
+    if (mkrc != 0) {
+        int is_dir = 0;
+        if (!aio_atomic::path_exists(parent, &is_dir) || !is_dir) {
+            r.reason = "create_directories failed (errno=" + std::to_string(mkrc) + ")";
+            return r;
         }
     }
+    const std::string dir = parent;
+
+    // 4) 清理上次崩溃残留的孤儿临时文件(目标文件零接触)。
+    // CLEAN-403: 目录枚举经 aio (for_each_child), 删除经 aio (remove_file)。
+    const std::string tmp_prefix = base_name(target_path) + ".tmp-";
+    (void)aio_atomic::for_each_child(
+        parent,
+        [&](const std::string& child, int kind) -> int {
+            if (kind != 0) return 0;                 // 只清常规文件
+            if (base_name(child).rfind(tmp_prefix, 0) == 0)
+                (void)aio_atomic::remove_file(child);
+            return 0;
+        },
+        nullptr);
 
     // 5) 写临时 → fsync → close(同目录同 filesystem, rename 原子性前提)。
     const std::string tmp_path =
         target_path + ".tmp-" + std::to_string(process_pid()) + "-" + rand_suffix();
     if (!write_file_fsync(tmp_path, json_text)) {
         r.reason = "write temp failed: " + tmp_path;
-        std::error_code ec3;
-        fs::remove(tmp_path, ec3);
+        (void)aio_atomic::remove_file(tmp_path);
         return r;
     }
 
@@ -289,15 +265,13 @@ SaveResult save_profile_atomic_v1(const std::string& json_text,
         const std::string roundtrip = read_all(tmp_path, &ok);
         if (!ok || roundtrip != json_text) {
             r.reason = "temp roundtrip mismatch";
-            std::error_code ec4;
-            fs::remove(tmp_path, ec4);
+            (void)aio_atomic::remove_file(tmp_path);
             return r;
         }
         const std::string err = verify_profile_v2(roundtrip, current_commit);
         if (!err.empty()) {
             r.reason = "temp verify_profile_v2: " + err;
-            std::error_code ec5;
-            fs::remove(tmp_path, ec5);
+            (void)aio_atomic::remove_file(tmp_path);
             return r;
         }
     }
@@ -305,8 +279,7 @@ SaveResult save_profile_atomic_v1(const std::string& json_text,
     // 7) 原子替换(此刻起目标要么旧完整要么新完整)。
     if (!atomic_rename(tmp_path, target_path)) {
         r.reason = "atomic rename failed";
-        std::error_code ec6;
-        fs::remove(tmp_path, ec6);
+        (void)aio_atomic::remove_file(tmp_path);
         return r;
     }
     fsync_directory(dir);
@@ -319,8 +292,7 @@ LoadResult load_profile_checked_v1(const std::string& target_path,
                                    const std::string& current_commit,
                                    const std::vector<std::string>& check_consumer) {
     LoadResult out;
-    std::error_code ec;
-    if (!fs::exists(fs::path(target_path), ec) || ec) {
+    if (!aio_atomic::path_exists(target_path, nullptr)) {
         out.status = "missing";
         out.warning_text =
             "no CPU profile at '" + target_path +
@@ -339,8 +311,7 @@ LoadResult load_profile_checked_v1(const std::string& target_path,
         out.status = "rejected";
         out.reason = "corrupted: empty profile file";
         out.rejected_path = target_path + ".rejected-" + utc_now_compact();
-        std::error_code ec2;
-        fs::rename(target_path, out.rejected_path, ec2);
+        (void)aio_atomic::atomic_replace(target_path, out.rejected_path);
         return out;
     }
 
@@ -349,8 +320,7 @@ LoadResult load_profile_checked_v1(const std::string& target_path,
         out.status = "rejected";
         out.reason = "old_schema: schema != astrocs.cpu-profile/v2 (old version or foreign document)";
         out.rejected_path = target_path + ".rejected-" + utc_now_compact();
-        std::error_code ec3;
-        fs::rename(target_path, out.rejected_path, ec3);
+        (void)aio_atomic::atomic_replace(target_path, out.rejected_path);
         return out;
     }
     {
@@ -372,8 +342,7 @@ LoadResult load_profile_checked_v1(const std::string& target_path,
             if (cls == "corrupted" || cls == "old_schema") {
                 // 文件本体失效 → 隔离改名(不删除, 供审计取证)
                 out.rejected_path = target_path + ".rejected-" + utc_now_compact();
-                std::error_code ec4;
-                fs::rename(target_path, out.rejected_path, ec4);
+                (void)aio_atomic::atomic_replace(target_path, out.rejected_path);
             }
             // stale_build → 文件保留(版本回滚/切换的合法现场, 不算损坏)
             return out;
@@ -402,8 +371,7 @@ LoadResult load_profile_checked_v1(const std::string& target_path,
                 // malformed(损坏面): 隔离。
                 if (cls == "corrupted") {
                     out.rejected_path = target_path + ".rejected-" + utc_now_compact();
-                    std::error_code ec5;
-                    fs::rename(target_path, out.rejected_path, ec5);
+                    (void)aio_atomic::atomic_replace(target_path, out.rejected_path);
                 }
                 return out;
             }

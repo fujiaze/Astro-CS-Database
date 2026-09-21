@@ -1,5 +1,7 @@
 # Science Scope
 
+> 上游：ASTROCS_DESIGN.md §1（项目定位）、§2（核心科学方法）
+
 ## 目的
 
 定义 AstroCS 科学处理范围与权威链入口。

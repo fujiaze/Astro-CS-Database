@@ -8,6 +8,8 @@
 > （PHASE2_SAMPLER.md）、upm=ALG-UPM-001 域（UPM_SOLVER.md）、
 > persist=upm 持久化（SCI-UPM-PERSIST-001 面）；HiPS 马赛克写不进
 > 本会话（PUBLIC_API.md:1088-1090 冻结表述）。
+> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）、§8.2（数据流形态）
+
 > 上游 SCI（共享引用零改动）: SCI-UPM-001 / SCI-INT-001 / SCI-REJ-001
 > （docs/science/，映射声明见 §11.6）。
 > 下游合同: DATA-P2-SESSION（DATA_SEMANTICS §24，并行任务生成）/ 

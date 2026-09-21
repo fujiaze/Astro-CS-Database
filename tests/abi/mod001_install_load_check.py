@@ -8,7 +8,7 @@ DLL/SO + §8.5 基建构建单元 + §8.1 CLI 产品清单 + §18.4 只加载签
 被测事实链（本脚本逐段断言, 任一失败 → 非零退出, 绝不静默 PASS）:
   S0 安全 loader 自检（sha256 FIPS 向量 + 布局断言）;
   S1 科学模块 DLL/平台 SHARED 构建在位（build 树 7 模块 .so + astrocs exe）;
-  S2 cmake --install 产生白名单安装树（cmake/install_layout.cmake 唯一 install 源）;
+  S2 cmake --install 产生白名单安装树（eng/cmake/install_layout.cmake 唯一 install 源）;
   S3 packaging/verify_install_tree.py: required 全在 + product manifest units 全在;
   S4 产品清单完整性: astrocs.product.json 与 install-tree.contract.json 同步登记
      6 个科学模块 DLL（astrocs.catalog.gaia / astrocs.p1.drizzle /

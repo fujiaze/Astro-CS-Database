@@ -4,7 +4,7 @@
 
 | 文件 | 内容 |
 |---|---|
-| `install-tree.contract.json` | 安装树白名单合同（与 `cmake/install_layout.cmake` install 规则一一对应；机器校验入口 `verify_install_tree.py`） |
+| `install-tree.contract.json` | 安装树白名单合同（与 `eng/cmake/install_layout.cmake` install 规则一一对应；机器校验入口 `verify_install_tree.py`） |
 | `astrocs.product.json` | 顶层产品 manifest 示例（安装在 `<prefix>/astrocs.product.json`；ABI-004 完善 hash/entry 三方校验） |
 | `schemas/install-tree-contract.schema.json` | 安装树合同 JSON Schema |
 | `schemas/astrocs-product.schema.json` | 产品 manifest JSON Schema |

@@ -122,7 +122,7 @@ class TestP2006CanonicalPipeline(unittest.TestCase):
         产物执行; 本测试降级验证工具脚本本身存在且对合成输入仍 PASS(工具行为
         契约保持), 产物级双向一致缺口归 IMPL/INT。
         """
-        tool = os.path.join(REPO, "tools", "quality", "check_pipeline_graph.py")
+        tool = os.path.join(REPO, "eng", "tools", "quality", "check_pipeline_graph.py")
         self.assertTrue(os.path.isfile(tool), "图校验工具缺失")
         mods = {m: {"module_id": m, "module_version": "1.x"} for m in MODULES.values()}
         mp = os.path.join(self.tmp, "mods.json")

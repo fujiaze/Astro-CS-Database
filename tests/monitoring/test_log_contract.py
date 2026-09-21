@@ -33,7 +33,7 @@ from lib.infrastructure.observability.logging.log_event import (  # noqa: E402
 
 spec = importlib.util.spec_from_file_location(
     "check_log_contract",
-    REPO / "tools" / "monitoring" / "check_log_contract.py")
+    REPO / "eng" / "tools" / "monitoring" / "check_log_contract.py")
 clc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(clc)
 

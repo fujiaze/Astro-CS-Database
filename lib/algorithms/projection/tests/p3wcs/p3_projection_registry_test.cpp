@@ -10,8 +10,8 @@
 // 覆盖:
 //   C1 机器判据: 声明集 D == 实现集 I == 实际可运行集 R（R = 生产路径黑盒实跑）;
 //   C2 负例: 8 冻结码中未实现者请求 ⇒ 显式「不支持」+ 已支持清单, 不静默回落 TAN;
-//   C3 正例: 已实现投影（TAN）往返误差 < 1e-6 px + CTYPE 面;
-//   C4 适用域: |dec|≤85 / FOV≤20 / det(CD)<0 / CRPIX FITS 1-based / 往返<1e-6,
+//   C3 正例: 已实现投影（TAN）往返误差 < 合同容差 1e-8 px + CTYPE 面;
+//   C4 适用域: |dec|≤85 / FOV≤20 / det(CD)<0 / CRPIX FITS 1-based / 往返<1e-8,
 //      违反 ⇒ 拒绝（逐项能红能绿）;
 //   C5 跨注册表一致: v6 内核 registry 行不得被冒充为产品可声明;
 //   C6 --self-test: 判据函数在变异输入下必红（非退化证明）。
@@ -46,7 +46,9 @@ using astrocs::phase3::P3WcsApplicability;
 using astrocs::phase3::P3WcsDescriptor;
 using astrocs::phase3::P3WcsStatus;
 
-constexpr double kRoundtripTolPx = 1e-6;   // SCI-P3-001 §7 冻结容差
+// FIX-406 Oracle 冻结容差（1e-8 px）：TAN 全域实测最坏 2.437e-9 px（880 组几何 ×
+// 密集逐像素 8.31e6 次 + FOV=20° 边界 2.42e7 次）；相对旧值 1e-6 px 是收紧。
+constexpr double kRoundtripTolPx = 1e-8;
 
 std::vector<std::string> sorted(std::vector<std::string> v) {
     std::sort(v.begin(), v.end());
@@ -186,7 +188,7 @@ void test_unsupported_negative() {
               "缺省投影 = TAN");
 }
 
-// ---- C3: 正例（TAN 往返 < 1e-6 px）---------------------------------------
+// ---- C3: 正例（TAN 往返 < 1e-8 px 合同容差）-------------------------------
 void test_implemented_positive() {
     const double scales[4] = {0.0001389, 0.001, 0.005, 0.02};
     for (double s : scales) {
@@ -200,7 +202,7 @@ void test_implemented_positive() {
                       P3WcsStatus::P3_WCS_OK,
                   "往返检查可执行");
         CHECK_MSG(max_err >= 0.0 && max_err < kRoundtripTolPx,
-                  "TAN 往返误差 < 1e-6 px（SCI §7 冻结）");
+                  "TAN 往返误差 < 1e-8 px（FIX-406 Oracle 冻结）");
         CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&d, nullptr) ==
                       P3WcsStatus::P3_WCS_OK,
                   "TAN 适用域检查通过");
@@ -214,7 +216,7 @@ void test_implemented_positive() {
         CHECK_MSG(astrocs::phase3::p3_wcs_fov_deg(s, 97, 89) <= 20.0,
                   "FOV 在适用域内");
     }
-    // 往返判据非退化: 双桥接（+1px）注入必被 1e-6 px 门捕获
+    // 往返判据非退化: 双桥接（+1px）注入必被 1e-8 px 门捕获
     P3WcsDescriptor d{};
     astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.001, 97, 89, "east_left", 0.0, &d,
                                  "TAN");
@@ -222,7 +224,7 @@ void test_implemented_positive() {
     astrocs::phase3::p3_wcs_pix2world(&d, 32.0, 32.0, &ra, &dec);
     astrocs::phase3::p3_wcs_world2pix(&d, ra, dec, &x, &y);
     CHECK_MSG(std::hypot(x - 32.0, y - 32.0) < kRoundtripTolPx,
-              "无注入: 往返 < 1e-6 px");
+              "无注入: 往返 < 1e-8 px");
     CHECK_MSG(std::hypot(x - 33.0, y - 32.0) > kRoundtripTolPx,
               "注入 1px 桥接偏差: 判据必红（非退化）");
 }
@@ -275,8 +277,8 @@ void test_applicability_rejections() {
     CHECK_MSG(ap->max_abs_crval_dec_deg == 85.0 && ap->max_fov_deg == 20.0 &&
                   ap->require_negative_det_cd &&
                   ap->crpix_fits_1based_pixel_center &&
-                  ap->roundtrip_tol_px == 1e-6,
-              "TAN 适用域声明 = 85/20/det<0/1-based/1e-6");
+                  ap->roundtrip_tol_px == kRoundtripTolPx,
+              "TAN 适用域声明 = 85/20/det<0/1-based/1e-8（FIX-406 Oracle 冻结）");
 }
 
 // ---- C5: 跨注册表一致（v6 内核行不得冒充产品声明）------------------------
@@ -303,6 +305,31 @@ void test_cross_registry() {
                       P3WcsStatus::P3_WCS_OK,
                   "v6 内核码不得经产品声明门放行");
     }
+}
+
+// ---- C7: 容差合同冻结（FIX-406 Oracle；判据非退化）-------------------------
+// ① 冻结值回归锁: 必须 == kRoundtripTolPx(1e-8) 且不得放宽回旧值 1e-6;
+// ② 最坏工况（全域实测最坏点几何: 0.05″/px, |CRVAL2|=85°, PA=30°, 129²）实测
+//    余量 ≥ 4×（冻结值非擦边, 也不是恒零的退化判据）;
+// ③ 收紧后不得产生假红（该几何仍在适用域内、check_applicability 放行）。
+void test_tolerance_freeze() {
+    const P3WcsApplicability* ap = astrocs::phase3::p3_wcs_applicability("TAN");
+    CHECK_MSG(ap != nullptr, "C7: TAN 适用域已声明");
+    CHECK_MSG(ap->roundtrip_tol_px == kRoundtripTolPx && kRoundtripTolPx <= 1e-8,
+              "C7: 容差冻结 = 1e-8 px（FIX-406 Oracle；禁放宽回 1e-6）");
+    P3WcsDescriptor d{};
+    CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 85.0, 0.00005, 129, 129, "east_left",
+                                           30.0, &d) == P3WcsStatus::P3_WCS_OK,
+              "C7: 最坏工况几何在适用域内（make 放行）");
+    double err = -1.0;
+    CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_max_error_px(&d, &err) ==
+                  P3WcsStatus::P3_WCS_OK,
+              "C7: 最坏工况往返可测");
+    CHECK_MSG(err > 0.0 && err * 4.0 < ap->roundtrip_tol_px,
+              "C7: 实测 >0 且余量 ≥ 4×（冻结值非擦边/非退化）");
+    CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&d, nullptr) ==
+                  P3WcsStatus::P3_WCS_OK,
+              "C7: 收紧后最坏工况无假红");
 }
 
 // ---- C6: --self-test（判据能红能绿）--------------------------------------
@@ -395,8 +422,8 @@ int matrix_mode() {
                                          ? astrocs::phase3proj::v6::world2pix(
                                                &d, ra, dec, &x, &y)
                                          : a;
-                if (b == ProjStatus::kOk && std::hypot(x - 32.0, y - 32.0) < 1e-6) {
-                    kstatus = "OK(roundtrip<1e-6px)";
+                if (b == ProjStatus::kOk && std::hypot(x - 32.0, y - 32.0) < kRoundtripTolPx) {
+                    kstatus = "OK(roundtrip<tol)";
                     ++n_kernel_ok;
                 } else {
                     kstatus = v6_status_name(b);
@@ -423,10 +450,11 @@ int main(int argc, char** argv) {
     test_implemented_positive();
     test_applicability_rejections();
     test_cross_registry();
+    test_tolerance_freeze();
     if (failures == 0) {
         std::printf(
             "FIX-205 PROJ REGISTRY PASS（声明集==实现集==可运行集 + 未实现显式不支持 "
-            "+ 适用域拒绝 + TAN 往返 <1e-6px）\n");
+            "+ 适用域拒绝 + TAN 往返 <1e-8px, FIX-406 Oracle 冻结）\n");
         return 0;
     }
     std::fprintf(stderr, "FIX-205 PROJ REGISTRY FAIL (%d)\n", failures);

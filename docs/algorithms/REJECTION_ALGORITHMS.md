@@ -1,5 +1,7 @@
 # Rejection Algorithms (ALG-REJ)
 
+> 上游：ASTROCS_DESIGN.md §5.5（逐像素排异）
+
 > ID: ALG-REJ-001  范围: ALG-REJ-001..008  上游 SCI: SCI-REJ-001  状态: DERIVED  模块: phase2/rejection
 
 ## 1 上游 SCI 与输入输出
@@ -28,7 +30,7 @@
 - 唯一事实源: `lib/algorithms/coverage/include/astro/phase2/rejection.h`
   (`enum P2RejectReason` / `enum P2RejectStatus`)；
 - `P2_STATUS_MIN_SAMPLES=1` 为**兼容旧语义**保留值，新路径用 `P2_STATUS_UNDERDETERMINED=4`；
-- 机器门: `tools/docs_machine_consistency.py :: rejection_status_full_set`（全集合比对，禁 subset）。
+- 机器门: `eng/tools/docs_machine_consistency.py :: rejection_status_full_set`（全集合比对，禁 subset）。
 
 
 ## 2 离散公式

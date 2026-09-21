@@ -1,5 +1,7 @@
 # 插件文档：noise_snr（噪声 / 帧级 SNR / 点源信息量）
 
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+
 ## 1. 职责与边界
 
 - **职责**：从校准方差、背景、PSF 与光度响应估计逐像素噪声、逐源 SNR、深度 `m5`、点源信息量 `point_information` 与**帧级 SNR**（写入 HiPS 文件头的唯一帧级参考）。**Phase1 的 HiPS 是唯一带 SNR 数据块的产品**（帧级 + 可选稀疏帧内层）。

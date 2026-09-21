@@ -3,7 +3,7 @@
 import importlib.util, os, re, shutil, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-spec = importlib.util.spec_from_file_location("cg", os.path.join(REPO, "tools", "check_glossary.py"))
+spec = importlib.util.spec_from_file_location("cg", os.path.join(REPO, "eng", "tools", "check_glossary.py"))
 cg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cg)
 REAL = open(os.path.join(REPO, "docs", "GLOSSARY.md"), encoding="utf-8").read()
@@ -19,7 +19,7 @@ def errs_for(text, roots=()):
 
 class TestGlossary(unittest.TestCase):
     def test_01_real_repo_pass(self):
-        r = __import__("subprocess").run([sys.executable, os.path.join(REPO, "tools", "check_glossary.py")],
+        r = __import__("subprocess").run([sys.executable, os.path.join(REPO, "eng", "tools", "check_glossary.py")],
                                          capture_output=True, text=True, cwd=REPO)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertIn("GLOSSARY_PASS terms=18/18", r.stdout)

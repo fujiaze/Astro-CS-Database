@@ -1,0 +1,86 @@
+{
+  "scene_id": "hst_m16_realbase",
+  "kind": "bright_nebula_core",
+  "superseded_by": ["m16_nebula_core", "m16_starfield", "m16_dark_lowsnr", "m16_band_matrix"],
+  "superseded_note": "M16-SCENE 分片已交付专用前向渲染接口 m16_scene.py（renderer=m16_scene）+ 有效域掩膜；本接口场景仅作历史登记，不再由 datasets.json 派发。",
+  "description": "[已由 M16-SCENE 取代] 接口场景：负责人上传的 3 帧哈勃 M16 作底，按物理噪声过程重采样。",
+  "matrix_cells": [
+    "target:bright_nebula_core",
+    "real_instance:HST_M16(pending)",
+    "band:Ha_broadband_HST"
+  ],
+  "seed": 20261002,
+  "shape": [
+    1024,
+    1024
+  ],
+  "exposure_s": 300,
+  "psf": {
+    "model": "moffat4",
+    "fwhm_px": 2,
+    "beta": 4
+  },
+  "detector": {
+    "gain_e_per_adu": 2,
+    "read_noise_e": 4,
+    "bias_adu": 1000,
+    "full_well_e": 120000
+  },
+  "flat": {
+    "prnu_rms": 0.005,
+    "low_order": 0.01,
+    "vignette": 0.03
+  },
+  "sky": {
+    "level_e_per_s": 0.3,
+    "grad_x_e_per_s": 0.04,
+    "grad_y_e_per_s": 0.02,
+    "theta_deg": 20
+  },
+  "real_base": {
+    "path": "testdata/HST_M16/*M16*.fits|testdata/HST_M16/*.fits|run/**/*M16*.fits|run/**/*M16*.fz|run/**/*hst*.fits",
+    "glob_index": 0,
+    "auto_bright": {
+      "size": 1024,
+      "block": 256,
+      "mode": "mean"
+    },
+    "smooth_sigma_px": 1.5,
+    "target_p999_e": 50000,
+    "subtract_percentile": 5
+  },
+  "nebula": [],
+  "stars": {
+    "n": 40,
+    "flux_log10_range": [
+      3.5,
+      6
+    ],
+    "clustering": "uniform",
+    "seed": 1616
+  },
+  "artifacts": {
+    "cr_rate_per_frame": 20,
+    "cr_mean_charge_e": 900
+  },
+  "frames": [
+    {
+      "frame_id": "hst_m16_f0",
+      "real_base": {
+        "glob_index": 0
+      }
+    },
+    {
+      "frame_id": "hst_m16_f1",
+      "real_base": {
+        "glob_index": 1
+      }
+    },
+    {
+      "frame_id": "hst_m16_f2",
+      "real_base": {
+        "glob_index": 2
+      }
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "registry_schema": "astrocs.config-consistency-known-divergences/v1",
+  "task": "GUARD-TOOLS-FIX / CONFORM-SWEEP-3-017",
+  "purpose": [
+    "eng/tools/config_consistency_check.py 的已登记差异台账：只承载**已审计且尚未修复**的默认值不符（C4）。",
+    "语义（fail-closed，与 eng/ci/ledgers/config_default_divergences.json 同构）：",
+    "  1) 未登记差异一律判红 —— 台账不是豁免通道；",
+    "  2) 登记项必须逐条复现，不再复现 ⇒ registry_stale 判红（豁免必须存活）；",
+    "  3) kind/reason/owner/audit_ref/exit_condition 缺一 ⇒ exit 2；",
+    "  4) --strict 忽略本台账（审计用：暴露全部差异）。",
+    "每条差异的修复面归属前台；修复后必须同步删除本条目。",
+    "历史（已满足 exit_condition 而移除，勿再登记）：",
+    "  - doc_vs_parser:profile（CONFORM-SWEEP-3-007）—— 2026-09-19 CONFORM-FIX-B-007 统一",
+    "    parser/struct 默认 = P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL，与 CONFIG_SCHEMA.md:25 自述一致；",
+    "  - struct_vs_parser_conditional:smoothing（CONFORM-SWEEP-3-009）—— 2026-09-19",
+    "    CONFORM-FIX-B-009 统一 struct/parser auto 落点 = P2_SMOOTHING_LAMBDA_AUTO（0.1）。"
+  ],
+  "entries": [
+    {
+      "id": "config_consistency_divergence:parser_sentinel:underdetermined_n",
+      "kind": "known_divergence",
+      "reason": "stage2_common.cpp 缺 rejection.underdetermined_n 键时写哨兵 0（= 由 p2_reject_plan_resolve 按 profile/request 解析：wbpp/adaptive=2，astrocs_adaptive_pixel=3，EXTREME_VALUE_PRIOR_SIGMA=1）；struct 默认亦为 0。**docs 侧已于 2026-09-20 订正**（CONFIG_SCHEMA.md:26/:58 改「0=按 profile 解析；pixel=3/其余=2/extreme_prior=1」，依据 §9.55 S4 / GAP_AUDIT:1868-1869）——原文「docs/development/CONFIG_SCHEMA.md:26 自述 underdetermined_n(2)…与 docs 的 2 不一致」已不再成立。**本条目仍必须保留**：config_consistency_check.py 的 L7 判据（eng/tools/config_consistency_check.py:626-635）对 parser 哨兵键**无条件**产出 finding，与 docs 文本无关 ⇒ 删除本条目会使该 finding 变为未登记、整项判红（实测 rc=1）。",
+      "owner": "RELEASE-02 前台（文档订正）→ 余项归 eng/tools/config_consistency_check.py 维护方",
+      "audit_ref": "CONFORM-SWEEP-3-008",
+      "exit_condition": "① 订正 docs/development/CONFIG_SCHEMA.md:26/:58 与 resolver 逐档默认一致（**2026-09-20 已完成**）；② 使 eng/tools/config_consistency_check.py 的 L7 判据仅在「docs 自述 ≠ resolver 逐档默认」时报 finding（当前 :626-635 无条件产出，故本条不能按原文「随后删除本条目」执行）；② 完成后本条目方可删除（删除前须复跑该项确认 rc=0）",
+      "evidence": [
+        "docs/development/CONFIG_SCHEMA.md:26",
+        "lib/algorithms/coverage/src/stage2_common.cpp（rj.value(\"underdetermined_n\", 0u) 与 p2_reject_plan_resolve 委托分支）",
+        "lib/algorithms/coverage/include/astro/phase2/rejection.h:230-234（0 = 按 profile 默认）",
+        "reports/RELEASE-02/conformance/CONFORM-SWEEP-3.json :: CONFORM-SWEEP-3-008"
+      ]
+    }
+  ]
+}

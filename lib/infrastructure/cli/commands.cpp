@@ -470,7 +470,7 @@ static void write_run_graphs(const std::string& out_dir, astrocs::JsonlEmitter& 
         if (!f.good()) return;
     }
     // RT-009: 渲染 DOT/SVG/L0（best-effort; 工具缺失/失败不失败 run）。
-    // 仅当 tools/quality/gen_run_graphs.py 存在时调用; timeout 30s 防悬挂。
+    // 仅当 eng/tools/quality/gen_run_graphs.py 存在时调用; timeout 30s 防悬挂。
     // B8-P1-1b: 弃用 std::system 拼接（gdir 无引号+单引号逃逸+返回值丢弃 →
     // 渲染失败时主平台成功 run 的图产物静默缺失）→ 进程 API argv 传参 +
     // 显式检查子进程 exit code，失败 warning 事件 + stderr（不静默；不失败 run，
@@ -783,8 +783,28 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     const astrocs::GateDiag f10 =
         static_cast<astrocs::GateDiag>(first10s_diag.load(std::memory_order_relaxed));
     if (rrc != astrocs::OK) {
-        // §9.74 裁决 10 运行期臂: 管线失败且**磁盘写不进去**（写满/写失败）⇒ fail-closed
+        // FIX-401 主判据（先于探针）: 管线退出码已是 10 ⇒ 失败**本身**已被分类为磁盘满
+        // （aio 在清理临时产物之前判定 ENOSPC/EDQUOT → 失败节点 manifest
+        // error_kind="disk_full" → runtime_client.cpp::pipeline_exit_code_from_error
+        // 映射 10）。此时发与探针兜底**同一形状**的 resource error 事件
+        // （failure_kind=disk_full），使事件流消费者拿到同口径判定字段。
+        if (rrc == astrocs::RESOURCE) {
+            astrocs::WriteProbe pr_cls;
+            pr_cls.kind = astrocs::WriteFailureKind::DiskFull;
+            return disk_write_failure_exit(
+                ev, phase, res_out_dir, "output_dir", pr_cls,
+                "pipeline failed (rc=10): disk full classified at the failure site "
+                "(node manifest error_kind=disk_full), before temp-artifact cleanup");
+        }
+        // §9.74 裁决 10 运行期臂（兜底）: 管线失败且**磁盘写不进去**（写满/写失败）⇒ fail-closed
         // 归并为 exit 10（真实探测写判定，不猜 errno）；否则保留管线原退出码。
+        //
+        // FIX-401 定位: 本探针是**兜底**，不是判据。它问的是"现在还能不能写"，而
+        // ASTROCS_DESIGN §10 要求失败/取消路径**清理临时产物** —— 清理会释放磁盘满，
+        // 探针随后必然成功（fail-open，实测 rc=7 而非 10）。磁盘满的**判据**改为在
+        // 失败发生处（aio，清理之前）分类，经失败节点 manifest 的
+        // error_kind="disk_full" 由 runtime_client.cpp::pipeline_exit_code_from_error
+        // 映射为 10；此处仅兜住"未走该通道且确实仍写不进去"的残余情形。
         const astrocs::WriteProbe pr = astrocs::probe_writable(res_out_dir);
         if (astrocs::write_failure_is_resource_exit(pr.kind)) {
             fail_reason = "disk write failed (" +
@@ -1032,6 +1052,30 @@ struct BlockOutcome {
     std::string why = "complete";
 };
 
+// ── FIX-406: 三阶段「写盘阶段」取消窗（测试钩子，非用户接口）──────────────
+// 取消点覆盖（三命令同构，缺一不可）:
+//   ① 入口窗     ASTROCS_TEST_SLEEP_MS           (subcommand.h run(), 读配置前)
+//   ② 计算窗     ASTROCS_TEST_PIPELINE_SLEEP_MS  (runtime_client.cpp run_pipeline,
+//                Runtime 已加载; 置位经 cancel_watch → rt->cancel() 送达调度器)
+//   ③ 写盘窗     本函数（产物收集/哈希完成 → run manifest/运行图落盘之前）
+// 语义: 轮询 astrocs::is_cancelled()（与信号处理器同一原子标志）; 返回 true 时
+// 调用方按 ASTROCS_DESIGN §7.2「取消 → 写 incomplete manifest → exit 9」收尾。
+// 不设环境变量时零影响（单次 getenv，不 sleep、不改判定）。
+// 权威: ASTROCS_DESIGN.md §7.2（退出码 9 / 取消路径）、§10（原子产品：没有完成
+// 清单就不算成功对象）；GAP_AUDIT G3-15（SIGTERM 全阶段 exit 9 路径未覆盖）。
+bool write_stage_cancel_window() {
+    const char* ms_env = std::getenv("ASTROCS_TEST_WRITE_SLEEP_MS");
+    if (ms_env == nullptr) return false;   // 生产路径: 无钩子
+    const long ms = std::strtol(ms_env, nullptr, 10);
+    const auto deadline = std::chrono::steady_clock::now() +
+                          std::chrono::milliseconds(ms > 0 ? ms : 0);
+    while (std::chrono::steady_clock::now() < deadline) {
+        if (astrocs::is_cancelled()) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    return astrocs::is_cancelled();
+}
+
 // CLI-MULTIBLOCK（§9.71 裁决 2）：单块 phase2 会话执行（与 phase1 同构）。
 BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
                               const std::string& cfg, const std::string& cfg_sha,
@@ -1170,6 +1214,8 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     if (multi)
         extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
 
+    // FIX-406: 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
+    write_stage_cancel_window();
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg, cfg_sha, {2}, artifacts, extra);
@@ -1467,6 +1513,8 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     if (multi)
         extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
 
+    // FIX-406: 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
+    write_stage_cancel_window();
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg, cfg_sha, {3}, artifacts, extra);
@@ -1898,6 +1946,8 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         p1_extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
     const std::string out_dir = cfg_out_dir;
 
+    // FIX-406: 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
+    write_stage_cancel_window();
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
                                            cfg_path, cfg_sha, {1}, artifacts, p1_extra);
@@ -2134,6 +2184,16 @@ int dispatch(const Parsed& p) {
     }
     if (joined == "doctor") {
         if (!p.flags.count("--json")) parse_fail("doctor requires --json");
+        // FIX-405 G3-11（GAP_AUDIT G3-11）：verify 能力纳入命令树。
+        // 落位 = doctor 的机器旗标 --run-manifest <manifest.json>（ASTROCS_DESIGN
+        // §7.1 唯一命令树只有 normalize/mosaic/export/help/--version/doctor/
+        // benchmark，无独立 verify；verify* 是已删别名 → rc=2，见
+        // docs/api/CLI_PROTOCOL_V1.md §1 + tests/cli/test_cli_protocol.py
+        // test_03 的负例 ("verify", "--run-manifest", ...) → 2）。
+        // 语义 = 04 §3 manifest→status→version→输入 hash→逐 artifact
+        // （存在→sha256→size_bytes）；退出码：参数 2 / 输入 3 / 版本 5 /
+        // 完整性 8。stdout 恰一个 JSON 文档（--json 纪律）。
+        if (p.values.count("--run-manifest")) return cmd_verify(p, ev);
         const std::string hw = astrocs::backend_host::hardware_inspect_json_v1(ASTROCS_VERSION_STRING);
         auto hwd = nlohmann::json::parse(hw);
         astrocs_host_services_v1 host;

@@ -1,5 +1,7 @@
 # AstroCS 版本命名空间与产品版本事实源（GOV-003）
 
+> 上游：ASTROCS_DESIGN.md §13（版本与发布权）
+
 > 本文档是 AstroCS 版本治理的机器可校验权威（authoring_task: GOV-003，
 > owner: SA-GOV-01）。它把"版本"拆成互不干扰的命名空间，并规定产品版本
 > 的唯一来源与生成链。任何把 ABI/模块/数据 schema/文档修订号误当作产品
@@ -24,15 +26,15 @@ AstroCS 的"版本号"不是一个量，而是五个生命周期独立的命名�
 ## 2. 历史轮次命名空间（不参与以上五类）
 
 历史工程轮次（V6.1、V19R8、控制包 ASTROCS-ALPHA3-MODULAR-REFOUNDATION-V7
-等）不是"当前版本"。它们只允许出现在 `docs/archive/**` 与
+等）不是"当前版本"。它们只允许出现在 git 历史与
 `docs/**/v6/**`（ARCHIVED_NON_NORMATIVE / 产品族设计档案）
 禁止把旧轮次数字冒充当前产品状态（`ENGINEERING_SPEC.md` §2/§8）。
 因此治理上把 history 视作第五个受管命名空间（"历史轮次"），规则是：
-**只进 `docs/archive/**` 与 `git log`，不进 active 文档**（根 `CHANGELOG.md`/`REVIEW.md` 已由 ROOT-007 删除）。
+**只进 `git log` 与已出库的归档树（CLEAN-402 已删），不进 active 文档**（根 `CHANGELOG.md`/`REVIEW.md` 已由 ROOT-007 删除）。
 
 | 命名空间 | 允许出现的位置 | 禁止出现的位置 |
 |---|---|---|
-| history（历史工程轮次） | `docs/archive/**`、`docs/**/v6/**`、`git log` 供追溯的历史引用 |
+| history（历史工程轮次） | `git log`、`docs/**/v6/**`（活动设计档案）供追溯的历史引用 |
 
 > 注：任务书列举 "product/module/ABI/data-schema/doc-revision/history"
 > 五个命名空间。其中前四个是活动版本空间，history 是"只归档不激活"的
@@ -56,8 +58,8 @@ AstroCS 的"版本号"不是一个量，而是五个生命周期独立的命名�
 | CLI `astrocs --version[ --json]` | 编译期注入 `ASTROCS_VERSION_STRING`；`--json` 输出 `{"schema_version":"1","name":"astrocs","version":"<生成串>"}` | 已接线；验收需重建 CLI 验证 |
 | CLI JSON 报告 `astrocs_version` 字段 | `ASTROCS_VERSION_STRING`（doctor/hardware/verify 等共用） | 已接线 |
 | L0 文档（`README.md`/`docs/owner/**` 等） |
-| 打包脚本 | `tools/gen_version.py` 读 VERSION + git HEAD → 版本串与 build_id | 已接线（`make_linux_release.py`/`make_windows_release.py` 调用）；硬编码回退串属他人路径清理项 |
-| `tools/gen_version.py --json` | 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象（schemas/version.schema.json） | 已接线 |
+| 打包脚本 | `eng/tools/gen_version.py` 读 VERSION + git HEAD → 版本串与 build_id | 已接线（`make_linux_release.py`/`make_windows_release.py` 调用）；硬编码回退串属他人路径清理项 |
+| `eng/tools/gen_version.py --json` | 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象（schemas/version.schema.json） | 已接线 |
 
 校验规则（机器检查）：
 1. 根 `VERSION` 必须匹配 `^(\d+)\.(\d+)\.(\d+)-alpha\.(\d+)$`，禁 stable/rc/beta；
@@ -67,8 +69,8 @@ AstroCS 的"版本号"不是一个量，而是五个生命周期独立的命名�
 3. 产品版本不得出现在 active 文档中与源不一致的形态（同一文档允许
    出现当前源值本身）。
 
-实现：`tools/doccheck/check_version_namespaces.py`（见 §6）；历史旧检查器
-`tools/check_version_consistency.py` 为 VER-001 遗留，其扫描口径与本命名
+实现：`eng/tools/doccheck/check_version_namespaces.py`（见 §6）；历史旧检查器
+`eng/tools/check_version_consistency.py` 为 VER-001 遗留，其扫描口径与本命名
 空间文档的差异（含对 docs/VERSIONING.md 等他人路径的硬编码）在
 known_limits 登记，待 GOV-005/前台统一收敛。
 
@@ -79,18 +81,18 @@ known_limits 登记，待 GOV-005/前台统一收敛。
 - 生成串形态（dirty 工作树）：`0.11.0-alpha.2+g<commit12>.dirty`
 - CLI `astrocs --version --json` 预期（schema_version="1" 顶层对象）：
   `{"schema_version":"1","name":"astrocs","version":"0.11.0-alpha.2+g<commit12>"}`
-- `tools/gen_version.py --json` 预期（schemas/version.schema.json）：
+- `eng/tools/gen_version.py --json` 预期（schemas/version.schema.json）：
   `{"version":"0.11.0-alpha.2+g<commit12>[.dirty]","prerelease":"alpha",
   "commit":"<sha>","dirty":<bool>,"build_id":"g<commit12>[.dirty]",
   "abi_version":"0","cli_schema_version":"0"}`
 
 ## 6. 机器检查入口
 
-- 本任务校验器：`tools/doccheck/check_version_namespaces.py`
+- 本任务校验器：`eng/tools/doccheck/check_version_namespaces.py`
   （exit 0 = PASS；对 FITS 4.0 / HiPS 1.0 / ABI v1 等豁免项做反误报断言）。
-- 既有版本扫描：`tools/check_version_consistency.py`（VER-001 遗留，
+- 既有版本扫描：`eng/tools/check_version_consistency.py`（VER-001 遗留，
   0.11.0 更新需前台协调他人路径硬编码后统一 PASS）。
-- 文档索引/归档边界：`tools/doccheck/check_doc_index.py`（GOV-002）。
+- 文档索引/归档边界：`eng/tools/doccheck/check_doc_index.py`（GOV-002）。
 
 ---
 authoring_task: GOV-003

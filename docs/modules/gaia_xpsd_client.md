@@ -1,5 +1,7 @@
 # Module: gaia_xpsd_client（astrocs.catalog.gaia / CAT-GAIA）
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 状态: CONTRACT_READY。全部条目以
 > lib/infrastructure/gaia_xpsd_client/src/gaia_client.c/.h 为准
 > （职责、输入输出、错误语义与测试面）。

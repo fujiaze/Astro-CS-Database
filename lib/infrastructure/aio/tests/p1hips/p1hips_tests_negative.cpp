@@ -222,40 +222,49 @@ int test_negative() {
         if (is_root()) {
             std::fprintf(stdout, "[p1hips] negative: N4 跳过 (root 权限绕过只读目录)\n");
         } else {
+            // FIX-401 §10: aio_hips_product_begin 现在会确定性清除本次将写入的
+            // 子产品目录 (上次 kill/失败残留不得被本次消费; 完成清单先摘掉)。
+            // 只读目录必须在 begin **之后**建立 —— begin 前建立的会被合法清除
+            // (那是残留, 不是"不可写路径")。
             const std::string dir = make_tmp_dir("n4");
-            P1HIPS_CHECK(cs, make_ro_dir(dir + "/signal"), "n4_mkro_signal");
             AioHipsProductSet* ps = aio_hips_product_begin(
                 dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
                 AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
                 "ivo://t", "t", nullptr, 0.0, nullptr, 0);
             P1HIPS_CHECK(cs, ps != nullptr, "n4_begin");
+            P1HIPS_CHECK(cs, make_ro_dir(dir + "/signal"), "n4_mkro_signal");
             if (ps) {
                 FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 0.0, true, false);
                 P1HIPS_CHECK_EQ(cs, aio_hips_write_signal_support_tile(ps, &fx.view), -4);
+                ::chmod((dir + "/signal").c_str(), 0755);   // 供 teardown 清理
                 aio_hips_abort(ps);
             }
             // variance FITS 不可写 → −6
             const std::string dir2 = make_tmp_dir("n4b");
-            P1HIPS_CHECK(cs, make_ro_dir(dir2 + "/variance"), "n4_mkro_variance");
             AioHipsProductSet* ps2 = aio_hips_product_begin(
                 dir2.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
                 AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR,
                 "ivo://t", "t", nullptr, 0.0, nullptr, 0);
+            P1HIPS_CHECK(cs, ps2 != nullptr, "n4b_begin");
+            P1HIPS_CHECK(cs, make_ro_dir(dir2 + "/variance"), "n4_mkro_variance");
             if (ps2) {
                 FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 1.0, true, true);
                 P1HIPS_CHECK_EQ(cs, aio_hips_write_variance_tile(ps2, &fx.view), -6);
+                ::chmod((dir2 + "/variance").c_str(), 0755);
                 aio_hips_abort(ps2);
             }
             // ivar FITS 不可写 (variance 可写) → −7
             const std::string dir3 = make_tmp_dir("n4c");
-            P1HIPS_CHECK(cs, make_ro_dir(dir3 + "/ivar"), "n4_mkro_ivar");
             AioHipsProductSet* ps3 = aio_hips_product_begin(
                 dir3.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
                 AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR,
                 "ivo://t", "t", nullptr, 0.0, nullptr, 0);
+            P1HIPS_CHECK(cs, ps3 != nullptr, "n4c_begin");
+            P1HIPS_CHECK(cs, make_ro_dir(dir3 + "/ivar"), "n4_mkro_ivar");
             if (ps3) {
                 FixViewF64 fx = fix_hips_a_tile(0, 10.0, 0.5, 1.0, true, true);
                 P1HIPS_CHECK_EQ(cs, aio_hips_write_variance_tile(ps3, &fx.view), -7);
+                ::chmod((dir3 + "/ivar").c_str(), 0755);
                 aio_hips_abort(ps3);
             }
         }
@@ -317,11 +326,12 @@ int test_negative() {
             std::fprintf(stdout, "[p1hips] negative: N6 跳过 (root 权限绕过只读目录)\n");
         } else {
             const std::string dir = make_tmp_dir("n6");
-            P1HIPS_CHECK(cs, make_ro_dir(dir + "/snr"), "n6_mkro_snr");
             AioHipsProductSet* ps = aio_hips_product_begin(
                 dir.c_str(), FIX_NSIDE, 512, AIO_HIPS_FLOAT64,
                 AIO_HIPS_PRODUCT_SNR, "ivo://t", "t", nullptr, 0.0, nullptr, 0);
             P1HIPS_CHECK(cs, ps != nullptr, "n6_begin");
+            // FIX-401 §10: 同 N4 —— 只读 snr 目录在 begin 之后建立。
+            P1HIPS_CHECK(cs, make_ro_dir(dir + "/snr"), "n6_mkro_snr");
             if (ps) {
                 std::vector<FixSnrPointF> pts = fix_hips_d_snr_points(42u, 4);
                 P1HIPS_CHECK_EQ(cs, aio_hips_write_snr_points(ps, pts.data(), (int)pts.size()), 0);
@@ -331,6 +341,7 @@ int test_negative() {
                 // I9: 失败句柄二次 finalize → −2
                 const int f2 = aio_hips_finalize(ps);
                 P1HIPS_CHECK_EQ(cs, f2, -2);
+                ::chmod((dir + "/snr").c_str(), 0755);   // 供 teardown 清理
                 aio_hips_abort(ps);
             }
         }

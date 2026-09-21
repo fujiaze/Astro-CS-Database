@@ -30,7 +30,7 @@
 // 机器门: G-P1-CENTROID-1 = lib/algorithms/psf/tests/p1psf/p1psf_centroid_gate.cpp
 // (链接 sdet + dpsf 真实生产源, ctest p1psf_centroid_gate /
 //  p1psf_centroid_gate_neg), 判据与证据见
-//  docs/science/GATES_AND_TOLERANCES.md G-P1-CENTROID-1 行。
+//  docs/algorithms/GATES_AND_TOLERANCES.md G-P1-CENTROID-1 行。
 // ============================================================================
 #pragma once
 

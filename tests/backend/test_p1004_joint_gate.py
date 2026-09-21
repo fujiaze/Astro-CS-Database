@@ -8,7 +8,7 @@ science summary(manifest) 与 resource summary(resource_summary.json) 互相引�
 CLI-002 迁移注记 (commit de2d6d7f) + R2 情报:
   - 顶层 `run --phases 3` 删除 → `phase3 run`(存活唯一 run 载体)。
   - run/temp/mon001_cfg.json 从未入库(.gitignore run/*), 历史上是 MON-001 本地手动
-    残留, CI(07a7a95f 起 ci/prepare_linux_fixtures.py)用同配方生成。本文件按其他
+    残留, CI(07a7a95f 起 eng/ci/prepare_linux_fixtures.py)用同配方生成。本文件按其他
     存活 backend 测试的 fixture 自建模式, 在 setUpClass 内自产: FIELD.hips(fixture
     exe --make-field, 复用 fixture_common 的进程级缓存 exe)+ V1 顶层 cfg
     (schema_version/inputs/output_dir/phase3 子对象, 参数对齐
@@ -50,7 +50,7 @@ P1_ORACLES = [
 def _ensure_mon001_fixture():
     """自建 mon001 fixture(FIELD.hips + mon001_cfg.json), 不依赖 CI 脚本。
 
-    配方对齐 ci/prepare_linux_fixtures.py(07a7a95f): FIELD.hips 由 fixture exe
+    配方对齐 eng/ci/prepare_linux_fixtures.py(07a7a95f): FIELD.hips 由 fixture exe
     --make-field 生成; cfg 为 V1 顶层合同 + phase3 子对象(40x30 nearest TAN,
     output_dir=/tmp/mon001_run_out)。exe 复用 fixture_common 进程级缓存。
     """

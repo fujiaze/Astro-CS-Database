@@ -1,5 +1,7 @@
 # Module: astro_image_io
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## 职责
 
 唯一 I/O 层：FITS/XISF/ahpx 读写、zstd/lz4 压缩、HiPS 读/写（signal/

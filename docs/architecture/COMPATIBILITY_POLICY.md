@@ -1,5 +1,7 @@
 # Compatibility Policy
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 ## 原则
 
 科学正确性优先于透明兼容；ambiguous/损坏旧文件显式拒绝，禁止猜测。

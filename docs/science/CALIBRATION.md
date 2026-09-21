@@ -1,5 +1,7 @@
 # Calibration Science (SCI-CAL)
 
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§4.6（硬约束）
+
 > ID: SCI-CAL-001  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-CAL-001..  模块: calibration
 
 ## 1 目的与非目标
@@ -174,7 +176,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
   缺 EXPTIME 时必须 fail-closed 而非静默取 `K=1`。
 - **失败注入**：空指针/零维度/NaN 输入显式错误码 `AC_ERR_PARAM`（见 `TST-CAL-FAIL-*`）；
   **ignore-bias 变异注入**：把实现里的 bias 项去掉后，上面两道门必须判红（可执行负例入口）。
-- **标度/归一化门（可执行正负例入口 `tools/quality/check_master_unit_guard.py --self-test`）**：
+- **标度/归一化门（可执行正负例入口 `eng/tools/quality/check_master_unit_guard.py --self-test`）**：
   以真实数据的独立统计为判据（不依赖文件名/目录名）：
   (a) **单位门**：亮场观测中位数 > 1 ADU 而某 bias/dark 母版观测中位数 ≤ 1.0 且未声明
       `master_units=normalized` + `master_scale` ⇒ 判红（拒绝）；
@@ -194,7 +196,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
       ② 母版本就 ADU（观测中位数 > 1）+ 平场本就归一（`median(flat)` ∈ 带内）+ 约定已声明
       ⇒ **无需任何标度声明**即通过（回归锚：门不是「一律拒绝」）。
   四条负例（a/b/c/e）必须能同时判红，两条正例（f①②）必须同时判绿（红→绿对照由
-  `tools/quality/check_master_unit_guard.py --self-test` 给出）。
+  `eng/tools/quality/check_master_unit_guard.py --self-test` 给出）。
 
 ## 12 关联 ALG ID
 
@@ -252,7 +254,7 @@ flat_norm = max(flat / median(flat), 0.1)   # median→1.0, 逐像素 floor 0.1
 - §11 **bias 参与门**与 **K 参与门**全过，且 ignore-bias 变异注入可判红；
 - §11 **标度/归一化门**四条负例（单位混用 / 平场未归一 / dark bias 约定未声明 / 声明自洽）与
   两条正例（显式声明组合 / 本就合规组合=防过度拒绝）全过，
-  且负例为**真实二进制端到端**判红（`tools/quality/check_master_unit_guard.py --self-test`）；
-- 单位经 `tools/check_glossary.py`（GLOSSARY_PASS）且本文件无被禁 alias；
-- §9a 专属问题逐项有锚点回答，无 TBD/二选一（`tools/science_contract_lint.py` PASS）；
+  且负例为**真实二进制端到端**判红（`eng/tools/quality/check_master_unit_guard.py --self-test`）；
+- 单位经 `eng/tools/check_glossary.py`（GLOSSARY_PASS）且本文件无被禁 alias；
+- §9a 专属问题逐项有锚点回答，无 TBD/二选一（`eng/tools/science_contract_lint.py` PASS）；
 - 解析不变量可转 SYN-001：常量场→SYN-001 constant/ramp 用例；NaN/饱和→SYN-001 invalid 边界用例（映射登记于 SYN-001 任务）。

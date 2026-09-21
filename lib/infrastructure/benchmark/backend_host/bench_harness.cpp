@@ -4,9 +4,13 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <fstream>
+#include <sstream>
 
 #include "sha256.h"
+
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): /proc 读取也属
+// 文件读取, 经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
+#include "aio_file_io.h"
 
 namespace astrocs::backend_host {
 
@@ -117,9 +121,11 @@ uint64_t current_rss_bytes() {
 #if defined(_WIN32)
     return 0;
 #else
-    std::ifstream f("/proc/self/status");
+    std::string text;
+    if (!aio_file::read_all("/proc/self/status", &text)) return 0;
+    std::istringstream in(text);
     std::string line;
-    while (std::getline(f, line))
+    while (std::getline(in, line))
         if (line.rfind("VmRSS:", 0) == 0) {
             long kb = 0;
             if (std::sscanf(line.c_str(), "VmRSS: %ld kB", &kb) == 1)

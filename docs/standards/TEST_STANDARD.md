@@ -1,5 +1,7 @@
 # AstroCS Test Standard
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 - 每科学契约 ≥1 test/oracle（property/oracle/MC）。
 - 测试必须使用公共生产 API，禁止复制内部实现。
 - 确定性：固定 seed；浮点断言用容差 + 说明来源。

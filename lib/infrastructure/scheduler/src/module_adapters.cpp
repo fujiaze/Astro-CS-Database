@@ -38,7 +38,7 @@
 #include "astrocs/core/module_adapters.h"
 
 // DET-001: 规范产品哈希（canonical product hash）—— 产品指纹口径的唯一实现
-// （C++ 侧; 与 tools/canonical_product_hash.py 逐字节同构）。
+// （C++ 侧; 与 eng/tools/canonical_product_hash.py 逐字节同构）。
 #include "astrocs/core/canonical_hash.h"
 // UNIT-001: 母版单位/归一化消费门（纯规则；SCI-CAL-001 §3/§6/§8/§11 +
 // ALG-CAL-001 §2 标度声明表 + DISP-CAL-013 + DATA-P1-CAL §9.1a）。
@@ -67,6 +67,8 @@
 #include "aio_hips.h"        // lib/infrastructure/aio: IVOA HiPS 标准写链
 #include "aio_hips_reader.h" // lib/infrastructure/aio: HiPS 读面(P2 帧数据消费)
 #include "aio_atomic_file.h" // lib/infrastructure/aio: §9 原子产品落盘原语(header-only)
+#include "aio_file_io.h"     // CLEAN-403: aio 唯一整文件读取/摘要原语(header-only)
+#include "aio_disk_full.h"   // FIX-401: 磁盘满失败瞬间分类 (§10 + §7.2 exit 10)
 
 // P2-001: Phase2 真实节点生产头（lib/algorithms/coverage 冻结 C ABI + HEALPix 单一实现 +
 // 输入 manifest hash 共享 SHA-256; 模块库零 diff 只读调用）
@@ -114,6 +116,10 @@
 // algorithms/resample (批次 2)、p3_output.h → algorithms/fits_output (批次 3);
 // 符号与命名空间零改动, 仅 include 面改锚。
 #include "../../../algorithms/resample/p3_resample.h"
+// FIX-402: 冻结单位表 / BUNIT 可判性 / FZ-P3-MODES 模式枚举（源在
+// lib/algorithms/resample/p3_rsmp_units.cpp, 已随 astrocs_p3_rsmp 进生产链接闭包）——
+// 输入语义守卫与输出模式声明的唯一单位/模式词汇源, 不另发明第二套。
+#include "../../../algorithms/resample/p3_rsmp.h"
 #include "../../../algorithms/fits_output/p3_output.h"
 #include "../../../algorithms/projection/p3_wcs.h"
 
@@ -129,8 +135,9 @@
 #include <cstdlib>   // P7-UTIL-001: std::getenv (ASTROCS_LEASE_TRACE 观测开关)
 #include <cstring>
 #include <exception>  // PERF-P2: 并行 worker 内异常跨线程回传
+#include <stdexcept> // FIX-402: 守卫内 std::stoi 非法尾字符 → std::invalid_argument
 #include <filesystem>
-#include <fstream>
+#include <functional>
 #include <sstream>
 #include <string>
 #include <limits>
@@ -142,6 +149,74 @@
 #include <utility>
 #include <mutex>
 #include <vector>
+
+// ── CLEAN-403: 本 TU 的文件 I/O 全部经 aio 机制原语 ─────────────────────────
+// 依据 ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界：任何文件读写经 aio」+
+// §9.73 裁决 U5。本命名空间只做**薄转发**(零策略/零缓存/零语义), 使调用点不再
+// 出现第二处文件系统原语; 机制唯一实现在 lib/infrastructure/aio/src/**。
+namespace aio_fs {
+inline bool exists(const std::string& p) {
+  return aio_atomic::path_exists(p, nullptr) != 0;
+}
+inline bool is_dir(const std::string& p) {
+  int d = 0;
+  return aio_atomic::path_exists(p, &d) != 0 && d != 0;
+}
+inline bool read_all(const std::string& p, std::string* out) {
+  return aio_file::read_all(p.c_str(), out);
+}
+inline bool write_atomic(const std::string& p, const std::string& text) {
+  return aio_atomic::write_file_atomic(p, text, nullptr) == 0;
+}
+inline bool make_dirs(const std::string& p) {
+  return aio_atomic::make_dirs(p) == 0;
+}
+inline void remove(const std::string& p) {
+  (void)aio_atomic::remove_file(p);
+}
+inline bool rename_replace(const std::string& from, const std::string& to) {
+  return aio_atomic::atomic_replace(from, to) == 0;
+}
+inline bool file_size(const std::string& p, uint64_t* sz) {
+  return aio_atomic::path_size(p, sz, nullptr) != 0;
+}
+// 纯字符串路径工具 (无文件系统调用)。
+inline std::string base_name(const std::string& p) {
+  const std::size_t s = p.find_last_of("/\\");
+  return (s == std::string::npos) ? p : p.substr(s + 1);
+}
+inline std::string dir_name(const std::string& p) {
+  const std::size_t s = p.find_last_of("/\\");
+  if (s == std::string::npos) return std::string();
+  if (s == 0) return p.substr(0, 1);
+  return p.substr(0, s);
+}
+inline bool ends_with(const std::string& s, const char* suffix) {
+  const std::size_t n = std::strlen(suffix);
+  return s.size() >= n && s.compare(s.size() - n, n, suffix) == 0;
+}
+// 递归枚举 root 下全部条目 (先序; 机制经 aio for_each_child, 深度上限 64)。
+// fn 返回非 0 ⇒ 立即中止, 本函数返回该值。
+inline int walk_tree(const std::string& root,
+                     const std::function<int(const std::string&, int)>& fn,
+                     int depth) {
+  if (depth > 64) return 0;
+  int stop = 0;
+  (void)aio_atomic::for_each_child(
+      root,
+      [&](const std::string& child, int kind) -> int {
+        const int rc = fn(child, kind);
+        if (rc != 0) { stop = rc; return 1; }
+        if (kind == 1) {
+          const int rc2 = walk_tree(child, fn, depth + 1);
+          if (rc2 != 0) { stop = rc2; return 1; }
+        }
+        return 0;
+      },
+      nullptr);
+  return stop;
+}
+}  // namespace aio_fs
 
 // CORE-RACE-001: 临时文件命名需要进程号（见 p1_staging_path）
 #ifdef _WIN32
@@ -1045,8 +1120,13 @@ ModuleDescriptor p2_write_descriptor() {
   d.execution_class = "io";
   d.parallel_ok = false;
   d.ports = {
+      // FIX-402（GAP_AUDIT G3-4 / ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」）:
+      // **写出端口**单位 = SURFACE_BRIGHTNESS（冻结单位表 signal_sb = ADU/px^2;
+      // docs/contracts/v6/data/01_units_and_bunit.md §1）。integrated 输入面仍为
+      // integrate 节点产出的逐像素信号面（docs/modules/registry/astrocs.phase2.write.md
+      // 端口表同源: 输入 ADU / 输出 SURFACE_BRIGHTNESS）。
       {"integrated", "DATA-P2-INT", true, UnitId::ADU, CoordinateFrame::PIXEL},
-      {"mosaic", "DATA-P2-RES", false, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"mosaic", "DATA-P2-RES", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
   };
   d.sci_id = "SCI-P2-WR-001";
   d.alg_id = "ALG-P2-WR-001";
@@ -1133,20 +1213,19 @@ P1Image p1_read_image(const std::string& path) {
 // 引入）。本判据不放松截断检测: 32/64 位浮点需求反而更大; 位深/头域不可得即
 // fail-closed（与 U6/U3 "truncated input must not complete" 语义同源, 不留伪产物）。
 bool p1_is_fits_file(const std::string& path) {
-  std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
-  if (!f) return false;
-  char magic[6] = {0};
-  f.read(magic, 6);
-  return f.gcount() == 6 && std::strncmp(magic, "SIMPLE", 6) == 0;
+  // CLEAN-403: 头部探测经 aio (aio_file::read_head), 无自持 ifstream。
+  std::string magic;
+  if (!aio_file::read_head(path.c_str(), 6, &magic)) return false;
+  return magic.size() == 6 && std::strncmp(magic.data(), "SIMPLE", 6) == 0;
 }
 
 uint64_t p1_fits_primary_header_bytes(const std::string& path) {
-  std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
-  if (!f) return 0;
-  char blk[2880];
-  // 上限 100 块（288 KB）避免无 END 的病态头无限读
-  for (uint64_t blocks = 1; blocks <= 100; ++blocks) {
-    if (!f.read(blk, sizeof(blk))) return 0;
+  // CLEAN-403: 头部读取经 aio (aio_file::read_head, 上界 100 块 = 288 KB)。
+  std::string blob;
+  if (!aio_file::read_head(path.c_str(), 100ull * 2880ull, &blob)) return 0;
+  const uint64_t have_blocks = static_cast<uint64_t>(blob.size()) / 2880ull;
+  for (uint64_t blocks = 1; blocks <= have_blocks; ++blocks) {
+    const char* blk = blob.data() + (blocks - 1) * 2880ull;
     for (int i = 0; i < 36; ++i) {
       const char* c = blk + i * 80;
       if (std::strncmp(c, "END", 3) == 0 && (c[3] == ' ' || c[3] == '\0'))
@@ -1162,9 +1241,9 @@ uint64_t p1_fits_primary_header_bytes(const std::string& path) {
 // 与 snr_estimator.h:134-136 的声明一致。
 // 返回 >0 = 有效电平（ADU）；0 = 未提供（调用方须写 DISABLED_NO_METADATA）。
 double p1_fits_saturation_level(const std::string& path) {
-  std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
-  if (!f) return 0.0;
-  char blk[2880];
+  // CLEAN-403: 头部读取经 aio (aio_file::read_head, 上界 100 块 = 288 KB)。
+  std::string blob;
+  if (!aio_file::read_head(path.c_str(), 100ull * 2880ull, &blob)) return 0.0;
   double saturate = 0.0;
   double datamax = 0.0;
   auto parse_card = [](const char* c, double* out) -> bool {
@@ -1180,8 +1259,9 @@ double p1_fits_saturation_level(const std::string& path) {
     *out = v;
     return true;
   };
-  for (uint64_t blocks = 1; blocks <= 100; ++blocks) {
-    if (!f.read(blk, sizeof(blk))) break;
+  const uint64_t have_blocks = static_cast<uint64_t>(blob.size()) / 2880ull;
+  for (uint64_t blocks = 1; blocks <= have_blocks; ++blocks) {
+    const char* blk = blob.data() + (blocks - 1) * 2880ull;
     for (int i = 0; i < 36; ++i) {
       const char* c = blk + i * 80;
       if (std::strncmp(c, "END", 3) == 0 && (c[3] == ' ' || c[3] == '\0')) {
@@ -1219,9 +1299,9 @@ bool p1_image_sane(const P1Image& im, const std::string& path) {
                                                 : 2880ull;
   if (header == 0 || data > UINT64_MAX - header) return false;
   const uint64_t need = header + data;
-  std::error_code ec;
-  const auto sz = std::filesystem::file_size(std::filesystem::u8path(path), ec);
-  return !ec && static_cast<uint64_t>(sz) >= need;
+  // CLEAN-403: 文件大小经 aio (aio_atomic::path_size)。
+  uint64_t sz = 0;
+  return aio_fs::file_size(path, &sz) && sz >= need;
 }
 
 // config 值读取（对齐 p1_session validate 合同: number|bool 均合法; 错型回退默认,
@@ -1332,25 +1412,17 @@ std::string p1_staging_path(const std::string& final_path) {
 
 bool p1_atomic_publish(const std::string& staging, const std::string& final_path,
                        std::string* err) {
-  std::error_code ec;
-  std::filesystem::rename(std::filesystem::u8path(staging),
-                          std::filesystem::u8path(final_path), ec);
-  if (ec) {
-    // 兜底（Windows 部分实现 rename 不覆盖已存在目标）: 先删目标再 rename。
-    // 该窗口内目标短暂缺失, 但任一时刻观察到的都是"旧完整文件"或"新完整文件",
-    // 不存在半写状态（原子发布的核心不变式）。
-    std::error_code ec_rm;
-    std::filesystem::remove(std::filesystem::u8path(final_path), ec_rm);
-    std::error_code ec2;
-    std::filesystem::rename(std::filesystem::u8path(staging),
-                            std::filesystem::u8path(final_path), ec2);
-    if (ec2) {
-      if (err) *err = "atomic publish failed: " + ec2.message();
-      std::error_code ec_drop;
-      std::filesystem::remove(std::filesystem::u8path(staging), ec_drop);
-      return false;
-    }
+  // CLEAN-403: 原子替换机制经 aio 唯一实现 (aio_atomic::atomic_replace =
+  // POSIX rename(2) / Windows MoveFileExW(REPLACE_EXISTING|WRITE_THROUGH))。
+  // 原"先删目标再 rename"兜底被删除: aio_atomic_file.h 冻结禁令「禁止先删目标
+  // 再 rename」(删除后 rename 前崩溃 → 文件丢失), 且 MoveFileExW 已覆盖
+  // REPLACE_EXISTING 语义 ⇒ 兜底既无必要又违反冻结不变式。
+  if (!aio_fs::rename_replace(staging, final_path)) {
+    if (err) *err = "atomic publish failed: " + final_path;
+    aio_fs::remove(staging);
+    return false;
   }
+  aio_atomic::fsync_parent_dir(final_path);
   return true;
 }
 
@@ -1368,8 +1440,7 @@ bool p1_write_fits_atomic(const P1Image& im, const std::string& final_path,
   const std::string staging = p1_staging_path(final_path);
   if (aio_write_fits(im.p, staging.c_str()) != 0) {
     if (err) *err = "write failed: " + final_path;
-    std::error_code ec;
-    std::filesystem::remove(std::filesystem::u8path(staging), ec);
+    aio_fs::remove(staging);
     return false;
   }
   if (!p1_atomic_publish(staging, final_path, err)) return false;
@@ -1380,8 +1451,7 @@ bool p1_write_fits_atomic(const P1Image& im, const std::string& final_path,
 std::string p1_calibrated_path(const Json& doc, const std::string& light) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
   const std::string cand = out_dir + "/calibrated_" + p1_base_name(light);
-  std::error_code ec;
-  if (std::filesystem::exists(std::filesystem::u8path(cand), ec)) return cand;
+  if (aio_fs::exists(cand)) return cand;
   return light;
 }
 
@@ -1397,8 +1467,7 @@ std::string p1_cosmetic_path(const Json& doc, const std::string& light) {
 std::string p1_cleaned_input_path(const Json& doc, const std::string& light) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
   const std::string cand = out_dir + "/cleaned_" + p1_base_name(light);
-  std::error_code ec;
-  if (std::filesystem::exists(std::filesystem::u8path(cand), ec)) return cand;
+  if (aio_fs::exists(cand)) return cand;
   return p1_calibrated_path(doc, light);
 }
 
@@ -1413,20 +1482,10 @@ std::string p1_photoapplied_path(const Json& doc, const std::string& light) {
 }
 
 bool p1_write_text(const std::string& path, const std::string& text) {
-  // 原子发布（同目录临时文件 + rename）: 并发消费者不会读到半写 JSON
-  const std::string staging = p1_staging_path(path);
-  {
-    std::ofstream f(std::filesystem::u8path(staging), std::ios::binary);
-    if (!f) return false;
-    f << text;
-    if (!f.good()) {
-      f.close();
-      std::error_code ec;
-      std::filesystem::remove(std::filesystem::u8path(staging), ec);
-      return false;
-    }
-  }
-  return p1_atomic_publish(staging, path, nullptr);
+  // 原子发布（同目录临时文件 → fflush → fsync → rename）: 并发消费者不会读到
+  // 半写 JSON。CLEAN-403: 机制经 aio 唯一实现 (aio_atomic::write_file_atomic),
+  // 本 TU 不再自持 ofstream 通道。
+  return aio_fs::write_atomic(path, text);
 }
 
 // w*h 像素数（溢出 checked）
@@ -1977,9 +2036,8 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
 
   // io_write 校验（产物存在性 fail-closed）
   Json& st_wr = (*man)["stages"].emplace_back(Json{{"name", "io_write"}, {"status", "running"}});
-  std::error_code ec;
   for (const auto& a : artifacts) {
-    if (!std::filesystem::exists(std::filesystem::u8path(a.get<std::string>()), ec)) {
+    if (!aio_fs::exists(a.get<std::string>())) {
       st_wr["status"] = "fail";
       return Result<void>::fail(Error(ErrorDomain::IO,
           "artifact missing after write: " + a.get<std::string>()));
@@ -2770,8 +2828,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
         return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame_path));
       }
       const std::string fdir = p1_frame_dir(doc, lp);
-      std::error_code fec;
-      std::filesystem::create_directories(std::filesystem::u8path(fdir), fec);
+      (void)aio_fs::make_dirs(fdir);   // CLEAN-403: 目录创建经 aio
       const std::string out_path = fdir + "/p1_wcs.json";
       if (!p1_write_text(out_path, wcs_out.dump(2)))
         return Result<void>::fail(Error(ErrorDomain::IO,
@@ -3055,8 +3112,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                         {"fits_pixel_origin", kP1FitsPixelOrigin},
                         {"samples", samples}};
     const std::string fdir = p1_frame_dir(doc, lp);
-    std::error_code fec;
-    std::filesystem::create_directories(std::filesystem::u8path(fdir), fec);
+    (void)aio_fs::make_dirs(fdir);   // CLEAN-403: 目录创建经 aio
     const std::string out_path = fdir + "/p1_wcs.json";
     if (!p1_write_text(out_path, wcs_out.dump(2))) {
       cleanup();
@@ -3099,16 +3155,14 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   // 或已被 sources 引用的帧缺失 → DATA 失败（CLI rc=2），不写任何产物。
   Json cat = Json::array();
   {
-    std::error_code ec;
-    if (!std::filesystem::exists(std::filesystem::u8path(src_path), ec))
+    if (!aio_fs::exists(src_path))
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "p1_sources.json missing (upstream star-psf artifact required): " + src_path));
-    std::ifstream f(std::filesystem::u8path(src_path), std::ios::binary);
-    if (!f)
+    std::string ftext;
+    if (!aio_fs::read_all(src_path, &ftext))
       return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + src_path));
     try {
-      const Json j = Json::parse(std::string((std::istreambuf_iterator<char>(f)),
-                                             std::istreambuf_iterator<char>()));
+      const Json j = Json::parse(ftext);
       if (!j.is_object() || !j.contains("frames") || !j["frames"].is_array())
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "p1_sources.json must be an object with a 'frames' array: " + src_path));
@@ -3131,8 +3185,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       continue;
     }
     std::string path = out_dir + "/" + file;
-    std::error_code ec;
-    if (!std::filesystem::exists(std::filesystem::u8path(path), ec)) {
+    if (!aio_fs::exists(path)) {
       // B2-A16: 帧缺失按合同计数, 循环后显式上抛（不再静默跳过记 error）。
       ++missing_frames;
       if (first_missing.empty()) first_missing = file;
@@ -3385,11 +3438,10 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         Json wj = Json::object();
         {
           const std::string wpath = p1_frame_dir(doc, lp) + "/p1_wcs.json";
-          std::ifstream wf(std::filesystem::u8path(wpath), std::ios::binary);
-          if (wf) {
+          std::string wtext;
+          if (aio_fs::read_all(wpath, &wtext)) {
             try {
-              Json wprod = Json::parse(std::string(
-                  (std::istreambuf_iterator<char>(wf)), std::istreambuf_iterator<char>()));
+              Json wprod = Json::parse(wtext);
               if (wprod.is_object() && wprod.contains("wcs") && wprod["wcs"].is_object())
                 wj = wprod["wcs"];
             } catch (...) { wj = Json::object(); }
@@ -3482,13 +3534,12 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   } else {
     // (2) 上游/外部标定通道: p1_photscale.json (DATA-P1-PHOTSCALE-001)
     const std::string sp = out_dir + "/p1_photscale.json";
-    std::error_code sec;
-    if (std::filesystem::exists(std::filesystem::u8path(sp), sec)) {
-      std::ifstream sf(std::filesystem::u8path(sp), std::ios::binary);
-      if (!sf) return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + sp));
+    if (aio_fs::exists(sp)) {
+      std::string stext;
+      if (!aio_fs::read_all(sp, &stext))
+        return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + sp));
       try {
-        const Json sj = Json::parse(std::string((std::istreambuf_iterator<char>(sf)),
-                                                std::istreambuf_iterator<char>()));
+        const Json sj = Json::parse(stext);
         if (!sj.is_object() || sj.value("schema", std::string()) != "DATA-P1-PHOTSCALE-001")
           return Result<void>::fail(Error(ErrorDomain::DATA,
               "p1_photscale.json schema mismatch (expect DATA-P1-PHOTSCALE-001): " + sp));
@@ -3909,15 +3960,14 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   const std::string src_path = out_dir + "/p1_sources.json";
   Json src_frames = Json::array();
   {
-    std::error_code ec;
-    if (!std::filesystem::exists(std::filesystem::u8path(src_path), ec))
+    if (!aio_fs::exists(src_path))
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "p1_sources.json missing (upstream star-psf artifact required): " + src_path));
-    std::ifstream sf(std::filesystem::u8path(src_path), std::ios::binary);
-    if (!sf) return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + src_path));
+    std::string stext;
+    if (!aio_fs::read_all(src_path, &stext))
+      return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + src_path));
     try {
-      const Json sj = Json::parse(std::string((std::istreambuf_iterator<char>(sf)),
-                                             std::istreambuf_iterator<char>()));
+      const Json sj = Json::parse(stext);
       if (!sj.is_object() || !sj.contains("frames") || !sj["frames"].is_array())
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "p1_sources.json must be an object with a 'frames' array: " + src_path));
@@ -4099,13 +4149,11 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   bool phot_fit_available = false;
   if (ref_mag_usable) {
     const std::string pp = out_dir + "/p1_phot.json";
-    std::error_code pec;
-    if (std::filesystem::exists(std::filesystem::u8path(pp), pec)) {
-      std::ifstream pf(std::filesystem::u8path(pp), std::ios::binary);
-      if (pf) {
+    if (aio_fs::exists(pp)) {
+      std::string ptext;
+      if (aio_fs::read_all(pp, &ptext)) {
         try {
-          const Json pj = Json::parse(std::string((std::istreambuf_iterator<char>(pf)),
-                                                 std::istreambuf_iterator<char>()));
+          const Json pj = Json::parse(ptext);
           if (pj.is_object() && pj.contains("photscale_fit") &&
               pj["photscale_fit"].is_object()) {
             for (const auto& l : doc["input_lights"]) {
@@ -4544,14 +4592,12 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   Json photscales = Json::object();
   {
     const std::string prov_path = out_dir + "/p1_phot.json";
-    std::error_code pec;
-    if (std::filesystem::exists(std::filesystem::u8path(prov_path), pec)) {
-      std::ifstream pf(std::filesystem::u8path(prov_path), std::ios::binary);
-      if (!pf)
+    if (aio_fs::exists(prov_path)) {
+      std::string ptext;
+      if (!aio_fs::read_all(prov_path, &ptext))
         return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + prov_path));
       try {
-        const Json pj = Json::parse(std::string((std::istreambuf_iterator<char>(pf)),
-                                                std::istreambuf_iterator<char>()));
+        const Json pj = Json::parse(ptext);
         if (!pj.is_object() || pj.value("schema", std::string()) != "DATA-P1-PHOTPROV-001")
           return Result<void>::fail(Error(ErrorDomain::DATA,
               "p1_phot.json schema mismatch (expect DATA-P1-PHOTPROV-001): " + prov_path));
@@ -4610,8 +4656,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     double frame_photscal = photscal;
     if (photometry_applied) {
       const std::string applied_path = p1_photoapplied_path(doc, lp);
-      std::error_code aec;
-      if (!std::filesystem::exists(std::filesystem::u8path(applied_path), aec))
+      if (!aio_fs::exists(applied_path))
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "p1_phot.json declares photometry_applied=true but applied frame missing: "
             + applied_path));
@@ -4629,13 +4674,12 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     Json wj_storage = Json::object();
     {
       const std::string wcs_prod_path = p1_frame_dir(doc, lp) + "/p1_wcs.json";
-      std::ifstream wf(std::filesystem::u8path(wcs_prod_path), std::ios::binary);
+      std::string wtext;
       Json wcs_prod;
       bool have_prod = false;
-      if (wf) {
+      if (aio_fs::read_all(wcs_prod_path, &wtext)) {
         try {
-          wcs_prod = Json::parse(std::string((std::istreambuf_iterator<char>(wf)),
-                                             std::istreambuf_iterator<char>()));
+          wcs_prod = Json::parse(wtext);
           have_prod = true;
         } catch (...) { have_prod = false; }
       }
@@ -4806,13 +4850,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       // signal/support 产品面不受影响, 见 p1_op_writer 的成对校验）。
       Json nm_src_frames = Json::array();
       {
-        std::ifstream sf(std::filesystem::u8path(out_dir + "/p1_sources.json"),
-                         std::ios::binary);
-        if (sf) {
+        std::string sftext;
+        if (aio_fs::read_all(out_dir + "/p1_sources.json", &sftext)) {
           try {
-            const Json sj = Json::parse(std::string(
-                (std::istreambuf_iterator<char>(sf)),
-                std::istreambuf_iterator<char>()));
+            const Json sj = Json::parse(sftext);
             if (sj.is_object() && sj.contains("frames") && sj["frames"].is_array())
               nm_src_frames = sj["frames"];
           } catch (const std::exception&) { nm_src_frames = Json::array(); }
@@ -5001,14 +5042,19 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           frame_nside, hp_res_arcsec, finest_input_arcsec, under, auto_res.nside);
     }
     const std::string fdir = p1_frame_dir(doc, lp);
-    std::error_code fec;
-    std::filesystem::create_directories(std::filesystem::u8path(fdir), fec);
+    (void)aio_fs::make_dirs(fdir);   // CLEAN-403: 目录创建经 aio
     HpDrizzleResult res;
     std::memset(&res, 0, sizeof(res));
     rc = hp_drizzle_run_phase1_hips(frame, frame_nside, nested, pixfrac, fdir.c_str(),
                                     filter_passband.c_str(), &res, precision_mode);
     aio_pipeline_frame_destroy(frame);
     if (rc != 0) {
+      // FIX-401 (§10 原子产品 + §7.2 退出码表「10 = 磁盘写满/写盘失败」):
+      // 磁盘满必须按**失败本身**归类上抛。aio 在失败瞬间(清理临时产物之前)
+      // 已判定并置位 (aio_disk_full.h 头注: 事后探针在清理后必然 fail-open);
+      // 这里消费一次并写进失败节点 manifest, 由 CLI 的
+      // pipeline_exit_code_from_error 映射为 exit 10。
+      if (man && aio_disk::consume()) (*man)["error_kind"] = "disk_full";
       return Result<void>::fail(Error(ErrorDomain::IO,
           std::string("hp_drizzle_run_phase1_hips failed: ") +
           (res.error_msg[0] ? res.error_msg : "(no detail)") +
@@ -5091,6 +5137,21 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
 //      (signal/ + support/ = NorderK/DirD/NpixN.fits, Moc.fits, metadata.fits,
 //      properties); 本节点不再消费任何中间容器, 只做产物事实面校验并落
 //      p1_final.json (逐节点 typed artifact 合同不变)。──
+// FIX-402: 冻结单位表 canonical **产品 BUNIT 串**（docs/contracts/v6/data/
+// 01_units_and_bunit.md §1）: signal_sb = ADU/px^2, sb_variance_out = ADU^2/px^4,
+// sb_ivar_out = px^4/ADU^2。产品面必须逐字写冻结串。
+// 注: p3rsmp::Bunit::canonical() 是带符号指数书写（"ADU/px^-2"）, 与冻结表的产品
+// 串约定不同（该函数语义由 v6 单位测试冻结, 本任务不改动它）—— 两者不得混用。
+constexpr const char* kP3BunitSurfaceBrightness = "ADU/px^2";
+constexpr const char* kP3BunitSbVariance = "ADU^2/px^4";
+constexpr const char* kP3BunitSbIvar = "px^4/ADU^2";
+
+// FIX-402: HiPS 产品单位/像素语义声明（properties + manifest.json 双写）。
+// 定义在 p2_read_json 之后（依赖它）; 此处前置声明供 Phase1 writer 调用。
+bool declare_hips_surface_brightness_units(const std::string& product_root,
+                                           bool uncertainty_available,
+                                           std::string* err);
+
 Result<void> p1_op_writer(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
   if (!p1_has(doc, "input_lights") || !doc["input_lights"].is_array() ||
@@ -5114,9 +5175,8 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   for (const auto& l : doc["input_lights"]) {
     const std::string lp = l.get<std::string>();
     const std::string fdir = p1_frame_dir(doc, lp);
-    std::error_code ec;
     const std::string props = fdir + "/signal/properties";
-    if (!std::filesystem::exists(std::filesystem::u8path(props), ec)) {
+    if (!aio_fs::exists(props)) {
       (*man)["error_kind"] = "input";
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "upstream HiPS product missing: " + props +
@@ -5126,9 +5186,11 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     const std::string stack_json = fdir + "/p1_stack.json";
     int nside = 0;
     {
-      std::ifstream f(std::filesystem::u8path(stack_json), std::ios::binary);
+      std::string stext;
       Json sj;
-      try { if (f) f >> sj; } catch (...) { sj = Json::object(); }
+      try {
+        if (aio_fs::read_all(stack_json, &stext)) sj = Json::parse(stext);
+      } catch (...) { sj = Json::object(); }
       if (sj.is_object()) nside = sj.value("nside", 0);
     }
     // 叶片 Norder = log2(nside) - 9 (标准 512 叶 tile)。只统计叶片 tile, 排除
@@ -5146,22 +5208,27 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
           std::string("variance"), std::string("ivar")}) {
       const std::string root = fdir + "/" + prod;
       int64_t c = 0;
-      std::error_code it_ec;
-      for (std::filesystem::recursive_directory_iterator it(
-               std::filesystem::u8path(root), it_ec), end;
-           it != end; it.increment(it_ec)) {
-        if (!it->is_regular_file(it_ec)) continue;
-        const std::filesystem::path p = it->path();
-        const std::string fn = p.filename().string();
-        if (fn == "Moc.fits" || fn == "metadata.fits" || fn == "properties") continue;
-        if (p.extension() != ".fits") continue;
-        if (leaf_norder >= 0) {
-          const std::string nord =
-              p.parent_path().parent_path().filename().string();
-          if (nord != ("Norder" + std::to_string(leaf_norder))) continue;
-        }
-        ++c;
-      }
+      // CLEAN-403: 递归枚举经 aio (aio_fs::walk_tree → for_each_child),
+      // 计数口径与 std::filesystem 版本逐条同义 (常规文件/排除清单/.fits/
+      // 叶 Norder 目录)。
+      const std::string leaf_norder_dir = "Norder" + std::to_string(leaf_norder);
+      aio_fs::walk_tree(
+          root,
+          [&](const std::string& p, int kind) -> int {
+            if (kind != 0) return 0;
+            const std::string fn = aio_fs::base_name(p);
+            if (fn == "Moc.fits" || fn == "metadata.fits" || fn == "properties")
+              return 0;
+            if (!aio_fs::ends_with(fn, ".fits")) return 0;
+            if (leaf_norder >= 0) {
+              const std::string nord =
+                  aio_fs::base_name(aio_fs::dir_name(aio_fs::dir_name(p)));
+              if (nord != leaf_norder_dir) return 0;
+            }
+            ++c;
+            return 0;
+          },
+          0);
       if (prod == "signal") n_tiles_written = c;
       else if (prod == "support") n_support_tiles = c;
       else if (prod == "variance") n_variance_tiles = c;
@@ -5189,6 +5256,17 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
           " (DATA-P1-HIPS §12.1/§12.2 + §4a: variance/ivar 同通道成对落盘)"));
     }
     const bool has_uncertainty = (n_variance_tiles > 0 && n_ivar_tiles > 0);
+    // FIX-402: 逐帧 HiPS 产品单位/像素语义声明（Phase1 Drizzle/HiPS signal 亦为
+    // 面亮度 signal_sb = ADU/px^2; 冻结单位表 §1 + FZ-BUNIT-SEMANTICS）。未声明
+    // ⇒ Phase3 输入语义守卫按"单位不可判"拒绝（Phase1→Phase3 直连流不可用）。
+    {
+      std::string uerr;
+      if (!declare_hips_surface_brightness_units(fdir, has_uncertainty, &uerr)) {
+        (*man)["error_kind"] = "output";
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            "phase1 HiPS 单位/像素语义声明失败 (frame " + lp + "): " + uerr));
+      }
+    }
     const std::string final_path = fdir + "/p1_final.json";
     Json products = Json::array({"signal", "support"});
     if (has_uncertainty) { products.push_back("variance"); products.push_back("ivar"); }
@@ -5206,6 +5284,16 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                           {"products", products},
                           {"filter_passband", filter_passband},
                           {"covered_area_model", "support_ratio_x_A_cell"},
+                          // FIX-402: 单位/像素语义随 DATA-P1-HIPS manifest 落盘
+                          {"bunit", kP3BunitSurfaceBrightness},
+                          {"units", Json{
+                              {"bunit", kP3BunitSurfaceBrightness},
+                              {"pixel_semantics", "surface_brightness"},
+                              {"pixel_area_power", -2},
+                              {"variance_bunit", has_uncertainty
+                                   ? std::string(kP3BunitSbVariance) : std::string()},
+                              {"ivar_bunit", has_uncertainty
+                                   ? std::string(kP3BunitSbIvar) : std::string()}}},
                           {"properties", props},
                           // P0-21: 帧身份随逐帧产品落盘（可枚举/可核对）。
                           {"frame_id", p1_frame_key(lp)},
@@ -5279,7 +5367,9 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
   (*man)["products_artifact"] = products_path;
   (*man)["artifacts"] = artifacts;
   // B2-A10（宪章 §4.3）: 单位/坐标系/观测 passband 随节点 manifest 上报。
-  (*man)["bunit"] = "ADU";
+  (*man)["bunit"] = kP3BunitSurfaceBrightness;
+  (*man)["pixel_semantics"] = "surface_brightness";
+  (*man)["pixel_area_power"] = -2;
   // P0-19 同步: HiPS properties 的 hips_frame 按 IVOA REC-HIPS-1.0 §4.4.1
   // 写标准值 "equatorial"(ICRS); 节点 manifest 的 coordinate_frame 与之
   // 同源, 避免 CLI 汇总 coordinate_frames 出现 icrs/equatorial 两种写法。
@@ -5297,10 +5387,8 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
 
 // ── P2 共用工具 ──────────────────────────────────────────────────────────────
 bool p2_write_text(const std::string& path, const std::string& text) {
-  std::ofstream f(std::filesystem::u8path(path), std::ios::binary);
-  if (!f) return false;
-  f << text;
-  return f.good();
+  // CLEAN-403: 落盘经 aio 原子写原语 (临时文件 → fflush → fsync → 原子 rename)。
+  return aio_fs::write_atomic(path, text);
 }
 
 // §9 原子文本落盘（临时文件 → fflush → fsync → 原子 rename; AIO 唯一原语）:
@@ -5322,10 +5410,11 @@ bool p2_write_text_atomic(const std::string& path, const std::string& text) {
 
 
 bool p2_read_json(const std::string& path, Json* out) {
-  std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
-  if (!f) return false;
+  // CLEAN-403: 整文件读取经 aio (aio_file::read_all)。
+  std::string text;
+  if (!aio_fs::read_all(path, &text)) return false;
   try {
-    f >> *out;
+    *out = Json::parse(text);
   } catch (const Json::parse_error&) {
     return false;
   }
@@ -5335,26 +5424,29 @@ bool p2_read_json(const std::string& path, Json* out) {
 // 裸数值 bin 写/读（typed artifact 数据面; JSON manifest 记 offset/count）
 template <typename T>
 bool p2_write_bin(const std::string& path, const std::vector<T>& v) {
-  std::ofstream f(std::filesystem::u8path(path), std::ios::binary);
-  if (!f) return false;
-  if (!v.empty())
-    f.write(reinterpret_cast<const char*>(v.data()),
-            static_cast<std::streamsize>(v.size() * sizeof(T)));
-  return f.good();
+  // CLEAN-403: 顺序二进制写经 aio (write_open_trunc + append_write + append_close)。
+  aio_atomic::AppendSink* f = aio_atomic::write_open_trunc(path, nullptr);
+  if (f == nullptr) return false;
+  if (!v.empty() &&
+      aio_atomic::append_write(f, v.data(), v.size() * sizeof(T)) != 0) {
+    (void)aio_atomic::append_close(f);
+    return false;
+  }
+  return aio_atomic::append_close(f) == 0;
 }
 
 template <typename T>
 bool p2_read_bin_range(const std::string& path, uint64_t offset_elems,
                        uint64_t count_elems, std::vector<T>* out) {
-  std::ifstream f(std::filesystem::u8path(path), std::ios::binary);
-  if (!f) return false;
-  f.seekg(static_cast<std::streamoff>(offset_elems * sizeof(T)));
-  if (!f.good()) return false;
+  // CLEAN-403: 区间读取经 aio (aio_file::read_range, 分块定位不整载)。
   out->assign(static_cast<size_t>(count_elems), T{});
   if (count_elems == 0) return true;
-  f.read(reinterpret_cast<char*>(out->data()),
-         static_cast<std::streamsize>(count_elems * sizeof(T)));
-  return f.good() || f.gcount() == static_cast<std::streamsize>(count_elems * sizeof(T));
+  const std::size_t bytes = static_cast<std::size_t>(count_elems * sizeof(T));
+  std::string buf;
+  if (!aio_file::read_range(path.c_str(), offset_elems * sizeof(T), bytes, &buf))
+    return false;
+  std::memcpy(out->data(), buf.data(), bytes);
+  return true;
 }
 
 // tile 内 leaf 数（512×512 标准 HiPS tile = 2^18 leaf）
@@ -6050,8 +6142,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
                        {"m_full_frame", uc.m_full_frame},
                        {"final_gauge", uc.final_gauge}};
   if (!p2_write_text(out_path, artifact.dump(2))) {
-    std::error_code ec;
-    std::filesystem::remove(std::filesystem::u8path(bin_path), ec);
+    aio_fs::remove(bin_path);
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed: " + out_path));
   }
   // A4: upm_save_path/persist_upm 是已登记 session 键（p2_session 语义）; 正式
@@ -6060,13 +6151,13 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   if (doc.value("persist_upm", false) && doc.contains("upm_save_path") &&
       doc["upm_save_path"].is_string() && !doc["upm_save_path"].get<std::string>().empty()) {
     const std::string save_path = doc["upm_save_path"].get<std::string>();
-    std::error_code cec;
-    std::filesystem::copy_file(std::filesystem::u8path(bin_path),
-                               std::filesystem::u8path(save_path),
-                               std::filesystem::copy_options::overwrite_existing, cec);
-    if (cec)
+    // CLEAN-403: 复制经 aio (copy_file = 分块流式 → 临时文件 → fsync → 原子 rename,
+    // overwrite=true 覆盖目标; 不出现半写副本)。
+    const int crc = aio_atomic::copy_file(bin_path, save_path, true);
+    if (crc != 0)
       return Result<void>::fail(Error(ErrorDomain::IO,
-          "upm_save_path copy failed: " + save_path + " (" + cec.message() + ")"));
+          "upm_save_path copy failed: " + save_path + " (errno=" +
+              std::to_string(crc) + ")"));
     upm_arts.push_back(save_path);
   }
   (*man)["artifacts"] = upm_arts;
@@ -6346,7 +6437,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
   {
     const std::string sky_path = out_dir + "/p2_sky_plane.bin";
     std::error_code sec;
-    if (std::filesystem::exists(std::filesystem::u8path(sky_path), sec)) {
+    if (aio_fs::exists(sky_path)) {
       if (p2_sky_plane_open(sky_path.c_str(), &sky_model) != 0 || !sky_model)
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "p2_sky_plane_open failed (corrupted sky plane artifact): " + sky_path));
@@ -6510,9 +6601,10 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     std::snprintf(fid_hex, sizeof(fid_hex), "%016llx",
                   static_cast<unsigned long long>(fid));
     const std::string data_file = out_dir + "/p2_corrected_f" + fid_hex + ".bin";
-    std::ofstream df(std::filesystem::u8path(data_file),
-                     std::ios::binary | std::ios::trunc);
-    if (!df) {
+    // CLEAN-403: 顺序写经 aio (write_open_trunc + append_write + append_close),
+    // 本 TU 不自持 ofstream 通道。
+    aio_atomic::AppendSink* df = aio_atomic::write_open_trunc(data_file, nullptr);
+    if (df == nullptr) {
       aio_hips_close(sig);
       aio_hips_close(sup);
       fo.dom = ErrorDomain::IO;
@@ -6523,14 +6615,13 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
     // variance 产品可选（缺失 ⇒ 方差只含校正场残差制造者项，如实标记
     // pixel_noise_included=false，不得声称完整 Var(corrected)）。
     const std::string var_file = out_dir + "/p2_corrected_var_f" + fid_hex + ".bin";
-    std::ofstream vdf;
+    aio_atomic::AppendSink* vdf = nullptr;
     if (cvar_available) {
-      vdf.open(std::filesystem::u8path(var_file),
-               std::ios::binary | std::ios::trunc);
-      if (!vdf) {
+      vdf = aio_atomic::write_open_trunc(var_file, nullptr);
+      if (vdf == nullptr) {
         aio_hips_close(sig);
         aio_hips_close(sup);
-        df.close();
+        (void)aio_atomic::append_close(df);
         fo.dom = ErrorDomain::IO;
         fo.err = "corrected variance bin write failed: " + var_file;
         return;
@@ -6560,7 +6651,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
           aio_hips_read_tile_f32(sup, tip, sup_buf.data()) != 0) {
         aio_hips_close(sig);
         aio_hips_close(sup);
-        df.close();
+        (void)aio_atomic::append_close(df);
         fo.dom = ErrorDomain::IO;
         fo.err = "aio_hips_read_tile_f32 failed (frame " + std::to_string(f) +
                  " tile " + std::to_string(tip) + "): " + path;
@@ -6682,26 +6773,26 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
           tile_out[static_cast<size_t>(i)] =
               std::numeric_limits<double>::quiet_NaN();
       }
-      df.write(reinterpret_cast<const char*>(tile_out.data()),
-               static_cast<std::streamsize>(kP2TileLeafSpan * sizeof(double)));
-      if (vdf.is_open())
-        vdf.write(reinterpret_cast<const char*>(var_tile.data()),
-                  static_cast<std::streamsize>(kP2TileLeafSpan * sizeof(double)));
+      (void)aio_atomic::append_write(
+          df, tile_out.data(),
+          static_cast<std::size_t>(kP2TileLeafSpan * sizeof(double)));
+      if (vdf != nullptr)
+        (void)aio_atomic::append_write(
+            vdf, var_tile.data(),
+            static_cast<std::size_t>(kP2TileLeafSpan * sizeof(double)));
       fo.tiles.push_back(P2FrameTiles::TileData{tip, tile_offset});
       tile_offset += kP2TileLeafSpan;
     }
     if (vds) aio_hips_close(vds);
     aio_hips_close(sig);
     aio_hips_close(sup);
-    df.close();
-    if (!df.good()) {
+    if (aio_atomic::append_close(df) != 0) {
       fo.dom = ErrorDomain::IO;
       fo.err = "corrected bin write failed: " + data_file;
       return;
     }
-    if (vdf.is_open()) {
-      vdf.close();
-      if (!vdf.good()) {
+    if (vdf != nullptr) {
+      if (aio_atomic::append_close(vdf) != 0) {
         fo.dom = ErrorDomain::IO;
         fo.err = "corrected variance bin write failed: " + var_file;
         return;
@@ -7711,11 +7802,9 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         " kernel-rejected samples per original sample slot, not per pixel)"));
   std::vector<uint8_t> sample_mask_all;
   {
-    std::error_code ec;
-    const auto msz = std::filesystem::file_size(std::filesystem::u8path(smask_file), ec);
-    if (ec || msz == 0 ||
-        !p2_read_bin_range<uint8_t>(smask_file, 0,
-                                    static_cast<uint64_t>(msz), &sample_mask_all))
+    uint64_t msz = 0;
+    if (!aio_fs::file_size(smask_file, &msz) || msz == 0 ||
+        !p2_read_bin_range<uint8_t>(smask_file, 0, msz, &sample_mask_all))
       return Result<void>::fail(Error(ErrorDomain::IO,
           "rejection sample mask read failed: " + smask_file));
   }
@@ -8104,9 +8193,11 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   const std::string out_path = out_dir + "/p2_integrated.json";
   Json missing_j = Json::array();
   for (uint64_t mf : ivar_missing_frames) missing_j.push_back(mf);
+  // FIX-405 G3-12（ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）:
+  // 产品面**不再落** weight_mode 键。方差面状态由 corrected_variance_used /
+  // snr_chain_used / uncertainty_available 三个语义键如实承载（下方均在册）。
   Json artifact = Json{{"schema", "DATA-P2-INT"},
                        {"entry", "p2_validate_candidate_weights/p2_integrate_pixel"},
-                       {"weight_mode", weight_mode},
                        {"weight_basis", weight_basis},
                        {"weight_source", weight_source},
                        {"corrected_variance_used", corr_var_ready},
@@ -8148,7 +8239,6 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   (*man)["artifacts"] = Json::array({out_path, sig_file, sup_file, wsum_file,
                                      nused_file, nrej_file_out});
   (*man)["integrated_artifact"] = out_path;
-  (*man)["weight_mode"] = weight_mode;
   (*man)["weight_basis"] = weight_basis;
   (*man)["weight_source"] = weight_source;
   (*man)["corrected_variance_used"] = corr_var_ready;
@@ -8167,6 +8257,158 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   (*man)["uncertainty_available"] = uncertainty_available;
   (*man)["uncertainty_unavailable_reason"] = uncertainty_unavailable_reason;
   return Result<void>::success();
+}
+
+// ══ FIX-401 (ASTROCS_DESIGN §10「I/O 与原子产品」/ GAP_AUDIT G3-1) ═══════════
+// Phase2 mosaic 产品集: 运行私有暂存区 → 校验 → 统一原子发布。
+// 暂存区 = output_dir 的**兄弟**路径 (同文件系统 ⇒ rename 不跨设备; 不在正式
+// 目录内 ⇒ 正式目录永不出现半成品 tile), 词法与 aio_publish v1 的
+// <parent>/.<base>.hips_staging.tmp 同族。
+std::string p2_mosaic_staging_path(const std::string& out_dir) {
+  static std::atomic<uint64_t> seq{0};
+  const uint64_t s = seq.fetch_add(1, std::memory_order_relaxed);
+  return out_dir + ".p2_mosaic_staging.tmp." + std::to_string(P1_NODE_GETPID) +
+         "." + std::to_string(s);
+}
+
+// 把暂存区中的 mosaic 产品集统一原子发布到 out_dir:
+//   1) 先摘掉旧完成清单 —— 从此刻起旧产品集不再可消费 (fail-closed);
+//   2) 逐子产品「删旧 → rename 原子换入」(同文件系统内核原子);
+//   3) **最后**落完成清单 manifest.json —— 它是唯一的"完成"标记, 没有它消费者
+//      (aio_hips_open / aio_hips_verify_product_set) 一律拒绝;
+//   4) fsync 父目录 + 清空暂存区。
+// 任一步失败 ⇒ 返回 false (调用方递归删除暂存区); out_dir 此时无完成清单 ⇒
+// 消费者拒绝, 不会把半发布树当成产品。
+bool p2_publish_mosaic_tree(const std::string& out_dir,
+                            const std::string& staging, std::string* err) {
+  int is_dir = 0;
+  if (!aio_atomic::path_exists(out_dir, &is_dir)) {
+    if (aio_atomic::make_dirs(out_dir) != 0) {
+      if (err) *err = "output_dir create failed: " + out_dir;
+      return false;
+    }
+  } else if (!is_dir) {
+    if (err) *err = "output_dir is not a directory: " + out_dir;
+    return false;
+  }
+  if (aio_atomic::remove_file(out_dir + "/manifest.json") != 0) {
+    if (err) *err = "旧完成清单不可移除: " + out_dir + "/manifest.json";
+    return false;
+  }
+  const char* subs[] = {"signal", "support", "variance", "ivar",
+                        "nrej", "nused", "snr"};
+  for (const char* sub : subs) {
+    const std::string sp = staging + "/" + sub;
+    int sp_is_dir = 0;
+    if (!aio_atomic::path_exists(sp, &sp_is_dir) || !sp_is_dir) continue;
+    const std::string fp = out_dir + "/" + sub;
+    if (aio_atomic::remove_tree(fp, 0) != 0) {
+      if (err) *err = std::string("旧子产品目录不可移除: ") + fp;
+      return false;
+    }
+    const int prc = aio_atomic::promote_dir(sp, fp);
+    if (prc != aio_atomic::PROMOTE_OK) {
+      if (err) *err = std::string("子产品原子发布失败 (promote rc=") +
+                      std::to_string(prc) + "): " + sp + " -> " + fp;
+      return false;
+    }
+  }
+  const std::string sman = staging + "/manifest.json";
+  if (!aio_atomic::path_exists(sman, nullptr)) {
+    if (err) *err = "暂存区缺完成清单 (finalize 未成功): " + sman;
+    return false;
+  }
+  if (aio_atomic::atomic_replace(sman, out_dir + "/manifest.json") != 0) {
+    if (err) *err = "完成清单原子发布失败: " + sman;
+    return false;
+  }
+  aio_atomic::fsync_parent_dir(out_dir + "/manifest.json");
+  if (aio_atomic::remove_tree(staging, 0) != 0) {
+    std::fprintf(stderr, "[hips] warning: staging 清理失败: %s\n", staging.c_str());
+  }
+  return true;
+}
+
+// ══ FIX-402: Phase2 mosaic 产品单位声明（BUNIT + 像素语义 provenance）════════
+// 依据: ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」; docs/contracts/v6/data/
+// 01_units_and_bunit.md §1（signal_sb = ADU/px^2; 方差/ivar 由二次律唯一导出）;
+// FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC。单位串 = 冻结单位表的 canonical
+// 产品串（kP3Bunit* 常量），本节点不另发明第二套词表、不做任何"猜测"。
+//
+// 写出面 = 双写（与 AIO writer 的 properties ↔ manifest.json 双写纪律同构）:
+//   * 每个 image 子产品 properties: BUNIT（signal=ADU/px^2, variance=(BUNIT)^2,
+//     ivar=1/(BUNIT)^2）+ ASTROCS_SIGNAL_UNIT / ASTROCS_PIXEL_SEMANTICS /
+//     ASTROCS_PIXEL_AREA_POWER（canonical 幂次: signal -2 / variance -4 / ivar +4）;
+//   * 产品根 manifest.json（完成清单）: units 块（键名同义, 值同源）。
+// 幂等: 同名键先摘除再追加（HiPS properties 解析器禁重复键）。
+bool declare_hips_surface_brightness_units(const std::string& product_root,
+                                        bool uncertainty_available,
+                                        std::string* err) {
+  const std::string sb = kP3BunitSurfaceBrightness;
+  const std::string var = kP3BunitSbVariance;
+  const std::string ivar = kP3BunitSbIvar;
+  struct SubUnit {
+    const char* sub;
+    const char* bunit;
+    int pixel_area_power;
+  };
+  std::vector<SubUnit> subs{{"signal", sb.c_str(), -2}};
+  if (uncertainty_available) {
+    subs.push_back({"variance", var.c_str(), -4});
+    subs.push_back({"ivar", ivar.c_str(), 4});
+  }
+  for (const SubUnit& su : subs) {
+    const std::string path = product_root + "/" + su.sub + "/properties";
+    std::string ptext;
+    if (!aio_fs::read_all(path, &ptext)) {
+      if (err) *err = std::string("properties 不可读: ") + path;
+      return false;
+    }
+    std::string kept;
+    {
+      std::istringstream ls(ptext);
+      std::string line;
+      while (std::getline(ls, line)) {
+        std::string key = line.substr(0, line.find('='));
+        const size_t a = key.find_first_not_of(" \t\r");
+        const size_t b = key.find_last_not_of(" \t\r");
+        key = (a == std::string::npos) ? std::string() : key.substr(a, b - a + 1);
+        if (key == "BUNIT" || key == "bunit" || key == "ASTROCS_SIGNAL_UNIT" ||
+            key == "ASTROCS_PIXEL_SEMANTICS" || key == "ASTROCS_PIXEL_AREA_POWER")
+          continue;   // 幂等: 摘除既有单位声明（禁重复键 / 禁静默旧值残留）
+        kept += line;
+        kept += '\n';
+      }
+    }
+    kept += "BUNIT=" + std::string(su.bunit) + "\n";
+    kept += "ASTROCS_SIGNAL_UNIT=" + sb + "\n";
+    kept += "ASTROCS_PIXEL_SEMANTICS=surface_brightness\n";
+    kept += "ASTROCS_PIXEL_AREA_POWER=" + std::to_string(su.pixel_area_power) + "\n";
+    std::string werr;
+    if (aio_atomic::write_file_atomic(path, kept, &werr) != 0) {
+      if (err) *err = "properties 原子写失败: " + path + " (" + werr + ")";
+      return false;
+    }
+  }
+  // manifest.json（产品集完成标记）units 块: 与 properties 同源双写。
+  const std::string man_path = product_root + "/manifest.json";
+  Json mdoc;
+  if (!p2_read_json(man_path, &mdoc) || !mdoc.is_object()) {
+    if (err) *err = "manifest.json 不可读/非法 JSON: " + man_path;
+    return false;
+  }
+  mdoc["units"] = Json{{"bunit", sb},
+                       {"signal_unit", sb},
+                       {"pixel_semantics", "surface_brightness"},
+                       {"pixel_area_power", -2},
+                       {"variance_bunit", uncertainty_available ? var : std::string()},
+                       {"ivar_bunit", uncertainty_available ? ivar : std::string()}};
+  std::string werr;
+  if (aio_atomic::write_file_atomic(man_path, mdoc.dump(2) + "\n", &werr) != 0) {
+    if (err) *err = "manifest.json 原子写失败: " + man_path + " (" + werr + ")";
+    return false;
+  }
+  return true;
 }
 
 // ── op: write_mosaic（唯一真实入口 aio_hips_product_begin /
@@ -8205,25 +8447,42 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   const uint32_t nside =
       1u << static_cast<uint32_t>(target_order + 9);
   const uint64_t tile_span = int_doc.value("tile_leaf_span", kP2TileLeafSpan);
-  // 审计面（DATA-UNC-001 §30.1 规则 1）: 集成产物必须显式声明整数
-  // weight_mode ∈ {1,2}。旧实现用 value("weight_mode", 0) 的 legacy 缺省,
-  // 缺键时会把模式静默记成 0（非科学方差面）并使 variance/ivar 落盘语义
-  // 依赖一个未声明状态 —— fail-closed 化（禁静默缺省）。
-  if (!int_doc.contains("weight_mode") || !int_doc["weight_mode"].is_number_integer())
+  // 审计面（DATA-UNC-001 §30.1 规则 1 / ASTROCS_DESIGN §3.1）：集成产物必须
+  // **显式**声明方差面是否科学可用；缺键 ⇒ DATA fail-closed（禁静默缺省）。
+  // FIX-405 G3-12：原实现以整数 weight_mode∈{1,2} 承载该状态 —— 与最高设计
+  // §3.1「全程只有 SNR，不存在『权重模式』这个概念」冲突，且该键随产品落盘。
+  // 现改用同一 p2_integrated.json 内**已有的语义键**：uncertainty_available
+  // （方差/ivar 子产品是否定义）与 corrected_variance_used / snr_chain_used
+  // （逐样本 ivar 面或 SNR 权重链是否真的用上）。判据强度不变（缺键/不自洽
+  // 一律 DATA fail-closed），只是不再引入「权重模式」词汇。
+  if (!int_doc.contains("uncertainty_available") ||
+      !int_doc["uncertainty_available"].is_boolean())
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "integrated artifact missing integer weight_mode (upstream integrate"
-        " must declare 1|2; DATA-UNC-001 §30.1 rule 1)"));
-  const int weight_mode = int_doc["weight_mode"].get<int>();
-  if (weight_mode != 1 && weight_mode != 2)
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "integrated artifact weight_mode " + std::to_string(weight_mode) +
-        " illegal (only 1=equal | 2=ivar; DATA-UNC-001 §30.1 rule 1)"));
-  const bool uncertainty_available = int_doc.value("uncertainty_available", false);
-  if (uncertainty_available && weight_mode != 2)
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "uncertainty_available=true with weight_mode=" +
-        std::to_string(weight_mode) + " (variance/ivar products are defined"
-        " only for mode 2; DATA-UNC-001 §30.1 rule 1)"));
+        "integrated artifact missing boolean uncertainty_available (upstream"
+        " integrate must declare it; DATA-UNC-001 §30.1 rule 1)"));
+  const bool uncertainty_available = int_doc["uncertainty_available"].get<bool>();
+  // 方差/ivar 子产品只由**逐样本权重面**定义（DATA-UNC-001 §30.1）：
+  //   weight_basis = per_sample_ivar（逐帧 ivar 产品齐备）或
+  //                  per_pixel_corrected_variance（逐像素归一化方差面）。
+  // 帧级 SNR 链（frame_snr_ivar）只是积分权重的显式降级路径 ⇒ 该路径上
+  // uncertainty_available 必须为 false（CONFORM-FIX-B-004），此处双向锁死。
+  if (uncertainty_available) {
+    const std::string basis = int_doc.value("weight_basis", std::string());
+    const bool per_sample_surface =
+        (basis == "per_sample_ivar" || basis == "per_pixel_corrected_variance");
+    const bool ivar_missing =
+        int_doc.value("ivar_product_missing_frames", 0) != 0;
+    const bool snr_chain_used = int_doc.value("snr_chain_used", false);
+    if (!per_sample_surface || ivar_missing || snr_chain_used)
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "uncertainty_available=true without a per-sample weight surface"
+          " (weight_basis=" + (basis.empty() ? std::string("<missing>") : basis) +
+          ", ivar_product_missing_frames=" +
+          std::to_string(int_doc.value("ivar_product_missing_frames", 0)) +
+          ", snr_chain_used=" + (snr_chain_used ? "true" : "false") +
+          "; DATA-UNC-001 §30.1 rule 1: variance/ivar products are defined only"
+          " by per-sample ivar / per-pixel corrected variance)"));
+  }
   const double a_cell = 4.0 * 3.14159265358979323846 /
                         (12.0 * static_cast<double>(nside) * static_cast<double>(nside));
 
@@ -8249,16 +8508,27 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     if (frames.is_array() && !frames.empty())
       obs_filter = frames[0].value("filter_passband", "");
   }
+  // FIX-401 §10: 全部子产品先落本次运行私有暂存区, 校验通过后统一原子发布
+  // (不再直写正式 output_dir)。
+  const std::string staging = p2_mosaic_staging_path(out_dir);
+  if (aio_atomic::remove_tree(staging, 0) != 0)
+    return Result<void>::fail(Error(ErrorDomain::IO,
+        "mosaic staging 残留不可清除: " + staging));
+  if (aio_atomic::make_dir(staging) != 0)
+    return Result<void>::fail(Error(ErrorDomain::IO,
+        "mosaic staging 创建失败: " + staging));
   AioHipsProductSet* ps = aio_hips_product_begin(
-      out_dir.c_str(), nside, 512, AIO_HIPS_FLOAT32, flags,
+      staging.c_str(), nside, 512, AIO_HIPS_FLOAT32, flags,
       "ivo://astrocs/phase2", "AstroCS Phase2 mosaic",
       // B2-A8: coverage union 已验证全帧 filter 身份（含显式空声明），mosaic
       // 恒透传该身份；properties 写侧恒写 obs_filter 键（空值也是声明）。
       obs_filter.c_str(),
       0.0, nullptr, 0);
-  if (!ps)
+  if (!ps) {
+    aio_atomic::remove_tree(staging, 0);
     return Result<void>::fail(Error(ErrorDomain::IO,
         std::string("aio_hips_product_begin failed: ") + aio_hips_last_error()));
+  }
 
   const auto& files = int_doc["files"];
   const auto& tiles = int_doc["tiles"];
@@ -8314,6 +8584,10 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     const int wr = aio_hips_write_signal_support_tile(ps, &view);
     if (wr != 0) {
       aio_hips_abort(ps);
+      // FIX-401 §7.2: 磁盘满按失败本身归类 (aio 在清理前已判定) → 失败节点
+      // manifest error_kind="disk_full" → CLI 映射 exit 10。
+      if (man && aio_disk::consume()) (*man)["error_kind"] = "disk_full";
+      aio_atomic::remove_tree(staging, 0);   // §10: 失败路径清临时产物
       return Result<void>::fail(Error(ErrorDomain::IO,
           std::string("aio_hips_write_signal_support_tile failed: ") +
           aio_hips_last_error()));
@@ -8323,6 +8597,8 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
       const int wv = aio_hips_write_variance_tile(ps, &view);
       if (wv != 0) {
         aio_hips_abort(ps);
+        if (man && aio_disk::consume()) (*man)["error_kind"] = "disk_full";
+        aio_atomic::remove_tree(staging, 0);   // §10: 失败路径清临时产物
         return Result<void>::fail(Error(ErrorDomain::IO,
             std::string("aio_hips_write_variance_tile failed: ") +
             aio_hips_last_error()));
@@ -8332,30 +8608,94 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   }
   if (aio_hips_finalize(ps) != 0) {
     aio_hips_abort(ps);
+    if (man && aio_disk::consume()) (*man)["error_kind"] = "disk_full";
+    aio_atomic::remove_tree(staging, 0);     // §10: 失败路径清临时产物
     return Result<void>::fail(Error(ErrorDomain::IO,
         std::string("aio_hips_finalize failed: ") + aio_hips_last_error()));
   }
-  std::error_code ec;
-  const std::string props = out_dir + "/signal/properties";
-  if (!std::filesystem::exists(std::filesystem::u8path(props), ec))
+  const std::string staging_props = staging + "/signal/properties";
+  // §9/CLEAN-403: 存在性判定走 aio 原语 (不新增 filesystem 原语命中)
+  if (!aio_atomic::path_exists(staging_props, nullptr)) {
+    aio_atomic::remove_tree(staging, 0);
     return Result<void>::fail(Error(ErrorDomain::IO,
-        "HiPS properties missing after finalize: " + props));
+        "HiPS properties missing after finalize: " + staging_props));
+  }
 
   // 产品面回读校验（variance/ivar tile 数一致; HIPS_VERIFY 目标态 §30.1 扩展）
   Json products = Json::array({"signal", "support"});
   if (uncertainty_available) {
     products.push_back("variance");
     products.push_back("ivar");
-    AioHipsDataset* dv = aio_hips_open(out_dir.c_str(), AIO_HIPS_RD_VARIANCE);
-    AioHipsDataset* di = aio_hips_open(out_dir.c_str(), AIO_HIPS_RD_IVAR);
+    AioHipsDataset* dv = aio_hips_open(staging.c_str(), AIO_HIPS_RD_VARIANCE);
+    AioHipsDataset* di = aio_hips_open(staging.c_str(), AIO_HIPS_RD_IVAR);
     const bool ok = dv && di &&
                     aio_hips_tile_count(dv) == aio_hips_tile_count(di);
     if (dv) aio_hips_close(dv);
     if (di) aio_hips_close(di);
-    if (!ok)
+    if (!ok) {
+      aio_atomic::remove_tree(staging, 0);
       return Result<void>::fail(Error(ErrorDomain::IO,
           "variance/ivar product tile count mismatch after finalize (HIPS_VERIFY)"));
+    }
   }
+  // FIX-402: 单位/像素语义声明（在暂存区内完成 → 随产品集一起原子发布;
+  // properties 与 manifest.json 双写同源）。声明失败 = 产品单位面不完整 →
+  // 丢弃暂存区显式拒（output_dir 不出现无单位声明的 mosaic）。
+  {
+    std::string uerr;
+    if (!declare_hips_surface_brightness_units(staging, uncertainty_available, &uerr)) {
+      aio_atomic::remove_tree(staging, 0);
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "mosaic 单位/像素语义声明失败: " + uerr));
+    }
+  }
+  // 成功对象校验（发布前, 暂存区）: 完成清单 ↔ 磁盘事实双向一致
+  {
+    AioHipsVerifyReport rep;
+    std::memset(&rep, 0, sizeof(rep));
+    rep.struct_size = (uint32_t)sizeof(AioHipsVerifyReport);
+    rep.abi_version = AIO_HIPS_VERIFY_REPORT_ABI_VERSION;
+    const int vrc = aio_hips_verify_product_set(staging.c_str(), &rep);
+    if (vrc != 0) {
+      const std::string verr = aio_hips_last_error();
+      aio_atomic::remove_tree(staging, 0);
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "mosaic 产品集校验失败 (verify rc=" + std::to_string(vrc) + ": " +
+          verr + "); 暂存区已丢弃, output_dir 无完成清单"));
+    }
+  }
+  // 统一原子发布: 先摘旧完成清单 → 逐子产品 rename 换入 → 最后落完成清单。
+  {
+    std::string perr;
+    if (!p2_publish_mosaic_tree(out_dir, staging, &perr)) {
+      aio_atomic::remove_tree(staging, 0);
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "mosaic 原子发布失败: " + perr + " (暂存区已丢弃)"));
+    }
+  }
+  // 发布后回读（正式目录, 消费者视角; 完成清单已在, fail-closed 门已开）
+  {
+    const std::string fprops = out_dir + "/signal/properties";
+    if (!aio_atomic::path_exists(fprops, nullptr))
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "HiPS properties missing after publish: " + fprops));
+    if (uncertainty_available) {
+      AioHipsDataset* dv = aio_hips_open(out_dir.c_str(), AIO_HIPS_RD_VARIANCE);
+      AioHipsDataset* di = aio_hips_open(out_dir.c_str(), AIO_HIPS_RD_IVAR);
+      const bool ok = dv && di &&
+                      aio_hips_tile_count(dv) == aio_hips_tile_count(di);
+      if (dv) aio_hips_close(dv);
+      if (di) aio_hips_close(di);
+      if (!ok)
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            "variance/ivar tile count mismatch after publish (HIPS_VERIFY)"));
+    }
+  }
+
+  // FIX-401 发布后订正: p2_final.json 的 properties 引用必须是**正式目录**路径
+  // （staging 已随发布清理; 旧值指向被删除的暂存路径 = 悬空引用, 消费者读不到
+  // 已发布的 properties/BUNIT 声明）。
+  const std::string props = out_dir + "/signal/properties";
 
   const std::string out_path = out_dir + "/p2_final.json";
   // 权重面审计（IVAR-001）: weight_basis 与缺 ivar 帧数随 mosaic 产品面落盘,
@@ -8376,8 +8716,27 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                         {"n_tiles_written", n_tiles_written},
                         {"products", products},
                         {"covered_area_model", "support_x_A_cell"},
+                        // FIX-402: 像素语义/单位随产品 manifest 落盘（与已发布的
+                        // signal/properties BUNIT 声明同源同值; FZ-BUNIT-SEMANTICS）。
+                        {"bunit", kP3BunitSurfaceBrightness},
+                        {"units", Json{
+                            {"bunit", kP3BunitSurfaceBrightness},
+                            {"signal_unit", kP3BunitSurfaceBrightness},
+                            {"pixel_semantics", "surface_brightness"},
+                            {"pixel_area_power", -2},
+                            {"variance_bunit", uncertainty_available
+                                 ? std::string(kP3BunitSbVariance)
+                                 : std::string()},
+                            {"ivar_bunit", uncertainty_available
+                                 ? std::string(kP3BunitSbIvar)
+                                 : std::string()},
+                            {"quadratic_law", "variance = signal^2; ivar = 1/variance"}}},
                         {"uncertainty_available", uncertainty_available},
-                        {"weight_mode", weight_mode},
+                        // FIX-405 G3-12（ASTROCS_DESIGN §3.1）：p2_final.json
+                        // **不再落** weight_mode 键（「全程只有 SNR，不存在
+                        // 『权重模式』这个概念」）；方差面状态由
+                        // uncertainty_available + weight_basis +
+                        // uncertainty_unavailable_reason 如实承载。
                         {"weight_basis", weight_basis},
                         {"ivar_product_missing_frames", ivar_missing_frames},
                         {"uncertainty_unavailable_reason",
@@ -8404,21 +8763,22 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                              " channel (aio_hips_set_drizzle_provenance) only"
                              " exposes pixfrac/scale; ASTROCS_* property keys"
                              " pending AIO-domain contract registration"}}}};
-  if (!p2_write_text(out_path, final_out.dump(2)))
+  if (!p2_write_text_atomic(out_path, final_out.dump(2) + "\n"))
     return Result<void>::fail(Error(ErrorDomain::IO, "artifact write failed"));
-  (*man)["artifacts"] = Json::array({out_path, props});
+  (*man)["artifacts"] = Json::array({out_path, out_dir + "/signal/properties"});
   (*man)["mosaic_root"] = out_dir;
   (*man)["final_artifact"] = out_path;
   (*man)["n_tiles_written"] = n_tiles_written;
   (*man)["uncertainty_available"] = uncertainty_available;
-  (*man)["weight_mode"] = weight_mode;
   (*man)["weight_basis"] = weight_basis;
   (*man)["ivar_product_missing_frames"] = ivar_missing_frames;
   (*man)["uncertainty_unavailable_reason"] = uncertainty_unavailable_reason;
   // B2-A10（宪章 §4.3）: 单位/坐标系/输入产品哈希随节点 manifest 上报，
   // 供 run manifest provenance 汇总（Phase2 mosaic 单位 = ADU，
   // 坐标系 = ICRS，P0-19 与 properties 的 hips_frame=equatorial 同源）。
-  (*man)["bunit"] = "ADU";
+  (*man)["bunit"] = kP3BunitSurfaceBrightness;
+  (*man)["pixel_semantics"] = "surface_brightness";
+  (*man)["pixel_area_power"] = -2;
   (*man)["coordinate_frame"] = "equatorial";
   (*man)["input_manifest_hash"] = manifest_hash;
   return Result<void>::success();
@@ -8783,9 +9143,8 @@ struct P2NodeModule : public IModule {
       // CLI/测试调用方不预建目录, p2001 pytest out1/outN 同面）
       {
         const std::string out_dir = doc.value("output_dir", std::string("."));
-        std::error_code ec;
-        std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
-        if (ec && !std::filesystem::exists(std::filesystem::u8path(out_dir), ec)) {
+        // CLEAN-403: 目录创建经 aio (make_dirs); 已存在视为成功 (幂等)。
+        if (!aio_fs::make_dirs(out_dir) && !aio_fs::is_dir(out_dir)) {
           man["error"] = "cannot create output_dir: " + out_dir;
           r = Result<void>::fail(Error(ErrorDomain::IO, man["error"].get<std::string>()));
         }
@@ -8978,9 +9337,12 @@ bool p3n_geom(const Json& doc, P3nGeom* g, std::string* err) {
 
 // 上游 artifact 读取 (fail-closed: 缺失/损坏 = DATA 拒, DAG 断链不静默)
 bool p3n_read_json(const std::string& path, Json* out, std::string* err) {
-  std::ifstream f(path, std::ios::binary);
-  if (!f) { if (err) *err = "upstream artifact missing: " + path; return false; }
-  std::string s((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+  // CLEAN-403: 整文件读取经 aio (aio_file::read_all)。
+  std::string s;
+  if (!aio_fs::read_all(path, &s)) {
+    if (err) *err = "upstream artifact missing: " + path;
+    return false;
+  }
   try {
     *out = Json::parse(s);
   } catch (const Json::parse_error& e) {
@@ -8998,10 +9360,8 @@ std::string p3n_input_manifest_hash(const std::string& hips_dir) {
   std::string blob;
   const char* parts[] = {"/signal/properties", "/signal/Moc.fits"};
   for (const char* rel : parts) {
-    std::ifstream f(hips_dir + rel, std::ios::binary);
-    if (!f) continue;
-    std::string s((std::istreambuf_iterator<char>(f)),
-                  std::istreambuf_iterator<char>());
+    std::string s;
+    if (!aio_fs::read_all(hips_dir + rel, &s)) continue;
     if (s.empty()) continue;
     blob += rel;
     blob += '\n';
@@ -9045,6 +9405,169 @@ bool p3n_wcs_from_json(const Json& j, astrocs::phase3::P3WcsDescriptor* d,
   return true;
 }
 
+// ══ FIX-402: Phase3 输入语义守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）════
+// 生产 export 只接受**面亮度语义**输入；按输入 provenance 声明的单位分派，
+// 不做任何"自动猜测单位"的宽松解析（缺声明即拒绝，禁 silent default ADU）:
+//   * 面亮度（BUNIT 显式含 px 幂次 canonical "ADU/px^2"，或 BUNIT=ADU +
+//     ASTROCS_PIXEL_SEMANTICS=surface_brightness + ASTROCS_PIXEL_AREA_POWER=-2）→ 放行;
+//     下游统一携带冻结单位表的 canonical 产品串（"ADU/px^2"）。
+//   * 缺 BUNIT / 空 BUNIT / 裸 ADU 而无像素语义声明（单位不可判）→ 输入缺失或
+//     格式错 → error_kind=input（CLI exit 3）。
+//   * 已声明但非面亮度（积分通量 ADU/px^0、方差或 ivar 面、冻结单位表外单位）→
+//     科学语义违例 → ErrorDomain::SCIENCE_PRECONDITION（CLI exit 4）。
+struct P3InputUnit {
+  bool ok = false;
+  bool input_error = false;      // true → exit 3（输入缺失/格式错）; false → exit 4
+  std::string bunit_raw;
+  std::string bunit_canonical;   // 通过时 = "ADU/px^2"
+  std::string code;              // 机器可判错误码（节点 manifest semantic_code）
+  std::string reason;
+};
+
+// 读 HiPS properties 文本键（"KEY = value" 行）。重复键 → 显式拒绝（禁 silent override）。
+bool p3n_properties_scalar_keys(const std::string& path,
+                                std::map<std::string, std::string>* out,
+                                std::string* err) {
+  // CLEAN-403: 整文件读取经 aio (aio_file::read_all), 逐行解析在内存进行。
+  std::string ptext;
+  if (!aio_fs::read_all(path, &ptext)) {
+    if (err) *err = "properties not found: " + path;
+    return false;
+  }
+  const auto trim = [](std::string s) {
+    const size_t a = s.find_first_not_of(" \t\r");
+    const size_t b = s.find_last_not_of(" \t\r");
+    return (a == std::string::npos) ? std::string() : s.substr(a, b - a + 1);
+  };
+  std::istringstream f(ptext);
+  std::string line;
+  while (std::getline(f, line)) {
+    const size_t eq = line.find('=');
+    if (eq == std::string::npos) continue;
+    const std::string key = trim(line.substr(0, eq));
+    const std::string val = trim(line.substr(eq + 1));
+    if (key.empty()) continue;
+    if (out->count(key)) {
+      if (err) *err = "duplicate properties key: " + key;
+      return false;
+    }
+    (*out)[key] = val;
+  }
+  return true;
+}
+
+P3InputUnit p3n_guard_input_units(const std::string& hips_dir) {
+  using namespace astrocs::p3rsmp;
+  P3InputUnit g;
+  std::map<std::string, std::string> kv;
+  std::string perr;
+  if (!p3n_properties_scalar_keys(hips_dir + "/signal/properties", &kv, &perr)) {
+    g.input_error = true;
+    g.code = "P3-INPUT-PROPERTIES-UNREADABLE";
+    g.reason = perr;
+    return g;
+  }
+  const auto it = kv.find("BUNIT");
+  if (it == kv.end() || it->second.empty()) {
+    g.input_error = true;
+    g.code = "P3-INPUT-BUNIT-MISSING";
+    g.reason = "input HiPS signal/properties declares no BUNIT; unit undecidable"
+               " (FZ-BUNIT-SEMANTICS; 禁按 ADU 猜测)";
+    return g;
+  }
+  g.bunit_raw = it->second;
+  BunitProvenance prov;
+  {
+    const auto ps = kv.find("ASTROCS_PIXEL_SEMANTICS");
+    if (ps != kv.end() && !ps->second.empty()) {
+      if (ps->second == "surface_brightness")
+        prov.pixel_semantics = PixelSemantics::SurfaceBrightness;
+      else if (ps->second == "integrated_flux")
+        prov.pixel_semantics = PixelSemantics::IntegratedFlux;
+      else {
+        g.code = "P3-INPUT-PIXEL-SEMANTICS-UNSUPPORTED";
+        g.reason = "ASTROCS_PIXEL_SEMANTICS '" + ps->second +
+                   "' is not a declared pixel semantics"
+                   " (surface_brightness|integrated_flux)";
+        return g;
+      }
+    }
+    const auto pp = kv.find("ASTROCS_PIXEL_AREA_POWER");
+    if (pp != kv.end() && !pp->second.empty()) {
+      try {
+        size_t used = 0;
+        const int v = std::stoi(pp->second, &used);
+        if (used != pp->second.size()) throw std::invalid_argument("trailing chars");
+        prov.pixel_area_power_present = true;
+        prov.pixel_area_power = v;
+      } catch (...) {
+        g.input_error = true;
+        g.code = "P3-INPUT-PIXEL-AREA-POWER-UNPARSABLE";
+        g.reason = "ASTROCS_PIXEL_AREA_POWER '" + pp->second + "' is not an integer";
+        return g;
+      }
+    }
+  }
+  // 冻结串逐字比较（仅去空白; 禁大小写/别名/幂次"猜测"）: "ADU/px^2" 是唯一
+  // 显式可判的面亮度 BUNIT 串; 裸 ADU 须 provenance 声明补足 (FZ-BUNIT-SEMANTICS (b))。
+  std::string norm;
+  for (char c : g.bunit_raw) {
+    if (c != ' ' && c != '\t') norm += c;
+  }
+  if (norm == kP3BunitSurfaceBrightness) {
+    g.ok = true;
+    g.bunit_canonical = kP3BunitSurfaceBrightness;
+    return g;
+  }
+  const BunitResolution res = resolve_bunit(g.bunit_raw, prov);
+  if (norm == "ADU") {
+    if (prov.pixel_semantics == PixelSemantics::SurfaceBrightness &&
+        prov.pixel_area_power_present && prov.pixel_area_power == -2) {
+      // FZ-BUNIT-SEMANTICS (b): 裸 ADU + 像素语义声明 → 可判为面亮度, 归一为冻结串
+      g.ok = true;
+      g.bunit_canonical = kP3BunitSurfaceBrightness;
+      return g;
+    }
+    if (prov.pixel_semantics == PixelSemantics::IntegratedFlux) {
+      g.code = "P3-INPUT-NOT-SURFACE-BRIGHTNESS";
+      g.reason = "BUNIT 'ADU' with ASTROCS_PIXEL_SEMANTICS=integrated_flux resolves to"
+                 " integrated flux; export accepts surface-brightness inputs only"
+                 " (ASTROCS_DESIGN §6.3)";
+      return g;
+    }
+    // 裸 ADU 而无像素语义声明: 输入**未声明**可判语义 → 输入格式错 (exit 3)
+    g.input_error = true;
+    g.code = "P3-INPUT-BUNIT-UNDECIDABLE";
+    g.reason = "input BUNIT 'ADU' without ASTROCS_PIXEL_SEMANTICS="
+               "surface_brightness + ASTROCS_PIXEL_AREA_POWER=-2 is not dimensionally"
+               " decidable (FZ-BUNIT-SEMANTICS; 禁按 ADU 猜测); 面亮度输入须逐字写"
+               " '" + std::string(kP3BunitSurfaceBrightness) + "' 或补像素语义声明";
+    return g;
+  }
+  // 其余（含可解析的非面亮度单位与冻结词汇表外单位）: 已声明但非面亮度语义 → exit 4
+  g.code = res.resolvable ? "P3-INPUT-NOT-SURFACE-BRIGHTNESS"
+                          : "P3-INPUT-UNIT-UNSUPPORTED";
+  g.reason = "export accepts surface-brightness inputs only (ASTROCS_DESIGN §6.3):"
+             " BUNIT '" + g.bunit_raw + "'" +
+             (res.resolvable ? (" resolves to '" + res.resolved.canonical() + "'")
+                             : std::string(" is outside the frozen unit vocabulary")) +
+             " (expected '" + std::string(kP3BunitSurfaceBrightness) + "')";
+  return g;
+}
+
+// 守卫失败 → 统一错误面（机器错误码落节点 manifest; CLI 退出码按语义:
+// input_error → 3（输入缺失/格式错），否则 → 4（科学验证/不变量失败））。
+Result<void> p3n_guard_fail(const P3InputUnit& g, Json* man) {
+  if (man) {
+    (*man)["semantic_code"] = g.code;
+    (*man)["input_bunit"] = g.bunit_raw;
+    if (g.input_error) (*man)["error_kind"] = "input";
+  }
+  const ErrorDomain dom =
+      g.input_error ? ErrorDomain::DATA : ErrorDomain::SCIENCE_PRECONDITION;
+  return Result<void>::fail(Error(dom, g.code + ": " + g.reason));
+}
+
 // ── op: properties (ALG-P3-001 唯一真实入口 = 严格 properties 校验 + 实测
 //    order/BUNIT + uncertainty 子产品探测) ────────────────────────────────────
 Result<void> p3_op_properties(const Json& doc, Json* man) {
@@ -9052,6 +9575,10 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
   std::string err;
   if (!p3n_geom(doc, &g, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  // FIX-402: 输入语义守卫（先于任何像素/子产品读取; 非面亮度或单位不可判 →
+  // 显式拒且不产任何半成品）
+  const P3InputUnit guard = p3n_guard_input_units(g.hips_dir);
+  if (!guard.ok) return p3n_guard_fail(guard, man);
   using namespace astrocs::phase3;
   P3Sampler samp{};
   int order = -1;
@@ -9078,12 +9605,24 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
   if (ust != P3_RS_OK)
     return Result<void>::fail(Error(ErrorDomain::IO, "uncertainty sub-product open failed"));
 
+  // BUNIT 一致性（FIX-402）: reader 解析出的 BUNIT 必须与守卫所见逐字一致
+  // （两份解析面分叉 = 产品被并发改写/解析漂移 → 显式拒，禁静默采信任一）。
+  if (!bunit.empty() && bunit != guard.bunit_raw)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "BUNIT drift between properties parse ('" + bunit + "') and guard ('" +
+        guard.bunit_raw + "')"));
   const std::string path = g.out_dir + "/p3_props.json";
   Json props{{"schema", "DATA-P3-PROPS"},
              {"hips_dir", g.hips_dir},
              {"hips_order", order},
              {"tile_width", 512},
-             {"bunit", bunit},
+             // FIX-402: 下游（resample/writer/FITS BUNIT）统一消费冻结单位表的
+             // canonical 面亮度串; 输入原始声明另存 bunit_input 供审计。
+             {"bunit", guard.bunit_canonical},
+             {"bunit_input", guard.bunit_raw},
+             {"pixel_semantics", "surface_brightness"},
+             {"pixel_area_power", -2},
+             {"variance_propagation", "C_out = R C_in R^T"},
              {"variance_available", src == P3_UNC_VARIANCE},
              {"ivar_available", src == P3_UNC_IVAR},
              {"uncertainty_source",
@@ -9095,7 +9634,10 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
   (*man)["props_artifact"] = path;
   (*man)["artifacts"] = Json::array({path});
   (*man)["hips_order"] = order;
-  (*man)["bunit"] = bunit;
+  (*man)["bunit"] = guard.bunit_canonical;
+  (*man)["bunit_input"] = guard.bunit_raw;
+  (*man)["pixel_semantics"] = "surface_brightness";
+  (*man)["pixel_area_power"] = -2;
   (*man)["uncertainty_source"] = props["uncertainty_source"];
   return Result<void>::success();
 }
@@ -9150,27 +9692,52 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
 //    唯一 executor 执行 — RT-001) ─
 Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
                             RunContext* ctx) {
-  // ── FZ-P3-MODES / G-P3-MODE: output_mode 生产消费 ──────────────────────
-  // 缺失即拒绝（禁静默按 surface_brightness）; 值域经 p3_resample_check_mode
-  // （§4 显式拒 weight/flux-per-pixel; 仅 surface_brightness 为 resample 语义）。
+  // ── FZ-P3-MODES / G-P3-MODE: output_mode 生产消费（三模式显式声明）───────
+  // 缺失即拒绝（禁静默按 surface_brightness）; token 经冻结模式表解析
+  // （p3rsmp::parse_mode: legacy/deferred 词一律拒）。
   if (!doc.contains("output_mode") || !doc["output_mode"].is_string() ||
       doc["output_mode"].get<std::string>().empty())
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "export config missing output_mode (FZ-P3-MODES: 模式未声明 -> REJECT;"
         " 禁静默按 surface_brightness)"));
-  {
-    const std::string omode = doc["output_mode"].get<std::string>();
-    const astrocs::phase3::P3ResampleStatus mst =
-        astrocs::phase3::p3_resample_check_mode(omode.c_str());
-    if (mst != astrocs::phase3::P3_RS_OK)
+  const std::string omode = doc["output_mode"].get<std::string>();
+  astrocs::p3rsmp::P3Mode out_mode = astrocs::p3rsmp::P3Mode::SurfaceBrightness;
+  if (astrocs::p3rsmp::parse_mode(omode, &out_mode) != astrocs::p3rsmp::Status::Ok)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "output_mode '" + omode + "' is not a declared FZ-P3-MODES token"
+        " (surface_brightness | point_source_flux | visualization);"
+        " legacy/deferred tokens rejected (禁宽松解析)"));
+  if (out_mode == astrocs::p3rsmp::P3Mode::PointSourceFlux)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "output_mode point_source_flux is not implemented in this build"
+        " (needs PSF/effective PSF/Q/W recompute on the output frame;"
+        " FZ-P3-QW-RECOMPUTE); refusing a silent surface_brightness downgrade"));
+  // 可测量性由模式**唯一决定**（FZ-P3-MODES: visualization 恒为显示型降级,
+  // surface_brightness 为唯一测量面）—— 不新造配置键（CLI 配置合同无
+  // measurement_capable, 自造同义键 = 死键违规, AGENTS §6）。直调 IR/透传形态若
+  // 自带该键, 只作一致性断言: 与模式推导不符即拒（禁把显示产品冒充测量产品）。
+  const bool measurement_capable =
+      (out_mode == astrocs::p3rsmp::P3Mode::SurfaceBrightness);
+  if (doc.contains("measurement_capable")) {
+    if (!doc["measurement_capable"].is_boolean())
       return Result<void>::fail(Error(ErrorDomain::DATA,
-          "output_mode '" + omode + "' rejected by p3_resample_check_mode"
-          " (FZ-P3-MODES; resample 仅实现 surface_brightness)"));
+          "measurement_capable must be boolean when present"));
+    if (doc["measurement_capable"].get<bool>() != measurement_capable)
+      return Result<void>::fail(Error(ErrorDomain::SCIENCE_PRECONDITION,
+          std::string("measurement_capable=") +
+          (measurement_capable ? "true" : "false") + " is inconsistent with"
+          " output_mode '" + omode + "' (FZ-P3-MODES: 可测量性由模式唯一决定,"
+          " visualization 不得冒充测量产品)"));
   }
+  // surface_brightness = 唯一测量面（visualization 不产测量层）
+  const bool measure_face = measurement_capable;
   P3nGeom g;
   std::string err;
   if (!p3n_geom(doc, &g, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  // FIX-402: 输入语义守卫（与 properties 节点同源同判; 旁路直调本节点也不放行）
+  const P3InputUnit guard = p3n_guard_input_units(g.hips_dir);
+  if (!guard.ok) return p3n_guard_fail(guard, man);
   Json props, plan;
   if (!p3n_read_json(g.out_dir + "/p3_props.json", &props, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
@@ -9209,7 +9776,16 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
           "uncertainty sub-product open failed"));
     }
   }
-  const bool unc_available = (src != P3_UNC_NONE);
+  // FIX-402: p3_props.json 的 canonical 单位与实时守卫必须一致（上游 artifact
+  // 漂移 → 显式拒, 禁把旧声明当事实）。
+  const std::string props_bunit = props.value("bunit", std::string());
+  if (props_bunit != guard.bunit_canonical)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "p3_props.json bunit drift: '" + props_bunit + "' != live input '" +
+        guard.bunit_canonical + "' (FIX-402 输入语义守卫)"));
+  const bool input_unc_available = (src != P3_UNC_NONE);
+  // FZ-P3-MODES: visualization 不产出/不消费测量层（禁写 VARIANCE/IVAR 作测量层）
+  const bool unc_available = measure_face && input_unc_available;
   // props artifact 的 uncertainty 声明与实测一致性 (上游/下游不漂移)
   const std::string props_src = props.value("uncertainty_source", std::string("none"));
   const std::string live_src =
@@ -9447,20 +10023,20 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
           "p3_resampled.bin atomic write failed: " + aerr));
   }
   // 完整性锚: bin 流式 sha256 (禁前缀/假哈希; 大图流式不整载)
-  astrocs::crypto::Sha256 bh;
-  {
-    std::ifstream bf(bin_path, std::ios::binary);
-    char hbuf[64 * 1024];
-    while (bf.good()) {
-      bf.read(hbuf, sizeof(hbuf));
-      bh.update(hbuf, static_cast<size_t>(bf.gcount()));
-    }
-  }
-  const std::string bin_sha = bh.final_hex();
+  // CLEAN-403: 摘要经 aio 唯一实现 (aio_file::sha256_hex, 64 KiB 分块)。
+  std::string bin_sha;
+  if (!aio_file::sha256_hex(bin_path.c_str(), &bin_sha))
+    return Result<void>::fail(Error(ErrorDomain::IO,
+        "p3_resampled.bin sha256 failed: " + bin_path));
   Json planes = Json::array();
   planes.push_back("signal");
   planes.push_back("coverage");
   if (unc_available) { planes.push_back("variance"); planes.push_back("ivar"); }
+  // BUNIT 一致性（FIX-402）: reader 解析面与守卫面必须逐字一致。
+  if (!bunit.empty() && bunit != guard.bunit_raw)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "BUNIT drift between properties parse ('" + bunit + "') and guard ('" +
+        guard.bunit_raw + "')"));
   const std::string json_path = g.out_dir + "/p3_resampled.json";
   Json res{{"schema", "DATA-P3-RES"},
            {"width_px", g.w},
@@ -9468,10 +10044,34 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
            {"order_sel", order_sel},
            {"sampler", g.sampler},
            {"bitpix", g.bitpix},
-           {"bunit", bunit},
+           // FIX-402: 单位/像素语义（下游 writer/FITS BUNIT 唯一来源; 禁 loose default）
+           {"bunit", guard.bunit_canonical},
+           {"bunit_input", guard.bunit_raw},
+           {"pixel_semantics", "surface_brightness"},
+           {"pixel_area_power", -2},
+           // FZ-P3-MODES: 输出模式显式随产物落盘（visualization = 不可测量）
+           {"output_mode", omode},
+           {"measurement_capable", measure_face},
+           // FZ-FORMULA-COV-PROP / docs/contracts/v6/data/08_phase3.md §5:
+           // variance/ivar 显式消费, 按 C_out = R C_in R^T 传播（输入 C_in 对角
+           // 时逐像素 [R C R^T]_ii = Σ_k c_k² u_k; nearest: u_in）。
+           {"variance_propagation", "C_out = R C_in R^T"},
+           {"variance_propagation_rule",
+            g.sampler == "nearest"
+                ? std::string("nearest: [R C_in R^T]_ii = u_in")
+                : std::string("bilinear_4quad: [R C_in R^T]_ii = sum_k c_k^2 u_k")},
+           {"input_covariance_representation", "diagonal"},
+           {"output_covariance_representation", "diagonal"},
            {"planes", planes},
            {"uncertainty_available", unc_available},
-           {"uncertainty_source", live_src},
+           {"input_uncertainty_available", input_unc_available},
+           {"uncertainty_source", unc_available ? live_src : std::string("none")},
+           {"input_uncertainty_source", live_src},
+           {"uncertainty_not_consumed_reason",
+            (!measure_face && input_unc_available)
+                ? std::string("visualization: measurement layers are not produced"
+                              " (measurement_capable=false)")
+                : std::string()},
            {"uncertainty_missing_pixels", missing_px.load()},
            {"bin", "p3_resampled.bin"},
            {"bin_sha256", bin_sha}};
@@ -9482,8 +10082,14 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   (*man)["artifacts"] = Json::array({json_path, bin_path});
   (*man)["order_sel"] = order_sel;
   (*man)["uncertainty_available"] = unc_available;
+  (*man)["input_uncertainty_available"] = input_unc_available;
   (*man)["uncertainty_source"] = live_src;
   (*man)["uncertainty_missing_pixels"] = missing_px.load();
+  (*man)["output_mode"] = omode;
+  (*man)["measurement_capable"] = measure_face;
+  (*man)["bunit"] = guard.bunit_canonical;
+  (*man)["pixel_semantics"] = "surface_brightness";
+  (*man)["pixel_area_power"] = -2;
   return Result<void>::success();
 }
 
@@ -9505,19 +10111,46 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   const long nelem = (long)g.w * g.h;
   std::vector<float> sig((size_t)nelem), cov((size_t)nelem);
   const bool unc = res.value("uncertainty_available", false);
+  // FIX-402: 输出面单位必须来自 resample 的 canonical 面亮度声明（禁 loose default
+  // "ADU"）; 输出模式/可测量性同样必须显式随产物落盘（FZ-P3-MODES）。
+  const std::string bunit_canon = res.value("bunit", std::string());
+  if (bunit_canon != kP3BunitSurfaceBrightness)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "p3_resampled.json bunit '" + bunit_canon +
+        "' != surface-brightness canonical '" +
+        std::string(kP3BunitSurfaceBrightness) +
+        "' (FZ-BUNIT-SEMANTICS; 禁 loose default)"));
+  const std::string omode = res.value("output_mode", std::string());
+  if (omode != "surface_brightness" && omode != "visualization")
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "p3_resampled.json output_mode '" + omode +
+        "' missing/invalid (FZ-P3-MODES; 模式必须显式声明)"));
+  const bool measurement_capable = res.value("measurement_capable", false);
+  if (omode == "visualization" && measurement_capable)
+    return Result<void>::fail(Error(ErrorDomain::SCIENCE_PRECONDITION,
+        "visualization product must not be measurement_capable (FZ-P3-MODES)"));
+  if (omode == "surface_brightness" && !measurement_capable)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "surface_brightness product must declare measurement_capable=true"));
   std::vector<float> var_p, ivar_p;
   if (unc) { var_p.resize((size_t)nelem); ivar_p.resize((size_t)nelem); }
   {
-    std::ifstream bf(g.out_dir + "/p3_resampled.bin", std::ios::binary);
-    if (!bf) return Result<void>::fail(Error(ErrorDomain::DATA,
-        "upstream artifact missing: p3_resampled.bin"));
-    bf.read(reinterpret_cast<char*>(sig.data()), (std::streamsize)sizeof(float) * nelem);
-    bf.read(reinterpret_cast<char*>(cov.data()), (std::streamsize)sizeof(float) * nelem);
-    if (unc) {
-      bf.read(reinterpret_cast<char*>(var_p.data()), (std::streamsize)sizeof(float) * nelem);
-      bf.read(reinterpret_cast<char*>(ivar_p.data()), (std::streamsize)sizeof(float) * nelem);
-    }
-    if (!bf.good())
+    // CLEAN-403: 平面区间读取经 aio (aio_file::read_range, 不整载文件)。
+    const std::string bin_p = g.out_dir + "/p3_resampled.bin";
+    const std::size_t plane_bytes = sizeof(float) * static_cast<std::size_t>(nelem);
+    std::string pbuf;
+    uint64_t off = 0;
+    auto read_plane = [&](void* dst) -> bool {
+      if (!aio_file::read_range(bin_p.c_str(), off, plane_bytes, &pbuf)) return false;
+      std::memcpy(dst, pbuf.data(), plane_bytes);
+      off += plane_bytes;
+      return true;
+    };
+    if (!aio_fs::exists(bin_p))
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "upstream artifact missing: p3_resampled.bin"));
+    if (!read_plane(sig.data()) || !read_plane(cov.data()) ||
+        (unc && (!read_plane(var_p.data()) || !read_plane(ivar_p.data()))))
       return Result<void>::fail(Error(ErrorDomain::DATA,
           "p3_resampled.bin truncated (planes vs manifest drift)"));
   }
@@ -9562,7 +10195,7 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   const P3OutputStatus ost = p3_output_write_atomic_ex(
       sig.data(), cov.data(), unc ? var_p.data() : nullptr,
       unc ? ivar_p.data() : nullptr, g.w, g.h, &wcs,
-      res.value("bunit", "ADU").c_str(), fits_path.c_str(), &prov, g.bitpix, -1,
+      bunit_canon.c_str(), fits_path.c_str(), &prov, g.bitpix, -1,
       &ores);
   if (ost != P3_OUT_OK)
     return Result<void>::fail(Error(ErrorDomain::IO,
@@ -9598,7 +10231,14 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
           {"hips_id", std::string(prov.hips_id)},
           {"source_sha", source_sha_str},
           {"coordinate_frame", "equatorial"},
-          {"bunit", res.value("bunit", "ADU")},
+          {"bunit", bunit_canon},
+          {"pixel_semantics", "surface_brightness"},
+          {"pixel_area_power", -2},
+          {"output_mode", omode},
+          {"measurement_capable", measurement_capable},
+          {"variance_propagation", res.value("variance_propagation", std::string())},
+          {"variance_propagation_rule",
+           res.value("variance_propagation_rule", std::string())},
           {"algorithm_id", "ALG-P3-004"},
           {"provider", "baseline"}};
   // §9 原子提交
@@ -9620,7 +10260,11 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   (*man)["source_sha"] = source_sha_str;
   (*man)["input_manifest_hash"] = input_manifest_hash;
   (*man)["coordinate_frame"] = "equatorial";
-  (*man)["bunit"] = res.value("bunit", "ADU");
+  (*man)["bunit"] = bunit_canon;
+  (*man)["pixel_semantics"] = "surface_brightness";
+  (*man)["pixel_area_power"] = -2;
+  (*man)["output_mode"] = omode;
+  (*man)["measurement_capable"] = measurement_capable;
   return Result<void>::success();
 }
 
@@ -9644,19 +10288,40 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   const long nelem = (long)g.w * g.h;
   std::vector<float> sig((size_t)nelem), cov((size_t)nelem);
   const bool unc = res.value("uncertainty_available", false);
+  // FIX-402: verify 独立重开面同样消费 canonical 单位/模式声明（禁 loose default）;
+  // resampled ↔ writer 声明分叉 → 显式拒（不把分叉当"已验证"）。
+  const std::string v_bunit = res.value("bunit", std::string());
+  const std::string w_bunit = wr.value("bunit", std::string());
+  if (v_bunit != kP3BunitSurfaceBrightness || w_bunit != v_bunit)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "verify: bunit drift (resampled '" + v_bunit + "', writer '" + w_bunit +
+        "'; expected canonical '" +
+        std::string(kP3BunitSurfaceBrightness) + "')"));
+  if (res.value("output_mode", std::string()) != wr.value("output_mode", std::string()))
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "verify: output_mode drift between resampled and writer artifacts"));
+  if (res.value("measurement_capable", false) != wr.value("measurement_capable", false))
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "verify: measurement_capable drift between resampled and writer artifacts"));
   std::vector<float> var_p, ivar_p;
   if (unc) { var_p.resize((size_t)nelem); ivar_p.resize((size_t)nelem); }
   {
-    std::ifstream bf(g.out_dir + "/p3_resampled.bin", std::ios::binary);
-    if (!bf) return Result<void>::fail(Error(ErrorDomain::DATA,
-        "upstream artifact missing: p3_resampled.bin"));
-    bf.read(reinterpret_cast<char*>(sig.data()), (std::streamsize)sizeof(float) * nelem);
-    bf.read(reinterpret_cast<char*>(cov.data()), (std::streamsize)sizeof(float) * nelem);
-    if (unc) {
-      bf.read(reinterpret_cast<char*>(var_p.data()), (std::streamsize)sizeof(float) * nelem);
-      bf.read(reinterpret_cast<char*>(ivar_p.data()), (std::streamsize)sizeof(float) * nelem);
-    }
-    if (!bf.good())
+    // CLEAN-403: 平面区间读取经 aio (aio_file::read_range, 不整载文件)。
+    const std::string bin_p = g.out_dir + "/p3_resampled.bin";
+    const std::size_t plane_bytes = sizeof(float) * static_cast<std::size_t>(nelem);
+    std::string pbuf;
+    uint64_t off = 0;
+    auto read_plane = [&](void* dst) -> bool {
+      if (!aio_file::read_range(bin_p.c_str(), off, plane_bytes, &pbuf)) return false;
+      std::memcpy(dst, pbuf.data(), plane_bytes);
+      off += plane_bytes;
+      return true;
+    };
+    if (!aio_fs::exists(bin_p))
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "upstream artifact missing: p3_resampled.bin"));
+    if (!read_plane(sig.data()) || !read_plane(cov.data()) ||
+        (unc && (!read_plane(var_p.data()) || !read_plane(ivar_p.data()))))
       return Result<void>::fail(Error(ErrorDomain::DATA, "p3_resampled.bin truncated"));
   }
   P3OutputResult vres{};
@@ -9830,9 +10495,8 @@ struct P3NodeModule : public IModule {
       // typed artifact 落盘面: output_dir 由节点幂等创建 (P2 同款)
       {
         const std::string out_dir = doc.value("output_dir", std::string("."));
-        std::error_code ec;
-        std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
-        if (ec && !std::filesystem::exists(std::filesystem::u8path(out_dir), ec)) {
+        // CLEAN-403: 目录创建经 aio (make_dirs); 已存在视为成功 (幂等)。
+        if (!aio_fs::make_dirs(out_dir) && !aio_fs::is_dir(out_dir)) {
           man["error"] = "cannot create output_dir: " + out_dir;
           r = Result<void>::fail(Error(ErrorDomain::IO, man["error"].get<std::string>()));
         }
@@ -9915,25 +10579,13 @@ Result<void> write_run_context(const std::string& out_dir, const std::string& ru
               {"run_id", run_id},
               {"software_version", software_version},
               {"source_sha", source_sha}};
-  std::error_code ec;
-  std::filesystem::create_directories(std::filesystem::u8path(out_dir), ec);
+  // CLEAN-403: 目录创建与原子落盘经 aio 唯一实现 (make_dirs /
+  // write_file_atomic = 同目录临时文件 → fflush → fsync → 原子 rename)。
+  (void)aio_fs::make_dirs(out_dir);
   const std::string final_path = out_dir + "/run_context.json";
-  const std::string tmp_path = final_path + ".tmp";
-  {
-    std::ofstream f(std::filesystem::u8path(tmp_path),
-                    std::ios::binary | std::ios::trunc);
-    if (!f)
-      return Result<void>::fail(Error(ErrorDomain::IO,
-          "cannot write run context tmp: " + tmp_path));
-    f << ctx.dump(2) << "\n";
-    if (!f.good())
-      return Result<void>::fail(Error(ErrorDomain::IO, "run context write failed"));
-  }
-  std::filesystem::rename(std::filesystem::u8path(tmp_path),
-                          std::filesystem::u8path(final_path), ec);
-  if (ec)
+  if (!aio_fs::write_atomic(final_path, ctx.dump(2) + "\n"))
     return Result<void>::fail(Error(ErrorDomain::IO,
-        "cannot finalize run context: " + ec.message()));
+        "cannot finalize run context: " + final_path));
   return Result<void>::success();
 }
 

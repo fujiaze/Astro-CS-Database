@@ -1,5 +1,7 @@
 # Phase3 HiPS Resample 实现级算法合同（ALG-P3-RSMP-IMPL-001）
 
+> 上游：ASTROCS_DESIGN.md §6.2（export 流程）
+
 > ID: ALG-P3-RSMP-IMPL-001  状态: CONTRACT_READY  模块: astrocs.p3.resample（迁移合同值；
 > registry 生产 descriptor 占位 astrocs.phase3.resample2 由 P3-RSMP-INT
 > 对齐）  上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，

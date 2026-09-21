@@ -189,7 +189,7 @@ spec_stars/spectra_buf 内部 malloc 本调用内 free。编排级合同 API-P1-
 | ID | 缺陷 | 锚 |
 |---|---|---|
 | DISP-PHOT-001 | star_matcher.cpp 头注释与 PhotometricDiag 注释"当前无双向过滤"失实——实现为双向最近邻互最近邻唯一配对，rejected_ambiguous 实际统计 | star_matcher.cpp:4-6/:34-38(头) vs :263-333/:342-346；photometric_calib.h:32-38 |
-| DISP-PHOT-002 | 旧 README/docs/algorithm.md 大面积失实（暴力最近邻 3px、scale=median(F_syn/F_instr)、MAD 清洗 σ=3、0.1nm 网格、v1.0 2D 曲面拟合叙述）——本次 README 重写修正，legacy docs 仅存档 | 旧 README §算法原理；docs/algorithm.md:107/:346 |
+| DISP-PHOT-002 | 旧 README/旧算法文档（已删，见 git 历史）大面积失实（暴力最近邻 3px、scale=median(F_syn/F_instr)、MAD 清洗 σ=3、0.1nm 网格、v1.0 2D 曲面拟合叙述）——本次 README 重写修正，legacy docs 仅存档 | 旧 README §算法原理；旧算法文档（已删，见 git 历史）:107/:346 |
 | DISP-PHOT-003 | ImageCorrector::computeScale（median 回退）为死代码：生产无调用方（scale 由 IRLS 直出） | image_corrector.cpp:26-57（grep 全仓无调用点） |
 | DISP-PHOT-004 | 无取消检查点；无 plan/execute/cancel/inspect 生命周期 | pc_api.cpp 全文；PHASE1_API_V1 §2 计划语义 |
 | DISP-PHOT-005 | 入参静默失效：mag_max 被自适应 mag_max_arr{12..16}×5 覆盖（pc_api.cpp:836-866）；pc_calibrate_simple 的 QE 三参数 (void) 丢弃（:103，头注释 :85-88 声明保留） | 同左 |

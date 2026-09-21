@@ -36,6 +36,15 @@ int main(){
  CHECK(sizeof(AioKVEntry)==320,"AioKVEntry layout 64+256 bytes");
  CHECK(offsetof(AioBlock,data)>offsetof(AioBlock,type),"AioBlock field order stable");
  CHECK(AIO_BLOCK_FLOAT32==0 && AIO_BLOCK_FLOAT64==1 && AIO_BLOCK_RAW==6,"AioBlockType enum values stable");
+ // FIX-404 / GAP_AUDIT G1-5: 块名只认标准块定义表；本用例的扩展名走**显式注册**
+ // （authority = 本测试用例身份），不得依赖"未列出的名字也允许"。
+ CHECK(aio_block_name_is_standard("data")==1,"data is a standard block name");
+ CHECK(aio_block_name_is_standard("variance")==1,"variance registered in standard block table");
+ CHECK(aio_block_name_is_standard("ivar")==1,"ivar registered in standard block table");
+ CHECK(aio_block_name_is_standard("sentinel")==0,"unregistered custom name is not standard");
+ CHECK(aio_block_name_register("ids","lib/infrastructure/aio/tests/pipeline_frame_contract_test.cpp: move 语义用例")==0,"register extension name ids");
+ CHECK(aio_block_name_register("sentinel","lib/infrastructure/aio/tests/pipeline_frame_contract_test.cpp: 事务性用例")==0,"register extension name sentinel");
+ CHECK(aio_block_name_register("noauth","")!=0,"registration without authority rejected");
  PipelineFrame* f=aio_pipeline_frame_create(); CHECK(f!=nullptr,"frame create");
  int dims[2]={2,3}; float a[6]={1,2,3,4,5,6};
  CHECK(aio_frame_add_block(f,"data",AIO_BLOCK_FLOAT32,a,6,dims,2,"f32")==0,"add f32 data");
@@ -76,6 +85,12 @@ int main(){
  make_bad_five_dims("/tmp/bad_5dims.aio");
  rc=aio_frame_load_cache(g,"/tmp/bad_5dims.aio");
  CHECK(rc!=0,"reject n_dims > 4 without stream misalignment");
+
+ // FIX-404 负例: 任意自定义块名（未注册）必须被拒（copy 与 move 两个入口）
+ CHECK(aio_frame_add_block(f,"my_custom_block",AIO_BLOCK_FLOAT32,nullptr,1,nullptr,0,"")==9,"reject arbitrary custom block name (copy)");
+ CHECK(aio_frame_add_block_move(f,"my_custom_block",AIO_BLOCK_INT32,nullptr,1,nullptr,0,"")==9,"reject arbitrary custom block name (move)");
+ CHECK(aio_frame_kv_set(f,"my_custom_kv","K","V")!=0,"reject arbitrary custom KV block name");
+ CHECK(aio_frame_has_block(f,"my_custom_block")==0,"rejected block name leaves frame unchanged");
 
  // invalid public arguments
  CHECK(aio_frame_add_block(f,"bad",AIO_BLOCK_FLOAT32,nullptr,-1,nullptr,0,"")!=0,"reject negative count");

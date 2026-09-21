@@ -1,5 +1,7 @@
 # 统一数据对象合同（UNIFIED_MODEL §2 的 **13** 个对象）
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）
+
 > **退役与身份（DOC-203 / Q2 前置裁决 2026-09-20；GAP_AUDIT §4.1/§4.5）**
 > ① canonical 数据对象 = **13 个**（原 14 个）；`psfsw_robust_weight` **已真删**（负责人 2026-09-20
 > 裁决 B；变更 claim `CHG-2026-09-20-PSFSW-RETIRE`；退役记录
@@ -147,6 +149,6 @@ MOD-001 的 `docs/modules/MODULE_MAP.yaml` 引用 22 个 DATA ID，其中 7 个�
 ## 6. 边界声明
 
 - 本任务只写 `contracts/schemas/**`、`contracts/data/**`、`contracts/config/**`、`docs/contracts/**`、`tests/contracts/**`；
-- 未改 `lib/**`、`lib/infrastructure/cli/**`、`tools/**`、`ci/**`、`runtime/**`、`config/**`、`docs/science/**`、`docs/algorithms/**`、`docs/plugins/**`、根 `CMakeLists.txt`、仓库根条目、`工程控制/**`、`reports/**`、`.github/**`；
+- 未改 `lib/**`、`lib/infrastructure/cli/**`、`eng/tools/**`、`eng/ci/**`、`runtime/**`、`config/**`、`docs/science/**`、`docs/algorithms/**`、`docs/plugins/**`、根 `CMakeLists.txt`、仓库根条目、`工程控制/**`、`reports/**`、`.github/**`；
 - 未改任何公式、阈值、默认容差、排异规则或归约顺序；未 commit / push / 建分支 / stash / reset / clean / checkout。
 

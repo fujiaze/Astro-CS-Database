@@ -154,7 +154,8 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
         if (st != P3_WCS_OK) return st;
     }
     // 适用域门(DESIGN §5.3「违反 ⇒ 拒绝」): |CRVAL2|≤85° / FOV≤20° /
-    // det(CD)<0 / CRPIX=(W+1)/2 FITS 1-based 像素中心 / 往返 <1e-6 px。
+    // det(CD)<0 / CRPIX=(W+1)/2 FITS 1-based 像素中心 / 往返 < 合同容差
+    // （kTanApplicability.roundtrip_tol_px = 1e-8 px，FIX-406 Oracle 冻结）。
     {
         std::string aerr;
         const P3WcsStatus ast = p3_wcs_check_applicability(&tmp, &aerr);
@@ -167,14 +168,27 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
 // ---- 适用域（ASTROCS_DESIGN.md §5.3）----
 namespace {
 
-// TAN 适用域声明（SCI §9a-12 alpha 冻结 + Paper I §2.1.1 + SCI §7 往返容差）。
+// TAN 适用域声明（SCI §9a-12 alpha 冻结 + Paper I §2.1.1 + 往返容差）。
+//
+// roundtrip_tol_px = 1e-8 px —— 依据 FIX-406 Oracle 实验表（冻结）：
+//   * 规范来源: ASTROCS_DESIGN §5.3「每种投影必须声明适用域（含往返误差上界），
+//     违反 ⇒ 拒绝」；上界必须由实验确定（GAP_AUDIT G3-6 要求经 SCI 复核后冻结）。
+//   * TAN 全域实测（本生产实现自身，880 组几何 × 密集逐像素 = 8.31e6 次往返 +
+//     FOV=20° 适用域边界 512²/1024²/2048² = 2.42e7 次往返）:
+//     max = 2.437e-9 px（最坏工况 0.05″/px、|CRVAL2|=85°、PA=30°、129²）。
+//   * 独立 Oracle 可达精度: astropy 7.0.1 / WCSLIB 8.4 与独立切基式 ~2.5e-10 px
+//     （对拍同一 WCS；SIN 内核同类问题的判定见 run/FIX-406/SIN_ROUNDTRIP_ORACLE.md）。
+//   * 冻结值 1e-8 px = 实测最坏 4.1× / Oracle 可达 40×；相对旧值 1e-6 px 是
+//     **收紧**（旧门在实测面前过松 ~400×），不是放宽。
+//   * 证据与复跑: run/FIX-406/SIN_ROUNDTRIP_ORACLE.md、evidence/kernel_roundtrip.json、
+//     run/FIX-406/probe_sin_roundtrip.cpp、run/FIX-406/oracle_sin_roundtrip.py。
 const P3WcsApplicability kTanApplicability = {
     "TAN",   // projection
     85.0,    // max_abs_crval_dec_deg（SCI/API/session 单一条件）
     20.0,    // max_fov_deg（SCI §9a-12 alpha 冻结, 禁放宽）
     true,    // require_negative_det_cd（G1/SCI §9a-4 手性冻结）
     true,    // crpix_fits_1based_pixel_center（Paper I §2.1.1）
-    1e-6,    // roundtrip_tol_px（SCI §7 冻结, 禁放宽）
+    1e-8,    // roundtrip_tol_px（FIX-406 Oracle 冻结：实测最坏 2.437e-9 px, 收紧方向）
 };
 
 }  // namespace

@@ -1,19 +1,21 @@
 # 覆盖率基线（首次 deep CI）
 
+> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+
 - status: ACTIVE
-- scope: linux-deep profile（DEEP-COV-CPP / DEEP-COV-PY 检查，见 `ci/checks.json`）
+- scope: linux-deep profile（DEEP-COV-CPP / DEEP-COV-PY 检查，见 `eng/ci/checks.json`）
 
 ## 合同约束
 
 **第一次 deep CI 只测量并记录覆盖基线，不虚构覆盖率阈值**（deep profile 检查
-见 `ci/checks.json`）。本文件即该基线的登记处；覆盖率阈值
+见 `eng/ci/checks.json`）。本文件即该基线的登记处；覆盖率阈值
 （per-module `--cov-fail-under` 或全局 gate）待冻结，冻结前
-`tools/quality/ci_coverage_runner.py` 的 `threshold` 字段保持 `null`。
+`eng/tools/quality/ci_coverage_runner.py` 的 `threshold` 字段保持 `null`。
 
 ## 基线获取方式
 
-- 检查入口：`ci/run.py --profile linux-deep`（DEEP-COV，见 `ci/checks.json`）。
-- 驱动：`tools/quality/ci_coverage_runner.py`（pytest-cov 薄封装，
+- 检查入口：`eng/ci/run.py --profile linux-deep`（DEEP-COV，见 `eng/ci/checks.json`）。
+- 驱动：`eng/tools/quality/ci_coverage_runner.py`（pytest-cov 薄封装，
   `--cov=lib --cov=cli --cov=tools --cov-branch`，分支覆盖）。
 - 产物：`run/ci/coverage/coverage.xml`、`coverage.json`、
   `coverage-summary.json`（含 pytest 退出码透传）。

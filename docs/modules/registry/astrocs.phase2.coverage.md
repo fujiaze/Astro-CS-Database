@@ -11,6 +11,8 @@ downstream: [TEST-P2-COV-001, DATA-COV-001]
 
 # 模块 astrocs.p2.coverage
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 手写合同页：本页重写 registry
 > 占位页（占位页以 module_adapters.cpp descriptor 为唯一源——编排层
 > 词汇不得作为冻结依据，本页手写登记事实修订；registry 页保留先例

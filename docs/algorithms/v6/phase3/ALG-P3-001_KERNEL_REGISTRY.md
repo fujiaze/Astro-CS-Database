@@ -2,6 +2,8 @@
 
 # ALG-P3-001 — Phase3 采样核 registry 规格（bilinear_4quad 注册前置独立 Oracle）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 > 文档 ID：`ALG-P3-001-KERNEL-REGISTRY`
 > 状态：`ALG_PROPOSED`（W4 正式冻结）
 > 冻结条目：`FZ-P3-KERNEL-REGISTRY`；上位：`DESIGN-P3-001` §3:30-37；`SCI-P3-001-REVIEW`；ADJ-S4；`PROJECT_SPEC` §6。

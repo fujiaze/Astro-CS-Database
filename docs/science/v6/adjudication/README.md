@@ -2,6 +2,8 @@
 
 # SCI-ADJ-001 — 科学裁决整合（Wave 2，人读正文索引）
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCI-ADJ-001.md`
 - 文档 ID：`SCI-ADJ-001-ADJUDICATION`
 - 基线：`HEAD = main = bc166e9d4828b45ef32b679156e12d954640534a`（本机 `git rev-parse` 实测）

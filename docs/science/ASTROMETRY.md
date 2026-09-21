@@ -1,5 +1,7 @@
 # Astrometry / WCS Science (SCI-WCS)
 
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§4.4（输出合同）
+
 > ID: SCI-WCS-001 (SCI-AST-001 别名)  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-WCS-001..  模块: plate_solve (IPV)
 
 ## 1 目的与非目标
@@ -84,7 +86,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
   `ipv_wcs.h:43,57-60,70-71` 把该输出注释为"0-based FITS 像素"，属**标签错误**（见 §14a）。
 - **真正 0-based 的量（仅两处，各施加一次「下标→FITS」换算）**：
   (i) `p1_sources` 的整数数组下标 `x`（phase1 `StarDetector`），由第三方 astropy `origin=0` 语义
-  `p = x + 1` 换算（`tools/astrometry/closure_metric.py:223`，无额外桥接）；
+  `p = x + 1` 换算（`eng/tools/astrometry/closure_metric.py:223`，无额外桥接）；
   (ii) p3 产品网格下标 `x0`，由 `lib/algorithms/projection/p3_wcs.cpp` 的 `fits_pixel_1based`
   （`xp = x0 + kFitsPixelOrigin`，`kFitsPixelOrigin = 1.0`）换算。二者是同一「下标→FITS」换算
   在不同域各一次，**与 ipv 求解器内部口径无关**。
@@ -165,7 +167,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 
 ## 11a 天测精度外部闭环指标（G-P1-WCS-CLOSURE v1，冻结口径）
 
-> 唯一可执行实现 = `tools/astrometry/closure_metric.py`（`compute` 出记录 /
+> 唯一可执行实现 = `eng/tools/astrometry/closure_metric.py`（`compute` 出记录 /
 > `check` 判门 / `selftest` 负例注入）；门行登记在
 > `docs/algorithms/GATES_AND_TOLERANCES.md` §3（G-P1-WCS-CLOSURE 口径、
 > G-P1-WCS-CLOSURE-REPRO 可复现门）。**本节的数值参数是唯一事实源，别处不得重述。**
@@ -198,7 +200,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
    当前分档阈值 **UNJUSTIFIED（发布门=N）**：实测值是在 UNIT-001（XISF 母版单位）
    未修复的输入上取得的，修复后必须整体复跑才可标定阈值。
 3. 星表锥内星数、`sample_capped`、`s0`、星表/p1_sources 的 sha256 必须随记录落盘
-   （`tools/astrometry/closure_metric.py` 已强制），否则该记录不可复现、不得引用。
+   （`eng/tools/astrometry/closure_metric.py` 已强制），否则该记录不可复现、不得引用。
 
 ## 12 关联 ALG ID
 
@@ -250,5 +252,5 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
 - §7 四不变量门全过（CRPIX/行列式/SIP 逆一致/极区保守）；
 - §11a 外部闭环指标可复现门（G-P1-WCS-CLOSURE-REPRO）过：`ctest:p1wcs_closure_metric_gate`
   （合成场同输入两跑 median 完全相等 + 7 类负例注入全部判红 + 2 类缺输入 fail-closed 判红）；
-- `tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
+- `eng/tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
 - 解析不变量→SYN-002 转换：已知 WCS 星场（解析 TAN+SIP 场）、往返不变量、RA wrap/极区用例登记 SYN-002；WCS roundtrip 亦入 SYN-007/009。

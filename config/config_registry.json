@@ -92,7 +92,7 @@
     {
       "module": "01_calibration",
       "doc": "docs/plugins/algorithms_phase1/01_calibration.md",
-      "line": 42,
+      "line": 44,
       "field": "bias_path",
       "declared_default": null,
       "unit": null,
@@ -107,7 +107,7 @@
     {
       "module": "01_calibration",
       "doc": "docs/plugins/algorithms_phase1/01_calibration.md",
-      "line": 43,
+      "line": 45,
       "field": "dark_path",
       "declared_default": null,
       "unit": null,
@@ -122,7 +122,7 @@
     {
       "module": "01_calibration",
       "doc": "docs/plugins/algorithms_phase1/01_calibration.md",
-      "line": 44,
+      "line": 46,
       "field": "dark_exposure",
       "declared_default": null,
       "unit": "s",
@@ -137,7 +137,7 @@
     {
       "module": "01_calibration",
       "doc": "docs/plugins/algorithms_phase1/01_calibration.md",
-      "line": 45,
+      "line": 47,
       "field": "flat_path",
       "declared_default": null,
       "unit": null,
@@ -152,7 +152,7 @@
     {
       "module": "01_calibration",
       "doc": "docs/plugins/algorithms_phase1/01_calibration.md",
-      "line": 46,
+      "line": 48,
       "field": "gain",
       "declared_default": null,
       "unit": "e⁻/ADU",
@@ -167,7 +167,7 @@
     {
       "module": "01_calibration",
       "doc": "docs/plugins/algorithms_phase1/01_calibration.md",
-      "line": 47,
+      "line": 49,
       "field": "read_noise",
       "declared_default": null,
       "unit": "e⁻",
@@ -182,7 +182,7 @@
     {
       "module": "01_calibration",
       "doc": "docs/plugins/algorithms_phase1/01_calibration.md",
-      "line": 48,
+      "line": 50,
       "field": "clip_negative",
       "declared_default": "false",
       "unit": null,
@@ -203,7 +203,7 @@
     {
       "module": "02_cosmetic",
       "doc": "docs/plugins/algorithms_phase1/02_cosmetic.md",
-      "line": 31,
+      "line": 33,
       "field": "cosmetic_map_path",
       "declared_default": null,
       "unit": null,
@@ -218,7 +218,7 @@
     {
       "module": "02_cosmetic",
       "doc": "docs/plugins/algorithms_phase1/02_cosmetic.md",
-      "line": 32,
+      "line": 34,
       "field": "saturation_level",
       "declared_default": null,
       "unit": "ADU/e⁻",
@@ -233,7 +233,7 @@
     {
       "module": "02_cosmetic",
       "doc": "docs/plugins/algorithms_phase1/02_cosmetic.md",
-      "line": 33,
+      "line": 35,
       "field": "cr_detection",
       "declared_default": "true",
       "unit": null,
@@ -254,7 +254,7 @@
     {
       "module": "02_cosmetic",
       "doc": "docs/plugins/algorithms_phase1/02_cosmetic.md",
-      "line": 34,
+      "line": 36,
       "field": "cr_sigma",
       "declared_default": "5.0",
       "unit": "σ",
@@ -275,7 +275,7 @@
     {
       "module": "02_cosmetic",
       "doc": "docs/plugins/algorithms_phase1/02_cosmetic.md",
-      "line": 35,
+      "line": 37,
       "field": "interpolation",
       "declared_default": "neighbor",
       "unit": null,
@@ -296,7 +296,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 33,
+      "line": 35,
       "field": "detection_threshold",
       "declared_default": "5.0",
       "unit": "σ（全局 bgnoise）",
@@ -311,7 +311,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 34,
+      "line": 36,
       "field": "min_area",
       "declared_default": "2",
       "unit": "px",
@@ -332,7 +332,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 35,
+      "line": 37,
       "field": "deblend",
       "declared_default": "true",
       "unit": null,
@@ -353,7 +353,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 36,
+      "line": 38,
       "field": "selection_function",
       "declared_default": "true",
       "unit": null,
@@ -375,7 +375,7 @@
     {
       "module": "04_psf",
       "doc": "docs/plugins/algorithms_phase1/04_psf.md",
-      "line": 32,
+      "line": 34,
       "field": "psf_model",
       "declared_default": "moffat4",
       "unit": null,
@@ -390,7 +390,7 @@
     {
       "module": "04_psf",
       "doc": "docs/plugins/algorithms_phase1/04_psf.md",
-      "line": 33,
+      "line": 35,
       "field": "psf_spatial_order",
       "declared_default": "0",
       "unit": null,
@@ -411,7 +411,7 @@
     {
       "module": "04_psf",
       "doc": "docs/plugins/algorithms_phase1/04_psf.md",
-      "line": 34,
+      "line": 36,
       "field": "psf_uniformity_gate",
       "declared_default": null,
       "unit": null,
@@ -426,7 +426,7 @@
     {
       "module": "04_psf",
       "doc": "docs/plugins/algorithms_phase1/04_psf.md",
-      "line": 35,
+      "line": 37,
       "field": "fit_residual_gate",
       "declared_default": null,
       "unit": null,
@@ -441,7 +441,7 @@
     {
       "module": "05_platesolve",
       "doc": "docs/plugins/algorithms_phase1/05_platesolve.md",
-      "line": 33,
+      "line": 35,
       "field": "catalog",
       "declared_default": "gaia",
       "unit": null,
@@ -463,7 +463,7 @@
     {
       "module": "05_platesolve",
       "doc": "docs/plugins/algorithms_phase1/05_platesolve.md",
-      "line": 34,
+      "line": 36,
       "field": "catalog_version",
       "declared_default": null,
       "unit": null,
@@ -478,7 +478,7 @@
     {
       "module": "05_platesolve",
       "doc": "docs/plugins/algorithms_phase1/05_platesolve.md",
-      "line": 35,
+      "line": 37,
       "field": "tweak_order",
       "declared_default": "tan",
       "unit": null,
@@ -500,7 +500,7 @@
     {
       "module": "05_platesolve",
       "doc": "docs/plugins/algorithms_phase1/05_platesolve.md",
-      "line": 36,
+      "line": 38,
       "field": "max_matches",
       "declared_default": "200",
       "unit": null,
@@ -521,7 +521,7 @@
     {
       "module": "05_platesolve",
       "doc": "docs/plugins/algorithms_phase1/05_platesolve.md",
-      "line": 37,
+      "line": 39,
       "field": "residual_gate",
       "declared_default": null,
       "unit": "mas/px",
@@ -536,7 +536,7 @@
     {
       "module": "06_photometry",
       "doc": "docs/plugins/algorithms_phase1/06_photometry.md",
-      "line": 73,
+      "line": 75,
       "field": "mode",
       "declared_default": "psf",
       "unit": null,
@@ -557,7 +557,7 @@
     {
       "module": "06_photometry",
       "doc": "docs/plugins/algorithms_phase1/06_photometry.md",
-      "line": 74,
+      "line": 76,
       "field": "aperture_radius",
       "declared_default": "~~2×FWHM~~（**值待定**）",
       "unit": "px",
@@ -578,7 +578,7 @@
     {
       "module": "06_photometry",
       "doc": "docs/plugins/algorithms_phase1/06_photometry.md",
-      "line": 75,
+      "line": 77,
       "field": "sky_annulus",
       "declared_default": null,
       "unit": "px",
@@ -593,7 +593,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 133,
+      "line": 135,
       "field": "reference_flux",
       "declared_default": "逐帧 `F_ref,k",
       "unit": "见说明",
@@ -608,7 +608,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 134,
+      "line": 136,
       "field": "scalar_gate_rd",
       "declared_default": null,
       "unit": null,
@@ -623,7 +623,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 135,
+      "line": 137,
       "field": "scalar_gate_trend",
       "declared_default": null,
       "unit": null,
@@ -638,7 +638,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 136,
+      "line": 138,
       "field": "psfsw_enable",
       "declared_default": "true",
       "unit": null,
@@ -660,7 +660,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 137,
+      "line": 139,
       "field": "sparse_snr_layer",
       "declared_default": "true",
       "unit": null,
@@ -675,7 +675,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 139,
+      "line": 141,
       "field": "sparse_snr_density",
       "declared_default": null,
       "unit": "点/度²",
@@ -690,7 +690,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 140,
+      "line": 142,
       "field": "snr_path",
       "declared_default": "sparse_reconstruct",
       "unit": null,
@@ -705,7 +705,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 44,
+      "line": 46,
       "field": "order",
       "declared_default": null,
       "unit": null,
@@ -720,7 +720,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 45,
+      "line": 47,
       "field": "pixfrac",
       "declared_default": "1.0",
       "unit": null,
@@ -735,7 +735,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 46,
+      "line": 48,
       "field": "pixel_scale",
       "declared_default": null,
       "unit": "arcsec/px",
@@ -750,7 +750,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 47,
+      "line": 49,
       "field": "nside",
       "declared_default": null,
       "unit": null,
@@ -765,7 +765,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 48,
+      "line": 50,
       "field": "sparse_snr_layer",
       "declared_default": "true",
       "unit": null,
@@ -780,7 +780,7 @@
     {
       "module": "09_coverage",
       "doc": "docs/plugins/algorithms_phase2/09_coverage.md",
-      "line": 30,
+      "line": 32,
       "field": "min_overlap",
       "declared_default": null,
       "unit": "deg²",
@@ -795,7 +795,7 @@
     {
       "module": "09_coverage",
       "doc": "docs/plugins/algorithms_phase2/09_coverage.md",
-      "line": 31,
+      "line": 33,
       "field": "connected_components",
       "declared_default": "true",
       "unit": null,
@@ -816,7 +816,7 @@
     {
       "module": "10_sampling",
       "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
-      "line": 64,
+      "line": 66,
       "field": "spacing",
       "declared_default": null,
       "unit": "px/deg",
@@ -831,7 +831,7 @@
     {
       "module": "10_sampling",
       "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
-      "line": 66,
+      "line": 68,
       "field": "bright_star_mask",
       "declared_default": null,
       "unit": null,
@@ -846,7 +846,7 @@
     {
       "module": "10_sampling",
       "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
-      "line": 67,
+      "line": 69,
       "field": "min_control_points",
       "declared_default": null,
       "unit": null,
@@ -861,7 +861,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 89,
+      "line": 91,
       "field": "gauge",
       "declared_default": "reference_frame",
       "unit": null,
@@ -876,7 +876,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 94,
+      "line": 96,
       "field": "max_iter",
       "declared_default": null,
       "unit": null,
@@ -891,7 +891,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 95,
+      "line": 97,
       "field": "convergence_gate",
       "declared_default": null,
       "unit": null,
@@ -906,7 +906,7 @@
     {
       "module": "12_rejection",
       "doc": "docs/plugins/algorithms_phase2/12_rejection.md",
-      "line": 31,
+      "line": 33,
       "field": "rejection_classes",
       "declared_default": "全类",
       "unit": null,
@@ -928,7 +928,7 @@
     {
       "module": "12_rejection",
       "doc": "docs/plugins/algorithms_phase2/12_rejection.md",
-      "line": 32,
+      "line": 34,
       "field": "sigma_gate",
       "declared_default": null,
       "unit": "σ",
@@ -943,7 +943,7 @@
     {
       "module": "12_rejection",
       "doc": "docs/plugins/algorithms_phase2/12_rejection.md",
-      "line": 33,
+      "line": 35,
       "field": "max_iter",
       "declared_default": null,
       "unit": null,
@@ -958,7 +958,7 @@
     {
       "module": "12_rejection",
       "doc": "docs/plugins/algorithms_phase2/12_rejection.md",
-      "line": 34,
+      "line": 36,
       "field": "keep_moving_sources",
       "declared_default": "true",
       "unit": null,
@@ -979,29 +979,7 @@
     {
       "module": "13_integration",
       "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 67,
-      "field": "weight_mode",
-      "declared_default": "point_information",
-      "unit": null,
-      "owner_class": "science_param",
-      "registration": "none",
-      "registered_at": null,
-      "registered_key": null,
-      "finding": "gap",
-      "note": "§9.73 裁决 A44（2026-09-20）：不存在「权重模式」概念 ⇒ 本行字段已作废，config 面（phase_config_mosaic 合同属性 / defaults.json#weight.default_mode 组）与 schema 登记点同批注销；文档行本身待 DOC-203 删除（docs/** 不属本任务文件域）。删除后本缺口登记同步注销。",
-      "conflict": {
-        "kind": "abolished_key_a44",
-        "evidence": [
-          "工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44（逐字：不存在权重模式，全程都是 SNR）",
-          "docs/plugins/algorithms_phase2/13_integration.md:67"
-        ],
-        "owner": "负责人裁决"
-      }
-    },
-    {
-      "module": "13_integration",
-      "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 68,
+      "line": 69,
       "field": "target_product",
       "declared_default": "全",
       "unit": null,
@@ -1022,7 +1000,7 @@
     {
       "module": "13_integration",
       "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 69,
+      "line": 70,
       "field": "correlation_approx",
       "declared_default": null,
       "unit": null,
@@ -1037,13 +1015,13 @@
     {
       "module": "13_integration",
       "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 70,
+      "line": 71,
       "field": "baseline_compare",
       "declared_default": "true",
       "unit": null,
       "owner_class": "runtime_policy",
       "registration": "plugin_doc",
-      "registered_at": "docs/plugins/algorithms_phase2/13_integration.md:70",
+      "registered_at": "docs/plugins/algorithms_phase2/13_integration.md:69",
       "registered_key": null,
       "finding": "none",
       "note": "基线比较输出开关（QA 面，不改科学结果）；权威 = 插件文档默认 true；禁入 phase_config。",
@@ -1052,7 +1030,7 @@
     {
       "module": "14_projection",
       "doc": "docs/plugins/algorithms_phase3/14_projection.md",
-      "line": 34,
+      "line": 36,
       "field": "projection",
       "declared_default": "tan",
       "unit": null,
@@ -1067,7 +1045,7 @@
     {
       "module": "14_projection",
       "doc": "docs/plugins/algorithms_phase3/14_projection.md",
-      "line": 35,
+      "line": 37,
       "field": "crpix",
       "declared_default": "中心",
       "unit": "px",
@@ -1082,7 +1060,7 @@
     {
       "module": "14_projection",
       "doc": "docs/plugins/algorithms_phase3/14_projection.md",
-      "line": 36,
+      "line": 38,
       "field": "crval",
       "declared_default": null,
       "unit": "deg",
@@ -1097,7 +1075,7 @@
     {
       "module": "14_projection",
       "doc": "docs/plugins/algorithms_phase3/14_projection.md",
-      "line": 37,
+      "line": 39,
       "field": "cd_matrix / cdelt",
       "declared_default": null,
       "unit": "deg/px",
@@ -1112,7 +1090,7 @@
     {
       "module": "14_projection",
       "doc": "docs/plugins/algorithms_phase3/14_projection.md",
-      "line": 38,
+      "line": 40,
       "field": "rotation",
       "declared_default": "0",
       "unit": "deg",
@@ -1127,7 +1105,7 @@
     {
       "module": "15_resample",
       "doc": "docs/plugins/algorithms_phase3/15_resample.md",
-      "line": 35,
+      "line": 37,
       "field": "sampler",
       "declared_default": "bilinear",
       "unit": null,
@@ -1148,7 +1126,7 @@
     {
       "module": "15_resample",
       "doc": "docs/plugins/algorithms_phase3/15_resample.md",
-      "line": 36,
+      "line": 38,
       "field": "correlation_output",
       "declared_default": "true",
       "unit": null,
@@ -1169,7 +1147,7 @@
     {
       "module": "15_resample",
       "doc": "docs/plugins/algorithms_phase3/15_resample.md",
-      "line": 37,
+      "line": 39,
       "field": "order_limits",
       "declared_default": null,
       "unit": null,
@@ -1184,7 +1162,7 @@
     {
       "module": "16_fits_output",
       "doc": "docs/plugins/algorithms_phase3/16_fits_output.md",
-      "line": 39,
+      "line": 41,
       "field": "band_height",
       "declared_default": null,
       "unit": "px",
@@ -1199,7 +1177,7 @@
     {
       "module": "16_fits_output",
       "doc": "docs/plugins/algorithms_phase3/16_fits_output.md",
-      "line": 40,
+      "line": 42,
       "field": "tile_cache_mb",
       "declared_default": null,
       "unit": "MB",
@@ -1214,7 +1192,7 @@
     {
       "module": "16_fits_output",
       "doc": "docs/plugins/algorithms_phase3/16_fits_output.md",
-      "line": 41,
+      "line": 43,
       "field": "compression",
       "declared_default": "none",
       "unit": null,
@@ -1229,7 +1207,7 @@
     {
       "module": "16_fits_output",
       "doc": "docs/plugins/algorithms_phase3/16_fits_output.md",
-      "line": 42,
+      "line": 44,
       "field": "mode",
       "declared_default": "surface_brightness",
       "unit": null,
@@ -1244,7 +1222,7 @@
     {
       "module": "17_aio",
       "doc": "docs/plugins/infrastructure/17_aio.md",
-      "line": 31,
+      "line": 33,
       "field": "cache_mb",
       "declared_default": null,
       "unit": "MB",
@@ -1259,7 +1237,7 @@
     {
       "module": "17_aio",
       "doc": "docs/plugins/infrastructure/17_aio.md",
-      "line": 32,
+      "line": 34,
       "field": "fsync",
       "declared_default": "true",
       "unit": null,
@@ -1274,7 +1252,7 @@
     {
       "module": "17_aio",
       "doc": "docs/plugins/infrastructure/17_aio.md",
-      "line": 33,
+      "line": 35,
       "field": "checksum",
       "declared_default": "true",
       "unit": null,
@@ -1289,7 +1267,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 34,
+      "line": 36,
       "field": "json",
       "declared_default": null,
       "unit": null,
@@ -1304,7 +1282,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 35,
+      "line": 37,
       "field": "template",
       "declared_default": null,
       "unit": null,
@@ -1319,7 +1297,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 36,
+      "line": 38,
       "field": "output",
       "declared_default": "stdout",
       "unit": null,
@@ -1334,7 +1312,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 37,
+      "line": 39,
       "field": "help",
       "declared_default": null,
       "unit": null,
@@ -1349,7 +1327,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 38,
+      "line": 40,
       "field": "-y",
       "declared_default": null,
       "unit": null,
@@ -1364,7 +1342,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 39,
+      "line": 41,
       "field": "-force",
       "declared_default": null,
       "unit": null,
@@ -1379,7 +1357,7 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 65,
+      "line": 67,
       "field": "workers",
       "declared_default": "由 profile",
       "unit": null,
@@ -1394,7 +1372,7 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 66,
+      "line": 68,
       "field": "block",
       "declared_default": "由 profile",
       "unit": null,
@@ -1409,7 +1387,7 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 67,
+      "line": 69,
       "field": "checkpoint",
       "declared_default": "true",
       "unit": null,
@@ -1424,7 +1402,7 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 68,
+      "line": 70,
       "field": "memory_limit",
       "declared_default": null,
       "unit": "MB",
@@ -1439,7 +1417,7 @@
     {
       "module": "20_benchmark",
       "doc": "docs/plugins/infrastructure/20_benchmark.md",
-      "line": 31,
+      "line": 33,
       "field": "output",
       "declared_default": "安装目录（固定）",
       "unit": null,
@@ -1454,7 +1432,7 @@
     {
       "module": "20_benchmark",
       "doc": "docs/plugins/infrastructure/20_benchmark.md",
-      "line": 32,
+      "line": 34,
       "field": "kernels",
       "declared_default": "全部",
       "unit": null,
@@ -1469,7 +1447,7 @@
     {
       "module": "20_benchmark",
       "doc": "docs/plugins/infrastructure/20_benchmark.md",
-      "line": 33,
+      "line": 35,
       "field": "repeats",
       "declared_default": null,
       "unit": null,
@@ -1484,7 +1462,7 @@
     {
       "module": "21_observability",
       "doc": "docs/plugins/infrastructure/21_observability.md",
-      "line": 30,
+      "line": 32,
       "field": "log_level",
       "declared_default": "info",
       "unit": null,
@@ -1499,7 +1477,7 @@
     {
       "module": "21_observability",
       "doc": "docs/plugins/infrastructure/21_observability.md",
-      "line": 31,
+      "line": 33,
       "field": "event_dir",
       "declared_default": "run/<run_id>/",
       "unit": null,
@@ -1514,7 +1492,7 @@
     {
       "module": "21_observability",
       "doc": "docs/plugins/infrastructure/21_observability.md",
-      "line": 32,
+      "line": 34,
       "field": "sampling",
       "declared_default": null,
       "unit": null,
@@ -1529,7 +1507,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 54,
+      "line": 56,
       "field": "catalog",
       "declared_default": "gaia",
       "unit": null,
@@ -1551,7 +1529,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 55,
+      "line": 57,
       "field": "catalog_version",
       "declared_default": null,
       "unit": null,
@@ -1566,7 +1544,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 56,
+      "line": 58,
       "field": "cache_dir",
       "declared_default": null,
       "unit": null,
@@ -1581,7 +1559,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 60,
+      "line": 62,
       "field": "query_limit",
       "declared_default": null,
       "unit": null,
@@ -1596,7 +1574,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 61,
+      "line": 63,
       "field": "timeout",
       "declared_default": null,
       "unit": "s",
@@ -1611,7 +1589,7 @@
     {
       "module": "23_hips_browser",
       "doc": "docs/plugins/infrastructure/23_hips_browser.md",
-      "line": 30,
+      "line": 32,
       "field": "lod_max_order",
       "declared_default": null,
       "unit": null,
@@ -1626,7 +1604,7 @@
     {
       "module": "23_hips_browser",
       "doc": "docs/plugins/infrastructure/23_hips_browser.md",
-      "line": 31,
+      "line": 33,
       "field": "color_map",
       "declared_default": "inferno",
       "unit": null,
@@ -1641,7 +1619,7 @@
     {
       "module": "23_hips_browser",
       "doc": "docs/plugins/infrastructure/23_hips_browser.md",
-      "line": 32,
+      "line": 34,
       "field": "stretch",
       "declared_default": "sqrt",
       "unit": null,
@@ -1656,7 +1634,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 138,
+      "line": 140,
       "field": "sparse_snr_spacing_px",
       "declared_default": "64",
       "unit": "px",
@@ -1671,7 +1649,7 @@
     {
       "module": "10_sampling",
       "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
-      "line": 65,
+      "line": 67,
       "field": "sky_sample_spacing",
       "declared_default": null,
       "unit": "px/deg",
@@ -1686,7 +1664,7 @@
     {
       "module": "10_sampling",
       "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
-      "line": 68,
+      "line": 70,
       "field": "min_sky_samples",
       "declared_default": null,
       "unit": null,
@@ -1701,7 +1679,7 @@
     {
       "module": "10_sampling",
       "doc": "docs/plugins/algorithms_phase2/10_sampling.md",
-      "line": 69,
+      "line": 71,
       "field": "local_estimator",
       "declared_default": "robust_median",
       "unit": null,
@@ -1716,7 +1694,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 90,
+      "line": 92,
       "field": "bkg_model",
       "declared_default": "spline",
       "unit": null,
@@ -1731,7 +1709,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 91,
+      "line": 93,
       "field": "bkg_spline_spacing",
       "declared_default": null,
       "unit": "deg",
@@ -1746,7 +1724,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 92,
+      "line": 94,
       "field": "frame_gradient_order",
       "declared_default": "1",
       "unit": null,
@@ -1761,7 +1739,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 93,
+      "line": 95,
       "field": "roughness_penalty",
       "declared_default": null,
       "unit": null,
@@ -1776,7 +1754,7 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 69,
+      "line": 71,
       "field": "cache_budget_mb",
       "declared_default": null,
       "unit": "MB",
@@ -1791,7 +1769,7 @@
     {
       "module": "19_runtime",
       "doc": "docs/plugins/infrastructure/19_runtime.md",
-      "line": 70,
+      "line": 72,
       "field": "schedule_policy",
       "declared_default": "locality_first",
       "unit": null,
@@ -1806,7 +1784,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 57,
+      "line": 59,
       "field": "mem_cache_budget_mb",
       "declared_default": null,
       "unit": "MB",
@@ -1821,7 +1799,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 59,
+      "line": 61,
       "field": "prefetch_neighbors",
       "declared_default": "true",
       "unit": null,
@@ -1836,7 +1814,7 @@
     {
       "module": "22_gaia_xpsd_client",
       "doc": "docs/plugins/infrastructure/22_gaia_xpsd_client.md",
-      "line": 58,
+      "line": 60,
       "field": "tile_scheme",
       "declared_default": "healpix",
       "unit": null,
@@ -1851,7 +1829,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 96,
+      "line": 98,
       "field": "additive_mode",
       "declared_default": "delta",
       "unit": null,
@@ -1866,7 +1844,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 97,
+      "line": 99,
       "field": "sky_plane.enabled",
       "declared_default": "随 `additive_mode ∈ {delta, both}",
       "unit": null,
@@ -1881,7 +1859,7 @@
     {
       "module": "11_upm",
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
-      "line": 98,
+      "line": 100,
       "field": "smoothing_lambda",
       "declared_default": "0.1`（生产常量 `P2_SMOOTHING_LAMBDA_AUTO`）",
       "unit": null,
@@ -1895,21 +1873,21 @@
     }
   ],
   "totals": {
-    "rows": 111,
+    "rows": 110,
     "by_finding": {
       "none": 58,
-      "gap": 22,
+      "gap": 21,
       "unregistered": 31
     },
     "by_owner_class": {
-      "science_param": 77,
+      "science_param": 76,
       "runtime_policy": 25,
       "cli_surface": 6,
       "resource_binding": 3
     },
     "by_registration": {
       "inputs_block": 8,
-      "none": 53,
+      "none": 52,
       "defaults_json": 6,
       "phase_config": 9,
       "plugin_doc": 24,
@@ -1917,7 +1895,7 @@
       "cli": 6,
       "cpu_profile": 2
     },
-    "plugin_knobs": 111
+    "plugin_knobs": 110
   },
   "filter_name_policy": {
     "source_of_truth": "config/filters.json#lookup",
@@ -2022,7 +2000,7 @@
         "index": "docs/DOCUMENT_INDEX.yaml",
         "owns": "docs/** 与根治理文档",
         "required_entry": "docs/contracts/CONFIG_CONTRACT.md = ACTIVE_NORMATIVE（恰一次）",
-        "owner": "DOC 线（tools/doccheck/check_doc_index.py 为门）"
+        "owner": "DOC 线（eng/tools/doccheck/check_doc_index.py 为门）"
       },
       {
         "index": "tests/test_index.csv",
@@ -2031,11 +2009,11 @@
         "owner": "QA/测试线"
       },
       {
-        "index": "ci/checks.json + docs/ci/01_CHECKS.md §2",
+        "index": "eng/ci/checks.json + docs/ci/01_CHECKS.md §2",
         "owns": "CI 检查注册表（双向一致）",
         "required_entry": "UT-CONFIG（tests/config 的 unittest discover）",
         "owner": "CI 线",
-        "status": "跨域未落：ci/** 与 docs/ci/** 不在本卡文件域（S6-A），已登记为交接项，见 CONFIG_CONTRACT §8"
+        "status": "跨域未落：eng/ci/** 与 docs/ci/** 不在本卡文件域（S6-A），已登记为交接项，见 CONFIG_CONTRACT §8"
       }
     ],
     "test_index_known_unregistered": [
@@ -2052,7 +2030,7 @@
   },
   "cpu_profile_kernel_link": {
     "status": "LINKED",
-    "detail": "contracts/schemas/cpu_profile.schema.json：$defs.kernel_v1 由 $defs.legacy_v1.properties.kernels.items $ref（v1 kernels[] 项约束），$defs.kernel_v2 由 $defs.profile_v2.properties.kernels.additionalProperties $ref（v2 kernels{} 行约束），refs=1/1。接线前约束已由顶层 properties.kernels.items/.additionalProperties 的等价镜像施加（镜像为既有读取面 tests/backend/test_cpu_profile.py:78、tools/validate_cpu_profile.py:68 保留），故本次接线不收紧既有 profile；镜像与 $defs 逐字一致 + 「剥离镜像后仍由分支 $ref 判红」由 tests/config/test_cfg001_negative.py::TestNegativeFixturesMustFail::test_cpu_profile_kernel_defs_are_wired_and_enforced 钉死（漂移/退化即红）。",
+    "detail": "contracts/schemas/cpu_profile.schema.json：$defs.kernel_v1 由 $defs.legacy_v1.properties.kernels.items $ref（v1 kernels[] 项约束），$defs.kernel_v2 由 $defs.profile_v2.properties.kernels.additionalProperties $ref（v2 kernels{} 行约束），refs=1/1。接线前约束已由顶层 properties.kernels.items/.additionalProperties 的等价镜像施加（镜像为既有读取面 tests/backend/test_cpu_profile.py:78、eng/tools/validate_cpu_profile.py:68 保留），故本次接线不收紧既有 profile；镜像与 $defs 逐字一致 + 「剥离镜像后仍由分支 $ref 判红」由 tests/config/test_cfg001_negative.py::TestNegativeFixturesMustFail::test_cpu_profile_kernel_defs_are_wired_and_enforced 钉死（漂移/退化即红）。",
     "refs": {
       "kernel_v1": 1,
       "kernel_v2": 1
@@ -2063,35 +2041,35 @@
     "structural_rule": "CONFIG_CONTRACT.md 内所有 文件:行 与 文件:a-b 引用必须：文件存在、行在范围内、起始行非空、范围升序（W5-CFG-002 实测修正了 7 处因文档重排失效的行号）。",
     "token_anchors": [
       {
-        "ref": "docs/science/STAR_DETECTION.md:19",
+        "ref": "docs/science/STAR_DETECTION.md:21",
         "token": "5.0"
       },
       {
-        "ref": "docs/science/REJECTION.md:66",
+        "ref": "docs/science/REJECTION.md:68",
         "token": "4.0/3.0/8"
       },
       {
-        "ref": "docs/science/REJECTION.md:20",
+        "ref": "docs/science/REJECTION.md:22",
         "token": "method"
       },
       {
-        "ref": "docs/science/PHASE2_UPM.md:22",
+        "ref": "docs/science/PHASE2_UPM.md:24",
         "token": "1.4"
       },
       {
-        "ref": "docs/science/PHASE3_HIPS_TO_FITS.md:39",
+        "ref": "docs/science/PHASE3_HIPS_TO_FITS.md:41",
         "token": "512"
       },
       {
-        "ref": "docs/science/PHASE3_HIPS_TO_FITS.md:70",
+        "ref": "docs/science/PHASE3_HIPS_TO_FITS.md:72",
         "token": "20000"
       },
       {
-        "ref": "docs/science/DRIZZLE.md:23",
+        "ref": "docs/science/DRIZZLE.md:25",
         "token": "pixfrac"
       },
       {
-        "ref": "docs/science/PSF_SIGNAL_WEIGHT.md:12",
+        "ref": "docs/science/PSF_SIGNAL_WEIGHT.md:14",
         "token": "psf_information_weight"
       }
     ],

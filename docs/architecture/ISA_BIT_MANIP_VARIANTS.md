@@ -1,5 +1,7 @@
 # 整数/位操作 ISA 变体评估 (ISA-005) — NOT_APPLICABLE
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > ID: ARCH-ISA-005  状态: 结论 NOT_APPLICABLE  上游: ISA-004/05 §1-3  下游: WIN-003/manifest
 > 依据(03 §91): "只评估整数/位操作热点；VNNI 等与算法无关则写 NOT_APPLICABLE 证据，不写空 DLL；capability 与热点对应；无机械指令集堆砌"。
 

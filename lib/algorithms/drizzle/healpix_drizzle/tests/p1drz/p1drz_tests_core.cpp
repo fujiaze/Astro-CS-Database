@@ -418,16 +418,21 @@ int group_oracle() {
                 {(double)(W / 2 + 1), (double)(H / 2)},
                 {(double)(W / 2), (double)(H / 2 + 1)}};
             const NonFiniteOracle no = oracle_nonfinite_pollution(
-                leafs, fx.im.wcs, cfg, injected);
-            P1DRZ_CHECK_MSG(g_cs, no.ok, "nonfinite",
-                            "oracle: E 污染 leaf 集合 oracle 一致 (expect=%zu got=%zu total=%zu)",
-                            no.expect_polluted.size(), no.got_polluted.size(),
-                            leafs.size());
-            // 无注入贡献的 leaf 必须保持有限 (污染有界, 不扩全场)
-            P1DRZ_CHECK_MSG(g_cs, no.got_polluted.size() < leafs.size(),
+                leafs, fx.im.wcs, cfg, injected, st);
+            // ① 样本级掩膜: 注入的 {NaN,+Inf,-Inf} 不得污染任何 leaf
+            P1DRZ_CHECK_MSG(g_cs, no.none_polluted, "nonfinite",
+                            "oracle: E 非有限样本被掩膜 (polluted=%zu total=%zu)",
+                            no.got_polluted.size(), no.n_leafs);
+            // ② 强制计数: 被剔除样本数恰等于注入样本数 (漏计/双计判红)
+            P1DRZ_CHECK_MSG(g_cs, no.rejection_counted, "nonfinite",
+                            "oracle: E 强制计数一致 (got=%lld want=%lld)",
+                            (long long)no.got_rejected,
+                            (long long)no.expect_rejected);
+            // ③ 注入像素的 leaf 仍被其它合格样本覆盖 (掩膜≠整像素丢弃)
+            P1DRZ_CHECK_MSG(g_cs, no.n_leafs > 0 && no.expect_polluted.size() > 0,
                             "nonfinite",
-                            "oracle: E 传播有界 (polluted=%zu < total=%zu)",
-                            no.got_polluted.size(), leafs.size());
+                            "oracle: E 注入面仍被覆盖 (touched=%zu hit=%zu)",
+                            no.n_leafs, no.expect_polluted.size());
         }
     }
 
@@ -514,8 +519,9 @@ int group_negative() {
                         "negative: 缺 WCS compute_auto_nside=0 (§8)");
     }
 
-    // -- NaN 面输入: 引擎层不崩溃、返回成功、无伪输出 leaf (值传播,
-    //    下游 INVALID_INPUT 合同; §8 行 5 的矩阵级回归) --
+    // -- NaN 面输入（全非有限）: 引擎层不崩溃、返回成功、零合格样本 ⇒
+    //    无输出 leaf（覆盖级 NaN 面）+ **强制计数**（DATA-002 §2a /
+    //    rule_id NAN-SAMPLE-MASK-COVERAGE-NAN；FIX-405 G3-5 反转后口径）--
     {
         FitsImage img = fix_drz_f_buffer(W, H, std::numeric_limits<float>::quiet_NaN());
         DrizzleConfig cfg = make_cfg(NSIDE, 1.0, 1, true);
@@ -525,16 +531,28 @@ int group_negative() {
         const bool ok = eng.drizzleTiled_f64(img, cfg, nullptr, nullptr, nullptr,
                                              tiles, st, err);
         P1DRZ_CHECK_MSG(g_cs, ok, "negative_matrix",
-                        "negative: NaN 面引擎层成功 (传播合同, §8 行 5)");
-        std::size_t finite_leafs = 0;
+                        "negative: NaN 面引擎层成功 (掩膜合同, DATA-002 §2a)");
+        std::size_t finite_leafs = 0, touched_leafs = 0;
         for (const auto& tile : tiles)
             for (uint32_t local : tile.touched) {
+                ++touched_leafs;
                 if (local < tile.pixels.size() &&
                     std::isfinite((double)tile.pixels[local].sumFlux))
                     ++finite_leafs;
             }
         P1DRZ_CHECK_MSG(g_cs, finite_leafs == 0, "negative_matrix",
                         "negative: NaN 面无有限伪输出 (finite=%zu)", finite_leafs);
+        P1DRZ_CHECK_MSG(g_cs, touched_leafs == 0, "negative_matrix",
+                        "negative: 全非有限面零合格样本 ⇒ 无输出 leaf (touched=%zu)",
+                        touched_leafs);
+        P1DRZ_CHECK_MSG(g_cs, st.n_rejected_nonfinite_value == (int64_t)W * H,
+                        "negative_matrix",
+                        "negative: 全非有限面强制计数 = 源样本数 (got=%lld want=%lld)",
+                        (long long)st.n_rejected_nonfinite_value,
+                        (long long)((int64_t)W * H));
+        P1DRZ_CHECK_MSG(g_cs, st.nSourcePixels == 0, "negative_matrix",
+                        "negative: 被掩膜样本不进管线 (nSourcePixels=%lld)",
+                        (long long)st.nSourcePixels);
     }
 
     // -- 空图 (零尺寸) 拒绝 --

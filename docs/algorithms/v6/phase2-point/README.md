@@ -2,6 +2,8 @@
 
 # ALG-P2-POINT-001 — Phase2 点源算法规格（人读正文索引）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P2-POINT-001.md`（wave 3，depends_on SCI-ADJ-001）
 - 写域：`docs/algorithms/v6/phase2-point/`（tracked）+ `run/v6/alg-p2-point/`（gitignore 工作区：机器规格/独立 Oracle/证据/命令日志）
 - 基线：`HEAD = main = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`

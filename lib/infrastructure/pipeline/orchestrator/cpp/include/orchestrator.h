@@ -1,3 +1,32 @@
+// ── RETIRED-CODE-RETAINED (ENGINEERING_SPEC §2 保留则注释) ─────────────
+// WHAT:       legacy Phase1 编排器（stage1.json 驱动的 orchestrator.exe：DllLoader 动态加载
+//             模块 DLL + run_stage_* 阶段表 + admission_controller/resource_monitor +
+//             request_cancel/SIGINT 取消令牌 + checkpoint.cpp），目录 50 文件 / 18411 行。
+// WHY-KEPT:   ① ORCH-HOME-01（物理位 = lib/infrastructure/pipeline/orchestrator；职责家 =
+//             lib/infrastructure/scheduler/**）已按 ORCH-001 登记交前台裁决，退场与否属该裁决范围；
+//             ② eng/ci/checks.json 的 CHK-CONTRACT-TEST 以 ctest_targets 登记本目录 6 个 ctest
+//             （orchestrator_logger_units / orchestrator_checkpoint_units / orchestrator_cli_integration /
+//             orchestrator_legacy_cli_smoke / orchestrator_legacy_cli_validate /
+//             orchestrator_saturation_wiring_gate），而 eng/tools/quality/check_ctest_registration.py
+//             的 C4 对「ctest_targets 模式匹配不到现存目标」fail-closed；eng/ci/checks.json 属
+//             DOC-403 文件域，本任务（CLEAN-401）无权同步，故本轮不能删。
+// STATUS:     未接入生产。产品可执行 astrocs 的 target_link_libraries（根 CMakeLists.txt:834-842）
+//             不含 astrocs_infra_orchestrator；orchestrator_legacy_cli 为非发布目标
+//             （docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:93-95 记 production=no）。
+//             本目录职责已由 lib/infrastructure/scheduler/** 生产实现承接：注册=module 注册表、
+//             资源预算=executor/plan_estimator、执行=Runtime/Executor、取消=取消令牌、
+//             checkpoint=src/checkpoint.cpp。
+// EXIT:       三条同时满足即可整目录删除（ENGINEERING_SPEC §2 第 1 种处置）：
+//             ① 前台就 ORCH-HOME-01 裁决为「退役」（不再搬迁）；
+//             ② DOC-403 从 eng/ci/checks.json 移除上述 6 个 ctest_targets 及 CHK-CONTRACT-TEST
+//                的对应 step；
+//             ③ 同步移除 CMakeLists.txt:347-359 与 :952-954 两处 add_subdirectory，
+//                并更新 docs/modules/orchestrator.md、eng/ci/id_migration_map.json 登记项。
+// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §8.1/§8.2
+//             （生产链路由 scheduler 注册与编排、pipeline 提供 typed DAG 与命名块）；
+//             lib/infrastructure/pipeline/PENDING.md:10（orchestrator/ 属 §7.1 退役计划内）；
+//             docs/modules/orchestrator.md §归属与构建（ORCH-001 落位 / ORCH-HOME-01）。
+// ──────────────────────────────────────────────────────────────────────
 // ============================================================================
 // orchestrator.h - 编排器核心类
 // 功能: 管理管线阶段 (CALIBRATE -> PLATESOLVE -> PSF -> PHOTOMETRIC -> DRIZZLE)
@@ -8,7 +37,7 @@
 // 本类统一调度各 C++ DLL 模块：run_stage_* 经 DllLoader 动态加载模块
 // 并执行真实流水线（生产入口见 cli_command.cpp / orchestrator.cpp）。
 // [B4-24 C++17/C ABI/错误码 契约锚点 — 不改语义仅文档化]:
-// C++17 (CODE_STANDARD §MUST: MSYS2 MinGW64 g++16.1 -std=c++17, 见 Makefile CXXFLAGS): 本头仅用 C++17 std::filesystem(经 orchestrator.cpp)+RAII(unique_ptr)/atomic/mutex/chrono，未用 optional/variant/string_view/if constexpr 等 — 合规；C ABI 边界清: 类不跨 DLL, 全部模块调用经 DllLoader::get_function 纯 C ABI(extern "C", POD/指针/整型, 禁止异常跨界, 单出口), 见 dll_loader.h/C_ABI_STANDARD；错误码与 docs/architecture/ERROR_MODEL.md 全集合一致(AstroCsExitCode 0-10进程码+20-28 numeric_code+100预留, TIMEOUT=9/CANCELLED=10), 由 tools/docs_machine_consistency.py error_taxonomy 全集合校验。
+// C++17 (CODE_STANDARD §MUST: MSYS2 MinGW64 g++16.1 -std=c++17, 见 Makefile CXXFLAGS): 本头仅用 C++17 std::filesystem(经 orchestrator.cpp)+RAII(unique_ptr)/atomic/mutex/chrono，未用 optional/variant/string_view/if constexpr 等 — 合规；C ABI 边界清: 类不跨 DLL, 全部模块调用经 DllLoader::get_function 纯 C ABI(extern "C", POD/指针/整型, 禁止异常跨界, 单出口), 见 dll_loader.h/C_ABI_STANDARD；错误码与 docs/architecture/ERROR_MODEL.md 全集合一致(AstroCsExitCode 0-10进程码+20-28 numeric_code+100预留, TIMEOUT=9/CANCELLED=10), 由 eng/tools/docs_machine_consistency.py error_taxonomy 全集合校验。
 // ============================================================================
 
 #pragma once

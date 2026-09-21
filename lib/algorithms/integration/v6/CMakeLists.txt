@@ -15,7 +15,7 @@ if(NOT TARGET astrocs_v6_phase2_integrate)
 
   # 生产 phase2 需要 legacy AIO (aio_hips_reader / aio_upm) -> vendored cfitsio。
   if(NOT DEFINED ASTROCS_CFITSIO_SOURCES)
-    include("${V6P2_REPO}/cmake/cfitsio_sources.cmake")
+    include("${V6P2_REPO}/eng/cmake/cfitsio_sources.cmake")
   endif()
   set(_V6P2_CFITSIO_ABS "")
   foreach(_s ${ASTROCS_CFITSIO_SOURCES})

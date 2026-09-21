@@ -1,5 +1,7 @@
 # Noise Estimation Algorithms (ALG-NOISE)
 
+> 上游：ASTROCS_DESIGN.md §2.2（创新点二）、§4.2（Phase1 节点流程）
+
 > ID 覆盖: ALG-NOISE-001 ALG-NOISE-002 ALG-NOISE-003  上游 SCI: SCI-NOISE-001..015
 > (docs/science/NOISE_MODEL.md，FROZEN，共享引用不改动)
 > 状态: DERIVED + CONTRACT_READY §13 增补

@@ -1,5 +1,7 @@
 # Calibration Algorithms (ALG-CAL)
 
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+
 > ID: ALG-CAL-001  范围: ALG-CAL-001..006  上游 SCI: SCI-CAL-001  状态: CONTRACT_READY  模块: lib/algorithms/calibration（astrocs.p1.calibration / 目标 DLL astrocs_p1_calibration.dll）
 >
 > 连续数学定义以 `docs/science/CALIBRATION.md`（SCI-CAL-001，FROZEN）为唯一权威；
@@ -55,7 +57,7 @@ floor 0.1，即约定入参 master_flat 已是 median≈1.0 的归一化平场�
 | master_flat（任一形态） | 无 | 归一化是**独立维度**：`median(flat)` 须落在 `master_flat_median_range`（默认 [0.5,2.0]，`config/defaults.json`），否则须显式声明 `master_flat_normalize="median"`（= §2 `flat_norm`，幂等） | 未声明且不落区间 ⇒ DATA 拒绝（rc=2） |
 | master_dark | `dark_optimization`（bool）声明是否含 bias | — | 提供 dark 而未声明 ⇒ DATA 拒绝（rc=2） |
 
-**四条机器规则（`tools/quality/check_master_unit_guard.py --self-test` 可执行正负例）**：
+**四条机器规则（`eng/tools/quality/check_master_unit_guard.py --self-test` 可执行正负例）**：
 U1 亮场域 ≫ 1 ADU 而 bias/dark 中位数 ≤ 1.0 且未声明 normalized+scale ⇒ 拒；
 U2 `median(flat)` 出区间且未声明 median 归一 ⇒ 拒；
 U3 提供 dark 而未显式声明 bias 约定 ⇒ 拒；
@@ -175,7 +177,7 @@ F3.4  契约边界:
 
 > 上表 rc 口径 = CLI 退出码（DATA 拒绝 → 2；`-force` 只越过「缺标定帧」类预检
 > error，不越过 DATA 校验）。单位一致性（母版与 light 同标度）由**消费
-> 边界门**（`p1_op_calibrate` 前置校验 + `tools/quality/check_master_unit_guard.py`，
+> 边界门**（`p1_op_calibrate` 前置校验 + `eng/tools/quality/check_master_unit_guard.py`，
 > 见 §2 标度声明表与 DISP-CAL-013）fail-closed 校验；**本层（calibrator）保持单位盲**，
 > 只做 SCI-CAL-001 §5 的逐像素算术。
 
@@ -513,12 +515,12 @@ oracle 同容差；actual_k 精确相等。
   **现行规定**：①§2「标度声明」表与 U1–U4 四条机器规则；②消费边界（`p1_op_calibrate`）
   新增声明解析 + 观测统计校验 + 声明换算 + 节点 manifest 溯源（`master_unit_guard`），
   违反即 DATA 拒绝（rc=2）并点名文件 + 观测值 + 缺失声明项；
-  ③`tools/quality/check_master_unit_guard.py`：**四条负例（U1–U4）+ 两条正例**（显式声明组合 /
+  ③`eng/tools/quality/check_master_unit_guard.py`：**四条负例（U1–U4）+ 两条正例**（显式声明组合 /
   本就合规组合），合成与真实 T2 双模式，门内逐像素 NumPy oracle，`--self-test` 为期望 token 变异注入；
   ④`config/defaults.json` 登记 `calibration.master_flat_median_range`（[0.5,2.0]）；
   ⑤与 U3 冲突的既有节点级夹具（`tests/unit/p1001_real_nodes_test.cpp` 9 处 doc）补显式
   `dark_optimization=false`（该夹具 `vd=5 < vb=10` = 已减 bias 的暗电流，声明后数值不变）。
-  **残留（登记待裁定）**：⑥**未新增 ctest 目标**（新目标必须在 `ci/checks.json` 的
+  **残留（登记待裁定）**：⑥**未新增 ctest 目标**（新目标必须在 `eng/ci/checks.json` 的
   `ctest_targets` 登记）⇒ U1–U4 的机器覆盖由上述门脚本承担；
   ⑦**节点 manifest 未落盘**：`master_unit_guard` 写入节点 manifest 与 `stages.calibrate`，
   但当前 CLI 面只持久化 run manifest（`summary`/`provenance.units=["ADU"]`）与失败时的
@@ -529,7 +531,7 @@ oracle 同容差；actual_k 精确相等。
   signal 及其下游 mosaic/export）与由之派生的测光/SNR 台账数字；合成测试若使用同域母版不受影响。
 - **DISP-CAL-014（门侧已覆盖，通用语义待裁定）拒绝/失败路径的产物残留**：
   单位/归一化门在 calibrate 节点**前置**判红（DATA/rc=2），混标度输入不产出任何
-  `calibrated_*`；门脚本 `tools/quality/check_master_unit_guard.py` 对三条负例显式断言
+  `calibrated_*`；门脚本 `eng/tools/quality/check_master_unit_guard.py` 对三条负例显式断言
   「拒绝路径不留 calibrated_* 半成品」。**残留（通用语义，不在本文件域，待裁定）**：
   run 级 incomplete 时上游节点已原子发布的产品如何标记/清理（`.incomplete` 后缀、独立
   staging、或 run 结束统一回滚）——ENGINEERING_SPEC §9「失败不得留下可被误认成正式产品的

@@ -1,0 +1,73 @@
+{
+ "schema": "astrocs.retired-code-allowlist/v1",
+ "purpose": "CLEAN-401 退役代码检查器（ci/check_retired_code.py）的**逐条豁免台账**：只抑制 R1/R2 的已复核假阳性（文档注释里的用法示例/公式/文件头说明块、vendored 第三方）。每条必须带 reason，只减不增（ENGINEERING_SPEC §10「豁免显式登记且只减不增」）。R3（保留块字段不全）不可豁免。",
+ "authority": "ENGINEERING_SPEC.md §2 / §9 / §10；工程控制/RELEASE-04/GAP_AUDIT.md G2-1..G2-3",
+ "generated_by": "run/CLEAN-401/RECEIPT.md（CLEAN-401 逐条人工复核，2026-09-21）",
+ "entries": [
+  {
+   "pattern": "lib/algorithms/drizzle/healpix_drizzle/nanoflann.hpp",
+   "rule": "R1",
+   "reason": "vendored 第三方（BSD, Marius Muja / David G. Lowe / Jose Luis Blanco），Doxygen @addtogroup 注释块；非本仓代码，不适用本仓退役注释规范"
+  },
+  {
+   "pattern": "lib/algorithms/drizzle/healpix_drizzle/snr_evaluator.h",
+   "rule": "R1",
+   "reason": "复核为段分隔线 + 「生命周期」文档注释块，非被注释掉的旧逻辑"
+  },
+  {
+   "pattern": "lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_geom.hpp",
+   "rule": "R1",
+   "reason": "复核为文件头契约/断言说明块（含公式引用），非被注释掉的旧逻辑"
+  },
+  {
+   "pattern": "lib/algorithms/integration/v6/include/astrocs/v6/phase2_integrate.h",
+   "rule": "R1",
+   "reason": "复核为文件头契约说明块（引用实现锚名），非被注释掉的旧逻辑"
+  },
+  {
+   "pattern": "lib/algorithms/photometry/tests/p1phot/p1phot_tests_units.cpp",
+   "rule": "R1",
+   "reason": "复核为文件头测试契约说明块，非被注释掉的旧逻辑"
+  },
+  {
+   "pattern": "lib/algorithms/platesolve/cpp/ipv/include/ipv_sip.h",
+   "rule": "R1",
+   "reason": "复核为公式文档注释（x_pred = CD11*... 预测式），非被注释掉的旧逻辑"
+  },
+  {
+   "pattern": "lib/algorithms/shared/include/astro_scalar.h",
+   "rule": "R1",
+   "reason": "复核为 ASTRO_SCALAR_DISPATCH 宏的**用法示例**文档注释（3 处），非被注释掉的旧逻辑"
+  },
+  {
+   "pattern": "lib/infrastructure/hips_browser/healpix_browser_qt/core/stf_engine.h",
+   "rule": "R1",
+   "reason": "复核为预设取值文档表（shadows=data_min, highlights=data_max 等），非被注释掉的旧逻辑"
+  },
+  {
+   "pattern": "lib/infrastructure/observability/probes/include/astrocs/probe.h",
+   "rule": "R1",
+   "reason": "复核为 ASTROCS_PROBE_SCOPE_CTX 的用法示例文档注释，非被注释掉的旧逻辑"
+  },
+  {
+   "pattern": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+   "rule": "R1",
+   "reason": "复核为段头注释引用规范条文（宪章 §7.2/§8.2 原文），非被注释掉的旧逻辑；该文件属 FIX-402 并发域，本任务未改"
+  },
+  {
+   "pattern": "tests/cpu/avx512/provider_avx512_handshake_test.c",
+   "rule": "R1",
+   "reason": "复核为文件头断言清单说明块，非被注释掉的旧逻辑"
+  },
+  {
+   "pattern": "tests/unit/gaia_integration_test.c",
+   "rule": "R1",
+   "reason": "复核为文件头断言清单说明块，非被注释掉的旧逻辑"
+  },
+  {
+   "pattern": "tests/unit/gaia_magnitude_range_bounds_test.c",
+   "rule": "R1",
+   "reason": "复核为文件头断言清单说明块（含伪代码行 if (...continue;)，非被注释掉的旧逻辑"
+  }
+ ]
+}

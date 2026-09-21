@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <vector>
@@ -754,6 +755,108 @@ int test_negative() {
         free_model(&rn.model);
         std::fprintf(stdout, "[p1noise][n10] ABI fail-closed: zero/ver/size → rc=%d\n",
                      (int)SNR_ABI_MISMATCH);
+    }
+
+
+    // n11 (FIX-405 G3-6): variance_floor 钳位 fail-open → fail-closed。
+    // ① 非法 floor (NaN / 0 / 负) 一律显式拒绝 (SNR_FLOOR_UNBOUND), 不产模型;
+    // ② 手工拼装 (未注册) 模型 fill ⇒ 显式拒绝, 不再静默回退 1e-12;
+    // ③ 显式绑定极大 floor (1e6) 后 fill 必须**真的**用 1e6 —— 旧实现在生产
+    //    fill 路径上静默回退 1e-12, 本断言在旧代码上必红 (非退化)。
+    {
+        // ① 非法 floor ⇒ fail-closed
+        const double bad_floors[3] = {
+            std::numeric_limits<double>::quiet_NaN(), 0.0, -1.0};
+        for (double bf : bad_floors) {
+            SnrNoiseModelConfig cb = default_cfg();
+            cb.variance_floor = bf;
+            BuildResult rb = build_f64(fx.data, fx.w, fx.h, nullptr, nullptr,
+                                       nullptr, &cb);
+            P1NOISE_CHECK_EQ(cs, rb.rc, SNR_FLOOR_UNBOUND);
+            free_model(&rb.model);
+        }
+        P1NOISE_CHECK(cs, true, "n11_invalid_floor_rejected");
+
+        // ② 未注册模型 (无 floor 绑定) ⇒ fill fail-closed (禁静默 1e-12)。
+        //    注意: floor 只在**空间场**分支被消费 (全局常量分支用
+        //    variance_bg_global/ivar_bg_global, 不碰 floor), 故此处构造
+        //    真正的 4 控制点空间场模型, 才能覆盖 floor 消费路径。
+        {
+            NoiseWeightModelV1 orphan;
+            std::memset(&orphan, 0, sizeof(orphan));
+            snr_noise_model_v1_abi_stamp_model(&orphan);
+            orphan.has_spatial_field = 1;
+            orphan.n_control_points = 4;
+            orphan.variance_bg_global = 1.0;
+            orphan.ivar_bg_global = 1.0;
+            orphan.ctrl_x_px = (double*)std::malloc(4 * sizeof(double));
+            orphan.ctrl_y_px = (double*)std::malloc(4 * sizeof(double));
+            orphan.ctrl_sigma = (double*)std::malloc(4 * sizeof(double));
+            orphan.ctrl_variance = (double*)std::malloc(4 * sizeof(double));
+            orphan.ctrl_ivar = (double*)std::malloc(4 * sizeof(double));
+            for (int k = 0; k < 4; ++k) {
+                orphan.ctrl_x_px[k] = (double)(k % 2) * 8.0;
+                orphan.ctrl_y_px[k] = (double)(k / 2) * 8.0;
+                orphan.ctrl_sigma[k] = 1.0;
+                orphan.ctrl_variance[k] = 1.0;
+                orphan.ctrl_ivar[k] = 1.0;
+            }
+            std::vector<float> vf((std::size_t)fx.w * fx.h, 0.0f);
+            std::vector<float> ivf((std::size_t)fx.w * fx.h, 0.0f);
+            P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&orphan, fx.h, fx.w,
+                                                         vf.data(), ivf.data()),
+                             SNR_FLOOR_UNBOUND);
+            // 显式绑定非法 floor 同样拒绝
+            P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_bind_variance_floor(
+                                     &orphan, 0.0), SNR_FLOOR_UNBOUND);
+            P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_bind_variance_floor(
+                                     &orphan,
+                                     std::numeric_limits<double>::infinity()),
+                             SNR_FLOOR_UNBOUND);
+            // 显式绑定合法 floor ⇒ 放行
+            P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_bind_variance_floor(
+                                     &orphan, kVarFloor), 0);
+            P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&orphan, fx.h, fx.w,
+                                                         vf.data(), ivf.data()),
+                             0);
+            free_model(&orphan);
+        }
+        P1NOISE_CHECK(cs, true, "n11_unbound_model_fail_closed");
+
+        // ③ 配置的 floor 必须真的生效 (旧实现静默 1e-12 ⇒ 本断言必红)
+        {
+            const double big_floor = 1.0e6;
+            SnrNoiseModelConfig cbig = default_cfg();
+            cbig.variance_floor = big_floor;
+            BuildResult rbig = build_f64(fx.data, fx.w, fx.h, nullptr, nullptr,
+                                         nullptr, &cbig);
+            P1NOISE_CHECK_EQ(cs, rbig.rc, 0);
+            // 钳位触发 ⇒ 计数 > 0 且与"被 floor 抬升的控制点数"一致
+            const int64_t n_clamped =
+                snr_noise_model_v1_floor_clamp_count(&rbig.model);
+            P1NOISE_CHECK(cs, n_clamped > 0, "n11_floor_clamp_counted");
+            int64_t expect_clamped = 0;
+            for (std::uint32_t i = 0; i < rbig.model.n_control_points; ++i)
+                if (rbig.model.ctrl_variance[i] == big_floor) ++expect_clamped;
+            P1NOISE_CHECK(cs, n_clamped >= expect_clamped,
+                          "n11_floor_clamp_count_consistent");
+            std::vector<float> vf((std::size_t)fx.w * fx.h, 0.0f);
+            std::vector<float> ivf((std::size_t)fx.w * fx.h, 0.0f);
+            P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_fill(&rbig.model, fx.h, fx.w,
+                                                         vf.data(), ivf.data()),
+                             0);
+            std::size_t n_at_floor = 0;
+            for (std::size_t i = 0; i < vf.size(); ++i)
+                if (vf[i] == (float)big_floor) ++n_at_floor;
+            P1NOISE_CHECK(cs, n_at_floor == vf.size(),
+                          "n11_configured_floor_reaches_fill");
+            free_model(&rbig.model);
+            // 未注册模型计数 = -1 (显式"未知", 不冒充 0)
+            P1NOISE_CHECK_EQ(cs, snr_noise_model_v1_floor_clamp_count(nullptr), -1);
+            std::fprintf(stdout,
+                         "[p1noise][n11] floor fail-closed: clamp=%lld at_floor=%zu/%zu\n",
+                         (long long)n_clamped, n_at_floor, vf.size());
+        }
     }
 
     // n9: M3-A-005 平面几何退化 (DISP-NOISE-010) —— 控制点共线/近共线时

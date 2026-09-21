@@ -2,6 +2,8 @@
 
 # 08 — Phase3 投影/采样 schema（Omega_i / 采样核 registry / Q-W 重算 / fail-closed）
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 上位锚：`FZ-P3-MODES`、`FZ-P3-FAILCLOSED`、`FZ-P3-QW-RECOMPUTE`、`FZ-P3-KERNEL-REGISTRY`、`FZ-P3-BUNIT-QUADRATIC`、`FZ-FORMULA-COV-PROP`；
 DESIGN-P3 §1/§2/§3/§4/§5；PHASE3_REVIEW C-P3-PROP-1..16；ADJ-P3-01/ADJ-S4；F3-01..06；Calabretta & Greisen 2002。
 机器：`contracts/proposals/v6/data/astrocs.v6.phase3.v1.schema.json`（`phase3.v1`）；正例 `examples/phase3.example.json`。

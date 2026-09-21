@@ -1,5 +1,7 @@
 # Integration / Coaddition Science (SCI-INT)
 
+> 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）
+
 > ID: SCI-INT-001  集合: SCI-INT-001,002,004,008  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-INT-001..  模块: phase2 (integrate)
 
 ## 1 目的与非目标
@@ -160,5 +162,5 @@
 
 - §11 Oracle 全过（以 §11 列门为准：状态码/权重归一/support reducer/NaN 拒）；
 - §7 不变量门全过；
-- `tools/science_contract_lint.py` PASS；
+- `eng/tools/science_contract_lint.py` PASS；
 - 解析不变量→SYN-006 转换：已知 inlier/outlier 栈、多权重组合、weighted result 解析值、identity 保持用例登记 SYN-006。

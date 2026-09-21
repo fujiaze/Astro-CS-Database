@@ -1,5 +1,7 @@
 # Drizzle / Spherical Resampling Science (SCI-DRIZZLE)
 
+> 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）、§6.3（投影算法）
+
 > ID: SCI-DRZ-001  集合: SCI-DRZ-001,014,015,016  状态: FROZEN（冻结定义）  上游: SCI-SCOPE-001  下游 ALG: ALG-DRZ-001..  模块: healpix_drizzle
 
 ## 1 目的与非目标
@@ -211,5 +213,5 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
 
 - §11 Oracle 全过（常量场/解析场/方差传播/边界，以 §11 列门为准）；
 - §7 不变量门全过；
-- `tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
+- `eng/tools/science_contract_lint.py` PASS（15 节+合同 ID+锚点）；
 - 解析不变量→SYN-004 转换：常数/点源/梯度/旋转/亚像素 shift/pixfrac 扫描/tile boundary 用例，flux 或 brightness/support/variance/coverage 不变量全过（§15 SYN-004 数据与不变量表）。

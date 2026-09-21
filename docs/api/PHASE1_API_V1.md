@@ -1,5 +1,7 @@
 # Phase1 API 定义 v1 (API-003 冻结 — 逐函数 create/validate/run/inspect)
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§8.4（模块与 ABI）
+
 > ID: API-P1-001  范围: API-P1-001..010  状态: FROZEN；**用户命令面 = `normalize`**  上游: API-001(API-COMMON-001)/API-002  下游: 用户命令 `normalize`(CLI-001;`phase1 run` 不在命令面上, rc=2)/TST-P1-*
 > 模式: Phase1 = 现有 C ABI 模块链(calibration/star_detector/dynamic_psf/ipv/photometric_calib/algorithms/noise_snr/healpix_drizzle)的**编排合同**;每函数按五字段并发合同模板(API-001 §3)登记;既有函数签名以现存头文件为准(不重写,新增仅 orchestrator 侧)。
 
@@ -45,4 +47,4 @@ acs_status p1_session_destroy(acs_handle);                                      
 
 ## 4 doc-symbol-signature checker 合同(验收)
 
-`tools/check_api_docs.py`(API-003 建立合同, CLI-002 落地全量): 对每个登记函数——① 头文件存在该符号;② 文档表此行存在;③ 签名(参数数)一致;④ 直接 test ID 非空;⑤ 五字段并发合同齐全。任一缺失 FAIL。机器门 = §2 表 + `tests/api/test_p1_api.py`。
+`eng/tools/check_api_docs.py`(API-003 建立合同, CLI-002 落地全量): 对每个登记函数——① 头文件存在该符号;② 文档表此行存在;③ 签名(参数数)一致;④ 直接 test ID 非空;⑤ 五字段并发合同齐全。任一缺失 FAIL。机器门 = §2 表 + `tests/api/test_p1_api.py`。

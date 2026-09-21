@@ -18,6 +18,7 @@
 #include "aio_hips.h"
 #include "aio_hips_reader.h"   // DATA-UNC-001 §30.2/§30.3: verify 面回读 (只读)
 #include "aio_atomic_file.h"   // AIO-001: 临时文件+fsync+原子 rename 落盘原语
+#include "aio_disk_full.h"     // FIX-401: 磁盘满/配额失败的失败瞬间分类
 #include "healpix/healpix_core.h"
 
 #include <fitsio.h>
@@ -31,7 +32,9 @@
 #include <ctime>
 #include <cstdlib>
 #include <cerrno>
+#include <functional>
 #include <limits>
+#include <thread>
 #include <memory>
 #include <map>
 #include <set>
@@ -313,15 +316,15 @@ bool write_chksum_deterministic(fitsfile* fptr, const std::string& where) {
 // 单 FITS 图像写 (含 checksum)
 // data: 行主序数组 (NAXIS1 最快), naxis1 x naxis2
 // ---------------------------------------------------------------------------
-bool write_fits_image(const std::string& path,
-                      int bitpix,
-                      long naxis1, long naxis2,
-                      const void* data,
-                      const std::vector<std::pair<std::string, std::string>>& cards,
-                      const std::string& object,
-                      const std::string& obs_filter,
-                      double exptime,
-                      const std::string& obs_date) {
+bool write_fits_image_raw(const std::string& path,
+                          int bitpix,
+                          long naxis1, long naxis2,
+                          const void* data,
+                          const std::vector<std::pair<std::string, std::string>>& cards,
+                          const std::string& object,
+                          const std::string& obs_filter,
+                          double exptime,
+                          const std::string& obs_date) {
     int status = 0;
     fitsfile* fptr = nullptr;
     std::string path_n = path;
@@ -388,9 +391,9 @@ bool write_fits_image(const std::string& path,
 // ---------------------------------------------------------------------------
 // MOC FITS (BINTABLE UNIQ) 写
 // ---------------------------------------------------------------------------
-bool write_moc_fits(const std::string& path,
-                    const std::vector<uint64_t>& uniq,
-                    uint32_t order) {
+bool write_moc_fits_raw(const std::string& path,
+                        const std::vector<uint64_t>& uniq,
+                        uint32_t order) {
     if (uniq.empty()) return true;  // 空 MOC: 不写
     int status = 0;
     fitsfile* fptr = nullptr;
@@ -434,6 +437,204 @@ bool write_moc_fits(const std::string& path,
     return true;
 }
 
+// ---------------------------------------------------------------------------
+// FIX-401 (ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1):
+// 每个 tile/元数据 FITS 走「本次运行私有临时文件 → 哈希校验 → fsync →
+// 原子 rename」。修复前 write_fits_image 先 std::remove(final) 再
+// fits_create_file(final) **直写正式路径** ⇒ 中途 kill / ENOSPC / 校验失败
+// 都会在正式目录留下截断的半成品 tile (GAP_AUDIT G3-1 现状)。
+//   * 临时名 = <final>.tmp.<pid>.<seq> (与目标同目录 ⇒ rename 不跨文件系统,
+//     内核原子; 复用 aio_atomic_file.h 的 AIO-001 原语, 不另造机制);
+//   * 哈希校验 = 重开临时文件独立跑 fits_verify_chksum (DATASUM/CHECKSUM 由
+//     write_chksum_deterministic 写入), 不过即删除临时文件并失败;
+//   * 任一环节失败 ⇒ 删除临时文件 + 返回 false —— 正式路径只可能出现完整 tile。
+// 注入面 (测试专用, 未设置时逐行零行为差异): ASTROCS_HIPS_TILE_FAULT =
+//   tile_write_fail | tile_diskfull | tile_checksum_fail | tile_fsync_fail |
+//   tile_rename_fail。每个注入名必败 (无恒 PASS 占位), 用于负例判别力证明。
+// ---------------------------------------------------------------------------
+bool tile_fault(const char* name) {
+    if (!fault_injected("ASTROCS_HIPS_TILE_FAULT", name)) return false;
+    std::fprintf(stderr, "FAULT-INJECT: %s\n", name);
+    return true;
+}
+
+// 重开临时文件独立校验 DATASUM/CHECKSUM (哈希校验环节)。
+// 注意: fits_verify_chksum 只校验**当前** HDU —— 新建 BINTABLE (Moc.fits) 的
+// 数据在 HDU 2 (HDU 1 是 CFITSIO 自动建的空 PRIMARY), 重开后当前 HDU 是
+// PRIMARY, 直接调会得到 dataok=0/hduok=0 的假失败 (实测, 与校验和写入正确性
+// 无关)。故逐 HDU 移动, 只校验带 CHECKSUM 键的 HDU, 并要求至少校验成功一个。
+bool verify_fits_checksum(const std::string& path, std::string* err) {
+    int status = 0;
+    fitsfile* fptr = nullptr;
+    if (fits_open_file(&fptr, path.c_str(), READONLY, &status)) {
+        char msg[FLEN_ERRMSG];
+        msg[0] = '\0';
+        fits_get_errstatus(status, msg);
+        if (err) *err = std::string("checksum verify open failed: ") + msg;
+        fits_clear_errmsg();
+        return false;
+    }
+    int nhdu = 0;
+    if (fits_get_num_hdus(fptr, &nhdu, &status) || nhdu <= 0) {
+        char msg[FLEN_ERRMSG];
+        msg[0] = '\0';
+        fits_get_errstatus(status, msg);
+        if (err) *err = std::string("fits_get_num_hdus failed: ") + msg;
+        fits_close_file(fptr, &status);
+        fits_clear_errmsg();
+        return false;
+    }
+    int verified = 0;
+    for (int h = 1; h <= nhdu; ++h) {
+        if (fits_movabs_hdu(fptr, h, nullptr, &status)) {
+            char msg[FLEN_ERRMSG];
+            msg[0] = '\0';
+            fits_get_errstatus(status, msg);
+            if (err) *err = "fits_movabs_hdu failed: " + std::string(msg);
+            fits_close_file(fptr, &status);
+            fits_clear_errmsg();
+            return false;
+        }
+        char csum[FLEN_VALUE];
+        csum[0] = '\0';
+        int kstatus = 0;
+        if (fits_read_key(fptr, TSTRING, "CHECKSUM", csum, nullptr, &kstatus)) {
+            fits_clear_errmsg();          // 该 HDU 无 CHECKSUM: 不参与校验
+            status = 0;
+            continue;
+        }
+        int dataok = 0, hduok = 0;
+        if (fits_verify_chksum(fptr, &dataok, &hduok, &status)) {
+            char msg[FLEN_ERRMSG];
+            msg[0] = '\0';
+            fits_get_errstatus(status, msg);
+            if (err)
+                *err = "fits_verify_chksum failed (HDU " + std::to_string(h) +
+                       "): " + msg;
+            fits_close_file(fptr, &status);
+            fits_clear_errmsg();
+            return false;
+        }
+        if (dataok != 1 || hduok != 1) {
+            if (err)
+                *err = "DATASUM/CHECKSUM mismatch (HDU " + std::to_string(h) +
+                       ", dataok=" + std::to_string(dataok) +
+                       " hduok=" + std::to_string(hduok) + ")";
+            fits_close_file(fptr, &status);
+            return false;
+        }
+        ++verified;
+    }
+    fits_close_file(fptr, &status);
+    if (verified == 0) {
+        if (err) *err = "no CHECKSUM keyword in any HDU: " + path;
+        return false;
+    }
+    return true;
+}
+
+// 私有临时文件 → 内容写出 → 哈希校验 → fsync → 原子 rename → 父目录 fsync。
+bool write_fits_atomic(const std::string& final_path,
+                       const std::function<bool(const std::string&)>& body,
+                       std::string* err) {
+    if (!body || final_path.empty()) {
+        if (err) *err = "write_fits_atomic: 参数无效";
+        return false;
+    }
+    const std::string tmp = aio_atomic::make_tmp_path(final_path);
+    const bool inj_diskfull = tile_fault("tile_diskfull");
+    const bool inj_write = tile_fault("tile_write_fail");
+    if (inj_diskfull || inj_write || !body(tmp)) {
+        // FIX-401: 磁盘满必须在**清理之前**、失败发生处分类 (见 aio_disk_full.h 头注:
+        // 清理会释放空间, 事后探针必然 fail-open)。注入面 tile_diskfull 等价于 ENOSPC。
+        if (inj_diskfull) aio_disk::note_full();
+        else aio_disk::note_failure(tmp, errno);
+        aio_atomic::remove_file(tmp);
+        if (err)
+            *err = inj_diskfull ? "ENOSPC (injected: tile_diskfull)"
+                   : inj_write ? "write failed (injected: tile_write_fail)"
+                               : ("FITS write failed: " + final_path);
+        return false;
+    }
+    // kill 中断测试锚点 (测试专用; 生产零行为差异): 内容已写进**私有临时文件**、
+    // 尚未校验/rename 时驻留, 供父进程在该窗口 kill 子进程。断言"正式路径无
+    // 半成品 tile"正是在此窗口成立 (修复前该窗口直接写在正式路径上)。
+    if (tile_fault("tile_slow_write")) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(400));
+    }
+    std::string cerr;
+    if (tile_fault("tile_checksum_fail") || !verify_fits_checksum(tmp, &cerr)) {
+        aio_atomic::remove_file(tmp);
+        if (err)
+            *err = "checksum verify failed: " + final_path +
+                   (cerr.empty() ? " (injected: tile_checksum_fail)" : " (" + cerr + ")");
+        return false;
+    }
+    if (tile_fault("tile_fsync_fail")) {
+        aio_atomic::remove_file(tmp);
+        if (err) *err = "fsync failed (injected: tile_fsync_fail): " + tmp;
+        return false;
+    }
+    const int frc = aio_atomic::fsync_path(tmp, 0);
+    if (frc != 0) {
+        aio_disk::note_failure(tmp, frc);   // FIX-401: 清理前分类
+        aio_atomic::remove_file(tmp);
+        if (err) *err = "fsync failed: " + tmp + " (errno=" + std::to_string(frc) + ")";
+        return false;
+    }
+    if (tile_fault("tile_rename_fail")) {
+        aio_atomic::remove_file(tmp);
+        if (err) *err = "atomic rename failed (injected: tile_rename_fail): " + tmp;
+        return false;
+    }
+    if (aio_atomic::atomic_replace(tmp, final_path) != 0) {
+        aio_atomic::remove_file(tmp);
+        if (err) *err = "atomic rename failed: " + tmp + " -> " + final_path;
+        return false;
+    }
+    aio_atomic::fsync_parent_dir(final_path);
+    return true;
+}
+
+// 原子 tile 写入口 (签名与 write_fits_image_raw 逐字一致): 全部调用点自动经
+// 临时文件 + 哈希校验 + fsync + 原子 rename。
+bool write_fits_image(const std::string& path,
+                      int bitpix,
+                      long naxis1, long naxis2,
+                      const void* data,
+                      const std::vector<std::pair<std::string, std::string>>& cards,
+                      const std::string& object,
+                      const std::string& obs_filter,
+                      double exptime,
+                      const std::string& obs_date) {
+    std::string err;
+    const bool ok = write_fits_atomic(
+        path,
+        [&](const std::string& tmp) {
+            return write_fits_image_raw(tmp, bitpix, naxis1, naxis2, data, cards,
+                                        object, obs_filter, exptime, obs_date);
+        },
+        &err);
+    if (!ok) set_error("tile 原子落盘失败: " + path + " (" + err + ")");
+    return ok;
+}
+
+// 原子 MOC 写入口 (签名与 write_moc_fits_raw 逐字一致)。
+bool write_moc_fits(const std::string& path,
+                    const std::vector<uint64_t>& uniq,
+                    uint32_t order) {
+    if (uniq.empty()) return true;  // 空 MOC: 不写
+    std::string err;
+    const bool ok = write_fits_atomic(
+        path,
+        [&](const std::string& tmp) {
+            return write_moc_fits_raw(tmp, uniq, order);
+        },
+        &err);
+    if (!ok) set_error("MOC 原子落盘失败: " + path + " (" + err + ")");
+    return ok;
+}
+
 // properties 写出 (IVOA HiPS + ASTROCS_* provenance 唯一文本载体)。
 // M9-G-6/AIO-001: 原实现 fopen 失败即静默 return、fprintf/fclose 不查, 且直写正式路径
 // —— 违反 ASTROCS_DESIGN §9(失败不得留下可被误认为正式产品的半成品)与
@@ -467,45 +668,62 @@ bool write_properties(const std::string& path,
 // ---------------------------------------------------------------------------
 // hierarchy 累加器
 // ---------------------------------------------------------------------------
+// FIX-403 / GAP_AUDIT G3-3 / DISP-HIPS-009: 父层累加 (Σflux / Σarea / Σvar_num)
+// **恒在 f64 累加器**进行 (ASTROCS_DESIGN §3.3 默认科学计算双精度); 产品声明位深
+// (bitpix −32/−64) 只在写出时量化一次 (finalize_hierarchy 的 (float)sig 截断)。
+// 修复前 f32 产品走 float 累加 (sumFluxF/sumAreaF/sumVarF): 每步 partial sum 舍入
+// 到 float, 误差随层级加深累积 —— dk=9 实测偏差 2.5e-3 (合成) / 3.95e-4 (真实),
+// 超 HIPS_WRITER.md §9 冻结容差 rtol=1e-6。修法即该文 DISP-HIPS-009 处置建议
+// "f32 产品仍用 double 累加 (存储时再截断)"。
+//
+// 负例注入面 (测试专用, 与 ASTROCS_HIPS_DIAG_FAULT / ASTROCS_HIPS_PROV_FAULT
+// 同模式): ASTROCS_HIPS_HIER_FAULT=f32_accum 复现修复前语义 (每步 partial sum
+// 舍入到 float 后存回 f64), 供 P1HIPS oracle 组 O7 证明精度判据能红 (非退化)。
 struct AncestorAcc {
-    std::vector<float>  sumFluxF;
-    std::vector<double> sumFluxD;
-    std::vector<float>  sumAreaF;
-    std::vector<double> sumAreaD;
+    std::vector<double> sumFluxD;   // Σ sig·a (权重 = 未钳制真实覆盖面积)
+    std::vector<double> sumAreaD;   // Σ a
     // 方差传播分子 Σ v_j w_jp² (hierarchy 归约同叶级公式)
-    std::vector<float>  sumVarF;
     std::vector<double> sumVarD;
     std::vector<uint32_t> count;
-    bool is_f32 = true;
+    bool f32_accum = false;         // 注入面: true = 复现修复前 f32 逐步舍入
 
-    void ensure(bool f32) {
-        is_f32 = f32;
+    void ensure(bool inject_f32_accum) {
+        f32_accum = inject_f32_accum;
         const size_t n = 512 * 512;
-        if (f32) {
-            if (sumFluxF.empty()) sumFluxF.assign(n, 0.0f);
-            if (sumAreaF.empty()) sumAreaF.assign(n, 0.0f);
-            if (sumVarF.empty()) sumVarF.assign(n, 0.0f);
-        } else {
-            if (sumFluxD.empty()) sumFluxD.assign(n, 0.0);
-            if (sumAreaD.empty()) sumAreaD.assign(n, 0.0);
-            if (sumVarD.empty()) sumVarD.assign(n, 0.0);
-        }
+        if (sumFluxD.empty()) sumFluxD.assign(n, 0.0);
+        if (sumAreaD.empty()) sumAreaD.assign(n, 0.0);
+        if (sumVarD.empty()) sumVarD.assign(n, 0.0);
         if (count.empty()) count.assign(n, 0u);
     }
+    // f32 逐步舍入的等价复现: 两 float 之和在 double 中精确, 再一次舍入到 float
+    // = 正确舍入的 float 加法 (binary64→binary32 双重舍入在 p_d≥2·p_f+2 时无害)。
+    static double f32_step(double acc, double v) {
+        return (double)(float)((double)(float)acc + (double)(float)v);
+    }
     void add(size_t i, double flux, double area) {
-        if (is_f32) { sumFluxF[i] += (float)flux; sumAreaF[i] += (float)area; }
-        else        { sumFluxD[i] += flux;        sumAreaD[i] += area; }
+        if (f32_accum) {
+            sumFluxD[i] = f32_step(sumFluxD[i], flux);
+            sumAreaD[i] = f32_step(sumAreaD[i], area);
+        } else {
+            sumFluxD[i] += flux;
+            sumAreaD[i] += area;
+        }
         ++count[i];
     }
     void add_var(size_t i, double var_num, double area) {
         (void)area;
-        if (is_f32) sumVarF[i] += (float)var_num;
-        else        sumVarD[i] += var_num;
+        if (f32_accum) sumVarD[i] = f32_step(sumVarD[i], var_num);
+        else           sumVarD[i] += var_num;
     }
-    double fluxAt(size_t i) const { return is_f32 ? (double)sumFluxF[i] : sumFluxD[i]; }
-    double areaAt(size_t i) const { return is_f32 ? (double)sumAreaF[i] : sumAreaD[i]; }
-    double varAt(size_t i) const  { return is_f32 ? (double)sumVarF[i] : sumVarD[i]; }
+    double fluxAt(size_t i) const { return sumFluxD[i]; }
+    double areaAt(size_t i) const { return sumAreaD[i]; }
+    double varAt(size_t i) const  { return sumVarD[i]; }
 };
+
+// 负例注入判定 (测试专用): 生产默认 false; 见 AncestorAcc 注释。
+bool hier_f32_accum_injected() {
+    return fault_injected("ASTROCS_HIPS_HIER_FAULT", "f32_accum");
+}
 
 } // namespace
 
@@ -603,6 +821,8 @@ AioHipsProductSet* aio_hips_product_begin(
     // P1 (R9-A): C 边界异常屏障
     try {
         g_hips_error.clear();
+        // FIX-401: 新产品写入开始 ⇒ 复位磁盘满粘滞标志, 使分类只归因本次失败。
+        aio_disk::reset();
         // nside 必须恰为 2 的幂(M8d-A-01/AIO-001): 叶级几何基数 nside=2^K 是
         // ALG-HIPS-001 (1a) 的冻结构造前提, 下方 ilog2_u64 是*向下取整*, 非 2 的幂
         // (如 600) 会被静默夹逼到 2^9 并据此写出与调用方声明不一致的 NSIDE/
@@ -639,6 +859,36 @@ AioHipsProductSet* aio_hips_product_begin(
         ps->exposure = exposure_s;
         ps->moc_order = (moc_order == 0) ? ps->tile_order : std::min(moc_order, ps->tile_order);
         ps->hier.resize(ps->tile_order);
+        // FIX-401 §10「同一标识只有一个生产者」+「失败/取消时正式目录只出现
+        // 完整产品」: 开工前先摘掉完成清单 (消费者立即 fail-closed), 再确定性
+        // 删除本次将要写入的子产品目录 —— 上次 kill/失败留下的残留 tile、
+        // 半成品与 .tmp.* 临时文件一律不得被本次运行"消费"或混进新清单。
+        // 删除失败即 begin 失败 (不静默带病开工)。
+        if (aio_atomic::remove_file(ps->out_dir + "/manifest.json") != 0) {
+            set_error("aio_hips_product_begin: 旧完成清单不可移除: " + ps->out_dir +
+                      "/manifest.json");
+            return nullptr;
+        }
+        {
+            struct { int flag; const char* name; } subs[] = {
+                {AIO_HIPS_PRODUCT_SIGNAL, "signal"},
+                {AIO_HIPS_PRODUCT_SUPPORT, "support"},
+                {AIO_HIPS_PRODUCT_VARIANCE, "variance"},
+                {AIO_HIPS_PRODUCT_IVAR, "ivar"},
+                {AIO_HIPS_PRODUCT_SNR, "snr"},
+                {AIO_HIPS_PRODUCT_NREJ, "nrej"},
+                {AIO_HIPS_PRODUCT_NUSED, "nused"},
+            };
+            for (const auto& s : subs) {
+                if ((flags & s.flag) == 0) continue;
+                const int drc = aio_atomic::remove_tree(ps->out_dir + "/" + s.name, 0);
+                if (drc != 0) {
+                    set_error(std::string("aio_hips_product_begin: 残留子产品目录不可清除: ") +
+                              ps->out_dir + "/" + s.name);
+                    return nullptr;
+                }
+            }
+        }
         return ps.release();
 
     }
@@ -780,7 +1030,7 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
             uint64_t A = view->parent_ipix >> shift;
             uint64_t s = view->parent_ipix & mask;
             AncestorAcc& acc = ps->hier[(size_t)k][A];
-            acc.ensure(f32);
+            acc.ensure(hier_f32_accum_injected());
             for (size_t i = 0; i < n; ++i) {
                 // 直接使用 NESTED 序 sig/sup 缓存（与 FITS 序
                 // 读回逐位一致），免每 i 一次 nested_local_to_fits_index 反查。
@@ -924,7 +1174,7 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
             uint64_t A = view->parent_ipix >> shift;
             uint64_t s = view->parent_ipix & mask;
             AncestorAcc& acc = ps->hier[(size_t)k][A];
-            acc.ensure(f32);
+            acc.ensure(hier_f32_accum_injected());
             for (size_t i = 0; i < n; ++i) {
                 if (var_n[i] <= 0.0) continue;
                 size_t z = (size_t)(((s << 18ULL) | (uint64_t)i) >>
@@ -1817,6 +2067,7 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                 },
                 &merr);
             if (mrc != 0) {
+                aio_disk::note_failure(ps->out_dir, 0);   // FIX-401: 磁盘满分类
                 set_error("manifest.json 原子落盘失败: " + merr);
                 return -13;
             }

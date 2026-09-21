@@ -96,8 +96,8 @@
 ```text
 仓库根固定条目：
 README.md / AGENTS.md / ASTROCS_DESIGN.md / ENGINEERING_SPEC.md /
-CONTROL_PACK_SPEC.md / ACCEPTANCE_SPEC.md / DEPENDENCIES.md /
-CMakeLists.txt / CMakePresets.json / build.sh / toolchain.ps1 /
+CONTROL_PACK_SPEC.md / ACCEPTANCE_SPEC.md / DEPENDENCIES.md / memory.md /
+CMakeLists.txt / CMakePresets.json / eng/build/build.sh / eng/build/toolchain.ps1 /
 .clang-format / .editorconfig / .gitignore / .gitattributes / .github/
 
 lib/
@@ -108,18 +108,24 @@ lib/
 │   └── shared/
 └── infrastructure/     基建（cli/ 下挂 normalize/mosaic/export 子命令 + scheduler/pipeline/aio/benchmark/observability/gaia/acr/hips_browser）
 
-其他固定目录：include/ contracts/ cmake/ docs/ tests/ scripts/ tools/ ci/ testdata/ third_party/
+其他固定目录：include/ contracts/ docs/ tests/ testdata/ third_party/ packaging/
+eng/（工程支撑面，2026-09-21 由 ci/ tools/ cmake/ 合并而成）
+  eng/ci/           机器门注册表与检查器（eng/ci/checks.json、eng/ci/run_checks.py）
+  eng/tools/        工具与质量检查器（eng/tools/quality/**、eng/tools/doccheck/**）
+  eng/cmake/        CMake 模块（原 cmake/）
+  eng/build/        构建脚本（build.sh / toolchain.ps1；根 CMakeLists.txt 与 CMakePresets.json 因 CMake 入口约束留在根）
 config/（程序根全局配置：filters.json / defaults.json）
-实验/（科学实验单元：SCI-A/B/C 等，随仓库维护）
+实验/（科学实验单元：photometric-magnitude / absolute-snr / additive-sky-seamless + shared，随仓库维护）
 工程控制/（控制包工作区，收口后按 CONTROL_PACK_SPEC §9 清理）
-artifacts/（证据与产物，含 CI 运行产物 artifacts/ci/<sha>/）
-run/（gitignore：临时产物/日志）  logs/（gitignore）
+artifacts/（证据与产物，含 CI 运行产物 artifacts/ci/<sha>/ 与历史证据锚 artifacts/evidence/**）
+run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 与 eng/tools/round_start.sh）
 ```
 
 - 新产物落位到对应目录，不散落根目录；确需新增根目录条目，先登记并经负责人确认；
-- **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`GaiaDR3/`、`GaiaDR3SP/`、`BASS DR3/`、`HST_M16/`。判据：只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容；一旦被代码消费或需入库，移入 `testdata/` 或 `artifacts/`；
+- **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `eng/ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`GaiaDR3/`、`GaiaDR3SP/`。判据：只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容；一旦被代码消费或需入库，移入 `testdata/` 或 `artifacts/`；
+- **2026-09-21 ROOT-CONSOLIDATION（负责人直接指令）**：按上一条判据，`BASS DR3/` → `testdata/BASS_DR3/`（目录名去空格；元数据/索引/工具/日期表入库，FITS 与下载产物不入库）、`HST_M16/` → `testdata/HST_M16/`（770 MB FITS 不入库）——数据来源、PHOTFLAM 与下载方式见 `testdata/README.md`；`reverse_verify/` 按主题拆入 `实验/photometric-magnitude|absolute-snr|additive-sky-seamless/code/reverse_verify/` 与 `实验/shared/`（映射见 `实验/shared/REVERSE_VERIFY_MIGRATION.md`）；`engineering/`（0 文件空目录）、`scripts/`（仅退役登记，已并入 `eng/tools/README.md`）、`logs/`（空目录，并入 `run/<task>/logs/`）三个根条目删除；`reports/` 收编进 `artifacts/evidence/**` 后删除，`问题扫描/` 只留三件台账于 `artifacts/evidence/audit-2026-01/` 后删除；`ci/`+`tools/`+`cmake/`+`build.sh`+`toolchain.ps1` 合并为 `eng/`；`packaging/`、`memory.md`、`FATDUCK_ACCESS.md` 补登记为固定条目；
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
-- 修改代码/测试后同步订正 `ci/checks.json`；
+- 修改代码/测试后同步订正 `eng/ci/checks.json`；
 - **Alpha 之前代码与产物中不含任何版本信息**（最高设计 §13）；发布 Alpha 时 CLI `--version` 输出 `0.0.1alpha`。
 
 ---
@@ -153,12 +159,12 @@ run/（gitignore：临时产物/日志）  logs/（gitignore）
 
 ## 10. 机器一致性检查
 
-- `ci/checks.json` 是唯一检查注册表；`ci/` 提供确定性执行器；
+- `eng/ci/checks.json` 是唯一检查注册表；`eng/ci/` 提供确定性执行器；
 - 每项检查有正例与负例（能红能绿）；豁免显式登记且只减不增；
 - **可执行负例面**：每项检查提供机器可执行负例入口（`--self-test` 或 `--fault-inject`）；
 - **fail-closed**：检查器在输入缺失、路径不存在、依赖不可用时判红；"文件不存在"按"无违规"通过视为假绿；
 - **锚存活**：检查器硬编码引用的文件/目录必须存在，失效时报 `ANCHOR_STALE`；
-- **注册表双向一致**：`ci/checks.json` 与 `docs/ci/01_CHECKS.md §2` 双向对齐；
+- **注册表双向一致**：`eng/ci/checks.json` 与 `docs/ci/01_CHECKS.md §2` 双向对齐；
 - 修改代码/测试后本地复跑对应检查项；
 - 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、算法引用有效 SCI/ALG、核心合同有独立测试、API 文档与 AST 一致、删除/重命名无悬空引用（含文档索引）、活动文档版本号与状态均为现行、历史代码处置合规（§2）、Git diff 映射到受影响合同与最小测试集。
 

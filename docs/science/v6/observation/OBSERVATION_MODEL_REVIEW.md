@@ -4,6 +4,8 @@
 
 # 观测模型与 covariance 复核（SCI-OBS-001）
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 - 任务：工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCI-OBS-001.md
 - 文档 ID：OBS-REVIEW-001
 - 任务基线：HEAD = main = origin/main = 4b508f28bbcada66c417a8a9324aca7eb92869ff（开工时本机只读复核，见 run/v6/sci-obs/logs/rc_summary.txt）

@@ -219,7 +219,7 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     rj.contains("max_iterations") ||
                     rj.contains("min_samples")) {
                     *err = "rejection.low/high/max_iterations/min_samples 已"
-                           "删除（V17）。请用 tools/migrate_stage2_config.py "
+                           "删除（V17）。请用 eng/tools/migrate_stage2_config.py "
                            "迁移到 typed params（rejection.<method>.* 与 "
                            "underdetermined_n）。";
                     return false;

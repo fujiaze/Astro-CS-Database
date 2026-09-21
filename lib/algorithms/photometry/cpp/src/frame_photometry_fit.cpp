@@ -23,13 +23,16 @@ extern "C" {
 #include "gaia_client.h"
 }
 
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): filters.json 的
+// 整文件读取经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
+#include "aio_file_io.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -58,11 +61,9 @@ std::string map_filter_name(const std::string& f) {
 // 返回 false 表示文件/键/数组任一缺失。
 bool load_curve(const std::string& json_path, const std::string& curve_name,
                 std::vector<double>* out_wl, std::vector<double>* out_trans) {
-    std::ifstream ifs(json_path);
-    if (!ifs.is_open()) return false;
-    std::string content((std::istreambuf_iterator<char>(ifs)),
-                         std::istreambuf_iterator<char>());
-    ifs.close();
+    // CLEAN-403: 读取经 aio; 打开/读取失败 ⇒ false (与原 !ifs.is_open() 同语义)。
+    std::string content;
+    if (!aio_file::read_all(json_path.c_str(), &content)) return false;
     const std::string key = "\"" + curve_name + "\"";
     size_t pos = content.find(key);
     if (pos == std::string::npos) return false;

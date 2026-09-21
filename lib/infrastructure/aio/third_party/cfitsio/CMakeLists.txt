@@ -314,7 +314,7 @@ export(EXPORT cfitsioTargets
   FILE "${CMAKE_CURRENT_BINARY_DIR}/cfitsio/cfitsioTargets.cmake"
   NAMESPACE CFITSIO::
 )
-configure_file(cmake/cfitsioConfig.cmake
+configure_file(eng/cmake/cfitsioConfig.cmake
   "${CMAKE_CURRENT_BINARY_DIR}/cfitsio/cfitsioConfig.cmake"
   COPYONLY
 )
@@ -330,7 +330,7 @@ install(EXPORT cfitsioTargets
 )
 install(
   FILES
-    cmake/cfitsioConfig.cmake
+    eng/cmake/cfitsioConfig.cmake
     "${CMAKE_CURRENT_BINARY_DIR}/cfitsio/cfitsioConfigVersion.cmake"
   DESTINATION
     ${ConfigPackageLocation}

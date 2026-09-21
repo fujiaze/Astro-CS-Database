@@ -2,6 +2,8 @@
 
 # ALG-P2-POINT-001 — Phase2 点源算法规格
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-POINT-001`
 - 状态：`TARGET_NORMATIVE`（算法层目标规范；正式冻结由 W4 `CONTRACT-FREEZE-001` 写入 `docs/algorithms/v6/frozen/`）
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P2-POINT-001.md`（wave 3，depends_on SCI-ADJ-001）

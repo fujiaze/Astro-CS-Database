@@ -945,7 +945,8 @@ static acs_status drz_execute_drizzle(drz_inst* inst, const char* manifest,
     }
 
     /* 输出 manifest (stats + 事务 sink 产物 URI) */
-    uint64_t total = 256u;
+    /* FIX-405 G3-5: 计数三字段 + 合计占 ~160B ⇒ 基线上调 (256→512) */
+    uint64_t total = 512u;
     if (c->hips_dir) {
         total += strlen(c->hips_dir) + 64u;
         if (drz_artifact_exists(c->hips_dir, "signal")) total += strlen(c->hips_dir) + 24u;
@@ -967,9 +968,18 @@ static acs_status drz_execute_drizzle(drz_inst* inst, const char* manifest,
     json_append_f64(&w, res.pixfrac);
     w += snprintf(w, (size_t)(total + 1 - (size_t)(w - buf)),
         ",\"precision_mode\":%d,\"n_healpix_pixels\":%lld,\"n_source_pixels\":%lld,"
+        "\"n_rejected_nonfinite\":%lld,"
+        "\"n_rejected_nonfinite_value\":%lld,"
+        "\"n_rejected_nonfinite_variance\":%lld,"
+        "\"n_rejected_nonpositive_weight\":%lld,"
         "\"workers\":%u,\"artifacts\":[",
         c->precision_mode, (long long)res.n_healpix_pixels,
-        (long long)res.n_source_pixels, (unsigned)leased);
+        (long long)res.n_source_pixels,
+        (long long)res.n_rejected_nonfinite,
+        (long long)res.n_rejected_nonfinite_value,
+        (long long)res.n_rejected_nonfinite_variance,
+        (long long)res.n_rejected_nonpositive_weight,
+        (unsigned)leased);
     int first = 1;
     if (c->hips_dir) {
         const char* subs[3] = { "signal", "support", "snr" };

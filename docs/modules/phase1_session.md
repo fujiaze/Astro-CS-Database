@@ -1,5 +1,7 @@
 # Module: phase1_session
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > Phase1 进程内装配会话模块合同页 =
 > lib/phase1_session/README.md（CONTRACT_READY，assembly 层）+ lib/
 > phase1_session/module.yaml（astrocs.phase1.session，静态库

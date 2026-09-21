@@ -1,5 +1,7 @@
 # HiPS Browser
 
+> 上游：ASTROCS_DESIGN.md §8.1（顶层结构）
+
 ## 渲染架构（V14 冻结）
 
 ```text

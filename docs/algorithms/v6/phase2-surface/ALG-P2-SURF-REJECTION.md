@@ -2,6 +2,8 @@
 
 # ALG-P2-SURF-REJECTION — rejection reason / probability 规格
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-SURF-REJECTION`（`ALG-P2-SURF-001` 子文档）
 - 上位：`DESIGN-P2-001 §5`；`UNIFIED §3/§6`；`PROJECT_SPEC §7/§8`；宪章 §4.1/§6.3（排异版本化）
 - 裁决锚：`ADJ-GEN-02`（量不混名）；`FZ-GATE-SUPPORT-COVERAGE`；`ADJ-GEN-04`（标量降级）

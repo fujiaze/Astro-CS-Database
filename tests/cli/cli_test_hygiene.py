@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """FIX-UTCLI-HYGIENE: UT-CLI 子进程工作目录统一落 run/（gitignore 面）。
 
-背景（ci/checks.json::UT-CLI 以 mutates_workspace=false 执行）：检查前后对比
+背景（eng/ci/checks.json::UT-CLI 以 mutates_workspace=false 执行）：检查前后对比
 `git status --porcelain=v1 --untracked-files=all`，任何在仓库内新增/修改且未被
 忽略的文件都是 dirty 违规。UT-CLI 的 CLI/夹具子进程若以仓库根为 cwd，则会把
 按 cwd 相对解析的落点写到仓库里：

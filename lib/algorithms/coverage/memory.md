@@ -38,7 +38,7 @@ photometric scale、新 runtime I/O DLL。
   `p2_upm_dense_read_block` 做 stale 校验（source hash 不匹配返回 2）。
 - **W7 补全**：LinearFit（残差 MAD 尺度稳健版）与 RCR（Maples et al. 2018
   论文独立实现，Chauvenet 判据，weighted/unweighted）。
-- **W8 stage2 正式入口**（`tools/stage2.cpp` → `astrocs-stage2.exe`）：
+- **W8 stage2 正式入口**（`eng/tools/stage2.cpp` → `astrocs-stage2.exe`）：
   单 JSON 参数驱动 DISCOVER → VALIDATE → COVERAGE_UNION → CONTROL_SAMPLE →
   UPM_FIT → UPM_PERSIST → BLOCK_PLAN → BLOCK_CALIBRATE → REJECT_INTEGRATE →
   HIPS_WRITE → HIPS_VERIFY；输出 signal/support 两个 Image HiPS；
@@ -224,7 +224,7 @@ photometric scale、新 runtime I/O DLL。
   样本——部分拒绝像素内被拒样本仍进积分 ⇒ nused 含被拒样本 ⇒
   nused + nrej > depth ⇒ n_ineligible < 0（违反 §30.2 完备划分）。
 - **lib/algorithms/coverage 两条生产路径已正确**（逐样本剔除，即本任务目标行为）：
-  `tools/stage2.cpp:1462-1467 / 1515-1522` 与
+  `eng/tools/stage2.cpp:1462-1467 / 1515-1522` 与
   `src/acr_kernels.cpp:184-193` 均按 kernel reason 写**每样本** acc[] 后
   再过 p2_integrate_pixel。⇒ 违规面唯一 = lib/infrastructure/scheduler 节点链（Stage2 CLI 与
   ACR 均不产出 §30.2 的 nused/nrej/variance/ivar 产品）。

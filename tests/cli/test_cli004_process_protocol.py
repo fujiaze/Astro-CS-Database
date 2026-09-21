@@ -20,8 +20,10 @@ test_phase1_inprocess 编译模式; fixture 源码路径用 ARCH-001 迁移后�
     预检即阻断（rc=2, 无事件流, fail-closed）; 「失败路径仍须发完整合规事件流」改用
     「非空但文件缺失」场景（rc=3）证明;
   * test_03 旧期望 final(status=cancelled) + 事件流 → 改写: 新子命令层的确定性取消窗
-    （ASTROCS_TEST_SLEEP_MS）位于会话启动之前, 取消时不产生事件流; 保留 rc=9 +
-    不落 complete manifest 的合同断言（事件级 cancelled 断言由 §5 manifest 侧承接）。
+    （ASTROCS_TEST_SLEEP_MS）位于会话启动之前; FIX-406 起该窗内取消也发**恰一个 final
+    事件**（status=cancelled, exit_code=9, run_manifest=null —— 本次运行尚未建立
+    output_dir/run_context，不造假清单），机器侧不再靠空事件流猜状态。断言: rc=9 +
+    事件流合规（harness_validate 逐事件）+ 不落 complete manifest。
 """
 import json, os, re, shutil, signal, subprocess, tempfile, time, unittest
 
@@ -62,7 +64,20 @@ KIND_EXT = {
     "artifact": {"role", "path", "sha256", "size_bytes"},
     "backend": {"kernel", "backend_id", "isa", "workers", "block_size", "reason"},
     "final": {"exit_code", "status", "run_manifest", "summary"},
+    # FIX-405 G3-10: 10 类开放 kind 全登记（原 5 类之外补齐 5 类）
+    "stage_start": set(),
+    "stage_end": set(),
+    "graph": {"path"},
+    "resource_gate": {"diag", "enforcement", "strict", "enforced", "work_core_seconds",
+                      "workload_floor_core_seconds", "workload_floor_reached"},
+    "v6_mode_route": {"route_kind", "token", "surface", "source", "reason",
+                      "implicit_phase_chain", "budget_source_owner",
+                      "budget_allocated_cores", "one_budget_source_rule"},
 }
+# §4 kind 注册表（10 类，封闭枚举；实现正本 = lib/infrastructure/cli/protocol.h
+# registered_event_kinds_v1()）。未登记 kind 被拒。
+REGISTERED_KINDS = set(KIND_EXT)
+PROTOCOL_H = os.path.join(REPO, "lib", "infrastructure", "cli", "protocol.h")
 EXIT_DOMAIN = {0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 70}   # 04 §2 冻结 11 条
 TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 RUNID_RE = re.compile(r"^[0-9a-f]{12}$")
@@ -362,6 +377,39 @@ class TestCli004ProcessProtocol(unittest.TestCase):
             self.assertEqual(set(cond[0]["then"]["required"]), ext)
         fin_enum = schema["properties"]["exit_code"]["enum"]
         self.assertEqual(set(fin_enum), EXIT_DOMAIN)
+
+    # ── 9. FIX-405 G3-10: kind 注册表封闭（10 类全登记；未登记 kind 被拒） ──
+    def test_09_kind_registry_closed_and_unregistered_rejected(self):
+        with open(SCHEMA, encoding="utf-8") as fh:
+            schema = json.load(fh)
+        enum = schema["properties"]["kind"]["enum"]
+        # (a) 10 类全登记，且与读侧独立重实现（KIND_EXT）同面
+        self.assertEqual(len(enum), 10, "§4 kind 注册表必须是 10 类")
+        self.assertEqual(set(enum), REGISTERED_KINDS,
+                         "schema kind enum 与 §4 冻结名册不同面")
+        # (b) 每个登记 kind 恰有一个 allOf 分支，其 required 与扩展字段集逐字一致
+        branches = {c["if"]["properties"]["kind"]["const"]: set(c["then"]["required"])
+                    for c in schema["allOf"]}
+        self.assertEqual(set(branches), REGISTERED_KINDS,
+                         "schema allOf 分支集 != kind 注册表")
+        for kind, ext in KIND_EXT.items():
+            self.assertEqual(branches[kind], ext, "%s 扩展字段集不同面" % kind)
+        # (c) 机器注册表块与 enum 同面（防第二份定义漂移）
+        reg = schema["x-astrocs-event-kind-registry"]
+        self.assertEqual(set(reg["kinds"]), REGISTERED_KINDS)
+        for kind, ext in KIND_EXT.items():
+            self.assertEqual(set(reg["kinds"][kind]), ext)
+        # (d) 实现正本 protocol.h 的注册表与 schema enum 同面（跨源一致性）
+        with open(PROTOCOL_H, encoding="utf-8") as fh:
+            src = fh.read()
+        block = src.split("registered_event_kinds_v1()", 1)[1]
+        block = block.split("};", 1)[0]
+        proto_kinds = set(re.findall(r'"([a-z0-9_]+)"', block))
+        self.assertEqual(proto_kinds, REGISTERED_KINDS,
+                         "protocol.h registered_event_kinds_v1 与 schema enum 不同面")
+        # (e) 负例：未登记 kind 不在 enum 内 ⇒ 判据可红（不是恒真门）
+        self.assertNotIn("bogus_kind", enum)
+        self.assertNotIn("bogus_kind", proto_kinds)
 
 
 if __name__ == "__main__":

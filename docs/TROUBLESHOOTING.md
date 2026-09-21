@@ -1,10 +1,12 @@
 # AstroCS 排障手册
 
+> 上游：ASTROCS_DESIGN.md §7.2（配置、事件与退出码）
+
 ## Symptom → 定位 → 修复
 
 | 症状 | 阶段/证据 | 可能原因 | 命令/修复 |
 |---|---|---|---|
-| orchestrator 启动报 DLL 加载失败 | E100 + stderr | mingw64 不在 PATH; DLL 依赖缺失 | `$env:Path="C:\msys64\mingw64\bin;$env:Path"; .\toolchain.ps1 check` |
+| orchestrator 启动报 DLL 加载失败 | E100 + stderr | mingw64 不在 PATH; DLL 依赖缺失 | `$env:Path="C:\msys64\mingw64\bin;$env:Path"; .\eng/build/toolchain.ps1 check` |
 | `psf 块不存在` | E200 + SNR 日志 | PSF 阶段未运行/失败 | 检查 stop_after; 重跑 PSF |
 | 校准后全 0 / 无变化 | CALIBRATE 日志 | master 尺寸/类型不匹配 | 核对 testdata calibration files |
 | platesolve RMS 异常大 | PLATESOLVE 日志 | OBJCTRA/DEC 初值错; SIP order 高 | 修正 header; 降 order |
@@ -20,9 +22,9 @@
 
 ```powershell
 # 环境自检
-.\toolchain.ps1 check
+.\eng/build/toolchain.ps1 check
 # 全量构建
-.\toolchain.ps1 build
+.\eng/build/toolchain.ps1 build
 # SNR 科学矩阵 (模块级)
 lib\snr_estimator\cpp\test\noise_model_science_test.exe
 # Drizzle 方差传播科学测试

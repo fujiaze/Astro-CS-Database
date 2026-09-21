@@ -38,7 +38,7 @@ class TestIsaAvx2Fma(unittest.TestCase):
 
     def test_01_avx2_fma_has_fma_and_ymm_baseline_clean(self):
         """双向: baseline 零 VEX; AVX2+FMA 变体真含 FMA 指令(vfnmadd)+ ymm(256-bit)。"""
-        scan = subprocess.run(["python3", os.path.join(REPO, "tools", "check_baseline_opcodes.py"),
+        scan = subprocess.run(["python3", os.path.join(REPO, "eng", "tools", "check_baseline_opcodes.py"),
                                self.base_obj], capture_output=True, text=True, timeout=120)
         self.assertEqual(scan.returncode, 0,
                          f"baseline 不得含 AVX opcode: {scan.stdout} {scan.stderr}")

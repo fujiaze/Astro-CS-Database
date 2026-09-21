@@ -26,3 +26,17 @@ foreach(_t checksum tile_model transform query_pixel precision_dual)
   target_link_libraries(aio_${_t} PRIVATE astrocs_hips)
   add_test(NAME aio_${_t} COMMAND aio_${_t})
 endforeach()
+
+# ----------------------------------------------------------------------------
+# FIX-401（ASTROCS_DESIGN §10「I/O 与原子产品」/ GAP_AUDIT G3-1）:
+# HiPS tile 原子发布 + 完成清单 fail-closed 验证面。
+#   被测面: lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（每 tile 私有临时
+#   文件 → DATASUM/CHECKSUM 哈希校验 → fsync → 原子 rename; 全部 tile 完成后最后
+#   落完成清单）+ aio_hips_reader.cpp（无清单 ⇒ 消费者拒绝）。
+#   用例: 正常发布 / 无清单拒绝（能绿能红）/ 中途 SIGKILL 无半成品且重跑不消费残留 /
+#   磁盘满等五个注入必败且正式目录零 .fits / 截断 tile 判别力红锚。
+# ----------------------------------------------------------------------------
+add_executable(aio_hips_atomic_publish
+  ${AIO_TESTS_DIR}/test_hips_atomic_publish.cpp)
+target_link_libraries(aio_hips_atomic_publish PRIVATE astrocs_hips)
+add_test(NAME aio_hips_atomic_publish COMMAND aio_hips_atomic_publish)

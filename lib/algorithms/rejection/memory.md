@@ -90,7 +90,7 @@
 - 任务: IMPL-P2-REJ-001（wave 5，depends_on CONTRACT-FREEZE-001）。只改
   write_scope：`lib/algorithms/coverage/src/rejection.cpp`、
   `lib/algorithms/coverage/include/astro/phase2/rejection.h`、`lib/algorithms/rejection/`、
-  `tests/unit/v6_p2_rej/`；未改 docs/、ci/、根/测试公共 CMakeLists。
+  `tests/unit/v6_p2_rej/`；未改 docs/、eng/ci/、根/测试公共 CMakeLists。
 - 新增接口（头 `rejection.h`；实现 `rejection.cpp` 末尾 V6 段）:
   - `p2_reject_classify`：按预测残差方差
     `sigma_eff^2 = sigma_phase1^2 + J C_theta J^T` 的阈值判定；

@@ -33,7 +33,7 @@ tests/system/v6_runtime/；根/公共 CMakeLists 注册由控制器在 W9 之后
 | v6_runtime_determinism_positive | 规范归约跨 worker/调度逐字节一致 |
 | v6_runtime_determinism_negative | 共享累积（结合序=调度序）必被检出 |
 
-## 相关工具（tools/v6/）
+## 相关工具（eng/tools/v6/）
 
 - v6_runtime_oracle.py —— 独立结构 Oracle（源码/配置静态判定，非自证）。
 - v6_runtime_mutation_driver.py —— 负向 mutation：违反资源门/预算/确定性/CLI 路由必红。

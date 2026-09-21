@@ -10,6 +10,8 @@ downstream: [TEST-P1-COS-001]
 
 # 模块 astrocs.phase1.cosmetic
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页由源码核对后修订——
 > 合同 ID 由 W3 骨架占位（SCI-P1-COS-001/ALG-P1-COS-001）更正为真实
 > 冻结 ID；模块级事实以 lib/algorithms/cosmetic/README.md（r1，CONTRACT_READY）

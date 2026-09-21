@@ -50,7 +50,7 @@
 | ALG | ALG-P3-PROJ-IMPL-001 | docs/algorithms/PHASE3_PROJ_IMPL.md（本域实现级合同，兼承接 ALG-P3-002 本域子面） | CONTRACT_READY |
 | DATA | DATA-P3-WCS | docs/contracts/DATA_SEMANTICS.md §28 | CONTRACT_READY |
 | API | API-P3-PROJ-001 | docs/contracts/PUBLIC_API.md（Phase3 投影公共消费面节） | CONTRACT_READY |
-| ARCH | ARCH-001 | docs/architecture/cpu/ARCH_CONTRACTS.md | VERIFIED |
+| ARCH | ARCH-001 | eng/cmake/ARCH-001-migration-manifest.md | VERIFIED |
 | API(镜像) | API-P3-001 | docs/contracts/PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像，不变） | FROZEN 镜像 |
 | TEST | TEST-P3-WCS-001 | 登记面=TEST-P3-WCS-DESIGN-001（设计冻结 VERIFIED，ALG-P3-PROJ-IMPL-001 §11 + registry 页 §9 双重陈述）；可执行面=tests/unit/p3_wcs_test.cpp（90 行）+ tests/backend/test_p1002_gaps.py + tests/backend/p3_wcs_main.cpp；验收升级归 P3-PROJ-TEST | 见右 |
 | EVID | EVID-MISSING | 待 P3-PROJ-INT/验收补 | MISSING |
@@ -126,7 +126,7 @@
 - 适用域门（DESIGN §5.3「违反 ⇒ 拒绝」，`p3_wcs_check_applicability`）:
   |CRVAL2|≤85°、FOV≤20°（`p3_wcs_fov_deg` = scale×√(W²+H²) 帧对角全视场）、
   手性 det(CD)<0、CRPIX=(W+1)/2,(H+1)/2（FITS 1-based 像素中心）、
-  往返 <1e-6 px（`p3_wcs_roundtrip_max_error_px`，9 点采样）。
+  往返 <1e-8 px（`p3_wcs_roundtrip_max_error_px`，9 点采样；`kTanApplicability.roundtrip_tol_px`）。
 - 可执行面: `tests/p3wcs/p3_projection_registry_test.cpp`（ctest
   `p3_projection_registry` + 负例入口 `p3_projection_registry_selftest`）+
   `tests/p3wcs/p3_projection_unsupported_cli.py`（ctest

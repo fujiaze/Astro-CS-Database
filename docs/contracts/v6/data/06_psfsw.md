@@ -2,6 +2,8 @@
 
 # 06 — PSFSW 四分量 / 复合 / 归一 / fail-closed schema
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 上位锚：`FZ-FIELD-PSFSW-4COMP`、`FZ-FIELD-PSFSW-UNIT`、`FZ-FORMULA-PSFSW-COMPOSITE`、`FZ-GATE-PSFSW-FAILCLOSED`、`FZ-GATE-PSFSW-COV`、`FZ-GATE-PSFSW-EPSF`；
 PSF_SIGNAL_WEIGHT §3/§5/§6/§8；PSFW_FREEZE §4.2/§4.3/§5.1/§9；ADJ-P2-03；`RULINGS.md` #3/#4/#5。
 机器：`contracts/proposals/v6/data/astrocs.v6.psfsw.v1.schema.json`（`psfsw.v1`）；正例 `examples/psfsw.example.json`。

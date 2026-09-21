@@ -4,6 +4,8 @@
 
 # SCI-PSFW-001 — PSF Signal Weight 冻结研究（W_info / PixInsight-style PSFSW / PSF SNR power / 共同星集与 selection bias）
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 文档 ID：`SCI-PSFW-001-FREEZE-RESEARCH`
 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCI-PSFW-001.md`（wave 1，`depends_on = BASE-OWN-001`）
 写域：`docs/science/v6/psfw/`、`run/v6/sci-psfw/`（仅此两处；本任务未写任何其他路径）
@@ -240,9 +242,9 @@ Oracle K8 用同一合成星场（6000 颗，`10²..10⁵` 通量，CCD 方程�
 
 | 命令 | 实测 rc | 日志 |
 |---|---|---|
-| `python3 tools/psfsw_oracle.py --selftest --verbose` | **0**（正向 76 check ACCEPT；12/12 mutation CAUGHT） | `run/v6/sci-psfw/logs/20_oracle_selftest.log` |
-| `python3 tools/w_info_psfsw_oracle.py` | **0**（13/13 claim PASS） | `run/v6/sci-psfw/logs/21_oracle_w_info_psfsw.log` |
-| `bash tools/run_all.sh`（一键复跑，单一 rc） | **0** | `run/v6/sci-psfw/logs/22_run_all.log` |
+| `python3 eng/tools/psfsw_oracle.py --selftest --verbose` | **0**（正向 76 check ACCEPT；12/12 mutation CAUGHT） | `run/v6/sci-psfw/logs/20_oracle_selftest.log` |
+| `python3 eng/tools/w_info_psfsw_oracle.py` | **0**（13/13 claim PASS） | `run/v6/sci-psfw/logs/21_oracle_w_info_psfsw.log` |
+| `bash eng/tools/run_all.sh`（一键复跑，单一 rc） | **0** | `run/v6/sci-psfw/logs/22_run_all.log` |
 | 生产面探针（只读 grep/git） | **0** | `run/v6/sci-psfw/logs/22_baseline_probe.log` |
 | 越界写审计（docs + 被 gitignore 的 run/） | **0** | `run/v6/sci-psfw/logs/23_scope_check.log` |
 | 文档 claim/锚点审计（含 10 项负向 mutation） | **0** | `run/v6/sci-psfw/logs/24_doc_claim_audit.log` |

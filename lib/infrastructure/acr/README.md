@@ -20,14 +20,14 @@ AstroCS_ENGINEERING_CONSTRAINTS.md §C.1/C.2：ACR 是正式发布后的 CPU/GPU
 2. **实验 target 只能隔离构建**：显式实验 configure 以 ACR 树自身为
    `-S` 根（见下），产出 target 全部位于独立 build 目录，不与产品图交集。
 3. **release preset 不接受 ON**：`win-msvc-17.14.39-x64` 与 `linux-control`
-   preset 冻结 `ASTROCS_ENABLE_ACR=OFF`；`cmake/toolchain/verify_toolchain.py`
+   preset 冻结 `ASTROCS_ENABLE_ACR=OFF`；`eng/cmake/toolchain/verify_toolchain.py`
    对 formal path 强制 OFF（ON → FAIL）。
 4. **install/product manifest 零 ACR**：唯一 install 源
-   `cmake/install_layout.cmake` 与 `packaging/*.json` 均无 ACR/CUDA 条目
+   `eng/cmake/install_layout.cmake` 与 `packaging/*.json` 均无 ACR/CUDA 条目
    （机器校验见 `lib/infrastructure/acr/ci/check_acr_dormant.py`）。
 5. **生产二进制不加载**：`include/astrocs/core/runtime.h` 声明"ACR 不注册不链接"，
    `lib/infrastructure/scheduler/src/module.cpp` 拒绝 `astrocs.acr.*` 模块注册；ACR 实验入口
-   （tools/qualification/scheduler）仅供独立实验构建。
+   （eng/tools/qualification/scheduler）仅供独立实验构建。
 
 验收命令（Linux 控制节点）：
 
@@ -57,11 +57,11 @@ lib/infrastructure/acr/
 ├── utilization/            # 95% 软占用控制
 ├── diagnostics/            # 日志 + 设备报告
 ├── tests/{unit,classic,fault}/
-├── tools/{acr_benchmark,acr_status,acr_report,acr_invalidate}/
+├── eng/tools/{acr_benchmark,acr_status,acr_report,acr_invalidate}/
 ├── docs/                   # ADR + 审计报告 + 禁止路径 + dependency-lock
 ├── schemas/                # route_profile schema
 ├── examples/               # minimal_parallel_for 等
-└── ci/path_guard.ps1       # 提交前路径检查
+└── eng/ci/path_guard.ps1       # 提交前路径检查
 ```
 
 ## 构建
@@ -87,10 +87,8 @@ cmake --build build/acr-cuda -j
 
 ## 文档
 
-- 工程控制/tasks/acr/spec.md — 实现规格
-- 工程控制/tasks/acr/checklist.md — 验收检查表
-- 工程控制/tasks/acr/tasks.md — 任务拆分
-- docs/audit-report.md — 仓库审计
-- docs/forbidden-paths.md — 禁止修改路径
-- docs/dependency-lock.json — 第三方依赖锁定
-- docs/ADR-00*.md — 架构决策记录
+- docs/science/ACR_EQUIVALENCE.md — ACR 与生产链科学等价性（现行权威）
+- docs/algorithms/ACR_EQUIVALENCE.md — ACR 算法等价性（现行权威）
+- DEPENDENCIES.md — 第三方依赖锁定（现行权威）
+- 历史 ACR 任务文档（spec/checklist/tasks、审计报告、禁止修改路径、ADR）已随
+  治理工件清理删除，见 git 历史；本模块为**非生产**面（GAP_AUDIT §未覆盖）。

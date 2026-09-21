@@ -107,7 +107,7 @@
   T4 Galaxy_Center 0.6791″=0.1077 px（6265/20000）；内部解 rms
   0.1584/0.1472/0.3588″。两跑一致性：T4 `det2/n1` vs `det3/n1` 记录逐位相同
   （median 0.107658 px）。
-- **可执行门**：`tools/astrometry/closure_metric.py`（ctest
+- **可执行门**：`eng/tools/astrometry/closure_metric.py`（ctest
   `p1wcs_closure_metric_gate`：容差 0 px + 7 类负例注入必红）；记录落
   `run/PROJECT-GOVERNANCE-01/E2E-FIX-001/out/rec_*`。
 

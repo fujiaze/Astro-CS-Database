@@ -6,8 +6,8 @@
 //
 // 依据:
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §11 (自适应空间 Tile)
-// - docs/stage1_fix/00_COMMON_CONTRACTS.md §2.1 (Tile 几何冻结接口)
-// - docs/stage1_fix/spec.md 步骤1 (Tile 父子模型修正)
+// - lib/infrastructure/aio/docs/HEALPIX_FORMAT_SPEC.md (Tile 几何冻结接口)
+// - docs/algorithms/HIPS_WRITER.md (Tile 父子模型修正)
 //
 // 核心公式 (冻结, 子代理不得修改):
 // d = min(9, log2(NSIDE/16))

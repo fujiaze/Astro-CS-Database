@@ -1,5 +1,7 @@
 # Code Style
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 - C++17；MSYS2 MinGW64 g++ 16.1.0；OpenMP 仅显式并行区。
 - `.clang-format`（根目录，V14 落地）覆盖 first-party；third_party 不
   mass-format；`.editorconfig`（根目录）统一缩进/换行/编码。

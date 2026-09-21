@@ -14,7 +14,11 @@
 #include <dlfcn.h>
 #endif
 
-namespace fs = std::filesystem;
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文件摘要与存在性
+// 探测一律经 aio 唯一实现 (aio_file::sha256_hex / aio_atomic::path_exists),
+// 本 TU 不自持 FILE* / std::filesystem 通道。
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"
 
 namespace astrocs::backend_host {
 
@@ -40,14 +44,10 @@ std::string join_private(const std::string& dir, const std::string& bare) {
 }  // namespace
 
 std::string file_sha256_hex(const std::string& u8path) {
-    std::FILE* f = std::fopen(u8path.c_str(), "rb");
-    if (!f) return {};
-    crypto::Sha256 h;
-    char buf[65536];
-    size_t n = 0;
-    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) h.update(buf, n);
-    std::fclose(f);
-    return h.final_hex();
+    // CLEAN-403: 完整读取 + 摘要经 aio (失败 ⇒ 空串, 与 fopen 失败同语义)。
+    std::string hex;
+    if (!aio_file::sha256_hex(u8path.c_str(), &hex)) return {};
+    return hex;
 }
 
 bool parse_backends_manifest(const std::string& json_text,
@@ -75,7 +75,7 @@ bool parse_backends_manifest(const std::string& json_text,
         // 拒载整个 manifest。此前 b.value("required_features_bits", 0ull) 对
         // 缺失/拼错字段静默默认 0 → 预检 ISA 门 (required ⊆ detected) 恒真,
         // AVX/AVX512 DSO 可在无对应 ISA 机器通过加载、kernel 首调 SIGILL。
-        // 硬失败依据: ① 生成器 tools/gen_provider_manifests.py 对每个条目
+        // 硬失败依据: ① 生成器 eng/tools/gen_provider_manifests.py 对每个条目
         // (含 baseline, bits=0) 一律显式写出该字段 —— "缺失"不在合法生成面内;
         // ② 本模块合同 (backend_loader.h): "结构非法→err 非空, 不猜"。
         // 类型取严格白名单: 仅无符号整数 (负数/浮点/字符串/布尔均拒)。
@@ -113,8 +113,7 @@ LoadResult preflight_entry(const std::string& backends_dir, const ManifestEntry&
                     "abi_version mismatch: " + std::to_string(e.abi_version));
     // ③ 文件存在(仅在私有 backends 目录内解析)
     const std::string path = join_private(backends_dir, e.file);
-    std::error_code ec;
-    if (!fs::exists(fs::u8path(path), ec))
+    if (!aio_atomic::path_exists(path, nullptr))
         return fail(LoadResult::FALLBACK_BASELINE, "backend file missing: " + e.file);
     // ④ hash 实测
     const std::string got = file_sha256_hex(path);

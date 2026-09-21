@@ -285,19 +285,30 @@ inline VarOracle oracle_variance_const(const std::vector<LeafRec>& leafs,
 
 // ---------------------------------------------------------------------------
 // Oracle O8: FIX-DRZ-E NaN/Inf 污染 leaf 集合断言 (DRIZZLE.md:96 传播)
-//   注入像素 {NaN, +Inf, -Inf} 的 drop 命中 leaf 集合 = 必含非有限值;
-//   其余 leaf (无注入贡献) 必须保持有限 → 污染集合 == oracle 超采样集合。
+//   （FIX-405 G3-5 反转后的现行冻结口径）注入像素 {NaN, +Inf, -Inf} 必须被
+//   **样本级掩膜**（不得污染任何 leaf），且被剔除样本数必须**强制暴露**。
+// 权威 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a
+//   （rule_id NAN-SAMPLE-MASK-COVERAGE-NAN，EXP-202 定案；唯一口径）:
+//   样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数。原「正面传播」断言已作废。
+// 本 oracle 独立重实现（不调用被测函数）：leaf 集合由测试侧几何超采样给出，
+// 非有限性由输出逐 leaf 扫描给出，计数由被测 stats 给出（三源互校）。
 // ---------------------------------------------------------------------------
 struct NonFiniteOracle {
-    std::set<uint64_t> expect_polluted;  // oracle 超采样命中 leaf
-    std::set<uint64_t> got_polluted;     // 被测输出含非有限值 leaf
+    std::set<uint64_t> expect_polluted;  // oracle 超采样命中 leaf（信息面）
+    std::set<uint64_t> got_polluted;     // 被测输出含非有限值 leaf（必须为空）
+    std::size_t n_leafs = 0;
+    int64_t expect_rejected = 0;         // 注入样本数（= 应计数）
+    int64_t got_rejected = 0;            // 被测 n_rejected_nonfinite_value
+    bool none_polluted = false;          // 掩膜成立（无非有限 leaf）
+    bool rejection_counted = false;      // 强制计数成立（计数 == 注入样本数）
     bool ok = false;
 };
 
 inline NonFiniteOracle oracle_nonfinite_pollution(
     const std::vector<LeafRec>& leafs,
     const drizzle::WcsParams& wcs, const drizzle::DrizzleConfig& cfg,
-    const std::vector<std::pair<double, double>>& injected_px) {
+    const std::vector<std::pair<double, double>>& injected_px,
+    const drizzle::DrizzleStats& st) {
     NonFiniteOracle o;
     const uint32_t nside = (uint32_t)cfg.nside;
     for (const auto& [px, py] : injected_px) {
@@ -312,13 +323,16 @@ inline NonFiniteOracle oracle_nonfinite_pollution(
             if (!std::isfinite(v)) nonfinite = true;
         if (nonfinite) o.got_polluted.insert(l.ipix);
     }
-    // 污染集合 ⊇ oracle 命中集合 (超采样可能漏边界, 反向不允许);
-    // 且污染必须非空、非全图 (传播有界)
-    bool superset = true;
-    for (uint64_t e : o.expect_polluted)
-        if (!o.got_polluted.count(e)) { superset = false; break; }
-    o.ok = superset && !o.got_polluted.empty() &&
-           o.got_polluted.size() < leafs.size();
+    o.n_leafs = leafs.size();
+    o.expect_rejected = (int64_t)injected_px.size();
+    o.got_rejected = st.n_rejected_nonfinite_value;
+    // 判据（非退化：注入样本数 > 0 且 leaf 非空）:
+    //   ① 掩膜: 无任何 leaf 因注入而变非有限（污染集合为空）;
+    //   ② 强制计数: 值非有限计数恰等于注入样本数（漏计/双计都判红）。
+    o.none_polluted = o.got_polluted.empty();
+    o.rejection_counted = (o.got_rejected == o.expect_rejected);
+    o.ok = o.none_polluted && o.rejection_counted && o.expect_rejected > 0 &&
+           !leafs.empty();
     return o;
 }
 

@@ -5,7 +5,7 @@
 > `docs/algorithms/`（推导权威）、`docs/design/UNIFIED_MODEL.md`（数据对象与三类配置分离）。
 > 与其他文档冲突时以 `ASTROCS_DESIGN.md` 为准（§0）；已删除的旧根治理文件（旧宪章、旧工程约束、旧 `CHANGELOG.md`/`REVIEW.md`/`HANDOVER.md`）、
 > `设计大纲/`、`evidence/**`
-> 已由 ROOT-007 及后续根清洁删除，历史仅存在于 `docs/archive/**`。
+> 已由 ROOT-007、CLEAN-402 及后续根清洁删除，历史仅存在于 git 历史。
 > 目标产品版本为根 `VERSION` = `0.11.0-alpha.2`——**仅内部开发助记符**，不进入程序/代码/产物；
 > Alpha 前程序内不存在任何版本信息（ASTROCS_DESIGN §12、ENGINEERING_SPEC §7）。
 > 现状与发布口径：`docs/owner/RELEASE_STATUS.md`、`docs/RELEASE_STATUS.md`、`docs/KNOWN_LIMITATIONS.md`。
@@ -84,7 +84,7 @@ lib/infrastructure/  基建：cli/{normalize,mosaic,export} + scheduler pipeline
 lib/phase{1,2,3}_session  三阶段会话编排（引用算法模块，不重复实现）
 include/astrocs/     公共头（ABI/core/io；版本化 C ABI）
 contracts/           合同 schema（唯一事实源：schemas/data/config）
-cmake/              平台相关构建与安装布局
+eng/cmake/              平台相关构建与安装布局
 config/             程序根全局配置（filters.json / defaults.json）
 docs/               文档体系（science/algorithms/plugins/ci/design/architecture/...）
 tests/              测试（与模块共址可复用）；testdata/ 真实数据与合成数据
@@ -102,17 +102,16 @@ run/                临时产物/日志（gitignore，不入库）
 - 命令面：`normalize|mosaic|export --json <config.json>`（`--template` 生成模板，`--help` 字段说明）；
   `help` / `--version` / `doctor` / `benchmark`（docs/api/CLI_PROTOCOL_V1.md）。
 - 文档路由：`docs/README-DOCS.md`（文档体系分层）、`docs/DOCUMENT_INDEX.yaml`（机器索引：
-  活动/归档边界 + `tools/doccheck/check_doc_index.py` 校验）。
+  活动/归档边界 + `eng/tools/doccheck/check_doc_index.py` 校验）。
 - 记忆：根 `memory.md`（稳定目标/模块索引/开放问题）。
-- 变更历史：无独立 CHANGELOG（已删除）；历史只存在于 `docs/archive/**`
+- 变更历史：无独立 CHANGELOG（已删除）；历史只存在于 git 历史
   （`ARCHIVED_NON_NORMATIVE`）与 `git log`。
 
 ## 历史说明
 
 V1–V19/V18R2/V19R2/V19R8/V19R6R2-W1 等历史轮次（含旧 11 子仓结构、旧 F 盘路径、
-旧 16 线程约定、Python 调 DLL 时代）**不是当前状态**：历史只存在于 `docs/archive/**`
+旧 16 线程约定、Python 调 DLL 时代）**不是当前状态**：历史只存在于 git 历史
 （`ARCHIVED_NON_NORMATIVE`）与 `docs/**/v6/**`（V6 产品族冻结/设计档案）。
 已删除的旧根治理文件（`ASTROCS_PROJECT_CONSTITUTION.md`、`AstroCS_ENGINEERING_CONSTRAINTS.md`、
 旧 `CHANGELOG.md`/`REVIEW.md`/`HANDOVER.md`）、`设计大纲/`、`evidence/**`、旧 `工程控制/AstroCS_*` 控制包（均已删除）
-及其旧历史控制包归档树**不得再被当作现状引用**。详见根 `memory.md`
-与 `docs/archive/history/README.md`。
+及其旧历史控制包归档树**不得再被当作现状引用**。详见根 `memory.md` 与 git 历史。

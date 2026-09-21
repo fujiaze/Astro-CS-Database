@@ -42,7 +42,7 @@ SESSION_H = "lib/infrastructure/cli/session_commands.h"
 PARSER_CPP = "lib/infrastructure/cli/parser.cpp"
 REGISTRY = "config/config_registry.json"
 DEFAULTS = "config/defaults.json"
-LEDGER = "ci/ledgers/dead_config_keys.json"
+LEDGER = "eng/ci/ledgers/dead_config_keys.json"
 PROJ_REGISTRY = "contracts/schemas/projection_registry.schema.json"
 
 # §9.73 裁决 A44（负责人 2026-09-20）：「权重模式」概念不存在 ⇒ 三套键名一并作废。

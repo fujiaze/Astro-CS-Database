@@ -4,6 +4,8 @@
 
 # 09 — 验证门与负向 mutation 判据（可实施、可验证）
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 上位锚：`ASTROCS_DESIGN.md` §0 权威链；PROJECT_SPEC §8；UNIFIED §10；
 （**2026-09-20 订正**：原文「宪章 §12.3（机器一致性）/§13.1（独立 Oracle）/§14.4（fail-fast）」已作废——宪章 `ASTROCS-CONSTITUTION-001` 由 ROOT-007 删除、**不作权威**，依据 `ASTROCS_DESIGN.md:31` + `docs/owner/PROJECT_SPEC.md:9`；该引用仅存历史溯源，见本文件 `:1` 的 DOC-001 注记。）
 SCI-ADJ-001 `required_freeze_ids` 与 `forbidden_weight_source_tokens`；SCI-P2-001 `WEIGHT_PROVENANCE_GATE.md` R0–R8。

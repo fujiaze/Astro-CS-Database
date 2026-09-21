@@ -172,7 +172,7 @@ class TestBackendLoader(unittest.TestCase):
 
     def test_09_gen_tool_roundtrip(self):
         out = os.path.join(self.tmp, "gen.json")
-        r = subprocess.run(["python3", os.path.join(REPO, "tools", "gen_backends_manifest.py"),
+        r = subprocess.run(["python3", os.path.join(REPO, "eng", "tools", "gen_backends_manifest.py"),
                             self.so, "--out", out, "--feat", "sse2",
                             "--compiler", "g++-14.2"],
                            capture_output=True, text=True, timeout=60)

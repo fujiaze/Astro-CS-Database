@@ -6,14 +6,14 @@
 （09_WINDOWS_TOOLCHAIN_LOCK.md §4 固定组件），与 CMakePresets.json 的正式
 Windows preset 一起构成 `win-msvc-17.14.39-x64` 发布工具链的配置面。
 
-机器校验：`cmake/toolchain/verify_toolchain.py`（合同
+机器校验：`eng/cmake/toolchain/verify_toolchain.py`（合同
 `packaging/schemas/preset-contract.json` 为单一事实源）会对本文件做组件
 精确比对——多一个或少一个组件都会 FAIL fast。
 
 ## 为什么放 packaging/windows/ 而不是仓库根
 
 AstroCS 05_FIXED_SUBAGENT_BINDINGS.yaml 给 SA-BLD-02 的 write 白名单为
-`CMakeLists.txt / CMakePresets.json / cmake/** / packaging/** / DEPENDENCIES.md
+`CMakeLists.txt / CMakePresets.json / eng/cmake/** / packaging/** / DEPENDENCIES.md
 / vcpkg.json / vcpkg-configuration.json`，根目录 `.vsconfig` 不在白名单内。
 `packaging/windows/` 是本 owner 可写且语义贴切的位置（Windows 发布包内容）。
 Visual Studio 安装器支持以 `--config <path>` 显式传入任意路径的组件清单

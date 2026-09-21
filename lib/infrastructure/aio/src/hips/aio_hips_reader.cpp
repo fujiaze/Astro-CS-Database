@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <iterator>
 #include <map>
 #include <mutex>
 #include <memory>
@@ -76,6 +77,43 @@ std::string tile_path_resolve(const std::string& dir, int order, uint64_t ipix, 
 //     (恶意 hips_order=32+ 此前 UB 移位/回绕)。
 static bool valid_product_params(int tile_width, int hips_order) {
     return tile_width == 512 && hips_order >= 0 && hips_order <= 29;
+}
+
+// ---------------------------------------------------------------------------
+// FIX-401 (ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1):
+// **完成清单 fail-closed** —— 「没有完成清单就不算成功对象」。产品集根下的
+// manifest.json 由 writer 在**全部 tile 完成之后**最后原子落盘 (aio_hips_finalize);
+// 中途 kill / 失败 / 取消只会留下无清单的 tile 残骸。消费者 (aio_hips_open)
+// 必须拒绝这类目录, 否则残骸会被当成产品消费 (G3-1「重跑消费残留」)。
+// 判据: 清单存在且非空 + 含 products 数组 + 声明了本次请求的子产品。
+// ---------------------------------------------------------------------------
+bool manifest_products_of(const std::string& root, std::string* products,
+                          std::string* err) {
+    const std::string mp = root + "/manifest.json";
+    std::ifstream f(mp, std::ios::binary);
+    if (!f.good()) {
+        if (err) *err = "完成清单缺失 (manifest.json, §10 fail-closed): " + root;
+        return false;
+    }
+    const std::string text((std::istreambuf_iterator<char>(f)),
+                           std::istreambuf_iterator<char>());
+    if (text.empty()) {
+        if (err) *err = "完成清单为空 (manifest.json, §10 fail-closed): " + mp;
+        return false;
+    }
+    const size_t k = text.find("\"products\"");
+    if (k == std::string::npos) {
+        if (err) *err = "完成清单无 products 声明 (manifest.json, §10 fail-closed): " + mp;
+        return false;
+    }
+    const size_t lb = text.find('[', k);
+    const size_t rb = (lb == std::string::npos) ? std::string::npos : text.find(']', lb);
+    if (lb == std::string::npos || rb == std::string::npos || rb < lb) {
+        if (err) *err = "完成清单 products 声明不可解析 (manifest.json): " + mp;
+        return false;
+    }
+    *products = text.substr(lb, rb - lb + 1);
+    return true;
 }
 
 std::map<std::string, std::string> parse_properties(const std::string& path) {
@@ -311,6 +349,20 @@ AioHipsDataset* aio_hips_open(const char* out_dir, int product)  {
                           product == AIO_HIPS_RD_VARIANCE ? "variance" :
                           product == AIO_HIPS_RD_IVAR ? "ivar" :
                           product == AIO_HIPS_RD_NREJ ? "nrej" : "nused";
+        // FIX-401 §10: 完成清单 fail-closed (先于任何子产品内容读取)。
+        {
+            std::string products, merr;
+            if (!manifest_products_of(out_dir, &products, &merr)) {
+                set_err(merr);
+                return nullptr;
+            }
+            const std::string quoted = std::string("\"") + sub + "\"";
+            if (products.find(quoted) == std::string::npos) {
+                set_err("完成清单未声明子产品 '" + std::string(sub) +
+                        "' (manifest.json, §10 fail-closed): " + std::string(out_dir));
+                return nullptr;
+            }
+        }
         d->dir = std::string(out_dir) + "/" + sub;
         d->props = parse_properties(d->dir + "/properties");
         auto geti = [&](const std::string& k, int def) -> int {

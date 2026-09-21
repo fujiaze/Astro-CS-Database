@@ -1117,7 +1117,7 @@ static void test_f_p2002_02_n_ineligible_identity(bool fault_inject) {
 // 该节不依赖 lib/infrastructure/scheduler: 直接用与生产同参的 plan 直调 reject kernel, 按
 // reason 构造 accepted 掩码, 再调 p2_integrate_pixel。两个分支对照:
 //   (i)  逐样本掩码（lib/algorithms/coverage 两条生产路径的接线语义,
-//        tools/stage2.cpp:1462-1467/1515-1522 与 src/acr_kernels.cpp:184-193）
+//        eng/tools/stage2.cpp:1462-1467/1515-1522 与 src/acr_kernels.cpp:184-193）
 //        ⇒ n_used + nrej == depth, n_ineligible == 0   ← 契约正确
 //   (ii) 像素级塌缩掩码（基线 lib/infrastructure/scheduler 节点链接线语义）
 //        ⇒ n_used + nrej > depth, n_ineligible < 0     ← 契约破坏（必失败断言）

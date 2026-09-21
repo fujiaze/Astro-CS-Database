@@ -1,5 +1,7 @@
 # 插件文档：fits_output（流式 FITS 输出）
 
+> 上游：ASTROCS_DESIGN.md §6.2（export 流程）
+
 ## 1. 职责与边界
 
 - **职责**：把重采样后的平面产品流式写出为测量意义明确的 FITS 文件（PRIMARY + 扩展 HDU + WCS + provenance）。

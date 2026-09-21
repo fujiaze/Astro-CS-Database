@@ -1,5 +1,7 @@
 # Performance Model
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 - 热路径禁止 per-pixel alloc/log/fs/clock；per-pixel 数学用连续 buffer。
 - 科学精度优先：FP64 reference；FP32 仅显式精度等价路径。
 - 关键 fast path 及其 reference：

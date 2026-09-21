@@ -1,5 +1,7 @@
 # Phase2 Integration Algorithms（P2-INT / astrocs.p2.integration）
 
+> 上游：ASTROCS_DESIGN.md §5.3（SNR 重建与逆方差叠加）
+
 > ID: ALG-P2-INT-001  状态: CONTRACT_READY
 > 模块: lib/algorithms/coverage/src/integrate.cpp（81 行，astrocs_phase2 静态库成员，
 > 根 CMakeLists.txt:336-346/:344）+ 唯一权威签名头

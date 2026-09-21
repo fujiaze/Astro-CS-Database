@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""CHK-ENV-ADOPTION（ci/verify_toolchain.py）的能绿能红证据。
+"""CHK-ENV-ADOPTION（eng/ci/verify_toolchain.py）的能绿能红证据。
 
-背景（TST-001 审查）：ci/polarity_evidence.json 把 CHK-ENV-ADOPTION 记为
+背景（TST-001 审查）：eng/ci/polarity_evidence.json 把 CHK-ENV-ADOPTION 记为
 FACE-DEFINED-NOT-RUN，负例入口只写成 sh -c "verify_toolchain.py 注入 lock 漂移
 ⇒ 必须非 0" 的人工说明，不是机器可执行负例（ENGINEERING_SPEC.md §8 /
 docs/ci/01_CHECKS.md §1）。本文件把该负例面机器化：真仓正例必绿，逐条注入
@@ -29,9 +29,9 @@ import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-CHECKER = REPO / "ci" / "verify_toolchain.py"
-POLICY = REPO / "ci" / "toolchain.policy.json"
-LOCK = REPO / "ci" / "toolchain.lock.json"
+CHECKER = REPO / "eng" / "ci" / "verify_toolchain.py"
+POLICY = REPO / "eng" / "ci" / "toolchain.policy.json"
+LOCK = REPO / "eng" / "ci" / "toolchain.lock.json"
 SCOPE = "agent-host"
 
 
@@ -119,13 +119,13 @@ class EnvAdoptionNegativeTest(unittest.TestCase):
         self.assertNotEqual(_run(self.policy, self.lock).returncode, 0)
 
     # NOTE（TST-001 登记的产品缺陷，暂不入本绿测试）：
-    # ci/verify_toolchain.py:207-208 以 `main()`（无 sys.exit）作 __main__ 入口，
+    # eng/ci/verify_toolchain.py:207-208 以 `main()`（无 sys.exit）作 __main__ 入口，
     # 而 :111/:123 的 fail-closed `return 1` 只从 main() 返回、未传播为进程退出码，
     # 故「lock 非法 JSON / lock 缺失 / policy 缺失」时脚本打印 [FAIL] 却 exit 0。
     # 违反 ENGINEERING_SPEC.md §8「fail-closed：输入缺失/路径不存在必须判红」。
-    # 复现：echo '{ not json' > /tmp/l.json && python3 ci/verify_toolchain.py \
-    #         --policy ci/toolchain.policy.json --actual /tmp/l.json --scope agent-host; echo $?  # => 0
-    # 修复（ci/verify_toolchain.py，非本任务文件域）后应恢复以下 3 条 fail-closed 负例：
+    # 复现：echo '{ not json' > /tmp/l.json && python3 eng/ci/verify_toolchain.py \
+    #         --policy eng/ci/toolchain.policy.json --actual /tmp/l.json --scope agent-host; echo $?  # => 0
+    # 修复（eng/ci/verify_toolchain.py，非本任务文件域）后应恢复以下 3 条 fail-closed 负例：
     #   test_negative_malformed_lock_is_red / _missing_lock_is_fail_closed /
     #   _missing_policy_is_fail_closed
 

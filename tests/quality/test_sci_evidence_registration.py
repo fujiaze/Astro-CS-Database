@@ -5,7 +5,7 @@
 背景（R-2 / M4-F-01 改判）：SCI PHASE2_UPM §11/§15 以现在时把
 control_median_mc_test / kcorr_matrix_test 当作**已通过的证据**；事实是这两个 TU
 存在且受 git 跟踪，但属 tracked-but-unbuilt（全部 CMakeLists 非注释行 0 命中、
-ci/** 无测试选择器命中、ctest -N 无它们）。"文件存在"不等于可执行证据 ——
+eng/ci/** 无测试选择器命中、ctest -N 无它们）。"文件存在"不等于可执行证据 ——
 门必须打在证据链上。
 
 门判据（三合一）：
@@ -13,7 +13,7 @@ ci/** 无测试选择器命中、ctest -N 无它们）。"文件存在"不等于
   B. 构建注册：名字（文件名或 target 名）出现在某个**受跟踪** CMakeLists.txt /
      *.cmake 的**非注释行**；
   C. CI 采集：登记的 ctest 名（或匹配它的正则，如 CTEST-PHASE2-GATES 的
-     phase2_.*）出现在 ci/checks.json / ci/ctest_baseline.json 的**测试选择器面**
+     phase2_.*）出现在 eng/ci/checks.json / eng/ci/ctest_baseline.json 的**测试选择器面**
      （ctest_targets / --target / -R / --tests-regex），不匹配任意 glob 串。
 
 双向一致（ENGINEERING_SPEC §8"注册表双向一致"）：
@@ -46,7 +46,7 @@ import unittest
 # ── watched 证据表（唯一登记面；新增 SCI/ALG 点名的测试必须登记在此）────────
 WATCHED = {
     # 阳性对照：已注册进根图（lib/algorithms/coverage/CMakeLists.txt 的
-    # phase2_synthetic_gate）且被 ci/checks.json CTEST-PHASE2-GATES
+    # phase2_synthetic_gate）且被 eng/ci/checks.json CTEST-PHASE2-GATES
     # （--target phase2_.*）采集。
     "synthetic_gate.cpp": {
         "path": "lib/algorithms/coverage/tests/synthetic_gate.cpp",
@@ -72,7 +72,7 @@ WATCHED = {
 DOC_GLOBS = ("docs/science/*.md", "docs/algorithms/*.md")
 MISSING_MARKERS = ("未注册", "MISSING", "构建孤儿", "tracked-but-unbuilt")
 PROXIMITY = 40
-CI_REGISTRY_FILES = ("ci/checks.json", "ci/ctest_baseline.json")
+CI_REGISTRY_FILES = ("eng/ci/checks.json", "eng/ci/ctest_baseline.json")
 CMAKE_GLOBS = ("CMakeLists.txt", "**/CMakeLists.txt", "**/*.cmake")
 SKIP_DIRS = ("build", "run", ".git", "third_party", "out")
 SELECTOR_FLAGS = ("--target", "-R", "--tests-regex", "-E")
@@ -187,7 +187,7 @@ def _selector_matches(token, name):
 
 
 def ci_collected(root, ctest_names):
-    """登记的 ctest 名被 ci/** 的测试选择器采集。返回命中文件列表。"""
+    """登记的 ctest 名被 eng/ci/** 的测试选择器采集。返回命中文件列表。"""
     if not ctest_names:
         return []
     hits = []
@@ -383,7 +383,7 @@ def main():
 class TestSciEvidenceRegistration(unittest.TestCase):
     """R11 合规包装（CI-003，2026-09-16）。
 
-    `ci/validate_registry.py` R11：每个「直跑验收脚本」（模块级 `def main` +
+    `eng/ci/validate_registry.py` R11：每个「直跑验收脚本」（模块级 `def main` +
     `sys.exit(main())`）必须贡献 >=1 个 `TestCase.test_*` 方法，否则 UT-QUALITY 的
     `unittest discover` 采集 0 用例、本门**在 CI 内永不执行**（账面记 OK）。
     本包装只调用既有判据，不改任何语义。

@@ -1,6 +1,8 @@
 # Star Detection Algorithms (ALG-STARDET-001)
 
 > 状态: ACTIVE
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+
 > 上游 SCI: SCI-PSF-001（docs/science/PSF.md，FROZEN 共享引用不改动）；本域冻结层
 > SCI-P1-STAR-001（§11.5，ALG 内冻结层，共享 SCI 不改动）
 > 下游: DATA-P1-STAR（DATA_SEMANTICS §17）、API-STAR-001（PUBLIC_API）、
@@ -311,4 +313,14 @@ PHOTOMETRY/ASTROMETRY）不因本附录改动；本节禁止被编排层词汇�
 - healpy（GPL-2.0，https://github.com/healpy/healpy）；Siril（GPL-3.0，https://gitlab.com/free-astro/siril）；LSST ip_isr（GPL-3.0，https://github.com/lsst/ip_isr）；GSL（GPL-3.0，https://www.gnu.org/software/gsl/）。
 - WCSLIB（LGPL-3.0）；CFITSIO（宽松许可，NASA/HEASARC，https://heasarc.gsfc.nasa.gov/fitsio/）。
 - NumPy / SciPy（BSD-3-Clause）：独立 FP64 Python Oracle。
+
+
+---
+
+## 背景 σ 估计器的现行口径与实测增益
+
+- **两级 σ 估计并存，均在役**：主路径用冻结式稳健尺度 `1.482602218505602 · MAD`；另有**第三 σ 估计器**（`star_detector.cpp` 的稳健估计路径）作为生产可达路径保留。二者不互相替代，选用由现行配置决定。
+- **第三 σ 估计器实测增益**：合成星场（seed=20260919，n=210 帧池化；C++ 探针直调生产实现，270/270 帧与冻结式**逐位一致**）实测相对冻结式 `1.4826·MAD` 的 `mean|rel err|` 增益 = **+78.47%**，bootstrap 95% CI **[+76.58%, +80.40%]**（不含 0）。
+- **登记纪律**：本节增益数字以「度量定义 + bootstrap CI + 可复跑探针」三者齐备为引用前提；缺任一项的增益数字不得引用。
+- **NaN fail-open 已闭合**：估计器入口逐像素 `isfinite` 归约 + 返回值检查，NaN 输入不再静默通过；负例（全 NaN patch）必须判红。
 

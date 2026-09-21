@@ -2,6 +2,8 @@
 
 # 01 — 单位表与 BUNIT 语义（frozen units / FZ-UNIT-* / FZ-BUNIT-SEMANTICS）
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 上位锚：`SCI-ADJ-001_FREEZE_LIST.md` §1/§3.2；`reports/v6/science-adjudication/adjudications.json` `units_table`/`freeze_table`；
 `docs/science/v6/observation/OBSERVATION_MODEL_REVIEW.md` §7 门 U1/U2；`docs/contracts/DATA_SEMANTICS.md` §30.4；宪章 §4.1/§5.3；UNIFIED §7。
 机器：`contracts/proposals/v6/data/astrocs.v6.units.v1.schema.json`（`units.v1`）。

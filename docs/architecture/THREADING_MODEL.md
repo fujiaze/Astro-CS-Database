@@ -1,5 +1,7 @@
 # Threading Model
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 ## 分层
 
 - **生产执行层（唯一）**：`scheduler` + `pipeline`（typed DAG 调度、统一线程预算、

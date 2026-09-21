@@ -1,12 +1,12 @@
 name: AstroCS Windows CI
 
 # CI-001B｜workflow ↔ 注册表联动核死：
-# - 本文件 run: 体只允许三类调用：ci/run.py（执行 ci/checks.json 注册检查）、
-#   ci/wf_step.py（派发 ci/workflow_binding.json 声明步）、ci/bootstrap.py
+# - 本文件 run: 体只允许三类调用：eng/ci/run.py（执行 eng/ci/checks.json 注册检查）、
+#   eng/ci/wf_step.py（派发 eng/ci/workflow_binding.json 声明步）、eng/ci/bootstrap.py
 #   （锁定工具链 CI 入口）；其余步只能是 host-provisioning / artifact-upload。
-# - 绑定声明：ci/workflow_binding.json（每步唯一一条，双向漂移即 FAIL）；
-# - 静态核死：python3 ci/validate_workflow_binding.py；
-# - actions 全部锁 ci/actions.lock.json 完整 SHA（复验：ci/verify_actions_lock.py）。
+# - 绑定声明：eng/ci/workflow_binding.json（每步唯一一条，双向漂移即 FAIL）；
+# - 静态核死：python3 eng/ci/validate_workflow_binding.py；
+# - actions 全部锁 eng/ci/actions.lock.json 完整 SHA（复验：eng/ci/verify_actions_lock.py）。
 
 on:
   push:
@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  # CI-001B：group 必须同时含 ref 与 event_name（见 ci/validate_workflow_binding.py B14）——
+  # CI-001B：group 必须同时含 ref 与 event_name（见 eng/ci/validate_workflow_binding.py B14）——
   # 否则手动触发（G-CI 验收/手动双虚拟机核验）与 push run 同组，会被后继 push
   # 在 pending 态取代（cancelled）而永远拿不到该 SHA 的 Windows 验证。
   # 与 ci-linux.yml 同款口径；cancel-in-progress 维持 false（不取消进行中的验证）。
@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 330
     steps:
       - name: Checkout exact SHA
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (ci/actions.lock.json)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (eng/ci/actions.lock.json)
         with:
           persist-credentials: false
           # HOSTFIX-23①: 默认 fetch-depth: 1 是浅克隆, REMOTE_RELATION 的
@@ -92,7 +92,7 @@ jobs:
           # WIN-PACKAGE-CANDIDATE prerequisite_tools 含 dumpbin（verify_candidate
           # 的 exported_abi / DLL 加载二进制级校验）。hosted runner 的 VS 自带
           # dumpbin.exe 但不在 PATH → CI-001 收紧后 WIN-PACKAGE-CANDIDATE 不可
-          # waiver：prerequisite FAIL(prerequisite) → ci/run.py exit 1 → 本 job
+          # waiver：prerequisite FAIL(prerequisite) → eng/ci/run.py exit 1 → 本 job
           # 失败（不再静默跳过）。按 MSVC 工具链固定布局注入 PATH（版本目录
           # 通配，不硬编码版本号）。
           $dumpbinDir = Get-ChildItem "C:\Program Files\Microsoft Visual Studio\2022\*\VC\Tools\MSVC\*\bin\Hostx64\x64" -Directory |
@@ -105,13 +105,13 @@ jobs:
             Write-Host "::warning::dumpbin.exe not found under VS 2022 MSVC toolchain (WIN-PACKAGE-CANDIDATE will FAIL prerequisite - CI-001 fail-closed)"
           }
       - name: Bootstrap locked toolchain
-        run: python ci/bootstrap.py --policy ci/toolchain.policy.json --platform windows
+        run: python eng/ci/bootstrap.py --policy eng/ci/toolchain.policy.json --platform windows
       - name: Run MSVC tests and package candidate
-        run: python ci/run.py --profile windows-main
+        run: python eng/ci/run.py --profile windows-main
       - name: Upload candidate
         # CI-001B：显式声明 if（默认 success()），使上传面在绑定声明里逐条可审计。
         if: success()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (ci/actions.lock.json)
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (eng/ci/actions.lock.json)
         with:
           name: astrocs-windows-candidate-${{ github.sha }}
           path: artifacts/candidate/
@@ -121,11 +121,11 @@ jobs:
         if: failure()
         shell: pwsh
         run: |
-          # CI-001B 目标 1：内联诊断体迁入 ci/steps/collect_bootstrap_diag.py（两平台共用）。
-          python ci/wf_step.py --step WINDOWS-BOOTSTRAP-DIAG
+          # CI-001B 目标 1：内联诊断体迁入 eng/ci/steps/collect_bootstrap_diag.py（两平台共用）。
+          python eng/ci/wf_step.py --step WINDOWS-BOOTSTRAP-DIAG
       - name: Upload public CI evidence
         if: always()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (ci/actions.lock.json)
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0 (eng/ci/actions.lock.json)
         with:
           name: windows-ci-${{ github.sha }}
           # F-R3-02: cmake 真实错误落 run/ci/win-build-summary.json，一并上传；

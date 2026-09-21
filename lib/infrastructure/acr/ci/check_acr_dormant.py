@@ -19,7 +19,7 @@ Static checks (source-tree level; no configure/build required):
                 (CMAKE_SOURCE_DIR == CMAKE_CURRENT_SOURCE_DIR FATAL).
   ACK-ACR-003  release presets (win-msvc-17.14.39-x64 / linux-control) freeze
                 ASTROCS_ENABLE_ACR=OFF; ASTROCS_ENABLE_ACR option default OFF.
-  ACK-ACR-004  install surface is ACR/CUDA-free: cmake/install_layout.cmake,
+  ACK-ACR-004  install surface is ACR/CUDA-free: eng/cmake/install_layout.cmake,
                 packaging/install-tree.contract.json,
                 packaging/astrocs.product.json contain no ACR/CUDA entries
                 (grep-based production-dependency zero-hit).
@@ -144,7 +144,7 @@ def failures_for(repo: pathlib.Path) -> list[str]:
             fails.append(f"ACK-ACR-003: preset '{name}' must freeze ASTROCS_ENABLE_ACR=OFF")
 
     # ACK-ACR-004: install surface ACR/CUDA-free
-    for rel in ("cmake/install_layout.cmake",
+    for rel in ("eng/cmake/install_layout.cmake",
                 "packaging/install-tree.contract.json",
                 "packaging/astrocs.product.json"):
         p = repo / rel
@@ -235,7 +235,7 @@ def selftest() -> int:
                  "cacheVariables": {"ASTROCS_ENABLE_ACR": "OFF"}},
             ]}), encoding="utf-8")
         (td / "cmake").mkdir()
-        (td / "cmake/install_layout.cmake").write_text("", encoding="utf-8")
+        (td / "eng/cmake/install_layout.cmake").write_text("", encoding="utf-8")
         (td / "packaging").mkdir()
         (td / "packaging/install-tree.contract.json").write_text("{}", encoding="utf-8")
         (td / "packaging/astrocs.product.json").write_text(
@@ -263,7 +263,7 @@ def selftest() -> int:
                      "cacheVariables": {"ASTROCS_ENABLE_ACR": "OFF"}},
                 ]}), encoding="utf-8")
         elif violation == "install_acr":
-            (td / "cmake/install_layout.cmake").write_text(
+            (td / "eng/cmake/install_layout.cmake").write_text(
                 "install(TARGETS acr_fake ...)\n", encoding="utf-8")
         elif violation == "prod_include":
             (td / "cli").mkdir()

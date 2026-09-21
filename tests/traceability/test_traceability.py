@@ -4,12 +4,12 @@
 import csv, importlib.util, io, os, shutil, sys, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-spec = importlib.util.spec_from_file_location("ctb", os.path.join(REPO, "tools", "check_traceability.py"))
+spec = importlib.util.spec_from_file_location("ctb", os.path.join(REPO, "eng", "tools", "check_traceability.py"))
 ctb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ctb)
 
 D, S1, S2, S3 = "docs/VERSIONING.md", "1-唯一版本源", "2-生成接口", "3-同步矩阵"
-API_SYM, SRC, TEST_ID, ORC = "tools/gen_version.py::build_report", "tools/gen_version.py", "tests/version/test_version_consistency.py", "ORC-VER-001"
+API_SYM, SRC, TEST_ID, ORC = "eng/tools/gen_version.py::build_report", "eng/tools/gen_version.py", "tests/version/test_version_consistency.py", "ORC-VER-001"
 
 def _row(cid, alg=False, arch=False, api=False, code=False, test=False):
     r = [cid, D, S1, "", "", "", "", "", "", "", "dimensionless", "exact", "ACTIVE"]
@@ -43,7 +43,7 @@ class TestTraceability(unittest.TestCase):
         """A 类改绑（W4-A3）：`TRACEABILITY-CODE` 已于 2026-09-16 按负责人裁决退役。
 
         退役登记（docs/ci/01_CHECKS.md §2.1）给出的**能力去向**是：
-          `python3 tools/check_traceability.py <claims.csv>` 仍按 R1–R7 全量校验，
+          `python3 eng/tools/check_traceability.py <claims.csv>` 仍按 R1–R7 全量校验，
           夹具 = tests/quality/fixtures/docchk002_claims_fixture.csv；
           无参调用不得回退被删快照 ⇒ 打印 TRACEABILITY_RETIRED 并 exit 2（fail-closed）。
 
@@ -53,7 +53,7 @@ class TestTraceability(unittest.TestCase):
         留存能力仍可用、又证明它不会伪装绿。
         """
         import subprocess
-        tool = os.path.join(REPO, "tools", "check_traceability.py")
+        tool = os.path.join(REPO, "eng", "tools", "check_traceability.py")
         fixture = os.path.join("tests", "quality", "fixtures", "docchk002_claims_fixture.csv")
         r = subprocess.run([sys.executable, tool, fixture],
                            capture_output=True, text=True, cwd=REPO)
@@ -88,7 +88,7 @@ class TestTraceability(unittest.TestCase):
     def test_04_missing_reference_must_fail(self):
         bad = _seed().replace("docs/VERSIONING.md,2-生成接口", "docs/NO_SUCH.md,2-生成接口")
         self.assertTrue(any("R4" in e and "不存在" in e for e in self.run_checker(bad)))
-        bad2 = _seed().replace("tools/gen_version.py::build_report", "tools/gen_version.py::no_such_fn")
+        bad2 = _seed().replace("eng/tools/gen_version.py::build_report", "eng/tools/gen_version.py::no_such_fn")
         # 符号级: 文件存在但符号缺失 (source_symbol 列的 CODE/TEST 行)
         self.assertTrue(any("no_such_fn" in e for e in self.run_checker(bad2)))
 

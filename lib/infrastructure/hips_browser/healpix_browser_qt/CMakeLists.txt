@@ -3,7 +3,7 @@
 # 依赖: Qt6 (Core/Gui/Widgets/OpenGLWidgets), OpenGL, astro_image_io.dll
 # 编译: cmake -B build -DCMAKE_PREFIX_PATH=C:/msys64/mingw64
 #        cmake --build build
-# 设计文档: docs/superpowers/specs/2026-07-13-cpp-qt-browser-ui-design.md §7
+# 设计文档: docs/modules/healpix_browser_qt.md（模块页；原 superpowers 设计稿已删）
 
 cmake_minimum_required(VERSION 3.16)
 project(healpix_browser_qt LANGUAGES CXX)

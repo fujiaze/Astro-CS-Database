@@ -1,5 +1,7 @@
 # AstroCS Pipeline（Phase1 → Phase2）
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > 本文按最高设计 §3.2 / §4.2 / §4.5 / §6.2 / §7.1a 描述。
 > **入口只有一个**：`ACSD Cli` / `acsd_cli` 的 `normalize` / `mosaic` / `export` 三个子命令
 > （最高设计 §6.2）。
@@ -42,9 +44,9 @@ admit（兼容性校验） → coverage（重叠图 union） → sampling（控�
   `1≤N≤3` **none（不排异）** / `4≤N≤5` percentile / `6≤N≤15`（或 BIAS/DARK）winsorized /
   `N≥16` linear fit；**禁止 min/max**。
   冻结表落位 = `docs/plugins/algorithms_phase2/12_rejection.md` §9（**只引用，不复制**）。
-- **阶段内节点之间传块，不落中间文件**（最高设计 §7.1a）；当前生产实现仍用磁盘
-  JSON/FITS 在阶段内传递，属**已登记缺口**（迁移归 FIX 代码任务）；
-  **未完成前不得声称本条款已满足**。
+- **阶段内节点之间传块，不落中间文件**（最高设计 §7.1a）；当前生产实现仍用磁盘 JSON/FITS
+  在阶段内传递，属**现行设计缺口**：20 个生产节点中命名块管线覆盖率 = **1/20**（唯一命中是
+  drizzle 节点内自建自毁），相邻节点之间传块 = **0**；未完成前不得声称本条款已满足。
 
 ## 关键不变量
 

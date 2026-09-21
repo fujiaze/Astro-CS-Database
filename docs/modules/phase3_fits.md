@@ -10,6 +10,8 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
 
 # 模块 astrocs.p3.fits_writer
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 按 MODULE_MIGRATION_MATRIX P3-FITS 行新建
 > 模块页，冻结合同 `astrocs.p3.fits_writer`（registry 行 ID 沿用
 > `MOD-astrocs-phase3-writer`；任务指派文字 astrocs.p3.fits 与矩阵
@@ -122,7 +124,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
   astrocs.phase3.writer.md §9 锚）；可执行 TEST-P3-WR-001 MISSING
   归 P3-FITS-TEST；现状执行测试 tests/unit/p3_output_test.cpp
   （116 行 4 段）=相邻证据引用不冒认。
-- 容差：WCS roundtrip ≤1e-6 px（SCI-P3 §7 真值，执行测试观测阈
+- 容差：WCS roundtrip ≤1e-8 px（SCI-P3 §7 真值 + 生产注册表 `p3_wcs.cpp:191`，执行测试观测阈
   1e-4 px）；采样值锚 ≤1e-3；sha256 64hex；逐值精确回环
   （NaN==NaN 一致）。
 

@@ -23,7 +23,7 @@ import json, os, platform, re, shutil, subprocess, sys, tempfile, unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SCHEMA = json.load(open(os.path.join(REPO, "contracts", "schemas", "hardware_inspect.schema.json"),
                         encoding="utf-8"))
-sys.path.insert(0, os.path.join(REPO, "tools"))
+sys.path.insert(0, os.path.join(REPO, "eng", "tools"))
 import gen_version  # noqa: E402
 
 

@@ -114,7 +114,7 @@
   gate3 contracts=90、gate4 doccheck rc=0、红线域 git status 零
   输出；日志 run/local/agent_p3_proj_doc/）。
 - 红线遵守: docs/science/ 根公式零改动；lib/phase3_session/
-  生产源 .cpp/.h 零改动；ci/、.github/、tools/、tests/ 零改动；
+  生产源 .cpp/.h 零改动；eng/ci/、.github/、eng/tools/、tests/ 零改动；
   批次 P（tests/backend、tests/cli）/批次 Q（lib/infrastructure/scheduler/、lib/algorithms/shared
   io_adapter、lib/infrastructure/cli/main.cpp）在途域只读不动；本任务零 git 操作。
 
@@ -137,7 +137,7 @@
   SIN ρ>1 / AIT D²≤0 → HEMISPHERE，CAR |θ|>90°/|δ|>90° → PARAM；
   TAN/SIN world2pix |dec|>85° 沿用冻结语义。
 - 测试: tests/unit/p3_projection_test.cpp（9 组：registry 完整性/独立往返
-  Oracle 3D 向量第一性 <1e-6px/TAN 生产 bitwise 零漂移对拍/正向独立解析解/
+  Oracle 3D 向量第一性 <1e-8px/TAN 生产 bitwise 零漂移对拍/正向独立解析解/
   G1 精确断言/负面清单全族/CTYPE 面/确定性/1N worker 1v2v4v8 bitwise）；
   tests/backend/test_p3_projection_oracle.py（numpy 完全独立实现对拍 +
   跨进程 sha256 确定性 + CTYPE）；tests/unit/CMakeLists.txt 注册
@@ -161,7 +161,7 @@
   pytest 14/14+test_p3001_science_freeze 4/4 rc=0；独立 registry probe
   （ZEA→nullptr/越界 id→UNSUPPORTED=2/selfcheck=0/四投影采样点往返）+
   全网格最坏误差 CAR 0/SIN 5.68e-14 deg/TAN 5.68e-14 deg、往返最坏
-  2.1e-10 px（冻结门 1e-6 px 余量 3.5 量级）；doccheck DOC_INDEX_PASS
+  2.1e-10 px（冻结门 1e-8 px 余量 1.7 量级）；doccheck DOC_INDEX_PASS
   rc=0；符号面 13 符号 grep 全命中；write_scope 零越界、预存 dirty
   17 文件零覆盖；命令日志/timeout/起止/rc 存 run/p3proj_p3001/（本
   目录 run/* gitignore 不入库）；commit 由前台精确暂存执行（SubAgent

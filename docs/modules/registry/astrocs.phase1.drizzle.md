@@ -10,6 +10,8 @@ downstream: [TEST-DRZ-DESIGN-001]
 
 # 模块 astrocs.phase1.drizzle
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页源码核对修订：registry 占位 ID
 > SCI-P1-DRIZ-001/ALG-005/TEST-P1-DRIZ-001 更正为 SCI-DRZ-001/
 > ALG-DRZ-001/TEST-DRZ-DESIGN-001（与 docs/traceability/

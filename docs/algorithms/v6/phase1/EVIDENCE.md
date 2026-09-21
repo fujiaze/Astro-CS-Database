@@ -2,6 +2,8 @@
 
 # ALG-P1-001 证据与命令日志（Phase1 算法实施规格）
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P1-001-EVIDENCE`
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/ALG-P1-001.md`
 - write_scope：`docs/algorithms/v6/phase1/`（唯一；本任务未写任何其他路径）
@@ -31,14 +33,14 @@ docs/algorithms/v6/phase1/tools/verify_alg_p1_001.py
 
 | # | 命令（cwd = `docs/algorithms/v6/phase1`） | 实测 rc | 结果 |
 |---|---|---|---|
-| 1 | `python3 tools/verify_alg_p1_001.py --selftest` | `0` | 38/38 基线门 PASS |
-| 2 | `python3 tools/verify_alg_p1_001.py --all-mutations` | `0` | 39/39 负向 mutation CAUGHT |
-| 3 | `python3 tools/verify_alg_p1_001.py --mutation M-D1` | `2` | CAUGHT（常量面亮度门红） |
-| 4 | `python3 tools/verify_alg_p1_001.py --mutation M-P5` | `2` | CAUGHT（psfsw fail-closed 门红） |
-| 5 | `python3 tools/verify_alg_p1_001.py --mutation M-W1` | `2` | CAUGHT（白噪声恒等门红） |
-| 6 | `python3 tools/verify_alg_p1_001.py --mutation M-S1` | `2` | CAUGHT（冻结继承门红） |
-| 7 | `python3 tools/verify_alg_p1_001.py --mutation M-S17` | `2` | CAUGHT（测试矩阵/规格门覆盖一致性门红） |
-| 8 | `python3 tools/verify_alg_p1_001.py --mutation NO-SUCH` | `1` | FAIL: unknown mutation |
+| 1 | `python3 eng/tools/verify_alg_p1_001.py --selftest` | `0` | 38/38 基线门 PASS |
+| 2 | `python3 eng/tools/verify_alg_p1_001.py --all-mutations` | `0` | 39/39 负向 mutation CAUGHT |
+| 3 | `python3 eng/tools/verify_alg_p1_001.py --mutation M-D1` | `2` | CAUGHT（常量面亮度门红） |
+| 4 | `python3 eng/tools/verify_alg_p1_001.py --mutation M-P5` | `2` | CAUGHT（psfsw fail-closed 门红） |
+| 5 | `python3 eng/tools/verify_alg_p1_001.py --mutation M-W1` | `2` | CAUGHT（白噪声恒等门红） |
+| 6 | `python3 eng/tools/verify_alg_p1_001.py --mutation M-S1` | `2` | CAUGHT（冻结继承门红） |
+| 7 | `python3 eng/tools/verify_alg_p1_001.py --mutation M-S17` | `2` | CAUGHT（测试矩阵/规格门覆盖一致性门红） |
+| 8 | `python3 eng/tools/verify_alg_p1_001.py --mutation NO-SUCH` | `1` | FAIL: unknown mutation |
 | 9 | `git status --porcelain docs/algorithms/v6/phase1/` | `0` | 仅新增本目录，无域外路径 |
 
 退出码约定：`--selftest` 全绿 rc=0；`--all-mutations` 全捕获 rc=0；单 mutation 被捕获 rc=2，未捕获 rc=1。

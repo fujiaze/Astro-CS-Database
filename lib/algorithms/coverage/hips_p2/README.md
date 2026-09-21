@@ -39,7 +39,7 @@
 | module / ABI / doc revision | `astrocs.p2.hips_writer` / C++17（内部）+ C ABI 库消费（aio_hips.h extern "C"，P1 冻结面）/ r1 |
 | owner / phase scope | SA-P2-I23 / phase2（matrix P2-HIPS；depends_on_int=P2-INT-INT;IO-003） |
 | 文档状态 | CONTRACT_READY（实现存在于 lib/algorithms/coverage/tools/stage2.cpp，模块化迁移未开始；不声明 IMPLEMENTED） |
-| 构建 | lib/algorithms/coverage/CMakeLists.txt:103 `add_executable(astrocs-stage2 tools/stage2.cpp)`、:104-105 链接、:107-108 P2_ENABLE_OPENMP 宏（CON-006 逐像素并行）、:110 EXCLUDE_FROM_ALL、:126 与 phase2_synthetic_gate 同列按需工具；stage2_common.cpp 编入 phase2 库（CMakeLists.txt:44、根 CMakeLists.txt:339） |
+| 构建 | lib/algorithms/coverage/CMakeLists.txt:103 `add_executable(astrocs-stage2 eng/tools/stage2.cpp)`、:104-105 链接、:107-108 P2_ENABLE_OPENMP 宏（CON-006 逐像素并行）、:110 EXCLUDE_FROM_ALL、:126 与 phase2_synthetic_gate 同列按需工具；stage2_common.cpp 编入 phase2 库（CMakeLists.txt:44、根 CMakeLists.txt:339） |
 
 ## 2. 负责范围 / 不负责
 

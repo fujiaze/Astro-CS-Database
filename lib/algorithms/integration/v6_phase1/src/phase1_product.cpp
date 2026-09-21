@@ -6,11 +6,16 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <fstream>
 #include <set>
 #include <sstream>
 
 #include <nlohmann/json.hpp>
+
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 文本读写一律经
+// aio 唯一实现 (aio_file::read_all / aio_atomic::write_file_atomic), 本 TU 不
+// 自持 fstream 通道。
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"
 
 #include "astro/aio/v6_atomic_publish.h"
 #include "astro/aio/v6_bunit.h"
@@ -161,15 +166,11 @@ bool expected_from_record(const json& doc, std::vector<ExpectedHdu>* out,
 
 bool write_text_file(const std::string& path, const std::string& text,
                      std::string* err) {
-  std::ofstream os(path, std::ios::binary | std::ios::trunc);
-  if (!os) {
-    *err = "cannot open for write: " + path;
-    return false;
-  }
-  os << text;
-  os.close();
-  if (!os) {
-    *err = "write failed: " + path;
+  // CLEAN-403: 落盘经 aio 原子写原语 (临时文件 → fflush → fsync → 原子 rename);
+  // 失败不留半成品 (与原 ofstream 直写相比只会更严格)。
+  std::string werr;
+  if (aio_atomic::write_file_atomic(path, text, &werr) != 0) {
+    *err = "cannot open for write: " + path + ": " + werr;
     return false;
   }
   return true;
@@ -177,14 +178,11 @@ bool write_text_file(const std::string& path, const std::string& text,
 
 bool read_text_file(const std::string& path, std::string* out,
                     std::string* err) {
-  std::ifstream in(path, std::ios::binary);
-  if (!in) {
+  // CLEAN-403: 整文件读取经 aio (打开/读取/关闭任一失败 ⇒ false)。
+  if (!aio_file::read_all(path.c_str(), out)) {
     *err = "cannot open: " + path;
     return false;
   }
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  *out = ss.str();
   return true;
 }
 

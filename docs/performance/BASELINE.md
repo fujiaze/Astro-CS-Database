@@ -1,5 +1,7 @@
 # Performance Baseline
 
+> 上游：ASTROCS_DESIGN.md §9（CPU 后端与资源）
+
 同一机器、同一数据、同一 config，每 benchmark ≥3 次，记录 median/p95。
 基准数据：
 

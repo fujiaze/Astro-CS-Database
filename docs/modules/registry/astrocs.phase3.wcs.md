@@ -11,6 +11,8 @@ downstream: [TEST-P3-WCS-001]
 
 # 模块 astrocs.phase3.wcs
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > Registry 行 ID 沿用 MOD-astrocs-phase3-wcs；矩阵权威 module_id=
 > **astrocs.p3.projection**（MODULE_MIGRATION_MATRIX P3-PROJ 行）。
 > frontmatter upstream/downstream（SCI-P3-WCS-001/ALG-P3-002/API-P3-001/
@@ -118,7 +120,7 @@ downstream: [TEST-P3-WCS-001]
 - G2 正向（:93-118）: (ξ,η)=CD·(pix−CRPIX)→θ=atan(1/r)→球面角
   （Calabretta & Greisen 2002 形式）→RA wrap [0,360)。
 - G2 反向（:120-143）: gnomonic (ξ,η)→δ=CD⁻¹·(ξ,η)→0-based 像素。
-- 容差: roundtrip <1e-6 px（SCI §7 冻结）；FOV≤20° 适用域
+- 容差: roundtrip <1e-8 px（SCI §7 冻结；生产注册表 `p3_wcs.cpp:191`）；FOV≤20° 适用域
   （SCI §9a-12）。
 
 ## 7 执行类、并行轴、ThreadBudget lease、确定性
@@ -150,7 +152,7 @@ downstream: [TEST-P3-WCS-001]
 ## 9 验证与测试面（TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED）
 
 - 设计冻结: ALG-P3-PROJ-IMPL-001 §12 T1-T7（T1 正向解析解/T2
-  roundtrip 1e-6 px 冻结容差/T3 G1 精确断言/T4 手性极性关键词/
+  roundtrip 1e-8 px 冻结容差/T3 G1 精确断言/T4 手性极性关键词/
   T5 负面清单/T6 oracle=现状独立解析解→验收级 WCSLIB/T7 不变量
   回归）。
 - 双重陈述（C7 锚）: 本节承载 TEST-P3-WCS-001 登记面；可执行面

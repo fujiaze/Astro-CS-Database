@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""V81-ADOPT-006 机器测试: 版本统一 + ci/check_version.py 门 (stdlib only)。
+"""V81-ADOPT-006 机器测试: 版本统一 + eng/ci/check_version.py 门 (stdlib only)。
 
 A. 版本统一面: 根 VERSION / CMake project() / 活动文档 alpha 字面量全部 == alpha.2;
-B. ci/check_version.py 正向: 当前树 --expected 0.11.0-alpha.2 → exit 0;
+B. eng/ci/check_version.py 正向: 当前树 --expected 0.11.0-alpha.2 → exit 0;
 C. mutation 合同 (负向样例, /tmp fake 树): 任何一处版本漂移 (VERSION 文件 /
    project() 三元组 / CLI 手抄字面量 / 活动文档字面量) 必须使
-   ci/check_version.py 非零退出 (exit 1) 且 verdict=VERSION_CHECK_FAIL。
+   eng/ci/check_version.py 非零退出 (exit 1) 且 verdict=VERSION_CHECK_FAIL。
 """
 import importlib.util
 import json
@@ -18,7 +18,7 @@ import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 EXPECTED = "0.11.0-alpha.2"
-CHECK = os.path.join(REPO, "ci", "check_version.py")
+CHECK = os.path.join(REPO, "eng", "ci", "check_version.py")
 TOL = "同步规则: project() 数字三元组必须等于根 VERSION 去 -alpha.N 的基础号"
 
 
@@ -37,17 +37,17 @@ def run_check(root, expected=EXPECTED):
 
 def make_fake_tree(dst, *, version="0.11.0-alpha.2", project="0.11.0",
                    doc="0.11.0-alpha.2"):
-    """最小活动面 fake 树 —— **必须满足 ci/check_version.py 的锚存活合同**。
+    """最小活动面 fake 树 —— **必须满足 eng/ci/check_version.py 的锚存活合同**。
 
     W4-A3 订正：原夹具按迁移前布局构造（`cli/version_generated.h.in`、根
-    `REVIEW.md`/`HANDOVER.md`），而 ci/check_version.py 的 [0] 锚存活判据
+    `REVIEW.md`/`HANDOVER.md`），而 eng/ci/check_version.py 的 [0] 锚存活判据
     （ENGINEERING_SPEC §8 fail-closed）要求 CLI_DIR_REL =
     `lib/infrastructure/cli`、CLI_TEMPLATE_REL =
     `lib/infrastructure/cli/version_generated.h.in` 与 DOC_SET_FILES/DOC_SET_DIRS
     全集存在 ⇒ 任一缺失即 rc=2（ANCHOR_STALE），mutation 用例的 rc=1 断言被
     fail-closed 遮蔽（实测 6 条断言 2 != 1）。
 
-    现行做法：锚集**单源**取自 ci/check_version.py 的常量（模块内 load_check()
+    现行做法：锚集**单源**取自 eng/ci/check_version.py 的常量（模块内 load_check()
     后直接读 DOC_SET_FILES / DOC_SET_DIRS / CLI_TEMPLATE_REL），不在本测试里
     重复维护第二份列表（同一事实两处判据正是本任务要消除的缺陷型）。
     """
@@ -96,7 +96,7 @@ def make_absence_tree(dst):
 
     无 VERSION / 无 project() VERSION / 无 file(READ VERSION) 生成链 /
     无 CLI 版本模板 / 文档与 CLI 源码均无 alpha 字面量。
-    锚集单源取自 ci/check_version.py; 非版本锚 (CLI_DIR_REL / DOC_SET_*) 仍须存活,
+    锚集单源取自 eng/ci/check_version.py; 非版本锚 (CLI_DIR_REL / DOC_SET_*) 仍须存活,
     否则 absence 模式仍应因锚失效判红 (防移空)。
     """
     cv = load_check()
@@ -136,7 +136,7 @@ class TestAdopt006VersionUnification(unittest.TestCase):
         self.assertEqual(m.group(1), "0.11.0", TOL)
 
     def test_03_active_doc_literals_are_alpha2(self):
-        """活动文档 alpha 字面量统一性 —— 扫描面**单源**取自 ci/check_version.py。
+        """活动文档 alpha 字面量统一性 —— 扫描面**单源**取自 eng/ci/check_version.py。
 
         W4-A3 订正：原实现硬编码 ("README.md", "REVIEW.md", "HANDOVER.md")。
         REVIEW.md / HANDOVER.md 已随 ROOT-007 归档（根下已不存在）⇒ FileNotFoundError；
@@ -172,7 +172,7 @@ class TestAdopt006CheckGate(unittest.TestCase):
         self.assertEqual(out["fail_count"], 0)
 
     def test_05_gate_bad_expected_format_fails(self):
-        # 漂移 token 运行期拼接构造 (对 tools/check_version_consistency.py 的
+        # 漂移 token 运行期拼接构造 (对 eng/tools/check_version_consistency.py 的
         # 全文扫描不可见; 该检查器只豁免自身 fixture, 无法豁免新文件)。
         r = run_check(REPO, expected="0.11.0-" + "beta.1")
         self.assertEqual(r.returncode, 1)
@@ -227,7 +227,7 @@ class TestAdopt006CheckGate(unittest.TestCase):
         """活动文档面被移空必须判红 —— 口径 = §8 fail-closed（rc=2 且点名缺失锚）。
 
         W4-A3 订正：原夹具删根 `HANDOVER.md`（已归档 ⇒ FileNotFoundError）；且
-        ci/check_version.py 对该情形的现行口径是 **ANCHOR_STALE / rc=2**
+        eng/ci/check_version.py 对该情形的现行口径是 **ANCHOR_STALE / rc=2**
         （[0] 锚存活 fail-closed），不是 rc=1。断言随之改绑：仍要求**必红**，
         且必须点名缺失的 DOC_SET_FILES 成员（不许静默通过）。
         """

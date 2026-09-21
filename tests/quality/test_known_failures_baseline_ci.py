@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """CI-BASELINE-001 单测：known-failures 基线机器化门（05_FINDINGS_REGISTER §STD-F9）。
 
-被测面：tools/quality/known_failures_baseline.py（--mode verify / --mode check /
---selftest）与版本化基线 ci/known_failures.json。
+被测面：eng/tools/quality/known_failures_baseline.py（--mode verify / --mode check /
+--selftest）与版本化基线 eng/ci/known_failures.json。
 
 契约（07_CI_MACHINE_CONTRACT §已有失败基线）：
   新失败（不在基线）→ FAIL；基线项失败 → 全绿（KNOWN）；
@@ -25,7 +25,7 @@
   T13 注册表漂移锚：两门登记形态、末位次序、JUnit 路径一致性、基线 unit 可追溯
   T14 环境隔离守卫（FD-R1-018）：父进程带 ASTROCS_CI_OUT_ROOT 时断言不受污染
 
-环境无关性（FD-R1-018，前台轮末 CI 取证裁定）：ci/run.py 会给**每个**检查注入
+环境无关性（FD-R1-018，前台轮末 CI 取证裁定）：eng/ci/run.py 会给**每个**检查注入
 ASTROCS_CI_OUT_ROOT（本次改动引入），本文件在 CI 内运行时该变量必然存在；若用例
 让被测命令走「无显式来源 → 读 env 指向的真实 per-check 结果」回退路径，断言会被
 真实红灯（AGENTS-GOV/CON-COMMENTS…）污染而崩。故 run_tool 一律在子进程 env 中
@@ -43,12 +43,12 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-TOOL = REPO / "tools" / "quality" / "known_failures_baseline.py"
-BASELINE = REPO / "ci" / "known_failures.json"
+TOOL = REPO / "eng" / "tools" / "quality" / "known_failures_baseline.py"
+BASELINE = REPO / "eng" / "ci" / "known_failures.json"
 SCHEMA_ID = "astrocs.known-failures-baseline/v2"
 SHA40 = "0" * 40
 
-sys.path.insert(0, str(REPO / "tools" / "quality"))
+sys.path.insert(0, str(REPO / "eng" / "tools" / "quality"))
 import known_failures_baseline as K  # noqa: E402
 
 
@@ -63,7 +63,7 @@ def entry(**overrides) -> dict:
         "reason": "fixture：既有失败项",
         "first_seen_commit": "f8778bbbf010e92f49670dd9d2fbef7fe98d6731",
         "source_sha": "f8778bbbf010e92f49670dd9d2fbef7fe98d6731",
-        "reproducer": "python3 tools/quality/known_failures_baseline.py --selftest",
+        "reproducer": "python3 eng/tools/quality/known_failures_baseline.py --selftest",
         "expiry": "2999-01-01T00:00:00Z",
         "expected": "fail",
         "removal_condition": "fixture 永不移除",
@@ -100,7 +100,7 @@ def write_junit(path: Path, cases: list) -> Path:
 def clean_env(**overrides) -> dict:
     """CI 环境无关的子进程 env（FD-R1-018）。
 
-    ci/run.py 对每个检查注入 ASTROCS_CI_OUT_ROOT（= 本次 run 证据根），CI 内
+    eng/ci/run.py 对每个检查注入 ASTROCS_CI_OUT_ROOT（= 本次 run 证据根），CI 内
     该变量必然存在；被测工具的 --mode check 在该变量存在且未显式指定来源时会
     回退读取 <out_root>/checks 的**真实** per-check 结果。用例必须隔离该回退，
     否则断言结果取决于 CI 现场的成败集合（本地绿、CI 红）。
@@ -375,14 +375,14 @@ class TestChecksDirSource(unittest.TestCase):
         self.assertEqual(json.loads(proc.stdout)["new_failures"], ["check:AGENTS-GOV"])
 
     def test_t12c_env_out_root_default(self):
-        """T12c：未给来源旗标时取 ASTROCS_CI_OUT_ROOT/checks（ci/run.py 注入形态）。"""
+        """T12c：未给来源旗标时取 ASTROCS_CI_OUT_ROOT/checks（eng/ci/run.py 注入形态）。"""
         base = write_baseline(self.tmp / "b.json",
                               [entry(kind="check", unit="UT-CLI", check_id="UT-CLI")])
         out_root = self.tmp / "run-out"
         self._write_check(out_root / "checks", "UT-CLI", "FAIL(dirty)")
         junit = write_junit(self.tmp / "r.xml", [("p1_noise", "pass")])
         # FD-R1-018：显式覆盖形态（非 dict(**os.environ, KEY=...)——CI 内
-        # ASTROCS_CI_OUT_ROOT 已由 ci/run.py 注入，关键字重复即 TypeError）。
+        # ASTROCS_CI_OUT_ROOT 已由 eng/ci/run.py 注入，关键字重复即 TypeError）。
         env = {**os.environ, "ASTROCS_CI_OUT_ROOT": str(out_root)}
         proc = subprocess.run(
             [sys.executable, str(TOOL), "--mode", "check", "--repo", str(REPO),
@@ -395,7 +395,7 @@ class TestChecksDirSource(unittest.TestCase):
     def test_t12e_known_fail_verdict_still_counts_as_failure(self):
         """T12e：读已结束 run 的证据（verdict=KNOWN_FAIL）与读 run 内增量结果等价。
 
-        ci/run.py 对已登记基线项失败记 KNOWN_FAIL（计数分离，仍属失败面）；
+        eng/ci/run.py 对已登记基线项失败记 KNOWN_FAIL（计数分离，仍属失败面）；
         若把 KNOWN_FAIL 排除出失败集，重跑门会把基线项误判为 stale。
         """
         base = write_baseline(self.tmp / "b.json",
@@ -486,7 +486,7 @@ class TestRegistryWiring(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.registry = json.loads((REPO / "ci" / "checks.json").read_text(encoding="utf-8"))
+        cls.registry = json.loads((REPO / "eng" / "ci" / "checks.json").read_text(encoding="utf-8"))
         cls.by_id = {c["id"]: c for c in cls.registry["checks"]}
         # 注册表把 VERIFY/CHECK/CTEST-LINUX-FULL 承载为父项 steps（注册表收敛后），
         # 本组测试按 step id 解析其形态（父项 id 见 CHK-KNOWN-FAILURES-BASELINE / CHK-UNIT）。
@@ -532,7 +532,7 @@ class TestRegistryWiring(unittest.TestCase):
         data = json.loads(BASELINE.read_text(encoding="utf-8"))
         ids = set(self.by_id)
         ctest_targets = set(json.loads(
-            (REPO / "ci" / "ctest_baseline.json").read_text(encoding="utf-8"))["targets"])
+            (REPO / "eng" / "ci" / "ctest_baseline.json").read_text(encoding="utf-8"))["targets"])
         for c in self.by_id.values():
             ctest_targets |= set(c.get("ctest_targets", []))
         for item in data["failures"]:

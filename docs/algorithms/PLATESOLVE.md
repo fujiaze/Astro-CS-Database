@@ -1,5 +1,7 @@
 # WCS / PlateSolve Algorithms (ALG-WCS)
 
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+
 > ID: ALG-WCS-001  范围: ALG-WCS-001..002  上游 SCI: SCI-WCS-001  状态: DERIVED  模块: plate_solve/cpp/ipv
 
 ## 1 上游 SCI 与输入输出

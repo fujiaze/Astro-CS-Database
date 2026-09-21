@@ -1,5 +1,7 @@
 # 机器追溯合同（TRACEABILITY_SPEC v1）
 
+> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+
 > 矩阵基线 base_main_sha=0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
 > 状态：ACTIVE_NORMATIVE —— 本文件冻结追溯 ID 格式、唯一性、跨层关系、CSV/JSON schema
 > 与 source symbol 表达；仓库内所有模块追溯矩阵与机器检查器必须与本文件一致。
@@ -19,7 +21,7 @@ Schema：
 - `schemas/traceability_matrix.schema.json`（JSON 合同）
 - `docs/traceability/TRACEABILITY_LAYERS.csv`（CSV 合同：列定义 + 每层必填规则 + 取值域）
 
-检查器：`tools/traceability/check_traceability_matrix.py`（exit 0 = `TRACEABILITY_MATRIX_PASS`；
+检查器：`eng/tools/traceability/check_traceability_matrix.py`（exit 0 = `TRACEABILITY_MATRIX_PASS`；
 任何断链输出**具体模块 + 层 + 缺失/悬空引用路径**并以非 0 退出，绝不崩溃吞异常）。
 
 ## 2. 追溯链与分层
@@ -84,7 +86,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
   ID 可被多个模块行共享（如 `API-P2-001` 被 8 个 phase2 模块共同承载、
   `TEST-P3-RES-001` 由 phase3.resample/resample2 共享——registry 文档既定事实），
   其**真实唯一性以合同注册表为准**（`docs/contracts/INDEX.yaml` +
-  `tools/check_contract_graph.py`），本矩阵对共享引用只登记不判重。
+  `eng/tools/check_contract_graph.py`），本矩阵对共享引用只登记不判重。
 - 状态 `MISSING` 的层允许保留 **descriptor/registry 已预留的真实 ID**（ID 占用
   命名空间但独立 authority 文档/实现尚未落地），也允许占位符 ID；空串一律禁止。
 - 状态 `VERIFIED` 的层必须满足：id 非占位，且锚可机器解析（见 §4/§5 与 §7）。
@@ -113,7 +115,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
   5. TEST 层 `VERIFIED` 时该行 SRC 层必须也 `VERIFIED`（有实现才有测试证据），
      SRC `MISSING` 而 TEST `VERIFIED` 判 `CHAIN_BREAK`（给出 module_id）。
 - 说明：矩阵是**模块↔锚**机器合同；`docs/TRACEABILITY.csv` 的逐条细粒度
-  （authority/anchor/oracle）仍由 `tools/check_traceability.py` 负责，二者互补不冲突。
+  （authority/anchor/oracle）仍由 `eng/tools/check_traceability.py` 负责，二者互补不冲突。
 
 ## 5. SOURCE SYMBOL 表达
 
@@ -139,7 +141,7 @@ EVID     ^EVID-[A-Z0-9]+(-[A-Z0-9]+)*$         例如 EVID-P1-CAL-001
 
 ## 7. 机器闭环（检查器行为契约）
 
-运行：`python3 tools/traceability/check_traceability_matrix.py --root . [--json-out out.json] [--strict]`
+运行：`python3 eng/tools/traceability/check_traceability_matrix.py --root . [--json-out out.json] [--strict]`
 （Python 3.10+ 标准库；无网络；不依赖 cwd 之外路径；`timeout 120` 内完成）。
 
 必须实现且失败时给出**具体断链**（模块 + 层 + 路径 + 期望/实际），不允许崩溃：

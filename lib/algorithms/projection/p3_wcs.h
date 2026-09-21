@@ -70,7 +70,9 @@ struct P3WcsApplicability {
     double max_fov_deg;                      // TAN: 20.0（SCI §9a-12 alpha 冻结）
     bool require_negative_det_cd;            // true: 手性 det(CD)<0（SCI §9a-4/G1）
     bool crpix_fits_1based_pixel_center;     // true: CRPIX=(W+1)/2,(H+1)/2（Paper I §2.1.1）
-    double roundtrip_tol_px;                 // 1e-6 px（SCI §7 冻结, 禁放宽）
+    double roundtrip_tol_px;                 // 1e-8 px（FIX-406 Oracle 冻结：TAN 全域
+                                             // 实测最坏 2.437e-9 px @0.05″/px；收紧方向,
+                                             // 依据 run/FIX-406/SIN_ROUNDTRIP_ORACLE.md）
 };
 const P3WcsApplicability* p3_wcs_applicability(const char* projection);
 
@@ -86,7 +88,7 @@ P3WcsStatus p3_wcs_roundtrip_max_error_px(const P3WcsDescriptor* d,
                                           double* max_err_px);
 
 /* 适用域检查(对已构造 descriptor): |CRVAL2|≤85°、FOV≤20°、det(CD)<0、
- * CRPIX=(W+1)/2 FITS 1-based 像素中心、往返 <1e-6 px。
+ * CRPIX=(W+1)/2 FITS 1-based 像素中心、往返 < 声明容差（TAN: 1e-8 px）。
  * 违规 → P3_WCS_PARAM（why 填具体项）; 未声明适用域的投影 → P3_WCS_UNSUPPORTED。
  * p3_wcs_make 在返回前调用本函数: 违反适用域 ⇒ 拒绝且 *out 保持零初始化。 */
 P3WcsStatus p3_wcs_check_applicability(const P3WcsDescriptor* d,

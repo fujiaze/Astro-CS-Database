@@ -3,6 +3,8 @@
 > ID: ALG-P3-PROJ-IMPL-001  状态: CONTRACT_READY  模块:
 > astrocs.p3.projection（迁移合同值；registry descriptor 占位
 > astrocs.phase3.wcs 由 P3-PROJ-INT 对齐）
+> 上游：ASTROCS_DESIGN.md §6.3（投影算法）
+
 > 上游 SCI: SCI-P3-001（docs/science/PHASE3_HIPS_TO_FITS.md，FROZEN，
 > 同步口径见 §14）；承接 ALG-P3-002 本域子面
 > （G1/G2 施工规格，docs/algorithms/PHASE3_RESAMPLE.md）。
@@ -134,7 +136,7 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
   FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，V5 SCI-007）：
   G1↔§9a-4（FITS 1-based/CRPIX/CD-only/parity 方向）、G2↔§5 反向
   映射连续定义、TAN-only↔§9a-3、极点拒/半球↔§4+§9a-6、roundtrip
-  容差↔§7 不变量（<1e-6 px FP64）与 §9a-12、FOV≤20°/中心距极点
+  容差↔§7 不变量（<1e-8 px FP64，生产注册表 `p3_wcs.cpp:191`）与 §9a-12、FOV≤20°/中心距极点
   ≥5°↔§9a-12；descriptor 占位 ID 不入合同，由 P3-PROJ-INT 对齐。
 - ALG-P3-002（docs/algorithms/PHASE3_RESAMPLE.md §2 施工规格，
   DERIVED V5 ALG-007）: 本域子面=**G1（输出 WCS 构造）+G2（反向
@@ -232,7 +234,7 @@ x = δx + CRPIX_x − 1, y = δy + CRPIX_y − 1（0-based 输出）    # :140-1
 
 ### 7.3 往返容差（冻结）
 
-`pixel→world→pixel` 误差 **<1e-6 px**（FP64）——SCI-P3-001 §7
+`pixel→world→pixel` 误差 **<1e-8 px**（FP64）——SCI-P3-001 §7
 独立不变量 + §9a-12 冻结；解析oracle回归现状由
 tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 复算）；验收级 oracle=WCSLIB（矩阵 notes），由 P3-PROJ-TEST 建立。
@@ -312,7 +314,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   独立解析解（Calabretta & Greisen 论文 II 形式直接计算）比对，
   容差 <1e-9 px（FP64 机器精度量级）。
 - **T2 往返不变量（冻结容差）**: 像素网格全扫描
-  p3_wcs_pix2world∘p3_wcs_world2pix 误差 <1e-6 px（SCI §7 冻结值，
+  p3_wcs_pix2world∘p3_wcs_world2pix 误差 <1e-8 px（SCI §7 冻结值，
   禁放宽）；半球边界附近（r→π/2）除外（HEMISPHERE 拒绝语义）。
 - **T3 G1 构造精确断言**: PA=0 ⇒ CD 精确等于 diag(±s,∓s)
   （east_left/east_right 两分支，bitwise 级）；PA=90° ⇒ CD1_2=
@@ -509,7 +511,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 - **T1/T2 名与判据分工（v3 订正）**：往返自洽 ≠ 标准正确。现状实现在 30° 错
   映射下往返误差仍 4.5e-15 px ⇒ 只保留「往返」会恒绿。故拆两条：
-  - **(i) 往返不变量**（保留）：每投影 pixel→world→pixel < 1e-6 px；
+  - **(i) 往返不变量**（保留）：每投影 pixel→world→pixel < 1e-8 px；
   - **(ii) 绝对标准对拍**（新，验收口径）：astropy/WCSLIB 逐像素对拍，
     容差 ≤1e-8 deg（实测 ≤6.854e-13°），**必须含 dec0≠0 用例**（CRVAL2 只在
     δ0≠0 进入映射；δ0≡0 对 CRVAL2 缺陷零区分力）与 **CRPIX↔CRVAL 定义性
@@ -604,7 +606,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 - **判据冻结**：`ALIGNMENT-5.3.md` §1 结论表 + E09 `results/PREREGISTRATION.sha256`（`562d9f74…`，冻结于 2026-09-20T08:39:28Z，跑后未改）。
 - **负例（判据非退化）**：FLUX-IN 支同二进制下 `R_cross = 4.0`、`T ≈ −1`；面积标度错注入 `T = −0.75` ⇒ 判据能红能绿。
-- **不在本节范围**：SIN 内核 0.5″/px 往返误差 2.5e-5 px（超 SCI §7 冻结容差 1e-6 px 的 25 倍）另行登记。
+- **不在本节范围（已知偏差，现行）**：v6 SIN 内核用 `ctheta = sqrt(1 − stheta²)` 反算，存在**灾难性消去**，往返误差**无上界**（0.5″/px 实测 2.5e-5 px，超 SCI §7 冻结容差 1e-8 px 三个量级以上）。该内核**生产不可达**（生产注册表仅 TAN 可用），随 v6 家族失效而消失；入库复现门 `tests/unit/v6_p3_proj/sin_roundtrip_gate.py` 修好即转红。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 

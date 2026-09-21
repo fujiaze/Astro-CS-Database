@@ -1,5 +1,7 @@
 # Error Model
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 ## 类别
 
 CONFIG / INPUT_CORRUPT / DEPENDENCY / NUMERIC / NO_DATA / RESOURCE /

@@ -1,5 +1,7 @@
 # AstroCS Concurrency Standard
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 ## 禁止
 
 - 库内随意修改全局 OpenMP setting（omp_set_num_threads 等）— 由 run context

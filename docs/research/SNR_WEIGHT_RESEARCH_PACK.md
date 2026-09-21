@@ -2,6 +2,8 @@
 
 # 文献与开源研究包：帧级 SNR、PSF 信号权重与逆方差叠加
 
+> 上游：ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、附录 B（外部标准与文献）
+
 ## 1. 本包的用途
 
 本包是给执行 agent 的**研究任务书 + 一手资料清单**，用于把帧级 SNR（`frame_snr`）、PSF 信号权重、Phase2 逆方差叠加的公式与实现建立在可核查的公开资料与开源代码之上，而不是建立在对商业软件行为的转述上。
@@ -117,7 +119,7 @@
 **权威 URL（`[URL]` HTTP 200，138 604 B）**：https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html
 
 **版本化行锚（官方 Reference-Documentation 仓库，`master` = commit `08b8eb85ae17`，2024-06-21）**：
-`gitlab.com/pixinsight/Reference-Documentation` → `docs/ImageWeighting/02-PSF_Flux_Weighting_Algorithms.pidoc`
+`gitlab.com/pixinsight/Reference-Documentation` → 仓库内 `ImageWeighting/02-PSF_Flux_Weighting_Algorithms.pidoc`
 
 | 内容 | 文件:行 |
 |---|---|

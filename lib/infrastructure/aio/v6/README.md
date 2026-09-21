@@ -68,6 +68,6 @@ ctest 用例：
 ## 4. 边界
 
 - 未修改根 `CMakeLists.txt` / `tests/unit/CMakeLists.txt`（C-004.4：根构建面注册由控制器/W9 统一处理）。
-- 未接线 Phase session；未修改任何 `docs/`、`ci/`、其他 `lib/` 模块。
+- 未接线 Phase session；未修改任何 `docs/`、`eng/ci/`、其他 `lib/` 模块。
 - `PENDING_OWNER_SIGNOFF` 条款（FZ-BUNIT-SEMANTICS、FZ-UNIT-VAR-IN/VAR-SB/IVAR-SB、
   FZ-GATE-PARENT-VAR 等）按 fail-closed 实现，不放宽、不自行定值；OPEN 项不取值。

@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <filesystem>
 #include <system_error>
 #include <string>
@@ -209,6 +210,12 @@ static int drz_bitwise_drizzle(acs_module_instance_v1* inst,
     double crval[2] = {202.5, 47.2}, crpix[2] = {32.0, 32.0};
     double cd[4] = {-0.0002777778, 0.0, 0.0, 0.0002777778};
     drz_make_plane_f32(img, W, H, crval, crpix, cd);
+    // FIX-405 G3-5（DATA-002 §2a / NAN-SAMPLE-MASK-COVERAGE-NAN）: 注入一个
+    // 非有限样本 ⇒ 两条路径（direct C API / 模块 manifest）都必须
+    // ①掩膜该样本 ②暴露同一个 n_rejected_nonfinite 计数。
+    // 该注入使下方计数断言非退化（0==0 不构成证据）。
+    img[(std::size_t)(H / 2) * (std::size_t)W + (std::size_t)(W / 2)] =
+        std::numeric_limits<float>::quiet_NaN();
 
     /* direct */
     PipelineFrame* df = drz_direct_frame(img, W, H);
@@ -258,7 +265,8 @@ static int drz_bitwise_drizzle(acs_module_instance_v1* inst,
         return 0;
     }
     /* 统计逐位一致 (直接路径 vs 模块输出) */
-    int ok = strstr(obuf, "\"n_healpix_pixels\":") && strstr(obuf, "\"n_source_pixels\":");
+    int ok = strstr(obuf, "\"n_healpix_pixels\":") && strstr(obuf, "\"n_source_pixels\":") &&
+             strstr(obuf, "\"n_rejected_nonfinite\":");
     if (ok) {
         long long d_h = (long long)dres.n_healpix_pixels;
         long long d_s = (long long)dres.n_source_pixels;
@@ -269,9 +277,21 @@ static int drz_bitwise_drizzle(acs_module_instance_v1* inst,
             snprintf(expect, sizeof(expect), "\"n_source_pixels\":%lld", d_s);
             ok = strstr(obuf, expect) != NULL;
         }
+        // FIX-405 G3-5: 非有限样本掩膜计数必须两条路径同值, 且注入确实被计数
+        if (ok) {
+            if (dres.n_rejected_nonfinite != 1) {
+                printf("  direct n_rejected_nonfinite=%lld (want 1)\n",
+                       (long long)dres.n_rejected_nonfinite);
+                ok = 0;
+            } else {
+                snprintf(expect, sizeof(expect), "\"n_rejected_nonfinite\":%lld",
+                         (long long)dres.n_rejected_nonfinite);
+                ok = strstr(obuf, expect) != NULL;
+            }
+        }
         if (!ok)
-            printf("  stats mismatch: direct(%lld,%lld) out=%.120s\n",
-                   d_h, d_s, ob.data);
+            printf("  stats mismatch: direct(%lld,%lld,rej=%lld) out=%.160s\n",
+                   d_h, d_s, (long long)dres.n_rejected_nonfinite, ob.data);
     }
     /* 清理临时 hips 产品集 */
     {

@@ -4,6 +4,8 @@
 
 # 05 — W_info（point_information）与 weight_mode 对象 schema（已按 §9.73 A44 作废：该概念不存在）
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 上位锚：`FZ-FORMULA-WINFO/Q/FHAT`、`FZ-COND-WHITENOISE`、`FZ-GATE-MEDIAN-SNR`、`FZ-GATE-SUPPORT-COVERAGE`、`FZ-DEGRADE-SCALAR`；
 `FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE`；UNIFIED §4/§4.1/§11；PSF_SIGNAL_WEIGHT §2/§4；ADJ-P2-01/ADJ-S1/ADJ-C004-01/02/03；C-004.1/2/3。
 机器：`astrocs.v6.point-information.v1.schema.json`、`astrocs.v6.weight-mode.v1.schema.json`；正例 `examples/point-information.example.json`。

@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.24)
 #     实验 targets（acr-* 工具 / acr-test-classic / qualification / tests），
 #     全部位于用户显式指定的独立 build 目录；本文件不含任何 install 规则，
 #     不进入产品安装树/产品 manifest（BLD-003 白名单 install 唯一源 =
-#     cmake/install_layout.cmake，其中无 ACR 条目）。
+#     eng/cmake/install_layout.cmake，其中无 ACR 条目）。
 #   * 禁止入口: 被生产构建 add_subdirectory() 引入。ACR 含独立 project()、
 #     FetchContent、全局 C++20/输出目录/编译选项设定，并入产品构建图会向生产
 #     泄漏编译标准、编译器选项与第三方依赖解析 → 直接 FATAL（机器负测见
@@ -21,7 +21,7 @@ cmake_minimum_required(VERSION 3.24)
 #   1) 默认/Release 根 configure target graph 无 ACR target（根 CMakeLists
 #     从不 add_subdirectory 本目录）；
 #   2) release preset（CMakePresets.json win-msvc-17.14.39-x64 / linux-control）
-#      ASTROCS_ENABLE_ACR=OFF（正式路径不接受 ON；cmake/toolchain/
+#      ASTROCS_ENABLE_ACR=OFF（正式路径不接受 ON；eng/cmake/toolchain/
 #      verify_toolchain.py 对 formal path 强制 OFF）；
 #   3) 显式 -DASTROCS_ENABLE_ACR=ON 的根 configure 仍不引入 ACR target ——
 #      ACR 实验树只能独立 configure（本 guard 即隔离实验 target 的机器边界）；
@@ -228,8 +228,8 @@ foreach(subdir
     backends/cpu backends/alpaka backends/cuda backends/classic
     qualification scheduler utilization routing
     profile cost
-    tests tools/acr_benchmark tools/acr_status tools/acr_report
-    tools/acr_classic_runner
+    tests eng/tools/acr_benchmark eng/tools/acr_status eng/tools/acr_report
+    eng/tools/acr_classic_runner
     examples
 )
     if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${subdir}/CMakeLists.txt)

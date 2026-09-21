@@ -126,15 +126,76 @@ static size_t block_data_bytes(const AioBlock* blk) {
 }
 
 /* ============================================================================
+ * 块名词表 (FIX-404 / GAP_AUDIT G1-5: 只接受标准块定义表中的命名块)
+ * ----------------------------------------------------------------------------
+ * 标准表 = aio_pipeline.h 文件末「标准块定义表」逐行镜像；两处必须一致
+ * (机器判据: eng/tools/quality/check_module_map.py 的 block_name_vocabulary 检查)。
+ * 扩展**必须显式注册** (aio_block_name_register, 带权威引用)，不存在隐式放行。
+ * ============================================================================ */
+
+/* 标准块定义表 (与 aio_pipeline.h 表逐名一致；顺序即机器表顺序) */
+static const char* const kStandardBlockNames[] = {
+    "header", "data", "weight", "snr", "psf", "star_det", "star_det_psf_compat",
+    "gaia_cat", "grad_map", "cal_stats", "photo_stats", "healpix",
+    "variance", "ivar",
+    /* 编排层生产块（FIX-404 实测补齐：orchestrator 经 dlsym 写入，原表遗漏） */
+    "star_measurements", "photometric_match", "snr_model",
+};
+static const int kStandardBlockNameCount =
+    (int)(sizeof(kStandardBlockNames) / sizeof(kStandardBlockNames[0]));
+
+/* 显式注册的扩展名 (进程内；容量固定，注册不改变标准表) */
+#define AIO_BLOCK_REGISTERED_MAX 32
+static char g_registered_block_names[AIO_BLOCK_REGISTERED_MAX][AIO_BLOCK_NAME_MAX + 1];
+static int g_registered_block_name_count = 0;
+
+AIO_EXPORT int aio_block_name_is_standard(const char* name) {
+    if (!name || name[0] == '\0') return 0;
+    for (int i = 0; i < kStandardBlockNameCount; ++i) {
+        if (std::strcmp(kStandardBlockNames[i], name) == 0) return 1;
+    }
+    for (int i = 0; i < g_registered_block_name_count; ++i) {
+        if (std::strcmp(g_registered_block_names[i], name) == 0) return 1;
+    }
+    return 0;
+}
+
+AIO_EXPORT int aio_block_name_register(const char* name, const char* authority) {
+    if (!name || name[0] == '\0' || std::strlen(name) > AIO_BLOCK_NAME_MAX) return 1;
+    if (!authority || authority[0] == '\0') return 2;   /* 扩展必须带权威引用 */
+    if (aio_block_name_is_standard(name)) return 0;      /* 幂等 */
+    if (g_registered_block_name_count >= AIO_BLOCK_REGISTERED_MAX) return 3;
+    std::strncpy(g_registered_block_names[g_registered_block_name_count], name,
+                 AIO_BLOCK_NAME_MAX);
+    g_registered_block_names[g_registered_block_name_count][AIO_BLOCK_NAME_MAX] = '\0';
+    g_registered_block_name_count++;
+    aio_log(AIO_LOG_INFO, "PIPELINE", "block_name_register: '%s' (%s)", name, authority);
+    return 0;
+}
+
+AIO_EXPORT int aio_block_name_count(void) {
+    return kStandardBlockNameCount + g_registered_block_name_count;
+}
+
+AIO_EXPORT const char* aio_block_name_at(int index) {
+    if (index < 0) return nullptr;
+    if (index < kStandardBlockNameCount) return kStandardBlockNames[index];
+    index -= kStandardBlockNameCount;
+    if (index >= g_registered_block_name_count) return nullptr;
+    return g_registered_block_names[index];
+}
+
+/* ============================================================================
  * 冻结校验器 (BLOCKER-DF-001/003/004: add_block 与 add_block_move 共用)
  * ============================================================================ */
 
-/* 校验块参数 (不修改 frame)。返回 0=合法, 非0=失败原因。
+/* 校验块参数 (不修改 frame)。返回 0=合法, 非0=失败原因 (9=块名不在标准表且未注册)。
  * out_elem_size: 输出每元素字节数 (合法时) */
 static int validate_block_params(const char* name, AioBlockType type,
                                  int64_t count, const int* dims, int n_dims,
                                  const char* description, size_t* out_elem_size) {
     if (!name || name[0] == '\0' || std::strlen(name) > AIO_BLOCK_NAME_MAX) return 1;
+    if (!aio_block_name_is_standard(name)) return 9;   /* FIX-404: 只认标准表/显式注册名 */
     size_t elem = block_type_elem_size(type);
     if (elem == 0) return 2;                       // 未知类型
     if (count < 0) return 3;                       // 负 count
@@ -636,6 +697,12 @@ AIO_EXPORT int aio_frame_list_blocks(const PipelineFrame* frame,
 static AioKVEntry* kv_get_or_create_entries(PipelineFrame* frame, const char* block_name,
                                               int64_t* out_count) {
     if (!frame || !block_name) return nullptr;
+    /* FIX-404: KV 块自动创建同样只认标准表/显式注册名（与 add_block 同一口径） */
+    if (!aio_block_name_is_standard(block_name)) {
+        aio_log(AIO_LOG_ERROR, "PIPELINE",
+                "kv: block name '%s' 不在标准块定义表且未显式注册", block_name);
+        return nullptr;
+    }
     int idx = find_block_index(frame, block_name);
     AioBlock* blk = nullptr;
 
@@ -868,7 +935,7 @@ static int serialize_block_data(FILE* fp, const AioBlock* blk) {
 
     /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
+     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_save_cache(const PipelineFrame* frame, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
     try {
@@ -1028,6 +1095,13 @@ static int load_cache_parse(PipelineFrame* frame, const char* path) {
             if (std::strncmp(frame->blocks[j].name, name, 64) == 0) { failed = true; break; }
         }
         if (failed) break;
+        /* FIX-404: 缓存回读同样只认标准表/显式注册名（缓存为非生产/诊断接口，
+         * 不得成为绕过块名词表的通道） */
+        if (!aio_block_name_is_standard(name)) {
+            aio_log(AIO_LOG_ERROR, "PIPELINE",
+                    "load_cache: block name '%s' 不在标准块定义表且未显式注册", name);
+            failed = true; break;
+        }
 
         init_block_fields(blk, name, (AioBlockType)type_val, count, dims, n_dims, "");
         if (blk->type == AIO_BLOCK_KV) {
@@ -1090,7 +1164,7 @@ static int load_cache_parse(PipelineFrame* frame, const char* path) {
 
     /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
+     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_load_cache(PipelineFrame* frame, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
     try {
@@ -1201,7 +1275,7 @@ static std::string block_to_xml(const AioBlock* blk, const char* block_name_over
 
     /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
+     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
     const char* block_name, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
@@ -1243,7 +1317,7 @@ AIO_EXPORT int aio_frame_export_block_xml(const PipelineFrame* frame,
 
     /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
+     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* path)  {
     /* P1 (R9-A): C 边界异常屏障 */
     try {
@@ -1290,7 +1364,7 @@ AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* 
 
     /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
+     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 /* 旧名包装 (非生产/诊断别名; **不是**「兼容保留」的生产接口) */
 AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
     const char* path, const char* comment)  {
@@ -1311,7 +1385,7 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
 
     /* FIX-201 降级登记 (ASTROCS_DESIGN §9「块↔文件的导出/缓存接口不是生产
      * 接口」): 本函数是**非生产/诊断**接口 —— 禁止任何阶段内节点用它搬运
-     * 数据; 生产调用点 = 0 (机器判据 ci/check_aio_io_boundary.py)。 */
+     * 数据; 生产调用点 = 0 (机器判据 eng/ci/check_aio_io_boundary.py)。 */
 /* FITS 导出: 简化版本，写入裸二进制 + 元数据头 */
 /* 注: 不依赖 cfitsio，使用简单的 FITS 2880 字节块格式 */
 AIO_EXPORT int aio_frame_export_block_fits(const PipelineFrame* frame,

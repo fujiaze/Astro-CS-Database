@@ -5,6 +5,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -198,6 +201,59 @@ static bool write_analytic_frame(const std::string& path) {
     return true;
 }
 
+// FIX-402: 生成后统一补齐 HiPS 子产品单位/像素语义声明 —— 生产 Phase3 输入语义
+// 守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）只放行**显式声明**的面亮度
+// 输入; AIO writer 不写 BUNIT, 故 fixture 侧按冻结单位表补齐
+// （docs/contracts/v6/data/01_units_and_bunit.md §1: signal_sb=ADU/px^2,
+//  sb_variance_out=ADU^2/px^4, sb_ivar_out=px^4/ADU^2）。幂等。
+static void declare_units_for_all(const std::string& root) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    if (!fs::is_directory(fs::u8path(root), ec)) return;
+    struct Sub { const char* dir; const char* bunit; int power; };
+    const Sub subs[] = {{"signal", "ADU/px^2", -2},
+                        {"variance", "ADU^2/px^4", -4},
+                        {"ivar", "px^4/ADU^2", 4}};
+    for (const auto& e : fs::directory_iterator(fs::u8path(root), ec)) {
+        if (ec || !e.is_directory()) continue;
+        const std::string name = e.path().filename().string();
+        if (name.size() < 5 || name.compare(name.size() - 5, 5, ".hips") != 0) continue;
+        const std::string base = e.path().generic_string();
+        for (const Sub& s : subs) {
+            const std::string pp = base + "/" + s.dir + "/properties";
+            std::ifstream in(fs::u8path(pp), std::ios::binary);
+            if (!in) continue;
+            std::string text((std::istreambuf_iterator<char>(in)),
+                             std::istreambuf_iterator<char>());
+            in.close();
+            std::string kept;
+            {
+                std::istringstream ls(text);
+                std::string line;
+                while (std::getline(ls, line)) {
+                    std::string key = line.substr(0, line.find('='));
+                    const size_t a = key.find_first_not_of(" \t\r");
+                    const size_t b = key.find_last_not_of(" \t\r");
+                    key = (a == std::string::npos) ? std::string()
+                                                   : key.substr(a, b - a + 1);
+                    if (key == "BUNIT" || key == "bunit" || key == "ASTROCS_SIGNAL_UNIT" ||
+                        key == "ASTROCS_PIXEL_SEMANTICS" ||
+                        key == "ASTROCS_PIXEL_AREA_POWER")
+                        continue;
+                    kept += line;
+                    kept += '\n';
+                }
+            }
+            kept += std::string("BUNIT=") + s.bunit + "\n";
+            kept += "ASTROCS_SIGNAL_UNIT=ADU/px^2\n";
+            kept += "ASTROCS_PIXEL_SEMANTICS=surface_brightness\n";
+            kept += "ASTROCS_PIXEL_AREA_POWER=" + std::to_string(s.power) + "\n";
+            std::ofstream out(fs::u8path(pp), std::ios::binary | std::ios::trunc);
+            if (out) out << kept;
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 3) {
         std::fprintf(stderr, "usage: --make <dir> | --make-noivar <dir> | --make-field <dir> | --make-nan <dir> | --make-seam <dir> | --make-seam6 <dir> | --make-seam-n <dir> <N> | --make-analytic <dir>\n");
@@ -255,6 +311,8 @@ int main(int argc, char** argv) {
     } else {
         return 2;
     }
+    // FIX-402: 全部生成模式统一补单位/像素语义声明（含 --make-field 的 FIELD.hips）。
+    declare_units_for_all(dir);
     std::printf("HIPS_FIXTURES_OK\n");
     return 0;
 }

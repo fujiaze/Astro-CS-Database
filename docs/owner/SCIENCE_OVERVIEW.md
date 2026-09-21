@@ -1,7 +1,9 @@
 # 科学总览（Science Overview）
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）
+
 > 文档 ID：DOC-GOV-OWNER-SCIENCE-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
+> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
 > 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003 唯一源）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
 > 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
@@ -49,7 +51,7 @@ HEALPIX_MAPPING / UPM_SOLVER / PHASE2_SAMPLER / REJECTION_ALGORITHMS /
 INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 
 - 上述文件全部被 `docs/DOCUMENT_INDEX.yaml` 登记为 ACTIVE_NORMATIVE
-  （`tools/doccheck/check_doc_index.py` 覆盖检查）；`docs/contracts/INDEX.yaml`
+  （`eng/tools/doccheck/check_doc_index.py` 覆盖检查）；`docs/contracts/INDEX.yaml`
   登记 SCI/ALG 条目 → **合同冻结 = PASS**。
 - 本文不复制公式；公式权威见各源文件。
 

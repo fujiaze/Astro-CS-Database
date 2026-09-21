@@ -233,7 +233,7 @@
           "resource_class": "io",
           "ports": [
             { "name": "integrated", "direction": "input", "data_schema_id": "DATA-P2-INT", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "mosaic", "direction": "output", "data_schema_id": "DATA-P2-RES", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+            { "name": "mosaic", "direction": "output", "data_schema_id": "DATA-P2-RES", "unit": "SURFACE_BRIGHTNESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
           ]
         }
       ]

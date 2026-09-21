@@ -1,7 +1,7 @@
 # 国际标准冻结注册表（STANDARDS_REGISTRY）
 
 > doc_id: STD-REG-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `tools/doccheck/check_doc_index.py` 现场校验；本表不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
+> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本表不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
 > authoring_task: STD-REG-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev18，dispatch 79adc53703da7a33）
 > 上游权威: `ASTROCS_DESIGN.md` §5.3（冻结八投影）/附录 B（基础科学与格式参考）+ `ENGINEERING_SPEC.md` §8（本注册表为标准登记，不在 §0 权威链上）
 > 条款锚的现行落点：投影集合 = `ASTROCS_DESIGN.md` §5.3（八投影）；资源门 = 同文 §8 + `contracts/resource_gate_v1.json`
@@ -345,12 +345,12 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 
 > ⚠ **负向注入的 CI 登记状态**：
 > 下列 9 场景与「注入空转守卫（`FAULT_INJECT_NOOP`）」中，**2 个场景已登记进
-> `ci/checks.json`**（`STD-REG-FI-DANGLING` = `dangling-deviation-id`、
+> `eng/ci/checks.json`**（`STD-REG-FI-DANGLING` = `dangling-deviation-id`、
 > `STD-REG-FI-VERSION-DRIFT` = `version-drift`）；**其余 7 个场景与空转守卫为
 > PLANNED（计划）**，**不是**已生效的强制 CI 义务。
 > 本节的「全部必须 FAIL」是**域内手工复跑**判据（手动执行 `--fault-inject`），
-> **不得**读作「CI 已强制」。补登记属 `ci/checks.json` 写入面（**不在本文件域**），
-> 须先在 `ci/checks.json` 登记（`changed_paths=["docs/standards/**"]`，参照 DOC-INDEX 形态）；
+> **不得**读作「CI 已强制」。补登记属 `eng/ci/checks.json` 写入面（**不在本文件域**），
+> 须先在 `eng/ci/checks.json` 登记（`changed_paths=["docs/standards/**"]`，参照 DOC-INDEX 形态）；
 > 补登记完成后方可把本节改回强制口径。
 
     for s in drop-domain-section drop-checklist-table illegal-status version-drift \
@@ -373,10 +373,10 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
       python3 docs/standards/checks/check_standards_registry.py --root .; echo rc=$?   # rc=2
 
 > CI 登记状态：本检查器为**治理文档检查器**
-> （非 CTest 目标、非 add_test 注册面）。**已登记**：`ci/checks.json` 的 `STD-REG` 项
+> （非 CTest 目标、非 add_test 注册面）。**已登记**：`eng/ci/checks.json` 的 `STD-REG` 项
 > （主判据 `check_standards_registry.py --root .`）+ 2 个负向注入场景
 > （`STD-REG-FI-DANGLING`、`STD-REG-FI-VERSION-DRIFT`）。
-> **未登记（PLANNED）**：其余 7 个注入场景 + 空转守卫；该登记属 `ci/checks.json` 写入面，
+> **未登记（PLANNED）**：其余 7 个注入场景 + 空转守卫；该登记属 `eng/ci/checks.json` 写入面，
 > 超出本文件域（参照 DOC-INDEX 检查项形态：changed_paths=["docs/standards/**"]）。
 > 补登记前，未登记场景由域内任务按 §1 纪律**手工复跑**，**不得**声称已被 CI 强制。
 
@@ -401,8 +401,8 @@ docs/DOCUMENT_INDEX.yaml）在启动时校验 os.path.exists + `git ls-files --e
 
 > 依据：`ASTROCS_DESIGN.md` §0.2（登记表/映射表不得写状态字段）、§11（状态必须现场计算）。
 
-- 本表**不写**交付状态阶梯（§11.4 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由 `tools/quality/check_module_map.py` 现场计算；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` + `tools/doccheck/check_doc_index.py` 为准。
+- 本表**不写**交付状态阶梯（§11.4 的 `CONTRACT_READY`/`IMPLEMENTED`/…）——那是模块/交付物的状态，由 `eng/tools/quality/check_module_map.py` 现场计算；文档活动分类一律以 `docs/DOCUMENT_INDEX.yaml` + `eng/tools/doccheck/check_doc_index.py` 为准。
 - 本表保留的两列**不是**交付状态，且都由机器校验，不构成「表内自证绿」：
   - `符合状态`（`CONFORMANT`/`PARTIAL`/`NON_CONFORMANT`/`PROJECT_DEFINED`）= 与**外部标准条款**的关系轴，取值域与证据指针存在性由 `check_standards_registry.py` C4/C5 现场判（`docs/owner/RELEASE_STATUS.md` §0 已声明两轴独立）；
   - §3 偏差索引的 `状态`（`TRACKED`/`CLOSED`）= 偏差处置登记，定义域与索引一致性由 C6/C7 现场判。
-- 若后续要求连这两列也改为「检查器现场计算」，须先改 `docs/standards/checks/check_standards_registry.py` 的 C4/C6 判据并同步 `ci/checks.json` 的 STD-REG 项——属门禁改造，不在本文件域内。
+- 若后续要求连这两列也改为「检查器现场计算」，须先改 `docs/standards/checks/check_standards_registry.py` 的 C4/C6 判据并同步 `eng/ci/checks.json` 的 STD-REG 项——属门禁改造，不在本文件域内。

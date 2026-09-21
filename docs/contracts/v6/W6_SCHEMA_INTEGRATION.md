@@ -4,6 +4,8 @@
 
 # W6 生产 schema 集成登记（SCHEMA-INTEGRATE-001）
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 - 文档 ID：`DATA-V6-SCHEMA-INTEGRATION`
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCHEMA-INTEGRATE-001.md`（Wave 6，depends_on = CONTRACT-FREEZE-001）
 - write_scope：`contracts/schemas/`、`contracts/data/`、`docs/contracts/`、`tests/contracts/v6/`
@@ -89,10 +91,10 @@
 | `python3 tests/contracts/v6/v6_oracle.py` | 0 | ORACLE_PASS 40/40（独立对照 W4 冻结合同） |
 | `python3 -B -m unittest discover -s tests/contracts -t tests/contracts`（CI `UT-CONTRACTS`） | 0 | Ran 28 tests OK（含既有 9） |
 | `python3 tests/contracts/v6/run_all.py` | 0 | RUN_ALL_PASS（Oracle 40/40 + **34** 条负向 mutation 全红 + 10/10 正例） |
-| `python3 tools/check_data_artifacts.py` | 0 | DATA_ARTIFACTS_PASS schemas=28 |
-| `python3 tools/check_contract_graph.py` | 0 | CONTRACT_GRAPH_PASS contracts=100 |
-| `python3 tools/check_agents_gov.py` | 0 | GOV_CHECK_PASS 10/10 |
-| `python3 tools/check_version_consistency.py` | 1（**预存，非本次引入**） | 4 条全部落在未修改的 `docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md`（`git show HEAD:` 即含该字面量）；本任务新增文件 0 条 |
+| `python3 eng/tools/check_data_artifacts.py` | 0 | DATA_ARTIFACTS_PASS schemas=28 |
+| `python3 eng/tools/check_contract_graph.py` | 0 | CONTRACT_GRAPH_PASS contracts=100 |
+| `python3 eng/tools/check_agents_gov.py` | 0 | GOV_CHECK_PASS 10/10 |
+| `python3 eng/tools/check_version_consistency.py` | 1（**预存，非本次引入**） | 4 条全部落在未修改的 `docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md`（`git show HEAD:` 即含该字面量）；本任务新增文件 0 条 |
 
 - 负向 mutation **34** 条（要求 ≥12）：单位错 / psfsw 写成 ivar / group_normalized=false / scope=global / median_target≠1 / 缺 component_flux_unit / concentration 放宽为 `ADU/px` / validity 白名单越界 / 禁止键守卫清空 / weight.kind=ivar / `psf_snr_power` 进生产 / legacy 整数放行 / deferred 登记被抹 / `k_corr=1` / 缺 k_corr / variance_from 含权重 / propagation 改写 / signal 幂次门移除 / 缺 effective_psf_id / 字典单位错 / 禁止来源漏 fwhm / 待签写成 FROZEN / 计数错 / concentration 权威改回 `ADU/px` / mode 单位错 / canonical 单位反向 / legacy 0 放行 / 迁移覆盖不全 / 正例 concentration 错 / 正例 `k_corr=1` / 删 §31 / 重新引入 P33 段 / 重新引入 P27 段 / PENDING 数值写成 FROZEN。
 - 每条 mutation 均由 `Oracle.overrides` 在临时影子文件上重跑**同一** Oracle，断言失败且指定检查项变红（不是"同实现自证"）。

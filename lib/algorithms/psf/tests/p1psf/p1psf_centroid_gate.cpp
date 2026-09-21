@@ -18,7 +18,7 @@
 //   (连续系/truthFITS); 峰值 SNR=50/300, FWHM=3.0 px, B=120 ADU, sigma_n=8 ADU,
 //   256x256, 40 星, 固定 seed (与 R-3 探针同构构型)。
 //
-// 判据 (docs/science/GATES_AND_TOLERANCES.md G-P1-CENTROID-1 行, 阈值来源 R-3):
+// 判据 (docs/algorithms/GATES_AND_TOLERANCES.md G-P1-CENTROID-1 行, 阈值来源 R-3):
 //   [P0] 匹配星数 >= 25 (防恒真: 0 星也能"通过")
 //   [P1] fallback 支路输出与 sdet 原始坐标逐点一致 (写读桥为精确换算)
 //   [P2] sdet 支路绝对位置: median|astro_det - truth| <= 0.1 px 且 p95 <= 0.3 px

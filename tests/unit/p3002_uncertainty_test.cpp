@@ -36,6 +36,7 @@
 #include "healpix_core.h"       // astrocs::healpix::pix2ang_nest (数学权威, 测试允许)
 #include "p1sess_fixtures.hpp"  // p1sess::write_fits_file 手写最小 FITS
 #include "p3_resample.h"        // 采样器级 W1/W2 oracle (§S 段)
+#include "aio_atomic_file.h"    // FIX-401: 完成清单走 aio 原子写原语 (CLEAN-403)
 
 #include <nlohmann/json.hpp>
 
@@ -111,6 +112,28 @@ std::string hips_properties_text(const char* bunit) {
   return s;
 }
 
+// FIX-401 §10: 产品根完成清单。aio_hips_open 消费者对**无完成清单**的产品根
+// fail-closed (「没有完成清单就不算成功对象」), 故手写产品树的 fixture 也必须
+// 手写完成清单 —— 与 writer 的 manifest.json 同语义: 声明本根含哪些子产品。
+bool write_hips_manifest(const std::string& root, bool has_variance,
+                         bool has_ivar) {
+  std::string products = "\"signal\"";
+  if (has_variance) products += ", \"variance\"";
+  if (has_ivar) products += ", \"ivar\"";
+  // 走 aio 原子写原语 (CLEAN-403「所有新 I/O 经 aio」; 不新增 filesystem 命中)。
+  const std::string body = std::string("{\n") +
+      "  \"format_version\": 1,\n" +
+      "  \"product\": \"HiPS\",\n" +
+      "  \"hips_order\": 0,\n" +
+      "  \"hips_tile_width\": 512,\n" +
+      "  \"data_type\": \"float32\",\n" +
+      "  \"n_leaf_tiles\": 1,\n" +
+      "  \"products\": [" + products + "]\n" +
+      "}\n";
+  std::string aerr;
+  return aio_atomic::write_file_atomic(root + "/manifest.json", body, &aerr) == 0;
+}
+
 // 手写一个子产品: <root>/<sub>/properties + Norder0/Dir0/Npix0.fits
 // value==nullptr → 不写 tile 文件 (缺 tile fixture 面)。
 bool write_hips_sub(const std::string& root, const char* sub, int order,
@@ -177,6 +200,23 @@ UncFixture make_fixture(const char* tag, const float* variance_val,
     fx.ok = fx.ok && write_hips_sub(fx.hips, "variance", 0, 0, variance_val, "ADU^2");
   }
   if (ivar_val) fx.ok = fx.ok && write_hips_sub(fx.hips, "ivar", 0, 0, ivar_val, "1/(ADU^2)");
+  // FIX-402: 生产 Phase3 输入语义守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS (b)）
+  // 只放行**显式声明**面亮度语义的输入。本 fixture 的 signal 为 ADU 面亮度 ⇒ 补
+  // 像素语义声明（保留 BUNIT=ADU 串, 使 session 路径既有 "ADU^2"/"ADU^-2" 期望
+  // 与节点路径的 canonical 归一各得其所）。
+  {
+    std::ofstream ap(fs::path(fx.hips + "/signal/properties"),
+                     std::ios::binary | std::ios::app);
+    if (!ap) {
+      fx.ok = false;
+    } else {
+      ap << "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
+      ap << "ASTROCS_PIXEL_AREA_POWER = -2\n";
+    }
+  }
+  // FIX-401 §10: 完成清单最后落盘 (声明本根的子产品集合)。
+  fx.ok = fx.ok && write_hips_manifest(fx.hips, variance_val != nullptr,
+                                       ivar_val != nullptr);
   return fx;
 }
 
@@ -355,7 +395,9 @@ static void test_w6_available(double ra, double dec) {
   CHECK_MSG(hi.extname[3] == "VARIANCE", "HDU3 EXTNAME must be VARIANCE");
   CHECK_MSG(hi.extname[4] == "IVAR", "HDU4 EXTNAME must be IVAR");
   CHECK_MSG(hi.bunit[3] == "ADU^2", "VARIANCE BUNIT must be <BUNIT>^2");
-  CHECK_MSG(hi.bunit[4] == "1/(ADU^2)", "IVAR BUNIT must be 1/(<BUNIT>^2)");
+  // FIX-402: ivar BUNIT 用冻结单位表 canonical 串（1/variance = ADU^-2;
+  // docs/contracts/v6/data/01_units_and_bunit.md §1 flux 行）, 不再写 "1/(ADU^2)"。
+  CHECK_MSG(hi.bunit[4] == "ADU^-2", "IVAR BUNIT must be (signal BUNIT)^-2");
   // DATASUM 逐 HDU (COVERAGE 模式同构)
   {
     fitsfile* f = nullptr;
@@ -440,6 +482,8 @@ static void test_w4_nan_propagation(double ra, double dec) {
     p.close();
     fx.ok = fx.ok &&
             p1sess::write_fits_file(tile, 512, 512, nan_px, nullptr) == 0;
+    // FIX-401 §10: 重写 variance 后同步完成清单 (否则消费者 fail-closed)
+    fx.ok = fx.ok && write_hips_manifest(fx.hips, true, false);
   }
   CHECK(fx.ok);
   json man;
@@ -598,6 +642,8 @@ static void test_sampler_level_oracles() {
   CHECK(write_hips_sub_fullsky(fx.hips, "signal", &sig, "ADU"));
   CHECK(write_hips_sub_fullsky(fx.hips, "variance", &var, "ADU^2"));
   CHECK(write_hips_sub_fullsky(fx.hips, "ivar", &iv, "1/(ADU^2)"));
+  // FIX-401 §10: 完成清单同步 (声明 signal+variance+ivar)
+  CHECK(write_hips_manifest(fx.hips, true, true));
   double ra = 0, dec = 0;
   sample_center(&ra, &dec);
   P3Sampler samp{}, usamp{};
@@ -690,6 +736,8 @@ static void test_sampler_level_oracles() {
     float sig1 = kSigVal;
     CHECK(write_hips_sub(fx1.hips, "signal", 0, 0, &sig1, "ADU"));
     CHECK(write_hips_sub(fx1.hips, "variance", 0, 0, &var, "ADU^2"));
+    // FIX-401 §10: 补写 variance 后同步完成清单 (否则消费者 fail-closed)
+    CHECK(write_hips_manifest(fx1.hips, true, false));
     P3Sampler s1{}, u1{};
     P3UncertaintySource src1 = P3_UNC_NONE;
     CHECK(p3_sampler_open_ex(fx1.hips.c_str(), &s1, nullptr, nullptr, &err) ==

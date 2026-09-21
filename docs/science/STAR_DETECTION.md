@@ -1,5 +1,7 @@
 # SCI-P1-STAR-001 — Phase1 星点检测（P1-STAR 冻结层）
 
+> 上游：ASTROCS_DESIGN.md §2.1（测光星等坐标系）、§4.2（Phase1 节点流程）
+
 > 状态: FROZEN
 > 性质: 本页是 Phase1 星点检测的 SCI 冻结层落点，声明共享 SCI（PSF / PHOTOMETRY /
 > ASTROMETRY，`docs/science/` 既有文档）的语义映射与 matrix 指向，格式沿用

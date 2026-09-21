@@ -2,7 +2,7 @@
 
 **生成时间**: 2026-07-31
 **任务**: WP-I-2 真实数据 C++ 实验 (步骤16) + 详细性能报告 (步骤17)
-**依据**: docs/stage1_fix/spec.md 步骤16/17, 02_FROZEN_STAGE1_HISS_SPEC.md
+**依据**: docs/standards/BENCHMARK_STANDARD.md, 02_FROZEN_STAGE1_HISS_SPEC.md
 
 ---
 

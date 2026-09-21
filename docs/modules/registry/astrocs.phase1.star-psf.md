@@ -12,6 +12,8 @@ downstream: [TEST-P1-PSF-001]
 
 # 模块 astrocs.phase1.star-psf
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页 registry descriptor 占位 ID
 > （ALG-002/TEST-P1-PSF-001）保留为编排层词汇，由 P1-PSF-INT 对齐；冻结
 > 合同 = SCI-P1-PSF-001（STAR_PSF_ALGORITHMS §11.5）/ ALG-STARPSF-001

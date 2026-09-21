@@ -1,5 +1,7 @@
 # ACR Work-Domain Equivalence Science (SCI-ACR-EQUIV)
 
+> 上游：ASTROCS_DESIGN.md §1.3（非目标）、§4（normalize）
+
 > ID: SCI-ACR-EQUIV-001  状态: FROZEN  上游: SCI-SCOPE-001 + SCI-INT/REJ/UPM/DRIZZLE  下游 ALG: ALG-ACR-EQUIV-001..  模块: acr × phase2 (acr_kernels)
 
 ## 1 目的与非目标

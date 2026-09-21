@@ -1,20 +1,30 @@
 // ============================================================================
-// drizzle_nonfinite_test.cpp — 非有限输入不掩膜合同测试 (P1 修复 P1-DRZ-NONFINITE)
+// drizzle_nonfinite_test.cpp — 非有限样本处置合同测试
+//   （FIX-405 G3-5 反转；原 P1-DRZ-NONFINITE「不掩膜/传播」断言已作废）
 //
-// 冻结合同 docs/science/DRIZZLE.md §8 :96:
-//   | 源像素 NaN/Inf（值） | 经 `F_p=Σx_j·w_jp` 直接传播为 NaN/Inf, drizzle 层**不掩膜**;
-//   | 非有限值由下游积分 INVALID_INPUT 合同（SCI-INT）处理 | `spherical_overlap.cpp:192` |
+// 冻结合同（唯一口径文字 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
+// §2a；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN，EXP-202 定案）:
+//   合格样本 = isfinite(x_j) ∧ isfinite(V_j) ∧ V_j > 0；
+//   不合格样本 → 样本级掩膜（从 F_p/D_p/Var_p 三项一并剔除 ⇒ 重归一）;
+//   仅 D_p = 0 时输出 signal = NaN ∧ support ≤ 0（覆盖级 NaN）;
+//   **强制计数** n_rejected_nonfinite（按原因: 值非有限 / 方差非有限 / 权重非正）;
+//   禁止: 单个坏样本让整像素变 NaN；禁止: 静默剔除（无计数）。
+// 注意: docs/science/DRIZZLE.md §8 :96 的「不掩膜」行为已被同一 rule_id 反转，
+// 本文件断言与 DATA-002 §2a 对齐（文档面订正属 DOC 域，见任务回执）。
 //
 // 覆盖:
-// 1. pixel NaN → drizzle 成功 (return true), 污染 leaf sumFlux=NaN (值传播, 非静默丢弃)
-// 2. pixel +Inf → 同上传播
-// 3. snr NaN → 不影响 (snr 仅元数据/下游, 不进 F_p/variance)
-// 4. weight NaN → 传播 (NaN 不满足 <=0 边界)
-// 5. weight +Inf → 传播
-// 6. variance NaN → 传播 (NaN 不满足 <=0 边界)
-// 7. 对照: weight==0 / variance==0 → 该像素跳过 (合法数据边界, 非掩膜)
-// 8. 链路断言: drizzle 输出的 NaN flux 喂给下游积分 p2_integrate_pixel →
-//    P2_INTEGRATE_INVALID_INPUT (SCI-INT 非有限输入合同, integrate.cpp:41-54)
+// 1. pixel NaN → 掩膜: 无 leaf 被污染 + 计数=1 + nSourcePixels 减 1
+// 2. pixel +Inf → 同上掩膜 + 计数
+// 3. snr NaN → 不影响 (snr 仅元数据, 不进 F_p/variance; 非合格样本判据)
+// 4. weight NaN → 掩膜 (权重非正/非有限) + 计数
+// 5. weight +Inf → 同上
+// 6. variance NaN → 掩膜 (方差非有限) + 计数
+// 7. 对照: weight==0 → 掩膜并计数（权重非正）; variance==0 → 合法数据边界跳过
+//    （不计入非有限计数; 零方差面=无方差贡献语义）
+// 8. 重归一: 同一常值场去掉一个 NaN 样本后, 各 leaf 面亮度 F_p/D_p 与全有限场
+//    逐 leaf 相等（掩膜样本不得把权重留在分母 ⇒ 无偏）—— 传播语义下此断言必红
+// 9. 链路断言: 非有限样本经掩膜后不再出现在产品面; 覆盖级 NaN（D_p=0）喂给下游
+//    积分 p2_integrate_pixel → P2_INTEGRATE_INVALID_INPUT (SCI-INT, integrate.cpp)
 //
 // 编译 (tests/ 目录, Linux):
 // g++ -O2 -std=c++17 -Wall -Wextra -fopenmp -I.. -I../../../astro_image_io/include
@@ -93,14 +103,14 @@ bool any_nan_flux(const std::vector<TileAccumulatorT<float>>& tiles) {
 } // namespace
 
 int main() {
-    printf("=== Drizzle 非有限输入不掩膜合同测试 (P1-DRZ-NONFINITE) ===\n");
+    printf("=== Drizzle 非有限样本掩膜合同测试 (DATA-002 §2a / NAN-SAMPLE-MASK-COVERAGE-NAN) ===\n");
     const float kNan = std::numeric_limits<float>::quiet_NaN();
     const float kInf = std::numeric_limits<float>::infinity();
 
     DrizzleEngine eng;
     DrizzleConfig cfg = make_cfg();
 
-    // ---- 1. pixel NaN → 传播, run 成功 ----
+    // ---- 1. pixel NaN → 样本级掩膜 + 强制计数, run 成功 ----
     {
         FitsImage im = make_synth();
         im.pixels[5] = kNan;
@@ -109,14 +119,18 @@ int main() {
         DrizzleStats st; std::string err;
         bool ok = eng.drizzleTiled(im, cfg, nullptr, nullptr, nullptr,
                                    tiles, st, err);
-        CHECK(ok, "pixel NaN: drizzleTiled 返回 true (不掩膜, 不拒绝)");
-        CHECK(!any_nan_flux(tiles) || st.nSourcePixels == (int64_t)W * H,
-              "pixel NaN: nSourcePixels 计入全部源像素");
-        CHECK(any_nan_flux(tiles), "pixel NaN: F_p=Σx_j·w_jp 传播 → sumFlux 含 NaN");
+        CHECK(ok, "pixel NaN: drizzleTiled 返回 true (掩膜, 不拒绝整幅)");
+        CHECK(!any_nan_flux(tiles),
+              "pixel NaN: 样本级掩膜 → 无 leaf 被污染 (禁传播)");
+        CHECK(st.n_rejected_nonfinite_value == 1,
+              "pixel NaN: 值非有限计数 == 1 (强制计数, 禁静默)");
+        CHECK(st.n_rejected_nonfinite == 1, "pixel NaN: 合计计数 == 1");
+        CHECK(st.nSourcePixels == (int64_t)W * H - 1,
+              "pixel NaN: 被掩膜样本不进管线 (nSourcePixels 减 1)");
         if (!ok) printf("    (err=%s)\n", err.c_str());
     }
 
-    // ---- 2. pixel +Inf → 传播 ----
+    // ---- 2. pixel +Inf → 掩膜 + 计数 ----
     {
         FitsImage im = make_synth();
         im.pixels[5] = kInf;
@@ -126,7 +140,9 @@ int main() {
         bool ok = eng.drizzleTiled(im, cfg, nullptr, nullptr, nullptr,
                                    tiles, st, err);
         CHECK(ok, "pixel +Inf: drizzleTiled 返回 true");
-        CHECK(any_nan_flux(tiles), "pixel +Inf: sumFlux 含 Inf/NaN (传播)");
+        CHECK(!any_nan_flux(tiles), "pixel +Inf: 掩膜 → 无 leaf 被污染");
+        CHECK(st.n_rejected_nonfinite_value == 1 && st.n_rejected_nonfinite == 1,
+              "pixel +Inf: 值非有限计数 == 1");
     }
 
     // ---- 3. snr NaN → 非有限不改变 F_p (snr 不进累加器) ----
@@ -146,7 +162,7 @@ int main() {
         CHECK(finite_flux, "snr NaN: sumFlux 全部有限 (snr 不进入 F_p)");
     }
 
-    // ---- 4. weight NaN → 不掩膜 (像素进入管线; weight 不进 F_p 公式, 见下) ----
+    // ---- 4. weight NaN → 掩膜 (权重非正/非有限) + 计数 ----
     {
         FitsImage im = make_synth();
         std::vector<float> w((std::size_t)W * H, 1.0f);
@@ -156,11 +172,14 @@ int main() {
         bool ok = eng.drizzleTiled(im, cfg, nullptr, w.data(), nullptr,
                                    tiles, st, err);
         CHECK(ok, "weight NaN: drizzleTiled 返回 true");
-        CHECK(st.nSourcePixels == (int64_t)W * H,
-              "weight NaN: 不再静默 continue (nSourcePixels 计入全部源像素)");
+        CHECK(!any_nan_flux(tiles), "weight NaN: 掩膜 → 无 leaf 被污染");
+        CHECK(st.n_rejected_nonpositive_weight == 1,
+              "weight NaN: 权重非正计数 == 1");
+        CHECK(st.nSourcePixels == (int64_t)W * H - 1,
+              "weight NaN: 被掩膜样本不进管线 (nSourcePixels 减 1)");
     }
 
-    // ---- 5. weight +Inf → 不掩膜 ----
+    // ---- 5. weight +Inf → 掩膜 + 计数 ----
     {
         FitsImage im = make_synth();
         std::vector<float> w((std::size_t)W * H, 1.0f);
@@ -170,11 +189,12 @@ int main() {
         bool ok = eng.drizzleTiled(im, cfg, nullptr, w.data(), nullptr,
                                    tiles, st, err);
         CHECK(ok, "weight +Inf: drizzleTiled 返回 true");
-        CHECK(st.nSourcePixels == (int64_t)W * H,
-              "weight +Inf: 不再静默 continue (nSourcePixels 计入全部源像素)");
+        CHECK(st.n_rejected_nonpositive_weight == 1 &&
+              st.nSourcePixels == (int64_t)W * H - 1,
+              "weight +Inf: 权重非正计数 == 1 且不进管线");
     }
 
-    // ---- 6. variance NaN → 不掩膜 (variance>0 门自然跳过传播, flux 不受影响) ----
+    // ---- 6. variance NaN → 掩膜 (方差非有限) + 计数 ----
     {
         FitsImage im = make_synth();
         std::vector<float> var((std::size_t)W * H, 100.0f);
@@ -184,24 +204,32 @@ int main() {
         bool ok = eng.drizzleTiled(im, cfg, nullptr, nullptr, var.data(),
                                    tiles, st, err);
         CHECK(ok, "variance NaN: drizzleTiled 返回 true");
-        CHECK(st.nSourcePixels == (int64_t)W * H,
-              "variance NaN: 不再静默 continue (nSourcePixels 计入全部源像素)");
+        CHECK(!any_nan_flux(tiles), "variance NaN: 掩膜 → 无 leaf 被污染");
+        CHECK(st.n_rejected_nonfinite_variance == 1,
+              "variance NaN: 方差非有限计数 == 1");
+        CHECK(st.nSourcePixels == (int64_t)W * H - 1,
+              "variance NaN: 被掩膜样本不进管线 (nSourcePixels 减 1)");
     }
 
-    // ---- 7. 对照: weight==0 / variance==0 → 合法数据边界跳过 (非掩膜) ----
+    // ---- 7. 对照: weight==0 → 掩膜并计数（权重非正）;
+    //          variance==0 → 合法数据边界跳过（不计非有限） ----
     {
         FitsImage im = make_synth();
         std::vector<float> w((std::size_t)W * H, 1.0f);
         std::vector<float> var((std::size_t)W * H, 100.0f);
-        w[13] = 0.0f;         // 零权重: 该像素不贡献
-        var[14] = 0.0f;       // 零方差: 该像素跳过方差传播
+        w[13] = 0.0f;         // 零权重: 不合格样本（权重非正）→ 掩膜+计数
+        var[14] = 0.0f;       // 零方差: 合法数据边界（无方差贡献）→ 跳过不计数
         std::vector<TileAccumulatorT<float>> tiles;
         DrizzleStats st; std::string err;
         bool ok = eng.drizzleTiled(im, cfg, nullptr, w.data(), var.data(),
                                    tiles, st, err);
         CHECK(ok, "weight==0/variance==0: drizzleTiled 返回 true");
         CHECK(st.nSourcePixels == (int64_t)W * H - 2,
-              "weight==0 与 variance==0: 两像素被合法边界跳过 (nSourcePixels 减 2)");
+              "weight==0 与 variance==0: 两像素均不进管线 (nSourcePixels 减 2)");
+        CHECK(st.n_rejected_nonpositive_weight == 1,
+              "weight==0: 计入权重非正 (强制计数)");
+        CHECK(st.n_rejected_nonfinite == 1,
+              "variance==0 不计入非有限计数 (合法边界, 非非有限类)");
         bool finite_flux = true;
         for (const auto& t : tiles)
             for (uint32_t local : t.touched)
@@ -209,7 +237,52 @@ int main() {
         CHECK(finite_flux, "weight==0/variance==0: 输出保持有限 (无非有限污染)");
     }
 
-    // ---- 8. 链路断言: NaN flux → 下游积分 INVALID_INPUT (SCI-INT) ----
+    // ---- 8. 重归一（本任务核心语义）: 常值场去掉一个 NaN 样本后,
+    //      各 leaf 的面亮度 F_p/D_p 必须与全有限场逐 leaf 相等 ----
+    // 传播语义下 sumFlux 会变 NaN ⇒ 此断言必红; 掩膜但**不**从分母剔除权重
+    // （半掩膜）会使 F_p/D_p 偏高 ⇒ 也会红。故本断言同时锁死「掩膜 + 重归一」。
+    {
+        std::vector<TileAccumulatorT<float>> t_clean, t_nan;
+        DrizzleStats s_clean, s_nan;
+        std::string e1, e2;
+        FitsImage im_clean = make_synth();
+        FitsImage im_nan = make_synth();
+        im_nan.pixels[5] = kNan;
+        im_nan.pixels_f64[5] = (double)kNan;
+        bool ok1 = eng.drizzleTiled(im_clean, cfg, nullptr, nullptr, nullptr,
+                                    t_clean, s_clean, e1);
+        bool ok2 = eng.drizzleTiled(im_nan, cfg, nullptr, nullptr, nullptr,
+                                    t_nan, s_nan, e2);
+        CHECK(ok1 && ok2, "重归一: 两跑均成功");
+        std::size_t n_cmp = 0, n_bad = 0;
+        double worst_rel = 0.0;
+        for (std::size_t i = 0; i < t_nan.size() && i < t_clean.size(); ++i) {
+            const auto& a = t_nan[i];
+            const auto& b = t_clean[i];
+            for (uint32_t local : a.touched) {
+                const auto& pa = a.pixels[local];
+                const auto& pb = b.pixels[local];
+                if (!(pa.sumArea > 0.0) || !(pb.sumArea > 0.0)) continue;
+                const double sa = (double)pa.sumFlux / (double)pa.sumArea;
+                const double sb = (double)pb.sumFlux / (double)pb.sumArea;
+                const double rel = std::fabs(sa - sb) / std::fabs(sb);
+                worst_rel = rel > worst_rel ? rel : worst_rel;
+                ++n_cmp;
+                // 门 = 1e-4: float 累加器 (sumFlux/sumArea 为 float) 在剔除
+                // 一个样本后重算比值, 舍入噪声实测 ~1e-5; 而"半掩膜"(剔除分子
+                // 却把权重留在分母) 的系统偏差 ~1/n ≈ 4e-2, 传播语义则为 NaN
+                // ⇒ 1e-4 与两者都差 2 个数量级以上 (非退化判据)。
+                if (!(rel < 1e-4)) ++n_bad;
+            }
+        }
+        CHECK(n_cmp > 0, "重归一: 存在可比 leaf (非退化)");
+        CHECK(n_bad == 0, "重归一: 掩膜后 F_p/D_p 逐 leaf 不变 (无偏)");
+        printf("    (重归一: 比较 %zu leaf, worst_rel=%.3e)\n", n_cmp, worst_rel);
+        CHECK(s_nan.n_rejected_nonfinite_value == 1,
+              "重归一: 该跑恰好剔除 1 个非有限样本");
+    }
+
+    // ---- 9. 链路断言: 覆盖级 NaN（D_p=0）→ 下游积分 INVALID_INPUT (SCI-INT) ----
     {
         P2PixelStack in;
         double vals[2] = {SKY, std::numeric_limits<double>::quiet_NaN()};

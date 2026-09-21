@@ -397,23 +397,34 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     // RT-008: 退出码映射保持 CLI 合同（04）:
     //   失败 manifest 的 error_kind==input → 3(INPUT)；DATA(参数/配置/数据) → 2(ARGS)；
     //   IO → 7；CANCELLED → 9；RESOURCE → 5；其余 → 70
+    // FIX-401: 失败 manifest 的 error_kind==disk_full → 10(RESOURCE, ASTROCS_DESIGN
+    //   §7.2「10 = 磁盘写满 / 写盘失败」)。磁盘满必须按**失败本身**归类, 不能靠 CLI
+    //   事后探针 —— §10 要求失败路径清理临时产物, 清理释放空间后探针必然 fail-open
+    //   (实测 rc=7); 探针保留为兜底, 不再是唯一判据 (见 commands.cpp 调用点注释)。
     // 先看失败节点 manifest 是否带 error_kind
     if (rt_ret.error().domain() == astrocs::core::ErrorDomain::DATA ||
         rt_ret.error().domain() == astrocs::core::ErrorDomain::IO) {
       bool input_err = false;
+      bool disk_full = false;
       {
         std::lock_guard<std::mutex> lock(g_man_mu);
         for (const auto& [nid, mtext] : g_manifests) {
           try {
             auto m = nlohmann::json::parse(mtext);
-            if (m.value("error_kind", std::string()) == "input") { input_err = true; break; }
+            if (m.value("error_kind", std::string()) == "input") { input_err = true; }
+            if (m.value("error_kind", std::string()) == "disk_full") { disk_full = true; }
           } catch (...) {}
         }
       }
+      if (disk_full) return 10;
       if (input_err) return 3;
     }
     switch (rt_ret.error().domain()) {
       case astrocs::core::ErrorDomain::DATA: return 2;
+      // FIX-402: ASTROCS_DESIGN §7.2「4 = 科学验证或不变量失败」——此前
+      // SCIENCE_PRECONDITION 落 default→70, 使语义守卫（非面亮度输入/不变量
+      // 违例）无法按合同给 4。仅补齐该域映射, 不改其它域语义。
+      case astrocs::core::ErrorDomain::SCIENCE_PRECONDITION: return 4;
       case astrocs::core::ErrorDomain::IO: return 7;
       case astrocs::core::ErrorDomain::CANCELLED: return 9;
       case astrocs::core::ErrorDomain::RESOURCE: return 5;

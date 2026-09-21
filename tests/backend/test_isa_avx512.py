@@ -42,7 +42,7 @@ class TestIsaAvx512(unittest.TestCase):
 
     def test_01_avx512_has_zmm_baseline_clean(self):
         """双向: baseline 零 VEX; AVX512 变体真含 zmm(512-bit)。"""
-        scan = subprocess.run(["python3", os.path.join(REPO, "tools", "check_baseline_opcodes.py"),
+        scan = subprocess.run(["python3", os.path.join(REPO, "eng", "tools", "check_baseline_opcodes.py"),
                                self.base_obj], capture_output=True, text=True, timeout=120)
         self.assertEqual(scan.returncode, 0,
                          f"baseline 不得含 AVX opcode: {scan.stdout} {scan.stderr}")

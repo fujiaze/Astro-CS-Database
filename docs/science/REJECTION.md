@@ -1,5 +1,7 @@
 # Rejection / Outlier Science (SCI-REJ)
 
+> 上游：ASTROCS_DESIGN.md §5.5（逐像素排异）
+
 > ID: SCI-REJ-001  范围: SCI-REJ-001..008  状态: FROZEN  上游: SCI-SCOPE-001  下游 ALG: ALG-REJ-001..008  模块: phase2 (rejection)
 
 ## 1 目的与非目标
@@ -171,7 +173,7 @@ large_scale 结构生长:
 1. Generalized ESD：Rosner, B. 1983, Technometrics 25, 165——文章级定位（bibcode 1983Techno..25..165R，未逐页核验），alpha/max_outliers 语义为 Project-defined 采纳。
 2. winsorization 概念：Hoaglin, Mosteller & Tukey 1983, *Understanding Robust and Exploratory Data Analysis*——书籍级，未逐页核验。
 3. `astrocs_adaptive_pixel`（**生产默认，AstroCS 自研**）：内置映射与低 n 保守档为项目自定（阈值逐档继承 §5 冻结锚点，不新增阈值）；其**对照档** `wbpp_2_9_1` 的 auto 路由与阈值表**采纳自 WBPP 2.9.1 `bestRejectionMethod` 源码**（非学术文献；对齐记录见 docs/development/CONFIG_SCHEMA.md#51）。
-4. RCR：官方 RCR 2.4.7 软件参考（项目 oracle 锚定 `official rcr 2.4.7`，见 tools/assemble_v17_review_pkg.py 文献映射），非论文引用。
+4. RCR：官方 RCR 2.4.7 软件参考（项目 oracle 锚定 `official rcr 2.4.7`，见 eng/tools/assemble_v17_review_pkg.py 文献映射），非论文引用。
 
 ## 14a 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 
@@ -203,7 +205,7 @@ large_scale 结构生长:
 
 - §11 Oracle 全过（以 §11 列门为准：各方法已知 inlier/outlier 注入的 reject set 解析一致）；
 - §7 阈值不变量/路由确定性门全过；
-- `tools/science_contract_lint.py` PASS；
+- `eng/tools/science_contract_lint.py` PASS；
 - 解析不变量→SYN-006 转换：卫星线/宇宙线/坏帧注入、small-N 分位、frame identity 保持、reject set 与 identity 解析可验用例登记 SYN-006。
 
 ## 16 复核补充：SC-005 可达域条件与小 N 档位

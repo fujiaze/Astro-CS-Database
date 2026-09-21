@@ -1,8 +1,8 @@
 {
   "layer": "L4",
   "tooling": [
-    "tools/quality/plane_stretch.py",
-    "tools/quality/plane_chunks.py"
+    "eng/tools/quality/plane_stretch.py",
+    "eng/tools/quality/plane_chunks.py"
   ],
   "self_test": {
     "missing_input_rc": 2,

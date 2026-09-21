@@ -2,7 +2,7 @@
 
 本文件是 AstroCS 工具链与依赖的版本锁定权威（仓库根）。Windows x64 发布
 工具链以控制包 `09_WINDOWS_TOOLCHAIN_LOCK.md` 为唯一编译依据；机器校验入口
-`cmake/toolchain/verify_toolchain.py`，冻结事实合同
+`eng/cmake/toolchain/verify_toolchain.py`，冻结事实合同
 `packaging/schemas/preset-contract.json`。
 
 ## Windows x64 发布工具链（冻结，BLD-001；Alpha 0.11.0）
@@ -24,7 +24,7 @@
 | 验证脚本 Python | `3.12.10` x64 | 仅测试/打包，非产品运行依赖 |
 | VS 组件清单 | `packaging/windows/.vsconfig`（7 组件） | 见 09 §4，禁 `--includeRecommended` |
 | preset 合同 | `packaging/schemas/preset-contract.json` | verifier 单一事实源 |
-| verifier | `cmake/toolchain/verify_toolchain.py` | preset/.vsconfig 漂移 FAIL fast |
+| verifier | `eng/cmake/toolchain/verify_toolchain.py` | preset/.vsconfig 漂移 FAIL fast |
 
 正式 preset：`win-msvc-17.14.39-x64`（CMakePresets.json）。禁止替换：
 VS 2026/v144/v145、17.14 evergreen latest、CMake 4.x、Ninja 作为 Windows
@@ -93,5 +93,5 @@ configure 无机器绝对路径扫描 + SBOM 输入生成）。
 不得进入 CMake 构建输入); `msys2_mingw: FORBIDDEN`; `vcpkg: NOT_USED`
 (若引入必须 manifest + baseline)。冻结 Windows 工具链安装约定
 `C:/AstroCS/toolchains/...` 由 preset 显式声明, 属白名单例外。
-遗留 Windows 开发脚本 (toolchain.ps1 等) 含 C:\msys64 / C:\Users\fujia
+遗留 Windows 开发脚本 (eng/build/toolchain.ps1 等) 含 C:\msys64 / C:\Users\fujia
 → 非 CMake 构建输入, 由 WIN-*/CLI 系列清理或归档 (known_limits)。

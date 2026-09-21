@@ -6,7 +6,7 @@
 //     「已实现并可作为产品声明的以实际注册表为准; 未实现的必须显式报「不支持」,
 //     禁止声称支持」(当前登记: 仅 TAN 已实现); 每种投影必须声明适用域
 //     (含 TAN 的 |dec|≤85°、FOV≤20°、手性 det(CD)<0、CRPIX 用 FITS 1-based
-//     像素中心、往返误差 <1e-6 px), 违反 ⇒ 拒绝。
+//     像素中心、往返误差 < 声明容差（TAN: 1e-8 px, FIX-406 Oracle 冻结）), 违反 ⇒ 拒绝。
 //   * docs/algorithms/PHASE3_PROJ_IMPL.md §15.1/§15.5: v6 内核 registry
 //     (p3_proj_v6.h/.cpp, kProjectionRegistryVersion=3) 已实现 4/8
 //     (TAN/SIN/CAR/AIT), 但**会话/产品面收窄为仅 TAN**; 内核行不是产品声明。
@@ -88,6 +88,20 @@ inline const P3ProjFrozenEntry* p3_proj_frozen_table(int* count) {
     return kTable;
 }
 
+// ---- 已知偏差登记（FIX-406 Oracle 复核；本层不改内核，归属 CLEAN-401）----
+// v6 内核 SIN 逆向 sin_world2pix 用 ctheta = sqrt(1 - stheta^2)，在投影中心
+// （theta→pi/2, rho→0）灾难性消去 ⇒ 往返误差 ∝ 1/离轴距离 × 1/像素角尺度、无上界：
+// 0.5″/px 实测 2.5e-5 px；精确参考像素最坏 6.1e-3 px @0.5″/px、1.7e-2 px @0.05″/px。
+// 独立 Oracle（astropy 7.0.1 / WCSLIB 8.4）与独立切基式在同一 WCS 上可达 ~2.5e-10 px
+// ⇒ 判定为**实现条件数缺陷**（非双精度固有极限），但**不是产品声明**（SIN 行 =
+// kKernelOnly），故不影响本表产品声明集与 TAN 容差合同。
+// 实验表: run/FIX-406/SIN_ROUNDTRIP_ORACLE.md；复现门（durable，入库）:
+// tests/unit/v6_p3_proj/sin_roundtrip_gate.py —— 编译真实内核实测投影中心邻域最大往返误差：
+// 偏差仍复现 ⇒ rc 0（本段登记成立）；内核被修好 ⇒ rc 1（修好即转红），强制同步本段与
+// p3_proj_v6.h/.cpp 的 ENGINEERING_SPEC §2 保留注释块之已知缺陷登记。CLEAN-401 实测（2026-09-21，
+// 中心邻域 0.25 px 步长密扫）：worst 7.39e-5 px @0.5″/px、4.40e-3 px @0.05″/px —— 与
+// FIX-406 报告同量级且更大，印证「误差无上界」结论（证据 run/CLEAN-401/evidence/
+// sin_roundtrip_gate.json）。
 inline bool p3_proj_is_frozen_code(const char* code) {
     int n = 0;
     const P3ProjFrozenEntry* t = p3_proj_frozen_table(&n);
@@ -177,7 +191,9 @@ inline P3WcsStatus p3_proj_declare(const char* code, std::string* why) {
 }
 
 // ---- 实际可运行探针（黑盒实跑生产路径, 不查声明表）----
-// 顺序: p3_wcs_validate_request → p3_wcs_make → 往返 <1e-6 px → CTYPE 含该码。
+// 顺序: p3_wcs_validate_request → p3_wcs_make → 往返 < 合同容差 → CTYPE 含该码。
+// 容差单一事实源 = 适用域声明表（p3_wcs_applicability）；本函数不硬编码数值
+// （FIX-406: 旧硬编码 1e-6 与合同表可能漂移；合同值 = 1e-8 px）。
 // OK = 该码在生产路径真的可跑; 其余状态 = 实跑失败（detail 填原因）。
 inline P3WcsStatus p3_proj_probe(const char* code, std::string* detail) {
     if (!code || !*code) {
@@ -207,8 +223,16 @@ inline P3WcsStatus p3_proj_probe(const char* code, std::string* detail) {
         if (detail) *detail = "probe: roundtrip check failed";
         return rst;
     }
-    if (!(max_err_px < 1e-6)) {   // SCI-P3-001 §7 冻结容差
-        if (detail) *detail = "probe: roundtrip error exceeds 1e-6 px";
+    // 容差单一事实源 = 适用域声明表（FIX-406 Oracle 冻结；禁在本文件另写字面量）
+    const P3WcsApplicability* ap = p3_wcs_applicability(code);
+    if (ap == nullptr || !(ap->roundtrip_tol_px > 0.0)) {
+        if (detail) *detail = "probe: no declared roundtrip tolerance (fail-closed)";
+        return P3_WCS_UNSUPPORTED;
+    }
+    if (!(max_err_px < ap->roundtrip_tol_px)) {
+        if (detail)
+            *detail = "probe: roundtrip error exceeds contract tolerance " +
+                      std::to_string(ap->roundtrip_tol_px) + " px";
         return P3_WCS_PARAM;
     }
     const std::string kw = p3_wcs_fits_keywords(&d);

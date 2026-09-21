@@ -2,6 +2,8 @@
 
 # SCI-P2-001 — Phase2 三模式集成复核（人读正文索引）
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCI-P2-001.md`
 基线：`HEAD = main = 4b508f28bbcada66c417a8a9324aca7eb92869ff`（本机 `git rev-parse` 实测）
 写域：`docs/science/v6/phase2/`、`run/v6/sci-p2/`（仅此两处）

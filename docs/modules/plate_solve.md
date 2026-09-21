@@ -1,5 +1,7 @@
 # Module: plate_solve (ipv)
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页为模块导览页；冻结合同落位
 > lib/algorithms/platesolve/（README.md r1 + module.yaml + memory.md 三件套，
 > CONTRACT_READY，entrypoint=MISSING）；registry 页

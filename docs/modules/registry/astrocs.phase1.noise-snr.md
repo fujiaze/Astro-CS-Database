@@ -12,6 +12,8 @@ downstream: [TEST-P1-SNR-001]
 
 # 模块 astrocs.phase1.noise-snr
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 合同 ID = SCI-NOISE-001..015 / ALG-NOISE-001..003 / DATA-P1-NOISE /
 > API-NOISE-001；模块级事实以 lib/algorithms/noise_snr/README.md（r1，
 > CONTRACT_READY）与现行生产实现 lib/algorithms/noise_snr/cpp/（现状构建=

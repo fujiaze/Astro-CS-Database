@@ -1,5 +1,7 @@
 # AstroCS 插件文档集（docs/plugins）
 
+> 上游：ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）
+
 ---
 
 ## 1. 模块归属

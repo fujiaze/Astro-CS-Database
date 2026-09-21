@@ -4,6 +4,8 @@
 
 # SCI-ADJ-001 冻结清单（字段 / 公式 / mode / 适用域 / 降级 / 验证门）
 
+> 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3（数据对象与配置）
+
 - 文档 ID：`SCI-ADJ-001-ADJUDICATION` freeze-list 渲染产物
 - 基线：`HEAD = main = bc166e9d4828b45ef32b679156e12d954640534a`
 - 语义源：`reports/v6/science-adjudication/adjudications.json`（本文件由 `run/v6/adjudication/tools/render_freeze_list.py` 机械渲染，保证人读正文与机器表一致）

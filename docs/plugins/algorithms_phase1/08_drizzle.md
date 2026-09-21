@@ -1,5 +1,7 @@
 # 插件文档：drizzle（球面 Drizzle / HEALPix 累积）
 
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+
 ## 1. 职责与边界
 
 - **职责**：把定标后单帧图像按 WCS 重采样到球面 HEALPix/HiPS 格点，输出标准化单帧产品（HiPS + 结构化 JSON）。

@@ -14,6 +14,9 @@
 # ============================================================================
 
 set(P1IPVTEST_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+# CLEAN-403: 被测生产源 ipv_*.cpp 经 ipv_log.h 依赖 aio 机制原语
+# (aio_atomic_file.h, header-only) ⇒ 本目录测试目标需要 aio/src include 面。
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../../../infrastructure/aio/src)
 set(P1IPV_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
 add_executable(ipv_extract_wcs_sip_failclosed_test

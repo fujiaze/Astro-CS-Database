@@ -1,5 +1,7 @@
 # DATA-003 生产 ArtifactStore 接线（设计权威）
 
+> 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）
+
 > 权威文档形态（本文）+ 执行形态
 > (`lib/infrastructure/aio/runtime/artifact_store/production_store.py`) + 验收测试
 > (`tests/artifact/test_production_store.py`)。三形态必须同步修改。

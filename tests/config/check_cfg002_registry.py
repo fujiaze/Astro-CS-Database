@@ -892,7 +892,12 @@ def check_07_index_ownership(repo):
         problems.append("config/** 与 contracts/config/** 同名文件（归属不唯一）: %s" % inter)
     # DOCUMENT_INDEX：CONFIG_CONTRACT 恰一次且 ACTIVE_NORMATIVE
     doc_lines = read_text(repo, DOC_INDEX).split("\n")
-    hits = [i for i, ln in enumerate(doc_lines) if CONTRACT_DOC in ln]
+    # DOC-403（2026-09-21）：索引 v2 条目含 duty/upstream/downstream 字段，"下游被引用处"
+    # 可以合法出现同一路径；归属唯一判据只针对**登记条目行**（"- path:"），既保留
+    # "恰一次登记 + ACTIVE_NORMATIVE" 的判据强度，又不把下游引用误判为重复登记。
+    # 判据强度由负例 index_entry_duplicated（重复登记行）守住。
+    hits = [i for i, ln in enumerate(doc_lines)
+            if ln.strip().startswith("- path:") and CONTRACT_DOC in ln]
     if len(hits) != 1:
         problems.append("%s 中 %s 出现 %d 次（应恰 1 次）" % (DOC_INDEX, CONTRACT_DOC, len(hits)))
     else:
@@ -979,7 +984,7 @@ SANDBOX_FILES = [
     "ASTROCS_DESIGN.md", "tests/test_index.csv", HW_CPP, PROFILE_CPP, STAGE1_TPL,
     "ENGINEERING_SPEC.md", "docs/development/CONFIG_SCHEMA.md",
     "tests/backend/test_cpu_profile.py", "tests/unit/cpu007_profile_store_test.cpp",
-    "tools/validate_cpu_profile.py",
+    "eng/tools/validate_cpu_profile.py",
 ]
 SANDBOX_DIRS = ["config", "contracts/schemas", "contracts/config", "docs/plugins",
                 "tests/config/fixtures"]
@@ -1110,6 +1115,12 @@ INJECTIONS = [
     ("contracts_config_same_basename", "CFG002-07",
      lambda root: shutil.copy2(os.path.join(root, DEFAULTS),
                                os.path.join(root, "contracts", "config", "defaults.json"))),
+    # DOC-403：登记条目行重复（下游引用不算重复登记；本注入保证判据仍有牙）
+    ("index_entry_duplicated", "CFG002-07",
+     lambda root: _edit_text(root, DOC_INDEX,
+                             lambda t: t.replace('    - path: "' + CONTRACT_DOC + '"',
+                                                 '    - path: "' + CONTRACT_DOC + '"' + chr(10)
+                                                 + '    - path: "' + CONTRACT_DOC + '"', 1))),
     ("contract_doc_citation_drift", "CFG002-11",
      lambda root: _edit_text(root, CONTRACT_DOC, lambda t: t.replace(
          "docs/science/PHASE3_HIPS_TO_FITS.md:39", "docs/science/PHASE3_HIPS_TO_FITS.md:31"))),

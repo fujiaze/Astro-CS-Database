@@ -5,10 +5,15 @@
 
 #include <cstdio>
 #include <cstring>
-#include <fstream>
 #include <sstream>
 
 #include <nlohmann/json.hpp>
+
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): /proc、/sys 与
+// 任意文件读取一律经 aio 唯一实现 (aio_file::read_all / aio_atomic::path_exists),
+// 本 TU 不自持 ifstream / std::filesystem 通道。
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"
 
 #include "backend_loader.h"
 #include "cpu_features.h"
@@ -30,18 +35,13 @@
 #include <unistd.h>
 #endif
 
-namespace fs = std::filesystem;
-
 namespace astrocs::backend_host {
 
 namespace {
 
 std::string read_file_trim(const std::string& path) {
-    std::ifstream f(path, std::ios::binary);
-    if (!f) return {};
-    std::stringstream ss;
-    ss << f.rdbuf();
-    std::string s = ss.str();
+    std::string s;
+    if (!aio_file::read_all(path.c_str(), &s)) return {};
     while (!s.empty() && (s.back() == '\n' || s.back() == ' ' || s.back() == '\r')) s.pop_back();
     return s;
 }
@@ -49,7 +49,9 @@ std::string read_file_trim(const std::string& path) {
 #if !defined(_WIN32)
 /* /proc/cpuinfo 首个处理器块的键值 */
 std::string cpuinfo_field(const std::string& key) {
-    std::ifstream f("/proc/cpuinfo");
+    std::string text;
+    if (!aio_file::read_all("/proc/cpuinfo", &text)) return {};
+    std::istringstream f(text);
     std::string line;
     while (std::getline(f, line)) {
         const auto pos = line.find(':');
@@ -135,7 +137,9 @@ uint64_t mem_total_bytes() {
     GlobalMemoryStatusEx(&s);
     return s.ullTotalPhys;
 #else
-    std::ifstream f("/proc/meminfo");
+    std::string text;
+    if (!aio_file::read_all("/proc/meminfo", &text)) return 0;
+    std::istringstream f(text);
     std::string line;
     while (std::getline(f, line))
         if (line.rfind("MemTotal:", 0) == 0) {
@@ -240,8 +244,8 @@ std::string hardware_inspect_json_v1(const std::string& build_id) {
     uint32_t numa_nodes = 0;
 #if !defined(_WIN32)
     for (int n = 0; n < 64; ++n) {
-        std::error_code ec;
-        if (!fs::exists(fs::u8path("/sys/devices/system/node/node" + std::to_string(n)), ec))
+        if (!aio_atomic::path_exists(
+                "/sys/devices/system/node/node" + std::to_string(n), nullptr))
             break;
         ++numa_nodes;
     }

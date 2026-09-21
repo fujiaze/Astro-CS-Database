@@ -133,5 +133,5 @@
   errors=0 warns=4 基线、gate2 pytest 9 passed、gate3 contracts
   增长、gate4 doccheck rc=0、红线域 git status 零输出）。
 - 红线遵守: docs/science/ 根公式零改动；lib/phase3_session/ 生产源
-  .cpp/.h 零改动；ci/、.github/、tools/、tests/ 零改动；批次 P
+  .cpp/.h 零改动；eng/ci/、.github/、eng/tools/、tests/ 零改动；批次 P
   （tests/backend、tests/cli）在途域只读不动；本任务零 git 操作。

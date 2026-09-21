@@ -59,7 +59,7 @@ EXE = cli_binary()
 
 
 def _repo_version():
-    """版本单源: 根 VERSION 文件（根 CMakeLists 与 tools/gen_version.py 同源读取）。"""
+    """版本单源: 根 VERSION 文件（根 CMakeLists 与 eng/tools/gen_version.py 同源读取）。"""
     with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as fh:
         return fh.read().strip()
 
@@ -280,5 +280,90 @@ class TestManifestIncomplete(unittest.TestCase):
                       "必须点名输入路径缺失原因（不许静默）")
 
 
+# =====================================================================
+# FIX-405 G3-11: verify 能力纳入命令树（doctor 机器旗标 --run-manifest）
+#
+# 权威: ASTROCS_DESIGN §7.1 唯一命令树（无独立 verify 命令；verify* 属已删别名
+# → rc=2）+ docs/api/CLI_PROTOCOL_V1.md §1/§3（--json 恰一个 JSON 文档；退出码
+# 2 参数 / 3 输入 / 5 版本 / 8 完整性）。
+# 落位: command_tree.h 把 --run-manifest 登记为 doctor 的**内部/机器旗标**
+# （不写进 help ⇒ help golden 行 "astrocs doctor [--json]" 不变），dispatch 的
+# doctor 分支在该旗标在位时走 cmd_verify（manifest→status→version→输入 hash→
+# 逐 artifact 存在/sha256/size）。
+# =====================================================================
+class TestDoctorVerifyLocus(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        assert os.path.isfile(EXE), "先构建 CLI（cmake -S . -B build && ninja -C build astrocs）"
+        cls.tmp = tempfile.mkdtemp(prefix="astrocs_doctor_verify_")
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    @staticmethod
+    def _cli_version():
+        """版本锚必须取**二进制自身**的版本串（VERSION 文件不含 git 后缀，
+        而 CLI 的 --version 带 +g<sha>；用 VERSION 会被版本门正确判 5）。"""
+        r = run("--version", "--json")
+        return json.loads(r.stdout)["version"]
+
+    def _manifest(self, name, **over):
+        doc = {"kind": "astrocs_run_manifest", "schema_version": "1",
+               "status": "complete", "astrocs_version": self._cli_version(),
+               "artifacts": [], "phases": []}
+        doc.update(over)
+        p = os.path.join(self.tmp, name)
+        with open(p, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh)
+        return p
+
+    def test_01_doctor_run_manifest_verifies_complete_manifest(self):
+        m = self._manifest("ok.json")
+        r = run("doctor", "--json", "--run-manifest", m)
+        self.assertEqual(r.returncode, 0, r.stderr[-400:])
+        lines = [l for l in r.stdout.splitlines() if l.strip()]
+        self.assertEqual(len(lines), 1, "stdout 恰一个 JSON 文档（§3 stdout 纪律）")
+        doc = json.loads(lines[0])
+        self.assertEqual(doc.get("verify"), "ok")
+        self.assertGreaterEqual(doc.get("checked", 0), 1)
+
+    def test_02_missing_manifest_is_input_error(self):
+        r = run("doctor", "--json", "--run-manifest",
+                os.path.join(self.tmp, "nope.json"))
+        self.assertEqual(r.returncode, 3, r.stderr[-300:])
+
+    def test_03_malformed_manifest_is_input_error(self):
+        p = os.path.join(self.tmp, "bad.json")
+        with open(p, "w", encoding="utf-8") as fh:
+            fh.write("{not json")
+        r = run("doctor", "--json", "--run-manifest", p)
+        self.assertEqual(r.returncode, 3, r.stderr[-300:])
+
+    def test_04_incomplete_manifest_is_integrity_error(self):
+        m = self._manifest("incomplete.json", status="incomplete")
+        r = run("doctor", "--json", "--run-manifest", m)
+        self.assertEqual(r.returncode, 8, r.stderr[-300:])
+
+    def test_05_doctor_without_flag_still_emits_doctor_document(self):
+        r = run("doctor", "--json")
+        self.assertEqual(r.returncode, 0, r.stderr[-300:])
+        doc = json.loads(r.stdout)
+        self.assertEqual(doc.get("kind"), "astrocs_doctor",
+                         "无 --run-manifest 时 doctor 语义不变")
+
+    def test_06_doctor_without_json_is_args_error(self):
+        m = self._manifest("ok2.json")
+        r = run("doctor", "--run-manifest", m)
+        self.assertEqual(r.returncode, 2, r.stderr[-300:])
+
+    def test_07_standalone_verify_command_stays_deleted(self):
+        m = self._manifest("ok3.json")
+        r = run("verify", "--run-manifest", m, "--json")
+        self.assertEqual(r.returncode, 2,
+                         "verify 仍是 §7.1 已删别名（能力只在 doctor 下）")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+

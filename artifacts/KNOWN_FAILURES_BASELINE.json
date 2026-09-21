@@ -1,7 +1,7 @@
 {
   "schema": "astrocs.known-failures-baseline/v1",
   "repo": "/workspace/Astro CS Database",
-  "source_commit": "4c7542c57a0c4e3d57037bc243f4682767d3aac0",
+  "source_commit": "7b28e3f1531d3c47fd74ff6e20822827b5138bad",
   "finding_count": 40,
   "reproduced_count": 16,
   "findings": [
@@ -264,7 +264,7 @@
       "finding_id": "F-026",
       "severity": "P1",
       "status": "NOT_REPRODUCED_WITH_EVIDENCE",
-      "minimal_command": "grep -oE '[\\w/]+\\.h' tools/check_ast_api.py",
+      "minimal_command": "grep -oE '[\\w/]+\\.h' eng/tools/check_ast_api.py",
       "evidence": [
         "AST 检查头文件集合: ['inc/demo.h', 'include/astrocs/core/artifact.h', 'include/astrocs/core/contracts.h', 'include/astrocs/io/io_adapter.h']"
       ],
@@ -274,7 +274,7 @@
       "finding_id": "F-027",
       "severity": "P1",
       "status": "REPRODUCED",
-      "minimal_command": "grep -n 'trace\\|output\\|PASS' tools/check_pipeline_trace.py",
+      "minimal_command": "grep -n 'trace\\|output\\|PASS' eng/tools/check_pipeline_trace.py",
       "evidence": [
         "checker 空 trace 也 PASS / 人工补 P3 output 节点"
       ],
@@ -284,7 +284,7 @@
       "finding_id": "F-028",
       "severity": "P1",
       "status": "REPRODUCED",
-      "minimal_command": "grep -n 'prerelease_v5\\|66' tools/check_traceability.py",
+      "minimal_command": "grep -n 'prerelease_v5\\|66' eng/tools/check_traceability.py",
       "evidence": [
         "默认读 artifacts/prerelease_v5 或硬编码 66 claims"
       ],

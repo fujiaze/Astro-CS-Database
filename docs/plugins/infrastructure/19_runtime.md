@@ -1,5 +1,7 @@
 # 插件文档：scheduler + pipeline（调度与资源）
 
+> 上游：ASTROCS_DESIGN.md §8.1（顶层结构）
+
 ## 1. 职责与边界
 
 - **职责**：typed DAG 的执行（注册、依赖、调度）、统一线程预算、**locality-aware 编排**、流式内存管理、资源监控、取消与 checkpoint。

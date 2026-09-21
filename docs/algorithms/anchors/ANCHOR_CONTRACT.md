@@ -3,6 +3,8 @@
 > ID: ALG-ANCHOR-001　任务: SCI-ANCHOR-001　状态: ACTIVE_NORMATIVE（文档锚合同）
 > 机器检查器: `docs/algorithms/anchors/check_doc_line_anchors.py`（CI 检查项 DOC-LINE-ANCHORS）
 > 数据: `docs/algorithms/anchors/anchor_contract.json`（解析规则 / 豁免 / 符号绑定）
+> 上游：ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）
+
 > 上游: `ENGINEERING_SPEC.md` §8（文档—代码一致性 / 锚存活 fail-closed；原引「冻结宪章」已废止）；禁止把易过期内容写入顶层。
 
 ## 1 适用范围
@@ -38,7 +40,7 @@ path/to/file.ext:N（symbol）    path/to/file.ext:N + backticked symbol
 3. **contract-rule**：`anchor_contract.json.resolvers` 中按 `doc`/`doc_prefix` +
    `basename` 匹配的显式规则（**唯一**处理同名多候选的合法手段）；
 4. **basename-unique**：全仓（排除归档标记目录，清单 = `ARCHIVE_MARKERS`，
-   `tools/doccheck/check_alg_line_anchors.py:64-65`：archive / 历史实现 / `.git` /
+   `eng/tools/doccheck/check_alg_line_anchors.py:64-65`：archive / 历史实现 / `.git` /
    `third_party` / `build` / `out` / `run` / `worktrees`）唯一同名文件。
 
 四步皆不命中 → `C2_anchor_resolved` FAIL。目标必须是 **Git 跟踪**文件。

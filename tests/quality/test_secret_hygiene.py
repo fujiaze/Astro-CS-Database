@@ -35,8 +35,8 @@ import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-CHECKER = REPO / "tools" / "quality" / "check_secret_hygiene.py"
-PACKER = REPO / "tools" / "pack_audit_package.py"
+CHECKER = REPO / "eng" / "tools" / "quality" / "check_secret_hygiene.py"
+PACKER = REPO / "eng" / "tools" / "pack_audit_package.py"
 
 # 自造形态：只用于负例，全部是**假**值（非任何真实凭据）
 FAKE_PRIVATE_KEY = "-----BEGIN " + "OPENSSH PRIVATE KEY-----"
@@ -296,13 +296,13 @@ class SecretHygieneConcurrencyAndPolicyTest(unittest.TestCase):
     def test_pattern_definition_registry_is_exact(self):
         """降级清单必须精确等于「规则本体 + 其测试」，不得被偷偷扩大。"""
         self.assertEqual(set(self.mod.PATTERN_DEFINITION_FILES),
-                         {"tools/quality/check_secret_hygiene.py",
+                         {"eng/tools/quality/check_secret_hygiene.py",
                           "tests/quality/test_secret_hygiene.py"})
 
     def test_definition_files_are_downgraded_but_still_listed(self):
         """规则定义文件命中降级为 INFO（仍列 路径/形态/行号），不判红。"""
         report, rc = self.mod.build_report("tracked", REPO,
-                                           ["tools/quality/check_secret_hygiene.py"],
+                                           ["eng/tools/quality/check_secret_hygiene.py"],
                                            self.mod.DEFAULT_MAX_BYTES, False)
         self.assertEqual(report["verdict"], "PASS", report.get("verdict_reasons"))
         self.assertEqual(report["fatal_paths"], [])

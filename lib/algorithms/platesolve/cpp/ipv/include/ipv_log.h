@@ -14,12 +14,16 @@
 // ============================================================================
 
 #include <string>
-#include <fstream>
 #include <mutex>
 #include <chrono>
 #include <cstdio>
 #include <ctime>
 #include <sstream>
+
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 日志落盘经 aio
+// 唯一实现 (aio_atomic::append_open/append_write/append_flush); 本头不再持有
+// std::ofstream 通道。
+#include "aio_atomic_file.h"
 
 namespace ipv {
 
@@ -33,24 +37,28 @@ public:
     // 初始化日志文件
     void init(const std::string& path) {
         std::lock_guard<std::mutex> lock(mtx_);
-        if (ofs_.is_open()) {
-            ofs_.close();
+        if (sink_) {
+            aio_atomic::append_close(sink_);
+            sink_ = nullptr;
         }
-        ofs_.open(path, std::ios::binary);
-        if (ofs_.is_open()) {
+        sink_ = aio_atomic::append_open(path, nullptr);
+        if (sink_) {
             // UTF-8 BOM
             const char bom[] = {(char)0xEF, (char)0xBB, (char)0xBF};
-            ofs_.write(bom, 3);
-            ofs_ << "=== IPV Plate Solve Log ===" << std::endl;
+            (void)aio_atomic::append_write(sink_, bom, 3);
+            (void)aio_atomic::append_write_str(
+                sink_, "=== IPV Plate Solve Log ===\n");
+            (void)aio_atomic::append_flush(sink_);
             enabled_ = true;
         }
     }
 
     void close() {
         std::lock_guard<std::mutex> lock(mtx_);
-        if (ofs_.is_open()) {
-            ofs_ << "=== Log End ===" << std::endl;
-            ofs_.close();
+        if (sink_) {
+            (void)aio_atomic::append_write_str(sink_, "=== Log End ===\n");
+            aio_atomic::append_close(sink_);
+            sink_ = nullptr;
         }
         enabled_ = false;
     }
@@ -77,9 +85,9 @@ public:
         std::strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", &tm_buf);
 
         std::string line = std::string("[") + time_str + "][" + level_str + "] " + msg + "\n";
-        if (enabled_ && ofs_.is_open()) {
-            ofs_ << line;
-            ofs_.flush();
+        if (enabled_ && sink_) {
+            (void)aio_atomic::append_write_str(sink_, line);
+            (void)aio_atomic::append_flush(sink_);
         }
         // 同时输出到 stderr
         std::fprintf(stderr, "%s", line.c_str());
@@ -120,7 +128,7 @@ public:
     }
 
 private:
-    std::ofstream ofs_;
+    aio_atomic::AppendSink* sink_ = nullptr;
     std::mutex    mtx_;
     bool          enabled_;
 };

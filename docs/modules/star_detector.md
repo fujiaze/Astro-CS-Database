@@ -1,5 +1,7 @@
 # Module: star_detector
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页为诊断页（ACTIVE_INFORMATIVE，不属 gen_module_readmes.py 生成范围）。模块冻结合同页 =
 > docs/modules/registry/astrocs.phase1.star-detection.md；
 > 合同入口 = lib/algorithms/star_detection/README.md r1（CONTRACT_READY）+ module.yaml

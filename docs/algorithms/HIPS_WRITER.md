@@ -1,5 +1,7 @@
 # ALG-HIPS-001..005 — astrocs.p1.hips_writer HiPS 产品集写出算法
 
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）、§10（I/O 与原子产品）
+
 > ID 覆盖: ALG-HIPS-001 ALG-HIPS-002 ALG-HIPS-003 ALG-HIPS-004 ALG-HIPS-005  状态: CONTRACT_READY
 > SCI 上游: SCI-DRZ-001（docs/science/DRIZZLE.md，FROZEN，共享引用不改动；
 > :130 实现锚 finalize_tile 方差语义、:145 support=D_p 归一语义）

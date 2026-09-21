@@ -2,8 +2,8 @@
 // hiss_transform.h - AstroCS HISS Transform 正式路径 (WP-G 步骤12)
 //
 // 依据:
-// - docs/stage1_fix/spec.md 步骤12 (transform 正式路径)
-// - docs/stage1_fix/00_COMMON_CONTRACTS.md §1.1 (模块边界)
+// - docs/algorithms/HIPS_WRITER.md (transform 正式路径)
+// - docs/architecture/ARCHITECTURE.md (模块边界)
 // - 02_FROZEN_STAGE1_HISS_SPEC.md §15 (子块目录 transform_id 字段)
 //
 // 职责:

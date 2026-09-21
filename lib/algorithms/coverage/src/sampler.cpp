@@ -1068,7 +1068,10 @@ static int p2_sample_controls_impl(
         if (nclean >= 2) ++stats.overlap_controls;
         for (std::size_t fi = 0; fi < cs.frames.size(); ++fi) {
             if (!cs.accepted[fi]) {
-                if (cs.reason[fi] == 2) ++stats.rejected_insufficient_retained;
+                // FIX-405 / DISP-P2SMP-002: 本循环**不再**累加
+                // rejected_insufficient_retained —— 第二遍（:1049-1055）已在
+                // 置 reason=2 的同一分支内对该帧计数一次；此处再计即为双计数
+                // （统计面偏差：candidate = accepted + Σrejected 恒等式被破坏）。
                 continue;
             }
             if (want_sky) {

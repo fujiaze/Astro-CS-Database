@@ -2,6 +2,8 @@
 
 # ALG-P3-001 — 验证、独立 Oracle 与负向 mutation 证据
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 > 文档 ID：`ALG-P3-001-VERIFICATION`
 > 机器证据：`run/v6/alg-p3/data/`（`oracle_results.json`、`kernel_oracle.json`、`oracle_mutations.json`、
 > `gate_mutations.json`、`spec_check.json`、`spec_mutations.json`、`doc_check.json`、`doc_mutations.json`）
@@ -22,8 +24,8 @@
 
 ## 1. 方法与独立性
 
-- 数值 Oracle（`tools/alg_p3_oracle.py`）与合同门（`tools/alg_p3_gate.py`）、规格门（`tools/alg_p3_spec_check.py`）、
-  文档一致性门（`tools/alg_p3_doc_check.py`）均为审查侧独立构造，**不 import / 不链接 / 不执行任何生产实现**
+- 数值 Oracle（`eng/tools/alg_p3_oracle.py`）与合同门（`eng/tools/alg_p3_gate.py`）、规格门（`eng/tools/alg_p3_spec_check.py`）、
+  文档一致性门（`eng/tools/alg_p3_doc_check.py`）均为审查侧独立构造，**不 import / 不链接 / 不执行任何生产实现**
   （不调用 `lib/phase3_session`、`lib/algorithms/projection`、`lib/algorithms/resample`）。
 - 真值来源：解析式（面积重叠、线性插值误差界、球面盈余面积）与固定种子 Monte Carlo（`SEED=20260915`、60000 draws）。
 - 外部独立实现交叉：投影面积元以自实现球面四边形面积与 Paper II 解析纬度带公式二次校验（交叉残差 `1.27e-6`，

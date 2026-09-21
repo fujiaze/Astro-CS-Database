@@ -4,6 +4,8 @@
 
 # P0 门族：历史根因 R1/R2/R4/R5/R10 与 785 合并层账本（QA-MATRIX-001）
 
+> 上游：ASTROCS_DESIGN.md §12（验证体系）
+
 - 文档 ID：`QA-MATRIX-001-P0-FAMILY`
 - 依据：`reports/v6/review-audit/03_缺陷账本_重开清单.md` §2 根因表、`reports/v6/review-audit/05_未决风险与控制器裁决事项.md` §3 E2/E3、
   `SCI-ADJ-001_CONFLICT_MATRIX.md` §5（AR-032/AR-034/AR-035/AR-051）。

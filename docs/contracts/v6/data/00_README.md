@@ -4,6 +4,8 @@
 
 # DATA-DESIGN-001 — 跨 Phase signal / covariance / PSF / W_info / PSFSW / weight_mode / effective PSF / provenance schema 设计（已按 §9.73 A44 作废：该概念不存在）
 
+> 上游：ASTROCS_DESIGN.md §3.1（数据对象）、§8.4（模块与 ABI）
+
 - 文档 ID：`DATA-DESIGN-001-SCHEMA-DESIGN`
 - 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/DATA-DESIGN-001.md`（Wave 3，depends_on = SCI-ADJ-001）
 - 写域（tracked）：`docs/contracts/v6/data/`、`contracts/proposals/v6/data/`；工作区证据：`run/v6/data-design/`（`run/*` 受 `.gitignore` 约束）

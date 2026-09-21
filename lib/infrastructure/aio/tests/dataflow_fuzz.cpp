@@ -90,6 +90,9 @@ static bool write_file(const std::string& path, const std::vector<uint8_t>& data
 // ============================================================================
 static int fuzz_cache(Rng& r, uint32_t n_iters, const char* base) {
     // 构造一个合法 cache
+    /* FIX-404: 扩展块名必须显式注册（本 fuzz 的 sentinel 是扩展名，不是标准表成员） */
+    aio_block_name_register("sentinel",
+        "lib/infrastructure/aio/tests/dataflow_fuzz.cpp: cache 事务性 fuzz");
     PipelineFrame* f = aio_pipeline_frame_create();
     int dims2[2] = {4, 4};
     float data[16];

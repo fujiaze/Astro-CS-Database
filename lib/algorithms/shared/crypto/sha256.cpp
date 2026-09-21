@@ -112,16 +112,9 @@ std::string sha256_hex(const void* data, std::size_t len) {
     return s.final_hex();
 }
 
-std::string sha256_file(const char* path) {
-    Sha256 s;
-    FILE* f = std::fopen(path, "rb");
-    if (!f) return {};
-    unsigned char buf[64 * 1024];
-    size_t n;
-    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0)
-        s.update(buf, n);
-    std::fclose(f);
-    return s.final_hex();
-}
+// CLEAN-403 (ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」): 原
+// astrocs::crypto::sha256_file(path) 在本模块内自持 fopen/fread/fclose ——
+// 纯算法模块不得持有文件通道, 且全仓零调用者 ⇒ 删除该接口。文件级摘要
+// 唯一实现 = aio_file::sha256_hex (lib/infrastructure/aio/src/aio_file_io.h)。
 
 } // namespace astrocs::crypto

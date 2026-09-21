@@ -10,6 +10,8 @@ downstream: [TEST-P2-REJ-001]
 
 # 模块 astrocs.p2.rejection
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 合同三件套落位 `lib/algorithms/rejection/`
 > （README/module.yaml/memory.md，按 `lib/algorithms/integration/`→`lib/algorithms/coverage/hips_p2/`
 > 先例新建；`lib/algorithms/coverage/` 一目录一套已被 P2-COV 占用，不可覆盖）；

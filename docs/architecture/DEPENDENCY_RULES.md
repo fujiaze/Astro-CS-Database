@@ -1,5 +1,7 @@
 # Dependency Rules
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 - 唯一 I/O 依赖方向：上层模块 → astro_image_io；astro_image_io 不依赖
   上层科学模块。
 - common 可被任何模块依赖，不得反向依赖。

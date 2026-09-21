@@ -1,5 +1,7 @@
 # CI 流水线定义（Pipeline）
 
+> 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
+
 ## 1. 触发
 
 - `push` 到 `main`：全量；

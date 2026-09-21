@@ -1,5 +1,7 @@
 # Science Freeze（V17 True Final Freeze）
 
+> 上游：ASTROCS_DESIGN.md §12.1（科学正确性与三重佐证）、§12.5（状态阶梯）
+
 > 冻结结论：`ACCEPTANCE_GATES.md` G1-G10 全部 PASS、known P0/P1 = 0，
 > `ASTROCS_FOUNDATION_FINAL_FREEZE = PASS`。
 
@@ -70,7 +72,7 @@ routing 政策与参数映射，不宣称与 PixInsight 内核 bit-exact）。
 ## 冻结后不允许
 
 - 恢复 `low`/`high`/`max_iterations`/`min_samples` 等 config alias
-  （这些键不存在于现行 parser；旧 config 必须经 tools/migrate_stage2_config.py 迁移）；
+  （这些键不存在于现行 parser；旧 config 必须经 eng/tools/migrate_stage2_config.py 迁移）；
 - 重新引入 active Stage2/healpix_stack 科学路径
   （no_legacy_production_reference gate 必须持续 PASS）；
 - 把真实 16 帧 observed rejection rate 命名为 false reject。

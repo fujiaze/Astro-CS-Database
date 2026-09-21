@@ -40,7 +40,7 @@ tests/testkit/
     demo_fixture.txt          # fixture 示例（断链注入对象）
 # 模块测试按 label 分布（11 号文 §6 类型目录）：tests/unit|properties|oracle|
 # fixtures|negative|performance/ 由各模块任务按 §6 填充；testkit 只提供合同与 harness。
-# harness（module:<id> 选择器 + 故障注入演示）实现在 tools/testkit/check_testkit.py
+# harness（module:<id> 选择器 + 故障注入演示）实现在 eng/tools/testkit/check_testkit.py
 # （--list/--module/--type/--strict/--fault-injection/--json-out，见 §7）。
 ```
 
@@ -83,7 +83,7 @@ tests/testkit/
 - 选择键：`module:<module_id>`，`module_id` 取模块权威 id（module.yaml `module_id`
   或 DOC-001 追溯矩阵 `module_id` 的 `MOD-` 行键对应点分名，如
   `module:astrocs.conformance.noop`）。
-- `harness/run_selector.py` 行为（由 `tools/testkit/check_testkit.py` 实现，见 §7）：
+- `harness/run_selector.py` 行为（由 `eng/tools/testkit/check_testkit.py` 实现，见 §7）：
   - `--module <module_id>` → 只执行 label==`module:<module_id>` 的测试；
   - `--type <type>` → 按 type 过滤；
   - `--list` → 输出全部已知测试（稳定排序）；
@@ -113,13 +113,13 @@ tests/testkit/
   2. 断链（删除 oracle 引用的 fixture/文件）→ 非 0 退出；
   3. 破坏独立 oracle 独立性（把 oracle 换成生产 symbol）→ FORBIDDEN_EXPECTATION_SOURCE；
   4. 篡改 seed（不同 seed）→ 统计测试边界外失败或元数据不一致。
-- `tools/testkit/check_testkit.py` 对 `tests/testkit/fixtures/` 下的示例测试做
+- `eng/tools/testkit/check_testkit.py` 对 `tests/testkit/fixtures/` 下的示例测试做
   三类注入（F1 篡改期望 / F2 断链 fixture / F3 oracle 换生产符号），每次注入后
   harness 必须 FAIL（exit 非 0）—— 提供可复现证明。
 
 ## 7. 机器闭环
 
-`tools/testkit/check_testkit.py`（TST-001 落地）：
+`eng/tools/testkit/check_testkit.py`（TST-001 落地）：
 - 校验 `tests/testkit/schemas/test_metadata.schema.json` 存在且为合法 JSON Schema；
 - 校验 registry 每项过 schema、id 唯一、label 合法、`module:` 标签 module_id 匹配；
 - 校验 `expectation_source` 非空且不指向生产符号；

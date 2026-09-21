@@ -56,7 +56,10 @@ class TestP3006ProductionPipeline(unittest.TestCase):
                "center": {"ra_deg": 0.0, "dec_deg": 30.0},
                "scale_deg_per_px": 0.002, "width_px": 2600, "height_px": 2600,
                "sampler": "bilinear", "projection": "TAN",
-               "coverage_output": "mask", "output_dir": cls.big}
+               "coverage_output": "mask", "output_dir": cls.big,
+               # FZ-P3-MODES: 生产 resample 节点要求显式声明输出模式
+               # （缺键即 REJECT, 禁静默按 surface_brightness）。
+               "output_mode": "surface_brightness"}
         json.dump(cfg, open(os.path.join(cls.big, "c.json"), "w"))
         cls.cfg = os.path.join(cls.big, "c.json")
 
@@ -104,7 +107,9 @@ class TestP3006ProductionPipeline(unittest.TestCase):
         f = os.path.join(self.big, "output_phase3.fits")
         h = fits.getheader(f)
         self.assertEqual(h["CTYPE1"], "RA---TAN")
-        self.assertEqual(h["BUNIT"], "ADU")
+        # FIX-402: 输入面亮度声明 canonical "ADU/px^2" ⇒ 输出 BUNIT 继承
+        # （冻结单位表 signal_sb = ADU/px^2; 方差/ivar 由二次律导出）。
+        self.assertEqual(h["BUNIT"], "ADU/px^2")
         d = fits.getdata(f)
         fin = d[~np.isnan(d)]
         self.assertGreater(fin.size, 0, "覆盖区不得为空")

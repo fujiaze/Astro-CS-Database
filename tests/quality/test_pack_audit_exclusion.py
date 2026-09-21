@@ -23,7 +23,7 @@ import unittest
 import zipfile
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-PACKER = REPO / "tools" / "pack_audit_package.py"
+PACKER = REPO / "eng" / "tools" / "pack_audit_package.py"
 DENIED_SAMPLE = "FATDUCK_ACCESS.md"  # 仅路径名，不涉及内容
 
 

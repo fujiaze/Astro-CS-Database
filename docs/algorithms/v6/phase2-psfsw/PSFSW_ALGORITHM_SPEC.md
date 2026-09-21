@@ -4,6 +4,8 @@
 
 # Phase2 `psfsw_robust` 算法主规格
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-PSFSW-001-SPEC`
 - 任务：`ALG-P2-PSFSW-001`（wave 3；`depends_on = SCI-ADJ-001`）
 - 基线：`HEAD = main = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`

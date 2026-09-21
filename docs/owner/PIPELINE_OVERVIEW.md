@@ -1,7 +1,9 @@
 # 管线总览（Pipeline Overview）
 
+> 上游：ASTROCS_DESIGN.md §1.2（三个命令，三个独立产品）、§8.2（数据流形态）
+
 > 文档 ID：DOC-GOV-OWNER-PIPELINE-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
+> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
 > 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
 > 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
@@ -62,7 +64,7 @@ Phase1 目标链（03_TARGET_PRODUCT_AND_ARCHITECTURE.md §5）：
 - 模块端口注册表：`runtime/pipeline/module_ports.registry.json`（RT-001）登记
   `astrocs.phase1.*` 与 entry（`astrocs_phase1_*_v1`）。
 
-现场计算（`tools/quality/check_module_map.py`；状态词依 `ASTROCS_DESIGN.md` §11.4，不在本文自证）：装配与节点绑定在位且**本提交实测通过**——
+现场计算（`eng/tools/quality/check_module_map.py`；状态词依 `ASTROCS_DESIGN.md` §11.4，不在本文自证）：装配与节点绑定在位且**本提交实测通过**——
 ctest `p1001_real_nodes`（7 节点主链 cal→cos→psf→phot→snr→drz→wr，
 每节点 call_count=1、fail-fast 下游零调用、确定性 bitwise）本提交 rc=0（P1-001 `9e09941a`）。
 
@@ -88,7 +90,7 @@ ctest `p1001_real_nodes`（7 节点主链 cal→cos→psf→phot→snr→drz→w
 - `module_ports.registry.json`：`astrocs.phase2.{coverage,sample,upm-fit,upm-apply,
   reject,integrate,write}`（phase=phase2）。
 
-现场计算（`tools/quality/check_module_map.py`）—— 七节点各绑唯一真实 operation（`lib/infrastructure/scheduler/src/module_adapters.cpp`:4282），
+现场计算（`eng/tools/quality/check_module_map.py`）—— 七节点各绑唯一真实 operation（`lib/infrastructure/scheduler/src/module_adapters.cpp`:4282），
 ctest `p2001_real_nodes`、`p2002_unc_rej_prov` 本提交实测 rc=0
 （P2-001 `439f9f20`、P2-002 `9e0fa3a8`）；真实数据（合成/接缝/Windows）验收
 未在本提交复跑（`NOT_VERIFIED`）。
@@ -114,7 +116,7 @@ ctest `p2001_real_nodes`、`p2002_unc_rej_prov` 本提交实测 rc=0
   （`NOT_IMPLEMENTED`）。
 - `module_ports.registry.json`：`astrocs.phase3.{properties,wcs,resample2,writer,verify}`。
 
-现场计算（`tools/quality/check_module_map.py`）—— 五节点各真实 operation（`lib/infrastructure/scheduler/src/module_adapters.cpp`:4309，
+现场计算（`eng/tools/quality/check_module_map.py`）—— 五节点各真实 operation（`lib/infrastructure/scheduler/src/module_adapters.cpp`:4309，
 typed artifact 链经 output_dir 文件约定传递，上游缺失 fail-closed），
 ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56ffb7`）；
 `healpix_interp4` 与流式 FITS 接入 `NOT_IMPLEMENTED`；
@@ -129,7 +131,7 @@ ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56
   运行图静态/观测产物生成是否完整属 W5/LNX 域，不在本任务复跑。
 - 唯一 executor 与实测资源门（RT-001 `91440c16`）：`lib/infrastructure/scheduler/src/executor_runtime.h`
   + `lib/infrastructure/scheduler/src/module_adapters.cpp`:3777-3793（Phase3 resample 行带提交唯一池，
-  每任务经 `ThreadBudget acquire(1,1)` 恰租 1 槽）；`tools/monitoring/run_monitored.py`
+  每任务经 `ThreadBudget acquire(1,1)` 恰租 1 槽）；`eng/tools/monitoring/run_monitored.py`
   `evaluate_frozen_gate()` 按 **`docs/plugins/infrastructure/21_observability.md` §8（G-RES-01）**
   判定（判据语义权威），阈值唯一数值源 = `contracts/resource_gate_v1.json`；
   硬失败 = 单活跃计算线程 / 连续≥10s<60% 且队列有工作 / 无界内存增长，均值≥85% 等为
@@ -144,7 +146,7 @@ ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56
 - 目标发布安装树（03 §4）：`astrocs.exe` + runtime/io/科学模块/provider DLL；
   HiPS Browser、ACR/CUDA 不入 product manifest。当前根 CMake（BLD-002）唯一
   `add_executable(astrocs)` 显式链接各静态库；**Linux 技术预览安装面已 `INSTALLED`**
-  （`cmake/install_layout.cmake`:104-105 五科学模块入 `modules/`，
+  （`eng/cmake/install_layout.cmake`:104-105 五科学模块入 `modules/`，
   `packaging/astrocs.product.json` units=10，安全 loader 实测 64/64 PASS），
   **Windows 侧安装树复验 `NOT_VERIFIED`**（`docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv`
   等为 GENERATED 清单，见 ARCHITECTURE_OVERVIEW）。

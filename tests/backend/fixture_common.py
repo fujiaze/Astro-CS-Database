@@ -73,17 +73,62 @@ def _build_fixture_exe():
     return _FIXTURE_EXE
 
 
+# FIX-402: Phase3 生产输入语义守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）
+# 只接受**显式声明**面亮度语义的输入。fixture 由 AIO writer 生成（writer 不写
+# BUNIT），故此处按冻结单位表补齐产品单位声明（与 module_adapters 的
+# declare_hips_surface_brightness_units 同源同串; 幂等）。
+#   signal   : BUNIT=ADU/px^2   (signal_sb, pixel_area_power=-2)
+#   variance : BUNIT=ADU^2/px^4 (sb_variance_out, -4; FZ-P3-BUNIT-QUADRATIC)
+#   ivar     : BUNIT=px^4/ADU^2 (sb_ivar_out, +4)
+_UNIT_DECL = {
+    "signal": ("ADU/px^2", -2),
+    "variance": ("ADU^2/px^4", -4),
+    "ivar": ("px^4/ADU^2", 4),
+}
+
+
+def ensure_hips_unit_declaration(hips_dir):
+    """幂等补齐 HiPS 子产品单位/像素语义声明（FIX-402 fixture 迁移）。"""
+    for sub, (bunit, power) in _UNIT_DECL.items():
+        path = os.path.join(hips_dir, sub, "properties")
+        if not os.path.isfile(path):
+            continue
+        with open(path, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+        keep = []
+        for ln in lines:
+            key = ln.split("=", 1)[0].strip()
+            if key in ("BUNIT", "bunit", "ASTROCS_SIGNAL_UNIT",
+                       "ASTROCS_PIXEL_SEMANTICS", "ASTROCS_PIXEL_AREA_POWER"):
+                continue
+            keep.append(ln)
+        keep += ["BUNIT=%s" % bunit,
+                 "ASTROCS_SIGNAL_UNIT=ADU/px^2",
+                 "ASTROCS_PIXEL_SEMANTICS=surface_brightness",
+                 "ASTROCS_PIXEL_AREA_POWER=%d" % power]
+        tmp = path + ".fix402.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("\n".join(keep) + "\n")
+        os.replace(tmp, path)
+    return hips_dir
+
+
 def ensure_f1f2_hips(fdir=DEFAULT_FDIR):
     """确保 fdir 下存在 F1.hips/F2.hips（缺失时编译 fixture 并生成）。"""
     f1 = os.path.join(fdir, "F1.hips")
     f2 = os.path.join(fdir, "F2.hips")
     if os.path.isdir(f1) and os.path.isdir(f2):
+        # FIX-402: 既有缓存 fixture（writer 未写 BUNIT）同样补齐声明, 幂等。
+        ensure_hips_unit_declaration(f1)
+        ensure_hips_unit_declaration(f2)
         return fdir
     exe = _build_fixture_exe()
     os.makedirs(fdir, exist_ok=True)
     r = subprocess.run([exe, "--make", fdir], capture_output=True, text=True, timeout=300)
     assert "HIPS_FIXTURES_OK" in r.stdout, "[fixture_common make] " + r.stderr[-600:]
     assert os.path.isdir(f1) and os.path.isdir(f2), "F1/F2.hips 生成失败: " + fdir
+    ensure_hips_unit_declaration(f1)
+    ensure_hips_unit_declaration(f2)
     return fdir
 
 

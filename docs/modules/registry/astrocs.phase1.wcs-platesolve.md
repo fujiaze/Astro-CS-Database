@@ -12,6 +12,8 @@ downstream: [DATA-P1-WCS, API-WCS-001, TEST-P1-WCS-001]
 
 # 模块 astrocs.phase1.wcs-platesolve
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页 registry descriptor 占位 ID
 > （SCI-P1-WCS-001/ALG-002/TEST-P1-WCS-001）保留为编排层词汇，由
 > P1-WCS-INT 对齐；冻结合同 = SCI-WCS-001（docs/science/ASTROMETRY.md，

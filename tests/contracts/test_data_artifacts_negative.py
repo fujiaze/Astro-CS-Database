@@ -3,7 +3,7 @@
 import importlib.util, pathlib, tempfile, unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
-spec = importlib.util.spec_from_file_location("cda", REPO / "tools" / "check_data_artifacts.py")
+spec = importlib.util.spec_from_file_location("cda", REPO / "eng" / "tools" / "check_data_artifacts.py")
 cda = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cda)
 

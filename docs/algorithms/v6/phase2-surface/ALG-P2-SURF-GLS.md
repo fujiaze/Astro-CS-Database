@@ -2,6 +2,8 @@
 
 # ALG-P2-SURF-GLS — surface_gls 扩展源 GLS 算法规格
 
+> 上游：ASTROCS_DESIGN.md §4（normalize）、§5（mosaic）、§6（export）
+
 - 文档 ID：`ALG-P2-SURF-GLS`（`ALG-P2-SURF-001` 子文档）
 - 上位：`DESIGN-P2-001 §6.1/§7/§9/§10`；`UNIFIED §5/§7/§8/§10`；`PROJECT_SPEC §3/§5/§7/§8`；宪章 §4.1/§6.3
 - 裁决锚：`ADJ-P2-02`（`SC-ADJ-P202.1..3`）；`FZ-FORMULA-GLS`；`ADJ-AR-02`（`SC-ADJ-AR02.1..2`）

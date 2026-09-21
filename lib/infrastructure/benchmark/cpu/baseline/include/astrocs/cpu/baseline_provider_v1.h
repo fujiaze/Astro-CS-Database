@@ -9,7 +9,7 @@
  * 提供 kernel 服务。
  *
  * 冻结合同:
- *   - docs/architecture/cpu/CPU_002_BASELINE_PROVIDER.md (DOC-ARCH-CPU-002);
+ *   - docs/architecture/CPU_BACKEND_ARCH.md (baseline provider 归属; 原 CPU_002_BASELINE_PROVIDER.md 已删);
  *   - include/astrocs/abi/module_api_v1.h (provider ABI: acs_provider_api_v1 /
  *     acs_kernel_desc_v1 / run_kernel 签名; ABI-001);
  *   - include/astrocs/abi/lifecycle_v1.h (self_test 语义 / host_abi 协商; ABI-002);

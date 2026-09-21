@@ -1,7 +1,9 @@
 # AstroCS 文档体系（文档集分层 + 机器索引）
 
+> 上游：ASTROCS_DESIGN.md §0.2（详细文档层与双向索引）、§0.3（文档写法）
+
 机器索引（活动/归档边界与校验）：`docs/DOCUMENT_INDEX.yaml` +
-`python3 tools/doccheck/check_doc_index.py --strict`。
+`python3 eng/tools/doccheck/check_doc_index.py --strict`。
 
 权威链（`ASTROCS_DESIGN.md` §0，唯一）：`ASTROCS_DESIGN.md` → `AGENTS.md` →
 `ENGINEERING_SPEC.md` → `CONTROL_PACK_SPEC.md` → `docs/ci/` → `docs/plugins/`（23 篇）；
@@ -19,9 +21,10 @@ L3 数据与设计      docs/design/UNIFIED_MODEL.md / docs/contracts/*.md / doc
                    docs/api/*.md（CLI 协议与 Phase API）/ docs/architecture/*.md
 L4 CI 与插件       docs/ci/**（怎么查、哪些是门禁）/ docs/plugins/**（23 篇模块规范）
 L5 模块文档        docs/modules/**（module 页 + MODULE_MAP.yaml + registry/**）
-历史（非权威）      docs/archive/**、docs/**/v6/**（V6 产品族冻结/设计档案）、
-                   docs/review/**、docs/API_REFERENCE.md、docs/ARCHITECTURE.md
-                   （均已标 ARCHIVED_NON_NORMATIVE 并移出活动索引）
+历史（非权威）      docs/**/v6/**（V6 产品族冻结/设计档案，仍在活动索引）、
+                   docs/API_REFERENCE.md、docs/ARCHITECTURE.md
+                   （标 ARCHIVED_NON_NORMATIVE）；原归档树与旧轮次评审副本
+                   已由 CLEAN-402 删除，历史由 git 承载
 ```
 
 - 任务状态与发布结论只写在 `工程控制/PROJECT-GOVERNANCE-01/`（控制包）与
@@ -30,5 +33,5 @@ L5 模块文档        docs/modules/**（module 页 + MODULE_MAP.yaml + registry
   旧工程约束、旧 `CHANGELOG.md`/`REVIEW.md`/`HANDOVER.md`、`设计大纲/`、
 `evidence/**`、旧历史控制包归档树与旧 `工程控制/AstroCS_*` 控制包（均已删除）
   （ROOT-007）。
-- 机器一致性：`tools/docs_machine_consistency.py` 等检查器以 `ci/checks.json` 为唯一注册表
+- 机器一致性：`eng/tools/docs_machine_consistency.py` 等检查器以 `eng/ci/checks.json` 为唯一注册表
   （`docs/ci/01_CHECKS.md`）。

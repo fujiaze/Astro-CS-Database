@@ -1,5 +1,7 @@
 # Noise / Variance / Ivar / SNR Science (SCI-NOISE)
 
+> 上游：ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§4.2（Phase1 节点流程）
+
 > ID: SCI-NOISE-001  范围: SCI-NOISE-001..015  状态: FROZEN（冻结定义）  上游: SCI-SCOPE-001  下游 ALG: ALG-NOISE-001..  模块: snr_estimator (NoiseWeightModelV1)
 
 ## 1 目的与非目标
@@ -208,5 +210,5 @@ r_i = clip( r_local(F_i, FWHM_i, k·σ_bg), r_min, rmax )
 
 - §11 Oracle 全过：Gaussian 5% 复现、Poisson 诊断 5% 交叉（仅诊断）、平面场 10% 恢复、四不变量门、Python 参考 rtol 1e-9、**源污染 oracle（含星帧，正例 + 三条负例；）**、**饱和域 oracle（正例 + 两条负例；）**；
 - §8 全部退化路径显式（无合格 patch/NaN/floor/gain≤0）；饱和过滤状态在帧产品里**显式可读**（`NOISE_SATURATION_FILTER`，）；
-- `tools/science_contract_lint.py` PASS（15 节 + ID + 锚点）；
+- `eng/tools/science_contract_lint.py` PASS（15 节 + ID + 锚点）；
 - 解析不变量→SYN-003 转换：Gaussian/Poisson/常量/blank sky/outlier/small-N 用例、estimator bias 与 ivar 边界（零/负/NaN→ivar=0）登记 SYN-003。

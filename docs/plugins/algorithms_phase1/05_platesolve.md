@@ -1,5 +1,7 @@
 # 插件文档：platesolve（天体测量/WCS）
 
+> 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
+
 ## 1. 职责与边界
 
 - **职责**：从检测源与参考星表（Gaia/离线）解算天体测量解，生成 ICRS WCS 并验证。

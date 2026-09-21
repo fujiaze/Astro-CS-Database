@@ -1,5 +1,7 @@
 # CPU Backend 架构 (C ABI v1 · Loader · Per-Kernel Dispatcher)
 
+> 上游：ASTROCS_DESIGN.md §8（软件架构）
+
 > ID: ARCH-BACKEND-001  状态: FROZEN  上游: ARCH-002/ALG-001..007  下游: ABI-001/002, ISA-001..005, BENCH-001..005
 > 权威来源: 控制包 05 全条目(§1–§7)逐节落成架构; 禁止项与 05 完全一致。
 

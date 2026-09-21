@@ -1,5 +1,7 @@
 # Module: photometric_calib
 
+> 上游：ASTROCS_DESIGN.md §8.4（模块与 ABI）
+
 > 本页由源码核对后修订——
 > 模块合同冻结落位 lib/algorithms/photometry/README.md（r1，CONTRACT_READY）+
 > module.yaml（astrocs.p1.photometry，迁移目标 astrocs_p1_photometry.dll，
