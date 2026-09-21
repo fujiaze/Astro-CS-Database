@@ -85,11 +85,18 @@
 | CHK-P3-PROJ-DECL-SELFTEST | 合同/ABI | 上项的注册表自检面（`p3_projection_registry_selftest`，可执行负例面） | `ctest --test-dir build -R "^p3_projection_registry_selftest$" --output-on-failure` | P0 |
 | CHK-AIO-IO-BOUNDARY | 静态 | aio 是文件级唯一 I/O 边界（HARD H1/H2 + A44 代码面 + 台账棘轮；除 aio 外越界 I/O 命中 = 0；台账 `eng/ci/ledgers/aio_io_boundary_inventory.json`） | `python3 eng/ci/check_aio_io_boundary.py` | P0 |
 | AIO-IO-BOUNDARY-SELFTEST | 静态 | 上项的可执行负例面（8 条负例 + 台账缺失 fail-closed + HARD 层台账不可豁免） | `python3 eng/ci/check_aio_io_boundary.py --self-test` | P0 |
-| CHK-PSFSW-RETIRED-STATIC | 合同/ABI | PSFSW 退役对象 canonical 面静态清零（`eng/contracts/schemas/unified/` 除「已退役/retired」留痕外零残留） | `bash -lc "! grep -rn 'psfsw_robust_weight' eng/contracts/schemas/unified/ \| grep -v '已退役\\\|retired'"` | P1 |
+| CHK-PSFSW-RETIRED-STATIC | 合同/ABI | PSFSW 退役对象 canonical 面静态清零（`eng/contracts/schemas/unified/` 除「已退役/retired」留痕外零残留；Python 落地满足注册表校验器 R4，含锚缺失 fail-closed 与 `--self-test` 正负例面） | `python3 eng/ci/check_psfsw_retired.py` | P1 |
 | CHK-PSFSW-RETIRED-NEGATIVE | 合同/ABI | 退役对象行为门（无 canonical 正本 / 旧声明显式拒绝 / 迁移提示 / 不得回流） | `python3 -B -m unittest discover -s eng/tests/contracts -t eng/tests/contracts -p test_unified_object_contract.py -k RetiredObjectContract` | P1 |
 | CHK-FIX208-EVENT-STREAM-DEFAULT | 治理 | 事件流 = 默认输出（无需 `-y`/`--events` 旗标即输出，唯一 schema） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix208_event_stream_default.py` | P0 |
 | CHK-FIX208-DISK-GATE | 治理 | 资源门只管磁盘（跑前 warn / 写盘失败 error=rc10；内存/CPU 不设门；缺 `unshare -Ur -m` 时用例显式 skip） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix208_disk_gate.py` | P0 |
 | CHK-FIX406-SIGTERM | 治理 | CLI 取消矩阵（POSIX SIGTERM/SIGINT × 三阶段 × 取消点 + Windows 控制台事件；`CTRL_CLOSE_EVENT` 平台限制显式登记于 `run/FIX-406/WINDOWS_CANCEL_PLATFORM_LIMITS.md` §3，非退化判据 + 结构化登记门为负例面；Linux 节点上 Windows 用例显式 skip ≠ 通过） | `python3 -B -m unittest discover -s eng/tests/cli -t eng/tests/cli -p test_fix406_sigterm_cancel.py` | P0 |
+| CHK-REGISTRY-VALIDATE | 治理 | 注册表结构校验器（R1–R15）成为真正的门：`eng/ci/checks.json` 唯一注册表结构一致（命令可执行体/路径锚/ID 唯一/迁移映射覆盖/无孤儿 unit/不得硬编码线程） | `python3 eng/ci/validate_registry.py --registry eng/ci/checks.json --strict` | P0 |
+| L2-FROZEN-GATE-SELFTEST | 资源 | L2 性能门四条冻结判据裁决器（平均利用率 / p50 / 达标样本占比 / 无低利用窗）红绿双向自测：合规证据必须绿；缺失证据 / 坏证据 / 空文件 / 门不适用 / 分母未声明 / 阈值合同缺失必须红 | `python3 eng/ci/check_frozen_gate.py --self-test` | P0 |
+| L2-FROZEN-GATE-REPLAY | 资源 | 上项对 RELEASE-04 归档 L2 违规证据的回放（历史 `frozen_gate.verdict=pass` 的证据现在必须判红——恒真门改真判红，D-10） | `python3 eng/ci/check_frozen_gate.py --replay --json-out run/ci/l2-frozen-gate/replay.json` | P0 |
+| WORKER-BALANCE-METRIC-SELFTEST | 资源 | worker_balance 利用率指标判别力自测：按「忙碌 worker 数 / 已分配 worker 数」正确算法复算，两组合成负载必须给出不同且非常数的输出；退化派生件 / 算法不符 / 缺失 / 空 / 坏表头 / 分母未声明 / 恒定序列必须红 | `python3 eng/ci/check_worker_balance.py --self-test` | P0 |
+| WORKER-BALANCE-METRIC-REPLAY | 资源 | 上项对归档证据的回放：11 份退化 `worker_balance.csv`（同源 16/16 恒 50.00）必须判红；权威 `resource_timeseries.csv` 按正确算法复算必须非常数 | `python3 eng/ci/check_worker_balance.py --replay-archived --json-out run/ci/worker-balance/replay.json` | P0 |
+| CHK-GATE-FAILCLOSED-SELFTEST | 治理 | 门禁 fail-closed 契约红绿自测（8 例）：requires_monitor 缺监控证据判红 / 证据违反 L2 冻结判据判红 / 合规证据绿 / 纯采样留证绿 / 请求判定无 frozen_gate 判红 / mutates_workspace 写出登记面判红 / 写登记 outputs 绿 / 登记输出缺失判红 | `python3 -B -m unittest discover -s eng/ci/tests -t eng/ci/tests -p test_gate_failclosed_selftest.py` | P0 |
+| CHK-FAILCLOSED-SURVEY | 治理 | 全门禁 fail-closed 普查：对每个执行单元（228 个）注入「缺失证据 / 坏证据 / 无输出」三面，适用面必须全部判红（判绿即假绿风险；表落 artifacts/evidence/release-05/FAILCLOSED_SURVEY.md）；含普查自身的红绿自证（恒绿注入必被抓） | `python3 eng/ci/run_checks.py --check CHK-FAILCLOSED-SURVEY --quiet` | P0 |
 
 ### 2.1 检查器退役与预留
 

@@ -43,7 +43,7 @@ flowchart LR
 |  frame_snr | 帧级**未加权原始信噪比**（非权重），通量型口径 `F_ref/σ_F`（Horne 1986）：信号来自 **PSF 拟合域**测光减独立局部背景（全链只有一个 `flux` 口径 = PSF 拟合域，禁另起孔径口径；孔径仅作显式声明的诊断/交叉验证），σ_n 为稳健噪声；方法学对标 PixInsight PSFSNR（信号取数、稳健噪声、独立背景三点），但不逐字套用其功率比式[18] `(Σf)²/σ_n²`，以保证逆方差换算严格成立；信号项不被加性天光背景虚高，天光散粒噪声计入 σ_n。**帧级 SNR = 点源（PSF）信号 SNR，纯信号/噪声**：`SNR=F_signal/σ_F`，`F_signal` 已扣局部背景、天光**只作噪声项**进 `σ_F`；固定源通量下天光增大 ⇒ SNR 单调下降（`B→∞` 时 `SNR→0`）；**不得**与面亮度 SNR 混用或互相宣称等价 | 唯一帧级参考；Phase2 归一后现场换算 w=SNR²/F_ref²=1/σ_F² |
 | point_information | a²PᵀC⁻¹P = 1/Var(F_hat) | 点源目标的严格权重 |
 | sparse_snr_layer | 帧内稀疏控制点 SNR 参考（Phase1 标准层；**默认稀疏路径要求默认产出**） | 帧内精细参考；Phase2 由它重建稠密 SNR |
-| snr_path（配置，**mosaic 面**） | SNR 重建路径：`dense`（Phase1 稠密面）/ `sparse_reconstruct`（稀疏→稠密，**默认**）/ `frame_reconstruct`（帧级→稠密）；三者精度对比是论文核心实验（判据 SP-0；**不得预设稀疏一定最好**）。（三条路径**没有全局最优、只有适用域**，完整适用域图谱见 `实验/SCI-B`。**本键属 mosaic 配置**：normalize 配置不含 `snr_path`，权威落点 = `ASTROCS_DESIGN.md` §5.3 + `eng/contracts/schemas/phase_config_mosaic.schema.json`。） | 配置文件 JSON 显式指定（**mosaic**） |
+| snr_path（配置，**mosaic 面**） | SNR 重建路径：`dense`（Phase1 稠密面）/ `sparse_reconstruct`（稀疏→稠密，**默认**）/ `frame_reconstruct`（帧级→稠密）；三者精度对比是论文核心实验（判据 SP-0；**不得预设稀疏一定最好**）。（三条路径**没有全局最优、只有适用域**，完整适用域图谱见 `实验/absolute-snr`。**本键属 mosaic 配置**：normalize 配置不含 `snr_path`，权威落点 = `ASTROCS_DESIGN.md` §5.3 + `eng/contracts/schemas/phase_config_mosaic.schema.json`。） | 配置文件 JSON 显式指定（**mosaic**） |
 | star_mask | 星点/饱和/高结构掩膜（天球坐标） | 否；UPM 采样排除用 |
 | sky_samples | 每帧掩膜外的稀疏天光采样点（坐标、值、variance、点 SNR 权重） | 点权重 ∝ SNR²，仅用于天光面拟合 |
 | sky_plane | 稀疏样条表示的天光亮度面（参考面 B_ref 系数 + 每帧梯度 δ_k 系数）；栅格值现场求值 | 否；加性背景模型 |

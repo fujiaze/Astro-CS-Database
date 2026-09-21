@@ -21,7 +21,7 @@
   - `dense`（稠密面，精度基准）/ `sparse_reconstruct`（**默认**：稀疏层重建稠密）/ `frame_reconstruct`（帧级重建稠密）；
   - `sparse_reconstruct` 且输入**有**稀疏层 → 实际 SNR = 帧级 × 帧内，参与科学运算；
   - 输入**无**稀疏层而路径为默认/`sparse_reconstruct` → 按帧级执行并**显式记录实际路径**（`snr_path_effective=frame_reconstruct` + 计数），**不得静默**；稀疏层存在但损坏/不可重建 → 明确失败（§7）；
-  - 三条路径**没有全局最优、只有适用域**：完整适用域图谱由 `实验/SCI-B` 给出（最高设计 §5.3）。
+  - 三条路径**没有全局最优、只有适用域**：完整适用域图谱由 `实验/absolute-snr` 给出（最高设计 §5.3）。
   - **逆方差叠加**：每个天球像素接收多个源像素输入，用每个源像素的 SNR 计算对应权重（SNR → 逆方差权重），得到最优检测/测光功率——**不是直接用 SNR 加权**。
 - **输出**（同一马赛克包可含多个明确产品族）：
   1. `surface_brightness`：signal（面亮度量纲，写端口 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）、variance、correlation、effective PSF；
@@ -87,7 +87,7 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 - 独立高精度矩阵/NumPy oracle 验证 GLS、Q/W、covariance；
 - 注入点源满足 `SNR_combined² ≈ ΣSNR_k²`（独立、模型正确）；
 - 不同 seeing/透明度/背景组合下点源检测功率 ≥ 普通 ivar 叠加；
-- **SNR 路径**：`dense` / `sparse_reconstruct` / `frame_reconstruct` 三条路径输出正确，适用域入 `实验/SCI-B`；
+- **SNR 路径**：`dense` / `sparse_reconstruct` / `frame_reconstruct` 三条路径输出正确，适用域入 `实验/absolute-snr`；
 - **SNR 重建**：稀疏→稠密重建与帧级铺满重建分别验证；帧级×帧内权重正确；无稀疏层时实际路径被显式记录（负例：静默降级判红）；
 - 扩展源常量场、梯度、总通量、方差无偏；
 - PSF 信号权重复合分量与基线比较 + covariance 传播正确；

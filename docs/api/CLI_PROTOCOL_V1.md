@@ -3,12 +3,12 @@
 > 上游：ASTROCS_DESIGN.md §7.1（命令树）、§7.2（配置、事件与退出码）
 
 > ID: API-CLI-001  状态: FROZEN  上游: API-001/ARCH-002  下游: CLI-001/002/003, API-003..005(handler 追溯), BENCH-005
-> 命令树 = `ASTROCS_DESIGN.md` §6.1/§6.2 的**唯一命令树**：用户命令只有
+> 命令树 = `ASTROCS_DESIGN.md` §7.1 的**唯一命令树**：用户命令只有
 > normalize/mosaic/export + help/--version/doctor/benchmark；`phase1|2|3` 用户命令与
 > 别名（含 config */modules */selftest/test synthetic/verify*/drizzle/benchmark cpu|
-> verify-profile/hardware inspect）不在命令面上，调用返回 rc=2（phase 仅为内部指代，§6.2）。
+> verify-profile/hardware inspect）不在命令面上，调用返回 rc=2（phase 仅为内部指代，§7.1）。
 
-## 1 命令树(ASTROCS_DESIGN §6.2 唯一命令树;help 文本 golden 由此生成)
+## 1 命令树(ASTROCS_DESIGN §7.1 唯一命令树;help 文本 golden 由此生成)
 
 ```text
 astrocs --version [--json]
@@ -20,28 +20,28 @@ astrocs doctor [--json]
 astrocs benchmark
 ```
 
-命令语义（§6.1 薄入口）：
+命令语义（§7.1 薄入口）：
 - `--json <config.json>` 运行：运行前预检三档（🟢 correct / 🟠 warn 不阻塞 / 🔴 error 阻塞）
   → 显示检查页面 → 存在 error 时阻断运行（`-y`/`-yes` 不能越过）→ 无 error 时（correct 与 warn）
   都需用户输入 `yes` 确认（`-y`/`-yes` 跳过确认）→ `-force` 跳过整个检查步骤直接运行
   → 执行并落产品 + manifest；
 - `--template [-o <path>]` 生成可直接改的完整 JSON 模板（缺 `-o` → stdout）；
 - `--help` 子命令帮助与字段说明；
-- 三个命令**平级独立**：各自独立进程、**独立重跑**（**无断点续算**：重跑 = 新运行目录 + 新 manifest）、独立验收，**禁止**隐式串接（`ASTROCS_DESIGN.md` §1.2:78）；
+- 三个命令**平级独立**：各自独立进程、**独立重跑**（**无断点续算**：重跑 = 新运行目录 + 新 manifest）、独立验收，**禁止**隐式串接（`ASTROCS_DESIGN.md` §1.2）；
 - `benchmark` 生成/更新**安装目录** cpu_profile（后续运行自动读取）。
 
 handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(会话1)；mosaic→API-004(会话2)；export→API-005(会话3)；benchmark→BENCH-001..004 harness(内部)。
 
 ## 2 退出码(全 11 条冻结,唯一源 `lib/infrastructure/cli/exit_codes.h`)
 
-0 成功且门禁全过 / 2 CLI 参数或配置错 / 3 输入缺失格式 hash 错 / 4 科学验证或不变量失败 / 5 backend ABI 签名 CPU 特征或加载失败 / 6 计算执行失败 / 7 I/O 失败 / 8 输出完整性验证失败 / 9 用户取消或超时 / **10 磁盘写满 / 写盘失败**（`ASTROCS_DESIGN.md` §6.3：内存 / CPU / 线程不设门）/ 70 未分类内部错误(必须出脱敏 crash report)。跨平台同失败同码(golden 双平台断言)。
+0 成功且门禁全过 / 2 CLI 参数或配置错 / 3 输入缺失格式 hash 错 / 4 科学验证或不变量失败 / 5 backend ABI 签名 CPU 特征或加载失败 / 6 计算执行失败 / 7 I/O 失败 / 8 输出完整性验证失败 / 9 用户取消或超时 / **10 磁盘写满 / 写盘失败**（`ASTROCS_DESIGN.md` §4.5：内存 / CPU / 线程不设门）/ 70 未分类内部错误(必须出脱敏 crash report)。跨平台同失败同码(golden 双平台断言)。
 
 码值与含义**只有一份**，以 `lib/infrastructure/cli/exit_codes.h` 为唯一源。
 
 ## 3 stdout/stderr 纪律
 
 - 人类模式: stdout=简洁结果, stderr=日志/诊断;`--json`: stdout 恰一个 JSON 文档;运行事件流: stdout 每行一个 UTF-8 JSON 事件,禁夹普通文字;JSON 路径全 UTF-8(Windows 内部 Unicode 路径正确处理)。
-- **事件流 = 默认输出**（`ASTROCS_DESIGN.md` §6.3）：**不需要旗标开启**；GUI 用其它语言**直接捕获 CLI 输出**。`--events-jsonl` **保留接受**，语义**等价默认行为**（别名，`lib/infrastructure/cli/commands.cpp:2115`、`command_tree.h:43`）——**不得**把它当作开启事件流的必要条件。
+- **事件流 = 默认输出**（`ASTROCS_DESIGN.md` §7.2）：**不需要旗标开启**；GUI 用其它语言**直接捕获 CLI 输出**。`--events-jsonl` **保留接受**，语义**等价默认行为**（别名，`lib/infrastructure/cli/commands.cpp:2115`、`command_tree.h:43`）——**不得**把它当作开启事件流的必要条件。
 - **stdout 无日志污染**为机器测试项(CLI-002 golden)。
 
 ## 4 JSONL 运行事件流 v1（**唯一 schema**）
@@ -66,7 +66,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 - 取消后: 关 writer→写 incomplete manifest→删除/隔离临时产物→exit 9;**不得留下看似完整的 HiPS/结果**(与 ARCH-002 §5/ARCH-005 §3 原子单元一致)。
 - 未捕获异常→70+run_id/阶段/最小脱敏 crash report(不泄露凭据)。
 
-## 6 机器化一致性检查器合同(API-002 建立 `eng/tools/check_cli_protocol.py`)
+## 6 机器化一致性检查器合同(API-002 建立；现行落地 = `eng/tools/check_api_docs.py`)
 
 1. `--help` golden 树与 §1 逐行一致;
 2. JSON/JSONL 样例对 schema 有效(jsonschema 或 stdlib 等价校验);
@@ -77,7 +77,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 
 1–5 为 Linux 可验;6 属 WIN/FAT 域任务。
 
-## 7 配置与 `output_dir`(权威 = `ASTROCS_DESIGN.md` §6.3 配置/退出码 + `ENGINEERING_SPEC.md` §7 目录规范)
+## 7 配置与 `output_dir`(权威 = `ASTROCS_DESIGN.md` §7.2 配置/退出码 + `ENGINEERING_SPEC.md` §7 目录规范)
 
 运行产物(每相 run manifest `astrocs_run_*.json`、资源三件套
 `resource_timeseries.csv` / `resource_summary.json` / `worker_balance.csv`、
