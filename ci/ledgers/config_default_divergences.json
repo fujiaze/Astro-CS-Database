@@ -85,22 +85,6 @@
         "1.0",
         "fp64"
       ]
-    },
-    {
-      "id": "config_default_divergence:precision_mode",
-      "kind": "known_divergence",
-      "reason": "同名不同义（非配置默认值冲突）：该键在 lib/ 内的全部字面量命中只有 hp_drizzle_api.cpp:988/992(=1) 与 :995(=0)，二者是 RESCUE-FD-02 单一优先级规则（参数 0/1 → 否则读帧头 KV PRECISION：fp32→0 / fp64→1 → 否则 FP64）的**分支取值**，不是两个并存的缺省。权威面无分歧：ASTROCS_DESIGN.md §3.3:256（阶段一 drizzle.precision_mode 0=FP32/1=FP64，必须显式）+ contracts/schemas/phase_config_normalize.schema.json $defs.drizzle_config.precision_mode（enum [0,1]、无 default）+ module_adapters.cpp:4510-4528（缺失即 DATA 拒绝，无 silent default）。config/** 侧无可订正处：ci/check_config_defaults.py::scan_defaults() 只扫 repo/lib，键集来自 phase_config schema（FIX-207 后 config/templates 的 blocks[] 已不贡献键/值）；为迎合该启发式去重构 lib/ 的两条已文档化分支语义是更坏的做法。",
-      "owner": "RELEASE-03 BLD-201（前台裁决 2026-09-20：认可登记为已知分歧，不重构 lib/ 分支语义）",
-      "exit_condition": "收敛 hp_drizzle_api.cpp:981-1009 的 PRECISION 优先级为单一决定点（只接受已解析的 precision_mode 参数、帧头 KV 解析上移到唯一的配置决定层），使该键在 lib/ 内只剩 1 个字面量取值后删除本条。",
-      "values": [
-        "0.0",
-        "1.0"
-      ],
-      "evidence": [
-        "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:988",
-        "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:992",
-        "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp:995"
-      ]
     }
   ]
 }

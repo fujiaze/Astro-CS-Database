@@ -9,7 +9,10 @@
   D1 **配置键集合** = config/templates/*.json 叶子键 ∪ config/defaults.json
      fields[].key 末段 ∪ contracts/schemas/phase_config_*.schema.json 的 config
      属性 ∪ 台账 watch_keys；仅该集合内的键参与比较（避免把局部变量当配置键）；
-  D2 集合内某键在生产源码/模板里出现 >=2 个不同字面量缺省 ⇒ finding；
+  D2 集合内某键的不同字面量缺省**跨「权威单元」（源文件::所在函数）**出现 ⇒ finding。
+     **同一函数内**同一键取多个字面量 = **一个决策点的多个出口**（if/else 链把入参/帧头
+     映射到不同取值），**不是**两套缺省 ⇒ 不判 finding（与本节开头「不同生产代码路径」
+     的立意一致）。模板值一律视为独立单元（'config/templates'）。
   D3 生产源码零默认字面量命中 ⇒ rc=2（不得空扫描判绿）。
 
 豁免唯一途径：ci/ledgers/config_default_divergences.json 的
@@ -39,6 +42,18 @@ _ASSIGN_RE = re.compile(
     r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*" + _LIT + r"\s*;")
 # 只承认「配置载体」上的赋值缺省，避免把局部变量/结构体临时量当配置默认值。
 _CONFIG_RECEIVER_RE = re.compile(r"(?:^|::)(?:[A-Za-z_]*cfg|config|settings|opts|params|options|defaults)$", re.I)
+# 「权威单元」= 源文件 + 所在函数。深度 0 上的函数头（含 A::B 限定名）用于切分单元；
+# 只做轻量括号深度跟踪，不引入 C++ 解析器：漏认时退化为 '<top>'（宁可合并单元，
+# 也不把「一个决策点」误判成「两套缺省」）。
+_FUNC_HEAD_RES = (
+    re.compile(r"^[A-Za-z_][A-Za-z0-9_:<>,*&\s]*\s+[A-Za-z_~][A-Za-z0-9_]*\s*\([^;{}]*\)\s*(?:const\s*)?\{?\s*$"),
+    re.compile(r"^[A-Za-z_][A-Za-z0-9_:~]*::[A-Za-z_~][A-Za-z0-9_]*\s*\([^;{}]*\)\s*(?:const\s*)?\{?\s*$"),
+)
+
+
+def _func_name(header: str) -> str:
+    m = re.search(r"([A-Za-z_~][A-Za-z0-9_]*)\s*\(", header)
+    return m.group(1) if m else "<anon>"
 
 
 def _norm_lit(lit: str) -> str:
@@ -91,32 +106,48 @@ def config_key_set(repo: pathlib.Path, watch_keys):
 
 
 def scan_defaults(repo: pathlib.Path, key_set):
+    """返回 (seen, units, files_with_key)。
+
+    seen[key][value] = ["rel:line", ...]（供 finding 明细）
+    units[key][value] = {"rel::func", ...}（**判分歧用**：权威单元集合）
+    """
     seen = {}
+    units = {}
     files_with_key = {}
+
+    def _record(key, value, rel, lineno, unit):
+        seen.setdefault(key, {}).setdefault(value, []).append("%s:%d" % (rel, lineno))
+        units.setdefault(key, {}).setdefault(value, set()).add(unit)
+        files_with_key.setdefault(key, set()).add(rel)
+
     for path, rel in gc.iter_source_files(repo / "lib"):
         text = path.read_text(encoding="utf-8", errors="replace")
         clean = gc.strip_comments(text)
+        depth = 0
+        cur = "<top>"
         for lineno, line in enumerate(clean.splitlines(), start=1):
+            stripped = line.strip()
+            if depth == 0 and any(rx.match(stripped) for rx in _FUNC_HEAD_RES):
+                cur = _func_name(stripped)
+            unit = "%s::%s" % (rel, cur)
             for m in _VALUE_CALL_RE.finditer(line):
                 key = _leaf(m.group(1))
-                if key not in key_set:
-                    continue
-                value = _norm_lit(m.group(2))
-                seen.setdefault(key, {}).setdefault(value, []).append("%s:%d" % (rel, lineno))
-                files_with_key.setdefault(key, set()).add(rel)
+                if key in key_set:
+                    _record(key, _norm_lit(m.group(2)), rel, lineno, unit)
             for m in _ASSIGN_RE.finditer(line):
                 recv = m.group(1).split("->")[-1].split(".")[-1]
                 if not _CONFIG_RECEIVER_RE.search(recv):
                     continue
                 key = m.group(2)
-                if key not in key_set:
-                    continue
-                value = _norm_lit(m.group(3))
-                seen.setdefault(key, {}).setdefault(value, []).append("%s:%d" % (rel, lineno))
-                files_with_key.setdefault(key, set()).add(rel)
+                if key in key_set:
+                    _record(key, _norm_lit(m.group(3)), rel, lineno, unit)
+            depth += stripped.count("{") - stripped.count("}")
+            if depth <= 0:
+                depth = 0
+                cur = "<top>"
     if not seen:
         raise gc.GateError("ANCHOR_STALE: 配置键集合内生产源码零默认字面量命中")
-    return seen, files_with_key
+    return seen, units, files_with_key
 
 
 def template_defaults(repo: pathlib.Path, key_set):
@@ -148,18 +179,32 @@ def evaluate(repo: pathlib.Path):
     ledger = gc.load_ledger(repo / LEDGER, LEDGER)
     watch = ledger_watch_keys(ledger)
     key_set = config_key_set(repo, watch)
-    seen, files_with_key = scan_defaults(repo, key_set)
+    seen, units, files_with_key = scan_defaults(repo, key_set)
     templates = template_defaults(repo, key_set)
     findings = []
     divergent = {}
     for key, values in sorted(seen.items()):
+        unit_by_value = {v: set(units.get(key, {}).get(v, ())) for v in values}
         sources = set(values)
         if key in templates:
             for entry in templates[key]:
-                sources.add(entry.split("=", 1)[1])
+                tv = entry.split("=", 1)[1]
+                sources.add(tv)
+                unit_by_value.setdefault(tv, set()).add("config/templates")
         if len(sources) < 2:
             continue
+        # D2：不同取值必须来自**互不相交**的权威单元集合，才算「两套缺省」。
+        # 若某单元同时产出这些取值（典型：一个 if/else 链把入参映射到不同出口），
+        # 那是**一个决策点**，不判 finding。
+        ordered = sorted(sources)
+        spans_units = any(
+            not ((unit_by_value.get(a) or set()) & (unit_by_value.get(b) or set()))
+            for i, a in enumerate(ordered) for b in ordered[i + 1:]
+        )
+        if not spans_units:
+            continue
         detail = {v: values[v] for v in values}
+        detail["units"] = {v: sorted(unit_by_value.get(v, ())) for v in ordered}
         if key in templates:
             detail["template"] = templates[key]
         divergent[key] = detail
@@ -206,6 +251,18 @@ def _selftest() -> int:
         d_bad = base / "bad"
         _write_fixture(d_bad, "cfg.smoothing_lambda = 0.1;\n", "cfg.smoothing_lambda = 0.0;\n")
         cases.append(("red_divergent_default", True, d_bad))
+        # 同一函数内同一键多个字面量 = 一个决策点的多个出口 ⇒ 必须判绿（锁定本修复）
+        d_unit = base / "sameunit"
+        _write_fixture(d_unit,
+                       "void f(int x) {\n  if (x) cfg.smoothing_lambda = 0.1;\n"
+                       "  else cfg.smoothing_lambda = 0.0;\n}\n", "")
+        cases.append(("green_same_unit_decision_point", False, d_unit))
+        # 同一文件**不同函数**取不同缺省 = 真正的双口径 ⇒ 必须判红（跨函数仍要抓到）
+        d_xfun = base / "crossfunc"
+        _write_fixture(d_xfun,
+                       "void f(void) {\n  cfg.smoothing_lambda = 0.1;\n}\n"
+                       "void g(void) {\n  cfg.smoothing_lambda = 0.0;\n}\n", "")
+        cases.append(("red_cross_function_default", True, d_xfun))
         d_led = base / "ledgered"
         _write_fixture(d_led, "cfg.smoothing_lambda = 0.1;\n", "cfg.smoothing_lambda = 0.0;\n",
                        extra_entries=[{"id": "config_default_divergence:smoothing_lambda",
