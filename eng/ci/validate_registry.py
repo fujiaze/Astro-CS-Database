@@ -14,7 +14,8 @@
       可选 ctest_targets 必须是非空字符串数组（CI-REG-002 显式登记的 CTest 目标名）；
   R3  id 唯一无重复；
   R4  command[0] ∈ {python3, python} 且 command[1] 指向仓库内存在的文件；
-  R5  profiles 值 ⊆ {fast, linux-main, windows-main, linux-deep, fatduck} 且非空；
+  R5  profiles 值 ⊆ {fast, integration, linux-main, windows-main, linux-deep,
+      prerelease, fatduck} 且非空；
   R6  command[1] 引用的脚本文件确实存在于仓库（与 R4 互补：非 python 命令时
       检查 command 中出现的仓库相对路径文件存在）；
   R7  heavy=true 的项 requires_monitor=true；
@@ -44,7 +45,8 @@ import sys
 
 REPO = pathlib.Path(__file__).resolve().parent.parent.parent
 
-ALLOWED_PROFILES = {"fast", "linux-main", "windows-main", "linux-deep", "fatduck"}
+ALLOWED_PROFILES = {"fast", "integration", "linux-main", "windows-main",
+                    "linux-deep", "prerelease", "fatduck"}
 ALLOWED_PLATFORM = {"any", "linux", "windows", "fatduck"}
 ALLOWED_RUNNERS = {"python3", "python"}
 ID_RE = re.compile(r"^[A-Z0-9][A-Z0-9_.-]+$")
@@ -143,6 +145,7 @@ def _discover_case_gap(where: str, target: pathlib.Path, cmd: list[str]) -> list
 STEP_REQUIRED = ("id", "command", "timeout_seconds", "profiles", "platform")
 STEP_OPT_FIELDS = ("heavy", "mutates_workspace", "outputs", "waivable", "changed_paths",
                    "requires_monitor", "prerequisite_tools", "ctest_targets",
+                   "reads_run_results",
                    "dirty_ignore_exact", "dirty_ignore_prefixes")
 
 
