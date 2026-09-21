@@ -50,6 +50,8 @@
 - **D-10（κ 双口径未统一）**：天光面求解器 `kappa_max` 默认 1e8、UPM/GLS 默认 1e6（FZ-AP2S-KAPPA-MAX）。真实 M42 κ=3.16e7 在 1e8 下不触发自适应、在 1e6 下超限。**未决项**（OPEN_QUESTIONS）。
 - **D-11（GATE-501 未完成项转派）**：lib 侧 `utilization_pct` 恒 50.0 根因（cli/commands.cpp + resource_recorder.h）未修；生产侧 `record_and_justify` 未翻转；`--self-test` 覆盖 22/78；UT-BACKEND test_05 编译缺 include（改动前即失败）；CHK-SCI-REF 档位作用域问题。
 - **D-12（规范严于实现）**：`07_noise_snr.md` §4.2a 的"声明缺失即 fail-closed"落在**调用点层**（C ABI 保留 legacy `UNSPECIFIED=0` 兼容路径且与 SHOT_ONLY 逐位一致）；文档已按实际精确表述，生产调用点已声明。
+- **D-14（integration 档 CHK-FIX208-DISK-GATE 红）**：`--profile integration` 全档跑两次均 1 红（该门 `eng/tools/quality/check_resource_gate_real.py`），**单跑两次均 PASS**（`RESOURCE_GATE_REAL_PASS`，rc=0；serial 注入 rc=10 判红正常）。GATE-501 亦观察到一次同类瞬时红（其回执记 `resource_gate_mode` 为 None）且未定位确定性根因。判定：**非本任务文件域**（resource_gate 属工具/门禁面），如实登记为未定位的全档并发/顺序相关红，**未修、未 waiver**。日志 `run/RELEASE-05/logs/rel05_integration{,2}.log`。
+- **D-15（GATE-502 未回执）**：子代理 367515a2（测试体系审计）在本会话结束时仍为 running，其工作区改动（`eng/tests/**`、`eng/packaging/config/filters.json`、`eng/ci/known_failures_baseline.json`、`eng/tools/quality/check_test_discriminative.py`、`eng/tests/cli/test_preflight_matrix.py`）**未提交**，随工作区留存待其回执后由前台提交。
 - **D-13（测光 n≥100 适用域未落地）**：PHOTOMETRY.md §16.5 定案阈值在生产代码中未实现（硬门槛仍 kMinFitStars=3）。**未决项**（OPEN_QUESTIONS Q-5）。
 
 ## 发布门核对
