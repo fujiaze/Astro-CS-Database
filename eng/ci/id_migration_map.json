@@ -2590,10 +2590,19 @@
       "kind": "ci",
       "grade": "P0",
       "note": "FIX-406 新增测试矩阵；DOC-403 登记（2026-09-21，依据 run/FIX-406/WINDOWS_CANCEL_PLATFORM_LIMITS.md §3 W4）"
+    },
+    {
+      "old_id": "UT-RUNTIME-INTEGRATION",
+      "decision": "KEPT",
+      "target": "CHK-UNIT",
+      "kind": "test",
+      "grade": "P0",
+      "order_in_target": 999,
+      "note": "CI-INCREMENTAL：eng/tests/runtime 的集成型用例拆出（真实会话/子进程），只进 integration 档"
     }
   ],
   "coverage": {
-    "source_entry_count": 157,
+    "source_entry_count": 158,
     "mapped_entry_count": 147,
     "merged_into": 137,
     "kept": 78,

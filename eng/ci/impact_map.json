@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "spec_ref": "tasks/02_CI_TASKS.md :: V8-CI-004",
-  "notes": "changed path -> checks 映射（owner=SA-CI-32）。_match_prefix 为目录前缀语义：'dir/**' 命中 dir 及其任意子孙，'file' 仅精确命中根文件。规则重叠允许（run.py 并集去重）。BASE 十三类核心 = 规格'必含'九类（版本/schema/合同索引/SCI→TEST 追踪/ACR dormant/生产可达性/serial-heavy/陈旧版本注释/相关单测）的领域无关映射，每条规则显式携带；UT-* 为领域相关单测（全部取 fast 候选）。所有引用 id 均存在于 eng/ci/checks.json（70 项注册表）且为 fast profile 候选，由 eng/ci/tests/test_impact_map.py 机器校验。",
+  "notes": "changed path -> checks 映射（owner=SA-CI-32）。_match_prefix 为目录前缀语义：'dir/**' 命中 dir 及其任意子孙，'file' 仅精确命中根文件。规则重叠允许（run.py 并集去重）。BASE 十三类核心 = 规格'必含'九类（版本/schema/合同索引/SCI→TEST 追踪/ACR dormant/生产可达性/serial-heavy/陈旧版本注释/相关单测）的领域无关映射，每条规则显式携带；UT-* 为领域相关单测（全部取 fast 候选）。所有引用 id 均存在于 eng/ci/checks.json（70 项注册表）且为 fast profile 候选，由 eng/ci/tests/test_impact_map.py 机器校验。 CI-INCREMENTAL（2026-09-21）：RESOURCE-GATE-REAL/-NEG 已移入 integration 档（20 s 设计测量窗 ×2，占 fast 档 18%），故从 eng/ci/** 规则移除——R2 要求映射 id 必须是 fast 候选；eng/ci/** 在新选择器里属敏感面，命中即升级整档全量，integration 档仍覆盖该门。",
   "base_checks": [
     "VERSION-CONSISTENCY",
     "VERSION-NAMESPACES",
@@ -90,8 +90,6 @@
         "UT-MONITORING",
         "CHK-REGISTRY-DOC-SYNC",
         "STD-REG",
-        "RESOURCE-GATE-REAL",
-        "RESOURCE-GATE-REAL-NEG",
         "CHK-SCHEMA",
         "CON-CONFIG-CONTRACTS",
         "LOG-CONTRACT-SELFCHECK"

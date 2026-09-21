@@ -36,9 +36,11 @@
             "items": {
               "enum": [
                 "fast",
+                "integration",
                 "linux-main",
                 "linux-deep",
                 "windows-main",
+                "prerelease",
                 "fatduck"
               ]
             }
@@ -114,6 +116,10 @@
               "type": "string"
             }
           },
+          "reads_run_results": {
+            "type": "boolean",
+            "description": "CI-INCREMENTAL：该执行单元读取同 run 其它 step 的 per-step 结果（聚合门）⇒ 调度器必须把它排在最后串行执行，不得与其它 step 并发"
+          },
           "steps": {
             "type": "array",
             "minItems": 1,
@@ -149,9 +155,11 @@
                   "items": {
                     "enum": [
                       "fast",
+                      "integration",
                       "linux-main",
                       "linux-deep",
                       "windows-main",
+                      "prerelease",
                       "fatduck"
                     ]
                   }
@@ -213,6 +221,9 @@
                   "items": {
                     "type": "string"
                   }
+                },
+                "reads_run_results": {
+                  "type": "boolean"
                 }
               },
               "additionalProperties": false

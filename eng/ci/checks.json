@@ -2344,9 +2344,39 @@
           "waivable": false,
           "changed_paths": [
             "eng/tests/runtime/**",
-            "lib/**",
-            "lib/infrastructure/cli/**",
-            "lib/include/**"
+            "lib/infrastructure/scheduler/**",
+            "lib/include/astrocs/core/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "UT-RUNTIME-INTEGRATION",
+          "profiles": [
+            "integration",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/tests/runtime/integration",
+            "-t",
+            "eng/tests/runtime/integration"
+          ],
+          "timeout_seconds": 900,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/runtime/integration/**",
+            "lib/infrastructure/scheduler/**",
+            "lib/include/astrocs/core/**",
+            "lib/infrastructure/pipeline/**"
           ],
           "requires_monitor": false
         },
@@ -3403,7 +3433,8 @@
     {
       "id": "CHK-INVARIANT",
       "profiles": [
-        "linux-main"
+        "linux-main",
+        "prerelease"
       ],
       "platform": "linux",
       "command": [
@@ -3480,7 +3511,8 @@
         {
           "id": "CTEST-DRIZZLE-PRECISION-DEFAULT",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3514,7 +3546,8 @@
         {
           "id": "CTEST-P1STAR-MAD",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3548,7 +3581,8 @@
         {
           "id": "CTEST-P1PSF-PRODPATH-CENTROID",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3582,7 +3616,8 @@
         {
           "id": "CTEST-P1STAR-ANGLE-GUARD",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3616,7 +3651,8 @@
         {
           "id": "CTEST-P1SNR-FRAME-PARITY",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3650,7 +3686,8 @@
         {
           "id": "CTEST-P2HIPS-UNITS",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3687,7 +3724,8 @@
         {
           "id": "CTEST-P2HIPS-DETERMINISM",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3724,7 +3762,8 @@
         {
           "id": "CTEST-P2HIPS-NEGATIVE",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3761,7 +3800,8 @@
         {
           "id": "CTEST-P2HIPS-SELFCHECK",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3798,7 +3838,8 @@
         {
           "id": "CTEST-GAIA-MANIFEST-BOUNDS",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3832,7 +3873,8 @@
         {
           "id": "CTEST-XPSD-SPECTRUM-COUNT-BOUNDS",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3866,7 +3908,8 @@
         {
           "id": "CTEST-GAIA-MAGNITUDE-RANGE-BOUNDS",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3900,7 +3943,8 @@
         {
           "id": "CTEST-IPV-EXTRACT-WCS-SIP-FAILCLOSED",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3934,7 +3978,8 @@
         {
           "id": "CTEST-IPV-TRIANGLE-BUDGET",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -3968,7 +4013,8 @@
         {
           "id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC-UNITS",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4003,7 +4049,8 @@
         {
           "id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4038,7 +4085,8 @@
         {
           "id": "IPV-PLATFORM-BINDING",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4072,7 +4120,8 @@
         {
           "id": "CTEST-P1PSF-CENTROID-GATE",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4106,7 +4155,8 @@
         {
           "id": "CTEST-P1PSF-CENTROID-GATE-NEG",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4140,7 +4190,8 @@
         {
           "id": "CTEST-P1PSF-CENTER-CONTRACT",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4174,7 +4225,8 @@
         {
           "id": "CTEST-P1PSF-CENTER-CONTRACT-NEG",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4208,7 +4260,8 @@
         {
           "id": "CTEST-P1PSF-CENTER-CONTRACT-ASTROPY",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4242,7 +4295,8 @@
         {
           "id": "CTEST-P1CAL-BIAS-INFLUENCE-GATE",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4276,7 +4330,8 @@
         {
           "id": "CTEST-P1NOISE-MASK",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4310,7 +4365,8 @@
         {
           "id": "CTEST-P1NOISE-SATURATION",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4344,7 +4400,8 @@
         {
           "id": "CTEST-P1NOISE-SATURATION-SELFCHECK",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -4378,7 +4435,8 @@
         {
           "id": "CTEST-P1NOISE-SATURATION-WIRING",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -5666,7 +5724,8 @@
     {
       "id": "CHK-NWORKER",
       "profiles": [
-        "linux-main"
+        "linux-main",
+        "prerelease"
       ],
       "platform": "linux",
       "command": [
@@ -5709,7 +5768,8 @@
         {
           "id": "V6-DETERMINISM",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -5751,7 +5811,8 @@
         {
           "id": "CTEST-P1DRZ-TASKSET-INVARIANCE",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -5785,7 +5846,8 @@
         {
           "id": "CTEST-P1SNR-LINUX-ALL",
           "profiles": [
-            "linux-main"
+            "linux-main",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -5821,7 +5883,8 @@
     {
       "id": "CHK-SANITIZER",
       "profiles": [
-        "linux-deep"
+        "linux-deep",
+        "prerelease"
       ],
       "platform": "linux",
       "command": [
@@ -5854,7 +5917,8 @@
         {
           "id": "DEEP-SAN-ASAN",
           "profiles": [
-            "linux-deep"
+            "linux-deep",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -5898,7 +5962,8 @@
         {
           "id": "DEEP-SAN-TSAN",
           "profiles": [
-            "linux-deep"
+            "linux-deep",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -5944,7 +6009,8 @@
     {
       "id": "CHK-COVERAGE",
       "profiles": [
-        "linux-deep"
+        "linux-deep",
+        "prerelease"
       ],
       "platform": "linux",
       "command": [
@@ -5980,7 +6046,8 @@
         {
           "id": "DEEP-COV-CPP",
           "profiles": [
-            "linux-deep"
+            "linux-deep",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -6028,7 +6095,8 @@
         {
           "id": "DEEP-COV-PY",
           "profiles": [
-            "linux-deep"
+            "linux-deep",
+            "prerelease"
           ],
           "platform": "linux",
           "command": [
@@ -6439,6 +6507,30 @@
             "lib/infrastructure/cli/**",
             "eng/tests/**",
             "eng/contracts/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CON-EXECUTION-CONTRACTS-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/contracts/check_execution_contracts.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/contracts/check_execution_contracts.py",
+            "docs/architecture/EXECUTION_MODEL.md"
           ],
           "requires_monitor": false
         }
@@ -7259,7 +7351,7 @@
     {
       "id": "RESOURCE-GATE-REAL",
       "profiles": [
-        "fast",
+        "integration",
         "linux-main"
       ],
       "platform": "linux",
@@ -7301,7 +7393,7 @@
     {
       "id": "RESOURCE-GATE-REAL-NEG",
       "profiles": [
-        "fast",
+        "integration",
         "linux-main"
       ],
       "platform": "linux",
@@ -7636,7 +7728,8 @@
     {
       "id": "CHK-REALDATA-E2E",
       "profiles": [
-        "linux-deep"
+        "linux-deep",
+        "prerelease"
       ],
       "platform": "linux",
       "command": [
@@ -8177,7 +8270,7 @@
     {
       "id": "CHK-FIX208-EVENT-STREAM-DEFAULT",
       "profiles": [
-        "fast",
+        "integration",
         "linux-main",
         "windows-main"
       ],
@@ -8210,7 +8303,7 @@
     {
       "id": "CHK-FIX208-DISK-GATE",
       "profiles": [
-        "fast",
+        "integration",
         "linux-main",
         "windows-main"
       ],
@@ -8334,7 +8427,8 @@
             "CMakeLists.txt",
             "lib/include/**"
           ],
-          "requires_monitor": false
+          "requires_monitor": false,
+          "reads_run_results": true
         },
         {
           "id": "KNOWN-FAILURES-BASELINE-VERIFY",
@@ -8366,7 +8460,8 @@
             "eng/tools/quality/known_failures_baseline.py",
             "eng/tests/**"
           ],
-          "requires_monitor": false
+          "requires_monitor": false,
+          "reads_run_results": true
         },
         {
           "id": "KNOWN-FAILURES-BASELINE-CHECK",
@@ -8398,7 +8493,8 @@
             "eng/tools/quality/known_failures_baseline.py",
             "eng/tests/**"
           ],
-          "requires_monitor": false
+          "requires_monitor": false,
+          "reads_run_results": true
         }
       ]
     }
