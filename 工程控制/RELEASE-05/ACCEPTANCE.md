@@ -20,7 +20,7 @@
 | ARCH-505 | NOT_RUN | 生产节点改写与 Session/orchestrator 退役 |
 | CLEAN-501 | NOT_RUN | |
 | GATE-501 | PASS | 25c8227d；L2 真判红（归档回放 9/9 翻红）、监控字段真强制、worker_balance 判别力、230 单元 fail-closed 普查 |
-| GATE-502 | RUNNING | 子代理 367515a2（测试体系审计） |
+| GATE-502 | PASS | 77e3097b / 090390b9 / abcc0529 / 091e0755 / 6f217cef；空断言清零（findings=0）+ 空断言静态门（--self-test 2 正 6 负）+ 测试契约对齐 + 路径修复 + 预检 11 用例矩阵；**全量 ctest 478/478 PASS** |
 | PERF-501 | NOT_RUN | |
 | ACCEPT-501 | NOT_RUN | |
 | BLD-501 | NOT_RUN | |
@@ -51,14 +51,15 @@
 - **D-11（GATE-501 未完成项转派）**：lib 侧 `utilization_pct` 恒 50.0 根因（cli/commands.cpp + resource_recorder.h）未修；生产侧 `record_and_justify` 未翻转；`--self-test` 覆盖 22/78；UT-BACKEND test_05 编译缺 include（改动前即失败）；CHK-SCI-REF 档位作用域问题。
 - **D-12（规范严于实现）**：`07_noise_snr.md` §4.2a 的"声明缺失即 fail-closed"落在**调用点层**（C ABI 保留 legacy `UNSPECIFIED=0` 兼容路径且与 SHOT_ONLY 逐位一致）；文档已按实际精确表述，生产调用点已声明。
 - **D-14（integration 档 CHK-FIX208-DISK-GATE 红）**：`--profile integration` 全档跑两次均 1 红（该门 `eng/tools/quality/check_resource_gate_real.py`），**单跑两次均 PASS**（`RESOURCE_GATE_REAL_PASS`，rc=0；serial 注入 rc=10 判红正常）。GATE-501 亦观察到一次同类瞬时红（其回执记 `resource_gate_mode` 为 None）且未定位确定性根因。判定：**非本任务文件域**（resource_gate 属工具/门禁面），如实登记为未定位的全档并发/顺序相关红，**未修、未 waiver**。日志 `run/RELEASE-05/logs/rel05_integration{,2}.log`。
-- **D-15（GATE-502 未回执）**：子代理 367515a2（测试体系审计）在本会话结束时仍为 running，其工作区改动（`eng/tests/**`、`eng/packaging/config/filters.json`、`eng/ci/known_failures_baseline.json`、`eng/tools/quality/check_test_discriminative.py`、`eng/tests/cli/test_preflight_matrix.py`）**未提交**，随工作区留存待其回执后由前台提交。
+- **D-15（GATE-502）关闭**：五个提交（空断言清零 / 契约对齐 / 路径修复 / 预检矩阵 / 门注册）已按目的拆分提交；全量 ctest 478/478 PASS（`run/RELEASE-05/logs/gate502_ctest_full.log`）。其回执的 D3/D4/D5/D6 已由本轮 69641b02 与 7716e16a 修掉（contract-freeze 留痕 / §7 目录 / aio 台账 / CTEST-P1001）。
+- **D-16（GATE-502 域外派单，未修）**：① `eng/tools/check_ast_api.py:49` 仍用 `<repo>/include` 且缺 aio include 面 ⇒ AST-API 恒红（检查器缺陷，产品构建正常）；② linux-main 档步骤超时预算不足（CTEST-LINUX-FULL 3600s 预算未到即被外层 1800s 杀掉，212 步只跑 182 步）⇒ 该档全量结论无法完整复现；③ `lib/` 内仍有 8 处恒真断言（aio/orchestrator 测试，A 线域）；④ 2 条 UT-BACKEND 持续红：`test_p2007::test_04` 峰值 RSS 1.45GB 超 512MB 界（RESOURCE/MON 域）、`test_p2003::test_02` 校正后 median 恶化（SCI-C/UPM 域）；⑤ `eng/tests/validation/release02/.../seam_fixed.py:44` 语法错误（RELEASE-02 遗留）；⑥ ISA 证据工件被测试现场重测覆写跟踪路径（GATE-501 D-14 收口方式的副作用）。
 - **D-13（测光 n≥100 适用域未落地）**：PHOTOMETRY.md §16.5 定案阈值在生产代码中未实现（硬门槛仍 kMinFitStars=3）。**未决项**（OPEN_QUESTIONS Q-5）。
 
 ## 发布门核对
 
 - [x] 三篇论文式报告交付（SCI-503/504/505）
 - [ ] 五一致性独立验收通过（ACCEPT-501 未开始）
-- [ ] fast + 全量 + Windows 全绿、零 waiver（fast 见 run/RELEASE-05/logs/rel05_fast2.log；Windows 腿未跑）
+- [x] fast 全绿（110/110）+ 全量 ctest 478/478；[ ] Windows 腿未跑、integration 档 1 条未定位红（D-14）
 - [ ] 两组成品帧 agent 自验通过、负责人目检认可（VIS-501 未开始）
 - [x] OPEN_QUESTIONS 已交付
 - [ ] FIN（README、0.0.1alpha）经负责人明确授权 —— **未达发布门，不申请发布**
