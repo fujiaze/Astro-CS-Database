@@ -1,6 +1,6 @@
 # AstroCS 最高设计（Design Authority）
 
-本文档定义 AstroCS **是什么、做到什么、顶层架构、CLI 形态、发行与验收**。科学公式在 `docs/science/`，算法推导在 `docs/algorithms/`，模块工作细节在 `docs/plugins/`，数据对象与配置在 `docs/design/UNIFIED_MODEL.md`，合同 schema 在 `docs/contracts/`。开发与验收的标准动作是：审查实际代码与本文档集的偏差并消除之。
+本文档定义 AstroCS **是什么、做到什么、顶层架构、CLI 形态、发行与验收**。科学公式在 `docs/science/`，算法推导在 `docs/algorithms/`，模块工作细节在 `docs/plugins/`，数据对象与配置在 `docs/design/UNIFIED_MODEL.md`；合同的文档化说明在 `docs/contracts/`，机器校验的 schema 在 `eng/contracts/`，两者双向对应。开发与验收的标准动作是：审查实际代码与本文档集的偏差并消除之。
 
 ---
 
@@ -38,7 +38,7 @@ flowchart TD
 
 ### 0.2 详细文档层与双向索引
 
-`docs/architecture/`、`docs/interfaces/`、`docs/standards/`、`docs/modules/`、`docs/contracts/`、`docs/development/`、`docs/validation/` 等详细文档层由本设计推出，是干活的直接依据。
+`docs/architecture/`、`docs/interfaces/`、`docs/standards/`、`docs/modules/`、`docs/contracts/`（合同说明，对应 `eng/contracts/` 的 schema）、`docs/development/`、`docs/validation/` 等详细文档层由本设计推出，是干活的直接依据。
 
 - 本文档的每个机制都有指向下级文档的索引；每份下级文档在抬头标注其上游最高设计条款，双向可追溯。
 - 每份文档、每个机制都能追溯到本设计的一条要点；追溯不到的机制先补要点再实现。
@@ -186,6 +186,7 @@ flowchart TD
 
 - **WCS 两轮解算**：星表逆映射需要先有近似坐标。第一轮用全图盲检测做粗匹配、给出粗 WCS，仅供星表投影使用；第二轮用引导检测得到的高纯度星表精解 WCS，精解结果才是权威 WCS。
 - **星表引导检测**：用本帧 WCS 把 Gaia 星表逆投影到像素域，只对星表位置做质心/PSF 拟合；拟合成功即星点，拟合失败丢弃（不计虚警、不报错）；按亮度取 top 2–5 万颗为上限，极限星等按焦距、画幅、曝光时间派生估计（宁多勿少）。
+- **生产适用域**：测光标定面向可解析的实拍帧（超长焦及以上画幅，匹配星数不少于约 100 颗）；该域内单帧误差预算双边界有效。匹配星数低于适用域的帧不承诺测光标定，产品显式标注降级。
 - **一次检测、一次通量积分、三处复用**：检测、PSF、测光、SNR 共用同一份星点绑定行，全链一个通量口径。
 - **测光归一化落到像素**：photometry 之后有 apply photometry 步骤，把 `I_photo = k_photo · m(x,y) · I_cal` 应用到像素（`m(x,y)` 为低阶空间乘法增益，用星点估计），其后所有节点与 drizzle 消费归一化后的像素；该步不可用时产品显式记录 `degraded_reason` 并 fail-closed。
 
@@ -323,6 +324,7 @@ flowchart TD
 - **多退少补**：每帧的扣除量是它相对公共平面的偏差 `δ_k`，`calibrated = raw − δ_k`，**保留公共天光面 `B_ref`**；叠加后的马赛克仍带背景，公共面零点由 gauge 约定承载。
 - 参考平面用其他帧的加权组合（排除自身）、迭代带阻尼、拟合权重与叠加权重同源、末端用叠加权重计算并扣除残差场，使任意覆盖子集上的加权阶跃恒为零；formulation 四要素与收敛判据见 `docs/plugins/algorithms_phase2/11_upm.md`。
 - 接缝判据在**保留背景**的前提下比较帧间一致性与边界跳变；把整张背景减掉再看帧间差是退化判据（背景都为零时差值天然为零）。
+- **参考面表示能力要求**：无接缝以公共天光面可表示为前提。参考面的节点间距与基函数必须能表示帧间天光差的空间尺度；对参考面不可表示且沿图像方向相干的小尺度分量（尺度约在两个节点间距以内），残余接缝随该分量幅度线性增长。节点间距与平滑参数按该约束选择，实验定标见 `实验/additive-sky-seamless/` 与 `docs/plugins/algorithms_phase2/11_upm.md`。
 - 该方法能否做到无接缝由实验单元三证实（§12.3）。
 
 ### 5.5 逐像素排异
@@ -434,67 +436,113 @@ benchmark                           生成/更新安装目录 cpu_profile（自�
 
 ## 8. 软件架构
 
-### 8.1 顶层结构
+### 8.1 总原则：三个命令独立进程、独立调度器
+
+- normalize / mosaic / export 是三个独立产品、三个独立进程，**每个阶段实例化自己的调度器与内存管线**，互不共享内存、会话或运行时状态。
+- 阶段间唯一的交换媒介是磁盘 HiPS 产品 + manifest + 哈希（§10）；不存在跨阶段内存传递，也不存在贯穿三阶段的全局 Session。
+- 每个阶段内部是一条内存管线：模块从管道读命名块、产出新块写回、显式消费旧块；调度器负责块的流动、模块执行与并行编排。
+
+```mermaid
+flowchart LR
+    subgraph P1["normalize 进程 · 调度器 1"]
+        A1["内存管线 + 命名块生命周期"]
+    end
+    H1[("单帧 HiPS + manifest")] -->|磁盘| P2
+    subgraph P2["mosaic 进程 · 调度器 2"]
+        A2["内存管线 + 窗口并行"]
+    end
+    H2[("马赛克 HiPS + manifest")] -->|磁盘| P3
+    subgraph P3["export 进程 · 调度器 3"]
+        A3["内存管线 + 子块流式"]
+    end
+    P1 --> H1 --> P2 --> H2 --> P3
+```
+
+### 8.2 阶段内：命名块内存管线与块生命周期
+
+- PipelineFrame 承载一组**命名块（block）**，每个块冻结元数据：名字、形状、类型、单位、可缺性、生产者、消费者、生命周期阶段。
+- 模块的标准动作只有三种：**读入参块 → 计算 → 写新块回帧**；一个块被其声明的消费者全部用完后由管线**显式销毁（消耗）**，内存立即归还。
+- 块的生命周期与科学流程一致，例如：
+
+```mermaid
+flowchart LR
+    R["raw 原始块"] -->|calibration| C["calibrated 校准块"]
+    R -.校准完成即销毁.-> X1((×))
+    C -->|photometry + apply| P["photo 测光星等块"]
+    C -.测光归一化完成即销毁.-> X2((×))
+    P --> S["noise/snr 块"]
+    P --> D["drizzle 球面块"]
+    W["wcs 头块"] -.长生命周期.-> D
+    PS["psf 模型块"] -.长生命周期.-> S
+    S --> O["HiPS 产品块"]
+    D --> O
+```
+
+- 长生命周期块（WCS 头、PSF 模型、星表匹配表、帧级 SNR）随帧存活到产品导出；短生命周期块（raw、calibrated 等中间面）在下游块产出后立即消耗。
+- 一次运行的峰值内存由在途块集合与分块大小决定，调度器按块生命周期即时回收；模块不私藏大块数据的长期副本。
+- 增删/替换模块 = 调整块的生产者/消费者声明与 DAG 顺序，不改调度器。
+- 可缺块的缺省语义是无害的：退化或无正有限值的面（如全零方差面）不挂帧，挂帧会导致积分侧清空像素；缺块时显式降级声明并写 provenance。
+- provenance 随帧头部 KV 流动，最终落进产品 manifest。
+
+### 8.3 三个阶段调度器
+
+调度器是阶段内的唯一执行者：按 DAG 调度模块、管理块生命周期、分配线程预算、处理异步预取、响应取消。三个阶段的调度形态不同：
+
+| 调度器 | 工作特征 | 编排形态 |
+|---|---|---|
+| normalize | 工序多、流程长、单帧节点链长、多帧彼此独立 | **异步工作流编排**：帧内节点按 DAG 流水，多帧并行；资源空闲时异步启动其他独立工作流（预取下一帧、预解析星表、预建 PSF）；I/O 预取与计算重叠；星表同组查询合并、两级缓存 |
+| mosaic | 天球像素相互独立 | **空间窗口并行**：以固定大小的天球窗口（tile/块）为调度单元，窗口大小是内存占用与 CPU 并行度的显式权衡参数；窗口内 UPM→排异→集成顺序固定，窗口间无共享可变状态；归约顺序冻结，1/N worker 逐位一致 |
+| export | 算法最简单、输入输出均为大块 | **子块流式**：读子块 → 投影重采样 → 写 FITS，有界队列 + 背压，不整幅驻留；I/O 与计算重叠，内存占用与子块大小成正比、与总图大小无关 |
+
+- 一个进程只有一个资源预算源（§9），调度器不允许模块私建线程池；异步只用于能隐藏延迟的 I/O、预取与压缩，科学计算内核不嵌套并行。
+- **性能优化在功能与数值正确之后进行**：调度器与各模块预埋性能探针（每节点墙钟、排队等待、块生命周期、RSS、I/O、worker 均衡、缓存命中），随事件流落盘；编排参数（窗口大小、预取深度、帧并发度、工作窃取策略）基于探针实测数据迭代，不靠静态猜测。
+
+### 8.4 顶层结构
 
 ```text
 lib/
-├── algorithms/                 科学算法唯一家（并联放置）
+├── algorithms/                  科学算法唯一家（并联放置）
 │   ├── calibration  cosmetic  star_detection  psf  platesolve
 │   ├── photometry  noise_snr  drizzle  coverage  sampling
 │   ├── upm  rejection  integration  projection  resample
 │   ├── fits_output  shared/
-└── infrastructure/             不定义科学公式的工程基建
-    ├── cli/{normalize,mosaic,export}   子命令入口，引用对应算法
-    ├── scheduler/              注册、资源预算、执行、取消
-    ├── pipeline/               typed DAG、命名块、内存管线
-    ├── aio/                    FITS/HiPS/manifest 唯一 I/O、原子提交、缓存
-    ├── benchmark/              kernel benchmark 与 cpu_profile
-    ├── observability/          日志、事件、运行图、资源监控
-    ├── gaia_xpsd_client/       本地星表解析（离线、零网络）
-    ├── acr/                    隔离实验（生产不可达）
-    └── hips_browser/           未来 GUI 组件（不进产品清单）
+├── infrastructure/              不定义科学公式的工程基建
+│   ├── cli/{normalize,mosaic,export}   三个子命令薄入口
+│   ├── pipeline/               PipelineFrame、命名块、块生命周期、typed DAG
+│   ├── scheduler/              三个阶段调度器（异步编排 / 窗口并行 / 子块流式）
+│   ├── aio/                    FITS/HiPS/manifest 唯一 I/O、原子提交、缓存
+│   ├── benchmark/              kernel benchmark 与 cpu_profile
+│   ├── observability/          日志、事件、运行图、性能探针、资源监控
+│   ├── gaia_xpsd_client/       本地星表解析（离线、零网络）
+│   ├── acr/                    隔离实验（生产不可达）
+│   └── hips_browser/           未来 GUI 组件（不进产品清单）
+├── include/                    公共头
+└── third_party/                第三方依赖
+eng/
+├── ci/                         机器门注册表与检查器
+├── contracts/                  机器校验的合同 schema（唯一事实源）
+├── tests/                      测试（单元/合同/集成/科学 Oracle）
+├── cmake/                      CMake 模块
+├── tools/                      工具与质量检查器
+├── build/                      构建脚本（根 CMakeLists.txt 为唯一入口）
+└── packaging/config/           程序全局配置（filters.json / defaults.json）
+docs/contracts/                 合同的文档化说明（与 eng/contracts 的 schema 双向对应）
+实验/                            科学实验单元（随仓库维护、可独立复核）
+testdata/                       真实数据与外部只读数据集索引（只读）
+artifacts/                      证据与产物（CI 产物、证据锚）
+run/                            临时产物与日志（gitignore）
 ```
 
-- 算法模块在 `lib/algorithms/` 下并联放置；CLI 下挂 normalize/mosaic/export 三个子目录引用算法。
-- 生产链路由 scheduler 注册与编排、pipeline 提供 typed DAG 与命名块，职责名全仓唯一。
-- 每个算法模块是独立 DLL/SO；基建按稳定职责合并为有限模块。
-- 依赖方向：命令行 → 调度/管线 → 注册表 → 模块 → 计算后端，单向；科学模块不读全局配置、不建无预算线程池、不直接退出进程、不写未声明文件、不绕过 aio。
+- 算法模块在 `lib/algorithms/` 下并联放置；CLI 下挂 normalize/mosaic/export 三个子目录引用算法；phase1/2/3 只是设计层内部指代，不出现在代码目录名。
+- 每个算法模块是独立 DLL/SO；基建按稳定职责合并为有限模块，职责名全仓唯一。
+- 依赖方向：命令行 → 阶段调度器/管线 → 注册表 → 模块 → 计算后端，单向；科学模块不读全局配置、不建无预算线程池、不直接退出进程、不写未声明文件、不绕过 aio。
 - 动态库加载前过固定检查（CPU 特征、OS 可安全执行状态、manifest、哈希、ABI），只认清单授权的绝对路径，失败只报错、不回退搜索。
 
-### 8.2 数据流形态：阶段内内存管线，阶段间落盘
-
-```text
-阶段间（normalize → mosaic → export）
-  磁盘产品 + manifest + 哈希 = 唯一交换；三个命令各自独立运行
-        ↑ 落盘                         ↑ 落盘
-阶段内（同一命令的一次运行）
-  内存块管线：PipelineFrame + 命名块（AioBlock）
-  节点之间传块，不落中间文件；增删/替换模块 = 调整块的生产者/消费者顺序
-```
-
-- 阶段内相邻节点通过 PipelineFrame 命名块传数据，块有冻结的名字与语义（形状/类型/单位/可缺性）；算法模块从帧取块、写块回帧。
-- 阶段间跨命令只通过磁盘产品 + manifest + 哈希。
-- 可缺块的缺省语义是无害的：退化/无正有限值的面（如全零方差面）不挂帧，挂帧会导致积分侧清空像素；缺块时显式降级声明。
-- provenance 随帧上头部 KV 流动，最终落进产品 manifest。
-
-### 8.3 架构图
-
-```mermaid
-flowchart TD
-    EXE["ACSD Cli 唯一入口（normalize/mosaic/export）"]
-    EXE --> RT["scheduler + pipeline<br/>typed DAG · 统一线程预算 · 资源监控"]
-    RT --> AIO["aio：FITS/HiPS/manifest 唯一 I/O · 原子提交"]
-    RT --> ALG["lib/algorithms 各算法模块 .dll/.so（并联）"]
-    ALG --> CPU["CPU provider：baseline/AVX2/AVX-512 · benchmark 选择"]
-    AIO --> DISK[("磁盘产品 + manifest + 哈希<br/>阶段间唯一交换")]
-    RT --> OBS["observability 日志/事件/运行图"]
-```
-
-### 8.4 模块与 ABI
+### 8.5 模块与 ABI
 
 - 每个可独立调度模块具备：README、module.yaml、版本化公开头（`struct_size`/`abi_version`）、单一 entrypoint、独立 CMake target、共址测试（单测 + 合同 + 负例）、端口引用有效 DATA 合同。
 - 跨 DLL 不传 STL/异常/RTTI/编译器私有类型，错误字符串只当日志、不用于状态判断，第三方库隔离在动态库内部。
-- 每个生产 DAG 节点映射唯一真实模块/导出入口。
+- 每个生产 DAG 节点映射唯一真实模块/导出入口；模块对块的读写集合与生命周期声明一致。
 
 ---
 
@@ -508,6 +556,7 @@ flowchart TD
 - **编排连续性**：locality-aware 调度，同一数据块上可连续执行的节点在同一 worker 一次走完，块间流水并行，避免"A 做一半切到 B、再回到 A"的重复加载与线程空转；外部星表查询按组合并、同组最大复用。
 - 浮点归约顺序冻结，并行开关不改变科学数值，1 worker 与 N worker 逐位一致（容差按合同），变体与 baseline 同式同序、过同一套 Oracle；计算后端失败安全中止整个阶段，不混用两种后端结果。
 - 每个 heavy 模块实现前给出资源分析（峰值工作集、缓存复用点、调度顺序），运行时自动记录 CPU/RSS/读写/IOWait/worker 均衡/墙钟。
+- 调度器与模块预埋性能探针（节点墙钟、排队等待、块生命周期、RSS、I/O、worker 均衡、缓存命中），随事件流落盘；编排参数（窗口大小、预取深度、帧并发度、工作窃取）基于探针实测数据迭代。调度与编排的性能优化排在功能与数值正确闭环之后。
 
 ---
 
