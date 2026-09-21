@@ -2,7 +2,7 @@
 """P3-003 测试: order selector/nearest/bilinear/跨 tile seam Oracle/coverage+NaN/显式拒。"""
 import math, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "algorithms", "resample")
 # W8 (批次 4): hips_properties.cpp 迁 lib/algorithms/coverage/ (独立库 astrocs_hips_properties)
 COV = os.path.join(REPO, "lib", "algorithms", "coverage")
@@ -50,7 +50,7 @@ class TestP3Resample(unittest.TestCase):
         # fixture(常量域 FIELD/NAN)
         fx = os.path.join(cls.tmp, "fixture")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
-                            os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"),
                             os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                             *srcs[3:], *objs, "-lz", "-lzstd", "-llz4", "-o", fx],
                            capture_output=True, text=True, timeout=600)

@@ -31,9 +31,9 @@ import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
-INC = REPO / "include"
+INC = REPO / "lib" / "include"
 CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
-TP = REPO / "third_party"
+TP = REPO / "lib" / "third_party"
 
 _DRIVER = r'''
 // RT-007 harness: 取消/错误传播/checkpoint scope/resume 门真实编译链接验收

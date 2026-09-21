@@ -7,8 +7,8 @@ kernel 由 std::thread worker-pool(banded 行带)并行, 数量按 host budget �
 """
 import os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-INC = os.path.join(REPO, "include")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+INC = os.path.join(REPO, "lib", "include")
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 HW = os.cpu_count() or 1
 

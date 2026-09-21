@@ -30,7 +30,7 @@ Phase1 侧同源: light 帧用 --make-noisy（确定性噪声，校准后 σ≈1
 """
 import hashlib, json, os, re, shutil, signal, subprocess, sys, tempfile, time, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # ROOT-008: 唯一产品二进制 build/astrocs（旧 build/cli/astrocs 已退役）
 EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
 
@@ -49,7 +49,7 @@ SHARED = _pick(os.path.join(REPO, "lib", "algorithms", "shared"),
 HEALPIX_SRC = os.path.join(SHARED, "healpix", "healpix_core.cpp")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 SKIP_FITS = r"f77_wrap|drvrgsiftp|drvrsmem|smem|vms|windumpexts|iter_[abc]|" \
             r"cookbook|speed_test|fpack|funpack|fitscopy|listhead|liststruc|" \
@@ -120,7 +120,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         incs = _common_incs()
         cls.p1 = os.path.join(cls.tmp, "p1fx")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
-                            os.path.join(REPO, "tests", "backend", "phase1_fixture_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "phase1_fixture_main.cpp"),
                             os.path.join(AIO, "src", "aio_fits.cpp"),
                             os.path.join(AIO, "src", "aio_api.cpp"),
                             os.path.join(AIO, "src", "aio_log.cpp"),
@@ -130,7 +130,7 @@ class TestPhase123Pipeline(unittest.TestCase):
         assert r.returncode == 0, r.stderr[-800:]
         cls.p2 = os.path.join(cls.tmp, "p2fx")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
-                            os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"),
                             *_aio_srcs(), *objs, "-lz", "-lzstd", "-llz4", "-o", cls.p2],
                            capture_output=True, text=True, timeout=900)
         assert r.returncode == 0, r.stderr[-800:]

@@ -44,11 +44,11 @@ import tempfile
 import time
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, REPO)
 
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
-from tests.cli.test_phase123_pipeline import (  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
+from test_phase123_pipeline import (  # noqa: E402
     DRIZZLE, EXE, WCS_EXPLICIT, _aio_srcs, _cfitsio_objs, _common_incs)
 
 PHASES = ("normalize", "mosaic", "export")
@@ -88,7 +88,7 @@ def _build_fixtures(root):
     incs = _common_incs()
     p1 = os.path.join(root, "p1fx")
     r = _run_cmd(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
-                  os.path.join(REPO, "tests", "backend", "phase1_fixture_main.cpp"),
+                  os.path.join(REPO, "eng", "tests", "backend", "phase1_fixture_main.cpp"),
                   os.path.join(REPO, "lib", "infrastructure", "aio", "src", "aio_fits.cpp"),
                   os.path.join(REPO, "lib", "infrastructure", "aio", "src", "aio_api.cpp"),
                   os.path.join(REPO, "lib", "infrastructure", "aio", "src", "aio_log.cpp"),
@@ -97,7 +97,7 @@ def _build_fixtures(root):
     assert r.returncode == 0, r.stderr[-800:]
     p2 = os.path.join(root, "p2fx")
     r = _run_cmd(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
-                  os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
+                  os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"),
                   *_aio_srcs(), *objs, "-lz", "-lzstd", "-llz4", "-o", p2])
     assert r.returncode == 0, r.stderr[-800:]
     p1data = os.path.join(root, "p1data")

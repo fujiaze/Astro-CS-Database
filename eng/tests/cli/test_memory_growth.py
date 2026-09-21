@@ -3,7 +3,7 @@
 验收(07 §5): 注入泄漏被抓; 稳定 cache 不误判; 报告含曲线摘要。"""
 import os, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # ROOT-008: CLI 命令层（memory_growth.h 所在）已迁 lib/infrastructure/cli/。
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 

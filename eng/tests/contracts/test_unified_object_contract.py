@@ -18,11 +18,14 @@ import sys
 import unittest
 
 HERE = pathlib.Path(__file__).resolve().parent
-REPO = HERE.parents[1]
+REPO = HERE.parents[2]
+
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-from tests.contracts.v6 import jsonschema_min as jm  # noqa: E402
+# 2026-09-21 根目录整合：tests/ → eng/tests/，discover -t eng/tests/contracts 下
+# v6 是顶层包（不再是 tests.contracts.v6）。
+from v6 import jsonschema_min as jm  # noqa: E402
 
 SCHEMAS = REPO / "eng/contracts/schemas"
 UNIFIED = SCHEMAS / "unified"

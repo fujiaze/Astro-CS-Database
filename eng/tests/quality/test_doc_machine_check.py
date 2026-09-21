@@ -6,7 +6,7 @@
 """
 import json, os, re, shlex, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 CHECKER = os.path.join(REPO, "eng", "tools", "check_api_docs.py")
 
 

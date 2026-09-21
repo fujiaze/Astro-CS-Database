@@ -38,7 +38,9 @@ KNOWN_UNPROVABLE = {
 
 
 def _iter_scripts(root):
-    for base in ("tools", "ci"):
+    # 2026-09-21 根目录整合：tools/ → eng/tools/、ci/ → eng/ci/（扫描面同口径平移，
+    # 不增不减；旧字面量在整合后指向不存在的目录 ⇒ os.walk 静默空转、门恒绿）。
+    for base in (os.path.join("eng", "tools"), os.path.join("eng", "ci")):
         d = os.path.join(root, base)
         for dirpath, dirnames, filenames in os.walk(d):
             dirnames[:] = [x for x in dirnames
@@ -193,7 +195,7 @@ def _self_test() -> int:
     for name, (src_lines, expect) in sorted(SELFTEST_CASES.items()):
         with tempfile.TemporaryDirectory() as td:
             root = pathlib.Path(td)
-            (root / "eng" / "tools").mkdir()
+            (root / "eng" / "tools").mkdir(parents=True)
             (root / "eng" / "tools" / "sample.py").write_text(
                 chr(10).join(src_lines) + chr(10), encoding="utf-8")
             findings, _clean, _provable = scan(str(root))

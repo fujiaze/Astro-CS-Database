@@ -393,7 +393,9 @@ class Checker:
                 self.fail("phase3 请求字段 `%s` 未在 p3_session 代码中出现" % f)
 
     def check_schema_files(self):
-        schema_dirs = [os.path.join(self.repo, "contracts", "schemas"), os.path.join(self.repo, "docs", "schemas")]
+        # 2026-09-21 根目录整合：合同 schema 唯一事实源由根 contracts/ 迁 eng/contracts/。
+        schema_dirs = [os.path.join(self.repo, "eng", "contracts", "schemas"),
+                       os.path.join(self.repo, "docs", "schemas")]
         seen = False
         for d in schema_dirs:
             if not os.path.isdir(d):

@@ -20,14 +20,14 @@ import struct
 import subprocess
 import sys
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "baseline", "src",
                    "baseline_provider.cpp")
 CAPSRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "src",
                       "capability_detect.c")
-ORACLE = os.path.join(REPO, "tests", "cpu", "baseline",
+ORACLE = os.path.join(REPO, "eng", "tests", "cpu", "baseline",
                       "provider_kernel_oracle_main.cpp")
-INC_ROOT = os.path.join(REPO, "include")
+INC_ROOT = os.path.join(REPO, "lib", "include")
 INC_BASE = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "baseline", "include")
 INC_CAP = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "include")
 

@@ -36,17 +36,17 @@ import sys
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-INC = os.path.join(REPO, "include")
-ECHO_DIR = os.path.join(REPO, "tests", "conformance", "echo")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+INC = os.path.join(REPO, "lib", "include")
+ECHO_DIR = os.path.join(REPO, "eng", "tests", "conformance", "echo")
 ECHO_SRC = os.path.join(ECHO_DIR, "src", "echo_module.c")
 ECHO_INC = os.path.join(ECHO_DIR, "include")
 ECHO_YAML = os.path.join(ECHO_DIR, "module.yaml")
 UNIT_C = os.path.join(ECHO_DIR, "tests", "unit", "echo_host_callback_test.c")
 LOADER_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
 REG_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
-LOADER_PROBE_C = os.path.join(REPO, "tests", "abi", "abi003_loader_probe.c")
-REG_PROBE_C = os.path.join(REPO, "tests", "abi", "abi004_registry_probe.c")
+LOADER_PROBE_C = os.path.join(REPO, "eng", "tests", "abi", "abi003_loader_probe.c")
+REG_PROBE_C = os.path.join(REPO, "eng", "tests", "abi", "abi004_registry_probe.c")
 TIMEOUT = 300
 CC = os.environ.get("CC", "gcc")
 
@@ -139,7 +139,12 @@ def scan_no_static_echo():
         base = os.path.join(REPO, d)
         if not os.path.isdir(base):
             continue
-        for root, _dirs, files in os.walk(base):
+        for root, dirs, files in os.walk(base):
+            # 2026-09-21 根目录整合：include/ → lib/include/；公共头只声明该符号，
+            # 不是宿主静态 echo 实现直调，按整合前扫描面排除（判据不变）。
+            if os.path.abspath(root).startswith(os.path.join(REPO, "lib", "include")):
+                dirs[:] = []
+                continue
             for fn in files:
                 if not (fn.endswith(".c") or fn.endswith(".h") or
                         fn.endswith(".cpp")):

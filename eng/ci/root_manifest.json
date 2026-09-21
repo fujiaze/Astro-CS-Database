@@ -14,8 +14,6 @@
     "DEPENDENCIES.md",
     "CMakeLists.txt",
     "CMakePresets.json",
-    "eng/build/build.sh",
-    "eng/build/toolchain.ps1",
     ".clang-format",
     ".editorconfig",
     ".gitignore",
@@ -31,7 +29,6 @@
     "工程控制",
     "run",
     "gaia",
-    "build",
     "实验"
   ],
   "required_files": [
@@ -45,8 +42,6 @@
     "DEPENDENCIES.md",
     "CMakeLists.txt",
     "CMakePresets.json",
-    "eng/build/build.sh",
-    "eng/build/toolchain.ps1",
     ".clang-format",
     ".editorconfig",
     ".gitignore",
@@ -99,12 +94,6 @@
       "class": "F2",
       "owner_task": "ROOT-006",
       "note": "保留（登记，禁删）：运营必需的远程接入指引（reports/PROJECT-GOVERNANCE-01/security/SECURITY_NOTE.md）；去留归 ROOT-006，GOV-001 不删。"
-    },
-    {
-      "path": "问题扫描",
-      "class": "F2",
-      "owner_task": "GOV-001",
-      "note": "保留（登记，禁删）：在用的待整改台账（REBASE_TABLE.md 785 条 + 本轮 28 条归属处置）；按任务卡「只能登记不能删」。"
     }
   ],
   "notes": {
@@ -112,7 +101,7 @@
     "runtime_products": "runtime_product_patterns 命中即红（无论是否被 .gitignore 覆盖）——依据 ASTROCS_DESIGN §6.3 与 eng/ci/ci_repair_round.py:118「目标目录解析为 CWD(=仓库根)」缺陷认定。",
     "ignored_patterns": "ignored_patterns 为 .gitignore 已覆盖的本地目录（build/ 是 eng/ci/steps 与 CMakePresets 的既定构建目录），出现时记 tolerated_present 并上报，不判红；未登记的新条目仍判红。",
     "growth_rule": "新增根条目必须先经负责人确认并同步 ENGINEERING_SPEC §7，再改本清单；禁止把本清单当只增不减的豁免表。",
-    "root_consolidation_20260921": "ROOT-CONSOLIDATION（负责人 2026-09-21 直接指令，选项 D）同步：① allowed_dirs/required_dirs 删除 engineering（0 文件空目录）、scripts（仅退役登记，内容并入 eng/tools/README.md）、reverse_verify（146 tracked，按主题拆入 实验/SCI-A|B|C/code/reverse_verify/ 与 实验/shared/）；② §7「其他固定目录」补登记 reports/、eng/packaging/，根固定条目补登记 memory.md（三者均为物理在位且已在本清单的既有条目，本次是**补齐 §7 字面清单**，不是新增白名单）；③ ignored_patterns 删除 BASS DR3、HST_M16——两者已按 §7「一旦被代码消费或需入库，移入 testdata/」迁入 testdata/BASS_DR3、testdata/HST_M16，根级外部只读数据集仅余 gaia/GaiaDR3/、gaia/GaiaDR3SP/；④ logs 保留在 allowed_dirs（§7 仍以 logs/（gitignore）登记，解析入 spec7_gitignored），但**移出 required_dirs**：根 logs/ 空目录已退役，日志一律落 run/<task>/logs/（AGENTS.md §3）。",
+    "root_consolidation_20260921": "ROOT-CONSOLIDATION（负责人 2026-09-21 直接指令，选项 D）同步：① allowed_dirs/required_dirs 删除 engineering（0 文件空目录）、scripts（仅退役登记，内容并入 eng/tools/README.md）、reverse_verify（146 tracked，按主题拆入 实验/SCI-A|B|C/code/reverse_verify/ 与 实验/shared/）；② §7「其他固定目录」补登记 reports/、eng/packaging/，根固定条目补登记 memory.md（三者均为物理在位且已在本清单的既有条目，本次是**补齐 §7 字面清单**，不是新增白名单）；③ ignored_patterns 删除 BASS DR3、HST_M16——两者已按 §7「一旦被代码消费或需入库，移入 testdata/」迁入 testdata/BASS_DR3、testdata/HST_M16，根级外部只读数据集仅余 gaia/GaiaDR3/、gaia/GaiaDR3SP/；④ logs 保留在 allowed_dirs（§7 仍以 logs/（gitignore）登记，解析入 spec7_gitignored），但**移出 required_dirs**：根 logs/ 空目录已退役，日志一律落 run/<task>/logs/（AGENTS.md §3）。 ⑤ 2026-09-21 整合收口：allowed_files/required_files 删除 eng/build/build.sh、eng/build/toolchain.ps1（二者已非根条目，嵌套于 eng/ 之下；§7 代码块同口径按「路径首段=根条目」解析）；allowed_dirs 删除 build（.gitignore 覆盖的本地构建目录，由 ignored_patterns 容忍上报，不属 §7 白名单）；registered_local_retention 删除 问题扫描（物理已迁 artifacts/evidence/audit-2026-01/，悬空登记违反 ENGINEERING_SPEC §8「锚存活」；台账只减不增方向清理，非白名单放宽）；§7「其他固定目录」补 gaia/ 并订正 third_party/ → lib/third_party/。",
     "retention_cleanup": "2026-09-16（RETIRE-001；依据 工程控制/PROJECT-GOVERNANCE-01/GAP_AUDIT.md「GAP-033 附注」：该 7 条悬空登记由 RETIRE-001 清理）删除 7 条已不存在的登记条目：CHANGELOG.md / REVIEW.md / ASTROCS_PROJECT_CONSTITUTION.md / AstroCS_ENGINEERING_CONSTRAINTS.md / evidence / CS / worktrees。物理条目均已不存在，悬空登记本身即 ENGINEERING_SPEC §8 禁止的「静默坏掉」；此为台账只减不增方向清理，不是白名单放宽。前四条随 commit 01db973b（ROOT-007）删除，复原命令见 reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md；CS/ 与 worktrees/ 从未入库（0 字节空目录，无 git 历史可复原）。",
     "gov001_pending_owner_root_entries": {
       "checks": "CI 执行器（eng/ci/run_checks.py）本轮运行产出的逐检查 JSON 目录（2026-09-16 18:12，38 项）；根因：产出目录解析为进程 CWD（=仓库根），违反 ENGINEERING_SPEC §7「禁止把运行产物产出到项目根目录」与 ASTROCS_DESIGN §6.3。建议改法（不在 GOV-001 文件域）：执行器写入 --out-dir，默认 artifacts/ci/（已 gitignore）；CI-001 收敛窗口内由该任务落地。校验：arartifacts 目录存在且仓库根无 checks/ 与 ci_result.json。",

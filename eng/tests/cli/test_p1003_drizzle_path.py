@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
 EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
 BUILD = os.path.dirname(os.path.abspath(EXE))
@@ -18,7 +18,7 @@ BUILD = os.path.dirname(os.path.abspath(EXE))
 CLI_DIR = os.path.join(REPO, "lib", "infrastructure", "cli")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd / 证据落点统一落 run/（gitignore），见 cli_test_hygiene.py
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 
 class TestP1003DrizzlePath(unittest.TestCase):

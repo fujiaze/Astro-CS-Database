@@ -25,10 +25,10 @@ import sys
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, REPO)
 
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 # §4 冻结字段（与 lib/infrastructure/cli/protocol.h kEventFieldsV1 逐字同集；独立重实现）
 RUN_REQUIRED = {"schema_version", "event_id", "run_id", "timestamp_utc", "sequence",
@@ -54,7 +54,7 @@ BASE_KINDS = {"progress", "resource", "artifact", "backend", "final"}
 # §4 kind 注册表（封闭枚举，10 类）—— 实现正本 = lib/infrastructure/cli/protocol.h
 # registered_event_kinds_v1()；机器 schema = eng/contracts/schemas/jsonl_event_v1.schema.json。
 REGISTERED_KINDS = set(KIND_EXT)
-SCHEMA_PATH = os.path.join(REPO, "contracts", "schemas", "jsonl_event_v1.schema.json")
+SCHEMA_PATH = os.path.join(REPO, "eng", "contracts", "schemas", "jsonl_event_v1.schema.json")
 PROTOCOL_H = os.path.join(REPO, "lib", "infrastructure", "cli", "protocol.h")
 
 
@@ -156,7 +156,7 @@ class TestRunEventStreamDefault(unittest.TestCase):
             cls.fixture = os.path.join(cache, "fixture")
             cls.data = os.path.join(cache, "data")
         else:
-            from tests.cli.test_cli004_process_protocol import build_fixture
+            from test_cli004_process_protocol import build_fixture
             cls.fixture = build_fixture(cls.tmp)
             cls.data = os.path.join(cls.tmp, "data")
             os.makedirs(cls.data, exist_ok=True)
@@ -355,7 +355,7 @@ int main() {
         cls.exe = os.path.join(cls.tmp, "probe")
         r = subprocess.run(["g++", "-std=c++17", "-O1", "-w",
                             "-I" + os.path.join(REPO, "lib", "infrastructure", "cli"),
-                            "-I" + os.path.join(REPO, "third_party"),
+                            "-I" + os.path.join(REPO, "lib", "third_party"),
                             src, "-o", cls.exe], capture_output=True, text=True, timeout=300)
         assert r.returncode == 0, r.stderr[-800:]
 

@@ -2,7 +2,7 @@
 """API-005 测试: Phase3 API 合同 + 拒绝清单与 SCI-P3 同源交叉核对。"""
 import os, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 API = os.path.join(REPO, "docs", "api", "PHASE3_API_V1.md")
 SCI = os.path.join(REPO, "docs", "science", "PHASE3_HIPS_TO_FITS.md")
 

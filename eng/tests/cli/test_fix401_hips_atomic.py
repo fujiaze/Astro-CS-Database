@@ -15,10 +15,10 @@
 """
 import hashlib, json, os, re, shutil, subprocess, tempfile, textwrap, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
 
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 AIO = next((p for p in (os.path.join(REPO, "lib", "infrastructure", "aio"),
                         os.path.join(REPO, "lib", "astro_image_io")) if os.path.isdir(p)),
@@ -92,7 +92,7 @@ class TestFix401HipsAtomic(unittest.TestCase):
                 f"-I{cdir}", f"-I{SHARED}", f"-I{os.path.dirname(HEALPIX_SRC)}"]
         cls.p1fx = os.path.join(cls.tmp, "p1fx")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
-                            os.path.join(REPO, "tests", "backend", "phase1_fixture_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "phase1_fixture_main.cpp"),
                             os.path.join(AIO, "src", "aio_fits.cpp"),
                             os.path.join(AIO, "src", "aio_api.cpp"),
                             os.path.join(AIO, "src", "aio_log.cpp"),

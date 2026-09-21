@@ -2,9 +2,9 @@
 """ISA-001 测试: 热点 profile→变体编译→真变体证明→共享合同 Oracle→SHIPPED/NOT_SHIPPED 决策。"""
 import json, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 
 
 class TestIsaVariants(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestIsaVariants(unittest.TestCase):
         cls.bench = os.path.join(cls.tmp, "kbench")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-Wall", "-Wextra",
                             f"-I{INC}", f"-I{HOST}",
-                            os.path.join(REPO, "tests", "backend", "kernel_bench_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "kernel_bench_main.cpp"),
                             os.path.join(HOST, "baseline_backend.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
                             "-ldl", "-o", cls.bench], capture_output=True, text=True, timeout=180)
@@ -97,7 +97,7 @@ class TestIsaVariants(unittest.TestCase):
 
     def test_05_wrong_variant_never_loads(self):
         """错误变体(required 超集/假 hash)绝不入候选——预检拒绝。"""
-        probe_src = os.path.join(REPO, "tests", "backend", "loader_probe_main.cpp")
+        probe_src = os.path.join(REPO, "eng", "tests", "backend", "loader_probe_main.cpp")
         exe = os.path.join(self.tmp, "probe")
         r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
                             f"-I{os.path.join(REPO, 'third_party')}",

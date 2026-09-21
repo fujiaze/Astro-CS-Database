@@ -5,7 +5,7 @@
 > ID 覆盖: ALG-COS-001..005  状态: CONTRACT_READY  上游: SCI-CAL-001  下游: DATA-P1-COS / API-COS-001 / API-P1-002 / TEST-COS-DESIGN-001
 > 实现唯一生产源 =
 > `lib/algorithms/calibration/src/cosmetic_corrector.cpp`（CMake 目标
-> `astrocs_calibration`，CMakeLists.txt:446-465；C ABI 导出
+> `astrocs_calibration`，CMakeLists.txt:453-472；C ABI 导出
 > `lib/algorithms/calibration/src/ac_api.cpp:108,228`，签名权威
 > `lib/algorithms/calibration/include/astro_calibration.h:97,142`）；迁移目标目录
 > `lib/algorithms/cosmetic/`（落码由 P1-COS-IMPL 执行，尚未存在生产符号）。

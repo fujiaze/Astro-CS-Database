@@ -22,7 +22,7 @@
 """
 import csv, importlib.util, io, os, re, shutil, subprocess, sys, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 TRACE = os.path.join(REPO, "eng", "tools", "check_traceability.py")
 UNIT = os.path.join(REPO, "eng", "tools", "check_unit_closure.py")
 SPEC_TRACE = importlib.util.spec_from_file_location("ctb", TRACE)
@@ -33,7 +33,7 @@ cuc = importlib.util.module_from_spec(SPEC_UNIT)
 SPEC_UNIT.loader.exec_module(cuc)
 
 # mutation 基线 = 本测试自带的 tracked 夹具(见模块 docstring「夹具重接线」)。
-REAL_TRACE = os.path.join(REPO, "tests", "quality", "fixtures", "docchk002_claims_fixture.csv")
+REAL_TRACE = os.path.join(REPO, "eng", "tests", "quality", "fixtures", "docchk002_claims_fixture.csv")
 
 
 class TestDocChk002(unittest.TestCase):

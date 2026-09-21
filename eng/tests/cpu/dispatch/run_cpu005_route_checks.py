@@ -24,12 +24,12 @@ import subprocess
 import sys
 import tempfile
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
-TST = os.path.join(REPO, "tests", "cpu", "dispatch")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+TST = os.path.join(REPO, "eng", "tests", "cpu", "dispatch")
 BH = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")  # ROOT-008 迁移后路径
 CRYPTO = os.path.join(REPO, "lib", "algorithms", "shared", "crypto")  # ROOT-008 迁移后路径
-INC = os.path.join(REPO, "include")
-TP = os.path.join(REPO, "third_party")
+INC = os.path.join(REPO, "lib", "include")
+TP = os.path.join(REPO, "lib", "third_party")
 
 SRC = os.path.join(BH, "cpu_routing.cpp")       # 本任务改动
 TEST_MAIN = os.path.join(TST, "cpu005_route_decision_test.cpp")

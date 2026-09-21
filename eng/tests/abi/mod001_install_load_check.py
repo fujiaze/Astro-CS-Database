@@ -53,11 +53,11 @@ import subprocess
 import sys
 import time
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-INC = os.path.join(REPO, "include")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+INC = os.path.join(REPO, "lib", "include")
 LOADER_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
-PROBE_C = os.path.join(REPO, "tests", "abi", "abi003_loader_probe.c")
-VERIFY_SCRIPT = os.path.join(REPO, "packaging", "verify_install_tree.py")
+PROBE_C = os.path.join(REPO, "eng", "tests", "abi", "abi003_loader_probe.c")
+VERIFY_SCRIPT = os.path.join(REPO, "eng", "packaging", "verify_install_tree.py")
 CC = os.environ.get("CC", "gcc")
 TIMEOUT = 900
 
@@ -239,7 +239,7 @@ def main():
 
     # ── S4: 产品清单完整性 ──
     manifest_path = os.path.join(prefix, "astrocs.product.json")
-    contract_path = os.path.join(REPO, "packaging", "install-tree.contract.json")
+    contract_path = os.path.join(REPO, "eng", "packaging", "install-tree.contract.json")
     try:
         with open(manifest_path, encoding="utf-8") as f:
             manifest = json.load(f)

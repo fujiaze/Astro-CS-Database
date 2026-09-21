@@ -66,9 +66,9 @@ import tempfile
 import time
 import unittest
 
-from tests.backend.fixture_common import ensure_seam_hips  # noqa: E402
+from fixture_common import ensure_seam_hips  # noqa: E402
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EXE = os.path.join(REPO, "build", "astrocs")
 
 GATE_OK_VERDICTS = {"ok"}

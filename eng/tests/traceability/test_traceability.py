@@ -3,7 +3,7 @@
 固定样本表上验证: R2 唯一性/格式、R3 删任一层引用必失败、R4 引用存在、R6 域覆盖。"""
 import csv, importlib.util, io, os, shutil, sys, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 spec = importlib.util.spec_from_file_location("ctb", os.path.join(REPO, "eng", "tools", "check_traceability.py"))
 ctb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ctb)
@@ -54,7 +54,8 @@ class TestTraceability(unittest.TestCase):
         """
         import subprocess
         tool = os.path.join(REPO, "eng", "tools", "check_traceability.py")
-        fixture = os.path.join("tests", "quality", "fixtures", "docchk002_claims_fixture.csv")
+        fixture = os.path.join("eng", "tests", "quality", "fixtures",
+                               "docchk002_claims_fixture.csv")
         r = subprocess.run([sys.executable, tool, fixture],
                            capture_output=True, text=True, cwd=REPO)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)

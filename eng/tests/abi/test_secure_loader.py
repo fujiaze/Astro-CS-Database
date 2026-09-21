@@ -27,10 +27,10 @@ import sys
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-INC = os.path.join(REPO, "include")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+INC = os.path.join(REPO, "lib", "include")
 LOADER_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
-PROBE_C = os.path.join(REPO, "tests", "abi", "abi003_loader_probe.c")
+PROBE_C = os.path.join(REPO, "eng", "tests", "abi", "abi003_loader_probe.c")
 TIMEOUT = 300
 CC = os.environ.get("CC", "gcc")
 
@@ -229,7 +229,7 @@ def main():
         probe = os.path.join(work, "abi003_probe")
         r = run([CC, "-std=c11", "-Wall", "-fno-exceptions",
                  f"-I{INC}", f"-I{LOADER_DIR}",
-                 os.path.join(REPO, "tests", "abi", "abi003_loader_probe.c"),
+                 os.path.join(REPO, "eng", "tests", "abi", "abi003_loader_probe.c"),
                  loader_o, "-ldl", "-o", probe])
         check("compile probe", r.returncode == 0, r.stderr[-400:] if r.stderr else "")
         if r.returncode != 0:
@@ -459,7 +459,7 @@ def main():
               r.stdout)
 
         # ── 正测 P3: 加载 BLD-003 真实 noop 模块(独立 gcc 编译, 不依赖仓库先 build) ──
-        noop_src = os.path.join(REPO, "tests", "conformance", "noop", "src",
+        noop_src = os.path.join(REPO, "eng", "tests", "conformance", "noop", "src",
                                 "noop_module.c")
         noop_so = os.path.join(work, "astrocs_noop.so")
         r = compile_so(noop_src, noop_so)

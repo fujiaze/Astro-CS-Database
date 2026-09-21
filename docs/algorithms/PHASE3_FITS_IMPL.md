@@ -37,14 +37,14 @@
 | coverage | f32 [W·H] | 二值门 {0,1}（>0.5f=covered） | p3_output.cpp:231/:325/:384 |
 | width,height | int px | [1,20000]（会话层 :113-114；内核 width<1 拒 :132） | p3_output.h:46 |
 | bitpix | int | -32 \| -64（真实决定 buffer，h:51） | p3_output.cpp:140-154 |
-| BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，B2-A9 由 TINT 改 TDOUBLE） | p3_output.cpp:188-190 |
-| BUNIT | string | properties 缺省 "ADU"（h 缺省 :175） | p3_output.cpp:191-192 |
-| CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:14 / p3_output.cpp:173-174 |
-| CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:12-13 / p3_output.cpp:175-176 |
-| CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | p3_wcs.h:16 / p3_output.cpp:177-180 |
-| CTYPE1/2 | string | RA---TAN / DEC--TAN | p3_output.cpp:162-163 |
-| CUNIT1/2 | string | deg | p3_output.cpp:165-166 |
-| HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集；RUNID/SWVER/manifest hash 由 CLI run_context + 输入 HiPS 产品哈希注入（B2-A10，禁占位串） | p3_output.h:15-24 / p3_output.cpp:195-201 |
+| BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，B2-A9 由 TINT 改 TDOUBLE） | p3_output.cpp:261-263 |
+| BUNIT | string | properties 缺省 "ADU"（h 缺省 :175） | p3_output.cpp:264-265 |
+| CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:14 / p3_output.cpp:246-247 |
+| CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:12-13 / p3_output.cpp:248-249 |
+| CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | p3_wcs.h:16 / p3_output.cpp:250-253 |
+| CTYPE1/2 | string | RA---TAN / DEC--TAN | p3_output.cpp:235-236 |
+| CUNIT1/2 | string | deg | p3_output.cpp:238-239 |
+| HIPSID/RUNID/ORDERSEL/SAMPLER/SWVER | string | provenance 八字段子集；RUNID/SWVER/manifest hash 由 CLI run_context + 输入 HiPS 产品哈希注入（B2-A10，禁占位串） | p3_output.h:15-24 / p3_output.cpp:268-274 |
 | DATASUM/CHECKSUM | string | 标准 CFITSIO `fits_write_chksum`（IAU FITS 4.0 §4.4.2.5），逐 HDU 归属 PRIMARY/COVERAGE/VARIANCE/IVAR | p3_output.cpp:63-70 / :241-249 / :263-271 / :294-302 |
 | sha256 | char[65] | 输出文件 SHA-256 hex 小写（完整读出才填） | p3_output.h:27 / :92-114 |
 
@@ -237,7 +237,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   | `hardware_concurrency` | p3_session.cpp:242（仅注释，禁用声明） | 合规 |
   | `std::thread` | p3_session.cpp:335（采样池，非写面） | §8 声明面 |
   | `#pragma omp`（AIO 域） | aio_fits.cpp:1154 唯一 `parallel for schedule(static)` | 属 AIO 域非本域（QA-001 -fopenmp 编译处理），登记不改 |
-  | `cfitsio_io_mutex` | p3_output.cpp:132 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:11 | RT-008 合规 |
+  | `cfitsio_io_mutex` | p3_output.cpp:205 / aio_fits.cpp:529 / aio_cfitsio_mutex.h:11 | RT-008 合规 |
 - **取消点**：内核级 cancelled_at_row 参数（h:52，行粒度，session
   层恒 -1 :292）；会话级取消在采样循环 :228-229；写面一旦进入
   R10-C 发布序不可中断（半成品不可见，符合 IO_003 §6）。

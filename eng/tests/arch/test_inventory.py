@@ -2,7 +2,7 @@
 """ARCH-001 测试: PRODUCTION_EXECUTION_INVENTORY 机器门。"""
 import csv, os, subprocess, sys, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 INV = os.path.join(REPO, "docs", "architecture", "PRODUCTION_EXECUTION_INVENTORY.csv")
 GEN = os.path.join(REPO, "eng", "tools", "arch", "build_production_execution_inventory.py")
 CATS = {"exe_target", "openmp_kernel", "thread_creation", "lock", "queue", "acr_boundary", "io_writer"}

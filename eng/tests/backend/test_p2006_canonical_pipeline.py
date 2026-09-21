@@ -33,9 +33,9 @@ import sys
 import tempfile
 import unittest
 
-from tests.backend.fixture_common import ensure_f1f2_hips  # noqa: E402
+from fixture_common import ensure_f1f2_hips  # noqa: E402
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EXE = os.path.join(REPO, "build", "astrocs")
 
 CHAIN = ["coverage", "sample", "upm_fit", "upm_apply", "reject", "integrate", "write"]

@@ -2,7 +2,7 @@
 """API-002 测试: CLI 协议合同机器门(04 §6 条款 1-5 的合同态实现)。"""
 import json, os, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 DOC = os.path.join(REPO, "docs", "api", "CLI_PROTOCOL_V1.md")
 # 断链修复（第二次，2026-09-16，负责人裁决 C）：上一版 LEDGER_04 指向
 # artifacts/evidence/prerelease-v5/AUDIT_REVIEW/control/04_CLI_COMMAND_AND_PROTOCOL_CONTRACT.md，

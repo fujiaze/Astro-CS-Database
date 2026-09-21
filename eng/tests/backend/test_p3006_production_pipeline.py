@@ -31,12 +31,12 @@ import tempfile
 import time
 import unittest
 
-from tests.backend.fixture_common import ensure_f1f2_hips, two_cpu_preexec  # noqa: E402
+from fixture_common import ensure_f1f2_hips, two_cpu_preexec  # noqa: E402
 
 import numpy as np
 from astropy.io import fits
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EXE = os.path.join(REPO, "build", "astrocs")
 
 

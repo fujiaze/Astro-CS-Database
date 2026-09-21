@@ -2,7 +2,7 @@
 """ARCH-003 测试: backend 架构覆盖 05 全条目 + 禁止项机器门。"""
 import os, re, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 DOC = os.path.join(REPO, "docs", "architecture", "CPU_BACKEND_ARCH.md")
 
 class TestBackendArch(unittest.TestCase):

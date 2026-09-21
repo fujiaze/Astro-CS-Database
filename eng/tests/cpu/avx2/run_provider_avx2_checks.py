@@ -28,22 +28,22 @@ import os
 import subprocess
 import sys
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 AVX2_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx2", "src",
                         "avx2_provider.cpp")
 BASE_SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "baseline", "src",
                         "baseline_provider.cpp")
 CAPSRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "src",
                       "capability_detect.c")
-ORACLE = os.path.join(REPO, "tests", "cpu", "avx2",
+ORACLE = os.path.join(REPO, "eng", "tests", "cpu", "avx2",
                       "provider_avx2_oracle_main.cpp")
-GATE = os.path.join(REPO, "tests", "cpu", "avx2",
+GATE = os.path.join(REPO, "eng", "tests", "cpu", "avx2",
                     "provider_avx2_capability_gate_test.c")
-HANDSHAKE = os.path.join(REPO, "tests", "cpu", "avx2",
+HANDSHAKE = os.path.join(REPO, "eng", "tests", "cpu", "avx2",
                          "provider_avx2_handshake_test.c")
-SO_LOAD = os.path.join(REPO, "tests", "cpu", "avx2",
+SO_LOAD = os.path.join(REPO, "eng", "tests", "cpu", "avx2",
                        "provider_avx2_so_load_test.c")
-INC_ROOT = os.path.join(REPO, "include")
+INC_ROOT = os.path.join(REPO, "lib", "include")
 INC_BASE = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "baseline", "include")
 INC_AVX2 = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "avx2", "include")
 INC_CAP = os.path.join(REPO, "lib", "infrastructure", "benchmark", "cpu", "common", "include")

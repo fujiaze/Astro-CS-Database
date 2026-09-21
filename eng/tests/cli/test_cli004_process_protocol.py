@@ -27,7 +27,7 @@ test_phase1_inprocess 编译模式; fixture 源码路径用 ARCH-001 迁移后�
 """
 import json, os, re, shutil, signal, subprocess, tempfile, time, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # ROOT-008: CLI 源目录已迁 lib/infrastructure/cli/（旧 REPO/cli 不存在 ⇒ test_06 自迁移起
 # 恒 FileNotFoundError）。FIX-208 顺带订正扫描路径（扫描面/断言不变），并保留旧路径回退。
 CLI_DIR = next((p for p in (os.path.join(REPO, "lib", "infrastructure", "cli"),
@@ -35,8 +35,8 @@ CLI_DIR = next((p for p in (os.path.join(REPO, "lib", "infrastructure", "cli"),
                os.path.join(REPO, "lib", "infrastructure", "cli"))
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
-SCHEMA = os.path.join(REPO, "contracts", "schemas", "jsonl_event_v1.schema.json")
+from cli_test_hygiene import run_cwd  # noqa: E402
+SCHEMA = os.path.join(REPO, "eng", "contracts", "schemas", "jsonl_event_v1.schema.json")
 
 
 def cli_binary():
@@ -139,7 +139,7 @@ def build_fixture(tmp):
                         f"-I{os.path.join(AIO, 'include')}",
                         f"-I{os.path.join(AIO, 'src')}",
                         f"-I{cdir}",
-                        os.path.join(REPO, "tests", "backend", "phase1_fixture_main.cpp"),
+                        os.path.join(REPO, "eng", "tests", "backend", "phase1_fixture_main.cpp"),
                         os.path.join(AIO, "src", "aio_fits.cpp"),
                         os.path.join(AIO, "src", "aio_api.cpp"),
                         os.path.join(AIO, "src", "aio_log.cpp"),

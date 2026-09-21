@@ -85,7 +85,7 @@ def main(argv):
     repo_root, workdir = os.path.abspath(argv[1]), os.path.abspath(argv[2])
     src_root = os.path.join(repo_root, "lib/infrastructure/aio/v6")
     tests_dir = os.path.join(repo_root, "eng/tests/unit/v6_aio")
-    third = os.path.join(repo_root, "third_party")
+    third = os.path.join(repo_root, "lib", "third_party")
     os.makedirs(workdir, exist_ok=True)
 
     def build_and_run(lib_dir, tag, subcmd):

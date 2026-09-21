@@ -41,7 +41,9 @@ def fail(cid, msg):
 
 # ---- W1: defaults.json 登记 ----
 try:
-    defaults = json.loads((REPO / "config" / "defaults.json").read_text(encoding="utf-8"))
+    # 2026-09-21 根目录整合：config/ → eng/packaging/config/。
+        defaults = json.loads((REPO / "eng" / "packaging" / "config"
+                               / "defaults.json").read_text(encoding="utf-8"))
     fields = {f["key"]: f for f in defaults["fields"]}
     sat = fields.get("noise.saturation_level")
     if sat is None:

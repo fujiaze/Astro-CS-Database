@@ -29,7 +29,7 @@ import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
-INC = REPO / "include"
+INC = REPO / "lib" / "include"
 CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
 
 _DRIVER = r'''

@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 DRIVER_SRC = r'''
 // P2-004 driver: 生产 rejection/integrate kernel Oracle(合成场景, seed/容差预冻结)

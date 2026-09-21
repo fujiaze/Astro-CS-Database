@@ -2,7 +2,7 @@
 """CLI-001 测试: 单一 target 编译与 help/version stub golden(Linux GCC; Windows MSVC 实测记录于 LOG)。"""
 import json, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # 单一产品事实源 = 根 CMakeLists.txt（唯一 project()/唯一 add_executable(astrocs)）。
 # 旧 cli/CMakeLists.txt（BLD-002 compatibility 声明，非产品事实源）退役后，静态
 # 属性断言改锚到根文件 + 迁移后的生成头模板 lib/infrastructure/cli/version_generated.h.in。
@@ -75,7 +75,7 @@ def _global_arch_violations(text):
     return bad
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 
 def _repo_version():

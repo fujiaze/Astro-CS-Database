@@ -1,9 +1,9 @@
 {
   "schema": "astrocs.known-failures-baseline/v1",
   "repo": "/workspace/Astro CS Database",
-  "source_commit": "ee99ca2610238de5f44cc72b08225d6abc5922a9",
+  "source_commit": "685982df53725032fabf7c91882d589ebb8404af",
   "finding_count": 40,
-  "reproduced_count": 15,
+  "reproduced_count": 16,
   "findings": [
     {
       "finding_id": "F-001",
@@ -293,8 +293,8 @@
     {
       "finding_id": "F-029",
       "severity": "P1",
-      "status": "NOT_REPRODUCED_WITH_EVIDENCE",
-      "minimal_command": "grep -n '完成\\|81 PASS' docs/review/RELEASE_STATUS.md; grep -n 'prototype\\|未实现' docs/review/SCIENCE_OVERVIEW.md",
+      "status": "REPRODUCED",
+      "minimal_command": "grep -n '完成\\|81 PASS' docs/owner/RELEASE_STATUS.md; grep -n 'prototype\\|未实现' docs/owner/SCIENCE_OVERVIEW.md",
       "evidence": [
         "RELEASE_STATUS 自报 Linux 侧完成/81 PASS",
         "SCIENCE_OVERVIEW 声明 Phase3 prototype/未实现"

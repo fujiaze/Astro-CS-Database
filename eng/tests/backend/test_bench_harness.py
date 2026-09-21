@@ -2,9 +2,9 @@
 """BENCH-002 测试: Oracle 先行/预热计时顺序/稳健统计/故意错误 backend 被禁用不获胜。"""
 import os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 
 
 class TestBenchHarness(unittest.TestCase):
@@ -15,11 +15,11 @@ class TestBenchHarness(unittest.TestCase):
         cls.cheat = os.path.join(cls.tmp, "cheat.so")
         crypto_inc = f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}"
         for src, out, extra in (
-            (os.path.join(REPO, "tests", "backend", "bench_harness_main.cpp"), cls.exe,
+            (os.path.join(REPO, "eng", "tests", "backend", "bench_harness_main.cpp"), cls.exe,
              [os.path.join(HOST, "baseline_backend.cpp"), os.path.join(HOST, "bench_harness.cpp"),
               os.path.join(HOST, "host_services.cpp"),
               os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"), crypto_inc, "-ldl"]),
-            (os.path.join(REPO, "tests", "backend", "cheat_backend.cpp"), cls.cheat, ["-shared", "-fPIC"]),
+            (os.path.join(REPO, "eng", "tests", "backend", "cheat_backend.cpp"), cls.cheat, ["-shared", "-fPIC"]),
         ):
             r = subprocess.run(["g++", "-std=c++17", "-O2", "-Wall", "-Wextra",
                                 f"-I{INC}", f"-I{HOST}", src, *extra, "-o", out],

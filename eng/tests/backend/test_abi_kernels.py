@@ -2,9 +2,9 @@
 """ABI-003 测试: Oracle(独立参考实现)/确定性(budget 1 vs 4 逐位)/多线程观测/baseline opcode 扫描。"""
 import os, re, shutil, struct, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 HW = os.cpu_count() or 1
 
 
@@ -23,7 +23,7 @@ class TestBaselineKernels(unittest.TestCase):
         exe = os.path.join(cls.tmp, "oracle")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-Wall", "-Wextra",
                             f"-I{INC}", f"-I{HOST}",
-                            os.path.join(REPO, "tests", "backend", "kernel_oracle_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "kernel_oracle_main.cpp"),
                             os.path.join(HOST, "baseline_backend.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
                             "-o", exe], capture_output=True, text=True, timeout=180)

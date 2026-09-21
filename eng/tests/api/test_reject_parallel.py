@@ -7,8 +7,8 @@ frame identity 不丢; 并行 #pragma omp for schedule(static), 输出逐像素�
 """
 import os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-INC = os.path.join(REPO, "include")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+INC = os.path.join(REPO, "lib", "include")
 PH2 = os.path.join(REPO, "lib", "algorithms", "coverage")
 ACR = os.path.join(REPO, "lib", "infrastructure", "acr", "include")
 CM = os.path.join(REPO, "lib", "algorithms", "shared")

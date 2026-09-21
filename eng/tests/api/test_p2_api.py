@@ -2,7 +2,7 @@
 """API-004 测试: Phase2 API 登记 ↔ 头文件符号实跑核对 + 所有权/预算机器门。"""
 import os, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 DOC = os.path.join(REPO, "docs", "api", "PHASE2_API_V1.md")
 P2HDR = os.path.join(REPO, "lib", "algorithms", "coverage", "include", "astro", "phase2")
 

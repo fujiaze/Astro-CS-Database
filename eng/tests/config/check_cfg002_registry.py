@@ -27,7 +27,7 @@ import sys
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO_DEFAULT = os.path.dirname(os.path.dirname(HERE))
+REPO_DEFAULT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 
 REGISTRY = "eng/packaging/config/config_registry.json"
 DEFAULTS = "eng/packaging/config/defaults.json"
@@ -486,7 +486,7 @@ def check_03_defaults_enum_mapping(repo):
 
 def _validator(repo):
     import importlib.util
-    path = os.path.join(repo, "tests", "contracts", "v6", "jsonschema_min.py")
+    path = os.path.join(repo, "eng", "tests", "contracts", "v6", "jsonschema_min.py")
     if not os.path.isfile(path):
         raise Fail("missing validator: eng/tests/contracts/v6/jsonschema_min.py")
     spec = importlib.util.spec_from_file_location("cfg002_jsonschema_min", path)
@@ -847,7 +847,7 @@ def check_06_module_manifest_keys(repo):
 
 
 def _tests_dirs_with_sources(repo):
-    base = os.path.join(repo, "tests")
+    base = os.path.join(repo, "eng", "tests")
     if not os.path.isdir(base):
         raise Fail("eng/tests/ 不存在")
     out = []
@@ -873,14 +873,14 @@ def check_07_index_ownership(repo):
     import csv
     problems = []
     cfg_files = []
-    for root, dirs, files in os.walk(os.path.join(repo, "config")):
+    for root, dirs, files in os.walk(os.path.join(repo, "eng", "packaging", "config")):
         dirs[:] = [d for d in dirs if d != "__pycache__"]
         for f in files:
             rel = os.path.relpath(os.path.join(root, f), repo).replace(os.sep, "/")
             cfg_files.append(rel)
             if f.endswith(".schema.json"):
                 problems.append("eng/packaging/config/** 出现 schema 文件（第二事实源）: %s" % rel)
-    cc_dir = os.path.join(repo, "contracts", "config")
+    cc_dir = os.path.join(repo, "eng", "contracts", "config")
     if not os.path.isdir(cc_dir):
         raise Fail("eng/contracts/config/ 不存在（锚失效）")
     cc_files = sorted(os.listdir(cc_dir))

@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SCI = os.path.join(REPO, "docs", "science", "PHASE3_HIPS_TO_FITS.md")
 API = os.path.join(REPO, "docs", "api", "PHASE3_API_V1.md")
 SESS = os.path.join(REPO, "lib", "phase3_session", "p3_session.cpp")

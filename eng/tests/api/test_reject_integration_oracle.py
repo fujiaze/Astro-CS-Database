@@ -13,9 +13,9 @@
 """
 import math, os, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 PH2 = os.path.join(REPO, "lib", "algorithms", "coverage")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 ACR = os.path.join(REPO, "lib", "infrastructure", "acr", "include")
 CM = os.path.join(REPO, "lib", "algorithms", "shared")
 AIO = os.path.join(REPO, "lib", "infrastructure", "aio")

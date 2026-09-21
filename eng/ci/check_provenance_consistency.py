@@ -12,7 +12,7 @@ BUNIT=ASTROCS_RELATIVE_FLUX（相对通量）却未应用测光 ⇒ 下游把 AD
   P2 消费侧守卫：hiss_writer.cpp 必须存在
      BUNIT=ASTROCS_RELATIVE_FLUX 且 PHOTAPPL=FALSE 的显式拒绝；
   P3 数据侧：扫描产品 JSON（--products-root，默认 eng/ci/fixtures/provenance +
-     存在的 run/RELEASE-04/e2e/evidence），对每个含 provenance 键的记录断言
+      存在的 run/ 下 e2e 产品），对每个含 provenance 键的记录断言
      photometry_applied=false ⇒ photscal==1.0 且 bunit != ASTROCS_RELATIVE_FLUX；
      photometry_applied=true ⇒ photscal 有限且 > 0；
   P3b 数据侧补盲（P1-PHOT-BROKEN）：schema==DATA-P1-PHOTPROV-001 且
@@ -50,7 +50,11 @@ CHECK_ID = "CHK-PROVENANCE-CONSISTENCY"
 ADAPTERS = "lib/infrastructure/scheduler/src/module_adapters.cpp"
 HISS_WRITER = "lib/infrastructure/aio/src/hiss_writer.cpp"
 LEDGER = "eng/ci/ledgers/provenance_exceptions.json"
-DEFAULT_ROOTS = ("eng/ci/fixtures/provenance", "run/RELEASE-04/e2e/evidence", "run/RELEASE-04")
+# 2026-09-21 根目录整合：RELEASE-01/02 的 e2e 证据已被 run_gc 回收，锚点若钉死
+# 在单个轮次 ID 上即随轮次消亡（HEAD 曾改钉 run/RELEASE-04，该轮无 e2e 产物 ⇒
+# 零记录 ANCHOR_STALE）。改为「durable fixture 锚 + 整棵 run/ 树」：扫描 glob 与
+# 断言口径不变，轮次无关。
+DEFAULT_ROOTS = ("eng/ci/fixtures/provenance", "run")
 PRODUCT_GLOBS = ("**/p1_phot.json", "**/manifest.json", "**/*product*.json",
                  "**/*provenance*.json")
 MAX_FILES = 4000

@@ -3,7 +3,7 @@
 仅 Linux(vm-bj)。验收: 采集指标与 OS 工具误差在冻结范围; 监控自身开销达标(07 §1 采样开销测量)。"""
 import os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # ROOT-008: CLI 命令层（monitor.h 所在）已迁 lib/infrastructure/cli/。
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 

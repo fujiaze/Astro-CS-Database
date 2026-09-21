@@ -10,7 +10,7 @@
 """
 import json, os, shutil, subprocess, sys, tempfile, textwrap, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 GEN = os.path.join(REPO, "eng", "tools", "arch", "build_production_execution_inventory.py")
 
 # 计数包装: runpy 执行生成器副本, 统计每个文件被 open() 读取的次数。
@@ -42,16 +42,16 @@ _PLAIN_SRC = "int f%d(void){ return %d; }\n"
 
 def _make_tree(td, n_lock, n_plain):
     """临时仓库树: eng/tools/arch/gen.py(生成器副本) + lib/x/*.cpp + docs/architecture/。"""
-    for sub in (("tools", "arch"), ("lib", "x"), ("docs", "architecture")):
+    for sub in (("eng", "tools", "arch"), ("lib", "x"), ("docs", "architecture")):
         os.makedirs(os.path.join(td, *sub), exist_ok=True)
-    shutil.copy(GEN, os.path.join(td, "tools", "arch", "gen.py"))
+    shutil.copy(GEN, os.path.join(td, "eng", "tools", "arch", "gen.py"))
     for i in range(n_lock):
         with open(os.path.join(td, "lib", "x", "lock%02d.cpp" % i), "w") as f:
             f.write(_LOCK_SRC)
     for i in range(n_plain):
         with open(os.path.join(td, "lib", "x", "plain%02d.cpp" % i), "w") as f:
             f.write(_PLAIN_SRC % (i, i))
-    return os.path.join(td, "tools", "arch", "gen.py")
+    return os.path.join(td, "eng", "tools", "arch", "gen.py")
 
 
 def _run(td, gen):

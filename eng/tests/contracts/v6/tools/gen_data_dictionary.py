@@ -200,7 +200,7 @@ def build():
     freeze = json.loads(FREEZE.read_text(encoding="utf-8"))
     schema_index = []
     for fn in SCHEMA_FILES:
-        p = REPO / "contracts" / "schemas" / "v6" / fn
+        p = REPO / "eng" / "contracts" / "schemas" / "v6" / fn
         d = json.loads(p.read_text(encoding="utf-8"))
         schema_index.append({
             "schema_id": d["$id"],
@@ -209,7 +209,7 @@ def build():
             "clause_ids": d["x-astrocs-production"]["clause_ids"],
             "source_proposal": d["x-astrocs-production"]["source_proposal"],
         })
-    examples = sorted(p.name for p in (REPO / "contracts" / "data" / "examples" / "v6").glob("*.json"))
+    examples = sorted(p.name for p in (REPO / "eng" / "contracts" / "data" / "examples" / "v6").glob("*.json"))
     clauses = freeze["clauses"]
     by_status = {}
     for c in clauses:

@@ -2,7 +2,7 @@
 """ARCH-002 测试: V5 单一 CLI 架构机器门。"""
 import os, re, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 ARCH = os.path.join(REPO, "docs", "architecture", "ARCHITECTURE.md")
 MODULE = os.path.join(REPO, "docs", "architecture", "MODULE_MAP.md")
 INV = os.path.join(REPO, "docs", "architecture", "PRODUCTION_EXECUTION_INVENTORY.csv")

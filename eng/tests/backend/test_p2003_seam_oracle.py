@@ -21,9 +21,9 @@ import unittest
 import numpy as np
 from astropy.io import fits
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EXE = os.path.join(REPO, "build", "astrocs")
-FIXTURE_SRC = os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp")
+FIXTURE_SRC = os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp")
 AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 
 # 冻结容差(不事后放宽)

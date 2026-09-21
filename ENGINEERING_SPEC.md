@@ -108,7 +108,7 @@ lib/
 │   └── shared/
 └── infrastructure/     基建（cli/ 下挂 normalize/mosaic/export 子命令 + scheduler/pipeline/aio/benchmark/observability/gaia/acr/hips_browser）
 
-其他固定目录：lib/include/ eng/contracts/ docs/ eng/tests/ testdata/ third_party/ eng/packaging/
+其他固定目录：lib/include/ lib/third_party/ eng/contracts/ docs/ eng/tests/ testdata/ eng/packaging/ gaia/
 eng/（工程支撑面，2026-09-21 由 ci/ tools/ cmake/ 合并而成）
   eng/ci/           机器门注册表与检查器（eng/ci/checks.json、eng/ci/run_checks.py）
   eng/tools/        工具与质量检查器（eng/tools/quality/**、eng/tools/doccheck/**）

@@ -24,7 +24,7 @@
 """
 import os
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # CLI 的 run 图渲染器按 ASTROCS_REPO/tools/quality/gen_run_graphs.py 定位（缺省
 # "."，cwd 相对）。子进程 cwd 已重定向到 run/，必须显式声明真实仓库根，否则

@@ -13,7 +13,7 @@
 """
 import math, os, random, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 SNR_INC = os.path.join(REPO, "lib", "algorithms", "noise_snr", "cpp", "include")
 SNR_SRC = os.path.join(REPO, "lib", "algorithms", "noise_snr", "cpp", "src")
 

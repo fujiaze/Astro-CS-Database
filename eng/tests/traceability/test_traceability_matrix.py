@@ -20,14 +20,14 @@ import sys
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 CHECKER = os.path.join(REPO, "eng", "tools", "traceability", "check_traceability_matrix.py")
-FIXTURES = os.path.join(REPO, "tests", "traceability", "fixtures")
+FIXTURES = os.path.join(REPO, "eng", "tests", "traceability", "fixtures")
 # 检查器以固定相对路径解析：把 fixture 作为 docs/traceability/TRACEABILITY_MATRIX.json，
 # 并复制 schema/LAYERS（视图 CSV 不复制，避免 parity 噪音；缺 CSV 的 MISSING_FILE 不掩盖断言代码）
 RELS = {
     "docs/traceability/TRACEABILITY_LAYERS.csv": os.path.join(REPO, "docs", "traceability", "TRACEABILITY_LAYERS.csv"),
-    "schemas/traceability_matrix.schema.json": os.path.join(REPO, "contracts", "schemas", "traceability_matrix.schema.json"),
+    "schemas/traceability_matrix.schema.json": os.path.join(REPO, "eng", "contracts", "schemas", "traceability_matrix.schema.json"),
 }
 
 

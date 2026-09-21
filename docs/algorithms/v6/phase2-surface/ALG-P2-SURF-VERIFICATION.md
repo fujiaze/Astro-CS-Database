@@ -49,7 +49,7 @@
 | R rejection | probability 可靠性 `|obs-mean(p)|<=0.10`；BSS>0.10；省略 UPM 项导致顶箱失校准；n<=2 underdetermined；4 类污染 recall>=0.8；probability 加权 != ivar | R1–R5 PASS |
 | E covariance/effective PSF | 注入单位点源 == 解析 `P_eff`（<1e-12）；`median(FWHM_k) != FWHM(P_eff)`；`FWHM(P_eff)` 依赖权重；`C_out` vs MC；`1/W` 代理 != 实际系数方差；相关核可重建 `C_out` 且对角低估 | E1–E6 PASS |
 
-关键实测数值（日志 `logs/10_oracle.json`）：
+关键实测数值（日志 `run/v6/alg-p2-surf/logs/10_oracle.json`）：
 - GLS var_pred=0.0245xxx vs var_mc（rel<3%）；
 - 相关+异方差下对角 ivar `ratio≈1.09 > 1.05`（门拒绝）；
 - UPM κ（良态）`< 1e6`、退化 `>1e6`；`J C_theta J^T` vs MC rel<5%；

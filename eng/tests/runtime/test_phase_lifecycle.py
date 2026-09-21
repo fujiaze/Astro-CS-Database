@@ -36,8 +36,8 @@ from phase_lifecycle import (  # noqa: E402
     phase_registry_view,
 )
 
-FX = REPO / "contracts" / "data" / "examples" / "external_fixture_hips.example.json"
-P1_FX = REPO / "contracts" / "data" / "examples" / "phase1_product_v1.example.json"
+FX = REPO / "eng" / "contracts" / "data" / "examples" / "external_fixture_hips.example.json"
+P1_FX = REPO / "eng" / "contracts" / "data" / "examples" / "phase1_product_v1.example.json"
 LIFECYCLE_PY = REPO / "lib" / "infrastructure" / "scheduler" / "core" / "phase_lifecycle.py"
 
 # 各 phase 代表模块（真实 registry 登记）

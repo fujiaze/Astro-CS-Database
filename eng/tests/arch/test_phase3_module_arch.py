@@ -2,7 +2,7 @@
 """ARCH-005 测试: Phase3 模块架构逐 claim 追溯 + 科学选择不在 cache/loader 机器门。"""
 import os, re, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 DOC = os.path.join(REPO, "docs", "architecture", "PHASE3_MODULE_ARCH.md")
 
 class TestPhase3Arch(unittest.TestCase):

@@ -89,10 +89,14 @@ PROBE_DOMAINS = [
      "eng/tools/quality/check_module_map.py"),
     ("eng/tools/monitoring/**", "eng/tools/monitoring/run_monitored.py",
      "eng/tools/monitoring/run_monitored.py"),
-    ("eng/packaging/**", "packaging", "eng/packaging/astrocs.product.json"),
+    # 2026-09-21 根目录整合：packaging/ → eng/packaging/（锚必须随域走）。
+    ("eng/packaging/**", "eng/packaging", "eng/packaging/astrocs.product.json"),
     (".github/**", ".github/workflows/ci-linux.yml", ".github/workflows/ci-linux.yml"),
     ("artifacts/**", "artifacts/ci", "artifacts/ci/run.json"),
-    ("reports/**", "reports", "reports/README.md"),
+    # 2026-09-21 根目录整合：reports/ 退役 → artifacts/evidence/**（AGENTS.md §7）；
+    # 域继承者按新路径重锚，不保留已不存在的根条目。
+    ("artifacts/evidence/**", "artifacts/evidence/README.md",
+     "artifacts/evidence/README.md"),
     ("工程控制/**", "工程控制", "工程控制/PROJECT-GOVERNANCE-01/OPEN_ITEMS.md"),
     ("AGENTS.md", "AGENTS.md", "AGENTS.md"),
     ("memory.md", "memory.md", "memory.md"),

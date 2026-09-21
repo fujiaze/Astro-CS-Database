@@ -99,44 +99,66 @@ def git_tracked(root: str, rel: str) -> bool:
 
 
 def spec_whitelist(sec7: str):
-    """从 §7 代码块机械抽取 (顶层文件, 顶层目录, gitignore 目录)。"""
+    """从 §7 代码块机械抽取 (顶层文件, 顶层目录, gitignore 目录)。
+
+    2026-09-21 ROOT-CONSOLIDATION：§7 条目由「根级平铺」变为「嵌套路径」
+    （eng/build/build.sh、eng/cmake/、eng/packaging/config/ …）。旧式 tokenizer 按
+    [\\s/]+ 切分后把**每个路径段**当根条目 ⇒ 整合后凭空要求根下存在
+    build.sh / toolchain.ps1 / CMake / cmake / ci / tools / packaging / config 等
+    已被整合掉的条目（ENG-CONSTRAINTS 整合后恒红）。
+    现行口径：**路径首段 = 根条目**（eng/build/build.sh ⇒ 根条目 eng），行内中文说明
+    不再参与抽取（只取行首路径 token；「仓库根固定条目」「其他固定目录」两块仍逐条取）。
+    """
     m = re.search(r"```text\n(.*?)```", sec7, re.S)
     body = m.group(1) if m else sec7
     files, dirs, ignored = set(), set(), set()
+
+    def _add_root(tok: str) -> None:
+        tok = tok.strip().strip("`").rstrip("/")
+        if not tok or tok == "/":
+            return
+        root = tok.split("/")[0]
+        if "." in root:
+            files.add(root)
+        elif re.fullmatch(r"[A-Za-z0-9_\-]+", root):
+            dirs.add(root)
+
+    in_header = False
     for raw in body.splitlines():
         line = raw.strip()
-        if not line or line.startswith(("lib/", "├", "│", "└")):
+        if not line:
+            in_header = False
+            continue
+        if line.startswith(("lib/", "├", "│", "└")):
+            continue
+        if line.startswith("仓库根固定条目"):
+            in_header = True
             continue
         if line.startswith("其他固定目录："):
-            # 该行按空白列出目录；中文词是说明性标签（报告/证据/打包/工程），只取 ASCII 目录名
+            in_header = False
             for tok in line[len("其他固定目录："):].split():
-                tok = tok.strip().rstrip("/")
-                if re.fullmatch(r"[A-Za-z0-9_.\-]+", tok):
-                    dirs.add(tok)
+                _add_root(tok)
             continue
-        # 行内中文说明/编号引用（如"（程序根全局配置：…）"、"; ASTROCS_DESIGN.md §3.3"）不是条目
         line = re.split(r"[（;；]", line, maxsplit=1)[0]
-        for tok in re.split(r"[\s/]+", line):
-            tok = tok.strip()
-            if not tok:
-                continue
-            if "." in tok:
-                files.add(tok)
-            elif re.fullmatch(r"[A-Za-z0-9_\-]+", tok):
-                dirs.add(tok)
-    # §7 正文点名："run/（gitignore：临时产物/日志） logs/（gitignore）"
+        if in_header:
+            # 固定条目块：一行多条目，以空白/`/` 分隔；_add_root 只取路径首段
+            for tok in line.split():
+                _add_root(tok)
+        else:
+            parts = line.split()
+            if parts:
+                _add_root(parts[0])
+    # §7 正文点名："run/（gitignore：临时产物/日志）"
     for name in re.findall(r"([A-Za-z0-9_\-]+)/（[^）]*gitignore", sec7):
         ignored.add(name)
-    # §7 正文点名的条目：lib/（树形图目标源码根）、工程控制/（控制包落点）、
-    # reports/ 的中文标签"报告"、artifacts/ 的中文标签"证据"、eng/packaging/ 的"打包"、
-    # engineering/ 的"工程"——中文标签是说明不是路径，不登记。
     if re.search(r"^lib/", sec7, re.M):
         dirs.add("lib")
     # CJK 目录名（工程控制/、实验/）不匹配上面的 ASCII token 正则，必须显式登记；
     # 这两个目录是 §7 代码块内逐字点名的固定条目，显式登记不是放宽判据。
-    # 2026-09-21 ROOT-CONSOLIDATION：experiments 侧的 reverse_verify/ 根条目已解散，
-    # 其内容迁入 实验/，故 实验/ 的显式登记与原先对 reverse_verify 的登记等价。
-    dirs |= {"run", "logs", "工程控制", "实验"}
+    # 2026-09-21 ROOT-CONSOLIDATION：根 logs/ 条目已退役（日志一律落 run/<task>/logs/，
+    # AGENTS.md §3）；旧解析靠 §7 的「logs/（gitignore）」字面量把它抵消，新 §7 已无该
+    # 字面量 —— 再从显式集合登记 logs 等于要求一个已退役的根目录。
+    dirs |= {"run", "工程控制", "实验"}
     dirs -= ignored
     return files, dirs, ignored
 
@@ -471,7 +493,9 @@ SELFTEST_README = """# README（mini-repo 夹具）
 
 SELFTEST_FILES = ["README.md", "AGENTS.md", "ASTROCS_DESIGN.md", "ENGINEERING_SPEC.md",
                   "CONTROL_PACK_SPEC.md", "memory.md", "CMakeLists.txt"]
-SELFTEST_DIRS = ["docs", "tools", "ci", "工程控制", "lib"]
+# 2026-09-21 根目录整合：夹具根目录同步为整合后布局（tools/ci → eng/，
+# 并补上 §7 显式登记的 CJK 目录 实验/）。
+SELFTEST_DIRS = ["docs", "eng", "工程控制", "实验", "lib"]
 
 
 def selftest_manifest(allowed_files=None, allowed_dirs=None, retention=None,

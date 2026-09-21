@@ -13,9 +13,9 @@
 """
 import math, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 PH2 = os.path.join(REPO, "lib", "algorithms", "coverage")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 C = os.path.join(REPO, "lib", "algorithms", "shared")
 CASTRO = os.path.join(C, "healpix")
 AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
@@ -55,7 +55,7 @@ class TestSeamMetricGate(unittest.TestCase):
                             f"-I{INC}", f"-I{os.path.join(PH2, 'include')}", f"-I{PH2}",
                             f"-I{C}", f"-I{CASTRO}", f"-I{os.path.join(AIO, 'include')}",
                             f"-I{os.path.join(AIO, 'src')}", f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                            os.path.join(REPO, "tests", "backend", "syn008_seam_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "syn008_seam_main.cpp"),
                             OMP_LIB, os.path.join(AIO, "astro_image_io.dll"),
                             "-lgomp", "-lz", "-lzstd", "-llz4", "-pthread", "-o", cls.exe],
                            capture_output=True, text=True, timeout=600)

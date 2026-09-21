@@ -76,7 +76,7 @@
 
 | 产物 | 说明 |
 |---|---|
-| `spec/alg_p2_surf_spec.json` | 机器可读规格（本目录冻结常量的语义源再镜像） |
+| `run/v6/alg-p2-surf/spec/alg_p2_surf_spec.json` | 机器可读规格（本目录冻结常量的语义源再镜像） |
 | `oracle/surf_oracle.py` | 独立 NumPy Oracle（GLS/pixel-ivar/UPM/rejection/covariance/effective PSF） |
 | `oracle/check_spec.py` | 结构 + 文档/JSON 一致 + 冻结继承一致性检查门 |
 | `oracle/run_gate_and_mutations.py` | 正向控制 + 负向 mutation + Oracle 自 mutation |

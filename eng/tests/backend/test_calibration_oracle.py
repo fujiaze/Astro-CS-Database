@@ -14,7 +14,7 @@
 """
 import os, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # 路径随 §7 布局迁移同步（旧 lib/calibration、lib/astro_image_io 已不存在；
 # BIAS-001：本文件是 SCI-CAL-001 §5 的独立 NumPy oracle，必须可跑才算 oracle）。
 CAL_INC = os.path.join(REPO, "lib", "algorithms", "calibration", "include")

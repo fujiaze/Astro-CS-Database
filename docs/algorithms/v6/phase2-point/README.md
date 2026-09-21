@@ -21,7 +21,7 @@
 
 | 产物 | 说明 |
 |---|---|
-| `spec/phase2_point_spec.json` | 机器可读规格（units/formulas/clauses/gates/mutations/required_freeze_ids） |
+| `run/v6/alg-p2-point/spec/phase2_point_spec.json` | 机器可读规格（units/formulas/clauses/gates/mutations/required_freeze_ids） |
 | `oracle/phase2_point_oracle.py` | 独立 NumPy Oracle（O1–O12 正向 + OM1–OM3 自我 mutation；不调用生产实现） |
 | `oracle/check_alg_p2_point_spec.py` | 规格结构门（量纲代数/门引用/条款-锚/冻结条目引用；M01–M15 负向 mutation） |
 | `oracle/run_all.sh` | 一键复跑（单一 rc） |

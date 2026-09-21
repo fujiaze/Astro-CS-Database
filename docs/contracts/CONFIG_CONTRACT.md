@@ -111,7 +111,7 @@ mosaic/export 仍为 `{phase_name, config, inputs}`（`config`/`inputs` 两级 `
 
 - **单一事实源**：不再有第二份等价定义；文件以 `oneOf` 定义
   - `$defs.legacy_v1`：BENCH-004 旧 JSON（`schema_version=1`，`kernels` 数组，`hardware/build/memory_benchmark/verdict`）；
-  - `$defs.profile_v2`：**当前实现** `schema="astrocs.cpu-profile/v2"`（`lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:558-610`、`verify_profile_v2` :645-707）。
+  - `$defs.profile_v2`：**当前实现** `schema="astrocs.cpu-profile/v2"`（`lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:561-613`、`verify_profile_v2` :648-710）。
 - **绑定**：CPU（`host.vendor/family/model/stepping/xcr0`）· OS（`host.os_abi` ∈ {`linux`,`windows`}，CFG-002 冻结，见 §11）· 软件版本（`build.astrocs_version/source_commit/runtime_build_id`）· provider hash（`build.provider_build_ids`、`benchmark_binary_sha256`、`kernels.*.self_test_sha256`）· ISA/workers/block（`kernels.*.provider ∈ {baseline,avx2,avx512}`、`workers ≥ 1`、`block ≥ 1`）。身份绑定字段与 `check_profile_identity_v1`（`lib/infrastructure/benchmark/backend_host/cpu_routing.cpp:216-300`）逐项一致。
 - **只有 benchmark 可写**：`x-astrocs-writer = "benchmark"`、`x-astrocs-not-writable-by = ["用户","cli --template","phase_config"]`；机器门 `TestCpuProfileMigration::test_writer_is_benchmark_only` + §7 的跨类不相交门。
 - **兼容面（既有检查项不失效）**：顶层 `required` 取两分支共有键 `[build, kernels]`，顶层 `properties` 同时登记两分支顶层键，完整 v1 必填集落在 `$defs.legacy_v1.required`；`properties.kernels.items.required` 保持原访问路径（`eng/tests/backend/test_cpu_profile.py:74-79`、`eng/tools/validate_cpu_profile.py:41-70`）。

@@ -27,8 +27,8 @@
 import json, os, sys, pathlib
 
 REPO = pathlib.Path(__file__).resolve().parents[5]
-SRC = REPO / "contracts" / "proposals" / "v6" / "data"
-DST = REPO / "contracts" / "schemas" / "v6"
+SRC = REPO / "eng" / "contracts" / "proposals" / "v6" / "data"
+DST = REPO / "eng" / "contracts" / "schemas" / "v6"
 FREEZE_REL = "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json"
 
 CLAUSES = {

@@ -11,7 +11,8 @@ from collections import defaultdict
 import pytest
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_REPO = os.path.normpath(os.path.join(_HERE, "..", ".."))
+_REPO = os.path.normpath(os.path.join(_HERE, "..", "..", ".."))
+
 INDEX_PATH = os.path.join(_REPO, "testdata", "index.json")
 
 import importlib.util

@@ -6,7 +6,8 @@ Read-only. No production code changed. Writes only under run/RELEASE-02/unc-prop
 """
 import json, os, re, sys
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
+
 L4 = os.path.join(ROOT, "run/RELEASE-02/L4-rebuild")
 OUT = []
 

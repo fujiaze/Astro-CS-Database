@@ -3,9 +3,9 @@
 关键结论: AVX 是 AVX2+FMA 子集, 且 vm-bj 实测 avx2(SHIP, ISA-001)严格主导 AVX → AVX 仅测 NOT_SHIPPED(有完整测量即 PASS)。"""
 import csv, json, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 
 
 class TestIsaAvx(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestIsaAvx(unittest.TestCase):
         cls.bench = os.path.join(cls.tmp, "kbench")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-Wall", "-Wextra",
                             f"-I{INC}", f"-I{HOST}",
-                            os.path.join(REPO, "tests", "backend", "kernel_bench_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "kernel_bench_main.cpp"),
                             os.path.join(HOST, "baseline_backend.cpp"),
                             os.path.join(HOST, "host_services.cpp"),
                             "-ldl", "-o", cls.bench], capture_output=True, text=True, timeout=180)

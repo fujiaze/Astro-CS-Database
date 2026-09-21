@@ -15,12 +15,12 @@ import os
 import re
 import subprocess
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # CLI-002/ROOT-008 重锚: AIO 落 lib/infrastructure/aio(旧 lib/astro_image_io 已退役);
 # 共享算法基础库落 lib/algorithms/shared(旧 lib/common 已退役)。
 AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 SHARED = os.path.join(REPO, "lib", "algorithms", "shared")
-FIXTURE_SRC = os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp")
+FIXTURE_SRC = os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp")
 DEFAULT_FDIR = os.path.join(REPO, "run", "temp", "p2003_dbg", "f1f2")
 
 _FIXTURE_EXE = os.path.join(REPO, "run", "temp", "p2003_dbg", "fixture_exe")

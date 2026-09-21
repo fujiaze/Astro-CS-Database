@@ -2,7 +2,7 @@
 """API-003 测试: Phase1 API 登记表 ↔ 头文件签名一致性 (doc-symbol-signature checker 合同)。"""
 import os, re, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 DOC = os.path.join(REPO, "docs", "api", "PHASE1_API_V1.md")
 
 HEADERS = {

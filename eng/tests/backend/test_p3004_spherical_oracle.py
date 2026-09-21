@@ -16,9 +16,9 @@ import subprocess
 import tempfile
 import unittest
 
-from tests.backend.fixture_common import ensure_f1f2_hips  # noqa: E402
+from fixture_common import ensure_f1f2_hips  # noqa: E402
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EXE = os.path.join(REPO, "build", "astrocs")
 HOST = os.path.join(REPO, "lib", "phase3_session")
 
@@ -74,7 +74,7 @@ class TestP3004SphericalOracle(unittest.TestCase):
         if not os.path.isdir(cls.analytic):
             import re
             AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
-            srcs = [os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
+            srcs = [os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"),
                     os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                     os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
                     os.path.join(AIO, "src", "aio_fits.cpp"),

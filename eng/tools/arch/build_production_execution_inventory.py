@@ -43,7 +43,7 @@ def add(cat, sym, loc, cls, reach, phase, tm, ev, risk=""):
     rows.append(dict(zip(COLS, [cat, sym, loc, cls, reach, phase, tm, ev, risk])))
 
 # 1 exe 目标(生产=astrocs CLI 唯一; 其余标 test/tool)
-exe = rg("add_executable", ["lib", "tools"], "*.txt") + rg("add_executable", ["lib"], "*.cmake")
+exe = rg("add_executable", ["lib", "eng/tools"], "*.txt") + rg("add_executable", ["lib"], "*.cmake")
 seen = set()
 for line in exe:
     m = re.search(r"([^/]+/[^:]+):\d+:add_executable\(([\w\.\-]+)", line)

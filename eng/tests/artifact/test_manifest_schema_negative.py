@@ -21,7 +21,7 @@ sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "aio" / "runtime" / "ar
 
 from artifact_manifest_validator import Validator, load_strict_json  # noqa: E402
 
-EX = REPO / "contracts" / "data" / "examples" / "frame_hips_manifest.example.json"
+EX = REPO / "eng" / "contracts" / "data" / "examples" / "frame_hips_manifest.example.json"
 
 
 def base() -> dict:

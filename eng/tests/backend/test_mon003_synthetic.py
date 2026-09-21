@@ -15,8 +15,8 @@ import sys
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-INC = os.path.join(REPO, "include")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+INC = os.path.join(REPO, "lib", "include")
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 CLI = os.path.join(REPO, "cli")
 
@@ -30,7 +30,7 @@ class TestMon003Synthetic(unittest.TestCase):
         r = subprocess.run(
             ["g++", "-std=c++17", "-O2",
              f"-I{INC}", f"-I{HOST}", f"-I{CLI}",
-             os.path.join(REPO, "tests", "backend", "mon003_synthetic_main.cpp"),
+             os.path.join(REPO, "eng", "tests", "backend", "mon003_synthetic_main.cpp"),
              os.path.join(HOST, "baseline_backend.cpp"),
              os.path.join(HOST, "host_services.cpp"),
              "-lpthread", "-ldl", "-o", exe],

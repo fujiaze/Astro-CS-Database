@@ -10,7 +10,7 @@ CLI-002 重锚(ROOT-008 + CLI-001 命令树 + GATE-FIX-RES R-4 D-14): 运行面�
 """
 import json, os, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 # DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
@@ -32,11 +32,11 @@ SHARED = _pick(os.path.join(REPO, "lib", "algorithms", "shared"),
 HEALPIX_SRC = os.path.join(SHARED, "healpix", "healpix_core.cpp")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 # 复用 phase3 inprocess 测试的 cfitsio_objs 组装
 try:
-    from tests.cli.test_phase3_inprocess import cfitsio_objs as cfitsio_objs
+    from test_phase3_inprocess import cfitsio_objs as cfitsio_objs
 except Exception:
     def cfitsio_objs(_tmp):
         return []
@@ -53,7 +53,7 @@ class TestMonitorEvents(unittest.TestCase):
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
                 f"-I{SHARED}", f"-I{os.path.dirname(HEALPIX_SRC)}"]
-        srcs = [os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
+        srcs = [os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
                 os.path.join(AIO, "src", "aio_fits.cpp"),

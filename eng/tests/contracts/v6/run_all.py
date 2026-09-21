@@ -14,7 +14,8 @@
 import json, pathlib, subprocess, sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-REPO = HERE.parents[2]
+REPO = HERE.parents[3]
+
 EVID = HERE / "evidence"
 LOGS = EVID / "logs"
 sys.path.insert(0, str(HERE))

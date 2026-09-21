@@ -18,7 +18,7 @@
 """
 import hashlib, json, os, re, shutil, signal, subprocess, tempfile, time, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 REGISTRY = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_ports.registry.json")
 
 
@@ -36,7 +36,7 @@ def cli_binary():
 EXE = cli_binary()
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 # ARCH-001 迁移: 新布局优先, 旧路径回退（迁移未落盘的一侧仍可构建 fixture）。
 AIO = next((p for p in (os.path.join(REPO, "lib", "infrastructure", "aio"),
@@ -64,7 +64,7 @@ def build_fixture(tmp):
                         f"-I{os.path.join(AIO, 'include')}",
                         f"-I{os.path.join(AIO, 'src')}",
                         f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                        os.path.join(REPO, "tests", "backend", "phase1_fixture_main.cpp"),
+                        os.path.join(REPO, "eng", "tests", "backend", "phase1_fixture_main.cpp"),
                         os.path.join(AIO, "src", "aio_fits.cpp"),
                         os.path.join(AIO, "src", "aio_api.cpp"),
                         os.path.join(AIO, "src", "aio_log.cpp"),

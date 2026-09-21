@@ -16,7 +16,7 @@
     "ASTROCS_DESIGN.md §6.2:310,313（benchmark 直接输出 profile 到安装目录，后续运行时自动读取）",
     "ENGINEERING_SPEC.md §3:30（cpu_profile 只影响并行/ISA，不进入科学配置）",
     "docs/contracts/config_separation_anchors.json（cpu_profile 字段名族与禁止名）",
-    "lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:558-610（v2 生产字段）、:645-707（verify_profile_v2）、lib/infrastructure/benchmark/backend_host/cpu_routing.cpp:216-300（check_profile_identity_v1 身份绑定字段）"
+    "lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:561-613（v2 生产字段）、:648-710（verify_profile_v2）、lib/infrastructure/benchmark/backend_host/cpu_routing.cpp:216-300（check_profile_identity_v1 身份绑定字段）"
   ],
   "x-astrocs-notes": [
     "迁移原因（实测）：原文件内容为 BENCH-004 旧 schema（schema_version=1），而 lib/infrastructure/benchmark/backend_host/profile_gen.h:21 明确 eng/contracts/schemas/cpu_profile.schema.json 即 v2 schema；实现已在写/校 v2（profile_gen_v2.cpp、profile_store.h:10-18）。迁移把两条分支并入唯一文件，消除「schema 文件与实现口径分裂」。",

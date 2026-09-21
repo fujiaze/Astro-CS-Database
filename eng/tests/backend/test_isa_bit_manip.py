@@ -3,9 +3,9 @@
 依据 03 §91: '只评估整数/位操作热点; VNNI 等与算法无关则写 NOT_APPLICABLE 证据, 不写空 DLL'。"""
 import csv, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 
 BMI2_POPCNT = re.compile(r"^(mulx|rorx|blsr|blsmsk|blsi|tzcnt|lzcnt|popcnt|pdep|pext|bmi1|bmi2|andn|bextr)$", re.I)
 

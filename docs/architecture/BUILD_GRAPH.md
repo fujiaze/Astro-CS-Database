@@ -16,10 +16,10 @@
 | Target | Type | Sources | CMakeLists |
 |---|---|---|---|
 | phase2（**现状，含 ACR 违规**） | STATIC | src/upm.cpp, stage2_common.cpp, rejection.cpp, coverage.cpp, sampler.cpp, block.cpp, integrate.cpp, common/healpix_core.cpp, common/crypto/sha256.cpp —— ⛔ **现状源集另含 `acr_kernels.cpp` / `acr/api/kernel_registry.cpp` / `acr/backends/cuda/cuda_bridge_loader.cpp` / `acr/scheduler/device_executor.cpp`，违反最高设计 §8，须从生产源集移除（代码侧整改）** | lib/algorithms/coverage/CMakeLists.txt |
-| ~~astrocs-stage2~~（**非发布入口**） | EXEC | eng/tools/stage2.cpp —— 旧 Phase2 CLI，**不是入口**（最高设计 §6.2 唯一命令树 / §7.1「旧可执行程序不是入口」）；保留仅为历史/工具面，**不得作为发布目标** | lib/algorithms/coverage/CMakeLists.txt |
-| calibrated_pair_diag | EXEC | eng/tools/calibrated_pair_diag.cpp | lib/algorithms/coverage/CMakeLists.txt |
-| rejection_cli | EXEC | eng/tools/rejection_cli.cpp | lib/algorithms/coverage/CMakeLists.txt |
-| phase2_synthetic_gate | TEST | eng/tests/synthetic_gate.cpp | lib/algorithms/coverage/CMakeLists.txt (if GTest) |
+| ~~astrocs-stage2~~（**非发布入口**） | EXEC | lib/algorithms/coverage/tools/stage2.cpp —— 旧 Phase2 CLI，**不是入口**（最高设计 §6.2 唯一命令树 / §7.1「旧可执行程序不是入口」）；保留仅为历史/工具面，**不得作为发布目标** | lib/algorithms/coverage/CMakeLists.txt |
+| calibrated_pair_diag | EXEC | lib/algorithms/coverage/tools/calibrated_pair_diag.cpp | lib/algorithms/coverage/CMakeLists.txt |
+| rejection_cli | EXEC | lib/algorithms/coverage/tools/rejection_cli.cpp | lib/algorithms/coverage/CMakeLists.txt |
+| phase2_synthetic_gate | TEST | lib/algorithms/coverage/tests/synthetic_gate.cpp | lib/algorithms/coverage/CMakeLists.txt (if GTest) |
 | orchestrator.exe | EXEC | cpp/src/main.cpp, orchestrator.cpp, cli_command.cpp | lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt |
 | astro_image_io.dll | SHARED | src/*.cpp + hips/* + cfitsio | lib/infrastructure/aio/CMakeLists.txt |
 | hepix_drizzle | STATIC/SHARED | healpix_drizzle/*.cpp | lib/algorithms/drizzle/healpix_drizzle/CMakeLists.txt |
@@ -45,7 +45,7 @@
 | 声明 | File-API codemodel target | compile DB |
 |---|---|---|
 | phase2 STATIC | `phase2` reply `targetSources + compileGroups` | `compile_commands.json` entries for src/*.cpp with `__cplusplus=202002L` |
-| astrocs-stage2 EXEC | `astrocs-stage2` target | `eng/tools/stage2.cpp` compile command |
+| astrocs-stage2 EXEC | `astrocs-stage2` target | `lib/algorithms/coverage/tools/stage2.cpp` compile command |
 | orchestrator EXEC | `orchestrator` target | `cpp/src/*.cpp` commands |
 
 验证: `cmake --build --verbose` 显示命令含 `-std=c++20` + `-D` + `-I` 与声明一致; File-API `reply/codemodel-v2-*.json` 的 `targets[].sources` 与上表一致 (contracts configure 时落地)。

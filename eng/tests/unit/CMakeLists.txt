@@ -1432,9 +1432,13 @@ if(Python3_Interpreter_FOUND)
   # ivar 面 / 冻结表外单位）必须 exit 3|4 且不留半成品; 正例必须真产出 canonical
   # BUNIT 产品; variance 传播 nearest 逐像素对拍 + bilinear Σc_k² 判别。
   # --------------------------------------------------------------------------
+  # 2026-09-21 根目录整合：tests/ → eng/tests/，模块式导入路径 tests.backend.* 失效
+  # （eng/ 不是 Python 包）。改与 UT-BACKEND（eng/ci/checks.json）同口径的 discover 形式。
   add_test(NAME fix402_phase3_semantic_guard
-    COMMAND ${Python3_EXECUTABLE} -m unittest -v
-            tests.backend.test_fix402_phase3_semantic_guard)
+    COMMAND ${Python3_EXECUTABLE} -m unittest discover -v
+            -s ${CMAKE_CURRENT_SOURCE_DIR}/../backend
+            -t ${CMAKE_CURRENT_SOURCE_DIR}/../backend
+            -p test_fix402_phase3_semantic_guard.py)
   set_tests_properties(fix402_phase3_semantic_guard PROPERTIES
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}"

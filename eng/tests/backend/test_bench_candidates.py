@@ -2,9 +2,9 @@
 """BENCH-003 测试: 内存基线/worker-block 候选派生(零硬编码)/资源指标/原始样本引用。"""
 import hashlib, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 
 
 class TestBenchCandidates(unittest.TestCase):
@@ -17,12 +17,12 @@ class TestBenchCandidates(unittest.TestCase):
                   f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}"]
         cls.probe = os.path.join(cls.tmp, "cprobe")
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{INC}", f"-I{HOST}",
-                            os.path.join(REPO, "tests", "backend", "candidates_probe_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "candidates_probe_main.cpp"),
                             *common, "-o", cls.probe], capture_output=True, text=True, timeout=180)
         assert r.returncode == 0, r.stderr
         cls.runner = os.path.join(cls.tmp, "bcand")
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{INC}", f"-I{HOST}",
-                            os.path.join(REPO, "tests", "backend", "bench_candidates_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "bench_candidates_main.cpp"),
                             os.path.join(HOST, "baseline_backend.cpp"), *common, "-ldl",
                             "-o", cls.runner], capture_output=True, text=True, timeout=240)
         assert r.returncode == 0, r.stderr

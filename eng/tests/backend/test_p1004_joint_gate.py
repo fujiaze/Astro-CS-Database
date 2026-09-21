@@ -28,10 +28,10 @@ import subprocess
 import tempfile
 import unittest
 
-from tests.backend import fixture_common  # noqa: E402
-from tests.backend.fixture_common import two_cpu_preexec  # noqa: E402
+import fixture_common  # noqa: E402
+from fixture_common import two_cpu_preexec  # noqa: E402
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EXE = os.path.join(REPO, "build", "astrocs")
 TMP = "/tmp/mon001_run_out"  # 复用 MON-001 配置的 output_dir
 FIELD_HIPS = os.path.join(REPO, "run", "temp", "FIELD.hips")
@@ -124,7 +124,7 @@ class TestP1004JointGate(unittest.TestCase):
         """所有 P1 Oracle(6 个)在同 commit 下全绿(数值门)。"""
         env = dict(os.environ, ASTROCS_REPO=REPO)
         for name in P1_ORACLES:
-            path = os.path.join(REPO, "tests", "backend", name)
+            path = os.path.join(REPO, "eng", "tests", "backend", name)
             r = subprocess.run(["python3", path], capture_output=True, text=True,
                                env=env, timeout=900)
             self.assertEqual(r.returncode, 0,

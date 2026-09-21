@@ -16,8 +16,8 @@
 """
 import math, os, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-INC = os.path.join(REPO, "include")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+INC = os.path.join(REPO, "lib", "include")
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 
 DRIVER = r'''

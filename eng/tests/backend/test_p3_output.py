@@ -10,7 +10,7 @@ R10-C (bughunt p2 batchL) 增补:
 """
 import hashlib, math, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "phase3_session")
 # W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/ (ASTROCS_DESIGN §7.1)
 PROJ = os.path.join(REPO, "lib", "algorithms", "projection")
@@ -45,7 +45,7 @@ class TestP3Output(unittest.TestCase):
                            capture_output=True, timeout=300)
             objs.append(o)
         cls.cfitsio_objs = objs
-        srcs = [os.path.join(REPO, "tests", "backend", "p3_output_probe_main.cpp"),
+        srcs = [os.path.join(REPO, "eng", "tests", "backend", "p3_output_probe_main.cpp"),
                 os.path.join(FITS, "p3_output.cpp"), os.path.join(PROJ, "p3_wcs.cpp"),
                 os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
                 os.path.join(AIO, "src", "aio_fits.cpp"),
@@ -72,7 +72,7 @@ class TestP3Output(unittest.TestCase):
                 f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",
                 f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
                 f"-I{CFITSIO}"]
-        srcs = [os.path.join(REPO, "tests", "backend", "p3_output_fsync_probe.cpp"),
+        srcs = [os.path.join(REPO, "eng", "tests", "backend", "p3_output_fsync_probe.cpp"),
                 os.path.join(FITS, "p3_output.cpp"), os.path.join(PROJ, "p3_wcs.cpp"),
                 os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp"),
                 os.path.join(AIO, "src", "aio_fits.cpp"),
@@ -94,7 +94,7 @@ class TestP3Output(unittest.TestCase):
             return cls.interposer_so
         so = os.path.join(cls.tmp, "fsync_interposer.so")
         r = subprocess.run(["g++", "-shared", "-fPIC", "-O2", "-w",
-                            os.path.join(REPO, "tests", "backend",
+                            os.path.join(REPO, "eng", "tests", "backend",
                                          "p3_output_fsync_interposer.cpp"),
                             "-ldl", "-o", so],
                            capture_output=True, text=True, timeout=120)
