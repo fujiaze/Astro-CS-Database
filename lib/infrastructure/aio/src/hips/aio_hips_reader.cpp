@@ -158,10 +158,15 @@ struct AioHipsDataset {
     size_t bad_snr_rows = 0;          // 损坏 TSV 行计数 (G6 robustness)
 };
 
+// PERF-401: 读路径不再取进程级串行化锁。
+// 线程模型依据（见 aio_cfitsio_mutex.h 头注释）：cfitsio 4.6.4 以 _REENTRANT
+// 构建，FptrTable 与错误栈均由 cfitsio 自带 Fitsio_Lock 保护；READONLY 打开时
+// fits_already_open 直接返回（cfileio.c:1544），不会跨线程复用同一 FITSfile*。
+// 因此「每次调用各自 open/read/close、句柄只在本线程栈上」即可并发安全：
+// 读路径零共享可变状态（原先的全局锁把 16 worker 的 tile 读串行化成 1 条流）。
 template <typename T>
 static int read_tile_t(AioHipsDataset* d, uint64_t ipix, T* out) {
     if (!d || !out) return -1;
-    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
     std::string p = tile_path_resolve(d->dir, d->hips_order, ipix, ".fits");
     int status = 0;
     fitsfile* fptr = nullptr;
@@ -211,7 +216,6 @@ static int read_tile_t(AioHipsDataset* d, uint64_t ipix, T* out) {
 // 输出为 standard HiPS row-major (与 read_tile_t 同合同)。
 static int read_tile_i32(AioHipsDataset* d, uint64_t ipix, int32_t* out) {
     if (!d || !out) return -1;
-    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
     const std::string p = tile_path_resolve(d->dir, d->hips_order, ipix, ".fits");
     int status = 0;
     fitsfile* fptr = nullptr;
@@ -251,7 +255,7 @@ namespace {
 
 // 从 MOC FITS 提取叶级 ipix (order == hips_order 的 UNIQ -> ipix)
 bool load_tiles_from_moc(AioHipsDataset* d) {
-    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
+    // PERF-401: 同 read_tile_t —— READONLY 打开不需要进程级串行化。
     std::string moc = d->dir + "/Moc.fits";
     int status = 0;
     fitsfile* fptr = nullptr;
@@ -303,6 +307,62 @@ bool load_tiles_from_moc(AioHipsDataset* d) {
 } // namespace
 
 namespace {
+// PERF-401: 单像素读。原实现为取 1 个 leaf 值而分配并读满整块 512² tile
+// （1 MiB），而它在 control-ivar 装配循环里被调用 n_cells × n_frames 次 ——
+// 单这一处就占 Phase2 全量 tile 读的 1/3 左右。此处只向 cfitsio 要目标像素。
+// 取值与 read_tile_t 的 tmp[fi] 逐位相同：同一文件、同一 BITPIX 分支、同一
+// fits_index -> (col=fits_index%512, row=fits_index/512) 行主序映射
+// （healpix_core.cpp:288 nested_local_to_fits_index = (maxv-x)*width + y）。
+template <typename T>
+static int read_tile_pixel_t(AioHipsDataset* d, uint64_t ipix, uint64_t fits_index, T* out) {
+    if (!d || !out) return -1;
+    const uint64_t n_pix = (uint64_t)d->tile_width * (uint64_t)d->tile_width;
+    if (fits_index >= n_pix) return -6;
+    std::string p = tile_path_resolve(d->dir, d->hips_order, ipix, ".fits");
+    int status = 0;
+    fitsfile* fptr = nullptr;
+    if (fits_open_file(&fptr, p.c_str(), READONLY, &status)) {
+        fits_clear_errmsg();
+        set_err("tile 不存在: " + p);
+        return -2;
+    }
+    int bitpix = 0, naxis = 0;
+    long naxes[2] = {0, 0};
+    if (fits_get_img_param(fptr, 2, &bitpix, &naxis, naxes, &status)) {
+        fits_close_file(fptr, &status);
+        return -3;
+    }
+    if (naxis != 2 || naxes[0] != d->tile_width || naxes[1] != d->tile_width) {
+        fits_close_file(fptr, &status);
+        set_err("tile 尺寸非法");
+        return -4;
+    }
+    const long w = (long)d->tile_width;
+    long fpixel[2] = {(long)(fits_index % (uint64_t)w) + 1,
+                      (long)(fits_index / (uint64_t)w) + 1};
+    if (bitpix == -32) {
+        float v = 0.0f;
+        if (fits_read_pix(fptr, TFLOAT, fpixel, 1, nullptr, &v, nullptr, &status)) {
+            fits_close_file(fptr, &status);
+            return -5;
+        }
+        *out = (T)v;
+    } else if (bitpix == -64) {
+        double v = 0.0;
+        if (fits_read_pix(fptr, TDOUBLE, fpixel, 1, nullptr, &v, nullptr, &status)) {
+            fits_close_file(fptr, &status);
+            return -5;
+        }
+        *out = (T)v;
+    } else {
+        fits_close_file(fptr, &status);
+        set_err("tile BITPIX 非 -32/-64");
+        return -6;
+    }
+    fits_close_file(fptr, &status);
+    return 0;
+}
+
 template <typename T>
 int read_leaf_t(AioHipsDataset* d, uint64_t leaf_ipix, T* out) {
     if (!d || !out) return -1;
@@ -313,11 +373,7 @@ int read_leaf_t(AioHipsDataset* d, uint64_t leaf_ipix, T* out) {
     const uint64_t tile = leaf_ipix >> 18;
     const uint64_t z = leaf_ipix & ((1ULL << 18) - 1ULL);
     const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(z, 9u, 512u);
-    std::vector<T> tmp((size_t)512 * 512);
-    const int rc = read_tile_t(d, tile, tmp.data());
-    if (rc != 0) return rc;
-    *out = tmp[(size_t)fi];
-    return 0;
+    return read_tile_pixel_t(d, tile, fi, out);
 }
 // ============================================================================
 // P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
@@ -560,7 +616,8 @@ int aio_hips_read_tile_datasum(AioHipsDataset* d, uint64_t tile_ipix,
     // P1 (R9-A): C 边界异常屏障
     try {
         if (!d || !out || out_size <= 0) return -1;
-        std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());
+        // 诊断接口（非热路径）：保留计数式串行化，等待时间进 lock_wait_ns。
+        aio::CfitsioLockGuard cfitsio_guard;
         std::string p = tile_path_resolve(d->dir, d->hips_order, tile_ipix, ".fits");
         int status = 0;
         fitsfile* fptr = nullptr;

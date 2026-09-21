@@ -17,7 +17,7 @@
 |---|---|---|---|---|---|---|
 | Stage1 calibrate | calibrator thread | per-tile OpenMP | 16 | OpenMP parallel for | tile barrier | `calibrator.cpp: OpenMP 16` |
 | Stage1 drizzle | drizzle worker | per-source-pixel candidate | n_threads | OpenMP + cache | tile merge serial | `drizzle_engine.cpp:1662 reduction` |
-| Stage2 sampler | stage2 main | per-control-cell (64 per tile) | n_threads if P2_ENABLE_OPENMP ON else 1 | OpenMP or serial | cell barrier | `sampler.cpp:604, CMakeLists.txt:18 OFF` |
+| Stage2 sampler | stage2 worker pool | per-control-cell (64 per tile) | budget.max_workers（Runtime lease；1 = 串行 reference） | std::thread pool（无 OpenMP 条件） | cell barrier | `sampler.cpp:924-954`（`cfg.cpu_workers = budget.max_workers`，`next_c.fetch_add(1)` 动态取 cell） |
 | Stage2 UPM solve | stage2 main | full graph | 1 | serial | — | `upm.cpp Huber IRLS` |
 | Stage2 block/reject/integrate | block worker | per-pixel candidate stack | n_threads | OpenMP per-pixel | pixel barrier | `rejection.cpp/integrate.cpp` |
 | ~~ACR Dispatcher~~ **DORMANT** | — | — | — | — | — | 保留源码与隔离测试，**不进生产**（最高设计 §8）；原行：acr thread / per-tile chunk (px) / auto / Dispatcher::decide / mixed merge / `acr_kernels.cpp` |
@@ -29,7 +29,7 @@
 | 项 | 模式 | 细节 |
 |---|---|---|
 | HiPS write | async_io | `aio_hips_writer` 异步刷盘, 事务提交；合同见 [ASYNC_IO_CONTRACT.md](ASYNC_IO_CONTRACT.md) |
-| HiPS read | serial or critical | `aio_read critical(aio_read)` 若 OpenMP 开启则串行化 |
+| HiPS read | 并发只读（无进程级锁） | **PERF-401 线程模型**：读路径无进程级共享可变状态；每个 `fitsfile*` 为单线程私有、生命周期不跨线程转移（每次调用各自 open→read→close，句柄只在该调用栈帧）；并发安全由 cfitsio `_REENTRANT` 构建保证（`FptrTable`/错误栈由 cfitsio 自带 `Fitsio_Lock` 保护，`READONLY` 打开 `fits_already_open` 直接返回、不复用句柄，`cfileio.c:1544`）。机器判据 `check_execution_contracts.py::EXEC-AIO-READ-NO-GLOBAL-LOCK` |
 | ~~ACR H2D/D2H~~ **DORMANT** | — | 保留源码与隔离测试，**不进生产**；原行：async via CUDA stream / `cuda_bridge_api` H2D>0 in cold Mixed (BDR D gate) |
 | Fallback | sync fallback | 生产 fallback **只有一条**：无 cpu_profile → baseline 后端 + 动态 worker（保守合法，最高设计 §8） |
 
@@ -37,7 +37,7 @@
 
 | 共享 | 原语 | 粒度 |
 |---|---|---|
-| aio_read | `critical(aio_read)` | whole read if parallel |
+| aio_read 读路径 | **无进程级互斥量**（PERF-401 取代旧 `critical(aio_read)`） | 每次调用独立句柄，句柄线程私有、不跨线程转移；剩余串行化点（诊断/写面）统一走计数式 `aio::CfitsioLockGuard`（等待进 `resource_timeseries.csv` 的 `lock_wait_ns`） |
 | rejected_* | `atomic` | per-sample |
 | Drizzle counters | `atomic` / `reduction` | per-tile |
 | Dense cache | `mutex` | per-write |
@@ -82,7 +82,7 @@
 | ID | 覆盖 |
 |---|---|
 | ARC-EXEC-001 | Stage1 per-tile OpenMP calibrate |
-| ARC-EXEC-002 | Stage2 sampler critical(aio_read) |
+| ARC-EXEC-002 | Stage2 sampler 并发只读（PERF-401：无进程级锁；句柄单线程私有、不跨线程转移；Runtime lease 定 worker 数） |
 | ARC-EXEC-003 | Stage2 UPM serial solve |
 | ARC-EXEC-004 | Phase2 block/reject/integrate per-pixel parallel |
 | ~~ARC-EXEC-005~~ **DORMANT** | ACR Dispatcher mixed H2D/D2H + fallback —— **休眠，不进生产**（最高设计 §8） |

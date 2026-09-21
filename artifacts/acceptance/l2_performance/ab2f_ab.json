@@ -1,0 +1,116 @@
+[
+ {
+  "name": "ab2f_lock0_r0",
+  "lock": 0,
+  "rep": 0,
+  "rc": 0,
+  "wall_s": 39.87,
+  "duration_s": 39.8,
+  "cpu_avg_pct": 196.39,
+  "cfitsio_lock": {
+   "wait_ns": 0,
+   "hold_ns": 0,
+   "acquisitions": 0,
+   "contended": 0,
+   "source": "aio::cfitsio_io_mutex measured"
+  },
+  "io_wait_pct_mean": [
+   38.14
+  ]
+ },
+ {
+  "name": "ab2f_lock1_r0",
+  "lock": 1,
+  "rep": 0,
+  "rc": 0,
+  "wall_s": 44.21,
+  "duration_s": 44.13,
+  "cpu_avg_pct": 167.88,
+  "cfitsio_lock": {
+   "wait_ns": 0,
+   "hold_ns": 0,
+   "acquisitions": 0,
+   "contended": 0,
+   "source": "aio::cfitsio_io_mutex measured"
+  },
+  "io_wait_pct_mean": [
+   57.9
+  ]
+ },
+ {
+  "name": "ab2f_lock0_r1",
+  "lock": 0,
+  "rep": 1,
+  "rc": 0,
+  "wall_s": 48.42,
+  "duration_s": 48.35,
+  "cpu_avg_pct": 154.62,
+  "cfitsio_lock": {
+   "wait_ns": 0,
+   "hold_ns": 0,
+   "acquisitions": 0,
+   "contended": 0,
+   "source": "aio::cfitsio_io_mutex measured"
+  },
+  "io_wait_pct_mean": [
+   78.34
+  ]
+ },
+ {
+  "name": "ab2f_lock1_r1",
+  "lock": 1,
+  "rep": 1,
+  "rc": 0,
+  "wall_s": 49.53,
+  "duration_s": 49.45,
+  "cpu_avg_pct": 151.85,
+  "cfitsio_lock": {
+   "wait_ns": 0,
+   "hold_ns": 0,
+   "acquisitions": 0,
+   "contended": 0,
+   "source": "aio::cfitsio_io_mutex measured"
+  },
+  "io_wait_pct_mean": [
+   77.51
+  ]
+ },
+ {
+  "name": "ab2f_lock0_r2",
+  "lock": 0,
+  "rep": 2,
+  "rc": 0,
+  "wall_s": 55.32,
+  "duration_s": 55.25,
+  "cpu_avg_pct": 137.17,
+  "cfitsio_lock": {
+   "wait_ns": 0,
+   "hold_ns": 0,
+   "acquisitions": 0,
+   "contended": 0,
+   "source": "aio::cfitsio_io_mutex measured"
+  },
+  "io_wait_pct_mean": [
+   80.92
+  ]
+ },
+ {
+  "name": "ab2f_lock1_r2",
+  "lock": 1,
+  "rep": 2,
+  "rc": 0,
+  "wall_s": 55.41,
+  "duration_s": 55.34,
+  "cpu_avg_pct": 138.0,
+  "cfitsio_lock": {
+   "wait_ns": 0,
+   "hold_ns": 0,
+   "acquisitions": 0,
+   "contended": 0,
+   "source": "aio::cfitsio_io_mutex measured"
+  },
+  "io_wait_pct_mean": [
+   144.39
+  ]
+ }
+]

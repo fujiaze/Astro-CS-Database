@@ -1,0 +1,9 @@
+{
+ "cpu_model": "Genuine Intel(R) CPU 0000 @ 1.70GHz",
+ "nproc": "16",
+ "mem_kb": "24607476",
+ "uname": "Linux-6.12.107+deb13-amd64-x86_64-with-glibc2.41",
+ "git_head": "bb508dea9507ddde627a97e16651ecc4ec37dd30",
+ "block_devices": "vda 1  256G disk;vdb 1  512G disk;",
+ "disk_seq_write_mb_s": "113 (dd bs=1M count=1024 conv=fdatasync, 1 GiB/9.49 s)"
+}

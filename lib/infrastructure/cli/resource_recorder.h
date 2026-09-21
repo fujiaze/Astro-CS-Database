@@ -20,6 +20,16 @@
 
 #include "monitor.h"
 
+// PERF-401: cfitsio 取锁点（aio）的**实测**阻塞等待。aio/src 已在 astrocs
+// 目标的 include 面上；其他 include 本头的 target 若无该路径则本块自动退化
+// （lock_wait_ns 保持 0，不引入新依赖、不改公共 ABI）。
+#if defined(__has_include)
+#  if __has_include("aio_cfitsio_mutex.h")
+#    include "aio_cfitsio_mutex.h"
+#    define ASTROCS_RES_HAVE_CFITSIO_LOCK_STATS 1
+#  endif
+#endif
+
 namespace astrocs {
 
 // 阶段枚举: init(启动/加载) / active(节点计算) / flush(落盘/收尾)
@@ -126,6 +136,17 @@ public:
         r.runnable_workers = runnable_workers_;
         r.queue_depth = queue_depth_;
         r.progress = progress_;
+#if defined(ASTROCS_RES_HAVE_CFITSIO_LOCK_STATS)
+        // 区间增量（进程级累计 → 本样本区间）。实测值，非 nvcsw 代理。
+        {
+            const aio::CfitsioLockStats ls = aio::cfitsio_lock_stats();
+            r.lock_wait_ns = (ls.wait_ns >= lock_wait_ns_seen_)
+                                 ? (ls.wait_ns - lock_wait_ns_seen_) : 0;
+            lock_wait_ns_seen_ = ls.wait_ns;
+            lock_acquisitions_total_ = ls.acquisitions;
+            lock_contended_total_ = ls.contended;
+        }
+#endif
         // RUNTIME-CI-001: 每线程 CPU + I/O wait 记录(单位与 cpu_pct 同口径:
         // percent_of_one_core, 100=1 核满载; 门禁侧按已分配容量归一)。
         r.threads = s.threads;
@@ -185,6 +206,12 @@ private:
     uint32_t runnable_workers_ = 0;
     uint64_t queue_depth_ = 0;
     double progress_ = 0.0;
+#if defined(ASTROCS_RES_HAVE_CFITSIO_LOCK_STATS)
+    // PERF-401: cfitsio 取锁实测计数（进程级累计的上次快照 → 区间增量）
+    uint64_t lock_wait_ns_seen_ = 0;
+    uint64_t lock_acquisitions_total_ = 0;
+    uint64_t lock_contended_total_ = 0;
+#endif
     std::vector<ResRecord> records_;
     uint64_t n_ = 0;
 };
@@ -314,7 +341,22 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
                             s.per_thread_cpu_max_pct_peak, s.per_thread_cpu_sum_pct_mean,
                             s.active_compute_threads_peak, s.io_wait_pct_mean);
         }
+#if defined(ASTROCS_RES_HAVE_CFITSIO_LOCK_STATS)
+        // PERF-401: cfitsio 锁等待实测汇总（进程级累计；与 CSV 的 lock_wait_ns
+        // 列同源）。wait_ns 为**实际阻塞**纳秒，contended 为需要阻塞的取锁次数。
+        {
+            const aio::CfitsioLockStats ls = aio::cfitsio_lock_stats();
+            std::fprintf(f, "],\"cfitsio_lock\":{\"wait_ns\":%llu,\"hold_ns\":%llu,"
+                            "\"acquisitions\":%llu,\"contended\":%llu,"
+                            "\"source\":\"aio::cfitsio_io_mutex measured\"}}\n",
+                         (unsigned long long)ls.wait_ns,
+                         (unsigned long long)ls.hold_ns,
+                         (unsigned long long)ls.acquisitions,
+                         (unsigned long long)ls.contended);
+        }
+#else
         std::fprintf(f, "]}\n");
+#endif
         if (std::fclose(f) != 0) return false;
     }
     // worker_balance.csv: 每样本 active vs runnable(供不平衡分类)

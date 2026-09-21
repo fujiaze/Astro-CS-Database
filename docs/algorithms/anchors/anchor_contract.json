@@ -215,7 +215,7 @@
       "id": "P3FITS-MUTEX",
       "doc": "docs/algorithms/PHASE3_FITS_IMPL.md",
       "target": "lib/algorithms/fits_output/p3_output.cpp",
-      "symbol": "cfitsio_io_mutex"
+      "symbol": "CfitsioLockGuard"
     },
     {
       "id": "P3FITS-HWCONC",

@@ -102,6 +102,14 @@ static bool build_tile_product(const std::string& dir, uint32_t nside,
 
 // FITS 主头实卡断言 (CFITSIO 固定 80 列卡格式, 逐字)。
 static void check_primary_cards(const std::string& tile) {
+  // BLD-401 空断言充数修复（AGENTS.md §9）：tile 为空时下面 3 条
+  // find(...)==npos 恒真（"必须是非全零 CHECKSUM" 会静默变成恒真门）。
+  // 先 fail-closed 断言内容非空。
+  CHECK(!tile.empty());
+  if (tile.empty()) {
+    std::fprintf(stderr, "p1_hips_writer: tile 内容为空（判据会退化为恒真）\n");
+    return;
+  }
   CHECK(tile.find("SIMPLE  =                    T") != std::string::npos);
   CHECK(tile.find("BITPIX  =                  -32") != std::string::npos);
   CHECK(tile.find("NAXIS   =                    2") != std::string::npos);
