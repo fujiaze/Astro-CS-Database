@@ -162,11 +162,31 @@ int main() {
     (void)n;
   }
 
-  // 6) integration 语义: mean/weighted mean/variance/support + frame identity
+  // 6) frame identity: reason 输出按**输入槽位**索引 —— 拒绝只作用于像素值，
+  //    不重编号、不重排帧（GATE-502 空断言普查：原为 CHECK(true) 占位）。
   {
-    // frame identity 不丢失: 拒绝只作用于像素值, 不重编号 frame
-    // 语义验证: reason 输出与 frame_id 解耦 (kernel 不知 frame_id)
-    CHECK(true);
+    constexpr int kN = 8;
+    auto vals = synth_stack(kN, 1000.0);
+    vals[1] = 4000.0;                       // 槽 1：高离群（宇宙线）
+    const std::vector<double> before = vals;
+    const P2RejectionPlan plan = pixel_plan(static_cast<std::uint32_t>(kN));
+    const Decision d = run_pixel_stack(vals, plan);
+    CHECK(d.status == P2_STATUS_OK);
+    // 槽位对齐：reason[i] 恰对应 vals[i]（frame identity 不因拒绝而错位）
+    for (int i = 0; i < kN; ++i) {
+      const std::uint8_t want = (i == 1) ? P2_REASON_REJECTED_HIGH : P2_REASON_ACCEPTED;
+      if (d.reasons[static_cast<std::size_t>(i)] != want)
+        std::fprintf(stderr, "frame identity 破坏: slot %d reason=%u want=%u\n", i,
+                     static_cast<unsigned>(d.reasons[static_cast<std::size_t>(i)]),
+                     static_cast<unsigned>(want));
+      CHECK(d.reasons[static_cast<std::size_t>(i)] == want);
+    }
+    // 计数不变量在真实运行上成立（accepted + low + high = n，逐槽恰一个 reason）
+    CHECK(d.accepted + d.low + d.high == static_cast<std::uint32_t>(kN));
+    CHECK(d.high == 1u && d.low == 0u);
+    CHECK(d.accepted == static_cast<std::uint32_t>(kN - 1));
+    // 输入栈只读：拒绝不重排、不改写候选值（frame identity 的另一半）
+    CHECK(std::memcmp(before.data(), vals.data(), before.size() * sizeof(double)) == 0);
   }
 
   // =====================================================================
