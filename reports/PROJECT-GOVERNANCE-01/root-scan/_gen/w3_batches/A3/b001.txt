@@ -1,9 +1,0 @@
-lib/phase3_session/p3_output.h
-lib/phase3_session/p3_resample.cpp
-lib/phase3_session/p3_resample.h
-lib/phase3_session/p3_session.cpp
-lib/phase3_session/p3_session.h
-lib/phase3_session/p3_v6_export.cpp
-lib/phase3_session/p3_v6_export.h
-lib/phase3_session/p3_wcs.cpp
-lib/phase3_session/p3_wcs.h

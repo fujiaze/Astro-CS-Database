@@ -1,3 +1,0 @@
-21120	run/tmp_wcs001/probe_oracle6
-6223	run/tmp_wcs001/probe_oracle6.cpp
-1817	run/tmp_wcs001/wcs001_final_verification.log

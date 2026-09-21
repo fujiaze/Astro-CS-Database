@@ -1,8 +1,0 @@
-136880	run/tmp_wcs003/probe_traj
-136856	run/tmp_wcs003/probe_iter
-133064	run/tmp_wcs003/probe_bnd
-16064	run/tmp_wcs003/probe_j
-3336	run/tmp_wcs003/probe_traj.cpp
-3015	run/tmp_wcs003/probe_iter.cpp
-1655	run/tmp_wcs003/probe_j.cpp
-1619	run/tmp_wcs003/probe_bnd.cpp

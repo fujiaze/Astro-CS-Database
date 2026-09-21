@@ -1,7 +1,0 @@
-verdict=FAIL total=5 pass=3 fail=2 known_fail=0 skipped_waivable=0
-result: /tmp/astrocs-audit/ci/CI_RESULT.json
-AGENTS-GOV PASS rc= 0
-CTEST-REGISTRATION FAIL rc= 1
-KNOWN-FAILURES-BASELINE-VERIFY PASS rc= 0
-THREAD-BUDGET FAIL rc= 1
-VERSION-CONSISTENCY PASS rc= 0
