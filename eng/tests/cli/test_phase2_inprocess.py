@@ -14,7 +14,7 @@
 """
 import json, os, re, shutil, signal, subprocess, tempfile, time, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
 def cli_binary():
@@ -31,7 +31,7 @@ def cli_binary():
 EXE = cli_binary()
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 
 def _pick(*cands):
@@ -76,7 +76,7 @@ class TestPhase2InProcess(unittest.TestCase):
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
                 f"-I{SHARED}",
                 f"-I{os.path.dirname(HEALPIX_SRC)}"]
-        srcs = [os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
+        srcs = [os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
                 os.path.join(AIO, "src", "aio_fits.cpp"),

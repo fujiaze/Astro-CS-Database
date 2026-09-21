@@ -18,7 +18,7 @@
   `AC_API` 符号）+ `lib/algorithms/calibration/src/master_generator.cpp`、
   `lib/algorithms/calibration/src/calibrator.cpp`、`lib/algorithms/calibration/src/cosmetic_corrector.cpp`、
   `lib/algorithms/calibration/src/ac_api.cpp`（CMake `astrocs_calibration` 静态库唯一构建
-  清单，CMakeLists.txt:446-465）。
+  清单，CMakeLists.txt:453-472）。
 - 负责: master bias/dark/flat 生成（sigma-clip 合并）、单帧校准算术、
   热像素/冷像素检测与插值修复；Gaia 测光比例标量应用（现状未接线）。
 - 不负责: FITS/XISF 文件读写（astro_image_io，调用方侧）、母版按曝光/滤镜

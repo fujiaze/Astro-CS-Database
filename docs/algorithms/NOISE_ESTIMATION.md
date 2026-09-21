@@ -128,7 +128,7 @@ snr_estimator CMake 目标，CMake 集成归 P1-NOISE-IMPL），
 dll_loader.cpp:41/55 加载名与路径吻合）。**噪声模型 A 为唯一生产模型**
 （`lib/algorithms/noise_snr/cpp/src/noise_model.cpp`；公式正本 =
 `docs/science/NOISE_MODEL.md`），静态库
-`astrocs_phase1_noise`（源 = A + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），CMakeLists.txt:644-659，主程序链接 :747；单测
+`astrocs_phase1_noise`（源 = A + `wrapper_phase1/snr_frame_science.cpp` + `cpp/src/snr_science.cpp`），CMakeLists.txt:662-677，主程序链接 :747；单测
 eng/tests/unit/p1_noise_test.cpp 经 eng/tests/unit/CMakeLists.txt:619-623 注册）。
 
 | ALG | 符号 | 源锚 |

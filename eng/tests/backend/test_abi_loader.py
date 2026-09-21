@@ -2,11 +2,11 @@
 """ABI-002 测试: manifest/hash/ABI/ISA/路径注入 全拒绝且无 illegal instruction。"""
 import ctypes, json, os, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 
-FIXTURE_SRC = os.path.join(REPO, "tests", "backend", "fixture_backend.cpp")
+FIXTURE_SRC = os.path.join(REPO, "eng", "tests", "backend", "fixture_backend.cpp")
 
 
 class TestBackendLoader(unittest.TestCase):
@@ -39,7 +39,7 @@ class TestBackendLoader(unittest.TestCase):
     def _load(self, manifest_path):
         """编译+运行 loader 测试 TU; 返回 (rc, stdout)。"""
         exe = os.path.join(self.tmp, "loader_tu")
-        src = os.path.join(REPO, "tests", "backend", "loader_probe_main.cpp")
+        src = os.path.join(REPO, "eng", "tests", "backend", "loader_probe_main.cpp")
         r = subprocess.run(["g++", "-std=c++17", f"-I{INC}", f"-I{HOST}",
                             f"-I{os.path.join(REPO, 'third_party')}",
                             f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}",

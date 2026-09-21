@@ -26,12 +26,12 @@ docs/api/CLI_PROTOCOL_V1.md §1-§3。
 """
 import json, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # ROOT-008 迁移后 CLI 命令层在 lib/infrastructure/cli/（cli/ 只剩 compatibility 声明）。
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 HELP_LINES = [
     "astrocs --version [--json]",

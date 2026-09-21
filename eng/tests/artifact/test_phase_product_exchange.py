@@ -25,7 +25,7 @@ sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "aio" / "runtime" / "ar
 
 from phase_product_exchange_validator import PhaseProductExchangeValidator  # noqa: E402
 
-EX = REPO / "contracts" / "data" / "examples"
+EX = REPO / "eng" / "contracts" / "data" / "examples"
 EX_P1 = EX / "phase1_product_v1.example.json"
 EX_P2 = EX / "phase2_mosaic_v1.example.json"
 EX_P3 = EX / "phase3_planar_fits_v1.example.json"

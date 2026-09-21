@@ -13,8 +13,8 @@
 """
 import math, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-INC = os.path.join(REPO, "include")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+INC = os.path.join(REPO, "lib", "include")
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 # W4-A9 批次 1: p3_wcs.cpp 迁 lib/algorithms/projection/
 P3 = os.path.join(REPO, "lib", "algorithms", "projection")

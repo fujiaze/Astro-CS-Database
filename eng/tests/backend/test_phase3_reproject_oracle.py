@@ -17,10 +17,10 @@
 """
 import math, os, shutil, struct, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "phase3_session")
 AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 C = os.path.join(REPO, "lib", "algorithms", "shared")
 CASTRO = os.path.join(C, "healpix")
 
@@ -127,12 +127,12 @@ class TestPhase3ReprojOracle(unittest.TestCase):
                            check=True, capture_output=True, timeout=300)
             objs.append(o)
         # probe (session end-to-end)
-        _compile_srcs(cls.tmp, [os.path.join(REPO, "tests", "backend", "p3_session_probe.cpp")],
+        _compile_srcs(cls.tmp, [os.path.join(REPO, "eng", "tests", "backend", "p3_session_probe.cpp")],
                       os.path.join(cls.tmp, "probe"), FITS_INCS,
                       [os.path.join(HOST, "p3_session.cpp"), os.path.join(FOUT, "p3_output.cpp"),
                        os.path.join(P3W, "p3_wcs.cpp")] + FITS_SRCS, objs)
         # fixture (const/field/nan)
-        _compile_srcs(cls.tmp, [os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
+        _compile_srcs(cls.tmp, [os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"),
                                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp")],
                       os.path.join(cls.tmp, "fx"), FITS_INCS, FITS_SRCS, objs)
         cls.data = os.path.join(cls.tmp, "data"); os.makedirs(cls.data)

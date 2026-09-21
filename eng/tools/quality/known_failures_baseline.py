@@ -967,13 +967,13 @@ def run_legacy(argv: list[str] | None = None) -> int:
         "当前 V6 追溯未被验证")
 
     # F-029 RELEASE_STATUS contradicts REVIEW/SCIENCE_OVERVIEW
-    release_status = read(root, "docs/review/RELEASE_STATUS.md")
-    science_overview = read(root, "docs/review/SCIENCE_OVERVIEW.md")
+    release_status = read(root, "docs/owner/RELEASE_STATUS.md")
+    science_overview = read(root, "docs/owner/SCIENCE_OVERVIEW.md")
     rs_claims_done = ("完成" in release_status or "81 PASS" in release_status or "PASS" in release_status)
     so_says_proto = ("prototype" in science_overview.lower() or "未实现" in science_overview or "PROTOTYPE" in science_overview)
     contradiction = rs_claims_done and so_says_proto
     add("F-029", "P1", contradiction,
-        "grep -n '完成\\|81 PASS' docs/review/RELEASE_STATUS.md; grep -n 'prototype\\|未实现' docs/review/SCIENCE_OVERVIEW.md",
+        "grep -n '完成\\|81 PASS' docs/owner/RELEASE_STATUS.md; grep -n 'prototype\\|未实现' docs/owner/SCIENCE_OVERVIEW.md",
         ["RELEASE_STATUS 自报 Linux 侧完成/81 PASS",
          "SCIENCE_OVERVIEW 声明 Phase3 prototype/未实现"],
         "负责人面向状态互相矛盾")

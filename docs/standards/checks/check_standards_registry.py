@@ -108,7 +108,12 @@ INDEX_COLUMNS = ["偏差 ID", "域", "条款", "注册表清单行", "状态", "
 LEGAL_STATUS = {"CONFORMANT", "PARTIAL", "NON_CONFORMANT", "PROJECT_DEFINED"}
 DEVIATION_ID_RE = re.compile(r"^(?:STD-F\d+|DISP-[A-Z0-9]+-\d+)$")
 NONE_MARKERS = {"（无）", "(无)", "NONE", "none", "无"}
-PATH_RE = re.compile(r"(?:docs|lib|tests|tools|ci|modules|runtime|contracts|include|cli|scripts|工程控制|reports|artifacts|evidence|testdata)/[A-Za-z0-9_./\u4e00-\u9fff-]+")
+# 2026-09-21 根目录整合：tests/tools/ci/contracts → eng/** 后，原式会在 "eng/tests/x" 里
+# 从 "tests/" 起截出一段假路径（前置无边界）⇒ 真实存在的证据被判"不存在"。
+# 修法：补 eng 前缀 + 前置边界（负向后顾），只准更精确、不准更宽松。
+PATH_RE = re.compile(r"(?<![\w/.-])(?:docs|eng|lib|tests|tools|ci|modules|runtime|contracts|"
+                     r"include|cli|scripts|工程控制|reports|artifacts|evidence|testdata)/"
+                     r"[A-Za-z0-9_./\u4e00-\u9fff-]+")
 ID_TOKEN_RE = re.compile(r"\b(?:STD-F\d+|DISP-[A-Z0-9]+-\d+)\b")
 FIELD_RE = re.compile(r"^-\s*([A-Z]+)\s*[:：]\s*(.*)$")
 

@@ -6,7 +6,8 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
+ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+
 WORK = os.path.join(ROOT, "run", "v6", "p3-rsmp")
 BUILD = os.path.join(WORK, "build")
 TESTS = ["p3_rsmp_core_test", "p3_rsmp_oracle_test", "p3_rsmp_gate_test"]

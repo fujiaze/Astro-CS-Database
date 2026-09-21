@@ -9,7 +9,7 @@ build/astrocs; 旧 'phase3 run --config' 已删除 → 运行面改用 export �
 """
 import json, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # ROOT-008: CLI 命令层源在 lib/infrastructure/cli/（旧 cli/ 已退役）
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 # DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
@@ -30,7 +30,7 @@ SHARED = _pick(os.path.join(REPO, "lib", "algorithms", "shared"),
 HEALPIX_SRC = os.path.join(SHARED, "healpix", "healpix_core.cpp")
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 # ACR/GPU/Mixed 关联标识(禁词); "mixed" 作为资源类别在 gate/events 中合法, 但不得作为生产后端选路。
 ACR_GPU_TERMS = re.compile(
@@ -51,7 +51,7 @@ PRODUCTION_SOURCES = [
 ]
 
 try:
-    from tests.cli.test_phase3_inprocess import cfitsio_objs as cfitsio_objs
+    from test_phase3_inprocess import cfitsio_objs as cfitsio_objs
 except Exception:
     def cfitsio_objs(_tmp):
         return []
@@ -69,7 +69,7 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
                 f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
                 f"-I{SHARED}",
                 f"-I{os.path.dirname(HEALPIX_SRC)}"]
-        srcs = [os.path.join(REPO, "tests", "backend", "phase2_fixture_main.cpp"),
+        srcs = [os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
                 os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
                 os.path.join(AIO, "src", "aio_fits.cpp"),

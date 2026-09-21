@@ -2,10 +2,10 @@
 """ABI-001 测试: C ABI v1 双编译(C/C++)/Debug+Release 布局一致/handshake/selftest/异常边界。"""
 import os, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-HDR = os.path.join(REPO, "include", "astrocs", "common_abi_v1.h")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+HDR = os.path.join(REPO, "lib", "include", "astrocs", "common_abi_v1.h")
 SRC = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
-MAIN = os.path.join(REPO, "tests", "backend", "abi_selftest_main.cpp")
+MAIN = os.path.join(REPO, "eng", "tests", "backend", "abi_selftest_main.cpp")
 
 
 def compile_and_run(build_dir, cxx, flags):

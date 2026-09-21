@@ -27,10 +27,10 @@ import sys
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-HDR = os.path.join(REPO, "include", "astrocs", "abi", "lifecycle_v1.h")
-PROBE = os.path.join(REPO, "tests", "abi", "abi002_lifecycle_probe.c")
-SCHEMA = os.path.join(REPO, "contracts", "config", "module_lifecycle_contract.schema.json")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+HDR = os.path.join(REPO, "lib", "include", "astrocs", "abi", "lifecycle_v1.h")
+PROBE = os.path.join(REPO, "eng", "tests", "abi", "abi002_lifecycle_probe.c")
+SCHEMA = os.path.join(REPO, "eng", "contracts", "config", "module_lifecycle_contract.schema.json")
 
 def _repo_version():
     """读根 VERSION 文件（与 cli/CMakeLists.txt 单一版本源一致），防 alpha 漂移。"""
@@ -39,7 +39,7 @@ def _repo_version():
 
 
 
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 TIMEOUT = 120
 
 # 头文件语义的 python 镜像（与探针 reference 判定一致; schema 一致性对比源）
@@ -277,7 +277,7 @@ class TestAbi002SchemaConsistency(unittest.TestCase):
     @staticmethod
     def _status_codes_text():
         """status_codes.h 全文（状态码枚举冻结基础层; schema 引用的 ACS_ERR_* 均定义于此）。"""
-        p = os.path.join(REPO, "include", "astrocs", "abi", "status_codes.h")
+        p = os.path.join(REPO, "lib", "include", "astrocs", "abi", "status_codes.h")
         return open(p, encoding="utf-8").read()
 
     def test_30_schema_states_operations_match_header_enums(self):

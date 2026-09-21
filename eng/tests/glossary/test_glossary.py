@@ -2,7 +2,7 @@
 """DOC-001 测试: 词典检查器 mutation 试金石。"""
 import importlib.util, os, re, shutil, sys, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 spec = importlib.util.spec_from_file_location("cg", os.path.join(REPO, "eng", "tools", "check_glossary.py"))
 cg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cg)

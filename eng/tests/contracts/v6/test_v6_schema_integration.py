@@ -7,7 +7,8 @@
 import json, pathlib, sys, unittest
 
 HERE = pathlib.Path(__file__).resolve().parent
-REPO = HERE.parents[2]
+REPO = HERE.parents[3]
+
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent))
 

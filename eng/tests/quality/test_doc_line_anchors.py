@@ -20,7 +20,7 @@ import unittest
 
 BT = chr(96)
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 CHECKER = os.path.join(REPO, "docs", "algorithms", "anchors", "check_doc_line_anchors.py")
 CONTRACT_REL = os.path.join("docs", "algorithms", "anchors", "anchor_contract.json")
 

@@ -3,7 +3,7 @@
 验收: 人工 sleep/lock/io/memory/compute fixtures 各判对; 低 CPU compute 必失败(exit 10)。"""
 import json, os, re, shutil, subprocess, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # ROOT-008: CLI 命令层（resource_gate.h 所在）已迁 lib/infrastructure/cli/。
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 

@@ -47,7 +47,8 @@ def main():
             found_lib = next(iter(in_lib), None) is not None
             if not found_lib and not (REPO / "lib" / ref).exists() \
                     and not (REPO / ref).exists():
-                in_tests = list((REPO / "tests" / "unit").glob(ref))
+                # 2026-09-21 根目录整合：tests/ → eng/tests/（引用面同步平移）。
+                in_tests = list((REPO / "eng" / "tests" / "unit").glob(ref))
                 if not in_tests:
                     errors.append(f"{rel}: 引用文件不存在 {ref}")
         if "L2" not in t:

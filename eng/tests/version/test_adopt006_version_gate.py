@@ -16,7 +16,7 @@ import sys
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EXPECTED = "0.11.0-alpha.2"
 CHECK = os.path.join(REPO, "eng", "ci", "check_version.py")
 TOL = "同步规则: project() 数字三元组必须等于根 VERSION 去 -alpha.N 的基础号"

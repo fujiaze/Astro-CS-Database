@@ -2,7 +2,7 @@
 """API-001 测试: 公共 ABI 基础层文档机器门 + 头独立编译试金石(头文件实现属 ABI-001)。"""
 import os, re, subprocess, sys, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 DOC = os.path.join(REPO, "docs", "api", "COMMON_ABI_V1.md")
 
 HEADER = r"""

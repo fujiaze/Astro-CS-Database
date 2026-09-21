@@ -26,10 +26,10 @@ import tempfile
 import textwrap
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, REPO)
 
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 
 def cli_binary():
@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
         cls.exe = os.path.join(cls.tmp, "probe")
         r = subprocess.run(["g++", "-std=c++17", "-O1", "-w",
                             "-I" + os.path.join(REPO, "lib", "infrastructure", "cli"),
-                            "-I" + os.path.join(REPO, "third_party"),
+                            "-I" + os.path.join(REPO, "lib", "third_party"),
                             "-I" + os.path.join(REPO, "build"),
                             src, "-o", cls.exe], capture_output=True, text=True, timeout=300)
         assert r.returncode == 0, r.stderr[-1200:]
@@ -207,7 +207,7 @@ class TestDiskGateEndToEnd(unittest.TestCase):
                 os.path.isdir(os.path.join(cache, "data")):
             cls.data = os.path.join(cache, "data")
         else:
-            from tests.cli.test_cli004_process_protocol import build_fixture
+            from test_cli004_process_protocol import build_fixture
             fixture = build_fixture(cls.tmp)
             cls.data = os.path.join(cls.tmp, "data")
             os.makedirs(cls.data, exist_ok=True)

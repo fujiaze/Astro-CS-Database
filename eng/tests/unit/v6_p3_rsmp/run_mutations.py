@@ -13,7 +13,8 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
+ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", ".."))
+
 LIB = os.path.join(ROOT, "lib", "phase3_rsmp")
 WORK = os.path.join(ROOT, "run", "v6", "p3-rsmp")
 MUT = os.path.join(WORK, "mutants")

@@ -2,9 +2,9 @@
 """BENCH-004 测试: profile schema/mutation/stale/AVX512 slower/噪声裕量/无 profile 多线程。"""
 import hashlib, json, os, re, shutil, subprocess, sys, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
-INC = os.path.join(REPO, "include")
+INC = os.path.join(REPO, "lib", "include")
 # SCHEMA 断链修复 (DEEP-COV-PY/CODE_FAIL, V8-CI-012 R6.5): 旧路径 工程控制/RELEASE_V5/
 # 为 untracked 控制包布局, tracked 工作区与 hosted checkout 永不存在 → import 期
 # FileNotFoundError。产品 schema 唯一事实源 = schemas/ (与姊妹 hardware_inspect.schema
@@ -53,7 +53,7 @@ class TestCpuProfile(unittest.TestCase):
         cls.gen = os.path.join(cls.tmp, "pgen")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-Wno-format-truncation",
                             f"-I{INC}", f"-I{HOST}", f"-I{os.path.join(REPO, 'third_party')}",
-                            os.path.join(REPO, "tests", "backend", "profile_gen_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "profile_gen_main.cpp"),
                             *common_srcs(), "-o", cls.gen], capture_output=True, text=True,
                            timeout=300)
         assert r.returncode == 0, r.stderr
@@ -161,7 +161,7 @@ class TestCpuProfile(unittest.TestCase):
         bench = os.path.join(self.tmp, "kbench")
         crypto_inc = f"-I{os.path.join(REPO, 'lib', 'algorithms', 'shared', 'crypto')}"
         r = subprocess.run(["g++", "-std=c++17", "-O2", f"-I{INC}", f"-I{HOST}", crypto_inc,
-                            os.path.join(REPO, "tests", "backend", "kernel_bench_main.cpp"),
+                            os.path.join(REPO, "eng", "tests", "backend", "kernel_bench_main.cpp"),
                             os.path.join(HOST, "baseline_backend.cpp"),
                             os.path.join(HOST, "host_services.cpp"), "-ldl", "-o", bench],
                            capture_output=True, text=True, timeout=240)

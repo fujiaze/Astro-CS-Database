@@ -2,7 +2,7 @@
 """VER-001 测试: 版本源合同 + 一致性 checker 的 mutation 试金石。stdlib only。"""
 import json, os, re, shutil, subprocess, sys, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, os.path.join(REPO, "eng", "tools"))
 import gen_version  # noqa: E402
 import importlib.util
@@ -42,7 +42,7 @@ class TestVersionContract(unittest.TestCase):
     def test_01_base_format_and_report_schema(self):
         base = gen_version.read_base_version()
         self.assertRegex(base, r"^\d+\.\d+\.\d+-alpha\.\d+$")
-        schema = json.load(open(os.path.join(REPO, "contracts", "schemas", "version.schema.json"), encoding="utf-8"))
+        schema = json.load(open(os.path.join(REPO, "eng", "contracts", "schemas", "version.schema.json"), encoding="utf-8"))
         rep = gen_version.build_report(commit="0123456789ab" * 3, dirty=False)
         self.assertIsNone(validate_schema(rep, schema), "gen_version 输出必须符合 version.schema.json")
         # 单源语义修正 (V8-CI-012 R6.5): 旧断言硬编码 0.10.0-alpha.2 过期字面量，
@@ -91,7 +91,7 @@ class TestVersionContract(unittest.TestCase):
 # ── CI-VER-CHK-001 / 裁决 R-08: 标准条款号口径 ────────────────────────────────
 CHECKER = os.path.join(REPO, "eng", "tools", "check_version_consistency.py")
 CHECKER_REL = os.path.join("eng/tools", "check_version_consistency.py")
-TEST_REL = os.path.join("tests", "version", "test_version_consistency.py")
+TEST_REL = os.path.join("eng", "tests", "version", "test_version_consistency.py")
 
 
 def _base_alpha():
@@ -106,9 +106,11 @@ def _tmp_repo(td, version=None):
     checker 以自身 __file__ 定位 REPO, 故拷贝到 td/tools/ 下即把扫描根切到 td,
     可在不触碰真实仓库的前提下做端到端 (exit code) 正/负向试金石。
     """
-    os.makedirs(os.path.join(td, "tools"), exist_ok=True)
+    # 2026-09-21 根目录整合：checker 自身位于 eng/tools/（REPO=dirname^3），
+    # 夹具必须同深度，_run_checker 才找得到它。
+    os.makedirs(os.path.join(td, "eng", "tools"), exist_ok=True)
     os.makedirs(os.path.join(td, "docs"), exist_ok=True)
-    shutil.copyfile(CHECKER, os.path.join(td, "tools", "check_version_consistency.py"))
+    shutil.copyfile(CHECKER, os.path.join(td, "eng", "tools", "check_version_consistency.py"))
     if version is None:
         with open(os.path.join(REPO, "VERSION"), encoding="utf-8") as f:
             version = f.read().strip()
@@ -379,17 +381,17 @@ def _child_env():
 
 def _child_tree(td, checker_source):
     """只放被试用例真正需要的文件 (不需要真实 docs/, 便于 Windows 无符号链接权限时可用)。"""
-    os.makedirs(os.path.join(td, "tools"))
-    os.makedirs(os.path.join(td, "tests", "version"))
+    os.makedirs(os.path.join(td, "eng", "tools"))
+    os.makedirs(os.path.join(td, "eng", "tests", "version"))
     with open(os.path.join(td, CHECKER_REL), "w", encoding="utf-8") as f:
         f.write(checker_source)
     shutil.copyfile(os.path.join(REPO, "eng", "tools", "gen_version.py"),
-                    os.path.join(td, "tools", "gen_version.py"))
+                    os.path.join(td, "eng", "tools", "gen_version.py"))
     shutil.copyfile(os.path.join(REPO, "VERSION"), os.path.join(td, "VERSION"))
     shutil.copyfile(os.path.join(REPO, TEST_REL), os.path.join(td, TEST_REL))
-    shutil.copyfile(os.path.join(REPO, "tests", "version", "__init__.py"),
-                    os.path.join(td, "tests", "version", "__init__.py"))
-    return os.path.join(td, "tests", "version")
+    shutil.copyfile(os.path.join(REPO, "eng", "tests", "version", "__init__.py"),
+                    os.path.join(td, "eng", "tests", "version", "__init__.py"))
+    return os.path.join(td, "eng", "tests", "version")
 
 
 def _run_child(cwd):

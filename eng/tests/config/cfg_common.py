@@ -5,8 +5,8 @@ import json
 import os
 import re
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-VALIDATOR = os.path.join(REPO, "tests", "contracts", "v6", "jsonschema_min.py")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+VALIDATOR = os.path.join(REPO, "eng", "tests", "contracts", "v6", "jsonschema_min.py")
 
 
 def load_validator():

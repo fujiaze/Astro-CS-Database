@@ -2,7 +2,7 @@
 """ARCH-004 测试: thread budget 静态 checker 试金石。"""
 import importlib.util, os, sys, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 spec = importlib.util.spec_from_file_location("ctb", os.path.join(REPO, "eng", "tools", "arch", "check_thread_budget.py"))
 ctb = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ctb)

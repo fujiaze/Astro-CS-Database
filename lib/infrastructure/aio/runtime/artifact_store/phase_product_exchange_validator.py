@@ -40,8 +40,9 @@ import sys
 from typing import Any
 
 REPO = pathlib.Path(__file__).resolve().parents[5]
-SCHEMA_PATH = REPO / "contracts" / "data" / "phase_product_exchange.schema.json"
-MATRIX_PATH = REPO / "contracts" / "data" / "phase_product_exchange_matrix.json"
+# 2026-09-21 根目录整合：contracts/ → eng/contracts/。
+SCHEMA_PATH = REPO / "eng" / "contracts" / "data" / "phase_product_exchange.schema.json"
+MATRIX_PATH = REPO / "eng" / "contracts" / "data" / "phase_product_exchange_matrix.json"
 EXCHANGE_SCHEMA_CONST = "astrocs.phase-product-exchange/v1"
 CONTENT_SCHEMA_CONST = "astrocs.phase-product-content/v1"
 

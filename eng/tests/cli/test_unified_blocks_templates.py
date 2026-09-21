@@ -23,12 +23,12 @@ import sys
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(REPO, "tests", "config"))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.join(REPO, "eng", "tests", "config"))
 import cfg_common as C  # noqa: E402
 import test_cfg004_unified_contract as CFG004  # noqa: E402  （登记差异表唯一来源）
 
-from tests.cli.cli_test_hygiene import run_cwd  # noqa: E402
+from cli_test_hygiene import run_cwd  # noqa: E402
 
 SCHEMAS = {
     "normalize": "eng/contracts/schemas/phase_config_normalize.schema.json",

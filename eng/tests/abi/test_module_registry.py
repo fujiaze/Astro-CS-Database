@@ -39,13 +39,13 @@ import sys
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-INC = os.path.join(REPO, "include")
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+INC = os.path.join(REPO, "lib", "include")
 LOADER_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
 REG_DIR = os.path.join(REPO, "lib", "infrastructure", "pipeline", "module_loader")
-PROBE_C = os.path.join(REPO, "tests", "abi", "abi004_registry_probe.c")
-NOOP_SRC = os.path.join(REPO, "tests", "conformance", "noop", "src", "noop_module.c")
-NOOP_YAML = os.path.join(REPO, "tests", "conformance", "noop", "module.yaml")
+PROBE_C = os.path.join(REPO, "eng", "tests", "abi", "abi004_registry_probe.c")
+NOOP_SRC = os.path.join(REPO, "eng", "tests", "conformance", "noop", "src", "noop_module.c")
+NOOP_YAML = os.path.join(REPO, "eng", "tests", "conformance", "noop", "module.yaml")
 TIMEOUT = 300
 CC = os.environ.get("CC", "gcc")
 

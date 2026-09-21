@@ -1984,6 +1984,13 @@
       ],
       "requires_monitor": true,
       "ctest_targets": [
+        "aio_checksum",
+        "aio_hips_atomic_publish",
+        "aio_precision_dual",
+        "aio_query_pixel",
+        "aio_tile_model",
+        "aio_transform",
+        "fix402_phase3_semantic_guard",
         "p2_rej_v6_*",
         "v6_aio_*",
         "v6_p1_cal_*",
@@ -1993,12 +2000,7 @@
         "v6_p2_upm_*",
         "v6_p3_proj_*",
         "v6_p3_rsmp_*",
-        "v6_runtime_*",
-        "aio_checksum",
-        "aio_precision_dual",
-        "aio_query_pixel",
-        "aio_tile_model",
-        "aio_transform"
+        "v6_runtime_*"
       ],
       "dirty_ignore_exact": [
         "resource_samples.csv",
@@ -2880,6 +2882,75 @@
             "v6_p3_proj_*",
             "v6_p3_rsmp_*",
             "v6_runtime_*"
+          ]
+        },
+        {
+          "id": "CTEST-AIO-HIPS-ATOMIC-PUBLISH",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "aio_hips_atomic_publish",
+            "--output",
+            "run/ci/ctest/aio_hips_atomic_publish.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/aio_hips_atomic_publish.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/aio/tests/**",
+            "lib/infrastructure/aio/**",
+            "eng/tests/unit/CMakeLists.txt",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "aio_hips_atomic_publish"
+          ]
+        },
+        {
+          "id": "CTEST-FIX402-PHASE3-SEMANTIC-GUARD",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "fix402_phase3_semantic_guard",
+            "--output",
+            "run/ci/ctest/fix402_phase3_semantic_guard.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/fix402_phase3_semantic_guard.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/backend/**",
+            "eng/tests/unit/CMakeLists.txt",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "fix402_phase3_semantic_guard"
           ]
         }
       ]

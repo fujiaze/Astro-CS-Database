@@ -4,7 +4,7 @@
 """
 import hashlib, os, re, shutil, subprocess, sys, tarfile, tempfile, unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 MAKER = os.path.join(REPO, "eng", "tools", "make_linux_release.py")
 BUILD = os.path.join(REPO, "build", "lnx_v5_clean_rel", "astrocs")
 

@@ -26,25 +26,25 @@ import os, re, subprocess, sys
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BASE_RE = re.compile(r"(?<![\w.])(\d+\.\d+\.\d+)(?![\d.])")  # 排除 127.0.0.1 等 IP/更长子串
 PRERELEASE_BAD = re.compile(r"\b\d+\.\d+\.\d+-(stable|rc|beta)\b", re.IGNORECASE)
-SCAN_ROOTS = ["docs", "eng/contracts/schemas", "tests"]
+SCAN_ROOTS = ["docs", "eng/contracts/schemas", "eng/tests"]
 # CHANGELOG.md 是 history 命名空间驻留点 (GOV-003 §2/§4, 与 eng/ci/check_version.py
 # [5] 口径一致): 条目记录"当时的版本号"属天然历史事实, 不进本检查。
 SCAN_FILES = ["eng/build/build.sh", "eng/build/toolchain.ps1", "README.md", "VERSION",
               "eng/tools/gen_version.py"]
-SELF_FIXTURE = os.path.join("tests", "version", "test_version_consistency.py")  # mutation 样本自身
+SELF_FIXTURE = os.path.join("eng", "tests", "version", "test_version_consistency.py")  # mutation 样本自身
 PROBE_FIXTURES = {  # 版本探针工具：内含 '0.1.0' 等被扫描 token，属扫描器自身而非产品
     os.path.join("eng/tools", "quality", "known_failures_baseline.py"),
 }
 TEST_FIXTURES = {  # 单元测试合成数据文件: 内含 semver 解析/比较/取代逻辑的合成 token
-    os.path.join("tests", "artifact", "test_provenance.py"),  # parse_version/version_gt 等合成版本
-    os.path.join("tests", "abi", "test_secure_loader.py"),  # loader 探针 fixture 0.0.0-test 等非法版本样本
+    os.path.join("eng", "tests", "artifact", "test_provenance.py"),  # parse_version/version_gt 等合成版本
+    os.path.join("eng", "tests", "abi", "test_secure_loader.py"),  # loader 探针 fixture 0.0.0-test 等非法版本样本
     # W4-A3 实测残余: 硬件探针默认 build 串 (0.0.0-alpha.0+g000000000000) 与
     # eng/tests/config/fixtures/** 的 cpu_profile 负例/正例合成数据 (0.1.0-alpha.1) ——
     # 都是"旧世代合成 token", 不是活动文档里的产品版本声明。
-    os.path.join("tests", "backend", "test_hardware_inspect.py"),
+    os.path.join("eng", "tests", "backend", "test_hardware_inspect.py"),
 }
 TEST_FIXTURE_DIRS = (  # 目录级合成数据面 (同上口径)
-    os.path.join("tests", "config", "fixtures"),
+    os.path.join("eng", "tests", "config", "fixtures"),
 )
 # 行内豁免: 非产品版本的数字三元组(外部工具/格式版本/协议版本/示例占位)
 EXEMPT = ("hips_version", "DatabaseVersion", "schema_version", "cap.version", "driver",

@@ -492,7 +492,9 @@ def run_monitored(argv: list[str], *, timeout: Optional[float] = None,
 # 阈值不在本文件发明：唯一数值源 = eng/contracts/resource_gate_v1.json。
 # 契约缺失/不可解析/schema 不符 → 立即 RuntimeError（fail-closed）：阈值没有
 # 第二处来源，「静默回落内置默认值」等于把数值权威倒置回实现。
-CONTRACT_PATH = Path(__file__).resolve().parents[3] / "contracts" / "resource_gate_v1.json"
+# 2026-09-21 根目录整合：contracts/ → eng/contracts/（parents[3] = 仓库根）。
+CONTRACT_PATH = (Path(__file__).resolve().parents[3] / "eng" / "contracts"
+                 / "resource_gate_v1.json")
 CONTRACT_SCHEMA = "astrocs.resource-gate/v1"
 
 

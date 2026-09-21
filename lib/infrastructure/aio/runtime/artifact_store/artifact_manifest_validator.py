@@ -32,8 +32,9 @@ import sys
 from typing import Any, Callable
 
 REPO = pathlib.Path(__file__).resolve().parents[5]
-SCHEMA_PATH = REPO / "contracts" / "data" / "artifact_manifest.schema.json"
-REGISTRY_PATH = REPO / "contracts" / "data" / "artifact_types.registry.json"
+# 2026-09-21 根目录整合：contracts/ → eng/contracts/（REPO = parents[5] = 仓库根）。
+SCHEMA_PATH = REPO / "eng" / "contracts" / "data" / "artifact_manifest.schema.json"
+REGISTRY_PATH = REPO / "eng" / "contracts" / "data" / "artifact_types.registry.json"
 MANIFEST_SCHEMA_CONST = "astrocs.artifact-manifest/v1"
 
 _HEX64 = re.compile(r"^[0-9a-f]{64}$")

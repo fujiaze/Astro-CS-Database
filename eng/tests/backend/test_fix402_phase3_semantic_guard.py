@@ -30,12 +30,12 @@ import sys
 import tempfile
 import unittest
 
-from tests.backend.fixture_common import ensure_f1f2_hips, ensure_hips_unit_declaration
+from fixture_common import ensure_f1f2_hips, ensure_hips_unit_declaration
 
 import numpy as np
 from astropy.io import fits
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EXE = os.path.join(REPO, "build", "astrocs")
 
 SB_BUNIT = "ADU/px^2"

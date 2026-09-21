@@ -28,7 +28,7 @@ import subprocess
 import tempfile
 import unittest
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 P3PROJ_INC = os.path.join(REPO, "lib", "algorithms", "projection")
 
 # ---------- 预冻结常量(写死, 不事后放宽) ----------

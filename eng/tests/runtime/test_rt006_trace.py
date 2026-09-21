@@ -31,9 +31,9 @@ import tempfile
 import unittest
 
 REPO = pathlib.Path(__file__).resolve().parents[3]
-INC = REPO / "include"
+INC = REPO / "lib" / "include"
 CORE = REPO / "lib" / "infrastructure" / "scheduler" / "src"
-TP = REPO / "third_party"
+TP = REPO / "lib" / "third_party"
 
 sys.path.insert(0, str(REPO / "lib" / "infrastructure" / "pipeline"))
 from trace_replay import detect_violations as py_detect_violations  # noqa: E402

@@ -13,7 +13,8 @@ from scipy.spatial import cKDTree
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from wcs_lib import Wcs
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", ".."))
+
 NORM = os.path.join(ROOT, 'run/RELEASE-02/L4-rebuild/norm')
 
 def frame_dir(tile, cleaned_file):

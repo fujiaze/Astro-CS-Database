@@ -230,18 +230,19 @@ def run(repo: Path, prefix: Path, contract_path: Path, expect_commit: str, json_
 def build_fixture(base: Path, repo: Path):
     """最小自洽夹具: repo_root(含 eng/packaging/VERSION) + prefix(合同全集在位)。"""
     fx_repo = base / "repo"
-    shutil.copytree(repo / "packaging", fx_repo / "packaging",
+    (fx_repo / "eng").mkdir(parents=True, exist_ok=True)
+    shutil.copytree(repo / "eng" / "packaging", fx_repo / "eng" / "packaging",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "launch"))
     shutil.copy2(repo / VERSION_FILE, fx_repo / VERSION_FILE)
-    contract = json.loads((fx_repo / "packaging" / "install-tree.contract.json")
+    contract = json.loads((fx_repo / "eng" / "packaging" / "install-tree.contract.json")
                           .read_text(encoding="utf-8"))
-    manifest = json.loads((fx_repo / "packaging" / MANIFEST).read_text(encoding="utf-8"))
+    manifest = json.loads((fx_repo / "eng" / "packaging" / MANIFEST).read_text(encoding="utf-8"))
     manifest["source_commit"] = repo_head(repo) or "0" * 40
     manifest["platform"] = "linux-amd64"
     for mu in manifest["units"]:
         if mu["rel_path"].endswith(".dll"):
             mu["rel_path"] = mu["rel_path"][:-4] + ".so"
-    (fx_repo / "packaging" / MANIFEST).write_text(
+    (fx_repo / "eng" / "packaging" / MANIFEST).write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     prefix = base / "prefix"
     for u in contract["units"]:
@@ -250,7 +251,7 @@ def build_fixture(base: Path, repo: Path):
         p.write_text("fixture\n", encoding="utf-8")
     (prefix / MANIFEST).write_text(json.dumps(manifest, ensure_ascii=False, indent=2),
                                    encoding="utf-8")
-    return fx_repo, prefix, fx_repo / "packaging" / "install-tree.contract.json"
+    return fx_repo, prefix, fx_repo / "eng" / "packaging" / "install-tree.contract.json"
 
 
 def _drift_version(prefix: Path):
@@ -319,7 +320,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="AstroCS 安装树 verify (BLD-003/W5-PKG-001)")
     ap.add_argument("--prefix", default="", help="安装前缀 (install prefix)")
     ap.add_argument("--contract", default="",
-                    help="安装树合同 JSON (默认 <repo>/packaging/install-tree.contract.json)")
+                    help="安装树合同 JSON (默认 <repo>/eng/packaging/install-tree.contract.json)")
     ap.add_argument("--repo", "--root", dest="repo", default="",
                     help="仓库根 (默认由脚本位置推导)")
     ap.add_argument("--expect-commit", default="",
@@ -329,7 +330,7 @@ def main() -> int:
                     help="负例注入自测（机器可执行负例面）")
     args = ap.parse_args()
 
-    repo = Path(args.repo).resolve() if args.repo else Path(__file__).resolve().parent.parent
+    repo = Path(args.repo).resolve() if args.repo else Path(__file__).resolve().parent.parent.parent
     if args.self_test:
         return self_test(repo)
     if not args.prefix:
@@ -337,7 +338,7 @@ def main() -> int:
         return 2
     prefix = Path(args.prefix).resolve()
     contract_path = (Path(args.contract) if args.contract
-                     else repo / "packaging" / "install-tree.contract.json")
+                     else repo / "eng" / "packaging" / "install-tree.contract.json")
     return run(repo, prefix, contract_path, args.expect_commit, args.json_out)
 
 
