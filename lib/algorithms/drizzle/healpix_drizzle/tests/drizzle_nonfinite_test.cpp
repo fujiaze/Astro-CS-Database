@@ -26,7 +26,7 @@
 // 9. 链路断言: 非有限样本经掩膜后不再出现在产品面; 覆盖级 NaN（D_p=0）喂给下游
 //    积分 p2_integrate_pixel → P2_INTEGRATE_INVALID_INPUT (SCI-INT, integrate.cpp)
 //
-// 编译 (tests/ 目录, Linux):
+// 编译 (eng/tests/ 目录, Linux):
 // g++ -O2 -std=c++17 -Wall -Wextra -fopenmp -I.. -I../../../astro_image_io/include
 //   -o drizzle_nonfinite_test drizzle_nonfinite_test.cpp
 //   ../../../coverage/src/integrate.cpp -lastrocs_drizzle -lastrocs_phase2 -lm

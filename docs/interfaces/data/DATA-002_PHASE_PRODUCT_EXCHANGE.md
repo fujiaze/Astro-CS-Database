@@ -5,9 +5,9 @@
 > 上游权威：`ASTROCS_DESIGN.md` §1.2（三命令平级独立）/§9（I/O 与原子产品）、
 > `docs/contracts/DATA_SEMANTICS.md`（跨阶段唯一数据合同）、
 > `docs/science/PHASE3_HIPS_TO_FITS.md`（SCI-P3 units/planes）、
-> `contracts/data/artifact_types.registry.json` + `contracts/data/artifact_manifest.schema.json`（DATA-001 冻结）
-> 机器形态：`contracts/data/phase_product_exchange.schema.json`（schema）、
-> `contracts/data/phase_product_exchange_matrix.json`（兼容矩阵真源）、
+> `eng/contracts/data/artifact_types.registry.json` + `eng/contracts/data/artifact_manifest.schema.json`（DATA-001 冻结）
+> 机器形态：`eng/contracts/data/phase_product_exchange.schema.json`（schema）、
+> `eng/contracts/data/phase_product_exchange_matrix.json`（兼容矩阵真源）、
 > `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py`（执行校验器，无第三方依赖）
 > 下游：DATA-003（生产 ArtifactStore 接线）、RT-002（phase-isolated runtime）、IO-002/IO-003（HiPS 输入/原子输出）
 
@@ -22,10 +22,10 @@
 
 | 文件 | 角色 |
 |---|---|
-| `contracts/data/phase_product_exchange.schema.json` | 交换对象文档形态（JSON Schema，权威文档形态） |
-| `contracts/data/phase_product_exchange_matrix.json` | 兼容矩阵真源（role 绑定 / edges / 拒绝条件；validator 读取） |
+| `eng/contracts/data/phase_product_exchange.schema.json` | 交换对象文档形态（JSON Schema，权威文档形态） |
+| `eng/contracts/data/phase_product_exchange_matrix.json` | 兼容矩阵真源（role 绑定 / edges / 拒绝条件；validator 读取） |
 | `lib/infrastructure/aio/runtime/artifact_store/phase_product_exchange_validator.py` | 执行校验器（与 schema 一一对应；须同步修改） |
-| `contracts/data/examples/*.example.json` | 示例（phase1/phase2/phase3 产品 + 外部 fixture） |
+| `eng/contracts/data/examples/*.example.json` | 示例（phase1/phase2/phase3 产品 + 外部 fixture） |
 
 ## 1. 阶段产品角色与 type 绑定（role ↔ type）
 
@@ -39,7 +39,7 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
 | `phase2_mosaic_v1` | `astrocs.phase2.mosaic_hips.v1` | 1 | phase2 | signal, support, mask | hips |
 | `phase3_planar_fits_v1` | `astrocs.phase3.planar_fits.v1` | 1 | phase3 | signal, support, mask | fits |
 
-- type_id 本体登记于 `contracts/data/artifact_types.registry.json`（DATA-001），本文档/本 schema
+- type_id 本体登记于 `eng/contracts/data/artifact_types.registry.json`（DATA-001），本文档/本 schema
   只做绑定，不重复登记；未知/未登记 type_id 由 DATA-001 registry 拒绝并传播。
 - 内容语义（最小平面集）：signal=科学表面亮度、support=覆盖/有效支持度 [0,1]、
   variance=逐像素随机方差（信号单位²，Drizzle 传播）、mask=坏点/质量位掩码；
@@ -56,7 +56,7 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
 ## 2. 交换对象（exchange object）结构
 
 跨阶段交换的对象不是裸文件或裸 manifest，而是**交换对象文档**（schema：
-`contracts/data/phase_product_exchange.schema.json`）：
+`eng/contracts/data/phase_product_exchange.schema.json`）：
 
 ```jsonc
 {
@@ -101,7 +101,7 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
       **禁止**把它当作权重、**禁止**把权重面写进 HiPS（最高设计 §3.1：HiPS 里只**存**
       **帧级 SNR** 与**稀疏的相对 SNR 比值**；权重是阶段二现场派生量）。
       该层**可选**（`sparse_snr_layer=true` 时存在，默认 true），**不属于** §1 的最小平面集。
-    - **机器形态**：`plane_id` 枚举同步落在 `contracts/data/phase_product_exchange.schema.json`；
+    - **机器形态**：`plane_id` 枚举同步落在 `eng/contracts/data/phase_product_exchange.schema.json`；
       本合同与该 schema 不一致时，以本合同为准补齐 schema。
   - `invalid_policy`：全局 `nan_or_support_le_0`（NaN 或 support<=0 视为无效；
     DATA_SEMANTICS §4）。
@@ -167,7 +167,7 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     **口径归属**：NaN 处置以 `rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN` 为准（`ASTROCS_DESIGN.md` §5.5）；
     `docs/standards/NUMERIC_STANDARD.md`（§MUST）与 `docs/standards/STANDARDS_REGISTRY.md`
     （D.drizzle `DISP-DRZ-004`）引用同一份文字。
-    **机器形态**：`invalid_handling` 键同步落在 `contracts/data/phase_product_exchange.schema.json`；
+    **机器形态**：`invalid_handling` 键同步落在 `eng/contracts/data/phase_product_exchange.schema.json`；
     不一致时以本块为准。
 - **origin**：`astrocs`（本产品任一 AstroCS phase run 原子发布产物）或
   `external_fixture`（AstroCS 之外生成、完整满足证据要求的合同兼容 HiPS/FITS 测试/审核对象）。
@@ -196,7 +196,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 
 ## 4. 兼容矩阵（machine-readable 真源）
 
-机器可校验矩阵真源：`contracts/data/phase_product_exchange_matrix.json`
+机器可校验矩阵真源：`eng/contracts/data/phase_product_exchange_matrix.json`
 （`compatibility_edges[]` + `roles[]` + `rejection_conditions[]`）。
 
 | edge_id | 方向 | medium | 绑定规则 | 语义 |
@@ -247,7 +247,7 @@ Phase3 ──(原子发布: 磁盘 planar FITS + manifest/hash/provenance)──
 | D5 无隐式 artifact name binding | `R-NO-NAME-BINDING`；validator 无路径/名称派生代码；测试 `test_no_implicit_name_binding`（artifact_id 任意稳定标识、storage_uri 不参与资格判定均通过；校验不读文件系统） |
 | D6 跨 Phase 仅磁盘交换 | `R-DISK-ONLY`；§3；RT-002 在运行时隔离后由进程边界强制（DATA-003/RT-002 接线） |
 
-测试：`tests/artifact/test_phase_product_exchange.py`（正/负测，无第三方依赖）。
+测试：`eng/tests/artifact/test_phase_product_exchange.py`（正/负测，无第三方依赖）。
 
 ## 7. 边界与禁止
 

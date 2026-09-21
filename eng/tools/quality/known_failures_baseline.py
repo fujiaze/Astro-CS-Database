@@ -724,14 +724,14 @@ def run_legacy(argv: list[str] | None = None) -> int:
     p3_output = read(root, "lib/algorithms/fits_output/p3_output.cpp")
     # W4-A9 批次 2: p3_resample.cpp 迁 lib/algorithms/resample/ (ASTROCS_DESIGN §7.1)
     p3_resample = read(root, "lib/algorithms/resample/p3_resample.cpp")
-    context_h = read(root, "include/astrocs/core/context.h")
+    context_h = read(root, "lib/include/astrocs/core/context.h")
     context_cpp = read(root, "lib/infrastructure/scheduler/src/context.cpp")
     pipeline_cpp = read(root, "lib/infrastructure/scheduler/src/pipeline.cpp")
     module_cpp = read(root, "lib/infrastructure/scheduler/src/module.cpp")
-    p2_upm_test = read(root, "tests/unit/p2_upm_synthetic_test.cpp")
-    p2_seam_test = read(root, "tests/unit/p2_seam_gate_test.cpp")
-    p3_assembly_test = read(root, "tests/unit/p3_assembly_test.cpp")
-    p3_interp_test = read(root, "tests/unit/p3_interp_test.cpp")
+    p2_upm_test = read(root, "eng/tests/unit/p2_upm_synthetic_test.cpp")
+    p2_seam_test = read(root, "eng/tests/unit/p2_seam_gate_test.cpp")
+    p3_assembly_test = read(root, "eng/tests/unit/p3_assembly_test.cpp")
+    p3_interp_test = read(root, "eng/tests/unit/p3_interp_test.cpp")
     api_csv = read(root, "docs/contracts/API_CONTRACTS.csv")
     check_ast = read(root, "eng/tools/check_ast_api.py")
     check_trace = read(root, "eng/tools/check_pipeline_trace.py")
@@ -800,7 +800,7 @@ def run_legacy(argv: list[str] | None = None) -> int:
     fake_lease = "acquire_lease" in context_h + context_cpp and not any(
         w in context_h + context_cpp for w in ("compare_exchange", "fetch_sub", "release_lease", "condition_variable"))
     add("F-007", "P0", fake_lease,
-        "grep -n 'acquire_lease\\|compare_exchange\\|fetch_sub\\|release_lease' include/astrocs/core/context.h lib/infrastructure/scheduler/src/context.cpp",
+        "grep -n 'acquire_lease\\|compare_exchange\\|fetch_sub\\|release_lease' lib/include/astrocs/core/context.h lib/infrastructure/scheduler/src/context.cpp",
         [line for line in (context_h + context_cpp).splitlines() if "acquire_lease" in line][:5],
         "ThreadLease 无原子预留/归还，可能超卖")
 
@@ -814,7 +814,7 @@ def run_legacy(argv: list[str] | None = None) -> int:
     # F-009 P2 seam test bypasses production UPM
     p2_toy = bool(p2_upm_test) and "p2_upm_build" not in p2_upm_test and "phase2 run" not in p2_upm_test
     add("F-009", "P0", p2_toy,
-        "grep -n 'p2_upm_build\\|phase2 run' tests/unit/p2_upm_synthetic_test.cpp",
+        "grep -n 'p2_upm_build\\|phase2 run' eng/tests/unit/p2_upm_synthetic_test.cpp",
         ["p2_upm_synthetic_test.cpp 不调用生产 UPM"],
         "接缝回归未用生产 UPM 证明")
 
@@ -859,11 +859,11 @@ def run_legacy(argv: list[str] | None = None) -> int:
     emitted = set(re.findall(r"IrError::(\w+)", pipeline_cpp))
     declared_never_emitted = sorted(set(
         re.findall(r"\b(MISSING_PORT|DATA_MISMATCH|UNIT_MISMATCH|COORDINATE_MISMATCH|UNPRODUCED_OUTPUT|SERIAL_HEAVY)\b",
-                   read(root, "include/astrocs/core/pipeline.h"))))
+                   read(root, "lib/include/astrocs/core/pipeline.h"))))
     f015_repro = bool(declared_never_emitted) and not bool(
         set(declared_never_emitted) & emitted)
     add("F-015", "P1", f015_repro,
-        "grep -oE 'IrError::\\w+' lib/infrastructure/scheduler/src/pipeline.cpp; grep -oE 'MISSING_PORT|DATA_MISMATCH|UNIT_MISMATCH|COORDINATE_MISMATCH|UNPRODUCED_OUTPUT|SERIAL_HEAVY' include/astrocs/core/pipeline.h",
+        "grep -oE 'IrError::\\w+' lib/infrastructure/scheduler/src/pipeline.cpp; grep -oE 'MISSING_PORT|DATA_MISMATCH|UNIT_MISMATCH|COORDINATE_MISMATCH|UNPRODUCED_OUTPUT|SERIAL_HEAVY' lib/include/astrocs/core/pipeline.h",
         [f"声明的错误枚举从未发出: {declared_never_emitted}",
          f"实际发出: {sorted(emitted)}"],
         "类型化管道合同名义化：validate 无法校验端口/单位/坐标")
@@ -907,21 +907,21 @@ def run_legacy(argv: list[str] | None = None) -> int:
     # F-021 P3 interp test uses regular array helper
     toy_interp = bool(p3_interp_test) and "bilinear" in p3_interp_test and "p3_sample_bilinear" not in p3_interp_test
     add("F-021", "P1", toy_interp,
-        "grep -n 'bilinear\\|p3_sample_bilinear' tests/unit/p3_interp_test.cpp",
+        "grep -n 'bilinear\\|p3_sample_bilinear' eng/tests/unit/p3_interp_test.cpp",
         ["测试使用规则数组 helper，不调用生产 HEALPix resampler"],
         "插值/边界正确性未证明")
 
     # F-022 P3 assembly CHECK(true)
     p3_vacuous = "CHECK(true)" in p3_assembly_test
     add("F-022", "P1", p3_vacuous,
-        "grep -n 'CHECK(true)' tests/unit/p3_assembly_test.cpp",
+        "grep -n 'CHECK(true)' eng/tests/unit/p3_assembly_test.cpp",
         ["CHECK(true) 空洞资源门"],
         "Phase3 assembly PASS 空洞")
 
     # F-023 P2 seam gate test inserts known correction
     inserted = "C_B" in p2_seam_test and "GateConfig" in p2_seam_test
     add("F-023", "P1", inserted,
-        "grep -n 'C_B\\|GateConfig' tests/unit/p2_seam_gate_test.cpp",
+        "grep -n 'C_B\\|GateConfig' eng/tests/unit/p2_seam_gate_test.cpp",
         ["测试把已知 correction 与人工资源值写入"],
         "不验证估计器或实测资源")
 
@@ -996,13 +996,13 @@ def run_legacy(argv: list[str] | None = None) -> int:
     # F-032 audit package missing root files
     audit_pkg = root / "artifacts" / "prerelease_v5" / "AUDIT_PACKAGE_587fe0e341a7.zip"
     add("F-032", "P1", not (root / "evidence" / "refactor" / "tasks" / "REL-003").is_dir() or True,
-        "unzip -l artifacts/prerelease_v5/AUDIT_PACKAGE_587fe0e341a7.zip | grep -E 'SUMMARY|SOURCE_IDENTITY|COMMITS'",
+        "unzip -l artifacts/evidence/prerelease-v5/AUDIT_PACKAGE_587fe0e341a7.zip | grep -E 'SUMMARY|SOURCE_IDENTITY|COMMITS'",
         ["V5 审核包缺 SUMMARY/SOURCE_IDENTITY/COMMITS 等必需文件"],
         "审核结果不可独立复现（本包 REL-003 修复）")
 
     # F-033 audit package source snapshot incomplete
     add("F-033", "P1", True,
-        "unzip -l artifacts/prerelease_v5/AUDIT_PACKAGE_587fe0e341a7.zip | grep -cE 'code/'",
+        "unzip -l artifacts/evidence/prerelease-v5/AUDIT_PACKAGE_587fe0e341a7.zip | grep -cE 'code/'",
         ["独立审核指出 42 个 CMake 显式自有路径缺失，algorithms 全缺"],
         "源码快照不可配置/审阅")
 
@@ -1028,7 +1028,7 @@ def run_legacy(argv: list[str] | None = None) -> int:
 
     # F-036 packaged object differs from validated object
     add("F-036", "P1", True,
-        "grep -c '522\\|568' evidence/refactor/tasks/REL-003/package_logs 2>/dev/null; unzip -l artifacts/prerelease_v5/AUDIT_PACKAGE_587fe0e341a7.zip | tail -1",
+        "grep -c '522\\|568' evidence/refactor/tasks/REL-003/package_logs 2>/dev/null; unzip -l artifacts/evidence/prerelease-v5/AUDIT_PACKAGE_587fe0e341a7.zip | tail -1",
         ["审核指出日志 522 文件而 manifest 568，打包器脚本缺失"],
         "打包对象与声称验证对象不一致")
 
@@ -1041,7 +1041,7 @@ def run_legacy(argv: list[str] | None = None) -> int:
     # F-038 system(rm -rf + TMPDIR) shell string
     shell_risk = "system" in p3_assembly_test and "rm -rf" in p3_assembly_test
     add("F-038", "P2", shell_risk,
-        "grep -n 'system\\|rm -rf\\|TMPDIR' tests/unit/p3_assembly_test.cpp",
+        "grep -n 'system\\|rm -rf\\|TMPDIR' eng/tests/unit/p3_assembly_test.cpp",
         ["测试用 shell 字符串 rm -rf + TMPDIR" if shell_risk else "未发现 system(rm -rf)"],
         "测试命令注入/破坏性路径风险")
 

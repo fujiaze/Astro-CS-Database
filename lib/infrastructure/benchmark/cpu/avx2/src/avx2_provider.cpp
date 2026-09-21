@@ -2,10 +2,10 @@
 //
 // 职责: AMD64 AVX2/FMA provider (本 TU 单独以 -mavx2 -mfma 编译; Windows
 // /arch:AVX2, 15 §6 编译隔离)。
-//   - 唯一导出 astrocs_provider_query_v1 (include/astrocs/abi/module_api_v1.h 冻结;
+//   - 唯一导出 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结;
 //     ARC-001 §1.2: provider DLL 不得导出其他符号);
 //   - 只迁移 profile 指定的热点 kernel (02 §10.1 / ISA-001/003 实测台账;
-//     artifacts/prerelease_v5/ISA-001/MEASUREMENTS.csv):
+//     artifacts/evidence/prerelease-v5/ISA-001/MEASUREMENTS.csv):
 //       calibration-pixel-transform (ALG-001)  +20.7%/+11.7%  SHIP
 //       hips-bulk-transform (ALG-P3-002)        +28.2%/+28.3%  SHIP
 //     其余 10 个注册 kernel 不在本 provider 表内 → run_kernel 返回
@@ -62,7 +62,7 @@
 /* ───────────────────────── 能力门 (query 期) ─────────────────────────
  * 加载判定只使用 os_safe 平面 (15 §2): required = AVX|AVX2|FMA ⊆ os_safe。
  * 生产链接真实 capability_detect.c; 非支持 CPU (缺 AVX2/FMA / OS 不保存
- * YMM) 负测由测试以 stub 探测注入 (tests/cpu/avx2/
+ * YMM) 负测由测试以 stub 探测注入 (eng/tests/cpu/avx2/
  * provider_avx2_capability_gate_test.c 链接期替换 acs_cap_detect_v1 /
  * acs_cap_os_safe_satisfies_v1)。本函数为 extern "C" 顶层符号 (host/测试
  * 可直接判定; 不属 provider 导出白名单)。 */

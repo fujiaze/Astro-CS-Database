@@ -4,7 +4,7 @@
 // (P1-COS-DOC 冻结, 2026-09-07, wave W1) + §1-§4 ALG-COS-001..005 +
 // §10 DISP-COS-002/003/004/011 现状行为断言; SCI-CAL-001 §9a/§11。
 //
-// 组结构 (模块 tests/{unit,properties,oracle,negative} 语义落位; performance
+// 组结构 (模块 eng/tests/{unit,properties,oracle,negative} 语义落位; performance
 // 与故障注入自检为独立可执行, 见 CMakeLists.txt):
 //   units      : FIX-COS-A 恒等 + FIX-COS-B 检测/修复 oracle + FIX-COS-F 双中位
 //   properties : I1/I2/I3/I5/I6 不变量 + I4 确定性 (1/2/4 线程)

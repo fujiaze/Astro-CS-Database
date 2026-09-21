@@ -2368,7 +2368,7 @@ int p1_psf_fit_limit(const Json& doc) {
 constexpr bool kPrecisePsfEnabled = false;
 
 // 节点级精确路径: 与 FAST 同链, 唯一差别 = n_fit_limit=0（**全量**检测星不截断）。
-// 直调测试: tests/unit/p1001_real_nodes_test.cpp::test_starpsf_precise_inactive_
+// 直调测试: eng/tests/unit/p1001_real_nodes_test.cpp::test_starpsf_precise_inactive_
 // direct_call（证明本路径仍可编译且能跑出结果, 防止被当作死代码清理）。
 Result<void> p1_op_star_psf_precise(const Json& doc, Json* man) {
   return p1_op_star_psf_impl(doc, man, /*n_fit_limit=*/0);
@@ -2899,7 +2899,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   }
   // P0-21 §3.4: 逐帧独立解算 —— 每帧读入、按 init_source 取该帧指向、真实
   // ipv 求解、落该帧 p1_wcs.json。任一帧不可读/不可解 ⇒ 整体 fail-closed。
-  // （config/neighbor_crval 的 config 级参数校验在循环内逐帧复核, 首帧即拒。）
+  // （eng/packaging/config/neighbor_crval 的 config 级参数校验在循环内逐帧复核, 首帧即拒。）
   // 资源 RAII（按 orchestrator PLATESOLVE 销毁顺序: ipv → sdet → gaia）
   StarDetectorHandle sdet = nullptr;
   GaiaClient* gaia = nullptr;
@@ -2945,7 +2945,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
   ipv_get_default_params(&ip);
   std::memset(ip.log_dir, 0, sizeof(ip.log_dir));  // 节点面禁写求解日志
   // ── P0-21 §3.4: 逐帧独立求解循环 ───────────────────────────────────────
-  // 每帧: 读入 → 该帧指向（header_pointing 逐帧; config/neighbor 同源）→ 真实
+  // 每帧: 读入 → 该帧指向（header_pointing 逐帧; eng/packaging/config/neighbor 同源）→ 真实
   // ipv 求解 → roundtrip/前向交叉绝对门 → 落 output_dir/<frame_key>/p1_wcs.json。
   // 任一帧不可读/不可解 ⇒ 立即 DATA/IO fail-closed（不产出部分产品却报成功）。
   Json artifacts = Json::array();
@@ -10590,7 +10590,7 @@ Result<void> write_run_context(const std::string& out_dir, const std::string& ru
 }
 
 // PSF-FAST-001 / INACTIVE: 精确 PSF 路径的**直调测试钩子**（声明见
-// include/astrocs/core/module_adapters.h）。生产注册表（register_phase_modules）
+// lib/include/astrocs/core/module_adapters.h）。生产注册表（register_phase_modules）
 // **不注册**本路径; 本钩子只供测试证明精确实现仍可编译、仍能跑出结果,
 // 防止 inactive 代码被当作死代码清理（负责人裁决 2026-09-14）。
 // 入参/出参用 std::string 承载 JSON: core 公共头不引入 nlohmann 实现依赖。

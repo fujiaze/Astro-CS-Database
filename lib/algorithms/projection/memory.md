@@ -60,9 +60,9 @@
   TEST-P3-WCS-DESIGN-001 设计冻结 VERIFIED 承载于 ALG-P3-PROJ-
   IMPL-001 §11 + registry 手写页 §9 双重陈述——照 P2-INT/P2-REJ/
   P3-FITS 先例；可执行面升级归 P3-PROJ-TEST，不冒认。现状执行
-  测试三处如实登记: tests/unit/p3_wcs_test.cpp 90 行 +
-  tests/backend/test_p1002_gaps.py 独立解析解回归 +
-  tests/backend/p3_wcs_main.cpp 探针）。
+  测试三处如实登记: eng/tests/unit/p3_wcs_test.cpp 90 行 +
+  eng/tests/backend/test_p1002_gaps.py 独立解析解回归 +
+  eng/tests/backend/p3_wcs_main.cpp 探针）。
 - 生产源锚（read 实测，2026-09-11）:
   lib/phase3_session/p3_wcs.h（50 行，唯一权威签名头）:
   P3WcsDescriptor :11-20（crval_ra_deg/crval_dec_deg/crpix_x/
@@ -87,15 +87,15 @@
   denom≤0 背面 Hemisphere）、fits_keywords :145-163（CTYPE1/
   CTYPE2/CUNIT1/CUNIT2/CRPIX1/2/CRVAL1/2/CD1_1..CD2_2，每行
   80 字节内）。
-  会话消费: p3_session.cpp :17 include/:160 p3_wcs_make
+  会话消费: p3_session.cpp :17 lib/include/:160 p3_wcs_make
   （rotation_pa_deg 恒 0.0=PA 未接线实测偏差）/:163 状态映射
   （UNSUPPORTED→ACS_ERR_UNSUPPORTED，其余→ACS_ERR_PARAM）/:232
   worker 循环 pix2world 失败 continue（半球外像素 NaN）/:247-253
   std::thread 池 worker=budget.max_workers 禁
   hardware_concurrency。
-  执行面: tests/backend/p3_wcs_main.cpp 探针（make/p2w/w2p/kw
-  四模式）+ tests/backend/test_p1002_gaps.py（世界点→world2pix
-  →pix2world 独立解析解回归 :115-138）+ tests/unit/p3_wcs_test.cpp
+  执行面: eng/tests/backend/p3_wcs_main.cpp 探针（make/p2w/w2p/kw
+  四模式）+ eng/tests/backend/test_p1002_gaps.py（世界点→world2pix
+  →pix2world 独立解析解回归 :115-138）+ eng/tests/unit/p3_wcs_test.cpp
   90 行（WCS 完整性/溢出检查）。
 - 实测偏差（如实登记，DISP/整改不修码）:
   1) PA 未接线——p3_session.cpp:160 rotation_pa_deg 恒 0.0，
@@ -114,8 +114,8 @@
   gate3 contracts=90、gate4 doccheck rc=0、红线域 git status 零
   输出；日志 run/local/agent_p3_proj_doc/）。
 - 红线遵守: docs/science/ 根公式零改动；lib/phase3_session/
-  生产源 .cpp/.h 零改动；eng/ci/、.github/、eng/tools/、tests/ 零改动；
-  批次 P（tests/backend、tests/cli）/批次 Q（lib/infrastructure/scheduler/、lib/algorithms/shared
+  生产源 .cpp/.h 零改动；eng/ci/、.github/、eng/tools/、eng/tests/ 零改动；
+  批次 P（eng/tests/backend、eng/tests/cli）/批次 Q（lib/infrastructure/scheduler/、lib/algorithms/shared
   io_adapter、lib/infrastructure/cli/main.cpp）在途域只读不动；本任务零 git 操作。
 
 ## P3-001（2026-09-10，控制包 ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev54，attempt 1）
@@ -136,11 +136,11 @@
   + 四投影统一 |CRVAL dec|≤85° 保守收窄 + 四角投影域守卫；域界 TAN r≥π/2 /
   SIN ρ>1 / AIT D²≤0 → HEMISPHERE，CAR |θ|>90°/|δ|>90° → PARAM；
   TAN/SIN world2pix |dec|>85° 沿用冻结语义。
-- 测试: tests/unit/p3_projection_test.cpp（9 组：registry 完整性/独立往返
+- 测试: eng/tests/unit/p3_projection_test.cpp（9 组：registry 完整性/独立往返
   Oracle 3D 向量第一性 <1e-8px/TAN 生产 bitwise 零漂移对拍/正向独立解析解/
   G1 精确断言/负面清单全族/CTYPE 面/确定性/1N worker 1v2v4v8 bitwise）；
-  tests/backend/test_p3_projection_oracle.py（numpy 完全独立实现对拍 +
-  跨进程 sha256 确定性 + CTYPE）；tests/unit/CMakeLists.txt 注册
+  eng/tests/backend/test_p3_projection_oracle.py（numpy 完全独立实现对拍 +
+  跨进程 sha256 确定性 + CTYPE）；eng/tests/unit/CMakeLists.txt 注册
   p3_projection_units/p3_projection_fault（直编生产源，先例同构）。
 - 故障注入: ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry 五模式注入等价
   缺陷必败实测（FAULT-EFFECT-CONFIRMED ×5）；测试级注入、生产源零 getenv。

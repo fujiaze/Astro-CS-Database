@@ -19,7 +19,7 @@
 | ~~astrocs-stage2~~（**非发布入口**） | EXEC | eng/tools/stage2.cpp —— 旧 Phase2 CLI，**不是入口**（最高设计 §6.2 唯一命令树 / §7.1「旧可执行程序不是入口」）；保留仅为历史/工具面，**不得作为发布目标** | lib/algorithms/coverage/CMakeLists.txt |
 | calibrated_pair_diag | EXEC | eng/tools/calibrated_pair_diag.cpp | lib/algorithms/coverage/CMakeLists.txt |
 | rejection_cli | EXEC | eng/tools/rejection_cli.cpp | lib/algorithms/coverage/CMakeLists.txt |
-| phase2_synthetic_gate | TEST | tests/synthetic_gate.cpp | lib/algorithms/coverage/CMakeLists.txt (if GTest) |
+| phase2_synthetic_gate | TEST | eng/tests/synthetic_gate.cpp | lib/algorithms/coverage/CMakeLists.txt (if GTest) |
 | orchestrator.exe | EXEC | cpp/src/main.cpp, orchestrator.cpp, cli_command.cpp | lib/infrastructure/pipeline/orchestrator/cpp/CMakeLists.txt |
 | astro_image_io.dll | SHARED | src/*.cpp + hips/* + cfitsio | lib/infrastructure/aio/CMakeLists.txt |
 | hepix_drizzle | STATIC/SHARED | healpix_drizzle/*.cpp | lib/algorithms/drizzle/healpix_drizzle/CMakeLists.txt |

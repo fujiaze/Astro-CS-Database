@@ -22,7 +22,7 @@ python3 eng/tools/realdata/match_plan.py plan --testdata testdata \
 |---|---|
 | `file_manifest.csv` | testdata 全部文件逐文件 sha256（行数=文件数=944） |
 | `inventory_grouping.json` | 数据集×望远镜×面板×曝光×滤镜 分组计数 + 与 index 对账 |
-| `gaia_registry.json` | GaiaDR3/GaiaDR3SP 注册摘要（DATA-GAIA-001：db_type/file_count/路径） |
+| `gaia_registry.json` | gaia/GaiaDR3/GaiaDR3SP 注册摘要（DATA-GAIA-001：db_type/file_count/路径） |
 | `match_plan.json` | 逐帧 `{bias, dark(file,K,strategy), flat}` 或 `UNMATCHED(reason_code)` |
 | `match_summary.md` | 人读摘要 + 缺口对照表 + OWNER_CONFIRM findings |
 | `phase_configs/*.json` | 各数据集 phase_config 模板（masters/滤镜/曝光/gaia_data_dir/dark_optimization=true） |
@@ -45,9 +45,9 @@ python3 eng/tools/realdata/match_plan.py plan --testdata testdata \
 ## 测试
 
 ```bash
-python3 -m pytest tests/realdata/ -q     # 匹配器正例/策略/四类负例 + index v1.2 校验
-python3 -m pytest tests/monitoring/ -q   # 索引消费方回归
+python3 -m pytest eng/tests/realdata/ -q     # 匹配器正例/策略/四类负例 + index v1.2 校验
+python3 -m pytest eng/tests/monitoring/ -q   # 索引消费方回归
 ```
 
-相关测试：`tests/realdata/test_match_plan.py`（匹配语义）、
-`tests/realdata/test_index_v12.py`（testdata/index.json v1.2 schema 与磁盘对账）。
+相关测试：`eng/tests/realdata/test_match_plan.py`（匹配语义）、
+`eng/tests/realdata/test_index_v12.py`（testdata/index.json v1.2 schema 与磁盘对账）。

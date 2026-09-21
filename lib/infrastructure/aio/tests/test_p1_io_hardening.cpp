@@ -19,7 +19,7 @@
 //   T8  异常屏障: hips reader tile_width=2048 恶意产品集 → open 返回
 //       nullptr (P1-3 校验); last_error 稳定可读 (0 try → 11 try 屏障面)
 //
-// 落位依据: 本模块 tests/ 目录既有独立 g++ 驱动模式
+// 落位依据: 本模块 eng/tests/ 目录既有独立 g++ 驱动模式
 // (test_p0_io_hardening.cpp / test_precision_dual.cpp 同款)。
 //
 // 编译 (lib/infrastructure/aio/tests/ 目录):

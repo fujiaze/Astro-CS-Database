@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# F-INSTR (裁决 A6) 实验一键复跑. 只读研究; 不改 lib/ docs/ tests/ ci/; 零 git 写.
+# F-INSTR (裁决 A6) 实验一键复跑. 只读研究; 不改 lib/ docs/ eng/tests/ ci/; 零 git 写.
 set -euo pipefail
 export TMPDIR=${TMPDIR:-/dev/shm/astrocs_finstr}
 mkdir -p "$TMPDIR"

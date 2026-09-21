@@ -35,7 +35,7 @@
 18. **`p3_output.cpp` 原子提交为自实现**：插件文档要求"复用 infrastructure/aio 的原子提交设施"尚未兑现（该文件自实现 tmp+rename）。
 19. **Phase1 产品标记载荷（D08）未关**：calibrated 产品未带 `ASTROCS*` 标记 / HISTORY。
 20. **资源门回收判据在该负载下不达标**：P3-006 2600² 双线性导出确定性触发 `alloc_reclaim_missing`（`reclaim_frac=0.0` / `unexplained_residual`，peak_rss≈2.6e8），根因未修（属 IMPL/resource 面）。
-21. **验收证据文件缺位**：`artifacts/prerelease_v5/ISA-005/MEASUREMENTS.csv`、`evidence/v6_1_rework/TASK_LEDGER.csv` 缺位；相应测试显式 SKIP 并标注 NOT_APPLICABLE 依据（不以 skip 充绿）。
+21. **验收证据文件缺位**：`artifacts/evidence/prerelease-v5/ISA-005/MEASUREMENTS.csv`、`evidence/v6_1_rework/TASK_LEDGER.csv` 缺位；相应测试显式 SKIP 并标注 NOT_APPLICABLE 依据（不以 skip 充绿）。
 22. **三项挂账**：plate_solve `n_inliers` 门限（实测 38 < 40）、dll_loader Win32 工具例外、PSF 无独立单测。
 23. **CAT-GAIA 两项**：KI-1 `query_cache.out_mag` 非 bitwise 复现；KI-2 混合 DB 光谱未 memcpy。
 24. **声明路径与实现的存量缺口**：`docs/modules/MODULE_MAP.yaml` 164 条声明中 53 条路径不存在；`lib/` 代码注释 40 条引用不存在路径（真缺口 28 / 假阳性 12）。缺口清单与归属见差距清单登记。

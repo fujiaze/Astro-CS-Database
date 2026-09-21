@@ -110,9 +110,9 @@ g("CHK-EXIT-CONSISTENCY", "PROVEN-EXECUTABLE", "P1",
 
 
 g("CHK-PKG-CONSISTENCY", "PROVEN-EXECUTABLE", "P1",
-  (_p("packaging/check_packaging_consistency.py", "--root", ".",
+  (_p("eng/packaging/check_packaging_consistency.py", "--root", ".",
       "--json-out", "run/ci/pkg-consistency.json"), 0, "repo"),
-  (_p("packaging/check_packaging_consistency.py", "--root", EMPTY), 2, "repo"),
+  (_p("eng/packaging/check_packaging_consistency.py", "--root", EMPTY), 2, "repo"),
   "fail-closed(ANCHOR_STALE，空树 rc=2) + selftest(注入 C5/C6/C7 均判红，正例判绿)",
   "run/PROJECT-GOVERNANCE-01/W4-A3/logs/PKG/",
   auto=True,
@@ -123,11 +123,11 @@ for gate, grade, pos, neg, kind, ev in [
     ("CHK-MODULE-MANIFEST", "P0", _p("eng/tools/quality/check_module_map.py", "--selftest"),
      _p("eng/tools/quality/check_module_map.py", "--repo-root", EMPTY, "--quiet"),
      "selftest + missing-dependency", "run/PROJECT-GOVERNANCE-01/CI-001/evidence/"),
-    ("CHK-ROOT-CLEAN", "P0", _p("-m", "pytest", "tests/quality/test_root_cleanliness.py", "-q"),
+    ("CHK-ROOT-CLEAN", "P0", _p("-m", "pytest", "eng/tests/quality/test_root_cleanliness.py", "-q"),
      _p("eng/tools/quality/check_root_cleanliness.py", "--root", EMPTY,
         "--manifest", "eng/ci/root_manifest.json", "--quiet"),
      "unittest-suite(含 3 负例) + missing-dependency", "run/PROJECT-GOVERNANCE-01/CI-001/evidence/"),
-    ("API-DOCS", "P0", _p("-m", "pytest", "tests/quality/test_doc_machine_check.py", "-q"),
+    ("API-DOCS", "P0", _p("-m", "pytest", "eng/tests/quality/test_doc_machine_check.py", "-q"),
      _p("eng/tools/check_api_docs.py", "--repo", EMPTY), "unittest-suite + mutation",
      "run/PROJECT-GOVERNANCE-01/CI-001/evidence/"),
     ("CHK-SCHEMA", "P0", _p("eng/tools/monitoring/check_log_contract.py", "--selfcheck"),
@@ -151,7 +151,7 @@ for gate, grade, kind in [
     ("GLOSSARY-DOCS", "P2", "mutation(副本删词典锚点 → rc=1)"),
     ("VERSION-NAMESPACES", "P1", "mutation(副本注入陈旧版本号 → rc=1)"),
 ]:
-    g(gate, "PROVEN-EXECUTABLE", grade, (_p("-m", "pytest", "tests/quality", "-q"), 0, "repo"),
+    g(gate, "PROVEN-EXECUTABLE", grade, (_p("-m", "pytest", "eng/tests/quality", "-q"), 0, "repo"),
       (_p("eng/tools/quality/check_prod_reachability.py", "--selftest"), 0, "repo"), kind,
       "run/PROJECT-GOVERNANCE-01/R-6/logs/")
 
@@ -186,7 +186,7 @@ FACE = {
 }
 for gate, (grade, face, why) in FACE.items():
     g(gate, "FACE-DEFINED-NOT-RUN", grade,
-      (_p("-m", "pytest", "tests/quality", "-q"), 0, "repo"),
+      (_p("-m", "pytest", "eng/tests/quality", "-q"), 0, "repo"),
       (["sh", "-c", face], 1, "manual"), "face-defined", "-", reason=why)
 
 

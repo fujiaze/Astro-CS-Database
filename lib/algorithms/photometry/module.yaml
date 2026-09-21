@@ -16,7 +16,7 @@
 # lib/algorithms/photometry/ 既是生产实现所在又是迁移落码目标（合同三件套
 # README.md r1 + module.yaml + memory.md 落位于此）；lib/algorithms/photometry/wrapper_phase1/
 # 旧符号 astrocs::phase1::Photometer（aperture 测光，CMakeLists.txt:429-432
-# 静态库 astrocs_phase1_phot，仅单测 tests/unit/p1_wcs_phot_test，未接
+# 静态库 astrocs_phase1_phot，仅单测 eng/tests/unit/p1_wcs_phot_test，未接
 # orchestrator 管线）为计划迁移旧符号，其 aperture 合同并入
 # lib/algorithms/photometry/README.md §9，去留由 P1-PHOT-IMPL 登记 TASK_RESULT。
 # dll_target=astrocs_p1_photometry.dll 为迁移目标合同值（尚未存在）。现状

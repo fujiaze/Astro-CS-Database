@@ -89,12 +89,12 @@
 | V10 | ✅ 向后兼容宏工作（旧名 hiss_read/hiss_write 编译通过）|
 
 **新文件**:
-- `include/aio_healpix_io.h` - HEALPix I/O API + 向后兼容宏
+- `lib/include/aio_healpix_io.h` - HEALPix I/O API + 向后兼容宏
 - `src/healpix/aio_healpix_io.cpp` - HEALPix I/O 实现
 - `aio_build_config.json` (默认/full/minimal/healpix 4 套配置)
 - `build.ps1` - 选择编译脚本
 - `docs/HEALPIX_FORMAT_SPEC.md` - 格式规范（从 healpix_io 复制）
-- `tests/test_healpix_io*.py` - 测试（从 healpix_io 复制）
+- `eng/tests/test_healpix_io*.py` - 测试（从 healpix_io 复制）
 - `python/aio_healpix_io.py` - Python 绑定（从 healpix_io 复制）
 
 **修改文件**:
@@ -277,7 +277,7 @@
   （DP-N1..N4）、注入自检并入既有 `p1hips_selfcheck` 可执行（4 基线场景 +
   5 注入点必败：`ASTROCS_HIPS_PROV_FAULT=missing_key|value_drift`、
   `ASTROCS_HIPS_DIAG_FAULT=sentinel|skip_write`、
-  `ASTROCS_HIPS_VERIFY_FAULT=shortcut`）。另在 `tests/unit/p2002_unc_rej_prov_test.cpp`
+  `ASTROCS_HIPS_VERIFY_FAULT=shortcut`）。另在 `eng/tests/unit/p2002_unc_rej_prov_test.cpp`
   增补 `test_s303_aio_channel_real_values`（真实 Phase2 产物值驱动 AIO 通道 +
   逐像素回读 + verify 双向；注入面 `ASTROCS_P2002_FAULT=aio` 必败）。
 - **登记 finding（域外, 不在本任务写域）**:
@@ -289,7 +289,7 @@
   - `F-SCI-F3-001-02`（P2, docs/contracts）：`docs/algorithms/HIPS_WRITER.md:44`
     与 `docs/contracts/DATA_SEMANTICS.md:307`/`PUBLIC_API.md:324` 的产品位清单
     仍是 {1,2,4,8,16}/ALL_V19（未含 32/64 与 ALL_V20）；
-    `contracts/data/phase2_uncertainty_rejection_provenance_v1.json` 的
+    `eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json` 的
     `pending_aio_channels.writer_int32_tile|properties_key_channel` 仍为
     PENDING_AIO_DOMAIN。三处均为本任务写域外，最小补丁文本见任务返回包。
 
@@ -299,6 +299,6 @@
   现版 gcc 14 对 `aio_hips_reader.cpp` 的 thread_local (`g_rd_error`) 报
   `relocation R_X86_64_TPOFF32 … recompile with -fPIC`，导致
   `lib/infrastructure/aio/astro_image_io.dll` 无法产出。
-- 该 .dll 是 `tests/api` 五个独立 oracle 门（seam/UPM/reject）的链接输入；
+- 该 .dll 是 `eng/tests/api` 五个独立 oracle 门（seam/UPM/reject）的链接输入；
   接缝门已改 fail-closed（缺库即红，不再静默 skip）。`make -C
   lib/infrastructure/aio -j2 all` 恢复可产出；零科学改动。

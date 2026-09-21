@@ -134,7 +134,7 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
   也不得把任一方的字段名搬到另一方。
 
 
-`include/astrocs/core/logging.h`（CORE-008 Logger/MetricsAggregator）是既有运行时组件
+`lib/include/astrocs/core/logging.h`（CORE-008 Logger/MetricsAggregator）是既有运行时组件
 LOG-001 **不修改它**。本合同是其事件语义的冻结外部化：
 既有字段 `ts/component/event/message/seq/node_id/run_id/progress/wall_us` 的
 等价语义映射到合同字段表 2.2（`component→module/phase` 归属、`message→diagnostic` 等）。

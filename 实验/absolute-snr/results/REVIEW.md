@@ -60,7 +60,7 @@ git show HEAD:lib/infrastructure/scheduler/src/module_adapters.cpp | awk 'NR>=42
 awk 'NR>=65 && NR<=88' lib/algorithms/noise_snr/cpp/src/snr_estimator.cpp
 grep -rn "noise_sigma" lib/ | head
 awk 'NR>=78 && NR<=96' docs/science/NOISE_MODEL.md
-grep -rn "sparse_reconstruct\|snr_path_effective\|FZ-SNR" lib/ include/ contracts/
+grep -rn "sparse_reconstruct\|snr_path_effective\|FZ-SNR" lib/ lib/include/ eng/contracts/
 
 # ⑤ 越权核查
 git status --short ; git diff --stat ; git status --short docs/research/ docs/science/ lib/
@@ -146,7 +146,7 @@ git status --short ; git diff --stat ; git status --short docs/research/ docs/sc
 #### **I2｜b6 的 fail-closed "对拍"是自指玩具，无被测对象**
 
 - **位置**：`code/b6_gates_audit.py:99-145`（`path_state_machine` 定义在 b6 内部，用例与期望值同表硬编码）。
-- **复现**：`grep -rn "sparse_reconstruct\|snr_path_effective\|FZ-SNR" lib/ include/ contracts/` ⇒ 命中仅 `lib/infrastructure/cli/session_commands.h`（模板字符串）、`contracts/schemas/phase_config_mosaic.schema.json`（description），**lib/ 实现代码中没有任何路径状态机**。
+- **复现**：`grep -rn "sparse_reconstruct\|snr_path_effective\|FZ-SNR" lib/ lib/include/ eng/contracts/` ⇒ 命中仅 `lib/infrastructure/cli/session_commands.h`（模板字符串）、`eng/contracts/schemas/phase_config_mosaic.schema.json`（description），**lib/ 实现代码中没有任何路径状态机**。
 - **期望 vs 实际**：期望"对拍"= 与独立实现/真实调用路径比对；实际是作者把自己的转写与自己的期望表比对，`H4_all_cases_match` **在任何数据下恒真**（只有改源码才可能失败）。语义转写与 `07_noise_snr.md` §4.2 一致（这点我核对了，一致），但它**不能支撑 README §3.6「fail-closed 路径对拍」与 H14「语义正确」的强度**——应表述为"按规范转写的语义自检，实现侧尚未落地"。
 
 #### **I3｜`N1_flat_field_sparse_never_wins` 是恒真门，却被计入"非退化负例 PASS"**

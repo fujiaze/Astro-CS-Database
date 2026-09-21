@@ -2,7 +2,7 @@
 # eng/tools/no_legacy_production_reference.py — V17 legacy 多路径静态 gate
 #
 # 检查 active production tree（lib/ 非 archive、非 acr、非 tests）不得：
-#   - include/引用 healpix_stack / hp_stack_*（legacy Stage2 科学实现）；
+#   - lib/include/引用 healpix_stack / hp_stack_*（legacy Stage2 科学实现）；
 #   - 加载 GRADIENT_SPHERE/STACK 模块；
 #   - 引用 legacy Stage2 handler（run_stage_gradient_sphere 等已 stub，
 #     允许存在但不允许有 healpix_stack 调用体）。

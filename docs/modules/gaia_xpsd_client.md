@@ -72,7 +72,7 @@ O(树深 + 命中叶块解压 + 输出)；文件级并行；缓存命中近乎�
 
 - 设计冻结：TEST-GAIA-DESIGN-001（GAIA_QUERY.md §5——合成 fixture、独立
   oracle、不变量 I1-I5、负面/分配注入、1/N worker、ISA bitwise、资源）；
-- 可执行测试：未实现（CAT-GAIA-TEST 落地，tests/{unit,properties,oracle,
+- 可执行测试：未实现（CAT-GAIA-TEST 落地，eng/tests/{unit,properties,oracle,
   fixtures,negative,performance}），当前无 PASS 声明。
 
 ## Source files

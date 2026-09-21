@@ -85,8 +85,8 @@ ROOT_DOCS = (
 )
 
 # 代码注释面扫描目录（与 FIX-404 代码路径门共用扫描数据；过程/证据目录不入扫描面）
-CODE_SCAN_DIRS = ("lib/", "eng/ci/", "eng/tools/", "tests/", "contracts/", "config/",
-                  "packaging/", "eng/cmake/")
+CODE_SCAN_DIRS = ("lib/", "eng/ci/", "eng/tools/", "eng/tests/", "eng/contracts/", "eng/packaging/config/",
+                  "eng/packaging/", "eng/cmake/")
 # 2026-09-21 ROOT-CONSOLIDATION：reverse_verify/ 根条目解散，其内容整体迁入 实验/，
 # 故排除面由 "reverse_verify/" 等量替换为 "实验/"（扫描面不增不减）。
 SKIP_DIRS = ("问题扫描/", "reports/", "artifacts/", "run/", "build/", "third_party/",

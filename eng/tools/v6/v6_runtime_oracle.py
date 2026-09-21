@@ -391,7 +391,7 @@ def rule_r7_ci_registration(ctx: Ctx):
 
 
 def rule_r8_determinism(ctx: Ctx):
-    for rel in ("lib/infrastructure/cli/v6_runtime_contract.h", "tests/system/v6_runtime/v6_runtime_determinism_test.cpp"):
+    for rel in ("lib/infrastructure/cli/v6_runtime_contract.h", "eng/tests/system/v6_runtime/v6_runtime_determinism_test.cpp"):
         src = ctx.read(rel)
         if src is None:
             continue

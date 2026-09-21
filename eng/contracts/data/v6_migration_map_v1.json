@@ -1,0 +1,232 @@
+{
+  "migration_map_schema": "astrocs.v6.migration-map/v1",
+  "schema_version": 1,
+  "task": "SCHEMA-INTEGRATE-001",
+  "wave": 6,
+  "status": "PRODUCTION_INTEGRATED",
+  "semantic_authority": "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json",
+  "source_of_truth": "eng/contracts/proposals/v6/data/astrocs.v6.data-design-catalog.v1.json#migrations + docs/contracts/v6/data/10_migration_and_open_items.md",
+  "compatibility_declaration": "向后兼容仅由 reader/迁移层提供；writer/schema 只产出 v6 canonical。legacy weight_mode=0 一律拒绝，不得静默解释为任何科学权重。既有合同语义（signal/support/variance/ivar/mask 平面语义、BUNIT 二次律、provenance 最小集）不被静默改变。",
+  "file_migrations": [
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.units.v1.schema.json",
+      "to": "eng/contracts/schemas/v6/astrocs.v6.units.v1.schema.json",
+      "kind": "schema",
+      "semantic_unchanged": true
+    },
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.signal.v1.schema.json",
+      "to": "eng/contracts/schemas/v6/astrocs.v6.signal.v1.schema.json",
+      "kind": "schema",
+      "semantic_unchanged": true
+    },
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.covariance.v1.schema.json",
+      "to": "eng/contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
+      "kind": "schema",
+      "semantic_unchanged": true
+    },
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.psf.v1.schema.json",
+      "to": "eng/contracts/schemas/v6/astrocs.v6.psf.v1.schema.json",
+      "kind": "schema",
+      "semantic_unchanged": true
+    },
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.effective-psf.v1.schema.json",
+      "to": "eng/contracts/schemas/v6/astrocs.v6.effective-psf.v1.schema.json",
+      "kind": "schema",
+      "semantic_unchanged": true
+    },
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.point-information.v1.schema.json",
+      "to": "eng/contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json",
+      "kind": "schema",
+      "semantic_unchanged": true
+    },
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.weight-mode.v1.schema.json",
+      "to": "eng/contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json",
+      "kind": "schema",
+      "semantic_unchanged": false,
+      "note": "删除 *_alias_sci_psfw 桥接字段与 W6 token-mapping 注释；单一 canonical 词表落 eng/contracts/data/v6_weight_vocabulary_v1.json"
+    },
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.psfsw.v1.schema.json",
+      "to": "eng/contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
+      "kind": "schema",
+      "semantic_unchanged": false,
+      "note": "concentration 单位收紧为 component_flux_unit/px^2（W12 文本错误登记）；新增 component_flux_unit 声明；禁止键 propertyNames 守卫"
+    },
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json",
+      "to": "eng/contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
+      "kind": "schema",
+      "semantic_unchanged": false,
+      "note": "k_corr.value != 1 结构门；BUNIT=ADU ⇒ pixel_semantics=surface_brightness + pixel_area_power=-2 结构门"
+    },
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.phase3.v1.schema.json",
+      "to": "eng/contracts/schemas/v6/astrocs.v6.phase3.v1.schema.json",
+      "kind": "schema",
+      "semantic_unchanged": true
+    },
+    {
+      "from": "eng/contracts/proposals/v6/data/astrocs.v6.data-design-catalog.v1.json",
+      "to": "eng/contracts/data/v6_data_dictionary_v1.json",
+      "kind": "catalog_to_dictionary",
+      "note": "catalog 保留为 W3 提案；生产数据字典由本任务独立出具"
+    },
+    {
+      "from": "docs/contracts/v6/data/*.md",
+      "to": "docs/contracts/DATA_SEMANTICS.md §31 + docs/contracts/PUBLIC_API.md v6 段",
+      "kind": "doc",
+      "note": "生产合同吸收 v6 字段/单位/BUNIT/weight_mode/provenance/fail-closed"
+    }
+  ],
+  "record_migrations": [
+    {
+      "id": "MIG-WEIGHTMODE-LEGACY",
+      "from": "ASTROCS_WEIGHT_MODE 整数 {0,1,2}（DATA_SEMANTICS §30.3:2421；PUBLIC_API:1165；ACR {auto,ivar,equal,support_x_snr2}）",
+      "to": "显式字符串 weight_mode ∈ {point_information, surface_gls, psfsw_robust}（生产）/ {equal, pixel_ivar}（文档基线）",
+      "reader_rule": "0 → REJECT（support×snr² 不得进任何科学权重面）；1 → equal；2 → pixel_ivar；auto/support_x_snr2/psf_snr_power/未知 → REJECT。迁移结果必须带 weight_mode_version。",
+      "writer_rule": "只写显式字符串模式 + 版本；不得写 legacy 整数。",
+      "anchor": "ADJ-S1; ADJ-AR-01; FZ-FIELD-WEIGHTMODE; FZ-MODE-PRODUCTION; FZ-MODE-BASELINE",
+      "legacy_status": "SUPERSEDED",
+      "owner": "SCHEMA-INTEGRATE-001(W6)",
+      "catalog_refs": [
+        "MIG-WEIGHTMODE-LEGACY"
+      ]
+    },
+    {
+      "id": "MIG-VOCAB-PSFSW-CANONICAL",
+      "from": "SCI-PSFW 词表 weight_kind / weight_units / normalization.scope 与 SCI-P2 词表 weight.kind / weight.units / group_normalized 并存",
+      "to": "单一 canonical：weight.{kind,units,group_normalized,normalization.{scope,median_target,constants_version}}",
+      "reader_rule": "迁移层接受 legacy token 并规范化为 canonical（relative_dimensionless→psfsw_robust_weight；dimensionless_relative→1；scope=group↔group_normalized=true）；第三套名 → REJECT。",
+      "writer_rule": "生产 schema 只认 canonical（additionalProperties=false，别名不出现）。",
+      "anchor": "C-004.3; ADJ-C004-03; DI-01; DI-07; FZ-FIELD-WEIGHTMODE",
+      "legacy_status": "NORMALIZED_SINGLE",
+      "owner": "SCHEMA-INTEGRATE-001(W6)",
+      "vocabulary_ref": "eng/contracts/data/v6_weight_vocabulary_v1.json",
+      "catalog_refs": [
+        "MIG-PSFSW-VOCAB"
+      ]
+    },
+    {
+      "id": "MIG-UNITS-PXVARIANCE",
+      "from": "同名 variance（输入 v_j=ADU^2 与输出 variance_p=ADU^2/px^4 混名；DRIZZLE §3:27）",
+      "to": "pixel_variance_in(ADU^2) / sb_variance_out(ADU^2/px^4) / sb_ivar_out(px^4/ADU^2) 分离命名",
+      "reader_rule": "BUNIT=ADU 且 provenance 无 pixel_semantics=surface_brightness + pixel_area_power=-2 + 目标像素面积 → 单位不可判 → unavailable/REJECT",
+      "anchor": "FZ-UNIT-VAR-IN; FZ-UNIT-VAR-SB; FZ-UNIT-IVAR-SB; FZ-BUNIT-SEMANTICS; SO-01",
+      "legacy_status": "SUPERSEDED_PENDING_SIGNOFF",
+      "owner": "CONTRACT-FREEZE-001(W4) + 负责人",
+      "catalog_refs": [
+        "MIG-UNITS-PXVARIANCE"
+      ]
+    },
+    {
+      "id": "MIG-NORM-DRIZZLE",
+      "from": "w_jp=a_jp/A_drop 前向归一（pixfrac<1 时 S_p=B0/pixfrac^2）",
+      "to": "面亮度保持 S_p=Sum_j B_j a_jp / Sum_j a_jp + 条件通量守恒 flux_conservation_factor=pixfrac^2",
+      "reader_rule": "legacy 归一产品必须带 normalization.version；缺 flux_conservation_factor 禁用于绝对通量/孔径",
+      "anchor": "FZ-FORMULA-DRIZZLE-SB; FZ-FORMULA-DRIZZLE-VAR; FZ-COND-FLUX-CONSERV; SO-02",
+      "legacy_status": "SUPERSEDED_PENDING_SIGNOFF",
+      "owner": "CONTRACT-FREEZE-001(W4) + 负责人",
+      "catalog_refs": [
+        "MIG-NORM-DRIZZLE"
+      ]
+    },
+    {
+      "id": "MIG-COVARIANCE-PRODUCT",
+      "from": "DRIZZLE §1/§9a『协方差产品为非目标』；只存对角 variance",
+      "to": "协方差/相关核为强制输出面：对角 variance + rho_ij/可重建算子摘要 + 近似误差",
+      "reader_rule": "只出对角 variance 而无 correlation_kernel/operator_descriptor → REJECT；HiPS 父级对角归约声明为精确 → REJECT",
+      "anchor": "ADJ-AR-02; FZ-GATE-PARENT-VAR; FZ-PROV-SHARED-SYSTEMATIC; SO-04",
+      "legacy_status": "SUPERSEDED_PENDING_SIGNOFF",
+      "owner": "CONTRACT-FREEZE-001(W4) + 负责人",
+      "catalog_refs": [
+        "MIG-COVARIANCE-PRODUCT"
+      ]
+    },
+    {
+      "id": "MIG-DIAGNOSTIC-NOT-WEIGHT",
+      "from": "median(SNR_F)/support/coverage/FWHM/residual 作权重（SCI-CW weight_mode=2；帧级 snr_coefficient）",
+      "to": "仅诊断/深度/门；权重面为 W_info / A^T C^-1 A / psfsw_robust_weight",
+      "reader_rule": "诊断别名出现在 weight.sources / weight.weight_value / covariance.variance_from → REJECT；帧级 median(SNR_F) 只登记为诊断（C-004.2），不得接入任何权重面",
+      "anchor": "FZ-GATE-MEDIAN-SNR; FZ-GATE-SUPPORT-COVERAGE; ADJ-C004-02; C-004.2",
+      "legacy_status": "SUPERSEDED",
+      "owner": "CONTRACT-FREEZE-001(W4)",
+      "catalog_refs": [
+        "MIG-DIAGNOSTIC-NOT-WEIGHT"
+      ]
+    },
+    {
+      "id": "MIG-PROVENANCE-KEYS",
+      "from": "ASTROCS_WEIGHT_MODE 环境/配置整数；ASTROCS_UNCERTAINTY_AVAILABLE 无 reason/scope",
+      "to": "provenance.weight_mode_version 显式版本串 + unavailable.{flag,reason,scope}",
+      "reader_rule": "unavailable 缺 reason/scope → REJECT；静默缺键 → REJECT",
+      "anchor": "FZ-PROV-MINIMAL-SET; ADJ-GEN-03; DATA_SEMANTICS §30.3",
+      "legacy_status": "MIGRATED",
+      "owner": "SCHEMA-INTEGRATE-001(W6)",
+      "catalog_refs": []
+    },
+    {
+      "id": "MIG-SCHEMA-PLANE-OWNER",
+      "from": "eng/contracts/data/phase_product_exchange.schema.json plane_id ∈ {signal,support,variance,ivar,mask}",
+      "to": "v6 描述层对象并入生产 schema（point-information / psfsw / effective-psf / covariance / provenance / phase3）",
+      "reader_rule": "science plane 枚举扩展必须 schema 与 runtime validator 同一提交（F-UNC-003）",
+      "anchor": "F-UNC-003; DATA_SEMANTICS §30.2; DI-06",
+      "legacy_status": "DEFERRED_COUPLED",
+      "owner": "SCHEMA-INTEGRATE-001(W6) / IMPL-AIO-001",
+      "not_done_reason": "runtime validator 不在本任务 write_scope；单方面扩 plane 枚举会与 runtime 失配，故 DI-06 保持 OPEN",
+      "catalog_refs": [
+        "MIG-SCHEMA-OWNER"
+      ]
+    }
+  ],
+  "legacy_weight_mode_disposition": {
+    "0": {
+      "legacy": "support_x_snr2",
+      "action": "REJECT",
+      "reason": "support×snr² 形态被 UNIFIED §11 撤销；support/coverage 只作门"
+    },
+    "1": {
+      "legacy": "equal",
+      "action": "MIGRATE_TO",
+      "target": "equal",
+      "class": "documented_baseline"
+    },
+    "2": {
+      "legacy": "pixel_ivar",
+      "action": "MIGRATE_TO",
+      "target": "pixel_ivar",
+      "class": "documented_baseline"
+    },
+    "auto": {
+      "action": "REJECT"
+    },
+    "support_x_snr2": {
+      "action": "REJECT"
+    },
+    "psf_snr_power": {
+      "action": "REJECT",
+      "reason": "DEFERRED；C-004.1 本包不解冻"
+    }
+  },
+  "signoff_policy": "49 条 PENDING_OWNER_SIGNOFF 保持 pending 并 fail-closed；本映射表不使任何待签条款生效。",
+  "catalog_migrations_covered": [
+    "MIG-WEIGHTMODE-LEGACY",
+    "MIG-UNITS-PXVARIANCE",
+    "MIG-NORM-DRIZZLE",
+    "MIG-PSFSW-VOCAB",
+    "MIG-COVARIANCE-PRODUCT",
+    "MIG-DIAGNOSTIC-NOT-WEIGHT",
+    "MIG-SCHEMA-OWNER"
+  ],
+  "x-astrocs-canonical-object-retirement": {
+    "note": "本文件属 v6 合同层，按 工程控制/RELEASE-03/GAP_AUDIT.md §4.1 Q2 裁决在位保留为「设计档案 / 产品族专用投影（非生产目标态）」，文件不删。统一对象 canonical psfsw_robust_weight retired（负责人 2026-09-20 裁决 B，14→13；变更编号 CHG-2026-09-20-PSFSW-RETIRE；依据 ASTROCS_DESIGN.md §2.1/§2.2/§2.3 与 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44）：eng/contracts/schemas/unified/psfsw_robust_weight.schema.json 与其正例已删除，端口合同枚举不再接受该对象。本文件中的 psfsw_robust_weight 是 v6 提案/产品族内部标识（weight.kind 值、单位表符号、variance_from 禁止项 token），不是统一对象 canonical 引用；旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示（eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries）。",
+    "retired_canonical_object": "psfsw_robust_weight",
+    "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
+    "v6_layer_status": "retained_design_archive"
+  }
+}

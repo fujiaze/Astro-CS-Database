@@ -19,7 +19,7 @@
  *      host/ThreadBudget 另行管理 (CPU-008), 探测层不决策。
  *
  * 位语义 (对照 15_CPU_PROVIDER_AND_RESOURCE_STANDARD.md §2 与
- * include/astrocs/abi/status_codes.h 错误码):
+ * lib/include/astrocs/abi/status_codes.h 错误码):
  *   - os_safe 判定规则:
  *       AVX/AVX2/FMA 可安全执行 ⇔ CPUID 置位 且 OSXSAVE=1 且 XCR0.XMM|YMM
  *         (xcr0 位 1|2 = 0x6) 均置;
@@ -104,7 +104,7 @@ typedef struct acs_cap_result_v1 {
  * 失败 (非 x86/未知) 返回 ACS_CAP_ERR_UNSUPPORTED (数值 5, 与
  * acs_status ACS_ERR_UNSUPPORTED 一致) 并写空结果。 */
 
-/* 错误码 (数值与 include/astrocs/abi/status_codes.h acs_status 对齐;
+/* 错误码 (数值与 lib/include/astrocs/abi/status_codes.h acs_status 对齐;
  * 本接口不需要 3/4/6..10, 不扩展) */
 enum acs_cap_status {
     ACS_CAP_OK = 0,

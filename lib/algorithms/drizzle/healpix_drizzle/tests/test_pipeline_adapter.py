@@ -17,7 +17,7 @@ test_pipeline_adapter.py - Drizzle 管线适配器测试
 
 运行:
     cd lib/algorithms/drizzle/healpix_drizzle
-    python -m pytest tests/test_pipeline_adapter.py -v -s
+    python -m pytest eng/tests/test_pipeline_adapter.py -v -s
 
 依赖:
     - healpix_drizzle.dll (healpix_drizzle/ 目录下)
@@ -38,7 +38,7 @@ import pytest
 # 路径设置: 添加 healpix_drizzle, healpix_io 和 astro_image_io 模块路径
 # ============================================================================
 _TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-# healpix_drizzle 模块目录 (tests/ 的上级)
+# healpix_drizzle 模块目录 (eng/tests/ 的上级)
 _DRIZZLE_MODULE_DIR = os.path.normpath(os.path.join(_TEST_DIR, ".."))
 # healpix_io 模块目录 (lib/infrastructure/aio/healpix_db/healpix_io)
 _HIO_MODULE_DIR = os.path.normpath(os.path.join(_TEST_DIR, "..", "..", "..", "..", "healpix_io"))

@@ -23,16 +23,16 @@
 // # 基础编译 (仅 transform 单元测试, 无 ZSTD/Writer/Reader):
 // $env:Path = "C:\msys64\mingw64\bin;$env:Path"
 // cd "f:\Astro dev\Astro CS Normalization Database\lib\astro_image_io"
-// g++ -std=c++17 -O2 -Iinclude -Isrc tests/test_transform.cpp src/hiss_transform.cpp -o tests/test_transform.exe
+// g++ -std=c++17 -O2 -Iinclude -Isrc eng/tests/test_transform.cpp src/hiss_transform.cpp -o eng/tests/test_transform.exe
 //
 // # 完整编译 (含 ZSTD + Writer/Reader 集成测试):
 // g++ -std=c++17 -O2 -DHAS_ZSTD -DHAS_LZ4 -Iinclude -Isrc `
-// tests/test_transform.cpp `
+// eng/tests/test_transform.cpp `
 // src/hiss_transform.cpp src/hiss_codec.cpp src/hiss_common.cpp `
 // src/hiss_tile_model.cpp src/hiss_writer.cpp src/hiss_stream_writer.cpp `
 // src/hiss_reader.cpp `
 // -lzstd -llz4 `
-// -o tests/test_transform.exe
+// -o eng/tests/test_transform.exe
 //
 // 运行:
 // ./tests/test_transform.exe

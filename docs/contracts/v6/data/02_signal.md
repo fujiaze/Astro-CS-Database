@@ -6,7 +6,7 @@
 
 上位锚：`FZ-FORMULA-DRIZZLE-SB`、`FZ-GATE-CONST-SB`、`FZ-COND-FLUX-CONSERV`、`FZ-DEGRADE-SCALAR`；
 DESIGN-P1 §9:120-126；UNIFIED §7；ADJ-F-OBS-02/S2/S3；宪章 §4.1/§5.3。
-机器：`contracts/proposals/v6/data/astrocs.v6.signal.v1.schema.json`（`signal.v1`）；正例 `examples/signal.example.json`。
+机器：`eng/contracts/proposals/v6/data/astrocs.v6.signal.v1.schema.json`（`signal.v1`）；正例 `examples/signal.example.json`。
 
 ## 1. 对象身份
 

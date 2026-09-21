@@ -26,7 +26,7 @@ healpix_stack/
 ├── hp_stack_api.h/.cpp   # C API 导出层（extern "C"）
 ├── healpix_stack.py      # Python ctypes 绑定
 ├── Makefile              # 构建脚本
-├── tests/
+├── eng/tests/
 │   └── test_healpix_stack.py  # 单元测试
 ├── .gitignore
 ├── memory.md             # 模块开发记忆

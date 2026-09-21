@@ -2,7 +2,7 @@
 """CPU-001: C ABI 边界检查。
 
 规则:
-1. ABI 头族（common_abi_v1.h + include/astrocs/abi/*.h + *_abi_v1.h）内每个
+1. ABI 头族（common_abi_v1.h + lib/include/astrocs/abi/*.h + *_abi_v1.h）内每个
    typedef struct 必须带 uint32_t struct_size/abi_version（或 acs_head 头块）。
 2. 上述跨边界头不得 include <string>/<vector>/<iostream> 等 STL。
 3. 头内不得出现 noexcept(false)/throw 声明(异常不跨边界)。
@@ -13,11 +13,11 @@ import pathlib, re, sys
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 
-# 跨 DLL/ABI 边界头族（唯一事实源 include/astrocs/** 下的 C ABI 头）
+# 跨 DLL/ABI 边界头族（唯一事实源 lib/include/astrocs/** 下的 C ABI 头）
 ABI_HEADER_RELS = [
-    "include/astrocs/common_abi_v1.h",
-    "include/astrocs/io/aio_abi_v1.h",
-    "include/astrocs/contracts/artifact_abi_v1.h",
+    "lib/include/astrocs/common_abi_v1.h",
+    "lib/include/astrocs/io/aio_abi_v1.h",
+    "lib/include/astrocs/contracts/artifact_abi_v1.h",
 ]
 
 STL_INC = re.compile(r"#include\s*[<\"](string|vector|iostream|sstream|fstream|map|unordered_map|set|memory|exception|stdexcept|thread|mutex)")
@@ -29,12 +29,12 @@ STRUCT_BLOCK = re.compile(r"typedef\s+struct(?:\s+\w+)?\s*\{((?:[^{}]|\{[^{}]*\}
 def abi_headers() -> list[pathlib.Path]:
     """返回头部文件清单；目录缺失时由调用方判红。"""
     rels = list(ABI_HEADER_RELS)
-    abi_dir = REPO / "include/astrocs/abi"
+    abi_dir = REPO / "lib/include/astrocs/abi"
     if abi_dir.is_dir():
         rels += [str(p.relative_to(REPO)).replace("\\", "/")
                  for p in sorted(abi_dir.glob("*.h"))]
     else:
-        rels.append("include/astrocs/abi/")  # 目录缺失哨兵，下面按目录判红
+        rels.append("lib/include/astrocs/abi/")  # 目录缺失哨兵，下面按目录判红
     return [REPO / r for r in rels]
 
 

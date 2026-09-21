@@ -18,7 +18,7 @@ configure/构建）：
 | ACK-ACR-002 | ACR 树只能 standalone | lib/infrastructure/acr/CMakeLists.txt 顶部 guard：非 standalone → FATAL_ERROR |
 | ACK-ACR-003 | release preset 不接受 ON | `ASTROCS_ENABLE_ACR` option 默认 OFF；win-msvc-17.14.39-x64 / linux-control preset 冻结 OFF（合并隐藏祖先后） |
 | ACK-ACR-004 | install/manifest 零 ACR | install_layout.cmake / install-tree.contract.json / astrocs.product.json 无 ACR/CUDA 条目 |
-| ACK-ACR-005 | 生产源码零 ACR 引用 | lib/infrastructure/cli/ core/ phase1*/ phase2_session/ phase3_session/ backend_host/ runtime/ modules/ include/astrocs 不 include ACR 头/符号（legacy cuda_bridge_stub.cpp 已排除出产品源白名单） |
+| ACK-ACR-005 | 生产源码零 ACR 引用 | lib/infrastructure/cli/ core/ phase1*/ phase2_session/ phase3_session/ backend_host/ runtime/ modules/ lib/include/astrocs 不 include ACR 头/符号（legacy cuda_bridge_stub.cpp 已排除出产品源白名单） |
 | ACK-ACR-006 | 注册表拒绝 ACR | lib/infrastructure/scheduler/src/module.cpp 拒绝 `astrocs.acr.*` 模块注册 |
 | ACK-ACR-007 | product manifest 无 ACR unit | units 中无 acr/cuda rel_path |
 

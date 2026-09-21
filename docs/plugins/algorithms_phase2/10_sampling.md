@@ -21,7 +21,7 @@
   - `phot_control_points`：光度控制点集（坐标、值、噪声、mask）；
   - `sky_samples`：**天光背景采样点集**（每帧一批；坐标（帧像素 + WCS 天球）、背景估计值、variance、该点 SNR、参与标记）；
   - 覆盖与统计（每帧点数、空间分布、SNR 分布）。
-- 参考：`contracts/schemas/control_points.schema.json`。
+- 参考：`eng/contracts/schemas/control_points.schema.json`。
 
 ## 4. 算法与公式要点
 

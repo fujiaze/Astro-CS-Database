@@ -60,7 +60,7 @@ VERIFIED；设计内容与容差来源=ALG-P2-INT-001（PHASE2_INTEGRATION.md
 §11.4：常量场/零权重/五态/支撑/NumPy rtol 1e-12/并行 1..N 线程
 bitwise）。现状相邻证据（引用不冒认）：synthetic_gate.cpp
 Phase2Integrate 组（:4690-4760）、weight policy 门（:2941-2990）、
-W9 ACR 等价（:3021-3160）；tests/backend/test_p2004_reject_integrate.py
+W9 ACR 等价（:3021-3160）；eng/tests/backend/test_p2004_reject_integrate.py
 （DRIVER_SRC :18-141）。
 
 ## 链接

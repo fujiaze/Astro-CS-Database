@@ -27,7 +27,7 @@ import shutil
 import sys
 import time
 
-# AstroCS 测试夹具的前缀（与 tests/** 中 mkdtemp(prefix=...) 实测一致）
+# AstroCS 测试夹具的前缀（与 eng/tests/** 中 mkdtemp(prefix=...) 实测一致）
 PREFIXES = (
     "p1001_", "p1004_", "p2001_", "p2002_", "p2006_", "p2007_", "p3004_", "p3005_",
     "p3006_", "p3rs_", "p1hips_", "p1star_", "p1snr_", "cpu001_", "aio_abi_",

@@ -6,7 +6,7 @@
 # 冻结, 2026-09-07); docs/science/PHOTOMETRY.md §11 (SCI-PHOT-001 FROZEN);
 # 矩阵行 P1-PHOT (MOD-astrocs-phase1-photometry, API-PHOT-001 六导出)。
 #
-# 结构 (模块 tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
+# 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1phot/p1phot_fixtures.hpp      — FIX-PHOT-A..F 固定 seed fixture
 #                                     (splitmix64; 解析可控, 不内嵌生产算法)
 #   p1phot/p1phot_oracle.hpp        — 独立 oracle (不调用被测函数: 独立
@@ -90,7 +90,7 @@ target_include_directories(p1phot_tests PRIVATE
   ${P1PHOT_SRC}
   ${P1PHOT_LIB}/infrastructure/gaia_xpsd_client/src
   ${P1PHOT_LIB}/algorithms/photometry/wrapper_phase1
-  ${P1PHOT_ROOT}/include)
+  ${P1PHOT_ROOT}/lib/include)
 target_link_libraries(p1phot_tests PRIVATE ${P1PHOT_OMP_TARGET})
 # 单组单跑: ctest -R p1phot_units / p1phot_properties / p1phot_oracle / p1phot_negative
 add_test(NAME p1phot_units COMMAND p1phot_tests units)
@@ -109,7 +109,7 @@ target_include_directories(p1phot_perf_test PRIVATE
   ${P1PHOT_SRC}
   ${P1PHOT_LIB}/infrastructure/gaia_xpsd_client/src
   ${P1PHOT_LIB}/algorithms/photometry/wrapper_phase1
-  ${P1PHOT_ROOT}/include)
+  ${P1PHOT_ROOT}/lib/include)
 target_link_libraries(p1phot_perf_test PRIVATE ${P1PHOT_OMP_TARGET})
 add_test(NAME p1phot_performance COMMAND p1phot_perf_test)
 
@@ -128,7 +128,7 @@ target_include_directories(p1phot_selfcheck_test PRIVATE
   ${P1PHOT_SRC}
   ${P1PHOT_LIB}/infrastructure/gaia_xpsd_client/src
   ${P1PHOT_LIB}/algorithms/photometry/wrapper_phase1
-  ${P1PHOT_ROOT}/include)
+  ${P1PHOT_ROOT}/lib/include)
 target_link_libraries(p1phot_selfcheck_test PRIVATE ${P1PHOT_OMP_TARGET})
 add_test(NAME p1phot_selfcheck COMMAND p1phot_selfcheck_test)
 
@@ -146,6 +146,6 @@ target_include_directories(p1phot_fixgates_test PRIVATE
   ${P1PHOT_DIR}
   ${P1PHOT_INC}
   ${P1PHOT_SRC}
-  ${P1PHOT_ROOT}/include)
+  ${P1PHOT_ROOT}/lib/include)
 target_link_libraries(p1phot_fixgates_test PRIVATE ${P1PHOT_OMP_TARGET})
 add_test(NAME p1phot_fixgates COMMAND p1phot_fixgates_test)

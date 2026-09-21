@@ -174,15 +174,15 @@ set_drizzle_provenance 传入（astro_sphere_sink.cpp:65-76）；prov_progenitor
 
 ## 9. 测试、验证与已知限制
 
-现有验证：tests/unit/p1_hips_writer_test.cpp（product_begin→写→finalize 全
-链）；drizzle 侧 tests/hiss_write_probe.cpp、bench_write.cpp；独立复检生态
+现有验证：eng/tests/unit/p1_hips_writer_test.cpp（product_begin→写→finalize 全
+链）；drizzle 侧 eng/tests/hiss_write_probe.cpp、bench_write.cpp；独立复检生态
 gate7_hips_validate.py（astropy 对拍 support∈[0,1]/F=signal×support×A_cell/
 MOC↔叶级对应）与 HIPS_VERIFY（读侧验证）；IO-003 合同测
-tests/io/test_hips_output_contract.py（Python 语义层）。冻结测试设计
+eng/tests/io/test_hips_output_contract.py（Python 语义层）。冻结测试设计
 TEST-HIPS-DESIGN-001 见 ALG-HIPS-001 §9（fixture/oracle/不变量 I1-I12/
 负面/容差），可执行 TEST-P1-HIPS-001 由 P1-HIPS-TEST 建立。
 
-模块事务面验证（AIO-002，2026-09-10）：tests/unit/p1_hips/
+模块事务面验证（AIO-002，2026-09-10）：eng/tests/unit/p1_hips/
 publish_atomic_test.c（ctest hips_publish_atomic_units / hips_publish_atomic，
 TEST-P1-HIPS-PUBLISH-001）——publish.h v1 四原语正/负/幂等（units 组）+
 write_product 事务化全链（atomic 组）：正向发布（staging→fsync→原子

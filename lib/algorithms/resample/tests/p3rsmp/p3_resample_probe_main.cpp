@@ -1,4 +1,4 @@
-// tests/backend/p3_resample_probe_main.cpp — P3-003 重采样探针
+// eng/tests/backend/p3_resample_probe_main.cpp — P3-003 重采样探针
 // 用法:
 //   probe order <max_order> <scale_deg_px>          → "OK <order>" | "FAIL <code>"
 //   probe mode <input_mode>                          → "OK" | "FAIL <code>"

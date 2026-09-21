@@ -15,7 +15,7 @@
 // 7. Writer 元数据一致性: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
 // 8. Writer 元数据一致性: apply_photometry=false + BUNIT=ADU → 成功
 //
-// 编译 (从 tests/ 目录, 链接真实 HissWriter::open):
+// 编译 (从 eng/tests/ 目录, 链接真实 HissWriter::open):
 // g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
 // -I../src -I../../astro_image_io/include -I../../astro_image_io/src \
 // test_photometry_apply.cpp ../src/photometry_apply.cpp \

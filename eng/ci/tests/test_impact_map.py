@@ -48,7 +48,7 @@ NINE_REQUIRED_CLASSES = {
     #   该类现由聚合项 `CHK-SCHEMA` + 其现行 steps 承载。
     "schema": ["CHK-SCHEMA", "CON-CONFIG-CONTRACTS", "LOG-CONTRACT-SELFCHECK"],
     "合同索引": ["CONTRACT-GRAPH"],
-    # TRACEABILITY-CODE 于 2026-09-16 按负责人裁决退役（唯一默认输入 artifacts/prerelease_v5/
+    # TRACEABILITY-CODE 于 2026-09-16 按负责人裁决退役（唯一默认输入 artifacts/evidence/prerelease-v5/
     # tables/TRACEABILITY.csv 随 artifacts/ 删除，b1290525）：见 docs/ci/01_CHECKS.md §2 退役记录。
     # 本类仍由后两项覆盖（两者均未受影响、仍可跑）。
     "SCI→TEST 追踪": ["TRACEABILITY-MATRIX", "CON-TRACEABILITY"],
@@ -76,11 +76,11 @@ REQUIRED_DOMAINS = {
     "docs/science/**": "docs/science/ASTROMETRY.md",
     "lib/**": "lib/algorithms/psf/src/dpsf_psf.cpp",
     "lib/infrastructure/**": "lib/infrastructure/cli/main.cpp",
-    "include/**": "include/astrocs/common_abi_v1.h",
+    "lib/include/**": "lib/include/astrocs/common_abi_v1.h",
     "cli/**": "cli/CMakeLists.txt",
-    "contracts/**": "contracts/schemas/run_manifest.schema.json",
-    "third_party/**": "third_party/nlohmann/json.hpp",
-    "tests/**": "tests/testkit/registry.json",
+    "eng/contracts/**": "eng/contracts/schemas/run_manifest.schema.json",
+    "third_party/**": "lib/third_party/nlohmann/json.hpp",
+    "eng/tests/**": "eng/tests/testkit/registry.json",
     "testdata/**": "testdata/index.json",
     "artifacts/**": "artifacts/ci",
     "reports/**": "reports/README.md",
@@ -88,7 +88,7 @@ REQUIRED_DOMAINS = {
     "eng/tools/**": "eng/tools/quality/check_module_map.py",
     "eng/tools/quality/**": "eng/tools/quality/check_module_map.py",
     "eng/tools/monitoring/**": "eng/tools/monitoring/run_monitored.py",
-    "packaging/**": "packaging/astrocs.product.json",
+    "eng/packaging/**": "eng/packaging/astrocs.product.json",
     "AGENTS.md": "AGENTS.md",
     "memory.md": "memory.md",
     "README.md": "README.md",

@@ -163,10 +163,10 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
   MISSING（P2-UPM-TEST 建立，不冒认）；登记面=DORMANT MISSING；
   设计冻结面=ALG-P2-UPM-IMPL-001 TEST-DESIGN 节（SA-B 写）。
 - 现状相邻证据（既有测试，引用不冒认，不是 TEST-P2-UPM-001/002）：
-  tests/api/test_upm_recovery_oracle.py（4 test）、
-  tests/api/test_upm_parallel.py（3 test）、
-  tests/unit/p2_upm_synthetic_test.cpp（synthetic gate）、
-  tests/backend/test_p2002_parallel_upm.py。
+  eng/tests/api/test_upm_recovery_oracle.py（4 test）、
+  eng/tests/api/test_upm_parallel.py（3 test）、
+  eng/tests/unit/p2_upm_synthetic_test.cpp（synthetic gate）、
+  eng/tests/backend/test_p2002_parallel_upm.py。
 
 ## 链接
 
@@ -211,7 +211,7 @@ use_ivar_weight=1 / control_reliability=1.0 / cpu_workers=1）。
 - 上文 "不处理乘性尺度差（已撤销，SCI-UPM 非目标）" 为 V5/历史加性
   模型口径；V6 以 \`ALG-P2S-UPM.1\` 取代（只登记，详见
   \`lib/algorithms/upm/memory.md\` 的 V6 追加节）。
-- 共址测试：\`tests/unit/v6_p2_upm/\`（5 个 ctest 用例 + 负向 fail-closed
+- 共址测试：\`eng/tests/unit/v6_p2_upm/\`（5 个 ctest 用例 + 负向 fail-closed
   门 + 独立 NumPy Oracle 锚 + 6 条冻结 mutation 全红）；证据
   \`run/v6/IMPL-P2-UPM-001/\`。
 - 开放项（只登记不裁决）：DI-04（k_corr 标定/MC 复跑，OPEN）、

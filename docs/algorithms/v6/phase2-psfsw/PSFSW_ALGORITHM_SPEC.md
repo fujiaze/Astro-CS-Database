@@ -414,6 +414,6 @@ PSFSW 附加：`composite_version`、`exponents`、`C_norm`、`component_estimat
 
 ## 14. 声明
 
-- 本规格不写生产源码、不改任何 `docs/science/*.md`、`docs/owner/**`、`docs/design/**`、`docs/references/**`、`contracts/**`；
+- 本规格不写生产源码、不改任何 `docs/science/*.md`、`docs/owner/**`、`docs/design/**`、`docs/references/**`、`eng/contracts/**`；
 - 未 commit/push/add/分支/worktree/stash/reset/clean/rebase；未派生子代理；未宣布发布；
 - 全部命令带退出码并留日志于 `run/v6/alg-p2-psfsw/logs/`。

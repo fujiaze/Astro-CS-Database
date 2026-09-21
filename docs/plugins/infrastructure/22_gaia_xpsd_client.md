@@ -17,7 +17,7 @@
 
 - **输入**：查询请求（天区、视场、星等范围、历元）、星表版本、配置。
 - **输出**：星表行（位置、自行、parallax、光度、误差）、来源标识、缓存命中信息（hit/miss、来源层）。
-- 参考：`contracts/schemas/catalog_query.schema.json`。
+- 参考：`eng/contracts/schemas/catalog_query.schema.json`。
 
 ## 4. 算法与公式要点
 

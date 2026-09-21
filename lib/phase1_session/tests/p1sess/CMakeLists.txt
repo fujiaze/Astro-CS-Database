@@ -8,7 +8,7 @@
 #   "每声明节点恰好调用一次; 缺任何模块/错误 ABI/坏 artifact/取消不会写
 #    完成 manifest; 仅 Phase1 run ID"。
 #
-# 结构 (模块 tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
+# 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1sess/p1sess_fixtures.hpp      — FIX-SESS-A..F 固定 seed fixture
 #                                     (splitmix64 + 手写最小 FITS; 不内嵌
 #                                     生产算法)

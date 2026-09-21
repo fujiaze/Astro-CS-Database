@@ -291,7 +291,7 @@ int test_diag_prov_units() {
         P1HIPS_CHECK_EQ(cs, AIO_HIPS_PRODUCT_ALL_V19, 31);
         P1HIPS_CHECK_EQ(cs, AIO_HIPS_PRODUCT_ALL_V20, 127);
         const std::string c = dp_repo_file(
-            "contracts/data/phase2_uncertainty_rejection_provenance_v1.json");
+            "eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json");
         P1HIPS_CHECK_MSG(cs, !c.empty() && c.find("\"NREJ\": 32") != std::string::npos &&
                                  c.find("\"NUSED\": 64") != std::string::npos,
                          "dp1_bits_contract",

@@ -56,7 +56,7 @@ def main():
     #   - 参数个数相同但文本不同 => API-SIG-TEXT (P1);
     #   - AST 实测无该符号签名   => API-SIG-NOREF (P1)。
     # 覆盖口径: docs/contracts/API_CONTRACTS.csv 全部行 vs extract_cpp_api.py
-    # 头文件实测(含 include/lib 头文件), 覆盖率 = rows 中实际比对的行数比例。
+    # 头文件实测(含 lib/include/lib 头文件), 覆盖率 = rows 中实际比对的行数比例。
     def _arity(sig_text: str):
         # W4-A3：参数个数判据要能吃下"声明原文"形态 —— CSV 与头文件两侧都可能带
         # 结尾 ';' 与导出宏前缀（AIO_EXPORT/AIO_HIPS_EXPORT/...）。原实现要求整串

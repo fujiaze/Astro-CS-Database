@@ -13,7 +13,7 @@
 //             ③ docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:338 与
 //                docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md 仍点名本文件（docs/** 属 DOC-402 域）。
 // STATUS:     未接入生产。不在任何生产 target 的源列表内（grep -c p3_v6_export CMakeLists.txt = 0），
-//             仅被 tests/integration/v6_p3 编译；生产 export 路径 = lib/phase3_session/p3_session.cpp
+//             仅被 eng/tests/integration/v6_p3 编译；生产 export 路径 = lib/phase3_session/p3_session.cpp
 //             → lib/algorithms/projection/p3_wcs.cpp（TAN），不依赖本文件任何符号
 //             （p3_session.cpp:3-17 的 include 面无 p3_v6_export.h）。
 // EXIT:       删除（ENGINEERING_SPEC §2 第 1 种处置），需同批完成：
@@ -23,14 +23,14 @@
 //                eng/ci/ledgers/spec_named_impl_gaps.json 的 SNI-S4-P3X-06 条；
 //             ③ DOC-402 退役 docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md 并把
 //                PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
-//             ④ 删除 tests/integration/v6_p3/** 与 CMakeLists.txt:980 的 add_subdirectory。
+//             ④ 删除 eng/tests/integration/v6_p3/** 与 CMakeLists.txt:980 的 add_subdirectory。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §6.3
 //             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
 //             工程控制/RELEASE-04/GAP_AUDIT.md G2-1/G3-2；eng/ci/spec_named_impls.json SNI-S4-P3X-06。
 // ──────────────────────────────────────────────────────────────────────
 // lib/phase3_session/p3_v6_export.h — Phase3 V6 三模式产品导出接线层 (P3-INTEGRATE-001)
 //
-// 任务: P3-INTEGRATE-001 (Wave 7, write_scope = lib/phase3_session/, tests/integration/v6_p3/)
+// 任务: P3-INTEGRATE-001 (Wave 7, write_scope = lib/phase3_session/, eng/tests/integration/v6_p3/)
 // 上位冻结（逐条接线，不重定义）:
 //   * 宪章 §7.1/§7.2/§7.3（Phase3 输出带合法 FITS-WCS/coverage/不确定度传播/provenance 的
 //     二维平面 FITS；投影/重采样是独立算法节点，AIO 读/写是基建服务）。

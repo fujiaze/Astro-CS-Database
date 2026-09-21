@@ -3,21 +3,21 @@
 - 任务：V8-CI-001（owner=SA-CI-32，mode=write）
 - base SHA：`b4f923ccbcde51e1a9112aba04815351169091c7`（HEAD == base，全程未 commit）
 - 完成时间：2026-09-05T12:45Z（UTC）
-- 产物：`eng/ci/checks.json`（70 项）、`eng/ci/impact_map.json`、`eng/ci/validate_registry.py`、`tests/test_index.csv`、本报告
+- 产物：`eng/ci/checks.json`（70 项）、`eng/ci/impact_map.json`、`eng/ci/validate_registry.py`、`eng/tests/test_index.csv`、本报告
 - 验收命令：`python3 eng/ci/validate_registry.py --registry eng/ci/checks.json --strict` → **exit 0（PASS, 70 checks, 0 errors）**
 - **订正记录（2026-09-16, RETIRE-001）**：本报告是 base SHA `b4f923cc` 的**当时快照**，不回改历史读数；
   仅对 §2 表中一处**已被新世代裁决废止**的读数就地加注 —— 注册项 `TRACEABILITY-CODE` 已于 2026-09-16
-  按负责人裁决（GAP-032）**退役**，其唯一默认输入 `artifacts/prerelease_v5/tables/TRACEABILITY.csv` 已随
+  按负责人裁决（GAP-032）**退役**，其唯一默认输入 `artifacts/evidence/prerelease-v5/tables/TRACEABILITY.csv` 已随
   `artifacts/` 整体删除（commit `b1290525`）。现行注册表以 `eng/ci/checks.json` 与
   `docs/ci/01_CHECKS.md §2.1 退役记录` 为准；本条为陈旧状态冒充活动状态的订正（ENGINEERING_SPEC §8）。
 - 负向样例：6 类缺陷（重复 id / 不存在命令 / heavy 无 monitor / mutates 入 fast / 非法 profile / 缺字段）全部 exit 1 拦截，证据在 `evidence/v8_1_ci_control/tasks/V8-CI-001/logs/`（validate_positive.log、/tmp 样例结果复制于 logs/validate_negative_*.log）
 
 ## 1. 盘点方法
 
-1. `find tools -name "check_*.py" / verify_*.py` 全量枚举 + `eng/ci/`、`tests/`、CMake/CTest 配置扫描；
+1. `find tools -name "check_*.py" / verify_*.py` 全量枚举 + `eng/ci/`、`eng/tests/`、CMake/CTest 配置扫描；
 2. 静态副作用分析（open(w)/write_text/makedirs/subprocess）划分「可只读实测」与「静态登记」；
 3. 全部外部命令经 `timeout 30`（重单测 120s）驱动执行，逐条记录 exit code / 时长 / git status 前后签名到 `commands.jsonl` + `logs/`；
-4. 本机工具链（ADOPT-004 锁存）：python3 3.13.5、git 2.47.3、zstd 1.5.7 可用；**cmake / gcc / g++ / clang / clang++ / ninja / make / ccache / pytest 全部缺失**（eng/ci/toolchain.lock.json missing_tools）；另缺 python 库 numpy（tests/io 依赖）。
+4. 本机工具链（ADOPT-004 锁存）：python3 3.13.5、git 2.47.3、zstd 1.5.7 可用；**cmake / gcc / g++ / clang / clang++ / ninja / make / ccache / pytest 全部缺失**（eng/ci/toolchain.lock.json missing_tools）；另缺 python 库 numpy（eng/tests/io 依赖）。
 5. 3 次实测写副作用事故（详见 §6）当场用 `git show HEAD:` 内容回写恢复，工作区已回到 clean（仅剩本任务允许路径与既有 untracked）。
 
 ## 2. 分类汇总（eng/ci/checks.json 共 70 项）
@@ -39,19 +39,19 @@ profile 覆盖：fast=57、linux-main=70、windows-main=58、linux-deep/fatduck=
 
 | 缺失项 | 受影响（登记为 hosted / ENV_FAIL-prerequisite） |
 |---|---|
-| eng/cmake/ninja/make | tests/unit CTest（56 add_test）、UT-QUALITY（make_linux_release 打包） |
-| gcc/g++ | UT-BACKEND(29 errors)、UT-ABI(9 errors)、UT-CLI(setUpClass 需构建产物)、tests/cpu×4 驱动、PROD-REACH/ISA-LEAK 完整形态 |
+| eng/cmake/ninja/make | eng/tests/unit CTest（56 add_test）、UT-QUALITY（make_linux_release 打包） |
+| gcc/g++ | UT-BACKEND(29 errors)、UT-ABI(9 errors)、UT-CLI(setUpClass 需构建产物)、eng/tests/cpu×4 驱动、PROD-REACH/ISA-LEAK 完整形态 |
 | clang | AST-API（eng/tools/check_ast_api.py） |
 | pytest | 无注册项依赖（全部 unittest 跑法）；hosted CI 可用 |
 | numpy（python 库） | UT-IO（3 errors） |
 
-## 4. tests/ 单测盘点（tests/test_index.csv 全目录覆盖，22 行）
+## 4. eng/tests/ 单测盘点（eng/tests/test_index.csv 全目录覆盖，22 行）
 
-- 实测总计 **554 个 unittest 用例**（根级可导入 11 目录 387 + 缺 `__init__.py` 目录式补测 4 目录 167；u05=tests/quality 超时无计数）；
+- 实测总计 **554 个 unittest 用例**（根级可导入 11 目录 387 + 缺 `__init__.py` 目录式补测 4 目录 167；u05=eng/tests/quality 超时无计数）；
 - 纯 PASS 目录：glossary(5)、monitoring(60)、pipeline(6)、runtime(70,skip9)、sciencelint(6)、traceability(9)、artifact(137)、contracts(9)；
 - 真实内容 FAIL：arch(2)、version(2)、cli(1)；
 - ENV_FAIL-prerequisite：backend(29=g++)、abi(9=gcc)、io(3=numpy)、cpu×4(未实测)、unit CTest(56,未实测)、quality(30s 超时,heavy)；
-- 结构性发现：**tests/{abi,artifact,contracts,io,quality} 缺 `__init__.py`** → 根级 `unittest discover -s tests/X -t .` 报 ImportError，注册表命令统一采用目录式 `discover -s tests/X -t tests/X`（本机已验证）。
+- 结构性发现：**eng/tests/{abi,artifact,contracts,io,quality} 缺 `__init__.py`** → 根级 `unittest discover -s eng/tests/X -t .` 报 ImportError，注册表命令统一采用目录式 `discover -s eng/tests/X -t eng/tests/X`（本机已验证）。
 
 ## 5. seed（eng/ci/checks.seed.json）与实测差异表
 
@@ -76,7 +76,7 @@ profile 覆盖：fast=57、linux-main=70、windows-main=58、linux-deep/fatduck=
 |---|---|---|---|
 | 1 | eng/tools/quality/known_failures_baseline.py | 默认覆盖写已跟踪 evidence/v6_1_rework/tasks/R0-004/KNOWN_FAILURES_BASELINE.json | git show HEAD 回写；registry 强制 `--output artifacts/...` |
 | 2 | eng/tools/docs_machine_consistency.py | 无视 --help 无条件覆盖写 reports/v19r3/evidence/quality/docs_consistency.json | 同上；未入 registry（登记 mutates，待修复 CLI 后入册） |
-| 3 | tests/arch/test_inventory.py | unittest 中经生成器重写 docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv 且幂等性 FAIL | 同上；UT-ARCH 登记 mutates=true、不入 fast |
+| 3 | eng/tests/arch/test_inventory.py | unittest 中经生成器重写 docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv 且幂等性 FAIL | 同上；UT-ARCH 登记 mutates=true、不入 fast |
 
 ## 7. 当前 FAIL 清单（known_failures.json 候选，供 V8-CI-002 基线决策）
 

@@ -32,7 +32,7 @@ lib/algorithms/photometry/（生产实现所在），本目录三件套
 README.md/module.yaml/memory.md 为该模块合同冻结唯一落位；lib/phase1/
 photometry/ 为第二 legacy 路径（旧符号 Photometer，CMakeLists.txt:429-432
 静态库 astrocs_phase1_phot，未接 orchestrator 管线，仅单测
-tests/unit/p1_wcs_phot_test），其合同并入本 README §9，不另立目录。
+eng/tests/unit/p1_wcs_phot_test），其合同并入本 README §9，不另立目录。
 
 ## 2. 负责范围 / 不负责
 
@@ -176,7 +176,7 @@ spec_stars/spectra_buf 内部 malloc 本调用内 free。编排级合同 API-P1-
   flux_error=sqrt(max(sum,0)+n_in·σ_sky²)（:72-80，σ_sky=1.482602218505602·MAD）+
   snr（:81）。失败显式三态（§6）。
 - 构建现状：静态库 astrocs_phase1_phot（CMakeLists.txt:429-432），主程序
-  链接（:513），单测 tests/unit/p1_wcs_phot_test.cpp（tests/unit/
+  链接（:513），单测 eng/tests/unit/p1_wcs_phot_test.cpp（eng/tests/unit/
   CMakeLists.txt:305-310，4 组：已知通量/越界失败/积分回归/显式失败）。
   **未接入 orchestrator 管线**（grep 实测无生产调用方）。
 - 单位域：photometer 输入图像 ADU、background ADU/px、flux ADU（孔径内
@@ -204,7 +204,7 @@ spec_stars/spectra_buf 内部 malloc 本调用内 free。编排级合同 API-P1-
 矩阵/冻结容差 SCI-PHOT-001 §11：合成注入 location≈log10 k rtol 1e-4、
 20% 离群 Δlocation<0.1 dex、S=0→median gate、NumPy 参考复算 rtol 1e-9；
 不得放宽）。可执行 TEST-P1-PHOT-001 由 P1-PHOT-TEST 落地；现状既有锚：
-tests/unit/p1_wcs_phot_test.cpp（Photometer 4 组）与 lib/algorithms/photometry/
+eng/tests/unit/p1_wcs_phot_test.cpp（Photometer 4 组）与 lib/algorithms/photometry/
 cpp/test/test_photometric_calib.py（Python 通道旧测，P1-PHOT-TEST 对齐
 重锚）。
 

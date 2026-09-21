@@ -7,7 +7,7 @@
 // 3. FP64 严格参考门: FP32 vs FP64 逐 leaf 相对差 < 1e-5 (float 累计噪声)
 // 4. 候选零漏选由独立 reference_overlap (蒙特卡洛) 单独验证 (另测)
 //
-// 编译 (tests/ 目录):
+// 编译 (eng/tests/ 目录):
 // g++ -O3 -march=native -std=c++17 -fopenmp -I.. -I..\..\..\astro_image_io\include
 // -I..\..\..\astro_image_io\src -I..\..\healpix_stack drizzle_l0_test.cpp
 // ..\drizzle_engine.cpp ..\fits_reader.cpp ..\wcs_sip.cpp ..\poly_clip.cpp

@@ -128,7 +128,7 @@ def spec_whitelist(sec7: str):
     for name in re.findall(r"([A-Za-z0-9_\-]+)/（[^）]*gitignore", sec7):
         ignored.add(name)
     # §7 正文点名的条目：lib/（树形图目标源码根）、工程控制/（控制包落点）、
-    # reports/ 的中文标签"报告"、artifacts/ 的中文标签"证据"、packaging/ 的"打包"、
+    # reports/ 的中文标签"报告"、artifacts/ 的中文标签"证据"、eng/packaging/ 的"打包"、
     # engineering/ 的"工程"——中文标签是说明不是路径，不登记。
     if re.search(r"^lib/", sec7, re.M):
         dirs.add("lib")

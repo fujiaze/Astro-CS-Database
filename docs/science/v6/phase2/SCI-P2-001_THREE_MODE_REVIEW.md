@@ -179,7 +179,7 @@ effective PSF 与对等权/exposure/pixel-ivar/`W_info` 基线的比较。
 | `P2PixelResult` 仅 `signal`/`support`/`n_used`/计数，无 variance/covariance/effective PSF | `git show HEAD:lib/algorithms/coverage/include/astro/phase2/integrate.h` | 偏差（§9 输出族未达成） |
 | `p2_integrate_pixel` 只做加权均值 `Σwv/Σw`，无 `AᵀC⁻¹A`、无 Q/W | `git show HEAD:lib/algorithms/coverage/src/integrate.cpp` | 偏差 |
 | `weight_mode` 只接受整数 {1=equal, 2=ivar}，显式拒绝 0（legacy SNR） | `git show HEAD:lib/infrastructure/scheduler/src/module_adapters.cpp`（HEAD `module_adapters.cpp:4368-4379`） | 与三模式集不相交 |（已按 §9.73 A44 作废：该概念不存在）
-| 跨 Phase 交换矩阵无 `point_information`/`psfsw`/`effective_psf` 字段 | `git show HEAD:contracts/data/phase_product_exchange_matrix.json` | 偏差（`UNIFIED` §9 最小合同未达成） |
+| 跨 Phase 交换矩阵无 `point_information`/`psfsw`/`effective_psf` 字段 | `git show HEAD:eng/contracts/data/phase_product_exchange_matrix.json` | 偏差（`UNIFIED` §9 最小合同未达成） |
 
 结论与 `run/v6/base/gap_baseline.md` §1 一致：三模式在 HEAD **全部不可达**，是 Wave 3→4→5→8 全链新建的科学能力，
 不是"接一下开关"。本任务**不**因此判 FAIL——复核任务正确报告基线差距即为完成；差距的闭合责任在后续 wave。

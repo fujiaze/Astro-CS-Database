@@ -12,7 +12,7 @@
  *        不得静默回退帧级）
  *   - docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md:116-132
  *       （SNR_k = F_ref·sqrt(W_info,k)；SNR_combined² = Σ SNR_k² 仅独立帧成立）
- *   - contracts/schemas/unified/sparse_snr_layer.schema.json（control_points{x,y,sparse_snr_value}）
+ *   - eng/contracts/schemas/unified/sparse_snr_layer.schema.json（control_points{x,y,sparse_snr_value}）
  *
  * 本模块只做「SNR 元数据 → 逆方差权重」的换算与合成，不做排异、不做叠加；
  * 调用方（scheduler / stage2 接线）按报告给出的约定取用。
@@ -74,7 +74,7 @@ enum class FrameSnrKind : int {
 const char* frame_snr_kind_token(FrameSnrKind k);
 
 /* ------------------------------------------------------------------ */
-/* 稀疏帧内 SNR 层（contracts/schemas/unified/sparse_snr_layer.schema.json） */
+/* 稀疏帧内 SNR 层（eng/contracts/schemas/unified/sparse_snr_layer.schema.json） */
 /* ------------------------------------------------------------------ */
 struct SparseSnrPoint {
   double x = 0.0;    /* 控制点 x（像素坐标） */

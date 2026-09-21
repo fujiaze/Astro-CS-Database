@@ -7,7 +7,7 @@
 # (MOD astrocs.phase1.hips-writer, registry 页
 # docs/modules/registry/astrocs.phase1.hips-writer.md)。
 #
-# 结构 (模块 tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
+# 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1hips/p1hips_fixtures.hpp     — FIX-HIPS-A..F 固定 seed fixture
 #                                    (splitmix64; 解析可控, 不内嵌生产算法)
 #   p1hips/p1hips_oracle.hpp       — 独立 oracle (不调用被测函数: 独立位

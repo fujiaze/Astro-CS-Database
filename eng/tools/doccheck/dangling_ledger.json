@@ -10,7 +10,7 @@
  "max_entries": 50,
  "entries": [
   {
-   "file": "ci/INVENTORY_REPORT.md",
+   "file": "eng/ci/INVENTORY_REPORT.md",
    "token": "docs/review",
    "owner": "BLD-401",
    "reason": "CI 脚本中的历史 docs/ 指针（ci/ 域收口）",
@@ -22,7 +22,7 @@
    }
   },
   {
-   "file": "ci/check_spec_named_impl.py",
+   "file": "eng/ci/check_spec_named_impl.py",
    "token": "docs/ALG.md",
    "owner": "BLD-401",
    "reason": "CI 脚本中的历史 docs/ 指针（ci/ 域收口）",
@@ -34,7 +34,7 @@
    }
   },
   {
-   "file": "ci/checks.json",
+   "file": "eng/ci/checks.json",
    "token": "docs/glossary/*",
    "owner": "BLD-401",
    "reason": "CI 脚本中的历史 docs/ 指针（ci/ 域收口）",
@@ -46,7 +46,7 @@
    }
   },
   {
-   "file": "ci/prepare_linux_fixtures.py",
+   "file": "eng/ci/prepare_linux_fixtures.py",
    "token": "docs/lib/tests",
    "owner": "BLD-401",
    "reason": "CI 脚本中的历史 docs/ 指针（ci/ 域收口）",
@@ -58,7 +58,7 @@
    }
   },
   {
-   "file": "contracts/data/artifact_manifest.schema.json",
+   "file": "eng/contracts/data/artifact_manifest.schema.json",
    "token": "docs/interfaces/data/DATA-001_ARTIFACT_CONTRACT.md",
    "owner": "BLD-401",
    "reason": "合同 schema note 中的历史 docs/ 指针（合同域收口）",
@@ -70,7 +70,7 @@
    }
   },
   {
-   "file": "contracts/data/artifact_types.registry.json",
+   "file": "eng/contracts/data/artifact_types.registry.json",
    "token": "docs/interfaces/data/DATA-001_ARTIFACT_CONTRACT.md",
    "owner": "BLD-401",
    "reason": "合同 schema note 中的历史 docs/ 指针（合同域收口）",
@@ -82,7 +82,7 @@
    }
   },
   {
-   "file": "contracts/schemas/phase_config_export.schema.json",
+   "file": "eng/contracts/schemas/phase_config_export.schema.json",
    "token": "docs/algorithms/PHASE3_HIPS_TO_FITS.md",
    "owner": "BLD-401",
    "reason": "合同 schema note 中的历史 docs/ 指针（合同域收口）",
@@ -94,7 +94,7 @@
    }
   },
   {
-   "file": "tools/README.md",
+   "file": "eng/tools/README.md",
    "token": "docs/refactor",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -106,7 +106,7 @@
    }
   },
   {
-   "file": "tests/config/check_cfg002_registry.py",
+   "file": "eng/tests/config/check_cfg002_registry.py",
    "token": "docs/plugins/algorithms_phase1/99_fake.md",
    "owner": "BLD-401",
    "reason": "负例夹具字符串（故意指向不存在的文档，非活动指针）",
@@ -118,7 +118,7 @@
    }
   },
   {
-   "file": "tests/quality/test_doc_line_anchors.py",
+   "file": "eng/tests/quality/test_doc_line_anchors.py",
    "token": "docs/algorithms/SAMPLE.md",
    "owner": "BLD-401",
    "reason": "负例夹具字符串（故意指向不存在的文档，非活动指针）",
@@ -130,7 +130,7 @@
    }
   },
   {
-   "file": "tests/quality/test_doc_machine_check.py",
+   "file": "eng/tests/quality/test_doc_machine_check.py",
    "token": "docs/lib/include/cli/contracts",
    "owner": "BLD-401",
    "reason": "负例夹具字符串（故意指向不存在的文档，非活动指针）",
@@ -142,7 +142,7 @@
    }
   },
   {
-   "file": "tests/quality/test_docchk002_mutation.py",
+   "file": "eng/tests/quality/test_docchk002_mutation.py",
    "token": "docs/science/N.md",
    "owner": "BLD-401",
    "reason": "负例夹具字符串（故意指向不存在的文档，非活动指针）",
@@ -154,7 +154,7 @@
    }
   },
   {
-   "file": "tests/quality/test_secret_hygiene.py",
+   "file": "eng/tests/quality/test_secret_hygiene.py",
    "token": "docs/design.md",
    "owner": "BLD-401",
    "reason": "负例夹具字符串（故意指向不存在的文档，非活动指针）",
@@ -166,7 +166,7 @@
    }
   },
   {
-   "file": "tests/quality/test_secret_hygiene.py",
+   "file": "eng/tests/quality/test_secret_hygiene.py",
    "token": "docs/readme.md",
    "owner": "BLD-401",
    "reason": "负例夹具字符串（故意指向不存在的文档，非活动指针）",
@@ -178,7 +178,7 @@
    }
   },
   {
-   "file": "tests/traceability/test_traceability.py",
+   "file": "eng/tests/traceability/test_traceability.py",
    "token": "docs/NO_SUCH.md",
    "owner": "BLD-401",
    "reason": "负例夹具字符串（故意指向不存在的文档，非活动指针）",
@@ -190,7 +190,7 @@
    }
   },
   {
-   "file": "tools/api_doc_consistency.py",
+   "file": "eng/tools/api_doc_consistency.py",
    "token": "docs/reports",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -202,7 +202,7 @@
    }
   },
   {
-   "file": "tools/assemble_v17_review_pkg.py",
+   "file": "eng/tools/assemble_v17_review_pkg.py",
    "token": "docs/API/config",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -214,7 +214,7 @@
    }
   },
   {
-   "file": "tools/astrocs_diagnose.py",
+   "file": "eng/tools/astrocs_diagnose.py",
    "token": "docs/CONFIG_REFERENCE.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -226,7 +226,7 @@
    }
   },
   {
-   "file": "tools/astrocs_diagnose.py",
+   "file": "eng/tools/astrocs_diagnose.py",
    "token": "docs/ERROR_TAXONOMY.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -238,7 +238,7 @@
    }
   },
   {
-   "file": "tools/check_agents_gov.py",
+   "file": "eng/tools/check_agents_gov.py",
    "token": "docs/archive",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -250,7 +250,7 @@
    }
   },
   {
-   "file": "tools/check_agents_gov.py",
+   "file": "eng/tools/check_agents_gov.py",
    "token": "docs/archive/*",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -262,7 +262,7 @@
    }
   },
   {
-   "file": "tools/check_l0_docs.py",
+   "file": "eng/tools/check_l0_docs.py",
    "token": "docs/archive",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -274,7 +274,7 @@
    }
   },
   {
-   "file": "tools/check_l0_docs.py",
+   "file": "eng/tools/check_l0_docs.py",
    "token": "docs/archive/OLD.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -286,7 +286,7 @@
    }
   },
   {
-   "file": "tools/check_l0_docs.py",
+   "file": "eng/tools/check_l0_docs.py",
    "token": "docs/review",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -298,7 +298,7 @@
    }
   },
   {
-   "file": "tools/check_l0_docs.py",
+   "file": "eng/tools/check_l0_docs.py",
    "token": "docs/review/*",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -310,7 +310,7 @@
    }
   },
   {
-   "file": "tools/check_l0_docs.py",
+   "file": "eng/tools/check_l0_docs.py",
    "token": "docs/review/CHANGE_REVIEW.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -322,7 +322,7 @@
    }
   },
   {
-   "file": "tools/check_l0_docs.py",
+   "file": "eng/tools/check_l0_docs.py",
    "token": "docs/review/SCIENCE_OVERVIEW.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -334,7 +334,7 @@
    }
   },
   {
-   "file": "tools/check_l0_docs.py",
+   "file": "eng/tools/check_l0_docs.py",
    "token": "{docs/review/SCIENCE_OVERVIEW.md,docs/review/PIPELINE_OVERVIEW.md,docs/review/ARCHITECTURE_OVERVIEW.md,docs/review/RELEASE_STATUS_OVERVIEW.md,docs/review/CHANGE_REVIEW_OVERVIEW.md}",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -346,7 +346,7 @@
    }
   },
   {
-   "file": "tools/check_p1_symbol_map.py",
+   "file": "eng/tools/check_p1_symbol_map.py",
    "token": "docs/refactor/P1_SYMBOL_MAP.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -358,7 +358,7 @@
    }
   },
   {
-   "file": "tools/check_p2_symbol_map.py",
+   "file": "eng/tools/check_p2_symbol_map.py",
    "token": "docs/archive/refactor/",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -370,7 +370,7 @@
    }
   },
   {
-   "file": "tools/check_p2_symbol_map.py",
+   "file": "eng/tools/check_p2_symbol_map.py",
    "token": "docs/archive/refactor/P2_SYMBOL_MAP.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -382,7 +382,7 @@
    }
   },
   {
-   "file": "tools/check_p2_symbol_map.py",
+   "file": "eng/tools/check_p2_symbol_map.py",
    "token": "docs/refactor/",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -394,7 +394,7 @@
    }
   },
   {
-   "file": "tools/check_p2_symbol_map.py",
+   "file": "eng/tools/check_p2_symbol_map.py",
    "token": "docs/refactor/P2_SYMBOL_MAP.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -406,7 +406,7 @@
    }
   },
   {
-   "file": "tools/check_version_consistency.py",
+   "file": "eng/tools/check_version_consistency.py",
    "token": "docs/archive/",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -418,7 +418,7 @@
    }
   },
   {
-   "file": "tools/config_consistency_check.py",
+   "file": "eng/tools/config_consistency_check.py",
    "token": "docs/struct",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -430,7 +430,7 @@
    }
   },
   {
-   "file": "tools/doccheck/check_alg_line_anchors.py",
+   "file": "eng/tools/doccheck/check_alg_line_anchors.py",
    "token": "docs/algorithms/SYNTH.md",
    "owner": "DOC-403",
    "reason": "检查器自检夹具/退役路径登记面：按设计保留（非活动指针），随对应检查器退役时清理",
@@ -442,7 +442,7 @@
    }
   },
   {
-   "file": "tools/doccheck/check_engineering_constraints.py",
+   "file": "eng/tools/doccheck/check_engineering_constraints.py",
    "token": "docs/archive",
    "owner": "DOC-403",
    "reason": "检查器自检夹具/退役路径登记面：按设计保留（非活动指针），随对应检查器退役时清理",
@@ -454,7 +454,7 @@
    }
   },
   {
-   "file": "tools/doccheck/check_engineering_constraints.py",
+   "file": "eng/tools/doccheck/check_engineering_constraints.py",
    "token": "docs/archive/",
    "owner": "DOC-403",
    "reason": "检查器自检夹具/退役路径登记面：按设计保留（非活动指针），随对应检查器退役时清理",
@@ -466,7 +466,7 @@
    }
   },
   {
-   "file": "tools/doccheck/check_engineering_constraints.py",
+   "file": "eng/tools/doccheck/check_engineering_constraints.py",
    "token": "docs/archive/*",
    "owner": "DOC-403",
    "reason": "检查器自检夹具/退役路径登记面：按设计保留（非活动指针），随对应检查器退役时清理",
@@ -478,7 +478,7 @@
    }
   },
   {
-   "file": "tools/doccheck/check_engineering_constraints.py",
+   "file": "eng/tools/doccheck/check_engineering_constraints.py",
    "token": "docs/archive/HANDOVER.md",
    "owner": "DOC-403",
    "reason": "检查器自检夹具/退役路径登记面：按设计保留（非活动指针），随对应检查器退役时清理",
@@ -490,7 +490,7 @@
    }
   },
   {
-   "file": "tools/docs_machine_consistency.py",
+   "file": "eng/tools/docs_machine_consistency.py",
    "token": "docs/archive",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -502,7 +502,7 @@
    }
   },
   {
-   "file": "tools/docs_machine_consistency.py",
+   "file": "eng/tools/docs_machine_consistency.py",
    "token": "docs/archive/",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -514,7 +514,7 @@
    }
   },
   {
-   "file": "tools/docs_machine_consistency.py",
+   "file": "eng/tools/docs_machine_consistency.py",
    "token": "docs/archive/old.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -526,7 +526,7 @@
    }
   },
   {
-   "file": "tools/quality/check_impact_map.py",
+   "file": "eng/tools/quality/check_impact_map.py",
    "token": "docs/x.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -538,7 +538,7 @@
    }
   },
   {
-   "file": "tools/quality/contracts/check_api_contracts.py",
+   "file": "eng/tools/quality/contracts/check_api_contracts.py",
    "token": "docs/architecture/api_inventory.json",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -550,7 +550,7 @@
    }
   },
   {
-   "file": "tools/quality/contracts/check_doc_symbols.py",
+   "file": "eng/tools/quality/contracts/check_doc_symbols.py",
    "token": "{docs/design/PHASE1_.md,docs/design/PHASE2_.md,docs/design/PHASE3_.md}",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -562,7 +562,7 @@
    }
   },
   {
-   "file": "tools/quality/contracts/fixtures/check_traceability/invalid_missing_doc.csv",
+   "file": "eng/tools/quality/contracts/fixtures/check_traceability/invalid_missing_doc.csv",
    "token": "docs/science/MISSING.md",
    "owner": "BLD-401",
    "reason": "负例夹具字符串（故意指向不存在的文档，非活动指针）",
@@ -574,7 +574,7 @@
    }
   },
   {
-   "file": "tools/quality/known_failures_baseline.py",
+   "file": "eng/tools/quality/known_failures_baseline.py",
    "token": "docs/review/RELEASE_STATUS.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -586,7 +586,7 @@
    }
   },
   {
-   "file": "tools/quality/known_failures_baseline.py",
+   "file": "eng/tools/quality/known_failures_baseline.py",
    "token": "docs/review/SCIENCE_OVERVIEW.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",
@@ -598,7 +598,7 @@
    }
   },
   {
-   "file": "tools/traceability/check_traceability_matrix.py",
+   "file": "eng/tools/traceability/check_traceability_matrix.py",
    "token": "docs/algorithms/X.md",
    "owner": "BLD-401",
    "reason": "历史/退役路径登记面或陈旧注释指针（非活动指针，待所属域收口）",

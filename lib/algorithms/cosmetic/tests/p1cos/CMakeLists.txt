@@ -6,7 +6,7 @@
 # TEST-COS-DESIGN-001 (P1-COS-DOC 冻结, 2026-09-07, wave W1); 矩阵行
 # P1-COS (MOD astrocs.p1.cosmetic)。
 #
-# 结构 (模块 tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
+# 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1cos/p1cos_fixtures.hpp     — FIX-COS-A..F 固定 seed fixture generator
 #   p1cos/p1cos_oracle.hpp       — 独立 oracle (不调用被测函数, sort-path
 #                                  统计 + double 域代数复算 + deque BFS/IDW)

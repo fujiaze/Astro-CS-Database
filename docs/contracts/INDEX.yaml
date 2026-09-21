@@ -825,20 +825,20 @@ contracts:
     upstream: [DATA-UNC-001, SCI-P3-001, SCI-DRZ-001, SCI-NOISE-001]
     downstream: []
 
-  # DATA001-LEGACY-ID: DATA-P1-CAL -> signal -> contracts/schemas/unified/signal.schema.json
-  # DATA001-LEGACY-ID: DATA-P1-COS -> signal -> contracts/schemas/unified/signal.schema.json
-  # DATA001-LEGACY-ID: DATA-P1-COSMETIC -> signal -> contracts/schemas/unified/signal.schema.json
-  # DATA001-LEGACY-ID: DATA-P1-DRZ -> signal -> contracts/schemas/unified/signal.schema.json；variance -> contracts/schemas/unified/variance.schema.json；ivar -> contracts/schemas/unified/ivar.schema.json；support -> contracts/schemas/unified/support.schema.json；coverage -> contracts/schemas/unified/coverage.schema.json
-  # DATA001-LEGACY-ID: DATA-P1-SOURCES -> 无 canonical 对应（descriptor_port_catalog）；证据见 contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map
-  # DATA001-LEGACY-ID: DATA-P2-SMP -> 无 canonical 对应（module_io_contract）；证据见 contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map
-  # DATA001-LEGACY-ID: DATA-GAIA-001 -> 无 canonical 对应（external_catalog_contract）；证据见 contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map
-  # ── DATA 统一对象合同（DATA-001，UNIFIED_MODEL §2 的 14 个对象；contracts/schemas/ 唯一事实源） ──
+  # DATA001-LEGACY-ID: DATA-P1-CAL -> signal -> eng/contracts/schemas/unified/signal.schema.json
+  # DATA001-LEGACY-ID: DATA-P1-COS -> signal -> eng/contracts/schemas/unified/signal.schema.json
+  # DATA001-LEGACY-ID: DATA-P1-COSMETIC -> signal -> eng/contracts/schemas/unified/signal.schema.json
+  # DATA001-LEGACY-ID: DATA-P1-DRZ -> signal -> eng/contracts/schemas/unified/signal.schema.json；variance -> eng/contracts/schemas/unified/variance.schema.json；ivar -> eng/contracts/schemas/unified/ivar.schema.json；support -> eng/contracts/schemas/unified/support.schema.json；coverage -> eng/contracts/schemas/unified/coverage.schema.json
+  # DATA001-LEGACY-ID: DATA-P1-SOURCES -> 无 canonical 对应（descriptor_port_catalog）；证据见 eng/contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map
+  # DATA001-LEGACY-ID: DATA-P2-SMP -> 无 canonical 对应（module_io_contract）；证据见 eng/contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map
+  # DATA001-LEGACY-ID: DATA-GAIA-001 -> 无 canonical 对应（external_catalog_contract）；证据见 eng/contracts/data/unified_object_compatibility_map_v1.json#legacy_contract_id_map
+  # ── DATA 统一对象合同（DATA-001，UNIFIED_MODEL §2 的 14 个对象；eng/contracts/schemas/ 唯一事实源） ──
   - id: DATA-OBJ-SIGNAL-001
     type: DATA
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/signal.schema.json
+    path: eng/contracts/schemas/unified/signal.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-VARIANCE-001
@@ -846,7 +846,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/variance.schema.json
+    path: eng/contracts/schemas/unified/variance.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-IVAR-001
@@ -854,7 +854,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/ivar.schema.json
+    path: eng/contracts/schemas/unified/ivar.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-SOURCE-SNR-001
@@ -862,7 +862,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/source_snr.schema.json
+    path: eng/contracts/schemas/unified/source_snr.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-DEPTH-M5-001
@@ -870,7 +870,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/depth_m5.schema.json
+    path: eng/contracts/schemas/unified/depth_m5.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-FRAME-SNR-001
@@ -878,7 +878,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/frame_snr.schema.json
+    path: eng/contracts/schemas/unified/frame_snr.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-POINT-INFORMATION-001
@@ -886,12 +886,12 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/point_information.schema.json
+    path: eng/contracts/schemas/unified/point_information.schema.json
     upstream: []
     downstream: []
   # DATA-OBJ-PSFSW-ROBUST-WEIGHT-001：**已退役**（负责人 2026-09-20 裁决 B = 真删，14→13；
   # GAP_AUDIT §4.5 C01；变更 claim CHG-2026-09-20-PSFSW-RETIRE）。canonical schema
-  # `contracts/schemas/unified/psfsw_robust_weight.schema.json` 已删除，故本条不再登记 path
+  # `eng/contracts/schemas/unified/psfsw_robust_weight.schema.json` 已删除，故本条不再登记 path
   # （登记一条指向不存在文件的 path 会让合同图判红）。留痕保留 ID，**不得**据此实现或验收。
   - id: DATA-OBJ-PSFSW-ROBUST-WEIGHT-001
     type: DATA
@@ -906,7 +906,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/sparse_snr_layer.schema.json
+    path: eng/contracts/schemas/unified/sparse_snr_layer.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-SUPPORT-001
@@ -914,7 +914,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/support.schema.json
+    path: eng/contracts/schemas/unified/support.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-COVERAGE-001
@@ -922,7 +922,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/coverage.schema.json
+    path: eng/contracts/schemas/unified/coverage.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-VALIDITY-001
@@ -930,7 +930,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/validity.schema.json
+    path: eng/contracts/schemas/unified/validity.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-REJECTION-001
@@ -938,7 +938,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/rejection.schema.json
+    path: eng/contracts/schemas/unified/rejection.schema.json
     upstream: []
     downstream: []
   - id: DATA-OBJ-PROVENANCE-001
@@ -946,7 +946,7 @@ contracts:
     status: ACTIVE
     owner: AstroCS
     version: 1.0.0
-    path: contracts/schemas/unified/provenance.schema.json
+    path: eng/contracts/schemas/unified/provenance.schema.json
     upstream: []
     downstream: []
 
@@ -976,22 +976,22 @@ legacy_contract_id_map:
     decision: mapped
     canonical_objects: [signal]
     relation: single_object
-    canonical_schema_files: [contracts/schemas/unified/signal.schema.json]
+    canonical_schema_files: [eng/contracts/schemas/unified/signal.schema.json]
   - legacy_id: DATA-P1-COS
     decision: mapped
     canonical_objects: [signal]
     relation: single_object
-    canonical_schema_files: [contracts/schemas/unified/signal.schema.json]
+    canonical_schema_files: [eng/contracts/schemas/unified/signal.schema.json]
   - legacy_id: DATA-P1-COSMETIC
     decision: mapped
     canonical_objects: [signal]
     relation: superseded_placeholder
-    canonical_schema_files: [contracts/schemas/unified/signal.schema.json]
+    canonical_schema_files: [eng/contracts/schemas/unified/signal.schema.json]
   - legacy_id: DATA-P1-DRZ
     decision: mapped
     canonical_objects: [signal, variance, ivar, support, coverage]
     relation: composite
-    canonical_schema_files: [contracts/schemas/unified/signal.schema.json, contracts/schemas/unified/variance.schema.json, contracts/schemas/unified/ivar.schema.json, contracts/schemas/unified/support.schema.json, contracts/schemas/unified/coverage.schema.json]
+    canonical_schema_files: [eng/contracts/schemas/unified/signal.schema.json, eng/contracts/schemas/unified/variance.schema.json, eng/contracts/schemas/unified/ivar.schema.json, eng/contracts/schemas/unified/support.schema.json, eng/contracts/schemas/unified/coverage.schema.json]
   - legacy_id: DATA-P1-SOURCES
     decision: no_canonical
     canonical_objects: []

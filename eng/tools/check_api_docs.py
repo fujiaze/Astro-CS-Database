@@ -72,7 +72,7 @@ class Checker:
 
     # ── 读取真实头文件中某符号的声明参数数 ──
     def _find_param_count(self, symbol: str) -> int | None:
-        """在 lib/ 与 include/ 的所有 .h/.hpp/.cpp 中找 `symbol(` 的声明, 返回顶层逗号+1。
+        """在 lib/ 与 lib/include/ 的所有 .h/.hpp/.cpp 中找 `symbol(` 的声明, 返回顶层逗号+1。
         若找不到, 返回 None; 同名多处取首个。"""
         pat = re.compile(r"\b" + re.escape(symbol) + r"\s*\(")
         for base in ("include", "lib"):
@@ -204,7 +204,7 @@ class Checker:
                     hdr = cand
                     break
         if hdr is None:
-            return self.fail("缺少 exit_codes.h(include/astrocs/ 或 lib/infrastructure/cli/)")
+            return self.fail("缺少 exit_codes.h(lib/include/astrocs/ 或 lib/infrastructure/cli/)")
         hdr_text = open(hdr, encoding="utf-8", errors="ignore").read()
         defined = set(int(d) for d in re.findall(r"=\s*(\d{1,2})\b", hdr_text) if int(d) in EXIT_NAMES)
         for code in doc_codes:

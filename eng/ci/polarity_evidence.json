@@ -18,7 +18,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -46,7 +46,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -74,7 +74,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -159,7 +159,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -187,7 +187,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -215,7 +215,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -269,7 +269,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -297,7 +297,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality/test_doc_machine_check.py",
+          "eng/tests/quality/test_doc_machine_check.py",
           "-q"
         ],
         0,
@@ -326,7 +326,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality/test_root_cleanliness.py",
+          "eng/tests/quality/test_root_cleanliness.py",
           "-q"
         ],
         0,
@@ -358,7 +358,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -386,7 +386,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -414,7 +414,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -442,7 +442,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -497,7 +497,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -525,7 +525,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -553,7 +553,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -581,7 +581,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -609,7 +609,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -637,7 +637,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -665,7 +665,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -693,7 +693,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -721,7 +721,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -747,7 +747,7 @@
       "positive": [
         [
           "/usr/bin/python3",
-          "packaging/check_packaging_consistency.py",
+          "eng/packaging/check_packaging_consistency.py",
           "--root",
           ".",
           "--json-out",
@@ -759,7 +759,7 @@
       "negative": [
         [
           "/usr/bin/python3",
-          "packaging/check_packaging_consistency.py",
+          "eng/packaging/check_packaging_consistency.py",
           "--root",
           "<empty-repo>"
         ],
@@ -774,7 +774,7 @@
         "positive": {
           "cmd": [
             "/usr/bin/python3",
-            "packaging/check_packaging_consistency.py",
+            "eng/packaging/check_packaging_consistency.py",
             "--root",
             ".",
             "--json-out",
@@ -787,7 +787,7 @@
         "negative": {
           "cmd": [
             "/usr/bin/python3",
-            "packaging/check_packaging_consistency.py",
+            "eng/packaging/check_packaging_consistency.py",
             "--root",
             "<empty-repo>"
           ],
@@ -806,7 +806,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -834,7 +834,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -939,7 +939,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -992,7 +992,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -1020,7 +1020,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -1048,7 +1048,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -1076,7 +1076,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,
@@ -1275,7 +1275,7 @@
           "/usr/bin/python3",
           "-m",
           "pytest",
-          "tests/quality",
+          "eng/tests/quality",
           "-q"
         ],
         0,

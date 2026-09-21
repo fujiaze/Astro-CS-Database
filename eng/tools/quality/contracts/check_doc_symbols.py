@@ -11,7 +11,7 @@ _HEADER_CORPUS = {}
 
 
 def _header_corpus(repo: pathlib.Path):
-    """lib/**、include/** 的公开头文本（**一次**读入）。
+    """lib/**、lib/include/** 的公开头文本（**一次**读入）。
 
     W4-A3: 原实现对**每个** token 都重新 rglob 全树 + 逐个 read_text ⇒
     判定面 O(tokens × headers)，实测把 CON-DOC-SYMBOLS 拖到 120s 超时

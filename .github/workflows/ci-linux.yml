@@ -71,14 +71,14 @@ jobs:
           # fixture 依赖 numpy，此前唯一装 numpy 的步骤（Install deep coverage
           # tools）带 deep-only if，linux-main 跑 UT-IO 时
           # ModuleNotFoundError: No module named 'numpy' → 3 tests 0 ran。
-          # tests/io 全量 imports 实读：第三方依赖仅 numpy（其余为 stdlib 与
+          # eng/tests/io 全量 imports 实读：第三方依赖仅 numpy（其余为 stdlib 与
           # 仓库本地模块 fits_verify/hips_output_store/make_hips_fixture）。
           # 仅装验证侧 fixture 依赖，不联网拉任何业务依赖；apt 双超时保护。
-          # V8.1-CI（本批次）：追加 python3-astropy——tests/io/make_hips_fixture.py
+          # V8.1-CI（本批次）：追加 python3-astropy——eng/tests/io/make_hips_fixture.py
           # Moc.fits 段是 try-import（缺 astropy 时静默不写 Moc.fits），UT-IO
           # 的 MOC 断言用例在 hosted 镜像缺 astropy 时必然 FAIL；
           # 追加 nlohmann-json3-dev——UT-BACKEND abi_loader/backend_loader.cpp
-          # 系统头 `#include <nlohmann/json.hpp>`（third_party/nlohmann 仅根图
+          # 系统头 `#include <nlohmann/json.hpp>`（lib/third_party/nlohmann 仅根图
           # CMake include 路径，tests 自编译 g++ 直调不含该路径），hosted 镜像
           # 无此包 → 7 tests 编译 assert 失败。
           # V9-CI R9（sdet GSL）：追加 libgsl-dev——UT-BACKEND p1002/p2003/
@@ -131,7 +131,7 @@ jobs:
           test -x /usr/lib/llvm-18/bin/llvm-profdata
           test -x /usr/lib/llvm-18/bin/llvm-cov
           # V3 B3-A9 (FD-R1-005): linux-deep 的 DEEP-CLANG-BUILD/SAN-ASAN/
-          # SAN-TSAN/COV-CPP 以 clang 重新配置, 而 tests/unit/p1wcs/
+          # SAN-TSAN/COV-CPP 以 clang 重新配置, 而 eng/tests/unit/p1wcs/
           # CMakeLists.txt:70 为 find_package(OpenMP REQUIRED) —— 平台无
           # libomp 时 configure 硬失败。显式提供 llvm-18 对应 OpenMP 运行时。
           test -f /usr/lib/llvm-18/lib/libomp.so

@@ -1,6 +1,6 @@
 # V6 Phase1 校准 covariance（ALG-P1-CAL-COV-001）实现说明
 
-> 任务：`IMPL-P1-CAL-001`（write_scope = `lib/algorithms/calibration/`, `tests/unit/v6_p1_cal/`）。
+> 任务：`IMPL-P1-CAL-001`（write_scope = `lib/algorithms/calibration/`, `eng/tests/unit/v6_p1_cal/`）。
 > 状态：实现完成，**未接线 Phase session**（`lib/phase1/`、`lib/phase1_session/` 未改）。
 > 生产入口：`lib/algorithms/calibration/src/v6_calibration_covariance.cpp`；公共头：
 > `lib/algorithms/calibration/include/astrocs/calibration/v6_calibration_covariance.h`。
@@ -42,9 +42,9 @@
 
 ## 4. 测试与证据
 
-- 共址测试：`tests/unit/v6_p1_cal/v6_cal_covariance_test.cpp`（85 用例，含 8 条负向注入必红）、
+- 共址测试：`eng/tests/unit/v6_p1_cal/v6_cal_covariance_test.cpp`（85 用例，含 8 条负向注入必红）、
   独立 Oracle `v6_cal_oracle.hpp`（显式 4×4 矩阵 + 定种子 MC）、断言框架 `v6_cal_test_support.hpp`；
-- CMake：`tests/unit/v6_p1_cal/CMakeLists.txt`（自包含，不依赖 legacy DLL；根构建面注册归控制器 C-004.4）；
+- CMake：`eng/tests/unit/v6_p1_cal/CMakeLists.txt`（自包含，不依赖 legacy DLL；根构建面注册归控制器 C-004.4）；
 - 证据：`run/v6/IMPL-P1-CAL-001/logs/`（构建/ctest/警告/ASan 日志）。
 
 ## 5. 未决（只登记，不擅改）

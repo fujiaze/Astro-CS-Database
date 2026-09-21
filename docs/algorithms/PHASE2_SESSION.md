@@ -34,7 +34,7 @@ budget/allocator）、manifest 状态机与错误映射，供 CLI 直调（CLI-0
 **非目标（本模块不做）**：
 
 - 不做任何科学计算：无 coverage union/采样/UPM 求解公式（p2_session
-  全文零科学实现；tests/unit/p2_ir_facade_test.cpp:41-52 facade 委托
+  全文零科学实现；eng/tests/unit/p2_ir_facade_test.cpp:41-52 facade 委托
   断言冻结"不复制算法"）；
 - 不做 HiPS 马赛克写（upm_apply/reject/integrate/write 四域不在现状
   4 段内；PUBLIC_API.md:1088-1090；补齐归 P2-SESSION-IMPL，§11.4）；
@@ -293,8 +293,8 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
 ### 11.5 TEST-P2-SESSION-DESIGN-001 冻结测试设计（可执行 TEST-P2-SESSION-001 由 P2-SESSION-TEST 落地，MISSING 如实登记）
 
 锚定台账三条任务关键词（V7_1_STATIC_TASK_LEDGER.csv:186-188），
-对拍先例 tests/unit/p1_ir_facade_test.cpp / p2_ir_facade_test.cpp
-（同址 add_test 注册 tests/unit/CMakeLists.txt:354-358/:407-409）：
+对拍先例 eng/tests/unit/p1_ir_facade_test.cpp / p2_ir_facade_test.cpp
+（同址 add_test 注册 eng/tests/unit/CMakeLists.txt:354-358/:407-409）：
 
 - **T1 call-count 唯一性**（:186 "add node call-count tests …
   coverage through hips writer each once"）：§7 矩阵逐符号断言——

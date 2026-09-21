@@ -174,7 +174,7 @@
 - **容差来源**：解析恒等（非测量阈值）：任意正定 C 下两式代数等价；1e-9 为浮点安全界，继承 SCI-P2-001 Oracle C1。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：C 非正定/不可求逆 -> 该配置整体 REJECT 并记 unavailable，不参与恒等判定。
-- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式 + 显式矩阵参考；must_not=astrocs, lib/, cli/, include/
+- **独立 Oracle**：kind=independent_numpy；truth=解析恒等式 + 显式矩阵参考；must_not=astrocs, lib/, cli/, lib/include/
 - **门能红 mutation**：MUT-A01, MUT-A02, MUT-A12
 - **owner / wave / status**：ALG-P2-POINT-001 / P2-INTEGRATE-001 / W3 / frozen_formula
 
@@ -351,7 +351,7 @@
 - **容差来源**：统计收敛阈 3%，继承 SCI-P2-001 C4 / SCI-PSFW-001 K2 的 3%/2% 口径；N_mc 与 seed 必须登记以保证可复跑。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：N_mc < 1 或 seed 缺失 -> rc=2（零用例/不可复跑即红）；跨帧相关未用联合 C -> 该 case 拒绝。
-- **独立 Oracle**：kind=independent_numpy_mc；truth=解析 1/W + 定种子 MC 散度；must_not=astrocs, lib/, tests/
+- **独立 Oracle**：kind=independent_numpy_mc；truth=解析 1/W + 定种子 MC 散度；must_not=astrocs, lib/, eng/tests/
 - **门能红 mutation**：MUT-M02, MUT-I02
 - **owner / wave / status**：ALG-P2-POINT-001 / P2-INTEGRATE-001 / W5 / mechanism_frozen_tol_inherited
 
@@ -480,7 +480,7 @@
 - **容差来源**：门度量（bias、sigma_F vs 1/sqrt(W)）冻结；数值 2% 属设计默认，最终由 ALG-P2-POINT-001 冻结，本任务不宣称冻结数值。（status=pending_freeze，owner=ALG-P2-POINT-001）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
 - **fail-closed**：注入源 sigma_F 与 1/sqrt(W) 偏差超门且无原因 -> REJECT；跨帧相关简单求和 -> REJECT。
-- **独立 Oracle**：kind=independent_numpy_mc；truth=注入已知真值 + 解析方差；must_not=astrocs, lib/, tests/
+- **独立 Oracle**：kind=independent_numpy_mc；truth=注入已知真值 + 解析方差；must_not=astrocs, lib/, eng/tests/
 - **门能红 mutation**：MUT-I02, MUT-I03, MUT-SPEC-10
 - **owner / wave / status**：ALG-P2-POINT-001 / P2-INTEGRATE-001 / W5 / mechanism_frozen_tol_pending
 

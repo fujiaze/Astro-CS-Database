@@ -10,7 +10,7 @@
  *   - MOC optional hint: 有 MOC → 叶级 ipix 枚举; 无 MOC → count=0 不失败
  *   - FITS-only 科学平面读取: f32/f64 与生成数据一致
  *
- * fixture 由 tests/io/make_hips_fixture.py 生成 (默认 K=1)。无第三方依赖。
+ * fixture 由 eng/tests/io/make_hips_fixture.py 生成 (默认 K=1)。无第三方依赖。
  * 用法: hips_core_selftest <fixture_dir> [<fixture_dir2...>]
  * 退出码 0 = 全 PASS。
  */

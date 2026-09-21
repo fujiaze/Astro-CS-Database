@@ -93,7 +93,7 @@ F1 与 AR-033 为控制器级事项，本任务**只登记不裁决**（见 `ALG
 
 ## 7 明确不做
 
-- 不改 `docs/science/*`、`docs/owner/**`、`docs/design/**`、`docs/references/**`、`contracts/**`、生产源码、根/公共 CMake；
+- 不改 `docs/science/*`、`docs/owner/**`、`docs/design/**`、`docs/references/**`、`eng/contracts/**`、生产源码、根/公共 CMake；
 - 不写入 schema 实现（词表归一归 `SCHEMA-INTEGRATE-001` W6，C-004.3）；
 - 不实现算法（`IMPL-P2-UPM-001`/`IMPL-P2-REJ-001`/`IMPL-P2-SAMP-001` W5、`P2-INTEGRATE-001` W8）；
 - 不放行 `psf_snr_power`（C-004.1）；

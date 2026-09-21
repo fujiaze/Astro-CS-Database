@@ -39,7 +39,7 @@
  *      16 片 + DR3SP 20 片, 登记于 run/perf-fix/P1-gaia/evidence/
  *      shard_magranges.tsv); [-10, 40] 完全包含该包络, low 侧余量 >= 8 mag、
  *      high 侧余量 >= 14 mag —— 仅用于拒绝"荒唐声明", 不改变任何合法生产
- *      shard 的解析值 (逐位不变见 tests/unit/gaia_magnitude_range_bounds_test.c);
+ *      shard 的解析值 (逐位不变见 eng/tests/unit/gaia_magnitude_range_bounds_test.c);
  *   ③ Gaia DR3 G 星等为物理带通星等, 负值/极大值声明均无产品语义。 */
 #define GAIA_MAG_RANGE_MIN (-10.0)
 #define GAIA_MAG_RANGE_MAX ( 40.0)

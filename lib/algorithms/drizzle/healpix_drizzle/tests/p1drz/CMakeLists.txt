@@ -6,7 +6,7 @@
 # (P1-DRZ-DOC 冻结, 2026-09-07, wave W1); 矩阵行 P1-DRZ (MOD
 # astrocs.p1.drizzle); SCI-DRZ-001 (docs/science/DRIZZLE.md §5/§7/§8)。
 #
-# 结构 (模块 tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
+# 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1drz/p1drz_fixtures.hpp     — FIX-DRZ-A..F 固定 seed fixture generator
 #                                  (splitmix64 谱系, 面亮度语义 per SCI-003)
 #   p1drz/p1drz_geom.hpp         — 测试侧独立几何原语 (向量旋转 TAN + SIP,

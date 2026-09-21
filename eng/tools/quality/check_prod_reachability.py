@@ -88,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
     errors: list[str] = []
 
     # RT-008: 扫描整个 lib/infrastructure/cli/ 目录（main.cpp + 拆分后的 parser/commands 等），
-    # 保证 CLI 整体不 include/调用生产内部符号（不只 main.cpp）
+    # 保证 CLI 整体不 lib/include/调用生产内部符号（不只 main.cpp）
     cli_dir = repo / "cli"
     cli_sources = sorted(cli_dir.glob("*.cpp")) if cli_dir.is_dir() else []
     if not cli_sources:
@@ -163,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
 def _build_graph(repo: pathlib.Path, cc_path: pathlib.Path, nm_text: str) -> dict:
     """构建生产可达图：compile_commands 中每个生产编译单元 → 依赖头 → 导出符号。"""
     cc = json.loads(cc_path.read_text(encoding="utf-8"))
-    # 预索引 include/ lib/ lib/infrastructure/cli/ 下所有头文件，避免逐 include rglob
+    # 预索引 lib/include/ lib/ lib/infrastructure/cli/ 下所有头文件，避免逐 include rglob
     header_index: dict[str, list[pathlib.Path]] = {}
     for top in ("include", "lib", "cli"):
         base = repo / top
@@ -182,7 +182,7 @@ def _build_graph(repo: pathlib.Path, cc_path: pathlib.Path, nm_text: str) -> dic
         except ValueError:
             rel = f.name
         kind = "cli" if rel.startswith("lib/infrastructure/cli/") else \
-            ("test" if rel.startswith("tests/") else "lib")
+            ("test" if rel.startswith("eng/tests/") else "lib")
         if kind == "test":
             continue
         nodes[rel] = {"kind": kind}
@@ -194,7 +194,7 @@ def _build_graph(repo: pathlib.Path, cc_path: pathlib.Path, nm_text: str) -> dic
                     crel = cand.relative_to(repo).as_posix()
                 except ValueError:
                     continue
-                if crel.startswith(("include/", "lib/", "lib/infrastructure/cli/")):
+                if crel.startswith(("lib/include/", "lib/", "lib/infrastructure/cli/")):
                     edges.setdefault(rel, []).append(crel)
         edges.setdefault(rel, [])
     # 生产二进制符号并入（nm 证明链接）

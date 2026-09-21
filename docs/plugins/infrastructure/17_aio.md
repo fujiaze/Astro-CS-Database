@@ -16,7 +16,7 @@
 
 - **输入**：FITS/HiPS/manifest 路径、数据对象（signal/variance/coverage/...）、配置。
 - **输出**：原子提交的产品目录/文件 + manifest + 校验记录。
-- 参考：`contracts/schemas/*.schema.json`（全部数据产品）。
+- 参考：`eng/contracts/schemas/*.schema.json`（全部数据产品）。
 
 ## 4. 算法与公式要点
 

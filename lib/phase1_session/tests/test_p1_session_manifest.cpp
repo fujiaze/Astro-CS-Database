@@ -5,7 +5,7 @@
 //        抛 nlohmann type_error.302 穿越 extern "C" → std::terminate。
 // 合同: {"enabled":1} (int) 与 {"enabled":true} (bool) 均为合法 config, 必须跑通;
 //       {"enabled":"x"} (string, 合同外) 由 validate 拒绝, 不得 terminate。
-// 模式参照: tests/unit/p1_ir_facade_test.cpp (CHECK 宏) +
+// 模式参照: eng/tests/unit/p1_ir_facade_test.cpp (CHECK 宏) +
 //           lib/infrastructure/aio/tests/test_p0_io_hardening.cpp (手写 FITS fixture)。
 #include "p1_session.h"
 

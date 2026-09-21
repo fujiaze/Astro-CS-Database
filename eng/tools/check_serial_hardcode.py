@@ -4,7 +4,7 @@
 禁令 (控制包):
 1. 生产禁止 workers=1 / cpu_workers=1 硬编码 (P2-002; AGENTS.md 禁 workers=1)。
 2. 禁止 nside=2048 / 2048 魔数硬编码 (P1-006/P3-002; 必须 config 派生)。
-3. 禁止 OMP 硬编码线程数 (omp_set_num_threads(固定值); 必须 config/Runtime lease)。
+3. 禁止 OMP 硬编码线程数 (omp_set_num_threads(固定值); 必须 eng/packaging/config/Runtime lease)。
 4. 禁止生产目标 file(GLOB) (BLD-001)。
 
 豁免: 测试/工具/注释; 第三方 (cfitsio/AIO/drizzle/HISS)。

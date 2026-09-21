@@ -1,0 +1,381 @@
+{
+  "map_schema": "astrocs.unified-object-compatibility-map/v1",
+  "map_id": "IDX-UNIFIED-COMPAT-MAP",
+  "task": "DATA-001",
+  "baseline_head": "ecf6ad6f",
+  "authority": "docs/design/UNIFIED_MODEL.md §2；ENGINEERING_SPEC.md §4.7（eng/contracts/schemas/ 唯一事实源）",
+  "policy": "eng/contracts/data/** 是**兼容期映射**：只登记旧路径/旧 ID→canonical 对象的归属与废弃时间点，不承载第二份对象定义。本文件不改写被登记文件的内容（v6 生成物与 runtime artifact_store 校验器仍在用它们），也不放宽任何既有检查。retired（不再是 canonical）对象落 retired_entries：必须带 retired_at_change + rejection + migration_hint，且其 canonical schema 文件必须确实不存在（fail-closed）。",
+  "canonical_root": "eng/contracts/schemas/unified/",
+  "canonical_object_schema_ids": {
+    "signal": "https://astrocs.local/schemas/unified/signal/v1",
+    "variance": "https://astrocs.local/schemas/unified/variance/v1",
+    "ivar": "https://astrocs.local/schemas/unified/ivar/v1",
+    "source_snr": "https://astrocs.local/schemas/unified/source_snr/v1",
+    "depth_m5": "https://astrocs.local/schemas/unified/depth_m5/v1",
+    "frame_snr": "https://astrocs.local/schemas/unified/frame_snr/v1",
+    "point_information": "https://astrocs.local/schemas/unified/point_information/v1",
+    "sparse_snr_layer": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
+    "support": "https://astrocs.local/schemas/unified/support/v1",
+    "coverage": "https://astrocs.local/schemas/unified/coverage/v1",
+    "validity": "https://astrocs.local/schemas/unified/validity/v1",
+    "rejection": "https://astrocs.local/schemas/unified/rejection/v1",
+    "provenance": "https://astrocs.local/schemas/unified/provenance/v1"
+  },
+  "port_contract_ref": {
+    "schema_id": "https://astrocs.local/schemas/unified/port/v1",
+    "canonical_schema_file": "eng/contracts/schemas/unified/port_contract.schema.json",
+    "purpose": "端口合同 canonical：跨对象连接只能同对象（UNIFIED_MODEL §2 禁止对象互相冒充；ENGINEERING_SPEC §4.7）。本 registry 的 port_contracts 只登记具体端口示例，不重复定义该约束。"
+  },
+  "entries": [
+    {
+      "path": "eng/contracts/data/aio_abi_contract_v1.json",
+      "covers_object": "signal",
+      "canonical_schema": "eng/contracts/schemas/unified/signal.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/signal/v1",
+      "relation": "compatibility_view_of_canonical_object",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
+      "evidence": "对象平面在 AIO 通道面（signal/support/variance/ivar 位）的 ABI 视图"
+    },
+    {
+      "path": "eng/contracts/data/artifact_manifest.schema.json",
+      "covers_object": "provenance",
+      "canonical_schema": "eng/contracts/schemas/unified/provenance.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
+      "relation": "compatibility_view_of_canonical_object",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
+      "evidence": "产品 manifest ↔ provenance 最小集的 manifest 面视图"
+    },
+    {
+      "path": "eng/contracts/data/artifact_types.registry.json",
+      "covers_object": "provenance",
+      "canonical_schema": "eng/contracts/schemas/unified/provenance.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
+      "relation": "compatibility_view_of_canonical_object",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
+      "evidence": "产品类型注册表（provenance.product_type_id 的值域来源）"
+    },
+    {
+      "path": "eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json",
+      "covers_object": "rejection",
+      "canonical_schema": "eng/contracts/schemas/unified/rejection.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/rejection/v1",
+      "relation": "compatibility_view_of_canonical_object",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
+      "evidence": "Phase2 rejection/provenance 产品合同（§30.2/§30.3）"
+    },
+    {
+      "path": "eng/contracts/data/phase_product_exchange_matrix.json",
+      "covers_object": "variance",
+      "canonical_schema": "eng/contracts/schemas/unified/variance.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+      "relation": "compatibility_view_of_canonical_object",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
+      "evidence": "跨阶段交换矩阵（plane 语义映射）"
+    },
+    {
+      "path": "eng/contracts/data/phase_product_exchange.schema.json",
+      "covers_object": "variance",
+      "canonical_schema": "eng/contracts/schemas/unified/variance.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/variance/v1",
+      "relation": "compatibility_view_of_canonical_object",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
+      "evidence": "交换 schema 的 plane 枚举 {signal,support,variance,ivar,mask}"
+    },
+    {
+      "path": "eng/contracts/data/v6_data_dictionary_v1.json",
+      "covers_object": "provenance",
+      "canonical_schema": "eng/contracts/schemas/unified/provenance.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
+      "relation": "compatibility_view_of_canonical_object",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
+      "evidence": "V6 数据字典（单位表/禁止项/fail-closed 的机器索引）"
+    },
+    {
+      "path": "eng/contracts/data/v6_migration_map_v1.json",
+      "covers_object": "provenance",
+      "canonical_schema": "eng/contracts/schemas/unified/provenance.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/provenance/v1",
+      "relation": "compatibility_view_of_canonical_object",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
+      "evidence": "legacy→v6 迁移映射表"
+    },
+    {
+      "path": "eng/contracts/data/examples/",
+      "covers_object": "signal",
+      "canonical_schema": "eng/contracts/schemas/unified/signal.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/signal/v1",
+      "relation": "compatibility_view_of_canonical_object",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
+      "evidence": "V6 产品族正例集（含 10 个对象族示例）"
+    }
+  ],
+  "retired_entries": [
+    {
+      "path": "eng/contracts/data/v6_weight_vocabulary_v1.json",
+      "covers_object": "psfsw_robust_weight",
+      "canonical_schema": "eng/contracts/schemas/unified/psfsw_robust_weight.schema.json",
+      "canonical_schema_id": "https://astrocs.local/schemas/unified/psfsw_robust_weight/v1",
+      "relation": "retired_canonical_object",
+      "retired_on": "2026-09-20",
+      "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
+      "basis": "负责人 2026-09-20 裁决 B（14→13）；工程控制/RELEASE-03/GAP_AUDIT.md §4.5；ASTROCS_DESIGN.md §2.1（全程只有 SNR，不存在权重模式）/§2.2（数据对象唯一性）/§2.3（质量代理不进科学权重）；工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44；run/RELEASE-02/design-merge/DESIGN-DRAFT.md §3.1-C01",
+      "canonical_schema_removed": true,
+      "rejection": "旧产品声明 unified_object=psfsw_robust_weight ⇒ 显式拒绝（canonical schema 已不存在，无法解析；端口合同 enum 判红，负例 eng/contracts/schemas/unified/negative/n5_retired_psfsw_robust_weight.schema-violation.json），不得静默接受、不得自动转换",
+      "migration_hint": "迁移提示：无等价替代对象——点源严格权重 → point_information（W_info=1/Var(F_hat)）；帧级参考 → frame_snr（权重由 Phase2 逆方差叠加从 SNR 现场派生，不落盘）；v6 词表 token psfsw_robust_weight 仅存于 v6 设计档案（eng/contracts/data/v6_weight_vocabulary_v1.json），不构成 canonical 对象。完整记录见 eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries。",
+      "evidence": "原 entries 条目（eng/contracts/data/v6_weight_vocabulary_v1.json 的兼容期视图，covers_object=psfsw_robust_weight）canonical object retired ⇒ 该条目一并撤销；基线 entries 10 条 = 现存 9 条 + retired 1 条。"
+    }
+  ],
+  "legacy_contract_id_map": [
+    {
+      "legacy_id": "DATA-P1-CAL",
+      "decision": "mapped",
+      "relation": "single_object",
+      "kind": "module_io_contract",
+      "canonical_objects": [
+        "signal"
+      ],
+      "canonical_schema_files": [
+        "eng/contracts/schemas/unified/signal.schema.json"
+      ],
+      "canonical_schema_ids": [
+        "https://astrocs.local/schemas/unified/signal/v1"
+      ],
+      "superseded_by": null,
+      "old_contract_face": [
+        "docs/contracts/DATA_SEMANTICS.md:133（§9 ID 定义节，:135 状态 CONTRACT_READY）",
+        "docs/contracts/PUBLIC_API.md:102",
+        "docs/modules/registry/astrocs.phase1.calibration.md:23（端口 calibrated）",
+        "docs/modules/registry/astrocs.phase1.cosmetic.md:34（端口 calibrated）",
+        "docs/modules/registry/astrocs.phase1.drizzle.md:35（端口 calibrated）",
+        "docs/modules/registry/astrocs.phase2.resample.md:22（端口 calibrated）",
+        "docs/modules/calibration.md:8/:53"
+      ],
+      "new_index_added_by_DATA001": [
+        "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-CAL'",
+        "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+      ],
+      "evidence": "DATA_SEMANTICS §9.1 输入 light（ADU，NaN 直传）+ §9.2 输出 out（ADU，可负不 clamp）= 声明单位与像素语义的科学估计量本身 → UNIFIED_MODEL §2 的 signal；§9.4 明确本层不出 variance/ivar/coverage。",
+      "note": "master_bias/master_dark/master_flat 属标定参考帧（flat 为无量纲归一参考），不是 14 个科学对象之一；本 ID 的契约主体（calibrated frame）归 signal。",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+    },
+    {
+      "legacy_id": "DATA-P1-COS",
+      "decision": "mapped",
+      "relation": "single_object",
+      "kind": "module_io_contract",
+      "canonical_objects": [
+        "signal"
+      ],
+      "canonical_schema_files": [
+        "eng/contracts/schemas/unified/signal.schema.json"
+      ],
+      "canonical_schema_ids": [
+        "https://astrocs.local/schemas/unified/signal/v1"
+      ],
+      "superseded_by": null,
+      "old_contract_face": [
+        "docs/contracts/DATA_SEMANTICS.md:180（§10 ID 定义节，:182 状态 CONTRACT_READY）",
+        "docs/contracts/PUBLIC_API.md:152/:177",
+        "docs/modules/registry/astrocs.phase1.cosmetic.md:35（端口 cleaned）/:38-40（权威名说明）",
+        "docs/modules/calibration.md:12"
+      ],
+      "new_index_added_by_DATA001": [
+        "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COS'",
+        "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+      ],
+      "evidence": "DATA_SEMANTICS §10.2 输出 out（修复帧，ADU，可负不 clamp）+ §10.3「mask 为模块内部产物，不作为产品输出；variance/ivar/coverage 不在本层」→ 契约主体是 signal；坏点掩码不是 validity/rejection 产品。",
+      "note": "本 ID 是 DATA-P1-COSMETIC 的权威名（后者为 descriptor 占位）；registry :38-40 明写「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+    },
+    {
+      "legacy_id": "DATA-P1-COSMETIC",
+      "decision": "mapped",
+      "relation": "superseded_placeholder",
+      "kind": "descriptor_port_placeholder",
+      "canonical_objects": [
+        "signal"
+      ],
+      "canonical_schema_files": [
+        "eng/contracts/schemas/unified/signal.schema.json"
+      ],
+      "canonical_schema_ids": [
+        "https://astrocs.local/schemas/unified/signal/v1"
+      ],
+      "superseded_by": "DATA-P1-COS",
+      "old_contract_face": [
+        "docs/modules/registry/astrocs.phase1.cosmetic.md:39（descriptor 占位名说明）",
+        "docs/modules/registry/astrocs.phase1.star-psf.md:33（端口 cleaned）",
+        "docs/modules/registry/astrocs.phase1.star-detection.md:38（端口 image）"
+      ],
+      "new_index_added_by_DATA001": [
+        "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-COSMETIC'",
+        "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+      ],
+      "evidence": "该 ID 在 docs/contracts/{DATA_SEMANTICS.md,PUBLIC_API.md,DATA_ARTIFACTS.md} 中**零命中**（旧契约面无定义）；唯一权威说明在 registry astrocs.phase1.cosmetic.md:38-40「DATA-P1-COSMETIC 为 descriptor 占位名，合同以 DATA-P1-COS 为准」。",
+      "note": "占位名不再单独存在；统一对象面归 signal（cleaned 帧 = ADU 科学估计量）。",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+    },
+    {
+      "legacy_id": "DATA-P1-DRZ",
+      "decision": "mapped",
+      "relation": "composite",
+      "kind": "module_io_contract",
+      "canonical_objects": [
+        "signal",
+        "variance",
+        "ivar",
+        "support",
+        "coverage"
+      ],
+      "canonical_schema_files": [
+        "eng/contracts/schemas/unified/signal.schema.json",
+        "eng/contracts/schemas/unified/variance.schema.json",
+        "eng/contracts/schemas/unified/ivar.schema.json",
+        "eng/contracts/schemas/unified/support.schema.json",
+        "eng/contracts/schemas/unified/coverage.schema.json"
+      ],
+      "canonical_schema_ids": [
+        "https://astrocs.local/schemas/unified/signal/v1",
+        "https://astrocs.local/schemas/unified/variance/v1",
+        "https://astrocs.local/schemas/unified/ivar/v1",
+        "https://astrocs.local/schemas/unified/support/v1",
+        "https://astrocs.local/schemas/unified/coverage/v1"
+      ],
+      "superseded_by": null,
+      "old_contract_face": [
+        "docs/contracts/DATA_SEMANTICS.md:226（§11 ID 定义节，:228 状态 CONTRACT_READY）",
+        "docs/contracts/PUBLIC_API.md:214",
+        "docs/modules/registry/astrocs.phase1.drizzle.md:7（upstream 引用）/:39（模块级数据合同说明）",
+        "docs/modules/registry/astrocs.phase1.hips-writer.md:7/:34（端口 stacked）",
+        "docs/modules/healpix_drizzle.md:32/:62"
+      ],
+      "new_index_added_by_DATA001": [
+        "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P1-DRZ'",
+        "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+      ],
+      "evidence": "§11.2 输出：sumFlux（HiPS SIGNAL 底数）→ signal；sumVarNum→variance 产品 + ivar=1/variance → variance/ivar；sumArea（HiPS SUPPORT 底数，sr）→ support；§11.3 面亮度归一 S=F/D 与 NaN 语义 → coverage 归属 finalize 层。§11.1 输入侧 data 块（ADU）同属 signal。",
+      "note": "组合映射：一个模块级合同覆盖 5 个对象；组件各自 canonical，不是新对象。",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+    },
+    {
+      "legacy_id": "DATA-P1-SOURCES",
+      "decision": "no_canonical",
+      "relation": "orchestration_port_catalog_name",
+      "kind": "descriptor_port_catalog",
+      "canonical_objects": [],
+      "canonical_schema_files": [],
+      "canonical_schema_ids": [],
+      "superseded_by": null,
+      "old_contract_face": [
+        "docs/contracts/DATA_SEMANTICS.md:444（§14 下游计数行 n_sources 的引用）",
+        "docs/contracts/DATA_SEMANTICS.md:471（§14 端口链 psf→sources→fluxes）",
+        "docs/contracts/DATA_SEMANTICS.md:531（§15 端口链）",
+        "docs/contracts/PUBLIC_API.md:634（photometry descriptor 端口编目，带data_id=DATA-P1-SOURCES）",
+        "docs/modules/MODULE_MAP.yaml:151（psf 模块）"
+      ],
+      "new_index_added_by_DATA001": [
+        "docs/contracts/INDEX.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
+      ],
+      "evidence": "全仓无独立定义节：只出现在编排/descriptor 端口编目与交叉引用链中，指向「PSF 拟合结果中的 sources 列（star_id/x/y/flux）」。DATA_SEMANTICS §15.2 明确该块列语义由 P1-STAR-INT 承接，且要求「下游必须经 star_id 连接」，未定义为跨阶段产品合同；基线 docs/contracts/DATA_ARTIFACTS.md 与基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 均为零命中。",
+      "note": "判定：旧契约面无 canonical 对应（属编排端口编目名，非 14 个科学数据对象之一）。其携带的 flux 物理量在 signal 面（§15.2 flux=ADU 解析积分），但 catalog 行集合本身不构成单一对象合同。",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+    },
+    {
+      "legacy_id": "DATA-P2-SMP",
+      "decision": "no_canonical",
+      "relation": "module_io_contract_without_object_semantics",
+      "kind": "module_io_contract",
+      "canonical_objects": [],
+      "canonical_schema_files": [],
+      "canonical_schema_ids": [],
+      "superseded_by": null,
+      "old_contract_face": [
+        "docs/contracts/DATA_SEMANTICS.md:1407（§23 ID 定义节，:1409 状态 CONTRACT_READY）",
+        "docs/contracts/PUBLIC_API.md:1447/:1556/:1701",
+        "docs/modules/phase2_samp.md:74/:76/:189",
+        "docs/modules/phase2_upm.md:52/:73/:90/:101/:249",
+        "docs/modules/registry/astrocs.phase2.sample.md:62/:64/:164",
+        "docs/modules/registry/astrocs.phase2.upm-fit.md:46"
+      ],
+      "new_index_added_by_DATA001": [
+        "docs/contracts/INDEX.yaml#DATA-OBJ-* 映射段逐行 '# DATA001-LEGACY-ID: DATA-P2-SMP'",
+        "docs/contracts/INDEX.yaml#legacy_contract_id_map"
+      ],
+      "evidence": "DATA_SEMANTICS §23 冻结的是 P2ControlObservation / 逐样本列与 accept/reason 值域（§23.3 u8 reason），即 control 观测表与采样决定，不是 14 个对象中的任何一个：既不是 signal/variance/ivar（无单位与像素语义的科学估计量），也不是 validity/rejection（§23.3 的 accept/reason 是采样态，UPM 权重由 §22 rejection 与 §25 UPM 承接）。",
+      "note": "判定：无 canonical 对象对应；采样列的最终科学产品归 §25 UPM（DATA-P2-UPM，control cell 参数）与 §30 产品合同，两者都不在 UNIFIED_MODEL §2 的 14 对象内。",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+    },
+    {
+      "legacy_id": "DATA-GAIA-001",
+      "decision": "no_canonical",
+      "relation": "external_catalog_service_contract",
+      "kind": "external_catalog_contract",
+      "canonical_objects": [],
+      "canonical_schema_files": [],
+      "canonical_schema_ids": [],
+      "superseded_by": null,
+      "old_contract_face": [
+        "docs/contracts/DATA_SEMANTICS.md:86（§8 ID 定义节，:88 状态 CONTRACT_READY）",
+        "docs/contracts/PUBLIC_API.md:71",
+        "docs/contracts/DATA_ARTIFACTS.md:29（登记行）",
+        "docs/traceability/TRACEABILITY_MATRIX.csv 第 2 行（DATA=DATA-GAIA-001, VERIFIED）",
+        "docs/modules/gaia_xpsd_client.md:23/:40"
+      ],
+      "new_index_added_by_DATA001": [
+        "docs/contracts/INDEX.yaml#legacy_contract_id_map（本任务新增；基线无该 ID）"
+      ],
+      "evidence": "DATA_SEMANTICS §8 = Gaia XPSD 星表输入与星表行（三个变体）；单位 deg/mag/W·m⁻²·nm⁻¹，坐标 ICRS J2000，dtype f64/i32/u8[]，in-memory 不落盘。它是外部星表服务的 C ABI 行契约，不含 14 个对象中任何一个的单位/像素语义（无 ADU 估计量、无方差/逆方差、无 coverage/validity 产品）。",
+      "note": "判定：无 canonical 对象对应；旧面命中在 DATA_SEMANTICS.md:86（§8）、PUBLIC_API.md:71、DATA_ARTIFACTS.md:29、docs/modules/gaia_xpsd_client.md:23/:40 与 TRACEABILITY_MATRIX.csv 第 2 行；基线 docs/contracts/INDEX.yaml（ecf6ad6f）对该 ID 零命中，继续作为星表服务合同存在，不进统一对象链。",
+      "deprecated_at_change": "CHG-2026-09-16-DATA001",
+      "retire_after_change": "OWNER_DECISION",
+      "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。"
+    }
+  ],
+  "legacy_contract_id_summary": {
+    "total": 7,
+    "mapped": 4,
+    "no_canonical": 3,
+    "mapped_ids": [
+      "DATA-P1-CAL",
+      "DATA-P1-COS",
+      "DATA-P1-COSMETIC",
+      "DATA-P1-DRZ"
+    ],
+    "no_canonical_ids": [
+      "DATA-P1-SOURCES",
+      "DATA-P2-SMP",
+      "DATA-GAIA-001"
+    ]
+  },
+  "no_duplicate_definition_rule": "同一对象在 eng/contracts/data/** 只允许出现兼容期视图条目；canonical 定义只允许一份，见 docs/contracts/unified_object_registry.json#u02_criterion。"
+}

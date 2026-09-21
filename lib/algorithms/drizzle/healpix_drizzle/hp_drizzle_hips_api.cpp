@@ -3,7 +3,7 @@
 // F-13 (P1-003 生产路由清理): 本文件自 hp_drizzle_api.cpp 原样迁出
 // hp_drizzle_run_hips。迁出动机 —— 原二者同处一个 TU, CLI 生产闭包只引用
 // hp_drizzle_run, 而静态库链接按 .o 取成员, 导致未被引用的 hp_drizzle_run_hips
-// 被一并拉入 astrocs exe (冻结测试 tests/cli/test_p1003_drizzle_path.py 判红)。
+// 被一并拉入 astrocs exe (冻结测试 eng/tests/cli/test_p1003_drizzle_path.py 判红)。
 // 拆分后 CLI 只拉 hp_drizzle_api.o, 本 TU 仅由真正调用 run_hips 的目标
 // (模块 astrocs_p1_drizzle / 直接对拍测试) 按需拉取。
 //

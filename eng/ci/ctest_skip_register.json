@@ -14,7 +14,7 @@
     {
       "test": "cpu001_selftest_avx512",
       "class": "HOST_CAPABILITY",
-      "source": "tests/unit/cpu001_provider_selftest.cpp:41-48",
+      "source": "eng/tests/unit/cpu001_provider_selftest.cpp:41-48",
       "reason": "本节点 /proc/cpuinfo 无 avx512* 旗标；provider 激活合同 = required ⊆ detected，故 exit 77 SKIP（非 FAIL）。",
       "owner": "CPU/backend",
       "unblock": "在支持 AVX-512F 的正式节点执行；本节点不可启用。",

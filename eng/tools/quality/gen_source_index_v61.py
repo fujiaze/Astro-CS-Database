@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """gen_source_index_v61.py — R0-002 完整自有源码清单生成器。
 
-解析根 CMakeLists.txt / tests/unit/CMakeLists.txt / cli/CMakeLists.txt / eng/cmake/*.cmake
+解析根 CMakeLists.txt / eng/tests/unit/CMakeLists.txt / cli/CMakeLists.txt / eng/cmake/*.cmake
 中全部 add_library/add_executable 显式源引用，逐项证明存在；并枚举自有源码
 (lib/include/cmake/schemas/tools/docs/tests/scripts)，生成：
 
@@ -110,17 +110,17 @@ def classify_kind(rel: str) -> str:
     first = rel.split("/", 1)[0]
     if rel.startswith("lib/infrastructure/cli/"):
         return "cli"
-    if rel.startswith("include/"):
+    if rel.startswith("lib/include/"):
         return "public_header"
     if rel.startswith("lib/"):
         return "library_source"
     if rel.startswith("eng/cmake/"):
         return "cmake"
-    if rel.startswith("contracts/schemas/") or rel.startswith("schemas/"):
+    if rel.startswith("eng/contracts/schemas/") or rel.startswith("schemas/"):
         return "schema"
     if rel.startswith("eng/tools/"):
         return "tool"
-    if rel.startswith("tests/"):
+    if rel.startswith("eng/tests/"):
         return "test"
     if rel.startswith("docs/"):
         return "doc"
@@ -181,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
     # 1. parse CMake target sources
     target_map: dict[str, list[str]] = {}
     cmake_files = [root / "CMakeLists.txt"]
-    for sub in ("tests/unit/CMakeLists.txt", "lib/infrastructure/cli/CMakeLists.txt"):
+    for sub in ("eng/tests/unit/CMakeLists.txt", "lib/infrastructure/cli/CMakeLists.txt"):
         p = root / sub
         if p.is_file():
             cmake_files.append(p)

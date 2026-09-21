@@ -12,7 +12,7 @@
 // - 每个断言真正验证, 禁止 ASSERT_TRUE(true, "known issue") 软通过
 // - 测试失败时非零退出
 //
-// 编译 (从 tests/ 目录):
+// 编译 (从 eng/tests/ 目录):
 // g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
 // -I../include -I../src \
 // test_query_pixel.cpp \

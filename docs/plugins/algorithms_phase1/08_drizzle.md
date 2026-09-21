@@ -20,7 +20,7 @@
 - **输出**：
   - **HiPS 文件**：signal、pixel variance/ivar、support、coverage/validity、drizzle correlation/transfer 描述、PSF 模型、photometric response、point_information map、psfsw、depth、**帧级 SNR（信噪比）写入文件头**、**[稀疏帧内 SNR 层作为标准层]**、source catalog、manifest；
   - **结构化 JSON**：输出路径信息，符合 Phase2 输入格式。
-- 参考：`contracts/schemas/hips_product.schema.json`、`contracts/schemas/manifest.schema.json`。
+- 参考：`eng/contracts/schemas/hips_product.schema.json`、`eng/contracts/schemas/manifest.schema.json`。
 
 ## 4. 算法与公式要点
 

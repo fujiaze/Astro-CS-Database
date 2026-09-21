@@ -8,7 +8,7 @@
 
 上位锚：`FZ-PROV-MINIMAL-SET`、`FZ-PROV-SHARED-SYSTEMATIC`、`FZ-PROV-KCORR`、`FZ-DEGRADE-SCALAR`、`FZ-COND-FLUX-CONSERV`、`FZ-BUNIT-SEMANTICS`；
 宪章 §4.3:123-125；UNIFIED §9；DATA_SEMANTICS §30.3/§30.4；ADJ-GEN-03；DESIGN-P3 §5。
-机器：`contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json`（`provenance.v1`）；正例 `examples/provenance.example.json`。
+机器：`eng/contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json`（`provenance.v1`）；正例 `examples/provenance.example.json`。
 
 ## 1. 最小集（`FZ-PROV-MINIMAL-SET`，缺键即 REJECT）
 

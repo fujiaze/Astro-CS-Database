@@ -127,7 +127,7 @@ EXCLUDE_DIR_PARTS = ("CMakeFiles", "Testing", "testdata", ".dSYM")
 DOC_WHITELIST = (("README.md", "README.txt"),)
 MANIFEST_NAMES = ("BUILD_PROVENANCE.json", "SOURCE_MANIFEST.json", "SHA256SUMS")
 
-CONTRACT_REL = "packaging/install-tree.contract.json"
+CONTRACT_REL = "eng/packaging/install-tree.contract.json"
 PRESETS_REL = "CMakePresets.json"
 
 
@@ -508,7 +508,7 @@ def sha256_sums(candidate: Path) -> tuple[Path, int]:
 def expected_windows_artifacts(contract_path: Path | None = None) -> list[str]:
     """从 install-tree contract 推导 Windows 形态期望产物（ARC-001 dll_units）。
 
-    映射规则（单一事实源 = packaging/install-tree.contract.json，不硬编码清单）：
+    映射规则（单一事实源 = eng/packaging/install-tree.contract.json，不硬编码清单）：
       kind=exe  → astrocs.exe（Windows CLI 入口，astrocs 目标 OUTPUT_NAME）；
       *.so      → 同目录同名 *.dll（无 lib 前缀：MSVC/CMake 对 Windows DLL
                   不加前缀，见 install_layout.cmake「Windows 正式形态」注释——

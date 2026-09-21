@@ -31,7 +31,7 @@ lib/algorithms/platesolve/（生产实现所在），本目录三件套 README.m
 memory.md 为该模块合同冻结唯一落位；lib/algorithms/platesolve/wrapper_phase1/ 为第二 legacy 路径
 （旧符号 astrocs::phase1::WcsTan，CMakeLists.txt:426-428 静态库
 astrocs_phase1_wcs，未接 orchestrator 管线，仅单测
-tests/unit/p1_wcs_phot_test），其合同并入本 README §9，不另立目录。
+eng/tests/unit/p1_wcs_phot_test），其合同并入本 README §9，不另立目录。
 
 ## 2. 负责范围 / 不负责
 
@@ -137,7 +137,7 @@ inlier 查询（ipv_get_last_inlier_count/ipv_get_last_inliers）。
   sky2pix :34-52（det<1e-30 → CRPIX :48-51，DISP-WCS-001 同族实例）。
 - 构建：根 CMakeLists.txt:426-428 `add_library(astrocs_phase1_wcs STATIC
   lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp)`，:513 链接入 tests。
-- 消费方：仅 tests/unit/p1_wcs_phot_test.cpp（roundtrip <1e-6 deg :50，
+- 消费方：仅 eng/tests/unit/p1_wcs_phot_test.cpp（roundtrip <1e-6 deg :50，
   TEST-WCS-DESIGN-001 F6 冻结回归锚）。
 - 去留：P1-WCS-IMPL 登记迁移决策（并入 astrocs_p1_wcs.dll 或显式退役）；
   本合同冻结其行为语义，不冻结其存续。

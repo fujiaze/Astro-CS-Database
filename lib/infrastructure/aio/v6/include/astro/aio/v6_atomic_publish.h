@@ -10,7 +10,7 @@
  *   失败或取消：删除 tmp，rename 不发生 -> 目标根无可见半成品。
  *
  * 状态码 0..15/70/71 数值与 lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h
- * aio_publish_status_v1、include/astrocs/io/aio_abi_v1.h 对齐（编译期 static_assert）。
+ * aio_publish_status_v1、lib/include/astrocs/io/aio_abi_v1.h 对齐（编译期 static_assert）。
  */
 #ifndef ASTROCS_V6_AIO_ATOMIC_PUBLISH_H
 #define ASTROCS_V6_AIO_ATOMIC_PUBLISH_H

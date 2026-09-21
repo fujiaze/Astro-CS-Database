@@ -15,7 +15,7 @@
 // -I../../healpix_db/healpix_drizzle \
 // -I../../healpix_db/healpix_stack \
 // -I../../calibration/include \
-// tests/test_drizzle_integration.cpp \
+// eng/tests/test_drizzle_integration.cpp \
 // src/hiss_codec.cpp src/hiss_common.cpp \
 // src/hiss_writer.cpp src/hiss_reader.cpp \
 // src/hiss_stream_writer.cpp src/hiss_tile_model.cpp \
@@ -29,7 +29,7 @@
 // ../../../algorithms/drizzle/healpix_drizzle/spherical_overlap.cpp \
 // ../../healpix_db/healpix_stack/healpix_core.cpp \
 // -llz4 -lzstd -lm \
-// -o tests/test_drizzle_integration.exe
+// -o eng/tests/test_drizzle_integration.exe
 //
 // 运行:
 // ./tests/test_drizzle_integration.exe [fits_path]

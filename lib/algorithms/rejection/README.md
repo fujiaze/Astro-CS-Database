@@ -96,9 +96,9 @@ docs/modules/registry/astrocs.phase2.reject.md §独立 synthetic
 （引用不冒认）：lib/algorithms/coverage/tests/synthetic_gate.cpp Phase2Rejection
 组 :2639-2725 + G6 组 :2779-2863 + V15-V17 组 :4138-4864
 （V16GatherStridedFp32Fp64 :4592、V17InvalidMethodStatus :4763、
-V17LargeScale* :4798-4864）；tests/backend/
+V17LargeScale* :4798-4864）；eng/tests/backend/
 test_p2004_reject_integrate.py（P2-004 生产 Oracle）与
-tests/unit/p2_rejection_test.cpp（P2-005）。
+eng/tests/unit/p2_rejection_test.cpp（P2-005）。
 
 ## 链接
 

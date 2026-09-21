@@ -3,10 +3,10 @@
 // 职责: AMD64 AVX-512 provider (本 TU 单独以 -mavx512f -mavx512cd
 // -mavx512bw -mavx512dq -mavx512vl 编译; Windows /arch:AVX512, 15 §6
 // 编译隔离)。
-//   - 唯一导出 astrocs_provider_query_v1 (include/astrocs/abi/module_api_v1.h
+//   - 唯一导出 astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h
 //     冻结; ARC-001 §1.2: provider DLL 不得导出其他符号);
 //   - 只迁移实测可能获益的热点 kernel (ISA-004 台账;
-//     artifacts/prerelease_v5/ISA-004/MEASUREMENTS.csv):
+//     artifacts/evidence/prerelease-v5/ISA-004/MEASUREMENTS.csv):
 //       hips-bulk-transform (ALG-P3-002)  avx512 +29.5% vs baseline (≈avx2
 //       +28.3% 同档; EVEX 512-bit 向量化获益)  SHIP
 //     其余 kernel 不注册 → run_kernel 返回 ACS_ERR_UNSUPPORTED, host 按
@@ -62,7 +62,7 @@
 /* ───────────────────────── 能力门 (query 期) ─────────────────────────
  * 加载判定只使用 os_safe 平面 (15 §2): required = AVX-512 五子集 ⊆ os_safe。
  * 生产链接真实 capability_detect.c; 缺子集/OS 不保存 ZMM 负测由测试 stub
- * 注入 (tests/cpu/avx512/provider_avx512_capability_gate_test.c 链接期替换
+ * 注入 (eng/tests/cpu/avx512/provider_avx512_capability_gate_test.c 链接期替换
  * acs_cap_detect_v1 / acs_cap_os_safe_satisfies_v1)。本函数为 extern "C"
  * 顶层符号 (host/测试可直接判定; 不属 provider 导出白名单)。
  *
@@ -76,7 +76,7 @@
  * (GCC/Clang 支持函数级 target 覆盖 TU 级 -mavx512*; MSVC 侧由
  * 09_WINDOWS_TOOLCHAIN 另行处理 —— Linux 控制节点验收以本 attribute 为准;
  * 该 attribute 同时把本函数的 memset/copy 内联压回非 EVEX 指令。)
- * 归属与证据: tests/cpu/avx512/check_avx512_illegal_instr.py 反汇编断言
+ * 归属与证据: eng/tests/cpu/avx512/check_avx512_illegal_instr.py 反汇编断言
  * cap_gate/query/.init 函数体零 %zmm。 */
 #if defined(__GNUC__) || defined(__clang__)
 #define ACS_CPU_AVX512_CAP_GATE_NOEVEX \
@@ -95,7 +95,7 @@ int acs_cpu_avx512_cap_gate(acs_cap_result_v1* out) {
      * options，inline 进本函数报 "target specific option mismatch"。
      * __builtin_memset 是编译器内建、不经 fortify 宏重载，遵守当前函数
      * target 展开(通用 SSE2 mov / rep stosb)，EVEX 门禁语义不变
-     * (tests/cpu/avx512/check_avx512_illegal_instr.py: cap_gate 零 %zmm)。 */
+     * (eng/tests/cpu/avx512/check_avx512_illegal_instr.py: cap_gate 零 %zmm)。 */
     __builtin_memset(&c, 0, sizeof(c));
     c.struct_size = (uint32_t)sizeof(acs_cap_result_v1);
     c.abi_version = ACS_CAP_ABI_VERSION_V1;

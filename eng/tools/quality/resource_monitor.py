@@ -48,7 +48,7 @@ CLK_TCK = float(os.sysconf("SC_CLK_TCK"))
 PAGE_SIZE = int(os.sysconf("SC_PAGE_SIZE"))
 
 # 默认阈值(可被 CLI 覆盖)。注意: 这些是**外挂裁决建议**阈值, 不是程序内置门。
-# 数值不在本文件发明：唯一数值源 = contracts/resource_gate_v1.json（G-RES-01）；
+# 数值不在本文件发明：唯一数值源 = eng/contracts/resource_gate_v1.json（G-RES-01）；
 # 判据语义权威 = docs/plugins/infrastructure/21_observability.md §8。
 _RESOURCE_GATE_CONTRACT_PATH = (
     Path(__file__).resolve().parents[3] / "contracts" / "resource_gate_v1.json")

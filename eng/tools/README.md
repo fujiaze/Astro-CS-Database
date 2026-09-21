@@ -98,7 +98,7 @@ JSON 数组，每个元素为一个 step：
 | 旧路径 | 世代 | 能力去向 / 退役依据 |
 |---|---|---|
 | `scripts/package_audit.py` | REL-003 审核包线 | 白名单打包器（源码快照 + L0-L2 文档 + 证据 + SHA 清单 tar.gz）。其 WHITELIST 指向 `docs/refactor`、`evidence/refactor`、`lib/phase1`、`lib/core`、`lib/io`、`cli` 等**本世代已不存在的路径**，已无打包对象；同职能工具 `eng/tools/pack_audit_package.py` / `eng/tools/assemble_audit.py` / `eng/tools/make_capsule.py` 已按 RETIRE-001 退役（`assemble_audit.py` 打印 `ASSEMBLE_AUDIT_RETIRED` 并 exit 2）。 |
-| `scripts/validate_audit.py` | REL-003 审核包线 | 审核包校验器（解包重验 SHA + 禁止项）。与上面的打包器成对，无包可验；能力由 `packaging/verify_install_tree.py`（安装树校验，在役）承接安装面校验。 |
+| `scripts/validate_audit.py` | REL-003 审核包线 | 审核包校验器（解包重验 SHA + 禁止项）。与上面的打包器成对，无包可验；能力由 `eng/packaging/verify_install_tree.py`（安装树校验，在役）承接安装面校验。 |
 
 两者在 `eng/ci/checks.json` 的注册 step 面引用数为 0（V21-N-07 复核），不参与任何构建/测试/CI 门。
 ROOT-008 任务卡判定为「与已退役的审核包线重复 ⇒ 退役（删除）」。

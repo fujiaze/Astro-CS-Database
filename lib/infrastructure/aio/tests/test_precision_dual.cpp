@@ -12,14 +12,14 @@
 // 编译 (从 lib/infrastructure/aio/ 目录):
 // g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
 // -Iinclude -Isrc \
-// tests/test_precision_dual.cpp \
+// eng/tests/test_precision_dual.cpp \
 // src/hiss_codec.cpp src/hiss_common.cpp \
 // src/hiss_tile_model.cpp src/hiss_transform.cpp \
 // src/hiss_writer.cpp src/hiss_stream_writer.cpp \
 // src/hiss_reader.cpp \
 // src/healpix/aio_healpix_io.cpp \
 // src/aio_api.cpp src/aio_log.cpp \
-// -lzstd -lm -o tests/test_precision_dual.exe
+// -lzstd -lm -o eng/tests/test_precision_dual.exe
 //
 // 运行:
 // ./tests/test_precision_dual.exe

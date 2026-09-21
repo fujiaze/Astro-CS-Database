@@ -254,7 +254,7 @@ inline bool ResourceRecorder::write_all(const std::string& out_dir, double wall_
     }
     // resource_timeseries.csv
     // GATE-FIX-RES(R-4 D-15): 命名统一为下划线 resource_timeseries.csv（与
-    // eng/ci/root_manifest.json、tests/cli/cli_test_hygiene.py 的既有机器判据一致；
+    // eng/ci/root_manifest.json、eng/tests/cli/cli_test_hygiene.py 的既有机器判据一致；
     // eng/ci/** 侧的同步登记在 CI-003）。
     {
         std::FILE* f = std::fopen((out_dir + "/resource_timeseries.csv").c_str(), "w");

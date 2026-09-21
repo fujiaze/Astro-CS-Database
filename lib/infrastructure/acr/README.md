@@ -23,9 +23,9 @@ AstroCS_ENGINEERING_CONSTRAINTS.md §C.1/C.2：ACR 是正式发布后的 CPU/GPU
    preset 冻结 `ASTROCS_ENABLE_ACR=OFF`；`eng/cmake/toolchain/verify_toolchain.py`
    对 formal path 强制 OFF（ON → FAIL）。
 4. **install/product manifest 零 ACR**：唯一 install 源
-   `eng/cmake/install_layout.cmake` 与 `packaging/*.json` 均无 ACR/CUDA 条目
+   `eng/cmake/install_layout.cmake` 与 `eng/packaging/*.json` 均无 ACR/CUDA 条目
    （机器校验见 `lib/infrastructure/acr/ci/check_acr_dormant.py`）。
-5. **生产二进制不加载**：`include/astrocs/core/runtime.h` 声明"ACR 不注册不链接"，
+5. **生产二进制不加载**：`lib/include/astrocs/core/runtime.h` 声明"ACR 不注册不链接"，
    `lib/infrastructure/scheduler/src/module.cpp` 拒绝 `astrocs.acr.*` 模块注册；ACR 实验入口
    （eng/tools/qualification/scheduler）仅供独立实验构建。
 
@@ -45,7 +45,7 @@ python3 lib/infrastructure/acr/ci/check_acr_dormant.py --repo . --selftest # 负
 ```
 lib/infrastructure/acr/
 ├── CMakeLists.txt          # 独立 CMake（CPU-only 默认，CUDA backend 可选）
-├── include/astro/compute/  # 公共 API 头
+├── lib/include/astro/compute/  # 公共 API 头
 ├── api/                    # parallel_for/tiles/reduce/batch 实现
 ├── core/                   # runtime lazy singleton、error、status
 ├── buffers/                # BufferView/Buffer/DeviceBuffer
@@ -56,7 +56,7 @@ lib/infrastructure/acr/
 ├── scheduler/              # 工作保持调度器
 ├── utilization/            # 95% 软占用控制
 ├── diagnostics/            # 日志 + 设备报告
-├── tests/{unit,classic,fault}/
+├── eng/tests/{unit,classic,fault}/
 ├── eng/tools/{acr_benchmark,acr_status,acr_report,acr_invalidate}/
 ├── docs/                   # ADR + 审计报告 + 禁止路径 + dependency-lock
 ├── schemas/                # route_profile schema

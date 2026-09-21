@@ -663,8 +663,8 @@ def cmd_plan(args) -> int:
             "masters": {k: v for k, v in masters_union.items()},
             "filters": filters,
             "exposures_s": exposures,
-            "gaia_data_dir": "GaiaDR3/",
-            "gaia_sp_dir": "GaiaDR3SP/",
+            "gaia_data_dir": "gaia/GaiaDR3/",
+            "gaia_sp_dir": "gaia/GaiaDR3SP/",
             "gaia_db_type": {k: v["db_type"] for k, v in gaia_registry.items()},
             "dark_optimization": True,
             "dark_strategy": {

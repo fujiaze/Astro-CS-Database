@@ -38,7 +38,7 @@
 ## 5 静态 checker 合同(验收)
 
 `eng/tools/arch/check_thread_budget.py`(BENCH-003 前落地,ARCH-004 先立合同):
-1. 扫描 lib/ 生产源: `std::thread`/`std::async`/`_beginthread`/`CreateThread` 出现处必须在 `THREAD_BUDGET_EXEMPT` 登记表(当前: orchestrator watchdog/resource_monitor/logger;tests/ 全豁免);
+1. 扫描 lib/ 生产源: `std::thread`/`std::async`/`_beginthread`/`CreateThread` 出现处必须在 `THREAD_BUDGET_EXEMPT` 登记表(当前: orchestrator watchdog/resource_monitor/logger;eng/tests/ 全豁免);
 2. `omp_set_num_threads(`/`num_threads(` 字面量=0 容忍;
 3. 未登记即 FAIL(exit 1)——保证"未登记线程创建"机器可查。
 

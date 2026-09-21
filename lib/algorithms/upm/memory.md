@@ -104,10 +104,10 @@
     真实数据流=fit 产模型经 persist→apply reload，由 P2-XX-INT
     对齐）。
 - 验证锚（相邻证据，既有测试，引用不冒认，非 TEST-P2-UPM-001/002）:
-  tests/api/test_upm_recovery_oracle.py（4 test）、
-  tests/api/test_upm_parallel.py（3 test）、
-  tests/unit/p2_upm_synthetic_test.cpp（synthetic gate）、
-  tests/backend/test_p2002_parallel_upm.py。可执行
+  eng/tests/api/test_upm_recovery_oracle.py（4 test）、
+  eng/tests/api/test_upm_parallel.py（3 test）、
+  eng/tests/unit/p2_upm_synthetic_test.cpp（synthetic gate）、
+  eng/tests/backend/test_p2002_parallel_upm.py。可执行
   TEST-P2-UPM-001（fit）/TEST-P2-UPM-002（apply）均 MISSING
   （P2-UPM-TEST 建立）；登记面=DORMANT MISSING；设计冻结面=
   ALG-P2-UPM-IMPL-001 TEST-DESIGN 节（SA-B 写）。

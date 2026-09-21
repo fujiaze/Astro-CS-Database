@@ -41,7 +41,7 @@ import sys
 MATRIX_REL = "docs/traceability/TRACEABILITY_MATRIX.json"
 MATRIX_CSV_REL = "docs/traceability/TRACEABILITY_MATRIX.csv"
 LAYERS_REL = "docs/traceability/TRACEABILITY_LAYERS.csv"
-SCHEMA_REL = "contracts/schemas/traceability_matrix.schema.json"
+SCHEMA_REL = "eng/contracts/schemas/traceability_matrix.schema.json"
 CSV_COLS = ["module_id", "module_kind", "module_anchor",
             "science_id", "science_doc", "science_status",
             "algorithm_id", "algorithm_doc", "algorithm_status",
@@ -72,7 +72,7 @@ REQUIRED_KEYS += ["module_id", "module_kind", "module_anchor", "notes"]
 EXEMPT_KINDS = {"conformance", "service", "provider"}
 # 合法模块来源目录：矩阵模块清单须能在其中发现（防孤行/防遗漏）
 MODULE_ANCHOR_DIRS = [
-    "tests/conformance", "lib/infrastructure/aio/io", "lib/infrastructure/benchmark/cpu",
+    "eng/tests/conformance", "lib/infrastructure/aio/io", "lib/infrastructure/benchmark/cpu",
     "docs/modules/registry",  # registry production 模块（module_adapters.cpp 唯一源）
 ]
 AUTHORITY_DIRS = {  # 各合同层 authority 文档搜索目录（id 需在其中一个文件文本中出现）
@@ -80,10 +80,10 @@ AUTHORITY_DIRS = {  # 各合同层 authority 文档搜索目录（id 需在其�
     "ALG": ["docs/algorithms", "docs/science"],
     "DATA": ["docs/contracts", "docs/interfaces/data", "docs/api", "lib/core/src"],
     "API": ["docs/api", "docs/contracts", "docs/interfaces/io", "docs/architecture/cpu",
-            "docs/modules/registry", "lib/core/src", "tests/conformance",
+            "docs/modules/registry", "lib/core/src", "eng/tests/conformance",
             "lib/infrastructure/benchmark/cpu"],
     "ARCH": ["docs/architecture", "docs/architecture/cpu", "docs/contracts", "docs/api"],
-    "MOD": ["tests/conformance", "lib/infrastructure", "docs/modules/registry"],
+    "MOD": ["eng/tests/conformance", "lib/infrastructure", "docs/modules/registry"],
     "SRC": ["lib", "include", "tests"],
     "TEST": ["tests", "lib", "docs/interfaces", "docs/contracts", "docs/modules/registry"],
     "EVID": ["evidence", "reports", "returns"],
@@ -315,12 +315,12 @@ def main() -> int:
 
 # —— 复合 test_path / src_path 解析（W4-A3） -------------------------------------
 # 矩阵的锚列允许三种形态（全部在现行矩阵中出现，必须机器可解析）：
-#   ① 单文件          `tests/unit/x.cpp`
+#   ① 单文件          `eng/tests/unit/x.cpp`
 #   ② 文件::用例/符号  `docs/algorithms/X.md::TEST-X-DESIGN-001`
 #   ③ **复合**        `<目录> (ctest <目标>/<目标>); <文件>; <源文件说明> <文件>:<行> <符号>`
 #     例：`lib/algorithms/calibration/tests/p1cal (ctest p1cal_units/…);
-#          tests/backend/test_calibration_oracle.py;
-#          tests/unit/CMakeLists.txt:441 master_flat_median`
+#          eng/tests/backend/test_calibration_oracle.py;
+#          eng/tests/unit/CMakeLists.txt:441 master_flat_median`
 # 旧实现把 ③ **整串**当单一路径 ⇒ 恒报「路径不存在」（DANGLING_REF 4 条，
 # 且净计数与 BOM/ID 格式混在一起掩盖了它）。本解析器把 ③ 拆成逐项引用，
 # 并**区分**「路径不存在（PATH_NOT_FOUND）」与「用例/符号不存在（CASE_NOT_FOUND）」。
@@ -329,8 +329,8 @@ CTEST_GROUP_RE = re.compile(r"[(（]\s*ctest\s+([^)）]*)[)）]")
 CTEST_TARGET_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.\-*?\[\]]*")
 FILE_REF_RE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.\-/]*\.(?:cpp|cc|cxx|h|hpp|py|md|json|yaml|yml|csv|txt|sh|ps1|cmake|in)")
 PATH_WITH_LINE_RE = re.compile(r"^([A-Za-z0-9_][A-Za-z0-9_.\-/]*):(\d+)(?:\s+(.*))?$")
-PATH_PREFIXES = ("lib/", "tests/", "docs/", "contracts/", "include/", "eng/tools/", "eng/ci/",
-                 "eng/cmake/", "scripts/", "packaging/", "config/", "artifacts/", "工程控制/")
+PATH_PREFIXES = ("lib/", "eng/tests/", "docs/", "eng/contracts/", "lib/include/", "eng/tools/", "eng/ci/",
+                 "eng/cmake/", "scripts/", "eng/packaging/", "eng/packaging/config/", "artifacts/", "工程控制/")
 
 
 def _path_kind(root: str, rel: str) -> str:
@@ -580,7 +580,7 @@ def _check_module_coverage(root, rows, results):
                 if m:
                     known.add(m.group(1).strip())
     # 服务/conformance/provider 目录 → MOD- 行键
-    if os.path.isfile(os.path.join(root, "tests/conformance/noop/module.yaml")):
+    if os.path.isfile(os.path.join(root, "eng/tests/conformance/noop/module.yaml")):
         known.add("MOD-astrocs-conformance-noop")
     if os.path.isdir(os.path.join(root, "lib/infrastructure/aio/io")):
         known.add("MOD-astrocs-services-io")

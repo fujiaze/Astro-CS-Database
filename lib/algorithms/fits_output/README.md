@@ -9,11 +9,11 @@
 > `add_library(astrocs_phase3_session …)` 五源文件之一）+ 唯一权威
 > 签名头 `lib/algorithms/fits_output/p3_output.h`（**95 行**）；进程内编排消费方
 > `lib/phase3_session/p3_session.cpp`（**441 行**，run 段调
-> `p3_output_write_atomic_ex`）；执行测试 `tests/unit/p3_output_test.cpp`
-> （**153 行**，tests/unit/CMakeLists.txt 注册）。行数实测 2026-09-16
+> `p3_output_write_atomic_ex`）；执行测试 `eng/tests/unit/p3_output_test.cpp`
+> （**153 行**，eng/tests/unit/CMakeLists.txt 注册）。行数实测 2026-09-16
 > （`timeout 60 wc -l lib/algorithms/fits_output/p3_output.cpp
 > lib/algorithms/fits_output/p3_output.h lib/phase3_session/p3_session.cpp
-> tests/unit/p3_output_test.cpp`）；行号锚不冻结，按 `path::symbol` 定位。
+> eng/tests/unit/p3_output_test.cpp`）；行号锚不冻结，按 `path::symbol` 定位。
 
 ## 身份与合同
 
@@ -98,7 +98,7 @@
   协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏文件形态），实测
   make_temp_path 生成 `out_path.<pid>.tmp`（p3_output.cpp:81，无
   前置点、保留 .fits 扩展名）；同目录 rename 原子性语义不变，但
-  执行测试残留检查前缀（tests/unit/p3_output_test.cpp:102-103）
+  执行测试残留检查前缀（eng/tests/unit/p3_output_test.cpp:102-103）
   与实际命名恒不匹配 → 残留检查弱匹配空转。登记不改码，命名统一
   归 P3-FITS-IMPL。
 - 整改项（非缺陷，登记；2026-09-16 复测并更正锚点）：**会话路径**

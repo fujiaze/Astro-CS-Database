@@ -66,5 +66,5 @@
 设计内容与容差来源=
 ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md §8/§9）。现状相邻证据：
 phase2_synthetic_gate ACR mosaic_reject_legacy↔CPU 等价
-（synthetic_gate.cpp:3021-3160）、tests/api/test_reject_integration_oracle.py
+（synthetic_gate.cpp:3021-3160）、eng/tests/api/test_reject_integration_oracle.py
 （引用不冒认）。

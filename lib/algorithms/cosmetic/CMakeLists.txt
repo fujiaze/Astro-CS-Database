@@ -29,7 +29,7 @@
 # OMP 教训 (P1-CAL-INT 58d20223): 本 DLL 自链 OpenMP (libgomp); 消费方
 # 测试 TU 无 OMP 符号引用时 --as-needed 会把测试可执行的 libgomp 从
 # DT_NEEDED 丢弃, DLL 内 GOMP 并行区退化为 dlopen 晚装载 → SEGV。
-# 处置在测试注册段: tests/unit/cosmetic_adapter_test.cpp TU 链
+# 处置在测试注册段: eng/tests/unit/cosmetic_adapter_test.cpp TU 链
 # astrocs_calibration (天然 OMP 符号引用) 且显式
 # target_link_options(LINKER:--no-as-needed) 双保险。
 #
@@ -70,7 +70,7 @@ endif()
 
 # ── include 路径 (生产源口径 = 根 astrocs_calibration :338 同集) ──
 target_include_directories(astrocs_p1_cosmetic PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/lib/include
     ${CMAKE_SOURCE_DIR}/lib/algorithms/calibration/include
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include

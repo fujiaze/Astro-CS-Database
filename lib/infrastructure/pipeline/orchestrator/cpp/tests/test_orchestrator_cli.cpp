@@ -10,8 +10,8 @@
 // Part 7: SHA-256 与配置哈希测试
 //
 // 编译:
-// g++ -O2 -std=c++17 -Wall -fopenmp -o tests/test_orchestrator_cli.exe
-// tests/test_orchestrator_cli.cpp src/orchestrator.cpp src/dll_loader.cpp
+// g++ -O2 -std=c++17 -Wall -fopenmp -o eng/tests/test_orchestrator_cli.exe
+// eng/tests/test_orchestrator_cli.cpp src/orchestrator.cpp src/dll_loader.cpp
 // src/checkpoint.cpp src/logger.cpp src/cli_command.cpp src/json_config.cpp
 // -Iinclude -static -lm
 //

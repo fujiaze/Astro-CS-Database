@@ -6,7 +6,7 @@
 
 上位锚：`FZ-FIELD-PSFSW-4COMP`、`FZ-FIELD-PSFSW-UNIT`、`FZ-FORMULA-PSFSW-COMPOSITE`、`FZ-GATE-PSFSW-FAILCLOSED`、`FZ-GATE-PSFSW-COV`、`FZ-GATE-PSFSW-EPSF`；
 PSF_SIGNAL_WEIGHT §3/§5/§6/§8；PSFW_FREEZE §4.2/§4.3/§5.1/§9；ADJ-P2-03；`RULINGS.md` #3/#4/#5。
-机器：`contracts/proposals/v6/data/astrocs.v6.psfsw.v1.schema.json`（`psfsw.v1`）；正例 `examples/psfsw.example.json`。
+机器：`eng/contracts/proposals/v6/data/astrocs.v6.psfsw.v1.schema.json`（`psfsw.v1`）；正例 `examples/psfsw.example.json`。
 
 > 定位：psfsw_robust 是**正式可选 conventional integration 权重**，与 Q/W、surface GLS 并列，**不是 QA-only**；
 > 但它无量纲、组内相对，**不得**写成 ivar/Fisher information/W_info。

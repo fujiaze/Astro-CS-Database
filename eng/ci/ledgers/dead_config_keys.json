@@ -6,11 +6,11 @@
     {
       "id": "dead_config_key:wcs.center_deg",
       "kind": "dead_key",
-      "reason": "config/templates/export.phase_config.json#config.wcs.center_deg 在生产源码零命中。生产 CLI 实际读的是平铺顶层 center（对象字段 ra_deg/dec_deg）（lib/infrastructure/cli/parser.cpp#session_keys() 白名单 \"center\"；lib/infrastructure/scheduler/src/module_adapters.cpp:6957-6967/7767-7768 读 doc[\"center\"][\"ra_deg\"/\"dec_deg\"]）。模板键名与生产读取面不一致 ⇒ 用户按模板填 center_deg 会被静默忽略。**FIX-203 实测（2026-09-20，GAP_AUDIT N03）**：CLI 键面 = center.{ra_deg,dec_deg}（平铺顶层）+ scale_deg_per_px，二者均已在白名单；本键**不得**用「CLI 补一个 center_deg 同义键」方式解除（违反 FIX-203 禁止项「不得新造同义键」）⇒ 解除路径 = FIX-207 把 config/templates/** 与 phase_config_export.schema.json 的键名改为 CLI 实际认的键。",
+      "reason": "eng/packaging/config/templates/export.phase_config.json#config.wcs.center_deg 在生产源码零命中。生产 CLI 实际读的是平铺顶层 center（对象字段 ra_deg/dec_deg）（lib/infrastructure/cli/parser.cpp#session_keys() 白名单 \"center\"；lib/infrastructure/scheduler/src/module_adapters.cpp:6957-6967/7767-7768 读 doc[\"center\"][\"ra_deg\"/\"dec_deg\"]）。模板键名与生产读取面不一致 ⇒ 用户按模板填 center_deg 会被静默忽略。**FIX-203 实测（2026-09-20，GAP_AUDIT N03）**：CLI 键面 = center.{ra_deg,dec_deg}（平铺顶层）+ scale_deg_per_px，二者均已在白名单；本键**不得**用「CLI 补一个 center_deg 同义键」方式解除（违反 FIX-203 禁止项「不得新造同义键」）⇒ 解除路径 = FIX-207 把 eng/packaging/config/templates/** 与 phase_config_export.schema.json 的键名改为 CLI 实际认的键。",
       "owner": "RELEASE-02 fix-gates（前台裁决：修模板键名为 center.ra_deg/dec_deg 或补消费）；FIX-203 复核 CLI 键面（不改模板，模板归 FIX-207）",
-      "exit_condition": "FIX-207 修正 config/templates/export.phase_config.json 与 phase_config_export.schema.json 的键名（center.{ra_deg,dec_deg} / scale_deg_per_px），使生产源码可读；或生产代码显式消费 center_deg。禁止以新增 CLI 同义键解除。",
+      "exit_condition": "FIX-207 修正 eng/packaging/config/templates/export.phase_config.json 与 phase_config_export.schema.json 的键名（center.{ra_deg,dec_deg} / scale_deg_per_px），使生产源码可读；或生产代码显式消费 center_deg。禁止以新增 CLI 同义键解除。",
       "consumed_as": "center.ra_deg + center.dec_deg（平铺顶层；CLI 实际键名）",
-      "template": "config/templates/export.phase_config.json",
+      "template": "eng/packaging/config/templates/export.phase_config.json",
       "evidence": [
         "lib/infrastructure/cli/parser.cpp#session_keys()（白名单 \"center\"）",
         "lib/infrastructure/cli/session_commands.h#config_fields(kExport)（{\"center\", \"{\\\"ra_deg\\\": 0.0, \\\"dec_deg\\\": 0.0}\"}）",
@@ -20,11 +20,11 @@
     {
       "id": "dead_config_key:wcs.s_out_deg",
       "kind": "dead_key",
-      "reason": "config/templates/export.phase_config.json#config.wcs.s_out_deg 在生产源码零命中。生产实际读平铺顶层 scale_deg_per_px（lib/infrastructure/cli/parser.cpp#session_keys() 白名单 \"scale_deg_per_px\"；module_adapters.cpp:8888 g->scale = doc.value(\"scale_deg_per_px\", 0.0)）。模板键名与生产读取面不一致 ⇒ 静默 no-op。**FIX-203 实测（2026-09-20，GAP_AUDIT N03）**：解除路径 = FIX-207 修模板/schema 键名；禁止新增 CLI 同义键。",
+      "reason": "eng/packaging/config/templates/export.phase_config.json#config.wcs.s_out_deg 在生产源码零命中。生产实际读平铺顶层 scale_deg_per_px（lib/infrastructure/cli/parser.cpp#session_keys() 白名单 \"scale_deg_per_px\"；module_adapters.cpp:8888 g->scale = doc.value(\"scale_deg_per_px\", 0.0)）。模板键名与生产读取面不一致 ⇒ 静默 no-op。**FIX-203 实测（2026-09-20，GAP_AUDIT N03）**：解除路径 = FIX-207 修模板/schema 键名；禁止新增 CLI 同义键。",
       "owner": "RELEASE-02 fix-gates（前台裁决：修模板键名为 scale_deg_per_px 或补消费）；FIX-203 复核 CLI 键面（不改模板，模板归 FIX-207）",
       "exit_condition": "FIX-207 修正模板/schema 键名为 scale_deg_per_px，或生产代码显式消费 s_out_deg。禁止以新增 CLI 同义键解除。",
       "consumed_as": "scale_deg_per_px（平铺顶层；CLI 实际键名）",
-      "template": "config/templates/export.phase_config.json",
+      "template": "eng/packaging/config/templates/export.phase_config.json",
       "evidence": [
         "lib/infrastructure/cli/parser.cpp#session_keys()（白名单 \"scale_deg_per_px\"）",
         "lib/infrastructure/scheduler/src/module_adapters.cpp:8888"
@@ -33,14 +33,14 @@
     {
       "id": "dead_config_key:snr_path",
       "kind": "dead_key",
-      "reason": "键由合同登记：contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path（enum dense/sparse_reconstruct/frame_reconstruct，默认 sparse_reconstruct）+ config/defaults.json#snr.path（owner_adjudicated，enum_token/enum_target）+ config/templates/mosaic.phase_config.json#config.snr_path。**FIX-203 后状态（2026-09-20）**：CLI 可达性已闭合——snr_path 已进 lib/infrastructure/cli/parser.cpp#session_keys() 白名单（:305）与 session_commands.h#config_fields(kMosaic)（:195，--help/--template 同源），配置不再被判 unknown key 退出 3。但**生产科学消费点仍为零**（Phase2 叠加现场按 snr_path 消费/重建 SNR = 变更 claim FIX-SCI-SNR-CANON-001 §4.2 跟随项；lib/** 内带引号 \"snr_path\" token 只出现在 CLI 键表声明处，hp_drizzle_api 的同名形参不是配置读取面）⇒ 本条**保留**，防止把「CLI 认识」误当成「已消费」。",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path（enum dense/sparse_reconstruct/frame_reconstruct，默认 sparse_reconstruct）+ eng/packaging/config/defaults.json#snr.path（owner_adjudicated，enum_token/enum_target）+ eng/packaging/config/templates/mosaic.phase_config.json#config.snr_path。**FIX-203 后状态（2026-09-20）**：CLI 可达性已闭合——snr_path 已进 lib/infrastructure/cli/parser.cpp#session_keys() 白名单（:305）与 session_commands.h#config_fields(kMosaic)（:195，--help/--template 同源），配置不再被判 unknown key 退出 3。但**生产科学消费点仍为零**（Phase2 叠加现场按 snr_path 消费/重建 SNR = 变更 claim FIX-SCI-SNR-CANON-001 §4.2 跟随项；lib/** 内带引号 \"snr_path\" token 只出现在 CLI 键表声明处，hp_drizzle_api 的同名形参不是配置读取面）⇒ 本条**保留**，防止把「CLI 认识」误当成「已消费」。",
       "owner": "负责人裁决 2026-09-19（GAP_AUDIT §9.45/§9.46）+ 分片 SNR-CONFIG-LAND（FIX-SCI-SNR-CANON-001 §4.1 落地）；CLI 键面落地 = FIX-203（RELEASE-03）",
       "exit_condition": "Phase2 叠加现场按 snr_path 消费/重建 SNR（含无稀疏层时显式记录 snr_path_effective、损坏层 fail-closed）出现生产读取点后删除本条（CLI 可达性部分已由 FIX-203 完成）。",
       "consumed_as": "（无：生产零读取；CLI 只识别并透传，见 FIX-203）",
-      "template": "config/templates/mosaic.phase_config.json",
+      "template": "eng/packaging/config/templates/mosaic.phase_config.json",
       "evidence": [
-        "contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path",
-        "config/defaults.json#fields[].key=snr.path",
+        "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path",
+        "eng/packaging/config/defaults.json#fields[].key=snr.path",
         "lib/infrastructure/cli/session_commands.h:195",
         "lib/infrastructure/cli/parser.cpp:305",
         "工程控制/RELEASE-02/change-claims/FIX-SCI-SNR-CANON-001.md §4.2"
@@ -49,14 +49,14 @@
     {
       "id": "dead_config_key:rotation_deg",
       "kind": "dead_key",
-      "reason": "键由合同登记：contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/rotation_deg（number；description「旋转角（若用 CD）；默认 0」）+ config/config_registry.json#export.config.wcs.rotation_deg + docs/contracts/CONFIG_CONTRACT.md §3（export 配置键 wcs.{rotation_deg,crpix_px}）+ docs/plugins/algorithms_phase3/14_projection.md:38（rotation 默认 0）。**FIX-203 后状态（2026-09-20，GAP_AUDIT N03）**：已按「键名以命令行实际认的键为准」（ASTROCS_DESIGN §3.3）提升为 CLI export 平铺顶层键 rotation_deg（session_commands.h#config_fields(kExport) :234 + parser.cpp#session_keys() :314），--help/--template 可见、配置可达。但**生产科学消费点为零**：p3 投影/重采样链（p3_session.cpp parse_request、module_adapters P3 节点）不读 rotation_deg，lib/** 内带引号 \"rotation_deg\" token 只出现在 CLI 键表声明处（aio_wcs_rotation_deg 是另一函数名，不是配置读取面）⇒ 本键当前为 no-op，登记在此，不得静默。",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/rotation_deg（number；description「旋转角（若用 CD）；默认 0」）+ eng/packaging/config/config_registry.json#export.config.wcs.rotation_deg + docs/contracts/CONFIG_CONTRACT.md §3（export 配置键 wcs.{rotation_deg,crpix_px}）+ docs/plugins/algorithms_phase3/14_projection.md:38（rotation 默认 0）。**FIX-203 后状态（2026-09-20，GAP_AUDIT N03）**：已按「键名以命令行实际认的键为准」（ASTROCS_DESIGN §3.3）提升为 CLI export 平铺顶层键 rotation_deg（session_commands.h#config_fields(kExport) :234 + parser.cpp#session_keys() :314），--help/--template 可见、配置可达。但**生产科学消费点为零**：p3 投影/重采样链（p3_session.cpp parse_request、module_adapters P3 节点）不读 rotation_deg，lib/** 内带引号 \"rotation_deg\" token 只出现在 CLI 键表声明处（aio_wcs_rotation_deg 是另一函数名，不是配置读取面）⇒ 本键当前为 no-op，登记在此，不得静默。",
       "owner": "FIX-203（RELEASE-03）提升键落地；科学消费 = p3 投影/重采样面跟随项（与 FIX-205 投影面、FIX-207 契约面重整协同）",
       "exit_condition": "export 投影计划/输出 WCS 生成按 rotation_deg 计算 CD/PC 旋转（FITS 1-based CRPIX 与 CD 矩阵口径按 14_projection.md:35,38）出现生产读取点后删除本条。",
-      "template": "（不在 config/templates/*.json 键面；CLI --template 已列出，见 FIX-203）",
+      "template": "（不在 eng/packaging/config/templates/*.json 键面；CLI --template 已列出，见 FIX-203）",
       "consumed_as": "（无：生产零读取）",
       "evidence": [
-        "contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/rotation_deg",
-        "config/config_registry.json#export.config.wcs.rotation_deg",
+        "eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/rotation_deg",
+        "eng/packaging/config/config_registry.json#export.config.wcs.rotation_deg",
         "lib/infrastructure/cli/session_commands.h:234",
         "lib/infrastructure/cli/parser.cpp:314"
       ]
@@ -64,14 +64,14 @@
     {
       "id": "dead_config_key:crpix_px",
       "kind": "dead_key",
-      "reason": "键由合同登记：contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/crpix_px（number[2]，FITS 1-based，description「参考像素（FITS 1-based）；缺省=中心」）+ config/config_registry.json#export.config.wcs.crpix_px + docs/contracts/CONFIG_CONTRACT.md §3。**FIX-203 后状态（2026-09-20，GAP_AUDIT N03）**：已提升为 CLI export 平铺顶层键 crpix_px（session_commands.h#config_fields(kExport) :237 + parser.cpp#session_keys() :314），--help/--template 可见、配置可达。但**生产科学消费点为零**：p3 投影链不读 crpix_px（参考像素当前恒取输出几何中心），lib/** 内带引号 \"crpix_px\" token 只出现在 CLI 键表声明处 ⇒ 本键当前为 no-op，登记在此，不得静默。",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/crpix_px（number[2]，FITS 1-based，description「参考像素（FITS 1-based）；缺省=中心」）+ eng/packaging/config/config_registry.json#export.config.wcs.crpix_px + docs/contracts/CONFIG_CONTRACT.md §3。**FIX-203 后状态（2026-09-20，GAP_AUDIT N03）**：已提升为 CLI export 平铺顶层键 crpix_px（session_commands.h#config_fields(kExport) :237 + parser.cpp#session_keys() :314），--help/--template 可见、配置可达。但**生产科学消费点为零**：p3 投影链不读 crpix_px（参考像素当前恒取输出几何中心），lib/** 内带引号 \"crpix_px\" token 只出现在 CLI 键表声明处 ⇒ 本键当前为 no-op，登记在此，不得静默。",
       "owner": "FIX-203（RELEASE-03）提升键落地；科学消费 = p3 投影/重采样面跟随项（与 FIX-205 投影面、FIX-207 契约面重整协同）",
       "exit_condition": "export 输出 WCS 按 crpix_px 写 CRPIX1/2（FITS 1-based；缺省=中心）出现生产读取点后删除本条。",
-      "template": "（不在 config/templates/*.json 键面；CLI --template 已列出，见 FIX-203）",
+      "template": "（不在 eng/packaging/config/templates/*.json 键面；CLI --template 已列出，见 FIX-203）",
       "consumed_as": "（无：生产零读取）",
       "evidence": [
-        "contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/crpix_px",
-        "config/config_registry.json#export.config.wcs.crpix_px",
+        "eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/crpix_px",
+        "eng/packaging/config/config_registry.json#export.config.wcs.crpix_px",
         "lib/infrastructure/cli/session_commands.h:237",
         "lib/infrastructure/cli/parser.cpp:314"
       ]
@@ -79,14 +79,14 @@
     {
       "id": "dead_config_key:precision",
       "kind": "dead_key",
-      "reason": "合同键 precision（enum fp32/fp64）由 contracts/schemas/phase_config_mosaic.schema.json#/$defs/precision 与 phase_config_export.schema.json#/$defs/precision 声明，并出现在 config/templates/{mosaic,export}.phase_config.json#config.precision。**生产零读取（配置面）**：没有任何生产代码以配置读取面取 precision；lib/** 内带引号 \"precision\" token 只是别的写面/字段名（如 module_adapters.cpp:6037 manifest 写 {\"precision\", info.precision}），不是配置读取点。**FIX-203 裁决（2026-09-20；ASTROCS_DESIGN §3.3:256 + 前台裁决「precision 不新造键」+ CTR-01 §2.B/B5:174）**：计算精度键按阶段唯一化为——阶段一 = drizzle.precision_mode（0=FP32/1=FP64，必须显式，缺失即拒绝；消费点 module_adapters.cpp:4510-4528）；阶段二/三 = 位深键 bitpix（-32/-64；phase3 白名单已有并消费于 p3_session.cpp:126,391 与 module_adapters.cpp:8890）。**决定：mosaic/export 会话不新增 drizzle 对象键**——① 与 §3.3:256 冲突（该条把位深键指给阶段二/三）；② drizzle.precision_mode 是阶段一 drizzle 累加节点的键，加到阶段二/三会造出生产不消费的同义键（违反 FIX-203 禁止项）；③ export 的精度载体 bitpix 已在白名单且已消费（FIX-203 已把它补进 session_commands.h#config_fields(kExport) 的字段说明，--help 可见、不进模板）。故 precision 作为 CLI 键**拒绝**（unknown key ⇒ rc=3），本键登记为合同声明但 CLI/生产零读取，解除路径 = FIX-207 把模板/schema 的 precision 改为各阶段实际精度键（阶段一 drizzle.precision_mode / 阶段二·三 bitpix）。**残留缺口（FIX-203 实测登记，未在本任务解决）**：阶段二（mosaic）当前**没有任何被消费的精度键**——bitpix 只在 p3 节点被读（module_adapters.cpp:8890），Phase2 集成写盘位深是 v6 链内写死（integration/v6/src/phase2_integrate.cpp 以 bitpix -64 写产品元数据）；按 §3.3:256 阶段二也应用位深键 ⇒ 归 FIX-207 契约面重整 + Phase2 链跟随项，本任务不擅自提升一个无人消费的新键。",
+      "reason": "合同键 precision（enum fp32/fp64）由 eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/precision 与 phase_config_export.schema.json#/$defs/precision 声明，并出现在 eng/packaging/config/templates/{mosaic,export}.phase_config.json#config.precision。**生产零读取（配置面）**：没有任何生产代码以配置读取面取 precision；lib/** 内带引号 \"precision\" token 只是别的写面/字段名（如 module_adapters.cpp:6037 manifest 写 {\"precision\", info.precision}），不是配置读取点。**FIX-203 裁决（2026-09-20；ASTROCS_DESIGN §3.3:256 + 前台裁决「precision 不新造键」+ CTR-01 §2.B/B5:174）**：计算精度键按阶段唯一化为——阶段一 = drizzle.precision_mode（0=FP32/1=FP64，必须显式，缺失即拒绝；消费点 module_adapters.cpp:4510-4528）；阶段二/三 = 位深键 bitpix（-32/-64；phase3 白名单已有并消费于 p3_session.cpp:126,391 与 module_adapters.cpp:8890）。**决定：mosaic/export 会话不新增 drizzle 对象键**——① 与 §3.3:256 冲突（该条把位深键指给阶段二/三）；② drizzle.precision_mode 是阶段一 drizzle 累加节点的键，加到阶段二/三会造出生产不消费的同义键（违反 FIX-203 禁止项）；③ export 的精度载体 bitpix 已在白名单且已消费（FIX-203 已把它补进 session_commands.h#config_fields(kExport) 的字段说明，--help 可见、不进模板）。故 precision 作为 CLI 键**拒绝**（unknown key ⇒ rc=3），本键登记为合同声明但 CLI/生产零读取，解除路径 = FIX-207 把模板/schema 的 precision 改为各阶段实际精度键（阶段一 drizzle.precision_mode / 阶段二·三 bitpix）。**残留缺口（FIX-203 实测登记，未在本任务解决）**：阶段二（mosaic）当前**没有任何被消费的精度键**——bitpix 只在 p3 节点被读（module_adapters.cpp:8890），Phase2 集成写盘位深是 v6 链内写死（integration/v6/src/phase2_integrate.cpp 以 bitpix -64 写产品元数据）；按 §3.3:256 阶段二也应用位深键 ⇒ 归 FIX-207 契约面重整 + Phase2 链跟随项，本任务不擅自提升一个无人消费的新键。",
       "owner": "FIX-203（RELEASE-03）前台裁决（precision 复用既有名，不新造同义键）；契约面改写 = FIX-207",
-      "exit_condition": "FIX-207 将 config/templates/{mosaic,export}.phase_config.json 与两份 phase_config schema 的 precision 改为阶段实际精度键（阶段一 drizzle.precision_mode 0/1；阶段二/三 bitpix -32/-64）后删除本条。",
-      "template": "config/templates/mosaic.phase_config.json + config/templates/export.phase_config.json（#config.precision）",
+      "exit_condition": "FIX-207 将 eng/packaging/config/templates/{mosaic,export}.phase_config.json 与两份 phase_config schema 的 precision 改为阶段实际精度键（阶段一 drizzle.precision_mode 0/1；阶段二/三 bitpix -32/-64）后删除本条。",
+      "template": "eng/packaging/config/templates/mosaic.phase_config.json + eng/packaging/config/templates/export.phase_config.json（#config.precision）",
       "consumed_as": "阶段一 drizzle.precision_mode（0/1）；阶段二·三 bitpix（-32/-64）",
       "evidence": [
-        "contracts/schemas/phase_config_mosaic.schema.json#/$defs/precision",
-        "contracts/schemas/phase_config_export.schema.json#/$defs/precision",
+        "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/precision",
+        "eng/contracts/schemas/phase_config_export.schema.json#/$defs/precision",
         "lib/infrastructure/scheduler/src/module_adapters.cpp:4510",
         "lib/phase3_session/p3_session.cpp:126",
         "run/RELEASE-02/design-merge/CTR-01.md §2.B/B5（config.precision → 需登记或改 bitpix）"
@@ -95,13 +95,13 @@
     {
       "id": "dead_config_key:algorithm_upm_gauge",
       "kind": "dead_key",
-      "reason": "键由合同登记：contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/algorithm_upm_gauge（enum reference_frame/sum，默认 reference_frame）+ config/templates/mosaic.phase_config.json#config.algorithm_upm_gauge，且已在 CLI 白名单（lib/infrastructure/cli/parser.cpp#session_keys() :333，RELEASE-02 SD-15 补白名单）⇒ 配置可达。但**生产零读取**（GAP_AUDIT N02）：lib/** 内带引号 \"algorithm_upm_gauge\" token 只出现在 CLI 键表声明处；UPM 规范固定当前不按本键分支（§9.71 定案 5 契约面整体重整为前台面）⇒ 用户设值当前为 no-op，登记在此，不得静默。",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/algorithm_upm_gauge（enum reference_frame/sum，默认 reference_frame）+ eng/packaging/config/templates/mosaic.phase_config.json#config.algorithm_upm_gauge，且已在 CLI 白名单（lib/infrastructure/cli/parser.cpp#session_keys() :333，RELEASE-02 SD-15 补白名单）⇒ 配置可达。但**生产零读取**（GAP_AUDIT N02）：lib/** 内带引号 \"algorithm_upm_gauge\" token 只出现在 CLI 键表声明处；UPM 规范固定当前不按本键分支（§9.71 定案 5 契约面整体重整为前台面）⇒ 用户设值当前为 no-op，登记在此，不得静默。",
       "owner": "FIX-203（RELEASE-03）登记（GAP_AUDIT N02）；消费/契约面 = §9.71 定案 5 契约面重整（前台面）",
       "exit_condition": "UPM 拟合/apply 按 algorithm_upm_gauge（reference_frame|sum）选择规范固定并写入 provenance 出现生产读取点后删除本条；或 §9.71 定案 5 契约面重整时从 schema/模板摘除该键。",
-      "template": "config/templates/mosaic.phase_config.json",
+      "template": "eng/packaging/config/templates/mosaic.phase_config.json",
       "consumed_as": "（无：生产零读取）",
       "evidence": [
-        "contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/algorithm_upm_gauge",
+        "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/algorithm_upm_gauge",
         "lib/infrastructure/cli/parser.cpp:333",
         "工程控制/RELEASE-03/GAP_AUDIT.md N02"
       ]
@@ -109,13 +109,13 @@
     {
       "id": "dead_config_key:blocks[].sparse_snr_spacing_px",
       "kind": "dead_key",
-      "reason": "键仍由合同登记：contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_spacing_px（integer >= 1，default 64）+ config/defaults.json#sparse_snr.spacing_px（owner_adjudicated，GAP_AUDIT §9.45：Δ = 64 px，复用 Phase2 UPM 8×8/tile 控制网格）；在 lib/** 生产源码零命中。Phase1 稀疏层生产者（含控制点网格）为登记未实现的跟随项（FIX-SCI-SNR-CANON-001 §4.2）。**§9.68（CFG-MULTIBLOCK-001）后状态**：config/templates/normalize.phase_config.json 已改写为多数据块形态，并与 `astrocs normalize --template` 输出同源（只列必填骨架 + drizzle/wcs/filter_passband），本键**不再出现在模板里** ⇒ CHK-CONFIG-CONSUMED 当前对本键零命中（模板键面 36 条、死键 3 条均属 export/mosaic）。本条按「只减不增」保留为**预备豁免**：若本键重回模板（块级 blocks[].sparse_snr_spacing_px），门仍须放行至出现生产读取点。",
+      "reason": "键仍由合同登记：eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_spacing_px（integer >= 1，default 64）+ eng/packaging/config/defaults.json#sparse_snr.spacing_px（owner_adjudicated，GAP_AUDIT §9.45：Δ = 64 px，复用 Phase2 UPM 8×8/tile 控制网格）；在 lib/** 生产源码零命中。Phase1 稀疏层生产者（含控制点网格）为登记未实现的跟随项（FIX-SCI-SNR-CANON-001 §4.2）。**§9.68（CFG-MULTIBLOCK-001）后状态**：eng/packaging/config/templates/normalize.phase_config.json 已改写为多数据块形态，并与 `astrocs normalize --template` 输出同源（只列必填骨架 + drizzle/wcs/filter_passband），本键**不再出现在模板里** ⇒ CHK-CONFIG-CONSUMED 当前对本键零命中（模板键面 36 条、死键 3 条均属 export/mosaic）。本条按「只减不增」保留为**预备豁免**：若本键重回模板（块级 blocks[].sparse_snr_spacing_px），门仍须放行至出现生产读取点。",
       "owner": "负责人裁决 2026-09-19（GAP_AUDIT §9.45）+ 分片 SNR-CONFIG-LAND（FIX-SCI-SNR-CANON-001 §4.1 落地）；§9.68 形态改写 = CFG-MULTIBLOCK-001",
       "exit_condition": "Phase1 按 sparse_snr_spacing_px 生成稀疏控制点 SNR 层（复用 UPM 8×8/tile 网格）出现生产读取点后删除本条；同时 CLI kSessionKeys 补 sparse_snr_spacing_px 使配置可达",
-      "template": "config/templates/normalize.phase_config.json（§9.68 后本键不在模板键面；条目标注为预备豁免）",
+      "template": "eng/packaging/config/templates/normalize.phase_config.json（§9.68 后本键不在模板键面；条目标注为预备豁免）",
       "evidence": [
-        "contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_spacing_px",
-        "config/defaults.json#fields[].key=sparse_snr.spacing_px",
+        "eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/normalize_block/properties/sparse_snr_spacing_px",
+        "eng/packaging/config/defaults.json#fields[].key=sparse_snr.spacing_px",
         "工程控制/RELEASE-02/change-claims/FIX-SCI-SNR-CANON-001.md §4.2",
         "工程控制/RELEASE-02/change-claims/CFG-MULTIBLOCK-001.md"
       ]

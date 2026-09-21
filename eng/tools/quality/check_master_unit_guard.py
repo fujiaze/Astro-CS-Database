@@ -47,7 +47,7 @@ TOK_FLAT = "MASTER_FLAT_NOT_NORMALIZED"
 TOK_DARK = "MASTER_DARK_CONVENTION_UNDECLARED"
 TOK_DECL = "MASTER_UNIT_DECLARATION_INVALID"
 
-# 判定带默认值必须与 config/defaults.json 的 calibration.master_flat_median_range 一致
+# 判定带默认值必须与 eng/packaging/config/defaults.json 的 calibration.master_flat_median_range 一致
 FLAT_BAND_DEFAULT = [0.5, 2.0]
 XISF_SCALE_16BIT = 65535.0
 
@@ -328,7 +328,7 @@ def main():
         base = {"schema_version": "1", "input_lights": [str(F["light"])],
                 "filter_passband": "red", "cosmetic": {"enabled": True},
                 "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0},
-                "wcs": {"init_source": "header_pointing", "gaia_data_dir": "GaiaDR3/"}, "snr": {}}
+                "wcs": {"init_source": "header_pointing", "gaia_data_dir": "gaia/GaiaDR3/"}, "snr": {}}
         bias_med, dark_med = median_of(F["bias"]) * XISF_SCALE_16BIT, median_of(F["dark"]) * XISF_SCALE_16BIT
         light_med, flat_med = median_of(F["light"]), median_of(F["flat"])
         predict = F["predict_median"]   # K=1（600s/600s）；逐像素 oracle（见 build_real）
@@ -363,7 +363,7 @@ def main():
         base = {"schema_version": "1", "input_lights": [str(F["light"])],
                 "filter_passband": "red", "cosmetic": {"enabled": True},
                 "drizzle": {"nside": 512, "nested": 1, "pixfrac": 1.0, "precision_mode": 0},
-                "wcs": {"init_source": "header_pointing", "gaia_data_dir": "GaiaDR3/"}, "snr": {}}
+                "wcs": {"init_source": "header_pointing", "gaia_data_dir": "gaia/GaiaDR3/"}, "snr": {}}
         cases = [
             ("N1_synth_unit_mix", dict(base, master_bias=str(fx / "bias_norm.xisf"),
                                        master_dark=str(fx / "dark_norm.xisf"),

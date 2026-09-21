@@ -7,7 +7,7 @@
 
 | 项 | 值 |
 |---|---|
-| 文件 | `testdata/testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits` |
+| 文件 | `testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits` |
 | 用途 | 当**纯信号** s(x,y)：真实星云结构 + 星点，帧间连续 |
 | 取用 | `sci_c_common.load_hst_signal()` 中心裁剪 512×512（origin=(700,700)），非有限置 0，缩放到掩膜外中位 = 200 e⁻，再作 σ=1.5 px 高斯 PSF 模糊 |
 | 真值口径 | 该场**只作信号**，不做物理闭合反推（不做测光定标）；声明量而非反推量 |

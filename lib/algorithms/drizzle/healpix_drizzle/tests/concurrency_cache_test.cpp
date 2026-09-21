@@ -6,7 +6,7 @@
 // - 并发结果与串行参考逐 tile 一致；
 // - run-generation 为 atomic（修复裸 static RMW data race）。
 //
-// 编译（tests/）：
+// 编译（eng/tests/）：
 // g++ -O2 -std=c++17 -fopenmp -I.. -I..\..\..\astro_image_io\include
 // -I..\..\..\astro_image_io\src -DAIO_ENABLE_HEALPIX
 // -o concurrency_cache_test.exe concurrency_cache_test.cpp

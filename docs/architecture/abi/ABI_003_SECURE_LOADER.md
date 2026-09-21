@@ -5,8 +5,8 @@
 >       / `docs/contracts/ARCH-001.md`（ARC-001 DLL 边界）
 > 下游: ABI-004 动态 registry、ABI-005 conformance 探针、CLI-001 modules/doctor
 > 实现: lib/infrastructure/pipeline/module_loader/（secure_loader.h + secure_loader.c）
-> 测试: tests/abi/（abi003_loader_probe.c + test_secure_loader.py）
-> 权威参考: include/astrocs/abi/module_api_v1.h / host_api_v1.h（ABI-001 冻结类型）
+> 测试: eng/tests/abi/（abi003_loader_probe.c + test_secure_loader.py）
+> 权威参考: lib/include/astrocs/abi/module_api_v1.h / host_api_v1.h（ABI-001 冻结类型）
 
 ## 1. 目标与验收
 
@@ -102,7 +102,7 @@ product manifest(host 解析) → unit 记录(绝对路径/sha/module_id/abi/bui
 | N11 | kind 不支持 | detail=17 |
 | L1-3 | 消息字面量/无文件写/拒绝输出无泄露 | 静态断言 |
 
-运行: `python3 tests/abi/test_secure_loader.py`(gcc + -ldl; 内部编译 fixture
+运行: `python3 eng/tests/abi/test_secure_loader.py`(gcc + -ldl; 内部编译 fixture
 与 noop 模块, 不依赖仓库先 build)。
 
 ## 7. 非目标(不伪装完成)

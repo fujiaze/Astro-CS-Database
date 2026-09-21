@@ -9,7 +9,7 @@
   > 依据 `CMakeLists.txt:618-640` 的 NOISE-MODEL-CANON-001（负责人 §9.67 定案 3
   > 「选对的那一套」）：旧 `noise_model.cpp` 是 `cpp/src/noise_model.cpp` 的退化子集，
   > 已退役。
-- Test: `tests/unit/p1_noise_test.cpp` (6 组: blank sky/MC Poisson/低高信号/负值/gain 边界/ivar 不混)
+- Test: `eng/tests/unit/p1_noise_test.cpp` (6 组: blank sky/MC Poisson/低高信号/负值/gain 边界/ivar 不混)
 
 ## 职责
 σ_bg = 1.482602218505602·MAD → variance/ivar (1/variance)。floor=1e-12。
@@ -32,8 +32,8 @@ variance 与 ivar 显式不混。公式权威: SCI-NOISE-001。
 | lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.h | 帧级 SNR 聚合 API（SnrSourceRow / SnrFrameScienceConfig / SnrFrameScienceResult / compute_snr_frame_science） |
 | lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp | 聚合实现；**零公式副本**，全部数值调 snr_science.cpp 的 C ABI |
 | lib/algorithms/noise_snr/cpp/src/snr_science.cpp | 唯一权威科学实现（P5；已编入 astrocs_phase1_noise） |
-| CMakeLists.txt（根）astrocs_phase1_noise | sources 增 snr_frame_science.cpp + snr_science.cpp（**仅** sources，未改 include/link/目标结构） |
-| tests/unit/p1snr/p1snr_linux_test.cpp | 回归锁（链接**真实** astrocs_phase1_noise；接线缺失 → 构建期链接失败） |
+| CMakeLists.txt（根）astrocs_phase1_noise | sources 增 snr_frame_science.cpp + snr_science.cpp（**仅** sources，未改 lib/include/link/目标结构） |
+| eng/tests/unit/p1snr/p1snr_linux_test.cpp | 回归锁（链接**真实** astrocs_phase1_noise；接线缺失 → 构建期链接失败） |
 
 **字段语义（p1_snr.json 帧块）**：
 
@@ -76,4 +76,4 @@ variance 与 ivar 显式不混。公式权威: SCI-NOISE-001。
 **lib/infrastructure/scheduler 接线（P8 越域补丁 → P14 落树）**：`p1_op_noise` / `p1_op_star_psf_impl`
 位于 lib/infrastructure/scheduler/src/module_adapters.cpp（P8 以补丁交付、P14 直接落树）。P14 同批新增
 两个**测试专用直调钩子** `p1_op_star_psf_json` / `p1_op_noise_json`（生产注册表
-不变），供 tests/unit/p1snr/p1snr_frame_parity_test.cpp 端到端 parity 锁直调。
+不变），供 eng/tests/unit/p1snr/p1snr_frame_parity_test.cpp 端到端 parity 锁直调。

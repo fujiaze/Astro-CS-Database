@@ -193,7 +193,7 @@
     },
     {
       "paths": [
-        "contracts/schemas/**",
+        "eng/contracts/schemas/**",
         "lib/infrastructure/observability/**"
       ],
       "checks": [
@@ -218,7 +218,7 @@
     {
       "paths": [
         "lib/**",
-        "include/**"
+        "lib/include/**"
       ],
       "checks": [
         "VERSION-CONSISTENCY",
@@ -395,8 +395,8 @@
     },
     {
       "paths": [
-        "tests/**",
-        "tests/testkit/**"
+        "eng/tests/**",
+        "eng/tests/testkit/**"
       ],
       "checks": [
         "VERSION-CONSISTENCY",
@@ -425,7 +425,7 @@
     },
     {
       "paths": [
-        "contracts/**",
+        "eng/contracts/**",
         "testdata/**"
       ],
       "checks": [
@@ -669,7 +669,7 @@
     {
       "paths": [
         "launch/**",
-        "packaging/**"
+        "eng/packaging/**"
       ],
       "checks": [
         "VERSION-CONSISTENCY",

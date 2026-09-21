@@ -20,7 +20,7 @@
   `cmake -S <tmp> -B <tmp>/build`, 断言退出码与 CMake 输出的
   `Found ZLIB: <lib> (found version "<ver>")` 落点。
 
-  fake root = <tmp>/zlib-root/{include/zlib.h, lib/<INJECTED_LIB>}, 其 zlib.h
+  fake root = <tmp>/zlib-root/{lib/include/zlib.h, lib/<INJECTED_LIB>}, 其 zlib.h
   声明 ZLIB_VERSION "1.3.2" (与 CI 报出的版本一致), 故 "库/版本落点" 可判别
   消费的是 fake root 还是宿主系统 zlib (本机系统 zlib = 1.3.1)。
 
@@ -68,7 +68,7 @@ from pathlib import Path
 # W4-A3（前台授权，仅改本测试路径、不动实现）：本文件位于
 # <repo>/lib/infrastructure/gaia_xpsd_client/tests/ ⇒ 仓库根是 parents[4]，
 # 原 parents[3] 只到 <repo>/lib（实测 MODULE_CMAKE 被算成
-# <repo>/lib/lib/gaia_xpsd_client/CMakeLists.txt）；且模块随 ARCH-001 迁到
+# <repo>/lib/gaia_xpsd_client/CMakeLists.txt）；且模块随 ARCH-001 迁到
 # lib/infrastructure/ 下，模块路径也漏了一层 infrastructure。
 REPO = Path(__file__).resolve().parents[4]
 MODULE_CMAKE = REPO / "lib" / "infrastructure" / "gaia_xpsd_client" / "CMakeLists.txt"
@@ -146,7 +146,7 @@ def _same_path(a, b) -> bool:
 
 
 def _system_ignore_paths(work: Path) -> list[str]:
-    """现场探测宿主的隐式 include/link 目录 (隔离系统搜索面, 不硬编码路径)。"""
+    """现场探测宿主的隐式 lib/include/link 目录 (隔离系统搜索面, 不硬编码路径)。"""
     src = work / "probe-src"
     src.mkdir(parents=True, exist_ok=True)
     (src / "CMakeLists.txt").write_text(

@@ -17,7 +17,7 @@
 
 - **输入**：用户 WCS 计划（中心、尺度、shape、旋转、投影或足够约束）。
 - **输出**：注册的投影定义（CTYPE、正反变换、适用域、奇点处理、CRPIX/CRVAL/CD/PC/CDELT）。
-- 参考：`contracts/schemas/projection_registry.schema.json`（registry v3，机器可校验导出 schema）。
+- 参考：`eng/contracts/schemas/projection_registry.schema.json`（registry v3，机器可校验导出 schema）。
 - 权威落位：`docs/algorithms/PHASE3_PROJ_IMPL.md §15`（registry 冻结表 + 逐投影六要素）+ `lib/algorithms/projection/`（`Spec` 六要素字段与 `registry_frozen_set()` 导出；schema 不复制公式）。
 
 ## 4. 算法与公式要点

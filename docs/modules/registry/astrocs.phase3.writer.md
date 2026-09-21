@@ -148,8 +148,8 @@ downstream: [TEST-P3-WR-001]
   登记面=**TEST-P3-WR-DESIGN-001** 设计冻结 VERIFIED（承载
   ALG-P3-FITS-IMPL-001 §12 T1-T7；本节即锚）；可执行
   TEST-P3-WR-001 **MISSING** 归 P3-FITS-TEST 落地+EVIDENCE，
-  不冒认。现状执行测试 tests/unit/p3_output_test.cpp（116 行
-  4 段，tests/unit/CMakeLists.txt:442-447）=相邻证据引用不冒认。
+  不冒认。现状执行测试 eng/tests/unit/p3_output_test.cpp（116 行
+  4 段，eng/tests/unit/CMakeLists.txt:442-447）=相邻证据引用不冒认。
 - T1 原子写+mask: 64×48 渐变场+分段 mask、BITPIX=-32、prov 全
   字段 → rc=0、coverage_ok=1、reopen_ok=1、sha256 64hex。
 - T2 独立 verify: 重开 dims/像素回环（NaN==NaN）/coverage 二值门/
@@ -173,7 +173,7 @@ downstream: [TEST-P3-WR-001]
   :41-44 协议注写 `<dir>/.<base>.<pid>.tmp`（前置点隐藏形态），
   实测 make_temp_path 生成 `out_path.<pid>.tmp`（p3_output.cpp
   :81）；同目录 rename 原子性语义不变，但执行测试残留检查前缀
-  （tests/unit/p3_output_test.cpp:102-103）与实际命名恒不匹配→
+  （eng/tests/unit/p3_output_test.cpp:102-103）与实际命名恒不匹配→
   残留检查弱匹配空转；命名统一归 P3-FITS-IMPL（含测试修正）。
 - 整改项（非缺陷）: prov.manifest_hash 恒 nullptr
   （p3_session.cpp:270，HISTORY manifest 字段写空，SCI-P3 §96

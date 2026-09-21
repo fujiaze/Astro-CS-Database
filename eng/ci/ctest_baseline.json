@@ -16,9 +16,9 @@
     "lib/star_detector/tests/p1star/CMakeLists.txt",
     "modules/conformance/echo/CMakeLists.txt",
     "modules/conformance/noop/CMakeLists.txt",
-    "tests/unit/CMakeLists.txt",
-    "tests/unit/p1snr/CMakeLists.txt",
-    "tests/unit/p1wcs/CMakeLists.txt"
+    "eng/tests/unit/CMakeLists.txt",
+    "eng/tests/unit/p1snr/CMakeLists.txt",
+    "eng/tests/unit/p1wcs/CMakeLists.txt"
   ],
   "targets": [
     "browser_backend",

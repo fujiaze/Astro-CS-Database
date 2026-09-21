@@ -1,8 +1,8 @@
 #!/bin/sh
 # qa_coverage_report.sh — QA-006 (V8-CI-005) ccov 目标第 3/4 步：
-# 把 tests/unit 全部 *_test 可执行的 profraw 合并并产出 LLVM 覆盖报告。
+# 把 eng/tests/unit 全部 *_test 可执行的 profraw 合并并产出 LLVM 覆盖报告。
 # 用法: qa_coverage_report.sh <build_dir> <source_dir>
-#   $1 build dir（含 coverage/*.profraw 与 tests/unit/*_test）
+#   $1 build dir（含 coverage/*.profraw 与 eng/tests/unit/*_test）
 #   $2 source dir（覆盖统计只统计 lib/ 与 lib/infrastructure/cli/）
 # 仅 stdout 摘要；coverage/coverage.json 为 LLVM export JSON。
 set -eu

@@ -31,8 +31,8 @@
 
 `eng/tools/check_version_consistency.py`：
 - `VERSION` 格式必须为 `X.Y.Z-alpha.N`；出现 `stable/rc/beta` 预发布标记即 FAIL。
-- 扫描 `docs/ schemas/ eng/tools/ launch/ tests/` 与根级 README/CHANGELOG/build.sh/toolchain.ps1：任何 `X.Y.Z` 字面量必须等于唯一源（豁免：hips_version、DatabaseVersion、schema_version、外部组件版本、`X.Y.Z`/`MAJOR.MINOR.PATCH` 占位写法）。
-- **mutation 合同：任何一处伪造/漂移版本字面量必须使本 checker FAIL**（tests/version 有固定试金石）。
+- 扫描 `docs/ schemas/ eng/tools/ launch/ eng/tests/` 与根级 README/CHANGELOG/build.sh/toolchain.ps1：任何 `X.Y.Z` 字面量必须等于唯一源（豁免：hips_version、DatabaseVersion、schema_version、外部组件版本、`X.Y.Z`/`MAJOR.MINOR.PATCH` 占位写法）。
+- **mutation 合同：任何一处伪造/漂移版本字面量必须使本 checker FAIL**（eng/tests/version 有固定试金石）。
 
 ## 5. 豁免清单（非产品版本的三元组）
 

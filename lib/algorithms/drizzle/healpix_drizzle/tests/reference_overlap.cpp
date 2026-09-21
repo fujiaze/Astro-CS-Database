@@ -12,7 +12,7 @@
 // - 像素归属用生产 HEALPix API: hp.radec2pix (ang2pix 逆运算)
 // - 蒙特卡洛面积用解析包围盒面积 A_box = Δra·Δsin(dec), 不依赖 spherical_polygon_area
 //
-// 编译 (从 tests/ 目录):
+// 编译 (从 eng/tests/ 目录):
 // g++ -std=c++17 -O2 -fopenmp -I.. -I../../healpix_stack \
 // reference_overlap.cpp ../spherical_overlap.cpp \
 // ../../healpix_stack/healpix_core.cpp -lm -o reference_overlap.exe

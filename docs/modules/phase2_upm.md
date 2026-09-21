@@ -186,10 +186,10 @@ p2_session.cpp:200-206）。
 - 确定性: 聚合=worker-local tsums + **tid 升序归并**（:513 注释，
   determinism class D1=worker 数无关、同 worker 数位精确）；
   gauge/连通分量/收敛/归并固定顺序；稠密缓存 bit-identical（
-  :1387-1390 冻结注释）；既有验证=tests/api/test_upm_parallel.py
+  :1387-1390 冻结注释）；既有验证=eng/tests/api/test_upm_parallel.py
   test_02_one_t_same_as_n_t_scientific（1/N 等价）+
   test_01_deterministic_repeat_each_worker；1/N 等价亦见
-  tests/backend/test_p2002_parallel_upm.py。
+  eng/tests/backend/test_p2002_parallel_upm.py。
 
 ## 内存/cache/I-O/所有权
 
@@ -228,12 +228,12 @@ p2_session.cpp:200-206）。
 可执行 `TEST-P2-UPM-001`/`TEST-P2-UPM-002` MISSING（P2-UPM-TEST 建
 立，不冒认）；登记面=ALG-P2-UPM-IMPL-001 TEST-DESIGN 节设计冻结
 VERIFIED 承载锚。现状相邻证据（引用不冒认）:
-tests/api/test_upm_recovery_oracle.py（SYN-005 参数恢复 oracle：
+eng/tests/api/test_upm_recovery_oracle.py（SYN-005 参数恢复 oracle：
 test_01 常数面恢复、test_02 逐帧偏移、test_03 收敛确定性 model_hash
-逐位、test_04 星 flux 不破坏）；tests/api/test_upm_parallel.py
+逐位、test_04 星 flux 不破坏）；eng/tests/api/test_upm_parallel.py
 （PAR-003：test_01 每 worker 重复确定、test_02 1/N 科学等价、
-test_03 内存有界）；tests/unit/p2_upm_synthetic_test.cpp（合成单元
-面）；tests/backend/test_p2002_parallel_upm.py（P2-002 生产并行
+test_03 内存有界）；eng/tests/unit/p2_upm_synthetic_test.cpp（合成单元
+面）；eng/tests/backend/test_p2002_parallel_upm.py（P2-002 生产并行
 upm 面）。容差权威=ALG-P2-UPM-IMPL-001 TEST-DESIGN 冻结（ALG-UPM-001
 F6 dense/sparse 1e-12 等价基线）。
 

@@ -83,9 +83,9 @@ V_SKIP_WAIVABLE = "SKIPPED(waivable)"
 V_SKIP_PLATFORM = "SKIPPED(waivable)"  # platform 不匹配且 waivable=true 时复用该标记
 
 # SKIP 退出码（ctest 惯例同码）：检查命令以 exit 77 结束时按 SKIPPED 计, 非 FAIL。
-# 治理先例 = tests/unit/cpu001_selftest_avx512（16867c25）：宿主缺 ACS_FEAT_AVX512F
+# 治理先例 = eng/tests/unit/cpu001_selftest_avx512（16867c25）：宿主缺 ACS_FEAT_AVX512F
 # 时 provider 按激活合同处于未激活分支, 测试 SKIP 而非把宿主环境事实记成 FAIL；
-# runner 侧 tests/cpu/avx512/run_provider_avx512_checks.py 复审 N1 采用同一语义
+# runner 侧 eng/tests/cpu/avx512/run_provider_avx512_checks.py 复审 N1 采用同一语义
 # （同 API astrocs_cpu_detect_features_v1 前置 gate, exit 77）。
 # verdict 复用 V_SKIP_WAIVABLE：run.py 现有唯一 SKIP 标记, summary 的
 # skipped_waivable 计数与 "PASS + N skipped" 判定直接复用, 无需新增值域。

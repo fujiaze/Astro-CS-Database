@@ -116,8 +116,8 @@ P2UpmBuildConfig 产物模型）；dense 物化 worker 数经 stage2.cpp:482
   hardware_concurrency）。
 - 确定性: 稠密缓存 bit-identical（:1387-1390 冻结注释）；
   calibrate_block 逐像素独立无跨样本归并（worker 数无关）；既有验
-  证=tests/api/test_upm_parallel.py test_02（1/N 科学等价）+
-  tests/backend/test_p2002_parallel_upm.py。
+  证=eng/tests/api/test_upm_parallel.py test_02（1/N 科学等价）+
+  eng/tests/backend/test_p2002_parallel_upm.py。
 
 ## 内存/cache/I-O/所有权
 
@@ -146,9 +146,9 @@ P2UpmBuildConfig 产物模型）；dense 物化 worker 数经 stage2.cpp:482
 
 可执行 `TEST-P2-UPM-002` MISSING（P2-UPM-TEST 建立，不冒认）；登记
 面=ALG-P2-UPM-IMPL-001 TEST-DESIGN 设计冻结 VERIFIED 承载锚。现状
-相邻证据（引用不冒认）: tests/api/test_upm_recovery_oracle.py
-test_04（calibrate_block 信号映射/星 flux 不破坏）、tests/unit/
-p2_upm_synthetic_test.cpp（sparse/dense 等价面）、tests/backend/
+相邻证据（引用不冒认）: eng/tests/api/test_upm_recovery_oracle.py
+test_04（calibrate_block 信号映射/星 flux 不破坏）、eng/tests/unit/
+p2_upm_synthetic_test.cpp（sparse/dense 等价面）、eng/tests/backend/
 test_p2002_parallel_upm.py。容差权威=ALG-P2-UPM-IMPL-001
 TEST-DESIGN 冻结（dense/sparse 1e-12 等价基线）。
 

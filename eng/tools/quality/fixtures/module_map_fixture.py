@@ -273,13 +273,13 @@ def build_repo(root, mutation=None, repo=None):
                         "    decision: mapped",
                         "    canonical_objects: [signal]",
                         "    relation: single_object",
-                        "    canonical_schema_files: [contracts/schemas/unified/signal.schema.json]"]
+                        "    canonical_schema_files: [eng/contracts/schemas/unified/signal.schema.json]"]
     _write(root / (doc.get("conventions") or {}).get("contract_index_file", "docs/contracts/INDEX.yaml"),
            "\n".join(index_lines) + "\n")
     for rel in base_schema_links:
         _write(root / rel, '{"$comment": "MOD-001 fixture schema", "type": "object"}\n')
     _write(root / (doc.get("conventions") or {}).get("product_manifest_file",
-                                                     "packaging/astrocs.product.json"),
+                                                     "eng/packaging/astrocs.product.json"),
            json.dumps({"schema_version": 1, "product_version": "0.11.0-alpha.2",
                        "source_commit": "0" * 40, "platform": "linux-amd64",
                        "note": "MOD-001 fixture", "units": units},
@@ -313,7 +313,7 @@ def _write_block_vocabulary(root, mutation):
         impl = impl.replace('"variance", "ivar",', '"variance", "ivar", "ghost_block",')
     _write(root / "lib/infrastructure/aio/src/aio_pipeline.cpp", impl)
     consumer = (
-        "/* fixture 生产调用点（非 tests/）：块名必须来自标准块定义表 */\n"
+        "/* fixture 生产调用点（非 eng/tests/）：块名必须来自标准块定义表 */\n"
         "#include \"aio_pipeline.h\"\n"
         "int fixture_consumer(void* frame, const float* px) {\n"
         "    int dims[2] = {2, 2};\n"
@@ -351,7 +351,7 @@ def _apply_gap_scenario(root, doc, mods, mutation):
     if mutation not in ("fake_path", "gap_owner_unknown", "stale_declared_absent",
                         "gaps_registered_ok", "gap_registry_missing", "capability_stale"):
         return
-    target = str((mods[0].get("schema_links") or ["contracts/schemas/unified/signal.schema.json"])[0])
+    target = str((mods[0].get("schema_links") or ["eng/contracts/schemas/unified/signal.schema.json"])[0])
     if mutation != "stale_declared_absent":
         (root / target).unlink(missing_ok=True)
     if mutation == "gap_registry_missing":

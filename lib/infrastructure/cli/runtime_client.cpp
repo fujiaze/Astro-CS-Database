@@ -120,7 +120,7 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   // cal → cos → psf → wcs → phot → snr → drz → wr。
   // 节点集/端口名与 core module_adapters 的 descriptor 及
   // lib/infrastructure/pipeline/module_ports.registry.json 的 phase1 冻结端口链逐节点一致
-  // （GAP-10: 新增门 tests/cli/test_phase1_inprocess.py::test_ir_matches_frozen_chain
+  // （GAP-10: 新增门 eng/tests/cli/test_phase1_inprocess.py::test_ir_matches_frozen_chain
   // 断言该一致性, 防再次静默漂移到 2 节点）。
   // wcs 节点走真实 ipv 求解链（lib/algorithms/platesolve/cpp/ipv 内非 Windows 与
   // Windows 绑定同一组生产 C API，源内已无平台 stub）。explicit_config 只是

@@ -6,7 +6,7 @@
 # 核对清单（CAT-GAIA-DOC，2026-09-05），禁止手抄他版。
 # CAT-GAIA-INT 注册面事实修正（2026-09-09）: entrypoint MISSING→
 # astrocs_module_query_v1（CAT-GAIA-IMPL commit babe752d 建立，nm -D 实证
-# 唯一导出面；tests/unit/gaia_integration_test.c 三方一致复验）；
+# 唯一导出面；eng/tests/unit/gaia_integration_test.c 三方一致复验）；
 # node_operations 按 types.h op 词表登记（每 (module_id, operation) 绑定
 # 同一唯一 entry）。全局 typed DAG/registry 接线由 SA-RT-05 消费
 # integration/astrocs_catalog_gaia.integration.json 执行。

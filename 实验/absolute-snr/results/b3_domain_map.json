@@ -31,7 +31,7 @@
   ],
   "budget_bytes": 1048576,
   "seed_base": 20260921,
-  "m16": "/workspace/Astro CS Database/testdata/testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits",
+  "m16": "/workspace/Astro CS Database/testdata/HST_M16/hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits",
   "m42": [
    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M1/M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
    "/workspace/Astro CS Database/testdata/M42_T2T3_mosaic_Flying_dutchman/T2/M2/M42_M2_T2_flying_dutchman-20251212@020002-300S-Red.fts",

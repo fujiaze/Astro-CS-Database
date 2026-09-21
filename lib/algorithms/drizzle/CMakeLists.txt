@@ -81,7 +81,7 @@ set_target_properties(astrocs_p1_drizzle PROPERTIES
 
 # ── include 路径 (与根 astrocs_drizzle :368 一致; 第三方 SYSTEM 隔离) ──
 target_include_directories(astrocs_p1_drizzle PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/lib/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${DRZ_PROD_DIR}
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/include
@@ -91,7 +91,7 @@ target_include_directories(astrocs_p1_drizzle PRIVATE
 )
 target_include_directories(astrocs_p1_drizzle SYSTEM PRIVATE
     ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
-    ${CMAKE_SOURCE_DIR}/third_party          # nlohmann/json.hpp (aio_upm)
+    ${CMAKE_SOURCE_DIR}/lib/third_party          # nlohmann/json.hpp (aio_upm)
 )
 # QA-001: nanoflann.hpp (snr_evaluator KD-tree) -isystem 隔离 (若 vendored)
 if(EXISTS "${CMAKE_SOURCE_DIR}/third_party/nanoflann/include")

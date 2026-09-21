@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.local/schemas/unified/coverage/v1",
+  "title": "AstroCS 统一对象 coverage —— 几何/数据有效域",
+  "description": "UNIFIED_MODEL §2：coverage = 几何/数据有效域；可否作权重 = 否。coverage 不是 rejection：几何有效域不含污染推断（UNIFIED_MODEL §2 末列）。",
+  "x-astrocs-object": {
+    "name": "coverage",
+    "canonical_file": "eng/contracts/schemas/unified/coverage.schema.json",
+    "authority": "docs/design/UNIFIED_MODEL.md §2；ASTROCS_DESIGN.md §2；ENGINEERING_SPEC.md §3/§4.7",
+    "weight_verdict": "否",
+    "weight_eligible": false
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "unified_object",
+    "object_schema_id",
+    "schema_version",
+    "units",
+    "missing_value",
+    "precision",
+    "object_weight_capability",
+    "object_weight_verdict",
+    "provenance",
+    "coverage_geometry",
+    "role"
+  ],
+  "propertyNames": {
+    "pattern": "^(?!(weight|value|mask|snr)$)(?!(weight|value|mask|snr)(_|$))(?!(weight|value|mask)(_|$)).*$"
+  },
+  "properties": {
+    "unified_object": {
+      "const": "coverage",
+      "description": "对象判别式：本文档声明的 UNIFIED_MODEL §2 对象名（禁止用别的对象名冒充）"
+    },
+    "object_schema_id": {
+      "const": "https://astrocs.local/schemas/unified/coverage/v1",
+      "description": "全局唯一 schema ID（eng/contracts/schemas/unified/coverage.schema.json）"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bunit",
+        "bunit_semantics",
+        "pixel_semantics",
+        "pixel_area_power"
+      ],
+      "propertyNames": {
+        "pattern": "^(?!(weight|value|mask|snr|snr_value|weight_value|value_value|mask_value)$).*$"
+      },
+      "properties": {
+        "bunit": {
+          "const": "1",
+          "description": "coverage 为无量纲占比/单元集"
+        },
+        "bunit_semantics": {
+          "description": "FZ-BUNIT-SEMANTICS：written_px_power = BUNIT 显式含 px 幂次；declared_via_provenance = BUNIT 仅写 ADU 时必须由 provenance 声明 pixel_semantics + pixel_area_power",
+          "enum": [
+            "written_px_power",
+            "declared_via_provenance"
+          ]
+        },
+        "pixel_semantics": {
+          "const": "probability"
+        },
+        "pixel_area_power": {
+          "const": 0
+        },
+        "target_pixel_area": {
+          "description": "目标像素面积（BUNIT=ADU 且 surface_brightness 时必需）",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "bunit": {
+                "pattern": "/px\\^2"
+              }
+            },
+            "required": [
+              "bunit"
+            ]
+          },
+          "then": {
+            "properties": {
+              "bunit_semantics": {
+                "const": "written_px_power"
+              },
+              "pixel_semantics": {
+                "const": "surface_brightness"
+              },
+              "pixel_area_power": {
+                "const": -2
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "bunit_semantics": {
+                "const": "declared_via_provenance"
+              }
+            },
+            "required": [
+              "bunit_semantics"
+            ]
+          },
+          "then": {
+            "required": [
+              "target_pixel_area"
+            ],
+            "properties": {
+              "pixel_semantics": {
+                "const": "surface_brightness"
+              },
+              "pixel_area_power": {
+                "const": -2
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "pixel_semantics": {
+                "const": "integrated_flux"
+              }
+            },
+            "required": [
+              "pixel_semantics"
+            ]
+          },
+          "then": {
+            "properties": {
+              "pixel_area_power": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "missing_value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "missing_repr",
+        "invalid_repr"
+      ],
+      "propertyNames": {
+        "pattern": "^(?!(weight|value|mask|snr|snr_value|weight_value|value_value|mask_value)$).*$"
+      },
+      "properties": {
+        "missing_repr": {
+          "description": "缺失表示（对象文档不得省略该声明）",
+          "enum": [
+            "null",
+            "absent_key",
+            "zero",
+            "null_or_absent",
+            "unavailable_object"
+          ]
+        },
+        "invalid_repr": {
+          "description": "无效值表示",
+          "enum": [
+            "null",
+            "nan",
+            "zero",
+            "nan_or_negative",
+            "mask_bit",
+            "unavailable_object",
+            "not_applicable"
+          ]
+        },
+        "nan_in_binary": {
+          "description": "二进制平面是否允许 NaN 承载 invalid（JSON 无 NaN 字面量）",
+          "type": "boolean"
+        },
+        "silent_zero_forbidden": {
+          "description": "禁止用 0 冒充缺失/不可用（静默 0 = fail-closed）",
+          "type": "boolean"
+        },
+        "sentinel_note": {
+          "description": "补充说明（不得引入第二套无效值口径）",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "precision": {
+      "description": "精度：float32 / float64 / integer（与 DATA_SEMANTICS §6 一致，不得自定第二套）",
+      "enum": [
+        "float32",
+        "float64",
+        "integer"
+      ]
+    },
+    "object_weight_capability": {
+      "const": false,
+      "description": "UNIFIED_MODEL §2「可否作权重」列的机器判定（照抄，不得自行改判定）"
+    },
+    "object_weight_verdict": {
+      "const": "否",
+      "description": "UNIFIED_MODEL §2「可否作权重」列原文（逐字）"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_chain"
+      ],
+      "propertyNames": {
+        "pattern": "^(?!(weight|value|mask|snr|snr_value|weight_value|value_value|mask_value)$).*$"
+      },
+      "properties": {
+        "source_chain": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "description": "上游产品/输入标识（产物引用，悬空即 REJECT）",
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "来源链：本对象由哪些上游产物/输入派生（FZ-PROV-MINIMAL-SET 的对象级最小集）"
+        },
+        "software_sha": {
+          "description": "生成该对象的软件完整 SHA（40 hex）",
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "config_hash": {
+          "description": "配置哈希（run_manifest.config_hash）",
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "description": "算法条款 ID（ALG-* / SCI-*）",
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "generated_utc": {
+          "description": "生成时间 UTC（ISO-8601，Z 结尾）",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        }
+      }
+    },
+    "coverage_fraction": {
+      "description": "几何/数据有效域占比 ∈ [0,1]（可选；引用 plane 时可不内联）",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "coverage_plane_ref": {
+      "description": "coverage 平面/联合 MOC 引用",
+      "type": "string",
+      "minLength": 1
+    },
+    "coverage_geometry": {
+      "description": "几何域定义",
+      "enum": [
+        "moc_union",
+        "footprint",
+        "healpix_cells",
+        "aperture"
+      ]
+    },
+    "n_valid_cells": {
+      "description": "有效单元数（可选摘要）",
+      "type": "integer",
+      "minimum": 0
+    },
+    "role": {
+      "description": "角色：几何有效域（门）",
+      "enum": [
+        "geometric_valid_domain"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "anyOf": [
+        {
+          "required": [
+            "coverage_plane_ref"
+          ]
+        },
+        {
+          "required": [
+            "coverage_fraction"
+          ]
+        }
+      ]
+    }
+  ]
+}

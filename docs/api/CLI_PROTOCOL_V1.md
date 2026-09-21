@@ -49,7 +49,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 > **唯一性声明（GAP_AUDIT §4.3）**：运行事件流的**唯一 schema** = 实现正本
 > `lib/infrastructure/cli/protocol.h`（`ValidateEventV1`，发送侧硬闸）+ `lib/infrastructure/cli/jsonl.h`（`JsonlEmitter`）。
 > 本节是它的**人类可读合同**（同源；字段名 / 枚举 / 顺序键以 `protocol.h` + `jsonl.h` 为准，
-> 冲突时以实现正本为准）。机器 schema = `contracts/schemas/jsonl_event_v1.schema.json`（**派生件**，
+> 冲突时以实现正本为准）。机器 schema = `eng/contracts/schemas/jsonl_event_v1.schema.json`（**派生件**，
 > 不得自成第二份定义）。
 > **不得与结构化日志混用**：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`（LOG-001，
 > `astrocs.log.event.v1`）是**结构化日志**合同，**显式声明它不是运行事件流**；其事件键名 `event`
@@ -58,7 +58,7 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 - 每行必含: `schema_version,event_id,run_id,timestamp_utc,sequence,kind,severity,phase,stage,message`;`sequence` 从 0 单调递增。
 - kind 扩展字段: progress{completed,total,unit,rate,eta_seconds} / resource{cpu_cores_used,rss_bytes,io_read_bytes,io_write_bytes,threads} / artifact{role,path,sha256,size_bytes,integrity_sha256,canonical_sha256,canonical_hash_spec,canonical_format}（**DET-001**：sha256=整文件字节摘要(完整性)，canonical_sha256=规范产品哈希(像素数据+科学元数据，排除易变卡/键；口径 spec=astrocs.canonical-product-hash/v1，见 eng/tools/canonical_product_hash.py --spec)；可复现性判据用 canonical_sha256，不得用 sha256） / backend{kernel,backend_id,isa,workers,block_size,reason} / final{exit_code,status,run_manifest,summary}。
 - 重计算 stage 必发 `stage_start/stage_end`+实际 backend 事件;GUI/未来客户端只消费本协议(禁链接科学库绕过 CLI)。
-- schema: `contracts/schemas/jsonl_event_v1.schema.json`(CLI-002 golden 用;**派生件**，不得自成第二份定义)。
+- schema: `eng/contracts/schemas/jsonl_event_v1.schema.json`(CLI-002 golden 用;**派生件**，不得自成第二份定义)。
 
 ## 5 取消与崩溃
 
@@ -106,5 +106,5 @@ UT-CLI `mutates_workspace=false` 的 dirty 判定。
    **多数据块形态**:`output_dir` 是**块级**必填(每块一个,块间不得重复 —— 否则两块会写同一份
    run manifest);块 = 一次运行,CLI 逐块派发(独立 manifest / 独立 `run_context.json`)。
 4. **取消路径**:SIGINT 后的 `incomplete` manifest 也写 `output_dir`(不写 CWD `"."`)。
-5. 回归锚: `tests/cli/test_cli001_vpi.py`、`tests/cli/test_phase123_pipeline.py`
+5. 回归锚: `eng/tests/cli/test_cli001_vpi.py`、`eng/tests/cli/test_phase123_pipeline.py`
    负例矩阵的 `neg: missing output_dir` + `no CWD residue` 两条。

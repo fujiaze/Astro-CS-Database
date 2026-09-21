@@ -16,7 +16,7 @@
 
 > 本文只是**冻结建议**（REVIEW 阶段的可审计输入），不是冻结结果。正式冻结由 wave 4 `CONTRACT-FREEZE-001` 写入 `docs/science/v6/frozen/`；本文中的公式、指数与归一常数最终数值交由 wave 3 `ALG-P2-PSFSW-001` 落定并经 `SCI-ADJ-001` 裁决。本任务不改任何上位规范（`docs/science/*.md`、`docs/owner/**`、`docs/design/**`、`docs/references/**` 全部只读）。
 >
-> **收敛标注（DOC-CONVERGE-001/W12，2026-09-15）**：本文 §6/§10.7/§11-R1 对 `psf_snr_power` 的「建议有条件解冻」仅为 W1 研究建议，**已被控制器裁决 `C-004.1` 取代**：本包不解冻，`psf_snr_power` 保持 `DEFERRED/NOT_IMPLEMENTED`，不进 V6 生产路由，生产枚举出现即 REJECT（`FZ-MODE-DEFERRED`）。§11-R2（双词表）由 W6 归一为单一 canonical 词表（`contracts/data/v6_weight_vocabulary_v1.json`，canonical = `weight.kind/units/group_normalized/normalization.*/weight_value`），§11-R4（帧级 `median(SNR_F)`）按 `C-004.2` 登记为**诊断/深度表达**、不得进入任何权重面（`FZ-GATE-MEDIAN-SNR`）。最终口径见 `docs/science/v6/frozen/`。
+> **收敛标注（DOC-CONVERGE-001/W12，2026-09-15）**：本文 §6/§10.7/§11-R1 对 `psf_snr_power` 的「建议有条件解冻」仅为 W1 研究建议，**已被控制器裁决 `C-004.1` 取代**：本包不解冻，`psf_snr_power` 保持 `DEFERRED/NOT_IMPLEMENTED`，不进 V6 生产路由，生产枚举出现即 REJECT（`FZ-MODE-DEFERRED`）。§11-R2（双词表）由 W6 归一为单一 canonical 词表（`eng/contracts/data/v6_weight_vocabulary_v1.json`，canonical = `weight.kind/units/group_normalized/normalization.*/weight_value`），§11-R4（帧级 `median(SNR_F)`）按 `C-004.2` 登记为**诊断/深度表达**、不得进入任何权重面（`FZ-GATE-MEDIAN-SNR`）。最终口径见 `docs/science/v6/frozen/`。
 
 ---
 
@@ -75,7 +75,7 @@
 - **基线分歧未裁决（F1）**：工作树**不是** HEAD 的干净副本。`run/v6/base/baseline_freeze.json.worktree_vs_head.counts` = `{reverted_tracked_modified: 16, deleted_tracked: 10, new_content_tracked_modified: 11}`；本任务实测 `tracked-M = 27`、`tracked-D = 10`、`untracked(uall) = 841`、`dirty_total(uall) = 878`（`logs/22_baseline_probe.log` §2；随并行 wave-1 任务写入而增长，故以该日志的当次实测为准）。这些**未裁决**回退态**不得**被当作已验证基线。
 - 具体命中本任务相邻域的一例：`lib/algorithms/noise_snr/wrapper_phase1/snr_frame_coefficient.{cpp,h}` 在 HEAD 中存在（commit `7346f366`，P33），但在**工作树中被删除**。该文件实现的是 `value = median(SNR_F)` 的**帧级单一系数**，其自身注释即声明"帧级度量"且"不得当作局部 SNR 场"。按 `PROJECT_SPEC` §4 末段与 `UNIFIED` §11，它只能作诊断/深度表达，**不得**成为 Phase2 科学权重；若任何消费者把它当权重使用，即为 P17 违规（本任务只读，不改该文件）。
 - HEAD 相对任务卡基线**唯一**前进的是 4 个并行 wave-1 兄弟任务的 docs-only 提交（`logs/22_baseline_probe.log` §1）：`192fab35 SCI-P2-001`、`a09a81f4 AUDIT-REVIEW-001`、`9d99fd71 SCI-OBS-001`、`eac43135 SCI-P3-001`，四者写域分别为 `docs/science/v6/phase2|phase3|observation/`、`reports/v6/review-audit/` 与 `run/v6/*`。本任务写域 `docs/science/v6/psfw/`、`run/v6/sci-psfw/` 与它们**两两不相交**，无并发写冲突；已提交的 4 个提交均为文档，未改生产源码，故 §2 的生产面判定不受影响。
-- **生产面现状**（HEAD 已提交内容）：`psfsw|PSFSW|PSF Signal Weight`、`psf_information_weight|point_source_information|point_information|W_psf|W_info`、`psfsw_robust_weight`、`A_NEA|noise_equivalent_area`、`signal concentration|signal_concentration` 在 `lib/ cli/ include/ runtime/ contracts/` 命中**全部为 0**（`logs/22_baseline_probe.log` §3）。判定：**NOT_IMPLEMENTED**，与 `run/v6/base/gap_baseline.md` §2.6 一致。
+- **生产面现状**（HEAD 已提交内容）：`psfsw|PSFSW|PSF Signal Weight`、`psf_information_weight|point_source_information|point_information|W_psf|W_info`、`psfsw_robust_weight`、`A_NEA|noise_equivalent_area`、`signal concentration|signal_concentration` 在 `lib/ cli/ lib/include/ runtime/ eng/contracts/` 命中**全部为 0**（`logs/22_baseline_probe.log` §3）。判定：**NOT_IMPLEMENTED**，与 `run/v6/base/gap_baseline.md` §2.6 一致。
 
 ---
 ## 3. W_info：定义、单位、最优性与适用边界

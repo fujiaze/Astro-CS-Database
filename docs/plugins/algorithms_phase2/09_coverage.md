@@ -17,7 +17,7 @@
 
 - **输入**：一组合同兼容 Phase1 产品（含各自 coverage/validity/WCS/manifest）。
 - **输出**：帧/区域重叠图、有效面积、信息量、连通分量、coverage 产品。
-- 参考：`contracts/schemas/coverage_output.schema.json`。
+- 参考：`eng/contracts/schemas/coverage_output.schema.json`。
 
 ## 4. 算法与公式要点
 

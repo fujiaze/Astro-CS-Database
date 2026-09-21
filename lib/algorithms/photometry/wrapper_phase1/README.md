@@ -3,7 +3,7 @@
 - 合同: `P1-004` / SCI-PHOT-001 (docs/contracts/INDEX.yaml)
 - Header: `lib/algorithms/photometry/wrapper_phase1/photometer.h`
 - Source: `lib/algorithms/photometry/wrapper_phase1/photometer.cpp`
-- Test: `tests/unit/p1_wcs_phot_test.cpp` (已知通量解析恢复 20%; 失败显式)
+- Test: `eng/tests/unit/p1_wcs_phot_test.cpp` (已知通量解析恢复 20%; 失败显式)
 
 ## 职责
 Aperture 光栅积分 (背景扣除) + Poisson 误差 + SNR。

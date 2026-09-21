@@ -56,7 +56,7 @@ INVENTORY（棘轮上限，fail-closed）
 
 CLEAN-403（棘轮收口；fail-closed）
   C1 PRODUCTION-RESIDUAL 类别命中数 = 0（生产路径直连 I/O 一律经 aio）。
-     分类序: 测试面（路径含 tests/ 或 test/ 目录）→ 各登记类别 → 生产兜底。
+     分类序: 测试面（路径含 eng/tests/ 或 test/ 目录）→ 各登记类别 → 生产兜底。
   C2 TEST-HARNESS 白名单与实际**一一对应**（文件 + 函数 + 理由）:
      · 测试面文件的台账条目必须是 TEST-HARNESS（反之亦然）⇒ 防「白名单掩盖
        生产路径直连」与「把生产路径标成测试面」双向滥用;
@@ -72,7 +72,7 @@ A44（前台追加，同源违规；ASTROCS_DESIGN §2.1 + §9.73 裁决 A44）
      HiPS provenance 只承载帧级 SNR 与稀疏相对 SNR 比值。
      （docs/** 面由 eng/ci/check_no_weight_mode.py 覆盖；本规则补代码面。）
 
-扫描面：仓库首方 C/C++ 源（lib/ tests/ include/ eng/tools/ scripts/ eng/ci/ eng/cmake/ cli/ runtime/）。
+扫描面：仓库首方 C/C++ 源（lib/ eng/tests/ lib/include/ eng/tools/ scripts/ eng/ci/ eng/cmake/ cli/ runtime/）。
 排除：third_party / build / run / .git / archive / legacy / __pycache__（非首方或非活代码）。
 注释行（以 // 或 * 或 /* 开头）不计入（避免把条款引用当实现）。
 
@@ -97,7 +97,13 @@ import tempfile
 # ── 扫描面 ──────────────────────────────────────────────────────────────────
 # 2026-09-21 ROOT-CONSOLIDATION：根目录 scripts/ 已退役（0 个 C/C++ 源文件，
 # 故本扫描面实际内容不变）；实验/ 为实验代码面，按原 reverse_verify/ 同口径不入本扫描面。
-SCAN_ROOTS = ("lib", "tests", "include", "eng/tools", "eng/ci", "eng/cmake", "cli", "runtime")
+# 2026-09-21 二次整合：tests/ → eng/tests/、include/ → lib/include/、cli/ → eng/cli/
+# ⇒ 同时登记新旧两套候选根（存在的才扫），避免改名后**静默漏扫**。
+SCAN_ROOTS = ("lib", "tests", "eng/tests", "include", "lib/include", "eng/tools",
+              "eng/ci", "eng/cmake", "cli", "eng/cli", "runtime", "eng/runtime")
+# fail-closed 锚：缺失即 rc=2（不得把「根改名」读成「无违规」——静默退化）。
+REQUIRED_ROOTS = ("lib",)
+REQUIRED_TEST_ROOTS = ("tests", "eng/tests")
 SRC_EXT = (".c", ".cc", ".cpp", ".cxx", ".h", ".hpp", ".hxx", ".inl")
 EXCLUDE_PARTS = ("/third_party/", "/build/", "/run/", "/.git/", "/archive/",
                  "/legacy/", "/__pycache__/", "/node_modules/", "/.venv/")
@@ -123,14 +129,17 @@ INVENTORY_REL = "eng/ci/ledgers/aio_io_boundary_inventory.json"
 # 依据: 控制包 RELEASE-04 tasks/CLEAN-403.md 步骤 3「TEST-HARNESS 白名单显式登记
 # （文件 + 函数 + 理由）；未登记的测试直连 I/O 同样判红」+ 验收门「白名单与实际
 # TEST-HARNESS 一一对应（机器比对，无未登记项）」。
-# 测试路径 = 路径中任一级目录名为 tests/ 或 test/（不含文件名）。
+# 测试路径 = 路径中任一级目录名为 eng/tests/ 或 test/（不含文件名）。
 TEST_HARNESS_REASON = ("测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；"
                        "新增函数或新增文件未登记即判红")
 TEST_HARNESS_OWNER = "无（测试面）"
 
 
 def is_test_path(rel):
-    """路径中任一级目录名为 tests/ 或 test/ ⇒ 测试面（文件名不计）。"""
+    """路径中任一级目录名为 tests/ 或 test/ ⇒ 测试面（文件名不计）。
+
+    兼容两套布局：tests/**（旧）与 eng/tests/**（2026-09-21 二次整合后）。
+    """
     return any(part in ("tests", "test") for part in rel.split("/")[:-1])
 
 # ── 规则集（与 FIX-201 验收门同口径） ────────────────────────────────────────
@@ -371,7 +380,7 @@ def scan_diagnostic_calls(root):
 
 
 def classify(rel):
-    # CLEAN-403: 测试面优先判定（tests/**、lib/**/tests/**、lib/**/test/**），
+    # CLEAN-403: 测试面优先判定（eng/tests/**、lib/**/tests/**、lib/**/test/**），
     # 先于 lib/algorithms/ 与 lib/ 的生产兜底 —— 否则 lib 内共址测试会被误判为
     # PRODUCTION-RESIDUAL。
     if is_test_path(rel):
@@ -689,7 +698,7 @@ def self_test():
         hips = os.path.join(td, "lib/algorithms/drizzle/hips/src")
         fits = os.path.join(td, "lib/algorithms/fits_output")
         cli = os.path.join(td, "lib/infrastructure/cli")
-        tst = os.path.join(td, "tests/unit")
+        tst = os.path.join(td, "eng/tests/unit")
         # 正例：aio 内部允许 I/O；算法面走 aio 原语（零命中）；cli 命中 1 处且已登记；
         # 测试桩命中 1 处且**逐函数**登记（CLEAN-403 门 2 的绿面）。
         _mk(os.path.join(aio, "aio_atomic_file.h"),
@@ -704,8 +713,8 @@ def self_test():
             "void make_fixture(void){ std::ofstream f(\"fixture.bin\"); }\n")
         inv = {"lib/infrastructure/cli/obs.cpp":
                {"path": "lib/infrastructure/cli/obs.cpp", "hits": 1},
-               "tests/unit/stub_test.cpp":
-               {"path": "tests/unit/stub_test.cpp", "hits": 1,
+               "eng/tests/unit/stub_test.cpp":
+               {"path": "eng/tests/unit/stub_test.cpp", "hits": 1,
                 "category": "TEST-HARNESS", "functions": ["make_fixture"],
                 "reason": TEST_HARNESS_REASON}}
         res = evaluate(td, inv, strict_inventory=True)
@@ -799,7 +808,7 @@ def self_test():
         _mk(os.path.join(tst, "sneaky_test.cpp"),
             "void t(void){ std::ofstream f(\"sneak.bin\"); }\n")
         res = evaluate(td, inv, strict_inventory=True)
-        n9 = "tests/unit/sneaky_test.cpp" in res["unregistered"]
+        n9 = "eng/tests/unit/sneaky_test.cpp" in res["unregistered"]
         ok = ok and n9
         print("  self-test 负例9(未登记测试文件直连 I/O): flagged=%s [%s]"
               % (n9, "PASS" if n9 else "FAIL"))
@@ -810,7 +819,7 @@ def self_test():
             "void make_fixture(void){ std::ofstream f(\"fixture.bin\"); }\n"
             "void new_helper(void){ std::ofstream g(\"other.bin\"); }\n")
         res = evaluate(td, inv, strict_inventory=True)
-        n10 = any(r == "tests/unit/stub_test.cpp" and nm == "new_helper"
+        n10 = any(r == "eng/tests/unit/stub_test.cpp" and nm == "new_helper"
                   for r, nm, _w in res["fn_unregistered"])
         ok = ok and n10
         print("  self-test 负例10(测试桩新函数未登记): flagged=%s [%s]"
@@ -834,13 +843,13 @@ def self_test():
 
         # 负例 12：登记函数已无命中（陈旧函数登记）⇒ 必红
         inv_stale_fn = dict(inv)
-        inv_stale_fn["tests/unit/stub_test.cpp"] = {
-            "path": "tests/unit/stub_test.cpp", "hits": 1,
+        inv_stale_fn["eng/tests/unit/stub_test.cpp"] = {
+            "path": "eng/tests/unit/stub_test.cpp", "hits": 1,
             "category": "TEST-HARNESS",
             "functions": ["make_fixture", "gone_helper"],
             "reason": TEST_HARNESS_REASON}
         res = evaluate(td, inv_stale_fn, strict_inventory=True)
-        n12 = any(r == "tests/unit/stub_test.cpp" and nm == "gone_helper"
+        n12 = any(r == "eng/tests/unit/stub_test.cpp" and nm == "gone_helper"
                   for r, nm, _w in res["fn_stale"])
         ok = ok and n12
         print("  self-test 负例12(登记函数陈旧): flagged=%s [%s]"
@@ -860,6 +869,20 @@ def self_test():
               % (n13, "PASS" if n13 else "FAIL"))
         os.remove(os.path.join(alg, "residual.cpp"))
 
+        # 负例 14：扫描根改名/缺失 ⇒ fail-closed rc=2（防「根改名后静默漏扫」；
+        # 2026-09-21 tests/ → eng/tests/ 整合时正是这种失效模式：老根消失后
+        # 全部测试条目变 STALE，若无锚检查会退化成「扫不到 = 无违规」）。
+        with tempfile.TemporaryDirectory(prefix="aio_io_boundary_anchor_") as td2:
+            os.makedirs(os.path.join(td2, "lib"))
+            n14_lib = (main(["--root", td2]) == 2)      # 有 lib/ 但无任何测试根
+            os.makedirs(os.path.join(td2, "eng/tests"))
+            n14_ok = (main(["--root", td2, "--update-inventory"]) == 0)
+        n14 = n14_lib and n14_ok
+        ok = ok and n14
+        print("  self-test 负例14(扫描根缺失 fail-closed rc=2 / 补根后恢复): "
+              "missing_test_root=%s restored=%s [%s]"
+              % (n14_lib, n14_ok, "PASS" if n14 else "FAIL"))
+
     print("AIO-IO-BOUNDARY_SELF-TEST_%s" % ("PASS" if ok else "FAIL"))
     return 0 if ok else 1
 
@@ -877,8 +900,15 @@ def main(argv=None):
         return self_test()
 
     root = args.root or os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    if not os.path.isdir(os.path.join(root, "lib")):
-        print("FAIL-CLOSED: %s 下无 lib/ —— 扫描面不可用" % root, file=sys.stderr)
+    missing = [d for d in REQUIRED_ROOTS if not os.path.isdir(os.path.join(root, d))]
+    if missing:
+        print("FAIL-CLOSED: %s 下缺必需扫描根 %s —— 扫描面不可用"
+              % (root, missing), file=sys.stderr)
+        return 2
+    if not any(os.path.isdir(os.path.join(root, d)) for d in REQUIRED_TEST_ROOTS):
+        print("FAIL-CLOSED: %s 下缺测试扫描根（候选 %s 全不存在）"
+              " —— 根改名后不得静默漏扫" % (root, list(REQUIRED_TEST_ROOTS)),
+              file=sys.stderr)
         return 2
 
     if args.update_inventory:

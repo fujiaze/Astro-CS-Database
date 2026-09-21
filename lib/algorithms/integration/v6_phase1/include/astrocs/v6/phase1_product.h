@@ -1,7 +1,7 @@
 /* phase1_product.h — V6 Phase1 单帧产品装配 / 原子落盘 / 磁盘重开 / Phase2 消费面
  *
  * 任务: P1-INTEGRATE-001 (Wave 7)。写域: lib/phase1/, lib/phase1_session/,
- *       tests/integration/v6_p1/。本层只"接线"，不新增科学公式：
+ *       eng/tests/integration/v6_p1/。本层只"接线"，不新增科学公式：
  *   - 校准 covariance  : astrocs::calibration::v6 (IMPL-P1-CAL-001)
  *   - PSF/A_NEA/epsf   : astrocs::v6::p1psfw::psf_information (IMPL-P1-PSFW-001)
  *   - W_info/Q/F_hat   : astrocs::v6::p1psfw::information_weight (IMPL-P1-PSFW-001)

@@ -29,7 +29,7 @@ downstream: [DATA-P1-SESSION, API-P1-SESSION, TEST-P1-SESSION-001]
   （PUBLIC_API「Phase1 装配会话 C API」节）/ 编排上游 API-P1-001
   （docs/api/PHASE1_API_V1.md FROZEN）。
 - 节点：canonical 4 段 io_read→calibrate→cosmetic→io_write
-  （p1_session.cpp:168/:195/:283/:319；tests/unit/p1_ir_facade_test.cpp:33-40
+  （p1_session.cpp:168/:195/:283/:319；eng/tests/unit/p1_ir_facade_test.cpp:33-40
   断言）；科学实现委托 ac_calibrate_frame（:243）/ac_correct_frame（:294）。
 - 外部输入：config JSON 键集（§16.1）/host services 四通道
   （common_abi_v1.h:110-117）/FITS·XISF 读帧/FITS 写帧。
@@ -39,5 +39,5 @@ downstream: [DATA-P1-SESSION, API-P1-SESSION, TEST-P1-SESSION-001]
   manifest 状态机 created→complete/failed。
 - 已知差距：API-P1-001 冻结 7-stage vs 现状 4 段（CAL+COS）——如实
   登记（README §3），补齐归 P1-SESSION-IMPL。
-- 测试：TEST-P1-SESSION-001=tests/unit/p1_ir_facade_test.cpp；生命周期
-  登记=tests/api/test_p1_api.py（API-003）。
+- 测试：TEST-P1-SESSION-001=eng/tests/unit/p1_ir_facade_test.cpp；生命周期
+  登记=eng/tests/api/test_p1_api.py（API-003）。

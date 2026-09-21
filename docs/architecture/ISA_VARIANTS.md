@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
 > ID: ARCH-ISA-001  状态: FROZEN  上游: ABI-003/05 §1-2  下游: BENCH-005(逐 kernel 选路)/ABI-002(manifest)
-> 原则(05 §1): 先 profile 证明热点→只为热点做变体→共享合同禁漂移→逐 kernel Oracle→无收益 NOT_SHIPPED 但须完整测量(见 artifacts/prerelease_v5/ISA-001/MEASUREMENTS.csv)。
+> 原则(05 §1): 先 profile 证明热点→只为热点做变体→共享合同禁漂移→逐 kernel Oracle→无收益 NOT_SHIPPED 但须完整测量(见 artifacts/evidence/prerelease-v5/ISA-001/MEASUREMENTS.csv)。
 
 ## 0 ISA-002 补充测量与决策(vm-bj, AVX(无 FMA)变体)
 
@@ -21,7 +21,7 @@
 
 - **决定性判读**: AVX 是 AVX2+FMA 的严格子集(指令集子集)。vm-bj 支持 AVX2+FMA, 而已 SHIP 的 `avx2_backend.so` 在受控热点(calibration/hips)的增益(+20.7%/+28.2%)严格高于 AVX(+11.1%/+25.4%)。故 AVX 无独立收益, 登记 **NOT_SHIPPED**; 选路保持 calibration/hips→avx2(ISA-001), 不机械堆砌更低档变体。
 - 若未来主机仅支持 AVX 而无 AVX2, 应在该主机复测后再决定(本任务 vm-bj 已具备 AVX2, 无法证明"AVX-only 主机"的选路; 记录为边界)。
-- 完整性: 测量工件 `artifacts/prerelease_v5/ISA-002/MEASUREMENTS.csv`。
+- 完整性: 测量工件 `artifacts/evidence/prerelease-v5/ISA-002/MEASUREMENTS.csv`。
 
 ## 1 测量环境与结论(vm-bj, 2 vCPU, AVX2+FMA+AVX512F 实测)
 
@@ -34,7 +34,7 @@
 | upm-spmv(512K nnz) | 1 980 485 | — | — | NOT_SHIPPED(gather 型, ISA 低收益候选) |
 | integration-accumulate(1M×3) | 3 876 266 | — | — | NOT_SHIPPED(同上) |
 
-- 方法: tests/backend/kernel_bench_main.cpp, median-of-5 计时×2 轮, baseline 取最优(对变体最保守); 变体=avx2_backend.cpp(-mavx2 -mfma, 共享 baseline_kernels_impl.inc 同一源, **零复制漂移**)。
+- 方法: eng/tests/backend/kernel_bench_main.cpp, median-of-5 计时×2 轮, baseline 取最优(对变体最保守); 变体=avx2_backend.cpp(-mavx2 -mfma, 共享 baseline_kernels_impl.inc 同一源, **零复制漂移**)。
 - SHIP 阈值: ≥+10% 且方向稳定; REMEASURE 带宽±10% 内交 BENCH-005。
 
 ## 1.5 ISA-003 AVX2+FMA 独立复测与 capability 登记(vm-bj)
@@ -49,7 +49,7 @@
 | hips-bulk-transform | 16 922 677 | 12 138 884 | **+28.3%** | **SHIP(avx2)** |
 | drizzle-accumulate | 2 608 074 | 2 974 195 | −14.0% | NOT_SHIPPED(变体更慢) |
 
-- 完整性: 测量工件 `artifacts/prerelease_v5/ISA-003/MEASUREMENTS.csv`。
+- 完整性: 测量工件 `artifacts/evidence/prerelease-v5/ISA-003/MEASUREMENTS.csv`。
 - 与 ISA-002"AVX NOT_SHIPPED"判读一致: AVX2+FMA 是受控热点的最优 SHIP 档; AVX(无FMA)被其严格主导。ISA-004(AVX512)/ISA-005(BMI2/POPCNT)属 Windows 域, 本机不评估。
 
 ## 1.6 ISA-004 AVX512 复测与判定(vm-bj)
@@ -66,7 +66,7 @@
 | drizzle-accumulate | 2 555 247 | 3 129 703 | −22.5% | −14.0% | NOT_SHIPPED(变体更慢) |
 
 - **判定**: AVX512 在受控热点上**(a)** 无超越 AVX2+FMA 的收益(hips 同档 +29.5% vs +28.3%; calibration +3.8% 反而远低), **(b)** AVX512F 存在已知 downclock/功耗-频率风险(WIN-003 亦需检查)。按 05 §3 "capability 与热点对应; 无机械指令集堆砌" → 登记 **NOT_SHIPPED**(完整测量在案, 非空判定)。
-- 完整性: 测量工件 `artifacts/prerelease_v5/ISA-004/MEASUREMENTS.csv`。Windows(/arch:AVX512) FATDUCK 复验+downclock 检查仍在 WIN-003/WIN-00x 域; 本任务已提供 Linux 侧完整测量证据。
+- 完整性: 测量工件 `artifacts/evidence/prerelease-v5/ISA-004/MEASUREMENTS.csv`。Windows(/arch:AVX512) FATDUCK 复验+downclock 检查仍在 WIN-003/WIN-00x 域; 本任务已提供 Linux 侧完整测量证据。
 
 ## 2 变体注册(05 §5 capability)
 

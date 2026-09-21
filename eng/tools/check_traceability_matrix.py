@@ -58,10 +58,10 @@ def extract_paths(field: str) -> list[str]:
     例子:
       "lib/algorithms/psf/src/dpsf_psf.cpp::moffat4_fit_tmpl,lm_solve"
           -> ["lib/algorithms/psf/src/dpsf_psf.cpp"]
-      "lib/algorithms/psf/tests/p1psf (ctest p1psf_units/p1psf_oracle) + tests/backend/x.py"
-          -> ["lib/algorithms/psf/tests/p1psf", "tests/backend/x.py"]
-      "生产源 lib/algorithms/noise_snr/cpp/src/noise_model.cpp; tests/unit/CMakeLists.txt:528 add_subdirectory"
-          -> ["lib/algorithms/noise_snr/cpp/src/noise_model.cpp", "tests/unit/CMakeLists.txt"]
+      "lib/algorithms/psf/tests/p1psf (ctest p1psf_units/p1psf_oracle) + eng/tests/backend/x.py"
+          -> ["lib/algorithms/psf/tests/p1psf", "eng/tests/backend/x.py"]
+      "生产源 lib/algorithms/noise_snr/cpp/src/noise_model.cpp; eng/tests/unit/CMakeLists.txt:528 add_subdirectory"
+          -> ["lib/algorithms/noise_snr/cpp/src/noise_model.cpp", "eng/tests/unit/CMakeLists.txt"]
     """
     if not isinstance(field, str) or not field.strip() or field.strip() == "MISSING":
         return []
@@ -175,7 +175,7 @@ def _row(mid: str, **kw) -> dict:
         "module_anchor": "docs/modules/registry/astrocs.phase1.star-psf.md",
         "src_path": "lib/algorithms/psf/src/dpsf_psf.cpp::moffat4_fit_tmpl",
         "src_status": "VERIFIED",
-        "test_id": "TEST-SELFTEST-001", "test_path": "tests/backend/test_psf_moffat_oracle.py",
+        "test_id": "TEST-SELFTEST-001", "test_path": "eng/tests/backend/test_psf_moffat_oracle.py",
         "test_status": "VERIFIED",
         "evidence_id": "EVID-SELFTEST-001", "evidence_status": "VERIFIED",
         "notes": "self-test synthetic row",
@@ -209,7 +209,7 @@ def self_test(root: str, outdir: str, matrix_real: str) -> int:
          "RULE-C"),
         ("GOOD_control",
          _row("MOD-selftest-good", test_path=good_dir + " (ctest p1psf_units/p1psf_oracle) + "
-              "tests/backend/test_psf_moffat_oracle.py"),
+              "eng/tests/backend/test_psf_moffat_oracle.py"),
          "NONE"),
     ]
     print(f"SELFTEST dir={outdir} cases={len(cases)} (真实 CLI 子进程复算)")

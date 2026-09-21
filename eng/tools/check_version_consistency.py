@@ -13,12 +13,12 @@ exit 0 = PASS; 任何伪造/漂移版本字面量 => 非 0 (mutation 必须失�
 `"retire_after": "X.Y.Z"` 是**前向生命周期边界**(该字段的语义就是"在此版本之后退出"),
 不是"产品当前版本 = X.Y.Z"的声明 ⇒ 与唯一版本源比较是错口径 —— 现行实测
 `docs/contracts/unified_object_registry.json`(20 处) 与
-`contracts/data/unified_object_compatibility_map_v1.json`(17 处) 的
+`eng/contracts/data/unified_object_compatibility_map_v1.json`(17 处) 的
 `retire_after: "0.12.0"` 使本扫描器在真仓恒 FAIL(49 条), 遮蔽了
 `UT-VERSION` 的 test_04/test_13。口径仍只准更精确: 只挖 **JSON 字段形态**
 `"<生命周期键>": "<X.Y.Z>"` 的**值本身**, 同文件内任何其它版本字面量
 (含同一 JSON 对象里的 `"product_version"`/`"doc_version"` 等产品版本声明)
-照旧必须等于唯一源基础号(见 tests/version/test_version_consistency.py 的
+照旧必须等于唯一源基础号(见 eng/tests/version/test_version_consistency.py 的
 lifecycle boundary 正/负例)。
 """
 import os, re, subprocess, sys
@@ -26,7 +26,7 @@ import os, re, subprocess, sys
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 BASE_RE = re.compile(r"(?<![\w.])(\d+\.\d+\.\d+)(?![\d.])")  # 排除 127.0.0.1 等 IP/更长子串
 PRERELEASE_BAD = re.compile(r"\b\d+\.\d+\.\d+-(stable|rc|beta)\b", re.IGNORECASE)
-SCAN_ROOTS = ["docs", "contracts/schemas", "tests"]
+SCAN_ROOTS = ["docs", "eng/contracts/schemas", "tests"]
 # CHANGELOG.md 是 history 命名空间驻留点 (GOV-003 §2/§4, 与 eng/ci/check_version.py
 # [5] 口径一致): 条目记录"当时的版本号"属天然历史事实, 不进本检查。
 SCAN_FILES = ["eng/build/build.sh", "eng/build/toolchain.ps1", "README.md", "VERSION",
@@ -39,7 +39,7 @@ TEST_FIXTURES = {  # 单元测试合成数据文件: 内含 semver 解析/比较
     os.path.join("tests", "artifact", "test_provenance.py"),  # parse_version/version_gt 等合成版本
     os.path.join("tests", "abi", "test_secure_loader.py"),  # loader 探针 fixture 0.0.0-test 等非法版本样本
     # W4-A3 实测残余: 硬件探针默认 build 串 (0.0.0-alpha.0+g000000000000) 与
-    # tests/config/fixtures/** 的 cpu_profile 负例/正例合成数据 (0.1.0-alpha.1) ——
+    # eng/tests/config/fixtures/** 的 cpu_profile 负例/正例合成数据 (0.1.0-alpha.1) ——
     # 都是"旧世代合成 token", 不是活动文档里的产品版本声明。
     os.path.join("tests", "backend", "test_hardware_inspect.py"),
 }
@@ -202,7 +202,7 @@ def check_file(path, base_num, alpha_n, errors):
         return  # mutation/probe/合成数据测试样本文件(内含故意伪造或合成版本 token)
     for _d in TEST_FIXTURE_DIRS:
         if rel == _d or rel.startswith(_d + os.sep):
-            return  # 目录级合成数据面(tests/config/fixtures/**)
+            return  # 目录级合成数据面(eng/tests/config/fixtures/**)
     alpha_full = re.compile(r"(\d+\.\d+\.\d+)-alpha\.(\d+)")
     # 生命周期列口径 (W4-A3): 合同文档里 "退役窗口 / retire_after" 表格列同样是
     # **前向边界**语义(该列的取值定义"何时退出", 天然 != 当前基础号)。表头命中

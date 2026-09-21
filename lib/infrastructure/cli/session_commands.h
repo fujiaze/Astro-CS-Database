@@ -106,11 +106,11 @@ inline const InputContract& input_contract(SessionId s) {
 //                               与字段说明」；root-scan CLI-11）
 // json == nullptr 的字段只进说明、不进模板（例如 wcs：显式 WCS 与 gaia_data_dir
 // 二选一，模板不替用户填任何天测值 —— 伪造 WCS 会静默污染真实数据）。
-// 科学默认值不写进模板（唯一家在程序根 config/defaults.json），表中出现的字面量
+// 科学默认值不写进模板（唯一家在程序根 eng/packaging/config/defaults.json），表中出现的字面量
 // 只有「结构骨架」与显式无默认要求键（如 drizzle.precision_mode）。
 // FIX-203 例外（唯一，逐条登记）：提升键 snr_path / rotation_deg 的模板值取自
 // **合同已登记的默认**（phase_config_mosaic.schema.json#snr_path.default +
-// config/defaults.json#snr.path；14_projection.md:38 rotation 默认 0），目的是让
+// eng/packaging/config/defaults.json#snr.path；14_projection.md:38 rotation 默认 0），目的是让
 // 合同键在 --template 里可见（FIX-203 步骤 5 / 验收门：模板必须含新键）；默认值的
 // 唯一家仍是 schema / defaults.json，本表只是显示，不新增第二份来源。
 // crpix_px 的 [512.5, 512.5] 是随模板几何（1024×1024）推出的示例占位，非数值默认。
@@ -170,7 +170,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "docs/algorithms/DRIZZLE_GEOMETRY.md §3），显式填 nside 或 nside.mode 则按 explicit 校验；"
          "precision_mode 必须显式 0=FP32/1=FP64（无 silent 缺省）", "block"},
         {"filter_passband", "\"Baader R\"",
-         "观测滤镜/波段标识（空 = 显式无 filter；非空必须逐字命中 config/filters.json）；"
+         "观测滤镜/波段标识（空 = 显式无 filter；非空必须逐字命中 eng/packaging/config/filters.json）；"
          "本块整组 light 共用（§9.68）", "block"},
         {"wcs", "{\"gaia_data_dir\": \"path/to/gaia\"}",
          "指向来源与解算输入：填 wcs.gaia_data_dir 走真实 IPV 解算；"
@@ -187,8 +187,8 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         // FIX-203（GAP_AUDIT G05；ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 不认的提升键落地。键名**逐字**取合同
         // 声明名（禁止新造同义键）：
-        //   contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
-        // 模板值 = 合同默认 sparse_reconstruct（schema default 与 config/defaults.json#snr.path
+        //   eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
+        // 模板值 = 合同默认 sparse_reconstruct（schema default 与 eng/packaging/config/defaults.json#snr.path
         // 同值；本表只作可运行骨架，默认值唯一家仍是 schema/defaults.json，不构成第二份来源）。
         // ⚠ 生产科学消费点尚未落地（Phase2 SNR 消费 = FIX-SCI-SNR-CANON-001 §4.2 跟随项）
         //   ⇒ 已在 eng/ci/ledgers/dead_config_keys.json 登记为「合同声明但生产零读取」，不得静默 no-op。
@@ -223,7 +223,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"scale_deg_per_px", "0.001", "输出像素尺度（度/像素，必须 > 0）"},
         // FIX-203（GAP_AUDIT N03；ASTROCS_DESIGN §3.3 键名以 CLI 实际认的键为准）：
         // 合同声明但 CLI 不认的提升键落地。键名**逐字**取合同声明名（禁止新造同义键）：
-        //   contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
+        //   eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 平铺顶层与 CLI export 既有几何键（center / scale_deg_per_px / width_px / height_px）同面
         // —— 三命令通用输入合同「块内运行参数平铺、取消 config 子对象」。
         // rotation_deg 模板值 0.0 = 合同默认（docs/plugins/algorithms_phase3/14_projection.md:38）。

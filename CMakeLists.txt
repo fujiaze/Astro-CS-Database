@@ -2,10 +2,10 @@
 # ── 契约 (BLD-002 唯一根 CMake 构建图) ──
 # 1) 本文件是仓库唯一 project() 与唯一产品事实源: 产品可执行 astrocs 只在此声明
 #    (add_executable(astrocs ...)), 显式源列表, 禁 GLOB (QA-002)。
-# 2) 子目录 CMakeLists 只声明本模块 target (tests/unit 为测试, 见文末 add_subdirectory)。
+# 2) 子目录 CMakeLists 只声明本模块 target (eng/tests/unit 为测试, 见文末 add_subdirectory)。
 # 3) 旧 CLI 兼容子图的 CMakeLists（仓库根遗留, 非产品事实源; 其路径同步归 INT-001）与
 #    lib/algorithms/coverage/CMakeLists.txt 已降级为 compatibility 声明 (BLD-002): 保留给
-#    遗留 tests/cli 独立构建与模块自测/工具按需构建, 禁止正式 install; 产品安装/发布
+#    遗留 eng/tests/cli 独立构建与模块自测/工具按需构建, 禁止正式 install; 产品安装/发布
 #    构建一律以本文件为入口。
 # 4) 正式构建入口: 本文件 (Windows preset win-msvc-17.14.39-x64 / Linux linux-control)。
 cmake_minimum_required(VERSION 3.24)
@@ -68,10 +68,10 @@ file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h
   "#define ASTROCS_COMMIT_SHA \"${ASTROCS_GIT_COMMIT}\"\n")
 
 # ── G-RES-01 数值唯一源 (GATE-FIX-RES / R-4 D-11) ────────────────────────────
-# 阈值不得在 C++ 里复制字面量: 由 contracts/resource_gate_v1.json 生成
+# 阈值不得在 C++ 里复制字面量: 由 eng/contracts/resource_gate_v1.json 生成
 # resource_gate_thresholds_generated.h (CMake >= 3.19 string(JSON), 无额外依赖)。
 # 判据语义权威: docs/plugins/infrastructure/21_observability.md §8。
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/contracts/resource_gate_v1.json ASTROCS_RESOURCE_GATE_JSON)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/eng/contracts/resource_gate_v1.json ASTROCS_RESOURCE_GATE_JSON)
 string(JSON ASTROCS_RG_APPLICABILITY GET "${ASTROCS_RESOURCE_GATE_JSON}" applicability)
 string(JSON ASTROCS_RG_COMPUTE GET "${ASTROCS_RESOURCE_GATE_JSON}" compute)
 string(JSON ASTROCS_RG_MEMORY GET "${ASTROCS_RESOURCE_GATE_JSON}" memory)
@@ -124,7 +124,7 @@ endif()
 # core/contracts: 公共类型 (DATA/API/MOD)
 add_library(astrocs_contracts INTERFACE)
 target_include_directories(astrocs_contracts INTERFACE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/include)
 
 # io adapter (IO-001: 依赖方向 core <- io; 不 include 平台 runtime 模块)
@@ -134,7 +134,7 @@ target_include_directories(astrocs_contracts INTERFACE
 # 本 STATIC 为 legacy 文件适配器 (ArtifactTransaction/FileIoAdapter, IO-001),
 # 保留原名会导致 target 重名 (CMake fatal)。
 add_library(astrocs_io_adapter STATIC lib/infrastructure/aio/io/src/io_adapter.cpp)
-target_include_directories(astrocs_io_adapter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(astrocs_io_adapter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
 
 # ── BLD-003 平台 SHARED 骨架 (G2: SHARED astrocs_runtime/io/noop/baseline targets) ──
@@ -146,7 +146,7 @@ target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
 #     使 target 真实可编译、可安装、可被 ABI-003 loader 加载验证;
 #     loader/registry/DAG/scheduler/ArtifactStore 接线由 ABI-003/004 与
 #     RT-002 等后续向本 target 追加源, 本任务不伪装平台实现完成。
-#   - astrocs_noop: conformance module SHARED (tests/conformance/noop),
+#   - astrocs_noop: conformance module SHARED (eng/tests/conformance/noop),
 #     仅可加载性骨架 (SKELETON), 语义由 ABI-005 填充; 见其 README。
 #   - astrocs_cpu_baseline: baseline backend DSO。Linux 以 legacy backend
 #     ABI 源 (baseline_backend.cpp, SA-CPU-09 已有) 编译为 .so 技术预览,
@@ -162,7 +162,7 @@ target_link_libraries(astrocs_io_adapter PUBLIC astrocs_core)
 # (C 源, 导出全部顶层 API; ABI-006 收紧为精确导出清单, 正式 DLL 由 WIN-* 复核)。
 add_library(astrocs_runtime SHARED lib/infrastructure/aio/runtime/artifact_store/artifact_abi_v1.c)
 target_include_directories(astrocs_runtime PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 if(MSVC)
   set_property(TARGET astrocs_runtime PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 else()
@@ -175,7 +175,7 @@ endif()
 # astrocs_io: io 平台 DLL 骨架 (FITS stream C ABI, IO-001 冻结源)
 add_library(astrocs_io SHARED lib/infrastructure/aio/io/fits_core.c)
 target_include_directories(astrocs_io PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/io/include)
 if(MSVC)
   set_property(TARGET astrocs_io PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -198,8 +198,8 @@ if(NOT WIN32)
 endif()
 
 # astrocs_noop: conformance module SHARED (模块 CMakeLists 只声明本 target,
-# BLD-002: 子目录 CMakeLists 非产品事实源; 见 tests/conformance/noop/README)
-add_subdirectory(tests/conformance/noop)
+# BLD-002: 子目录 CMakeLists 非产品事实源; 见 eng/tests/conformance/noop/README)
+add_subdirectory(eng/tests/conformance/noop)
 
 # astrocs_catalog_gaia: GAIA XPSD catalog service module DLL (CAT-GAIA-IMPL;
 # 矩阵行 astrocs.catalog.gaia / astrocs_catalog_gaia.dll)。唯一导出
@@ -264,10 +264,10 @@ add_subdirectory(lib/algorithms/drizzle/hips)
 add_library(astrocs_cpu_baseline SHARED
   lib/infrastructure/benchmark/backend_host/baseline_backend.cpp)
 target_include_directories(astrocs_cpu_baseline PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/benchmark/backend_host
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared/crypto
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party)
 if(MSVC)
   set_property(TARGET astrocs_cpu_baseline PROPERTY WINDOWS_EXPORT_ALL_SYMBOLS ON)
 else()
@@ -304,8 +304,8 @@ add_library(astrocs_core STATIC
   # manifest 与 P3 writer/verify 节点共用同一实现（无第二份口径）。
   lib/infrastructure/scheduler/src/canonical_hash.cpp)
 target_include_directories(astrocs_core PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party)
 # CLEAN-403: canonical_hash.cpp 的文件读取/存在性/头部探测/流式读取经 aio 机制
 # 原语 (aio_atomic_file.h / aio_file_io.h, header-only)。仅 PRIVATE include 面:
 # 不新增链接依赖, core 依赖图仍不含 cfitsio / 产品 IO 库 (原注释语义不变)。
@@ -378,7 +378,7 @@ if(MSVC)
   target_include_directories(astrocs_cfitsio PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/eng/cmake/win32_pthread_shim)
   target_link_libraries(astrocs_cfitsio PUBLIC kernel32)  # SRWLock API (shim)
-  set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH "MSVC zlib install root (include/zlib.h + lib/<zlib>.lib)；hosted runner 经 vcpkg 注入 env")
+  set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH "MSVC zlib install root (lib/include/zlib.h + lib/<zlib>.lib)；hosted runner 经 vcpkg 注入 env")
   if(ACS_ZLIB_ROOT)
     # HOSTFIX-23④ (run 34039050194): env 层确定性优先 —— hosted runner 的
     # "Provide zlib (vcpkg)" 步骤列出 installed/x64-windows-static-md/lib 下
@@ -398,7 +398,7 @@ if(MSVC)
     endif()
   endif()
   if(ACS_ZLIB_ROOT)
-    target_include_directories(astrocs_cfitsio PRIVATE "${ACS_ZLIB_ROOT}/include")
+    target_include_directories(astrocs_cfitsio PRIVATE "${ACS_ZLIB_ROOT}/lib/include")
     target_link_libraries(astrocs_cfitsio PUBLIC "${ACS_ZLIB_LIBRARY}")
   endif()
 else()
@@ -411,7 +411,7 @@ target_compile_definitions(astrocs_cfitsio PRIVATE _REENTRANT)
 # MOD-001 (F-AIO-003 生产接线): aio_abi.cpp (AIO-001 交付的唯一 AIO C ABI v1
 # 实现, aio_abi_query_v1/aio_content_hash_*_v1) 自本任务起编入生产 target
 # astrocs_aio (AIO 正统归属; 此前仅测试面直编, 生产接线缺口登记于 HANDOVER
-# F-AIO-003 → MOD-001)。仓库根 include/ 以 PRIVATE 引入 (仅本 target 编译
+# F-AIO-003 → MOD-001)。仓库根 lib/include/ 以 PRIVATE 引入 (仅本 target 编译
 # aio_abi.cpp 需要 astrocs/io/aio_abi_v1.h, 不扩大下游 include 面)。
 add_library(astrocs_aio STATIC
   lib/infrastructure/aio/src/aio_fits.cpp
@@ -422,13 +422,13 @@ add_library(astrocs_aio STATIC
   lib/infrastructure/aio/src/aio_pipeline.cpp
   lib/infrastructure/aio/src/aio_abi.cpp)
 target_include_directories(astrocs_aio PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 target_include_directories(astrocs_aio PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/third_party/cfitsio
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party)
 target_compile_definitions(astrocs_aio PRIVATE AIO_ENABLE_FITS AIO_ENABLE_XISF)
 if(MSVC AND ACS_ZLIB_LIBRARY)
   target_link_libraries(astrocs_aio PUBLIC astrocs_common astrocs_cfitsio "${ACS_ZLIB_LIBRARY}")
@@ -581,7 +581,7 @@ target_include_directories(astrocs_cpu PUBLIC
   # CLEAN-403: backend_host 各 TU 的文件读写经 aio 机制原语 (header-only)。
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party)
 target_link_libraries(astrocs_cpu PUBLIC astrocs_contracts astrocs_common)
 
 # CPU-001 (G3): 独立 provider 变体 target — 真实独立编译单元 (05 §2)
@@ -609,10 +609,10 @@ target_link_libraries(astrocs_cpu_avx512 PUBLIC astrocs_contracts astrocs_common
 # phase1 wcs + photometry (P1-004)
 add_library(astrocs_phase1_wcs STATIC lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp)
 target_include_directories(astrocs_phase1_wcs PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/platesolve/wrapper_phase1 ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/platesolve/wrapper_phase1 ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 add_library(astrocs_phase1_phot STATIC lib/algorithms/photometry/wrapper_phase1/photometer.cpp)
 target_include_directories(astrocs_phase1_phot PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/wrapper_phase1 ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/photometry/wrapper_phase1 ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 target_link_libraries(astrocs_phase1_phot PUBLIC astrocs_contracts)
 
 # RELEASE-02 FIX-P1 (P1-1): Phase1 测光定标生产库 astrocs_phase1_photcal
@@ -638,7 +638,7 @@ target_include_directories(astrocs_phase1_photcal PUBLIC
   # (aio_file_io.h, header-only) ⇒ 需要 aio/src 与 shared include 面。
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/shared
-  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 target_link_libraries(astrocs_phase1_photcal PUBLIC astrocs_contracts astrocs_p1_ipv)
 if(UNIX AND OpenMP_CXX_FOUND)
   target_link_libraries(astrocs_phase1_photcal PUBLIC OpenMP::OpenMP_CXX)
@@ -667,7 +667,7 @@ target_include_directories(astrocs_phase1_noise PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/wrapper_phase1
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/cpp/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/noise_snr/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 target_link_libraries(astrocs_phase1_noise PUBLIC astrocs_contracts)
 # P10-UTIL2-007: 噪声统计 (median/MAD 次序统计量选择) 与逐源 SNR 聚合使用 OpenMP。
 # 无 OpenMP 时 #pragma omp 被忽略 -> 串行回退且结果逐位不变; 线程数不在本库
@@ -681,7 +681,7 @@ endif()
 add_library(astrocs_phase1_stars STATIC lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp)
 target_include_directories(astrocs_phase1_stars PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/star_detection/wrapper_phase1
-  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 target_link_libraries(astrocs_phase1_stars PUBLIC astrocs_contracts)
 # P2 (PSF-DET-001/PSF-BG-001): 检测器扫描/逐像素转换用 OpenMP。无 OpenMP 时
 # #pragma omp 被忽略 → 串行回退且结果逐位不变; 线程数不在本库硬编码
@@ -712,7 +712,7 @@ target_include_directories(astrocs_p1_ipv PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/include
   # CLEAN-403: ipv_log.h 的日志追加写经 aio 机制原语 (aio_atomic_file.h)。
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
-  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)
 target_link_libraries(astrocs_p1_ipv PUBLIC z Threads::Threads)
 set_property(SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
   PROPERTY C_STANDARD 11)
@@ -822,11 +822,11 @@ add_subdirectory(lib/infrastructure/cli)
 # app/astrocs_cli: 薄 CLI (显式链接各库; 无 GLOB; ACR 不链)
 # RT-008: main.cpp 仅入口壳; parser/commands/runtime_client 为独立编译单元
 # B8-P1: lib/infrastructure/cli/process.cpp — 跨平台子进程封装(argv 传参, 替代 std::system 拼接族),
-#   同时以 astrocs_cli_process 静态库形式供 tests/unit 共址单测链接。
+#   同时以 astrocs_cli_process 静态库形式供 eng/tests/unit 共址单测链接。
 add_library(astrocs_cli_process STATIC lib/infrastructure/cli/process.cpp)
 target_include_directories(astrocs_cli_process PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party)
 
 add_executable(astrocs
   # G-RES-01 生成头显式声明为构建输入（不依赖"碰巧已生成"）。
@@ -902,8 +902,8 @@ add_library(astrocs_module_adapters STATIC
 # B2-A10(宪章 §4.3): 节点 manifest 自报 module build ID = module_id@软件版本;
 # 版本单源 = 构建期 version_generated.h (与 CLI 共用同一生成头)。
 target_include_directories(astrocs_module_adapters PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party
   ${CMAKE_CURRENT_BINARY_DIR}
   # RELEASE-02 权重链公共头 (astrocs/v6/weight_chain.h)
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/algorithms/integration/v6/include)
@@ -937,8 +937,8 @@ target_compile_definitions(astrocs_module_adapters PUBLIC AIO_ENABLE_HEALPIX=1)
 add_library(astrocs_cli_runtime STATIC lib/infrastructure/cli/runtime_client.cpp)
 target_include_directories(astrocs_cli_runtime PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/cli
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party)
 target_link_libraries(astrocs_cli_runtime PUBLIC
   astrocs_core astrocs_module_adapters)
 
@@ -969,40 +969,40 @@ add_subdirectory(lib/algorithms/integration/v6)
 if(ASTROCS_BUILD_TESTS)
   enable_testing()
   # W4-A9 批次 1: projection 共址测试 (p3_wcs_test / ctest 名 p3_wcs) 必须先于
-  # tests/unit 注册 —— tests/unit/p1wcs/CMakeLists.txt 的 p1wcs_std_f1_bridge_cross
+  # eng/tests/unit 注册 —— eng/tests/unit/p1wcs/CMakeLists.txt 的 p1wcs_std_f1_bridge_cross
   # 以 $<TARGET_FILE:p3_wcs_test> 引用该目标 (STD-F1 导出边界第三方交叉)。
   # 目标名与 ctest 名相对迁移前不变, 外部引用零改动。
   add_subdirectory(lib/algorithms/projection/tests/p3wcs)
   # ORCH-001 批次 1: 编排层共址测试注册（改前 ctest -N | grep -ci orchestrator = 0）。
   # 必须在 enable_testing() 之后: 目标库本体已在 add_subdirectory(ORCH 模块) 声明。
   add_subdirectory(lib/infrastructure/pipeline/orchestrator/cpp/tests)
-  add_subdirectory(tests/unit)
+  add_subdirectory(eng/tests/unit)
   # V3 B3-A4 (RESCUE-P1-13/P1-16): Phase2 主科学门进全量 ctest。
   # lib/algorithms/coverage/tests/* 的六个 gtest 目标 (synthetic_gate / ivar_wiring /
   # execution_options / routing / sampler_parallel / async_io) 此前从不进根
-  # 图 —— ctest -N | grep -i synthetic 只剩 tests/unit 的 p2_upm_synthetic
+  # 图 —— ctest -N | grep -i synthetic 只剩 eng/tests/unit 的 p2_upm_synthetic
   # 单点。子目录自带 find_package(GTest QUIET); GTest 缺失时这些目标零注册,
   # 故 CI 供应 libgtest-dev 以保证有真实执行面 (不得静默零测试)。
   add_subdirectory(lib/algorithms/coverage)
 
   # ── V6 (AR-033 / C-004.4): V6 测试目标统一注册 ────────────────────────
-  # tests/unit/v6_*: Wave 5 共址单元测试（9 个）；tests/integration/v6_{p1,p2,p3}:
-  # Wave 7/8 产品链集成；tests/system/v6_runtime: Wave 9 运行面。
+  # eng/tests/unit/v6_*: Wave 5 共址单元测试（9 个）；eng/tests/integration/v6_{p1,p2,p3}:
+  # Wave 7/8 产品链集成；eng/tests/system/v6_runtime: Wave 9 运行面。
   # 均只依赖上方已定义的 V6 库目标与 astrocs_phase2，故置于 lib/algorithms/coverage 之后。
-  add_subdirectory(tests/unit/v6_aio v6_aio)
-  add_subdirectory(tests/unit/v6_p1_cal v6_p1_cal)
-  add_subdirectory(tests/unit/v6_p1_drz v6_p1_drz)
-  add_subdirectory(tests/unit/v6_p1_psfw v6_p1_psfw)
-  add_subdirectory(tests/unit/v6_p2_rej v6_p2_rej)
-  add_subdirectory(tests/unit/v6_p2_samp v6_p2_samp)
-  add_subdirectory(tests/unit/v6_p2_upm v6_p2_upm)
-  add_subdirectory(tests/unit/v6_p2_sky v6_p2_sky)
-  add_subdirectory(tests/unit/v6_p3_proj v6_p3_proj)
-  add_subdirectory(tests/unit/v6_p3_rsmp v6_p3_rsmp)
-  add_subdirectory(tests/integration/v6_p1 v6_p1_integration)
-  add_subdirectory(tests/integration/v6_p2 v6_p2_integration)
-  add_subdirectory(tests/integration/v6_p3 v6_p3_integration)
-  add_subdirectory(tests/system/v6_runtime v6_runtime)
+  add_subdirectory(eng/tests/unit/v6_aio v6_aio)
+  add_subdirectory(eng/tests/unit/v6_p1_cal v6_p1_cal)
+  add_subdirectory(eng/tests/unit/v6_p1_drz v6_p1_drz)
+  add_subdirectory(eng/tests/unit/v6_p1_psfw v6_p1_psfw)
+  add_subdirectory(eng/tests/unit/v6_p2_rej v6_p2_rej)
+  add_subdirectory(eng/tests/unit/v6_p2_samp v6_p2_samp)
+  add_subdirectory(eng/tests/unit/v6_p2_upm v6_p2_upm)
+  add_subdirectory(eng/tests/unit/v6_p2_sky v6_p2_sky)
+  add_subdirectory(eng/tests/unit/v6_p3_proj v6_p3_proj)
+  add_subdirectory(eng/tests/unit/v6_p3_rsmp v6_p3_rsmp)
+  add_subdirectory(eng/tests/integration/v6_p1 v6_p1_integration)
+  add_subdirectory(eng/tests/integration/v6_p2 v6_p2_integration)
+  add_subdirectory(eng/tests/integration/v6_p3 v6_p3_integration)
+  add_subdirectory(eng/tests/system/v6_runtime v6_runtime)
 endif()
 
 # ── QA-006: linux-deep 附加质量目标 (V8-CI-005; 默认 OFF, 仅 linux-deep CI 开) ──
@@ -1043,7 +1043,7 @@ if(NOT WIN32 AND NOT MSVC)
       # (Fitsio_Pthread_Status, fitsio2.h FFLOCK/FFUNLOCK 宏, 上游固有模式)
       # — 仓库既有先例 eng/tools/quality/tsan/cfitsio.supp (QA-002, 仅限第三方
       # 符号)。全量 ctest 环境统一挂载 (与下方 ASan 分支 ASAN_OPTIONS 同
-      # 模式); 路径取 qa-sanitize 子 build 树副本 (tests/unit configure 时
+      # 模式); 路径取 qa-sanitize 子 build 树副本 (eng/tests/unit configure 时
       # 生成, 不含空格) — sanitizer flag 解析按空白切 token, 源树路径含
       # 空格会破坏 TSAN_OPTIONS。非 TSan 构建不消费该环境变量, 无副作用。
       set(_QA_SAN_ENV ${CMAKE_COMMAND} -E env

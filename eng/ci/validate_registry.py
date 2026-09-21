@@ -88,7 +88,7 @@ def _collect_test_files(root: pathlib.Path, pattern: str) -> list[pathlib.Path]:
 def _discover_case_gap(where: str, target: pathlib.Path, cmd: list[str]) -> list[str]:
     """R11：unittest discover 目录不得 0 用例, 且直跑验收脚本必须可被采集。
 
-    M8-F-001 根因: tests/abi 的四个验收脚本 (main() + sys.exit(main())) 无
+    M8-F-001 根因: eng/tests/abi 的四个验收脚本 (main() + sys.exit(main())) 无
     TestCase 类, discover 只收到 0 用例却记 PASS; 纯"目录用例数>0"无法发现
     (同目录另有 abi002 的 18 例)。故两条判据并用:
       1) 目录采集用例数 == 0 → 门空转;

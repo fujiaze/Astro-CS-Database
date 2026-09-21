@@ -17,7 +17,7 @@
 
 - **输入**：定标信号、variance/ivar、validity、PSF 模型、WCS、检测目录、配置。
 - **输出**：源通量 `F`、通量方差 `Var(F)`、`a_k`（光度响应）及其不确定度、颜色项、有效域、测光 flags。
-- 参考：`contracts/schemas/photometry_output.schema.json`。
+- 参考：`eng/contracts/schemas/photometry_output.schema.json`。
 
 ## 4. 算法与公式要点
 

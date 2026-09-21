@@ -107,7 +107,7 @@ writer.write(calibrated_array, "output/calibrated.fits",
 
 ```
 astro_image_io/
-├── include/
+├── lib/include/
 │   ├── astro_image_io.h        # C API 主头文件（FITS/XISF + 压缩 + .ahpx + Pipeline）
 │   ├── aio_pipeline.h          # PipelineFrame 数据结构 + 内存管理 + XML 导出
 │   └── aio_pipeline_engine.h   # 管线编排引擎（阶段注册/调度/批量并行）

@@ -36,7 +36,7 @@
 
 ## 4. 双词表映射建议（**已取代**：W6 `SCHEMA-INTEGRATE-001` 已归一；2026-09-20）
 
-> ⚠ **本节已作废（2026-09-20）**：原文标题「双词表映射建议（归 W6 SCHEMA-INTEGRATE-001 归一，不发明第三套）」所述「**待** W6 归一」状态已结束——两套词表已归一为**单一权威 schema**，机器事实源 `contracts/data/v6_weight_vocabulary_v1.json`（`status=PRODUCTION_INTEGRATED`），canonical = `weight.kind` / `weight.units` / `weight.group_normalized`；别名只存在于迁移层 reader 规则（依据 `W6_SCHEMA_INTEGRATION.md:29,38,104`）。下表仅作**历史留痕**，不得再作为现行映射依据。
+> ⚠ **本节已作废（2026-09-20）**：原文标题「双词表映射建议（归 W6 SCHEMA-INTEGRATE-001 归一，不发明第三套）」所述「**待** W6 归一」状态已结束——两套词表已归一为**单一权威 schema**，机器事实源 `eng/contracts/data/v6_weight_vocabulary_v1.json`（`status=PRODUCTION_INTEGRATED`），canonical = `weight.kind` / `weight.units` / `weight.group_normalized`；别名只存在于迁移层 reader 规则（依据 `W6_SCHEMA_INTEGRATION.md:29,38,104`）。下表仅作**历史留痕**，不得再作为现行映射依据。
 
 | 语义 | SCI-PSFW 词表 | SCI-P2 词表 |
 |---|---|---|

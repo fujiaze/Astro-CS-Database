@@ -182,6 +182,6 @@ JSONL，按 LOG-001 合同做适配（本任务交付 CSV + 指纹 + 校验闭�
 
 - 依据：`ASTROCS_DESIGN.md` §9 + 本文件 + `docs/DOCUMENT_INDEX.yaml` 登记
 - LOG-001：`docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md`
-- RT-006：`include/astrocs/core/contracts.h` TraceEvent、
+- RT-006：`lib/include/astrocs/core/contracts.h` TraceEvent、
   `lib/infrastructure/pipeline/trace_replay.py`
 - 控制包标准：`14_RUNTIME_SCHEDULER_AND_TRACE_STANDARD.md` §4/§5

@@ -20,7 +20,7 @@
 
 - **输入**：Phase1 产品组、coverage、星点掩膜、光度控制点、天光背景采样点（每点带值/variance/SNR 权重）。
 - **输出**：每帧**加性**校正场参数（8×8 control cell 的 `C_f`；等价表示为**公共参考天光面系数 `B_ref` + 每帧平缓梯度修正系数 `δ_k`**）及协方差、gauge 约束、秩/连通性/条件数、加权残差 RMS、拟合质量三元组（见 §4.6）；施加归一化后的产品（**施加量 = `δ_k`**，`B_ref` 保留）。**不输出** `g_k`（本期恒等）。
-- 参考：`contracts/schemas/upm_output.schema.json`。
+- 参考：`eng/contracts/schemas/upm_output.schema.json`。
 
 ## 4. 算法与公式要点
 

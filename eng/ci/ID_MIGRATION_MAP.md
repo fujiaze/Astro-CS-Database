@@ -98,7 +98,7 @@
 | `CON-SCIENCE-UNITS` | MERGED-INTO | `CHK-SCI-REF` | 算法引用有效 SCI/ALG |
 | `CON-TEST-CONTRACTS` | MERGED-INTO | `CHK-CONTRACT-TEST` | 核心合同有独立测试 |
 | `CON-TRACEABILITY` | MERGED-INTO | `CHK-SCI-REF` | 算法引用有效 SCI/ALG |
-| `CONTRACT-GRAPH` | MERGED-INTO | `CHK-CONTRACT-REF` | 端口引用有效 DATA 合同（canonical=contracts/schemas/unified/**、docs/contracts/unified_object_registry.json） |
+| `CONTRACT-GRAPH` | MERGED-INTO | `CHK-CONTRACT-REF` | 端口引用有效 DATA 合同（canonical=eng/contracts/schemas/unified/**、docs/contracts/unified_object_registry.json） |
 | `CTEST-AIO-ABI-NEGATIVE` | MERGED-INTO | `CHK-ABI` | C ABI 兼容性 |
 | `CTEST-AIO-ABI-SELFCHECK` | MERGED-INTO | `CHK-ABI` | C ABI 兼容性 |
 | `CTEST-AIO-ABI-UNITS` | MERGED-INTO | `CHK-ABI` | C ABI 兼容性 |
@@ -146,7 +146,7 @@
 | `CTEST-RESOURCE-MONITOR-QUALITY` | MERGED-INTO | `CHK-RESOURCE` | 内存/线程/利用率门禁 |
 | `CTEST-RT001-UNIQUE-EXECUTOR` | MERGED-INTO | `CHK-RESOURCE` | 内存/线程/利用率门禁 |
 | `CTEST-XPSD-SPECTRUM-COUNT-BOUNDS` | MERGED-INTO | `CHK-INVARIANT` | 科学不变量/性质测试 |
-| `DATA-ARTIFACTS` | MERGED-INTO | `CHK-CONTRACT-REF` | 端口引用有效 DATA 合同（canonical=contracts/schemas/unified/**、docs/contracts/unified_object_registry.json） |
+| `DATA-ARTIFACTS` | MERGED-INTO | `CHK-CONTRACT-REF` | 端口引用有效 DATA 合同（canonical=eng/contracts/schemas/unified/**、docs/contracts/unified_object_registry.json） |
 | `DEEP-CLANG-BUILD` | MERGED-INTO | `CHK-BUILD-LINUX` | Linux Release 构建 |
 | `DEEP-COMPLEXITY` | MERGED-INTO | `CHK-STATIC` | 静态分析 |
 | `DEEP-COV-CPP` | MERGED-INTO | `CHK-COVERAGE` | 覆盖率报告 |

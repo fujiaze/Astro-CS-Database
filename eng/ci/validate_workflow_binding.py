@@ -88,8 +88,8 @@ SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 BUILD_TOOL_RE = re.compile(
     r"(?<![\w.-])(cmake|ctest|ninja|msbuild|gcc|g\+\+|clang\+\+|make)(?![\w.-])")
 REPO_PATH_TOKENS = (
-    "eng/ci/", "eng/tools/", "tests/", "lib/", "cli/", "eng/cmake/", "scripts/", "packaging/",
-    "contracts/", "providers/", "runtime/", "modules/", "include/", "docs/",
+    "eng/ci/", "eng/tools/", "eng/tests/", "lib/", "cli/", "eng/cmake/", "scripts/", "eng/packaging/",
+    "eng/contracts/", "providers/", "runtime/", "modules/", "lib/include/", "docs/",
     "evidence/", "工程控制/",
 )
 PROVISIONING_VERBS = ("apt-get", "vcpkg", "pip", "choco", "winget", "Out-File")

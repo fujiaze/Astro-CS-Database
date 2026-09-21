@@ -35,7 +35,7 @@ AstroCS 产物里存在**合法但易变**的元数据：
   路径、UUID/随机数属变异源，做法是剥离或归一化，并把环境记到独立记录里。
 * 天文同类管线的通行做法是**规范化比较 + 显式忽略表**：
   JWST regtest/conftest.py ignore_keywords = ["DATE","CAL_VER","CAL_VCS",
-  "CRDS_VER","CRDS_CTX","NAXIS1","TFORM*"]；drizzlepac tests/hap/base_test.py
+  "CRDS_VER","CRDS_CTX","NAXIS1","TFORM*"]；drizzlepac eng/tests/hap/base_test.py
   ['origin','filename','date','iraf-tlm','fitsdate','upwtim','wcscdate',
   'upwcsver','pywcsver','history','prod_ver','rulefile']；
   romancal conftest.py ignore_metadata_paths（"always variable values.

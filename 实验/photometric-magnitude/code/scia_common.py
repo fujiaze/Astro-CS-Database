@@ -96,14 +96,14 @@ def _json_default(o):
 
 
 # --------------------------------------------------------------------------
-# 1. 通带曲线：滤镜（config/filters.json）与 QE（qe_curves.json）
+# 1. 通带曲线：滤镜（eng/packaging/config/filters.json）与 QE（qe_curves.json）
 # --------------------------------------------------------------------------
 def load_filter(name: str):
-    """从仓内 config/filters.json 取滤镜曲线（逐字转录自 response_curves/filters.json）。"""
+    """从仓内 eng/packaging/config/filters.json 取滤镜曲线（逐字转录自 response_curves/filters.json）。"""
     with open(os.path.join(REPO, "config", "filters.json"), encoding="utf-8") as f:
         lib = json.load(f)
     if name not in lib["filters"]:
-        raise KeyError(f"filter {name!r} not in config/filters.json; have {len(lib['filters'])}")
+        raise KeyError(f"filter {name!r} not in eng/packaging/config/filters.json; have {len(lib['filters'])}")
     e = lib["filters"][name]
     return np.asarray(e["wavelength_nm"], float), np.asarray(e["value"], float)
 
@@ -284,7 +284,7 @@ def mag_consistency_prefilter(delta, mag_tolerance=MAG_TOLERANCE):
 
 
 # --------------------------------------------------------------------------
-# 4. PSF：Moffat（生产默认族，见 config/defaults.json / docs/plugins/04_psf.md）
+# 4. PSF：Moffat（生产默认族，见 eng/packaging/config/defaults.json / docs/plugins/04_psf.md）
 # --------------------------------------------------------------------------
 def moffat_profile(dx, dy, fwhm, beta=4.0):
     """归一化 Moffat：∫ I dA = 1（像素单位面积）。alpha 由 FWHM 定义。"""

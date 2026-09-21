@@ -38,11 +38,11 @@ Phase3: 任一合同兼容 HiPS（不要求来自 Phase2）
 
 | 隔离要求 | 状态 | 依据（当前提交内静态可核） |
 |---|---|---|
-| 唯一命令树 `normalize/mosaic/export`（+ `help/--version/doctor/benchmark`）存在 | `INSTALLED` | CLI-001 切换为 `ASTROCS_DESIGN.md` §6.2 唯一命令树：旧 `phase1/2/3` 用户命令与 `validate/plan/inspect` 全部删除且 rc=2（`docs/api/CLI_PROTOCOL_V1.md` §1）；`tests/cli/test_cli001_vpi.py` 15/15 PASS |
+| 唯一命令树 `normalize/mosaic/export`（+ `help/--version/doctor/benchmark`）存在 | `INSTALLED` | CLI-001 切换为 `ASTROCS_DESIGN.md` §6.2 唯一命令树：旧 `phase1/2/3` 用户命令与 `validate/plan/inspect` 全部删除且 rc=2（`docs/api/CLI_PROTOCOL_V1.md` §1）；`eng/tests/cli/test_cli001_vpi.py` 15/15 PASS |
 | **遗留 `astrocs run --phases 1,2,3` 进程内连跑** | `IMPLEMENTED`（遗留入口已删除） | CLI-002 移除 `run`/`graph` 入口（`a6c39cc1` 收口未知命令判定）；实测 `run --phases` → rc=2 `unknown command 'run'`，与 `ASTROCS_DESIGN.md` §1.2（禁止隐式串接）一致 |
 | 单 Phase 命令走独立进程/独立 Runtime 实例 | `IMPLEMENTED` | `normalize/mosaic/export` 子命令（`cli/commands.cpp`，handler 名经 CLI-001 切换）各启动单 Phase 运行 |
 | RT-001 类型化 DAG 拒绝跨 Phase edge | PASS | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`（module 带 phase 字段，跨 Phase edge 拒绝，见 RT-001 集成 commit requirements） |
-| DATA-002 产品交换合同（磁盘交换、role↔type 绑定、Phase2 不依赖 Phase1 run ID） | PASS | `contracts/data/phase_product_exchange*` + `runtime/artifact_store/phase_product_exchange_validator.py`（合同冻结） |
+| DATA-002 产品交换合同（磁盘交换、role↔type 绑定、Phase2 不依赖 Phase1 run ID） | PASS | `eng/contracts/data/phase_product_exchange*` + `runtime/artifact_store/phase_product_exchange_validator.py`（合同冻结） |
 | 三 Phase 隔离的执行验收（独立进程冒烟，当前提交复跑） | `NOT_VERIFIED` | 三 Phase 端到端独立进程冒烟未在本提交复跑；节点化/消费者用例（`p1001/p2001/p3002`）已实测绿，但不冒认端到端验收 |
 
 ## 2. Phase1 内部链（单 Phase IR 子图）
@@ -125,7 +125,7 @@ ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56
 ## 5. 执行与运行图
 
 - `normalize/mosaic/export --json <config.json>` 经 `cli/runtime_client.cpp run_pipeline()` →
-  `astrocs_core` Runtime（`include/astrocs/core/runtime.h`、`lib/infrastructure/scheduler/src/runtime.cpp`）
+  `astrocs_core` Runtime（`lib/include/astrocs/core/runtime.h`、`lib/infrastructure/scheduler/src/runtime.cpp`）
   单共享 executor + ThreadBudget（`ENGINEERING_SPEC.md` §10；RT-001 合同）。
 - IR 形态：`astrocs.pipeline/v1` JSON；每次 run 应产出 run-plan/graph/trace 等。
   运行图静态/观测产物生成是否完整属 W5/LNX 域，不在本任务复跑。
@@ -133,7 +133,7 @@ ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56
   + `lib/infrastructure/scheduler/src/module_adapters.cpp`:3777-3793（Phase3 resample 行带提交唯一池，
   每任务经 `ThreadBudget acquire(1,1)` 恰租 1 槽）；`eng/tools/monitoring/run_monitored.py`
   `evaluate_frozen_gate()` 按 **`docs/plugins/infrastructure/21_observability.md` §8（G-RES-01）**
-  判定（判据语义权威），阈值唯一数值源 = `contracts/resource_gate_v1.json`；
+  判定（判据语义权威），阈值唯一数值源 = `eng/contracts/resource_gate_v1.json`；
   硬失败 = 单活跃计算线程 / 连续≥10s<60% 且队列有工作 / 无界内存增长，均值≥85% 等为
   record_and_justify。`ASTROCS_DESIGN.md` §8 只作定性要求与指针、**不含阈值数字**
   （2026-09-16 GATE-FIX-RES 订正：旧表述「按最高设计 §8 冻结阈值」是悬空引用）。
@@ -147,7 +147,7 @@ ctest `p3002_real_nodes`/`p3002_uncertainty` 本提交实测 rc=0（P3-002 `1a56
   HiPS Browser、ACR/CUDA 不入 product manifest。当前根 CMake（BLD-002）唯一
   `add_executable(astrocs)` 显式链接各静态库；**Linux 技术预览安装面已 `INSTALLED`**
   （`eng/cmake/install_layout.cmake`:104-105 五科学模块入 `modules/`，
-  `packaging/astrocs.product.json` units=10，安全 loader 实测 64/64 PASS），
+  `eng/packaging/astrocs.product.json` units=10，安全 loader 实测 64/64 PASS），
   **Windows 侧安装树复验 `NOT_VERIFIED`**（`docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv`
   等为 GENERATED 清单，见 ARCHITECTURE_OVERVIEW）。
 

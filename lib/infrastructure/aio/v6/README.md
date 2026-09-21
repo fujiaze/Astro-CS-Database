@@ -1,7 +1,7 @@
 # AstroCS V6 科学产品 I/O（IMPL-AIO-001）
 
 > 任务: `IMPL-AIO-001`（Wave 5，depends_on = CONTRACT-FREEZE-001）
-> 写域: `lib/infrastructure/aio/v6/`、`tests/unit/v6_aio/`
+> 写域: `lib/infrastructure/aio/v6/`、`eng/tests/unit/v6_aio/`
 > 状态: 新科学层基础能力实现；**不接线任何 Phase session**（任务正文要求）。
 
 本目录是 V6 科学层的产品写盘基础：原生 FITS 流式写出 + 标准 DATASUM/CHECKSUM、
@@ -12,13 +12,13 @@ BUNIT 量纲可判与二次律、HiPS properties/manifest 渲染与校验。
 
 | 文件 | 语义 |
 |---|---|
-| `include/astro/aio/v6_sha256.h` / `src/v6_sha256.cpp` | FIPS 180-4 SHA-256（output_hash / input_product_hashes 完整性锚） |
-| `include/astro/aio/v6_bunit.h` / `src/v6_bunit.cpp` | 冻结单位表、量纲代数、BUNIT 可判性、二次律 |
-| `include/astro/aio/v6_fits.h` / `src/v6_fits.cpp` | 原生 FITS 流式写出 + DATASUM/CHECKSUM + 重开验证 |
-| `include/astro/aio/v6_atomic_publish.h` / `src/v6_atomic_publish.cpp` | 文件/目录原子发布事务（失败/取消无半成品） |
-| `include/astro/aio/v6_provenance.h` / `src/v6_provenance.cpp` | provenance 最小集对象与 fail-closed 门 |
-| `include/astro/aio/v6_hips_manifest.h` / `src/v6_hips_manifest.cpp` | HiPS properties / manifest 渲染与校验 |
-| `include/astro/aio/v6_product_io.h` / `src/v6_product_io.cpp` | 多 HDU 产品原子发布 + 产品记录级汇总门 |
+| `lib/include/astro/aio/v6_sha256.h` / `src/v6_sha256.cpp` | FIPS 180-4 SHA-256（output_hash / input_product_hashes 完整性锚） |
+| `lib/include/astro/aio/v6_bunit.h` / `src/v6_bunit.cpp` | 冻结单位表、量纲代数、BUNIT 可判性、二次律 |
+| `lib/include/astro/aio/v6_fits.h` / `src/v6_fits.cpp` | 原生 FITS 流式写出 + DATASUM/CHECKSUM + 重开验证 |
+| `lib/include/astro/aio/v6_atomic_publish.h` / `src/v6_atomic_publish.cpp` | 文件/目录原子发布事务（失败/取消无半成品） |
+| `lib/include/astro/aio/v6_provenance.h` / `src/v6_provenance.cpp` | provenance 最小集对象与 fail-closed 门 |
+| `lib/include/astro/aio/v6_hips_manifest.h` / `src/v6_hips_manifest.cpp` | HiPS properties / manifest 渲染与校验 |
+| `lib/include/astro/aio/v6_product_io.h` / `src/v6_product_io.cpp` | 多 HDU 产品原子发布 + 产品记录级汇总门 |
 | `CMakeLists.txt` | 独立静态库 `astrocs_v6_aio`（不修改根/公共 CMakeLists，C-004.4） |
 
 ## 2. 冻结节点映射（实现逐条对应）
@@ -46,7 +46,7 @@ covariance 与 variance 只做单位/键位校验，不重算科学值。
 
 ```bash
 # 独立构建（不依赖根 CMake）
-cmake -S tests/unit/v6_aio -B build/v6_aio -DCMAKE_BUILD_TYPE=Release
+cmake -S eng/tests/unit/v6_aio -B build/v6_aio -DCMAKE_BUILD_TYPE=Release
 cmake --build build/v6_aio -j 8
 ctest --test-dir build/v6_aio --output-on-failure
 ```
@@ -61,13 +61,13 @@ ctest 用例：
 ### 外部真值（Oracle 独立性）
 - FITS DATASUM/CHECKSUM：`astropy.io.fits verify_datasum/verify_checksum` 与
   独立转写的 FITS 4.0 §4.4.2.5 1 补码算法双真值交叉；
-- provenance 最小集：required 键由 `contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json`
+- provenance 最小集：required 键由 `eng/contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json`
   独立反查，单位表由 `docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json` 反查；
 - SHA-256：`hashlib`。
 
 ## 4. 边界
 
-- 未修改根 `CMakeLists.txt` / `tests/unit/CMakeLists.txt`（C-004.4：根构建面注册由控制器/W9 统一处理）。
+- 未修改根 `CMakeLists.txt` / `eng/tests/unit/CMakeLists.txt`（C-004.4：根构建面注册由控制器/W9 统一处理）。
 - 未接线 Phase session；未修改任何 `docs/`、`eng/ci/`、其他 `lib/` 模块。
 - `PENDING_OWNER_SIGNOFF` 条款（FZ-BUNIT-SEMANTICS、FZ-UNIT-VAR-IN/VAR-SB/IVAR-SB、
   FZ-GATE-PARENT-VAR 等）按 fail-closed 实现，不放宽、不自行定值；OPEN 项不取值。

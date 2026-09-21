@@ -15,8 +15,8 @@
 // 10. shutdown 后不再写文件
 //
 // 编译:
-// g++ -O2 -std=c++17 -Wall -fopenmp -o tests/test_logger.exe
-// tests/test_logger.cpp src/logger.cpp -Iinclude -static
+// g++ -O2 -std=c++17 -Wall -fopenmp -o eng/tests/test_logger.exe
+// eng/tests/test_logger.cpp src/logger.cpp -Iinclude -static
 //
 // 运行 (任意目录):
 // lib\orchestrator\cpp\tests\test_logger.exe

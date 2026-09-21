@@ -186,7 +186,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
   F4: XPSD uint8 光谱解码+1.0nm 积分 NumPy 参考复算（rtol 1e-9）；F5:
   退化输入矩阵（无 Gaia/无 PSF/无光谱星/滤光片失败 → scale=1.0、rc=0、
   records reject_reason 显式）；F6: Photometer aperture 已知通量 + 越界/
-  空环/空孔径显式失败（对齐 tests/unit/p1_wcs_phot_test 4 组）。
+  空环/空孔径显式失败（对齐 eng/tests/unit/p1_wcs_phot_test 4 组）。
 - 不变量 I1: out_pixels=round-trip(I·scale) bitwise（f64 通道）；I2:
   sigma_residual=MAD(r_inliers)/0.6744897501960817 与逐星 records 残差一致；I3:
   Σdiag.rejected_*+fit_used=unique_matches；I4: records[star_id] 与输入
@@ -206,7 +206,7 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
   （median 回退，无调用方，DISP-PHOT-003）。
 - astrocs::phase1::Photometer（lib/algorithms/photometry/wrapper_phase1/photometer.{h,cpp}）
   =aperture 测光待迁移符号（静态库 astrocs_phase1_phot，CMakeLists.txt:429-432，
-  单测 tests/unit/p1_wcs_phot_test tests/unit/CMakeLists.txt:305-310，
+  单测 eng/tests/unit/p1_wcs_phot_test eng/tests/unit/CMakeLists.txt:305-310，
   未接 orchestrator 管线），aperture 合同并入 lib/algorithms/photometry/
   README.md §9。
 

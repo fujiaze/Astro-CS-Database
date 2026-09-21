@@ -6,7 +6,7 @@
 // 逐字段机器对账。
 //
 // 依赖面: 仅 ipv_api.h (无 windows.h / 不链接生产库) => Linux amd64 控制节点
-// 可直接编译, 不触发 tests/unit/p1wcs 注记的 ipv_select/ipv_solver/ipv_entry
+// 可直接编译, 不触发 eng/tests/unit/p1wcs 注记的 ipv_select/ipv_solver/ipv_entry
 // 平台依赖问题。
 //
 // 同时以 static_assert 锁定宪章 §8.6 的 ABI 头部契约:

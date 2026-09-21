@@ -37,7 +37,7 @@
   python3 eng/tools/quality/check_secret_hygiene.py --scope tracked
   python3 eng/tools/quality/check_secret_hygiene.py --scope walk --root <dir>
   python3 eng/tools/quality/check_secret_hygiene.py --files a.md b.md --report-only
-证据：tests/quality/test_secret_hygiene.py（正例 rc=0 / 负例 rc!=0 / fail-closed / 无值泄漏）。
+证据：eng/tests/quality/test_secret_hygiene.py（正例 rc=0 / 负例 rc!=0 / fail-closed / 无值泄漏）。
 """
 from __future__ import annotations
 
@@ -132,7 +132,7 @@ PATTERNS: list[tuple[str, str, re.Pattern]] = [
 # 不是豁免：文件照扫，报告照列。
 PATTERN_DEFINITION_FILES = frozenset({
     "eng/tools/quality/check_secret_hygiene.py",
-    "tests/quality/test_secret_hygiene.py",
+    "eng/tests/quality/test_secret_hygiene.py",
 })
 
 # 需要在捕获组上做占位符过滤的形态（占位符 → 不算命中）

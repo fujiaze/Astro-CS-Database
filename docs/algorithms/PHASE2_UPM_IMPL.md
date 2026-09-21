@@ -336,7 +336,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 ## 11 Oracle（恢复真值面与等价 oracle）
 
 - **恒等/线性面恢复 oracle**：合成 k·f 线性真值场 → UPM 恢复后
-  evalrel(f)≈0.5f、maxdev<0.05（tests/api/test_upm_recovery_oracle.py
+  evalrel(f)≈0.5f、maxdev<0.05（eng/tests/api/test_upm_recovery_oracle.py
   驱动 :43-55；判据见 §13 T1/T2）；
 - **dense==sparse 等价 oracle**：同一模型 dense 缓存读回与
   calibrate_block 稀疏求值 1e-12 等价（UPM_SOLVER.md §8/§9 冻结；
@@ -357,10 +357,10 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 
 | # | 设计面 | 冻结容差 | 现状测试锚 |
 |---|---|---|---|
-| T1 | 恒等/线性面恢复：线性真值 k·f → evalrel(f) | \|evalrel(f)−0.5f\|≤0.05（delta=0.05） | tests/api/test_upm_recovery_oracle.py test_02 :101-109 |
+| T1 | 恒等/线性面恢复：线性真值 k·f → evalrel(f) | \|evalrel(f)−0.5f\|≤0.05（delta=0.05） | eng/tests/api/test_upm_recovery_oracle.py test_02 :101-109 |
 | T1' | 参数恢复 maxdev | maxdev < 0.05 | 同文件 test_01 :93-99（驱动输出 :51-55） |
 | T2 | 确定性：重复 build model_hash | 三次逐位一致（bit-exact） | 同文件 test_03 :112-119 |
-| T3 | 并行等价：workers∈{1,2,4} 重复 build hash；1T/2T control_count | hash bit-exact（consistent=1）；count 精确相等 | tests/api/test_upm_parallel.py test_01 :82-89（reps=4）、test_02 :91-101 |
+| T3 | 并行等价：workers∈{1,2,4} 重复 build hash；1T/2T control_count | hash bit-exact（consistent=1）；count 精确相等 | eng/tests/api/test_upm_parallel.py test_01 :82-89（reps=4）、test_02 :91-101 |
 | T4 | 资源：20 次 build/close 循环 RSS | 增长 < 1024 KB | 同文件 test_03 :103-110（rss_kb :26；driver :32-50） |
 | T5 | dense/sparse 等价 | 1e-12（dense source hash 强校验） | UPM_SOLVER.md §8/§9 冻结面；dense_read_block :1542-1557 |
 | T6 | 权重公式 UPMW-001..007 + raw_weight rc=2 门 | UPMW 判据 exact/double_eq（测试源冻结）；rc=2 exact | synthetic_gate.cpp:3915 起；upm.h:137-145/:1311 |

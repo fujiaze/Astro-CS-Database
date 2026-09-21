@@ -9,7 +9,7 @@
 # p3_wcs_make（rotation_pa_deg 恒 0.0）/ :163 状态映射 / :232 worker
 # 循环 p3_wcs_pix2world；执行面探针
 # lib/algorithms/projection/tests/p3wcs/p3_wcs_main.cpp +
-# 独立解析解回归 tests/backend/test_p1002_gaps.py（脚本内联编译链接新址
+# 独立解析解回归 eng/tests/backend/test_p1002_gaps.py（脚本内联编译链接新址
 # p3_wcs.cpp）+ 单元测试 lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp
 # （ctest 名 p3_wcs，W4-A9 批次 1 共址化）），
 # 模块化迁移（独立模块源 astrocs_p3_projection.dll / C ABI adapter /
@@ -39,7 +39,7 @@
 # 目录归属，故按 lib/algorithms/upm→phase2_samp→phase2_rej→phase2_int→
 # phase3_fits 先例落独立迁移目标目录 lib/algorithms/projection/（本文件所在）；
 # **W4-A9 批次 1（2026-09-17）生产源已迁入本目录**（p3_wcs.{h,cpp} + 共址
-# tests/p3wcs/**），本模块自此同时承载合同与源码，与 legacy 会话目录解耦。
+# eng/tests/p3wcs/**），本模块自此同时承载合同与源码，与 legacy 会话目录解耦。
 # dll_target=astrocs_p3_projection.dll 为迁移目标合同值（尚未存在）；
 # 现状构建=根 CMakeLists.txt astrocs_phase3_session 静态库成员。
 # threading_model=host_executor_lease 为迁移目标合同值（11 号标准 §4
@@ -58,11 +58,11 @@
 # （TAN/SIN/CAR/AIT，kP3ProjectionRegistryVersion=1）退场，仅为历史测试面与
 # legacy 偏差对照证据门保留（四项偏差 D1..D4 见 ALG-P3-PROJ-IMPL-001 §15.9），
 # 禁止新消费方引用；
-# v1 可执行测试 tests/unit/p3_projection_test.cpp（ctest
-# p3_projection_units/p3_projection_fault）+ tests/backend/
+# v1 可执行测试 eng/tests/unit/p3_projection_test.cpp（ctest
+# p3_projection_units/p3_projection_fault）+ eng/tests/backend/
 # test_p3_projection_oracle.py（独立 numpy oracle）；v3 可执行测试
-# tests/unit/v6_p3_proj/**（ctest v6_p3_proj_units/fault_*/wcs_oracle/
-# legacy_deviation）；测试挂载只动 tests/unit/**（直编，根构建零改动）。
+# eng/tests/unit/v6_p3_proj/**（ctest v6_p3_proj_units/fault_*/wcs_oracle/
+# legacy_deviation）；测试挂载只动 eng/tests/unit/**（直编，根构建零改动）。
 # entrypoint=MISSING：registry 现状为测试目标直编面，非生产构建成员、
 # 非 DLL 入口（astrocs_p3_projection.dll 挂载/adapter 接线/会话消费归
 # P3-PROJ-IMPL/P3-002，白名单外），不冒认 IMPLEMENTED；descriptor 现状占位 ID

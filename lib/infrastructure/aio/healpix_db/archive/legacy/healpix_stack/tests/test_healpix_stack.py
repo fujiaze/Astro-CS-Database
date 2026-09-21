@@ -23,7 +23,7 @@ import math
 
 import pytest
 
-# 将 healpix_stack.py 所在目录加入 sys.path (tests/ 的上级目录)
+# 将 healpix_stack.py 所在目录加入 sys.path (eng/tests/ 的上级目录)
 _MODULE_DIR = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 )

@@ -56,7 +56,7 @@
 ### 验收
 
 五项自检 rc（详见任务报告）：①check_traceability_matrix.py rc=0
-（warns=基线 4 条不新增）；②pytest tests/traceability rc=0 全过；
+（warns=基线 4 条不新增）；②pytest eng/tests/traceability rc=0 全过；
 ③check_contract_graph.py rc=0；④check_doc_index.py rc=0；
 ⑤run/local/agent_p1_drz_doc/selfcheck.py ALL PASS；⑥git status 域
 核查：生产源码与 docs/science 零改动。

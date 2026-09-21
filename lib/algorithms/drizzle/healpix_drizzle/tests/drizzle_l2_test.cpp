@@ -7,7 +7,7 @@
 // 2. FP64 通量闭合 (Σout ≈ Σin, 按有限像素)
 // 3. FP32 vs FP64 逐 leaf 最大相对差 < 1e-5
 //
-// 编译 (tests/ 目录): 同 drizzle_l0_test.cpp
+// 编译 (eng/tests/ 目录): 同 drizzle_l0_test.cpp
 // ============================================================================
 #include "drizzle_engine.h"
 #include "hiss_format.h"

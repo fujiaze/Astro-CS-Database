@@ -202,7 +202,7 @@ def main() -> int:
         category, module = classify(p)
         h = sha256_of(path)
         is_shipping = ext in SHIPPING_EXT and category == "module" and \
-            not p.endswith("_test.cpp") and "tests/" not in p and \
+            not p.endswith("_test.cpp") and "eng/tests/" not in p and \
             "eng/tools/" not in p
         manifest_rows.append({
             "path": p, "size_bytes": os.path.getsize(path)
@@ -216,7 +216,7 @@ def main() -> int:
             "path": p, "type": category, "shipping_target":
             "yes" if is_shipping else "no", "module": module,
             "production_or_test":
-            "test" if ("tests/" in p or p.endswith("_test.cpp")) else
+            "test" if ("eng/tests/" in p or p.endswith("_test.cpp")) else
             ("production" if category in ("module", "tool") else "doc"),
             "loc": chk["size_bytes"], "owner_doc":
             "docs/modules/" if category == "module" else "docs/",

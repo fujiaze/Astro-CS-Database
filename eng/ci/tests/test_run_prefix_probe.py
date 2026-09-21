@@ -109,7 +109,7 @@ class TestRunPrefixProbe(unittest.TestCase):
         # 静态输入仍被拒（不可 waivable → FAIL(prerequisite)）。
         check = H.check(
             id="STATIC-MISSING-T",
-            command=["python3", "config/definitely-missing-input.yaml",
+            command=["python3", "eng/packaging/config/definitely-missing-input.yaml",
                      "-c", "print('never')"],
             waivable=False,
         )

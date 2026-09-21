@@ -1,0 +1,697 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://astrocs.invalid/schemas/cpu_profile-v1.json",
+  "title": "AstroCS CPU profile — legacy v1 (BENCH-004) + current v2 (CPU-003, schema=astrocs.cpu-profile/v2)",
+  "description": "CFG-001 迁移（以原 eng/contracts/schemas/cpu_profile.schema.json 为迁移输入；单一文件、无第二份等价定义）：同一文件以 oneOf 定义两条分支——legacy_v1（BENCH-004 旧 JSON）与 profile_v2（当前实现 schema=astrocs.cpu-profile/v2）。v2 分支绑定 CPU/OS/软件版本/provider hash（host.*、build.source_commit/runtime_build_id/provider_build_ids、kernels.*.self_test_sha256）与 ISA/workers/block（kernels.*.provider/workers/block），并以 x-astrocs-writer 声明只有 benchmark 可写。",
+  "x-astrocs-schema-family": "cpu_profile",
+  "x-astrocs-config-class": "cpu_profile",
+  "x-astrocs-writer": "benchmark",
+  "x-astrocs-not-writable-by": [
+    "用户",
+    "cli --template",
+    "phase_config"
+  ],
+  "x-astrocs-authority": [
+    "docs/design/UNIFIED_MODEL.md §3（cpu_profile：ISA·workers·block·机器绑定；仅 benchmark 生成；缓存于程序安装目录；无 profile -> 保守运行不阻塞）",
+    "ASTROCS_DESIGN.md §6.2:310,313（benchmark 直接输出 profile 到安装目录，后续运行时自动读取）",
+    "ENGINEERING_SPEC.md §3:30（cpu_profile 只影响并行/ISA，不进入科学配置）",
+    "docs/contracts/config_separation_anchors.json（cpu_profile 字段名族与禁止名）",
+    "lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:558-610（v2 生产字段）、:645-707（verify_profile_v2）、lib/infrastructure/benchmark/backend_host/cpu_routing.cpp:216-300（check_profile_identity_v1 身份绑定字段）"
+  ],
+  "x-astrocs-notes": [
+    "迁移原因（实测）：原文件内容为 BENCH-004 旧 schema（schema_version=1），而 lib/infrastructure/benchmark/backend_host/profile_gen.h:21 明确 eng/contracts/schemas/cpu_profile.schema.json 即 v2 schema；实现已在写/校 v2（profile_gen_v2.cpp、profile_store.h:10-18）。迁移把两条分支并入唯一文件，消除「schema 文件与实现口径分裂」。",
+    "兼容面（既有检查项不变）：eng/tests/backend/test_cpu_profile.py:74-79 读取顶层 required 与 properties.kernels.items.required；eng/tools/validate_cpu_profile.py:41-70 读取顶层 required/additionalProperties/properties。故顶层 required 取两分支共有键 [build, kernels]，顶层 properties 同时登记两分支全部顶层键，完整字段约束分别落在 $defs.legacy_v1 / $defs.profile_v2。",
+    "兼容取舍（如实登记，需负责人知悉）：为让同一文件同时容纳 v1 数组与 v2 对象，顶层 properties.kernels.type = ['array','object']，因此 eng/tools/validate_cpu_profile.py:65 的 rule.get('type')=='array' 分支对该字段不再生效。v1 kernel 项约束由 $defs.legacy_v1.properties.kernels.items -> $defs.kernel_v1（顶层镜像等价）强制，并由 eng/tests/config 负例复跑证明其仍能红（docs/contracts/CONFIG_CONTRACT.md §5、eng/tests/config/fixtures/negative/cpu_profile_v1_bad_kernel.json）。",
+    "kernel 约束接线（W5-CPU-001，2026-09-17）：$defs.kernel_v1 现由 $defs.legacy_v1.properties.kernels.items $ref（v1 kernels[] 项约束），$defs.kernel_v2 现由 $defs.profile_v2.properties.kernels.additionalProperties $ref（v2 kernels{} 行约束）；两处 refs=1/1（登记 eng/packaging/config/config_registry.json#cpu_profile_kernel_link，门 CFG002-10）。顶层 properties.kernels.items/.additionalProperties 保留等价镜像以服务既有读取面（eng/tests/backend/test_cpu_profile.py:78、eng/tools/validate_cpu_profile.py:68），镜像与 $defs 逐字一致由 eng/tests/config 门钉死（漂移即红）。接线不收紧既有约束：镜像与 $defs 在接线时为同一约束（eng/tests/config/test_cfg001_negative.py::TestNegativeFixturesMustFail::test_cpu_profile_kernel_defs_are_wired_and_enforced 断言 JSON 相等）。",
+    "ISA 绑定：v2 的 ISA 级别由 kernels.*.provider ∈ {baseline,avx2,avx512} 与 host.features/xcr0 共同承载；不另造 isa/isa_level 死字段（锚点 isa(_[a-z0-9_]+)? / ^block(_[a-z0-9_]+)?$ 为命名族示例，生产者未写出）。",
+    "无 profile 行为：无/失配 profile -> 回落 generic(baseline) + 动态多线程、不阻塞（profile_store.h:7-8,32），本 schema 不改变该行为。"
+  ],
+  "x-astrocs-v1-drift": [
+    "hardware.feature_bits：原 schema 文本 type=array；实测生产写整数（profile_gen.cpp:86 取 hardware_inspect 的 feature_bits:integer，hardware_inspect.schema.json:56-59 为 integer）。本文件兼容两口径。",
+    "hardware.xcr0：原 schema 文本 type=string；实测生产写整数（profile_gen.cpp:87）。本文件兼容两口径。",
+    "build.backend_sha256：原 schema 文本 type=object；实测生产写字符串（profile_gen.cpp:96 传 --backend-sha 实参）。本文件兼容两口径。",
+    "kernels[].block_size：原 schema 文本 minimum=1；实测生产写 0（profile_gen.cpp:138）。本文件按实测放宽下界为 0（既有校验器从不检查该项）。",
+    "kernels[].oracle_status：canonical 为大写 PASS，实测生产写小写 pass（profile_gen.cpp:139）；读取侧归一后比较（eng/tools/validate_cpu_profile.py:14-17）。本文件允许值集与读取侧有效行为一致，canonical 值不变。"
+  ],
+  "type": "object",
+  "required": [
+    "build",
+    "kernels"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "created_at_utc": {
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "quick",
+        "full"
+      ]
+    },
+    "hardware": {
+      "type": "object"
+    },
+    "build": {
+      "type": "object"
+    },
+    "memory_benchmark": {
+      "type": "object"
+    },
+    "kernels": {
+      "type": [
+        "array",
+        "object"
+      ],
+      "items": {
+        "type": "object",
+        "required": [
+          "kernel_id",
+          "kernel_version",
+          "precision",
+          "size_class",
+          "backend_id",
+          "workers",
+          "block_size",
+          "oracle_status",
+          "measurements"
+        ],
+        "properties": {
+          "kernel_id": {
+            "type": "string"
+          },
+          "kernel_version": {
+            "type": "string"
+          },
+          "precision": {
+            "enum": [
+              "fp32",
+              "fp64"
+            ]
+          },
+          "size_class": {
+            "enum": [
+              "small",
+              "medium",
+              "large"
+            ]
+          },
+          "backend_id": {
+            "type": "string"
+          },
+          "workers": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "block_size": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "legacy v1 实测写 0（profile_gen.cpp:138）；原 schema 文本写 minimum 1，实测口径为 0 合法"
+          },
+          "oracle_status": {
+            "enum": [
+              "PASS",
+              "pass"
+            ],
+            "description": "oracle 口径 canonical = 大写 PASS（读取侧归一后再比较，eng/tools/validate_cpu_profile.py:14-17,101-105）；小写 pass 为 legacy v1 生产者历史写出口径（profile_gen.cpp:139，该文件禁改）。允许值集与既有读取侧有效行为一致，canonical 值不变。"
+          },
+          "measurements": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "workload_class",
+          "provider",
+          "workers",
+          "block",
+          "correctness_test",
+          "self_test_sha256",
+          "median",
+          "mad",
+          "fallback_reason"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "workload_class": {
+            "type": "string",
+            "minLength": 1,
+            "description": "工作负载类（由 kernel 语义决定）"
+          },
+          "provider": {
+            "enum": [
+              "baseline",
+              "avx2",
+              "avx512"
+            ],
+            "description": "ISA provider 绑定（ISA 级别由此字段承载；与 verify_profile_v2 同口径）"
+          },
+          "workers": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "并行 worker 数绑定（benchmark 实测选择，禁止硬编码）"
+          },
+          "block": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "分块尺寸绑定（benchmark 实测选择）"
+          },
+          "correctness_test": {
+            "type": "string",
+            "pattern": "^(oracle|selftest):(pass|fail)$"
+          },
+          "self_test_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "provider self_test 可验证 hash（provider 证据绑定）"
+          },
+          "median": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "mad": {
+            "type": "number",
+            "minimum": 0
+          },
+          "fallback_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "resource_summary": {
+      "type": "object"
+    },
+    "verdict": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "schema": {
+      "const": "astrocs.cpu-profile/v2"
+    },
+    "profile_id": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "created_utc": {
+      "type": "string"
+    },
+    "host": {
+      "type": "object"
+    },
+    "memory_bandwidth": {
+      "type": "object"
+    },
+    "raw_samples_sha256": {
+      "type": "string"
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/legacy_v1"
+    },
+    {
+      "$ref": "#/$defs/profile_v2"
+    }
+  ],
+  "$defs": {
+    "legacy_v1": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "created_at_utc",
+        "mode",
+        "hardware",
+        "build",
+        "memory_benchmark",
+        "kernels",
+        "verdict"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "created_at_utc": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "quick",
+            "full"
+          ]
+        },
+        "hardware": {
+          "type": "object",
+          "required": [
+            "fingerprint",
+            "architecture",
+            "vendor",
+            "family",
+            "model",
+            "stepping",
+            "feature_bits",
+            "xcr0",
+            "available_logical_cpus",
+            "affinity"
+          ],
+          "properties": {
+            "fingerprint": {
+              "type": "string",
+              "minLength": 16
+            },
+            "architecture": {
+              "const": "amd64"
+            },
+            "vendor": {
+              "type": "string"
+            },
+            "family": {
+              "type": "integer"
+            },
+            "model": {
+              "type": "integer"
+            },
+            "stepping": {
+              "type": "integer"
+            },
+            "microcode": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "feature_bits": {
+              "type": [
+                "array",
+                "integer"
+              ],
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true,
+              "description": "实测口径为整数（profile_gen.cpp:86 取 hardware_inspect feature_bits:integer）；原 schema 文本写 array，两口径并存以不误拒真实 v1 profile"
+            },
+            "xcr0": {
+              "type": [
+                "string",
+                "integer"
+              ],
+              "description": "实测口径为整数（profile_gen.cpp:87）；原 schema 文本写 string"
+            },
+            "available_logical_cpus": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "affinity": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "numa": {
+              "type": "object"
+            },
+            "memory_limit_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "build": {
+          "type": "object",
+          "required": [
+            "version",
+            "commit",
+            "cli_sha256",
+            "abi_version",
+            "backend_sha256"
+          ],
+          "properties": {
+            "version": {
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+-alpha\\.[0-9]+"
+            },
+            "commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "cli_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "abi_version": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "backend_sha256": {
+              "type": [
+                "object",
+                "string"
+              ],
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "description": "实测口径为字符串（profile_gen.cpp:96 写 --backend-sha 实参）；原 schema 文本写 object"
+            }
+          },
+          "additionalProperties": true
+        },
+        "memory_benchmark": {
+          "type": "object"
+        },
+        "kernels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/kernel_v1"
+          }
+        },
+        "verdict": {
+          "enum": [
+            "PASS",
+            "FAIL"
+          ]
+        }
+      }
+    },
+    "profile_v2": {
+      "type": "object",
+      "required": [
+        "schema",
+        "profile_id",
+        "created_utc",
+        "host",
+        "build",
+        "memory_bandwidth",
+        "raw_samples_sha256",
+        "kernels"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "const": "astrocs.cpu-profile/v2"
+        },
+        "profile_id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "created_utc": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "host": {
+          "type": "object",
+          "required": [
+            "arch",
+            "vendor",
+            "family",
+            "model",
+            "stepping",
+            "os_abi",
+            "features",
+            "xcr0",
+            "logical_available",
+            "quota_signature"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "arch": {
+              "const": "amd64"
+            },
+            "vendor": {
+              "type": "string"
+            },
+            "family": {
+              "type": "integer"
+            },
+            "model": {
+              "type": "integer"
+            },
+            "stepping": {
+              "type": "integer"
+            },
+            "os_abi": {
+              "type": "string",
+              "enum": [
+                "linux",
+                "windows"
+              ],
+              "description": "OS/ABI 绑定。值域 = 生产者字面量集合：lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp:255-261 只写 \"windows\"（_WIN32）/\"linux\"（其余），profile_gen_v2.cpp:568 缺 os 字段时回落 \"linux\"；平台面由 ENGINEERING_SPEC §1（Windows amd64 / Linux amd64 双平台）封闭。非该集合一律 REJECT（fail-closed），不夹逼不改写。"
+            },
+            "features": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "xcr0": {
+              "type": "string",
+              "pattern": "^[0-9]+$",
+              "description": "v2 生产写 std::to_string(xcr0)（profile_gen_v2.cpp:570）"
+            },
+            "logical_available": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "quota_signature": {
+              "type": "string"
+            }
+          }
+        },
+        "build": {
+          "type": "object",
+          "required": [
+            "astrocs_version",
+            "source_commit",
+            "benchmark_binary_sha256",
+            "runtime_build_id",
+            "provider_build_ids"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "astrocs_version": {
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+([-+][0-9A-Za-z.+-]*)?$",
+              "description": "semver 形态（verify_profile_v2 同口径，不钉死字面量）"
+            },
+            "source_commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$",
+              "description": "冻结源码 SHA（软件版本绑定；身份校验字段之一）"
+            },
+            "benchmark_binary_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "生成 profile 的可执行文件 hash"
+            },
+            "runtime_build_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "provider_build_ids": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "provider id -> loaded / fail_reason（provider hash 绑定面）"
+            }
+          }
+        },
+        "memory_bandwidth": {
+          "type": "object",
+          "required": [
+            "copy",
+            "read",
+            "write",
+            "triad"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "copy": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "read": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "write": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "triad": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "raw_samples_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "kernels": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/kernel_v2"
+          }
+        },
+        "verdict": {
+          "enum": [
+            "PASS",
+            "FAIL"
+          ]
+        }
+      }
+    },
+    "kernel_v1": {
+      "type": "object",
+      "required": [
+        "kernel_id",
+        "kernel_version",
+        "precision",
+        "size_class",
+        "backend_id",
+        "workers",
+        "block_size",
+        "oracle_status",
+        "measurements"
+      ],
+      "properties": {
+        "kernel_id": {
+          "type": "string"
+        },
+        "kernel_version": {
+          "type": "string"
+        },
+        "precision": {
+          "enum": [
+            "fp32",
+            "fp64"
+          ]
+        },
+        "size_class": {
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        "backend_id": {
+          "type": "string"
+        },
+        "workers": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "block_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "legacy v1 实测写 0（profile_gen.cpp:138）；原 schema 文本写 minimum 1，实测口径为 0 合法"
+        },
+        "oracle_status": {
+          "enum": [
+            "PASS",
+            "pass"
+          ],
+          "description": "oracle 口径 canonical = 大写 PASS（读取侧归一后再比较，eng/tools/validate_cpu_profile.py:14-17,101-105）；小写 pass 为 legacy v1 生产者历史写出口径（profile_gen.cpp:139，该文件禁改）。允许值集与既有读取侧有效行为一致，canonical 值不变。"
+        },
+        "measurements": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "kernel_v2": {
+      "type": "object",
+      "required": [
+        "workload_class",
+        "provider",
+        "workers",
+        "block",
+        "correctness_test",
+        "self_test_sha256",
+        "median",
+        "mad",
+        "fallback_reason"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "workload_class": {
+          "type": "string",
+          "minLength": 1,
+          "description": "工作负载类（由 kernel 语义决定）"
+        },
+        "provider": {
+          "enum": [
+            "baseline",
+            "avx2",
+            "avx512"
+          ],
+          "description": "ISA provider 绑定（ISA 级别由此字段承载；与 verify_profile_v2 同口径）"
+        },
+        "workers": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "并行 worker 数绑定（benchmark 实测选择，禁止硬编码）"
+        },
+        "block": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "分块尺寸绑定（benchmark 实测选择）"
+        },
+        "correctness_test": {
+          "type": "string",
+          "pattern": "^(oracle|selftest):(pass|fail)$"
+        },
+        "self_test_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "provider self_test 可验证 hash（provider 证据绑定）"
+        },
+        "median": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "mad": {
+          "type": "number",
+          "minimum": 0
+        },
+        "fallback_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "x-astrocs-frozen-domains": {
+    "host.os_abi": "CFG-002 冻结（2026-09-17）：值域枚举 {linux, windows} 由生产者字面量集合推导（hardware_inspect.cpp:255-261、profile_gen_v2.cpp:568），非编造；平台面见 ENGINEERING_SPEC §1。原 x-astrocs-pending-authority 登记随之撤销。负例见 eng/tests/config/fixtures/negative/cpu_profile_v2_bad_os_abi.json。",
+    "note": "本键只登记「原 pending 项已冻结为枚举」的事实；枚举本体是 host.os_abi.enum（单一事实源），本处不重复取值。"
+  },
+  "x-astrocs-pending-authority": {
+    "legacy_v1.build.version": "legacy v1 的 version 形态沿用原 schema 的 alpha 正则（兼容期口径）；v2 已改为 semver 形态 build.astrocs_version。"
+  }
+}

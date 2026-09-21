@@ -1022,14 +1022,14 @@
       "purpose": "Siril 天文图像处理软件源码，开发时参考其实现（如 plate solving、registration 算法）"
     },
     "GaiaDR3": {
-      "path": "GaiaDR3/",
+      "path": "gaia/GaiaDR3/",
       "size_gb": 41.9,
       "purpose": "Gaia DR3 星表数据库（星表本体），plate solving 与测光参考星来源",
       "critical": true,
       "warning": "AI 历史上多次误删此目录，禁止删除"
     },
     "GaiaDR3SP": {
-      "path": "GaiaDR3SP/",
+      "path": "gaia/GaiaDR3SP/",
       "size_gb": 64.7,
       "purpose": "Gaia DR3 光谱数据库（spectra），测光定标用",
       "critical": true

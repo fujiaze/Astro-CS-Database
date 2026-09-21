@@ -85,7 +85,7 @@
 - lib/algorithms/noise_snr/wrapper_phase1/noise_model.{h,cpp}（39+67 行）=astrocs::phase1::
   NoiseModel::estimate（median+MAD 单值退化子集，无掩膜/patch/平面场）+
   gain_variance；静态库 astrocs_phase1_noise（CMakeLists.txt:521-524，
-  主程序链接 :513）；单测 tests/unit/p1_noise_test.cpp（tests/unit/
+  主程序链接 :513）；单测 eng/tests/unit/p1_noise_test.cpp（eng/tests/unit/
   CMakeLists.txt:614-618，6 组）为 P1-005 期旧测，由 P1-NOISE-TEST 对齐
   重锚。
 - descriptor 现状：lib/infrastructure/scheduler/src/module_adapters.cpp:489-503

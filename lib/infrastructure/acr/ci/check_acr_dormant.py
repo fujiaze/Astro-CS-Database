@@ -20,12 +20,12 @@ Static checks (source-tree level; no configure/build required):
   ACK-ACR-003  release presets (win-msvc-17.14.39-x64 / linux-control) freeze
                 ASTROCS_ENABLE_ACR=OFF; ASTROCS_ENABLE_ACR option default OFF.
   ACK-ACR-004  install surface is ACR/CUDA-free: eng/cmake/install_layout.cmake,
-                packaging/install-tree.contract.json,
-                packaging/astrocs.product.json contain no ACR/CUDA entries
+                eng/packaging/install-tree.contract.json,
+                eng/packaging/astrocs.product.json contain no ACR/CUDA entries
                 (grep-based production-dependency zero-hit).
   ACK-ACR-005  production source tree (lib/infrastructure/cli/, lib/infrastructure/scheduler/, lib/phase1*,
                 lib/phase2_session/, lib/phase3_session/, lib/infrastructure/benchmark/backend_host/,
-                runtime/, modules/, include/astrocs/) does not include/compile
+                runtime/, modules/, lib/include/astrocs/) does not lib/include/compile
                 ACR headers (astro/compute, lib/infrastructure/acr/backends/cuda/bridge) —
                 the phase2 legacy stub cuda_bridge_stub.cpp is excluded from
                 the root product target list (BLD-002 source whitelist).
@@ -59,7 +59,7 @@ PROD_TREES = [
     "lib/infrastructure/benchmark/backend_host",
     "runtime",
     "modules",
-    "include/astrocs",
+    "lib/include/astrocs",
 ]
 # legacy phase2 compatibility sources that legitimately include ACR bridge
 # headers ONLY for standalone/module-tool builds (never part of the root
@@ -145,8 +145,8 @@ def failures_for(repo: pathlib.Path) -> list[str]:
 
     # ACK-ACR-004: install surface ACR/CUDA-free
     for rel in ("eng/cmake/install_layout.cmake",
-                "packaging/install-tree.contract.json",
-                "packaging/astrocs.product.json"):
+                "eng/packaging/install-tree.contract.json",
+                "eng/packaging/astrocs.product.json"):
         p = repo / rel
         if not p.exists():
             fails.append(f"ACK-ACR-004: {rel} missing")
@@ -187,7 +187,7 @@ def failures_for(repo: pathlib.Path) -> list[str]:
         fails.append("ACK-ACR-006: lib/infrastructure/scheduler/src/module.cpp must reject astrocs.acr.* module registration")
 
     # ACK-ACR-007: product manifest has no ACR/CUDA unit
-    prod = repo / "packaging/astrocs.product.json"
+    prod = repo / "eng/packaging/astrocs.product.json"
     try:
         data = json.loads(read_text(prod)) if prod.exists() else {}
     except json.JSONDecodeError:
@@ -237,8 +237,8 @@ def selftest() -> int:
         (td / "cmake").mkdir()
         (td / "eng/cmake/install_layout.cmake").write_text("", encoding="utf-8")
         (td / "packaging").mkdir()
-        (td / "packaging/install-tree.contract.json").write_text("{}", encoding="utf-8")
-        (td / "packaging/astrocs.product.json").write_text(
+        (td / "eng/packaging/install-tree.contract.json").write_text("{}", encoding="utf-8")
+        (td / "eng/packaging/astrocs.product.json").write_text(
             json.dumps({"units": []}), encoding="utf-8")
         (td / "lib").mkdir()
         (td / "lib/infrastructure/acr").mkdir(parents=True)
@@ -273,7 +273,7 @@ def selftest() -> int:
             (td / "lib/infrastructure/scheduler/src/module.cpp").write_text(
                 "// registry without acr rejection\n", encoding="utf-8")
         elif violation == "manifest_acr":
-            (td / "packaging/astrocs.product.json").write_text(
+            (td / "eng/packaging/astrocs.product.json").write_text(
                 json.dumps({"units": [{"unit_id": "MOD-ACR", "kind": "module",
                                        "rel_path": "modules/acr.so",
                                        "abi_version": 1, "status": "SKELETON"}]}),

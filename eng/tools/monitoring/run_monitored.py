@@ -489,7 +489,7 @@ def run_monitored(argv: list[str], *, timeout: Optional[float] = None,
 # ------------------------------------------------------------ 阈值判定 ----
 # ── G-RES-01 重计算负载资源门（判据权威: docs/plugins/infrastructure/
 #    21_observability.md §8）──
-# 阈值不在本文件发明：唯一数值源 = contracts/resource_gate_v1.json。
+# 阈值不在本文件发明：唯一数值源 = eng/contracts/resource_gate_v1.json。
 # 契约缺失/不可解析/schema 不符 → 立即 RuntimeError（fail-closed）：阈值没有
 # 第二处来源，「静默回落内置默认值」等于把数值权威倒置回实现。
 CONTRACT_PATH = Path(__file__).resolve().parents[3] / "contracts" / "resource_gate_v1.json"
@@ -557,7 +557,7 @@ def resolve_allocated_capacity(*, granted_workers, selected_workers, available_c
     """已分配容量分母的唯一实现点（契约 denominator）。
 
     granted_workers  已授予并发租约峰值（观测/显式声明）；哨兵 0 = 未观测，
-                     **不得**以配置值回填（include/astrocs/core/context.h:93-103）。
+                     **不得**以配置值回填（lib/include/astrocs/core/context.h:93-103）。
     selected_workers 配置选择的 worker 数；哨兵 0 = 未声明。
     available_cpus   机器有效核（affinity ∩ cgroup）。
 
@@ -583,7 +583,7 @@ def evaluate_frozen_gate(result: dict, *, effective_cpus, allocated_workers=None
     """对 run_monitored 结果做 G-RES-01 重计算负载资源门判定（实测 fail-closed）。
 
     判据权威: docs/plugins/infrastructure/21_observability.md §8「重计算负载资源门
-    （G-RES-01）」；阈值唯一数值源: contracts/resource_gate_v1.json（本函数不含
+    （G-RES-01）」；阈值唯一数值源: eng/contracts/resource_gate_v1.json（本函数不含
     任何字面量阈值）。
 
     effective_cpus   有效 CPU 数（affinity ∩ cgroup；None/非正 → fail-closed,
@@ -919,7 +919,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--progress-file", default=None,
                         help="progress 文件路径（经 ASTROCS_PROGRESS_FILE 传给子进程）")
     # G-RES-01 重计算负载资源门（判据权威 21_observability §8; 数值源
-    # contracts/resource_gate_v1.json; 显式 opt-in, 不改变既有用法）:
+    # eng/contracts/resource_gate_v1.json; 显式 opt-in, 不改变既有用法）:
     parser.add_argument("--gate-workers", type=int, default=None,
                         help="已授予并发租约峰值 granted_workers（**已分配容量分母**）; "
                              "给出后对本次运行做 G-RES-01 判定; 0 = 未观测哨兵 → "

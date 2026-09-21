@@ -11,7 +11,7 @@
  *   FZ-DEGRADE-SCALAR     标量降级分位数与双门
  *   ADJ-GEN-03            unavailable.{flag,reason,scope} 必填
  *
- * 机器形状与 contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json
+ * 机器形状与 eng/contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json
  * required 集一致；required 列表由独立 Oracle 从 schema 反查交叉校验。
  */
 #ifndef ASTROCS_V6_AIO_PROVENANCE_H

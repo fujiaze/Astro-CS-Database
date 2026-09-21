@@ -97,7 +97,7 @@ make        # orchestrator.exe（动态加载各模块 DLL，静态链接 C++ �
 ## 目录
 
 - `src/` — main.cpp、orchestrator.cpp、dll_loader.cpp、json_config.cpp、logger.cpp 等
-- `include/` — orchestrator.h、dll_loader.h、json_config.h、logger.h 等
-- `tests/` — 单元测试
+- `lib/include/` — orchestrator.h、dll_loader.h、json_config.h、logger.h 等
+- `eng/tests/` — 单元测试
 - `configs/` — Schema 与 JSON 模板
 - `Makefile` — 编译配置

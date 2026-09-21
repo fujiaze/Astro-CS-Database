@@ -20,7 +20,7 @@ add_library(astrocs_catalog_gaia SHARED
 target_include_directories(astrocs_catalog_gaia PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/include          # astrocs/abi/* (模块 C ABI v1 冻结头)
+    ${CMAKE_SOURCE_DIR}/lib/include          # astrocs/abi/* (模块 C ABI v1 冻结头)
 )
 
 target_compile_definitions(astrocs_catalog_gaia PRIVATE
@@ -84,7 +84,7 @@ target_link_libraries(astrocs_catalog_gaia PRIVATE Threads::Threads)
 # find_library 的 NAMES 里含 zs, 属侥幸命中, 已登记 finding 交前台裁决)。
 if(NOT TARGET ZLIB::ZLIB)
     set(ACS_ZLIB_ROOT "$ENV{ACS_ZLIB_ROOT}" CACHE PATH
-        "zlib install root (include/zlib.h + lib); MSVC hosted runner 经 vcpkg 注入 env")
+        "zlib install root (lib/include/zlib.h + lib); MSVC hosted runner 经 vcpkg 注入 env")
     if(ACS_ZLIB_ROOT AND IS_DIRECTORY "${ACS_ZLIB_ROOT}")
         set(ZLIB_ROOT "${ACS_ZLIB_ROOT}")
         if(NOT "$ENV{ACS_ZLIB_LIB}" STREQUAL ""
@@ -101,7 +101,7 @@ target_link_libraries(astrocs_catalog_gaia PRIVATE ZLIB::ZLIB)
 # 未定义符号), 本 SHARED 的 DT_NEEDED 曾缺 libm → 独立 loader 消费方进程
 # (registry host / abi003 探针, 不链 libm) dlopen 必败 OS_LOAD, 仅 astrocs 主
 # exe (链 m) 侥幸可载 — 违反 §8.4 "独立加载" 依赖闭包完备要求。显式链 m 使
-# 模块 DLL 自包含 (libm.so.6 入 DT_NEEDED), 由 tests/abi/mod001_install_load_check.py
+# 模块 DLL 自包含 (libm.so.6 入 DT_NEEDED), 由 eng/tests/abi/mod001_install_load_check.py
 # 安装树逐 unit 加载验证闭环。
 if(UNIX AND NOT APPLE)
     target_link_libraries(astrocs_catalog_gaia PRIVATE m)

@@ -1,0 +1,179 @@
+# ============================================================================
+# P1-WCS-TEST (TEST-P1-WCS-001) — lib/algorithms/platesolve + lib/algorithms/platesolve/wrapper_phase1 可复用验证面
+# ----------------------------------------------------------------------------
+# 控制包任务: P1-WCS-TEST (lock-P1-WCS; 依赖 P1-WCS-DOC 闭环, 2026-09-07)。
+# 合同锚: docs/algorithms/PLATESOLVE.md §11.4 TEST-WCS-DESIGN-001 (F1-F6,
+# 冻结容差不放宽); docs/science/ASTROMETRY.md SCI-WCS-001; 矩阵行 P1-WCS
+# (MOD astrocs.phase1.wcs-platesolve, registry 页
+# docs/modules/registry/astrocs.phase1.wcs-platesolve.md)。
+#
+# 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
+#   p1wcs/p1wcs_fixtures.hpp      — FIX-WCS-A..E 固定 seed fixture
+#                                   (splitmix64, 不提交大二进制)
+#   p1wcs/p1wcs_oracle.hpp        — 独立 oracle (球面三角闭式解/Cramer/
+#                                   inv(M)·q SIP 期望/固定点逆解/gnomonic
+#                                   向量第二路径交叉 oracle-1b; 不调用
+#                                   被测函数, 只依赖标准库与被测 API 头)
+#   p1wcs/p1wcs_test_main.hpp     — 执行器框架 (FaultRegistry 双注入点:
+#                                   env ASTROCS_P1WCS_FAULT + argv --fault=)
+#   p1wcs/p1wcs_tests_units.cpp      — units 组 (F1/F3/F6 + n=3 边界)
+#   p1wcs/p1wcs_tests_properties.cpp — properties 组 (F5 确定性 bitwise +
+#                                   线程 1/2/4 + 结构性质, 1-N worker)
+#   p1wcs/p1wcs_tests_oracle.cpp     — oracle 组 (期望值非被测函数生成;
+#                                   F2 SIP 场对拍 |Δ|≤1e-4 px 冻结; WCS-001
+#                                   增补 gnomonic 双路径交叉 o1_gnomonic_
+#                                   cross 与 oracle-6 AP/BP 逆向独立断言
+#                                   o1_apbp_reverse_oracle)
+#   p1wcs/p1wcs_tests_negative.cpp   — negative 组 (F4 负例 fork 隔离 +
+#                                   DISP-WCS-001 缺陷行为锚; 空对确定性
+#                                   路径直接断言, WCS-002 翻锚)
+#   p1wcs/p1wcs_tests_perf.cpp    — performance 基线 (CI 森严哨兵 parity 4x/
+#                                   trend 0.25x, 独立可执行)
+#   p1wcs/p1wcs_tests_selfcheck.cpp — 故障注入必败自检 (baseline+env/argv
+#                                   双注入点+正控, argv 子进程模式)
+#
+# CTest 注册 (单跑: ctest -R p1wcs_):
+#   p1wcs_units / p1wcs_properties / p1wcs_oracle / p1wcs_negative
+#   p1wcs_performance / p1wcs_selfcheck
+#
+# 被测面 (生产源零改动, 数学内核 TU 直接编译进测试):
+#   - lib/algorithms/platesolve/cpp/ipv/src/ipv_itertrans.cpp (iter_trans_solve,
+#     迭代重投影多项式拟合, ALG-WCS-001 §5)
+#   - lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp (extract_wcs_sip, WCS 提取,
+#     CD/CRVAL/CRPIX/SIP/Y-down, ALG-WCS-001 §6)
+#   - lib/algorithms/platesolve/cpp/ipv/src/ipv_sip.cpp (fit_sip, DISP-WCS-003 legacy
+#     路径, ipv_wcs.cpp 链接依赖)
+#   - lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp (triangle_match,
+#     Valdes 1995 投票, OpenMP 并行区 — F5 线程确定性被测面)
+#   - lib/algorithms/platesolve/wrapper_phase1/wcs_tan.cpp (WcsTan legacy 桥, F6 冻结回归锚)
+#   平台注记: ipv_select/ipv_solver/ipv_entry (C ABI 完整链) 依赖
+#   windows.h (ipv_select.cpp:38), 本 Linux 验证面不可编译 — C ABI 层负面
+#   (ret=0/error_msg/DLL 缺失) 归 P1-WCS-IMPL 迁移落地后验收; 本面覆盖
+#   数学内核全部可达路径。ipv 日志走 stderr (模块自带 logger), 不影响
+#   PASS/FAIL 判定 (rc 权威)。
+# ============================================================================
+
+set(P1WCS_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+# CLEAN-403: 被测生产源 ipv_*.cpp 经 ipv_log.h 依赖 aio 机制原语
+# (aio_atomic_file.h, header-only) ⇒ 本目录测试目标需要 aio/src include 面。
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//infrastructure/aio/src)
+set(P1WCS_IPV ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//algorithms/platesolve/cpp/ipv)
+set(P1WCS_TAN ${CMAKE_CURRENT_SOURCE_DIR}/../../../../lib//algorithms/platesolve/wrapper_phase1)
+
+# 被测生产源 TU (零改动直编; 不含 ipv_select/ipv_solver/ipv_entry —
+# windows.h 平台依赖, 见头注)
+set(P1WCS_PROD_TU
+  ${P1WCS_IPV}/src/ipv_itertrans.cpp
+  ${P1WCS_IPV}/src/ipv_wcs.cpp
+  ${P1WCS_IPV}/src/ipv_sip.cpp
+  ${P1WCS_IPV}/src/ipv_triangle.cpp
+  ${P1WCS_TAN}/wcs_tan.cpp
+)
+
+# V3 B3-A9 (FD-R1-005): 本验证面硬依赖 OpenMP C++ 运行时 (ipv_triangle 的 omp
+# 并行区 = F5 线程确定性被测面)。linux-deep 的 DEEP-CLANG-BUILD/SAN-ASAN/
+# SAN-TSAN/COV-CPP 以 clang 重新 configure, hosted 无 libomp 时此处 REQUIRED
+# 直接 configure 失败。修复面 = ci-linux.yml deep 供应步显式提供 libomp-18-dev
+# (与 llvm-18 对齐), 不降级本门、不改门期望。
+find_package(OpenMP REQUIRED)
+
+# core 组可执行 (units/properties/oracle/negative/apbp 共享执行器框架)
+add_executable(p1wcs_tests
+  ${P1WCS_DIR}/p1wcs_tests_main.cpp
+  ${P1WCS_DIR}/p1wcs_tests_units.cpp
+  ${P1WCS_DIR}/p1wcs_tests_properties.cpp
+  ${P1WCS_DIR}/p1wcs_tests_oracle.cpp
+  ${P1WCS_DIR}/p1wcs_tests_negative.cpp
+  ${P1WCS_DIR}/p1wcs_tests_apbp.cpp
+  ${P1WCS_PROD_TU})
+target_include_directories(p1wcs_tests PRIVATE
+  ${P1WCS_IPV}/include
+  ${P1WCS_TAN}
+  ${P1WCS_DIR})
+target_link_libraries(p1wcs_tests PRIVATE OpenMP::OpenMP_CXX)
+
+# performance 基线 (独立可执行, 时长敏感与 core 组隔离)
+add_executable(p1wcs_perf_test
+  ${P1WCS_DIR}/p1wcs_tests_perf.cpp
+  ${P1WCS_PROD_TU})
+target_include_directories(p1wcs_perf_test PRIVATE
+  ${P1WCS_IPV}/include
+  ${P1WCS_TAN}
+  ${P1WCS_DIR})
+target_link_libraries(p1wcs_perf_test PRIVATE OpenMP::OpenMP_CXX)
+add_test(NAME p1wcs_performance COMMAND p1wcs_perf_test)
+
+# 故障注入必败自检 (验收: baseline 必 PASS + env/argv 注入必 FAIL 双向排除恒常)
+add_executable(p1wcs_selfcheck_test
+  ${P1WCS_DIR}/p1wcs_tests_selfcheck.cpp
+  ${P1WCS_DIR}/p1wcs_tests_units.cpp
+  ${P1WCS_DIR}/p1wcs_tests_properties.cpp
+  ${P1WCS_DIR}/p1wcs_tests_oracle.cpp
+  ${P1WCS_DIR}/p1wcs_tests_negative.cpp
+  ${P1WCS_DIR}/p1wcs_tests_apbp.cpp
+  ${P1WCS_PROD_TU})
+target_include_directories(p1wcs_selfcheck_test PRIVATE
+  ${P1WCS_IPV}/include
+  ${P1WCS_TAN}
+  ${P1WCS_DIR})
+target_link_libraries(p1wcs_selfcheck_test PRIVATE OpenMP::OpenMP_CXX)
+add_test(NAME p1wcs_selfcheck COMMAND p1wcs_selfcheck_test)
+
+# 单组单跑: ctest -R p1wcs_units / p1wcs_properties / p1wcs_oracle /
+#           p1wcs_negative / p1wcs_apbp
+add_test(NAME p1wcs_units COMMAND p1wcs_tests units)
+add_test(NAME p1wcs_properties COMMAND p1wcs_tests properties)
+add_test(NAME p1wcs_oracle COMMAND p1wcs_tests oracle)
+add_test(NAME p1wcs_negative COMMAND p1wcs_tests negative)
+# WCS-003 apbp 组: 六类验收 + 数值证据/交叉验证输入导出 (run/p1wcs_wcs003/)
+add_test(NAME p1wcs_apbp COMMAND p1wcs_tests apbp)
+set_tests_properties(p1wcs_apbp PROPERTIES
+  ENVIRONMENT "P1WCS_CROSS_OUT=${CMAKE_SOURCE_DIR}/run/p1wcs_wcs003/wcs003_cross_input.json")
+
+# WCS-003 Astropy 第三方交叉验证 (独立实现, 只入测试面零生产依赖;
+# 自包含: subprocess 重跑 apbp 组刷新导出 → astropy.wcs 独立正/逆比对)
+add_test(NAME p1wcs_astropy_cross
+  COMMAND ${CMAKE_COMMAND} -E env
+          P1WCS_CROSS_OUT=${CMAKE_SOURCE_DIR}/run/p1wcs_wcs003/wcs003_cross_input.json
+          P1WCS_TESTS_BIN=$<TARGET_FILE:p1wcs_tests>
+          python3 ${P1WCS_DIR}/p1wcs_astropy_cross.py)
+
+set_tests_properties(p1wcs_units p1wcs_properties p1wcs_oracle
+                     p1wcs_negative p1wcs_performance p1wcs_selfcheck
+                     p1wcs_apbp p1wcs_astropy_cross
+                     PROPERTIES LABELS "p1wcs")
+
+# ---------------------------------------------------------------------------
+# STD-F1 导出边界 +1 桥接第三方交叉 + 九宫格显式判定 (前台裁决 R-02 方案 b)
+# ---------------------------------------------------------------------------
+# 合同锚: docs/science/ASTROMETRY.md §5/§7; docs/standards/STANDARDS_REGISTRY.md
+# STD-F1 (FITS WCS Paper I §2.1.1)。自包含: 自行重跑 p3_wcs_test (九宫格导出)
+# 与 p1wcs_tests apbp (ipv 导出侧输入) → astropy 独立对拍; 正向锁 (声明桥接
+# 达机器精度) + 负向注入 (移除/错置桥接必 FAIL, ≥1px) 双向断言。
+# 工作目录: CMake 显式传入仓内 run/ 区 (任意检出位置/托管 runner 可写);
+# 可用 -DSTD_F1_BRIDGE_WORK_DIR=<可写目录> 覆盖。脚本自身不含绝对路径。
+if(NOT DEFINED STD_F1_BRIDGE_WORK_DIR)
+  set(STD_F1_BRIDGE_WORK_DIR "${CMAKE_SOURCE_DIR}/run/std_f1_adj")
+endif()
+add_test(NAME p1wcs_std_f1_bridge_cross
+  COMMAND ${CMAKE_COMMAND} -E env
+          STD_F1_WORK_DIR=${STD_F1_BRIDGE_WORK_DIR}
+          P1WCS_TESTS_BIN=$<TARGET_FILE:p1wcs_tests>
+          P3WCS_TESTS_BIN=$<TARGET_FILE:p3_wcs_test>
+          python3 ${P1WCS_DIR}/p1wcs_std_f1_bridge_cross.py
+          --work-dir ${STD_F1_BRIDGE_WORK_DIR})
+set_tests_properties(p1wcs_std_f1_bridge_cross PROPERTIES LABELS "p1wcs")
+
+# ---------------------------------------------------------------------------
+# G-P1-WCS-CLOSURE v1 冻结口径的可复现门
+# ---------------------------------------------------------------------------
+# 合同锚: docs/science/ASTROMETRY.md §11a (SCI-WCS-001);
+# docs/algorithms/GATES_AND_TOLERANCES.md §3 行 G-P1-WCS-CLOSURE-REPRO (发布门=Y)
+# 与 §2 行 SNR_det。判据: 同输入同口径两次运行 median 完全相等 (容差 0 px,
+# 实测漂移 0) + 记录必须能由自带残差向量与声明半径重新导出 + params 逐项等于
+# 冻结口径。本目标跑合成场自检: 两口径各两跑必绿, 7 类负例注入必红, 缺输入
+# fail-closed 必红; 不依赖真实数据, 只用 astropy/numpy/scipy (独立 oracle,
+# 不导入生产代码)。
+add_test(NAME p1wcs_closure_metric_gate
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/eng/tools/astrometry/closure_metric.py selftest)
+set_tests_properties(p1wcs_closure_metric_gate PROPERTIES LABELS "p1wcs")

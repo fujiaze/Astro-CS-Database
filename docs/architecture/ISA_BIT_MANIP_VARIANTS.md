@@ -38,5 +38,5 @@
 - 若未来引入整数/位密集型 kernel(如 binarization/高位计数), 需重新评估(当前无)。
 
 ## 4 完整性
-- 测量工件: artifacts/prerelease_v5/ISA-005/MEASUREMENTS.csv(含 bmi2_popcnt_instruction_count=0 证据列)。
+- 测量工件: artifacts/evidence/prerelease-v5/ISA-005/MEASUREMENTS.csv(含 bmi2_popcnt_instruction_count=0 证据列)。
 - 与 preflight/ABI-002 关系: 未新增变体 → 无新 manifest 行, 无预检负担。

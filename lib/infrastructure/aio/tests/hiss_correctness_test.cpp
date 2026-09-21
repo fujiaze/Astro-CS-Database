@@ -6,7 +6,7 @@
 // Drizzle 测试 (6~11): 通量守恒 / support 范围 / 自动 NSIDE
 // HISS 格式测试 (12~21): 往返读写 / 子块校验 / 原子提交 / 坐标恢复
 //
-// 编译 (从 tests/ 目录):
+// 编译 (从 eng/tests/ 目录):
 // g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DHAS_ZSTD \
 // -I../include -I../src \
 // -I../../calibration/include \

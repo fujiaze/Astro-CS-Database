@@ -16,12 +16,12 @@
 // $env:Path = "C:\msys64\mingw64\bin;$env:Path"
 // cd "f:\Astro dev\Astro CS Normalization Database\lib\astro_image_io"
 // g++ -std=c++17 -O2 -Iinclude -Isrc `
-// tests/test_checksum.cpp `
+// eng/tests/test_checksum.cpp `
 // src/hiss_codec.cpp src/hiss_common.cpp `
 // src/hiss_tile_model.cpp src/hiss_transform.cpp `
 // src/hiss_writer.cpp src/hiss_stream_writer.cpp `
 // src/hiss_reader.cpp `
-// -lm -o tests/test_checksum.exe
+// -lm -o eng/tests/test_checksum.exe
 //
 // 运行:
 // ./tests/test_checksum.exe

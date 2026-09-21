@@ -16,7 +16,7 @@
  *     ABI version、build ID; 失败写诊断但绝不执行 fallback 静态算法。
  *
  * 实现分层（本文件族）:
- *   host(registry, ABI-004 接入) 从 packaging/astrocs.product.json 解析出 unit
+ *   host(registry, ABI-004 接入) 从 eng/packaging/astrocs.product.json 解析出 unit
  *   记录(unit_id/kind/rel_path→abs/sha256/module_id/abi_version)填入
  *   acs_load_manifest_unit_v1 —— loader 不做 JSON 解析(12 §3: module 不自行开路径),
  *   只强制 unit 的语义(绝对+canonical+hash+ID 一致性), 未登记/相对/非 canonical

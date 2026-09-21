@@ -44,7 +44,7 @@
 - 唯一生产 writer=lib/infrastructure/aio/src/hips/aio_hips_writer.cpp（1222 行，
   合同头 aio_hips.h 9 符号）；编译于 astrocs_hips 静态库
   （CMakeLists.txt:298-309）；调用方=astro_sphere_sink.cpp:97（drizzle
-  sink 合并后单线程写）+ stage2.cpp:592（Phase2）+ tests/unit/
+  sink 合并后单线程写）+ stage2.cpp:592（Phase2）+ eng/tests/unit/
   p1_hips_writer_test.cpp:55。lib/phase1_session 零 HiPS 引用（grep rc=1）；
   healpix_stack 系列函数全仓零调用（死代码化）；HISS 为独立中间容器
   （legacy_hiss_compare 开关封闭，HISS_VERIFY=CFG-002 关闭）。
@@ -108,7 +108,7 @@
 
 五项自检 rc（run/local/agent_p1_hips_doc/ 日志在案，2026-09-07 实测）：
 ①check_traceability_matrix.py rc=0（modules=27 errors=0 warns=4，warns 逐
-条与基线 4 条相同）；②pytest tests/traceability rc=0（4 passed）；
+条与基线 4 条相同）；②pytest eng/tests/traceability rc=0（4 passed）；
 ③check_contract_graph.py rc=0（contracts=37）；④check_doc_index.py rc=0
 （DOC_INDEX_PASS）；⑤run/local/agent_p1_hips_doc/selfcheck.py rc=0
 （PASS 87 FAIL 0）；⑥git status 域核查：lib/** 生产源码与 docs/science/**
@@ -161,7 +161,7 @@
 - lib/algorithms/drizzle/hips/include/astrocs/hips/types.h + src/module_exports.map +
   src/astrocs_p1_hips_writer.def + module.yaml（交付态: entrypoint=
   astrocs_module_query_v1, node_operations=[write_product]）。
-- tests/unit/p1_hips/adapter_test.c + adapter_entry_impl.cpp + tests/unit/
+- eng/tests/unit/p1_hips/adapter_test.c + adapter_entry_impl.cpp + eng/tests/unit/
   CMakeLists.txt 注册块: hips_writer_adapter（9 case: direct reference/
   adapter 全生命周期/direct-vs-plugin 产物树逐文件 size 对拍/alloc_fail/
   schema_reject/budget 105×2/cancel_not_begun/strbuf 探针/dlsym 导出面探针）。
@@ -218,7 +218,7 @@
 
 - 控制包任务 AIO-002（ASTROCS-CONSTITUTION-ALIGNMENT-V1）：staging→校验→
   fsync→原子 promote；正常/取消/ENOSPC/kill 后无 partial；临时目录 RAII。
-- 写域：lib/algorithms/drizzle/hips/ lib/algorithms/coverage/hips_p2/ tests/。生产 writer（lib/infrastructure/aio）零改动
+- 写域：lib/algorithms/drizzle/hips/ lib/algorithms/coverage/hips_p2/ eng/tests/。生产 writer（lib/infrastructure/aio）零改动
   （scientific_change=false；git diff 实证空）。
 
 ### 交付物
@@ -240,12 +240,12 @@
   abort（旧代码成功路径 abort 是 double-free 隐患，本次实证修复——原语义
   finalize 后从未走 abort，未暴露）。诊断码 HIPS_ECODE_PUBLISH_STAGE=122/
   HIPS_ECODE_PUBLISH_REJECT=123（types.h）。
-- lib/algorithms/drizzle/hips/CMakeLists.txt：aio_publish.cpp 编入 DLL；tests/unit/CMakeLists.txt：
+- lib/algorithms/drizzle/hips/CMakeLists.txt：aio_publish.cpp 编入 DLL；eng/tests/unit/CMakeLists.txt：
   hips_publish_atomic_test 注册（units/atomic 两组 ctest）+ adapter 测试补
   aio_publish.cpp。
-- tests/unit/p1_hips/publish_atomic_test.c：TEST-P1-HIPS-PUBLISH-001 可执行面
+- eng/tests/unit/p1_hips/publish_atomic_test.c：TEST-P1-HIPS-PUBLISH-001 可执行面
   （4 tile 确定性流；正向/注入必败/cancel/kill+自愈/非空目标拒绝/残留垃圾
-  自愈/units 原语正负幂等）；tests/unit/p1_hips/adapter_test.c 补 hips_rm_rf
+  自愈/units 原语正负幂等）；eng/tests/unit/p1_hips/adapter_test.c 补 hips_rm_rf
   幂等（重复 root 旧树清零——原子发布"非空目标拒绝"使旧残树合法拒发）。
 - module.yaml：source_symbols 补 4 publish 原语 + test_ids 补
   TEST-P1-HIPS-PUBLISH-001；README §9 补 AIO-002 验证与限制注记。
@@ -275,7 +275,7 @@
   + p1_hips_writer（4/4）循环 5 轮全绿（幂等实证）；p1hips 全组 6/6。
 - asan 树（ASTROCS_ENABLE_SANITIZERS=ON）：4/4 两轮零报告（asan 下 kill
   用例改轮询等待 staging 出现——固定 250ms 在 -O0 慢 10x 下不确定）。
-- 注入必败动态验证（asan tests/unit 直接运行）：p1_stage_create_fail/
+- 注入必败动态验证（asan eng/tests/unit 直接运行）：p1_stage_create_fail/
   p1_fsync_fail/p1_promote_fail → rc=1 且 0 PASS-line；p1_discard_noop →
   units_discard 断言翻红（红锚口径：假清后残留断言）；p1_stage_slow_write →
   kill 用例时序锚（PASS 合法：非断言翻转型）。

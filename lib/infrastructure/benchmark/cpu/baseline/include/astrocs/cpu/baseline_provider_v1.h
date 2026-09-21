@@ -3,16 +3,16 @@
  *
  * 角色: CPU-002 冻结的 AMD64 baseline provider (仅 SSE2, 不带 /arch:AVX* /
  * -mavx* 编译旗标) 的 kernel 参数 POD 合同。provider 本体导出唯一入口
- * astrocs_provider_query_v1 (include/astrocs/abi/module_api_v1.h 冻结; 12 §1 /
+ * astrocs_provider_query_v1 (lib/include/astrocs/abi/module_api_v1.h 冻结; 12 §1 /
  * ARC-001 §1.2), 消费 CPU-001 capability 判定 (lib/infrastructure/benchmark/cpu/common/
- * include/astrocs/cpu/capability_v1.h) 完成 "OS 可安全执行" 平面检查后再
+ * lib/include/astrocs/cpu/capability_v1.h) 完成 "OS 可安全执行" 平面检查后再
  * 提供 kernel 服务。
  *
  * 冻结合同:
  *   - docs/architecture/CPU_BACKEND_ARCH.md (baseline provider 归属; 原 CPU_002_BASELINE_PROVIDER.md 已删);
- *   - include/astrocs/abi/module_api_v1.h (provider ABI: acs_provider_api_v1 /
+ *   - lib/include/astrocs/abi/module_api_v1.h (provider ABI: acs_provider_api_v1 /
  *     acs_kernel_desc_v1 / run_kernel 签名; ABI-001);
- *   - include/astrocs/abi/lifecycle_v1.h (self_test 语义 / host_abi 协商; ABI-002);
+ *   - lib/include/astrocs/abi/lifecycle_v1.h (self_test 语义 / host_abi 协商; ABI-002);
  *   - lib/infrastructure/benchmark/cpu/common/include/astrocs/cpu/capability_v1.h (CPU-001 os_safe 平面);
  *   - ALG-001/002/004/005/006/008/009/P3-002 离散公式 (docs/algorithms/);
  *   - 12 个已注册 kernel 的算法/序与 lib/infrastructure/benchmark/backend_host/baseline_kernels_impl.inc

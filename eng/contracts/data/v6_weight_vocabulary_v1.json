@@ -1,0 +1,238 @@
+{
+  "vocabulary_schema": "astrocs.v6.weight-vocabulary/v1",
+  "schema_version": 1,
+  "task": "SCHEMA-INTEGRATE-001",
+  "wave": 6,
+  "status": "PRODUCTION_INTEGRATED",
+  "authority": "CONTROLLER_LOG.md C-004.3; C-007 F1 局部裁定; DI-01; DI-07",
+  "semantic_authority": "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json",
+  "statement": "SCI-PSFW-001 与 SCI-P2-001 的两套既有权重词表归一为单一权威 schema；本文件是唯一词表事实源，不发明第三套。/ The two pre-existing weight vocabularies are collapsed into one canonical schema; no third vocabulary is permitted.",
+  "object_path": "weight",
+  "canonical_fields": [
+    {
+      "field": "weight.kind",
+      "type": "string",
+      "canonical_psfsw_value": "psfsw_robust_weight",
+      "other_modes": {
+        "point_information": "W_info",
+        "surface_gls": "A^T C^-1 A",
+        "equal": "unit_weight",
+        "pixel_ivar": "pixel_ivar"
+      },
+      "legacy_aliases": [
+        {
+          "token": "relative_dimensionless",
+          "source": "SCI-PSFW-001 / SCI-PSFW word list weight_kind"
+        }
+      ],
+      "anchor": "FZ-FIELD-PSFSW-UNIT; WEIGHT_PROVENANCE_GATE R2; ADJ-GEN-02",
+      "gate": "G-WEIGHT-KIND / G-PSFSW-KIND"
+    },
+    {
+      "field": "weight.units",
+      "type": "string",
+      "canonical_psfsw_value": "1",
+      "other_modes": {
+        "point_information": "ADU^-2",
+        "surface_gls": "1/(surface_brightness^2)",
+        "equal": "1",
+        "pixel_ivar": "1/BUNIT^2"
+      },
+      "legacy_aliases": [
+        {
+          "token": "dimensionless_relative",
+          "source": "SCI-P2-001 WEIGHT_PROVENANCE_GATE R5"
+        }
+      ],
+      "anchor": "FZ-UNIT-PSFSW; WEIGHT_PROVENANCE_GATE R5; ADJ-C004-03; DI-07",
+      "gate": "G-PSFSW-UNIT"
+    },
+    {
+      "field": "weight.group_normalized",
+      "type": "boolean",
+      "canonical_psfsw_value": true,
+      "other_modes": {
+        "point_information": false,
+        "surface_gls": false,
+        "equal": false,
+        "pixel_ivar": false
+      },
+      "legacy_aliases": [],
+      "anchor": "FZ-FIELD-PSFSW-UNIT; FZ-FORMULA-PSFSW-COMPOSITE",
+      "gate": "G-PSFSW-NORMALIZATION"
+    },
+    {
+      "field": "weight.normalization.scope",
+      "type": "string",
+      "canonical_psfsw_value": "group",
+      "legacy_aliases": [
+        {
+          "token": "normalization.scope",
+          "source": "SCI-PSFW-001 word list (same path, same semantic)"
+        }
+      ],
+      "anchor": "FZ-FIELD-PSFSW-UNIT; SCI-PSFW-001 §3",
+      "gate": "G-PSFSW-NORMALIZATION"
+    },
+    {
+      "field": "weight.normalization.median_target",
+      "type": "number",
+      "canonical_psfsw_value": 1,
+      "legacy_aliases": [],
+      "anchor": "FZ-FORMULA-PSFSW-COMPOSITE",
+      "gate": "G-PSFSW-NORMALIZATION"
+    },
+    {
+      "field": "weight.normalization.constants_version",
+      "type": "string",
+      "legacy_aliases": [],
+      "anchor": "SCI-PSFW-001 §3; ADJ-P2-03",
+      "gate": "G-PSFSW-CONSTANTS-VERSION"
+    },
+    {
+      "field": "weight.weight_value",
+      "type": [
+        "number",
+        "null"
+      ],
+      "legacy_aliases": [],
+      "anchor": "FZ-GATE-PSFSW-FAILCLOSED",
+      "gate": "G-PSFSW-FAILCLOSED"
+    }
+  ],
+  "dual_mapping": [
+    {
+      "semantic": "weight_object_kind",
+      "sci_psfw_token": "weight_kind",
+      "sci_p2_token": "weight.kind",
+      "canonical": "weight.kind",
+      "psfsw_canonical_value": "psfsw_robust_weight",
+      "sci_psfw_value": "relative_dimensionless",
+      "direction": "both"
+    },
+    {
+      "semantic": "weight_unit_string",
+      "sci_psfw_token": "weight_units",
+      "sci_p2_token": "weight.units",
+      "canonical": "weight.units",
+      "psfsw_canonical_value": "1",
+      "sci_psfw_value": "1",
+      "sci_p2_value": "dimensionless_relative",
+      "direction": "both",
+      "open_item": "DI-07"
+    },
+    {
+      "semantic": "normalization_domain",
+      "sci_psfw_token": "normalization.scope",
+      "sci_p2_token": "group_normalized",
+      "canonical": "weight.group_normalized",
+      "psfsw_canonical_value": true,
+      "sci_psfw_value": "group",
+      "direction": "both"
+    },
+    {
+      "semantic": "group_median_target",
+      "sci_psfw_token": "normalization.median_target",
+      "sci_p2_token": "group_normalized=true (median=1)",
+      "canonical": "weight.normalization.median_target",
+      "psfsw_canonical_value": 1,
+      "direction": "both"
+    }
+  ],
+  "sci_psfw_top_level_tokens": [
+    "weight_kind",
+    "weight_units",
+    "normalization.scope",
+    "normalization.median_target"
+  ],
+  "migration_layer_rule": "迁移层（reader）接受 legacy 词表并规范化为 canonical；生产层（writer/schema）只允许 canonical。任一层出现不属于 {canonical_fields, legacy_aliases} 的第三套名 → REJECT（FZ-FIELD-WEIGHTMODE）。",
+  "forbidden_third_vocabulary_tokens": [
+    "weight_normalized",
+    "normalization_scope",
+    "weight_type",
+    "weight_kind_name",
+    "norm_scope",
+    "unit_string",
+    "is_group_normalized",
+    "weight_dimensionless"
+  ],
+  "forbidden_psfsw_claims": [
+    "ivar",
+    "inverse_variance",
+    "fisher",
+    "fisher_information",
+    "information",
+    "w_info",
+    "w_psf",
+    "1/W_psfsw",
+    "variance_from_weight"
+  ],
+  "legacy_integer": {
+    "superseded": {
+      "0": "support_x_snr2",
+      "1": "equal",
+      "2": "pixel_ivar"
+    },
+    "legacy_integer_allowed": false,
+    "disposition": {
+      "0": {
+        "legacy": "support_x_snr2",
+        "action": "REJECT",
+        "class": "retired",
+        "reason": "support×snr² 形态被 UNIFIED §11 撤销；support/coverage 只作门，不得进入任何科学权重面",
+        "anchor": "FZ-FIELD-WEIGHTMODE; FZ-GATE-SUPPORT-COVERAGE"
+      },
+      "1": {
+        "legacy": "equal",
+        "action": "MIGRATE_TO",
+        "target": "equal",
+        "class": "documented_baseline",
+        "reason": "仅基线对照，非科学最优声明",
+        "anchor": "FZ-MODE-BASELINE"
+      },
+      "2": {
+        "legacy": "pixel_ivar",
+        "action": "MIGRATE_TO",
+        "target": "pixel_ivar",
+        "class": "documented_baseline",
+        "reason": "仅基线对照；对任意 PSF 不冒充点源最优",
+        "anchor": "FZ-MODE-BASELINE"
+      },
+      "auto": {
+        "action": "REJECT",
+        "class": "retired",
+        "reason": "ACR 历史枚举，不得反向定义生产权重枚举",
+        "anchor": "ADJ-AR-01"
+      },
+      "support_x_snr2": {
+        "action": "REJECT",
+        "class": "retired",
+        "reason": "同 legacy 0",
+        "anchor": "FZ-FIELD-WEIGHTMODE"
+      },
+      "psf_snr_power": {
+        "action": "REJECT",
+        "class": "deferred",
+        "reason": "DEFERRED；C-004.1 本包不解冻，不进生产路由",
+        "anchor": "FZ-MODE-DEFERRED"
+      }
+    },
+    "anchor": "ADJ-S1; ADJ-AR-01; FZ-MODE-PRODUCTION; FZ-MODE-BASELINE"
+  },
+  "production_weight_mode_forbidden_values": [
+    "psf_snr_power",
+    "auto",
+    "support_x_snr2",
+    0
+  ],
+  "documented_baseline_mode_forbidden_claims": [
+    "scientific optimality",
+    "point-source optimality for arbitrary PSF"
+  ],
+  "x-astrocs-canonical-object-retirement": {
+    "note": "本文件属 v6 合同层，按 工程控制/RELEASE-03/GAP_AUDIT.md §4.1 Q2 裁决在位保留为「设计档案 / 产品族专用投影（非生产目标态）」，文件不删。统一对象 canonical psfsw_robust_weight retired（负责人 2026-09-20 裁决 B，14→13；变更编号 CHG-2026-09-20-PSFSW-RETIRE；依据 ASTROCS_DESIGN.md §2.1/§2.2/§2.3 与 工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44）：eng/contracts/schemas/unified/psfsw_robust_weight.schema.json 与其正例已删除，端口合同枚举不再接受该对象。本文件中的 psfsw_robust_weight 是 v6 提案/产品族内部标识（weight.kind 值、单位表符号、variance_from 禁止项 token），不是统一对象 canonical 引用；旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示（eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries）。",
+    "retired_canonical_object": "psfsw_robust_weight",
+    "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
+    "v6_layer_status": "retained_design_archive"
+  }
+}

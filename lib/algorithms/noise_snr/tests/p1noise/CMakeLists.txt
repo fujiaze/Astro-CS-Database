@@ -8,7 +8,7 @@
 # P1-NOISE (MOD astrocs.p1.noise-snr); 上游 SCI-NOISE-001..015 (NOISE_MODEL.md
 # FROZEN T104 2026-08-23, 不改)。
 #
-# 结构 (模块 tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
+# 结构 (模块 eng/tests/{unit,properties,oracle,fixtures,negative,performance} 对应):
 #   p1noise/p1noise_fixtures.hpp     — FIX-NOISE-A..G(+PERF) 固定 seed fixture
 #                                      generator (splitmix64/Box-Muller, 全离线)
 #   p1noise/p1noise_oracle.hpp       — 独立 oracle (不调用被测函数, sort-path

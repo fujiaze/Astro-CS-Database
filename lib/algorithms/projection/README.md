@@ -14,13 +14,13 @@
 > 退场，仅为历史测试面与 legacy 偏差对照证据门保留（四项偏差 D1..D4 见
 > ALG-P3-PROJ-IMPL-001 §15.9），禁止新消费方引用。TAN 逐式沿用
 > 同目录 p3_wcs.cpp 冻结生产事实（bitwise 对拍承载于
-> tests/unit/p3_projection_test.cpp T3）。**现状**：registry 为测试
-> 目标直编面（tests/unit/CMakeLists.txt），非生产构建成员；
+> eng/tests/unit/p3_projection_test.cpp T3）。**现状**：registry 为测试
+> 目标直编面（eng/tests/unit/CMakeLists.txt），非生产构建成员；
 > dll_target=astrocs_p3_projection.dll 尚未存在（entrypoint=MISSING，
 > 挂载由 P3-PROJ-IMPL/P3-002 建立，禁止声明 IMPLEMENTED）。
 > **W4-A9 批次 1（2026-09-17）**：legacy 生产源 p3_wcs.h/.cpp 已由
 > lib/phase3_session/ 迁入本目录（ASTROCS_DESIGN §7.1「projection」行），
-> 并登记 astrocs_p3_projection_wcs STATIC + 共址 tests/p3wcs/**；
+> 并登记 astrocs_p3_projection_wcs STATIC + 共址 eng/tests/p3wcs/**；
 > 会话消费点 p3_session.cpp 的 include 同步改新址。
 > 文档口径见 docs/algorithms/PHASE3_PROJ_IMPL.md §15（v3 冻结口径 + §15.9
 > v1 偏差表）、docs/plugins/algorithms_phase3/14_projection.md。
@@ -52,7 +52,7 @@
 | API | API-P3-PROJ-001 | docs/contracts/PUBLIC_API.md（Phase3 投影公共消费面节） | CONTRACT_READY |
 | ARCH | ARCH-001 | eng/cmake/ARCH-001-migration-manifest.md | VERIFIED |
 | API(镜像) | API-P3-001 | docs/contracts/PUBLIC_API.md（p3_session 五段编排面 FROZEN 镜像，不变） | FROZEN 镜像 |
-| TEST | TEST-P3-WCS-001 | 登记面=TEST-P3-WCS-DESIGN-001（设计冻结 VERIFIED，ALG-P3-PROJ-IMPL-001 §11 + registry 页 §9 双重陈述）；可执行面=tests/unit/p3_wcs_test.cpp（90 行）+ tests/backend/test_p1002_gaps.py + tests/backend/p3_wcs_main.cpp；验收升级归 P3-PROJ-TEST | 见右 |
+| TEST | TEST-P3-WCS-001 | 登记面=TEST-P3-WCS-DESIGN-001（设计冻结 VERIFIED，ALG-P3-PROJ-IMPL-001 §11 + registry 页 §9 双重陈述）；可执行面=eng/tests/unit/p3_wcs_test.cpp（90 行）+ eng/tests/backend/test_p1002_gaps.py + eng/tests/backend/p3_wcs_main.cpp；验收升级归 P3-PROJ-TEST | 见右 |
 | EVID | EVID-MISSING | 待 P3-PROJ-INT/验收补 | MISSING |
 
 ## 2a P3-001 registry 与四投影（2026-09-10 增补）
@@ -63,8 +63,8 @@
   P3ProjectionId/kP3ProjectionRegistryVersion/p3_projection_registry_
   {table,find,find_id,selfcheck}/p3_projection_{make,pix2world,
   world2pix,fits_keywords}（namespace astrocs::phase3proj）。
-- 可执行测试: tests/unit/p3_projection_test.cpp（ctest
-  p3_projection_units + p3_projection_fault）+ tests/backend/
+- 可执行测试: eng/tests/unit/p3_projection_test.cpp（ctest
+  p3_projection_units + p3_projection_fault）+ eng/tests/backend/
   test_p3_projection_oracle.py（独立 numpy oracle/跨进程确定性）。
 - 故障注入: ASTROCS_P3PROJ_FAULT=tan|sin|car|ait|registry（测试级注入，
   生产源零 getenv，P2-002 先例同构）。
@@ -79,7 +79,7 @@
 - 会话消费点: p3_session.cpp:17（include）/:160（p3_wcs_make，
   rotation_pa_deg 恒 0.0）/:163（状态映射）/:232（worker 循环
   pix2world，半球外像素 NaN）/:247-253（线程池）；backend 探针
-  tests/p3wcs/p3_wcs_main.cpp 与 Python 侧 test_p1002_gaps.py 编译链接
+  eng/tests/p3wcs/p3_wcs_main.cpp 与 Python 侧 test_p1002_gaps.py 编译链接
   p3_wcs.cpp（均为新址）。
 - 逐符号源码锚、冻结公式（G1 CD 构造/G2 反向映射）、错误语义、
   并发/确定性合同：ALG-P3-PROJ-IMPL-001 §2-§9。
@@ -127,7 +127,7 @@
   |CRVAL2|≤85°、FOV≤20°（`p3_wcs_fov_deg` = scale×√(W²+H²) 帧对角全视场）、
   手性 det(CD)<0、CRPIX=(W+1)/2,(H+1)/2（FITS 1-based 像素中心）、
   往返 <1e-8 px（`p3_wcs_roundtrip_max_error_px`，9 点采样；`kTanApplicability.roundtrip_tol_px`）。
-- 可执行面: `tests/p3wcs/p3_projection_registry_test.cpp`（ctest
+- 可执行面: `eng/tests/p3wcs/p3_projection_registry_test.cpp`（ctest
   `p3_projection_registry` + 负例入口 `p3_projection_registry_selftest`）+
-  `tests/p3wcs/p3_projection_unsupported_cli.py`（ctest
+  `eng/tests/p3wcs/p3_projection_unsupported_cli.py`（ctest
   `p3_projection_unsupported_cli`：8 码逐一 rc≠0 + 明确原因，TAN 对照过门）。

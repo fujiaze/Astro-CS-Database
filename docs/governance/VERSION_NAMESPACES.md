@@ -19,8 +19,8 @@ AstroCS 的"版本号"不是一个量，而是五个生命周期独立的命名�
 |---|---|---|---|
 | product | 仓库根 `VERSION`（唯一事实源，单行 `MAJOR.MINOR.PATCH-alpha.N`） | `0.11.0-alpha.2` | 产品发布语义；`MAJOR.MINOR.PATCH` 只由负责人指令变更，`alpha.N` 只在外部审核通过后提升；禁止 stable/rc/beta |
 | module | 各模块 `module.yaml`（module_version 字段；DATA-001 建立类型化产物合同时登记于 module manifest） | 逐模块独立（当前以 manifest 为准） | 模块接口/产物变更时由模块 owner 递增，与产品版本无关 |
-| ABI | `include/astrocs/common_abi_v1.h` 的 `ACS_ABI_VERSION_V1`（C ABI 冻结）与 `cli/version_generated.h` 暴露的 `abi_version` | ABI v1（头常量 `1u`；gen_version 输出 `abi_version=0` 表示 CLI 侧尚未对 ABI-001 冻结置 1） | ABI-001 冻结后 CLI 报告从 0 → 1；任何破坏二进制兼容的变更必须递增 |
-| data-schema | `contracts/data/artifact_types.registry.json` 的 `schema_version`（type_id 数据产品 schema）与各 schema 文件 `$schema` 版本 | type_id schema_version = 1（DATA-001 冻结） | 数据产品结构变更时按 registry 递增 |
+| ABI | `lib/include/astrocs/common_abi_v1.h` 的 `ACS_ABI_VERSION_V1`（C ABI 冻结）与 `cli/version_generated.h` 暴露的 `abi_version` | ABI v1（头常量 `1u`；gen_version 输出 `abi_version=0` 表示 CLI 侧尚未对 ABI-001 冻结置 1） | ABI-001 冻结后 CLI 报告从 0 → 1；任何破坏二进制兼容的变更必须递增 |
+| data-schema | `eng/contracts/data/artifact_types.registry.json` 的 `schema_version`（type_id 数据产品 schema）与各 schema 文件 `$schema` 版本 | type_id schema_version = 1（DATA-001 冻结） | 数据产品结构变更时按 registry 递增 |
 | doc-revision | 每份治理/规范文档 front matter 的 `状态: … 版本: N`（文档自身修订号） | 逐文档独立（本文档 = 1） | 文档内容修订时递增；与产品版本、数据 schema 无换算关系 |
 
 ## 2. 历史轮次命名空间（不参与以上五类）

@@ -328,7 +328,7 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
  *     aio_frame_add_block_move 拒绝（返回 9），不存在"未列出的名字也允许"的隐式放行。
  *     扩展路径只有一条 = 显式注册（先在本表增行、给出权威引用，再注册）。
  *     variance / ivar 的语义正本 = docs/design/UNIFIED_MODEL.md §2 +
- *     contracts/schemas/unified/{variance,ivar}.schema.json；
+ *     eng/contracts/schemas/unified/{variance,ivar}.schema.json；
  *     消费面登记 = docs/contracts/DATA_SEMANTICS.md §11.1（FIX-404 / GAP_AUDIT G1-5）。
  * ===========================================================================
  *

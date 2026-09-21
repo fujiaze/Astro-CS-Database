@@ -5,7 +5,7 @@
 一步 —— 对已关闭的 tile FITS 文件做结构与完整性校验，全部通过才允许进入
 sha256 + 原子 rename。语义与 IO-001 fits_core（lib/infrastructure/aio/io/fits_core.c，C ABI
 fits_stream_v1.h）同一算法族（32 位 1 补码 DATASUM / CHECKSUM，NOAO/Rob Seaman），
-并可与 CFITSIO/astropy 独立交叉（tests/io 内 astropy oracle 对照）。
+并可与 CFITSIO/astropy 独立交叉（eng/tests/io 内 astropy oracle 对照）。
 
 校验项（fail 即返回错误，任一不过拒绝发布）：
   1. 结构：文件 ≥ 头块（SIMPLE/BITPIX/NAXIS/NAXISn/END，2880 块对齐）；
@@ -414,7 +414,7 @@ def verify_fits_file(path: str, verify_checksum: bool = False) -> _Header:
 
 def compute_datasum_bytes(data: bytes) -> int:
     """数据区 DATASUM（十进制）独立计算——供调用方记录/与 fits_core/astropy
-    交叉对照（tests/io/test_fits_stream_contract.py 同一语义）。"""
+    交叉对照（eng/tests/io/test_fits_stream_contract.py 同一语义）。"""
     padded = (len(data) + _BLOCK - 1) // _BLOCK * _BLOCK
     return _checksum_blocks(data + b"\x00" * (padded - len(data)))
 

@@ -4,7 +4,7 @@
 // aio_hiss_inspect, aio_hiss_read_tile_signal, aio_hiss_read_tile_support,
 // aio_hiss_read_tile_snr, aio_hiss_query_pixel
 //
-// 编译 (从 tests/ 目录):
+// 编译 (从 eng/tests/ 目录):
 // g++ -std=c++17 -O2 -fopenmp -DHAS_LZ4 -DAIO_ENABLE_HEALPIX \
 // -I../include -I../src \
 // test_wph_cli_browser.cpp \

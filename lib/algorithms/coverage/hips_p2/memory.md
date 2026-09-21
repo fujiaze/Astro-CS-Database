@@ -76,7 +76,7 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
   承接）、004（O(T·N) 覆盖帧 probe）——登记不改码，整改归
   P2-HIPS-IMPL/INT。
 - 验收基线：check_traceability_matrix rc=0 errors=0 warns=4（基线不变）；
-  check_contract_graph / check_doc_index PASS；pytest tests/traceability
+  check_contract_graph / check_doc_index PASS；pytest eng/tests/traceability
   PASS；lib 生产源零 diff。日志 run/local/agent_p2_hips_doc/（不提交）。
 
 ## 2026-09-10 · AIO-002 注记（原子发布原语已建立于 P1 模块事务面）
@@ -84,7 +84,7 @@ wave W1，owner SA-P2-I23，lock-P2-HIPS），不是实现/迁移/测试任务�
 - 控制包任务 AIO-002 在 lib/algorithms/drizzle/hips 模块事务面（C ABI adapter execute/
   write_product）交付 staging→校验→fsync→原子 promote + staging RAII
   （lib/algorithms/drizzle/hips/include/astrocs/hips/publish.h v1 + lib/algorithms/drizzle/hips/src/aio_publish.cpp
-  唯一实现；验证面 tests/unit/p1_hips/publish_atomic_test.c，
+  唯一实现；验证面 eng/tests/unit/p1_hips/publish_atomic_test.c，
   TEST-P1-HIPS-PUBLISH-001）。生产 writer（aio_hips_writer.cpp）与 P2 写编排
   生产源（lib/algorithms/coverage/tools/stage2.cpp）零改动——两者均在 AIO-002 写域之外。
 - 对 DISP-P2HIPS-003（stage2 直写 out_hips :592 无 staging）的影响：整改

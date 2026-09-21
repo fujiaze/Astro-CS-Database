@@ -41,7 +41,7 @@ enum class ResourceClass : uint8_t {
 enum class PortDirection : uint8_t { INPUT = 0, OUTPUT = 1 };
 
 // 端口类型元数据（DATA-001 typed 字段子集；单位/坐标枚举与 astrocs::core::UnitId/
-// CoordinateFrame 数值一致，见 include/astrocs/core/artifact.h）
+// CoordinateFrame 数值一致，见 lib/include/astrocs/core/artifact.h）
 struct TypedPort {
   std::string name;             // 端口名（与 registry 端口一致）
   PortDirection direction = PortDirection::INPUT;

@@ -2,7 +2,7 @@
  *
  * 任务: P2-INTEGRATE-001 (Wave 8, write_scope = lib/algorithms/coverage/src/integrate.{cpp,h},
  *       lib/algorithms/coverage/src/block.{cpp,h}, lib/algorithms/integration/, lib/phase2_session/,
- *       tests/integration/v6_p2/)。本层只"接线"，不新增科学公式：
+ *       eng/tests/integration/v6_p2/)。本层只"接线"，不新增科学公式：
  *   - Phase1 单帧产品消费面 : astrocs::v6::phase1 (P1-INTEGRATE-001)
  *   - UPM 乘加求解/参数协方差: p2_upm_ma_* (IMPL-P2-UPM-001)
  *   - 分类排异 sigma_eff^2   : p2_reject_classify / p2_reject_calibration (IMPL-P2-REJ-001)

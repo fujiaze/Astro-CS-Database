@@ -3,7 +3,7 @@
 """SAT-001 生产接线门：饱和过滤必须在默认配置下**生效或显式声明**（claim SC-008）。
 
 判据（全部可失败；负例注入见 run/PROJECT-GOVERNANCE-01/SAT-001/自证摘要.md §4）:
-  W1 config/defaults.json 登记 noise.saturation_level，source_ref 指向 SCI「饱和域」行，
+  W1 eng/packaging/config/defaults.json 登记 noise.saturation_level，source_ref 指向 SCI「饱和域」行，
      且 constraint 含「未提供」语义（禁止把 0 登记成「禁用」的默认值）
   W2 SCI NOISE_MODEL 目标行含「饱和域」与 NOISE_SATURATION_FILTER（显式声明契约）
   W3 生产接线 orchestrator.cpp：解析 SATURATE/DATAMAX → ncfg.saturation_level，
@@ -45,7 +45,7 @@ try:
     fields = {f["key"]: f for f in defaults["fields"]}
     sat = fields.get("noise.saturation_level")
     if sat is None:
-        fail("W1-MISSING", "config/defaults.json 未登记 noise.saturation_level")
+        fail("W1-MISSING", "eng/packaging/config/defaults.json 未登记 noise.saturation_level")
     else:
         constraint = sat.get("constraint", "")
         if ("未提供" not in constraint) and ("unset" not in constraint):

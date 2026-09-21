@@ -288,7 +288,7 @@ struct CovarianceRecord {
 };
 
 /* 从 CalResult 组装 covariance.v1 记录（字段名对齐
- * contracts/proposals/v6/data/astrocs.v6.covariance.v1.schema.json）。 */
+ * eng/contracts/proposals/v6/data/astrocs.v6.covariance.v1.schema.json）。 */
 CovarianceRecord make_calibration_covariance_record(const CalResult& result);
 
 bool is_forbidden_variance_source(const std::string& token);

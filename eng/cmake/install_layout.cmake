@@ -32,8 +32,8 @@
 #   pipelines/, schemas/, licenses/, README.txt。
 #
 # 白名单原则: 本文件是唯一 install() 集合; 其余文件绝不 install。
-# 每次新增 install 条目必须同时更新 packaging/install-tree.contract.json
-# (机器校验: packaging/verify_install_tree.py)。
+# 每次新增 install 条目必须同时更新 eng/packaging/install-tree.contract.json
+# (机器校验: eng/packaging/verify_install_tree.py)。
 
 # ── RPATH: install 后平台 SHARED 依赖 $ORIGIN 解析 (Linux; 12 §6) ──
 set(ASTROCS_INSTALL_RPATH "$ORIGIN")
@@ -91,9 +91,9 @@ endif()
 # 契约: astrocs_catalog_gaia (CAT-GAIA-IMPL) 与 astrocs_p1_{drizzle,calibration,
 # cosmetic,hips_writer} (P1-*迁移面) 均为 SHARED target (各子目录 CMakeLists
 # 声明), 唯一导出 astrocs_module_query_v1 (ABI-006); MOD-001 起随安装树发布
-# 到 modules/ 并登记进 packaging/astrocs.product.json +
-# install-tree.contract.json (三方面同步, 机器校验 packaging/verify_install_tree.py
-# + tests/abi/mod001_install_load_check.py 经安全 loader 逐 unit 加载验证,
+# 到 modules/ 并登记进 eng/packaging/astrocs.product.json +
+# install-tree.contract.json (三方面同步, 机器校验 eng/packaging/verify_install_tree.py
+# + eng/tests/abi/mod001_install_load_check.py 经安全 loader 逐 unit 加载验证,
 # §18.4 只加载签名清单官方模块)。
 # F-CI-002-01 (owner 裁决 2026-09-11): astrocs_p1_noise 随 lib/algorithms/noise_snr
 # V7 残留断链解除一并摘出本安装名单/产品清单 (该子图 CMakeLists 未入库, 根
@@ -113,27 +113,27 @@ endforeach()
 
 # ── schemas / licenses / product manifest (只读白名单副本) ──
 # 白名单闭合 (W5-PKG-001): 逐文件枚举, 禁止 DIRECTORY/FILES_MATCHING 通配 ——
-# 通配会让新增 schema 静默进包而不进 packaging/install-tree.contract.json
+# 通配会让新增 schema 静默进包而不进 eng/packaging/install-tree.contract.json
 # (改前实测: 安装树 18 文件 vs 合同 16 单元)。新增/删除 schema 必须同步
-# 本清单与合同; 两侧一致性由 packaging/check_packaging_consistency.py C2/C6
+# 本清单与合同; 两侧一致性由 eng/packaging/check_packaging_consistency.py C2/C6
 # 机器判红。
 foreach(_acs_schema
     astrocs-product.schema.json
     dependency-lock.schema.json
     install-tree-contract.schema.json
     preset-contract.json)
-  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/packaging/schemas/${_acs_schema}
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/schemas/${_acs_schema}
     DESTINATION ${ASTROCS_INSTALL_SCHEMA_SUBDIR}
     COMPONENT astrocs_runtime)
 endforeach()
 install(FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/packaging/licenses/CFITSIO_LICENSE.txt
-    ${CMAKE_CURRENT_SOURCE_DIR}/packaging/licenses/LICENSE-INDEX.txt
-    ${CMAKE_CURRENT_SOURCE_DIR}/packaging/licenses/nlohmann_json.MIT.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/licenses/CFITSIO_LICENSE.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/licenses/LICENSE-INDEX.txt
+    ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/licenses/nlohmann_json.MIT.txt
   DESTINATION ${ASTROCS_INSTALL_LICENSE_SUBDIR}
   COMPONENT astrocs_runtime)
 if(WIN32)
-  # WIN-PACKAGE 修复(R10 34179477866 实证): packaging/astrocs.product.json 是
+  # WIN-PACKAGE 修复(R10 34179477866 实证): eng/packaging/astrocs.product.json 是
   # BLD-003 Linux 技术预览骨架(platform=linux-amd64, rel_path=astrocs/
   # libastrocs_runtime.so/...)。Windows 安装树无条件装它后, candidate 根的
   # astrocs.exe modules list/verify/selftest 读到 Linux rel_path →
@@ -147,12 +147,12 @@ if(WIN32)
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/astrocs.product.json
     DESTINATION . COMPONENT astrocs_runtime)
 else()
-  # Linux 技术预览: 单元列表唯一源 = packaging/astrocs.product.json（仓库静态文件,
+  # Linux 技术预览: 单元列表唯一源 = eng/packaging/astrocs.product.json（仓库静态文件,
   # 供 eng/tools/quality/check_module_map.py 等消费）; 交付副本在 configure 期注入当前
   # VERSION 与 commit, 与 Windows 分支同一约定 —— 改前直装静态文件会把「清单登记
   # 时点」的旧版本/旧 SHA 带进安装树 (W5-PKG-001 实测 product_version=alpha.1,
   # source_commit=9f6b72b5 对 VERSION=alpha.2/HEAD 漂移)。
-  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/packaging/astrocs.product.json _acs_product_manifest)
+  file(READ ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/astrocs.product.json _acs_product_manifest)
   string(REGEX REPLACE "\"product_version\": \"[^\"]*\""
     "\"product_version\": \"${ASTROCS_BASE_VERSION}\"" _acs_product_manifest "${_acs_product_manifest}")
   string(REGEX REPLACE "\"source_commit\": \"[^\"]*\""

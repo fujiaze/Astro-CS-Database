@@ -6,14 +6,14 @@
   "authority": {
     "separation": "docs/design/UNIFIED_MODEL.md §3（三类配置严格分离）",
     "design": "ASTROCS_DESIGN.md §2（数据对象与配置分离）",
-    "owner": "配置 schema 本体（config/**、contracts/schemas/*config*|*profile*|*manifest*）归 CFG-001；本文件只留锚点与索引，不定义配置 schema。"
+    "owner": "配置 schema 本体（eng/packaging/config/**、eng/contracts/schemas/*config*|*profile*|*manifest*）归 CFG-001；本文件只留锚点与索引，不定义配置 schema。"
   },
   "purpose": "为 CFG-001 冻结三类配置的字段名命名空间：phase_config（科学，可跨机复现）、cpu_profile（机器绑定，仅 benchmark 生成）、run_manifest（本次运行冻结）。三类不得共用字段名承载不同含义（UNIFIED_MODEL §3）。",
   "config_classes": [
     {
       "class": "phase_config",
       "schema_owner": "CFG-001",
-      "schema_path_reserved": "contracts/schemas/phase_config.schema.json",
+      "schema_path_reserved": "eng/contracts/schemas/phase_config.schema.json",
       "semantics": "科学参数 / 输入输出 / 算法选择；可跨机器复现；禁止出现任何硬件调优字段",
       "produced_by": [
         "用户",
@@ -67,7 +67,7 @@
     {
       "class": "cpu_profile",
       "schema_owner": "CFG-001",
-      "schema_path_reserved": "contracts/schemas/cpu_profile.schema.json",
+      "schema_path_reserved": "eng/contracts/schemas/cpu_profile.schema.json",
       "semantics": "ISA / workers / block / 机器绑定；仅 benchmark 生成；缓存于程序安装目录；无 profile → 保守运行不阻塞",
       "produced_by": [
         "benchmark"
@@ -128,7 +128,7 @@
     {
       "class": "run_manifest",
       "schema_owner": "CFG-001",
-      "schema_path_reserved": "contracts/schemas/run_manifest.schema.json",
+      "schema_path_reserved": "eng/contracts/schemas/run_manifest.schema.json",
       "semantics": "本次运行冻结：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本；不承载科学参数与硬件调优",
       "produced_by": [
         "运行时（每次运行冻结）"
@@ -205,7 +205,7 @@
     ]
   },
   "machine_assertions": [
-    "tests/contracts/test_unified_object_contract.py::TestConfigSeparationAnchors::test_field_name_sets_are_pairwise_disjoint",
-    "tests/contracts/test_unified_object_contract.py::TestConfigSeparationAnchors::test_hardware_names_forbidden_in_phase_config"
+    "eng/tests/contracts/test_unified_object_contract.py::TestConfigSeparationAnchors::test_field_name_sets_are_pairwise_disjoint",
+    "eng/tests/contracts/test_unified_object_contract.py::TestConfigSeparationAnchors::test_hardware_names_forbidden_in_phase_config"
   ]
 }

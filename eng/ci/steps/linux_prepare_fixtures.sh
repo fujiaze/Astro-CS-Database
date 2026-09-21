@@ -10,6 +10,6 @@ set -euo pipefail
 # FAIL）；p1004 workload 顶层 run 走 phase3，需 HiPS fixture。
 # eng/ci/prepare_linux_fixtures.py 用仓库 vendored AIO/healpix 源自编译
 # fixture 生成 FIELD.hips + V1 顶层 config（不联网拉业务数据）；
-# f1f2/p2006 族 fixture 由 tests/backend/fixture_common.ensure_f1f2_hips
+# f1f2/p2006 族 fixture 由 eng/tests/backend/fixture_common.ensure_f1f2_hips
 # 自举（无需此步）。
 timeout 600 python3 eng/ci/prepare_linux_fixtures.py

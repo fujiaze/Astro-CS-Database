@@ -3,7 +3,7 @@
 本文件是 AstroCS 工具链与依赖的版本锁定权威（仓库根）。Windows x64 发布
 工具链以控制包 `09_WINDOWS_TOOLCHAIN_LOCK.md` 为唯一编译依据；机器校验入口
 `eng/cmake/toolchain/verify_toolchain.py`，冻结事实合同
-`packaging/schemas/preset-contract.json`。
+`eng/packaging/schemas/preset-contract.json`。
 
 ## Windows x64 发布工具链（冻结，BLD-001；Alpha 0.11.0）
 
@@ -22,8 +22,8 @@
 | 优化 | `/O2` | Alpha 禁 `/GL`、LTCG、PGO |
 | LLVM/clang-tidy | `19.1.5` | 仅辅助静态检查，不产发布二进制 |
 | 验证脚本 Python | `3.12.10` x64 | 仅测试/打包，非产品运行依赖 |
-| VS 组件清单 | `packaging/windows/.vsconfig`（7 组件） | 见 09 §4，禁 `--includeRecommended` |
-| preset 合同 | `packaging/schemas/preset-contract.json` | verifier 单一事实源 |
+| VS 组件清单 | `eng/packaging/windows/.vsconfig`（7 组件） | 见 09 §4，禁 `--includeRecommended` |
+| preset 合同 | `eng/packaging/schemas/preset-contract.json` | verifier 单一事实源 |
 | verifier | `eng/cmake/toolchain/verify_toolchain.py` | preset/.vsconfig 漂移 FAIL fast |
 
 正式 preset：`win-msvc-17.14.39-x64`（CMakePresets.json）。禁止替换：
@@ -53,21 +53,21 @@ Linux preset `linux-control` 仅供静态检查/轻量编译/小合成实验；L
 ## 复现
 - build id = VERSION + g<commit> (cli/version_generated.h.in)
 - 同 commit 重构建 → 相同 build id
-- SBOM: 输入 = build/sbom-input.jsonl（`packaging/gen_sbom_input.py` 现行产物, 不入库）;
+- SBOM: 输入 = build/sbom-input.jsonl（`eng/packaging/gen_sbom_input.py` 现行产物, 不入库）;
   发布候选 SBOM 文档在发布流程内生成（发布决定权属负责人）
 
 ## 依赖锁定 (BLD-004)
 
-依赖权威锁文件：`packaging/dependency-lock.json`（schema:
-`packaging/schemas/dependency-lock.schema.json`）。机器校验入口：
-`packaging/gen_sbom_input.py --root .`（lock <-> 本文一致性 + fresh
+依赖权威锁文件：`eng/packaging/dependency-lock.json`（schema:
+`eng/packaging/schemas/dependency-lock.schema.json`）。机器校验入口：
+`eng/packaging/gen_sbom_input.py --root .`（lock <-> 本文一致性 + fresh
 configure 无机器绝对路径扫描 + SBOM 输入生成）。
 
 ### 生产依赖 (vendored/系统标准库)
 - cfitsio `4.6.4` — vendored `lib/infrastructure/aio/third_party/cfitsio`
   (60 C 源显式清单, BLD-001 禁 GLOB; 树内 168 git 追踪文件); 来源 heasarc;
-  hash + 目录级聚合哈希见 lock（`packaging/gen_sbom_input.py` 每次复算）。
-- nlohmann-json `3.12.0` — vendored `third_party/nlohmann/json.hpp`
+  hash + 目录级聚合哈希见 lock（`eng/packaging/gen_sbom_input.py` 每次复算）。
+- nlohmann-json `3.12.0` — vendored `lib/third_party/nlohmann/json.hpp`
   （单头）; 来源 nlohmann/json (MIT); hash 见 lock。**当前树零引用**
   （lock `reference_status=UNREFERENCED` + 理由; 有机器判据）。
 - gsl / gslcblas — 系统发行版库（`libgsl.so.28`/`libgslcblas.so.0`）;

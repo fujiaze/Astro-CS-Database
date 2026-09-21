@@ -98,7 +98,7 @@
 ## 10. PAR-001 运行时证明（I/O×compute overlap、无全局串行锁）
 
 > 状态：PAR-001 PASS（证 `BoundedAsyncQueue` 作 I/O×compute 解耦且非全局串行）
-> 关联测试：`tests/cli/test_parallel_queue.py`（6 用例）
+> 关联测试：`eng/tests/cli/test_parallel_queue.py`（6 用例）
 
 - **无全局串行锁**：`BoundedAsyncQueue` 每实例持有独立 `mutex_`/`condition_variable`；
   是 per-queue 锁，非单一全局锁。header 无 `static std::mutex`/全局锁对象（test_06）。

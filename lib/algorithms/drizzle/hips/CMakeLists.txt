@@ -62,7 +62,7 @@ set_target_properties(astrocs_p1_hips_writer PROPERTIES
 
 # ── include 路径 (writer+reader TU 编译闭包实证最小集) ──
 target_include_directories(astrocs_p1_hips_writer PRIVATE
-    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/lib/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${HIPS_PROD_DIR}/include
     # FD-01: aio_hips_reader.cpp 引 "aio_cfitsio_mutex.h" (src/ 直下)

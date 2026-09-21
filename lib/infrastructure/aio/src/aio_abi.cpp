@@ -1,14 +1,14 @@
 // ============================================================================
 // aio_abi.cpp — AstroCS 唯一 AIO C ABI v1 实现 (AIO-001)
 //
-// 合同: include/astrocs/io/aio_abi_v1.h (v1 冻结) +
-//       contracts/data/aio_abi_contract_v1.json (唯一事实源)。
+// 合同: lib/include/astrocs/io/aio_abi_v1.h (v1 冻结) +
+//       eng/contracts/data/aio_abi_contract_v1.json (唯一事实源)。
 // 归属: astrocs_aio 域 (宪章 §8.5 astrocs_aio 交付单元; AIO 正统归属)。
 //
 // 关键设计:
 //  - SHA-256 原语复用 lib/algorithms/shared/crypto 单一实现 (astrocs::crypto::Sha256;
 //    与 AIO UPM 容器/Phase2 模型哈希同源, 禁第二实现)。正确性由 FIPS 180-4
-//    标准向量锚定 (tests/unit/aio_abi_tests.cpp U2, oracle=hashlib 预生成)。
+//    标准向量锚定 (eng/tests/unit/aio_abi_tests.cpp U2, oracle=hashlib 预生成)。
 //  - 内容哈希复核语义: 先验声明格式 (64hex 小写, 否则 AIO_ERR_DECL_INVALID,
 //    不给"格式错"混淆"篡改"), 再重算比对 (不一致 → AIO_ERR_HASH_MISMATCH)。
 //    文件复核分块流式 (AIO_HASH_FILE_CHUNK 栈缓冲, 不整体载入)。
@@ -26,7 +26,7 @@
 //             n2_verify_mismatch_shortcut          → verify_buffer 篡改短路恒 OK
 //             n3_file_size_skip                    → verify_file 跳过 size 核对
 //  每个注册名在首个触发 CHECK 处输出 FAULT-INJECT 行并确定性翻转断言
-//  (tests/unit/aio_abi_test_main.hpp FaultRegistry 报告); 生产 env 为空零开销。
+//  (eng/tests/unit/aio_abi_test_main.hpp FaultRegistry 报告); 生产 env 为空零开销。
 // ============================================================================
 
 #include "astrocs/io/aio_abi_v1.h"
@@ -46,7 +46,7 @@
 #include <unistd.h>
 #endif
 
-// ───────── 故障注册 (测试注入; 与 tests/unit/aio_abi_test_main.hpp 对齐) ─────────
+// ───────── 故障注册 (测试注入; 与 eng/tests/unit/aio_abi_test_main.hpp 对齐) ─────────
 namespace {
 
 struct AioFaultRegistry {

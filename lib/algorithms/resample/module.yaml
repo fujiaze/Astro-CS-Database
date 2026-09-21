@@ -9,9 +9,9 @@
 # 主 sampler open_ex / :179-194 max_tiles 会话守卫 / :196-199
 # p3_order_select（max_order=输入实际 order）/ :217-244 每 worker 独立
 # sampler+cache 逐像素 nearest/bilinear 分派 / :236-237 nearest/bilinear 分派 / :265-277 provenance；
-# 执行面探针 tests/backend/p3_resample_probe_main.cpp + 邻接回归
-# tests/backend/test_p3_resample.py 162 行（2026-09-16 wc -l）+ 并行域 test_p3003_
-# parallel_resampler.py + 单元参考实现 tests/unit/p3_interp_test.cpp /
+# 执行面探针 eng/tests/backend/p3_resample_probe_main.cpp + 邻接回归
+# eng/tests/backend/test_p3_resample.py 162 行（2026-09-16 wc -l）+ 并行域 test_p3003_
+# parallel_resampler.py + 单元参考实现 eng/tests/unit/p3_interp_test.cpp /
 # p3_coverage_test.cpp（引用不冒认）），模块化迁移（独立模块源
 # astrocs_p3_resample.dll / C ABI adapter / plan-execute-cancel-inspect /
 # ThreadLease 接线）由 P3-RSMP-IMPL 执行；验收级可执行测试由

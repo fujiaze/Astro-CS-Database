@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "memory_report.h"   // MON-002 RSS/allocation report 阈值常量同源
-// G-RES-01 阈值唯一数值源（CMake 从 contracts/resource_gate_v1.json 生成；
+// G-RES-01 阈值唯一数值源（CMake 从 eng/contracts/resource_gate_v1.json 生成；
 // 判据语义权威 = docs/plugins/infrastructure/21_observability.md §8）。
 #include "resource_gate_thresholds_generated.h"
 
@@ -101,7 +101,7 @@ inline const char* gate_diag_name(GateDiag d) {
 }
 
 // G-RES-01 阈值（判据权威 21_observability §8; 数值唯一源
-// contracts/resource_gate_v1.json, 经 resource_gate_thresholds_generated.h 引入）。
+// eng/contracts/resource_gate_v1.json, 经 resource_gate_thresholds_generated.h 引入）。
 // 本文件不再出现字面量阈值: 改数值只改契约, 改语义只改 §8。
 // 口径: 这里是**已分配容量百分比**; 采集端 cpu_pct 是 100×等效核
 // (percent_of_one_core), 调用方必须先经 cpu_percent_of_allocated_capacity()
@@ -276,7 +276,7 @@ inline const char* gate_enforcement_name(GateEnforcement e) {
 // 取义已在 docs/plugins/infrastructure/21_observability.md §8 定稿（原
 // NEEDS_DECISION(M5a-G-002) 已由 R-4 D-12 裁决并写入契约 denominator）:
 //   primary  = granted_workers（真实观测到的租约授予宽度峰值）
-//   sentinel = 0（未观测; **不得**以配置值回填, include/astrocs/core/context.h:93-103）
+//   sentinel = 0（未观测; **不得**以配置值回填, lib/include/astrocs/core/context.h:93-103）
 //   fallback = min(selected_workers, available_cpus)
 // 观测是权威分母, 不被 available_cpus 封顶(见 mon001_gate_test 18a)。
 // 禁止以机器有效核单独充当已分配容量（这正是 run_monitored.py --gate-required

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """V5 审阅胶囊生成器: 每个 main commit 一个 capsule。
 用法: python3 eng/tools/make_capsule.py <task_id> <commit_sha> <verdict_note>
-输出: artifacts/prerelease_v5/capsules/<task_id>_<commit12>.zip
+输出: artifacts/evidence/prerelease-v5/capsules/<task_id>_<commit12>.zip
 
 退役 (RETIRED, 2026-09-16, 负责人裁决) —— 本工具属旧世代(V5 控制包)逐提交审阅胶囊生成器, 已退役:
   1. 审阅胶囊是旧世代控制包(V5/REV-002)的交付形态; 负责人裁决「历史版本控制包全部作废」,
-     且胶囊产物只能落 artifacts/prerelease_v5/capsules/(该树已随 artifacts/ 整体删除, commit b1290525
+     且胶囊产物只能落 artifacts/evidence/prerelease-v5/capsules/(该树已随 artifacts/ 整体删除, commit b1290525
      「不归档、不保留」) —— 新世代 no artifacts 归档 (ASTROCS_DESIGN.md §0 权威链、§12 版本信息下线);
   2. 实测 2026-09-16: 无参调用即未捕获 IndexError; 带参调用虽 rc=0, 但把 zip 写回**已退役的**
-     artifacts/prerelease_v5/capsules/ —— 属 ENGINEERING_SPEC.md §8 禁止的「静默坏掉/僵尸入口」;
+     artifacts/evidence/prerelease-v5/capsules/ —— 属 ENGINEERING_SPEC.md §8 禁止的「静默坏掉/僵尸入口」;
   3. 活动替代: 无。逐提交复核由 git 历史自身承担(git show / git log), 正式证据落 reports/**;
-  4. 文件保留原因: tests/cli/test_iso_acr_gpu_isolation.py::test_04 仍静态扫描本文件路径,
+  4. 文件保留原因: eng/tests/cli/test_iso_acr_gpu_isolation.py::test_04 仍静态扫描本文件路径,
      故**不删文件**(AGENTS.md §5 与任务卡禁止删本体)。
   复原命令 (内容未丢): git show 01754fab8618:eng/tools/make_capsule.py
   退役后行为: 任意调用打印 MAKE_CAPSULE_RETIRED 说明并 exit 2 (fail-closed, 不伪装绿)。
@@ -29,7 +29,7 @@ RETIRED_NOTICE = (
     "  依据: ASTROCS_DESIGN.md §0（权威链：旧世代控制包产物不构成判据）+ 负责人裁决"
     "（历史版本控制包全部作废；artifacts/ 不归档不保留，commit b1290525）；"
     "ENGINEERING_SPEC.md §8（不允许静默坏掉）。\n"
-    "  输入/输出已不存在: 输出目录 artifacts/prerelease_v5/capsules/ 随 artifacts/ 删除。\n"
+    "  输入/输出已不存在: 输出目录 artifacts/evidence/prerelease-v5/capsules/ 随 artifacts/ 删除。\n"
     "  复原命令: git show 01754fab8618:eng/tools/make_capsule.py\n"
     "  登记: docs/ci/01_CHECKS.md §2.2 / reports/PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md"
 )

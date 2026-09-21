@@ -8,7 +8,7 @@
 
 | 文件 | 说明 |
 |---|---|
-| `include/astrocs/v6/phase2_integrate.h` | 三模式路由 / 磁盘重开消费 / 组合 / 原子发布 / 重开校验 / UPM·REJ·SAMP 接线公共接口 |
+| `lib/include/astrocs/v6/phase2_integrate.h` | 三模式路由 / 磁盘重开消费 / 组合 / 原子发布 / 重开校验 / UPM·REJ·SAMP 接线公共接口 |
 | `src/phase2_integrate.cpp` | 上述实现（只接线，不含新科学公式） |
 | `CMakeLists.txt` | 自包含静态库 `astrocs_v6_phase2_integrate`（可独立构建） |
 
@@ -40,7 +40,7 @@
 
 ```bash
 cmake -S lib/algorithms/integration/v6 -B <build> && cmake --build <build>
-cmake -S tests/integration/v6_p2 -B <build_it> && cmake --build <build_it>
+cmake -S eng/tests/integration/v6_p2 -B <build_it> && cmake --build <build_it>
 ctest --test-dir <build_it> --output-on-failure
 ```
 
@@ -49,7 +49,7 @@ ctest --test-dir <build_it> --output-on-failure
 ## 边界声明
 
 - 未改 `lib/algorithms/coverage/src/{upm,rejection,sampler,coverage}.cpp` 及其头、`lib/phase1/**`、
-  `lib/infrastructure/aio/**`、`contracts/**`、`docs/**`、根/公共 CMakeLists。
+  `lib/infrastructure/aio/**`、`eng/contracts/**`、`docs/**`、根/公共 CMakeLists。
 - `lib/algorithms/coverage/src/integrate.cpp`/`block.cpp` 的 legacy 生产 API 未修改：V6 组合核心落在本目录，
   避免向根构建面注入新 `-I` 依赖（CMake 归属 W9）。
 - 不发布、不改冻结公式/容差/门；49 条 PENDING 保持 fail-closed。

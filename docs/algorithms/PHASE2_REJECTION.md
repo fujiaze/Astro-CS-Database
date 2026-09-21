@@ -670,8 +670,8 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
   astrocs.phase2.reject.md；REJECTION_ALGORITHMS.md（旧 L2，ID
   让位/承接关系见 §12）。
 - 消费者: stage2.cpp（§6；DATA_SEMANTICS §20 编排域）/
-  acr_kernels.cpp（ACR 域）/ tests/unit/p2_rejection_test.cpp
-  （P2-005 语义 id/解析面）/ tests/backend/test_p2004_reject_
+  acr_kernels.cpp（ACR 域）/ eng/tests/unit/p2_rejection_test.cpp
+  （P2-005 语义 id/解析面）/ eng/tests/backend/test_p2004_reject_
   integrate.py（P2-004 生产 Oracle）/ module_adapters.cpp:704-721
   descriptor 占位。
 - SCI: docs/science/REJECTION.md（SCI-REJ-001..008，FROZEN，零改动）。

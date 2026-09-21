@@ -59,9 +59,9 @@
 | lib/algorithms/projection/p3_wcs.h | 66 | 唯一权威签名头（P3WcsDescriptor/P3WcsStatus/四函数）；已迁入本目录，行数按新址复测 |
 | lib/algorithms/projection/p3_wcs.cpp | 232 | 实现（常量+守卫/G1 构造/正反映射/关键词）；已迁入本目录，行数按新址复测 |
 | lib/phase3_session/p3_session.cpp | 329 | 会话消费点（:17/:160/:163/:232/:247-253） |
-| tests/backend/p3_wcs_main.cpp | — | 探针（make/p2w/w2p/kw 四模式，printf 协议） |
-| tests/backend/test_p1002_gaps.py | — | 独立解析解回归（内联编译链接 p3_wcs.cpp） |
-| tests/unit/p3_wcs_test.cpp | 90 | 单元测试（WCS 完整性/尺寸溢出检查） |
+| eng/tests/backend/p3_wcs_main.cpp | — | 探针（make/p2w/w2p/kw 四模式，printf 协议） |
+| eng/tests/backend/test_p1002_gaps.py | — | 独立解析解回归（内联编译链接 p3_wcs.cpp） |
+| eng/tests/unit/p3_wcs_test.cpp | 90 | 单元测试（WCS 完整性/尺寸溢出检查） |
 | 根 CMakeLists.txt:460-465 | — | 构建挂载（astrocs_phase3_session STATIC） |
 
 - 头部声明锚: p3_wcs.h:11-20（P3WcsDescriptor）/:22-27（P3WcsStatus）
@@ -236,7 +236,7 @@ x = δx + CRPIX_x − 1, y = δy + CRPIX_y − 1（0-based 输出）    # :140-1
 
 `pixel→world→pixel` 误差 **<1e-8 px**（FP64）——SCI-P3-001 §7
 独立不变量 + §9a-12 冻结；解析oracle回归现状由
-tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
+eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 复算）；验收级 oracle=WCSLIB（矩阵 notes），由 P3-PROJ-TEST 建立。
 
 ## 8 p3_wcs_fits_keywords 关键词合同（p3_wcs.cpp:177-195）
@@ -294,7 +294,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 - **projection 硬编码**: §6.5——UNSUPPORTED 枚举备而不用；非 TAN
   扩展按 SCI §9a-3 须独立测试并走变更流程。
 - **astrocs_p3_projection.dll 未建**: entrypoint=MISSING；探针/
-  回归现状内联编译（test_p1002_gaps.py / tests/unit/CMakeLists），
+  回归现状内联编译（test_p1002_gaps.py / eng/tests/unit/CMakeLists），
   非 DLL 挂载；由 P3-PROJ-IMPL 建立。
 - descriptor 占位词汇（module_id=astrocs.phase3.wcs、sci_id=
   SCI-P3-WCS-001、alg_id=ALG-P3-002、test_id=TEST-P3-WCS-001、
@@ -305,9 +305,9 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 ## 12 TEST-P3-WCS-DESIGN-001 设计冻结（登记面 VERIFIED）
 
 > 可执行测试现状三处如实登记（引用不冒认，验收级升级归
-> P3-PROJ-TEST）: tests/unit/p3_wcs_test.cpp（90 行）、
-> tests/backend/test_p1002_gaps.py（独立解析解回归）、
-> tests/backend/p3_wcs_main.cpp（探针）。
+> P3-PROJ-TEST）: eng/tests/unit/p3_wcs_test.cpp（90 行）、
+> eng/tests/backend/test_p1002_gaps.py（独立解析解回归）、
+> eng/tests/backend/p3_wcs_main.cpp（探针）。
 
 - **T1 正向解析解**: 已知天球点（含 RA wrap 跨 0/360、|dec|=60°/85°
   边内、四象限 PA∈{0°,90°,−90°,30°}）→ p3_wcs_world2pix → 与
@@ -332,7 +332,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   **WCSLIB 独立实现**（矩阵 notes "WCSLIB test oracle"，由
   P3-PROJ-TEST 建立，禁止用生产实现自证）；双平台数值合同按
   backend 数值测试族先例。
-- **T7 不变量/回归**: tests/unit/p3_wcs_test.cpp 溢出检查与 WCS
+- **T7 不变量/回归**: eng/tests/unit/p3_wcs_test.cpp 溢出检查与 WCS
   完整性面保持通过；RAFT: 同入参 1/N worker 结果 bitwise 一致
   （结构性满足，纯函数）。
 
@@ -517,7 +517,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
     δ0≠0 进入映射；δ0≡0 对 CRVAL2 缺陷零区分力）与 **CRPIX↔CRVAL 定义性
     不变量**（pix2world(CRPIX)==CRVAL，Paper I §2.1.1）。
 - 可执行面（v3 现状）:
-  - `tests/unit/v6_p3_proj/v6_p3_proj_test.cpp`（ctest: v6_p3_proj_units /
+  - `eng/tests/unit/v6_p3_proj/v6_p3_proj_test.cpp`（ctest: v6_p3_proj_units /
     v6_p3_proj_fault_*）: T1 registry 完整性（版本=3/已实现 4 行/冻结集合 8 行
     且 code 顺序/DESIGN 集合成员判定/函数指针/selfcheck=0/未知码 nullptr 无
     fallback）；T2 往返；T4 3D 向量独立解析解（TAN/SIN）+ CAR dec=+Y/AIT γ=√2
@@ -527,12 +527,12 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
     T7 CTYPE 关键词面；T8 确定性；T9 1/N worker；
     **T-H（v3 新增）CRVAL2 进映射**：CAR/AIT dec0∈{±30,+60,−45} 的
     `pix2world(CRPIX)==CRVAL` 与「dec ≠ 平面 Y」区分性断言。
-  - `tests/unit/v6_p3_proj/p3_proj_wcs_oracle.py`（pytest 面，ctest
+  - `eng/tests/unit/v6_p3_proj/p3_proj_wcs_oracle.py`（pytest 面，ctest
     v6_p3_proj_wcs_oracle）: astropy 独立实现逐点绝对对拍（14 条用例，含 6 条
     dec0≠0）+ 逐像素 Ω 盈余 + CRPIX↔CRVAL 不变量 + **AIT 椭圆域 A≤1 判据**；
     CAR 解析纬度带判据限定 `|CRVAL2|≤1e-9`（倾斜 CAR 的行不是天球纬度带，
     否则对任何正确实现都误判，R-1 §4-B）。
-  - `tests/unit/v6_p3_proj/p3_proj_legacy_deviation.py`（ctest
+  - `eng/tests/unit/v6_p3_proj/p3_proj_legacy_deviation.py`（ctest
     v6_p3_proj_legacy_deviation）: **v1 偏差表门**（§15.9 四项），
     v1 已 RETIRED ⇒ 表内偏差必须仍复现（缺失即红，须复核），表外新偏差亦红。
 - 故障注入（必败面，测试级注入、生产源零 getenv）:
@@ -543,7 +543,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 ### 15.7 构建挂载与越界登记
 
-- 测试挂载仅动 `tests/unit/CMakeLists.txt` / `tests/unit/v6_p3_proj/CMakeLists.txt`
+- 测试挂载仅动 `eng/tests/unit/CMakeLists.txt` / `eng/tests/unit/v6_p3_proj/CMakeLists.txt`
   （add_executable 直编 p3_proj_v6.cpp 等，先例 aio_abi_tests 同构）；
   根 CMakeLists.txt / lib/phase3_session 零改动——生产构建挂载
   （astrocs_p3_projection.dll target/adapter 接线/会话消费）归
@@ -572,7 +572,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 ### 15.9 v1 偏差表（RETIRED 冻结对照）
 
 > v1 = `lib/algorithms/projection/p3_projection.h/.cpp`（RETIRED）。四项偏差
-> 均由 `tests/unit/v6_p3_proj/p3_proj_legacy_deviation.py` 以 `LEGACY_DEVIATION_TABLE`
+> 均由 `eng/tests/unit/v6_p3_proj/p3_proj_legacy_deviation.py` 以 `LEGACY_DEVIATION_TABLE`
 > 断言「仍然复现」；修好 v1 或偏差消失 ⇒ 该门转红（须复核并更新本表）。
 > 实测（ctest v6_p3_proj_legacy_deviation，rc=0）:
 > D1 = 60°（=|CRVAL2|）; D2 = 345600″; D3 = 94885″; D4 = 63.3°。
@@ -606,7 +606,7 @@ tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 - **判据冻结**：`ALIGNMENT-5.3.md` §1 结论表 + E09 `results/PREREGISTRATION.sha256`（`562d9f74…`，冻结于 2026-09-20T08:39:28Z，跑后未改）。
 - **负例（判据非退化）**：FLUX-IN 支同二进制下 `R_cross = 4.0`、`T ≈ −1`；面积标度错注入 `T = −0.75` ⇒ 判据能红能绿。
-- **不在本节范围（已知偏差，现行）**：v6 SIN 内核用 `ctheta = sqrt(1 − stheta²)` 反算，存在**灾难性消去**，往返误差**无上界**（0.5″/px 实测 2.5e-5 px，超 SCI §7 冻结容差 1e-8 px 三个量级以上）。该内核**生产不可达**（生产注册表仅 TAN 可用），随 v6 家族失效而消失；入库复现门 `tests/unit/v6_p3_proj/sin_roundtrip_gate.py` 修好即转红。
+- **不在本节范围（已知偏差，现行）**：v6 SIN 内核用 `ctheta = sqrt(1 − stheta²)` 反算，存在**灾难性消去**，往返误差**无上界**（0.5″/px 实测 2.5e-5 px，超 SCI §7 冻结容差 1e-8 px 三个量级以上）。该内核**生产不可达**（生产注册表仅 TAN 可用），随 v6 家族失效而消失；入库复现门 `eng/tests/unit/v6_p3_proj/sin_roundtrip_gate.py` 修好即转红。
 
 ## 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 

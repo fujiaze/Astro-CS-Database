@@ -517,8 +517,8 @@ class TestToolBehaviour(unittest.TestCase):
         """
         noise = [f"collected-noise {i}" for i in range(30)]
         err_lines = [
-            "ERROR collecting tests/legacy/test_dep.py",
-            "tests/legacy/test_dep.py:3: in <module>",
+            "ERROR collecting eng/tests/legacy/test_dep.py",
+            "eng/tests/legacy/test_dep.py:3: in <module>",
             "    import yaml",
             "E   ModuleNotFoundError: No module named 'yaml'",
             "========== short test summary info ==========",
@@ -536,7 +536,7 @@ class TestToolBehaviour(unittest.TestCase):
 
     def test_coverage_runner_pytest_tail_capped_at_120(self):
         """F9-a cap（R7 合同 50→120）：错误行风暴下 pytest_tail 恰 120 行（防 hosted 日志爆炸）。"""
-        storm = [f"ERROR tests/t{i}.py" for i in range(200)]
+        storm = [f"ERROR eng/tests/t{i}.py" for i in range(200)]
         rc, summary = self._coverage_runner_with_fake_pytest(
             2, "\n".join(storm), tmp_tag="f9a_cap")
         self.assertEqual(rc, 2)

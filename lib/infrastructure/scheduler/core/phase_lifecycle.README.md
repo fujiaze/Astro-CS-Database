@@ -1,8 +1,8 @@
 # RT-002 Phase-isolated Runtime 生命周期（设计权威）
 
 > owner: SA-RT-05 · 权威文档形态（本文）+ 执行语义形态
-> (`lib/infrastructure/scheduler/core/phase_lifecycle.py`) + 测试 (`tests/runtime/test_phase_lifecycle.py`)。
-> 三形态必须同步修改；机器一致性由 tests/runtime/test_phase_lifecycle.py 校验。
+> (`lib/infrastructure/scheduler/core/phase_lifecycle.py`) + 测试 (`eng/tests/runtime/test_phase_lifecycle.py`)。
+> 三形态必须同步修改；机器一致性由 eng/tests/runtime/test_phase_lifecycle.py 校验。
 
 ## 1. 目标（tasks/03_RUNTIME_DATA_IO_TASKS.md RT-002）
 

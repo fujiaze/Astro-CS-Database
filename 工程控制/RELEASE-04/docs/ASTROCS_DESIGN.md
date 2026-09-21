@@ -191,7 +191,7 @@ flowchart TD
 
 ### 4.3 输入合同（JSON 数据块）
 
-输入是 JSON 配置，数据块只含必要参数与帧路径；容差与默认参数在程序根目录 `config/`。
+输入是 JSON 配置，数据块只含必要参数与帧路径；容差与默认参数在程序根目录 `eng/packaging/config/`。
 
 **两种形态互斥**：一个 JSON 可写多个数据块（`blocks[]`）；只有一块时可用平铺单块简写；同一顶层同时出现两种形态时报错。
 
@@ -217,12 +217,12 @@ flowchart TD
 - 三个命令的配置是同一个形状：顶层块列表，每块三件东西——输出名称（块级 `output_dir` 必填、块间唯一）、运行参数（块内平铺）、一组输入帧（Phase1 是 `input_lights`，Phase2 是 `hips_paths`，Phase3 是 `source`）。
 - 一块 = 一组亮场 + 一套母版校准帧 + 一个波段 + 块级运行参数 = 一次独立运行（独立 output_dir、独立 run manifest）；多块按序各自成一次运行。
 - 命令名就是阶段身份，配置里没有阶段判别键。
-- 滤镜型号与 `config/filters.json` 逐字匹配（精确、区分大小写），未知滤镜报 error；空值表示显式无滤镜。
+- 滤镜型号与 `eng/packaging/config/filters.json` 逐字匹配（精确、区分大小写），未知滤镜报 error；空值表示显式无滤镜。
 - 计算精度显式声明：Phase1 用 `drizzle.precision_mode`（0=FP32，1=FP64），Phase2/3 用位深键（−32/−64），缺失即拒绝。
-- 母版标度红线（bias/dark 声明、平场归一化声明、换算因子一致性）与暗场-亮场曝光容差判定见 `docs/plugins/algorithms_phase1/` 与 `config/defaults.json`。
+- 母版标度红线（bias/dark 声明、平场归一化声明、换算因子一致性）与暗场-亮场曝光容差判定见 `docs/plugins/algorithms_phase1/` 与 `eng/packaging/config/defaults.json`。
 
 ```text
-config/
+eng/packaging/config/
 ├── filters.json     滤镜库：型号、通带、波长
 └── defaults.json    默认参数：曝光容差、PSF 模型、检测阈值、稀疏控制点间隔等
 ```

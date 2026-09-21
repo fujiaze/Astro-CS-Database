@@ -24,7 +24,7 @@ healpix_drizzle/
 ├── wcs_sip.cpp / .h             # SIP+WCS 投影变换
 ├── healpix_drizzle.py           # Python ctypes 绑定
 ├── pipeline_adapter.py          # PipelineFrame 适配器
-└── tests/                       # 单元测试
+└── eng/tests/                       # 单元测试
 ```
 
 ## 依赖列表

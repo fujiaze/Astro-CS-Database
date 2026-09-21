@@ -81,7 +81,7 @@ struct P2Stage2Config {
     // CONFORM-FIX-B-007: 生产默认 profile = AstroCS 自研档
     // （负责人裁决 FIX-SCI-SNR-CANON-001 / GAP_AUDIT §9.40 C2「自研的 ⇒ 改文档
     // 对齐代码」；docs/science/REJECTION.md:21,47、CONFIG_SCHEMA.md:25、
-    // contracts/data/phase2_uncertainty_rejection_provenance_v1.json:67 同值）。
+    // eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json:67 同值）。
     // 旧默认 wbpp_2_9_1 是**对照档**，使工具链与交付 node chain 的排异方法
     // 在 n=3/6..7/≥16 边界全部分叉。
     std::string reject_profile = P2_PROFILE_ASTROCS_ADAPTIVE_PIXEL;

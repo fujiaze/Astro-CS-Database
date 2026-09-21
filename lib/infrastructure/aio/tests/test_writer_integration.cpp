@@ -13,7 +13,7 @@
 // 09. aio_hiss_write/read C API 往返 (步骤8: 新后端兼容性)
 // 10. 元数据 WCS 移除验证 (步骤8: 不含 cd/crval/crpix/sip)
 //
-// 编译 (从 tests/ 目录):
+// 编译 (从 eng/tests/ 目录):
 // g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
 // -I../include -I../src \
 // test_writer_integration.cpp \

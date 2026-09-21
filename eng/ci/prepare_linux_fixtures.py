@@ -2,12 +2,12 @@
 """eng/ci/prepare_linux_fixtures.py — linux-main CI 检查的宿主侧 fixture 准备。
 
 背景（UT-BACKEND p1004 联合门依赖的两个非受控输入）:
-1. tests/backend/test_p1004_joint_gate.py 读 run/temp/mon001_cfg.json——该文件
+1. eng/tests/backend/test_p1004_joint_gate.py 读 run/temp/mon001_cfg.json——该文件
    从未入库（.gitignore run/* 全忽略），历史上是本地手动准备的 MON-001 实验残留，
    hosted runner 上恒缺失 → test_02/03 必 FAIL。
 2. 跑通 phase3 run 需要 HiPS fixture（p3_session 严格校验 source.hips_dir）。
    本脚本用仓库内 vendored AIO 源自编译 fixture 生成 FIELD.hips（与
-   tests/cli/test_monitor_events.py setUpClass 同配方，tests/backend/
+   eng/tests/cli/test_monitor_events.py setUpClass 同配方，eng/tests/backend/
    phase2_fixture_main.cpp），不联网拉任何业务数据。
 
 产物:
@@ -43,8 +43,8 @@ def _run(argv: list[str], **kw) -> subprocess.CompletedProcess:
 
 
 def build_fixture(tmp: Path) -> None:
-    """编译 AIO fixture 并生成 FIELD.hips（配方 = tests/cli/test_phase3_inprocess.py
-    setUpClass 的 vendored cfitsio 静态编译 + tests/cli/test_monitor_events.py
+    """编译 AIO fixture 并生成 FIELD.hips（配方 = eng/tests/cli/test_phase3_inprocess.py
+    setUpClass 的 vendored cfitsio 静态编译 + eng/tests/cli/test_monitor_events.py
     的 --make-field 入口）。"""
     # 1) vendored cfitsio 全量 .c → .o（排除测试同款非库文件）
     cdir = AIO / "third_party" / "cfitsio"
@@ -104,7 +104,7 @@ def build_fixture(tmp: Path) -> None:
 
 def write_config() -> None:
     """生成 mon001_cfg.json（V1 顶层合同 + phase3 子对象，参数对齐
-    tests/cli/test_monitor_events.py 的 40x30 nearest 小图合成门）。"""
+    eng/tests/cli/test_monitor_events.py 的 40x30 nearest 小图合成门）。"""
     CFG.parent.mkdir(parents=True, exist_ok=True)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     cfg = {
@@ -123,7 +123,7 @@ def write_config() -> None:
             # P3-006/DOC-003 内存守卫: 40x30 视场默认 max_tiles=min(1024,
             # ceil(W·H/512²)+16)=17; 显式 64 是残方, phase3 run 触发
             # ACS_ERR_BUDGET(5) → UT-BACKEND p1004 test_02/03 CI 恒败。
-            # 与 tests/backend/test_p1004_joint_gate.py::_ensure_mon001_fixture
+            # 与 eng/tests/backend/test_p1004_joint_gate.py::_ensure_mon001_fixture
             # 语义对齐: 不设该键取默认。
         },
     }
