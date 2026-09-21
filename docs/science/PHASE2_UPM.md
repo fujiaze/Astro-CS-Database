@@ -114,7 +114,7 @@
 
 **表示能力边界（无接缝 ⟺ 公共面可表示）**：
 
-- 参考面 `B_ref`（8×8 control cell 双线性，节点间距 ≈ `hips.tile_width/8` = 64 px）只能表示尺度 ≳ 2× 节点间距的分量；
+- 参考面 `B_ref`（8×8 control cell 双线性）只能表示尺度 ≳ 2× **节点间距**的分量；节点间距实测 `h = 0.0355° ≈ 127.8 px`（= 2× cell 64 px，见 `实验/additive-sky-seamless/code/c3_public_plane.py:26-28` 与 `run/SCI-403/sky_c1_amp_0.json:cfg.node_spacing_deg`）——**不是** tile_width/8=64 px；
 - 当帧间天光差含「`B_ref` **不可表示**且沿向**相干**」的分量时，残余接缝 ≈ **0.80 × 该分量 RMS**（Pearson 0.896，`实验/additive-sky-seamless/results/c2_multiplicative.json`）；
 - 空间尺度 ≲ 2× 节点间距（≈256 px）时显著：尺度 1600→50 px 扫描使残余接缝 **×5.07**；
 - **工程要求**：节点间距须 ≤ 目标可表示尺度的 1/2；`roughness_penalty` 只在「面确实光滑」的前提下使用，不得用强平滑掩盖不可表示分量；
@@ -123,7 +123,8 @@
 **近奇异（条件数）处置**：
 
 - 天光面正规方程条件数 `κ = cond_2(D⁻¹AᵀWA D⁻¹)` 必须**可观测**并写入 provenance（真实 M42 样本实测 κ = **3.16e7**，`实验/additive-sky-seamless/results/c7_realdata.json`；χ²_red 1.004 但 κ 逼近默认上限）；
-- 上限 `kappa_max` 默认 **1e6**（`FZ-AP2S-KAPPA-MAX`）：`κ > kappa_max` ⇒ 必须走**粗糙度正则化**（`roughness_penalty`）或**节点数自适应**，并在 provenance 记录所走分支、所用参数与 κ；**禁止**静默产出欠定解、**禁止**放宽 `kappa_max` 求绿；
+- **κ 上限有两个口径，必须区分（SCI-505 复核登记）**：① **天光面求解器** `sky_plane.cpp:414/441` 默认 `kappa_max = 1e8`；② **UPM/GLS** `upm.h:281` 默认 `1e6`（冻结值 `FZ-AP2S-KAPPA-MAX = 1e6`）。真实 M42 样本 κ = 3.16e7 ⇒ 在 1e8 下**不触发**自适应、在 1e6 下**超限**；**统一两个口径属未决项**（登记 OPEN_QUESTIONS）；统一前任何「自适应已触发」的陈述必须写明所用上限；
+- `κ > kappa_max` ⇒ 必须走**粗糙度正则化**（`roughness_penalty`）或**节点数自适应**，并在 provenance 记录所走分支、所用参数与 κ；**禁止**静默产出欠定解、**禁止**放宽 `kappa_max` 求绿；
 - provenance 最小集：`gauge_mode`、每分量 `ref_frame_id`、`rank`、`rank_rtol`、`kappa`、`kappa_max`、`k_corr`、`model_hash`、`any_fail_closed_reason`。
 
 ## 8 极端/退化条件
@@ -255,7 +256,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 2. **纯加性前提**：帧间乘性差必须先在 Phase1 吸收（实测 5.89e-4）。未做 Phase1 归一时
    （历史 `photometry_applied=false`/`photscal=1.0`，1.56× 帧差），纯加性 UPM 后接缝 27.37 e⁻，
    做了 Phase1 后 6.31 e⁻（**4.33×**）。基外高频乘性分量（1%@24 px）对**电平**接缝贡献有界
-   （<50% 基线），但会被分块 PSD 检出（k=4 vs 预期 5.33）。
+   （<50% 基线），但会被分块 PSD 检出（实测峰 k=26 vs 预期 21.33；`results/c2_multiplicative.json:hf_component.psd_k_peak`）。
 3. **不可检验域**：`smoothing_lambda=0` 时 per-(frame,cell) 自由加性场恰好定解，公共场 M 只是
    每 cell 的规范选择 ⇒「拟合/堆叠权重同源」与「末端残差场扣除」在该域内**不可检验**；
    `final_gauge` 在 `m_full_frame=1` 时近似 no-op（3.7e-3 e⁻），且**不能**修复子集依赖。
@@ -264,7 +265,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 
 | ID | 位置 | 现象 | 实测 |
 |---|---|---|---|
-| FIX-1 | `lib/infrastructure/scheduler/src/module_adapters.cpp:5941-5942` | 绝对容差 `tolerance=1e-6`, `tolerance_relative=0` 在 ~300 e⁻ 尺度**永不收敛** | 300 次迭代 `converged=0` |
+| FIX-1 | `lib/infrastructure/scheduler/src/module_adapters.cpp:5989-5994`（FIX-1 赋值点，SCI-505 复核） | 绝对容差 `tolerance=1e-6`, `tolerance_relative=0` 在 ~300 e⁻ 尺度**永不收敛** | 300 次迭代 `converged=0` |
 | FIX-2 | 同上 `out_converged` | 只有 0/1，**无法区分** max_iter 与 stalled（规范要求 0/1/2/3） | 两例均返回 0 |
 | FIX-3 | 天光面正规方程 | 真实 M42 样本 κ = 3.16e7（近奇异） | χ²_red 1.004 但条件数逼近默认 `kappa_max` |
 
