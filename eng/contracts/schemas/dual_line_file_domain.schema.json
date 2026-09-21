@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "astrocs.dual-line-file-domain/v1",
+  "title": "RELEASE-05 双线文件域合同",
+  "x-doc": "docs/contracts/DUAL_LINE_CONTRACT.md",
+  "type": "object",
+  "required": [
+    "schema",
+    "lines"
+  ],
+  "properties": {
+    "schema": {
+      "const": "astrocs.dual-line-file-domain/v1"
+    },
+    "lines": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "line",
+          "globs",
+          "duty",
+          "forbidden"
+        ],
+        "properties": {
+          "line": {
+            "enum": [
+              "A",
+              "B",
+              "shared",
+              "report"
+            ]
+          },
+          "globs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "duty": {
+            "type": "string"
+          },
+          "forbidden": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "merge_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
