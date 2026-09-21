@@ -123,9 +123,9 @@ openmp_kernel,gaia_client.c,lib/infrastructure/gaia_xpsd_client/src/gaia_client.
 openmp_kernel,hips_sky_view.cpp,lib/infrastructure/hips_browser/healpix_browser_qt/core/hips_sky_view.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/infrastructure/hips_browser/healpix_browser_qt/core/hips_sky_view.cpp (2 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,module_adapters.cpp,lib/infrastructure/scheduler/src/module_adapters.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/infrastructure/scheduler/src/module_adapters.cpp (1 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 thread_creation,const unsigned hc = std::thread::hardware_concurrency();,lib/algorithms/coverage/include/astro/phase2/execution_options.h:24,production,yes,-,std::async,lib/algorithms/coverage/include/astro/phase2/execution_options.h:24,
-thread_creation,// 消除 64× 重读；并行由 std::thread + Runtime lease 驱动。,lib/algorithms/coverage/src/sampler.cpp:671,production,yes,-,std::thread 显式创建,lib/algorithms/coverage/src/sampler.cpp:671,
-thread_creation,"// 生产默认 N-worker 并行(std::thread, 跨 Linux/MSVC 一致); OpenMP 条件",lib/algorithms/coverage/src/sampler.cpp:931,production,yes,-,std::async,lib/algorithms/coverage/src/sampler.cpp:931,
-thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/sampler.cpp:939,production,yes,-,std::async,lib/algorithms/coverage/src/sampler.cpp:939,
+thread_creation,// 消除 64× 重读；并行由 std::thread + Runtime lease 驱动。,lib/algorithms/coverage/src/sampler.cpp:666,production,yes,-,std::thread 显式创建,lib/algorithms/coverage/src/sampler.cpp:666,
+thread_creation,"// 生产默认 N-worker 并行(std::thread, 跨 Linux/MSVC 一致); OpenMP 条件",lib/algorithms/coverage/src/sampler.cpp:926,production,yes,-,std::async,lib/algorithms/coverage/src/sampler.cpp:926,
+thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/sampler.cpp:934,production,yes,-,std::async,lib/algorithms/coverage/src/sampler.cpp:934,
 thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:597,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:597,
 thread_creation,// 逐 obs 独立 w 计算(per-obs 写 w[i] 不相交); std::thread + lease wo,lib/algorithms/coverage/src/upm.cpp:705,production,yes,-,std::thread 显式创建,lib/algorithms/coverage/src/upm.cpp:705,
 thread_creation,std::vector<std::thread> pool;,lib/algorithms/coverage/src/upm.cpp:709,production,yes,-,std::async,lib/algorithms/coverage/src/upm.cpp:709,
@@ -212,7 +212,6 @@ thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/
 thread_creation,std::vector<std::thread> pool;,lib/phase3_session/p3_session.cpp:335,production,yes,-,std::async,lib/phase3_session/p3_session.cpp:335,
 lock,async_io.h,lib/algorithms/coverage/include/astro/phase2/async_io.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/algorithms/coverage/include/astro/phase2/async_io.h (9 sites),
 lock,acr_kernels.cpp,lib/algorithms/coverage/src/acr_kernels.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/algorithms/coverage/src/acr_kernels.cpp (2 sites),
-lock,sampler.cpp,lib/algorithms/coverage/src/sampler.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/algorithms/coverage/src/sampler.cpp (2 sites),
 lock,async_io_test.cpp,lib/algorithms/coverage/tests/async_io_test.cpp,test,no,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/algorithms/coverage/tests/async_io_test.cpp (2 sites),
 lock,stage2.cpp,lib/algorithms/coverage/tools/stage2.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/algorithms/coverage/tools/stage2.cpp (3 sites),
 lock,drizzle_engine.cpp,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp (6 sites),

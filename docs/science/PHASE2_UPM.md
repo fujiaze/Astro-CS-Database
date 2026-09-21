@@ -232,7 +232,7 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 
 ## 16 SCI-C 实验结论（RELEASE-04 / SCI-403，仓内实测）
 
-实验单元：`实验/SCI-C/`（报告 `README.md`，机器可读结果 `results/*.json`，
+实验单元：`实验/additive-sky-seamless/`（报告 `README.md`，机器可读结果 `results/*.json`，
 一键复跑 `code/run_all.sh`）。**本节只记录已定稿的实测结论，不改变任何公式或默认容差。**
 
 ### 16.1 已证实的结论（data 级，生产代码实测）

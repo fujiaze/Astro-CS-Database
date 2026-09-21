@@ -128,7 +128,7 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
 
 ## 9 SCI-C 实测结论（RELEASE-04 / SCI-403）
 
-实验单元 `实验/SCI-C/`（报告 `README.md`、结果 `results/*.json`、复跑 `code/run_all.sh`）。
+实验单元 `实验/additive-sky-seamless/`（报告 `README.md`、结果 `results/*.json`、复跑 `code/run_all.sh`）。
 
 1. **多退少补（保留 `B_ref`）实测有效**：覆盖子集突变处背景电平接缝 4.80 e⁻ → **0.383 e⁻**
    （12.5×）；产品中位 299.17 e⁻ ≈ `B_ref` 297.33 e⁻。全减背景臂产品中位 0.845 e⁻ ⇒ **退化**，

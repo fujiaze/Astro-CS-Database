@@ -97,7 +97,7 @@ flowchart LR
 
 ## 9 SCI-C 实测结论（RELEASE-04 / SCI-403）
 
-实验单元 `实验/SCI-C/`（报告 `README.md`、结果 `results/*.json`、复跑 `code/run_all.sh`）。
+实验单元 `实验/additive-sky-seamless/`（报告 `README.md`、结果 `results/*.json`、复跑 `code/run_all.sh`）。
 
 1. **`control_ivar` 是三臂中最优的采样权重**：伪影漏入 0.0245 e⁻，比 uniform（0.0651）小 2.7×、
    比 `SNR²`（0.3203）小 **13×**；真值加权 RMS 亦最小（1.532 < uniform 1.674 < SNR² 2.069 e⁻）。

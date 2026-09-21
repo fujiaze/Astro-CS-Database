@@ -179,3 +179,73 @@ flowchart TD
 | ASTROCS_DESIGN.md | 验收/状态阶梯/发布门禁的上位来源 |
 | CONTROL_PACK_SPEC.md | 控制包验收调用 CI 机器门 |
 | AGENTS.md | 干活纪律（CI 是其硬门禁） |
+
+---
+
+## 9. 监控字段语义与 L2 冻结判据裁决面（fail-closed）
+
+> 上游：ENGINEERING_SPEC.md §10（fail-closed）、§12（资源与性能）；数值源
+> eng/contracts/resource_gate_v1.json。本节是 RELEASE-04 D-10 / D-12 的落地口径。
+
+### 9.1 requires_monitor（**真强制**，不改名）
+
+- 语义：**声明即必须监控**。`requires_monitor: true` 的执行单元必须在其登记
+  `outputs` 中产出监控证据（含 `cpu_samples` 的 run_monitored 证据 JSON）；
+  证据缺失/不可解析 ⇒ `FAIL(monitor_gate_missing)`（fail-closed，不因命令未带
+  判定旗标而放行）。
+- 命令显式请求资源门判定（监控参数区含 `--gate-required`/`--gate-workers`）⇒
+  证据还必须含合法 `frozen_gate.verdict ∈ {pass, not_applicable}`。
+- 证据含 `frozen_gate` ⇒ 四条 L2 冻结判据按 §9.2 复核，违规即红。
+- 实现单一事实源：`eng/ci/monitor_evidence.py`（`eng/ci/run.py` 与
+  `eng/ci/run_checks.py` 共用）；正负例面 `CHK-GATE-FAILCLOSED-SELFTEST`。
+- `heavy: true` ⇒ `requires_monitor: true`（注册表校验器 R7），故所有重步骤
+  必须携带 `eng/ci/resource_monitor.py` 监控包装（11 个执行单元已逐个核对）。
+
+### 9.2 L2 冻结判据（违规必红）
+
+四条冻结判据（阈值唯一数值源 `eng/contracts/resource_gate_v1.json::compute`）：
+
+| # | 判据 | 判据 ID |
+|---|---|---|
+| 1 | 计算区间平均利用率 ≥ 0.85 | `avg_utilization_ge_min` |
+| 2 | 样本利用率 p50 ≥ 0.90 | `p50_utilization_ge_min` |
+| 3 | 单样本利用率 ≥0.85 的样本占比 ≥ 0.70 | `sample_pass_fraction_ge_min` |
+| 4 | 无连续 ≥10s 且利用率 <60% 的低利用窗（**无就绪积压同样<｜｜begin▁of▁sentence｜｜>
+违规**：串行/停顿与 CPU 饥饿同属性能缺陷） | `no_low_utilization_window` |
+
+- 裁决面：`eng/ci/l2_frozen_gate.py::adjudicate` + `eng/ci/check_frozen_gate.py`；
+  任一判据违规 ⇒ `verdict=red`（生产侧 `run_monitored` 的
+  `*_enforcement=record_and_justify` 只是**记录语义**，不再决定 CI 裁决）。
+- 门不适用（`effective_cpus<2` 或区间 ≤10s）是**显式分类**；作为 L2 验收证据
+  提交时按红处理（`gate_not_applicable`），作为常规监控检查时记
+  `not_applicable`（非豁免）。
+- 分母（已分配容量）未声明：L2 验收证据按红（`l2_denominator_undeclared`）；
+  常规监控证据按契约 `denominator.zero_denominator_effect` 记入 recorded。
+- 历史证据回放：`L2-FROZEN-GATE-REPLAY` 断言 RELEASE-04 归档的 9 份
+  `frozen_gate.verdict=pass` 违规证据现在必须判红（D-10 恒真门已堵）。
+
+### 9.3 mutates_workspace（**真强制**，不改名）
+
+- 语义：**声明可写面**。`mutates_workspace: true` 的执行单元可写面 =
+  登记 `outputs` ∪ `dirty_ignore_exact`/`dirty_ignore_prefixes`；
+  **不再**无条件跳过执行前后的工作区对比（旧行为是自我豁免）。
+- 写出可写面之外的任何路径 ⇒ `FAIL(dirty)`（与 `mutates_workspace: false`
+  同判据）；`eng/ci/run_checks.py` 另按同一字段把"真写跟踪树"的单元排入
+  独占道，避免并发写冲突。
+
+### 9.4 fail-closed 普查（每门三注入）
+
+`CHK-FAILCLOSED-SURVEY` 对每个执行单元注入三种情形并驱动真判定函数
+（`eng/ci/run_checks.py::evidence_verdict`）：
+
+| 注入面 | 适用条件 | 期望 |
+|---|---|---|
+| A 缺失证据 | 声明了 `outputs` | `FAIL(missing_output)` |
+| B 坏证据 | `requires_monitor: true` | `FAIL(monitor_gate_missing)`（注入违反 §9.2 的证据） |
+| C 无输出 | `outputs` 为空且非 waivable | `FAIL(empty_outputs)` |
+
+普查表落 `artifacts/evidence/release-05/FAILCLOSED_SURVEY.md`（机器可读面
+`run/ci/failclosed-survey/survey.json`）；适用面判绿即假绿风险，检查判红。
+显式登记豁免（`SILENT_OK_UNITS`：`API-DOCS`、`UNIT-CLOSURE`）
+在表中标注来源，不冒充已覆盖。
+

@@ -93,7 +93,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - **默认 = `sparse_reconstruct`**：`sparse_snr_layer=true` 时生成稀疏控制点 SNR 层，作为**标准层插入 HiPS 文件内**；
 - 实际 SNR = **帧级 × 帧内**（SNR 是信噪比，不是权重）；
 - 稀疏层的位置/值/采样覆盖写入 manifest；
-- **适用域由实验判定**：同条件比较三条路径重建稠密 SNR 的精度与存储量，不预设稀疏一定最好；完整适用域图谱由 `实验/SCI-B` 给出（最高设计 §5.3）；
+- **适用域由实验判定**：同条件比较三条路径重建稠密 SNR 的精度与存储量，不预设稀疏一定最好；完整适用域图谱由 `实验/absolute-snr` 给出（最高设计 §5.3）；
 - **不静默降级**：输入无稀疏层而路径为 `sparse_reconstruct`（含默认）⇒ 按帧级执行但**必须显式记录实际路径**（`snr_path_effective`）并计数；稀疏层存在但损坏/不可重建 ⇒ 显式失败；
 - 存储量/精度折中与显式指定口径见 §5 配置项。
 
@@ -136,7 +136,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 ### 4.5 稀疏帧内层几何
 
 - 稀疏控制点间隔 Δ 复用 Phase2 UPM 的 8×8/tile 控制网格，`Δ = hips.tile_width / 8`（`hips.tile_width = 512` ⇒ Δ = 64 px）；
-- Δ 与 SNR 场相关长度的关系、稀疏重建的失效边界与完整适用域，正本见 `docs/science/` 与 `实验/SCI-B`；本文件不复制数值；
+- Δ 与 SNR 场相关长度的关系、稀疏重建的失效边界与完整适用域，正本见 `docs/science/` 与 `实验/absolute-snr`；本文件不复制数值；
 - 稀疏层与帧级标量的关系是「帧级 × 帧内相对场」：帧内相对场中位归一，重建算子返回预测方差；
 - 控制点位置、取值、采样覆盖与 `snr_path_effective` 一并写入 manifest 与产品内容证据块。
 
@@ -159,7 +159,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 | `sparse_snr_layer` | true | —— | 是否产出稀疏帧内 SNR 层。**默认产出**（默认稀疏路径） |
 | `sparse_snr_spacing_px` | 64 | px | 稀疏层控制点间隔 Δ（px）：复用 Phase2 UPM 的 8×8/tile 控制网格 ⇒ `Δ = hips.tile_width / 8 = 512 / 8 = 64`。取值依据与适用域见 §4.5 |
 | `sparse_snr_density` | —— | 点/度² | 稀疏层控制点密度（按面积表述）；生产使用像素域控制点间隔 `sparse_snr_spacing_px` 承载该量，本键不承载生产取值 |
-| `snr_path` | `sparse_reconstruct` | —— | SNR 重建路径：`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`；三条路径的适用域由 `实验/SCI-B` 给出 |
+| `snr_path` | `sparse_reconstruct` | —— | SNR 重建路径：`dense` / `sparse_reconstruct`（默认）/ `frame_reconstruct`；三条路径的适用域由 `实验/absolute-snr` 给出 |
 
 ## 6. 接口/ABI
 
@@ -177,7 +177,9 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 - 帧级 SNR 无法计算（如缺真实信号参考）→ fail-closed，**不得用受天光影响的普通 SNR 代替**；
 - 指定 `sparse_reconstruct` 路径而输入无稀疏层 → 按帧级执行并**显式记录实际路径**（不静默）；稀疏层损坏/不可重建 → fail-closed；
 - 任何信号项未扣局部背景、被天光/背景抬高的 SNR → 判红（红线 §4.1）；
-- **σ_sky 双计判红（§4.2a）**：`sigma_sky_source=empirical_total_rms` 时再加 `(RN/g)²` ⇒ 必须判红（保护负例）；`sigma_sky_source` 缺失或与实际来源不一致 ⇒ fail-closed 拒绝。
+- **σ_sky 双计判红（§4.2a）**：`sigma_sky_source=empirical_total_rms` 时再加 `(RN/g)²` ⇒ 必须判红（保护负例）；
+- **声明义务**：**生产调用点**（`module_adapters` 的 `p1_op_noise`）必须显式声明 `sigma_sky_source`，缺失即评审判红；声明与实际来源不一致（声称散粒而来源为经验总 rms，或反之）⇒ fail-closed 拒绝。
+- **C ABI legacy 路径**：`SNR_SIGMA_SKY_UNSPECIFIED=0` 保留为直接 C API 调用方的兼容缺省（与 `SHOT_ONLY` 组合**逐位一致**，由 `p1snr_science_skysource` 的向后兼容锁固定）；该路径**禁止**在生产链使用——「缺失即 fail-closed」由调用点层（而非 C 函数层）保证，因为 C 函数层无法观测入参的**实际来源**。
 
 ## 8. 测试与 Oracle
 
