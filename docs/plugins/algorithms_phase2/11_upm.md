@@ -95,9 +95,9 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
 | `roughness_penalty` | —— | —— | 样条粗糙度惩罚系数（保平滑） |
 | `max_iter` | —— | —— | 稳健拟合迭代上限 |
 | `convergence_gate` | —— | —— | 收敛门（**无量纲**，见 §4.6）：`max_dM/max(scale_obs,eps) < tol_step` 且 `|Δobj|/max(|obj_old|,eps) < tol_obj`；`converged` 状态枚举 `0=max_iter / 1=converged / 2=stalled / 3=invalid`。**`tol=1e-6` 不是硬门** |
-| `additive_mode` | `delta` | —— | 归一施加模式（`seam.additive_mode`）：`delta` = `raw − δ_k`（**默认**，保留公共天光面 `B_ref`）/ `c` = `raw − C_k`（全减，非默认）/ `both` = `raw − C_k − δ_k`（双重扣除，仅对照/回归）。⚠ **实现现状**：`module_adapters.cpp` 的 `seam_cfg.value("additive_mode", std::string("c"))` 仍默认 `"c"`（行号以符号为准），须按现行口径改默认；无天光面产物时 `delta` 显式退化为 `c` 并登记（**不得**静默变成不校正，**不得**回退到双重扣除） |
+| `additive_mode` | `delta` | —— | 归一施加模式（`seam.additive_mode`）：`delta` = `raw − δ_k`（**默认**，保留公共天光面 `B_ref`）/ `c` = `raw − C_k`（全减，非默认）/ `both` = `raw − C_k − δ_k`（双重扣除，仅对照/回归）。⚠ **实现现状**：实现现状（SCI-505 复核）：`module_adapters.cpp:6512-6526` 的 `additive_mode` **已默认 `delta`**（本条原写「仍默认 c」已过时）；无天光面产物时 `delta` 显式退化为 `c` 并登记（**不得**静默变成不校正，**不得**回退到双重扣除） |
 | `sky_plane.enabled` | 随 `additive_mode ∈ {delta, both}` | —— | 是否构建/落盘公共天光面 `B_ref` 产品；缺省 = 「要施加 `δ_k` 才构建」，显式值优先（实现 `module_adapters.cpp` 的 `sp_cfg.value("enabled", delta_wanted)`） |
-| `smoothing_lambda` | `0.1`（生产常量 `P2_SMOOTHING_LAMBDA_AUTO`） | —— | **UPM 图平滑权重**（`upm.h:75` 逐字「图平滑权重（默认 0=关闭）」）。仓库里有三个互不相同、并存不冲突的量——① **阻尼 `α≈0.5`** = 迭代阻尼（naive Gauss-Seidel `α=1` 在链式/二部覆盖图上特征值 −1 ⇒ 周期 2 振荡）；② **本键 `smoothing_lambda`** = 对天光/δ 面**拟合的正则项**（现行机制）；③ **堆叠平滑项** = 拟合目标里的新项，本期不加，做实验验证。实现常量 `P2_SMOOTHING_LAMBDA_AUTO = 0.1`（`lib/algorithms/coverage/include/astro/phase2/stage2_common.h:24`）。|
+| `smoothing_lambda` | 键缺省时编译期默认 **0.0**；`P2_SMOOTHING_LAMBDA_AUTO` = 0.1 仅在 auto 路径生效（SCI-505 复核订正） | —— | **UPM 图平滑权重**（`upm.h:75` 逐字「图平滑权重（默认 0=关闭）」）。仓库里有三个互不相同、并存不冲突的量——① **阻尼 `α≈0.5`** = 迭代阻尼（naive Gauss-Seidel `α=1` 在链式/二部覆盖图上特征值 −1 ⇒ 周期 2 振荡）；② **本键 `smoothing_lambda`** = 对天光/δ 面**拟合的正则项**（现行机制）；③ **堆叠平滑项** = 拟合目标里的新项，本期不加，做实验验证。实现常量 `P2_SMOOTHING_LAMBDA_AUTO = 0.1`（`lib/algorithms/coverage/include/astro/phase2/stage2_common.h:24`）。|
 
 ## 6. 接口/ABI
 
@@ -140,7 +140,7 @@ min  Σ_k Σ_i  w_ki · [ y_k(x_i) − s(x_i) − C_k(x_i) ]²     # 纯加性�
 3. **纯加性前提**：帧间乘性差必须先在 Phase1 吸收（实测帧间乘性比偏离 1 仅 5.89e-4）。
    未做 Phase1 时（历史 `photometry_applied=false`、1.56× 帧差），纯加性 UPM 后接缝 27.37 e⁻，
    做了之后 6.31 e⁻（**4.33×**）。不可吸收的基外高频分量（1%@24 px）对**电平**接缝贡献有界
-   （<50% 基线），但可被分块 PSD 定位（k=4 vs 预期 5.33）。
+   （<50% 基线），但可被分块 PSD 定位（实测峰 k=26 vs 预期 21.33）。
 4. **不可检验域**：`smoothing_lambda=0` 时 per-(frame,cell) 自由加性场恰好定解 ⇒
    「拟合/堆叠权重同源」与「末端残差场扣除」在该域内不可检验；`final_gauge` 在
    `m_full_frame=1` 时近似 no-op（3.7e-3 e⁻）且不能修复子集依赖。不得把该域内的恒真结果
