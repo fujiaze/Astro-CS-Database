@@ -123,8 +123,11 @@ class RootManifestFidelityTest(unittest.TestCase):
         spec = (REPO / "ENGINEERING_SPEC.md").read_text(encoding="utf-8")
         block = re.search(r"仓库根固定条目：\n(.*?)\n\nlib/", spec, re.S)
         self.assertIsNotNone(block, "未能在 ENGINEERING_SPEC.md 定位 §7 根固定条目代码块")
-        tokens = [x for x in re.split(r"[\s/]+", block.group(1)) if x and x != "text"]
-        doc_files = set(tokens) - {".github"}   # 文档中 .github/ 为目录
+        # §7 代码块按**空白**切分（路径本身含 '/'：eng/build/build.sh 是仓内路径，
+        # 不是根条目 —— 旧解析按 [\s/]+ 切分会把 eng/build/build.sh 拆成四个伪根条目，
+        # 让正例恒红。GATE-502 按现行 §7 文本修，判据未放宽：仍要求两集合逐项相等。）
+        tokens = [x for x in re.split(r"\s+", block.group(1)) if x and x != "text"]
+        doc_files = {t.rstrip("/") for t in tokens if "/" not in t and t != ".github"}
         manifest = load_manifest()
         self.assertEqual(set(manifest["allowed_files"]), doc_files,
                          "allowed_files 与 §7 文档不一致（多出或缺失）")
@@ -134,7 +137,17 @@ class RootManifestFidelityTest(unittest.TestCase):
         dirs_para = re.search(tail + r"(.*?)" + chr(96) * 3, spec, re.S)
         self.assertIsNotNone(dirs_para, "未能在 §7 定位「其他固定目录」")
         cleaned = re.sub(r"（[^）]*）", "", dirs_para.group(1))
-        doc_dirs = {d for d in re.findall(r"(\S+?)/", cleaned) if d and not d.endswith("：")}
+        # 根目录条目 = 目录名的**第一段**；§7 在首行内联列表之后是 "eng/（工程支撑面）"
+        # 起的**缩进子目录树**（eng/ci、eng/tools… 是 eng 的子项，不是根条目）。
+        # 旧解析把子目录名也当作根条目 ⇒ 正例恒红。GATE-502 按现行 §7 文本修：
+        # 首行取全部空白分隔 token，其余行只取**无缩进行首**的目录名，再统一取第一段。
+        doc_dirs = set()
+        for i, line in enumerate(cleaned.splitlines()):
+            m = re.match(r"^(\S+?)/", line)
+            toks = line.split() if i == 0 else ([m.group(1) + "/"] if m else [])
+            for t in toks:
+                if t.endswith("/") and t.strip("/"):
+                    doc_dirs.add(t.strip("/").split("/")[0])
         manifest_dirs = set(manifest["allowed_dirs"])
         self.assertEqual(manifest_dirs, doc_dirs | {"lib", ".github"},
                          "清单与 §7 目录不一致；缺=" + repr(sorted((doc_dirs | {"lib", ".github"}) - manifest_dirs))

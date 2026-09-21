@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -155,10 +156,25 @@ class TestCheckerFixtureGates(unittest.TestCase):
         self.assertEqual(data["summary"]["fail_findings"], 0)
         self.assertEqual(data["summary"]["verdict"], "PASS")
 
+    @staticmethod
+    def _module(data, mid):
+        return [m for m in data["modules"] if m["id"] == mid][0]
+
+    @staticmethod
+    def _details(mod, code):
+        return [str(f.get("detail", "")) for f in mod["findings"] if f["code"] == code]
+
+    # FIX-404 起，缺失声明不再报 missing_* 专用码，而是统一报 fake_path/fake_target
+    # （未登记缺口 = 假路径；不得删声明，须登记 owner）。GATE-502 按现行检查器语义
+    # 收紧断言：既锁 finding 码，也锁**具体模块 + 具体字段 + 具体路径**，判据未放宽。
     def test_t11_negative_missing_manifest(self):
         proc, data, _ = self._run("missing_manifest")
         self.assertNotEqual(proc.returncode, 0)
-        self.assertIn("missing_module_yaml", {f["code"] for f in data["findings"]})
+        mod = self._module(data, "calibration")
+        self.assertFalse(mod["items"]["module_yaml"], "缺 module.yaml 必须判该模块未具备")
+        hits = [d for d in self._details(mod, "fake_path") if "module_yaml 声明指向不存在的" in d]
+        self.assertTrue(hits, "缺 module.yaml 必须报 fake_path(module_yaml) 且指明路径: %s"
+                        % mod["findings"])
 
     def test_t12_negative_duplicate_entrypoint(self):
         proc, data, _ = self._run("duplicate_entrypoint")
@@ -171,14 +187,20 @@ class TestCheckerFixtureGates(unittest.TestCase):
     def test_t13_negative_missing_target(self):
         proc, data, _ = self._run("missing_target")
         self.assertNotEqual(proc.returncode, 0)
-        self.assertIn("missing_cmake_target", {f["code"] for f in data["findings"]})
-        self.assertFalse([m for m in data["modules"] if m["id"] == "star_detection"][0]["items"]["cmake_target"])
+        mod = self._module(data, "star_detection")
+        self.assertFalse(mod["items"]["cmake_target"], "缺 add_library 必须判该模块无 target")
+        self.assertTrue(self._details(mod, "fake_target"),
+                        "无 target 必须报 fake_target（声明指向不存在的 target）: %s" % mod["findings"])
+        self.assertTrue([d for d in self._details(mod, "fake_path") if "target_file" in d],
+                        "无 target 必须同时报 fake_path(target_file): %s" % mod["findings"])
 
     def test_t14_negative_missing_tests(self):
         proc, data, _ = self._run("missing_tests")
         self.assertNotEqual(proc.returncode, 0)
-        self.assertIn("missing_co_located_tests", {f["code"] for f in data["findings"]})
-        self.assertFalse([m for m in data["modules"] if m["id"] == "psf"][0]["items"]["co_located_tests"])
+        mod = self._module(data, "psf")
+        self.assertFalse(mod["items"]["co_located_tests"], "缺共址测试目录必须判该模块未具备")
+        hits = [d for d in self._details(mod, "fake_path") if "co_located_tests 声明指向不存在的" in d]
+        self.assertTrue(hits, "缺共址测试必须报 fake_path(co_located_tests): %s" % mod["findings"])
 
     def test_t15_negative_dangling_contract_ref(self):
         proc, data, _ = self._run("dangling_contract_ref")
@@ -270,5 +292,83 @@ class TestRealRepoHonesty(unittest.TestCase):
                 self.assertFalse(m["implemented"], m["id"])
 
 
+class TestGapLedgerRatchet(unittest.TestCase):
+    """FIX-404 缺口台账（50 路径 + 16 target + 72 能力）的测试侧棘轮。
+
+    GATE-502 步骤 5 逐项甄别结论：66 条路径/target 缺口与 72 条能力缺口**全部为
+    「待实现」**（模块/schema/unit 未落地），owner = BLD-401（全门收口）或
+    RELEASE-04/未覆盖（GUI/HiPS Browser，本包显式不做）
+    ⇒ **标 DEFERRED，不进全绿集**：不为未实现模块写假绿测试（空骨架测试 = 假绿），
+    也不放宽任何现有判据。本类只锁台账**诚实性**，四条都能红：
+      T30 台账条数与机器实测 registered_gaps 必须相等（漏登记/删声明都红）；
+      T31 每条缺口必须有可追责 owner + 理由，owner 必须命中 gap_owners，
+          kind=task 的 owner 必须有任务书文件（fail-closed，与检查器同口径）；
+      T32 棘轮：登记为缺口的路径/target **今天必须仍然缺失**（模块落地后不删登记 = 红）；
+      T33 fake_paths == 0（不得靠删声明过门），且台账条目集合 == 机器实测条目集合。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.doc = yaml.safe_load(MAP.read_text(encoding="utf-8"))
+        cls.paths = cls.doc["declared_absent_paths"]
+        cls.caps = cls.doc["declared_absent_capabilities"]
+        cls.owners = {o["id"]: o for o in cls.doc["gap_owners"]}
+        cls._td = tempfile.TemporaryDirectory(prefix="mod001-gap-")
+        cls.proc, cls.data = run_real_repo_json(cls._td.name)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._td.cleanup()
+
+    def test_t30_ledger_counts_are_self_consistent(self):
+        items = self.paths["items"]
+        self.assertEqual(self.paths["path_gap_count"] + self.paths["target_gap_count"],
+                         len(items), "path_gap_count + target_gap_count 必须等于条目数")
+        n_target = len([i for i in items if i["key"] == "target"])
+        self.assertEqual(self.paths["target_gap_count"], n_target)
+        self.assertEqual(self.paths["path_gap_count"], len(items) - n_target)
+        self.assertEqual(72, self.caps["capability_gap_count"], "能力缺口规模漂移须显式改登记")
+        self.assertEqual(self.caps["capability_gap_count"], len(self.caps["items"]))
+        self.assertEqual(66, self.data["gaps"]["registered"],
+                         "台账 66 条必须与机器实测 registered_gaps 相等（双向对齐）")
+        self.assertEqual(len(items), self.data["gaps"]["registered"])
+
+    def test_t31_every_item_has_traceable_owner(self):
+        for it in self.paths["items"] + self.caps["items"]:
+            self.assertIn(it["owner"], self.owners,
+                          "%s/%s 的 owner %r 未登记于 gap_owners" % (it["module"], it["key"] if "key" in it else it["code"], it["owner"]))
+            self.assertTrue(str(it.get("reason", "")).strip(),
+                            "%s 缺理由（不得只登记 owner 不写原因）" % it["module"])
+        for oid, o in self.owners.items():
+            if o.get("kind") == "task":
+                self.assertTrue((REPO / o["authority"]).is_file(),
+                                "task owner %s 的任务书不存在: %s" % (oid, o["authority"]))
+            else:
+                self.assertIn(o.get("kind"), {"out_of_scope"},
+                              "gap_owners.kind 只允许 task/out_of_scope: %s" % oid)
+
+    def test_t32_declared_absent_paths_are_still_absent(self):
+        """棘轮：登记缺口一旦落地（路径出现 / target 定义）必须同步删登记 + 补测试。"""
+        cmake = "\n".join(
+            p.read_text(encoding="utf-8", errors="ignore")
+            for p in REPO.rglob("CMakeLists.txt") if "build" not in p.parts)
+        for it in self.paths["items"]:
+            if it["key"] == "target":
+                self.assertNotRegex(cmake, r"add_(?:library|executable)\s*\(\s*%s\b" % re.escape(it["path"]),
+                                    "target %s 已定义：缺口落地后必须删登记并补测试" % it["path"])
+            else:
+                self.assertFalse((REPO / it["path"]).exists(),
+                                 "%s 已存在：缺口落地后必须删登记并补测试" % it["path"])
+
+    def test_t33_no_fake_paths_and_item_sets_match(self):
+        self.assertEqual(0, self.data["gaps"]["fake_paths"],
+                         "fake_paths 必须为 0（不得为过门删声明）")
+        ledger = {(i["module"], i["key"], i["path"]) for i in self.paths["items"]}
+        measured = {(i["module"], i["key"], i["path"]) for i in self.data["gaps"]["items"]}
+        self.assertEqual(ledger, measured,
+                         "台账条目与机器实测缺口必须逐条相等；差集=" + repr(sorted(ledger ^ measured)[:6]))
+
+
 if __name__ == "__main__":
     unittest.main()
+

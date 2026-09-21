@@ -717,21 +717,21 @@
     "non_key_examples": [
       {
         "literal": "bader r",
-        "where": "ASTROCS_DESIGN.md:221",
+        "where": "docs/contracts/CONFIG_CONTRACT.md:195",
         "kind": "design_doc_negative_example",
         "resolution": "ERROR",
-        "note": "设计文档 §3.3 的**滤镜名反例**（§9.68 改写后明确标注「必须被拒」），与本库键 'Baader R' 拼写不同形（bader vs Baader）：仅折叠大小写/空白仍不相等，因此任何「轻量归一化」都不能把它变成合法键；按 resolution_rule 判 ERROR。反例在 eng/tests/config/test_cfg003_multiblock.py 与 eng/tests/config/test_cfg001_negative.py 上红绿双向复跑。"
+        "note": "现行权威 = docs/contracts/CONFIG_CONTRACT.md §10「滤镜名匹配语义」负例表（第 195 行）冻结的 \"bader r\"；RELEASE-04 换版后最高设计不再携带该反例串，原 §3.3 行号锚点失效（GATE-502 按现行合同重锚，值与判据未变）。与本库键 'Baader R' 拼写不同形（bader vs Baader）：仅折叠大小写/空白仍不相等，因此任何「轻量归一化」都不能把它变成合法键；按 resolution_rule 判 ERROR。反例在 eng/tests/config/test_cfg003_multiblock.py 与 eng/tests/config/test_cfg001_negative.py 上红绿双向复跑。"
       },
       {
         "literal": "bader v",
-        "where": "ASTROCS_DESIGN.md:221",
+        "where": "docs/contracts/CONFIG_CONTRACT.md:195",
         "kind": "design_doc_negative_example",
         "resolution": "ERROR",
-        "note": "同上；且本库 45 条曲线中不存在 Baader V 曲线（Baader 品牌只有 B/G/R/UV-IR Cut L CMOS Optimized/7nm H-alpha/8.5nm OIII 六条），故该示例既不能按字面命中，也不存在可归一化到的键。"
+        "note": "同上（现行权威锚点 = docs/contracts/CONFIG_CONTRACT.md:195）；且本库 45 条曲线中不存在 Baader V 曲线（Baader 品牌只有 Baader B/Baader G/Baader R/UV-IR Cut L CMOS Optimized/7nm H-alpha/8.5nm OIII 六条），故该示例既不能按字面命中，也不存在可归一化到的键。"
       }
     ],
     "non_key_example_policy": "non_key_examples 只登记「权威或合同文本中出现、但不是合法库键」的串，供机器门把示例与合法值分开；它不把示例升级为别名，也不改变 resolution_rule。列表外的任何非库键串一律 ERROR（fail-closed）。",
-    "note": "未知滤镜名 -> error（供 CLI 预检第 3 项；ASTROCS_DESIGN.md §3.3 滤镜名反例行与 §3.5 红级）。W5-CFG-002 把匹配语义冻结为「字节精确 + 无别名」：库内存在品牌大小写不一致（'Optolong B' 与 'OPTOLONG L-PRO Light Pollution' 并存），任何品牌级归一化都会引入歧义；当前 45 键在「大小写+空白折叠」下无重名（断言见 eng/tests/config/check_cfg002_registry.py），但该事实不替代显式规则。正反例见 eng/tests/config/test_cfg002_registry.py。"
+    "note": "未知滤镜名 -> error（供 CLI 预检第 3 项；ASTROCS_DESIGN.md §4.3 滤镜型号逐字匹配与 §4.5 红级 error）。W5-CFG-002 把匹配语义冻结为「字节精确 + 无别名」：库内存在品牌大小写不一致（'Optolong B' 与 'OPTOLONG L-PRO Light Pollution' 并存），任何品牌级归一化都会引入歧义；当前 45 键在「大小写+空白折叠」下无重名（断言见 eng/tests/config/check_cfg002_registry.py），但该事实不替代显式规则。正反例见 eng/tests/config/test_cfg002_registry.py。"
   },
   "filters": {
     "Antlia V Pro Series B": {

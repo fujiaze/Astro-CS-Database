@@ -60,9 +60,28 @@ class TestPhase1Api(unittest.TestCase):
             self.assertRegex(l, r"(TST-|TB-)", f"行缺 test/checker ID: {l[:60]}")
             self.assertTrue(any(k in l for k in ("yes", "no")), f"行缺 reentrant/threadsafe: {l[:60]}")
 
-    def test_04_set_num_threads_marked_migration(self):
-        self.assertIn("迁移整改点", self.s)
-        self.assertIn("TB-ARCH-004", self.s)
+    def test_04_set_num_threads_superseded_by_budget_injection(self):
+        """ac_set_num_threads 的现行去向：由 p1 budget 注入取代、ABI-001 收编，
+        私有线程数设置不再是可调面（内部并行列与取消点列均为 —）。
+
+        GAP_AUDIT G2-4 / D-8：旧断言 "迁移整改点" 这一措辞在 tracked 权威文档中不存在
+        （RELEASE-04 换版后 PHASE1_API_V1.md §2 表已改写为现行措辞）。此处按现行合同
+        逐字断言，并解析表格行而不是全文子串，避免「换个地方出现同一串」的假绿。
+        """
+        rows = [l for l in self.s.splitlines() if l.startswith("| `ac_set_num_threads")]
+        self.assertEqual(1, len(rows), "PHASE1_API_V1.md §2 必须恰有一行登记 ac_set_num_threads")
+        row = rows[0]
+        cells = [c.strip() for c in row.strip("|").split("|")]
+        self.assertEqual(6, len(cells), "§2 表列数漂移: %r" % row)
+        fn, reentrant, threadsafe, internal_parallel, cancel_point, test_id = cells
+        self.assertIn("ac_set_num_threads", fn)
+        self.assertEqual("yes", reentrant, "ac_set_num_threads 必须 reentrant")
+        self.assertEqual("yes", threadsafe, "ac_set_num_threads 必须 threadsafe")
+        self.assertEqual("—", internal_parallel, "ac_set_num_threads 不得再声明内部并行（已由 budget 注入取代）")
+        self.assertEqual("—", cancel_point, "ac_set_num_threads 无取消点（短任务）")
+        self.assertIn("TB-ARCH-004", test_id, "必须保留 checker 管控 ID")
+        self.assertIn("p1 budget 注入取代", test_id, "必须声明由 p1 budget 注入取代")
+        self.assertIn("ABI-001 收编", test_id, "必须声明收编归属 ABI-001")
 
     def test_05_units_reference_glossary(self):
         for k in ("ADU", "0-based", "ICRS", "host allocator"):
