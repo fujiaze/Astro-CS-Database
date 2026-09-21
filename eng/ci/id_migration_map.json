@@ -718,6 +718,15 @@
       "steps": [
         "CTEST-V6-P2-SKY-KAPPA"
       ]
+    },
+    "CHK-TEST-DISCRIMINATIVE": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "空断言静态门（测试判别力）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CHK-TEST-DISCRIMINATIVE-STEP"
+      ]
     }
   },
   "reserved_targets": {
@@ -2835,6 +2844,15 @@
       "grade": "P0",
       "order_in_target": 0,
       "note": "SCI-502 FIX-3 κ 自适应 ctest 目标（新增执行单元）"
+    },
+    {
+      "old_id": "CHK-TEST-DISCRIMINATIVE-STEP",
+      "decision": "KEPT",
+      "target": "CHK-TEST-DISCRIMINATIVE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "GATE-502 新增执行单元（空断言静态门）"
     }
   ],
   "coverage": {
@@ -2845,7 +2863,7 @@
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。",
     "absorbed_entries": [
       "CHK-SECRET-HYGIENE",
       "STD-REG",
@@ -2927,7 +2945,8 @@
       "FAILCLOSED-SURVEY",
       "FAILCLOSED-SURVEY-SELFTEST",
       "CTEST-CORE-BLOCK-FRAME",
-      "CTEST-V6-P2-SKY-KAPPA"
+      "CTEST-V6-P2-SKY-KAPPA",
+      "CHK-TEST-DISCRIMINATIVE-STEP"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

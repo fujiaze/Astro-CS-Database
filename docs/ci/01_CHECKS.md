@@ -99,6 +99,7 @@
 | CHK-FAILCLOSED-SURVEY | 治理 | 全门禁 fail-closed 普查：对每个执行单元（230 个 / 78 个注册项）注入「缺失证据 / 坏证据 / 无输出」三面，适用面必须全部判红（判绿即假绿风险；表落 artifacts/evidence/release-05/FAILCLOSED_SURVEY.md）；含普查自身的红绿自证（恒绿注入必被抓） | `python3 eng/ci/run_checks.py --check CHK-FAILCLOSED-SURVEY --quiet` | P0 |
 | CHK-ARCH501-BLOCK-FRAME | 架构 | ARCH-501 命名块与块生命周期回归锁：创建-消费-销毁状态机、消费者引用计数即时归还、DAG 四条非法图判据（消费不存在/重复生产/生命周期不一致/名字非法）、provenance 流转、显式降级、取消路径无泄漏；负例注入实测能红 | `python3 eng/ci/run_checks.py --check CHK-ARCH501-BLOCK-FRAME --quiet` | P0 |
 | CHK-SCI502-SKY-KAPPA | 科学 | SCI-502 FIX-3 天光面 κ 专项：κ 可观测、门控 κ 取**求解矩阵**（λ=0 判红 / 生产 λ 判绿）、正则化方向有效、κ_data 与 λ 无关、拒绝原因点名 kappa 而非 rank | `python3 eng/ci/run_checks.py --check CHK-SCI502-SKY-KAPPA --quiet` | P0 |
+| CHK-TEST-DISCRIMINATIVE | 质量 | 空断言静态门：Python AST 扫 test_* 与 C++ 剥注释扫恒真形态（CHECK/ASSERT/EXPECT/REQUIRE/VERIFY/TEST_CHECK 的 (true)/(1)/static_assert/assert），findings 必须为 0；含 --self-test 2 正例必绿 + 6 负例逐条必红 | `python3 eng/ci/run_checks.py --check CHK-TEST-DISCRIMINATIVE --quiet` | P0 |
 
 ### 2.1 检查器退役与预留
 
