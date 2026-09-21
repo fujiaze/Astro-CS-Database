@@ -54,6 +54,7 @@ bool source_snr(const SnrSourceRow& row, const SnrFrameScienceConfig& cfg,
   p.n_sky = cfg.n_sky;
   p.zero_point_mag = cfg.zero_point_mag;
   p.profile_half_px = cfg.profile_half_px;
+  p.sigma_sky_source = cfg.sigma_sky_source;   // SCI-B D1: 语义显式随配置流转
 
   if (snr_source_snr_f64(&p, out) != 0) return false;
   if (out->status != 0) return false;

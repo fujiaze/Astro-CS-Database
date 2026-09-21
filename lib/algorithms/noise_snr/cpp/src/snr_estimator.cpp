@@ -81,6 +81,9 @@ inline double sourceSnrFromPsfRow(const double* row) {
     p.fwhm_px = 0.0;               // PSF 块 FWHM 不是检测块高斯列 (禁止跨块填列)
     p.sigma_px = sigma_moffat4;    // 已按 PSF 块 Moffat4 因子换算的 sigma
     p.sigma_sky_adu = residual_scale / 0.7316727929211932;
+    // residual_scale 是 PSF 拟合残差的经验总 rms (含读噪); 本路径 gain 未提供
+    // (memset 后为 0) ⇒ 天空受限、不加 (RN/g)^2。声明语义供 provenance。
+    p.sigma_sky_source = SNR_SIGMA_SKY_EMPIRICAL_TOTAL_RMS;
     SnrSourceResult res;
     if (snr_source_snr_f64(&p, &res) != 0) return 0.0;
     if (!std::isfinite(res.snr_optimal) || !(res.snr_optimal > 0.0)) return 0.0;

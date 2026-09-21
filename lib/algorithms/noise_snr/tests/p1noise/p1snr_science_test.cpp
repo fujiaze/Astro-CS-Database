@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdint>
+#include <random>
 #include <string>
 #include <vector>
 
@@ -292,6 +293,105 @@ int main(int argc, char** argv) {
         p = makeParams(1e4, 2.5, 10.0); snr_source_snr_f64(&p, &a);
         p = makeParams(2e4, 2.5, 10.0); snr_source_snr_f64(&p, &b);
         checkClose(b.snr_optimal / a.snr_optimal, 2.0, 1e-12, "sky-limited SNR linear in flux");
+    }
+
+    // ── SCI-501 (FIX-407): sigma_sky 语义 / 读噪双计负例保护 ──────────────
+    // 口径正本: docs/plugins/algorithms_phase1/07_noise_snr.md 4.2a（DOC-502 冻结）。
+    // 逐像素噪声 sigma_i^2 = sigma_sky^2 + (RN/g)^2 + F*P_i/g，读噪只出现一次。
+    // 本组：① 双计臂（经验总 rms 再加 (RN/g)^2）必须被判红（MC 3sigma 外）；
+    //       ② 正确口径臂与独立 Monte Carlo 真值在 3sigma 内；
+    //       ③ legacy 缺省（sigma_sky_source=0）与双计臂逐位一致（向后兼容锁）；
+    //       ④ provenance 字段如实报告实际生效组合。
+    if (all || grp == "skysource") {
+        const double F = 1.0e4;          // ADU
+        const double fwhm = 2.5;         // 检测块高斯 FWHM [px]
+        const double gain = 1.3;         // e-/ADU
+        const double rn = 50.0;          // e-（读噪主导点：双计效应最大）
+        const double b_sky = 100.0;      // e-/px 天光散粒
+        const double sig_emp = std::sqrt(b_sky + rn * rn) / gain;   // 经验总 rms [ADU]
+
+        SnrSourceParams pA = makeParams(F, fwhm, sig_emp, gain, rn);
+        pA.sigma_sky_source = SNR_SIGMA_SKY_EMPIRICAL_TOTAL_RMS;   // 正确口径
+        SnrSourceParams pB = makeParams(F, fwhm, sig_emp, gain, rn);
+        pB.sigma_sky_source = SNR_SIGMA_SKY_SHOT_ONLY;             // 双计臂
+        SnrSourceParams pL = makeParams(F, fwhm, sig_emp, gain, rn);
+        pL.sigma_sky_source = SNR_SIGMA_SKY_UNSPECIFIED;           // legacy 缺省
+        SnrSourceResult rA, rB, rL, rS;
+        check(snr_source_snr_f64(&pA, &rA) == 0 && rA.status == 0, "skysource A rc");
+        check(snr_source_snr_f64(&pB, &rB) == 0 && rB.status == 0, "skysource B rc");
+        check(snr_source_snr_f64(&pL, &rL) == 0 && rL.status == 0, "skysource L rc");
+        // ③ legacy 缺省 == 双计臂（逐位）：证明本次改动对未声明调用点零影响
+        check(std::memcmp(&rB, &rL, sizeof(rB)) == 0,
+              "legacy UNSPECIFIED == SHOT_ONLY bitwise (backward compat)");
+        // ④ provenance
+        check(rA.sigma_sky_source_effective == 2, "provenance A: (RN/g)^2 not added");
+        check(rB.sigma_sky_source_effective == 1, "provenance B: (RN/g)^2 added");
+        SnrSourceParams pG = makeParams(F, fwhm, sig_emp, 0.0, rn);
+        check(snr_source_snr_f64(&pG, &rS) == 0 && rS.sigma_sky_source_effective == 3,
+              "provenance: gain<=0 sky-limited");
+        // 独立参考实现（long double 暴力累加，另一条代码路径）
+        RefResult eA = refCompute(F, fwhm, sig_emp, gain, 0.0, 0, 0, 0);  // 正确口径
+        RefResult eB = refCompute(F, fwhm, sig_emp, gain, rn, 0, 0, 0);   // 双计臂
+        checkClose(rA.sigma_f_optimal_adu, eA.sigma_f_optimal, 1e-12, "skysource A vs ref");
+        checkClose(rB.sigma_f_optimal_adu, eB.sigma_f_optimal, 1e-12, "skysource B vs ref");
+        check(rA.sigma_f_optimal_adu < rB.sigma_f_optimal_adu,
+              "correct caliber sigma_F strictly below double-count arm");
+        const double infl = rB.sigma_f_optimal_adu / rA.sigma_f_optimal_adu - 1.0;
+        // 实测锚值: RN=50 e-/g=1.3/B=100 e-/px 时 infl = +19.0%（含源泊松项后小于
+        // 纯读噪比 sqrt((B+2RN^2)/(B+RN^2))=1.40 的粗估）。判据只要求它显著大于 MC
+        // 噪声（~0.8%），上界防口径写反。
+        check(infl > 0.10 && infl < 0.35, "double-count inflation significant at RN-dominated point");
+
+        // ② Monte Carlo 真值（独立 profile + 独立 RNG；固定 seed 可复现）
+        const double sigma_d = fwhm / kGaussFwhmFactor;
+        const int half = refHalf(sigma_d * kMoffat4FwhmFactor);
+        const long double alpha2 = 2.0L * (long double)sigma_d * (long double)sigma_d;
+        std::vector<long double> Pv;
+        long double sum = 0.0L;
+        for (int j = -half; j <= half; ++j)
+            for (int i = -half; i <= half; ++i) {
+                const long double r2 = (long double)i * i + (long double)j * j;
+                const long double t = 1.0L + r2 / alpha2;
+                const long double v = 1.0L / (t * t * t * t);
+                Pv.push_back(v); sum += v;
+            }
+        const std::size_t M = 8000;
+        std::mt19937_64 rng(20260922ULL);
+        std::normal_distribution<double> gauss(0.0, 1.0);
+        std::vector<long double> num(Pv.size(), 0.0L);
+        long double den = 0.0L;
+        for (std::size_t k = 0; k < Pv.size(); ++k) {
+            const long double P = Pv[k] / sum;
+            const long double var_i = (long double)(sig_emp * sig_emp) +
+                                      (long double)F * P / (long double)gain;
+            num[k] = P / var_i;
+            den += P * P / var_i;
+        }
+        std::vector<double> fhat(M, 0.0);
+        for (std::size_t m = 0; m < M; ++m) {
+            long double acc = 0.0L;
+            for (std::size_t k = 0; k < Pv.size(); ++k) {
+                const long double P = Pv[k] / sum;
+                const long double var_i = (long double)(sig_emp * sig_emp) +
+                                          (long double)F * P / (long double)gain;
+                const double d = gauss(rng) * std::sqrt((double)var_i);
+                acc += num[k] * (long double)d;
+            }
+            fhat[m] = (double)(acc / den);
+        }
+        double mean = 0.0, m2 = 0.0;
+        for (std::size_t m = 0; m < M; ++m) mean += fhat[m];
+        mean /= (double)M;
+        for (std::size_t m = 0; m < M; ++m) m2 += (fhat[m] - mean) * (fhat[m] - mean);
+        const double sig_mc = std::sqrt(m2 / (double)(M - 1));
+        const double zA = (rA.sigma_f_optimal_adu / sig_mc - 1.0) * std::sqrt(2.0 * (double)M);
+        const double zB = (rB.sigma_f_optimal_adu / sig_mc - 1.0) * std::sqrt(2.0 * (double)M);
+        std::printf("[SCI-501] sig_emp=%.6f ADU  sigma_F(A)=%.6f  sigma_F(B)=%.6f  "
+                    "MC=%.6f  zA=%.3f  zB=%.3f  infl=%.2f%%\n",
+                    sig_emp, rA.sigma_f_optimal_adu, rB.sigma_f_optimal_adu, sig_mc,
+                    zA, zB, 100.0 * infl);
+        check(std::fabs(zA) <= 3.0, "correct caliber within 3 sigma of MC truth");
+        check(std::fabs(zB) > 3.0, "double-count arm REJECTED by MC (>3 sigma) -- negative guard");
     }
 
     if (all || grp == "production") {

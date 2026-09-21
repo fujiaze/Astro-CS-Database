@@ -147,7 +147,7 @@ for 每个控制星 s（半径内）:
 2. **"信号含天光"的传统口径失真可量化**：同一天光范围内传统口径上升 3 个数量级（B=10⁶ 时相对真值 ×3419 亮源 / ×1.0e5 暗源）；不扣局部背景的帧级臂 ×8040 ⇒ **必须独立估计并扣除局部背景**（1% SNR 偏差对应背景偏差 δB*=2.78 e⁻ ≈ 0.28% 天光；实测 1% 交叉 3.44 e⁻）。
 3. **跨帧可比性硬约束**：逐帧 `F_ref,k`、同帧配对、`m_ref=6.0`；`SNR_combined²=ΣSNR_k²` 相对偏差 2.2e-16，Q/W 信息量 `Var=1/ΣW` 实测 1275 vs 解析 1260（+1.2%）；逆方差组合严格优于等权与 `w∝SNR`。
 4. **量纲区隔复核**：`quality_weight`（无量纲相对质量）与 `variance/ivar`（ADU²）不混用——§5/§6 的不变量在本单元以数值方式复核（权重换算恒等、组合方差解析对拍）。
-5. **生产调用点存在已知口径缺陷（转 FIX，不在本节改定义）**：`module_adapters.cpp:4258` 把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu`，而 gain>0 时 `snr_science.cpp` 再加一次 `(RN/g)²` ⇒ 读噪双计，σ_F 高估（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失）。PSF 行路径（`snr_estimator.cpp:83`，gain 未知不加 RN 项）不受影响。量化与建议见 `实验/SCI-B/results/DOC_CORRECTIONS.md` D1。
+5. **生产调用点读噪双计：已修复（SCI-501 / FIX-407，RELEASE-05）**。原缺陷：`module_adapters.cpp` 把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu`，而 gain>0 时 `snr_science.cpp` 再加一次 `(RN/g)²` ⇒ σ_F 高估（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失）。**修复**：`SnrSourceParams.sigma_sky_source` 显式声明语义（`SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS`），生产调用点声明 `EMPIRICAL_TOTAL_RMS`（`noise_sigma` = 1.4826×MAD 经验总 rms）⇒ 不再叠加 `(RN/g)²`；`sigma_sky_source_effective` 落 provenance。**保护测试** `p1snr_science_skysource`：正确口径与独立 MC 真值 zA=1.27（≤3σ）绿、双计臂 zB=25.6（>3σ）红、legacy 缺省与双计臂逐位一致（向后兼容）。PSF 行路径（`snr_estimator.cpp`，gain 未知不加 RN 项）不受影响。量化见 `实验/absolute-snr/results/DOC_CORRECTIONS.md` D1。
 6. **误差预算常数单位**：`NOISE_MODEL.md:86` 的 `1.44/√N` 是**相对**标准误（实测 1.166/√N），换算到 dex 为 `1.44/ln10/√N`；直接当 dex 常数用会高估 2.303 倍（`DOC_CORRECTIONS.md` D2）。
 
 ## 8b. 三口径适用域图谱（SCI-B 定案；选型依据）
