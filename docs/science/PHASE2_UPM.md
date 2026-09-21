@@ -70,6 +70,15 @@
   Huber IRLS + control-ivar 感知权重 + 弱零锚 (zero_anchor_weight=0.001) + 连通分量独立 gauge
   每分量参考帧 = 最小 frame_id
 
+收敛与容差 (SCI-UPM-CONV-001；无量纲，禁绝对容差):
+  tol_step = tolerance_step（默认 1e-6，相对量）
+  tol_obj  = tolerance_obj（默认 1e-6，相对量）
+  停止判据: max_dM / max(scale_obs, eps) < tol_step  且  |Δobj| / max(|obj_old|, eps) < tol_obj
+  scale_obs = 观测量的尺度（control 观测值的稳健尺度），**不得**用 max|M|
+  converged 状态枚举: 0 = max_iter / 1 = converged / 2 = stalled / 3 = invalid
+  stalled 判据: 残差改善量低于数值地板连续 N_stall 次（可证伪，须有红/绿双向测试）
+  ⚠ 绝对容差在 ~300 e⁻ 尺度永不收敛（300 次迭代 converged=0，SCI-C FIX-1）⇒ 生产必须走相对/尺度归一判据
+
 持久化绑定 (SCI-UPM-PERSIST-001 / ALG-UPM-FRAME-BIND-001):
   parameter_rows[index] ↔ frame_id_by_index[index]   # 同长、无重复
   绑定仅由稳定 frame_id 决定；save→close→open 保持 frame_id→θ 映射
@@ -100,6 +109,22 @@
   连续切片分块后按 worker 序合并，与串行索引序的结合顺序不同（FP 加法非结合）；
   实测 ΔC_max = 2.22e-15 ≈ 1 ulp @10 ADU（`run/PROJECT-GOVERNANCE-01/SCI-FIX-WEIGHT/
   logs/probe_1t2t.log`）；(c) 跨后端等价 = **不允许**（无此合同）。
+
+## 7a 表示能力边界与近奇异处置（SCI-UPM-CAP-001 / SCI-UPM-KAPPA-001）
+
+**表示能力边界（无接缝 ⟺ 公共面可表示）**：
+
+- 参考面 `B_ref`（8×8 control cell 双线性，节点间距 ≈ `hips.tile_width/8` = 64 px）只能表示尺度 ≳ 2× 节点间距的分量；
+- 当帧间天光差含「`B_ref` **不可表示**且沿向**相干**」的分量时，残余接缝 ≈ **0.80 × 该分量 RMS**（Pearson 0.896，`实验/additive-sky-seamless/results/c2_multiplicative.json`）；
+- 空间尺度 ≲ 2× 节点间距（≈256 px）时显著：尺度 1600→50 px 扫描使残余接缝 **×5.07**；
+- **工程要求**：节点间距须 ≤ 目标可表示尺度的 1/2；`roughness_penalty` 只在「面确实光滑」的前提下使用，不得用强平滑掩盖不可表示分量；
+- 该边界是**条件结论**：在可表示域内接缝压缩 12.5× 成立，域外不成立；报告与产品必须与边界一同引用（§16.2）。
+
+**近奇异（条件数）处置**：
+
+- 天光面正规方程条件数 `κ = cond_2(D⁻¹AᵀWA D⁻¹)` 必须**可观测**并写入 provenance（真实 M42 样本实测 κ = **3.16e7**，`实验/additive-sky-seamless/results/c7_realdata.json`；χ²_red 1.004 但 κ 逼近默认上限）；
+- 上限 `kappa_max` 默认 **1e6**（`FZ-AP2S-KAPPA-MAX`）：`κ > kappa_max` ⇒ 必须走**粗糙度正则化**（`roughness_penalty`）或**节点数自适应**，并在 provenance 记录所走分支、所用参数与 κ；**禁止**静默产出欠定解、**禁止**放宽 `kappa_max` 求绿；
+- provenance 最小集：`gauge_mode`、每分量 `ref_frame_id`、`rank`、`rank_rtol`、`kappa`、`kappa_max`、`k_corr`、`model_hash`、`any_fail_closed_reason`。
 
 ## 8 极端/退化条件
 
@@ -242,6 +267,8 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 | FIX-1 | `lib/infrastructure/scheduler/src/module_adapters.cpp:5941-5942` | 绝对容差 `tolerance=1e-6`, `tolerance_relative=0` 在 ~300 e⁻ 尺度**永不收敛** | 300 次迭代 `converged=0` |
 | FIX-2 | 同上 `out_converged` | 只有 0/1，**无法区分** max_iter 与 stalled（规范要求 0/1/2/3） | 两例均返回 0 |
 | FIX-3 | 天光面正规方程 | 真实 M42 样本 κ = 3.16e7（近奇异） | χ²_red 1.004 但条件数逼近默认 `kappa_max` |
+
+**处置状态（RELEASE-05）**：FIX-1/2/3 的规范已冻结进 §5（相对容差 + `converged` 0/1/2/3 + stalled 判据）与 §7a（表示能力边界 + κ provenance）；生产实现修复与复跑归 SCI-502。
 
 建议（供前台裁决）：FIX-1 启用 `tolerance_relative=1` 或按观测尺度归一；
 FIX-2 按 §7 语义补 `stalled` 分支；FIX-3 提高粗糙度惩罚或节点数自适应。

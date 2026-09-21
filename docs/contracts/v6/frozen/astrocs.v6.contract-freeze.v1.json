@@ -69,7 +69,7 @@
    "ivar_unit": "1/BUNIT^2"
   }
  ],
- "_a44_deprecation_note": "weight_modes 已按 §9.73 A44 作废（该概念不存在；权重是阶段二按像素集合现场算的派生量）", "weight_modes": {
+ "_a44_deprecation_note": "weight_modes 已按 §9.73 A44 作废（该概念不存在；权重是阶段二按像素集合现场算的派生量）。全程只有 SNR：入库的是未加权原始 frame_snr，权重一律由 Phase2 在集成时按天球像素对应的输入帧集合现场派生（w_k=SNR_k^2/F_ref,k^2），不存在任何被冻结或被选择的权重模式键。本段与 forbidden.weight_source_tokens 为历史留痕，代码侧删除与注册表解除归 CLEAN-501（依赖 ARCH-505 的节点改写）；在代码侧删除落地前不得据本段声称存在权重模式选择。", "weight_modes": {
   "production": [
    "point_information",
    "surface_gls",
@@ -176,6 +176,7 @@
   ]
  },
  "forbidden": {
+  "_retirement_note": "weight_source_tokens 是权重来源 token 黑名单的历史留痕（禁止把 median source SNR / support / coverage / fwhm / residual / psfsw 当作权重来源）。按全程只有 SNR 口径，其规范内容已由 weight_modes 的 _a44_deprecation_note 覆盖；代码侧（p3_rsmp_failclosed.cpp、coverage.cpp 词表）删除与注册表解除归 CLEAN-501，删净前本表保持与代码一致、不得单方面移除。",
   "weight_source_tokens": [
    "median_source_snr",
    "median_snr",

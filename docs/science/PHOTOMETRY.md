@@ -219,7 +219,19 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 - 未测项**不得**用估计值填充；预算上限按未测项不加处理，因此**偏严**（fail-closed），与 `06_photometry.md` §4.1 一致。
 
-### 16.5 指针
+### 16.5 生产适用域与降级（SCI-A 实验定案，负责人裁决）
+
+> 依据：实验单元 `实验/photometric-magnitude`（报告 `README.md`、结果 `results/step1..step8*.json`、复跑 `python3 实验/photometric-magnitude/code/step*.py`）。本节只登记**适用域与降级语义**，不改 §5 公式、§7 不变量与 §10 禁改清单。
+
+1. **生产适用域 = 可解析实拍帧（匹配星数 n ≥ 100）**。域内 §5 的双边界判据（`σ_obs` 上下界）有效；
+2. **低星数帧（n < 100）显式降级**：产品必须写 `degraded_reason`（如 `low_star_count`）并**不承诺标定**；不得以域内口径对外宣称精度；
+3. **N5 域外边界（如实记录）**：`σ_floor = (1 − 3·1.166/√n)·σ_fit(白)` 在 `n ≲ 12` 时为负、在 `n ≲ 22` 时已趋零 ⇒ 对「把样本裁剪到只剩同质星」**没有判别力**（实测 tol=0.002、n=5 时 σ_obs=0.00356 仍 PASS，`results/step7_negatives.json → N5`）。该现象**只在域外**出现，域内（n≥100）不构成缺陷；若将来要在域外使用该判据，须先把下界改为 `max(rho_lo, 0)·σ_fit` 或加最小样本量硬门槛；
+4. **`σ_psfsys` 的孔径口径（C2 订正）**：用「PSF 域通量 vs 独立孔径通量」的中位绝对偏差估计 `σ_psfsys` 时，**必须用小孔径（≈2×FWHM）+ 低背景星子样本**。大孔径（r=10 px）把星云结构算进「方法系统误差」，实测高估约 **10×**（帧 A 0.2574 vs 真值 0.0256 mag；帧 C 1.3775 vs 0.0394 mag）；小孔径（r=4 px）在稀疏场准确（0.0250 / 0.0401 vs 0.0256 / 0.0344），在拥挤场仍上偏约 **2.7×**（保守方向，判据偏松不偏紧）。证据 `results/step5_calibration_gate.json → items_measured`；
+5. **判据的敏感域（C3 能力边界）**：`σ_obs` 双边界判据对**散粒噪声**敏感、对**确定性加性图样**不敏感——算术相加 `gx·(x−W/2)`（无散粒）使 σ_obs 仅 1.08× 且始终 PASS，而把天光经 Poisson 前向重画则 2.91×（4× 时判红）。⇒ 该判据能认证的是「天光**噪声**是否被正确预算」，**不能**认证天光**扣除**质量；后者须另设残差检查；
+6. **WCS 二轮精化是**平移**精化**：HST HLSP drz 头部 WCS 与 Gaia DR3 有 ~1.6″ 系统偏移（F657N 1.622″、F673N 1.629″，`results/step3_forward_vs_photflam.json → wcs_refinement`）；testdata 真实帧残余仅 0.0068″ ⇒ 二轮精化的必要性取决于上游 WCS 质量，不是流程固定开销；设计须能覆盖 ~2″ 量级平移；
+7. **绝对刻度诚实边界（C5）**：XP 合成通量在**窄带**（等效宽度 29–39 nm）上与 HST PHOTFLAM 的中位差为 −0.147 / −0.263 / −0.080 mag（F657N/F673N/F502N，色项斜率 0.464/0.765/0.565）；**宽带（Baader R，~144 nm）的同类误差未直接测量**，不得据此断言宽带误差同量级。
+
+### 16.6 指针
 
 - 一手出处与开源对照（项目+版本+文件:行）：`docs/research/PHOTOMETRY_RESEARCH_PACK.md`；
 - 模块算法与配置：`docs/plugins/algorithms_phase1/06_photometry.md`、`docs/plugins/algorithms_phase1/07_noise_snr.md`；
