@@ -7,6 +7,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <sstream>
+#include <thread>
+#include <vector>
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"   // CLEAN-403：aio 唯一 I/O 实现（原子写/顺序写/目录/rename）
 
@@ -45,8 +47,8 @@ ExportStreamScheduler::ExportStreamScheduler(ExportStreamConfig cfg)
 }
 
 ExportStreamScheduler::~ExportStreamScheduler() {
+  // 池是 run() 的局部量（run 返回前已全部 join 回收），对象析构只需置取消唤醒在途 worker。
   cancel();
-  for (auto& t : pool_) if (t.joinable()) t.join();
 }
 
 std::size_t ExportStreamScheduler::sub_block_count() const {
@@ -72,12 +74,19 @@ void ExportStreamScheduler::write_manifest() const {
   "queue_depth": )JSON" << cfg_.queue_depth << R"JSON(,
   "workers": )JSON" << cfg_.workers << R"JSON(,
   "wcs_header_ready_before_write": )JSON"
-    << ((!cfg_.wcs_header.empty() && !cfg_.properties.empty()) ? "true" : "false") << R"JSON(,
+    << ((cfg_.sink ? cfg_.header_ready
+                   : (!cfg_.wcs_header.empty() && !cfg_.properties.empty()))
+            ? "true" : "false") << R"JSON(,
   "wcs_header_bytes": )JSON" << cfg_.wcs_header.size() << R"JSON(,
   "properties_bytes": )JSON" << cfg_.properties.size() << R"JSON(,
   "sub_block_bytes": )JSON" << sb_bytes << R"JSON(,
   "bounded_inflight_bytes": )JSON"
-    << (2 * static_cast<std::size_t>(cfg_.queue_depth) * sb_bytes) << R"JSON(
+    << (2 * static_cast<std::size_t>(cfg_.queue_depth) * sb_bytes) << R"JSON(,
+  "sink_mode": )JSON" << (cfg_.sink ? "true" : "false") << R"JSON(,
+  "header_ready_before_write": )JSON"
+    << ((cfg_.sink ? cfg_.header_ready
+                   : (!cfg_.wcs_header.empty() && !cfg_.properties.empty()))
+            ? "true" : "false") << R"JSON(
 }
 )JSON";
   // CLEAN-403：机制经 aio 唯一实现，本 TU 不自持 ofstream 通道。
@@ -163,9 +172,15 @@ void ExportStreamScheduler::compute_loop() {
     r.index = j.index;
     r.x0 = j.x0; r.y0 = j.y0; r.w = j.w; r.h = j.h;
     r.data.resize(static_cast<std::size_t>(j.w) * j.h);
-    for (int yy = 0; yy < j.h; ++yy)
-      for (int xx = 0; xx < j.w; ++xx)
-        r.data[static_cast<std::size_t>(yy) * j.w + xx] = pixel_fn_ ? pixel_fn_(j.x0 + xx, j.y0 + yy) : 0.0;
+    // 生产面：调用方按**子块**产出（读子块 → 投影重采样）；兼容面：逐像素回调。
+    if (cfg_.sub_block_fn) {
+      cfg_.sub_block_fn(j.x0, j.y0, j.w, j.h, r.data.data());
+    } else {
+      for (int yy = 0; yy < j.h; ++yy)
+        for (int xx = 0; xx < j.w; ++xx)
+          r.data[static_cast<std::size_t>(yy) * j.w + xx] =
+              pixel_fn_ ? pixel_fn_(j.x0 + xx, j.y0 + yy) : 0.0;
+    }
     ProbeEvent we;
     we.ts = now_seconds();
     we.kind = ProbeKind::NODE_WALL;
@@ -189,15 +204,127 @@ void ExportStreamScheduler::compute_loop() {
   }
 }
 
-void ExportStreamScheduler::writer_loop() {
-  // ③ WCS 头与 properties 在开写前组装：这里先校验齐备性（缺则拒绝开写）
-  if (cfg_.wcs_header.empty() || cfg_.properties.empty()) {
-    cancel_.store(true);
+// 失败/取消的统一收尾：置取消位、放行所有等待者（不发布、不留半成品）。
+void ExportStreamScheduler::signal_stop() {
+  cancel_.store(true);
+  {
     std::lock_guard<std::mutex> lk(mu_);
     results_done_ = jobs_total_;
-    cv_done_.notify_all();
-    cv_item_.notify_all();
-    cv_space_.notify_all();
+  }
+  cv_done_.notify_all();
+  cv_item_.notify_all();
+  cv_space_.notify_all();
+}
+
+void ExportStreamScheduler::writer_loop() {
+  if (cfg_.sink) writer_loop_sink();
+  else writer_loop_raw();
+}
+
+// ── 生产面：sink 通道（phase3 writer 节点经此把子块写进 FITS 数据区）──────
+// 与内建通道同构：同一背压/在途上界/子块索引升序重排；差别只在「谁来落盘」。
+// ③ 头齐备性由 sink 在 open() 内完成（header_ready 声明头已在首像素前组装）。
+void ExportStreamScheduler::writer_loop_sink() {
+  if (!cfg_.header_ready) {
+    sink_error_ = "sink header not ready before first pixel write";
+    signal_stop();
+    return;
+  }
+  std::string err;
+  if (!cfg_.sink->open(&err)) {
+    sink_error_ = "sink open failed: " + err;
+    signal_stop();
+    return;
+  }
+  std::size_t next_index = 0;
+  std::size_t done = 0;
+  std::uint64_t written = 0;
+  bool ok = true;
+  std::map<std::size_t, Result> pending;   // 子块索引升序写出（与 worker 数无关）
+  for (;;) {
+    Result r;
+    {
+      std::unique_lock<std::mutex> lk(mu_);
+      cv_item_.wait(lk, [&] {
+        return cancel_.load() || !q_results_.empty() || results_done_ >= jobs_total_;
+      });
+      if (q_results_.empty()) {
+        if (cancel_.load() || results_done_ >= jobs_total_) break;
+        continue;
+      }
+      r = std::move(q_results_.front());
+      q_results_.pop_front();
+      cv_space_.notify_all();
+    }
+    pending.emplace(r.index, std::move(r));
+    while (true) {
+      auto it = pending.find(next_index);
+      if (it == pending.end()) break;
+      const Result& cur = it->second;
+      const std::uint64_t nb =
+          static_cast<std::uint64_t>(cur.data.size() * sizeof(double));
+      if (cfg_.fail_write_after_bytes && written + nb > cfg_.fail_write_after_bytes) {
+        disk_full_.store(true);
+        ok = false;
+        sink_error_ = "disk_full (injected)";
+        break;
+      }
+      if (!cfg_.sink->write_sub_block(next_index, cur.x0, cur.y0, cur.w, cur.h,
+                                      cur.data.data(), &err)) {
+        ok = false;
+        sink_error_ = "sink write_sub_block failed: " + err;
+      }
+      written += nb;
+      {
+        std::lock_guard<std::mutex> lk(mu_);
+        inflight_bytes_ -= cur.data.size() * sizeof(double);
+        if (inflight_count_ > 0) --inflight_count_;
+        ++results_done_;
+      }
+      cv_space_.notify_all();
+      pending.erase(it);
+      ++next_index;
+      ++done;
+      ProbeEvent ev;
+      ev.ts = now_seconds();
+      ev.kind = ProbeKind::BLOCK_DEATH;
+      ev.block = "sub_block";
+      ev.bytes = static_cast<std::int64_t>(written);
+      ev.value = static_cast<double>(written);
+      ev.unit = "B";
+      ev.window_id = next_index;
+      ev.stage = "export";
+      probes_.emit(ev);
+      if (!ok) break;
+    }
+    if (!ok) { cancel_.store(true); break; }
+  }
+  const bool complete = ok && !cancel_.load() && next_index == jobs_total_;
+  if (complete) {
+    if (cfg_.sink->finish(&err)) {
+      sink_published_ = true;
+    } else {
+      sink_error_ = "sink finish failed: " + err;
+      cfg_.sink->abort();
+    }
+  } else {
+    cfg_.sink->abort();          // 取消/中断：不得留下半成品
+  }
+  bytes_written_.store(written);
+  {
+    std::lock_guard<std::mutex> lk(mu_);
+    results_done_ = jobs_total_;
+  }
+  cv_done_.notify_all();
+  cv_item_.notify_all();
+  cv_space_.notify_all();
+}
+
+// ── 兼容/内建通道：WCS 头 + properties + 行主序 double 像素（原样语义）─────
+void ExportStreamScheduler::writer_loop_raw() {
+  // ③ WCS 头与 properties 在开写前组装：这里先校验齐备性（缺则拒绝开写）
+  if (cfg_.wcs_header.empty() || cfg_.properties.empty()) {
+    signal_stop();
     return;
   }
   // ④ 原子发布：先写临时文件，全部写完后 rename
@@ -206,12 +333,7 @@ void ExportStreamScheduler::writer_loop() {
   std::string open_err;
   aio_atomic::AppendSink* out = aio_atomic::write_open_trunc(tmp, &open_err);
   if (!out) {
-    cancel_.store(true);
-    std::lock_guard<std::mutex> lk(mu_);
-    results_done_ = jobs_total_;
-    cv_done_.notify_all();
-    cv_item_.notify_all();
-    cv_space_.notify_all();
+    signal_stop();
     return;
   }
   // 顺序写：WCS 头 + properties 先落，随后**按输出行序**追加像素带。
@@ -379,13 +501,18 @@ ExportOutcome ExportStreamScheduler::run() {
   }
   disk_full_.store(false);
   bytes_written_.store(0);
+  sink_published_ = false;
+  sink_error_.clear();
   const bool pre_cancelled = cancel_.load();
   const double t0 = now_seconds();
 
-  pool_.clear();
-  pool_.emplace_back([this] { writer_loop(); });
-  pool_.emplace_back([this] { reader_loop(); });
-  for (int i = 0; i < cfg_.workers; ++i) pool_.emplace_back([this] { compute_loop(); });
+  // ② 三级有界流水线：本次 run 的**有界 run 作用域池**（RT-004：调度器不持有永久池成员）。
+  //    线程数 = cfg_.workers（配置/预算注入）+ 读/写各 1，run 返回前全部 join 回收。
+  std::vector<std::thread> pool;
+  pool.reserve(static_cast<std::size_t>(cfg_.workers) + 2);
+  pool.emplace_back([this] { writer_loop(); });
+  pool.emplace_back([this] { reader_loop(); });
+  for (int i = 0; i < cfg_.workers; ++i) pool.emplace_back([this] { compute_loop(); });
 
   {
     std::unique_lock<std::mutex> lk(mu_);
@@ -400,17 +527,20 @@ ExportOutcome ExportStreamScheduler::run() {
   }
   cv_item_.notify_all();
   cv_space_.notify_all();
-  for (auto& t : pool_) if (t.joinable()) t.join();
-  pool_.clear();
+  for (auto& t : pool) if (t.joinable()) t.join();   // run 返回前全部回收（无 detach）
+  pool.clear();
 
   (void)pre_cancelled;
   o.pixels = static_cast<std::uint64_t>(width_) * static_cast<std::uint64_t>(height_);
   o.peak_resident_bytes = peak_resident_;
   o.max_queue_depth = max_queue_;
+  o.sub_blocks = jobs_total_;
+  o.sink_used = (cfg_.sink != nullptr);
   o.bytes_written = bytes_written_.load();
   o.wall_seconds = now_seconds() - t0;
-  // checksum 由 writer 在行主序下累积；此处按同一算法独立复算以便核对（只读产品文件，经 aio）
-  {
+  // checksum 由 writer 在行主序下累积；此处按同一算法独立复算以便核对（只读产品文件，经 aio）。
+  // sink 通道的产物布局由 sink 拥有（FITS 头 + 数据区），本算法不适用 ⇒ 跳过。
+  if (!cfg_.sink) {
     std::uint64_t h = 1469598103934665603ULL;
     const std::uint64_t base = cfg_.wcs_header.size() + cfg_.properties.size();
     const std::uint64_t expect = static_cast<std::uint64_t>(width_) * height_ * sizeof(double);
@@ -427,15 +557,29 @@ ExportOutcome ExportStreamScheduler::run() {
     }
     o.checksum = h;
   }
+  const bool header_ok = cfg_.sink
+                             ? cfg_.header_ready
+                             : (!cfg_.wcs_header.empty() && !cfg_.properties.empty());
   if (disk_full_.load()) {
     o.ok = false;
     o.error = "disk_full";
     o.exit_code = 10;          // 保持已修语义
     o.published = false;
-  } else if (cfg_.wcs_header.empty() || cfg_.properties.empty()) {
+  } else if (!header_ok) {
     o.ok = false;
-    o.error = "wcs_header_or_properties_missing";
+    o.error = cfg_.sink ? ("sink_header_not_ready: " + sink_error_)
+                        : "wcs_header_or_properties_missing";
     o.exit_code = 1;
+    o.published = false;
+  } else if (!sink_error_.empty()) {
+    o.ok = false;
+    o.error = sink_error_;
+    o.exit_code = 2;           // sink 落盘失败（I/O）
+    o.published = false;
+  } else if (cfg_.sink && !sink_published_) {
+    o.ok = false;
+    o.error = "sink not published (cancelled or incomplete)";
+    o.exit_code = 130;
     o.published = false;
   } else if (was_cancelled) {
     o.ok = false;
@@ -446,6 +590,7 @@ ExportOutcome ExportStreamScheduler::run() {
     o.ok = true;
     o.published = true;
   }
+  if (cfg_.sink) o.published = sink_published_;
   probes_.flush();
   write_manifest();
   return o;

@@ -11,6 +11,10 @@
 //   ③ 窗口内顺序固定：coverage → UPM → 排异 → SNR² 集成；窗口间无共享可变状态；
 //   ④ 稠密 SNR **现场求值**：用到哪个像素算哪个（稀疏-稠密等价已证 3.1e-15），
 //      不预计算稠密面、不驻留；
+//   ④b 窗口峰值驻留 = **实测值**（MEM-WIRE-01 修 ARCH-AUDIT-02 F-07）：修复前该值被写成
+//      编译期常量 sizeof(double)*4 = 32 B，是写入 peak 的**唯一来源** ⇒ 相关判据恒真、
+//      无证据资格。现行实现按窗口真实存活分配逐次记账（输出像素缓冲 + 路由指针向量的
+//      capacity() 字节），峰值取循环内最大值 ⇒ 判据可红可绿。
 //   ⑤ 归约顺序冻结（窗口 ID 升序、窗口内像素序升序）⇒ 1/N worker **逐位一致**；
 //   ⑥ 探针按窗口记录耗时 / 输入量 / worker 均衡。
 //
@@ -24,7 +28,6 @@
 #include <map>
 #include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
 namespace astrocs::core {
@@ -70,6 +73,25 @@ struct WindowOutcome {
   double wall_seconds = 0.0;
 };
 
+// ── MEM-WIRE-01 / ARCH-AUDIT-02 F-07：窗口峰值驻留判据（可红可绿） ──
+// 修复前该维度的判据断言的是编译期常量（恒真 ⇒ AGENTS §5「恒真门没有证据资格」）。
+// 现行判据作用在**实测样本**上，四条同时成立才绿：
+//   ① 每个样本 peak_bytes > 0                          —— 防"常数 0/常量冒充驻留"
+//   ② 每个样本 peak_bytes <= bound_bytes（解析上界）    —— 实测驻留受上界约束
+//   ③ 同 window_tiles、不同 tiles_total ⇒ peak 相等     —— 驻留与**总图规模**解耦
+//   ④ 两个窗口都装满时，window_tiles 更大 ⇒ peak **严格更大** —— 窗口大小是显式内存
+//      权衡参数（§8.3）。「严格」是反恒真的关键：编译期常量与任何未记账的常量驻留在
+//      这里必然违反（「不减」会被常量满足 ⇒ 退化判据）。
+// 返回 true = 绿；why 非空 = 失败原因（机器可读，逐条给出违反项）。
+struct WindowPeakSample {
+  int window_tiles = 0;          // 窗口大小（tile/窗口）
+  std::size_t tiles_total = 0;   // 全图 tile 数
+  std::size_t peak_bytes = 0;    // 实测窗口峰值驻留
+  std::size_t bound_bytes = 0;   // 解析上界（window_peak_bound_bytes）
+};
+bool window_peak_residency_ok(const std::vector<WindowPeakSample>& samples,
+                              std::string* why);
+
 class MosaicWindowScheduler {
  public:
   explicit MosaicWindowScheduler(MosaicWindowConfig cfg);
@@ -94,6 +116,13 @@ class MosaicWindowScheduler {
   // 读放大 = 实际读取 / 朴素基线（为每个窗口读整帧）
   double read_amplification() const;
 
+  // 单窗口驻留的**解析上界**（与 run_window 的实测口径同源；判据②用，不参与运行调度）。
+  //   = 2 × tiles_in_window × kPixelsPerTile × sizeof(double)   （输出像素缓冲；容量增长因子 2 余量）
+  //   + 2 × frames_covering × sizeof(void*)                     （relevant/cover 指针向量）
+  //   + 64                                                      （标量/局部余量）
+  static std::size_t window_peak_bound_bytes(std::size_t tiles_in_window,
+                                             std::size_t frames_covering);
+
  private:
   void worker_loop(int worker_index);
   WindowOutcome run_window(const MosaicWindow& w, int worker_index);
@@ -105,7 +134,9 @@ class MosaicWindowScheduler {
   std::vector<MosaicWindow> windows_;
   std::vector<WindowOutcome> outcomes_;
 
-  std::vector<std::thread> pool_;
+  // 线程池形态（RT-004 架构约束，不得回退）：本调度器**不持有**线程池成员。
+  // 每次 run() 在实现文件内建立 run 作用域的**有界**池（worker 数 = cfg_.workers，
+  // 配置注入），run 返回前全部 join 回收；无 detach、无常驻线程。
   std::mutex mu_;
   std::condition_variable cv_;
   std::condition_variable cv_done_;
