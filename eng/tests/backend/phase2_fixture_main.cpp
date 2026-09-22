@@ -204,16 +204,16 @@ static bool write_analytic_frame(const std::string& path) {
 // FIX-402: 生成后统一补齐 HiPS 子产品单位/像素语义声明 —— 生产 Phase3 输入语义
 // 守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）只放行**显式声明**的面亮度
 // 输入; AIO writer 不写 BUNIT, 故 fixture 侧按冻结单位表补齐
-// （docs/contracts/DATA_SEMANTICS.md §31.1 §1: signal_sb=ADU/px^2,
-//  sb_variance_out=ADU^2/px^4, sb_ivar_out=px^4/ADU^2）。幂等。
+// （docs/contracts/DATA_SEMANTICS.md §31.1 §1: signal_sb=ADU/sr,
+//  sb_variance_out=ADU^2/sr^2, sb_ivar_out=sr^2/ADU^2）。幂等。
 static void declare_units_for_all(const std::string& root) {
     namespace fs = std::filesystem;
     std::error_code ec;
     if (!fs::is_directory(fs::u8path(root), ec)) return;
     struct Sub { const char* dir; const char* bunit; int power; };
-    const Sub subs[] = {{"signal", "ADU/px^2", -2},
-                        {"variance", "ADU^2/px^4", -4},
-                        {"ivar", "px^4/ADU^2", 4}};
+    const Sub subs[] = {{"signal", "ADU/sr", -2},
+                        {"variance", "ADU^2/sr^2", -4},
+                        {"ivar", "sr^2/ADU^2", 4}};
     for (const auto& e : fs::directory_iterator(fs::u8path(root), ec)) {
         if (ec || !e.is_directory()) continue;
         const std::string name = e.path().filename().string();
@@ -245,7 +245,7 @@ static void declare_units_for_all(const std::string& root) {
                 }
             }
             kept += std::string("BUNIT=") + s.bunit + "\n";
-            kept += "ASTROCS_SIGNAL_UNIT=ADU/px^2\n";
+            kept += "ASTROCS_SIGNAL_UNIT=ADU/sr\n";
             kept += "ASTROCS_PIXEL_SEMANTICS=surface_brightness\n";
             kept += "ASTROCS_PIXEL_AREA_POWER=" + std::to_string(s.power) + "\n";
             std::ofstream out(fs::u8path(pp), std::ios::binary | std::ios::trunc);

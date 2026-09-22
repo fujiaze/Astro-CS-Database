@@ -101,6 +101,45 @@ flowchart TB
 
 测试工程要求见 `ENGINEERING_SPEC.md §5`。
 
+### 3.1 落盘形态验收（两种形态都能读写、解压后合法）
+
+权威：`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`。
+
+| 判据 | 通过条件 |
+|---|---|
+| 两形态都能写 | Phase1 在 `storage_form=archive`（默认）与 `storage_form=bare` 下各产出一份完整产品（含产品级索引；归档形态另产出数据集级覆盖索引） |
+| 两形态都能读 | 同一输入分别以裸/归档形态喂给下游，下游**不感知形态**且科学结果逐位一致 |
+| **解压后合法（硬证据）** | `zstd -dc <name>.hips.zst` 管道给 `tar -xf -` 的产物与裸形态**逐字节一致**（`tree_hash` 相同），且逐瓦片通过既有 FITS 校验（结构 + DATASUM）、properties 通过既有 HiPS 读端校验 |
+| properties 不撒谎 | 归档内 `properties` 与裸形态逐字节一致；`hips_tile_format` ∈ 既有读端接受取值（`fits`）；无任何 `zstd` / `fits.zst` token |
+| 哈希口径 | 同一内容两形态 `tree_hash` 相同；容器指纹随压缩档位变化但**不影响**产品身份 |
+| 覆盖查询不压缩 | 块 → 帧集合查询在**不解压归档**的前提下完成；块粒度 = 一个叶 tile |
+| 索引可重算 | 产品级索引的覆盖集合与定位表可由产品内容重算并逐字段一致 |
+| **形态键缺省留痕** | Phase1 输入 JSON 缺 `storage_form`（或留空/`null`）⇒ 必须取默认 `archive` **且**必须存在一条点名该键的 `level=warn` 事件；形态来源记入 `manifest.json#storage.form_source = "default"`。**负例红**：缺省却未报 warn（静默取默认）⇒ 判红；缺省却未走登记默认 ⇒ 判红；显式声明却报 warn ⇒ 判红 |
+| **产物自报索引** | `p1_products.json` 逐帧必须带齐 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`；`index_path` 的 basename = `<产品名>.hips.index.json`；`bare` ⇔ `archive_sha256 = null`。**负例红**：缺 `index_path` ⇒ 判红；`bare` 却带归档指纹 ⇒ 判红 |
+| **运行清单 storage 段** | `manifest.json#storage` 字段齐备（`storage_form` / `form_source` / `products[]` / `coverage_index`），运行级与逐产品形态一致，`coverage_index.path` basename = `coverage.index.json` 且 `n_blocks ≥ 1`。**负例红**：`form_source=default` 却无 warn ⇒ 判红 |
+| **Phase2/3 形态键 REJECT** | 输入合同不设 `storage_form`（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳）；注入 `storage_form: "archive"` ⇒ 必须 REJECT（schema 面 + CLI 面双门）。对照：合法 mosaic 输入不得被拒（判据非恒真）；`coverage_index` 加性可选键必须被接受 |
+| **逐层口径一致（机器化）** | `CHK-HIPS-STORAGE-FORM --doc-consistency`：每层文档必须出现其登记词，且任何层不得出现禁用同义名。**负例红**：某层把 `storage_form` 写成同义名、或把取值 `archive` 写成别的 token ⇒ 判红 |
+| 负例红 | 归档内 properties 声明非标准格式 / 读路径不支持某一形态 / 归档缺索引 / 索引与内容不一致 / 归档截断 / 流内混装不压缩区 / byte-shuffle 预变换 —— 逐一判红（`CHK-HIPS-STORAGE-FORM --self-test`） |
+| 既有判据不放松 | IO-002 / IO-003 既有检查项全部保留，形态验收是新增而非替代 |
+
+**通过标准**：上表全部满足；`python3 eng/ci/run_checks.py --check CHK-HIPS-STORAGE-FORM` exit 0 且 `--self-test` 全部正/负例符合预期。
+
+### 3.2 裸形态体积削减验收（打洞；负责人裁决 2026-09-22）
+
+权威：`docs/design/PRODUCT_STORAGE_FORM.md` §9、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7。
+
+| 判据 | 通过条件 |
+|---|---|
+| **读回逐字节不变（硬证据）** | 打洞前后整文件 `sha256` **相同**、`st_size` 相同；cfitsio 与 astropy **两路独立读器**逐 HDU 的 header 卡片与数据区原始字节全等；`DATASUM`/`CHECKSUM` 打洞后自洽 |
+| 随机访问不变 | 跨越"洞/非洞边界"的 `pread` 探针（洞内 / 边界 / 洞外 / 跨越 / 伪随机）与打洞前逐字节全等；mmap 读同样为零填充 |
+| 洞真的打了 | `st_blocks` 必须下降；**未下降 ⇒ 判红**（不得以"打洞成功"静默通过） |
+| 只打全零块 | 只对 4 KiB 对齐的整块全零区域打洞；**负例**：对含非零字节的块打洞必须被判红（字节改变 + 校验和失效） |
+| 降级不 fail-closed | 卷不支持稀疏（`EOPNOTSUPP` 等）⇒ 跳过打洞、产品保持完整可读、provenance 记 `trim=skipped(reason)`，运行照常成功 |
+| 产品身份不受影响 | 打洞产物与未打洞同源产物的产品哈希（`tree_hash` / `canonical_sha256`）相同 |
+| 口径不混用 | 报告与 provenance 不得用 13.31%（包围盒 TRIM 的口径）描述打洞收益；打洞实测整产物 2.77%（Linux）/2.10%（Windows），signal/variance/ivar 三层 0.0000% |
+
+**通过标准**：上表全部满足；打洞的 `--self-test` 正/负例全部符合预期。**未实测项如实登记**：Windows 上的 `FSCTL_SET_SPARSE` + `FSCTL_SET_ZERO_DATA` 等价实现**只有文档依据、未在本机实测**（本机为 Linux）。
+
 ---
 
 ## 4. L2：合成数据性能验收
@@ -216,6 +255,25 @@ flowchart LR
 5. L4 M42 与 Galaxy Center 两组视觉验收由负责人逐项确认；
 6. 机器门（`docs/ci/03_GATES.md` 的 P0）全绿、零 waiver；
 7. 仓库整洁（历史代码与治理工件按 ENGINEERING_SPEC §2/§9 处置完毕）；
-8. 版本纪律满足（首次发布版本号 `0.0.1alpha`，此前程序与产物无版本信息）。
+8. 版本纪律满足（首次发布版本号 `0.0.1alpha`，此前程序与产物无版本信息）；
+9. 日志与错误系统验收全绿（§9）。
 
 发布决定只由负责人作出。
+
+---
+
+## 9. 日志与错误系统验收
+
+依据：最高设计 §7.3、`docs/design/LOG_AND_ERROR_SYSTEM.md`、`docs/contracts/LOG_AND_ERROR_CONTRACT.md`。
+
+| # | 验收点 | 判定方式（可复跑） |
+|---|---|---|
+| E1 | **错误都到 CLI**：三个命令的每个 `ErrorDomain` 都映射到合同 §5 的退出码 | 退出码可达矩阵测试 + 域→码逐行比对；任一域落 default(70) 而无登记 ⇒ 不通过 |
+| E2 | **无静默降级**：生产面条件回退点全部显式（`degraded_reason` + manifest 记录）或登记在台账 | `python3 eng/tools/quality/check_log_system.py`（R2）；注入"静默回退"⇒ 判红 |
+| E3 | **无吞错**：生产收敛面 catch 吞错点全部登记 | 同上（R1）；注入空 catch ⇒ 判红 |
+| E4 | **日志落输出目录**：成功/失败/取消三路都在 `<output_dir>/logs/` 产出两工件，manifest `log_artifacts[]` 的 sha256/行数/级别分布与磁盘一致 | 端到端试跑 + `log_artifacts` 复算；注入"落 `run/`/CWD/源码树"⇒ 判红（R3） |
+| E5 | **日志写失败不静默**：只读日志目录注入 ⇒ 运行非 0 退出且 stderr 有脱敏摘要 | 负例注入 |
+| E6 | **判据自身能红能绿** | `python3 eng/tools/quality/check_log_system.py --self-test` 全绿（含 5 类故障注入必红） |
+| E7 | **台账只减不增、锚存活** | 同上（R4/R5）；台账条目数超过基线或锚失效 ⇒ 判红 |
+
+E1–E7 的机器入口 = `CHK-LOG-SYS`（`eng/ci/checks.json`、`docs/ci/01_CHECKS.md` §2）；证据落 `artifacts/acceptance/`。

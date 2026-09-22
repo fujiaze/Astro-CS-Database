@@ -88,14 +88,14 @@ int main() {
 
   // 2b) FIX-402 (FZ-P3-BUNIT-QUADRATIC / docs/contracts/DATA_SEMANTICS.md §31.1
   // §1): variance/ivar BUNIT 必须是 signal BUNIT 的**幂次代数**结果（冻结 canonical
-  // 串: ADU/px^2 → ADU^2/px^4 / px^4/ADU^2），禁朴素拼接（旧实现写 "ADU/px^2^2"）；
+  // 串: ADU/sr → ADU^2/sr^2 / sr^2/ADU^2），禁朴素拼接（旧实现写 "ADU/sr^2"）；
   // 不在冻结表内的单位必须显式拒（P3_OUT_PARAM, 不落任何文件）。
   {
     std::vector<float> var(static_cast<size_t>(w) * h, 4.0f);
     std::vector<float> ivar(static_cast<size_t>(w) * h, 0.25f);
     struct BunitCase { const char* sig; const char* want_var; const char* want_ivar; };
     const BunitCase bc[2] = {{"ADU", "ADU^2", "ADU^-2"},
-                             {"ADU/px^2", "ADU^2/px^4", "px^4/ADU^2"}};
+                             {"ADU/sr", "ADU^2/sr^2", "sr^2/ADU^2"}};
     for (int ci = 0; ci < 2; ++ci) {
       const std::string p2 =
           dir + "/astrocs_p3_out_test_bunit" + std::to_string(ci) + ".fits";

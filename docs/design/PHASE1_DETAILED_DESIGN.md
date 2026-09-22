@@ -26,7 +26,7 @@ d_k = A_k x + n_k,    Cov(n_k) = C_k
 - 原始/预处理 light；bias、dark、flat、cosmetic map（按相机、增益、温度、滤镜、曝光分组）；
 - 曝光、gain、read noise、饱和、非线性状态、时间、滤镜和观测站元数据；
 - Gaia/离线星表输入及版本；
-- phase_config，只含科学参数；不得含 workers/ISA/block；
+- phase_config，只含科学参数；不得含 workers/ISA/block；其中 `storage_form` 选定产品落盘形态（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并报 warn，禁止静默取默认）——形态是输入配置项而非运行期开关，同一份输入 JSON 在不同机器上必须得到同一种形态；
 - 每个输入有 SHA-256、单位、dtype、shape、所有权和 frame identity。
 
 缺失关键单位、gain/read-noise 口径、WCS 所需元数据或产品身份不一致时 fail-closed；允许的降级必须写 manifest，不能以默认零代替未知。
@@ -156,7 +156,7 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 - drizzle correlation/transfer 描述；
 - product manifest：schema、算法/模块/provider、完整 SHA、输入/配置哈希、单位、参考尺度、近似和降级。
 
-产品的**落盘形态**由配置选定，默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）。
+产品的**落盘形态**由**输入配置键** `storage_form` 选定：默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；键缺失或留空 ⇒ 取默认 `archive` 并报一条 warn（禁止静默取默认，形态来源记入 `manifest.json#storage.form_source`）。两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。逐帧产品清单 `p1_products.json` 自报 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级记 `coverage_index`。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）。
 
 禁止用一个 `snr` 字段同时承载上述对象。
 

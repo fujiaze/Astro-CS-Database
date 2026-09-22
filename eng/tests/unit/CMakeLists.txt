@@ -70,7 +70,9 @@ target_link_libraries(p3_export_stream_prod_test PRIVATE astrocs_module_adapters
 target_compile_definitions(p3_export_stream_prod_test PRIVATE
   P3STREAM_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/P3-STREAM-01/evidence")
 add_test(NAME p3_export_stream_prod COMMAND p3_export_stream_prod_test)
-set_tests_properties(p3_export_stream_prod PROPERTIES TIMEOUT 900)
+# RUN_SERIAL：本门测量**真实驻留峰值**（VmHWM），必须独占运行以避免并发负载
+# 干扰测量（并行 ctest 下同机其它用例的内存占用会改变分配器行为）。
+set_tests_properties(p3_export_stream_prod PROPERTIES TIMEOUT 900 RUN_SERIAL TRUE)
 
 add_executable(block_flow_test block_flow_test.cpp)
 target_include_directories(block_flow_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)

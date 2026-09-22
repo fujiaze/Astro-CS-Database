@@ -22,6 +22,7 @@
 ## 4. 算法与公式要点
 
 - 形态（`docs/design/PRODUCT_STORAGE_FORM.md`）：归档形态 = 产品在 stage 内先按裸形态写出并逐瓦片校验，再按成员边界切分为独立 zstd 帧串接；归档、索引、完成 manifest 依次 fsync 后原子落位，manifest 最后落；
+- **形态来源与登记**：Phase1 的落盘形态由输入配置键 `storage_form`（`archive` 默认 / `bare`；键缺失或留空 ⇒ 默认 + warn）选定；aio 写出的产品级索引 `<name>.hips.index.json` 与运行完成清单 `manifest.json` 的 `storage` 段是形态事实的唯一落点（`storage_form` / `index_path` / `index_sha256` / `archive_sha256` / `archive_bytes` / `tree_hash`）——**不得**写进 HiPS `properties`（`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10）；
 - 所有产品：临时文件/目录 + 校验 + fsync + 原子 rename 提交；
 - 失败/取消不得留下可被误认为正式产品的半成品；
 - 读：格式校验、哈希校验、单位/形状/所有权检查；

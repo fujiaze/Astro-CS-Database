@@ -119,7 +119,7 @@ bool write_signal_hips(const std::string& root) {
   // FIX-402: 生产 Phase3 输入语义守卫只放行**显式声明**的面亮度输入
   // （ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）: 裸 "ADU" 无像素语义声明
   // 按"单位不可判"拒绝 ⇒ fixture 按冻结单位表写 canonical signal_sb 串。
-  p << hips_properties_text("ADU/px^2");
+  p << hips_properties_text("ADU/sr");
   p << "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
   p << "ASTROCS_PIXEL_AREA_POWER = -2\n";
   p.close();
@@ -301,9 +301,9 @@ static void test_nodes_real_operation() {
     CHECK(props.value("schema", "") == "DATA-P3-PROPS");
     CHECK(props.value("hips_order", -1) == 0);      // properties 实测 order
     // FIX-402: 节点面 bunit = 冻结单位表 canonical 面亮度串（输入声明
-    // BUNIT=ADU/px^2 + 像素语义 ⇒ 守卫归一为 signal_sb 并逐字下传）。
-    CHECK(props.value("bunit", "") == "ADU/px^2");
-    CHECK(props.value("bunit_input", "") == "ADU/px^2");
+    // BUNIT=ADU/sr + 像素语义 ⇒ 守卫归一为 signal_sb 并逐字下传）。
+    CHECK(props.value("bunit", "") == "ADU/sr");
+    CHECK(props.value("bunit_input", "") == "ADU/sr");
     CHECK(props.value("pixel_semantics", "") == "surface_brightness");
     CHECK(props.value("pixel_area_power", 0) == -2);
     json res;

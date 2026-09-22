@@ -17,7 +17,8 @@
 2. **归档容器布局**：tar 流、帧边界、可被标准工具还原（§3）；
 3. **索引 schema**：产品级索引与数据集级覆盖索引的字段与不变式（§4）；
 4. **哈希口径**：产品身份哈希与容器指纹的分工（§5）；
-5. **裸形态体积削减口径**：打洞与包围盒 TRIM 的生效面、失败语义与判据（§7）。
+5. **裸形态体积削减口径**：打洞与包围盒 TRIM 的生效面、失败语义与判据（§7）；
+6. **形态的输入配置与输出清单字段**：形态选择键、缺省/留空的 warn 语义、产物自报的索引路径与指纹、清单 storage 段（§10）。
 
 不在此冻结：压缩档位（默认值见 §3.3，可配置）、tar 实现、索引载体的未来演进（§4.5）。
 
@@ -65,7 +66,7 @@
 
 ## 4. 索引 schema（MUST）
 
-机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`。索引文件是 UTF-8 JSON，**不压缩**。
+机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`。索引文件是 UTF-8 JSON，**不压缩**。同一 schema 还承载形态的输入配置键与输出清单字段（`$defs.frame_storage` / `$defs.coverage_index_ref` / `$defs.manifest_storage`，见 §10）与字段词表 `x-astrocs-field-vocabulary`。
 
 ### 4.1 产品级索引 `<name>.hips.index.json`
 
@@ -125,7 +126,7 @@
 | `index_sha256` | `<name>.hips.index.json` 的字节 | 索引完整性 | **不得**用作产品身份 |
 
 - H1 同一产品两形态的 `tree_hash` **必须相同**（身份与打包参数无关）；
-- H2 `manifest.json` 的 `tree` 记录**解压后内容**的条目；`storage` 段记录 `form` / `archive_sha256` / `index_sha256` / `archive_bytes`；
+- H2 `manifest.json` 的 `tree` 记录**解压后内容**的条目；`storage` 段记录 `storage_form` / `form_source` / `index_path` / `index_sha256` / `archive_bytes` / `archive_sha256`（逐产品一条，字段与不变式见 §10.3）；
 - H3 压缩档位、帧切分、tar 头字段变化**不得**改变 `tree_hash`。
 
 ## 6. 读路径不变式（MUST）
@@ -164,9 +165,104 @@
 | 归档截断 / 帧解压长度不符 | 既有 `INVALID` / I/O 错误（fail-closed） |
 | 归档内 `properties` 声明非标准 `hips_tile_format` | 既有读端拒绝（`UNSUPPORTED`） |
 
+
 ## 9. 机器校验
 
 - 索引 schema：`eng/contracts/schemas/hips_storage_form.schema.json`；
-- 检查器：`python3 eng/tools/hipsform/check_hips_storage_form.py --root .`（exit 0 = PASS）；
-- 负例自检：`python3 eng/tools/hipsform/check_hips_storage_form.py --self-test`（恒 0 = 全部内置正/负例符合预期）；
+- 检查器：`python3 eng/tools/hipsform/check_hips_storage_form.py --root .`（exit 0 = PASS；同时跑逐层字段口径一致性判据）；
+- 逐层口径：`python3 eng/tools/hipsform/check_hips_storage_form.py --root . --doc-consistency`（每层文档必须出现词表登记的字段名与取值，且不得出现禁用同义名）；
+- 负例自检：`python3 eng/tools/hipsform/check_hips_storage_form.py --self-test`（恒 0 = 全部内置正/负例符合预期；覆盖形态键缺省/留空的默认+warn、逐帧索引字段、清单 storage 段、mosaic/export 形态键 REJECT、层间口径不一致）；
 - CI 登记：`eng/ci/checks.json` 的 `CHK-HIPS-STORAGE-FORM`。
+
+## 10. 形态的输入配置与输出清单字段（MUST）
+
+形态是**输入配置项**，不是运行期开关；产物必须**自报形态与索引路径**，使不同批次 Phase1 的输出 JSON 可以合并而不丢索引。
+
+字段词表唯一源 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`：字段名、取值、段名与文件名后缀只在那里定义一次，本文档与各层文档只引用，**不得**另立同义名。逐层口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言（缺登记词、出现禁用同义名、取值口径漂移都判红）。
+
+### 10.1 Phase1 输入配置键 `storage_form`
+
+| 项 | 内容 |
+|---|---|
+| 键名 | `storage_form` |
+| 取值 | `archive`（默认）\| `bare` |
+| 落点 | Phase1（normalize）输入 JSON 的**块内**键（多块形态 `blocks[].storage_form`）与平铺单块简写的顶层键 |
+| 缺省语义 | **键缺失、空串 `""` 或 `null` ⇒ 取默认 `archive`，并报一条 `level=warn` / `event=warn` 事件**（日志合同 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §2 与 LOG-001 事件模型）；**禁止静默取默认** |
+| 显式语义 | 显式给出 `archive` / `bare` ⇒ 按该形态落盘，**不报** warn |
+| 形态来源留痕 | 运行完成清单 `manifest.json#storage.form_source` = `config`（显式）/ `default`（缺省）；`default` 是 warn 必须存在的机器证据（§10.3 M2） |
+| 禁止 | 该键**只**属 Phase1。Phase2 / Phase3 的输入合同不设该键，出现即 REJECT（§10.5） |
+
+不变式：
+
+- **F0** 缺省 / 留空 ⇒ 解析结果必须是登记的默认值，**且**必须存在一条点名该键的 warn 事件；显式声明 ⇒ 不得存在该 warn。两者缺一即判红（静默取默认与误报 warn 都是故障）。
+- 形态**不改变科学结果**：同一输入下两形态的产品内容逐字节一致（H1）。
+
+### 10.2 Phase1 输出清单 `p1_products.json`（加性）
+
+逐帧条目（`frames[]`，与既有 `frame_id` / `hips_path` 同层）新增四个字段：
+
+| 字段 | 类型 | 不变式 |
+|---|---|---|
+| `storage_form` | enum | `archive` \| `bare`，必须与磁盘实际形态一致 |
+| `index_path` | string | 该帧**产品级索引**路径 = `<name>.hips.index.json`（与 `hips_path` 同父目录） |
+| `index_sha256` | string | 索引文件字节的 sha256（64hex 小写） |
+| `archive_sha256` | string / null | 归档容器指纹；`bare` 形态恒 `null` |
+
+运行级新增 `coverage_index`（加性）：
+
+```json
+"coverage_index": {"path": "coverage.index.json", "sha256": "<64hex>",
+                   "n_frames": 16, "n_blocks": 523}
+```
+
+- **F1** 四个字段一个不少——缺任一 ⇒ 该帧的形态与索引不可追溯，读端 fail-closed。
+- **F2** `storage_form=bare` ⇔ `archive_sha256=null`。
+- **F3** `index_path` 的 basename 必须等于 `<产品名>.hips.index.json`。
+- **F4** `index_sha256` 必须与磁盘索引字节一致；索引必须可由产品内容重算（§4.1 I4）。
+- `archive_sha256` **不得**用作产品身份（身份 = `tree_hash`，取解压后内容，§5）。
+- 机器事实源：`$defs.frame_storage`（逐帧）与 `$defs.coverage_index_ref`（运行级）。
+
+### 10.3 运行完成清单 `manifest.json#storage`（加性）
+
+```json
+"storage": {
+  "storage_form": "archive",
+  "form_source": "config",
+  "products": [
+    {"product": "f00", "storage_form": "archive",
+     "index_path": "f00.hips.index.json", "index_sha256": "<64hex>",
+     "archive_bytes": 12345, "archive_sha256": "<64hex>", "tree_hash": "<64hex>"}
+  ],
+  "coverage_index": {"path": "coverage.index.json", "sha256": "<64hex>",
+                     "n_frames": 16, "n_blocks": 523}
+}
+```
+
+- 字段名与 §10.2 **同词表**（`storage_form` / `index_path` / `index_sha256` / `archive_sha256`），另加 `archive_bytes` 与产品身份 `tree_hash`。
+- **M1** 运行级 `storage_form` 与每个 `products[].storage_form` 一致；`bare` 条目的 `archive_bytes` / `archive_sha256` 必须为 `null`。
+- **M2** `form_source=default` ⇒ 必须存在点名 `storage_form` 的 warn 事件；`form_source=config` ⇒ 不得存在。
+- **M3** `coverage_index` 非 `null` 时 `path` 的 basename 必须是 `coverage.index.json` 且 `n_blocks` ≥ 1；不产出覆盖索引的运行（Phase3）恒 `null`。
+- **M4** `products[].index_path` 的 basename 必须等于 `<product>.hips.index.json`。
+- `tree` 记录**解压后内容**的条目（与裸形态相同），`tree_hash` 与 §5 同口径；形态事实只写本段与产品级索引，**不得**写进 HiPS `properties`（§6.1）。
+- 机器事实源：`$defs.manifest_storage`。
+
+### 10.4 Phase2 输入：索引引用是加性可选键
+
+- `hips_paths` 的元素**保持字符串**（不做元素对象化）：逐帧产品级索引路径由命名规则派生 —— `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`（与 `hips_path` 同父目录）。
+- 额外的「总索引」引用用**加性可选键** `coverage_index`（字符串路径，指向数据集级 `coverage.index.json`）。存在 ⇒ 阶段二启动时载入它做块级查询；缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排（§4.2）。
+- 该键**不**承载形态选择：Phase2 产物固定裸形态（§10.5）。
+- 机器事实源：`$defs.coverage_index_ref`。
+
+### 10.5 Phase2 / Phase3：形态键必须 REJECT
+
+| 阶段 | 产物形态 | 输入合同是否含 `storage_form` | 出现该键的后果 |
+|---|---|---|---|
+| Phase2 mosaic | 固定裸 `<name>.hips/`（服务面，被随机读取） | **不含** | REJECT |
+| Phase3 export | 固定裸 FITS（不压缩、不套壳，不使用 `.hips` 中缀） | **不含** | REJECT |
+
+- REJECT 在**两处**生效：schema 面（块内 `additionalProperties:false` / 平铺 `propertyNames`）与 CLI 面（块内未知键门，`validate_config_full`）。
+- **为什么不做成「值域只允许 `bare`」**：运行期配置门是**键白名单**，不是 JSON Schema；只收窄值域会让 `storage_form: "archive"` 在运行期**静默透传成 no-op** —— 正是本合同要禁止的静默失效。
+
+### 10.6 合并语义（为什么索引路径必须显式进输出 JSON）
+
+不同批次的 Phase1 输出 JSON 合并成一个数据集时，逐帧 `index_path` / `index_sha256` 随条目一起搬移 ⇒ 索引不会丢、不会指向错产品；运行级 `coverage_index` 是**派生产物**，合并后按 §4.2 由各产品级索引重算，不需要跨批次拼接。

@@ -5,13 +5,6 @@
   "generated_by": "reports/RELEASE-02/design-gap-synthesis.md DG-C-01 / 工程控制/RELEASE-02/GAP_AUDIT.md §9.44",
   "entries": [
     {
-      "id": "SNI-S1-002-CALL-SITE",
-      "kind": "known_gap",
-      "reason": "生产 star-psf 检测节点 p1_op_star_psf_impl（lib/infrastructure/scheduler/src/module_adapters.cpp:2046）使用 wrapper_phase1::StarDetector，未调用 ALG-STARDET-001:8 点名的 sdet 权威实现；实测生产检测器 345,960 条源 / Gaia 外部纯度 0.212%（sdet 1,473 条 / 45.553%）。",
-      "owner": "Phase1 star-detection 域主（负责人裁决 D-04 方案 A）",
-      "exit_condition": "生产节点改调 sdet_create/sdet_detect_ex_f64（或经星表引导检测落地后由负责人裁决权威源改指，走规范变更 claim）后删除本条目"
-    },
-    {
       "id": "SNI-S4-P3X-06",
       "kind": "known_gap",
       "reason": "lib/phase3_session/p3_v6_export.cpp（V6 三模式导出链）不在任何生产 target 源列表，仅被 eng/tests/integration/v6_p3 编译 ⇒ FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 四条 FROZEN 合同在生产运行面无载体（CONFORM-SWEEP-4 P3X-06，E-09）。**ARCH-AUDIT-03 §3 P3-05 交叉引用（ARCH-DEBT-01 登记，2026-09-22）**：本条即 docs/science/PHASE3_HIPS_TO_FITS.md §16 C4 与 docs/algorithms/PHASE3_PROJ_IMPL.md §16 C4 中「会话接线层 p3_v6_export.cpp **未进构建**」那一半的登记面——该半**仍然成立**（grep -c p3_v6_export CMakeLists.txt = 0；p3_v6_export.cpp 抬头自述「未接入生产」）。**但 C4/C5 的另一半已过期**：C4 称「§5.3 输入语义守卫在生产 export 路径未生效（守卫未接线）」、C5 称「即使接线也会 REJECT（产品 FITS tile 无 BUNIT）」，均被在途 FIX-402 反证（p3_rsmp_units.cpp 已编入 astrocs_p3_rsmp；p3n_guard_input_units 已在生产 IR 节点链 properties/resample2/writer 调用；p3_op_writer 强制 bunit 校验）。⇒ §16 订正时必须**按「生产链已接线 / v6 shell 仍未接线」分开陈述**，不得整体删除。来源报告 run/ARCH-AUDIT-03/REPORT.md §3 P3-05（含诚实边界说明）。",

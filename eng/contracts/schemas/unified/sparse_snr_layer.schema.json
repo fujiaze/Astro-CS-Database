@@ -76,14 +76,14 @@
       },
       "properties": {
         "bunit": {
-          "description": "FITS BUNIT 写盘串（量纲必须可判：含 px 幂次，或由 bunit_semantics 显式声明）",
+          "description": "FITS BUNIT 写盘串（量纲必须可判：含立体角幂次，或由 bunit_semantics 显式声明）",
           "type": "string",
           "minLength": 1,
           "maxLength": 64,
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_^/(). -]*$"
         },
         "bunit_semantics": {
-          "description": "FZ-BUNIT-SEMANTICS：written_px_power = BUNIT 显式含 px 幂次；declared_via_provenance = BUNIT 仅写 ADU 时必须由 provenance 声明 pixel_semantics + pixel_area_power",
+          "description": "FZ-BUNIT-SEMANTICS：written_px_power = BUNIT 显式含立体角幂次（canonical \"sr\"）；declared_via_provenance = BUNIT 仅写 ADU 时必须由 provenance 声明 pixel_semantics + pixel_area_power",
           "enum": [
             "written_px_power",
             "declared_via_provenance"
@@ -101,7 +101,7 @@
           ]
         },
         "pixel_area_power": {
-          "description": "px 幂次：面亮度 -2 / 通量 0（FZ-BUNIT-SEMANTICS 缺省表）",
+          "description": "立体角幂次：面亮度 -2 / 通量 0（FZ-BUNIT-SEMANTICS 缺省表；-2 ⇔ canonical 串含 /sr）",
           "enum": [
             -2,
             0
@@ -118,7 +118,7 @@
           "if": {
             "properties": {
               "bunit": {
-                "pattern": "/px\\^2"
+                "pattern": "/sr"
               }
             },
             "required": [
@@ -301,6 +301,47 @@
       "const": "absolute_flux_type_snr",
       "description": "控制点值的数值语义判别式（冻结）：absolute_flux_type_snr = 绝对通量型未加权信噪比 SNR_c = F_ref/sigma_F,c（与 frame_snr 同口径、同逐帧参考通量 F_ref）。该层**不**存相对因子、**不**按中位归一、**不**以帧级 SNR 为尺度基准；消费时不得乘/除帧级 SNR 做还原。声明为任何相对语义 ⇒ schema 判红。"
     },
+    "reconstruction_operator": {
+      "description": "本层要求的重建算子标识（冻结词表；缺省 = natural_bicubic_spline_clip_v1）。**该标识同时承载「是否开 3×3 mesh 中值前置滤波」**——滤波与值域钳制不是可自由组合的独立开关：钳制是正值与有界性的必要条件（去掉它，光滑插值类在病态控制网格上权重效率损失 E 由 1.007 升到 1.44e4，并会给出负 sigma），中值滤波在默认目标域（地面/seeing-limited）有害、只在 cell 内含未分辨亮源的高对比域（HST/空间高分辨率）必需。把它们绑成单一标识后，未实测的组合（如双线性+滤波、无钳制的样条）在合同层不可表达。词表：natural_bicubic_spline_clip_v1 = 可分离自然边界双三次样条 + 钳到有效控制值值域（默认）；natural_bicubic_spline_clip_mesh_median_v1 = 同上且在样条前插入 3×3 mesh 中值滤波（边界 replicate，无条件替换）；bilinear_regular_grid_v1 = 规则网格双线性（保留为对照/回退）；nearest_control_point_v1 = 最近控制点（仅散点层）。取值不在词表内 ⇒ 消费侧 fail-closed，不得回退默认。依据：实验单元 absolute-snr EXP-04 §2.7/§4.1/§4.5；docs/plugins/algorithms_phase1/07_noise_snr.md §4.5。",
+      "enum": [
+        "natural_bicubic_spline_clip_v1",
+        "natural_bicubic_spline_clip_mesh_median_v1",
+        "bilinear_regular_grid_v1",
+        "nearest_control_point_v1"
+      ]
+    },
+    "control_point_geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spacing_px",
+        "node_placement"
+      ],
+      "propertyNames": {
+        "pattern": "^(?!(weight|value|mask|snr|snr_value|weight_value|value_value|mask_value)$).*$"
+      },
+      "properties": {
+        "spacing_px": {
+          "description": "控制点间隔 Δ（px）。生产取值由 phase_config normalize 的 sparse_snr_spacing_px 承载（默认 64 px，复用 Phase2 UPM 8×8/tile 控制网格）。",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "node_placement": {
+          "const": "cell_center_v1",
+          "description": "节点定位判别式（冻结）：cell_center_v1 = 控制点坐标是**所属 Δ×Δ cell 的中心**（cell i 覆盖像素 [origin_x + i*Δ, origin_x + (i+1)*Δ − 1]，其中心 = origin_x + i*Δ + (Δ−1)/2）。与 Phase2 UPM 控制网格同一约定。把节点当 cell 角点会使重建场整体平移半个 cell（Δ=64 时 31.5 px）；该相位错位由消费侧重建立即 fail-closed。声明为任何角点/其他定位 ⇒ schema 判红。",
+          "type": "string"
+        },
+        "origin_x": {
+          "description": "cell 网格原点 x（像素坐标）；缺省 0 = 帧原点。",
+          "type": "number"
+        },
+        "origin_y": {
+          "description": "cell 网格原点 y（像素坐标）；缺省 0 = 帧原点。",
+          "type": "number"
+        }
+      },
+      "description": "规则网格控制点的几何声明（可选；缺省 = origin 0、node_placement=cell_center_v1）。"
+    },
     "control_points": {
       "type": "array",
       "minItems": 1,
@@ -317,11 +358,11 @@
         },
         "properties": {
           "x": {
-            "description": "控制点 x（像素坐标）",
+            "description": "控制点 x（像素中心坐标；规则网格下 = 所属 cell 中心的 x，见 control_point_geometry.node_placement）",
             "type": "number"
           },
           "y": {
-            "description": "控制点 y（像素坐标）",
+            "description": "控制点 y（像素中心坐标；规则网格下 = 所属 cell 中心的 y）",
             "type": "number"
           },
           "sparse_snr_value": {
@@ -331,7 +372,7 @@
           }
         }
       },
-      "description": "帧内稀疏控制点列表；每点的 sparse_snr_value 是该点的**绝对** SNR（不是相对因子）。控制点值与帧级 frame_snr 使用同一逐帧参考通量 F_ref（同一帧的 frame_snr.reference_baseline）。"
+      "description": "帧内稀疏控制点列表；每点的 sparse_snr_value 是该点的**绝对** SNR（不是相对因子）。控制点值与帧级 frame_snr 使用同一逐帧参考通量 F_ref（同一帧的 frame_snr.reference_baseline）。**坐标语义**：像素中心坐标（像素序号 p 对应坐标 p）；规则网格下节点落在所属 cell 中心（control_point_geometry.node_placement=cell_center_v1）。层定义域 = 层覆盖的 cell 并集，越出即消费侧 fail-closed（不外推、不回退帧级）。"
     },
     "frame_id": {
       "description": "帧标识",

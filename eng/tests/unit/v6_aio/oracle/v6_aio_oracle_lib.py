@@ -259,10 +259,10 @@ def run_checks(art_dir: str, repo_root: str) -> List[str]:
 
     # ── C2 单位表真值 ────────────────────────────────────────────────────
     units_table = {u["symbol"]: u for u in contract["units_table"]}
-    check(units_table["signal_sb"]["unit"] == "ADU/px^2", "contract signal_sb unit")
-    check(units_table["signal_sb"]["variance_unit"] == "ADU^2/px^4",
+    check(units_table["signal_sb"]["unit"] == "ADU/sr", "contract signal_sb unit")
+    check(units_table["signal_sb"]["variance_unit"] == "ADU^2/sr^2",
           "contract signal_sb variance unit")
-    check(units_table["signal_sb"]["ivar_unit"] == "px^4/ADU^2",
+    check(units_table["signal_sb"]["ivar_unit"] == "sr^2/ADU^2",
           "contract signal_sb ivar unit")
     check(units_table["W_info"]["unit"] == "ADU^-2", "contract W_info unit")
     # PSFSW-RETIRE-03：退役对象 psfsw_robust_weight 已从现行单位表**移出**
@@ -365,9 +365,9 @@ def run_checks(art_dir: str, repo_root: str) -> List[str]:
             check(h.verify_datasum() == 1, "astropy datasum failed for " + h.name)
             check(h.verify_checksum() == 1, "astropy checksum failed for " + h.name)
         check(tuple(hdul[0].data.shape) == (4, 8), "PRIMARY shape")
-        check(hdul[0].header.get("BUNIT") == "ADU/px^2", "PRIMARY BUNIT")
-        check(hdul[1].header.get("BUNIT") == "ADU^2/px^4", "VARIANCE BUNIT")
-        check(hdul[2].header.get("BUNIT") == "px^4/ADU^2", "IVAR BUNIT")
+        check(hdul[0].header.get("BUNIT") == "ADU/sr", "PRIMARY BUNIT")
+        check(hdul[1].header.get("BUNIT") == "ADU^2/sr^2", "VARIANCE BUNIT")
+        check(hdul[2].header.get("BUNIT") == "sr^2/ADU^2", "IVAR BUNIT")
         sig = parse_unit(hdul[0].header.get("BUNIT"))
         var = parse_unit(hdul[1].header.get("BUNIT"))
         ivar = parse_unit(hdul[2].header.get("BUNIT"))

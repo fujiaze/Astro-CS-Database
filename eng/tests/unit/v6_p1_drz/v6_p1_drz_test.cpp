@@ -129,9 +129,9 @@ static void run_units() {
     const FrozenUnit& us = frozen_unit(UnitId::signal_sb);
     const FrozenUnit& uv = frozen_unit(UnitId::sb_variance_out);
     const FrozenUnit& ui = frozen_unit(UnitId::sb_ivar_out);
-    check(std::strcmp(us.symbol, "ADU/px^2") == 0, "signal_sb symbol");
-    check(std::strcmp(uv.symbol, "ADU^2/px^4") == 0, "sb_variance_out symbol");
-    check(std::strcmp(ui.symbol, "px^4/ADU^2") == 0, "sb_ivar_out symbol");
+    check(std::strcmp(us.symbol, "ADU/sr") == 0, "signal_sb symbol");
+    check(std::strcmp(uv.symbol, "ADU^2/sr^2") == 0, "sb_variance_out symbol");
+    check(std::strcmp(ui.symbol, "sr^2/ADU^2") == 0, "sb_ivar_out symbol");
     check((frozen_unit(UnitId::pixel_variance_in).dim == UnitDimension{2, 0}),
           "pixel_variance_in=ADU^2");
     check((frozen_unit(UnitId::w_info).dim == UnitDimension{-2, 0}), "W_info=ADU^-2");
@@ -154,11 +154,11 @@ static void run_units() {
 
     // BUNIT 二次律（FZ-BUNIT-SEMANTICS）
     BunitDeclaration sig;
-    sig.bunit = "ADU/px^2";
+    sig.bunit = "ADU/sr";
     sig.is_canonical_px_power = true;
     sig.pixel_area_power = -2;
     BunitDeclaration var;
-    var.bunit = "ADU^2/px^4";
+    var.bunit = "ADU^2/sr^2";
     var.is_canonical_px_power = true;
     var.pixel_area_power = -4;
     check_gate(gate_bunit_semantics(sig, var), true, "BUNIT canonical positive");
@@ -185,7 +185,7 @@ static void run_units() {
     pr.run_id = "run-1";
     pr.input_hash = "in";
     pr.config_hash = "cfg";
-    pr.units_bunit = "ADU/px^2";
+    pr.units_bunit = "ADU/sr";
     pr.has_pixel_area_power = true;
     pr.pixel_area_power = -2;
     pr.pixel_semantics = "surface_brightness";

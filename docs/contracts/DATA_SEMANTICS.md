@@ -27,8 +27,9 @@ FITS index = (511 - x) * 512 + y
 
 ## 4. signal / support / invalid
 
-- `signal`：科学表面亮度（float32/64），**不使用 display stretch**；负值保留，
-  不自动加 pedestal、不无故 clamp。
+- `signal`：科学表面亮度（float32/64），单位 = **`ADU/sr`**（计数按**立体角**归一；
+  立体角是物理量，与输出网格的像元尺度无关 ⇒ 跨帧/跨像元尺度可比，推导见 §31.1a）；
+  **不使用 display stretch**；负值保留，不自动加 pedestal、不无故 clamp。
 - `support`：覆盖/有效支持度 [0,1]；`support=0` 表示无覆盖。
 - `invalid`：`NaN` 或 `support<=0`；有效样本判定为 `finite && support>0`。
 - 无有效样本（all-rejected / denominator≈0）必须有明确 status，禁止静默
@@ -380,10 +381,10 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 
 | 文件/数组 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
-| signal/NorderK/DirD/NpixN.fits | float32 或 float64 `[512×512]` NESTED local（bitpix −32/−64 随 data_type） | ADU（面亮度 signal=flux_sum/covered_area） | 无效像素 IEEE NaN 填充（无 FITS BLANK 整型卡；:483-485） |
+| signal/NorderK/DirD/NpixN.fits | float32 或 float64 `[512×512]` NESTED local（bitpix −32/−64 随 data_type） | **`ADU/sr`**（面亮度 signal=flux_sum/covered_area；`covered_area` 单位 sr，推导见 §31.1a） | 无效像素 IEEE NaN 填充（无 FITS BLANK 整型卡；:483-485） |
 | support/…fits | 同上 | 无量纲 [0,1]（covered_area/A_cell，>1 钳 1.0；A_cell=4π/(12·nside²)） | 无效像素 0.0 |
-| variance/…fits | 同上 | ADU²（var_num_sum/covered_area²） | 无信息（area≤0 或 vnum≤0）→ 0.0（§4a）；非有限/负 → rc=−6 硬失败；tile 全无信息 → rc=−5 不落盘（:629-632） |
-| ivar/…fits | 同上 | 1/ADU²（=1/variance，有限域互为倒数） | 无信息 → 0.0（禁 1/0→Inf）；非有限/负 → rc=−6 |
+| variance/…fits | 同上 | **`ADU^2/sr^2`**（var_num_sum/covered_area²；var_num_sum=Σ v_j·w_jp²，v_j 单位 ADU²、w_jp 无量纲） | 无信息（area≤0 或 vnum≤0）→ 0.0（§4a）；非有限/负 → rc=−6 硬失败；tile 全无信息 → rc=−5 不落盘（:629-632） |
+| ivar/…fits | 同上 | **`sr^2/ADU^2`**（=1/variance，有限域互为倒数） | 无信息 → 0.0（禁 1/0→Inf）；非有限/负 → rc=−6 |
 | hierarchy 低阶 tiles（signal/support/variance/ivar 同目录树，nside=2^(k+9), k<tile_order） | 同上 `[512×512]` | 同上（父 cell=子像素聚合；f32 产品 float 累加 DISP-HIPS-009） | 空 acc 父 cell 照写全 NaN（DISP-HIPS-011） |
 | Moc.fits（每子产品） | BINTABLE 列 UNIQ（int64 域 4·4^m+(c>>2(K−m))) | 无量纲（UNIQ 编码） | 空集不写（:246）；moc_order<K 低阶 UNIQ 对自家 reader 无效（DISP-HIPS-005） |
 | properties（每子产品） | 文本 key=value 逐行 | — | 直写无原子性/无转义（DISP-HIPS-010）；时间键=真实 UTC（字节不跨运行复现） |
@@ -404,7 +405,8 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   前实现写 Dir=商/Npix=余数，与标准相反。读侧标准优先、旧布局只读回退）；
   hierarchy 逐阶同布局（k<K）。
 - 面亮度链（与 §4/§4a、SCI-DRZ-001 :145 一致）：drizzle 层产原始累加量
-  （§11.2）→ writer 归一 signal=flux_sum/covered_area、
+  （§11.2；flux_sum=Σ x_j·(a_jp/A_pixel,j) 单位 ADU、covered_area=Σ a_jp 单位 sr）
+  → writer 归一 signal=flux_sum/covered_area（⇒ **`ADU/sr`**）、
   support=min(covered_area/A_cell,1)、variance=var_num_sum/covered_area²、
   ivar=1/variance；F=signal×support×A_cell 闭合（gate7 复检同式）。
 - 天区度量：moc_area_sr=Σ A_cell(K)（逐叶 tile 登记制，
@@ -589,6 +591,7 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
   禁止反向（SCI-PHOT-001 §10）。
 - determinism=fixed_reduction_order：F_syn 逐星独立（OpenMP dynamic,64）、
   像素逐元素独立（static）→ 输出 bitwise 与线程数无关（README §7）。
+  **口径注记（RULING-DOC-01）**：此处的「bitwise 与线程数无关」是**模块层由构造保证的更强断言**（该路径无跨像素归约，故不存在归约顺序依赖），**不是**合同层对"1/N worker 等价"的一般判据；合同层的等价判据是**事前冻结的浮点容差**（`docs/contracts/SCHEDULER_CONTRACT.md` §2.1、`docs/contracts/TEST_MATRIX.md` §2）。模块门可以比合同更严，不得据此把其它含跨 worker 归约的路径也断言成逐位一致。
 
 ## 15. Phase1 star-psf 模块输入/输出数据（DATA-P1-PSF）
 
@@ -1117,7 +1120,7 @@ K=target_order+9，tile 512×512（tile_order=K−9，§2）；
 
 | 文件/数组 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
-| signal/NorderK/DirD/NpixN.fits | float32（precision=0 默认）/float64（=1）（stage2.cpp:529）`[512×512]` NESTED local | **`ADU/px²`**（= 面亮度 surface brightness；px = 叶级单元立体角，与 §4/§12.2 同源；writer finalize 单位名 "surface brightness"，aio_hips_writer.cpp:1035；DOC-203 / EXP-203 C3 订正：原「ADU surface brightness」措辞歧义，明确为 `ADU/px²`，与 `p3_rsmp_units.cpp:77` 的 `signal_sb{1,-2}` 同源） | 无效像素 IEEE NaN（writer :483-485 else 分支置 NaN，无 FITS BLANK 整型卡，同 §12.2） |
+| signal/NorderK/DirD/NpixN.fits | float32（precision=0 默认）/float64（=1）（stage2.cpp:529）`[512×512]` NESTED local | **`ADU/sr`**（= 面亮度 surface brightness：计数按立体角归一，与 §4/§12.2 同源；writer finalize 单位名 "surface brightness"，aio_hips_writer.cpp:1035；与 §31.1 单位表 `signal_sb` 同源） | 无效像素 IEEE NaN（writer :483-485 else 分支置 NaN，无 FITS BLANK 整型卡，同 §12.2） |
 | support/…fits | 同上 `[512×512]` | 无量纲 [0,1] = covered_area/A_cell（writer :478，>1 钳 1.0 :479；A_cell 同 §12.2 公式） | 无效像素 0.0（writer else 分支 sup 保持初值 0.0） |
 | Moc.fits（每子产品） | BINTABLE 列 UNIQ | 无量纲（UNIQ 编码） | AIO writer finalize 生成（DATA-P1-HIPS §12.2 同构） |
 | diagnostics.json | JSON 文本 | — | diagnostics=true 时落 `<out_hips>/diagnostics.json`（stage2.cpp:1748-1749）；键集见 API-P2-HIPS-001 |
@@ -2177,10 +2180,10 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 
 | 名称 | dtype | shape | 单位 | 语义/invalid |
 |---|---|---|---|---|
-| signal | float32 | [W·H]（行主序，W,H∈[1,20000]） | BUNIT（surface brightness，缺省 ADU） | 无覆盖像素=NaN（上游采样 c≠1 置 NaN，p3_session.cpp:238）；NaN 合法语义=无覆盖，禁 ±Inf 伪装 |
+| signal | float32 | [W·H]（行主序，W,H∈[1,20000]） | BUNIT（surface brightness，canonical `ADU/sr`，缺省同；§31.1a） | 无覆盖像素=NaN（上游采样 c≠1 置 NaN，p3_session.cpp:238）；NaN 合法语义=无覆盖，禁 ±Inf 伪装 |
 | coverage | float32 | [W·H] | DIMENSIONLESS（二值门 {0,1}） | covered ⇔ value>0.5f（p3_output.cpp:301/:360）；**1 ⇔ 足迹内存在 tile 像素（其值可为 NaN；非有限只进 signal，不改 coverage，真值表见 §30.4）**（ALG-P3-004 G5）；其它值按门归 0/1。**口径注记：coverage=1 不表示 signal 有限**——mask 语义 = coverage ∧ isfinite(signal)（SCI-P3-001 §5）；
 | wcs | P3WcsDescriptor | 1 | deg/px（CD）、px（CRPIX） | crpix FITS 1-based pixel-center（p3_wcs.h:14）；cd FITS 顺序 CD[i][j]（:16）；projection="TAN"（:19）；abs(dec)≤85° 与四角同半球守卫（P3_WCS_PARAM/P3_WCS_HEMISPHERE，p3_wcs.h:24-26） |
-| bunit | char* | 1 | — | 可空→缺省 "ADU"（p3_output.cpp:188-190） |
+| bunit | char* | 1 | — | 可空→缺省 **"ADU/sr"**（主 HDU 是重采样后的面亮度平面，canonical 串见 §31.1a；裸 `ADU` 无法量纲可判且与数值不符） |
 | prov | P3Provenance | 1 | — | 8 字段（p3_output.h:15-24）；**B2-A10 起 manifest_hash = sha256(输入 HiPS `signal/properties`+`signal/Moc.fits`)**，由 module_adapters `p3_op_writer` 计算并写入 HISTORY `manifest=`；RUNID/SWVER/source_sha 由 CLI `run_context.json` 注入，禁占位串 |
 | bitpix | int | 1 | — | ∈{-32,-64}，其它值 P3_OUT_PARAM（p3_output.cpp:140-154）；session 默认 -32（:285） |
 | output_path | char* | 1 | — | 发布路径；tmp 同目录（`<path>.<pid>.tmp`，:81；h:41-44 协议注形态偏差=DISP-P3FITS-002） |
@@ -2200,7 +2203,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 ### 27.3 单位/dtype/确定性
 
 - 单位唯一权威=本节：signal=BUNIT 串（SCI-P3 §96 按 properties，
-  缺省 ADU）；coverage=二值门无量纲；WCS 角量=deg（CUNIT1/2=deg），
+  缺省 `ADU/sr`，§31.1a）；coverage=二值门无量纲；WCS 角量=deg（CUNIT1/2=deg），
   CD 单位 deg/px；CRVAL=deg（ICRS）。
 - dtype 唯一权威=本节：内存面 float32（TFLOAT 读写）；文件面
   BITPIX=-32/-64（调用方决定）；sha256 hex 字符；DATASUM u32 经
@@ -2277,10 +2280,10 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 
 | 名称 | dtype/形态 | 语义 |
 |---|---|---|
-| value（采样出参） | float32 标量 | 面亮度采样值（BUNIT 承载单位，缺省 'ADU' 绝不 Jy/beam——open_ex cpp:130-159 + SCI §9a-11）；tile 内 NaN → NaN（传播）；tile 缺失 → NaN |
+| value（采样出参） | float32 标量 | 面亮度采样值（BUNIT 承载单位，canonical `ADU/sr`，缺省同，绝不 Jy/beam——open_ex cpp:130-159 + SCI §9a-11）；tile 内 NaN → NaN（传播）；tile 缺失 → NaN |
 | coverage（采样出参） | float32 标量 | **二值语义**（0/1，float 承载）；C=1 ⇔ 采样足迹内存在有限 tile 像素（SCI §5）；tile 缺失/未打开 → 0 |
 | out_order（open_ex 出参） | int 标量 | 输入 survey 实际 order（properties 读出，非请求猜测） |
-| out_bunit（open_ex 出参） | char* | tile BUNIT，缺省 'ADU'（绝不 Jy/beam） |
+| out_bunit（open_ex 出参） | char* | tile BUNIT，canonical **`ADU/sr`**，缺省同（§31.1a；绝不 Jy/beam） |
 | order_sel（会话 provenance） | int 标量 | p3_order_select 结果；provenance.order_sel_used 填实际值（p3_session.cpp:265-277） |
 | mask（会话 coverage_output） | float32 W×H 平面 | coverage_output 仅 `mask` 合法（p3_session.cpp:128-129）；由 coverage 平面生成 |
 | S / C 输出平面（会话缓冲） | float32 | W×H 各一（S 初值 NaN、C 初值 0，p3_session.cpp:204-205）；逐像素独立填充 |
@@ -2288,7 +2291,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 ### 29.3 单位/dtype/确定性
 
 - 单位唯一权威=本节：采样值=面亮度（surface brightness，HiPS image
-  语义，SCI §9a-8），单位经 BUNIT 透传（缺省 'ADU'）；**禁止
+  语义，SCI §9a-8），单位经 BUNIT 透传（canonical `ADU/sr`，缺省同）；**禁止
   flux-per-pixel 解释与面积换算**（SCI §9a-8 显式拒）；order 无量纲；
   coverage 无量纲二值。
 - dtype 唯一权威=本节：采样值/coverage=float32（tile 原生 float32，
@@ -2700,7 +2703,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 
 - **输出 FITS 表达（§27.2 目标态行）**: VARIANCE/IVAR 扩展 HDU，
   EXTNAME="VARIANCE"/"IVAR"，BITPIX 同主 HDU（用户 -32/-64 选择），
-  BUNIT=<signal BUNIT>^2 / 1/(<signal BUNIT>^2)（缺省 ADU → "ADU^2" 与
+  BUNIT=<signal BUNIT>^2 / 1/(<signal BUNIT>^2)（缺省 `ADU/sr` → "ADU^2/sr^2" 与
   "1/(ADU^2)"），DATASUM 逐 HDU（COVERAGE HDU 模式同构，§27.2）；三 HDU 与
   主 HDU 同一原子发布序（§27.4 整文件单元不变，取消不落盘不变）。
 - **exchange/manifest**: available 时 product_content.planes 声明
@@ -2787,32 +2790,91 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 
 | 符号 | 单位 | 含义 | 方差单位 | ivar 单位 | 条款 | 状态 |
 |---|---|---|---|---|---|---|
-| `signal_sb` | `ADU/px^2` | Phase1 Drizzle/HiPS 面亮度 signal | `ADU^2/px^4` | `px^4/ADU^2` | `FZ-UNIT-SIGNAL-SB` | FROZEN |
+| `signal_sb` | `ADU/sr` | Phase1 Drizzle/HiPS 面亮度 signal | `ADU^2/sr^2` | `sr^2/ADU^2` | `FZ-UNIT-SIGNAL-SB` | FROZEN |
 | `pixel_variance_in` | `ADU^2` | 输入源像素逐像素方差 v_j | — | — | `FZ-UNIT-VAR-IN` | PENDING/SO-01 |
-| `sb_variance_out` | `ADU^2/px^4` | Phase1 输出面亮度方差 variance_p | — | — | `FZ-UNIT-VAR-SB` | PENDING/SO-01 |
-| `sb_ivar_out` | `px^4/ADU^2` | Phase1 输出 ivar | — | — | `FZ-UNIT-IVAR-SB` | PENDING/SO-01 |
+| `sb_variance_out` | `ADU^2/sr^2` | Phase1 输出面亮度方差 variance_p | — | — | `FZ-UNIT-VAR-SB` | PENDING/SO-01 |
+| `sb_ivar_out` | `sr^2/ADU^2` | Phase1 输出 ivar | — | — | `FZ-UNIT-IVAR-SB` | PENDING/SO-01 |
 | `W_info` | `ADU^-2` | 点源信息权重 = 1/Var(F_hat) | — | — | `FZ-UNIT-WINFO` | FROZEN |
 | `Q` | `ADU^-1` | 点源线性充分统计量 | — | — | `FZ-UNIT-Q` | FROZEN |
 | `flux` (F_hat) | `ADU` | 点源通量估计 | `ADU^2` | `ADU^-2` | `FZ-UNIT-FLUX` | FROZEN |
 | ~~`psfsw_robust_weight`~~ | — | **对象已真删**（负责人 2026-09-20 裁决 B，14→13；GAP_AUDIT §4.5 C01；`CHG-2026-09-20-PSFSW-RETIRE`）⇒ 该单位条款随对象退役 | — | — | ~~`FZ-UNIT-PSFSW`~~（退役留痕） | **OBSOLETE** |
-| `phase2_mosaic_signal` | `BUNIT(声明)` | Phase2 马赛克 signal；面亮度产品则 `ADU/px^2` | `BUNIT^2` | `1/BUNIT^2` | `FZ-UNIT-SIGNAL-SB` | FROZEN |
+| `phase2_mosaic_signal` | `BUNIT(声明)` | Phase2 马赛克 signal；面亮度产品则 `ADU/sr` | `BUNIT^2` | `1/BUNIT^2` | `FZ-UNIT-SIGNAL-SB` | FROZEN |
 | `phase3_var_out` | `BUNIT^2` | Phase3 输出方差 = 主 HDU BUNIT 平方 | — | `1/BUNIT^2` | `FZ-P3-BUNIT-QUADRATIC` | FROZEN |
 
 **二次律（`FZ-P3-BUNIT-QUADRATIC`）**：`variance = signal^2`、`ivar = 1/variance`；Phase3 输出 variance BUNIT = (主 HDU signal BUNIT)²。
-`W_info` 严格为 `signal^-2`；~~`psfsw_robust_weight` 严格无量纲 = `1`~~（该对象已于 2026-09-20 真删，14→13）。历史 `DRIZZLE.md` §3 把输入 `v_j(ADU^2)` 与输出 `variance_p(ADU^2/px^4)` 同名写作 `variance`：V6 目标态按本条分离命名为 `pixel_variance_in`/`sb_variance_out`，属 `SO-01`（只登记，不擅改 FROZEN 正文）。
+
+### 31.1a 面亮度单位口径的推导（`FZ-UNIT-SIGNAL-SB`）
+
+**结论**：AstroCS 全链 `signal` 承载的物理量是**面亮度**（surface brightness），单位唯一写作
+**`ADU/sr`**（计数按**立体角**归一）；`variance` = `ADU^2/sr^2`、`ivar` = `sr^2/ADU^2`
+由二次律唯一导出。产品 FITS/HiPS 写盘 `BUNIT` 一律取该串。
+
+**推导链（逐段量纲）**：
+
+| 段 | 量 | 单位 | 依据 |
+|---|---|---|---|
+| Phase1 校准 / cosmetic | 帧平面 `x_j` | `ADU` | §9.2 / §10.2（线性计数，未按面积或立体角归一） |
+| Phase1 drizzle 权重 | `w_jp = a_jp / A_pixel,j` | `1`（无量纲） | SCI-DRZ-001 §5；`a_jp`（球面重叠面积）与 `A_pixel,j`（源像素球面面积）同为 sr，商无量纲 |
+| Phase1 drizzle 累加 | `sumFlux = Σ_j x_j·w_jp` | `ADU` | 上式；代码锚 `drizzle_engine.cpp#processPixelSharedTiled`（`acc.sumFlux += pixelValue*weight`） |
+| Phase1 drizzle 累加 | `sumArea = Σ_j a_jp` | `sr` | 同函数（`acc.sumArea += overlap_area`）；`A_cell = 4π/(12·nside²)` sr |
+| Phase1 writer 归一 | `signal = sumFlux/sumArea` | **`ADU/sr`** | §12.3；`support = sumArea/A_cell` 无量纲、`variance = sumVarNum/sumArea²` ⇒ `ADU^2/sr^2` |
+| Phase2 逐样本消费 | 与 Phase1 同标度 | **`ADU/sr`** | §20.1 / §20.3（逆变换 `flux_sum = signal×area`、`area = support×A_cell`，area 单位 sr ⇒ 链内零单位换算） |
+| Phase2 输出 | `signal = flux_sum/covered_area` | **`ADU/sr`** | §20.3（与 P1 writer 同式同源，禁第二套定义） |
+| Phase3 重采样 | 输入 tile 值的加权平均（凸组合） | **`ADU/sr`** | §29.3（采样值 = 面亮度；禁止 flux-per-pixel 解释与面积换算） |
+| Phase3 FITS 写出 | 主 HDU `signal` 的 `BUNIT` | **`ADU/sr`** | §27.1 / §27.3；`VARIANCE`/`IVAR` HDU 的 `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`） |
+
+**为什么是"每立体角"而不是"每像素"**（跨像元尺度可比硬要求）：
+`signal = Σ_j (x_j/A_pixel,j)·a_jp / Σ_j a_jp`，即各源像素**面亮度**的 `a_jp` 加权平均。
+分子与分母同时随输出单元的立体角等比缩放 ⇒ 该值与输出网格的 HEALPix order 无关，
+也与 Phase3 输出平面的像元尺度无关；两帧像元尺度不同而天空面亮度相同时，`signal` 数值相同。
+以每像素为单位则不同像元尺度的帧不可比。**面亮度是强度量（per solid angle），不是广延量（per pixel）。**
+
+**为什么不是 `mag/arcsec^2` 或 `erg/s/cm^2/Å/arcsec^2`**：两者都是**绝对定标**后的面亮度单位，
+且前者承载对数值。AstroCS 的 `signal` 是**线性**探测器计数面亮度；本阶段的测光链只建立
+**逐帧相对零点** `ZP_k`（`m = ZP − 2.5·log10 F`，§13.4），不携带增益/滤光片绝对通标定。
+写 `mag/arcsec^2` 会同时错在量纲（线性 vs 对数）与定标声明（宣称未做的绝对定标）。
+需要星等面亮度时按 `SB_mag = ZP_k − 2.5·log10(signal) + 2.5·log10(Ω_ref)` **派生**
+（`Ω_ref` = 选定参考立体角；1 arcsec² = 2.3504430539e-11 sr），不改 `BUNIT`。
+
+**FITS 依据（FITS 4.0 原文）**：
+
+- §4.4.2.5「BUNIT keyword」：*"The value field shall contain a character string describing the
+  physical units in which the quantities in the array, after application of BSCALE and BZERO,
+  are expressed. **These units must follow the prescriptions of Sect. 4.3.**"*
+- §4.3「Units」：单位串限 restricted ASCII，且 *"The units of all FITS header keyword values …
+  should conform with the recommendations in the IAU Style Manual (McNally 1988)"*；
+  *"The IAU style manual forbids the use of more than one slash ('/') character in a units string."*
+- Table 3（IAU-recommended basic units）列 **`sr` steradian**（solid angle）。
+- Table 4（Additional allowed units）列 **`adu`**（Analog-to-digital converter），
+  并把 **`pixel` / `pix` 列在 area 类**（"(image/detector) pixel"）。
+
+⇒ `ADU/sr` 由 Table 3 的 `sr` 与 Table 4 的 `adu` 两个合法符号、单一斜杠构成，量纲精确、FITS 合法。
+⇒ 反例：`ADU/px^2` 在 FITS 下读作「ADU 每（像素面积）²」（Table 4 的 `pix` 已是面积单位），
+既非面亮度量纲，也与写盘数值（按 sr 归一）不符；`ADU/px^2/sr` 含两个斜杠，为 IAU Style Manual 所禁、FITS 所劝阻。
+
+**单位串与内部幂次编码的对应**：内部量纲代数把立体角维记在 `px_power` / `pixel_area_power` 上
+（`signal_sb = -2`、`sb_variance_out = -4`、`sb_ivar_out = +4`）。
+**canonical 产品串一律写 `sr`**：`pixel_area_power = -2 ⇔ 串含 /sr`、`-4 ⇔ /sr^2`、`+4 ⇔ sr^2/…`。
+读侧兼容旧串 `px` / `pixel`（同一幂次，映射到同一立体角维），**写侧只出 `sr`**。
+
+**点源量不随面亮度口径变**：`W_info = 1/Var(F_hat)`，`F_hat`（PSF 拟合域点源通量）单位 `ADU`
+⇒ `W_info` = `ADU^-2`、`Q` = `ADU^-1`、`flux` = `ADU`。它们**不是**面亮度 `signal` 的幂
+（`signal^-2` = `sr^2/ADU^2`，与 `ADU^-2` 不同量）；点源与面亮度两套量各自闭合。
+
+~~`psfsw_robust_weight` 严格无量纲 = `1`~~（该对象已于 2026-09-20 真删，14→13）。历史 `DRIZZLE.md` §3 把输入 `v_j(ADU^2)` 与输出 `variance_p(ADU^2/sr^2)` 同名写作 `variance`：V6 目标态按本条分离命名为 `pixel_variance_in`/`sb_variance_out`，属 `SO-01`（只登记，不擅改 FROZEN 正文）。
 
 ### 31.2 BUNIT 量纲可判（`FZ-BUNIT-SEMANTICS`，PENDING/SO-01）
 
 写盘 BUNIT 必须量纲可判，满足 (a) 或 (b)：
 
 ```text
-(a) BUNIT 显式含 px 幂次: canonical "ADU/px^2"(signal SB) 与 "ADU^2/px^4"(variance SB)
+(a) BUNIT 显式含立体角幂次（canonical "sr"）: canonical "ADU/sr"(signal SB) 与 "ADU^2/sr^2"(variance SB)
 (b) BUNIT = "ADU" 时 provenance 必须声明 pixel_semantics = "surface_brightness"
     且 pixel_area_power = -2 且给出目标像素面积
 ```
 
 仅写 `ADU` 而无 (b) 声明 = 单位不可判 → 产品标 `unavailable` 或 `REJECT`。`pixel_area_power` canonical 缺省：`signal_sb=-2`、`sb_variance_out=-4`、`sb_ivar_out=+4`、`flux/Q/W_info/psfsw_robust_weight=0`。
-机器强制（canonical 对象层）：`eng/contracts/schemas/unified/provenance.schema.json` 的 `units.allOf/if-then`（`bunit` 含 `/px^2` ⇒ `bunit_semantics=written_px_power` + `pixel_semantics=surface_brightness` + `pixel_area_power=-2`；`bunit_semantics=declared_via_provenance` ⇒ 必需 `target_pixel_area`；`pixel_semantics=integrated_flux` ⇒ `pixel_area_power=0`）；`eng/contracts/schemas/unified/signal.schema.json` 的 `pixel_semantics ↔ pixel_area_power` 自洽门。产品族记录层同判据见 §31.6 登记的产品族字段级合同。
+机器强制（canonical 对象层）：`eng/contracts/schemas/unified/provenance.schema.json` 的 `units.allOf/if-then`（`bunit` 含 `/sr` ⇒ `bunit_semantics=written_px_power` + `pixel_semantics=surface_brightness` + `pixel_area_power=-2`；`bunit_semantics=declared_via_provenance` ⇒ 必需 `target_pixel_area`；`pixel_semantics=integrated_flux` ⇒ `pixel_area_power=0`）；`eng/contracts/schemas/unified/signal.schema.json` 的 `pixel_semantics ↔ pixel_area_power` 自洽门。产品族记录层同判据见 §31.6 登记的产品族字段级合同。
 
 ### 31.3 ~~`weight_mode` 三分~~ **已作废** （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（原 `FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE` 已随 V6 合同层按 `CHG-2026-09-22-V6-CONTRACT-MERGE` 整体出库；条款去向见 §31.10）
 
@@ -2871,7 +2933,8 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 
 | 违例 | 处置 | 门 |
 |---|---|---|
-| 单位错（SB signal ≠ `ADU/px^2`；BUNIT 不可判） | unavailable/REJECT | `G-BUNIT-SEMANTICS` |
+| 单位错（SB signal ≠ `ADU/sr`；BUNIT 不可判） | unavailable/REJECT | `G-BUNIT-SEMANTICS` |
+| 面亮度端口声明 `ADU`（每像素口径）而非 `SURFACE_BRIGHTNESS` | 端口合同不一致 | `CHK-BLOCKFLOW-CONFORMANCE` / registry `unit_vocabulary` |
 | psfsw 写成 ivar / `units="flux^-2"` | REJECT | `G-PSFSW-UNIT` |
 | weight 来源含诊断量（median(SNR_F)/support/coverage/FWHM/residual） | REJECT | `G-WEIGHT-SOURCES`/`G-DIAGNOSTIC-NOT-WEIGHT` |
 | `psf_snr_power` 进生产枚举 | REJECT | `G-WEIGHTMODE-ENUM`/`G-DEFERRED-NOT-PRODUCTION` |

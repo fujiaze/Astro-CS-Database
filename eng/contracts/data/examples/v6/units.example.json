@@ -4,10 +4,10 @@
   "table": [
     {
       "symbol": "signal_sb",
-      "unit": "ADU/px^2",
+      "unit": "ADU/sr",
       "meaning": "Phase1 Drizzle/HiPS 面亮度 signal",
-      "variance_unit": "ADU^2/px^4",
-      "ivar_unit": "px^4/ADU^2",
+      "variance_unit": "ADU^2/sr^2",
+      "ivar_unit": "sr^2/ADU^2",
       "domain": "Phase1 signal",
       "anchor": "FZ-UNIT-SIGNAL-SB; DRIZZLE.md §5:48",
       "gate": "G-BUNIT-SEMANTICS"
@@ -24,7 +24,7 @@
     },
     {
       "symbol": "sb_variance_out",
-      "unit": "ADU^2/px^4",
+      "unit": "ADU^2/sr^2",
       "meaning": "Phase1 输出面亮度方差 variance_p",
       "variance_unit": null,
       "ivar_unit": null,
@@ -34,7 +34,7 @@
     },
     {
       "symbol": "sb_ivar_out",
-      "unit": "px^4/ADU^2",
+      "unit": "sr^2/ADU^2",
       "meaning": "Phase1 输出 ivar",
       "variance_unit": null,
       "ivar_unit": null,
@@ -85,7 +85,7 @@
     {
       "symbol": "phase2_mosaic_signal",
       "unit": "BUNIT(声明)",
-      "meaning": "Phase2 马赛克 signal; 面亮度产品则 ADU/px^2",
+      "meaning": "Phase2 马赛克 signal; 面亮度产品则 ADU/sr",
       "variance_unit": "BUNIT^2",
       "ivar_unit": "1/BUNIT^2",
       "domain": "Phase2",
@@ -108,7 +108,7 @@
     "freeze_id": "FZ-P3-BUNIT-QUADRATIC"
   },
   "bunit_semantics": {
-    "rule": "BUNIT 必须量纲可判: (a) 显式含 px 幂次(canonical ADU/px^2 与 ADU^2/px^4); 或 (b) BUNIT=ADU 时 provenance 必须声明 pixel_semantics=surface_brightness + pixel_area_power=-2 + 目标像素面积",
+    "rule": "BUNIT 必须量纲可判: (a) 显式含立体角幂次(canonical ADU/sr 与 ADU^2/sr^2); 或 (b) BUNIT=ADU 时 provenance 必须声明 pixel_semantics=surface_brightness + pixel_area_power=-2 + 目标像素面积",
     "freeze_id": "FZ-BUNIT-SEMANTICS",
     "pixel_area_power_defaults": {
       "signal_sb": -2,

@@ -213,7 +213,7 @@ thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/
 thread_creation,//   std::thread(Scheduler::run pool) → Scheduler::run lambd,lib/infrastructure/scheduler/src/module_adapters.cpp:348,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:348,
 thread_creation,// 线程的 omp_get_max_threads()；std::thread worker 的 ICV 是进程默认值,lib/infrastructure/scheduler/src/module_adapters.cpp:1750,production,yes,-,std::thread 显式创建,lib/infrastructure/scheduler/src/module_adapters.cpp:1750,
 thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/module_adapters.cpp:1761,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:1761,
-thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/module_adapters.cpp:6526,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:6526,
+thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/module_adapters.cpp:6522,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:6522,
 thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/mosaic_window.cpp:271,production,yes,-,std::async,lib/infrastructure/scheduler/src/mosaic_window.cpp:271,
 thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/normalize_workflow.cpp:462,production,yes,-,std::async,lib/infrastructure/scheduler/src/normalize_workflow.cpp:462,
 thread_creation,std::vector<std::thread> prefetch_pool;,lib/infrastructure/scheduler/src/normalize_workflow.cpp:464,production,yes,-,std::async,lib/infrastructure/scheduler/src/normalize_workflow.cpp:464,

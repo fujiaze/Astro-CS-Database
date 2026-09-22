@@ -46,7 +46,7 @@ def unit_exponents(u):
     u = u.strip()
     if u == "1":
         return (0, 0)
-    # 支持 ADU, ADU^2, px^2, ADU/px^2, ADU^2/px^4, px^4/ADU^2
+    # 支持 ADU, ADU^2, px^2, ADU/sr, ADU^2/sr^2, sr^2/ADU^2
     m = re.fullmatch(r"(ADU)(?:\^(-?\d+))?", u)
     if m:
         return (int(m.group(2) or 1), 0)
@@ -171,8 +171,8 @@ def check_product(prod_dir, results):
     b_sig = hdus.get("", {}).get("bunit", "")
     b_var = hdus.get("VARIANCE", {}).get("bunit", "")
     b_ivar = hdus.get("IVAR", {}).get("bunit", "")
-    if b_sig != "ADU/px^2":
-        errs.append("SIGNAL BUNIT != ADU/px^2")
+    if b_sig != "ADU/sr":
+        errs.append("SIGNAL BUNIT != ADU/sr")
     if unit_exponents(b_var) != tuple(2 * x for x in unit_exponents(b_sig)):
         errs.append("variance BUNIT not signal^2")
     if unit_exponents(b_ivar) != tuple(-x for x in unit_exponents(b_var)):

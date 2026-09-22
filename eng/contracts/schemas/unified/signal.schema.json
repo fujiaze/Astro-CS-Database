@@ -74,14 +74,14 @@
       },
       "properties": {
         "bunit": {
-          "description": "FITS BUNIT 写盘串（量纲必须可判：含 px 幂次，或由 bunit_semantics 显式声明）",
+          "description": "FITS BUNIT 写盘串（量纲必须可判：含立体角幂次，或由 bunit_semantics 显式声明）",
           "type": "string",
           "minLength": 1,
           "maxLength": 64,
           "pattern": "^[A-Za-z0-9][A-Za-z0-9_^/(). -]*$"
         },
         "bunit_semantics": {
-          "description": "FZ-BUNIT-SEMANTICS：written_px_power = BUNIT 显式含 px 幂次；declared_via_provenance = BUNIT 仅写 ADU 时必须由 provenance 声明 pixel_semantics + pixel_area_power",
+          "description": "FZ-BUNIT-SEMANTICS：written_px_power = BUNIT 显式含立体角幂次（canonical \"sr\"）；declared_via_provenance = BUNIT 仅写 ADU 时必须由 provenance 声明 pixel_semantics + pixel_area_power",
           "enum": [
             "written_px_power",
             "declared_via_provenance"
@@ -99,7 +99,7 @@
           ]
         },
         "pixel_area_power": {
-          "description": "px 幂次：面亮度 -2 / 通量 0（FZ-BUNIT-SEMANTICS 缺省表）",
+          "description": "立体角幂次：面亮度 -2 / 通量 0（FZ-BUNIT-SEMANTICS 缺省表；-2 ⇔ canonical 串含 /sr）",
           "enum": [
             -2,
             0
@@ -116,7 +116,7 @@
           "if": {
             "properties": {
               "bunit": {
-                "pattern": "/px\\^2"
+                "pattern": "/sr"
               }
             },
             "required": [
@@ -296,7 +296,7 @@
       }
     },
     "signal_value": {
-      "description": "科学估计量数值（ADU/px^2 或声明 BUNIT；负值保留，不 clamp）",
+      "description": "科学估计量数值（ADU/sr 或声明 BUNIT；负值保留，不 clamp）",
       "type": "number"
     },
     "signal_plane_ref": {
@@ -435,7 +435,7 @@
           "units": {
             "properties": {
               "bunit": {
-                "pattern": "px"
+                "pattern": "sr"
               }
             }
           }
@@ -444,7 +444,7 @@
       "x-astrocs-gate": {
         "clause_id": "FZ-BUNIT-SEMANTICS",
         "gate": "G-BUNIT-SEMANTICS",
-        "rule": "bunit_semantics=written_px_power 且 pixel_area_power!=0 ⇒ BUNIT 必须显式含 px 幂次（量纲可判 (a)）",
+        "rule": "bunit_semantics=written_px_power 且 pixel_area_power!=0 ⇒ BUNIT 必须显式含立体角幂次（量纲可判 (a)）",
         "source": "docs/contracts/DATA_SEMANTICS.md §31.2"
       }
     },

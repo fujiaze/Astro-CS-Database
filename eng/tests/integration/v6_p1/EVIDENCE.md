@@ -38,7 +38,7 @@
 | FZ-FORMULA-DRIZZLE-SB/VAR | `build_operator_from_sources`（真实球面 overlap）+ `signal_sb/variance_sb/ivar_sb`；门 `gate_sb_definition/gate_variance_identity` 实测 pass |
 | FZ-COND-FLUX-CONSERV | provenance `flux_conservation_factor=pixfrac^2`（pixfrac=0.8 ⇒ 0.64）；pixfrac<1 缺因子重开必红 |
 | FZ-FORMULA-COV-PROP / FZ-GATE-PARENT-VAR | `gate_covariance_propagation` pass；`diagonal_approximation.is_lower_bound=true`/`use_for_aperture=false` + deficit=(exact-diag)/exact（记录值） |
-| FZ-UNIT-* / FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC | FITS 层 BUNIT=ADU/px^2、px^2、ADU^2/px^4、px^4/ADU^2；重开逐 HDU 独立回读校验 + 二次律 |
+| FZ-UNIT-* / FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC | FITS 层 BUNIT=ADU/sr、px^2、ADU^2/sr^2、sr^2/ADU^2；重开逐 HDU 独立回读校验 + 二次律 |
 | FZ-PROV-MINIMAL-SET / SHARED-SYSTEMATIC / KCORR | provenance 走 AIO `validate_provenance`；校准共享 bias master 走 `common_master` 通道（`representation=common_master`）；k_corr 域内冻结常数 1.4 并登记为继承（不重拟合） |
 | 原子发布（ALG-P3-008 §7） | `atomic_publish_directory`（staging→fsync→rename→重开验证）；失败清 staging，目标不可见 |
 | FZ-GATE-MEDIAN-SNR / C-004.2（P33 撤销） | 重开门递归扫描键 `snr_frame_coefficient/snr_coefficient/support_x_snr*/psf_snr_power/snr_frame*`，出现即红；**未引用** `lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.*` |

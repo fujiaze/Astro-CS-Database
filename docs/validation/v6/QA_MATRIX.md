@@ -42,7 +42,7 @@
 - 控制器 `CONTROLLER_LOG.md` C-004.1（psf_snr_power 延迟）/C-004.2（帧级 median SNR 仅诊断）/C-004.3（schema 词表归 W6）。
 
 冻结单位表（原样继承，机器校验见 `meta.json.unit_table` 与 G-ANA-06）：
-`signal_sb=ADU/px^2`、`pixel_variance_in=ADU^2`、`sb_variance_out=ADU^2/px^4`、`sb_ivar_out=px^4/ADU^2`、
+`signal_sb=ADU/sr`、`pixel_variance_in=ADU^2`、`sb_variance_out=ADU^2/sr^2`、`sb_ivar_out=sr^2/ADU^2`、
 `Q=ADU^-1`、`flux=ADU`、`W_info=ADU^-2`、`psfsw_robust_weight=1`、Phase3 `variance BUNIT=(signal BUNIT)^2`。
 
 冻结 mode（原样继承）：生产 = `point_information | surface_gls | psfsw_robust`；文档基线 = `equal | pixel_ivar`；
@@ -244,7 +244,7 @@
 
 ### `G-ANA-06` — 单位表量纲代数（ADU/PX 指数）
 
-- **claim**：signal_sb=ADU/px^2、pixel_variance_in=ADU^2、sb_variance_out=ADU^2/px^4、sb_ivar=px^4/ADU^2、Q=ADU^-1、flux=ADU、W_info=ADU^-2、psfsw=1；Phase3 variance BUNIT=(signal BUNIT)^2；variance 与 ivar 互为倒数。
+- **claim**：signal_sb=ADU/sr、pixel_variance_in=ADU^2、sb_variance_out=ADU^2/sr^2、sb_ivar=sr^2/ADU^2、Q=ADU^-1、flux=ADU、W_info=ADU^-2、psfsw=1；Phase3 variance BUNIT=(signal BUNIT)^2；variance 与 ivar 互为倒数。
 - **条款锚**：FZ-UNIT-SIGNAL-SB；FZ-UNIT-VAR-IN；FZ-UNIT-VAR-SB；FZ-UNIT-IVAR-SB；FZ-UNIT-Q；FZ-UNIT-FLUX；FZ-UNIT-WINFO；FZ-UNIT-PSFSW；FZ-P3-BUNIT-QUADRATIC；ADJ-GEN-01
 - **文献锚**：Fruchter & Hook 2002 PASP 114,144
 - **输入 -> 输出**：unit_table -> dimension_check
@@ -253,7 +253,7 @@
 - **判据**：`dimension_violations == 0 count`
 - **容差来源**：量纲代数（精确整数指数）已冻结于 FREEZE_LIST §1/§3.2；本任务不改单位表。（status=frozen）
 - **零用例即红**：min_cases=1；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
-- **fail-closed**：BUNIT 量纲不可判（无显式 px 幂次且 provenance 无 pixel_area_power=-2）-> unavailable/REJECT。
+- **fail-closed**：BUNIT 量纲不可判（无显式立体角幂次且 provenance 无 pixel_area_power=-2）-> unavailable/REJECT。
 - **独立 Oracle**：kind=independent_stdlib；truth=FREEZE_LIST §1 单位表；must_not=astrocs, lib/
 - **门能红 mutation**：MUT-A06, MUT-SPEC-11
 - **owner / wave / status**：DATA-DESIGN-001 / SCHEMA-INTEGRATE-001 / W3 / frozen
@@ -312,7 +312,7 @@
 - **条款锚**：FZ-FORMULA-DRIZZLE-VAR；FZ-UNIT-VAR-SB；FZ-UNIT-IVAR-SB；ADJ-F-OBS-01；DRIZZLE §5
 - **文献锚**：Fruchter & Hook 2002 PASP 114,144
 - **输入 -> 输出**：v_j, w_jp, D_p, x_j -> variance_p, ivar_p
-- **单位**：variance_p=ADU^2/px^4, ivar_p=px^4/ADU^2
+- **单位**：variance_p=ADU^2/sr^2, ivar_p=sr^2/ADU^2
 - **适用域**：线性 Drizzle 算子；w_jp=a_jp/A_drop,j；D_p=Σ_j a_jp。
 - **判据**：`max|diag(Cov) - Σ_j v_j w_jp^2/D_p^2| <= 1e-11 rel`
 - **容差来源**：代数恒等；继承 SCI-OBS-001 门 D1（rtol 1e-11）。（status=frozen）
@@ -328,12 +328,12 @@
 - **条款锚**：FZ-FORMULA-DRIZZLE-SB；FZ-GATE-CONST-SB；FZ-COND-FLUX-CONSERV；ADJ-F-OBS-02；ADJ-S3；DESIGN-P1 §9；UNIFIED §7
 - **文献锚**：Fruchter & Hook 2002 PASP 114,144
 - **输入 -> 输出**：B0, A_pixel, a_jp, pixfrac, x_j -> S_p, factor
-- **单位**：S_p=ADU/px^2
+- **单位**：S_p=ADU/sr
 - **适用域**：常量面亮度场按 x_j=B0*A_pixel,j 构造；pixfrac in (0,1]。
 - **判据**：`max_pixfrac |S_p/B0 - 1| <= 0.001 rel`
 - **容差来源**：沿用现行常量场门 |S_p/B0-1|<1e-3（ADJ-S3 明令不改数值）；负向三错法必红。（status=frozen）
 - **零用例即红**：min_cases=2；rc=2 if executed_cases==0 or skipped_cases>=executed_cases
-- **fail-closed**：缺 flux_conservation_factor -> 不可用于绝对通量；BUNIT 缺 px 幂次且无 provenance -> unavailable。
+- **fail-closed**：缺 flux_conservation_factor -> 不可用于绝对通量；BUNIT 缺立体角幂次且无 provenance -> unavailable。
 - **独立 Oracle**：kind=independent_numpy；truth=ADJ-S3 真值构造（按 B0）；must_not=astrocs, lib/
 - **门能红 mutation**：MUT-A11, MUT-A15, MUT-A16
 - **负责人签字（只登记）**：SO-02（面亮度归一 FROZEN 公式变更）/ SO-03（常量场判据取代）— 只登记不签署
@@ -490,7 +490,7 @@
 - **条款锚**：FZ-FORMULA-GLS；FZ-GATE-CONST-SB；ADJ-P2-02；ADJ-S3；PROJECT_SPEC §8；DESIGN-P2 §10
 - **文献锚**：Zackay & Ofek 2017 I ApJ 836,187 arXiv:1512.06872；Fruchter & Hook 2002 PASP 114,144
 - **输入 -> 输出**：注入模型, A, C, pixfrac -> bias, var, flux_tot
-- **单位**：SB=ADU/px^2
+- **单位**：SB=ADU/sr
 - **适用域**：GLS 假设成立；像素 ivar 近似仅条件成立。
 - **判据**：`max(|bias|/B0, |var/var_pred-1|, |flux_tot/flux_true-1|) <= 0.03 rel`
 - **容差来源**：门度量冻结（三量一致性）；数值 3% 设计默认，最终由 ALG-P2-SURF-001 冻结。（status=pending_freeze，owner=ALG-P2-SURF-001）

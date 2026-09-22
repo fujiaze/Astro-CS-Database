@@ -398,9 +398,24 @@ class Ctx:
         self.schema = json.loads((repo / "eng/contracts/schemas/hips_storage_form.schema.json")
                                  .read_text(encoding="utf-8"))
         self._validate = _load_module(repo / "eng/ci/run.py", "astrocs_ci_run").validate_against_schema
+        # 三命令输入合同的校验器：复用仓内既有最小校验器（支持 propertyNames / if-then-else /
+        # $ref，正是 CLI 键面与形态键禁令所在的语法面），不另写一份。
+        self.jsm = _load_module(repo / "eng/tests/common/jsonschema_min.py", "astrocs_jsonschema_min")
+        self.phase_schemas = {
+            name: json.loads((repo / ("eng/contracts/schemas/phase_config_%s.schema.json" % name))
+                             .read_text(encoding="utf-8"))
+            for name in ("normalize", "mosaic", "export")
+        }
 
     def validator(self, instance, sub_schema, path="$"):
         return self._validate(instance, _resolve_refs(sub_schema, self.schema), path)
+
+    def phase_schema(self, name: str) -> dict:
+        return self.phase_schemas[name]
+
+    def phase_validator(self, instance, schema: dict) -> list:
+        return ["%s: %s" % ("/".join(str(p) for p in pth) or "$", msg)
+                for pth, msg in self.jsm.validate(instance, schema, schema)]
 
 
 def validate_hips_dir(ctx: Ctx, prod: Path) -> list:
@@ -564,6 +579,188 @@ def verify_form_equivalence(bare_dir: Path, archive: Path, workdir: Path) -> lis
     shutil.rmtree(ext, ignore_errors=True)
     return errs
 
+
+# --------------------------------------------------------------------------
+# 形态输入配置 / 输出清单字段（合同 §10；词表 = schema#x-astrocs-field-vocabulary）
+# --------------------------------------------------------------------------
+def load_form_vocabulary(schema: dict) -> dict:
+    """字段词表（唯一源）。缺词表 ⇒ 判据失效，fail-closed。"""
+    vocab = schema.get("x-astrocs-field-vocabulary")
+    if not isinstance(vocab, dict):
+        raise RuntimeError("schema 缺 x-astrocs-field-vocabulary（字段词表锚缺失，fail-closed）")
+    for need in ("phase1_input_form_key", "frame_fields", "manifest_storage_section",
+                 "manifest_storage_fields", "coverage_index_ref_fields",
+                 "index_name_suffix", "coverage_index_name", "layers"):
+        if need not in vocab:
+            raise RuntimeError("字段词表缺 %s（fail-closed）" % need)
+    return vocab
+
+
+def resolve_phase1_form(block: dict, vocab: dict):
+    """按合同 §10.1 解析 Phase1 落盘形态。
+
+    返回 (form, source, warn_required, findings)：
+      * 键缺失 / 空串 / null ⇒ (默认形态, "default", True, [])；
+      * 显式 archive|bare    ⇒ (该值, "config", False, [])；
+      * 登记外取值           ⇒ (None, None, False, [finding])。
+    """
+    spec = vocab["phase1_input_form_key"]
+    key, default, values = spec["name"], spec["default"], spec["values"]
+    if key not in block or block[key] in ("", None):
+        return default, "default", True, []
+    value = block[key]
+    if value not in values:
+        return None, None, False, ["%s=%r 不在登记取值 %s 内" % (key, value, values)]
+    return value, "config", False, []
+
+
+def form_warn_event(form: str, vocab: dict, run: str = "run-hipsform") -> dict:
+    """缺省/留空形态键必须产生的 warn 事件（LOG-001 事件模型：level=warn / event=warn）。"""
+    key = vocab["phase1_input_form_key"]["name"]
+    return {
+        "schema": "astrocs.log.event.v1", "seq": 1, "ts": "1970-01-01T00:00:00Z",
+        "run": run, "task": "", "node": "", "module": "aio", "phase": "phase1",
+        "commit": "0" * 40, "host": "localhost", "level": "warn", "event": "warn",
+        "units": "", "elapsed": 0.0,
+        "diagnostic": ("配置键 %s 未给出或留空 ⇒ 采用默认 %s（输入 JSON 未显式声明落盘形态）"
+                       % (key, form)),
+    }
+
+
+def _warn_hits(events, vocab):
+    key = vocab["phase1_input_form_key"]["name"]
+    return [e for e in (events or [])
+            if isinstance(e, dict) and e.get("level") == "warn" and e.get("event") == "warn"
+            and key in str(e.get("diagnostic", ""))]
+
+
+def check_form_resolution(block: dict, events, vocab: dict, resolver=None) -> list:
+    """判据 F0：缺省/留空 ⇒ 必须走默认形态**且**必须报 warn；显式声明 ⇒ 不得报 warn。
+
+    resolver 可注入（负例自检用「留空却返回非登记默认」的假解析器证明判据有牙）。
+    """
+    resolver = resolver or resolve_phase1_form
+    form, _source, warn_required, findings = resolver(block, vocab)
+    if form is None:
+        return findings
+    hits = _warn_hits(events, vocab)
+    if warn_required:
+        default = vocab["phase1_input_form_key"]["default"]
+        if form != default:
+            findings.append("缺省形态键未走默认 %s（实际 %s）" % (default, form))
+        if not hits:
+            findings.append("缺省形态键未报 warn（level=warn 事件缺失）⇒ 静默取默认")
+    elif hits:
+        findings.append("显式声明形态却报了 warn（判据非恒真）")
+    return findings
+
+
+def check_frame_storage(ctx: "Ctx", frame: dict, vocab: dict, product=None) -> list:
+    """判据 F1..F4：p1_products.json 逐帧必须带齐形态字段且自洽。"""
+    fields = list(vocab["frame_fields"])
+    errs = [f for f in fields if f not in frame]
+    if errs:
+        return ["逐帧条目缺形态字段 %s（输出 JSON 必须携带索引路径与指纹）" % sorted(errs)]
+    proj = {k: frame[k] for k in fields}
+    errs += ctx.validator(proj, ctx.schema["$defs"]["frame_storage"], "$.frame_storage")
+    if errs:
+        return errs
+    if frame["storage_form"] == "bare":
+        if frame["archive_sha256"] is not None:
+            errs.append("bare 形态的 archive_sha256 必须为 null（F2）")
+    elif not isinstance(frame["archive_sha256"], str):
+        errs.append("archive 形态必须给出 archive_sha256（F2）")
+    base = os.path.basename(str(frame["index_path"]))
+    suffix = vocab["index_name_suffix"]
+    if not base.endswith(suffix):
+        errs.append("index_path 必须指向 <name>%s（F3）：%s" % (suffix, base))
+    elif product is not None and base != str(product) + suffix:
+        errs.append("index_path 的 <name> 必须等于产品名 %s（F3）：%s" % (product, base))
+    return errs
+
+
+def check_manifest_storage(ctx: "Ctx", storage: dict, vocab: dict, events=None) -> list:
+    """判据 M1..M4：运行完成清单 storage 段字段齐备且与逐产品条目/日志自洽。"""
+    errs = ctx.validator(storage, ctx.schema["$defs"]["manifest_storage"], "$.storage")
+    if errs:
+        return errs
+    suffix = vocab["index_name_suffix"]
+    products = storage["products"]
+    for ent in products:
+        if ent["storage_form"] != storage["storage_form"]:
+            errs.append("products[%s].storage_form 与运行级 storage_form 不一致（M1）" % ent["product"])
+        base = os.path.basename(str(ent["index_path"]))
+        if base != str(ent["product"]) + suffix:
+            errs.append("products[%s].index_path 的 <name> 与产品名不符（M4）：%s" % (ent["product"], base))
+        if ent["storage_form"] == "bare" and (ent["archive_sha256"] is not None
+                                              or ent["archive_bytes"] is not None):
+            errs.append("products[%s] 为 bare 却带归档指纹/字节数（M1）" % ent["product"])
+    if storage["form_source"] == "default":
+        if not _warn_hits(events, vocab):
+            errs.append("form_source=default 却无 warn 事件（M2：默认必须留痕）")
+    elif _warn_hits(events, vocab):
+        errs.append("form_source=config 却报了缺省 warn（M2）")
+    cov = storage.get("coverage_index")
+    if cov is not None:
+        if os.path.basename(str(cov["path"])) != vocab["coverage_index_name"]:
+            errs.append("storage.coverage_index.path 必须指向 %s（M3）" % vocab["coverage_index_name"])
+        if int(cov["n_blocks"]) < 1:
+            errs.append("storage.coverage_index.n_blocks 必须 ≥ 1（M3：空覆盖索引不是有效产物）")
+    return errs
+
+
+def check_mosaic_input(ctx: "Ctx", doc: dict) -> list:
+    """判据 X1：mosaic 输入出现形态键（含 archive）必须 REJECT（Phase2 固定裸形态）。
+
+    返回 findings：空 = 已 REJECT（正确）；非空 = 未被拒（判红）。
+    """
+    errs = ctx.phase_validator(doc, ctx.phase_schema("mosaic"))
+    if errs:
+        return []
+    return ["mosaic 输入含 storage_form 却未被 schema REJECT（Phase2 固定裸形态）"]
+
+
+def check_export_input(ctx: "Ctx", doc: dict) -> list:
+    """判据 X3：export 输入出现形态键必须 REJECT（Phase3 裸 FITS 不套壳）。"""
+    errs = ctx.phase_validator(doc, ctx.phase_schema("export"))
+    if errs:
+        return []
+    return ["export 输入含 storage_form 却未被 schema REJECT（Phase3 产物固定裸 FITS）"]
+
+
+def check_phase1_input(ctx: "Ctx", doc: dict) -> list:
+    """判据 X2：normalize 输入含 storage_form（含空串/null）必须通过 schema（默认 + warn 由 F0 判）。"""
+    return ctx.phase_validator(doc, ctx.phase_schema("normalize"))
+
+
+def check_doc_consistency(vocab: dict, read_text) -> list:
+    """判据 D1/D2：逐层文档对同一字段必须使用同一口径（词表唯一源 = schema）。
+
+    D1 每层文档必须出现其登记词（缺 ⇒ 该层与词表口径不一致）；
+    D2 任何层不得出现禁用同义名（第二套命名 = 两层口径打架）。
+    """
+    errs = []
+    layers = vocab.get("layers") or []
+    if not layers:
+        return ["词表缺 layers（逐层判据失效，fail-closed）"]
+    texts = {}
+    for ent in layers:
+        rel = ent["file"]
+        try:
+            texts[rel] = read_text(rel)
+        except Exception as exc:  # noqa: BLE001
+            errs.append("层文档不可读 %s（%s）：%s" % (rel, ent.get("layer"), exc))
+            continue
+        for tok in ent.get("must_contain", []):
+            if tok not in texts[rel]:
+                errs.append("%s（%s）未出现登记词 %r —— 该层与字段词表口径不一致"
+                            % (rel, ent.get("layer"), tok))
+    for syn in vocab.get("forbidden_synonyms", []):
+        for rel, text in texts.items():
+            if syn in text:
+                errs.append("%s 出现禁用同义名 %r（词表只认 %r）"
+                            % (rel, syn, vocab["phase1_input_form_key"]["name"]))
+    return errs
 
 # --------------------------------------------------------------------------
 # self-test：正例 / 负例注入（能红能绿）
@@ -809,6 +1006,187 @@ def self_test(repo: Path) -> list:
             return ctx.validator(cov, ctx.schema["$defs"]["coverage_index"], "$.coverage_index")
         case("N11 覆盖索引非块粒度 → 红", False, n11)
 
+        # ================= 形态输入配置 / 输出清单字段（合同 §10） =================
+        vocab = load_form_vocabulary(ctx.schema)
+        form_key = vocab["phase1_input_form_key"]["name"]
+        default_form = vocab["phase1_input_form_key"]["default"]
+
+        def _p1_block(**extra):
+            blk = {"input_lights": ["light1.fits"], "output_dir": "out/red"}
+            blk.update(extra)
+            return blk
+
+        # --- P5 形态键缺省 ⇒ 默认 archive + warn（正例） ---
+        def p5():
+            blk = _p1_block()
+            form, source, warn_required, _ = resolve_phase1_form(blk, vocab)
+            errs = check_form_resolution(blk, [form_warn_event(form, vocab)], vocab)
+            if (form, source, warn_required) != (default_form, "default", True):
+                errs.append("缺省解析错误：(%r, %r, %r)" % (form, source, warn_required))
+            # warn 事件本身必须是合法 LOG-001 行（事件模型不另写一份）
+            log_schema = json.loads((repo / "lib/infrastructure/observability/logging/log_event_v1.schema.json")
+                                    .read_text(encoding="utf-8"))
+            ev = form_warn_event(form, vocab)
+            errs += ["warn 事件不合 LOG-001：" + e
+                     for e in ctx._validate(ev, log_schema, "$.log_event")]
+            errs += check_phase1_input(ctx, {"schema_version": "1", "blocks": [blk]})
+            return errs
+        case("P5 形态键缺省 ⇒ 默认 %s + warn（正例）" % default_form, True, p5)
+
+        # --- P6 形态键留空（空串 / null）⇒ 默认 + warn（正例） ---
+        def p6():
+            errs = []
+            for empty in ("", None):
+                blk = _p1_block(**{form_key: empty})
+                form, source, warn_required, _ = resolve_phase1_form(blk, vocab)
+                if (form, source, warn_required) != (default_form, "default", True):
+                    errs.append("留空值 %r 解析错误：(%r, %r, %r)" % (empty, form, source, warn_required))
+                errs += check_form_resolution(blk, [form_warn_event(form, vocab)], vocab)
+                errs += check_phase1_input(ctx, {"schema_version": "1", "blocks": [blk]})
+            return errs
+        case("P6 形态键留空 ⇒ 默认 + warn（正例）", True, p6)
+
+        # --- P7 形态键显式声明 ⇒ 不报 warn（正例） ---
+        def p7():
+            errs = []
+            for value in vocab["phase1_input_form_key"]["values"]:
+                blk = _p1_block(**{form_key: value})
+                form, source, warn_required, _ = resolve_phase1_form(blk, vocab)
+                if (form, source, warn_required) != (value, "config", False):
+                    errs.append("显式 %r 解析错误：(%r, %r, %r)" % (value, form, source, warn_required))
+                errs += check_form_resolution(blk, [], vocab)
+                errs += check_phase1_input(ctx, {"schema_version": "1", "blocks": [blk]})
+            return errs
+        case("P7 形态键显式声明 ⇒ 不报 warn（正例）", True, p7)
+
+        # --- P8 输出 JSON 逐帧形态字段正例（archive / bare 各一） ---
+        def p8():
+            hex64 = "a" * 64
+            arch = {"storage_form": "archive", "index_path": "f00.hips.index.json",
+                    "index_sha256": hex64, "archive_sha256": hex64}
+            bare = {"storage_form": "bare", "index_path": "f01.hips.index.json",
+                    "index_sha256": hex64, "archive_sha256": None}
+            return (check_frame_storage(ctx, arch, vocab, "f00")
+                    + check_frame_storage(ctx, bare, vocab, "f01"))
+        case("P8 输出 JSON 逐帧形态字段正例", True, p8)
+
+        # --- P9 运行完成清单 storage 段正例 ---
+        def p9():
+            hex64 = "b" * 64
+            st = {"storage_form": "archive", "form_source": "default",
+                  "products": [{"product": "f00", "storage_form": "archive",
+                               "index_path": "f00.hips.index.json", "index_sha256": hex64,
+                               "archive_bytes": 4096, "archive_sha256": hex64,
+                               "tree_hash": hex64}],
+                  "coverage_index": {"path": "coverage.index.json", "sha256": hex64,
+                                     "n_frames": 1, "n_blocks": 3}}
+            return check_manifest_storage(ctx, st, vocab, [form_warn_event(default_form, vocab)])
+        case("P9 运行完成清单 storage 段正例", True, p9)
+
+        # --- P10 逐层文档字段口径一致（真仓库；词表唯一源 = schema） ---
+        def p10():
+            return check_doc_consistency(
+                vocab, lambda rel: (repo / rel).read_text(encoding="utf-8", errors="replace"))
+        case("P10 逐层文档字段口径一致（真仓库）", True, p10)
+
+        # --- P11 mosaic 输入含 archive 必须 REJECT；P12 合法 mosaic 输入不得被拒（非退化对照）---
+        def _mosaic_doc(**extra):
+            blk = {"hips_paths": ["/in/f00.hips"], "output_dir": "out/mosaic"}
+            blk.update(extra)
+            return {"schema_version": "1", "blocks": [blk]}
+
+        def p11():
+            doc = _mosaic_doc(**{form_key: "archive"})
+            errs = ctx.phase_validator(doc, ctx.phase_schema("mosaic"))
+            return [] if errs else ["mosaic 输入含 %s=archive 未被 REJECT（Phase2 固定裸形态）" % form_key]
+        case("P11 mosaic 输入含 archive ⇒ REJECT", True, p11)
+
+        def p12():
+            doc = _mosaic_doc()
+            errs = ctx.phase_validator(doc, ctx.phase_schema("mosaic"))
+            return ["合法 mosaic 输入被判红（判据恒真）：%s" % errs] if errs else []
+        case("P12 合法 mosaic 输入不被拒（非退化对照）", True, p12)
+
+        # --- P13 mosaic 加性可选键 coverage_index 被接受 ---
+        def p13():
+            doc = _mosaic_doc(**{vocab["phase2_input_index_ref_key"]["name"]: "out/coverage.index.json"})
+            errs = ctx.phase_validator(doc, ctx.phase_schema("mosaic"))
+            return ["coverage_index 加性可选键未被接受：%s" % errs] if errs else []
+        case("P13 mosaic 加性可选键 coverage_index 被接受", True, p13)
+
+        # --- N12 缺省形态键却未报 warn ⇒ 红 ---
+        def n12():
+            return check_form_resolution(_p1_block(), [], vocab)
+        case("N12 缺省形态键未报 warn ⇒ 红（静默取默认）", False, n12)
+
+        # --- N12b 缺省形态键却未走默认 ⇒ 红 ---
+        def n12b():
+            # 注入「留空却返回非登记默认」的假解析器：判据必须能抓住（否则 F0 半条失效）
+            def bad_resolver(_blk, _vocab):
+                return "bare", "default", True, []
+            return check_form_resolution(_p1_block(**{form_key: ""}),
+                                         [form_warn_event("bare", vocab)], vocab,
+                                         resolver=bad_resolver)
+        case("N12b 缺省形态键未走登记默认 ⇒ 红", False, n12b)
+
+        # --- N13 输出 JSON 逐帧缺 index_path ⇒ 红 ---
+        def n13():
+            hex64 = "c" * 64
+            frame = {"storage_form": "archive", "index_sha256": hex64, "archive_sha256": hex64}
+            return check_frame_storage(ctx, frame, vocab, "f00")
+        case("N13 输出 JSON 逐帧缺 index_path ⇒ 红", False, n13)
+
+        # --- N14 bare 形态却带 archive_sha256 ⇒ 红（F2） ---
+        def n14():
+            hex64 = "d" * 64
+            frame = {"storage_form": "bare", "index_path": "f00.hips.index.json",
+                     "index_sha256": hex64, "archive_sha256": hex64}
+            return check_frame_storage(ctx, frame, vocab, "f00")
+        case("N14 bare 形态带归档指纹 ⇒ 红（F2）", False, n14)
+
+        # --- N15 运行完成清单 form_source=default 却无 warn ⇒ 红（M2） ---
+        def n15():
+            hex64 = "e" * 64
+            st = {"storage_form": "archive", "form_source": "default",
+                  "products": [{"product": "f00", "storage_form": "archive",
+                               "index_path": "f00.hips.index.json", "index_sha256": hex64,
+                               "archive_bytes": 4096, "archive_sha256": hex64,
+                               "tree_hash": hex64}],
+                  "coverage_index": None}
+            return check_manifest_storage(ctx, st, vocab, [])
+        case("N15 清单 form_source=default 却无 warn ⇒ 红（M2）", False, n15)
+
+        # --- N16 export 输入含形态键必须 REJECT ---
+        def n16():
+            doc = {"schema_version": "1",
+                   "blocks": [{"source": {"hips_dir": "/in/f00.hips"},
+                              "output_dir": "out/p3", "output_mode": "surface_brightness",
+                              form_key: "bare"}]}
+            errs = ctx.phase_validator(doc, ctx.phase_schema("export"))
+            return [] if errs else ["export 输入含 %s 未被 REJECT（Phase3 固定裸 FITS）" % form_key]
+        case("N16 export 输入含形态键 ⇒ REJECT", True, n16)
+
+        # --- N17 注入「两层文档对同一字段口径不一致」⇒ 红 ---
+        def _layer_texts():
+            return {ent["file"]: (repo / ent["file"]).read_text(encoding="utf-8", errors="replace")
+                    for ent in vocab["layers"]}
+
+        def n17():
+            real = _layer_texts()
+            target = vocab["layers"][1]["file"]          # design 层
+            broken = dict(real)
+            broken[target] = broken[target].replace(form_key, "storage_mode")
+            return check_doc_consistency(vocab, lambda rel: broken[rel])
+        case("N17 注入同义名（两层口径打架）⇒ 红", False, n17)
+
+        def n18():
+            real = _layer_texts()
+            target = vocab["layers"][2]["file"]          # design-p1 层
+            broken = dict(real)
+            broken[target] = broken[target].replace("archive", "zst")
+            return check_doc_consistency(vocab, lambda rel: broken[rel])
+        case("N18 注入取值口径漂移（archive→zst）⇒ 红", False, n18)
+
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return cases
@@ -824,6 +1202,8 @@ def main() -> int:
     ap.add_argument("--json-out")
     ap.add_argument("--quiet", action="store_true")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--doc-consistency", action="store_true",
+                    help="只跑逐层字段口径一致性判据（D1/D2），不做形态扫描")
     a = ap.parse_args()
     repo = Path(a.root).resolve()
 
@@ -847,7 +1227,12 @@ def main() -> int:
                "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
                "docs/design/PRODUCT_STORAGE_FORM.md",
                "lib/infrastructure/aio/io/fits_verify.py",
-               "eng/ci/run.py"]
+               "eng/ci/run.py",
+               "eng/tests/common/jsonschema_min.py",
+               "lib/infrastructure/observability/logging/log_event_v1.schema.json",
+               "eng/contracts/schemas/phase_config_normalize.schema.json",
+               "eng/contracts/schemas/phase_config_mosaic.schema.json",
+               "eng/contracts/schemas/phase_config_export.schema.json"]
     for rel in anchors:
         if not (repo / rel).is_file():
             errors.append(f"锚缺失：{rel}")
@@ -857,6 +1242,17 @@ def main() -> int:
         return 1
 
     ctx = Ctx(repo)
+    # D. 逐层字段口径一致（词表唯一源 = schema；层文件缺失/词缺失/同义名都判红）
+    vocab = load_form_vocabulary(ctx.schema)
+    doc_errors = check_doc_consistency(
+        vocab, lambda rel: (repo / rel).read_text(encoding="utf-8", errors="replace"))
+    if a.doc_consistency:
+        for e in doc_errors:
+            print("FAIL " + e)
+        print("CHK-HIPS-STORAGE-FORM[doc-consistency]: verdict=%s errors=%d"
+              % ("red" if doc_errors else "green", len(doc_errors)))
+        return 1 if doc_errors else 0
+    errors += doc_errors
     scanned = 0
     for root_s in a.scan:
         root = (repo / root_s).resolve() if not os.path.isabs(root_s) else Path(root_s)

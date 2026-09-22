@@ -251,9 +251,9 @@ static bool run_positive(const fs::path& work) {
     const Phase1OpenResult r = open_phase1_product(p.string());
     CHECK(r.ok, r.error.c_str());
     const Phase1ProductView& v = r.view;
-    CHECK(v.signal_bunit == "ADU/px^2", "signal BUNIT frozen");
-    CHECK(v.variance_bunit == "ADU^2/px^4", "variance BUNIT frozen");
-    CHECK(v.ivar_bunit == "px^4/ADU^2", "ivar BUNIT frozen");
+    CHECK(v.signal_bunit == "ADU/sr", "signal BUNIT frozen");
+    CHECK(v.variance_bunit == "ADU^2/sr^2", "variance BUNIT frozen");
+    CHECK(v.ivar_bunit == "sr^2/ADU^2", "ivar BUNIT frozen");
     CHECK(v.support_bunit == "px^2", "support BUNIT");
     CHECK(v.pixel_semantics == "surface_brightness", "pixel semantics");
     CHECK(v.pixel_area_power == -2, "pixel area power -2");

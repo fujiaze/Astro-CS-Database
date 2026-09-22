@@ -229,7 +229,7 @@
           ],
           "properties": {
             "rule": {
-              "const": "BUNIT 必须量纲可判: (a) 显式含 px 幂次(canonical ADU/px^2 与 ADU^2/px^4); 或 (b) BUNIT=ADU 时 provenance 必须声明 pixel_semantics=surface_brightness + pixel_area_power=-2 + 目标像素面积"
+              "const": "BUNIT 必须量纲可判: (a) 显式含立体角幂次(canonical ADU/sr 与 ADU^2/sr^2); 或 (b) BUNIT=ADU 时 provenance 必须声明 pixel_semantics=surface_brightness + pixel_area_power=-2 + 目标像素面积"
             },
             "freeze_id": {
               "const": "FZ-BUNIT-SEMANTICS"
@@ -355,7 +355,7 @@
         "units": {
           "type": "string",
           "enum": [
-            "ADU/px^2",
+            "ADU/sr",
             "ADU",
             "BUNIT(声明)"
           ],
@@ -1167,8 +1167,8 @@
               "type": "string",
               "enum": [
                 "ADU^2",
-                "ADU^2/px^4",
-                "px^4/ADU^2",
+                "ADU^2/sr^2",
+                "sr^2/ADU^2",
                 "BUNIT^2",
                 "1/BUNIT^2"
               ]
@@ -3692,7 +3692,7 @@
               "units": {
                 "properties": {
                   "bunit": {
-                    "pattern": "/px\\^2$"
+                    "pattern": "/sr$"
                   }
                 }
               }

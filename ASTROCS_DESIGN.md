@@ -197,7 +197,7 @@ flowchart TD
 
 - **WCS 解算**：星表逆映射需要先有近似坐标，近似指向由 `wcs.init_source` 给出（`header_pointing` 帧头指向 / `config` 配置 / `neighbor_crval` 邻居产品三选一），不设独立的盲解节点；求解器在该指向下完成星表匹配与稳健迭代精化，输出的就是唯一权威 WCS。解算轮次数是求解器实现细节，不是流程语义（见 `docs/plugins/algorithms_phase1/05_platesolve.md`）。
 - **星表引导检测**：用本帧 WCS 把 Gaia 星表逆投影到像素域，只对星表位置做质心/PSF 拟合；拟合成功即星点，拟合失败丢弃（不计虚警、不报错）；按亮度取 top 2–5 万颗为上限，极限星等按焦距、画幅、曝光时间派生估计（宁多勿少）。
-- **生产适用域**：测光标定面向可解析的实拍帧（超长焦及以上画幅，匹配星数不少于约 100 颗）；该域内单帧误差预算双边界有效。匹配星数低于适用域的帧不承诺测光标定，产品显式标注降级。
+- **测光标定不设星数门槛**：任何可解析帧都执行测光标定并出产品，精度按**本帧自身**实测的匹配星数与误差预算如实标注，不套用他帧口径、也不以固定星数拦截。星数少到 SCI-PHOT-001 §4 冻结门（`|r_consistent| ≥ 3` 才进 IRLS）不成立时，拟合**本就不产出标度** ⇒ 走 NO_DATA 拟合失败路径（`fit_ok=false` + `degraded_reason` + `error` 上报，产品不得声明已施加测光），不以门槛降级。
 - **一次检测、一次通量积分、三处复用**：检测、PSF、测光、SNR 共用同一份星点绑定行，全链一个通量口径。
 - **测光归一化落到像素（photometry 一步完成，不设独立节点）**：同一节点内把 `I_photo = k_photo · m(x,y) · I_cal` 施加到像素（`m(x,y)` 为低阶空间乘法增益，用星点估计），其后所有节点与 drizzle 消费归一化后的像素。**合并成一步**是为了省掉一次中间产物落盘（省一次写 + 一次读的 IO 往返）；**不因此降低可核对性**：`p1_phot.json`（`DATA-P1-PHOTPROV-001`）必须记 `photometry_applied` / `photscal` / 逐帧 `k_photo` / 施加后产物路径，使「k 确实乘进了像素」可由独立读者用「calibrated 面 × k」逐像素复算核对。该步不可用时产品显式记录 `degraded_reason` 并 fail-closed，不得按未归一化 ADU 静默走完全链。
 
@@ -615,7 +615,9 @@ run/                            临时产物与日志（gitignore）
 - `aio` 是文件级唯一 I/O 边界：任何文件读写经 aio，全链 I/O 点穷举为——Phase1 读原始 FITS 与校准帧、写 HiPS；Phase2 读 HiPS、写天球 HiPS；Phase3 读天球 HiPS、写 FITS。
 - 块与文件之间的导出/缓存接口属于诊断/测试接口，与生产路径区分登记。
 - 所有产品（含 HiPS tile）走：本次运行私有临时区 → 校验 → fsync → 算哈希 → 原子改名发布 → 最后落完成清单；没有完成清单就不算成功对象；失败/取消时清理临时产物，正式目录只出现完整产品；同一标识只有一个生产者。
-- **产品落盘形态**：HiPS 产品只有两种形态——裸 `<name>.hips/`（目录）与归档 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧，解压后是合法 HiPS），两形态互斥且**同身份**（产品哈希取解压后内容，不取压缩包字节）。形态按**访问模式**选择：被随机读取用于服务、或作为交付物的产品存裸形态（Phase2 输出、Phase3 平面 FITS 不套壳）；主要被整体搬运、下游按天区查询的产品存归档形态（Phase1 默认，可显式切裸）。查询面（产品级索引与数据集级覆盖索引）**不压缩**、与像素数据分离，登记粒度 = 一个叶 tile。细则见 `docs/design/PRODUCT_STORAGE_FORM.md` 与 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`。
+- **产品落盘形态**：HiPS 产品只有两种形态——裸 `<name>.hips/`（目录）与归档 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧，解压后是合法 HiPS），两形态互斥且**同身份**（产品哈希取解压后内容，不取压缩包字节）。形态按**访问模式**选择：被随机读取用于服务、或作为交付物的产品存裸形态（Phase2 输出、Phase3 平面 FITS 不套壳）；主要被整体搬运、下游按天区查询的产品存归档形态（Phase1 默认，可显式切裸）。查询面（产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json`）**不压缩**、与像素数据分离，登记粒度 = 一个叶 tile。细则见 `docs/design/PRODUCT_STORAGE_FORM.md` 与 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`。
+- **形态走输入配置、索引路径走输出清单**：Phase1 的落盘形态由**输入 JSON** 的 `storage_form` 键选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**，禁止静默取默认）；Phase2/Phase3 的输入合同**不设**该键（产物固定裸形态），出现即 REJECT。产物必须**自报**形态与索引：`p1_products.json` 逐帧带 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级带 `coverage_index`；运行完成清单 `manifest.json` 带 `storage` 段。这样不同批次 Phase1 的输出 JSON 可以合并而不丢索引；Phase2 输入沿用既有字段结构（`hips_paths` 元素保持字符串），额外的总索引引用用加性可选键 `coverage_index`。
+- **裸形态的体积削减（负责人裁决 2026-09-22「TRIM 纳入产品格式」）**：分两种机制，**不得混用口径**——① **文件系统打洞**（sparse hole punching）：只释放**本来就是零字节**的区域，**文件字节与读回行为逐字节不变**，跨平台有等价实现（Linux `fallocate(PUNCH_HOLE)`；Windows `FSCTL_SET_SPARSE`+`FSCTL_SET_ZERO_DATA`），失败只跳过并记 `trim=skipped(reason)`、**不 fail-closed**；② **包围盒 TRIM**（HiPS 2.0 工作草案 §4.3.2，`TRIM1/TRIM2/ONAXIS1/ONAXIS2`）：缩小 NAXIS、**改变 FITS 结构**，只在产品显式声明且读端 TRIM-aware 时启用，读端不认这些关键字必须 **fail-closed**（禁止把"缺边"当"天区更小"）。归档形态两种都不实施（收益被 zstd 吸收）。实测收益与判据见 `docs/design/PRODUCT_STORAGE_FORM.md` §9。
 - 每次运行生成资源时序、资源汇总、worker 均衡、run manifest、run context、运行图（plan 是预期、trace 是实际，分别如实记录）。
 - manifest 至少记录：产品类型/schema 版本、软件来源、run ID、输入产品标识、科学配置、像素/采样语义、算法 ID、模块 build ID、实际 provider、生成时间；单位/坐标/平面/无效值策略由产品内容证据块显式声明，缺失即不许消费。
 - 无覆盖/无数据 = NaN，与支撑度 ≤0 一致；不用 0 或 ±Inf 冒充无效；请求的 tile 缺失时如实报缺失，不返回父层内容冒充。

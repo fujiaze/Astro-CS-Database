@@ -14,12 +14,12 @@
   "input_covariance": "provided",
   "input_covariance_ref": "covariance/in/run-3",
   "variance_plane": {
-    "units": "ADU^2/px^4",
+    "units": "ADU^2/sr^2",
     "dtype": "float32",
     "invalid_policy": "nan_or_support_le_0"
   },
   "ivar_plane": {
-    "units": "px^4/ADU^2",
+    "units": "sr^2/ADU^2",
     "dtype": "float32",
     "invalid_policy": "nan_or_support_le_0"
   },

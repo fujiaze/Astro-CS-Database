@@ -86,7 +86,7 @@ FitsLayer make_primary_signal(std::size_t nx, std::size_t ny, double base) {
   l.spec.bitpix = -64;
   l.spec.naxis = {nx, ny};
   l.spec.cards = {
-      FitsCard::make_string("BUNIT", "ADU/px^2", "surface brightness"),
+      FitsCard::make_string("BUNIT", "ADU/sr", "surface brightness"),
       FitsCard::make_string("CTYPE1", "RA---TAN", ""),
       FitsCard::make_string("CTYPE2", "DEC--TAN", ""),
   };
@@ -108,8 +108,8 @@ FitsLayer make_layer(const std::string& ext, const std::string& bunit,
 std::vector<FitsLayer> make_three_layer_product() {
   std::vector<FitsLayer> layers;
   layers.push_back(make_primary_signal(8, 4, 10.0));
-  layers.push_back(make_layer("VARIANCE", "ADU^2/px^4", 8, 4, 1.0));
-  layers.push_back(make_layer("IVAR", "px^4/ADU^2", 8, 4, 0.5));
+  layers.push_back(make_layer("VARIANCE", "ADU^2/sr^2", 8, 4, 1.0));
+  layers.push_back(make_layer("IVAR", "sr^2/ADU^2", 8, 4, 0.5));
   return layers;
 }
 
@@ -121,7 +121,7 @@ Provenance make_positive_provenance() {
   p.run_id = "run-aio-001";
   p.input_product_hashes = {"sha256:input-a"};
   p.config_hash = "sha256:cfg";
-  p.units.bunit = "ADU/px^2";
+  p.units.bunit = "ADU/sr";
   p.units.pixel_semantics = "surface_brightness";
   p.units.pixel_area_power = -2;
   p.units.has_target_pixel_area = true;
@@ -164,9 +164,9 @@ Provenance make_positive_provenance() {
   p.unavailable_scope = "none";
   p.generated_utc = "2026-09-15T00:00:00Z";
   p.output_hash = "sha256:out";
-  p.signal_unit = "ADU/px^2";
-  p.variance_unit = "ADU^2/px^4";
-  p.ivar_unit = "px^4/ADU^2";
+  p.signal_unit = "ADU/sr";
+  p.variance_unit = "ADU^2/sr^2";
+  p.ivar_unit = "sr^2/ADU^2";
   return p;
 }
 
@@ -199,10 +199,10 @@ int test_units() {
   // 冻结单位表量纲等价。
   struct Case { Quantity q; const char* unit; };
   const Case cases[] = {
-      {Quantity::kSignalSb, "ADU/px^2"},
+      {Quantity::kSignalSb, "ADU/sr"},
       {Quantity::kPixelVarianceIn, "ADU^2"},
-      {Quantity::kSbVarianceOut, "ADU^2/px^4"},
-      {Quantity::kSbIvarOut, "px^4/ADU^2"},
+      {Quantity::kSbVarianceOut, "ADU^2/sr^2"},
+      {Quantity::kSbIvarOut, "sr^2/ADU^2"},
       {Quantity::kWInfo, "ADU^-2"},
       {Quantity::kQ, "ADU^-1"},
       {Quantity::kFlux, "ADU"},
@@ -213,10 +213,10 @@ int test_units() {
     CHECK(parse_unit_exponents(c.unit, &e), "frozen unit parses");
     CHECK(unit_matches_frozen(c.q, c.unit, nullptr), "frozen unit matches");
   }
-  // 负例：signal_sb 单位被改成 ADU 或 ADU^2/px^4 -> 必须不匹配。
+  // 负例：signal_sb 单位被改成 ADU 或 ADU^2/sr^2 -> 必须不匹配。
   CHECK(!unit_matches_frozen(Quantity::kSignalSb, "ADU", nullptr),
         "signal_sb=ADU must fail");
-  CHECK(!unit_matches_frozen(Quantity::kSignalSb, "ADU^2/px^4", nullptr),
+  CHECK(!unit_matches_frozen(Quantity::kSignalSb, "ADU^2/sr^2", nullptr),
         "signal_sb=variance unit must fail");
   CHECK(!unit_matches_frozen(Quantity::kWInfo, "ADU^-1", nullptr),
         "W_info=ADU^-1 must fail");
@@ -226,15 +226,15 @@ int test_units() {
 
   // 二次律。
   std::string why;
-  CHECK(quadratic_law_holds("ADU/px^2", "ADU^2/px^4", "px^4/ADU^2", &why),
+  CHECK(quadratic_law_holds("ADU/sr", "ADU^2/sr^2", "sr^2/ADU^2", &why),
         "quadratic law positive");
-  CHECK(!quadratic_law_holds("ADU/px^2", "ADU/px^2", "px^2/ADU", &why),
+  CHECK(!quadratic_law_holds("ADU/sr", "ADU/sr", "px^2/ADU", &why),
         "variance not signal^2 must fail");
-  CHECK(!quadratic_law_holds("ADU/px^2", "ADU^2/px^4", "ADU^-2", &why),
+  CHECK(!quadratic_law_holds("ADU/sr", "ADU^2/sr^2", "ADU^-2", &why),
         "ivar != 1/variance must fail");
 
   // BUNIT 可判性。
-  CHECK(bunit_dimension_decidable("ADU/px^2", "", 0, false, 0).decidable,
+  CHECK(bunit_dimension_decidable("ADU/sr", "", 0, false, 0).decidable,
         "explicit px power decidable");
   CHECK(bunit_dimension_decidable("ADU", "surface_brightness", -2, true, 1.0).decidable,
         "ADU + surface_brightness + -2 + area decidable");
@@ -286,9 +286,9 @@ int test_fits(const std::string& workdir) {
   CHECK(vr.hdus[0].is_primary, "primary hdu first");
   CHECK(vr.hdus[1].extname == "VARIANCE", "variance extname");
   CHECK(vr.hdus[2].extname == "IVAR", "ivar extname");
-  CHECK(vr.hdus[0].bunit == "ADU/px^2", "primary bunit");
-  CHECK(vr.hdus[1].bunit == "ADU^2/px^4", "variance bunit (quadratic law)");
-  CHECK(vr.hdus[2].bunit == "px^4/ADU^2", "ivar bunit (1/variance)");
+  CHECK(vr.hdus[0].bunit == "ADU/sr", "primary bunit");
+  CHECK(vr.hdus[1].bunit == "ADU^2/sr^2", "variance bunit (quadratic law)");
+  CHECK(vr.hdus[2].bunit == "sr^2/ADU^2", "ivar bunit (1/variance)");
 
   // 负例 1：篡改一个数据字节 -> DATASUM 必须失配。
   {
@@ -310,7 +310,7 @@ int test_fits(const std::string& workdir) {
   // 负例 2：BUNIT 期望与写出不一致 -> G-FITS-BUNIT。
   {
     std::vector<ExpectedHdu> wrong = expected;
-    wrong[0].bunit = "ADU^2/px^4";
+    wrong[0].bunit = "ADU^2/sr^2";
     const FitsVerifyResult bad = verify_fits_file(target, wrong);
     bool found = false;
     for (const auto& v : bad.violations) {
@@ -504,7 +504,7 @@ int test_provenance() {
   // 负例 c：variance 单位不是 signal^2。
   {
     Provenance p = good;
-    p.variance_unit = "ADU/px^2";
+    p.variance_unit = "ADU/sr";
     const ValidationReport r = validate_provenance(p);
     CHECK(has_gate(r, "G-BUNIT-QUADRATIC"), "variance != signal^2 must hit quadratic");
   }
@@ -714,9 +714,9 @@ int test_artifacts(const std::string& artdir) {
   transcript["manifest_publish_status"] = publish_status_name(mp.status);
   transcript["tmp_residue"] = count_tmp_residue(artdir);
   transcript["expected_hdu_count"] = expected.size();
-  transcript["signal_bunit"] = "ADU/px^2";
-  transcript["variance_bunit"] = "ADU^2/px^4";
-  transcript["ivar_bunit"] = "px^4/ADU^2";
+  transcript["signal_bunit"] = "ADU/sr";
+  transcript["variance_bunit"] = "ADU^2/sr^2";
+  transcript["ivar_bunit"] = "sr^2/ADU^2";
   std::ofstream tf(artdir + "/publish_transcript.json");
   tf << transcript.dump(2) << "\n";
   CHECK(static_cast<bool>(tf), "write transcript");

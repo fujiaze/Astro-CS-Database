@@ -88,7 +88,7 @@ def _mut_fits_data_flip(d):
 def _mut_fits_variance_bunit(d):
     p = os.path.join(d, "product.fits")
     raw = bytearray(open(p, "rb").read())
-    _patch_bunit_and_fix_checksum(raw, 1, "BUNIT", "ADU/px^2")
+    _patch_bunit_and_fix_checksum(raw, 1, "BUNIT", "ADU/sr")
     open(p, "wb").write(raw)
     return "variance BUNIT"
 

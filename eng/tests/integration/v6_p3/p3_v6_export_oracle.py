@@ -227,10 +227,10 @@ def main(argv):
 
     modes = ["surface_brightness", "point_source_flux", "visualization"]
     expected_bunits = {
-        "surface_brightness": {"": "ADU/px^2", "VARIANCE": "ADU^2/px^4", "COVERAGE": "1"},
-        "point_source_flux": {"": "ADU/px^2", "VARIANCE": "ADU^2/px^4", "COVERAGE": "1",
+        "surface_brightness": {"": "ADU/sr", "VARIANCE": "ADU^2/sr^2", "COVERAGE": "1"},
+        "point_source_flux": {"": "ADU/sr", "VARIANCE": "ADU^2/sr^2", "COVERAGE": "1",
                               "FLUX": "ADU", "FLUX_VARIANCE": "ADU^2", "EFFECTIVE_PSF": "1"},
-        "visualization": {"": "ADU/px^2"},
+        "visualization": {"": "ADU/sr"},
     }
     for mode in modes:
         d = os.path.join(art, mode)
@@ -296,7 +296,7 @@ def main(argv):
         if units.get("bunit") == "ADU":
             ck(units.get("pixel_semantics") == "surface_brightness" and units.get("pixel_area_power") == -2,
                "%s: allOf ADU rule" % mode)
-        if re.search(r"/px\^2$", str(units.get("bunit", ""))):
+        if re.search(r"/sr$", str(units.get("bunit", ""))):
             ck(units.get("pixel_area_power") == -2, "%s: allOf px^2 rule" % mode)
         ck(units.get("pixel_semantics") == prov.get("pixel_semantics"),
            "%s: units.pixel_semantics != top-level" % mode)

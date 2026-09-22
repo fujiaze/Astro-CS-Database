@@ -15,15 +15,15 @@
 
 ## 3. 输入/输出数据合同
 
-- **输入**：重采样产品（signal/统计、variance、correlation、coverage、validity、PSF、provenance 材料）、配置；输入 HiPS 产品的落盘形态由落盘名判定，裸/归档同义。
+- **输入**：重采样产品（signal/统计、variance、correlation、coverage、validity、PSF、provenance 材料）、配置；输入 HiPS 产品的落盘形态由落盘名判定，裸/归档同义；输入合同**不设** `storage_form` 键，出现即 REJECT。
 - **输出形态**：交付物为**裸 FITS，不压缩、不套壳**；Phase3 不产出 HiPS，不使用 `.hips` / `.hips.zst` 命名。
 - **输出**：
   - **输出不需要带权重**——上游已完成叠加，这里只投影到平面并直接计算生成对应 WCS；
   - PRIMARY：所选科学 signal/flux/statistic；
   - 扩展 HDU：VARIANCE/IVAR（语义择一且一致）、COVERAGE、VALIDITY、SUPPORT、REJECTION（若存在）、POINT_INFORMATION/W（若模式需要）；
   - PSF 表/图和 correlation 描述；
-  - 标准 WCS（**直接计算生成**）、BUNIT（写端口单位 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area` = 面亮度）、DATASUM/CHECKSUM；
-    ⚠ **BUNIT 语义未闭合**：实测 `p3_props.json#bunit="ADU"` 与 `flux_sum/covered_area`（面亮度量纲）不一致；正确写法 = 澄清 BUNIT 或写 `ADU/px^2/sr`。澄清前**不得**据 `BUNIT` 作单位声明/换算；
+  - 标准 WCS（**直接计算生成**）、BUNIT（写端口单位 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area` = 面亮度，canonical 串 **`ADU/sr`**）、DATASUM/CHECKSUM；
+    **BUNIT 语义（已闭合）**：主 HDU 的 `BUNIT` = 输入 HiPS `signal/properties#BUNIT`（canonical `ADU/sr`；缺声明即 fail-closed，禁按 `ADU` 猜测）；`VARIANCE`/`IVAR` 扩展 HDU 的 `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`）。单位口径唯一权威 = `docs/contracts/DATA_SEMANTICS.md` §31.1a；
   - provenance：源 product/hash、软件完整 SHA、配置、投影、核、order、近似、生成时间。
 - 所有 HDU shape/WCS 对齐。
 - 参考：`eng/contracts/schemas/fits_product.schema.json`。

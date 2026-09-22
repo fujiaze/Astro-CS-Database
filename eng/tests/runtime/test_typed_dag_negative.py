@@ -40,19 +40,21 @@ P2_MODULES = {
     "write": "astrocs.phase2.write",
 }
 P2_CHAIN = [
-    ("coverage", P2_MODULES["coverage"], "calibrated", "coverage"),
-    ("sample", P2_MODULES["sample"], "coverage", "samples"),
-    ("upm_fit", P2_MODULES["upm_fit"], "samples", "upm_model"),
-    ("upm_apply", P2_MODULES["upm_apply"], "upm_model", "corrected"),
-    ("reject", P2_MODULES["reject"], "corrected", "accepted_mask"),
-    ("integrate", P2_MODULES["integrate"], "accepted_mask", "integrated"),
-    ("write", P2_MODULES["write"], "integrated", "mosaic"),
+    ("coverage", P2_MODULES["coverage"], "frame_hips", "p2_coverage"),
+    ("sample", P2_MODULES["sample"], "p2_coverage", "p2_samples"),
+    ("upm_fit", P2_MODULES["upm_fit"], "p2_samples", "p2_upm_model"),
+    ("upm_apply", P2_MODULES["upm_apply"], "p2_upm_model", "p2_corrected"),
+    ("reject", P2_MODULES["reject"], "p2_corrected", "p2_rejection"),
+    ("integrate", P2_MODULES["integrate"], "p2_rejection", "p2_integrated"),
+    ("write", P2_MODULES["write"], "p2_integrated", "mosaic_hips"),
 ]
-# 各节点所需第二输入(链式输入之外) (upm_apply/integrate 需 corrected/calibrated 帧输入)
+# 各节点所需第二输入(链式输入之外)；端口身份 = output_dir 下的真实产物
 SECOND_IN = {
-    "upm_apply": ("calibrated_frames", "artifact:frames"),
-    "integrate": ("corrected", None),  # corrected 由 reject 产出; 链覆盖
+    "upm_apply": ("p2_sky_plane", "artifact:sky_plane"),
+    "integrate": ("p2_rejection", None),  # p2_rejection 由 reject 产出; 链覆盖
 }
+# upm-fit 同时产出模型与天光面（一个节点可有多输出端口）
+EXTRA_OUT = {"upm_fit": {"p2_sky_plane": "artifact:sky_plane"}}
 
 
 def _node_json(nid: str, mid: str, operation: str, in_port: str, in_art: str,
@@ -78,20 +80,28 @@ OPS = {
 # 每节点: 输入端口 -> artifact(producer 为前一节点或 seed artifact:cal)
 # 注意多消费者共享 producer 输出(如 corrected 同时被 reject/integrate 消费) — producer 仍唯一。
 EDGES = {
-    "coverage": {"calibrated": "artifact:cal"},                 # seed 输入(无 producer)
-    "sample": {"coverage": "artifact:coverage"},
-    "upm_fit": {"samples": "artifact:samples"},
-    "upm_apply": {"upm_model": "artifact:upm_model",
-                  "calibrated_frames": "artifact:cal"},
-    "reject": {"corrected": "artifact:corrected"},
-    "integrate": {"accepted_mask": "artifact:accepted_mask",
-                  "corrected": "artifact:corrected"},
-    "write": {"integrated": "artifact:integrated"},
+    "coverage": {"frame_hips": "artifact:p1_hips"},             # seed 输入(无 producer)
+    "sample": {"p2_coverage": "artifact:coverage"},
+    "upm_fit": {"p2_samples": "artifact:samples"},
+    "upm_apply": {"p2_upm_model": "artifact:upm_model",
+                  "p2_sky_plane": "artifact:sky_plane",
+                  "p2_coverage": "artifact:coverage",
+                  "p2_samples": "artifact:samples",
+                  "frame_hips": "artifact:p1_hips"},
+    "reject": {"p2_corrected": "artifact:corrected", "frame_hips": "artifact:p1_hips"},
+    "integrate": {"p2_corrected": "artifact:corrected",
+                  "p2_rejection": "artifact:rejection",
+                  "frame_hips": "artifact:p1_hips"},
+    "write": {"p2_integrated": "artifact:integrated",
+              "p2_coverage": "artifact:coverage",
+              "p2_samples": "artifact:samples",
+              "p2_upm_model": "artifact:upm_model",
+              "p2_rejection": "artifact:rejection"},
 }
 OUT_ART = {
     "coverage": "artifact:coverage", "sample": "artifact:samples",
     "upm_fit": "artifact:upm_model", "upm_apply": "artifact:corrected",
-    "reject": "artifact:accepted_mask", "integrate": "artifact:integrated",
+    "reject": "artifact:rejection", "integrate": "artifact:integrated",
     "write": "artifact:mosaic",
 }
 
@@ -103,6 +113,7 @@ def base_phase2_ir() -> dict:
         n = _node_json(nid, mid, OPS[nid],
                        "", "", out_port, OUT_ART[nid])
         n["inputs"] = dict(EDGES[nid])
+        n["outputs"].update(EXTRA_OUT.get(nid, {}))
         if nid == "write":
             n["resources"] = {"class": "io", "parallel": False}
         nodes.append(n)
@@ -112,7 +123,7 @@ def base_phase2_ir() -> dict:
         "phase": "phase2",
         "version": "1.0.0",
         "nodes": nodes,
-        "outputs": {"mosaic": "artifact:mosaic"},
+        "outputs": {"mosaic_hips": "artifact:mosaic"},
     }
 
 
@@ -151,17 +162,17 @@ class TestNegative(unittest.TestCase):
     # ── 2. 隐式文件路径 ──
     def test_implicit_file_path_input(self):
         doc = base_phase2_ir()
-        doc["nodes"][0]["inputs"]["calibrated"] = "run/out/frames.fits"
+        doc["nodes"][0]["inputs"]["frame_hips"] = "run/out/frames.fits"
         self._expect(doc, DagError.IMPLICIT_PATH, "输入端口裸路径")
 
     def test_implicit_file_path_output(self):
         doc = base_phase2_ir()
-        doc["nodes"][-1]["outputs"]["mosaic"] = "C:/out/mosaic.hips"
+        doc["nodes"][-1]["outputs"]["mosaic_hips"] = "C:/out/mosaic.hips"
         self._expect(doc, DagError.IMPLICIT_PATH, "输出端口 Windows 裸路径")
 
     def test_implicit_file_path_top_output(self):
         doc = base_phase2_ir()
-        doc["outputs"]["mosaic"] = "outputs/mosaic.hips"
+        doc["outputs"]["mosaic_hips"] = "outputs/mosaic.hips"
         self._expect(doc, DagError.IMPLICIT_PATH, "顶层输出裸路径")
 
     # ── 3. 错类型 (scalar 不一致) ──
@@ -169,8 +180,8 @@ class TestNegative(unittest.TestCase):
         doc = base_phase2_ir()
         res = self.compiler.compile(doc)
         self.assertTrue(res.ok, "原始链应编译通过")
-        # 构造 type 冲突: wcs 输出 wcs_plan(f64) 同时接 resample2 的 wcs_plan(f64, 对) 与
-        # hips 输入(f32) → scalar/unit/coord/schema 全部冲突; 断言含 TYPE_MISMATCH。
+        # 构造 type 冲突: wcs 输出 p3_wcs(f64/DEGREE) 同时接 resample2 的 p3_wcs(f64, 对) 与
+        # mosaic_hips 输入(f32/SURFACE_BRIGHTNESS) → scalar/unit/coord/schema 冲突; 断言含 TYPE_MISMATCH。
         doc3 = {
             "schema": "astrocs.typed-dag/v1",
             "pipeline_id": "type.bad",
@@ -179,19 +190,20 @@ class TestNegative(unittest.TestCase):
             "nodes": [
                 {"node_id": "a", "module_id": "astrocs.phase3.properties",
                  "operation": "read_properties", "config": {},
-                 "inputs": {"hips": "artifact:h"}, "outputs": {"props": "artifact:p"},
+                 "inputs": {"mosaic_hips": "artifact:h"}, "outputs": {"p3_props": "artifact:p"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
                 {"node_id": "b", "module_id": "astrocs.phase3.wcs",
                  "operation": "build_wcs", "config": {},
-                 "inputs": {"props": "artifact:p"}, "outputs": {"wcs_plan": "artifact:w"},
+                 "inputs": {"p3_props": "artifact:p"}, "outputs": {"p3_wcs": "artifact:w"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
                 {"node_id": "c", "module_id": "astrocs.phase3.resample2",
                  "operation": "resample_projection", "config": {},
-                 "inputs": {"wcs_plan": "artifact:w", "hips": "artifact:w"},
-                 "outputs": {"resampled": "artifact:r"},
+                 "inputs": {"p3_props": "artifact:p", "p3_wcs": "artifact:w",
+                            "mosaic_hips": "artifact:w"},
+                 "outputs": {"p3_resampled": "artifact:r"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
             ],
-            "outputs": {"r": "artifact:r"},
+            "outputs": {"p3_resampled": "artifact:r"},
         }
         res3 = self.compiler.compile(doc3)
         self.assertFalse(res3.ok, "错类型边应 FAIL")
@@ -202,19 +214,19 @@ class TestNegative(unittest.TestCase):
     def test_cycle(self):
         doc = base_phase2_ir()
         # write 输出 artifact:mosaic → coverage 输入改为消费 mosaic(反向边形成环)
-        doc["nodes"][0]["inputs"]["calibrated"] = "artifact:mosaic"
+        doc["nodes"][0]["inputs"]["frame_hips"] = "artifact:mosaic"
         self._expect(doc, DagError.CYCLE, "反向边成环")
 
     def test_self_loop(self):
         doc = base_phase2_ir()
         # coverage 自己消费自己的输出 artifact:coverage(自环)
-        doc["nodes"][0]["inputs"]["calibrated"] = "artifact:coverage"
+        doc["nodes"][0]["inputs"]["frame_hips"] = "artifact:coverage"
         self._expect(doc, DagError.CYCLE, "节点自环")
 
     # ── 5. 重复 producer ──
     def test_duplicate_producer(self):
         doc = base_phase2_ir()
-        doc["nodes"][1]["outputs"]["samples"] = "artifact:coverage"  # 重复产出 coverage
+        doc["nodes"][1]["outputs"]["p2_samples"] = "artifact:coverage"  # 重复产出 coverage
         self._expect(doc, DagError.DUPLICATE_PRODUCER, "重复 producer")
 
     # ── 6. 跨 Phase edge ──
@@ -241,7 +253,7 @@ class TestNegative(unittest.TestCase):
             "nodes": [
                 {"node_id": "p2_write", "module_id": "astrocs.phase2.write",
                  "operation": "write_mosaic", "config": {},
-                 "inputs": {"integrated": "artifact:i"}, "outputs": {"mosaic": "artifact:m"},
+                 "inputs": {"p2_integrated": "artifact:i"}, "outputs": {"mosaic_hips": "artifact:m"},
                  "resources": {"class": "io", "parallel": False}},
                 {"node_id": "p3_props", "module_id": "astrocs.phase3.properties",
                  "operation": "read_properties", "config": {},
@@ -301,7 +313,7 @@ class TestNegative(unittest.TestCase):
         self.assertIn(DagError.UNKNOWN_OPERATION, codes(res))
 
     def test_unit_mismatch(self):
-        """wcs_plan(DEGREE) 输出 → resample2 hips 输入(ADU) → UNIT_MISMATCH。"""
+        """p3_wcs(DEGREE) 输出 → resample2 mosaic_hips 输入(SURFACE_BRIGHTNESS) → UNIT_MISMATCH。"""
         doc3 = {
             "schema": "astrocs.typed-dag/v1",
             "pipeline_id": "unit.bad",
@@ -310,19 +322,20 @@ class TestNegative(unittest.TestCase):
             "nodes": [
                 {"node_id": "a", "module_id": "astrocs.phase3.properties",
                  "operation": "read_properties", "config": {},
-                 "inputs": {"hips": "artifact:h"}, "outputs": {"props": "artifact:p"},
+                 "inputs": {"mosaic_hips": "artifact:h"}, "outputs": {"p3_props": "artifact:p"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
                 {"node_id": "b", "module_id": "astrocs.phase3.wcs",
                  "operation": "build_wcs", "config": {},
-                 "inputs": {"props": "artifact:p"}, "outputs": {"wcs_plan": "artifact:w"},
+                 "inputs": {"p3_props": "artifact:p"}, "outputs": {"p3_wcs": "artifact:w"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
                 {"node_id": "c", "module_id": "astrocs.phase3.resample2",
                  "operation": "resample_projection", "config": {},
-                 "inputs": {"wcs_plan": "artifact:w", "hips": "artifact:w"},
-                 "outputs": {"resampled": "artifact:r"},
+                 "inputs": {"p3_props": "artifact:p", "p3_wcs": "artifact:w",
+                            "mosaic_hips": "artifact:w"},
+                 "outputs": {"p3_resampled": "artifact:r"},
                  "resources": {"class": "cpu_heavy", "parallel": True}},
             ],
-            "outputs": {"r": "artifact:r"},
+            "outputs": {"p3_resampled": "artifact:r"},
         }
         res = self.compiler.compile(doc3)
         self.assertFalse(res.ok)

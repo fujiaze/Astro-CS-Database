@@ -26,10 +26,18 @@ FP32/FP64 双通道（sdet_detect_ex / sdet_detect_ex_f64）；一帧一次权�
 
 ## Public API
 
-API-STAR-001（docs/contracts/PUBLIC_API.md）：9 导出符号
+API-STAR-001（docs/contracts/PUBLIC_API.md）：10 导出符号
 `sdet_create/sdet_destroy/sdet_detect/sdet_free_coords/sdet_detect_debug/
-sdet_free_debug_maps/sdet_detect_ex/sdet_detect_ex_f64/sdet_free_detect_ex`
-（签名头正本 lib/algorithms/star_detection/include/star_detector.h:1-73）。
+sdet_free_debug_maps/sdet_detect_ex/sdet_detect_ex_f64/sdet_detect_guided_ex_f64/
+sdet_free_detect_ex`（签名头正本 lib/algorithms/star_detection/include/star_detector.h，
+按符号名定位；全量清单见 docs/architecture/api_inventory.csv）。
+
+`sdet_detect_guided_ex_f64` = **权威路径入口**（星表引导拟合）：调用方给出星表预测
+位置数组（本帧近似 WCS 把星表逆投影到像素域的结果），只对该位置做饱和判定、σ 估计、
+椭圆高斯拟合与 `reject_star` 质量门；拟合失败**直接丢弃**（不计虚警、不报错）。
+统计量 `SDetGuidedStats{n_predicted,n_dropped,n_fit_failed,n_rejected,n_fit_ok,n_output}`
+用于把「定义域 / 丢弃 / 拟合失败 / 被拒 / 通过」逐级可审计。`n_pred=0` 返回 rc=0 +
+count=0（空定义域非错误）；指针参数非法返回 −1。输出仍由 `sdet_free_detect_ex` 整组释放。
 
 ## Data contract
 
@@ -46,15 +54,19 @@ x,y,flux,mag,saturated,has_saturated）+ star_det_psf_compat FLOAT32 [N,4]。
 
 ## Thread safety
 
-handle 级互斥使用（单 handle 单线程，无内部锁）；OpenMP 三处（行差分
-:448、入口转换 :2321-2325、候选拟合 :2042-2044 dynamic + reduction），
-dedup/sort/maxStars 截断串行，输出 bitwise 与线程数无关；ThreadBudget
-接线与取消检查点缺失已登记（DISP-STAR，整改归 P1-STAR-IMPL）。
+handle 级互斥使用（单 handle 单线程，无内部锁）；OpenMP 四处：行差分
+（`sdet_compute_bgnoise`）、入口转换、盲检测候选拟合（`sdet_detect_impl` 内
+dynamic + reduction）、星表引导候选拟合（`sdet_detect_guided_impl` 内同款
+dynamic + reduction，每线程私有 `LMWorkspace`）。dedup/sort/maxStars 截断串行，
+输出 bitwise 与线程数无关；ThreadBudget 接线与取消检查点缺失已登记
+（DISP-STAR，整改归 P1-STAR-IMPL）。
 
 ## Errors
 
 入口 rc：0=成功（含 0 星空场：输出全 NULL + count=0，非错误）；−1=参数
-无效/句柄 NULL/分配失败。拟合级 SDET_FIT_*（非 OK 候选丢弃）；质量门
+无效/句柄 NULL/分配失败（`sdet_detect_guided_ex_f64` 在 `pred_x/pred_y` 为 NULL 且
+`n_pred>0` 时同样返回 −1）。节点侧的权威路径 fail-closed 语义（星表缺失/空/部分装载、
+取向先验缺失、0 星存活）见 docs/plugins/algorithms_phase1/03_star_detection.md §7.1。拟合级 SDET_FIT_*（非 OK 候选丢弃）；质量门
 reject_star SfError 五码；编排级 det_ret≠0 或 count≤0 → 退出码
 STAR_DETECT_FAILED（orchestrator.cpp:2200-2212）。
 

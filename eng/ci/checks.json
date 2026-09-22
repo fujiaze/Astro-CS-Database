@@ -9827,6 +9827,65 @@
       ]
     },
     {
+      "id": "CHK-BLOCKFLOW-PORTS-VS-CODE",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-BLOCKFLOW-PORTS-VS-CODE",
+        "--quiet"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/quality/block_flow_ports_vs_code.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**",
+        "eng/**",
+        "docs/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_block_flow_ports_vs_code.py",
+            "--self-test",
+            "--json-out",
+            "run/ci/quality/block_flow_ports_vs_code.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/quality/block_flow_ports_vs_code.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/**",
+            "lib/**",
+            "docs/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
       "id": "CHK-ARCH505-BLOCK-FLOW",
       "profiles": [
         "fast",
@@ -10280,8 +10339,7 @@
           "reads_run_results": true
         }
       ]
-    }
-  ,
+    },
     {
       "id": "CHK-HIPS-STORAGE-FORM",
       "profiles": [
@@ -10306,9 +10364,21 @@
       "waivable": false,
       "changed_paths": [
         "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
+        "docs/contracts/CONFIG_CONTRACT.md",
         "docs/design/PRODUCT_STORAGE_FORM.md",
+        "docs/design/PHASE1_DETAILED_DESIGN.md",
+        "docs/design/PHASE2_DETAILED_DESIGN.md",
+        "docs/design/PHASE3_DETAILED_DESIGN.md",
+        "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md",
+        "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
         "eng/contracts/schemas/hips_storage_form.schema.json",
+        "eng/contracts/schemas/phase_config_normalize.schema.json",
+        "eng/contracts/schemas/phase_config_mosaic.schema.json",
+        "eng/contracts/schemas/phase_config_export.schema.json",
+        "eng/ci/ledgers/dead_config_keys.json",
         "eng/tools/hipsform/**",
+        "lib/infrastructure/cli/session_commands.h",
+        "lib/infrastructure/cli/parser.cpp",
         "lib/infrastructure/aio/**"
       ],
       "requires_monitor": false

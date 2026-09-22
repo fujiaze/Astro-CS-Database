@@ -77,13 +77,13 @@ def _build_fixture_exe():
 # 只接受**显式声明**面亮度语义的输入。fixture 由 AIO writer 生成（writer 不写
 # BUNIT），故此处按冻结单位表补齐产品单位声明（与 module_adapters 的
 # declare_hips_surface_brightness_units 同源同串; 幂等）。
-#   signal   : BUNIT=ADU/px^2   (signal_sb, pixel_area_power=-2)
-#   variance : BUNIT=ADU^2/px^4 (sb_variance_out, -4; FZ-P3-BUNIT-QUADRATIC)
-#   ivar     : BUNIT=px^4/ADU^2 (sb_ivar_out, +4)
+#   signal   : BUNIT=ADU/sr   (signal_sb, pixel_area_power=-2)
+#   variance : BUNIT=ADU^2/sr^2 (sb_variance_out, -4; FZ-P3-BUNIT-QUADRATIC)
+#   ivar     : BUNIT=sr^2/ADU^2 (sb_ivar_out, +4)
 _UNIT_DECL = {
-    "signal": ("ADU/px^2", -2),
-    "variance": ("ADU^2/px^4", -4),
-    "ivar": ("px^4/ADU^2", 4),
+    "signal": ("ADU/sr", -2),
+    "variance": ("ADU^2/sr^2", -4),
+    "ivar": ("sr^2/ADU^2", 4),
 }
 
 
@@ -103,7 +103,7 @@ def ensure_hips_unit_declaration(hips_dir):
                 continue
             keep.append(ln)
         keep += ["BUNIT=%s" % bunit,
-                 "ASTROCS_SIGNAL_UNIT=ADU/px^2",
+                 "ASTROCS_SIGNAL_UNIT=ADU/sr",
                  "ASTROCS_PIXEL_SEMANTICS=surface_brightness",
                  "ASTROCS_PIXEL_AREA_POWER=%d" % power]
         tmp = path + ".fix402.tmp"

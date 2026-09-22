@@ -11,7 +11,7 @@ import sys
 
 MUTATIONS = [
     dict(id="MUT-01-signal-bunit", path="src/v6_bunit.cpp",
-         old='case Quantity::kSignalSb: return "ADU/px^2";',
+         old='case Quantity::kSignalSb: return "ADU/sr";',
          new='case Quantity::kSignalSb: return "ADU";',
          cmd="units",
          freeze="FZ-UNIT-SIGNAL-SB"),

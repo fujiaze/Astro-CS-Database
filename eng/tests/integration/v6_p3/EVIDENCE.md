@@ -27,7 +27,7 @@
 | FZ-FORMULA-COV-PROP | `propagate_surface_brightness` 完整 `C_y=R C_x R^T`；断言 `diag(C_y)=Σ_j R_ij² u_j`（即 var_out=Σc²u） |
 | FZ-P3-QW-RECOMPUTE | `propagate_point_source_flux`：π=S p、f=S d、Q=aπ^T C_y^-1 f、W=a²π^T C_y^-1 π；`frame_is_output_recompute=true`，禁止 input_qw_resampled / W=ΣW_in / 重算上游 W_info |
 | FZ-P3-FAILCLOSED | 三模式 12+ 门经 `check_failclosed_all`；visualization measurement_capable/writes_variance/ivar/point_information 任一为真即 REJECT |
-| FZ-P3-BUNIT-QUADRATIC / FZ-UNIT-* | 主面 ADU/px^2、VARIANCE ADU^2/px^4、flux ADU/ADU^2、effective PSF 1；`validate_bunit_law` + 重开重建二次律 |
+| FZ-P3-BUNIT-QUADRATIC / FZ-UNIT-* | 主面 ADU/sr、VARIANCE ADU^2/sr^2、flux ADU/ADU^2、effective PSF 1；`validate_bunit_law` + 重开重建二次律 |
 | FZ-PROV-MINIMAL-SET | `provenance_to_json` + `validate_provenance_json(required)`；输出哈希取磁盘 FITS 实际 sha256 |
 | ALG-P3-008 §7 | `atomic_publish_file` + `FitsStreamWriter`（kRowsPerBand=2 行带/块）+ `verify_fits_file` 重开；失败不留可见半成品 |
 | FZ-GATE-MEDIAN-SNR / SUPPORT-COVERAGE | `variance_from="propagated_covariance"`、weight_sources 空；不接 median SNR/support/coverage/FWHM |

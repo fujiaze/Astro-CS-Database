@@ -25,7 +25,7 @@
 
 ## 3 物理量和单位
 
-- `S`: ADU（面亮度语义，写端口单位 = `SURFACE_BRIGHTNESS`，GLOSSARY `signal/surface_brightness`；tile 值=每像素面亮度，**非积分通量**）；`s_out`: deg/px；`center/CRVAL/RA,Dec`: deg（ICRS）；坐标: px；coverage: 无量纲 {0,1}。
+- `S`: **`ADU/sr`**（面亮度语义：计数按**立体角**归一，与输出像元尺度无关 ⇒ 跨像元尺度可比；写端口单位 = `SURFACE_BRIGHTNESS`，BUNIT 透传输入 properties，canonical 串 `ADU/sr`，单位口径唯一权威 = `docs/contracts/DATA_SEMANTICS.md` §31.1a；**非积分通量**，禁 flux-per-pixel 解释）；`s_out`: deg/px；`center/CRVAL/RA,Dec`: deg（ICRS）；坐标: px；coverage: 无量纲 {0,1}。
 
 ## 3a 坐标 frame
 

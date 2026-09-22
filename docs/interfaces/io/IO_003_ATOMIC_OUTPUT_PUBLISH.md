@@ -138,6 +138,9 @@ P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原
 ```
 
 - `tree` 条目 = `{path, size, sha256}`（稳定排序）。
+- **`storage` 段（加性，形态事实的落点）**：完成 manifest 新增 `storage` 段，记录本次发布生效的落盘形态与容器/索引指纹：`storage_form`（`archive` | `bare`）、`form_source`（`config` = 输入配置显式给出 / `default` = 键缺失或留空 ⇒ 取默认 `archive` 并已报 warn）、`products[]`（逐产品 `product` / `storage_form` / `index_path` / `index_sha256` / `archive_bytes` / `archive_sha256` / `tree_hash`）与 `coverage_index`。字段与不变式（M1..M4）的唯一权威 = `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10.3，机器事实源 = `eng/contracts/schemas/hips_storage_form.schema.json#/$defs.manifest_storage`。
+- **形态事实不进 `properties`**：`storage_form` / `archive_sha256` / `index_sha256` 只写 `storage` 段与产品级索引；归档内 `properties` 与裸形态逐字节一致（§1 A4 口径），不得出现任何非标准 `hips_tile_format` token。
+- **产品身份仍取解压后内容**：`tree` / `tree_hash` 记录解压后 HiPS 的条目（与裸形态相同）；`storage.archive_sha256` 只是容器指纹，**不得**用作产品身份。
 - `tree_hash` = sha256(规范 JSON 序列化的 tree 条目数组) → **可重算**：
   同内容重算一致；任何文件改动/增删 → hash 变化。重算 = `tree_hash(tree_entries)`
   或 `recompute_tree_hash(manifest)` 或按磁盘实际文件重算 `verify_tree_hash()`。
