@@ -29,7 +29,7 @@ import re
 import shutil
 import sys
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 # 不写 __pycache__: eng/packaging/ 是登记/交付目录, 不允许出现解释器缓存垃圾
 # (W5-PKG-001 清理项; 与 .gitignore 的 __pycache__/ 覆盖配套)。
@@ -37,7 +37,8 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 try:  # 复用打包面检查器的哈希/源清单实现（单一实现, 不复制算法）
     from check_packaging_consistency import (  # noqa: E402
-        InputUnavailable, aggregate_sha256, parse_cfitsio_sources, sha256_file)
+        CONTRACT, INSTALL_RULES, LICENSE_DIR, InputUnavailable, aggregate_sha256,
+        parse_cfitsio_sources, sha256_file)
 except ImportError as _e:  # pragma: no cover - fail-closed
     print(f"SBOM FAIL (fail-closed): 依赖 eng/packaging/check_packaging_consistency.py: {_e}",
           file=sys.stderr)
@@ -46,8 +47,34 @@ except ImportError as _e:  # pragma: no cover - fail-closed
 LOCK_REL = Path("eng/packaging/dependency-lock.json")
 DEPENDENCIES_MD = Path("DEPENDENCIES.md")
 # 机器路径扫描范围 = 构建输入 (CMake/脚本/契约); DEPENDENCIES.md 是政策文档
-# (其禁止模式描述文本经 verify_dependencies_md 做语义一致性检查, 不作路径源)
-SCAN_SCOPE = ["CMakeLists.txt", "CMakePresets.json", "cmake", "packaging", "cli/CMakeLists.txt"]
+# (其禁止模式描述文本经 verify_dependencies_md 做语义一致性检查, 不作路径源)。
+# 路径一律从单源常量/根构建图派生，不另抄一份：旧清单写死了已退役的根目录
+# cmake/、packaging/ 与 cli/CMakeLists.txt（ARCH-001 根目录整合后分别落
+# eng/cmake/、eng/packaging/、lib/infrastructure/cli/，ENGINEERING_SPEC §7）
+# ⇒ 三个条目在真树上 is_file()/is_dir() 全假、被静默跳过，扫描面只剩 2 个根文件
+# （ENGINEERING_SPEC §10 禁止的静默退化）。
+ROOT_BUILD_ENTRIES = ["CMakeLists.txt", "CMakePresets.json"]
+CLI_MODULE_NAME = "cli"
+
+
+def cli_build_entry(root: Path) -> str:
+    """CLI 构建入口 = 根构建图 add_subdirectory(<dir>) 里模块名为 cli 的那一个。"""
+    text = (root / ROOT_BUILD_ENTRIES[0]).read_text(encoding="utf-8", errors="ignore")
+    dirs = [m.group(1) for m in
+            re.finditer(r"^\s*add_subdirectory\(\s*([^\s\)]+)", text, re.M)]
+    hits = [d for d in dirs if PurePosixPath(d).name == CLI_MODULE_NAME]
+    if len(hits) != 1:
+        raise InputUnavailable(
+            f"ANCHOR_STALE: 根构建图 add_subdirectory 命中 {CLI_MODULE_NAME} 模块 "
+            f"{len(hits)} 处（应恰 1 处）")
+    return f"{hits[0]}/CMakeLists.txt"
+
+
+def scan_scope(root: Path) -> list:
+    return [*ROOT_BUILD_ENTRIES,
+            str(Path(INSTALL_RULES).parent),   # eng/cmake
+            str(Path(CONTRACT).parent),        # eng/packaging
+            cli_build_entry(root)]
 
 # 机器绝对路径禁止模式 (Windows F:/ C:/Users/<user>; Linux /home/<user>;
 # 隐式 MSYS2/MinGW)
@@ -68,7 +95,7 @@ ALLOWED = [
 
 def iter_scope_files(root: Path) -> list:
     files = []
-    for item in SCAN_SCOPE:
+    for item in scan_scope(root):
         p = root / item
         if p.is_file():
             files.append(p)
@@ -197,11 +224,27 @@ def gen_sbom_input(root: Path, lock: dict) -> list:
 
 
 # ── 负例注入自测（ENGINEERING_SPEC §8 可执行负例面）────────────────────────
+def _scan_dir(root: Path) -> Path:
+    """夹具内第一个实存的扫描目录（机器绝对路径注入点，从扫描面派生）。"""
+    for item in scan_scope(root):
+        p = root / item
+        if p.is_dir():
+            return p
+    raise InputUnavailable("ANCHOR_STALE: 夹具无实存扫描目录")
+
+
 def _build_fixture(base: Path) -> Path:
-    """最小自洽夹具: 锁 + vendored 文件 + 源清单 + DEPENDENCIES.md。"""
+    """最小自洽夹具: 锁 + vendored 文件 + 源清单 + DEPENDENCIES.md。
+
+    目录形态与判据同源：许可文本落 LICENSE_DIR（打包面检查器的单源常量），CLI
+    构建入口由根 CMakeLists 的 add_subdirectory 解析。旧夹具把许可文本写在
+    packaging/licenses/ 却在锁里声明 eng/packaging/licenses/（ARCH-001 前的旧
+    根）⇒ 正例在 license_file 上恒红，而「许可文本缺失」负例因同一路径本来就红
+    ⇒ 负例退化（AGENTS.md §5「判据必须非退化」）。
+    """
     root = base / "repo"
     (root / "eng" / "cmake").mkdir(parents=True)
-    (root / "packaging" / "licenses").mkdir(parents=True)
+    (root / LICENSE_DIR).mkdir(parents=True)
     (root / "vendor").mkdir(parents=True)
     srcs = ["vendor/a.c", "vendor/b.c"]
     for s in srcs:
@@ -209,12 +252,14 @@ def _build_fixture(base: Path) -> Path:
     (root / "eng" / "cmake" / "cfitsio_sources.cmake").write_text(
         "set(ASTROCS_CFITSIO_SOURCES\n" +
         "".join(f"  {s}\n" for s in srcs) + ")\n", encoding="utf-8")
-    (root / "packaging" / "licenses" / "FAKE_LICENSE.txt").write_text(
-        "license text\n", encoding="utf-8")
-    (root / "CMakeLists.txt").write_text("# fixture\n", encoding="utf-8")
+    lic = root / LICENSE_DIR / "FAKE_LICENSE.txt"
+    lic.write_text("license text\n", encoding="utf-8")
+    cli_dir = PurePosixPath("lib/infrastructure/cli")
+    (root / cli_dir).mkdir(parents=True)
+    (root / cli_dir / "CMakeLists.txt").write_text("# fixture\n", encoding="utf-8")
+    (root / "CMakeLists.txt").write_text(
+        f"# fixture\nadd_subdirectory({cli_dir})\n", encoding="utf-8")
     (root / "CMakePresets.json").write_text("{}\n", encoding="utf-8")
-    (root / "cli").mkdir()
-    (root / "cli" / "CMakeLists.txt").write_text("# fixture\n", encoding="utf-8")
     (root / "DEPENDENCIES.md").write_text(
         "cfitsio nlohmann-json astropy\n", encoding="utf-8")
     algo = "sha256(concat(sorted(git-blob-sha1 of sources)))"
@@ -229,9 +274,9 @@ def _build_fixture(base: Path) -> Path:
             "aggregate_sha256": aggregate_sha256(root, algo, srcs),
             "aggregate_sha256_algo": algo,
             "aggregate_sha256_sources": "eng/cmake/cfitsio_sources.cmake",
-            "license": "fixture", "license_file": "eng/packaging/licenses/FAKE_LICENSE.txt",
-            "license_file_sha256": sha256_file(
-                root / "packaging" / "licenses" / "FAKE_LICENSE.txt"),
+            "license": "fixture",
+            "license_file": f"{LICENSE_DIR}/FAKE_LICENSE.txt",
+            "license_file_sha256": sha256_file(lic),
         }],
         "system_dependencies": [],
         "test_only_oracles": [{"name": "astropy", "version": "x", "usage": "test-only"}],
@@ -261,11 +306,10 @@ def self_test() -> int:
             ("vendored_path 失效", lambda r: (r / "vendor" / "a.c").unlink()),
             ("aggregate_sha256 源改动", lambda r: (r / "vendor" / "b.c").write_text(
                 "int z;\n", encoding="utf-8")),
-            ("许可文本缺失", lambda r: (r / "packaging" / "licenses"
-                                   / "FAKE_LICENSE.txt").unlink()),
+            ("许可文本缺失", lambda r: (r / LICENSE_DIR / "FAKE_LICENSE.txt").unlink()),
             ("DEPENDENCIES.md 漏生产依赖", lambda r: (r / "DEPENDENCIES.md").write_text(
                 "astropy\n", encoding="utf-8")),
-            ("机器绝对路径回归", lambda r: (r / "packaging" / "x.ps1").write_text(
+            ("机器绝对路径回归", lambda r: (_scan_dir(r) / "x.ps1").write_text(
                 "$env:Path = " + '"' + "C:" + chr(92) + "msys64" + chr(92) +
                 'mingw64' + chr(92) + 'bin;$env:Path"' + "\n", encoding="utf-8")),
         )
@@ -315,7 +359,11 @@ def main():
     except InputUnavailable as e:
         print(f"SBOM FAIL (fail-closed): {e}", file=sys.stderr)
         return 2
-    hits = scan_machine_paths(root)
+    try:
+        hits = scan_machine_paths(root)
+    except InputUnavailable as e:
+        print(f"SBOM FAIL (fail-closed): {e}", file=sys.stderr)
+        return 2
     if hits:
         issues.append(f"机器绝对路径命中 {len(hits)} 处 (前 5): " + "; ".join(hits[:5]))
     rows = gen_sbom_input(root, lock)

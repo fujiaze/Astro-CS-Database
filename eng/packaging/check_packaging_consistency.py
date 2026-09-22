@@ -477,7 +477,24 @@ def evaluate(root: Path, allow_missing_git: bool = False, notes: list = None) ->
 
 
 # ── 负例注入自测（ENGINEERING_SPEC §8 可执行负例面）─────────────────────────
-SELFTEST_DIRS = [CONTRACT.rsplit("/", 1)[0], SCHEMA_DIR, LICENSE_DIR, "cmake", "cli"]
+# 沙箱 = 「本检查器实际读取的登记面」的目录集。目录一律从上面的**单源常量**派生，
+# 不另抄一份路径清单：常量指向哪里，沙箱就复制哪里（ENGINEERING_SPEC §10
+# 「注册表双向一致 / 锚存活」；手抄清单在 ARCH-001 根目录整合后写死了已退役的
+# 根目录 cmake/ 与 cli/ ⇒ 自测在 shutil.copy2 处以 traceback 崩掉，违反
+# docs/ci/01_CHECKS.md §1「锚失效必须以 ANCHOR_STALE 点名，不得 traceback」）。
+def _selftest_dirs() -> list:
+    return sorted({str(Path(CONTRACT).parent),
+                   str(Path(INSTALL_RULES).parent),
+                   str(Path(CFITSIO_SOURCES).parent),
+                   SCHEMA_DIR, LICENSE_DIR}, key=len)
+
+
+def _require_anchor(repo: Path, rel: str, const_name: str) -> Path:
+    """锚存活（ENGINEERING_SPEC §10）：硬编码引用不存在 ⇒ ANCHOR_STALE 点名失败。"""
+    p = repo / rel
+    if not p.exists():
+        raise InputUnavailable(f"ANCHOR_STALE: {const_name} {rel}")
+    return p
 
 
 def _link_or_copy(s, d):
@@ -516,14 +533,14 @@ def _sandbox_lock_consumers(repo: Path):
 
 
 def build_sandbox(repo: Path, dest: Path):
-    shutil.copy2(repo / VERSION_FILE, dest / VERSION_FILE)
-    shutil.copy2(repo / ROOT_CMAKE, dest / ROOT_CMAKE)
+    shutil.copy2(_require_anchor(repo, VERSION_FILE, "VERSION_FILE"), dest / VERSION_FILE)
+    shutil.copy2(_require_anchor(repo, ROOT_CMAKE, "ROOT_CMAKE"), dest / ROOT_CMAKE)
     copied = []
-    for rel in sorted(SELFTEST_DIRS, key=len):
-        # 祖先目录已整树复制则跳过（packaging 覆盖 eng/packaging/schemas 等）
+    for rel in _selftest_dirs():
+        # 祖先目录已整树复制则跳过（eng/packaging 覆盖 eng/packaging/schemas 等）
         if any(rel == c or rel.startswith(c + "/") for c in copied):
             continue
-        src = repo / rel
+        src = _require_anchor(repo, rel, "SELFTEST_DIRS")
         if src.is_dir():
             shutil.copytree(src, dest / rel,
                             ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
@@ -603,19 +620,23 @@ def self_test(repo: Path) -> int:
         ("C7 许可文本缺失", lambda r: (r / LICENSE_DIR / "nlohmann_json.MIT.txt").unlink(),
          "C7"),
     )
+    anchor_stale = False
     with tempfile.TemporaryDirectory(prefix="astrocs-pkg-selftest-") as tmp:
         base = Path(tmp)
         for case, mutate, expect in cases:
             work = base / re.sub(r"[^A-Za-z0-9]+", "_", case)
             work.mkdir()
             notes = []
-            build_sandbox(repo, work)
             try:
+                build_sandbox(repo, work)
                 mutate(work)
                 got = evaluate(work, allow_missing_git=True, notes=notes)
             except InputUnavailable as e:
-                print(f"SELFTEST FAIL {case}: 注入后输入不可用 {e}", file=sys.stderr)
+                # 锚失效/输入不可用 = runner error（rc=2）：点名，不 traceback
+                print(str(e), file=sys.stderr)
+                print(f"SELFTEST FAIL {case}: 输入不可用 {e}")
                 ok = False
+                anchor_stale = True
                 continue
             codes = {c for c, _ in got}
             if expect is None:
@@ -629,7 +650,7 @@ def self_test(repo: Path) -> int:
             print(("SELFTEST PASS " if good else "SELFTEST FAIL ") + f"{case}: {detail}")
             ok = ok and good
     print("SELFTEST " + ("PASS (全部注入均判红, 正例判绿)" if ok else "FAIL"))
-    return 0 if ok else 1
+    return 2 if anchor_stale else (0 if ok else 1)
 
 
 def main() -> int:

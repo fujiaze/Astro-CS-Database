@@ -31,9 +31,98 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 AIO = REPO / "lib" / "infrastructure" / "aio"
+SHARED = REPO / "lib" / "algorithms" / "shared"
 OUT_DIR = Path("/tmp/mon001_run_out")
 CFG = REPO / "run" / "temp" / "mon001_cfg.json"
 HIPS = REPO / "run" / "temp" / "FIELD.hips"
+
+# ── 输入解析：不写死目录 ─────────────────────────────────────────────────────
+# 本脚本是 wf_step 步 LINUX-PREPARE-FIXTURES 的实现（eng/ci/workflow_binding.json
+# 的 step_id -> check_id 绑定）。它消费的测试面输入按「步 → 检查项 → 唯一检查注册表
+# changed_paths」逐级解析，不另抄一份路径：ENGINEERING_SPEC §10 规定
+# eng/ci/checks.json 是唯一检查注册表，其 changed_paths 的路径域由 CHK-IMPACT-MAP
+# 机器保证「锚存活 + 无退役引用」。根 tests/ 已随根目录整合退役（测试落
+# eng/tests/，ENGINEERING_SPEC §7「其他固定目录」），写死旧根只会在编译期炸成
+# cc1plus「没有那个文件或目录」。
+STEP_ID = "LINUX-PREPARE-FIXTURES"
+BINDING_REL = Path("eng/ci/workflow_binding.json")
+REGISTRY_REL = Path("eng/ci/checks.json")
+FIXTURE_BASENAME = "phase2_fixture_main.cpp"
+
+
+def _registry_input_dirs() -> list[Path]:
+    """本步在唯一检查注册表里声明的输入目录（去通配后实存者）。"""
+    try:
+        binding = json.loads((REPO / BINDING_REL).read_text(encoding="utf-8"))
+        check_id = next(s["check_id"] for s in binding["steps"]
+                        if s.get("step_id") == STEP_ID)
+        registry = json.loads((REPO / REGISTRY_REL).read_text(encoding="utf-8"))
+        entry = next(c for c in registry["checks"] if c.get("id") == check_id)
+    except (OSError, json.JSONDecodeError, KeyError, StopIteration) as e:
+        raise SystemExit(f"ANCHOR_STALE: {STEP_ID} 的 {BINDING_REL}/{REGISTRY_REL} "
+                         f"绑定不可解析: {e}")
+    dirs = []
+    for rel in entry.get("changed_paths") or []:
+        cand = REPO / (rel[:-3] if rel.endswith("/**") else rel)
+        if cand.is_dir():
+            dirs.append(cand)
+    if not dirs:
+        raise SystemExit(f"ANCHOR_STALE: 检查项 {check_id} 的 changed_paths 无实存目录")
+    return dirs
+
+
+def fixture_src() -> Path:
+    """fixture 源 = 注册输入域内的唯一同名文件（0 处/多 处 ⇒ 点名失败）。"""
+    hits = [d / FIXTURE_BASENAME for d in _registry_input_dirs()
+            if (d / FIXTURE_BASENAME).is_file()]
+    if len(hits) != 1:
+        raise SystemExit("ANCHOR_STALE: %s 在注册输入域命中 %d 处（应恰 1 处）: %s"
+                         % (FIXTURE_BASENAME, len(hits),
+                            [str(h.relative_to(REPO)) for h in hits]))
+    return hits[0]
+
+
+ROOT_CMAKE = REPO / "CMakeLists.txt"
+COMMON_TARGET = "astrocs_common"
+
+
+def _strip_cmake_comments(text: str) -> str:
+    return "\n".join(ln for ln in text.splitlines()
+                     if not ln.lstrip().startswith("#"))
+
+
+def shared_lib_sources() -> list[Path]:
+    """共享算法基础库（根构建图 target astrocs_common）的源清单。
+
+    fixture 的 AIO 链需要 sha256（aio_file_io.h 的 aio_file::sha256_hex）与
+    healpix_core 两个 TU。旧实现手抄了 healpix_core 而漏了同期进 target 的
+    sha256.cpp ⇒ 链接期 undefined reference（ENGINEERING_SPEC §10「锚存活」的
+    兄弟条款：登记面与构建图不得各写一份）。改为一律从根 CMakeLists 的
+    add_library(astrocs_common ...) 逐字解析，target 增删源文件时本脚本自动跟随。
+    """
+    try:
+        text = _strip_cmake_comments(ROOT_CMAKE.read_text(encoding="utf-8"))
+    except OSError as e:
+        raise SystemExit(f"ANCHOR_STALE: {ROOT_CMAKE.name} 不可读: {e}")
+    m = re.search(r"add_library\(\s*" + COMMON_TARGET + r"\s+\w+\s+(.*?)\)", text, re.S)
+    if not m:
+        raise SystemExit(f"ANCHOR_STALE: 根构建图无 add_library({COMMON_TARGET} ...) 源清单")
+    srcs = [REPO / tok for tok in
+            re.findall(r"[A-Za-z0-9_./\-]+\.(?:cpp|cc|c)", m.group(1))]
+    if not srcs:
+        raise SystemExit(f"ANCHOR_STALE: {COMMON_TARGET} 源清单解析为空（抽取退化）")
+    return srcs
+
+
+def require_paths(named: dict) -> None:
+    """锚存活（ENGINEERING_SPEC §10）：本脚本引用的每个路径必须存在，失效时在
+    编译前点名失败（ANCHOR_STALE），不让 g++/cc1plus 报「没有那个文件或目录」。"""
+    missing = [(k, p) for k, p in named.items() if not p.exists()]
+    if missing:
+        detail = "; ".join(
+            f"{k} {p.relative_to(REPO) if str(p).startswith(str(REPO)) else p}"
+            for k, p in missing)
+        raise SystemExit(f"ANCHOR_STALE: {detail}")
 
 
 def _run(argv: list[str], **kw) -> subprocess.CompletedProcess:
@@ -64,24 +153,28 @@ def build_fixture(tmp: Path) -> None:
             raise SystemExit(f"prepare_linux_fixtures: cfitsio {f} 编译失败")
         objs.append(str(o))
 
-    srcs = [
-        REPO / "tests" / "backend" / "phase2_fixture_main.cpp",
-        AIO / "src" / "hips" / "aio_hips_writer.cpp",
-        AIO / "src" / "hips" / "aio_hips_reader.cpp",
-        AIO / "src" / "aio_fits.cpp",
-        AIO / "src" / "aio_api.cpp",
-        AIO / "src" / "aio_log.cpp",
-        AIO / "src" / "aio_compressor.cpp",
-        REPO / "lib" / "algorithms" / "shared" / "healpix" / "healpix_core.cpp",
+    srcs = [fixture_src(),
+            AIO / "src" / "hips" / "aio_hips_writer.cpp",
+            AIO / "src" / "hips" / "aio_hips_reader.cpp",
+            AIO / "src" / "aio_fits.cpp",
+            AIO / "src" / "aio_api.cpp",
+            AIO / "src" / "aio_log.cpp",
+            AIO / "src" / "aio_compressor.cpp",
+            *shared_lib_sources()]   # sha256 + healpix_core（构建图 astrocs_common）
+    # 公共头在 lib/include（根 include/ 已退役）；与 eng/tests/backend/fixture_common.py
+    # 的 fixture 编译配方同口径。
+    inc_dirs = [
+        REPO / "lib" / "include",
+        AIO / "include",
+        AIO / "src",
+        cdir,
+        SHARED,
+        SHARED / "healpix",
     ]
-    incs = [
-        f"-I{REPO / 'include'}",
-        f"-I{AIO / 'include'}",
-        f"-I{AIO / 'src'}",
-        f"-I{cdir}",
-        f"-I{REPO / 'lib' / 'algorithms' / 'shared'}",
-        f"-I{REPO / 'lib' / 'algorithms' / 'shared' / 'healpix'}",
-    ]
+    require_paths({"cfitsio_dir": cdir,
+                   **{f"include:{d.relative_to(REPO)}": d for d in inc_dirs},
+                   **{f"src:{s.relative_to(REPO)}": s for s in srcs}})
+    incs = [f"-I{d}" for d in inc_dirs]
     exe = tmp / "fixture"
     r = _run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
               *[str(s) for s in srcs], *objs, "-lz", "-lzstd", "-llz4",
