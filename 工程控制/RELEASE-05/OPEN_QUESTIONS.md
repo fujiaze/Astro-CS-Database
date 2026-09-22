@@ -112,6 +112,18 @@
   与同一函数「外部输入必须声明 optional」条款自相矛盾 ⇒ **阶段外部输入根本无法表达**，
   块流规格里 frames/hips/calibrated 一律被判非法图。已按条款语义统一并补回归（ctest `core_block_frame` 33/33）。
 
+**ACCEPT-501 独立复核补充（2026-09-22）**：登记册原 12 条经独立复核**证据 20/20 真实**，
+但**漏登记 6 处真实偏差**，已由执行 agent 逐行复核后补登记：
+- **BFD-A11**（blocker）wcs/platesolve 声明消费 `sources` 块，代码从不读 `p1_sources.json`，
+  而是按帧读校准后 FITS 自行检测星点（`module_adapters.cpp:2724/2824/2958`）；
+- **BFD-A12**（blocker）photometry 额外产出 `p1_photscale.json`（`:3536`）未声明；
+- **BFD-A13**（blocker）mosaic 额外读写 `p2_sky_plane.bin`（`:6307/6482`）未声明；
+- **BFD-A14**（blocker）reject 额外产出 `p2_rejection*.bin` 一串（`:7420/7476`）未声明；
+- **BFD-A15**（blocker）mosaic writer 额外读 `p2_coverage.json`/`p2_rejection.json`（`:8477/8543`）未声明；
+- **BFD-A16**（blocker）export resample 实际读 `p3_props.json`（`:9786`）未声明给该节点。
+结论：这**加强了** OQ-9 的判断——注册表声明的端口面与代码真实数据流面的差距比原先登记的更大，
+按声明图迁移节点只会得到 facade。
+
 **请负责人裁决（三选一，附 agent 推荐）**：
 1. **改注册表对齐代码**（推荐）：按 A1–A10 修正端口/生产者/消费者，注册表继续作为唯一事实源；
    代价：注册表版本号递增，涉及 P1/P2/P3 端口合同的破坏性变更，需同步 docs/contracts。
@@ -166,6 +178,47 @@ IPVSolver 内部的 `Logger`（`lib/algorithms/platesolve/cpp/ipv/include/ipv_lo
 **agent 推荐方案 3 立即做、方案 1 随后做**：先拿到根因（可能只是帧头指向偏差或 parity 约定），
 再决定是数据问题还是代码问题；无论结论如何，"生产失败无日志且错误串乱码"都应修。
 
-**影响面**：VIS-501（M42 组成品帧）、E2E-501 的 M42 数据集冒烟（已改为银心 T4 跑通全链）、
-以及任何依赖真实 T2/T3 数据的验收。
+### OQ-10 根因定位（2026-09-22 补充，证据来自 `ASTROCS_NODE_TRACE=1` 的完整求解日志）
+
+开启节点追踪后拿到 IPVSolver 全阶段日志，**原错误信息是误报**。真实链条（M42 T2 首帧）：
+
+```
+Step 1: 使用内存像素数据 4096×4096
+Step 2: 星点检测 (sdet_detect_ex_f64) → 2474 颗（饱和 94 / 正常 2380）
+Step 3: 图像侧选星
+        选星: 按 mag(box积分) 升序取前 60 颗 (**含饱和 60 颗**)     ← 60 颗全饱和
+        U 向量组: 60×2 (s0=0.9681"/px)
+Step 4: FOV/密度计算
+        FOV_diag=1.5577°, query_r=0.8567°, query_area=2.30590°²,
+        rho_img=49.46, rho_target=74.18, n_target=60
+Step 5: 极限星等割线迭代 (P4-magiter)
+[ERROR] ipv_select_from_memory_with_callback: Gaia 星表查询星数过少 (N_returned=0, m_lim=20.435)
+[ERROR] ipv_select_from_memory_with_callback_f64 失败, 终止求解
+```
+
+对照**银心 T4**（同一代码、同一 gaia 目录，成功）：
+```
+ra0=272.808333 dec0=-13.176944, s0=6.1879"/px, fov=9.9056°
+Step 6: Gaia 迭代完成 m_lim_final=8.156, query_count=3, N_returned=198
+```
+
+**结论（三点，均可复现）**
+1. **不是 parity/尺度闸门拒绝**——那条错误串（`module_adapters.cpp:3006`）把"星表查询返回 0"误报成
+   "求解失败或解被 parity/尺度合理性闸门拒绝"，**误导定位方向**。这是可诊断性缺陷，应修错误串。
+2. **不是缺数据**：`gaia/GaiaDR3/` 的 16 个 `.xpsd` 是**按星等切片**（文件 09 = (19.80,20.00]，
+   文件 16 = (21.05,25.59]），全 sky 覆盖；M42 指向 `ra0=83.283333, dec0=-6.375556` 解析正确。
+3. **真实根因是选星样本被饱和星污染**：M42 视场最亮的 60 个源**全是饱和星**，其
+   box 积分星等不可靠 ⇒ 密度估计 `rho_img=49.46` 偏离真实值 ⇒ 极限星等迭代首个查询就取到
+   `m_lim=20.435` 且返回 0，而代码**在首个查询为 0 时直接放弃**（不做更亮 m_lim 的回退重试）。
+   银心 T4 因最亮星未饱和（`s0=6.19"/px`，采样粗）而收敛到 `m_lim=8.156`。
+
+**候选修复方向（供负责人选择，agent 未擅自改动算法）**
+- (a) 选星时排除饱和星（或按"饱和占比 > 阈值"切换选星策略）；
+- (b) 密度/m_lim 初值不再只用图像侧样本，改用与滤镜/深度相关的先验或分档扫描；
+- (c) `N_returned==0` 时按更亮 m_lim 回退重试（当前无重试）；
+- (d) 无论选哪条，都必须修 `module_adapters.cpp` 那条**误报错误串**，并把 IPV 的 GBK 错误串按
+  UTF-8 归一（现打印为 `??????`）。
+
+**影响面（不变）**：VIS-501 的 M42 组、任何依赖 T2/T3 真实数据的验收。
+**银心 T4 组不受影响**（本轮 32 帧全链已跑通，见 ACCEPTANCE/E2E-501 证据）。
 

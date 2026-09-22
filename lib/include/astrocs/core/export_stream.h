@@ -103,8 +103,11 @@ class ExportStreamScheduler {
   std::size_t results_done_ = 0;
   std::size_t max_queue_ = 0;
   std::size_t peak_resident_ = 0;
+  // 在途子块字节 / 在途子块数：**读写都在 mu_ 之下**（reader 持锁递增，writer 持锁递减；
+  // ACCEPT-501 P-1 修掉此前 writer 侧无锁递减造成的竞争与无符号下溢）。背压唯一施加点
+  // 是 reader 的 inflight_count_ < 2*queue_depth 判据。
   std::size_t inflight_bytes_ = 0;
-  std::size_t inflight_count_ = 0;   // 在途子块数（背压唯一施加口径）   // 在途子块字节（受 mu_ 保护）
+  std::size_t inflight_count_ = 0;
   std::atomic<std::uint64_t> bytes_written_{0};
   std::atomic<bool> disk_full_{false};
 

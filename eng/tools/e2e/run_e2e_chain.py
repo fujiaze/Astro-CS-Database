@@ -8,12 +8,16 @@
 流程（每一步都有判据，fail-closed）：
   1. 生成三命令配置（eng/tools/e2e/make_e2e_configs.py，字段全部来自 --help 合同）；
   2. 串行跑 normalize → mosaic → export，任一 rc != 0 即红；
-  3. **manifest 链贯通**：P2 的 ASTROCS_INPUT_MANIFEST_HASH 必须等于 P1 的 run manifest 哈希；
-     P3 的 input_manifest_hash 必须等于 P2 的 run manifest 哈希（阶段间只走磁盘产品的可证形式）；
+  3. **manifest 链贯通**（口径见 module_adapters.cpp §20.3，不是拿产品自证）：
+     · P2 阶段内自洽：p2_samples.input_manifest_hash == p2_final.provenance.ASTROCS_INPUT_MANIFEST_HASH；
+     · P2→P3：用 Python **独立复算** p3n_input_manifest_hash 的公式
+       （sha256 over "/signal/properties" + "/signal/Moc.fits" 按序拼接），与 p3_verify/p3_writer 自报值比对；
+     · P3 阶段内自洽：p3_writer.input_manifest_hash == p3_verify.input_manifest_hash。
   4. 产品判据：p3_verify.json 的 coverage_ok==1 / reopen_ok==1 / canonical_match==true /
-     covered_px>0；output_phase3.fits 存在且尺寸 = 头 + W*H*sizeof(f64)；
-  5. 目录纪律：三阶段产物只落各自 output_dir；
-  6. 分段计时：每阶段墙钟落证据（供 PERF-501 / VIS-501 做基线）。
+     covered_px>0；output_phase3.fits 存在且**结构自洽**（HDU 数、BITPIX、NAXIS1/NAXIS2 与
+     p3_verify 的像素口径一致——不假设单一 f64 HDU，真实产品是 4 个 BITPIX=-32 HDU）；
+  5. 目录纪律：三阶段产物只落各自 output_dir（扫 output_dir 之外是否出现本阶段产品名）；
+  6. 分段计时：每阶段墙钟落证据（仅 --run 模式有值；--verify-only 下 timings 为空且不判红）。
 
 用法：
   python3 eng/tools/e2e/run_e2e_chain.py --run [--dataset T4] [--json-out PATH]
@@ -64,6 +68,25 @@ def p3_input_manifest_hash(hips_dir):
     if not blob:
         return ""
     return hashlib.sha256(blob).hexdigest()
+
+
+def fits_structure(path):
+    """只读 FITS 头部，返回 HDU 数 / 主 HDU 的 BITPIX 与 NAXIS。不假设单 HDU 或位深。"""
+    rec = {"n_hdu": 0}
+    try:
+        from astropy.io import fits as _fits
+        with _fits.open(path, memmap=False) as h:
+            rec["n_hdu"] = len(h)
+            hd = h[0].header
+            rec["bitpix"] = hd.get("BITPIX")
+            rec["naxis1"] = hd.get("NAXIS1")
+            rec["naxis2"] = hd.get("NAXIS2")
+            rec["hdus"] = [{"bitpix": x.header.get("BITPIX"),
+                            "naxis1": x.header.get("NAXIS1"),
+                            "naxis2": x.header.get("NAXIS2")} for x in h]
+    except Exception as e:      # 读不动就是判据失败，不静默
+        rec["error"] = "%s: %s" % (type(e).__name__, e)
+    return rec
 
 
 def load_json(p):
@@ -153,8 +176,34 @@ def verify_chain(dataset, timings, findings):
             findings.append("E2E-E4 output_fits 不存在: %s" % fits)
         else:
             ev["fits_bytes"] = os.path.getsize(fits)
+            ev["fits_structure"] = fits_structure(fits)
+            fs = ev["fits_structure"]
+            if fs.get("error"):
+                findings.append("E2E-E4 FITS 结构读取失败: %s" % fs["error"])
+            else:
+                if fs["n_hdu"] < 1:
+                    findings.append("E2E-E4 FITS 无 HDU")
+                # 结构自洽：主 HDU 的像素数与 p3_verify 的 total_px 一致（不假设位深/单 HDU）
+                if fs.get("naxis1") and fs.get("naxis2"):
+                    px = fs["naxis1"] * fs["naxis2"]
+                    ev["fits_pixels"] = px
+                    if ev["p3_verify"].get("total_px") and px != ev["p3_verify"]["total_px"]:
+                        findings.append("E2E-E4 FITS 像素数 %d != p3_verify.total_px %s"
+                                        % (px, ev["p3_verify"]["total_px"]))
+                if fs.get("bitpix") not in (-32, -64, 16, 32, 8):
+                    findings.append("E2E-E4 FITS BITPIX 非法: %s" % fs.get("bitpix"))
     else:
         findings.append("E2E-E3 缺 p3_verify.json")
+
+    # 5. 目录纪律：本阶段的运行清单与产品必须落在本阶段 output_dir 内
+    for tag, d, man in (("P1", p1, m1), ("P2", p2, m2), ("P3", p3, m3)):
+        for pth in (man, os.path.join(d, "alloc_report.json")):
+            if pth and os.path.isfile(pth):
+                real_d = os.path.realpath(d)
+                real_p = os.path.realpath(pth)
+                if not real_p.startswith(real_d + os.sep):
+                    findings.append("E2E-E5 %s 产物落在 output_dir 之外: %s" % (tag, pth))
+    ev["dir_discipline"] = "checked"
     return not findings, ev
 
 

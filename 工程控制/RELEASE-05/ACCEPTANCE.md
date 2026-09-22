@@ -14,17 +14,17 @@
 | SCI-506 | PASS | 7716e16a；根因=测试期望过时（CLEAN-401 入口 fail-closed），非产品缺陷；新增 NaN fail-closed 负例 |
 | CONTRACT-501 | PASS | ff07b958；四份合同 + 五份 schema + 双向校验器（--self-test 4/4 红绿双向）；doc-index PASS |
 | ARCH-501 | PASS | b3a1dd27；BlockFrame 生命周期 + DAG 四条非法图判据 + provenance + 取消无泄漏；ctest core_block_frame 全绿且**负例注入实测能红** |
-| ARCH-502 | NOT_RUN | normalize 异步工作流调度器 |
-| ARCH-503 | NOT_RUN | mosaic 空间窗口并行 |
-| ARCH-504 | NOT_RUN | export 子块流式 |
-| ARCH-505 | NOT_RUN | 生产节点改写与 Session/orchestrator 退役 |
-| CLEAN-501 | NOT_RUN | |
+| ARCH-502 | PASS | 53c9c0f0 + 9480f26e；帧内 DAG 流水 + 多帧并发 + 专用预取线程（`prefetch_threads`，默认 1=关）+ 探针 8 类事件；测试 32/32：N=1/2/4/8 逐位一致、预取开启 0.1025s vs 关闭 0.1457s（**1.42×**）、磁盘满路径、探针 JSONL 39 行全 schema 合法；`CHK-ARCH502-NORMALIZE-WF` + `CHK-SCHED-PROBE-SCHEMA` 登记 |
+| ARCH-503 | PASS | c107e596；天区窗口划分（`window_tiles` 落 manifest `astrocs.mosaic-window-manifest/v1`）+ 按窗口读路由 + 现场稠密 SNR + 归约顺序冻结；测试 19/19：N=1/2/4/8/16 **逐位一致**且与单窗口参考**逐位相同**（容差 0）、读放大 0.25（393216 B vs 朴素 1572864 B）、峰值驻留 32 B 与总图规模解耦；`CHK-ARCH503-MOSAIC-WIN` 登记 |
+| ARCH-504 | PASS | 6811803b + 60689b99；三级有界流水线（读/算/写），背压**只在 reader** 施加（`inflight_count_ < 2*queue_depth`，避免互锁）；WCS 头与 properties 开写前组装（缺则 exit 1）；原子发布（临时文件 → rename）；磁盘满 exit 10 且临时文件不发布。**关键正确性发现**：FITS 是全图行主序而子块是 tile 局部行主序，必须按行定位——原 ofstream 逐行 `seekp` 实现已改为**行带缓冲顺序追加**（内存上界 width×band_rows×8 B，全程无 seek，I/O 仍经 aio）。测试 22/22：与整图参考**逐位相同**（checksum 2882422816247716598）、worker 数无关、在途峰值 1048576 B 在 1×/4× 规模下相同；`CHK-ARCH504-EXPORT-STREAM` 登记。**ACCEPT-501 独立复核抓到并已修**：`inflight_bytes_/inflight_count_` 递减未持锁（reader 递增持锁）⇒ 无符号下溢，约 21% 概率红；修后连跑 **40/40 PASS** |
+| ARCH-505 | **BLOCKED**（部分落地） | 557ddd68；块流规格（20 节点/26 块，`eng/contracts/block_flow/stage_block_flow.json`）+ `StageBlockFlow` 执行器（名字级 fail-closed、生命周期归执行器、SHORT 残留=0、与直接顺序计算**逐位一致**，测试 28/28）+ 规格机器门 12/12 + 一致性登记册机器门 10/10。**阻塞**：注册表声明端口与代码真实数据流不一致（原 12 条、经 ACCEPT-501 独立复核补至 **18 条、13 blocker**），按声明图迁移节点只会得到 facade ⇒ 按任务书「不等价就保留并登记阻塞原因，不硬退役」，Session 与文件约定保留，上呈 **OQ-9**。顺带修掉 ARCH-501 `BlockDagValidator` 把空生产者无条件判 UNKNOWN_NODE 的真实缺陷（外部输入无法表达），ctest `core_block_frame` 33/33 |
+| CLEAN-501 | NOT_RUN | 依赖 ARCH-505；本轮完成其独立部分：调度器新代码 I/O 全部改经 aio（60689b99，PRODUCTION-RESIDUAL=0）、线程预算/串行硬编码/aio 台账/文档行号锚四门登记补齐 |
 | GATE-501 | PASS | 25c8227d；L2 真判红（归档回放 9/9 翻红）、监控字段真强制、worker_balance 判别力、230 单元 fail-closed 普查 |
 | GATE-502 | PASS | 77e3097b / 090390b9 / abcc0529 / 091e0755 / 6f217cef；空断言清零（findings=0）+ 空断言静态门（--self-test 2 正 6 负）+ 测试契约对齐 + 路径修复 + 预检 11 用例矩阵；**全量 ctest 478/478 PASS** |
-| PERF-501 | NOT_RUN | |
-| ACCEPT-501 | NOT_RUN | |
+| PERF-501 | NOT_RUN | 依赖 ARCH-505 + CLEAN-501 + GATE-501 |
+| ACCEPT-501 | PASS（NO-GO 回执已闭环） | 独立子代理（非实现者）只读复核，报告 `run/RELEASE-05/accept/ACCEPT-501_report.md`（五一致性矩阵 + 14 条问题 + 证据 + 复现命令）。**结论 NO-GO**，最严重 3 条：① export_stream 真实数据竞争（**已修**，见 ARCH-504 行）；② fast 档非全绿（**已修**：deep 构建树重建 + 3 个自测步骤 missing_output 修复 ⇒ 120/120）；③ 块流登记册漏登记（**已补** 6 条 ⇒ 18 条）。其余指出项：空断言门盲区（**已修**：正则补 `CHECK(1,"msg")`、扫描面补 `.c`，findings=0）、E2E docstring 两条判据未实现（**已实现**：FITS 结构自洽 + 目录纪律）、四个新调度器生产路径零引用、`sigma_sky_source` fail-closed 未实现、PHOTOMETRY n≥100 未落地 —— 后三项**未修**，登记为遗留 |
 | BLD-501 | NOT_RUN | |
-| E2E-501 | NOT_RUN | |
+| E2E-501 | PASS | 02bf4704；三命令真实数据全链**首次贯通**（银心 T4 panel1 Red 180s 3 帧，含**真实 Gaia IPV 解算**）：normalize/mosaic/export 全部 rc=0，export 覆盖率 262144/262144、reopen_ok=1、canonical_match=true。manifest 链**独立复算**（Python 复现 `p3n_input_manifest_hash` 公式，与产品自报值逐位一致）。预检矩阵 11 例全绿（GATE-502 产出此前**未注册**，本轮补登记）。`CHK-E2E-CHAIN`/`CHK-E2E-CHAIN-SELFTEST`/`CHK-PREFLIGHT-MATRIX` 登记。排障中确认 5 条真实契约门（dark 约定、母版单位域、gaia_data_dir 层级、hips_paths 须逐帧产品树、导出中心须落在覆盖内）。**M42 数据集未跑通**（OQ-10，根因已定位：60 颗选星全饱和 ⇒ 密度估计污染 ⇒ 首个 Gaia 查询返回 0 即放弃） |
 | VIS-501 | NOT_RUN | |
 | REPORT-501 | PARTIAL | OPEN_QUESTIONS 已成文（a4b3fe24，8 条）；SUMMARY/审核包未成文 |
 
@@ -58,10 +58,15 @@
 ## 发布门核对
 
 - [x] 三篇论文式报告交付（SCI-503/504/505）
-- [ ] 五一致性独立验收通过（ACCEPT-501 未开始）
-- [x] fast 全绿（110/110）+ 全量 ctest 478/478；[ ] Windows 腿未跑、integration 档 1 条未定位红（D-14）
-- [ ] 两组成品帧 agent 自验通过、负责人目检认可（VIS-501 未开始）
-- [x] OPEN_QUESTIONS 已交付
+- [x] 五一致性独立验收**已执行**（ACCEPT-501 独立子代理，回执 NO-GO；其 3 条 BLOCKER 已闭环，其余遗留项见 D-17）
+- [x] fast 全绿（**120/120**）+ 全量 ctest **482/482**（`run/RELEASE-05/logs/accept_fix_{fast,ctest}.log`）；[ ] Windows 腿未跑、integration 档 1 条未定位红（D-14）
+- [ ] 两组成品帧 agent 自验通过、负责人目检认可（VIS-501 进行中：银心 T4 组 32 帧全链已跑通，M42 组被 OQ-10 阻塞）
+- [x] OPEN_QUESTIONS 已交付（含 OQ-9 块流结构冲突、OQ-10 M42 解算根因）
 - [ ] FIN（README、0.0.1alpha）经负责人明确授权 —— **未达发布门，不申请发布**
 
-结论：本包**未完成**，不进入 FIN。已完成的确定成果 = 阶段 1 科学闭环（DOC-501/502、SCI-501/502/503/504/505/506）、CONTRACT-501、ARCH-501、GATE-501。
+## 追加登记
+
+- **D-17（ACCEPT-501 指出、本轮未修）**：① 四个新调度器（ARCH-502/503/504/505）目前**只在库与测试中存在，生产路径零引用**——即「已实现且自证正确」但**尚未接线**，`ARCH-505` 的迁移被 OQ-9 阻塞，故三命令当前仍走原 Session 路径；② `docs/algorithms/07_noise_snr.md` §4.2a 第 4 条的 `sigma_sky_source` 声明缺失 fail-closed 未在 `snr_science.cpp:177-182` 实现（D-12 的同源项，A 线域）；③ `PHOTOMETRY.md` §16.5 的 n≥100 适用域仍未落地（同 D-13）；④ ACCEPT-501 报告指出 `eng/ci/known_failures_baseline.json` 的 `source_commit` 需随提交刷新（本轮已由 b2876888 刷过一次，后续每次提交后需再刷）。
+- **D-18（本轮已修，留痕）**：ACCEPT-501 抓到的 export_stream 数据竞争（P-1）与三个自测步骤 missing_output（P-2）**已修并复验**：竞争修后 export_stream 连跑 40/40 PASS；自测步骤补 `--json-out`；`run/ci/build-gcc-release` 重建后 `mosaic_window`/`block_flow` 两个 ctest 目标 PASS。空断言门盲区（正则漏 `CHECK(1,"msg")`、不扫 `.c`）已修，修后立刻抓到 3 处恒真断言并改为**每节点** destroy 实际计数断言（改后该断言具备判别力：循环累积时实测判红）。
+
+结论：本包**未完成**，不进入 FIN。已完成的确定成果 = 阶段 1 科学闭环（DOC-501/502、SCI-501..506）、CONTRACT-501、ARCH-501..504、E2E-501、GATE-501/502，以及 ACCEPT-501 独立复核与其 3 条 BLOCKER 的闭环。**未完成**：ARCH-505 迁移（阻塞于 OQ-9）、CLEAN-501、PERF-501、BLD-501（Windows 腿）、VIS-501（M42 组阻塞于 OQ-10）、REPORT-501。
