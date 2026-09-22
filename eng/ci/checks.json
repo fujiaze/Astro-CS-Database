@@ -6077,8 +6077,6 @@
         "python3",
         "eng/tools/quality/check_photometry_apply.py",
         "--self-test",
-        "--calibrated",
-        "eng/ci/fixtures/photometry/calibrated_crop256.fits",
         "--workdir",
         "run/ci/photometry-apply",
         "--json-out",

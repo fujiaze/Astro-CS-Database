@@ -17,7 +17,8 @@
     独立的 ac::optimize_dark_k（鲁棒回归）未编译未接线。
   - 生产调用方仅 ac_calibrate_frame（lib/phase1_session/p1_session.cpp:243）。
   - FP64 ABI 仅 calibrate_f64 真双精度，master/correct 的 _f64 内部降级 float。
-  - normalize_flat/compute_mad 无调用方；apply_photometry 未编译。
+  - normalize_flat/compute_mad 无调用方；apply_photometry 已编译且生产已接线
+    （Phase1 photometry 节点同一步内施加，RULING-DOC-01 订正）。
   - 缺陷清单 DISP-CAL-001..011 登记（ALG-CAL §10）：无 extern "C" 异常屏障、
     负 median 未防护、ac_set_num_threads 全局 ICV、bilinear 实为 IDW、
     cosmetic 统计不过滤 NaN、无取消检查点、w·h int 溢出等。**未改任何代码**。

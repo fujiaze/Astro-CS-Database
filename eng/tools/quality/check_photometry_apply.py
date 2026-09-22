@@ -359,6 +359,29 @@ def run_discriminative(cal_path: str, ks: list, workdir: Path,
 
 
 # ────────────────────────────────────────────────────────────────────────────
+def synth_calibrated(path):
+    """--calibrated 缺失时的自给自足夹具: 确定性合成一张 256x256 float32 校准面。
+
+    仓库约定 FITS 不入库 (.gitignore `*.fits`), 故门禁自检**不得依赖仓内 FITS 文件**;
+    否则全新检出时夹具缺失 -> 门恒红。合成面覆盖真实量级 (~1e2 ADU)、大动态范围与
+    NaN/+Inf/-Inf 像素, 用于证明判据的判别力 (k*I 绿; 漏乘 / k^2*I / 半帧红)——
+    判据逻辑与具体像素无关。
+    """
+    import numpy as np
+    from astropy.io import fits
+    rng = np.random.default_rng(20260922)
+    n = 256
+    y, x = np.mgrid[0:n, 0:n]
+    base = 140.0 + 0.5 * x + 0.25 * y
+    src = 4000.0 * np.exp(-((x - 128.0) ** 2 + (y - 128.0) ** 2) / (2 * 6.0 ** 2))
+    d = (base + src + rng.normal(0.0, 3.0, size=(n, n))).astype("float32")
+    d[0, 0] = np.nan
+    d[0, 1] = np.inf
+    d[0, 2] = -np.inf
+    fits.PrimaryHDU(d).writeto(path, overwrite=True)
+    return str(path)
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="independent photometry-apply verifier")
     ap.add_argument("target", nargs="?", help="run dir or p1_phot.json (gate mode)")
@@ -374,15 +397,17 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     if args.self_test:
-        if not args.calibrated:
-            print(json.dumps({"verdict": "error", "reason": "--calibrated required"},
-                             ensure_ascii=False))
-            return 2
+        # 自给自足: 未给 --calibrated 或文件不存在时合成夹具 (仓库不存 FITS, 见 synth_calibrated)。
+        cal = args.calibrated
+        if not cal or not Path(cal).is_file():
+            base = Path(args.workdir) if args.workdir else Path("run/ci/photometry-apply")
+            base.mkdir(parents=True, exist_ok=True)
+            cal = synth_calibrated(base / "synth_calibrated_256.fits")
         ks = args.k if args.k else [2.053358e-17, 1.03]
-        wd = Path(args.workdir) if args.workdir else Path(args.calibrated).parent / "selftest"
-        res = {"schema": SCHEMA, "mode": "self-test",
+        wd = Path(args.workdir) if args.workdir else Path(cal).parent / "selftest"
+        res = {"schema": SCHEMA, "mode": "self-test", "calibrated": str(cal),
                "crosscheck": run_crosscheck(),
-               "discriminative": run_discriminative(args.calibrated, ks, wd, args.rtol, args.atol)}
+               "discriminative": run_discriminative(cal, ks, wd, args.rtol, args.atol)}
         res["verdict"] = "pass" if (res["crosscheck"]["verdict"] == "pass"
                                     and res["discriminative"]["verdict"] == "pass") else "fail"
         code = 0 if res["verdict"] == "pass" else 1

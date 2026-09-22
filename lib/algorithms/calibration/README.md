@@ -159,7 +159,8 @@ batch_config.json（实验配置）、CALIBRATION_PROCESS.md（历史流程参�
 INTERNAL 死值）；generate_master_flat 负 median 未防护；
 ac_set_num_threads 进程级 ICV 副作用；bilinear 实为 IDW；cosmetic 统计
 不过滤 NaN；无取消检查点（session 层帧粒度替代）；w·h int31 溢出无防护；
-optimize_dark_k/apply_photometry 未编译未接线；normalize_flat/
+optimize_dark_k 未编译未接线；apply_photometry 已编译且生产已接线
+（Phase1 photometry 节点同一步内施加，RULING-DOC-01 订正）；normalize_flat/
 compute_mad 死代码风险。
 
 ## 10. 迁移（P1-CAL-IMPL 目标，不声明完成）
