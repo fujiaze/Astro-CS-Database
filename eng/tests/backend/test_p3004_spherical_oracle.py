@@ -81,7 +81,10 @@ class TestP3004SphericalOracle(unittest.TestCase):
                     os.path.join(AIO, "src", "aio_api.cpp"),
                     os.path.join(AIO, "src", "aio_log.cpp"),
                     os.path.join(AIO, "src", "aio_compressor.cpp"),
-                    os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp")]
+                    os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp"),
+                    # FIX-201: aio_file_io.h 的 sha256_hex 经 astrocs::crypto::Sha256
+                    #（单一实现 lib/algorithms/shared/crypto/sha256.cpp）。
+                    os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp")]
             incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
                     f"-I{os.path.join(AIO, 'include')}",
                     f"-I{os.path.join(AIO, 'src')}",

@@ -8,7 +8,7 @@
       · 纯 Python FITS 读取器(大端)校验 WCS 头(CTYPE/CRPIX/CRVAL/CD/BUNIT)
         + 读 signal/coverage 两 HDU。
       · 独立 gnomonic(切平面单位向量法)像素中心→世界往返(pixel→world→pixel)。
-      · 常量球面场 → 输出 SB 恒定(表面亮度保持, BUNIT=Jy)。
+      · 常量球面场 → 输出 SB 恒定(表面亮度保持, BUNIT=ADU/sr)。
       · 单位正确: SB = flux/areaspan(1e-8), 常量场 2.5 → 2.5e8。
       · tile seam: 常量场跨 tile 无人工接缝(输出处处恒等) → Ne 常量。
       · RA 0/360 wrap: 中心近 0° 时东侧像素 RA 跨 0/360 归一且 round-trip 成立。
@@ -52,6 +52,20 @@ def _compile_srcs(tmp, extra_srcs, out, incs, srcs, objs):
 
 
 # ============ 独立 Python FITS 读取器(大端) ============
+def _card_value(card):
+    """取 '=' 右侧的值: 引号内原样保留(含斜杠), 只剥离引号外的注释。
+
+    旧实现一律取 split("/")[0] 剥注释 ⇒ 把带斜杠的单位串静默截断
+    (ADU/sr → ADU), 使 BUNIT 断言变成对截断串的恒真比对(假绿)。
+    """
+    raw = card[card.find("=") + 1:].strip()
+    if raw.startswith("'"):
+        end = raw.find("'", 1)
+        if end > 0:
+            return raw[1:end].strip()
+    return raw.split("/")[0].strip().strip("'").strip()
+
+
 def _parse_hdr(blk):
     cards = []
     for i in range(0, 2880, 80):
@@ -72,8 +86,7 @@ def read_fits(path):
         for c in cards:
             k = c[:8].strip()
             if "=" in c:
-                v = c[c.find("=") + 1:].strip().split("/")[0].strip().strip("'").strip()
-                hdr[k] = v
+                hdr[k] = _card_value(c)
         pos += 2880
         bp = int(hdr.get("BITPIX", "0")); nx1 = int(hdr.get("NAXIS1", "0"))
         nx2 = int(hdr.get("NAXIS2", "1")); naxis = int(hdr.get("NAXIS", "0"))
@@ -173,10 +186,15 @@ class TestPhase3ReprojOracle(unittest.TestCase):
         self.assertAlmostEqual(float(hdr["CRVAL2"]), 30.0, places=9)
         self.assertAlmostEqual(float(hdr["CD1_1"]), -0.05, places=12)  # east_left → CD1_1<0
         self.assertAlmostEqual(float(hdr["CD2_2"]), 0.05, places=12)
-        # P3-002 冻结合同: BUNIT 来源输入合同 — 缺省 ADU 面亮度, 绝不 Jy/beam 默认
-        # (docs/science/PHASE3_HIPS_TO_FITS.md §单位; eng/tests/backend/test_p3005_fits_output.py 同口径)。
-        # R12 终判: 原 oracle 期望 "Jy" 为 oracle fixture 自相矛盾, 生产 BUNIT=ADU 正确。
-        self.assertEqual(hdr["BUNIT"], "ADU")
+        # P3-002 冻结合同: BUNIT 来源输入合同 — fixture 的 signal/properties 显式声明
+        # BUNIT=ADU/sr（phase2_fixture_main.cpp declare_units_for_all），生产逐字继承;
+        # 即便未声明, 缺省串亦为 canonical "ADU/sr"（docs/contracts/DATA_SEMANTICS.md
+        # §31.1 signal_sb / §31.1a「产品 FITS/HiPS 写盘 BUNIT 一律取该串」）。裸 ADU 是
+        # 每像素计数口径, 与面亮度平面数值不符且量纲不可判（§31.2）, 绝不 Jy/beam 默认。
+        # R12 终判: 原 oracle 期望 "Jy" 为 oracle fixture 自相矛盾。
+        # GATE-502 订正: 旧断言期望裸 "ADU", 且被 read_fits 的 split("/")[0] 截断假绿
+        # (ADU/sr 被读成 ADU) ⇒ 判据退化; 现读取器保引号内原文, 断言按 canonical 串。
+        self.assertEqual(hdr["BUNIT"], "ADU/sr")
 
     def test_02_wcs_roundtrip_pixworld(self):
         """独立 gnomonic pixel→world→pixel 往返(用写的 CD/CRPIX): 误差<1e-6 px。"""
@@ -200,7 +218,7 @@ class TestPhase3ReprojOracle(unittest.TestCase):
             self.assertAlmostEqual(iy + crpix[1], y, delta=1e-4)
 
     def test_03_constant_field_surface_brightness(self):
-        """常量球面场 → 输出 SB 恒定(处处一致); BUNIT=ADU 面亮度; SB=flux/areaspan(1e-8)。"""
+        """常量球面场 → 输出 SB 恒定(处处一致); BUNIT=ADU/sr 面亮度; SB=flux/areaspan(1e-8)。"""
         hdr, s_vals, _cov, _covv = self._fits(self.const, 0.0, 30.0, 0.05, 20, 20, "bilinear")
         # const flux=2.5, each tile AREA=1e-8 → SB=2.5/1e-8=2.5e8
         self.assertEqual(len(s_vals), 400)
@@ -251,10 +269,11 @@ class TestPhase3ReprojOracle(unittest.TestCase):
         self.assertEqual(len(uniq), 1, f"常量场跨 tile 输出应恒定(seam 无伪影), got {uniq}")
 
     def test_08_surface_brightness_bunit_preserved(self):
-        """BUNIT=ADU(表面亮度) 且常量场输出为正有限(单位正确, 无越界/NaN)。"""
+        """BUNIT=ADU/sr(canonical 面亮度串) 且常量场输出为正有限(单位正确, 无越界/NaN)。"""
         hdr, s_vals, cov_hdr, cov_vals = self._fits(self.const, -20.0, -5.0, 0.05, 20, 20, "bilinear")
-        # P3-002 冻结合同: BUNIT 来源输入合同, 缺省 ADU, 绝不 Jy/beam 默认(见 test_01 注)。
-        self.assertEqual(hdr["BUNIT"], "ADU")
+        # P3-002 冻结合同: BUNIT 来源输入合同, 缺省/声明同为 canonical "ADU/sr",
+        # 绝不 Jy/beam 默认(见 test_01 注)。
+        self.assertEqual(hdr["BUNIT"], "ADU/sr")
         for v in s_vals:
             self.assertTrue(v == v and v > 0, f"常量场 SB 应正有限, got {v}")
 
