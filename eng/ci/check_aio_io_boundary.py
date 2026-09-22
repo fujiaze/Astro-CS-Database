@@ -37,6 +37,26 @@ I/O 点穷举表（ASTROCS_DESIGN §9，此外无）
 HARD（无白名单，命中即红）
   H1 lib/algorithms/drizzle/hips/**（HiPS 原子发布实现，含 aio_publish.cpp）
      与 lib/algorithms/fits_output/**（FITS 输出）内零文件系统原语。
+     判据精度（2026-09-23 FAST-RED-A-01）：`open` 规则只认 POSIX open(2) 调用，
+     C++ 里**名为 open 的成员函数声明/定义**不算文件系统原语（详见
+     is_member_open_declaration）——否则 P3FitsStream::open 这类方法声明会把
+     HARD-H1 恒红（假红），并连带把 export_stream.h / module_adapters.cpp 的
+     接口声明误判成 PRODUCTION-RESIDUAL。真实调用（`::open(`、`= open(`、
+     语句首 `open(`、interposer 的自由函数定义）仍判红（负例15 双向锁定）。
+     判据精度（2026-09-23 AIO-PREC-01，**同一类缺陷、同一套修法**）：`filesystem`
+     规则只认**真正触碰文件系统的操作**（`create_directory`/`create_directories`/
+     `remove`/`remove_all`/`copy`/`copy_file`/`rename`/`resize_file`/
+     `permissions`/`last_write_time`/`create_hard_link`/`create_symlink`/
+     `temp_directory_path`/`current_path`/`absolute`/`canonical`/`exists`/
+     `is_*`/`file_size`/`equivalent`/`space`/`directory_iterator`/
+     `recursive_directory_iterator`…），**不**认纯路径算术（`fs::path` 类型与
+     构造/转换、`std::filesystem::path` 作类型名、`fs::u8path`、`fs::relative`/
+     `proximate`/`lexically_*` 词法运算、`fs::copy_options`/`perm_options`/
+     `file_type`/`directory_options`/`file_status`/`file_time_type`/
+     `space_info` 等类型与枚举名、`namespace fs = std::filesystem;` 别名声明）。
+     详见 _FS_PURE_PATH_CONSTRUCTS 与 is_pure_path_construct；负例16/17 双向锁定
+     （纯路径算术不报 / 真实 fs 操作必报）。未列出的 `fs::X` **一律命中**
+     （fail-closed：新增 fs API 不会被静默放过）。
   H2 六个「块↔文件」接口（aio_frame_save_cache / aio_frame_load_cache /
      aio_frame_export_block_fits / aio_frame_export_block_xml /
      aio_frame_export_all_xml / aio_pipeline_export_xml）在
@@ -56,6 +76,10 @@ INVENTORY（棘轮上限，fail-closed）
 
 CLEAN-403（棘轮收口；fail-closed）
   C1 PRODUCTION-RESIDUAL 类别命中数 = 0（生产路径直连 I/O 一律经 aio）。
+     类别由 classify() 决定；**非生产/诊断面**按 ASTROCS_DESIGN §9「必须删除或
+     明确降级为非生产/诊断并登记」逐条降级登记（如 lib/algorithms/coverage/tools/
+     与 lib/algorithms/integration/v6/oracle/recon_dump.cpp 的 DEV-TOOL）。降级
+     必须逐条给理由与归属，且台账命中数受棘轮约束（只减不增）。
      分类序: 测试面（路径含 eng/tests/ 或 test/ 目录）→ 各登记类别 → 生产兜底。
   C2 TEST-HARNESS 白名单与实际**一一对应**（文件 + 函数 + 理由）:
      · 测试面文件的台账条目必须是 TEST-HARNESS（反之亦然）⇒ 防「白名单掩盖
@@ -78,7 +102,7 @@ A44（前台追加，同源违规；ASTROCS_DESIGN §2.1 + §9.73 裁决 A44）
 
 用法
   python3 eng/ci/check_aio_io_boundary.py                    # 扫真实仓库；rc=0 全绿
-  python3 eng/ci/check_aio_io_boundary.py --self-test        # 合成树正例+负例（能红能绿）
+  python3 eng/ci/check_aio_io_boundary.py --self-test        # 合成树正例+17 类负例（能红能绿）
   python3 eng/ci/check_aio_io_boundary.py --report           # 附带完整台账清单
   python3 eng/ci/check_aio_io_boundary.py --strict-inventory # 陈旧登记项也判红
   python3 eng/ci/check_aio_io_boundary.py --update-inventory # 重算台账（显式；写 eng/ci/ledgers/）
@@ -143,12 +167,18 @@ def is_test_path(rel):
     return any(part in ("tests", "test") for part in rel.split("/")[:-1])
 
 # ── 规则集（与 FIX-201 验收门同口径） ────────────────────────────────────────
+# filesystem 规则（命名常量：self_test 负例16 直接按构造名断言，避免与 RULES 索引耦合）：
+# 只认 `fs::X` / `std::filesystem::X`（X = 构造名），由 is_pure_path_construct 剔除
+# 纯路径算术；裸 `std::filesystem`（命名空间别名声明）不接 `::X` ⇒ 不是操作 ⇒ 不命中。
+FS_RULE_RX = re.compile(
+    r"(?<![A-Za-z0-9_])(?:std::filesystem|fs)::[ \t]*([A-Za-z_]\w*)")
+
 RULES = (
     ("fopen", re.compile(r"(?<![A-Za-z0-9_])(?:_?w?fopen|freopen)\s*\(")),
     # C++ 流族: fstream / ofstream / ifstream / iostream (含 std:: 前缀形态)。
     ("cxx-stream", re.compile(r"(?<![A-Za-z0-9_])(?:std::)?(?:[io]?fstream|iostream)\b")),
     ("open", re.compile(r"(?<![A-Za-z0-9_.>:])(?:::)?_?open\s*\(")),
-    ("filesystem", re.compile(r"(?<![A-Za-z0-9_])std::filesystem\b|(?<![A-Za-z0-9_])fs::")),
+    ("filesystem", FS_RULE_RX),
     ("fs-mutate", re.compile(
         r"(?<![A-Za-z0-9_])(?:::)?_?(?:unlink|rmdir|mkdir|opendir|readdir|closedir|"
         r"fsync|ftruncate|truncate|symlink|_commit)\s*\(")),
@@ -210,6 +240,18 @@ CATEGORY_RULES = (
      "后续控制包（I/O 收口）"),
     ("lib/algorithms/coverage/tools/", "DEV-TOOL",
      "开发/诊断命令行工具（非三命令生产路径）", "无（工具面）"),
+    # 2026-09-23 FAST-RED-A-01：稀疏重建算子的**对照实验 dump harness**。证据：
+    # 文件头自述「对照实验用，非生产路径」；其 CMakeLists 为**独立构建**
+    # （cmake -S lib/algorithms/integration/v6/oracle -B <build>），不进根构建
+    # （根 CMakeLists 无 add_subdirectory）、不注册 ctest；唯一消费者是
+    # oracle/recon_exp04_parity.py 与实验单元 EXP-04 的 Python 算子对拍。
+    # 按 ASTROCS_DESIGN §9「必须删除或**明确降级为非生产/诊断并登记**」降级登记为
+    # DEV-TOOL（与 lib/algorithms/coverage/tools/ 同口径）。**只登记这一个文件**，
+    # 不放行整目录 ⇒ 该目录内新增文件仍按 lib/algorithms/ 兜底判 PRODUCTION-RESIDUAL。
+    ("lib/algorithms/integration/v6/oracle/recon_dump.cpp", "DEV-TOOL",
+     "稀疏重建算子对照实验 dump harness（非生产路径：独立构建、不进根构建/ctest；"
+     "唯一消费者 = oracle/recon_exp04_parity.py + 实验单元 EXP-04）",
+     "无（实验/诊断面）"),
     ("lib/algorithms/", "PRODUCTION-RESIDUAL",
      "算法面生产源直连 I/O；CLEAN-403 已收口 ⇒ 新增即红",
      "CLEAN-403（已收口；新增越界须经 aio）"),
@@ -316,6 +358,102 @@ def mask_noncode(text):
     return "".join(out)
 
 
+# ── 「open」规则精度：排除 C++ 里名为 open 的**成员函数**声明/定义 ────────────
+# 规则本意是 POSIX open(2) 调用；但 `open(` 同样命中成员函数声明/定义
+# （P3FitsStream::open / IStream::open / 适配器的 open override），把「方法声明」
+# 误报成「文件系统原语」：既污染 HARD-H1（fits_output 内零原语），又把与 I/O
+# 无关的文件推进 UNREGISTERED + PRODUCTION-RESIDUAL。
+# 判为「声明/定义」（不计命中）需**同时**满足：
+#   ① 同行 `open` 之前是返回类型形态（标识符/限定名/模板实参 + 空白或 * &）；
+#   ② 该前缀末标识符不是语句上下文关键字（return/throw/new/... 才是调用上下文）；
+#   ③ 参数表之后是 `;`（纯声明）或带成员标记（virtual/override/final/noexcept/=0）。
+# 仍计入命中的形态（判别力不减）：`::open(p, f)`、`= open(p, f)`、
+# `return open(...)`、语句首 `open(p, f);`、自由函数**定义**
+# `int open(const char*, int, ...) {`（LD_PRELOAD interposer 形态，其命中保留在
+# 台账里 ⇒ 已登记计数不变）。负例面见 self_test 负例15（声明不报 / 真调用必报）。
+_DECL_PREFIX_RX = re.compile(r"^\s*(?:[A-Za-z_]\w*(?:::\w+)*(?:\s*<[^<>;(){}]*>)?[\s*&]+)+$")
+_STMT_CONTEXT_WORDS = frozenset((
+    "return", "throw", "new", "delete", "sizeof", "co_return", "co_await", "case",
+    "else", "do", "and", "or", "not", "static_assert", "assert", "if", "while",
+    "for", "switch", "catch", "goto", "typedef", "using", "extern"))
+_MEMBER_MARK_RX = re.compile(r"\b(?:override|final|virtual)\b|=\s*0\b|\bnoexcept\b")
+
+
+def _after_parens(masked, m):
+    """`open(` 参数表右括号之后的文本（至多 120 字符）；括号不成对返回 ""。"""
+    i = m.end() - 1
+    if i < 0 or masked[i] != "(":
+        return ""
+    depth = 0
+    for j in range(i, len(masked)):
+        if masked[j] == "(":
+            depth += 1
+        elif masked[j] == ")":
+            depth -= 1
+            if depth == 0:
+                return masked[j + 1:j + 1 + 120]
+    return ""
+
+
+def is_member_open_declaration(masked, m):
+    """该 `open(` 是否为 C++ 成员函数的声明/定义（而非 POSIX open(2) 调用）。"""
+    line_start = masked.rfind("\n", 0, m.start()) + 1
+    prefix = masked[line_start:m.start()]
+    if not _DECL_PREFIX_RX.match(prefix):
+        return False
+    words = re.findall(r"[A-Za-z_]\w*", prefix)
+    if words and words[-1] in _STMT_CONTEXT_WORDS:
+        return False
+    tail = _after_parens(masked, m)
+    suffix = tail.split(";", 1)[0].split("{", 1)[0]   # 只取声明后缀，不含函数体
+    if _MEMBER_MARK_RX.search(prefix) or _MEMBER_MARK_RX.search(suffix):
+        return True
+    return tail.lstrip().startswith(";")
+
+
+# ── 「filesystem」规则精度：只认真正触碰文件系统的操作 ────────────────────────
+# 规则本意（ASTROCS_DESIGN「aio 是文件级唯一 I/O 边界」＋机器判据原文「全仓文件
+# 打开 / 流式读写 / 文件系统写操作，除 aio 内部外应为 0」）是**触碰文件系统的
+# 操作**；原实现是纯 token 匹配（`std::filesystem` / `fs::`），把纯路径算术也
+# 计成文件系统原语，与 `open` 规则（见上）是同一类缺陷：
+#   `fs::path p = x;`、`std::filesystem::path` 作类型名、`fs::path(...)` 转换、
+#   `fs::u8path(...)`、`fs::relative(a,b)` 词法拼接、`fs::copy_options::…` 枚举、
+#   `namespace fs = std::filesystem;` 别名声明
+# —— 这些只在内存里拼字符串 / 取类型 / 取枚举，不产生任何文件系统调用。
+#
+# 判据（双向锁，见 self_test 负例16/17）：
+#   · 命中 = `fs::X` / `std::filesystem::X`，且 X **不在**下面的纯路径算术集内；
+#   · 不命中 = X ∈ _FS_PURE_PATH_CONSTRUCTS（类型名 / 构造与转换 / 词法运算 /
+#     枚举名 / 结果类型名）；
+#   · **未列出的 X 一律命中** ⇒ fail-closed：将来新增的 fs API（如
+#     `hard_link_count` / `is_socket` / `create_directory_symlink`）不会被静默
+#     放过，精度修正只做减法、不做判别力让步。
+#   · `fs::absolute` / `canonical` / `weakly_canonical` 虽属路径名变换，但按标准
+#     实现会真正访问文件系统（getcwd / realpath）⇒ **保留命中**（保守侧）。
+#   · `fs::directory_entry` 构造会查询文件系统状态 ⇒ **保留命中**（保守侧）。
+#   · 新匹配集 ⊆ 旧匹配集（旧规则命中一切 `fs::`/`std::filesystem`）⇒ 逐文件
+#     命中数**只减不增**，棘轮方向不变。
+_FS_PURE_PATH_CONSTRUCTS = frozenset((
+    # 类型与构造/转换：只在内存里拼路径字符串
+    "path", "u8path",
+    # 纯词法路径运算（C++ 标准规定为 lexically_* 语义，不访问文件系统）
+    "relative", "proximate",
+    "lexically_normal", "lexically_relative", "lexically_proximate",
+    # 选项/结果类型与枚举名（fs::copy_options::overwrite_existing 之类，不是操作）
+    "copy_options", "perm_options", "directory_options",
+    "file_type", "file_status", "file_time_type", "space_info",
+))
+
+
+def is_pure_path_construct(m):
+    """该 `fs::X` / `std::filesystem::X` 是否为**纯路径算术**（不触碰文件系统）。
+
+    仅当 X 明确列在 _FS_PURE_PATH_CONSTRUCTS 内才判为纯路径算术；其余一律计入
+    命中（fail-closed：未登记的 fs API 仍判红，不因精度修正而静默放过）。
+    """
+    return m.group(1) in _FS_PURE_PATH_CONSTRUCTS
+
+
 def scan(root):
     """返回 {relpath: [(lineno, rule, snippet), ...]}（注释行不计）。"""
     hits = {}
@@ -334,6 +472,10 @@ def scan(root):
                 src_line = lines[ln - 1] if 0 < ln <= len(lines) else ""
                 if _is_comment(src_line):
                     continue
+                if rule == "open" and is_member_open_declaration(masked, m):
+                    continue          # C++ 成员函数声明/定义，非文件系统原语
+                if rule == "filesystem" and is_pure_path_construct(m):
+                    continue          # 纯路径算术（类型/构造/词法运算），非文件系统原语
                 found.append((ln, rule, src_line.strip()[:140]))
         if found:
             found.sort()
@@ -690,7 +832,14 @@ def _mk(path, text):
 
 
 def self_test():
-    """合成同构树上证明：干净树判绿；八类注入各自判红；aio 内部不误报。"""
+    """合成同构树上证明：干净树判绿；17 类注入各自判红；aio 内部不误报。
+
+    负例 15 = `open` 规则精度双向锁：成员函数声明不得误报、真实 `::open` 调用必红。
+    负例 16 = `filesystem` 规则精度双向锁（HARD 面）：纯路径算术不得误报、真实 fs
+              操作（逐构造名）必须全部命中。
+    负例 17 = `filesystem` 规则精度双向锁（台账面）：纯路径算术不得进入台账、
+              真实 fs 操作未登记必红。
+    """
     ok = True
     with tempfile.TemporaryDirectory(prefix="aio_io_boundary_selftest_") as td:
         aio = os.path.join(td, "lib/infrastructure/aio/src")
@@ -882,6 +1031,125 @@ def self_test():
         print("  self-test 负例14(扫描根缺失 fail-closed rc=2 / 补根后恢复): "
               "missing_test_root=%s restored=%s [%s]"
               % (n14_lib, n14_ok, "PASS" if n14 else "FAIL"))
+
+        # 负例 15：`open` 规则精度（能绿能红）—— C++ 成员函数**声明**不得被误报为
+        # 文件系统原语；同一位置换成真实 POSIX open 调用必须判红（HARD-H1）。
+        probe = os.path.join(fits, "selftest_open_probe.cpp")
+        _mk(probe, "class SelftestProbe {\n"
+                   "public:\n"
+                   "    int open(const char* p, int f);\n"
+                   "};\n")
+        res = evaluate(td, inv, strict_inventory=True)
+        n15_decl = not any(r.startswith("lib/algorithms/fits_output/") for r, _ in res["hard"])
+        _mk(probe, "int selftest_probe(void){ int fd = ::open(\"/tmp/x\", 0); return fd; }\n")
+        res = evaluate(td, inv, strict_inventory=True)
+        n15_call = any(r.startswith("lib/algorithms/fits_output/") for r, _ in res["hard"])
+        os.remove(probe)
+        n15 = n15_decl and n15_call
+        ok = ok and n15
+        print("  self-test 负例15(open 规则: 成员声明不误报 / 真实 ::open 必红): "
+              "decl_clean=%s call_red=%s [%s]"
+              % (n15_decl, n15_call, "PASS" if n15 else "FAIL"))
+
+        # 负例 16：\`filesystem\` 规则精度（能绿能红）—— 纯路径算术不得被误报为
+        # 文件系统原语；同一位置换成真实 fs 操作必须判红（HARD-H1）。
+        # 双向锁：① 纯路径算术集（类型/构造/转换/词法运算/枚举/别名声明）一条都不得命中；
+        #        ② 真操作集（写/删/改名/复制/权限/迭代/元数据查询）逐条必须命中。
+        probe_fs = os.path.join(fits, "selftest_filesystem_probe.cpp")
+        _PURE_SRC = (
+            "#include <filesystem>\n"
+            "namespace fs = std::filesystem;\n"
+            "void selftest_pure_paths(const std::string& s) {\n"
+            "    fs::path p = s;\n"                                    # 类型 + 构造
+            "    std::filesystem::path q = p;\n"                       # 类型名
+            "    fs::path r = fs::path(s) / \"leaf\";\n"               # 转换 + 拼接
+            "    std::string n = r.filename().string();\n"             # path 成员
+            "    fs::path u = fs::u8path(s);\n"                        # 转换
+            "    fs::path rel = fs::relative(u, p);\n"                 # 纯词法运算
+            "    fs::path prox = fs::proximate(u, p);\n"               # 纯词法运算
+            "    auto o = fs::copy_options::overwrite_existing;\n"      # 枚举
+            "    (void)q; (void)n; (void)rel; (void)prox; (void)o;\n"
+            "}\n")
+        _IO_SRC = (
+            "#include <filesystem>\n"
+            "namespace fs = std::filesystem;\n"
+            "void selftest_real_fs_ops(const char* d) {\n"
+            "    std::error_code ec;\n"
+            "    fs::create_directories(d, ec);\n"
+            "    fs::create_directory(d, ec);\n"
+            "    fs::remove(d, ec);\n"
+            "    fs::remove_all(d, ec);\n"
+            "    fs::rename(fs::path(d), fs::path(d), ec);\n"
+            "    fs::copy(fs::path(d), fs::path(d), ec);\n"
+            "    fs::copy_file(fs::path(d), fs::path(d),\n"
+            "                  fs::copy_options::overwrite_existing, ec);\n"
+            "    fs::resize_file(fs::path(d), 0, ec);\n"
+            "    fs::permissions(fs::path(d), fs::perms::owner_read, ec);\n"
+            "    fs::last_write_time(fs::path(d), ec);\n"
+            "    fs::create_hard_link(fs::path(d), fs::path(d), ec);\n"
+            "    fs::create_symlink(fs::path(d), fs::path(d), ec);\n"
+            "    (void)fs::temp_directory_path(ec);\n"
+            "    (void)fs::current_path(ec);\n"
+            "    (void)std::filesystem::exists(d, ec);\n"
+            "    (void)fs::is_regular_file(fs::path(d), ec);\n"
+            "    (void)fs::is_directory(fs::path(d), ec);\n"
+            "    (void)fs::file_size(fs::path(d), ec);\n"
+            "    (void)fs::equivalent(fs::path(d), fs::path(d), ec);\n"
+            "    (void)fs::space(fs::path(d), ec);\n"
+            "    for (const auto& e : fs::directory_iterator(d, ec)) { (void)e; }\n"
+            "    for (const auto& e : fs::recursive_directory_iterator(d, ec)) { (void)e; }\n"
+            "}\n")
+        _PURE_NAMES = {"path", "u8path", "relative", "proximate", "copy_options"}
+        _IO_NAMES = {"create_directories", "create_directory", "remove", "remove_all",
+                     "rename", "copy", "copy_file", "resize_file", "permissions",
+                     "last_write_time", "create_hard_link", "create_symlink",
+                     "temp_directory_path", "current_path", "exists",
+                     "is_regular_file", "is_directory", "file_size", "equivalent",
+                     "space", "directory_iterator", "recursive_directory_iterator"}
+
+        def _fs_names(src_text):
+            """按门自己的规则（FS_RULE_RX + is_pure_path_construct）取该源里的构造名。"""
+            mm = mask_noncode(src_text)
+            return {m.group(1) for m in FS_RULE_RX.finditer(mm)
+                    if not is_pure_path_construct(m)}
+
+        _mk(probe_fs, _PURE_SRC)
+        res = evaluate(td, inv, strict_inventory=True)
+        n16_pure = not any(r.startswith("lib/algorithms/fits_output/") for r, _ in res["hard"])
+        n16_pure_names = not (_fs_names(_PURE_SRC) & _PURE_NAMES)
+        _mk(probe_fs, _IO_SRC)
+        res = evaluate(td, inv, strict_inventory=True)
+        n16_io = any(r.startswith("lib/algorithms/fits_output/") for r, _ in res["hard"])
+        n16_io_names = _IO_NAMES <= _fs_names(_IO_SRC)
+        os.remove(probe_fs)
+        n16 = n16_pure and n16_pure_names and n16_io and n16_io_names
+        ok = ok and n16
+        print("  self-test 负例16(filesystem 规则: 纯路径算术不报 / 真实 fs 操作必报): "
+              "pure_clean=%s pure_names_clean=%s io_red=%s io_names_all_hit=%s [%s]"
+              % (n16_pure, n16_pure_names, n16_io, n16_io_names,
+                 "PASS" if n16 else "FAIL"))
+
+        # 负例 17：\`filesystem\` 规则精度在**台账面**的双向锁 —— 纯路径算术不得进入
+        # 台账（不产生「未登记/生产残留」假红）；真实 fs 操作进入台账（未登记必红）。
+        probe_inv = os.path.join(alg, "selftest_fs_inventory_probe.cpp")
+        _mk(probe_inv, _PURE_SRC)
+        res = evaluate(td, inv, strict_inventory=True)
+        n17_pure = ("lib/algorithms/clean_mod/selftest_fs_inventory_probe.cpp"
+                    not in res["unregistered"]
+                    and "lib/algorithms/clean_mod/selftest_fs_inventory_probe.cpp"
+                    not in res["residual"])
+        _mk(probe_inv, _IO_SRC)
+        res = evaluate(td, inv, strict_inventory=True)
+        n17_io = ("lib/algorithms/clean_mod/selftest_fs_inventory_probe.cpp"
+                  in res["unregistered"]
+                  and "lib/algorithms/clean_mod/selftest_fs_inventory_probe.cpp"
+                  in res["residual"])
+        os.remove(probe_inv)
+        n17 = n17_pure and n17_io
+        ok = ok and n17
+        print("  self-test 负例17(filesystem 规则台账面: 纯路径算术不进台账 / 真操作未登记必红): "
+              "pure_absent=%s io_flagged=%s [%s]"
+              % (n17_pure, n17_io, "PASS" if n17 else "FAIL"))
 
     print("AIO-IO-BOUNDARY_SELF-TEST_%s" % ("PASS" if ok else "FAIL"))
     return 0 if ok else 1

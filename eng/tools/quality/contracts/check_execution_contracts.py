@@ -20,11 +20,19 @@ Checks (V6.1 架构, 替代旧 OpenMP 宏/ACR CUDA 检查):
     (c) EXEC-AIO-READ-HANDLE-ESCAPE 每个 fits_open_file 所在函数必须有
         fits_close_file（句柄生命周期不跨线程/调用转移）;
     (d) EXEC-AIO-LOCK-UNOBSERVABLE  剩余串行化点必须走计数式 CfitsioLockGuard
-        （锁等待进 resource_timeseries.csv 的 lock_wait_ns，可观测）;
+        （锁等待进 resource_timeseries.csv 的 lock_wait_ns，可观测）。
+        **逐点位**判定：三个 cfitsio 串行化面文件（CFITSIO_SERIALIZATION_FILES）内
+        任何锁获取点位都必须是计数式守卫——同文件另有一处合规守卫**不能**豁免新点位；
+        另保留原「文件粒度」判据（cfitsio_io_mutex 存在而全文无计数守卫）⇒ 只增不减。
+        （旧实现只有文件粒度：注入的裸锁藏在合规点位之后即测不出来，负例 neg5 曾
+        静默判绿、判据失去判别力；2026-09-23 FAST-RED-A-01 修。）
     (e) EXEC-SMP-GLOBAL-READ-LOCK   sampler 读路径不得有进程级锁;
     (f) EXEC-AIO-READ-CHECK-VACUOUS 反向自证: 四个读函数必须真实存在且
         fits_open_file ≥ 4（防符号改名后判据静默退化）。
-  负例面: `--self-test` 对 (a)..(f) 逐条注入回归并断言判红。
+  负例面: `--self-test` 对 (a)..(f) 逐条注入回归并断言判红（含 (d) 的逐点位
+  回归 neg5/neg7）。注入锚缺失时打印 `SELFTEST_ANCHOR_STALE: case=... file=... anchor=...`
+  并判红（docs/ci/01_CHECKS.md §1「锚存活」：不得静默降级——旧实现 _mutate 返回 False
+  被忽略，锚随生产代码演化失配后负例静默判绿）。
 - 无 ACR 生产接入 (ACR DORMANT_NOT_IN_PRODUCTION)。
 
 Exit: 0 PASS, 1 contract FAIL, 2 env error, 3 schema error
@@ -38,6 +46,20 @@ TILE_READ_FUNCS = ("read_tile_t", "read_tile_pixel_t", "read_tile_i32",
                    "load_tiles_from_moc")
 LOCK_TOKENS = ("CfitsioLockGuard", "lock_guard", "unique_lock", "scoped_lock",
                "cfitsio_io_mutex", "std::mutex", "pthread_mutex_lock", "g_aio_mu")
+
+# (d) 计数式守卫的**逐点位**判定面：这三个文件是 cfitsio 串行化面，其内任何锁获取
+# 都必须走 CfitsioLockGuard（锁等待才进 resource_timeseries.csv 的 lock_wait_ns）。
+CFITSIO_SERIALIZATION_FILES = ("lib/infrastructure/aio/src/aio_fits.cpp",
+                               "lib/algorithms/fits_output/p3_output.cpp",
+                               "lib/infrastructure/aio/src/hips/aio_hips_reader.cpp")
+# 锁获取原语（CfitsioLockGuard 自身是计数式守卫的实现，不在此列）。
+LOCK_ACQUIRE_RX = re.compile(
+    r"(?:std::)?(?:lock_guard|unique_lock|scoped_lock|shared_lock)\s*<"
+    r"|(?<![A-Za-z0-9_])(?:pthread_mutex_lock|pthread_mutex_trylock|mtx_lock)\s*\("
+    r"|(?<![A-Za-z0-9_])(?:\.|->)lock\s*\(\s*\)")
+# 非 cfitsio 串行化用途的锁点位显式登记：(相对路径, 归一化行文本) -> 理由。
+# 空表即 fail-closed：新增点位必须显式给理由；登记项在树上无命中即判红（防腐烂）。
+LOCK_SITE_EXEMPT = {}
 
 
 def _strip_comment(line):
@@ -193,18 +215,41 @@ def run_checks(repo: pathlib.Path):
                 fail("EXEC-AIO-READ-HANDLE-ESCAPE", "P1",
                      f"{fn} opens a fitsfile without closing it",
                      "open/close in same function scope", aio)
-        # (d) 剩余串行化点必须可观测（计数式守卫）
-    for rel in ("lib/infrastructure/aio/src/aio_fits.cpp",
-                "lib/algorithms/fits_output/p3_output.cpp",
-                "lib/infrastructure/aio/src/hips/aio_hips_reader.cpp"):
+        # (d) 剩余串行化点必须可观测（计数式守卫）—— **逐点位**判定
+    # 旧口径只看文件粒度（「全文出现 cfitsio_io_mutex 且全文无 CfitsioLockGuard」），
+    # 同文件只要另有一处合规守卫，注入的裸锁就测不出来（负例 neg5 曾静默判绿）。
+    # 新口径：串行化面文件内任何锁获取点位都必须是计数式 CfitsioLockGuard。
+    exempt_used = set()
+    for rel in CFITSIO_SERIALIZATION_FILES:
         p = repo / rel
         if not p.exists():
             continue
         t = p.read_text(encoding="utf-8", errors="ignore")
+        for i, raw in enumerate(t.splitlines(), 1):
+            code = _strip_comment(raw)
+            if not code.strip() or not LOCK_ACQUIRE_RX.search(code):
+                continue
+            if "CfitsioLockGuard" in code:
+                continue                       # 计数式守卫（可观测）
+            key = (rel, code.strip())
+            if key in LOCK_SITE_EXEMPT:
+                exempt_used.add(key)
+                continue
+            fail("EXEC-AIO-LOCK-UNOBSERVABLE", "P1",
+                 f"{rel}:{i} acquires a lock without the counted CfitsioLockGuard: "
+                 f"{code.strip()[:70]}",
+                 "counted guard (lock_wait_ns observable)", p)
+        # 原文件粒度判据保留（只增不减）：cfitsio_io_mutex 存在而全文无计数守卫
         if "cfitsio_io_mutex" in t and "CfitsioLockGuard" not in t:
             fail("EXEC-AIO-LOCK-UNOBSERVABLE", "P1",
                  f"{rel} takes cfitsio_io_mutex without the counted CfitsioLockGuard",
                  "counted guard (lock_wait_ns observable)", p)
+    # 登记项必须确有命中（陈旧 ⇒ 红，防白名单腐烂成豁免）
+    for key in sorted(LOCK_SITE_EXEMPT):
+        if key not in exempt_used:
+            fail("EXEC-AIO-LOCK-EXEMPT-STALE", "P1",
+                 f"LOCK_SITE_EXEMPT 登记项在树上已无命中: {key[0]} :: {key[1][:60]}",
+                 "exempt entry must match a live lock site", repo / key[0])
     # (e) sampler 读路径无进程级锁
     smp = repo / "lib/algorithms/coverage/src/sampler.cpp"
     if smp.exists():
@@ -271,7 +316,10 @@ def _mutate(tmp: pathlib.Path, rel: str, old: str, new: str) -> bool:
 
 
 def self_test(repo: pathlib.Path) -> int:
-    """正例 + 6 条负例注入：判据必须能红能绿（非退化）。"""
+    """正例 + 7 条负例注入：判据必须能红能绿（非退化）。
+
+    注入锚缺失 ⇒ 该负例判 ANCHOR_STALE（显式点名，不静默降级为 PASS）。
+    """
     aio_rel = "lib/infrastructure/aio/src/hips/aio_hips_reader.cpp"
     smp_rel = "lib/algorithms/coverage/src/sampler.cpp"
     p3_rel = "lib/algorithms/fits_output/p3_output.cpp"
@@ -283,19 +331,35 @@ def self_test(repo: pathlib.Path) -> int:
             return 2
         st, fd = run_checks(tmp)
         cases.append(("pos_pristine", "PASS", st, [f["id"] for f in fd]))
+
+        anchor_stale = []
+
+        def inject(name, rel, old, new):
+            """注入变异并跑判据；锚缺失 ⇒ 显式 ANCHOR_STALE（fail-closed）。
+
+            docs/ci/01_CHECKS.md §1「锚存活」：判据硬编码引用的仓库路径/文本必须
+            存在，失效时显式失败并点名，不得静默降级 —— 自检的注入锚同理：
+            旧实现忽略 _mutate 的 False 返回值，锚随生产代码演化失配后该负例
+            直接判绿（"检查器没报" 与 "注入没发生" 无法区分）。
+            """
+            if not _mutate(tmp, rel, old, new):
+                anchor_stale.append((name, rel, old.strip()[:70]))
+                print("  SELFTEST_ANCHOR_STALE: case=%s file=%s anchor=%r"
+                      % (name, rel, old.strip()[:70]))
+                return None, []
+            return run_checks(tmp)
+
         # neg-1: 重新引入进程级读锁（tile 读函数体内取锁）
-        _mutate(tmp, aio_rel,
-                "    if (!d || !out) return -1;\n    std::string p = tile_path_resolve(d->dir, d->hips_order, ipix, \".fits\");",
-                "    if (!d || !out) return -1;\n    aio::CfitsioLockGuard cfitsio_guard;\n    std::string p = tile_path_resolve(d->dir, d->hips_order, ipix, \".fits\");")
-        st, fd = run_checks(tmp)
+        st, fd = inject("neg1_reintroduce_read_lock", aio_rel,
+                        "    if (!d || !out) return -1;\n    std::string p = tile_path_resolve(d->dir, d->hips_order, ipix, \".fits\");",
+                        "    if (!d || !out) return -1;\n    aio::CfitsioLockGuard cfitsio_guard;\n    std::string p = tile_path_resolve(d->dir, d->hips_order, ipix, \".fits\");")
         cases.append(("neg1_reintroduce_read_lock", "EXEC-AIO-READ-GLOBAL-LOCK", st,
                       [f["id"] for f in fd]))
         # 复原
         _stage(tmp, repo)
         # neg-2: 把句柄共享回多线程（数据集缓存 fitsfile）
-        _mutate(tmp, aio_rel, "struct AioHipsDataset {",
-                "struct AioHipsDataset {\n    fitsfile* cached_fptr = nullptr;")
-        st, fd = run_checks(tmp)
+        st, fd = inject("neg2_shared_handle", aio_rel, "struct AioHipsDataset {",
+                        "struct AioHipsDataset {\n    fitsfile* cached_fptr = nullptr;")
         cases.append(("neg2_shared_handle", "EXEC-AIO-READ-SHARED-HANDLE", st,
                       [f["id"] for f in fd]))
         _stage(tmp, repo)
@@ -303,35 +367,56 @@ def self_test(repo: pathlib.Path) -> int:
         p = tmp / aio_rel
         t = p.read_text(encoding="utf-8")
         span = _func_span(t, "read_tile_i32")
-        assert span is not None, "selftest anchor missing (read_tile_i32)"
-        body = t[span[0]:span[1]].replace("fits_close_file", "(void)0 /*escape*/")
-        p.write_text(t[:span[0]] + body + t[span[1]:], encoding="utf-8")
-        st, fd = run_checks(tmp)
+        if span is None:
+            anchor_stale.append(("neg3_handle_escape", aio_rel, "read_tile_i32"))
+            print("  SELFTEST_ANCHOR_STALE: case=neg3_handle_escape file=%s "
+                  "anchor=%r" % (aio_rel, "read_tile_i32"))
+            st, fd = None, []
+        else:
+            body = t[span[0]:span[1]].replace("fits_close_file", "(void)0 /*escape*/")
+            p.write_text(t[:span[0]] + body + t[span[1]:], encoding="utf-8")
+            st, fd = run_checks(tmp)
         cases.append(("neg3_handle_escape", "EXEC-AIO-READ-HANDLE-ESCAPE", st,
                       [f["id"] for f in fd]))
         _stage(tmp, repo)
         # neg-4: sampler 恢复全局读锁
-        _mutate(tmp, smp_rel, "// PERF-401：CON-010 的全局读锁已撤销。",
-                "static std::mutex g_aio_mu;  // selftest 注入\n// PERF-401：CON-010 的全局读锁已撤销。")
-        st, fd = run_checks(tmp)
+        st, fd = inject("neg4_sampler_global_lock", smp_rel,
+                        "// PERF-401：CON-010 的全局读锁已撤销。",
+                        "static std::mutex g_aio_mu;  // selftest 注入\n// PERF-401：CON-010 的全局读锁已撤销。")
         cases.append(("neg4_sampler_global_lock", "EXEC-SMP-GLOBAL-READ-LOCK", st,
                       [f["id"] for f in fd]))
         _stage(tmp, repo)
         # neg-5: 串行化点不可观测（绕过计数式守卫）
-        _mutate(tmp, p3_rel, "    aio::CfitsioLockGuard cfitsio_guard;",
-                "    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());")
-        st, fd = run_checks(tmp)
+        st, fd = inject("neg5_unobservable_lock", p3_rel,
+                        "    aio::CfitsioLockGuard cfitsio_guard;",
+                        "    std::lock_guard<std::mutex> cfitsio_guard(aio::cfitsio_io_mutex());")
         cases.append(("neg5_unobservable_lock", "EXEC-AIO-LOCK-UNOBSERVABLE", st,
                       [f["id"] for f in fd]))
         _stage(tmp, repo)
         # neg-6: 判据退化（读函数被改名 ⇒ 必须判 vacuous 而不是静默通过）
-        _mutate(tmp, aio_rel, "static int read_tile_i32(AioHipsDataset* d,",
-                "static int read_tile_i32_renamed(AioHipsDataset* d,")
-        st, fd = run_checks(tmp)
+        st, fd = inject("neg6_check_vacuous", aio_rel,
+                        "static int read_tile_i32(AioHipsDataset* d,",
+                        "static int read_tile_i32_renamed(AioHipsDataset* d,")
         cases.append(("neg6_check_vacuous", "EXEC-AIO-READ-CHECK-VACUOUS", st,
                       [f["id"] for f in fd]))
+        # 负例 7：**逐点位**判别力 —— 锁经别名取得（语句里不出现 cfitsio_io_mutex），
+        # 且同文件仍留有多处合规 CfitsioLockGuard ⇒ 文件粒度判据必然漏判、只有
+        # 逐点位判据能报红。这是 neg5 失效模式（同文件另有合规守卫即测不出）的
+        # 正面回归：注入的裸锁必须被点名。
+        _stage(tmp, repo)
+        st, fd = inject("neg7_alias_lock_site", p3_rel,
+                        "    impl_->lock.reset(new aio::CfitsioLockGuard());",
+                        "    auto& selftest_mu = aio::cfitsio_io_mutex();\n"
+                        "    impl_->lock.reset();\n"
+                        "    std::lock_guard<std::mutex> raw_guard(selftest_mu);")
+        cases.append(("neg7_alias_lock_site", "EXEC-AIO-LOCK-UNOBSERVABLE", st,
+                      [f["id"] for f in fd]))
+        _stage(tmp, repo)
+
     bad = 0
     for name, expect, st, ids in cases:
+        if st is None:
+            st = "ANCHOR_STALE"
         if name == "pos_pristine":
             ok = (st == "PASS")
         else:
@@ -341,6 +426,9 @@ def self_test(repo: pathlib.Path) -> int:
         if not ok:
             bad += 1
     print("SELFTEST_SUMMARY cases=%d mismatches=%d" % (len(cases), bad))
+    if anchor_stale:
+        print("SELFTEST_ANCHOR_STALE_TOTAL: %d —— 注入锚缺失（负例未真正注入，"
+              "不得读成 PASS）" % len(anchor_stale))
     return 0 if bad == 0 else 1
 
 
@@ -350,7 +438,7 @@ def main():
     ap.add_argument("--out-json", default=None)
     ap.add_argument("--out-junit", default=None)
     ap.add_argument("--self-test", action="store_true",
-                    help="正例 + 6 条负例注入（判据非退化自证）")
+                    help="正例 + 7 条负例注入（判据非退化自证；注入锚缺失判 ANCHOR_STALE）")
     args = ap.parse_args()
     repo = pathlib.Path(args.repo)
     if args.self_test:

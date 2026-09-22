@@ -89,6 +89,13 @@ REGISTERED = {
         "ARCH-505 命名块流执行器：不持有线程池（复用调用方注入的执行函数），登记为可见面",
     "lib/phase3_session/p3_session.cpp":
         "Session 期池 x1: ASTROCS_DESIGN §7.3 禁 Session 型模块 -> 该目录为 INT-001 删除对象(ARCH-001 DEFERRED)",
+    # ── 独立 Oracle / 自查 harness（非生产路径）──
+    "lib/algorithms/integration/v6/oracle/weight_chain_selfcheck.cpp":
+        "权重链独立合成 Oracle 的 1/N worker 逐位一致自查(ENGINEERING_SPEC §9 自查自修): "
+        "线程数 = std::thread::hardware_concurrency() 夹紧 [2,8](非编译期字面量); 池在作用域内创建、"
+        "作用域内 join 回收, 无 detach/无常驻线程 ⇒ per-call 池; 该文件**不在根构建图内**"
+        "(oracle/CMakeLists.txt 独立构建、不注册 ctest、非生产路径, ninja -t targets 无该目标) ⇒ "
+        "不占生产线程预算; 本登记仅使既有声明可见, **不放宽**生产源码面任何线程创建判据",
     # ── 后台守护/监控线程（非并行池）──
     "lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp":
         "watchdog 超时守护线程 x2 (:5167 声明 + :5174 启动), 单线程超时通道(19_runtime.md §4 取消/超时), 非并行池; 原行级 watchdog 豁免已删除, 改为本路径级登记",
