@@ -23,8 +23,18 @@ exit 0 = PASS。
   「路径不存在即判红」, docs/ci/01_CHECKS.md §1):
   * 源面 = PROD_DIRS 单源常量, 每个目录必须存在, 缺一个 ⇒ ANCHOR_STALE + exit 2;
   * CMake 面 = 根 CMakeLists.txt (BLD-002 唯一产品事实源) 的 add_subdirectory 闭包
-    ∪ 仓库内全部 CMakeLists.txt (目录枚举 = 图面超集, 图面变化不可能静默缩小);
-    根 CMakeLists.txt 缺失 / 枚举为空 / 图面文件不在枚举面内 ⇒ ANCHOR_STALE + exit 2。
+    ∪ 仓库工作树内确定性枚举的全部 CMakeLists.txt (目录枚举 = 图面超集,
+    图面变化不可能静默缩小); 根 CMakeLists.txt 缺失 / 枚举为空 /
+    图面文件不在枚举面内 ⇒ ANCHOR_STALE + exit 2。
+  * 枚举源**不依赖 git** (GITDECOUPLE-01): 原实现把枚举绑死在 `git ls-files` 的
+    tracked 面上, 于是非 git 树 (测试镜像树 / 归档树 / 无 .git 的检出) 里 git 在
+    gitignore 子目录内运行 ⇒ 列出 0 个 CMakeLists.txt ⇒ 误报 ANCHOR_STALE(rc=2),
+    使「生产源注入 -w 必判红」的负例
+    (eng/tests/quality/test_mod002_migration_refs.py::test_t21) 失效 —— 那是
+    "枚举源不可用"被误报成"锚失效", 不是判据本身该有的结论。现在枚举源 =
+    工作树 os.walk + 排除面常量, 生产树与镜像树走**同一条代码路径**(无分支),
+    语义等价性由实测锁定: 真仓库枚举 80 个 == `git ls-files` tracked 80 个,
+    集合逐元素相等 (见 CMAKE_FACE_EXCLUDED_DIRS 处注记)。
 - 判据本身也重建: 原 CMake 判据只匹配 `set_property(SOURCE ... "${ACS_WARN_SUPPRESS}")`,
   而 `ACS_WARN_SUPPRESS` 已从全树消失 ⇒ 该判据恒真 (空扫描假绿)。现判据 = 编译选项上下文
   (target_compile_options / add_compile_options / set_property(... COMPILE_OPTIONS|COMPILE_FLAGS))
@@ -37,7 +47,7 @@ exit 0 = PASS。
 
 退出码: 0 = PASS; 1 = FAIL; 2 = ANCHOR_STALE (锚失效/扫描面为空, fail-closed)。
 """
-import pathlib, re, sys, subprocess
+import os, pathlib, re, sys, subprocess
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 ROOT_CMAKE = REPO / "CMakeLists.txt"          # BLD-002 唯一产品事实源
@@ -65,11 +75,30 @@ PROD_DIRS = [
     "lib/infrastructure/cli",
 ]
 
-# CMake 层扫描面的权威来源: git 索引 (tracked 文件 = 仓库内容面)。
+# CMake 层扫描面的权威来源: 仓库工作树内的确定性目录枚举 (os.walk + 排除面)。
 # 为什么不手抄路径: 手抄副本会随目录整合退役而静默失配 (本项即为此类缺陷的修复)。
-# 为什么用 tracked 而不是 rglob: run/ 与 build/ 是 gitignore 的临时/构建区, 里面残留的
-# 一次性夹具 (如 run/<task>/**/CMakeLists.txt) 不是仓库内容面; 而 tracked 面**严格包含**
-# 根构建图 (BLD-002 根 CMakeLists.txt + add_subdirectory 闭包), 故不可能静默缩小。
+# 为什么不用 git ls-files: 见模块 docstring 的 GITDECOUPLE-01 段 —— 它把"枚举源文件"
+#   绑死在 git 上, 非 git 树里必然退化 (镜像树内 git 在 gitignore 子目录里运行 ⇒ 0 个文件)。
+# 为什么不用 rglob 全遍历: run/ 与 build/ 是 gitignore 的临时/构建区 (AGENTS.md §7),
+#   里面残留大量一次性夹具 —— 实测真仓库 rglob 得 111 个 CMakeLists.txt, 其中 31 个
+#   落在 build/|run/ 下 (如 run/<task>/**/CMakeLists.txt, 含 sextractor 源码树与
+#   v6_aio 变异夹具)。os.walk 在**遍历时**剪枝, 0.02 s 完成且不进入 >13 GB 的 run/ 产物。
+# 排除面 (每个条目都有规范依据, 不是凭印象挑的):
+#   run/    ENGINEERING_SPEC §7「run/（gitignore：临时产物/日志；自清理机制见
+#           eng/tools/run_gc.py 与 eng/tools/round_start.sh）」+ AGENTS.md §7:
+#           临时产物/日志区, 不入库, 在仓库内容面之外
+#   build/  AGENTS.md §3 的唯一构建目录约定 (cmake -S . -B build) + .gitignore 排除:
+#           构建区, 不入库 (ctest 残留按 ENGINEERING_SPEC §7 归 run/Testing_archive/)
+#   .git/   VCS 元数据, 不是仓库内容面
+# 语义等价性实测锁定 (GITDECOUPLE-01, 真仓库): os.walk 剪枝枚举 = 80 个,
+#   `git ls-files` tracked = 80 个, **集合逐元素相等** (无多、无少);
+#   且 lib/third_party/ 下当前无 CMakeLists.txt, 故不排除它 —— 排除面只取有实测与
+#   规范双重依据的三个, 不做"顺手多排"。
+# 方向性 (不静默少扫): 若将来在排除面之外新增 gitignore 区并放入 CMakeLists.txt,
+#   它会被**纳入**扫描面 (多扫 = 保守方向); 纳入后若含未登记 -w 会显式点名判红,
+#   绝不会被静默忽略。少扫方向由三重 fail-closed 守住: 根 CMakeLists.txt 锚存活 /
+#   枚举面非空 / 构建图面 ⊆ 枚举面 (图面缩小即 ANCHOR_STALE)。
+CMAKE_FACE_EXCLUDED_DIRS = ("build", "run", ".git")
 
 # 编译选项上下文的命令名: 只有这些命令的实参算"编译选项", 别处出现的 -w
 # (如 add_test 里的 shell `[ -w "$d" ]`) 不算抑制指令。
@@ -160,40 +189,48 @@ def build_graph_cmake_files(repo: pathlib.Path):
     return seen, unresolved, dangling
 
 
-def tracked_cmake_files(repo: pathlib.Path):
-    """CMake 扫描面 = git 索引里的全部 CMakeLists.txt (tracked = 仓库内容面)。
+def _walk_error(exc: OSError):
+    """遍历期错误 (权限/IO) ⇒ 扫描面可能静默缩小 —— fail-closed 判红, 不静默跳过。"""
+    raise AnchorStale(f"CMAKE_SCAN_FACE_WALK_ERROR: {exc}")
 
-    fail-closed: git 不可用 / 未列出任何 CMakeLists.txt / tracked 文件在工作树缺失
-    ⇒ AnchorStale (点名), 不返回空集。
+
+def worktree_cmake_files(repo: pathlib.Path, excluded_dirs=None):
+    """CMake 扫描面 = 仓库工作树内确定性枚举的全部 CMakeLists.txt。
+
+    枚举源 = os.walk(repo) + 剪枝排除面, **不依赖 git**: 生产树、镜像树、归档树、
+    无 .git 的检出走同一条代码路径, 结论只由工作树内容决定。
+
+    excluded_dirs=None ⇒ 取生产排除面常量 CMAKE_FACE_EXCLUDED_DIRS (唯一生产语义);
+    显式传值只供 --self-test 做"排除面失效 ⇒ 判红"的负例注入, 不改变生产路径。
+
+    fail-closed: 枚举为空 / 遍历出错 ⇒ AnchorStale (点名), 绝不返回空集
+    (空扫描 = 恒真假绿, docs/ci/01_CHECKS.md §1「scanned == 0 ⇒ rc != 0」)。
     """
-    try:
-        out = subprocess.run(
-            ["git", "-c", "core.quotepath=false", "ls-files", "-z"],
-            cwd=str(repo), capture_output=True, text=True, timeout=180)
-    except Exception as exc:                      # git 不可用 ⇒ 保守判红
-        raise AnchorStale(f"GIT_LS_FILES 不可用 ({exc}) —— 无法确定 CMake 扫描面")
-    if out.returncode != 0:
-        raise AnchorStale(f"GIT_LS_FILES rc={out.returncode}: {out.stderr.strip()[:200]}")
-    files = [repo / p for p in out.stdout.split("\0")
-             if p and pathlib.PurePosixPath(p).name == "CMakeLists.txt"]
-    if not files:
-        raise AnchorStale(f"CMAKE_SCAN_FACE: git ls-files 未列出任何 CMakeLists.txt (repo={repo})")
-    missing = sorted(str(p.relative_to(repo)) for p in files if not p.is_file())
-    if missing:
-        raise AnchorStale("CMAKE_SCAN_FACE_TRACKED_MISSING: " + ", ".join(missing))
-    return sorted(files)
+    excl = tuple(CMAKE_FACE_EXCLUDED_DIRS if excluded_dirs is None else excluded_dirs)
+    found = []
+    for dirpath, dirnames, filenames in os.walk(repo, onerror=_walk_error,
+                                               followlinks=False):
+        # 遍历时剪枝 (不进 build/|run/ 的 >13 GB 产物与一次性夹具); sorted 只为确定性
+        dirnames[:] = sorted(d for d in dirnames if d not in excl)
+        if "CMakeLists.txt" in filenames:
+            found.append(pathlib.Path(dirpath) / "CMakeLists.txt")
+    if not found:
+        raise AnchorStale(
+            f"CMAKE_SCAN_FACE_EMPTY: {repo} 下未枚举到任何 CMakeLists.txt "
+            f"(排除面 {excl}) —— fail-closed 拒绝空扫描")
+    return sorted(found)
 
 
-def cmake_scan_face(repo: pathlib.Path):
+def cmake_scan_face(repo: pathlib.Path, excluded_dirs=None):
     """返回 (扫描面, 构建图面, 未解析边, 悬空边)。
 
-    扫描面 = tracked CMakeLists.txt (严格包含构建图); 构建图面仅用于交叉校验与覆盖输出:
-    图面文件必须全在扫描面内, 否则 AnchorStale。
+    扫描面 = 工作树枚举的 CMakeLists.txt (严格包含构建图); 构建图面仅用于交叉校验与
+    覆盖输出: 图面文件必须全在扫描面内, 否则 AnchorStale (图面缩小 = 扫描面缩小)。
     """
     root = repo / "CMakeLists.txt"
     if not root.is_file():
         raise AnchorStale(f"ROOT_CMAKE {root} 不存在 (BLD-002 唯一产品事实源)")
-    face = tracked_cmake_files(repo)
+    face = worktree_cmake_files(repo, excluded_dirs=excluded_dirs)
     graph, unresolved, dangling = build_graph_cmake_files(repo)
     not_in_face = sorted(str(p.relative_to(repo)) for p in graph if p not in set(face))
     if not_in_face:
@@ -220,9 +257,10 @@ def _compile_option_hits(text: str):
     return hits
 
 
-def static_scan(repo: pathlib.Path = None):
+def static_scan(repo: pathlib.Path = None, excluded_dirs=None):
     """生产源 + CMake 层抑制指令扫描 (纯读, 无副作用)。
 
+    excluded_dirs 仅由 --self-test 用于注入"排除面失效"负例; 生产调用不传。
     锚失效 / 扫描面为空 ⇒ 抛 AnchorStale (调用方转 exit 2), 不返回"无违规"。
     """
     repo = pathlib.Path(repo) if repo is not None else REPO
@@ -244,7 +282,8 @@ def static_scan(repo: pathlib.Path = None):
                 errors.append(f"生产源含抑制指令: {f.relative_to(repo)}")
 
     # ── CMake 面: 构建图/目录枚举派生 + 锚存活 ──
-    cmake_files, graph, unresolved, dangling = cmake_scan_face(repo)
+    cmake_files, graph, unresolved, dangling = cmake_scan_face(
+        repo, excluded_dirs=excluded_dirs)
     registered_hits, unregistered = [], []
     for cm in cmake_files:
         scanned_cmake += 1
@@ -336,9 +375,9 @@ def selftest() -> int:
     fails = []
     with tempfile.TemporaryDirectory() as tmp:
         root = pathlib.Path(tmp)
-        # 夹具必须是 git 仓库: CMake 扫描面取自 git 索引 (tracked 面)
-        subprocess.run(["git", "init", "-q"], cwd=str(root), check=True,
-                       capture_output=True, timeout=120)
+        # 夹具是**普通目录树** (不 git init): CMake 扫描面取自工作树枚举,
+        # 与真实仓库、测试镜像树走同一条代码路径 (GITDECOUPLE-01; 原夹具 git init
+        # + git add -A 是"检查器绑死 git"的镜像, 已随枚举源解耦一并移除)。
         (root / "CMakeLists.txt").write_text(
             "add_subdirectory(lib/mod)\n"
             "target_compile_options(astrocs_cfitsio PRIVATE -w)\n",
@@ -350,8 +389,13 @@ def selftest() -> int:
             encoding="utf-8")
         for d in PROD_DIRS:
             (root / d).mkdir(parents=True, exist_ok=True)
-        subprocess.run(["git", "add", "-A"], cwd=str(root), check=True,
-                       capture_output=True, timeout=120)
+        # 排除面夹具: run/ 与 build/ 下的一次性夹具含未登记 -w —— 默认排除面下
+        # 不得进入扫描面 (否则真实仓库会被 run/<task>/** 的临时夹具误判红)
+        for scratch in ("run", "build"):
+            (root / scratch / "oneshot").mkdir(parents=True)
+            (root / scratch / "oneshot" / "CMakeLists.txt").write_text(
+                "target_compile_options(oneshot_fixture PRIVATE -w)\n",
+                encoding="utf-8")
 
         # 正例: 干净夹具 ⇒ 无 error; 登记的 cfitsio -w 可见但不判红
         errs, cov, reg, notes = static_scan(root)
@@ -403,13 +447,27 @@ def selftest() -> int:
         if not any(HISTORICAL_SUPPRESS_VAR in e for e in errs):
             fails.append("负例5 历史抑制变量未被检出: %s" % errs)
 
+        # 负例 ⑥: 排除面失效 ⇒ run/|build/ 下的一次性夹具被纳入扫描面并判红。
+        #   能红能绿: 正例里同一夹具在默认排除面下不出现 (cmake_files == 2),
+        #   此处清空排除面后必须出现 (cmake_files == 4) 且报未登记 -w ——
+        #   锁定"排除面确实在起作用", 防止未来有人删掉排除面常量后静默误扫。
+        (root / "lib" / "mod" / "CMakeLists.txt").write_text(
+            "target_compile_options(mod_ok PRIVATE -Wall -Wextra -Wpedantic)\n",
+            encoding="utf-8")
+        errs6, cov6, _, _ = static_scan(root, excluded_dirs=())
+        if cov6["cmake_files"] != 4:
+            fails.append("负例6 清空排除面后枚举计数不符: %s" % cov6)
+        if not any("oneshot_fixture" in e for e in errs6):
+            fails.append("负例6 排除面失效后一次性夹具未判红: %s" % errs6)
+
     if fails:
         print("QA-001_SELFTEST_FAIL:")
         for f in fails:
             print("  " + f)
         return 1
     print("QA-001_SELFTEST_PASS: 干净夹具绿; 未登记 -w / PROD_DIRS 锚失效 / "
-          "根 CMake 缺失 / 历史抑制变量 各自判红; add_test 内 shell -w 不误报")
+          "根 CMake 缺失 / 历史抑制变量 / 排除面失效 各自判红; "
+          "add_test 内 shell -w 与 run|build 一次性夹具不误报")
     return 0
 
 
