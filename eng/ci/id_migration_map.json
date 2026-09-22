@@ -908,6 +908,32 @@
       "name": "裸形态打洞判据的可执行面：由生产头编译探针跑真实系统调用（读回逐字节一致/释放量/NaN 红线/降级）",
       "doc": "docs/ci/01_CHECKS.md §2（TRIM-LAND-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 + ACCEPTANCE_SPEC.md §3.2",
       "steps": []
+    },
+    "CHK-HIPS-STORAGE-FORM": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "落盘形态合同门（CONTRACT-STORAGE-001）：两形态命名与互斥、归档必须为整包 tar + 逐成员独立 zstd 帧、索引不变式、形态输入配置与完成清单口径一致",
+      "doc": "docs/ci/01_CHECKS.md §2（HIPS-PACK-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md + ACCEPTANCE_SPEC.md §3.2",
+      "steps": []
+    },
+    "CHK-P3-EXPORT-STREAM-PROD": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "Phase3 导出子块流式的生产接线静态锁（生产 writer 节点 TU 必须引用 ExportStreamScheduler；整幅驻留路径不得回流）",
+      "doc": "docs/ci/01_CHECKS.md §2（P3-STREAM-01 登记）；口径 docs/contracts/SCHEDULER_CONTRACT.md §2",
+      "steps": [
+        "STATIC-P3-EXPORT-STREAM-PROD",
+        "SELFTEST-P3-EXPORT-STREAM-PROD"
+      ]
+    },
+    "CHK-P3-EXPORT-STREAM-RSS": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "Phase3 导出子块流式的内核记账驻留门（clear_refs 归零后读 VmHWM，峰值与产品面积解耦）",
+      "doc": "docs/ci/01_CHECKS.md §2（P3-STREAM-01 登记）；口径 docs/contracts/SCHEDULER_CONTRACT.md §2",
+      "steps": [
+        "CTEST-P3-EXPORT-STREAM-RSS"
+      ]
     }
   },
   "reserved_targets": {
@@ -3266,6 +3292,41 @@
       "kind": "extension",
       "grade": "P1",
       "note": "STARDET-01（星表引导检测按文档订正）：登记新交付的 ctest 目标 p1stardet_node_gate（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CHK-HIPS-STORAGE-FORM",
+      "decision": "KEPT",
+      "target": "CHK-HIPS-STORAGE-FORM",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "HIPS-PACK-01（2026-09-22）新增执行单元（非本波基线，absorbed）：落盘形态合同（CONTRACT-STORAGE-001）机器门，判据与 21 例可执行负例见 eng/tools/hipsform/check_hips_storage_form.py --self-test。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
+    },
+    {
+      "old_id": "STATIC-P3-EXPORT-STREAM-PROD",
+      "decision": "KEPT",
+      "target": "CHK-P3-EXPORT-STREAM-PROD",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "P3-STREAM-01（2026-09-22）新增执行单元（非本波基线，absorbed）：静态锁生产 writer 节点引用 ExportStreamScheduler，3 处变异必红的可执行负例见 eng/tools/arch/check_p3_export_stream_prod.py --self-test。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
+    },
+    {
+      "old_id": "SELFTEST-P3-EXPORT-STREAM-PROD",
+      "decision": "KEPT",
+      "target": "CHK-P3-EXPORT-STREAM-PROD",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "P3-STREAM-01（2026-09-22）新增执行单元（非本波基线，absorbed）：上项的可执行负例面（同一检查器 --self-test）。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
+    },
+    {
+      "old_id": "CTEST-P3-EXPORT-STREAM-RSS",
+      "decision": "KEPT",
+      "target": "CHK-P3-EXPORT-STREAM-RSS",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "P3-STREAM-01（2026-09-22）新增执行单元（非本波基线，absorbed）：ctest 目标 p3_export_stream_prod 经资源监视器跑内核记账驻留判据（clear_refs 归零后读 VmHWM）。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
     }
   ],
   "coverage": {
@@ -3276,7 +3337,7 @@
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。 REGMAP-FIX-01（2026-09-22）：补登记 4 个执行单元（CHK-HIPS-STORAGE-FORM / STATIC-P3-EXPORT-STREAM-PROD / SELFTEST-P3-EXPORT-STREAM-PROD / CTEST-P3-EXPORT-STREAM-RSS，分属 CHK-HIPS-STORAGE-FORM / CHK-P3-EXPORT-STREAM-PROD / CHK-P3-EXPORT-STREAM-RSS 三个目标）登记为 absorbed —— 三者由 HIPS-PACK-01 与 P3-STREAM-01 登记进 checks.json 时漏登记本映射（R13 孤儿 unit 缺口）；同时把 CHK-HIPS-STORAGE-FORM 移到 CHK-KNOWN-FAILURES-BASELINE 之前，使 linux-main 选中序末位仍是 KNOWN-FAILURES-BASELINE-CHECK（R10）。",
     "absorbed_entries": [
       "CHK-SECRET-HYGIENE",
       "STD-REG",
@@ -3387,7 +3448,11 @@
       "CHK-SPARSE-PUNCH",
       "CHK-SPARSE-PUNCH-PROBE",
       "CTEST-P1STAR-GUIDED",
-      "CTEST-P1STARDET-NODE-GATE"
+      "CTEST-P1STARDET-NODE-GATE",
+      "CHK-HIPS-STORAGE-FORM",
+      "STATIC-P3-EXPORT-STREAM-PROD",
+      "SELFTEST-P3-EXPORT-STREAM-PROD",
+      "CTEST-P3-EXPORT-STREAM-RSS"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,
