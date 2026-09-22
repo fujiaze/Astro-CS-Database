@@ -450,6 +450,8 @@ int main() {
   /* ---------- 正例 8: 预置路径与单次调用逐位一致 + 1/N worker 逐位一致 ---------- */
   {
     std::printf("[positive] prepared path == one-shot call; 1/N worker bitwise identity\n");
+    std::printf("  host hardware_concurrency=%u -> oracle worker count clamped to [2,8]\n",
+                std::thread::hardware_concurrency());
     SparseSnrLayer L = grid4x4();
     SparseSnrReconstructor rec;
     std::string err;
@@ -467,8 +469,15 @@ int main() {
     std::vector<double> seq((std::size_t)nq, 0.0), par((std::size_t)nq, 0.0);
     for (int k = 0; k < nq; ++k)
       rec.eval((double)(k % 32), (double)(k / 32), &seq[(std::size_t)k], nullptr, &err);
-    const int nthreads = 8;
+    /* 1/N worker 逐位一致（ENGINEERING_SPEC §9 自查自修）：线程数取宿主可用并行度
+     * 而非编译期字面量（夹紧 [2,8]，避免 Oracle 自身拖慢 CI）；本池在作用域内创建、
+     * 作用域内 join 回收，不 detach、无常驻线程 —— 属 per-call 池，已在
+     * eng/tools/arch/check_thread_budget.py 作路径级登记（该登记不放宽生产源码面的
+     * 任何线程创建判据；本文件不在根构建图内，见 oracle/CMakeLists.txt）。 */
+    const unsigned hw = std::thread::hardware_concurrency();
+    const int nthreads = std::max(2, std::min(8, hw == 0u ? 2 : static_cast<int>(hw)));
     std::vector<std::thread> th;
+    th.reserve(static_cast<std::size_t>(nthreads));
     for (int t = 0; t < nthreads; ++t) {
       th.emplace_back([&, t]() {
         std::string le;
@@ -479,7 +488,7 @@ int main() {
     for (auto& x : th) x.join();
     bool bitwise = true;
     for (int k = 0; k < nq; ++k) bitwise = bitwise && (seq[(std::size_t)k] == par[(std::size_t)k]);
-    check(bitwise, "1-thread and 8-thread evaluation are bitwise identical (reentrant)");
+    check(bitwise, "1-thread and N-thread evaluation are bitwise identical (reentrant)");
   }
 
   /* ---------- 负例 1: 帧级 SNR 缺失 ---------- */

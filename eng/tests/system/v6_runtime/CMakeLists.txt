@@ -45,7 +45,7 @@ endif()
 
 # ---- 契约检查项（每项独立 ctest 目标, 便于 CI 逐名验收） ----
 add_test(NAME v6_runtime_contract_units      COMMAND v6_runtime_contract_test units)
-add_test(NAME v6_runtime_mode_routing        COMMAND v6_runtime_contract_test modes)
+add_test(NAME v6_runtime_weight_token_routing        COMMAND v6_runtime_contract_test modes)
 add_test(NAME v6_runtime_budget_single_source COMMAND v6_runtime_contract_test budget)
 add_test(NAME v6_runtime_so05_policy         COMMAND v6_runtime_contract_test so05)
 add_test(NAME v6_runtime_phase_isolation     COMMAND v6_runtime_contract_test isolation)
@@ -59,7 +59,7 @@ add_test(NAME v6_runtime_determinism_negative
   COMMAND v6_runtime_determinism_test negative 8 200000)
 
 set_tests_properties(
-  v6_runtime_contract_units v6_runtime_mode_routing v6_runtime_budget_single_source
+  v6_runtime_contract_units v6_runtime_weight_token_routing v6_runtime_budget_single_source
   v6_runtime_so05_policy v6_runtime_phase_isolation v6_runtime_metric_fields
   v6_runtime_contract_negative
   PROPERTIES LABELS "v6;runtime;RUNTIME-CI-001" TIMEOUT 120)

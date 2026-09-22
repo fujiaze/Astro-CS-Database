@@ -52,7 +52,14 @@ Var(F_hat_k) = 1/W_k
 ## 4.1 叠加权重的来源
 
 权重是 Phase2 集成时按天球像素对应的输入帧集合**现场计算的派生量**；Phase1 与 Phase3 不产生、不消费权重。PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，不计入科学叠加权重。
-单一权重口径：`weight.default_mode = psf_information_weight`（token `point_information`），不存在其它权重模式。
+
+**单一权重口径，没有可选择项**：阶段一产稀疏 SNR 控制点 → 阶段二重建稠密 SNR 面 → 取逆方差（最优功率）定权 → 叠加：
+
+~~~text
+w(x,y) = SNR(x,y)^2 / F_ref^2   ≡   1 / sigma_F(x,y)^2
+~~~
+
+不存在第二口径、不存在口径选择键、不存在口径枚举或口径配置项；`SNR(x,y)` 由稀疏控制点上的**绝对** SNR 重建（控制点值即绝对量本身，不乘/除帧级标量），`F_ref` 为**逐帧**参考通量。越界 token 一律 fail-closed 显式拒绝（`FZ-MODE-RETIRED` / `FZ-FIELD-WEIGHTMODE` / `FZ-WEIGHT-SINGLE-PATH`）。
 
 ## 5. 扩展源最优统计
 

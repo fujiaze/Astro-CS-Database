@@ -100,9 +100,6 @@ P1PSFW_REGISTER(record) {
     { PsfswRecord r = good;
       r.components[0].samples = {60.0, 100.0, 140.0, 80.0, 120.0};
       P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G18")); }
-    /* m16 生产模式列表加入 psf_snr_power */
-    { PsfswRecord r = good; r.production_modes.push_back("psf_snr_power");
-      P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G20")); }
     /* m17 weight_mode=0 (legacy support x snr^2) */
     { PsfswRecord r = good; r.weight_mode = "0";
       P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G21")); }
@@ -157,45 +154,40 @@ P1PSFW_REGISTER(record) {
       P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G23")); }
     { PsfswRecord r = good; r.components[1].unit = "ADU";
       P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G23")); }
-    /* G01 未知模式 / auto / support_x_snr2 */
-    { PsfswRecord r = good; r.weight_mode = "auto";
-      P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G01")); }
-    { PsfswRecord r = good; r.weight_mode = "support_x_snr2";
-      P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G01")); }
-    { PsfswRecord r = good; r.weight_mode = "psf_snr_power";
-      P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G01")); }
+    /* G01 非退役身份：auto / support_x_snr2 / psf_snr_power / 曾经被当作生产口径的
+     * token（point_information / surface_gls）一律记录族身份不符。 */
+    for (const char* t : {"auto", "support_x_snr2", "psf_snr_power", "unknown",
+                          "point_information", "surface_gls"}) {
+        PsfswRecord r = good; r.weight_mode = t;
+        P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G01"));
+    }
     /* 诊断别名进 weight_sources */
     { PsfswRecord r = good; r.weight_sources.push_back("coverage");
       P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G22")); }
     { PsfswRecord r = good; r.weight_sources = {"median_source_snr"};
       P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G22")); }
 
-    /* ---- 模式/枚举结构检查（PSFSW-RETIRE-03 口径统一）----
-     * 生产接受集 = {point_information, surface_gls}（与 coverage.cpp /
-     * v6_runtime_contract.h 同口径）；psfsw_robust 是**退役对象**：不再是生产模式，
-     * 但必须仍能被识别为退役 token 并给出迁移提示（拒绝面保留，不是删断言）。 */
-    P1_CHECK(production_weight_modes().size() == 2);
-    P1_CHECK(is_production_weight_mode("point_information"));
-    P1_CHECK(is_production_weight_mode("surface_gls"));
-    P1_CHECK(!is_production_weight_mode("psfsw_robust"));
+    /* ---- 身份/枚举结构检查（PSFSW-RETIRE-03 + FZ-WEIGHT-SINGLE-PATH）----
+     * 权重只有一个口径（阶段1 稀疏 SNR 控制点 → 阶段2 重建稠密 SNR 面 → 逆方差定权
+     * → 叠加）⇒ **不存在**"生产权重口径集合"（该集合与成员函数已删除）。
+     * psfsw_robust_weight 是**退役对象**：本记录族唯一合法身份 = 退役 token，
+     * 且必须能被识别并给出迁移提示（拒绝面保留，不是删断言）。
+     * 能红能绿：让任何一个非退役 token 通过 G01，本块立即转红。 */
     P1_CHECK(is_retired_weight_mode_token("psfsw_robust"));
     {
         const std::string r = retired_weight_mode_reject_reason("psfsw_robust");
         P1_CHECK(r.find("FZ-MODE-RETIRED") != std::string::npos);
         P1_CHECK(r.find("psfsw_robust") != std::string::npos);
         P1_CHECK(r.find("not a current object") != std::string::npos);
-        P1_CHECK(r.find("point_information") != std::string::npos);
-        P1_CHECK(r.find("surface_gls") != std::string::npos);
-        P1_CHECK(r.find("migration") != std::string::npos);
+        /* 迁移提示必须指向单一权重口径，不得再指向"可选择的口径"。 */
+        P1_CHECK(r.find("FZ-WEIGHT-SINGLE-PATH") != std::string::npos);
+        P1_CHECK(r.find("SNR^2") != std::string::npos);
+        P1_CHECK(r.find("allowed production modes") == std::string::npos);
     }
-    /* 阳性对照（能绿）：现行生产模式不得被误判为退役 token。 */
-    P1_CHECK(!is_retired_weight_mode_token("point_information"));
-    P1_CHECK(!is_retired_weight_mode_token("surface_gls"));
-    P1_CHECK(retired_weight_mode_reject_reason("point_information").empty());
-    P1_CHECK(!is_production_weight_mode("equal"));
-    P1_CHECK(!is_production_weight_mode("pixel_ivar"));
-    P1_CHECK(!is_production_weight_mode("psf_snr_power"));
-    P1_CHECK(!is_production_weight_mode("auto"));
-    P1_CHECK(!is_production_weight_mode("support_x_snr2"));
-    P1_CHECK(!is_production_weight_mode("0"));
+    /* 非退役 token 一律不是本记录族的合法身份（含曾被当作生产口径的 token）。 */
+    for (const char* t : {"point_information", "surface_gls", "equal", "pixel_ivar",
+                          "psf_snr_power", "auto", "support_x_snr2", "0"}) {
+        P1_CHECK(!is_retired_weight_mode_token(t));
+        P1_CHECK(retired_weight_mode_reject_reason(t).empty());
+    }
 }

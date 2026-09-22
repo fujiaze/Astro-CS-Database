@@ -8,9 +8,10 @@
 故本矩阵改在 mosaic/export 的 '--json' 运行面上驱动同一冻结路由门
 （lib/infrastructure/cli/v6_mode_gate.h + v6_runtime_contract.h）：
 
-  * mosaic 生产权重 {point_information, surface_gls, psfsw_robust} → 门放行；
-  * mosaic baseline {equal, pixel_ivar} → 放行 + 非生产告警（FZ-MODE-PRODUCTION）；
-  * mosaic 拒绝 {psf_snr_power, auto, support_x_snr2, 0, 1, 2, bogus} → rc=2 + 明确拒绝；
+  * mosaic 权重口径 token **全部拒绝**（FZ-WEIGHT-SINGLE-PATH：不存在可选择口径）：
+    {point_information, surface_gls, psfsw_robust, psf_snr_power, auto, support_x_snr2,
+     0, 1, 2, bogus} → rc=2 + 明确拒绝；
+  * mosaic baseline {equal, pixel_ivar} → 放行 + 非生产告警（legacy 整数映射的目标）；
   * 未显式给出 --mode：门不介入（既有缺省路径不变）；
   * export 生产输出 {surface_brightness, point_source_flux, visualization} → 门放行；
   * export 非法 token → rc=2 + 拒绝（FZ-P3-MODES）；
@@ -35,21 +36,26 @@ import subprocess
 import sys
 
 # ── 冻结路由表副本（与 v6_runtime_contract.h 对齐；此处只刻画「期望」，判定由真实二进制给出）──
-REJECT_P2 = ["psf_snr_power", "auto", "support_x_snr2", "0", "1", "2", "bogus"]
-ACCEPT_P2 = ["point_information", "surface_gls", "psfsw_robust"]
+REJECT_P2 = ["point_information", "surface_gls", "psfsw_robust", "psf_snr_power",
+             "auto", "support_x_snr2", "0", "1", "2", "bogus"]
+# FZ-WEIGHT-SINGLE-PATH：phase2 没有可放行的权重口径 token ⇒ 接受集为空。
+ACCEPT_P2 = []
 BASE_P2 = ["equal", "pixel_ivar"]
 REJECT_P3 = ["psf_snr_power", "auto", "support_x_snr2", "bogus"]
 ACCEPT_P3 = ["surface_brightness", "point_source_flux", "visualization"]
 
 # reject token → 必须出现在 stderr 中的冻结节点/理由碎片（防止「任何 rc=2」冒充拒绝）。
 REJECT_REASON_P2 = {
+    "point_information": "FZ-WEIGHT-SINGLE-PATH",
+    "surface_gls": "FZ-WEIGHT-SINGLE-PATH",
+    "psfsw_robust": "FZ-MODE-RETIRED",
     "psf_snr_power": "FZ-MODE-DEFERRED",
     "auto": "FZ-FIELD-WEIGHTMODE",
     "support_x_snr2": "FZ-FIELD-WEIGHTMODE",
     "0": "legacy integer weight_mode",
     "1": "legacy integer weight_mode",
     "2": "legacy integer weight_mode",
-    "bogus": "FZ-MODE-PRODUCTION",
+    "bogus": "FZ-WEIGHT-SINGLE-PATH",
 }
 REJECT_REASON_P3 = {
     "psf_snr_power": "FZ-P3-MODES",

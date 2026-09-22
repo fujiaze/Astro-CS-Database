@@ -18,17 +18,19 @@ add_subdirectory("${V6P2_REPO}/lib/algorithms/integration/v6"
 
 add_executable(v6_p2_integrate_test "${V6P2_IT_DIR}/v6_p2_integrate_test.cpp")
 target_link_libraries(v6_p2_integrate_test PRIVATE astrocs_v6_phase2_integrate)
+# 单一口径门引用 CLI 契约头（纯头文件）：--mode token 面必须对全部 token fail-closed。
+target_include_directories(v6_p2_integrate_test PRIVATE "${V6P2_REPO}/lib/infrastructure/cli")
 set_target_properties(v6_p2_integrate_test PROPERTIES
   CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 
 set(V6P2_WORK "${CMAKE_CURRENT_BINARY_DIR}/work")
 set(V6P2_PYTHON "python3" CACHE STRING "Python interpreter for the independent oracle")
 
-add_test(NAME v6_p2_routing COMMAND v6_p2_integrate_test routing "${V6P2_WORK}")
+add_test(NAME v6_p2_singlepath COMMAND v6_p2_integrate_test singlepath "${V6P2_WORK}")
 add_test(NAME v6_p2_write COMMAND v6_p2_integrate_test write "${V6P2_WORK}")
 add_test(NAME v6_p2_negative COMMAND v6_p2_integrate_test negative "${V6P2_WORK}")
 add_test(NAME v6_p2_halfproduct COMMAND v6_p2_integrate_test halfproduct "${V6P2_WORK}")
-set_tests_properties(v6_p2_routing PROPERTIES TIMEOUT 300)
+set_tests_properties(v6_p2_singlepath PROPERTIES TIMEOUT 300)
 set_tests_properties(v6_p2_write PROPERTIES TIMEOUT 900)
 set_tests_properties(v6_p2_negative PROPERTIES TIMEOUT 900)
 set_tests_properties(v6_p2_halfproduct PROPERTIES TIMEOUT 300)

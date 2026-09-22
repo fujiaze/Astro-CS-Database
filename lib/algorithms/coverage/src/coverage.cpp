@@ -367,32 +367,21 @@ int p2_deterministic_reduction_order(const std::uint64_t* ipix_in,
 namespace {
 
 // ── RETIRED-OBJECT-REJECT (PSFSW-RETIRE-01；ENGINEERING_SPEC §2 保留则注释) ──
-// WHAT:       psfsw 相关面在本文件的处置（GAP_AUDIT G2-2 曾点名 :376 / :425 / :430）：
-//             ① 冻结 forbidden.weight_source_tokens 里的 "psfsw_robust_weight" / "psfsw"
-//                —— **保留不动**：这是退役对象的**显式拒绝面**（旧产品把该对象写进
-//                weight.sources / variance_from ⇒ rc=1 + token 名）。删除即变成静默接受。
-//             ② p2_weight_mode_check 的生产模式 allowed 集合 —— **按负责人裁决收窄**为
-//                {point_information, surface_gls}；"psfsw_robust" 不再被接受，改走显式
-//                拒绝 + 迁移提示（FZ-MODE-RETIRED，err 含被拒 mode 与允许集）。
+// WHAT:       冻结 forbidden.weight_source_tokens 里的 "psfsw_robust_weight" / "psfsw"
+//             —— **保留不动**：这是退役对象的**显式拒绝面**（旧产品把该对象写进
+//             weight.sources / variance_from ⇒ rc=1 + token 名）。删除即变成静默接受。
 // WHY:        负责人裁决（原话）：「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于
 //             参考帧。而是绝对标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重
-//             psfsw_robust_weight **不是现行对象**：ASTROCS_DESIGN.md §3.1（订正后）
+//             psfsw_robust_weight **不是现行对象**：ASTROCS_DESIGN.md §3.1
 //             「权重只能来自纯净信号与噪声之比……任何使偏差随帧而变的量（含 PSF 拟合
 //             质量代理）都不得进入科学叠加权重」；docs/design/UNIFIED_MODEL.md:58；
-//             docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（§4 选择表已移除 psfsw_robust 行，
-//             仅剩 point_information / psf_snr_power(DEFERRED) / surface_gls）；
+//             docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
 //             统一对象退役登记 eng/contracts/data/unified_object_compatibility_map_v1.json:133-143。
-//             本注释块原以「冻结合同 weight_modes.production 含 psfsw_robust」为由拒绝收窄；
-//             该冻结段与 weight_modes 概念的语义源已被上述裁决取代（§9.73 A44 作废留痕），
-//             且收窄 allowed 集合是**收紧**科学门（不是放宽），故按裁决执行。
-// STATUS:     生产可达的合同门：p2_weight_mode_check / p2_weight_source_token_reject
-//             由 lib/algorithms/integration/v6/src/phase2_integrate.cpp:1811,1814 调用，
+// STATUS:     生产可达的合同门：p2_weight_source_token_reject
+//             由 lib/algorithms/integration/v6/src/phase2_integrate.cpp 调用，
 //             并在 coverage target 内编译。
-// EXIT:       无（①是拒绝面，必须保留；②已按裁决收窄，无需再动）。
-//             遗留待办（不属本任务域）：docs/contracts/DATA_SEMANTICS.md §31 的
-//             weight_modes.production 段仍含 psfsw_robust（DOC-402 域），以及
-//             eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp:191-196 仍锁定旧 allowed 集合。
-// AUTHORITY:  ASTROCS_DESIGN.md §3.1（订正后）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
+// EXIT:       无（拒绝面必须保留）。
+// AUTHORITY:  ASTROCS_DESIGN.md §3.1；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
 //             docs/design/UNIFIED_MODEL.md:58；ENGINEERING_SPEC.md §2/§3；
 //             eng/contracts/data/unified_object_compatibility_map_v1.json:133-143（14→13 退役登记）。
 // ──────────────────────────────────────────────────────────────────────
@@ -443,9 +432,10 @@ int p2_weight_source_token_reject(const char* const* tokens, std::uint64_t n,
                                       "forbidden weight source token '%s' "
                                       "(FZ-MODE-RETIRED: not a current object - "
                                       "ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58; "
-                                      "migration: Phase2 derives frame weights from frame "
-                                      "SNR (1/sigma_F^2); allowed: "
-                                      "point_information|surface_gls)",
+                                      "migration: Phase2 reconstructs the dense SNR field "
+                                      "and derives inverse-variance weights "
+                                      "w = SNR^2/F_ref^2; there is no selectable weight "
+                                      "mode)",
                                       kForbiddenWeightSourceTokens[j]);
                     } else {
                         std::snprintf(err, err_size,
@@ -460,53 +450,6 @@ int p2_weight_source_token_reject(const char* const* tokens, std::uint64_t n,
         }
     }
     return 0;
-}
-
-int p2_weight_mode_check(const char* mode, char* err, std::size_t err_size) {
-    if (mode == nullptr || *mode == '\0') {
-        set_p2_err(err, err_size,
-                   "weight_mode: missing (production modes are explicit: "
-                   "point_information|surface_gls)");
-        return 1;
-    }
-    // production 科学模式（FZ-MODE-PRODUCTION）：allowed = {point_information,
-    // surface_gls}。与 docs/science/PSF_SIGNAL_WEIGHT.md §4 订正后的选择表一致。
-    if (ascii_ieq(mode, "point_information") || ascii_ieq(mode, "surface_gls")) {
-        return 0;
-    }
-    // 退役对象（FZ-MODE-RETIRED）：psfsw_robust_weight 不是现行对象
-    // （ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒ 显式拒绝 + 迁移提示。
-    // 不得静默接受、不得回退成默认模式；err 必须含被拒 mode 与允许集。
-    if (ascii_ieq(mode, "psfsw_robust")) {
-        set_p2_err(err, err_size,
-                   "weight_mode 'psfsw_robust' rejected (FZ-MODE-RETIRED): "
-                   "psfsw_robust_weight is not a current object "
-                   "(ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
-                   "allowed production modes = point_information|surface_gls; "
-                   "migration: point_information (W_info=1/Var(F_hat)) for point "
-                   "sources, surface_gls (A^T C^-1 A) for extended sources; "
-                   "PSF quality proxies (FWHM/residual) are diagnostics only");
-        return 1;
-    }
-    // 冻结 documented baseline（FZ-MODE-BASELINE）：可识别，非生产，不得声最优。
-    if (ascii_ieq(mode, "equal") || ascii_ieq(mode, "pixel_ivar")) {
-        set_p2_err(err, err_size,
-                   "weight_mode is a documented baseline (equal|pixel_ivar), "
-                   "not a production science mode; may not claim optimality");
-        return 2;
-    }
-    // legacy 整数词表（0=support_x_snr2,1=equal,2=ivar）已取代，不得入科学权重面。
-    if (ascii_ieq(mode, "0") || ascii_ieq(mode, "1") || ascii_ieq(mode, "2")) {
-        set_p2_err(err, err_size,
-                   "legacy integer weight_mode superseded (FZ-FIELD-WEIGHTMODE); "
-                   "use explicit point_information|surface_gls");
-        return 1;
-    }
-    // psf_snr_power / auto / support_x_snr2 / 未知值。
-    set_p2_err(err, err_size,
-               "forbidden or unknown production weight_mode (FZ-MODE-PRODUCTION / "
-               "FZ-MODE-DEFERRED): only point_information|surface_gls");
-    return 1;
 }
 
 } // extern "C"

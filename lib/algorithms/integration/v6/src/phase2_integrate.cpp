@@ -1,4 +1,4 @@
-/* phase2_integrate.cpp — V6 Phase2 三模式产品链集成实现
+/* phase2_integrate.cpp — V6 Phase2 产品链集成实现（单一权重口径）
  * 见 phase2_integrate.h 的冻结锚。本层只接线 Wave 5/7 实现，不含新科学公式。
  */
 #include "astrocs/v6/phase2_integrate.h"
@@ -190,25 +190,25 @@ std::vector<double> derive_psf_alpha(const FrameSet& fs) {
 }
 
 /* ── FZ-MODE-RETIRED：退役对象 psfsw_robust_weight 的显式拒绝说明（单一事实源） ──
- * WHAT:  本文件三处接受面（parse_weight_mode / route_weight_mode / open_phase2_product
- *        的产品校验）共用同一条拒绝说明，保证"被拒 mode + 允许集 + 迁移提示"三项逐字一致。
+ * WHAT:  产品校验面（open_phase2_product）使用的拒绝说明：旧产品若声明退役对象
+ *        psfsw_robust_weight，必须可诊断地拒绝，不得静默接受。
  * WHY:   负责人裁决「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是绝对
  *        标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重 psfsw_robust_weight
- *        **不是现行对象**：ASTROCS_DESIGN.md §3.1（订正后）「权重只能来自纯净信号与噪声
+ *        **不是现行对象**：ASTROCS_DESIGN.md §3.1「权重只能来自纯净信号与噪声
  *        之比……任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；
  *        docs/design/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
- *        不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（生产模式门 allowed
- *        只剩 point_information / surface_gls）。
- * 纪律:  不得静默接受、不得回退成默认模式；本常量只用于**拒绝**路径，不得用于放行。
- * 迁移:  point_information（W_info=1/Var(F_hat)）用于点源；surface_gls（A^T C^-1 A）
- *        用于扩展源；PSF 质量代理（FWHM/残差尺度）只作诊断。 */
+ *        不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（单一权重口径）。
+ * 纪律:  不得静默接受；本常量只用于**拒绝**路径，不得用于放行。
+ * 迁移:  Phase2 由重建的稠密 SNR 面现场取逆方差（w = SNR^2/F_ref^2 = 1/sigma_F^2）；
+ *        PSF 质量代理（FWHM/残差尺度）只作诊断。 */
 const char* kRetiredWeightModeRejectReason =
-    "FZ-MODE-RETIRED: weight_mode 'psfsw_robust' rejected - psfsw_robust_weight is not "
+    "FZ-MODE-RETIRED: product declares 'psfsw_robust' - psfsw_robust_weight is not "
     "a current object (ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
-    "allowed production modes: point_information | surface_gls; "
-    "migration: point_information (W_info=1/Var(F_hat)) for point sources, "
-    "surface_gls (A^T C^-1 A) for extended sources; "
-    "PSF quality proxies (FWHM/residual) are diagnostics only";
+    "there is no selectable weight mode: Phase2 reconstructs the dense SNR field and "
+    "derives inverse-variance weights w = SNR^2/F_ref^2 = 1/sigma_F^2; "
+    "PSF quality proxies (FWHM/residual) are diagnostics only; "
+    "migration: drop the retired declaration and keep the canonical single weight "
+    "object 'point_information' (W_info = 1/Var(F_hat))";
 
 /* 退役对象判据（大小写敏感全等，与本文件既有 token 比较口径一致）。 */
 bool is_retired_weight_mode_token(const std::string& token) {
@@ -216,59 +216,6 @@ bool is_retired_weight_mode_token(const std::string& token) {
 }
 
 }  /* namespace */
-
-/* ==================================================================== */
-/* 模式路由                                                              */
-/* ==================================================================== */
-/* 生产模式接受集（FZ-MODE-PRODUCTION）= {point_information, surface_gls}；
- * 退役对象 psfsw_robust 走 FZ-MODE-RETIRED 显式拒绝（见 kRetiredWeightModeRejectReason）。
- * kPsfswRobust 枚举臂按 ENGINEERING_SPEC §2「保留则注释」保留（编译/ABI 兼容与历史产品
- * 可判），但**任何接受面都不得返回它**：parse/route/产品校验三处均已改为拒绝。 */
-const char* weight_mode_token(WeightMode m) {
-  switch (m) {
-    case WeightMode::kPointInformation: return "point_information";
-    case WeightMode::kSurfaceGls: return "surface_gls";
-    case WeightMode::kPsfswRobust: return "psfsw_robust";  /* RETIRED：仅历史可判 */
-  }
-  return "unknown";
-}
-const char* phase2_type_id(WeightMode m) {
-  switch (m) {
-    case WeightMode::kPointInformation: return kTypePoint;
-    case WeightMode::kSurfaceGls: return kTypeSurface;
-    case WeightMode::kPsfswRobust: return kTypePsfsw;  /* RETIRED：仅历史可判 */
-  }
-  return "unknown";
-}
-bool parse_weight_mode(const std::string& token, WeightMode* out) {
-  if (token == "point_information") { *out = WeightMode::kPointInformation; return true; }
-  if (token == "surface_gls") { *out = WeightMode::kSurfaceGls; return true; }
-  /* FZ-MODE-RETIRED：psfsw_robust 不是现行对象 ⇒ 解析面**不接受**（返回 false），
-   * 由 route_weight_mode 给出可诊断的拒绝说明；不得静默解析成 kPsfswRobust。 */
-  return false;
-}
-int route_weight_mode(const char* mode, WeightMode* out, char* err,
-                      std::size_t err_cap) {
-  auto set = [&](const char* m) {
-    if (err && err_cap) std::snprintf(err, err_cap, "%s", m);
-  };
-  if (mode == nullptr) { set("weight_mode null"); return 1; }
-  const std::string s(mode);
-  if (s == "point_information") { if (out) *out = WeightMode::kPointInformation; return 0; }
-  if (s == "surface_gls") { if (out) *out = WeightMode::kSurfaceGls; return 0; }
-  /* FZ-MODE-RETIRED：退役对象显式拒绝 + 迁移提示（不静默接受、不回退默认模式）。
-   * out 保持调用方原值，不得写入 kPsfswRobust。 */
-  if (is_retired_weight_mode_token(s)) { set(kRetiredWeightModeRejectReason); return 1; }
-  if (s == "equal" || s == "pixel_ivar") {
-    set("documented baseline mode, not production (FZ-MODE-BASELINE)"); return 2;
-  }
-  if (s == "psf_snr_power") { set("DEFERRED not in production route (FZ-MODE-DEFERRED/C-004.1)"); return 1; }
-  if (s == "auto" || s == "support_x_snr2" || s == "support_x_snr" ||
-      s == "0" || s.empty()) {
-    set("legacy/forbidden weight_mode (FZ-FIELD-WEIGHTMODE)"); return 1;
-  }
-  set("unknown weight_mode (FZ-MODE-PRODUCTION)"); return 1;
-}
 
 /* ==================================================================== */
 /* 最小 FITS 平面读取                                                     */
@@ -402,7 +349,7 @@ FrameSet open_phase2_frame_set(const std::vector<std::string>& product_dirs) {
     fs.frames.push_back(std::move(f));
   }
   fs.ok = true;
-  fs.evidence.push_back("FZ-MODE-PRODUCTION: 3 production modes only");
+  fs.evidence.push_back("FZ-WEIGHT-SINGLE-PATH: single weight derivation from SNR");
   fs.evidence.push_back("OI-01: group median=1 normalization performed in phase2");
   return fs;
 }
@@ -413,7 +360,6 @@ FrameSet open_phase2_frame_set(const std::vector<std::string>& product_dirs) {
 namespace {
 
 struct Assembly {
-  WeightMode mode = WeightMode::kPointInformation;
   std::vector<double> signal;         /* SIGNAL 主 HDU (ADU/sr) */
   std::vector<double> variance;       /* VARIANCE (ADU^2/sr^2) */
   std::vector<double> flux;           /* FLUX (ADU) 可空 */
@@ -467,7 +413,7 @@ Provenance make_phase2_provenance(const Assembly& as, const RunMeta& meta,
                                   const std::string& fits_sha,
                                   const std::vector<std::string>& input_hashes) {
   Provenance p;
-  p.product.type_id = phase2_type_id(as.mode);
+  p.product.type_id = kTypePoint;
   p.product.schema_version = 1;
   p.software_sha = meta.software_sha;
   p.run_id = meta.run_id;
@@ -491,7 +437,8 @@ Provenance make_phase2_provenance(const Assembly& as, const RunMeta& meta,
   p.approximations = as.approximations;
   p.degradations.clear();
   p.normalization_version = "phase2_group_normalized_v1";
-  p.weight_mode_version = std::string("phase2_weight_mode_") + weight_mode_token(as.mode) + "_v1";
+  /* 键名沿用冻结 provenance 最小集；取值表述单一权重口径（无模式选择）。 */
+  p.weight_mode_version = "phase2_inverse_variance_from_snr_v1";
   if (as.correlation_kernel_id.empty()) {
     p.correlation_summary.representation = "full_matrix_unavailable";
   } else {
@@ -572,8 +519,10 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
     doc["product_schema"] = kPhase2ProductSchema;
     doc["schema_version"] = 1;
     doc["phase"] = "phase2";
-    doc["type_id"] = phase2_type_id(as.mode);
-    doc["weight_mode"] = weight_mode_token(as.mode);
+    doc["type_id"] = kTypePoint;
+    /* 数据对象身份常量（weight-mode 记录合同的 canonical 面）：不是可选项，运行时
+     * 不接受任何其它取值（FZ-WEIGHT-SINGLE-PATH）。 */
+    doc["weight_mode"] = "point_information";
     doc["run_id"] = meta.run_id;
     doc["software_sha"] = meta.software_sha;
     doc["generated_utc"] = meta.generated_utc;
@@ -618,13 +567,9 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
     doc["weight_mode_record"] = {
         {"weight_mode_schema", "astrocs.v6.weight-mode/v1"},
         {"schema_version", 1},
-        {"weight_mode", weight_mode_token(as.mode)},
+        {"weight_mode", "point_information"},
         {"mode_class", "production"},
-        {"science_objective", as.mode == WeightMode::kPointInformation
-                                  ? "point_source_flux_information"
-                                  : (as.mode == WeightMode::kSurfaceGls
-                                         ? "extended_source_surface_brightness_gls"
-                                         : "conventional_robust_integration_weight")},
+        {"science_objective", "point_source_flux_information"},
         {"weight", weight_obj},
         {"primitives", {{"psf", true}, {"noise_covariance", true}}},
         {"covariance_ref", "covariance"},
@@ -660,11 +605,6 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
       cov["operator_descriptor"] = {{"kind", "phase2_combination"},
                                     {"reconstructable", true},
                                     {"summary_ref", "phase2_extensions.combination"}};
-    }
-    if (as.has_surface) {
-      cov["surface_gls_normal_equations"] = {
-          {"authoritative_formula", "x_hat = (A^T C^-1 A)^-1 A^T C^-1 d"},
-          {"covariance_formula", "Cov(x_hat) = (A^T C^-1 A)^-1"}};
     }
     if (as.has_psfsw) {
       cov["psfsw_boundary"] = {{"method", "propagated_from_composite_coefficients"},
@@ -807,7 +747,7 @@ PublishOutcome publish_phase2_assembly(const Assembly& as, const RunMeta& meta,
     json mf;
     mf["manifest_schema"] = "astrocs.v6.hips_manifest/v1";
     mf["schema_version"] = 1;
-    mf["product_type_id"] = phase2_type_id(as.mode);
+    mf["product_type_id"] = kTypePoint;
     mf["files"] = json::array();
     mf["files"].push_back({{"relative_path", kPhase2ScienceFile},
                            {"size_bytes", pr.bytes_written},
@@ -887,7 +827,6 @@ ProductResult run_point_information(const std::vector<std::string>& product_dirs
                                     const JointCovariance& joint, const RunMeta& meta,
                                     const std::string& target_dir) {
   ProductResult res;
-  res.mode = WeightMode::kPointInformation;
   const FrameSet fs = open_phase2_frame_set(product_dirs);
   if (!fs.ok) { res.error = fs.error; return res; }
 
@@ -1016,7 +955,6 @@ ProductResult run_point_information(const std::vector<std::string>& product_dirs
   }
 
   Assembly as;
-  as.mode = WeightMode::kPointInformation;
   as.has_point = true;
   as.q = q; as.w_info = w; as.flux_value = f_hat; as.flux_variance = var_f;
   as.independent_frames = !joint_used;
@@ -1080,320 +1018,6 @@ ProductResult run_point_information(const std::vector<std::string>& product_dirs
 }
 
 /* ==================================================================== */
-/* surface_gls                                                           */
-/* ==================================================================== */
-ProductResult run_surface_gls(const SurfaceInputs& in, const RunMeta& meta,
-                              const std::string& target_dir) {
-  ProductResult res;
-  res.mode = WeightMode::kSurfaceGls;
-  const FrameSet fs = open_phase2_frame_set(in.product_dirs);
-  if (!fs.ok) { res.error = fs.error; return res; }
-  const std::size_t K = fs.frames.size();
-  if (in.n_pix_per_frame == 0 || in.design.size() != K * in.n_pix_per_frame * in.n_out) {
-    res.error = "design matrix size mismatch"; return res;
-  }
-  const std::size_t n = K * in.n_pix_per_frame;
-  if (in.c_in.size() != n * n || in.data.size() != n * in.n_out) {
-    res.error = "c_in/data size mismatch"; return res;
-  }
-  Mat ci;
-  if (!invert(in.c_in, static_cast<int>(n), &ci)) { res.error = "C_in not invertible"; return res; }
-  const int nout = static_cast<int>(in.n_out);
-  /* M = A^T C^-1 A (nout x nout) */
-  Mat ciA(n * static_cast<std::size_t>(nout), 0.0);
-  for (std::size_t i = 0; i < n; ++i)
-    for (int c = 0; c < nout; ++c) {
-      double s = 0.0;
-      for (std::size_t j = 0; j < n; ++j) s += ci[i * n + j] * in.design[j * nout + c];
-      ciA[i * nout + c] = s;
-    }
-  Mat M(static_cast<std::size_t>(nout) * nout, 0.0);
-  for (int r = 0; r < nout; ++r)
-    for (int c = 0; c < nout; ++c) {
-      double s = 0.0;
-      for (std::size_t i = 0; i < n; ++i) s += in.design[i * nout + r] * ciA[i * nout + c];
-      M[r * nout + c] = s;
-    }
-  Mat Minv;
-  if (!invert(M, nout, &Minv)) { res.error = "A^T C^-1 A singular (FZ-AP2S-RANK-RTOL)"; return res; }
-  /* R = Minv A^T C^-1 (nout x n) */
-  Mat R(static_cast<std::size_t>(nout) * n, 0.0);
-  for (int r = 0; r < nout; ++r)
-    for (std::size_t i = 0; i < n; ++i) {
-      double s = 0.0;
-      for (int c = 0; c < nout; ++c) s += Minv[r * nout + c] * ciA[i * nout + c];
-      R[r * n + i] = s;
-    }
-  /* x_hat = R d */
-  std::vector<double> xhat(static_cast<std::size_t>(nout), 0.0);
-  for (int r = 0; r < nout; ++r)
-    for (std::size_t i = 0; i < n; ++i) xhat[r] += R[r * n + i] * in.data[i * nout + r];
-  /* 恒等式 R C_in R^T == Minv（FZ-AP2S-IDENT-RTOL） */
-  {
-    double max_rel = 0.0;
-    for (int r = 0; r < nout; ++r)
-      for (int c = 0; c < nout; ++c) {
-        double s = 0.0;
-        for (std::size_t i = 0; i < n; ++i)
-          for (std::size_t j = 0; j < n; ++j) s += R[r * n + i] * in.c_in[i * n + j] * R[c * n + j];
-        const double ref = std::fabs(Minv[r * nout + c]);
-        const double err = std::fabs(s - Minv[r * nout + c]);
-        if (ref > 0.0) max_rel = std::max(max_rel, err / ref);
-      }
-    if (max_rel > kIdentRtol) { res.error = "GLS identity R C_in R^T != (A^T C^-1 A)^-1"; return res; }
-  }
-  res.x_hat = xhat.empty() ? 0.0 : xhat[0];
-  res.var_gls = Minv.empty() ? 0.0 : Minv[0];
-
-  bool approx_used = false;
-  double rho_p95 = 0.0, rho_max = 0.0, rho_p05 = 0.0, rho_p50 = 0.0;
-  double var_approx0 = 0.0;
-  if (in.pixel_ivar_approx) {
-    /* 结构性准入（ALG-P2S-PXIV.2）：本实现要求调用方声明 a_k 一致（a_k=1）。 */
-    if (in.a_k.size() != K) { res.error = "pixel-ivar approx requires per-frame a_k"; return res; }
-    for (double a : in.a_k) if (std::fabs(a - 1.0) > 1e-12) {
-      res.error = "pixel-ivar approximation requires consistent a_k (structural precondition)";
-      return res;
-    }
-    if (in.force_missing_error_gate) { res.error = "pixel-ivar approximation without error gate (FZ-GATE-PIXIVAR-APPROX)"; return res; }
-    std::vector<double> rho(nout, 0.0);
-    for (int r = 0; r < nout; ++r) {
-      /* R~_i = w_i / Sum w；a_k_ignored 时忽略 a_k（w=1/var）。 */
-      std::vector<double> wgt(n, 0.0);
-      double ws = 0.0;
-      for (std::size_t i = 0; i < n; ++i) {
-        const std::size_t k = i / in.n_pix_per_frame;
-        const double var = in.c_in[i * n + i];
-        if (!(var > 0.0)) { res.error = "non-positive diagonal variance in pixel-ivar approx"; return res; }
-        wgt[i] = in.a_k_ignored ? (1.0 / var) : (in.a_k[k] * in.a_k[k] / var);
-        ws += wgt[i];
-      }
-      for (std::size_t i = 0; i < n; ++i) wgt[i] /= ws;
-      double va = 0.0;
-      for (std::size_t i = 0; i < n; ++i)
-        for (std::size_t j = 0; j < n; ++j) va += wgt[i] * in.c_in[i * n + j] * wgt[j];
-      const double vg = Minv[r * nout + r];
-      rho[r] = (vg > 0.0) ? (va / vg) : 0.0;
-      if (r == 0) { var_approx0 = va; res.var_approx = va; }
-    }
-    std::vector<double> sorted(rho);
-    rho_p05 = nearest_rank_percentile(sorted, 0.05);
-    rho_p50 = nearest_rank_percentile(sorted, 0.50);
-    rho_p95 = nearest_rank_percentile(sorted, 0.95);
-    rho_max = *std::max_element(rho.begin(), rho.end());
-    approx_used = true;
-    const bool gate = (rho_p95 <= 1.0 + kEpsPixivar) && (rho_max <= 1.0 + kEpsPixivarSup);
-    if (!gate) {
-      res.error = "pixel-ivar approximation gate failed (Var_approx/Var_GLS > 1+eps; FZ-GATE-PIXIVAR-APPROX)";
-      res.rho = rho.empty() ? 0.0 : rho[0];
-      res.rho_p95 = rho_p95; res.rho_max = rho_max; res.var_approx = var_approx0;
-      res.approx_gate_passed = false;
-      return res;
-    }
-    res.approx_gate_passed = true;
-  }
-
-  /* effective PSF：α_k = Σ_{i∈k} R_{0,i}（实际组合系数；取输出元素 0） */
-  std::vector<double> alpha(K, 0.0);
-  for (std::size_t k = 0; k < K; ++k) {
-    double s = 0.0;
-    for (std::size_t i = 0; i < in.n_pix_per_frame; ++i)
-      s += R[0 * n + (k * in.n_pix_per_frame + i)];
-    alpha[k] = s;
-  }
-  std::vector<double> peff; double fwhm = 0.0; std::string perr;
-  if (!build_effective_psf(fs, alpha, "integral", std::string("p2-surface-") + meta.run_id,
-                           "conventional_coadd", &peff, &fwhm, &perr)) {
-    res.error = perr; return res;
-  }
-
-  Assembly as;
-  as.mode = WeightMode::kSurfaceGls;
-  as.has_surface = true;
-  as.x_hat = res.x_hat; as.var_gls = res.var_gls;
-  as.pixel_ivar_approx = approx_used;
-  as.approx_gate_passed = res.approx_gate_passed;
-  as.rho_p05 = rho_p05; as.rho_p50 = rho_p50; as.rho_p95 = rho_p95; as.rho_max = rho_max;
-  as.combination_coefficients = alpha;
-  as.coefficients_ref = "covariance.surface_gls_normal_equations";
-  as.eff_psf = peff; as.eff_psf_id = std::string("p2-surface-") + meta.run_id;
-  as.eff_psf_fwhm = fwhm;
-  as.eff_psf_norm = "integral";
-  as.eff_psf_family = "conventional_coadd";
-  as.product_family = "phase2_surface_brightness";
-  as.formula_ref = "P_eff = Sum_k alpha_k a_k P_k / Sum_k alpha_k a_k";
-  as.weight_kind = "A^T C^-1 A"; as.weight_units = "1/(surface_brightness^2)";
-  as.weight_group_normalized = false;
-  as.weight_sources = {"design_matrix", "noise_covariance", "upm_scale"};
-  as.algorithm_ids = {"ALG-P2-SURF-GLS", "ALG-P2S-GLS.2", "ALG-P2S-PXIV.3", "ALG-P2S-COV.2"};
-  as.approximations = {"surface_gls exact GLS on declared A/C_in; R C R^T identity checked"};
-  if (in.pixel_ivar_approx)
-    as.approximations.push_back("pixel_ivar_degenerate error gate epsilon=0.05 (FZ-AP2S-EPS-PIXIVAR)");
-  as.correlation_kernel_id = in.correlation_kernel_id;
-  as.correlation_scale = 1.0; as.rho_mean = in.rho_mean; as.rho_max_corr = in.rho_max;
-  as.diagonal_variance_only = in.correlation_kernel_id.empty();
-  as.signal = xhat;
-  as.variance = std::vector<double>(static_cast<std::size_t>(nout), 0.0);
-  for (int r = 0; r < nout; ++r) as.variance[r] = Minv[r * nout + r];
-  for (const auto& f : fs.frames) as.input_psf_refs.push_back(f.dir + "#psf_profile");
-
-  const PublishOutcome po = publish_phase2_assembly(as, meta, input_hashes_of(fs), target_dir);
-  res.publish = po.publish;
-  if (!po.ok) { res.error = po.error; return res; }
-  res.output_sha256 = po.sha;
-  res.combination_coefficients = alpha;
-  res.effective_psf = peff; res.effective_psf_id = as.eff_psf_id;
-  res.effective_psf_fwhm = fwhm; res.effective_psf_normalization = "integral";
-  res.pixel_ivar_approx_used = approx_used;
-  res.rho = (approx_used) ? 0.0 : 0.0;
-  res.rho_p05 = rho_p05; res.rho_p50 = rho_p50; res.rho_p95 = rho_p95; res.rho_max = rho_max;
-  res.var_approx = var_approx0;
-  res.signal_out = as.signal; res.variance_out = as.variance;
-  res.product_dir = target_dir;
-  res.evidence = fs.evidence;
-  res.evidence.push_back("FZ-FORMULA-GLS: x_hat=(A^T C^-1 A)^-1 A^T C^-1 d; R C R^T identity <= 1e-9");
-  if (approx_used) res.evidence.push_back("FZ-AP2S-EPS-PIXIVAR gate passed (p95<=1.05, cap<=1.20)");
-  res.ok = true;
-  return res;
-}
-
-/* ==================================================================== */
-/* psfsw_robust                                                          */
-/* ==================================================================== */
-ProductResult run_psfsw_robust(const PsfswInputs& in, const RunMeta& meta,
-                               const std::string& target_dir) {
-  ProductResult res;
-  res.mode = WeightMode::kPsfswRobust;
-  /* 组内归一由 Phase1 消费面（磁盘重开）完成（OI-01）。 */
-  const phase1::Phase1GroupConsumption g = phase1::consume_phase1_group_for_psfsw(in.product_dirs);
-  if (!g.ok) { res.error = g.error; return res; }
-  if (!g.record_ok) { res.error = "group psfsw record gate failed"; return res; }
-  const FrameSet fs = open_phase2_frame_set(in.product_dirs);
-  if (!fs.ok) { res.error = fs.error; return res; }
-  const std::size_t K = fs.frames.size();
-  const std::size_t P = fs.frames.front().signal_sb.size();
-  if (in.d.size() != K || in.c_in.size() != K * K) { res.error = "psfsw inputs size mismatch"; return res; }
-  for (std::size_t k = 0; k < K; ++k)
-    if (in.d[k].size() != P) { res.error = "psfsw d length mismatch"; return res; }
-  std::vector<std::vector<char>> validity = in.validity;
-  if (validity.empty()) validity.assign(K, std::vector<char>(P, 1));
-  if (validity.size() != K) { res.error = "psfsw validity size mismatch"; return res; }
-  for (std::size_t k = 0; k < K; ++k)
-    if (validity[k].size() != P) { res.error = "psfsw validity length mismatch"; return res; }
-
-  const p1psfw::CoaddResult co = p1psfw::conventional_coadd(in.d, validity, g.w_psfsw);
-  if (!co.ok) { res.error = std::string("conventional coadd rejected: ") + (co.reject ? co.reject : "?"); return res; }
-  const p1psfw::CovariancePropagation cp = p1psfw::propagate_covariance(co.alpha, in.c_in);
-  if (!cp.ok) { res.error = std::string("covariance propagation rejected: ") + (cp.reject ? cp.reject : "?"); return res; }
-  if (cp.variance_from_weight || cp.uses_relative_weight_as_ivar) {
-    res.error = "psfsw covariance from weight rejected (FZ-GATE-PSFSW-COV)"; return res;
-  }
-  /* effective PSF from actual alpha at a defined output element */
-  std::size_t p_ref = 0;
-  for (std::size_t p = 0; p < P; ++p) if (co.defined[p]) { p_ref = p; break; }
-  std::vector<double> alpha(K, 0.0);
-  for (std::size_t k = 0; k < K; ++k) alpha[k] = co.alpha[k][p_ref];
-  std::vector<double> peff; double fwhm = 0.0; std::string perr;
-  if (!build_effective_psf(fs, alpha, "integral", std::string("p2-psfsw-") + meta.run_id,
-                           "conventional_coadd", &peff, &fwhm, &perr)) {
-    res.error = perr; return res;
-  }
-
-  Assembly as;
-  as.mode = WeightMode::kPsfswRobust;
-  as.has_psfsw = true;
-  as.median_wt = g.median_wt;
-  as.w_psfsw = g.w_psfsw;
-  as.combination_coefficients = alpha;
-  as.coefficients_ref = "psfsw.composite.alpha";
-  as.eff_psf = peff; as.eff_psf_id = std::string("p2-psfsw-") + meta.run_id;
-  as.eff_psf_fwhm = fwhm;
-  as.eff_psf_norm = "integral";
-  as.eff_psf_family = "conventional_coadd";
-  as.product_family = "phase2_psfsw_integration";
-  as.formula_ref = "P_eff = Sum_k alpha_k a_k P_k / Sum_k alpha_k a_k; alpha_k(p)=W_psfsw,k v_k(p)/Sum_j W_psfsw,j v_j(p)";
-  as.weight_kind = "psfsw_robust_weight"; as.weight_units = "1"; as.weight_group_normalized = true;
-  as.weight_sources = {"psfsw.signal", "psfsw.concentration", "psfsw.noise", "psfsw.background"};
-  as.algorithm_ids = {"ALG-P2-PSFSW-001", "FZ-FORMULA-PSFSW-COMPOSITE", "ALG-P2S-COV.4", "ALG-P2S-EPSF.3"};
-  as.approximations = {"psfsw group median=1 normalization performed in phase2 (OI-01)",
-                       "covariance propagated from actual composite coefficients (FZ-GATE-PSFSW-COV)"};
-  as.correlation_kernel_id = in.correlation_kernel_id;
-  as.correlation_scale = 1.0; as.rho_mean = in.rho_mean; as.rho_max_corr = in.rho_max;
-  as.diagonal_variance_only = in.correlation_kernel_id.empty();
-
-  /* psfsw 记录块（canonical 词表；禁 ivar/variance 键） */
-  {
-    json ps;
-    ps["psfsw_schema"] = "astrocs.v6.psfsw/v1";
-    ps["schema_version"] = 1;
-    ps["weight_mode"] = "psfsw_robust";
-    ps["weight"] = {{"kind", "psfsw_robust_weight"},
-                    {"units", "1"},
-                    {"group_normalized", true},
-                    {"normalization", {{"scope", "group"}, {"median_target", 1.0},
-                                       {"constants_version", p1psfw::kCompositeVersion}}},
-                    {"weight_value", nullptr}};
-    ps["component_flux_unit"] = "ADU";
-    /* 四分量：从磁盘记录真实读取（不重算）。 */
-    std::string text, err;
-    json doc;
-    if (!read_text(in.product_dirs[0] + "/" + phase1::kPhase1RecordFile, &text, &err)) {
-      res.error = err; return res;
-    }
-    doc = json::parse(text);
-    const json& comps = doc["psfsw"]["components"];
-    auto comp_json = [](const json& c) {
-      return json{{"measurement_id", c.value("measurement_id", std::string())},
-                  {"value", c.value("value", 0.0)},
-                  {"units", c.value("units", std::string())},
-                  {"estimator", c["estimator"]},
-                  {"spatial_summary", c["spatial_summary"]}};
-    };
-    ps["components"] = {{"signal", comp_json(comps["signal"])},
-                        {"concentration", comp_json(comps["concentration"])},
-                        {"noise", comp_json(comps["noise"])},
-                        {"background", comp_json(comps["background"])}};
-    ps["composite"] = {{"formula_ref", "Wt_k = C_norm * S_k^alpha * Conc_k^beta / (N_k^gamma * B_k^delta); W_psfsw,k = Wt_k / median_j(Wt_j)"},
-                       {"exponents", {{"alpha", p1psfw::kCompositeAlpha}, {"beta", p1psfw::kCompositeBeta},
-                                      {"gamma", p1psfw::kCompositeGamma}, {"delta", p1psfw::kCompositeDelta}}},
-                       {"C_norm_version", p1psfw::kCompositeVersion},
-                       {"truncation", "fail_closed_then_component_floor_then_group_median_normalize"},
-                       {"estimator_version", "psfsw-est-v1"},
-                       {"calibration_sample_id", "phase2_psfsw_calib"}};
-    ps["common_star_set"] = doc["psfsw"]["common_star_set"];
-    ps["validity"] = {{"valid", true}, {"reason", nullptr}};
-    ps["covariance_ref"] = "covariance";
-    ps["effective_psf_ref"] = "effective_psf";
-    ps["provenance_ref"] = "provenance";
-    as.psfsw_block = ps;
-  }
-  /* SIGNAL/VARIANCE from conventional coadd */
-  as.signal = co.i_out;
-  as.variance = std::vector<double>(P, 0.0);
-  for (std::size_t p = 0; p < P; ++p) as.variance[p] = co.defined[p] ? cp.var_out[p] : 0.0;
-  /* 显式暴露 1/W 代理与真实传播方差的差异（RULINGS #5）。 */
-  as.approximations.push_back("variance is NOT 1/W_psfsw (forbidden); propagated C_out=R C_in R^T");
-  for (const auto& f : fs.frames) as.input_psf_refs.push_back(f.dir + "#psf_profile");
-
-  const PublishOutcome po = publish_phase2_assembly(as, meta, input_hashes_of(fs), target_dir);
-  res.publish = po.publish;
-  if (!po.ok) { res.error = po.error; return res; }
-  res.output_sha256 = po.sha;
-  res.median_wt = g.median_wt;
-  res.combination_coefficients = alpha;
-  res.effective_psf = peff; res.effective_psf_id = as.eff_psf_id;
-  res.effective_psf_fwhm = fwhm; res.effective_psf_normalization = "integral";
-  res.signal_out = as.signal; res.variance_out = as.variance;
-  res.product_dir = target_dir;
-  res.evidence = fs.evidence;
-  res.evidence.push_back("FZ-FORMULA-PSFSW-COMPOSITE: group median(W_psfsw)=1 from disk");
-  res.evidence.push_back("FZ-GATE-PSFSW-COV: C_out=R C_in R^T; variance_from_weight=false");
-  res.evidence.push_back("RULINGS #5: 1/W_psfsw not used as variance");
-  res.ok = true;
-  return res;
-}
-
-/* ==================================================================== */
 /* 磁盘重开独立校验                                                       */
 /* ==================================================================== */
 Phase2OpenResult open_phase2_product(const std::string& target_dir) {
@@ -1416,16 +1040,25 @@ Phase2OpenResult open_phase2_product(const std::string& target_dir) {
                         "effective_psf", "weight_mode_record"}) {
     if (!doc.contains(k)) return fail(std::string("record missing block: ") + k);
   }
-  /* 模式门（FZ-MODE-PRODUCTION：allowed = point_information | surface_gls）。 */
+  /* 单一权重口径守卫（FZ-WEIGHT-SINGLE-PATH + FZ-MODE-RETIRED）：
+   * 权重只有一个口径 —— Phase1 产稀疏 SNR 控制点 → Phase2 重建稠密 SNR 面 →
+   * 取逆方差（最优功率）定权 → 叠加。记录里的身份常量**不是可选项**：取值必须是
+   * canonical 的 "point_information"；旧产品若声明退役对象 psfsw_robust ⇒ 显式拒绝 +
+   * 迁移提示（docs/design/UNIFIED_MODEL.md:58），不得静默接受。
+   * 能红能绿：把身份常量改成任何其它值（或退役 token），本门立即判红。 */
   {
     const std::string m = doc.value("weight_mode", std::string());
-    /* FZ-MODE-RETIRED：旧产品若声明退役对象 psfsw_robust ⇒ **显式拒绝 + 迁移提示**
-     * （docs/design/UNIFIED_MODEL.md:58），不得静默接受、不得按未知模式含混带过。 */
     if (is_retired_weight_mode_token(m)) return fail(kRetiredWeightModeRejectReason);
-    if (m != "point_information" && m != "surface_gls")
-      return fail("weight_mode not in production set (FZ-MODE-PRODUCTION: "
-                  "allowed = point_information | surface_gls)");
-    out.mode = m;
+    if (m != "point_information")
+      return fail("weight_mode identity constant must be the canonical single weight "
+                  "object 'point_information' (FZ-WEIGHT-SINGLE-PATH: no selectable "
+                  "weight mode exists), got: " + m);
+    const std::string m2 = doc.value("weight_mode_record", json::object())
+                               .value("weight_mode", std::string());
+    if (is_retired_weight_mode_token(m2)) return fail(kRetiredWeightModeRejectReason);
+    if (m2 != "point_information")
+      return fail("weight_mode_record identity constant must be 'point_information' "
+                  "(FZ-WEIGHT-SINGLE-PATH), got: " + m2);
   }
   /* provenance 最小集。 */
   {
@@ -1516,7 +1149,8 @@ Phase2OpenResult open_phase2_product(const std::string& target_dir) {
                             "normalization_scope", "weight_type", "norm_scope"})
       if (w.contains(bad) || wm.contains(bad))
         return fail(std::string("forbidden third-vocabulary token: ") + bad);
-    /* weight.kind 逐模式 canonical（唯一词表）；禁把 ivar/Fisher 冒充 weight。 */
+    /* weight.kind canonical（唯一词表）；禁把 ivar/Fisher 冒充 weight。
+     * 单一口径 ⇒ 唯一合法取值 = W_info（点源信息量 1/Var(F_hat)）。 */
     {
       const std::string kind = w.value("kind", std::string());
       static const char* kBadKinds[] = {"ivar", "inverse_variance", "variance", "var",
@@ -1524,11 +1158,9 @@ Phase2OpenResult open_phase2_product(const std::string& target_dir) {
                                         "w_psf"};
       for (const char* b : kBadKinds)
         if (kind == b) return fail(std::string("weight.kind forbidden token: ") + b);
-      const char* expect = (out.mode == "point_information")
-                               ? "W_info"
-                               : (out.mode == "surface_gls" ? "A^T C^-1 A"
-                                                            : "psfsw_robust_weight");
-      if (kind != expect) return fail("weight.kind not canonical for mode: " + kind);
+      if (kind != "W_info")
+        return fail("weight.kind not canonical for the single weight path "
+                    "(expected W_info = 1/Var(F_hat)): " + kind);
     }
     if (!w.contains("sources") || !w["sources"].is_array())
       return fail("weight.sources missing");
@@ -1536,41 +1168,6 @@ Phase2OpenResult open_phase2_product(const std::string& target_dir) {
       const std::string t = s.get<std::string>();
       for (const char* bad : kForbiddenWeightSources)
         if (t == bad) return fail(std::string("diagnostic token in weight.sources: ") + t);
-    }
-    // ── RETIRED-CODE-RETAINED (ENGINEERING_SPEC §2 保留则注释) ─────────────
-    // WHAT:       psfsw_robust 产品形状校验分支（weight.kind / units / group_normalized /
-    //             normalization.scope / median_target / psfsw 禁键 / 四分量 / 单位）——
-    //             退役对象的**历史产品可判**面。
-    // WHY-KEPT:   按 ENGINEERING_SPEC §2「保留则注释」保留：旧 phase2_psfsw 产品记录
-    //             （weight_mode="psfsw_robust"）仍需可判可诊断；删掉它会让历史产品在形状
-    //             校验阶段以 "weight.kind not canonical" 含混报错，丢失 FZ-MODE-RETIRED 的
-    //             可诊断性。保留不等于放行：放行已由上方模式门 fail-closed 拦住（收紧门）。
-    // STATUS:     非产品目标态、未接入生产：FZ-MODE-RETIRED 生效后本分支**运行期不可达**
-    //             （上方模式门在 out.mode 赋值前已拒绝 psfsw_robust）。
-    // EXIT:       与退役对象的物理移除同批删除：负责人裁决删除 WeightMode::kPsfswRobust
-    //             枚举臂 + run_psfsw_robust + 本形状校验分支，并同批改
-    //             eng/tests/unit/v6_p1_drz/** 与 eng/tests/unit/v6_aio/oracle/**。
-    // AUTHORITY:  ENGINEERING_SPEC.md §2；ASTROCS_DESIGN.md §3.1（订正后）；
-    //             docs/design/UNIFIED_MODEL.md:58；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4。
-    // ──────────────────────────────────────────────────────────────────────
-    if (out.mode == "psfsw_robust") {
-      if (w.value("kind", std::string()) != "psfsw_robust_weight") return fail("psfsw weight.kind");
-      if (w.value("units", std::string()) != "1") return fail("psfsw weight.units != 1");
-      if (w.value("group_normalized", false) != true) return fail("psfsw group_normalized != true");
-      if (!w.contains("normalization") || !w["normalization"].is_object())
-        return fail("psfsw weight.normalization missing");
-      if (w["normalization"].value("scope", std::string()) != "group") return fail("psfsw scope != group");
-      if (std::fabs(w["normalization"].value("median_target", 0.0) - 1.0) > 1e-12)
-        return fail("psfsw median_target != 1");
-      const json& ps = doc["psfsw"];
-      for (const char* bad : {"ivar", "inverse_variance", "variance", "var", "sigma",
-                              "sigma2", "fisher", "fisher_information", "information",
-                              "w_info", "w_psf"})
-        if (ps.contains(bad)) return fail(std::string("psfsw forbidden key: ") + bad);
-      if (ps["components"].size() != 4) return fail("psfsw components != 4");
-      if (ps["components"]["concentration"].value("units", std::string()) != "ADU/px^2")
-        return fail("concentration units != ADU/px^2 (W6 authority)");
-      if (ps.value("component_flux_unit", std::string()) != "ADU") return fail("component_flux_unit");
     }
   }
   /* effective PSF 必输。 */
@@ -1586,8 +1183,8 @@ Phase2OpenResult open_phase2_product(const std::string& target_dir) {
         !vom["values"].is_array() || vom["values"].empty())
       return fail("effective PSF only fwhm scalar (FZ-GATE-PSFSW-EPSF)");
   }
-  /* Q/W 一致性（point_information）。 */
-  if (out.mode == "point_information") {
+  /* Q/W 一致性（单一口径的 canonical 产品面）。 */
+  {
     const json& pi = doc["point_information"];
     const double w_info = pi["W_info"].value("value", 0.0);
     const double var_f = pi["flux_variance"].value("value", 0.0);
@@ -1864,10 +1461,11 @@ UpmRejSampResult run_upm_rej_samp_wiring(const FrameSet& fs, const RunMeta& meta
     r.n_supported = ns; r.n_uncovered = nu; r.n_unavailable = nua;
   }
 
-  /* 生产权重模式门 + 权重来源 token 门（FZ-MODE-* / FZ-GATE-*）。 */
+  /* 权重来源 token 门（FZ-GATE-*）：诊断量不得进权重/方差来源。
+   * 单一口径本身不需要"模式门"——它由 p2weight 的逆方差权重链与产品校验面强制
+   * （FZ-WEIGHT-SINGLE-PATH；见 weight_chain.h 与 open_phase2_product）。 */
   {
     char eb[256] = {0};
-    r.weight_mode_rc = p2_weight_mode_check("point_information", eb, sizeof(eb));
     const char* tokens_ok[] = {"psf", "photometric_response", "noise_covariance"};
     const char* tokens_bad[] = {"support", "coverage", "median_source_snr", "fwhm", "residual"};
     const int tok_ok_rc = p2_weight_source_token_reject(tokens_ok, 3, eb, sizeof(eb));

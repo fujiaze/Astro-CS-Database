@@ -173,9 +173,11 @@ def check_product(prod_dir, results):
     for k in PROV_MIN:
         if k not in rec["provenance"]:
             errs.append("provenance missing key: " + k)
-    # 4) 模式门（FZ-MODE-PRODUCTION）：allowed = point_information | surface_gls
-    if rec["weight_mode"] not in ("point_information", "surface_gls"):
-        errs.append("weight_mode not in production set (FZ-MODE-PRODUCTION): "
+    # 4) 身份常量（FZ-WEIGHT-SINGLE-PATH）：记录只能声明 canonical 的 point_information；
+    #    任何其它取值（含曾被当作生产口径的 surface_gls 与退役 token）都判红。
+    if rec["weight_mode"] != "point_information":
+        errs.append("weight_mode identity constant must be 'point_information' "
+                    "(FZ-WEIGHT-SINGLE-PATH: no selectable weight mode exists): "
                     + str(rec["weight_mode"]))
     # 5) BUNIT 二次律 + 各 HDU
     hdus = load_fits(fits_path)
@@ -226,8 +228,8 @@ def check_product(prod_dir, results):
     # 该分支同时保留历史词表禁区判定：退役产品也不得夹带 ivar/variance 冒充。
     if rec["weight_mode"] == "psfsw_robust":
         errs.append("FZ-MODE-RETIRED: retired weight_mode 'psfsw_robust' present "
-                    "(psfsw_robust_weight is not a current object; allowed weight "
-                    "objects: point_information|surface_gls)")
+                    "(psfsw_robust_weight is not a current object; the only weight "
+                    "object is point_information)")
         ps = rec.get("psfsw", {})
         for k in FORBIDDEN_PSFSW_KEYS:
             if k in ps:
@@ -291,22 +293,6 @@ def recompute_point_joint(rj):
     return errs, ratio
 
 
-def recompute_surface(rs):
-    A = np.asarray(rs["design"], dtype=float).reshape(-1, 1)
-    d = np.asarray(rs["data"], dtype=float).reshape(-1, 1)
-    C = np.asarray(rs["c_in"], dtype=float).reshape(A.size, A.size)
-    Ci = np.linalg.inv(C)
-    M = float((A.T @ Ci @ A).item())
-    xhat = float((A.T @ Ci @ d)[0, 0] / M)
-    var = 1.0 / M
-    errs = []
-    if abs(rs["x_hat"] - xhat) / max(abs(xhat), 1e-300) > 1e-9:
-        errs.append("surface x_hat mismatch")
-    if abs(rs["var_gls"] - var) / var > 1e-9:
-        errs.append("surface var_gls mismatch")
-    return errs
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--workdir", required=True)
@@ -320,9 +306,11 @@ def main():
     with open(results_path) as f:
         results = json.load(f)
 
-    # 结构/重开门（point / surface）。psfsw_robust 已按负责人裁决退役（FZ-MODE-RETIRED），
-    # 不再有产品块：其证据改为"必须被显式拒绝"的负例（见下方 psfsw_retired）。
-    for key in ("point", "point_joint", "surface"):
+    # 结构/重开门（point / point_joint）。FZ-WEIGHT-SINGLE-PATH：权重只有一个口径，
+    # 没有可选口径 ⇒ surface_gls 不再是产品路径（其 GLS 估计量以 point_joint 的
+    # 相关帧联合信息形式保留，见 recompute_point_joint）；psfsw_robust 已退役
+    # （FZ-MODE-RETIRED）⇒ 其证据是"必须被显式拒绝"的负例（见下方 psfsw_retired）。
+    for key in ("point", "point_joint"):
         if key not in results:
             check(False, "missing results block: " + key)
             continue
@@ -361,11 +349,6 @@ def main():
               "FWHM(P_eff) must differ from median(FWHM_k) (median substitution)")
         check(abs(rec_point["effective_psf"]["fwhm_from_effective"]["value"] - fwhm(peff)) <= 1e-9,
               "recorded FWHM must equal FWHM(P_eff)")
-    if "surface" in results:
-        errs = recompute_surface(results["surface"])
-        for e in errs:
-            check(False, e)
-        check(not errs, "surface GLS independent recompute")
     # FZ-MODE-RETIRED：退役对象 psfsw_robust 必须被显式拒绝（不静默接受、不产出产品），
     # 且拒绝理由可诊断：被拒对象 + 允许的权重对象 + 迁移提示。
     check("psfsw_retired" in results, "psfsw_retired negative evidence present")
@@ -375,7 +358,7 @@ def main():
               "retired psfsw_robust rejected (no product written)")
         msg = rej.get("error", "")
         for tok in ("FZ-MODE-RETIRED", "psfsw_robust_weight", "point_information",
-                    "surface_gls", "migration"):
+                    "migration", "SNR^2"):
             check(tok in msg, "retired reject reason carries %r" % tok)
 
     # non-vacuity：注入 mutation 后本 Oracle 检查器必须变红

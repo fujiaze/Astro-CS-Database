@@ -5,7 +5,7 @@
 复用 v6_runtime_contract.h 的代码逻辑），因此对「契约实现被改坏」具备独立检出能力。
 
 覆盖（每项 = 一条硬规则，任一违反 → rc=1）：
-  R1  CLI 模式路由表（FZ-MODE-PRODUCTION / FZ-MODE-DEFERRED / FZ-FIELD-WEIGHTMODE /
+  R1  CLI 模式路由表（FZ-WEIGHT-SINGLE-PATH / FZ-MODE-RETIRED / FZ-FIELD-WEIGHTMODE /
       FZ-P3-MODES）在 lib/infrastructure/cli/v6_runtime_contract.h 中唯一落位，且 reject 理由引用冻结节点。
   R2  --mode / --export-mode 只在 phase2 / phase3 命令面登记（parser kRules），phase1 不得有。
   R3  §3.2 三 Phase 隔离：CLI 命令面不得存在聚合式 run/graph/pipeline 入口。
@@ -29,7 +29,9 @@ import sys
 
 DEFAULT_REPO = pathlib.Path(__file__).resolve().parents[3]
 
-PROD_P2 = ["point_information", "surface_gls", "psfsw_robust"]
+# FZ-WEIGHT-SINGLE-PATH：phase2 权重口径没有可选择项 ⇒ 生产 token 集合为空。
+PROD_P2 = []
+# 非科学方差面的显式登记（legacy 整数映射的目标），不在 --mode token 面放行。
 BASE_P2 = ["equal", "pixel_ivar"]
 REJECT_P2 = ["psf_snr_power", "auto", "support_x_snr2"]
 PROD_P3 = ["surface_brightness", "point_source_flux", "visualization"]
@@ -86,9 +88,9 @@ def rule_r1_mode_routing(ctx: Ctx):
     if src is None:
         return
     code = strip_comments(src)
-    for tok in PROD_P2:
-        ctx.check("R1-phase2-production", ('"' + tok + '"') in code,
-                  "lib/infrastructure/cli/v6_runtime_contract.h 缺 phase2 生产模式 " + tok)
+    # FZ-WEIGHT-SINGLE-PATH：phase2 不得存在任何生产权重 token（集合为空是判据本身）。
+    ctx.check("R1-phase2-no-production-token", not PROD_P2,
+              "PROD_P2 非空 ⇒ 权重口径又变成可选择项（FZ-WEIGHT-SINGLE-PATH）")
     for tok in BASE_P2:
         ctx.check("R1-phase2-baseline", ('"' + tok + '"') in code,
                   "lib/infrastructure/cli/v6_runtime_contract.h 缺 phase2 baseline " + tok)
@@ -103,10 +105,19 @@ def rule_r1_mode_routing(ctx: Ctx):
                   "lib/infrastructure/cli/v6_runtime_contract.h 缺 phase3 输出模式 " + tok)
     ctx.check("R1-p3-modes", "FZ-P3-MODES" in src,
               "Phase3 输出模式未引用冻结节点 FZ-P3-MODES")
-    # 契约头不得出现"把 deferred 当生产放行"的路径
+    # 契约头不得出现"把 deferred 当生产放行"的路径：phase2 路由必须存在，
+    # 且**不得**返回 kProduction（没有任何 token 是生产权重口径）。
     ctx.check("R1-no-deferred-production",
-              "route_phase2_mode" in code and "kProduction" in code,
-              "契约头缺 route_phase2_mode / kProduction 路由实现")
+              "route_phase2_weight_token" in code and "kProduction" in code,
+              "契约头缺 route_phase2_weight_token / kProduction 路由实现")
+    mb2 = re.search(r"route_phase2_weight_token[\s\S]{0,2500}?\n\}", code)
+    body2 = mb2.group(0) if mb2 else ""
+    ctx.check("R1-phase2-no-production-route",
+              body2 != "" and "kProduction" not in body2,
+              "route_phase2_weight_token 出现生产放行分支（FZ-WEIGHT-SINGLE-PATH：无合法 token）")
+    ctx.check("R1-phase2-single-path-anchor",
+              "FZ-WEIGHT-SINGLE-PATH" in src,
+              "契约头未登记 FZ-WEIGHT-SINGLE-PATH 单一口径锚")
     # legacy 整数映射：1|2 -> baseline；0 -> reject（fail-closed）
     ctx.check("R1-legacy-int-map",
               "route_legacy_weight_mode_int" in code and "kBaseline" in code,

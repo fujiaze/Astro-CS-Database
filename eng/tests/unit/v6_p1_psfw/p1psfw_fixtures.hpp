@@ -87,7 +87,6 @@ inline std::vector<ComponentMeasure> four_components(double s, double conc, doub
 inline PsfswRecord good_record() {
     PsfswRecord r;
     r.weight_mode = "psfsw_robust";
-    r.production_modes = production_weight_modes();
     r.weight_kind = "relative_dimensionless";
     r.weight_units = "1";
     r.group_normalized = true;

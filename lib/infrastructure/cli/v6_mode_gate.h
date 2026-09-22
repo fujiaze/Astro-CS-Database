@@ -78,7 +78,7 @@ inline int mode_gate(const Parsed& p, int phase, astrocs::JsonlEmitter& ev) {
     // 2) 显式 CLI 模式旗标
     if (p.values.count(flag)) {
         const std::string tok = p.values.at(flag);
-        const ModeRoute mr = (phase == 2) ? route_phase2_mode(tok) : route_phase3_mode(tok);
+        const ModeRoute mr = (phase == 2) ? route_phase2_weight_token(tok) : route_phase3_mode(tok);
         emit_route(mr, "cli", flag);
         if (mr.kind == RouteKind::kReject) return astrocs::ARGS;
     }
