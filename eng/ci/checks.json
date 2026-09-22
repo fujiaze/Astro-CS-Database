@@ -1056,7 +1056,7 @@
         "v6_p2_halfproduct",
         "v6_p2_negative",
         "v6_p2_oracle",
-        "v6_p2_routing",
+        "v6_p2_singlepath",
         "v6_p2_write",
         "v6_p3_export_negative",
         "v6_p3_export_oracle",
@@ -1281,7 +1281,7 @@
             "--expect",
             "v6_p1_schema_oracle",
             "--expect",
-            "v6_p2_routing",
+            "v6_p2_singlepath",
             "--expect",
             "v6_p2_write",
             "--expect",
@@ -1326,7 +1326,7 @@
             "v6_p1_negative",
             "v6_p1_halfproduct",
             "v6_p1_schema_oracle",
-            "v6_p2_routing",
+            "v6_p2_singlepath",
             "v6_p2_write",
             "v6_p2_negative",
             "v6_p2_halfproduct",
@@ -3075,6 +3075,7 @@
       "outputs": [
         "run/ci/ctest/ipv_mag_iter.json",
         "run/ci/ctest/ipv_mag_iter_delivery.json",
+        "run/ci/ctest/ipv_select_domain.json",
         "run/ci/ctest/p1phot_fixgates.json",
         "run/ci/ctest/p1snr_science_all.json",
         "run/ci/ctest/p1wcs_apbp.json",
@@ -3103,6 +3104,7 @@
       "ctest_targets": [
         "ipv_mag_iter",
         "ipv_mag_iter_delivery",
+        "ipv_select_domain",
         "p1noise_numpy_oracle",
         "p1phot_fixgates",
         "p1snr_science_*",
@@ -3426,6 +3428,40 @@
           "requires_monitor": false,
           "ctest_targets": [
             "ipv_mag_iter_delivery"
+          ]
+        },
+        {
+          "id": "CTEST-IPV-SELECT-DOMAIN",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "ipv_select_domain",
+            "--output",
+            "run/ci/ctest/ipv_select_domain.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/ipv_select_domain.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "ipv_select_domain"
           ]
         },
         {
@@ -4711,6 +4747,7 @@
         "run/ci/ctest/aio_abi_units.json",
         "run/ci/ctest/ipv_abi_layout_lock.json",
         "run/ci/ctest/ipv_abi_layout_lock_selfcheck.json",
+        "run/ci/ctest/ipv_error_utf8.json",
         "run/ci/ctest/ipv_params_abi_failclosed.json"
       ],
       "waivable": false,
@@ -4735,6 +4772,7 @@
         "ipv_abi_layout_lock_selfcheck",
         "ipv_dead_params_lock",
         "ipv_dead_params_lock_selfcheck",
+        "ipv_error_utf8",
         "ipv_params_abi_failclosed",
         "p1noise_abi_layout"
       ],
@@ -5156,6 +5194,40 @@
           "requires_monitor": false,
           "ctest_targets": [
             "ipv_dead_params_lock_selfcheck"
+          ]
+        },
+        {
+          "id": "CTEST-IPV-ERROR-UTF8",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "ipv_error_utf8",
+            "--output",
+            "run/ci/ctest/ipv_error_utf8.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/ipv_error_utf8.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "ipv_error_utf8"
           ]
         },
         {
@@ -7664,6 +7736,53 @@
             "eng/ci/check_registry_doc_sync.py"
           ],
           "requires_monitor": false
+        },
+        {
+          "id": "ID-MIGRATION-MAP-DOC-SYNC",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/gen_id_migration_map_doc.py",
+            "--check"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/id_migration_map.json",
+            "eng/ci/ID_MIGRATION_MAP.md",
+            "eng/ci/gen_id_migration_map_doc.py",
+            "eng/ci/checks.json"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "ID-MIGRATION-MAP-DOC-SYNC-SELFTEST",
+          "profiles": [
+            "fast"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/gen_id_migration_map_doc.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/gen_id_migration_map_doc.py"
+          ],
+          "requires_monitor": false
         }
       ]
     },
@@ -8329,9 +8448,58 @@
       "requires_monitor": false
     },
     {
-      "id": "AHPX-WEIGHT-RETIRED",
+      "id": "CHK-NO-WEIGHT-MODE-CODE",
       "profiles": [
         "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_no_weight_mode_code.py",
+        "--json-out",
+        "run/ci/no-weight-mode-code/no_weight_mode_code.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/no-weight-mode-code/no_weight_mode_code.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "eng/tools/**",
+        "eng/ci/check_no_weight_mode_code.py",
+        "eng/ci/checks.json"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-NO-WEIGHT-MODE-CODE-SELFTEST",
+      "profiles": [
+        "fast"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_no_weight_mode_code.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/check_no_weight_mode_code.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "AHPX-WEIGHT-RETIRED",
+      "profiles": [
         "linux-main"
       ],
       "platform": "linux",
@@ -8366,7 +8534,6 @@
     {
       "id": "CHK-DRZ-DISP009",
       "profiles": [
-        "fast",
         "linux-main"
       ],
       "platform": "linux",
@@ -8467,7 +8634,6 @@
         {
           "id": "P3-PROJ-DECL-REGISTRY",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "linux",
@@ -8499,7 +8665,6 @@
         {
           "id": "P3-PROJ-DECL-UNSUPPORTED-CLI",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "linux",
@@ -8564,7 +8729,6 @@
         {
           "id": "P3-PROJ-DECL-SELFTEST",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "linux",
@@ -9128,7 +9292,6 @@
         {
           "id": "CTEST-CORE-BLOCK-FRAME",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "any",
@@ -9198,7 +9361,6 @@
         {
           "id": "CTEST-V6-P2-SKY-KAPPA",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "any",
@@ -9327,7 +9489,6 @@
         {
           "id": "CTEST-NORMALIZE-WORKFLOW",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "any",
@@ -9454,7 +9615,6 @@
         {
           "id": "CTEST-MOSAIC-WINDOW",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "any",
@@ -9525,7 +9685,6 @@
         {
           "id": "CTEST-MEM-WIRE",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "any",
@@ -9595,7 +9754,6 @@
         {
           "id": "CTEST-EXPORT-STREAM",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "any",
@@ -9739,7 +9897,6 @@
         {
           "id": "CTEST-P3-EXPORT-STREAM-RSS",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "linux",
@@ -9990,7 +10147,6 @@
         {
           "id": "CTEST-BLOCK-FLOW",
           "profiles": [
-            "fast",
             "linux-main"
           ],
           "platform": "any",
@@ -10387,6 +10543,756 @@
         "lib/infrastructure/aio/**"
       ],
       "requires_monitor": false
+    },
+    {
+      "id": "CHK-PLUGIN-SYMBOL-CLOSURE",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-PLUGIN-SYMBOL-CLOSURE",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/plugin-symbol-closure/closure.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/check_plugin_symbol_closure.py",
+        "eng/packaging/astrocs.product.json",
+        "CMakeLists.txt",
+        "lib/**",
+        "eng/tests/conformance/noop/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "STATIC-PLUGIN-SYMBOL-CLOSURE",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/ci/check_plugin_symbol_closure.py",
+            "--build-dir",
+            "build",
+            "--json-out",
+            "run/ci/plugin-symbol-closure/closure.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/plugin-symbol-closure/closure.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_plugin_symbol_closure.py",
+            "eng/packaging/astrocs.product.json",
+            "CMakeLists.txt",
+            "lib/**",
+            "eng/tests/conformance/noop/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "SELFTEST-PLUGIN-SYMBOL-CLOSURE",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/ci/check_plugin_symbol_closure.py",
+            "--self-test",
+            "--json-out",
+            "run/ci/plugin-symbol-closure/selftest.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/plugin-symbol-closure/selftest.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_plugin_symbol_closure.py",
+            "eng/ci/checks.json"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-DEEP-PROFILES-TESTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "eng/ci/tests",
+        "-t",
+        "eng/ci/tests",
+        "-p",
+        "test_deep_profiles.py"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        "docs/ci/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-CI-CONTRACT-SELFTESTS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-CI-CONTRACT-SELFTESTS",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        ".github/workflows/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CI-CONTRACT-BOOTSTRAP-UTF8",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_bootstrap_utf8.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-RUNNER-CONTRACT",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_runner_contract.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-RUNNER-EXECUTION",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_runner_execution.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-RUNNER-SELECTION",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_runner_selection.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-GAP4-EMPTY-OUTPUTS",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_gap4_empty_outputs_guard.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-IMPACT-MAP",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_impact_map.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-NEGATIVE-GUARDS",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_negative_guards.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-RESOURCE-PROBE",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_resource_probe.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-RESOURCE-MONITOR-SHIM",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_resource_monitor_shim.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-RUN-PREFIX-PROBE",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_run_prefix_probe.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-FATDUCK-WORKFLOW",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_fatduck_workflow.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-VERIFY-REMOTE-RUN",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_verify_remote_run.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-WINDOWS-CI",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_windows_ci.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-WORKFLOW-LOCK",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_workflow_lock.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-CONTRACT-CTEST-REGISTRATION",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_ctest_registration.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-CI-INTEGRATION-SELFTESTS",
+      "profiles": [
+        "integration",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-CI-INTEGRATION-SELFTESTS",
+        "--quiet"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        ".github/workflows/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CI-INTEGRATION-CI001-FAILCLOSED",
+          "profiles": [
+            "integration",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_ci001_failclosed.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-INTEGRATION-CI-REPAIR-ROUND",
+          "profiles": [
+            "integration",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_ci_repair_round.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "CI-INTEGRATION-RUN-MONITORED",
+          "profiles": [
+            "integration",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "eng/ci/tests",
+            "-t",
+            "eng/ci/tests",
+            "-p",
+            "test_run_monitored.py"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/**",
+            ".github/workflows/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
     },
     {
       "id": "CHK-KNOWN-FAILURES-BASELINE",

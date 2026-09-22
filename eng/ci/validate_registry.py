@@ -87,6 +87,51 @@ def _collect_test_files(root: pathlib.Path, pattern: str) -> list[pathlib.Path]:
     return files
 
 
+def _class_bases_index(root: pathlib.Path) -> dict:
+    """目录树内「类名 -> 直接基类表达式」索引（跨模块解析继承链用）。
+
+    unittest 的用例类常见写法是共享夹具基类：
+        class _RoundCase(unittest.TestCase): ...      # 同模块
+        class TestRedInventory(_RoundCase): ...       # 真正的用例类
+    基类也可能定义在兄弟模块里，故索引整个目录树而非单文件。
+    同名类取并集：任一解析链触达 TestCase 即视为用例类。
+    """
+    idx: dict = {}
+    for f in sorted(root.rglob("*.py")):
+        try:
+            tree = ast.parse(f.read_text(encoding="utf-8", errors="ignore"))
+        except (SyntaxError, OSError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                idx.setdefault(node.name, [])
+                idx[node.name].extend(ast.unparse(b) for b in node.bases)
+    return idx
+
+
+def _count_testcase_methods(tree: ast.Module, bases_idx: dict) -> int:
+    """R11：统计模块内 unittest.TestCase 子类的 test_* 方法数（继承链传递解析）。
+
+    只按「直接基类名里含 TestCase」统计会把派生类全部漏掉 —— 被测模块里
+    「共享夹具基类 + 派生用例类」是常见写法，于是门误报「采集 0 用例(门空转)」。
+    """
+    def is_testcase(name: str, seen: frozenset) -> bool:
+        if name in seen:
+            return False
+        if "TestCase" in name:
+            return True
+        return any(is_testcase(b, seen | {name}) for b in bases_idx.get(name, []))
+
+    total = 0
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and is_testcase(node.name, frozenset()):
+            total += sum(
+                1 for x in node.body
+                if isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and x.name.startswith("test"))
+    return total
+
+
 def _discover_case_gap(where: str, target: pathlib.Path, cmd: list[str]) -> list[str]:
     """R11：unittest discover 目录不得 0 用例, 且直跑验收脚本必须可被采集。
 
@@ -101,6 +146,7 @@ def _discover_case_gap(where: str, target: pathlib.Path, cmd: list[str]) -> list
     pattern = "test*.py"
     if "-p" in cmd:
         pattern = cmd[cmd.index("-p") + 1]
+    bases_idx = _class_bases_index(target)
     total = 0
     problems: list[str] = []
     for f in _collect_test_files(target, pattern):
@@ -120,16 +166,7 @@ def _discover_case_gap(where: str, target: pathlib.Path, cmd: list[str]) -> list
             and isinstance(n.args[0].func, ast.Name)
             and n.args[0].func.id == "main"
             for n in ast.walk(tree))
-        cases = 0
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.ClassDef):
-                continue
-            bases = [ast.unparse(b) for b in node.bases]
-            if any("TestCase" in b for b in bases):
-                cases += sum(
-                    1 for x in node.body
-                    if isinstance(x, (ast.FunctionDef, ast.AsyncFunctionDef))
-                    and x.name.startswith("test"))
+        cases = _count_testcase_methods(tree, bases_idx)
         total += cases
         if direct_run and has_main and cases == 0:
             problems.append(
