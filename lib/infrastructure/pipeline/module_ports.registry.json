@@ -200,6 +200,60 @@
       ]
     },
     {
+      "module_id": "astrocs.phase1.wcs-platesolve",
+      "phase": "phase1",
+      "operations": [
+        {
+          "operation": "plate_solve",
+          "entry": "astrocs_phase1_wcs_v1",
+          "resource_class": "cpu_heavy",
+          "ports": [
+            {
+              "name": "p1_calibrated",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "calibrated_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-CAL",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_wcs",
+                  "token": "p1_calibrated_path"
+                }
+              ],
+              "note": "本节点按帧读校准后像素自行做星点检测与 Gaia 求解，不消费 p1_sources.json ⇒ 本节点是 p1_sources 的**上游**（生产 IR 的 cal→cos→wcs→psf 序由此成立，检测节点排在解算之后不构成环）。"
+            },
+            {
+              "name": "p1_wcs",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<frame_key>/p1_wcs.json"
+              ],
+              "data_schema_id": "DATA-P1-WCS",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_wcs",
+                  "token": "/p1_wcs.json"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "module_id": "astrocs.phase1.star-psf",
       "phase": "phase1",
       "operations": [
@@ -229,6 +283,27 @@
               ]
             },
             {
+              "name": "p1_wcs",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<frame_key>/p1_wcs.json"
+              ],
+              "data_schema_id": "DATA-P1-WCS",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_star_psf_impl",
+                  "token": "/p1_wcs.json"
+                }
+              ],
+              "note": "取向先验的真实来源：星表引导检测要把 Gaia 星表逆投影到像素域，逆投影必须知道像面取向与镜像；由配置给出的中心指向+板尺度不含取向。本端口即 wcs-platesolve 节点的 p1_wcs 产物（同阶段同 token），声明为 typed 输入 ⇒ 调度器保证解算先落盘，检测节点排在解算之后。"
+            },
+            {
               "name": "p1_sources",
               "direction": "output",
               "carrier": "output_dir_file",
@@ -247,7 +322,7 @@
                   "token": "/p1_sources.json"
                 }
               ],
-              "note": "同文件内承载 psf_params 行；photometry 的 PSF 参数取自此处，不读 p1_psf.json。"
+              "note": "同文件内承载 psf_params 行；photometry 的 PSF 参数取自此处，不读 p1_psf.json。下游消费者：photometry（p1_sources）、noise-snr（p1_sources）、drizzle（逐星掩膜）。"
             },
             {
               "name": "p1_psf",
@@ -269,60 +344,6 @@
                 }
               ],
               "note": "生产链路零消费者：本端口只登记事实，不虚构消费者。"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "module_id": "astrocs.phase1.wcs-platesolve",
-      "phase": "phase1",
-      "operations": [
-        {
-          "operation": "plate_solve",
-          "entry": "astrocs_phase1_wcs_v1",
-          "resource_class": "cpu_heavy",
-          "ports": [
-            {
-              "name": "p1_calibrated",
-              "direction": "input",
-              "carrier": "output_dir_file",
-              "artifacts": [
-                "calibrated_<light_basename>"
-              ],
-              "data_schema_id": "DATA-P1-CAL",
-              "unit": "ADU",
-              "coordinate": "PIXEL",
-              "scalar": "f32",
-              "shape_hint": "[H,W]",
-              "code": [
-                {
-                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-                  "symbol": "p1_op_wcs",
-                  "token": "p1_calibrated_path"
-                }
-              ],
-              "note": "本节点按帧读校准后像素自行做星点检测与 Gaia 求解，不消费 p1_sources.json。"
-            },
-            {
-              "name": "p1_wcs",
-              "direction": "output",
-              "carrier": "output_dir_file",
-              "artifacts": [
-                "<frame_key>/p1_wcs.json"
-              ],
-              "data_schema_id": "DATA-P1-WCS",
-              "unit": "DIMENSIONLESS",
-              "coordinate": "ICRS",
-              "scalar": "f64",
-              "shape_hint": "[1]",
-              "code": [
-                {
-                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-                  "symbol": "p1_op_wcs",
-                  "token": "/p1_wcs.json"
-                }
-              ]
             }
           ]
         }
@@ -821,6 +842,27 @@
                   "token": "/p1_stack.json"
                 }
               ]
+            },
+            {
+              "name": "p1_phot",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_phot.json"
+              ],
+              "data_schema_id": "DATA-P1-PHOTPROV-001",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "n/a",
+              "shape_hint": "n/a",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_writer",
+                  "token": "/p1_phot.json"
+                }
+              ],
+              "note": "逐帧测光 provenance：本节点读其 frames[].status 判定上游逐帧失败，任一帧未处理即运行级判红（SCIENCE_PRECONDITION），不发布部分产品却报成功。"
             },
             {
               "name": "p1_final",

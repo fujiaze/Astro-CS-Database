@@ -866,6 +866,13 @@ ModuleDescriptor p1_star_psf_descriptor() {
   d.parallel_ok = true;
   d.ports = {
       {"cleaned", "DATA-P1-COSMETIC", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      // 取向先验的真实来源 = 本帧已解出的 WCS 产物 <frame_dir>/p1_wcs.json。
+      // 星表引导检测要把 Gaia 星表逆投影到像素域, 逆投影必须知道像面取向与镜像;
+      // 由配置给出的"中心指向 + 板尺度"**不含取向**（缺省北向上/东向左），
+      // 该假设下密集真实场仍有拟合通过全部质量门而落在错误天球位置。
+      // 声明为 typed 输入端口 ⇒ 调度器保证 wcs 节点先落盘, 本节点直接以本帧
+      // 自解 WCS 作先验, 不再要求调用方预先知道像面取向。
+      {"wcs", "DATA-P1-WCS", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       {"sources", "DATA-P1-SOURCES", false, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       {"psf", "DATA-P1-PSF", false, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
   };
@@ -885,7 +892,10 @@ ModuleDescriptor p1_wcs_descriptor() {
   d.execution_class = "cpu_heavy";
   d.parallel_ok = true;
   d.ports = {
-      {"sources", "DATA-P1-SOURCES", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+      // 本节点按帧读**校准后像素**自行做星点检测与 Gaia 求解（sdet + ipv 真实链），
+      // 不消费 p1_sources.json（与注册表 astrocs.phase1.wcs-platesolve 同款声明）。
+      // 故本节点是 sources 的**上游**: 星检测节点排在解算之后不构成环。
+      {"calibrated", "DATA-P1-CAL", true, UnitId::ADU, CoordinateFrame::PIXEL},
       {"wcs", "DATA-P1-WCS", false, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-WCS-001";
@@ -904,7 +914,11 @@ ModuleDescriptor p1_photometry_descriptor() {
   d.execution_class = "cpu_heavy";
   d.parallel_ok = true;
   d.ports = {
-      {"psf", "DATA-P1-PSF", true, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
+      // 校准后像素是测光的真实输入面（p1_calibrated_path 逐帧读取）。
+      {"calibrated", "DATA-P1-CAL", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      // PSF 参数随 p1_sources.json 的 psf_params 行到达（同一产物、同一帧序），
+      // 故**不**声明 artifact:p1_psf 输入端口: 该边在注册表里不存在
+      // （astrocs.phase1.star-psf 的 p1_psf 端口"生产链路零消费者"）。
       {"sources", "DATA-P1-SOURCES", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       // P1-PHOT-BROKEN: 本节点按 output_dir 文件约定读 <frame_dir>/p1_wcs.json
       // （回退 config.wcs）来取 CRVAL/CD 做 Gaia 投影。未声明该 typed 输入时
@@ -939,6 +953,15 @@ ModuleDescriptor p1_noise_snr_descriptor() {
   d.execution_class = "cpu_heavy";
   d.parallel_ok = true;
   d.ports = {
+      // 真实输入面（注册表 astrocs.phase1.noise-snr）: 逐源行 p1_sources.json +
+      // 测光 provenance p1_phot.json + cleaned 像素。三者都是本节点实际读取的产物,
+      // 声明为 typed 输入使 IR 依赖边可绑定（调度器保证上游先落盘）。
+      {"sources", "DATA-P1-SOURCES", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+      {"photprov", "DATA-P1-PHOTPROV-001", true, UnitId::DIMENSIONLESS,
+       CoordinateFrame::ICRS},
+      {"cleaned", "DATA-P1-COSMETIC", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      // 合成 IR（单元测试构造的最小图）以本端口绑定 photometry→noise-snr 依赖;
+      // 生产 IR 不声明本端口（p1_flux.json 在本节点无读取点）。
       {"fluxes", "DATA-P1-FLUX", true, UnitId::ADU, CoordinateFrame::ICRS},
       {"snr", "DATA-P1-SNR", false, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
   };
@@ -970,6 +993,14 @@ ModuleDescriptor p1_drizzle_descriptor() {
       // 「未应用测光」（静默 ADU 降级）。声明依赖边后调度器保证 phot 完成再执行 drz。
       {"photprov", "DATA-P1-PHOTPROV-001", true, UnitId::DIMENSIONLESS,
        CoordinateFrame::ICRS},
+      // 逐星掩膜输入 = star-psf 节点产物 p1_sources.json（注册表 drizzle 的
+      // p1_sources 端口同款声明）: 声明 typed 边使本节点不会被调度到 star-psf 之前。
+      {"sources", "DATA-P1-SOURCES", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
+      // 帧级 SNR 键的真实来源 = noise-snr 节点产物 p1_snr.json（astro_sphere_sink.cpp
+      // write_hips_phase1 逐帧读取）。未声明该 typed 边时 drz 与 snr 并发执行,
+      // 读到缺失/陈旧 p1_snr.json 时**只打印警告并跳过帧级 SNR 键**（静默降级）,
+      // 产品缺少 SNR 而运行仍报成功。声明依赖边后调度器保证 snr 先落盘。
+      {"snr", "DATA-P1-SNR", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
       {"stacked", "DATA-P1-STACK", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-DRIZ-001";
@@ -2362,6 +2393,10 @@ bool p1_header_pointing(const P1Image& im, double* ra0, double* dec0,
                         double* focal_mm, double* pixel_um, double* s0,
                         std::string* src, std::string* why);
 
+// P1-PHOT-BROKEN 的 WCS 天测可用性判定（定义在下方 wcs/phot 段; 本段前置声明）:
+// 取向先验取自本帧解算产物时必须用**同一判据**确认天测可用（有限 crval + 非退化 CD）。
+bool p1_wcs_astrometry_usable(const Json& wc, std::string* why);
+
 // top 数合同域 = 2–5 万（ASTROCS_DESIGN.md §4.2）。越界即 DATA 拒绝，禁静默夹取。
 static constexpr int kP1GuidedMaxStarsLo = 20000;
 static constexpr int kP1GuidedMaxStarsHi = 50000;
@@ -2469,13 +2504,48 @@ bool p1_guided_cfg(const Json& doc, P1GuidedCfg* out, std::string* why) {
   return true;
 }
 
+// 本帧解算产物（<frame_dir>/p1_wcs.json, DATA-P1-WCS）→ 逆投影先验。
+// 只取线性部分（crpix/crval/CD）: 与显式 CD 分支同口径（预测位置的高阶 SIP 项
+// 不参与, 登记为已知残差）。天测可用性用与 photometry 同一判据确认。
+// 任一不可得 → false + *why（调用方按 mode 语义降级或 fail-closed）。
+bool p1_guided_wcs_product_prior(const Json& wprod, astrocs::phase1::WcsTan* out,
+                                 std::string* why) {
+  if (!wprod.is_object() || !p1_has(wprod, "wcs") || !wprod["wcs"].is_object()) {
+    *why = "p1_wcs.json carries no 'wcs' object";
+    return false;
+  }
+  const Json& w = wprod["wcs"];
+  if (!p1_wcs_astrometry_usable(w, why)) return false;
+  const double crpix1 = p1_num(w, "crpix1", std::numeric_limits<double>::quiet_NaN());
+  const double crpix2 = p1_num(w, "crpix2", std::numeric_limits<double>::quiet_NaN());
+  if (!std::isfinite(crpix1) || !std::isfinite(crpix2)) {
+    *why = "p1_wcs.json reference pixel (crpix) missing/non-finite";
+    return false;
+  }
+  out->crpix1 = crpix1;
+  out->crpix2 = crpix2;
+  out->crval1 = w["crval1"].get<double>();
+  out->crval2 = w["crval2"].get<double>();
+  out->cd11 = w["cd11"].get<double>();
+  out->cd12 = w["cd12"].get<double>();
+  out->cd21 = w["cd21"].get<double>();
+  out->cd22 = w["cd22"].get<double>();
+  return true;
+}
+
 // 近似 WCS 解析（权威路径逆投影的锚）。来源优先级:
-//   ① star_detection.approx_wcs / wcs 段的天测键（crval1/2 + CD，方向完整）
-//   ② wcs.init_source 的初始指向（header_pointing|config|neighbor_crval）+
+//   ① star_detection.approx_wcs / wcs 段的天测键（crval1/2 + CD，方向完整）——
+//      调用方显式给定的先验, 最高优先（诊断/负例注入亦走此路）。
+//   ② **本帧解算产物** <frame_dir>/p1_wcs.json（psf 节点排在 wcs 之后, 由 IR 的
+//      typed 边 artifact:p1_wcs 保证先落盘）—— 生产默认先验: 含完整取向, 无需
+//      调用方预先知道像面取向, 且经求解器 roundtrip/前向交叉绝对门。
+//   ③ wcs.init_source 的初始指向（header_pointing|config|neighbor_crval）+
 //      板尺度 s0=206.265·XPIXSZ/FOCALLEN + 方向（rotation_deg/parity；缺省
 //      "北向上/东向左" ⇒ *assumed=true 留痕，不静默当已知）。
 // 任一不可得 → false + *why（调用方 DATA fail-closed）。
+// solved: 该帧已解出的 WCS（nullptr = 该帧无产物先验）。
 bool p1_guided_approx_wcs(const P1GuidedCfg& cfg, const Json& doc, const P1Image& im,
+                          const astrocs::phase1::WcsTan* solved,
                           astrocs::phase1::WcsTan* wcs, double* out_focal_mm,
                           double* out_pixel_um, double* out_s0, std::string* src,
                           bool* assumed, std::string* why) {
@@ -2504,6 +2574,24 @@ bool p1_guided_approx_wcs(const P1GuidedCfg& cfg, const Json& doc, const P1Image
     *out_s0 = s0;
     *src = "config_astrometric_keys";
     return true;
+  }
+  if (solved != nullptr) {
+    // ② 本帧解算产物: 完整线性 WCS（含取向与镜像）, 无需假设。
+    *wcs = *solved;
+    // 板尺度同显式分支口径 = |CD 第 1 列|（deg/px → ″/px）; focal/pixel 由 s0 反演,
+    // 只为把同一物理量喂给 compute_fov_density（等价换算，不引入新常数）。
+    s0 = std::sqrt(wcs->cd11 * wcs->cd11 + wcs->cd21 * wcs->cd21) * 3600.0;
+    if (!std::isfinite(s0) || !(s0 > 0.0)) {
+      *why = "solved WCS product degenerate (|CD column 1| = 0)";
+      return false;
+    }
+    pixel_um = 1.0;
+    focal_mm = kP1GuidedAsecPerUmPerMm / s0;
+    *out_focal_mm = focal_mm;
+    *out_pixel_um = pixel_um;
+    *out_s0 = s0;
+    *src = "solved_wcs_product(<frame_dir>/p1_wcs.json)";
+    return true;   // 产物含取向 ⇒ *assumed 保持 false（不假设、不冒充）
   }
   const Json wc = (p1_has(doc, "wcs") && doc["wcs"].is_object()) ? doc["wcs"] : Json::object();
   const std::string init_source = wc.value("init_source", std::string("header_pointing"));
@@ -2730,9 +2818,51 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
           "star_detection config invalid: " + why));
     }
   }
+  // ── 取向先验来源 ②: 本帧解算产物 <frame_dir>/p1_wcs.json ────────────────────
+  // psf 节点排在 wcs 节点之后（IR typed 边 artifact:p1_wcs, 机器断言见
+  // eng/ci/check_registry_ir_parity.py C4–C8）, 故此处按帧读到的就是**本帧自解** WCS。
+  // 逐帧读一次并缓存（节点级一次解析, 禁逐帧重复 IO）; 只在可能走权威路径时读
+  // （blind_diagnostic 显式声明、或无参考星表时不可能走权威路径 ⇒ 不读）。
+  // 任一帧缺产物/产物非法 ⇒ 该帧无产物先验, 由 star_detection.mode 语义决定显式
+  // 降级（auto）或 fail-closed（catalog_guided）; **不得**以缺省"北向上/东向左"冒充权威。
+  const size_t n_frames = doc["input_lights"].size();
+  std::vector<Json> solved_wcs_doc(n_frames);
+  std::vector<bool> have_solved_wcs(n_frames, false);
+  std::string solved_wcs_why;
+  const bool need_wcs_prior = (gcfg.mode != "blind_diagnostic") && !gcfg.gaia_dir.empty();
+  for (size_t i = 0; need_wcs_prior && i < n_frames; ++i) {
+    const std::string lp = doc["input_lights"][i].get<std::string>();
+    const std::string wpath = p1_frame_dir(doc, lp) + "/p1_wcs.json";
+    std::string wtext;
+    if (!aio_fs::read_all(wpath, &wtext)) {
+      solved_wcs_why = "no solved WCS product at " + wpath;
+      continue;
+    }
+    Json wprod;
+    try {
+      wprod = Json::parse(wtext);
+    } catch (const Json::exception& e) {
+      solved_wcs_why = std::string("p1_wcs.json parse failed (") + e.what() + "): " + wpath;
+      continue;
+    }
+    astrocs::phase1::WcsTan probe;
+    std::string pwhy;
+    if (!p1_guided_wcs_product_prior(wprod, &probe, &pwhy)) {
+      solved_wcs_why = "p1_wcs.json unusable (" + pwhy + "): " + wpath;
+      continue;
+    }
+    solved_wcs_doc[i] = std::move(wprod);
+    have_solved_wcs[i] = true;
+  }
+  bool have_solved_all = need_wcs_prior && (n_frames > 0);
+  for (size_t i = 0; i < n_frames; ++i) {
+    if (!have_solved_wcs[i]) { have_solved_all = false; break; }
+  }
+
   std::string eff_mode = gcfg.mode;
   std::string degrade_reason;
-  const bool have_orient = p1_guided_has_orientation(gcfg);
+  const bool cfg_orient = p1_guided_has_orientation(gcfg);
+  const bool have_orient = cfg_orient || have_solved_all;
   if (eff_mode == "auto") {
     if (gcfg.gaia_dir.empty()) {
       // 显式降级（**不是**静默）：逐帧落 degraded_reason + authoritative=false。
@@ -2742,13 +2872,14 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
                        "unavailable, falling back to the declared non-authoritative blind path";
       std::fprintf(stderr, "[star-psf] WARNING (recorded): %s\n", degrade_reason.c_str());
     } else if (!have_orient) {
-      // 有星表但无取向先验: 逆投影只能假设"北向上/东向左", 而实测该假设在真实
-      // 密集场上仍能产出少量通过全部质量门的假源（随机位置落在真星上），0 星闸门
-      // 抓不住 ⇒ 会以错误天球位置冒充权威星表。auto 模式按"显式降级 + 留痕"处理。
+      // 有星表但**两种**取向先验都不可得: 逆投影只能假设"北向上/东向左", 而实测该
+      // 假设在真实密集场上仍能产出少量通过全部质量门的假源（随机位置落在真星上），
+      // 0 星闸门抓不住 ⇒ 会以错误天球位置冒充权威星表。auto 模式按"显式降级 + 留痕"处理。
       eff_mode = "blind_diagnostic";
-      degrade_reason = "reference catalog configured but no orientation prior "
-                       "(star_detection.approx_wcs {crval1,crval2,cd11,cd12,cd21,cd22} or "
-                       "star_detection.rotation_deg+parity absent): catalog inverse "
+      degrade_reason = "reference catalog configured but no orientation prior: neither the "
+                       "solved WCS product <frame_dir>/p1_wcs.json (" + solved_wcs_why + ") "
+                       "nor star_detection.approx_wcs {crval1,crval2,cd11,cd12,cd21,cd22} / "
+                       "star_detection.rotation_deg+parity is available; catalog inverse "
                        "projection would use an assumed north-up/east-left orientation; "
                        "falling back to the declared non-authoritative blind path";
       std::fprintf(stderr, "[star-psf] WARNING (recorded): %s\n", degrade_reason.c_str());
@@ -2764,11 +2895,12 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
     }
     if (!have_orient) {
       return Result<void>::fail(Error(ErrorDomain::DATA,
-          "star_detection.mode=catalog_guided requires an orientation prior: configure "
-          "star_detection.approx_wcs {crval1,crval2,cd11,cd12,cd21,cd22} (or the same keys "
-          "under the wcs section), or star_detection.rotation_deg + star_detection.parity; "
-          "refusing to inverse-project the catalog with an assumed orientation "
-          "(ASTROCS_DESIGN.md §4.2: 权威路径必须高纯度, 不得以假设取向冒充)"));
+          "star_detection.mode=catalog_guided requires an orientation prior: the solved WCS "
+          "product <frame_dir>/p1_wcs.json is unavailable for every frame (" + solved_wcs_why +
+          ") and neither star_detection.approx_wcs {crval1,crval2,cd11,cd12,cd21,cd22} (or the "
+          "same keys under the wcs section) nor star_detection.rotation_deg + "
+          "star_detection.parity is configured; refusing to inverse-project the catalog with "
+          "an assumed orientation (ASTROCS_DESIGN.md §4.2: 权威路径必须高纯度, 不得以假设取向冒充)"));
     }
   }
   const bool guided = (eff_mode == "catalog_guided");
@@ -2851,12 +2983,23 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
     std::vector<double> dbuf(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()));
     for (size_t i = 0; i < dbuf.size(); ++i) dbuf[i] = static_cast<double>(im.px()[i]);
     if (guided) {
-      // ① 近似 WCS（本帧 WCS 的近似：初始指向 + 板尺度 + 方向）
+      // ① 逆投影先验: 显式配置 CD > 本帧解算产物 > 初始指向(+rotation/parity)
       astrocs::phase1::WcsTan awcs;
+      astrocs::phase1::WcsTan solved_prior;
+      const astrocs::phase1::WcsTan* solved_ptr = nullptr;
+      if (have_solved_wcs[fi]) {
+        std::string pwhy;
+        if (!p1_guided_wcs_product_prior(solved_wcs_doc[fi], &solved_prior, &pwhy)) {
+          f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+              "catalog_guided: solved WCS product unusable (" + pwhy + "): " + path));
+          return;
+        }
+        solved_ptr = &solved_prior;
+      }
       std::string wsrc, why;
       bool orientation_assumed = false;
       double g_focal = 0.0, g_pixel = 0.0, g_s0 = 0.0;
-      if (!p1_guided_approx_wcs(gcfg, doc, im, &awcs, &g_focal, &g_pixel, &g_s0,
+      if (!p1_guided_approx_wcs(gcfg, doc, im, solved_ptr, &awcs, &g_focal, &g_pixel, &g_s0,
                                 &wsrc, &orientation_assumed, &why)) {
         f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "catalog_guided: approx WCS unavailable (" + why + "): " + path));
@@ -2956,6 +3099,9 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       guided_prov = pred_prov;
       guided_prov["approx_wcs_source"] = wsrc;
       guided_prov["approx_wcs_orientation_assumed"] = orientation_assumed;
+      // 取向先验来源可审计: 是否来自本帧解算产物（含取向）, 还是配置/初始指向。
+      guided_prov["orientation_from_solved_wcs"] =
+          (solved_ptr != nullptr) && !gcfg.have_explicit_wcs;
       guided_prov["approx_wcs_crval1_deg"] = awcs.crval1;
       guided_prov["approx_wcs_crval2_deg"] = awcs.crval2;
       guided_prov["approx_wcs_cd11"] = awcs.cd11;
@@ -3881,9 +4027,14 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     if (src != 1 || r.success != 1) {
       cleanup();
       return Result<void>::fail(Error(ErrorDomain::DATA,
+          // 判词只陈述**已知为真**的两件事: 求解器返回失败、以及求解器自报的原因。
+          // 求解器内部的失败点有多处（星表查询返回数不足、三角形匹配不足、RANSAC、
+          // 以及 parity/尺度合理性闸门），本层无法区分，故不得替它归因到其中任一处
+          // —— 早先这里把「星表查询返回 0」误报成「被 parity/尺度闸门拒绝」，
+          // 直接把定位方向带偏（OPEN_QUESTIONS OQ-10）。
           std::string("ipv_solve_from_memory_with_callback_d failed: ") +
           (r.error_msg[0] ? r.error_msg : "solver returned failure") +
-          " (ipv 真实求解器链: 求解失败或解被 parity/尺度合理性闸门拒绝; frame " +
+          " (ipv 真实求解器链失败; 具体失败点以求解器自报原因与求解日志为准; frame " +
           frame_path + ")"));
     }
     // 解算结果 → WcsTan 自检: 次级 roundtrip (<1e-6 px) + B2-A1 绝对
@@ -4184,8 +4335,22 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   //   两者皆无 → 如实中性 (applied=false, pixel_scaling="none") +
   //   photscale_source="none"（不把 1.0 伪装成"已应用"）。
   //
-  // 完整性: 只有**全部帧**都有合法 k_photo 时才施加（部分归一化会把帧拉到
-  //   不同测光坐标系 ⇒ 比不归一化更糟）; 任一缺失 → 不施加 + degraded_reason。
+  // ── FAILSEM-01 帧级失败语义（负责人裁决）────────────────────────────────
+  // 负责人原话：「拟合失败这帧报 error/fail 呗，不阻塞其他帧。」
+  // 逐帧**独立**判定，三种结局互不牵连：
+  //   (a) 该帧产出标度 ⇒ 施加 I_photo = k_photo·I_cal 并写 photoapplied 产物；
+  //   (b) 该帧拟合失败（无 PSF 星 / NO_DATA / 非物理标度 / 散度超限 / 侧车无
+  //       拟合证据 / 侧车未覆盖该帧 / 该帧 WCS 不可用）⇒ **该帧 fail**：
+  //       status="fail" + 机器可读 error（domain/status/message）+ 不产出产物,
+  //       **其他帧照常处理**（帧间独立；SCI-PHOT-001 §1「门只有一个 = 单帧标定
+  //       是否可信，与其它帧无关」）；
+  //   (c) 全局性失败（星表不可读 / 配置非法 / 冻结 C 入口自身 rc!=0）⇒ 本节点
+  //       **中止**（环境问题，不是数据问题；换一帧也不会好）。
+  // 运行级判红：失败帧不产出产品 ⇒ 产品数 < 输入帧数，由 write_hips 节点按
+  //   ASTROCS_DESIGN §4.4「任何一帧未被处理、跳过或失败都显式判红」上抛
+  //   SCIENCE_PRECONDITION（exit 4）；本节点不因单帧失败而中止。
+  // 逐帧判决是**唯一真相**（manifest.frame_status / p1_phot.json.frames[]）；
+  //   组级 photometry_applied 只是摘要，下游不得据此替代逐帧判定。
   //
   // ── P1-PHOT-BROKEN 修复门（全部 fail-closed, 不得放宽）──────────────────
   // (0) **本节点不设星数门槛**（SCI-PHOT-001 §16.5）：标度按帧自身拟合结果判定，
@@ -4210,6 +4375,19 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   //     超限 ⇒ 整组不施加 + degraded_reason（fail-closed, 不混装测光体系）。
   constexpr double P1_PHOT_MAX_SIGMA_DEX = 1.0;
   constexpr double P1_PHOT_MAX_SPREAD_DEX = 0.02;  // ≈0.05 mag 峰峰（负责人判据）
+  // ── FAILSEM-01: 逐帧判决（每帧必有其一）──────────────────────────────────
+  // error_domain/error_status 取 LOG 合同 §5 的 error_report 口径：domain =
+  // ErrorDomain 名、status = 稳定错误码 ^[A-Z][A-Z0-9_]{0,63}$（不新造第二套
+  // 码表，只给本节点可定位的稳定标识）。
+  struct P1FrameVerdict {
+    std::string status;           // "ok" | "fail"
+    std::string error;            // fail 时的诊断（路径只含仓库内相对/绝对路径与数值）
+    std::string error_domain;     // fail 时的 ErrorDomain 名
+    std::string error_status;     // fail 时的稳定错误码
+    std::string degraded_reason;  // 拟合自身的机器可读退化分支（可空）
+    int n_matched = 0;
+    double sigma_residual_dex = 0.0;
+  };
   struct P1FrameScale {
     std::string key;
     double k_photo = 1.0;
@@ -4230,7 +4408,6 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   };
   std::map<std::string, P1FrameScale> scales;
   std::string photscale_source = "none";
-  std::string photscale_error;
   const Json phot_cfg = (p1_has(doc, "photometry") && doc["photometry"].is_object())
                             ? doc["photometry"] : Json::object();
   const Json fit_cfg = (phot_cfg.contains("fit") && phot_cfg["fit"].is_object())
@@ -4238,6 +4415,34 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   const bool fit_enabled = !fit_cfg.empty() && p1_flag(fit_cfg, "enabled", false);
   const Json& lights = doc["input_lights"];
   const size_t n_lights = lights.size();
+  // FAILSEM-01: 逐帧判决（下标 = input_lights 下标, 与 lights 同序）。每帧必有其一;
+  // 判 fail 只影响该帧, 不中止本节点 —— 全局性失败另走 fail_global（立即中止）。
+  std::vector<P1FrameVerdict> verdicts(n_lights);
+  for (size_t vi = 0; vi < n_lights; ++vi) verdicts[vi].status = "ok";
+  // 本节点是否声明了标定通道（fit 通道启用 或 侧车存在）。通道**缺席**不是
+  // "某帧拟合失败", 而是"测光未配置"的显式降级路径（photscale_absent）。
+  bool channel_present = false;
+  // 帧级失败记录（首个判词优先: 后续检查不再覆盖已定的失败原因）。
+  auto mark_frame_fail = [&](size_t i, const std::string& domain,
+                             const std::string& status_code,
+                             const std::string& why,
+                             const std::string& degraded) {
+    if (i >= n_lights || verdicts[i].status == "fail") return;
+    verdicts[i].status = "fail";
+    verdicts[i].error = why;
+    verdicts[i].error_domain = domain;
+    verdicts[i].error_status = status_code;
+    verdicts[i].degraded_reason = degraded;
+  };
+  // 全局性失败 = 环境/配置问题（星表不可读、配置缺项、C 入口自身失败）。
+  // 语义依据: AGENTS §10（环境/数据缺失不停在"猜"）+ LOG 合同 §6 D3
+  // （改变科学语义的情形不是降级, 必须 fail-closed 上行）。
+  auto fail_global = [&](ErrorDomain d, const std::string& status_code,
+                         const std::string& why) -> Result<void> {
+    (*man)["error_status"] = status_code;
+    (*man)["error_kind"] = (d == ErrorDomain::CONFIG) ? "config" : "input";
+    return Result<void>::fail(Error(d, why));
+  };
 
   if (fit_enabled) {
     // (1) 生产 star_matcher 拟合通道
@@ -4250,21 +4455,35 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     const std::string qe_json = fit_cfg.value("qe_json", std::string());
     const std::string qe_name = fit_cfg.value("qe_name", std::string());
     const int max_stars = p1_int(fit_cfg, "max_stars", 5000);
+    // FAILSEM-01: 配置缺项是**全局性失败**（不是数据问题）⇒ 立即中止, 不把整批
+    // 帧判 fail。依据: 负责人裁决「全局性失败（如星表不可读、config 非法）⇒ 仍应中止」。
     if (gaia_dir.empty()) {
-      photscale_error = "photometry.fit.gaia_data_dir (或 wcs.gaia_data_dir) required";
-    } else if (filter_name.empty()) {
-      photscale_error = "photometry.fit.filter (或 filter_passband) required";
-    } else if (filters_json.empty()) {
-      photscale_error = "photometry.fit.filters_json required (response curve file)";
-    } else {
+      return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_GAIA_DIR_MISSING",
+          "photometry.fit.gaia_data_dir (或 wcs.gaia_data_dir) required"
+          "（全局性失败: 配置缺项, 中止运行而不是把整批帧判 fail）");
+    }
+    if (filter_name.empty()) {
+      return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_FILTER_MISSING",
+          "photometry.fit.filter (或 filter_passband) required"
+          "（全局性失败: 配置缺项, 中止运行）");
+    }
+    if (filters_json.empty()) {
+      return fail_global(ErrorDomain::CONFIG, "PHOT_CONFIG_FILTERS_JSON_MISSING",
+          "photometry.fit.filters_json required (response curve file)"
+          "（全局性失败: 配置缺项, 中止运行）");
+    }
+    {
+      channel_present = true;   // FAILSEM-01: fit 通道已启用（配置齐备）
       for (size_t i = 0; i < n_lights; ++i) {
         const std::string lp = lights[i].get<std::string>();
         const std::string key = p1_frame_key(lp);
         // PSF 星: p1_sources.json 帧序 == input_lights 序 (star-psf 顺序写出)
         if (i >= cat.size() || !cat[i].is_object() ||
             !cat[i].contains("sources") || !cat[i]["sources"].is_array()) {
-          photscale_error = "p1_sources.json frame missing sources for " + key;
-          break;
+          // 该帧在上游星点目录里没有行 ⇒ 本帧无从拟合（帧级, 其他帧照常）。
+          mark_frame_fail(i, "DATA", "PHOT_SOURCES_FRAME_MISSING",
+                          "p1_sources.json frame missing sources for " + key, "");
+          continue;
         }
         const Json& srcs = cat[i]["sources"];
         // ══ F-INSTR-CONFORM-FIX: F_instr 的唯一合法域 = PSF 拟合域 ══════════
@@ -4365,16 +4584,27 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         // 不静默、不伪造）。
         std::string wcs_why;
         if (!p1_wcs_astrometry_usable(wj, &wcs_why)) {
-          photscale_error = "WCS unusable for " + key + ": " + wcs_why;
-          break;
+          // 本帧天测不可用 ⇒ 本帧的 Gaia 逆投影无从谈起（帧级; 不得以零 WCS 拟合
+          // 出占位 1.0）。其他帧的 WCS 各自独立 ⇒ 不阻塞。
+          mark_frame_fail(i, "SCIENCE_PRECONDITION", "PHOT_WCS_UNUSABLE",
+                          "WCS unusable for " + key + ": " + wcs_why, "");
+          continue;
         }
         bool sip_ok = true;
         std::string sip_err;
         const P1SipCoeffs sip = p1_parse_sip(wj, &sip_ok, &sip_err);
-        if (!sip_ok) { photscale_error = "wcs " + sip_err; break; }
+        if (!sip_ok) {
+          mark_frame_fail(i, "DATA", "PHOT_WCS_SIP_INVALID",
+                          "wcs " + sip_err + " (frame " + key + ")", "");
+          continue;
+        }
         const std::string src_path_i = p1_calibrated_path(doc, lp);
         P1Image fim = p1_read_image(src_path_i);
-        if (!fim.ok()) { photscale_error = "cannot read " + src_path_i; break; }
+        if (!fim.ok()) {
+          mark_frame_fail(i, "IO", "PHOT_FRAME_UNREADABLE",
+                          "cannot read " + src_path_i, "");
+          continue;
+        }
         std::vector<double> dbuf(static_cast<size_t>(fim.w()) * fim.h());
         for (size_t p = 0; p < dbuf.size(); ++p) dbuf[p] = static_cast<double>(fim.px()[p]);
         astrocs::photometry::FramePhotFitRequest freq;
@@ -4402,23 +4632,41 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         // fit_used=0；占位 1.0 不得当作"已拟合标度"施加（FIX-P1）。
         // 本节点**不设星数门槛**（SCI-PHOT-001 §16.5「星数不构成拒绝条件」）：
         // 标度是否成立只由拟合自身判决回答，本节点不复检匹配星数。
+        // ── FAILSEM-01: 拟合失败按**作用域**分流 ──────────────────────────
+        // 环境/配置失败（星表不可读、冻结 C 入口自身 rc!=0）⇒ **全局中止**;
+        // 本帧判决（无 PSF 星 / NO_DATA / 非物理标度）⇒ **该帧 fail**, 其他帧照常。
         if (fr.rc != 0 || !fr.fit_ok) {
-          photscale_error = "photometry fit failed for " + key + ": " +
-                            (fr.error.empty() ? std::string("no scale produced") : fr.error) +
-                            " (degraded_reason=" + fr.degraded_reason +
-                            ", n_matched=" + std::to_string(fr.n_matched) + ")";
-          break;
+          const std::string fit_why =
+              "photometry fit failed for " + key + ": " +
+              (fr.error.empty() ? std::string("no scale produced") : fr.error) +
+              " (degraded_reason=" + fr.degraded_reason +
+              ", n_matched=" + std::to_string(fr.n_matched) + ")";
+          if (fr.failure_scope == astrocs::photometry::FitFailureScope::kEnvironment) {
+            return fail_global(ErrorDomain::IO, "PHOT_FIT_ENVIRONMENT",
+                fit_why + "（全局性失败: 星表/曲线/配置或 C 入口自身的问题, 中止运行）");
+          }
+          mark_frame_fail(i, "SCIENCE_PRECONDITION", "PHOT_FIT_NO_SCALE", fit_why,
+                          fr.degraded_reason);
+          verdicts[i].n_matched = fr.n_matched;
+          verdicts[i].sigma_residual_dex = fr.sigma_residual_dex;
+          continue;
         }
         if (!(std::isfinite(fr.k_photo) && fr.k_photo > 0.0)) {
-          photscale_error = "non-physical k_photo for " + key; break;
+          mark_frame_fail(i, "SCIENCE_PRECONDITION", "PHOT_SCALE_NON_PHYSICAL",
+                          "non-physical k_photo for " + key, "non_physical_scale");
+          continue;
         }
         if (!std::isfinite(fr.sigma_residual_dex) ||
             fr.sigma_residual_dex > P1_PHOT_MAX_SIGMA_DEX) {
-          photscale_error = "implausible fit scatter for " + key +
-                            " (sigma_residual_dex=" +
-                            std::to_string(fr.sigma_residual_dex) + " > " +
-                            std::to_string(P1_PHOT_MAX_SIGMA_DEX) + ")";
-          break;
+          mark_frame_fail(i, "SCIENCE_PRECONDITION", "PHOT_FIT_IMPLAUSIBLE_SCATTER",
+                          "implausible fit scatter for " + key +
+                              " (sigma_residual_dex=" +
+                              std::to_string(fr.sigma_residual_dex) + " > " +
+                              std::to_string(P1_PHOT_MAX_SIGMA_DEX) + ")",
+                          "implausible_fit_scatter");
+          verdicts[i].n_matched = fr.n_matched;
+          verdicts[i].sigma_residual_dex = fr.sigma_residual_dex;
+          continue;
         }
         P1FrameScale sc;
         sc.key = key; sc.k_photo = fr.k_photo; sc.n_matched = fr.n_matched;
@@ -4434,12 +4682,14 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         sc.zero_point_scatter_mag = fr.zero_point_scatter_mag;
         scales[key] = sc;
       }
-      if (photscale_error.empty()) photscale_source = "gaia_star_matcher_tukey_irls";
+      // 通道已走通即如实登记来源（逐帧成败见 verdicts / photscale_fit）。
+      photscale_source = "gaia_star_matcher_tukey_irls";
     }
   } else {
     // (2) 上游/外部标定通道: p1_photscale.json (DATA-P1-PHOTSCALE-001)
     const std::string sp = out_dir + "/p1_photscale.json";
     if (aio_fs::exists(sp)) {
+      channel_present = true;   // FAILSEM-01: 侧车标定通道存在
       std::string stext;
       if (!aio_fs::read_all(sp, &stext))
         return Result<void>::fail(Error(ErrorDomain::IO, "cannot open: " + sp));
@@ -4454,9 +4704,10 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         for (const auto& sfj : sj["frames"]) {
           const std::string file = sfj.value("file", std::string());
           const double k = sfj.value("k_photo", 0.0);
+          // 条目结构非法 = 侧车产物本身违约（不是"这一帧拟合失败"）⇒ 全局中止。
           if (file.empty() || !(std::isfinite(k) && k > 0.0))
-            return Result<void>::fail(Error(ErrorDomain::DATA,
-                "p1_photscale.json frame requires file + finite k_photo>0"));
+            return fail_global(ErrorDomain::DATA, "PHOT_SIDECAR_FRAME_MALFORMED",
+                "p1_photscale.json frame requires file + finite k_photo>0");
           // P1-PHOT-BROKEN (b'): 外部通道不得注入"无拟合证据"的占位标度。
           // 判据 = **有无拟合证据**（SCI-PHOT-001 §16.5「星数不构成拒绝条件」），
           // 不是"星数够不够"：侧车显式声明拟合来源（source）或声明拟合产出了
@@ -4467,11 +4718,27 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
               sfj.contains("source") && sfj["source"].is_string() &&
               !sfj["source"].get<std::string>().empty();
           const bool fit_evidence = source_declared || n_matched >= 1;
+          // 无拟合证据 = **该帧**的拟合失败（不是侧车结构违约）⇒ 该帧 fail,
+          // 其他帧照常施加（帧间独立, 负责人裁决「不阻塞其他帧」）。
           if (!fit_evidence) {
-            return Result<void>::fail(Error(ErrorDomain::DATA,
-                "p1_photscale.json frame has no fit provenance (n_matched=" +
-                std::to_string(n_matched) + ", source undeclared): no fit produced"
-                " this scale -- refusing to fake a calibration"));
+            const std::string side_key = p1_frame_key(file);
+            for (size_t li = 0; li < n_lights; ++li) {
+              if (li >= lights.size() || !lights[li].is_string()) continue;
+              const std::string lp_i = lights[li].get<std::string>();
+              if (p1_frame_key(lp_i) != side_key &&
+                  p1_frame_key(p1_calibrated_path(doc, lp_i)) != side_key)
+                continue;
+              mark_frame_fail(li, "SCIENCE_PRECONDITION", "PHOT_SCALE_NO_FIT_EVIDENCE",
+                              "p1_photscale.json frame has no fit provenance (n_matched=" +
+                                  std::to_string(n_matched) +
+                                  ", source undeclared): no fit produced this scale"
+                                  " -- refusing to fake a calibration (frame " +
+                                  side_key + ")",
+                              "no_fit_evidence");
+              verdicts[li].n_matched = n_matched < 0 ? 0 : n_matched;
+              break;
+            }
+            continue;
           }
           P1FrameScale sc;
           sc.key = p1_frame_key(file);
@@ -4498,10 +4765,43 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     if (it != scales.end()) return &it->second;
     return nullptr;
   };
-  bool scales_complete = (n_lights > 0);
-  for (size_t i = 0; i < n_lights && scales_complete; ++i) {
-    if (find_scale(lights[i].get<std::string>()) == nullptr) scales_complete = false;
+  // ── FAILSEM-01: 逐帧判决补全（**只该帧**, 不再整组连坐）──────────────────
+  // 逐帧各自判定三件事:
+  //   · 已判 fail 的帧（拟合失败）原样保留;
+  //   · 声明了标定通道但该帧不在其中 ⇒ 该帧 fail（PHOT_SCALE_MISSING）;
+  //   · 标度缺**拟合证据**（fitted=false）⇒ 该帧 fail（与门禁
+  //     CHK-PROVENANCE-CONSISTENCY 的 photscale_detail.fitted 判据同一口径,
+  //     生产侧与门禁侧不得分歧）。
+  // 通道**缺席**（既未启用 fit 通道, 也无 p1_photscale.json）时不判 fail: 那是
+  // 「测光未配置」的显式降级路径（degraded_reason=photscale_absent, 见下方）。
+  std::vector<char> do_apply(n_lights, 0);
+  size_t n_frames_failed = 0;
+  for (size_t i = 0; i < n_lights; ++i) {
+    if (verdicts[i].status == "fail") { ++n_frames_failed; continue; }
+    const P1FrameScale* sc = find_scale(lights[i].get<std::string>());
+    if (sc == nullptr) {
+      if (channel_present) {
+        mark_frame_fail(i, "SCIENCE_PRECONDITION", "PHOT_SCALE_MISSING",
+                        "no photometric scale for this frame in the declared calibration"
+                        " channel (photscale_source=" + photscale_source + ")", "");
+        ++n_frames_failed;
+      }
+      continue;
+    }
+    if (!sc->fitted) {
+      mark_frame_fail(i, "SCIENCE_PRECONDITION", "PHOT_SCALE_NO_FIT_EVIDENCE",
+                      "photometry fit has no provenance for " + sc->key +
+                          " (n_matched=" + std::to_string(sc->n_matched) +
+                          ", source undeclared); refusing to declare it applied",
+                      "no_fit_evidence");
+      ++n_frames_failed;
+      continue;
+    }
+    do_apply[i] = 1;
   }
+  const size_t n_frames_ok = n_lights - n_frames_failed;
+  size_t n_applied = 0;
+  for (size_t i = 0; i < n_lights; ++i) n_applied += do_apply[i] ? 1u : 0u;
 
   // ── P1-PHOT-BROKEN (c): 帧标度收集 + **组间一致性报告字段**（非门禁）─────
   // 依据 SCI-PHOT-001 §3/§6: scale 的绝对值含未建模仪器常数（可跨数量级）。
@@ -4510,27 +4810,18 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   // 此处仍**计算并落盘** `photscale_spread_dex`（PMM warning 范式，供人工审阅）。
   double photscale_spread_dex = 0.0;
   bool photscale_spread_warn = false;
-  if (scales_complete) {
+  {
+    // FAILSEM-01: 散度只在**已施加**的帧集合上统计（失败帧既不参与统计, 也不
+    // 因组间散度改变自己的施加与否 —— 帧间独立, 门只有一个 = 单帧标定是否可信）。
     double kmin = 0.0, kmax = 0.0;
+    size_t n_k = 0;
     for (size_t i = 0; i < n_lights; ++i) {
+      if (!do_apply[i]) continue;
       const P1FrameScale* sc = find_scale(lights[i].get<std::string>());
-      if (sc == nullptr) { scales_complete = false; break; }
-      if (i == 0 || sc->k_photo < kmin) kmin = sc->k_photo;
-      if (i == 0 || sc->k_photo > kmax) kmax = sc->k_photo;
-    }
-    // (c1) 每帧都必须有**拟合证据**（fitted=true）。判据 = 有无拟合证据，
-    // **不是**星数门槛（SCI-PHOT-001 §16.5）：无证据标度 ⇒ 整组拒绝，不把
-    // 无证据标度伪装成"已应用"（与 CHK-PROVENANCE-CONSISTENCY 的
-    // photscale_detail.fitted 判据同一口径, 生产侧与门禁侧不得分歧）。
-    for (size_t i = 0; i < n_lights && scales_complete; ++i) {
-      const P1FrameScale* sc = find_scale(lights[i].get<std::string>());
-      if (sc == nullptr) { scales_complete = false; break; }
-      if (!sc->fitted) {
-        photscale_error = "photometry fit has no provenance for " + sc->key +
-                          " (n_matched=" + std::to_string(sc->n_matched) +
-                          ", source undeclared); refusing to declare it applied";
-        scales_complete = false;
-      }
+      if (sc == nullptr) continue;
+      if (n_k == 0 || sc->k_photo < kmin) kmin = sc->k_photo;
+      if (n_k == 0 || sc->k_photo > kmax) kmax = sc->k_photo;
+      ++n_k;
     }
     // ── 负责人 2026-09-19 裁决（GAP_AUDIT §9.49 定案 2）：**删除组间 k 散度门** ──
     // 原话：「极度异常值拒绝，并抛出错误，其他的合理范围都可以接受。这玩意应该是
@@ -4545,7 +4836,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     // 生产上完全不执行**，正是本裁决要消除的故障。
     // 处置：**保留 spread_dex 的计算与落盘**（供人工审阅，PMM 的 warning 范式），
     // **删除其 fail-closed 分支**；组间一致性是**语义目标，不是门禁**。
-    if (kmin > 0.0) {
+    if (n_k > 0 && kmin > 0.0) {
       const double spread_dex = std::log10(kmax / kmin);
       photscale_spread_dex = std::isfinite(spread_dex) ? spread_dex : 0.0;
       // 仅提示，不阻断：超过参考值只在 provenance 记 warning 供审阅。
@@ -4559,7 +4850,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   Json photscale_detail = Json::object();
   double photscal_rep = 1.0;
   bool photometry_applied = false;
-  if (scales_complete) {
+  if (n_applied > 0) {
     // PERF-P1: 帧级并行（与 p2_parallel_for 同规范）。每帧只写**自己下标**的结果槽
     // 与**自己帧**的产物路径；跨帧无浮点归约；帧序归约（applied_artifacts /
     // photscales / photscale_detail / ks）在 join 之后按下标升序执行 ⇒ 与串行逐字
@@ -4570,6 +4861,9 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     std::vector<double> f_k(n_lights, 0.0);
     std::vector<Json> f_detail(n_lights);
     p1_parallel_for(ph_workers, n_lights, [&](uint64_t fi, uint32_t) {
+      // FAILSEM-01: 只施加**产出标度**的帧; 拟合失败的帧不写 photoapplied 产物
+      // （该帧的失败已记在 verdicts / manifest / p1_phot.json）。
+      if (!do_apply[fi]) return;
       const std::string lp = lights[fi].get<std::string>();
       const P1FrameScale* sc = find_scale(lp);
       const std::string key = p1_frame_key(lp);
@@ -4599,7 +4893,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       f_apath[fi] = apath;
       f_k[fi] = sc->k_photo;
       // P1-PHOT-BROKEN (d): 逐帧拟合 provenance（标度之外的拟合证据）。
-      // photoscales 只承载标量（drz 消费口径不变）; 本对象记录该标量是否来自
+      // photscales 只承载标量（drz 消费口径不变）; 本对象记录该标量是否来自
       // 真实拟合（fitted/n_matched/sigma_residual_dex）, 使"applied=true"可被
       // 独立核对, 而不是只能自证。
       // F-INSTR-CONFORM-FIX: 逐帧 F_instr 域 provenance —— 使"标度取自 PSF
@@ -4616,6 +4910,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     // 帧序归约（冻结顺序：下标升序；首个失败即返回，与串行同判据）
     std::vector<double> ks;
     for (size_t i = 0; i < n_lights; ++i) {
+      if (!do_apply[i]) continue;   // 拟合失败的帧不参与施加归约
       if (!f_err[i].ok()) return f_err[i];
       applied_artifacts.push_back(f_apath[i]);
       photscales[f_key[i]] = f_k[i];
@@ -4628,14 +4923,16 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   }
 
   // ── P1-PHOT-BROKEN (e): provenance 自洽硬约束 (fail-closed) ─────────────
-  // applied=true ⟺ 每帧都有标度且每帧产物都写出。修复前 11/12 板块声明
+  // applied 的帧 ⟺ 该帧有标度 + 有拟合证据 + 产物已写出。修复前 11/12 板块声明
   // applied=true + photscal=1.0, 而该 1.0 是 NO_DATA 占位值（provenance 结构
-  // 完整但语义为假）。这里把"结构完整"升级为"结构完整 + 每帧拟合证据齐全"。
+  // 完整但语义为假）。FAILSEM-01 后该约束**逐帧**成立：数量必须等于实际施加的
+  // 帧数（失败帧不产出标度与产物, 也不得被计入）。
   if (photometry_applied &&
-      (photscales.size() != n_lights || applied_artifacts.size() != n_lights ||
-       photscale_detail.size() != n_lights)) {
+      (photscales.size() != n_applied || applied_artifacts.size() != n_applied ||
+       photscale_detail.size() != n_applied)) {
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "photometry provenance inconsistent: applied=true but photscales=" +
+        "photometry provenance inconsistent: applied frames=" +
+        std::to_string(n_applied) + " but photscales=" +
         std::to_string(photscales.size()) + " detail=" +
         std::to_string(photscale_detail.size()) + " artifacts=" +
         std::to_string(applied_artifacts.size()) + " for n_lights=" +
@@ -4666,6 +4963,45 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
              {"zero_point_scatter_mag", sc->zero_point_scatter_mag}};
   }
 
+  // ── FAILSEM-01: 逐帧判决的落盘形态（provenance 与节点 manifest 同源）─────
+  // 每帧一条 {frame_key, status, error_domain, error_status, error, ...}。
+  // 下游（drizzle）按本表逐帧决定消费哪一个输入面; 门禁按本表核对
+  // 「applied 帧数 = photscales 键数」与「失败帧不产出产物」。
+  Json frames_status = Json::array();
+  Json frame_status_map = Json::object();
+  Json frame_errors = Json::array();
+  Json failed_frames = Json::array();
+  for (size_t i = 0; i < n_lights; ++i) {
+    const std::string fkey = p1_frame_key(lights[i].get<std::string>());
+    const P1FrameVerdict& v = verdicts[i];
+    Json entry = Json{{"frame_key", fkey},
+                      {"input_light", lights[i].get<std::string>()},
+                      {"status", v.status},
+                      {"photometry_applied", do_apply[i] ? true : false}};
+    if (v.status == "fail") {
+      // error_report 形状（LOG 合同 §5）: domain/status/source/symbol/message/
+      // node/phase/degraded。稳定错误码见 P1FrameVerdict 的取值集合。
+      entry["error_domain"] = v.error_domain;
+      entry["error_status"] = v.error_status;
+      entry["error"] = v.error;
+      if (!v.degraded_reason.empty()) entry["degraded_reason"] = v.degraded_reason;
+      entry["n_matched"] = v.n_matched;
+      entry["sigma_residual_dex"] = v.sigma_residual_dex;
+      failed_frames.push_back(fkey);
+      frame_errors.push_back(Json{{"domain", v.error_domain},
+                                  {"status", v.error_status},
+                                  {"source", "astrocs.phase1.photometry"},
+                                  {"symbol", "p1_op_photometry"},
+                                  {"message", v.error},
+                                  {"node", "astrocs.phase1.photometry"},
+                                  {"phase", "phase1"},
+                                  {"frame_key", fkey},
+                                  {"degraded", false}});
+    }
+    frames_status.push_back(entry);
+    frame_status_map[fkey] = entry;
+  }
+
   // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV-001) ─────────────
   // drizzle 消费本产物决定 PHOTSCAL/PHOTAPPL; 禁止硬编码 1。如实声明是否已对
   // 像素施加测光缩放（施加后 applied=true, operation 记录两步）。
@@ -4678,13 +5014,28 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                    {"entry", "astrocs_phase1_photometry_v1"},
                    {"photometry_applied", photometry_applied},
                    {"photscal", photometry_applied ? photscal_rep : 1.0},
-                   {"pixel_scaling", photometry_applied ? "applied" : "none"},
+                   // pixel_scaling: applied=全帧施加 / partial=部分帧施加（其余帧
+                   // 已判 fail, 见 frames[]）/ none=未施加任何帧。
+                   {"pixel_scaling", n_applied == 0
+                                        ? std::string("none")
+                                        : (n_applied == n_lights ? std::string("applied")
+                                                                 : std::string("partial"))},
                    {"photscale_source", photscale_source},
                    // 组间一致性：**报告字段，非门禁**（负责人 GAP_AUDIT §9.49 定案 2）。
                    {"photscale_spread_dex", photscale_spread_dex},
                    {"photscale_spread_warn", photscale_spread_warn},
                    {"photscale_spread_gate", "none (owner ruling 9.49: frame-independent)"},
-                   {"n_frames", frames.size()}};
+                   {"n_frames", static_cast<uint64_t>(n_lights)},
+                   // ── FAILSEM-01: 逐帧判决（下游与门禁的**唯一真相**）──────
+                   // 每帧一条: status ∈ {ok, fail}。fail 帧带 error_domain /
+                   // error_status / error（LOG 合同 §5 的 error_report 口径）,
+                   // 且**不产出** photoapplied 产物。下游（drizzle）按本表逐帧
+                   // 决定消费哪一个输入面, 不得用组级 photometry_applied 替代。
+                   {"frames", frames_status},
+                   {"n_frames_ok", static_cast<uint64_t>(n_frames_ok)},
+                   {"n_frames_failed", static_cast<uint64_t>(n_frames_failed)},
+                   {"failed_frames", failed_frames},
+                   {"n_frames_applied", static_cast<uint64_t>(n_applied)}};
   // FREF-BASELINE-001: 逐帧拟合证据表无条件落盘（见上）。photscales/
   // photscale_detail 保持原语义（只描述"已施加"的那组标度），不受影响。
   prov["photscale_fit"] = photscale_fit;
@@ -4693,10 +5044,12 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     prov["photscales"] = photscales;
     prov["photscale_detail"] = photscale_detail;
     prov["photoapplied_artifacts"] = applied_artifacts;
-  } else if (!photscale_error.empty()) {
-    prov["degraded_reason"] = "photscale_incomplete";
-    prov["photscale_error"] = photscale_error;
-  } else {
+  }
+  if (n_frames_failed == 0 && !photometry_applied) {
+    // 通道缺席且无一帧施加: 「测光未配置」的**显式降级**（不是某帧拟合失败）。
+    // 依据 ASTROCS_DESIGN §4.2「该步不可用时产品显式记录 degraded_reason 并
+    // fail-closed」+ LOG 合同 §6 D1/D2。拟合失败**不再**走 degraded_reason ——
+    // 它是显式失败（frames[].status=fail + error_*）, 由运行级判红收敛。
     prov["degraded_reason"] = "photscale_absent";
   }
   if (!p1_write_text(prov_path, prov.dump(2)))
@@ -4714,7 +5067,15 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   // F-INSTR-CONFORM-FIX (SCI-PHOT-001 §9a): 本节点 F_instr 的域 = PSF 拟合域
   // 解析通量; 修复前 = 检测域 5×5 盒和。显式登记以便独立核对。
   (*man)["f_instr_domain"] = "psf_analytic_flux_2pi_A_sx_sy_over_3";
-  if (!photscale_error.empty()) (*man)["photscale_error"] = photscale_error;
+  // ── FAILSEM-01: 逐帧失败**显式上报**（节点 manifest 是运行级判红的输入）──
+  // 每帧一条 error_report 形状的记录（LOG 合同 §5: domain/status/source/symbol/
+  // message/degraded）; 失败帧同时进 failed_frames（供下游/门禁快速判定）。
+  (*man)["frame_status"] = frame_status_map;
+  (*man)["frame_errors"] = frame_errors;
+  (*man)["failed_frames"] = failed_frames;
+  (*man)["n_frames_ok"] = static_cast<uint64_t>(n_frames_ok);
+  (*man)["n_frames_failed"] = static_cast<uint64_t>(n_frames_failed);
+  (*man)["n_frames_applied"] = static_cast<uint64_t>(n_applied);
   (*man)["photoapplied_artifacts"] = applied_artifacts;
   Json artifacts = Json::array({out_path, prov_path});
   for (const auto& a : applied_artifacts) artifacts.push_back(a);
@@ -5560,6 +5921,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   // FIX-P1: 逐帧 k_photo (frame_key → 标量)。p1_phot.json.photscales 缺省时
   // 退回标量 photscal（向后兼容既有 B2-A14 夹具）。
   Json photscales = Json::object();
+  // FAILSEM-01: 上游**逐帧判决**（p1_phot.json.frames[] → frame_key → 记录）。
+  // 逐帧真相是本节点选择输入面的唯一依据; 组级 photometry_applied 只作摘要。
+  Json frame_status = Json::object();
+  bool have_frame_status = false;
   {
     const std::string prov_path = out_dir + "/p1_phot.json";
     if (aio_fs::exists(prov_path)) {
@@ -5586,6 +5951,17 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             if (!std::isfinite(k) || k <= 0.0)
               return Result<void>::fail(Error(ErrorDomain::DATA,
                   "p1_phot.json photscales values must be finite and > 0"));
+          }
+        }
+        // FAILSEM-01: 逐帧判决表（可选键: 兼容未携带该表的既有产物, 此时
+        // 逐帧判定退化为"photscales 有无该帧 + 组级 applied"的老口径）。
+        if (pj.contains("frames") && pj["frames"].is_array()) {
+          for (const auto& fe : pj["frames"]) {
+            if (!fe.is_object()) continue;
+            const std::string fk = fe.value("frame_key", std::string());
+            if (fk.empty()) continue;
+            frame_status[fk] = fe;
+            have_frame_status = true;
           }
         }
         have_phot_prov = true;
@@ -5630,17 +6006,60 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   std::vector<Json> f_man_first(drz_n);   // 首帧 provenance 键（仅 fi==0 非空）
   std::vector<std::string> f_artifact(drz_n);
   std::vector<Json> f_frame_entry(drz_n);
+  std::vector<bool> f_skip(drz_n, false);          // FAILSEM-01: 上游已判 fail 的帧
+  std::vector<std::string> f_skip_reason(drz_n);
+  std::vector<std::string> f_skip_status(drz_n);
   p1_parallel_for(drz_workers, drz_n, [&](uint64_t fi, uint32_t) {
     const std::string lp = doc["input_lights"][fi].get<std::string>();
     // [RELEASE-02 probe] 逐帧热点: drizzle
     ASTROCS_PROBE_SCOPE_CTX(_probe_drz_frame, "phase1", "drizzle.frame");
     ASTROCS_PROBE_TAG(_probe_drz_frame, "frame_key", p1_frame_key(lp).c_str());
-    // FIX-P1: 测光已应用 ⇒ drizzle 消费 photoapplied_<base>（provenance 声明
-    // applied=true 而产物缺失 ⇒ fail-closed, 不得静默退回未测光 ADU）。
+    // ── FAILSEM-01: 逐帧输入面选择（不再用组级 applied 一刀切）────────────
+    //   ① 该帧在 photscales 里有标度 ⇒ 必须消费 photoapplied_<base>
+    //      （缺产物 ⇒ fail-closed, 不得静默退回未测光 ADU）;
+    //   ② 上游 frames[] 判该帧 fail ⇒ **跳过该帧**（不产出产品; 这是**显式**
+    //      失败, 不是静默跳过 —— 原因来自 photometry 节点的 error_report）;
+    //   ③ 组级 applied=true 但既无标度也无逐帧判决（旧产物/不自洽）⇒ fail-closed;
+    //   ④ 其余（测光通道缺席）⇒ 按既有显式 ADU 降级消费 calibrated 面。
     const std::string calibrated_path = p1_calibrated_path(doc, lp);
     std::string frame_path = calibrated_path;
     double frame_photscal = photscal;
-    if (photometry_applied) {
+    bool frame_applied = false;   // 本帧像素是否已施加测光归一化（PHOTAPPL 的逐帧真相）
+    auto ksit = photscales.find(p1_frame_key(lp));
+    if (ksit == photscales.end()) ksit = photscales.find(p1_frame_key(calibrated_path));
+    if (ksit != photscales.end()) {
+      frame_applied = true;
+      const std::string applied_path = p1_photoapplied_path(doc, lp);
+      if (!aio_fs::exists(applied_path)) {
+        f_stage[fi] = 1;
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+            "p1_phot.json declares a scale for this frame but the applied frame is"
+            " missing: " + applied_path));
+        return;
+      }
+      frame_path = applied_path;
+      frame_photscal = ksit.value().get<double>();
+    } else if (have_frame_status) {
+      auto vit = frame_status.find(p1_frame_key(lp));
+      if (vit != frame_status.end() &&
+          vit.value().value("status", std::string()) == "fail") {
+        f_skip[fi] = true;
+        f_skip_reason[fi] = vit.value().value("error", std::string());
+        f_skip_status[fi] = vit.value().value("error_status", std::string());
+        return;
+      }
+      if (photometry_applied) {
+        f_stage[fi] = 1;
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+            "p1_phot.json declares photometry_applied=true but this frame has neither"
+            " a scale nor a per-frame verdict (inconsistent provenance): "
+            + p1_frame_key(lp)));
+        return;
+      }
+    } else if (photometry_applied) {
+      // 旧口径产物（无逐帧判决表 frames[]）: 保持既有语义 —— applied=true ⇒ 本帧
+      // 必须消费 photoapplied_<base>（缺产物 fail-closed, 不得静默退回未测光 ADU），
+      // 组级标量 photscal 作本帧代表值。有 frames[] 时上面的逐帧分支已接管。
       const std::string applied_path = p1_photoapplied_path(doc, lp);
       if (!aio_fs::exists(applied_path)) {
         f_stage[fi] = 1;
@@ -5650,9 +6069,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         return;
       }
       frame_path = applied_path;
-      auto ksit = photscales.find(p1_frame_key(lp));
-      if (ksit == photscales.end()) ksit = photscales.find(p1_frame_key(calibrated_path));
-      if (ksit != photscales.end()) frame_photscal = ksit.value().get<double>();
+      frame_applied = true;
+      frame_photscal = photscal;
     }
     P1Image im = p1_read_image(frame_path);
     if (!im.ok()) {
@@ -5794,10 +6212,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           if (std::strcmp(kv.k, "PRECISION") == 0)
             return std::string(precision_mode == 1 ? "fp64" : "fp32");
           if (std::strcmp(kv.k, "PHOTSCAL") == 0) return std::string(b9);
+          // FAILSEM-01: PHOTAPPL/PHOTDEGRADE 是**逐帧**事实（该帧像素是否已施加
+          // 测光归一化），不得再用组级摘要 —— 同一次运行里可以有已归一化的帧与
+          // 未归一化的帧（后者是测光通道缺席的显式 ADU 降级）。
           if (std::strcmp(kv.k, "PHOTAPPL") == 0)
-            return std::string(photometry_applied ? "1" : "0");
+            return std::string(frame_applied ? "1" : "0");
           if (std::strcmp(kv.k, "PHOTDEGRADE") == 0)
-            return std::string(photometry_applied ? "0" : "1");
+            return std::string(frame_applied ? "0" : "1");
           return std::string(b8);  // CDELT2
         }();
         if (aio_frame_kv_set(frame, "header", kv.k, val.c_str()) != 0) {
@@ -6079,8 +6500,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                           {"nside_clamped", auto_res.clamped != 0},
                           {"n_healpix_pixels", static_cast<int64_t>(res.n_healpix_pixels)},
                           {"n_source_pixels", static_cast<int64_t>(res.n_source_pixels)},
-                          {"bunit", photometry_applied ? "ASTROCS_RELATIVE_FLUX" : "ADU"},
-                          {"photappl", photometry_applied ? 1 : 0},
+                          {"bunit", frame_applied ? "ASTROCS_RELATIVE_FLUX" : "ADU"},
+                          {"photappl", frame_applied ? 1 : 0},
                           {"photscal", frame_photscal},
                           {"photometry_provenance", have_phot_prov ? "p1_phot.json" : "absent"},
                           {"artifact", "signal/ + support/ (标准 HiPS 树)"},
@@ -6123,7 +6544,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       mf["oversample_factor"] = oversample_factor;
       mf["nside_conflict"] = nside_conflict;
       mf["nside_clamped"] = auto_res.clamped != 0;
-      mf["photometry_applied"] = photometry_applied;
+      mf["photometry_applied"] = photometry_applied;   // 组级摘要（至少一帧）
+      mf["frame_photometry_applied"] = frame_applied;   // 本帧事实（首帧）
       mf["photscal"] = frame_photscal;
       mf["photometry_provenance"] = have_phot_prov ? "p1_phot.json" : "absent";
     }
@@ -6133,7 +6555,22 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   Json artifacts = Json::array();
   Json frame_entries = Json::array();
   Json var_frames_acc = Json::array();
+  Json skipped_frames = Json::array();
   for (size_t fi = 0; fi < drz_n; ++fi) {
+    // FAILSEM-01: 上游测光节点已判 fail 的帧 ⇒ 本节点不产出该帧产品。
+    // 这是**显式**跳过（原因来自上游 error_report，逐条落在 manifest），
+    // 与"读不到文件就静默跳过"不同：后者仍是 fail-closed（见上方逐帧分支）。
+    if (f_skip[fi]) {
+      const std::string sk = p1_frame_key(doc["input_lights"][fi].get<std::string>());
+      skipped_frames.push_back(Json{{"frame_key", sk},
+                                    {"input_light",
+                                     doc["input_lights"][fi].get<std::string>()},
+                                    {"reason", f_skip_reason[fi]},
+                                    {"upstream_error_status", f_skip_status[fi]},
+                                    {"source", "astrocs.phase1.photometry"}});
+      (*man)["skipped_frames"] = skipped_frames;
+      continue;
+    }
     if (f_var_ran[fi]) {
       for (auto it = f_var_diag[fi].begin(); it != f_var_diag[fi].end(); ++it)
         (*man)[it.key()] = it.value();
@@ -6177,6 +6614,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     }
   }
   (*man)["n_frames"] = static_cast<uint64_t>(artifacts.size());
+  (*man)["n_input_frames"] = static_cast<uint64_t>(drz_n);
+  (*man)["n_frames_skipped"] = static_cast<uint64_t>(skipped_frames.size());
   (*man)["stack_artifacts"] = artifacts;
   (*man)["frames"] = frame_entries;
   (*man)["artifacts"] = artifacts;
@@ -6216,6 +6655,32 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     if (uniq.failed()) return uniq;
   }
   const std::string filter_passband = doc.value("filter_passband", std::string());
+  // ── FAILSEM-01: 上游逐帧失败判决 → 运行级判红（ASTROCS_DESIGN §4.4）───────
+  // 「任何一帧未被处理、跳过或失败都显式判红，产品数与输入帧数可核对」。
+  // 上游测光节点判 fail 的帧没有产品 ⇒ 产品数 < 输入帧数。本节点把该事实**显式
+  // 判红**（SCIENCE_PRECONDITION → exit 4，ASTROCS_DESIGN §7.2「4 = 科学验证或
+  // 不变量失败」），并且**不发布** p1_products.json（P0-21: 不产出部分产品却报
+  // 成功）。其他帧的 HiPS 产物已在磁盘上（本节点不回滚、不删除它们的证据）。
+  Json phot_failed = Json::object();      // frame_key -> 上游逐帧失败记录
+  Json failed_frame_list = Json::array();
+  {
+    const std::string pp = out_dir + "/p1_phot.json";
+    std::string ptext;
+    if (aio_fs::read_all(pp, &ptext)) {
+      Json pj = Json::object();
+      try { pj = Json::parse(ptext); } catch (...) { pj = Json::object(); }
+      if (pj.is_object() && pj.contains("frames") && pj["frames"].is_array()) {
+        for (const auto& fe : pj["frames"]) {
+          if (!fe.is_object()) continue;
+          if (fe.value("status", std::string()) != "fail") continue;
+          const std::string fk = fe.value("frame_key", std::string());
+          if (fk.empty()) continue;
+          phot_failed[fk] = fe;
+          failed_frame_list.push_back(fk);
+        }
+      }
+    }
+  }
   // ── P0-21 §3.4: 逐帧校验 + 逐帧 p1_final.json + 聚合 p1_products.json ──
   // 每帧产品目录 = output_dir/<frame_key>/（drizzle 直写 HiPS 的落点）。
   // 任一阵列缺失/不完整 ⇒ fail-closed（不产出部分产品却报成功）。
@@ -6227,6 +6692,26 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     const std::string lp = l.get<std::string>();
     const std::string fdir = p1_frame_dir(doc, lp);
     const std::string props = fdir + "/signal/properties";
+    // FAILSEM-01: 该帧是否已被上游判 fail（逐帧判决是唯一真相, 不看组级摘要）。
+    auto pit = phot_failed.find(p1_frame_key(lp));
+    if (pit != phot_failed.end()) {
+      const std::string up_status = pit.value().value("error_status", std::string());
+      const std::string up_err = pit.value().value("error", std::string());
+      (*man)["error_kind"] = "science_precondition";
+      (*man)["error_status"] =
+          up_status.empty() ? std::string("PHOT_FRAME_FAILED") : up_status;
+      (*man)["failed_frames"] = failed_frame_list;
+      (*man)["n_frames_failed"] =
+          static_cast<uint64_t>(failed_frame_list.size());
+      (*man)["n_frames_expected"] = static_cast<uint64_t>(doc["input_lights"].size());
+      return Result<void>::fail(Error(ErrorDomain::SCIENCE_PRECONDITION,
+          "frame photometric calibration failed upstream: frame=" +
+          p1_frame_key(lp) + " upstream_status=" +
+          (up_status.empty() ? std::string("(none)") : up_status) + " upstream_error=" +
+          (up_err.empty() ? std::string("(none)") : up_err) +
+          " (ASTROCS_DESIGN §4.4: 任何一帧失败都显式判红; 该帧不产出产品,"
+          " 其余帧产物已写出但数据集清单不发布)"));
+    }
     if (!aio_fs::exists(props)) {
       (*man)["error_kind"] = "input";
       return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -10520,7 +11005,7 @@ bool p3n_wcs_from_json(const Json& j, astrocs::phase3::P3WcsDescriptor* d,
 // ══ Phase3 输入语义守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）═════════════
 // 生产 export 只接受**面亮度语义**输入；按输入 provenance 声明的单位分派，
 // 不做任何"自动猜测单位"的宽松解析（缺声明即拒绝，禁 silent default ADU）:
-//   * 面亮度（BUNIT 显式含 px 幂次 canonical "ADU/sr"，或 BUNIT=ADU +
+//   * 面亮度（BUNIT 显式含立体角幂次 canonical "ADU/sr"，或 BUNIT=ADU +
 //     ASTROCS_PIXEL_SEMANTICS=surface_brightness + ASTROCS_PIXEL_AREA_POWER=-2）→ 放行;
 //     下游统一携带冻结单位表的 canonical 产品串（"ADU/sr"）。
 //   * 缺 BUNIT / 空 BUNIT / 裸 ADU 而无像素语义声明（单位不可判）→ 输入缺失或

@@ -88,6 +88,21 @@
 - 源太暗/太亮 → 测光 flags，不产出无意义通量；
 - `a_k` 不确定度缺失 → 标记不可跨帧合并；
 - 饱和/拖线源标记，不进默认路径。
+- **失败作用域（帧级 vs 全局，不得互相冒充；正本见 `docs/design/LOG_AND_ERROR_SYSTEM.md` §10）**：
+  - **帧级失败**（该帧自身条件不成立）⇒ 该帧记 `status=fail` + `error_domain`/`error_status`/`error`、
+    不产出 `photoapplied_<base>`、不进 `photscales`，**其余帧照常拟合与施加**。稳定错误码：
+    `PHOT_SOURCES_FRAME_MISSING`、`PHOT_WCS_UNUSABLE`、`PHOT_WCS_SIP_INVALID`、`PHOT_FRAME_UNREADABLE`、
+    `PHOT_FIT_NO_SCALE`、`PHOT_SCALE_NON_PHYSICAL`、`PHOT_SCALE_MISSING`、
+    `PHOT_SCALE_NO_FIT_EVIDENCE`、`PHOT_FIT_IMPLAUSIBLE_SCATTER`。帧级失败**不是降级**，不写 `degraded_reason`；
+  - **全局失败**（星表/响应曲线不可读、`gaia_data_dir`/`filter`/`filters_json` 缺项、冻结 C 入口返回非零）
+    ⇒ **中止运行**（`ErrorDomain::CONFIG`/`IO` 上行到 CLI 收敛为退出码），不把整批帧逐帧判 fail；
+  - **运行级判红**由产品基数不变量给出（`ASTROCS_DESIGN.md` §4.4「任何一帧未被处理、跳过或失败都显式判红」）：
+    失败帧没有 HiPS 产品 ⇒ `write_hips` 上抛 `SCIENCE_PRECONDITION`（退出码 4）且**不发布** `p1_products.json`；
+    其他帧已写出的产品保留在磁盘上；
+  - **逐帧真相**在 `p1_phot.json.frames[]`（`DATA-P1-PHOTPROV-001`）；组级 `photometry_applied` 只表示
+    「至少一帧已施加」（`pixel_scaling` ∈ `applied`/`partial`/`none`），下游按 `frames[]` 逐帧选择输入面。
+- **通道未配置**（无 `photometry.fit` 段且无 `p1_photscale.json`）⇒ 显式降级
+  `degraded_reason=photscale_absent`（中性 `photscal=1.0`，下游按未归一化 ADU 消费并如实登记）。
 
 ## 8. 测试与 Oracle
 

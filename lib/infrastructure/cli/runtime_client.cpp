@@ -116,12 +116,20 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   ir["nodes"] = nlohmann::json::array();
   nlohmann::json outs = nlohmann::json::object();
 
-  // P1-001 (attempt 2) / FIX-E2E B1-A1: Canonical Phase1 IR 8 节点链
-  // cal → cos → psf → wcs → phot → snr → drz → wr。
+  // Canonical Phase1 IR 8 节点链
+  // cal → cos → wcs → psf → phot → snr → drz → wr。
   // 节点集/端口名与 core module_adapters 的 descriptor 及
-  // lib/infrastructure/pipeline/module_ports.registry.json 的 phase1 冻结端口链逐节点一致
-  // （GAP-10: 新增门 eng/tests/cli/test_phase1_inprocess.py::test_ir_matches_frozen_chain
-  // 断言该一致性, 防再次静默漂移到 2 节点）。
+  // lib/infrastructure/pipeline/module_ports.registry.json 的 phase1 端口链逐节点一致。
+  // 节点序 = 注册表端口图 DAG 的拓扑序, 由 CHK-PSF-ORDER 机器断言
+  // （eng/ci/check_psf_node_order.py: 边集无幻边 + 序为拓扑序 + psf 在 wcs 之后）。
+  //
+  // 序的依据（解算不需要 PSF, 而星表引导检测需要解算产物）:
+  //   · wcs 节点按帧读 calibrated 像素自行做星点检测与 ipv 求解, **不读**
+  //     p1_sources.json（见 p1_wcs_descriptor 端口与 p1_op_wcs 实现）;
+  //   · psf 节点（star-psf）的星表引导检测必须把 Gaia 星表逆投影到像素域,
+  //     逆投影需要**含取向**的完整线性 WCS ⇒ 以本帧解算产物 <frame_dir>/p1_wcs.json
+  //     作取向先验, 故 psf 必须排在 wcs 之后;
+  //   · psf 的唯一消费者 phot 本就在 wcs 之后 ⇒ 后移不延长关键路径。
   // wcs 节点走真实 ipv 求解链（lib/algorithms/platesolve/cpp/ipv 内非 Windows 与
   // Windows 绑定同一组生产 C API，源内已无平台 stub）。explicit_config 只是
   // 可选旁路: 仅当 wcs 配置显式给出八参数 crpix1/crpix2/crval1/crval2/cd11..cd22
@@ -150,12 +158,18 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
         mk("cos", "astrocs.phase1.cosmetic",
            {{"calibrated", "artifact:cal"}}, {{"cleaned", "artifact:cos"}},
            "cpu_heavy", true),
-        mk("psf", "astrocs.phase1.star-psf",
-           {{"cleaned", "artifact:cos"}},
-           {{"sources", "artifact:p1_sources"}, {"psf", "artifact:p1_psf"}},
-           "cpu_heavy", true),
+        // wcs 的真实输入 = 校准后像素（注册表 wcs-platesolve 的 p1_calibrated 端口）。
+        // 本节点自行做星点检测, 不消费 p1_sources.json ⇒ 排在 star-psf 之前,
+        // 二者不构成环（旧 IR 声明的 artifact:p1_sources 输入是**幻边**, 已删）。
         mk("wcs", "astrocs.phase1.wcs-platesolve",
-           {{"sources", "artifact:p1_sources"}}, {{"wcs", "artifact:p1_wcs"}},
+           {{"calibrated", "artifact:cal"}}, {{"wcs", "artifact:p1_wcs"}},
+           "cpu_heavy", true),
+        // 取向先验来自 wcs 节点产物 <frame_dir>/p1_wcs.json（typed 边, 调度器保证
+        // wcs 先落盘）。缺该产物时本节点按 star_detection.mode 显式降级或 fail-closed,
+        // 不以"北向上/东向左"假设冒充权威（见 docs/plugins/algorithms_phase1/03_star_detection.md §4）。
+        mk("psf", "astrocs.phase1.star-psf",
+           {{"cleaned", "artifact:cos"}, {"wcs", "artifact:p1_wcs"}},
+           {{"sources", "artifact:p1_sources"}, {"psf", "artifact:p1_psf"}},
            "cpu_heavy", true),
         // P1-PHOT-BROKEN: phot 的 CRVAL/CD 真实来源是 wcs 节点产物
         // <frame_dir>/p1_wcs.json（按 out_dir 文件约定读取, 回退 config.wcs）。
@@ -165,16 +179,23 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
         // 占位 scale=1.0 被当作"已应用"; 16:26 重跑读到真实 WCS: 939/917 匹配,
         // location=16.20 dex）。与 F-8（drz←wcs）同款处置: 声明 typed 边,
         // 由调度器保证 wcs 先落盘, 不再依赖并发文件约定。
+        // PSF 参数随 p1_sources.json 的 psf_params 行到达（注册表 photometry 的
+        // p1_sources/p1_wcs/p1_calibrated 端口）; artifact:p1_psf 边是**幻边**（已删）。
         mk("phot", "astrocs.phase1.photometry",
-           {{"psf", "artifact:p1_psf"}, {"sources", "artifact:p1_sources"},
+           {{"calibrated", "artifact:cal"}, {"sources", "artifact:p1_sources"},
             {"wcs", "artifact:p1_wcs"}},
            // DET-001 (D5): phot 有第二个真实产物 p1_phot.json (测光 provenance
            // sidecar, DATA-P1-PHOTPROV-001)。它必须登记为 typed 输出, 否则 drz
            // 读它的存在性判定没有依赖边可绑定（详见 drz 节点处注释）。
            {{"fluxes", "artifact:p1_flux"}, {"photprov", "artifact:p1_phot"}},
            "cpu_heavy", true),
+        // 真实输入 = 逐源行 p1_sources.json + 测光 provenance p1_phot.json +
+        // cleaned 像素（注册表 noise-snr 端口）。旧 IR 的 artifact:p1_flux 输入是
+        // **幻边**（本节点无 p1_flux.json 读取点）, 已删。
         mk("snr", "astrocs.phase1.noise-snr",
-           {{"fluxes", "artifact:p1_flux"}}, {{"snr", "artifact:p1_snr"}},
+           {{"sources", "artifact:p1_sources"}, {"photprov", "artifact:p1_phot"},
+            {"cleaned", "artifact:cos"}},
+           {{"snr", "artifact:p1_snr"}},
            "cpu_heavy", true),
         // F-8 (RESCUE): drz 必须声明消费 artifact:p1_wcs —— 否则 drz 与 wcs 同为
         // cal 下游并发执行, drz 在 p1_wcs.json 落盘前按 out_dir 文件约定读到空/
@@ -186,9 +207,14 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
         // (实测 14 次 10/4) 且把「未产出」误记为「未应用测光」(静默 ADU 降级)。
         // 与 F-8 的 artifact:p1_wcs 同款处置: 声明 typed 边, 调度器保证 phot
         // 完成后才执行 drz, 不再依赖并发文件约定。
+        // 逐星掩膜读 p1_sources.json、帧级 SNR 键读 p1_snr.json（注册表 drizzle
+        // 的 p1_sources / p1_snr 端口, 锚点见 astro_sphere_sink.cpp write_hips_phase1）。
+        // 两条都是 typed 边: 缺 p1_snr 边时 drz 与 snr 并发执行, 读不到 p1_snr.json
+        // 只打印警告并**跳过帧级 SNR 键**（静默降级, 产品少键而运行仍报成功）。
         mk("drz", "astrocs.phase1.drizzle",
            {{"calibrated", "artifact:cal"}, {"wcs", "artifact:p1_wcs"},
-            {"photprov", "artifact:p1_phot"}},
+            {"photprov", "artifact:p1_phot"}, {"sources", "artifact:p1_sources"},
+            {"snr", "artifact:p1_snr"}},
            {{"stacked", "artifact:p1_stack"}},
            "cpu_heavy", true),
         mk("wr", "astrocs.phase1.writer",
@@ -283,14 +309,20 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
   if (want2) outs["mosaic"] = "artifact:write";
   if (want3) outs["verified"] = "artifact:verify";
   if (want1) {
-    // B1-A1: phase1 内部产物 p1_wcs/p1_snr/p1_hips 无下游 IR 消费者（wcs 产物
-    // 经 output_dir 文件约定由 drizzle 透传, 不声明为 IR edge），必须显式登记为
-    // pipeline 输出以满足 IR 静态验证 UNCONSUMED；cal/cleaned 保留既有语义。
+    // phase1 产物中无下游 IR 消费者者必须显式登记为 pipeline 输出, 以满足 IR
+    // 静态验证 UNCONSUMED（calibrated/cleaned 保留既有语义）:
+    //   · p1_wcs: wcs 产物, 由 phot/drz/star-psf 按 typed 边消费后仍需作为产品登记;
+    //   · p1_snr: 经 artifact:p1_snr 边被 drz 消费, 同时是产品;
+    //   · p1_hips: writer 产物;
+    //   · p1_flux / p1_psf: 真实产物但生产链无消费者（注册表同款登记:
+    //     "生产链路零消费者"）, 故只能作为 pipeline 输出登记。
     outs["calibrated"] = "artifact:cal";
     outs["cleaned"] = "artifact:cos";
     outs["wcs"] = "artifact:p1_wcs";
     outs["snr"] = "artifact:p1_snr";
     outs["hips"] = "artifact:p1_hips";
+    outs["flux"] = "artifact:p1_flux";
+    outs["psf"] = "artifact:p1_psf";
   }
   ir["outputs"] = outs;
   return ir.dump();

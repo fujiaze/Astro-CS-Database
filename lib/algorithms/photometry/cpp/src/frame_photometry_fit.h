@@ -71,9 +71,30 @@ struct FramePhotFitRequest {
 // 是否真的产出标度, 不改变 §4 判据本身。
 inline constexpr int kMinFitStars = 3;
 
+// 失败**作用域**：回答"这次失败该由谁承担"——是本帧自身的判决，还是运行环境/
+// 配置的问题。调用方据此决定**只把该帧判 fail**还是**中止整个运行**。
+//   kNone        : fit_ok=true（产出了标度），不适用；
+//   kFrame       : 本帧数据/拟合自身的判决 —— 无 PSF 星、NO_DATA（§4 求解前提
+//                  |r_consistent|>=3 不成立）、非物理标度。**只该帧 fail**：
+//                  同一批输入里的其他帧照常拟合与施加（帧间独立，SCI-PHOT-001
+//                  §1/§16.5；负责人裁决「拟合失败这帧报 error/fail，不阻塞其他帧」）。
+//   kEnvironment : 运行环境/配置问题 —— 配置缺项（gaia_data_dir / filter /
+//                  filters_json）、响应曲线文件不可读、星表目录不可打开、
+//                  光谱参数不可得、冻结 C 入口自身 rc!=0（含锥形搜索失败）。
+//                  **必须中止**：这不是数据问题，换一帧也不会好（AGENTS §10
+//                  「权限/数据/环境缺失」；LOG 合同 §6 D3「科学语义改变 ⇒ 不是
+//                  降级，必须 fail-closed 上行」）。
+enum class FitFailureScope : uint8_t {
+  kNone = 0,
+  kFrame = 1,
+  kEnvironment = 2,
+};
+
 struct FramePhotFitResult {
   int rc = -1;                  // 0=成功算出 k_photo; <0 失败/未产出标度
   double k_photo = 1.0;         // 10^(-location)
+  // 失败作用域（见 FitFailureScope 的逐值语义）。fit_ok=true 时恒为 kNone。
+  FitFailureScope failure_scope = FitFailureScope::kNone;
   // P1-PHOT-BROKEN: fit_ok 是**唯一**允许调用方据以施加 k_photo 的判据。
   // rc==0 不足以说明"拟合产出了标度" —— 冻结 C 入口
   // pc_calibrate_simple_with_gaia_f64_v2_qf 在 NO_DATA/退化分支（无 PSF 星、

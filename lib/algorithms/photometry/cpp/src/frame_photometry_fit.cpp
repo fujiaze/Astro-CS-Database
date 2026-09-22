@@ -96,6 +96,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     FramePhotFitResult out;
     if (req.pixels == nullptr || req.width <= 0 || req.height <= 0) {
         out.error = "invalid frame pixels/size";
+        out.failure_scope = FitFailureScope::kEnvironment;   // 调用方装配错误, 与帧数据无关
         return out;
     }
     // F-INSTR-CONFORM-FIX: psf_flux 的域契约 = PSF 拟合域解析通量
@@ -103,17 +104,26 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     // 见 frame_photometry_fit.h 的逐字段契约 —— 调用方禁止传检测域 5×5 盒和。
     // 域外输入（status!=0）由下游 matchWithKdTree 的有效域门剔除, 不在此处
     // 静默降级: 有效星不足 ⇒ SCI-PHOT-001 §4/§8 的 NO_DATA（fail-closed）。
-    if (req.n_psf <= 0 || req.psf_cx == nullptr || req.psf_cy == nullptr ||
+    if (req.psf_cx == nullptr || req.psf_cy == nullptr ||
         req.psf_flux == nullptr || req.psf_status == nullptr) {
-        out.error = "no PSF stars (n_psf<=0 or null arrays)";
+        out.error = "null PSF star arrays";
+        out.failure_scope = FitFailureScope::kEnvironment;   // 调用方装配错误
+        return out;
+    }
+    // 本帧没有可用的 PSF 星 ⇒ **该帧**的测光定标无从谈起（其他帧不受影响）。
+    if (req.n_psf <= 0) {
+        out.error = "no PSF stars (n_psf<=0)";
+        out.failure_scope = FitFailureScope::kFrame;
         return out;
     }
     if (req.gaia_data_dir.empty()) {
         out.error = "gaia_data_dir empty (spectra required for F_syn)";
+        out.failure_scope = FitFailureScope::kEnvironment;
         return out;
     }
     if (req.filter_name.empty() || req.filters_json.empty()) {
         out.error = "filter_name / filters_json required";
+        out.failure_scope = FitFailureScope::kEnvironment;
         return out;
     }
 
@@ -121,6 +131,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     std::vector<double> filter_wl, filter_trans;
     if (!load_curve(req.filters_json, filter_key, &filter_wl, &filter_trans)) {
         out.error = "filter curve load failed: '" + filter_key + "' in " + req.filters_json;
+        out.failure_scope = FitFailureScope::kEnvironment;   // 程序级配置输入, 非帧数据
         return out;
     }
     std::vector<double> qe_wl, qe_trans;
@@ -145,6 +156,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     GaiaClient* client = gaia_client_create(req.gaia_data_dir.c_str());
     if (client == nullptr) {
         out.error = "gaia_client_create failed: " + req.gaia_data_dir;
+        out.failure_scope = FitFailureScope::kEnvironment;   // 星表目录不可打开
         return out;
     }
 
@@ -154,6 +166,7 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         gaia_client_destroy(client);
         out.error = "gaia_client_get_spectrum_params failed (rc=" + std::to_string(prc) +
                     ", count=" + std::to_string(wl_count) + ")";
+        out.failure_scope = FitFailureScope::kEnvironment;   // 星表不可读
         return out;
     }
     std::vector<double> spectrum_wl(static_cast<size_t>(wl_count));
@@ -275,12 +288,16 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         out.degraded_reason = "c_api_rc_" + std::to_string(rc);
         out.k_photo = 1.0;
         out.fit_ok = false;
+        // 冻结 C 入口的非零返回全部是**入口自身**的判决（参数装配 / 锥形搜索失败 /
+        // C 边界异常）—— 不是"本帧星少"。换一帧不会变好 ⇒ 环境作用域, 调用方中止。
+        out.failure_scope = FitFailureScope::kEnvironment;
     } else if (!(std::isfinite(scale) && scale > 0.0)) {
         out.rc = -5;
         out.k_photo = 1.0;
         out.error = "non-physical scale from fit";
         out.degraded_reason = "non_physical_scale";
         out.fit_ok = false;
+        out.failure_scope = FitFailureScope::kFrame;
     } else if (n_matched < kMinFitStars) {
         // SCI-PHOT-001 §8「无星/星数不足 → NO_DATA」: 没有可施加的标度。
         out.rc = -6;
@@ -290,8 +307,11 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         out.error = "photometry fit produced no scale (NO_DATA): n_matched=" +
                     std::to_string(n_matched) + " < " + std::to_string(kMinFitStars) +
                     " (SCI-PHOT-001 §4/§8)";
+        // NO_DATA = 本帧的星点/匹配结果不满足 §4 求解前提 ⇒ 该帧 fail（帧间独立）。
+        out.failure_scope = FitFailureScope::kFrame;
     } else {
         out.fit_ok = true;
+        out.failure_scope = FitFailureScope::kNone;
     }
     return out;
 }

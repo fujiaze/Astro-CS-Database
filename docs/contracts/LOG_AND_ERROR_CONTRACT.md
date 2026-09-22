@@ -123,7 +123,9 @@ run manifest 增列 `log_artifacts[]`（**每次运行必填，可为空数组�
 
 `degraded_reason` 词表（小写下划线，稳定不变）：`photscale_incomplete`、`photscale_absent`、
 `upstream_artifact_absent`、`optional_keyword_unparsed`、`cache_miss_recompute`。
-新增词先在本文档登记再使用。
+新增词先在本文档登记再使用。`photscale_incomplete` 为**读侧保留词**（旧产物仍可解释），生产写侧不产生它：
+测光拟合失败属**显式失败**，按 §5 口径逐帧记 `status=fail` + `error_domain`/`error_status`/`error`，
+不写 `degraded_reason`（失败 ≠ 降级，判据见 §6 D1–D3 与 `docs/design/LOG_AND_ERROR_SYSTEM.md` §10）。
 
 **禁止**：静默回退到低优先输入、静默保持缺省值、静默跳过校验。三者都是故障，必须上行到 CLI。
 

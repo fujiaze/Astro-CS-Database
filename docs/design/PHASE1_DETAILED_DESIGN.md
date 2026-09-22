@@ -31,15 +31,20 @@ d_k = A_k x + n_k,    Cov(n_k) = C_k
 
 ## 3. 节点与先后关系
 
-**节点顺序以 `ASTROCS_DESIGN.md` §3.2 为唯一权威**：
+**节点顺序以 `ASTROCS_DESIGN.md` §4.2 为唯一权威**：
 
 ```text
 ingest → calibration → cosmetic/validity → background/noise
-       → star_detection（星表引导检测）→ psf
        → platesolve（星表匹配 + 稳健迭代精化 WCS，此结果即权威 WCS）
+       → star_detection（星表引导检测：以本帧权威 WCS 逆投影 Gaia）→ psf
        → photometry（测光拟合 + 归一化施加到像素，**同一步**；见下）
        → noise_snr → drizzle → 产品验证 → 原子发布 HiPS+JSON
 ```
+
+**序的依据**：`platesolve` 按帧读校准后像素自行做星点检测与星表匹配，**不消费** `star_detection` 的产物；
+而权威检测的星表逆投影需要**含取向**的完整 WCS（取自本帧解算产物）⇒ 解算必须在检测之前。
+`psf` 的唯一消费者是 `photometry`（本就在解算之后），故该序不延长关键路径。
+节点序与依赖边由注册表端口图唯一确定，机器判据见 `docs/contracts/PIPELINE_BLOCK_CONTRACT.md` §7.1。
 
 节点可由调度器安排，但科学依赖不可改变；每节点只执行声明 operation，不得通过多个 facade 重复运行整段 Phase1。
 **photometry 为什么是一步（不是两步）**：拟合出的归一化标度 `k_photo` 必须真正落到像素，但**施加不需要独立的节点**——
@@ -51,10 +56,32 @@ ingest → calibration → cosmetic/validity → background/noise
 ② WCS 解算只有**一个节点、一个权威解**：近似指向由 `wcs.init_source` 给出（不是解算节点），`platesolve` 在该指向下匹配星表并稳健迭代精化，输出即权威 WCS（轮次数是求解器实现细节，不是流程语义）；
 ③ **一次检测、一次通量积分、三处复用**（`star_detection` → `psf` → `photometry` → `noise_snr` 共用同一份
 检测结果与同一 `flux` 口径）；④ **测光归一化必须真正落到像素**（`I_photo = k_photo·m(x,y)·I_cal`；
-未启用时产品显式记 `degraded_reason` 并 fail-closed，元数据 `photappl`/`photscal` 如实落盘）；
+**通道未配置**时产品显式记 `degraded_reason=photscale_absent` 并 fail-closed，元数据 `photappl`/`photscal` 如实落盘；
+**单帧拟合失败**不属降级，按帧级失败上报，见下）；
 ⑤ **施加的可核对性不因合并而降低**：provenance `p1_phot.json`（`DATA-P1-PHOTPROV-001`）必须记 `photometry_applied` /
 `photscal` / `photscales`（逐帧 `k_photo`）/ `photoapplied_artifacts`（施加后产物路径），使「k 确实乘进了像素」
 可由独立读者用「calibrated 面 × k」逐像素复算核对（判据与实测见 `run/RULING-DOC-01/REPORT.md` 裁决 B）。
+
+**测光失败的失败语义（帧级 vs 全局，作用域不得互相冒充）**：
+
+- **帧级失败**（该帧自身条件不成立：本帧 WCS 不可用、本帧在上游星点目录里缺行、拟合未产出标度、
+  `k_photo` 非物理、帧内残差散度超 `P1_PHOT_MAX_SIGMA_DEX`）⇒ **该帧 fail，其余帧照常完成**：
+  失败帧不产出 `photoapplied_<base>`、不进入 `photscales`，其判决逐帧落 `p1_phot.json.frames[]`
+  （`status=fail` + `error_domain`/`error_status`/`error`，error_report 口径见
+  `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5）与节点 manifest（`frame_status`/`frame_errors`/
+  `failed_frames`/`n_frames_failed`/`n_frames_ok`/`n_frames_applied`）。
+  帧级失败**不是降级**：不写 `degraded_reason`（失败 ≠ 降级，判据见该合同 §6 D1–D3 与
+  `docs/design/LOG_AND_ERROR_SYSTEM.md` §10）。
+- **全局失败**（换任何一帧都不会好：星表/响应曲线不可读、`gaia_data_dir`/`filter`/`filters_json`
+  配置缺项、冻结 C 入口返回非零）⇒ **中止运行**（`ErrorDomain::CONFIG`/`IO` 上行到 CLI 收敛为退出码），
+  不把整批帧逐帧判 fail。
+- **运行级判红**：产品基数按 `ASTROCS_DESIGN.md` §4.4「每一帧输入对应一个 HiPS 产品，任何一帧未被处理、
+  跳过或失败都显式判红」——`write_hips` 对失败帧上抛 `SCIENCE_PRECONDITION`（退出码 4，`ASTROCS_DESIGN.md` §7.2）
+  且**不发布** `p1_products.json`（P0-21：不产出部分产品却报成功）；其他帧已写出的产物保留在磁盘上作为证据。
+- **组级摘要与逐帧真相**：`photometry_applied=true` 只表示「至少一帧已施加」（`pixel_scaling` 取
+  `applied`/`partial`/`none`）；逐帧真相只在 `frames[]`。下游 `drizzle_stack` 按 `frames[]` 逐帧选择输入面
+  （已施加帧必须消费 `photoapplied_<base>`，失败帧显式跳过并在 manifest 记 `skipped_frames`/`n_frames_skipped`），
+  `PHOTAPPL`/`PHOTDEGRADE` 与 `p1_stack.json` 的 `bunit`/`photappl` 逐帧取值。
 
 ## 4. 校准与方差传播
 
@@ -102,6 +129,37 @@ PSF 拟合质量只能作 validity/诊断，不能未经概率模型直接乘入
 - 光度模型把本帧 signal 映射到统一线性通量尺度：`d = a_k F P + n`；必须给 `a_k` 及其不确定度、颜色项和有效域；
 - 相对标度不足时标记不可跨帧合并，不用“median stellar flux”静默代替；
 - astrometry/photometry 的系统误差与随机误差分开。
+
+### 7.1 测光链路的逐层物理量与单位
+
+**“校准到测光星等坐标系”的实现形态**：标度 `k_photo = 10^{−location}`（`docs/science/PHOTOMETRY.md` §3/§5）
+是**线性乘性因子**（单位 [F_syn 单位]/ADU），作用是把各帧对齐到**统一相对测光零点**；它不把数据变成星等。
+逐层承载的物理量与单位（唯一正本 = `docs/contracts/DATA_SEMANTICS.md` §31.1/§31.1a）：
+
+| 层 | 物理量 | 单位 | 口径 |
+|---|---|---|---|
+| Phase1 帧平面（calibrated / cleaned） | 线性计数（逐像素） | `ADU` | 未按立体角归一 |
+| Phase1 测光施加后帧平面 `photoapplied_<base>` | 线性计数 × 逐帧标度 | `k_photo·ADU`（零点 = 本帧相对测光零点） | `I_photo = k_photo·I_cal` |
+| Phase1 HiPS signal | 线性面亮度 | `ADU/sr` | writer 归一 `Σ_j x_j·w_jp / Σ_j a_jp` |
+| Phase1 HiPS variance / ivar | `ADU^2/sr^2` / `sr^2/ADU^2` | 二次律 `FZ-P3-BUNIT-QUADRATIC` |
+| Phase1 点源量（flux / Q / W_info） | `ADU` / `ADU^-1` / `ADU^-2` | 点源与面亮度两套量各自闭合 |
+| Phase2 马赛克 signal | 线性面亮度（与输入同标度） | 面亮度产品为 `ADU/sr` | `Σ w_i·x_i / Σ w_i`（线性加权） |
+| Phase3 导出平面 | 线性面亮度（采样核的凸组合） | 透传输入 `BUNIT` | 重采样不改量纲类别 |
+
+**`k_photo` 的语义**：对齐各帧的**相对零点**，使帧间信号处于同一测光体系。其**绝对值无物理意义**——
+增益、口径、曝光、`hc` 等未建模常数被 `location` 吸收，因此禁止用它反解仪器参数，也禁止设绝对数值窗口
+（`docs/science/PHOTOMETRY.md` §3/§6）。逐帧 `k_photo` 与“是否真的乘进像素”记入 `p1_phot.json`
+（DATA-P1-PHOTPROV-001），可由独立读者用“calibrated 面 × k”逐像素复算核对。
+
+**为什么必须保持线性**：Phase2 的固定科学流程是加性天光校正（UPM：`y_k = s + C_k + ε_k`，纯加性）与
+逆方差加权求和（`signal = Σ w_i·x_i / Σ w_i`）；两者都要求被合并的量**可加**。星等是对数量，
+星等的加权平均在物理上无意义。故阶段二/三的输入与输出**始终是线性面亮度**，链内不做星等换算。
+
+**星等的换算位置与公式**（派生表达，不改变产品 `BUNIT`、不改变数据面形态）：
+
+- 帧级 5σ 深度：`m_5 = ZP_k − 2.5·log10(F_5)`（`docs/contracts/DATA_SEMANTICS.md` §13.4）；
+- 面亮度星等：`SB_mag = ZP_k − 2.5·log10(signal) + 2.5·log10(Ω_ref)`（§31.1a）；
+- 测光一致性 QA：`delta_i = −2.5·log10(F_instr,i) − G_Gaia,i`、`sigma_mag = 2.5·sigma_residual`（`docs/science/PHOTOMETRY.md` §2/§5）。
 
 ## 8. SNR、点源信息量与 Phase2 输入
 
