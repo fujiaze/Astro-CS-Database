@@ -268,6 +268,50 @@ class TestDiskGateEndToEnd(unittest.TestCase):
             err = fh.read()
         return rc, out, err
 
+    @staticmethod
+    def _classify_not_exit10(rc, events, err_s):
+        """rc≠10 的**显式归因**（FLAKE-01：把"偶发 7 != 10"变成可读的真判据失败）。
+
+        背景（一手证据 run/FLAKE-01/）：本用例在满负载（jobs=8）下曾偶发判红而单跑必绿，
+        容易被当成噪声。实测根因**不是**判据不稳（场景是私有挂载命名空间里的 1 MiB
+        tmpfs，与宿主全盘可用空间无关，也不受无关进程写盘影响），而是产品在**并发帧**
+        下丢失磁盘满分类：lib/infrastructure/aio/src/aio_disk_full.h 的进程级粘滞标志
+        在失败发生处 note_full() 置位后，被另一帧的 aio_hips_product_begin() 里的
+        aio_disk::reset() 抹掉，失败收尾的 consume() 取不到 ⇒ 失败节点 manifest 无
+        error_kind="disk_full" ⇒ CLI 落 exit 7(IO) 而非 exit 10(RESOURCE)。
+        确定性复现：run/FLAKE-01/evidence/aio_disk_protocol_demo.cpp（真实头文件）；
+        剂量-反应：单帧 12/12 正确、双帧 58 次中 5 次 rc=7 且无 failure_kind 事件
+        （run/FLAKE-01/logs/a_dose.log、a_f2_40.log；宿主 8 个 CPU 自旋时 20/20 正确
+        ⇒ 触发条件是帧间调度交错，不是宿主压力）。
+        ⇒ 判据保留（ASTROCS_DESIGN §3.5/§6.3 要求 fail-closed 为 exit 10），
+        但失败必须**自解释**，不得被当作 flake 忽略。
+        """
+        disk_ev = [e for e in events if e.get("severity") == "error"
+                   and e.get("failure_kind") in ("disk_full", "write_failed")]
+        if disk_ev:
+            return ("事件流已给出 failure_kind=%s，但退出码未归并为 10 ⇒ CLI 归并路径缺陷"
+                    % disk_ev[0].get("failure_kind"))
+        if rc == 7 and "aio_hips_write_signal_support_tile" in err_s:
+            return ("磁盘满分类在失败收尾处**丢失**（事件流无 failure_kind 事件、rc=7=IO，"
+                    "而 stderr 显示真实写失败 aio_hips_write_signal_support_tile rc=-4）"
+                    "⇒ 产品并发缺陷（粘滞标志被并发的 aio_hips_product_begin 的 reset() "
+                    "抹掉），**不是假红**，不得按 flake 处理")
+        return "事件流无磁盘门判定字段（rc=%d）⇒ 需按 stderr 逐条定位" % rc
+
+    def _dump_failure_evidence(self, tag, out_s, err_s):
+        """失败时把 CLI 事件流/stderr 落盘（tmp 会被 tearDownClass 删除）。"""
+        root = os.environ.get("ASTROCS_CI_OUT_ROOT") or os.path.join(REPO, "run")
+        d = os.path.join(root, "fix208_disk_gate_evidence")
+        try:
+            os.makedirs(d, exist_ok=True)
+            for suffix, body in ((".out", out_s), (".err", err_s)):
+                with open(os.path.join(d, tag + suffix), "w", encoding="utf-8") as fh:
+                    fh.write(body)
+        except OSError as exc:      # 证据落盘失败不影响判定本身（判据照常判红）
+            sys.stderr.write("fix208_disk_gate: 证据落盘失败（不影响判定）：%s\n" % exc)
+            return None
+        return d
+
     @unittest.skipUnless(UNSHARE, "需要 unshare -Ur -m（无 root 的用户命名空间挂载）")
     def test_01_runtime_disk_full_is_error_and_exit10(self):
         """运行中写盘失败/磁盘满 ⇒ error（fail-closed）+ exit 10。"""
@@ -277,7 +321,11 @@ class TestDiskGateEndToEnd(unittest.TestCase):
                          os.path.join(self.data, "light_2.fits")], out_dir)
         rc, out_s, err_s = self._run_in_tiny_tmpfs(cfg, "full")
         events = [json.loads(l) for l in out_s.splitlines() if l.strip()]
-        self.assertEqual(rc, 10, "磁盘满必须 fail-closed 为 exit 10（实得 %d）" % rc)
+        if rc != 10:
+            diag = self._classify_not_exit10(rc, events, err_s)
+            ev = self._dump_failure_evidence("disk_full_rc%d" % rc, out_s, err_s)
+            self.fail("磁盘满必须 fail-closed 为 exit 10（实得 %d）。%s%s"
+                      % (rc, diag, ("；证据已落 %s" % ev) if ev else ""))
         errs = [e for e in events if e.get("severity") == "error"]
         self.assertTrue(errs, "必须发 error 事件（运行中写盘失败不得静默）")
         disk = [e for e in errs if e.get("failure_kind") in ("disk_full", "write_failed")]
