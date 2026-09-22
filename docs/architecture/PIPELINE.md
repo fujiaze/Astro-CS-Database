@@ -15,8 +15,7 @@ ingest（输入 + 元数据校验） → calibration（bias/dark/flat）
   → star_detection（星表引导检测：用 wcs.init_source 的近似指向反向投影 Gaia，只拟合星表位置）
   → psf（PSF 建模）
   → platesolve（星表匹配 + 稳健迭代精化 WCS = 权威 WCS）
-  → photometry（测光/通量定标）
-  → apply photometry（I_photo = k_photo·m(x,y)·I_cal 落到像素）
+  → photometry（测光/通量定标；并在**同一步**内把 I_photo = k_photo·m(x,y)·I_cal 施加到像素）
   → noise_snr（噪声/SNR/帧级 SNR） → drizzle（HEALPix NESTED）
   → 产品验证 → 原子发布 HiPS + JSON
 ```
@@ -25,8 +24,10 @@ ingest（输入 + 元数据校验） → calibration（bias/dark/flat）
   （`header_pointing` / `config` / `neighbor_crval`）给出，不是独立的解算节点；
   `platesolve` 在该指向下完成星表匹配与稳健迭代精化，其输出即唯一权威 WCS。
   解算轮次数是求解器实现细节，不是流程语义。
-- **`apply photometry` 是强制节点**（§3.2 / §7.1「生产调度面必须覆盖强制节点」）：
-  测光归一化**必须真正落到像素**；未启用时产品必须显式记 `degraded_reason` 并 fail-closed，
+- **测光归一化施加是 `photometry` 节点内的强制步骤**（§3.2 / §7.1「生产调度面必须覆盖强制节点」）：
+  测光归一化**必须真正落到像素**——施加与拟合**同一步**完成（省一次中间产物落盘 = 省一次写 + 一次读的 IO 往返），
+  生产 IR 的 normalize 阶段因此是 8 节点（`calibrate/cosmetic_correct/detect_sources/plate_solve/measure_flux/estimate_snr/drizzle_stack/write_hips`），
+  施加是 `measure_flux` 的内部步骤而非第 9 个节点；未启用时产品必须显式记 `degraded_reason` 并 fail-closed，
   **不得**按未归一化 ADU 静默走完全链。
 - 入口：`normalize --json <config.json>`（唯一 CLI 子命令）。
 

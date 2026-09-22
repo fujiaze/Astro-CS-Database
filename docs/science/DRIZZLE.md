@@ -52,8 +52,8 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
     ⇒ S_p = Σ_j B_j a_jp / Σ_j a_jp
     drop 面积 A_drop,j 在分子分母相消(均匀 drop 尺度下), 只决定 footprint;
     按 A_drop,j 归一的权重 a_jp/A_drop,j 满足 w_jp = pixfrac²·(a_jp/A_drop,j)，
-    故两种归一下的信号相差 1/pixfrac²（DISP-DRZ-009：**已于 DRIZZLE-FIX-01
-    (2026-09-22) 闭环** —— 现实现用 w_jp=a_jp/A_pixel,j，见
+    故两种归一下的信号相差 1/pixfrac²（DISP-DRZ-009：**已闭环** ——
+    现实现用 w_jp=a_jp/A_pixel,j，见
     drizzle_engine.cpp 的 processPixelSharedTiled「pixel_area」段与
     spherical_overlap.cpp 的 polygon_area_consistent；回归门 p1drz_disp009）
 
@@ -192,7 +192,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
   `dover/=jaco`（`jaco=A_drop`）后 `dow=dover·w`——drop 面积同入分子分母，是一致加权均值；
   DrizzlePac Handbook §2.3.2（p.17）“the weights of the individual output pixels … are independent of the choice of p [pixfrac]”；
   SWarp `src/resample.c` 以 `A_out/A_in` 面积比保面亮度（无 drop/pixfrac 概念）。
-  **按 `A_drop,j` 归一的混合式**（分子 `x_j·a_jp/A_drop,j`、分母 `Σ a_jp`）给出 `S_p=B0/pixfrac²`，仅 pixfrac=1 正确——该式即登记项 DISP-DRZ-009，**已于 DRIZZLE-FIX-01 (2026-09-22) 闭环**：现实现改用 `w_jp=a_jp/A_pixel,j`（`drizzle_engine.cpp` `processPixelSharedTiled` 的 `pixel_area` 段），并新增回归门 `p1drz_disp009`（pixfrac∈(0,1] 常量面亮度门 + "分母取 A_drop 必判红"的负例控制）。
+  **按 `A_drop,j` 归一的混合式**（分子 `x_j·a_jp/A_drop,j`、分母 `Σ a_jp`）给出 `S_p=B0/pixfrac²`，仅 pixfrac=1 正确——该式即登记项 DISP-DRZ-009，**已闭环**：现实现用 `w_jp=a_jp/A_pixel,j`（`drizzle_engine.cpp` `processPixelSharedTiled` 的 `pixel_area` 段），回归门 `p1drz_disp009`（pixfrac∈(0,1] 常量面亮度门 + "分母取 A_drop 必判红"的负例控制）。
 - **Drizzle 实践与相关噪声**：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
 - **HEALPix 几何/order**：Górski, K. M. et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；独立实现 astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0，只对照不复制）。
 - **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207，Girard 定理）；**实现实为 Sutherland–Hodgman + Eriksson 2018 扇形三角剖分**（spherical_overlap.cpp:152-186,218），本文件 §5/§12 的“Girard 定理”命名与实现不符，登记 `DISP-DRZ-002`，待变更流程处理。Eriksson, F. 2018, “The area of a spherical triangle”（代码 :178 已引）。

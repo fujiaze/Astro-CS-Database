@@ -11,7 +11,8 @@ exe_target,rejection_cli,lib/algorithms/coverage/CMakeLists.txt,tool,no,-,非发
 exe_target,p1drz_tests,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:38,
 exe_target,p1drz_perf_test,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:55,
 exe_target,p1drz_selfcheck_test,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:65,
-exe_target,p1drz_thread_probe,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:80,
+exe_target,p1drz_disp009_gate,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:85,
+exe_target,p1drz_thread_probe,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/CMakeLists.txt:99,
 exe_target,weight_chain_selfcheck,lib/algorithms/integration/v6/oracle/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/integration/v6/oracle/CMakeLists.txt:12,
 exe_target,p1noise_tests,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:75,
 exe_target,p1noise_perf_test,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/noise_snr/tests/p1noise/CMakeLists.txt:99,
@@ -41,6 +42,8 @@ exe_target,p1star_perf_test,lib/algorithms/star_detection/tests/p1star/CMakeList
 exe_target,p1star_selfcheck_test,lib/algorithms/star_detection/tests/p1star/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:158,
 exe_target,p1star_mad_check_test,lib/algorithms/star_detection/tests/p1star/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:185,
 exe_target,p1star_angle_guard_test,lib/algorithms/star_detection/tests/p1star/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:210,
+exe_target,p1star_guided_test,lib/algorithms/star_detection/tests/p1star/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:226,
+exe_target,p1stardet_node_gate_test,lib/algorithms/star_detection/tests/p1star/CMakeLists.txt,tool,no,-,非发布目标,lib/algorithms/star_detection/tests/p1star/CMakeLists.txt:249,
 exe_target,acr_example_minimal,lib/infrastructure/acr/examples/CMakeLists.txt,tool,no,-,非发布目标,lib/infrastructure/acr/examples/CMakeLists.txt:2,
 exe_target,acr_example_chunk,lib/infrastructure/acr/examples/CMakeLists.txt,tool,no,-,非发布目标,lib/infrastructure/acr/examples/CMakeLists.txt:5,
 exe_target,acr_weighted_integration_benchmark,lib/infrastructure/acr/examples/weighted_integration/CMakeLists.txt,tool,no,-,非发布目标,lib/infrastructure/acr/examples/weighted_integration/CMakeLists.txt:28,
@@ -113,7 +116,7 @@ openmp_kernel,ipv_select.cpp,lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cp
 openmp_kernel,ipv_solver.cpp,lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/algorithms/platesolve/cpp/ipv/src/ipv_solver.cpp (1 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,ipv_triangle.cpp,lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/algorithms/platesolve/cpp/ipv/src/ipv_triangle.cpp (5 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,dpsf_psf.cpp,lib/algorithms/psf/src/dpsf_psf.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/algorithms/psf/src/dpsf_psf.cpp (4 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
-openmp_kernel,sdet_api.cpp,lib/algorithms/star_detection/src/sdet_api.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/algorithms/star_detection/src/sdet_api.cpp (12 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
+openmp_kernel,sdet_api.cpp,lib/algorithms/star_detection/src/sdet_api.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/algorithms/star_detection/src/sdet_api.cpp (14 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,sdet_image.cpp,lib/algorithms/star_detection/src/sdet_image.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/algorithms/star_detection/src/sdet_image.cpp (21 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,star_detector.cpp,lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/algorithms/star_detection/wrapper_phase1/star_detector.cpp (5 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
 openmp_kernel,weighted_integration_kernels.cpp,lib/infrastructure/acr/examples/weighted_integration/weighted_integration_kernels.cpp,production,yes,Phase1/2,"module-internal OpenMP, thread count via runtime/orchestrator set_num_threads",lib/infrastructure/acr/examples/weighted_integration/weighted_integration_kernels.cpp (1 pragma sites),V5: 禁硬编码线程数→ARCH-003 backend dispatcher 收编
@@ -189,10 +192,10 @@ thread_creation,std::vector<std::thread> ths;,lib/infrastructure/aio/tests/p1hip
 thread_creation,std::vector<std::thread> ths;,lib/infrastructure/benchmark/cpu/avx2/src/avx2_provider.cpp:266,production,yes,-,std::async,lib/infrastructure/benchmark/cpu/avx2/src/avx2_provider.cpp:266,
 thread_creation,std::vector<std::thread> ths;,lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp:265,production,yes,-,std::async,lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp:265,
 thread_creation,std::vector<std::thread> ths;,lib/infrastructure/benchmark/cpu/baseline/src/baseline_provider.cpp:445,production,yes,-,std::async,lib/infrastructure/benchmark/cpu/baseline/src/baseline_provider.cpp:445,
-thread_creation,"std::thread sampler([&mon, &recorder, &alloc_rec, &sampling,",lib/infrastructure/cli/commands.cpp:665,production,yes,-,std::thread 显式创建,lib/infrastructure/cli/commands.cpp:665,
-thread_creation,std::vector<std::thread> hash_pool;,lib/infrastructure/cli/commands.cpp:1166,production,yes,-,std::async,lib/infrastructure/cli/commands.cpp:1166,
+thread_creation,"std::thread sampler([&mon, &recorder, &alloc_rec, &sampling,",lib/infrastructure/cli/commands.cpp:728,production,yes,-,std::thread 显式创建,lib/infrastructure/cli/commands.cpp:728,
+thread_creation,std::vector<std::thread> hash_pool;,lib/infrastructure/cli/commands.cpp:1236,production,yes,-,std::async,lib/infrastructure/cli/commands.cpp:1236,
 thread_creation,"""astrocs-cpu-amd64-hw="" + std::to_string(std::thread::hardwa",lib/infrastructure/cli/parser.cpp:256,production,yes,-,std::async,lib/infrastructure/cli/parser.cpp:256,
-thread_creation,"std::thread cancel_watch([rt = rt.value().get(), &stop, canc",lib/infrastructure/cli/runtime_client.cpp:370,production,yes,-,std::thread 显式创建,lib/infrastructure/cli/runtime_client.cpp:370,
+thread_creation,"std::thread cancel_watch([rt = rt.value().get(), &stop, canc",lib/infrastructure/cli/runtime_client.cpp:380,production,yes,-,std::thread 显式创建,lib/infrastructure/cli/runtime_client.cpp:380,
 thread_creation,std::thread worker_thread_;,lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h:424,production,yes,-,std::thread 显式创建,lib/infrastructure/pipeline/orchestrator/cpp/include/orchestrator.h:424,
 thread_creation,std::thread worker_thread_;,lib/infrastructure/pipeline/orchestrator/cpp/include/resource_monitor.h:135,production,yes,-,std::thread 显式创建,lib/infrastructure/pipeline/orchestrator/cpp/include/resource_monitor.h:135,
 thread_creation,"LOG_INFO(""orchestrator"", ""可用线程数: "" + std::to_string(std::thr",lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:507,production,yes,-,std::async,lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp:507,
@@ -206,15 +209,15 @@ thread_creation,//   - worker 生命周期：Impl 持有 std::vector<std::thread
 thread_creation,//     scheduler 不再自建 std::thread 池（RT-004 消灭 per-run 池）。,lib/infrastructure/scheduler/src/executor.cpp:20,production,yes,-,std::thread 显式创建,lib/infrastructure/scheduler/src/executor.cpp:20,
 thread_creation,std::vector<std::thread> workers;       // 唯一共享池 worker（join,lib/infrastructure/scheduler/src/executor.cpp:39,production,yes,-,std::async,lib/infrastructure/scheduler/src/executor.cpp:39,
 thread_creation,std::vector<std::thread> workers;       // I/O worker（join 生,lib/infrastructure/scheduler/src/executor.cpp:217,production,yes,-,std::async,lib/infrastructure/scheduler/src/executor.cpp:217,
-thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/export_stream.cpp:389,production,yes,-,std::async,lib/infrastructure/scheduler/src/export_stream.cpp:389,
-thread_creation,//   std::thread(Scheduler::run pool) → Scheduler::run lambd,lib/infrastructure/scheduler/src/module_adapters.cpp:341,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:341,
-thread_creation,// 线程的 omp_get_max_threads()；std::thread worker 的 ICV 是进程默认值,lib/infrastructure/scheduler/src/module_adapters.cpp:1743,production,yes,-,std::thread 显式创建,lib/infrastructure/scheduler/src/module_adapters.cpp:1743,
-thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/module_adapters.cpp:1754,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:1754,
-thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/module_adapters.cpp:5893,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:5893,
-thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/mosaic_window.cpp:256,production,yes,-,std::async,lib/infrastructure/scheduler/src/mosaic_window.cpp:256,
+thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/export_stream.cpp:511,production,yes,-,std::async,lib/infrastructure/scheduler/src/export_stream.cpp:511,
+thread_creation,//   std::thread(Scheduler::run pool) → Scheduler::run lambd,lib/infrastructure/scheduler/src/module_adapters.cpp:348,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:348,
+thread_creation,// 线程的 omp_get_max_threads()；std::thread worker 的 ICV 是进程默认值,lib/infrastructure/scheduler/src/module_adapters.cpp:1750,production,yes,-,std::thread 显式创建,lib/infrastructure/scheduler/src/module_adapters.cpp:1750,
+thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/module_adapters.cpp:1761,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:1761,
+thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/module_adapters.cpp:6526,production,yes,-,std::async,lib/infrastructure/scheduler/src/module_adapters.cpp:6526,
+thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/mosaic_window.cpp:271,production,yes,-,std::async,lib/infrastructure/scheduler/src/mosaic_window.cpp:271,
 thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/normalize_workflow.cpp:462,production,yes,-,std::async,lib/infrastructure/scheduler/src/normalize_workflow.cpp:462,
 thread_creation,std::vector<std::thread> prefetch_pool;,lib/infrastructure/scheduler/src/normalize_workflow.cpp:464,production,yes,-,std::async,lib/infrastructure/scheduler/src/normalize_workflow.cpp:464,
-thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/scheduler.cpp:339,production,yes,-,std::async,lib/infrastructure/scheduler/src/scheduler.cpp:339,
+thread_creation,std::vector<std::thread> pool;,lib/infrastructure/scheduler/src/scheduler.cpp:355,production,yes,-,std::async,lib/infrastructure/scheduler/src/scheduler.cpp:355,
 thread_creation,std::vector<std::thread> pool;,lib/phase3_session/p3_session.cpp:335,production,yes,-,std::async,lib/phase3_session/p3_session.cpp:335,
 lock,async_io.h,lib/algorithms/coverage/include/astro/phase2/async_io.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/algorithms/coverage/include/astro/phase2/async_io.h (9 sites),
 lock,acr_kernels.cpp,lib/algorithms/coverage/src/acr_kernels.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/algorithms/coverage/src/acr_kernels.cpp (2 sites),
@@ -261,6 +264,7 @@ lock,staging_ledger.cpp,lib/infrastructure/acr/utilization/staging_ledger.cpp,pr
 lock,system_metrics.cpp,lib/infrastructure/acr/utilization/system_metrics.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/acr/utilization/system_metrics.cpp (10 sites),
 lock,hiss_format.h,lib/infrastructure/aio/include/hiss_format.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/aio/include/hiss_format.h (1 sites),
 lock,aio_cfitsio_mutex.h,lib/infrastructure/aio/src/aio_cfitsio_mutex.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/aio/src/aio_cfitsio_mutex.h (3 sites),
+lock,aio_file_io.h,lib/infrastructure/aio/src/aio_file_io.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/aio/src/aio_file_io.h (4 sites),
 lock,aio_log.cpp,lib/infrastructure/aio/src/aio_log.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/aio/src/aio_log.cpp (2 sites),
 lock,hiss_codec.cpp,lib/infrastructure/aio/src/hiss_codec.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/aio/src/hiss_codec.cpp (8 sites),
 lock,memory_report.h,lib/infrastructure/cli/memory_report.h,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/cli/memory_report.h (4 sites),
@@ -282,7 +286,7 @@ lock,orchestrator.cpp,lib/infrastructure/pipeline/orchestrator/cpp/src/orchestra
 lock,artifact_store.cpp,lib/infrastructure/scheduler/src/artifact_store.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/scheduler/src/artifact_store.cpp (3 sites),
 lock,context.cpp,lib/infrastructure/scheduler/src/context.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/scheduler/src/context.cpp (17 sites),
 lock,executor.cpp,lib/infrastructure/scheduler/src/executor.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/scheduler/src/executor.cpp (16 sites),
-lock,export_stream.cpp,lib/infrastructure/scheduler/src/export_stream.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/scheduler/src/export_stream.cpp (13 sites),
+lock,export_stream.cpp,lib/infrastructure/scheduler/src/export_stream.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/scheduler/src/export_stream.cpp (15 sites),
 lock,logging.cpp,lib/infrastructure/scheduler/src/logging.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/scheduler/src/logging.cpp (6 sites),
 lock,module_adapters.cpp,lib/infrastructure/scheduler/src/module_adapters.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/scheduler/src/module_adapters.cpp (2 sites),
 lock,mosaic_window.cpp,lib/infrastructure/scheduler/src/mosaic_window.cpp,production,yes,Phase1/2,mutex 保护日志/状态; 无内核内锁竞争,lib/infrastructure/scheduler/src/mosaic_window.cpp (4 sites),
@@ -294,7 +298,7 @@ queue,"//   - 结构过滤/修复: 以明确定义逐域 BFS (deque 队列, 非�
 queue,//   - 连通域: std::deque 队列 BFS (被测: std::queue + 单遍,lib/algorithms/cosmetic/tests/p1cos/p1cos_oracle.hpp:11,test,no,-,队列语义,lib/algorithms/cosmetic/tests/p1cos/p1cos_oracle.hpp:11,
 queue,std::queue<ExecutorTask> tasks;         // 待执行任务（尚,lib/infrastructure/scheduler/src/executor.cpp:38,production,yes,-,队列语义,lib/infrastructure/scheduler/src/executor.cpp:38,
 queue,"std::queue<std::pair<IoTaskClass, ExecutorTask>> t",lib/infrastructure/scheduler/src/executor.cpp:216,production,yes,-,队列语义,lib/infrastructure/scheduler/src/executor.cpp:216,
-queue,std::queue<std::string> ready;,lib/infrastructure/scheduler/src/scheduler.cpp:59,production,yes,-,队列语义,lib/infrastructure/scheduler/src/scheduler.cpp:59,
+queue,std::queue<std::string> ready;,lib/infrastructure/scheduler/src/scheduler.cpp:75,production,yes,-,队列语义,lib/infrastructure/scheduler/src/scheduler.cpp:75,
 acr_boundary,"std::string acr_route = ""auto"";",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:134,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:134,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,// CON-007: ACR 块路由资格。acr_route=cpu/auto/cuda 只要满足科学/ivar 条件,lib/algorithms/coverage/include/astro/phase2/stage2_common.h:149,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:149,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)
 acr_boundary,"bool p2_acr_block_eligible(const P2Stage2Config& cfg,",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:152,production,yes,Phase2,"配置守卫(IVAR→CPU canonical), 无 ACR 计算",lib/algorithms/coverage/include/astro/phase2/stage2_common.h:152,V5: ACR 不接入; acr_route!=cpu→拒绝或 cpu 回退(ARCH-003 冻结)

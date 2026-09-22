@@ -1,0 +1,179 @@
+{
+  "schema": "astrocs.run-manifest-schema-deviations/v1",
+  "generated_by": "RULING-DOC-01（负责人裁决 D：run manifest 以冻结 schema 为准 + 补门）",
+  "measured_on": "HEAD 60f46388 工作树；语料 = run/**/astrocs_run_*.json + artifacts/**/astrocs_run_*.json + eng/ci/fixtures/run_manifest/real_manifest_sample.json（67 个文件，其中 64 个真实 manifest、3 个测试残留空占位）",
+  "frozen_schema": "eng/contracts/schemas/run_manifest.schema.json",
+  "artifact_contract": "docs/api/MANIFEST_VERIFY_V1.md §2/§2.1（API-MANIFEST-001, FROZEN, CLI-003）",
+  "conflict_note": "两份冻结合同对**同名**对象（run manifest）约定不同：CLI-003 §2 冻结的是真实产出物 astrocs_run_<run_id>.json 的字段集；CFG-001 的 run_manifest.schema.json 冻结的是「本次运行冻结：源码 SHA / 配置哈希 / 输入输出哈希 / 工具链版本」的字段名族。实测：CFG-001 schema 在**全仓零生产者**（无任何文件含 manifest_schema=astrocs.run-manifest/v1），而 CLI-003 的产物在 provenance 层已承载等价信息。因此本表登记的是**合同冲突**，处置需要改 CFG-001 冻结 schema（方案见 run/RULING-DOC-01/REPORT.md §裁决 D），不得自行改冻结合同。",
+  "registered_missing_required": [
+    "manifest_schema",
+    "software_sha",
+    "config_hash",
+    "manifest_input_hashes",
+    "manifest_output_hashes",
+    "toolchain_version",
+    "created_utc"
+  ],
+  "registered_extra_properties": [
+    "artifacts",
+    "astrocs_version",
+    "config_path",
+    "config_sha256",
+    "cpu_profile_path",
+    "cpu_profile_sha256",
+    "error",
+    "finished_utc",
+    "kind",
+    "phases",
+    "platform",
+    "provenance",
+    "schema_version",
+    "started_utc",
+    "status",
+    "summary",
+    "uncertainty_available"
+  ],
+  "field_disposition": {
+    "manifest_schema": {
+      "kind": "missing_required",
+      "authority": "CLI-003 §2（schema_version:\"1\" + kind:\"astrocs_run_manifest\" 已冻结同一判别式）",
+      "disposition": "schema 侧对齐（const 改为 CLI-003 等价判别式）；实现侧不建议再加第二个 schema 标识",
+      "already_produced_as": "schema_version + kind"
+    },
+    "software_sha": {
+      "kind": "missing_required",
+      "authority": "CLI-003 §2.1 provenance.source_sha（ASTROCS_COMMIT_SHA，40hex）",
+      "disposition": "信息已生产（实测 63/63 份带 provenance.source_sha）；实现侧可加性补顶层别名，或 schema 侧改指 provenance.source_sha",
+      "already_produced_as": "provenance.source_sha"
+    },
+    "config_hash": {
+      "kind": "missing_required",
+      "authority": "CLI-003 §2 config_sha256（输入文件字节 hash）",
+      "disposition": "同义不同名；CFG-001 锚点族要求 ^config_hash$，CLI-003 冻结名为 config_sha256 ⇒ 需一方让步（建议 schema 侧接受 CLI-003 冻结名）",
+      "already_produced_as": "config_sha256"
+    },
+    "manifest_input_hashes": {
+      "kind": "missing_required",
+      "authority": "CLI-003 §2.1 provenance.input_product_hashes",
+      "disposition": "形状不同（{node,sha256} vs {path,sha256}）⇒ schema 侧放宽 items 或实现侧转换；不得伪造 path",
+      "already_produced_as": "provenance.input_product_hashes"
+    },
+    "manifest_output_hashes": {
+      "kind": "missing_required",
+      "authority": "CLI-003 §2 artifacts[] + §2.1 provenance.output_product_hashes",
+      "disposition": "schema 侧改指 artifacts[]/provenance.output_product_hashes（已含 path+sha256）",
+      "already_produced_as": "artifacts[] / provenance.output_product_hashes"
+    },
+    "toolchain_version": {
+      "kind": "missing_required",
+      "authority": "CFG-001 x-astrocs-notes（^toolchain_[a-z0-9_]+$）",
+      "disposition": "**真实缺口：全仓无生产者**（cpu_profile v2 有 build.source_commit，但不含编译器/CMake 版本）。补生产需改产物合同 ⇒ 待负责人裁决",
+      "already_produced_as": null
+    },
+    "created_utc": {
+      "kind": "missing_required",
+      "authority": "CLI-003 §2 started_utc/finished_utc",
+      "disposition": "同义不同名 ⇒ schema 侧接受 started_utc",
+      "already_produced_as": "started_utc"
+    },
+    "run_id": {
+      "kind": "informational",
+      "authority": "CLI-003 §2 run_id",
+      "disposition": "64/64 真实 manifest 全部带 run_id；run_id 只在 3 个测试残留空占位文件（2 字节 {}，run/RELEASE-05/accept/tmp/**）中缺失，那些文件由门按 skipped_non_manifest 如实登记、不计入 T1/T2",
+      "already_produced_as": "run_id"
+    },
+    "artifacts": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2 + §4 artifact 词表 {role,path,sha256,size_bytes}",
+      "disposition": "补进 CFG-001 schema（additive）"
+    },
+    "astrocs_version": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "config_path": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "config_sha256": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema（或与 config_hash 二选一，见上）"
+    },
+    "cpu_profile_path": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "cpu_profile_sha256": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "error": {
+      "kind": "extra_property",
+      "authority": "SMOKE-001 D7（失败/取消 manifest 自带失败原因）",
+      "disposition": "补进 schema"
+    },
+    "finished_utc": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "kind": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "phases": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "platform": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "provenance": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2.1（additive 扩展）+ ASTROCS_DESIGN.md §10 manifest 必记项",
+      "disposition": "补进 schema"
+    },
+    "schema_version": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "started_utc": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "status": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §2",
+      "disposition": "补进 schema"
+    },
+    "summary": {
+      "kind": "extra_property",
+      "authority": "CLI-003 §4 final 事件同源摘要",
+      "disposition": "补进 schema"
+    },
+    "uncertainty_available": {
+      "kind": "extra_property",
+      "authority": "FIX-E2E B1-A5/A10（节点级科学事实并入 manifest）",
+      "disposition": "补进 schema"
+    }
+  },
+  "resolution": {
+    "status": "PENDING_OWNER_DECISION",
+    "options": [
+      "A（推荐）：按 CLI-003 §2/§2.1 扩写 CFG-001 的 run_manifest.schema.json（properties 补 17 个多余属性、required 改为 CLI-003 字段集 + provenance 必填子集），并把 toolchain_version 列为**待补生产者**的独立项；补丁见 run/RULING-DOC-01/REPORT.md §裁决 D",
+      "B：把 CFG-001 的 run_manifest.schema.json 标记为 RESERVED-NO-PRODUCER 并从符合性门中退役，另立 CLI-003 的机器 schema 作为唯一事实源"
+    ],
+    "not_done_by_this_task": "未自行改 CFG-001 冻结 schema；未改 CLI 产物字段集（CLI-003 §2 为顶层冻结合同，AGENTS §10 要求负责人裁决）"
+  }
+}

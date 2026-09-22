@@ -624,6 +624,20 @@
       "doc": "docs/ci/01_CHECKS.md §2",
       "steps": []
     },
+    "CHK-DOC-HYGIENE": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "正式文档过程痕迹门 + 已知限制台账 ID 可解析门（D1 逐字裁决引述 / 订正+日期流水 / 工作项编号；D2 条目号与台账编号表双向一致、引用不悬空；fail-closed）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
+    "CHK-DOC-HYGIENE-SELFTEST": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "CHK-DOC-HYGIENE 可执行正/负例面（1 正例 + 10 负例：逐字裁决 / 订正流水 / 工作项编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": []
+    },
     "CHK-RETIRED-CODE": {
       "kind": "ci",
       "grade": "P0",
@@ -843,6 +857,34 @@
         "LOG-SYS-SCAN",
         "LOG-SYS-SELFTEST"
       ]
+    },
+    "CHK-NWORKER-TOLERANCE": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "并行确定性容差档判据自检（逐字节档 + 浮点容差档，能红能绿）",
+      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）；判据口径 docs/contracts/SCHEDULER_CONTRACT.md §2.1 + docs/contracts/TEST_MATRIX.md §2",
+      "steps": []
+    },
+    "CHK-RUN-MANIFEST-SCHEMA": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "run manifest 双合同符合性门（CLI-003 严格 + CFG-001 偏差棘轮）",
+      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）",
+      "steps": []
+    },
+    "CHK-RUN-MANIFEST-SCHEMA-SELFTEST": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "上项的可执行负例面（正例/负例自检）",
+      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）",
+      "steps": []
+    },
+    "CHK-PHOTOMETRY-APPLY-SELFTEST": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "测光归一化施加的像素级复算门自检（裁决 B 的判据非退化面）",
+      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）",
+      "steps": []
     }
   },
   "reserved_targets": {
@@ -3043,6 +3085,14 @@
       "note": "MEM-WIRE-01 新增执行单元"
     },
     {
+      "old_id": "CHK-NWORKER-TOLERANCE",
+      "decision": "KEPT",
+      "target": "CHK-NWORKER-TOLERANCE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：1/N worker 等价判据由「逐位一致」改为「逐字节优先 + 冻结浮点容差」（负责人裁决 2026-09-22）；本项为容差档的非退化自检 python3 eng/tools/v6/v6_numeric_equiv.py --self-test"
+    },
+    {
       "old_id": "CTEST-EXPORT-STREAM",
       "decision": "KEPT",
       "target": "CHK-ARCH504-EXPORT-STREAM",
@@ -3112,17 +3162,57 @@
       "kind": "extension",
       "grade": "P0",
       "note": "DRIZZLE-FIX-01（2026-09-22）新增执行单元（非本波基线，absorbed）：DISP-DRZ-009 面亮度保持权重 w_jp=a_jp/A_pixel,j 回归门；判据 = 常量面亮度 |S_p/B0-1|<1e-3（pixfrac∈(0,1]）+ \"分母取 A_drop 必判红\"负例控制；可执行负例面见 run/DRIZZLE-FIX-01/REPORT.md §⑥（真实注入红/绿 + sha256）。"
+    },
+    {
+      "old_id": "CHK-RUN-MANIFEST-SCHEMA",
+      "decision": "KEPT",
+      "target": "CHK-RUN-MANIFEST-SCHEMA",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 D（run manifest 以冻结 schema 为准 + 补门）"
+    },
+    {
+      "old_id": "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 D（run manifest 以冻结 schema 为准 + 补门）"
+    },
+    {
+      "old_id": "CHK-PHOTOMETRY-APPLY-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-PHOTOMETRY-APPLY-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 B（合并 photometry 与施加为一步，须保留像素级可核对判据）"
+    },
+    {
+      "old_id": "CHK-DOC-HYGIENE",
+      "decision": "KEPT",
+      "target": "CHK-DOC-HYGIENE",
+      "kind": "ci",
+      "grade": "P0",
+      "note": "DOC-HYGIENE-01 新增执行单元（非本波基线，absorbed）：ENGINEERING_SPEC §8 规则 2（正式文档不堆任务编号与日期）+ 规则 4（悬空即缺陷）；判据含已知限制台账 ID 可解析（D2）"
+    },
+    {
+      "old_id": "CHK-DOC-HYGIENE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-DOC-HYGIENE-SELFTEST",
+      "kind": "ci",
+      "grade": "P0",
+      "note": "DOC-HYGIENE-01 新增执行单元（非本波基线，absorbed）：ENGINEERING_SPEC §10 可执行负例面（1 正例 + 10 负例）"
     }
   ],
   "coverage": {
     "source_entry_count": 158,
     "mapped_entry_count": 147,
     "merged_into": 137,
-    "kept": 78,
+    "kept": 82,
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。",
     "absorbed_entries": [
       "CHK-SECRET-HYGIENE",
       "STD-REG",
@@ -3171,6 +3261,8 @@
       "CHK-NO-WEIGHT-MODE",
       "CHK-NO-WEIGHT-MODE-SELFTEST",
       "AHPX-WEIGHT-RETIRED",
+      "CHK-DOC-HYGIENE",
+      "CHK-DOC-HYGIENE-SELFTEST",
       "CHK-FIX203-PROMOTED-KEYS",
       "P3-PROJ-DECL-REGISTRY",
       "P3-PROJ-DECL-UNSUPPORTED-CLI",
@@ -3221,7 +3313,11 @@
       "CTEST-GAIA-SHARD-COVERAGE",
       "CTEST-GAIA-SHARD-COVERAGE-SELF-TEST",
       "CHK-DRZ-DISP009",
-      "CTEST-MEM-WIRE"
+      "CTEST-MEM-WIRE",
+      "CHK-NWORKER-TOLERANCE",
+      "CHK-RUN-MANIFEST-SCHEMA",
+      "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
+      "CHK-PHOTOMETRY-APPLY-SELFTEST"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

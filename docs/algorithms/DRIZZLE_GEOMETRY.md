@@ -30,16 +30,16 @@
 ## 1 ALG-DRZ-001 核心累加公式（与 SCI-DRZ-001 §5 对照）
 
 - 源锚: `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`
-  （`processPixelTiled` / `processPixelSharedTiled` 累加段 1538-1638，
-  2026-09-22 DRIZZLE-FIX-01 重锚；**符号名优先于行号**，行号仅作导航）。
+  （`processPixelTiled` / `processPixelSharedTiled` 累加段 1538-1638；
+  **符号名优先于行号**，行号仅作导航）。
 - 记号: 源像素 j（值 x_j [ADU]、方差 v_j [ADU²]、权重面）、目标
   HEALPix NESTED leaf p；drop = 源像素按 pixfrac 收缩的球面 footprint；
-  A_pixel,j = **未收缩**源像素球面总面积 [sr]（DRIZZLE-FIX-01 引入，
-  `spherical::polygon_area_consistent`）；A_drop,j = drop 球面总面积 [sr]
+  A_pixel,j = **未收缩**源像素球面总面积 [sr]（`spherical::polygon_area_consistent`）；
+  A_drop,j = drop 球面总面积 [sr]
   （S-H 裁剪前，双精度角点累积，<1e-20 拒绝，
   `build_drop_geometry_into` / `DropGeometryT::drop_area`）。
 - 离散公式（逐条源码锚）:
-  - 权重: `w_jp = a_jp / A_pixel,j`（**DRIZZLE-FIX-01 修复后口径**，
+  - 权重: `w_jp = a_jp / A_pixel,j`（**面亮度保持口径**，
     SCI-DRZ-001 §5 目标态面亮度保持权重），a_jp = drop ∩ target p 球面交叠
     面积 [sr]；A_pixel,j = **未收缩**源像素球面面积 [sr]，由
     `spherical::polygon_area_consistent`（与 drop_area 同一分支同一例程）
@@ -137,11 +137,9 @@
 
 ## 6 确定性与归约（1/N 合同）
 
-> **2026-09-22 订正（DRIZZLE-FIX-01）**：本节原写"跨线程数时 leaf 内浮点和顺序
-> 不同, 不保证 bitwise"——那是 **P15a/P22 修复前（P12）** 的状态，与现行代码
-> **不符**。现行实现把归约结合树定义为*输入*的函数，跨线程预算 **bitwise 一致**；
-> 下列条目已按 `drizzle_engine.cpp` 现行符号（`drizzleTiledImpl` /
-> `drizzle_deterministic_stripe_count` / `merge_tile_map_into`）逐条核对改写。
+> **归约结合树是*输入*的函数**：现行实现把归约结合树定义为输入的函数，跨线程预算
+> **bitwise 一致**；下列条目按 `drizzle_engine.cpp` 现行符号（`drizzleTiledImpl` /
+> `drizzle_deterministic_stripe_count` / `merge_tile_map_into`）逐条对应。
 
 - 并行（P15a DRIZZLE-DET-001 + P22 池化归约流水线）: y 行按
   `drizzle_deterministic_stripe_count(img.height) = min(ceil(height/16), 256)`
@@ -263,12 +261,12 @@
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:62-63 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:62-63 vs 64-71 |
 | DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:131 vs drizzle_engine.cpp:2-3 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用 | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
-| DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`） | **已闭环（DRIZZLE-FIX-01，2026-09-22）**：`processPixelSharedTiled` 的 `weight = overlap_area / pixel_area`（分母 = 未收缩像素面积 A_pixel,j）；修复前为 `w_jp=a_jp/A_drop,j` 后 `S_p=sumFlux/sumArea`，`pixfrac<1` 偏 `1/pixfrac²`（pf=0.8→+56.25%，实测与 `1/pf²−1` 逐位吻合） | DRIZZLE.md:40-54 vs drizzle_engine.cpp `processPixelSharedTiled`（`pixel_area` 段）/ `spherical_overlap.cpp:polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/DATA_SEMANTICS.md §31.1）；回归门 `p1drz_disp009` |
+| DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`） | **已闭环**：`processPixelSharedTiled` 的 `weight = overlap_area / pixel_area`（分母 = 未收缩像素面积 A_pixel,j）；修复前为 `w_jp=a_jp/A_drop,j` 后 `S_p=sumFlux/sumArea`，`pixfrac<1` 偏 `1/pixfrac²`（pf=0.8→+56.25%，实测与 `1/pf²−1` 逐位吻合） | DRIZZLE.md:40-54 vs drizzle_engine.cpp `processPixelSharedTiled`（`pixel_area` 段）/ `spherical_overlap.cpp:polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/DATA_SEMANTICS.md §31.1）；回归门 `p1drz_disp009` |
 
 无差异项（核对通过）: F/D/sumVarNum 结构、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
 
-**DISP-DRZ-009 修复实现（DRIZZLE-FIX-01，2026-09-22；已落地）**：
+**DISP-DRZ-009 现行实现**：
 `drizzle_engine.cpp` 的 `processPixelSharedTiled` 内 `weight = overlap_area / drop_area`
 改为 `weight = overlap_area / pixel_area`，其中 `pixel_area` = **未收缩**源像素球面面积
 （新增 `spherical::polygon_area_consistent`，与 `build_drop_geometry_into` 的
@@ -280,10 +278,9 @@ support 语义）与 `sumVarNum`/`variance=sumVarNum/sumArea²` 语义不变。
 **注意**：原拟的近似写法 `overlap_area·pixfrac²/drop_area` **不得采用** ——
 恒等式 `A_drop,j=pixfrac²·A_pixel,j` 有 O(θ²) 球面非线性残差
 （审核实测 8.3e-7 @2"/px），会让 `pixfrac<1` 的面亮度引入同阶系统偏差。
-验证：新增回归门 `p1drz_disp009`（pixfrac∈{1.0,0.8,0.6,0.5} 常量面亮度
-`|S_p/B0−1|<1e-3` + "分母取 A_drop 必判红"的负例控制），并重跑
-`ctest -R 'drz|drizzle|p1drz|hips'`（31 项）与 `p1drz_taskset_invariance`/
-`p1drz_merge_pipeline_lock` 1/N 逐位锁。
+验证：回归门 `p1drz_disp009`（pixfrac∈{1.0,0.8,0.6,0.5} 常量面亮度
+`|S_p/B0−1|<1e-3` + "分母取 A_drop 必判红"的负例控制）与 1/N 逐位锁
+`p1drz_taskset_invariance` / `p1drz_merge_pipeline_lock`。
 
 **DISP-DRZ-005 负面用例建议（仅注记，用例实现不在本批）**：θ < 1e-3 rad
 的微小 drop 两侧对拍——同一输入分别走切平面分支（`planar_polygon_area_n`）
