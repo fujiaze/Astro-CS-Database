@@ -17,7 +17,17 @@
 #include <unordered_map>
 #include <functional>   // std::hash (VoteKeyHash 使用)
 
+#include <cstddef>   // size_t (utf8_safe_copy)
+
 namespace ipv {
+
+// ===========================================================================
+// 对外可见错误串的编码归一 (ALG-WCS-001 §4b; 实现 ipv_entry.cpp)
+// ---------------------------------------------------------------------------
+// 写入定长 char[] 的错误串恒为**合法 UTF-8**: 截断只发生在码点边界,
+// 非法字节替换为 ASCII '?' (不原样透传)。返回写入字节数 (不含 '\0')。
+// ===========================================================================
+std::size_t utf8_safe_copy(char* dst, std::size_t dst_size, const char* src);
 
 // ===========================================================================
 // 基础数据结构 (复用自 , 字段保持不变)
@@ -103,6 +113,12 @@ struct StarSelection {
     bool   m_lim_converged;  // |N-N_target|/N_target <= tol 且未触顶 (真收敛)
     bool   m_lim_query_failed;// 某次 Gaia 查询返回错误 (末次成功结果被采用)
     double m_lim_alpha_final;// 末次使用的 alpha (dlog10N/dmag)
+    // ALG-WCS-001 §4a.4: 空结果/空扫描 provenance (空星表遍历与星等调参未达容差
+    // 是不同失效面, 下游必须可区分)。
+    int    m_lim_zero_queries;  // 成功查询中返回 0 颗的次数
+    bool   m_lim_empty_sweep;   // 全部成功查询返回 0 颗 (空星表遍历 -> fail-closed)
+    double m_lim_sweep_first;   // 首次查询使用的 m_lim
+    double m_lim_sweep_last;    // 末次查询使用的 m_lim
     double rho_img;          // 图像侧星密度
     double rho_target;       // 目标星密度
     double s0;               // 像素尺度 (arcsec/pixel) - 新增
@@ -130,7 +146,7 @@ struct WcsFitResult {
     char     ctype[2][16];   // "RA---TAN-SIP"/"DEC--TAN-SIP" 或 "RA---TAN"/"DEC--TAN"
     // RESCUE-FD-05 / ALG-WCS-001 §11.4 F4: 失败原因 (success=false 时非空),
     // 由各失败点写入, 经 to_c_result 映射到 IpvWcsResult.error_msg。
-    char     error[256];
+    char     error[256];   // 对外可见错误串: 恒为合法 UTF-8 (ALG-WCS-001 §4b)
 };
 
 // ===========================================================================

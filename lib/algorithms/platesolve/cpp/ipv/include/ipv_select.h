@@ -89,8 +89,13 @@ struct MagIterOutcome {
     bool   converged = false;    // |N-N_target|/N_target <= tol 且**未触顶** (真收敛)
     bool   capped = false;       // 触到 Gaia 每文件返回上限 (n_ret >= cap; 截断, 不入差分)
     bool   query_failed = false; // 查询返回错误
-    bool   valid = false;        // 至少有一次成功且非空查询
+    bool   valid = false;        // 至少有一次成功查询 (n_returned 可为 0)
     double alpha_final = 0.0;    // 末次使用的 alpha
+    // ALG-WCS-001 §4a.4 失效面 provenance (空结果与截断是两种不同失效, 必须可观测)
+    int    n_zero_queries = 0;   // 成功查询中返回 0 颗的次数
+    bool   empty_sweep = false;  // 有成功查询且**全部**返回 0 颗 (空星表遍历)
+    double m_sweep_first = 0.0;  // 首次查询使用的 m_lim
+    double m_sweep_last = 0.0;   // 末次查询使用的 m_lim
 };
 
 // 割线迭代: m_next = m + (log10(N_target) - log10(N)) / alpha
@@ -98,7 +103,9 @@ struct MagIterOutcome {
 // - N_target = n_target × m_lim_safety
 // - alpha 先验 m_lim_alpha_prior, 用相邻两次查询有限差分更新, 限幅 [min, max]
 // - 终止: |N - N_target|/N_target <= density_tolerance, 或查询次数达 m_lim_max_iter
-// - N == 0 -> m += m_lim_zero_step; 触顶 -> 停用 alpha 更新且视为达标
+// - N == 0 -> m += m_lim_zero_step (ALG-WCS-001 §4a.3: 星等窗单调 ⇒ 唯一有信息量的
+//   方向是更暗; 向更亮回退恒为 0, 禁止作为补救); 触顶 -> 停用 alpha 更新且终止
+// - §4a.4: 全部成功查询返回 0 颗 ⇒ empty_sweep (空星表遍历, 交付面必须 fail-closed)
 // - m 全程夹取 [m_lim_clamp_lo, m_lim_clamp_hi]
 MagIterOutcome estimate_mag_lim_iterative(
     const MagQueryFn& query_func,

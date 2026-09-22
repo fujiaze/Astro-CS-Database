@@ -39,6 +39,10 @@ Registry production 模块(唯一源=module_adapters.cpp:512-526 descriptor)。
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
+> 生产节点口径：本节点按帧读**校准后像素**（`calibrated`）自行做星点检测与星表匹配，
+> **不消费** `star_detection` 节点的星表；因此本节点在节点序上先于 `star-psf`。
+> 下表为模块级（算法）端口合同；节点级端口以 `module_adapters.cpp` descriptor 为准。
+
 | `sources` | `DATA-P1-SOURCES`（编排词汇；模块权威输入=star_measurements [N,≥15] 权威块 + star_det fallback，DATA_SEMANTICS §18.1） | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL`（统一契约 index-is-center，+0.5 桥接至 IPV 接口契约） |
 | `wcs` | `DATA-P1-WCS`（DATA_SEMANTICS §18） | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS`（RADESYS=ICRS/EQUINOX=2000 写回） |
 
