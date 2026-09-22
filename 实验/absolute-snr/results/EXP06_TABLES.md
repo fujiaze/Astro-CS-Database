@@ -254,12 +254,14 @@
 | PASS | G3a_separation_blocks_bright_pixels | dispersion <= 1e-2 | 平坦天光 + 6 颗极亮星（flux 1e6.5~1e7 e-）⇒ 结构分离后物理场仍须近似常数；实测离散度 0.00363 |
 | PASS | G3b_naive_pixel_substitution_must_be_red | src_snr_p05 <= 0.5（错误臂必须红） | 逐像素代入亮度：源像素上 sigma 被高估 ⇒ SNR 伪暗洞必须判红；实测源区 SNR 比值 p05 = 0.066 |
 | PASS | G4a_naive_pixel_source_snr_dip_must_be_red | p05 <= 0.5（错误臂必须红） | 逐像素代入亮度：源像素 SNR 比值的 p05 必须显著低于 1（伪暗洞）；实测 0.223 |
+| PASS | G4c_physics_no_snr_overshoot_anywhere | snr_max_all <= 1.10（全部场景） | 负责人点名的失效模式是「异常**高**信噪比」：口径 F 下物理重建的**全帧最大** SNR 比必须有上界（不得在星点/线状结构上伪造高 SNR）；实测 A1_flat_bright_pixels=1.0192, A4_realistic=1.0248 |
 | PASS | G4b_physics_source_zone_clean | p05 >= 0.9 | 物理重建在源像素上不得产生 SNR 伪结构；实测源区 SNR p05 = 1.002 |
 | PASS | G5_no_separation_must_be_red | E_unsep >= 2*E_phys | 不做结构分离（大尺度高斯平滑原始帧作驱动量）⇒ 权重效率损失必须显著变差；实测 E_unsep=0.05169 vs E_phys=0.00006（比 938.78） |
 | PASS | G6a_shuffled_controls_destroy_the_brightness_law | E_shuffled >= 10*E_phys | 控制点值随机洗牌（破坏与亮度的配对）⇒ 物理模型的增益信息被破坏，必须显著劣于物理臂；实测 E_shuffled=0.05544 vs E_phys=0.00006（比 1006.9）；洗牌后斜率 -0.0109 vs 正确 0.7454 |
 | PASS | G6b_shuffled_model_degenerates_to_frame_scalar | |E_shuffled/E_frame - 1| <= 0.5 | 洗牌后模型退化为帧级标量（亮度项归零）⇒ E 必须与帧级臂同量级；实测 E_shuffled=0.05544 vs E_frame=0.05399 |
 | PASS | G7_gain_recovery_on_clean_backgrounds | |gain_hat/g - 1| <= 5% | 弥散分量在 cell 尺度上足够平滑的场景（线性/强梯度）⇒ 自由斜率必须还原 1/g，偏差 <= 5%；实测最差 3.66% |
-| PASS | G8_power_law_exponent_consistent_with_1 | p 与 1 在 3 sigma 内一致 | 物理模型预言 Var 对电平的幂律指数 p = 1；自由指数拟合必须与 1 在 3 sigma 内一致 |
+| PASS | G8a_power_law_exponent_consistent_with_1 | p 与 1 在 3 sigma 内一致 | 物理模型预言 Var 对电平的幂律指数 p = 1；自由指数拟合必须与 1 在 3 sigma 内一致 |
+| PASS | G8b_power_law_diagnostic_itself_not_degenerate | 全部 p_se > 1e-9 且 p 不触界 | 幂律诊断自身必须非退化：p_se 不得为零（否则 |p-1|<=3*p_se 退化为恒真门），p 不得触到拟合上界 3.0；实测 A2_gradient p=1.030 se=0.0279; A6_strong_gradient p=1.002 se=0.012 |
 | PASS | G9_physics_beats_interpolation_on_smooth_backgrounds | E_phys < E_interp（全部场景） | 平滑背景（弥散分量在 cell 尺度可分辨）上，物理建模的权重效率损失必须优于纯插值 |
 | PASS | G10_constant_driver_injection_must_be_red | E_const >= 2*E_phys | 把驱动量置为常数（等价于丢掉亮度信息）⇒ 必须显著劣于物理重建；实测 E_const=0.49237 vs E_phys=0.00028 |
 | PASS | G11_wrong_gain_injection_must_be_red | E_wrong >= 2*E_phys | 把帧级增益用错一倍（斜率 1/(2g)）⇒ 必须显著劣于正确增益；实测 E_wrong=0.13190 vs E_phys=0.00028 |
@@ -267,7 +269,8 @@
 | PASS | G12b_caliberP_field_is_not_smooth | >= 3（该口径下场不平滑） | 逐像素显著性场的空间动态范围 p99.9/p50（星点处爆表 ⇒ 场不平滑）；实测 16360.7 |
 | PASS | G13a_flat_background_auto_is_harmless_and_constant | E_auto <= 1e-4 且场近似常数 | 背景恒定时斜率不可辨识，但驱动量恒定 ⇒ 模型场与斜率无关，auto 必须仍退化为常数且 E 触底；实测 E_auto=4.13e-08，场相对标准差 0.000102；CV 误差 free=0.011408 vs zero=0.011409（几乎并列） |
 | PASS | G13b_cv_accepts_slope_on_strong_gradient | choose_free = True | 强梯度（lever_var=1.641）时交叉验证必须接受自由斜率 |
-| PASS | G13c_auto_never_loses_to_either_candidate | E_auto <= 1.1*min(E_frame, E_free) | phys_auto（CV 选斜率）在任何场景都不得显著劣于 frame 与 phys_free 中的较优者（绝对下限 1e-4：低于此量级的差异无工程意义） |
+| PASS | G13c_auto_never_loses_to_either_candidate | E_auto <= 1.1*min(E_frame, E_free) | phys_auto（CV 选斜率）在**较优候选本身不在数值地板**（min(E_frame,E_free) > 1e-6）的场景上，不得劣于 frame 与 phys_free 中的较优者超过 10%（相对判据；地板场景由 G13d 的绝对容差门覆盖） |
+| PASS | G13d_auto_absolute_excess_is_bounded | max(E_auto - min(E_frame, E_free)) <= 1e-4 | phys_auto 相对两个候选的**绝对** E 超额必须有界（<= 1e-4 = 方差超额 0.01%）；实测最差绝对超额 4.13e-08，对应最差相对倍数 4.13e+04 倍（下限 1e-12；相对倍数可任意大，因为最优候选的 E 本身在 1e-15 量级时无工程意义） |
 | PASS | G15a_free_slope_model_is_positive_homogeneous | <= 1e-9 | 自由斜率模型对控制值整体缩放严格正齐次 R[a*v]=a*R[v]（冻结算子要求 ②）；实测最大相对偏差 6.66e-16 |
 | PASS | G15b_fixed_gain_model_breaks_homogeneity | >= 0.05（必须识别出该差异） | 用帧级增益固定斜率时模型**不正齐次**（斜率项不随控制值缩放）；实测最大相对偏差 0.213 |
 
