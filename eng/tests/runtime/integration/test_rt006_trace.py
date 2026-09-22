@@ -16,12 +16,15 @@
 
 方法 (照 eng/tests/runtime/test_rt005_plan_estimator.py 先例):
   Python unittest 内嵌 C++ driver，g++ 真实编译链接 lib/infrastructure/scheduler/src
-  (trace.cpp/context.cpp/executor.cpp/scheduler.cpp/runtime.cpp/artifact.cpp/
-   module.cpp/pipeline.cpp) + lib/include/astrocs/core 头，运行断言；
+  的**最小链接闭包** + lib/include/astrocs/core 头，运行断言；
+  源清单不手抄：目录与权威闭包从构建图解析（根 CMakeLists.txt 的 astrocs_core 目标
+  + eng/tests/unit/CMakeLists.txt 的 executor_provider_race_test 目标），
+  闭包完整性由 nm 差集判据 TestRt006DriverSourceClosure 兜底（缺谁点名谁）；
   另以 Python trace_replay.py 独立实现对照重放语义（双实现互证）。
 """
 from __future__ import annotations
 
+import atexit
 import pathlib
 import re
 import shutil
@@ -470,6 +473,261 @@ _HDR_CTX = INC / "astrocs" / "core" / "context.h"
 _SRC_TRACE = CORE / "trace.cpp"
 _REPLAY_PY = REPO / "lib" / "infrastructure" / "pipeline" / "trace_replay.py"
 
+# ── 驱动源清单的权威来源 = 构建图（不手抄文件名） ──
+# 规范依据（AGENTS §1.1「先到最高文档确定规范」）：
+#   * 根 CMakeLists.txt:302-335 `add_library(astrocs_core STATIC ...)` 是 scheduler
+#     运行内核（artifact/module/pipeline/context/runtime/scheduler/checkpoint/
+#     logging/plan_estimator/...）的**唯一权威显式源清单**（根 CMakeLists.txt:4-5
+#     「显式源列表, 禁 GLOB (QA-002)」⇒ 该清单即构建图闭包，不是「惯例」）；
+#   * lib/infrastructure/scheduler/README.md「构建」节：「本目录无独立 CMake 目标，
+#     随根 CMakeLists.txt 编入 astrocs_core / astrocs_module_adapters」；
+#   * `executor.cpp` **刻意不在** astrocs_core（eng/tests/unit/CMakeLists.txt:230-232
+#     明文登记「executor.cpp 不在 astrocs_core 内 (eng/tests/runtime Python harness
+#     独立编译)」），其构建图落点是同文件 :233-237 `executor_provider_race_test`。
+_ROOT_CMAKE = REPO / "CMakeLists.txt"
+_UNIT_CMAKE = REPO / "eng" / "tests" / "unit" / "CMakeLists.txt"
+_CORE_TARGET = "astrocs_core"
+_EXECUTOR_TARGET = "executor_provider_race_test"
+
+
+def _cmake_target_sources(cmake_file: pathlib.Path, target: str) -> "list[pathlib.Path]":
+    """解析 CMakeLists.txt 里 add_library/add_executable(<target> ...) 的显式源清单。
+
+    返回已 resolve 的绝对路径（按清单出现顺序）。构建图变了（目标改名/清单为空）
+    直接判红 —— 不允许测试静默退回手抄。
+    """
+    text = cmake_file.read_text(encoding="utf-8")
+    m = re.search(r"add_(?:library|executable)\(\s*" + re.escape(target) + r"\b", text)
+    if m is None:
+        raise AssertionError(
+            f"构建图已变：{cmake_file} 里找不到目标 {target} 的显式源清单")
+    open_at = text.index("(", m.start())
+    depth = 0
+    close_at = -1
+    for k in range(open_at, len(text)):
+        ch = text[k]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                close_at = k
+                break
+    if close_at < 0:
+        raise AssertionError(f"{cmake_file}: 目标 {target} 的源清单括号不闭合")
+    block = "\n".join(ln.split("#")[0] for ln in text[open_at + 1:close_at].splitlines())
+    # ${CMAKE_CURRENT_SOURCE_DIR} 先换成无空格占位符（仓库路径含空格，直接展开会被
+    # 下面的路径正则从空格处截断 ⇒ 截出的相对路径再拼接会指到错误目录）。
+    var = "@CMAKE_CURRENT_SOURCE_DIR@"
+    block = block.replace("${CMAKE_CURRENT_SOURCE_DIR}", var)
+    srcs = []
+    for token in re.findall(r"([\w@./-]+\.cpp)", block):
+        token = token.replace(var, str(cmake_file.parent))
+        p = pathlib.Path(token)
+        srcs.append((p if p.is_absolute() else cmake_file.parent / p).resolve())
+    if not srcs:
+        raise AssertionError(f"{cmake_file}: 目标 {target} 的源清单为空")
+    return srcs
+
+
+def _build_graph_sources() -> "tuple[list[pathlib.Path], list[pathlib.Path]]":
+    """返回 (astrocs_core 权威源清单, 驱动额外需要的 scheduler TU 清单)。
+
+    额外清单 = 单测目标里编译、但**不在** astrocs_core 的 lib/infrastructure/
+    scheduler/src/*.cpp（当前即 executor.cpp）—— 由构建图推出，不手抄。
+    """
+    core = _cmake_target_sources(_ROOT_CMAKE, _CORE_TARGET)
+    unit = _cmake_target_sources(_UNIT_CMAKE, _EXECUTOR_TARGET)
+    extra = [s for s in unit if s.parent == CORE and s not in core]
+    return core, extra
+
+
+# 驱动编译的**最小链接闭包**（种子）：从上面权威清单里按需取用的子集。
+# 为什么不是整份 astrocs_core 清单 —— 用本 harness 的 include 面（-I lib/include
+# -I lib/third_party）逐个实测，清单里有 TU 无法脱离 CMake 独立编译：
+#   * export_stream.cpp / canonical_hash.cpp —— 需要 crypto/sha256.h
+#     （lib/algorithms/shared，astrocs_common 的 include 面）；
+#   * memory_budget.cpp —— 需要 CMake configure_file 生成的
+#     runtime_resources_generated.h（根 CMakeLists.txt:102-103，只在构建目录存在）；
+#   * normalize_workflow.cpp / mosaic_window.cpp —— 需要 aio_atomic_file.h
+#     （lib/infrastructure/aio/src，astrocs_core 的 PRIVATE include 面，
+#      根 CMakeLists.txt:342-346）。
+# 本 harness 刻意脱离 CMake 独立编译（源码级验证，见文件头「方法」节），故取最小子集；
+# 代价是「清单漂移」这一类缺陷，用两条判据兜住：
+#   ① test_seed_sources_come_from_build_graph —— 种子里每个名字必须仍在权威清单里；
+#   ② test_driver_link_closure_complete —— nm 未定义/已定义符号差集必须为空，
+#      非空则判红并**点名该补哪个 .cpp**（链接器的「undefined reference」不会说这个）。
+_DRIVER_CORE_SEED = (
+    "artifact.cpp", "artifact_store.cpp", "module.cpp", "pipeline.cpp",
+    "context.cpp", "runtime.cpp", "scheduler.cpp", "checkpoint.cpp",
+    "logging.cpp", "plan_estimator.cpp",
+)
+
+
+def _driver_sources() -> "list[pathlib.Path]":
+    """驱动编译源清单 = 权威清单里的种子（按权威清单顺序）+ executor.cpp。"""
+    core, extra = _build_graph_sources()
+    by_name = {p.name: p for p in core}
+    missing = [n for n in _DRIVER_CORE_SEED if n not in by_name]
+    if missing:
+        raise AssertionError(
+            "驱动种子源不在 astrocs_core 权威清单里（构建图已变，需同步 "
+            "_DRIVER_CORE_SEED）: " + ", ".join(missing))
+    return [by_name[n] for n in _DRIVER_CORE_SEED] + extra
+
+
+def _nm_symbols(objs, kind: str) -> "set[str]":
+    """nm -C 提取目标文件集合的符号名（kind='defined' | 'undefined'）。
+
+    注意 nm -C 的**名字里含空格**（模板/参数表），故按列切分时用 maxsplit，
+    不能对整行 split() —— 否则会截出半个符号名，差集判据静默失效。
+    """
+    r = subprocess.run(["nm", "-C", f"--{kind}-only", *[str(o) for o in objs]],
+                       capture_output=True, text=True, timeout=300)
+    if r.returncode != 0:
+        raise RuntimeError(f"nm --{kind}-only failed:\n{r.stderr[-2000:]}")
+    out = set()
+    for line in r.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if kind == "defined":            # "<addr> <type> <name...>"
+            parts = line.split(None, 2)
+            name = parts[2] if len(parts) == 3 else ""
+        else:                            # "<blank> U <name...>"
+            parts = line.split(None, 1)
+            name = parts[1] if len(parts) == 2 else ""
+        if name:
+            out.add(name)
+    return out
+
+
+def _symbol_leaf(sym: str) -> str:
+    """取符号名的叶子标识符（函数名 / 类名），供源码定义正则兜底用。"""
+    s = sym
+    for pre in ("vtable for ", "VTT for ", "typeinfo for ", "typeinfo name for ",
+                "construction vtable for "):
+        if s.startswith(pre):
+            s = s[len(pre):]
+            break
+    s = s.split("(")[0]                  # 去参数表
+    s = s.split("<")[0]                  # 去模板实参
+    return s.rsplit("::", 1)[-1].strip()
+
+
+def _source_defines_symbol(text: str, sym: str) -> bool:
+    """源码文本里是否存在 sym 的**定义**（而非调用/声明）——无对象文件时的兜底。"""
+    leaf = _symbol_leaf(sym)
+    if not leaf:
+        return False
+    for m in re.finditer(r"(?m)^[^\n;#{}]*\b" + re.escape(leaf) + r"\s*\(", text):
+        head = m.group(0)[:m.group(0).rindex(leaf)]
+        if "=" in head:
+            continue                     # 赋值/初始化里的调用，不是定义
+        if re.search(r"\b(return|throw|case|sizeof|delete|new|if|while|for|switch|else)\b",
+                     head):
+            continue
+        return True
+    return False
+
+
+def _resolve_missing_symbols(missing, tmp: pathlib.Path, compiled) -> "list[tuple[str, list[str]]]":
+    """把未解析符号解析回权威清单里的 .cpp —— 即「该补哪个文件」。
+
+    精确优先：把权威清单里尚未编译的候选 TU 编成 .o，用 nm 精确匹配符号定义；
+    候选无法独立编译（需 CMake 生成头 / PRIVATE include 面）时退回源码定义正则。
+    """
+    core, extra = _build_graph_sources()
+    compiled = {pathlib.Path(o) for o in compiled}
+    exact: "dict[pathlib.Path, set[str]]" = {}
+    fallback: "list[pathlib.Path]" = []
+    for src in core + extra:
+        if (tmp / (src.name + ".o")) in compiled:
+            continue                     # 已在清单里 ⇒ 不可能定义未解析符号
+        try:
+            obj = _compile_unit(src, tmp)
+        except RuntimeError:
+            fallback.append(src)
+            continue
+        exact[src] = _nm_symbols([obj], "defined")
+    report = []
+    for sym in sorted(missing):
+        hits = [str(s.relative_to(REPO)) for s, defs in exact.items() if sym in defs]
+        if not hits:
+            hits = [str(s.relative_to(REPO)) for s in fallback
+                    if _source_defines_symbol(s.read_text(encoding="utf-8"), sym)]
+        report.append((sym, sorted(hits)))
+    return report
+
+
+def _compile_unit(src: pathlib.Path, out_dir: pathlib.Path, *,
+                  werror: bool = True) -> pathlib.Path:
+    """编译单个 TU → .o（生产源用 -Wall -Wextra -Werror，driver 用同款但免 -Werror）。"""
+    obj = out_dir / (src.name + ".o")
+    cmd = ["g++", "-std=c++17", "-O2"]
+    if werror:
+        cmd += ["-Wall", "-Wextra", "-Werror"]
+    cmd += ["-c", str(src), f"-I{INC}", f"-I{TP}", "-o", str(obj)]
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    if r.returncode != 0:
+        raise RuntimeError(f"compile {src.name} failed:\n{r.stderr[-2000:]}")
+    return obj
+
+
+_DRIVER_BUILD: "dict[str, object]" = {}
+
+
+def _driver_build() -> "dict[str, object]":
+    """编译驱动（源清单 + driver.cpp）并链接 → {tmp, exe, objs, driver_obj, error}。
+
+    进程内缓存：TestRt006TraceCpp 与 TestRt006DriverSourceClosure 共用同一次编译。
+    编译/链接失败不抛异常，把诊断写进 error（含「该补哪个 .cpp」），由测试判红。
+    """
+    if _DRIVER_BUILD.get("done"):
+        return _DRIVER_BUILD
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="rt006_"))
+    atexit.register(shutil.rmtree, tmp, ignore_errors=True)
+    _DRIVER_BUILD.update({"done": True, "tmp": tmp, "exe": None, "objs": [],
+                          "driver_obj": None, "error": None})
+    try:
+        drv = tmp / "rt006_driver.cpp"
+        drv.write_text(_DRIVER, encoding="utf-8")
+        objs = [_compile_unit(s, tmp) for s in _driver_sources()]
+        driver_obj = _compile_unit(drv, tmp, werror=False)
+        exe = tmp / "rt006_trace"
+        r = subprocess.run(
+            ["g++", "-std=c++17", "-O2", str(driver_obj), f"-I{INC}", f"-I{TP}",
+             *[str(o) for o in objs], "-pthread", "-o", str(exe)],
+            capture_output=True, text=True, timeout=300)
+        _DRIVER_BUILD.update({"objs": objs, "driver_obj": driver_obj})
+        if r.returncode != 0:
+            _DRIVER_BUILD["error"] = _link_failure_report(r.stderr, objs, driver_obj, tmp)
+        else:
+            _DRIVER_BUILD["exe"] = exe
+    except RuntimeError as exc:
+        _DRIVER_BUILD["error"] = str(exc)
+    return _DRIVER_BUILD
+
+
+def _link_failure_report(stderr: str, objs, driver_obj, tmp: pathlib.Path) -> str:
+    """链接失败 → 把未定义符号解析回权威清单里的 .cpp（点名该补谁）。"""
+    head = "link driver failed:\n" + stderr[-2000:]
+    try:
+        undefined = {s for s in _nm_symbols(list(objs) + [driver_obj], "undefined")
+                     if "astrocs::" in s}
+        defined = _nm_symbols(list(objs), "defined")
+        missing = sorted(undefined - defined)
+        if not missing:
+            return head
+        lines = [head, "链接闭包不完整（未定义符号差集非空）——该补的翻译单元："]
+        for sym, hits in _resolve_missing_symbols(missing, tmp, objs):
+            where = "、".join(hits) if hits else "（权威清单内无定义者，可能来自其他库）"
+            lines.append(f"  {sym}\n      ← 定义在 {where}")
+        lines.append("  修法：把上面点名的 .cpp 加入 _DRIVER_CORE_SEED。")
+        return "\n".join(lines)
+    except Exception as exc:             # 诊断自身失败不得掩盖原始链接错误
+        return head + f"\n(闭包诊断失败: {exc!r})"
+
 
 def _cpp_files():
     files = sorted(CORE.glob("*.cpp"))
@@ -532,43 +790,76 @@ class TestRt006Static(unittest.TestCase):
 
 
 @unittest.skipUnless(shutil.which("g++"), "需要 g++")
+class TestRt006DriverSourceClosure(unittest.TestCase):
+    """机器判据：驱动源清单必须由构建图推出且覆盖链接闭包。
+
+    防的缺陷类（本任务实测）：lib/infrastructure/scheduler/src 新增/改动的 TU
+    让 runtime.cpp 等引入新的 astrocs::core:: 外部符号时，手抄源清单要到**链接期**
+    才炸，而链接器只报「undefined reference to <符号>」——不告诉你该补哪个 .cpp，
+    一次只报第一条。本类用两条判据把这一类缺陷变成可判、可点名的红：
+
+      ① test_seed_sources_come_from_build_graph：种子每个名字必须仍在
+         astrocs_core 权威清单里（防改名/搬目录后清单静默失效）；
+      ② test_driver_link_closure_complete：nm 对真实目标文件求
+         「未定义 astrocs:: 符号 − 清单已定义符号」差集，非空即判红，
+         并把每个未解析符号解析回权威清单里定义它的 .cpp（直接点名）。
+
+    判据依赖真实编译（nm 需要目标文件），不是源码文本猜测 —— 因为本缺陷的
+    典型形态 estimate_plan(...) 在 runtime.cpp 里是**无限定名调用**
+    （using namespace astrocs::core），纯文本扫 astrocs::core:: 会漏掉它。
+    """
+
+    def test_seed_sources_come_from_build_graph(self):
+        core, extra = _build_graph_sources()
+        names = {p.name for p in core}
+        self.assertTrue(
+            names >= set(_DRIVER_CORE_SEED),
+            "驱动种子源已不在 astrocs_core 权威清单里（构建图已变）: "
+            + ", ".join(sorted(set(_DRIVER_CORE_SEED) - names)))
+        extra_names = {p.name for p in extra}
+        self.assertIn("executor.cpp", extra_names,
+                      "executor.cpp 应从构建图（executor_provider_race_test 目标）解析到")
+        for src in _driver_sources():
+            self.assertTrue(src.is_file(), f"驱动源不存在: {src}")
+
+    def test_driver_link_closure_complete(self):
+        build = _driver_build()
+        objs = list(build["objs"] or [])
+        if not objs:
+            self.fail("驱动源清单未编译出任何目标文件，无法做闭包判定："
+                      f"{build['error']}")
+        driver_obj = build["driver_obj"]
+        undefined = {s for s in _nm_symbols(objs + [driver_obj], "undefined")
+                     if "astrocs::" in s}
+        defined = _nm_symbols(objs, "defined")
+        missing = sorted(undefined - defined)
+        if not missing:
+            return
+        report = _resolve_missing_symbols(missing, build["tmp"], objs)
+        detail = "\n".join(
+            f"  {sym}\n      ← 定义在 "
+            + ("、".join(hits) if hits else "（权威清单内无定义者，可能来自其他库）")
+            for sym, hits in report)
+        self.fail(
+            "驱动源清单未覆盖链接闭包（未定义符号差集非空）：\n" + detail
+            + "\n  修法：把上面点名的 .cpp 加入 _DRIVER_CORE_SEED。")
+
+
+@unittest.skipUnless(shutil.which("g++"), "需要 g++")
 class TestRt006TraceCpp(unittest.TestCase):
-    """C++ harness：真实编译链接 lib/infrastructure/scheduler 源码运行 RT-006 全部验收断言。"""
+    """C++ harness：真实编译链接 lib/infrastructure/scheduler 源码运行 RT-006 全部验收断言。
+
+    源清单来自构建图（_driver_sources()，权威 = 根 CMakeLists.txt 的 astrocs_core
+    目标 + eng/tests/unit/CMakeLists.txt 的 executor_provider_race_test 目标），
+    不再手抄；链接失败时报错会点名「该补哪个 .cpp」（见 _link_failure_report）。
+    """
 
     @classmethod
     def setUpClass(cls):
-        cls.tmp = pathlib.Path(tempfile.mkdtemp(prefix="rt006_"))
-        cls.exe = cls.build_driver(cls.tmp)
-
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(cls.tmp, ignore_errors=True)
-
-    @staticmethod
-    def build_driver(tmp: pathlib.Path) -> pathlib.Path:
-        drv = tmp / "rt006_driver.cpp"
-        drv.write_text(_DRIVER, encoding="utf-8")
-        exe = tmp / "rt006_trace"
-        srcs = ("context.cpp", "executor.cpp", "scheduler.cpp",
-                "artifact.cpp", "artifact_store.cpp", "module.cpp", "pipeline.cpp",
-                "runtime.cpp", "checkpoint.cpp", "logging.cpp")
-        objs = []
-        for src in srcs:
-            o = tmp / (src + ".o")
-            r = subprocess.run(
-                ["g++", "-std=c++17", "-O2", "-Wall", "-Wextra", "-Werror", "-c",
-                 str(CORE / src), f"-I{INC}", f"-I{TP}", "-o", str(o)],
-                capture_output=True, text=True, timeout=300)
-            if r.returncode != 0:
-                raise RuntimeError(f"compile {src} failed:\n{r.stderr[-2000:]}")
-            objs.append(str(o))
-        r = subprocess.run(
-            ["g++", "-std=c++17", "-O2", str(drv), f"-I{INC}", f"-I{TP}",
-             *objs, "-pthread", "-o", str(exe)],
-            capture_output=True, text=True, timeout=300)
-        if r.returncode != 0:
-            raise RuntimeError(f"link driver failed:\n{r.stderr[-2000:]}")
-        return exe
+        build = _driver_build()
+        if build["error"]:
+            raise RuntimeError(build["error"])
+        cls.exe = build["exe"]
 
     def test_driver_all_checks_pass(self):
         r = subprocess.run([str(self.exe)], capture_output=True, text=True,
