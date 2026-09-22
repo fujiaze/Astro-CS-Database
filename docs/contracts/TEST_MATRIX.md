@@ -1,6 +1,5 @@
 # TEST-001 — 科学测试矩阵（V6）
 
-> 状态: ACTIVE  版本: 1.0.0  owner: AstroCS
 > 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
 
 > 上游: SCI-001..003, DATA-001  下游: 各模块 P1-*/P2-*/P3-* 测试任务, CPU-006

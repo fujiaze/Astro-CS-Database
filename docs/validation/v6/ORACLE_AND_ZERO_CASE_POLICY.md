@@ -4,7 +4,6 @@
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 文档 ID：`QA-MATRIX-001-ORACLE-ZC-POLICY`
 - 机器实现：`reports/v6/qa-design/oracle/qa_oracle.py`、`validate_spec.py`、`run_mutations.py`、`run_all.py`
 - 证据：`reports/v6/qa-design/evidence/{oracle_baseline.json,rc_summary.json,mutations.json,logs/}`
 

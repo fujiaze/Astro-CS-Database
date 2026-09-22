@@ -24,6 +24,7 @@
 - 形态（`docs/design/PRODUCT_STORAGE_FORM.md`）：归档形态 = 产品在 stage 内先按裸形态写出并逐瓦片校验，再按成员边界切分为独立 zstd 帧串接；归档、索引、完成 manifest 依次 fsync 后原子落位，manifest 最后落；
 - **形态来源与登记**：Phase1 的落盘形态由输入配置键 `storage_form`（`archive` 默认 / `bare`；键缺失或留空 ⇒ 默认 + warn）选定；aio 写出的产品级索引 `<name>.hips.index.json` 与运行完成清单 `manifest.json` 的 `storage` 段是形态事实的唯一落点（`storage_form` / `index_path` / `index_sha256` / `archive_sha256` / `archive_bytes` / `tree_hash`）——**不得**写进 HiPS `properties`（`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10）；
 - 所有产品：临时文件/目录 + 校验 + fsync + 原子 rename 提交；
+- **裸形态体积削减（文件系统打洞）**：`aio_sparse_punch.h` 是打洞机制的**唯一实现**——只对 4 KiB 对齐的**字面全零**块调 `fallocate(FALLOC_FL_PUNCH_HOLE|FALLOC_FL_KEEP_SIZE)`（Windows：`FSCTL_SET_SPARSE`+`FSCTL_SET_ZERO_DATA`，64 KiB 对齐），打洞后丢页缓存**读回复算**整文件 `sha256`；不一致 ⇒ 硬错误、不发布；卷不支持 ⇒ `trim=skipped(reason)` 的 warn 后照常发布。判据是**字节级**（`-0.0` 与 NaN 的位型含非零字节 ⇒ 不可打洞）。打洞在 `write_fits_atomic` 内、`fsync` 之后与原子 rename 之前完成；归档容器不做打洞（`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7）；
 - 失败/取消不得留下可被误认为正式产品的半成品；
 - 读：格式校验、哈希校验、单位/形状/所有权检查；
 - 写：分层写（先数据后 manifest）、flush/close/fsync、checksum、原子 rename；

@@ -2,14 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §12.5（状态阶梯）、§13（版本与发布权）
 
-> 文档 ID：DOC-GOV-OWNER-RELEASE-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§12.5）
-> 目标产品：`0.11.0-alpha.2`（根 `VERSION`，GOV-003 唯一源；生成串
-> `0.11.0-alpha.2+g<commit12>`，见 `docs/governance/VERSION_NAMESPACES.md`）
-> 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
-> **收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`**
-> （执行时 HEAD = main = origin/main 三 SHA 一致；本文执行级证据均为该 BASE 实测，
-> 命令日志见 `run/docconv001/logs/`）。
 > 最终发布裁定只属项目负责人（`ASTROCS_DESIGN.md` §12；原引「宪章 §1.2/§H」已废止），本 Agent 至多声明
 > READY_FOR_OWNER_REVIEW，不替代批准。
 
@@ -47,18 +39,40 @@ CLI validate/plan/inspect 薄命令面均已落地（当前提交实测绿）；
 Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_FOR_OWNER_REVIEW。
 ```
 
+## 1a. 发布结论（当前）
+
+~~~text
+发布结论:            NOT_READY_FOR_RELEASE（未到 READY_FOR_OWNER_REVIEW）
+真实数据面:          NOT_VERIFIED（FINAL_REAL_DATA_VALIDATION 未达成）
+Windows x64 复验面:  NOT_VERIFIED（VERIFIED 要求正式平台 + 真实数据验收通过）
+ACR（CPU/GPU 异构）: DORMANT（不进生产构建/加载/路由/发布）
+psf_snr_power:       DEFERRED（生产拒绝）
+~~~
+
+- 逐面状态与证据锚以本文（§0 词表 + 分面表）与 `docs/modules/MODULE_MAP.yaml` 为准。
+- **合成测试或历史可用节点不等于真实数据 / Windows `VERIFIED`**（`ASTROCS_DESIGN.md` §12.5 末条）。
+- 最终发布决定只属项目负责人；Agent 至多声明 `READY_FOR_OWNER_REVIEW`（`ASTROCS_DESIGN.md` §12）。Alpha 前程序/代码/产物内不存在版本信息（§12）；根 `VERSION` 仅为内部助记符，不进入程序与发布产物（`ENGINEERING_SPEC.md` §7）。
+
 ## 2. 版本与发布面
 
-- 产品版本唯一源：根 `VERSION` = `0.11.0-alpha.2`（GOV-003）。
-  版本命名空间：product / module / ABI(v1) / data-schema(schema_version=1) /
-  doc-revision / history（机器检查器 `eng/tools/doccheck/check_version_namespaces.py`）。
-- Windows 正式发布候选：**未产生**（`NOT_VERIFIED`）。DLL 化安装树的
-  **Linux 技术预览安装面已 `INSTALLED`**（五科学模块 + noop 入 `modules/`，
-  产品清单 10 units，安全 loader 实测 64/64 PASS），Windows 侧复验未执行。
-- 已知他人路径遗留（不属本任务范围）：`docs/VERSIONING.md`、CMake
-  `project(... VERSION)` 字面量、若干 eng/tests/tools 硬编码旧版本号 ——
-  由版本检查器 `known_legacy_reported` 输出登记（详见
-  `docs/governance/VERSION_NAMESPACES.md` known_limits 与检查器 out_of_scope 列表）。
+- 产品版本唯一源：根 `VERSION` = `0.11.0-alpha.2`，内容一行 `MAJOR.MINOR.PATCH-alpha.N`（禁 stable/rc/beta）。
+- **版本命名空间**（生命周期独立，禁止跨命名空间借用号段）：
+
+| 命名空间 | 权威定义点 | 当前值 | 递增规则 / 生命周期 |
+|---|---|---|---|
+| product | 仓库根 `VERSION`（唯一事实源） | `0.11.0-alpha.2` | `MAJOR.MINOR.PATCH` 只由负责人指令变更，`alpha.N` 只在外部审核通过后提升 |
+| module | 各模块 `module.yaml` 的 `module_version` | 逐模块独立（以 manifest 为准） | 模块接口/产物变更时由模块 owner 递增，与产品版本无关 |
+| ABI | `lib/include/astrocs/common_abi_v1.h` 的 `ACS_ABI_VERSION_V1` 与 CLI 暴露的 `abi_version` | ABI v1（头常量 `1u`） | 任何破坏二进制兼容的变更必须递增 |
+| data-schema | `eng/contracts/data/artifact_types.registry.json` 的 `schema_version` 与各 schema 文件的 `$schema` 版本 | type_id schema_version = 1 | 数据产品结构变更时按 registry 递增 |
+| doc-revision | 治理/规范文档自身的修订号 | 逐文档独立 | 文档内容修订时递增；与产品版本无换算关系 |
+| history（历史工程轮次） | 只允许出现在 `git log` 与 `docs/**/v6/**`（产品族设计档案） | — | 不携带可递增的"当前值"；禁止把旧轮次数字冒充当前产品状态 |
+
+- 非产品版本的数字三元组不得当作产品版本，也不得反向手抄：FITS 4.0（格式规范）、HiPS 1.0/1.4（IVOA 格式版本）、DatabaseVersion（Gaia 库标识）、`schema_version` / ABI v1（见上表定义点）、外部组件版本（CFITSIO 4.6.4、gcc/cmake 等）、`X.Y.Z` / `MAJOR.MINOR.PATCH` 占位表述。
+- **生成链**（CMake/CLI/打包从根 `VERSION` 派生，禁止手抄字面量）：根 `CMakeLists.txt` 的 `file(READ …/VERSION)` + `git rev-parse HEAD` → `ASTROCS_VERSION_STRING`（`X.Y.Z-alpha.N+g<sha>`）→ `configure_file` 生成 `lib/infrastructure/cli/version_generated.h`；`eng/tools/gen_version.py --json` 输出 version/prerelease/commit/dirty/build_id/abi_version/cli_schema_version 合同对象；CLI `--version[ --json]` 与 doctor/hardware/verify 共用同一生成串。
+- 生成串形态：clean main 为 `0.11.0-alpha.2+g<commit12>`，dirty 工作树追加 `.dirty`。
+- **机器检查入口**：`eng/tools/doccheck/check_version_namespaces.py`（唯一源格式 + 生成链 + 允许路径扫描 + 反误报断言 + 伪造版本必须判红）；既有版本扫描 `eng/tools/check_version_consistency.py`。
+- Windows 正式发布候选：**未产生**（`NOT_VERIFIED`）。DLL 化安装树的 **Linux 技术预览安装面已 `INSTALLED`**（五科学模块 + noop 入 `modules/`，产品清单 10 units，安全 loader 实测 64/64 PASS），Windows 侧复验未执行。
+- 已知他人路径遗留：`docs/VERSIONING.md`、CMake `project(... VERSION)` 字面量、若干 eng/tests/tools 硬编码旧版本号 —— 由版本检查器 `known_legacy_reported` 输出登记（见检查器 `out_of_scope` 列表）。
 
 ## 3. 冻结与落地面清单（状态词见 §0；证据指 BASE=`da3c4b4a`）
 
@@ -68,7 +82,7 @@ Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_
 | 最高设计 ↔ 工程规范边界 | `CONTRACT_READY` | `ASTROCS_DESIGN.md` §0 权威链 + `ENGINEERING_SPEC.md`；旧 `AstroCS_ENGINEERING_CONSTRAINTS.md` 与 `eng/tools/doccheck/check_engineering_constraints.py` 已随 ROOT-007/RETIRE-001 退役（历史条目） |
 | 文档边界/索引 | `CONTRACT_READY` | `docs/DOCUMENT_INDEX.yaml`（DOC-001 收敛：新文档集补登 + 旧体系移出活动区）；`eng/tools/doccheck/check_doc_index.py --strict` 残留 1 项 `control_archive_dir_readme`（绑定 ROOT-007 已删除的 `engineering/control/archive/**`），登记 CI-001 迁移 |
 | 内核标准注册表 | `CONTRACT_READY` | `docs/standards/STANDARDS_REGISTRY.md` + `docs/standards/checks/check_standards_registry.py` → STANDARDS_REGISTRY_PASS（STD-REG-001 `fb7f232a`） |
-| 版本单源 | `CONTRACT_READY` | `VERSION` + `docs/governance/VERSION_NAMESPACES.md`；检查器 rc=0（GOV-003） |
+| 版本单源 | `CONTRACT_READY` | `VERSION` + 本文 §2；检查器 rc=0（GOV-003） |
 | C ABI v1 / DLL 边界 / 安全 loader 合同 | `CONTRACT_READY` | `lib/include/astrocs/abi/*.h`（ABI-001）、`eng/contracts/config/module_dll_contract.schema.json`（ARC-001）、`runtime/module_loader/secure_loader.h`（ABI-003） |
 | 类型化产物 / 三阶段交换 / 不确定度合同 | `CONTRACT_READY` | DATA-001/002 + DATA-UNC-001（`99713034`）+ `eng/contracts/data/*` |
 | Runtime 类型化运行图 + 节点绑定表 | `IMPLEMENTED` | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`；节点绑定经 ctest 节点化用例复核 |
@@ -82,7 +96,7 @@ Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_
 | Windows 工具链 preset | `CONTRACT_READY` | BLD-001 + `eng/packaging/schemas/preset-contract.json` |
 | 唯一根 CMake 构建图 | `IMPLEMENTED` | BLD-002；根 `ninja -C build` 本提交实测 rc=0（全量 28 步） |
 | FITS 流式接口 | `IMPLEMENTED` | IO-001（接口 + 实现 + 契约测试）；**未接入 Phase3 writer**（见 §4） |
-| L0 负责人入口 | `CONTRACT_READY` | `docs/owner/*` + `docs/README-DOCS.md` + `docs/DOCUMENT_INDEX.yaml`（根 `REVIEW.md` 已由 ROOT-007 删除，旧轮次评审副本已由 CLEAN-402 删除）；`eng/tools/check_l0_docs.py` 现行绑定 `docs/owner/**`（DOC-001 后实测 rc=0，GAP-001/GAP-016 关闭）|
+| L0 负责人入口 | `CONTRACT_READY` | `docs/owner/*` + `docs/DOCUMENT_INDEX.yaml`（根 `REVIEW.md` 已由 ROOT-007 删除，旧轮次评审副本已由 CLEAN-402 删除）；`eng/tools/check_l0_docs.py` 现行绑定 `docs/owner/**`（DOC-001 后实测 rc=0，GAP-001/GAP-016 关闭）|
 
 > 本表"实测"级证据（IMPLEMENTED/INSTALLED）全部来自 BASE=`da3c4b4a` 的命令日志
 > `run/docconv001/logs/{focused_rebuild_test.log,mod001_install_check.log,cli001_vpi.log}`；
@@ -94,7 +108,7 @@ Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_
 |---|---|---|
 | Windows DLL 化发布安装树（Windows 侧复验） | `NOT_VERIFIED` | Linux 技术预览安装面已达 INSTALLED；Windows 侧未产出/复验 |
 | Windows MSVC 编译 + 测试（Win10 22H2 下限 / Win11 主验证） | `NOT_VERIFIED` | Fatduck 侧执行，未完成；CI WIN-* 检查项已注册（CI-001/CI-001B） |
-| 真实数据（BASS/32R/接缝）最终验收 | `NOT_VERIFIED` | `docs/RELEASE_STATUS.md`：FINAL_REAL_DATA_VALIDATION=PENDING；REAL-000 `9f6b72b5` 数据审计/索引 v1.2/确定性匹配计划已 IMPLEMENTED |
+| 真实数据（BASS/32R/接缝）最终验收 | `NOT_VERIFIED` | 本文 §1a：FINAL_REAL_DATA_VALIDATION=PENDING；REAL-000 `9f6b72b5` 数据审计/索引 v1.2/确定性匹配计划已 IMPLEMENTED |
 | 32R 单线程重计算禁令的执行证据 | `NOT_VERIFIED` | 资源门实现面已 IMPLEMENTED（RT-001）；正式平台执行证据属 Windows 域 |
 | Phase3 四投影 DLL 挂载/生产会话切换 | `NOT_IMPLEMENTED` | registry 实现已 IMPLEMENTED，但 `lib/algorithms/projection/module.yaml`:79-80 `entrypoint: MISSING`，生产 WCS 路径仍 TAN-only（`lib/algorithms/projection/p3_wcs.cpp`，W4-A9 批次 1 迁入） |
 | Phase3 `healpix_interp4` | `NOT_IMPLEMENTED` | lib/cli/include/runtime 全域无 `interp4` 实现符号；当前 nearest/bilinear |

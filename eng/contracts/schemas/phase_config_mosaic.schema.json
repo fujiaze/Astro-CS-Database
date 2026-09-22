@@ -30,7 +30,7 @@
     "新分支（blocks[] 与平铺简写）**不出现** phase_name / config / inputs[].product / inputs[].filter：命令名就是阶段身份（§3.3），输入身份 = 一组 HiPS 目录（hips_paths），滤镜身份由 HiPS properties.obs_filter 承载（§3.4 / B2-A8），故新分支无滤镜键。",
     "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。块与 drizzle/wcs 两级用 additionalProperties:false 做机器拒绝。",
     "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。",
-    "**索引引用键 coverage_index（本任务登记）**：阶段二输入以**加性可选键** `coverage_index` 引用数据集级覆盖索引 coverage.index.json 的路径；`hips_paths` 的元素**保持字符串**（不做元素对象化），逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst → <name>.hips.index.json）。这样不同批次 Phase1 产出的 p1_products.json（逐帧携带 index_path）可以方便合并，而无需改动既有输入结构。合同与判据：docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.4；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary。",
+    "**索引引用键 coverage_index**：阶段二输入以**加性可选键** `coverage_index` 引用数据集级覆盖索引 coverage.index.json 的路径；`hips_paths` 的元素**保持字符串**（不做元素对象化），逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst → <name>.hips.index.json）。这样不同批次 Phase1 产出的 p1_products.json（逐帧携带 index_path）可以方便合并，而无需改动既有输入结构。合同与判据：docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.4；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary。",
     "**落盘形态键禁令**：阶段二产物固定**裸** `<name>.hips/`（服务面，被随机读取），因此本 schema **任何分支都不设** `storage_form` 键——输入里出现该键（含值 archive）在 schema 面（additionalProperties:false / propertyNames）与 CLI 面（块内未知键门）**双双 REJECT**，不静默忽略。理由：运行期配置门是键白名单（validate_config_full），不是 JSON Schema；只把值域收窄成 bare 会让 archive 在运行期静默透传成 no-op。Phase3 同（裸 FITS 不套壳，且不使用 .hips 中缀）。"
   ],
   "type": "object",

@@ -34,7 +34,7 @@ sdet_free_detect_ex`（签名头正本 lib/algorithms/star_detection/include/sta
 
 `sdet_detect_guided_ex_f64` = **权威路径入口**（星表引导拟合）：调用方给出星表预测
 位置数组（本帧近似 WCS 把星表逆投影到像素域的结果），只对该位置做饱和判定、σ 估计、
-椭圆高斯拟合与 `reject_star` 质量门；拟合失败**直接丢弃**（不计虚警、不报错）。
+椭圆高斯拟合与既有质量门；拟合失败**直接丢弃**（不计虚警、不报错）。
 统计量 `SDetGuidedStats{n_predicted,n_dropped,n_fit_failed,n_rejected,n_fit_ok,n_output}`
 用于把「定义域 / 丢弃 / 拟合失败 / 被拒 / 通过」逐级可审计。`n_pred=0` 返回 rc=0 +
 count=0（空定义域非错误）；指针参数非法返回 −1。输出仍由 `sdet_free_detect_ex` 整组释放。
@@ -54,10 +54,9 @@ x,y,flux,mag,saturated,has_saturated）+ star_det_psf_compat FLOAT32 [N,4]。
 
 ## Thread safety
 
-handle 级互斥使用（单 handle 单线程，无内部锁）；OpenMP 四处：行差分
-（`sdet_compute_bgnoise`）、入口转换、盲检测候选拟合（`sdet_detect_impl` 内
-dynamic + reduction）、星表引导候选拟合（`sdet_detect_guided_impl` 内同款
-dynamic + reduction，每线程私有 `LMWorkspace`）。dedup/sort/maxStars 截断串行，
+handle 级互斥使用（单 handle 单线程，无内部锁）；OpenMP 四处：行差分背景噪声
+估计、入口像素类型转换、盲检测候选拟合（dynamic + reduction）、星表引导候选拟合
+（同款 dynamic + reduction，每线程私有 LM 工作区）。dedup/sort/maxStars 截断串行，
 输出 bitwise 与线程数无关；ThreadBudget 接线与取消检查点缺失已登记
 （DISP-STAR，整改归 P1-STAR-IMPL）。
 

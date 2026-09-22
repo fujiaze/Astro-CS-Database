@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md 附录 B（外部标准与文献）
 
-文档 ID：`ASTROCS-REFERENCES-001`  
-状态：`ACTIVE_REFERENCE`  
 规则：项目采用的外部科学/格式依据统一在此登记；具体 SCI/设计文档仍须把引用落实到对应 SCI/ALG 条目。外部资料用于支持或约束推导，不能替代项目明确的单位、适用域和验收。
 
 ## A. 探测器校准与噪声

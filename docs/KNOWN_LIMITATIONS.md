@@ -4,7 +4,7 @@
 
 > 口径：本页只登记**现行**限制（限制内容 + 现状 + 归属/去向），不复制历史报告原文；历史过程由 git 历史承载。
 > 只登记**仍成立**的限制；已失效的限制不再登记。
-> 状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；发布结论见 `docs/RELEASE_STATUS.md` 与 `docs/owner/RELEASE_STATUS.md`。
+> 状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5；发布结论见 `docs/owner/RELEASE_STATUS.md`。
 > 条目的**过程台账**（严重度 / 状态 / 发现任务 / 裁决出处）按同一条目号登记在 `artifacts/evidence/known-limitations-ledger/LEDGER.md`。
 
 ## A. 平台与验证面
@@ -49,7 +49,7 @@
 
 ## E. 架构与门禁判据面的现行限制
 
-> **条目号为稳定 ID**：被 `eng/tests/**` 与 `docs/RELEASE_STATUS.md` 按「条目 N」「§E M-x」引用，改动须同步引用方。
+> **条目号为稳定 ID**：被 `eng/tests/**` 按「条目 N」「§E M-x」引用，改动须同步引用方。
 > 每条给：**现象（文件:符号，不写死行号）· 规范依据（文档+条款）· 归属/去向**。
 > **本节只登记，不修任何实现**（`lib/**` 只读）。已由机器台账承载的条目见第 47 条的交叉引用，**不在此重复登记**。
 > 原发现编号（如 `M-4`、`F-03`、`P3-05`、`N1`）与条目号的对照表在 `artifacts/evidence/known-limitations-ledger/LEDGER.md` §1。

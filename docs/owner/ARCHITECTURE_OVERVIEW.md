@@ -2,11 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
-> 文档 ID：DOC-GOV-OWNER-ARCHITECTURE-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§12.5）
-> 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003）
-> 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
-> 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
 > 权威：`ASTROCS_DESIGN.md` §8（软件架构）、`ENGINEERING_SPEC.md` §7/§10、`docs/contracts/ARCH-001.md`、
 > `docs/architecture/*.md`、`docs/api/*`、`eng/contracts/config/module_dll_contract.schema.json`。
 > 状态词约定同 `docs/owner/RELEASE_STATUS.md` §0（DOC-CONV-001 唯一口径）。
@@ -98,7 +93,7 @@
 | 数据语义/产物 | `docs/contracts/DATA_SEMANTICS.md`、`DATA_ARTIFACTS.md` | ACTIVE_NORMATIVE |
 | CLI 协议 | `docs/api/CLI_PROTOCOL_V1.md` | ACTIVE_NORMATIVE |
 | Phase API | `docs/api/PHASE{1,2,3}_API_V1.md` | ACTIVE_NORMATIVE |
-| 版本命名空间 | `docs/governance/VERSION_NAMESPACES.md` | ACTIVE_NORMATIVE |
+| 版本命名空间 | `docs/owner/RELEASE_STATUS.md` §2 | 见 `docs/DOCUMENT_INDEX.yaml` 登记 |
 | DLL 边界 schema | `eng/contracts/config/module_dll_contract.schema.json` | 机器 schema |
 
 ## 6. 架构状态汇总

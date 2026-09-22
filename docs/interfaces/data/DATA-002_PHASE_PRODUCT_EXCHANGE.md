@@ -1,7 +1,5 @@
 # DATA-002 三阶段产品交换合同（Phase Product Exchange）
 
-> 文档 ID：DOC-DATA-PRODUCT-EXCHANGE-001
-> 状态：ACTIVE_NORMATIVE
 > 上游权威：`ASTROCS_DESIGN.md` §1.2（三命令平级独立）/§9（I/O 与原子产品）、
 > `docs/contracts/DATA_SEMANTICS.md`（跨阶段唯一数据合同）、
 > `docs/science/PHASE3_HIPS_TO_FITS.md`（SCI-P3 units/planes）、

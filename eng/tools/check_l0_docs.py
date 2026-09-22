@@ -11,14 +11,13 @@
   DOC-001 已声明「负责人文档活动版本唯一 = docs/owner/**」。
 
   现行口径（本文件判据面，全部实测存在且受 git 跟踪）：
-    A. 现行 L0 文档集 = docs/owner/**（5 份 L0 汇总层，ACTIVE_NORMATIVE）：
+    A. 现行 L0 文档集 = docs/owner/**（4 份 L0 汇总层，ACTIVE_NORMATIVE）：
        docs/owner/SCIENCE_OVERVIEW.md
        docs/owner/PIPELINE_OVERVIEW.md
        docs/owner/ARCHITECTURE_OVERVIEW.md
        docs/owner/RELEASE_STATUS.md
-       docs/owner/CHANGE_REVIEW.md
     B. 现行权威索引 = docs/DOCUMENT_INDEX.yaml（取代已退役的根 REVIEW.md 链接面）：
-       5 份 L0 文档必须在该索引 active 区段以 ACTIVE_* 登记。
+       4 份 L0 文档必须在该索引 active 区段以 ACTIVE_* 登记。
     C. 旧权威回归（必须能红），两级口径：
        C1 P0（恒红）：docs/review/** 内任一文件在正文头 400 字符声明 ACTIVE_* 且
           **未**声明 ARCHIVED = 重新主张权威 ⇒ 判红（两种口径都红）。
@@ -29,7 +28,7 @@
        C1，本门如实判红（DOC-001 对 docs/review/** 的收口缺口，登记 CI-003-B12-F2）。
 
 结构要求（ENGINEERING_SPEC §8）：所有判据都必须跑完再汇总，任一项失败不得跳过
-其余判据（旧实现对 REVIEW.md 走缺失分支后整段跳过 5 份链接判据 = 一条遮蔽其余）。
+其余判据（旧实现对 REVIEW.md 走缺失分支后整段跳过 L0 链接判据 = 一条遮蔽其余）。
 
 用法：
   python3 eng/tools/check_l0_docs.py [--root <repo>] [--json-out <file>] [--strict]
@@ -57,7 +56,6 @@ L0_DOCS = (
     "docs/owner/PIPELINE_OVERVIEW.md",
     "docs/owner/ARCHITECTURE_OVERVIEW.md",
     "docs/owner/RELEASE_STATUS.md",
-    "docs/owner/CHANGE_REVIEW.md",
 )
 
 # B. 现行权威索引（取代已退役的根 REVIEW.md 链接面）
@@ -129,15 +127,15 @@ def run_checks(root: str, strict: bool) -> list[dict]:
             tracked_missing.append(p)
     results.append(check("l0_docs_present", not missing_docs,
                          "缺失=" + repr(missing_docs) if missing_docs
-                         else "5 份现行 L0 文档齐备: " + ", ".join(L0_DOCS)))
+                         else "4 份现行 L0 文档齐备: " + ", ".join(L0_DOCS)))
     results.append(check("l0_docs_nontrivial", not short_docs,
                          "过短/空=" + repr(short_docs) if short_docs
-                         else f"5 份均 >= {MIN_CHARS} 字符"))
+                         else f"4 份均 >= {MIN_CHARS} 字符"))
     results.append(check("l0_docs_git_tracked", not tracked_missing,
                          "未跟踪=" + repr(tracked_missing) if tracked_missing
-                         else "5 份均受 git 跟踪"))
+                         else "4 份均受 git 跟踪"))
 
-    # --- B. 现行权威索引：存在 + 覆盖 5 份 L0 文档 ---
+    # --- B. 现行权威索引：存在 + 覆盖 L0 文档 ---
     index_full = os.path.join(root, ROOT_INDEX)
     index_exists = os.path.isfile(index_full)
     results.append(check("root_index_present", index_exists,
@@ -154,7 +152,7 @@ def run_checks(root: str, strict: bool) -> list[dict]:
         ok = not unlisted and not nonactive
         results.append(check("l0_docs_indexed_active", ok,
                              ("未登记=" + repr(unlisted) + " 非ACTIVE=" + repr(nonactive)) if not ok
-                             else "5 份 L0 文档均在索引 active 区段登记为 ACTIVE_*"))
+                             else "4 份 L0 文档均在索引 active 区段登记为 ACTIVE_*"))
 
     # --- C. 旧权威回归：docs/review/** 重新主张权威 ⇒ 红 ---
     retired_dir = os.path.join(root, RETIRED_L0_DIR)
@@ -237,7 +235,7 @@ def main(argv: list[str] | None = None) -> int:
         for r in failed:
             print(f"DOC_002_L0_VIOLATION[{r['check']}]: {r['detail']}", file=sys.stderr)
         return 1
-    print("DOC_002_PASS: 现行 L0 文档集 5 份 + 索引 active 登记 + 旧权威未回归")
+    print("DOC_002_PASS: 现行 L0 文档集 4 份 + 索引 active 登记 + 旧权威未回归")
     return 0
 
 

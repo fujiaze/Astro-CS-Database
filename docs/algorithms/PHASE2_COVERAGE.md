@@ -1,6 +1,5 @@
 # Phase2 Coverage Union Algorithms (ALG-COV-001)
 
-> 状态: ACTIVE
 > 上游：ASTROCS_DESIGN.md §5.2（固定科学流程）
 
 > 上游 SCI: SCI-UPM-001（docs/science/PHASE2_UPM.md，FROZEN，共享引用不改动）；

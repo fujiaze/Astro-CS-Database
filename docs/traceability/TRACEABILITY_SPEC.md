@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §12.4（验证层级与四层验收）
 
 > 矩阵基线 base_main_sha=0d32c07d65c6d7489fa408cbafaa98ddf9ecf4da
-> 状态：ACTIVE_NORMATIVE —— 本文件冻结追溯 ID 格式、唯一性、跨层关系、CSV/JSON schema
+> 本文件冻结追溯 ID 格式、唯一性、跨层关系、CSV/JSON schema
 > 与 source symbol 表达；仓库内所有模块追溯矩阵与机器检查器必须与本文件一致。
 > 权威顺序与分层语义按 `ASTROCS_DESIGN.md` §0（权威链）与 `ENGINEERING_SPEC.md` §8（机器一致性检查）；
 > 本文件不重复公式、不改科学定义、不放宽既有工程约束。

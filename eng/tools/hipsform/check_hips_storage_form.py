@@ -709,23 +709,22 @@ def check_manifest_storage(ctx: "Ctx", storage: dict, vocab: dict, events=None) 
     return errs
 
 
-def check_mosaic_input(ctx: "Ctx", doc: dict) -> list:
-    """判据 X1：mosaic 输入出现形态键（含 archive）必须 REJECT（Phase2 固定裸形态）。
+def check_form_key_rejected(ctx: "Ctx", phase: str, doc: dict) -> list:
+    """判据 X1/X3：mosaic / export 输入出现形态键必须 REJECT（两阶段产物形态固定）。
 
-    返回 findings：空 = 已 REJECT（正确）；非空 = 未被拒（判红）。
+    **只在注入了 storage_form 键的输入上调用**（合法输入不走本判据）。
+    返回 findings：空 = 已 REJECT（符合预期）；非空 = 未被拒（判红）。
     """
-    errs = ctx.phase_validator(doc, ctx.phase_schema("mosaic"))
+    errs = ctx.phase_validator(doc, ctx.phase_schema(phase))
     if errs:
         return []
-    return ["mosaic 输入含 storage_form 却未被 schema REJECT（Phase2 固定裸形态）"]
+    return ["%s 输入含 %s 却未被 schema REJECT（该阶段产物形态固定，出现即 REJECT）"
+            % (phase, "storage_form")]
 
 
-def check_export_input(ctx: "Ctx", doc: dict) -> list:
-    """判据 X3：export 输入出现形态键必须 REJECT（Phase3 裸 FITS 不套壳）。"""
-    errs = ctx.phase_validator(doc, ctx.phase_schema("export"))
-    if errs:
-        return []
-    return ["export 输入含 storage_form 却未被 schema REJECT（Phase3 产物固定裸 FITS）"]
+def check_input_accepted(ctx: "Ctx", phase: str, doc: dict) -> list:
+    """判据 X4（非退化对照）：合法输入不得被判红（防「一律 REJECT」的恒真门）。"""
+    return ctx.phase_validator(doc, ctx.phase_schema(phase))
 
 
 def check_phase1_input(ctx: "Ctx", doc: dict) -> list:

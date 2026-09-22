@@ -1,6 +1,5 @@
 # Star Detection Algorithms (ALG-STARDET-001)
 
-> 状态: ACTIVE
 > 上游：ASTROCS_DESIGN.md §4.2（Phase1 节点流程）
 
 > 上游 SCI: SCI-PSF-001（docs/science/PSF.md，FROZEN 共享引用不改动）；本域冻结层

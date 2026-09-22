@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §7.3（错误传播与运行日志：顶层约束）
 
-> 文档 ID：`CON-LOG-004`（归属 `docs/contracts/`）
-> 状态：ACTIVE_NORMATIVE
 > 详细设计：`docs/design/LOG_AND_ERROR_SYSTEM.md`
 > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行格式正本，LOG-001）、
 > `eng/ci/ledgers/log_system_ledger.json`（登记台账）、`eng/tools/quality/check_log_system.py`（判据）。

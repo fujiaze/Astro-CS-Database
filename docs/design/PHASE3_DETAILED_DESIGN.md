@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §6（export：投影导出）
 
-文档 ID：`DESIGN-P3-001`  
-状态：`TARGET_NORMATIVE`  
 使命：把任意合同兼容 HiPS 科学产品按用户指定 WCS 导出为测量意义明确的平面 FITS；Phase3 是坐标/采样/格式变换，不重新发明上游科学权重。
 
 ## 1. 输入与模式

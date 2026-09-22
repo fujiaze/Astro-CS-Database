@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
 
-> 文档 ID：`ARCH-LOG-STRUCTURED-001`（归属 `docs/architecture/observability/`）
-> 状态：ACTIVE_NORMATIVE（LOG-001 冻结）
 > 机器可读事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（JSON Schema v1）、
 > `lib/infrastructure/observability/logging/log_event.py`（参考实现）、`eng/tools/monitoring/check_log_contract.py`（检查器）。
 > 本文档是视图；字段定义与验收以 schema/检查器为权威（16 标准：JSON/JSONL 输出为真相）。

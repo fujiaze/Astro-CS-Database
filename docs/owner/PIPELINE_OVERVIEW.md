@@ -2,11 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §1.2（三个命令，三个独立产品）、§8.2（数据流形态）
 
-> 文档 ID：DOC-GOV-OWNER-PIPELINE-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§12.5）
-> 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003）
-> 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
-> 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
 > 权威：`ASTROCS_DESIGN.md` §1.2（三命令平级独立）/§6.2（唯一命令树）、
 > `docs/contracts/{ARCH-001,RT-001,DATA_ARTIFACTS,DATA_SEMANTICS}.md`、
 > `docs/api/{PHASE1_API_V1,PHASE2_API_V1,PHASE3_API_V1,CLI_PROTOCOL_V1}.md`、

@@ -2149,7 +2149,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 
 ### 2. ~~权重对象 canonical 字段~~ **已作废**（`psfsw_robust_weight` 对象已真删，14→13；DOC-203 订正）
 
-> **DOC-203 订正**：本节描述的 `psfsw_robust_weight` canonical 对象已按负责人 2026-09-20 裁决 B **真删**
+> 本节描述的 `psfsw_robust_weight` canonical 对象**已真删**
 > （GAP_AUDIT §4.5 C01；变更 claim `CHG-2026-09-20-PSFSW-RETIRE`）⇒ 其 canonical 字段、单位（`1`）、
 > `group_normalized`/`median_target` 语义**随对象退役**，**不得**据此实现或验收。以下原文只作**历史留痕**：
 

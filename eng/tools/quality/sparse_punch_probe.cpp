@@ -30,12 +30,6 @@
 #include <string>
 #include <vector>
 
-#ifndef _WIN32
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#endif
-
 namespace {
 
 void json_escape(const std::string& s, std::string* out) {
@@ -56,44 +50,8 @@ std::string jstr(const std::string& s) {
 
 std::string u64(std::uint64_t v) { return std::to_string(v); }
 
-// 洞图（SEEK_DATA/SEEK_HOLE；不支持时返回空并置 ok=false）。
-std::string hole_map(const std::string& path, bool* ok) {
-    if (ok) *ok = false;
-    std::string out = "[";
-    bool first = true;
-#ifndef _WIN32
-#if defined(SEEK_HOLE) && defined(SEEK_DATA)
-    const int fd = ::open(path.c_str(), O_RDONLY);
-    if (fd < 0) return out + "]";
-    struct stat st;
-    if (fstat(fd, &st) != 0) { ::close(fd); return out + "]"; }
-    const off_t size = st.st_size;
-    off_t pos = 0;
-    bool any = false;
-    while (pos < size) {
-        const off_t data = ::lseek(fd, pos, SEEK_DATA);
-        if (data < 0) break;                       // ENXIO: 其后全为洞
-        const off_t hole = ::lseek(fd, data, SEEK_HOLE);
-        if (hole < 0) break;
-        if (hole > data) {
-            if (!first) out += ",";
-            first = false;
-            any = true;
-            out += "{\"hole_start\":" + std::to_string(static_cast<long long>(data)) +
-                   ",\"hole_end\":" + std::to_string(static_cast<long long>(hole)) + "}";
-        }
-        pos = hole;
-    }
-    ::close(fd);
-    if (ok) *ok = any || (size > 0);
-#else
-    (void)path;
-#endif
-#else
-    (void)path;
-#endif
-    return out + "]";
-}
+// 洞图不在本探针内取：SEEK_DATA/SEEK_HOLE 属文件 I/O，本仓「aio 是文件级唯一
+// I/O 边界」，判据工具不得引入第二处实现 ⇒ 由判据侧（Python）在文件层面计算。
 
 struct Metrics {
     std::uint64_t size = 0;
@@ -228,8 +186,6 @@ int cmd_predicate() {
 
 int cmd_punch(const std::string& path, bool twice) {
     const Metrics before = metrics_of(path);
-    bool map_ok = false;
-    const std::string map_before = hole_map(path, &map_ok);
     aio_sparse::PunchResult r;
     aio_sparse::punch_all_zero_blocks(path, &r, true);
     const Metrics after = metrics_of(path);
@@ -238,8 +194,7 @@ int cmd_punch(const std::string& path, bool twice) {
                     ",\"alloc\":" + u64(before.alloc) + ",\"sha256\":" +
                     jstr(before.sha) + "},\"after\":{\"size\":" + u64(after.size) +
                     ",\"alloc\":" + u64(after.alloc) + ",\"sha256\":" +
-                    jstr(after.sha) + "},\"result\":" + result_json(r) +
-                    ",\"holes_before\":" + map_before;
+                    jstr(after.sha) + "},\"result\":" + result_json(r);
     if (twice) {
         aio_sparse::PunchResult r2;
         aio_sparse::punch_all_zero_blocks(path, &r2, true);
@@ -248,10 +203,6 @@ int cmd_punch(const std::string& path, bool twice) {
              ",\"after2\":{\"size\":" + u64(after2.size) +
              ",\"alloc\":" + u64(after2.alloc) + ",\"sha256\":" + jstr(after2.sha) + "}";
     }
-    bool map_ok2 = false;
-    const std::string map_after = hole_map(path, &map_ok2);
-    s += ",\"holes_after\":" + map_after;
-    s += ",\"hole_map_supported\":" + std::string(map_ok2 ? "true" : "false");
     s += "}";
     std::printf("%s\n", s.c_str());
     return 0;

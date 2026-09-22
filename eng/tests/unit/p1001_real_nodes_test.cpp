@@ -3669,7 +3669,7 @@ static void test_p1photbroken_scale_guards() {
         cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
     Result<void> rc;
     run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
-    // frame 2 无拟合证据 ⇒ 先被 §4 门拒绝（同为 fail-closed）。
+    // frame 2 无拟合证据（n_matched=0 且未声明 source）⇒ 硬拒绝（拟合失败，fail-closed）。
     CHECK_MSG(!rc.ok(), "P1PHOTBROKEN RED-2: mixed-provenance set must be rejected");
     CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")) &&
                   !fs::exists(fs::path(fx.out_dir + "/photoapplied_light_2.fits")),
@@ -3725,6 +3725,84 @@ static void test_p1photbroken_scale_guards() {
     cleanup_fixture(fx);
   }
 
+  // ── STAR-GATE-REMOVED: 测光不设星数门槛（SCI-PHOT-001 §16.5）─────────────
+  // 旧行为：sidecar 声明 n_matched < 3（SCI-PHOT-001 §4 冻结门）即整组拒绝。
+  // 现行为：本节点只判**有无拟合证据**，不判星数够不够 ⇒ n_matched=1 且声明了
+  //         拟合来源的帧正常施加；只有「无任何拟合证据」才按拟合失败硬拒绝。
+  // 判别力：把星数门槛加回来 ⇒ 本用例立即转红（applied=false / 无产物）。
+  {
+    Fixture fx = make_fixture("p1phot_nostargate");
+    RunContext ctx;
+    { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
+    {
+      std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":0.5,"n_matched":1,"sigma_residual_dex":0.01,"source":"external_offline_fit"}]})";
+    }
+    const std::string cfg = cfg_for2(fx, "\"" + fx.light1 + "\"");
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "STAR-GATE-REMOVED: 星数少不得作为失败理由（不是门槛）");
+    CHECK_MSG(man.value("photometry_applied", false) == true,
+              "STAR-GATE-REMOVED: n_matched=1 且声明拟合来源 ⇒ 必须施加（星数门槛已删）");
+    CHECK_MSG(std::fabs(man.value("photscal", -1.0) - 0.5) < 1e-12,
+              "STAR-GATE-REMOVED: photscal = 侧车声明的 k_photo");
+    CHECK_MSG(fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "STAR-GATE-REMOVED: 必须有 photoapplied 产物");
+    {
+      json pj;
+      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
+      const bool has = pj.contains("photscale_detail") &&
+                       pj["photscale_detail"].contains("light_1");
+      CHECK_MSG(has && pj["photscale_detail"]["light_1"].value("n_matched", -1) == 1 &&
+                    pj["photscale_detail"]["light_1"].value("fitted", false) == true,
+                "STAR-GATE-REMOVED: 逐帧拟合证据如实落盘（n_matched=1 / fitted=true）");
+    }
+    cleanup_fixture(fx);
+  }
+
+  // ── FIT-FAILURE-REPORT: fit 通道失败按**拟合失败**上报（不是星数门禁判词）──
+  // 失败点落在拟合自身（响应曲线不可读 ⇒ 冻结 C 入口前装配失败, rc<0）:
+  // 节点必须如实写 degraded_reason=photscale_incomplete + photscale_error, 且
+  // 判词是「拟合失败」而不是「星数不足」。判别力: 若在拟合之前插回一条星数
+  // 门禁, 判词会变成星数门措辞 ⇒ 本用例转红。
+  {
+    Fixture fx = make_fixture("p1phot_fitfail");
+    RunContext ctx;
+    { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
+    // 可用天测（过 p1_wcs_astrometry_usable）⇒ 失败点必须落在**拟合**而非 WCS。
+    {
+      std::ofstream o(frame_root(fx) + "/p1_wcs.json", std::ios::binary);
+      o << R"({"schema":"DATA-P1-WCS-001","wcs":{"crval1":83.2834,"crval2":-6.3743,"crpix1":16.0,"crpix2":16.0,"cd11":-0.0002689,"cd12":0.0,"cd21":0.0,"cd22":0.0002689}})";
+    }
+    const std::string cfg =
+        std::string(R"({"input_lights": [)") + "\"" + fx.light1 + "\"" +
+        R"(],"output_dir": ")" + fx.out_dir +
+        R"(","photometry":{"fit":{"enabled":true,"gaia_data_dir":")" +
+        (fs::temp_directory_path() / "p1phot_fitfail_no_such_gaia").string() +
+        R"(","filter":"Red","filters_json":")" + fx.dir.string() +
+        R"(/no_such_filters.json"}}})";
+    Result<void> rc;
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "FIT-FAILURE-REPORT: 拟合失败按 degraded_reason 上报（不中止节点）");
+    CHECK_MSG(man.value("photometry_applied", true) == false,
+              "FIT-FAILURE-REPORT: 未产出标度 ⇒ 不得声明已施加");
+    const std::string err = man.value("photscale_error", std::string());
+    CHECK_MSG(err.rfind("photometry fit failed", 0) == 0,
+              ("FIT-FAILURE-REPORT: 判词必须是拟合失败, got: " + err).c_str());
+    CHECK_MSG(err.find("n_matched <") == std::string::npos &&
+                  err.find("§4 gate") == std::string::npos,
+              "FIT-FAILURE-REPORT: 不得残留星数门禁判词");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "FIT-FAILURE-REPORT: 拟合失败不得产出 photoapplied 产物");
+    {
+      json pj;
+      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
+      CHECK_MSG(pj.value("degraded_reason", std::string()) == "photscale_incomplete" &&
+                    pj.value("photometry_applied", true) == false,
+                "FIT-FAILURE-REPORT: provenance 如实（degraded_reason=photscale_incomplete）");
+    }
+    cleanup_fixture(fx);
+  }
   // ── GREEN: 一致的**真实**标度（6.27e-17 / 5.69e-17 量级）正常通过并施加 ──
   // 依据 SCI-PHOT-001 §3: scale 单位 [F_syn 单位]/ADU, 绝对值可跨数量级;
   // 判据是一致性 + 拟合证据, 不是绝对窗口 [0.1,10]（那会拒绝 100% 真实数据）。
@@ -3814,8 +3892,8 @@ static void test_p1photbroken_scale_guards() {
            it != pj["photscale_detail"].end(); ++it) {
         CHECK_MSG(it.value().value("fitted", false) == true,
                   "P1PHOTBROKEN GREEN: photscale_detail.fitted=true");
-        CHECK_MSG(it.value().value("n_matched", 0) >= 3,
-                  "P1PHOTBROKEN GREEN: n_matched >= SCI-PHOT-001 §4 gate");
+        CHECK_MSG(it.value().value("n_matched", 0) >= 1,
+                  "P1PHOTBROKEN GREEN: 有拟合证据（星数本身不作门槛, §16.5）");
       }
       CHECK_MSG(pj.contains("photoapplied_artifacts") &&
                     pj["photoapplied_artifacts"].is_array() &&

@@ -1,8 +1,5 @@
 # 国际标准冻结注册表（STANDARDS_REGISTRY）
 
-> doc_id: STD-REG-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本表不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§12.5）
-> authoring_task: STD-REG-001（ASTROCS-CONSTITUTION-ALIGNMENT-V1 rev18，dispatch 79adc53703da7a33）
 > 上游权威: `ASTROCS_DESIGN.md` §5.3（冻结八投影）/附录 B（基础科学与格式参考）+ `ENGINEERING_SPEC.md` §8（本注册表为标准登记，不在 §0 权威链上）
 > 条款锚的现行落点：投影集合 = `ASTROCS_DESIGN.md` §5.3（八投影）；资源门 = 同文 §8 + `eng/contracts/resource_gate_v1.json`
 > 机器检查: `docs/standards/checks/check_standards_registry.py`（exit 0 = PASS / 1 = FAIL / 2 = ANCHOR_STALE；见 §5 与 §5 负向注入）

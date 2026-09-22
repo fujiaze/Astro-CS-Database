@@ -61,7 +61,7 @@ lib/infrastructure/aio/io/** eng/tests/io/** docs/interfaces/io/**`。
 
 IO-002 读取的 HiPS 产品是 **磁盘上已发布的 HiPS 产品**，落盘形态为裸目录或 zstd 归档包（§1 第 8 条）。两档入口：
 
-- **子产品目录**（`aio_hips_*` 产线布局，`docs/ARCHITECTURE.md` §产品流）：
+- **子产品目录**（`aio_hips_*` 产线布局，`docs/architecture/ARCHITECTURE.md` §产品流）：
   `<out>/signal|support|variance|ivar/` —— 目录内含 `properties`、可选 `Moc.fits`、
   `NorderK/DirD/NpixN.fits` tile 树。子产品目录与 `properties` 同层。
 - **产品集根目录**（Phase1 输出根，含多个子产品目录）：入口接受

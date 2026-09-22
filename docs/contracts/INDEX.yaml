@@ -889,7 +889,7 @@ contracts:
     path: eng/contracts/schemas/unified/point_information.schema.json
     upstream: []
     downstream: []
-  # DATA-OBJ-PSFSW-ROBUST-WEIGHT-001：**已退役**（负责人 2026-09-20 裁决 B = 真删，14→13；
+  # DATA-OBJ-PSFSW-ROBUST-WEIGHT-001：**已退役**（真删，14→13；
   # GAP_AUDIT §4.5 C01；变更 claim CHG-2026-09-20-PSFSW-RETIRE）。canonical schema
   # `eng/contracts/schemas/unified/psfsw_robust_weight.schema.json` 已删除，故本条不再登记 path
   # （登记一条指向不存在文件的 path 会让合同图判红）。留痕保留 ID，**不得**据此实现或验收。

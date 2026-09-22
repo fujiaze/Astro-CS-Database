@@ -6,7 +6,7 @@
   python3 eng/ci/check_version.py [--root <repo_root>]   # 缺省: expected 取自根 VERSION
   python3 eng/ci/check_version.py --self-test            # 机器可执行负例面 (tempfile mini-repo)
 
-检查规则 (写死, 无豁免开关; 与 docs/governance/VERSION_NAMESPACES.md GOV-003
+检查规则 (写死, 无豁免开关; 与 docs/owner/RELEASE_STATUS.md §2 GOV-003
 "根 VERSION 唯一事实源/生成链禁止手抄" 合同一致):
 
   [0] 锚存活 (ENGINEERING_SPEC §8): 本文件硬编码引用的仓库路径常量在启动时逐条校验:
@@ -111,15 +111,13 @@ DOC_SET_FILES = [
     "README.md",
     "docs/DOCUMENT_INDEX.yaml",
     "docs/VERSIONING.md",
-    "docs/governance/VERSION_NAMESPACES.md",
     "docs/owner/ARCHITECTURE_OVERVIEW.md",
-    "docs/owner/CHANGE_REVIEW.md",
     "docs/owner/PIPELINE_OVERVIEW.md",
     "docs/owner/PROJECT_SPEC.md",
     "docs/owner/RELEASE_STATUS.md",
     "docs/owner/SCIENCE_OVERVIEW.md",
 ]
-DOC_SET_DIRS = ["docs/governance", "docs/owner"]
+DOC_SET_DIRS = ["docs/owner"]
 DOC_SCAN_EXT = (".md", ".txt", ".json", ".yaml", ".yml", ".py", ".sh")
 CLI_SCAN_EXT = (".h", ".hpp", ".cpp", ".cc", ".in", ".cmake", ".txt")
 

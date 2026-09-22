@@ -1,9 +1,7 @@
-# PSF Signal Weight 科学定义与可选集成模式
+# PSF 信号权重与帧级 SNR 的科学定义
 
 > 上游：ASTROCS_DESIGN.md §2.2（创新点二：跨帧绝对信噪比）、§4.4（输出合同）
 
-文档 ID：SCI-PSFW-001
-状态：TARGET_NORMATIVE
 上位：docs/science/UNIFIED_SCIENCE_MODEL.md
 依据：PixInsight PSF Signal Weight/PSF SNR 方法、Horne/Naylor 最优提取、Zackay & Ofek 多图像点源最优组合。
 
@@ -14,7 +12,7 @@
 PSF 相关的量因此分两类，不得混名：
 
 1. **psf_information_weight**：基于观测模型的点源信息权重，是 Phase2 唯一的科学权重来源；
-2. **PSF 拟合质量代理**（FWHM、残差尺度、以及受 PixInsight PSFSW 启发的稳健复合量）：**只作诊断**，不计入科学叠加权重，不参与 Phase2 权重选择。
+2. **PSF 拟合质量代理**（FWHM、残差尺度、以及受 PixInsight PSFSW 启发的稳健复合量）：**只作诊断**，不计入科学叠加权重，不参与科学叠加权重。
 
 ## 2. 严格点源信息权重
 
@@ -49,7 +47,7 @@ PixInsight 将 PSFSW 定义为 hybrid PSF/aperture photometry 的综合图像质
 > **AstroCS 实现披露（`lib/algorithms/photometry/cpp/src/psfsw.cpp:312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:57-61`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；不得据「PixInsight 同类」推定其最优性。
 > - 依据出处：PixInsight .pidoc 式[7][8][12][13][16][17][18][19][20]；PCL 2.10.4 Doxygen `PSFSignalEstimator.h`；`lib/algorithms/photometry/cpp/src/psfsw.cpp:233-238,312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:42-64,137-138`。
 
-AstroCS 实现 psfsw_robust_weight 时必须保留这些特征，但为避免星表选择偏差增加以下约束：
+对象身份 `psfsw_robust_weight` **已退役**（权重只能来自纯净信号与噪声之比、跨帧可用、不基于参考帧、绝对标定，最高设计 §3.1）；旧产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），不得静默接受。上列特征描述的是**在役诊断量**必须保留的形态；为避免星表选择偏差，诊断量还必须满足以下约束：
 
 - 只在同一波段、同一目标/重叠连通分量、光度已归一的帧组内比较；
 - 使用跨帧匹配的共同恒星集合或显式 selection-function 校正；
@@ -61,41 +59,41 @@ AstroCS 实现 psfsw_robust_weight 时必须保留这些特征，但为避免星
 
 项目不要求逐字复制 PixInsight 的实现常数；项目公式必须通过公开文献语义、独立推导和真实数据优化后冻结。若选择精确兼容模式，则字段另命名 pixinsight_psfsw_compat 并记录所兼容版本。
 
-## 4. Phase2 支持的选择
+## 4. 单一权重口径（无模式选择）
 
-| mode | 权重 | 用途 | 可作最优性声明 |
-|---|---|---|---|
-| point_information（默认） | W_info 或 Q/W | 点源检测、点源测光、proper coadd | 模型和 covariance 门通过时可以 |
-| psf_snr_power | ratio-of-powers（**DEFERRED，当前未实现**） | 设计占位；生产模式门显式拒绝 | 不适用（不得进入生产路由） |
-| surface_gls | AᵀC⁻¹A | 扩展源/面亮度 | GLS 假设成立时可以 |
+科学叠加权重只有一个口径：**Phase2 消费时由入库的绝对 SNR 现场换算为逆方差**——
 
-Phase2 配置必须显式选择 mode。默认不得由检测到多少颗星等偶然因素自动切换。
+~~~text
+w_k = SNR_k² / F_ref,k²  ≡  1 / σ_F,k²
+~~~
 
-> `psf_snr_power` 的 DEFERRED 证据：`lib/infrastructure/cli/v6_runtime_contract.h:110-114` 将其路由为 reject（`FZ-MODE-DEFERRED`）；`lib/algorithms/coverage/include/astro/phase2/coverage.h:170-182` 的生产模式门 allowed={point_information, surface_gls} 并显式拒绝 `psf_snr_power`；`docs/contracts/DATA_SEMANTICS.md` §31.3 标其为 DEFERRED/NOT_IMPLEMENTED。本表该行仅保留设计占位，不得据其声称已有实现。
+帧级 SNR 与稀疏控制点 SNR 共用同一物理定义与同一逐帧参考通量 `F_ref`，换算对两者一致（最高设计 §2.2、§3.1）。点源目标下它与严格点源信息权重同值：`W_info = a²PᵀC⁻¹P = 1/Var(F_hat)`；白噪声近似 `W_info = a²/(σ_pix²·A_NEA)`（§2）。
 
-> `psfsw_robust_weight` 已按"权重只能来自纯净信号与噪声之比、跨帧可用、不基于参考帧、绝对标定"的判据退役（最高设计 §3.1）：生产模式门走 `FZ-MODE-RETIRED` 显式拒绝 + 迁移提示，不静默接受；拒绝消息含被拒 mode、允许集与迁移路径。
+**不存在"权重模式"这个概念**：没有模式键、模式枚举、模式配置项或模式产物；权重不是预先算好并落盘在产品里的量，而是消费时按天球像素对应的输入帧集合现场算出的派生量。Phase1 与 Phase3 不产生、不消费权重；消费方也不得由"检测到多少颗星"一类偶然因素自动切换口径。
 
-## 5. 复合权重与不确定度的边界
+实现面对越界 token 一律 fail-closed 显式拒绝并给出迁移提示，不得静默接受：已退役对象 token（`psfsw_robust`）、延迟口径（`psf_snr_power`）、legacy token（`auto` / `support_x_snr2` / 整数 `0|1|2`）与未知值（`FZ-MODE-RETIRED` / `FZ-MODE-DEFERRED` / `FZ-FIELD-WEIGHTMODE`）。生产守卫当前接受的 token 集合为 `{point_information, surface_gls}`；其中 `surface_gls`（`AᵀC⁻¹A`，扩展源 GLS）在生产路径上无消费点，与本节的单一口径不一致，属实现面待收敛项。
 
-psfsw_robust_weight 可以决定 conventional coadd 中帧的相对贡献，但不能反向定义输出像素 variance。最终 variance/covariance 必须从实际线性组合系数和输入 covariance 传播：
+## 5. 诊断量与不确定度的边界
+
+§3 的 PSF 拟合质量代理与 PixInsight-style 复合量**只作诊断**，不进入科学叠加权重、不写 ivar / variance / W_info，也不能反向定义输出像素 variance。输出像素的 variance/covariance 必须从实际线性组合系数和输入 covariance 传播：
 
 ~~~text
 C_out = R C_in Rᵀ
 ~~~
 
-若复合权重还含 seeing/concentration penalty，它会改变分辨率与噪声折衷；必须输出 effective PSF，并报告相对 point_information 和普通 ivar 基线的 detection power、FWHM、通量偏差和面亮度偏差。
+诊断量若含 seeing/concentration penalty，它会改变分辨率与噪声折衷；必须输出 effective PSF，并报告相对点源信息权重基线与普通 ivar 基线的 detection power、FWHM、通量偏差和面亮度偏差。
 
 ## 6. 标量与空间模型
 
 - W_info(x,y) 默认是空间量；只有通过均匀性/信息损失门才压为帧标量。
-- psfsw_robust_weight 是帧组内相对标量，但其四个输入分量必须带空间摘要 p05/p50/p95 和有效覆盖；显著空间非均匀时拆成 region/tile 权重或拒绝标量模式。
+- 帧组内相对标量的诊断量（§3 复合量）必须带四个输入分量的空间摘要 p05/p50/p95 和有效覆盖；显著空间非均匀时拆成 region/tile 摘要或拒绝标量形式。
 
 ## 7. 强制验收
 
 1. 注入点源验证 1/sqrt(W_info) 与实测 flux dispersion；
 2. 透明度、seeing、背景和 read noise 单变量扫描方向正确；
 3. 改变不相关星表深度/检测阈值不得显著改变共同星集 PSFSW；
-4. psfsw_robust 在预注册 M42/银心及合成集上，与等权、exposure、pixel-ivar、W_info 比较；
+4. 诊断量（§3 复合量）在预注册 M42/银心及合成集上，与等权、exposure、pixel-ivar、W_info 对照，结论只作诊断；
 5. 分别报告点源 detection power、photometric variance、effective PSF、扩展源偏差和伪影；不得只以“看起来更好”通过；
 6. 零星、少星、拥挤、严重梯度、云、拖线、不同 FOV 和不同波段都有 fail-closed 测试；
 7. 权重分量和最终权重的负向 mutation 必须使门变红。
@@ -130,7 +128,7 @@ C_out = R C_in Rᵀ
 - **白噪声 W_info=a²/(σ_pix²·A_NEA)、A_NEA=1/ΣP²**：噪声等效面积定义见 Horne 1986/Naylor 1998；实现对照 photutils（BSD-3-Clause）的 effective PSF/等效面积与 MoffatPSF 归一。
 - **PSFSW/PSFSNR 方法学**：PixInsight Reference, New Image Weighting Algorithms（https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html）；**AstroCS 不照抄其标定常数**（§3）。
 - **C_out=R C_in Rᵀ**：Fruchter & Hook 2002, PASP 114, 144；Zackay & Ofek 2017 II。
-- **已定案（原 UNRESOLVED）**：与 `docs/science/CONTROL_WEIGHT_SNR.md` §2a 的 `frame_snr` 语义冲突已按「同名两义分离」定案（负责人 2026-09-19 裁决 A1/C1，claim `FIX-SCI-SNR-CANON-001`）：Phase1 HiPS 的 `frame_snr` = **点源（PSF）信号 SNR**（纯信号/噪声，`F_signal` 已扣局部背景、天光只进 `σ_F`）；stage2 的 `local_snr`/`frame_snr_medians` = 相对质量权重场（改名 `quality_weight`）。
+- **已定案（原 UNRESOLVED）**：与 `docs/science/CONTROL_WEIGHT_SNR.md` §2a 的 `frame_snr` 语义冲突已按「同名两义分离」定案（claim `FIX-SCI-SNR-CANON-001`）：Phase1 HiPS 的 `frame_snr` = **点源（PSF）信号 SNR**（纯信号/噪声，`F_signal` 已扣局部背景、天光只进 `σ_F`）；stage2 的 `local_snr`/`frame_snr_medians` = 相对质量权重场（改名 `quality_weight`）。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。
