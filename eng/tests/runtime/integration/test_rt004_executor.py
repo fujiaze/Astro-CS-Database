@@ -25,6 +25,7 @@ import pathlib
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -445,6 +446,355 @@ class TestRt004WorkerNoBusySpin(unittest.TestCase):
         # worker_loop 空队列谓词: 队列空且未取消/未停止 → 阻塞等待
         self.assertRegex(text, r"impl_->tasks\.empty\(\)")
         self.assertRegex(text, r"cv\.wait\(lock, \[this\]")
+
+
+# ── RT-004-POOL-01 运行时池回收 harness（Linux：/proc/self/task 线程计数）──
+# 判据：三个阶段调度器每次 run() 的池必须在 run 返回前全部 join 回收 —— run 返回后
+# 进程线程数回到基线（连续 5 轮不累积）；同时 run 期间线程数峰值必须超过基线
+# （非退化证据：池线程确实起过，判据不是恒真门）。
+_POOL_DRIVER = r'''
+// RT-004-POOL-01 harness: 三个阶段调度器的池回收（无泄漏线程）运行时验收
+#include "astrocs/core/export_stream.h"
+#include "astrocs/core/mosaic_window.h"
+#include "astrocs/core/normalize_workflow.h"
+
+#include <atomic>
+#include <chrono>
+#include <cstdint>
+#include <cstdio>
+#include <dirent.h>
+#include <functional>
+#include <string>
+#include <thread>
+#include <vector>
+
+using namespace astrocs::core;
+
+static int failures = 0;
+#define CHECK(cond)                                                          \
+  do {                                                                       \
+    if (!(cond)) {                                                           \
+      std::fprintf(stderr, "CHECK failed %s:%d: %s\n", __FILE__, __LINE__, #cond); \
+      ++failures;                                                            \
+    }                                                                        \
+  } while (0)
+
+// /proc/self/task 条目数（含 "." ".."；基线/结束后同口径比较）
+static int thread_count() {
+  DIR* d = ::opendir("/proc/self/task");
+  if (!d) return -1;
+  int n = 0;
+  while (::readdir(d) != nullptr) ++n;
+  ::closedir(d);
+  return n;
+}
+
+// 采样线程：run() 进行中记录线程数峰值（"池确实起过"的非退化证据）
+struct PeakSampler {
+  std::atomic<bool> stop{false};
+  std::atomic<bool> ready{false};
+  std::atomic<int> peak{0};
+  std::thread th;
+  void start() {
+    th = std::thread([this] {
+      ready.store(true);
+      while (!stop.load()) {
+        const int n = thread_count();
+        int p = peak.load();
+        while (n > p && !peak.compare_exchange_weak(p, n)) {}
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
+      }
+    });
+    while (!ready.load()) std::this_thread::sleep_for(std::chrono::microseconds(50));
+  }
+  void finish() {
+    stop.store(true);
+    if (th.joinable()) th.join();
+  }
+};
+
+static NormalizeFrame make_frame(std::uint64_t fid, int compute_ms) {
+  NormalizeFrame f;
+  f.frame_id = fid;
+  f.prefetch_keys.push_back("gaia_" + std::to_string(fid % 3));
+  NormalizeNode n;
+  n.id = "compute";
+  n.consumes = {prefetch_block_name(f.prefetch_keys[0])};
+  n.run = [compute_ms](BlockFrame&) {
+    const auto t0 = std::chrono::steady_clock::now();
+    volatile double acc = 0.0;
+    while (std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::steady_clock::now() - t0).count() < compute_ms) {
+      for (int i = 0; i < 2000; ++i) acc += 1.0 / (i + 1.0);
+    }
+    return true;
+  };
+  f.nodes.push_back(n);
+  return f;
+}
+
+static MosaicFrameInput make_mosaic_frame(std::uint64_t fid, int n_tiles) {
+  MosaicFrameInput f;
+  f.frame_id = fid;
+  for (int t = 0; t < n_tiles; ++t)
+    f.tile_bytes[static_cast<std::uint64_t>(t)] = 4096u + static_cast<std::uint64_t>(t % 17);
+  return f;
+}
+
+static double ref_pixel(int x, int y) {
+  return 100.0 + static_cast<double>((x * 3 + y * 7) % 53);
+}
+
+// 5 轮 run：每轮 run 返回后线程数必须回到基线（池已全部 join 回收）；
+// 且 run 期间峰值 >= 基线 + 2（非退化：池线程确实起过）。
+// base_no_sampler = 无采样线程时的进程线程数；采样线程存活期间基线 = base_no_sampler + 1。
+static void check_reclaim(const char* name, int base_no_sampler, int min_pool_threads,
+                          const std::function<void(int)>& run_once) {
+  PeakSampler sampler;
+  sampler.start();
+  const int base = thread_count();
+  CHECK(base == base_no_sampler + 1);
+  for (int i = 0; i < 5; ++i) {
+    run_once(i);
+    const int after = thread_count();
+    if (after != base) {
+      std::fprintf(stderr, "LEAK %s round=%d threads_after=%d base=%d\n", name, i, after, base);
+      ++failures;
+    }
+  }
+  const int peak = sampler.peak.load();
+  sampler.finish();
+  const int final = thread_count();
+  std::printf("  pool %-9s base=%d peak=%d final=%d (pool_threads>=%d)\n", name, base, peak,
+              final, min_pool_threads);
+  CHECK(peak >= base + min_pool_threads);   // 非退化：run 期间确实建了池
+  CHECK(final == base_no_sampler);          // 采样线程回收后回到进程基线
+}
+
+int main() {
+  const int base0 = thread_count();
+  std::printf("RT-004-POOL thread baseline=%d\n", base0);
+
+  // A. normalize：4 帧 worker + 1 预取线程（cfg 注入），5 轮 run 各自回收
+  check_reclaim("normalize", base0, 2, [](int round) {
+    NormalizeWorkflowConfig cfg;
+    cfg.workers = 4;
+    cfg.prefetch_enabled = true;
+    cfg.prefetch_threads = 1;
+    NormalizeWorkflowScheduler s(cfg);
+    s.set_prefetch_loader([](const std::string& k) { return "catalog:" + k; });
+    for (int i = 0; i < 12; ++i)
+      s.add_frame(make_frame(700 + static_cast<std::uint64_t>(i) +
+                                 static_cast<std::uint64_t>(round) * 100, 2));
+    auto out = s.run();
+    CHECK(out.size() == 12);
+    for (const auto& o : out) CHECK(o.ok);
+  });
+
+  // B. mosaic：4 个窗口 worker，5 轮 run 各自回收
+  check_reclaim("mosaic", base0, 2, [](int) {
+    MosaicWindowConfig cfg;
+    cfg.workers = 4;
+    cfg.window_tiles = 8;
+    MosaicWindowScheduler s(cfg);
+    for (int i = 0; i < 4; ++i)
+      s.add_frame(make_mosaic_frame(300 + static_cast<std::uint64_t>(i), 2048));
+    auto out = s.run();
+    CHECK(out.size() == 256);
+    for (const auto& o : out) CHECK(o.ok);
+  });
+
+  // C. export：读/写各 1 + 4 个 compute worker，5 轮 run 各自回收
+  check_reclaim("export", base0, 2, [](int round) {
+    ExportStreamConfig c;
+    c.workers = 4;
+    c.sub_block_px = 128;
+    c.queue_depth = 4;
+    c.output_path = std::string(RT004_POOL_TMP) + "/rt004_pool_w" + std::to_string(round) + ".fits";
+    c.wcs_header = "SIMPLE  =                    T\nNAXIS   =                    2\n";
+    c.properties = "ASTROCS PROVENANCE\nPROJECT = AstroCS\n";
+    ExportStreamScheduler s(c);
+    s.set_image(512, 512);
+    s.set_pixel_fn(ref_pixel);
+    auto o = s.run();
+    CHECK(o.ok);
+  });
+
+  if (failures) {
+    std::fprintf(stderr, "RT-004_POOL_FAIL failures=%d\n", failures);
+    return 1;
+  }
+  std::printf("RT-004_POOL_RECLAIM_PASS\n");
+  return 0;
+}
+'''
+
+# 池形态判据（RT-004-POOL-01）——
+# 判据意图：线程池必须**有界、可回收、生命周期可控**。三个阶段调度器 (ARCH-502/503/504)
+# 的池因此不得是头文件成员（对象级常驻、生命周期不可控），而必须是 run() 作用域内
+# 创建、run 返回前全部 join 回收的**有界**池（线程数 = 配置注入的 cfg.workers /
+# cfg.prefetch_threads）。本判据与既有判据同向、不放松：
+#   test_no_permanent_thread_pool_member_in_headers（头文件无私池成员）、
+#   test_no_detach_worker_anywhere（不 detach）、test_no_async_bypass_in_production
+#   （不 std::async 绕过预算）、test_scheduler_join_pool_is_bounded_and_reclaimed
+#   （scheduler.cpp CORE-006 的同一 per-run join 形态）。
+SCHED_SRC = CORE                       # lib/infrastructure/scheduler/src
+SCHED_POOL_FILES = ("normalize_workflow.cpp", "mosaic_window.cpp", "export_stream.cpp")
+SCHED_POOL_HEADERS = ("normalize_workflow.h", "mosaic_window.h", "export_stream.h")
+SCHED_POOL_SRC_DEPS = ("normalize_workflow.cpp", "mosaic_window.cpp", "export_stream.cpp",
+                       "block_frame.cpp")
+POOL_DECL_RE = re.compile(r"std::vector\s*<\s*std::thread\s*>\s*(\w+)")
+POOL_JOIN_RE = re.compile(
+    r"for\s*\(\s*auto&\s*t\s*:\s*(\w+)\s*\)\s*if\s*\(\s*t\.joinable\(\)\s*\)\s*t\.join\(\)\s*;")
+RUN_DEF_RE = re.compile(r"::run\s*\(\s*\)\s*\{")
+
+
+def scheduler_pool_violations(name, text):
+    """判据：调度器 worker 池必须 run() 作用域有界 + run 返回前全部 join 回收。
+
+    红条件（任一即判红）：
+      ① detach：线程脱离生命周期 ⇒ 不可回收；
+      ② 池声明出现在 run() 定义之前（文件级/成员/构造期常驻池 ⇒ 生命周期不可控）；
+      ③ 建池但无同名池的 join 回收循环（spawn 后不 join ⇒ 泄漏）；
+      ④ 无任何池声明（判据非退化要求：调度器必须有界建池）。
+    绿条件：池声明在 run() 之后 + emplace_back 建池 + 同名池 join 循环 + 无 detach。
+    "在 run() 之内" 由位置 + 运行时线程回收判据（TestRt004SchedulerPoolReclaimedAtRuntime）
+    共同锁定：静态判据防形态回退，运行时判据证实际回收。
+    """
+    v = []
+    lines = text.splitlines()
+    run_line = next((i for i, ln in enumerate(lines, 1) if RUN_DEF_RE.search(ln)), None)
+    if run_line is None:
+        return [f"{name}: 未找到 run() 定义（判据无法适用 ⇒ 判红，避免空转）"]
+    decls = {}
+    for lineno, line in enumerate(lines, 1):
+        if line.strip().startswith("//"):
+            continue
+        if ".detach(" in line:
+            v.append(f"{name}:{lineno}: 出现 detach（线程脱离生命周期，无法回收）")
+        m = POOL_DECL_RE.search(line)
+        if m:
+            decls[m.group(1)] = lineno
+            if lineno <= run_line:
+                v.append(f"{name}:{lineno}: 池 {m.group(1)} 声明在 run() 之前"
+                         f"（常驻/成员池，生命周期不可控）")
+    if not decls:
+        v.append(f"{name}: 未找到 run 作用域池声明（判据非退化要求）")
+    joined = {m.group(1) for m in POOL_JOIN_RE.finditer(text)}
+    spawned = set(re.findall(r"(\w+)\.emplace_back\s*\(", text))
+    for var, lineno in decls.items():
+        if var not in spawned:
+            v.append(f"{name}:{lineno}: 池 {var} 未见 emplace_back（未真正建池/形态改变）")
+        if var not in joined:
+            v.append(f"{name}:{lineno}: 池 {var} 未在 run 内 join 回收（泄漏线程）")
+    return v
+
+
+def build_pool_driver(tmp, pool_srcs, exe_name="rt004_pool"):
+    """编译池回收 harness（真实链接三个调度器实现，非 mock）。"""
+    drv = tmp / "rt004_pool_driver.cpp"
+    drv.write_text(_POOL_DRIVER, encoding="utf-8")
+    exe = tmp / exe_name
+    cmd = ["g++", "-std=c++17", "-O0", f'-DRT004_POOL_TMP="{tmp}"',
+           f"-I{INC}", f"-I{REPO / 'third_party'}",
+           f"-I{REPO / 'lib' / 'infrastructure' / 'aio' / 'src'}",
+           f"-I{REPO / 'lib' / 'algorithms' / 'shared'}",
+           str(drv), *[str(p) for p in pool_srcs], "-pthread", "-o", str(exe)]
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    if r.returncode != 0:
+        raise RuntimeError(f"build pool driver failed:\n{r.stderr[-2000:]}")
+    return exe
+
+
+class TestRt004SchedulerPoolRunScoped(unittest.TestCase):
+    """ARCH-502/503/504 池形态：run 作用域有界池 + run 内 join 回收（RT-004-POOL-01）。"""
+
+    def test_scheduler_headers_hold_no_thread_container(self):
+        """三个阶段调度器头文件不得持有线程容器（永久池成员）。"""
+        hits = []
+        for h in SCHED_POOL_HEADERS:
+            for lineno, line in enumerate(
+                    (HDR_PROD_ROOT / h).read_text(encoding="utf-8").splitlines(), 1):
+                if POOL_DECL_RE.search(line) and not line.strip().startswith("//"):
+                    hits.append(f"{h}:{lineno}: {line.strip()}")
+        self.assertEqual(hits, [], f"调度器头文件发现线程容器成员: {hits}")
+
+    def test_scheduler_pools_are_run_scoped_and_joined(self):
+        """三个实现文件的池必须 run() 作用域有界 + run 返回前 join 回收。"""
+        for name in SCHED_POOL_FILES:
+            text = (SCHED_SRC / name).read_text(encoding="utf-8")
+            self.assertEqual(scheduler_pool_violations(name, text), [],
+                             f"{name} 池形态违反 run 作用域回收判据")
+
+    def test_criterion_goes_red_on_injected_non_reclaim(self):
+        """判据自测（能红能绿）：三种注入必须判红，原样必须判绿。"""
+        for name in SCHED_POOL_FILES:
+            text = (SCHED_SRC / name).read_text(encoding="utf-8")
+            self.assertEqual(scheduler_pool_violations(name, text), [],
+                             f"{name} 原样必须判绿")
+            m = POOL_JOIN_RE.search(text)
+            self.assertIsNotNone(m, f"{name} 未找到 join 回收循环（注入点）")
+            # 注入①：join → detach
+            mut = text.replace(m.group(0), m.group(0).replace("t.join()", "t.detach()"))
+            self.assertNotEqual(mut, text)
+            v = scheduler_pool_violations(name, mut)
+            self.assertTrue(any("detach" in x for x in v), f"{name} detach 注入必须判红: {v}")
+            # 注入②：删除 join 回收（故意不 join）
+            mut = text.replace(m.group(0), "")
+            self.assertNotEqual(mut, text)
+            v = scheduler_pool_violations(name, mut)
+            self.assertTrue(any("join" in x for x in v), f"{name} 不 join 注入必须判红: {v}")
+            # 注入③：池声明移出 run()（常驻池形态）
+            d = POOL_DECL_RE.search(text)
+            self.assertIsNotNone(d, f"{name} 未找到池声明（注入点）")
+            mut = d.group(0) + "\n" + text.replace(d.group(0), "")
+            v = scheduler_pool_violations(name, mut)
+            self.assertTrue(any("run() 之前" in x for x in v),
+                            f"{name} 池移出 run() 必须判红: {v}")
+
+
+@unittest.skipUnless(shutil.which("g++") and sys.platform.startswith("linux"),
+                     "需要 g++ 与 /proc/self/task 线程计数（Linux）")
+class TestRt004SchedulerPoolReclaimedAtRuntime(unittest.TestCase):
+    """运行时判据：run 返回后线程数回到基线（池已回收）+ 峰值证明池确实起过。"""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = pathlib.Path(tempfile.mkdtemp(prefix="rt004_pool_"))
+        cls.exe = build_pool_driver(cls.tmp, [SCHED_SRC / n for n in SCHED_POOL_SRC_DEPS])
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_run_scoped_pools_reclaimed_no_thread_leak(self):
+        r = subprocess.run([str(self.exe)], capture_output=True, text=True, timeout=600)
+        self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-2000:])
+        self.assertIn("RT-004_POOL_RECLAIM_PASS", r.stdout)
+        # 非退化：三个阶段调度器都必须被观测到池线程峰值（否则判据是恒真门）
+        self.assertEqual(r.stdout.count("pool "), 3, r.stdout)
+
+    def test_injected_missing_join_is_red(self):
+        """负例（必红）：删掉 normalize run() 的 join 回收 ⇒ 池不回收 ⇒ 判红。
+
+        注入后池向量析构时线程仍 joinable ⇒ std::terminate（rc≠0）；若线程存活则
+        线程数不回落（LEAK）并 rc≠0。两种失败模式都算判据红。
+        """
+        src = (SCHED_SRC / "normalize_workflow.cpp").read_text(encoding="utf-8")
+        m = POOL_JOIN_RE.search(src)
+        self.assertIsNotNone(m, "未找到 join 回收循环（注入点）")
+        mut = src.replace(m.group(0), "  // 负例注入：故意不 join（池线程不回收）")
+        self.assertNotEqual(mut, src, "注入点未命中（负例必须真注入）")
+        mut_path = self.tmp / "mut_normalize_workflow.cpp"
+        mut_path.write_text(mut, encoding="utf-8")
+        srcs = [mut_path if n == "normalize_workflow.cpp" else SCHED_SRC / n
+                for n in SCHED_POOL_SRC_DEPS]
+        exe = build_pool_driver(self.tmp, srcs, exe_name="rt004_pool_mut")
+        r = subprocess.run([str(exe)], capture_output=True, text=True, timeout=600)
+        self.assertNotEqual(r.returncode, 0,
+                            "注入「不 join」后必须判红（rc=0 ⇒ 判据失效）\n"
+                            + r.stdout[-1000:] + r.stderr[-1000:])
+        self.assertNotIn("RT-004_POOL_RECLAIM_PASS", r.stdout)
 
 
 if __name__ == "__main__":

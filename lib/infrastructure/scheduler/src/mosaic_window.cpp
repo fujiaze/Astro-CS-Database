@@ -6,6 +6,8 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <thread>
+#include <vector>
 #include "aio_atomic_file.h"   // CLEAN-403：aio 唯一 I/O 实现
 #include <set>
 #include <sstream>
@@ -61,8 +63,8 @@ MosaicWindowScheduler::MosaicWindowScheduler(MosaicWindowConfig cfg)
 }
 
 MosaicWindowScheduler::~MosaicWindowScheduler() {
+  // 池是 run() 的局部量（run 返回前已全部 join 回收），对象析构只需置取消唤醒在途 worker。
   cancel();
-  for (auto& t : pool_) if (t.joinable()) t.join();
 }
 
 void MosaicWindowScheduler::add_frame(MosaicFrameInput f) { frames_.push_back(std::move(f)); }
@@ -173,10 +175,21 @@ WindowOutcome MosaicWindowScheduler::run_window(const MosaicWindow& w, int worke
 
   // ③ 窗口内固定顺序：coverage → UPM → 排异 → SNR² 集成（此处按像素序做集成）
   // ④ 稠密 SNR 现场求值：逐像素即时算，不预计算稠密面、不驻留
+  //
+  // ④b MEM-WIRE-01（修 ARCH-AUDIT-02 F-07）：**峰值驻留 = 实测值**。
+  // 修复前此处写 const std::size_t resident = sizeof(double) * 4;（编译期常量 32 B），
+  // 是写入 peak 的**唯一来源** ⇒ mosaic_window 的 E1（peak>4096 判红）/E2 断言对象即该
+  // 常量，**不可能红**（AGENTS §5「恒真门没有证据资格」）。
+  // 现行口径：逐次记账本窗口**真实存活的分配**（输出像素缓冲 + 路由指针向量的
+  // capacity() 字节 —— 取真实分配器足迹而非 size），循环内取最大值。
+  // 不含 MosaicFrameInput::tile_bytes —— 那是输入**声明**字节（aio 侧切片量），
+  // 本进程不物化、不驻留。
   constexpr std::int64_t kPixelsPerTile = 64;
   std::uint64_t h = 1469598103934665603ULL;
   std::size_t peak = 0;
   std::int64_t pixels = 0;
+  const std::size_t resident_fixed =
+      relevant.capacity() * sizeof(const MosaicFrameInput*);
   for (std::uint64_t tile : w.tile_ipix) {
     if (cancel_.load()) { out.error = "cancelled"; break; }
     std::vector<const MosaicFrameInput*> cover;
@@ -186,6 +199,7 @@ WindowOutcome MosaicWindowScheduler::run_window(const MosaicWindow& w, int worke
               [](const MosaicFrameInput* a, const MosaicFrameInput* b) {
                 return a->frame_id < b->frame_id;   // 归约顺序冻结
               });
+    const std::size_t cover_bytes = cover.capacity() * sizeof(const MosaicFrameInput*);
     for (std::int64_t px = 0; px < kPixelsPerTile; ++px) {
       const double v = integrate_pixel(cover, tile, px);
       out.pixel_values.push_back(v);
@@ -193,7 +207,10 @@ WindowOutcome MosaicWindowScheduler::run_window(const MosaicWindow& w, int worke
       h = fnv1a(h, &px, sizeof(px));
       h = fnv1a(h, &v, sizeof(v));
       ++pixels;
-      const std::size_t resident = sizeof(double) * 4;   // 现场求值：常数级驻留
+      // 实测驻留 = 窗口输出像素缓冲（真实 capacity）+ 本窗口指针向量 + 标量局部。
+      const std::size_t resident = out.pixel_values.capacity() * sizeof(double) +
+                                   cover_bytes + resident_fixed +
+                                   sizeof(std::uint64_t) * 4;
       peak = std::max(peak, resident);
     }
   }
@@ -248,16 +265,19 @@ std::vector<WindowOutcome> MosaicWindowScheduler::run() {
     next_ = 0;
     completed_ = 0;
   }
+  // 本次 run 的**有界 run 作用域池**（RT-004：调度器不持有永久池成员）：
+  // 线程数 = cfg_.workers（配置/预算注入），run 返回前全部 join 回收。
   const int n = std::max(1, cfg_.workers);
-  pool_.clear();
-  for (int i = 0; i < n; ++i) pool_.emplace_back([this, i] { worker_loop(i); });
+  std::vector<std::thread> pool;
+  pool.reserve(static_cast<std::size_t>(n));
+  for (int i = 0; i < n; ++i) pool.emplace_back([this, i] { worker_loop(i); });
   {
     std::unique_lock<std::mutex> lk(mu_);
     cv_done_.wait(lk, [&] { return completed_ >= windows_.size() || cancel_.load(); });
   }
   cancel();
-  for (auto& t : pool_) if (t.joinable()) t.join();
-  pool_.clear();
+  for (auto& t : pool) if (t.joinable()) t.join();   // run 返回前全部回收（无 detach）
+  pool.clear();
 
   // ⑤ 归约顺序冻结：窗口 ID 升序
   std::vector<WindowOutcome> out = outcomes_;
@@ -267,6 +287,83 @@ std::vector<WindowOutcome> MosaicWindowScheduler::run() {
   probes_.flush();
   write_manifest();
   return out;
+}
+
+// ── MEM-WIRE-01 / ARCH-AUDIT-02 F-07：窗口峰值驻留判据实现（可红可绿） ──
+// 判据语义见头文件注释（四条同时成立才绿）。本函数是**唯一判据实现**：单测绿/红两侧
+// 都调用它，负例（把实测峰值换成编译期常量 / 换成 0）必须在同一函数上判红。
+std::size_t MosaicWindowScheduler::window_peak_bound_bytes(std::size_t tiles_in_window,
+                                                           std::size_t frames_covering) {
+  // kPixelsPerTile 与 run_window 同源（窗口内每 tile 的像素数；本 TU 内冻结常量）。
+  constexpr std::size_t kPixelsPerTile = 64;
+  const std::size_t out_buf = tiles_in_window * kPixelsPerTile * sizeof(double);
+  // vector 容量按几何增长 ⇒ 真实 capacity 可到 size 的 2 倍以内，上界取 2×。
+  const std::size_t ptr_vecs = 2 * frames_covering * sizeof(const MosaicFrameInput*);
+  return 2 * out_buf + 2 * ptr_vecs + 64;
+}
+
+bool window_peak_residency_ok(const std::vector<WindowPeakSample>& samples,
+                              std::string* why) {
+  auto fail = [&](const std::string& msg) {
+    if (why) *why = msg;
+    return false;
+  };
+  if (samples.empty()) return fail("no samples (empty judgement domain)");
+  // ① 非零：常数 0 / 未记账 ⇒ 红
+  for (const auto& s : samples) {
+    if (s.peak_bytes == 0) {
+      return fail("E1a peak_bytes==0 for window_tiles=" +
+                  std::to_string(s.window_tiles) +
+                  " (constant/zero residency: no evidence)");
+    }
+  }
+  // ② 实测受解析上界约束
+  for (const auto& s : samples) {
+    if (s.peak_bytes > s.bound_bytes) {
+      return fail("E1b peak_bytes=" + std::to_string(s.peak_bytes) +
+                  " > bound=" + std::to_string(s.bound_bytes) +
+                  " for window_tiles=" + std::to_string(s.window_tiles));
+    }
+  }
+  // ③ 与总图规模解耦：同 window_tiles、不同 tiles_total ⇒ 峰值相等
+  for (std::size_t i = 0; i < samples.size(); ++i) {
+    for (std::size_t k = i + 1; k < samples.size(); ++k) {
+      if (samples[i].window_tiles != samples[k].window_tiles) continue;
+      if (samples[i].tiles_total == samples[k].tiles_total) continue;
+      if (samples[i].peak_bytes != samples[k].peak_bytes) {
+        return fail("E2 peak decoupled from total image size violated: window_tiles=" +
+                    std::to_string(samples[i].window_tiles) + " tiles_total=" +
+                    std::to_string(samples[i].tiles_total) + " peak=" +
+                    std::to_string(samples[i].peak_bytes) + " vs tiles_total=" +
+                    std::to_string(samples[k].tiles_total) + " peak=" +
+                    std::to_string(samples[k].peak_bytes));
+      }
+    }
+  }
+  // ④ 窗口大小是显式内存权衡参数（ASTROCS_DESIGN §8.3）：两个窗口**都实际装满**时，
+  //    window_tiles 更大 ⇒ 峰值驻留**严格更大**。
+  //    「严格」是反恒真的关键：编译期常量（F-07 的 32 B）与任何未记账的常量驻留
+  //    在这里必然违反 —— 旧的「不减」表述会被常量满足，属退化判据。
+  for (std::size_t i = 0; i < samples.size(); ++i) {
+    for (std::size_t k = 0; k < samples.size(); ++k) {
+      if (samples[k].window_tiles <= samples[i].window_tiles) continue;
+      const bool full_i =
+          samples[i].tiles_total >= static_cast<std::size_t>(samples[i].window_tiles);
+      const bool full_k =
+          samples[k].tiles_total >= static_cast<std::size_t>(samples[k].window_tiles);
+      if (!full_i || !full_k) continue;   // 窗口未装满 ⇒ 驻留不可比，跳过
+      if (samples[k].peak_bytes <= samples[i].peak_bytes) {
+        return fail("E3 peak must grow strictly with window_tiles: window_tiles=" +
+                    std::to_string(samples[i].window_tiles) + " peak=" +
+                    std::to_string(samples[i].peak_bytes) + " vs window_tiles=" +
+                    std::to_string(samples[k].window_tiles) + " peak=" +
+                    std::to_string(samples[k].peak_bytes) +
+                    " (constant residency = degenerate gate, DESIGN 8.3)");
+      }
+    }
+  }
+  if (why) why->clear();
+  return true;
 }
 
 }  // namespace astrocs::core

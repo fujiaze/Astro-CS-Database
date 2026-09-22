@@ -28,7 +28,6 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
 namespace astrocs::core {
@@ -197,13 +196,15 @@ class NormalizeWorkflowScheduler {
   std::vector<NormalizeFrame> frames_;
   std::vector<FrameOutcome> outcomes_;
 
-  std::vector<std::thread> pool_;
+  // 线程池形态（RT-004 架构约束，不得回退）：本调度器**不持有**线程池成员。
+  // 每次 run() 在实现文件内建立 run 作用域的**有界**池（帧 worker 数 = cfg_.workers、
+  // 预取线程数 = cfg_.prefetch_threads，均由配置注入），run 返回前全部 join 回收；
+  // 无 detach、无常驻线程。原 started_ 标志（仅 run 内置位、无人读取）随池一并移除。
   std::mutex mu_;
   std::condition_variable cv_;
   std::condition_variable cv_done_;
   std::deque<std::size_t> pending_;
   std::size_t completed_ = 0;
-  bool started_ = false;
   std::atomic<bool> cancel_{false};
   std::atomic<std::size_t> peak_inflight_{0};
   std::atomic<std::uint64_t> busy_workers_{0};

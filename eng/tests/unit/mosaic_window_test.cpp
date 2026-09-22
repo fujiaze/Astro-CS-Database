@@ -7,7 +7,10 @@
 //   B. 归约顺序：输出恒按 window_id 升序；
 //   C. 与单窗口参考实现数值一致（窗口大小 = 全部 tile ⇒ 1 个窗口），checksum 完全相同；
 //   D. 读放大：按窗口路由的读取量显著低于「为每个窗口读整帧」的朴素基线；给对比表；
-//   E. 窗口大小扫描：RSS/峰值驻留随窗口线性、与总图大小解耦；
+//   E. 窗口峰值驻留（MEM-WIRE-01 修 ARCH-AUDIT-02 F-07）：判据量**实测驻留**
+//      （窗口输出像素缓冲 capacity + 路由指针向量），四条同时成立才绿：
+//      ① peak>0 ② peak<=解析上界 ③ 与总图规模解耦 ④ 装满时 window_tiles 更大 ⇒ peak 严格更大；
+//      含两条**负例**：常量驻留（sizeof(double)*4）与零驻留注入必须判红（旧判据恒真）；
 //   F. manifest：窗口大小、窗口数、路由字节、读放大必须落盘；
 //   G. 探针：每窗口一条 io + 一条 node_wall；stage 必须为 mosaic；
 //   H. 取消：能返回、不挂死。
@@ -146,33 +149,70 @@ int main() {
                << "\nframes=6 tiles=16 tile_bytes=4096 window_tiles=4\n";
   }
 
-  // E. 窗口大小扫描 + 与总图大小解耦（ARCH-503 验收门）
+  // E. 窗口峰值驻留（MEM-WIRE-01 修 ARCH-AUDIT-02 F-07：判据量**实测驻留**，可红可绿）
+  //
+  // 修复前：run_window 把峰值驻留写成编译期常量 sizeof(double)*4 = 32 B，是写入 peak 的
+  // 唯一来源 ⇒ 旧 E1（peak>4096 判红）与旧 E2（16 vs 64 tiles 峰值相等）断言对象即该常量，
+  // **不可能红**（AGENTS §5「恒真门没有证据资格」；docs/KNOWN_LIMITATIONS.md 条目 35）。
+  // 现行：峰值 = 窗口真实存活分配的实测值（输出像素缓冲 capacity + 路由指针向量 + 标量），
+  // 判据由 window_peak_residency_ok 唯一实现，四条同时成立才绿：
+  //   ① peak>0 ② peak<=解析上界 ③ 与总图规模解耦 ④ window_tiles 增大 ⇒ peak 不减。
   {
     std::ofstream ev(std::string(ARCH503_EVIDENCE_DIR) + "/arch503_window_sweep.csv", std::ios::trunc);
-    if (ev) ev << "window_tiles,tiles,frames,windows,peak_resident_bytes,routed_bytes,naive_bytes,amplification\n";
-    bool bounded = true;
+    if (ev) ev << "window_tiles,tiles,frames,windows,peak_resident_bytes,bound_bytes,routed_bytes,naive_bytes,amplification\n";
+    std::vector<astrocs::core::WindowPeakSample> samples;
+    const std::size_t kFrames = 6;
     for (int wt : {1, 2, 4, 8, 16}) {
       std::size_t peak = 0; double amp = 0.0; std::uint64_t routed = 0, naive = 0;
       auto out = run_with(4, wt, 6, 16, 4096, &peak, &amp, &routed, &naive);
-      if (ev) ev << wt << ",16,6," << out.size() << "," << peak << "," << routed << "," << naive
-                 << "," << amp << "\n";
-      if (peak > 4096) bounded = false;   // 现场求值 ⇒ 峰值驻留常数级
+      const std::size_t bound =
+          astrocs::core::MosaicWindowScheduler::window_peak_bound_bytes(
+              static_cast<std::size_t>(wt), kFrames);
+      if (ev) ev << wt << ",16,6," << out.size() << "," << peak << "," << bound << ","
+                 << routed << "," << naive << "," << amp << "\n";
+      samples.push_back({wt, 16, peak, bound});
     }
-    check(bounded, "E1 per-window peak resident constant across window sizes (on-the-fly evaluation)");
-    std::size_t peak_small = 0, peak_big = 0;
     for (int nt : {16, 32, 64}) {
       std::size_t peak = 0; double amp = 0.0; std::uint64_t routed = 0, naive = 0;
       auto out = run_with(4, 4, 6, nt, 4096, &peak, &amp, &routed, &naive);
-      if (ev) ev << 4 << "," << nt << ",6," << out.size() << "," << peak << "," << routed << ","
-                 << naive << "," << amp << "\n";
-      if (nt == 16) peak_small = peak;
-      if (nt == 64) peak_big = peak;
+      const std::size_t bound =
+          astrocs::core::MosaicWindowScheduler::window_peak_bound_bytes(4, kFrames);
+      if (ev) ev << 4 << "," << nt << ",6," << out.size() << "," << peak << "," << bound << ","
+                 << routed << "," << naive << "," << amp << "\n";
+      samples.push_back({4, static_cast<std::size_t>(nt), peak, bound});
     }
-    check(peak_small == peak_big,
-          "E2 peak resident decoupled from total image size (16 vs 64 tiles): " +
-              std::to_string(peak_small) + " vs " + std::to_string(peak_big));
-    std::printf("INFO window sweep written (5 window sizes + 3 image sizes); peak resident %zu B\n",
-                peak_big);
+    std::string why;
+    const bool green = astrocs::core::window_peak_residency_ok(samples, &why);
+    check(green, "E1/E2/E3 window peak residency criterion GREEN on measured samples" +
+                     (green ? std::string() : (" (why: " + why + ")")));
+    // 实测非退化自证：窗口越大峰值越大（若为编译期常量则必然相等 ⇒ 旧门恒真）
+    std::size_t p1 = 0, p16 = 0;
+    for (const auto& s : samples) {
+      if (s.tiles_total != 16) continue;
+      if (s.window_tiles == 1) p1 = s.peak_bytes;
+      if (s.window_tiles == 16) p16 = s.peak_bytes;
+    }
+    check(p16 > p1, "E4 measured peak strictly grows with window size (1 vs 16 tiles/window): " +
+                        std::to_string(p1) + " -> " + std::to_string(p16) +
+                        " (compile-time constant would be equal = degenerate gate)");
+    // ── 负例（红）：同一判据函数喂入「编译期常量 32 B」样本 ⇒ 必须判红 ──
+    std::vector<astrocs::core::WindowPeakSample> mutated = samples;
+    for (auto& s : mutated) s.peak_bytes = sizeof(double) * 4;   // F-07 的旧常量注入
+    std::string why_const;
+    const bool red_const = !astrocs::core::window_peak_residency_ok(mutated, &why_const);
+    check(red_const, "E5 NEGATIVE: constant-residency injection (sizeof(double)*4) turns the " +
+                         std::string("criterion RED (got ") + (red_const ? "RED" : "GREEN") +
+                         "; why=" + why_const + ")");
+    // ── 负例（红）：峰值恒 0（未记账 / 硬写 0）⇒ 必须判红 ──
+    std::vector<astrocs::core::WindowPeakSample> zeroed = samples;
+    for (auto& s : zeroed) s.peak_bytes = 0;
+    std::string why_zero;
+    const bool red_zero = !astrocs::core::window_peak_residency_ok(zeroed, &why_zero);
+    check(red_zero, "E6 NEGATIVE: zero-residency injection turns the criterion RED (got " +
+                        std::string(red_zero ? "RED" : "GREEN") + "; why=" + why_zero + ")");
+    std::printf("INFO window sweep: peak resident w1=%zu B w16=%zu B (constant was %zu B); "
+                "negative why_const=\"%s\"\n",
+                p1, p16, sizeof(double) * 4, why_const.c_str());
   }
 
   // F. manifest 落盘

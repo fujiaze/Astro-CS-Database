@@ -48,7 +48,11 @@ REGISTERED = {
     "lib/infrastructure/aio/src/aio_pipeline_engine.cpp":
         "V5 迁移整改点: n_threads 改 host budget 注入(ABI-001 落地时收编)",
     "lib/infrastructure/scheduler/src/module_adapters.cpp":
-        "ScopedOmpWorkerInjection(:240-:262) 保存/恢复型预算注入: 实参 workers/prev_ 均运行时值(prev_ = omp_get_max_threads()), 非编译期字面量; 本文件是全仓唯一线程预算注入实现",
+        "ScopedOmpWorkerInjection(:240-:262) 保存/恢复型预算注入: 实参 workers/prev_ 均运行时值(prev_ = omp_get_max_threads()), 非编译期字面量; 本文件是全仓唯一线程预算注入实现"
+        "; PERF-P1 p1_parallel_for 帧级并行 worker 内的 omp_set_num_threads(inner_omp): 内层并行度 = 剩余预算分配"
+        "(n>=workers 时 1, 否则 workers/n), 由 Runtime lease 的 __workers 派生, 非编译期字面量; 目的是禁止"
+        "帧级 x 帧内 N×N 超额订阅(drizzle_engine.cpp:1736 与 dpsf_psf.cpp 的并行区取 omp_get_max_threads,"
+        "std::thread worker 的 ICV 是进程默认值)",
     # ── ACR：dormant 非生产路径 ──
     "lib/infrastructure/acr/examples/weighted_integration/weighted_integration_benchmark.cpp":
         "ACR benchmark 示范代码: 线程源=benchmark Env(e.openmp_threads, hardware_concurrency 探测), 非硬编码; dormant 非生产路径(V5 不接入)",
@@ -72,15 +76,15 @@ REGISTERED = {
     "lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp":
         "provider per-call 池 x1: 同上(avx512 provider)",
     "lib/infrastructure/scheduler/src/normalize_workflow.cpp":
-        "ARCH-502 normalize 异步工作流调度器：预取专用线程 x1（prefetch_pool），线程数 = cfg.prefetch_threads"
-        "（配置注入，默认 1 表示关闭预取；非编译期字面量）；生命周期限于 run()，与 worker 池分离",
-    "lib/include/astrocs/core/normalize_workflow.h":
-        "ARCH-502 同上的 worker 池声明（std::vector<std::thread> pool_）：线程数 = cfg.workers（ThreadBudget 注入），"
-        "run() 内创建/join，非长期池",
-    "lib/include/astrocs/core/mosaic_window.h":
-        "ARCH-503 天区窗口调度器 worker 池 x1：线程数 = cfg.workers（ThreadBudget 注入），run() 内创建/join，非长期池",
-    "lib/include/astrocs/core/export_stream.h":
-        "ARCH-504 子块流式调度器 worker 池 x1：线程数 = cfg.workers（ThreadBudget 注入），run() 内创建/join，非长期池",
+        "ARCH-502 normalize 异步工作流调度器 run() 作用域池 x2（RT-004-POOL-01）：帧 worker 池线程数 = cfg.workers、"
+        "预取池线程数 = cfg.prefetch_threads（均由配置/预算注入，非编译期字面量）；两者均为 run() 内局部量，"
+        "run 返回前全部 join 回收，无 detach/无常驻线程；池已由头文件成员移入 run() 局部量（头文件不再持有线程容器）",
+    "lib/infrastructure/scheduler/src/mosaic_window.cpp":
+        "ARCH-503 天区窗口调度器 run() 作用域池 x1（RT-004-POOL-01）：线程数 = cfg.workers（配置/预算注入），"
+        "run() 内创建、run 返回前 join 回收，非长期池；头文件成员 pool_ 已删除",
+    "lib/infrastructure/scheduler/src/export_stream.cpp":
+        "ARCH-504 子块流式调度器 run() 作用域池 x1（RT-004-POOL-01）：线程数 = cfg.workers + 读/写各 1"
+        "（配置/预算注入），run() 内创建、run 返回前 join 回收，非长期池；头文件成员 pool_ 已删除",
     "lib/include/astrocs/core/block_flow.h":
         "ARCH-505 命名块流执行器：不持有线程池（复用调用方注入的执行函数），登记为可见面",
     "lib/phase3_session/p3_session.cpp":

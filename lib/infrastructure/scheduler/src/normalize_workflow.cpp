@@ -5,8 +5,10 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
-#include "aio_atomic_file.h"   // aio 唯一 I/O：原子文本落盘（CLEAN-403）
 #include <sstream>
+#include <thread>
+#include <vector>
+#include "aio_atomic_file.h"   // aio 唯一 I/O：原子文本落盘（CLEAN-403）
 
 namespace astrocs::core {
 namespace {
@@ -188,8 +190,8 @@ NormalizeWorkflowScheduler::NormalizeWorkflowScheduler(NormalizeWorkflowConfig c
 }
 
 NormalizeWorkflowScheduler::~NormalizeWorkflowScheduler() {
+  // 池是 run() 的局部量（run 返回前已全部 join 回收），对象析构只需置取消唤醒在途 worker。
   cancel();
-  for (auto& t : pool_) if (t.joinable()) t.join();
 }
 
 void NormalizeWorkflowScheduler::add_frame(NormalizeFrame frame) {
@@ -452,23 +454,28 @@ std::vector<FrameOutcome> NormalizeWorkflowScheduler::run() {
     probe_claimed_.clear();
     for (std::size_t i = 0; i < frames_.size(); ++i)
       probe_claimed_.push_back(std::unique_ptr<std::atomic<int>>(new std::atomic<int>(0)));
-    started_ = true;
   }
+  // 本次 run 的**有界 run 作用域池**（RT-004：调度器不持有永久池成员）：
+  // 帧 worker 数 = cfg_.workers、预取线程数 = cfg_.prefetch_threads（均由配置/预算注入），
+  // run 返回前全部 join 回收。
   const int n = std::max(1, cfg_.workers);
-  pool_.clear();
+  std::vector<std::thread> pool;
+  pool.reserve(static_cast<std::size_t>(n));
   std::vector<std::thread> prefetch_pool;
   if (cfg_.prefetch_enabled) {
     const int np = cfg_.prefetch_threads;
+    prefetch_pool.reserve(static_cast<std::size_t>(np));
     for (int i = 0; i < np; ++i) prefetch_pool.emplace_back([this, i] { prefetch_loop(i); });
   }
-  for (int i = 0; i < n; ++i) pool_.emplace_back([this, i] { worker_loop(i); });
+  for (int i = 0; i < n; ++i) pool.emplace_back([this, i] { worker_loop(i); });
   {
     std::unique_lock<std::mutex> lk(mu_);
     cv_done_.wait(lk, [&] { return completed_ >= frames_.size() || cancel_.load(); });
   }
-  for (auto& t : pool_) if (t.joinable()) t.join();
-  pool_.clear();
+  for (auto& t : pool) if (t.joinable()) t.join();   // run 返回前全部回收（无 detach）
+  pool.clear();
   for (auto& t : prefetch_pool) if (t.joinable()) t.join();
+  prefetch_pool.clear();
 
   // 归约顺序冻结：按 frame_id 升序输出（与 worker 数无关）
   std::vector<FrameOutcome> out;
