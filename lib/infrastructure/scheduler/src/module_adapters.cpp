@@ -50,6 +50,10 @@
 
 #include "astrocs/common_abi_v1.h"
 #include "astrocs/core/context.h"
+// P3-STREAM-01：ARCH-504 export 子块流式调度器（生产接线点 = phase3 writer 节点）。
+// 依据 ASTROCS_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写 FITS，
+// 有界队列 + 背压，不整幅驻留」+ docs/contracts/SCHEDULER_CONTRACT.md §2。
+#include "astrocs/core/export_stream.h"
 
 #include "astro_calibration.h"
 #include "astro_image_io.h"
@@ -59,6 +63,9 @@
 // P1-001 口径更新: 真实求解器/拟合器/HiPS writer 生产头（模块库零 diff 只读调用）
 #include "dynamic_psf.h"     // lib/algorithms/psf: dpsf_fit_batch_f64 (Moffat4 FP64)
 #include "ipv_api.h"         // lib/algorithms/platesolve/cpp/ipv: 真实 plate-solve 求解链
+#include "ipv_select.h"      // STARDET-01: ipv 冻结的极限星等派生/视场密度实现
+                             // (compute_fov_density / estimate_mag_lim_iterative,
+                             //  唯一权威常量 206.265 与 m_lim_* 默认值)
 #include "gaia_client.h"     // lib/infrastructure/gaia_xpsd_client: Gaia XPSD cone-search 客户端
 #include "star_detector.h"   // lib/algorithms/star_detection: sdet_create/sdet_detect_ex_f64 句柄
 // 注: C++ StarDetector 类头与 sdet C 头同名——裸名 include 命中 lib/algorithms/star_detection
@@ -68,6 +75,7 @@
 #include "aio_hips_reader.h" // lib/infrastructure/aio: HiPS 读面(P2 帧数据消费)
 #include "aio_atomic_file.h" // lib/infrastructure/aio: §9 原子产品落盘原语(header-only)
 #include "aio_file_io.h"     // CLEAN-403: aio 唯一整文件读取/摘要原语(header-only)
+#include "aio_sysinfo.h"     // AIO-SYSINFO-01: 可用内存探测 (aio 边界内唯一实现)
 #include "aio_disk_full.h"   // FIX-401: 磁盘满失败瞬间分类 (§10 + §7.2 exit 10)
 
 // P2-001: Phase2 真实节点生产头（lib/algorithms/coverage 冻结 C ABI + HEALPix 单一实现 +
@@ -1122,7 +1130,7 @@ ModuleDescriptor p2_write_descriptor() {
   d.ports = {
       // FIX-402（GAP_AUDIT G3-4 / ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」）:
       // **写出端口**单位 = SURFACE_BRIGHTNESS（冻结单位表 signal_sb = ADU/px^2;
-      // docs/contracts/v6/data/01_units_and_bunit.md §1）。integrated 输入面仍为
+      // docs/contracts/DATA_SEMANTICS.md §31.1）。integrated 输入面仍为
       // integrate 节点产出的逐像素信号面（docs/modules/registry/astrocs.phase2.write.md
       // 端口表同源: 输入 ADU / 输出 SURFACE_BRIGHTNESS）。
       {"integrated", "DATA-P2-INT", true, UnitId::ADU, CoordinateFrame::PIXEL},
@@ -1736,12 +1744,27 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, Fn&& body) {
     for (uint64_t i = 0; i < n; ++i) body(i, 0u);
     return;
   }
+  // PERF-P1: 帧级并行占用了并行轴 ⇒ 帧内 OpenMP 并行度必须按**剩余预算**分配，
+  // 禁止 N×N 超额订阅（帧数 ≥ workers 时帧内 = 1）。依据：drizzle_engine.cpp:1736
+  // 的 num_threads 与 dpsf_psf.cpp:615/740/873/1047 的 omp parallel for 都取当前
+  // 线程的 omp_get_max_threads()；std::thread worker 的 ICV 是进程默认值（= 硬件
+  // 并发），若不显式收窄就会 16×16 线程 + 每帧 num_threads 份线程局部缓冲
+  // （内存 ×256）。这是**并行轴分配**，不是硬编码线程数：总并行度仍由 Runtime
+  // lease 的 __workers 唯一决定（AGENTS §6）。
+  // 注: omp_set_num_threads 只改**本线程**的 ICV，不影响主线程与进程其他阶段。
+#ifdef _OPENMP
+  const int inner_omp = static_cast<int>(
+      (n >= workers) ? 1u : std::max(1u, workers / static_cast<uint32_t>(n)));
+#endif
   std::atomic<uint64_t> next{0};
   std::vector<std::exception_ptr> eptr(workers, nullptr);
   std::vector<std::thread> pool;
   pool.reserve(workers);
   for (uint32_t w = 0; w < workers; ++w) {
     pool.emplace_back([&, w]() {
+#ifdef _OPENMP
+      omp_set_num_threads(inner_omp);
+#endif
       try {
         for (;;) {
           const uint64_t i = next.fetch_add(1);
@@ -1761,6 +1784,67 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, Fn&& body) {
 // P1 节点并行度：Runtime lease 注入的 __workers（budget 唯一权威; 1 = 串行）。
 static uint32_t p1_workers(const Json& doc) {
   return std::max(1u, doc.value("__workers", 1u));
+}
+
+// ── PERF-P1: 帧级并行的**内存安全**并发上限 ────────────────────────────────
+// 实测约束（run/RELEASE-05/perf/logs/{ser3,par3,par11}.log；同一代码同一数据，
+// 仅差并行轴）: T4 4500x3600（16.2e6 px）FP64、drizzle auto nside=65536 下
+//   · 串行 3 帧峰值 RSS 4.09 GB；
+//   · 3 帧并行峰值 RSS 17.5 GB（≈ 5.8 GB/帧 ≈ 358 B/px；含 signal/weight/variance
+//     累积 map、确定性 stripe 归约槽与 HiPS 写出缓冲的并发放大）；
+//   · 11 帧并行 645 s 后被 OOM killer 杀掉（RC=137 SIGKILL，产物只写了 27 个文件）。
+// ⇒ 并发帧数必须受**可用内存**约束：这不是"环境问题"，而是内存随并发帧数近线性
+//   增长的实现事实。口径（全部由可观测物理量派生）:
+//      cap = floor(可用内存 × 安全系数 / (帧像素数 × 每像素字节))
+//   每像素字节 = 上述实测标定；帧像素数取 FITS 头（aio_read_metadata，不读像素）。
+// fail-closed: 可用内存或帧尺寸不可判定 ⇒ cap=1（退回串行，不冒险 OOM）。
+// 平台: Windows 未接入可用内存 API（不在未验证平台上启用并行）⇒ 恒 cap=1，
+//   待 BLD-501 Windows 腿接入 GlobalMemoryStatusEx 后放开并补平台证据。
+//   AIO-SYSINFO-01: 探测机制已在 aio 侧就绪（aio_system_available_memory_bytes，
+//   Windows 分支 = GlobalMemoryStatusEx.ullAvailPhys）；**是否在 Windows 放开并行
+//   仍属平台策略**（需平台证据），故本函数在 Windows 保持既有取值 0 = 不可判定。
+static constexpr double kP1FrameBytesPerPixel = 358.0;   // 实测标定（见上）
+static constexpr double kP1FrameMemSafetyFrac = 0.75;    // 留基础占用与运行波动
+
+static uint64_t p1_available_memory_bytes() {
+#ifdef _WIN32
+  return 0;  // 平台策略不变（见上）: Windows 恒 cap=1
+#else
+  // AIO-SYSINFO-01: 可用内存探测经 aio 边界（ASTROCS_DESIGN §10「aio 是文件级
+  // 唯一 I/O 边界」+ §9.73 裁决 U5）。口径（/proc/meminfo 的 MemAvailable，含
+  // 可回收 page cache；读不到则回退 sysconf(_SC_AVPHYS_PAGES)×_SC_PAGESIZE）
+  // 在 aio 侧唯一实现，本 TU 不再自持 fopen/fgets 通道。返回 0 = 不可判定
+  // ⇒ 上层 p1_memory_cap 判 cap=1（fail-closed）。
+  return aio_system_available_memory_bytes();
+#endif
+}
+
+// 帧级并行的内存安全并发上限（>=1）。帧尺寸取 input_lights[0] 的头（优先逐帧产物，
+// 回退原始 light），与节点实际消费的路径族一致。
+static uint32_t p1_memory_cap(const Json& doc) {
+  const uint64_t avail = p1_available_memory_bytes();
+  if (avail == 0) return 1;
+  if (!p1_has(doc, "input_lights") || !doc["input_lights"].is_array() ||
+      doc["input_lights"].empty())
+    return 1;
+  const std::string first = doc["input_lights"][0].get<std::string>();
+  std::string probe = p1_calibrated_path(doc, first);
+  if (!aio_fs::exists(probe)) probe = first;
+  const AIOImageMetadata meta = aio_read_metadata(probe.c_str());
+  const double w = static_cast<double>(meta.geometry.width);
+  const double h = static_cast<double>(meta.geometry.height);
+  if (!(w > 0.0) || !(h > 0.0)) return 1;
+  const double per_frame = w * h * kP1FrameBytesPerPixel;
+  const double cap =
+      std::floor(static_cast<double>(avail) * kP1FrameMemSafetyFrac / per_frame);
+  if (!(cap >= 1.0)) return 1;
+  return static_cast<uint32_t>(std::min(cap, 1024.0));
+}
+
+// P1 帧级并行的**实际**并行度 = min(Runtime lease 预算, 内存安全上限)。帧数多于该值时
+// p1_parallel_for 的原子认领天然分批（同时最多 cap 帧在飞，内存受控）。
+static uint32_t p1_frame_workers(const Json& doc) {
+  return std::min(p1_workers(doc), p1_memory_cap(doc));
 }
 
 Result<void> p1_op_calibrate(const Json& doc, Json* man) {
@@ -1974,7 +2058,7 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   // 在 join 后按下标升序执行 ⇒ 与串行逐字一致、与 worker 数无关。
   // W/H 不再由循环内共享变量推进（那是帧间共享可变状态）：以母版尺寸（若有）或
   // **首帧**尺寸为基准逐帧独立校验，判据与串行相同且确定性。
-  const uint32_t cal_workers = p1_workers(doc);
+  const uint32_t cal_workers = p1_frame_workers(doc);
   const size_t n_lights = lights.size();
   const int W_base = W, H_base = H;
   std::vector<Result<void>> f_err(n_lights, Result<void>::success());
@@ -2156,7 +2240,7 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   // PERF-P1: 帧级并行（与 p2_parallel_for 同规范）。每帧只写**自己下标**的结果槽与
   // **自己帧**的产物路径；跨帧无浮点归约；帧序归约（hot/cold/frames/artifacts）在
   // join 之后按下标升序执行 ⇒ 与串行逐位一致、与 worker 数无关。
-  const uint32_t cos_workers = p1_workers(doc);
+  const uint32_t cos_workers = p1_frame_workers(doc);
   const size_t n_lights = doc["input_lights"].size();
   std::vector<Result<void>> f_err(n_lights, Result<void>::success());
   std::vector<int> f_hot(n_lights, 0), f_cold(n_lights, 0);
@@ -2254,6 +2338,369 @@ inline double p1_psf_analytic_flux(double A, double sx, double sy) {
   return 2.0 * M_PI * A * sx * sy / 3.0;
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// STARDET-01：星表引导检测（权威路径）节点级驱动
+// 规范: ASTROCS_DESIGN.md §4.2（星表引导检测：用本帧 WCS 把 Gaia 星表逆投影到
+//   像素域，只对星表位置做质心/PSF 拟合；拟合成功即星点，失败直接丢弃；按亮度
+//   取 top 2–5 万为上限，极限星等按焦距、画幅、曝光时间派生估计，宁多勿少）
+//   + §2.1 + docs/plugins/algorithms_phase1/03_star_detection.md §4。
+// 分工: 权威路径 = 本块（星表逆投影 → sdet_detect_guided_ex_f64 逐位置拟合）；
+//   全图盲检测 = **诊断/初值**路径（显式 star_detection.mode=blind_diagnostic，
+//   或未配置参考星表时的自动降级 —— 降级必须逐帧落 degraded_reason 且
+//   authoritative=false，不得静默）。
+// fail-closed（Gaia 静默部分装载事故, GAIA-FAILCLOSED-01 同族）:
+//   ① gaia_data_dir 不可解析 → DATA 拒绝（权威路径不接受"无星表"）
+//   ② gaia_client_create 返回 NULL → DATA 拒绝（含装载失败原因）
+//   ③ file_count<=0 / file_load_fail_count!=0 / file_count!=xpsd 条目数 → DATA 拒绝
+//   ④ 近似 WCS 不可解析（含板尺度非法）→ DATA 拒绝
+//   ⑤ 圆锥查询 0 颗 / 帧内 0 个预测位置 → DATA 拒绝
+//   ⑥ 引导拟合 0 颗 → DATA 拒绝（**不得**回退到全图盲检测冒充成功）
+// ════════════════════════════════════════════════════════════════════════════
+
+// P9 (F-10) 帧自有关键字初始指向（定义在下方 wcs 节点段; 本段前置声明）
+bool p1_header_pointing(const P1Image& im, double* ra0, double* dec0,
+                        double* focal_mm, double* pixel_um, double* s0,
+                        std::string* src, std::string* why);
+
+// top 数合同域 = 2–5 万（ASTROCS_DESIGN.md §4.2）。越界即 DATA 拒绝，禁静默夹取。
+static constexpr int kP1GuidedMaxStarsLo = 20000;
+static constexpr int kP1GuidedMaxStarsHi = 50000;
+// 206.265 = (180×3600)/π × 1e-3，与 kP9AsecPerUmPerMm / ipv_select.cpp:57
+// IPV_ARCSEC_PER_UM_PER_MM 逐位一致（s0 = 206.265·XPIXSZ[μm]/FOCALLEN[mm]）。
+static constexpr double kP1GuidedAsecPerUmPerMm = 206.265;
+
+struct P1GuidedCfg {
+  // mode: auto（默认；有参考星表 ⇒ 权威路径，否则显式降级并留痕）
+  //     | catalog_guided（权威路径，星表缺失即 fail-closed）
+  //     | blind_diagnostic（显式声明的非权威诊断路径）
+  std::string mode = "auto";
+  int max_stars = kP1GuidedMaxStarsLo;
+  std::string gaia_dir;
+  bool have_explicit_wcs = false;
+  astrocs::phase1::WcsTan explicit_wcs;
+  double rotation_deg = 0.0;
+  bool have_rotation = false;
+  std::string parity = "pos";     // pos | neg
+  double limiting_mag = std::numeric_limits<double>::quiet_NaN();
+  // 星等迭代/查询参数（默认值 = IPVSolverParams 成员默认，禁另立常数）
+  ipv::IPVSolverParams ipv_params;
+};
+
+// star_detection 段解析（唯一配置入口；top 数禁编译期硬编码，宪章 §10.4）。
+// 返回 false 且写 *why = 配置非法（调用方 DATA fail-closed）。
+bool p1_guided_cfg(const Json& doc, P1GuidedCfg* out, std::string* why) {
+  const Json sd = (p1_has(doc, "star_detection") && doc["star_detection"].is_object())
+                      ? doc["star_detection"] : Json::object();
+  const Json wc = (p1_has(doc, "wcs") && doc["wcs"].is_object()) ? doc["wcs"] : Json::object();
+  out->mode = sd.value("mode", std::string("auto"));
+  if (out->mode != "auto" && out->mode != "catalog_guided" &&
+      out->mode != "blind_diagnostic") {
+    *why = "star_detection.mode must be one of auto|catalog_guided|blind_diagnostic (got '" +
+           out->mode + "')";
+    return false;
+  }
+  // 参考星表目录: star_detection.gaia_data_dir 优先, 回退 wcs.gaia_data_dir
+  out->gaia_dir = sd.value("gaia_data_dir", std::string());
+  if (out->gaia_dir.empty()) out->gaia_dir = wc.value("gaia_data_dir", std::string());
+  // top-N 上限: 默认 = 合同下界; 显式给出时必须落在 [2万, 5万]
+  const int max_stars = p1_int(sd, "max_stars", kP1GuidedMaxStarsLo);
+  if (max_stars < kP1GuidedMaxStarsLo || max_stars > kP1GuidedMaxStarsHi) {
+    *why = "star_detection.max_stars=" + std::to_string(max_stars) +
+           " outside contract domain [" + std::to_string(kP1GuidedMaxStarsLo) + ", " +
+           std::to_string(kP1GuidedMaxStarsHi) +
+           "] (ASTROCS_DESIGN.md §4.2: top 2–5 万; 禁静默夹取)";
+    return false;
+  }
+  out->max_stars = max_stars;
+  // 显式近似 WCS（star_detection.approx_wcs 优先, 回退 wcs 段的天测键）
+  const Json aw = (p1_has(sd, "approx_wcs") && sd["approx_wcs"].is_object())
+                      ? sd["approx_wcs"] : wc;
+  if (p1_has(aw, "crval1") && p1_has(aw, "crval2") && p1_has(aw, "cd11") &&
+      p1_has(aw, "cd12") && p1_has(aw, "cd21") && p1_has(aw, "cd22")) {
+    out->explicit_wcs.crval1 = p1_num(aw, "crval1", 0.0);
+    out->explicit_wcs.crval2 = p1_num(aw, "crval2", 0.0);
+    out->explicit_wcs.cd11 = p1_num(aw, "cd11", 0.0);
+    out->explicit_wcs.cd12 = p1_num(aw, "cd12", 0.0);
+    out->explicit_wcs.cd21 = p1_num(aw, "cd21", 0.0);
+    out->explicit_wcs.cd22 = p1_num(aw, "cd22", 0.0);
+    const double det = out->explicit_wcs.cd11 * out->explicit_wcs.cd22 -
+                       out->explicit_wcs.cd12 * out->explicit_wcs.cd21;
+    if (!std::isfinite(out->explicit_wcs.crval1) || !std::isfinite(out->explicit_wcs.crval2) ||
+        !std::isfinite(det) || !(std::fabs(det) > 0.0)) {
+      *why = "star_detection approximate WCS invalid (non-finite crval or degenerate CD)";
+      return false;
+    }
+    out->have_explicit_wcs = true;
+  }
+  if (p1_has(sd, "rotation_deg")) {
+    out->rotation_deg = p1_num(sd, "rotation_deg", 0.0);
+    out->have_rotation = true;
+    if (!std::isfinite(out->rotation_deg)) {
+      *why = "star_detection.rotation_deg must be finite";
+      return false;
+    }
+  }
+  out->parity = sd.value("parity", std::string("pos"));
+  if (out->parity != "pos" && out->parity != "neg") {
+    *why = "star_detection.parity must be pos|neg (got '" + out->parity + "')";
+    return false;
+  }
+  if (p1_has(sd, "limiting_mag")) {
+    out->limiting_mag = p1_num(sd, "limiting_mag", std::numeric_limits<double>::quiet_NaN());
+    if (!std::isfinite(out->limiting_mag)) {
+      *why = "star_detection.limiting_mag must be finite when given";
+      return false;
+    }
+  }
+  // 星等迭代参数可调（默认 = IPVSolverParams 成员默认值；非法值由
+  // estimate_mag_lim_iterative 自身 fail-closed）
+  out->ipv_params.m_lim_safety = p1_num(sd, "limiting_mag_safety", out->ipv_params.m_lim_safety);
+  out->ipv_params.gaia_query_radius_factor =
+      p1_num(sd, "query_radius_factor", out->ipv_params.gaia_query_radius_factor);
+  out->ipv_params.m_lim_max_iter = p1_int(sd, "limiting_mag_max_iter", out->ipv_params.m_lim_max_iter);
+  return true;
+}
+
+// 近似 WCS 解析（权威路径逆投影的锚）。来源优先级:
+//   ① star_detection.approx_wcs / wcs 段的天测键（crval1/2 + CD，方向完整）
+//   ② wcs.init_source 的初始指向（header_pointing|config|neighbor_crval）+
+//      板尺度 s0=206.265·XPIXSZ/FOCALLEN + 方向（rotation_deg/parity；缺省
+//      "北向上/东向左" ⇒ *assumed=true 留痕，不静默当已知）。
+// 任一不可得 → false + *why（调用方 DATA fail-closed）。
+bool p1_guided_approx_wcs(const P1GuidedCfg& cfg, const Json& doc, const P1Image& im,
+                          astrocs::phase1::WcsTan* wcs, double* out_focal_mm,
+                          double* out_pixel_um, double* out_s0, std::string* src,
+                          bool* assumed, std::string* why) {
+  *assumed = false;
+  double ra0 = std::numeric_limits<double>::quiet_NaN();
+  double dec0 = std::numeric_limits<double>::quiet_NaN();
+  double focal_mm = std::numeric_limits<double>::quiet_NaN();
+  double pixel_um = std::numeric_limits<double>::quiet_NaN();
+  double s0 = std::numeric_limits<double>::quiet_NaN();
+  std::string center_src;
+  if (cfg.have_explicit_wcs) {
+    *wcs = cfg.explicit_wcs;
+    wcs->crpix1 = 0.5 * (double)im.w() + 0.5;   // FITS 1-based 中心
+    wcs->crpix2 = 0.5 * (double)im.h() + 0.5;
+    // 显式 WCS 的板尺度 = |CD 第 1 列|（deg/px → ″/px）；focal/pixel 由 s0 反演
+    // 只为把同一物理量喂给 compute_fov_density（等价换算，不引入新常数）。
+    s0 = std::sqrt(wcs->cd11 * wcs->cd11 + wcs->cd21 * wcs->cd21) * 3600.0;
+    if (!std::isfinite(s0) || !(s0 > 0.0)) {
+      *why = "star_detection approximate WCS degenerate (|CD column 1| = 0)";
+      return false;
+    }
+    pixel_um = 1.0;
+    focal_mm = kP1GuidedAsecPerUmPerMm / s0;
+    *out_focal_mm = focal_mm;
+    *out_pixel_um = pixel_um;
+    *out_s0 = s0;
+    *src = "config_astrometric_keys";
+    return true;
+  }
+  const Json wc = (p1_has(doc, "wcs") && doc["wcs"].is_object()) ? doc["wcs"] : Json::object();
+  const std::string init_source = wc.value("init_source", std::string("header_pointing"));
+  if (init_source == "header_pointing") {
+    if (!p1_header_pointing(im, &ra0, &dec0, &focal_mm, &pixel_um, &s0, &center_src, why)) {
+      return false;
+    }
+  } else if (init_source == "config" || init_source == "neighbor_crval") {
+    focal_mm = p1_num(wc, "focal_length_mm", std::numeric_limits<double>::quiet_NaN());
+    pixel_um = p1_num(wc, "pixel_size_um", std::numeric_limits<double>::quiet_NaN());
+    if (!std::isfinite(focal_mm) || !std::isfinite(pixel_um) ||
+        !(focal_mm > 0.0) || !(pixel_um > 0.0)) {
+      *why = "wcs.init_source=" + init_source +
+             " requires config focal_length_mm/pixel_size_um (no silent defaults)";
+      return false;
+    }
+    s0 = kP1GuidedAsecPerUmPerMm * pixel_um / focal_mm;
+    if (init_source == "config") {
+      ra0 = p1_num(wc, "ra0", ra0);
+      dec0 = p1_num(wc, "dec0", dec0);
+      center_src = "config.wcs.ra0/dec0";
+    } else {
+      ra0 = p1_num(wc, "neighbor_ra0", ra0);
+      dec0 = p1_num(wc, "neighbor_dec0", dec0);
+      center_src = "config.wcs.neighbor_ra0/neighbor_dec0(own_solved_product)";
+    }
+  } else {
+    *why = "wcs.init_source must be one of header_pointing|config|neighbor_crval (got '" +
+           init_source + "')";
+    return false;
+  }
+  if (!std::isfinite(ra0) || !std::isfinite(dec0)) {
+    *why = "approx WCS center unavailable (ra0/dec0 missing; 禁 silent default)";
+    return false;
+  }
+  if (!std::isfinite(s0) || !(s0 > 0.0)) {
+    *why = "approx WCS plate scale unavailable (s0=206.265*XPIXSZ/FOCALLEN invalid)";
+    return false;
+  }
+  const double s_deg = s0 / 3600.0;
+  // 缺省取向 = 北向上/东向左（本管线像素 y 沿行号向下 ⇒ CD2_2 取负）；
+  // rotation_deg 为像面相对该取向的旋转（逆时针为正）。
+  if (!cfg.have_rotation) *assumed = true;
+  const double th = cfg.rotation_deg * M_PI / 180.0;
+  const double ct = std::cos(th), st = std::sin(th);
+  const double par = (cfg.parity == "neg") ? -1.0 : 1.0;
+  const double cd0_11 = -s_deg, cd0_12 = 0.0, cd0_21 = 0.0, cd0_22 = -s_deg * par;
+  wcs->crpix1 = 0.5 * (double)im.w() + 0.5;
+  wcs->crpix2 = 0.5 * (double)im.h() + 0.5;
+  wcs->crval1 = ra0;
+  wcs->crval2 = dec0;
+  wcs->cd11 = ct * cd0_11 - st * cd0_21;
+  wcs->cd12 = ct * cd0_12 - st * cd0_22;
+  wcs->cd21 = st * cd0_11 + ct * cd0_21;
+  wcs->cd22 = st * cd0_12 + ct * cd0_22;
+  *out_focal_mm = focal_mm;
+  *out_pixel_um = pixel_um;
+  *out_s0 = s0;
+  *src = "init_pointing(" + center_src + ")+s0=206.265*XPIXSZ/FOCALLEN" +
+         (cfg.have_rotation ? "+rotation_deg" : "+orientation_assumed_north_up_east_left") +
+         (cfg.parity == "neg" ? "+parity_neg" : "");
+  return true;
+}
+
+// 星表引导预测: 极限星等派生（焦距/画幅/曝光）→ Gaia 圆锥查询 →
+// 逆投影到像素域 → 按亮度（G 星等升序）取 top cfg.max_stars。
+// prov 逐项记录派生输入（可审计）；失败写 *why（调用方 DATA fail-closed）。
+bool p1_guided_predict(const P1GuidedCfg& cfg, const P1Image& im, const std::string& frame_path,
+                       const astrocs::phase1::WcsTan& wcs, double focal_mm, double pixel_um,
+                       GaiaClient* gaia,
+                       std::vector<double>* px, std::vector<double>* py, Json* prov,
+                       std::string* why) {
+  px->clear();
+  py->clear();
+  const AIOImageMetadata meta = aio_read_metadata(frame_path.c_str());
+  const double exptime = meta.calibration.exptime;
+  if (!std::isfinite(exptime) || !(exptime > 0.0)) {
+    *why = "frame EXPTIME missing/<=0 (极限星等派生需要曝光时间): " + frame_path;
+    return false;
+  }
+  // 板尺度与视场（画幅）: 复用 ipv 冻结实现 compute_fov_density
+  // （206.265″/px/μm/mm、query_radius = fov_diag × factor）。n_img_bright=0:
+  // 本路径不需要图像面密度（只取 s0 / fov_diag / query_radius）。
+  double s0 = 0.0, fov_diag_deg = 0.0, query_radius_deg = 0.0, q_area = 0.0;
+  double img_area = 0.0, rho_img = 0.0, rho_target = 0.0;
+  int n_target_unused = 0;
+  ipv::compute_fov_density(focal_mm, pixel_um, (double)im.w(), (double)im.h(),
+                           0, 1.5, cfg.ipv_params.gaia_query_radius_factor,
+                           s0, fov_diag_deg, query_radius_deg, q_area, img_area,
+                           rho_img, rho_target, n_target_unused, nullptr);
+  if (!std::isfinite(query_radius_deg) || !(query_radius_deg > 0.0)) {
+    *why = "query radius degenerate (fov_diag=0)";
+    return false;
+  }
+  // 极限星等派生: 割线迭代（初值 = 6 + 1.5·log10(f) + 2·log10(t) + offset，
+  // N_target = max_stars × safety）—— 目标 = 帧内星表星数达到 top-N 上限，
+  // 宁多勿少由 safety(默认 3.0) 承担；显式 limiting_mag 直接采用。
+  std::vector<double> cat_ra, cat_dec;
+  std::vector<float> cat_mag;
+  double m_lim = 0.0;
+  int n_query = 0;
+  bool converged = false, capped = false;
+  if (std::isfinite(cfg.limiting_mag)) {
+    m_lim = cfg.limiting_mag;
+    int n_ret = 0;
+    double *ra_p = nullptr, *dec_p = nullptr;
+    float *mag_p = nullptr;
+    if (gaia_client_cone_search_for_solver(gaia, wcs.crval1, wcs.crval2, query_radius_deg,
+                                           m_lim, &ra_p, &dec_p, &mag_p, &n_ret) != 0) {
+      if (ra_p) free(ra_p);
+      if (dec_p) free(dec_p);
+      if (mag_p) free(mag_p);
+      *why = "gaia cone search failed (explicit limiting_mag)";
+      return false;
+    }
+    if (n_ret > 0) {
+      cat_ra.assign(ra_p, ra_p + n_ret);
+      cat_dec.assign(dec_p, dec_p + n_ret);
+      cat_mag.assign(mag_p, mag_p + n_ret);
+    }
+    if (ra_p) free(ra_p);
+    if (dec_p) free(dec_p);
+    if (mag_p) free(mag_p);
+    n_query = 1;
+    converged = true;
+  } else {
+    auto query_fn = [&](double mag, int& n_returned) -> int {
+      double *ra_p = nullptr, *dec_p = nullptr;
+      float *mag_p = nullptr;
+      int n_ret = 0;
+      const int rc = gaia_client_cone_search_for_solver(
+          gaia, wcs.crval1, wcs.crval2, query_radius_deg, mag, &ra_p, &dec_p, &mag_p, &n_ret);
+      if (rc == 0) {
+        n_returned = n_ret;
+        cat_ra.assign(n_ret > 0 ? ra_p : nullptr, n_ret > 0 ? ra_p + n_ret : nullptr);
+        cat_dec.assign(n_ret > 0 ? dec_p : nullptr, n_ret > 0 ? dec_p + n_ret : nullptr);
+        cat_mag.assign(n_ret > 0 ? mag_p : nullptr, n_ret > 0 ? mag_p + n_ret : nullptr);
+      }
+      if (ra_p) free(ra_p);
+      if (dec_p) free(dec_p);
+      if (mag_p) free(mag_p);
+      return rc;
+    };
+    const ipv::MagIterOutcome mi = ipv::estimate_mag_lim_iterative(
+        query_fn, cfg.max_stars, focal_mm, exptime, cfg.ipv_params, nullptr);
+    if (!mi.valid) {
+      *why = "limiting magnitude derivation failed (no successful gaia query; "
+             "focal=" + std::to_string(focal_mm) + "mm exptime=" + std::to_string(exptime) + "s)";
+      return false;
+    }
+    m_lim = mi.m_lim_final;
+    n_query = mi.query_count;
+    converged = mi.converged;
+    capped = mi.capped;
+  }
+  if (cat_ra.empty()) {
+    *why = "gaia cone search returned 0 stars (m_lim=" + std::to_string(m_lim) +
+           ", radius=" + std::to_string(query_radius_deg) + " deg)";
+    return false;
+  }
+  // 逆投影到像素域（本帧近似 WCS 的 sky→pix），按亮度取 top-N
+  std::vector<int> order(cat_ra.size());
+  for (size_t i = 0; i < order.size(); ++i) order[i] = (int)i;
+  std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
+    const float ma = cat_mag[(size_t)a], mb = cat_mag[(size_t)b];
+    if (ma != mb) return ma < mb;   // G 星等升序 = 亮度降序
+    return a < b;
+  });
+  int n_in_frame = 0;
+  px->reserve((size_t)cfg.max_stars);
+  py->reserve((size_t)cfg.max_stars);
+  for (int k : order) {
+    if ((int)px->size() >= cfg.max_stars) break;
+    double x = 0.0, y = 0.0;
+    wcs.sky2pix((double)cat_ra[(size_t)k], (double)cat_dec[(size_t)k], &x, &y);
+    if (!std::isfinite(x) || !std::isfinite(y)) continue;
+    const double xi = x - 1.0;   // FITS 1-based → 0-based 数组下标（索引即中心）
+    const double yi = y - 1.0;
+    // 边界: 距边界 <2px 允许丢弃（SCI-P1-STAR-001 §1，与引导拟合同判据）
+    if (xi < 2.0 || yi < 2.0 || xi > (double)im.w() - 3.0 || yi > (double)im.h() - 3.0) continue;
+    px->push_back(xi);
+    py->push_back(yi);
+    n_in_frame++;
+  }
+  if (px->empty()) {
+    *why = "0 catalog stars project inside the frame (approx WCS/pointing wrong or field empty; "
+           "n_catalog=" + std::to_string(cat_ra.size()) + ")";
+    return false;
+  }
+  *prov = Json{{"catalog_stars_queried", (int64_t)cat_ra.size()},
+               {"catalog_stars_in_frame", n_in_frame},
+               {"limiting_mag", m_lim},
+               {"limiting_mag_explicit", std::isfinite(cfg.limiting_mag)},
+               {"limiting_mag_iterations", n_query},
+               {"limiting_mag_converged", converged},
+               {"limiting_mag_capped", capped},
+               {"limiting_mag_safety", cfg.ipv_params.m_lim_safety},
+               {"max_stars", cfg.max_stars},
+               {"s0_arcsec_px", s0},
+               {"fov_diag_deg", fov_diag_deg},
+               {"query_radius_deg", query_radius_deg},
+               {"exptime_s", exptime}};
+  return true;
+}
+
 Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
@@ -2264,23 +2711,249 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   // kPrecisePsfEnabled + 节点配置决定传入值; 精确直调路径传 0。
   const std::string psf_mode = (n_fit_limit > 0) ? std::string("fast")
                                                  : std::string("precise");
-  const astrocs::phase1::StarDetector det(5.0);
-  Json frames = Json::array();
-  std::vector<double> fwhm_xs, fwhm_ys, ells;
-  int64_t n_valid_total = 0, n_total_total = 0, n_fit_total = 0;
-  for (const auto& l : doc["input_lights"]) {
+  // ── STARDET-01: 检测模式解析（权威 = 星表引导拟合）──────────────────────────
+  // 依据 ASTROCS_DESIGN.md §4.2 + docs/plugins/algorithms_phase1/03_star_detection.md §4。
+  // 节点级一次解析（禁逐帧重复），模式与 fail-closed 语义见 p1_guided_cfg 注释块。
+  P1GuidedCfg gcfg;
+  {
+    std::string why;
+    if (!p1_guided_cfg(doc, &gcfg, &why)) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "star_detection config invalid: " + why));
+    }
+  }
+  std::string eff_mode = gcfg.mode;
+  std::string degrade_reason;
+  if (eff_mode == "auto") {
+    if (!gcfg.gaia_dir.empty()) {
+      eff_mode = "catalog_guided";
+    } else {
+      // 显式降级（**不是**静默）：逐帧落 degraded_reason + authoritative=false。
+      eff_mode = "blind_diagnostic";
+      degrade_reason = "no reference catalog configured (star_detection.gaia_data_dir / "
+                       "wcs.gaia_data_dir absent): authoritative catalog-guided detection "
+                       "unavailable, falling back to the declared non-authoritative blind path";
+      std::fprintf(stderr, "[star-psf] WARNING (recorded): %s\n", degrade_reason.c_str());
+    }
+  } else if (eff_mode == "catalog_guided" && gcfg.gaia_dir.empty()) {
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "star_detection.mode=catalog_guided requires gaia_data_dir "
+        "(star_detection.gaia_data_dir or wcs.gaia_data_dir): refusing to degrade to "
+        "full-frame blind detection (ASTROCS_DESIGN.md §4.2)"));
+  }
+  const bool guided = (eff_mode == "catalog_guided");
+  // Gaia 句柄（权威路径必需）。fail-closed 三道断言与 wcs 节点同款
+  // （GAIA-FAILCLOSED-01：静默部分装载事故不得重演）。
+  GaiaClient* gaia = nullptr;
+  Json gaia_prov = Json::object();
+  if (guided) {
+    gaia = gaia_client_create(gcfg.gaia_dir.c_str());
+    if (!gaia) {
+      const char* why = gaia_client_get_last_create_error();
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "gaia_client_create failed (gaia_data_dir=" + gcfg.gaia_dir + ")" +
+          (why ? std::string(": ") + why : std::string(": (no diagnostic)"))));
+    }
+    const int gaia_files = gaia_client_get_file_count(gaia);
+    const int gaia_entries = gaia_client_get_file_entry_count(gaia);
+    const int gaia_load_failed = gaia_client_get_file_load_fail_count(gaia);
+    if (gaia_files <= 0) {
+      gaia_client_destroy(gaia);
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "gaia catalog is empty (gaia_data_dir=" + gcfg.gaia_dir +
+          ", xpsd_entries=" + std::to_string(gaia_entries) +
+          "): refusing catalog-guided detection without a reference catalog"));
+    }
+    if (gaia_load_failed != 0 || gaia_files != gaia_entries) {
+      gaia_client_destroy(gaia);
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "gaia catalog is incomplete: loaded=" + std::to_string(gaia_files) +
+          " xpsd_entries=" + std::to_string(gaia_entries) +
+          " load_failed=" + std::to_string(gaia_load_failed) +
+          " (gaia_data_dir=" + gcfg.gaia_dir +
+          "): refusing catalog-guided detection on a partial catalog"));
+    }
+    gaia_prov = Json{{"gaia_data_dir", gcfg.gaia_dir},
+                     {"xpsd_entries", gaia_entries},
+                     {"xpsd_loaded", gaia_files},
+                     {"xpsd_load_failed", gaia_load_failed}};
+  }
+  // PERF-P1: 帧级并行（与 p2_parallel_for 同规范）。每帧只写**自己下标**的结果槽与
+  // 自己帧的统计池；跨帧无浮点归约；帧序归约（frames / fwhm 池 / 计数）在 join 之后
+  // 按下标升序执行 ⇒ 与串行逐字一致、与 worker 数无关。
+  // StarDetector 持检测期内部状态（背景估计与临时缓冲）⇒ **必须按 worker 分实例**，
+  // 不得跨 worker 共享；每个检测器只被其所属 worker 写入自己的槽。
+  const uint32_t sp_workers = p1_frame_workers(doc);
+  const size_t n_lights = doc["input_lights"].size();
+  // 权威路径的 sdet 句柄同样按 worker 分实例（handle 级互斥, 禁跨线程共享）
+  std::vector<StarDetectorHandle> ghandles(sp_workers, nullptr);
+  auto gcleanup = [&]() {
+    for (StarDetectorHandle& h : ghandles) {
+      if (h) { sdet_destroy(h); h = nullptr; }
+    }
+    if (gaia) { gaia_client_destroy(gaia); gaia = nullptr; }
+  };
+  std::vector<Result<void>> f_err(n_lights, Result<void>::success());
+  std::vector<int> f_errkind(n_lights, 0);   // 0=无 1=input
+  std::vector<Json> f_frame(n_lights);
+  std::vector<std::vector<double>> f_fx(n_lights), f_fy(n_lights), f_ell(n_lights);
+  std::vector<int64_t> f_nvalid(n_lights, 0), f_ntotal(n_lights, 0), f_nfit(n_lights, 0);
+  std::vector<std::unique_ptr<astrocs::phase1::StarDetector>> dets(sp_workers);
+  p1_parallel_for(sp_workers, n_lights, [&](uint64_t fi, uint32_t w) {
+    if (!dets[w]) dets[w] = std::make_unique<astrocs::phase1::StarDetector>(5.0);
+    const astrocs::phase1::StarDetector& det = *dets[w];
     // IR 输入端口 = artifact:cos → 消费 cosmetic 节点产物（CORE-RACE-001 接线）
-    const std::string path = p1_cleaned_input_path(doc, l.get<std::string>());
+    const std::string path =
+        p1_cleaned_input_path(doc, doc["input_lights"][fi].get<std::string>());
     P1Image im = p1_read_image(path);
     if (!im.ok()) {
-      (*man)["error_kind"] = "input";
-      return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
+      f_errkind[fi] = 1;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
+      return;
     }
-    auto r = det.detect(im.px(), im.w(), im.h());
-    if (r.failed()) {
-      return Result<void>::fail(r.error());
+    // ── 检测：权威路径（星表引导拟合）或显式声明的诊断路径（全图盲检测）──────
+    astrocs::phase1::StarCatalog cat;
+    Json guided_prov = Json::object();
+    std::string det_mode = eff_mode;
+    bool authoritative = guided;
+    std::string det_degraded = degrade_reason;
+    // FP64 图像缓冲（引导检测与 PSF 拟合共用一份）
+    std::vector<double> dbuf(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()));
+    for (size_t i = 0; i < dbuf.size(); ++i) dbuf[i] = static_cast<double>(im.px()[i]);
+    if (guided) {
+      // ① 近似 WCS（本帧 WCS 的近似：初始指向 + 板尺度 + 方向）
+      astrocs::phase1::WcsTan awcs;
+      std::string wsrc, why;
+      bool orientation_assumed = false;
+      double g_focal = 0.0, g_pixel = 0.0, g_s0 = 0.0;
+      if (!p1_guided_approx_wcs(gcfg, doc, im, &awcs, &g_focal, &g_pixel, &g_s0,
+                                &wsrc, &orientation_assumed, &why)) {
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+            "catalog_guided: approx WCS unavailable (" + why + "): " + path));
+        return;
+      }
+      // ② 星表查询 + 逆投影到像素域 + 按亮度取 top max_stars
+      std::vector<double> px, py;
+      Json pred_prov;
+      if (!p1_guided_predict(gcfg, im, path, awcs, g_focal, g_pixel, gaia,
+                             &px, &py, &pred_prov, &why)) {
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+            "catalog_guided: prediction failed (" + why + "): " + path));
+        return;
+      }
+      // ③ 帧级背景/噪声（与盲路径同一估计器 ⇒ p1_sources.json 同列语义）
+      double g_bg = 0.0, g_sigma = 0.0;
+      if (!astrocs::phase1::StarDetector::estimate_background(
+              im.px(), im.w(), im.h(), &g_bg, &g_sigma)) {
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+            "catalog_guided: background estimation failed: " + path));
+        return;
+      }
+      // ④ 权威拟合：只对星表预测位置做质心/椭圆高斯拟合，失败直接丢弃
+      if (!ghandles[w]) {
+        SDetParams sp;
+        std::memset(&sp, 0, sizeof(sp));
+        sp.structureLayers = 5;
+        sp.hotPixelFilterRadius = 2;
+        sp.iterativeClipSigma = 5.0f;
+        sp.iterativeMaxRounds = 3;
+        sp.medianFilterDetail = 2;
+        sp.maxStars = gcfg.max_stars;   // = top-N 合同域 [2万,5万]
+        sp.fitRadius = 0;
+        sp.fwhmClipSigma = 3.0f;
+        sp.maxAxisRatio = 2.0f;
+        ghandles[w] = sdet_create(&sp);
+        if (!ghandles[w]) {
+          f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA, "sdet_create failed"));
+          return;
+        }
+      }
+      const char* g_extras[4] = {"fwhm_x", "fwhm_y", "sx", "sy"};
+      double *gx = nullptr, *gy = nullptr;
+      float *gflux = nullptr, *gmag = nullptr;
+      int *gsat = nullptr, *ghas = nullptr, g_count = 0;
+      float **gex = nullptr;
+      SDetGuidedStats gstats;
+      std::memset(&gstats, 0, sizeof(gstats));
+      const int grc = sdet_detect_guided_ex_f64(
+          ghandles[w], dbuf.data(), im.w(), im.h(), px.data(), py.data(),
+          static_cast<int>(px.size()),
+          &gx, &gy, &gflux, &gsat, &gmag, &ghas, &g_count,
+          g_extras, 4, &gex, &gstats);
+      if (grc != 0) {
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+            "sdet_detect_guided_ex_f64 failed rc=" + std::to_string(grc) + ": " + path));
+        return;
+      }
+      // ⑤ 权威路径 0 星 ⇒ fail-closed（**不得**回退全图盲检测冒充成功）
+      if (g_count <= 0) {
+        sdet_free_detect_ex(gx, gy, gflux, gsat, gmag, ghas, gex, 4);
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+            "catalog_guided: 0/" + std::to_string(gstats.n_predicted) +
+            " catalog-guided fits survived (dropped=" + std::to_string(gstats.n_dropped) +
+            ", fit_failed=" + std::to_string(gstats.n_fit_failed) +
+            ", rejected=" + std::to_string(gstats.n_rejected) +
+            "); refusing to fall back to full-frame blind detection: " + path));
+        return;
+      }
+      cat.background = g_bg;
+      cat.noise_sigma = g_sigma;
+      for (int i = 0; i < g_count; ++i) {
+        astrocs::phase1::StarSource s;
+        s.x = gx[i];
+        s.y = gy[i];
+        s.flux = static_cast<double>(gflux[i]);
+        s.fwhm_px = 0.5 * (static_cast<double>(gex[0][i]) + static_cast<double>(gex[1][i]));
+        const double esx = static_cast<double>(gex[2][i]);
+        const double esy = static_cast<double>(gex[3][i]);
+        const double emx = std::max(esx, esy), emn = std::min(esx, esy);
+        s.ellipticity = (emx > 0.0) ? 1.0 - emn / emx : 0.0;
+        // SNR 列语义 = SNR_det（GATES_AND_TOLERANCES §2）：未平滑原图检出像素峰值
+        const int pxi = (int)std::lround(gx[i]);
+        const int pyi = (int)std::lround(gy[i]);
+        const double peak =
+            (pxi >= 0 && pxi < im.w() && pyi >= 0 && pyi < im.h())
+                ? static_cast<double>(im.px()[static_cast<size_t>(pyi) * im.w() + pxi])
+                : static_cast<double>(gflux[i]);
+        s.snr = (peak - cat.background) / cat.noise_sigma;
+        s.quality = (gsat[i] != 0) ? 1 : 0;
+        s.id = "src-" + std::to_string(i);
+        cat.sources.push_back(std::move(s));
+        if (gsat[i] != 0) ++cat.n_saturated;
+      }
+      cat.n_detected = static_cast<uint32_t>(cat.sources.size());
+      sdet_free_detect_ex(gx, gy, gflux, gsat, gmag, ghas, gex, 4);
+      guided_prov = pred_prov;
+      guided_prov["approx_wcs_source"] = wsrc;
+      guided_prov["approx_wcs_orientation_assumed"] = orientation_assumed;
+      guided_prov["approx_wcs_crval1_deg"] = awcs.crval1;
+      guided_prov["approx_wcs_crval2_deg"] = awcs.crval2;
+      guided_prov["approx_wcs_cd11"] = awcs.cd11;
+      guided_prov["approx_wcs_cd12"] = awcs.cd12;
+      guided_prov["approx_wcs_cd21"] = awcs.cd21;
+      guided_prov["approx_wcs_cd22"] = awcs.cd22;
+      guided_prov["n_predicted"] = gstats.n_predicted;
+      guided_prov["n_dropped"] = gstats.n_dropped;
+      guided_prov["n_fit_failed"] = gstats.n_fit_failed;
+      guided_prov["n_rejected"] = gstats.n_rejected;
+      guided_prov["n_fit_ok"] = gstats.n_fit_ok;
+      guided_prov["n_output"] = gstats.n_output;
+      guided_prov["fit_success_rate"] =
+          (gstats.n_predicted > 0)
+              ? static_cast<double>(gstats.n_output) / static_cast<double>(gstats.n_predicted)
+              : 0.0;
+      guided_prov["gaia"] = gaia_prov;
+      det_mode = "catalog_guided";
+      authoritative = true;
+      det_degraded.clear();
+    } else {
+      auto r = det.detect(im.px(), im.w(), im.h());
+      if (r.failed()) {
+        f_err[fi] = Result<void>::fail(r.error());
+        return;
+      }
+      cat = r.value();
     }
-    const astrocs::phase1::StarCatalog& cat = r.value();
     // star_det v1 检测视图 [N,6]: x/y/flux/mag/saturated/has_saturated
     // mag 由积分通量真实换算（-2.5log10, 零/负通量 → +99 如实标记）
     const size_t N = cat.sources.size();
@@ -2324,36 +2997,37 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
     std::vector<int> psf_status(N_fit, DPSF_PSF_STATUS_FIT_FAILED);
     int n_valid = 0;
     if (N_fit > 0) {
-      std::vector<double> dbuf(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()));
-      for (size_t i = 0; i < dbuf.size(); ++i) dbuf[i] = static_cast<double>(im.px()[i]);
+      // dbuf 已在本帧检测阶段按 FP64 构造（引导检测与 PSF 拟合共用一份缓冲）
       const int drc = dpsf_fit_batch_f64(
           dbuf.data(), im.w(), im.h(), dets.data(), static_cast<int>(N_fit),
           nullptr, psf_params.data(), &n_valid, psf_status.data());
       if (drc != 0) {
-        return Result<void>::fail(Error(ErrorDomain::DATA,
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "dpsf_fit_batch_f64 failed rc=" + std::to_string(drc)));
+        return;
       }
       if (n_valid <= 0) {
-        return Result<void>::fail(Error(ErrorDomain::DATA,
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "dpsf_fit_batch_f64: 0/" + std::to_string(N_fit) + " fits converged"));
+        return;
       }
       // 成功行按拟合输入序（== 检测序）compact; 逐星按真值索引取行 (row 只读)
       int row = 0;
       for (size_t k = 0; k < N_fit; ++k) {
         if (psf_status[k] != DPSF_PSF_STATUS_OK) continue;
         // [7]=fwhm_x [8]=fwhm_y; sx=sigma_x → fwhm=2.3548*sx（由 9 列取 [7]/[8] 权威值）
-        fwhm_xs.push_back(psf_params[static_cast<size_t>(row) * 9 + 7]);
-        fwhm_ys.push_back(psf_params[static_cast<size_t>(row) * 9 + 8]);
+        f_fx[fi].push_back(psf_params[static_cast<size_t>(row) * 9 + 7]);
+        f_fy[fi].push_back(psf_params[static_cast<size_t>(row) * 9 + 8]);
         const double sx = psf_params[static_cast<size_t>(row) * 9 + 4];
         const double sy = psf_params[static_cast<size_t>(row) * 9 + 5];
         const double mx = std::max(sx, sy), mn = std::min(sx, sy);
-        ells.push_back(mx > 0.0 ? 1.0 - mn / mx : 0.0);
+        f_ell[fi].push_back(mx > 0.0 ? 1.0 - mn / mx : 0.0);
         ++row;
       }
-      n_valid_total += n_valid;
+      f_nvalid[fi] = n_valid;
     }
-    n_total_total += static_cast<int64_t>(N);
-    n_fit_total += static_cast<int64_t>(N_fit);
+    f_ntotal[fi] = static_cast<int64_t>(N);
+    f_nfit[fi] = static_cast<int64_t>(N_fit);
     Json sources = Json::array();
     for (const auto& s : cat.sources) {
       sources.push_back(Json{{"id", s.id}, {"x", s.x}, {"y", s.y},
@@ -2385,7 +3059,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
         ++row;
       }
     }
-    frames.push_back(Json{{"file", p1_base_name(path)},
+    f_frame[fi] = Json{{"file", p1_base_name(path)},
                           {"n_detected", cat.n_detected},
                           {"n_saturated", cat.n_saturated},
                           {"n_edge", cat.n_edge},
@@ -2401,8 +3075,33 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
                           {"n_fit_input", static_cast<int64_t>(N_fit)},
                           {"fit_limit", n_fit_limit},
                           {"psf_fit_truncated", N_fit < N},
+                          // STARDET-01: 检测路径溯源（权威 = catalog_guided；
+                          // 非权威 = blind_diagnostic，必须带 degraded_reason）
+                          {"detection_mode", det_mode},
+                          {"detection_authoritative", authoritative},
+                          {"detection_degraded_reason", det_degraded},
+                          {"guided", guided_prov},
                           {"sources", sources},
-                          {"psf_params", psf_rows}});
+                          {"psf_params", psf_rows}};
+  });
+  // STARDET-01: 释放按 worker 的 sdet 句柄与共享 Gaia 句柄（帧级并行已 join）
+  gcleanup();
+  // 帧序归约（冻结顺序：下标升序；首个失败即返回，与串行同判据）
+  Json frames = Json::array();
+  std::vector<double> fwhm_xs, fwhm_ys, ells;
+  int64_t n_valid_total = 0, n_total_total = 0, n_fit_total = 0;
+  for (size_t fi = 0; fi < n_lights; ++fi) {
+    if (!f_err[fi].ok()) {
+      if (f_errkind[fi] == 1) (*man)["error_kind"] = "input";
+      return f_err[fi];
+    }
+    frames.push_back(f_frame[fi]);
+    fwhm_xs.insert(fwhm_xs.end(), f_fx[fi].begin(), f_fx[fi].end());
+    fwhm_ys.insert(fwhm_ys.end(), f_fy[fi].begin(), f_fy[fi].end());
+    ells.insert(ells.end(), f_ell[fi].begin(), f_ell[fi].end());
+    n_valid_total += f_nvalid[fi];
+    n_total_total += f_ntotal[fi];
+    n_fit_total += f_nfit[fi];
   }
   auto median = [](std::vector<double> v) -> double {
     if (v.empty()) return 0.0;
@@ -2449,6 +3148,12 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   (*man)["fit_limit"] = n_fit_limit;        // P14-N-08
   (*man)["psf_fit_truncated"] = n_fit_total < n_total_total;  // P14-N-08
   (*man)["n_psf_valid"] = n_valid_total;
+  // STARDET-01: 检测模式与权威性登记（ASTROCS_DESIGN.md §4.2 权威 = 星表引导拟合）
+  (*man)["detection_mode"] = eff_mode;
+  (*man)["detection_authoritative"] = guided;
+  (*man)["detection_degraded_reason"] = degrade_reason;
+  (*man)["star_detection_max_stars"] = gcfg.max_stars;
+  if (guided) (*man)["gaia"] = gaia_prov;
   (*man)["sources_artifact"] = src_path;
   (*man)["psf_artifact"] = psf_path;
   (*man)["artifacts"] = Json::array({src_path, psf_path});
@@ -3031,11 +3736,52 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::DATA, "sdet_create failed"));
   }
   // 2) Gaia 客户端句柄（真实 XPSD 数据目录）
+  // FAILCLOSED-01（GAIA-FAILCLOSED-01）: 星表必须**完整**才允许解算。
+  // 根因 run/WCS-DETERMINISM-01/REPORT.md §1.2 —— 修复前目录里装载失败的
+  // *.xpsd shard 被静默丢弃（create 仍返回非 NULL），地址空间受限时丢掉的恰是
+  // 唯一含亮星的 shard ⇒ 参考星表静默变成"暗 shard 里最亮的 60 颗" ⇒
+  // iter_trans_solve 全败，且失败原因完全不可诊断。现 client 侧已 fail-closed
+  // （装载失败 ⇒ create 返回 NULL），此处再加两道前置条件断言：
+  //   ① file_count > 0  —— 空星表不得静默降级（M42 主题；空目录仍返回空 client）;
+  //   ② file_load_fail_count == 0 且 file_count == 目录 *.xpsd 条目数
+  //      —— **只断言 file_count > 0 不够**：本缺陷下 file_count=2 却仍不可用。
   gaia = gaia_client_create(gaia_dir.c_str());
   if (!gaia) {
     cleanup();
+    const char* why = gaia_client_get_last_create_error();
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "gaia_client_create failed (gaia_data_dir=" + gaia_dir + ")"));
+        "gaia_client_create failed (gaia_data_dir=" + gaia_dir + ")" +
+        (why ? std::string(": ") + why : std::string(": (no diagnostic)"))));
+  }
+  {
+    const int gaia_files = gaia_client_get_file_count(gaia);
+    const int gaia_entries = gaia_client_get_file_entry_count(gaia);
+    const int gaia_load_failed = gaia_client_get_file_load_fail_count(gaia);
+    if (gaia_files <= 0) {
+      cleanup();
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "gaia catalog is empty (gaia_data_dir=" + gaia_dir +
+          ", xpsd_entries=" + std::to_string(gaia_entries) +
+          "): refusing to solve WCS without a reference catalog"));
+    }
+    if (gaia_load_failed != 0 || gaia_files != gaia_entries) {
+      cleanup();
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "gaia catalog is incomplete: loaded=" + std::to_string(gaia_files) +
+          " xpsd_entries=" + std::to_string(gaia_entries) +
+          " load_failed=" + std::to_string(gaia_load_failed) +
+          " (gaia_data_dir=" + gaia_dir +
+          "): refusing to solve WCS on a partial catalog"));
+    }
+    // 可见诊断（不阻断）: magnitudeRange 声明非法而放弃 shard 剪枝的文件数。
+    const int gaia_mag_rej = gaia_client_get_magnitude_range_reject_count(gaia);
+    if (gaia_mag_rej > 0) {
+      std::fprintf(stderr,
+                   "[wcs] warning: %d gaia shard(s) have an invalid magnitudeRange "
+                   "declaration -> shard-level magnitude pruning disabled "
+                   "(conservative; gaia_data_dir=%s)\n",
+                   gaia_mag_rej, gaia_dir.c_str());
+    }
   }
   // 3) IPVSolver + 句柄注入
   ipv = ipv_solve_create();
@@ -3280,25 +4026,38 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   Json frames = Json::array();
   uint64_t missing_frames = 0;
   std::string first_missing;
-  for (const auto& fr : cat) {
+  // PERF-P1: 帧级并行（与 p2_parallel_for 同规范）。每帧只写**自己下标**的结果槽；
+  // 跨帧无浮点归约；帧序归约（缺帧计数 / 错误选择 / frames）在 join 之后按下标
+  // 升序执行 ⇒ 与串行逐字一致、与 worker 数无关。帧内逐源 OpenMP 并行保持不变
+  // （nested=0 时由所属 worker 串行执行该 region, 正确性与串行同）。
+  const uint32_t phot_workers = p1_frame_workers(doc);
+  const size_t n_cat = cat.size();
+  std::vector<Result<void>> f_err(n_cat, Result<void>::success());
+  std::vector<int> f_errkind(n_cat, 0);   // 1=input
+  std::vector<bool> f_missing(n_cat, false);
+  std::vector<std::string> f_missing_name(n_cat);
+  std::vector<Json> f_frames(n_cat);
+  p1_parallel_for(phot_workers, n_cat, [&](uint64_t fi, uint32_t) {
+    const Json& fr = cat[fi];
     const std::string file = fr.value("file", std::string());
     // sources.json 的 file 是 calibrated 基名; 逐帧读取。
     if (file.empty()) {
-      ++missing_frames;
-      if (first_missing.empty()) first_missing = "(empty file name)";
-      continue;
+      f_missing[fi] = true;
+      f_missing_name[fi] = "(empty file name)";
+      return;
     }
-    std::string path = out_dir + "/" + file;
+    const std::string path = out_dir + "/" + file;
     if (!aio_fs::exists(path)) {
       // B2-A16: 帧缺失按合同计数, 循环后显式上抛（不再静默跳过记 error）。
-      ++missing_frames;
-      if (first_missing.empty()) first_missing = file;
-      continue;
+      f_missing[fi] = true;
+      f_missing_name[fi] = file;
+      return;
     }
     P1Image im = p1_read_image(path);
     if (!im.ok()) {
-      (*man)["error_kind"] = "input";
-      return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
+      f_errkind[fi] = 1;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
+      return;
     }
     // ── P10-UTIL2-003 (2026-09-14): 逐源并行化 ─────────────────────────
     // 并行轴 = 源 (work unit = 该帧 sources 数组的一行)。Photometer::measure
@@ -3336,9 +4095,11 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     }
     Json results = Json::array();
     for (std::size_t si = 0; si < nsrc; ++si) {
-      if (!pok[si])
-        return Result<void>::fail(
+      if (!pok[si]) {
+        f_err[fi] = Result<void>::fail(
             Error(static_cast<ErrorDomain>(perr_dom[si]), perr[si]));
+        return;
+      }
       const Json& s = srcs[si];
       const double cx = s.value("x", 0.0), cy = s.value("y", 0.0);
       const astrocs::phase1::PhotometryResult& pr = prows[si];
@@ -3348,7 +4109,20 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                              {"background", pr.background}, {"snr", pr.snr},
                              {"valid", pr.valid}, {"failure_reason", pr.failure_reason}});
     }
-    frames.push_back(Json{{"file", file}, {"results", results}});
+    f_frames[fi] = Json{{"file", file}, {"results", results}};
+  });
+  // 帧序归约（冻结顺序：下标升序；首个失败即返回，与串行同判据）
+  for (size_t fi = 0; fi < n_cat; ++fi) {
+    if (f_missing[fi]) {
+      ++missing_frames;
+      if (first_missing.empty()) first_missing = f_missing_name[fi];
+      continue;
+    }
+    if (!f_err[fi].ok()) {
+      if (f_errkind[fi] == 1) (*man)["error_kind"] = "input";
+      return f_err[fi];
+    }
+    frames.push_back(f_frames[fi]);
   }
   if (missing_frames != 0)
     return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -3757,42 +4531,67 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   double photscal_rep = 1.0;
   bool photometry_applied = false;
   if (scales_complete) {
-    std::vector<double> ks;
-    for (size_t i = 0; i < n_lights; ++i) {
-      const std::string lp = lights[i].get<std::string>();
+    // PERF-P1: 帧级并行（与 p2_parallel_for 同规范）。每帧只写**自己下标**的结果槽
+    // 与**自己帧**的产物路径；跨帧无浮点归约；帧序归约（applied_artifacts /
+    // photscales / photscale_detail / ks）在 join 之后按下标升序执行 ⇒ 与串行逐字
+    // 一致（含 Json object 的插入顺序）、与 worker 数无关。
+    const uint32_t ph_workers = p1_frame_workers(doc);
+    std::vector<Result<void>> f_err(n_lights, Result<void>::success());
+    std::vector<std::string> f_apath(n_lights), f_key(n_lights);
+    std::vector<double> f_k(n_lights, 0.0);
+    std::vector<Json> f_detail(n_lights);
+    p1_parallel_for(ph_workers, n_lights, [&](uint64_t fi, uint32_t) {
+      const std::string lp = lights[fi].get<std::string>();
       const P1FrameScale* sc = find_scale(lp);
       const std::string key = p1_frame_key(lp);
+      f_key[fi] = key;
       const std::string src_path_i = p1_calibrated_path(doc, lp);
       P1Image im = p1_read_image(src_path_i);
-      if (!im.ok()) return Result<void>::fail(Error(ErrorDomain::IO,
-          "photometry apply: cannot read " + src_path_i));
+      if (!im.ok()) {
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
+            "photometry apply: cannot read " + src_path_i));
+        return;
+      }
       // I_photo = k_photo · I_cal (apply_photometry, in-place; 非有限像素透传)
       const int arc = calibration::apply_photometry(im.px(), im.w(), im.h(),
                                                     sc->k_photo, im.px());
-      if (arc != 0) return Result<void>::fail(Error(ErrorDomain::DATA,
-          "apply_photometry failed rc=" + std::to_string(arc) + " for " + key));
+      if (arc != 0) {
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+            "apply_photometry failed rc=" + std::to_string(arc) + " for " + key));
+        return;
+      }
       const std::string apath = p1_photoapplied_path(doc, lp);
       std::string werr;
-      if (!p1_write_fits_atomic(im, apath, &werr))
-        return Result<void>::fail(Error(ErrorDomain::IO,
+      if (!p1_write_fits_atomic(im, apath, &werr)) {
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
             "photometry apply write failed: " + werr));
-      applied_artifacts.push_back(apath);
-      photscales[key] = sc->k_photo;
+        return;
+      }
+      f_apath[fi] = apath;
+      f_k[fi] = sc->k_photo;
       // P1-PHOT-BROKEN (d): 逐帧拟合 provenance（标度之外的拟合证据）。
       // photoscales 只承载标量（drz 消费口径不变）; 本对象记录该标量是否来自
       // 真实拟合（fitted/n_matched/sigma_residual_dex）, 使"applied=true"可被
       // 独立核对, 而不是只能自证。
       // F-INSTR-CONFORM-FIX: 逐帧 F_instr 域 provenance —— 使"标度取自 PSF
       // 拟合域解析通量（而非检测域盒和）"可被独立核对。
-      photscale_detail[key] = Json{{"k_photo", sc->k_photo},
-                                   {"n_matched", sc->n_matched},
-                                   {"sigma_residual_dex", sc->sigma_residual_dex},
-                                   {"fitted", sc->fitted},
-                                   {"source", sc->source},
-                                   {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
-                                   {"n_psf_domain", sc->n_psf_domain},
-                                   {"n_psf_skipped", sc->n_psf_skipped}};
-      ks.push_back(sc->k_photo);
+      f_detail[fi] = Json{{"k_photo", sc->k_photo},
+                          {"n_matched", sc->n_matched},
+                          {"sigma_residual_dex", sc->sigma_residual_dex},
+                          {"fitted", sc->fitted},
+                          {"source", sc->source},
+                          {"f_instr_domain", "psf_analytic_flux_2pi_A_sx_sy_over_3"},
+                          {"n_psf_domain", sc->n_psf_domain},
+                          {"n_psf_skipped", sc->n_psf_skipped}};
+    });
+    // 帧序归约（冻结顺序：下标升序；首个失败即返回，与串行同判据）
+    std::vector<double> ks;
+    for (size_t i = 0; i < n_lights; ++i) {
+      if (!f_err[i].ok()) return f_err[i];
+      applied_artifacts.push_back(f_apath[i]);
+      photscales[f_key[i]] = f_k[i];
+      photscale_detail[f_key[i]] = f_detail[i];
+      ks.push_back(f_k[i]);
     }
     std::sort(ks.begin(), ks.end());
     photscal_rep = ks.empty() ? 1.0 : ks[ks.size() / 2];
@@ -4302,14 +5101,27 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     }
   }
 
-  Json frames = Json::array();
-  for (const auto& l : doc["input_lights"]) {
+  // PERF-P1: 帧级并行（与 p2_parallel_for 同规范）。每帧只写**自己下标**的结果槽与
+  // 诊断键槽；跨帧无浮点归约；帧序归约（诊断键 / 错误选择 / frames）在 join 之后
+  // 按下标升序执行 ⇒ 与串行逐字一致、与 worker 数无关。
+  // 线程安全前提（本轮实测核查）: noise model 的 floor 注册表原为**无锁全局 map**
+  // （noise_model.cpp），已改为互斥量保护 + 热路径零加锁（PERF-P1 同批修复）；
+  // find_src_frame/all_sources_of/build_snr_rows/median_of_vec 均为只读或纯函数。
+  const uint32_t nz_workers = p1_frame_workers(doc);
+  const size_t nz_lights = doc["input_lights"].size();
+  std::vector<Result<void>> f_err(nz_lights, Result<void>::success());
+  std::vector<int> f_errkind(nz_lights, 0);   // 0=无 1=input 2=noise_model_config 3=abi_or_input
+  std::vector<Json> f_frame(nz_lights);
+  std::vector<Json> f_diag(nz_lights);
+  p1_parallel_for(nz_workers, nz_lights, [&](uint64_t fi, uint32_t) {
     // cosmetic 下游（cos → psf → phot → snr）: 消费 artifact:cos 产物
-    const std::string path = p1_cleaned_input_path(doc, l.get<std::string>());
+    const std::string path =
+        p1_cleaned_input_path(doc, doc["input_lights"][fi].get<std::string>());
     P1Image im = p1_read_image(path);
     if (!im.ok()) {
-      (*man)["error_kind"] = "input";
-      return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
+      f_errkind[fi] = 1;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + path));
+      return;
     }
     // FP64 模式（aio_internal_is_fp64）下 aio_read 只填 data_f64、data=NULL
     // （aio_fits.cpp:875-877）⇒ 按 dtype 取指针喂 A（v1/v1_f64 同语义），取代旧
@@ -4338,20 +5150,22 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
         nm_data, im_f64, static_cast<int>(im.h()), static_cast<int>(im.w()),
         path, snr_cfg, nm_src);
     // 调用侧适配事实（键名与既有 manifest 键一致；未适配的键不出现）。
-    for (auto it = nmc.diag.begin(); it != nmc.diag.end(); ++it)
-      (*man)[it.key()] = it.value();
+    // PERF-P1: 写入 man 的动作移出并行体（逐帧暂存，join 后按帧序覆盖）。
+    f_diag[fi] = nmc.diag;
     if (nmc.cfg_default_failed) {
-      (*man)["error_kind"] = "noise_model_config";
-      return Result<void>::fail(
+      f_errkind[fi] = 2;
+      f_err[fi] = Result<void>::fail(
           Error(ErrorDomain::INTERNAL, "snr_noise_model_v1_default_config failed"));
+      return;
     }
     if (nmc.rc == 3 || nmc.rc == -9) {
       // DISP-NOISE-001/009: A 的 floor 注册表以 model 指针记账 ⇒ 任何非成功返回
       // 也必须 _free 配对（A 的 malloc 失败路径已在 A 内自释放；未注册时 no-op）。
       snr_noise_model_v1_free(&nmc.model);
-      (*man)["error_kind"] = "noise_model_abi_or_input";
-      return Result<void>::fail(
+      f_errkind[fi] = 3;
+      f_err[fi] = Result<void>::fail(
           Error(ErrorDomain::DATA, "snr_noise_model_v1 rejected input"));
+      return;
     }
     NoiseWeightModelV1& nm = nmc.model;
     const double sat_level = nmc.saturation_level;
@@ -4408,15 +5222,20 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     } else {
       astrocs::phase1::SnrFrameScienceConfig cfg = sci_cfg;
       cfg.sigma_sky_adu = src_frame->value("noise_sigma", 0.0);
-      // SCI-B D1 定案 (07_noise_snr.md 4.2a): noise_sigma 来自 noise_model 的空天
-      // 稳健尺度 (1.4826*MAD), 是**含读出噪声的经验总 rms** ⇒ 声明语义, 禁止在
-      // snr_science 里再加一次 (RN/g)^2 (修复前读噪双计: sigma_F 高估 +12.8%~+34.0%)。
+      // SCI-B D1 定案 (07_noise_snr.md 4.2a): noise_sigma 来自
+      // StarDetector::estimate_background 的**整帧 2 轮 median±3*1.4826*MAD 裁剪后 RMS**
+      // (盲检测 detect() 与星表引导路径同用该估计器), 是**含读出噪声的经验总 rms**
+      // ⇒ 声明语义, 禁止在 snr_science 里再加一次 (RN/g)^2
+      // (修复前读噪双计: sigma_F 高估 +12.8%~+34.0%)。
+      // 注: noise_model 的 1.4826*MAD 稳健尺度是**另一个**生产者(承载逐像素 variance /
+      // variance_bg_global), 不是本处入参。
       cfg.sigma_sky_source = SNR_SIGMA_SKY_EMPIRICAL_TOTAL_RMS;
       // ── FREF-BASELINE-001: 逐帧参考通量 = 固定星等 m_ref 在本帧的仪器通量 ──
       // 只读本帧自身的测光标定（k_photo, ZP_syn）⇒ 帧间独立, 无组概念。
       // 缺该帧标定 ⇒ reference_flux_adu=0 ⇒ 本帧 fail-closed（不伪造、不回退
       // 到块级中位数, 否则同一批产品里混两种参考, 帧间不可比）。
-      const std::string fkey = p1_frame_key(l.get<std::string>());
+      const std::string fkey =
+          p1_frame_key(doc["input_lights"][fi].get<std::string>());
       double frame_zp_inst = std::numeric_limits<double>::quiet_NaN();
       double frame_kphoto = std::numeric_limits<double>::quiet_NaN();
       if (ref_flux_source == "fixed_magnitude") {
@@ -4538,7 +5357,21 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
           {"zero_point_mag", cfg.zero_point_mag}};
       frame["sources"] = sarr;
     }
-    frames.push_back(frame);
+    f_frame[fi] = frame;
+  });
+  // 帧序归约（冻结顺序：下标升序）。诊断键与 error_kind 的写入时机与串行一致：
+  // 串行时本帧诊断键在失败检查**之前**写入 ⇒ 归约也先写诊断键再判失败。
+  Json frames = Json::array();
+  for (size_t fi = 0; fi < nz_lights; ++fi) {
+    for (auto it = f_diag[fi].begin(); it != f_diag[fi].end(); ++it)
+      (*man)[it.key()] = it.value();
+    if (!f_err[fi].ok()) {
+      if (f_errkind[fi] == 1) (*man)["error_kind"] = "input";
+      else if (f_errkind[fi] == 2) (*man)["error_kind"] = "noise_model_config";
+      else if (f_errkind[fi] == 3) (*man)["error_kind"] = "noise_model_abi_or_input";
+      return f_err[fi];
+    }
+    frames.push_back(f_frame[fi]);
   }
   const std::string out_path = out_dir + "/p1_snr.json";
   const bool fref_fixed_out = (ref_flux_source == "fixed_magnitude");
@@ -4749,11 +5582,27 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   // 每帧: 读定标帧 → 该帧 WCS（<frame_dir>/p1_wcs.json, 回退 config.wcs）→
   // 真实 drizzle → 直写 output_dir/<frame_key>/ 标准 HiPS + 该帧 p1_stack.json。
   // 输入 N 帧 ⇒ N 个独立 HiPS 产品; 任一帧不可读/不可 drizzle ⇒ fail-closed。
-  Json artifacts = Json::array();
-  Json frame_entries = Json::array();
-  bool have_first = false;
-  for (const auto& l : doc["input_lights"]) {
-    const std::string lp = l.get<std::string>();
+  // PERF-P1: 帧级并行（与 p2_parallel_for 同规范）。每帧只写**自己下标**的结果槽；
+  // 跨帧零浮点归约；全部 man 写入（诊断键 / variance 审计 / 首帧 provenance）在
+  // join 之后按下标升序复现串行时序 ⇒ 与串行逐字一致、与 worker 数无关。
+  // 线程安全前提（本轮核查）: drizzle 的错误槽与计数为 thread_local
+  // （g_hips_error / g_tl_n_quick）; 每帧自建 PipelineFrame 与自己的 HiPS 目录;
+  // 逐像素 variance 生产者（snr_noise_model_v1[_fill]）的 floor 注册表已加锁
+  // （PERF-P1 同批修复 noise_model.cpp）。
+  const uint32_t drz_workers = p1_frame_workers(doc);
+  const size_t drz_n = doc["input_lights"].size();
+  std::vector<Result<void>> f_err(drz_n, Result<void>::success());
+  std::vector<int> f_errkind(drz_n, 0);   // 0=无 1=input 2=disk_full
+  std::vector<int> f_stage(drz_n, 0);     // 1=var 段前失败 2=var 段内失败 3=var 段后失败
+  std::vector<bool> f_var_ran(drz_n, false);
+  std::vector<Json> f_var_diag(drz_n);    // 逐帧调用侧诊断键（串行时立即写 man）
+  std::vector<Json> f_var_entry(drz_n);   // 逐帧 variance 审计条目
+  std::vector<Json> f_var_block(drz_n);   // 逐帧 variance 块词表（shape 依赖本帧画幅）
+  std::vector<Json> f_man_first(drz_n);   // 首帧 provenance 键（仅 fi==0 非空）
+  std::vector<std::string> f_artifact(drz_n);
+  std::vector<Json> f_frame_entry(drz_n);
+  p1_parallel_for(drz_workers, drz_n, [&](uint64_t fi, uint32_t) {
+    const std::string lp = doc["input_lights"][fi].get<std::string>();
     // [RELEASE-02 probe] 逐帧热点: drizzle
     ASTROCS_PROBE_SCOPE_CTX(_probe_drz_frame, "phase1", "drizzle.frame");
     ASTROCS_PROBE_TAG(_probe_drz_frame, "frame_key", p1_frame_key(lp).c_str());
@@ -4764,10 +5613,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     double frame_photscal = photscal;
     if (photometry_applied) {
       const std::string applied_path = p1_photoapplied_path(doc, lp);
-      if (!aio_fs::exists(applied_path))
-        return Result<void>::fail(Error(ErrorDomain::DATA,
+      if (!aio_fs::exists(applied_path)) {
+        f_stage[fi] = 1;
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "p1_phot.json declares photometry_applied=true but applied frame missing: "
             + applied_path));
+        return;
+      }
       frame_path = applied_path;
       auto ksit = photscales.find(p1_frame_key(lp));
       if (ksit == photscales.end()) ksit = photscales.find(p1_frame_key(calibrated_path));
@@ -4775,8 +5627,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     }
     P1Image im = p1_read_image(frame_path);
     if (!im.ok()) {
-      (*man)["error_kind"] = "input";
-      return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame_path));
+      f_stage[fi] = 1;
+      f_errkind[fi] = 1;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + frame_path));
+      return;
     }
     // 该帧 WCS: 逐帧上游产物优先, 回退 config.wcs; 两者都无 → fail-closed。
     Json wj_storage = Json::object();
@@ -4797,9 +5651,11 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       } else if (p1_has(doc, "wcs") && doc["wcs"].is_object()) {
         wj_storage = doc["wcs"];
       } else {
-        return Result<void>::fail(Error(ErrorDomain::DATA,
+        f_stage[fi] = 1;
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "drizzle requires upstream <frame_dir>/p1_wcs.json or config 'wcs' (HP DRIZZLE"
             " header KV source; 禁 silent default; frame " + frame_path + ")"));
+        return;
       }
     }
     const Json& wj = wj_storage;
@@ -4809,8 +5665,11 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     bool sip_ok = true;
     std::string sip_err;
     const P1SipCoeffs sip = p1_parse_sip(wj, &sip_ok, &sip_err);
-    if (!sip_ok)
-      return Result<void>::fail(Error(ErrorDomain::DATA, "drizzle wcs " + sip_err));
+    if (!sip_ok) {
+      f_stage[fi] = 1;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA, "drizzle wcs " + sip_err));
+      return;
+    }
     const std::string ctype1_kv =
         p1_has(wj, "ctype1") && wj["ctype1"].is_string()
             ? wj["ctype1"].get<std::string>()
@@ -4823,7 +5682,11 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     // M2a-H-1: data 块 dtype 必须与 drizzle.precision_mode 一致（FP64 请求 →
     // FLOAT64 块，走真 binary64 累加域）；否则元数据声称 FP64 而实际 binary32。
     PipelineFrame* frame = aio_pipeline_frame_create();
-    if (!frame) return Result<void>::fail(Error(ErrorDomain::RESOURCE, "frame create failed"));
+    if (!frame) {
+      f_stage[fi] = 1;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::RESOURCE, "frame create failed"));
+      return;
+    }
     const int dims[2] = {im.h(), im.w()};
     const uint64_t n_px = (uint64_t)im.w() * (uint64_t)im.h();
     std::vector<double> px64;
@@ -4853,8 +5716,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           (precision_mode == 1) ? AIO_BLOCK_FLOAT64 : AIO_BLOCK_FLOAT32;
       if (!db || db->type != want) {
         aio_pipeline_frame_destroy(frame);
-        return Result<void>::fail(Error(ErrorDomain::DATA,
+        f_stage[fi] = 1;
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "drizzle precision consistency: data block dtype != precision_mode"));
+        return;
       }
     }
     if (rc == 0) {
@@ -4908,8 +5773,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         }();
         if (aio_frame_kv_set(frame, "header", kv.k, val.c_str()) != 0) {
           aio_pipeline_frame_destroy(frame);
-          return Result<void>::fail(Error(ErrorDomain::IO,
+          f_stage[fi] = 1;
+          f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
               std::string("kv_set failed: ") + kv.k));
+          return;
         }
       }
       // B2-A17: SIP 系数 → frame header (hp_drizzle_api.cpp 读面 A_ORDER/B_ORDER/
@@ -4921,14 +5788,18 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         };
         if (!p1_sip_write_header_frame(frame, sip, kv_cb, &sip_hdr_err)) {
           aio_pipeline_frame_destroy(frame);
-          return Result<void>::fail(Error(ErrorDomain::IO,
+          f_stage[fi] = 1;
+          f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
               std::string("drizzle frame SIP header: ") + sip_hdr_err));
+          return;
         }
       }
     }
     if (rc != 0) {
       aio_pipeline_frame_destroy(frame);
-      return Result<void>::fail(Error(ErrorDomain::IO, "add data block failed"));
+      f_stage[fi] = 1;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "add data block failed"));
+      return;
     }
     // ── 定案 2（负责人 §9.67「2那就接入啊」+ ASTROCS_DESIGN §7.1a 条款 3/4）──
     // 逐像素 variance **帧内命名块**（登记面 = DATA-P1-DRZ §11.1:295 逐字
@@ -4953,6 +5824,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     // 降级声明 = 节点 manifest 键 + stderr; 产品面事实由 writer 节点 p1_final.json
     //   的 uncertainty_available / n_variance_tiles 从**磁盘事实**给出（禁硬编码）。
     {
+      f_var_ran[fi] = true;   // 本帧 var 段已进入（归约据此复现 diag 键的写入时机）
       // 上游 p1_sources.json（DATA-P1-SOURCES）: 逐星掩膜输入的唯一来源。
       // 缺失/不可解析 ⇒ 走 ② 显式降级（本节点不因它 fail-closed: 无方差面时
       // signal/support 产品面不受影响, 见 p1_op_writer 的成对校验）。
@@ -5017,14 +5889,16 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
         P1NoiseFrameModel nmc = p1_noise_model_for_frame(
             nm_data, nm_is_f64, im.h(), im.w(), frame_path, snr_cfg, nm_src);
         // 调用侧适配事实（与 p1_op_noise 同键名, 只增诊断不改数值）。
-        for (auto it = nmc.diag.begin(); it != nmc.diag.end(); ++it)
-          (*man)[it.key()] = it.value();
+        // PERF-P1: 暂存到本帧槽；写入 man 的动作在 join 后按帧序复现（并行体不写 man）。
+        f_var_diag[fi] = nmc.diag;
         if (nmc.rc == 3 || nmc.rc == -9) {
           snr_noise_model_v1_free(&nmc.model);
           aio_pipeline_frame_destroy(frame);
-          return Result<void>::fail(Error(ErrorDomain::DATA,
+          f_stage[fi] = 2;
+          f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
               "drizzle variance block: snr_noise_model_v1 rejected input"
               " (rc=" + std::to_string(nmc.rc) + ", frame " + frame_path + ")"));
+          return;
         }
         var_degenerate = (nmc.rc == 1) || (nmc.model.degenerate != 0);
         var_diag = Json{{"sigma_bg_global", nmc.model.sigma_bg_global},
@@ -5066,8 +5940,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             if (vrc != 0) {
               snr_noise_model_v1_free(&nmc.model);
               aio_pipeline_frame_destroy(frame);
-              return Result<void>::fail(Error(ErrorDomain::IO,
+              f_stage[fi] = 2;
+              f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
                   "drizzle variance block add failed rc=" + std::to_string(vrc)));
+              return;
             }
             var_status = "attached";
             var_reason = "ok";
@@ -5081,12 +5957,9 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                      " signal/support 产品面不受影响（显式降级, 非静默）\n",
                      var_status.c_str(), var_reason.c_str(), frame_path.c_str());
       }
-      // 逐帧审计（§30.1「diagnostics 标红计数」面）+ 汇总状态（全挂=attached /
-      // 部分=mixed / 全不挂=skipped）。
-      Json var_frames = ((*man).contains("variance_product_frames") &&
-                         (*man)["variance_product_frames"].is_array())
-                            ? (*man)["variance_product_frames"]
-                            : Json::array();
+      // 逐帧审计（§30.1「diagnostics 标红计数」面）。PERF-P1: 条目与块形状暂存到
+      // 本帧槽；累积（variance_product_frames / status / 块词表键）在 join 之后按
+      // 帧序执行，复现串行的"读-改-写"时序。
       Json var_entry = Json{{"frame_id", p1_frame_key(lp)},
                             {"status", var_status},
                             {"reason", var_reason},
@@ -5094,24 +5967,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                             {"model", "snr_noise_model_v1"}};
       for (auto it = var_diag.begin(); it != var_diag.end(); ++it)
         var_entry[it.key()] = it.value();
-      var_frames.push_back(var_entry);
-      (*man)["variance_product_frames"] = var_frames;
-      bool var_all = true, var_any = false;
-      for (const auto& e : var_frames) {
-        if (e.value("status", std::string()) == "attached") var_any = true;
-        else var_all = false;
-      }
-      (*man)["variance_product_status"] =
-          var_all ? "attached" : (var_any ? "mixed" : "skipped");
-      // 块词表登记（ASTROCS_DESIGN §7.1a 条款 3: 名字/类型/形状/单位/可缺性）。
-      (*man)["variance_block_name"] = "variance";
-      (*man)["variance_block_type"] = "AIO_BLOCK_FLOAT32";
-      (*man)["variance_block_shape"] = Json::array({im.h(), im.w()});
-      (*man)["variance_block_unit"] = "ADU^2";
-      (*man)["variance_block_optional"] = true;
-      (*man)["variance_frame_identity"] =
-          "same array/dtype as the \"data\" block (integrated frame)";
-      (*man)["variance_scale_law_applied"] = false;
+      f_var_entry[fi] = std::move(var_entry);
+      f_var_block[fi] = Json{{"shape", Json::array({im.h(), im.w()})}};
     }
     // ── P17-NSIDE: 该帧最终 nside 决策 + 采样率 provenance/告警 ───────────
     // 自动: 必须成功, 否则 DATA fail-closed。显式: 原样使用, 但 best-effort
@@ -5123,9 +5980,11 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     if (auto_nside) {
       if (auto_rc != 0 || auto_res.nside <= 0) {
         aio_pipeline_frame_destroy(frame);
-        return Result<void>::fail(Error(ErrorDomain::DATA,
+        f_stage[fi] = 3;
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             std::string("auto nside (1x_to_2x_drizzle) failed: ") +
             (auto_res.error_msg[0] ? auto_res.error_msg : "(no detail)")));
+        return;
       }
       frame_nside = auto_res.nside;
     }
@@ -5162,11 +6021,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       // 已判定并置位 (aio_disk_full.h 头注: 事后探针在清理后必然 fail-open);
       // 这里消费一次并写进失败节点 manifest, 由 CLI 的
       // pipeline_exit_code_from_error 映射为 exit 10。
-      if (man && aio_disk::consume()) (*man)["error_kind"] = "disk_full";
-      return Result<void>::fail(Error(ErrorDomain::IO,
+      if (aio_disk::consume()) f_errkind[fi] = 2;   // disk_full（归约时写入 man）
+      f_stage[fi] = 3;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
           std::string("hp_drizzle_run_phase1_hips failed: ") +
           (res.error_msg[0] ? res.error_msg : "(no detail)") +
           " (frame " + frame_path + ")"));
+      return;
     }
     const std::string out_path = fdir + "/p1_stack.json";
     // P17-NSIDE: 采样率 provenance (nside 来源 + 决策依据 + 合规判定) —— 每个
@@ -5195,42 +6056,95 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                           {"photometry_provenance", have_phot_prov ? "p1_phot.json" : "absent"},
                           {"artifact", "signal/ + support/ (标准 HiPS 树)"},
                           {"entry", "hp_drizzle_run_phase1_hips"}};
-    if (!p1_write_text(out_path, stack_out.dump(2)))
-      return Result<void>::fail(Error(ErrorDomain::IO,
+    if (!p1_write_text(out_path, stack_out.dump(2))) {
+      f_stage[fi] = 3;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
           "artifact write failed: " + out_path));
-    artifacts.push_back(out_path);
-    frame_entries.push_back(Json{{"frame_id", p1_frame_key(lp)},
-                                 {"input_light", lp},
-                                 {"hips_root", fdir},
-                                 {"stack", out_path},
-                                 {"nside", res.nside},
-                                 {"n_healpix_pixels",
-                                  static_cast<int64_t>(res.n_healpix_pixels)},
-                                 {"n_source_pixels",
-                                  static_cast<int64_t>(res.n_source_pixels)}});
-    if (!have_first) {
-      have_first = true;
-      (*man)["n_healpix_pixels"] = static_cast<int64_t>(res.n_healpix_pixels);
+      return;
+    }
+    f_artifact[fi] = out_path;
+    f_frame_entry[fi] = Json{{"frame_id", p1_frame_key(lp)},
+                             {"input_light", lp},
+                             {"hips_root", fdir},
+                             {"stack", out_path},
+                             {"nside", res.nside},
+                             {"n_healpix_pixels",
+                              static_cast<int64_t>(res.n_healpix_pixels)},
+                             {"n_source_pixels",
+                              static_cast<int64_t>(res.n_source_pixels)}};
+    if (fi == 0) {
+      // 串行语义: 首个**成功**帧写这批 provenance 键；任何帧失败即返回 ⇒ 首个
+      // 成功帧必为下标 0（归约时按 fi==0 复现）。
+      Json& mf = f_man_first[fi];
+      mf["n_healpix_pixels"] = static_cast<int64_t>(res.n_healpix_pixels);
       // DET-001 (D5): drizzle 墙钟耗时是**遥测**, 不属 DATA-P1-STACK 产品面。
       // 产品面必须逐字节可复现（manifest 登记 sha256 作验收门）; 遥测保留在节点
       // manifest / resource_summary.json，需要时仍可读取。
-      (*man)["elapsed_sec"] = static_cast<double>(res.elapsed_sec);
-      (*man)["stack_artifact"] = out_path;
-      (*man)["precision_mode"] = precision_mode;
-      (*man)["sip_present"] = sip.present;
-      (*man)["sip_order"] = sip.present ? sip.order : 0;
-      (*man)["nside"] = res.nside;
-      (*man)["nside_source"] = nside_source;
-      (*man)["nside_mode"] = nside_mode_out;
-      (*man)["auto_nside"] = auto_nside_value;
-      (*man)["finest_input_arcsec"] = finest_input_arcsec;
-      (*man)["hp_res_arcsec"] = hp_res_arcsec;
-      (*man)["oversample_factor"] = oversample_factor;
-      (*man)["nside_conflict"] = nside_conflict;
-      (*man)["nside_clamped"] = auto_res.clamped != 0;
-      (*man)["photometry_applied"] = photometry_applied;
-      (*man)["photscal"] = frame_photscal;
-      (*man)["photometry_provenance"] = have_phot_prov ? "p1_phot.json" : "absent";
+      mf["elapsed_sec"] = static_cast<double>(res.elapsed_sec);
+      mf["stack_artifact"] = out_path;
+      mf["precision_mode"] = precision_mode;
+      mf["sip_present"] = sip.present;
+      mf["sip_order"] = sip.present ? sip.order : 0;
+      mf["nside"] = res.nside;
+      mf["nside_source"] = nside_source;
+      mf["nside_mode"] = nside_mode_out;
+      mf["auto_nside"] = auto_nside_value;
+      mf["finest_input_arcsec"] = finest_input_arcsec;
+      mf["hp_res_arcsec"] = hp_res_arcsec;
+      mf["oversample_factor"] = oversample_factor;
+      mf["nside_conflict"] = nside_conflict;
+      mf["nside_clamped"] = auto_res.clamped != 0;
+      mf["photometry_applied"] = photometry_applied;
+      mf["photscal"] = frame_photscal;
+      mf["photometry_provenance"] = have_phot_prov ? "p1_phot.json" : "absent";
+    }
+  });
+  // 帧序归约（冻结顺序：下标升序；逐段复现串行时序：diag 键 → variance 审计与块
+  // 词表 → drizzle 段 → 首帧 provenance）。
+  Json artifacts = Json::array();
+  Json frame_entries = Json::array();
+  Json var_frames_acc = Json::array();
+  for (size_t fi = 0; fi < drz_n; ++fi) {
+    if (f_var_ran[fi]) {
+      for (auto it = f_var_diag[fi].begin(); it != f_var_diag[fi].end(); ++it)
+        (*man)[it.key()] = it.value();
+    }
+    if (f_stage[fi] == 1 || f_stage[fi] == 2) {
+      if (f_errkind[fi] == 1) (*man)["error_kind"] = "input";
+      else if (f_errkind[fi] == 2) (*man)["error_kind"] = "disk_full";
+      return f_err[fi];
+    }
+    if (f_var_ran[fi]) {
+      var_frames_acc.push_back(f_var_entry[fi]);
+      (*man)["variance_product_frames"] = var_frames_acc;
+      bool var_all = true, var_any = false;
+      for (const auto& e : var_frames_acc) {
+        if (e.value("status", std::string()) == "attached") var_any = true;
+        else var_all = false;
+      }
+      (*man)["variance_product_status"] =
+          var_all ? "attached" : (var_any ? "mixed" : "skipped");
+      // 块词表登记（ASTROCS_DESIGN §7.1a 条款 3: 名字/类型/形状/单位/可缺性）。
+      (*man)["variance_block_name"] = "variance";
+      (*man)["variance_block_type"] = "AIO_BLOCK_FLOAT32";
+      (*man)["variance_block_shape"] = f_var_block[fi]["shape"];
+      (*man)["variance_block_unit"] = "ADU^2";
+      (*man)["variance_block_optional"] = true;
+      (*man)["variance_frame_identity"] =
+          "same array/dtype as the \"data\" block (integrated frame)";
+      (*man)["variance_scale_law_applied"] = false;
+    }
+    if (f_stage[fi] == 3) {
+      if (f_errkind[fi] == 1) (*man)["error_kind"] = "input";
+      else if (f_errkind[fi] == 2) (*man)["error_kind"] = "disk_full";
+      return f_err[fi];
+    }
+    if (!f_err[fi].ok()) return f_err[fi];   // 兜底（不应到达）
+    artifacts.push_back(f_artifact[fi]);
+    frame_entries.push_back(f_frame_entry[fi]);
+    if (fi == 0) {
+      for (auto it = f_man_first[fi].begin(); it != f_man_first[fi].end(); ++it)
+        (*man)[it.key()] = it.value();
     }
   }
   (*man)["n_frames"] = static_cast<uint64_t>(artifacts.size());
@@ -5245,8 +6159,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
 //      (signal/ + support/ = NorderK/DirD/NpixN.fits, Moc.fits, metadata.fits,
 //      properties); 本节点不再消费任何中间容器, 只做产物事实面校验并落
 //      p1_final.json (逐节点 typed artifact 合同不变)。──
-// FIX-402: 冻结单位表 canonical **产品 BUNIT 串**（docs/contracts/v6/data/
-// 01_units_and_bunit.md §1）: signal_sb = ADU/px^2, sb_variance_out = ADU^2/px^4,
+// FIX-402: 冻结单位表 canonical **产品 BUNIT 串**（docs/contracts/DATA_SEMANTICS.md §31.1）: signal_sb = ADU/px^2, sb_variance_out = ADU^2/px^4,
 // sb_ivar_out = px^4/ADU^2。产品面必须逐字写冻结串。
 // 注: p3rsmp::Bunit::canonical() 是带符号指数书写（"ADU/px^-2"）, 与冻结表的产品
 // 串约定不同（该函数语义由 v6 单位测试冻结, 本任务不改动它）—— 两者不得混用。
@@ -6080,7 +6993,7 @@ Result<void> p2_op_upm_fit(const Json& doc, Json* man) {
   uc.huber_delta = 1.345;
   uc.max_iterations = 100;
   // CONFORM-FIX-B-001（合规回退）：FZ-UPM-CONVERGENCE 冻结
-  // tol=1e-6（docs/algorithms/v6/frozen/01_NUMERIC_THRESHOLD_FREEZE.md:45，
+  // tol=1e-6（docs/algorithms/GATES_AND_TOLERANCES.md，
   // 明文「改动 tol/σ_floor → rc!=0」），PHASE2_UPM_IMPL.md:379/:400-401 与
   // DATA_SEMANTICS:1874 同值且标注「冻结面，任何修改必须走 SCI/合同变更」。
   // 上一版实现就地改为 tolerance=1e-3 + tolerance_relative=1（未走变更流程）
@@ -8478,8 +9391,7 @@ bool p2_publish_mosaic_tree(const std::string& out_dir,
 }
 
 // ══ FIX-402: Phase2 mosaic 产品单位声明（BUNIT + 像素语义 provenance）════════
-// 依据: ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」; docs/contracts/v6/data/
-// 01_units_and_bunit.md §1（signal_sb = ADU/px^2; 方差/ivar 由二次律唯一导出）;
+// 依据: ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」; docs/contracts/DATA_SEMANTICS.md §31.1（signal_sb = ADU/px^2; 方差/ivar 由二次律唯一导出）;
 // FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC。单位串 = 冻结单位表的 canonical
 // 产品串（kP3Bunit* 常量），本节点不另发明第二套词表、不做任何"猜测"。
 //
@@ -9448,6 +10360,25 @@ bool p3n_check_request_fields(const Json& doc, std::string* err) {
   return true;
 }
 
+// ── P3-STREAM-01：子块边长（编排参数，非科学键）──────────────────────────
+// 依据 docs/contracts/SCHEDULER_CONTRACT.md §3「分块/窗口/子块大小由配置/资源门
+// 决定，禁止硬编码」：默认值 = ARCH-504 组件声明的配置默认（256），配置可改；
+// 值域 [16, 1024] 为内存守卫（在途上界 = 2·queue_depth·sb²·8 B，与总图大小无关）。
+// 与 max_tiles 同款「资源/编排键」形态（CLI 会话键白名单已登记，见 parser.cpp）。
+constexpr int kP3DefaultSubBlockPx = 256;
+constexpr int kP3MinSubBlockPx = 16;
+constexpr int kP3MaxSubBlockPx = 1024;
+constexpr int kP3DefaultQueueDepth = 4;
+
+bool p3n_sub_block_px(const Json& doc, int* out, std::string* err) {
+  auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
+  const int64_t sb = doc.value("sub_block_px", (int64_t)kP3DefaultSubBlockPx);
+  if (sb < kP3MinSubBlockPx || sb > kP3MaxSubBlockPx)
+    return fail("sub_block_px must be in [16,1024] (编排参数内存守卫)");
+  *out = (int)sb;
+  return true;
+}
+
 bool p3n_geom(const Json& doc, P3nGeom* g, std::string* err) {
   auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
   if (!doc.contains("source") || !doc["source"].is_object() ||
@@ -9976,19 +10907,62 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   }
 
   const long nelem = (long)g.w * g.h;
-  std::vector<float> sig((size_t)nelem, std::nanf(""));
-  std::vector<float> cov((size_t)nelem, 0.0f);
-  std::vector<float> var_plane, ivar_plane;
-  if (unc_available) {
-    var_plane.assign((size_t)nelem, std::nanf(""));
-    ivar_plane.assign((size_t)nelem, std::nanf(""));
+  // ── P3-STREAM-01：子块流式（ASTROCS_DESIGN §8.3 export 行）──────────────
+  // 驻留面 = 单个子块 × 并发任务数（**与总图大小无关**）：子块按 (by,bx) 行
+  // 主序产出，经 aio 位置写直接落进 p3_resampled.bin 的平面行主序区间；
+  // 平面布局与整幅实现逐字节相同（plane 连续拼接，行主序），故下游 writer/
+  // verify 与既有 Oracle 不受影响。
+  int sb = kP3DefaultSubBlockPx;
+  if (!p3n_sub_block_px(doc, &sb, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  const int nbx = (g.w + sb - 1) / sb;
+  const int nby = (g.h + sb - 1) / sb;
+  const long nblocks = (long)nbx * (long)nby;
+  const std::string bin_path = g.out_dir + "/p3_resampled.bin";
+  const std::string bin_tmp = aio_atomic::make_tmp_path(bin_path);
+  aio_atomic::make_dirs(g.out_dir);
+  aio_atomic::remove_file(bin_tmp);
+  aio_file::RandomWriter binw;
+  {
+    std::string werr;
+    const uint64_t plane_bytes = (uint64_t)nelem * sizeof(float);
+    const uint64_t total_bytes = plane_bytes * (unc_available ? 4u : 2u);
+    if (!binw.open(bin_tmp.c_str(), &werr) || !binw.reserve(total_bytes, &werr)) {
+      binw.close();
+      aio_atomic::remove_file(bin_tmp);
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "p3_resampled.bin (tmp) open/reserve failed: " + werr));
+    }
   }
   std::atomic<long long> missing_px{0};
   std::atomic<int> corrupt{-1};          // 行号 (u 产品损坏 §30.4-3)
-  std::atomic<bool> cancelled{false};    // P30: 协作取消 (行带循环安全点)
+  std::atomic<bool> cancelled{false};    // P30: 协作取消 (子块循环安全点)
+  std::atomic<bool> write_failed{false}; // 位置写失败 (fail-closed, 不发布)
   const int npts = (g.sampler == "nearest") ? 1 : 4;
 
-  auto worker = [&](int y0, int y1) {
+  // 子块位置写：平面 p 的第 y 行第 x 列 = (p*nelem + y*g.w + x) 个 float。
+  // 行内连续 ⇒ 每行一次位置写（与子块 x0 对齐，行区间互不重叠）。
+  auto write_block_planes = [&](int x0, int y0, int bw, int bh,
+                                const float* ps, const float* pc,
+                                const float* pv, const float* pi) -> bool {
+    std::string werr;
+    for (int yy = 0; yy < bh; ++yy) {
+      const uint64_t row = (uint64_t)(y0 + yy) * (uint64_t)g.w + (uint64_t)x0;
+      const std::size_t nbytes = (std::size_t)bw * sizeof(float);
+      const float* planes[4] = {ps, pc, pv, pi};
+      const int nplanes = unc_available ? 4 : 2;
+      for (int p = 0; p < nplanes; ++p) {
+        if (!planes[p]) continue;
+        const uint64_t off =
+            ((uint64_t)p * (uint64_t)nelem + row) * sizeof(float);
+        if (!binw.write_at(off, planes[p] + (std::size_t)yy * bw, nbytes, &werr))
+          return false;
+      }
+    }
+    return true;
+  };
+
+  auto worker = [&](long b0, long b1) {
     P3Sampler w_samp{};
     std::string wserr;
     if (p3_sampler_open_ex(g.hips_dir.c_str(), &w_samp, nullptr, nullptr, &wserr) !=
@@ -10008,54 +10982,78 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     }
     if (unc_available) p3_sampler_attach_cache(&w_u, &u_samp);   // P30: 同上
     P3WcsDescriptor w_wcs = wcs;
-    for (int y = y0; y < y1 && corrupt.load() == -1; ++y) {
-      // P30: 协作取消安全点 (与 p3_session 路径同款语义)。此前本循环不检查
-      // 取消位 → SIGINT/SIGTERM 无法中止运行中的 phase3 重采样 (实测只能
-      // SIGKILL); 现在每个输出行检查一次, 取消后立即置位并跳出, 由下方统一
-      // fail-closed 返回, **不落任何半成品** (bin/fits 均在行带循环之后才写)。
+    std::vector<float> bsig, bcov, bvar, bivar;
+    for (long b = b0; b < b1 && corrupt.load() == -1 && !write_failed.load(); ++b) {
+      // P30: 协作取消安全点（与 p3_session 路径同款语义）。每个子块检查一次，
+      // 取消后立即置位并跳出，由下方统一 fail-closed 返回，**不落任何半成品**
+      // （bin 先写临时对象，仅在全部子块成功后才 fsync + rename）。
       if (ctx && ctx->cancelled()) { cancelled.store(true); break; }
-      for (int x = 0; x < g.w; ++x) {
-        double px_ra = 0, px_dec = 0;
-        if (p3_wcs_pix2world(&w_wcs, (double)x, (double)y, &px_ra, &px_dec) !=
-            P3_WCS_OK)
-          continue;   // 半球外像素保持 NaN/0
-        const long i = (long)y * g.w + x;
-        float v = 0;
-        int c = 0;
-        double w[4] = {0, 0, 0, 0};
-        uint64_t lf[4] = {0, 0, 0, 0};
-        const P3ResampleStatus rst =
-            (g.sampler == "nearest")
-                ? p3_sample_nearest_ex(&w_samp, px_ra, px_dec, &v, &c, &lf[0])
-                : p3_sample_bilinear_ex(&w_samp, px_ra, px_dec, &v, &c, w, lf);
-        if (rst != P3_RS_OK) continue;
-        sig[(size_t)i] = (c == 1) ? v : std::nanf("");
-        cov[(size_t)i] = (c == 1) ? 1.0f : 0.0f;
-        if (!unc_available) continue;
-        if (c == 0) {   // 无覆盖 → var/ivar=NaN + C=0 (signal NaN 同态)
-          var_plane[(size_t)i] = std::nanf("");
-          ivar_plane[(size_t)i] = std::nanf("");
-          continue;
+      const int bx = (int)(b % nbx);
+      const int by = (int)(b / nbx);
+      const int x0 = bx * sb;
+      const int y0 = by * sb;
+      const int bw = std::min(sb, g.w - x0);
+      const int bh = std::min(sb, g.h - y0);
+      const std::size_t bn = (std::size_t)bw * (std::size_t)bh;
+      bsig.assign(bn, std::nanf(""));
+      bcov.assign(bn, 0.0f);
+      if (unc_available) {
+        bvar.assign(bn, std::nanf(""));
+        bivar.assign(bn, std::nanf(""));
+      }
+      for (int yy = 0; yy < bh && corrupt.load() == -1; ++yy) {
+        for (int xx = 0; xx < bw; ++xx) {
+          const int x = x0 + xx, y = y0 + yy;
+          double px_ra = 0, px_dec = 0;
+          if (p3_wcs_pix2world(&w_wcs, (double)x, (double)y, &px_ra, &px_dec) !=
+              P3_WCS_OK)
+            continue;   // 半球外像素保持 NaN/0
+          const std::size_t i = (std::size_t)yy * (std::size_t)bw + (std::size_t)xx;
+          float v = 0;
+          int c = 0;
+          double w[4] = {0, 0, 0, 0};
+          uint64_t lf[4] = {0, 0, 0, 0};
+          const P3ResampleStatus rst =
+              (g.sampler == "nearest")
+                  ? p3_sample_nearest_ex(&w_samp, px_ra, px_dec, &v, &c, &lf[0])
+                  : p3_sample_bilinear_ex(&w_samp, px_ra, px_dec, &v, &c, w, lf);
+          if (rst != P3_RS_OK) continue;
+          bsig[i] = (c == 1) ? v : std::nanf("");
+          bcov[i] = (c == 1) ? 1.0f : 0.0f;
+          if (!unc_available) continue;
+          if (c == 0) {   // 无覆盖 → var/ivar=NaN + C=0 (signal NaN 同态)
+            bvar[i] = std::nanf("");
+            bivar[i] = std::nanf("");
+            continue;
+          }
+          double u_out = 0;
+          P3UncPixelState u_st = P3_U_OK;
+          const P3ResampleStatus urst =
+              p3_uncertainty_propagate(&w_u, w, lf, npts, &u_out, &u_st);
+          if (urst == P3_RS_PARAM) { corrupt.store(y); break; }   // 产品损坏
+          if (urst != P3_RS_OK) continue;
+          if (u_st == P3_U_MISSING) {
+            missing_px.fetch_add(1);
+            bvar[i] = std::nanf("");
+            bivar[i] = std::nanf("");
+            continue;
+          }
+          bvar[i] = std::isnan(u_out) ? std::nanf("") : static_cast<float>(u_out);
+          bivar[i] =
+              std::isnan(u_out)
+                  ? std::nanf("")
+                  : (u_out > 0.0 ? static_cast<float>(1.0 / u_out)
+                                 : (u_out == 0.0 ? 0.0f : std::nanf("")));
         }
-        double u_out = 0;
-        P3UncPixelState u_st = P3_U_OK;
-        const P3ResampleStatus urst =
-            p3_uncertainty_propagate(&w_u, w, lf, npts, &u_out, &u_st);
-        if (urst == P3_RS_PARAM) { corrupt.store(y); break; }   // 产品损坏
-        if (urst != P3_RS_OK) continue;
-        if (u_st == P3_U_MISSING) {
-          missing_px.fetch_add(1);
-          var_plane[(size_t)i] = std::nanf("");
-          ivar_plane[(size_t)i] = std::nanf("");
-          continue;
-        }
-        var_plane[(size_t)i] =
-            std::isnan(u_out) ? std::nanf("") : static_cast<float>(u_out);
-        ivar_plane[(size_t)i] =
-            std::isnan(u_out)
-                ? std::nanf("")
-                : (u_out > 0.0 ? static_cast<float>(1.0 / u_out)
-                               : (u_out == 0.0 ? 0.0f : std::nanf("")));
+      }
+      if (corrupt.load() != -1 || cancelled.load()) break;
+      // 子块 → p3_resampled.bin 位置写（行内连续；行区间互不重叠 ⇒ 与写出
+      // 顺序无关，1/N worker 逐位一致）
+      if (!write_block_planes(x0, y0, bw, bh, bsig.data(), bcov.data(),
+                              unc_available ? bvar.data() : nullptr,
+                              unc_available ? bivar.data() : nullptr)) {
+        write_failed.store(true);
+        break;
       }
     }
     p3_uncertainty_close(&w_u);
@@ -10068,63 +11066,72 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   // 池不可得（无预算上下文）或 cap<2 → 调用线程串行（极小任务允许串行, §10.4;
   // 与旧行为 bitwise 一致）。节点整预算租约由 execute() 在提交前显式归还,
   // 否则池任务抢不到槽会自等待（见 P3NodeModule::execute 注记）。
-  // fail-closed: 每个行带完成计数; wait_all 后已执行数 ≠ 提交数（取消丢弃/
-  // 注入缺陷）→ 节点显式失败, 不落任何伪产物。实测观测: work_units（提交数）、
-  // band_active_peak（行带并发峰值 = 实测 active threads）、band_executed。
+  // fail-closed: 每个子块 work unit 完成计数; wait_all 后已执行数 ≠ 提交数（取消
+  // 丢弃/注入缺陷）→ 节点显式失败, 不落任何伪产物。实测观测: work_units（提交数）、
+  // band_active_peak（并发峰值 = 实测 active threads）、band_executed。
   const uint32_t nw =
-      (cap >= 2 && g.h >= 2)
-          ? static_cast<uint32_t>(std::min<uint32_t>(cap, static_cast<uint32_t>(g.h)))
+      (cap >= 2 && nblocks >= 2)
+          ? static_cast<uint32_t>(std::min<long>(cap, nblocks))
           : 1u;
   std::atomic<uint32_t> band_active{0};
   std::atomic<uint32_t> band_active_peak{0};
   std::atomic<uint32_t> band_executed{0};
   std::shared_ptr<CpuHeavyExecutor> band_pool;
   if (ctx && nw >= 2) band_pool = rt::shared_work_executor(ctx->budget());
-  auto band_task = [&](int y0, int y1, RunContext&) {
-    // 故障注入 (ASTROCS_RT001_FAULT): resample_drop_band 模拟"行带任务被取消
-    // 丢弃"缺陷 → fail-closed 路径必须拒绝 (P2-002/P3-002 注入先例同构)。
+  auto band_task = [&](long b0, long b1, RunContext&) {
+    // 故障注入 (ASTROCS_RT001_FAULT): resample_drop_band 模拟"首个 work unit 被
+    // 取消丢弃"缺陷 → fail-closed 路径必须拒绝 (P2-002/P3-002 注入先例同构)。
     const char* fault = std::getenv("ASTROCS_RT001_FAULT");
-    if (fault && std::strcmp(fault, "resample_drop_band") == 0 && y0 == 0) {
-      return;  // 首行带(y0==0)被吞: 不执行、不计数 (确定性: 无时序竞争)
+    if (fault && std::strcmp(fault, "resample_drop_band") == 0 && b0 == 0) {
+      return;  // 首个 work unit 被吞: 不执行、不计数 (确定性: 无时序竞争)
     }
     const uint32_t cur = band_active.fetch_add(1) + 1;
     uint32_t p = band_active_peak.load();
     while (cur > p && !band_active_peak.compare_exchange_weak(p, cur)) {}
-    worker(y0, y1);
+    worker(b0, b1);
     band_active.fetch_sub(1);
     band_executed.fetch_add(1);
   };
+  // 子块区间按 [k*nblocks/nw, (k+1)*nblocks/nw) 均分（连续区间，负载均衡且
+  // 与 worker 数无关的确定性划分）。
+  auto block_range = [&](uint32_t k, long* b0, long* b1) {
+    *b0 = (long)((uint64_t)nblocks * k / nw);
+    *b1 = (long)((uint64_t)nblocks * (k + 1) / nw);
+  };
   RunContext no_ctx;  // 池外调用面的空观测上下文（串行/防御路径专用）
   if (nw >= 2) {
-    const int rows = g.h / (int)nw;
     for (uint32_t k = 0; k < nw; ++k) {
-      const int y0 = (int)k * rows;
-      const int y1 = (k == nw - 1) ? g.h : y0 + rows;
+      long b0 = 0, b1 = 0;
+      block_range(k, &b0, &b1);
       if (band_pool) {
-        band_pool->enqueue([&band_task, y0, y1](RunContext& c) {
-          band_task(y0, y1, c);
+        band_pool->enqueue([&band_task, b0, b1](RunContext& c) {
+          band_task(b0, b1, c);
         });
       } else {
-        // 防御路径（池不可得且 cap>=2, 生产不可达）: 串行执行全部行带,
+        // 防御路径（池不可得且 cap>=2, 生产不可达）: 串行执行全部子块,
         // 不自建线程池（禁止回退到调用点 spawn）—— 完整性与确定性优先。
-        band_task(y0, y1, no_ctx);
+        band_task(b0, b1, no_ctx);
       }
     }
     if (band_pool) band_pool->wait_all();
   } else {
-    band_task(0, g.h, no_ctx);
+    band_task(0, nblocks, no_ctx);
   }
   p3_uncertainty_close(&u_samp);
   p3_sampler_close(&samp);
-  // P30: 取消优先于"行带被丢弃"判定 (两者都 fail-closed; 取消更具体)。
-  // 取消时 p3_resampled.bin/json 尚未写出 → 无半成品产物。
+  // P30: 取消优先于"work unit 被丢弃"判定 (两者都 fail-closed; 取消更具体)。
+  // 取消时 p3_resampled.bin 只在临时对象里 → 无半成品产物。
   if (cancelled.load() || (ctx && ctx->cancelled())) {
+    binw.close();
+    aio_atomic::remove_file(bin_tmp);
     return Result<void>::fail(Error(ErrorDomain::CANCELLED,
         "resample cancelled by cancellation token: fail-closed, no partial product"));
   }
   if (band_executed.load() != nw) {
+    binw.close();
+    aio_atomic::remove_file(bin_tmp);
     return Result<void>::fail(Error(ErrorDomain::CANCELLED,
-        "resample row-band work units dropped (executed " +
+        "resample sub-block work units dropped (executed " +
             std::to_string(band_executed.load()) + "/" + std::to_string(nw) +
             "): cancelled or fault-injected; fail-closed, no partial product"));
   }
@@ -10132,6 +11139,10 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
     (*man)["work_units"] = nw;                      // 提交的 work unit 数（计划面）
     (*man)["band_executed"] = band_executed.load(); // 实测完成数
     (*man)["band_active_peak"] = band_active_peak.load();  // 实测并发峰值
+    // P3-STREAM-01：子块流式实测证据（判据 CHK-P3-EXPORT-STREAM-PROD 消费）。
+    (*man)["sub_block_px"] = sb;
+    (*man)["sub_blocks"] = nblocks;
+    (*man)["sub_block_streaming"] = true;
     // P30 (§10.5 证据): tile 缓存命中率 / 真实 tile 读次数 / 失败 open 次数。
     P3CacheStats cs{};
     p3_sampler_cache_stats(&samp, &cs);
@@ -10151,27 +11162,27 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
             std::to_string(corrupt.load())));
   }
 
+  if (write_failed.load()) {
+    binw.close();
+    aio_atomic::remove_file(bin_tmp);
+    return Result<void>::fail(Error(ErrorDomain::IO,
+        "p3_resampled.bin positional write failed (fail-closed, no partial product)"));
+  }
   // typed artifact: p3_resampled.bin = 平面连续拼接 (f32: sig, cov[, var, ivar])
-  const std::string bin_path = g.out_dir + "/p3_resampled.bin";
+  // —— 子块已按平面行主序区间**位置写**进临时对象；此处只做 §9 原子提交
+  //（fflush → fsync → rename），不再有整幅平面的写出步骤。
   {
-    // §9 原子提交（多段流式写 → 临时文件 + fsync + rename）
     std::string aerr;
-    const size_t nplane = static_cast<size_t>(nelem);
-    const int arc = aio_atomic::write_file_atomic_stream(
-        bin_path,
-        [&](FILE* bf) {
-          bool ok = std::fwrite(sig.data(), sizeof(float), nplane, bf) == nplane &&
-                    std::fwrite(cov.data(), sizeof(float), nplane, bf) == nplane;
-          if (unc_available)
-            ok = ok &&
-                 std::fwrite(var_plane.data(), sizeof(float), nplane, bf) == nplane &&
-                 std::fwrite(ivar_plane.data(), sizeof(float), nplane, bf) == nplane;
-          return ok;
-        },
-        &aerr);
-    if (arc != 0)
+    if (!binw.flush_and_sync(&aerr)) {
+      aio_atomic::remove_file(bin_tmp);
       return Result<void>::fail(Error(ErrorDomain::IO,
-          "p3_resampled.bin atomic write failed: " + aerr));
+          "p3_resampled.bin flush/fsync failed: " + aerr));
+    }
+    if (aio_atomic::atomic_replace(bin_tmp, bin_path) != 0) {
+      aio_atomic::remove_file(bin_tmp);
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "p3_resampled.bin atomic replace failed: " + bin_path));
+    }
   }
   // 完整性锚: bin 流式 sha256 (禁前缀/假哈希; 大图流式不整载)
   // CLEAN-403: 摘要经 aio 唯一实现 (aio_file::sha256_hex, 64 KiB 分块)。
@@ -10203,7 +11214,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
            // FZ-P3-MODES: 输出模式显式随产物落盘（visualization = 不可测量）
            {"output_mode", omode},
            {"measurement_capable", measure_face},
-           // FZ-FORMULA-COV-PROP / docs/contracts/v6/data/08_phase3.md §5:
+           // FZ-FORMULA-COV-PROP / docs/contracts/DATA_SEMANTICS.md §28.6:
            // variance/ivar 显式消费, 按 C_out = R C_in R^T 传播（输入 C_in 对角
            // 时逐像素 [R C R^T]_ii = Σ_k c_k² u_k; nearest: u_in）。
            {"variance_propagation", "C_out = R C_in R^T"},
@@ -10244,8 +11255,39 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   return Result<void>::success();
 }
 
+// ── P3-STREAM-01：生产 FITS 子块汇（ExportSink 唯一生产实现）───────────────
+// 调度器按子块索引升序回调本汇；本汇把子块写进**当前 HDU** 的数据区
+// （cfitsio fits_write_subset）。HDU 的建立与头组装由调用方在首个 write_block
+// 之前完成（begin_hdu），发布（fsync + 原子 rename）在全部 HDU 写完后由调用方
+// 统一执行 —— 多 HDU 的 FITS 产品只有一个发布点，原子性不变。
+class P3FitsSubsetSink : public astrocs::core::ExportSink {
+ public:
+  explicit P3FitsSubsetSink(astrocs::phase3::P3FitsStream* w) : w_(w) {}
+  bool open(std::string*) override { return true; }   // HDU 由调用方 begin_hdu
+  bool write_sub_block(std::size_t, int x0, int y0, int w, int h,
+                       const double* data, std::string* err) override {
+    fb_.resize(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
+    // f64 → f32：bin 平面本来就是 f32，double 可精确表示任何 float ⇒ 无精度损失
+    for (std::size_t i = 0; i < fb_.size(); ++i)
+      fb_[i] = static_cast<float>(data[i]);
+    if (w_->write_block(x0, y0, w, h, fb_.data()) != astrocs::phase3::P3_OUT_OK) {
+      if (err)
+        *err = std::string("fits_write_subset: ") +
+               astrocs::phase3::p3_output_last_error();
+      return false;
+    }
+    return true;
+  }
+  bool finish(std::string*) override { return true; }   // 发布由调用方统一执行
+  void abort() override {}
+
+ private:
+  astrocs::phase3::P3FitsStream* w_;
+  std::vector<float> fb_;
+};
 // ── op: writer (ALG-P3-004 唯一真实入口 = 原子流式 FITS 发布) ────────────────
-Result<void> p3_op_writer(const Json& doc, Json* man) {
+Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
+                          RunContext* ctx) {
   P3nGeom g;
   std::string err;
   if (!p3n_geom(doc, &g, &err))
@@ -10260,7 +11302,6 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   if (!p3n_wcs_from_json(plan, &wcs, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
   const long nelem = (long)g.w * g.h;
-  std::vector<float> sig((size_t)nelem), cov((size_t)nelem);
   const bool unc = res.value("uncertainty_available", false);
   // FIX-402: 输出面单位必须来自 resample 的 canonical 面亮度声明（禁 loose default
   // "ADU"）; 输出模式/可测量性同样必须显式随产物落盘（FZ-P3-MODES）。
@@ -10283,28 +11324,6 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   if (omode == "surface_brightness" && !measurement_capable)
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "surface_brightness product must declare measurement_capable=true"));
-  std::vector<float> var_p, ivar_p;
-  if (unc) { var_p.resize((size_t)nelem); ivar_p.resize((size_t)nelem); }
-  {
-    // CLEAN-403: 平面区间读取经 aio (aio_file::read_range, 不整载文件)。
-    const std::string bin_p = g.out_dir + "/p3_resampled.bin";
-    const std::size_t plane_bytes = sizeof(float) * static_cast<std::size_t>(nelem);
-    std::string pbuf;
-    uint64_t off = 0;
-    auto read_plane = [&](void* dst) -> bool {
-      if (!aio_file::read_range(bin_p.c_str(), off, plane_bytes, &pbuf)) return false;
-      std::memcpy(dst, pbuf.data(), plane_bytes);
-      off += plane_bytes;
-      return true;
-    };
-    if (!aio_fs::exists(bin_p))
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "upstream artifact missing: p3_resampled.bin"));
-    if (!read_plane(sig.data()) || !read_plane(cov.data()) ||
-        (unc && (!read_plane(var_p.data()) || !read_plane(ivar_p.data()))))
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "p3_resampled.bin truncated (planes vs manifest drift)"));
-  }
   // B2-A10（宪章 §4.3）：provenance 必须携带真实来源，而非节点占位串。
   //   ① manifest_hash = 实际消费的输入 HiPS 产品清单哈希（properties +
   //      Moc.fits 的 SHA-256；P3 可读任意合同兼容 HiPS，故按实际源计算）；
@@ -10342,18 +11361,178 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   prov.uncertainty_missing_pixels =
       (long)res.value("uncertainty_missing_pixels", 0ll);
   const std::string fits_path = g.out_dir + "/output_phase3.fits";
+  const std::string bin_p = g.out_dir + "/p3_resampled.bin";
+  if (!aio_fs::exists(bin_p))
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "upstream artifact missing: p3_resampled.bin"));
+  // ── P3-STREAM-01：导出编排参数（资源/编排键，非科学键）───────────────────
+  // SCHEDULER_CONTRACT §3：分块大小与队列深度由配置/资源门决定，禁硬编码。
+  int sb = kP3DefaultSubBlockPx;
+  if (!p3n_sub_block_px(doc, &sb, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  const int64_t qd64 = doc.value("queue_depth", (int64_t)kP3DefaultQueueDepth);
+  if (qd64 < 1 || qd64 > 64)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "queue_depth must be in [1,64] (有界队列深度守卫)"));
+  const int qd = (int)qd64;
+  // 故障注入（门禁负例；生产默认不可达）：ASTROCS_P3_EXPORT_FAULT=
+  // whole_frame_resident ⇒ 走「整幅平面驻留 + 单次 fits_write_pix」的**改前形态**
+  // 参考路径。它同时是：① 判据 CHK-P3-EXPORT-STREAM-RSS 的阳性对照（整幅驻留
+  // ⇒ 必须判红）；② 产品语义逐字节对照的参考实现（与流式路径产物必须逐字节
+  // 相同）。生产环境不设该变量 ⇒ 不可达（ASTROCS_RT001_FAULT 同款形态）。
+  const char* export_fault = std::getenv("ASTROCS_P3_EXPORT_FAULT");
+  const bool whole_frame =
+      (export_fault != nullptr &&
+       std::strcmp(export_fault, "whole_frame_resident") == 0);
   P3OutputResult ores{};
-  const P3OutputStatus ost = p3_output_write_atomic_ex(
-      sig.data(), cov.data(), unc ? var_p.data() : nullptr,
-      unc ? ivar_p.data() : nullptr, g.w, g.h, &wcs,
-      bunit_canon.c_str(), fits_path.c_str(), &prov, g.bitpix, -1,
-      &ores);
-  if (ost != P3_OUT_OK)
-    return Result<void>::fail(Error(ErrorDomain::IO,
-        "p3_output_write_atomic_ex failed (status " +
-            std::to_string((int)ost) + ")"));
   long covn = 0;
-  for (long i = 0; i < nelem; ++i) if (cov[(size_t)i] > 0.5f) ++covn;
+  std::size_t peak_inflight = 0;
+  std::size_t stream_blocks = 0;
+  if (whole_frame) {
+    // ── 参考路径（P3-STREAM-01 改前形态）：整幅驻留 ─────────────────────
+    std::vector<float> sig((size_t)nelem), cov((size_t)nelem);
+    std::vector<float> var_p, ivar_p;
+    if (unc) { var_p.resize((size_t)nelem); ivar_p.resize((size_t)nelem); }
+    {
+      const std::size_t plane_bytes = sizeof(float) * static_cast<std::size_t>(nelem);
+      std::string pbuf;
+      uint64_t off = 0;
+      auto read_plane = [&](void* dst) -> bool {
+        if (!aio_file::read_range(bin_p.c_str(), off, plane_bytes, &pbuf)) return false;
+        std::memcpy(dst, pbuf.data(), plane_bytes);
+        off += plane_bytes;
+        return true;
+      };
+      if (!read_plane(sig.data()) || !read_plane(cov.data()) ||
+          (unc && (!read_plane(var_p.data()) || !read_plane(ivar_p.data()))))
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "p3_resampled.bin truncated (planes vs manifest drift)"));
+    }
+    const P3OutputStatus ost = p3_output_write_atomic_ex(
+        sig.data(), cov.data(), unc ? var_p.data() : nullptr,
+        unc ? ivar_p.data() : nullptr, g.w, g.h, &wcs,
+        bunit_canon.c_str(), fits_path.c_str(), &prov, g.bitpix, -1, &ores);
+    if (ost != P3_OUT_OK)
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          "p3_output_write_atomic_ex failed (status " +
+              std::to_string((int)ost) + ")"));
+    for (long i = 0; i < nelem; ++i) if (cov[(size_t)i] > 0.5f) ++covn;
+  } else {
+    // ── 生产路径：子块流式（ExportStreamScheduler + FITS 子集写）─────────
+    // 驻留面 = 单个子块 × 在途上限（2·queue_depth），**与 W×H 无关**。
+    const int nplanes = unc ? 4 : 2;
+    std::atomic<bool> read_failed{false};
+    P3FitsStream fs;
+    if (fs.open(fits_path.c_str(), &wcs, g.w, g.h, g.bitpix,
+                bunit_canon.c_str(), &prov) != P3_OUT_OK) {
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          std::string("p3_stream open failed: ") + p3_output_last_error()));
+    }
+    for (int plane = 0; plane < nplanes; ++plane) {
+      if (fs.begin_hdu(plane) != P3_OUT_OK) {
+        fs.abort();
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            std::string("p3_stream begin_hdu failed: ") + p3_output_last_error()));
+      }
+      // 读子块：平面 p 的第 y 行第 x 列 = (p·nelem + y·W + x) 个 float（行内连续）
+      auto read_fn = [&](int x0, int y0, int w, int h, double* out) {
+        const uint64_t plane_off = (uint64_t)plane * (uint64_t)nelem;
+        std::string buf;
+        for (int yy = 0; yy < h; ++yy) {
+          const uint64_t row =
+              plane_off + (uint64_t)(y0 + yy) * (uint64_t)g.w + (uint64_t)x0;
+          const std::size_t nbytes = (std::size_t)w * sizeof(float);
+          if (!aio_file::read_range(bin_p.c_str(), row * sizeof(float), nbytes, &buf)) {
+            read_failed.store(true);
+            for (int xx = 0; xx < w; ++xx)
+              out[(std::size_t)yy * w + xx] = std::nan("");
+            continue;
+          }
+          const float* src = reinterpret_cast<const float*>(buf.data());
+          for (int xx = 0; xx < w; ++xx)
+            out[(std::size_t)yy * w + xx] = (double)src[xx];
+        }
+      };
+      P3FitsSubsetSink sink(&fs);
+      astrocs::core::ExportStreamConfig sc;
+      sc.workers = (cap >= 1) ? (int)cap : 1;   // 线程预算来自资源门（非字面量）
+      sc.sub_block_px = sb;
+      sc.queue_depth = qd;
+      sc.sink = &sink;
+      sc.header_ready = true;   // 头已由 fs.open/begin_hdu 在首像素写出前组装
+      sc.output_path = fits_path;
+      sc.sub_block_fn = read_fn;
+      astrocs::core::ExportStreamScheduler sched(sc);
+      sched.set_image(g.w, g.h);
+      const astrocs::core::ExportOutcome so = sched.run();
+      if (ctx != nullptr && ctx->cancelled()) {
+        fs.abort();
+        return Result<void>::fail(Error(ErrorDomain::CANCELLED,
+            "writer cancelled by cancellation token: fail-closed, no partial product"));
+      }
+      if (!so.ok) {
+        fs.abort();
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            "ExportStreamScheduler run failed (plane " + std::to_string(plane) +
+                "): " + so.error));
+      }
+      if (read_failed.load()) {
+        fs.abort();
+        return Result<void>::fail(Error(ErrorDomain::DATA,
+            "p3_resampled.bin truncated (planes vs manifest drift)"));
+      }
+      peak_inflight = std::max(peak_inflight, so.peak_resident_bytes);
+      stream_blocks += so.sub_blocks;
+      if (fs.end_hdu() != P3_OUT_OK) {
+        fs.abort();
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            std::string("p3_stream end_hdu failed: ") + p3_output_last_error()));
+      }
+    }
+    if (fs.publish(&ores) != P3_OUT_OK)
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          std::string("p3_stream publish failed: ") + p3_output_last_error()));
+    // 独立重开对拍（与整幅路径同判据；按子块流式，不整幅驻留）
+    {
+      P3FitsVerifyStream vs;
+      if (vs.open(fits_path.c_str(), &wcs, g.w, g.h, unc) != P3_OUT_OK)
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            std::string("p3_stream verify open failed: ") + p3_output_last_error()));
+      std::vector<float> fb;
+      for (int plane = 0; plane < nplanes; ++plane) {
+        for (int y0 = 0; y0 < g.h; y0 += sb) {
+          for (int x0 = 0; x0 < g.w; x0 += sb) {
+            const int w = std::min(sb, g.w - x0);
+            const int h = std::min(sb, g.h - y0);
+            fb.resize((std::size_t)w * h);
+            std::string buf;
+            for (int yy = 0; yy < h; ++yy) {
+              const uint64_t row = (uint64_t)plane * (uint64_t)nelem +
+                                   (uint64_t)(y0 + yy) * (uint64_t)g.w + (uint64_t)x0;
+              if (!aio_file::read_range(bin_p.c_str(), row * sizeof(float),
+                                        (std::size_t)w * sizeof(float), &buf))
+                return Result<void>::fail(Error(ErrorDomain::DATA,
+                    "p3_resampled.bin truncated during reopen verify"));
+              std::memcpy(fb.data() + (std::size_t)yy * w, buf.data(),
+                          (std::size_t)w * sizeof(float));
+            }
+            if (vs.check_block(plane, x0, y0, w, h, fb.data()) != P3_OUT_OK)
+              return Result<void>::fail(Error(ErrorDomain::IO,
+                  std::string("p3_stream verify failed: ") + p3_output_last_error()));
+          }
+        }
+      }
+      P3OutputResult vr{};
+      if (vs.close(&vr) != P3_OUT_OK)
+        return Result<void>::fail(Error(ErrorDomain::IO,
+            std::string("p3_stream verify close failed: ") + p3_output_last_error()));
+      ores.reopen_ok = vr.reopen_ok;
+      ores.coverage_ok = vr.coverage_ok;
+      ores.covered_px = vr.covered_px;
+      ores.total_px = vr.total_px;
+      covn = vr.covered_px;
+    }
+  }
   const std::string json_path = g.out_dir + "/p3_writer.json";
   // DET-001: 主产物指纹分两层（禁一个名字承载两个含义, UNIFIED_MODEL §字段语义）:
   //   canonical_sha256 — 规范产品哈希（像素数据 + 科学元数据; 排除易变卡/键）
@@ -10391,7 +11570,23 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
           {"variance_propagation_rule",
            res.value("variance_propagation_rule", std::string())},
           {"algorithm_id", "ALG-P3-004"},
-          {"provider", "baseline"}};
+          {"provider", "baseline"},
+          // ── P3-STREAM-01：流式生效证据（判据 CHK-P3-EXPORT-STREAM-PROD/RSS 消费）
+          // 生产默认路径必须经 ARCH-504 ExportStreamScheduler 子块流式执行；整幅
+          // 驻留参考路径只在故障注入 ASTROCS_P3_EXPORT_FAULT=whole_frame_resident
+          // 下可达（此时 whole_frame_fault=true ⇒ 门禁负例判红）。随产品落盘，
+          // 供下游与验收独立核对，不依赖进程内状态。
+          {"export_stream",
+           {{"scheduler", "ExportStreamScheduler"},
+            {"schema", "astrocs.export-stream-manifest/v1"},
+            {"sub_block_px", sb},
+            {"queue_depth", qd},
+            {"sub_blocks", stream_blocks},
+            {"peak_inflight_bytes", peak_inflight},
+            {"whole_frame_fault", whole_frame},
+            {"fits_hdu_streaming", !whole_frame}}},
+          {"sub_block_px", sb},
+          {"whole_frame_fault", whole_frame}};
   // §9 原子提交
   if (!p2_write_text_atomic(json_path, wr.dump(2) + "\n"))
     return Result<void>::fail(Error(ErrorDomain::IO, "p3_writer.json atomic write failed"));
@@ -10416,6 +11611,20 @@ Result<void> p3_op_writer(const Json& doc, Json* man) {
   (*man)["pixel_area_power"] = -2;
   (*man)["output_mode"] = omode;
   (*man)["measurement_capable"] = measurement_capable;
+  // ── P3-STREAM-01：流式生效证据（判据 CHK-P3-EXPORT-STREAM-PROD 消费）──────
+  // 生产默认路径必须经 ARCH-504 ExportStreamScheduler；整幅驻留参考路径只在
+  // 故障注入下可达（whole_frame_fault=true ⇒ 门禁负例判红）。
+  (*man)["export_stream"] = Json{
+      {"scheduler", "ExportStreamScheduler"},
+      {"schema", "astrocs.export-stream-manifest/v1"},
+      {"sub_block_px", sb},
+      {"queue_depth", qd},
+      {"sub_blocks", stream_blocks},
+      {"peak_inflight_bytes", peak_inflight},
+      {"whole_frame_fault", whole_frame},
+      {"fits_hdu_streaming", !whole_frame}};
+  (*man)["sub_block_px"] = sb;
+  (*man)["whole_frame_fault"] = whole_frame;
   return Result<void>::success();
 }
 
@@ -10437,7 +11646,6 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   if (!p3n_wcs_from_json(plan, &wcs, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
   const long nelem = (long)g.w * g.h;
-  std::vector<float> sig((size_t)nelem), cov((size_t)nelem);
   const bool unc = res.value("uncertainty_available", false);
   // FIX-402: verify 独立重开面同样消费 canonical 单位/模式声明（禁 loose default）;
   // resampled ↔ writer 声明分叉 → 显式拒（不把分叉当"已验证"）。
@@ -10454,38 +11662,55 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   if (res.value("measurement_capable", false) != wr.value("measurement_capable", false))
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "verify: measurement_capable drift between resampled and writer artifacts"));
-  std::vector<float> var_p, ivar_p;
-  if (unc) { var_p.resize((size_t)nelem); ivar_p.resize((size_t)nelem); }
-  {
-    // CLEAN-403: 平面区间读取经 aio (aio_file::read_range, 不整载文件)。
-    const std::string bin_p = g.out_dir + "/p3_resampled.bin";
-    const std::size_t plane_bytes = sizeof(float) * static_cast<std::size_t>(nelem);
-    std::string pbuf;
-    uint64_t off = 0;
-    auto read_plane = [&](void* dst) -> bool {
-      if (!aio_file::read_range(bin_p.c_str(), off, plane_bytes, &pbuf)) return false;
-      std::memcpy(dst, pbuf.data(), plane_bytes);
-      off += plane_bytes;
-      return true;
-    };
-    if (!aio_fs::exists(bin_p))
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "upstream artifact missing: p3_resampled.bin"));
-    if (!read_plane(sig.data()) || !read_plane(cov.data()) ||
-        (unc && (!read_plane(var_p.data()) || !read_plane(ivar_p.data()))))
-      return Result<void>::fail(Error(ErrorDomain::DATA, "p3_resampled.bin truncated"));
-  }
+  // ── P3-STREAM-01：独立重开**子块流式**对拍（不整幅驻留）─────────────────
+  // 判据与 p3_output_verify_ex 逐条同面：尺寸/WCS 关键字/HDU 面/逐像素回环
+  // （NaN==NaN 同态）/COVERAGE 掩码语义；驻留面 = 单个子块。
+  const std::string bin_p = g.out_dir + "/p3_resampled.bin";
+  if (!aio_fs::exists(bin_p))
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "upstream artifact missing: p3_resampled.bin"));
+  int sb = kP3DefaultSubBlockPx;
+  if (!p3n_sub_block_px(doc, &sb, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  const std::string verify_fits = wr.value("output_fits", std::string());
   P3OutputResult vres{};
-  const P3OutputStatus vst = p3_output_verify_ex(
-      wr.value("output_fits", std::string()).c_str(), &wcs, sig.data(), cov.data(),
-      unc ? var_p.data() : nullptr, unc ? ivar_p.data() : nullptr, g.w, g.h,
-      &vres);
-  if (vst != P3_OUT_OK)
-    return Result<void>::fail(Error(ErrorDomain::IO, "p3_output_verify_ex failed"));
+  {
+    P3FitsVerifyStream vs;
+    if (vs.open(verify_fits.c_str(), &wcs, g.w, g.h, unc) != P3_OUT_OK)
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          std::string("p3_stream verify open failed: ") + p3_output_last_error()));
+    const int nplanes = unc ? 4 : 2;
+    std::vector<float> fb;
+    for (int plane = 0; plane < nplanes; ++plane) {
+      for (int y0 = 0; y0 < g.h; y0 += sb) {
+        for (int x0 = 0; x0 < g.w; x0 += sb) {
+          const int w = std::min(sb, g.w - x0);
+          const int h = std::min(sb, g.h - y0);
+          fb.resize((std::size_t)w * h);
+          std::string buf;
+          for (int yy = 0; yy < h; ++yy) {
+            const uint64_t row = (uint64_t)plane * (uint64_t)nelem +
+                                 (uint64_t)(y0 + yy) * (uint64_t)g.w + (uint64_t)x0;
+            if (!aio_file::read_range(bin_p.c_str(), row * sizeof(float),
+                                      (std::size_t)w * sizeof(float), &buf))
+              return Result<void>::fail(Error(ErrorDomain::DATA,
+                  "p3_resampled.bin truncated (verify)"));
+            std::memcpy(fb.data() + (std::size_t)yy * w, buf.data(),
+                        (std::size_t)w * sizeof(float));
+          }
+          if (vs.check_block(plane, x0, y0, w, h, fb.data()) != P3_OUT_OK)
+            return Result<void>::fail(Error(ErrorDomain::IO,
+                std::string("p3_stream verify failed: ") + p3_output_last_error()));
+        }
+      }
+    }
+    if (vs.close(&vres) != P3_OUT_OK)
+      return Result<void>::fail(Error(ErrorDomain::IO,
+          std::string("p3_stream verify close failed: ") + p3_output_last_error()));
+  }
   const std::string json_path = g.out_dir + "/p3_verify.json";
   // DET-001: verify 侧**独立重算**规范产品哈希（不采信 writer 自报值）, 并给出
   // 与 writer 声明值的一致性判定; 自报值同时保留供审计。
-  const std::string verify_fits = wr.value("output_fits", std::string());
   const astrocs::core::CanonicalHashResult vcanon =
       astrocs::core::canonical_product_hash_file(verify_fits);
   if (!vcanon.ok)
@@ -10527,6 +11752,8 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   (*man)["writer_canonical_sha256"] = writer_canon;
   (*man)["canonical_match"] = canon_match;
   (*man)["integrity_sha256"] = std::string(vres.sha256);
+  (*man)["sub_block_px"] = sb;
+  (*man)["sub_block_streaming"] = true;
   return Result<void>::success();
 }
 
@@ -10582,6 +11809,17 @@ struct P3NodeModule : public IModule {
       return Result<void>::fail(Error(ErrorDomain::DATA, "bitpix must be integer"));
     if (doc.contains("max_tiles") && !doc["max_tiles"].is_number_integer())
       return Result<void>::fail(Error(ErrorDomain::DATA, "max_tiles must be integer"));
+    // P3-STREAM-01: 子块边长（编排/资源键，值域 = 内存守卫；缺省 = 组件默认 256）
+    if (doc.contains("sub_block_px")) {
+      if (!doc["sub_block_px"].is_number_integer())
+        return Result<void>::fail(Error(ErrorDomain::DATA, "sub_block_px must be integer"));
+      std::string sberr;
+      int sb_tmp = 0;
+      if (!p3n_sub_block_px(doc, &sb_tmp, &sberr))
+        return Result<void>::fail(Error(ErrorDomain::DATA, sberr));
+    }
+    if (doc.contains("queue_depth") && !doc["queue_depth"].is_number_integer())
+      return Result<void>::fail(Error(ErrorDomain::DATA, "queue_depth must be integer"));
     // B2-A4/A5: projection/frame/coverage_output 值域 (validate/plan/run 一致拒绝面;
     // 未实现投影不得登记为可运行配置)。
     {
@@ -10598,7 +11836,9 @@ struct P3NodeModule : public IModule {
     ModulePlan p;
     p.node_id = node_id;
     p.work_units = 1;
-    p.parallel_axes = {"row-band"};
+    // P3-STREAM-01：export 的调度单元 = 输出子块（ASTROCS_DESIGN §8.3 export 行）；
+    // 具体切分在 op 内按 sub_block_px 与预算确定（work unit 经唯一 executor 提交）。
+    p.parallel_axes = {"sub-block"};
     p.cpu_heavy = desc_.execution_class == "cpu_heavy";
     return Result<ModulePlan>::ok(std::move(p));
   }
@@ -10657,7 +11897,7 @@ struct P3NodeModule : public IModule {
           case P3NodeOp::Properties: r = p3_op_properties(doc, &man); break;
           case P3NodeOp::Wcs:        r = p3_op_wcs(doc, &man); break;
           case P3NodeOp::Resample:   r = p3_op_resample(doc, &man, cap, &ctx); break;
-          case P3NodeOp::Writer:     r = p3_op_writer(doc, &man); break;
+          case P3NodeOp::Writer:     r = p3_op_writer(doc, &man, cap, &ctx); break;
           case P3NodeOp::Verify:     r = p3_op_verify(doc, &man); break;
         }
       }
