@@ -402,14 +402,20 @@ static void test_w6_available(double ra, double dec) {
   {
     fitsfile* f = nullptr;
     int status = 0;
-    CHECK(fits_open_file(&f, fits.c_str(), READONLY, &status) == 0);
-    for (int h = 3; h <= 4; ++h) {
-      CHECK(fits_movabs_hdu(f, h, nullptr, &status) == 0);
-      char card[81] = {0};
-      CHECK(fits_read_keyword(f, "DATASUM", card, nullptr, &status) == 0);
-      status = 0;
+    // cfitsio 句柄"取到才可用": fits_* 对 nullptr 句柄直接解引用空指针，进程
+    // SEGFAULT 会吞掉真实诊断（CHECK 非致命，失败后仍往下执行）。取句柄处
+    // 一律致命化，不把 nullptr 交给 cfitsio。
+    if (fits_open_file(&f, fits.c_str(), READONLY, &status) != 0) {
+      CHECK_MSG(false, "fits_open_file for DATASUM check failed");
+    } else {
+      for (int h = 3; h <= 4; ++h) {
+        CHECK(fits_movabs_hdu(f, h, nullptr, &status) == 0);
+        char card[81] = {0};
+        CHECK(fits_read_keyword(f, "DATASUM", card, nullptr, &status) == 0);
+        status = 0;
+      }
+      fits_close_file(f, &status);
     }
-    fits_close_file(f, &status);
   }
   // 数值 (nearest: var_out==u_in 逐像素; ivar_out==1/u_in) — W1 session 面
   std::vector<float> var_px, ivar_px, cov_px, sig_px;
