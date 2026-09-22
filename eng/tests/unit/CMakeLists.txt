@@ -27,6 +27,9 @@ add_test(NAME core_block_frame COMMAND core_block_frame_test)
 add_executable(normalize_workflow_test normalize_workflow_test.cpp)
 target_include_directories(normalize_workflow_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_link_libraries(normalize_workflow_test PRIVATE astrocs_core)
+# 证据落点用绝对路径（ctest 可能在 run/ci/build-*/ 下运行，相对路径会写空）
+target_compile_definitions(normalize_workflow_test PRIVATE
+  ARCH502_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence")
 add_test(NAME normalize_workflow COMMAND normalize_workflow_test)
 
 add_executable(core_context_test core_context_test.cpp)
