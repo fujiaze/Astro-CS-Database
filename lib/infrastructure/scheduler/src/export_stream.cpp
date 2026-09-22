@@ -229,11 +229,9 @@ void ExportStreamScheduler::writer_loop() {
   // 预置到最终长度：乱序 seek 写不会因中途 EOF 造成截断，且发布前长度已确定
   out.seekp(static_cast<std::streamoff>(cfg_.wcs_header.size() + cfg_.properties.size() +
                                         static_cast<std::size_t>(width_) * height_ * sizeof(double) - 1));
-  out.put(' ');
+  out.put(static_cast<char>(0));
   out.seekp(static_cast<std::streamoff>(cfg_.wcs_header.size() + cfg_.properties.size()));
   std::uint64_t written = cfg_.wcs_header.size() + cfg_.properties.size();
-  std::uint64_t h = 1469598103934665603ULL;
-
   // 重排缓冲：按子块索引升序写出（与 worker 数无关 ⇒ 输出逐位一致）
   std::map<std::size_t, Result> pending;
   std::size_t next_index = 0;

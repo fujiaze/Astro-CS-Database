@@ -1,0 +1,218 @@
+{
+  "schema": "astrocs.block-flow-conformance/v1",
+  "purpose": "登记「注册表声明的节点端口」与「module_adapters.cpp 真实数据流」之间的不一致。每条的 evidence 都带 文件:行 + 必须出现的 token，由 eng/tools/quality/check_block_flow_conformance.py 机器复核：token 消失（代码改了/修好了）或文件行号漂移即判红，防止登记册腐烂。",
+  "authority": "lib/infrastructure/pipeline/module_ports.registry.json（冻结绑定表）；docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
+  "owner_decision_required": true,
+  "owner_decision_reason": "AGENTS §10：顶层合同的结构性变更（端口/生产者/消费者的增删改）属负责人裁决范围；本登记册只登记事实，不擅自改注册表。",
+  "code_file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+  "deviations": [
+    {
+      "id": "BFD-A1",
+      "severity": "blocker",
+      "kind": "producer_mismatch",
+      "registry_ref": "R:127-129 writer 输出 fits/DATA-P1-FITS；R:114 drizzle 只声明输出 stacked",
+      "summary": "writer/write_hips 被声明产出 FITS，实际不写任何 FITS；真正的 P1 HiPS FITS 由 drizzle 产出。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 5052,
+          "contains": "hp_drizzle_run_phase1_hips"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 5274,
+          "contains": "p1_final.json"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A2",
+      "severity": "blocker",
+      "kind": "dead_port",
+      "registry_ref": "R:78 photometry 输入端口 psf/DATA-P1-PSF",
+      "summary": "photometry 从不打开 p1_psf.json；PSF 参数实际从 p1_sources.json 的 psf_params 读取。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 2310,
+          "contains": "p1_psf.json"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 3375,
+          "contains": "psf_params"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A3",
+      "severity": "blocker",
+      "kind": "undeclared_input",
+      "registry_ref": "R:96 noise-snr 唯一输入 fluxes/DATA-P1-FLUX",
+      "summary": "noise-snr 不读 p1_flux.json；实读 p1_sources.json（缺失即 DATA fail）、p1_phot.json、cleaned_<base>。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 3960,
+          "contains": "p1_sources.json"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 4151,
+          "contains": "p1_phot.json"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A4",
+      "severity": "major",
+      "kind": "undeclared_input",
+      "registry_ref": "R:111-113 drizzle 输入 calibrated/wcs/photprov",
+      "summary": "drizzle 另读 p1_sources.json 与 p1_snr.json；photometry_applied=true 时改读 photoapplied_<base>，绕过声明的 calibrated。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 4858,
+          "contains": "p1_sources.json"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 4662,
+          "contains": "photoapplied"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A5",
+      "severity": "blocker",
+      "kind": "producer_mismatch",
+      "registry_ref": "R:143 coverage 输入 calibrated/DATA-P2-CAL",
+      "summary": "coverage 的输入取自 config hips_paths（P1 的 HiPS 产品树），DATA-P2-CAL 无对应产物。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 5589,
+          "contains": "hips_paths"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A6",
+      "severity": "major",
+      "kind": "producer_mismatch",
+      "registry_ref": "R:189 upm-apply 输入 calibrated_frames/DATA-P2-CAL",
+      "summary": "upm-apply 从 hips_paths 打开 HiPS signal/support，不读名为 calibrated_frames 的产物。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 6470,
+          "contains": "hips"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A7",
+      "severity": "blocker",
+      "kind": "undeclared_output",
+      "registry_ref": "R:296-297 p3.writer 仅 resampled 入 / fits 出",
+      "summary": "p3.writer 另产 p3_writer.json（verify 依赖它），另读 p3_wcs.json 与 run_context.json（缺即 DATA fail）。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 10250,
+          "contains": "p3_writer.json"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 10209,
+          "contains": "run_context.json"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A8",
+      "severity": "major",
+      "kind": "undeclared_input",
+      "registry_ref": "R:311 p3.verify 输入仅 fits",
+      "summary": "p3.verify 直读 p3_resampled.json / p3_writer.json / p3_wcs.json / p3_resampled.bin，FITS 路径取自 p3_writer.json。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 10324,
+          "contains": "p3_writer.json"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 10326,
+          "contains": "p3_wcs.json"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A9",
+      "severity": "minor",
+      "kind": "dead_port",
+      "registry_ref": "R:265 p3.wcs 输入 props",
+      "summary": "p3.wcs 读入 p3_props.json 后未使用任何字段（纯门禁）；WCS 由 config 的 center/scale 重新构造。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 9697,
+          "contains": "p3_props.json"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A10",
+      "severity": "major",
+      "kind": "undeclared_input",
+      "registry_ref": "R:17 calibration 输入仅 frames",
+      "summary": "calibration 另读 config 的 master_bias/master_dark/master_flat FITS，注册表无此端口。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 1755,
+          "contains": "master_"
+        }
+      ]
+    },
+    {
+      "id": "BFD-C1",
+      "severity": "blocker",
+      "kind": "undeclared_module",
+      "registry_ref": "R:6 声明未知 module_id 即拒绝；R 共 20 个 module",
+      "summary": "代码额外注册 astrocs.phase2.resample 与 astrocs.phase3.resample，二者不在注册表；后者自认是占位残留。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 697,
+          "contains": "astrocs.phase2.resample"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 716,
+          "contains": "astrocs.phase3.resample"
+        }
+      ]
+    },
+    {
+      "id": "BFD-E1",
+      "severity": "blocker",
+      "kind": "no_named_blocks_in_production",
+      "registry_ref": "K:12-24 块元数据 9 字段；K:51-52 长生命周期清单",
+      "summary": "生产路径节点间实为 output_dir 文件约定，唯一真实命名块是 drizzle 内 PipelineFrame 的 data/variance（帧内、不落盘、不跨节点）；K:51-52「WCS/PSF/SNR/星表匹配存活到导出」在代码中无对应路径（PSF 零消费者、SNR 仅被 drizzle sink 读一次、P3 的 WCS 由 config 重建）。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 4740,
+          "contains": "\"data\""
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 9701,
+          "contains": "ra"
+        }
+      ]
+    }
+  ]
+}

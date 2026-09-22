@@ -109,12 +109,20 @@ class BlockFrame {
   BlockFrame() = default;
   BlockFrame(const BlockFrame&) = delete;
   BlockFrame& operator=(const BlockFrame&) = delete;
+  // 移动语义：块容器需要可搬移（产品块延长生命期时移出单元 frame）。
+  // 块对象本体不拷贝（unique_ptr 转移），语义与拷贝删除一致。
+  BlockFrame(BlockFrame&&) noexcept = default;
+  BlockFrame& operator=(BlockFrame&&) noexcept = default;
 
   // 创建块；重名或 element_count 超上限 => nullptr（不覆盖、不静默）
   Block* create(const BlockMeta& meta, std::size_t element_count);
 
   Block* find(const std::string& name);
   const Block* find(const std::string& name) const;
+
+  // 由**执行器**为节点新建的块盖上消费者集合（生命周期归执行器掌管，节点不得自行声明）。
+  // 返回 false：块不存在 / 已有非空且与传入不一致的消费者（= 节点越权，fail-closed）。
+  bool declare_consumers(const std::string& name, const std::vector<std::string>& consumers);
 
   // 声明 consumer 用完该块：全部消费者用完 ⇒ 立即销毁并归还内存（返回 true）。
   // 块不存在 / 状态非 CREATED / consumer 未声明 ⇒ false（不静默成功）。
@@ -128,6 +136,10 @@ class BlockFrame {
   const std::vector<std::pair<std::string, std::string>>& degradations() const {
     return degradations_;
   }
+
+  // 当前存活块名（升序）。块流执行器据此做「未声明写」的**名字级**校验：
+  // 只比数量会漏掉「写了名字不对的块」这类违规。
+  std::vector<std::string> names() const;
 
   std::size_t bytes_alive() const;
   std::size_t blocks_alive() const;
