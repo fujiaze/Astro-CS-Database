@@ -29,6 +29,7 @@ namespace calibration {
 // -2: out == nullptr
 // -3: w/h 非法 (<=0)
 // -4: photscal 非有限值 (NaN/Inf)
+// -5: photscal <= 0 (k=0 会静默产生全零, 负值翻转极性)
 //
 // 说明:
 // - NaN/Inf 像素透传 (后续 Drizzle 会跳过非有限像素)
