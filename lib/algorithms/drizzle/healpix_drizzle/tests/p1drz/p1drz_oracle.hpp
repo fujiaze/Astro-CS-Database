@@ -4,7 +4,7 @@
 // 实现。期望值推导路径:
 //   - 几何原语: p1drz_geom.hpp (向量旋转 TAN / Van Oosterom-Strackee 立体角
 //     / 切平面 S-H, 与生产 wcs_sip.cpp 球面三角公式路径、spherical_overlap.cpp
-//     Eriksson 扇形剖分**不同式**);
+//     Van Oosterom 扇形剖分**不同式**);
 //   - 权威 leaf 地址: astrocs::healpix (lib/algorithms/shared/healpix, astropy-healpix
 //     交叉验证 mismatch=0 的单权威实现 — 允许引用, 头部注释为证);
 //   - 聚合恒等式 (核心 oracle 手段): F_p=Σ x_j·w_jp、D_p=Σ a_jp、
@@ -156,7 +156,7 @@ inline UniformityOracle oracle_const_sb(const std::vector<LeafRec>& leafs,
 // ---------------------------------------------------------------------------
 // Oracle O5: 常量 ADU 对照 (S_p = C/A_drop ≠ C, SCI-003 反向语义检验)
 //   每像素恒定通量 C, drop 覆盖 leaf 时 S_p = C/A_drop,pixel (面亮度)。
-//   A_drop 逐 leaf 用 oracle Van Oosterom 独立重算 (与生产 Eriksson 不同式);
+//   A_drop 逐 leaf 用 oracle Van Oosterom 独立重算 (与生产 Van Oosterom 不同式);
 //   覆盖该 leaf 的源像素 j 有 S_p = x_j·w_jp/a_jp = C/A_drop,j。
 //   断言: (i) S_p·A_drop,oracle ≈ C (闭合, 1e-3);
 //         (ii) S_p 与 C 明显区分 (|S/C-1|>0.5, 300" px ≫ 1 sr 不可能贴近)。
@@ -268,7 +268,7 @@ inline VarOracle oracle_variance_const(const std::vector<LeafRec>& leafs,
     o.leaves_hit = (superset_miss == 0 && o.n_checked > 0);  // 零漏选 (局部)
     // 单源像素恒等式: nContrib==1 的 leaf (无论全/部分覆盖):
     //   var_p = σ²·(a/A_drop)²/a² = σ²/A_drop² 精确 (a 恒等消去)。
-    // A_drop 场内变化 ±8e-4 (gnomonic μ³) + Eriksson/VanOosterom 口径差
+    // A_drop 场内变化 ±8e-4 (gnomonic μ³) + 扇形/对角剖分 口径差
     // ~1e-6 → 门 5e-3。
     int nc1_checked = 0;
     for (const auto& l : leafs) {

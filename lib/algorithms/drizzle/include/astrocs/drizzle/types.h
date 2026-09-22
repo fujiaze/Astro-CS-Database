@@ -2,7 +2,7 @@
  *
  * 对齐先例: lib/infrastructure/gaia_xpsd_client/include/astrocs/gaia/types.h (CAT-GAIA-IMPL,
  * commit babe752d)。本头只承载 C ABI adapter 层的常量/词表/诊断码,
- * 不含任何科学常量 (Eriksson 剖分、面积权重、NaN-Inf 传播语义全部留在
+ * 不含任何科学常量 (Van Oosterom 剖分、面积权重、NaN-Inf 传播语义全部留在
  * drizzle_engine / SCI-DRZ-001, 本迁移 scientific_change=false 零改动)。
  *
  * 合同链: SCI-DRZ-001 -> ALG-DRZ-001 -> API-DRZ-001 (docs/contracts/PUBLIC_API.md)

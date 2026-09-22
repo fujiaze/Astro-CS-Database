@@ -195,8 +195,8 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
   **按 `A_drop,j` 归一的混合式**（分子 `x_j·a_jp/A_drop,j`、分母 `Σ a_jp`）给出 `S_p=B0/pixfrac²`，仅 pixfrac=1 正确——该式即登记项 DISP-DRZ-009，**已闭环**：现实现用 `w_jp=a_jp/A_pixel,j`（`drizzle_engine.cpp` `processPixelSharedTiled` 的 `pixel_area` 段），回归门 `p1drz_disp009`（pixfrac∈(0,1] 常量面亮度门 + "分母取 A_drop 必判红"的负例控制）。
 - **Drizzle 实践与相关噪声**：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
 - **HEALPix 几何/order**：Górski, K. M. et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；独立实现 astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0，只对照不复制）。
-- **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207，Girard 定理）；**实现实为 Sutherland–Hodgman + Eriksson 2018 扇形三角剖分**（spherical_overlap.cpp:152-186,218），本文件 §5/§12 的“Girard 定理”命名与实现不符，登记 `DISP-DRZ-002`，待变更流程处理。Eriksson, F. 2018, “The area of a spherical triangle”（代码 :178 已引）。
-- **多边形裁剪（Sutherland–Hodgman）**：Sutherland, I. E. & Hodgman, G. W. 1974, Comm. ACM 17, 32（DOI 10.1145/360767.360802）。
+- **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207，Girard 定理）；**实现实为 Sutherland–Hodgman + Van Oosterom & Strackee 扇形三角剖分**（spherical_overlap.cpp:152-186,218），本文件 §5/§12 的“Girard 定理”命名与实现不符，登记 `DISP-DRZ-002`，待变更流程处理。
+- **多边形裁剪**：Sutherland, I. E. & Hodgman, G. W. 1974, “Reentrant Polygon Clipping”, Comm. ACM 17, 32（DOI 10.1145/360767.360802）——平面算法原型（原文只处理平面多边形与平面窗口）；本模块的球面逐边裁剪是它的推广。
 - **HiPS/MOC 层级**：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）；Fernique et al. 2015, A&A 578, A114。
 - **HP_CIRCUMRADIUS_FACTOR=1.25、三层缓冲**：Project-defined（§5/§8），以 9003 例零漏选门承载。
 

@@ -535,10 +535,19 @@ GateVerdict gate_parent_reduction(const ParentReductionRecord& rec) {
 }
 
 namespace {
+// canonical 面亮度串必须显式含立体角因子（"ADU/sr"、"ADU^2/sr^2"、"sr^2/ADU^2"；
+// DATA_SEMANTICS §31.1a: 写侧一律 "sr"）；legacy "px"/"pixel" 为读侧别名，同判。
+bool has_explicit_solid_angle_power(const std::string& u) {
+    static const char* kPos[] = {"/sr", "sr^", "/px", "px^", "/pixel", "pixel^"};
+    for (const char* p : kPos) {
+        if (u.find(p) != std::string::npos) return true;
+    }
+    return false;
+}
 // 从 BUNIT 声明解析有效像素幂次；不可判 -> false。
 bool effective_px_power(const BunitDeclaration& d, int* power) {
     if (d.is_canonical_px_power) {
-        if (d.bunit.find("px^") == std::string::npos) return false;
+        if (!has_explicit_solid_angle_power(d.bunit)) return false;
         *power = d.pixel_area_power;
         return true;
     }

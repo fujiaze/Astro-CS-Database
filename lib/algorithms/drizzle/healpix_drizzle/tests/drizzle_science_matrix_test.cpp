@@ -164,7 +164,7 @@ static double pct(std::vector<int64_t>& v, double p) {
 // O(θ²) ~ 1e-16, 均远低于 1e-6 门限。
 // (不能对 0.01\" 用 long double 64 段采样: 段间距 ~8e-10 rad,
 // det 相消使参考自身噪声 ~1e-3, 反而不可用)
-// - 大 drop: 64 段/边细采样 + long double Eriksson
+// - 大 drop: 64 段/边细采样 + long double Van Oosterom
 // ============================================================================
 static double area_ref_ld(const spherical::Vec3* v, int n) {
     if (n < 3) return 0.0;
@@ -258,7 +258,7 @@ static void run_overlap_matrix(const char* jsonl) {
                             spherical::build_drop_geometry<double>(corners);
                         double computed = g.drop_area;
                         // 参考面积: 微小 drop 用切平面 shoelace (独立实现);
-                        // 大 drop 用 WCS 64 段/边细采样 + long double Eriksson
+                        // 大 drop 用 WCS 64 段/边细采样 + long double Van Oosterom
                         double reference = 0.0;
                         if (g.max_angle < 1e-3) {
                             reference = area_ref_planar(corners);
@@ -305,7 +305,7 @@ static void run_overlap_matrix(const char* jsonl) {
                 }
                 double mean_ref = sum_rel_ref / npx, mean_ov = sum_rel_ov / npx;
                 // 门限 1e-6: 生产 drop_area 已尺度感知 (微小 drop 切平面 2D
-                // 面积, 误差 ~1e-9; 大 drop 球面 Eriksson, 误差 ~1e-12)
+                // 面积, 误差 ~1e-9; 大 drop 球面 Van Oosterom, 误差 ~1e-12)
                 double gate_ref = 1e-6;
                 char msg[192];
                 snprintf(msg, sizeof(msg),

@@ -35,7 +35,7 @@
   sumFlux+=x·w、sumArea+=a、sumVarNum+=v·w²）；S_p=F_p/D_p 归一不在
   drizzle 层，在 astro_sphere_sink.cpp:100 + aio_hips_writer
   finalize_tile。
-- SCI vs 源码差异 8 条（DISP-DRZ-001..008）：Girard→实为 Eriksson、
+- SCI vs 源码差异 8 条（DISP-DRZ-001..008）：Girard→实为 Van Oosterom、
   值像素 NaN 静默跳过（vs SCI:96 传播语义）、pixfrac=0.0 API/引擎
   双轨、1e-3 切平面分支不存在、sip_order 注释/校验 ±1、TileLeaf
   注释 3 字段 vs 实际 4、方差锚点行号漂移、poly_clip legacy 零调用。
@@ -67,5 +67,5 @@
   遗留通道）、DISP-DRZ 消化、pixfrac 边界统一、错误码集中化。
 - P1-DRZ-TEST：TEST-DRZ-DESIGN-001 → 可执行 TEST-P1-DRZ-001。
 - SCI 层候选变更（走 SCI 变更流程，不在本任务范围）：DRIZZLE.md:63
-  Girard→Eriksson 措辞、:96 NaN 传播语义 vs 实测静默跳过、:98/:131
+  Girard→Van Oosterom 措辞、:96 NaN 传播语义 vs 实测静默跳过、:98/:131
   锚点行号失效。

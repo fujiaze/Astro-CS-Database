@@ -180,7 +180,7 @@ v1.0
 - spherical_polygon_area >半球多边形返回 NaN (冻结契约, 测试同步)。
 
 ### 测试 (6f7bba7)
-- reverse_drizzle_science_test 30/30 (解析真值: Eriksson + 向量面积);
+- reverse_drizzle_science_test 30/30 (解析真值: Van Oosterom + 向量面积);
 - reverse_api_test 8/8 (DLL 动态加载); oracle_edge_crossing_test
   124 真相交 0 漏报; test_spherical_overlap 76/76 (红灯清零)。
 

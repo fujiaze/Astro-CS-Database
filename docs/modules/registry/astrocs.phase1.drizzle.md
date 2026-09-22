@@ -24,7 +24,7 @@ downstream: [TEST-DRZ-DESIGN-001]
 
 Registry production 模块（唯一源=module_adapters.cpp descriptor）。
 职责：tiled 球面 drizzle（drop 收缩 footprint × HEALPix NESTED leaf
-交叠，S-H+Eriksson 面积加权累加 sumFlux/sumArea/sumVarNum/nContrib）、
+交叠，S-H+Van Oosterom 面积加权累加 sumFlux/sumArea/sumVarNum/nContrib）、
 auto nside、FP32/FP64 通道、HiPS 直写/HISS 输出、反向 drizzle。
 不做：S_p=F_p/D_p 归一与 variance finalize（astro_image_io 层）；
 master/校准/坏点（P1-CAL/P1-COS）；Phase2 统计合并；线程授予

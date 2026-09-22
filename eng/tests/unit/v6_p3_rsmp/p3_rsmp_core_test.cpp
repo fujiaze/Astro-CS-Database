@@ -294,9 +294,28 @@ void test_bunit_quadratic() {
   using astrocs::p3rsmp::units::signal_sb;
   P3_CHECK(is_quadratic_variance(signal_sb, sb_variance_out));
   P3_CHECK(is_inverse_pair(sb_variance_out, sb_ivar_out));
-  P3_CHECK(signal_sb.canonical() == "ADU/px^-2");
-  P3_CHECK(sb_variance_out.canonical() == "ADU^2/px^-4");
-  P3_CHECK(sb_ivar_out.canonical() == "ADU^-2/px^4");
+  // canonical **产品 BUNIT 串** = 冻结单位表逐字串（docs/contracts/DATA_SEMANTICS.md
+  // §31.1 单位表 + §31.1a「单位串与内部幂次编码的对应」: pixel_area_power = -2 ⇔ 串含
+  // "/sr"、-4 ⇔ "/sr^2"、+4 ⇔ "sr^2/…"；**canonical 产品串一律写 sr**，写侧只出 sr）。
+  P3_CHECK(signal_sb.canonical() == "ADU/sr");
+  P3_CHECK(sb_variance_out.canonical() == "ADU^2/sr^2");
+  P3_CHECK(sb_ivar_out.canonical() == "sr^2/ADU^2");
+  // 读侧/写侧同一口径: canonical 串必须解析回同一内部幂次（§31.1a 同一映射的逆）。
+  {
+    using astrocs::p3rsmp::BunitProvenance;
+    using astrocs::p3rsmp::resolve_bunit;
+    const BunitProvenance no_prov{};
+    const auto rs = resolve_bunit(signal_sb.canonical(), no_prov);
+    P3_CHECK(rs.resolvable && rs.resolved == signal_sb);
+    const auto rv = resolve_bunit(sb_variance_out.canonical(), no_prov);
+    P3_CHECK(rv.resolvable && rv.resolved == sb_variance_out);
+    const auto ri = resolve_bunit(sb_ivar_out.canonical(), no_prov);
+    P3_CHECK(ri.resolvable && ri.resolved == sb_ivar_out);
+    // legacy 旧串 px 幂次映射到同一立体角维（§31.1a「读侧兼容旧串 px / pixel」）。
+    const auto rl = resolve_bunit("ADU/px^2", no_prov);
+    P3_CHECK(rl.resolvable && rl.resolved == signal_sb);
+    P3_CHECK(rl.resolved.canonical() == "ADU/sr");
+  }
   // 一次幂（mutation）必须被检出
   P3_CHECK(!is_quadratic_variance(signal_sb, signal_sb));
   using astrocs::p3rsmp::Bunit;

@@ -80,8 +80,8 @@
      （queryDisc 回退）；
   3. fast 路径: 面 delta×1.15 面内畸变系数 + 极冠/跨 face 边界回退
      queryDisc（:1667-1702）。
-- 交叠面积: 球面 Sutherland–Hodgman 裁剪（clip_normals_d，内部 double）
-  + **Eriksson 扇形三角剖分**有向面积 + 半球包含检查
+- 交叠面积: 球面多边形裁剪（clip_normals_d，内部 double）——逐边裁剪的球面推广（Sutherland–Hodgman 1974 原文只处理平面多边形，球面形式为本模块推广）
+  + **Van Oosterom & Strackee 扇形三角剖分**有向面积 + 半球包含检查
   （max_ang ≥ π/2−1e-12 → NAN，:186-239）。SCI 文本称 "Girard 定理"
   与实际实现命名不符（DISP-DRZ-002）。
 - 目标几何缓存: per-thread LRU 8192（TargetGeomCache），hit 复用
@@ -254,7 +254,7 @@
 | # | 文档声称 | 源码实际 | 双方锚 |
 |---|---|---|---|
 | DISP-DRZ-001 | hp_drizzle_api.h:93 注释 sip_order "0..4" | hp_drizzle_api.cpp:98-103 校验 [0,5]（6×6 系数组支持 5 阶下标） | hp_drizzle_api.h:93 vs hp_drizzle_api.cpp:98-103 |
-| DISP-DRZ-002 | 面积="S-H + Girard 定理"（DRIZZLE.md:63,:124） | S-H 裁剪 + Eriksson 扇形三角剖分，无 Girard 实现 | DRIZZLE.md:63,124 vs spherical_overlap.cpp:186-239 |
+| DISP-DRZ-002 | 面积="S-H + Girard 定理"（DRIZZLE.md:63,:124） | S-H 裁剪 + Van Oosterom & Strackee 扇形三角剖分，无 Girard 实现 | DRIZZLE.md:63,124 vs spherical_overlap.cpp:186-239 |
 | DISP-DRZ-003 | pixfrac∈(0,1] 单一边界 | 文件通道 API 层接受 0.0（<0 才拒），引擎层拒绝——两层双轨 | api.cpp:191 vs drizzle_engine.cpp:1570 |
 | DISP-DRZ-004 | 值像素 NaN 按 `rule_id NAN-SAMPLE-MASK-COVERAGE-NAN` 处置 = 样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（`DRIZZLE.md:116`）：不合格样本剔除并重归一、仅零合格样本输出 `NaN ∧ support≤0`、必须暴露 `n_rejected_nonfinite` | 主循环 `!isfinite→continue`（不进累加器），**无计数暴露** ⇒ 掩膜方向一致但**缺强制计数**，属未闭合偏差（P1-DRZ-IMPL） | DRIZZLE.md:116 vs drizzle_engine.cpp:1715 |
 | DISP-DRZ-005 | `max_angle < 1e-3` 切平面分支是**实际执行路径，必须保留**：微小 drop（角跨度 < 1e-3 rad ≈ 206″）用切平面面积 | 三处活分支：:1091 `g.drop_area` 微小 drop 用切平面面积、:1288-1289 nb=4 重叠 `<1e-3` 用 `planar_polygon_area_n`（否则球面 `spherical_polygon_area_n`）、:1331-1332 三角形扇重叠同策略（与 g.drop_area 表示一致，避免 weight 偏差） | spherical_overlap.cpp:1091,1288-1289,1331-1332（注释 :1001-1007,:1078-1079）；θ<1e-3 时切平面偏差 <4e-8，球面 double 相消噪声 ~1e-4~5e-5 |
@@ -284,7 +284,7 @@ support 语义）与 `sumVarNum`/`variance=sumVarNum/sumArea²` 语义不变。
 
 **DISP-DRZ-005 负面用例建议（仅注记，用例实现不在本批）**：θ < 1e-3 rad
 的微小 drop 两侧对拍——同一输入分别走切平面分支（`planar_polygon_area_n`）
-与球面 Eriksson 分支（`spherical_polygon_area_n`），断言面积/weight 差
+与球面 Van Oosterom 分支（`spherical_polygon_area_n`），断言面积/weight 差
 落在注释论证的偏差带内（切平面 vs 球面 <4e-8 量级，见 :996-1001），
 守护该分支在后续迁移中不被误删或语义漂移。
 
@@ -311,7 +311,7 @@ support 语义）与 `sumVarNum`/`variance=sumVarNum/sumArea²` 语义不变。
 - Drizzle 实践：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause）。
 - HEALPix 几何：Górski et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0）。
 - 球面三角面积：Van Oosterom & Strackee 1983, IEEE TBME 30, 125（DOI 10.1109/TBME.1983.325207）。
-- 多边形裁剪：Sutherland & Hodgman 1974, Comm. ACM 17, 32（DOI 10.1145/360767.360802）。
+- 多边形裁剪：Sutherland & Hodgman 1974, “Reentrant Polygon Clipping”, Comm. ACM 17, 32（DOI 10.1145/360767.360802）——**平面**算法（原文摘要为 “plane-faced volumes”）；本模块的球面逐边裁剪是它的推广，不属原文结论。
 
 参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）；photutils（BSD-3-Clause，https://github.com/astropy/photutils）；astropy-healpix（BSD-3-Clause，https://github.com/astropy/astropy-healpix）；ccdproc（BSD-3-Clause，https://github.com/astropy/ccdproc）；reproject（BSD-3-Clause，https://github.com/astropy/reproject）。

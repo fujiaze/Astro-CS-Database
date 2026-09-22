@@ -8,7 +8,7 @@
 //   - SIP: FITS 标准多项式定义 Σ_{i+j≤order} c[i·6+j]·dx^i·dy^j
 //     (数学定义共享, 实现独立);
 //   - 球面四边形面积: Van Oosterom–Strackee 立体角公式 (2·atan2),
-//     生产为 Eriksson 扇形三角剖分 (spherical_overlap.cpp);
+//     生产为 Van Oosterom 扇形三角剖分 (spherical_overlap.cpp);
 //   - 重叠面积: 公共切平面 gnomonic 投影 + 平面 Sutherland–Hodgman +
 //     shoelace (θ≲2e-3 rad 时相对误差 ~ρ²/2 ≈ 2e-6, 容差 1e-3 内);
 //   - leaf 地址: astrocs::healpix 权威 NESTED 核心 (单权威, 头部声明
@@ -140,7 +140,7 @@ inline double geom_solid_angle_tri(const GVec3& a, const GVec3& b, const GVec3& 
     return 2.0 * std::atan2(std::fabs(num), den);
 }
 
-// 凸球面四边形面积 (对角三角剖分, 严格精确; 与生产 Eriksson 扇形剖分不同式)
+// 凸球面四边形面积 (对角三角剖分, 严格精确; 与生产 Van Oosterom 扇形剖分不同式)
 inline double geom_quad_area(const std::vector<GVec3>& q) {
     return geom_solid_angle_tri(q[0], q[1], q[2]) +
            geom_solid_angle_tri(q[0], q[2], q[3]);

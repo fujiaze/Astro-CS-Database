@@ -12,7 +12,7 @@
  *
  * 科学纪律: scientific_change=false —— 本文件只做 eng/packaging/config/manifest 解析、
  * PipelineFrame 组装、线程租借注入 (host executor lease → OMP ICV)、
- * 结果/产物转发; 不触碰 Eriksson 剖分、面积权重、NaN-Inf 传播语义
+ * 结果/产物转发; 不触碰 Van Oosterom 剖分、面积权重、NaN-Inf 传播语义
  * (SCI-DRZ-001 / drizzle_engine / hp_drizzle_api 生产源零改动)。
  *
  * v1 op 词表 (types.h): drizzle (帧→HiPS/legacy .hiss) | reverse (球→面)。

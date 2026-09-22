@@ -43,7 +43,7 @@ static Vec3 nrm(const Vec3& v) {
     return (l < 1e-300) ? Vec3{0,0,1} : Vec3{v.x/l, v.y/l, v.z/l};
 }
 
-// ---- 独立球面几何 (Eriksson 面积 + 向量面积) ----
+// ---- 独立球面几何 (Van Oosterom 面积 + 向量面积) ----
 static double tri_area_ref(const Vec3& a, const Vec3& b, const Vec3& c) {
     double det = a.x * (b.y * c.z - b.z * c.y) +
                  a.y * (b.z * c.x - b.x * c.z) +
