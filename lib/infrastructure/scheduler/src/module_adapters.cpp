@@ -76,7 +76,7 @@
 #include "aio_atomic_file.h" // lib/infrastructure/aio: §9 原子产品落盘原语(header-only)
 #include "aio_file_io.h"     // CLEAN-403: aio 唯一整文件读取/摘要原语(header-only)
 #include "aio_sysinfo.h"     // AIO-SYSINFO-01: 可用内存探测 (aio 边界内唯一实现)
-#include "aio_disk_full.h"   // FIX-401: 磁盘满失败瞬间分类 (§10 + §7.2 exit 10)
+#include "aio_disk_full.h"   // 磁盘满失败瞬间分类 (§10 + §7.2 exit 10)
 
 // P2-001: Phase2 真实节点生产头（lib/algorithms/coverage 冻结 C ABI + HEALPix 单一实现 +
 // 输入 manifest hash 共享 SHA-256; 模块库零 diff 只读调用）
@@ -119,12 +119,12 @@
 // astrocs_phase3_session 已在 astrocs_module_adapters 链接闭包;
 // 相对路径 include 同 "../../../algorithms/star_detection/wrapper_phase1/star_detector.h" 先例, 根 CMake
 // 零改动）
-// W4-A9 批次 1/2/3: 三个 Phase3 会话内核头已按 ASTROCS_DESIGN §7.1 迁入各自算法
+// 三个 Phase3 会话内核头已按 ASTROCS_DESIGN §7.1 迁入各自算法
 // 模块 —— p3_wcs.h → algorithms/projection (批次 1)、p3_resample.h →
 // algorithms/resample (批次 2)、p3_output.h → algorithms/fits_output (批次 3);
 // 符号与命名空间零改动, 仅 include 面改锚。
 #include "../../../algorithms/resample/p3_resample.h"
-// FIX-402: 冻结单位表 / BUNIT 可判性 / FZ-P3-MODES 模式枚举（源在
+// 冻结单位表 / BUNIT 可判性 / FZ-P3-MODES 模式枚举（源在
 // lib/algorithms/resample/p3_rsmp_units.cpp, 已随 astrocs_p3_rsmp 进生产链接闭包）——
 // 输入语义守卫与输出模式声明的唯一单位/模式词汇源, 不另发明第二套。
 #include "../../../algorithms/resample/p3_rsmp.h"
@@ -143,7 +143,7 @@
 #include <cstdlib>   // P7-UTIL-001: std::getenv (ASTROCS_LEASE_TRACE 观测开关)
 #include <cstring>
 #include <exception>  // PERF-P2: 并行 worker 内异常跨线程回传
-#include <stdexcept> // FIX-402: 守卫内 std::stoi 非法尾字符 → std::invalid_argument
+#include <stdexcept> // 守卫内 std::stoi 非法尾字符 → std::invalid_argument
 #include <filesystem>
 #include <functional>
 #include <sstream>
@@ -458,9 +458,9 @@ Result<void> to_result(acs_status st, const char* what) {
 // WcsTan 头契约一致), CD 单位 deg/px。
 constexpr double kP1D2R = 0.01745329251994329577;   // π/180
 constexpr double kP1R2D = 57.29577951308232087680;  // 180/π
-// W4-A1 (M1a-C-003): Δ(内部 0-based → FITS 1-based) = +1 (FITS WCS Paper I §2.1.1)
+// M1a-C-003: Δ(内部 0-based → FITS 1-based) = +1 (FITS WCS Paper I §2.1.1)
 constexpr double kP1FitsPixelOrigin = 1.0;
-// W4-A1 (M1a-C-003): 内部像素坐标口径 = **0-based 数组下标 (index-is-center)**
+// M1a-C-003: 内部像素坐标口径 = **0-based 数组下标 (index-is-center)**
 // (SCI-WCS-001 §3a「内部 0-based x,y, FITS 输出 1-based xp=x+1」/ §5a 单一桥接点);
 // WcsTan 与 p1_tan_forward_reference 的契约是 **FITS 1-based** (Paper I §2.1.1,
 // wcs_tan.h:11)。⇒ 任何把内部下标喂给 WcsTan 的调用必须恰好施加一次本偏移
@@ -1128,7 +1128,7 @@ ModuleDescriptor p2_write_descriptor() {
   d.execution_class = "io";
   d.parallel_ok = false;
   d.ports = {
-      // FIX-402（GAP_AUDIT G3-4 / ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」）:
+      //GAP_AUDIT G3-4 / ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」:
       // **写出端口**单位 = SURFACE_BRIGHTNESS（冻结单位表 signal_sb = ADU/sr;
       // docs/contracts/DATA_SEMANTICS.md §31.1）。integrated 输入面仍为
       // integrate 节点产出的逐像素信号面（docs/modules/registry/astrocs.phase2.write.md
@@ -2348,7 +2348,7 @@ inline double p1_psf_analytic_flux(double A, double sx, double sy) {
 //   全图盲检测 = **诊断/初值**路径（显式 star_detection.mode=blind_diagnostic，
 //   或未配置参考星表时的自动降级 —— 降级必须逐帧落 degraded_reason 且
 //   authoritative=false，不得静默）。
-// fail-closed（Gaia 静默部分装载事故, GAIA-FAILCLOSED-01 同族）:
+// fail-closed（Gaia 静默部分装载事故）:
 //   ① gaia_data_dir 不可解析 → DATA 拒绝（权威路径不接受"无星表"）
 //   ② gaia_client_create 返回 NULL → DATA 拒绝（含装载失败原因）
 //   ③ file_count<=0 / file_load_fail_count!=0 / file_count!=xpsd 条目数 → DATA 拒绝
@@ -2773,7 +2773,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   }
   const bool guided = (eff_mode == "catalog_guided");
   // Gaia 句柄（权威路径必需）。fail-closed 三道断言与 wcs 节点同款
-  // （GAIA-FAILCLOSED-01：静默部分装载事故不得重演）。
+  // （静默部分装载事故不得重演）。
   GaiaClient* gaia = nullptr;
   Json gaia_prov = Json::object();
   if (guided) {
@@ -3577,7 +3577,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     double max_cross_deg = 0.0;
     // B2-A17: SIP A/B 前向修正叠加在 WcsTan 线性 pix2sky 之上 (WcsSip 同式,
     // pixelToSkyT: dx' = dx + A(dx,dy), dy' = dy + B(dx,dy))。
-    // W4-A1 (M1a-C-003): pts 里的 x/y 是 **0-based 数组下标**; WcsTan/
+    // M1a-C-003: pts 里的 x/y 是 **0-based 数组下标**; WcsTan/
     // p1_tan_forward_reference 的契约是 **FITS 1-based** ⇒ 在进入两者之前
     // 施加**恰好一次** xp = x + kP1FitsPixelOrigin (SCI-WCS-001 §3a/§5a)。
     // 修复前缺该桥接: samples[] 的 ra/dec 与自带 (x,y) 标签恒差 1px, 且
@@ -3647,7 +3647,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                         {"max_roundtrip_px", max_rt},
                         {"max_forward_cross_deg", max_cross_deg},
                         {"forward_cross_ref", "p1_tan_forward_reference"},
-                        // W4-A1 (M1a-C-003): samples[] 的 (x,y) 原点必须显式声明
+                        // M1a-C-003: samples[] 的 (x,y) 原点必须显式声明
                         // (内部 0-based 数组下标 = index-is-center); 其 ra/dec 已
                         // 经单次 +1 桥接至 FITS 1-based 与 (x,y) 配对。消费方不得
                         // 再叠加一次 +1 (双重桥接 = 恒定 1px 系统偏移)。
@@ -3766,7 +3766,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::DATA, "sdet_create failed"));
   }
   // 2) Gaia 客户端句柄（真实 XPSD 数据目录）
-  // FAILCLOSED-01（GAIA-FAILCLOSED-01）: 星表必须**完整**才允许解算。
+  // FAILCLOSED-01: 星表必须**完整**才允许解算。
   // 根因 run/WCS-DETERMINISM-01/REPORT.md §1.2 —— 修复前目录里装载失败的
   // *.xpsd shard 被静默丢弃（create 仍返回非 NULL），地址空间受限时丢掉的恰是
   // 唯一含亮星的 shard ⇒ 参考星表静默变成"暗 shard 里最亮的 60 颗" ⇒
@@ -3902,7 +3902,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
     Json samples = Json::array();
     double max_rt = 0.0;
     double max_cross_deg = 0.0;
-    // W4-A1 (M1a-C-003): 同 explicit 路径 —— 0-based 数组下标经**恰好一次**
+    // M1a-C-003: 同 explicit 路径 —— 0-based 数组下标经**恰好一次**
     // FITS 1-based 桥接后喂 WcsTan / 独立参考解 (SCI-WCS-001 §3a/§5a)。
     for (const auto& [x, y] : pts) {
       const double xp = x + kP1FitsPixelOrigin;   // 内部 0-based → FITS 1-based
@@ -3984,7 +3984,7 @@ Result<void> p1_op_wcs(const Json& doc, Json* man) {
                         {"max_roundtrip_px", max_rt},
                         {"max_forward_cross_deg", max_cross_deg},
                         {"forward_cross_ref", "p1_tan_forward_reference"},
-                        // W4-A1 (M1a-C-003): 同 explicit 路径的像素原点声明 ——
+                        // M1a-C-003: 同 explicit 路径的像素原点声明 ——
                         // samples[] 的 (x,y) 为内部 0-based 数组下标 (index-is-center),
                         // ra/dec 已经单次 +1 桥接至 FITS 1-based 与其配对。
                         {"pixel_origin", "0-based array index (index-is-center); "
@@ -4400,8 +4400,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         // 冻结 C 入口在 NO_DATA/退化分支（无 PSF 星 / 无光谱星 / 滤光片缓存失败 /
         // SCI-PHOT-001 §4 求解前提 |r_consistent|<3）返回 rc==0 且 scale=1.0、
         // fit_used=0；占位 1.0 不得当作"已拟合标度"施加（FIX-P1）。
-        // 原实现在此处另有一条 n_matched < 3 的复检门 —— 与 fit_ok 同判且不可达，
-        // 按「不设星数门槛」删除（SCI-PHOT-001 §16.5）。
+        // 本节点**不设星数门槛**（SCI-PHOT-001 §16.5「星数不构成拒绝条件」）：
+        // 标度是否成立只由拟合自身判决回答，本节点不复检匹配星数。
         if (fr.rc != 0 || !fr.fit_ok) {
           photscale_error = "photometry fit failed for " + key + ": " +
                             (fr.error.empty() ? std::string("no scale produced") : fr.error) +
@@ -6045,7 +6045,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                                     filter_passband.c_str(), &res, precision_mode);
     aio_pipeline_frame_destroy(frame);
     if (rc != 0) {
-      // FIX-401 (§10 原子产品 + §7.2 退出码表「10 = 磁盘写满/写盘失败」):
+      // §10 原子产品 + §7.2 退出码表「10 = 磁盘写满/写盘失败」:
       // 磁盘满必须按**失败本身**归类上抛。aio 在失败瞬间(清理临时产物之前)
       // 已判定并置位 (aio_disk_full.h 头注: 事后探针在清理后必然 fail-open);
       // 这里消费一次并写进失败节点 manifest, 由 CLI 的
@@ -6188,7 +6188,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
 //      (signal/ + support/ = NorderK/DirD/NpixN.fits, Moc.fits, metadata.fits,
 //      properties); 本节点不再消费任何中间容器, 只做产物事实面校验并落
 //      p1_final.json (逐节点 typed artifact 合同不变)。──
-// FIX-402: 冻结单位表 canonical **产品 BUNIT 串**（docs/contracts/DATA_SEMANTICS.md §31.1）: signal_sb = ADU/sr, sb_variance_out = ADU^2/sr^2,
+// 冻结单位表 canonical **产品 BUNIT 串**（docs/contracts/DATA_SEMANTICS.md §31.1）: signal_sb = ADU/sr, sb_variance_out = ADU^2/sr^2,
 // sb_ivar_out = sr^2/ADU^2。产品面必须逐字写冻结串。
 // 注: p3rsmp::Bunit::canonical() 是带符号指数书写（"ADU/px^-2"）, 与冻结表的产品
 // 串约定不同（该函数语义由 v6 单位测试冻结, 本任务不改动它）—— 两者不得混用。
@@ -6196,7 +6196,7 @@ constexpr const char* kP3BunitSurfaceBrightness = "ADU/sr";
 constexpr const char* kP3BunitSbVariance = "ADU^2/sr^2";
 constexpr const char* kP3BunitSbIvar = "sr^2/ADU^2";
 
-// FIX-402: HiPS 产品单位/像素语义声明（properties + manifest.json 双写）。
+// HiPS 产品单位/像素语义声明（properties + manifest.json 双写）。
 // 定义在 p2_read_json 之后（依赖它）; 此处前置声明供 Phase1 writer 调用。
 bool declare_hips_surface_brightness_units(const std::string& product_root,
                                            bool uncertainty_available,
@@ -6306,7 +6306,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
           " (DATA-P1-HIPS §12.1/§12.2 + §4a: variance/ivar 同通道成对落盘)"));
     }
     const bool has_uncertainty = (n_variance_tiles > 0 && n_ivar_tiles > 0);
-    // FIX-402: 逐帧 HiPS 产品单位/像素语义声明（Phase1 Drizzle/HiPS signal 亦为
+    // 逐帧 HiPS 产品单位/像素语义声明（Phase1 Drizzle/HiPS signal 亦为
     // 面亮度 signal_sb = ADU/sr; 冻结单位表 §1 + FZ-BUNIT-SEMANTICS）。未声明
     // ⇒ Phase3 输入语义守卫按"单位不可判"拒绝（Phase1→Phase3 直连流不可用）。
     {
@@ -6334,7 +6334,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
                           {"products", products},
                           {"filter_passband", filter_passband},
                           {"covered_area_model", "support_ratio_x_A_cell"},
-                          // FIX-402: 单位/像素语义随 DATA-P1-HIPS manifest 落盘
+                          // 单位/像素语义随 DATA-P1-HIPS manifest 落盘
                           {"bunit", kP3BunitSurfaceBrightness},
                           {"units", Json{
                               {"bunit", kP3BunitSurfaceBrightness},
@@ -8080,7 +8080,7 @@ Result<void> p2_op_upm_apply(const Json& doc, Json* man) {
 //      层解析。**逐输出像素几何 n 路由**（DESIGN §4.5）: n = 该像素被多少帧
 //      footprint 覆盖（各帧 support 层 >0 计数; coverage 覆盖图）, 按 n 缓存
 //      plan; 不得用 frames.size()（整组帧数）, 不得用资格/掩膜后
-//      eligible_count（n_eff）。**FIX-204（§9.71 裁决 3）路由 = WBPP 一手实测
+//      eligible_count（n_eff）。**路由 = WBPP 一手实测
 //      表**：N<6 → percentile（含 N≤3）/ 6≤N≤15 → winsorized / N>15 →
 //      linear fit；禁止 min/max 与 NoRejection（AUTO 命中即 fail-closed）。
 //      N≤3 的实际不排异来自 kernel underdetermined 闸（候选 ≤3 ⇒ 全接受 +
@@ -8405,7 +8405,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
             tile_mask[static_cast<size_t>(slot_s) * tile_span + p] = 1;
         }
       }
-      // FIX-204：该像素**未做排异**的两种合法来源（如实计数, 不冒充排异成功）：
+      // 该像素**未做排异**的两种合法来源（如实计数, 不冒充排异成功）：
       // ① 决策点路由到 none（EXP-204 保守档：几何 N ≤ 3）；
       // ② kernel underdetermined 闸（候选数 ≤ plan.underdetermined_n；WBPP 表
       //    下几何 N ≤ 3 走此路：路由记 percentile，实际全接受 + UNDERDETERMINED）。
@@ -8475,7 +8475,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
 
   // provenance: 逐几何 n 的 plan（method/semantic_id/minimum_n/underdetermined_n/
   // normalization/nominal_n）**+ 实际参数 + 合法性窗口告警码**。
-  // FIX-204 §6：实际使用的方法/参数/N 必须写入排异 provenance（可追溯）；
+  // 实际使用的方法/参数/N 必须写入排异 provenance（可追溯）；
   // §5：显式指定的合法性窗口（WBPP :1229-1293）只告警不硬阻断 ⇒ 告警码随
   // provenance 落盘（不静默、不改算法、不降级）。
   Json plans_j = Json::array();
@@ -8526,7 +8526,7 @@ Result<void> p2_op_reject(const Json& doc, Json* man) {
                        // 低 n（几何 n<=3）实际不排异 = 不排异 + 加权积分。
                        {"low_n_policy", "underdetermined_no_rejection"},
                        {"low_n_max_n", 3},
-                       // FIX-204：小 N 策略（**唯一决策点**在 rejection.cpp 的
+                       // 小 N 策略（**唯一决策点**在 rejection.cpp 的
                        // kPixelSmallNPolicy；EXP-204 待定案）。路由按 WBPP 一手
                        // 实测表（N<6 → percentile，含 N≤3）；N ≤ 3 的**实际
                        // 执行**由 kernel underdetermined 闸决定（候选 ≤
@@ -9283,7 +9283,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   const std::string out_path = out_dir + "/p2_integrated.json";
   Json missing_j = Json::array();
   for (uint64_t mf : ivar_missing_frames) missing_j.push_back(mf);
-  // FIX-405 G3-12（ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）:
+  // G3-12（ASTROCS_DESIGN §3.1「全程只有 SNR，不存在『权重模式』」）:
   // 产品面**不再落** weight_mode 键。方差面状态由 corrected_variance_used /
   // snr_chain_used / uncertainty_available 三个语义键如实承载（下方均在册）。
   Json artifact = Json{{"schema", "DATA-P2-INT"},
@@ -9349,7 +9349,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   return Result<void>::success();
 }
 
-// ══ FIX-401 (ASTROCS_DESIGN §10「I/O 与原子产品」/ GAP_AUDIT G3-1) ═══════════
+// ══ (ASTROCS_DESIGN §10「I/O 与原子产品」/ GAP_AUDIT G3-1) ═══════════════════
 // Phase2 mosaic 产品集: 运行私有暂存区 → 校验 → 统一原子发布。
 // 暂存区 = output_dir 的**兄弟**路径 (同文件系统 ⇒ rename 不跨设备; 不在正式
 // 目录内 ⇒ 正式目录永不出现半成品 tile), 词法与 aio_publish v1 的
@@ -9419,7 +9419,7 @@ bool p2_publish_mosaic_tree(const std::string& out_dir,
   return true;
 }
 
-// ══ FIX-402: Phase2 mosaic 产品单位声明（BUNIT + 像素语义 provenance）════════
+// ══ Phase2 mosaic 产品单位声明（BUNIT + 像素语义 provenance）═════════════════
 // 依据: ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」; docs/contracts/DATA_SEMANTICS.md §31.1（signal_sb = ADU/sr; 方差/ivar 由二次律唯一导出）;
 // FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC。单位串 = 冻结单位表的 canonical
 // 产品串（kP3Bunit* 常量），本节点不另发明第二套词表、不做任何"猜测"。
@@ -9538,7 +9538,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   const uint64_t tile_span = int_doc.value("tile_leaf_span", kP2TileLeafSpan);
   // 审计面（DATA-UNC-001 §30.1 规则 1 / ASTROCS_DESIGN §3.1）：集成产物必须
   // **显式**声明方差面是否科学可用；缺键 ⇒ DATA fail-closed（禁静默缺省）。
-  // FIX-405 G3-12：原实现以整数 weight_mode∈{1,2} 承载该状态 —— 与最高设计
+  // G3-12：原实现以整数 weight_mode∈{1,2} 承载该状态 —— 与最高设计
   // §3.1「全程只有 SNR，不存在『权重模式』这个概念」冲突，且该键随产品落盘。
   // 现改用同一 p2_integrated.json 内**已有的语义键**：uncertainty_available
   // （方差/ivar 子产品是否定义）与 corrected_variance_used / snr_chain_used
@@ -9597,7 +9597,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     if (frames.is_array() && !frames.empty())
       obs_filter = frames[0].value("filter_passband", "");
   }
-  // FIX-401 §10: 全部子产品先落本次运行私有暂存区, 校验通过后统一原子发布
+  // §10: 全部子产品先落本次运行私有暂存区, 校验通过后统一原子发布
   // (不再直写正式 output_dir)。
   const std::string staging = p2_mosaic_staging_path(out_dir);
   if (aio_atomic::remove_tree(staging, 0) != 0)
@@ -9673,7 +9673,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     const int wr = aio_hips_write_signal_support_tile(ps, &view);
     if (wr != 0) {
       aio_hips_abort(ps);
-      // FIX-401 §7.2: 磁盘满按失败本身归类 (aio 在清理前已判定) → 失败节点
+      // §7.2: 磁盘满按失败本身归类 (aio 在清理前已判定) → 失败节点
       // manifest error_kind="disk_full" → CLI 映射 exit 10。
       if (man && aio_disk::consume()) (*man)["error_kind"] = "disk_full";
       aio_atomic::remove_tree(staging, 0);   // §10: 失败路径清临时产物
@@ -9727,7 +9727,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
           "variance/ivar product tile count mismatch after finalize (HIPS_VERIFY)"));
     }
   }
-  // FIX-402: 单位/像素语义声明（在暂存区内完成 → 随产品集一起原子发布;
+  // 单位/像素语义声明（在暂存区内完成 → 随产品集一起原子发布;
   // properties 与 manifest.json 双写同源）。声明失败 = 产品单位面不完整 →
   // 丢弃暂存区显式拒（output_dir 不出现无单位声明的 mosaic）。
   {
@@ -9781,7 +9781,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     }
   }
 
-  // FIX-401 发布后订正: p2_final.json 的 properties 引用必须是**正式目录**路径
+  // p2_final.json 的 properties 引用必须是**正式目录**路径
   // （staging 已随发布清理; 旧值指向被删除的暂存路径 = 悬空引用, 消费者读不到
   // 已发布的 properties/BUNIT 声明）。
   const std::string props = out_dir + "/signal/properties";
@@ -9805,7 +9805,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                         {"n_tiles_written", n_tiles_written},
                         {"products", products},
                         {"covered_area_model", "support_x_A_cell"},
-                        // FIX-402: 像素语义/单位随产品 manifest 落盘（与已发布的
+                        // 像素语义/单位随产品 manifest 落盘（与已发布的
                         // signal/properties BUNIT 声明同源同值; FZ-BUNIT-SEMANTICS）。
                         {"bunit", kP3BunitSurfaceBrightness},
                         {"units", Json{
@@ -9821,7 +9821,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                                  : std::string()},
                             {"quadratic_law", "variance = signal^2; ivar = 1/variance"}}},
                         {"uncertainty_available", uncertainty_available},
-                        // FIX-405 G3-12（ASTROCS_DESIGN §3.1）：p2_final.json
+                        // G3-12（ASTROCS_DESIGN §3.1）：p2_final.json
                         // **不再落** weight_mode 键（「全程只有 SNR，不存在
                         // 『权重模式』这个概念」）；方差面状态由
                         // uncertainty_available + weight_basis +
@@ -10516,7 +10516,7 @@ bool p3n_wcs_from_json(const Json& j, astrocs::phase3::P3WcsDescriptor* d,
   return true;
 }
 
-// ══ FIX-402: Phase3 输入语义守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）════
+// ══ Phase3 输入语义守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）═════════════
 // 生产 export 只接受**面亮度语义**输入；按输入 provenance 声明的单位分派，
 // 不做任何"自动猜测单位"的宽松解析（缺声明即拒绝，禁 silent default ADU）:
 //   * 面亮度（BUNIT 显式含 px 幂次 canonical "ADU/sr"，或 BUNIT=ADU +
@@ -10686,7 +10686,7 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
   std::string err;
   if (!p3n_geom(doc, &g, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
-  // FIX-402: 输入语义守卫（先于任何像素/子产品读取; 非面亮度或单位不可判 →
+  // 输入语义守卫（先于任何像素/子产品读取; 非面亮度或单位不可判 →
   // 显式拒且不产任何半成品）
   const P3InputUnit guard = p3n_guard_input_units(g.hips_dir);
   if (!guard.ok) return p3n_guard_fail(guard, man);
@@ -10716,7 +10716,7 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
   if (ust != P3_RS_OK)
     return Result<void>::fail(Error(ErrorDomain::IO, "uncertainty sub-product open failed"));
 
-  // BUNIT 一致性（FIX-402）: reader 解析出的 BUNIT 必须与守卫所见逐字一致
+  // BUNIT 一致性: reader 解析出的 BUNIT 必须与守卫所见逐字一致
   // （两份解析面分叉 = 产品被并发改写/解析漂移 → 显式拒，禁静默采信任一）。
   if (!bunit.empty() && bunit != guard.bunit_raw)
     return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -10727,7 +10727,7 @@ Result<void> p3_op_properties(const Json& doc, Json* man) {
              {"hips_dir", g.hips_dir},
              {"hips_order", order},
              {"tile_width", 512},
-             // FIX-402: 下游（resample/writer/FITS BUNIT）统一消费冻结单位表的
+             // 下游（resample/writer/FITS BUNIT）统一消费冻结单位表的
              // canonical 面亮度串; 输入原始声明另存 bunit_input 供审计。
              {"bunit", guard.bunit_canonical},
              {"bunit_input", guard.bunit_raw},
@@ -10846,7 +10846,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   std::string err;
   if (!p3n_geom(doc, &g, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
-  // FIX-402: 输入语义守卫（与 properties 节点同源同判; 旁路直调本节点也不放行）
+  // 输入语义守卫（与 properties 节点同源同判; 旁路直调本节点也不放行）
   const P3InputUnit guard = p3n_guard_input_units(g.hips_dir);
   if (!guard.ok) return p3n_guard_fail(guard, man);
   Json props, plan;
@@ -10887,7 +10887,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
           "uncertainty sub-product open failed"));
     }
   }
-  // FIX-402: p3_props.json 的 canonical 单位与实时守卫必须一致（上游 artifact
+  // p3_props.json 的 canonical 单位与实时守卫必须一致（上游 artifact
   // 漂移 → 显式拒, 禁把旧声明当事实）。
   const std::string props_bunit = props.value("bunit", std::string());
   if (props_bunit != guard.bunit_canonical)
@@ -11223,7 +11223,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
   planes.push_back("signal");
   planes.push_back("coverage");
   if (unc_available) { planes.push_back("variance"); planes.push_back("ivar"); }
-  // BUNIT 一致性（FIX-402）: reader 解析面与守卫面必须逐字一致。
+  // BUNIT 一致性: reader 解析面与守卫面必须逐字一致。
   if (!bunit.empty() && bunit != guard.bunit_raw)
     return Result<void>::fail(Error(ErrorDomain::DATA,
         "BUNIT drift between properties parse ('" + bunit + "') and guard ('" +
@@ -11235,7 +11235,7 @@ Result<void> p3_op_resample(const Json& doc, Json* man, uint32_t cap,
            {"order_sel", order_sel},
            {"sampler", g.sampler},
            {"bitpix", g.bitpix},
-           // FIX-402: 单位/像素语义（下游 writer/FITS BUNIT 唯一来源; 禁 loose default）
+           // 单位/像素语义（下游 writer/FITS BUNIT 唯一来源; 禁 loose default）
            {"bunit", guard.bunit_canonical},
            {"bunit_input", guard.bunit_raw},
            {"pixel_semantics", "surface_brightness"},
@@ -11332,7 +11332,7 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
   const long nelem = (long)g.w * g.h;
   const bool unc = res.value("uncertainty_available", false);
-  // FIX-402: 输出面单位必须来自 resample 的 canonical 面亮度声明（禁 loose default
+  // 输出面单位必须来自 resample 的 canonical 面亮度声明（禁 loose default
   // "ADU"）; 输出模式/可测量性同样必须显式随产物落盘（FZ-P3-MODES）。
   const std::string bunit_canon = res.value("bunit", std::string());
   if (bunit_canon != kP3BunitSurfaceBrightness)
@@ -11676,7 +11676,7 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
   const long nelem = (long)g.w * g.h;
   const bool unc = res.value("uncertainty_available", false);
-  // FIX-402: verify 独立重开面同样消费 canonical 单位/模式声明（禁 loose default）;
+  // verify 独立重开面同样消费 canonical 单位/模式声明（禁 loose default）;
   // resampled ↔ writer 声明分叉 → 显式拒（不把分叉当"已验证"）。
   const std::string v_bunit = res.value("bunit", std::string());
   const std::string w_bunit = wr.value("bunit", std::string());
