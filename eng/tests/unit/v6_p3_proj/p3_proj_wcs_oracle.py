@@ -9,6 +9,11 @@
 
 被测面: eng/tests/unit/v6_p3_proj/v6_p3_proj_probe.cpp 打印的 CSV（生产实现输出）。
 
+往返容差**不硬编**: 探针额外打印 CONTRACT 行（单一事实源 = p3_wcs_applicability("TAN"),
+GATES §3 G-P1-WCS-BRIDGE（紧门 1e-8 px, 适用域 scale ≥ 0.9″/px）/
+G-P1-WCS-BRIDGE-GLOBAL（全域保守门 1e-6 px））; 本文件按投影选适用门:
+TAN = 紧门, SIN/CAR/AIT = 全域保守门（无产品适用域声明, fail-closed）。
+
 用法:
   python3 p3_proj_wcs_oracle.py run        --probe <probe_bin> [--json out.json]
   python3 p3_proj_wcs_oracle.py mutate NAME --probe <probe_bin>
@@ -62,13 +67,16 @@ def run_probe(probe, case):
         check=True, capture_output=True, text=True, timeout=600)
     head = omega_stat = plan = None
     crpixw = None
+    contract = None
     rows, rts, norms = [], [], []
     for line in out.stdout.splitlines():
         p = line.split()
         if not p:
             continue
         kv = lambda: {t.split("=")[0]: t.split("=")[1] for t in p[1:]}
-        if p[0] == "V6PROBE":
+        if p[0] == "CONTRACT":
+            contract = kv()   # 往返门合同值（单一事实源 p3_wcs_applicability）
+        elif p[0] == "V6PROBE":
             head = kv()
         elif p[0] == "OMEGA_STAT":
             omega_stat = kv()
@@ -88,7 +96,15 @@ def run_probe(probe, case):
             norms.append({"kind": "COLSUM", **kv()})
         elif p[0] == "NORM_S":
             norms.append({"kind": "NORM_S", **kv()})
-    return head, omega_stat, rows, rts, plan, norms, crpixw
+    return head, omega_stat, rows, rts, plan, norms, crpixw, contract
+
+
+def roundtrip_tol_px(proj, contract):
+    """适用往返门(px): TAN = 紧门（用例尺度 ≥ min_scale）; 其余投影无产品适用域
+    声明 ⇒ 全域保守门（SCI-WCS-001 §11 STD-F1 登记值）。合同值缺失 ⇒ 0.0（必红）。"""
+    if not contract:
+        return 0.0
+    return float(contract["tight"]) if proj == "TAN" else float(contract["global"])
 
 
 def v_sky(ra_deg, dec_deg):
@@ -131,7 +147,7 @@ def grid_omega_astropy(w, wd, ht):
 
 def check_case(probe, case, injections):
     proj, ra0, dec0, scale, wd, ht, gn = case
-    head, omega_stat, rows, rts, plan, norms, crpixw = run_probe(probe, case)
+    head, omega_stat, rows, rts, plan, norms, crpixw, contract = run_probe(probe, case)
     checks = []
     if head is None or head["status_make"] != "0":
         return False, ["make_status FAIL"], {}
@@ -230,9 +246,11 @@ def check_case(probe, case, injections):
         checks.append(("ait_ellipse_domain_A_le_1", bad_dom == 0,
                        (bad_dom, worst_dom)))
 
-    # 4) 往返
+    # 4) 往返（门值 = 生产注册表合同值, 不硬编; GATE-WCS-01 裁决 7）
     worst_rt = max((float(r["err"]) for r in rts if r["status"] == "0"), default=0.0)
-    checks.append(("roundtrip_lt_1e-6px", worst_rt < 1e-6, worst_rt))
+    rt_tol = roundtrip_tol_px(proj, contract)
+    checks.append(("roundtrip_lt_contract_px", 0.0 < worst_rt < rt_tol,
+                   (worst_rt, rt_tol)))
 
     # 5) plan wrap 独立复算
     X, Y = np.meshgrid(np.arange(wd, dtype=float), np.arange(ht, dtype=float))

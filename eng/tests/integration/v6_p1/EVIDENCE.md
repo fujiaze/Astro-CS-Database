@@ -31,7 +31,7 @@
 |---|---|
 | FZ-FORMULA-WINFO / Q / FHAT | `p1psfw::w_info_diagonal` + `combine_point_estimates`：实测 W_info=0.058889 ADU^-2、Q=58.888889 ADU^-1、flux=1000.0 ADU、Var(F)=16.981132 ADU^2，且 Var·W_info=1.0（rel<1e-9） |
 | FZ-COND-WHITENOISE | 对角 C（`sigma2` ADU^2）且声明 ⇒ provenance 白噪近似 applied=true + 三 condition=true |
-| FZ-FIELD-PSFSW-4COMP / UNIT / FZ-FORMULA-PSFSW-COMPOSITE | `extract_psfsw_components` 四分量（S/N/B=ADU、Conc=ADU/px^2）+ `compute_psfsw_weights` 未归一 Wt；canonical `weight.kind=psfsw_robust_weight`/`units="1"`/`group_normalized=true`/`scope=group`/`median_target=1.0`；**weight_value=null** |
+| FZ-FIELD-PSFSW-4COMP / UNIT / FZ-FORMULA-PSFSW-COMPOSITE | `extract_psfsw_components` 四分量（S/N/B=ADU、Conc=ADU/px^2）+ `compute_psfsw_weights` 未归一 Wt。**PSFSW-RETIRE-03 产品合同收口**：退役对象声明（`units.psfsw_robust_weight` / `psfsw.weight_mode="psfsw_robust"` / `psfsw.weight.kind="psfsw_robust_weight"`）已从产品 schema 的 required 移出 ⇒ 新写出的产品**不再携带**；旧产品仍携带时按退役 canonical 形状（`kind=psfsw_robust_weight`/`units="1"`/`group_normalized=true`/`scope=group`/`median_target=1.0`/**weight_value=null**）判定、登记并交消费面 fail-closed（`v6_p1_positive` 的 legacy 块锁定该路径） |
 | OI-01（OPEN，fail-closed） | `phase1_extensions.group_normalization_deferred_to="phase2"` + `open_items=["OI-01"]`；单帧不产伪归一权重 |
 | FZ-GATE-PSFSW-COV | `drizzle_covariance.representation=diagonal_variance_plus_correlation_kernel`（由真实算子非对角 Cov 计算 ρ）；`variance_from=actual_combination_coefficients`，禁 `weight/median_snr/support/coverage/fwhm` |
 | FZ-GATE-PSFSW-EPSF | `conventional_effective_psf` 出 `effective_psf_id`+peak 归一+profile 值+per-frame kernel transfer；只给 FWHM 标量即 REJECT |
@@ -66,9 +66,8 @@ timeout 900 ctest --test-dir build_clean --output-on-failure                    
 
 磁盘结构：`<dir>/science.fits`（PRIMARY=SIGNAL + SUPPORT/VARIANCE/IVAR）+ `<dir>/phase1_product.json`。
 
-- 重开校验：FITS CHECKSUM/DATASUM + SHA-256 与 manifest/provenance 相符 + 逐 HDU BUNIT + 单位冻结串 + 二次律 + psfsw canonical 词表 + provenance 最小集 + 禁诊断来源。
-- Phase2 消费面：仅由**磁盘重开**的两帧四分量独立复算组内归一
-  （w_psfsw=[1.3333333333, 0.6666666667]，median=1.0；Oracle 侧独立复算逐位一致 rel<1e-12）。
+- 重开校验：FITS CHECKSUM/DATASUM + SHA-256 与 manifest/provenance 相符 + 逐 HDU BUNIT + 单位冻结串 + 二次律 + psfsw 四分量 + provenance 最小集 + 禁诊断来源（**现行产品不携带退役对象声明**；携带者按退役/迁移情形登记）。
+- Phase2 消费面（`consume_phase1_group_for_psfsw`）：**整体退役、无条件 fail-closed**（FZ-MODE-RETIRED + 迁移提示，不产出 w_psfsw）——该面的唯一产物就是退役对象 psfsw_robust_weight 的组内归一权重，`ASTROCS_DESIGN.md` §3.1 禁止 PSF 质量代理进入科学叠加权重。Oracle 侧保留独立复算作**非空洞守卫**（fixture 四分量本身能算出合法组内归一 ⇒ 拒绝是策略拒绝而非数据退化）。
 - 无半成品：几何闭合不可能（closure tol=0）时发布失败，目标目录不存在且无 `.staging.tmp-` 残留。
 
 ## 5. 负向测试（24 条，全部红）

@@ -8,7 +8,7 @@
     / visualization 显式声明, visualization 标注"不可测量";
   * ASTROCS_DESIGN §5.6 —— Phase2 信号为面亮度量纲（写端口 SURFACE_BRIGHTNESS）;
   * ASTROCS_DESIGN §7.2 —— 退出码 3 = 输入缺失/格式错, 4 = 科学验证或不变量失败;
-  * FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC（docs/contracts/v6/data/
+  * FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC（docs/contracts/DATA_SEMANTICS.md §31
     01_units_and_bunit.md §1/§3/§4）。
 
 判据（非退化: 负例矩阵必须**全红得正确**; 正例必须真产出产品而非"看起来通过"）:

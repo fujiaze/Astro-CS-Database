@@ -12,7 +12,7 @@
       必须判 NOT_IMPLEMENTED，绝不判 IMPLEMENTED
   T6  真实仓库诚实性：实现只认 target_dir；旧命名目录（lib/star_detector 等）不参与
       实现判定；lib/algorithms|infrastructure 未建立时不得出现 IMPLEMENTED/INSTALLED
-  T7  状态词只取 ASTROCS_DESIGN §11.3 词表
+  T7  状态词只取 ASTROCS_DESIGN §12.5 词表
   T8  检查器 --selftest 全绿（能绿能红自证）
 """
 from __future__ import annotations
@@ -232,7 +232,7 @@ class TestCheckerFixtureGates(unittest.TestCase):
 
 
 class TestRealRepoHonesty(unittest.TestCase):
-    """T6/T7：真实仓库诚实判定（实现只认 target_dir；状态词只取 §11.3）。"""
+    """T6/T7：真实仓库诚实判定（实现只认 target_dir；状态词只取 §12.5）。"""
 
     @classmethod
     def setUpClass(cls):
@@ -249,7 +249,7 @@ class TestRealRepoHonesty(unittest.TestCase):
         self.assertEqual(self.data["summary"]["ids_unique"], 23)
         self.assertEqual(len(self.data["modules"]), 23)
 
-    def test_t21_status_words_are_11_3_only(self):
+    def test_t21_status_words_are_12_5_only(self):
         self.assertEqual(set(self.data["status_vocabulary"]), VOCABULARY)
         for m in self.data["modules"]:
             self.assertIn(m["status"], VOCABULARY, m["id"])

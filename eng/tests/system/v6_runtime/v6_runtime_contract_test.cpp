@@ -2,6 +2,9 @@
 // RUNTIME-CI-001 (Wave 9): 运行面契约正向/负向单元测试。
 // 被测单一事实源 = lib/infrastructure/cli/v6_runtime_contract.h（统一预算 / 模式路由 / SO-05 策略 /
 // 每线程字段面 / §3.2 Phase 隔离）。本测试只做结构性判定，不重跑科学实现。
+// 模式面（PSFSW-RETIRE-02 同步）：FZ-MODE-PRODUCTION 生产接受集 = {point_information,
+// surface_gls}；退役对象 psfsw_robust 走 FZ-MODE-RETIRED 显式拒绝 + 迁移提示（负例断言见
+// test_modes/test_negative），不得静默接受。
 //
 // 用法: v6_runtime_contract_test <units|modes|budget|so05|isolation|metrics|negative>
 #include <cstdio>
@@ -27,11 +30,29 @@ static void CHECK(bool cond, const std::string& what) {
 }
 
 static void test_modes() {
-    // FZ-MODE-PRODUCTION: 三模式 = production
-    for (const char* t : {"point_information", "surface_gls", "psfsw_robust"}) {
+    // FZ-MODE-PRODUCTION: 生产接受集 = {point_information, surface_gls}
+    // （psfsw_robust 已按负责人裁决退役，见下方 FZ-MODE-RETIRED 负例）。
+    for (const char* t : {"point_information", "surface_gls"}) {
         const ModeRoute r = route_phase2_mode(t);
         CHECK(r.kind == RouteKind::kProduction && r.rc == 0,
               std::string("phase2 production mode ") + t);
+    }
+    // FZ-MODE-RETIRED: 退役对象 psfsw_robust 必须被显式拒绝（不得静默接受），
+    // 且拒绝理由可诊断：被拒 mode + 允许集 + 迁移提示。
+    // 能红能绿：把 "psfsw_robust" 放回上方接受集，本块即转红。
+    {
+        const ModeRoute r = route_phase2_mode("psfsw_robust");
+        CHECK(r.kind == RouteKind::kReject && r.rc == 2,
+              "psfsw_robust rejected (FZ-MODE-RETIRED)");
+        CHECK(r.reason.find("FZ-MODE-RETIRED") != std::string::npos,
+              "psfsw_robust reject reason cites FZ-MODE-RETIRED");
+        CHECK(r.reason.find("psfsw_robust") != std::string::npos,
+              "psfsw_robust reject reason names the rejected mode");
+        CHECK(r.reason.find("point_information") != std::string::npos &&
+                  r.reason.find("surface_gls") != std::string::npos,
+              "psfsw_robust reject reason states the allowed production set");
+        CHECK(r.reason.find("migration") != std::string::npos,
+              "psfsw_robust reject reason carries a migration hint");
     }
     // FZ-MODE-DEFERRED: psf_snr_power 必拒
     const ModeRoute d = route_phase2_mode("psf_snr_power");
@@ -164,6 +185,9 @@ static void test_negative() {
     // 注入 3: psf_snr_power 进生产
     CHECK(route_phase2_mode("psf_snr_power").kind == RouteKind::kReject,
           "neg3 deferred mode in production detected");
+    // 注入 3b: 退役对象 psfsw_robust 进生产（FZ-MODE-RETIRED）
+    CHECK(route_phase2_mode("psfsw_robust").kind == RouteKind::kReject,
+          "neg3b retired psfsw_robust in production detected");
     // 注入 4: legacy weight_mode 0
     CHECK(route_legacy_weight_mode_int(0).kind == RouteKind::kReject,
           "neg4 legacy weight_mode 0 detected");

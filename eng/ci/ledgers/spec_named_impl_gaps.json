@@ -14,8 +14,8 @@
     {
       "id": "SNI-S4-P3X-06",
       "kind": "known_gap",
-      "reason": "lib/phase3_session/p3_v6_export.cpp（V6 三模式导出链）不在任何生产 target 源列表，仅被 eng/tests/integration/v6_p3 编译 ⇒ FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 四条 FROZEN 合同在生产运行面无载体（CONFORM-SWEEP-4 P3X-06，E-09）。",
-      "owner": "Phase3 export 域主（前台裁决接线面）",
+      "reason": "lib/phase3_session/p3_v6_export.cpp（V6 三模式导出链）不在任何生产 target 源列表，仅被 eng/tests/integration/v6_p3 编译 ⇒ FZ-P3-MODES/FZ-P3-QW-RECOMPUTE/FZ-P3-BUNIT-QUADRATIC/FZ-P3-KERNEL-REGISTRY 四条 FROZEN 合同在生产运行面无载体（CONFORM-SWEEP-4 P3X-06，E-09）。**ARCH-AUDIT-03 §3 P3-05 交叉引用（ARCH-DEBT-01 登记，2026-09-22）**：本条即 docs/science/PHASE3_HIPS_TO_FITS.md §16 C4 与 docs/algorithms/PHASE3_PROJ_IMPL.md §16 C4 中「会话接线层 p3_v6_export.cpp **未进构建**」那一半的登记面——该半**仍然成立**（grep -c p3_v6_export CMakeLists.txt = 0；p3_v6_export.cpp 抬头自述「未接入生产」）。**但 C4/C5 的另一半已过期**：C4 称「§5.3 输入语义守卫在生产 export 路径未生效（守卫未接线）」、C5 称「即使接线也会 REJECT（产品 FITS tile 无 BUNIT）」，均被在途 FIX-402 反证（p3_rsmp_units.cpp 已编入 astrocs_p3_rsmp；p3n_guard_input_units 已在生产 IR 节点链 properties/resample2/writer 调用；p3_op_writer 强制 bunit 校验）。⇒ §16 订正时必须**按「生产链已接线 / v6 shell 仍未接线」分开陈述**，不得整体删除。来源报告 run/ARCH-AUDIT-03/REPORT.md §3 P3-05（含诚实边界说明）。",
+      "owner": "Phase3 export 域主（前台裁决接线面）；§16 登记面订正 = FIX-402 提交时同步（ARCH-AUDIT-03 P3-05）",
       "exit_condition": "把 p3_v6_export.cpp 编入生产 target 并链入 astrocs 后删除本条目"
     }
   ]

@@ -6,7 +6,7 @@
   - docs/plugins/00_INDEX.md §1（模块归属）/§2（23 篇模块总表）/§3（每篇 8 节模板）/§5（维护规则）
   - ENGINEERING_SPEC.md §4（每模块必备 7 项）/§8（manifest/注册表/target/产品清单一致）
   - ASTROCS_DESIGN.md §7.1（顶层结构唯一）/§7.3（模块与 DLL/SO 边界，单一 entrypoint，
-    不隐藏整阶段 Session；每个生产 DAG 节点映射唯一真实 module/导出入口）/§11.3（状态阶梯，唯一口径）
+    不隐藏整阶段 Session；每个生产 DAG 节点映射唯一真实 module/导出入口）/§12.5（状态阶梯，唯一口径）
   - docs/ci/01_CHECKS.md §2（CHK-MODULE-MANIFEST = manifest/注册表/构建 target/产品清单一致，P0）
   - eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 astrocs_module_query_v1）
 
@@ -29,7 +29,7 @@
   M6 产品清单一致（ENGINEERING_SPEC §8）：eng/packaging/astrocs.product.json 中存在
      对应 unit 且状态非 SKELETON；00_INDEX §2 明示「不进产品 manifest」的模块
      （hips_browser）以豁免理由登记（required=false + 权威引用）。
-  M7 状态词只取 ASTROCS_DESIGN §11.3 词表；VERIFIED 必须有证据文件在仓库内，
+  M7 状态词只取 ASTROCS_DESIGN §12.5 词表；VERIFIED 必须有证据文件在仓库内，
      禁止表内自证：「合成测试或历史可用节点不等于真实数据/Windows VERIFIED」。
 
   M8 声明↔文件↔CMake target↔产品清单四方一致（FIX-404 / GAP_AUDIT G3-8）：
@@ -56,7 +56,7 @@
        * lib/** 仍有悬空条目     → FAIL(fix404_domain_dangling_open)；
        * 域外条目未路由/缺分类   → FAIL(dangling_ledger_entry_unrouted)。
 
-状态判定（主状态 = 阶梯最高一级；主状态与 verification_status 都是 §11.3 词）
+状态判定（主状态 = 阶梯最高一级；主状态与 verification_status 都是 §12.5 词）
   FAIL            记录自相矛盾（注册键重复 / 合同悬空 / 行字段缺失 / 合同漂移）
   DORMANT/DEFERRED 仅当映射表登记 lifecycle 且带权威引用（当前 23 个模块均未登记）
   NOT_IMPLEMENTED 目标目录或实现缺失，或 entrypoint 为 facade/no-op
@@ -774,7 +774,7 @@ def evaluate_module(ctx: Ctx, m: dict, seen_keys: dict):
                                             % (hit.get("unit_id"), hit.get("module_id"), match_mid)))
                 if ustatus == "SKELETON":
                     findings.append(Finding(mid, "product_unit_skeleton",
-                                            "unit %s 状态 SKELETON（非 §11.3 生产状态，判未安装）"
+                                            "unit %s 状态 SKELETON（非 §12.5 生产状态，判未安装）"
                                             % hit.get("unit_id")))
                 elif ustatus not in ("IMPLEMENTED", "INSTALLED", "VERIFIED"):
                     findings.append(Finding(mid, "product_unit_missing",
@@ -821,10 +821,10 @@ def evaluate_module(ctx: Ctx, m: dict, seen_keys: dict):
         status = "NOT_IMPLEMENTED"
     if status not in STATUS_VOCABULARY:
         status = "FAIL"
-        findings.append(Finding(mid, "missing_map_field", "状态词越出 §11.3 词表（内部错误）"))
+        findings.append(Finding(mid, "missing_map_field", "状态词越出 §12.5 词表（内部错误）"))
     if installed and not verified:
         findings.append(Finding(mid, "not_verified",
-                                "未取得真实数据 + Windows x64 验收：合成测试不等于 VERIFIED（§11.3）"))
+                                "未取得真实数据 + Windows x64 验收：合成测试不等于 VERIFIED（§12.5）"))
     if m.get("legacy_paths"):
         existing = [p for p in m["legacy_paths"] if (ctx.repo / str(p)).exists()]
         if existing:
@@ -1034,11 +1034,11 @@ def run_check(repo: pathlib.Path, map_path: pathlib.Path):
         "authority": [
             "docs/plugins/00_INDEX.md §1/§2/§3/§5",
             "ENGINEERING_SPEC.md §4/§8",
-            "ASTROCS_DESIGN.md §7.1/§7.3/§11.3",
+            "ASTROCS_DESIGN.md §7.1/§7.3/§12.5",
             "docs/ci/01_CHECKS.md §2",
         ],
         "status_vocabulary": list(STATUS_VOCABULARY),
-        "status_vocabulary_authority": "ASTROCS_DESIGN.md §11.3",
+        "status_vocabulary_authority": "ASTROCS_DESIGN.md §12.5",
         "modules": [],
         "findings": [],
     }

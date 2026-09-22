@@ -486,9 +486,9 @@ def check_03_defaults_enum_mapping(repo):
 
 def _validator(repo):
     import importlib.util
-    path = os.path.join(repo, "eng", "tests", "contracts", "v6", "jsonschema_min.py")
+    path = os.path.join(repo, "eng", "tests", "common", "jsonschema_min.py")
     if not os.path.isfile(path):
-        raise Fail("missing validator: eng/tests/contracts/v6/jsonschema_min.py")
+        raise Fail("missing validator: eng/tests/common/jsonschema_min.py")
     spec = importlib.util.spec_from_file_location("cfg002_jsonschema_min", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -1081,10 +1081,10 @@ def build_sandbox(src, dst):
             d = os.path.join(dst, rel)
             os.makedirs(os.path.dirname(d), exist_ok=True)
             shutil.copy2(s, d)
-    v = os.path.join(src, "tests", "contracts", "v6", "jsonschema_min.py")
+    v = os.path.join(src, "tests", "common", "jsonschema_min.py")
     if not os.path.isfile(v):
-        raise Fail("sandbox source missing: eng/tests/contracts/v6/jsonschema_min.py")
-    d = os.path.join(dst, "tests", "contracts", "v6", "jsonschema_min.py")
+        raise Fail("sandbox source missing: eng/tests/common/jsonschema_min.py")
+    d = os.path.join(dst, "tests", "common", "jsonschema_min.py")
     os.makedirs(os.path.dirname(d), exist_ok=True)
     shutil.copy2(v, d)
     return dst

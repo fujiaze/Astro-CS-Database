@@ -119,6 +119,39 @@
         "工程控制/RELEASE-02/change-claims/FIX-SCI-SNR-CANON-001.md §4.2",
         "工程控制/RELEASE-02/change-claims/CFG-MULTIBLOCK-001.md"
       ]
+    },
+    {
+      "id": "dead_config_key:algorithm_rejection_method",
+      "kind": "dead_key",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/algorithm_rejection_method（enum auto/sigma/winsorized/averaged_sigma/linear_fit/esd/percentile；描述自认「排异逐像素按该像素输入集数量 N 自动选择」）+ eng/packaging/config/config_registry.json:923（note「未进任何配置类（phase_config 的 algorithm_rejection_method 是方法选择，不是类别开关）。归属：负责人裁决」）+ docs/contracts/CONFIG_CONTRACT.md:82（mosaic 行把本键列为合同声明键）。**FIX-203 后状态**：CLI 已可达——lib/infrastructure/cli/parser.cpp#session_keys() 白名单（:330）与 lib/infrastructure/cli/session_commands.h#config_fields(kMosaic)（:210）均含本键，--help/--template 可见、配置不再判 unknown key。但**生产科学消费点为零**：lib/** 内带引号 \"algorithm_rejection_method\" token 只出现在 CLI 键表声明处；p2_op_reject 的排异方法实际由**逐像素输入集数量 N** 唯一路由（rejection.cpp#astrocs_n_map_method：N<6 percentile / 6–15 winsorized / ≥16 linear_fit，AUTO 禁 min/max fail-closed），**不读本键** ⇒ 用户显式指定排异算法时**静默无效**，违反 ASTROCS_DESIGN.md §5.5「显式指定单一算法时按指定执行…禁止静默改算法、禁止静默降级」。来源：ARCH-AUDIT-02 §1.2 F-06（该报告判为「未登记死键台账」）。",
+      "owner": "Phase2 rejection 域主（前台裁决：接线消费 或 从合同/CLI 键面摘除）；登记 = ARCH-DEBT-01",
+      "exit_condition": "p2_op_reject 按 algorithm_rejection_method 显式分支（并按 DESIGN §5.5 对显式指定与 AUTO 路由的优先级给出 SCI/ALG 依据与 provenance 记录）出现生产读取点后删除本条；或经负责人裁决从 phase_config_mosaic.schema.json / config_registry.json / CLI 键面摘除该键。禁止以新增同义键解除。",
+      "consumed_as": "（无：生产零读取；实际路由 = 逐像素输入集数量 N ⇒ rejection.cpp#astrocs_n_map_method）",
+      "template": "（不在 eng/packaging/config/templates/*.json 键面；CLI --template 已列出，见 FIX-203）",
+      "evidence": [
+        "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/algorithm_rejection_method",
+        "eng/packaging/config/config_registry.json:923",
+        "docs/contracts/CONFIG_CONTRACT.md:82（mosaic 行）",
+        "lib/infrastructure/cli/parser.cpp:330",
+        "lib/infrastructure/cli/session_commands.h:210",
+        "run/ARCH-AUDIT-02/REPORT.md §1.2 F-06"
+      ]
+    },
+    {
+      "id": "dead_config_key:reject",
+      "kind": "dead_key",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/reject（type object，描述自认「可选 rejection 配置块（逐样本接受掩码等）；**CLI 只识别并透传，消费在 scheduler 面**」），并经 #/$defs/mosaic_block 的 $ref 进入块级键面；+ lib/infrastructure/cli/parser.cpp#session_keys()（:304）与 lib/infrastructure/cli/session_commands.h#config_fields(kMosaic)（:206）⇒ CLI 可达。但**生产科学消费点只有一次类型校验**：lib/infrastructure/scheduler/src/module_adapters.cpp:9540 的 doc.contains(\"reject\") && !doc[\"reject\"].is_object()（非 object 即拒绝），此后**无任何字段被读取**；p2_op_reject 仅读 output_dir / reject_profile / __workers ⇒ 用户按合同填入排异配置块时**静默无效**，违反 ASTROCS_DESIGN.md §5.5「禁止静默改算法、禁止静默降级」。来源：ARCH-AUDIT-02 §1.2 F-06（该报告判为「未登记死键台账」）。",
+      "owner": "Phase2 rejection 域主（前台裁决：接线消费 或 从合同/CLI 键面摘除）；登记 = ARCH-DEBT-01",
+      "exit_condition": "p2_op_reject（或其 reject plan 解析面）按 $defs.reject 的字段消费排异配置块并写入 provenance 出现生产读取点后删除本条；或经负责人裁决从 phase_config_mosaic.schema.json / CLI 键面摘除该键。禁止以新增同义键解除。",
+      "consumed_as": "（无：生产零读取；仅 module_adapters.cpp:9540 做一次 is_object() 类型校验）",
+      "template": "（不在 eng/packaging/config/templates/*.json 键面；CLI --template 已列出，见 FIX-203）",
+      "evidence": [
+        "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/reject（经 #/$defs/mosaic_block 的 $ref 进块级键面）",
+        "lib/infrastructure/cli/parser.cpp:304",
+        "lib/infrastructure/cli/session_commands.h:206",
+        "lib/infrastructure/scheduler/src/module_adapters.cpp:9540",
+        "run/ARCH-AUDIT-02/REPORT.md §1.2 F-06"
+      ]
     }
   ]
 }

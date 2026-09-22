@@ -778,7 +778,7 @@
       "heavy": false,
       "mutates_workspace": true,
       "outputs": [
-        "reports/v19r2/evidence/quality/traceability_check.json",
+        "run/ci/quality/traceability_check.json",
         "run/ci/doc-anchors/doc_line_anchors.json"
       ],
       "waivable": false,
@@ -814,7 +814,7 @@
           "heavy": false,
           "mutates_workspace": true,
           "outputs": [
-            "reports/v19r2/evidence/quality/traceability_check.json"
+            "run/ci/quality/traceability_check.json"
           ],
           "waivable": false,
           "changed_paths": [
@@ -3464,6 +3464,8 @@
         "run/ci/ctest/drizzle_precision_default.json",
         "run/ci/ctest/gaia_magnitude_range_bounds.json",
         "run/ci/ctest/gaia_module_manifest_bounds.json",
+        "run/ci/ctest/gaia_shard_coverage.json",
+        "run/ci/ctest/gaia_shard_coverage_self_test.json",
         "run/ci/ctest/hips_publish_atomic.json",
         "run/ci/ctest/hips_publish_atomic_units.json",
         "run/ci/ctest/ipv_extract_wcs_sip_failclosed.json",
@@ -3495,6 +3497,8 @@
         "drizzle_precision_default",
         "gaia_magnitude_range_bounds",
         "gaia_module_manifest_bounds",
+        "gaia_shard_coverage",
+        "gaia_shard_coverage_self_test",
         "hips_publish_atomic",
         "hips_publish_atomic_units",
         "ipv_extract_wcs_sip_failclosed",
@@ -3950,7 +3954,77 @@
           ],
           "requires_monitor": false,
           "ctest_targets": [
-            "gaia_magnitude_range_bounds"
+            "gaia_shard_coverage"
+          ]
+        },
+        {
+          "id": "CTEST-GAIA-SHARD-COVERAGE",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "gaia_shard_coverage",
+            "--output",
+            "run/ci/ctest/gaia_shard_coverage.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/gaia_shard_coverage.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/gaia_xpsd_client/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "gaia_shard_coverage_self_test"
+          ]
+        },
+        {
+          "id": "CTEST-GAIA-SHARD-COVERAGE-SELF-TEST",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "gaia_shard_coverage_self_test",
+            "--output",
+            "run/ci/ctest/gaia_shard_coverage_self_test.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/gaia_shard_coverage_self_test.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/infrastructure/gaia_xpsd_client/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "gaia_shard_coverage_self_test"
           ]
         },
         {
@@ -8037,6 +8111,40 @@
       ]
     },
     {
+      "id": "CHK-DRZ-DISP009",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "eng/tools/quality/deep_ci_driver.py",
+        "ctest-target",
+        "--build-dir",
+        "build",
+        "--target",
+        "p1drz_disp009",
+        "--output",
+        "run/ci/ctest/p1drz_disp009.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p1drz_disp009.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/algorithms/drizzle/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p1drz_disp009"
+      ]
+    },
+    {
       "id": "CHK-FIX203-PROMOTED-KEYS",
       "profiles": [
         "fast",
@@ -9129,6 +9237,77 @@
       ]
     },
     {
+      "id": "CHK-MEM-WIRE-01",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-MEM-WIRE-01",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/mem_wire.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**",
+        "lib/infrastructure/**",
+        "eng/tests/**",
+        "eng/packaging/config/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "mem_wire"
+      ],
+      "steps": [
+        {
+          "id": "CTEST-MEM-WIRE",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "mem_wire",
+            "--output",
+            "run/ci/ctest/mem_wire.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/mem_wire.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "lib/infrastructure/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "mem_wire"
+          ]
+        }
+      ]
+    },
+    {
       "id": "CHK-ARCH504-EXPORT-STREAM",
       "profiles": [
         "fast",
@@ -9551,6 +9730,92 @@
       ]
     },
     {
+      "id": "CHK-LOG-SYS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-LOG-SYS",
+        "--quiet"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/log-system/log_system.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "docs/**",
+        "eng/ci/ledgers/**",
+        "eng/tools/quality/check_log_system.py",
+        "eng/contracts/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "LOG-SYS-SCAN",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_log_system.py",
+            "--json-out",
+            "run/ci/log-system/log_system.json"
+          ],
+          "timeout_seconds": 240,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/log-system/log_system.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/**",
+            "docs/**",
+            "eng/ci/ledgers/**",
+            "eng/tools/quality/check_log_system.py"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "LOG-SYS-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_log_system.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/quality/check_log_system.py",
+            "eng/ci/ledgers/log_system_ledger.json"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",
@@ -9684,6 +9949,38 @@
           "reads_run_results": true
         }
       ]
+    }
+  ,
+    {
+      "id": "CHK-HIPS-STORAGE-FORM",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/hipsform/check_hips_storage_form.py",
+        "--self-test",
+        "--json-out",
+        "run/ci/hipsform/self_test.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/hipsform/self_test.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
+        "docs/design/PRODUCT_STORAGE_FORM.md",
+        "eng/contracts/schemas/hips_storage_form.schema.json",
+        "eng/tools/hipsform/**",
+        "lib/infrastructure/aio/**"
+      ],
+      "requires_monitor": false
     }
   ]
 }

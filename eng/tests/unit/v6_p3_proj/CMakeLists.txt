@@ -18,9 +18,12 @@ target_include_directories(v6_p3_proj_test PRIVATE ${V6_P3PROJ_DIR})
 target_compile_features(v6_p3_proj_test PRIVATE cxx_std_17)
 add_test(NAME v6_p3_proj_units COMMAND v6_p3_proj_test)
 
+# 探针额外编译生产注册表 p3_wcs.cpp: 只读往返合同值（p3_wcs_applicability），
+# 使 Python oracle 侧不硬编容差（GATE-WCS-01 裁决 7「单一事实源」）。
 add_executable(v6_p3_proj_probe
   v6_p3_proj_probe.cpp
-  ${V6_P3PROJ_DIR}/p3_proj_v6.cpp)
+  ${V6_P3PROJ_DIR}/p3_proj_v6.cpp
+  ${V6_P3PROJ_DIR}/p3_wcs.cpp)
 target_include_directories(v6_p3_proj_probe PRIVATE ${V6_P3PROJ_DIR})
 target_compile_features(v6_p3_proj_probe PRIVATE cxx_std_17)
 

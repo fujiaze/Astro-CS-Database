@@ -216,12 +216,12 @@ def main(argv):
         if not cond:
             fails.append(msg)
 
-    # 生产 provenance schema（required + allOf 规则）
-    with open(os.path.join(root, "eng/contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json")) as f:
-        pschema = json.load(f)
+    # 生产 provenance 记录级 schema（产品族字段级合同 $defs.provenance：required + allOf 规则）
+    with open(os.path.join(root, "eng/contracts/schemas/product_family_field_constraints.schema.json")) as f:
+        pschema = json.load(f)["$defs"]["provenance"]
     required = pschema["required"]
     allof = pschema.get("allOf", [])
-    with open(os.path.join(root, "eng/contracts/data/v6_data_dictionary_v1.json")) as f:
+    with open(os.path.join(root, "eng/contracts/data/v6_clause_registry_v1.json")) as f:
         dictionary = json.load(f)
     ck("quadratic_law" in dictionary, "dictionary has quadratic_law")
 

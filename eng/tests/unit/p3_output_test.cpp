@@ -86,7 +86,7 @@ int main() {
     CHECK(std::strlen(v.sha256) == 64);
   }
 
-  // 2b) FIX-402 (FZ-P3-BUNIT-QUADRATIC / docs/contracts/v6/data/01_units_and_bunit.md
+  // 2b) FIX-402 (FZ-P3-BUNIT-QUADRATIC / docs/contracts/DATA_SEMANTICS.md §31.1
   // §1): variance/ivar BUNIT 必须是 signal BUNIT 的**幂次代数**结果（冻结 canonical
   // 串: ADU/px^2 → ADU^2/px^4 / px^4/ADU^2），禁朴素拼接（旧实现写 "ADU/px^2^2"）；
   // 不在冻结表内的单位必须显式拒（P3_OUT_PARAM, 不落任何文件）。

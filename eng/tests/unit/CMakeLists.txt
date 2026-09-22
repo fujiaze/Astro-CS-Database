@@ -46,6 +46,32 @@ target_compile_definitions(export_stream_test PRIVATE
   ARCH504_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence")
 add_test(NAME export_stream COMMAND export_stream_test)
 
+# ----------------------------------------------------------------------------
+# P3-STREAM-01：生产 export 子块流式门（ASTROCS_DESIGN §8.3 export 行 +
+# SCHEDULER_CONTRACT §2）。判据：① 生产链确实引用 ExportStreamScheduler
+# （writer 节点 manifest 自报 scheduler + whole_frame_fault=false；resample2/
+# verify 自报 sub_block_streaming）；② 峰值 RSS 随 sub_block_px 变化；
+# ③ 峰值 RSS 与 W×H 无关；④ 阳性对照（ASTROCS_P3_EXPORT_FAULT=
+# whole_frame_resident 整幅驻留 ⇒ 同度量必须判红）；⑤ 流式与整幅参考路径
+# FITS 产物逐字节相同。峰值 RSS = 内核记账 VmHWM（clear_refs 归零后读取），
+# 非采样、非声明值；每配置在独立子进程内测量。
+# 不启动任何产品可执行文件（仅经 ModuleRegistry 调节点）。
+# ----------------------------------------------------------------------------
+add_executable(p3_export_stream_prod_test p3_export_stream_prod_test.cpp)
+target_include_directories(p3_export_stream_prod_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//phase1_session/tests/p1sess
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//phase3_session
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/aio/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//algorithms/shared/healpix)
+target_link_libraries(p3_export_stream_prod_test PRIVATE astrocs_module_adapters astrocs_core astrocs_phase3_session)
+target_compile_definitions(p3_export_stream_prod_test PRIVATE
+  P3STREAM_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/P3-STREAM-01/evidence")
+add_test(NAME p3_export_stream_prod COMMAND p3_export_stream_prod_test)
+set_tests_properties(p3_export_stream_prod PROPERTIES TIMEOUT 900)
+
 add_executable(block_flow_test block_flow_test.cpp)
 target_include_directories(block_flow_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_link_libraries(block_flow_test PRIVATE astrocs_core)
@@ -63,6 +89,16 @@ add_executable(core_scheduler_test core_scheduler_test.cpp)
 target_include_directories(core_scheduler_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_link_libraries(core_scheduler_test PRIVATE astrocs_core)
 add_test(NAME core_scheduler COMMAND core_scheduler_test)
+
+# MEM-WIRE-01: 内存静态预算与回压的**生产路径**判据（ARCH-AUDIT-01 B-3 =
+# ARCH-AUDIT-02 F-04；docs/KNOWN_LIMITATIONS.md 条目 30）。
+# 判据含两条负例（预算传 0 / 估算硬写 0 ⇒ 必须判红），见 mem_wire_test.cpp 头注释。
+add_executable(mem_wire_test mem_wire_test.cpp)
+target_include_directories(mem_wire_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/third_party)
+target_link_libraries(mem_wire_test PRIVATE astrocs_core)
+add_test(NAME mem_wire COMMAND mem_wire_test)
 
 add_executable(core_checkpoint_test core_checkpoint_test.cpp)
 target_include_directories(core_checkpoint_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
@@ -1019,8 +1055,14 @@ if(OpenMP_C_FOUND)
   target_link_libraries(gaia_module_manifest_bounds_test PRIVATE OpenMP::OpenMP_C)
 endif()
 target_link_libraries(gaia_module_manifest_bounds_test PRIVATE z m Threads::Threads)
+# GAIA-FAILCLOSED-01: 本测试原与 xpsd_spectrum_count_bounds 共用
+# ${GAIA_CAT_DATA}/bounds_work —— 后者会写入 7 个**故意畸形**的 *.xpsd
+# (spnone/sp0/spneg/spabc/sp344/sp100000/spgarbage)。装载 fail-closed 后,
+# 共享目录里的畸形 shard 会让 gaia_client_create_ex 正确返回 NULL（判红），
+# 而本测试的意图只是 manifest 栈缓冲边界, 不涉及装载策略。故改用独立目录
+# 消除跨测试的隐式顺序依赖。
 add_test(NAME gaia_module_manifest_bounds
-  COMMAND gaia_module_manifest_bounds_test ${GAIA_CAT_DATA}/bounds_work)
+  COMMAND gaia_module_manifest_bounds_test ${GAIA_CAT_DATA}/manifest_bounds_work)
 
 add_executable(xpsd_spectrum_count_bounds_test xpsd_spectrum_count_bounds_test.c)
 target_include_directories(xpsd_spectrum_count_bounds_test PRIVATE
@@ -1048,6 +1090,27 @@ endif()
 target_link_libraries(gaia_magnitude_range_bounds_test PRIVATE z m Threads::Threads)
 add_test(NAME gaia_magnitude_range_bounds
   COMMAND gaia_magnitude_range_bounds_test ${GAIA_CAT_DATA}/magrange_bounds_work)
+
+# GAIA-FAILCLOSED-01 (P0): G-1 shard 覆盖门 —— 静默部分装载 → fail-closed
+#   判据: create 成功 ∧ file_count > 0 ∧ file_load_fail_count == 0
+#         ∧ file_count == 目录内 *.xpsd 条目数（**只断言 file_count>0 不够**:
+#         本缺陷下 file_count=2 却仍不可用, 见 run/WCS-DETERMINISM-01/REPORT.md）。
+#   正例: 2 个星等区间不相交的 shard ⇒ 必须都出现在查询结果里（非退化）;
+#   负例: 损坏/魔数错误 shard ⇒ create 必须 NULL（fail-closed）; 空目录 ⇒ 判红。
+#   带 --self-test: 纯判据自检（合成快照, 能红能绿, 且识别修复前缺陷签名）。
+#   基线红例: 以 -DGAIA_G1_BASELINE 编译到改前 gaia_client.c 时负例必红
+#   （证据见 run/GAIA-FAILCLOSED-01/REPORT.md §3）。
+add_executable(gaia_shard_coverage_gate_test gaia_shard_coverage_gate_test.c)
+target_include_directories(gaia_shard_coverage_gate_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib//infrastructure/gaia_xpsd_client/src)
+if(OpenMP_C_FOUND)
+  target_link_libraries(gaia_shard_coverage_gate_test PRIVATE OpenMP::OpenMP_C)
+endif()
+target_link_libraries(gaia_shard_coverage_gate_test PRIVATE z m Threads::Threads)
+add_test(NAME gaia_shard_coverage
+  COMMAND gaia_shard_coverage_gate_test ${GAIA_CAT_DATA}/shard_coverage_work)
+add_test(NAME gaia_shard_coverage_self_test
+  COMMAND gaia_shard_coverage_gate_test ${GAIA_CAT_DATA}/shard_coverage_selftest_work --self-test)
 
 # ----------------------------------------------------------------------------
 # P1-DRZ-IMPL (SA-P1D-I): drizzle 模块适配器测试 — astrocs_p1_drizzle DLL

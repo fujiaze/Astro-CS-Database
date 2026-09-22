@@ -138,7 +138,7 @@ def main():
     seen_tokens = set()
     # Scan docs/**/*.md excluding archive/history
     # Only authoritative docs per 05 L1 classification
-    auth_dirs = ["science","algorithms","architecture","contracts","modules"]
+    auth_dirs = ["science","algorithms","architecture","contracts","modules","design"]
     docs = []
     for d in auth_dirs:
         docs.extend([p for p in (repo / "docs" / d).rglob("*.md") if "archive" not in str(p)])

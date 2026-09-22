@@ -99,10 +99,10 @@ LEDGER_MAX = 104  # 冻结上限（只减不增；增加须显式评审并同步
 # 现行控制包（ENGINEERING_SPEC §7：工程控制/ = 控制包工作区，收口后按
 # CONTROL_PACK_SPEC §9 清理）。本目录以外的 工程控制/** 一律视为旧包残留。
 CURRENT_CONTROL_PACK = "工程控制/RELEASE-05"
-# 已收口归档包白名单（RELEASE-05 开工时 RELEASE-04 尚未按 §9 出库；负责人裁决前
-# 不删除其 ACCEPTANCE 台账）。**白名单条目必须自带 SUMMARY.md**（收口证明），
-# 缺 SUMMARY.md 的条目仍判红；未登记的 工程控制/** 一律判红（本门保持有牙）。
-ARCHIVED_CONTROL_PACKS = ("工程控制/RELEASE-04",)
+# 已收口归档包白名单（默认空：RELEASE-04 已按 §9 出库、整树删除，白名单无对象）。
+# 新增白名单条目必须自带 SUMMARY.md（收口证明），缺 SUMMARY.md 的条目仍判红；
+# 未登记的 工程控制/** 一律判红（本门保持有牙）。
+ARCHIVED_CONTROL_PACKS = ()
 
 # 扫描面排除（各自有据，不是"看不见"）：
 #   * memory.md —— history/日志命名空间驻留点（GOV-003 §2/§4 只警告不硬判）

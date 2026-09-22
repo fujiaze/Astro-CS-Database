@@ -657,11 +657,23 @@ static int mode_negative(const char *dir, const char *work) {
         fclose(in);
         memcpy(buf, "XPSD0000", 8);
         t_write_file(dst, buf, len);
+        /* FAILCLOSED-01 合同变更（原断言: "坏魔数文件被加载 ... 应静默跳过"）:
+         * 静默跳过 = 参考星表静默少一片 shard —— 正是本任务根因缺陷类
+         * （run/WCS-DETERMINISM-01/REPORT.md §1.2）。现合同: 目录内任一
+         * *.xpsd 装载失败 ⇒ create 返回 NULL + 可见原因 + 诊断计数。 */
         GaiaClient *c = gaia_client_create(w);
-        CHECK(c != NULL && gaia_client_get_file_count(c) == 0,
-              "坏魔数文件被加载 file_count=%d（应静默跳过）",
-              c ? gaia_client_get_file_count(c) : -1);
+        CHECK(c == NULL, "坏魔数文件未 fail-closed（create=%p file_count=%d）",
+              (void *)c, c ? gaia_client_get_file_count(c) : -1);
         gaia_client_destroy(c);
+        {
+            GaiaCreateDiagnostics d;
+            memset(&d, 0, sizeof(d));
+            int drc = gaia_client_get_last_create_diagnostics(&d);
+            CHECK(drc == 0 && d.entry_count == 1 && d.fail_count == 1 &&
+                  d.first_failed_reason[0] != '\0',
+                  "坏魔数诊断 rc=%d entry=%d failed=%d reason=%s",
+                  drc, d.entry_count, d.fail_count, d.first_failed_reason);
+        }
         remove(dst);
     }
 
@@ -683,10 +695,12 @@ static int mode_negative(const char *dir, const char *work) {
             snprintf(w, sizeof(w), "%s/trunc", work);
             t_mkdir_p(w);
             snprintf(dst, sizeof(dst), "%s/x.xpsd", w);
-            t_write_file(dst, buf, 8);           /* 仅魔数 */
+            t_write_file(dst, buf, 8);           /* 仅魔数（尺寸 < 16 ⇒ 非 XPSD） */
+            /* FAILCLOSED-01 合同变更: 8 字节垃圾/头截断的 *.xpsd 属"装载失败",
+             * 修复前被静默跳过（create 非 NULL、file_count=0），现必须 fail-closed。 */
             GaiaClient *c = gaia_client_create(w);
-            CHECK(c != NULL && gaia_client_get_file_count(c) == 0,
-                  "%s 头截断被加载", cases[cs]);
+            CHECK(c == NULL, "%s 头截断未 fail-closed（create=%p file_count=%d）",
+                  cases[cs], (void *)c, c ? gaia_client_get_file_count(c) : -1);
             gaia_client_destroy(c);
 
             t_write_file(dst, buf, (size_t)flen / 2);  /* 中部截断 */
@@ -733,8 +747,11 @@ static int mode_negative(const char *dir, const char *work) {
             int n = -1;
             int rc = gaia_client_cone_search(c, Q_CORE.ra, Q_CORE.dec, 2.5, 10.0, 20.0,
                                              &res, &n);
-            CHECK(rc == 0, "badcomp 查询 rc=%d（应容错为空）", rc);
-            CHECK(n == 0, "badcomp n=%d（坏标签块应不可解码）", n);
+            /* FAILCLOSED-01 合同变更（原断言: rc==0 "应容错为空"）: 坏压缩标签 ⇒
+             * 叶块解码失败 ⇒ 整叶星被丢弃。修复前静默跳过该叶（返回"看起来正常"
+             * 的更短星表），现查询 fail-closed（rc=-1 且输出为空）。 */
+            CHECK(rc == -1, "badcomp 查询 rc=%d（坏块必须 fail-closed, 非静默空结果）", rc);
+            CHECK(n == 0, "badcomp n=%d（fail-closed 时输出必须为空）", n);
             t_free_results(res);
             gaia_client_destroy(c);
         }

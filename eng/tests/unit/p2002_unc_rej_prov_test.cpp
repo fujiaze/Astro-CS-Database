@@ -1751,7 +1751,7 @@ static void test_f_unc_003_no_plane_drift() {
       }
       CHECK(c.contains("provenance_keys"));
       if (c.contains("provenance_keys")) {
-        // FIX-201 / §9.73 A44 收窄锁: 只锁四键 (帧级 SNR 与稀疏相对 SNR 比值
+        // FIX-201 / §9.73 A44 收窄锁: 只锁四键 (帧级 SNR 与稀疏控制点上的绝对 SNR
         // 之外无 provenance 面)。原断言把已作废的「权重模式」键当契约
         // (与 ASTROCS_DESIGN §2.1「全程只有 SNR」相反) —— 该键名不再出现在
         // 断言里, 也不得由任何人重新引入。

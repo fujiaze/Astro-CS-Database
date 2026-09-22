@@ -396,7 +396,7 @@ static void test_w6_available(double ra, double dec) {
   CHECK_MSG(hi.extname[4] == "IVAR", "HDU4 EXTNAME must be IVAR");
   CHECK_MSG(hi.bunit[3] == "ADU^2", "VARIANCE BUNIT must be <BUNIT>^2");
   // FIX-402: ivar BUNIT 用冻结单位表 canonical 串（1/variance = ADU^-2;
-  // docs/contracts/v6/data/01_units_and_bunit.md §1 flux 行）, 不再写 "1/(ADU^2)"。
+  // docs/contracts/DATA_SEMANTICS.md §31.1 §1 flux 行）, 不再写 "1/(ADU^2)"。
   CHECK_MSG(hi.bunit[4] == "ADU^-2", "IVAR BUNIT must be (signal BUNIT)^-2");
   // DATASUM 逐 HDU (COVERAGE 模式同构)
   {

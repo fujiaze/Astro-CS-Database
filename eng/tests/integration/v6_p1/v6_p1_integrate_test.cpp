@@ -259,11 +259,12 @@ static bool run_positive(const fs::path& work) {
     CHECK(v.pixel_area_power == -2, "pixel area power -2");
     CHECK(v.w_info > 0.0 && v.q > 0.0 && v.flux > 0.0, "W_info/Q/flux positive");
     CHECK_NEAR(v.flux_variance * v.w_info, 1.0, 1e-9, "Var(F_hat)=1/W_info");
-    CHECK(v.weight_kind == "psfsw_robust_weight", "canonical weight.kind");
-    CHECK(v.weight_units == "1", "canonical weight.units");
-    CHECK(v.group_normalized == true, "group_normalized true (contract)");
-    CHECK(v.norm_scope == "group", "normalization.scope=group");
-    CHECK_NEAR(v.norm_median_target, 1.0, 1e-12, "median_target=1");
+    /* PSFSW-RETIRE-03 产品合同收口：新写出的产品**不再声明**退役对象
+     * psfsw_robust_weight ⇒ 这些字段必须为空/零（不是"接受依据"，只是判定/登记面）。
+     * 旧产品路径（仍携带退役声明）见下方 legacy 块。 */
+    CHECK(!v.retired_weight_object_declared, "new product carries no retired declaration");
+    CHECK(v.weight_kind.empty() && v.weight_units.empty(),
+          "retired weight.kind/units absent in a current product");
     CHECK(!v.has_weight_value, "single frame weight_value null (OI-01)");
     CHECK(v.valid && v.reason.empty(), "psfsw validity valid");
     CHECK(v.n_common >= 3, "n_common >= 3");
@@ -273,6 +274,43 @@ static bool run_positive(const fs::path& work) {
     CHECK(!v.target_ipix.empty(), "drizzle targets present");
     CHECK(v.science_bytes > 0, "science bytes > 0");
     CHECK(v.output_hash.size() == 64, "output hash 64 hex");
+  }
+
+  /* ── 旧产品路径（可判定的退役/迁移情形，PSFSW-RETIRE-03）────────────────
+   * 把退役对象声明原样放回一份产品记录 ⇒ 重开门必须**仍能识别**（不结构报错、更不
+   * 静默接受）：置 view.retired_weight_object_declared + 登记 FZ-MODE-RETIRED 违规。
+   * 能红能绿：去掉 open_phase1_product (6a) 的退役登记，本块即转红。 */
+  {
+    const fs::path legacy_dir = dir / "legacy.p1";
+    rm_rf(legacy_dir);
+    fs::create_directories(legacy_dir);
+    json j = load_json(pa / "phase1_product.json");
+    j["units"]["psfsw_robust_weight"] = "1";
+    j["psfsw"]["weight_mode"] = "psfsw_robust";
+    j["psfsw"]["weight"] = {{"kind", "psfsw_robust_weight"},
+                            {"units", "1"},
+                            {"group_normalized", true},
+                            {"normalization",
+                             {{"scope", "group"},
+                              {"median_target", 1.0},
+                              {"constants_version", "psfsw-composite-v1"}}},
+                            {"weight_value", nullptr}};
+    save_json(legacy_dir / "phase1_product.json", j);
+    fs::copy_file(pa / "science.fits", legacy_dir / "science.fits",
+                  fs::copy_options::overwrite_existing);
+    const Phase1OpenResult rl = open_phase1_product(legacy_dir.string());
+    CHECK(rl.ok, ("legacy product must still open (identified, not a structural "
+                  "error): " + rl.error).c_str());
+    CHECK(rl.view.retired_weight_object_declared,
+          "legacy retired declaration recognized (retired_weight_object_declared)");
+    CHECK(rl.view.retired_weight_object == "psfsw_robust_weight",
+          "legacy retired object named");
+    bool cited = false;
+    for (const auto& v : rl.violations)
+      if (v.find("FZ-MODE-RETIRED") != std::string::npos) cited = true;
+    CHECK(cited, "legacy retired declaration logged as FZ-MODE-RETIRED violation");
+    CHECK(rl.view.weight_kind == "psfsw_robust_weight",
+          "legacy weight.kind still decidable (retirement case)");
   }
 
   /* 未归一 wt 是 scale-degenerate；两帧应不同（证明来自真实四分量）。 */
@@ -313,7 +351,7 @@ static bool run_positive(const fs::path& work) {
   return true;
 }
 
-/* ── group（Phase2 消费面） ── */
+/* ── group（Phase2 消费面）：FZ-MODE-RETIRED 负例 ── */
 static bool run_group(const fs::path& work) {
   const fs::path pos = work / "positive";
   const fs::path dir = work / "group";
@@ -322,23 +360,32 @@ static bool run_group(const fs::path& work) {
 
   const std::vector<std::string> dirs = {(pos / "frame_a.p1").string(),
                                          (pos / "frame_b.p1").string()};
+  /* FZ-MODE-RETIRED（PSFSW-RETIRE-03 产品合同收口后）：Phase1 单帧产品**不再需要**
+   * 声明退役对象 psfsw_robust_weight（该对象已退役：ASTROCS_DESIGN.md §3.1；
+   * UNIFIED_MODEL.md:58），而本消费面的唯一产物就是该对象的组内归一权重 w_psfsw
+   * ⇒ 消费面**整体退役、无条件 fail-closed**（显式拒绝 + 迁移提示），不得静默产出
+   * w_psfsw。旧产品仍携带声明时，其登记见 positive 组的 legacy 块。
+   * 能红能绿：让消费面放行（无论 fixture 产品是否声明该对象），本用例即转红。 */
   const Phase1GroupConsumption g = consume_phase1_group_for_psfsw(dirs);
-  CHECK(g.ok, g.error.c_str());
-  CHECK(g.n_frames == 2, "two frames consumed from disk");
-  CHECK(g.w_psfsw.size() == 2, "two group weights");
-  CHECK(g.record_ok, "group record ok");
-  const double med = 0.5 * (g.w_psfsw[0] + g.w_psfsw[1]); /* n=2 median */
-  CHECK_NEAR(med, 1.0, 1e-9, "group median(w_psfsw)=1");
-  CHECK(g.w_psfsw[0] > 0.0 && g.w_psfsw[1] > 0.0, "group weights positive");
+  CHECK(!g.ok, "retired psfsw weight declaration rejected (FZ-MODE-RETIRED)");
+  CHECK(g.error.find("FZ-MODE-RETIRED") != std::string::npos,
+        "group reject error cites FZ-MODE-RETIRED");
+  CHECK(g.error.find("psfsw_robust_weight") != std::string::npos,
+        "group reject error names the retired object");
+  CHECK(g.error.find("point_information") != std::string::npos &&
+            g.error.find("surface_gls") != std::string::npos,
+        "group reject error states the allowed weight objects");
+  CHECK(g.error.find("migration") != std::string::npos,
+        "group reject error carries a migration hint");
+  CHECK(g.w_psfsw.empty() && !g.record_ok,
+        "no group weights produced for a retired object (fail-closed)");
 
   json out;
-  out["n_frames"] = g.n_frames;
-  out["wt_unnormalized"] = g.wt_unnormalized;
-  out["w_psfsw"] = g.w_psfsw;
-  out["median_wt"] = g.median_wt;
+  out["retired_rejected"] = !g.ok;
+  out["error"] = g.error;
   save_json(dir / "group_result.json", out);
-  std::printf("  GROUP PASS checks=%d w=[%.12g, %.12g]\n", g_checks, g.w_psfsw[0],
-              g.w_psfsw[1]);
+  std::printf("  GROUP PASS checks=%d (retired psfsw weight declaration rejected)\n",
+              g_checks);
   return true;
 }
 

@@ -1,0 +1,21 @@
+// 自动生成 —— 请勿手改。
+// 唯一数值源: eng/packaging/config/runtime_resources.json
+// （与 G-RES-01 的 resource_gate_thresholds_generated.h 同款机制：
+//   实现侧不得再出现字面量阈值。）
+// 依据: 负责人裁决 2026-09-22（内存最高吃掉空闲的 95% 避免卡死；
+//       该参数配置在 config 里可调，默认 95）+ ASTROCS_DESIGN.md §8.3/§9 +
+//       docs/contracts/SCHEDULER_CONTRACT.md §3。
+#pragma once
+
+#include <cstdint>
+
+namespace astrocs::runtime_resources {
+
+// 内存预算上限 = 当前可用内存 × kMemoryBudgetPercentDefault / 100。
+inline constexpr std::uint32_t kMemoryBudgetPercentDefault = @ASTROCS_RR_MEMORY_BUDGET_PERCENT@;
+
+// 合法区间（合同键约束：整数 1..100）。
+inline constexpr std::uint32_t kMemoryBudgetPercentMin = 1;
+inline constexpr std::uint32_t kMemoryBudgetPercentMax = 100;
+
+}  // namespace astrocs::runtime_resources

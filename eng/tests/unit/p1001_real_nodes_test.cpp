@@ -27,16 +27,19 @@
 // astrocs_module_adapters PUBLIC 传递 include 与 AIO_ENABLE_HEALPIX=1)
 #include "astro_image_io.h"
 #include "astro_sphere_sink.h"  // P23: write_hips_phase1 (直写标准 HiPS) 等价夹具
+#include "aio_atomic_file.h"    // 目录枚举/路径机制经 aio (for_each_child; §10 唯一 I/O 边界)
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <cctype>    // PERF-P1 1/N 门: 运行时刻时间戳归一化
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <set>       // PERF-P1 1/N 门: 差异集合
 #include <cstring>
 #include <string>
 #include <vector>
@@ -3906,6 +3909,34 @@ static void test_p1photbroken_scale_guards() {
 // 则两次运行的产物字节比对确定性失败。cosmetic 在本夹具下为逐像素直通
 // （节点面 nullptr/nullptr 掩码源）⇒ 其产物必须与 artifact:cal 逐字节相同，
 // 使"帧序归约错位"这类缺陷同样可见。
+//
+// 递归收集 root 下全部**常规文件**（键 = 相对 root 的 POSIX 相对路径）。
+// 目录枚举经 aio 唯一机制原语（aio_atomic::for_each_child，header-only；
+// ASTROCS_DESIGN §10「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5），本 TU 不再
+// 自持 std::filesystem 遍历通道。kind: 0=常规文件 / 1=目录 / 2=其他（不跟随
+// 符号链接）。与 recursive_directory_iterator 的等价性: 常规目录照常下钻、常规
+// 文件照常采集；kind==2（符号链接/fifo/设备）不采集 —— 夹具产物树由 writer 直接
+// 落盘，不含此类项。枚举失败（目录不可打开）⇒ 该层视为空，与原实现 ec 置位后
+// 停止迭代同效。
+static void p1par_collect_tree(const std::string& root, const std::string& rel,
+                               std::map<std::string, std::string>* out) {
+  (void)aio_atomic::for_each_child(
+      root,
+      [&](const std::string& child, int kind) -> int {
+        const std::size_t slash = child.find_last_of("/\\");
+        const std::string name =
+            (slash == std::string::npos) ? child : child.substr(slash + 1);
+        const std::string child_rel = rel.empty() ? name : (rel + "/" + name);
+        if (kind == 1) {
+          p1par_collect_tree(child, child_rel, out);
+        } else if (kind == 0) {
+          (*out)[child_rel] = read_bytes(child);
+        }
+        return 0;
+      },
+      nullptr);
+}
+
 static std::map<std::string, std::string> p1par_run_chain(const char* tag,
                                                           uint32_t budget) {
   Fixture fx = make_hot_fixture(tag);
@@ -3920,36 +3951,119 @@ static std::map<std::string, std::string> p1par_run_chain(const char* tag,
   CHECK_MSG(man_cal.value("status", "") == "ok", "calibration node must succeed");
   json man_cos = run_node(reg, "astrocs.phase1.cosmetic", cfg, ctx);
   CHECK_MSG(man_cos.value("status", "") == "ok", "cosmetic node must succeed");
-  // 收集 out_dir 下全部产物字节（帧序由文件名字典序固定，与 worker 数无关）
+  // PERF-P1 覆盖扩展: 帧级并行已接线的其余节点全部纳入同一条链
+  // （star-psf / photometry / noise-snr / drizzle / writer）。逐节点直调 = 各节点
+  // 真实 execute 路径（含 lease ⇒ __workers 注入），帧级并行即在此发生；节点 status
+  // 必须为 ok，否则"两边都失败"会让字节比对假绿。
+  json man_psf = run_node(reg, "astrocs.phase1.star-psf", cfg, ctx);
+  CHECK_MSG(man_psf.value("status", "") == "ok", "star-psf node must succeed");
+  json man_phot = run_node(reg, "astrocs.phase1.photometry", cfg, ctx);
+  CHECK_MSG(man_phot.value("status", "") == "ok", "photometry node must succeed");
+  json man_snr = run_node(reg, "astrocs.phase1.noise-snr", cfg, ctx);
+  CHECK_MSG(man_snr.value("status", "") == "ok", "noise-snr node must succeed");
+  json man_drz = run_node(reg, "astrocs.phase1.drizzle", cfg, ctx);
+  CHECK_MSG(man_drz.value("status", "") == "ok", "drizzle node must succeed");
+  json man_wr = run_node(reg, "astrocs.phase1.writer", cfg, ctx);
+  CHECK_MSG(man_wr.value("status", "") == "ok", "writer node must succeed");
+  // 收集 out_dir 下全部产物字节（**递归**含 HiPS 产品子目录; 相对路径为键，
+  // 字典序固定 ⇒ 与 worker 数无关）。枚举经 aio（p1par_collect_tree）。
   std::map<std::string, std::string> got;
-  std::error_code ec;
-  for (const auto& ent : fs::directory_iterator(fx.out_dir, ec)) {
-    if (!ent.is_regular_file()) continue;
-    const std::string name = ent.path().filename().string();
-    got[name] = read_bytes(ent.path().string());
-  }
+  p1par_collect_tree(fx.out_dir, std::string(), &got);
   cleanup_fixture(fx);
   return got;
 }
 
+// ── PERF-P1: 运行时刻遥测归一化 ───────────────────────────────────────────
+// IVOA HiPS properties 的 hips_release_date / hips_creation_date 由
+// aio_hips_writer.cpp:1396-1399 的 std::time(nullptr) 生成（"META-001: 真实 UTC
+// finalize 时间, 禁止硬编码日期"），并随 p1_final.json / p1_products.json 的
+// "properties" 字段进入产品清单 ⇒ 它们是**运行时刻遥测**，既不是科学面，也不是
+// worker 数的函数。逐位门先做未归一化比对，再对差异集合做归一化复核，并用
+// "串行跑两次"把运行时刻差异与 worker 数差异**分离开**（见 ③）。
+static bool p1par_digits(const std::string& s, std::size_t i, std::size_t n) {
+  if (i + n > s.size()) return false;
+  for (std::size_t k = 0; k < n; ++k)
+    if (!std::isdigit(static_cast<unsigned char>(s[i + k]))) return false;
+  return true;
+}
+static std::string p1par_normalize_run_timestamps(const std::string& s) {
+  std::string out;
+  out.reserve(s.size());
+  std::size_t i = 0;
+  while (i < s.size()) {
+    const bool is_ts =
+        (i + 20 <= s.size() && p1par_digits(s, i, 4) && s[i + 4] == '-' &&
+         p1par_digits(s, i + 5, 2) && s[i + 7] == '-' && p1par_digits(s, i + 8, 2) &&
+         s[i + 10] == 'T' && p1par_digits(s, i + 11, 2) && s[i + 13] == ':' &&
+         p1par_digits(s, i + 14, 2) && s[i + 16] == ':' && p1par_digits(s, i + 17, 2) &&
+         s[i + 19] == 'Z');
+    const bool is_date =
+        (i + 10 <= s.size() && p1par_digits(s, i, 4) && s[i + 4] == '-' &&
+         p1par_digits(s, i + 5, 2) && s[i + 7] == '-' && p1par_digits(s, i + 8, 2));
+    if (is_ts) { out += "<RUN-TS>"; i += 20; continue; }
+    if (is_date) { out += "<RUN-DATE>"; i += 10; continue; }
+    out.push_back(s[i]);
+    ++i;
+  }
+  return out;
+}
+// 两个产物集合的**未归一化**差异集合（含仅一侧存在的产物）。
+static std::set<std::string> p1par_diff_set(
+    const std::map<std::string, std::string>& a,
+    const std::map<std::string, std::string>& b) {
+  std::set<std::string> d;
+  for (const auto& kv : a) {
+    auto it = b.find(kv.first);
+    if (it == b.end() || it->second != kv.second) d.insert(kv.first);
+  }
+  for (const auto& kv : b)
+    if (a.find(kv.first) == a.end()) d.insert(kv.first);
+  return d;
+}
+
 static void test_perf_p1_frame_parallel_bitwise_1_vs_n() {
   const uint32_t kN = 16;   // 与 p2_parallel_for 的 1/N 一致性同口径
-  const std::map<std::string, std::string> serial = p1par_run_chain("par_w1", 1);
-  const std::map<std::string, std::string> par = p1par_run_chain("par_wN", kN);
+  // 三次运行共用**同一 fixture tag** ⇒ 产物内的绝对路径逐字相同，唯一可能的差异
+  // 只剩运行时刻遥测。串行跑两次（serial / serial2）即可把"运行时刻差异"与
+  // "worker 数差异"分离开。
+  const std::map<std::string, std::string> serial = p1par_run_chain("par", 1);
+  const std::map<std::string, std::string> serial2 = p1par_run_chain("par", 1);
+  const std::map<std::string, std::string> par = p1par_run_chain("par", kN);
   // ① 产物集合相同（帧级并行不得漏写/多写任何一帧的产物）
   CHECK_MSG(serial.size() == par.size(),
             "1-worker and N-worker runs must publish the same artifact set");
   CHECK_MSG(!serial.empty(), "fixture must produce at least one artifact");
-  // ② 逐产物逐字节相同（帧序归约冻结 + 无跨帧浮点归约 ⇒ 逐位一致）
+  // ② 逐产物比对：未归一化逐字节相同；若不同，则**归一化后**必须逐字节相同
+  //    （结构性差异仍必须可见）。
+  const std::set<std::string> d_sp = p1par_diff_set(serial, par);
   for (const auto& kv : serial) {
     auto it = par.find(kv.first);
     CHECK_MSG(it != par.end(),
               ("N-worker run missing artifact: " + kv.first).c_str());
     if (it == par.end()) continue;
-    CHECK_MSG(it->second == kv.second,
-              ("artifact bytes differ between 1 and N workers: " + kv.first).c_str());
+    if (it->second == kv.second) continue;
+    CHECK_MSG(p1par_normalize_run_timestamps(it->second) ==
+                  p1par_normalize_run_timestamps(kv.second),
+              ("artifact bytes differ between 1 and N workers (even after "
+               "run-timestamp normalisation): " + kv.first).c_str());
   }
-  // ③ 判别力自证: 若把某帧产物改成不同字节，比对必须能红（此处以"篡改副本"模拟）
+  // ③ 关键判别性自证: 差异集合必须**只由运行时刻决定，与 worker 数无关** ——
+  //    serial vs serial2 的差异集合必须与 serial vs par 的差异集合相同。
+  //    若某产物真是被并行改动，它会只出现在 d_sp 而不在 d_ss ⇒ 本断言判红。
+  const std::set<std::string> d_ss = p1par_diff_set(serial, serial2);
+  CHECK_MSG(d_ss == d_sp,
+            "run-to-run (1 vs 1 worker) artifact diff set must equal the "
+            "1-vs-N diff set: a worker-count-dependent artifact would appear "
+            "only in the latter");
+  // ④ 归一化非空操作自证: 串行两次的差异产物归一化后必须逐字节相同。
+  for (const auto& name : d_ss) {
+    const std::string a = p1par_normalize_run_timestamps(serial.at(name));
+    const std::string b = p1par_normalize_run_timestamps(serial2.at(name));
+    CHECK_MSG(a == b,
+              ("run-timestamp normalisation must explain the run-to-run diff: " +
+               name).c_str());
+  }
+  // ⑤ 判别力自证: 若把某产物改成不同字节，比对必须能红（此处以"篡改副本"模拟）
   if (!serial.empty()) {
     std::map<std::string, std::string> tampered = par;
     auto first = tampered.begin();

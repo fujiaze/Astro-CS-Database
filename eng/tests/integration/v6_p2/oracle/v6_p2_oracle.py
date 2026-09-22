@@ -5,7 +5,8 @@
   * point_information 独立帧合并 Q=ΣQ_k, W=ΣW_info_k, F=Q/W, Var=1/W
   * point_information 相关帧联合 GLS W=A^T C^-1 A, Q=A^T C^-1 d
   * surface_gls  x_hat=(A^T C^-1 A)^-1 A^T C^-1 d; Cov=(A^T C^-1 A)^-1
-  * psfsw_robust conventional coadd alpha_k=W_k v_k/Σ; C_out=alpha^T C alpha
+  * psfsw_robust 已退役（FZ-MODE-RETIRED）：本 Oracle 只断言"声明它必须被显式拒绝 +
+    迁移提示"，不再复算其 conventional coadd / C_out
 并做结构门：output_hash=磁盘实际 sha256、BUNIT 二次律、provenance 最小集、
 权重面禁诊断来源、P33 撤销、effective PSF 必输与归一约定、non-vacuity 注入必红。
 """
@@ -161,9 +162,10 @@ def check_product(prod_dir, results):
     for k in PROV_MIN:
         if k not in rec["provenance"]:
             errs.append("provenance missing key: " + k)
-    # 4) 模式门
-    if rec["weight_mode"] not in ("point_information", "surface_gls", "psfsw_robust"):
-        errs.append("weight_mode not production")
+    # 4) 模式门（FZ-MODE-PRODUCTION）：allowed = point_information | surface_gls
+    if rec["weight_mode"] not in ("point_information", "surface_gls"):
+        errs.append("weight_mode not in production set (FZ-MODE-PRODUCTION): "
+                    + str(rec["weight_mode"]))
     # 5) BUNIT 二次律 + 各 HDU
     hdus = load_fits(fits_path)
     b_sig = hdus.get("", {}).get("bunit", "")
@@ -208,18 +210,17 @@ def check_product(prod_dir, results):
         for s in rec["weight_mode_record"]["weight"]["sources"]:
             if s in FORBIDDEN_SOURCES:
                 errs.append("diagnostic token in weight.sources: " + s)
+    # FZ-MODE-RETIRED：退役对象 psfsw_robust_weight 不是现行对象（ASTROCS_DESIGN.md
+    # §3.1；UNIFIED_MODEL.md:58）⇒ 产品声明它即判红（显式拒绝 + 迁移提示，不得静默接受）。
+    # 该分支同时保留历史词表禁区判定：退役产品也不得夹带 ivar/variance 冒充。
     if rec["weight_mode"] == "psfsw_robust":
-        if rec["psfsw"]["weight"]["kind"] != "psfsw_robust_weight":
-            errs.append("psfsw weight.kind")
-        if rec["psfsw"]["weight"]["units"] != "1":
-            errs.append("psfsw weight.units != 1")
-        if rec["psfsw"]["weight"]["group_normalized"] is not True:
-            errs.append("psfsw group_normalized != true")
+        errs.append("FZ-MODE-RETIRED: retired weight_mode 'psfsw_robust' present "
+                    "(psfsw_robust_weight is not a current object; allowed weight "
+                    "objects: point_information|surface_gls)")
+        ps = rec.get("psfsw", {})
         for k in FORBIDDEN_PSFSW_KEYS:
-            if k in rec["psfsw"]:
-                errs.append("psfsw forbidden key: " + k)
-        if rec["psfsw"]["components"]["concentration"]["units"] != "ADU/px^2":
-            errs.append("concentration units != ADU/px^2")
+            if k in ps:
+                errs.append("retired psfsw product carries forbidden key: " + k)
     return errs, rec
 
 
@@ -295,21 +296,6 @@ def recompute_surface(rs):
     return errs
 
 
-def recompute_psfsw(rp):
-    w = np.asarray(rp["w_psfsw"], dtype=float)
-    C = np.asarray(rp["c_in"], dtype=float).reshape(w.size, w.size)
-    alpha = w / w.sum()
-    var = float(alpha @ C @ alpha)
-    errs = []
-    if abs(float(np.asarray(rp["var_out"][0])) - var) / var > 1e-9:
-        errs.append("psfsw C_out mismatch")
-    if abs(w.sum() / w.size - 1.0) > 1e-9:
-        pass  # 组内 median=1 由测试断言
-    if abs(np.asarray(rp["alpha"]).sum() - 1.0) > 1e-9:
-        errs.append("psfsw alpha sum != 1")
-    return errs
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--workdir", required=True)
@@ -323,8 +309,9 @@ def main():
     with open(results_path) as f:
         results = json.load(f)
 
-    # 结构/重开门（point / surface / psfsw）
-    for key in ("point", "point_joint", "surface", "psfsw"):
+    # 结构/重开门（point / surface）。psfsw_robust 已按负责人裁决退役（FZ-MODE-RETIRED），
+    # 不再有产品块：其证据改为"必须被显式拒绝"的负例（见下方 psfsw_retired）。
+    for key in ("point", "point_joint", "surface"):
         if key not in results:
             check(False, "missing results block: " + key)
             continue
@@ -368,11 +355,17 @@ def main():
         for e in errs:
             check(False, e)
         check(not errs, "surface GLS independent recompute")
-    if "psfsw" in results:
-        errs = recompute_psfsw(results["psfsw"])
-        for e in errs:
-            check(False, e)
-        check(not errs, "psfsw conventional coadd/C_out independent recompute")
+    # FZ-MODE-RETIRED：退役对象 psfsw_robust 必须被显式拒绝（不静默接受、不产出产品），
+    # 且拒绝理由可诊断：被拒对象 + 允许的权重对象 + 迁移提示。
+    check("psfsw_retired" in results, "psfsw_retired negative evidence present")
+    if "psfsw_retired" in results:
+        rej = results["psfsw_retired"]
+        check(rej.get("rejected") is True,
+              "retired psfsw_robust rejected (no product written)")
+        msg = rej.get("error", "")
+        for tok in ("FZ-MODE-RETIRED", "psfsw_robust_weight", "point_information",
+                    "surface_gls", "migration"):
+            check(tok in msg, "retired reject reason carries %r" % tok)
 
     # non-vacuity：注入 mutation 后本 Oracle 检查器必须变红
     if "point" in results:

@@ -5,7 +5,7 @@
 双向检查：
   code→contract→test：science/public 符号必须有契约 ID + 测试引用；
   contract→code→test：TRACEABILITY 行必须存在实现文件 + 测试文件。
-输出 reports/v19r2/evidence/quality/traceability_check.json。
+输出 run/ci/quality/traceability_check.json（产物落 run/，不写受跟踪路径；ENGINEERING_SPEC §7/§8）。
 """
 
 from __future__ import annotations

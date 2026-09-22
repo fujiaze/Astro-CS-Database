@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""CFG-001 测试公共工具：零依赖（只用仓库自带 eng/tests/contracts/v6/jsonschema_min.py）。"""
+"""CFG-001 测试公共工具：零依赖（只用仓库自带 eng/tests/common/jsonschema_min.py）。"""
 import hashlib
 import json
 import os
 import re
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-VALIDATOR = os.path.join(REPO, "eng", "tests", "contracts", "v6", "jsonschema_min.py")
+VALIDATOR = os.path.join(REPO, "eng", "tests", "common", "jsonschema_min.py")
 
 
 def load_validator():

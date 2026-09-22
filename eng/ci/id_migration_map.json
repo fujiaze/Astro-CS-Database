@@ -755,6 +755,15 @@
         "CTEST-MOSAIC-WINDOW"
       ]
     },
+    "CHK-MEM-WIRE-01": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "MEM-WIRE-01 内存静态预算与回压生产路径",
+      "doc": "docs/contracts/SCHEDULER_CONTRACT.md",
+      "steps": [
+        "CTEST-MEM-WIRE"
+      ]
+    },
     "CHK-ARCH504-EXPORT-STREAM": {
       "kind": "doc",
       "grade": "P0",
@@ -816,6 +825,23 @@
       "doc": "ASTROCS_DESIGN.md",
       "steps": [
         "E2E-CHAIN-SELFTEST-STEP"
+      ]
+    },
+    "CHK-DRZ-DISP009": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "DISP-DRZ-009 面亮度保持权重回归门（DRIZZLE-FIX-01）",
+      "doc": "docs/ci/01_CHECKS.md §2（DRIZZLE-FIX-01 登记）",
+      "steps": []
+    },
+    "CHK-LOG-SYS": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "日志与错误系统判据（最高设计 §7.3：错误上行 + 日志落 output_dir）",
+      "doc": "docs/ci/01_CHECKS.md §2（LOG-SYS-01 登记）",
+      "steps": [
+        "LOG-SYS-SCAN",
+        "LOG-SYS-SELFTEST"
       ]
     }
   },
@@ -1152,6 +1178,24 @@
       "grade": "P0",
       "order_in_target": 9,
       "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-GAIA-SHARD-COVERAGE",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "GAIA-FAILCLOSED-01 新增执行单元（G-1 shard 覆盖门：file_count==条目数 且 fail_count==0）"
+    },
+    {
+      "old_id": "CTEST-GAIA-SHARD-COVERAGE-SELF-TEST",
+      "decision": "MERGED-INTO",
+      "target": "CHK-INVARIANT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "GAIA-FAILCLOSED-01 新增执行单元（G-1 判据自检 --self-test，能红能绿）"
     },
     {
       "old_id": "CTEST-IPV-ABI-LAYOUT-LOCK",
@@ -2963,6 +3007,24 @@
       "note": "ARCH-502 新增执行单元"
     },
     {
+      "old_id": "LOG-SYS-SCAN",
+      "decision": "KEPT",
+      "target": "CHK-LOG-SYS",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "LOG-SYS-01 新增执行单元（日志与错误系统判据）"
+    },
+    {
+      "old_id": "LOG-SYS-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-LOG-SYS",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "LOG-SYS-01 新增执行单元（6 类故障注入必红）"
+    },
+    {
       "old_id": "CTEST-MOSAIC-WINDOW",
       "decision": "KEPT",
       "target": "CHK-ARCH503-MOSAIC-WIN",
@@ -2970,6 +3032,15 @@
       "grade": "P0",
       "order_in_target": 0,
       "note": "ARCH-503 新增执行单元"
+    },
+    {
+      "old_id": "CTEST-MEM-WIRE",
+      "decision": "KEPT",
+      "target": "CHK-MEM-WIRE-01",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "MEM-WIRE-01 新增执行单元"
     },
     {
       "old_id": "CTEST-EXPORT-STREAM",
@@ -3033,6 +3104,14 @@
       "grade": "P0",
       "order_in_target": 0,
       "note": "E2E-501 新增执行单元"
+    },
+    {
+      "old_id": "CHK-DRZ-DISP009",
+      "decision": "KEPT",
+      "target": "CHK-DRZ-DISP009",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "DRIZZLE-FIX-01（2026-09-22）新增执行单元（非本波基线，absorbed）：DISP-DRZ-009 面亮度保持权重 w_jp=a_jp/A_pixel,j 回归门；判据 = 常量面亮度 |S_p/B0-1|<1e-3（pixfrac∈(0,1]）+ \"分母取 A_drop 必判红\"负例控制；可执行负例面见 run/DRIZZLE-FIX-01/REPORT.md §⑥（真实注入红/绿 + sha256）。"
     }
   ],
   "coverage": {
@@ -3043,7 +3122,7 @@
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。",
     "absorbed_entries": [
       "CHK-SECRET-HYGIENE",
       "STD-REG",
@@ -3136,7 +3215,13 @@
       "CTEST-BLOCK-FLOW",
       "PREFLIGHT-MATRIX-STEP",
       "E2E-CHAIN-VERIFY-STEP",
-      "E2E-CHAIN-SELFTEST-STEP"
+      "E2E-CHAIN-SELFTEST-STEP",
+      "LOG-SYS-SCAN",
+      "LOG-SYS-SELFTEST",
+      "CTEST-GAIA-SHARD-COVERAGE",
+      "CTEST-GAIA-SHARD-COVERAGE-SELF-TEST",
+      "CHK-DRZ-DISP009",
+      "CTEST-MEM-WIRE"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

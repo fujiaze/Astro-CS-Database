@@ -22,7 +22,7 @@ Phase1 侧同源: light 帧用 --make-noisy（确定性噪声，校准后 σ≈1
   默认逐帧逆方差链可闭合（--make 的常量域帧 σ=0 ⇒ 整帧退化 ⇒ 默认链 fail-closed）。
 
 权重口径（ASTROCS_DESIGN §2.1 + GAP_AUDIT §9.73 裁决 A44「不存在权重模式」）:
-  HiPS 里**存**的是**帧级 SNR**（与稀疏相对 SNR 比值）; 权重是阶段二消费 SNR 时
+  HiPS 里**存**的是**帧级 SNR**（与稀疏控制点上的绝对 SNR）; 权重是阶段二消费 SNR 时
   按覆盖该像素的帧集合**现场算出的派生量**，不是配置键 ⇒ 配置面**不得**出现
   weight_mode / legacy_allow_weight_fallback（CLI 白名单已摘除，出现即 rc=3）。
   生产唯一路径 = 逐帧逆方差; 缺逐帧 ivar 时按 DATA-UNC-001 §30.1 fail-closed
@@ -201,7 +201,7 @@ class TestPhase123Pipeline(unittest.TestCase):
             "scale_deg_per_px": 0.5, "width_px": 20, "height_px": 20,
             "sampler": "bilinear", "projection": "TAN",
             "coverage_output": "mask",
-            # FZ-P3-MODES（FROZEN；docs/algorithms/v6/frozen/02_GATE_AND_MUTATION_FREEZE.md）：
+            # FZ-P3-MODES（FROZEN；docs/contracts/DATA_SEMANTICS.md §31）：
             # phase3 resample 节点要求显式声明 output_mode（缺键即 REJECT）。
             "output_mode": "surface_brightness"})
 

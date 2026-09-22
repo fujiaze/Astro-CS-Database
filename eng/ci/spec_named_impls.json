@@ -67,9 +67,9 @@
       "kind": "prod_path",
       "defect_ref": "CONFORM-SWEEP-4 P3X-06（E-09）",
       "spec": {
-        "doc": "docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md",
-        "loc": "1",
-        "quote": "本规格定义 Phase3 的**算法层**"
+        "doc": "docs/contracts/CONFIG_CONTRACT.md",
+        "loc": "90",
+        "quote": "运行期缺键即 REJECT"
       },
       "named": {
         "file": "lib/phase3_session/p3_v6_export.cpp",
@@ -83,8 +83,8 @@
       "kind": "inventory_claim",
       "defect_ref": "CONFORM-SWEEP-4 P3X-12",
       "spec": {
-        "doc": "docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md",
-        "loc": "1"
+        "doc": "docs/contracts/CONFIG_CONTRACT.md",
+        "loc": "90"
       },
       "named": {
         "file": "lib/phase3_session/p3_v6_export.cpp"

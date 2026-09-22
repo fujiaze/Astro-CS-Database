@@ -27,7 +27,13 @@ IO-002 在 IO-001（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**
    可选提示枚举叶 tile；无 MOC 时按调用方显式 NESTED ipix 定位单个 tile；
 7. 明确 **缺 tile 状态**：文件不存在 / 非法 tile / 无 properties / 空 plane 各自
    映射稳定错误码；**不做父 order 静默回退**（调用方请求 order K tile 缺失时，
-   绝不返回 order K′<K 的父 tile 内容或把低阶 hierarchy 当该 tile 交付）。
+   绝不返回 order K′<K 的父 tile 内容或把低阶 hierarchy 当该 tile 交付）；
+8. **落盘形态解析**：输入路径可以是裸 `<name>.hips/` 或归档 `<name>.hips.zst`，
+   本合同对两者给同一读语义（形态由落盘名判定，调用方不感知形态）。归档形态的
+   瓦片读取 = 按产品级索引定位表 `pread` 单帧解压；**覆盖查询不触碰归档字节**；
+   归档形态**必须**有产品级索引，缺失即 fail-closed（不回退为扫描归档或逐瓦片探测）。
+   形态合同见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`，设计见
+   `docs/design/PRODUCT_STORAGE_FORM.md`。
 
 本合同**不改科学公式**（`scientific_change=false`）；不做 tiles 解码、投影/天球坐标
 转换（科学层属于 P1/P2/P3 模块）；不做 HiPS 输出/原子发布（IO-003 范围）；
@@ -49,7 +55,7 @@ lib/infrastructure/aio/io/** eng/tests/io/** docs/interfaces/io/**`。
 
 ## 3. 输入合同（IVOA HiPS 兼容子集）
 
-IO-002 读取的 HiPS 目录是 **磁盘上已发布的 HiPS 产品**。两档入口：
+IO-002 读取的 HiPS 产品是 **磁盘上已发布的 HiPS 产品**，落盘形态为裸目录或 zstd 归档包（§1 第 8 条）。两档入口：
 
 - **子产品目录**（`aio_hips_*` 产线布局，`docs/ARCHITECTURE.md` §产品流）：
   `<out>/signal|support|variance|ivar/` —— 目录内含 `properties`、可选 `Moc.fits`、

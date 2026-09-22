@@ -11,6 +11,8 @@
 #include <cstring>
 #include <vector>
 
+#include "p3_wcs.h"   // 只读合同值（p3_wcs_applicability）; 不做任何投影计算
+
 using astrocs::phase3proj::v6::Descriptor;
 using astrocs::phase3proj::v6::Plan;
 using astrocs::phase3proj::v6::ProjectionId;
@@ -52,6 +54,20 @@ int main(int argc, char** argv) {
     const int gn = (argc > 7) ? std::atoi(argv[7]) : 5;
     const char* parity = (argc > 8) ? argv[8] : "east_left";
     const double pa = (argc > 9) ? std::atof(argv[9]) : 0.0;
+
+    // 往返容差单一事实源（GATES §3 G-P1-WCS-BRIDGE / -GLOBAL; GATE-WCS-01 裁决 7）:
+    // 判定在独立 oracle 侧, 本探针只如实打印生产注册表声明的合同值。
+    {
+        const astrocs::phase3::P3WcsApplicability* ap =
+            astrocs::phase3::p3_wcs_applicability("TAN");
+        if (ap == nullptr) {
+            std::fprintf(stderr, "no TAN applicability declaration\n");
+            return 4;
+        }
+        std::printf("CONTRACT tight=%.17g global=%.17g min_scale=%.17g c_env=%.17g\n",
+                    ap->roundtrip_tol_px, ap->roundtrip_tol_global_px,
+                    ap->min_scale_arcsec, ap->envelope_c_env);
+    }
 
     Descriptor d;
     const ProjStatus mk =

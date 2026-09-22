@@ -8,7 +8,11 @@
 //   G1 registry 完整性: 版本常量=1、恰 4 行、码/CTYPE/id/函数指针/声明域
 //      互异完备、未知码→nullptr(无 fallback)、越界 id→nullptr。
 //   G2 每投影独立往返 Oracle: 3D 单位向量第一性原理(点积/正交基, 不调
-//      生产实现), world2pix∘pix2world 往返 <1e-6 px (SCI §7 冻结)。
+//      生产实现), world2pix∘pix2world 往返 < **该投影的适用合同门**
+//      （TAN: 紧门 1e-8 px（尺度 3.6–7.2″/px ≥ min_scale 0.9″/px）；
+//        SIN/CAR/AIT: 无产品适用域声明 ⇒ 全域保守门 1e-6 px）。
+//      容差**不写第二份字面量**: 单一事实源 = p3_wcs_applicability("TAN")
+//      （GATES §3 G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL; GATE-WCS-01 裁决 7）。
 //   G3 TAN 冻结零漂移: 与 lib/algorithms/projection/p3_wcs.cpp 生产实现全网格
 //      bitwise 对拍(G1/G2 公式零改动证明)。
 //   G4 G1 CD 构造精确断言(parity/PA/crpix 四投影同构)。
@@ -67,8 +71,23 @@ bool fault_mode = false;  // ASTROCS_P3PROJ_FAULT 注入模式(必败面)
         }                                                                 \
     } while (0)
 
-constexpr double kRoundtripTolPx = 1e-6;   // SCI-P3-001 §7 冻结往返容差
 constexpr double kOracleTolDeg = 1e-9;     // 解析解比对(FP64 机器精度量级)
+
+// 往返容差**单一事实源** = p3_wcs_applicability("TAN")（不写第二份字面量）:
+//   * TAN: 合同紧门 1e-8 px。本用例 TAN 尺度 0.001–0.002 deg/px = 3.6–7.2″/px
+//     ≥ min_scale_arcsec 0.9″/px ⇒ 紧门适用; 且本文件 G3 断言 v6 TAN 内核与生产
+//     p3_wcs.cpp 全网格**逐位一致** ⇒ 合同门对该内核同样成立。
+//   * SIN/CAR/AIT: 产品声明表中无适用域（p3_wcs_applicability→nullptr, fail-closed）
+//     ⇒ 本测试面取**全域保守门** roundtrip_tol_global_px（= SCI-WCS-001 §11 STD-F1
+//     登记的 1e-6 px, 不是表外阈值, GATES §1 R1）。该值是**测试域上界**,
+//     不得引用为产品门。
+inline double roundtrip_tol_px(astrocs::phase3proj::P3ProjectionId id) {
+    const astrocs::phase3::P3WcsApplicability* ap =
+        astrocs::phase3::p3_wcs_applicability("TAN");
+    if (ap == nullptr) return 0.0;   // fail-closed: 无声明 ⇒ 断言必红
+    return (id == astrocs::phase3proj::P3ProjectionId::TAN) ? ap->roundtrip_tol_px
+                                                           : ap->roundtrip_tol_global_px;
+}
 
 // ---- 独立 oracle: 3D 单位向量第一性原理(不调任何生产函数) ------------------
 // CRVAL 处正交基: up=native 极(zenithal), east/north 张成切平面;
@@ -237,13 +256,16 @@ void test_roundtrip_and_oracle(const CaseCtx& c) {
             CHECK_MSG(dra < kOracleTolDeg && std::fabs(dec - dec_o) < kOracleTolDeg,
                       "pix2world must match independent oracle");
         }
-        // 往返(冻结 <1e-6 px)
+        // 往返(< 该投影适用合同门; 单一事实源, 见文件头 roundtrip_tol_px())
+        const double rt_tol = roundtrip_tol_px(c.id);
+        CHECK_MSG(rt_tol > 0.0, "往返容差有声明来源(fail-closed)");
         const P3ProjectionStatus st2 = p3_projection_world2pix(&d, ra, dec, &xb, &yb);
         if (st2 == P3ProjectionStatus::P3_PROJ_PARAM) { ++skip_cnt; continue; }  // |dec|>85° 冻结边界拒
         CHECK_MSG(st2 == P3ProjectionStatus::P3_PROJ_OK, "roundtrip world2pix");
         if (st2 == P3ProjectionStatus::P3_PROJ_OK) {
             const double err = std::hypot(xb - p.first, yb - p.second);
-            CHECK_MSG(err < kRoundtripTolPx, "roundtrip < 1e-6 px (SCI §7)");
+            CHECK_MSG(err < rt_tol,
+                      "roundtrip < 适用合同门 (p3_wcs_applicability 单一事实源)");
         }
         // world2pix 正向独立解析解: 3D 向量分量(+TAN 透视除法/AIT 正向原式)→CD⁻¹
         double xo = 0, yo = 0;
@@ -283,7 +305,9 @@ void test_roundtrip_and_oracle(const CaseCtx& c) {
                  d.crpix_y - 1.0;
         }
         if (have_fwd) {
-            CHECK_MSG(std::hypot(xo - p.first, yo - p.second) < kRoundtripTolPx,
+            // 正向解析解比对: 容差同往返门（单一事实源, 见 roundtrip_tol_px()）
+            CHECK_MSG(std::hypot(xo - p.first, yo - p.second) <
+                          roundtrip_tol_px(c.id),
                       "world2pix matches independent forward oracle");
         }
         ++ok_cnt;
@@ -549,7 +573,8 @@ void test_fault_injection() {
         p3_projection_pix2world(&d, 32.0, 32.0, &ra, &dec);
         // 等价缺陷: 往返期望偏移 ±1 px → 往返断言必败
         p3_projection_world2pix(&d, ra, dec, &x2, &y2);
-        CHECK_MSG(std::hypot(x2 - 32.0 - cs.bias, y2 - 32.0) < kRoundtripTolPx,
+        CHECK_MSG(std::hypot(x2 - 32.0 - cs.bias, y2 - 32.0) <
+                      roundtrip_tol_px(cs.c.id),
                   "fault: roundtrip biased → 必败");
     }
     if (std::strcmp(env, "registry") == 0) {
@@ -625,7 +650,8 @@ int main(int argc, char** argv) {
     if (failures == 0) {
         std::printf(
             "P3-001 PROJ REGISTRY PASS (registry v1 四投影 TAN/SIN/CAR/AIT + "
-            "独立往返 Oracle <1e-6px + TAN 生产 bitwise 零漂移 + G1 精确断言 + "
+            "独立往返 Oracle < 适用合同门(p3_wcs_applicability 单一事实源) + "
+            "TAN 生产 bitwise 零漂移 + G1 精确断言 + "
             "负面 fail-closed + CTYPE 面 + 确定性 + 1/N parity)\n");
         return 0;
     }
