@@ -29,6 +29,16 @@ Windows 等价路径: CTRL_C_EVENT / CTRL_BREAK_EVENT 由 TestWindowsConsoleCtrl
 登记）。Linux 侧另有 cancel_token.h 结构化登记门，保证 Windows 处理函数与两平台
 安装点不被静默删除。
 
+夹具源清单与链接闭包（2026-09-22 现场订正）:
+  本文件与 test_phase123_pipeline.py 共用 _aio_srcs(); 它原先手抄源文件列表，漏了
+  aio_hips_writer.cpp 经 aio_sparse_punch.h → aio_file_io.h 的 inline sha256_hex 需要的
+  lib/algorithms/shared/crypto/sha256.cpp ⇒ setUpClass 夹具链接失败（undefined reference
+  to astrocs::crypto::Sha256::...），整个取消矩阵一个都没跑。现改为**从构建图解析**
+  （根 CMakeLists.txt 的 astrocs_common / astrocs_aio / astrocs_hips 权威显式清单），
+  并新增 nm -C 差集判据 TestAioFixtureSourceClosure（对真实 .o 求「未定义 astrocs::
+  符号 − 已定义符号」，非空 ⇒ 判红并点名该补哪个 .cpp）。判据能红能绿：摘掉
+  sha256.cpp 必红且点名该文件（实证见 run/LINUXMAIN-LINK-01/）。
+
 复跑:
   python3 -m unittest tests.cli.test_fix406_sigterm_cancel -v
   ASTROCS_FIX406_FIXTURES=run/FIX-406/fixtures python3 -m unittest ...  # 复用已建夹具
@@ -49,7 +59,8 @@ sys.path.insert(0, REPO)
 
 from cli_test_hygiene import run_cwd  # noqa: E402
 from test_phase123_pipeline import (  # noqa: E402
-    DRIZZLE, EXE, WCS_EXPLICIT, _aio_srcs, _cfitsio_objs, _common_incs)
+    DRIZZLE, EXE, WCS_EXPLICIT, _aio_srcs, _cfitsio_objs, _common_incs,
+    aio_fixture_closure_diagnostics)
 
 PHASES = ("normalize", "mosaic", "export")
 # (取消点名, 钩子环境变量) —— 三个取消点各自的**唯一**注入面
@@ -416,6 +427,42 @@ class TestCancelHandlerRegistration(unittest.TestCase):
         self.assertIn("bool is_cancelled()", src)
         self.assertEqual(src.count("static std::atomic<bool> flag"), 1,
                          "取消标志必须恰一处静态定义（单向置位语义）")
+
+
+@unittest.skipUnless(shutil.which("g++") and shutil.which("nm"), "需要 g++ 与 nm")
+class TestAioFixtureSourceClosure(unittest.TestCase):
+    """A 面机器判据：夹具源清单来自构建图，且覆盖链接闭包。
+
+    现场（2026-09-22 CHK-FIX406-SIGTERM）: aio_hips_writer.cpp:22
+    「#include "aio_sparse_punch.h"」→ aio_sparse_punch.h:37
+    「#include "aio_file_io.h"」→ aio_file_io.h:240 的 inline
+    aio_file::sha256_hex 调 astrocs::crypto::Sha256；而 _aio_srcs() 当时是手抄清单、
+    漏了唯一实现 TU lib/algorithms/shared/crypto/sha256.cpp ⇒ 夹具在**链接期**报
+    「undefined reference to astrocs::crypto::Sha256::...」，链接器一次只报第一条、
+    且不告诉你该补哪个 .cpp（本文件 setUpClass 因此 ERROR，矩阵一个都没跑）。
+
+    判据与实现与 eng/tests/cli/test_phase123_pipeline.py 同源（单一实现，两处门共用），
+    两条互补：
+      ① 源清单从构建图解析：_aio_srcs() 的路径全部由根 CMakeLists.txt 的
+         astrocs_common / astrocs_aio / astrocs_hips 权威显式清单解析而来，
+         名字不在清单里即抛错判红（防改名/搬目录后清单静默失效）；
+      ② nm -C 差集：对真实 .o 求「未定义 astrocs:: 符号 − 已定义符号」，
+         非空即判红，并把每个未解析符号解析回构建图里定义它的 .cpp（直接点名）。
+    """
+
+    def test_01_aio_sources_resolved_from_build_graph(self):
+        srcs = _aio_srcs()
+        self.assertTrue(srcs, "构建图未解析出任何 fixture 源")
+        for s in srcs:
+            self.assertTrue(os.path.isfile(s), "构建图解析出的源不存在: " + s)
+
+    def test_02_link_closure_complete(self):
+        missing, detail = aio_fixture_closure_diagnostics()
+        if not missing:
+            return
+        self.fail("fixture 源清单未覆盖链接闭包（未定义 astrocs:: 符号差集非空）：\n"
+                  + detail + "\n  修法：把上面点名的 .cpp 加入 _AIO_SEED"
+                  "（eng/tests/cli/test_phase123_pipeline.py）。")
 
 
 @unittest.skipUnless(os.name == "nt", "Windows 控制台控制事件（CTRL_C/CTRL_BREAK）")
