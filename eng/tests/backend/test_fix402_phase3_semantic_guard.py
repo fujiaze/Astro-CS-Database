@@ -200,7 +200,12 @@ class Fix402Phase3SemanticGuard(unittest.TestCase):
              "P3-INPUT-NOT-SURFACE-BRIGHTNESS"),
             ("variance_face", [("BUNIT", VAR_BUNIT)], 4,
              "P3-INPUT-NOT-SURFACE-BRIGHTNESS"),
-            ("ivar_face", [("BUNIT", IVAR_BUNIT)], 4, "P3-INPUT-UNIT-UNSUPPORTED"),
+            # ivar 面 = 冻结单位表的 canonical IVAR 串（DATA_SEMANTICS §31.1a:
+            # "+4 ⇔ sr^2/…"），**在**冻结词汇表内、只是非面亮度信号 ⇒ 与 variance_face
+            # 同判据 P3-INPUT-NOT-SURFACE-BRIGHTNESS（exit 4）；UNIT-UNSUPPORTED 的
+            # 语义是"词汇表外"（见 module_adapters.cpp 输入语义守卫注释），不适用于它。
+            ("ivar_face", [("BUNIT", IVAR_BUNIT)], 4,
+             "P3-INPUT-NOT-SURFACE-BRIGHTNESS"),
             ("unknown_unit_jy_beam", [("BUNIT", "Jy/beam")], 4,
              "P3-INPUT-UNIT-UNSUPPORTED"),
             # "1" = 无量纲（不在冻结面亮度词汇内）: 已声明但不可用 ⇒ exit 4

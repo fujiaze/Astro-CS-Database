@@ -112,7 +112,15 @@ int main() {
       CHECK(w2 == astrocs::phase3::P3_OUT_OK);
       fitsfile* f = nullptr;
       int st = 0;
-      CHECK(fits_open_file(&f, p2.c_str(), READONLY, &st) == 0);
+      // cfitsio 句柄"取到才可用": fits_* 对 nullptr 句柄直接解引用空指针，进程
+      // SEGFAULT 会吞掉真实诊断（CHECK 非致命，失败后仍往下执行）。取句柄处
+      // 一律致命化：失败计入 failures 并跳过依赖该句柄的语句。
+      if (fits_open_file(&f, p2.c_str(), READONLY, &st) != 0) {
+        std::fprintf(stderr, "REQUIRE failed %s:%d: fits_open_file(%s) status=%d\n",
+                     __FILE__, __LINE__, p2.c_str(), st);
+        ++failures;
+        continue;
+      }
       char card[FLEN_VALUE];
       st = 0;
       CHECK(fits_movnam_hdu(f, IMAGE_HDU, (char*)"VARIANCE", 0, &st) == 0);
@@ -183,31 +191,37 @@ int main() {
   {
     fitsfile* tf = nullptr;
     int st = 0;
-    CHECK(fits_open_file(&tf, out.c_str(), READWRITE, &st) == 0);
-    double tampered = 0.0;
-    CHECK(fits_read_key(tf, TDOUBLE, (char*)"CRPIX1", &tampered, nullptr, &st) == 0);
-    tampered += 1.0;   // 0.5px/1px 型系统性平移
-    st = 0;
-    CHECK(fits_update_key(tf, TDOUBLE, (char*)"CRPIX1", &tampered, nullptr, &st) == 0);
-    st = 0;
-    CHECK(fits_close_file(tf, &st) == 0);
-    astrocs::phase3::P3OutputResult v{ };
-    const astrocs::phase3::P3OutputStatus vst =
-        astrocs::phase3::p3_output_verify(out.c_str(), &wcs, sig.data(), cov.data(),
-                                          w, h, &v);
-    CHECK(vst == astrocs::phase3::P3_OUT_OK);   // 文件可读 = OK，但鉴别位必须失败
-    CHECK(v.reopen_ok == 0);                    // CRPIX 篡改必须被检出
-    // 复原 CRPIX1，保证后续用例共享同一产物文件时仍是合法 WCS。
-    tampered -= 1.0;
-    st = 0;
-    CHECK(fits_open_file(&tf, out.c_str(), READWRITE, &st) == 0);
-    CHECK(fits_update_key(tf, TDOUBLE, (char*)"CRPIX1", &tampered, nullptr, &st) == 0);
-    st = 0;
-    CHECK(fits_close_file(tf, &st) == 0);
-    astrocs::phase3::P3OutputResult vr{ };
-    CHECK(astrocs::phase3::p3_output_verify(out.c_str(), &wcs, sig.data(), cov.data(),
-                                            w, h, &vr) == astrocs::phase3::P3_OUT_OK);
-    CHECK(vr.reopen_ok == 1);                   // 复原后鉴别位恢复
+    // 同 2b: 取句柄失败即致命化，不把 nullptr 交给 cfitsio。
+    if (fits_open_file(&tf, out.c_str(), READWRITE, &st) != 0) {
+      std::fprintf(stderr, "REQUIRE failed %s:%d: fits_open_file(%s) status=%d\n",
+                   __FILE__, __LINE__, out.c_str(), st);
+      ++failures;
+    } else {
+      double tampered = 0.0;
+      CHECK(fits_read_key(tf, TDOUBLE, (char*)"CRPIX1", &tampered, nullptr, &st) == 0);
+      tampered += 1.0;   // 0.5px/1px 型系统性平移
+      st = 0;
+      CHECK(fits_update_key(tf, TDOUBLE, (char*)"CRPIX1", &tampered, nullptr, &st) == 0);
+      st = 0;
+      CHECK(fits_close_file(tf, &st) == 0);
+      astrocs::phase3::P3OutputResult v{ };
+      const astrocs::phase3::P3OutputStatus vst =
+          astrocs::phase3::p3_output_verify(out.c_str(), &wcs, sig.data(), cov.data(),
+                                            w, h, &v);
+      CHECK(vst == astrocs::phase3::P3_OUT_OK);   // 文件可读 = OK，但鉴别位必须失败
+      CHECK(v.reopen_ok == 0);                    // CRPIX 篡改必须被检出
+      // 复原 CRPIX1，保证后续用例共享同一产物文件时仍是合法 WCS。
+      tampered -= 1.0;
+      st = 0;
+      CHECK(fits_open_file(&tf, out.c_str(), READWRITE, &st) == 0);
+      CHECK(fits_update_key(tf, TDOUBLE, (char*)"CRPIX1", &tampered, nullptr, &st) == 0);
+      st = 0;
+      CHECK(fits_close_file(tf, &st) == 0);
+      astrocs::phase3::P3OutputResult vr{ };
+      CHECK(astrocs::phase3::p3_output_verify(out.c_str(), &wcs, sig.data(), cov.data(),
+                                              w, h, &vr) == astrocs::phase3::P3_OUT_OK);
+      CHECK(vr.reopen_ok == 1);                   // 复原后鉴别位恢复
+    }
   }
 
   // 4) pixel→sky→sample Oracle: WCS roundtrip 后采样信号一致

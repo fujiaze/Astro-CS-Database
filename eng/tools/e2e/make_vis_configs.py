@@ -84,10 +84,13 @@ def main():
         blocks = []
         for tel in ("T2", "T3"):
             cal = os.path.join(REPO, "testdata/%s calibration files" % tel)
-            lights = sorted(glob.glob(os.path.join(
-                REPO, "testdata/M42_T2T3_mosaic_Flying_dutchman", tel, "*", "*-300S-Red.fts")))
-            if args.limit:
-                lights = lights[:args.limit]
+            # 每 panel 分别限量：马赛克由 T{2,3}/M1..M6 六个 panel 拼成，
+            # 对整块（跨 panel）截断会只留 M1 一个 panel，拼不出马赛克。
+            lights = []
+            for panel in sorted(glob.glob(os.path.join(
+                    REPO, "testdata/M42_T2T3_mosaic_Flying_dutchman", tel, "*"))):
+                got = sorted(glob.glob(os.path.join(panel, "*-300S-Red.fts")))
+                lights.extend(got[:args.limit] if args.limit else got)
             blocks.append(block("m42_%s_red" % tel.lower(), lights, cal,
                                 "masterBias_BIN-1_4096x4096.xisf",
                                 "masterDark_BIN-1_4096x4096_EXPOSURE-600.00s.xisf",
