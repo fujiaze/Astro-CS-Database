@@ -42,7 +42,7 @@
 | CHK-SYNTH-P2 | 科学 | mosaic 合成全链 | 合成全链测试 | P0 |
 | CHK-SYNTH-P3 | 科学 | export 合成全链 | 合成全链测试 | P0 |
 | CHK-ISA-EQ | 科学 | baseline/AVX2/AVX-512 等价 | ISA 等价测试 | P1 |
-| CHK-NWORKER | 科学 | 1 vs N worker 数值一致 | 并行一致性测试 | P0 |
+| CHK-NWORKER | 科学 | 1 vs N worker 数值等价（判据 = 事前冻结的浮点容差，非逐位一致；口径见 `docs/contracts/SCHEDULER_CONTRACT.md` §2.1） | `eng/tools/v6/v6_determinism_driver.py`（逐字节相同优先；不同时按 TEST_MATRIX §2 容差逐文件数值比对，超差判红） | P0 |
 | CHK-E2E-REPRO | 科学 | 天测闭环独立 Oracle 工具自测（closure_metric：同输入两跑必绿 + 负例注入必红；不导入生产代码，WCS 仅用 astropy 重建） | `python3 eng/tools/astrometry/closure_metric.py selftest` | P0 |
 | CHK-SANITIZER | 资源 | ASan/UBSan | sanitizer 构建测试 | P1 |
 | CHK-COVERAGE | 资源 | 覆盖率报告 | 覆盖率工具 | P2（报告） |
@@ -113,6 +113,7 @@
 | CHK-E2E-CHAIN | 集成 | E2E-501 三命令真实数据全链：normalize→mosaic→export 串行；manifest 链**独立复算**（Python 复现 p3n_input_manifest_hash 公式比对产品自报值）+ 阶段内自洽；产品判据 coverage_ok/reopen_ok/canonical_match/covered_px>0 | `python3 eng/ci/run_checks.py --check CHK-E2E-CHAIN --quiet` | P0 |
 | CHK-E2E-CHAIN-SELFTEST | 集成 | E2E 链判据自测：退化产品（covered_px==0、FITS 缺失）必须判红，防「空产品也判绿」 | `python3 eng/ci/run_checks.py --check CHK-E2E-CHAIN-SELFTEST --quiet` | P0 |
 | CHK-SCHED-PROBE-SCHEMA | 合同 | CONTRACT-501 探针事件 schema 机器校验：逐行校验 JSONL 的必填字段/枚举/单位与事件名一致性，空文件与无输出判红（fail-closed）；含 --self-test 1 正 5 负 | `python3 eng/ci/run_checks.py --check CHK-SCHED-PROBE-SCHEMA --quiet` | P0 |
+| CHK-HIPS-STORAGE-FORM | 合同 | 落盘形态合同（CONTRACT-STORAGE-001）：两形态命名与互斥、归档必须为「整包 tar + 逐成员独立 zstd 帧」且标准工具 `zstd -dc \| tar -xf` 逐字节还原、归档内 properties 与裸形态逐字节一致且不声明非标准 `hips_tile_format`、产品级索引与数据集级覆盖索引的 schema 与不变式（coverage/tiles 集合一致、可重算）、产品身份哈希取解压后内容；负例面 11 例（properties 撒谎 / 读路径不支持形态 / 归档缺索引 / 索引与内容不一致 / 归档截断 / 流内混装不压缩区 / byte-shuffle 预变换 / 两形态 properties 分叉 / 索引 schema 违规 / 覆盖索引非块粒度 / 两形态共存）逐一判红 | `python3 eng/tools/hipsform/check_hips_storage_form.py --self-test` | P0 |
 
 ### 2.1 检查器退役与预留
 

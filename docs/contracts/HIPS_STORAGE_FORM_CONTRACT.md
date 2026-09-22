@@ -2,9 +2,9 @@
 
 > 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）、docs/design/PRODUCT_STORAGE_FORM.md（DESIGN-STORAGE-001）
 
-文档 ID：`CONTRACT-STORAGE-001`
-状态：`ACTIVE_NORMATIVE`
-上位：`ASTROCS_DESIGN.md` §10；`docs/design/PRODUCT_STORAGE_FORM.md`
+> doc_id: DOC-CONTRACT-STORAGE-001
+> doc_status: ACTIVE_NORMATIVE
+> 上位：`ASTROCS_DESIGN.md` §10；`docs/design/PRODUCT_STORAGE_FORM.md`
 下游：`docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`、`docs/plugins/infrastructure/17_aio.md`、`docs/plugins/algorithms_phase1/08_drizzle.md`、`docs/plugins/algorithms_phase2/09_coverage.md`
 机器事实源：`eng/contracts/schemas/hips_storage_form.schema.json`（索引文件 schema）
 机器检查器：`eng/tools/hipsform/check_hips_storage_form.py`（CI 检查 `CHK-HIPS-STORAGE-FORM`）

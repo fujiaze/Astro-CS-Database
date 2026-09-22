@@ -5976,6 +5976,40 @@
       ]
     },
     {
+      "id": "CHK-NWORKER-TOLERANCE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/v6/v6_numeric_equiv.py",
+        "--self-test",
+        "--json-out",
+        "run/ci/nworker-tolerance/selftest.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/nworker-tolerance/selftest.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/v6/**",
+        "eng/ci/checks.json",
+        "docs/contracts/SCHEDULER_CONTRACT.md",
+        "docs/contracts/TEST_MATRIX.md"
+      ],
+      "requires_monitor": false,
+      "prerequisite_tools": [
+        "python3:numpy",
+        "python3:astropy"
+      ]
+    },
+    {
       "id": "CHK-SANITIZER",
       "profiles": [
         "linux-deep",
@@ -9373,6 +9407,157 @@
           "requires_monitor": false,
           "ctest_targets": [
             "export_stream"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHK-P3-EXPORT-STREAM-PROD",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-P3-EXPORT-STREAM-PROD",
+        "--quiet"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/**",
+        "lib/infrastructure/**",
+        "eng/tools/**",
+        "eng/tests/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "STATIC-P3-EXPORT-STREAM-PROD",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/arch/check_p3_export_stream_prod.py"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "lib/**",
+            "eng/tools/**"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "SELFTEST-P3-EXPORT-STREAM-PROD",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/arch/check_p3_export_stream_prod.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 120,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "lib/**",
+            "eng/tools/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-P3-EXPORT-STREAM-RSS",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-P3-EXPORT-STREAM-RSS",
+        "--quiet"
+      ],
+      "timeout_seconds": 1500,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/p3_export_stream_prod.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**",
+        "lib/infrastructure/**",
+        "eng/tests/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "p3_export_stream_prod"
+      ],
+      "steps": [
+        {
+          "id": "CTEST-P3-EXPORT-STREAM-RSS",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/ci/resource_monitor.py",
+            "--timeout",
+            "1200",
+            "--output",
+            "run/ci/monitor/CTEST-P3-EXPORT-STREAM-RSS.json",
+            "--",
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p3_export_stream_prod",
+            "--output",
+            "run/ci/ctest/p3_export_stream_prod.json"
+          ],
+          "timeout_seconds": 1500,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/monitor/CTEST-P3-EXPORT-STREAM-RSS.json",
+            "run/ci/ctest/p3_export_stream_prod.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "CMakeLists.txt",
+            "lib/**",
+            "eng/tests/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p3_export_stream_prod"
           ]
         }
       ]
