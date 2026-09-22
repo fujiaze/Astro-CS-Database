@@ -19,6 +19,10 @@
 //                            各自必败, 且正式目录零 .fits、零清单、零 .tmp. 残留
 //   A5 integrity_has_teeth   判别力红锚: 人为截断一个已发布 tile ⇒ 校验必须判红
 //                            (证明 A1/A3 的"全部校验通过"不是恒真门)
+//   A6 disk_full_at_failure  磁盘满在失败瞬间(清理之前)分类; 非空间类失败不得冒充
+//   A7 frame_level_attribution 帧级归因协议: 并发帧各自的磁盘满判定互不覆盖/互不抢占
+//                            (LOG_AND_ERROR_CONTRACT §5「失败节点 manifest 的
+//                             error_kind==disk_full ⇒ exit 10」的帧级判据)
 // ============================================================================
 #ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
@@ -453,17 +457,15 @@ static void case_disk_full_classified_at_failure() {
         const std::string root = make_root("a6full");
         const std::string dir = root + "/product";
         fs::create_directories(dir);
-        aio_disk::reset();
         setenv("ASTROCS_HIPS_TILE_FAULT", "tile_diskfull", 1);
+        aio_disk::FailureEpoch epoch;   // 归因窗口: 开始写产品之前
         const int rc = write_product(dir, 1);
         unsetenv("ASTROCS_HIPS_TILE_FAULT");
         EXPECT(rc != 0);
         // 分类必须已经发生 (且发生在清理之前 —— 见 write_fits_atomic 中
         // note_full()/note_failure() 早于 remove_file(tmp) 的次序)。
-        EXPECT_MSG(aio_disk::is_full(),
-                   "注入 ENOSPC 等价失败后必须已分类为 disk_full (失败瞬间)");
-        EXPECT_MSG(aio_disk::consume(), "consume() 必须读到该分类");
-        EXPECT_MSG(!aio_disk::is_full(), "consume() 之后标志必须清空 (只归因一次)");
+        EXPECT_MSG(epoch.failed(),
+                   "注入 ENOSPC 等价失败后本执行流的归因窗口必须已判定 disk_full (失败瞬间)");
         // 清理仍然生效 (分类不得以"留下残留"为代价)
         EXPECT(count_tmp_files(dir) == 0);
         EXPECT(count_final_fits(dir) == 0);
@@ -473,13 +475,98 @@ static void case_disk_full_classified_at_failure() {
         const std::string root = make_root("a6write");
         const std::string dir = root + "/product";
         fs::create_directories(dir);
-        aio_disk::reset();
         setenv("ASTROCS_HIPS_TILE_FAULT", "tile_write_fail", 1);
+        aio_disk::FailureEpoch epoch;
         const int rc = write_product(dir, 1);
         unsetenv("ASTROCS_HIPS_TILE_FAULT");
         EXPECT(rc != 0);
-        EXPECT_MSG(!aio_disk::is_full(),
+        EXPECT_MSG(!epoch.failed(),
                    "非空间类写失败不得被分类为 disk_full (否则 exit 7 被误升为 10)");
+        fs::remove_all(root);
+    }
+}
+
+// ── A7: **帧级归因协议** —— 并发帧各自的磁盘满判定互不覆盖/互不抢占 ──────────
+// 依据: docs/contracts/LOG_AND_ERROR_CONTRACT.md §5「`IO` | 7（IO）| I/O 失败;
+// **失败节点 manifest** 的 `error_kind==disk_full` 时改判 10」——判定属于**失败的
+// 那一帧/那个节点**, 不是"进程里发生过一次磁盘满"的运行级事实。
+// 旧实现 (进程级单比特 + aio_hips_product_begin 里的 reset() + exchange 语义的
+// consume()) 在多帧并发下互相覆盖: 另一帧的 product_begin 抹掉本帧已置位的判定,
+// 或另一帧的失败收尾抢走本帧的判定 ⇒ 失败帧丢 error_kind ⇒ exit 7 的 fail-open
+// (FLAKE-01 剂量-反应实证: 单帧 12/12 正确, 双帧 58 次中 5 次 rc=7)。
+// 本用例把该竞态钉成**确定性**判据 (旧实现下 T2/T3 必红)。
+//
+// T1 串行对照 : 帧 A 在 product_begin 之后真失败 ⇒ A 的窗口 failed();
+// T2 不抹除   : 帧 A 判定已置位后帧 B 完整跑一遍 (含 product_begin) ⇒ A 仍 failed();
+// T3 不抢占   : 两帧**真并发**各写自己的目录、各自真失败 ⇒ 两个窗口**都** failed();
+// T4 阴性对照 : 非空间类失败 (tile_write_fail) 不得让任何窗口 failed()。
+static void case_frame_level_attribution() {
+    set_case("A7_frame_level_attribution");
+    // T1 + T2: 串行两帧 (确定性; 不依赖调度)
+    {
+        const std::string root = make_root("a7serial");
+        const std::string dir_a = root + "/A";
+        const std::string dir_b = root + "/B";
+        fs::create_directories(dir_a);
+        fs::create_directories(dir_b);
+        setenv("ASTROCS_HIPS_TILE_FAULT", "tile_diskfull", 1);
+        aio_disk::FailureEpoch ep_a;              // 帧 A 的归因窗口
+        const int rc_a = write_product(dir_a, 1);
+        EXPECT(rc_a != 0);
+        EXPECT_MSG(ep_a.failed(), "T1: 帧 A 的窗口必须看到自己的磁盘满分类");
+        aio_disk::FailureEpoch ep_b;              // 帧 B 的归因窗口
+        const int rc_b = write_product(dir_b, 1); // 内部含 aio_hips_product_begin
+        unsetenv("ASTROCS_HIPS_TILE_FAULT");
+        EXPECT(rc_b != 0);
+        EXPECT_MSG(ep_b.failed(), "T2: 帧 B 的窗口必须看到自己的磁盘满分类");
+        EXPECT_MSG(ep_a.failed(),
+                   "T2: 帧 B 的 aio_hips_product_begin 不得抹掉帧 A 已置位的判定 "
+                   "(旧实现: product_begin 里的进程级 reset() ⇒ 此处必红)");
+        fs::remove_all(root);
+    }
+    // T3: 两帧真并发, 各自真失败 ⇒ 判定互不抢占
+    {
+        const std::string root = make_root("a7concurrent");
+        const std::string dir_a = root + "/A";
+        const std::string dir_b = root + "/B";
+        fs::create_directories(dir_a);
+        fs::create_directories(dir_b);
+        setenv("ASTROCS_HIPS_TILE_FAULT", "tile_diskfull", 1);
+        bool a_failed = false, b_failed = false;
+        int rc_a = 0, rc_b = 0;
+        std::thread ta([&] {
+            aio_disk::FailureEpoch ep;            // 帧 A 自己的窗口
+            rc_a = write_product(dir_a, 2);
+            a_failed = ep.failed();
+        });
+        std::thread tb([&] {
+            aio_disk::FailureEpoch ep;            // 帧 B 自己的窗口
+            rc_b = write_product(dir_b, 2);
+            b_failed = ep.failed();
+        });
+        ta.join();
+        tb.join();
+        unsetenv("ASTROCS_HIPS_TILE_FAULT");
+        EXPECT(rc_a != 0);
+        EXPECT(rc_b != 0);
+        EXPECT_MSG(a_failed,
+                   "T3: 并发帧 A 的判定不得被帧 B 的 product_begin/consume 抹掉或抢占 "
+                   "(旧实现: 进程级单比特 exchange 语义 ⇒ 至少一帧必红)");
+        EXPECT_MSG(b_failed, "T3: 并发帧 B 的判定不得被帧 A 抹掉或抢占");
+        fs::remove_all(root);
+    }
+    // T4 阴性对照: 非空间类失败不得让窗口判定为磁盘满
+    {
+        const std::string root = make_root("a7write");
+        const std::string dir = root + "/product";
+        fs::create_directories(dir);
+        setenv("ASTROCS_HIPS_TILE_FAULT", "tile_write_fail", 1);
+        aio_disk::FailureEpoch epoch;
+        const int rc = write_product(dir, 1);
+        unsetenv("ASTROCS_HIPS_TILE_FAULT");
+        EXPECT(rc != 0);
+        EXPECT_MSG(!epoch.failed(),
+                   "T4: 合成写失败 (文件系统仍有空间) 不得被判为 disk_full ⇒ 仍走 exit 7");
         fs::remove_all(root);
     }
 }
@@ -492,6 +579,7 @@ int main() {
     case_fault_injections();
     case_integrity_has_teeth();
     case_disk_full_classified_at_failure();
+    case_frame_level_attribution();
     if (g_fail == 0) {
         std::printf("FIX401_HIPS_ATOMIC: ALL PASS\n");
         return 0;
