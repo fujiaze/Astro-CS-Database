@@ -1,0 +1,249 @@
+{
+ "meta": {
+  "seed": 20260926,
+  "n_gates": 28,
+  "all_pass": true,
+  "elapsed_s": 0.5936501026153564
+ },
+ "gates": [
+  {
+   "gate": "G1a_operator_scale_equivariance",
+   "verdict": "PASS",
+   "expect": "<= 1e-12",
+   "detail": "三个正齐次算子的 R[a*v]==a*R[v] 最大相对偏差",
+   "value": 2.2972204298171963e-15
+  },
+  {
+   "gate": "G1b_single_frame_weighted_mean_invariant",
+   "verdict": "PASS",
+   "expect": "<= 1e-12",
+   "detail": "单帧归一化加权均值在两种表示下的相对差",
+   "value": 2.220446049250313e-16
+  },
+  {
+   "gate": "G1c_weight_efficiency_invariant",
+   "verdict": "PASS",
+   "expect": "<= 1e-12",
+   "detail": "权重效率 E 在两种表示下的绝对差",
+   "value": 8.881784197001252e-16
+  },
+  {
+   "gate": "G1d_exp1_ratio_1.000000_is_theorem",
+   "verdict": "PASS",
+   "expect": "<= 1e-12",
+   "detail": "EXP-1 实测 ratio=1.000000 是共模相消定理的必然结果（非经验发现）",
+   "value": 8.881784197001252e-16
+  },
+  {
+   "gate": "G2a_fixed_prior_mean_breaks_common_mode",
+   "verdict": "PASS",
+   "expect": "> 1e-3",
+   "detail": "带固定先验均值的 kriging 重建的非共模残差（定理条件不成立）",
+   "value": 0.5040502221770228
+  },
+  {
+   "gate": "G2b_homogeneous_operator_has_no_residual",
+   "verdict": "PASS",
+   "expect": "<= 1e-12",
+   "detail": "正齐次算子的非共模残差",
+   "value": 6.759980673006383e-16
+  },
+  {
+   "gate": "G3_negative_control_degenerate",
+   "verdict": "PASS",
+   "expect": "<= max(3*sd,1e-3)",
+   "detail": "真值无效应（平坦 sigma + 无结构）时两表示的重建差必须归零（判 DEGENERATE）",
+   "value": {
+    "gap": 5.694039912218507e-05,
+    "threshold": 0.0015825876836977435
+   }
+  },
+  {
+   "gate": "G4_anchor_discrepancy_is_live_on_real_data",
+   "verdict": "PASS",
+   "expect": "|c-1| > 0.1",
+   "detail": "真实 M42 帧上 |c-1| 必须显著（否则判据不活）",
+   "value": 2.703630256564383
+  },
+  {
+   "gate": "G5a_frame_scalar_fault_leaves_absolute_bitwise",
+   "verdict": "PASS",
+   "expect": "== 0",
+   "detail": "帧级标量 x2 后绝对重建的最大相对变化（必须逐位 0）",
+   "value": 0.0
+  },
+  {
+   "gate": "G5b_frame_scalar_fault_moves_relative_linearly",
+   "verdict": "PASS",
+   "expect": "<= 1e-12",
+   "detail": "帧级标量 x2 后相对重建恰好减半（线性响应）",
+   "value": 0.0
+  },
+  {
+   "gate": "G5c_relative_equals_absolute_times_common_factor",
+   "verdict": "PASS",
+   "expect": "constancy <= 1e-12 且 median*c_eff == 1",
+   "detail": "SNR_rel/SNR_abs 必须是**严格常数**且等于 1/c_eff（c_eff = sigma_frame*median(1/sigma_c)）",
+   "value": {
+    "constancy": 1.5502725403539792e-16,
+    "median_ratio": 0.5937977211178589,
+    "c_eff": 1.6840751731371442
+   }
+  },
+  {
+   "gate": "G5d_sigma_space_vs_snr_space_median_ambiguity",
+   "verdict": "PASS",
+   "expect": "> 0",
+   "detail": "median(1/sigma)*median(sigma)-1：相对表示的锚点口径在 sigma/SNR 空间不等价（二阶项）",
+   "value": {
+    "c_exact": 1.6840751731371442,
+    "c_approx": 1.6840744560557914,
+    "rel_diff": 4.2580127312952243e-07
+   }
+  },
+  {
+   "gate": "G6a_abs_cross_frame_immune_to_frame_scalar_swap",
+   "verdict": "PASS",
+   "expect": "== 0",
+   "detail": "绝对表示的跨帧比值不含帧级标量 ⇒ 交换帧级标量对其零影响",
+   "value": 0.0
+  },
+  {
+   "gate": "G6b_rel_cross_frame_corrupted_by_c_spread",
+   "verdict": "PASS",
+   "expect": "> 5%",
+   "detail": "相对表示的跨帧比值被 (c1/c2)^2 污染（交换帧级标量即翻红）",
+   "value": {
+    "ok": 0.7724160645322508,
+    "swapped": 1.2946390500119471,
+    "c1": 1.6840751731371442,
+    "c2": 1.3008067176110618
+   }
+  },
+  {
+   "gate": "G7_level_metric_zero_on_identity",
+   "verdict": "PASS",
+   "expect": "== 1",
+   "detail": "估计场 == 真值场时电平偏差必须严格 0",
+   "value": 1.0
+  },
+  {
+   "gate": "G7b_level_metric_live_on_injected_offset",
+   "verdict": "PASS",
+   "expect": "== 1/1.5-1",
+   "detail": "注入 x1.5 偏移后 SNR 偏差必须严格等于 1/1.5-1",
+   "value": -0.33333333333333337
+  },
+  {
+   "gate": "G8_degenerate_bitwise_identity",
+   "verdict": "PASS",
+   "expect": "== 0",
+   "detail": "c==1 时两种表示的控制点重建值必须逐位相同",
+   "value": 0.0
+  },
+  {
+   "gate": "G9a_cross_frame_E_closed_form_matches",
+   "verdict": "PASS",
+   "expect": "<= 1e-12",
+   "detail": "K=2 闭式 E=2(c1^4+c2^4)/(c1^2+c2^2)^2-1 与数值 E 的最大差",
+   "value": 4.440892098500626e-16
+  },
+  {
+   "gate": "G9b_cross_frame_E_positive_when_c_differs",
+   "verdict": "PASS",
+   "expect": "> 0",
+   "detail": "跨帧 c 不同 ⇒ 权重效率损失 E 必须 > 0",
+   "value": 0.006506661684220649
+  },
+  {
+   "gate": "G10_combined_snr_level_bias_dominated_by_common_mode",
+   "verdict": "PASS",
+   "expect": "common > 10*xframe",
+   "detail": "组合 SNR 电平偏差的共模项必须远大于跨帧项（决定正确性的是电平，不是权重）",
+   "value": {
+    "common": 1.8603446214423816,
+    "xframe": -0.002334660951879952
+   }
+  },
+  {
+   "gate": "G11_abs_closer_than_rel[flat_with_struct]",
+   "verdict": "PASS",
+   "expect": "|abs| < |rel|/3",
+   "detail": "绝对表示电平偏差必须显著小于相对表示",
+   "value": {
+    "abs": -0.008597097293408129,
+    "rel": -0.45323721707892
+   }
+  },
+  {
+   "gate": "G11_abs_closer_than_rel[vary_with_struct]",
+   "verdict": "PASS",
+   "expect": "|abs| < |rel|/3",
+   "detail": "绝对表示电平偏差必须显著小于相对表示",
+   "value": {
+    "abs": -0.005836001246866784,
+    "rel": -0.45076347511456644
+   }
+  },
+  {
+   "gate": "G11_abs_closer_than_rel[hst_struct]",
+   "verdict": "PASS",
+   "expect": "|abs| < |rel|/3",
+   "detail": "绝对表示电平偏差必须显著小于相对表示",
+   "value": {
+    "abs": 0.00028878466098203326,
+    "rel": -0.0905213850965233
+   }
+  },
+  {
+   "gate": "G11_abs_closer_than_rel[hst_struct_varsky]",
+   "verdict": "PASS",
+   "expect": "|abs| < |rel|/3",
+   "detail": "绝对表示电平偏差必须显著小于相对表示",
+   "value": {
+    "abs": 0.002539492888801176,
+    "rel": -0.11315155568776303
+   }
+  },
+  {
+   "gate": "G11_abs_closer_than_rel[real_M1]",
+   "verdict": "PASS",
+   "expect": "|abs| < |rel|/3",
+   "detail": "真实数据上绝对表示电平偏差必须显著小于相对表示",
+   "value": {
+    "abs": 0.001466241146564018,
+    "rel": 0.16980393494790424
+   }
+  },
+  {
+   "gate": "G11_abs_closer_than_rel[real_M2]",
+   "verdict": "PASS",
+   "expect": "|abs| < |rel|/3",
+   "detail": "真实数据上绝对表示电平偏差必须显著小于相对表示",
+   "value": {
+    "abs": 0.0009913693537881851,
+    "rel": 0.7656128706498252
+   }
+  },
+  {
+   "gate": "G11_abs_closer_than_rel[real_M4]",
+   "verdict": "PASS",
+   "expect": "|abs| < |rel|/3",
+   "detail": "真实数据上绝对表示电平偏差必须显著小于相对表示",
+   "value": {
+    "abs": 0.0016606843733397714,
+    "rel": 0.2392017642666231
+   }
+  },
+  {
+   "gate": "G11_abs_closer_than_rel[real_M5]",
+   "verdict": "PASS",
+   "expect": "|abs| < |rel|/3",
+   "detail": "真实数据上绝对表示电平偏差必须显著小于相对表示",
+   "value": {
+    "abs": 0.0019265583781757911,
+    "rel": 0.6599089342495502
+   }
+  }
+ ]
+}

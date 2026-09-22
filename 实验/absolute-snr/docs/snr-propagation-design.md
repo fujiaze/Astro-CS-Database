@@ -345,8 +345,9 @@ PixInsight 官方文档亦指出其标准 SNR（式[20] `σ²/σ_n²`）受背�
 intra_k(x,y) = sqrt( W_info,k(x,y) / ⟨W_info,k⟩ )        （组内归一，无量纲，p50 = 1）
 ```
 
-- **换算红线**：`rho` 是 **SNR** 的相对因子，**不是权重**——`w(p) = w_frame · rho(p)²`（差一个平方就会系统性偏权）。
-  负责人裁定的 `SNR(p) = SNR_frame × rho_c(p)`（线性插值）与本式**逐字一致**，核对见 §13.9；
+- **换算红线**：控制点值是 **SNR**，**不是权重**——`w(p) = SNR(p)²/F_ref²`（差一个平方就会系统性偏权）。
+  > **【订正记录（SNR-DESIGN-01）】式 (2.5) 的"帧级 × 帧内相对因子"分解已由负责人裁决取消**：
+  > 控制点直接存**绝对** SNR，Phase2 由控制点直接重建为稠密 `SNR(x,y)`，不乘帧级标量（详见 §3.3 订正记录）。
 - 控制点存**未加权 SNR**（`07_noise_snr.md:70`），不是权重；
 - 契约载体已存在：`eng/contracts/schemas/unified/sparse_snr_layer.schema.json`，
   `control_points[{x, y, sparse_snr_value}]`，`role = intra_frame_reference`，
@@ -492,6 +493,16 @@ intra_k(x,y) = sqrt( W_info,k(x,y) / ⟨W_info,k⟩ )        （组内归一，�
 1. 它与既有权威的合成规则**逐字一致**：『实际 SNR = 帧级 × 帧内』（`docs/plugins/algorithms_phase1/07_noise_snr.md:75`）；
 2. 它是**无量纲**的，组内归一后不受 `a_k`/零点口径影响，跨帧可直接比较与插值；
 3. 帧级标量已经承载绝对尺度，稀疏层只需承载**空间形状**，把绝对与相对分开可以独立检验。
+
+> **【订正记录（SNR-DESIGN-01，负责人裁决）】数值语义冻结为 (a)：控制点直接存绝对通量型 SNR。**
+> 权威落点已改为：`docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5/§4.6、
+> `docs/design/UNIFIED_MODEL.md` §2、`ASTROCS_DESIGN.md` §2.2/§3.1/§4.4/§5.3，
+> 并由 `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` 的
+> `sparse_snr_semantics = "absolute_flux_type_snr"` 机器冻结。
+> 裁决理由：去掉「除以帧级 → 再乘帧级」的往返（少一次除法 + 一次乘法，并免去"中位归一"这一额外约定），
+> 使稀疏层与帧级标量成为**两个互不依赖**的对象。
+> **本节 (b)/(c) 保留为实验对照臂**：它们的数值差异正是新判据要判红的对象（`07_noise_snr.md` §7/§8）。
+> 下方 §2.4 式 (2.5)、§3.3 的 `rho_c` 与伴随量键名 `rho_c` 均按此口径读作**绝对 SNR**（键名保留为历史记录）。
 
 **控制点值的支撑尺度（本文新增的冻结项）**：每个控制点的值定义为该 `cell_side × cell_side`（64×64 leaf px）单元内
 **合格空背景像素的稳健 MAD 方差**，再按 `W_info = a² ΣP² / σ²_pix` 换算为 SNR。
