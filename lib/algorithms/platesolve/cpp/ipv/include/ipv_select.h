@@ -131,14 +131,55 @@ void density_match_iterate(
     int& iterations, bool& converged,
     Logger* logger = nullptr);
 
+// ===========================================================================
+// ALG-WCS-001 §4a.5（本轮新增, 待写入 docs/algorithms/PLATESOLVE.md）——
+// U 与 W 必须同亮度序位域
+// ---------------------------------------------------------------------------
+// U 的定义域是「非饱和检测」(§4a.1)。帧内存在饱和检测时, U 的成员在**检测表
+// 全亮度序**(饱和与正常统一按 box 积分星等排序)中的位次整体下移。实测
+// M42 T2 M1 首帧: n_sat=94 ⇒ U = 位次 78..154。
+// 星表侧若仍取「FOV 内最亮 n_target 颗」(= 位次 1..60), 两侧样本亮度域互斥:
+// 实测 |U∩W| = 0/60, 且 U 的对应体 Gaia G ∈ [11.92,13.68] 全部落在生产查询窗
+// (m_lim=11.896) 之外 ⇒ 三角形投票无真峰 (max_vote 1131→101) ⇒
+// iter_trans_solve 全阶数失败。证据: run/WCS-AB-01/REPORT.md。
+//
+// 正向约束 (两条, 缺一不可):
+//   ① 查询深度: 极限星等迭代的目标星数必须 >= 样本亮度深度基数 n_depth
+//      (= U 最暗成员在全亮度序中的位次); 否则星表侧根本不存在位次域对应的成员。
+//   ② 选取窗口: W = 星表 FOV 亮度序中与 U **同位次**的成员 (位次对齐), 而不是
+//      「最亮 n_target 颗」。
+// 退化性: n_sat = 0 时 U = 位次 1..n_target ⇒ ② 与旧行为逐位一致 (无回归)。
+// 失效面: FOV 内星表成员数 < n_depth ⇒ fail-closed, 禁止静默退化为「最亮 N 颗」。
+// ===========================================================================
+
+// 图像侧选星样本的亮度序位域 (§4a.5 的交付面)
+struct SelectDomain {
+    int n_depth = 0;            // 样本亮度深度基数 = U 最暗成员在全亮度序中的位次
+    int rank_lo = 0;            // U 最亮成员的位次
+    std::vector<int> sel_rank;  // 与 sel_idx 等长: 每个成员在全亮度序中的位次 (1-based)
+};
+
 // 图像侧选星: 按 mag(box积分) 升序排序 (mag 越小越亮)
 // flux 参数保留以备后续使用, 当前未使用 (排序基于 mag)
+// out_domain 非空时写出样本的亮度序位域 (§4a.5)
 std::vector<int> select_image_stars(
     const std::vector<double>& flux,
     const std::vector<double>& mag,
     const std::vector<bool>& saturated,
     int img_n_target,
-    Logger* logger = nullptr);
+    Logger* logger = nullptr,
+    SelectDomain* out_domain = nullptr);
+
+// 星表侧样本选取 (§4a.5 ②): 取 FOV 内亮度序中与 U 同位次的成员。
+// fov_idx 为 FOV 内星表成员下标 (未排序亦可, 函数内部排序), cat_mag 为对应星等。
+// 返回: 选中的星表下标 (与 dom.sel_rank 等长); 空 = fail-closed (深度不足/样本过少)。
+std::vector<int> select_catalog_window(
+    const std::vector<int>& fov_idx,
+    const std::vector<float>& cat_mag,
+    const SelectDomain& dom,
+    int n_target,
+    Logger* logger = nullptr,
+    const char* tag = "select_catalog_window");
 
 // Gnomonic 正向投影
 void gnomonic_forward_proj(

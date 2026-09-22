@@ -1,0 +1,42 @@
+## rotate_to_z 自检: R(c) 是否 == z
+  dec= -80  |R(c)-z|角距=0.000e+00
+  dec= -60  |R(c)-z|角距=0.000e+00
+  dec= -40  |R(c)-z|角距=0.000e+00
+  dec= -20  |R(c)-z|角距=0.000e+00
+  dec=  +0  |R(c)-z|角距=0.000e+00
+  dec= +20  |R(c)-z|角距=0.000e+00
+  dec= +40  |R(c)-z|角距=0.000e+00
+  dec= +60  |R(c)-z|角距=0.000e+00
+  dec= +80  |R(c)-z|角距=0.000e+00
+  全 12x9 组最坏 |R(c)-z| = 1.130e-16 rad  -> PASS
+
+## vos_area_rotated vs 解析 drop 面积 4*asin(h^2/(1+h^2))
+  ra=   0.00 dec=+90.0000  A=9.401368574130911e-13  相对差=-4.293e-05
+  ra=   0.00 dec=+41.8103  A=9.401772212476385e-13  相对差=-3.362e-10
+  ra=   0.00 dec= +0.0000  A=9.401772215381128e-13  相对差=-2.721e-11
+  ra= 200.00 dec=-60.0000  A=9.401772214474359e-13  相对差=-1.237e-10
+  ra=  17.00 dec= +0.0000  A=9.401772215427640e-13  相对差=-2.226e-11
+  ra= 274.72 dec=-13.8400  A=9.401772213314541e-13  相对差=-2.470e-10
+	Command being timed: "verify/p0"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4080
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 161
+	Voluntary context switches: 1
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

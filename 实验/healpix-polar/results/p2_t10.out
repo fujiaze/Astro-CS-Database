@@ -1,0 +1,10 @@
+
+## T10 单叶/单 drop 计时 (nside=2097152, 极点配置)
+  候选叶=63
+  V0 4角 (production 路径)           38.27 us/drop     607.4 ns/leaf   (acc=1.886e-09)
+  REC-1 budget=1e-6 A_drop            6907.02 us/drop   109635.2 ns/leaf   (acc=2.820e-10)
+  REC-1 budget=1e-7 A_drop           23597.04 us/drop   374556.3 ns/leaf   (acc=2.820e-10)
+  REC-1 budget=1e-8 A_drop           78317.67 us/drop   1243137.6 ns/leaf   (acc=1.880e-10)
+  oracle K=128+Richardson             6056.84 us/drop   96140.3 ns/leaf   (acc=1.880e-11)
+  chart-native subdiv_rel=1e-6       45460.75 us/drop   721599.3 ns/leaf   (acc=1.185e-08)
+  chart-native subdiv_rel=1e-8       452021.41 us/drop   7174943.0 ns/leaf   (acc=5.923e-09)

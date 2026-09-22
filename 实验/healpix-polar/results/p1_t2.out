@@ -1,0 +1,41 @@
+
+## T2 叶边界 '4 角 + 大圆弧' 逼近误差 (nside=65536, hp_res=3.2208")
+  北极叶(face0 极冠角) face= 0 (i,j)=(65535,65535): 最大弦偏差=9.983e-07 rad = 0.0639 x hp_res  (edge 0, t=0.61)
+  北极叶邻格          face= 0 (i,j)=(65534,65535): 最大弦偏差=9.983e-07 rad = 0.0639 x hp_res  (edge 1, t=0.61)
+  三角点叶(face0 u=v=0) face= 0 (i,j)=(0,0): 最大弦偏差=7.355e-16 rad = 0.0000 x hp_res  (edge 1, t=0.61)
+  face0 中心             face= 0 (i,j)=(32768,32768): 最大弦偏差=4.489e-12 rad = 0.0000 x hp_res  (edge 1, t=0.50)
+  赤道面 face4 中心   face= 4 (i,j)=(32768,32768): 最大弦偏差=1.028e-15 rad = 0.0000 x hp_res  (edge 2, t=0.54)
+  极冠/赤道交界 z=2/3 face= 0 (i,j)=(32768,65535): 最大弦偏差=8.238e-11 rad = 0.0000 x hp_res  (edge 1, t=0.50)
+  极点叶弦偏差/hp_res 随 nside: 1024:0.0639 4096:0.0639 16384:0.0639 65536:0.0639 262144:0.0639 2097152:0.0639 
+
+## T2 叶边界 '4 角 + 大圆弧' 逼近误差 (nside=2097152, hp_res=0.1006")
+  北极叶(face0 极冠角) face= 0 (i,j)=(2097151,2097151): 最大弦偏差=3.120e-08 rad = 0.0639 x hp_res  (edge 3, t=0.39)
+  北极叶邻格          face= 0 (i,j)=(2097150,2097151): 最大弦偏差=3.120e-08 rad = 0.0639 x hp_res  (edge 1, t=0.61)
+  三角点叶(face0 u=v=0) face= 0 (i,j)=(0,0): 最大弦偏差=2.391e-16 rad = 0.0000 x hp_res  (edge 0, t=0.84)
+  face0 中心             face= 0 (i,j)=(1048576,1048576): 最大弦偏差=1.007e-10 rad = 0.0002 x hp_res  (edge 3, t=0.01)
+  赤道面 face4 中心   face= 4 (i,j)=(1048576,1048576): 最大弦偏差=5.962e-16 rad = 0.0000 x hp_res  (edge 3, t=0.94)
+  极冠/赤道交界 z=2/3 face= 0 (i,j)=(1048576,2097151): 最大弦偏差=8.044e-14 rad = 0.0000 x hp_res  (edge 1, t=0.48)
+  极点叶弦偏差/hp_res 随 nside: 1024:0.0639 4096:0.0639 16384:0.0639 65536:0.0639 262144:0.0639 2097152:0.0639 
+	Command being timed: "verify/p1 t2"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4116
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 159
+	Voluntary context switches: 1
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

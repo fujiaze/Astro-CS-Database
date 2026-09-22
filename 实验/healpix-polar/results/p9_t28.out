@@ -1,0 +1,44 @@
+
+## T28 接缝亏空的尺度标定: u+v=1 接缝中点 (ra=45.0000 dec=41.810315, nside=2^21)
+  drop倍数 drop角半径" A0 最坏闭合 oracle 最坏  亏空(有符号中位)
+  1.0     x 0.1414       1.802e-04      1.689e-04      +1.119e-06
+  2.0     x 0.2828       3.305e-05      4.112e-05      -1.954e-07
+  4.0     x 0.5657       9.381e-06      1.161e-05      -4.504e-09
+  8.0     x 1.1314       2.267e-06      2.295e-06      -4.067e-08
+
+## T28 接缝亏空的尺度标定: 同纬度三角点(对照) (ra=0.0000 dec=41.810315, nside=2^21)
+  drop倍数 drop角半径" A0 最坏闭合 oracle 最坏  亏空(有符号中位)
+  1.0     x 0.1414       1.974e-09      2.726e-09      -9.804e-12
+  2.0     x 0.2828       1.055e-09      1.340e-09      +1.628e-11
+  4.0     x 0.5657       5.614e-10      5.860e-10      +1.272e-12
+  8.0     x 1.1314       3.158e-10      3.327e-10      +5.156e-12
+
+## T28 接缝亏空的尺度标定: 赤道 ra=45(对照) (ra=45.0000 dec=0.000000, nside=2^21)
+  drop倍数 drop角半径" A0 最坏闭合 oracle 最坏  亏空(有符号中位)
+  1.0     x 0.1414       2.216e-09      3.543e-09      -2.198e-11
+  2.0     x 0.2828       1.460e-09      1.331e-09      +5.146e-12
+  4.0     x 0.5657       6.024e-10      7.236e-10      -7.211e-13
+  8.0     x 1.1314       2.772e-10      2.799e-10      +5.011e-13
+	Command being timed: "verify/p9 t28"
+	User time (seconds): 135.92
+	System time (seconds): 0.04
+	Percent of CPU this job got: 95%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:22.30
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4128
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 203
+	Voluntary context switches: 1
+	Involuntary context switches: 3929
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

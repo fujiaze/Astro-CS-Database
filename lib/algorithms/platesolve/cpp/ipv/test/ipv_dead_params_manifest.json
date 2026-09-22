@@ -1,7 +1,7 @@
 {
   "schema": "P27-DEAD-PARAMS-MANIFEST-v1",
   "generated_from_commit": "a3a343a44080d917089e1f8d548ed2d0400b0c61",
-  "note": "P27 死字段防误用锁的冻结事实源。任何死字段被新接线 / 真消费被删 / 死匹配器被接线, 都会使 ctest ipv_dead_params_lock 变红; 必须同步更新本清单、REPORT 与 docs/contracts 标注。",
+  "note": "P27 死字段防误用锁的冻结事实源。任何死字段被新接线 / 真消费被删 / 死匹配器被接线, 都会使 ctest ipv_dead_params_lock 变红; 必须同步更新本清单、REPORT 与 docs/contracts 标注。 WCS-AB-01: 新增 select_catalog_window (ALG-WCS-001 §4a.5 星表侧位次对齐窗口) 登记进生产链闭包。",
   "entry_points": [
     [
       "lib/infrastructure/scheduler/src/module_adapters.cpp",
@@ -280,6 +280,10 @@
     [
       "lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp",
       "mag_iter_apply_to_selection"
+    ],
+    [
+      "lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp",
+      "select_catalog_window"
     ],
     [
       "lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp",

@@ -25,6 +25,7 @@
 
 #include "ipv_ransac.h"
 #include "ipv_log.h"
+#include "ipv_log_sink.h" // CLEAN-403: 落点接缝的 aio 实现在 src/ (公共头不依赖基建内部头)
 
 #include <cmath>
 #include <random>

@@ -1,0 +1,88 @@
+## T18 单叶弦折线面积相对解析叶面积 pi/(3 nside^2) 的亏损 (nside=2097152)
+## A. face0 北极冠, 沿 v=Ns-1 扫 u
+  du=1         亏损(chord-curve)/exact=-9.9683e-02   chord/exact-1=-9.9684e-02
+  du=2         亏损(chord-curve)/exact=-9.2056e-04   chord/exact-1=-9.2053e-04
+  du=4         亏损(chord-curve)/exact=+5.0063e-03   chord/exact-1=+5.0064e-03
+  du=8         亏损(chord-curve)/exact=+2.1294e-03   chord/exact-1=+2.1294e-03
+  du=16        亏损(chord-curve)/exact=+6.6050e-04   chord/exact-1=+6.6050e-04
+  du=32        亏损(chord-curve)/exact=+1.8248e-04   chord/exact-1=+1.8248e-04
+  du=64        亏损(chord-curve)/exact=+4.7878e-05   chord/exact-1=+4.7878e-05
+  du=128       亏损(chord-curve)/exact=+1.2258e-05   chord/exact-1=+1.2258e-05
+  du=256       亏损(chord-curve)/exact=+3.1008e-06   chord/exact-1=+3.1008e-06
+  du=512       亏损(chord-curve)/exact=+7.7977e-07   chord/exact-1=+7.7978e-07
+  du=1024      亏损(chord-curve)/exact=+1.9552e-07   chord/exact-1=+1.9552e-07
+  du=4096      亏损(chord-curve)/exact=+1.2247e-08   chord/exact-1=+1.2247e-08
+  du=16384     亏损(chord-curve)/exact=+7.6814e-10   chord/exact-1=+7.6832e-10
+  du=65536     亏损(chord-curve)/exact=+5.3772e-11   chord/exact-1=+5.3375e-11
+  du=262144    亏损(chord-curve)/exact=+1.6093e-11   chord/exact-1=+1.3418e-11
+  du=1048576   亏损(chord-curve)/exact=+4.5730e-11   chord/exact-1=-6.4135e-11
+## B. face0 北极冠, 沿对角 du=dv
+  d=1         亏损(chord-curve)/exact=-9.9683e-02   chord/exact-1=-9.9684e-02
+  d=2         亏损(chord-curve)/exact=-1.1384e-02   chord/exact-1=-1.1384e-02
+  d=4         亏损(chord-curve)/exact=-2.0968e-03   chord/exact-1=-2.0968e-03
+  d=8         亏损(chord-curve)/exact=-4.5686e-04   chord/exact-1=-4.5686e-04
+  d=16        亏损(chord-curve)/exact=-1.0698e-04   chord/exact-1=-1.0698e-04
+  d=32        亏损(chord-curve)/exact=-2.5903e-05   chord/exact-1=-2.5903e-05
+  d=64        亏损(chord-curve)/exact=-6.3741e-06   chord/exact-1=-6.3741e-06
+  d=128       亏损(chord-curve)/exact=-1.5811e-06   chord/exact-1=-1.5811e-06
+  d=256       亏损(chord-curve)/exact=-3.9372e-07   chord/exact-1=-3.9372e-07
+  d=512       亏损(chord-curve)/exact=-9.8237e-08   chord/exact-1=-9.8237e-08
+  d=1024      亏损(chord-curve)/exact=-2.4535e-08   chord/exact-1=-2.4535e-08
+  d=4096      亏损(chord-curve)/exact=-1.5314e-09   chord/exact-1=-1.5313e-09
+  d=16384     亏损(chord-curve)/exact=-8.7934e-11   chord/exact-1=-8.7206e-11
+  d=65536     亏损(chord-curve)/exact=+1.1801e-11   chord/exact-1=+1.1653e-11
+  d=262144    亏损(chord-curve)/exact=-1.4296e-11   chord/exact-1=-9.5219e-12
+  d=1048576   亏损(chord-curve)/exact=+1.4561e-10   chord/exact-1=+1.1892e-10
+## C. 极冠外对照 (face4 赤道面, 应在数值地板)
+  du=1         亏损=+1.1667e-10
+  du=2         亏损=+1.1667e-10
+  du=4         亏损=+1.1667e-10
+  du=8         亏损=+1.1667e-10
+  du=16        亏损=-8.8356e-12
+  du=32        亏损=+1.1667e-10
+## T19 叶边界真实曲线对 4 角大圆弧弦的最大偏差 / hp_res (nside=2097152)
+## A. face0 北极冠二维图 (行 = v 索引距 1 的偏移 dv, 列 = u 索引距 1 的偏移 du)
+     du=          1         2         4         8        16        32        64       128       256      1024     16384    262144   1048576
+dv=1       6.39e-02  6.39e-02  4.28e-02  2.37e-02  1.24e-02  6.35e-03  3.21e-03  1.61e-03  8.09e-04  2.03e-04  1.27e-05  7.84e-07  1.65e-07
+dv=2       6.39e-02  1.59e-02  1.80e-02  1.56e-02  1.01e-02  5.73e-03  3.05e-03  1.57e-03  7.99e-04  2.02e-04  1.27e-05  7.84e-07  1.65e-07
+dv=4       4.28e-02  1.80e-02  6.03e-03  7.66e-03  6.88e-03  4.70e-03  2.76e-03  1.49e-03  7.78e-04  2.01e-04  1.27e-05  7.84e-07  1.65e-07
+dv=8       2.37e-02  1.56e-02  7.66e-03  2.67e-03  3.55e-03  3.25e-03  2.27e-03  1.35e-03  7.40e-04  1.98e-04  1.27e-05  7.84e-07  1.66e-07
+dv=16      1.24e-02  1.01e-02  6.88e-03  3.55e-03  1.26e-03  1.71e-03  1.58e-03  1.12e-03  6.70e-04  1.93e-04  1.26e-05  7.84e-07  1.66e-07
+dv=32      6.35e-03  5.73e-03  4.70e-03  3.25e-03  1.71e-03  6.11e-04  8.39e-04  7.80e-04  5.53e-04  1.84e-04  1.26e-05  7.85e-07  1.67e-07
+dv=64      3.21e-03  3.05e-03  2.76e-03  2.27e-03  1.58e-03  8.39e-04  3.01e-04  4.16e-04  3.88e-04  1.66e-04  1.25e-05  7.82e-07  1.68e-07
+dv=128     1.61e-03  1.57e-03  1.49e-03  1.35e-03  1.12e-03  7.80e-04  4.16e-04  1.49e-04  2.07e-04  1.38e-04  1.24e-05  7.84e-07  1.64e-07
+dv=256     8.09e-04  7.99e-04  7.78e-04  7.40e-04  6.70e-04  5.53e-04  3.88e-04  2.07e-04  7.45e-05  9.64e-05  1.20e-05  7.78e-07  1.77e-07
+dv=1024    2.03e-04  2.02e-04  2.01e-04  1.98e-04  1.93e-04  1.84e-04  1.66e-04  1.38e-04  9.64e-05  1.86e-05  1.04e-05  7.85e-07  2.61e-07
+dv=16384   1.27e-05  1.27e-05  1.27e-05  1.27e-05  1.26e-05  1.26e-05  1.25e-05  1.24e-05  1.20e-05  1.04e-05  1.17e-06  9.62e-07  3.88e-06
+dv=262144  7.84e-07  7.84e-07  7.84e-07  7.84e-07  7.84e-07  7.83e-07  7.81e-07  7.82e-07  7.82e-07  8.17e-07  1.22e-06  2.96e-06  3.24e-05
+dv=1048576  1.65e-07  1.65e-07  1.65e-07  1.66e-07  1.66e-07  1.64e-07  1.67e-07  1.71e-07  1.78e-07  3.40e-07  3.26e-06  3.45e-05  2.06e-04
+## B. 其他关键位置
+  face0 极冠/赤道交界 (0.5,0.5) 弦偏差=2.063858e-04 hp_res
+  face0 三角点角 (0,0)         弦偏差=3.041875e-10 hp_res
+  face0 三角点角 (1,0)         弦偏差=7.838177e-08 hp_res
+  face0 赤道三角内部 (0.2,0.2) 弦偏差=1.946951e-05 hp_res
+  face4 赤道面中心 (0.5,0.5)  弦偏差=1.097367e-09 hp_res
+  face4 z=0 角 (1,0)              弦偏差=4.007864e-10 hp_res
+	Command being timed: "verify/p6 all"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 87%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4148
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 345
+	Voluntary context switches: 1
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 16
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

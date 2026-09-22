@@ -1,0 +1,47 @@
+
+## T11 叶边界弦偏差 / hp_res 的空间分布 (nside=2097152, hp_res=0.1006")
+  北极冠 (face0, 距极点 d 个叶, 方位 k*45deg):
+    d= 0 叶: 最大弦偏差=0.06389 hp_res (采样 1)
+    d= 1 叶: 最大弦偏差=0.06389 hp_res (采样 1)
+    d= 2 叶: 最大弦偏差=0.01589 hp_res (采样 1)
+    d= 3 叶: 最大弦偏差=0.01589 hp_res (采样 1)
+    d= 4 叶: 最大弦偏差=0.00878 hp_res (采样 1)
+    d= 5 叶: 最大弦偏差=0.00878 hp_res (采样 1)
+    d= 6 叶: 最大弦偏差=0.00603 hp_res (采样 1)
+    d= 7 叶: 最大弦偏差=0.00603 hp_res (采样 1)
+    d= 8 叶: 最大弦偏差=0.00459 hp_res (采样 1)
+    d= 9 叶: 最大弦偏差=0.00459 hp_res (采样 1)
+    d=10 叶: 最大弦偏差=0.00370 hp_res (采样 1)
+    d=11 叶: 最大弦偏差=0.00370 hp_res (采样 1)
+    d=12 叶: 最大弦偏差=0.00310 hp_res (采样 1)
+  其他区域:
+    face0 极冠/赤道交界 (u+v=1) 弦偏差=0.000206 hp_res
+    face0 三角点角 (0,0)       弦偏差=0.000000 hp_res
+    face0 三角点角 (1,0)       弦偏差=0.000000 hp_res
+    face0 赤道三角内部       弦偏差=0.000019 hp_res
+    face4 赤道面中心          弦偏差=0.000000 hp_res
+    face4 z=0 角 (1,0)            弦偏差=0.000000 hp_res
+    face4 极冠边界 (u+v=1)     弦偏差=0.000000 hp_res
+	Command being timed: "verify/p3 t11"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4012
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 159
+	Voluntary context switches: 1
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
