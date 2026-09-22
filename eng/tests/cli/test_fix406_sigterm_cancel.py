@@ -177,7 +177,7 @@ def _annotate_p3_input(src, dst):
     if os.path.isdir(dst):
         shutil.rmtree(dst)
     shutil.copytree(src, dst)
-    candidates = ["ADU/px^2", "ADU/px^-2", "ADU"]
+    candidates = ["ADU/sr", "ADU/px^-2", "ADU"]
     with tempfile.TemporaryDirectory(prefix="fix406_bunit_") as scratch:
         _set_bunit(dst, candidates[0])
         rc, err = _export_rc(dst, scratch)

@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
-"""RUNTIME-CI-001 确定性驱动：V6 三模式入口 + Phase1/2/3 写盘路径的逐字节一致回归。
+"""RUNTIME-CI-001 确定性驱动：V6 三模式入口 + Phase1/2/3 写盘路径的跨 worker 预算等价回归。
 
-方法：
+方法（判据口径 = ASTROCS_DESIGN.md §8.3/§9 + docs/contracts/SCHEDULER_CONTRACT.md §2.1 +
+docs/contracts/TEST_MATRIX.md §2）：
   * 独立（standalone）构建 eng/tests/integration/v6_p1 | v6_p2 | v6_p3 的写盘测试；
   * 同一输入在**不同 CPU 预算**（taskset 1/2/4/8 核）下重复运行；
-  * 对每个产物目录做**内容摘要**（相对路径 + 文件内容 SHA-256，排序后聚合；
-    目录名/日志不参与），要求跨预算逐字节一致；
-  * 产物缺失/运行失败/摘要不一致 → FAIL（rc 1）；构建或 taskset 缺失 → 清晰 FAIL（rc 2）。
+  * 第一档判据：对每个产物目录做**内容摘要**（相对路径 + 文件内容 SHA-256，排序后聚合；
+    目录名/日志不参与），跨预算**逐字节一致** ⇒ PASS（最强档）；
+  * 第二档判据：摘要不同时**不直接判红**，改按冻结浮点容差做逐文件数值等价比对
+    （eng/tools/v6/v6_numeric_equiv.py；FP64 rtol=1e-12/atol=1e-13×scale、FP32
+    rtol=5e-6/atol=1e-6×scale、整数/mask/索引/NaN 位置精确一致），全部在容差内 ⇒ PASS；
+    超差或结构不一致 ⇒ FAIL。理由：1/N worker 的合同判据是**浮点容差**而非逐位一致
+    （负责人裁决 2026-09-22：「数值精度在浮点容差内就可以」），但容差档必须仍能抓住真实
+    退化——因此保留逐字节档为优先判据，且容差档自带敏感性自检。
+  * 产物缺失/运行失败/两档均不通过 → FAIL（rc 1）；构建或 taskset 缺失 → 清晰 FAIL（rc 2）。
 
 用法:
   python3 eng/tools/v6/v6_determinism_driver.py [--repo <root>] [--work-root <dir>]
         [--budgets 1,2,4,8] [--skip-build] [--json-out <path>]
-exit 0 = 全部写盘路径跨预算逐字节一致；1 = 不一致；2 = 环境/构建缺失（fail-closed）。
+exit 0 = 全部写盘路径跨预算等价（逐字节或容差内）；1 = 不一致；2 = 环境/构建缺失（fail-closed）。
 """
 from __future__ import annotations
 
@@ -23,6 +30,9 @@ import pathlib
 import shutil
 import subprocess
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import v6_numeric_equiv  # noqa: E402  （同目录兄弟模块：容差档逐文件数值等价比对）
 
 DEFAULT_REPO = pathlib.Path(__file__).resolve().parents[3]
 
@@ -145,6 +155,7 @@ def run_spec(repo: pathlib.Path, work_root: pathlib.Path, spec: dict,
         res["error"] = "binary missing: %s" % binary
         return res
     digests = {}
+    roots = {}
     for b in budgets:
         run_dir = work_root / "runs" / spec["name"] / ("b%d" % b)
         if run_dir.exists():
@@ -196,13 +207,78 @@ def run_spec(repo: pathlib.Path, work_root: pathlib.Path, spec: dict,
                                 "change digest (determinism gate is blind)")
                 return res
         digests[b] = dig["digest"]
+        roots[b] = prod_root
         res["runs"].append({"budget": b, "rc": p.returncode, "cpus": sel,
                             "digest": dig["digest"], "n_files": dig["n_files"]})
     uniq = set(digests.values())
-    res["ok"] = (len(uniq) == 1 and len(digests) == len(budgets))
+    if len(uniq) == 1 and len(digests) == len(budgets):
+        res["ok"] = True
+        res["mode"] = "bitwise"
+        return res
+    # 第二档：按冻结浮点容差做逐文件数值等价比对（SCHEDULER_CONTRACT §2.1）。
+    norm = [work_root / "runs" / spec["name"] / ("b%d" % b) for b in budgets]
+    cmp_res = v6_numeric_equiv.compare_roots([roots[b] for b in budgets],
+                                             normalize_dirs=norm)
+    # 容差档敏感性自检：把首个产物根的某个浮点载荷扰动到远超容差，必须被判红
+    # （防容差档被做成恒绿）。
+    if cmp_res["ok"]:
+        probe = _tolerance_sensitivity_probe([roots[b] for b in budgets], norm)
+        if probe is not None and probe.get("ok"):
+            res["ok"] = False
+            res["mode"] = "tolerance"
+            res["comparison"] = cmp_res
+            res["error"] = ("tolerance-path sensitivity self-check failed: %s"
+                            % probe.get("reason", "perturbed payload not detected"))
+            return res
+    res["ok"] = bool(cmp_res["ok"])
+    res["mode"] = "tolerance"
+    res["comparison"] = {k: v for k, v in cmp_res.items() if k != "offenders"}
     if not res["ok"]:
-        res["error"] = "digest mismatch across budgets: %s" % json.dumps(digests)
+        res["error"] = ("not equivalent across budgets: bitwise digest mismatch (%s) and "
+                        "tolerance comparison failed: %s"
+                        % (json.dumps(digests), json.dumps(res["comparison"], ensure_ascii=False)))
     return res
+
+
+def _tolerance_sensitivity_probe(roots, normalize_dirs):
+    """容差档非退化自检：扰动一个浮点载荷，必须被 compare_roots 判红。
+
+    返回 None 表示找不到可扰动的浮点载荷（此时不阻断，如实记录）；返回 {"ok": True, ...}
+    表示「扰动后仍判绿」= 容差档失效，调用方必须判红。
+    """
+    import shutil as _shutil
+    import tempfile
+
+    try:
+        import numpy as np
+        from astropy.io import fits
+    except ImportError:
+        return None
+    src = pathlib.Path(roots[0])
+    for p in sorted(src.rglob("*")):
+        if p.suffix.lower() not in (".fits", ".fts", ".fit"):
+            continue
+        try:
+            with fits.open(p, memmap=False) as h:
+                if h[0].data is None or h[0].data.dtype.kind != "f":
+                    continue
+                data = np.array(h[0].data, copy=True)
+                header = h[0].header.copy()
+        except Exception:
+            continue
+        with tempfile.TemporaryDirectory() as td:
+            td = pathlib.Path(td)
+            a_dir, b_dir = td / "a", td / "b"
+            a_dir.mkdir(); b_dir.mkdir()
+            fits.PrimaryHDU(data, header=header).writeto(a_dir / p.name, overwrite=True)
+            bumped = data.copy()
+            flat = bumped.reshape(-1)
+            flat[0] = flat[0] * 2.0 + 1.0 if flat[0] != 0 else 1.0
+            fits.PrimaryHDU(bumped, header=header).writeto(b_dir / p.name, overwrite=True)
+            v = v6_numeric_equiv.compare_roots([a_dir, b_dir])
+            return {"ok": bool(v["ok"]), "file": str(p),
+                    "reason": "" if v["ok"] else "perturbed float payload detected (expected)"}
+    return None
 
 
 def main(argv=None):

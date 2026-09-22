@@ -23,10 +23,10 @@
   "units_table": [
     {
       "symbol": "signal_sb",
-      "unit": "ADU/px^2",
+      "unit": "ADU/sr",
       "meaning": "Phase1 Drizzle/HiPS 面亮度 signal",
-      "variance_unit": "ADU^2/px^4",
-      "ivar_unit": "px^4/ADU^2"
+      "variance_unit": "ADU^2/sr^2",
+      "ivar_unit": "sr^2/ADU^2"
     },
     {
       "symbol": "pixel_variance_in",
@@ -59,7 +59,7 @@
     {
       "symbol": "phase2_mosaic_signal",
       "unit": "BUNIT(声明)",
-      "meaning": "Phase2 马赛克 signal; 面亮度产品则 ADU/px^2",
+      "meaning": "Phase2 马赛克 signal; 面亮度产品则 ADU/sr",
       "variance_unit": "BUNIT^2",
       "ivar_unit": "1/BUNIT^2"
     },
@@ -260,12 +260,12 @@
       "kind": "unit",
       "layer": "science",
       "subject": "S_p (Phase1 drizzle/HiPS 面亮度 signal)",
-      "value": "ADU/px^2",
+      "value": "ADU/sr",
       "scope": "Phase1 signal",
       "anchor": "DRIZZLE.md §5:48; ADJ-F-OBS-01",
       "gate": "BUNIT 量纲可判门",
-      "fail_closed": "signal 缺 units，或 SB signal 单位 ≠ ADU/px^2 且 BUNIT 不可判 → unavailable/REJECT",
-      "negative_mutation": "把 signal_sb 单位改为 ADU 或 ADU^2/px^4，量纲代数门必须 rc!=0",
+      "fail_closed": "signal 缺 units，或 SB signal 单位 ≠ ADU/sr 且 BUNIT 不可判 → unavailable/REJECT",
+      "negative_mutation": "把 signal_sb 单位改为 ADU 或 ADU^2/sr^2，量纲代数门必须 rc!=0",
       "status": "FROZEN",
       "owner_signoff": null,
       "signoff_reason": null,
@@ -281,10 +281,10 @@
       "anchor": "DRIZZLE.md §3:27; ADJ-F-OBS-01",
       "gate": "量纲代数门",
       "fail_closed": "输入逐像素方差单位 ≠ ADU^2（与输出面亮度方差混名）→ REJECT",
-      "negative_mutation": "pixel_variance_in 单位写成 ADU^2/px^4 → rc!=0",
+      "negative_mutation": "pixel_variance_in 单位写成 ADU^2/sr^2 → rc!=0",
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-01",
-      "signoff_reason": "F-OBS-01：DRIZZLE §3 把输入 v_j(ADU^2) 与输出 variance_p(ADU^2/px^4) 同名写作 variance；术语/单位修正须负责人签字（宪章 §1.2）",
+      "signoff_reason": "F-OBS-01：DRIZZLE §3 把输入 v_j(ADU^2) 与输出 variance_p(ADU^2/sr^2) 同名写作 variance；术语/单位修正须负责人签字（宪章 §1.2）",
       "required_freeze_id": false
     },
     {
@@ -292,11 +292,11 @@
       "kind": "unit",
       "layer": "science",
       "subject": "sb_variance_out variance_p",
-      "value": "ADU^2/px^4",
+      "value": "ADU^2/sr^2",
       "scope": "Phase1 variance",
       "anchor": "DRIZZLE.md §5:55; ADJ-F-OBS-01",
       "gate": "variance=signal^2",
-      "fail_closed": "sb_variance_out ≠ ADU^2/px^4 或 variance ≠ signal^2 → REJECT",
+      "fail_closed": "sb_variance_out ≠ ADU^2/sr^2 或 variance ≠ signal^2 → REJECT",
       "negative_mutation": "sb_variance_out 单位改 ADU^2 → rc!=0",
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-01",
@@ -308,15 +308,15 @@
       "kind": "unit",
       "layer": "science",
       "subject": "sb_ivar_out",
-      "value": "px^4/ADU^2",
+      "value": "sr^2/ADU^2",
       "scope": "Phase1 ivar",
       "anchor": "DRIZZLE.md §5:56; ADJ-F-OBS-01",
       "gate": "ivar=1/variance",
-      "fail_closed": "sb_ivar_out ≠ px^4/ADU^2 或 ivar ≠ 1/variance → REJECT",
+      "fail_closed": "sb_ivar_out ≠ sr^2/ADU^2 或 ivar ≠ 1/variance → REJECT",
       "negative_mutation": "sb_ivar_out 单位改 ADU^-2 → rc!=0",
       "status": "PENDING_OWNER_SIGNOFF",
       "owner_signoff": "SO-01",
-      "signoff_reason": "同上（输出 ivar 单位 px^4/ADU^2 修正）",
+      "signoff_reason": "同上（输出 ivar 单位 sr^2/ADU^2 修正）",
       "required_freeze_id": false
     },
     {
@@ -345,7 +345,7 @@
       "anchor": "UNIFIED §4; ADJ-P2-01",
       "gate": "Var(F)=1/W",
       "fail_closed": "F_hat ≠ ADU 或 Var(F_hat) ≠ ADU^2 或 Var(F)≠1/W → REJECT",
-      "negative_mutation": "F_hat 单位改 ADU/px^2 → rc!=0",
+      "negative_mutation": "F_hat 单位改 ADU/sr → rc!=0",
       "status": "FROZEN",
       "owner_signoff": null,
       "signoff_reason": null,
@@ -388,7 +388,7 @@
       "kind": "field",
       "layer": "data",
       "subject": "BUNIT/pixel_area_power",
-      "value": "BUNIT 必须量纲可判：显式 px 幂次 或 provenance pixel_semantics=surface_brightness+pixel_area_power=-2",
+      "value": "BUNIT 必须量纲可判：显式立体角幂次 或 provenance pixel_semantics=surface_brightness+pixel_area_power=-2",
       "scope": "全部产品写盘",
       "anchor": "ADJ-F-OBS-01; DATA_SEMANTICS §30.4:2475",
       "gate": "单位不可判 -> unavailable/REJECT",
@@ -2650,7 +2650,7 @@
         "FZ-BUNIT-SEMANTICS"
       ],
       "signoff": "SO-01",
-      "suggested_wording": "把该行拆为 `pixel_variance_in`（输入 v_j，ADU^2）与 `sb_variance_out`（输出 variance_p，ADU^2/px^4）两名单列，`ivar` 单位改为 px^4/ADU^2；由负责人签字后由 DOC-CONVERGE-001 统一改写。"
+      "suggested_wording": "把该行拆为 `pixel_variance_in`（输入 v_j，ADU^2）与 `sb_variance_out`（输出 variance_p，ADU^2/sr^2）两名单列，`ivar` 单位改为 sr^2/ADU^2；由负责人签字后由 DOC-CONVERGE-001 统一改写。"
     },
     {
       "id": "SUP-02",
@@ -2804,15 +2804,15 @@
   "design_units_table": [
     {
       "symbol": "signal_sb",
-      "unit": "ADU/px^2",
+      "unit": "ADU/sr",
       "meaning": "Phase1 Drizzle/HiPS 面亮度 signal",
-      "variance_unit": "ADU^2/px^4",
-      "ivar_unit": "px^4/ADU^2",
+      "variance_unit": "ADU^2/sr^2",
+      "ivar_unit": "sr^2/ADU^2",
       "clause_id": "FZ-UNIT-SIGNAL-SB"
     },
     {
       "symbol": "sb_variance_out",
-      "unit": "ADU^2/px^4",
+      "unit": "ADU^2/sr^2",
       "meaning": "Phase1 输出面亮度方差 variance_p",
       "variance_unit": null,
       "ivar_unit": null,
@@ -2820,7 +2820,7 @@
     },
     {
       "symbol": "sb_ivar_out",
-      "unit": "px^4/ADU^2",
+      "unit": "sr^2/ADU^2",
       "meaning": "Phase1 输出 ivar",
       "variance_unit": null,
       "ivar_unit": null,
@@ -2869,7 +2869,7 @@
     {
       "symbol": "phase2_mosaic_signal",
       "unit": "BUNIT(声明)",
-      "meaning": "Phase2 马赛克 signal; 面亮度产品则 ADU/px^2",
+      "meaning": "Phase2 马赛克 signal; 面亮度产品则 ADU/sr",
       "variance_unit": "BUNIT^2",
       "ivar_unit": "1/BUNIT^2",
       "clause_id": "FZ-UNIT-SIGNAL-SB"
@@ -2888,7 +2888,7 @@
     "freeze_id": "FZ-P3-BUNIT-QUADRATIC"
   },
   "bunit_semantics": {
-    "rule": "BUNIT 必须量纲可判: (a) 显式含 px 幂次(canonical ADU/px^2 与 ADU^2/px^4); 或 (b) BUNIT=ADU 时 provenance 必须声明 pixel_semantics=surface_brightness + pixel_area_power=-2 + 目标像素面积",
+    "rule": "BUNIT 必须量纲可判: (a) 显式含立体角幂次(canonical ADU/sr 与 ADU^2/sr^2); 或 (b) BUNIT=ADU 时 provenance 必须声明 pixel_semantics=surface_brightness + pixel_area_power=-2 + 目标像素面积",
     "freeze_id": "FZ-BUNIT-SEMANTICS",
     "pixel_area_power_defaults": {
       "signal_sb": -2,
@@ -2900,9 +2900,9 @@
       "psfsw_robust_weight": 0
     },
     "judgeable_units": [
-      "ADU/px^2",
-      "ADU^2/px^4",
-      "px^4/ADU^2"
+      "ADU/sr",
+      "ADU^2/sr^2",
+      "sr^2/ADU^2"
     ]
   },
   "provenance_minimal_set": [
@@ -3970,8 +3970,8 @@
       },
       {
         "id": "MIG-UNITS-PXVARIANCE",
-        "from": "同名 variance（输入 v_j=ADU^2 与输出 variance_p=ADU^2/px^4 混名；DRIZZLE §3:27）",
-        "to": "pixel_variance_in(ADU^2) / sb_variance_out(ADU^2/px^4) / sb_ivar_out(px^4/ADU^2) 分离命名",
+        "from": "同名 variance（输入 v_j=ADU^2 与输出 variance_p=ADU^2/sr^2 混名；DRIZZLE §3:27）",
+        "to": "pixel_variance_in(ADU^2) / sb_variance_out(ADU^2/sr^2) / sb_ivar_out(sr^2/ADU^2) 分离命名",
         "reader_rule": "BUNIT=ADU 且 provenance 无 pixel_semantics=surface_brightness + pixel_area_power=-2 + 目标像素面积 → 单位不可判 → unavailable/REJECT",
         "anchor": "FZ-UNIT-VAR-IN; FZ-UNIT-VAR-SB; FZ-UNIT-IVAR-SB; FZ-BUNIT-SEMANTICS; SO-01",
         "legacy_status": "SUPERSEDED_PENDING_SIGNOFF",

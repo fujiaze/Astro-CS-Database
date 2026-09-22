@@ -153,7 +153,7 @@ flowchart LR
 - **归档形态写出**：产品先按裸形态在 run 私有 stage 写出并逐瓦片校验（结构 + DATASUM），再按确定性顺序打包为 tar 流，**按 tar 成员边界切分为独立 zstd 帧**（每成员一帧），串接写出 `<name>.hips.zst`；同时写出产品级索引。归档、索引、完成 manifest 全部 `fsync` 后按 IO-003 的原子发布语义落位，**完成 manifest 最后落**，它是唯一完成标记。
 - **帧边界 = 成员边界**：使"瓦片 → 单帧"成为恒等映射，随机访问一次解压即得一个完整瓦片；也保证标准工具（`zstd -dc | tar -xf`）能还原完整 tar 流。
 - **裸形态写出**：与现状相同（临时区 → 校验 → 哈希 → 原子改名 → 完成清单），额外写出产品级索引。
-- **形态切换**：Phase1 由配置显式选择；Phase2 固定裸形态（服务面）。形态不影响科学结果——同一输入下两形态的产品内容逐字节一致（哈希口径见 §8）。
+- **形态切换**：Phase1 由**输入配置键** `storage_form`（`archive` 默认 / `bare`；缺省或留空 ⇒ 默认 + warn，见 §10.1）显式选择；Phase2 固定裸形态（服务面）、Phase3 固定裸 FITS（不套壳）。形态不影响科学结果——同一输入下两形态的产品内容逐字节一致（哈希口径见 §8）。
 - **写入侧的合法性证据**：归档形态在打包前对**裸瓦片**执行既有校验，归档解压后的合法性因此在写入侧已被证明，而不是留给读端发现。
 
 ## 8. properties 与哈希口径
@@ -210,9 +210,44 @@ flowchart LR
 - **归档形态：两种机制都不实施。** 实测在整包 zstd 之后再施加包围盒 TRIM，压缩包体积几乎不变（收益被 zstd 完全吸收），却引入草案关键字与读端补 NaN 的实现定义风险；打洞对归档容器同理无收益（容器字节不是全零区）。
 - 该结论来自 `run/HIPS-PACK-01/REPORT.md` §8，**本设计不改归档形态**；TRIM 的落点只在裸形态。
 
-## 10. 边界
+## 10. 形态的输入配置与清单登记
+
+形态选择落在**输入 JSON**，产物把形态与索引路径**自报进输出清单**——两者合起来使不同批次 Phase1 的输出 JSON 可以合并而不丢索引（细则与不变式 F0/F1..F4/M1..M4 见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §10；字段名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`）。
+
+### 10.1 输入：Phase1 的形态切换键
+
+| 项 | 内容 |
+|---|---|
+| 键 | `storage_form`（Phase1 输入 JSON 的块内键 / 平铺单块简写的顶层键） |
+| 取值 | `archive`（默认）\| `bare` |
+| 缺省 / 留空 | 取默认 `archive` **并报一条 warn**（日志合同 §2；**禁止静默取默认**）；缺省事实记入 `manifest.json#storage.form_source = "default"` |
+| 显式 | 按该形态落盘，不报 warn（`form_source = "config"`） |
+| Phase2 / Phase3 | 输入合同**不设**该键（产物固定裸形态）；出现即 REJECT |
+
+形态是**输入配置项**而不是运行期开关：同一份输入 JSON 在不同机器上必须得到同一种落盘形态，才谈得上跨机器可复现。
+
+### 10.2 输出：逐帧自报索引路径与指纹
+
+Phase1 的 `p1_products.json` 逐帧条目新增 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`（加性），运行级新增 `coverage_index`（`path` / `sha256` / `n_frames` / `n_blocks`）。
+
+- **为什么索引路径必须显式进输出 JSON**：合并不同批次的 Phase1 输出时，逐帧索引路径随条目一起搬移 ⇒ 索引不会丢、不会指错产品；数据集级 `coverage.index.json` 是**派生产物**，合并后由各产品级索引重算。
+- `archive_sha256` 是**容器指纹**，不是产品身份；产品身份 = `tree_hash`（取解压后内容，§8.2）。
+
+### 10.3 Phase2 输入：加性可选的总索引引用
+
+- `hips_paths` 的元素**保持字符串**（不做元素对象化）：逐帧产品级索引路径由命名规则派生 —— `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`。
+- 额外的「总索引」引用用**加性可选键** `coverage_index`（路径字符串）；缺失 ⇒ 规定回退 = 读入全部产品级索引现场倒排（§5.2）。
+
+### 10.4 运行完成清单 storage 段
+
+<output_dir>/manifest.json` 新增 `storage` 段（加性）：运行级 `storage_form` / `form_source`、逐产品 `products[]`（`product` / `storage_form` / `index_path` / `index_sha256` / `archive_bytes` / `archive_sha256` / `tree_hash`）与 `coverage_index`。
+
+**为什么 storage 段在运行完成清单而不是产品内的产品集 manifest**：产品集 manifest 在产品根内（归档形态下被封进 tar），把它自己所在容器的 sha256 写进自身是自引用，解压前也读不到。运行完成清单在产品之外，是唯一能同时承载「容器指纹 + 索引指纹 + 形态来源」的位置。
+
+## 11. 边界
 
 - 本设计不引入逐瓦片压缩，不引入自定义容器格式（不使用 zstd skippable frame 混装"不压缩区"）：单文件内混装会使标准工具解压后的内容缺块，与"解压后合法"冲突。
 - 本设计不改科学公式、容差、权重与归约顺序；形态只影响磁盘表示与 I/O 路径。
 - 归档形态**不**作为 Phase2 的服务形态；Phase3 **不**套壳。
 - 索引不承载有效性判定，只承载块级候选与定位。
+- 形态选择只经**输入配置**（Phase1 的 `storage_form`）；Phase2/Phase3 的输入合同**不设**形态键，出现即 REJECT —— 不用「值域只允许 bare」的写法，因为运行期配置门是键白名单而非 JSON Schema，收窄值域会让 `archive` 静默透传成 no-op。

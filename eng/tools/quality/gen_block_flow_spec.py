@@ -22,13 +22,14 @@ REG = os.path.join(REPO, "lib/infrastructure/pipeline/module_ports.registry.json
 OUT = os.path.join(REPO, "eng/contracts/block_flow/stage_block_flow.json")
 
 PHASE_TO_STAGE = {"phase1": "normalize", "phase2": "mosaic", "phase3": "export"}
-# 阶段终产物（外部输出）——按各阶段 CLI 合同：normalize→fits，mosaic→mosaic，export→verified
-# 各阶段对外发布的磁盘产品（最高设计 §8.1 三命令合同）：
-#   normalize → fits（标准化帧）
-#   mosaic    → mosaic（马赛克树）
-#   export    → fits（投影 FITS 产品）+ verified（校验报告）
-STAGE_TERMINALS = {"normalize": {"fits"}, "mosaic": {"mosaic"},
-                   "export": {"fits", "verified"}}
+# 阶段终产物（外部输出）——端口身份即真实产物（ASTROCS_DESIGN.md §8.1 三命令合同 +
+# 跨阶段唯一载体 = HiPS 产品树）：
+#   normalize → frame_hips（逐帧 HiPS 树，mosaic 的输入）+ p1_products（产品清单）+ p1_final（逐帧清单）
+#   mosaic    → mosaic_hips（马赛克 HiPS 树，export 的输入）+ p2_final（马赛克清单）
+#   export    → p3_fits（投影 FITS 产品）+ p3_verify（校验报告）
+STAGE_TERMINALS = {"normalize": {"frame_hips", "p1_final", "p1_products"},
+                   "mosaic": {"mosaic_hips", "p2_final"},
+                   "export": {"p3_fits", "p3_verify"}}
 
 
 def main():

@@ -10,10 +10,10 @@
       "operation": "read_properties",
       "entry": "astrocs_phase3_properties_v1",
       "reads": [
-        "hips"
+        "mosaic_hips"
       ],
       "writes": [
-        "props"
+        "p3_props"
       ]
     },
     {
@@ -22,10 +22,10 @@
       "operation": "build_wcs",
       "entry": "astrocs_phase3_wcs_v1",
       "reads": [
-        "props"
+        "p3_props"
       ],
       "writes": [
-        "wcs_plan"
+        "p3_wcs"
       ]
     },
     {
@@ -34,11 +34,12 @@
       "operation": "resample_projection",
       "entry": "astrocs_phase3_resample_v1",
       "reads": [
-        "wcs_plan",
-        "hips"
+        "p3_props",
+        "p3_wcs",
+        "mosaic_hips"
       ],
       "writes": [
-        "resampled"
+        "p3_resampled"
       ]
     },
     {
@@ -47,10 +48,14 @@
       "operation": "write_fits",
       "entry": "astrocs_phase3_writer_v1",
       "reads": [
-        "resampled"
+        "p3_resampled",
+        "p3_wcs",
+        "run_context",
+        "mosaic_hips"
       ],
       "writes": [
-        "fits"
+        "p3_fits",
+        "p3_writer"
       ]
     },
     {
@@ -59,10 +64,13 @@
       "operation": "verify_output",
       "entry": "astrocs_phase3_verify_v1",
       "reads": [
-        "fits"
+        "p3_resampled",
+        "p3_writer",
+        "p3_wcs",
+        "p3_fits"
       ],
       "writes": [
-        "verified"
+        "p3_verify"
       ]
     },
     {
@@ -71,10 +79,10 @@
       "operation": "compute_coverage",
       "entry": "astrocs_phase2_coverage_v1",
       "reads": [
-        "calibrated"
+        "frame_hips"
       ],
       "writes": [
-        "coverage"
+        "p2_coverage"
       ]
     },
     {
@@ -83,10 +91,10 @@
       "operation": "sample_frames",
       "entry": "astrocs_phase2_sample_v1",
       "reads": [
-        "coverage"
+        "p2_coverage"
       ],
       "writes": [
-        "samples"
+        "p2_samples"
       ]
     },
     {
@@ -95,10 +103,11 @@
       "operation": "fit_upm",
       "entry": "astrocs_phase2_upmfit_v1",
       "reads": [
-        "samples"
+        "p2_samples"
       ],
       "writes": [
-        "upm_model"
+        "p2_upm_model",
+        "p2_sky_plane"
       ]
     },
     {
@@ -107,11 +116,14 @@
       "operation": "apply_upm",
       "entry": "astrocs_phase2_upmapply_v1",
       "reads": [
-        "upm_model",
-        "calibrated_frames"
+        "p2_upm_model",
+        "p2_sky_plane",
+        "p2_coverage",
+        "p2_samples",
+        "frame_hips"
       ],
       "writes": [
-        "corrected"
+        "p2_corrected"
       ]
     },
     {
@@ -120,10 +132,11 @@
       "operation": "reject_outliers",
       "entry": "astrocs_phase2_reject_v1",
       "reads": [
-        "corrected"
+        "p2_corrected",
+        "frame_hips"
       ],
       "writes": [
-        "accepted_mask"
+        "p2_rejection"
       ]
     },
     {
@@ -132,11 +145,12 @@
       "operation": "integrate_frames",
       "entry": "astrocs_phase2_integrate_v1",
       "reads": [
-        "accepted_mask",
-        "corrected"
+        "p2_corrected",
+        "p2_rejection",
+        "frame_hips"
       ],
       "writes": [
-        "integrated"
+        "p2_integrated"
       ]
     },
     {
@@ -145,10 +159,15 @@
       "operation": "write_mosaic",
       "entry": "astrocs_phase2_write_v1",
       "reads": [
-        "integrated"
+        "p2_integrated",
+        "p2_coverage",
+        "p2_samples",
+        "p2_upm_model",
+        "p2_rejection"
       ],
       "writes": [
-        "mosaic"
+        "mosaic_hips",
+        "p2_final"
       ]
     },
     {
@@ -157,10 +176,13 @@
       "operation": "calibrate",
       "entry": "astrocs_phase1_calibrate_v1",
       "reads": [
-        "frames"
+        "lights",
+        "master_bias",
+        "master_dark",
+        "master_flat"
       ],
       "writes": [
-        "calibrated"
+        "p1_calibrated"
       ]
     },
     {
@@ -169,10 +191,10 @@
       "operation": "cosmetic_correct",
       "entry": "astrocs_phase1_cosmetic_v1",
       "reads": [
-        "calibrated"
+        "p1_calibrated"
       ],
       "writes": [
-        "cleaned"
+        "p1_cleaned"
       ]
     },
     {
@@ -181,11 +203,11 @@
       "operation": "detect_sources",
       "entry": "astrocs_phase1_starpsf_v1",
       "reads": [
-        "cleaned"
+        "p1_cleaned"
       ],
       "writes": [
-        "sources",
-        "psf"
+        "p1_sources",
+        "p1_psf"
       ]
     },
     {
@@ -194,10 +216,10 @@
       "operation": "plate_solve",
       "entry": "astrocs_phase1_wcs_v1",
       "reads": [
-        "sources"
+        "p1_calibrated"
       ],
       "writes": [
-        "wcs"
+        "p1_wcs"
       ]
     },
     {
@@ -206,13 +228,15 @@
       "operation": "measure_flux",
       "entry": "astrocs_phase1_photometry_v1",
       "reads": [
-        "psf",
-        "sources",
-        "wcs"
+        "p1_sources",
+        "p1_wcs",
+        "p1_calibrated",
+        "p1_photscale"
       ],
       "writes": [
-        "fluxes",
-        "photprov"
+        "p1_flux",
+        "p1_phot",
+        "p1_photoapplied"
       ]
     },
     {
@@ -221,10 +245,12 @@
       "operation": "estimate_snr",
       "entry": "astrocs_phase1_noisesnr_v1",
       "reads": [
-        "fluxes"
+        "p1_sources",
+        "p1_phot",
+        "p1_cleaned"
       ],
       "writes": [
-        "snr"
+        "p1_snr"
       ]
     },
     {
@@ -233,12 +259,16 @@
       "operation": "drizzle_stack",
       "entry": "astrocs_phase1_drizzle_v1",
       "reads": [
-        "calibrated",
-        "wcs",
-        "photprov"
+        "p1_phot",
+        "p1_sources",
+        "p1_snr",
+        "p1_calibrated",
+        "p1_photoapplied",
+        "p1_wcs"
       ],
       "writes": [
-        "stacked"
+        "frame_hips",
+        "p1_stack"
       ]
     },
     {
@@ -247,60 +277,30 @@
       "operation": "write_hips",
       "entry": "astrocs_phase1_writer_v1",
       "reads": [
-        "stacked"
+        "frame_hips",
+        "p1_stack"
       ],
       "writes": [
-        "fits"
+        "p1_final",
+        "p1_products"
       ]
     }
   ],
   "blocks": [
     {
       "stage": "normalize",
-      "block": "calibrated",
-      "lifecycle": "STAGE",
-      "produced_by": [
-        "astrocs.phase1.calibration"
-      ],
-      "consumed_by": [
-        "astrocs.phase1.cosmetic",
-        "astrocs.phase1.drizzle"
-      ]
-    },
-    {
-      "stage": "normalize",
-      "block": "cleaned",
-      "lifecycle": "SHORT",
-      "produced_by": [
-        "astrocs.phase1.cosmetic"
-      ],
-      "consumed_by": [
-        "astrocs.phase1.star-psf"
-      ]
-    },
-    {
-      "stage": "normalize",
-      "block": "fits",
+      "block": "frame_hips",
       "lifecycle": "EXTERNAL_OUT",
       "produced_by": [
-        "astrocs.phase1.writer"
-      ],
-      "consumed_by": []
-    },
-    {
-      "stage": "normalize",
-      "block": "fluxes",
-      "lifecycle": "SHORT",
-      "produced_by": [
-        "astrocs.phase1.photometry"
+        "astrocs.phase1.drizzle"
       ],
       "consumed_by": [
-        "astrocs.phase1.noise-snr"
+        "astrocs.phase1.writer"
       ]
     },
     {
       "stage": "normalize",
-      "block": "frames",
+      "block": "lights",
       "lifecycle": "EXTERNAL_IN",
       "produced_by": [],
       "consumed_by": [
@@ -309,7 +309,90 @@
     },
     {
       "stage": "normalize",
-      "block": "photprov",
+      "block": "master_bias",
+      "lifecycle": "EXTERNAL_IN",
+      "produced_by": [],
+      "consumed_by": [
+        "astrocs.phase1.calibration"
+      ]
+    },
+    {
+      "stage": "normalize",
+      "block": "master_dark",
+      "lifecycle": "EXTERNAL_IN",
+      "produced_by": [],
+      "consumed_by": [
+        "astrocs.phase1.calibration"
+      ]
+    },
+    {
+      "stage": "normalize",
+      "block": "master_flat",
+      "lifecycle": "EXTERNAL_IN",
+      "produced_by": [],
+      "consumed_by": [
+        "astrocs.phase1.calibration"
+      ]
+    },
+    {
+      "stage": "normalize",
+      "block": "p1_calibrated",
+      "lifecycle": "STAGE",
+      "produced_by": [
+        "astrocs.phase1.calibration"
+      ],
+      "consumed_by": [
+        "astrocs.phase1.cosmetic",
+        "astrocs.phase1.wcs-platesolve",
+        "astrocs.phase1.photometry",
+        "astrocs.phase1.drizzle"
+      ]
+    },
+    {
+      "stage": "normalize",
+      "block": "p1_cleaned",
+      "lifecycle": "STAGE",
+      "produced_by": [
+        "astrocs.phase1.cosmetic"
+      ],
+      "consumed_by": [
+        "astrocs.phase1.star-psf",
+        "astrocs.phase1.noise-snr"
+      ]
+    },
+    {
+      "stage": "normalize",
+      "block": "p1_final",
+      "lifecycle": "EXTERNAL_OUT",
+      "produced_by": [
+        "astrocs.phase1.writer"
+      ],
+      "consumed_by": []
+    },
+    {
+      "stage": "normalize",
+      "block": "p1_flux",
+      "lifecycle": "STAGE",
+      "produced_by": [
+        "astrocs.phase1.photometry"
+      ],
+      "consumed_by": []
+    },
+    {
+      "stage": "normalize",
+      "block": "p1_phot",
+      "lifecycle": "STAGE",
+      "produced_by": [
+        "astrocs.phase1.photometry"
+      ],
+      "consumed_by": [
+        "astrocs.phase1.noise-snr",
+        "astrocs.phase1.drizzle"
+      ]
+    },
+    {
+      "stage": "normalize",
+      "block": "p1_photoapplied",
       "lifecycle": "SHORT",
       "produced_by": [
         "astrocs.phase1.photometry"
@@ -320,39 +403,58 @@
     },
     {
       "stage": "normalize",
-      "block": "psf",
-      "lifecycle": "SHORT",
-      "produced_by": [
-        "astrocs.phase1.star-psf"
-      ],
+      "block": "p1_photscale",
+      "lifecycle": "EXTERNAL_IN",
+      "produced_by": [],
       "consumed_by": [
         "astrocs.phase1.photometry"
       ]
     },
     {
       "stage": "normalize",
-      "block": "snr",
-      "lifecycle": "STAGE",
+      "block": "p1_products",
+      "lifecycle": "EXTERNAL_OUT",
       "produced_by": [
-        "astrocs.phase1.noise-snr"
+        "astrocs.phase1.writer"
       ],
       "consumed_by": []
     },
     {
       "stage": "normalize",
-      "block": "sources",
+      "block": "p1_psf",
+      "lifecycle": "STAGE",
+      "produced_by": [
+        "astrocs.phase1.star-psf"
+      ],
+      "consumed_by": []
+    },
+    {
+      "stage": "normalize",
+      "block": "p1_snr",
+      "lifecycle": "SHORT",
+      "produced_by": [
+        "astrocs.phase1.noise-snr"
+      ],
+      "consumed_by": [
+        "astrocs.phase1.drizzle"
+      ]
+    },
+    {
+      "stage": "normalize",
+      "block": "p1_sources",
       "lifecycle": "STAGE",
       "produced_by": [
         "astrocs.phase1.star-psf"
       ],
       "consumed_by": [
-        "astrocs.phase1.wcs-platesolve",
-        "astrocs.phase1.photometry"
+        "astrocs.phase1.photometry",
+        "astrocs.phase1.noise-snr",
+        "astrocs.phase1.drizzle"
       ]
     },
     {
       "stage": "normalize",
-      "block": "stacked",
+      "block": "p1_stack",
       "lifecycle": "SHORT",
       "produced_by": [
         "astrocs.phase1.drizzle"
@@ -363,7 +465,7 @@
     },
     {
       "stage": "normalize",
-      "block": "wcs",
+      "block": "p1_wcs",
       "lifecycle": "STAGE",
       "produced_by": [
         "astrocs.phase1.wcs-platesolve"
@@ -375,36 +477,28 @@
     },
     {
       "stage": "mosaic",
-      "block": "accepted_mask",
-      "lifecycle": "SHORT",
-      "produced_by": [
-        "astrocs.phase2.reject"
-      ],
+      "block": "frame_hips",
+      "lifecycle": "EXTERNAL_IN",
+      "produced_by": [],
       "consumed_by": [
+        "astrocs.phase2.coverage",
+        "astrocs.phase2.upm-apply",
+        "astrocs.phase2.reject",
         "astrocs.phase2.integrate"
       ]
     },
     {
       "stage": "mosaic",
-      "block": "calibrated",
-      "lifecycle": "EXTERNAL_IN",
-      "produced_by": [],
-      "consumed_by": [
-        "astrocs.phase2.coverage"
-      ]
+      "block": "mosaic_hips",
+      "lifecycle": "EXTERNAL_OUT",
+      "produced_by": [
+        "astrocs.phase2.write"
+      ],
+      "consumed_by": []
     },
     {
       "stage": "mosaic",
-      "block": "calibrated_frames",
-      "lifecycle": "EXTERNAL_IN",
-      "produced_by": [],
-      "consumed_by": [
-        "astrocs.phase2.upm-apply"
-      ]
-    },
-    {
-      "stage": "mosaic",
-      "block": "corrected",
+      "block": "p2_corrected",
       "lifecycle": "STAGE",
       "produced_by": [
         "astrocs.phase2.upm-apply"
@@ -416,18 +510,29 @@
     },
     {
       "stage": "mosaic",
-      "block": "coverage",
-      "lifecycle": "SHORT",
+      "block": "p2_coverage",
+      "lifecycle": "STAGE",
       "produced_by": [
         "astrocs.phase2.coverage"
       ],
       "consumed_by": [
-        "astrocs.phase2.sample"
+        "astrocs.phase2.sample",
+        "astrocs.phase2.upm-apply",
+        "astrocs.phase2.write"
       ]
     },
     {
       "stage": "mosaic",
-      "block": "integrated",
+      "block": "p2_final",
+      "lifecycle": "EXTERNAL_OUT",
+      "produced_by": [
+        "astrocs.phase2.write"
+      ],
+      "consumed_by": []
+    },
+    {
+      "stage": "mosaic",
+      "block": "p2_integrated",
       "lifecycle": "SHORT",
       "produced_by": [
         "astrocs.phase2.integrate"
@@ -438,27 +543,32 @@
     },
     {
       "stage": "mosaic",
-      "block": "mosaic",
-      "lifecycle": "EXTERNAL_OUT",
+      "block": "p2_rejection",
+      "lifecycle": "STAGE",
       "produced_by": [
-        "astrocs.phase2.write"
-      ],
-      "consumed_by": []
-    },
-    {
-      "stage": "mosaic",
-      "block": "samples",
-      "lifecycle": "SHORT",
-      "produced_by": [
-        "astrocs.phase2.sample"
+        "astrocs.phase2.reject"
       ],
       "consumed_by": [
-        "astrocs.phase2.upm-fit"
+        "astrocs.phase2.integrate",
+        "astrocs.phase2.write"
       ]
     },
     {
       "stage": "mosaic",
-      "block": "upm_model",
+      "block": "p2_samples",
+      "lifecycle": "STAGE",
+      "produced_by": [
+        "astrocs.phase2.sample"
+      ],
+      "consumed_by": [
+        "astrocs.phase2.upm-fit",
+        "astrocs.phase2.upm-apply",
+        "astrocs.phase2.write"
+      ]
+    },
+    {
+      "stage": "mosaic",
+      "block": "p2_sky_plane",
       "lifecycle": "SHORT",
       "produced_by": [
         "astrocs.phase2.upm-fit"
@@ -468,8 +578,31 @@
       ]
     },
     {
+      "stage": "mosaic",
+      "block": "p2_upm_model",
+      "lifecycle": "STAGE",
+      "produced_by": [
+        "astrocs.phase2.upm-fit"
+      ],
+      "consumed_by": [
+        "astrocs.phase2.upm-apply",
+        "astrocs.phase2.write"
+      ]
+    },
+    {
       "stage": "export",
-      "block": "fits",
+      "block": "mosaic_hips",
+      "lifecycle": "EXTERNAL_IN",
+      "produced_by": [],
+      "consumed_by": [
+        "astrocs.phase3.properties",
+        "astrocs.phase3.resample2",
+        "astrocs.phase3.writer"
+      ]
+    },
+    {
+      "stage": "export",
+      "block": "p3_fits",
       "lifecycle": "EXTERNAL_OUT",
       "produced_by": [
         "astrocs.phase3.writer"
@@ -480,39 +613,31 @@
     },
     {
       "stage": "export",
-      "block": "hips",
-      "lifecycle": "EXTERNAL_IN",
-      "produced_by": [],
-      "consumed_by": [
-        "astrocs.phase3.properties",
-        "astrocs.phase3.resample2"
-      ]
-    },
-    {
-      "stage": "export",
-      "block": "props",
-      "lifecycle": "SHORT",
+      "block": "p3_props",
+      "lifecycle": "STAGE",
       "produced_by": [
         "astrocs.phase3.properties"
       ],
       "consumed_by": [
-        "astrocs.phase3.wcs"
+        "astrocs.phase3.wcs",
+        "astrocs.phase3.resample2"
       ]
     },
     {
       "stage": "export",
-      "block": "resampled",
-      "lifecycle": "SHORT",
+      "block": "p3_resampled",
+      "lifecycle": "STAGE",
       "produced_by": [
         "astrocs.phase3.resample2"
       ],
       "consumed_by": [
-        "astrocs.phase3.writer"
+        "astrocs.phase3.writer",
+        "astrocs.phase3.verify"
       ]
     },
     {
       "stage": "export",
-      "block": "verified",
+      "block": "p3_verify",
       "lifecycle": "EXTERNAL_OUT",
       "produced_by": [
         "astrocs.phase3.verify"
@@ -521,13 +646,35 @@
     },
     {
       "stage": "export",
-      "block": "wcs_plan",
-      "lifecycle": "SHORT",
+      "block": "p3_wcs",
+      "lifecycle": "STAGE",
       "produced_by": [
         "astrocs.phase3.wcs"
       ],
       "consumed_by": [
-        "astrocs.phase3.resample2"
+        "astrocs.phase3.resample2",
+        "astrocs.phase3.writer",
+        "astrocs.phase3.verify"
+      ]
+    },
+    {
+      "stage": "export",
+      "block": "p3_writer",
+      "lifecycle": "SHORT",
+      "produced_by": [
+        "astrocs.phase3.writer"
+      ],
+      "consumed_by": [
+        "astrocs.phase3.verify"
+      ]
+    },
+    {
+      "stage": "export",
+      "block": "run_context",
+      "lifecycle": "EXTERNAL_IN",
+      "produced_by": [],
+      "consumed_by": [
+        "astrocs.phase3.writer"
       ]
     }
   ]

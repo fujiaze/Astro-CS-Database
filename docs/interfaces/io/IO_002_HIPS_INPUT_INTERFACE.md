@@ -34,6 +34,10 @@ IO-002 在 IO-001（流式 FITS C ABI）之上建立 **HiPS 输入读取合同**
    归档形态**必须**有产品级索引，缺失即 fail-closed（不回退为扫描归档或逐瓦片探测）。
    形态合同见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`，设计见
    `docs/design/PRODUCT_STORAGE_FORM.md`。
+   **产品级索引路径由命名规则派生**（唯一规则，调用方不需要额外的形态或索引入参）：
+   `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`（同父目录）。读端不消费
+   任何形态配置键（`storage_form` 是**写出侧**的 Phase1 输入配置项，不是读端入参）；
+   Phase2 / Phase3 的输入合同同样不设该键（出现即 REJECT），形态一律由落盘名判定。
 
 本合同**不改科学公式**（`scientific_change=false`）；不做 tiles 解码、投影/天球坐标
 转换（科学层属于 P1/P2/P3 模块）；不做 HiPS 输出/原子发布（IO-003 范围）；

@@ -3,7 +3,7 @@
   "schema_version": 1,
   "physical_quantity": "signal",
   "product_family": "phase1_drizzle_surface_brightness",
-  "units": "ADU/px^2",
+  "units": "ADU/sr",
   "pixel_semantics": "surface_brightness",
   "pixel_area_power": -2,
   "formula_ref": "S_p = Sum_j B_j a_jp / Sum_j a_jp, B_j = x_j/A_pixel,j",

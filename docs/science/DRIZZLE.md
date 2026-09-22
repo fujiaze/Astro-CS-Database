@@ -60,7 +60,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
 语义固定（SCI-003: flux vs surface-brightness 二选一）:
   【输入 x_j = 源像素积分通量】(单位统一为 ADU/e⁻), 由天体面亮度场 B(Ω) 对像素积分:
      x_j = ∫_{pixel_j} B(Ω) dΩ = B0 × A_pixel_j   (常数面亮度场 B0)
-  【输出 S_p = 面亮度】(ADU/px²); 因此 S_p = F/D 把通量按覆盖面积归一为面亮度。
+  【输出 S_p = 面亮度】(ADU/sr); 因此 S_p = F/D 把通量按覆盖面积归一为面亮度。
   【禁止】把"每像素常量 ADU"(常数通量 x_j=C 任意等值) 与"常量天空面亮度"
   (B0 恒定 → x_j=B0×A_pixel_j 随像素面积变化) 混为一谈 —— 前者经 S_p=F_p/D_p 得
   S_p=C/A_pixel（均匀源像素面积）≠ C, 仅后者才满足"无空间调制"。常量场 oracle 应按

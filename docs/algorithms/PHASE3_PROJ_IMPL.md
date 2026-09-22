@@ -607,9 +607,9 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 | C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:99` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:739-756` / `:677-694` 已漂移 | ✅ 现址 `:1040-1057`（`grep -n p2_write_descriptor → :1040`） |
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
 | C2 | `astrocs.phase2.write.md:41` / `docs/modules/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |
-| C3 | `docs/contracts/DATA_SEMANTICS.md:1113` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/px²` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
+| C3 | `docs/contracts/DATA_SEMANTICS.md:1113` | `ADU surface brightness` 措辞歧义 | ✅ 已明确为 `ADU/sr` 并登记「产品 tile 无 `BUNIT`、properties 无像素语义 provenance」 |
 | **C4** | `lib/phase3_session/p3_session.cpp:166-172,396` + `CMakeLists.txt:759-760` | export **无**输入语义守卫：只透传 BUNIT（缺省 "ADU"）；守卫内核 `p3_rsmp_units.cpp:137-171` 与会话接线层 `p3_v6_export.cpp` **未进构建**（`grep -c p3_v6_export CMakeLists.txt` = **0**） | **lib/** ⇒ FIX / Phase3 export 域（本包只登记；**不得声称 §5.3 已生效**） |
-| **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/px^2"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
+| **C5** | `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` finalize | signal 产品不写 `BUNIT="ADU/sr"`，properties 无 `pixel_semantics`/`pixel_area_power` ⇒ 即使接线，当前产品会被自己的守卫 REJECT | **lib/** ⇒ FIX（本包只登记） |
 | C6 | 上游 P1 产品 | 真实 Phase1 `signal` 含 `±1e14–1e15` 量级值（低覆盖像素分母退化） | P1 域单独处理（登记） |
 | C7 | 实验内部判据（非生产文档） | 预注册把舍入预算 `τ=2e-6` 用于像素化主导的统计量 | 后续实验（登记） |
 | C8 | `docs/contracts/DATA_SEMANTICS.md` §20.3 | 未说明「输入 support 恒为 1 时 `astrocs_support_clamped_pixels` 也非零」 | ✅ 已补注（实测常量场 = 262144） |

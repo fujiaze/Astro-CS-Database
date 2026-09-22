@@ -107,9 +107,9 @@ class TestP3006ProductionPipeline(unittest.TestCase):
         f = os.path.join(self.big, "output_phase3.fits")
         h = fits.getheader(f)
         self.assertEqual(h["CTYPE1"], "RA---TAN")
-        # FIX-402: 输入面亮度声明 canonical "ADU/px^2" ⇒ 输出 BUNIT 继承
-        # （冻结单位表 signal_sb = ADU/px^2; 方差/ivar 由二次律导出）。
-        self.assertEqual(h["BUNIT"], "ADU/px^2")
+        # FIX-402: 输入面亮度声明 canonical "ADU/sr" ⇒ 输出 BUNIT 继承
+        # （冻结单位表 signal_sb = ADU/sr; 方差/ivar 由二次律导出）。
+        self.assertEqual(h["BUNIT"], "ADU/sr")
         d = fits.getdata(f)
         fin = d[~np.isnan(d)]
         self.assertGreater(fin.size, 0, "覆盖区不得为空")

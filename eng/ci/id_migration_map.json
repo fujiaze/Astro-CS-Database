@@ -885,6 +885,15 @@
       "name": "测光归一化施加的像素级复算门自检（裁决 B 的判据非退化面）",
       "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）",
       "steps": []
+    },
+    "CHK-BLOCKFLOW-PORTS-VS-CODE": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "块流端口↔代码双向一致门",
+      "doc": "docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
+      "steps": [
+        "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP"
+      ]
     }
   },
   "reserved_targets": {
@@ -3202,6 +3211,15 @@
       "kind": "ci",
       "grade": "P0",
       "note": "DOC-HYGIENE-01 新增执行单元（非本波基线，absorbed）：ENGINEERING_SPEC §10 可执行负例面（1 正例 + 10 负例）"
+    },
+    {
+      "old_id": "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP",
+      "decision": "KEPT",
+      "target": "CHK-BLOCKFLOW-PORTS-VS-CODE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "REGISTRY-ALIGN-01 新增执行单元（端口↔代码双向一致）"
     }
   ],
   "coverage": {
@@ -3304,6 +3322,7 @@
       "CTEST-EXPORT-STREAM",
       "CHK-BLOCKFLOW-SPEC-STEP",
       "CHK-BLOCKFLOW-CONFORMANCE-STEP",
+      "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP",
       "CTEST-BLOCK-FLOW",
       "PREFLIGHT-MATRIX-STEP",
       "E2E-CHAIN-VERIFY-STEP",
@@ -3317,7 +3336,8 @@
       "CHK-NWORKER-TOLERANCE",
       "CHK-RUN-MANIFEST-SCHEMA",
       "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
-      "CHK-PHOTOMETRY-APPLY-SELFTEST"
+      "CHK-PHOTOMETRY-APPLY-SELFTEST",
+      "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

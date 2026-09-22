@@ -69,7 +69,7 @@
 - 不调用生产实现的独立 Oracle 或解析解；
 - 科学不变量/性质测试；
 - 边界、NaN/Inf、空输入、极端参数、错误输入；
-- 1 worker 与 N worker 数值一致性；
+- 1 worker 与 N worker 数值一致性（判据 = **事前冻结的浮点容差**，不是逐位一致；容差来源与可满足性下限按 `docs/contracts/SCHEDULER_CONTRACT.md` §2.1 与 `docs/contracts/TEST_MATRIX.md` §2）；
 - baseline/AVX2/AVX-512 等价性；
 - 双平台允许误差合同；
 - 性能、线程与资源利用验证。
@@ -135,6 +135,8 @@ run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 
 - 新产物落位到对应目录，不散落根目录；确需新增根目录条目，先登记并经负责人确认；
 - **外部只读数据集**（不由本仓生成、不随仓库分发、仅供本地实验引用）在根目录以具名目录放置，登记于本节与 `eng/ci/root_manifest.json` 的 `allowed_dirs`，全部由 `.gitignore` 排除；已登记：`gaia/GaiaDR3/`、`gaia/GaiaDR3SP/`。判据：只读引用、不入库、不被根 CMake 引用、不被检查器当作仓库内容；一旦被代码消费或需入库，移入 `testdata/` 或 `artifacts/`；testdata 下数据集（BASS_DR3、HST_M16 等）的入库范围与下载方式以 `testdata/README.md` 为准；
 - CLI 运行产物只落 `output_dir`；ctest 残留归 `run/Testing_archive/`；
+- **产品落盘形态**（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）：HiPS 产品落盘名只有 `<name>.hips/`（裸 `bare`）与 `<name>.hips.zst`（归档 `archive`）两种，二者互斥；产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json` **不压缩**；归档必须是「整包 tar + 逐成员独立 zstd 帧」，使标准工具 `zstd -dc | tar -xf` 能逐字节还原；归档内 `properties` 与裸形态逐字节一致，**不得**写入任何非标准 `hips_tile_format`；产品身份哈希取**解压后内容**（`tree_hash`），容器指纹另记且不作身份；
+- **形态配置与清单**：Phase1 的落盘形态由**输入配置键** `storage_form` 选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**，禁止静默取默认）；Phase2 / Phase3 的输入合同**不设**该键，出现即 REJECT。产物必须自报形态与索引：`p1_products.json` 逐帧带 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级带 `coverage_index`；运行完成清单 `manifest.json` 带 `storage` 段。字段名与取值的唯一词表 = `eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary`；逐层文档口径一致性由 `CHK-HIPS-STORAGE-FORM --doc-consistency` 机器断言；
 - 修改代码/测试后同步订正 `eng/ci/checks.json`；
 - **Alpha 之前代码与产物中不含任何版本信息**（最高设计 §13）；发布 Alpha 时 CLI `--version` 输出 `0.0.1alpha`。
 
@@ -176,17 +178,32 @@ run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 
 - **锚存活**：检查器硬编码引用的文件/目录必须存在，失效时报 `ANCHOR_STALE`；
 - **注册表双向一致**：`eng/ci/checks.json` 与 `docs/ci/01_CHECKS.md §2` 双向对齐；
 - 修改代码/测试后本地复跑对应检查项；
-- 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、算法引用有效 SCI/ALG、核心合同有独立测试、API 文档与 AST 一致、删除/重命名无悬空引用（含文档索引）、活动文档版本号与状态均为现行、历史代码处置合规（§2）、Git diff 映射到受影响合同与最小测试集。
+- 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、算法引用有效 SCI/ALG、核心合同有独立测试、API 文档与 AST 一致、删除/重命名无悬空引用（含文档索引）、活动文档版本号与状态均为现行、历史代码处置合规（§2）、Git diff 映射到受影响合同与最小测试集、**落盘形态合同**（`CHK-HIPS-STORAGE-FORM`：命名/互斥/归档逐成员帧/索引不变式/哈希口径，含正例与负例注入）。
 
 ---
 
 ## 11. 日志、诊断与错误
 
-- 统一状态码（最高设计 §7.2 退出码表），跨平台同失败同码；
-- 结构化日志走 JSONL 事件（唯一 schema，见 eng/contracts/schemas）；
-- 错误通过统一状态码 + 结构化诊断传播；不跨 C ABI 抛异常；
+规范依据：最高设计 §7.3（错误传播与运行日志）、`docs/design/LOG_AND_ERROR_SYSTEM.md`、
+`docs/contracts/LOG_AND_ERROR_CONTRACT.md`。
+
+- 统一状态码（最高设计 §7.2 退出码表），跨平台同失败同码；退出码唯一源 `lib/infrastructure/cli/exit_codes.h`，
+  域→码映射唯一源 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §5，禁止第二套数值表；
+- 结构化日志走 JSONL 事件（唯一 schema，见 eng/contracts/schemas）；运行日志行格式正本 =
+  `lib/infrastructure/observability/logging/log_event_v1.schema.json`（LOG-001），不得另立第二套；
+- **错误必须上行到 CLI**：模块不吞错（空 catch、忽略返回码）、不只写日志不返回错误、
+  不把故障降级为"警告后继续"；错误通过统一状态码 + 结构化诊断传播；不跨 C ABI 抛异常；
+- **降级必须显式**：写 `degraded_reason` + manifest 记录 + 不改变科学语义，三者齐备才允许继续运行；
+  改变科学语义的降级按故障处理（fail-closed）；
+- **运行日志落输出目录**：`<output_dir>/logs/run_<run_id>.jsonl` 与 `run_<run_id>.log`，成功/失败/取消三路都产出，
+  收尾 fsync + 算哈希 + 原子发布并在 run manifest 的 `log_artifacts[]` 登记；
+  **禁止**落进程 CWD、源码树、`run/`、安装目录、家目录；日志写失败即运行失败（非 0 退出码），不静默；
+- 日志经 `aio` 唯一 I/O 边界写出；模块不自建文本 logger、不自持日志文件句柄、不自行决定落点；
 - 输出临时文件 + 原子提交；失败时不留可被误认成正式产品的半成品；
-- 未捕获异常 → exit 70 + 脱敏 crash report（不泄露凭据）。
+- **裸形态的体积削减（打洞）在原子发布之前、`fsync` 之后完成，且不得改变文件字节**：只对 4 KiB 对齐的整块全零区域打洞；`st_size` 与整文件 `sha256` 必须不变；卷不支持（`EOPNOTSUPP` 等）⇒ 跳过并在 provenance 记 `trim=skipped(reason)`，**不 fail-closed**。包围盒 TRIM（改 NAXIS）是**可选形态**，读端不认其关键字必须 fail-closed。细则与判据见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7。
+- 未捕获异常 → exit 70 + 脱敏 crash report（不泄露凭据）；日志/诊断不含凭据与绝对用户路径；
+- 判据 `CHK-LOG-SYS`（`eng/ci/checks.json`）：R1 错误不吞 / R2 降级显式 / R3 日志落点 / R4 台账完整 / R5 合同锚，
+  每项带可执行负例（`--self-test`）；登记台账 `eng/ci/ledgers/log_system_ledger.json` 只减不增。
 
 ---
 

@@ -2,12 +2,45 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "astrocs.hips-storage-form/v1",
   "title": "AstroCS HiPS 落盘形态索引 schema",
-  "description": "落盘形态合同 CONTRACT-STORAGE-001 的机器事实源。两个索引文件按 index_schema 选择 $defs.product_index 或 $defs.coverage_index 校验；不变式 I1..I4 / H1..H3 / R1..R6 由 eng/tools/hipsform/check_hips_storage_form.py 现场计算。",
+  "description": "落盘形态合同 CONTRACT-STORAGE-001 的机器事实源。① 两个索引文件按 index_schema 选择 $defs.product_index 或 $defs.coverage_index 校验；② 形态相关的输入配置键与输出清单字段按 $defs.frame_storage / $defs.coverage_index_ref / $defs.manifest_storage 校验。不变式 I1..I4 / H1..H3 / R1..R6 / F1..F4 / M1..M4 由 eng/tools/hipsform/check_hips_storage_form.py 现场计算。",
   "x-astrocs-contract": "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
   "x-astrocs-design": "docs/design/PRODUCT_STORAGE_FORM.md",
   "x-astrocs-index-schemas": {
     "product_index": "astrocs.hips-index/v1",
     "coverage_index": "astrocs.coverage-index/v1"
+  },
+  "x-astrocs-field-vocabulary": {
+    "note": "形态字段的唯一词表：输入配置键、输出清单字段、清单段名与文件名后缀。任一层文档只能使用本表登记的名字与取值；同义名（见 forbidden_synonyms）一律禁止。检查器 CHK-HIPS-STORAGE-FORM 逐层断言（--doc-consistency），词表漂移即判红。",
+    "phase1_input_form_key": {
+      "name": "storage_form",
+      "values": ["archive", "bare"],
+      "default": "archive",
+      "empty_means": "default_and_warn"
+    },
+    "phase2_input_index_ref_key": {
+      "name": "coverage_index",
+      "kind": "optional_additive"
+    },
+    "frame_fields": ["storage_form", "index_path", "index_sha256", "archive_sha256"],
+    "manifest_storage_section": "storage",
+    "manifest_storage_fields": ["storage_form", "form_source", "products", "coverage_index"],
+    "coverage_index_ref_fields": ["path", "sha256", "n_frames", "n_blocks"],
+    "index_name_suffix": ".hips.index.json",
+    "coverage_index_name": "coverage.index.json",
+    "forbidden_synonyms": ["storage_mode", "storage_format", "output_form", "pack_form", "index_paths", "coverage_index_path", "frame_index", "index_file"],
+    "layers": [
+      {"layer": "top-design", "file": "ASTROCS_DESIGN.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json"]},
+      {"layer": "design", "file": "docs/design/PRODUCT_STORAGE_FORM.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json", "form_source"]},
+      {"layer": "design-p1", "file": "docs/design/PHASE1_DETAILED_DESIGN.md", "must_contain": ["storage_form", "archive", "bare"]},
+      {"layer": "design-p2", "file": "docs/design/PHASE2_DETAILED_DESIGN.md", "must_contain": ["coverage_index", ".hips.index.json"]},
+      {"layer": "design-p3", "file": "docs/design/PHASE3_DETAILED_DESIGN.md", "must_contain": ["storage_form"]},
+      {"layer": "contract", "file": "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md", "must_contain": ["storage_form", "form_source", "index_path", "index_sha256", "archive_sha256", "archive_bytes", "coverage_index", ".hips.index.json", "coverage.index.json"]},
+      {"layer": "contract-config", "file": "docs/contracts/CONFIG_CONTRACT.md", "must_contain": ["storage_form", "coverage_index", "archive", "bare"]},
+      {"layer": "interface-io2", "file": "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md", "must_contain": ["storage_form", ".hips.index.json"]},
+      {"layer": "interface-io3", "file": "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md", "must_contain": ["storage_form", "index_sha256", "archive_sha256"]},
+      {"layer": "engineering", "file": "ENGINEERING_SPEC.md", "must_contain": ["storage_form", "archive", "bare", ".hips.index.json", "coverage.index.json"]},
+      {"layer": "acceptance", "file": "ACCEPTANCE_SPEC.md", "must_contain": ["storage_form", "coverage_index", "form_source"]}
+    ]
   },
   "$defs": {
     "sha256_hex": {
@@ -294,6 +327,184 @@
           "items": {
             "$ref": "#/$defs/coverage_block"
           }
+        }
+      }
+    },
+    "storage_form_value": {
+      "type": "string",
+      "enum": [
+        "archive",
+        "bare"
+      ],
+      "description": "落盘形态取值（唯一词表，见 x-astrocs-field-vocabulary）：archive = <name>.hips.zst（整包 tar + 逐成员独立 zstd 帧）；bare = <name>.hips/（目录）"
+    },
+    "frame_storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "storage_form",
+        "index_path",
+        "index_sha256",
+        "archive_sha256"
+      ],
+      "description": "p1_products.json 的 frames[] 逐帧形态字段（加性）。四个字段一个不少：缺任一 ⇒ 该帧的形态与索引不可追溯（fail-closed）。不变式 F1..F4 见合同 §10.2。",
+      "properties": {
+        "storage_form": {
+          "$ref": "#/$defs/storage_form_value"
+        },
+        "index_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "该帧产品级索引路径 = <name>.hips.index.json（与 hips_path 同父目录；两形态都必须有）"
+        },
+        "index_sha256": {
+          "$ref": "#/$defs/sha256_hex"
+        },
+        "archive_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "归档容器指纹；bare 形态恒 null。**不得**用作产品身份（身份 = tree_hash，取解压后内容）"
+        }
+      }
+    },
+    "coverage_index_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "n_frames",
+        "n_blocks"
+      ],
+      "description": "数据集级覆盖索引 coverage.index.json 的引用（运行级加性字段）。Phase1 输出 p1_products.json 与运行完成清单 manifest.json#storage 共用本定义；Phase2 输入以加性可选键 coverage_index（路径字符串）引用同一对象。",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256_hex"
+        },
+        "n_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "n_blocks": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "manifest_storage_product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product",
+        "storage_form",
+        "index_path",
+        "index_sha256",
+        "archive_bytes",
+        "archive_sha256",
+        "tree_hash"
+      ],
+      "description": "运行完成清单 storage.products[] 的一条（逐产品）。字段名与 p1_products.json 的逐帧形态字段同词表（storage_form / index_path / index_sha256 / archive_sha256），另加 archive_bytes 与产品身份 tree_hash。",
+      "properties": {
+        "product": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "storage_form": {
+          "$ref": "#/$defs/storage_form_value"
+        },
+        "index_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "index_sha256": {
+          "$ref": "#/$defs/sha256_hex"
+        },
+        "archive_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "归档字节数；bare 形态恒 null"
+        },
+        "archive_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tree_hash": {
+          "$ref": "#/$defs/sha256_hex"
+        }
+      }
+    },
+    "manifest_storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "storage_form",
+        "form_source",
+        "products",
+        "coverage_index"
+      ],
+      "description": "运行完成清单 <output_dir>/manifest.json 的 storage 段（加性）。记录本次运行生效的落盘形态、形态来源（显式配置 / 缺省）与逐产品容器/索引指纹。形态事实只写这里与产品级索引，**不得**写进 HiPS properties。不变式 M1..M4 见合同 §10.3。",
+      "properties": {
+        "storage_form": {
+          "$ref": "#/$defs/storage_form_value"
+        },
+        "form_source": {
+          "type": "string",
+          "enum": [
+            "config",
+            "default"
+          ],
+          "description": "config = 输入配置显式给出 storage_form；default = 键缺失或留空 ⇒ 取默认 archive 并按日志合同报 warn（该 warn 是 default 的机器证据）"
+        },
+        "products": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/manifest_storage_product"
+          }
+        },
+        "coverage_index": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256",
+            "n_frames",
+            "n_blocks"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256_hex"
+            },
+            "n_frames": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "n_blocks": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "description": "本次运行的数据集级覆盖索引；不产出覆盖索引的运行（Phase3）恒 null"
         }
       }
     }

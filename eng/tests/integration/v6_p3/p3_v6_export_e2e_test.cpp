@@ -359,8 +359,8 @@ void write_expected(const std::string& dir, const Scene& s, const Expected& e,
   j["W"] = e.W;
   j["F_hat"] = e.F_hat;
   j["hdu_names"] = r.hdu_names;
-  j["signal_bunit"] = "ADU/px^2";
-  j["variance_bunit"] = "ADU^2/px^4";
+  j["signal_bunit"] = "ADU/sr";
+  j["variance_bunit"] = "ADU^2/sr^2";
   j["flux_bunit"] = "ADU";
   j["flux_variance_bunit"] = "ADU^2";
   j["effective_psf_bunit"] = "1";
@@ -402,8 +402,8 @@ int run_positive(const std::string& art) {
     CHECK(r.hdu_names.size() == 3, "SB 3 HDUs");
     CHECK(has_hdu(r.reopen, "VARIANCE"), "SB has VARIANCE");
     CHECK(!has_hdu(r.reopen, "FLUX"), "SB has no FLUX");
-    CHECK(hdu_bunit(r.reopen, "") == "ADU/px^2", "SB primary BUNIT");
-    CHECK(hdu_bunit(r.reopen, "VARIANCE") == "ADU^2/px^4", "SB variance BUNIT");
+    CHECK(hdu_bunit(r.reopen, "") == "ADU/sr", "SB primary BUNIT");
+    CHECK(hdu_bunit(r.reopen, "VARIANCE") == "ADU^2/sr^2", "SB variance BUNIT");
     CHECK(allclose(r.signal, e.signal, 1e-12), "SB signal vs independent R");
     CHECK(allclose(r.variance, e.variance, 1e-12), "SB var_out == sum c^2 u");
     write_expected(dir, s, e, "surface_brightness", r);
@@ -457,7 +457,7 @@ int run_positive(const std::string& art) {
     CHECK(!has_hdu(r.reopen, "IVAR"), "VIS no IVAR");
     CHECK(!has_hdu(r.reopen, "FLUX"), "VIS no FLUX");
     CHECK(!has_hdu(r.reopen, "EFFECTIVE_PSF"), "VIS no EFFECTIVE_PSF");
-    CHECK(hdu_bunit(r.reopen, "") == "ADU/px^2", "VIS primary BUNIT");
+    CHECK(hdu_bunit(r.reopen, "") == "ADU/sr", "VIS primary BUNIT");
     CHECK(allclose(r.signal, e.vis_signal, 1e-12), "VIS display == independent nearest");
     write_expected(dir, s, e, "visualization", r);
   }

@@ -182,7 +182,7 @@ def main():
         u = rec["units"]
         checks += 1
         if (u["signal_sb"], u["sb_variance_out"], u["sb_ivar_out"]) != (
-                "ADU/px^2", "ADU^2/px^4", "px^4/ADU^2"):
+                "ADU/sr", "ADU^2/sr^2", "sr^2/ADU^2"):
             fail("frozen unit strings violated in " + pdir)
         checks += 1
         if "psfsw_robust_weight" in u:
@@ -228,15 +228,15 @@ def main():
             fail("provenance.output_hash != recomputed sha256 in " + pdir)
         hdus = fits_hdus(data)
         checks += 1
-        if [h["bunit"] for h in hdus] != ["ADU/px^2", "px^2", "ADU^2/px^4", "px^4/ADU^2"]:
+        if [h["bunit"] for h in hdus] != ["ADU/sr", "px^2", "ADU^2/sr^2", "sr^2/ADU^2"]:
             fail("FITS BUNIT layer order violated: %s" % [h["bunit"] for h in hdus])
         checks += 1
         if [h["bitpix"] for h in hdus] != [-64, -64, -64, -64]:
             fail("FITS BITPIX must be -64 on every layer")
-        # 二次律：variance BUNIT == signal BUNIT 的平方（显式 px 幂次语义）。
+        # 二次律：variance BUNIT == signal BUNIT 的平方（显式立体角幂次语义）。
         sig, var, ivar = hdus[0]["bunit"], hdus[2]["bunit"], hdus[3]["bunit"]
         checks += 1
-        if not (sig == "ADU/px^2" and var == "ADU^2/px^4" and ivar == "px^4/ADU^2"):
+        if not (sig == "ADU/sr" and var == "ADU^2/sr^2" and ivar == "sr^2/ADU^2"):
             fail("BUNIT quadratic law strings violated")
 
         # (4) 禁诊断量进方差/权重来源。

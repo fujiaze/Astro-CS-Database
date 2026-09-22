@@ -42,13 +42,13 @@ canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
 
 | 对象 | schema ID | canonical 文件 | 单位（BUNIT 语义） | 无效值 / 缺失表示 | 精度 | 可否作权重（UNIFIED_MODEL §2 原文） | DataArtifact 登记 |
 |---|---|---|---|---|---|---|---|
-| `signal` | `https://astrocs.local/schemas/unified/signal/v1` | `eng/contracts/schemas/unified/signal.schema.json` | ADU/px^2 或 BUNIT(声明) | NaN / null | float32|float64 | 否 | `DATA-OBJ-SIGNAL-001` |
-| `variance` | `https://astrocs.local/schemas/unified/variance/v1` | `eng/contracts/schemas/unified/variance.schema.json` | signal单位^2（面亮度 ADU^2/px^4） | null（无覆盖）；负值/NaN=损坏 | float32|float64 | 对该估计目标可以 | `DATA-OBJ-VARIANCE-001` |
-| `ivar` | `https://astrocs.local/schemas/unified/ivar/v1` | `eng/contracts/schemas/unified/ivar.schema.json` | 1/signal单位^2（面亮度 px^4/ADU^2） | 0=显式不可用；null=缺失 | float32|float64 | 对该估计目标可以 | `DATA-OBJ-IVAR-001` |
+| `signal` | `https://astrocs.local/schemas/unified/signal/v1` | `eng/contracts/schemas/unified/signal.schema.json` | ADU/sr 或 BUNIT(声明) | NaN / null | float32|float64 | 否 | `DATA-OBJ-SIGNAL-001` |
+| `variance` | `https://astrocs.local/schemas/unified/variance/v1` | `eng/contracts/schemas/unified/variance.schema.json` | signal单位^2（面亮度 ADU^2/sr^2） | null（无覆盖）；负值/NaN=损坏 | float32|float64 | 对该估计目标可以 | `DATA-OBJ-VARIANCE-001` |
+| `ivar` | `https://astrocs.local/schemas/unified/ivar/v1` | `eng/contracts/schemas/unified/ivar.schema.json` | 1/signal单位^2（面亮度 sr^2/ADU^2） | 0=显式不可用；null=缺失 | float32|float64 | 对该估计目标可以 | `DATA-OBJ-IVAR-001` |
 | `source_snr` | `https://astrocs.local/schemas/unified/source_snr/v1` | `eng/contracts/schemas/unified/source_snr.schema.json` | 1（F_hat/sigma_F 无量纲） | null | float32|float64 | 不直接作帧权重 | `DATA-OBJ-SOURCE-SNR-001` |
 | `depth_m5` | `https://astrocs.local/schemas/unified/depth_m5/v1` | `eng/contracts/schemas/unified/depth_m5.schema.json` | mag | null | float32|float64 | 摘要，不作权重 | `DATA-OBJ-DEPTH-M5-001` |
 | `frame_snr` | `https://astrocs.local/schemas/unified/frame_snr/v1` | `eng/contracts/schemas/unified/frame_snr.schema.json` | 1（真实信号/噪声比） | null | float32|float64 | 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算 | `DATA-OBJ-FRAME-SNR-001` |
-| `point_information` | `https://astrocs.local/schemas/unified/point_information/v1` | `eng/contracts/schemas/unified/point_information.schema.json` | ADU^-2（=signal^-2） | null | float32|float64 | 点源目标的严格权重 | `DATA-OBJ-POINT-INFORMATION-001` |
+| `point_information` | `https://astrocs.local/schemas/unified/point_information/v1` | `eng/contracts/schemas/unified/point_information.schema.json` | ADU^-2（=1/Var(F_hat)，点源通量口径；**不是**面亮度 `signal^-2`——后者为 sr^2/ADU^2，见 DATA_SEMANTICS §31.1a） | null | float32|float64 | 点源目标的严格权重 | `DATA-OBJ-POINT-INFORMATION-001` |
 | ~~`psfsw_robust_weight`~~ **已退役** | ~~`https://astrocs.local/schemas/unified/psfsw_robust_weight/v1`~~ | ~~`eng/contracts/schemas/unified/psfsw_robust_weight.schema.json`~~（**已删除**） | — | — | — | **对象已不存在**（负责人 2026-09-20 裁决 B，14→13；`ASTROCS_DESIGN.md` §2.1/§2.3 + §9.73 A44） | ~~`DATA-OBJ-PSFSW-ROBUST-WEIGHT-001`~~（INDEX 已置 `OBSOLETE`） |
 | `sparse_snr_layer` | `https://astrocs.local/schemas/unified/sparse_snr_layer/v1` | `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` | 1 | null | float32|float64 | 帧内精细参考 | `DATA-OBJ-SPARSE-SNR-LAYER-001` |
 | `support` | `https://astrocs.local/schemas/unified/support/v1` | `eng/contracts/schemas/unified/support.schema.json` | 1（[0,1]） | 0=无覆盖 | float32|float64|integer | 否 | `DATA-OBJ-SUPPORT-001` |

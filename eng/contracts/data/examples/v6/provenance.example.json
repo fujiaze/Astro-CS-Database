@@ -6,7 +6,7 @@
   "run_id": "run-3",
   "input_product_hashes": ["sha256:aaaa", "sha256:bbbb"],
   "config_hash": "sha256:cccc",
-  "units": { "bunit": "ADU/px^2", "pixel_semantics": "surface_brightness", "pixel_area_power": -2, "target_pixel_area": 1.0 },
+  "units": { "bunit": "ADU/sr", "pixel_semantics": "surface_brightness", "pixel_area_power": -2, "target_pixel_area": 1.0 },
   "coordinate": { "frame": "icrs", "epoch": "J2000" },
   "pixel_semantics": "surface_brightness",
   "sampling": { "kernel_id": "drizzle_forward", "pixfrac": 0.8 },

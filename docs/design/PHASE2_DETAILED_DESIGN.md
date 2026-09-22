@@ -10,7 +10,7 @@
 
 输入可来自不同 Phase1 运行，但必须兼容：天球 frame、滤镜/波段、signal 物理语义、通量尺度可变换、PSF/噪声模型可解释、产品 schema 和 provenance 完整。混合积分通量/面亮度、未知单位、缺少必要响应或损坏 manifest 时拒绝。
 
-输入产品的**落盘形态不进入科学语义**：`hips_paths` 的元素可以是裸 `<name>.hips/` 或归档 `<name>.hips.zst`，调用方不感知形态（形态由落盘名判定，见 `docs/design/PRODUCT_STORAGE_FORM.md`）。按天区查输入帧走**块级覆盖索引**（数据集级 `coverage.index.json`，不压缩；缺失时由各产品级索引现场倒排），不逐瓦片探测：索引给出块 → 候选帧集合与覆盖分数，**像素级裁决仍由 support/validity/排异语义执行**。
+输入产品的**落盘形态不进入科学语义**：`hips_paths` 的元素可以是裸 `<name>.hips/` 或归档 `<name>.hips.zst`，调用方不感知形态（形态由落盘名判定，见 `docs/design/PRODUCT_STORAGE_FORM.md`）。**`hips_paths` 的元素保持字符串**（不做元素对象化）：逐帧产品级索引路径由命名规则派生 —— `<name>.hips` / `<name>.hips.zst` → `<name>.hips.index.json`（与 `hips_path` 同父目录）。按天区查输入帧走**块级覆盖索引**（数据集级 `coverage.index.json`，不压缩；由**加性可选键** `coverage_index` 显式引用，缺失时由各产品级索引现场倒排），不逐瓦片探测：索引给出块 → 候选帧集合与覆盖分数，**像素级裁决仍由 support/validity/排异语义执行**。输入合同**不设** `storage_form` 键——阶段二产物固定裸形态（服务面），出现该键（含 `archive` 值）一律 REJECT。
 
 ## 2. 固定科学流程
 

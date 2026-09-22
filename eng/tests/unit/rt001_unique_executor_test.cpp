@@ -128,7 +128,11 @@ void test_shared_executor_identity() {
 
 // ───────────────────────── 用例 3/4/5: P3 resample 经唯一 executor ──────────
 
-constexpr int kW = 16, kH = 16;
+constexpr int kW = 64, kH = 64;
+// P3-STREAM-01: 子块边长（kW×kH=64×64、sub_block_px=16 ⇒ 16 个子块，4 worker 时
+// 4 个工作单元）。原夹具 16×16 在 sub_block_px 值域 [16,1024] 下只可能产生 1 个子块
+// ⇒ 退化为串行、RT-001「工作单元走唯一共享执行器」不可观测，故放大夹具。
+constexpr int kSubBlockPx = 16;
 constexpr float kSigVal = 100.0f;
 
 inline float const_px(int, void* user) { return *static_cast<float*>(user); }
@@ -169,7 +173,7 @@ bool write_signal_hips(const std::string& root) {
   std::ofstream p(fs::path(root_posix + "/signal/properties"), std::ios::binary);
   if (!p) return false;
   // FIX-402: 显式面亮度单位声明（见 p3002_real_nodes_test 同注）。
-  p << hips_properties_text("ADU/px^2");
+  p << hips_properties_text("ADU/sr");
   p << "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
   p << "ASTROCS_PIXEL_AREA_POWER = -2\n";
   p.close();
@@ -219,9 +223,14 @@ std::string node_config(const NodeFixture& fx) {
   "sampler": "nearest",
   "longitude_parity": "east_left",
   "bitpix": -32,
+  "sub_block_px": %d,
   "output_dir": "%s"
 })",
-                fx.hips.c_str(), fx.ra, fx.dec, kW, kH, fx.out.c_str());
+                // P3-STREAM-01: 调度单元 = 输出子块（ASTROCS_DESIGN §8.3 export 行）。
+                // 本夹具 16×16，默认 sub_block_px=256 只产生 1 个子块 ⇒ 退化为串行、
+                // work unit 不可观测；取 4 ⇒ 16 个子块，RT-001「工作单元必须走唯一共享
+                // 执行器」才可判（1 vs 4 worker 逐位一致判据不变）。
+                fx.hips.c_str(), fx.ra, fx.dec, kW, kH, kSubBlockPx, fx.out.c_str());
   return std::string(buf);
 }
 

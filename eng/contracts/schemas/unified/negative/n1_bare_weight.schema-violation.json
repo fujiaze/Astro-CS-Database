@@ -3,7 +3,7 @@
   "object_schema_id": "https://astrocs.local/schemas/unified/signal/v1",
   "schema_version": 1,
   "units": {
-    "bunit": "ADU/px^2",
+    "bunit": "ADU/sr",
     "bunit_semantics": "written_px_power",
     "pixel_semantics": "surface_brightness",
     "pixel_area_power": -2,

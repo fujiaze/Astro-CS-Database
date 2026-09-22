@@ -28,7 +28,38 @@
 - 输出 selection function（完备性 vs 亮度/位置）和 completeness 参数；
 - 检测统计量与下游 PSF/测光解耦：检测目录不直接成为科学权重。
 
+**实现落点（唯一权威生产源 `lib/algorithms/star_detection/src/sdet_api.cpp`）**：
+
+| 路径 | 入口符号 | 说明 |
+|---|---|---|
+| 权威（星表引导拟合） | `sdet_detect_guided_ex_f64`（声明 `lib/algorithms/star_detection/include/star_detector.h`） | 定义域 = 调用方给的星表预测位置；逐位置做饱和判定、σ 估计、椭圆高斯拟合（与盲检测同一 `sdet_gauss_fit`/GSL TR-LM 7 参）与 `reject_star` 质量门；拟合失败直接丢弃。统计量 `SDetGuidedStats{n_predicted,n_dropped,n_fit_failed,n_rejected,n_fit_ok,n_output}` |
+| 诊断/初值（全图盲检测） | `sdet_detect_ex[_f64]` | 平滑 → 局部极大 → 二阶导数零交叉宽度 → 连通域/解混 → 拟合；保留，**不是**权威路径 |
+
+节点侧接线在 `lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p1_op_star_psf_impl`：
+星表位置由 `p1_guided_predict`（`p1_guided_approx_wcs` 给出的近似 WCS 做 sky→pix 逆投影）产生，
+极限星等复用 `ipv::estimate_mag_lim_iterative` / `ipv::compute_fov_density`（不另立常数）。
+
 ## 5. 配置项
+
+### 5.1 `star_detection` 段（检测模式与权威路径输入）
+
+节点 `star-psf` 从输入的 `star_detection` 段解析检测模式；同一键也可回退到 `wcs` 段
+（`gaia_data_dir`）。**模式与输入在节点级一次解析**，逐帧不再重解析。
+
+| 字段 | 默认 | 单位 | 说明 |
+|---|---|---|---|
+| `mode` | `auto` | —— | `auto` = 有参考星表且**取向先验可用**时走权威路径，否则**显式降级**为 `blind_diagnostic` 并把原因写进 manifest 的 `detection_degraded_reason`（非静默）；`catalog_guided` = 显式声明权威路径，前置条件不满足即 DATA fail-closed；`blind_diagnostic` = 显式声明的非权威诊断路径 |
+| `gaia_data_dir` | 无 | path | 本地 XPSD 星表目录（权威路径必需；亦可用 `wcs.gaia_data_dir`） |
+| `max_stars` | 20000 | 颗 | 检测定义域上限（按 G 星等升序取 top-N）。合同域 = **[20000, 50000]**（最高设计 §4.2「top 2–5 万」）；越界即 DATA 拒绝，**禁静默夹取** |
+| `approx_wcs` | 无 | —— | 近似 WCS 的显式天测键 `{crval1, crval2, cd11, cd12, cd21, cd22}`（可改用 `wcs` 段同名字段）。**取向先验的给法之一** |
+| `rotation_deg` + `parity` | 无 / `pos` | deg / `pos\|neg` | 取向先验的另一种给法：像面相对「北向上/东向左」的旋转（逆时针为正）与镜像标志；板尺度由 `wcs.init_source` 派生的 `s0` 给出 |
+| `limiting_mag` | 由焦距/画幅/曝光派生 | mag | 显式指定极限星等；缺省时由 `ipv::estimate_mag_lim_iterative` 按 `focal_length_mm`、画幅、`EXPTIME` 迭代派生（宁多勿少） |
+
+**取向先验是权威路径的必需输入**：星表逆投影必须知道像面取向与镜像；缺先验时
+`catalog_guided` 直接 DATA 拒绝，`auto` 显式降级（`detection_authoritative=false`），
+**不得**以「北向上/东向左」默认值冒充权威取向。
+
+### 5.2 全图盲检测路径的键（诊断/初值，非权威）
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
@@ -45,12 +76,35 @@
 ## 7. 错误与边界
 
 - 输入全 NaN/全饱和 → 拒绝并记录，不产出空目录冒充成功；
-- 边界源标记边界 flag；
+- 边界源标记边界 flag；距边界 <2px 的星表预测位置允许丢弃并计入 `n_dropped`
+  （与全图盲检测同判据）；
 - 亮星饱和/拖线标记，不参与后续 PSF/测光默认路径。
+
+### 7.1 权威路径的 fail-closed 语义（DATA 域拒绝，不降级、不冒充）
+
+| 情形 | 行为 |
+|---|---|
+| `catalog_guided` 且未配置星表目录 | DATA 拒绝（点名 `gaia_data_dir`），**不**回退全图盲检测 |
+| 星表目录 0 个 `.xpsd` | DATA 拒绝（`gaia catalog is empty`） |
+| 星表 shard 装载失败或装载数 ≠ 条目数（部分装载） | DATA 拒绝（`gaia catalog is incomplete` / `gaia_client_create failed`）——静默部分装载事故不得重演 |
+| 取向先验缺失（无 `approx_wcs` CD 且无 `rotation_deg`） | `catalog_guided` DATA 拒绝；`auto` 显式降级并留痕 |
+| 近似 WCS 不可解析（指向/板尺度缺失或退化） | DATA 拒绝（禁 silent default） |
+| 星表逆投影后帧内 0 星，或全部拟合被质量门拒绝 | DATA 拒绝（`0/N catalog-guided fits survived`），**不**回退全图盲检测冒充成功 |
+| `max_stars` 越出 [20000, 50000] | DATA 拒绝（禁静默夹取） |
+
+manifest 顶层与逐帧记录 `detection_mode`、`detection_authoritative`、
+`detection_degraded_reason`、`star_detection_max_stars` 与 `gaia` 溯源块，
+使「权威 / 非权威」在产物上可审计。
 
 ## 8. 测试与 Oracle
 
 - 合成图像注入已知源（位置/亮度分布已知）→ 检测率、误检率、质心精度符合理论；
 - selection function 与注入分布一致；
 - 改变星表亮度分布只改变 source-SNR 摘要，不改变信息权重（跨模块验证）；
-- 1 worker vs N worker 一致。
+- 1 worker vs N worker 一致；
+- 权威路径判据 `p1star_guided`（`lib/algorithms/star_detection/tests/p1star/p1star_guided_test.cpp`）：
+  真值位置召回与质心（|Δc| ≤ 0.3px @ SNR≥20）、纯噪声场不计虚警、定义域丢弃计数守恒、
+  1/4 线程逐位一致、**定义域非退化**（预测位置整体偏移后输出不落在真星上）、空定义域非错误；
+- 节点级判据 `p1stardet_node_gate`（`lib/algorithms/star_detection/tests/p1star/p1stardet_node_gate_test.cpp`）：
+  §7.1 每条 fail-closed 的红例 + `blind_diagnostic`/`auto` 的绿例与留痕断言 +
+  真实帧（testdata）权威路径与盲检测的对照。

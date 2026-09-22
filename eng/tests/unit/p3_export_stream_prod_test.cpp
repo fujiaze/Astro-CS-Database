@@ -115,7 +115,7 @@ std::string hips_properties_text() {
   s += "dataproduct_type = image\n";
   s += "hips_version = 1.0\n";
   // FIX-402: 生产 Phase3 输入语义守卫只放行显式面亮度输入（FZ-BUNIT-SEMANTICS）
-  s += "BUNIT = ADU/px^2\n";
+  s += "BUNIT = ADU/sr\n";
   s += "ASTROCS_PIXEL_SEMANTICS = surface_brightness\n";
   s += "ASTROCS_PIXEL_AREA_POWER = -2\n";
   return s;

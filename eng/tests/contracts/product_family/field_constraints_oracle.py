@@ -225,7 +225,7 @@ class Oracle:
         elif kind == "provenance":
             u = doc.get("units") or {}
             bunit = u.get("bunit")
-            judgeable = (isinstance(bunit, str) and "px^2" in bunit) or \
+            judgeable = (isinstance(bunit, str) and "sr" in bunit) or \
                         (bunit == "ADU" and u.get("pixel_semantics") == "surface_brightness"
                          and u.get("pixel_area_power") == -2)
             if not judgeable:
@@ -354,8 +354,8 @@ class Oracle:
         self._ck("O03-frozen-units-table", not bad, "; ".join(bad))
         design = {r["symbol"]: r for r in reg["design_units_table"]}
         self._ck("O04-design-units-extra",
-                 design.get("sb_variance_out", {}).get("unit") == "ADU^2/px^4"
-                 and design.get("sb_ivar_out", {}).get("unit") == "px^4/ADU^2"
+                 design.get("sb_variance_out", {}).get("unit") == "ADU^2/sr^2"
+                 and design.get("sb_ivar_out", {}).get("unit") == "sr^2/ADU^2"
                  and design.get("sb_variance_out", {}).get("clause_id") == "FZ-UNIT-VAR-SB"
                  and design.get("sb_ivar_out", {}).get("clause_id") == "FZ-UNIT-IVAR-SB",
                  "missing separated sb_variance_out/sb_ivar_out naming")
@@ -740,7 +740,7 @@ class Oracle:
         fixtures.append(("bunit-unjudgeable", "provenance", pv, m))
         m = clone(base_pv); del m["flux_conservation_factor"]
         fixtures.append(("provenance-missing-key", "provenance", pv, m))
-        m = clone(base_pv); m["units"]["bunit"] = "ADU/px^2"; m["units"]["pixel_area_power"] = 0
+        m = clone(base_pv); m["units"]["bunit"] = "ADU/sr"; m["units"]["pixel_area_power"] = 0
         fixtures.append(("bunit-power-mismatch", "provenance", pv, m))
         m = clone(base_cov); m["representation"] = "diagonal_variance"; del m["correlation_kernel"]
         fixtures.append(("diagonal-without-kernel", "covariance", cov, m))

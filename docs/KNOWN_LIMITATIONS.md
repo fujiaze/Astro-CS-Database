@@ -25,7 +25,6 @@
 11. **UPM ivar 回退**：输入帧无 ivar 产品时积分权重回退 support（`ivar_product_missing` 计数如实记录）。
 12. **Phase1 SNR catalogue**：作为诊断保留，不作为科学权重。
 13. **Phase1 不确定度子产品缺失（未关，P0 级）**：CLI `normalize` 产出的 `p1_final.json` 实测 `n_variance_tiles=0` / `n_ivar_tiles=0`；写出器本身具备产出 variance/ivar 子产品的能力，缺口在 p1 节点未向 PipelineFrame 注入 variance 块。**最高设计 §3.1 规定不存在「权重模式」概念（全程只有 SNR）**，故该缺口的影响面 = 绝对 SNR / 不确定度链的可达性。
-14. **Phase1 HiPS signal 量纲与 BUNIT 声明不一致（待负责人裁定口径）**：signal 实为**单位立体角**量（ADU/sr，实现自述 `signal = flux/area`），而 export 平面 FITS 写 `BUNIT=ADU`。数值本身自洽（面亮度守恒），但单位声明与实际口径不符——下游若按 ADU 解读会差约 10 个量级。
 15. **接缝残余未随天光面修复消失（L4 视觉复验，未关）**：全量 R 通道成品帧目检，天光面修复后接缝仍存在，幅度为本地背景的 1–3%；水平带 1 上缘由 +1.06% 变为 −2.39%（**变差 ≈2.2×**）。**根因不是 sky_plane 回退**，而是等权均值下帧集变化处的残余零点差 / 排异差异，需另行定位。接缝判据尚未通过。
 16. **天光面生效后的负值像素属约定变更（非缺陷）**：加性天光面生效后背景归零，负值像素占比由 6.0e-7 升至 **0.459**（46%）；下游读取与判据需按"允许负像素"的约定解释，不得当缺陷判红。
 17. **`drizzle_scale_arcsec` 合法域**：NaN / ≤0 / >824.52″ 一律 `rc=2` + `set_error`（契约侧登记；去向 `docs/contracts/DATA_SEMANTICS.md`，由前台合并）。

@@ -12,7 +12,7 @@
     01_units_and_bunit.md §1/§3/§4）。
 
 判据（非退化: 负例矩阵必须**全红得正确**; 正例必须真产出产品而非"看起来通过"）:
-  A) 合法面亮度输入（canonical "ADU/px^2" 或 裸 ADU + 像素语义声明）→ exit 0,
+  A) 合法面亮度输入（canonical "ADU/sr" 或 裸 ADU + 像素语义声明）→ exit 0,
      产物携带 canonical BUNIT + 像素语义 provenance（props/resampled/writer/FITS）;
   B) 缺 BUNIT / 裸 ADU 缺 provenance → exit 3（error_kind=input）;
   C) 已声明非面亮度（积分通量 ADU / 方差面 / ivar 面 / 冻结表外单位）→ exit 4,
@@ -38,9 +38,9 @@ from astropy.io import fits
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EXE = os.path.join(REPO, "build", "astrocs")
 
-SB_BUNIT = "ADU/px^2"
-VAR_BUNIT = "ADU^2/px^4"
-IVAR_BUNIT = "px^4/ADU^2"
+SB_BUNIT = "ADU/sr"
+VAR_BUNIT = "ADU^2/sr^2"
+IVAR_BUNIT = "sr^2/ADU^2"
 
 
 def _clone_tree(src, dst):
@@ -144,7 +144,7 @@ class Fix402Phase3SemanticGuard(unittest.TestCase):
 
     # ── A) 合法面亮度输入 ──────────────────────────────────────────────────
     def test_01_positive_canonical_surface_brightness(self):
-        """canonical ADU/px^2 输入 → exit 0, 产物 BUNIT/像素语义齐全。"""
+        """canonical ADU/sr 输入 → exit 0, 产物 BUNIT/像素语义齐全。"""
         out = os.path.join(self.tmp, "out_pos_canon")
         r = _run_export(self.canon, out)
         self.assertEqual(r.returncode, 0, r.stderr[-500:])

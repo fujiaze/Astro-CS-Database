@@ -30,7 +30,8 @@
     "平铺简写分支按设计「与多块形态等价」取块内键集 ⇒ 比 CLI 的平铺门**严**：CLI 平铺门 = parser.cpp session_keys() 全局并集（含 bitpix / max_tiles / frame 等 config_fields 未列的会话键）。方向是 fail-closed（schema 通过 ⇒ CLI 通过）；CLI 平铺门收敛为按会话的 config_fields 属 lib/** 后续项。",
     "新分支（blocks[] 与平铺简写）**不出现** phase_name / config / inputs[].product / inputs[].filter：命令名就是阶段身份（§3.3），输入身份 = source.hips_dir。",
     "硬件字段禁令：ISA/workers/block/CPU 型号等一律不得出现在 phase_config（UNIFIED_MODEL.md §3；config_separation_anchors.json cross_class_forbidden.cpu_profile_keys_in_phase_config）。块与 wcs 两级用 additionalProperties:false 做机器拒绝。",
-    "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。"
+    "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。",
+    "**落盘形态（本任务登记）**：阶段三**输入**形态透明（裸 <name>.hips/ 与归档 <name>.hips.zst 同义，按天区取瓦片走输入产品的覆盖索引）；**输出**固定为**裸 FITS，不压缩、不套壳**，且不使用 .hips / .hips.zst 中缀。因此本 schema **任何分支都不设** storage_form 键：输入里出现该键一律 REJECT（schema 面 propertyNames / additionalProperties:false，CLI 面块内未知键门），不静默忽略。合同与判据：docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.5；docs/design/PRODUCT_STORAGE_FORM.md §2。"
   ],
   "type": "object",
   "properties": {
@@ -289,7 +290,7 @@
         "hips_dir": {
           "type": "string",
           "minLength": 1,
-          "description": "输入 HiPS 根目录（必填非空；对象字段 hips_dir，非字符串——CLI input_contract(SESSION_EXPORT) 的唯一声明）"
+          "description": "输入 HiPS 根目录（必填非空；对象字段 hips_dir，非字符串——CLI input_contract(SESSION_EXPORT) 的唯一声明）。**落盘形态透明**：值可以是裸 \"<name>.hips/\" 或归档 \"<name>.hips.zst\"，两者读语义相同（形态由落盘名判定，调用方不感知；docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §6 R1/R2）。本键**不**承载形态选择——Phase3 输入合同不设 storage_form。"
         }
       },
       "description": "第三件 = 一个输入产品（合同兼容 HiPS 根目录）：{hips_dir}。单值（U07 定案，依据 ASTROCS_DESIGN.md §3.3「阶段三 source（一个输入产品）」）；多产品 = 多块"

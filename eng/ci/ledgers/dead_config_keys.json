@@ -152,6 +152,38 @@
         "lib/infrastructure/scheduler/src/module_adapters.cpp:9540",
         "run/ARCH-AUDIT-02/REPORT.md §1.2 F-06"
       ]
+    },
+    {
+      "id": "dead_config_key:storage_form",
+      "kind": "dead_key",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/storage_form（enum archive|bare，默认 archive；键缺失/空串/null ⇒ 默认 + warn）。CLI 可达性已闭合（lib/infrastructure/cli/parser.cpp#session_keys() 与 lib/infrastructure/cli/session_commands.h#config_fields(kNormalize)；json==nullptr ⇒ 只进 --help、不进 --template 骨架，不替用户主张形态），配置不再被判 unknown key 退出 3。但**生产写出侧零读取**：按 storage_form 落盘（裸 <name>.hips/ 与归档 <name>.hips.zst 两形态、逐成员独立 zstd 帧、产品级索引写出）属 HiPS 双形态落盘的分阶段实现计划阶段 2 ⇒ 本条保留，防止把「CLI 认识」误当成「已消费」。本键**不在**任何 eng/packaging/config/templates/*.json 内，故 CHK-CONFIG-CONSUMED 的模板面不覆盖它；本条按 FIX-203 步骤 3 的同一纪律显式登记。",
+      "owner": "负责人裁决（形态切换键写在输入 JSON 里；留空或不写 ⇒ 走默认 archive 并报 warn）；合同与判据 = docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10；实现 = 分阶段实现计划阶段 2",
+      "exit_condition": "生产写出侧出现 storage_form 的真实读取点（Phase1 产品按形态落盘 + 缺省/留空时报 level=warn 事件 + manifest.storage.form_source 记 default）后删除本条。",
+      "consumed_as": "（无：生产零读取；CLI 只识别并透传）",
+      "template": "（不在 eng/packaging/config/templates/*.json 键面；CLI --help 已列出）",
+      "evidence": [
+        "eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/storage_form",
+        "lib/infrastructure/cli/session_commands.h#config_fields(kNormalize)",
+        "lib/infrastructure/cli/parser.cpp#session_keys()",
+        "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.1",
+        "docs/design/PRODUCT_STORAGE_FORM.md §10"
+      ]
+    },
+    {
+      "id": "dead_config_key:coverage_index",
+      "kind": "dead_key",
+      "reason": "键由合同登记：eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/coverage_index_ref（加性可选键，指向数据集级覆盖索引 coverage.index.json）。CLI 可达性已闭合（parser.cpp#session_keys() 与 session_commands.h#config_fields(kMosaic)；json==nullptr ⇒ 不进模板骨架）。但**生产消费点为零**：阶段二 coverage 节点按该键载入倒排索引（缺失时规定回退 = 读全部产品级索引现场倒排）属分阶段实现计划阶段 2 ⇒ 本条保留。与 snr_path 同款：CLI 只识别并透传，不得把「CLI 认识」当成「已消费」。",
+      "owner": "负责人裁决（Phase2 输入沿用既有字段结构、不做元素对象化；额外的总索引引用用加性可选键）；合同与判据 = docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.4；实现 = 分阶段实现计划阶段 2",
+      "exit_condition": "阶段二 coverage 节点出现 coverage_index 的真实读取点（载入倒排索引；缺失时按产品级索引现场倒排并记 provenance）后删除本条。",
+      "consumed_as": "（无：生产零读取；CLI 只识别并透传）",
+      "template": "（不在 eng/packaging/config/templates/*.json 键面；CLI --help 已列出）",
+      "evidence": [
+        "eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/coverage_index_ref",
+        "lib/infrastructure/cli/session_commands.h#config_fields(kMosaic)",
+        "lib/infrastructure/cli/parser.cpp#session_keys()",
+        "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10.4",
+        "docs/design/PHASE2_DETAILED_DESIGN.md §1"
+      ]
     }
   ]
 }

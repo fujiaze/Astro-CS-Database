@@ -3,7 +3,7 @@
   "object_schema_id": "https://astrocs.local/schemas/unified/ivar/v1",
   "schema_version": 1,
   "units": {
-    "bunit": "px^4/ADU^2",
+    "bunit": "sr^2/ADU^2",
     "bunit_semantics": "written_px_power",
     "pixel_semantics": "surface_brightness",
     "pixel_area_power": -2,

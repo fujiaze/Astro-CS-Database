@@ -40,36 +40,49 @@ OPS = {
     "write": "write_mosaic",
 }
 CHAIN = [
-    ("coverage", "astrocs.phase2.coverage", "calibrated", "coverage"),
-    ("sample", "astrocs.phase2.sample", "coverage", "samples"),
-    ("upm_fit", "astrocs.phase2.upm-fit", "samples", "upm_model"),
-    ("upm_apply", "astrocs.phase2.upm-apply", "upm_model", "corrected"),
-    ("reject", "astrocs.phase2.reject", "corrected", "accepted_mask"),
-    ("integrate", "astrocs.phase2.integrate", "accepted_mask", "integrated"),
-    ("write", "astrocs.phase2.write", "integrated", "mosaic"),
+    ("coverage", "astrocs.phase2.coverage", "frame_hips", "p2_coverage"),
+    ("sample", "astrocs.phase2.sample", "p2_coverage", "p2_samples"),
+    ("upm_fit", "astrocs.phase2.upm-fit", "p2_samples", "p2_upm_model"),
+    ("upm_apply", "astrocs.phase2.upm-apply", "p2_upm_model", "p2_corrected"),
+    ("reject", "astrocs.phase2.reject", "p2_corrected", "p2_rejection"),
+    ("integrate", "astrocs.phase2.integrate", "p2_rejection", "p2_integrated"),
+    ("write", "astrocs.phase2.write", "p2_integrated", "mosaic_hips"),
 ]
+# 端口身份 = output_dir 下的真实产物（module_ports.registry.json v2）；operation 的
+# 每个 input 端口都必须被节点提供（typed_dag MISSING_PORT），故此处给全。
 EDGES = {
-    "coverage": {"calibrated": "artifact:cal"},
-    "sample": {"coverage": "artifact:coverage"},
-    "upm_fit": {"samples": "artifact:samples"},
-    "upm_apply": {"upm_model": "artifact:upm_model", "calibrated_frames": "artifact:cal"},
-    "reject": {"corrected": "artifact:corrected"},
-    "integrate": {"accepted_mask": "artifact:accepted_mask", "corrected": "artifact:corrected"},
-    "write": {"integrated": "artifact:integrated"},
+    "coverage": {"frame_hips": "artifact:p1_hips"},                 # seed 输入(无 producer)
+    "sample": {"p2_coverage": "artifact:coverage"},
+    "upm_fit": {"p2_samples": "artifact:samples"},
+    "upm_apply": {"p2_upm_model": "artifact:upm_model",
+                  "p2_sky_plane": "artifact:sky_plane",
+                  "p2_coverage": "artifact:coverage",
+                  "p2_samples": "artifact:samples",
+                  "frame_hips": "artifact:p1_hips"},
+    "reject": {"p2_corrected": "artifact:corrected", "frame_hips": "artifact:p1_hips"},
+    "integrate": {"p2_corrected": "artifact:corrected",
+                  "p2_rejection": "artifact:rejection",
+                  "frame_hips": "artifact:p1_hips"},
+    "write": {"p2_integrated": "artifact:integrated",
+              "p2_coverage": "artifact:coverage",
+              "p2_samples": "artifact:samples",
+              "p2_upm_model": "artifact:upm_model",
+              "p2_rejection": "artifact:rejection"},
 }
 OUT = {
     "coverage": "artifact:coverage", "sample": "artifact:samples",
     "upm_fit": "artifact:upm_model", "upm_apply": "artifact:corrected",
-    "reject": "artifact:accepted_mask", "integrate": "artifact:integrated",
+    "reject": "artifact:rejection", "integrate": "artifact:integrated",
     "write": "artifact:mosaic",
 }
 
-
+# 一个端口可承载多个产物文件（upm-fit 同时产出模型与天光面）
 OUT_PORT = {
-    "coverage": "coverage", "sample": "samples", "upm_fit": "upm_model",
-    "upm_apply": "corrected", "reject": "accepted_mask",
-    "integrate": "integrated", "write": "mosaic",
+    "coverage": "p2_coverage", "sample": "p2_samples", "upm_fit": "p2_upm_model",
+    "upm_apply": "p2_corrected", "reject": "p2_rejection",
+    "integrate": "p2_integrated", "write": "mosaic_hips",
 }
+EXTRA_OUT = {"upm_fit": {"p2_sky_plane": "artifact:sky_plane"}}
 
 
 def ir_doc() -> dict:
@@ -79,7 +92,7 @@ def ir_doc() -> dict:
             "node_id": nid, "module_id": mid, "operation": OPS[nid],
             "config": {"phase": 2},
             "inputs": dict(EDGES[nid]),
-            "outputs": {OUT_PORT[nid]: OUT[nid]},
+            "outputs": dict({OUT_PORT[nid]: OUT[nid]}, **EXTRA_OUT.get(nid, {})),
             "resources": {"class": "cpu_heavy", "parallel": True},
         }
         if nid == "write":
@@ -91,7 +104,7 @@ def ir_doc() -> dict:
         "phase": "phase2",
         "version": "1.0.0",
         "nodes": nodes,
-        "outputs": {"mosaic": "artifact:mosaic"},
+        "outputs": {"mosaic_hips": "artifact:mosaic"},
     }
 
 
@@ -158,7 +171,7 @@ class TestPlanGraph(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             bad = pathlib.Path(td) / "bad.json"
             doc = ir_doc()
-            doc["nodes"][0]["inputs"]["calibrated"] = "run/frames.fits"
+            doc["nodes"][0]["inputs"]["frame_hips"] = "run/frames.fits"
             bad.write_text(json.dumps(doc), encoding="utf-8")
             cp = subprocess.run(
                 [sys.executable, str(COMPILER), str(bad)],

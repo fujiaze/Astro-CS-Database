@@ -10,7 +10,7 @@
 // 正例与负例并列；负例断言"违反冻结即失败"。独立 Oracle 见
 // run/v6/p2-samp/oracle/check_spec.py（Python 重算 + 结构校验）。
 //
-// 单位（冻结表）：signal_sb=ADU/px^2、sb_variance_out=ADU^2/px^4、W_info=ADU^-2。
+// 单位（冻结表）：signal_sb=ADU/sr、sb_variance_out=ADU^2/sr^2、W_info=ADU^-2。
 // psfsw_robust_weight=1 的单位项随对象退役（FZ-MODE-RETIRED），不再是接受依据；
 // support/coverage 不是权重。
 #include "astro/phase2/coverage.h"

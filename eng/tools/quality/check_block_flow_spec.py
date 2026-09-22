@@ -215,13 +215,13 @@ def _self_test():
 
     s = copy.deepcopy(spec)
     for b in s["blocks"]:
-        if b["stage"] == "normalize" and b["block"] == "wcs":
+        if b["stage"] == "normalize" and b["block"] == "p1_wcs":
             b["lifecycle"] = "SHORT"
     cases.append(("S5-lifecycle-lie-red", any(e.startswith("R7") for e in validate(s, reg))))
 
     s = copy.deepcopy(spec)
     for b in s["blocks"]:
-        if b["stage"] == "mosaic" and b["block"] == "calibrated":
+        if b["stage"] == "mosaic" and b["block"] == "p2_coverage":
             b["lifecycle"] = "EXTERNAL_IN"
             b["produced_by"] = ["astrocs.phase2.coverage"]
     cases.append(("S6-external-in-with-producer-red",
@@ -229,28 +229,28 @@ def _self_test():
 
     s = copy.deepcopy(spec)
     for b in s["blocks"]:
-        if b["stage"] == "normalize" and b["block"] == "cleaned":
+        if b["stage"] == "normalize" and b["block"] == "p1_cleaned":
             b["produced_by"] = ["astrocs.phase1.cosmetic", "astrocs.phase1.star-psf"]
     cases.append(("S6b-two-producers-red",
                   any(e.startswith("R5") for e in validate(s, reg))))
 
     s = copy.deepcopy(spec)
     for b in s["blocks"]:
-        if b["stage"] == "normalize" and b["block"] == "snr":
+        if b["stage"] == "normalize" and b["block"] == "p1_snr":
             b["lifecycle"] = "SHORT"; b["consumed_by"] = ["astrocs.phase1.writer"]
     cases.append(("S6c-terminal-dropped-red",
                   any(e.startswith("R7") or e.startswith("R11") for e in validate(s, reg))))
 
     s = copy.deepcopy(spec)
     for b in s["blocks"]:
-        if b["stage"] == "normalize" and b["block"] == "snr":
+        if b["stage"] == "normalize" and b["block"] == "p1_snr":
             b["lifecycle"] = "SHORT"; b["consumed_by"] = []
     cases.append(("S6d-short-with-no-consumer-red",
                   any(e.startswith("R7") for e in validate(s, reg))))
 
     s = copy.deepcopy(spec)
     for b in s["blocks"]:
-        if b["stage"] == "export" and b["block"] == "props":
+        if b["stage"] == "export" and b["block"] == "p3_props":
             b["consumed_by"] = ["astrocs.phase1.photometry"]
     cases.append(("S7-cross-stage-consumer-red", any(e.startswith("R8") for e in validate(s, reg))))
 

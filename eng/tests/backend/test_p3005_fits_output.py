@@ -76,9 +76,9 @@ class TestP3005FitsOutput(unittest.TestCase):
                    "BUNIT", "BSCALE", "BZERO", "HIPSID", "ORDERSEL", "SAMPLER",
                    "SWVER", "RUNID"):
             self.assertIn(kw, h, f"缺关键字 {kw}")
-        # FIX-402: 面亮度输入声明 canonical "ADU/px^2"（冻结单位表 signal_sb）
+        # FIX-402: 面亮度输入声明 canonical "ADU/sr"（冻结单位表 signal_sb）
         # ⇒ 输出主 HDU BUNIT 逐字继承（禁 loose "ADU" 缺省, 非 Jy/beam）。
-        self.assertEqual(h["BUNIT"], "ADU/px^2")
+        self.assertEqual(h["BUNIT"], "ADU/sr")
         self.assertEqual(h["CTYPE1"], "RA---TAN")
         # coverage 扩展
         self.assertTrue(len(fits.open(f)) >= 2, "应含 coverage 扩展")
