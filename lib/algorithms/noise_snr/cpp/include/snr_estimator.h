@@ -218,7 +218,7 @@ SNR_API int  snr_noise_model_v1_abi_check_model(const NoiseWeightModelV1* model)
 // 空间场启用且有 >=4 控制点 → 最小二乘平面 var(x,y)=a+b·x+c·y
 // （负预测 clamp 到 variance_floor）；否则全局常量。 冻结。
 // 返回 0=成功, 3=nullptr/尺寸非法, SNR_ABI_MISMATCH(-9)=model ABI 头部失配,
-// SNR_FLOOR_UNBOUND(-10)=模型未绑定 variance_floor（FIX-405 G3-6 fail-closed：
+// SNR_FLOOR_UNBOUND(-10)=模型未绑定 variance_floor（G3-6 fail-closed：
 //   原实现对此静默回退 1e-12，使配置的 variance_floor 在生产 fill 路径上被无声
 //   忽略；现改为显式拒绝，调用方须经 build 或
 //   snr_noise_model_v1_bind_variance_floor 显式绑定）。
@@ -227,7 +227,7 @@ SNR_API int snr_noise_model_v1_fill(const NoiseWeightModelV1* model,
                                     float* out_variance, float* out_ivar);
 
 // ---------------------------------------------------------------------------
-// variance_floor 显式绑定 + 钳位触发计数 (FIX-405 G3-6: 钳位 fail-open → fail-closed)
+// variance_floor 显式绑定 + 钳位触发计数 (G3-6: 钳位 fail-open → fail-closed)
 //
 // 语义（不改变任何科学数值）:
 //   * bind: 把 floor 登记为该模型的 fill 下限（与 build 内部登记同一注册表）。

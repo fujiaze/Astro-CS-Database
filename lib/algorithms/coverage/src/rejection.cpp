@@ -1099,7 +1099,7 @@ const char* p2_rejection_semantic_id(int method) {
 
 
 // =====================================================================
-// FIX-204（§9.71 裁决 3）逐像素按几何 N 自动选择 —— 唯一决策点 + WBPP 映射
+// 逐像素按几何 N 自动选择 —— 唯一决策点 + WBPP 映射
 // =====================================================================
 // 权威：ASTROCS_DESIGN.md §4.5 下半节「逐像素排异：按该像素的输入集数量 N
 // 自动选择（负责人 2026-09-20 裁决，一手证据定案）」；一手实测
@@ -1108,7 +1108,7 @@ const char* p2_rejection_semantic_id(int method) {
 // → WinsorizedSigmaClip；n > 15 → LinearFit。
 //
 // ╔════════════════════════════════════════════════════════════════════╗
-// ║ FIX-204 **唯一显式决策点**（EXP-204 定案后**只改这一处**）           ║
+// ║ **唯一显式决策点**（EXP-204 定案后**只改这一处**）                   ║
 // ╚════════════════════════════════════════════════════════════════════╝
 // 待定科学问题（工程控制/RELEASE-03/tasks/EXP-204.md）—— **已由 EXP-204 定案**：
 //   「N < 6 → percentile 档的**下界是否含 N ≤ 3**？」⇒ **不含**（保守读法）。
@@ -1157,7 +1157,7 @@ static int astrocs_n_map_method(std::uint32_t n) {
     return P2_REJECT_LINEAR_FIT;
 }
 
-// FIX-204 §4：AUTO 路由**禁止**产出 min/max 与 NoRejection（已废弃 CCD clip
+// AUTO 路由**禁止**产出 min/max 与 NoRejection（已废弃 CCD clip
 // 在本枚举中无对应值 ⇒ 不可达）。WBPP BPP-FrameGroup.js:1237-1243 明文拒绝
 // （"Min/Max rejection should not be used for production work"），
 // BPP-engine.js:2695-2719 算法清单**不含** min/max。
@@ -1210,7 +1210,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     // - astrocs_adaptive_pixel：显式 request=EXTREME_VALUE_PRIOR_SIGMA
     //   （opt-in 先验 σ 档）→ 1（使 n=2 能进 kernel，n=1 由 minimum_n=2 拦下）；
     //   其余（AUTO）→ 3（**kernel 闸**：候选数 ≤3 不做排异判定，全接受并记
-    //   UNDERDETERMINED，不冒充排异成功。FIX-204 后该值与路由档**解耦**：
+    //   UNDERDETERMINED，不冒充排异成功。此后该值与路由档**解耦**：
     //   N ≤ 3 的路由由 astrocs_n_map_method 上方的唯一决策点决定（WBPP 表
     //   ⇒ percentile），实际执行仍受本闸约束；EXP-204 若定案「强制
     //   percentile 排异」需把本默认降到 2，见该决策点注释）；
@@ -1255,7 +1255,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
     if (method == P2_REJECT_AUTO) {
         const std::uint32_t n = req->nominal_contributors;
         if (pixel_profile) {
-            // FIX-204：AstroCS 自有「按逐输出像素几何 N」映射 = WBPP 实测表
+            // AstroCS 自有「按逐输出像素几何 N」映射 = WBPP 实测表
             // （N<6 percentile / 6..15 winsorized / >15 linear fit），
             // 唯一决策点在 astrocs_n_map_method 上方（EXP-204）。
             method = astrocs_n_map_method(n);
@@ -1267,7 +1267,7 @@ int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
             else method = P2_REJECT_LINEAR_FIT;
         }
     }
-    // FIX-204 §4 生产路径守卫：AUTO **禁止**产出 min/max / NoRejection
+    // 生产路径守卫：AUTO **禁止**产出 min/max / NoRejection
     // （WBPP :1237-1243 明文拒绝）。命中 ⇒ fail-closed，绝不静默改算法。
     if (req->request == P2_REJECT_AUTO &&
         auto_method_forbidden(method, req->nominal_contributors, pixel_profile)) {

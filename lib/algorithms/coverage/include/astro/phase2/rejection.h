@@ -80,8 +80,8 @@ enum P2RejectionMethod {
 #define P2_PROFILE_WBPP_2_9_1             "wbpp_2_9_1"
 #define P2_PROFILE_WBPP_CURRENT           "wbpp_current"  // = wbpp_2_9_1 alias
 #define P2_PROFILE_ASTROCS_ADAPTIVE       "astrocs_adaptive"
-// AstroCS 自有「按逐输出像素几何 N」内置映射。**FIX-204（§9.71 裁决 3）
-// 起 = WBPP 一手实测表**（BPP-FrameGroup.js:1304-1312）：N<6 → percentile；
+// AstroCS 自有「按逐输出像素几何 N」内置映射。**路由
+// = WBPP 一手实测表**（BPP-FrameGroup.js:1304-1312）：N<6 → percentile；
 // 6≤N≤15 → winsorized_sigma；N>15 → linear_fit。原四档表（n≤3 不排异 /
 // 4–7 percentile / 8–15 winsorized / ≥16 linear）**作废**。
 // 「N<6 档的下界是否含 N≤3」是**单一显式决策点**
@@ -247,7 +247,7 @@ typedef struct {
 // astrocs_adaptive → AstroCS 自有策略：允许按 tile nominal geometric depth
 // 自适应；独立命名，不冒充 WBPP exact；AUTO 路由与 wbpp 冻结表一致。
 // astrocs_adaptive_pixel → AstroCS 自有「按逐输出像素几何 N」内置映射
-// （**FIX-204 = WBPP 实测表**：N<6 percentile；6..15 winsorized；
+// （**路由 = WBPP 实测表**：N<6 percentile；6..15 winsorized；
 // >15 linear_fit；原四档表作废）。AUTO 路由**禁止**产出 min/max 与
 // NoRejection（WBPP :1237-1243）⇒ 命中即 fail-closed（返回非 0）。
 // 「N<6 档的下界是否含 N≤3」= 单一显式决策点
@@ -264,10 +264,10 @@ P2_API int p2_reject_plan_resolve(const P2RejectionPlanRequest* req,
 // 返回方法的 canonical semantic id 字符串（未知方法返回 "unknown"）
 P2_API const char* p2_rejection_semantic_id(int method);
 
-// FIX-204 唯一决策点查询（决策点本体在 rejection.cpp：
+// 唯一决策点查询（决策点本体在 rejection.cpp：
 // enum class PixelSmallNPolicy / kPixelSmallNPolicy）。
 // 返回「N<6 → percentile」档的**下界（含）**：
-//   1 = 档含 N≤3（WBPP 一手实测表，FIX-204 当前实现）；
+//   1 = 档含 N≤3（WBPP 一手实测表，当前实现）；
 //   4 = N≤3 走保守 none（EXP-204 若定案「保留不排异」时的取值）。
 // 用途：provenance 如实记录小 N 策略 + 测试锁定路由表下界。
 // 待定科学问题见 工程控制/RELEASE-03/tasks/EXP-204.md。

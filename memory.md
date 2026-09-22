@@ -7,10 +7,8 @@
 > `docs/archive/history/memory_V18R2-V19_operational_log_2026-08-21.md`
 > （ARCHIVED_NON_NORMATIVE，仅追溯用，不代表当前状态）。
 > 科学/算法/架构/发布权威一律以 `docs/`（science|algorithms|architecture|
-> standards|modules|contracts）、最高设计 `ASTROCS_DESIGN.md`（旧宪章（已删除）
-（§0 权威链；旧工程约束（已删除）
-> 已降 ARCHIVED_NON_NORMATIVE 仅作历史参照）与
-> `REVIEW.md` + `docs/owner/`（L0）为准；本文件不复制长文、不承载权威判定。
+> standards|modules|contracts）、最高设计 `ASTROCS_DESIGN.md`（§0 权威链）与
+> `docs/owner/`（L0）为准；本文件不复制长文、不承载权威判定。
 
 ## 1. 稳定目标（不随轮次变化）
 
@@ -40,7 +38,7 @@
   `0.11.0-alpha.2+g<commit12>`，见 `docs/governance/VERSION_NAMESPACES.md`）。
 - 文档索引：`docs/DOCUMENT_INDEX.yaml`（GOV-002；`base_product_version` 为机器
   修订关系字段，版本检查器豁免）。
-- 权威入口：`REVIEW.md` + `docs/owner/` 5 份 L0 文档（GOV-004 建立，
+- 权威入口：`docs/owner/` 6 份 L0 文档（GOV-004 建立，
   DOC-CONV-001 状态收敛；状态词阶梯权威 = `docs/owner/RELEASE_STATUS.md` §0）。
 - 主线关键提交链：GOV-001 冻结约束 → GOV-002 归档 → GOV-003 版本单源 →
   GOV-004 L0 骨架 → GOV-005 文档收敛 → … → GOV-001 宪章冻结（`d8c821db`）→
@@ -80,7 +78,7 @@
 1. ~~`astrocs run --phases 1,2,3` 遗留未删~~ → **已删除**（CLI-002；DOC-CONV-001
    BASE=`da3c4b4a` 实测 `build/cli/astrocs run --phases 1,2,3` → rc=2
    `unknown command 'run'`；kRules 无 run/graph）。
-2. ~~约束 §F.1（原宪章条款，已废止）每节点唯一真实模块 operation 未达成~~ → **三 Phase 节点化 `IMPLEMENTED`**（`ASTROCS_DESIGN.md` §11.3 词表）
+2. ~~约束 §F.1（原宪章条款，已废止）每节点唯一真实模块 operation 未达成~~ → **三 Phase 节点化 `IMPLEMENTED`**（`ASTROCS_DESIGN.md` §12.5 词表）
    （P1-001 `9e09941a` / P2-001 `439f9f20` / P3-002 `1a56ffb7`；
    `lib/core/src/module_adapters.cpp`:4257 P1 八节点 / :4282 P2 七节点 /
    :4309 P3 五节点；ctest `p1001_real_nodes`/`p2001_real_nodes`/

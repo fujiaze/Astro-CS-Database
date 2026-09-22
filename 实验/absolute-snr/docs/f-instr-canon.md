@@ -454,7 +454,7 @@ accept_mag     = 0.02      # exp5: |PSF 总通量偏差| <= 0.02 mag
 | | | **合计** | **~5 个文件、~240 行（含测试）**；生产代码约 **~46 行** |
 
 **风险**：PSF 拟合在**暗星**上不收敛（`p1_psf.json` 只有成功行）⇒ 会**减少**进入 `r_i` 的星数。
-缓解：`P1_PHOT_MIN_FIT_STARS=3` 已存在；建议**保留 5×5 `flux` 作为"仅检测"用途**，并统计 `n_psf_valid / n_detected` 作为 QA 指标。
+缓解：SCI-PHOT-001 §4 求解前提（`frame_photometry_fit.h` 的 `kMinFitStars`）已存在，星少到前提不成立即 NO_DATA 拟合失败；建议**保留 5×5 `flux` 作为"仅检测"用途**，并统计 `n_psf_valid / n_detected` 作为 QA 指标。
 
 ### 5.2 方案 R2（精化，可选）：加 D2 最优提取
 

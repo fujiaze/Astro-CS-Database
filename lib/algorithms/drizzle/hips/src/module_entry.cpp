@@ -801,7 +801,7 @@ static int hips_cancel_requested(const hips_inst* inst) {
 }
 
 /* 事务 sink 产物存在性计数 (输出 manifest artifacts; DRZ 同款手法)。
- * FIX-201 (ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」): 原 HIPS_MKDIR
+ * ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」: 原 HIPS_MKDIR
  * 宏 (Win _mkdir / POSIX mkdir) 是**死宏** (全 TU 零调用点), 已删除 ——
  * 目录创建一律经 aio 机制原语 (aio_atomic::make_dirs / make_dir);
  * 本函数只做只读存在性探测 (access(F_OK)), 不产生文件系统写操作。 */

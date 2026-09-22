@@ -107,7 +107,7 @@ inline const char* gate_diag_name(GateDiag d) {
 // (percent_of_one_core), 调用方必须先经 cpu_percent_of_allocated_capacity()
 // 归一后再写入 cpu_p50/mean_percent。
 // 旧注释引用的「宪章 §10.5/§18.2」已废止（旧宪章文件已删, 见
-// docs/README-DOCS.md:29）—— 已失效引用, 现指向 ⑥ 插件文档 §8。
+// 插件文档 §8）。
 inline constexpr double kWorkerP50Min =
     resource_gate_contract::kMinActiveComputeThreads;
 inline constexpr double kCpuP50MinPercent =

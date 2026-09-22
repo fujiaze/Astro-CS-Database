@@ -81,7 +81,6 @@ PREEXISTING = (
     ("docs/DOCUMENT_INDEX.yaml", "D1b", "P2-REJ-DOC (2026-09-09)"),
     ("docs/DOCUMENT_INDEX.yaml", "D1b", "P1-STAR-DOC 事实修订（2026-09-07）"),
     ("docs/contracts/ARCH-001.md", "D1b", "DOC-202 R04 订正（2026-09-20）"),
-    ("docs/contracts/CONFIG_CONTRACT.md", "D1b", "DOC-203 / S02 订正"),
     ("docs/contracts/DATA_SEMANTICS.md", "D1b", "多通道 channels≠1 拒绝"),
     ("docs/contracts/DATA_SEMANTICS.md", "D1b", "read_wcs_params_from_frame"),
     ("docs/contracts/DATA_SEMANTICS.md", "D1b", "api.cpp:552-557"),

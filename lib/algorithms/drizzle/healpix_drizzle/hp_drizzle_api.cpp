@@ -14,7 +14,7 @@
 #include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
 #include "astro_sphere_sink.h"      // Phase1: Drizzle -> AIO HiPS 直写
 #include "hp_drizzle_internal.h"    // F-13: run_drizzle_internal / setErrorMsg (run_hips 已迁出本 TU)
-// FIX-201 (ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ 原子产品):
+// ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ 原子产品:
 // 产品面落盘一律经 aio 机制原语 (aio_atomic_file.h), 本 TU 不得自持文件通道。
 #include "aio_atomic_file.h"
 
@@ -1182,7 +1182,7 @@ try {
         fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: HiPS 已直写 %s (无 HISS 中转)\n",
                 hips_dir);
         // 操作计数证据 (仅通用档; Phase1 档产物目录与旧 writer 保持同一文件集)
-        // FIX-201: 原实现自持 fopen/fprintf/fclose 直写产品目录 (非原子) ——
+        // 原实现自持 fopen/fprintf/fclose 直写产品目录 (非原子) ——
         // 现改为经 aio 原子落盘原语 (aio_atomic::write_file_atomic:
         // 临时文件 → fsync → 原子 rename), 既回到 §9 的 aio 边界, 又消除
         // "半成品剖面文件" 风险。JSON 字节内容与旧实现逐字节一致。
@@ -1256,7 +1256,7 @@ try {
     result->nested           = stats.nested ? 1 : 0;
     result->pixfrac          = config.pixfrac;
     result->elapsed_sec      = stats.elapsedSec;
-    // FIX-405 G3-5: 样本级掩膜强制计数（DATA-002 §2a；禁静默剔除）
+    // G3-5: 样本级掩膜强制计数（DATA-002 §2a；禁静默剔除）
     result->n_rejected_nonfinite          = stats.n_rejected_nonfinite;
     result->n_rejected_nonfinite_value    = stats.n_rejected_nonfinite_value;
     result->n_rejected_nonfinite_variance = stats.n_rejected_nonfinite_variance;

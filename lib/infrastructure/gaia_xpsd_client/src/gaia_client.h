@@ -158,7 +158,7 @@ int gaia_client_collect_plan_stats(GaiaClient *client, GaiaPlanStats *out_stats)
  * 调用方；0 表示所有文件声明合法或缺失 (行为与历史一致)。 */
 int gaia_client_get_magnitude_range_reject_count(GaiaClient *client);
 
-/* ═══ FAILCLOSED-01 (GAIA-FAILCLOSED-01): 目录装载/查询的 fail-closed 诊断面 ═══
+/* ═══ FAILCLOSED-01: 目录装载/查询的 fail-closed 诊断面 ════════════════════════
  * 背景（根因）: run/WCS-DETERMINISM-01/REPORT.md §1.2 —— gaia_client_create_ex
  * 对目录里每个 *.xpsd 调 load_xpsd_file, 返回 -1 时**没有 else 分支** ⇒ 装载
  * 失败的 shard 被静默丢弃（无日志/无计数/create 仍返回非 NULL）。地址空间受限

@@ -21,7 +21,7 @@ extern "C" {
  * 都是按块名索引的块。模块按块名读取数据，计算结果写为新块或注入已有块。
  * 编排器按阶段丢弃不需要的块释放内存。
  *
- * ⚠ 块↔文件接口的归属 (FIX-201 / ASTROCS_DESIGN §9):
+ * ⚠ 块↔文件接口的归属 (ASTROCS_DESIGN §9):
  *   本头下半部「缓存文件 (.aio)」与「调试导出」两组接口是**非生产/诊断**接口，
  *   **禁止**任何阶段内节点用它们搬运数据 (设计逐字:「把内存块写成 FITS/XML」
  *   「把整帧存成缓存文件再读回」这类接口**必须**删除或明确降级为非生产/诊断
@@ -129,7 +129,7 @@ AIO_EXPORT void  aio_free(void* ptr);
 /* ===========================================================================
  * 块名词表 API（标准块定义表 = 帧内命名块的唯一登记处）
  * ---------------------------------------------------------------------------
- * 契约（FIX-404 / GAP_AUDIT G1-5）：
+ * 契约（GAP_AUDIT G1-5）：
  *   - aio_frame_add_block / aio_frame_add_block_move 只接受**标准块定义表**中的
  *     块名（见文件末「标准块定义表」），或经 aio_block_name_register 显式注册的
  *     扩展名；两者之外的任意自定义名一律拒绝（返回 9，frame 不变）。
@@ -219,7 +219,7 @@ AIO_EXPORT double aio_frame_kv_get_double(const PipelineFrame* frame, const char
 /* ===========================================================================
  * 缓存文件 (.aio) - 无损读写所有块
  * ---------------------------------------------------------------------------
- * ⚠ 非生产 / 诊断接口 (FIX-201 降级登记; ASTROCS_DESIGN §9)。
+ * ⚠ 非生产 / 诊断接口 (降级登记; ASTROCS_DESIGN §9)。
  *   设计条款 (逐字): 「块↔文件的导出/缓存接口不是生产接口: aio 合同里
  *   『把内存块写成 FITS/XML』『把整帧存成缓存文件再读回』这类接口必须删除
  *   或明确降级为非生产/诊断并登记; 禁止任何阶段内节点用它们搬运数据」。
@@ -236,7 +236,7 @@ AIO_EXPORT int aio_frame_save_cache(const PipelineFrame* frame, const char* path
 AIO_EXPORT int aio_frame_load_cache(PipelineFrame* frame, const char* path);
 
 /* ===========================================================================
- * 调试导出 (非生产 / 诊断接口; FIX-201 降级登记; ASTROCS_DESIGN §9)
+ * 调试导出 (非生产 / 诊断接口; 降级登记; ASTROCS_DESIGN §9)
  * ---------------------------------------------------------------------------
  * 唯一在位的内部调用点 = aio_pipeline_engine 的显式调试通道
  * (aio_pipeline_engine_set_debug 给出 debug_dir 时才触发; 未配置即不导出),
@@ -260,7 +260,7 @@ AIO_EXPORT int aio_frame_export_all_xml(const PipelineFrame* frame, const char* 
 
 /* [非生产/诊断] 旧名包装 (导出所有块为 XML), 等价于 aio_frame_export_all_xml。
  * 身份 = 诊断别名, **不是**「兼容保留」的生产接口: 仓内生产调用点 = 0
- * (FIX-201 grep 证据); 新调用方一律不得使用。 */
+ * 新调用方一律不得使用。 */
 AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
     const char* path, const char* comment);
 
@@ -329,7 +329,7 @@ AIO_EXPORT int aio_pipeline_export_xml(const PipelineFrame* frame,
  *     扩展路径只有一条 = 显式注册（先在本表增行、给出权威引用，再注册）。
  *     variance / ivar 的语义正本 = docs/design/UNIFIED_MODEL.md §2 +
  *     eng/contracts/schemas/unified/{variance,ivar}.schema.json；
- *     消费面登记 = docs/contracts/DATA_SEMANTICS.md §11.1（FIX-404 / GAP_AUDIT G1-5）。
+ *     消费面登记 = docs/contracts/DATA_SEMANTICS.md §11.1（GAP_AUDIT G1-5）。
  * ===========================================================================
  *
  * ===========================================================================

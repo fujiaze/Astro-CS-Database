@@ -468,7 +468,7 @@ static acs_status noise_cfg_parse(const char* json, noise_cfg* c,
         if ((d = json_get_f64(json, NOISE_CFG_KEY_SPATIAL_FIELD, &f), f)) {
             c->cfg.enable_spatial_field = (d != 0.0) ? 1u : 0u; c->cfg_present = 1; }
         if ((d = json_get_f64(json, NOISE_CFG_KEY_VARIANCE_FLOOR, &f), f)) {
-            /* FIX-405 G3-6 (钳位 fail-open → fail-closed): variance_floor 是保护
+            /* G3-6 (钳位 fail-open → fail-closed): variance_floor 是保护
              * 下限, 非法值会让 std::max 钳位静默失效（NaN 比较恒 false; ≤0 等于
              * 不设防）。此处显式拒绝, 不把非法 floor 传进科学层。 */
             if (!std::isfinite(d) || d <= 0.0) {
@@ -1107,7 +1107,7 @@ static acs_status noise_execute_estimate(noise_inst* inst, const char* manifest,
                      ACS_DIAG_ECODE_NONE, "noise: out manifest alloc failed");
     }
     char* w = buf;
-    /* FIX-405 G3-6: variance_floor 钳位状态显式登记（触发即状态, 不静默通过）。
+    /* G3-6: variance_floor 钳位状态显式登记（触发即状态, 不静默通过）。
      * variance_floor_clamped = build 期间被 floor 抬升的数值个数（全局兜底 +
      * 逐控制点）; variance_floor_status = "clamped" | "inactive"。 */
     const int64_t floor_clamped = snr_noise_model_v1_floor_clamp_count(&model);
@@ -1211,7 +1211,7 @@ static acs_status noise_execute_estimate(noise_inst* inst, const char* manifest,
 }
 
 /* ── 6b. fill_noise_field: 模型 round-trip 影子实例 + 独立 fill ──
- * FIX-405 G3-6 (钳位 fail-open → fail-closed): 影子实例由本层手工拼装,
+ * G3-6 (钳位 fail-open → fail-closed): 影子实例由本层手工拼装,
  * 不在 g_model_floor 注册表内。原实现让 fill_impl 静默回退 1e-12 ⇒ manifest
  * 里配置的 variance_floor 在生产 fill 路径上被无声忽略（且 manifest 恒写
  * floor_fallback:1 掩盖了这一点）。现改为: 本层用 manifest 的 variance_floor
@@ -1317,7 +1317,7 @@ static acs_status noise_execute_fill(noise_inst* inst, const char* manifest,
         }
     }
 
-    /* FIX-405 G3-6: 显式绑定 fill 下限（配置的 variance_floor 必须真正生效,
+    /* G3-6: 显式绑定 fill 下限（配置的 variance_floor 必须真正生效,
      * 不得静默回退 1e-12）。floor 非法/缺失 ⇒ fail-closed, 不落平面。 */
     double floor_cfg = 0.0;
     {
@@ -1379,7 +1379,7 @@ static acs_status noise_execute_fill(noise_inst* inst, const char* manifest,
     w += snprintf(w, (size_t)(total - (size_t)(w - buf)),
         "{\"op\":\"%s\",\"rc\":0,\"h\":%llu,\"w\":%llu,"
         "\"n_control_points\":%llu,"
-        /* FIX-405 G3-6: 原恒写 "floor_fallback":1（掩盖了 1e-12 静默回退）。
+        /* G3-6: 原恒写 "floor_fallback":1（掩盖了 1e-12 静默回退）。
          * 现如实登记: 影子模型已显式绑定 manifest 的 variance_floor,
          * 回退路径不再存在 ⇒ floor_fallback=0 + 绑定值与状态。 */
         "\"floor_fallback\":0,\"variance_floor_bound\":1,"

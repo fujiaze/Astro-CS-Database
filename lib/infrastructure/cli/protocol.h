@@ -35,7 +35,7 @@ inline bool is_frozen_exit_code_v1(int c) {
            c == RESOURCE || c == INTERNAL;
 }
 
-// §4 kind 注册表 v1 —— **10 类开放 kind 全登记**（FIX-405 G3-10）。
+// §4 kind 注册表 v1 —— **10 类开放 kind 全登记**（G3-10）。
 // 登记面 = 实现正本（本表）↔ 机器 schema（eng/contracts/schemas/jsonl_event_v1.schema.json
 // 的 properties.kind.enum + 同名 allOf 分支）↔ 人类可读合同
 // （docs/api/CLI_PROTOCOL_V1.md §4）；三者必须同面。
@@ -115,7 +115,7 @@ inline bool ValidateEventV1(const nlohmann::json& ev, unsigned long long expect_
         return false;
     }
     const std::string kind = ev.value("kind", std::string());
-    // FIX-405 G3-10: kind 注册表硬闸 —— 未登记 kind 一律拒发（fail-closed）。
+    // G3-10: kind 注册表硬闸 —— 未登记 kind 一律拒发（fail-closed）。
     // 注册面 = registered_event_kinds_v1()（与 eng/contracts/schemas/jsonl_event_v1.schema.json
     // 的 kind enum + docs/api/CLI_PROTOCOL_V1.md §4 同面）。
     if (!is_registered_event_kind_v1(kind)) {

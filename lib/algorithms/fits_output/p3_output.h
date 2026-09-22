@@ -1,5 +1,5 @@
 // lib/algorithms/fits_output/p3_output.h — Phase3 输出 FITS 原子写 (ALG-P3-004) — P3-004
-// W4-A9 批次 3 (2026-09-17): 原址 lib/phase3_session/p3_output.h, 按 ASTROCS_DESIGN
+// 原址 lib/phase3_session/p3_output.h, 按 ASTROCS_DESIGN
 // §7.1「fits_output」行迁入本模块; 命名空间 astrocs::phase3 与公共符号名零改动。
 // 覆盖: 原子写(tmp+rename)、BITPIX=-32/BSCALE=1/BZERO=0/BUNIT、WCS 关键字、
 // HISTORY provenance(源 hips/order_sel/sampler/软件版本/manifest hash)、
@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <string>
 
-// W4-A9 批次 1/3: p3_wcs.h 在 lib/algorithms/projection/ (批次 1 迁入), 经本 target
+// p3_wcs.h 在 lib/algorithms/projection/, 经本 target
 // 的 include 面 (astrocs_p3_projection_wcs PUBLIC) 解析 —— 不再用相对路径 (迁址即失效)。
 #include "p3_wcs.h"
 

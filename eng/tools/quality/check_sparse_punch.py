@@ -920,11 +920,21 @@ def probe_run(repo: Path, workdir: Path, cases: Cases, log):
         shutil.copy2(cand[0], rt)
         s0 = os.stat(rt)
         h0 = sha256_file(rt)
+        ra0 = astropy_reads(rt)
+        rc0, rj0, _ = cross_reader(reader, rt) if reader else (1, {}, "")
         rc, pjr, _ = run_probe(probe, ["punch", rt])
         s1 = os.stat(rt)
         h1 = sha256_file(rt)
+        ra1 = astropy_reads(rt)
+        rc1, rj1, _ = cross_reader(reader, rt) if reader else (1, {}, "")
         rr = pjr.get("result", {})
         holes_r = holes_from_extents(data_extents(rt), s1.st_size)
+        cases.add("T3_real_tile_%s_readers" % name,
+                  ra0 == ra1 and bool(rj0) and rj0 == rj1,
+                  "真实 %s 瓦片：astropy（memmap/非 memmap）与 cfitsio 交叉读器逐 HDU 全等"
+                  % name if (ra0 == ra1 and rj0 and rj0 == rj1)
+                  else "真实 %s 瓦片读器不一致" % name,
+                  {"cfitsio": rj1})
         cases.add("T3_real_tile_" + name,
                   rr.get("rc") == RC_OK and rr.get("verified") is True and h0 == h1
                   and s0.st_size == s1.st_size,

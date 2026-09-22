@@ -140,9 +140,13 @@ P2_API int p2_upm_info(const void* model, P2ModelInfo* out_info);
 // 收敛与否必须由本访问器显式读取，禁止用 rc=0 冒充"已收敛"）。
 //   out_iterations：实际执行迭代数（1..cfg.max_iterations）
 //   out_objective ：末轮 Huber 目标值（ADU² 量纲）
-//   out_converged ：1 = 在 cfg.max_iterations 内 max_dM/max_dC 均达
-//                   cfg.tolerance；0 = 迭代耗尽未达容差，或模型文件未记录
-//                   （旧文件 / open 后未知）——0 一律按"未证明收敛"处理。
+//   out_converged ：**状态枚举**（唯一口径见 docs/plugins/algorithms_phase2/
+//                   11_upm.md §4.6 与 docs/science/PHASE2_UPM.md §5）：
+//                     0 = max_iter（迭代耗尽未达容差；模型文件未记录时同样读作 0，
+//                         一律按"未证明收敛"处理）
+//                     1 = converged（tol_step 与 tol_obj 同时满足）
+//                     2 = stalled（目标相对改善量连续 N_stall 次低于数值地板）
+//                     3 = invalid（目标非有限 / 无有效数据项）
 // 三个出参均可空。返回值：0 成功；1 model==nullptr。
 P2_API int p2_upm_convergence(const void* model, std::uint64_t* out_iterations,
                               double* out_objective, int* out_converged);

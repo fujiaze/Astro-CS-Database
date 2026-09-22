@@ -464,9 +464,11 @@ inline int punch_all_zero_blocks(const std::string& path, PunchResult* out,
         return rc_final();
     }
     r.size_bytes = size;
+    // 分配字节默认 = 打洞前值：**任何早退路径**（降级 / I/O 失败 / 空文件）都必须
+    // 使 released_bytes() 为 0，不得让「未打洞」被读成「释放了全部字节」。
+    r.alloc_after = r.alloc_before;
     if (size == 0) {                       // 空文件：无事可做，也不是失败
         r.rc = PUNCH_OK;
-        r.alloc_after = r.alloc_before;
         r.verified = verify;
         return rc_final();
     }
@@ -478,7 +480,7 @@ inline int punch_all_zero_blocks(const std::string& path, PunchResult* out,
         return rc_final();
     }
 
-    // 卷能力：不支持 ⇒ **纯降级**（一个字节都不动）。
+    // 卷能力：不支持 ⇒ **纯降级**（一个字节都不动；released_bytes() 必须为 0）。
     int supported = 0;
     std::string preason;
     volume_supports_punch(parent_dir_of(path), &supported, &preason);
@@ -632,6 +634,7 @@ inline int punch_range_forced(const std::string& path, std::uint64_t off,
         return rc_final();
     }
     r.size_bytes = size;
+    r.alloc_after = r.alloc_before;   // 早退路径的 released_bytes() 必须为 0
     if (verify && !aio_file::sha256_hex(path.c_str(), &r.sha256_before)) {
         r.rc = PUNCH_IO_ERROR;
         r.reason = "pre_hash_failed";

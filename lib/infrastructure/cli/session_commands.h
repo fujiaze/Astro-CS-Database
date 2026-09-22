@@ -108,10 +108,10 @@ inline const InputContract& input_contract(SessionId s) {
 // 二选一，模板不替用户填任何天测值 —— 伪造 WCS 会静默污染真实数据）。
 // 科学默认值不写进模板（唯一家在程序根 eng/packaging/config/defaults.json），表中出现的字面量
 // 只有「结构骨架」与显式无默认要求键（如 drizzle.precision_mode）。
-// FIX-203 例外（唯一，逐条登记）：提升键 snr_path / rotation_deg 的模板值取自
+// 例外（唯一，逐条登记）：提升键 snr_path / rotation_deg 的模板值取自
 // **合同已登记的默认**（phase_config_mosaic.schema.json#snr_path.default +
 // eng/packaging/config/defaults.json#snr.path；14_projection.md:38 rotation 默认 0），目的是让
-// 合同键在 --template 里可见（FIX-203 步骤 5 / 验收门：模板必须含新键）；默认值的
+// 合同键在 --template 里可见（验收门：模板必须含新键）；默认值的
 // 唯一家仍是 schema / defaults.json，本表只是显示，不新增第二份来源。
 // crpix_px 的 [512.5, 512.5] 是随模板几何（1024×1024）推出的示例占位，非数值默认。
 // scope（CLI-MULTIBLOCK, GAP_AUDIT §9.68）：
@@ -207,7 +207,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "可选：数据集级覆盖索引 coverage.index.json 的路径（加性可选键；缺省回退 = 由产品级索引现场倒排）"
          "（合同声明 = phase_config_mosaic.schema.json；生产消费点未落地，见死键台账）"},
         {"output_dir", "\".\"", "运行产物唯一落点（必填非空字符串）"},
-        // FIX-203（GAP_AUDIT G05；ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
+        //（GAP_AUDIT G05；ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 不认的提升键落地。键名**逐字**取合同
         // 声明名（禁止新造同义键）：
         //   eng/contracts/schemas/phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
@@ -219,7 +219,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "Phase2 SNR 重建/消费路径 dense|sparse_reconstruct|frame_reconstruct"
          "（默认 sparse_reconstruct = 消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR；"
          "合同声明 = phase_config_mosaic.schema.json；生产消费点未落地，见死键台账）"},
-        // FIX-203 精度口径（ASTROCS_DESIGN §3.3:256）：阶段二/三 = 位深键 bitpix(-32/-64)，
+        // 精度口径（ASTROCS_DESIGN §3.3:256）：阶段二/三 = 位深键 bitpix(-32/-64)，
         // 阶段一 = drizzle.precision_mode(0/1)。**不新造 precision(fp32/fp64) 同义键**。
         // §9.73 裁决 A44（「权重模式」概念不存在）: 原 weight_mode / legacy_allow_weight_fallback
         // 两键**已从 CLI 配置面摘除**（模板/help/白名单同撤）。权重是 Phase2 消费 SNR 时的
@@ -244,7 +244,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"width_px", "1024", "输出宽度（1..20000）"},
         {"height_px", "1024", "输出高度（1..20000）"},
         {"scale_deg_per_px", "0.001", "输出像素尺度（度/像素，必须 > 0）"},
-        // FIX-203（GAP_AUDIT N03；ASTROCS_DESIGN §3.3 键名以 CLI 实际认的键为准）：
+        //GAP_AUDIT N03；ASTROCS_DESIGN §3.3 键名以 CLI 实际认的键为准：
         // 合同声明但 CLI 不认的提升键落地。键名**逐字**取合同声明名（禁止新造同义键）：
         //   eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 平铺顶层与 CLI export 既有几何键（center / scale_deg_per_px / width_px / height_px）同面
@@ -260,7 +260,7 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"crpix_px", "[512.5, 512.5]",
          "参考像素（FITS 1-based；示例值 = 本模板 1024×1024 输出的几何中心，缺省 = 中心；"
          "合同声明 = phase_config_export.schema.json；生产消费点未落地，见死键台账）"},
-        // FIX-203 精度口径（ASTROCS_DESIGN §3.3:256）：阶段三精度键 = 位深键 bitpix(-32/-64)
+        // 精度口径（ASTROCS_DESIGN §3.3:256）：阶段三精度键 = 位深键 bitpix(-32/-64)
         // —— 既有键、已在 session_keys() 白名单且已被生产消费（lib/phase3_session/p3_session.cpp:126,391；
         // module_adapters.cpp:8890/9693），**不是新造键**。这里只把它列进字段说明（json == nullptr
         // ⇒ 不进模板：它有实现缺省 -32，模板不替用户主张数值），补上「合同 precision 键被拒后

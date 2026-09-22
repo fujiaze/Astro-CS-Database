@@ -27,7 +27,7 @@ typedef struct {
     double  pixfrac;
     double  elapsed_sec;
     char    error_msg[512];     // 错误信息
-    // ── FIX-405 G3-5 / DATA-002 §2a（rule_id NAN-SAMPLE-MASK-COVERAGE-NAN）──
+    // ── G3-5 / DATA-002 §2a（rule_id NAN-SAMPLE-MASK-COVERAGE-NAN）──
     // 样本级掩膜强制计数（禁静默剔除）。**只增不改**：新字段一律追加在尾部，
     // 既有字段偏移不变（已编译的 DLL/ctypes 消费者不受影响）。
     // 语义: 不合格样本 = ¬isfinite(x_j) ∨ ¬isfinite(V_j) ∨ V_j ≤ 0；

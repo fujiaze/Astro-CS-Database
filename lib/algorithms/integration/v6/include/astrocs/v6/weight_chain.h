@@ -117,6 +117,14 @@ bool sparse_recon_operator_uses_mesh_median(SparseReconOperator op);
 /* 该算子是否做值域钳制（默认算子必须为真；不得单独关闭）。 */
 bool sparse_recon_operator_clips_to_ctrl_range(SparseReconOperator op);
 
+/* 按**数据来源**选择重建算子的显式规则（把 07_noise_snr.md §4.5 的选择规则做成
+ * 可执行、可测的单点，避免各处自行判断）：
+ *   high_contrast_unresolved_sources = true  ⇒ 高对比域档（cell 内含未分辨点源：
+ *                                               空间高分辨率 / HST 类）
+ *   false                                    ⇒ 默认档（地面 seeing-limited 与一般情形）
+ * **无法判断时传 false**（默认目标域上 mesh 滤波有害；不得从控制网格自身推断）。 */
+const char* sparse_recon_operator_for_source(bool high_contrast_unresolved_sources);
+
 /* 稀疏帧内层几何（显式声明，写入 manifest；禁止隐式外推）:
  *   - regular_grid=true : 规则网格插值。nx*ny 控制点，行主序 j*nx+i。
  *       **节点落在所属 cell 的中心**（与 Phase2 UPM 8×8/tile 控制网格同一约定，

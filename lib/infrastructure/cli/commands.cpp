@@ -61,9 +61,9 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "resource_events.h"
 #include "resource_gate.h"
 #include "astrocs/core/context.h"  // B2-A18: 租约授予观测
-#include "astrocs/core/memory_budget.h"  // MEM-WIRE-01: 内存静态预算来源解析（§8.3）
-#include "aio_sysinfo.h"                 // MEM-WIRE-01: 可用内存唯一探测实现（aio 边界）
-#include "aio_file_io.h"                 // MEM-WIRE-01: 文件读取唯一机制原语（aio 边界）
+#include "astrocs/core/memory_budget.h"  // 内存静态预算来源解析（§8.3）
+#include "aio_sysinfo.h"                 // 可用内存唯一探测实现（aio 边界）
+#include "aio_file_io.h"                 // 文件读取唯一机制原语（aio 边界）
 #include "v6_runtime_contract.h"   // RUNTIME-CI-001: 统一预算/模式路由/SO-05 策略单一来源
 
 #ifdef _WIN32
@@ -110,7 +110,7 @@ static uint32_t cli_affinity_cpu_count() {
 }
 
 
-// ── MEM-WIRE-01: 运行期内存静态预算解析（§8.3「静态预算」的**来源**面） ──────
+// ── 运行期内存静态预算解析（§8.3「静态预算」的**来源**面） ───────────────────
 // 依据（逐条）：
 //   * 负责人裁决 2026-09-22（逐字）：「我是不设置上限，有多少资源吃多少资源。（内存
 //     最高吃掉空闲的 95% 避免卡死，且**这个参数配置在 config 里面可调，默认 95**）」
@@ -796,7 +796,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     ev.emit_progress(0, 1, "phases", nullptr, nullptr);
     // §9.74 裁决 10: 资源判据（CPU/内存/线程）不设门 ⇒ 恒不接入协作取消
     // （取消源恒 nullptr）；计算不再因利用率被判据提前打断（记录与裁决分离）。
-    // MEM-WIRE-01: 内存静态预算（§8.3）—— CPU 与内存同源解析：CPU 取亲和性核数
+    // 内存静态预算（§8.3）—— CPU 与内存同源解析：CPU 取亲和性核数
     // （cli_affinity_cpu_count，上方 budget），内存取「实测可用内存 × 可配置比例
     // （默认 95%）」。上限只作调度准入（回压/排队），不产生退出码（§3.5 内存不设门）。
     uint64_t mem_limit = 0;
@@ -852,7 +852,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     const astrocs::GateDiag f10 =
         static_cast<astrocs::GateDiag>(first10s_diag.load(std::memory_order_relaxed));
     if (rrc != astrocs::OK) {
-        // FIX-401 主判据（先于探针）: 管线退出码已是 10 ⇒ 失败**本身**已被分类为磁盘满
+        // 主判据（先于探针）: 管线退出码已是 10 ⇒ 失败**本身**已被分类为磁盘满
         // （aio 在清理临时产物之前判定 ENOSPC/EDQUOT → 失败节点 manifest
         // error_kind="disk_full" → runtime_client.cpp::pipeline_exit_code_from_error
         // 映射 10）。此时发与探针兜底**同一形状**的 resource error 事件
@@ -868,7 +868,7 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         // §9.74 裁决 10 运行期臂（兜底）: 管线失败且**磁盘写不进去**（写满/写失败）⇒ fail-closed
         // 归并为 exit 10（真实探测写判定，不猜 errno）；否则保留管线原退出码。
         //
-        // FIX-401 定位: 本探针是**兜底**，不是判据。它问的是"现在还能不能写"，而
+        // 定位: 本探针是**兜底**，不是判据。它问的是"现在还能不能写"，而
         // ASTROCS_DESIGN §10 要求失败/取消路径**清理临时产物** —— 清理会释放磁盘满，
         // 探针随后必然成功（fail-open，实测 rc=7 而非 10）。磁盘满的**判据**改为在
         // 失败发生处（aio，清理之前）分类，经失败节点 manifest 的
@@ -1121,7 +1121,7 @@ struct BlockOutcome {
     std::string why = "complete";
 };
 
-// ── FIX-406: 三阶段「写盘阶段」取消窗（测试钩子，非用户接口）──────────────
+// ── 三阶段「写盘阶段」取消窗（测试钩子，非用户接口）───────────────────────
 // 取消点覆盖（三命令同构，缺一不可）:
 //   ① 入口窗     ASTROCS_TEST_SLEEP_MS           (subcommand.h run(), 读配置前)
 //   ② 计算窗     ASTROCS_TEST_PIPELINE_SLEEP_MS  (runtime_client.cpp run_pipeline,
@@ -1284,7 +1284,7 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     if (multi)
         extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
 
-    // FIX-406: 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
+    // 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
     write_stage_cancel_window();
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
@@ -1584,7 +1584,7 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     if (multi)
         extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
 
-    // FIX-406: 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
+    // 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
     write_stage_cancel_window();
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
@@ -2018,7 +2018,7 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
         p1_extra["block"] = {{"name", block_name}, {"index", block_index}, {"count", block_count}};
     const std::string out_dir = cfg_out_dir;
 
-    // FIX-406: 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
+    // 写盘阶段取消窗（测试钩子；未设 ASTROCS_TEST_WRITE_SLEEP_MS = 零影响）
     write_stage_cancel_window();
     if (astrocs::is_cancelled()) {
         const int wrc = write_run_manifest(out_dir, ev, "incomplete", "cancelled by user",
@@ -2256,7 +2256,7 @@ int dispatch(const Parsed& p) {
     }
     if (joined == "doctor") {
         if (!p.flags.count("--json")) parse_fail("doctor requires --json");
-        // FIX-405 G3-11（GAP_AUDIT G3-11）：verify 能力纳入命令树。
+        // G3-11（GAP_AUDIT G3-11）：verify 能力纳入命令树。
         // 落位 = doctor 的机器旗标 --run-manifest <manifest.json>（ASTROCS_DESIGN
         // §7.1 唯一命令树只有 normalize/mosaic/export/help/--version/doctor/
         // benchmark，无独立 verify；verify* 是已删别名 → rc=2，见

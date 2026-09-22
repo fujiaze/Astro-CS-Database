@@ -18,7 +18,7 @@
 #include "aio_hips.h"
 #include "aio_hips_reader.h"   // DATA-UNC-001 §30.2/§30.3: verify 面回读 (只读)
 #include "aio_atomic_file.h"   // AIO-001: 临时文件+fsync+原子 rename 落盘原语
-#include "aio_disk_full.h"     // FIX-401: 磁盘满/配额失败的失败瞬间分类
+#include "aio_disk_full.h"     // 磁盘满/配额失败的失败瞬间分类
 #include "aio_sparse_punch.h"  // 裸形态体积削减: 文件系统打洞 (合同 §7 T1)
 #include "healpix/healpix_core.h"
 
@@ -440,7 +440,7 @@ bool write_moc_fits_raw(const std::string& path,
 }
 
 // ---------------------------------------------------------------------------
-// FIX-401 (ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1):
+// ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1:
 // 每个 tile/元数据 FITS 走「本次运行私有临时文件 → 哈希校验 → fsync →
 // 原子 rename」。修复前 write_fits_image 先 std::remove(final) 再
 // fits_create_file(final) **直写正式路径** ⇒ 中途 kill / ENOSPC / 校验失败
@@ -547,7 +547,7 @@ bool write_fits_atomic(const std::string& final_path,
     const bool inj_diskfull = tile_fault("tile_diskfull");
     const bool inj_write = tile_fault("tile_write_fail");
     if (inj_diskfull || inj_write || !body(tmp)) {
-        // FIX-401: 磁盘满必须在**清理之前**、失败发生处分类 (见 aio_disk_full.h 头注:
+        // 磁盘满必须在**清理之前**、失败发生处分类 (见 aio_disk_full.h 头注:
         // 清理会释放空间, 事后探针必然 fail-open)。注入面 tile_diskfull 等价于 ENOSPC。
         if (inj_diskfull) aio_disk::note_full();
         else aio_disk::note_failure(tmp, errno);
@@ -579,7 +579,7 @@ bool write_fits_atomic(const std::string& final_path,
     }
     const int frc = aio_atomic::fsync_path(tmp, 0);
     if (frc != 0) {
-        aio_disk::note_failure(tmp, frc);   // FIX-401: 清理前分类
+        aio_disk::note_failure(tmp, frc);   // 清理前分类
         aio_atomic::remove_file(tmp);
         if (err) *err = "fsync failed: " + tmp + " (errno=" + std::to_string(frc) + ")";
         return false;
@@ -697,7 +697,7 @@ bool write_properties(const std::string& path,
 // ---------------------------------------------------------------------------
 // hierarchy 累加器 (MEM-DESIGN-01: 稀疏分块 + 按需通道 + 完备即流式写出)
 // ---------------------------------------------------------------------------
-// FIX-403 / GAP_AUDIT G3-3 / DISP-HIPS-009: 父层累加 (Σflux / Σarea / Σvar_num)
+// GAP_AUDIT G3-3 / DISP-HIPS-009: 父层累加 (Σflux / Σarea / Σvar_num)
 // **恒在 f64 累加器**进行 (ASTROCS_DESIGN §3.3 默认科学计算双精度); 产品声明位深
 // (bitpix −32/−64) 只在写出时量化一次 (finalize_hierarchy 的 (float)sig 截断)。
 // 修复前 f32 产品走 float 累加 (sumFluxF/sumAreaF/sumVarF): 每步 partial sum 舍入
@@ -732,7 +732,7 @@ bool write_properties(const std::string& path,
 //
 // 负例注入面 (测试专用, 与 ASTROCS_HIPS_DIAG_FAULT / ASTROCS_HIPS_PROV_FAULT
 // 同模式, 未设置时逐行零行为差异):
-//   ASTROCS_HIPS_HIER_FAULT=f32_accum     复现修复前 f32 逐步舍入 (FIX-403 O7)
+//   ASTROCS_HIPS_HIER_FAULT=f32_accum     复现修复前 f32 逐步舍入
 //   ASTROCS_HIPS_HIER_FAULT=dense_blocks  每通道一次性分配全部 64 块 = 修复前
 //                                         稠密分配 + 不流式写出 (等价旧语义);
 //                                         用于"稀疏 ≡ 稠密"逐位对照与内存判据判红
@@ -893,7 +893,7 @@ struct AioHipsProductSet {
     bool prov_set = false;
     std::string prov_manifest_hash, prov_model_hash, prov_reject_profile;
     int prov_uncertainty_available = 0;
-    // FIX-201 / §9.73 A44: 旧「权重模式」成员 prov_weight_mode 已删除
+    // §9.73 A44: 旧「权重模式」成员 prov_weight_mode 已删除
     // (全程只有 SNR, provenance 不承载权重模式; 见 aio_hips.h 四键通道注释)。
     // DATA-UNC-001 §30.2 诊断统计平面: 各通道是否真的写过 tile
     // （写 0 个 tile 的通道不 finalize, 禁空目录/空占位冒充产品）
@@ -1137,7 +1137,7 @@ AioHipsProductSet* aio_hips_product_begin(
     // P1 (R9-A): C 边界异常屏障
     try {
         g_hips_error.clear();
-        // FIX-401: 新产品写入开始 ⇒ 复位磁盘满粘滞标志, 使分类只归因本次失败。
+        // 新产品写入开始 ⇒ 复位磁盘满粘滞标志, 使分类只归因本次失败。
         aio_disk::reset();
         // nside 必须恰为 2 的幂(M8d-A-01/AIO-001): 叶级几何基数 nside=2^K 是
         // ALG-HIPS-001 (1a) 的冻结构造前提, 下方 ilog2_u64 是*向下取整*, 非 2 的幂
@@ -1175,7 +1175,7 @@ AioHipsProductSet* aio_hips_product_begin(
         ps->exposure = exposure_s;
         ps->moc_order = (moc_order == 0) ? ps->tile_order : std::min(moc_order, ps->tile_order);
         ps->hier.resize(ps->tile_order);
-        // FIX-401 §10「同一标识只有一个生产者」+「失败/取消时正式目录只出现
+        // §10「同一标识只有一个生产者」+「失败/取消时正式目录只出现
         // 完整产品」: 开工前先摘掉完成清单 (消费者立即 fail-closed), 再确定性
         // 删除本次将要写入的子产品目录 —— 上次 kill/失败留下的残留 tile、
         // 半成品与 .tmp.* 临时文件一律不得被本次运行"消费"或混进新清单。
@@ -1797,7 +1797,7 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     // DATA-UNC-001 §30.2: 诊断统计平面固定 int32 (无 precision 开关)
     if (is_diag)
         kv.push_back({"astrocs_diag_dtype", value_dtype ? value_dtype : "int32"});
-    // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 四键 (FIX-201: 原五键
+    // DATA-UNC-001 §30.3 (DATA-P2-PROV-001) provenance 四键 (原五键
     // 中的旧「权重模式」键已按 §9.73 A44 删除, 见 aio_hips.h)。
     // 全或无 (§30.3 冻结键名): prov_set=false → 四键整体不写 (legacy 面不变);
     // prov_set=true → 四键齐备, 禁静默缺键 (注入面 ASTROCS_HIPS_PROV_FAULT=
@@ -2087,7 +2087,7 @@ int aio_hips_set_frame_snr(AioHipsProductSet* ps, double frame_snr,
 // 全或无: 参数任一不合法 → 返回非 0 且不置 prov_set (调用方得不到半套 provenance)。
 // 值语义校验面向"禁伪造": 两个 hash 必须 64 hex (§20.3 sha256 十六进制形态),
 // reject_profile 非空, uncertainty_available ∈ {0,1}。
-// FIX-201 / §9.73 A44: 旧「权重模式」形参与其 0/1/2 值域校验已删除。
+// §9.73 A44: 旧「权重模式」形参与其 0/1/2 值域校验已删除。
 static bool is_sha256_hex(const char* s) {
     if (!s) return false;
     size_t n = 0;
@@ -2318,7 +2318,7 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                                  ? ps->leaf_ipix_list.size() : 0));
                 // DATA-UNC-001 §30.3: provenance 四键与 properties 双写
                 // (JSON 键同名小写; 调用方 schema 见 DATA-P2-PROV-001)
-                // FIX-201 / §9.73 A44: 旧「权重模式」JSON 键已删除 (四键 → 四键)。
+                // §9.73 A44: 旧「权重模式」JSON 键已删除 (四键 → 四键)。
                 if (ps->prov_set) {
                     const bool inj_drift =
                         fault_injected("ASTROCS_HIPS_PROV_FAULT", "value_drift");
@@ -2345,7 +2345,7 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
                 },
                 &merr);
             if (mrc != 0) {
-                aio_disk::note_failure(ps->out_dir, 0);   // FIX-401: 磁盘满分类
+                aio_disk::note_failure(ps->out_dir, 0);   // 磁盘满分类
                 set_error("manifest.json 原子落盘失败: " + merr);
                 return -13;
             }
@@ -2440,7 +2440,7 @@ bool json_scalar(const std::string& doc, const std::string& key, std::string* ou
     return true;
 }
 
-// FIX-201 / §9.73 A44: 旧「权重模式」键已从四键表删除 (原 5 → 4)。
+// §9.73 A44: 旧「权重模式」键已从四键表删除 (原 5 → 4)。
 const char* const kProvKeys[4] = {
     "ASTROCS_INPUT_MANIFEST_HASH", "ASTROCS_MODEL_HASH",
     "ASTROCS_UNCERTAINTY_AVAILABLE", "ASTROCS_REJECT_PROFILE"};
@@ -2644,7 +2644,7 @@ int aio_hips_verify_product_set(const char* out_dir, AioHipsVerifyReport* out)  
                 }
             }
             out->manifest_keys_present = mkeys;
-            // FIX-201 / §9.73 A44: 双写面键数 = 4 (原五键中的「权重模式」键已删除;
+            // §9.73 A44: 双写面键数 = 4 (原五键中的「权重模式」键已删除;
             // properties 侧同口径见 kProvKeys[4] 与 != 4 断言)。
             if (mkeys != 4) {
                 set_error("verify: manifest.json provenance 块不完整 (present=" +

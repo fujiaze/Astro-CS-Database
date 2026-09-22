@@ -45,7 +45,7 @@
 #define GAIA_MAG_RANGE_MIN (-10.0)
 #define GAIA_MAG_RANGE_MAX ( 40.0)
 
-/* ═══ FAILCLOSED-01 (GAIA-FAILCLOSED-01): 静默部分装载 → fail-closed ══════════
+/* ═══ FAILCLOSED-01: 静默部分装载 → fail-closed ═══════════════════════════════
  * 根因（run/WCS-DETERMINISM-01/REPORT.md §1.2）: gaia_client_create_ex 对目录里
  * 每个 *.xpsd 调 load_xpsd_file, 返回 -1 时**没有 else 分支** ⇒ 装载失败的
  * shard 被静默丢弃（无日志/无计数/create 仍返回非 NULL）。在地址空间受限

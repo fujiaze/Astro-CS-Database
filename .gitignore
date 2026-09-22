@@ -170,3 +170,6 @@ testdata/HST_M16/
 
 # 本机路径覆盖（用户手动配置绝对路径，不入库）
 eng/packaging/config/local.paths.json
+
+# DSH 代码索引工具缓存（agent 工具生成，不入库；ENGINEERING_SPEC §7 白名单按 gitignore 目录识别）
+.dsh-code-index/

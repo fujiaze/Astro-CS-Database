@@ -8,16 +8,15 @@
 > 已由 ROOT-007、CLEAN-402 及后续根清洁删除，历史仅存在于 git 历史。
 > 目标产品版本为根 `VERSION` = `0.11.0-alpha.2`——**仅内部开发助记符**，不进入程序/代码/产物；
 > Alpha 前程序内不存在任何版本信息（ASTROCS_DESIGN §12、ENGINEERING_SPEC §7）。
-> 现状与发布口径：`docs/owner/RELEASE_STATUS.md`、`docs/RELEASE_STATUS.md`、`docs/KNOWN_LIMITATIONS.md`。
+> 现状与发布口径：`docs/owner/RELEASE_STATUS.md`、`docs/KNOWN_LIMITATIONS.md`。
 > 本轮治理控制包：`工程控制/PROJECT-GOVERNANCE-01/`（任务与验收状态以该包 `TASK_LIST.md`/`ACCEPTANCE.md` 为准）。
 >
-> **V6 产品族冻结合同（现存文档面，非控制包）**：Phase2 生产~~权重模式~~ =（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
+> **V6 产品族冻结合同（现行合同面）**：Phase2 生产~~权重模式~~ =（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
 > `{point_information, surface_gls, psfsw_robust}`；文档基线 = `{equal, pixel_ivar}`；
-> `psf_snr_power` = **DEFERRED 且生产拒绝**。语义权威 =
-> `docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 /
-> PENDING_OWNER_SIGNOFF 49 / OPEN 8）；单一权重词表 = `eng/contracts/data/v6_weight_vocabulary_v1.json`。
-> 其来源 V6 控制包已由 ROOT-007 删除（不再可解析），
-> 文档中的该路径只作历史任务溯源，**不作现状引用**。当前**未发布**（NOT_READY_FOR_RELEASE）。
+> `psf_snr_power` = **DEFERRED 且生产拒绝**。语义权威 = `docs/contracts/DATA_SEMANTICS.md` §31
+> （96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8，逐条登记见 §31.10）；
+> 机器登记表 = `eng/contracts/data/v6_clause_registry_v1.json`。
+> 当前**未发布**（NOT_READY_FOR_RELEASE）。
 
 ## 目标态设计与科学参考
 
@@ -50,26 +49,25 @@ AstroCS 是天文 CCD/CMOS 图像校准与标准化数据库系统。产品形�
   平面 WCS FITS（已叠加，无需再带权重）。
 
 阶段间只通过**磁盘产品 + manifest + 哈希**交换（DATA-002）；三个命令各自独立启动、独立恢复、
-独立验收，**禁止**隐式串接为一次运行。正式平台为 Windows x64（交付 `ACSD Cli.exe` 唯一入口 +
-各 `.dll`）与 Linux amd64（`acsd_cli`），纯 CPU 生产；ACR 保留源码但 DORMANT
+独立验收，**禁止**隐式串接为一次运行。正式平台为 Windows x64（交付 `astrocs.exe` 唯一入口 +
+各 `.dll`）与 Linux amd64（`astrocs`），纯 CPU 生产；ACR 保留源码但 DORMANT
 （生产构建默认排除，ASTROCS_DESIGN §8/§10.1）。
 
-## 当前状态（如实；状态词只用 ASTROCS_DESIGN §11.3 词表）
+## 当前状态（如实；状态词只用 ASTROCS_DESIGN §12.5 词表）
 
-§11.3 词表：`CONTRACT_READY` / `IMPLEMENTED` / `INSTALLED` / `VERIFIED`，负向
+§12.5 词表：`CONTRACT_READY` / `IMPLEMENTED` / `INSTALLED` / `VERIFIED`，负向
 `NOT_IMPLEMENTED` / `NOT_VERIFIED` / `DEFERRED` / `DORMANT` / `FAIL`。
-**合成测试或历史可用节点不等于真实数据/Windows VERIFIED**（§11.3 末条）。
+**合成测试或历史可用节点不等于真实数据/Windows VERIFIED**（§12.5 末条）。
 
-- 逐模块/逐阶段状态与证据锚：`docs/owner/RELEASE_STATUS.md`、`docs/modules/MODULE_MAP.yaml`、
-  `docs/RELEASE_STATUS.md`。
+- 逐模块/逐阶段状态与证据锚：`docs/owner/RELEASE_STATUS.md`、`docs/modules/MODULE_MAP.yaml`。
 - **发布结论 = `NOT_READY_FOR_RELEASE`**：`VERIFIED` 要求正式平台（Windows x64）+ 真实数据
   验收通过，当前**未达成**（`NOT_VERIFIED`）；Agent 至多声明 `READY_FOR_OWNER_REVIEW`，
   最终发布决定只属项目负责人（§12）。
 - 51 条待决条款/开放项（49 `PENDING_OWNER_SIGNOFF` + 8 条款级 `OPEN`）保持 fail-closed；
   `psf_snr_power` 保持 `DEFERRED`。
-- 用户命令面已切换为唯一命令树 `normalize/mosaic/export + help/--version/doctor/benchmark`
-  （CLI-001，ASTROCS_DESIGN §6.2；旧 `phase1|2|3 run`、`run --phases`、`validate/plan/inspect`
-  用户命令全部删除且 rc=2，`phase` 仅为内部指代）。
+- 用户命令面 = 唯一命令树 `normalize/mosaic/export + help/--version/doctor/benchmark`
+  （CLI-001，ASTROCS_DESIGN §7.1）；`phase1|2|3`、`run --phases`、`validate/plan/inspect`
+  均不在命令树内（实测 rc=2），`phase` 仅为内部指代）。
 - ACR = `DORMANT`；HiPS Browser = 未来可视化组件，`NOT_IMPLEMENTED` 且不进产品 manifest（§1.3）。
 
 ## 仓库布局（模块索引权威：docs/architecture/MODULE_MAP.md、docs/modules/；ASTROCS_DESIGN §7.1）
@@ -101,7 +99,7 @@ run/                临时产物/日志（gitignore，不入库）
   机器一致性检查见 `docs/ci/CI_SPEC.md`。
 - 命令面：`normalize|mosaic|export --json <config.json>`（`--template` 生成模板，`--help` 字段说明）；
   `help` / `--version` / `doctor` / `benchmark`（docs/api/CLI_PROTOCOL_V1.md）。
-- 文档路由：`docs/README-DOCS.md`（文档体系分层）、`docs/DOCUMENT_INDEX.yaml`（机器索引：
+- 文档路由：`docs/standards/DOCUMENTATION_STANDARD.md`（文档体系分层）、`docs/DOCUMENT_INDEX.yaml`（机器索引：
   活动/归档边界 + `eng/tools/doccheck/check_doc_index.py` 校验）。
 - 记忆：根 `memory.md`（稳定目标/模块索引/开放问题）。
 - 变更历史：无独立 CHANGELOG（已删除）；历史只存在于 git 历史
