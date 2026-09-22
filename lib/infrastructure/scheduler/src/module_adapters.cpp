@@ -6462,16 +6462,21 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     (void)aio_fs::make_dirs(fdir);   // CLEAN-403: 目录创建经 aio
     HpDrizzleResult res;
     std::memset(&res, 0, sizeof(res));
+    // §10 + LOG_AND_ERROR_CONTRACT §5: 本帧产品写入的**帧级归因窗口**。窗口是
+    // 执行流局部(thread_local)的单调计数快照 ⇒ 并发帧各自的判定互不覆盖:
+    // 另一帧的 aio_hips_product_begin 不会抹掉本帧的判定, 另一帧的失败收尾也不会
+    // 抢走本帧的判定 (aio_disk_full.h 头注「归因粒度=帧级」)。
+    const aio_disk::FailureEpoch dsk_epoch;
     rc = hp_drizzle_run_phase1_hips(frame, frame_nside, nested, pixfrac, fdir.c_str(),
                                     filter_passband.c_str(), &res, precision_mode);
     aio_pipeline_frame_destroy(frame);
     if (rc != 0) {
       // §10 原子产品 + §7.2 退出码表「10 = 磁盘写满/写盘失败」:
       // 磁盘满必须按**失败本身**归类上抛。aio 在失败瞬间(清理临时产物之前)
-      // 已判定并置位 (aio_disk_full.h 头注: 事后探针在清理后必然 fail-open);
-      // 这里消费一次并写进失败节点 manifest, 由 CLI 的
+      // 已判定 (aio_disk_full.h 头注: 事后探针在清理后必然 fail-open);
+      // 这里按**本帧自己的**归因窗口写进失败节点 manifest, 由 CLI 的
       // pipeline_exit_code_from_error 映射为 exit 10。
-      if (aio_disk::consume()) f_errkind[fi] = 2;   // disk_full（归约时写入 man）
+      if (dsk_epoch.failed()) f_errkind[fi] = 2;   // disk_full（归约时写入 man）
       f_stage[fi] = 3;
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO,
           std::string("hp_drizzle_run_phase1_hips failed: ") +
@@ -10104,6 +10109,11 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
     return Result<void>::fail(Error(ErrorDomain::IO,
         std::string("aio_hips_product_begin failed: ") + aio_hips_last_error()));
   }
+  // §10 + LOG_AND_ERROR_CONTRACT §5: 本节点产品写入的**归因窗口**（执行流局部的
+  // 单调计数快照）。窗口覆盖 write_signal_support/write_variance/finalize 三个
+  // 失败收尾点 ⇒ 判定属于本节点自己的失败，不被并发执行流覆盖或抢占
+  // (aio_disk_full.h 头注「归因粒度=帧级」)。
+  const aio_disk::FailureEpoch dsk_epoch;
 
   const auto& files = int_doc["files"];
   const auto& tiles = int_doc["tiles"];
@@ -10161,7 +10171,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
       aio_hips_abort(ps);
       // §7.2: 磁盘满按失败本身归类 (aio 在清理前已判定) → 失败节点
       // manifest error_kind="disk_full" → CLI 映射 exit 10。
-      if (man && aio_disk::consume()) (*man)["error_kind"] = "disk_full";
+      if (man && dsk_epoch.failed()) (*man)["error_kind"] = "disk_full";
       aio_atomic::remove_tree(staging, 0);   // §10: 失败路径清临时产物
       return Result<void>::fail(Error(ErrorDomain::IO,
           std::string("aio_hips_write_signal_support_tile failed: ") +
@@ -10172,7 +10182,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
       const int wv = aio_hips_write_variance_tile(ps, &view);
       if (wv != 0) {
         aio_hips_abort(ps);
-        if (man && aio_disk::consume()) (*man)["error_kind"] = "disk_full";
+        if (man && dsk_epoch.failed()) (*man)["error_kind"] = "disk_full";
         aio_atomic::remove_tree(staging, 0);   // §10: 失败路径清临时产物
         return Result<void>::fail(Error(ErrorDomain::IO,
             std::string("aio_hips_write_variance_tile failed: ") +
@@ -10183,7 +10193,7 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
   }
   if (aio_hips_finalize(ps) != 0) {
     aio_hips_abort(ps);
-    if (man && aio_disk::consume()) (*man)["error_kind"] = "disk_full";
+    if (man && dsk_epoch.failed()) (*man)["error_kind"] = "disk_full";
     aio_atomic::remove_tree(staging, 0);     // §10: 失败路径清临时产物
     return Result<void>::fail(Error(ErrorDomain::IO,
         std::string("aio_hips_finalize failed: ") + aio_hips_last_error()));

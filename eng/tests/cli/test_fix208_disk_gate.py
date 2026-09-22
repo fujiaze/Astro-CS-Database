@@ -195,6 +195,103 @@ int main(int argc, char** argv) {
         self.assertEqual(out["strict_ok"], "record_only")
 
 
+class TestFrameLevelAttributionUnit(unittest.TestCase):
+    """磁盘满归因必须**帧级**：并发帧各自的判定互不覆盖、互不抢占（能红能绿）。
+
+    权威：docs/contracts/LOG_AND_ERROR_CONTRACT.md §5「IO | 7（IO）| I/O 失败；
+    **失败节点 manifest** 的 error_kind==disk_full 时改判 10」——判定属于**失败的
+    那一帧/那个节点**，不是"进程里发生过一次磁盘满"的运行级事实。
+
+    被测面 = 真实产品头 lib/infrastructure/aio/src/aio_disk_full.h（header-only）。
+    旧实现（进程级单比特 + aio_hips_product_begin 里的 reset() + exchange 语义的
+    consume()）在并发帧下互相覆盖 ⇒ 失败帧丢 error_kind ⇒ exit 7 的 fail-open
+    （FLAKE-01 §A4：单帧 12/12 正确、双帧 58 次里 5 次 rc=7）。本单元把该竞态钉成
+    **确定性**判据：不依赖调度、不依赖 tmpfs、不依赖 CLI。
+
+      T1 串行对照：帧 A 的失败分类置位后，帧 A 自己的窗口必须 failed()；
+      T2 不抹除  ：帧 A 判定已置位后帧 B 开窗（旧实现在此处 reset）⇒ A 仍 failed()；
+      T3 不抢占  ：两帧**真并发**各自失败 ⇒ 两个窗口**都** failed()；
+      T4 阴性对照：非空间类失败（EACCES）不得让任何窗口 failed()。
+
+    负例注入实证：把 aio_disk_full.h 临时退回"开窗即复位全局 + 读后即清除"的旧语义
+    ⇒ T2/T3 必判红（证据 run/AIOD-FIX-01/logs/neg_*）。
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        if not shutil.which("g++"):
+            raise unittest.SkipTest("需要 g++")
+        cls.tmp = tempfile.mkdtemp(prefix="fix208_frame_attr_")
+        src = os.path.join(cls.tmp, "frame_attr_probe.cpp")
+        with open(src, "w", encoding="utf-8") as fh:
+            fh.write(r"""
+#include "aio_disk_full.h"
+#include <cerrno>
+#include <cstdio>
+#include <thread>
+int main() {
+    // T1/T2: 串行两帧（帧 B 开窗 = 旧实现里 aio_hips_product_begin 的 reset 位点）
+    aio_disk::FailureEpoch ep_a;
+    const bool a_noted = aio_disk::note_failure("/nonexistent/astrocs/probe_a", ENOSPC);
+    const bool a_before = ep_a.failed();
+    aio_disk::FailureEpoch ep_b;
+    const bool a_after = ep_a.failed();
+    const bool b_failed = ep_b.failed();
+    std::printf("a_noted=%d\n", a_noted ? 1 : 0);
+    std::printf("a_before_b=%d\n", a_before ? 1 : 0);
+    std::printf("a_after_b=%d\n", a_after ? 1 : 0);
+    std::printf("b_failed=%d\n", b_failed ? 1 : 0);
+    // T3: 两帧真并发各自失败（各自持有自己的归因窗口）
+    int ca = 0, cb = 0;
+    std::thread ta([&] {
+        aio_disk::FailureEpoch e;
+        aio_disk::note_failure("/nonexistent/astrocs/probe_ta", ENOSPC);
+        ca = e.failed() ? 1 : 0;
+    });
+    std::thread tb([&] {
+        aio_disk::FailureEpoch e;
+        aio_disk::note_failure("/nonexistent/astrocs/probe_tb", ENOSPC);
+        cb = e.failed() ? 1 : 0;
+    });
+    ta.join();
+    tb.join();
+    std::printf("conc_a=%d\n", ca);
+    std::printf("conc_b=%d\n", cb);
+    // T4: 阴性对照（文件系统仍有空间的 I/O 失败不得冒充磁盘满）
+    aio_disk::FailureEpoch ep_c;
+    const bool c_noted = aio_disk::note_failure("/nonexistent/astrocs/probe_c", EACCES);
+    std::printf("c_noted=%d\n", c_noted ? 1 : 0);
+    std::printf("c_failed=%d\n", ep_c.failed() ? 1 : 0);
+    return 0;
+}
+""")
+        cls.exe = os.path.join(cls.tmp, "frame_attr_probe")
+        r = subprocess.run(["g++", "-std=c++17", "-O1", "-w", "-pthread",
+                            "-I" + os.path.join(REPO, "lib", "infrastructure", "aio", "src"),
+                            src, "-o", cls.exe],
+                           capture_output=True, text=True, timeout=300)
+        assert r.returncode == 0, r.stderr[-1200:]
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_01_frame_level_attribution_not_cross_covered(self):
+        r = subprocess.run([self.exe], capture_output=True, text=True, timeout=120)
+        self.assertEqual(r.returncode, 0, r.stderr[-400:])
+        out = dict(l.split("=", 1) for l in r.stdout.splitlines() if "=" in l)
+        self.assertEqual(out["a_noted"], "1", "ENOSPC 必须被真实判据分类")
+        self.assertEqual(out["a_before_b"], "1", "T1: 帧 A 自己的窗口必须看到分类")
+        self.assertEqual(out["a_after_b"], "1",
+                         "T2: 帧 B 开窗不得抹掉帧 A 已置位的判定（旧实现必红）")
+        self.assertEqual(out["b_failed"], "0", "T2: 帧 B 没有失败，不得被误判为 disk_full")
+        self.assertEqual(out["conc_a"], "1",
+                         "T3: 并发帧 A 的判定不得被抢占（旧实现必红）")
+        self.assertEqual(out["conc_b"], "1", "T3: 并发帧 B 的判定不得被抢占")
+        self.assertEqual(out["c_noted"], "0", "T4: EACCES 不是磁盘满")
+        self.assertEqual(out["c_failed"], "0",
+                         "T4: 非空间类失败不得被判为 disk_full（否则 exit 7 被误升为 10）")
+
 class TestDiskGateEndToEnd(unittest.TestCase):
     """真实小 tmpfs（unshare + mount，无需 root）⇒ 磁盘门两条臂。"""
 
@@ -214,6 +311,20 @@ class TestDiskGateEndToEnd(unittest.TestCase):
             r = subprocess.run([fixture, "--make", cls.data], capture_output=True,
                                text=True, timeout=300, cwd=run_cwd())
             assert "FIXTURES_OK" in r.stdout, r.stderr
+        # 并发帧数：判据从 2 帧提到 **4 帧**（FLAKE-01 §A7 建议）——该竞态是
+        # 帧间调度交错引起的，帧数 ↑ ⇒ 交错窗口 ↑ ⇒ 检出率 ↑。fixture 只产
+        # light_1/light_2，这里按字节复制出 light_3/light_4（加性：不改共享
+        # fixture，也不依赖 fixture 缓存目录可写）。
+        cls.lights4 = []
+        lights_dir = os.path.join(cls.tmp, "lights4")
+        os.makedirs(lights_dir, exist_ok=True)
+        src2 = [os.path.join(cls.data, "light_1.fits"),
+                os.path.join(cls.data, "light_2.fits")]
+        for i, name in enumerate(("light_1.fits", "light_2.fits",
+                                  "light_3.fits", "light_4.fits")):
+            dst = os.path.join(lights_dir, name)
+            shutil.copyfile(src2[i % 2], dst)
+            cls.lights4.append(dst)
         cls.mnt = os.path.join(cls.tmp, "tiny")
         os.makedirs(cls.mnt, exist_ok=True)
         # 大输入（稀疏 4 MiB，可读）用于触发「跑前余量不足」：预估需求下限 = 输入字节和
@@ -285,6 +396,11 @@ class TestDiskGateEndToEnd(unittest.TestCase):
         ⇒ 触发条件是帧间调度交错，不是宿主压力）。
         ⇒ 判据保留（ASTROCS_DESIGN §3.5/§6.3 要求 fail-closed 为 exit 10），
         但失败必须**自解释**，不得被当作 flake 忽略。
+
+        该竞态已修：磁盘满分类改为**帧级归因窗口**（lib/infrastructure/aio/src/
+        aio_disk_full.h 的 FailureEpoch = 执行流局部的单调计数快照；product_begin
+        不再 reset、失败收尾不再用 exchange 语义抢占）⇒ 并发帧各自的判定互不覆盖。
+        以下分支保留为**回归判据**：若再次走到这里，说明帧级归因失效（不是 flake）。
         """
         disk_ev = [e for e in events if e.get("severity") == "error"
                    and e.get("failure_kind") in ("disk_full", "write_failed")]
@@ -314,11 +430,14 @@ class TestDiskGateEndToEnd(unittest.TestCase):
 
     @unittest.skipUnless(UNSHARE, "需要 unshare -Ur -m（无 root 的用户命名空间挂载）")
     def test_01_runtime_disk_full_is_error_and_exit10(self):
-        """运行中写盘失败/磁盘满 ⇒ error（fail-closed）+ exit 10。"""
+        """**4 帧并发**运行中写盘失败/磁盘满 ⇒ error（fail-closed）+ exit 10。
+
+        并发帧数是本判据的检出率来源：FLAKE-01 §A4 的剂量-反应显示同一场景单帧
+        12/12 正确、双帧 58 次里 5 次 rc=7（≈9%）；根因是磁盘满分类被并发帧抹掉
+        （aio_disk_full.h 头注「归因粒度=帧级」）。故本用例跑 **4 帧**。
+        """
         out_dir = os.path.join(self.mnt, "out_full")
-        cfg = self._cfg("cfg_full.json",
-                        [os.path.join(self.data, "light_1.fits"),
-                         os.path.join(self.data, "light_2.fits")], out_dir)
+        cfg = self._cfg("cfg_full.json", self.lights4, out_dir)
         rc, out_s, err_s = self._run_in_tiny_tmpfs(cfg, "full")
         events = [json.loads(l) for l in out_s.splitlines() if l.strip()]
         if rc != 10:
@@ -331,6 +450,18 @@ class TestDiskGateEndToEnd(unittest.TestCase):
         disk = [e for e in errs if e.get("failure_kind") in ("disk_full", "write_failed")]
         self.assertTrue(disk, "error 事件必须带磁盘门判定字段 failure_kind: %s" % errs[:1])
         self.assertEqual(disk[0]["kind"], "resource")
+        # (a) 失败**节点 manifest** 的归因必须落在磁盘满上。
+        #     LOG_AND_ERROR_CONTRACT §5：「IO | 7（IO）| I/O 失败；失败节点 manifest
+        #     的 error_kind==disk_full 时改判 10」。失败节点 manifest 是 CLI 进程内
+        #     对象（runtime_client.cpp::g_manifests，无落盘出口），其**唯一**外部可观测
+        #     代理 = CLI 自报的这条 resource 事件：rrc==RESOURCE 只可能来自
+        #     pipeline_exit_code_from_error 读到某失败节点 manifest 的
+        #     error_kind=="disk_full"（commands.cpp 的 rc==RESOURCE 分支逐字写出该归因）。
+        #     断言它即断言「CLI 读到的失败节点 manifest 带 error_kind=disk_full」。
+        self.assertEqual(disk[0].get("diag"), "disk_write_failure:disk_full")
+        self.assertIn("node manifest error_kind=disk_full", disk[0].get("detail", ""),
+                      "失败节点 manifest 必须带 error_kind=disk_full（否则是 exit 7 的 "
+                      "fail-open）: %s" % disk[0])
         fin = events[-1]
         self.assertEqual((fin["kind"], fin["exit_code"]), ("final", 10),
                          "final 事件必须如实回填 exit_code=10")
@@ -376,6 +507,30 @@ class TestDiskGateEndToEnd(unittest.TestCase):
                 self.assertEqual(e.get("severity"), "warning")
                 self.assertFalse(e.get("enforced"))
                 self.assertEqual(e.get("resource_gate_mode"), "record_only")
+
+
+    def test_04_concurrent_frames_without_disk_full_succeed(self):
+        """阴性对照（防假红）：**4 帧并发**、磁盘余量充足 ⇒ 必须成功 rc=0。
+
+        修法（帧级归因窗口）不得把"并发"本身变成失败：没有磁盘满时任何一帧都不得被
+        判为 disk_full（否则 exit 7 被误升为 10）。场景与 test_01 只差"有没有写满"
+        （test_01 = 1 MiB tmpfs，本用例 = 宿主普通目录）。
+        """
+        out_dir = os.path.join(self.tmp, "out_nofull")
+        os.makedirs(out_dir, exist_ok=True)
+        cfg = self._cfg("cfg_nofull.json", self.lights4, out_dir)
+        r = subprocess.run([EXE, "normalize", "--json", cfg, "-y"],
+                           capture_output=True, text=True, timeout=600, cwd=run_cwd())
+        self.assertEqual(r.returncode, 0,
+                         "并发 4 帧、磁盘充足必须成功（防假红）: %s" % r.stderr[-800:])
+        events = [json.loads(l) for l in r.stdout.splitlines() if l.strip()]
+        self.assertTrue(events, "必须有事件流")
+        fin = events[-1]
+        self.assertEqual((fin["kind"], fin["exit_code"]), ("final", 0),
+                         "成功运行 final 必须 exit_code=0")
+        disk = [e for e in events
+                if e.get("failure_kind") in ("disk_full", "write_failed")]
+        self.assertFalse(disk, "无磁盘满时不得出现磁盘门判定事件: %s" % disk[:1])
 
 
 if __name__ == "__main__":

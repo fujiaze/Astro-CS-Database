@@ -1137,8 +1137,10 @@ AioHipsProductSet* aio_hips_product_begin(
     // P1 (R9-A): C 边界异常屏障
     try {
         g_hips_error.clear();
-        // 新产品写入开始 ⇒ 复位磁盘满粘滞标志, 使分类只归因本次失败。
-        aio_disk::reset();
+        // 磁盘满分类不再在这里复位: 归因窗口由**发起写入的执行流**在写产品之前
+        // 取快照 (aio_disk::FailureEpoch), 计数只增不减。旧实现在这里做进程级
+        // reset(), 多帧并发时会抹掉另一帧已置位的判定 ⇒ 失败帧 manifest 丢
+        // error_kind ⇒ exit 7 的 fail-open (aio_disk_full.h 头注「归因粒度=帧级」)。
         // nside 必须恰为 2 的幂(M8d-A-01/AIO-001): 叶级几何基数 nside=2^K 是
         // ALG-HIPS-001 (1a) 的冻结构造前提, 下方 ilog2_u64 是*向下取整*, 非 2 的幂
         // (如 600) 会被静默夹逼到 2^9 并据此写出与调用方声明不一致的 NSIDE/
