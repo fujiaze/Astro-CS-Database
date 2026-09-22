@@ -22,7 +22,7 @@
 //     ⇒ 证明该门的容差确有分辨两种归一口径的能力 (恒真门没有证据资格);
 //       修复前实测 S_p=B0/pf², 投影回 B0 ⇒ 本条判红, 整个门判红。
 // 本门不调用被测函数产生期望值: 期望值来自 SCI §5 恒等式 + p1drz_oracle.hpp
-// 的独立几何 (Van Oosterom 立体角, 与生产 Eriksson 扇形不同式)。
+// 的独立几何 (Van Oosterom 立体角, 与生产 Van Oosterom 扇形不同式)。
 //
 // 用法:
 //   p1drz_disp009_gate                 # 判据 (ctest p1drz_disp009)

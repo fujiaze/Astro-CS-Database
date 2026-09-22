@@ -52,19 +52,37 @@ Status parse_mode(const std::string& token, P3Mode* out) {
 // ---------------------------------------------------------------------------
 // Bunit
 // ---------------------------------------------------------------------------
+// 冻结单位表 canonical **产品 BUNIT 串**（docs/contracts/DATA_SEMANTICS.md §31.1/§31.1a）:
+// 面亮度链（ADU 承载）的立体角维一律写 "sr"，符号幂次 = px_power/2
+// （px_power = -2 ⇔ "/sr"、-4 ⇔ "/sr^2"、+4 ⇔ "sr^2/…"；px_power 是内部线性像元幂次编码）；
+// 纯像元面积单位（adu_power == 0，support/coverage 的 px^2，§12.2）保持冻结符号 "px^2"。
 std::string Bunit::canonical() const {
   if (adu_power == 0 && px_power == 0) return "1";
-  std::string s;
-  if (adu_power != 0) {
-    s += "ADU";
-    if (adu_power != 1) s += "^" + std::to_string(adu_power);
-  }
-  if (px_power != 0) {
-    if (!s.empty()) s += "/";
-    s += "sr";
+  if (adu_power == 0) {
+    std::string s = "px";
     if (px_power != 1) s += "^" + std::to_string(px_power);
+    return s;
   }
-  return s;
+  const int sr = px_power / 2;   // 内部线性像元幂次 → 立体角符号幂次
+  if (adu_power > 0) {
+    std::string s = "ADU";
+    if (adu_power != 1) s += "^" + std::to_string(adu_power);
+    if (sr != 0) {
+      s += "/sr";
+      if (sr != -1) s += "^" + std::to_string(-sr);
+    }
+    return s;
+  }
+  if (sr > 0) {
+    std::string s = "sr";
+    if (sr != 1) s += "^" + std::to_string(sr);
+    s += "/ADU";
+    if (adu_power != -1) s += "^" + std::to_string(-adu_power);
+    return s;
+  }
+  if (sr == 0) return std::string("ADU^-") + std::to_string(-adu_power);
+  // 冻结词汇表外的组合（ADU 负幂次 × 立体角负幂次）: 保序书写，不静默改写
+  return "ADU^" + std::to_string(adu_power) + "/sr^" + std::to_string(-sr);
 }
 
 Bunit bunit_mul(const Bunit& a, const Bunit& b) {
@@ -95,6 +113,9 @@ bool is_inverse_pair(const Bunit& variance, const Bunit& ivar) {
 
 namespace {
 // 解析 canonical BUNIT 串；返回 false 表示串本身不可解析（不是不可判）。
+// canonical 面亮度三串（DATA_SEMANTICS §31.1a）: "ADU/sr"（signal）、
+// "ADU^2/sr^2"（VARIANCE）、"sr^2/ADU^2"（IVAR）；读侧兼容旧冻结串 "px"/"pixel"
+// （旧表把像元面积记作 px^N ⇒ 与 sr^(N/2) 同一立体角维，映射到同一内部幂次）。
 bool parse_bunit_string(const std::string& s, Bunit* out) {
   std::string t;
   for (char c : s) {
@@ -102,36 +123,45 @@ bool parse_bunit_string(const std::string& s, Bunit* out) {
   }
   if (t.empty()) return false;
   if (t == "1") { *out = Bunit{0, 0}; return true; }
-  int adu = 0;
-  int px = 0;
-  std::size_t slash = std::string::npos;
-  // 先提取 ADU 段
-  std::string left = t;
-  slash = t.find('/');
-  if (slash != std::string::npos) {
-    left = t.substr(0, slash);
-    std::string right = t.substr(slash + 1);
-    // right 必须是 sr 或 sr^N（legacy "px"/"pixel" 读侧别名同幂次）
-    const bool is_sr = right.rfind("sr", 0) == 0;
-    const bool is_px = right.rfind("px", 0) == 0;
-    const bool is_pixel = right.rfind("pixel", 0) == 0;
-    if (!is_sr && !is_px && !is_pixel) return false;
-    const std::size_t sym_len = is_sr ? 2 : (is_px ? 2 : 5);
-    if (right.size() == sym_len) {
-      px = 1;
-    } else if (right.size() > sym_len + 1 && right[sym_len] == '^') {
-      try { px = std::stoi(right.substr(sym_len + 1)); } catch (...) { return false; }
-    } else {
-      return false;
+  // 单因子符号幂次（幂次可省略 = 1、可带负号）。
+  auto factor_pow = [](const std::string& f, const char* sym, int* pow_out) -> bool {
+    const std::size_t n = std::string(sym).size();
+    if (f.rfind(sym, 0) != 0) return false;
+    if (f.size() == n) { *pow_out = 1; return true; }
+    if (f.size() > n + 1 && f[n] == '^') {
+      try { *pow_out = std::stoi(f.substr(n + 1)); } catch (...) { return false; }
+      return true;
     }
-  }
-  if (left.rfind("ADU", 0) != 0) return false;
-  if (left.size() == 3) {
-    adu = 1;
-  } else if (left.size() > 4 && left[3] == '^') {
-    try { adu = std::stoi(left.substr(4)); } catch (...) { return false; }
-  } else {
     return false;
+  };
+  // 立体角/像元面积因子 → 内部 px_power（线性像元幂次编码）:
+  // "sr^e" ⇒ 2e（立体角符号幂次 ×2，与 units::* 冻结编码一致）；
+  // legacy "px^e"/"pixel^e" ⇒ e（像元面积幂次，须为偶，否则无整数 sr 等价）。
+  auto area_power = [&factor_pow](const std::string& f, int sign, int* px_power) -> bool {
+    int e = 0;
+    if (factor_pow(f, "sr", &e)) { *px_power = 2 * e * sign; return true; }
+    if (factor_pow(f, "pixel", &e) || factor_pow(f, "px", &e)) {
+      if (e % 2 != 0) return false;
+      *px_power = e * sign;
+      return true;
+    }
+    return false;
+  };
+  const std::size_t slash = t.find('/');
+  const std::string left = (slash == std::string::npos) ? t : t.substr(0, slash);
+  const std::string right =
+      (slash == std::string::npos) ? std::string() : t.substr(slash + 1);
+  int adu = 0, px = 0;
+  if (left.rfind("ADU", 0) == 0) {
+    // "ADU^a" 或 "ADU^a/<立体角因子>"
+    if (!factor_pow(left, "ADU", &adu)) return false;
+    if (!right.empty() && !area_power(right, -1, &px)) return false;
+  } else {
+    // 冻结表 ivar 形态 "<立体角因子>/ADU^a"（分母的 ADU ⇒ 负幂次）
+    if (right.rfind("ADU", 0) != 0) return false;
+    if (!factor_pow(right, "ADU", &adu)) return false;
+    adu = -adu;
+    if (!area_power(left, +1, &px)) return false;
   }
   *out = Bunit{adu, px};
   return true;
@@ -146,7 +176,7 @@ BunitResolution resolve_bunit(const std::string& bunit_str, const BunitProvenanc
     if (parsed.px_power != 0) {
       r.resolvable = true;
       r.resolved = parsed;
-      r.reason = "explicit_pixel_power";
+      r.reason = "explicit_solid_angle_power";
       return r;
     }
     // 裸 ADU(^N)：须 provenance 声明像素语义 + pixel_area_power（FZ-BUNIT-SEMANTICS）

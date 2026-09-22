@@ -52,13 +52,14 @@ std::string g_last_err;
 // 逐 HDU 写出并由 cfitsio 自行归属。旧实现自算 "little-endian 无进位字节和"
 // 并以 TINT 整数写入保留字 DATASUM，是非法关键字值（astropy checksum=True
 // 报 Datasum verification failed），已删除。
-// FZ-P3-BUNIT-QUADRATIC / docs/contracts/DATA_SEMANTICS.md §31.1 §1:
+// FZ-P3-BUNIT-QUADRATIC / docs/contracts/DATA_SEMANTICS.md §31.1/§31.1a:
 // variance BUNIT = (signal BUNIT)^2, ivar = 1/variance —— 用**冻结单位表的 canonical
-// 串**（ADU^a/px^p 幂次代数），禁朴素字符串拼接（"ADU/sr" + "^2" = "ADU/sr^2"
-// 既非 canonical 也不可判）。解析失败 → false（调用方显式拒绝，禁写出非二次律 BUNIT）。
+// 串**（ADU^a × 立体角幂次代数；写侧一律 "sr"），禁朴素字符串拼接（"ADU/sr" + "^2"
+// = "ADU/sr^2" 既非 canonical 也不可判）。解析失败 → false（调用方显式拒绝，
+// 禁写出非二次律 BUNIT）。
 bool bunit_square_canonical(const std::string& signal, std::string* variance,
                             std::string* ivar) {
-    // 解析 ADU^a / px^p（幂次可省略=1、可带负号；"1" = 0/0）
+    // 解析单因子 "ADU^a"（幂次可省略=1、可带负号；"1" = 0/0）
     auto parse_pow = [](const std::string& s, const char* base, int* out) -> bool {
         if (s.rfind(base, 0) != 0) return false;
         const size_t bl = std::strlen(base);
@@ -74,23 +75,36 @@ bool bunit_square_canonical(const std::string& signal, std::string* variance,
         }
         return false;
     };
-    // 冻结表书写形式（分母正幂次）: {+1,-2} → "ADU/sr"; {+2,-4} → "ADU^2/sr^2";
-    // {-2,+4} → "sr^2/ADU^2"; {+1,0} → "ADU"; {-2,0} → "ADU^-2"。
-    auto canon = [](int adu, int px) -> std::string {
-        if (adu == 0 && px == 0) return "1";
+    // 分母因子的立体角幂次（符号 "sr"；legacy 读侧别名 "px"/"pixel" 同幂次，
+    // DATA_SEMANTICS §31.1a: 旧冻结表把像元面积记作 px^N ⇒ 与 sr^(N/2) 同一立体角维）。
+    auto parse_area_pow = [&parse_pow](const std::string& s, int* sr_out) -> bool {
+        int e = 0;
+        if (parse_pow(s, "sr", &e)) { *sr_out = e; return true; }
+        if (parse_pow(s, "pixel", &e) || parse_pow(s, "px", &e)) {
+            if (e % 2 != 0) return false;   // 面积幂次须为偶（无整数 sr 等价）
+            *sr_out = e / 2;
+            return true;
+        }
+        return false;
+    };
+    // 冻结表书写形式（分母正幂次，符号一律 "sr"）: {+1,-1} → "ADU/sr";
+    // {+2,-2} → "ADU^2/sr^2"; {-2,+2} → "sr^2/ADU^2"; {+1,0} → "ADU";
+    // {-2,0} → "ADU^-2"（(adu, sr) = ADU 幂次 × 立体角符号幂次）。
+    auto canon = [](int adu, int sr) -> std::string {
+        if (adu == 0 && sr == 0) return "1";
         if (adu > 0) {
             std::string s = "ADU";
             if (adu != 1) s += "^" + std::to_string(adu);
-            if (px != 0) {
-                s += "/px";
-                if (px != -1) s += "^" + std::to_string(-px);
+            if (sr != 0) {
+                s += "/sr";
+                if (sr != -1) s += "^" + std::to_string(-sr);
             }
             return s;
         }
         if (adu < 0) {
-            if (px != 0) {
-                std::string s = "px";
-                if (px != 1) s += "^" + std::to_string(px);
+            if (sr != 0) {
+                std::string s = "sr";
+                if (sr != 1) s += "^" + std::to_string(sr);
                 s += "/ADU";
                 if (adu != -1) s += "^" + std::to_string(-adu);
                 return s;
@@ -98,8 +112,8 @@ bool bunit_square_canonical(const std::string& signal, std::string* variance,
             // 纯 ADU 负幂次: 冻结表写带符号指数（flux ivar = "ADU^-2"）
             return std::string("ADU^-") + std::to_string(-adu);
         }
-        std::string s = "px";
-        if (px != 1) s += "^" + std::to_string(px);
+        std::string s = "sr";
+        if (sr != 1) s += "^" + std::to_string(sr);
         return s;
     };
     std::string t;
@@ -107,21 +121,21 @@ bool bunit_square_canonical(const std::string& signal, std::string* variance,
         if (c != ' ' && c != '\t') t += c;
     }
     if (t.empty()) return false;
-    int adu = 0, px = 0;
+    int adu = 0, sr = 0;
     if (t == "1") {
-        adu = 0; px = 0;
+        adu = 0; sr = 0;
     } else {
         const size_t slash = t.find('/');
         const std::string left = (slash == std::string::npos) ? t : t.substr(0, slash);
         if (!parse_pow(left, "ADU", &adu)) return false;
         if (slash != std::string::npos) {
             int written = 0;
-            if (!parse_pow(t.substr(slash + 1), "px", &written)) return false;
-            px = -written;   // 分母形式 "px^N" ⇒ 带符号幂次 -N
+            if (!parse_area_pow(t.substr(slash + 1), &written)) return false;
+            sr = -written;   // 分母形式 "sr^N" ⇒ 带符号幂次 -N
         }
     }
-    if (variance) *variance = canon(adu * 2, px * 2);
-    if (ivar) *ivar = canon(-adu * 2, -px * 2);
+    if (variance) *variance = canon(adu * 2, sr * 2);
+    if (ivar) *ivar = canon(-adu * 2, -sr * 2);
     return true;
 }
 
@@ -656,7 +670,9 @@ P3OutputStatus P3FitsStream::open(const char* output_path,
     impl_->width = width;
     impl_->height = height;
     impl_->bitpix = bitpix;
-    impl_->bunit = bunit ? bunit : "ADU";
+    // 主 HDU = 重采样后的**面亮度**平面（与整幅路径同面，§27.1/§29.3）:
+    // 缺省串取 DATA_SEMANTICS §31.1a 的 canonical "ADU/sr"（裸 "ADU" 是每像素计数口径）。
+    impl_->bunit = (bunit && *bunit) ? bunit : "ADU/sr";
     impl_->out = output_path;
     impl_->lock.reset(new aio::CfitsioLockGuard());
     make_temp_path(impl_->out, &impl_->tmp);

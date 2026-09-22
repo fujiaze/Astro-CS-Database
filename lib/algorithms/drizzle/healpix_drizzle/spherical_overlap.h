@@ -13,7 +13,9 @@
 // 核心算法:
 // - 球面向量 (Vec3) 与基本运算 (cross/dot/normalize)
 // - 球面多边形面积 (Girard 定理: 面积 = Σ内角 - (n-2)π)
-// - 球面 Sutherland-Hodgman 多边形裁剪 (大圆弧裁剪, 法向量定义保留侧)
+// - 球面多边形裁剪: Sutherland-Hodgman 逐边裁剪在球面上的推广
+//   (大圆弧半空间裁剪, 法向量定义保留侧)。S&H 1974 原文只处理平面多边形与
+//   平面窗口(摘要逐字: "plane-faced volumes"), 球面形式是本模块的推广, 不是原文内容
 // - HEALPix 像素球面边界获取 (4 个角顶点)
 // - 源像素 drop 与目标 HEALPix 像素的球面重叠面积
 // - 候选像素查询 (基于 drop 多边形球面包围盒, 不限于 1-ring)
@@ -23,7 +25,8 @@
 // 参考:
 // - Gorski et al. 2005, HEALPix Framework
 // - Chamberlain & Duquette 2007, 球面多边形面积算法
-// - Sutherland & Hodgman 1974, 多边形裁剪
+// - Sutherland & Hodgman 1974, "Reentrant Polygon Clipping", Comm. ACM 17, 32
+//   (DOI 10.1145/360767.360802) —— **平面**多边形裁剪原型; 球面版本是其推广
 // ============================================================================
 
 #include "healpix_core.h"
@@ -90,7 +93,7 @@ T spherical_polygon_area_n(const Vec3T<T>* vertices, int n);
 // 未收缩源像素球面面积 A_pixel,j (DISP-DRZ-009 / SCI-DRZ-001 §5 的 w_jp 分母)
 //
 // 与 build_drop_geometry_into() 计算 g.drop_area 时**同一分支、同一例程**
-// (角半径 < 1e-3 rad → 切平面 2D 面积; 否则 → Eriksson 球面扇形面积),
+// (角半径 < 1e-3 rad → 切平面 2D 面积; 否则 → Van Oosterom 球面扇形面积),
 // 保证 "A_pixel,j 与 A_drop,j 口径一致" 不是约定而是实现事实。
 //
 // 用途: 面亮度保持权重 w_jp = a_jp / A_pixel,j 的分母。pixfrac==1 时未收缩

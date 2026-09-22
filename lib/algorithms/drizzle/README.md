@@ -33,7 +33,7 @@
 ## 2. 负责范围
 
 负责：tiled 球面 drizzle（输入帧逐像素 WCS/SIP→天球，drop 收缩 footprint
-与 HEALPix NESTED leaf 求交，球面 Sutherland–Hodgman 裁剪 + Eriksson 扇形
+与 HEALPix NESTED leaf 求交，球面 Sutherland–Hodgman 裁剪 + Van Oosterom 扇形
 面积加权累加 sumFlux/sumArea/sumVarNum/nContrib）、auto nside 决策
 （compute_auto_nside）、FP32/FP64 双精度模板通道、逐 tile SNR 控制点
 （KD-tree IDW 评估器）、HiPS 直写 sink（tile_depth=9，512×512 leaf tile）
@@ -100,7 +100,7 @@ operation_counts.json 剖面（api.cpp:1087-1130）。方差仅当 varianceValue
 - **几何**：三层候选缓冲（quick-reject `max_angle+1.25·hp_res`
   〔HP_CIRCUMRADIUS_FACTOR=1.25〕→ queryDisc 回退 `+3.0·hp_res` →
   fast 面 delta×1.15 畸变系数 + 极冠/跨 face 回退，spherical_overlap.cpp:42
-  等）；面积 = 球面 S-H 裁剪 + Eriksson 扇形三角剖分（:186-239）。
+  等）；面积 = 球面 S-H 裁剪 + Van Oosterom 扇形三角剖分（:186-239）。
 - **FP32/FP64**：模板双实例（float/double 显式实例化
   drizzle_engine.cpp:2171-2178）；precision_mode 0/1/-1（-1=读 header
   "PRECISION" KV；**无 KV 时按 `docs/algorithms/DRIZZLE_GEOMETRY.md`

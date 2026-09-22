@@ -40,22 +40,33 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+def _area_power(sym, exp):
+    """立体角/像元面积因子的内部幂次（DATA_SEMANTICS §31.1a 幂次编码）:
+    canonical "sr^e" ⇒ 2e（立体角维在该编码里以像元面积记）；legacy "px^e"/"pixel^e" ⇒ e。"""
+    e = int(exp) if exp is not None else 1
+    return 2 * e if sym == "sr" else e
+
+
 def unit_exponents(u):
-    """unit = ADU^a * px^p -> (a, p)；失败 raise。"""
+    """unit = ADU^a × 立体角/像元面积幂次 -> (a, p)；失败 raise。
+
+    p 与 §31.1a 的 pixel_area_power 同码 ⇒ "ADU/sr" 与 legacy "ADU/px^2" 同为 (1,-2)
+    （读侧兼容旧串、写侧只出 sr）。支持 ADU, ADU^2, ADU/sr, ADU^2/sr^2, sr^2/ADU^2, ADU/px^2。
+    """
     import re
     u = u.strip()
     if u == "1":
         return (0, 0)
-    # 支持 ADU, ADU^2, px^2, ADU/sr, ADU^2/sr^2, sr^2/ADU^2
+    area = r"(sr|px|pixel)"
     m = re.fullmatch(r"(ADU)(?:\^(-?\d+))?", u)
     if m:
         return (int(m.group(2) or 1), 0)
-    m = re.fullmatch(r"(ADU)(?:\^(-?\d+))?/(px)(?:\^(\d+))?", u)
+    m = re.fullmatch(r"(ADU)(?:\^(-?\d+))?/" + area + r"(?:\^(-?\d+))?", u)
     if m:
-        return (int(m.group(2) or 1), -int(m.group(4) or 1))
-    m = re.fullmatch(r"(px)(?:\^(\d+))?/(ADU)(?:\^(\d+))?", u)
+        return (int(m.group(2) or 1), -_area_power(m.group(3), m.group(4)))
+    m = re.fullmatch(area + r"(?:\^(-?\d+))?/(ADU)(?:\^(-?\d+))?", u)
     if m:
-        return (-int(m.group(4) or 1), int(m.group(2) or 1))
+        return (-int(m.group(4) or 1), _area_power(m.group(1), m.group(2)))
     raise ValueError("unparseable unit: " + u)
 
 

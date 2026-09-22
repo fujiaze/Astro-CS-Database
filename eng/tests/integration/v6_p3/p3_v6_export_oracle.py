@@ -197,7 +197,12 @@ def parse_factor(f):
             return None
     if name == "ADU":
         return (exp, 0)
+    if name == "sr":
+        # canonical 立体角符号（DATA_SEMANTICS §31.1a）: 内部幂次编码以像元面积记
+        # 立体角维 ⇒ sr^e ≡ 面积幂次 2e（"ADU/sr" ⇔ pixel_area_power = -2）。
+        return (0, 2 * exp)
     if name in ("px", "pixel"):
+        # legacy 读侧别名（旧冻结表把像元面积记作 px^N；写侧只出 sr）。
         return (0, exp)
     return None
 

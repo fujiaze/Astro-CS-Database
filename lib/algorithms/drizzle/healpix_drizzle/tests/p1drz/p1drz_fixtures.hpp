@@ -117,7 +117,7 @@ inline drizzle::DrizzleConfig make_cfg(int nside, double pixfrac, int threads,
 // FIX-DRZ-A 常量面亮度场: B(Ω)=B0, x_j = B0·A_pixel_j。
 // A_pixel_j 由测试侧独立几何逐像素精确给值 (TAN 度量, geom_pixel_area),
 // 与生产 drop=pixel (pixfrac=1) 口径一致 → S_p=B0 恒等式残差只剩
-// Van Oosterom vs 生产 Eriksson 的算法差 (~1e-6)。
+// Van Oosterom vs 生产 Van Oosterom 的算法差 (~1e-6)。
 // 与"每像素常量 ADU"对照件 fix_drz_a_const_adu 一起构成 SCI-003 语义对。
 // ---------------------------------------------------------------------------
 inline drizzle::FitsImage fix_drz_a_const_sb(int w, int h, double b0,

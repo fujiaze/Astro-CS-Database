@@ -9,7 +9,7 @@
 // 实现要点:
 // - float64 内部精度 (double)
 // - 球面面积用 Girard 定理: Area = Σ内角 - (n-2)π
-// - 球面 Sutherland-Hodgman: 大圆弧裁剪, 保留法向量正侧
+// - 球面多边形裁剪: S-H 逐边裁剪的球面推广 (大圆弧半空间, 保留法向量正侧); S&H 1974 原文为平面算法
 // - HEALPix 边界: 4 角顶点 (xy2ang), 处理赤道带菱形与极区三角形
 // - 候选像素查询: drop 多边形球面包围圆 + queryDisc
 // ============================================================================
@@ -157,7 +157,7 @@ T angular_distance(const Vec3T<T>& a, const Vec3T<T>& b) {
 }
 
 // ============================================================================
-// 球面多边形面积 (: 球面三角剖分 + Eriksson 稳定公式)
+// 球面多边形面积 (球面三角剖分 + Van Oosterom & Strackee 稳定公式)
 //
 // 根因:
 // 的双路径 (小多边形切平面鞋带 / 大多边形 Girard) 仍有缺陷:
@@ -167,7 +167,7 @@ T angular_distance(const Vec3T<T>& a, const Vec3T<T>& b) {
 // 3. 双路径切换阈值 60" 无数学依据, 1° 像素 (3600") 远超阈值走 Girard 失效
 //
 // 修复:
-// 统一使用球面三角剖分 (fan triangulation) + Eriksson (2018) 稳定公式:
+// 统一使用球面三角剖分 (fan triangulation) + Van Oosterom & Strackee (1983) 稳定公式:
 // 1. fan triangulation 以 V_0 为顶点: 三角形 (V_0, V_i, V_{i+1}), i=1..n-2
 // 2. 每个球面三角形有向面积 = 2·atan2(det, 1 + a·b + b·c + c·a)
 // 其中 det = a · (b × c) (标量三重积, 含符号)
@@ -177,13 +177,14 @@ T angular_distance(const Vec3T<T>& a, const Vec3T<T>& b) {
 // 这在 center 不在多边形内部时产生系统性误差. 改用 V_0 扇出 + 有符号累加,
 // 对凸多边形 (S-H 裁剪结果) 总是正确, 无需依赖 center 位置.
 //
-// Eriksson 公式在所有退化情况下数值稳定:
+// Van Oosterom & Strackee 公式在所有退化情况下数值稳定:
 // - 极小三角形: 分子分母同比缩小, 比值正确
 // - 半球大小三角形: 分母→0, atan2 仍稳定
 // - 共线顶点: 分子=0, 面积=0
 // - 极区大像素: 无 excess≈0 的相消问题
 //
-// 参考: Eriksson, F. (2018) "The ang... spherical triangle area formula"
+// 参考: Van Oosterom, A. & Strackee, J. 1983, "The Solid Angle of a Plane Triangle", IEEE
+//       Trans. Biomed. Eng. BME-30(2), 125-126. DOI 10.1109/TBME.1983.325207（单位向量下即 Ω = 2·atan2(det, 1+a·b+b·c+c·a)）
 // ============================================================================
 template <typename T>
 T spherical_polygon_area(const std::vector<Vec3T<T>>& vertices) {
@@ -223,7 +224,7 @@ T spherical_polygon_area_n(const Vec3T<T>* vertices, int n) {
         if (max_ang >= 0.5 * PI - 1e-12) return T(NAN);
     }
 
-    // ---- fan triangulation 以 V_0 为顶点 + Eriksson 有符号面积 ----
+    // ---- fan triangulation 以 V_0 为顶点 + Van Oosterom & Strackee 有符号面积 ----
     // 对凸多边形, V_0 与所有非相邻顶点构成同向三角形, 有符号累加得到正确面积.
     // 对非凸多边形, 此方法仍正确 (标准球面多边形面积定义).
     const Vec3T<T>& a = vertices[0];
@@ -269,8 +270,7 @@ T spherical_polygon_area_n(const Vec3T<T>* vertices, int n) {
 }
 
 // ============================================================================
-// 球面 Sutherland-Hodgman 多边形裁剪
-//
+// 球面多边形裁剪 (Sutherland-Hodgman 逐边裁剪的球面推广)
 // 对每个裁剪平面法向量 n (保留 dot(n, v) >= 0 一侧):
 // 遍历 subject 的每条边 (S → E):
 // - 计算 S, E 是否在内侧 (dot(n, S) >= 0 / dot(n, E) >= 0)
@@ -999,7 +999,7 @@ T compute_overlap_area(
 // ============================================================================
 // 微小多边形切平面面积 ( 阶段4):
 // 球面面积 = 切平面有向叉积和 × (1 + O(θ²)), θ=max_angle。
-// θ < 1e-3 rad 时偏差 < 4e-8, 而 double 球面 Eriksson 的 det = a·(b×c)
+// θ < 1e-3 rad 时偏差 < 4e-8, 而 double 球面 Van Oosterom 的 det = a·(b×c)
 // 在 θ~1e-7 rad 时是 ~1e-8 项相消到 ~1e-15 的差, 噪声 ~1e-4~5e-5
 // (0.01\"~0.1\" drop 实测)。切平面坐标避免相消, 误差仅剩表示层
 // ~1e-9 相对。对微小 drop 是"不加精度、不加计算量"的数值稳定替代。
@@ -1076,7 +1076,7 @@ void build_drop_geometry_into(DropGeometryT<Scalar>& g,
     // drop 面积 (double 源, 构建时一次; 供小 drop 完全包含快路径)
     // 尺度感知: max_angle 暂以临时中心近似估计 (下面精确计算后不重复)
     // 微小 drop (角跨度 < 1e-3 rad ≈ 206\") 用切平面 2D 面积 (数值稳定);
-    // 大 drop 用球面 Eriksson (double 在 θ > 1e-3 时噪声 < 1e-7 可忽略)
+    // 大 drop 用球面 Van Oosterom (double 在 θ > 1e-3 时噪声 < 1e-7 可忽略)
     {
         double cx0 = 0.0, cy0 = 0.0, cz0 = 0.0;
         for (const auto& v : g.corners_d) { cx0 += v.x; cy0 += v.y; cz0 += v.z; }
@@ -1327,7 +1327,7 @@ Scalar overlap_area_impl(const DropGeometryT<Scalar>& g,
             // 面积与 drop_area 同一尺度感知策略:
             // drop 微小 (max_angle < 1e-3 rad) 时交集也是微小多边形,
             // 用切平面面积 (与 g.drop_area 表示一致, 避免 weight 偏差);
-            // 大 drop 用球面 Eriksson
+            // 大 drop 用球面 Van Oosterom
             if (g.max_angle < 1e-3) {
                 total_overlap += planar_polygon_area_n(
                     intersection, ni, &g.center_d);
@@ -1863,7 +1863,7 @@ template void query_candidate_pixels_fast<double>(
 // ----------------------------------------------------------------------------
 // 与 build_drop_geometry_into() 的 drop_area **同一分支、同一例程**:
 //   角半径 ang0 < 1e-3 rad (≈206") → planar_polygon_area_n (切平面 2D)
-//   否则                          → spherical_polygon_area_n<double> (Eriksson 扇形)
+//   否则                          → spherical_polygon_area_n<double> (Van Oosterom 扇形)
 // 逐语句与 build_drop_geometry_into 内的 drop_area 段一致, 差别仅在于本函数
 // 接受任意顶点数并直接对传入角点求值 (调用方传未收缩四角)。
 // 因此 pixfrac==1 时 (未收缩四角 == drop 四角) 本函数返回值与 drop_area 相同;

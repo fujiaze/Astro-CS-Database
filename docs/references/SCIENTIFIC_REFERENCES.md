@@ -120,7 +120,7 @@
 58. IVOA HiPS 1.0 Recommendation（<https://www.ivoa.net/documents/HiPS/>，已在 §C 第 13 条登记）。用途：HiPS properties/tile/层级与互操作；AstroCS 支持子集为 ICRS/NESTED/W=512/float FITS。
 59. IVOA MOC 1.0 Recommendation（<https://www.ivoa.net/documents/MOC/>）。用途：HiPS↔MOC 关系与 coverage 域表达（PHASE3_HIPS_TO_FITS.md §14 第 1 条）。
 60. Fernique, P. et al. 2015, A&A 578, A114（已在 §C 第 12 条登记；DOI 10.1051/0004-6361/201526075）。用途：HiPS 层级索引与目录结构。
-66. Eriksson, F. 2018, “The area of a spherical triangle”（代码 spherical_overlap.cpp:178 已引）。用途：球面多边形面积（S-H 裁剪后的扇形三角剖分）；AstroCS DRIZZLE.md §5 误记为“Girard 定理”，实现实为 Eriksson 扇形剖分（见 SCI-S2 报告 §3-17）。**核验状态**：文章级/代码内引用，出处载体需网络核验。
+66. Van Oosterom, A. & Strackee, J. 1983, “The Solid Angle of a Plane Triangle”, IEEE Trans. Biomed. Eng. BME-30(2), 125–126（DOI 10.1109/TBME.1983.325207）。用途：球面多边形面积（S-H 裁剪后的扇形三角剖分；单位向量下 Ω = 2·atan2(a·(b×c), 1+a·b+b·c+c·a)）；AstroCS DRIZZLE.md §5 误记为“Girard 定理”，实现实为 Van Oosterom 扇形剖分。**核验状态**：Crossref 已核验（题名/作者/卷期页/DOI/被引 269 次）。代码内旧引 “Eriksson, F. 2018, The area of a spherical triangle” 经 Crossref 书目检索与 arXiv 检索均无此文献，已订正。
 67. Starck, J.-L. & Murtagh, F. 1998, “Automatic Noise Estimation from the Multiresolution Support”, PASP 110, 193（DOI 10.1086/316124）。用途：PixInsight MRS/N* 稳健噪声估计（ImageWeighting §2.4）的一手论文；NOISE_MODEL 现状未采用小波 MRS/N*。
 
 ## M. 参考代码库（含许可证）
