@@ -278,7 +278,9 @@
       "doc": "docs/ci/01_CHECKS.md §2",
       "steps": [
         "CON-CONFIG-CONTRACTS",
-        "LOG-CONTRACT-SELFCHECK"
+        "LOG-CONTRACT-SELFCHECK",
+        "EVT-FIELD-SETS",
+        "EVT-FIELD-SETS-SELFTEST"
       ]
     },
     "CHK-SYNTH-P1": {
@@ -2775,6 +2777,24 @@
       "note": "自测面：3 正例 + 3 负例"
     },
     {
+      "old_id": "EVT-FIELD-SETS",
+      "decision": "KEPT",
+      "target": "CHK-SCHEMA",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "EVTFIELD-01 新增执行单元（事件协议 per-kind 扩展字段集跨面一致门，正本 protocol.h::missing_required_extension_v1）"
+    },
+    {
+      "old_id": "EVT-FIELD-SETS-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-SCHEMA",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 4,
+      "note": "EVTFIELD-01 新增执行单元（15 组逐面负例 + 11 组 fail-closed 负例自检）"
+    },
+    {
       "old_id": "FAILCLOSED-SURVEY",
       "decision": "MERGED-INTO",
       "target": "CHK-FAILCLOSED-SURVEY",
@@ -3777,6 +3797,8 @@
       "DOC-INDEX-SELFTEST",
       "E2E-CHAIN-SELFTEST-STEP",
       "E2E-CHAIN-VERIFY-STEP",
+      "EVT-FIELD-SETS",
+      "EVT-FIELD-SETS-SELFTEST",
       "FAILCLOSED-SURVEY",
       "FAILCLOSED-SURVEY-SELFTEST",
       "ID-MIGRATION-MAP-DOC-SYNC",
