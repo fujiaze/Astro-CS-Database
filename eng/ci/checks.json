@@ -9380,6 +9380,171 @@
       ]
     },
     {
+      "id": "CHK-PREFLIGHT-MATRIX",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-PREFLIGHT-MATRIX",
+        "--quiet"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/cli/preflight_matrix.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tests/cli/**",
+        "lib/infrastructure/cli/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "PREFLIGHT-MATRIX-STEP",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/run_preflight_matrix.py",
+            "--output",
+            "run/ci/cli/preflight_matrix.json"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/cli/preflight_matrix.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/cli/**",
+            "lib/infrastructure/cli/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-E2E-CHAIN",
+      "profiles": [
+        "linux-deep",
+        "prerelease"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-E2E-CHAIN",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/e2e/e2e_chain.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/e2e/**",
+        "lib/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "E2E-CHAIN-VERIFY-STEP",
+          "profiles": [
+            "linux-deep",
+            "prerelease"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/e2e/run_e2e_chain.py",
+            "--verify-only",
+            "--json-out",
+            "run/ci/e2e/e2e_chain.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/e2e/e2e_chain.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/e2e/**",
+            "lib/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-E2E-CHAIN-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-E2E-CHAIN-SELFTEST",
+        "--quiet"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/e2e/e2e_chain_selftest.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/e2e/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "E2E-CHAIN-SELFTEST-STEP",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/e2e/run_e2e_chain.py",
+            "--self-test",
+            "--json-out",
+            "run/ci/e2e/e2e_chain_selftest.json"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/e2e/e2e_chain_selftest.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tools/e2e/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",

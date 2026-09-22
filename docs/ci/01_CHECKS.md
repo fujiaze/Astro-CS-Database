@@ -106,6 +106,9 @@
 | CHK-ARCH505-BLOCK-FLOW | 架构 | ARCH-505 阶段块流执行器回归锁：三阶段规格解析（8/7/5 节点）、块图校验、SHORT 块最后一次消费即销毁、STAGE 块活到单元结束、产品块收集、单元结束无 SHORT 残留、未声明写（名字级）/缺块/节点失败/非法块图四类 fail-closed、阶段隔离、与直接顺序计算**逐位一致**、重复运行 checksum 相同 | `python3 eng/ci/run_checks.py --check CHK-ARCH505-BLOCK-FLOW --quiet` | P0 |
 | CHK-BLOCKFLOW-SPEC | 合同 | 块流规格机器门：节点集/operation/entry/端口与注册表逐字一致、阶段内 DAG 拓扑序、生产者唯一、生命周期自洽、双向一致、阶段隔离、派生防手改漂移（12/12 自测含 10 条负例） | `python3 eng/ci/run_checks.py --check CHK-BLOCKFLOW-SPEC --quiet` | P0 |
 | CHK-BLOCKFLOW-CONFORMANCE | 合同 | 块流一致性登记册机器门：登记册结构、每条证据的 文件:行+token 复核（代码改了即判红）、禁注释行凑证据、blocker 必须上呈 OPEN_QUESTIONS（10/10 自测含 9 条负例） | `python3 eng/ci/run_checks.py --check CHK-BLOCKFLOW-CONFORMANCE --quiet` | P0 |
+| CHK-PREFLIGHT-MATRIX | CLI | 预检语义矩阵：correct/warn/error 三档 × stdin yes / -y / 不确认 / -force 四路，共 11 例。判据：放行无 not confirmed/blocked by；阻断含 blocked by 且不含 not confirmed 且 output_dir 零产物；-force 跳过整个预检 | `python3 eng/ci/run_checks.py --check CHK-PREFLIGHT-MATRIX --quiet` | P0 |
+| CHK-E2E-CHAIN | 集成 | E2E-501 三命令真实数据全链：normalize→mosaic→export 串行；manifest 链**独立复算**（Python 复现 p3n_input_manifest_hash 公式比对产品自报值）+ 阶段内自洽；产品判据 coverage_ok/reopen_ok/canonical_match/covered_px>0 | `python3 eng/ci/run_checks.py --check CHK-E2E-CHAIN --quiet` | P0 |
+| CHK-E2E-CHAIN-SELFTEST | 集成 | E2E 链判据自测：退化产品（covered_px==0、FITS 缺失）必须判红，防「空产品也判绿」 | `python3 eng/ci/run_checks.py --check CHK-E2E-CHAIN-SELFTEST --quiet` | P0 |
 | CHK-SCHED-PROBE-SCHEMA | 合同 | CONTRACT-501 探针事件 schema 机器校验：逐行校验 JSONL 的必填字段/枚举/单位与事件名一致性，空文件与无输出判红（fail-closed）；含 --self-test 1 正 5 负 | `python3 eng/ci/run_checks.py --check CHK-SCHED-PROBE-SCHEMA --quiet` | P0 |
 
 ### 2.1 检查器退役与预留
