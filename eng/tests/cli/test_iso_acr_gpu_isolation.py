@@ -15,19 +15,8 @@ CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
 # DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录; ASTROCS_CLI_BIN 覆盖。
 EXE = os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))
 BUILD = os.path.dirname(os.path.abspath(EXE))
-def _pick(*cands):
-    for p in cands:
-        if os.path.isdir(p):
-            return p
-    return cands[0]
-
-
-# ROOT-008: AIO 迁 lib/infrastructure/aio/（旧 lib/astro_image_io 已退役）
-AIO = _pick(os.path.join(REPO, "lib", "infrastructure", "aio"),
-            os.path.join(REPO, "lib", "astro_image_io"))
-SHARED = _pick(os.path.join(REPO, "lib", "algorithms", "shared"),
-               os.path.join(REPO, "lib", "common"))
-HEALPIX_SRC = os.path.join(SHARED, "healpix", "healpix_core.cpp")
+# CTESTFULL-01：fixture 制备已收归 cli_fixture（自带 AIO/SHARED/cfitsio 定位），
+# 本文件原有的 _pick/AIO/SHARED/HEALPIX_SRC 兼容垫片随之退役。
 
 # FIX-UTCLI-HYGIENE: 子进程 cwd 统一落 run/（gitignore），见 cli_test_hygiene.py
 from cli_test_hygiene import run_cwd  # noqa: E402
@@ -50,11 +39,8 @@ PRODUCTION_SOURCES = [
     "lib/algorithms/coverage/src/upm.cpp",
 ]
 
-try:
-    from test_phase3_inprocess import cfitsio_objs as cfitsio_objs
-except Exception:
-    def cfitsio_objs(_tmp):
-        return []
+# CTESTFULL-01：fixture 制备统一走 cli_fixture（进程级缓存 + fail-closed 带原因）
+import cli_fixture
 
 
 class TestIsoAcrGpuIsolation(unittest.TestCase):
@@ -62,33 +48,12 @@ class TestIsoAcrGpuIsolation(unittest.TestCase):
     def setUpClass(cls):
         cls.exe_ok = os.path.isfile(EXE)
         cls.tmp = tempfile.mkdtemp(prefix="iso001_")
-        cls.hips = None
-        # phase2 合成 fixture(为 export/manifest 运行测试提供带 variance 的 HiPS 产品)
-        incs = [f"-I{os.path.join(REPO, 'lib', 'include')}",
-                f"-I{os.path.join(AIO, 'include')}", f"-I{os.path.join(AIO, 'src')}",
-                f"-I{os.path.join(AIO, 'third_party', 'cfitsio')}",
-                f"-I{SHARED}",
-                f"-I{os.path.dirname(HEALPIX_SRC)}"]
-        srcs = [os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"),
-                os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
-                os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
-                os.path.join(AIO, "src", "aio_fits.cpp"),
-                os.path.join(AIO, "src", "aio_api.cpp"),
-                os.path.join(AIO, "src", "aio_log.cpp"),
-                os.path.join(AIO, "src", "aio_compressor.cpp"),
-                HEALPIX_SRC]
-        fixture = os.path.join(cls.tmp, "fixture")
-        if shutil.which("g++"):
-            r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
-                                *srcs, *cfitsio_objs(cls.tmp), "-lz", "-lzstd", "-llz4",
-                                "-o", fixture], capture_output=True, text=True, timeout=600)
-            if r.returncode == 0:
-                data = os.path.join(cls.tmp, "data")
-                os.makedirs(data)
-                r2 = subprocess.run([fixture, "--make-field", data], capture_output=True,
-                                    text=True, timeout=300, cwd=run_cwd())
-                if "HIPS_FIXTURES_OK" in r2.stdout:
-                    cls.hips = os.path.join(data, "FIELD.hips")
+        # phase2 合成 fixture(为 export/manifest 运行测试提供带 variance 的 HiPS 产品)。
+        # CTESTFULL-01：同 test_monitor_events —— 旧写法把编译/生成失败静默折叠成
+        # hips=None（真实 rc/stderr 被丢弃，现场只看到「无合成 fixture」）；现在走
+        # cli_fixture（进程级缓存 + fail-closed 带原因）。
+        cls.hips = cli_fixture.make_field_hips(os.path.join(cls.tmp, "data"),
+                                               cwd=run_cwd())
 
     @classmethod
     def tearDownClass(cls):

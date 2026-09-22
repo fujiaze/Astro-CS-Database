@@ -96,7 +96,10 @@ class TestPhase3InProcess(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
-                HEALPIX_SRC]
+                HEALPIX_SRC,
+                # CTESTFULL-01 根因修复：同 test_phase2_inprocess ——
+                # aio_file_io.h 的 inline sha256_hex 依赖 astrocs::crypto::Sha256。
+                os.path.join(SHARED, "crypto", "sha256.cpp")]
         cls.fixture = os.path.join(cls.tmp, "fixture")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
                             *srcs, *cfitsio_objs(cls.tmp), "-lz", "-lzstd", "-llz4",
