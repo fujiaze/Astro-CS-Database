@@ -12,9 +12,9 @@
 ```text
 ingest（输入 + 元数据校验） → calibration（bias/dark/flat）
   → cosmetic/validity（坏点/宇宙线） → background/noise（背景与噪声）
-  → star_detection（星表引导检测：用 wcs.init_source 的近似指向反向投影 Gaia，只拟合星表位置）
-  → psf（PSF 建模）
   → platesolve（星表匹配 + 稳健迭代精化 WCS = 权威 WCS）
+  → star_detection（星表引导检测：以本帧权威 WCS 逆投影 Gaia，只拟合星表位置）
+  → psf（PSF 建模）
   → photometry（测光/通量定标；并在**同一步**内把 I_photo = k_photo·m(x,y)·I_cal 施加到像素）
   → noise_snr（噪声/SNR/帧级 SNR） → drizzle（HEALPix NESTED）
   → 产品验证 → 原子发布 HiPS + JSON
@@ -24,6 +24,10 @@ ingest（输入 + 元数据校验） → calibration（bias/dark/flat）
   （`header_pointing` / `config` / `neighbor_crval`）给出，不是独立的解算节点；
   `platesolve` 在该指向下完成星表匹配与稳健迭代精化，其输出即唯一权威 WCS。
   解算轮次数是求解器实现细节，不是流程语义。
+- **节点序与依赖边**（最高设计 §4.2）：`platesolve` 按帧读校准后像素自行做星点检测与星表匹配，
+  **不消费** `star_detection` 的产物；而权威检测的星表逆投影需要**含取向**的完整 WCS（取自本帧解算产物）
+  ⇒ 解算在检测与 PSF 建模之前。节点序 = 注册表端口图 DAG 的拓扑序，且与注册表声明序一致
+  （机器判据见 `docs/contracts/PIPELINE_BLOCK_CONTRACT.md` §7.1）。
 - **测光归一化施加是 `photometry` 节点内的强制步骤**（§3.2 / §7.1「生产调度面必须覆盖强制节点」）：
   测光归一化**必须真正落到像素**——施加与拟合**同一步**完成（省一次中间产物落盘 = 省一次写 + 一次读的 IO 往返），
   生产 IR 的 normalize 阶段因此是 8 节点（`calibrate/cosmetic_correct/detect_sources/plate_solve/measure_flux/estimate_snr/drizzle_stack/write_hips`），

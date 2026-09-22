@@ -8,11 +8,19 @@
   R4  阶段内 DAG 无环，且节点声明顺序是一个合法拓扑序
   R5  每个被消费的块在**本阶段内**恰有一个生产者，且生产者排在该消费者之前
   R6  EXTERNAL_IN 块在本阶段内无生产者；EXTERNAL_OUT 块必须有生产者
-  R7  生命周期自洽：消费者数 >= 2 ⇒ STAGE；== 0 ⇒ STAGE 或 EXTERNAL_OUT；
-      == 1 ⇒ SHORT，除非该块同时是阶段终产物（EXTERNAL_OUT 优先）
-  R8  阶段间隔离：某阶段的块不得依赖另一阶段节点的产出（阶段间只走磁盘产品）
+  R7  生命周期自洽（**双向**）：消费者数 >= 2 ⇒ STAGE；== 0 ⇒ STAGE 或 EXTERNAL_OUT；
+      == 1 ⇒ SHORT（阶段终产物 EXTERNAL_OUT 优先，见 R12）；反向同样判红：
+      STAGE 且恰有 1 个消费者 ⇒ 红（lifecycle 与消费者跨度不自洽，
+      见 docs/contracts/PIPELINE_BLOCK_CONTRACT.md §2 第 4 条）
+  R8  阶段间隔离：某阶段的块不得依赖另一阶段节点的产出（阶段间只走磁盘产品）；
+      覆盖**全部** lifecycle，含 EXTERNAL_OUT（旧版只查 STAGE/SHORT，产品块被漏掉）
   R9  每个块声明只出现一次（stage, block）唯一
   R10 规格派生自注册表：derived_from 指向的文件存在，且重新派生结果与磁盘规格一致（防手改漂移）
+  R11 双向一致：块的 produced_by/consumed_by 必须与节点声明的 writes/reads 完全一致
+  R12 阶段终产物可发布性：EXTERNAL_OUT 按规格**必须发布**（执行器 run_unit ⑤ 的规格前提，
+      规则见 gen_block_flow_spec.py L77-78）——(a) 恰有一个本阶段生产者（= 发布者）；
+      (b) 它的消费者（若有）必须全部在本阶段内；(c) 它在其他阶段的声明只能以 EXTERNAL_IN
+      出现（跨阶段只能走阶段对外产品，PIPELINE_BLOCK_CONTRACT §1.1）
 
 用法：
   python3 eng/tools/quality/check_block_flow_spec.py [--spec <json>] [--json-out <json>]
@@ -27,9 +35,13 @@ import subprocess
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-SPEC = os.path.join(REPO, "eng/contracts/block_flow/stage_block_flow.json")
+# 规格与派生脚本路径可被环境变量重定向：--self-test 的 S9 会改写规格、R10 会重新派生规格，
+# 当规格正本正被并发编辑（或做负例注入）时必须能把二者指向临时副本，避免改写正本。
+SPEC = os.environ.get("ASTROCS_BLOCK_FLOW_SPEC") or os.path.join(
+    REPO, "eng/contracts/block_flow/stage_block_flow.json")
 REG = os.path.join(REPO, "lib/infrastructure/pipeline/module_ports.registry.json")
-GEN = os.path.join(REPO, "eng/tools/quality/gen_block_flow_spec.py")
+GEN = os.environ.get("ASTROCS_BLOCK_FLOW_GEN") or os.path.join(
+    REPO, "eng/tools/quality/gen_block_flow_spec.py")
 STAGES = ("normalize", "mosaic", "export")
 PHASE_TO_STAGE = {"phase1": "normalize", "phase2": "mosaic", "phase3": "export"}
 
@@ -134,19 +146,26 @@ def validate(spec, reg):
                                 % (stage, name, prod))
             if lc == "EXTERNAL_OUT" and not prod:
                 errs.append("R6 %s/%s EXTERNAL_OUT but no producer" % (stage, name))
-            if lc in ("STAGE", "SHORT"):
-                for c in cons:
-                    if c not in order:
-                        errs.append("R8 %s/%s consumed by out-of-stage node %s" % (stage, name, c))
-                for p in prod:
-                    if p not in order:
-                        errs.append("R8 %s/%s produced by out-of-stage node %s" % (stage, name, p))
-            # R7 生命周期自洽
+            # R8 阶段隔离：生产者与消费者都必须落在本阶段节点集合内。
+            # 覆盖全部 lifecycle（含 EXTERNAL_OUT —— 旧版只查 STAGE/SHORT，产品块被漏掉）。
+            for c in cons:
+                if c not in order:
+                    errs.append("R8 %s/%s consumed by out-of-stage node %s" % (stage, name, c))
+            for p in prod:
+                if p not in order:
+                    errs.append("R8 %s/%s produced by out-of-stage node %s" % (stage, name, p))
+            # R7 生命周期自洽（双向）
             if lc == "SHORT" and len(cons) >= 2:
                 errs.append("R7 %s/%s SHORT but has %d consumers (must be STAGE)" % (stage, name, len(cons)))
             if lc == "SHORT" and len(cons) == 0:
                 errs.append("R7 %s/%s SHORT but has no consumer (SHORT = 最后一次消费即销毁)"
                             % (stage, name))
+            # R7 反向：消费者数 == 1 ⇒ 必须 SHORT（阶段终产物 EXTERNAL_OUT 优先，见 R12）。
+            # 派生规则（gen_block_flow_spec.py L7-13）是双向的；旧版对「STAGE 且恰 1 个消费者」
+            # 只做提示级放过，等于允许 lifecycle 与消费者跨度不自洽
+            # （PIPELINE_BLOCK_CONTRACT §2 第 4 条：声明的 lifecycle 与实际消费者跨度不一致 ⇒ 非法）。
+            if lc == "STAGE" and len(cons) == 1:
+                errs.append("R7 %s/%s STAGE but exactly 1 consumer (must be SHORT)" % (stage, name))
             # R11 双向一致：块的 produced_by/consumed_by 必须与节点声明的 writes/reads 完全一致
             want_prod = sorted(n["module_id"] for n in sn if name in n.get("writes", []))
             want_cons = sorted(n["module_id"] for n in sn if name in n.get("reads", []))
@@ -156,11 +175,26 @@ def validate(spec, reg):
             if sorted(cons) != want_cons:
                 errs.append("R11 %s/%s consumed_by %s != nodes declaring it in reads %s"
                             % (stage, name, sorted(cons), want_cons))
-            if lc == "EXTERNAL_IN" and sorted(prod) != want_prod:
-                pass   # 已由 R11 覆盖
-            if lc == "STAGE" and len(cons) == 1 and name not in ("snr",):
-                # 单消费者却声明 STAGE：允许（保守），但必须显式：这里只做提示级不判红
-                pass
+            # R12 阶段终产物可发布性：EXTERNAL_OUT 按规格必须发布（执行器 run_unit ⑤ 的
+            # 规格前提；gen_block_flow_spec.py L77-78「阶段终产物 ⇒ EXTERNAL_OUT（必须发布，
+            # 也可被本阶段内部消费）」；block_flow.h「EXTERNAL_OUT = 阶段对外产品，必须发布」）。
+            if lc == "EXTERNAL_OUT":
+                if len(prod) != 1:
+                    errs.append("R12 %s/%s EXTERNAL_OUT must have exactly one in-stage producer "
+                                "(publisher), got %s" % (stage, name, prod))
+                for c in cons:
+                    if c not in order:
+                        errs.append("R12 %s/%s EXTERNAL_OUT consumed by out-of-stage node %s"
+                                    % (stage, name, c))
+                for other in STAGES:
+                    if other == stage:
+                        continue
+                    for ob in blocks:
+                        if (ob.get("stage") == other and ob.get("block") == name
+                                and ob.get("lifecycle") != "EXTERNAL_IN"):
+                            errs.append("R12 %s/%s EXTERNAL_OUT also declared in stage %s as %s "
+                                        "(cross-stage identity must be EXTERNAL_IN there)"
+                                        % (stage, name, other, ob.get("lifecycle")))
 
     return errs
 
@@ -257,6 +291,30 @@ def _self_test():
     s = copy.deepcopy(spec)
     s["nodes"] = list(reversed(s["nodes"]))
     cases.append(("S8-reversed-order-red", any(e.startswith("R4") for e in validate(s, reg))))
+
+    # S10：R7 反向 —— 单消费者的块却声明 STAGE ⇒ 红（lifecycle 与消费者跨度不自洽）
+    s = copy.deepcopy(spec)
+    for b in s["blocks"]:
+        if b["stage"] == "normalize" and b["block"] == "p1_photoapplied":
+            b["lifecycle"] = "STAGE"
+    cases.append(("S10-stage-with-one-consumer-red",
+                  any(e.startswith("R7") for e in validate(s, reg))))
+
+    # S11：R12 —— 阶段对外产品在别的阶段被声明为非 EXTERNAL_IN ⇒ 红（跨阶段只能走阶段对外产品）
+    s = copy.deepcopy(spec)
+    for b in s["blocks"]:
+        if b["stage"] == "mosaic" and b["block"] == "frame_hips":
+            b["lifecycle"] = "STAGE"
+    cases.append(("S11-product-redeclared-downstream-red",
+                  any(e.startswith("R12") for e in validate(s, reg))))
+
+    # S12：R12 —— 阶段对外产品的消费者落在别的阶段 ⇒ 红
+    s = copy.deepcopy(spec)
+    for b in s["blocks"]:
+        if b["stage"] == "normalize" and b["block"] == "p1_final":
+            b["consumed_by"] = ["astrocs.phase3.verify"]
+    cases.append(("S12-product-consumed-out-of-stage-red",
+                  any(e.startswith("R12") for e in validate(s, reg))))
 
     # S9：R10 手改漂移（临时改磁盘规格 → 派生比对必须判红 → 还原）
     raw = io.open(SPEC, encoding="utf-8").read()

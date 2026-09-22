@@ -48,8 +48,14 @@ bool parse_block_role(const std::string& s, BlockRole* out) {
 //   - SHORT 要求**恰有 1 个消费者**（节点内即时消耗）；
 //   - RUN 要求**至少 1 个消费者**（存活到导出，且仍在阶段内被消费）；
 //   - 终态块（consumers 为空）只能是 FRAME。
-// 阶段对外产品在本阶段内是**终态块**（无消费者），故映射为 FRAME；执行器在单元结束时
-// 把产品块搬进独立 frame 延长生命期（见 run_unit ⑤），不依赖 RUN 标签。
+// 阶段对外产品（EXTERNAL_OUT）映射为 FRAME：它按规格**必须发布**，且允许同时被本阶段内部
+// 消费（规格派生规则 eng/tools/quality/gen_block_flow_spec.py L77-78「阶段终产物 ⇒
+// EXTERNAL_OUT（必须发布，也可被本阶段内部消费）」；机器门 check_block_flow_spec.py R7
+// 「== 1 ⇒ SHORT，除非该块同时是阶段终产物（EXTERNAL_OUT 优先）」），
+// 因此它的消费者集合**不一定为空**（如 normalize/frame_hips ← writer、export/p3_fits ← verify）。
+// 执行器据此在 run_unit ③ 对 EXTERNAL_OUT 免于引用计数销毁、在 ⑤ 把产品块搬进独立 frame
+// 延长生命期并发布 —— 二者必须成对成立：缺 ③ 的豁免，产品块会在 ⑤ 之前被销毁而报
+// missing_product，阶段永远跑不完一个单元。
 // 阶段输入是外部注入、无生产者，按合同必须声明 optional=true（见 build_graph）。
 BlockLifecycle lifecycle_of(BlockRole r) {
   return (r == BlockRole::SHORT) ? BlockLifecycle::SHORT : BlockLifecycle::FRAME;
@@ -195,6 +201,15 @@ BlockFlowOutcome StageBlockFlow::run_unit(const std::string& unit_id) {
     }
     // ③ 块生命周期由执行器掌管：声明消费（节点不得自行销毁）
     for (const std::string& rd : n.reads) {
+      // 阶段对外产品（EXTERNAL_OUT）免于引用计数销毁：规格规定阶段终产物**必须发布**，
+      // 且允许它同时被本阶段内部消费（gen_block_flow_spec.py L77-78；机器门
+      // check_block_flow_spec.py R7 明确认可「EXTERNAL_OUT + 1 个本阶段消费者」合法）。
+      // 而 ⑤ 在单元末要求该块仍然存活才能搬进产品 frame ⇒ 若在此按剩余消费者数销毁它，
+      // 「终产物同时被本阶段消费」的块（normalize/frame_hips ← writer、export/p3_fits ←
+      // verify）就会在 ⑤ 报 missing_product，该阶段永远跑不完一个单元。
+      // 判据是**角色**（凡 EXTERNAL_OUT 一律豁免），不是块名特例。
+      const auto role_it = spec_.roles.find(rd);
+      if (role_it != spec_.roles.end() && role_it->second == BlockRole::EXTERNAL_OUT) continue;
       const bool destroyed = frame.consume(rd, n.module_id);
       if (destroyed) {
         ++out.blocks_destroyed;

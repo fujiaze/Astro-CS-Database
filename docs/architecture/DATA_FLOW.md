@@ -11,9 +11,9 @@ FITS/XISF 亮场 + 母版
   → aio read（唯一 I/O 边界）
   → calibration（bias/dark/flat） → cosmetic/validity（坏点/宇宙线）
   → background/noise（背景与噪声）
-  → star_detection（星表引导检测；一次检测、一次通量积分，三处复用）
-  → psf（PSF 建模）
   → platesolve（星表匹配 + 稳健迭代精化 WCS = 权威 WCS）
+  → star_detection（星表引导检测：以本帧权威 WCS 逆投影 Gaia；一次检测、一次通量积分，三处复用）
+  → psf（PSF 建模）
   → photometry（通量定标；并在**同一步**内把测光归一化施加到像素，不设独立节点）
   → noise_snr（噪声/帧级 SNR）
   → drizzle（球面重采样/方差传播）
