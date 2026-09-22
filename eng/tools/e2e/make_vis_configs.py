@@ -34,6 +34,16 @@ def block(name, lights, cal, bias, dark, flat, out_dir, k):
         "drizzle": {"nested": 1, "pixfrac": 1.0, "precision_mode": 1},
         "filter_passband": "Baader R",
         "wcs": {"init_source": "header_pointing", "gaia_data_dir": GAIA},
+        # 测光标定通道：正向合成需要 (星表, 滤镜响应, QE) 三者齐备；缺席即显式降级为
+        # photscale_absent（像素不缩放），测光星等坐标系便不参与产品。
+        "photometry": {
+            "fit": {
+                "enabled": True,
+                "gaia_data_dir": GAIA,
+                "filter": "Baader R",
+                "filters_json": os.path.join(REPO, "eng/packaging/config/filters.json"),
+            }
+        },
         "dark_optimization": True,
         "dark_scale_factor": k,
         "master_flat_normalize": "median",
