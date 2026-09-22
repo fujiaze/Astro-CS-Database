@@ -29,6 +29,7 @@
 #include "ipv_wcs.h"
 #include "ipv_robust_refine.h"   // 鲁棒扩增精化
 #include "ipv_log.h"
+#include "ipv_log_sink.h" // CLEAN-403: 落点接缝的 aio 实现在 src/ (公共头不依赖基建内部头)
 
 #include <chrono>
 #include <algorithm>

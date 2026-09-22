@@ -1,0 +1,28 @@
+
+## T1 坐标卡自检
+数值 Jacobian |dOmega/dudv|: min=1.047197551064058 max=1.047200169167887  解析 pi/3=1.047197551196598  最大相对偏差=2.500e-06
+本实现叶中心 vs 生产 pix2ang_nest: 最大角差=9.180e-16 rad (=2.352e-10 x hp_res)
+正逆映射往返 (极冠, s in [1e-7,1e-2], face 单位): 最大 |du|,|dv| = 1.110e-16
+	Command being timed: "verify/p1 t1"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 50%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4064
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 162
+	Voluntary context switches: 1
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

@@ -1,0 +1,46 @@
+## T20 3D 直接构造 vs (ra,dec) 路径：角距与 drop 面积对照
+  位置       最大角距(rad) 最大角距/偏移 A_3D/A_radec-1 A_radec/A_3D-1
+  极点       2.113e-10      1.052e-03      4.293e-05      -4.293e-05    
+  极点邻域 1.970e-10      6.181e-04      5.095e-05      -5.095e-05    
+  三角点    7.421e-16      8.822e-16      2.237e-10      -2.237e-10    
+  赤道       7.460e-16      4.749e-16      2.721e-11      -2.721e-11    
+  赤道一般 1.110e-16      7.070e-17      7.533e-11      -7.533e-11    
+  南天       3.974e-16      7.588e-16      2.684e-11      -2.684e-11    
+
+## T21 修正后 T14/T15 复算：切点在极点, drop 移开
+  中心偏移px drop角半径  |A_radec/A_3D-1| 模型 2.2e-16/r^2
+  0.00       6.8563e-07     4.293e-05      4.680e-04     
+  0.25       8.7401e-07     1.011e-04      2.880e-04     
+  0.50       1.0841e-06     1.460e-04      1.872e-04     
+  1.00       1.5331e-06     4.293e-05      9.360e-05     
+  2.00       2.4721e-06     1.157e-05      3.600e-05     
+  4.00       4.3902e-06     1.559e-05      1.141e-05     
+  8.00       8.2561e-06     1.332e-06      3.228e-06     
+  16.00      1.6006e-05     1.348e-06      8.587e-07     
+  32.00      3.1517e-05     1.351e-06      2.215e-07     
+  64.00      6.2543e-05     4.894e-07      5.624e-08     
+  128.00     1.2460e-04     4.503e-07      1.417e-08     
+  256.00     2.4871e-04     5.800e-08      3.557e-09     
+	Command being timed: "verify/p7"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4040
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 162
+	Voluntary context switches: 1
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

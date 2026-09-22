@@ -1,0 +1,33 @@
+
+## T3 叶角点构造精度 (nside=2097152, 极点叶)
+  角0 (u=0.999999523,v=0.999999523) s=9.536743e-07: mode0 theta 误差=4.752e-11 rad (9.740e-05 x hp_res)  mode1 误差=8.287e-23 (1.698e-16 x hp_res)
+  角1 (u=1.000000000,v=0.999999523) s=4.768372e-07: mode0 theta 误差=9.504e-11 rad (1.948e-04 x hp_res)  mode1 误差=2.298e-23 (4.709e-17 x hp_res)
+  角2 (u=1.000000000,v=1.000000000) s=0.000000e+00: mode0 theta 误差=0.000e+00 rad (0.000e+00 x hp_res)  mode1 误差=0.000e+00 (0.000e+00 x hp_res)
+  角3 (u=0.999999523,v=1.000000000) s=4.768372e-07: mode0 theta 误差=9.504e-11 rad (1.948e-04 x hp_res)  mode1 误差=2.298e-23 (4.709e-17 x hp_res)
+  角0 横向半径: mode0 相对误差=6.103e-05   mode1 相对误差=8.014e-17
+  角1 横向半径: mode0 相对误差=2.441e-04   mode1 相对误差=8.644e-17
+  角2 横向半径: mode0 相对误差=-nan   mode1 相对误差=-nan
+  角3 横向半径: mode0 相对误差=2.441e-04   mode1 相对误差=8.644e-17
+	Command being timed: "verify/p1 t3"
+	User time (seconds): 0.00
+	System time (seconds): 0.00
+	Percent of CPU this job got: 100%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.00
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4200
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 160
+	Voluntary context switches: 1
+	Involuntary context switches: 0
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

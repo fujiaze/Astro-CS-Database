@@ -24,6 +24,7 @@
 // ============================================================================
 
 #include "ipv_select.h"
+#include "ipv_log_sink.h" // CLEAN-403: 落点接缝的 aio 实现在 src/ (公共头不依赖基建内部头)
 
 #include <cmath>
 #include <cstdio>
@@ -771,6 +772,71 @@ void density_match_iterate(
 }
 
 // ----------------------------------------------------------------------------
+// select_catalog_window - 星表侧样本选取 (ALG-WCS-001 §4a.5 ②)
+//
+// W 必须取星表 FOV 亮度序中与 U **同位次**的成员: U 的第 i 个成员在检测表全亮度
+// 序中的位次 r_i ⇒ W 取星表 FOV 亮度序中的第 r_i 个成员。这是「两侧样本同亮度
+// 序位域」的直接实现, 且不依赖图像与星表之间的星等零点。
+// 退化性: dom.sel_rank 为空 (不提供位次域的调用面) 时退化为「取最亮 n_target 颗」,
+// 与旧实现逐位一致。
+// 失效面: FOV 内成员数 < dom.n_depth ⇒ 星表侧不存在位次域对应的成员, fail-closed
+// (禁止静默退化为「最亮 n_target 颗」—— 那正是两侧样本亮度域互斥的成因)。
+// ----------------------------------------------------------------------------
+std::vector<int> select_catalog_window(
+    const std::vector<int>& fov_idx,
+    const std::vector<float>& cat_mag,
+    const SelectDomain& dom,
+    int n_target,
+    Logger* logger,
+    const char* tag)
+{
+    std::vector<int> sorted = fov_idx;
+    // 星等升序 (最亮在前); stable_sort 保证等星等时按 fov_idx 原序 (确定性)
+    std::stable_sort(sorted.begin(), sorted.end(),
+                     [&](int a, int b) { return cat_mag[a] < cat_mag[b]; });
+    const int n_fov = static_cast<int>(sorted.size());
+
+    std::vector<int> out;
+    if (n_fov <= 0 || n_target <= 0) return out;
+
+    if (dom.sel_rank.empty()) {
+        const int M = std::min(n_target, n_fov);
+        out.assign(sorted.begin(), sorted.begin() + M);
+        return out;
+    }
+
+    if (dom.n_depth > n_fov) {
+        if (logger) {
+            char buf[384];
+            std::snprintf(buf, sizeof(buf),
+                "%s: 星表 FOV 样本深度不足 (n_fov=%d < 样本亮度深度基数 n_depth=%d): "
+                "极限星等查询深度必须覆盖 U 的亮度序位域, 拒绝退化为最亮 %d 颗",
+                tag, n_fov, dom.n_depth, n_target);
+            logger->error(buf);
+        }
+        return out;   // fail-closed
+    }
+
+    out.reserve(dom.sel_rank.size());
+    for (size_t i = 0; i < dom.sel_rank.size(); ++i) {
+        const int r = dom.sel_rank[i];
+        if (r >= 1 && r <= n_fov) out.push_back(sorted[r - 1]);
+    }
+    if (static_cast<int>(out.size()) < 2) {
+        if (logger) {
+            char buf[384];
+            std::snprintf(buf, sizeof(buf),
+                "%s: 星表侧位次对齐样本不足 (%d < 2, n_fov=%d, n_depth=%d): "
+                "U/W 无法构成同域样本对", tag, static_cast<int>(out.size()),
+                n_fov, dom.n_depth);
+            logger->error(buf);
+        }
+        out.clear();
+    }
+    return out;
+}
+
+// ----------------------------------------------------------------------------
 // select_image_stars - 图像侧选星 (ALG-WCS-001 §4a.1)
 //
 // 样本定义域 = 星等可靠的非饱和检测:
@@ -789,8 +855,11 @@ std::vector<int> select_image_stars(
     const std::vector<double>& mag,
     const std::vector<bool>& saturated,
     int img_n_target,
-    Logger* logger)
+    Logger* logger,
+    SelectDomain* out_domain)
 {
+    if (out_domain) { out_domain->n_depth = 0; out_domain->rank_lo = 0;
+                      out_domain->sel_rank.clear(); }
     std::vector<int> sel_idx;
     int n_total = static_cast<int>(flux.size());
     if (n_total == 0 || img_n_target <= 0) return sel_idx;
@@ -821,12 +890,40 @@ std::vector<int> select_image_stars(
     const int n_sel = std::min(img_n_target, static_cast<int>(cand.size()));
     sel_idx.assign(cand.begin(), cand.begin() + n_sel);
 
+    // ---- §4a.5: 样本在**检测表全亮度序**(饱和与正常统一排序)中的位次域 ----
+    // U 排除了饱和检测, 故其成员的位次整体下移; 星表侧必须按同位次取样本。
+    if (out_domain) {
+        std::vector<int> all_idx(n_total);
+        for (int i = 0; i < n_total; ++i) all_idx[i] = i;
+        std::stable_sort(all_idx.begin(), all_idx.end(),
+                         [&](int a, int b) {
+                             bool a_nan = std::isnan(mag[a]);
+                             bool b_nan = std::isnan(mag[b]);
+                             if (a_nan && b_nan) return false;
+                             if (a_nan) return false;
+                             if (b_nan) return true;
+                             return mag[a] < mag[b];
+                         });
+        std::vector<int> rank_of(static_cast<size_t>(n_total), 0);
+        for (int k = 0; k < n_total; ++k) rank_of[all_idx[k]] = k + 1;
+        out_domain->sel_rank.reserve(sel_idx.size());
+        for (int idx : sel_idx) out_domain->sel_rank.push_back(rank_of[idx]);
+        for (int r : out_domain->sel_rank) {
+            if (r > out_domain->n_depth) out_domain->n_depth = r;
+            if (out_domain->rank_lo == 0 || r < out_domain->rank_lo) out_domain->rank_lo = r;
+        }
+    }
+
     if (logger) {
-        char buf[320];
+        char buf[512];
         std::snprintf(buf, sizeof(buf),
-            "选星: 非饱和候选 %d/%d (排除饱和 %d), 按 mag(box积分) 升序取前 %d 颗%s",
+            "选星: 非饱和候选 %d/%d (排除饱和 %d), 按 mag(box积分) 升序取前 %d 颗%s"
+            " [全亮度序位次 %d..%d, 样本亮度深度基数 n_depth=%d]",
             static_cast<int>(cand.size()), n_total, n_sat, n_sel,
-            (n_sel < img_n_target) ? " [候选不足, 不回填饱和星]" : "");
+            (n_sel < img_n_target) ? " [候选不足, 不回填饱和星]" : "",
+            (out_domain && out_domain->rank_lo > 0) ? out_domain->rank_lo : 1,
+            (out_domain && out_domain->n_depth > 0) ? out_domain->n_depth : n_sel,
+            (out_domain && out_domain->n_depth > 0) ? out_domain->n_depth : n_sel);
         logger->info(buf);
     }
     return sel_idx;
@@ -1006,8 +1103,9 @@ int ipv_select(
     std::vector<bool> sat_vec(det_count);
     for (int i = 0; i < det_count; ++i) sat_vec[i] = (det_sat[i] != 0);
 
+    SelectDomain dom;   // §4a.5: U 样本的亮度序位域 (位次/深度基数)
     std::vector<int> sel_idx = select_image_stars(
-        flux_vec, mag_vec, sat_vec, params.img_n_target, logger);
+        flux_vec, mag_vec, sat_vec, params.img_n_target, logger, &dom);
     int N = static_cast<int>(sel_idx.size());
     if (N < 2) {
         log_select_too_few(logger, "ipv_select", sat_vec, N);
@@ -1086,8 +1184,11 @@ int ipv_select(
     double gaia_query_ms = 0.0;
     std::vector<double> cat_ra, cat_dec;
     std::vector<float> cat_mag;
+    // §4a.5 ①: 查询深度必须覆盖 U 的样本亮度深度基数 n_depth, 否则星表侧
+    // 不存在位次域对应的成员 (U 排除饱和后位次整体下移)。
+    const int n_query_target = std::max(n_target, dom.n_depth);
     if (gaia_query_mag_iterative(
-            gaia_handle, ra, dec, query_radius_deg, n_target, focal_length_mm,
+            gaia_handle, ra, dec, query_radius_deg, n_query_target, focal_length_mm,
             params, logger, "ipv_select",
             cat_ra, cat_dec, cat_mag,
             m_lim_final, m_lim_iters, n_gaia_final,
@@ -1156,17 +1257,19 @@ int ipv_select(
     }
     output.n_fov = static_cast<int>(fov_idx.size());   // N_fov (P4-magiter 可观测)
 
-    // --- Step 10: 按星等升序 (最亮优先) 取前 n_target 颗 ---
-    // 注: fov_idx 通常 <1000, 并行排序收益有限, 保持 std::sort
-    std::sort(fov_idx.begin(), fov_idx.end(),
-              [&](int a, int b) { return cat_mag[a] < cat_mag[b]; });
-    int M = std::min(n_target, static_cast<int>(fov_idx.size()));
+    // --- Step 10: 星表侧样本 = 与 U 同亮度序位域的成员 (§4a.5 ②) ---
+    // 旧实现「取最亮 n_target 颗」隐含假设 U = 检测表最亮 n_target 颗; §4a.1 把
+    // U 的定义域收敛为非饱和检测后该假设不成立, 必须按位次对齐取星表成员。
+    std::vector<int> w_idx = select_catalog_window(
+        fov_idx, cat_mag, dom, n_target, logger, "Step 10");
+    if (w_idx.empty()) return -1;
+    int M = static_cast<int>(w_idx.size());
 
     output.W.resize(M);
     output.gaia_ra.resize(M);     // 保存原始 (ra,dec) 用于迭代重投影
     output.gaia_dec.resize(M);
     for (int i = 0; i < M; ++i) {
-        int idx = fov_idx[i];
+        int idx = w_idx[i];
         // 复用 Step 9 缓存的投影结果, 避免重复调用 gnomonic_forward_proj
         // W 直接用角秒坐标 (TRANS: U(像素)->W(角秒))
         // U = 像素坐标, 原点图像中心, Y 轴向上
@@ -1183,8 +1286,9 @@ int ipv_select(
     if (logger) {
         char buf[256];
         std::snprintf(buf, sizeof(buf),
-            "  W 向量组: %d×2 (FOV 内 %d, 取最亮 %d, gaia_ra/dec 已保存)",
-            M, static_cast<int>(fov_idx.size()), M);
+            "  W 向量组: %d×2 (FOV 内 %d, 亮度序位域 [%d..%d] 位次对齐, gaia_ra/dec 已保存)",
+            M, static_cast<int>(fov_idx.size()),
+            (dom.rank_lo > 0) ? dom.rank_lo : 1, (dom.n_depth > 0) ? dom.n_depth : M);
         logger->info(buf);
     }
 
@@ -1306,8 +1410,9 @@ int ipv_select_from_memory(
     std::vector<bool> sat_vec(det_count);
     for (int i = 0; i < det_count; ++i) sat_vec[i] = (det_sat[i] != 0);
 
+    SelectDomain dom;   // §4a.5: U 样本的亮度序位域 (位次/深度基数)
     std::vector<int> sel_idx = select_image_stars(
-        flux_vec, mag_vec, sat_vec, params.img_n_target, logger);
+        flux_vec, mag_vec, sat_vec, params.img_n_target, logger, &dom);
     int N = static_cast<int>(sel_idx.size());
     if (N < 2) {
         log_select_too_few(logger, "ipv_select_from_memory", sat_vec, N);
@@ -1383,8 +1488,11 @@ int ipv_select_from_memory(
     double gaia_query_ms = 0.0;
     std::vector<double> cat_ra, cat_dec;
     std::vector<float> cat_mag;
+    // §4a.5 ①: 查询深度必须覆盖 U 的样本亮度深度基数 n_depth, 否则星表侧
+    // 不存在位次域对应的成员 (U 排除饱和后位次整体下移)。
+    const int n_query_target = std::max(n_target, dom.n_depth);
     if (gaia_query_mag_iterative(
-            gaia_handle, ra, dec, query_radius_deg, n_target, focal_length_mm,
+            gaia_handle, ra, dec, query_radius_deg, n_query_target, focal_length_mm,
             params, logger, "ipv_select_from_memory",
             cat_ra, cat_dec, cat_mag,
             m_lim_final, m_lim_iters, n_gaia_final,
@@ -1448,16 +1556,19 @@ int ipv_select_from_memory(
     }
     output.n_fov = static_cast<int>(fov_idx.size());   // N_fov (P4-magiter 可观测)
 
-    // --- Step 10: 按星等升序 (最亮优先) 取前 n_target 颗 ---
-    std::sort(fov_idx.begin(), fov_idx.end(),
-              [&](int a, int b) { return cat_mag[a] < cat_mag[b]; });
-    int M = std::min(n_target, static_cast<int>(fov_idx.size()));
+    // --- Step 10: 星表侧样本 = 与 U 同亮度序位域的成员 (§4a.5 ②) ---
+    // 旧实现「取最亮 n_target 颗」隐含假设 U = 检测表最亮 n_target 颗; §4a.1 把
+    // U 的定义域收敛为非饱和检测后该假设不成立, 必须按位次对齐取星表成员。
+    std::vector<int> w_idx = select_catalog_window(
+        fov_idx, cat_mag, dom, n_target, logger, "Step 10");
+    if (w_idx.empty()) return -1;
+    int M = static_cast<int>(w_idx.size());
 
     output.W.resize(M);
     output.gaia_ra.resize(M);
     output.gaia_dec.resize(M);
     for (int i = 0; i < M; ++i) {
-        int idx = fov_idx[i];
+        int idx = w_idx[i];
         output.W[i].x = proj_xi[idx];
         output.W[i].y = proj_eta[idx];
         output.W[i].flux = 0.0;
@@ -1469,8 +1580,9 @@ int ipv_select_from_memory(
     if (logger) {
         char buf[256];
         std::snprintf(buf, sizeof(buf),
-            "  W 向量组: %d×2 (FOV 内 %d, 取最亮 %d, gaia_ra/dec 已保存)",
-            M, static_cast<int>(fov_idx.size()), M);
+            "  W 向量组: %d×2 (FOV 内 %d, 亮度序位域 [%d..%d] 位次对齐, gaia_ra/dec 已保存)",
+            M, static_cast<int>(fov_idx.size()),
+            (dom.rank_lo > 0) ? dom.rank_lo : 1, (dom.n_depth > 0) ? dom.n_depth : M);
         logger->info(buf);
     }
 
@@ -1581,8 +1693,9 @@ int ipv_select_from_detections(
     std::vector<bool> sat_vec(n_detections);
     for (int i = 0; i < n_detections; ++i) sat_vec[i] = (det_sat[i] != 0);
 
+    SelectDomain dom;   // §4a.5: U 样本的亮度序位域 (位次/深度基数)
     std::vector<int> sel_idx = select_image_stars(
-        flux_vec, mag_vec, sat_vec, params.img_n_target, logger);
+        flux_vec, mag_vec, sat_vec, params.img_n_target, logger, &dom);
     int N = static_cast<int>(sel_idx.size());
     if (N < 2) {
         log_select_too_few(logger, "ipv_select_from_detections", sat_vec, N);
@@ -1652,8 +1765,11 @@ int ipv_select_from_detections(
     double gaia_query_ms = 0.0;
     std::vector<double> cat_ra, cat_dec;
     std::vector<float> cat_mag;
+    // §4a.5 ①: 查询深度必须覆盖 U 的样本亮度深度基数 n_depth, 否则星表侧
+    // 不存在位次域对应的成员 (U 排除饱和后位次整体下移)。
+    const int n_query_target = std::max(n_target, dom.n_depth);
     if (gaia_query_mag_iterative(
-            gaia_handle, ra, dec, query_radius_deg, n_target, focal_length_mm,
+            gaia_handle, ra, dec, query_radius_deg, n_query_target, focal_length_mm,
             params, logger, "ipv_select_from_detections",
             cat_ra, cat_dec, cat_mag,
             m_lim_final, m_lim_iters, n_gaia_final,
@@ -1717,16 +1833,19 @@ int ipv_select_from_detections(
     }
     output.n_fov = static_cast<int>(fov_idx.size());   // N_fov (P4-magiter 可观测)
 
-    // --- Step 10: 按星等升序 (最亮优先) 取前 n_target 颗 ---
-    std::sort(fov_idx.begin(), fov_idx.end(),
-              [&](int a, int b) { return cat_mag[a] < cat_mag[b]; });
-    int M = std::min(n_target, static_cast<int>(fov_idx.size()));
+    // --- Step 10: 星表侧样本 = 与 U 同亮度序位域的成员 (§4a.5 ②) ---
+    // 旧实现「取最亮 n_target 颗」隐含假设 U = 检测表最亮 n_target 颗; §4a.1 把
+    // U 的定义域收敛为非饱和检测后该假设不成立, 必须按位次对齐取星表成员。
+    std::vector<int> w_idx = select_catalog_window(
+        fov_idx, cat_mag, dom, n_target, logger, "Step 10");
+    if (w_idx.empty()) return -1;
+    int M = static_cast<int>(w_idx.size());
 
     output.W.resize(M);
     output.gaia_ra.resize(M);
     output.gaia_dec.resize(M);
     for (int i = 0; i < M; ++i) {
-        int idx = fov_idx[i];
+        int idx = w_idx[i];
         output.W[i].x = proj_xi[idx];
         output.W[i].y = proj_eta[idx];
         output.W[i].flux = 0.0;
@@ -1738,8 +1857,9 @@ int ipv_select_from_detections(
     if (logger) {
         char buf[256];
         std::snprintf(buf, sizeof(buf),
-            "  W 向量组: %d×2 (FOV 内 %d, 取最亮 %d, gaia_ra/dec 已保存)",
-            M, static_cast<int>(fov_idx.size()), M);
+            "  W 向量组: %d×2 (FOV 内 %d, 亮度序位域 [%d..%d] 位次对齐, gaia_ra/dec 已保存)",
+            M, static_cast<int>(fov_idx.size()),
+            (dom.rank_lo > 0) ? dom.rank_lo : 1, (dom.n_depth > 0) ? dom.n_depth : M);
         logger->info(buf);
     }
 
@@ -1901,8 +2021,9 @@ static int ipv_select_from_memory_with_callback_impl(
     std::vector<bool> sat_vec(det_count);
     for (int i = 0; i < det_count; ++i) sat_vec[i] = (det_sat[i] != 0);
 
+    SelectDomain dom;   // §4a.5: U 样本的亮度序位域 (位次/深度基数)
     std::vector<int> sel_idx = select_image_stars(
-        flux_vec, mag_vec, sat_vec, params.img_n_target, logger);
+        flux_vec, mag_vec, sat_vec, params.img_n_target, logger, &dom);
     int N = static_cast<int>(sel_idx.size());
     if (N < 2) {
         log_select_too_few(logger, "ipv_select_from_memory_with_callback", sat_vec, N);
@@ -1978,8 +2099,11 @@ static int ipv_select_from_memory_with_callback_impl(
     double gaia_query_ms = 0.0;
     std::vector<double> cat_ra, cat_dec;
     std::vector<float> cat_mag;
+    // §4a.5 ①: 查询深度必须覆盖 U 的样本亮度深度基数 n_depth, 否则星表侧
+    // 不存在位次域对应的成员 (U 排除饱和后位次整体下移)。
+    const int n_query_target = std::max(n_target, dom.n_depth);
     if (gaia_query_mag_iterative(
-            gaia_handle, ra, dec, query_radius_deg, n_target, focal_length_mm,
+            gaia_handle, ra, dec, query_radius_deg, n_query_target, focal_length_mm,
             params, logger, "ipv_select_from_memory_with_callback",
             cat_ra, cat_dec, cat_mag,
             m_lim_final, m_lim_iters, n_gaia_final,
@@ -2043,16 +2167,19 @@ static int ipv_select_from_memory_with_callback_impl(
     }
     output.n_fov = static_cast<int>(fov_idx.size());   // N_fov (P4-magiter 可观测)
 
-    // --- Step 10: 按星等升序 (最亮优先) 取前 n_target 颗 ---
-    std::sort(fov_idx.begin(), fov_idx.end(),
-              [&](int a, int b) { return cat_mag[a] < cat_mag[b]; });
-    int M = std::min(n_target, static_cast<int>(fov_idx.size()));
+    // --- Step 10: 星表侧样本 = 与 U 同亮度序位域的成员 (§4a.5 ②) ---
+    // 旧实现「取最亮 n_target 颗」隐含假设 U = 检测表最亮 n_target 颗; §4a.1 把
+    // U 的定义域收敛为非饱和检测后该假设不成立, 必须按位次对齐取星表成员。
+    std::vector<int> w_idx = select_catalog_window(
+        fov_idx, cat_mag, dom, n_target, logger, "Step 10");
+    if (w_idx.empty()) return -1;
+    int M = static_cast<int>(w_idx.size());
 
     output.W.resize(M);
     output.gaia_ra.resize(M);
     output.gaia_dec.resize(M);
     for (int i = 0; i < M; ++i) {
-        int idx = fov_idx[i];
+        int idx = w_idx[i];
         output.W[i].x = proj_xi[idx];
         output.W[i].y = proj_eta[idx];
         output.W[i].flux = 0.0;
@@ -2064,8 +2191,9 @@ static int ipv_select_from_memory_with_callback_impl(
     if (logger) {
         char buf[256];
         std::snprintf(buf, sizeof(buf),
-            "  W 向量组: %d×2 (FOV 内 %d, 取最亮 %d, gaia_ra/dec 已保存)",
-            M, static_cast<int>(fov_idx.size()), M);
+            "  W 向量组: %d×2 (FOV 内 %d, 亮度序位域 [%d..%d] 位次对齐, gaia_ra/dec 已保存)",
+            M, static_cast<int>(fov_idx.size()),
+            (dom.rank_lo > 0) ? dom.rank_lo : 1, (dom.n_depth > 0) ? dom.n_depth : M);
         logger->info(buf);
     }
 

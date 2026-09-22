@@ -1,0 +1,40 @@
+
+## T12 全天 14 角点邻域扫描 (nside=2097152, 0.20"/px, |d|<=4.0 px step 1.00)
+  角点00 (dec=+0.0000): n=81 | V0 破门=0 最坏=7.787e-10 | REC-1 破门=0 最坏=7.787e-10 | oracle 破门=0 最坏=1.047e-09 | 段/叶=4.0
+  角点01 (dec=+41.8103): n=81 | V0 破门=0 最坏=1.706e-09 | REC-1 破门=0 最坏=1.706e-09 | oracle 破门=0 最坏=1.303e-09 | 段/叶=4.0
+  角点02 (dec=+90.0000): n=81 | V0 破门=32 最坏=6.626e-04 | REC-1 破门=0 最坏=2.247e-07 | oracle 破门=0 最坏=8.807e-15 | 段/叶=377.6
+  角点03 (dec=+41.8103): n=81 | V0 破门=0 最坏=9.313e-10 | REC-1 破门=0 最坏=8.920e-10 | oracle 破门=0 最坏=9.322e-10 | 段/叶=4.0
+  角点04 (dec=+0.0000): n=81 | V0 破门=0 最坏=1.070e-09 | REC-1 破门=0 最坏=1.070e-09 | oracle 破门=0 最坏=1.170e-09 | 段/叶=4.0
+  角点05 (dec=+41.8103): n=81 | V0 破门=0 最坏=1.098e-09 | REC-1 破门=0 最坏=1.098e-09 | oracle 破门=0 最坏=9.861e-10 | 段/叶=4.0
+  角点06 (dec=+0.0000): n=81 | V0 破门=0 最坏=7.435e-10 | REC-1 破门=0 最坏=7.435e-10 | oracle 破门=0 最坏=9.993e-10 | 段/叶=4.0
+  角点07 (dec=+41.8103): n=81 | V0 破门=0 最坏=9.237e-10 | REC-1 破门=0 最坏=8.943e-10 | oracle 破门=0 最坏=9.525e-10 | 段/叶=4.0
+  角点08 (dec=+0.0000): n=81 | V0 破门=0 最坏=1.407e-09 | REC-1 破门=0 最坏=1.407e-09 | oracle 破门=0 最坏=9.127e-10 | 段/叶=4.0
+  角点09 (dec=-41.8103): n=81 | V0 破门=0 最坏=6.783e-10 | REC-1 破门=0 最坏=7.204e-10 | oracle 破门=0 最坏=7.542e-10 | 段/叶=4.0
+  角点10 (dec=-41.8103): n=81 | V0 破门=0 最坏=8.190e-10 | REC-1 破门=0 最坏=8.118e-10 | oracle 破门=0 最坏=7.093e-10 | 段/叶=4.0
+  角点11 (dec=-41.8103): n=81 | V0 破门=0 最坏=7.456e-10 | REC-1 破门=0 最坏=7.952e-10 | oracle 破门=0 最坏=8.599e-10 | 段/叶=4.0
+  角点12 (dec=-41.8103): n=81 | V0 破门=0 最坏=1.121e-09 | REC-1 破门=0 最坏=1.008e-09 | oracle 破门=0 最坏=8.573e-10 | 段/叶=4.0
+  角点13 (dec=-90.0000): n=81 | V0 破门=32 最坏=6.626e-04 | REC-1 破门=0 最坏=2.247e-07 | oracle 破门=0 最坏=5.800e-15 | 段/叶=377.6
+# SUMMARY T12: PASS
+	Command being timed: "verify/p3 t12 logs/t12_sweep.csv -4 4 1.0 1e-6"
+	User time (seconds): 7.41
+	System time (seconds): 0.00
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:07.42
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4188
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 193
+	Voluntary context switches: 1
+	Involuntary context switches: 20
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 16
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
