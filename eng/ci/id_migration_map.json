@@ -498,6 +498,12 @@
         "IMPACT-MAP-SELFTEST"
       ]
     },
+    "CHK-PATH-DOMAIN-ANCHORS": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "changed_paths 路径域锚存活",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
     "CHK-PKG-CONSISTENCY": {
       "kind": "extension",
       "grade": "P0",
@@ -1400,6 +1406,15 @@
       "checker": "eng/ci/check_realdata_e2e.py",
       "owner": "RELEASE-02 fix-gates",
       "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_realdata_e2e.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-PATH-DOMAIN-ANCHORS",
+      "decision": "KEPT",
+      "target": "CHK-PATH-DOMAIN-ANCHORS",
+      "checker": "eng/tools/quality/check_path_domain_anchors.py",
+      "owner": "PATHDOMAIN-01",
+      "reason": "changed_paths 是 glob 路径域，决定改了哪些文件要跑哪些门，但从来没有存在性判据——目录退役后该域静默失效。判据+可执行负例见 eng/tools/quality/check_path_domain_anchors.py --self-test。",
       "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
     },
     {
@@ -3719,6 +3734,7 @@
       "CHK-NO-WEIGHT-MODE-CODE-SELFTEST",
       "CHK-NO-WEIGHT-MODE-SELFTEST",
       "CHK-NWORKER-TOLERANCE",
+      "CHK-PATH-DOMAIN-ANCHORS",
       "CHK-PHOTOMETRY-APPLY-SELFTEST",
       "CHK-PROD-SCALE",
       "CHK-PROVENANCE-CONSISTENCY",

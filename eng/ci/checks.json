@@ -231,7 +231,7 @@
       "changed_paths": [
         "lib/infrastructure/cli/**",
         "lib/**",
-        "third_party/**"
+        "lib/third_party/**"
       ],
       "requires_monitor": false,
       "steps": [
@@ -255,7 +255,7 @@
           "changed_paths": [
             "lib/**",
             "lib/infrastructure/cli/**",
-            "third_party/**"
+            "lib/third_party/**"
           ],
           "requires_monitor": false
         }
@@ -789,11 +789,9 @@
         "docs/**",
         "docs/TRACEABILITY.csv",
         "docs/architecture/**",
-        "graph/**",
         "lib/include/**",
-        "legacy/**",
         "lib/**",
-        "lib/phase2/**",
+        "lib/algorithms/coverage/**",
         "eng/tests/**",
         "eng/tools/quality/check_pipeline_graph.py"
       ],
@@ -871,8 +869,7 @@
           "outputs": [],
           "waivable": false,
           "changed_paths": [
-            "eng/tools/quality/check_pipeline_graph.py",
-            "graph/**"
+            "eng/tools/quality/check_pipeline_graph.py"
           ],
           "requires_monitor": false
         },
@@ -968,8 +965,8 @@
           "waivable": false,
           "changed_paths": [
             "CMakeLists.txt",
-            "lib/phase2/**",
-            "legacy/**"
+            "lib/algorithms/coverage/**",
+            "lib/infrastructure/pipeline/orchestrator/**"
           ],
           "requires_monitor": false
         },
@@ -1035,11 +1032,11 @@
         "lib/infrastructure/cli/**",
         "eng/contracts/**",
         "docs/**",
-        "evidence/**",
+        "artifacts/evidence/**",
         "lib/include/**",
         "lib/**",
         "lib/infrastructure/**",
-        "schemas/traceability_matrix.schema.json",
+        "eng/contracts/schemas/traceability_matrix.schema.json",
         "eng/tests/**",
         "eng/tests/contracts/**",
         "eng/tests/integration/**",
@@ -1142,9 +1139,9 @@
           "outputs": [],
           "waivable": false,
           "changed_paths": [
-            "schemas/traceability_matrix.schema.json",
+            "eng/contracts/schemas/traceability_matrix.schema.json",
             "docs/**",
-            "evidence/**"
+            "artifacts/evidence/**"
           ],
           "requires_monitor": false
         },
@@ -2022,7 +2019,7 @@
         "eng/cmake/**",
         "lib/include/**",
         "lib/**",
-        "lib/gaia_xpsd_client/**",
+        "lib/infrastructure/gaia_xpsd_client/**",
         "lib/infrastructure/**",
         "lib/infrastructure/benchmark/**",
         "lib/infrastructure/**",
@@ -2590,7 +2587,7 @@
           "outputs": [],
           "waivable": false,
           "changed_paths": [
-            "lib/gaia_xpsd_client/**",
+            "lib/infrastructure/gaia_xpsd_client/**",
             "CMakeLists.txt",
             "eng/cmake/**"
           ],
@@ -3091,7 +3088,7 @@
         "eng/ci/checks.json",
         "lib/infrastructure/cli/**",
         "lib/**",
-        "lib/plate_solve/**",
+        "lib/algorithms/platesolve/**",
         "lib/infrastructure/**",
         "lib/infrastructure/benchmark/**",
         "lib/infrastructure/**",
@@ -3422,7 +3419,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/plate_solve/**",
+            "lib/algorithms/platesolve/**",
             "eng/tests/**"
           ],
           "requires_monitor": false,
@@ -3579,10 +3576,10 @@
       "changed_paths": [
         "CMakeLists.txt",
         "lib/**",
-        "lib/astro_image_io/**",
-        "lib/core/**",
-        "lib/gaia_xpsd_client/**",
-        "lib/snr_estimator/**",
+        "lib/infrastructure/aio/**",
+        "lib/infrastructure/scheduler/**",
+        "lib/infrastructure/gaia_xpsd_client/**",
+        "lib/algorithms/noise_snr/**",
         "lib/infrastructure/**",
         "eng/tests/**"
       ],
@@ -3858,8 +3855,8 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/core/**",
-            "lib/snr_estimator/**",
+            "lib/infrastructure/scheduler/**",
+            "lib/algorithms/noise_snr/**",
             "eng/tests/**"
           ],
           "requires_monitor": false,
@@ -3893,7 +3890,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/astro_image_io/**",
+            "lib/infrastructure/aio/**",
             "eng/tests/**",
             "CMakeLists.txt"
           ],
@@ -3931,7 +3928,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/astro_image_io/**",
+            "lib/infrastructure/aio/**",
             "eng/tests/**",
             "CMakeLists.txt"
           ],
@@ -3969,7 +3966,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/astro_image_io/**",
+            "lib/infrastructure/aio/**",
             "eng/tests/**",
             "CMakeLists.txt"
           ],
@@ -4007,7 +4004,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/astro_image_io/**",
+            "lib/infrastructure/aio/**",
             "eng/tests/**",
             "CMakeLists.txt"
           ],
@@ -4115,7 +4112,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/gaia_xpsd_client/**",
+            "lib/infrastructure/gaia_xpsd_client/**",
             "eng/tests/**",
             "CMakeLists.txt"
           ],
@@ -4756,7 +4753,7 @@
         "lib/infrastructure/cli/**",
         "lib/include/**",
         "lib/**",
-        "lib/plate_solve/**",
+        "lib/algorithms/platesolve/**",
         "lib/infrastructure/**",
         "eng/tests/**",
         "eng/tests/abi/**"
@@ -4983,7 +4980,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/plate_solve/**",
+            "lib/algorithms/platesolve/**",
             "eng/tests/**",
             "CMakeLists.txt"
           ],
@@ -5017,7 +5014,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/plate_solve/**",
+            "lib/algorithms/platesolve/**",
             "eng/tests/**",
             "CMakeLists.txt"
           ],
@@ -5051,7 +5048,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/plate_solve/**",
+            "lib/algorithms/platesolve/**",
             "eng/tests/**",
             "CMakeLists.txt"
           ],
@@ -5294,8 +5291,8 @@
         "工程控制/**",
         "artifacts/**",
         "lib/**",
-        "runtime/logging/**",
-        "schemas/**",
+        "lib/infrastructure/observability/logging/**",
+        "eng/contracts/schemas/**",
         "eng/tests/**"
       ],
       "requires_monitor": false,
@@ -5346,7 +5343,7 @@
           "waivable": false,
           "changed_paths": [
             "lib/infrastructure/observability/**",
-            "schemas/**"
+            "lib/infrastructure/observability/logging/**"
           ],
           "requires_monitor": false
         },
@@ -5506,7 +5503,7 @@
         "lib/infrastructure/cli/**",
         "eng/cmake/**",
         "lib/**",
-        "lib/healpix_db/**",
+        "lib/algorithms/drizzle/**",
         "lib/infrastructure/**",
         "eng/tests/**",
         "eng/tools/v6/**"
@@ -5616,7 +5613,7 @@
           ],
           "waivable": false,
           "changed_paths": [
-            "lib/healpix_db/**",
+            "lib/algorithms/drizzle/**",
             "eng/tests/**",
             "CMakeLists.txt"
           ],
@@ -7528,7 +7525,7 @@
       "waivable": false,
       "changed_paths": [
         "docs/**",
-        "docs/glossary/**"
+        "docs/GLOSSARY.md"
       ],
       "requires_monitor": false
     },
@@ -7923,6 +7920,42 @@
           "requires_monitor": false
         }
       ]
+    },
+    {
+      "id": "CHK-PATH-DOMAIN-ANCHORS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_path_domain_anchors.py",
+        "--json-out",
+        "run/ci/path-domain/anchors.json"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/path-domain/anchors.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/checks.json",
+        "eng/ci/path_domain_reservations.json",
+        "eng/tools/quality/check_path_domain_anchors.py",
+        "lib/**",
+        "eng/**",
+        "docs/**",
+        "artifacts/**",
+        "工程控制/**",
+        "实验/**",
+        "testdata/**",
+        "gaia/**"
+      ],
+      "requires_monitor": false
     },
     {
       "id": "RESOURCE-GATE-REAL",

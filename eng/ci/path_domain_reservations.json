@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "note": "changed_paths 家族前缀预留显式登记（只减不增）。判据见 eng/tools/quality/check_path_domain_anchors.py A3：登记项必须仍被注册表引用、sample_path 必须尚未落地、且 sample_path 必须在生产选择器语义（eng/ci/incremental.py::glob_match）下命中该 pattern；否则判红。除 family_prefix 外的任何形态都不得登记——其余形态应直接指向现存路径或删除。",
+  "reservations": []
+}

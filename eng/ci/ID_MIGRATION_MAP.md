@@ -12,7 +12,7 @@
 - 写前基线（`source_registry`）：`eng/ci/checks.json` sha256 `62d051cc69c3993f33883ee11fe4f914588496f71d23a6f29f98038a2c04a3e4`（146 项；写前基线（TEST-GREEN-001 交棒，负责人 GO 确认））。
 - 写后快照（`result_registry`，CI-001 收敛完成**当时**的状态）：sha256 `f2535f473dbc4c969f71ab970333a843506be862cc68a230fe91ee587edf5850`（38 项 / 136 steps）。
 - 写后快照 ↔ 当前注册表交叉核对（生成器实测 `eng/ci/checks.json`）：**已不同步** —— 注册表在本波之后继续演进（各任务持续登记新的检查项与 step），写后快照只是收敛完成当时的状态，**不是**注册表的当前值。注册表当前规模与哈希以 `docs/ci/01_CHECKS.md §2`（由 `CHK-REGISTRY-DOC-SYNC` 双向一致门维护）与注册表自身为准；本文件不重复声明其当前值（否则本门会对注册表每次改动敏感，产生与事实无关的红灯）。核对明细由生成器 stdout / `--json-out` 打印。
-- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 110 个目标，其中 91 个的 `doc` 字段指向该表（含带登记批注的变体），19 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 42 / extension 44 / ci 24。
+- 目标语义 = `docs/ci/01_CHECKS.md §2` 表：`targets` 合计 111 个目标，其中 92 个的 `doc` 字段指向该表（含带登记批注的变体），19 个指向其它权威面（`docs/contracts/**`、`docs/science/**`、`docs/api/**`、`ASTROCS_DESIGN.md` 或扩展登记说明）；按 `kind` 计：doc 43 / extension 44 / ci 24。
 - 归并形态：目标项 `steps[]` 聚合旧注册项，旧 ID 原样保留为 `step.id`；目标项 `command` = `python3 eng/ci/run_checks.py --check <目标ID> --quiet`，因此仍被工作流调用的 `eng/ci/run.py` 会逐条派发同一执行序列（不静默丢覆盖）。
 
 ## 2. 覆盖计数（`coverage` 块逐字引用，本文件不重算该块）
@@ -29,9 +29,9 @@
 | silent_drops | 0 |
 | result_entry_count | 112 |
 
-- `mappings` 逐条计数（生成器实测，**与上表口径不同**）：合计 300 条 —— KEPT 148 / KEPT-PENDING-MERGE 3 / MERGED-INTO 149；其中在 `coverage.absorbed_entries` 内登记为 absorbed 的 142 条。
-- 上表由各登记任务按 +N 维护，R13 只机器校验等式 `source_entry_count` == `len(mappings) − len(set(absorbed_entries))`（现为 158 == 300 − 142）；本文件**逐字引用**该块，不用逐条计数覆盖它。
-- `absorbed_entries`：142 条登记（唯一 142 条），均为本波基线之外、由后续任务新增的执行单元。 注：`absorbed_note` = CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）
+- `mappings` 逐条计数（生成器实测，**与上表口径不同**）：合计 301 条 —— KEPT 149 / KEPT-PENDING-MERGE 3 / MERGED-INTO 149；其中在 `coverage.absorbed_entries` 内登记为 absorbed 的 143 条。
+- 上表由各登记任务按 +N 维护，R13 只机器校验等式 `source_entry_count` == `len(mappings) − len(set(absorbed_entries))`（现为 158 == 301 − 143）；本文件**逐字引用**该块，不用逐条计数覆盖它。
+- `absorbed_entries`：143 条登记（唯一 143 条），均为本波基线之外、由后续任务新增的执行单元。 注：`absorbed_note` = CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）
 - `retired` = 0：本波无退役项；基线前退役 1 项单列于 §2.1，**不得**计为本波丢失的注册项。
 - 覆盖口径注（`coverage.note` 逐字）：覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。 REGMAP-FIX-01（2026-09-22）：补登记 4 个执行单元（CHK-HIPS-STORAGE-FORM / STATIC-P3-EXPORT-STREAM-PROD / SELFTEST-P3-EXPORT-STREAM-PROD / CTEST-P3-EXPORT-STREAM-RSS，分属 CHK-HIPS-STORAGE-FORM / CHK-P3-EXPORT-STREAM-PROD / CHK-P3-EXPORT-STREAM-RSS 三个目标）登记为 absorbed —— 三者由 HIPS-PACK-01 与 P3-STREAM-01 登记进 checks.json 时漏登记本映射（R13 孤儿 unit 缺口）；同时把 CHK-HIPS-STORAGE-FORM 移到 CHK-KNOWN-FAILURES-BASELINE 之前，使 linux-main 选中序末位仍是 KNOWN-FAILURES-BASELINE-CHECK（R10）。 RECONCILE-01（并发写回重建）：一次并发写回把本文件与 checks.json 覆写成过期快照，丢失了共享对象符号闭包门、deep profile 注册单测门、迁移映射文档同步两 step 等登记；本次以现存最全快照为底重建，并补回当前注册表独有的新增项。
 
@@ -129,7 +129,7 @@
 | `CHK-DUAL-TOL` | P1 | 双平台允许误差 | 现注册表零双平台数值对比命令；Windows 复验面（REAL-001/负责人触发） | REAL-001 / 负责人触发复验 |
 | `CHK-AGENT-HARD-RULES` | P0 | AGENTS.md 硬禁令存在 | 唯一实现者 eng/tools/check_agents_gov.py 本波按裁决冻结（RETIRE-PENDING-GOV-001，W2 GOV-001 执行迁移） | GOV-001（W2） |
 
-## 5. 逐条映射明细（`mappings`，300 条）
+## 5. 逐条映射明细（`mappings`，301 条）
 
 | 旧 ID | 决策 | 目标/预留位 | 类型 | 级 | 备注（JSON note 逐字） |
 |---|---|---|---|---|---|
@@ -168,6 +168,7 @@
 | `CHK-NO-WEIGHT-MODE-CODE-SELFTEST` | KEPT | `CHK-NO-WEIGHT-MODE-CODE-SELFTEST` | extension | P0 | 并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项 |
 | `CHK-NO-WEIGHT-MODE-SELFTEST` | KEPT | `CHK-NO-WEIGHT-MODE-SELFTEST` | extension | P0 | RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。 |
 | `CHK-NWORKER-TOLERANCE` | KEPT | `CHK-NWORKER-TOLERANCE` | extension | P0 | RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：1/N worker 等价判据由「逐位一致」改为「逐字节优先 + 冻结浮点容差」（负责人裁决 2026-09-22）；本项为容差档的非退化自检 python3 eng/tools/v6/v6_numeric_equiv.py --self-test |
+| `CHK-PATH-DOMAIN-ANCHORS` | KEPT | `CHK-PATH-DOMAIN-ANCHORS` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-PHOTOMETRY-APPLY-SELFTEST` | KEPT | `CHK-PHOTOMETRY-APPLY-SELFTEST` | extension | P0 | RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 B（合并 photometry 与施加为一步，须保留像素级可核对判据） |
 | `CHK-PROD-SCALE` | KEPT | `CHK-PROD-SCALE` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
 | `CHK-PROVENANCE-CONSISTENCY` | KEPT | `CHK-PROVENANCE-CONSISTENCY` |  |  | 本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。 |
@@ -434,7 +435,7 @@
 | `WORKFLOW-REGISTRY-BINDING` | MERGED-INTO | `CHK-MODULE-MANIFEST` | doc | P0 | 模块 manifest/注册表/构建 target/产品清单一致 |
 | `WORKSPACE-ADOPTION` | MERGED-INTO | `CHK-ENV-ADOPTION` | extension | P1 | CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账） |
 
-### 5.1 判据实现者 / 归属 / 原始 reason（17 条）
+### 5.1 判据实现者 / 归属 / 原始 reason（18 条）
 
 | 旧 ID | 判据实现者（checker） | 归属（owner） | reason（JSON 逐字） |
 |---|---|---|---|
@@ -445,6 +446,7 @@
 | `CHK-PROD-SCALE` | `eng/ci/check_prod_scale.py` | RELEASE-02 fix-gates | RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_prod_scale.py --self-test。 |
 | `CHK-PROVENANCE-CONSISTENCY` | `eng/ci/check_provenance_consistency.py` | RELEASE-02 fix-gates | RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_provenance_consistency.py --self-test。 |
 | `CHK-REALDATA-E2E` | `eng/ci/check_realdata_e2e.py` | RELEASE-02 fix-gates | RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_realdata_e2e.py --self-test。 |
+| `CHK-PATH-DOMAIN-ANCHORS` | `eng/tools/quality/check_path_domain_anchors.py` | PATHDOMAIN-01 | changed_paths 是 glob 路径域，决定改了哪些文件要跑哪些门，但从来没有存在性判据——目录退役后该域静默失效。判据+可执行负例见 eng/tools/quality/check_path_domain_anchors.py --self-test。 |
 | `CHK-REGISTRY-IR-PARITY` | `eng/ci/check_registry_ir_parity.py` | RELEASE-02 fix-gates | RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_registry_ir_parity.py --self-test。 |
 | `DOC-L0` | `eng/tools/check_l0_docs.py` | GOV-001 (W2) | L0 固定文档/链接完整性；悬空引用门归 CHK-DANGLING（GOV-001 迁移） |
 | `ENG-CONSTRAINTS` | `eng/tools/doccheck/check_engineering_constraints.py` | GOV-001 (W2) | 旧权威绑定（AstroCS_ENGINEERING_CONSTRAINTS.md 文本快照）清理归 GOV-001；语义继任者 = AGENTS.md 硬禁令门 |
