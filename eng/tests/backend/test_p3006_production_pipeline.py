@@ -5,7 +5,10 @@
   A) Registry/IR 执行 source→properties→WCS→parallel resample→FITS writer→verify 完整链
      (IR 5 节点, 端口/Artifact ID 正确);
   B) 完整合成运行 ≥10s 且科学(输出 FITS 有效)/资源(workers≥2, cpu 高)/trace(事件链)同时过;
-  C) SCI/ALG/MOD 状态由 DRAFT/PROTOTYPE 改 IMPLEMENTED(台账/文档标记)。
+  C) SCI/ALG/MOD 状态标记: 原载体 = 控制包台账 evidence/v6_1_rework/TASK_LEDGER.csv,
+     该台账已退役(evidence/ 不在树内); 现行载体 = docs/traceability/
+     TRACEABILITY_MATRIX.json(状态现场计算, ASTROCS_DESIGN §12.5) + 本文件
+     test_01..test_04 的实测证据。原 test_05 已删除(依据见文件尾注)。
 
 CLI-002 迁移注记 (commit de2d6d7f):
   - 顶层 `graph` 入口已删除; IR 仅存在于内存 (lib/infrastructure/cli/runtime_client.cpp build_pipeline_ir),
@@ -143,16 +146,26 @@ class TestP3006ProductionPipeline(unittest.TestCase):
         self.assertGreaterEqual(g.get("cpu_p50_percent", -1.0), 0.0, "cpu_p50 未采样")
         self.assertGreaterEqual(g.get("cpu_mean_percent", -1.0), 0.0, "cpu_mean 未采样")
 
-    @unittest.skip("CLI-002/仓库收敛: 控制包台账 evidence/v6_1_rework/TASK_LEDGER.csv "
-                   "已不在树内(evidence/ 目录不存在), P3-006 状态标记无现行载体; "
-                   "状态回归由 docs/contracts/TEST_MATRIX.md 与控制包流程承载")
-    def test_05_registry_implemented(self):
-        """SCI/ALG/MOD 状态 IMPLEMENTED(控制包台账标记)。"""
-        ledger = os.path.join(REPO, "evidence", "v6_1_rework", "TASK_LEDGER.csv")
-        import csv
-        rows = list(csv.reader(open(ledger, encoding="utf-8")))
-        ids = [r[0] for r in rows]
-        self.assertIn("P3-006", ids, "P3-006 应在台账")
+# ── 已删除用例: test_05_registry_implemented(原 :146-155, 无条件 @unittest.skip) ──
+# 它守什么: 「P3-006 出现在控制包台账 evidence/v6_1_rework/TASK_LEDGER.csv 的 id 列」。
+# 为何删除(逐条依据):
+#   1) 载体退役 —— evidence/ 目录已不在树内(仓库收敛), 判据无对象, 故原为无条件 skip;
+#   2) 判据退化 —— 审计 V15-N-12 已登记(artifacts/evidence/audit-2026-01/FIX_LEDGER.csv:709,
+#      OPEN): 该用例"只查 task_id 列含 P3-006、完全不查状态列" ⇒ 即使台账在树内, 它也
+#      **从不**能对"状态 IMPLEMENTED 回归"判红 = 恒真门, 无证据资格(AGENTS §5);
+#   3) 规范已改口径 —— ASTROCS_DESIGN §12.5 状态阶梯: "状态由检查与验收现场计算,
+#      登记表不预写状态"; 台账式状态标记已被设计废止, 重钉等于复活废止载体。
+# 现在由谁守(名字+行号):
+#   (a) docs/traceability/TRACEABILITY_MATRIX.json:555 起 phase3 模块行(MOD-astrocs-phase3-
+#       properties 等的 SRC/TEST/EVIDENCE 状态) + 检查器
+#       eng/tools/traceability/check_traceability_matrix.py(注册于 eng/ci/checks.json
+#       CHK-CONTRACT-TEST)+ 试金石 eng/tests/traceability/test_traceability_matrix.py:50
+#       (test_01_real_matrix_passes: 真实矩阵必须 PASS);
+#   (b) 本文件 test_01_ir_chain_5_nodes:73 / test_02_production_route_ge10s:98 /
+#       test_03_science_valid:106 / test_04_resource_gate:120 —— 生产链**实测**证据;
+#   (c) 遗留缺口已登记在册: docs/contracts/TEST_MATRIX.md:45
+#       「eng/tools/validation/phase3 (待建, P3-006)」。
+# 注: 本次只删该 skip 用例, 不放宽任何现存断言。
 
 
 if __name__ == "__main__":

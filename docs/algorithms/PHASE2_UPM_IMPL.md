@@ -430,8 +430,8 @@ PHASE2_SAMPLER.md 承载），本域只引用 control_ivar 消费面，不改不
 - **apply 面**：stage2.cpp 经 p2_upm_calibrate_block（:927 与 :1272
   两处逐块校准；进程内 model 直通，无二次 open）；
 - **reload 消费（p2_upm_open）**：lib/algorithms/coverage/tools/
-  calibrated_pair_diag.cpp:202（诊断工具读取 upm_sparse.json +
-  p2_upm_calibrate_block :334 注释锚）；测试面 synthetic_gate.cpp
+  calibrated_pair_diag.cpp:205（诊断工具读取 upm_sparse.json +
+  p2_upm_calibrate_block :337 注释锚）；测试面 synthetic_gate.cpp
   多处 save→open 幂等门（:325/:380/:391/:1824/:2066/:2257/:2335/
   :5007/:5019/:5082）；
 - **descriptor 面**：astrocs.phase2.upm-fit / astrocs.phase2.upm-apply

@@ -319,10 +319,18 @@ class TestCpuProfileMigration(unittest.TestCase):
         self.schema = C.load_json(CPU_SCHEMA)
 
     def test_single_definition(self):
-        schemas_dir = os.path.join(C.REPO, "contracts", "schemas")
+        # 路径从本类 setUp 已加载的 CPU_SCHEMA 派生（eng/contracts/schemas/ 是机器校验
+        # 合同的唯一事实源, AGENTS §7）—— 不再写死目录字面量: 旧字面量
+        # "<repo>/contracts/schemas" 是根目录整合前的布局, 现行不存在 ⇒ os.listdir 抛
+        # FileNotFoundError（判据不是判红而是崩）。锚存活断言: 目录与目标文件必须存在,
+        # 迁移即点名路径判红, 不得静默退化。
+        schemas_dir = os.path.dirname(os.path.join(C.REPO, CPU_SCHEMA))
+        self.assertTrue(os.path.isdir(schemas_dir), "schema 目录不存在: %s" % schemas_dir)
+        self.assertTrue(os.path.isfile(os.path.join(C.REPO, CPU_SCHEMA)),
+                        "schema 文件不存在: %s" % CPU_SCHEMA)
         matches = [f for f in os.listdir(schemas_dir) if "profile" in f and f.endswith(".json")]
         self.assertEqual(["cpu_profile.schema.json"], sorted(matches),
-                         "eng/contracts/schemas 下出现第二份 profile 定义")
+                         "%s 下出现第二份 profile 定义" % schemas_dir)
 
     def test_writer_is_benchmark_only(self):
         self.assertEqual("cpu_profile", self.schema["x-astrocs-config-class"])

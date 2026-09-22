@@ -11,7 +11,6 @@
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 import unittest
 
@@ -19,6 +18,13 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 INC = os.path.join(REPO, "lib", "include")
 HOST = os.path.join(REPO, "lib", "infrastructure", "benchmark", "backend_host")
 CLI = os.path.join(REPO, "lib", "infrastructure", "cli")
+# DISPATCH 附录 H（构建隔离）: 被测构建树 = 被测二进制所在目录（ASTROCS_CLI_BIN 覆盖）。
+# resource_gate_thresholds_generated.h 由根 CMake configure_file 落**构建根**
+# （唯一数值源 eng/contracts/resource_gate_v1.json），是 resource_gate.h:26 /
+# memory_report.h:43 的必需包含面 —— 取法与 test_resource_gate.py:58-66 同源。
+BUILD_ROOT = os.path.dirname(os.path.abspath(
+    os.environ.get("ASTROCS_CLI_BIN", os.path.join(REPO, "build", "astrocs"))))
+RG_HEADER = os.path.join(BUILD_ROOT, "resource_gate_thresholds_generated.h")
 
 
 @unittest.skipUnless(shutil.which("g++"), "需要 g++")
@@ -27,17 +33,21 @@ class TestMon003Synthetic(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="mon003_")
         exe = os.path.join(cls.tmp, "mon003_synth")
+        # fail-closed 前置失败: 缺构建产物即点名判红, 不得把「编译失败」当 skip 充数
+        # （AGENTS §5「判据必须非退化」/ §9「SKIP 充数算未完成」）。
+        assert os.path.isfile(RG_HEADER), (
+            f"缺构建产物 {RG_HEADER} —— 先 cmake -S . -B {BUILD_ROOT} "
+            f"（或 ninja -C {BUILD_ROOT}）生成 G-RES-01 阈值头")
         r = subprocess.run(
             ["g++", "-std=c++17", "-O2",
-             f"-I{INC}", f"-I{HOST}", f"-I{CLI}",
+             f"-I{INC}", f"-I{HOST}", f"-I{CLI}", f"-I{BUILD_ROOT}",
              os.path.join(REPO, "eng", "tests", "backend", "mon003_synthetic_main.cpp"),
              os.path.join(HOST, "baseline_backend.cpp"),
              os.path.join(HOST, "host_services.cpp"),
              "-lpthread", "-ldl", "-o", exe],
             capture_output=True, text=True, timeout=300)
-        cls.skip_compile = r.returncode != 0
-        if cls.skip_compile:
-            print("compile stderr:", r.stderr[-500:], file=sys.stderr)
+        assert r.returncode == 0, (
+            f"mon003 fixture 编译失败（包含面应含 {RG_HEADER}）: {r.stderr[-800:]}")
         cls.exe = exe
 
     @classmethod
@@ -47,8 +57,6 @@ class TestMon003Synthetic(unittest.TestCase):
 
     def test_01_multi_production_passes(self):
         """多核生产: 5 kernel 各 ≥10s; workers_used>=2; 无单线程/锁退化失败。"""
-        if self.skip_compile:
-            self.skipTest("编译失败")
         r = subprocess.run([self.exe, "--duration", "12"], capture_output=True,
                            text=True, timeout=600)
         self.assertEqual(r.returncode, 0, r.stdout[-800:] + r.stderr[-300:])
@@ -60,8 +68,6 @@ class TestMon003Synthetic(unittest.TestCase):
 
     def test_02_single_negative_fixture_fails(self):
         """单核负 fixture: workers=1 → gate 必须拒绝。"""
-        if self.skip_compile:
-            self.skipTest("编译失败")
         r = subprocess.run([self.exe, "--duration", "8"], capture_output=True,
                            text=True, timeout=600)
         self.assertEqual(r.returncode, 0, r.stdout[-800:] + r.stderr[-300:])
