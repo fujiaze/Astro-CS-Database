@@ -1,0 +1,390 @@
+{
+ "meta": {
+  "seed": 20260925,
+  "box": 64,
+  "delta_budget": 0.014,
+  "elapsed_s": 11.646625280380249
+ },
+ "gates": [
+  {
+   "gate": "analytic.null_zero",
+   "pass": true,
+   "delta_mean": -0.0009257875268416741,
+   "delta_3sigma": 0.00032966261691328303,
+   "n": 12,
+   "note": "无结构时区域化不得改变估计值（3 sigma 内归零）"
+  },
+  {
+   "gate": "analytic.R2_unbiased_all_structures",
+   "pass": true,
+   "worst_abs_rel_err": 0.01912014317794508,
+   "budget": 0.024,
+   "rows": [
+    {
+     "structure": "ramp_hi",
+     "box": 16,
+     "rel_err": -0.017605210445018615
+    },
+    {
+     "structure": "ramp_hi",
+     "box": 32,
+     "rel_err": -0.015256851668217664
+    },
+    {
+     "structure": "ramp_hi",
+     "box": 64,
+     "rel_err": -0.01344552665697274
+    },
+    {
+     "structure": "ramp_hi",
+     "box": 128,
+     "rel_err": -0.013319075098269018
+    },
+    {
+     "structure": "ramp_hi",
+     "box": 256,
+     "rel_err": -0.013924276748725206
+    },
+    {
+     "structure": "corr32",
+     "box": 16,
+     "rel_err": -0.01912014317794508
+    },
+    {
+     "structure": "corr32",
+     "box": 32,
+     "rel_err": -0.016302750903339325
+    },
+    {
+     "structure": "corr32",
+     "box": 64,
+     "rel_err": -0.01579515356366179
+    },
+    {
+     "structure": "corr32",
+     "box": 128,
+     "rel_err": -0.014627970503170884
+    },
+    {
+     "structure": "corr32",
+     "box": 256,
+     "rel_err": -0.01355691366508116
+    },
+    {
+     "structure": "corr128",
+     "box": 16,
+     "rel_err": -0.01521882552035192
+    },
+    {
+     "structure": "corr128",
+     "box": 32,
+     "rel_err": -0.014588769395661338
+    },
+    {
+     "structure": "corr128",
+     "box": 64,
+     "rel_err": -0.014206946848222435
+    },
+    {
+     "structure": "corr128",
+     "box": 128,
+     "rel_err": -0.015381807475076448
+    },
+    {
+     "structure": "corr128",
+     "box": 256,
+     "rel_err": -0.014881247710033185
+    },
+    {
+     "structure": "blob32",
+     "box": 16,
+     "rel_err": -0.01840649829590879
+    },
+    {
+     "structure": "blob32",
+     "box": 32,
+     "rel_err": -0.014284340756651304
+    },
+    {
+     "structure": "blob32",
+     "box": 64,
+     "rel_err": -0.013245711113163083
+    },
+    {
+     "structure": "blob32",
+     "box": 128,
+     "rel_err": -0.015174017835958842
+    },
+    {
+     "structure": "blob32",
+     "box": 256,
+     "rel_err": -0.014041981035839535
+    }
+   ]
+  },
+  {
+   "gate": "analytic.R0_closed_form",
+   "pass": true,
+   "worst_abs_diff": 0.01930173485970932,
+   "budget": 0.02,
+   "rows": [
+    {
+     "slope": 0.325,
+     "box": 16,
+     "pred": 0.002812710995095724,
+     "meas": -0.016489023864613594,
+     "abs_diff": 0.01930173485970932
+    },
+    {
+     "slope": 0.325,
+     "box": 32,
+     "pred": 0.011203902946054445,
+     "meas": -0.003952746284507591,
+     "abs_diff": 0.015156649230562036
+    },
+    {
+     "slope": 0.325,
+     "box": 64,
+     "pred": 0.04409450402410098,
+     "meas": 0.02974656156867672,
+     "abs_diff": 0.014347942455424256
+    },
+    {
+     "slope": 0.325,
+     "box": 128,
+     "pred": 0.166419021335529,
+     "meas": 0.1543820072106843,
+     "abs_diff": 0.012037014124844703
+    },
+    {
+     "slope": 0.325,
+     "box": 256,
+     "pred": 0.5627326493464369,
+     "meas": 0.5623956886753703,
+     "abs_diff": 0.00033696067106658845
+    },
+    {
+     "slope": 1.0,
+     "box": 16,
+     "pred": 0.02632028788937668,
+     "meas": 0.007425619034365782,
+     "abs_diff": 0.0188946688550109
+    },
+    {
+     "slope": 1.0,
+     "box": 32,
+     "pred": 0.1015141094572205,
+     "meas": 0.08767508612691022,
+     "abs_diff": 0.013839023330310285
+    },
+    {
+     "slope": 1.0,
+     "box": 64,
+     "pred": 0.3613718571108091,
+     "meas": 0.35662739312885394,
+     "abs_diff": 0.00474446398195516
+    },
+    {
+     "slope": 1.0,
+     "box": 128,
+     "pred": 1.1007935008784977,
+     "meas": 1.1015475820436462,
+     "abs_diff": 0.0007540811651485235
+    },
+    {
+     "slope": 1.0,
+     "box": 256,
+     "pred": 2.8279672586548252,
+     "meas": 2.8268498375177105,
+     "abs_diff": 0.0011174211371147713
+    },
+    {
+     "slope": 3.25,
+     "box": 16,
+     "pred": 0.2503332889007368,
+     "meas": 0.23707675171740128,
+     "abs_diff": 0.013256537183335526
+    },
+    {
+     "slope": 3.25,
+     "box": 32,
+     "pred": 0.8036999011291579,
+     "meas": 0.8021220972476548,
+     "abs_diff": 0.0015778038815030815
+    },
+    {
+     "slope": 3.25,
+     "box": 64,
+     "pred": 2.1643851430148855,
+     "meas": 2.1628491492474367,
+     "abs_diff": 0.00153599376744884
+    },
+    {
+     "slope": 3.25,
+     "box": 128,
+     "pred": 5.087144924620519,
+     "meas": 5.088987850619371,
+     "abs_diff": 0.0018429259988517188
+    },
+    {
+     "slope": 3.25,
+     "box": 256,
+     "pred": 11.050449507521842,
+     "meas": 11.04903720508469,
+     "abs_diff": 0.0014123024371510695
+    }
+   ]
+  },
+  {
+   "gate": "analytic.scalar_cannot_track_varying_sigma",
+   "pass": true,
+   "scalar_p95_abs_rel_err": 0.21118877438229622,
+   "R1_p95_abs_rel_err": 0.03648188402780468,
+   "R2_p95_abs_rel_err": 0.03616582532696812,
+   "sigma_true_p95_over_p05": 1.666661148579231,
+   "note": "标量的逐区域误差与区域尺寸无关（它不看位置）；区域估计必须显著更小"
+  },
+  {
+   "gate": "analytic.gate_not_degenerate",
+   "pass": true,
+   "structured_verdicts": [
+    "ok",
+    "ok",
+    "ok",
+    "fail_closed",
+    "fail_closed",
+    "fail_closed",
+    "ok",
+    "diagnostic_only",
+    "diagnostic_only",
+    "ok",
+    "ok",
+    "ok"
+   ],
+   "null_verdicts": [
+    "ok",
+    "ok",
+    "ok"
+   ]
+  },
+  {
+   "gate": "hst.R2_beats_R1_on_structure",
+   "pass": true,
+   "detail": {
+    "hst_struct_nostars_p999_1000": [
+     {
+      "box": 16,
+      "R1": 0.4660773298883719,
+      "R2": 0.01819072782329073,
+      "scalar": 1.13297583277072
+     },
+     {
+      "box": 32,
+      "R1": 0.5280340422412281,
+      "R2": 0.015328594610442559,
+      "scalar": 1.1248570247192893
+     },
+     {
+      "box": 64,
+      "R1": 0.5786183898552775,
+      "R2": 0.015613731784116736,
+      "scalar": 1.1172741334248242
+     },
+     {
+      "box": 128,
+      "R1": 0.6388422490076369,
+      "R2": 0.01614570152953909,
+      "scalar": 1.1235983596951469
+     },
+     {
+      "box": 256,
+      "R1": 0.9118110376199644,
+      "R2": 0.014385277777379857,
+      "scalar": 1.1273064680667502
+     }
+    ],
+    "hst_struct_stars_p999_1000": [
+     {
+      "box": 16,
+      "R1": 0.47415152530388216,
+      "R2": 0.02273860892796936,
+      "scalar": 1.1408059730021205
+     },
+     {
+      "box": 32,
+      "R1": 0.5385964543267461,
+      "R2": 0.022948170938609458,
+      "scalar": 1.1326573608598145
+     },
+     {
+      "box": 64,
+      "R1": 0.591117207786113,
+      "R2": 0.03474743634495753,
+      "scalar": 1.1250466328213586
+     },
+     {
+      "box": 128,
+      "R1": 0.643338747582933,
+      "R2": 0.08347121882039171,
+      "scalar": 1.13139407528466
+     },
+     {
+      "box": 256,
+      "R1": 0.9202749135384721,
+      "R2": 0.09148247863791614,
+      "scalar": 1.1351157960976686
+     }
+    ],
+    "null_gap_max": 0.0031299261299220227
+   }
+  },
+  {
+   "gate": "real.premise_power_closure",
+   "pass": true,
+   "max_abs_region_excess_median": 0.06655669199459646,
+   "budget": 0.1,
+   "max_region_excess_p95_one_sided": 0.054839894151826274,
+   "budget_p95": 0.1,
+   "min_single_over_diff_power": 9.123840224102272,
+   "budget_min": 3.0,
+   "n_pairs": 15,
+   "max_abs_global_var_excess_frac_diagnostic": 0.28499784165999253,
+   "note": "全局口径仅作诊断：它把 sigma 场的异质性与帧相关形态混淆，不作为判据"
+  }
+ ],
+ "injections": [
+  {
+   "injection": "identity_diff",
+   "pass": true,
+   "verdict": "ok",
+   "note": "恒等映射下 A2==1 必判 ok —— 这正是「门无法自证」的故障，必须由 N2（能红能绿）与 I2（退化 box 判红）联合覆盖"
+  },
+  {
+   "injection": "degenerate_box_frame_scope",
+   "pass": true,
+   "verdict": "fail_closed",
+   "A2": 3.1970838374025967,
+   "note": "结构相关长度 64px、结构 rms=3 sigma：整帧口径必须判红"
+  },
+  {
+   "injection": "gate_disabled_certifies_bad",
+   "pass": true,
+   "true_rel_err_of_shorted_path": 2.166859947001172,
+   "budget": 0.014
+  },
+  {
+   "injection": "fake_frame_dependent_pattern",
+   "pass": true,
+   "interaction_power@256": 0.10016106522402857,
+   "var_excess_frac": 0.09707251740738343,
+   "injected_pattern_rms_over_noise": 0.5
+  },
+  {
+   "injection": "pure_frame_offset_keeps_green",
+   "pass": true,
+   "interaction_power@256": -0.0032394564757789457,
+   "var_excess_frac": -0.0289481378911168
+  }
+ ],
+ "ALL_GATES_PASS": true
+}

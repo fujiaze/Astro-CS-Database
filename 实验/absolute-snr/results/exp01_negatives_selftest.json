@@ -1,0 +1,126 @@
+{
+ "n_gates": 15,
+ "n_unqualified": 0,
+ "gates": [
+  {
+   "id": "G0_非退化_样本数大于0",
+   "normal_green": true,
+   "normal_msg": "被比较的记录数 = 17",
+   "fault_injected_green": false,
+   "fault_msg": "被比较的记录数 = 0",
+   "qualified": true
+  },
+  {
+   "id": "G1_归零_无裁剪低偏为0",
+   "normal_green": true,
+   "normal_msg": "无裁剪低偏 = -0.000046（3σ = 0.000179）",
+   "fault_injected_green": false,
+   "fault_msg": "无裁剪低偏 = -0.013847（3σ = 0.000179）",
+   "qualified": true
+  },
+  {
+   "id": "G2_判红_裁剪低偏非零",
+   "normal_green": true,
+   "normal_msg": "生产 recipe 低偏 = -0.013847（要求 |.| > 0.5%）",
+   "fault_injected_green": false,
+   "fault_msg": "生产 recipe 低偏 = 0.000000（要求 |.| > 0.5%）",
+   "qualified": true
+  },
+  {
+   "id": "G3_归零_歧义项RN为零",
+   "normal_green": true,
+   "normal_msg": "RN=0 时两支相对偏差 = 0.000e+00",
+   "fault_injected_green": false,
+   "fault_msg": "RN=0 时两支相对偏差 = 3.463e-01",
+   "qualified": true
+  },
+  {
+   "id": "G4_阈值口径_散粒非总rms",
+   "normal_green": true,
+   "normal_msg": "B_e/RN² = 49.751244（正确 49.751244）",
+   "fault_injected_green": false,
+   "fault_msg": "B_e/RN² = 48.751244（正确 49.751244）",
+   "qualified": true
+  },
+  {
+   "id": "G5_非退化_歧义项随delta单调",
+   "normal_green": true,
+   "normal_msg": "比较对 = 8，违反 = 0",
+   "fault_injected_green": false,
+   "fault_msg": "比较对 = 8，违反 = 8",
+   "qualified": true
+  },
+  {
+   "id": "G6_非退化_决策规则可判红",
+   "normal_green": true,
+   "normal_msg": "S_sys=0 => None ; A_eff=0 => 0.01 ; A_eff>S_sys => None",
+   "fault_injected_green": false,
+   "fault_msg": "S_sys=0 => 0.01 ; A_eff=0 => 0.01 ; A_eff>S_sys => 0.01",
+   "qualified": true
+  },
+  {
+   "id": "G7_归零_配对性deltaPSF",
+   "normal_green": true,
+   "normal_msg": "报告σ/实测std = 0.997588（容差 0.05 = 3×MC 抽样噪声）",
+   "fault_injected_green": false,
+   "fault_msg": "报告σ/实测std = 2.000000（容差 0.05 = 3×MC 抽样噪声）",
+   "qualified": true
+  },
+  {
+   "id": "G8_判红_截断偏置",
+   "normal_green": true,
+   "normal_msg": "截断偏置 z = 88.18（要求 |z| > 3）",
+   "fault_injected_green": false,
+   "fault_msg": "截断偏置 z = 0.00（要求 |z| > 3）",
+   "qualified": true
+  },
+  {
+   "id": "G9_归零_去截断无偏",
+   "normal_green": true,
+   "normal_msg": "未截断盒和 z = -1.30",
+   "fault_injected_green": false,
+   "fault_msg": "未截断盒和 z = 88.18",
+   "qualified": true
+  },
+  {
+   "id": "G10_归零_同帧伪差为0",
+   "normal_green": true,
+   "normal_msg": "同帧恒等对照 = [0.0, 0.0, 0.0]",
+   "fault_injected_green": false,
+   "fault_msg": "同帧恒等对照 = [0.1, 0.0, 0.0]",
+   "qualified": true
+  },
+  {
+   "id": "G11_判红_现行错配",
+   "normal_green": true,
+   "normal_msg": "CUR 配对比 = [0.7718, 0.7994, 0.975]",
+   "fault_injected_green": false,
+   "fault_msg": "CUR 配对比 = [1.0, 1.0, 1.0]",
+   "qualified": true
+  },
+  {
+   "id": "G12_判红_盒和跨帧伪差",
+   "normal_green": true,
+   "normal_msg": "盒和跨 seeing 伪差 = 0.0998",
+   "fault_injected_green": false,
+   "fault_msg": "盒和跨 seeing 伪差 = 0.0000",
+   "qualified": true
+  },
+  {
+   "id": "G13_判红_A优于盒和",
+   "normal_green": true,
+   "normal_msg": "A = 0.0269 vs 盒和 = 0.0998（比 = 0.269）",
+   "fault_injected_green": false,
+   "fault_msg": "A = 0.0998 vs 盒和 = 0.0269（比 = 3.713）",
+   "qualified": true
+  },
+  {
+   "id": "G14_非退化_样本代价被量化",
+   "normal_green": true,
+   "normal_msg": "PSF 拟合成功子集占比（中位）= 0.00425",
+   "fault_injected_green": false,
+   "fault_msg": "PSF 拟合成功子集占比（中位）= 1.00000",
+   "qualified": true
+  }
+ ]
+}

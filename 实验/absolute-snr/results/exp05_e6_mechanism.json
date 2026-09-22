@@ -1,0 +1,94 @@
+{
+ "meta": {
+  "delta_px": 64,
+  "meaning": "整帧裁剪 RMS 在原始像素 vs 去大尺度结构残差上的读数之比 = 结构对帧级 sigma 的贡献倍数（无需真值）",
+  "data_class": "testdata 真实数据（只读）",
+  "elapsed_s": 16.895880699157715
+ },
+ "frames": [
+  {
+   "panel": "M1",
+   "file": "M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+   "sigma_frame_raw": 16.15581494038241,
+   "sigma_frame_struct_removed": 13.877291427357616,
+   "structure_boost": 1.1641907950807262
+  },
+  {
+   "panel": "M1",
+   "file": "M42_M1_T2_flying_dutchman-20251224@031410-300S-Red.fts",
+   "sigma_frame_raw": 15.647856113308277,
+   "sigma_frame_struct_removed": 13.024763434324106,
+   "structure_boost": 1.2013927310243153
+  },
+  {
+   "panel": "M2",
+   "file": "M42_M2_T2_flying_dutchman-20251212@020002-300S-Red.fts",
+   "sigma_frame_raw": 59.415303475848496,
+   "sigma_frame_struct_removed": 17.40410873118736,
+   "structure_boost": 3.4138664836872117
+  },
+  {
+   "panel": "M2",
+   "file": "M42_M2_T2_flying_dutchman-20251216@033550-300S-Red.fts",
+   "sigma_frame_raw": 64.06030544727192,
+   "sigma_frame_struct_removed": 17.982040353482716,
+   "structure_boost": 3.5624603319758914
+  },
+  {
+   "panel": "M2",
+   "file": "M42_M2_T2_flying_dutchman-20251224@033141-300S-Red.fts",
+   "sigma_frame_raw": 62.97427075803104,
+   "sigma_frame_struct_removed": 17.254843682953496,
+   "structure_boost": 3.649657563704558
+  },
+  {
+   "panel": "M2",
+   "file": "M42_M2_T2_flying_dutchman-20251224@033733-300S-Red.fts",
+   "sigma_frame_raw": 63.018913874719246,
+   "sigma_frame_struct_removed": 17.29081937969136,
+   "structure_boost": 3.644645895077537
+  },
+  {
+   "panel": "M4",
+   "file": "M42_M4_T2_flying_dutchman-20251216@050117-300S-Red.fts",
+   "sigma_frame_raw": 17.405414832748,
+   "sigma_frame_struct_removed": 14.252668854671489,
+   "structure_boost": 1.221203902947844
+  },
+  {
+   "panel": "M4",
+   "file": "M42_M4_T2_flying_dutchman-20251224@045919-300S-Red.fts",
+   "sigma_frame_raw": 17.578463427708957,
+   "sigma_frame_struct_removed": 13.483145889804389,
+   "structure_boost": 1.303736054728989
+  },
+  {
+   "panel": "M4",
+   "file": "M42_M4_T2_flying_dutchman-20251228@044805-300S-Red.fts",
+   "sigma_frame_raw": 16.73121197637985,
+   "sigma_frame_struct_removed": 14.073283462492366,
+   "structure_boost": 1.1888634248696335
+  },
+  {
+   "panel": "M5",
+   "file": "M42_M5_T2_flying_dutchman-20251212@035959-300S-Red.fts",
+   "sigma_frame_raw": 43.36864814697679,
+   "sigma_frame_struct_removed": 16.39479783267357,
+   "structure_boost": 2.6452688584269337
+  },
+  {
+   "panel": "M5",
+   "file": "M42_M5_T2_flying_dutchman-20251224@053804-300S-Red.fts",
+   "sigma_frame_raw": 43.426616495026,
+   "sigma_frame_struct_removed": 16.541036977861282,
+   "structure_boost": 2.62538657964121
+  },
+  {
+   "panel": "M5",
+   "file": "M42_M5_T2_flying_dutchman-20260108@030531-300S-Red.fts",
+   "sigma_frame_raw": 44.938484696373045,
+   "sigma_frame_struct_removed": 18.386686735737353,
+   "structure_boost": 2.444077355656916
+  }
+ ]
+}
