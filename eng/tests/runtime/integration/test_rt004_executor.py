@@ -450,8 +450,16 @@ class TestRt004WorkerNoBusySpin(unittest.TestCase):
 
 # ── RT-004-POOL-01 运行时池回收 harness（Linux：/proc/self/task 线程计数）──
 # 判据：三个阶段调度器每次 run() 的池必须在 run 返回前全部 join 回收 —— run 返回后
-# 进程线程数回到基线（连续 5 轮不累积）；同时 run 期间线程数峰值必须超过基线
-# （非退化证据：池线程确实起过，判据不是恒真门）。
+# **有限时间（kReclaimDeadlineMs）内**进程线程数回到基线（连续 5 轮不累积）；同时 run
+# 期间线程数峰值必须超过基线（非退化证据：池线程确实起过，判据不是恒真门）。
+#
+# FLAKE-01（2026-09-23）判据观测面订正：原实现读 join 返回**瞬间**的 /proc/self/task
+# 条目数，满负载下会假红（实测 LEAK normalize round=2 threads_after=5 base=4，单跑
+# 复现不出）。一手证据 run/FLAKE-01/evidence/tjoin_window.cpp：pthread_join 返回 ≠ 内核
+# 任务条目已消失（清 tid futex 在 do_exit 早期，摘除线程组条目在之后的 release_task），
+# 空载 3000 轮 0 次滞后；宿主 load≈13 时 20000 轮中 1.08% 滞后，p50=3.8ms /
+# p99=8.6ms / max=15.4ms。⇒ 判据改为"有界等待回到基线"（窗口 2000ms = 实测 max 的
+# 130 倍），并由 check_wait_discriminates_real_leak 自检保证真泄漏仍判红（不放宽判据）。
 _POOL_DRIVER = r'''
 // RT-004-POOL-01 harness: 三个阶段调度器的池回收（无泄漏线程）运行时验收
 #include "astrocs/core/export_stream.h"
@@ -487,6 +495,55 @@ static int thread_count() {
   while (::readdir(d) != nullptr) ++n;
   ::closedir(d);
   return n;
+}
+
+// 回收判据的**观测窗口**（FLAKE-01 实测依据，非固定 sleep）：
+//   pthread_join 返回 ≠ 内核任务条目已从 /proc/self/task 消失 —— 线程退出时
+//   清 CLONE_CHILD_CLEARTID 的 futex 在 do_exit 早期（mm_release），而任务从
+//   线程组摘除（__unhash_process）在之后的 release_task；两者之间 join 已返回
+//   但条目仍在枚举里。实测（run/FLAKE-01/evidence/tjoin_window.cpp，20000 轮、
+//   宿主 load≈13）：滞后出现率 1.08%，滞后时长 p50=3.8ms / p90=6.0ms /
+//   p99=8.6ms / max=15.4ms；空载 3000 轮 0 次。
+//   ⇒ 判据不得是"join 返回瞬间的读数"，而必须是"run 返回后**有限时间**内回到
+//   基线"。窗口 2000ms 为实测最大值的 130 倍：真泄漏（永不 join/detach 常驻）
+//   不可能在窗口内回落，判别力不减（见 check_wait_discriminates_real_leak）。
+static constexpr int kReclaimDeadlineMs = 2000;
+
+// 有界等待：线程数回落到 want，或超时后返回最后读数（超时值 ⇒ 调用方判红）。
+static int wait_thread_count(int want, int deadline_ms) {
+  const auto deadline = std::chrono::steady_clock::now() +
+                        std::chrono::milliseconds(deadline_ms);
+  int n = thread_count();
+  while (n != want && std::chrono::steady_clock::now() < deadline) {
+    std::this_thread::sleep_for(std::chrono::microseconds(200));
+    n = thread_count();
+  }
+  return n;
+}
+
+// 判别力自检（能红能绿）：有界等待不得把**真泄漏**放过去。
+//   红：故意 detach 一个常驻线程 ⇒ 有界等待超时后读数仍 != 基线（必须判红）；
+//   绿：该线程退出后同一等待必须回到基线。
+//   若把判据退化成"等待足够久就算回收"，本自检立刻判红。
+static void check_wait_discriminates_real_leak(int base) {
+  std::atomic<bool> stop{false};
+  std::thread leaked([&stop] {
+    while (!stop.load(std::memory_order_relaxed))
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  });
+  leaked.detach();                                  // 真泄漏：无人回收
+  const int during = wait_thread_count(base, 300);
+  if (during == base) {
+    std::fprintf(stderr,
+                 "DISCRIMINATION_FAIL: 常驻泄漏线程未被判红 (base=%d during=%d)\n",
+                 base, during);
+    ++failures;
+  }
+  std::printf("  reclaim-wait leak-detected=%d (base=%d during=%d)\n",
+              during != base ? 1 : 0, base, during);
+  stop.store(true);
+  const int after = wait_thread_count(base, kReclaimDeadlineMs);
+  CHECK(after == base);                             // 线程退出后必须回到基线
 }
 
 // 采样线程：run() 进行中记录线程数峰值（"池确实起过"的非退化证据）
@@ -556,15 +613,19 @@ static void check_reclaim(const char* name, int base_no_sampler, int min_pool_th
   CHECK(base == base_no_sampler + 1);
   for (int i = 0; i < 5; ++i) {
     run_once(i);
-    const int after = thread_count();
+    // 判据 = "run 返回后**有限时间内**回到基线"，不是 join 返回瞬间的瞬时读数
+    // （依据见 wait_thread_count：内核任务条目的清除滞后于 pthread_join 返回）。
+    const int after = wait_thread_count(base, kReclaimDeadlineMs);
     if (after != base) {
-      std::fprintf(stderr, "LEAK %s round=%d threads_after=%d base=%d\n", name, i, after, base);
+      std::fprintf(stderr,
+                   "LEAK %s round=%d threads_after=%d base=%d (deadline=%dms)\n",
+                   name, i, after, base, kReclaimDeadlineMs);
       ++failures;
     }
   }
   const int peak = sampler.peak.load();
   sampler.finish();
-  const int final = thread_count();
+  const int final = wait_thread_count(base_no_sampler, kReclaimDeadlineMs);
   std::printf("  pool %-9s base=%d peak=%d final=%d (pool_threads>=%d)\n", name, base, peak,
               final, min_pool_threads);
   CHECK(peak >= base + min_pool_threads);   // 非退化：run 期间确实建了池
@@ -574,6 +635,10 @@ static void check_reclaim(const char* name, int base_no_sampler, int min_pool_th
 int main() {
   const int base0 = thread_count();
   std::printf("RT-004-POOL thread baseline=%d\n", base0);
+
+  // 判别力自检（能红能绿）：有界等待对"真泄漏"必须仍判红 —— 先跑，避免
+  // "等待窗口把判据等没了" 的退化（AGENTS.md §9：门禁不许静默退化）。
+  check_wait_discriminates_real_leak(base0);
 
   // A. normalize：4 帧 worker + 1 预取线程（cfg 注入），5 轮 run 各自回收
   check_reclaim("normalize", base0, 2, [](int round) {
