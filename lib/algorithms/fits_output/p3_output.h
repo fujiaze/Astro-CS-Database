@@ -40,6 +40,10 @@ struct P3OutputResult {
     long total_px;
 };
 
+/* 最近一次失败的可读原因（进程内静态；仅当日志/错误消息用，禁作状态判断）。
+ * P3-STREAM-01：流式 API 与整幅 API 共用同一错误面。 */
+const char* p3_output_last_error();
+
 enum P3OutputStatus {
     P3_OUT_OK = 0,
     P3_OUT_PARAM = 1,
@@ -93,6 +97,69 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
                                    const float* variance, const float* ivar,
                                    int width, int height,
                                    P3OutputResult* result);
+
+/* ── 子块流式写/校验（P3-STREAM-01；ASTROCS_DESIGN §8.3 export「子块流式」）────
+ * 与上列整幅 API **同产品语义、同字节布局**，差别只在驻留面：调用方按子块
+ * （矩形区间）喂像素，本类不再要求整幅平面在内存里。
+ *   · 写：open 建临时对象并在**首像素写出前**完成 PRIMARY 头组装（合同③）；
+ *         begin_hdu 逐个 HDU 建（PRIMARY=signal → COVERAGE → VARIANCE → IVAR，
+ *         与整幅路径同序同关键字）；write_block 经 cfitsio fits_write_subset
+ *         把子块写进该 HDU 的数据区；end_hdu 写该 HDU 的 DATASUM/CHECKSUM；
+ *         publish 走 flush → close → fsync → 原子 rename → sha256（IO_003 §4）。
+ *   · 校验：open 独立重开并逐项对拍 WCS/尺寸/HDU 存在性；check_block 读回同一
+ *         矩形区间并与期望子块逐像素对拍（NaN==NaN 同态）；close 汇总
+ *         reopen_ok/coverage_ok 并重算 sha256。
+ * 内存上界 = 单子块（与总图大小无关）；任何失败都不发布、不留半成品。 */
+class P3FitsStream {
+public:
+    P3FitsStream();
+    ~P3FitsStream();
+    P3FitsStream(const P3FitsStream&) = delete;
+    P3FitsStream& operator=(const P3FitsStream&) = delete;
+
+    // 建临时对象 + PRIMARY 头（WCS/BUNIT/provenance/HISTORY），不写像素。
+    P3OutputStatus open(const char* output_path, const P3WcsDescriptor* wcs,
+                        int width, int height, int bitpix, const char* bunit,
+                        const P3Provenance* prov);
+    // 进入第 plane 个 HDU：0=PRIMARY(signal，open 已建) / 1=COVERAGE /
+    // 2=VARIANCE / 3=IVAR（2/3 成对，BUNIT 走二次律）。
+    P3OutputStatus begin_hdu(int plane);
+    // 写一个子块（x0/y0 为 0 基，w/h 为子块尺寸，data 为 w×h 行主序 f32）。
+    P3OutputStatus write_block(int x0, int y0, int w, int h, const float* data);
+    // 收尾当前 HDU：DATASUM/CHECKSUM。
+    P3OutputStatus end_hdu();
+    // 原子发布：flush → close → fsync → rename → sha256（失败删除产物）。
+    P3OutputStatus publish(P3OutputResult* result);
+    // 取消/失败：关闭并删除临时对象，**不发布**。幂等。
+    void abort();
+    bool published() const { return published_; }
+
+private:
+    struct Impl;
+    Impl* impl_ = nullptr;
+    bool published_ = false;
+};
+
+class P3FitsVerifyStream {
+public:
+    P3FitsVerifyStream();
+    ~P3FitsVerifyStream();
+    P3FitsVerifyStream(const P3FitsVerifyStream&) = delete;
+    P3FitsVerifyStream& operator=(const P3FitsVerifyStream&) = delete;
+
+    // 独立重开：尺寸/HDU 面/WCS 关键字逐项对拍（缺 HDU 或占位 HDU 均判失败）。
+    P3OutputStatus open(const char* output_path, const P3WcsDescriptor* wcs,
+                        int width, int height, bool has_uncertainty);
+    // 对拍一个子块：plane 0=signal / 1=COVERAGE / 2=VARIANCE / 3=IVAR。
+    P3OutputStatus check_block(int plane, int x0, int y0, int w, int h,
+                               const float* expected);
+    // 汇总（reopen_ok/coverage_ok/covered_px/total_px/sha256）并关闭。
+    P3OutputStatus close(P3OutputResult* result);
+
+private:
+    struct Impl;
+    Impl* impl_ = nullptr;
+};
 
 }  // namespace astrocs::phase3
 

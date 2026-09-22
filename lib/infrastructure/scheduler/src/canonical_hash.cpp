@@ -221,14 +221,21 @@ struct FitsCard {
 
 // 最小 FITS 结构解析: 逐 HDU 取 [头卡, 数据单元] 字节区间（2880 对齐）。
 // 返回 false = 结构非法（调用方按失败处理, 不做静默降级）。
-bool parse_fits_canonical(const std::string& b, std::string* out,
+// P3-STREAM-01：FITS 规范哈希改为**流式**读取 —— 头部按 2880 字节逻辑记录读、
+// 数据单元按 64 KiB 分块喂 SHA-256，峰值内存 = 单块（与文件大小无关）。
+// 判据：ASTROCS_DESIGN §8.3 export 行「内存占用与子块大小成正比、与总图大小
+// 无关」—— 整文件 read_all 会让 writer/verify 节点的峰值随产品大小线性增长。
+// 语义不变：canonical 正文与逐 HDU DATA sha256 与整读实现逐字节相同
+//（eng/tools/canonical_product_hash.py 为独立镜像，可交叉核对）。
+bool parse_fits_canonical(const char* path, std::uint64_t total, std::string* out,
                           std::vector<std::string>* excluded_hits,
                           std::vector<std::string>* warnings) {
-  const std::size_t total = b.size();
-  std::size_t pos = 0;
+  std::uint64_t pos = 0;
   int hdu = 0;
   while (pos + 80 <= total) {
-    const std::string first = fits_keyword(b.substr(pos, 80));
+    std::string first_block;
+    if (!aio_file::read_range(path, pos, 80, &first_block)) return false;
+    const std::string first = fits_keyword(first_block);
     if (first != "SIMPLE" && first != "XTENSION") {
       if (hdu == 0) return false;  // 不是 FITS
       break;                       // 尾部填充, 正常结束
@@ -237,11 +244,23 @@ bool parse_fits_canonical(const std::string& b, std::string* out,
     long long bitpix = 0, pcount = 0, gcount = 1;
     std::vector<long long> naxis;
     std::string xtension;
-    std::size_t off = pos, order = 0;
+    std::uint64_t off = pos;
+    std::size_t order = 0;
     bool ended = false;
+    std::string hdr;          // 当前 2880 字节逻辑记录
+    std::size_t blk_off = 0;  // 记录内偏移
     while (off + 80 <= total) {
-      const std::string card = b.substr(off, 80);
+      if (blk_off == 0) {
+        const std::uint64_t want =
+            std::min<std::uint64_t>(2880, total - off);
+        if (!aio_file::read_range(path, off, static_cast<std::size_t>(want), &hdr))
+          return false;
+      }
+      if (blk_off + 80 > hdr.size()) break;
+      const std::string card = hdr.substr(blk_off, 80);
       off += 80;
+      blk_off += 80;
+      if (blk_off >= hdr.size()) blk_off = 0;
       const std::string kw = fits_keyword(card);
       if (kw == "END") { ended = true; break; }
       if (kw == "BITPIX") bitpix = fits_card_int(card, 0);
@@ -299,7 +318,22 @@ bool parse_fits_canonical(const std::string& b, std::string* out,
     const std::size_t unit =
         (static_cast<std::size_t>(nbytes) + 2879u) / 2880u * 2880u;
     if (off + unit > total) return false;
-    const std::string data = b.substr(off, unit);
+    // 数据单元：分块流式 sha256（峰值 = 单块 64 KiB，与文件大小无关）
+    astrocs::crypto::Sha256 data_hash;
+    {
+      std::uint64_t remaining = unit;
+      std::uint64_t doff = off;
+      while (remaining > 0) {
+        const std::size_t want = static_cast<std::size_t>(
+            std::min<std::uint64_t>(64 * 1024, remaining));
+        std::string chunk;
+        if (!aio_file::read_range(path, doff, want, &chunk)) return false;
+        if (chunk.empty()) return false;
+        data_hash.update(chunk.data(), chunk.size());
+        doff += chunk.size();
+        remaining -= chunk.size();
+      }
+    }
     *out += "HDU " + std::to_string(hdu) + "\n";
     for (const FitsCard& fc : cards) {
       *out += "CARD ";
@@ -308,7 +342,7 @@ bool parse_fits_canonical(const std::string& b, std::string* out,
     }
     char tail[96];
     std::snprintf(tail, sizeof(tail), "DATA sha256=%s bytes=%zu\n",
-                  sha256_str(data).c_str(), unit);
+                  data_hash.final_hex().c_str(), unit);
     *out += tail;
     if (cards.empty()) warnings->push_back("HDU" + std::to_string(hdu) + ": no retained cards");
     pos = off + unit;
@@ -373,21 +407,26 @@ CanonicalHashResult canonical_product_hash_file(const std::string& u8path) {
     return r;
   }
 
-  bool ok = false;
-  const std::string bytes = read_file_bytes(u8path, &ok);
-  if (!ok) {
-    r.error = "cannot read: " + u8path;
-    return r;
-  }
-  r.integrity_sha256 = astrocs::crypto::sha256_hex(bytes.data(), bytes.size());
-
-  const std::string head_full = bytes.size() >= 8 ? bytes.substr(0, 8) : std::string();
-  const bool is_props = is_props_name && bytes.find('=') != std::string::npos;
-
-  if (head_full == kSimple || head_full == kXtension) {
+  // P3-STREAM-01：FITS 分支**不整读文件**（头部块 + 数据单元分块），峰值内存与
+  // 产品大小无关；JSON / properties / raw 分支保持整读（体量小，且 raw 已在
+  // 上方单遍流式分支处理）。
+  if (head == kSimple || head == kXtension) {
+    std::uint64_t total_bytes = 0;
+    if (!aio_atomic::path_size(u8path, &total_bytes, nullptr)) {
+      r.error = "cannot stat: " + u8path;
+      return r;
+    }
+    {
+      std::string h;
+      if (!aio_file::sha256_hex(u8path.c_str(), &h)) {
+        r.error = "cannot read: " + u8path;
+        return r;
+      }
+      r.integrity_sha256 = h;
+    }
     std::string body;
     std::vector<std::string> excl, warns;
-    if (!parse_fits_canonical(bytes, &body, &excl, &warns)) {
+    if (!parse_fits_canonical(u8path.c_str(), total_bytes, &body, &excl, &warns)) {
       r.error = "cannot parse FITS structure: " + u8path;
       return r;
     }
@@ -397,7 +436,20 @@ CanonicalHashResult canonical_product_hash_file(const std::string& u8path) {
     excl.erase(std::unique(excl.begin(), excl.end()), excl.end());
     r.excluded_keys_hit = excl;
     r.warnings = warns;
-  } else if (is_json) {
+    r.ok = true;
+    return r;
+  }
+  bool ok = false;
+  const std::string bytes = read_file_bytes(u8path, &ok);
+  if (!ok) {
+    r.error = "cannot read: " + u8path;
+    return r;
+  }
+  r.integrity_sha256 = astrocs::crypto::sha256_hex(bytes.data(), bytes.size());
+
+  const bool is_props = is_props_name && bytes.find('=') != std::string::npos;
+
+  if (is_json) {
     nlohmann::json doc;
     try {
       doc = nlohmann::json::parse(bytes);

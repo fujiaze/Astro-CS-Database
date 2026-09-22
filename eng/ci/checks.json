@@ -1666,6 +1666,62 @@
       "requires_monitor": false
     },
     {
+      "id": "CHK-DOC-HYGIENE",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/doccheck/check_doc_hygiene.py",
+        "--json-out",
+        "run/ci/doc-hygiene/doc_hygiene.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/doc-hygiene/doc_hygiene.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "docs/DOCUMENT_INDEX.yaml",
+        "eng/tools/doccheck/**",
+        "artifacts/evidence/known-limitations-ledger/**",
+        "ASTROCS_DESIGN.md",
+        "AGENTS.md",
+        "ENGINEERING_SPEC.md",
+        "ACCEPTANCE_SPEC.md"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-DOC-HYGIENE-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/doccheck/check_doc_hygiene.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/doccheck/**"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "CHK-RETIRED-CODE",
       "profiles": [
         "fast",
@@ -6008,6 +6064,96 @@
         "python3:numpy",
         "python3:astropy"
       ]
+    },
+    {
+      "id": "CHK-PHOTOMETRY-APPLY-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_photometry_apply.py",
+        "--self-test",
+        "--calibrated",
+        "eng/ci/fixtures/photometry/calibrated_crop256.fits",
+        "--workdir",
+        "run/ci/photometry-apply",
+        "--json-out",
+        "run/ci/photometry-apply/selftest.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/photometry-apply/selftest.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/quality/check_photometry_apply.py",
+        "lib/algorithms/calibration/**"
+      ],
+      "prerequisite_tools": [
+        "python3:numpy",
+        "python3:astropy"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-RUN-MANIFEST-SCHEMA",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_run_manifest_schema.py",
+        "--json-out",
+        "run/ci/run-manifest/schema.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/run-manifest/schema.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**",
+        "lib/infrastructure/cli/**",
+        "docs/api/MANIFEST_VERIFY_V1.md",
+        "eng/contracts/schemas/run_manifest.schema.json"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
+      "profiles": [
+        "fast"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_run_manifest_schema.py",
+        "--self-test",
+        "--json-out",
+        "run/ci/run-manifest/selftest.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/run-manifest/selftest.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/**"
+      ],
+      "requires_monitor": false
     },
     {
       "id": "CHK-SANITIZER",
