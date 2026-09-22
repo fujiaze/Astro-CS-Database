@@ -198,19 +198,6 @@
       ]
     },
     {
-      "module_id": "astrocs.phase1.star-psf",
-      "stage": "normalize",
-      "operation": "detect_sources",
-      "entry": "astrocs_phase1_starpsf_v1",
-      "reads": [
-        "p1_cleaned"
-      ],
-      "writes": [
-        "p1_sources",
-        "p1_psf"
-      ]
-    },
-    {
       "module_id": "astrocs.phase1.wcs-platesolve",
       "stage": "normalize",
       "operation": "plate_solve",
@@ -220,6 +207,20 @@
       ],
       "writes": [
         "p1_wcs"
+      ]
+    },
+    {
+      "module_id": "astrocs.phase1.star-psf",
+      "stage": "normalize",
+      "operation": "detect_sources",
+      "entry": "astrocs_phase1_starpsf_v1",
+      "reads": [
+        "p1_cleaned",
+        "p1_wcs"
+      ],
+      "writes": [
+        "p1_sources",
+        "p1_psf"
       ]
     },
     {
@@ -278,7 +279,8 @@
       "entry": "astrocs_phase1_writer_v1",
       "reads": [
         "frame_hips",
-        "p1_stack"
+        "p1_stack",
+        "p1_phot"
       ],
       "writes": [
         "p1_final",
@@ -387,7 +389,8 @@
       ],
       "consumed_by": [
         "astrocs.phase1.noise-snr",
-        "astrocs.phase1.drizzle"
+        "astrocs.phase1.drizzle",
+        "astrocs.phase1.writer"
       ]
     },
     {
@@ -471,6 +474,7 @@
         "astrocs.phase1.wcs-platesolve"
       ],
       "consumed_by": [
+        "astrocs.phase1.star-psf",
         "astrocs.phase1.photometry",
         "astrocs.phase1.drizzle"
       ]

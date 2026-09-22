@@ -15,13 +15,13 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 1463,
+          "line": 1494,
           "contains": "return light;",
           "symbol": "p1_calibrated_path"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 1479,
+          "line": 1510,
           "contains": "return p1_calibrated_path(doc, light);",
           "symbol": "p1_cleaned_input_path"
         }
