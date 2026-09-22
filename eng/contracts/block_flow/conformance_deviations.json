@@ -1,6 +1,6 @@
 {
   "schema": "astrocs.block-flow-conformance/v1",
-  "purpose": "登记「注册表声明的节点端口」与「module_adapters.cpp 真实数据流」之间的不一致。每条的 evidence 都带 文件:行 + 必须出现的 token，由 eng/tools/quality/check_block_flow_conformance.py 机器复核：token 消失（代码改了/修好了）或文件行号漂移即判红，防止登记册腐烂。",
+  "purpose": "登记「注册表声明的节点端口」与「module_adapters.cpp 真实数据流」之间的不一致。每条的 evidence 都带 文件 + 符号（函数体）+ 必须出现的 token + 行号，由 eng/tools/quality/check_block_flow_conformance.py 机器复核：token 消失（代码改了/修好了）或 token 不再落在声明符号的函数体内即判红；行号仅作定位辅助，代码移动（纯行号漂移）不再使门失真，但仍会与符号级判据一起被报出以便同步。",
   "authority": "lib/infrastructure/pipeline/module_ports.registry.json（冻结绑定表）；docs/contracts/PIPELINE_BLOCK_CONTRACT.md",
   "owner_decision_required": true,
   "owner_decision_reason": "AGENTS §10：顶层合同的结构性变更（端口/生产者/消费者的增删改）属负责人裁决范围；本登记册只登记事实，不擅自改注册表。",
@@ -15,13 +15,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 5052,
-          "contains": "hp_drizzle_run_phase1_hips"
+          "line": 5416,
+          "contains": "hp_drizzle_run_phase1_hips",
+          "symbol": "p1_op_drizzle"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 5274,
-          "contains": "p1_final.json"
+          "line": 5692,
+          "contains": "p1_final.json",
+          "symbol": "p1_op_writer"
         }
       ]
     },
@@ -34,13 +36,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 2310,
-          "contains": "p1_psf.json"
+          "line": 2524,
+          "contains": "p1_psf.json",
+          "symbol": "p1_op_star_psf_impl"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 3375,
-          "contains": "psf_params"
+          "line": 3658,
+          "contains": "psf_params",
+          "symbol": "p1_op_photometry"
         }
       ]
     },
@@ -53,13 +57,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 3960,
-          "contains": "p1_sources.json"
+          "line": 4268,
+          "contains": "p1_sources.json",
+          "symbol": "p1_op_noise"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 4151,
-          "contains": "p1_phot.json"
+          "line": 4459,
+          "contains": "p1_phot.json",
+          "symbol": "p1_op_noise"
         }
       ]
     },
@@ -72,13 +78,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 4858,
-          "contains": "p1_sources.json"
+          "line": 5235,
+          "contains": "p1_sources.json",
+          "symbol": "p1_op_drizzle"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 4662,
-          "contains": "photoapplied"
+          "line": 5016,
+          "contains": "photoapplied",
+          "symbol": "p1_op_drizzle"
         }
       ]
     },
@@ -91,8 +99,9 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 5589,
-          "contains": "hips_paths"
+          "line": 6007,
+          "contains": "hips_paths",
+          "symbol": "p2_op_coverage"
         }
       ]
     },
@@ -105,8 +114,9 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 6470,
-          "contains": "hips"
+          "line": 6888,
+          "contains": "hips",
+          "symbol": "p2_op_upm_apply"
         }
       ]
     },
@@ -119,13 +129,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 10250,
-          "contains": "p3_writer.json"
+          "line": 10670,
+          "contains": "p3_writer.json",
+          "symbol": "p3_op_writer"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 10209,
-          "contains": "run_context.json"
+          "line": 10629,
+          "contains": "run_context.json",
+          "symbol": "p3_op_writer"
         }
       ]
     },
@@ -138,13 +150,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 10324,
-          "contains": "p3_writer.json"
+          "line": 10744,
+          "contains": "p3_writer.json",
+          "symbol": "p3_op_verify"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 10326,
-          "contains": "p3_wcs.json"
+          "line": 10746,
+          "contains": "p3_wcs.json",
+          "symbol": "p3_op_verify"
         }
       ]
     },
@@ -157,8 +171,9 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 9697,
-          "contains": "p3_props.json"
+          "line": 10117,
+          "contains": "p3_props.json",
+          "symbol": "p3_op_wcs"
         }
       ]
     },
@@ -171,8 +186,9 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 1755,
-          "contains": "master_"
+          "line": 1847,
+          "contains": "master_",
+          "symbol": "p1_op_calibrate"
         }
       ]
     },
@@ -185,13 +201,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 697,
-          "contains": "astrocs.phase2.resample"
+          "line": 698,
+          "contains": "astrocs.phase2.resample",
+          "symbol": "file"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 716,
-          "contains": "astrocs.phase3.resample"
+          "line": 717,
+          "contains": "astrocs.phase3.resample",
+          "symbol": "file"
         }
       ]
     },
@@ -204,13 +222,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 4740,
-          "contains": "\"data\""
+          "line": 5108,
+          "contains": "\"data\"",
+          "symbol": "p1_op_drizzle"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 9701,
-          "contains": "ra"
+          "line": 10121,
+          "contains": "ra",
+          "symbol": "p3_op_wcs"
         }
       ]
     },
@@ -223,18 +243,21 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 2724,
-          "contains": "p1_calibrated_path(doc, doc[\"input_lights\"][0]"
+          "line": 2938,
+          "contains": "p1_calibrated_path(doc, doc[\"input_lights\"][0]",
+          "symbol": "p1_op_wcs"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 2824,
-          "contains": "p1_calibrated_path(doc, lp)"
+          "line": 3038,
+          "contains": "p1_calibrated_path(doc, lp)",
+          "symbol": "p1_op_wcs"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 2958,
-          "contains": "p1_calibrated_path(doc, lp)"
+          "line": 3038,
+          "contains": "p1_calibrated_path(doc, lp)",
+          "symbol": "p1_op_wcs"
         }
       ],
       "note": "ACCEPT-501 独立复核发现（12 条登记之外的漏登记项），由执行 agent 逐行复核确认后补登记。"
@@ -248,8 +271,9 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 3536,
-          "contains": "p1_photscale.json"
+          "line": 3819,
+          "contains": "p1_photscale.json",
+          "symbol": "p1_op_photometry"
         }
       ]
     },
@@ -262,13 +286,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 6307,
-          "contains": "p2_sky_plane.bin"
+          "line": 6725,
+          "contains": "p2_sky_plane.bin",
+          "symbol": "p2_op_upm_fit"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 6482,
-          "contains": "p2_sky_plane.bin"
+          "line": 6900,
+          "contains": "p2_sky_plane.bin",
+          "symbol": "p2_op_upm_apply"
         }
       ]
     },
@@ -281,13 +307,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 7420,
-          "contains": "p2_rejection_accepted.bin"
+          "line": 7838,
+          "contains": "p2_rejection_accepted.bin",
+          "symbol": "p2_op_reject"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 7476,
-          "contains": "p2_rejection.json"
+          "line": 7894,
+          "contains": "p2_rejection.json",
+          "symbol": "p2_op_reject"
         }
       ]
     },
@@ -300,13 +328,15 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 8477,
-          "contains": "p2_coverage.json"
+          "line": 8894,
+          "contains": "p2_coverage.json",
+          "symbol": "p2_op_write"
         },
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 8543,
-          "contains": "p2_rejection.json"
+          "line": 8960,
+          "contains": "p2_rejection.json",
+          "symbol": "p2_op_write"
         }
       ]
     },
@@ -319,11 +349,62 @@
       "evidence": [
         {
           "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
-          "line": 9786,
-          "contains": "p3_props.json"
+          "line": 10206,
+          "contains": "p3_props.json",
+          "symbol": "p3_op_resample"
         }
       ]
+    },
+    {
+      "id": "BFD-A17",
+      "severity": "blocker",
+      "kind": "undeclared_input",
+      "registry_ref": "R:111-113 drizzle 输入 calibrated/DATA-P1-CAL；R:78 photometry 输入 calibrated；R:96 noise-snr 输入 fluxes；R:normalize 节点 16 R=['sources']",
+      "summary": "静默回退（ARCH-AUDIT-01 B-5，新发现）：module_adapters.cpp#p1_calibrated_path 与 #p1_cleaned_input_path 在声明产物缺失时**不报错、不写 degraded_reason**，直接回退到原帧（light）或上游 cal 产物；下游消费点 p1_op_wcs / p1_op_drizzle / p1_op_photometry / p1_op_noise / p1_op_star_psf_impl 的 manifest 也不记录**实际输入路径**。即「注册表声明的输入块缺失」这一事实既不进 provenance 也不进 manifest ⇒ 违反 docs/contracts/PIPELINE_BLOCK_CONTRACT.md §4「降级必须显式」。本条目只登记「声明输入面 ↔ 实际消费面」的偏差；降级显式性本身在机器门上无判据（见 docs/KNOWN_LIMITATIONS.md §E 的 M-4 同族登记）。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 1456,
+          "contains": "return light;",
+          "symbol": "p1_calibrated_path"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 1472,
+          "contains": "return p1_calibrated_path(doc, light);",
+          "symbol": "p1_cleaned_input_path"
+        }
+      ],
+      "note": "ARCH-AUDIT-01 §③ B-5 登记（来源报告 run/ARCH-AUDIT-01/REPORT.md）。报告原文列该条为「新发现，未登记」。同一函数族的 photoapplied 分支已由 BFD-A4 登记；本条登记的是 cleaned/calibrated 两条路径的静默回退面。"
+    },
+    {
+      "id": "BFD-U1",
+      "severity": "major",
+      "kind": "unit_mismatch",
+      "registry_ref": "R:250 astrocs.phase3.properties 的 hips 输入端口 unit；R:281 astrocs.phase3.resample2 的 hips 输入端口 unit；对照同表 astrocs.phase2.write 的 mosaic 输出端口 unit=SURFACE_BRIGHTNESS",
+      "summary": "端口单位自相矛盾（ARCH-AUDIT-03 P3-08）：lib/infrastructure/pipeline/module_ports.registry.json 里 astrocs.phase3.properties 与 astrocs.phase3.resample2 的 **hips 输入端口** unit 仍声明为 ADU，而 astrocs.phase3.resample2 的 **resampled 输出端口**与 astrocs.phase2.write 的 mosaic 输出端口已是 SURFACE_BRIGHTNESS ⇒ 同一份冻结绑定表内 phase3 输入/输出口径分裂，且与 ASTROCS_DESIGN.md §6.3「导出只接受面亮度语义输入」冲突。代码侧权威串为 module_adapters.cpp#kP3BunitSurfaceBrightness（值 ADU/px^2，冻结 canonical 串；由 #declare_hips_surface_brightness_units 写出、由 #p3n_guard_input_units 判可判性）。处置方向与 FIX-402 对 phase2 的处理同款（改端口单位声明），属端口合同的结构性变更 ⇒ 需负责人裁决。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/pipeline/module_ports.registry.json",
+          "line": 250,
+          "contains": "\"name\": \"hips\", \"direction\": \"input\", \"data_schema_id\": \"DATA-HIPS-001\", \"unit\": \"ADU\"",
+          "symbol": "file"
+        },
+        {
+          "file": "lib/infrastructure/pipeline/module_ports.registry.json",
+          "line": 281,
+          "contains": "\"name\": \"hips\", \"direction\": \"input\", \"data_schema_id\": \"DATA-HIPS-001\", \"unit\": \"ADU\"",
+          "symbol": "file"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 8808,
+          "contains": "kP3BunitSurfaceBrightness",
+          "symbol": "declare_hips_surface_brightness_units"
+        }
+      ],
+      "note": "ARCH-AUDIT-03 §3 P3-08 登记（来源报告 run/ARCH-AUDIT-03/REPORT.md）。严重度沿用该报告 §1 分级「重要」⇒ major。本条**不**改注册表（AGENTS §10：端口合同的结构性变更属负责人裁决范围）。"
     }
   ],
-  "note": "ACCEPT-501 独立复核指出登记册漏登记 ≥8 处真实偏差；本文件已补 BFD-A11..A16（每条证据由执行 agent 逐行复核 file:line+token 后登记）。"
+  "note": "ACCEPT-501 独立复核指出登记册漏登记 ≥8 处真实偏差；本文件已补 BFD-A11..A16（每条证据由执行 agent 逐行复核 file:line+token 后登记）。**判据完整性边界（ARCH-AUDIT-01 M-4，ARCH-DEBT-01 登记，2026-09-22）**：本登记册的机器门（check_block_flow_conformance.py D1–D8）只校验「已登记条目的证据是否腐烂」，**不含「登记册是否完整」的判据** —— 声明块名（逻辑端口名）与实现面（产品文件名）之间没有机器可读映射（gen_block_flow_spec.py docstring 自认），判据实测 78 token / 75 未匹配；BFD-A11..A16 即由人工复核补登。因此「门绿」**不等于**「登记册完整」。该判据缺口的登记面见 docs/KNOWN_LIMITATIONS.md §E 条目 32。"
 }

@@ -27,7 +27,27 @@
     "product_type_id"
   ],
   "propertyNames": {
-    "pattern": "^(?!(weight|value|mask|snr)$)(?!(weight|value|mask|snr)(_|$))(?!(weight|value|mask)(_|$)).*$"
+    "pattern": "^(?!(weight|value|mask|snr)$)(?!(weight|value|mask|snr)(_|$))(?!(weight|value|mask)(_|$)).*$",
+    "not": {
+      "enum": [
+        "ivar",
+        "inverse_variance",
+        "variance",
+        "var",
+        "sigma",
+        "sigma2",
+        "fisher",
+        "fisher_information",
+        "information",
+        "w_info",
+        "w_psf",
+        "snr",
+        "snr2",
+        "support",
+        "coverage"
+      ],
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/contracts/DATA_SEMANTICS.md §31.7/§31.8"
+    }
   },
   "properties": {
     "unified_object": {
@@ -309,6 +329,142 @@
         }
       },
       "description": "unavailable 显式登记（宪章 §18.3；缺 reason/scope 即 REJECT）"
+    },
+    "k_corr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "definition",
+        "domain",
+        "value",
+        "calibration"
+      ],
+      "properties": {
+        "definition": {
+          "const": "k_corr = Var(median)/[pi sigma_bg^2/(2 N_retained)]"
+        },
+        "value": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "not": {
+            "const": 1
+          },
+          "x-astrocs": {
+            "anchor": "FZ-PROV-KCORR; ALG-P2-SURF-UPM §6",
+            "domain": "Phase2 UPM control_variance",
+            "fail_closed": "k_corr=1 忽略相关 → REJECT；跨域外推 → REJECT",
+            "signoff": "PENDING_OWNER_SIGNOFF: FZ-PROV-KCORR-VALUE / SO-07；生效前 fail-closed",
+            "gate": "G-KCORR-DOMAIN"
+          }
+        },
+        "domain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "geometry",
+            "pixfrac",
+            "patch_size",
+            "estimator",
+            "spherical"
+          ],
+          "properties": {
+            "geometry": {
+              "type": "string"
+            },
+            "pixfrac": {
+              "type": "number"
+            },
+            "patch_size": {
+              "type": "integer"
+            },
+            "estimator": {
+              "type": "string"
+            },
+            "spherical": {
+              "type": "boolean"
+            }
+          },
+          "x-astrocs": {
+            "anchor": "FZ-PROV-KCORR; ADJ-F-OBS-05",
+            "domain": "Phase2 UPM",
+            "fail_closed": "适用域缺失或跨域外推 -> REJECT",
+            "gate": "G-KCORR-DOMAIN"
+          }
+        },
+        "calibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "script",
+            "seed",
+            "calibration_run_id"
+          ],
+          "properties": {
+            "script": {
+              "type": "string"
+            },
+            "seed": {
+              "type": "integer"
+            },
+            "calibration_run_id": {
+              "type": "string"
+            }
+          },
+          "x-astrocs": {
+            "anchor": "FZ-PROV-KCORR; ADJ-F-OBS-05",
+            "domain": "Phase2 UPM",
+            "fail_closed": "标定脚本/固定种子缺失 -> 不可独立复现 REJECT",
+            "gate": "G-KCORR-CALIBRATION"
+          }
+        },
+        "lookup_table_ref": {
+          "type": "string",
+          "x-astrocs": {
+            "anchor": "FZ-PROV-KCORR (按尺度查找表)",
+            "domain": "Phase2 UPM"
+          }
+        }
+      },
+      "x-astrocs": {
+        "anchor": "FZ-PROV-KCORR; ADJ-F-OBS-05",
+        "domain": "Phase2 UPM control_variance",
+        "fail_closed": "k_corr=1 忽略相关或未复跑前跨域外推 -> REJECT",
+        "gate": "G-KCORR-DOMAIN"
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "k_corr"
+        ]
+      },
+      "then": {
+        "properties": {
+          "k_corr": {
+            "required": [
+              "definition",
+              "domain",
+              "value",
+              "calibration"
+            ],
+            "properties": {
+              "value": {
+                "not": {
+                  "const": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "x-astrocs-gate": {
+        "clause_id": "FZ-PROV-KCORR",
+        "gate": "G-KCORR-DOMAIN",
+        "rule": "k_corr 出现时必须给出 definition/domain/value/calibration，且 value != 1",
+        "source": "docs/contracts/DATA_SEMANTICS.md §31.5"
+      }
+    }
+  ]
 }

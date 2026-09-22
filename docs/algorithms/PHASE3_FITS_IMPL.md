@@ -320,7 +320,7 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   值显式拒（session :127/:129）。
 - max_tiles 默认 min(1024, ceil(W·H/512²)+16)，请求可降不可升
   （:179-193）；order_sel ≤ min(20, 输入实际 order)（:196-199）。
-- 容差：WCS roundtrip ≤1e-8 px（SCI-P3 §7 + 生产注册表 `p3_wcs.cpp:191`；执行测试取 1e-4 px
+- 容差：WCS roundtrip ≤1e-8 px（SCI-P3 §7 + 生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`）；执行测试取 1e-4 px
   观测阈 :128-129）；常数场 0（bilinear 权重和=1 构造保证）；
   回环逐值精确（F4 NaN 语义）；sha256 64hex 小写。
 - R10-C 发布序（F1）与 sha256 严格封装（F2）为冻结协议，整改归

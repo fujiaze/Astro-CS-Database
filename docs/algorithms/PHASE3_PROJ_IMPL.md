@@ -136,7 +136,7 @@ std::string p3_wcs_fits_keywords(const P3WcsDescriptor* d);     // h:60
   FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，V5 SCI-007）：
   G1↔§9a-4（FITS 1-based/CRPIX/CD-only/parity 方向）、G2↔§5 反向
   映射连续定义、TAN-only↔§9a-3、极点拒/半球↔§4+§9a-6、roundtrip
-  容差↔§7 不变量（<1e-8 px FP64，生产注册表 `p3_wcs.cpp:191`）与 §9a-12、FOV≤20°/中心距极点
+  容差↔§7 不变量（<1e-8 px FP64，生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`））与 §9a-12、FOV≤20°/中心距极点
   ≥5°↔§9a-12；descriptor 占位 ID 不入合同，由 P3-PROJ-INT 对齐。
 - ALG-P3-002（docs/algorithms/PHASE3_RESAMPLE.md §2 施工规格，
   DERIVED V5 ALG-007）: 本域子面=**G1（输出 WCS 构造）+G2（反向
@@ -232,10 +232,16 @@ gnomonic 投影: ξ = cosδ·sin(α−α₀)/denom                      # :131
 x = δx + CRPIX_x − 1, y = δy + CRPIX_y − 1（0-based 输出）    # :140-141
 ```
 
-### 7.3 往返容差（冻结）
+### 7.3 往返容差（冻结 + 尺度感知分层）
 
-`pixel→world→pixel` 误差 **<1e-8 px**（FP64）——SCI-P3-001 §7
-独立不变量 + §9a-12 冻结；解析oracle回归现状由
+`pixel→world→pixel` 误差 **<1e-8 px**（FP64，**紧门**）——SCI-P3-001 §7
+独立不变量 + §9a-12 冻结。**适用域**：`scale ≥ min_scale_arcsec = 0.9″/px`
+（覆盖仓内最小真实尺度 0.9586″/px）；低于该尺度时紧门**不适用**（报「超出适用域」，
+**不判红**——判红会误拒），退回**全域保守门 1e-6 px**（SCI-WCS-001 §11 STD-F1）。
+门值/适用域/证据 = 门表 `docs/algorithms/GATES_AND_TOLERANCES.md` §3 的
+G-P1-WCS-BRIDGE / G-P1-WCS-BRIDGE-GLOBAL；推导依据
+`run/GATE-DERIVE-01/REPORT.md`（TAN 闭式截断项恒等于 0 ⇒ 误差 100% 来自 FP64 舍入）。
+解析oracle回归现状由
 eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 复算）；验收级 oracle=WCSLIB（矩阵 notes），由 P3-PROJ-TEST 建立。
 
@@ -466,7 +472,12 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
   X=2√2 rad=162.0569°、Y=√2 rad=81.0285°；判据 A<2 会多接受
   |X|≤229.125° 的折叠环带）**；sinθ=yp·√(2−A)，|sinθ|>1 → HEMISPHERE；
   θ=asin(sinθ)，φ=2·atan2(xp·√(2−A)/2, (2−A)−1)（A=1 即 φ=±180° 边界合法，
-  atan2 唯一）。全天空（360°×180°）为设计目标域（受椭圆域约束）。
+  atan2 唯一）。**可构造域订正（PROJ-AUDIT-01 P2；前台裁决：改文档表述、保持四角守卫不动）**：
+  AIT 的可构造矩形帧族 = **椭圆内接矩形族**，上限 **229.24°×114.56°**（面积 8.000 sr = 4π 的 **63.7%**，
+  与解析最优 2ab = 8 rad² 吻合）；**全天空（360°×180°）不可构造**——四角守卫下 360×180 帧四角
+  A = xp²/4 + yp² = **1.994 > 1** ⇒ 必判 HEMISPHERE（720×360 → 1.997）。性质：椭圆内接矩形四角恒在椭圆上
+  （A=1），而覆盖整个椭圆的矩形四角恒在椭圆外（A=2>1）⇒ 该限制**数学上不可达**，不是实现缺陷。
+  「全天空」只作展示语义（投影自身定义域），**不得**当作可构造 FOV 声明使用。
 - **STG/MOL/CEA/ZEA**：只登记集合成员与适用域（§15.1 表）；逐式公式 +
   域界 + 独立往返/绝对对拍 Oracle 随实现引入并在本节追加。
   四者均属 Paper II 标准集合（astropy/WCSLIB 可构造，R-1 §2.4）。
@@ -499,7 +510,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 | TAN | \|CRVAL dec\|≤85°, 视场同半球 | 天顶反面 r≥π/2 | parity 显式（§9a-4） | §6/§7 冻结；CRVAL=切点（含 CRVAL2） | ≤20°（SCI 冻结） | 3D 向量 gnomonic 透视重建（§15.6 T2/T4） |
 | SIN | \|CRVAL dec\|≤85°, 半球内 | 半球边界 ρ=1 | parity 显式 | 同 G1；CRVAL=投影点（含 CRVAL2） | ≤60°（声明值） | 3D 向量 orthographic 重建 |
 | CAR | \|CRVAL dec\|≤85°, native \|θ\|<90° | **native 极行 θ=±90°（整行塌缩：Ω=0、RA 无定义；fail-closed）** | parity 显式 | 同 G1；**CRVAL1/CRVAL2 均进映射**（§15.2） | <180°（声明值，球面行跨度） | 三 Euler 角独立式 + astropy 绝对对拍 |
-| AIT | \|CRVAL dec\|≤85°, 椭圆域 A≤1 | 椭圆域边界 A=1（φ=±180°）+ native 极 θ=±90°（非塌缩：Ω>0） | parity 显式 | 同 G1；**CRVAL1/CRVAL2 均进映射** | 椭圆域内（声明值；半轴 162.0569°×81.0285°） | Paper II 反演独立式 + astropy 绝对对拍 |
+| AIT | \|CRVAL dec\|≤85°, 椭圆域 A≤1 | 椭圆域边界 A=1（φ=±180°）+ native 极 θ=±90°（非塌缩：Ω>0） | parity 显式 | 同 G1；**CRVAL1/CRVAL2 均进映射** | 椭圆域内（声明值；半轴 162.0569°×81.0285°）；**可构造矩形帧上限 229.24°×114.56°（63.7% 天空）**，全天空帧在四角守卫下必拒（§15.3） | Paper II 反演独立式 + astropy 绝对对拍 |
 | STG/MOL/CEA/ZEA | 待 P3-001 声明（zenithal/pseudo-cylindrical/cylindrical/zenithal 等积） | 待声明 | 待声明 | 同 G1（占位） | 待声明 | 待建立（每投影独立 Oracle，DESIGN §5.3 硬要求） |
 
 - 「保守收窄」：已实现四投影中心守卫统一沿用 85° 单一条件（与 TAN 同值），

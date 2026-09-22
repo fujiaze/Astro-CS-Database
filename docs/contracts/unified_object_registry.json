@@ -23,16 +23,7 @@
       "weight_verdict": "否",
       "weight_capable": false,
       "notes": "声明单位和像素语义的估计量；不是权重。product_family 决定 pixel_area_power（面亮度 -2 / 通量 0）。",
-      "compatibility_projections": [
-        {
-          "file": "eng/contracts/schemas/v6/astrocs.v6.signal.v1.schema.json",
-          "kind": "product_family_specialization_not_equivalent",
-          "status": "FROZEN_COMPATIBILITY",
-          "retire_after_change": "OWNER_DECISION",
-          "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
-          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
-        }
-      ]
+      "compatibility_projections": []
     },
     {
       "object_name": "variance",
@@ -46,16 +37,7 @@
       "weight_verdict": "对该估计目标可以",
       "weight_capable": true,
       "notes": "同一估计量的方差；variance_from 不得为权重标量（FZ-FORMULA-COV-PROP）。",
-      "compatibility_projections": [
-        {
-          "file": "eng/contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
-          "kind": "product_family_specialization_not_equivalent",
-          "status": "FROZEN_COMPATIBILITY",
-          "retire_after_change": "OWNER_DECISION",
-          "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
-          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
-        }
-      ]
+      "compatibility_projections": []
     },
     {
       "object_name": "ivar",
@@ -69,16 +51,7 @@
       "weight_verdict": "对该估计目标可以",
       "weight_capable": true,
       "notes": "ivar=1/variance；variance 缺失/为 0 → ivar 显式不可用，禁止伪装。",
-      "compatibility_projections": [
-        {
-          "file": "eng/contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json",
-          "kind": "product_family_specialization_not_equivalent",
-          "status": "FROZEN_COMPATIBILITY",
-          "retire_after_change": "OWNER_DECISION",
-          "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
-          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
-        }
-      ]
+      "compatibility_projections": []
     },
     {
       "object_name": "source_snr",
@@ -119,7 +92,7 @@
       "precision": "float32|float64",
       "weight_verdict": "唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算",
       "weight_capable": false,
-      "notes": "帧级 SNR：是信噪比不是权重；权重由 Phase2 逆方差叠加从 SNR 计算。",
+      "notes": "帧级 SNR：是信噪比不是权重；权重由 Phase2 逆方差叠加从 SNR 计算。与 sparse_snr_layer 相互独立——帧级 SNR 不作稀疏层的尺度基准，也不参与其还原。",
       "compatibility_projections": []
     },
     {
@@ -134,16 +107,7 @@
       "weight_verdict": "点源目标的严格权重",
       "weight_capable": true,
       "notes": "W_info=a²PᵀC⁻¹P=1/Var(F_hat)；点源目标的严格权重。",
-      "compatibility_projections": [
-        {
-          "file": "eng/contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json",
-          "kind": "product_family_specialization_not_equivalent",
-          "status": "FROZEN_COMPATIBILITY",
-          "retire_after_change": "OWNER_DECISION",
-          "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
-          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
-        }
-      ]
+      "compatibility_projections": []
     },
     {
       "object_name": "sparse_snr_layer",
@@ -156,7 +120,7 @@
       "precision": "float32|float64",
       "weight_verdict": "帧内精细参考",
       "weight_capable": false,
-      "notes": "帧内稀疏控制点 SNR 参考（可选标准层）；参考层不承载帧级权重。",
+      "notes": "帧内稀疏控制点上的**绝对** SNR 参考（可选标准层；控制点值 = F_ref/sigma_F(x,y)，与 frame_snr 同口径、同逐帧参考通量 F_ref，由 sparse_snr_semantics=absolute_flux_type_snr 冻结）；Phase2 由控制点直接重建为稠密 SNR 场，不乘帧级标量；参考层不承载帧级权重。",
       "compatibility_projections": []
     },
     {
@@ -227,16 +191,7 @@
       "weight_verdict": "——",
       "weight_capable": false,
       "notes": "输入/配置/软件/哈希来源链；不承载数值权重。",
-      "compatibility_projections": [
-        {
-          "file": "eng/contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json",
-          "kind": "product_family_specialization_not_equivalent",
-          "status": "FROZEN_COMPATIBILITY",
-          "retire_after_change": "OWNER_DECISION",
-          "retire_note": "依 ASTROCS_DESIGN §12，版本号不得作为退役条件；本项退役须由负责人裁决并登记变更编号。",
-          "note": "产品族专用合同（含 49 条 PENDING_OWNER_SIGNOFF 条款），不是本对象 canonical 定义的等价重复；对象身份/单位/无效值/精度/可否作权重 一律以 canonical 为准。"
-        }
-      ]
+      "compatibility_projections": []
     }
   ],
   "legacy_contract_ids": {
@@ -500,48 +455,6 @@
       "note": "任务结果合同；由 eng/tools/quality/check_task_result_schema.py 消费。"
     },
     {
-      "file": "eng/contracts/schemas/v6/astrocs.v6.units.v1.schema.json",
-      "role": "units_table_contract",
-      "owner": "SCHEMA-INTEGRATE-001(W6)",
-      "object_class": null,
-      "note": "冻结单位表（FZ-UNIT-*）机器镜像；canonical 对象 schema 的 units 块照抄其值，不在本任务改写。"
-    },
-    {
-      "file": "eng/contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json",
-      "role": "retained_v6_design_archive",
-      "owner": "SCHEMA-INTEGRATE-001(W6)",
-      "object_class": null,
-      "note": "v6 产品族专用投影（含 49 条 PENDING_OWNER_SIGNOFF 条款，fail-closed）；按 GAP_AUDIT §4.1 Q2 在位保留为设计档案，不是 canonical 对象定义。其 canonical 对象 psfsw_robust_weight retired（裁决 B，14→13，CHG-2026-09-20-PSFSW-RETIRE，2026-09-20），故不再登记为 compatibility_projection；文件内的 psfsw_robust_weight 是 v6 产品族内部标识（weight.kind / 单位表符号），不构成 canonical 引用。"
-    },
-    {
-      "file": "eng/contracts/schemas/v6/astrocs.v6.psf.v1.schema.json",
-      "role": "product_family_specialization",
-      "owner": "SCHEMA-INTEGRATE-001(W6)",
-      "object_class": null,
-      "note": "PSF 模型合同；不在 13 个对象内（对象表只含 point_information；psfsw_robust_weight retired（2026-09-20），见 deprecation.object_retirements）。"
-    },
-    {
-      "file": "eng/contracts/schemas/v6/astrocs.v6.effective-psf.v1.schema.json",
-      "role": "product_family_specialization",
-      "owner": "SCHEMA-INTEGRATE-001(W6)",
-      "object_class": null,
-      "note": "effective PSF 合同；不在 13 个对象内。"
-    },
-    {
-      "file": "eng/contracts/schemas/v6/astrocs.v6.phase3.v1.schema.json",
-      "role": "product_family_specialization",
-      "owner": "SCHEMA-INTEGRATE-001(W6)",
-      "object_class": null,
-      "note": "Phase3 投影/采样合同；不在 13 个对象内。"
-    },
-    {
-      "file": "eng/contracts/schemas/v6/astrocs.v6.weight-mode.v1.schema.json",
-      "role": "weight_mode_vocabulary （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）",
-      "owner": "SCHEMA-INTEGRATE-001(W6)",
-      "object_class": null,
-      "note": "weight_mode 枚举/词表合同（配置面）；对象合同只描述「可否作权重」，模式选择归配置面。（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（v6 合同层去留见 DESIGN-DRAFT §4.2-Q2）"
-    },
-    {
       "file": "eng/contracts/schemas/phase_config_normalize.schema.json",
       "role": "config_contract",
       "owner": "CFG-001",
@@ -610,6 +523,13 @@
       "owner": "CONTRACT-501",
       "object_class": null,
       "note": "RELEASE-05 CONTRACT-501 双线合同机器 schema；不是 UNIFIED_MODEL §2 的 13 个数据对象之一。文档化说明见 docs/contracts/（双向对应由 eng/tools/contract_doc_sync.py 校验）。"
+    },
+    {
+      "file": "eng/contracts/schemas/product_family_field_constraints.schema.json",
+      "role": "product_family_field_constraints",
+      "object_class": null,
+      "owner": "DOC-CONTRACT-MERGE-02",
+      "note": "V6 合同层十类产品族记录（units/signal/covariance/psf/effective-psf/point-information/weight-mode/psfsw/provenance/phase3）的字段级机器门，按 $defs 逐件承载；**不是**数据对象合同，不定义 unified_object 判别字段。权威 = docs/contracts/DATA_SEMANTICS.md §31.6；变更编号 CHG-2026-09-22-V6-CONTRACT-MERGE。"
     }
   ],
   "deprecation": {
@@ -638,10 +558,10 @@
           "eng/contracts/schemas/unified/examples/psfsw_robust_weight.example.json"
         ],
         "rejection": "旧产品声明 unified_object=psfsw_robust_weight ⇒ 显式拒绝（无 canonical schema；端口合同 enum 判红），不得静默接受",
-        "migration_hint": "迁移提示：无等价替代对象——点源严格权重 → point_information（W_info=1/Var(F_hat)）；帧级参考 → frame_snr（权重由 Phase2 逆方差叠加从 SNR 现场派生，不落盘）；v6 词表 token psfsw_robust_weight 仅存于 v6 设计档案（eng/contracts/data/v6_weight_vocabulary_v1.json），不构成 canonical 对象。完整记录见 eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries。"
+        "migration_hint": "迁移提示：无等价替代对象——点源严格权重 → point_information（W_info=1/Var(F_hat)）；帧级参考 → frame_snr（权重由 Phase2 逆方差叠加从 SNR 现场派生，不落盘）；v6 词表 token psfsw_robust_weight 仅存于 v6 设计档案（eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary），不构成 canonical 对象。完整记录见 eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries。"
       }
     },
-    "policy": "eng/contracts/schemas/ 是唯一事实源；旧路径（eng/contracts/data/**、eng/contracts/schemas/v6/**、合同变体根文件）只保留兼容期映射与产品族专用投影，不得再新增与 canonical 等价的第二份定义；对象身份/单位/无效值/精度/可否作权重一律以 eng/contracts/schemas/unified/ 为准。",
+    "policy": "eng/contracts/schemas/ 是唯一事实源；旧路径（eng/contracts/data/**、已出库的 v6 字段级 schema、合同变体根文件）只保留兼容期映射与产品族专用投影，不得再新增与 canonical 等价的第二份定义；对象身份/单位/无效值/精度/可否作权重一律以 eng/contracts/schemas/unified/ 为准。",
     "legacy_paths": [
       {
         "old_path": "eng/contracts/data/v6_data_dictionary_v1.json",

@@ -1,0 +1,301 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "astrocs.hips-storage-form/v1",
+  "title": "AstroCS HiPS 落盘形态索引 schema",
+  "description": "落盘形态合同 CONTRACT-STORAGE-001 的机器事实源。两个索引文件按 index_schema 选择 $defs.product_index 或 $defs.coverage_index 校验；不变式 I1..I4 / H1..H3 / R1..R6 由 eng/tools/hipsform/check_hips_storage_form.py 现场计算。",
+  "x-astrocs-contract": "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
+  "x-astrocs-design": "docs/design/PRODUCT_STORAGE_FORM.md",
+  "x-astrocs-index-schemas": {
+    "product_index": "astrocs.hips-index/v1",
+    "coverage_index": "astrocs.coverage-index/v1"
+  },
+  "$defs": {
+    "sha256_hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "leaf_run": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "description": "[start_ipix, count]；段按 start 升序、互不重叠、互不相邻"
+    },
+    "tile_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ipix",
+        "coff",
+        "csize",
+        "usize",
+        "doff",
+        "dsize"
+      ],
+      "properties": {
+        "ipix": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coff": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "csize": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "usize": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "doff": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "dsize": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "subproduct": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "hips_order",
+        "hips_tile_width",
+        "hips_tile_format",
+        "n_leaf_tiles",
+        "coverage"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "hips_order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hips_tile_width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "hips_tile_format": {
+          "type": "string",
+          "enum": [
+            "fits"
+          ]
+        },
+        "n_leaf_tiles": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "encoding",
+            "leaf_ipix_runs",
+            "frac_quant",
+            "leaf_frac"
+          ],
+          "properties": {
+            "encoding": {
+              "type": "string",
+              "enum": [
+                "runs"
+              ]
+            },
+            "leaf_ipix_runs": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/leaf_run"
+              }
+            },
+            "frac_quant": {
+              "type": "integer",
+              "enum": [
+                255
+              ]
+            },
+            "leaf_frac": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "tiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/tile_entry"
+          }
+        }
+      }
+    },
+    "product_index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index_schema",
+        "product",
+        "storage_form",
+        "archive",
+        "subproducts"
+      ],
+      "properties": {
+        "index_schema": {
+          "type": "string",
+          "const": "astrocs.hips-index/v1"
+        },
+        "product": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "storage_form": {
+          "type": "string",
+          "enum": [
+            "archive",
+            "bare"
+          ]
+        },
+        "archive": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "bytes",
+            "sha256",
+            "frame_unit"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]+\\.hips\\.zst$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256_hex"
+            },
+            "frame_unit": {
+              "type": "string",
+              "const": "tar_member"
+            }
+          }
+        },
+        "subproducts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/subproduct"
+          }
+        }
+      }
+    },
+    "coverage_pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "f",
+        "frac"
+      ],
+      "properties": {
+        "f": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "frac": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      }
+    },
+    "coverage_block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ipix",
+        "frames"
+      ],
+      "properties": {
+        "ipix": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frames": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/coverage_pair"
+          }
+        }
+      }
+    },
+    "coverage_index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index_schema",
+        "granularity",
+        "frames",
+        "blocks"
+      ],
+      "properties": {
+        "index_schema": {
+          "type": "string",
+          "const": "astrocs.coverage-index/v1"
+        },
+        "granularity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "unit",
+            "tile_width",
+            "hips_order"
+          ],
+          "properties": {
+            "unit": {
+              "type": "string",
+              "const": "hips_leaf_tile"
+            },
+            "tile_width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "hips_order": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]+$"
+          }
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/coverage_block"
+          }
+        }
+      }
+    }
+  }
+}

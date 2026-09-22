@@ -80,7 +80,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 ## 9 精度策略
 
-- FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:98-182`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:38-40`）用于 `robust_residual_sigma`，仅 Gaussian 假设下有尺度意义。
+- FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:98-182`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:95`）用于 `robust_residual_sigma`，仅 Gaussian 假设下有尺度意义。
 
 ## 9a 专属问题回答（SCI-002 指定问题逐项）
 
@@ -110,7 +110,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 ## 13 追溯与测试
 
 - 权威文件: `docs/science/PSF.md` (SCI-PSF-001)
-- 实现: `lib/algorithms/psf/src/dpsf_psf.cpp` (`dpsf_fit/batch, lm_solve, MOFFAT4_FWHM_FACTOR, compute_trimmed_mad`), `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:35-37`
+- 实现: `lib/algorithms/psf/src/dpsf_psf.cpp` (`dpsf_fit/batch, lm_solve, MOFFAT4_FWHM_FACTOR, compute_trimmed_mad`), `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:95`
 - 公开 API: `lib/algorithms/psf/include/dynamic_psf.h` (`dpsf_fit, dpsf_fit_batch`)
 - 测试: `TST-PSF-001` 解析一致性、`TST-PSF-INV-*` 三门、`TST-PSF-FAIL-*` 参数校验（新增/映射见 `docs/TRACEABILITY.csv`）
 

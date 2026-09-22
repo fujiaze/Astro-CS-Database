@@ -28,17 +28,17 @@
     ],
     "generated_utc": "2026-09-16T00:00:00Z"
   },
-  "sparse_snr_semantics": "absolute_flux_type_snr",
+  "sparse_snr_semantics": "relative_to_frame_snr_median",
   "control_points": [
     {
-      "x": 12.0,
-      "y": 30.0,
-      "sparse_snr_value": 22.5
+      "x": 12,
+      "y": 30,
+      "sparse_snr_value": 1
     },
     {
-      "x": 400.0,
-      "y": 128.0,
-      "sparse_snr_value": 19.75
+      "x": 400,
+      "y": 128,
+      "sparse_snr_value": 0.878
     }
   ],
   "frame_id": "f1",

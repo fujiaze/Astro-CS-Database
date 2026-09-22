@@ -26,7 +26,27 @@
     "role"
   ],
   "propertyNames": {
-    "pattern": "^(?!(weight|value|mask|snr)$)(?!(weight|value|mask|snr)(_|$))(?!(weight|value|mask)(_|$)).*$"
+    "pattern": "^(?!(weight|value|mask|snr)$)(?!(weight|value|mask|snr)(_|$))(?!(weight|value|mask)(_|$)).*$",
+    "not": {
+      "enum": [
+        "ivar",
+        "inverse_variance",
+        "variance",
+        "var",
+        "sigma",
+        "sigma2",
+        "fisher",
+        "fisher_information",
+        "information",
+        "w_info",
+        "w_psf",
+        "snr",
+        "snr2",
+        "support",
+        "coverage"
+      ],
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/contracts/DATA_SEMANTICS.md §31.7/§31.8"
+    }
   },
   "properties": {
     "unified_object": {

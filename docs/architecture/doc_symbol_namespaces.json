@@ -21,28 +21,10 @@
   ],
   "registered_symbols": [
     {
-      "token": "ALG_PROPOSED",
-      "namespace": "doc_status",
-      "evidence": "docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md:6",
-      "reason": "算法层文档状态词（状态：`ALG_PROPOSED`），非代码符号"
-    },
-    {
       "token": "TARGET_NORMATIVE",
       "namespace": "doc_status",
       "evidence": "docs/design/PHASE2_DETAILED_DESIGN.md:4",
       "reason": "设计文档状态词（状态：`TARGET_NORMATIVE`），非代码符号"
-    },
-    {
-      "token": "NOT_IMPLEMENTED",
-      "namespace": "doc_status",
-      "evidence": "docs/contracts/v6/data/05_point_information_and_weight_mode.md:44 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）",
-      "reason": "模式/实现状态词（DEFERRED/NOT_IMPLEMENTED），与 FZ-MODE-DEFERRED 同域"
-    },
-    {
-      "token": "PENDING_SO07",
-      "namespace": "signoff_status",
-      "evidence": "docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md:369",
-      "reason": "未签字阈值标记（SO-07 签署门），非代码符号"
     },
     {
       "token": "snr_v",
@@ -57,16 +39,16 @@
       "reason": "同上（含上标写法）"
     },
     {
-      "token": "snr_identity",
-      "namespace": "machine_criterion_id",
-      "evidence": "docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md:201",
-      "reason": "文档内机器判据名（机器判据（`snr_identity`）），是判据 ID 不是 API 函数"
-    },
-    {
       "token": "p2_write_descriptor",
       "namespace": "registry_descriptor",
       "evidence": "lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057",
       "reason": "Phase2 write 节点的 registry descriptor 构造器（编排层词汇；api_inventory 只登记函数签名 ⇒ 需显式登记命名空间）。行锚 = 同面实测 `grep -n p2_write_descriptor → :1040`，函数体止于 :1057"
+    },
+    {
+      "token": "snr_path_effective",
+      "namespace": "doc_header_kv",
+      "evidence": "docs/design/PHASE2_DETAILED_DESIGN.md:19",
+      "reason": "SNR 重建口径的实际生效路径记录名（头部 KV），非代码符号；现行承载见 docs/contracts/PIPELINE_BLOCK_CONTRACT.md:46 与 docs/plugins/algorithms_phase1/07_noise_snr.md:97"
     }
   ]
 }

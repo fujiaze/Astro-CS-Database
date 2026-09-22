@@ -19,7 +19,8 @@
 - **输入**：定标信号、variance/ivar、validity、WCS、PSF 模型/地图、point_information、psfsw、depth_m5、frame_snr、[sparse_snr_layer]、配置。
 - **输出**：
   - **HiPS 文件**：signal、pixel variance/ivar、support、coverage/validity、drizzle correlation/transfer 描述、PSF 模型、photometric response、point_information map、psfsw、depth、**帧级 SNR（信噪比）写入文件头**、**[稀疏帧内 SNR 层（控制点存绝对 SNR）作为标准层]**、source catalog、manifest；
-  - **结构化 JSON**：输出路径信息，符合 Phase2 输入格式。
+  - **结构化 JSON**：输出路径信息，符合 Phase2 输入格式；逐帧产品清单额外登记落盘形态、产品级索引路径与容器指纹；
+  - **落盘形态**：默认归档 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可配置为裸 `<name>.hips/`；两形态都写产品级索引，运行级写覆盖索引；归档内 `properties` 与裸形态逐字节一致。
 - 参考：`eng/contracts/schemas/hips_product.schema.json`、`eng/contracts/schemas/manifest.schema.json`。
 
 ## 4. 算法与公式要点

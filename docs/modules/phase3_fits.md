@@ -124,7 +124,7 @@ downstream: [DATA-P3-FITS, API-P3-FITS-001, TEST-P3-WR-001]
   astrocs.phase3.writer.md §9 锚）；可执行 TEST-P3-WR-001 MISSING
   归 P3-FITS-TEST；现状执行测试 eng/tests/unit/p3_output_test.cpp
   （116 行 4 段）=相邻证据引用不冒认。
-- 容差：WCS roundtrip ≤1e-8 px（SCI-P3 §7 真值 + 生产注册表 `p3_wcs.cpp:191`，执行测试观测阈
+- 容差：WCS roundtrip ≤1e-8 px（SCI-P3 §7 真值 + 生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`），执行测试观测阈
   1e-4 px）；采样值锚 ≤1e-3；sha256 64hex；逐值精确回环
   （NaN==NaN 一致）。
 

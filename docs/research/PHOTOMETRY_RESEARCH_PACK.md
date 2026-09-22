@@ -2,7 +2,7 @@
 
 > ID: RESEARCH-PHOT-001（DOC-404 新建）
 > 状态: ACTIVE_INFORMATIVE（研究包只承载一手出处、方法学对照与核验留痕；**不定义公式、常数与门限**）
-> 上游: `ASTROCS_DESIGN.md` §2.1（创新点一）、§4.2（Phase1 节点流程：两轮 WCS + 星表引导检测 + apply photometry）、§4.4（测光输出语义）、附录 B
+> 上游: `ASTROCS_DESIGN.md` §2.1（创新点一）、§4.2（Phase1 节点流程：星表引导检测 + WCS 解算 + apply photometry）、§4.4（测光输出语义）、附录 B
 > 合同权威: `docs/science/PHOTOMETRY.md`（SCI-PHOT-001，FROZEN）；模块细则: `docs/plugins/algorithms_phase1/06_photometry.md`
 > 消费方: SCI-401 / SCI-402（实验单元一与其误差预算）、DOC-403（文档索引门）
 > 依据: AGENTS.md §5（三重佐证）、§8（科学查证流程）、任务书 `DOC-404`
@@ -121,12 +121,12 @@ F_ν = 3631 Jy ⇒ m_AB = 0                            # AB 零点定义
 
 ## 6. 星表引导检测与 WCS 精化的开源对照
 
-**权威范式（本项目）**：两轮 WCS——第一轮全图盲检测粗解，仅供星表投影；第二轮用星表引导检测得到的高纯度星表精解，精解才是权威 WCS；检测定义域 = 用本帧 WCS 把 Gaia 星表逆投影到像素域，只对星表位置做质心/PSF 拟合（`ASTROCS_DESIGN.md` §4.2；`docs/plugins/algorithms_phase1/03_star_detection.md` §4）。
+**权威范式（本项目）**：WCS 解算的近似指向由 `wcs.init_source` 给出（不是独立的盲解节点），求解器在该指向下匹配星表并稳健迭代精化，其输出即唯一权威 WCS；检测定义域 = 用本帧 WCS 把 Gaia 星表逆投影到像素域，只对星表位置做质心/PSF 拟合（`ASTROCS_DESIGN.md` §4.2；`docs/plugins/algorithms_phase1/03_star_detection.md` §4）。
 
 | # | 项目（许可证） | 版本/tag | 入口 文件:行（`[OSS]`） | 对照什么 |
 |---|---|---|---|---|
 | O1 | **SCAMP**（GPL-3.0） | v2.15.0 | `src/photsolve.c:117`（`photsolve_fgroups`：全局**相对光度**解算入口）；`src/astrsolve.c:117`（`astrsolve_fgroups`：天体测量解算入口）；`src/fitswcs.c`（WCS 结构/投影）；官方页 https://www.astromatic.net/software/scamp/ `[URL]` 200 | 星表引导的**相对零点 + 天体测量**联合解算的工程结构；AstroCS 只对照“用星表做相对定标”的结构，**不引其为天光面/UPM 依据**（SCAMP 核心无像素背景归一） |
-| O2 | **astrometry.net**（BSD-3-Clause 系） | 0.98 | `solver/tweak2.c:195`（`tweak2()`：以星表参考做 WCS 精化）；`solver/tweak.c:47`（`tweak_just_do_it()`：tweak 流程入口）；官方文档 https://astrometry.net/doc/ `[URL]` 200 | **盲解 + 星表精化**的完整开源对照（本项目第一轮粗解/第二轮精解的定位与它同构） |
+| O2 | **astrometry.net**（BSD-3-Clause 系） | 0.98 | `solver/tweak2.c:195`（`tweak2()`：以星表参考做 WCS 精化）；`solver/tweak.c:47`（`tweak_just_do_it()`：tweak 流程入口）；官方文档 https://astrometry.net/doc/ `[URL]` 200 | **盲解 + 星表精化**的完整开源对照（本项目的星表匹配精化定位与它同构；AstroCS 不设独立盲解节点） |
 | O3 | **SExtractor**（GPL-3.0） | 2.28.2 | `src/analyse.c:64`（`analyse()` 主测光流程）；`src/analyse.c:568`（`computeaperflux` 调用点）；`src/back.c:51`（`makeback()` 背景网格）；`src/back.c:669`（`backguess()` 背景插值）；`src/fitswcs.c:1375`（`wcs_to_raw()` 天球→像素）；官方页 https://www.astromatic.net/software/sextractor/ `[URL]` 200 | 分块背景网格 + 检测 + 孔径测光 + FLUXERR 的工程实现；AstroCS 只把孔径测光当**诊断/交叉验证**，生产口径是 PSF 拟合域（`docs/plugins/algorithms_phase1/06_photometry.md` §1/§4） |
 | O4 | **SEP**（LGPL-3.0） | v1.4.1 | `src/extract.c:206`（`sep_extract()` 检测入口）；`src/aperture.c:190`（`sep_sum_circle` 宏实例化）；`src/aperture.c:263`（`sep_sum_circann` 宏实例化）；`src/aperture.c:604`（`sep_flux_radius()`）；论文 Barbary, K. 2016, JOSS 1, 58 `[DOI]` 10.21105/joss.00058 | SExtractor 算法的库化实现（背景/检测/孔径与误差传播的独立可对拍实现） |
 | O5 | **photutils**（BSD-3-Clause） | 3.0.0 | `photutils/detection/daofinder.py:26`（`DAOStarFinder`）；`photutils/aperture/photometry.py:30`（`aperture_photometry()`）；`photutils/psf/photometry.py:217`（`PSFPhotometry`）；`photutils/background/background_2d.py:33`（`Background2D`） | 星检测、孔径/PSF 测光、二维背景的参考实现与误差传播；SCI-401 的数值对拍对象 |
@@ -159,7 +159,7 @@ F_ν = 3631 Jy ⇒ m_AB = 0                            # AB 零点定义
 
 ## 8. 对 AstroCS 的直接约束（与最高设计一致的要点）
 
-1. **只对星点测光**，星点位置由 Gaia 星表逆映射获得；盲检测只服务第一轮粗解（`ASTROCS_DESIGN.md` §2.1/§4.2）。
+1. **只对星点测光**，星点位置由 Gaia 星表逆映射获得；全图盲检测不产生权威星表（`ASTROCS_DESIGN.md` §2.1/§4.2）。
 2. **正向合成**用 XP 谱 × 系统响应在模型通带内积分；`Q(λ)≡1`、通带外无数据等未建模项必须显式声明，不得静默当作已建模（P4 的端到端预算写法、G2 的采样边界）。
 3. **标定因子绝对值无物理意义**：`k_photo`/`scale` 吸收增益/口径/曝光/透过率等不可得量；唯一判据是**尺度无关的测光一致性**（星等残差散度），见 `docs/science/PHOTOMETRY.md` §1/§10 与 `ASTROCS_DESIGN.md` §4.4。
 4. **禁止物理闭合反推**（`k = g·h·c·1e9/(A·t)` 一类）：FITS 头拿不到 g、t、A、光学透过率与大气项，方程欠定；反推等于编造未测量量（`docs/science/PHOTOMETRY.md` §10）。

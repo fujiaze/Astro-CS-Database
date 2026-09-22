@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://astrocs.local/schemas/unified/sparse_snr_layer/v1",
-  "title": "AstroCS 统一对象 sparse_snr_layer —— 帧内稀疏控制点 SNR 参考（可选标准层）",
-  "description": "UNIFIED_MODEL §2：sparse_snr_layer = 帧内稀疏控制点 SNR 参考（可选标准层）；可否作权重 = 帧内精细参考。该层是参考层，不是 variance/ivar，不承载帧级权重。",
+  "title": "AstroCS 统一对象 sparse_snr_layer —— 帧内稀疏控制点绝对 SNR 参考（可选标准层）",
+  "description": "UNIFIED_MODEL §2：sparse_snr_layer = 帧内稀疏控制点上的**绝对** SNR 参考（可选标准层）；控制点值 = 该点的通量型信噪比 F_ref/sigma_F(x,y)（与 frame_snr 同物理定义、同逐帧参考通量 F_ref，无量纲），Phase2 由控制点**直接重建**为稠密 SNR 场，权重逐像素换算 w(x,y)=SNR(x,y)^2/F_ref^2；可否作权重 = 帧内精细参考。该层是参考层，不是 variance/ivar，不承载帧级权重；与 frame_snr 相互独立（frame_snr 不作本层的尺度基准）。",
   "x-astrocs-object": {
     "name": "sparse_snr_layer",
     "canonical_file": "eng/contracts/schemas/unified/sparse_snr_layer.schema.json",
@@ -22,12 +22,33 @@
     "object_weight_capability",
     "object_weight_verdict",
     "provenance",
+    "sparse_snr_semantics",
     "control_points",
     "frame_id",
     "role"
   ],
   "propertyNames": {
-    "pattern": "^(?!(weight|value|mask|snr)$)(?!(weight|value|mask|snr)(_|$))(?!(weight|value|mask)(_|$)).*$"
+    "pattern": "^(?!(weight|value|mask|snr)$)(?!(weight|value|mask|snr)(_|$))(?!(weight|value|mask)(_|$)).*$",
+    "not": {
+      "enum": [
+        "ivar",
+        "inverse_variance",
+        "variance",
+        "var",
+        "sigma",
+        "sigma2",
+        "fisher",
+        "fisher_information",
+        "information",
+        "w_info",
+        "w_psf",
+        "snr",
+        "snr2",
+        "support",
+        "coverage"
+      ],
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/contracts/DATA_SEMANTICS.md §31.7/§31.8"
+    }
   },
   "properties": {
     "unified_object": {
@@ -276,6 +297,10 @@
         }
       }
     },
+    "sparse_snr_semantics": {
+      "const": "absolute_flux_type_snr",
+      "description": "控制点值的数值语义判别式（冻结）：absolute_flux_type_snr = 绝对通量型未加权信噪比 SNR_c = F_ref/sigma_F,c（与 frame_snr 同口径、同逐帧参考通量 F_ref）。该层**不**存相对因子、**不**按中位归一、**不**以帧级 SNR 为尺度基准；消费时不得乘/除帧级 SNR 做还原。声明为任何相对语义 ⇒ schema 判红。"
+    },
     "control_points": {
       "type": "array",
       "minItems": 1,
@@ -300,13 +325,13 @@
             "type": "number"
           },
           "sparse_snr_value": {
-            "description": "控制点 SNR 参考值",
+            "description": "控制点**绝对**通量型 SNR 值 = F_ref/sigma_F,c（无量纲，与 frame_snr 同物理口径、同逐帧参考通量 F_ref；非相对因子，不得再乘帧级标量）。量纲/值域：无量纲比值，(0, +inf) 开区间——0 与负值不是合法 SNR；无效值语义见 missing_value（二进制面用 NaN 承载 invalid，与 signal 的 NaN 同态；禁 0 冒充缺失）。",
             "type": "number",
-            "minimum": 0
+            "exclusiveMinimum": 0
           }
         }
       },
-      "description": "帧内稀疏控制点列表"
+      "description": "帧内稀疏控制点列表；每点的 sparse_snr_value 是该点的**绝对** SNR（不是相对因子）。控制点值与帧级 frame_snr 使用同一逐帧参考通量 F_ref（同一帧的 frame_snr.reference_baseline）。"
     },
     "frame_id": {
       "description": "帧标识",

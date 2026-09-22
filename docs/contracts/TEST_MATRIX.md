@@ -41,7 +41,7 @@
 | SCI-REJ-001 | TEST-REJ-001..008 | property+boundary | precision/recall 门 | lib/algorithms/coverage/tests/... |
 | SCI-INT-001 | TEST-INT-001 | analytic | mean/weighted mean 解析 | lib/algorithms/coverage/tests/... |
 | SCI-CW-001 | TEST-CW-001..008 | property | snr 扰动不变 | lib/algorithms/coverage/tests/... |
-| SCI-P3-001 | SYN-007 五件套 | analytic+property | WCS 1e-6px; 常数场 | eng/tools/validation/phase3 (待建, P3-006) |
+| SCI-P3-001 | SYN-007 五件套 | analytic+property | WCS 紧门 1e-8px（适用域 scale ≥ 0.9″/px）/ 全域保守门 1e-6px; 常数场 | eng/tools/validation/phase3 (待建, P3-006) |
 
 ## 4. 影响触发（扩大验证条件）
 

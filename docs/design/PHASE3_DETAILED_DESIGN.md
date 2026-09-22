@@ -15,6 +15,8 @@
 - `visualization`：允许显示型降级，但不得冒充测量产品。
 
 - 输入 signal **只接受面亮度语义**（写端口单位 `SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）；flux-per-pixel 等其它语义**显式拒绝**（`ASTROCS_DESIGN.md` §5.3/§5.6；正本见 `docs/science/PHASE3_HIPS_TO_FITS.md`）。
+- 输入产品的落盘形态由落盘名判定，裸 `<name>.hips/` 与归档 `<name>.hips.zst` 语义相同，按天区取瓦片走输入产品的覆盖索引（`docs/design/PRODUCT_STORAGE_FORM.md`）。
+- **Phase3 产物是交付物**：输出为**裸 FITS 文件，不压缩、不套壳**（用户与外部工具直接打开）；Phase3 不产出 HiPS，因此不使用 `.hips` / `.hips.zst` 命名。
 
 缺少所选模式所需的不确定度/PSF 信息时拒绝或明确输出 unavailable。
 

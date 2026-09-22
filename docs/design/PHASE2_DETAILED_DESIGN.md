@@ -10,13 +10,15 @@
 
 输入可来自不同 Phase1 运行，但必须兼容：天球 frame、滤镜/波段、signal 物理语义、通量尺度可变换、PSF/噪声模型可解释、产品 schema 和 provenance 完整。混合积分通量/面亮度、未知单位、缺少必要响应或损坏 manifest 时拒绝。
 
+输入产品的**落盘形态不进入科学语义**：`hips_paths` 的元素可以是裸 `<name>.hips/` 或归档 `<name>.hips.zst`，调用方不感知形态（形态由落盘名判定，见 `docs/design/PRODUCT_STORAGE_FORM.md`）。按天区查输入帧走**块级覆盖索引**（数据集级 `coverage.index.json`，不压缩；缺失时由各产品级索引现场倒排），不逐瓦片探测：索引给出块 → 候选帧集合与覆盖分数，**像素级裁决仍由 support/validity/排异语义执行**。
+
 ## 2. 固定科学流程
 
 `admit → coverage graph → control sampling → global relative photometry/background model → apply normalization → rejection inference → science-objective integration → product validation → atomic publish`。
 
 每步产物持久或可重建，七个 operation 不得由同一个全阶段调用伪装。
 
-SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。实际 SNR = 帧级 × 帧内相对因子；叠加权重由 SNR **现场换算**为逆方差，不由上游落盘（`ASTROCS_DESIGN.md` §5.3）。
+SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。三条口径都**直接**产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同：`sparse_reconstruct` 由稀疏**绝对** SNR 控制点重建为稠密场（控制点值即绝对信噪比本身，不再乘/除帧级标量）；叠加权重由 SNR **现场换算**为逆方差 `w = SNR²/F_ref²`（`F_ref` 为逐帧参考通量），不由上游落盘（`ASTROCS_DESIGN.md` §5.3）。
 
 ## 3. Coverage 与重叠图
 
@@ -119,6 +121,8 @@ Phase1 的 PSF/information/noise 若为空间模型，Phase2 必须在输出位�
 5. manifest：输入列表/哈希、目标函数、权重模型、近似、排异和 provider。
 
 不得只写一张图和一个语义不明的 weight。
+
+Phase2 产物是**服务面天球数据库**，落盘形态固定为**裸 `<name>.hips/`**（被随机读取，不引入解压延迟）；同样写出产品级索引与数据集级覆盖索引，供 Phase3 按天区查。
 
 ## 10. 验收
 

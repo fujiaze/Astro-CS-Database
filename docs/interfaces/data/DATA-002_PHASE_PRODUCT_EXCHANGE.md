@@ -96,10 +96,11 @@ role 不允许与 type 解耦（禁止同名不同 type / 同 type 不同 role �
     `{signal, support, variance, ivar, mask, sparse_snr}`；units 非空、禁止占位/空串/首尾空白。
     - `sparse_snr` 是稀疏 SNR 层在交换合同中的位置（GAP_AUDIT G09）。
     - **`sparse_snr` 的语义（最高设计 §4.4，强制）**：稀疏控制点层作为**标准层插入 HiPS 文件内**，
-      存**无量纲相对场** `rho_c = SNR_c / SNR_frame`（`p50 = 1`），**不是**绝对 SNR；
-      实际 SNR = `SNR_frame × rho_c(p)`。`units` = `dimensionless`（无量纲比值）。
+      控制点值 = 该点的**绝对**通量型 SNR `SNR_c = F_ref / σ_F,c`（与帧级 SNR 同物理定义、
+      同逐帧参考通量 `F_ref`），`units` = `dimensionless`（无量纲信噪比）。
+      消费时由控制点**直接重建**为稠密 SNR 场 `SNR(p)`（重建算子显式声明、在控制点处精确复现节点值、并返回预测方差）；
       **禁止**把它当作权重、**禁止**把权重面写进 HiPS（最高设计 §3.1：HiPS 里只**存**
-      **帧级 SNR** 与**稀疏的相对 SNR 比值**；权重是阶段二现场派生量）。
+      **帧级 SNR** 与**稀疏绝对 SNR 控制点**；权重是阶段二现场派生量 `w(p) = SNR(p)²/F_ref²`）。
       该层**可选**（`sparse_snr_layer=true` 时存在，默认 true），**不属于** §1 的最小平面集。
     - **机器形态**：`plane_id` 枚举同步落在 `eng/contracts/data/phase_product_exchange.schema.json`；
       本合同与该 schema 不一致时，以本合同为准补齐 schema。

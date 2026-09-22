@@ -176,6 +176,23 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
   12 个 GAIA_EXPORT 符号、返回码、所有权、线程安全。
 - 唯一生产源符号清单与迁移映射：lib/infrastructure/gaia_xpsd_client/README.md §6、
   module.yaml `source_symbols`。
+- **装载 fail-closed（GAIA-FAILCLOSED-01，2026-09-22）**：目录内任一 `*.xpsd` 装载
+  失败（open/mmap/魔数/头字段非法）或条目数 > `MAX_FILES`(32) ⇒
+  `gaia_client_create[_ex]` 记录明确原因（目录 / 期望条目数 / 失败数 / 首个失败原因 /
+  `loaded_mmap_bytes` / `RLIMIT_AS`）并返回 `NULL`；**不返回残缺 client**。
+  修复前装载失败的 shard 被**静默丢弃**（无日志、无计数、create 仍非 NULL），地址空间
+  受限时丢掉的恰是唯一含亮星的 shard ⇒ 参考星表静默变成"暗 shard 里最亮的 N 颗" ⇒
+  `iter_trans_solve` 全败（根因与证据见 run/WCS-DETERMINISM-01/REPORT.md §1.2/§2.1）。
+  成功返回的 client 恒满足 `file_count == 目录内 *.xpsd 条目数` 且
+  `file_load_fail_count == 0`（db_type 过滤导致的跳过单独计数，不算失败）；空目录
+  仍返回 `file_count=0` 的空 client（平台语义不变），上层节点须自行断言
+  `file_count > 0`（空星表 fail-closed，M42 主题）。
+- **查询 fail-closed（同批）**：查询期单星/单叶丢弃（collector 扩容失败 / 叶块解压
+  失败 / scratch 分配失败）⇒ 记账 + `stderr` 告警 + 查询返回 `-1` 且 `out_*` 置空；
+  **不返回不完整星表**。文档化截断上限 `MAX_STARS_RESULT`(200000/文件) 不属丢弃，
+  行为不变（§5 I5 不变量）。诊断面（非导出）：
+  `gaia_client_get_file_count / _get_file_entry_count / _get_file_load_fail_count /
+  _get_last_create_diagnostics / _get_last_create_error`（头文件为唯一签名源）。
 
 ### 3.1 plan / execute / cancel / inspect（迁移合同，astrocs.catalog.gaia）
 

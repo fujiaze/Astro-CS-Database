@@ -118,7 +118,7 @@ function phase3_resample(hips_dir, params):
 
 ## 8 参考实现/Oracle
 
-- reference 实现即生产实现(首版)；Oracle=SCI-P3 §11 全集, **Oracle 不调用本模块**（独立小规模球面 reference + 独立 FITS/WCS 读取器）；容差: WCS roundtrip ≤1e-8 px（生产注册表 `p3_wcs.cpp:191`）；常数场（nearest）逐值相等；常数场（bilinear）|S−B0| ≤ k·ULP·B0（**不作 max_abs=0 逐位断言**，M7-F-201：Σw=1±k·ULP 经 S=Σw·B0 传递）；解析场容差由 SYN-007 预冻结。
+- reference 实现即生产实现(首版)；Oracle=SCI-P3 §11 全集, **Oracle 不调用本模块**（独立小规模球面 reference + 独立 FITS/WCS 读取器）；容差: WCS roundtrip ≤1e-8 px（生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`））；常数场（nearest）逐值相等；常数场（bilinear）|S−B0| ≤ k·ULP·B0（**不作 max_abs=0 逐位断言**，M7-F-201：Σw=1±k·ULP 经 S=Σw·B0 传递）；解析场容差由 SYN-007 预冻结。
 
 ## 9 容差来源
 

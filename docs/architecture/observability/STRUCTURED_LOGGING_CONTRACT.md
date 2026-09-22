@@ -64,7 +64,7 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 | `task` | string | 高层任务标识 | 同上；无则 `""` |
 | `node` | string | DAG 节点 id | 同上；无则 `""` |
 | `module` | string | 唯一 module id | 同上；无则 `""` |
-| `phase` | string | 阶段归属 | `phase1/phase2/phase3/lib/infrastructure/observability/monitoring/cli/""` |
+| `phase` | string | 阶段归属（**枚举以 schema 为准**，本表是视图） | `phase1/phase2/phase3/runtime/monitoring/cli/""` |
 | `commit` | string | 产生事件的 commit | 40 位小写 hex；真实运行现场值 |
 | `host` | string | 主机逻辑标识 | 安全字符；不得含用户/凭据 |
 | `level` | string | 级别 | `debug/info/warn/error` |
@@ -125,6 +125,18 @@ AstroCS 需要一个跨 run/任务/节点/模块/线程的统一结构化日志�
 - 日志文件总量上限与轮转策略由 LOG-002/运行配置定义（本任务冻结单行上限）；
 - 机器检查器 `eng/tools/monitoring/check_log_contract.py` 提供：schema 校验（缺字段被拒）、
   seq 单调性、error 载荷、级别/事件枚举、脱敏样例、单行大小；输出机器 JSON 判定。
+
+## 6.1 落盘与错误收敛（LOG-004）
+
+本合同的 JSONL 行**写到哪、什么时候写、写失败怎么办**不在 LOG-001 范围内，由
+`ASTROCS_DESIGN.md` §7.3、`docs/design/LOG_AND_ERROR_SYSTEM.md` 与
+`docs/contracts/LOG_AND_ERROR_CONTRACT.md`（LOG-004）冻结：
+
+- 运行日志落 `<output_dir>/logs/run_<run_id>.jsonl`（机器）与 `run_<run_id>.log`（人可读摘要，与 JSONL 同源）；
+- 成功/失败/取消三路都产出，收尾 fsync + 算哈希 + 原子发布，并在 run manifest 的 `log_artifacts[]` 登记；
+- 日志写入失败即运行失败（非 0 退出码），不静默；判据 = `CHK-LOG-SYS`。
+
+LOG-004 **不修改**本合同冻结的字段语义、枚举与 schema：它消费本合同的行格式。
 
 ## 7. 与运行事件流 / 既有 Core 日志的关系
 

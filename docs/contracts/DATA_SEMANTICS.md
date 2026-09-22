@@ -311,7 +311,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | pixfrac | double | drop 与源像素之比（无量纲） | 引擎层 (0,1] 严格拒绝 ≤0/>1（:1567-1574，不夹逼）；文件通道 API 层接受 0.0 的双轨见 DISP-DRZ-003 |
 | "variance" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | ADU²（signal 单位²；UNIFIED_MODEL §2 variance 对象） | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
 | "ivar" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | ADU⁻²（= 1/variance，有限域互为倒数） | variance 缺失/≤0 → ivar=0（显式不可用，禁 1/0→Inf；§4a）；非有限或 ≤0 → 跳过该像素 |
-| ~~weight 面（可选，文件通道 FITS）~~ **已作废** | — | — | **已删面**（DOC-203 / R06，按 §9.73 A44）：阶段一/阶段三**不产生也不消费**权重；HiPS 只存**帧级 SNR** + **稀疏的相对 SNR 比值**，权重是**阶段二按天球像素对应帧集合现场算出的派生量**（`ASTROCS_DESIGN.md` §2.1）。该面仅存在于**已作废**的 legacy 文件通道 API `hp_drizzle_run(…, weight_path, …)`（`hp_drizzle_api.h:39,49`；**零生产调用者**，GAP_AUDIT A-04；生产末端 = `hp_drizzle_run_hips`）⇒ 该形参的退役归 legacy API 退役面，**不得**作为输入通道使用 |
+| ~~weight 面（可选，文件通道 FITS）~~ **已作废** | — | — | **已删面**（DOC-203 / R06，按 §9.73 A44）：阶段一/阶段三**不产生也不消费**权重；HiPS 只存**帧级 SNR** + **稀疏控制点上的绝对 SNR**，权重是**阶段二按天球像素对应帧集合现场算出的派生量**（`ASTROCS_DESIGN.md` §2.1）。该面仅存在于**已作废**的 legacy 文件通道 API `hp_drizzle_run(…, weight_path, …)`（`hp_drizzle_api.h:39,49`；**零生产调用者**，GAP_AUDIT A-04；生产末端 = `hp_drizzle_run_hips`）⇒ 该形参的退役归 legacy API 退役面，**不得**作为输入通道使用 |
 | snr 面（可选，文件通道 FITS） | float32 `[H][W]` | 无量纲 | 读失败 rc=8/9；尺寸不匹配 rc=7/9；非有限/≤0 跳过 |
 
 ### 11.2 输出（HEALPix NESTED tile 产品 + 统计）
@@ -807,12 +807,11 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
   （全局阈值 `median+5·bgnoise` 作用于 σ=2 平滑图 ⇒ 同一场 SNR_peak=20 可检出
   0 星 / SNR_peak=50 检出 36/40，R-3 §2.9/§4.2）。唯一冻结定义与全部门值见
   docs/algorithms/GATES_AND_TOLERANCES.md §2/§3。
-  **2026-09-20 订正（检测范式）**：`sdet_api.cpp` 的全局阈值路径是**第一轮盲解**的实现
-  （全图盲检测 → 粗匹配 → 初解 WCS，只为星表投影提供近似指向；该轮星表**不是**权威
-  科学产品）。**权威检测范式 = 星表引导拟合**（检测定义域是星表位置，用本帧 WCS
-  反向投影 Gaia 星表；拟合成功即星点、失败直接丢弃）——见 `ASTROCS_DESIGN.md`
-  §3.2 `:119-120` / §3.6 `:323-325`；§9.49 定案 1。全图盲检测连通域路径
-  **不是**权威路径（如保留只能作**显式标注的可选诊断**）。
+  **检测范式**：`sdet_api.cpp` 的全局阈值路径是**全图盲检测**的实现
+  （全图盲检测 → 匹配 → 解算；该路径的星表**不是**权威科学产品）。
+  **权威检测范式 = 星表引导拟合**（检测定义域是星表位置，用本帧 WCS
+  反向投影 Gaia 星表；拟合成功即星点、失败直接丢弃）——见 `ASTROCS_DESIGN.md` §4.2。
+  全图盲检测连通域路径 **不是**权威路径（如保留只能作**显式标注的可选诊断**）。
 
 ### 17.3 排序/截断/精度规则（汇总）
 
@@ -2435,12 +2434,76 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   为编排层词汇，由 P3-PROJ-INT 对齐 astrocs.p3.projection，不得
   反向作为冻结依据。
 
+### 28.6 Phase3 逐像素立体角 `Omega` 与采样核版本化 registry（`FZ-P3-OMEGA-NONCONST` / `FZ-P3-KERNEL-REGISTRY` / `FZ-P3-QW-RECOMPUTE` / `FZ-P3-MODES`）
+
+> 条款 ID：`DATA-P3-WCS-OMEGA`　状态：**CONTRACT_READY（V6 合同层自解释合并，DOC-CONTRACT-MERGE-02）**
+> 承载：本小节是 Phase3 逐像素立体角与采样核 registry 合同的唯一权威；条款登记见 §31.10 与
+> `eng/contracts/data/v6_clause_registry_v1.json`；字段级机器门见 §31.6 登记的产品族字段级合同。
+
+**三输出模式（`FZ-P3-MODES`，fail-closed）**
+
+| 模式 | signal 语义 | `measurement_capable` | 门 |
+|---|---|---|---|
+| `surface_brightness` | 行归一面亮度 | 声明测量时必需 variance | 常数场不变量要求行归一；做 flux 换算而无逐像素 `Omega` → REJECT |
+| `point_source_flux` | `Q`/`W`/`flux`/detection | true | 必需 PSF / effective PSF / `Omega` / `a` / `C_y` |
+| `visualization` | 显示拉伸 | **必须 false** | 禁写 VARIANCE/IVAR/POINT_INFORMATION 作测量层 |
+
+模式未声明 → REJECT（`FZ-P3-FAILCLOSED`）；三模式之外无第四态。
+
+**逐像素立体角 `Omega_i`**
+
+```text
+Omega'_i = |det(d(sky)/d(pixel))|_i        （TAN/SIN/CAR/AIT 各由 FITS WCS Paper II 定义）
+CAR 面积元: Omega = s_rad * (sin dec_hi - sin dec_lo)   （仅 |CRVAL2| <= 1e-9（未倾斜）成立）
+AIT 等积:   max/min = 1.00000006
+```
+
+- `phase3.omega` 必须携带 `units="sr"`、`representation`、`required_for`、`projection_id`；
+- `surface_brightness` 做 flux 换算而无逐像素 `Omega` → REJECT；`point_source_flux` 必需 `Omega`；
+- **禁止**用常数 `Omega` 近似冒充逐像素面积元（常数 `Ω` 的 flux 偏差可达 97.5%，属已知失效模式）；
+- CAR 的解析式在 `CRVAL2 != 0` 时不成立（行是倾斜等纬线），此时必须走 Paper II §2.2 三 Euler 角的
+  逐像素 Jacobian，不得沿用解析式。
+
+**采样核版本化 registry（`FZ-P3-KERNEL-REGISTRY`）**
+
+采样核是**产品语义**，由版本化 registry 注册，不得由现码倒推冻结：
+
+| family | 状态要求 | 语义 |
+|---|---|---|
+| `nearest` | 仅 mask/诊断/显式用户选择 | 离散 |
+| `bilinear_4quad` | 须独立 Oracle + 通量/面亮度语义 + 误差/边界定义后注册 | 面亮度（行归一）或通量（列归一） |
+| `higher_order` | 各自注册并带独立 Oracle、误差门、适用域 | 连续场 |
+
+`status != registered` 用于生产、或 `registered` 而无 `oracle_ref`/`boundary_definition` → REJECT。
+variance 传播：`nearest: var_out=u_in`；`bilinear: var_out=Sum_k c_k^2 u_k`（`Σc_k=1` 但 `Σc_k²≠1`，
+**禁止**误用 `Σc_k` 归一 variance）。
+
+**输出帧 Q/W 重算（`FZ-P3-QW-RECOMPUTE`）**
+
+```text
+a = 光度响应尺度;  pi = S p  (输出有效 PSF)
+Q = a * pi^T C_y^-1 f;  W = a^2 * pi^T C_y^-1 pi;  F_hat = Q/W;  Var(F_hat) = 1/W
+```
+
+- **必须**在输出帧以输出有效 PSF 与完整（或带相关核的）`C_y` 重算；**禁止**重采样输入 `Q`/`W`；
+- Phase3 **消费**上游 `W_info`，不重算、不替换；无量纲相对复合权重**不得**写入 ivar/variance；
+- `R` 与匹配滤波不可交换：`W_out != Sum_i (核) W_in,i`；
+- 缺 PSF / PSF 未归一 / 缺 point_information 且不可重建 / 仅对角 covariance 无相关核 / 缺 `a` /
+  未输出 effective PSF → REJECT。
+
+**variance / correlation（沿用 `FZ-FORMULA-COV-PROP`）**
+
+`C_y = R C_x R^T`；`Var(y_i) = Σ_j R_ij² [C_x]_jj + 2 Σ_{j<k} R_ij R_ik [C_x]_jk`。
+现行 `Σ c_k² u_k` 只在输入 `C_x` 对角时严格；Drizzle 输入 `mean|ρ|≈0.19` 下对角省略低估 23.3%，
+对角化后声明的 `1/W_diag` 比真实方差低 28.7%（须被检出，Oracle P3-O5）。
+Phase3 输出 variance BUNIT = (主 HDU signal BUNIT)²，ivar = 1/variance（§31.1 二次律）。
+
 ## 30. Phase2/Phase3 不确定度与 rejection/provenance 产品合同（DATA-UNC-001）
 
 > ID: DATA-UNC-001  状态: FROZEN_TARGET_CONTRACT（DATA-001 冻结 2026-09-09；
 > **上位依据订正 2026-09-16**：原引「宪章 ASTROCS-CONSTITUTION-001
 > §6.1/§6.3/§7.1/§7.3/§16.2/§18.3」在现行活动树中无载体——R-1 §1.4 全文核查
-> 仅旧世代档案（docs/contracts/v6/**）有引注，故改为下列**在役**权威）
+> 仅旧世代档案有引注（该档案树已出库，不再可解析），故改为下列**在役**权威）
 > 上位约束: docs/science/UNCERTAINTY_AND_COVARIANCE.md（Phase2/Phase3 方差与
 > 协方差唯一计算权威）+ docs/science/INTEGRATION.md §5（积分权重=ivar）+
 > docs/science/PHASE3_HIPS_TO_FITS.md §5/§7（采样核与不变量）+ 本节
@@ -2709,19 +2772,17 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
     nrej）的联动扩展约束——任何扩展必须 schema 与 validator 同一提交，
     当前无扩展需求。
 
-## 31. V6 合同层数据合同（DATA-V6-SCHEMA，SCHEMA-INTEGRATE-001/W6 集成；**设计档案 / 产品族专用投影，非生产目标态**）
+## 31. V6 合同层数据合同（DATA-V6-SCHEMA；SCHEMA-INTEGRATE-001/W6 集成，语义已自解释合并进现行合同链）
 
-> 条款 ID：`DATA-V6-SCHEMA`　状态：**设计档案 / 产品族专用投影（非生产目标态）**（DOC-203 / Q2 前置裁决 2026-09-20；原「ACTIVE（V6 目标态集成，2026-09-15）」措辞已**删**）
-> **Q2 落地**：v6 合同层（`docs/contracts/v6/**` 16 篇 + `eng/contracts/schemas/v6/**` 10 件 + `eng/contracts/proposals/v6/**`）
-> **在位保留**（不删交付物；`fail-closed` 语义不变）；生效与退役条件由**变更编号**决定，
-> **不得**用版本号窗口表达（`ASTROCS_DESIGN.md` §12）；v6 内 `weight_mode` 家族已按 §9.73 A44 作废（作废键面：
-> 删键 / 改写 / 加作废留痕；文件本身不删；DOC-201 已落地）。
-> 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/SCHEMA-INTEGRATE-001.md`（Wave 6）
-> 语义权威（唯一）：`docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json`（96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8）。
-> 生产 schema（10 件）：`eng/contracts/schemas/v6/astrocs.v6.*.v1.schema.json`；机器数据字典：`eng/contracts/data/v6_data_dictionary_v1.json`；
-> 单一权重词表：`eng/contracts/data/v6_weight_vocabulary_v1.json`；迁移映射：`eng/contracts/data/v6_migration_map_v1.json`；
-> 正例：`eng/contracts/data/examples/v6/`；验证：`eng/tests/contracts/v6/`（独立 Oracle + 负向 mutation）。
-> 状态语义：`PENDING_OWNER_SIGNOFF` = 条款值与文本唯一确定，但涉及 FROZEN 非 v6 SCI 修订/数值确认，须负责人按 `SO-xx` 签字后方可作为正式修订生效；**生效前相关面 fail-closed，实现不得放宽、任何产物不得写成已冻结**（权威 = docs/contracts/v6/W6_SCHEMA_INTEGRATION.md:101「SO-01..SO-07 全部保持 PENDING_OWNER_SIGNOFF，生效前 fail-closed」+ 冻结 JSON status 词表；**语义不变**）。
+> 条款 ID：`DATA-V6-SCHEMA`　状态：**现行**（V6 合同层语义由本 §31 与 §28.6 承载；变更编号 `CHG-2026-09-22-V6-CONTRACT-MERGE`）
+> **语义权威 = 本 §31 正文**（`ASTROCS_DESIGN.md` §0.1/§0.2）。机器可读登记表 =
+> `eng/contracts/data/v6_clause_registry_v1.json`：登记表承载定义与映射，**不自声为权威**；
+> **不存在第二条权威链**，任何文档不得声明自己的权威顺序或"唯一口径"。
+> 条款注册表、待签登记与开放项见 **§31.10**；Phase3 逐像素立体角与采样核版本化 registry 见 **§28.6**。
+> 字段级机器门：对象级判据落在 `eng/contracts/schemas/unified/*.schema.json` 的 `allOf`；
+> 产品族记录级判据落在 `eng/contracts/schemas/product_family_field_constraints.schema.json`；
+> 正例 `eng/contracts/data/examples/v6/`；验证 `eng/tests/contracts/product_family/`（独立 Oracle + 负向 mutation）。
+> 状态语义：`PENDING_OWNER_SIGNOFF` = 条款值与文本唯一确定，但涉及 FROZEN 非 v6 SCI 修订/数值确认，须负责人按 `SO-01..SO-07` 签字后方可作为正式修订生效；**生效前相关面 fail-closed，实现不得放宽、任何产物不得写成已冻结**（96 条款：FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8；逐条登记见 §31.10）。
 
 ### 31.1 单位表（`FZ-UNIT-*` / `FZ-P3-BUNIT-QUADRATIC`）
 
@@ -2752,17 +2813,18 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 ```
 
 仅写 `ADU` 而无 (b) 声明 = 单位不可判 → 产品标 `unavailable` 或 `REJECT`。`pixel_area_power` canonical 缺省：`signal_sb=-2`、`sb_variance_out=-4`、`sb_ivar_out=+4`、`flux/Q/W_info/psfsw_robust_weight=0`。
-机器强制：`eng/contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json` 的 `allOf/if-then`（`bunit=ADU` ⇒ `pixel_semantics=surface_brightness` 且 `pixel_area_power=-2`；`bunit` 含 `/px^2` ⇒ `pixel_area_power=-2`）；`astrocs.v6.signal.v1.schema.json` 的 `pixel_semantics ↔ pixel_area_power` 自洽门。
+机器强制（canonical 对象层）：`eng/contracts/schemas/unified/provenance.schema.json` 的 `units.allOf/if-then`（`bunit` 含 `/px^2` ⇒ `bunit_semantics=written_px_power` + `pixel_semantics=surface_brightness` + `pixel_area_power=-2`；`bunit_semantics=declared_via_provenance` ⇒ 必需 `target_pixel_area`；`pixel_semantics=integrated_flux` ⇒ `pixel_area_power=0`）；`eng/contracts/schemas/unified/signal.schema.json` 的 `pixel_semantics ↔ pixel_area_power` 自洽门。产品族记录层同判据见 §31.6 登记的产品族字段级合同。
 
-### 31.3 ~~`weight_mode` 三分~~ **已作废** （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（原 `FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE` 随 v6 合同层去留，见 §4.2-Q2）
+### 31.3 ~~`weight_mode` 三分~~ **已作废** （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（原 `FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE` 已随 V6 合同层按 `CHG-2026-09-22-V6-CONTRACT-MERGE` 整体出库；条款去向见 §31.10）
 
 | 面 | 合法值 | 语义 |
 |---|---|---|
-| 生产科学模式 | `point_information` / `surface_gls` / `psfsw_robust` | 配置显式选择，不得自动切换；各自权威式见 §31.5 与 `docs/contracts/v6/frozen/02_WEIGHT_MODE_VOCABULARY.md` |
+| 生产科学模式 | `point_information` / `surface_gls` | 配置显式选择，不得自动切换；各自权威式见 §31.4/§31.5 与 `eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary` |
 | 文档基线模式 | `equal` / `pixel_ivar` | 仅基线比较，**非**科学最优声明 |
 | 延迟模式 | `psf_snr_power` | DEFERRED/NOT_IMPLEMENTED（`FZ-MODE-DEFERRED`），**不进** V6 生产路由（`C-004.1`，本包不解冻） |
+| ~~退役模式~~ | ~~`psfsw_robust`~~ | **已按 §9.73 A44 作废**（退役留痕，PSFSW-RETIRE-01/03）：它是退役对象 `psfsw_robust_weight` 的声明 token，**不在**生产接受集（`FZ-MODE-PRODUCTION = {point_information, surface_gls}`）；旧产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），不得静默接受。依据：`ASTROCS_DESIGN.md` §3.1（订正后：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）、`docs/design/UNIFIED_MODEL.md:58`、负责人 2026-09-20 裁决 B（`CHG-2026-09-20-PSFSW-RETIRE`）与 §9.73 裁决 A44。机器登记：`eng/contracts/data/v6_clause_registry_v1.json#weight_modes.retired`（`_psfsw_retirement_note`）与 `#a44_deprecation.psfsw_retire_03_correction`。 |
 
-**legacy 整数处置**（`FZ-FIELD-WEIGHTMODE`；`ADJ-S1`；迁移映射 `eng/contracts/data/v6_migration_map_v1.json#legacy_weight_mode_disposition`；（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））：
+**legacy 整数处置**（`FZ-FIELD-WEIGHTMODE`；`ADJ-S1`；迁移映射 `eng/contracts/data/v6_clause_registry_v1.json#migration_map.legacy_weight_mode_disposition`；（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））：
 `0=support×snr²` **必须拒绝**（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）；`1 → equal`；`2 → pixel_ivar`（两者仅作文档基线对照）。
 生产枚举出现 `psf_snr_power` / `auto` / `support_x_snr2` / `0` / 未知值 → REJECT。历史 `ASTROCS_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，不得反向定义生产枚举。
 
@@ -2777,7 +2839,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | 归一域 | `normalization.scope` | `group_normalized` | `weight.group_normalized` | psfsw: `true`（`scope="group"` 同步） |
 | 组内 median 目标 | `normalization.median_target` | `group_normalized=true (median=1)` | `weight.normalization.median_target` | `1.0` |
 
-机器事实源：`eng/contracts/data/v6_weight_vocabulary_v1.json`（另有 `forbidden_third_vocabulary_tokens` 与双向映射）。第三套名（`weight_normalized`/`normalization_scope`/…）→ REJECT。
+机器事实源：`eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary`（含 `canonical_fields`、`dual_mapping`、`legacy_integer`、`forbidden_third_vocabulary_tokens`）。第三套名（`weight_normalized`/`normalization_scope`/…）→ REJECT。
 
 ### 31.5 provenance 最小集（`FZ-PROV-MINIMAL-SET`，FROZEN；缺键即 REJECT）
 
@@ -2787,31 +2849,26 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 ~~`weight_mode_version`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量）、`correlation_summary`、`flux_conservation_factor`、`k_corr`（定义/值/适用域/标定）、`generated_utc`、`output_hash`。
 `unavailable.{flag,reason,scope}` 必填；禁止占位、静默缺键、空输出冒充完成。`k_corr.value = 1` 忽略相关 → REJECT（`FZ-PROV-KCORR`）；`k_corr` 缺适用域/标定脚本/固定种子或跨域外推 → REJECT。
 
-### 31.6 对象 schema 索引（生产）
+### 31.6 字段级合同索引（生产）
 
-| schema `$id` | 文件 | 覆盖条款 |
-|---|---|---|
-| `astrocs.v6.units/v1` | `eng/contracts/schemas/v6/astrocs.v6.units.v1.schema.json` | `FZ-UNIT-*`、`FZ-BUNIT-SEMANTICS`、`FZ-P3-BUNIT-QUADRATIC` |
-| `astrocs.v6.signal/v1` | `.../astrocs.v6.signal.v1.schema.json` | `FZ-FORMULA-DRIZZLE-SB`、`FZ-GATE-CONST-SB`、`FZ-COND-FLUX-CONSERV`、`FZ-DEGRADE-SCALAR` |
-| `astrocs.v6.covariance/v1` | `.../astrocs.v6.covariance.v1.schema.json` | `FZ-FORMULA-COV-PROP`、`FZ-FORMULA-GLS`、`FZ-GATE-PIXIVAR-APPROX`、`FZ-GATE-PARENT-VAR`、`FZ-PROV-SHARED-SYSTEMATIC` |
-| `astrocs.v6.psf/v1` | `.../astrocs.v6.psf.v1.schema.json` | `FZ-COND-WHITENOISE`、`FZ-GATE-MEDIAN-SNR`、`FZ-GATE-SUPPORT-COVERAGE` |
-| `astrocs.v6.effective-psf/v1` | `.../astrocs.v6.effective-psf.v1.schema.json` | `FZ-GATE-PSFSW-EPSF`、`FZ-P3-FAILCLOSED` |
-| `astrocs.v6.point-information/v1` | `.../astrocs.v6.point-information.v1.schema.json` | `FZ-FORMULA-WINFO/Q/FHAT`、`FZ-UNIT-WINFO`、`FZ-COND-WHITENOISE` |
-| `astrocs.v6.weight-mode/v1` | `.../astrocs.v6.weight-mode.v1.schema.json` | `FZ-MODE-*`、`FZ-FIELD-WEIGHTMODE`、`FZ-GATE-MEDIAN-SNR` |
-| `astrocs.v6.psfsw/v1` | `.../astrocs.v6.psfsw.v1.schema.json` | `FZ-FIELD-PSFSW-4COMP`/`-UNIT`、`FZ-FORMULA-PSFSW-COMPOSITE`、`FZ-GATE-PSFSW-FAILCLOSED`/`-COV`/`-EPSF` |
-| `astrocs.v6.provenance/v1` | `.../astrocs.v6.provenance.v1.schema.json` | `FZ-PROV-MINIMAL-SET`、`FZ-PROV-SHARED-SYSTEMATIC`、`FZ-PROV-KCORR`、`FZ-DEGRADE-SCALAR` |
-| `astrocs.v6.phase3/v1` | `.../astrocs.v6.phase3.v1.schema.json` | `FZ-P3-MODES`、`FZ-P3-FAILCLOSED`、`FZ-P3-QW-RECOMPUTE`、`FZ-P3-KERNEL-REGISTRY` |
+两层落点，判据强度不因承载页变化而降低：
 
-全部 10 件通过 JSON Schema 2020-12 meta-schema 校验；正例集 `eng/contracts/data/examples/v6/` 逐条结构校验通过（详见 `eng/tests/contracts/v6/evidence/rc_summary.json`）。
+| 层 | schema `$id` | 文件 | 覆盖条款 |
+|---|---|---|---|
+| canonical 对象层 | `https://astrocs.local/schemas/unified/provenance/v1` 等 13 个 | `eng/contracts/schemas/unified/<对象名>.schema.json` 的 `allOf` | `FZ-BUNIT-SEMANTICS`、`FZ-PROV-KCORR`/`FZ-PROV-KCORR-VALUE`、`FZ-FORMULA-COV-PROP`、`FZ-GATE-PARENT-VAR`、`FZ-UNIT-WINFO`、`FZ-GATE-PSFSW-COV` |
+| 产品族记录层 | `https://astrocs.local/schemas/product_family/field_constraints/v1` | `eng/contracts/schemas/product_family_field_constraints.schema.json`（`$defs` 逐件） | `FZ-UNIT-*`、`FZ-P3-BUNIT-QUADRATIC`、`FZ-FORMULA-DRIZZLE-SB`/`-VAR`、`FZ-GATE-CONST-SB`、`FZ-COND-FLUX-CONSERV`、`FZ-DEGRADE-SCALAR`、`FZ-FORMULA-COV-PROP`、`FZ-FORMULA-GLS`、`FZ-GATE-PIXIVAR-APPROX`、`FZ-PROV-SHARED-SYSTEMATIC`、`FZ-FORMULA-WINFO/Q/FHAT`、`FZ-COND-WHITENOISE`、`FZ-GATE-MEDIAN-SNR`、`FZ-GATE-SUPPORT-COVERAGE`、`FZ-FIELD-PSFSW-4COMP`/`-UNIT`、`FZ-FORMULA-PSFSW-COMPOSITE`、`FZ-GATE-PSFSW-FAILCLOSED`/`-COV`/`-EPSF`、`FZ-MODE-*`、`FZ-FIELD-WEIGHTMODE`、`FZ-PROV-MINIMAL-SET`、`FZ-P3-MODES`、`FZ-P3-FAILCLOSED`、`FZ-P3-QW-RECOMPUTE`、`FZ-P3-KERNEL-REGISTRY` |
+
+产品族记录层的 `$defs` 逐件对应 `units`/`signal`/`covariance`/`psf`/`effective-psf`/`point-information`/`weight-mode`/`psfsw`/`provenance`/`phase3` 十类记录，字段级判据逐条保留（`if/then` 量纲可判、`propertyNames.not.enum` 禁止键、`const` 单位锚、`required` 最小集、`pattern` 收紧）。全部 schema 通过 JSON Schema 2020-12 meta-schema 校验；正例集 `eng/contracts/data/examples/v6/` 逐条结构校验通过（证据 `eng/tests/contracts/product_family/evidence/rc_summary.json`）。
 
 ### 31.7 PSFSW 四分量与 concentration 单位唯一权威（`FZ-FIELD-PSFSW-4COMP`，FROZEN）
 
 四分量分别落产品、`measurement_id` 互异、各带 `p05/p50/p95` + 有效覆盖：`psfsw.signal` / `psfsw.concentration` / `psfsw.noise` / `psfsw.background`（缺分量、塌陷、`p05>p50>p95` → REJECT）。
 单位一致性：`signal/noise/background` 共享组内常量 `component_flux_unit`（显式声明），
 **`concentration` 单位以 `component_flux_unit/px^2` 为唯一权威**（`A_NEA = 1/ΣP²`，单位 `px^2`）。
-`docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md` §4.2 表中把 concentration 写作 `ADU/px` 属**登记在案的文本错误**，已由 **DOC-CONVERGE-001（W12）** 订正为 `ADU/px²`（依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + `eng/contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json` 的 `concentration.units` 收紧 pattern，`A_NEA=px²`；订正登记见 `reports/v6/release-review/01_CONVERGENCE_CORRECTIONS.md`，不改任何冻结公式/容差/门）；生产 schema 合法域与数据字典**不采纳** `ADU/px`，`eng/contracts/proposals/v6/data/examples/psfsw.example.json` 中的同名写法已在生产正例 `eng/contracts/data/examples/v6/psfsw.example.json` 修正为 `ADU/px^2`。PSFSW 复合权重 `W_psfsw` 由组内比值定义，严格无量纲（`units="1"`，`group_normalized=true`，`normalization.scope="group"`），禁止写成 ivar/Fisher/W_info（禁止键 `ivar/variance/sigma/fisher/w_info/w_psf/…` 由 schema `propertyNames` 守卫）。
+concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` 是唯一合法写法（依据 `FZ-FIELD-PSFSW-4COMP` + `ALG-P2-PSFSW-001` 单位一致性规则 + `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `concentration.units` 收紧 pattern，`A_NEA=px²`）；合法域**不含** `ADU/px`，登记对象（原 v6 Phase1 算法规格 §4.2 四分量表，已出库）不得被静默采纳，登记块见 `eng/contracts/data/v6_clause_registry_v1.json#concentration_unit_authority`。生产正例 `eng/contracts/data/examples/v6/psfsw.example.json` 的写法为 `ADU/px^2`。PSFSW 复合权重 `W_psfsw` 由组内比值定义，严格无量纲（`units="1"`，`group_normalized=true`，`normalization.scope="group"`），禁止写成 ivar/Fisher/W_info（禁止键 `ivar/variance/sigma/fisher/w_info/w_psf/…` 由 schema `propertyNames` 守卫）。
+**已按 §9.73 A44 作废**（退役留痕，PSFSW-RETIRE-03）：`W_psfsw` 的**对象身份** `psfsw_robust_weight` 已退役（§31.1 OBSOLETE 行、§31.3 退役模式行；`ASTROCS_DESIGN.md` §3.1 订正后：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）。因此本节的四分量与复合式**只作历史/诊断面**：Phase1 产品**不再需要**携带该对象声明（`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/psfsw` 的 `weight_mode`/`weight` 已移出 `required`），旧产品仍携带者按退役/迁移情形**显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），`W_psfsw` **不得**进入科学叠加权重。
 
-### 31.8 fail-closed 摘要（完整表见 `eng/contracts/data/v6_data_dictionary_v1.json#fail_closed`）
+### 31.8 fail-closed 摘要（完整表见 `eng/contracts/data/v6_clause_registry_v1.json#fail_closed`）
 
 | 违例 | 处置 | 门 |
 |---|---|---|
@@ -2829,5 +2886,135 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 - **不得重新引入**：本次集成保持控制器 `ac04289d` 固化的两处回退态——不在本文 §12.2 / §13.4 / §13.5 / §27 重新加回被回退的帧级单一 SNR 系数落位段或「生产路径不消费的参数登记」节；帧级 `median(SNR_F)` 只登记为诊断/深度表达（`C-004.2`），不得接入任何权重面。
 - `DI-06`（`eng/contracts/data/phase_product_exchange.schema.json` science plane 枚举扩展与 runtime validator 同一提交；`F-UNC-003`）**保持 OPEN**：runtime validator 不在本任务写域，故本次**未**修改 exchange plane 枚举。
 - `SO-01`..`SO-07` 的 49 条 `PENDING_OWNER_SIGNOFF` 与 8 条 `OPEN` **保持原状态并 fail-closed**；本集成不使任何待签条款生效、不改冻结公式/容差/门。
-- 上游：`ASTROCS_DESIGN.md` §0/§1/§2/§9/§11/§12；`docs/owner/PROJECT_SPEC.md` §3/§4/§5/§7/§11；`docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md`；`docs/science/UNIFIED_SCIENCE_MODEL.md`；`docs/science/PSF_SIGNAL_WEIGHT.md`；`docs/science/v6/frozen/01_SEMANTIC_FREEZE.md`。
-- 消费面（配置/CLI 语义）见 `docs/contracts/PUBLIC_API.md`「V6 消费面：显式 `weight_mode` 与权重对象」（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；集成登记见 `docs/contracts/v6/W6_SCHEMA_INTEGRATION.md`。
+- 上游：`ASTROCS_DESIGN.md` §0/§1/§2/§9/§11/§12；`docs/owner/PROJECT_SPEC.md` §3/§4/§5/§7/§11；`docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md`；`docs/science/UNIFIED_SCIENCE_MODEL.md`；`docs/science/PSF_SIGNAL_WEIGHT.md`；`docs/design/UNIFIED_MODEL.md`。
+- 消费面（配置/CLI 语义）见 `docs/contracts/PUBLIC_API.md`「V6 消费面：显式 `weight_mode` 与权重对象」（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）；兼容期映射与归属登记见 `docs/contracts/UNIFIED_OBJECTS.md` §4。
+
+### 31.10 V6 条款注册表与待签登记（`DATA-V6-SCHEMA-REGISTRY`）
+
+> 机器可读登记表：`eng/contracts/data/v6_clause_registry_v1.json`（`registry_id=V6-CLAUSE-REGISTRY-001`）。
+> 本节是条款注册表、签字项与开放项的**正文承载页**；登记表承载定义与映射，语义权威在本节与 §31 其余小节。
+> 96 条款状态计数：**FROZEN 39 / PENDING_OWNER_SIGNOFF 49 / OPEN 8**（`clauses_total=96`；数值阈值条款 54、登记开放项 27、签字项 7、被取代节 10）。
+
+**状态语义（三态封闭）**
+
+| 状态 | 含义 | 生产面处置 |
+|---|---|---|
+| `FROZEN` | 条款值与文本唯一确定，已冻结 | 生产实现与产物必须逐条满足 |
+| `PENDING_OWNER_SIGNOFF` | 值与文本唯一确定，但涉及 FROZEN 非 v6 SCI 修订/数值确认，须负责人按 `SO-xx` 签字后方可作为正式修订生效 | **fail-closed**：实现不得放宽，任何生产 artifact 不得把它写成 `FROZEN` |
+| `OPEN` | 尚未冻结（数值待定或数据面待实例化） | 不得作为生产判据；引用处必须显式标注 pending |
+
+**49 条 `PENDING_OWNER_SIGNOFF` 条款（id）**
+
+  `CF-T-CONST-SB-TOL`、`FZ-AP1-DEFICIT-THRESH`、`FZ-AP2PT-CORR-RATIO-MIN`、`FZ-AP2PT-SNR-IDENT-RTOL`
+  `FZ-AP2S-EPS-PIXIVAR`、`FZ-AP2S-EPS-PIXIVAR-SUP`、`FZ-AP2S-EPSF-RTOL`、`FZ-AP2S-IDENT-RTOL`
+  `FZ-AP2S-KAPPA-MAX`、`FZ-AP2S-MC-RELTOL`、`FZ-AP2S-RANK-RTOL`、`FZ-AP2S-REJ-BSS-MIN`
+  `FZ-AP2S-REJ-CALIB-ABS`、`FZ-AP2S-REJ-CALIB-BINMIN`、`FZ-AP2S-UPM-MINFRAMES`、`FZ-BUNIT-SEMANTICS`
+  `FZ-COND-FLUX-CONSERV`、`FZ-FORMULA-DRIZZLE-SB`、`FZ-FORMULA-DRIZZLE-VAR`、`FZ-GATE-CONST-SB`
+  `FZ-GATE-PARENT-VAR`、`FZ-PROV-KCORR-VALUE`、`FZ-UNIT-IVAR-SB`、`FZ-UNIT-VAR-IN`
+  `FZ-UNIT-VAR-SB`、`PSFSW-BASELINE-NONINFERIOR`、`PSFSW-COMPOSITE-ALPHA`、`PSFSW-COMPOSITE-BETA`
+  `PSFSW-COMPOSITE-CNORM`、`PSFSW-COMPOSITE-DELTA`、`PSFSW-COMPOSITE-FLOOR`、`PSFSW-COMPOSITE-GAMMA`
+  `PSFSW-T-BOOT`、`PSFSW-T-CI`、`PSFSW-T-COVMC`、`PSFSW-T-DEPTH`
+  `PSFSW-T-DEPTH-K`、`PSFSW-T-DEPTH-RHO`、`PSFSW-T-DEPTH-SPAN`、`PSFSW-T-EPSFTOL`
+  `PSFSW-T-FLUXBIAS`、`PSFSW-T-NMIN`、`PSFSW-T-NPREF`、`PSFSW-T-NROBUST`
+  `PSFSW-T-NU`、`PSFSW-T-NU-LOW`、`PSFSW-T-POWERLOSS`、`PSFSW-T-TREND`
+  `PSFSW-T-WRANGE`
+
+**8 条 `OPEN` 条款（id）**
+
+  `CF-T-P3-CORR-EPSILON`、`QF-G-BASE-03`、`QF-G-INJ-01`、`QF-G-INJ-02`
+  `QF-G-INJ-03`、`QF-G-INJ-07`、`QF-G-RD-01`、`QF-G-RD-02`
+
+**39 条 `FROZEN` 条款（id）**
+
+  `FZ-AP1-GLS-QW-RTOL`、`FZ-CAL-FLOOR`、`FZ-CAL-QUANTUM-DEFAULT`、`FZ-COND-WHITENOISE`
+  `FZ-DEGRADE-SCALAR`、`FZ-FIELD-PSFSW-4COMP`、`FZ-FIELD-PSFSW-UNIT`、`FZ-FIELD-WEIGHTMODE`
+  `FZ-FORMULA-COV-PROP`、`FZ-FORMULA-FHAT`、`FZ-FORMULA-GLS`、`FZ-FORMULA-PSFSW-COMPOSITE`
+  `FZ-FORMULA-Q`、`FZ-FORMULA-WINFO`、`FZ-GATE-MEDIAN-SNR`、`FZ-GATE-PIXIVAR-APPROX`
+  `FZ-GATE-PSFSW-COV`、`FZ-GATE-PSFSW-EPSF`、`FZ-GATE-PSFSW-FAILCLOSED`、`FZ-GATE-SUPPORT-COVERAGE`
+  `FZ-MODE-BASELINE`、`FZ-MODE-DEFERRED`、`FZ-MODE-PRODUCTION`、`FZ-P3-BUNIT-QUADRATIC`
+  `FZ-P3-FAILCLOSED`、`FZ-P3-KERNEL-REGISTRY`、`FZ-P3-MODES`、`FZ-P3-OMEGA-NONCONST`
+  `FZ-P3-QW-RECOMPUTE`、`FZ-PROV-KCORR`、`FZ-PROV-MINIMAL-SET`、`FZ-PROV-SHARED-SYSTEMATIC`
+  `FZ-REJ-INHERITED-THRESH`、`FZ-UNIT-FLUX`、`FZ-UNIT-PSFSW`、`FZ-UNIT-Q`
+  `FZ-UNIT-SIGNAL-SB`、`FZ-UNIT-WINFO`、`FZ-UPM-CONVERGENCE`
+
+**签字项 `SO-01`..`SO-07`（全部 `PENDING_OWNER_SIGNOFF`）**
+
+| id | 主题 | 签字理由 | 签字人 |
+|---|---|---|---|
+| `SO-01` | F-OBS-01 DRIZZLE §3 术语/单位修正 | FROZEN SCI 术语修正 | 项目负责人 + CONTRACT-FREEZE-001 |
+| `SO-02` | F-OBS-02 / S2 面亮度归一改为 (B) 面亮度保持 | FROZEN DRIZZLE.md §5/§7/§11 公式变更 + 重跑全部 Drizzle 不变量/variance 门 | 项目负责人 + CONTRACT-FREEZE-001 |
+| `SO-03` | S3 常量场 Oracle 判据取代 DRIZZLE §11 | FROZEN 判据取代登记 | 项目负责人 + CONTRACT-FREEZE-001 |
+| `SO-04` | AR-030/AR-031 协方差产品非目标声明取代 | FROZEN DRIZZLE §1/§9a 取代登记 | 项目负责人 + CONTRACT-FREEZE-001 |
+| `SO-05` | AR-036/AR-019/AR-026 宪章 §10.5/§17.6 记录/裁决分离 | 宪章修订须负责人签字；不得由 Agent 放宽 | 项目负责人 |
+| `SO-06` | AR-032 非 v6 SCI 迁移/取代清单 | 跨文档权威裁定与 DOC-CONVERGE 收口 | 项目负责人 + CONTRACT-FREEZE-001 + DOC-CONVERGE-001 |
+| `SO-07` | F-OBS-03/F-OBS-04/F-OBS-05 的数值阈值/数据面/标定 | 误差门数值、低秩数据面、k_corr 标定脚本须 W3/W4 冻结并由负责人确认 | ALG-P1-001/ALG-P2-UPM-001/CONTRACT-FREEZE-001 + 负责人 |
+
+**开放项登记（`DI`/`OI`/`OPEN-P2S`/`PF`/`AR`/`P3-OPEN`）**
+
+| id | 主题 |
+|---|---|
+| `DI-01` | schema 词表单一化（SCI-PSFW 词表 vs SCI-P2 词表 → 单一 schema） |
+| `DI-02` | 数值阈值：surface_gls epsilon / HiPS deficit / PSFSW 指数与归一常数 / 共同星集深度稳定性阈值 |
+| `DI-03` | shared systematic 的低秩/相关核数据面实例化 |
+| `DI-04` | k_corr 标定脚本 + 固定种子 MC 复跑 |
+| `DI-05` | AR-048 参数生效证明（参数被记录 ≠ 生效） |
+| `DI-06` | 生产 schema plane 枚举扩展与 runtime validator 同一提交（F-UNC-003） |
+| `DI-07` | weight_units 字面量 "1"(冻结) vs dimensionless_relative(SCI-P2 R5) 的 W6 双射落定 |
+| `OI-01` | Phase1 单帧无法形成帧组：四分量+未归一 Wt+归一契约归 Phase1，组内 median=1 归 Phase2；接口拆分须 W4 批准 |
+| `OI-02` | DESIGN-P1 §4.2 的 V_b + α²V_b 与同 master_id 的 (1−α)² 合并关系 |
+| `OI-03` | SCI-CAL-001 §9a/§1『不传播 variance / 不建模 gain-readnoise』与 V6 目标冲突（取代登记） |
+| `OI-04` | docs/**/v6/** 未登记进 docs/DOCUMENT_INDEX.yaml；check_doc_index.py docs_fully_covered 现为红 |
+| `OI-05` | common star set n_common 下限、selection bias 深度稳定性阈值、四分量非均匀拆 tile 阈值未冻结 |
+| `OPEN-P2S-01` | point_source 产品规范输出形态（map vs statistic） |
+| `OPEN-P2S-02` | UPM 乘法尺度 g_k 的生产数据面/schema 与空间模型表示 |
+| `OPEN-P2S-03` | 跨帧完整联合 C 的低秩/相关核表示 |
+| `P3-OPEN-EPSILON-CORR` | Phase3 相关核近似误差阈值 epsilon_corr 具体数值 |
+| `PF-01` | G-INJ-01 注入源 flux bias 容差（设计默认 2% 未冻结） |
+| `PF-02` | G-INJ-02 扩展源三量一致性容差（设计默认 3% 未冻结） |
+| `PF-03` | G-INJ-03 W_info 注入恢复容差（建议 5% 未冻结） |
+| `PF-04` | G-INJ-07 Phase3 flux 恢复容差（设计默认 2% 未冻结） |
+| `PF-05` | G-RD-01 真实数据 M42 接缝/噪声清单门（W10 预注册冻结） |
+| `PF-06` | G-RD-02 真实数据银心清单门（W10 预注册冻结） |
+| `PF-07` | G-BASE-03 psfsw 基线比较效应量与 CI（预注册冻结） |
+| `AR-032-GAP` | 非 v6 docs/science/*.md 在 W1–W8 无 owner；正式取代归 DOC-CONVERGE-001 |
+| `AR-034-GAP` | 7 项历史 CI 红无 V6 逐名验收锚（建议 RUNTIME-CI-001 逐名登记终态） |
+| `AR-035-GAP` | 785 合并层缺陷账本无销账任务（只登记，处置权在控制器/负责人） |
+| `AR-036-SIGNOFF` | 宪章 §10.5/§17.6『记录 vs 自动判决』需负责人签字（V6 无承载） |
+
+**控制器专属事项（只登记，处置权在控制器/负责人）**
+
+| id | 主题 | 裁决人 | 引用 |
+|---|---|---|---|
+| `CTRL-F1` | F1 工作树不等于 HEAD (16 回退 + 10 删除) | 控制器 | C-004.6 |
+| `CTRL-AR033` | 根构建面 (CMakeLists) 无 V6 owner | 控制器 | C-004.4 |
+| `CTRL-AR034` | 7 项历史 CI 红 | 控制器/DOC-CONVERGE-001/RUNTIME-CI-001 | AR-034 |
+| `CTRL-AR035` | 785 缺陷账本无销账任务 | 控制器 | AR-035 |
+| `CTRL-AR036` | 宪章修订签字项 | 项目负责人 | AR-036 |
+
+**被取代节（`SUP-01`..`SUP-10`，逐条带 `superseded_by` 与 `signoff`）**
+
+| id | 被取代文档 | 节 | 取代条款 | 签字 |
+|---|---|---|---|---|
+| `SUP-01` | `SCI-DRZ-001` | §3 物理量和单位 | `FZ-UNIT-VAR-IN`、`FZ-UNIT-VAR-SB`、`FZ-UNIT-IVAR-SB`、`FZ-BUNIT-SEMANTICS` | SO-01 |
+| `SUP-02` | `SCI-DRZ-001` | §5 权重与归一 / §7 不变量 | `FZ-FORMULA-DRIZZLE-SB`、`FZ-FORMULA-DRIZZLE-VAR`、`FZ-COND-FLUX-CONSERV` | SO-02 |
+| `SUP-03` | `SCI-DRZ-001` | §11 验收门 | `FZ-GATE-CONST-SB` | SO-03 |
+| `SUP-04` | `SCI-DRZ-001` | §1 目的与非目标 / §9a 专属问题 | `FZ-GATE-PARENT-VAR`、`FZ-FORMULA-COV-PROP`、`FZ-PROV-SHARED-SYSTEMATIC` | SO-04 |
+| `SUP-05` | `SCI-CW-001..008` | § 像素级 SNR 权重（weight_mode=2）（已按 §9.73 A44 作废：该概念不存在） | `FZ-MODE-PRODUCTION`、`FZ-FIELD-WEIGHTMODE`、`FZ-GATE-SUPPORT-COVERAGE`、`FZ-GATE-MEDIAN-SNR` | SO-06 |
+| `SUP-06` | `SCI-ACR-EQUIV-001` | §4 GPU 合同 | `FZ-FIELD-WEIGHTMODE`、`FZ-MODE-PRODUCTION` | SO-06 |
+| `SUP-07` | `SCI-INT-001` | §1 目的与非目标 | `FZ-FORMULA-COV-PROP`、`FZ-GATE-PARENT-VAR` | SO-04/SO-06 |
+| `SUP-08` | `SCI-CAL-001` | §1 目的与非目标 / §9a 专属问题 | `FZ-PROV-SHARED-SYSTEMATIC`、`FZ-FORMULA-COV-PROP` | SO-06 |
+| `SUP-09` | `SCI-P3-001` | §1 范围与非目标 / §3 输出投影 | `FZ-P3-MODES`、`FZ-P3-FAILCLOSED`、`FZ-UNIT-IVAR-SB` | SO-06 |
+| `SUP-10` | `UNCERTAINTY_AND_COVARIANCE(V19R3)` | §V19R3 control estimator 方差 | `FZ-PROV-KCORR`、`FZ-GATE-PARENT-VAR` | SO-06/SO-07 |
+
+**fail-closed 策略**：`PENDING_OWNER_SIGNOFF` 条款保持 pending 并 fail-closed，任何生产 artifact 不得将其写成
+`FROZEN`；缺项 / 枚举越界 / 单位不一致 / 待签写成已冻结 / 诊断量进权重面 → 判红。判据由
+`eng/tests/contracts/product_family/` 的独立 Oracle 与负向 mutation 证明"能红"。
+
+**集成与迁移登记（`DATA-V6-SCHEMA-INTEGRATION`）**：`MIG-WEIGHTMODE-LEGACY`、`MIG-UNITS-PXVARIANCE`、
+`MIG-NORM-DRIZZLE`、`MIG-PSFSW-VOCAB`、`MIG-COVARIANCE-PRODUCT`、`MIG-DIAGNOSTIC-NOT-WEIGHT`、
+`MIG-SCHEMA-OWNER` 七条目录级迁移的逐条落点见 `eng/contracts/data/v6_clause_registry_v1.json#migration_map`；
+`DI-06`（生产 schema plane 枚举扩展与 runtime validator 同一提交）保持 `OPEN`（见 §31.9）；
+`SO-01` 及其余六条签字项保持 `PENDING_OWNER_SIGNOFF`（见上表）。
+
+**上游**：`ASTROCS_DESIGN.md` §0/§12；`docs/contracts/DATA_SEMANTICS.md` §31.1–§31.9、§28.6；
+`docs/design/UNIFIED_MODEL.md` §2；`docs/science/PSF_SIGNAL_WEIGHT.md`；`docs/contracts/UNIFIED_OBJECTS.md` §4。

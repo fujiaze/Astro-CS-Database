@@ -7,10 +7,11 @@
 > 裁决 B；变更 claim `CHG-2026-09-20-PSFSW-RETIRE`；退役记录
 > `eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries`）。上位正本 =
 > `docs/design/UNIFIED_MODEL.md` §2。
-> ② **V6 合同层在位保留**，身份归一为「**设计档案 / 产品族专用投影（非生产目标态）**」——
-> 原「ACTIVE / 生产目标态」措辞已删；生效与退役条件由**变更编号**决定，**不得**用版本号窗口表达
-> （`ASTROCS_DESIGN.md` §12）。
-> ③ v6 内的 `weight_mode` 家族已按 §9.73 A44 作废（作废键面：删键 / 改写 / 加作废留痕；文件本身不删；DOC-201 已落地）。
+> ② **V6 合同层的语义已自解释合并进现行合同链**（`CHG-2026-09-22-V6-CONTRACT-MERGE`）：条款注册表见
+> `docs/contracts/DATA_SEMANTICS.md` §31.10，字段级判据落点见本文 §4；生效与退役条件由**变更编号**决定，
+> **不得**用版本号窗口表达（`ASTROCS_DESIGN.md` §12）。
+> ③ v6 内的 `weight_mode` 家族已按 §9.73 A44 作废（作废键面：删键 / 改写 / 加作废留痕），作废留痕见
+> `docs/contracts/DATA_SEMANTICS.md` §31.3。
 
 - 文档 ID：`IDX-UNIFIED-OBJECTS`（机器索引：`docs/contracts/unified_object_registry.json`）
 - 任务：`DATA-001`　基线 HEAD：`ecf6ad6f`
@@ -75,38 +76,32 @@ UNIFIED_MODEL §2 末条：**禁止**用一个模糊的 `weight/value/mask/snr` 
 | ③ `coverage` 当 `rejection` | `eng/contracts/schemas/unified/negative/n3_coverage_as_rejection.schema-violation.json` | `rejection.schema.json` 的 `unified_object` / `pollution_inference` |
 | ④ 跨对象错误连接（`source_snr` 接进要求 `variance` 的端口） | `eng/contracts/schemas/unified/negative/n4_source_snr_into_variance_port.schema-violation.json` | `unified_object_registry.json#port_contract` 的 `accepts_object` / `accepts_schema_id` / `connected_object_document` |
 
-## 4. 兼容期映射与废弃时间点
+## 4. 归属归一与产品族字段级约束落点
 
-基线（`ecf6ad6f`）实测：合同分散在 `eng/contracts/data/**`（10 文件）、`eng/contracts/schemas/v6/**`（10 件产品族 schema）、`eng/contracts/schemas/*.schema.json`（6 件根合同）；文档面 `docs/contracts/{DATA_SEMANTICS.md,DATA_ARTIFACTS.md,INDEX.yaml}` 与 `docs/contracts/v6/**`（11 篇）并存两套口径（GAP-007）。本次迁移只做**归属归一与索引**：
+`eng/contracts/schemas/` 是数据合同的**唯一事实源**。对象身份/单位/无效值/精度/可否作权重一律以
+`eng/contracts/schemas/unified/` 的 13 个 canonical 对象 schema 为准；任何其它 schema 只能是
+「产品族专用投影」或「兼容期映射」，必须在 `docs/contracts/unified_object_registry.json#canonical_object_classes`
+登记归属，且不得与 canonical 重复定义对象判别字段（除 `schema_version` 外 required/properties 词表不得重叠）。
 
-| 旧路径 | 新路径（canonical 或索引） | 归属类型 | 废弃登记（**变更编号**） | 退役条件（**变更编号 / 日期**） |
-|---|---|---|---|---|
-| `eng/contracts/data/v6_data_dictionary_v1.json` | `eng/contracts/schemas/unified/` | data_dictionary_index | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `eng/contracts/data/v6_weight_vocabulary_v1.json` | `eng/contracts/schemas/unified/` | weight_vocabulary | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `eng/contracts/data/v6_migration_map_v1.json` | `docs/contracts/unified_object_registry.json#deprecation` | migration_map | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `eng/contracts/schemas/v6/astrocs.v6.signal.v1.schema.json` | `eng/contracts/schemas/unified/signal.schema.json` | object_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `eng/contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json` | `eng/contracts/schemas/unified/variance.schema.json` | object_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `eng/contracts/schemas/v6/astrocs.v6.covariance.v1.schema.json` | `eng/contracts/schemas/unified/ivar.schema.json` | object_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `eng/contracts/schemas/v6/astrocs.v6.psfsw.v1.schema.json` | ~~`eng/contracts/schemas/unified/psfsw_robust_weight.schema.json`~~ **canonical 已退役**（负责人 2026-09-20 裁决 B，14→13；GAP_AUDIT §4.5 C01） | object_contract（**v6 提案归档**；canonical 目标已删除） | CHG-2026-09-20-PSFSW-RETIRE | 不适用（目标对象已真删；v6 件按 Q2 裁决**在位保留**为设计档案） |
-| `eng/contracts/schemas/v6/astrocs.v6.point-information.v1.schema.json` | `eng/contracts/schemas/unified/point_information.schema.json` | object_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `eng/contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json` | `eng/contracts/schemas/unified/provenance.schema.json` | object_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `eng/contracts/data/phase2_uncertainty_rejection_provenance_v1.json` | `eng/contracts/schemas/unified/rejection.schema.json` | product_contract | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `eng/contracts/data/phase_product_exchange.schema.json` | `docs/contracts/unified_object_registry.json#port_contract` | exchange_planes | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `eng/contracts/proposals/v6/data/` | `eng/contracts/schemas/unified/` | proposal_design_archive | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
-| `docs/contracts/v6/data/` | `docs/contracts/UNIFIED_OBJECTS.md` | human_readable_design_archive | CHG-2026-09-16-DATA001 | 待定变更编号（**禁止**用版本号窗口表达；Q2 裁决 2026-09-20） |
+V6 合同层的语义已按 `CHG-2026-09-22-V6-CONTRACT-MERGE` **自解释合并进现行合同链**，其字段级判据按两层落点承载，判据强度不变：
 
-策略：eng/contracts/schemas/ 是唯一事实源；旧路径（eng/contracts/data/**、eng/contracts/schemas/v6/**、合同变体根文件）只保留兼容期映射与产品族专用投影，不得再新增与 canonical 等价的第二份定义；对象身份/单位/无效值/精度/可否作权重一律以 eng/contracts/schemas/unified/ 为准。
+| 判据面 | 现行落点 | 归属类型 | 变更编号 |
+|---|---|---|---|
+| canonical 对象级判据（BUNIT 量纲可判、`k_corr != 1`、对角表示 ⇒ 必带相关核/算子描述、`W_info` 单位锚、`validity.reason` 白名单、模糊字段名禁令） | `eng/contracts/schemas/unified/*.schema.json` 的 `allOf` | object_contract | CHG-2026-09-22-V6-CONTRACT-MERGE |
+| 产品族记录级判据（`units`/`signal`/`covariance`/`psf`/`effective-psf`/`point-information`/`weight-mode`/`psfsw`/`provenance`/`phase3` 十类记录的字段级约束） | `eng/contracts/schemas/product_family_field_constraints.schema.json`（`$defs` 逐件） | product_family_field_constraints（**非对象**合同，**不**定义对象判别字段） | CHG-2026-09-22-V6-CONTRACT-MERGE |
+| 条款注册表 / 单位表 / 词表 / 迁移映射 / 待签与开放项登记 | `eng/contracts/data/v6_clause_registry_v1.json` | machine_registration_table | CHG-2026-09-22-V6-CONTRACT-MERGE |
+| 条款注册表、签字项与开放项的**正文承载页** | `docs/contracts/DATA_SEMANTICS.md` §31.10（+ §31.1–§31.9、§28.6） | human_readable_contract | CHG-2026-09-22-V6-CONTRACT-MERGE |
+| 产品族正例 | `eng/contracts/data/examples/v6/` | positive_fixtures | CHG-2026-09-22-V6-CONTRACT-MERGE |
+| 独立 Oracle + 负向 mutation 验证面 | `eng/tests/contracts/product_family/` | verification | CHG-2026-09-22-V6-CONTRACT-MERGE |
+| 共享校验器 | `eng/tests/common/jsonschema_min.py` | shared_validator | CHG-2026-09-22-V6-CONTRACT-MERGE |
 
-> 说明：`eng/contracts/schemas/v6/**` 是**产品族专用合同**（含 49 条 `PENDING_OWNER_SIGNOFF` 条款，fail-closed），与被其引用的 canonical 对象合同**不等价**，因此在 v6 冻结期内作为投影存在但必须在 ownership 索引中登记；其读写规则、fail-closed 门与词表不变（W6 集成基线不得静默改变）。
-> `eng/contracts/data/**` 与 `docs/contracts/v6/**` 只作兼容期映射与设计档案，不得再新增与 canonical 等价的对象定义。
+> 产品族记录级合同与被其引用的 canonical 对象合同**不等价**（前者含 49 条 `PENDING_OWNER_SIGNOFF` 条款，
+> fail-closed），因此以「非对象合同」身份在 ownership 索引中登记；其读写规则、fail-closed 门与词表不变。
 >
-> **Q2 前置裁决落地（DOC-203，2026-09-20；GAP_AUDIT §4.1）**：
-> - **在位保留**：`eng/contracts/schemas/v6/**`（10 件产品族 schema，fail-closed 语义不变）、`docs/contracts/v6/**`（16 篇）、
->   `eng/contracts/proposals/v6/**` 三面**均不删**（避免触碰「删除交付物」上呈线）；
-> - **身份归一**：`eng/contracts/schemas/v6/**` = 「**产品族专用投影（非生产目标态）**」、`docs/contracts/v6/**` = 「**人类可读设计档案**」、
->   `eng/contracts/proposals/v6/**` = 「**提案归档**」——**删**「ACTIVE / 生产目标态」措辞；
-> - **生效与退役条件**：由**变更编号**决定，**不得**用版本号窗口表达（`ASTROCS_DESIGN.md` §12；本表已按此订正）；
-> - **`weight_mode` 家族**：已按 §9.73 A44 作废（作废键面：删键 / 改写 / 加作废留痕），**文件本身不删**（DOC-201 已落地）。
+> **生效与退役条件**：由**变更编号**决定，**不得**用版本号窗口表达（`ASTROCS_DESIGN.md` §12）。
+> **`weight_mode` 家族**：已按 §9.73 A44 作废（作废键面：删键 / 改写 / 加作废留痕），作废留痕见
+> `docs/contracts/DATA_SEMANTICS.md` §31.3；`psfsw_robust_weight` 对象已按负责人 2026-09-20 裁决 B 真删
+> （14→13；`CHG-2026-09-20-PSFSW-RETIRE`），其负例见 `eng/contracts/schemas/unified/negative/n5_retired_psfsw_robust_weight.schema-violation.json`。
 
 ## 4a. 旧合同 ID → 统一对象映射（MODULE_MAP 引用面，负责人裁决）
 

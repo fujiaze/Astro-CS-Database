@@ -38,7 +38,7 @@
 - `docs/design/PHASE{1,2,3}_DETAILED_DESIGN.md` 的验收节（P1 §11、P2 §10、P3 §7）。
 - `docs/science/UNIFIED_SCIENCE_MODEL.md` §4/§5/§6/§7/§8/§10/§11。
 - `docs/science/PSF_SIGNAL_WEIGHT.md` §2/§3/§4/§5/§6/§7/§8。
-- `docs/science/v6/adjudication/SCI-ADJ-001_FREEZE_LIST.md` 与 `reports/v6/science-adjudication/adjudications.json`（ADJ-*）。
+- `docs/validation/SCIENCE_FREEZE.md` 与 `docs/contracts/DATA_SEMANTICS.md` §31（冻结状态与 `FZ-*` 条款面）。
 - 控制器 `CONTROLLER_LOG.md` C-004.1（psf_snr_power 延迟）/C-004.2（帧级 median SNR 仅诊断）/C-004.3（schema 词表归 W6）。
 
 冻结单位表（原样继承，机器校验见 `meta.json.unit_table` 与 G-ANA-06）：

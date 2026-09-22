@@ -1,9 +1,9 @@
 {
   "weight_mode_schema": "astrocs.v6.weight-mode/v1",
   "schema_version": 1,
-  "weight_mode": "psfsw_robust",
+  "weight_mode": "point_information",
   "mode_class": "production",
-  "science_objective": "conventional integration depth with auditable composite weight",
+  "science_objective": "point-source inverse-variance weighting W_info = 1/Var(F_hat) with auditable provenance",
   "deferred_modes_documented": [
     "psf_snr_power"
   ],
@@ -14,28 +14,25 @@
   },
   "legacy_integer_allowed": false,
   "weight": {
-    "kind": "psfsw_robust_weight",
-    "units": "1",
-    "group_normalized": true,
+    "kind": "W_info",
+    "units": "ADU^-2",
+    "group_normalized": false,
     "sources": [
-      "psfsw.signal",
-      "psfsw.concentration",
-      "psfsw.noise",
-      "psfsw.background"
+      "psf",
+      "photometric_response",
+      "noise_covariance"
     ]
   },
   "primitives": {
-    "psfsw.signal": "sum of PSF-fit flux",
-    "psfsw.concentration": "mean PSF flux / A_NEA",
-    "psfsw.noise": "robust scale",
-    "psfsw.background": "robust mean background"
+    "point_information.Q": "Q_k = a_k P_k^T C_k^-1 d_k",
+    "point_information.W_info": "W_info,k = a_k^2 P_k^T C_k^-1 P_k = 1/Var(F_hat_k)"
   },
   "covariance_ref": "covariance/v1/run-3",
   "effective_psf_ref": "effective-psf/v1/run-3",
   "parameter_effectiveness": {
     "declared_parameters": [
       "weight_mode",
-      "psfsw_exponents"
+      "point_information.a_k"
     ],
     "applied_in_combination_coefficients": true,
     "applied_in_effective_psf": true

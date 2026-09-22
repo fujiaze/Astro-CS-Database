@@ -168,14 +168,14 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 ## 16 方法链与方法学（DOC-404 增补；不改 §5 公式与常数）
 
-> **上游**：`ASTROCS_DESIGN.md` §2.1（创新点一：测光校准到测光星等坐标系）、§4.2（Phase1 节点流程：两轮 WCS → 星表引导检测 → PSF → photometry → **apply photometry**）、§4.4（测光输出语义）；研究包：`docs/research/PHOTOMETRY_RESEARCH_PACK.md`（一手出处与开源对照）。
+> **上游**：`ASTROCS_DESIGN.md` §2.1（创新点一：测光校准到测光星等坐标系）、§4.2（Phase1 节点流程：星表引导检测 → PSF → WCS 解算 → photometry → **apply photometry**）、§4.4（测光输出语义）；研究包：`docs/research/PHOTOMETRY_RESEARCH_PACK.md`（一手出处与开源对照）。
 > **边界**：本节只写方法链与论证，**不引入新公式、常数或门限**；§5 的 IRLS/Tukey 定义、§7 不变量、§10 不可接受变化全部不变；误差预算的**数值与实验**属 SCI-401（推导落点见 §16.4）。
 
 ### 16.1 方法链（逐步对应最高设计 §4.2 的节点顺序）
 
 | 步 | 做什么 | 节点（§4.2） | 权威/细则 |
 |---|---|---|---|
-| ① **Gaia XP 逆映射定位** | 第一轮全图盲检测给粗 WCS（仅供投影）；第二轮用本帧 WCS 把 Gaia DR3 星表（ICRS/J2000，自行/视差传播到观测历元）**逆投影到像素域**，只在星表位置做质心/PSF 拟合；拟合失败直接丢弃（不计虚警、不报错）；上限按亮度取 top 2–5 万，极限星等按焦距/画幅/曝光派生估计 | `platesolve`（两轮）+ `star_detection` | `docs/plugins/algorithms_phase1/03_star_detection.md` §4、`docs/plugins/algorithms_phase1/05_platesolve.md`；研究包 §6（astrometry.net 盲解+精化、SCAMP 星表解算、astropy WCS 逆投影） |
+| ① **Gaia XP 逆映射定位** | 用本帧 WCS（近似指向来自 `wcs.init_source`）把 Gaia DR3 星表（ICRS/J2000，自行/视差传播到观测历元）**逆投影到像素域**，只在星表位置做质心/PSF 拟合；拟合失败直接丢弃（不计虚警、不报错）；上限按亮度取 top 2–5 万，极限星等按焦距/画幅/曝光派生估计 | `platesolve`（星表匹配 + 稳健迭代精化）+ `star_detection` | `docs/plugins/algorithms_phase1/03_star_detection.md` §4、`docs/plugins/algorithms_phase1/05_platesolve.md`；研究包 §6（astrometry.net 盲解+精化、SCAMP 星表解算、astropy WCS 逆投影） |
 | ② **星点测光** | 在星表位置做 **PSF 拟合域**测光（全链唯一 `flux` 口径 `flux = 2πA·sx·sy/3`；孔径测光只作显式诊断）；`F_hat = Q/W`、`Var(F_hat)=1/W`；饱和/质量异常不入定标 | `psf` → `photometry` | `docs/plugins/algorithms_phase1/06_photometry.md` §4、`docs/science/PSF_SIGNAL_WEIGHT.md` §2；研究包 §6（DAOPHOT/Anderson & King 的星表引导 PSF 测光族、photutils/SEP 的独立对照） |
 | ③ **光谱 × QE × 透过率积分（正向合成期望测光量）** | 用 Gaia DR3 XP 星点光谱 × 系统响应在**模型通带**内积分得 `F_syn`（本文件 §2/§5 的定义式）；XP 采样网格 = 336–1020 nm、步长 2 nm、343 点，谱插值按 §14a；`Q(λ)≡1` 与网格外无数据是**显式未建模项**，不外推 | `photometry`（参考侧） | 研究包 §3（Gaia DR3 官方文档 §20.12.3/§20.12.4、Montegriffo 2023、De Angeli 2023）、§4（合成测光标准方法：Bessell 1990、Bessell & Murphy 2012、Sirianni 2005、synphot/pysynphot） |
 | ④ **拟合 `k_photo` 与低阶空间增益 `m(x,y)`** | 逐星 `r_i = log10(F_instr/F_syn)` → 星等一致性预过滤 → IRLS/Tukey 稳健位置（§5）；同时用星点残差在帧内估计**低阶乘性空间增益** `m(x,y)`（平场/光学大尺度响应的低阶残余），与 `k_photo` 一并作为标定面 | `photometry` | 本文件 §5；`ASTROCS_DESIGN.md` §4.2「apply photometry」；研究包 §7 ④（平场/大尺度残余的预算出处） |
@@ -223,9 +223,9 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 > 依据：实验单元 `实验/photometric-magnitude`（报告 `README.md`、结果 `results/step1..step8*.json`、复跑 `python3 实验/photometric-magnitude/code/step*.py`）。本节只登记**适用域与降级语义**，不改 §5 公式、§7 不变量与 §10 禁改清单。
 
-1. **生产适用域 = 可解析实拍帧（匹配星数 n ≥ 100）**。域内 §5 的双边界判据（`σ_obs` 上下界）有效；
-2. **低星数帧（n < 100）显式降级**：产品必须写 `degraded_reason`（如 `low_star_count`）并**不承诺标定**；不得以域内口径对外宣称精度；
-3. **N5 域外边界（如实记录）**：`σ_floor = (1 − 3·1.166/√n)·σ_fit(白)` 在 `n ≲ 12` 时为负、在 `n ≲ 22` 时已趋零 ⇒ 对「把样本裁剪到只剩同质星」**没有判别力**（实测 tol=0.002、n=5 时 σ_obs=0.00356 仍 PASS，`results/step7_negatives.json → N5`）。该现象**只在域外**出现，域内（n≥100）不构成缺陷；若将来要在域外使用该判据，须先把下界改为 `max(rho_lo, 0)·σ_fit` 或加最小样本量硬门槛；
+1. **生产适用域 = 可解析实拍帧**：此类帧的匹配星数 **n ≥ 100 是其自然属性**（实拍帧实测 n = 105 / 157 等均落在此区间），§5 的双边界判据（`σ_obs` 上下界）在该域内有效；
+2. **星数不构成拒绝条件**：不存在星点少到无法测光的图；任何可解析帧都完成测光定标并出产品，产品按该帧自身实测的 `σ_obs` 与误差预算如实标注精度，不设固定星数门槛、也不套用他帧的精度口径；
+3. **N5 低样本量边界（如实记录）**：`σ_floor = (1 − 3·1.166/√n)·σ_fit(白)` 在 `n ≲ 12` 时为负、在 `n ≲ 22` 时已趋零 ⇒ 对「把样本裁剪到只剩同质星」**没有判别力**（实测 tol=0.002、n=5 时 σ_obs=0.00356 仍 PASS，`results/step7_negatives.json → N5`）。该现象**只出现在低样本量区间**，实拍帧域内（n ≥ 100）不构成缺陷；在低样本量区间使用该判据时，下界取 `max(rho_lo, 0)·σ_fit`；
 4. **`σ_psfsys` 的孔径口径（C2 订正）**：用「PSF 域通量 vs 独立孔径通量」的中位绝对偏差估计 `σ_psfsys` 时，**必须用小孔径（≈2×FWHM）+ 低背景星子样本**。大孔径（r=10 px）把星云结构算进「方法系统误差」，实测高估约 **10×**（帧 A 0.2574 vs 真值 0.0256 mag；帧 C 1.3775 vs 0.0394 mag）；小孔径（r=4 px）在稀疏场准确（0.0250 / 0.0401 vs 0.0256 / 0.0344），在拥挤场仍上偏约 **2.7×**（保守方向，判据偏松不偏紧）。证据 `results/step5_calibration_gate.json → items_measured`；
 5. **判据的敏感域（C3 能力边界）**：`σ_obs` 双边界判据对**散粒噪声**敏感、对**确定性加性图样**不敏感——算术相加 `gx·(x−W/2)`（无散粒）使 σ_obs 仅 1.08× 且始终 PASS，而把天光经 Poisson 前向重画则 2.91×（4× 时判红）。⇒ 该判据能认证的是「天光**噪声**是否被正确预算」，**不能**认证天光**扣除**质量；后者须另设残差检查；
 6. **WCS 二轮精化是**平移**精化**：HST HLSP drz 头部 WCS 与 Gaia DR3 有 ~1.6″ 系统偏移（F657N 1.622″、F673N 1.629″，`results/step3_forward_vs_photflam.json → wcs_refinement`）；testdata 真实帧残余仅 0.0068″ ⇒ 二轮精化的必要性取决于上游 WCS 质量，不是流程固定开销；设计须能覆盖 ~2″ 量级平移；

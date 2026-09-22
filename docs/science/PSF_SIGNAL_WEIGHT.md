@@ -9,12 +9,12 @@
 
 ## 1. 项目决定
 
-AstroCS 正式支持 PSF Signal Weight 类方法，而不是把它仅作为屏幕上的 QA 数字。但“PSF Signal Weight”必须分为两个不会混名的产品：
+科学叠加权重**只能来自纯净信号与噪声之比**——即由 SNR 换算的逆方差；要求**跨帧可用**：**不基于参考帧**、不依赖帧内相对基准，而是**绝对标定**（最高设计 §3.1）。
 
-1. psf_information_weight：基于观测模型的点源信息权重，默认科学模式；
-2. psfsw_robust_weight：受 PixInsight PSFSW 启发的稳健复合帧权重，可选工程集成模式。
+PSF 相关的量因此分两类，不得混名：
 
-二者都可以参与 Phase2，但目的、单位、归一化、最优性声明和输出字段不同。
+1. **psf_information_weight**：基于观测模型的点源信息权重，是 Phase2 唯一的科学权重来源；
+2. **PSF 拟合质量代理**（FWHM、残差尺度、以及受 PixInsight PSFSW 启发的稳健复合量）：**只作诊断**，不计入科学叠加权重，不参与 Phase2 权重选择。
 
 ## 2. 严格点源信息权重
 
@@ -46,7 +46,7 @@ PixInsight 将 PSFSW 定义为 hybrid PSF/aperture photometry 的综合图像质
 > - 标准 SNR（式[20]）：`SNR=σ²/σ_n²`（全局尺度估计/噪声方差；官方明确指出它受背景梯度与天光正向影响）。
 > - 文章版常数：`c1=8.0832×10⁻⁶, c2=9.0×10⁺⁶`（式[17]）；`c3=1.350×10⁻⁷, c4=4.987×10⁺⁶`（式[19]）。标定集 = 1000 幅 4096² 合成图（背景高斯 σ=0.001/均值 0.015、平均 1500 颗可检测星、Moffat β=4 FWHM=5 px、Poisson+高斯噪声），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。**PCL 2.10.4 头文件**为 `c1=5.326×10⁻⁶, c3=1.316×10⁻⁷`（c2/c4 相同）——引用任何常数必须带版本。
 >
-> **AstroCS 实现披露（`docs/algorithms/v6/phase2-psfsw/PSFSW_ALGORITHM_SPEC.md` §5.1；`lib/algorithms/photometry/cpp/src/psfsw.cpp:312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:57-61`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；不得据「PixInsight 同类」推定其最优性。
+> **AstroCS 实现披露（`lib/algorithms/photometry/cpp/src/psfsw.cpp:312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:57-61`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；不得据「PixInsight 同类」推定其最优性。
 > - 依据出处：PixInsight .pidoc 式[7][8][12][13][16][17][18][19][20]；PCL 2.10.4 Doxygen `PSFSignalEstimator.h`；`lib/algorithms/photometry/cpp/src/psfsw.cpp:233-238,312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:42-64,137-138`。
 
 AstroCS 实现 psfsw_robust_weight 时必须保留这些特征，但为避免星表选择偏差增加以下约束：
@@ -66,13 +66,14 @@ AstroCS 实现 psfsw_robust_weight 时必须保留这些特征，但为避免星
 | mode | 权重 | 用途 | 可作最优性声明 |
 |---|---|---|---|
 | point_information（默认） | W_info 或 Q/W | 点源检测、点源测光、proper coadd | 模型和 covariance 门通过时可以 |
-| psfsw_robust | psfsw_robust_weight | conventional image integration，兼顾 signal、星像集中度、噪声、背景 | 只能声明在验收数据上优于指定基线 |
 | psf_snr_power | ratio-of-powers（**DEFERRED，当前未实现**） | 设计占位；生产模式门显式拒绝 | 不适用（不得进入生产路由） |
 | surface_gls | AᵀC⁻¹A | 扩展源/面亮度 | GLS 假设成立时可以 |
 
 Phase2 配置必须显式选择 mode。默认不得由检测到多少颗星等偶然因素自动切换。
 
-> `psf_snr_power` 的 DEFERRED 证据：`lib/infrastructure/cli/v6_runtime_contract.h:110-114` 将其路由为 reject（`FZ-MODE-DEFERRED`）；`lib/algorithms/coverage/include/astro/phase2/coverage.h:157-165` 的生产模式门 allowed={point_information, surface_gls, psfsw_robust} 并显式拒绝 `psf_snr_power`；`docs/algorithms/v6/phase2-psfsw/PSFSW_ALGORITHM_SPEC.md` §2.1 标其为 NOT_IMPLEMENTED/unavailable。本表该行仅保留设计占位，不得据其声称已有实现。
+> `psf_snr_power` 的 DEFERRED 证据：`lib/infrastructure/cli/v6_runtime_contract.h:110-114` 将其路由为 reject（`FZ-MODE-DEFERRED`）；`lib/algorithms/coverage/include/astro/phase2/coverage.h:170-182` 的生产模式门 allowed={point_information, surface_gls} 并显式拒绝 `psf_snr_power`；`docs/contracts/DATA_SEMANTICS.md` §31.3 标其为 DEFERRED/NOT_IMPLEMENTED。本表该行仅保留设计占位，不得据其声称已有实现。
+
+> `psfsw_robust_weight` 已按"权重只能来自纯净信号与噪声之比、跨帧可用、不基于参考帧、绝对标定"的判据退役（最高设计 §3.1）：生产模式门走 `FZ-MODE-RETIRED` 显式拒绝 + 迁移提示，不静默接受；拒绝消息含被拒 mode、允许集与迁移路径。
 
 ## 5. 复合权重与不确定度的边界
 

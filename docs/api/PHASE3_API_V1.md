@@ -21,7 +21,7 @@ acs_status p3_session_destroy(acs_handle);
 |---|---|---|
 | `source.hips_dir` | UTF-8 path | 必须含合法 properties(ALG-P3-001) |
 | `center` | {ra_deg, dec_deg} ICRS | `abs(dec)<=85°`;输出四角同半球 |
-| `scale_deg_per_px` | deg/px | >0 |
+| `scale_deg_per_px` | deg/px | >0（**构造下限只有 >0**，与 WCS 往返门无关；但往返**紧门** 1e-8 px 的适用域是 `scale ≥ 0.9″/px`（= 2.5e-4 deg/px），低于该尺度时紧门不适用、报「超出适用域」而非判红，退回全域保守门 1e-6 px —— 见 GATES §3 G-P1-WCS-BRIDGE / -GLOBAL 与 `p3_wcs_roundtrip_gate()`） |
 | `width_px`/`height_px` | px | ∈[1,20000] |
 | `projection` | 枚举 | **仅 "TAN"**,其他→UNSUPPORTED |
 | `sampler` | 枚举 | "nearest"|"bilinear"(默认 bilinear, SCI-P3 §9a-7) |

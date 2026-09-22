@@ -37,16 +37,15 @@ d_k = A_k x + n_k,    Cov(n_k) = C_k
 
 ```text
 ingest → calibration → cosmetic/validity → background/noise
-       → platesolve 第一轮（盲检测粗解 WCS，只为星表投影提供近似坐标）
        → star_detection（星表引导检测）→ psf
-       → platesolve 第二轮（用高纯度星表精化 WCS，此结果才是权威 WCS）
+       → platesolve（星表匹配 + 稳健迭代精化 WCS，此结果即权威 WCS）
        → photometry → apply photometry（测光归一化真正落到像素）
        → noise_snr → drizzle → 产品验证 → 原子发布 HiPS+JSON
 ```
 
 节点可由调度器安排，但科学依赖不可改变；每节点只执行声明 operation，不得通过多个 facade 重复运行整段 Phase1。
 **强制语义（不得放宽，细化见 §3.6）**：① 星表引导检测（检测定义域 = 星表位置，不是整幅图像）；
-② WCS **两轮**解算（第一轮盲解只为近似指向、其星表不是权威科学产品；第二轮精解才是权威 WCS）；
+② WCS 解算只有**一个节点、一个权威解**：近似指向由 `wcs.init_source` 给出（不是解算节点），`platesolve` 在该指向下匹配星表并稳健迭代精化，输出即权威 WCS（轮次数是求解器实现细节，不是流程语义）；
 ③ **一次检测、一次通量积分、三处复用**（`star_detection` → `psf` → `photometry` → `noise_snr` 共用同一份
 检测结果与同一 `flux` 口径）；④ **测光归一化必须真正落到像素**（`I_photo = k_photo·m(x,y)·I_cal`；
 未启用时产品显式记 `degraded_reason` 并 fail-closed，元数据 `photappl`/`photscal` 如实落盘）。
@@ -120,7 +119,7 @@ W_psf,k = a_k² Σ_p P_k,p² / sigma_pix,k² = a_k² / (sigma_pix,k² A_NEA,k)
 
 ### 8.2 Phase1 的 SNR 与信息量产品边界
 
-Phase1 **只**产出帧级 SNR、稀疏控制点上的相对 SNR，以及 `W_psf = PᵀC⁻¹P` 作为点源充分统计量（`point_source_information`）；
+Phase1 **只**产出帧级 SNR、稀疏控制点上的**绝对** SNR（`F_ref/σ_F(x,y)`，与帧级同口径、同参考通量 `F_ref`），以及 `W_psf = PᵀC⁻¹P` 作为点源充分统计量（`point_source_information`）；
 **不产生、不消费**任何叠加权重。叠加权重由**阶段二**按该天球像素对应的输入帧集合**现场算出**（派生量）。
 PSF 拟合质量代理（FWHM、残差尺度等）**只作诊断**，**禁止**计入阶段二科学叠加权重（`ASTROCS_DESIGN.md` §2、§3.1）。
 
@@ -148,6 +147,8 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 - source catalog（逐源 flux、variance、SNR、flags）；
 - drizzle correlation/transfer 描述；
 - product manifest：schema、算法/模块/provider、完整 SHA、输入/配置哈希、单位、参考尺度、近似和降级。
+
+产品的**落盘形态**由配置选定，默认归档形态 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧），可显式切裸形态 `<name>.hips/`；两形态都必须写出产品级索引 `<name>.hips.index.json`（不压缩：叶块覆盖集合 + 归档定位表），一次运行还写出数据集级覆盖索引 `coverage.index.json`（不压缩：块 → 帧集合）。归档内 `properties` 与裸形态逐字节一致，解压后必须通过既有 HiPS 校验（`docs/design/PRODUCT_STORAGE_FORM.md`、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）。
 
 禁止用一个 `snr` 字段同时承载上述对象。
 

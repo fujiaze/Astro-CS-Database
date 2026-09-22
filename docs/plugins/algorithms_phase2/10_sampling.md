@@ -43,7 +43,7 @@ flowchart LR
 
 - **稀疏而非稠密**：按空间分层网格在每帧掩膜外取一批采样点（数量由天光面自由度决定，远少于像素数）；不生成逐像素背景栅格；
 - 每点在格内做局部稳健背景估计（如 σ-clipping/中位数小窗），记录值与 variance；
-- 每点携带该位置的 SNR：帧级 × 帧内（有稀疏 SNR 层时），无帧内层时用帧级；
+- 每点携带该位置的 SNR：有稀疏绝对 SNR 层时由控制点重建得到 `SNR(x,y)`，无稀疏层时用帧级标量；
 - **采样点权重 = 逆方差**：`w_ki = control_ivar_ki = N_retained/(k_corr·(π/2)·σ_bg²)`（= `1/control_variance`，冻结式 `control_variance = k_corr·(π/2)·σ_bg²/N_retained` 见 `docs/modules/phase2_samp.md` §6 / `docs/contracts/DATA_SEMANTICS.md` §23）——低 SNR 帧、光污染帧的采样点权重自然变小，无法把正常帧的天光面异常拉高；**为什么不是 `SNR²`**：`w = 1/σ² = SNR²/F_ref² ∝ SNR²` 的 `∝` 以**固定参考通量** `F_ref` 为前提，而天光控制点的**被估量本身在变**（估的是天光面/背景电平，不是固定源通量）⇒ `SNR²` **不是**有效逆方差代理；控制点权重一律取 `control_ivar`，SNR 只作 veto/质量门（推导与依据见 `docs/science/CONTROL_WEIGHT_SNR.md` 与 `docs/modules/phase2_samp.md` §6）。
 - 采样点经 WCS 映射到天球坐标，供跨帧联合拟合。
 - **公共面与逐帧梯度的分工**：采样点用于**全部帧联合**拟合公共天光面 `B_ref(x)`；每帧只在其上拟合平缓梯度 `δ_k(x)`，归一施加量为 `δ_k`（**保留 `B_ref`**）；`raw − C_k`（全减，含 `B_ref`）不是默认路径（详见 `11_upm.md` §4.1/§5）。
