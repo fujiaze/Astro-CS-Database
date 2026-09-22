@@ -23,11 +23,10 @@
 
 ## Q-3（控制包收口）RELEASE-04 是否物理出库
 
-- **状态**：CONTROL_PACK_SPEC §9 要求"收口即清理"，但 RELEASE-04 是负责人交付物，
-  AGENTS.md §10 禁止未经询问删除交付物。
-- **现处置**：doc-index 的现行控制包已切到 RELEASE-05；RELEASE-04 入**归档白名单**，
-  白名单条目必须自带 `SUMMARY.md`（收口证明），缺证明仍判红——门禁保持有牙。
-- **建议**：请负责人裁决是否删除 `工程控制/RELEASE-04/`（内容已在 git 历史）。
+- **状态**：**已裁决并落地**（DOC-PURGE-01，2026-09-22）。负责人裁决：旧版本直接删除。
+- **现处置**：RELEASE-04 整树已出库（内容由 git 历史承载）；doc-index 的现行控制包 =
+  RELEASE-05，`ARCHIVED_CONTROL_PACKS` 白名单清空（无对象），未登记的 `工程控制/**`
+  仍一律判红——门禁保持有牙。
 
 ## Q-4（规范冲突）SCI-502 的 `converged` 枚举定义
 
@@ -123,6 +122,21 @@
 - **BFD-A16**（blocker）export resample 实际读 `p3_props.json`（`:9786`）未声明给该节点。
 结论：这**加强了** OQ-9 的判断——注册表声明的端口面与代码真实数据流面的差距比原先登记的更大，
 按声明图迁移节点只会得到 facade。
+
+**ARCH-DEBT-01 补登记（2026-09-22，来源：三份只读架构审核）**：以下两条为本次补登记进
+`eng/contracts/block_flow/conformance_deviations.json` 的 blocker 级偏差，按门 D7 一并上呈：
+
+- **BFD-A17**（blocker，`undeclared_input`）**静默回退**：`p1_calibrated_path` /
+  `p1_cleaned_input_path` 在声明产物 `calibrated_<base>` / `cleaned_<base>` 缺失时
+  **不报错、不写 `degraded_reason`**，直接回退到原帧或上游 cal 产物；下游五个消费节点
+  （`p1_op_wcs`/`p1_op_drizzle`/`p1_op_photometry`/`p1_op_noise`/`p1_op_star_psf_impl`）
+  的 manifest 也不记录**实际输入路径** ⇒ 违反 `PIPELINE_BLOCK_CONTRACT.md` §4「降级必须显式」。
+  来源 ARCH-AUDIT-01 §③ B-5（该报告判为「新发现，未登记」）。
+- 该条**只登记事实**：降级显式性在机器门上无判据（同族登记见 `docs/KNOWN_LIMITATIONS.md` §E M-4）；
+  是否要求「降级必须写 `degraded_reason` 并由门校验」属顶层合同结构性变更，需负责人裁决。
+
+（同批补登记的 **BFD-U1**（`unit_mismatch`，major）——phase3 `hips` 输入端口单位仍为
+`ADU`——同样改的是冻结绑定表，属结构性变更；因严重度为 major 未触发门 D7，一并在此提请裁决。）
 
 **请负责人裁决（三选一，附 agent 推荐）**：
 1. **改注册表对齐代码**（推荐）：按 A1–A10 修正端口/生产者/消费者，注册表继续作为唯一事实源；
