@@ -92,6 +92,16 @@ string(JSON ASTROCS_RG_WORKLOAD_FLOOR_CORE_SECONDS GET "${ASTROCS_RESOURCE_GATE_
 configure_file(lib/infrastructure/cli/resource_gate_thresholds_generated.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/resource_gate_thresholds_generated.h @ONLY)
 
+# ── MEM-WIRE-01 运行时资源预算比例的唯一数值源 ───────────────────────────────
+# 依据: 负责人裁决 2026-09-22（内存最高吃掉空闲的 95% 避免卡死；该参数**配置在
+# config 里可调，默认 95**）+ ASTROCS_DESIGN.md §8.3/§9 + SCHEDULER_CONTRACT §3。
+# 与上面 G-RES-01 同款机制: 数值只写一次（eng/packaging/config/runtime_resources.json），
+# C++ 侧经生成头消费 ⇒ 实现侧零字面量（不得硬编码比例）。
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/config/runtime_resources.json ASTROCS_RUNTIME_RESOURCES_JSON)
+string(JSON ASTROCS_RR_MEMORY_BUDGET_PERCENT GET "${ASTROCS_RUNTIME_RESOURCES_JSON}" memory_budget_percent)
+configure_file(eng/packaging/config/runtime_resources_generated.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/runtime_resources_generated.h @ONLY)
+
 # vendored cfitsio 显式清单 (BLD-001 禁 GLOB; 由 eng/tools/gen_cfitsio_list.py 生成)
 include(${CMAKE_CURRENT_SOURCE_DIR}/eng/cmake/cfitsio_sources.cmake)
 
@@ -309,6 +319,16 @@ add_library(astrocs_core STATIC
   lib/infrastructure/scheduler/src/scheduler.cpp
   lib/infrastructure/scheduler/src/checkpoint.cpp
   lib/infrastructure/scheduler/src/logging.cpp
+  # MEM-WIRE-01 (ARCH-AUDIT-01 B-3 = ARCH-AUDIT-02 F-04): §8.3「静态预算」的唯一实现
+  # lib/infrastructure/scheduler/src/plan_estimator.cpp 此前**不在任何构建 target**
+  # （根 CMake 全文无该符号）⇒ 内存回压无估算输入。本行把它编入 astrocs_core，
+  # 使 Runtime::load_pipeline 能按节点 config 静态估算峰值工作集并喂给 Scheduler。
+  # 依赖面：该 TU 只 include 自己的公开头 + <algorithm>/<cmath>/<limits>/<sstream>，
+  # 不引入新依赖环（eng/tests/runtime/test_rt005_plan_estimator.py 静态断言同款）。
+  lib/infrastructure/scheduler/src/plan_estimator.cpp
+  # MEM-WIRE-01: 内存预算**来源解析**（纯函数；可用内存 × 可配置比例，默认 95）。
+  # 唯一数值源 = eng/packaging/config/runtime_resources.json（经生成头消费，零字面量）。
+  lib/infrastructure/scheduler/src/memory_budget.cpp
   # DET-001: 规范产品哈希（canonical product hash）—— 与
   # eng/tools/canonical_product_hash.py 逐字节同构的 C++ 实现; 进 core 使 CLI run
   # manifest 与 P3 writer/verify 节点共用同一实现（无第二份口径）。
@@ -320,7 +340,10 @@ target_include_directories(astrocs_core PUBLIC
 # 原语 (aio_atomic_file.h / aio_file_io.h, header-only)。仅 PRIVATE include 面:
 # 不新增链接依赖, core 依赖图仍不含 cfitsio / 产品 IO 库 (原注释语义不变)。
 target_include_directories(astrocs_core PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lib/infrastructure/aio/src
+  # MEM-WIRE-01: memory_budget.cpp 消费生成头 runtime_resources_generated.h
+  # （比例默认值的唯一数值源；与 resource_gate_thresholds_generated.h 同款）。
+  ${CMAKE_CURRENT_BINARY_DIR})
 # astrocs_common 提供 SHA-256（lib/algorithms/shared/crypto/sha256.cpp）; 无环
 #（astrocs_common 不依赖 core）。core 仍不依赖 cfitsio: FITS 结构由
 # canonical_hash.cpp 内的最小头解析处理, 保持 core 依赖图不含产品 IO 库。
@@ -430,6 +453,9 @@ add_library(astrocs_aio STATIC
   lib/infrastructure/aio/src/aio_compressor.cpp
   lib/infrastructure/aio/src/aio_xisf.cpp
   lib/infrastructure/aio/src/aio_pipeline.cpp
+  # AIO-SYSINFO-01: 可用内存探测收进 aio 边界 (§10「aio 是文件级唯一 I/O 边界」
+  # + §9.73 裁决 U5); 原 scheduler 内直读 /proc/meminfo 的 fopen 已删除。
+  lib/infrastructure/aio/src/aio_sysinfo.cpp
   lib/infrastructure/aio/src/aio_abi.cpp)
 target_include_directories(astrocs_aio PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include)

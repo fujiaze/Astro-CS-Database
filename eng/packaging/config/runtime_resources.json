@@ -1,0 +1,29 @@
+{
+  "schema": "astrocs.runtime-resources/v1",
+  "config_class": "program_global",
+  "title": "运行时资源预算（调度准入；**不是**资源门）",
+  "authority": "负责人裁决 2026-09-22（逐字）：「我是不设置上限，有多少资源吃多少资源。（内存最高吃掉空闲的 95% 避免卡死，且这个参数配置在 config 里面可调，默认 95）」",
+  "authority_refs": [
+    "ASTROCS_DESIGN.md §8.3（静态预算：估算是调度决策的输入；编排策略「内存占用永不越界」——越界时按「可中断排队 / 可丢弃重跑」处置，不是拒绝任务）",
+    "ASTROCS_DESIGN.md §9（一个进程一个资源调度器与线程预算源；内存与 CPU 同源）",
+    "docs/contracts/SCHEDULER_CONTRACT.md §3（内存上限（峰值工作集）由配置/资源门决定，禁止硬编码）",
+    "ASTROCS_DESIGN.md §3.5 + ENGINEERING_SPEC.md §12 + eng/contracts/resource_gate_v1.json#disk_gate.no_gate（资源门只管磁盘；内存 / CPU / 线程**不设门** ⇒ 本预算是调度准入输入，不产生退出码、不阻断运行）"
+  ],
+  "readers": [
+    "CMakeLists.txt（configure_file → runtime_resources_generated.h；实现侧零字面量）",
+    "lib/infrastructure/scheduler/src/memory_budget.cpp（唯一消费点）"
+  ],
+  "memory_budget_percent": 95,
+  "memory_budget_percent_constraint": "整数 1..100。含义：内存预算上限 = **当前可用内存 × percent / 100**。默认 95（避免卡死，不是省内存）。运行期可经机器绑定 profile（--cpu-profile 指向的 astrocs.cpu-profile/v2 的 host.memory_budget_percent）覆盖；profile 未声明或取值非法时用本文件的默认值。",
+  "memory_budget_percent_source": "负责人裁决 2026-09-22（默认 95）",
+  "available_memory_probe": "lib/infrastructure/aio/src/aio_sysinfo.cpp#aio_system_available_memory_bytes（aio 是文件级唯一 I/O 边界，ASTROCS_DESIGN.md §10 + GAP_AUDIT §9.73 裁决 U5）。Linux 口径 = /proc/meminfo 的 MemAvailable（含可回收 page cache，**不是** MemFree）∩ cgroup 内存余量（v2 memory.max - memory.current；v1 memory.limit_in_bytes - memory.usage_in_bytes）；Windows 口径 = GlobalMemoryStatusEx.ullAvailPhys。返回 0 = 不可判定（fail-closed：不启用回压，如实登记，不冒充有预算）。",
+  "enforcement": {
+    "in_process": "调度准入（Scheduler 内存回压：在途节点估算峰值之和 > 预算 ⇒ 就绪节点排队等待，不拒绝、不改退出码）",
+    "not_a_gate": true,
+    "cli_exit_code": null
+  },
+  "x-astrocs-writer": "用户（可调）；默认值由负责人裁决冻结",
+  "x-astrocs-not-writable-by": [
+    "benchmark"
+  ]
+}

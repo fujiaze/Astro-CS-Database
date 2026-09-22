@@ -4,7 +4,8 @@
 // RT-006: 每个节点执行在真实运行点写 trace 事件（NODE_START/MODULE_CALL/NODE_END），
 // 由 executor 记录 WORKER_TASK、模块/provider 观测填写，禁止 config 值冒充。
 #include "astrocs/core/runtime.h"
-#include "astrocs/core/context.h"  // B2-A18: 租约授予观测
+#include "astrocs/core/context.h"        // B2-A18: 租约授予观测
+#include "astrocs/core/plan_estimator.h"  // MEM-WIRE-01: §8.3 静态预算（RT-005 估算器）
 
 #include <nlohmann/json.hpp>
 
@@ -55,9 +56,65 @@ std::string utc_now_ms() {
   return out;
 }
 
+
+// ── MEM-WIRE-01: 从 IR 节点的**静态声明**构造 plan_estimator 的输入 metadata ──
+// 依据 ASTROCS_DESIGN.md §8.3「静态预算：从输入数据（帧尺寸与类型、配置、模块声明）
+// 静态估算每个模块的内存与 CPU 需求」。本函数**不做任何 IO**：只读 IR 节点自带的
+// module_id / resource_class / config_json（含 CLI 展开的 phase 配置）。
+// 键面口径（与生产 config 读取面一致，不新造同义键）：
+//   width_px / height_px / scale_deg_per_px / projection —— p3 请求几何键
+//     （module_adapters.cpp 的 p3 节点同键读取）
+//   input_lights[]（数组长度）—— p1 帧数（n_frames）
+//   order / target_order / n_tiles —— HiPS 层级与覆盖数（缺省 0 走估算器保守缺省）
+// 帧尺寸在 p1 只存在于 FITS 头（核心层无 IO 面）⇒ 缺失时估算器显式拒绝，
+// 本层如实登记 unestimable 原因，不用常量冒充估算值。
+PlanInputMetadata node_plan_metadata(const PipelineNode& n) {
+  PlanInputMetadata m;
+  m.module_id = n.module_id;
+  m.is_heavy = (n.resource_class == "cpu_heavy");
+  m.n_frames = 1;
+  if (n.config_json.empty()) return m;
+  json c;
+  try {
+    c = json::parse(n.config_json);
+  } catch (...) {
+    return m;  // 配置不可解析 ⇒ 用保守缺省（估算器自行判定可否估算）
+  }
+  if (!c.is_object()) return m;
+  auto u64 = [&](const char* k) -> uint64_t {
+    if (!c.contains(k)) return 0;
+    const auto& v = c.at(k);
+    if (v.is_number_unsigned()) return v.get<uint64_t>();
+    if (v.is_number_integer()) {
+      const long long s = v.get<long long>();
+      return s > 0 ? static_cast<uint64_t>(s) : 0;
+    }
+    return 0;
+  };
+  m.width_px = u64("width_px");
+  m.height_px = u64("height_px");
+  m.input_order = u64("order");
+  m.output_order = u64("target_order");
+  m.n_tiles_input = u64("n_tiles");
+  if (c.contains("input_lights") && c.at("input_lights").is_array() &&
+      !c.at("input_lights").empty()) {
+    m.n_frames = static_cast<uint64_t>(c.at("input_lights").size());
+  }
+  if (c.contains("scale_deg_per_px") && c.at("scale_deg_per_px").is_number()) {
+    m.scale_deg_per_px = c.at("scale_deg_per_px").get<double>();
+  }
+  if (c.contains("projection") && c.at("projection").is_string()) {
+    m.projection = c.at("projection").get<std::string>();
+  }
+  return m;
+}
+
 class RuntimeImpl final : public Runtime {
  public:
-  explicit RuntimeImpl(uint32_t budget) : budget_(budget) {
+  explicit RuntimeImpl(RuntimeResourceBudget rb)
+      : budget_(rb.cpu_budget),
+        memory_limit_bytes_(rb.memory_limit_bytes),
+        memory_source_(std::move(rb.memory_source)) {
     trace_store_ = std::make_shared<TraceStore>();
   }
   ~RuntimeImpl() override = default;
@@ -93,7 +150,12 @@ class RuntimeImpl final : public Runtime {
       }
     }
 
-    scheduler_ = std::make_unique<Scheduler>(budget_, budget_);
+    // MEM-WIRE-01 (ARCH-AUDIT-01 B-3 = ARCH-AUDIT-02 F-04): 第三参 = 内存上限。
+    // 修复前此处为 Scheduler(budget_, budget_) ⇒ memory_limit_bytes 取默认 0，
+    // §8.3「静态预算 / 内存回压 / 内存永不越界」在生产路径整体失效（回压是死代码）。
+    // 上限来源 = RuntimeResourceBudget（由调用方按 配置/profile + 实测探测 解析，
+    // 见 astrocs/core/memory_budget.h；本层不发明数值、不硬编码）。
+    scheduler_ = std::make_unique<Scheduler>(budget_, budget_, memory_limit_bytes_);
     for (const auto& n : ir_.nodes) {
       Scheduler::NodeSpec spec;
       spec.node_id = n.node_id;
@@ -105,6 +167,7 @@ class RuntimeImpl final : public Runtime {
       // 预算仍由 Scheduler 的唯一 ThreadBudget + P7 份额均分/租约语义分配。
       spec.min_workers = 1;
       spec.max_workers = budget_;
+      uint64_t module_reported_memory = 0;  // §8.3「模块声明」面（ModulePlan 自报峰值）
       {
         auto mi = registry_.create(n.module_id);
         if (mi.ok()) {
@@ -115,10 +178,37 @@ class RuntimeImpl final : public Runtime {
             spec.min_workers = mn;
             spec.max_workers =
                 (mx == 0) ? budget_ : std::min(budget_, std::max(mx, mn));
+            module_reported_memory = pl.value().estimated_memory_bytes;
           }
         }
       }
-      spec.estimated_memory_bytes = 0;
+      // MEM-WIRE-01: estimated_memory_bytes = §8.3「静态预算」的真实估算，
+      // 不再硬写 0（硬写 0 会让内存回压恒不触发 —— 0+0 <= limit 恒真）。
+      // 估算器 = astrocs::core::estimate_plan（RT-005，本任务纳入 astrocs_core 构建图），
+      // 输入 metadata 全部取自 IR 节点静态声明（module_id / config / resources.class），
+      // **不做任何 IO**（帧尺寸若不在 config 中则不可静态估算 —— 见下面 unestimable 登记）。
+      {
+        const PlanEstimateResult est = estimate_plan(node_plan_metadata(n));
+        if (est.ok()) {
+          spec.estimated_memory_bytes = est.plan.peak_memory_bytes;
+          spec.plan_estimated = true;
+          spec.plan_source = "estimator";
+        } else {
+          // 不可静态估算（如 P1 帧尺寸只在 FITS 头里、核心层无 IO 面）⇒ 保持 0
+          // 并**显式登记原因**，绝不冒充「已估算为 0 字节」。
+          spec.plan_unestimable_reason = est.error_message;
+        }
+        // §8.3 静态预算的第三个输入是「模块声明」：模块 plan() 自报的峰值工作集比通用
+        // 估算器更具体（它知道自己的算法与缓存结构）⇒ 自报值 > 0 时优先。
+        // ModulePlan.estimated_memory_bytes 此前是**无人写入的死字段**；本行起它是活的
+        // （生产模块当前仍报 0 ⇒ 走估算器分支；填值属各模块域）。
+        if (module_reported_memory > 0) {
+          spec.estimated_memory_bytes = module_reported_memory;
+          spec.plan_estimated = true;
+          spec.plan_source = "module";
+          spec.plan_unestimable_reason.clear();
+        }
+      }
       // 每个节点执行: 创建模块实例 → plan(config) → execute（模块内部走 session/lease）
       // RT-006: 在真实运行点写 trace 事件（禁止 config 值冒充观测）。
       spec.fn = [this, n](const std::string& node_id, RunContext& ctx) -> Result<void> {
@@ -280,10 +370,31 @@ class RuntimeImpl final : public Runtime {
     json j;
     j["kind"] = "astrocs.runtime/v1";
     j["budget"] = budget_;
+    // MEM-WIRE-01: 资源预算观测面（CPU 与内存同源；SCHEDULER_CONTRACT §3）。
+    // memory_limit_bytes = **Scheduler 实际生效**的上限（唯一权威：回压按它判定），
+    // 而不是 Runtime 收到的请求值 —— 二者不等即「请求了但没接上」，判据据此判红。
+    // memory_limit_bytes_requested = 请求值（证据面）；source="none" ⇒ 未启用回压。
+    j["memory_limit_bytes"] = scheduler_ ? scheduler_->memory_limit() : 0ull;
+    j["memory_limit_bytes_requested"] = memory_limit_bytes_;
+    j["memory_limit_source"] = memory_source_;
     j["loaded"] = loaded_;
     j["nodes"] = json::array();
     for (const auto& [id, st] : statuses_) {
       j["nodes"].push_back({{"node_id", id}, {"status", static_cast<int>(st)}});
+    }
+    // 节点静态预算面（判据断言"估算确实来自估算器、未被硬写 0"的唯一机器可读来源）。
+    j["node_plans"] = json::array();
+    if (scheduler_) {
+      for (const auto& np : scheduler_->node_plans()) {
+        json e;
+        e["node_id"] = np.node_id;
+        e["estimated_memory_bytes"] = np.estimated_memory_bytes;
+        e["plan_estimated"] = np.plan_estimated;
+        e["plan_source"] = np.plan_source;
+        e["unestimable_reason"] = np.unestimable_reason;
+        e["resource_class"] = np.resource_class;
+        j["node_plans"].push_back(std::move(e));
+      }
     }
     return Result<std::string>::ok(j.dump());
   }
@@ -320,6 +431,8 @@ class RuntimeImpl final : public Runtime {
 
  private:
   uint32_t budget_;
+  uint64_t memory_limit_bytes_ = 0;  // MEM-WIRE-01: Scheduler 内存回压上限（来源见 memory_source_）
+  std::string memory_source_ = "none";
   PipelineIR ir_;
   std::unique_ptr<Scheduler> scheduler_;
   ModuleRegistry registry_;
@@ -337,12 +450,22 @@ class RuntimeImpl final : public Runtime {
 }  // namespace
 
 Result<std::unique_ptr<Runtime>> create_runtime(uint32_t budget) noexcept {
-  if (budget == 0) {
+  // MEM-WIRE-01: 显式「未提供内存预算」的重载（memory_limit_bytes=0 ⇒ 不启用回压）。
+  // 语义冻结，供单元测试/嵌入式调用方使用；生产路径用下面的 RuntimeResourceBudget 重载。
+  RuntimeResourceBudget rb;
+  rb.cpu_budget = budget;
+  rb.memory_limit_bytes = 0;
+  rb.memory_source = "none";
+  return create_runtime(rb);
+}
+
+Result<std::unique_ptr<Runtime>> create_runtime(const RuntimeResourceBudget& rb) noexcept {
+  if (rb.cpu_budget == 0) {
     return Result<std::unique_ptr<Runtime>>::fail(
         Error(ErrorDomain::RESOURCE, "create_runtime: budget must be > 0"));
   }
   return Result<std::unique_ptr<Runtime>>::ok(
-      std::make_unique<RuntimeImpl>(budget));
+      std::make_unique<RuntimeImpl>(rb));
 }
 
 }  // namespace astrocs::core

@@ -61,6 +61,9 @@ uint64_t astrocs_cpu_detect_features_v1(void);
 #include "resource_events.h"
 #include "resource_gate.h"
 #include "astrocs/core/context.h"  // B2-A18: 租约授予观测
+#include "astrocs/core/memory_budget.h"  // MEM-WIRE-01: 内存静态预算来源解析（§8.3）
+#include "aio_sysinfo.h"                 // MEM-WIRE-01: 可用内存唯一探测实现（aio 边界）
+#include "aio_file_io.h"                 // MEM-WIRE-01: 文件读取唯一机制原语（aio 边界）
 #include "v6_runtime_contract.h"   // RUNTIME-CI-001: 统一预算/模式路由/SO-05 策略单一来源
 
 #ifdef _WIN32
@@ -104,6 +107,65 @@ static uint32_t cli_affinity_cpu_count() {
         if (CPU_ISSET(i, &set)) ++n;
     return n == 0 ? 1u : n;
 #endif
+}
+
+
+// ── MEM-WIRE-01: 运行期内存静态预算解析（§8.3「静态预算」的**来源**面） ──────
+// 依据（逐条）：
+//   * 负责人裁决 2026-09-22（逐字）：「我是不设置上限，有多少资源吃多少资源。（内存
+//     最高吃掉空闲的 95% 避免卡死，且**这个参数配置在 config 里面可调，默认 95**）」
+//   * ASTROCS_DESIGN.md §8.3（静态预算 + 内存占用永不越界）、§9（一个进程一个资源
+//     调度器与线程预算源）、§3.5（资源门只管磁盘 ⇒ 本预算是调度准入输入，不是门禁）
+//   * docs/contracts/SCHEDULER_CONTRACT.md §3（内存上限由配置/资源门决定，禁止硬编码）
+// 两个输入：
+//   ① 可用内存 = aio_system_available_memory_bytes()（aio 是文件级唯一 I/O 边界；
+//      Linux 口径 = MemAvailable（含可回收 page cache）∩ cgroup 内存余量；
+//      Windows = ullAvailPhys。返回 0 = 不可判定）。
+//   ② 比例 = 机器绑定 profile（--cpu-profile 指向的 astrocs.cpu-profile/v2 的
+//      host.memory_budget_percent）优先；未声明/非法 ⇒ 用 config 默认值（95，唯一数值源
+//      = eng/packaging/config/runtime_resources.json）。
+// 两者都不含硬编码内存上限：比例默认值来自生成头，可用内存来自实测探测。
+static uint32_t cli_memory_budget_percent(const std::string& cpu_profile_path) {
+    if (cpu_profile_path.empty()) return 0;   // 0 = 未配置 ⇒ resolve 取默认
+    try {
+        // 文件读取经 aio 唯一机制原语（aio_file_io.h；aio 边界内唯一 fopen/fread 实现），
+        // 本 TU 不复制第二份打开/读取通道 —— 与 core/canonical_hash.cpp 同款 PRIVATE include
+        // 面（CHK-AIO-IO-BOUNDARY 的棘轮台账因此零增长）。
+        std::string text;
+        if (!aio_file::read_all(cpu_profile_path.c_str(), &text)) return 0;
+        const nlohmann::json doc = nlohmann::json::parse(text);
+        if (!doc.is_object()) return 0;
+        // profile 失配（非 v2）⇒ 按 V8-CPU-002 回落，不阻塞、不报错。
+        if (doc.value("schema", std::string()) != "astrocs.cpu-profile/v2") return 0;
+        if (!doc.contains("host") || !doc["host"].is_object()) return 0;
+        const nlohmann::json& h = doc["host"];
+        if (!h.contains("memory_budget_percent")) return 0;
+        const nlohmann::json& v = h["memory_budget_percent"];
+        if (!v.is_number_integer() && !v.is_number_unsigned()) return 0;
+        const long long p = v.get<long long>();
+        if (p < 1 || p > 100) return 0;  // 非法值 ⇒ 回落默认（由 resolve 记录）
+        return static_cast<uint32_t>(p);
+    } catch (...) {
+        return 0;   // profile 不可读/不可解析 ⇒ 回落默认，不阻断运行
+    }
+}
+
+// 解析出 (上限, 来源) 并落一条可核对的 stderr 事实行（与既有 "session run: budget workers="
+// 同款；不进协议事件字段面，避免改冻结的事件 schema）。
+static void cli_resolve_memory_budget(const std::string& cpu_profile_path,
+                                      uint64_t* limit_out, std::string* source_out) {
+    const uint64_t avail = aio_system_available_memory_bytes();
+    const uint32_t pct = cli_memory_budget_percent(cpu_profile_path);
+    const astrocs::core::MemoryBudget mb = astrocs::core::resolve_memory_budget(avail, pct);
+    if (limit_out) *limit_out = mb.limit_bytes;
+    if (source_out) *source_out = astrocs::core::memory_budget_source_name(mb.source);
+    std::fprintf(stderr,
+                 "session run: memory budget=%llu B (available=%llu B, percent=%u, source=%s)\n",
+                 static_cast<unsigned long long>(mb.limit_bytes),
+                 static_cast<unsigned long long>(mb.available_bytes),
+                 static_cast<unsigned>(mb.percent),
+                 astrocs::core::memory_budget_source_name(mb.source));
+    std::fflush(stderr);
 }
 
 // ───────────────────── 具体命令实现 ─────────────────────
@@ -632,7 +694,8 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
                                   const std::string& cfg_text, uint32_t budget,
                                   std::string& fail_reason,
                                   astrocs::ProcessMonitor::Summary* summary_out = nullptr,
-                                  bool strict_flag_requested = false) {
+                                  bool strict_flag_requested = false,
+                                  const std::string& cpu_profile_path = std::string()) {
     // 输出落点（磁盘门探测 + 资源产物落点同源；块级 output_dir 由调用方展开进 cfg_text）。
     const std::string res_out_dir = [&] {
         try { return nlohmann::json::parse(cfg_text).value("output_dir", std::string(".")); }
@@ -733,8 +796,14 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
     ev.emit_progress(0, 1, "phases", nullptr, nullptr);
     // §9.74 裁决 10: 资源判据（CPU/内存/线程）不设门 ⇒ 恒不接入协作取消
     // （取消源恒 nullptr）；计算不再因利用率被判据提前打断（记录与裁决分离）。
+    // MEM-WIRE-01: 内存静态预算（§8.3）—— CPU 与内存同源解析：CPU 取亲和性核数
+    // （cli_affinity_cpu_count，上方 budget），内存取「实测可用内存 × 可配置比例
+    // （默认 95%）」。上限只作调度准入（回压/排队），不产生退出码（§3.5 内存不设门）。
+    uint64_t mem_limit = 0;
+    std::string mem_source = "none";
+    cli_resolve_memory_budget(cpu_profile_path, &mem_limit, &mem_source);
     const int rrc = astrocs::cli::run_pipeline({phase.back() - '0'}, cfg_text, budget,
-                                               &fail_reason, nullptr);
+                                               &fail_reason, nullptr, mem_limit, mem_source);
     // MON-002 reclaim: 多线程重计算节点释放的大块缓冲会滞留在线程 glibc arena
     // 中（真实 T4 运行 live heap(alloc_outstanding) 仅 ~0.2GB 而 RSS 残留 ~2.4GB,
     // 被 reclaim 门判为"不可解释残留"）。run 结束后显式将各 arena 空闲块归还
@@ -1133,7 +1202,8 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     std::fflush(stderr);
     astrocs::ProcessMonitor::Summary p2_summary;
     const int rrc = run_with_resource_gate(ev, "phase2", cfg_text, budget, fail_reason,
-                              &p2_summary, strict_resource_gate_arg(p));
+                              &p2_summary, strict_resource_gate_arg(p),
+                              p.values.count("--cpu-profile") ? p.values.at("--cpu-profile") : std::string());
     ev.stage("phase2_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
@@ -1437,7 +1507,8 @@ BlockOutcome run_phase3_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     const uint32_t budget = cli_affinity_cpu_count();
     astrocs::ProcessMonitor::Summary p3_summary;
     const int rrc = run_with_resource_gate(ev, "phase3", cfg_text, budget, fail_reason,
-                              &p3_summary, strict_resource_gate_arg(p));
+                              &p3_summary, strict_resource_gate_arg(p),
+                              p.values.count("--cpu-profile") ? p.values.at("--cpu-profile") : std::string());
     ev.stage("phase3_session", false);
 
     nlohmann::json artifacts = nlohmann::json::array();
@@ -1910,7 +1981,8 @@ BlockOutcome run_phase1_block(const Parsed& p, astrocs::JsonlEmitter& ev,
     const uint32_t budget = cli_affinity_cpu_count();
     astrocs::ProcessMonitor::Summary p1_summary;
     const int rrc = run_with_resource_gate(ev, "phase1", block_text, budget, fail_reason,
-                              &p1_summary, strict_resource_gate_arg(p));
+                              &p1_summary, strict_resource_gate_arg(p),
+                              p.values.count("--cpu-profile") ? p.values.at("--cpu-profile") : std::string());
     ev.stage("phase1_session", false);
 
     // FIX-E2E B1-A1: 全链 8 节点产物收集(旧写法 `if (nid != "cal") continue;` 只认
