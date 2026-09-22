@@ -49,12 +49,61 @@ RUNTIME_OWNER_SYMBOLS = ["PipelineIR", "ModuleRegistry", "Scheduler", "RunContex
 # ACR 符号（DORMANT，禁生产可达）
 ACR_SYMBOLS = ["astro::compute", "acr_", "device_executor", "kernel_registry"]
 
+# ── CLI 生产源清单的单一事实源 ──────────────────────────────────────────────
+# AGENTS.md §7 / ENGINEERING_SPEC.md §7：CLI 落位 lib/infrastructure/cli/**（含
+# normalize/mosaic/export 子目录）。旧实现写死根级 "cli"（ARCH-001 目录等价迁移
+# 之前的旧布局）⇒ 目录不存在 ⇒ cli_sources=[] ⇒ **静默回落**到单个 main.cpp，
+# 而紧邻注释明写"扫描整个 lib/infrastructure/cli/（不只 main.cpp）"——实际 5 个 TU
+# 只剩 1 个，判据面静默缩水（ENGINEERING_SPEC §10「fail-closed / 锚存活」）。
+# 现在按同一先例（eng/ci/prepare_linux_fixtures.py::shared_lib_sources：登记面与
+# 构建图不得各写一份）从权威来源派生：① 构建图 compile_commands.json 中的 CLI
+# 编译单元；② 回落到同一常量定位的目录扫描。两路皆空 ⇒ ANCHOR_STALE 点名并 rc=2。
+CLI_DIR_REL = "lib/infrastructure/cli"
+CLI_ANCHOR = "CLI_DIR"
+REACH_OUT_DIR_REL = "run/ci/prod-reachability"
+
 
 def read_text(path: pathlib.Path) -> str:
     try:
         return path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return ""
+
+
+class AnchorStale(Exception):
+    """锚失效：硬编码/派生的仓库路径不可用（ENGINEERING_SPEC §10「锚存活」）。"""
+
+
+def cli_source_files(repo: pathlib.Path, cc_path: pathlib.Path | None) -> tuple:
+    """CLI 生产源清单，返回 (files, origin)。
+
+    来源优先级（单一事实源，不另抄路径）：
+      ① 构建图：compile_commands.json 中位于 CLI_DIR_REL 下的编译单元；
+      ② 目录扫描：CLI_DIR_REL 下的 *.cpp（与 ① 同一常量定位）；
+    两路皆空 ⇒ AnchorStale（fail-closed：判据面为空不得当"无违规"）。
+    """
+    cli_dir = repo / CLI_DIR_REL
+    from_cc: list[pathlib.Path] = []
+    if cc_path is not None and cc_path.is_file():
+        try:
+            for entry in json.loads(cc_path.read_text(encoding="utf-8")):
+                f = pathlib.Path(entry.get("file", ""))
+                try:
+                    rel = f.resolve().relative_to(repo).as_posix()
+                except (ValueError, OSError):
+                    continue
+                if rel.startswith(CLI_DIR_REL + "/") and rel.endswith(".cpp"):
+                    from_cc.append(f)
+        except (OSError, ValueError, TypeError):
+            from_cc = []
+    if from_cc:
+        return sorted(set(from_cc)), "compile_commands"
+    if not cli_dir.is_dir():
+        raise AnchorStale(f"{CLI_DIR_REL} 不存在（构建图亦无 CLI 编译单元）")
+    scanned = sorted(cli_dir.rglob("*.cpp"))
+    if not scanned:
+        raise AnchorStale(f"{CLI_DIR_REL} 下无 *.cpp（判据面为空）")
+    return scanned, "dir_scan"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -88,11 +137,14 @@ def main(argv: list[str] | None = None) -> int:
     errors: list[str] = []
 
     # RT-008: 扫描整个 lib/infrastructure/cli/ 目录（main.cpp + 拆分后的 parser/commands 等），
-    # 保证 CLI 整体不 lib/include/调用生产内部符号（不只 main.cpp）
-    cli_dir = repo / "cli"
-    cli_sources = sorted(cli_dir.glob("*.cpp")) if cli_dir.is_dir() else []
-    if not cli_sources:
-        cli_sources = [repo / "lib" / "infrastructure" / "cli" / "main.cpp"]
+    # 保证 CLI 整体不 include/调用生产内部符号（不只 main.cpp）。
+    # 源清单从权威来源派生（构建图优先，其次同一常量定位的目录扫描）；两路皆空即
+    # ANCHOR_STALE 判红——**不得**再回落到"只扫 main.cpp 也算通过"。
+    try:
+        cli_sources, cli_origin = cli_source_files(repo, cc_path)
+    except AnchorStale as exc:
+        print(f"ANCHOR_STALE: {CLI_ANCHOR} {exc}", file=sys.stderr)
+        return 2
     cli_all_text = "\n".join(read_text(p) for p in cli_sources)
     cli_includes = re.findall(r'#include\s*[<"]([^>"]+)[">]', cli_all_text)
 
@@ -136,8 +188,15 @@ def main(argv: list[str] | None = None) -> int:
 
     # 输出可达图 JSON/DOT（真实边来自 compile_commands 的 file→target 映射 + nm 符号）
     # 无论 PASS/FAIL 都生成，供审计与 RT-008 修复对照
-    graph = _build_graph(repo, cc_path, nm_text)
-    out_dir = repo / "evidence" / "v6_1_rework" / "tasks" / "CHK-001"
+    try:
+        graph = _build_graph(repo, cc_path, nm_text)
+    except AnchorStale as exc:
+        print(f"ANCHOR_STALE: HEADER_INDEX {exc}", file=sys.stderr)
+        return 2
+    # 产物落 run/（AGENTS.md §7：一切输出落 output_dir 或 run/；旧值 evidence/v6_1_rework
+    # 是 ROOT-007 已清运的退役根目录，mkdir 会在仓库根重新长出未跟踪的 evidence/，
+    # 触发 CHK-ROOT-CLEAN）。
+    out_dir = repo / REACH_OUT_DIR_REL
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "PROD_REACHABILITY.json").write_text(
         json.dumps(graph, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -155,20 +214,23 @@ def main(argv: list[str] | None = None) -> int:
         for err in errors[:40]:
             print(f"  - {err}", file=sys.stderr)
         return 1
-    print(f"REACH_PASS binary={binary.name} runtime_owners={runtime_reachable} "
-          f"compile_entries={len(cc)} acr=0 graph=PROD_REACHABILITY.json/dot")
+    print(f"REACH_PASS binary={binary.name} cli_sources={len(cli_sources)} "
+          f"cli_origin={cli_origin} runtime_owners={runtime_reachable} "
+          f"compile_entries={len(cc)} acr=0 graph={REACH_OUT_DIR_REL}/PROD_REACHABILITY.json")
     return 0
 
 
 def _build_graph(repo: pathlib.Path, cc_path: pathlib.Path, nm_text: str) -> dict:
     """构建生产可达图：compile_commands 中每个生产编译单元 → 依赖头 → 导出符号。"""
     cc = json.loads(cc_path.read_text(encoding="utf-8"))
-    # 预索引 lib/include/ lib/ lib/infrastructure/cli/ 下所有头文件，避免逐 include rglob
+    # 预索引 lib/（含 lib/include、lib/infrastructure/cli）下所有头文件，避免逐 include rglob。
+    # 旧值的 ("include", "cli") 是 ARCH-001 之前的根级旧布局（两目录均已不存在）；
+    # lib/ 的 rglob 已覆盖二者，保留死根只会让索引静默缺项。
     header_index: dict[str, list[pathlib.Path]] = {}
-    for top in ("include", "lib", "cli"):
+    for top in ("lib",):
         base = repo / top
         if not base.is_dir():
-            continue
+            raise AnchorStale(f"{top} 不存在（头文件索引面为空）")
         for p in base.rglob("*.h"):
             header_index.setdefault(p.name, []).append(p)
         for p in base.rglob("*.hpp"):
@@ -205,8 +267,10 @@ def _build_graph(repo: pathlib.Path, cc_path: pathlib.Path, nm_text: str) -> dic
 
 
 def _selftest(repo: pathlib.Path) -> int:
-    """负例：伪造 CLI 直连 drizzle / dead runtime → 必须 FAIL。"""
+    """负例：伪造 CLI 直连 drizzle / dead runtime → 必须 FAIL；
+    另断言 CLI 源清单派生面非退化（构建图优先 / 目录扫描 / 两路皆空即 ANCHOR_STALE）。"""
     import tempfile
+    rc = _selftest_cli_sources(repo)
     with tempfile.TemporaryDirectory() as tmp:
         td = pathlib.Path(tmp)
         fake_cli = td / "main.cpp"
@@ -228,7 +292,67 @@ def _selftest(repo: pathlib.Path) -> int:
             print("SELFTEST_FAIL: fake CLI not caught", file=sys.stderr)
             return 1
         print("SELFTEST_PASS: direct session+drizzle in CLI caught")
-        return 0
+        return rc
+
+
+def _selftest_cli_sources(repo: pathlib.Path) -> int:
+    """CLI 源清单派生面自检（RT-008 回归锁）。
+
+    判据（任一不满足 ⇒ rc=1）：
+      S1 真实仓库：派生面必须覆盖 lib/infrastructure/cli/ 下**全部** *.cpp
+         （≥2；旧实现静默回落到 1 个 main.cpp 即在此判红）；
+      S2 构建图优先：compile_commands 含 CLI 与非 CLI 单元时，只取 CLI 单元；
+      S3 目录扫描回落：无 compile_commands 时取目录全部 *.cpp；
+      S4 fail-closed：CLI 目录不存在 ⇒ AnchorStale（不得静默返回空/单文件）。
+    """
+    import tempfile
+    ok = True
+
+    real, origin = cli_source_files(repo, None)
+    cli_dir = repo / CLI_DIR_REL
+    expect = sorted(cli_dir.rglob("*.cpp")) if cli_dir.is_dir() else []
+    s1 = len(real) == len(expect) and len(real) >= 2
+    ok = ok and s1
+    print("[selftest] S1 真实仓库扫描面=%d（origin=%s，目录实际=%d）%s"
+          % (len(real), origin, len(expect), "OK" if s1 else "MISMATCH"))
+
+    with tempfile.TemporaryDirectory(prefix="reach-selftest-") as tmp:
+        root = pathlib.Path(tmp)
+        d = root / CLI_DIR_REL
+        d.mkdir(parents=True)
+        (d / "main.cpp").write_text("int main(){return 0;}\n", encoding="utf-8")
+        (d / "parser.cpp").write_text("// parser\n", encoding="utf-8")
+        other = root / "lib" / "algorithms" / "x.cpp"
+        other.parent.mkdir(parents=True)
+        other.write_text("// x\n", encoding="utf-8")
+        cc = root / "compile_commands.json"
+        cc.write_text(json.dumps([{"file": str(other)}, {"file": str(d / "parser.cpp")},
+                                  {"file": str(d / "main.cpp")}]), encoding="utf-8")
+
+        files_cc, org_cc = cli_source_files(root, cc)
+        s2 = (org_cc == "compile_commands" and len(files_cc) == 2
+              and all(f.name != "x.cpp" for f in files_cc))
+        ok = ok and s2
+        print("[selftest] S2 构建图优先（只取 CLI 单元）%s" % ("OK" if s2 else "MISMATCH"))
+
+        files_dir, org_dir = cli_source_files(root, None)
+        s3 = org_dir == "dir_scan" and len(files_dir) == 2
+        ok = ok and s3
+        print("[selftest] S3 目录扫描回落（全部 *.cpp）%s" % ("OK" if s3 else "MISMATCH"))
+
+        empty = pathlib.Path(tmp) / "nowhere"
+        empty.mkdir()
+        try:
+            cli_source_files(empty, None)
+            s4 = False
+        except AnchorStale:
+            s4 = True
+        ok = ok and s4
+        print("[selftest] S4 目录缺失 ⇒ ANCHOR_STALE（fail-closed）%s"
+              % ("OK" if s4 else "MISMATCH"))
+
+    print("[selftest] CLI 源清单派生面 %s" % ("ALL OK" if ok else "FAILED"))
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

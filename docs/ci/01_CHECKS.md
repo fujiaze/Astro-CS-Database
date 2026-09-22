@@ -81,6 +81,7 @@
 | CHK-CI-INTEGRATION-SELFTESTS | 治理 | eng/ci/tests 下 3 个真起子进程/真跑 CLI/含真实测量窗的自测，按 CI_SPEC §2.6 归 integration 档 | `python3 eng/ci/run_checks.py --check CHK-CI-INTEGRATION-SELFTESTS --quiet` | P1 |
 | CHK-KNOWN-FAILURES-BASELINE | 测试 | 版本化已知失败基线门（聚合型，linux-main 末位） | `python3 eng/ci/run_checks.py --check CHK-KNOWN-FAILURES-BASELINE --quiet` | P1 |
 | CHK-IMPACT-MAP | 治理 | `eng/ci/impact_map.json` 判据一致性（id 两层闭包 / fast 候选 / BASE 核心 / 路径域锚存活与覆盖 / 无退役引用 / 结构完整） | `python3 eng/ci/run_checks.py --check CHK-IMPACT-MAP --quiet` | P0 |
+| CHK-PATH-DOMAIN-ANCHORS | 治理 | `changed_paths` 路径域锚存活门：每个 glob 的基目录必须存在（`**` 结尾取前缀 / 含通配取最长无通配前缀 / 无通配为精确路径），失效即判红并点名（检查项 id + step id + 路径域 + 处置）；家族前缀预留只能显式登记于 `eng/ci/path_domain_reservations.json`（登记项自带棘轮判据：不再被引用 / 样例已落地 / 样例在生产选择器语义下不命中 ⇒ 判红）；注册表缺失或结构不符 ⇒ fail-closed；含 --self-test 13 例 | `python3 eng/tools/quality/check_path_domain_anchors.py --json-out run/ci/path-domain/anchors.json` | P0 |
 | CHK-ALGO-WIRING | 治理 | 算法/关键 API 生产调用图可达性（DORMANT 台账） | `python3 eng/ci/check_algo_wiring.py --json-out run/ci/fix-gates/algo_wiring.json` | P0 |
 | CHK-REGISTRY-IR-PARITY | 治理 | 生产注册表 ↔ Pipeline IR 双向一致 | `python3 eng/ci/check_registry_ir_parity.py` | P0 |
 | CHK-CONFIG-CONSUMED | 治理 | 生产配置键消费（死键 no-op） | `python3 eng/ci/check_config_consumed.py` | P0 |
