@@ -15,7 +15,7 @@
   "truth": "前向链解析方差 Var = lam/g^2 + RN^2/g^2 + 1/12（lam = max(src_e+sky_e+dark_e,0)）；真值帧 stars.n=0",
   "renderer": "实验/shared/synthetic/render.py::render_frame（只读 import）",
   "hst_template": "testdata/HST_M16/*M16*.fits|testdata/HST_M16/*.fits",
-  "elapsed_s": 13.095914840698242
+  "elapsed_s": 14.941634178161621
  },
  "scenarios": [
   {
@@ -139,7 +139,7 @@
    },
    "combined_snr_abs_dev": 0.015742994845517,
    "combined_snr_rel_dev": 0.013729051004885529,
-   "elapsed_s": 3.0863723754882812
+   "elapsed_s": 3.4750635623931885
   },
   {
    "scenario": "hst_struct",
@@ -262,7 +262,7 @@
    },
    "combined_snr_abs_dev": 0.004905885212638905,
    "combined_snr_rel_dev": -0.08901526072498955,
-   "elapsed_s": 5.146002531051636
+   "elapsed_s": 6.150645732879639
   },
   {
    "scenario": "hst_struct_varsky",
@@ -385,7 +385,7 @@
    },
    "combined_snr_abs_dev": 0.0051355192124484805,
    "combined_snr_rel_dev": -0.09287484786491018,
-   "elapsed_s": 4.848481178283691
+   "elapsed_s": 5.298448324203491
   }
  ]
 }

@@ -15,7 +15,7 @@
    "frame": "fam0 全帧 2 轮裁剪 RMS（生产 recipe 镜像）",
    "patch": "fam0 逐 64px patch 同一 recipe"
   },
-  "elapsed_s": 26.913286924362183
+  "elapsed_s": 27.58040714263916
  },
  "frames": [
   {
@@ -43,7 +43,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1206.0,
-   "elapsed_s": 2.5396032333374023
+   "elapsed_s": 2.4632070064544678
   },
   {
    "file": "M42_M1_T2_flying_dutchman-20251224@031410-300S-Red.fts",
@@ -70,7 +70,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1170.0,
-   "elapsed_s": 2.1871085166931152
+   "elapsed_s": 2.1489226818084717
   },
   {
    "file": "M42_M2_T2_flying_dutchman-20251212@020002-300S-Red.fts",
@@ -97,7 +97,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1250.0,
-   "elapsed_s": 2.11907958984375
+   "elapsed_s": 2.197803258895874
   },
   {
    "file": "M42_M2_T2_flying_dutchman-20251216@033550-300S-Red.fts",
@@ -124,7 +124,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1265.0,
-   "elapsed_s": 2.502908945083618
+   "elapsed_s": 2.2129814624786377
   },
   {
    "file": "M42_M2_T2_flying_dutchman-20251224@033141-300S-Red.fts",
@@ -151,7 +151,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1231.0,
-   "elapsed_s": 2.2886734008789062
+   "elapsed_s": 2.463592290878296
   },
   {
    "file": "M42_M2_T2_flying_dutchman-20251224@033733-300S-Red.fts",
@@ -178,7 +178,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1232.0,
-   "elapsed_s": 2.2837655544281006
+   "elapsed_s": 2.2736034393310547
   },
   {
    "file": "M42_M4_T2_flying_dutchman-20251216@050117-300S-Red.fts",
@@ -205,7 +205,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1228.0,
-   "elapsed_s": 2.477813243865967
+   "elapsed_s": 2.3764431476593018
   },
   {
    "file": "M42_M4_T2_flying_dutchman-20251224@045919-300S-Red.fts",
@@ -232,7 +232,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1189.0,
-   "elapsed_s": 2.2817277908325195
+   "elapsed_s": 2.393315076828003
   },
   {
    "file": "M42_M4_T2_flying_dutchman-20251228@044805-300S-Red.fts",
@@ -259,7 +259,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1225.0,
-   "elapsed_s": 2.136983633041382
+   "elapsed_s": 2.249073028564453
   },
   {
    "file": "M42_M5_T2_flying_dutchman-20251212@035959-300S-Red.fts",
@@ -286,7 +286,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1239.0,
-   "elapsed_s": 1.9908733367919922
+   "elapsed_s": 2.1052539348602295
   },
   {
    "file": "M42_M5_T2_flying_dutchman-20251224@053804-300S-Red.fts",
@@ -313,7 +313,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1238.0,
-   "elapsed_s": 2.0239267349243164
+   "elapsed_s": 2.226731538772583
   },
   {
    "file": "M42_M5_T2_flying_dutchman-20260108@030531-300S-Red.fts",
@@ -340,7 +340,7 @@
    "truth_se_median": 0.011048543456039804,
    "n_patch_valid": 1024,
    "crop_median_adu": 1319.0,
-   "elapsed_s": 2.06221604347229
+   "elapsed_s": 2.4518015384674072
   }
  ],
  "panels": [

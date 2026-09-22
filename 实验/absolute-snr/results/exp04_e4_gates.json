@@ -1,0 +1,405 @@
+{
+ "experiment": "SCI-B / EXP-04 负例与判据非退化审查",
+ "frozen_config": {
+  "delta_px": 64,
+  "crop": 1024,
+  "seed_base": 20260921
+ },
+ "G1_zero_effect_zero": {
+  "rows": [
+   {
+    "op": "nn",
+    "eff_loss": 0.0,
+    "rmse": 0.0,
+    "max_abs_dev": 0.0,
+    "ok": true
+   },
+   {
+    "op": "bilinear",
+    "eff_loss": 0.0,
+    "rmse": 0.0,
+    "max_abs_dev": 0.0,
+    "ok": true
+   },
+   {
+    "op": "bicubic_cc",
+    "eff_loss": 0.0,
+    "rmse": 0.0,
+    "max_abs_dev": 0.0,
+    "ok": true
+   },
+   {
+    "op": "spline_natural",
+    "eff_loss": 0.0,
+    "rmse": 0.0,
+    "max_abs_dev": 0.0,
+    "ok": true
+   },
+   {
+    "op": "sextractor_spline",
+    "eff_loss": 0.0,
+    "rmse": 0.0,
+    "max_abs_dev": 0.0,
+    "ok": true
+   },
+   {
+    "op": "photutils_zoom3",
+    "eff_loss": 0.0,
+    "rmse": 0.0,
+    "max_abs_dev": 0.0,
+    "ok": true
+   },
+   {
+    "op": "photutils_zoom1",
+    "eff_loss": 0.0,
+    "rmse": 0.0,
+    "max_abs_dev": 0.0,
+    "ok": true
+   },
+   {
+    "op": "idw",
+    "eff_loss": 0.0,
+    "rmse": 7.681448679471222e-17,
+    "max_abs_dev": 1.3322676295501878e-15,
+    "ok": true
+   },
+   {
+    "op": "gpr_rbf",
+    "eff_loss": 0.0,
+    "rmse": 0.0,
+    "max_abs_dev": 0.0,
+    "ok": true
+   },
+   {
+    "op": "gpr_matern32",
+    "eff_loss": 0.0,
+    "rmse": 0.0,
+    "max_abs_dev": 0.0,
+    "ok": true
+   },
+   {
+    "op": "gpr_exp",
+    "eff_loss": 0.0,
+    "rmse": 0.0,
+    "max_abs_dev": 0.0,
+    "ok": true
+   }
+  ],
+  "all_ok": true,
+  "note": "平坦真值场 + oracle 控制值 ⇒ 每算子 E=0、RMSE=0、G=0"
+ },
+ "G6_frame_arm_selfzero": {
+  "eff_loss": 2.220446049250313e-15,
+  "rmse": 0.0,
+  "ok": true
+ },
+ "G2_DEGENERATE_flat_field_ranking_never_true": {
+  "degenerate": true,
+  "violations": [],
+  "note": "恒真门：真值场为常数时帧级常数臂 RMSE≡0，'空间臂严格更优'数学上不可能；仅登记，不作证据"
+ },
+ "G3_adversarial_shuffle_red": {
+  "rows": [
+   {
+    "op": "nn",
+    "eff_loss_shuffled": 0.429832691900252,
+    "eff_loss_intact": 0.03898750268900075,
+    "worse_than_frame": true,
+    "ok": true
+   },
+   {
+    "op": "bilinear",
+    "eff_loss_shuffled": 0.3005318522276057,
+    "eff_loss_intact": 0.021233457916503218,
+    "worse_than_frame": true,
+    "ok": true
+   },
+   {
+    "op": "bicubic_cc",
+    "eff_loss_shuffled": 0.34900984757517883,
+    "eff_loss_intact": 0.011346841159111998,
+    "worse_than_frame": true,
+    "ok": true
+   },
+   {
+    "op": "spline_natural",
+    "eff_loss_shuffled": 0.38059920369828903,
+    "eff_loss_intact": 0.008363364997485911,
+    "worse_than_frame": true,
+    "ok": true
+   },
+   {
+    "op": "sextractor_spline",
+    "eff_loss_shuffled": 0.24099064517380286,
+    "eff_loss_intact": 0.08400030771225264,
+    "worse_than_frame": true,
+    "ok": true
+   },
+   {
+    "op": "photutils_zoom3",
+    "eff_loss_shuffled": 0.24197383470803935,
+    "eff_loss_intact": 0.08418185747819451,
+    "worse_than_frame": true,
+    "ok": true
+   },
+   {
+    "op": "photutils_zoom1",
+    "eff_loss_shuffled": 0.23756097555779498,
+    "eff_loss_intact": 0.0910043824508493,
+    "worse_than_frame": true,
+    "ok": true
+   },
+   {
+    "op": "idw",
+    "eff_loss_shuffled": 0.2391449100692984,
+    "eff_loss_intact": 0.0644620625761878,
+    "worse_than_frame": true,
+    "ok": true
+   },
+   {
+    "op": "gpr_rbf",
+    "eff_loss_shuffled": 0.411550011921171,
+    "eff_loss_intact": 0.00631045294712318,
+    "worse_than_frame": true,
+    "ok": true
+   },
+   {
+    "op": "gpr_matern32",
+    "eff_loss_shuffled": 0.3620516003822374,
+    "eff_loss_intact": 0.00821762765167322,
+    "worse_than_frame": true,
+    "ok": true
+   },
+   {
+    "op": "gpr_exp",
+    "eff_loss_shuffled": 0.29507565514960743,
+    "eff_loss_intact": 0.01958953111372752,
+    "worse_than_frame": true,
+    "ok": true
+   }
+  ],
+  "frame_eff_loss": 0.23618407539213027,
+  "best_intact_arm": "gpr_rbf",
+  "best_intact_eff_loss": 0.00631045294712318,
+  "all_ops_worse_than_frame": true,
+  "ok": true,
+  "note": "洗牌破坏空间结构后，每个算子都必须劣于帧级常数臂；否则判据识别不出错误重建"
+ },
+ "G4_tautology_recheck": {
+  "rows": [
+   {
+    "op": "nn",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.429832691900252
+   },
+   {
+    "op": "bilinear",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.3005318522276057
+   },
+   {
+    "op": "bicubic_cc",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.34900984757517883
+   },
+   {
+    "op": "spline_natural",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.38059920369828903
+   },
+   {
+    "op": "sextractor_spline",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.24099064517380286
+   },
+   {
+    "op": "photutils_zoom3",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.24197383470803935
+   },
+   {
+    "op": "photutils_zoom1",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.23756097555779498
+   },
+   {
+    "op": "idw",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.2391449100692984
+   },
+   {
+    "op": "gpr_rbf",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.411550011921171
+   },
+   {
+    "op": "gpr_matern32",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.3620516003822374
+   },
+   {
+    "op": "gpr_exp",
+    "rmse_frame": 0.10008597637969824,
+    "s_field_dex": 0.1,
+    "K": 10.0,
+    "tautology_true": true,
+    "eff_loss_shuffled": 0.29507565514960743
+   }
+  ],
+  "all_true": true,
+  "note": "'帧级臂 RMSE <= K*s_field' 在对抗洗牌场（E 高达 0.43）下仍恒真 ⇒ 该判据无证据资格（复核 §8b b6_gates_audit.json::tautology_demo）"
+ },
+ "G5_nn_baseline_nondegenerate": {
+  "rows": [
+   {
+    "delta_px": 32,
+    "op": "bilinear",
+    "eff_nn": 0.016294035159040376,
+    "eff_op": 0.004941309170467534,
+    "better": true
+   },
+   {
+    "delta_px": 32,
+    "op": "bicubic_cc",
+    "eff_nn": 0.016294035159040376,
+    "eff_op": 0.00459043589802044,
+    "better": true
+   },
+   {
+    "delta_px": 32,
+    "op": "spline_natural",
+    "eff_nn": 0.016294035159040376,
+    "eff_op": 0.005043789476601779,
+    "better": true
+   },
+   {
+    "delta_px": 32,
+    "op": "photutils_zoom1",
+    "eff_nn": 0.016294035159040376,
+    "eff_op": 0.01631965463400742,
+    "better": false
+   },
+   {
+    "delta_px": 32,
+    "op": "gpr_rbf",
+    "eff_nn": 0.016294035159040376,
+    "eff_op": 0.0055475657720569505,
+    "better": true
+   },
+   {
+    "delta_px": 64,
+    "op": "bilinear",
+    "eff_nn": 0.03898750268900075,
+    "eff_op": 0.021233457916503218,
+    "better": true
+   },
+   {
+    "delta_px": 64,
+    "op": "bicubic_cc",
+    "eff_nn": 0.03898750268900075,
+    "eff_op": 0.011346841159111998,
+    "better": true
+   },
+   {
+    "delta_px": 64,
+    "op": "spline_natural",
+    "eff_nn": 0.03898750268900075,
+    "eff_op": 0.008363364997485911,
+    "better": true
+   },
+   {
+    "delta_px": 64,
+    "op": "photutils_zoom1",
+    "eff_nn": 0.03898750268900075,
+    "eff_op": 0.0910043824508493,
+    "better": false
+   },
+   {
+    "delta_px": 64,
+    "op": "gpr_rbf",
+    "eff_nn": 0.03898750268900075,
+    "eff_op": 0.00631045294712318,
+    "better": true
+   },
+   {
+    "delta_px": 128,
+    "op": "bilinear",
+    "eff_nn": 0.1244591661952168,
+    "eff_op": 0.10887173084942336,
+    "better": true
+   },
+   {
+    "delta_px": 128,
+    "op": "bicubic_cc",
+    "eff_nn": 0.1244591661952168,
+    "eff_op": 0.09479716574733144,
+    "better": true
+   },
+   {
+    "delta_px": 128,
+    "op": "spline_natural",
+    "eff_nn": 0.1244591661952168,
+    "eff_op": 0.08995290118111043,
+    "better": true
+   },
+   {
+    "delta_px": 128,
+    "op": "photutils_zoom1",
+    "eff_nn": 0.1244591661952168,
+    "eff_op": 0.2022782512513952,
+    "better": false
+   },
+   {
+    "delta_px": 128,
+    "op": "gpr_rbf",
+    "eff_nn": 0.1244591661952168,
+    "eff_op": 0.08474791918386448,
+    "better": true
+   }
+  ],
+  "n_better": 12,
+  "n_total": 15,
+  "ok": true,
+  "note": "最近邻必须被光滑算子稳定击败，否则判据对算子质量不敏感"
+ },
+ "gates_summary": {
+  "G1_zero_effect_zero": true,
+  "G6_frame_arm_selfzero": true,
+  "G2_DEGENERATE_flat_field_ranking_never_true": null,
+  "G3_adversarial_shuffle_red": true,
+  "G4_tautology_recheck": null,
+  "G5_nn_baseline_nondegenerate": true
+ },
+ "generated_at": "2026-09-22T14:50:19Z",
+ "wall_s": 12.433600902557373
+}
