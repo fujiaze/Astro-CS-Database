@@ -54,9 +54,16 @@ class TestLinuxRelease(unittest.TestCase):
         m = re.search(r"AstroCS-Linux-amd64-(.+)\.tar\.", base)
         self.assertTrue(m)
         self.assertEqual(m.group(1), ver, "包名版本必须来自 VERSION 源")
-        self.assertRegex(ver, r"^0\.9\.0-alpha\.\d+$", "包名必须 alpha")
-        for bad in ("stable", "rc", "release", "1.0"):
+        # 版本号单源 = 根 VERSION（VERSION-CONSISTENCY，docs/ci/01_CHECKS.md:66 以
+        # --expected 0.11.0-alpha.2 锁定）⇒ 这里只锁「alpha 形态」，不得写死基础号。
+        # 原为 r"^0\.9\.0-alpha\.\d+$"：VERSION 推进到 0.11.0-alpha.2 后该断言恒假，
+        # 却被 @skipUnless 的恒 skip 掩盖（EMPTYASSERT-01 实测：门禁对象一就位即判红）。
+        self.assertRegex(ver, r"^\d+\.\d+\.\d+-alpha\.\d+$", "包名必须 alpha")
+        for bad in ("stable", "rc", "release"):
             self.assertNotIn(bad, base, f"禁止 {bad} 标记")
+        # "1.0" 是稳定版标记，必须按版本段比较：裸子串会被 0.11.0 / 0.10.0 误伤
+        # （0.11.0 里含 "1.0"），即该断言在现行 VERSION 下恒假、长期被恒 skip 掩盖。
+        self.assertNotRegex(base, r"(?<!\d)1\.0(?!\d)", "禁止 1.0 标记")
 
     def test_03_single_user_exe_and_tree(self):
         root = os.path.join(self.unpack, "astrocs")
