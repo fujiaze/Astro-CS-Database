@@ -18,7 +18,7 @@
 
 - **输入**：定标信号、variance/ivar、validity、WCS、PSF 模型/地图、point_information、psfsw、depth_m5、frame_snr、[sparse_snr_layer]、配置。
 - **输出**：
-  - **HiPS 文件**：signal、pixel variance/ivar、support、coverage/validity、drizzle correlation/transfer 描述、PSF 模型、photometric response、point_information map、psfsw、depth、**帧级 SNR（信噪比）写入文件头**、**[稀疏帧内 SNR 层作为标准层]**、source catalog、manifest；
+  - **HiPS 文件**：signal、pixel variance/ivar、support、coverage/validity、drizzle correlation/transfer 描述、PSF 模型、photometric response、point_information map、psfsw、depth、**帧级 SNR（信噪比）写入文件头**、**[稀疏帧内 SNR 层（控制点存绝对 SNR）作为标准层]**、source catalog、manifest；
   - **结构化 JSON**：输出路径信息，符合 Phase2 输入格式。
 - 参考：`eng/contracts/schemas/hips_product.schema.json`、`eng/contracts/schemas/manifest.schema.json`。
 
@@ -36,7 +36,8 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 - Drizzle 的 signal 单位、源/目标像素面积、pixfrac、归一必须统一；常量面亮度 Oracle（`x_j=B0·A_pixel,j`，`S_p=B0`，全 `pixfrac∈(0,1]`）与条件通量守恒（`Σ_p F_p=pixfrac²·Σ_j x_j`）同时成立；
 - pixfrac、像素面积、单位不可隐含；
 - **归一必须走 `sb_a_pixel` 路径**：`sb_weight = a_jp / A_pixel`（面亮度 / 像素面积）；`w = a_jp / A_drop,j`（`drizzle_engine.cpp` 的 `A_drop` 归一）在 `pixfrac<1` 时偏 `1/pixfrac²`，**禁用于绝对面亮度**，见 `docs/science/DRIZZLE.md` §5/§7 与 `DISP-DRZ-009`。
-- 依据：`pixfrac=0.8` 实测 `A_drop` 路径面亮度 **×1.5625（+56.25%）**、方差 **×2.4414**，与 `1/pf²`、`1/pf⁴` 逐位吻合；`sb_a_pixel` 正确实现已存在（`v6_drizzle_science.cpp`：`pixfrac<1` 时对 `A_drop` 归一**显式 fail-closed**），但生产 `hp_drizzle_run` 仍硬编码 `A_drop` 路径 ⇒ **须改走 `sb_a_pixel`**。
+- 依据：`pixfrac=0.8` 实测 `A_drop` 路径面亮度 **×1.5625（+56.25%）**、方差 **×2.4414**，与 `1/pf²`、`1/pf⁴` 逐位吻合。
+  **现状（DRIZZLE-FIX-01，2026-09-22，已闭环）**：生产引擎 tile 路径**已改走 `sb_a_pixel`** —— `processPixelSharedTiled` 的权重分母为**未收缩**源像素面积 `A_pixel,j`（`spherical::polygon_area_consistent`），`pixfrac<1` 时补 4 次未收缩四角 `pixelToSky`；`pixfrac==1` 时 `A_drop≡A_pixel` ⇒ 分母取 `drop_area`，产物逐字节不变。回归门 `p1drz_disp009`（常量面亮度 `|S_p/B0−1|<1e-3` 覆盖 `pixfrac∈(0,1]`）。另有独立实现 `v6_drizzle_science.cpp`（`pixfrac<1` 时对 `A_drop` 归一**显式 fail-closed**）。
   **边界（诚实）**：L4 全部 12 配置 `pixfrac=1.0` ⇒ **本次数据偏差为 0**，属**潜在隐患**，**不得**写成「本次数据已被污染」。
 
 ## 5. 配置项
@@ -47,12 +48,12 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 | `pixfrac` | 1.0 | —— | drop 收缩因子 ∈(0,1]；默认 1.0 = 严格通量守恒端点（`docs/science/DRIZZLE.md:95-98`；pixfrac<1 须记 `provenance.flux_conservation_factor=pixfrac²`） |
 | `pixel_scale` | —— | arcsec/px | 输出像素尺度（HiPS tile） |
 | `nside` | —— | —— | HEALPix nside（与 order 等价） |
-| `sparse_snr_layer` | true | —— | 是否将稀疏帧内 SNR 层插入 HiPS（来自 noise_snr）；**默认产出**（默认稀疏路径，`07_noise_snr.md` §4.2/§5） |
+| `sparse_snr_layer` | true | —— | 是否将稀疏帧内 SNR 层插入 HiPS（来自 noise_snr；控制点值 = 绝对通量型 SNR `F_ref/σ_F(x,y)`，与帧级同口径、同 `F_ref`）；**默认产出**（默认稀疏路径，`07_noise_snr.md` §4.2/§5） |
 
 ## 6. 接口/ABI
 
 - entrypoint：图像组+WCS+科学层 → HiPS 产品目录 + 结构化 JSON；
-- **帧级 SNR（信噪比）写入 HiPS 文件头**；稀疏层（启用时）作为标准层插入 HiPS；
+- **帧级 SNR（信噪比）写入 HiPS 文件头**；稀疏层（启用时）作为标准层插入 HiPS，控制点存绝对 SNR（与帧级同口径、同 `F_ref`）；
 - 输出原子目录，重开独立消费（Phase2 不需回读 raw light）。
 
 ## 7. 错误与边界
@@ -61,7 +62,8 @@ S_p = Σ_j B_j a_jp / Σ_j a_jp
 - 相关噪声不存描述 → 不得宣称 variance 完备；
 - 缺 tile/非有限 → validity 标记，不以零填充；
 - **无覆盖/无数据 = NaN**（与支撑度 ≤0 一致），不用 0 或 ±Inf 冒充无效；NaN 采用**样本级掩膜**：被掩除的样本不参与该输出像素，剩余样本权重**重归一**；整个输出像素无有效覆盖则置 NaN（**覆盖级 NaN**）并**强制计数**（最高设计 §5.5/§10，规则见 `docs/science/DRIZZLE.md`）；
-- **逐像素方差/ivar 产品面当前不可得（登记，未闭合）**：生产调度路径不挂 `variance` 块 ⇒ `has_variance=0` ⇒ `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）；双实现分裂见 `07_noise_snr.md` §4.4。凡「逐像素方差已由生产路径产出」的主张**不得**提出。
+- **逐像素方差/ivar 产品面（2026-09-22 订正，DRIZZLE-FIX-01）**：生产调度路径**已挂** `variance` 帧内命名块 —— `lib/infrastructure/scheduler/src/module_adapters.cpp`（`p1_op_drizzle`）按定案2 `NoiseWeightModelV1` blank-sky variance 经 `snr_noise_model_v1_fill` 填面后 `aio_frame_add_block(frame, "variance", AIO_BLOCK_FLOAT32, …)`；登记面 = `DATA-P1-DRZ` §11.1:295「variance 面（可选，帧内块）float32，ADU²」。引擎侧 `sumVarNum += v·w²`（`w = a_jp/A_pixel,j`），sink/writer finalize 出 V19 variance/ivar 子产品；`uncertainty_available` 为 provenance 判定结果（`true` ⇒ variance|ivar 位同时置位，`false` ⇒ 两位均不置位，禁占位子产品），**由磁盘事实给出，禁硬编码**。
+  **显式降级（非静默，带 `var_status`/`var_reason`）**：noise model 退化（rc=1）⇒ `skipped_degenerate_empty_support`；填充面含非有限/非正值 ⇒ `skipped_fill_failed`（全零方差面会让引擎整像素 `varianceValue<=0 ⇒ continue`，抹掉 signal/support，故 fail-closed）。凡「逐像素方差已由生产路径产出」的主张**必须**附 `n_variance_tiles>0` 的磁盘证据；旧表述「生产调度路径不挂 `variance` 块 ⇒ `has_variance=0` ⇒ `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）」与工作区现状**不符，已作废**；双实现分裂见 `07_noise_snr.md` §4.4。
 
 ## 8. 测试与 Oracle
 

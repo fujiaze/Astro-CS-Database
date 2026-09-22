@@ -34,9 +34,10 @@ static uint64_t bits_of(T v) {
 
 template <typename Scalar>
 static int run_one(const char* prefix, int threads, int nside, int W, int H,
-                   double amp, double sigma, uint64_t seed, bool fp64) {
+                   double amp, double sigma, uint64_t seed, bool fp64,
+                   double pixfrac) {
     FitsImage img = p1drz::fix_drz_b_gaussian(W, H, amp, sigma, seed, 0.0);
-    DrizzleConfig cfg = p1drz::make_cfg(nside, 1.0, threads, fp64);
+    DrizzleConfig cfg = p1drz::make_cfg(nside, pixfrac, threads, fp64);
     DrizzleEngine eng;
     DrizzleStats st;
     std::string err;
@@ -124,7 +125,9 @@ static int run_one(const char* prefix, int threads, int nside, int W, int H,
 int main(int argc, char** argv) {
     if (argc < 9) {
         std::fprintf(stderr,
-                     "usage: %s <prefix> <threads> <nside> <W> <H> <amp> <sigma> <seed> [fp64]\n",
+                     "usage: %s <prefix> <threads> <nside> <W> <H> <amp> <sigma> <seed> [fp64] [pixfrac]\n"
+                     "  pixfrac 省略 = 1.0 (既有调用面不变); 显式 <1 用于在"
+                     "面亮度保持权重路径 (DISP-DRZ-009) 上复核 1/N 逐位一致。\n",
                      argv[0]);
         return 1;
     }
@@ -137,8 +140,11 @@ int main(int argc, char** argv) {
     const double sigma = std::atof(argv[7]);
     const uint64_t seed = std::strtoull(argv[8], nullptr, 10);
     const bool fp64 = (argc > 9) && std::string(argv[9]) == "fp64";
+    const double pixfrac = (argc > 10) ? std::atof(argv[10]) : 1.0;
     if (fp64) {
-        return run_one<double>(prefix.c_str(), threads, nside, W, H, amp, sigma, seed, true);
+        return run_one<double>(prefix.c_str(), threads, nside, W, H, amp, sigma, seed, true,
+                               pixfrac);
     }
-    return run_one<float>(prefix.c_str(), threads, nside, W, H, amp, sigma, seed, false);
+    return run_one<float>(prefix.c_str(), threads, nside, W, H, amp, sigma, seed, false,
+                          pixfrac);
 }

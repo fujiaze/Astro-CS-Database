@@ -52,7 +52,10 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
     ⇒ S_p = Σ_j B_j a_jp / Σ_j a_jp
     drop 面积 A_drop,j 在分子分母相消(均匀 drop 尺度下), 只决定 footprint;
     按 A_drop,j 归一的权重 a_jp/A_drop,j 满足 w_jp = pixfrac²·(a_jp/A_drop,j)，
-    故两种归一下的信号相差 1/pixfrac²（DISP-DRZ-009：现实现仍用 a_jp/A_drop,j 归一）
+    故两种归一下的信号相差 1/pixfrac²（DISP-DRZ-009：**已于 DRIZZLE-FIX-01
+    (2026-09-22) 闭环** —— 现实现用 w_jp=a_jp/A_pixel,j，见
+    drizzle_engine.cpp 的 processPixelSharedTiled「pixel_area」段与
+    spherical_overlap.cpp 的 polygon_area_consistent；回归门 p1drz_disp009）
 
 语义固定（SCI-003: flux vs surface-brightness 二选一）:
   【输入 x_j = 源像素积分通量】(单位统一为 ADU/e⁻), 由天体面亮度场 B(Ω) 对像素积分:
@@ -116,7 +119,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
 | WCS 无效/尺度非法 | 拒绝 `compute_auto_nside` 失败 | `drizzle_engine.cpp:631` |
 | 源像素 NaN/Inf（值） | **样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数**（`rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN`；唯一口径文字 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a）：不合格样本从 `F_p`、分母、方差三项中一并剔除并**重新归一**——**禁止**让单个不合格样本使整个输出像素变为 NaN，**禁止**保留被剔除样本的权重在分母里；仅当 `D_p = 0`（零合格样本）时输出 `signal = NaN ∧ support ≤ 0`（NaN 是无效的**唯一**表示，**禁止**用 0/±Inf 冒充），且每个输出像素**必须**暴露被剔除样本计数 `n_rejected_nonfinite`（**禁止**静默剔除）。 | `spherical_overlap.cpp:192`（几何 NaN 显式拒绝） |
 | 无覆盖/几何退化 | `NO_DATA`，不产伪信号 | `drizzleTiled` |
-| 微小交集 `max_angle<1e-3 rad` | 切平面面积近似保持交叠面积 `a_jp` 一致（按 `overlap/drop_area` 归一的权重同路径） | `spherical_overlap.cpp:75` |
+| 微小交集 `max_angle<1e-3 rad` | 切平面面积近似保持交叠面积 `a_jp` 一致（权重分母 A_pixel,j 与 drop_area 走**同一分支同一例程**：θ<1e-3 时同为切平面 2D 面积，见 `spherical::polygon_area_consistent`） | `spherical_overlap.cpp` `planar_polygon_area_n` / `polygon_area_consistent` |
 | RA 跨0/极区/face边界 | `boundary_fallback` 保守 queryDisc，`false_negative=0` | `spherical_overlap` |
 | 极区 `θ_q+radius>90°` | 保守不剪枝，遍历极冠树 | `gaia_client.c` 复用 |
 
@@ -189,7 +192,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
   `dover/=jaco`（`jaco=A_drop`）后 `dow=dover·w`——drop 面积同入分子分母，是一致加权均值；
   DrizzlePac Handbook §2.3.2（p.17）“the weights of the individual output pixels … are independent of the choice of p [pixfrac]”；
   SWarp `src/resample.c` 以 `A_out/A_in` 面积比保面亮度（无 drop/pixfrac 概念）。
-  **按 `A_drop,j` 归一的混合式**（分子 `x_j·a_jp/A_drop,j`、分母 `Σ a_jp`）给出 `S_p=B0/pixfrac²`，仅 pixfrac=1 正确——现实现 `drizzle_engine.cpp:1531` 仍是此式，登记 DISP-DRZ-009。
+  **按 `A_drop,j` 归一的混合式**（分子 `x_j·a_jp/A_drop,j`、分母 `Σ a_jp`）给出 `S_p=B0/pixfrac²`，仅 pixfrac=1 正确——该式即登记项 DISP-DRZ-009，**已于 DRIZZLE-FIX-01 (2026-09-22) 闭环**：现实现改用 `w_jp=a_jp/A_pixel,j`（`drizzle_engine.cpp` `processPixelSharedTiled` 的 `pixel_area` 段），并新增回归门 `p1drz_disp009`（pixfrac∈(0,1] 常量面亮度门 + "分母取 A_drop 必判红"的负例控制）。
 - **Drizzle 实践与相关噪声**：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
 - **HEALPix 几何/order**：Górski, K. M. et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；独立实现 astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0，只对照不复制）。
 - **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207，Girard 定理）；**实现实为 Sutherland–Hodgman + Eriksson 2018 扇形三角剖分**（spherical_overlap.cpp:152-186,218），本文件 §5/§12 的“Girard 定理”命名与实现不符，登记 `DISP-DRZ-002`，待变更流程处理。Eriksson, F. 2018, “The area of a spherical triangle”（代码 :178 已引）。

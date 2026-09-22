@@ -222,6 +222,22 @@ void flush() {
             g_sources.size(), g_leaves.size());
 }
 
+// PERF-MEM-FIX-01 (F6): 每个 run 结束 (flush 之后) 清空逐帧缓冲。
+// 修复前 g_sources/g_leaves 只在 init_from_env 首次进入时清空 (g_enabled 为真
+// 即 return), 语义是"进程内累计": 未显式 reset 的调用方会让诊断缓冲随 run 数
+// 无界增长 (g_sources ≤ 选择集大小/run, g_leaves ≤ kMaxTraceLeaves/run), 且第 2
+// 个 run 的 jsonl 会把前面所有 run 的记录一并重写。改为 run 末清空后, 每个 run
+// 的 drizzle_lineage.jsonl / leaf_internal.jsonl 只含本 run 记录, 缓冲峰值与
+// run 数解耦。仅作用于 ASTROCS_DRIZZLE_TRACE 诊断路径 (默认关闭)。
+void clear_buffers() {
+    if (!g_enabled) return;
+    std::lock_guard<std::mutex> lk(g_mtx);
+    g_sources.clear();
+    g_sources.shrink_to_fit();
+    g_leaves.clear();
+    g_leaves.shrink_to_fit();
+}
+
 void reset() {
     std::lock_guard<std::mutex> lk(g_mtx);
     g_enabled = false;
@@ -1354,9 +1370,34 @@ void DrizzleEngine::processPixelTiled(
         corners_v[i] = spherical::radec_to_vec<double>(ra, dec);
     }
 
+    // ---- Step 2b (DISP-DRZ-009): 未收缩源像素四角 → A_pixel,j ----
+    // 面亮度保持权重 w_jp = a_jp/A_pixel,j 需要**未收缩**像素面积。pixfrac==1
+    // 时未收缩四角与 drop 四角逐位相同, 传 nullptr ⇒ 分母取 drop_area, 逐位不变
+    // (因此本分支只在 pixfrac<1 时多付 4 次 pixelToSky, 见审核量化 +3%)。
+    // 本函数只由非共享路径 (shared_vertices==false ⇔ pixfrac!=1.0) 调用。
+    spherical::Vec3 pixel_corners_v[4];
+    const spherical::Vec3* pixel_corners = nullptr;
+    if (config.pixfrac != 1.0) {
+        const double full_xy[4][2] = {
+            {px - 0.5, py - 0.5},
+            {px + 0.5, py - 0.5},
+            {px + 0.5, py + 0.5},
+            {px - 0.5, py + 0.5}
+        };
+        counters.pix2radec += 4;
+        for (int i = 0; i < 4; i++) {
+            double ra, dec;
+            wcs.pixelToSky(full_xy[i][0], full_xy[i][1], ra, dec);
+            if (!std::isfinite(ra) || !std::isfinite(dec))
+                return;
+            pixel_corners_v[i] = spherical::radec_to_vec<double>(ra, dec);
+        }
+        pixel_corners = pixel_corners_v;
+    }
+
     processPixelSharedTiled(px, py, pixelValue, snrValue, weightValue,
-                            varianceValue, counters, corners_v, wcs, config, hp,
-                            shift, mask, rctx, tileMap);
+                            varianceValue, counters, corners_v, pixel_corners,
+                            wcs, config, hp, shift, mask, rctx, tileMap);
 }
 
 // ============================================================================
@@ -1370,6 +1411,7 @@ void DrizzleEngine::processPixelSharedTiled(
     float varianceValue,
     DrizzleOpCounters& counters,
     const spherical::Vec3 corners_v[4],
+    const spherical::Vec3* pixel_corners_v,
     const WcsSip& wcs, const DrizzleConfig& config,
     const healpix::HealpixCore& hp,
     uint32_t shift, uint64_t mask,
@@ -1470,6 +1512,27 @@ void DrizzleEngine::processPixelSharedTiled(
         return;
     }
 
+    // ---- Step 4b (DISP-DRZ-009 修复): A_pixel,j = 未收缩源像素球面面积 ----
+    // SCI-DRZ-001 §5 冻结的目标态: 面亮度保持权重 w_jp = a_jp / A_pixel,j,
+    // 与分母 D_p = Σ_j a_jp 搭配给出 S_p = Σ_j B_j a_jp / Σ_j a_jp = B0
+    // (B_j = x_j/A_pixel,j)。修复前用 a_jp/A_drop,j, 分子是"drop 的分数交叠"
+    // 而分母是"绝对球面面积", 两种口径混用 ⇒ S_p = B0/pixfrac²
+    // (实测 pixfrac=0.8 → +56.25%, 与 1/pf²−1 逐位吻合)。
+    //   * pixfrac == 1: 未收缩四角 ≡ drop 四角 ⇒ 分母直接取 drop_area,
+    //     与修复前**逐位相同**(硬约束: 默认路径零回归, defaults.json
+    //     drizzle.pixfrac=1.0);
+    //   * pixfrac < 1: 由调用方提供的未收缩四角算面积 (同一面积例程, 见
+    //     spherical::polygon_area_consistent), 代价 = 4 次 pixelToSky (+3%)。
+    // 禁止用 A_drop/pixfrac² 近似替代: 该恒等式有 O(θ²) 球面非线性残差
+    // (审核实测 8.3e-7 @2"/px)。
+    Scalar pixel_area = drop_area;
+    if (pixel_corners_v != nullptr) {
+        pixel_area = Scalar(spherical::polygon_area_consistent(pixel_corners_v, 4));
+        if (pixel_area < Scalar(1e-20)) {
+            return;   // 退化像素几何: fail-closed, 不产伪权重
+        }
+    }
+
     // ---- Step 5: 候选像素查询 ----
     // 候选集合为整数 ipix, 与 Scalar 无关; 使用 double 源角点计算保证
     // FP32/FP64 候选一致且不因 float 存储舍入漏选 (float 1e-7 误差在
@@ -1535,7 +1598,13 @@ void DrizzleEngine::processPixelSharedTiled(
             continue;
         }
 
-        Scalar weight = overlap_area / drop_area;
+        // DISP-DRZ-009: 权重分母 = A_pixel,j (面亮度保持), **不是** A_drop,j。
+        // 与 acc.sumArea (D_p = Σ a_jp, 绝对球面面积, support 语义) 搭配后
+        // S_p = Σ_j B_j a_jp / Σ_j a_jp。F&H 2002 式(5) 与 drizzlepac
+        // (cdrizzlebox.c update_data: (out·vc + dow·d)/(vc+dow), vc = Σ(a·w))
+        // 都是"权重和"归一的一致加权均值, 故与 pixfrac 无关; AstroCS 的分母是
+        // 绝对面积而非权重和, 因此分子权重必须取 a_jp/A_pixel,j 才与之配对。
+        Scalar weight = overlap_area / pixel_area;
         if (weight <= Scalar(0)) {
             counters.quick_rejects++;
             continue;
@@ -1762,7 +1831,22 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     // 归约结合树仍是 "stripe 0..n-1 升序左折叠" (与 P15a 逐位一致), 但合并与
     // 累加重叠, 串行合并不再进入关键路径。同批存活的 map 数 = K, 峰值内存与
     // P15a 的 per-thread scratch 同阶 (K 个, 不随 stripe 数增长)。
-    const int kScratchPool = num_threads;
+    // PERF-MEM-FIX-01 (F1): 池上限 2 —— 修复前 K = num_threads, 峰值内存随
+    // worker 数线性放大。每份 scratch 内每个被触达 tile 的 pixels 数组按
+    // local_ipix 按需 resize ((local+1) 个 32 B 叶单元), HEALPix Z 序下即使一条
+    // 只覆盖 ~31 叶行的 stripe 也把数组撑到近满 (nside=65536/depth=9 时单块
+    // 8 MiB) ⇒ 峰值 ≈ K × (每 stripe 触达 tile 数 × 8 MiB)。
+    // K 只决定"同时在飞的 stripe 数", 不进数值路径:
+    //   * stripe 划分只由 img.height 决定 (drizzle_deterministic_stripe_count),
+    //     与线程数无关;
+    //   * 合并仍由 merge_cursor 强制按 stripe 索引升序左折叠 (见下方归约分支);
+    //   * 同一 stripe 的 map 由唯一线程按 (y,x) 行主序构建, merge_tile_map_into
+    //     按该 map 的 touched 插入序逐 leaf 累加 (跨 tile 的顺序不影响任一 leaf
+    //     的加法序) ⇒ 浮点结合树与 K 无关, 逐位一致。
+    // K=2 保留"一份在累加、一份在归约"的重叠; 池不再随 worker 数放大。
+    // 归约流水线的线程预算不变式由 p1drz_merge_pipeline_lock 回归锁守。
+    static constexpr int kScratchPoolCap = 2;
+    const int kScratchPool = std::min(num_threads, kScratchPoolCap);
     std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> scratchPool(
         static_cast<size_t>(kScratchPool));
     std::vector<char> poolFree(static_cast<size_t>(kScratchPool), 1);
@@ -1953,9 +2037,12 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
                                          top_vec[static_cast<size_t>(x) + 1], top_vec[static_cast<size_t>(x)]};
                 auto t_g = fine ? std::chrono::high_resolution_clock::now()
                                 : std::chrono::time_point<std::chrono::high_resolution_clock>{};
+                // pixfrac==1 行级顶点缓存: cv 即未收缩四角 ⇒ pixel_corners=nullptr,
+                // 分母取 drop_area (逐位不变); 该分支由 shared_vertices 独占,
+                // 而 shared_vertices ⇔ config.pixfrac==1.0。
                 processPixelSharedTiled((double)x, (double)y, pixelValue, snrValue, weightValue,
                                         varianceValue, threadCounters[static_cast<size_t>(tid)],
-                                        cv, wcs, config, hp, (uint32_t)shift, mask,
+                                        cv, nullptr, wcs, config, hp, (uint32_t)shift, mask,
                                         rctx, tileMap);
                 if (fine) {
                     prof_geom_tl[static_cast<size_t>(tid)] += std::chrono::duration<double>(
@@ -2075,6 +2162,9 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             }
         }
         drizzle_trace::flush();
+        // PERF-MEM-FIX-01 (F6): run 末清空逐帧缓冲 (本 run 的 jsonl 已落盘),
+        // 峰值不再随 run 数累积。
+        drizzle_trace::clear_buffers();
     }
 
     // 9. 统计信息

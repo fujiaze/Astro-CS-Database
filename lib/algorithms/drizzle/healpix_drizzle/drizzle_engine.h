@@ -296,6 +296,11 @@ private:
     ) const;
 
     // 共享顶点路径 (pixfrac=1): 接收预计算的 4 角球面坐标, 跳过逐像素 WCS 角点变换
+    //
+    // pixel_corners_v (DISP-DRZ-009 修复, 2026-09-22): **未收缩**源像素四角。
+    // 面亮度保持权重 w_jp = a_jp/A_pixel,j (SCI-DRZ-001 §5) 的分母来自它;
+    // 传 nullptr 表示"未收缩四角与 drop 四角逐位相同"(pixfrac==1), 此时分母
+    // 直接取 drop_area ⇒ 默认路径逐位不变 (A_drop,j ≡ pixfrac²·A_pixel,j)。
     template <typename Scalar>
     void processPixelSharedTiled(
         double px, double py,
@@ -303,6 +308,7 @@ private:
         float varianceValue,
         struct DrizzleOpCounters& counters,
         const spherical::Vec3 corners_v[4],   // 行级顶点缓存（免每像素 sin/cos）
+        const spherical::Vec3* pixel_corners_v,  // 未收缩四角 (nullptr = 与 corners_v 同)
         const WcsSip& wcs, const DrizzleConfig& config,
         const healpix::HealpixCore& hp,
         uint32_t shift, uint64_t mask,

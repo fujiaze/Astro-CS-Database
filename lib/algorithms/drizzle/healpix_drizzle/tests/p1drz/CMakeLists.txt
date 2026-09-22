@@ -73,6 +73,25 @@ target_link_libraries(p1drz_selfcheck_test PRIVATE astrocs_drizzle ${ASTROCS_OMP
 add_test(NAME p1drz_selfcheck COMMAND p1drz_selfcheck_test)
 
 # ---------------------------------------------------------------------------
+# DRIZZLE-FIX-01: DISP-DRZ-009 回归门 (面亮度保持权重 w_jp = a_jp/A_pixel,j)
+# ---------------------------------------------------------------------------
+# 判据两条 (能红能绿, 非退化):
+#   P 实测常量面亮度门 |S_p/B0-1| < 1e-3 (FZ-GATE-CONST-SB, pixfrac∈(0,1]);
+#   N 负例控制: 用独立 oracle 几何的 A_pixel/A_drop 把实测 S_p 投影回
+#     "分母取 A_drop" 的口径 ⇒ 必须判红 (证明容差能分辨两种归一口径)。
+# 修复前 (w=a/A_drop) P/N 同时判红 (实测偏差 = 1/pf²−1); 修复后同时绿。
+# 带 dump 参数时额外落 <dir>/disp009_pf<X>.{norm.hiss,canon} 供逐字节对照。
+# ---------------------------------------------------------------------------
+add_executable(p1drz_disp009_gate
+  ${P1DRZ_DIR}/p1drz_disp009_gate.cpp)
+target_include_directories(p1drz_disp009_gate PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/..
+  ${P1DRZ_DIR})
+target_compile_definitions(p1drz_disp009_gate PRIVATE AIO_ENABLE_FITS AIO_ENABLE_HEALPIX)
+target_link_libraries(p1drz_disp009_gate PRIVATE astrocs_drizzle ${ASTROCS_OMP_TARGET})
+add_test(NAME p1drz_disp009 COMMAND p1drz_disp009_gate)
+
+# ---------------------------------------------------------------------------
 # P15a: 线程预算不变式探针 (determinism; 非 ctest 门, 供任务实测)
 # 用法: p1drz_thread_probe <prefix> <threads> <nside> <W> <H> <amp> <sigma> <seed> [fp64]
 # 输出 <prefix>.hiss / .canon / .order; 不同线程预算须逐位一致。

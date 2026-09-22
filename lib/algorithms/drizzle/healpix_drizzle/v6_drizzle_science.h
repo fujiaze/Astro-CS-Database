@@ -13,7 +13,13 @@
 //   FZ-UNIT-IVAR-SB     sb_ivar_out          = px^4/ADU^2
 //   FZ-UNIT-WINFO       W_info               = ADU^-2
 //   FZ-UNIT-FLUX        flux F_hat           = ADU
-//   FZ-UNIT-PSFSW       psfsw_robust_weight  = 1
+//   FZ-UNIT-PSFSW       psfsw_robust_weight  = 1 —— **已退役并物理删除**
+//                       （PSFSW-RETIRE-01 退役 / PSFSW-RETIRE-03 物理删除）：
+//                       该对象不是现行对象（ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）；
+//                       冻结单位表不再有它的行、UnitId 不再有它的项（同一对象在权威链上
+//                       只能有一个身份）。拒绝面为**字符串面**：产品/单位声明消费该符号
+//                       ⇒ 显式拒绝 + 迁移提示（is_retired_unit_symbol /
+//                       retired_unit_reject_reason），不得静默接受
 //   FZ-FORMULA-DRIZZLE-SB
 //       B_j = x_j / A_pixel_j ; S_p = Sum_j B_j a_jp / Sum_j a_jp
 //           = Sum_j w_SB_jp x_j / D_p = Sum_j c_jp x_j
@@ -75,7 +81,9 @@ enum class UnitId {
     w_info,             // ADU^-2         (FZ-UNIT-WINFO)
     flux,               // ADU            (FZ-UNIT-FLUX)
     q,                  // ADU^-1         (FZ-UNIT-Q)
-    psfsw_robust_weight,// 1              (FZ-UNIT-PSFSW)
+    /* PSFSW-RETIRE-03：psfsw_robust_weight **不再有枚举项**（物理删除，原为 RETIRED
+     * 占位）。退役对象的识别只走字符串面 is_retired_unit_symbol，不依赖枚举项；
+     * 任何声明该符号的产品/单位记录都必须 fail-closed（见下节）。 */
     pixel_area,         // px^2
     dimensionless,      // 1  (w_SB / c coefficient)
 };
@@ -95,6 +103,18 @@ UnitDimension inverse_dimension(UnitDimension d);
 
 // 门 G-STRUCT-UNIT-LAW: variance == signal^2 且 ivar == 1/variance。
 bool unit_law_holds(UnitId signal, UnitId variance, UnitId ivar);
+
+// ── 退役对象显式拒绝（PSFSW-RETIRE-01；负责人裁决）────────────────────────
+// psfsw_robust_weight **不是现行对象**：ASTROCS_DESIGN.md §3.1（权重只能来自纯净
+// 信号与噪声之比的逆方差，跨帧绝对标定，不基于参考帧；PSF 拟合质量代理只作诊断）、
+// docs/design/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 + 迁移提示）。
+// PSFSW-RETIRE-03：该对象已**物理删除**——冻结单位表无其行、UnitId 无其项
+// （因此不再有 is_retired_unit_id）。识别面只剩字符串面：调用方解析到该符号时
+// 必须 fail-closed，不得静默接受、不得回退默认单位。
+// 返回 true = 命中退役对象（调用方必须拒绝）。
+bool is_retired_unit_symbol(const std::string& symbol);
+// 拒绝说明（含被拒对象、现行允许面与迁移提示）；未命中返回空串。
+std::string retired_unit_reject_reason(const std::string& symbol);
 
 // ---------------------------------------------------------------------------
 // 2. 算子原语：w_SB / c_jp / D_p
