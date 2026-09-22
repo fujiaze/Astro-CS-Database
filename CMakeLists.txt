@@ -296,6 +296,8 @@ add_library(astrocs_core STATIC
   lib/infrastructure/scheduler/src/pipeline.cpp
   # ARCH-501: 阶段内命名块与块生命周期（CONTRACT-501 PIPELINE_BLOCK_CONTRACT）
   lib/infrastructure/scheduler/src/block_frame.cpp
+  # ARCH-502: normalize 异步工作流调度器（CONTRACT-501 SCHEDULER_CONTRACT）
+  lib/infrastructure/scheduler/src/normalize_workflow.cpp
   lib/infrastructure/scheduler/src/context.cpp
   lib/infrastructure/scheduler/src/runtime.cpp
   lib/infrastructure/scheduler/src/scheduler.cpp

@@ -24,6 +24,11 @@ target_include_directories(core_block_frame_test PRIVATE ${CMAKE_CURRENT_SOURCE_
 target_link_libraries(core_block_frame_test PRIVATE astrocs_core)
 add_test(NAME core_block_frame COMMAND core_block_frame_test)
 
+add_executable(normalize_workflow_test normalize_workflow_test.cpp)
+target_include_directories(normalize_workflow_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
+target_link_libraries(normalize_workflow_test PRIVATE astrocs_core)
+add_test(NAME normalize_workflow COMMAND normalize_workflow_test)
+
 add_executable(core_context_test core_context_test.cpp)
 target_include_directories(core_context_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_link_libraries(core_context_test PRIVATE astrocs_core)
