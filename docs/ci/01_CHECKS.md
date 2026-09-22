@@ -103,6 +103,9 @@
 | CHK-ARCH502-NORMALIZE-WF | 架构 | ARCH-502 normalize 异步工作流调度器回归锁：帧内 DAG 流水、多帧并发、N=1/2/4/8 checksum 逐位一致、归约按 frame_id 升序、专用预取线程、块生命周期由调度器掌管、内存超限必失败、取消无泄漏、磁盘满传播 | `python3 eng/ci/run_checks.py --check CHK-ARCH502-NORMALIZE-WF --quiet` | P0 |
 | CHK-ARCH503-MOSAIC-WIN | 架构 | ARCH-503 mosaic 天球窗口并行调度器回归锁：窗口划分（大小入 manifest）、按窗口路由消除整帧读放大、窗口内固定顺序、稠密 SNR 现场求值、N=1/2/4/8/16 逐位一致、与单窗口参考实现**逐位相同**、峰值驻留与总图大小解耦、取消 | `python3 eng/ci/run_checks.py --check CHK-ARCH503-MOSAIC-WIN --quiet` | P0 |
 | CHK-ARCH504-EXPORT-STREAM | 架构 | ARCH-504 export 子块流式调度器回归锁：三级有界流水线+背压、全图行主序 FITS 逐位一致、与 worker 数无关、原子发布无 .tmp 残留、磁盘满 exit 10 不发布、WCS 头缺失拒绝开写、在途字节与子块大小成正比且与总图大小无关、探针、取消 | `python3 eng/ci/run_checks.py --check CHK-ARCH504-EXPORT-STREAM --quiet` | P0 |
+| CHK-ARCH505-BLOCK-FLOW | 架构 | ARCH-505 阶段块流执行器回归锁：三阶段规格解析（8/7/5 节点）、块图校验、SHORT 块最后一次消费即销毁、STAGE 块活到单元结束、产品块收集、单元结束无 SHORT 残留、未声明写（名字级）/缺块/节点失败/非法块图四类 fail-closed、阶段隔离、与直接顺序计算**逐位一致**、重复运行 checksum 相同 | `python3 eng/ci/run_checks.py --check CHK-ARCH505-BLOCK-FLOW --quiet` | P0 |
+| CHK-BLOCKFLOW-SPEC | 合同 | 块流规格机器门：节点集/operation/entry/端口与注册表逐字一致、阶段内 DAG 拓扑序、生产者唯一、生命周期自洽、双向一致、阶段隔离、派生防手改漂移（12/12 自测含 10 条负例） | `python3 eng/ci/run_checks.py --check CHK-BLOCKFLOW-SPEC --quiet` | P0 |
+| CHK-BLOCKFLOW-CONFORMANCE | 合同 | 块流一致性登记册机器门：登记册结构、每条证据的 文件:行+token 复核（代码改了即判红）、禁注释行凑证据、blocker 必须上呈 OPEN_QUESTIONS（10/10 自测含 9 条负例） | `python3 eng/ci/run_checks.py --check CHK-BLOCKFLOW-CONFORMANCE --quiet` | P0 |
 | CHK-SCHED-PROBE-SCHEMA | 合同 | CONTRACT-501 探针事件 schema 机器校验：逐行校验 JSONL 的必填字段/枚举/单位与事件名一致性，空文件与无输出判红（fail-closed）；含 --self-test 1 正 5 负 | `python3 eng/ci/run_checks.py --check CHK-SCHED-PROBE-SCHEMA --quiet` | P0 |
 
 ### 2.1 检查器退役与预留

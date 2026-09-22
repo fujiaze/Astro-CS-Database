@@ -57,8 +57,16 @@ std::vector<BlockGraphIssue> BlockDagValidator::validate(const BlockGraph& graph
       continue;
     }
     producer_count[b.name] += 1;
-    // 生产者必须存在且非空
-    if (b.producer.empty() || nodes.count(b.producer) == 0) {
+    // 生产者要么为空（= 阶段外部输入，必须 optional，见下方 CONSUME_MISSING 判据），
+    // 要么必须是本阶段节点集合内的真实节点。
+    //
+    // 修复记录（ARCH-505 实测）：原实现把「空生产者」无条件判 UNKNOWN_NODE，
+    // 与同一函数下方「非 optional 块缺生产者（外部输入必须声明 optional）」条款
+    // 自相矛盾 —— 结果是**阶段外部输入根本无法表达**，块流规格里 frames / hips /
+    // calibrated 这类上游磁盘产品一律被判非法图，ARCH-505 的命名块装配无法落地。
+    // 现按下方条款的语义统一：空生产者 + optional = 合法外部输入；
+    // 空生产者 + 非 optional = CONSUME_MISSING（缺生产者且未声明可缺）。
+    if (!b.producer.empty() && nodes.count(b.producer) == 0) {
       issues.push_back({BlockGraphError::UNKNOWN_NODE, b.name,
                         "生产者不在节点集合内: " + b.producer});
     }
@@ -164,6 +172,22 @@ const Block* BlockFrame::find(const std::string& name) const {
   return it->second->is_alive() ? it->second.get() : nullptr;
 }
 
+bool BlockFrame::declare_consumers(const std::string& name,
+                                     const std::vector<std::string>& consumers) {
+  auto it = blocks_.find(name);
+  if (it == blocks_.end() || !it->second) return false;
+  Block& b = *it->second;
+  if (!b.remaining_.empty()) {
+    // 节点自行声明了消费者：必须与规格一致，否则视为越权（生命周期归执行器）
+    std::vector<std::string> a = b.remaining_, c = consumers;
+    std::sort(a.begin(), a.end());
+    std::sort(c.begin(), c.end());
+    return a == c;
+  }
+  b.remaining_ = consumers;
+  return true;
+}
+
 bool BlockFrame::consume(const std::string& name, const std::string& consumer) {
   auto it = blocks_.find(name);
   if (it == blocks_.end()) return false;
@@ -195,6 +219,14 @@ bool BlockFrame::destroy(const std::string& name) {
 
 void BlockFrame::mark_degraded(const std::string& block, const std::string& reason) {
   degradations_.emplace_back(block, reason);
+}
+
+std::vector<std::string> BlockFrame::names() const {
+  std::vector<std::string> out;
+  out.reserve(blocks_.size());
+  for (const auto& kv : blocks_)
+    if (kv.second && kv.second->is_alive()) out.push_back(kv.first);
+  return out;   // std::map 迭代已按 key 升序
 }
 
 std::size_t BlockFrame::bytes_alive() const {

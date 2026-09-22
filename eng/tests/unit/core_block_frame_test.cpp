@@ -141,6 +141,17 @@ int main() {
       check(hit, "C4 consume-missing red");
     }
 
+    // C4b 正例：空生产者 + optional = 合法的阶段外部输入（ARCH-505 修复回归）
+    {
+      BlockGraph ext_ok = ok;
+      BlockMeta ext2 = mk("stage_input", BlockDtype::F64, {8}, {"n1"});
+      ext2.producer.clear();
+      ext2.optional = true;
+      ext_ok.blocks.push_back(ext2);
+      auto is = BlockDagValidator::validate(ext_ok);
+      check(is.empty(), "C4b optional external input (empty producer) is legal");
+    }
+
     // C5 消费者不在节点集合
     BlockGraph bad_node = ok;
     bad_node.blocks.push_back(mk("tmp", BlockDtype::U8, {8}, {"nope"}));

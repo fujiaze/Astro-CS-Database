@@ -9197,6 +9197,189 @@
       ]
     },
     {
+      "id": "CHK-BLOCKFLOW-SPEC",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-BLOCKFLOW-SPEC",
+        "--quiet"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/quality/block_flow_spec.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**",
+        "eng/**",
+        "docs/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CHK-BLOCKFLOW-SPEC-STEP",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_block_flow_spec.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/quality/block_flow_spec.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/**",
+            "lib/**",
+            "docs/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-BLOCKFLOW-CONFORMANCE",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-BLOCKFLOW-CONFORMANCE",
+        "--quiet"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/quality/block_flow_conformance.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**",
+        "eng/**",
+        "docs/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CHK-BLOCKFLOW-CONFORMANCE-STEP",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_block_flow_conformance.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 600,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/quality/block_flow_conformance.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/**",
+            "lib/**",
+            "docs/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
+      "id": "CHK-ARCH505-BLOCK-FLOW",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-ARCH505-BLOCK-FLOW",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/block_flow.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**",
+        "eng/**",
+        "docs/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CTEST-BLOCK-FLOW",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "block_flow",
+            "--output",
+            "run/ci/ctest/block_flow.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/block_flow.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/**",
+            "lib/**",
+            "docs/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "block_flow"
+          ]
+        }
+      ],
+      "ctest_targets": [
+        "block_flow"
+      ]
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",

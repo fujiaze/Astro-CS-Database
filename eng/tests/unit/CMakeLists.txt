@@ -46,6 +46,14 @@ target_compile_definitions(export_stream_test PRIVATE
   ARCH504_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence")
 add_test(NAME export_stream COMMAND export_stream_test)
 
+add_executable(block_flow_test block_flow_test.cpp)
+target_include_directories(block_flow_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
+target_link_libraries(block_flow_test PRIVATE astrocs_core)
+target_compile_definitions(block_flow_test PRIVATE
+  ARCH505_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence"
+  ARCH505_SPEC_PATH="${CMAKE_SOURCE_DIR}/eng/contracts/block_flow/stage_block_flow.json")
+add_test(NAME block_flow COMMAND block_flow_test)
+
 add_executable(core_context_test core_context_test.cpp)
 target_include_directories(core_context_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_link_libraries(core_context_test PRIVATE astrocs_core)

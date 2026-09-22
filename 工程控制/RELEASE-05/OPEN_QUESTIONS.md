@@ -68,3 +68,58 @@
 
 - **状态**：BLD-501 未开始；G3-4 的 Windows 退出码 9 限制复核未做。
 - **建议**：随 BLD-501 处置；如平台确实不可达，按"平台限制显式登记"处理，不 waiver。
+
+---
+
+## OQ-9（BLOCKER，ARCH-505）：注册表声明的节点端口与代码真实数据流不一致
+
+**性质**：顶层合同的结构性不一致（AGENTS §10 第 1 条）。**需负责人裁决，agent 不擅自改注册表。**
+
+**事实**：`lib/infrastructure/pipeline/module_ports.registry.json` 是冻结绑定表，ARCH-505 的块流规格
+由它派生。但逐条核对 `lib/infrastructure/scheduler/src/module_adapters.cpp` 的真实读写后，
+发现 **12 处**声明与实现不符（机器登记册：`eng/contracts/block_flow/conformance_deviations.json`，
+机器门：`eng/tools/quality/check_block_flow_conformance.py`，每条证据带 文件:行 + 必须出现的 token）。
+
+**blocker 级（7 条）**：
+- **BFD-A1** writer/write_hips 被声明产出 `fits`，实际**不写任何 FITS**（只写 p1_final.json / p1_products.json）；
+  真正的 P1 HiPS FITS 由 **drizzle** 产出（module_adapters.cpp:5052），而 drizzle 只被声明输出 `stacked`。
+- **BFD-A2** photometry 声明的 `psf` 输入端口**从未被打开**；PSF 参数实从 p1_sources.json 的 psf_params 读（:3375）。
+- **BFD-A3** noise-snr 声明的唯一输入 `fluxes` 与实际完全不符：不读 p1_flux.json，实读
+  p1_sources.json（缺失即 DATA fail，:3960）、p1_phot.json（:4151）、cleaned_<base>。
+- **BFD-A5** coverage 声明的 `calibrated`/`DATA-P2-CAL` 无对应产物；真实输入是 config `hips_paths`（:5589）。
+- **BFD-A7** p3.writer 少声明 1 个输出（p3_writer.json，verify 依赖）与 2 个输入（p3_wcs.json、run_context.json）。
+- **BFD-C1** 代码额外注册 `astrocs.phase2.resample`（:697）与 `astrocs.phase3.resample`（:716），
+  不在注册表的 20 个 module 内；注册表自述「未知 module_id 即拒绝」，后者代码注释自认是占位残留。
+- **BFD-E1** 生产路径节点间实为 output_dir **文件约定**，唯一真实命名块是 drizzle 内 PipelineFrame 的
+  `data`/`variance`（帧内、不落盘、不跨节点，:4740）。`docs/contracts/PIPELINE_BLOCK_CONTRACT.md` §51-52
+  声称「WCS/PSF/SNR/星表匹配存活到导出」在代码中**无对应路径**：PSF（p1_psf.json）零消费者；
+  SNR（p1_snr.json）仅被 P1 drizzle 的 sink 读一次；P3 的 WCS 由 config 的 center/scale 重建（:9701），
+  不读 P1 的 WCS。
+
+**为什么这阻塞 ARCH-505**：ARCH-505 要求把 20 个生产节点改为「从命名块读写」。块名来自注册表端口。
+若按现注册表迁移，会把节点接到**不存在的边**上（如让 photometry 等一个永不产生的 psf 块、
+让 noise-snr 读一个它根本不读的 fluxes 块）——那是 facade，违反硬禁令。
+按任务自己的规则「不等价就保留并登记阻塞原因，不硬退役」，**Session 与文件约定暂不退役**。
+
+**已落地且已验证的部分（不受阻塞影响）**：
+- 块流规格 `eng/contracts/block_flow/stage_block_flow.json`（由注册表派生，20 节点 / 26 块声明）；
+- 块流执行器 `lib/include/astrocs/core/block_flow.h` + `lib/infrastructure/scheduler/src/block_flow.cpp`：
+  节点只能读写声明的块（名字级 fail-closed）、生命周期归执行器掌管、单元结束无 SHORT 残留、
+  与直接顺序计算**逐位一致**（ctest `block_flow` 28/28）；
+- 规格机器门 `eng/tools/quality/check_block_flow_spec.py`（12/12 自测，含手改漂移检测）；
+- 一致性登记册机器门（10/10 自测，token 腐烂即判红）；
+- **顺带修掉一个真实缺陷**：ARCH-501 的 `BlockDagValidator` 把「空生产者」无条件判 UNKNOWN_NODE，
+  与同一函数「外部输入必须声明 optional」条款自相矛盾 ⇒ **阶段外部输入根本无法表达**，
+  块流规格里 frames/hips/calibrated 一律被判非法图。已按条款语义统一并补回归（ctest `core_block_frame` 33/33）。
+
+**请负责人裁决（三选一，附 agent 推荐）**：
+1. **改注册表对齐代码**（推荐）：按 A1–A10 修正端口/生产者/消费者，注册表继续作为唯一事实源；
+   代价：注册表版本号递增，涉及 P1/P2/P3 端口合同的破坏性变更，需同步 docs/contracts。
+2. **改代码对齐注册表**：让 photometry 真读 p1_psf.json、noise-snr 真读 p1_flux.json、
+   writer 真写 FITS 等；代价：改科学装配与产物链，风险高于方案 1，且与 SCI-502/SCI-506 的已验证口径冲突需重验。
+3. **保留双轨**：注册表作为「目标合同」，另建「现状合同」并长期登记差异；
+   代价：长期双份事实源，ARCH-505 的迁移只能对目标合同做，短期无法完成退役。
+
+**agent 推荐方案 1**，并在同一变更里同步 `docs/contracts/PIPELINE_BLOCK_CONTRACT.md` 的块生命周期清单
+（删掉代码中不存在的「WCS/PSF/SNR 存活到导出」表述，改为「跨阶段唯一载体 = HiPS 产品树」）。
+
