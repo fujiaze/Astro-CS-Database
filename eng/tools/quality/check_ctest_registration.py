@@ -86,8 +86,12 @@ def _is_skipped(rel: pathlib.Path) -> bool:
     return any(s in low for s in SKIP_PATH_SUBSTR)
 
 
+class GitUnavailable(RuntimeError):
+    """git 不可用 / 非 git 工作树 / 版本库面为空 —— CTest 面（= 版本库面）无法枚举。"""
+
+
 def git_tracked_set(repo: pathlib.Path) -> set:
-    """git 已跟踪文件集（仓库相对、'/' 分隔）；git 不可用时返回空集。
+    """git 已跟踪文件集（仓库相对、'/' 分隔）。
 
     W4-A3：CTest 面 = **版本库面**。并发写者（其它任务）在工作区留下的
     **未跟踪** CMake 源不属于本仓库的任何检出，若纳入判据，本门就会在
@@ -95,15 +99,28 @@ def git_tracked_set(repo: pathlib.Path) -> set:
     未跟踪 CMakeLists 重复注册 p3_wcs ⇒ C1 红），把「CI 注册闭包」变成
     「工作区快照」判据。故判定面收敛到 git ls-files；未跟踪源单独计数并在
     证据 JSON 的 untracked_cmake_sources 字段留痕（不静默丢弃）。
+
+    GITDECOUPLE-02（原缺陷）：git 不可用时**返回空集**会被 discover_sources 当成
+    "全部源都未跟踪" ⇒ targets=0 ⇒ 全部 CMake 源被判 untracked、全部
+    ctest_targets 被判 C4「陈旧注册」、全部基线目标被判 C5「已消失」（实测真仓库
+    形态的镜像树：282 条错误，语义全部指向「target 消失」而真因是「git 不可用」）。
+    依赖不可用 ⇒ 抛 GitUnavailable，由 main 显式点名 + fail-closed（rc=2；
+    docs/ci/01_CHECKS.md §1 fail-closed，CI_SPEC §2.2「仓库不可用 ⇒ runner error」）。
     """
     try:
         out = subprocess.run(["git", "-C", str(repo), "ls-files", "-z"],
                              capture_output=True, text=True, timeout=120)
-    except (OSError, subprocess.SubprocessError):
-        return set()
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise GitUnavailable(f"git 调用失败（{exc.__class__.__name__}: {exc}）") from None
     if out.returncode != 0:
-        return set()
-    return {p for p in out.stdout.split("\0") if p}
+        last = (out.stderr.strip().splitlines() or [""])[-1]
+        raise GitUnavailable(f"git ls-files rc={out.returncode}: {last[:140]}")
+    tracked = {p for p in out.stdout.split("\0") if p}
+    if not tracked:
+        raise GitUnavailable(
+            f"git ls-files 在 {repo} 返回空版本库面 —— CTest 面无法枚举"
+            f"（空面不得当成「全部源未跟踪」）")
+    return tracked
 
 
 def discover_sources(repo: pathlib.Path, *, tracked_only: bool = False) -> tuple:
@@ -224,6 +241,14 @@ def evaluate(targets: dict, registry: dict, baseline: dict) -> dict:
     errors: list = []
     patterns = registry_patterns(registry)
     base = baseline_targets(baseline)
+
+    # C0 扫描面非空（fail-closed；docs/ci/01_CHECKS.md §1「scanned == 0 ⇒ rc != 0」）：
+    # 空目标集下 C3/C4/C5 都可能"恰好"不触发（注册表无 ctest_targets 且基线为空），
+    # 于是"什么都没扫到"会静默判绿 —— 那是恒真门，必须点名判红。
+    if not targets:
+        errors.append(
+            "C0 扫描面为空：版本库面内未解析出任何 add_test(NAME …) 目标 —— "
+            "fail-closed 拒绝空扫描判绿（若确实无测试，请显式登记豁免面）")
 
     explicit: dict = {}
     dangling: list = []
@@ -418,7 +443,31 @@ def main(argv=None) -> int:
         return run_selftest()
 
     repo = pathlib.Path(args.repo).resolve()
-    targets, structural, untracked = collect_real(repo)
+    try:
+        targets, structural, untracked = collect_real(repo)
+    except GitUnavailable as exc:
+        # 依赖不可用 ⇒ 点名 + fail-closed（rc=2）。**不得**退化成"空版本库面 ⇒ 全部目标
+        # 未注册/陈旧"（原缺陷：282 条错误全部指向「target 消失」而真因是「git 不可用」）。
+        print("CTEST-REG-FAIL: GIT_UNAVAILABLE %s" % exc)
+        print("  CTest 面 = 版本库面（W4-A3 口径）；git 面不可用 ⇒ 不给出注册闭包结论，"
+              "fail-closed rc=2（空版本库面不等于「target 消失/陈旧注册」）")
+        if args.output:
+            out = pathlib.Path(args.output)
+            if not out.is_absolute():
+                out = repo / out
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps({
+                "tool": "check_ctest_registration.py",
+                "rule": "CI-REG-002 / STD-F7 处置 4",
+                "generated_utc": _utc_now(),
+                "registry": args.registry,
+                "baseline": args.baseline,
+                "git_unavailable": str(exc),
+                "verdict": "GIT_UNAVAILABLE",
+                "error_count": 1,
+                "errors": ["GIT_UNAVAILABLE %s" % exc],
+            }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return 2
     registry = load_json(repo / args.registry)
     baseline_path = repo / args.baseline
     if not baseline_path.is_file():
