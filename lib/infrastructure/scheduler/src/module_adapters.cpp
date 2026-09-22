@@ -6190,8 +6190,9 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
 //      p1_final.json (逐节点 typed artifact 合同不变)。──
 // 冻结单位表 canonical **产品 BUNIT 串**（docs/contracts/DATA_SEMANTICS.md §31.1）: signal_sb = ADU/sr, sb_variance_out = ADU^2/sr^2,
 // sb_ivar_out = sr^2/ADU^2。产品面必须逐字写冻结串。
-// 注: p3rsmp::Bunit::canonical() 是带符号指数书写（"ADU/px^-2"）, 与冻结表的产品
-// 串约定不同（该函数语义由 v6 单位测试冻结, 本任务不改动它）—— 两者不得混用。
+// 注: p3rsmp::Bunit::canonical() 现按 DATA_SEMANTICS §31.1a 的同一映射写冻结串
+// （"ADU/sr" / "ADU^2/sr^2" / "sr^2/ADU^2"；符号幂次 = px_power/2），与上列常量同串；
+// 产品面仍以本处常量逐字写出为准（不依赖该函数）。
 constexpr const char* kP3BunitSurfaceBrightness = "ADU/sr";
 constexpr const char* kP3BunitSbVariance = "ADU^2/sr^2";
 constexpr const char* kP3BunitSbIvar = "sr^2/ADU^2";

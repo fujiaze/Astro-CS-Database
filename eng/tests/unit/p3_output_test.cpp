@@ -94,9 +94,13 @@ int main() {
     std::vector<float> var(static_cast<size_t>(w) * h, 4.0f);
     std::vector<float> ivar(static_cast<size_t>(w) * h, 0.25f);
     struct BunitCase { const char* sig; const char* want_var; const char* want_ivar; };
-    const BunitCase bc[2] = {{"ADU", "ADU^2", "ADU^-2"},
-                             {"ADU/sr", "ADU^2/sr^2", "sr^2/ADU^2"}};
-    for (int ci = 0; ci < 2; ++ci) {
+    // 第三例 = legacy 读侧兼容（DATA_SEMANTICS §31.1a「读侧兼容旧串 px / pixel，
+    // 写侧只出 sr」）: 旧产品 BUNIT="ADU/px^2" 必须可解析（同一立体角维），
+    // 且写出的 VARIANCE/IVAR BUNIT 仍是 canonical sr 串。
+    const BunitCase bc[3] = {{"ADU", "ADU^2", "ADU^-2"},
+                             {"ADU/sr", "ADU^2/sr^2", "sr^2/ADU^2"},
+                             {"ADU/px^2", "ADU^2/sr^2", "sr^2/ADU^2"}};
+    for (int ci = 0; ci < 3; ++ci) {
       const std::string p2 =
           dir + "/astrocs_p3_out_test_bunit" + std::to_string(ci) + ".fits";
       std::remove(p2.c_str());
