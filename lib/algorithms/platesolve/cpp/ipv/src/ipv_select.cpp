@@ -452,10 +452,18 @@ MagIterOutcome estimate_mag_lim_iterative(
     double m_last_ok = 0.0;
     int    n_last_ok = 0;
 
+    // ALG-WCS-001 §4a.4: 空结果/截断/扫描区间的可观测 provenance。
+    // n_ok = 成功查询次数 (rc==0); n_zero = 其中返回 0 颗的次数。
+    // 全部成功查询都返回 0 ⇒ empty_sweep (空星表遍历, 与"星等未收敛"是不同失效面)。
+    int n_ok = 0;
+    int n_zero = 0;
+
     for (int it = 0; it < max_q; ++it) {
         int n_ret = 0;
         const int rc = query_func(m, n_ret);
         out.query_count++;
+        if (out.query_count == 1) out.m_sweep_first = m;
+        out.m_sweep_last = m;
         if (rc != 0) {
             out.query_failed = true;
             if (logger) {
@@ -473,6 +481,8 @@ MagIterOutcome estimate_mag_lim_iterative(
         m_last_ok = m;
         n_last_ok = n_ret;
         out.alpha_final = alpha;
+        ++n_ok;
+        if (n_ret == 0) ++n_zero;   // §4a.4: 空结果计数
 
         // ── P14-N-10 (RQS V2-N-10 缺陷 2): 可靠触顶判据, 弃用 fmod 启发式 ──
         // 缺陷: 旧判据 fmod(n_ret, cap_unit)==0 只识别「总数恰为上限整数倍」,
@@ -510,8 +520,11 @@ MagIterOutcome estimate_mag_lim_iterative(
         if (rel <= tol) { out.converged = true; break; }
 
         if (n_ret == 0) {
-            // 初值过亮 (窄场可能): 避免 log10(0), 直接暗移
-            have_prev = false;
+            // N=0 = 该 m_lim 过亮 (锥内无更亮于 m_lim 的星表星)。
+            // ALG-WCS-001 §4a.3: 星等窗 [-1.5, m_lim] 的包含关系使 N(m) 单调不减,
+            // 故唯一能增加星数的方向是**更暗**; 向更亮回退只能取到子集 (恒为 0),
+            // 规范禁止作为补救。此处按 m_lim_zero_step 向更暗步进并重试。
+            have_prev = false;   // 空样本不参与 alpha 差分
             m = std::min(std::max(m + zero_step, clamp_lo), clamp_hi);
             continue;
         }
@@ -533,12 +546,24 @@ MagIterOutcome estimate_mag_lim_iterative(
         m = std::min(std::max(m + step, clamp_lo), clamp_hi);
     }
 
+    // ALG-WCS-001 §4a.4: 空扫描判定 —— 有成功查询但无一次返回 > 0 颗。
+    out.n_zero_queries = n_zero;
+    out.empty_sweep    = (n_ok > 0 && n_zero == n_ok);
+
     if (!out.converged && out.valid && logger) {
-        char buf[320];
-        std::snprintf(buf, sizeof(buf),
-            "极限星等迭代: 达到查询次数上界 %d 仍未进入 %.0f%% 容差 "
-            "(m=%.3f, N=%d, N_target=%.1f), 采用当前结果",
-            max_q, tol * 100.0, m_last_ok, n_last_ok, N_target);
+        char buf[384];
+        if (out.empty_sweep) {
+            // 空星表遍历与"星等调参未达容差"是不同失效面: 不得混为一谈。
+            std::snprintf(buf, sizeof(buf),
+                "极限星等迭代: 扫描 m=[%.3f, %.3f] 共 %d 次成功查询全部返回 0 颗 "
+                "(empty_sweep): 该空结果与星等选取无关, 判为星表通道/指向故障",
+                out.m_sweep_first, out.m_sweep_last, n_ok);
+        } else {
+            std::snprintf(buf, sizeof(buf),
+                "极限星等迭代: 达到查询次数上界 %d 仍未进入 %.0f%% 容差 "
+                "(m=%.3f, N=%d, N_target=%.1f, 空结果 %d/%d 次), 采用当前结果",
+                max_q, tol * 100.0, m_last_ok, n_last_ok, N_target, n_zero, n_ok);
+        }
         logger->warn(buf);
     }
     if (out.valid) { out.m_lim_final = m_last_ok; out.n_returned = n_last_ok; }
@@ -559,6 +584,10 @@ void mag_iter_apply_to_selection(const MagIterOutcome& mi, StarSelection& out) {
     out.m_lim_converged    = mi.converged;
     out.m_lim_query_failed = mi.query_failed;
     out.m_lim_alpha_final  = mi.alpha_final;
+    out.m_lim_zero_queries = mi.n_zero_queries;
+    out.m_lim_empty_sweep  = mi.empty_sweep;
+    out.m_lim_sweep_first  = mi.m_sweep_first;
+    out.m_lim_sweep_last   = mi.m_sweep_last;
 }
 
 // ----------------------------------------------------------------------------
@@ -614,13 +643,38 @@ static int gaia_query_mag_iterative(
         if (logger) logger->error(std::string(tag) + ": Gaia 星表查询失败 (无成功查询结果)");
         return -1;
     }
+    // ALG-WCS-001 §4a.4: 触顶 (每文件返回上限) 的星表按遍历序被截断, 在空间/星等上
+    // 不完整, 属科学有偏样本 ⇒ 不得交付给求解器作参考星表 (fail-closed)。
+    // 证据: run/RELEASE-05/perf/fix3/REPORT-PERF-MEM-FIX-01.md §5 —— 采用截断样本的
+    // 4 次运行全部以 iter_trans_solve 全阶失败告终 (参考集 tri_B=26053 vs 收敛时 24761)。
+    if (mi.capped) {
+        char buf[384];
+        std::snprintf(buf, sizeof(buf),
+            "%s: Gaia 参考星表被每文件返回上限截断 (m_lim=%.3f, N_returned=%d, "
+            "cap_per_file=%.0f): 截断样本空间/星等不完整, 拒绝作为参考星表",
+            tag, m_lim_final, n_returned, params.m_lim_gaia_cap_per_file);
+        if (logger) logger->error(buf);
+        return -1;
+    }
     // 恢复末次成功查询的星表数组 (末次查询失败时 cat_* 已被清空)
     cat_ra = ok_ra; cat_dec = ok_dec; cat_mag = ok_mag;
     if (cat_ra.size() < 2) {
-        char buf[320];
-        std::snprintf(buf, sizeof(buf),
-            "%s: Gaia 星表查询星数过少 (N_returned=%d, m_lim=%.3f)",
-            tag, static_cast<int>(cat_ra.size()), m_lim_final);
+        char buf[512];
+        if (mi.empty_sweep) {
+            // §4a.4: 空星表遍历 —— 与"星等调参未达容差"是不同失效面, 必须点名扫描区间。
+            std::snprintf(buf, sizeof(buf),
+                "%s: 星表查询在整个扫描区间 m=[%.3f, %.3f] 内 %d 次全部返回 0 颗 "
+                "(empty_sweep; 锥心 ra=%.6f dec=%.6f r=%.4f°): 判为星表通道/指向故障, "
+                "非星等选取问题",
+                tag, mi.m_sweep_first, mi.m_sweep_last, mi.n_zero_queries,
+                ra, dec, query_radius_deg);
+        } else {
+            std::snprintf(buf, sizeof(buf),
+                "%s: Gaia 星表查询星数过少 (N_returned=%d, m_lim=%.3f, "
+                "空结果 %d/%d 次)",
+                tag, static_cast<int>(cat_ra.size()), m_lim_final,
+                mi.n_zero_queries, mi.query_count);
+        }
         if (logger) logger->error(buf);
         return -1;
     }
@@ -717,10 +771,17 @@ void density_match_iterate(
 }
 
 // ----------------------------------------------------------------------------
-// select_image_stars - 图像侧选星: 按 mag(box积分) 升序排序
-// 策略: 统一按 mag(box 积分) 升序 (mag 越小越亮), 取前 img_n_target 颗。
-// 饱和星的 A(Moffat 振幅) 与 box 积分排序差异巨大, 故不按 flux(A) 排序。
-// 跳过 mag 为 NaN 的失效星 (NaN 排到最后, 不会被选中)。
+// select_image_stars - 图像侧选星 (ALG-WCS-001 §4a.1)
+//
+// 样本定义域 = 星等可靠的非饱和检测:
+//  - 饱和检测一律排除且不回填。理由两条 (各自独立可测):
+//    ① 饱和像元的读出被饱和电平截断 ⇒ box 积分通量既不等于真实通量、也不随真实
+//       亮度单调 ⇒ "按 box 积分星等升序取前 N 颗" 在该定义域上不是任何一致亮度量
+//       的最亮 N 颗, 样本亮度深度不可复现;
+//    ② 饱和平顶/溢出让质心有偏, 而本样本同时是三角形匹配的几何输入。
+//  - 候选按 box 积分星等升序 (越小越亮); mag 为 NaN 的失效星排到最后且不被选中;
+//    取前 min(img_n_target, 非饱和候选数) 颗。
+//  - 非饱和候选 < 2 由调用方 fail-closed (点名 n_detected/n_saturated/n_unsat)。
 // 注: flux 参数保留以备后续使用, 当前未使用 (排序基于 mag)
 // ----------------------------------------------------------------------------
 std::vector<int> select_image_stars(
@@ -734,13 +795,19 @@ std::vector<int> select_image_stars(
     int n_total = static_cast<int>(flux.size());
     if (n_total == 0 || img_n_target <= 0) return sel_idx;
 
-    // 统一索引 (不分饱和/非饱和)
-    std::vector<int> all_idx(n_total);
-    for (int i = 0; i < n_total; ++i) all_idx[i] = i;
+    // 候选池 = 非饱和检测 (饱和检测排除, 不回填)
+    const int n_sat_flag = static_cast<int>(saturated.size());
+    std::vector<int> cand;
+    cand.reserve(n_total);
+    int n_sat = 0;
+    for (int i = 0; i < n_total; ++i) {
+        if (i < n_sat_flag && saturated[i]) { ++n_sat; continue; }
+        cand.push_back(i);
+    }
 
     // 按 mag(box积分) 升序排序 (mag 越小越亮)
     // 跳过 mag 为 NaN 的失效星 (NaN 排到最后)
-    std::sort(all_idx.begin(), all_idx.end(),
+    std::sort(cand.begin(), cand.end(),
               [&](int a, int b) {
                   bool a_nan = std::isnan(mag[a]);
                   bool b_nan = std::isnan(mag[b]);
@@ -750,25 +817,38 @@ std::vector<int> select_image_stars(
                   return mag[a] < mag[b];
               });
 
-    // 取前 img_n_target 颗
-    int n_sel = std::min(img_n_target, n_total);
-    sel_idx.reserve(n_sel);
-    for (int i = 0; i < n_sel; ++i) sel_idx.push_back(all_idx[i]);
-
-    // 统计饱和星数 (日志用)
-    int n_sat_sel = 0;
-    for (int i = 0; i < n_sel; ++i) {
-        if (saturated[all_idx[i]]) n_sat_sel++;
-    }
+    // 取前 img_n_target 颗 (候选不足时取全部非饱和候选, 不用饱和星补足)
+    const int n_sel = std::min(img_n_target, static_cast<int>(cand.size()));
+    sel_idx.assign(cand.begin(), cand.begin() + n_sel);
 
     if (logger) {
-        char buf[256];
+        char buf[320];
         std::snprintf(buf, sizeof(buf),
-            "选星: 按 mag(box积分) 升序取前 %d 颗 (含饱和 %d 颗)",
-            n_sel, n_sat_sel);
+            "选星: 非饱和候选 %d/%d (排除饱和 %d), 按 mag(box积分) 升序取前 %d 颗%s",
+            static_cast<int>(cand.size()), n_total, n_sat, n_sel,
+            (n_sel < img_n_target) ? " [候选不足, 不回填饱和星]" : "");
         logger->info(buf);
     }
     return sel_idx;
+}
+
+// ----------------------------------------------------------------------------
+// log_select_too_few - ALG-WCS-001 §4a.1: 样本不足的 fail-closed 报错
+// 必须点名 n_detected / n_saturated / n_unsat (下游据此区分"帧内无星"与
+// "帧内只有饱和星"), 且明确声明不以饱和检测冒充样本。
+// ----------------------------------------------------------------------------
+static void log_select_too_few(Logger* logger, const char* tag,
+                               const std::vector<bool>& saturated, int n_sel) {
+    if (!logger) return;
+    const int n_detected = static_cast<int>(saturated.size());
+    int n_sat = 0;
+    for (int i = 0; i < n_detected; ++i) if (saturated[i]) ++n_sat;
+    char buf[320];
+    std::snprintf(buf, sizeof(buf),
+        "%s: 图像侧选星样本不足 (n_detected=%d, n_saturated=%d, n_unsat=%d, "
+        "选中=%d < 2): 非饱和候选不足, 不以饱和检测冒充样本",
+        tag, n_detected, n_sat, n_detected - n_sat, n_sel);
+    logger->error(buf);
 }
 
 // ----------------------------------------------------------------------------
@@ -930,7 +1010,7 @@ int ipv_select(
         flux_vec, mag_vec, sat_vec, params.img_n_target, logger);
     int N = static_cast<int>(sel_idx.size());
     if (N < 2) {
-        if (logger) logger->error("ipv_select: 图像侧选星数过少");
+        log_select_too_few(logger, "ipv_select", sat_vec, N);
         g_dll.sdet_free_ex(det_x, det_y, det_flux, det_sat,
                            det_mag, det_has_sat, nullptr, 0);
         return -1;
@@ -1230,7 +1310,7 @@ int ipv_select_from_memory(
         flux_vec, mag_vec, sat_vec, params.img_n_target, logger);
     int N = static_cast<int>(sel_idx.size());
     if (N < 2) {
-        if (logger) logger->error("ipv_select_from_memory: 图像侧选星数过少");
+        log_select_too_few(logger, "ipv_select_from_memory", sat_vec, N);
         g_dll.sdet_free_ex(det_x, det_y, det_flux, det_sat,
                            det_mag, det_has_sat, nullptr, 0);
         return -1;
@@ -1505,7 +1585,7 @@ int ipv_select_from_detections(
         flux_vec, mag_vec, sat_vec, params.img_n_target, logger);
     int N = static_cast<int>(sel_idx.size());
     if (N < 2) {
-        if (logger) logger->error("ipv_select_from_detections: 图像侧选星数过少");
+        log_select_too_few(logger, "ipv_select_from_detections", sat_vec, N);
         return -1;
     }
 
@@ -1825,7 +1905,7 @@ static int ipv_select_from_memory_with_callback_impl(
         flux_vec, mag_vec, sat_vec, params.img_n_target, logger);
     int N = static_cast<int>(sel_idx.size());
     if (N < 2) {
-        if (logger) logger->error("ipv_select_from_memory_with_callback: 图像侧选星数过少");
+        log_select_too_few(logger, "ipv_select_from_memory_with_callback", sat_vec, N);
         g_dll.sdet_free_ex(det_x, det_y, det_flux, det_sat,
                            det_mag, det_has_sat, nullptr, 0);
         return -1;

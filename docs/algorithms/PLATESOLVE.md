@@ -62,6 +62,82 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 | RA环绕 `dra>180°` | `dra=360−dra` + cos(dec) 缩放 |
 | 输入含 NaN | skip/fail per-field |
 
+## 4a 图像侧选星有效域与极限星等迭代（选星样本 / 饱和 / 空星表）
+
+> 适用实现：`lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp`（`select_image_stars`、
+> `compute_fov_density`、`estimate_mag_lim_iterative` 与把迭代结果交付给求解器的封装）。
+> 本节只规定**有效域与失效语义**，不改变 §2 的投影/拟合公式与 §9 的容差。
+
+### 4a.1 图像侧选星样本的定义域
+
+- **样本定义域 = 星等可靠的非饱和检测**。进入 `U` 向量组（三角形匹配几何）的图像侧样本，
+  其每个成员**必须**满足 `saturated == false`；饱和检测**必须**被排除，**禁止**回填。
+- **理由（两条，各自独立可测）**：
+  1. 饱和像元的读出被饱和电平截断，box 积分通量既不等于真实通量、也不随真实亮度单调，
+     故"按 box 积分星等升序取前 N 颗"在该定义域上不是任何一致亮度量的最亮 N 颗，
+     样本的亮度深度不可复现；
+  2. 饱和平顶/溢出让质心估计有偏，而该样本同时是三角形匹配的几何输入，偏质心直接进入匹配。
+- **判据（可证伪）**：对任意检测表，选星输出中不存在 `saturated == true` 的下标；
+  把饱和检测放回候选池（负向注入）时，同一判据必须判红。
+- **排序与截取**：候选按 box 积分星等**升序**（越小越亮）排序；`mag` 非有限（NaN）者
+  排在末尾且不被选中（候选充足时）；取前 `img_n_target` 颗。
+- **候选不足的兜底**：非饱和候选少于 `img_n_target` 时，样本 = 全部非饱和候选
+  （即 `|样本| = min(img_n_target, n_unsat)`），**不得**用饱和检测补足。
+- **候选为空/过少**：非饱和候选数 < 2 时求解**必须** fail-closed，错误信息**必须**点名
+  `n_detected / n_saturated / n_unsat`，**禁止**以饱和检测冒充样本继续求解。
+
+### 4a.2 由样本导出的密度与目标星数
+
+- `rho_img` 的分子**必须**是**实际进入 `U` 样本的成员数**（4a.1 的样本基数），
+  分母**必须**是同一图像几何下的图像立体角；两者同域，**禁止**用"检测总数"或
+  "含饱和样本数"作分子。
+- **判据**：图像几何不变时，样本基数由 `N1` 变为 `N2`，`rho_img` **必须**按 `N2/N1`
+  同比例变化。
+- `n_target` 由 `rho_img`、查询锥面积与密度比导出，且**必须**落在闭区间 `[50, 60]`。
+
+### 4a.3 极限星等迭代的单调性与步进方向
+
+- 星表查询的星等窗是闭区间 `[-1.5, m_lim]`（`gaia_client_cone_search_for_solver` 的
+  `mag_low` 固定为 `-1.5`），故 **`N(m_lim)` 关于 `m_lim` 单调不减**
+  （每文件返回上限造成的顺序截断区间除外，该情形单列为 `capped`）。
+- **判据**：同一查询锥内 `m2 > m1 ⇒ N(m2) ≥ N(m1)`（上限截断区间除外）。
+- 由单调性：`N == 0` 时**唯一能增加星数的方向是更暗**（`m_lim` 增大）。
+  规范**禁止**把"向更亮回退重试"作为空结果的补救——它只能取到子集，恒为 0。
+  空结果的处置 = 按 `m_lim_zero_step` 向更暗步进并重试，直至查询次数上界。
+
+### 4a.4 空结果与截断结果的失效语义（fail-closed，禁止静默采用）
+
+- 迭代的每一次查询**必须**计入可观测 provenance：查询次数、扫描区间
+  `[m_sweep_first, m_sweep_last]`、空结果次数 `n_zero_queries`、是否空扫描 `empty_sweep`、
+  是否触顶 `capped`、是否收敛 `converged`；前四项**必须**随交付面
+  （`StarSelection` 及其迭代结果结构）一并可读。
+- **空扫描（`empty_sweep`）**：全部成功查询都返回 `N == 0`。该状态**必须**以显式错误终止求解，
+  错误信息**必须**点名"整个扫描区间内星表返回 0 颗"并携带
+  `(ra, dec, query_r, m_sweep_first, m_sweep_last, query_count)`，
+  **不得**表述为"星等未收敛"或"星等调参未达容差"——空星表与星等选取是不同失效面。
+- **截断样本（`capped`）**：`N` 触到星表每文件返回上限时，返回的星表按遍历序被截断，
+  在空间/星等上不完整，属科学有偏样本。该样本**不得**被交付给求解器作参考星表：
+  **必须**以显式错误终止并点名 `m_lim / N / 每文件上限`。
+- **允许继续的唯一情形**：至少一次成功查询返回 `N > 0` 且未触顶；此时按 §2 流程继续，
+  并把 `converged / capped / n_zero_queries / empty_sweep` 逐项落到交付面。
+
+## 4b 对外可见错误串的编码（ALG-WCS-001 错误面）
+
+- `IpvWcsResult.error_msg` 与内部 `WcsFitResult.error` 是**对外可见**的失败信息载体，
+  其内容**必须**是**合法 UTF-8**（承接 `ENGINEERING_SPEC`「文件编码 UTF-8」与
+  `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §8「超限按 UTF-8 边界截断」的口径）。
+- **写入定长缓冲的规则**：
+  1. 截断**只**发生在 UTF-8 码点边界，**禁止**切断多字节序列；
+  2. 非法字节（孤立续字节 / 非法首字节 / 过长编码 / 代理区 / 越界码点 / 被 NUL 截断的序列）
+     **必须**替换为 ASCII `?` 后写入，**禁止**原样透传；
+  3. 恒以 `'\0'` 结尾，写入字节数 ≤ 缓冲容量 − 1。
+- **失败面**：`success == 0` 时 `error_msg` **必须**非空；错误串的内容**必须**点名失败面
+  （参数/星表通道/选星样本/几何/拟合），**禁止**以通用文案掩盖具体失效面。
+- **判据（可证伪）**：对任意失败输入，`error_msg` 非空且通过严格 UTF-8 校验（RFC 3629）；
+  负例注入（含 GBK 字节的消息、跨容量边界的多字节序列）**必须**被判据判红。
+- **编码边界声明**：本条只约束**求解器写出的字节**；上层控制台渲染若自行做 ASCII 化
+  （非本模块行为），不改变本条的判定对象——判定对象恒为 `error_msg` 缓冲区内的字节。
+
 ## 5 确定性与归约
 
 - 单线程求解，三角形匹配 KD-tree 确定性（排序 tie-break by frame_id）；SIP LS 按 grid 索引固定顺序；无跨假设归约。
@@ -103,21 +179,24 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 | 符号 | 锚 | 角色 |
 |---|---|---|
-| ipv_solve_create | ipv_entry.cpp:317（声明 ipv_api.h:113） | 句柄生命周期 |
-| ipv_solve_destroy | ipv_entry.cpp:329（ipv_api.h:116） | 句柄释放 |
-| ipv_set_gaia_handle | ipv_entry.cpp:340（ipv_api.h:119） | Gaia 句柄注入 |
-| ipv_set_detector_handle | ipv_entry.cpp:353（ipv_api.h:122） | sdet 句柄注入 |
-| ipv_get_default_params | ipv_entry.cpp:366（ipv_api.h:227） | IpvParams 默认值（log_dir 空=无日志） |
-| ipv_get_last_inlier_count | ipv_entry.cpp:407（ipv_api.h:253） | inlier 计数查询 |
-| ipv_get_last_inliers | ipv_entry.cpp:421（ipv_api.h:261） | inlier 9 列缓冲（ipv_api.h:232-250：det_x/det_y/gaia_ra/gaia_dec/pred_x/pred_y/residual_x/residual_y/residual_dist） |
-| ipv_solve | ipv_entry.cpp:438（ipv_api.h:126） | 文件路径入口（非生产） |
-| ipv_solve_from_memory | ipv_entry.cpp:473（ipv_api.h:139） | PipelineFrame 内存入口 |
-| **ipv_solve_from_detections_v1** | ipv_entry.cpp:623（ipv_api.h:175） | **生产入口**（检测坐标 double 数组直入） |
-| ipv_solve_from_memory_with_callback | ipv_entry.cpp:668（ipv_api.h:194） | 回调进度变体 |
-| ipv_solve_from_memory_with_callback_d | ipv_entry.cpp:715（ipv_api.h:211） | 回调变体 FP64 |
-| do_solve_from_detections_v1_impl | ipv_entry.cpp:529 | 参数装配 → IPVSolver::solve_from_memory；try/catch → set_error_msg（:141，:181-187/:218-224） |
+| ipv_solve_create | ipv_entry.cpp:369（声明 ipv_api.h:113） | 句柄生命周期 |
+| ipv_solve_destroy | ipv_entry.cpp:381（ipv_api.h:116） | 句柄释放 |
+| ipv_set_gaia_handle | ipv_entry.cpp:392（ipv_api.h:119） | Gaia 句柄注入 |
+| ipv_set_detector_handle | ipv_entry.cpp:405（ipv_api.h:122） | sdet 句柄注入 |
+| ipv_get_default_params | ipv_entry.cpp:418（ipv_api.h:227） | IpvParams 默认值（log_dir 空=无日志） |
+| ipv_get_last_inlier_count | ipv_entry.cpp:459（ipv_api.h:253） | inlier 计数查询 |
+| ipv_get_last_inliers | ipv_entry.cpp:473（ipv_api.h:261） | inlier 9 列缓冲（ipv_api.h:232-250：det_x/det_y/gaia_ra/gaia_dec/pred_x/pred_y/residual_x/residual_y/residual_dist） |
+| ipv_solve | ipv_entry.cpp:490（ipv_api.h:126） | 文件路径入口（非生产） |
+| ipv_solve_from_memory | ipv_entry.cpp:525（ipv_api.h:139） | PipelineFrame 内存入口 |
+| **ipv_solve_from_detections_v1** | ipv_entry.cpp:675（ipv_api.h:175） | **生产入口**（检测坐标 double 数组直入） |
+| ipv_solve_from_memory_with_callback | ipv_entry.cpp:720（ipv_api.h:194） | 回调进度变体 |
+| ipv_solve_from_memory_with_callback_d | ipv_entry.cpp:767（ipv_api.h:211） | 回调变体 FP64 |
+| do_solve_from_detections_v1_impl | ipv_entry.cpp:581 | 参数装配 → IPVSolver::solve_from_memory；try/catch → set_error_msg（:188，:251-262/:288-299） |
 | IPVSolver::solve_from_memory | ipv_solver.cpp:781 | 主求解流程（入口日志 :794） |
-| 选星 + U 构建 | ipv_select.cpp:492-499（flux 降序取前 img_n_target）、:685-693 | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（:49,:253） |
+| 选星 + U 构建 | ipv_select.cpp:787-838（`select_image_stars`：非饱和候选按 mag(box积分) 升序取前 img_n_target，§4a.1）、:840-852（样本不足报错，点名 n_detected/n_saturated/n_unsat） | U=(det_x−cx, −(det_y−cy)) 像素、Y-up、原点图像中心；s0=206.265·pixel_um/focal_mm（:57,:282） |
+| 密度/目标星数 | ipv_select.cpp:260-330（`compute_fov_density`，rho_img 分子 = 实际样本基数，§4a.2） | n_target = min(60, max(50, round(ρ_target·query_area/img_area))) |
+| 极限星等迭代与交付 | ipv_select.cpp:374-556（`estimate_mag_lim_iterative`，§4a.3/§4a.4 空扫描 provenance）、:600-664（`gaia_query_mag_iterative`：空扫描/触顶样本 fail-closed） | 空结果向更暗步进；全空扫描 empty_sweep；触顶样本不得作参考星表 |
+| 错误串编码归一 | ipv_entry.cpp:320-370（`utf8_safe_copy`，§4b）、:186-193（`set_error_msg`）、:179-185（`to_c_result`） | error_msg 恒为合法 UTF-8：码点边界截断 + 非法字节替换为 '?' |
 | 三角形投票 | ipv_triangle.cpp:296-357 | 线程局部投票矩阵（:296-300）+ omp for schedule(dynamic,64)（:309-311）+ 整数归并 collapse(2) schedule(static)（:347-357） |
 | iter_trans_solve | ipv_itertrans.cpp:974 | 迭代重投影多项式拟合（order 1→3） |
 | robust_refine_wcs | 调用点 ipv_solver.cpp:692-712；irls_fit_one_step ipv_robust_refine.cpp:661 | 稳健扩增精化（CD 阻尼 + Tukey biweight），失败回退不破坏主解 |

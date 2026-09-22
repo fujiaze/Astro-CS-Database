@@ -177,25 +177,16 @@ void to_c_result(const ipv::WcsFitResult& src, IpvWcsResult* dst) {
     // RESCUE-FD-05 / ALG-WCS-001 §11.4 F4: success=0 必须携带非空 error_msg。
     // 各失败点写入 WcsFitResult.error; 缺失时给确定性兜底文案。
     if (!src.success) {
-        std::snprintf(dst->error_msg, sizeof(dst->error_msg), "%s",
-                      src.error[0] != '\0'
-                          ? src.error
-                          : "ipv solve failed: no valid WCS (selection/triangle/iter_trans)");
+        ipv::utf8_safe_copy(dst->error_msg, sizeof(dst->error_msg),
+                            src.error[0] != '\0'
+                                ? src.error
+                                : "ipv solve failed: no valid WCS (selection/triangle/iter_trans)");
     }
 }
 
-// 安全写入错误信息到固定大小 char[]
+// 安全写入错误信息到固定大小 char[] (恒为合法 UTF-8, 见 utf8_safe_copy)
 void set_error_msg(char* dst, size_t dst_size, const char* msg) {
-    if (dst == nullptr || dst_size == 0) return;
-    if (msg == nullptr) {
-        dst[0] = '\0';
-        return;
-    }
-    // 截断保护
-    size_t n = std::strlen(msg);
-    if (n >= dst_size) n = dst_size - 1;
-    std::memcpy(dst, msg, n);
-    dst[n] = '\0';
+    (void)ipv::utf8_safe_copy(dst, dst_size, msg);
 }
 
 // ---------------------------------------------------------------------------
@@ -308,6 +299,67 @@ int do_solve_from_memory_impl(
 }
 
 } // namespace
+
+// ===========================================================================
+// 错误串编码归一 (ALG-WCS-001 §4b) —— 对测试可见的非匿名定义
+// ===========================================================================
+namespace ipv {
+
+// ---------------------------------------------------------------------------
+// utf8_safe_copy - 对外可见错误串的编码归一 (ALG-WCS-001 §4b)
+//
+// 规则 (与 ENGINEERING_SPEC「文件编码 UTF-8」及 LOG_AND_ERROR_CONTRACT §8
+// 「超限按 UTF-8 边界截断」同口径, 在定长错误串上的细化):
+//   ① 截断只发生在 UTF-8 码点边界, 绝不切断多字节序列;
+//   ② 非法字节 (孤立续字节 / 非法首字节 / 过长编码 / 代理区 / 越界码点 /
+//      被 NUL 截断的序列) 一律替换为 ASCII '?' 后写入, 不原样透传 ——
+//      保证任何读者按严格 UTF-8 解码都成功;
+//   ③ 恒以 '\0' 结尾, 写入字节数 ≤ dst_size−1。
+// 返回写入的字节数 (不含结尾 '\0')。
+// ---------------------------------------------------------------------------
+size_t utf8_safe_copy(char* dst, size_t dst_size, const char* src) {
+    if (dst == nullptr || dst_size == 0) return 0;
+    dst[0] = '\0';
+    if (src == nullptr) return 0;
+
+    const size_t cap = dst_size - 1;   // 预留结尾 '\0'
+    size_t n = 0;
+    size_t i = 0;
+    while (src[i] != '\0' && n < cap) {
+        const unsigned char c0 = static_cast<unsigned char>(src[i]);
+        size_t len = 0;
+        unsigned char lo = 0x80, hi = 0xBF;   // 第 2 字节的合法区间 (默认续字节)
+        if (c0 < 0x80)                       { len = 1; }
+        else if (c0 >= 0xC2 && c0 <= 0xDF)   { len = 2; }
+        else if (c0 == 0xE0)                 { len = 3; lo = 0xA0; }
+        else if (c0 >= 0xE1 && c0 <= 0xEC)   { len = 3; }
+        else if (c0 == 0xED)                 { len = 3; hi = 0x9F; }  // 排除代理区
+        else if (c0 >= 0xEE && c0 <= 0xEF)   { len = 3; }
+        else if (c0 == 0xF0)                 { len = 4; lo = 0x90; }
+        else if (c0 >= 0xF1 && c0 <= 0xF3)   { len = 4; }
+        else if (c0 == 0xF4)                 { len = 4; hi = 0x8F; }
+        else                                 { len = 0; }   // 非法首字节
+
+        bool ok = (len > 0);
+        if (ok) {
+            for (size_t k = 1; k < len; ++k) {
+                const unsigned char ck = static_cast<unsigned char>(src[i + k]);
+                if (ck == '\0') { ok = false; break; }        // 序列被 NUL 截断
+                const unsigned char l = (k == 1) ? lo : 0x80;
+                const unsigned char h = (k == 1) ? hi : 0xBF;
+                if (ck < l || ck > h) { ok = false; break; }
+            }
+        }
+        if (!ok) { dst[n++] = '?'; ++i; continue; }            // 非法字节 -> '?'
+        if (n + len > cap) break;                              // 码点边界截断
+        for (size_t k = 0; k < len; ++k) dst[n++] = src[i + k];
+        i += len;
+    }
+    dst[n] = '\0';
+    return n;
+}
+
+} // namespace ipv
 
 // ===========================================================================
 // C API 实现

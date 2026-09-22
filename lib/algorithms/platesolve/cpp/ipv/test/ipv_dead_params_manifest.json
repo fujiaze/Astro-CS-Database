@@ -34,38 +34,6 @@
   ],
   "production_chain": [
     [
-      "lib/infrastructure/scheduler/src/module_adapters.cpp",
-      "p1_header_kw_str"
-    ],
-    [
-      "lib/infrastructure/scheduler/src/module_adapters.cpp",
-      "p1_header_pointing"
-    ],
-    [
-      "lib/infrastructure/scheduler/src/module_adapters.cpp",
-      "p1_op_wcs"
-    ],
-    [
-      "lib/infrastructure/scheduler/src/module_adapters.cpp",
-      "p1_parse_ra_dec_deg"
-    ],
-    [
-      "lib/infrastructure/scheduler/src/module_adapters.cpp",
-      "p1_parse_sip"
-    ],
-    [
-      "lib/infrastructure/scheduler/src/module_adapters.cpp",
-      "p1_sip_poly"
-    ],
-    [
-      "lib/infrastructure/scheduler/src/module_adapters.cpp",
-      "p1_sip_to_json"
-    ],
-    [
-      "lib/infrastructure/scheduler/src/module_adapters.cpp",
-      "p1_tan_forward_reference_sip"
-    ],
-    [
       "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "do_solve_from_detections_v1_impl"
     ],
@@ -140,6 +108,10 @@
     [
       "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
       "to_solver_params"
+    ],
+    [
+      "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
+      "utf8_safe_copy"
     ],
     [
       "lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp",
@@ -303,6 +275,10 @@
     ],
     [
       "lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp",
+      "log_select_too_few"
+    ],
+    [
+      "lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp",
       "mag_iter_apply_to_selection"
     ],
     [
@@ -404,6 +380,38 @@
     [
       "lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp",
       "gauss_solve_wcs"
+    ],
+    [
+      "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "p1_header_kw_str"
+    ],
+    [
+      "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "p1_header_pointing"
+    ],
+    [
+      "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "p1_op_wcs"
+    ],
+    [
+      "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "p1_parse_ra_dec_deg"
+    ],
+    [
+      "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "p1_parse_sip"
+    ],
+    [
+      "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "p1_sip_poly"
+    ],
+    [
+      "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "p1_sip_to_json"
+    ],
+    [
+      "lib/infrastructure/scheduler/src/module_adapters.cpp",
+      "p1_tan_forward_reference_sip"
     ]
   ],
   "external_symbols_note": "生产链中未在本清单 source_files 内定义的被调符号 (标准库/lambda/其他模块); 仅作信息, 不参与断言。",
@@ -955,11 +963,15 @@
         "params"
       ],
       "status": "live",
-      "reason": "生产路径真实消费: 行为随配置值变化",
+      "reason": "生产路径真实消费: 行为随配置值变化 (estimate_mag_lim_iterative 触顶判据 + gaia_query_mag_iterative 触顶样本 fail-closed)",
       "allow_reads": {
         "lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp": [
           [
             "estimate_mag_lim_iterative",
+            1
+          ],
+          [
+            "gaia_query_mag_iterative",
             1
           ]
         ]

@@ -61,6 +61,40 @@ target_link_libraries(ipv_mag_iter_delivery_test PRIVATE
 add_test(NAME ipv_mag_iter_delivery COMMAND ipv_mag_iter_delivery_test)
 
 # ============================================================================
+# ALG-WCS-001 §4a — 图像侧选星有效域 + 空扫描 provenance 回归锁
+# ----------------------------------------------------------------------------
+# 被测面: select_image_stars / compute_fov_density / estimate_mag_lim_iterative
+# (生产源 src/ipv_select.cpp, 经生产静态库 astrocs_p1_ipv 链接)。
+# 判据: 饱和检测不得进入选星样本 (真实场型: 最亮 N 颗全饱和); 候选不足不回填;
+#       rho_img 分子 = 实际样本基数; 全空扫描必须标记 empty_sweep。
+# 负向对照在测试内: 旧规则 (统一排序含饱和) 必须使同一判据判红 (非恒真门)。
+# ============================================================================
+add_executable(ipv_select_domain_test
+  ${P1IPVTEST_DIR}/test_select_domain.cpp)
+target_include_directories(ipv_select_domain_test PRIVATE
+  ${P1IPV_DIR}/include)
+target_link_libraries(ipv_select_domain_test PRIVATE
+  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+add_test(NAME ipv_select_domain COMMAND ipv_select_domain_test)
+set_tests_properties(ipv_select_domain PROPERTIES TIMEOUT 120)
+
+# ============================================================================
+# ALG-WCS-001 §4b — 对外可见错误串 UTF-8 归一回归锁
+# ----------------------------------------------------------------------------
+# 被测面: ipv::utf8_safe_copy (生产源 src/ipv_entry.cpp) + 公共 ABI 失败路径写出的
+# IpvWcsResult.error_msg。判据 = 独立严格 UTF-8 校验器 (RFC 3629)。
+# 负向对照在测试内: 修复前的「按字节截断 + 原样透传」实现必须被判红。
+# ============================================================================
+add_executable(ipv_error_utf8_test
+  ${P1IPVTEST_DIR}/test_error_utf8.cpp)
+target_include_directories(ipv_error_utf8_test PRIVATE
+  ${P1IPV_DIR}/include)
+target_link_libraries(ipv_error_utf8_test PRIVATE
+  astrocs_p1_ipv astrocs_p1_sdet astrocs_aio astrocs_cfitsio)
+add_test(NAME ipv_error_utf8 COMMAND ipv_error_utf8_test)
+set_tests_properties(ipv_error_utf8 PROPERTIES TIMEOUT 120)
+
+# ============================================================================
 # P11-IPV-BUDGET — 三角形匹配搜索预算 fail-closed 回归锁
 # ----------------------------------------------------------------------------
 # 被测面: triangle_match (src/ipv_triangle.cpp, 生产源) 经生产静态库
