@@ -29,7 +29,14 @@ AIO = os.path.join(REPO, "lib", "infrastructure", "aio")
 # 冻结容差(不事后放宽)
 AFTER_RATIO_TOL = 0.35   # after_rms / before_rms 上限(下降需 < 0.35)
 STAR_NONFIT_FRAC = 0.10  # 校正场空间变化 / 星幅度(2.0) 上限(源不被拟合)
-N_ITER = 5               # UPM 迭代(合成小模型收敛)
+# UPM 迭代预算: 科学判据必须在**收敛**模型上评估(SCI-UPM-001 §5 收敛与容差 /
+# §11 验证 Oracle; converged 0=max_iter 属"未证明收敛")。SCI-502 把收敛判据改为
+# 相对/尺度归一(tolerance_relative=1)后, 本 fixture 模型的实测收敛迭代数 = 91
+# (run/LINUXMAIN-RESID-01/logs/pair_metrics_iter200.json: iterations=91,
+# converged=1, rel_improve 8.1e-4); 旧值 5 停在 max_iter(converged=0,
+# rel_improve 0.384) —— 那是在未收敛模型上判科学, 故取 200(≈2× 实测)并显式断言
+# converged==1(fail-closed)。这是**收紧**判据, 不是放宽阈值。
+N_ITER = 200
 
 
 def cfitsio_objs(tmp):
@@ -234,10 +241,22 @@ class TestP2003SeamOracle(unittest.TestCase):
           - low_frequency_improved: 至少一个 pair 的低频场 p95_abs 严格下降
             (背景/接缝空间结构被 UPM 校正场吸收 → before→after 下降);
           - calibrated_median_not_worse / calibrated_lowfreq_not_worse_5pct:
-            全部 pair 不显著恶化(median 持平; 低频 p95 ≤ raw×1.05 + floor)。
+            全部 pair 不显著恶化(median ≤ raw + 地板; 低频 p95 ≤ raw×1.05 + 地板),
+            地板 = 1e-5 + 5% × raw 场自身尺度(低频 p95 与稳健 σ 取大者)。
+            依据 SCI-UPM-CONV-001「禁绝对容差」(PHASE2_UPM §5/§16.3 FIX-1):
+            判据必须无量纲。旧工具用固定 1e-5 地板, 在 raw 场 1e8 尺度上等价于
+            "校正后 median 必须恰好为 0", 属退化判据(本 fixture 的 panel2-panel3
+            raw median 恰为 0: 偏移差 −8 与空间偏移 +8 在左半精确抵消 ⇒ 判据退化为
+            不可满足的恒假门, 而 raw 场本身仍有 1.6e6 阶跃)。
         注: 整帧 plain RMS 含恒星高斯(σ=2 峰值 500)主导项, 对平滑背景场
         校正不敏感, 不作判据(工具口径与 P8-2 银心生产证据一致)。
         """
+        # 科学判据的前置条件: 模型必须收敛(§5 converged 枚举; 0=max_iter 不成立)。
+        m = self.model
+        self.assertEqual(m["converged"], 1,
+                         f"UPM 未收敛(converged={m['converged']} = max_iter/stalled/invalid): "
+                         f"iterations={m['iterations']} rel_improve={m['rel_improve']:.3g} "
+                         f"objective={m['objective']:.6g} scale_obs={m['scale_obs']:.6g}")
         pairs = self.pair_metrics["pairs"]
         self.assertTrue(pairs, "pair 证据缺失")
         improved = []
