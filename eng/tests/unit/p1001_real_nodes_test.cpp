@@ -3896,7 +3896,78 @@ static void test_p1photbroken_scale_guards() {
   }
 }
 
+
+// ══ PERF-P1: 帧级并行 1/N worker 逐位等价（AGENTS §9 一致性要求）═══════════
+// 依据: AGENTS §9「1/N worker 一致性」、§6「不硬编码线程」、PERF-P2 既有规范
+// （p2_parallel_for 注释: 每任务只写自己下标结果槽、跨任务无浮点归约 ⇒ 与串行
+// 逐位一致）。RED 锚定（接线前）: P1 节点完全不消费 __workers（帧串行），
+// budget=16 与 budget=1 走同一条串行路径 ⇒ 本测试无法证伪并行正确性；接线后若
+// 并行体引入跨帧共享可变状态（如原实现的 W/H 循环内共享推进）或跨帧浮点归约，
+// 则两次运行的产物字节比对确定性失败。cosmetic 在本夹具下为逐像素直通
+// （节点面 nullptr/nullptr 掩码源）⇒ 其产物必须与 artifact:cal 逐字节相同，
+// 使"帧序归约错位"这类缺陷同样可见。
+static std::map<std::string, std::string> p1par_run_chain(const char* tag,
+                                                          uint32_t budget) {
+  Fixture fx = make_hot_fixture(tag);
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  RunContext ctx;
+  auto b = create_thread_budget(budget);
+  CHECK_MSG(b.ok(), "create_thread_budget failed");
+  if (b.ok()) ctx.set_budget(b.value());
+  const std::string cfg = p1001_full_chain_cfg(fx);
+  json man_cal = run_node(reg, "astrocs.phase1.calibration", cfg, ctx);
+  CHECK_MSG(man_cal.value("status", "") == "ok", "calibration node must succeed");
+  json man_cos = run_node(reg, "astrocs.phase1.cosmetic", cfg, ctx);
+  CHECK_MSG(man_cos.value("status", "") == "ok", "cosmetic node must succeed");
+  // 收集 out_dir 下全部产物字节（帧序由文件名字典序固定，与 worker 数无关）
+  std::map<std::string, std::string> got;
+  std::error_code ec;
+  for (const auto& ent : fs::directory_iterator(fx.out_dir, ec)) {
+    if (!ent.is_regular_file()) continue;
+    const std::string name = ent.path().filename().string();
+    got[name] = read_bytes(ent.path().string());
+  }
+  cleanup_fixture(fx);
+  return got;
+}
+
+static void test_perf_p1_frame_parallel_bitwise_1_vs_n() {
+  const uint32_t kN = 16;   // 与 p2_parallel_for 的 1/N 一致性同口径
+  const std::map<std::string, std::string> serial = p1par_run_chain("par_w1", 1);
+  const std::map<std::string, std::string> par = p1par_run_chain("par_wN", kN);
+  // ① 产物集合相同（帧级并行不得漏写/多写任何一帧的产物）
+  CHECK_MSG(serial.size() == par.size(),
+            "1-worker and N-worker runs must publish the same artifact set");
+  CHECK_MSG(!serial.empty(), "fixture must produce at least one artifact");
+  // ② 逐产物逐字节相同（帧序归约冻结 + 无跨帧浮点归约 ⇒ 逐位一致）
+  for (const auto& kv : serial) {
+    auto it = par.find(kv.first);
+    CHECK_MSG(it != par.end(),
+              ("N-worker run missing artifact: " + kv.first).c_str());
+    if (it == par.end()) continue;
+    CHECK_MSG(it->second == kv.second,
+              ("artifact bytes differ between 1 and N workers: " + kv.first).c_str());
+  }
+  // ③ 判别力自证: 若把某帧产物改成不同字节，比对必须能红（此处以"篡改副本"模拟）
+  if (!serial.empty()) {
+    std::map<std::string, std::string> tampered = par;
+    auto first = tampered.begin();
+    if (!first->second.empty()) {
+      first->second[0] = static_cast<char>(first->second[0] ^ 0x01);
+      bool detected = false;
+      for (const auto& kv : serial) {
+        auto it = tampered.find(kv.first);
+        if (it != tampered.end() && it->second != kv.second) detected = true;
+      }
+      CHECK_MSG(detected, "bitwise comparison must detect a 1-bit tamper");
+    }
+  }
+}
+
 int main() {
+  // PERF-P1: 帧级并行 1/N 逐位等价（生产节点接线验证）
+  test_perf_p1_frame_parallel_bitwise_1_vs_n();
   test_nodes_real_operation();
   test_runtime_chain_call_count_1();
   test_fail_fast_downstream_zero_calls();
