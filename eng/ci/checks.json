@@ -10346,6 +10346,49 @@
       "requires_monitor": false
     },
     {
+      "id": "CHK-HIPS-STORAGE-FORM",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/hipsform/check_hips_storage_form.py",
+        "--self-test",
+        "--json-out",
+        "run/ci/hipsform/self_test.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/hipsform/self_test.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
+        "docs/contracts/CONFIG_CONTRACT.md",
+        "docs/design/PRODUCT_STORAGE_FORM.md",
+        "docs/design/PHASE1_DETAILED_DESIGN.md",
+        "docs/design/PHASE2_DETAILED_DESIGN.md",
+        "docs/design/PHASE3_DETAILED_DESIGN.md",
+        "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md",
+        "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
+        "eng/contracts/schemas/hips_storage_form.schema.json",
+        "eng/contracts/schemas/phase_config_normalize.schema.json",
+        "eng/contracts/schemas/phase_config_mosaic.schema.json",
+        "eng/contracts/schemas/phase_config_export.schema.json",
+        "eng/ci/ledgers/dead_config_keys.json",
+        "eng/tools/hipsform/**",
+        "lib/infrastructure/cli/session_commands.h",
+        "lib/infrastructure/cli/parser.cpp",
+        "lib/infrastructure/aio/**"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",
@@ -10479,49 +10522,6 @@
           "reads_run_results": true
         }
       ]
-    },
-    {
-      "id": "CHK-HIPS-STORAGE-FORM",
-      "profiles": [
-        "fast",
-        "linux-main",
-        "windows-main"
-      ],
-      "platform": "any",
-      "command": [
-        "python3",
-        "eng/tools/hipsform/check_hips_storage_form.py",
-        "--self-test",
-        "--json-out",
-        "run/ci/hipsform/self_test.json"
-      ],
-      "timeout_seconds": 300,
-      "heavy": false,
-      "mutates_workspace": false,
-      "outputs": [
-        "run/ci/hipsform/self_test.json"
-      ],
-      "waivable": false,
-      "changed_paths": [
-        "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
-        "docs/contracts/CONFIG_CONTRACT.md",
-        "docs/design/PRODUCT_STORAGE_FORM.md",
-        "docs/design/PHASE1_DETAILED_DESIGN.md",
-        "docs/design/PHASE2_DETAILED_DESIGN.md",
-        "docs/design/PHASE3_DETAILED_DESIGN.md",
-        "docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md",
-        "docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md",
-        "eng/contracts/schemas/hips_storage_form.schema.json",
-        "eng/contracts/schemas/phase_config_normalize.schema.json",
-        "eng/contracts/schemas/phase_config_mosaic.schema.json",
-        "eng/contracts/schemas/phase_config_export.schema.json",
-        "eng/ci/ledgers/dead_config_keys.json",
-        "eng/tools/hipsform/**",
-        "lib/infrastructure/cli/session_commands.h",
-        "lib/infrastructure/cli/parser.cpp",
-        "lib/infrastructure/aio/**"
-      ],
-      "requires_monitor": false
     }
   ]
 }

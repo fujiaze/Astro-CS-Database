@@ -370,7 +370,7 @@ struct Subcommand {
                                   std::chrono::milliseconds(ms > 0 ? ms : 0);
             while (std::chrono::steady_clock::now() < deadline) {
                 if (astrocs::is_cancelled()) {
-                    // FIX-406: 启动期取消也发恰一个 final 事件（DESIGN §7.2 机器输出
+                    // 启动期取消也发恰一个 final 事件（DESIGN §7.2 机器输出
                     // 统一；空事件流无法与崩溃区分）。本次运行尚未建立 output_dir/
                     // run_context ⇒ 不写 manifest（不造假清单），final.run_manifest=null。
                     ev.emit_final(astrocs::CANCELLED, "cancelled", nullptr,

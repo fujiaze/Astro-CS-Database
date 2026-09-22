@@ -179,6 +179,13 @@ bool sparse_recon_operator_clips_to_ctrl_range(SparseReconOperator op) {
          op == SparseReconOperator::kNaturalBicubicSplineClipMeshMedian;
 }
 
+const char* sparse_recon_operator_for_source(bool high_contrast_unresolved_sources) {
+  return sparse_recon_operator_token(
+      high_contrast_unresolved_sources
+          ? SparseReconOperator::kNaturalBicubicSplineClipMeshMedian
+          : SparseReconOperator::kNaturalBicubicSplineClip);
+}
+
 bool reconstruct_sparse_snr(const SparseSnrLayer& layer, double x, double y,
                             double* out_snr, SparseReconstruction* info,
                             std::string* err) {

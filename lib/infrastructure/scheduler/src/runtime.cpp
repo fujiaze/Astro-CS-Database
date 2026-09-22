@@ -5,7 +5,7 @@
 // 由 executor 记录 WORKER_TASK、模块/provider 观测填写，禁止 config 值冒充。
 #include "astrocs/core/runtime.h"
 #include "astrocs/core/context.h"        // B2-A18: 租约授予观测
-#include "astrocs/core/plan_estimator.h"  // MEM-WIRE-01: §8.3 静态预算（RT-005 估算器）
+#include "astrocs/core/plan_estimator.h"  // §8.3 静态预算（RT-005 估算器）
 
 #include <nlohmann/json.hpp>
 
@@ -57,7 +57,7 @@ std::string utc_now_ms() {
 }
 
 
-// ── MEM-WIRE-01: 从 IR 节点的**静态声明**构造 plan_estimator 的输入 metadata ──
+// ── 从 IR 节点的**静态声明**构造 plan_estimator 的输入 metadata ──
 // 依据 ASTROCS_DESIGN.md §8.3「静态预算：从输入数据（帧尺寸与类型、配置、模块声明）
 // 静态估算每个模块的内存与 CPU 需求」。本函数**不做任何 IO**：只读 IR 节点自带的
 // module_id / resource_class / config_json（含 CLI 展开的 phase 配置）。
@@ -150,7 +150,7 @@ class RuntimeImpl final : public Runtime {
       }
     }
 
-    // MEM-WIRE-01 (ARCH-AUDIT-01 B-3 = ARCH-AUDIT-02 F-04): 第三参 = 内存上限。
+    // 第三参 = 内存上限。
     // 修复前此处为 Scheduler(budget_, budget_) ⇒ memory_limit_bytes 取默认 0，
     // §8.3「静态预算 / 内存回压 / 内存永不越界」在生产路径整体失效（回压是死代码）。
     // 上限来源 = RuntimeResourceBudget（由调用方按 配置/profile + 实测探测 解析，
@@ -182,7 +182,7 @@ class RuntimeImpl final : public Runtime {
           }
         }
       }
-      // MEM-WIRE-01: estimated_memory_bytes = §8.3「静态预算」的真实估算，
+      // estimated_memory_bytes = §8.3「静态预算」的真实估算，
       // 不再硬写 0（硬写 0 会让内存回压恒不触发 —— 0+0 <= limit 恒真）。
       // 估算器 = astrocs::core::estimate_plan（RT-005，本任务纳入 astrocs_core 构建图），
       // 输入 metadata 全部取自 IR 节点静态声明（module_id / config / resources.class），
@@ -370,7 +370,7 @@ class RuntimeImpl final : public Runtime {
     json j;
     j["kind"] = "astrocs.runtime/v1";
     j["budget"] = budget_;
-    // MEM-WIRE-01: 资源预算观测面（CPU 与内存同源；SCHEDULER_CONTRACT §3）。
+    // 资源预算观测面（CPU 与内存同源；SCHEDULER_CONTRACT §3）。
     // memory_limit_bytes = **Scheduler 实际生效**的上限（唯一权威：回压按它判定），
     // 而不是 Runtime 收到的请求值 —— 二者不等即「请求了但没接上」，判据据此判红。
     // memory_limit_bytes_requested = 请求值（证据面）；source="none" ⇒ 未启用回压。
@@ -431,7 +431,7 @@ class RuntimeImpl final : public Runtime {
 
  private:
   uint32_t budget_;
-  uint64_t memory_limit_bytes_ = 0;  // MEM-WIRE-01: Scheduler 内存回压上限（来源见 memory_source_）
+  uint64_t memory_limit_bytes_ = 0;  // Scheduler 内存回压上限（来源见 memory_source_）
   std::string memory_source_ = "none";
   PipelineIR ir_;
   std::unique_ptr<Scheduler> scheduler_;
@@ -450,7 +450,7 @@ class RuntimeImpl final : public Runtime {
 }  // namespace
 
 Result<std::unique_ptr<Runtime>> create_runtime(uint32_t budget) noexcept {
-  // MEM-WIRE-01: 显式「未提供内存预算」的重载（memory_limit_bytes=0 ⇒ 不启用回压）。
+  // 显式「未提供内存预算」的重载（memory_limit_bytes=0 ⇒ 不启用回压）。
   // 语义冻结，供单元测试/嵌入式调用方使用；生产路径用下面的 RuntimeResourceBudget 重载。
   RuntimeResourceBudget rb;
   rb.cpu_budget = budget;

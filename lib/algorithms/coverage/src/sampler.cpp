@@ -733,7 +733,7 @@ static int p2_sample_controls_impl(
     // per-cell body：串行与并行共用（杜绝双份漂移）。返回 0 或错误码(1=pairs resize OOM)。
     auto pass1_cell = [&](std::uint64_t c, SamplerReader& rdr,
                          std::uint64_t& cv, std::uint64_t& ci) -> int {
-        cv = 0; ci = 0;   // 本 cell 输出计数（入口清零）；调用方须用独立局部量接收后累加（FIX-210 D2）
+        cv = 0; ci = 0;   // 本 cell 输出计数（入口清零）；调用方须用独立局部量接收后累加
         const std::uint64_t tile_ipix = coverage->union_cells[c].ipix;
         {
             const std::uint64_t npix = 12ULL * ((std::uint64_t)1 << (2u * (unsigned)coverage->target_order));
@@ -940,7 +940,7 @@ static int p2_sample_controls_impl(
                 for (;;) {
                     const std::uint64_t c = next_c.fetch_add(1);
                     if (c >= n_union) break;
-                    // FIX-210 D2：pass1_cell 的 cv/ci 是本 cell 输出（入口清零）⇒ 必须用
+                    // pass1_cell 的 cv/ci 是本 cell 输出（入口清零）⇒ 必须用
                     // 每次调用独立的局部量接收后再累加（复用累加器只剩最后一个 cell 计数）。
                     std::uint64_t cell_cv = 0, cell_ci = 0;
                     const int cell_rc = pass1_cell(c, rdr, cell_cv, cell_ci); cv += cell_cv; ci += cell_ci;
@@ -1068,7 +1068,7 @@ static int p2_sample_controls_impl(
         if (nclean >= 2) ++stats.overlap_controls;
         for (std::size_t fi = 0; fi < cs.frames.size(); ++fi) {
             if (!cs.accepted[fi]) {
-                // FIX-405 / DISP-P2SMP-002: 本循环**不再**累加
+                // DISP-P2SMP-002: 本循环**不再**累加
                 // rejected_insufficient_retained —— 第二遍（:1049-1055）已在
                 // 置 reason=2 的同一分支内对该帧计数一次；此处再计即为双计数
                 // （统计面偏差：candidate = accepted + Σrejected 恒等式被破坏）。

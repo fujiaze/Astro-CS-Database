@@ -1,5 +1,5 @@
 // lib/algorithms/projection/p3_wcs.cpp — TAN(gnomonic) WCS 实现 (ALG-P3-002/003) — P3-002
-// W4-A9 批次 1: 原址 lib/phase3_session/p3_wcs.cpp (ASTROCS_DESIGN §7.1「projection」);
+// 原址 lib/phase3_session/p3_wcs.cpp (ASTROCS_DESIGN §7.1「projection」);
 // 源逐字节迁移, 命名空间/公式/容差零改动 (ENGINEERING_SPEC §3 架构重构不改科学语义)。
 // 数学: Calabretta & Greisen (2002) 标准球面三角公式(RA wrap 经 atan2+fmod 归一)。
 #include "p3_wcs.h"
@@ -156,7 +156,7 @@ P3WcsStatus p3_wcs_make(double centre_ra_deg, double centre_dec_deg,
     }
     // 适用域门(DESIGN §5.3「违反 ⇒ 拒绝」): |CRVAL2|≤85° / FOV≤20° /
     // det(CD)<0 / CRPIX=(W+1)/2 FITS 1-based 像素中心 / 往返 < 合同容差
-    // （kTanApplicability.roundtrip_tol_px = 1e-8 px，FIX-406 Oracle 冻结）。
+    // （kTanApplicability.roundtrip_tol_px = 1e-8 px，Oracle 冻结）。
     {
         std::string aerr;
         const P3WcsStatus ast = p3_wcs_check_applicability(&tmp, &aerr);
@@ -180,7 +180,7 @@ namespace {
 //     sec²Δ = 1 + r_plane² ≤ 1 + (FOV_rad/2)² = 1.03046（FOV ≤ 20°）。
 //   * K4 **1e-8 px 不是全域保守门**: 仅在 s ≥ 0.179″/px（实测常数）/
 //     0.293″/px（设计常数）时它才 ≥ 最坏情况包络（sec²Δ≈1 形式；按 FOV=20° 的
-//     sec²Δ=1.03046 取最坏则为 0.184″/px / 0.302″/px）；FIX-406 自己用的最坏工况
+//     sec²Δ=1.03046 取最坏则为 0.184″/px / 0.302″/px）；该复核自己用的最坏工况
 //     0.18″/px 上余量仅 1.01×（独立区间算术包络 1.78e-8 px ⇒ 0.56× ⇒ 会误拒）。
 //   ⇒ 紧门必须配适用域下限 min_scale_arcsec = 0.9″/px（覆盖仓内最小真实尺度
 //     0.9586″/px，即 T2/T3 档）。尺度低于下限时**该门不适用**（明确报「超出
@@ -191,23 +191,23 @@ namespace {
 //   * 合成规则 = **最坏情况包络（线性相加）**，不用 RSS（实测包络/RSS = 2.47×，
 //     用 RSS 设门必然误拒；RSS 只回答「误差通常多大」）。
 //
-// roundtrip_tol_px = 1e-8 px —— FIX-406 Oracle 实验表（冻结）+ GATE-DERIVE-01 复核:
+// roundtrip_tol_px = 1e-8 px —— 往返 Oracle 实验表（冻结）+ GATE-DERIVE-01 复核:
 //   * 规范来源: ASTROCS_DESIGN §5.3「每种投影必须声明适用域（含往返误差上界），
 //     违反 ⇒ 拒绝」；上界必须由实验确定（GAP_AUDIT G3-6 要求经 SCI 复核后冻结）。
 //   * TAN 全域实测（本生产实现自身，880 组几何 × 密集逐像素 = 8.31e6 次往返 +
 //     FOV=20° 适用域边界 512²/1024²/2048² = 2.42e7 次往返）:
 //     max = 2.437e-9 px（最坏工况 **0.18″/px**（= 5e-5 deg/px）、|CRVAL2|=85°、
-//     PA=30°、129²）。**更正**: 本注释旧版把该工况写成「0.05″/px」，与 FIX-406
+//     PA=30°、129²）。**更正**: 本注释旧版把该工况写成「0.05″/px」，与复核
 //     扫描表的 5e-5 deg/px 差 3.6×，且 0.18″/px 恰是 K4 的临界尺度 ⇒ 必须更正
 //     （GATE-DERIVE-01 §6.4 / GATE-WCS-01 裁决 6）。
 //   * 独立 Oracle 可达精度: astropy 7.0.1 / WCSLIB 8.4 与独立切基式 ~2.5e-10 px
-//     （对拍同一 WCS；SIN 内核同类问题的判定见 run/FIX-406/SIN_ROUNDTRIP_ORACLE.md）。
+//     （对拍同一 WCS；SIN 内核同类问题的判定见内核已知偏差登记）。
 //   * 冻结值 1e-8 px = 实测最坏 4.1× / Oracle 可达 40×；相对旧值 1e-6 px 是
 //     **收紧**（旧门在实测面前过松 ~400×），不是放宽。
 //   * 余量（解析包络 C_env=128，FOV≤20°）: 0.9″/px → 2.98×；0.9586″/px（仓内最小
 //     真实尺度）→ 3.17×；0.18″/px（临界）→ 0.60× ⇒ 正是适用域下限的由来。
-//   * 证据与复跑: run/FIX-406/SIN_ROUNDTRIP_ORACLE.md、evidence/kernel_roundtrip.json、
-//     run/FIX-406/probe_sin_roundtrip.cpp、run/FIX-406/oracle_sin_roundtrip.py；
+//   * 证据与复跑: evidence/kernel_roundtrip.json；
+//     （复跑脚本与对拍表为过程产物，不入库；结论以本文件冻结值为准）。
 //     推导与数值实验: run/GATE-DERIVE-01/REPORT.md（27 条自洽断言全 PASS）。
 const P3WcsApplicability kTanApplicability = {
     "TAN",   // projection

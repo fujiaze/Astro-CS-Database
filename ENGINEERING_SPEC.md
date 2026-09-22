@@ -200,7 +200,7 @@ run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 
   **禁止**落进程 CWD、源码树、`run/`、安装目录、家目录；日志写失败即运行失败（非 0 退出码），不静默；
 - 日志经 `aio` 唯一 I/O 边界写出；模块不自建文本 logger、不自持日志文件句柄、不自行决定落点；
 - 输出临时文件 + 原子提交；失败时不留可被误认成正式产品的半成品；
-- **裸形态的体积削减（打洞）在原子发布之前、`fsync` 之后完成，且不得改变文件字节**：只对 4 KiB 对齐的整块全零区域打洞；`st_size` 与整文件 `sha256` 必须不变；卷不支持（`EOPNOTSUPP` 等）⇒ 跳过并在 provenance 记 `trim=skipped(reason)`，**不 fail-closed**。包围盒 TRIM（改 NAXIS）是**可选形态**，读端不认其关键字必须 fail-closed。细则与判据见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7。
+- **裸形态的体积削减（打洞）在原子发布之前、`fsync` 之后完成，且不得改变文件字节**：只对 4 KiB 对齐的整块全零区域打洞；`st_size` 与整文件 `sha256` 必须不变；卷不支持（`EOPNOTSUPP` 等）⇒ 跳过并在 provenance 记 `trim=skipped(reason)`，**不 fail-closed**。包围盒 TRIM（改 NAXIS）是**可选形态**，读端不认其关键字必须 fail-closed。机制唯一实现 = `lib/infrastructure/aio/src/aio_sparse_punch.h`（`aio_sparse::punch_all_zero_blocks`），写端接线 = `aio_hips_writer.cpp` 的 `write_fits_atomic`（次序：内容写出 → 校验 → `fsync` → 打洞 + 读回复算 → 原子 rename）；读回不一致 ⇒ 不发布。细则与判据见 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7；机器门 = `CHK-SPARSE-PUNCH` / `CHK-SPARSE-PUNCH-PROBE`。
 - 未捕获异常 → exit 70 + 脱敏 crash report（不泄露凭据）；日志/诊断不含凭据与绝对用户路径；
 - 判据 `CHK-LOG-SYS`（`eng/ci/checks.json`）：R1 错误不吞 / R2 降级显式 / R3 日志落点 / R4 台账完整 / R5 合同锚，
   每项带可执行负例（`--self-test`）；登记台账 `eng/ci/ledgers/log_system_ledger.json` 只减不增。

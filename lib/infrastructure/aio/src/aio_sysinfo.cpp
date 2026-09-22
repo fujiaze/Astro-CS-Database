@@ -4,13 +4,13 @@
 // 合同头: lib/infrastructure/aio/include/aio_sysinfo.h（唯一权威签名源）。
 // 依据: ASTROCS_DESIGN.md §10「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5。
 // 任务: AIO-SYSINFO-01（scheduler 的 /proc/meminfo 直读收进本边界）。
-//       MEM-WIRE-01（可用内存口径按平台补全：Linux 再 ∩ cgroup 内存余量）。
+//       可用内存口径按平台补全：Linux 再 ∩ cgroup 内存余量。
 //
 // 机制说明
 //   - 本 TU 位于 aio 边界**内部**，文件读取仍走 aio 唯一机制原语
 //     aio_file::read_all（aio_file_io.h；fopen/fread/fclose 唯一实现在 aio 内），
 //     不在本文件复制第二份打开/读取通道。
-//   - Linux 口径（MEM-WIRE-01 负责人裁决 2026-09-22「不要只看 MemFree，要考虑可回收页」
+//   - Linux 口径（负责人裁决 2026-09-22「不要只看 MemFree，要考虑可回收页」
 //     +「Linux 用 cgroup/可用内存口径」）:
 //       ① 主机侧 = /proc/meminfo 的 MemAvailable（内核给出的「不触发 swap 即可满足新分配」
 //          的估计，**含可回收 page cache**；不是 MemFree）。解析口径与 AIO-SYSINFO-01

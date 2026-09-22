@@ -17,8 +17,10 @@
 | `PROJECT-GOVERNANCE-01/retire/RETIREMENT_LEDGER.md` | 退役工具/注册项的复原坐标唯一记录（4 处工具 docstring 引用） |
 | `PROJECT-GOVERNANCE-01/security/EXPOSURE_NOTE.md` | 凭据暴露面处置裁决的唯一落点 |
 | `RELEASE-01/science/exp_math.py` | `docs/science/NOISE_MODEL.md` 所引数值实验脚本的唯一 tracked 副本 |
+| `compress-01/` | `docs/research/COMPRESSION_CODEC_RESEARCH_PACK.md` §7/§9 引用的**证据锚**：HiPS 瓦片与内存累加器压缩评估的最终数字（`final_numbers.json`）、填充率/TRIM/累加器扫描、复现脚本与 SHA-256 清单；原始 315 MB 基准产物未入库（可由该文 §7 重建） |
 | `v19r2/evidence/quality/traceability_check.json` | `eng/ci/checks.json`（CHK-SCI-REF）登记输出，删除会使该门 `FAIL(missing_output)`；待 FIX-404 把登记改指 `run/ci/quality/traceability_check.json` 后可删 |
 | `REAUDIT_V3/v3_exec/CON00{6,9,10}*.md`、`review-package-20260915/{02_待裁决清单.md,04_设计大纲综述/}` | 未决裁决/口径冲突的唯一落点，保留候选 |
+| `known-limitations-ledger/LEDGER.md` | `docs/KNOWN_LIMITATIONS.md` 条目的**过程台账**（编号注册表 / 严重度 / 状态 / 发现任务 / 裁决出处）唯一落点；该页条目号（`条目 N`、`§E M-x`）的解析对照表在其 §1 |
 
 ## 目录规则
 

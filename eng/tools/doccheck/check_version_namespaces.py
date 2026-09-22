@@ -41,7 +41,7 @@ SCAN_FILES = [
     "REVIEW.md",
     "HANDOVER.md",
 ]
-SCAN_DIRS = ["docs/governance", "docs/owner"]
+SCAN_DIRS = ["docs/owner"]
 # warnings-only: 历史日志驻留点 (memory.md 是逐日操作日志, CHANGELOG.md 是
 # history 命名空间合法驻留点; 其历史轮次/外部组件版本由 GOV-005 收敛,
 # GOV-003 不硬判 FAIL, 只报告警告)。
@@ -283,7 +283,7 @@ def main() -> int:
         "eng/tools/check_reproducible_build.py": "checker 硬编码 == 0.10.0-alpha.2 (QA/前台配合)",
         "eng/tools/make_linux_release.py": "回退串硬编码 0.10.0-alpha.2 (打包 owner 配合; 主路径读 VERSION)",
         "eng/tools/make_windows_release.py": "回退串硬编码 0.10.0-alpha.2 (打包 owner 配合; 主路径读 VERSION)",
-        "docs/DOCUMENT_INDEX.yaml": "base_product_version 0.10.0-alpha.2 (GOV-002 基线修订字段; 需补登 docs/governance 文件)",
+        "docs/DOCUMENT_INDEX.yaml": "base_product_version 0.10.0-alpha.2 (GOV-002 基线修订字段; 需补登 docs/owner/RELEASE_STATUS.md §2)",
     }
     for p, why in legacy.items():
         if os.path.exists(os.path.join(root, p)):

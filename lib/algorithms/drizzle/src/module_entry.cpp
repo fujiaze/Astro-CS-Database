@@ -945,7 +945,7 @@ static acs_status drz_execute_drizzle(drz_inst* inst, const char* manifest,
     }
 
     /* 输出 manifest (stats + 事务 sink 产物 URI) */
-    /* FIX-405 G3-5: 计数三字段 + 合计占 ~160B ⇒ 基线上调 (256→512) */
+    /* G3-5: 计数三字段 + 合计占 ~160B ⇒ 基线上调 (256→512) */
     uint64_t total = 512u;
     if (c->hips_dir) {
         total += strlen(c->hips_dir) + 64u;

@@ -12,9 +12,9 @@
 #include <vector>
 
 #include "nlohmann/json.hpp"
-#include "../algorithms/fits_output/p3_output.h"   // W4-A9 批次 3: FITS 写出内核迁 fits_output
-#include "../algorithms/resample/p3_resample.h"   // W4-A9 批次 2: 重采样内核迁 resample
-#include "../algorithms/projection/p3_wcs.h"   // W4-A9 批次 1: 投影/WCS 内核迁 projection
+#include "../algorithms/fits_output/p3_output.h"   // FITS 写出内核迁 fits_output
+#include "../algorithms/resample/p3_resample.h"   // 重采样内核迁 resample
+#include "../algorithms/projection/p3_wcs.h"   // 投影/WCS 内核迁 projection
 
 using nlohmann::json;
 

@@ -1,4 +1,4 @@
-// AstroCS Core — MEM-WIRE-01 内存静态预算来源解析实现（纯函数）
+// AstroCS Core — 内存静态预算来源解析实现（纯函数）
 // 层次合同与规范依据见 lib/include/astrocs/core/memory_budget.h。
 #include "astrocs/core/memory_budget.h"
 

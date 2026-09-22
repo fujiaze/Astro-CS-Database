@@ -221,7 +221,7 @@ AIO_HIPS_EXPORT int aio_hips_write_diag_tile(
 //   ASTROCS_UNCERTAINTY_AVAILABLE true/false (§30.1 unavailable 规则判定结果)
 //   ASTROCS_REJECT_PROFILE       版本化 profile 串 (如 wbpp_2_9_1)
 //
-// **已删除的键: 旧「权重模式」provenance 键 (FIX-201, 2026-09-20)**。
+// **已删除的键: 旧「权重模式」provenance 键**。
 //   依据: ASTROCS_DESIGN §2.1 总纲(负责人 2026-09-20 裁决)「全程只有 SNR,
 //   不存在『权重模式』这个概念」+ GAP_AUDIT §9.73【裁决 A44】逐字:
 //   「在 HiPS 里面存的是帧级 SNR 和稀疏的相对 SNR 比值。全程都是 SNR 才对。

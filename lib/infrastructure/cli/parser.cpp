@@ -47,7 +47,7 @@ const std::set<std::string>& cmd_value_tokens() {
                                             "--cpu-profile", "--mode", "--export-mode",
                                             // §8/21_observability §8.4: 资源门 enforce 显式写法。
                                             "--on-resource-gate",
-                                            // FIX-405 G3-11: doctor 的 verify 能力旗标
+                                            // G3-11: doctor 的 verify 能力旗标
                                             // --run-manifest <manifest.json>（取值；
                                             // 命令树登记见 command_tree.h value_flags()
                                             // 与 doctor 的 allowed 表；不写进 help）。
@@ -313,7 +313,7 @@ const std::set<std::string>& session_keys() {
         // hips_paths 元素保持字符串（逐帧索引路径按命名规则派生）。同 snr_path：
         // CLI 只识别并透传，消费点（阶段二 coverage 节点）在阶段 2 ⇒ 死键台账已登记。
         "coverage_index",
-        // FIX-203（GAP_AUDIT G05；ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
+        //（GAP_AUDIT G05；ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 白名单缺的提升键落地。键名**逐字**取
         // 合同声明名（禁止新造同义键）：
         //   phase_config_mosaic.schema.json#/$defs/mosaic_config/properties/snr_path
@@ -329,12 +329,12 @@ const std::set<std::string>& session_keys() {
         // 编排键（非科学键，不改任何公式与容差），生产消费点 = module_adapters 的
         // phase3 resample2/writer/verify 节点（p3n_sub_block_px）。
         "sub_block_px", "queue_depth",
-        // FIX-203（GAP_AUDIT N03）：export 提升键（合同声明名逐字，平铺顶层，与
+        //GAP_AUDIT N03：export 提升键（合同声明名逐字，平铺顶层，与
         // center/scale_deg_per_px 同面）：
         //   phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 同 snr_path：CLI 只识别并透传，生产消费点未落地 ⇒ 死键台账已登记。
         "rotation_deg", "crpix_px",
-        // 计算精度口径（ASTROCS_DESIGN §3.3:256；FIX-203 前台裁决）：阶段一 =
+        // 计算精度口径（ASTROCS_DESIGN §3.3:256）：阶段一 =
         // drizzle.precision_mode(0=FP32/1=FP64)；阶段二/三 = 位深键 bitpix(-32/-64)。
         // **不新造 precision(fp32/fp64) 同义键**——合同旧键 precision 由死键台账登记
         // （eng/ci/ledgers/dead_config_keys.json#dead_config_key:precision），CLI 面拒绝。
@@ -438,7 +438,7 @@ std::vector<std::string> session_blocks_errors(const std::string& session_name,
     // §9.71 裁决 2：三命令同构块结构（一个块 = 输出名称 + 运行参数 + 一组输入帧）。
     // 块内键集与「输入帧键」**从单一来源派生**，禁止手写副本：
     //   * 键集 = 平铺会话键集 session_keys() + block_keys()（name/output_dir）
-    //     —— §3.3「两形态等价」（FIX-210 D1）：块内门与平铺门必须是**同一份**键表。
+    //     —— §3.3「两形态等价」：块内门与平铺门必须是**同一份**键表。
     //     旧实现用该会话 config_fields()（= --template 骨架键表）派生块内键，两门不等价：
     //     normalize 块内曾拒绝 10 个本阶段科学键（dark_optimization / dark_scale_factor /
     //     cosmetic / master_units / master_scale / master_flat_normalize /

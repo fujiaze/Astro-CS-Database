@@ -280,7 +280,7 @@ struct DrizzleOpCounters {
     int64_t sh_calls = 0;         // 球面重叠调用数
     int64_t tile_lookups = 0;     // tile 累加器访问数
     int64_t heap_allocations = 0; // 热循环堆分配数 (目标 ~0)
-    // FIX-405 G3-5: 样本级掩膜计数（DATA-002 §2a 强制计数；整数, 归约序无关）
+    // G3-5: 样本级掩膜计数（DATA-002 §2a 强制计数；整数, 归约序无关）
     int64_t rejected_nonfinite_value = 0;      // 值非有限 (NaN/Inf)
     int64_t rejected_nonfinite_variance = 0;   // 方差面非有限 (NaN/Inf)
     int64_t rejected_nonpositive_weight = 0;   // 权重非有限或 ≤0
@@ -1985,7 +1985,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
         }
 
         for (int x = 0; x < img.width; x++) {
-            // ── FIX-405 G3-5 / DISP-DRZ-004 收口 ───────────────────────────
+            // ── G3-5 / DISP-DRZ-004 收口 ───────────────────────────────────
             // 冻结合同（唯一口径文字 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
             // §2a；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN，EXP-202 定案）:
             //   合格样本 = isfinite(x_j) ∧ isfinite(V_j) ∧ V_j > 0；
@@ -2190,7 +2190,7 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     stats.op_sh_calls        = totalOps.sh_calls;
     stats.op_tile_lookups    = totalOps.tile_lookups;
     stats.op_heap_allocations = totalOps.heap_allocations;
-    // FIX-405 G3-5: 样本级掩膜计数（强制暴露；合计 = 三原因之和）
+    // G3-5: 样本级掩膜计数（强制暴露；合计 = 三原因之和）
     stats.n_rejected_nonfinite_value    = totalOps.rejected_nonfinite_value;
     stats.n_rejected_nonfinite_variance = totalOps.rejected_nonfinite_variance;
     stats.n_rejected_nonpositive_weight = totalOps.rejected_nonpositive_weight;

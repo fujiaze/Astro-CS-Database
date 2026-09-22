@@ -5,7 +5,7 @@
  * IO_003_ATOMIC_OUTPUT_PUBLISH.md §4; 失败/取消 → stage_discard → 目标根
  * 无 partial (DISP-HIPS-001/004 模块事务面收口; 生产 writer 零改动)。
  *
- * I/O 归属 (FIX-201, ASTROCS_DESIGN §9 + GAP_AUDIT §9.73 裁决 U5):
+ * I/O 归属 (ASTROCS_DESIGN §9 + GAP_AUDIT §9.73 裁决 U5):
  *   「aio 是文件级唯一 I/O 边界」+ 机器判据「全仓文件打开 / 流式读写 /
  *   文件系统写操作, 除 aio 内部外应为 0」。
  *   ⇒ 本 TU **不再**自行调用任何文件系统原语 (mkdir/stat/opendir/readdir/

@@ -1,11 +1,11 @@
 // lib/algorithms/fits_output/p3_output.cpp — 输出原子写/校验 (ALG-P3-004) — P3-004
-// W4-A9 批次 3 (2026-09-17): 原址 lib/phase3_session/p3_output.cpp, 按 ASTROCS_DESIGN
+// 原址 lib/phase3_session/p3_output.cpp, 按 ASTROCS_DESIGN
 // §7.1「fits_output」行迁入本模块; 源逐字节等价 (仅头注 | include 面改锚)。
 #include "p3_output.h"
 
 #if defined(_WIN32)
 // MSVC 无 unistd.h; 以 _ 前缀 CRT 提供 pid 别名。
-// FIX-201: open/fsync/close/unlink 别名已删除 —— 这些文件系统原语现全部
+// open/fsync/close/unlink 别名已删除 —— 这些文件系统原语现全部
 // 经 aio (aio_atomic_file.h), 本模块不再直接调用 (死宏清理)。
 #include <windows.h>
 #include <io.h>
@@ -28,11 +28,11 @@
 #include "aio_fits.h"
 #include "astro_image_io.h"
 #include "fitsio.h"
-// W4-A9 批次 3: 原相对路径 ../infrastructure/aio/src/... 只在旧址 (lib/phase3_session/)
+// 原相对路径 ../infrastructure/aio/src/... 只在旧址 (lib/phase3_session/)
 // 成立; 该目录已由 astrocs_aio 的 PUBLIC include 面提供 ⇒ 扁平引用 (迁址无关)。
 #include "aio_cfitsio_mutex.h"
 #include "sha256.h"
-// FIX-201 (ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5):
+// ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
 // 本模块**不再**自持文件系统原语 —— 临时文件/fsync/原子 rename/删除经 aio
 // 机制原语 (aio_atomic_file.h), 文件内容摘要经 aio 摘要原语
 // (aio_file_io.h)。二者均为 aio 内唯一实现 (header-only 机制面)。
@@ -52,7 +52,7 @@ std::string g_last_err;
 // 逐 HDU 写出并由 cfitsio 自行归属。旧实现自算 "little-endian 无进位字节和"
 // 并以 TINT 整数写入保留字 DATASUM，是非法关键字值（astropy checksum=True
 // 报 Datasum verification failed），已删除。
-// FIX-402 (FZ-P3-BUNIT-QUADRATIC / docs/contracts/DATA_SEMANTICS.md §31.1 §1):
+// FZ-P3-BUNIT-QUADRATIC / docs/contracts/DATA_SEMANTICS.md §31.1 §1:
 // variance BUNIT = (signal BUNIT)^2, ivar = 1/variance —— 用**冻结单位表的 canonical
 // 串**（ADU^a/px^p 幂次代数），禁朴素字符串拼接（"ADU/sr" + "^2" = "ADU/sr^2"
 // 既非 canonical 也不可判）。解析失败 → false（调用方显式拒绝，禁写出非二次律 BUNIT）。
@@ -135,7 +135,7 @@ bool fits_write_std_chksum(fitsfile* f, std::string* why) {
 }
 
 bool make_temp_path(const std::string& out, std::string* tmp) {
-    // 死变量清理 (FIX-201): 原实现取 hostname 到 host[] 后从未读取, 且该
+    // 死变量清理: 原实现取 hostname 到 host[] 后从未读取, 且该
     // 取值不参与临时名 ⇒ 删除 (临时名语义逐位不变: <out>.<pid>.tmp)。
     *tmp = out + "." + std::to_string(::getpid()) + ".tmp";
     // 若 out 无目录, 用当前目录; tmp 与 out 同目录保证 rename 原子
@@ -144,14 +144,14 @@ bool make_temp_path(const std::string& out, std::string* tmp) {
 
 // R10-C(bughunt p2): sha256_file 的失败可见封装。lib/algorithms/shared/crypto::sha256_file
 // 对文件打开失败返回空串、对读取中途错误静默返回前缀(部分数据)哈希 —— 任一
-// 形态写进 provenance 即为无意义完整性锚。FIX-201 起该纪律下沉到 aio
+// 形态写进 provenance 即为无意义完整性锚。该纪律下沉到 aio
 // (aio_file_io.h): 只有完整读取成功才产出 64hex; 失败返回 false, 调用方必须把错误向上传播
 // (整体输出失败), 禁止把空串/前缀哈希当作结果。
 // ASTROCS_HASH_FAIL_INJECT (仅测试构建, -Dastrocs_hash_fail_inject 编入):
 // 在完整读出后于 final 前注入一次 I/O 错误 → 走失败分支, 供单测断言不写假哈希。
 bool sha256_file_checked(const char* path, std::string* hex_out) {
     hex_out->clear();
-    // FIX-201: 文件打开/流式读取/关闭机制在 aio 内 (aio_file_io.h
+    // 文件打开/流式读取/关闭机制在 aio 内 (aio_file_io.h
     // aio_file::sha256_hex) —— 本模块不再自持 FILE* 通道。R10-C 语义不变:
     // 只有完整读取成功才产出 64hex, 失败返回 false 且清空输出。
     if (!aio_file::sha256_hex(path, hex_out)) return false;
@@ -335,7 +335,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
     // 与主/扩展 HDU 同一原子发布序 (取消不落盘语义由上方 cancelled 分支保持)。
     if (variance && ivar) {
         const char* unit = (bunit && *bunit) ? bunit : "ADU/sr";
-        // FIX-402: 二次律 canonical 推导（FZ-P3-BUNIT-QUADRATIC）; 单位不在冻结
+        // 二次律 canonical 推导（FZ-P3-BUNIT-QUADRATIC）; 单位不在冻结
         // 表内 → 显式拒绝, 不写出不可判的 variance BUNIT。
         std::string var_bunit, ivar_bunit;
         if (!bunit_square_canonical(unit, &var_bunit, &ivar_bunit)) {
@@ -389,7 +389,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         fits_close_file(f, &status);
         if (status) { aio_atomic::remove_file(tmp); g_last_err = "close: " + std::to_string(status); return P3_OUT_IO; }
         // ② 内容已完整写出后再 fsync; 打开/fsync/关闭失败都是发布失败。
-        // FIX-201: fsync 机制在 aio (aio_atomic::fsync_path) —— Windows 的
+        // fsync 机制在 aio (aio_atomic::fsync_path) —— Windows 的
         // _commit 可写句柄语义 (R18 34201181796 诊断 errno=9 实证) 由 aio
         // 承接; 本模块不再自行 open/fsync/close。
         {
@@ -401,7 +401,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
             }
         }
     }
-    // FIX-201: 原子 rename 机制在 aio (aio_atomic::atomic_replace)。
+    // 原子 rename 机制在 aio (aio_atomic::atomic_replace)。
     if (aio_atomic::atomic_replace(tmp, output_path) != 0) {
         g_last_err = std::string("rename: ") + std::strerror(errno);
         aio_atomic::remove_file(tmp);
@@ -743,7 +743,7 @@ P3OutputStatus P3FitsStream::begin_hdu(int plane) {
     if (plane == 1) {
         fits_write_key(f, TSTRING, (char*)"EXTNAME", (void*)"COVERAGE", nullptr, &status);
     } else {
-        // FIX-402: 二次律 canonical 推导（FZ-P3-BUNIT-QUADRATIC）; 表外单位显式拒绝
+        // 二次律 canonical 推导（FZ-P3-BUNIT-QUADRATIC）; 表外单位显式拒绝
         std::string var_bunit, ivar_bunit;
         if (!bunit_square_canonical(impl_->bunit, &var_bunit, &ivar_bunit)) {
             g_last_err = std::string("variance BUNIT undecidable for signal BUNIT '") +

@@ -94,13 +94,13 @@ class Runtime {
 // create_runtime(budget): 创建唯一 Runtime 实例；budget=有效 CPU 配额（>0）。
 // 失败返回 Error(RESOURCE)。
 //
-// MEM-WIRE-01 (ARCH-AUDIT-01 B-3 = ARCH-AUDIT-02 F-04)：本重载**不携带内存上限**
+// 本重载**不携带内存上限**
 // ⇒ Scheduler 的 memory_limit_bytes=0（回压不启用）。语义冻结为「未提供内存预算」，
 // 供单元测试/嵌入式调用方显式声明"本次不启用内存回压"；**生产路径必须走下面带
 // RuntimeResourceBudget 的重载**（CLI run 路径见 runtime_client.cpp::run_pipeline）。
 Result<std::unique_ptr<Runtime>> create_runtime(uint32_t budget) noexcept;
 
-// ── MEM-WIRE-01: Runtime 资源预算（CPU 与内存**同源**；SCHEDULER_CONTRACT §3） ──
+// ── Runtime 资源预算（CPU 与内存**同源**；SCHEDULER_CONTRACT §3） ──
 // 一个进程一个资源预算源：CPU 与内存上限都从**配置/profile 或实测探测**得到，
 // 不得硬编码（AGENTS §6；ASTROCS_DESIGN §8.3/§9）。
 //   cpu_budget          : 有效 CPU 配额（>0；CLI 侧 = 亲和性 ∩ cgroup，见 cli_affinity_cpu_count）

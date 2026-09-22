@@ -30,23 +30,24 @@
 
 ## Q-4（规范冲突）SCI-502 的 `converged` 枚举定义
 
-- **冲突**：控制包 `tasks/SCI-502.md` 写 `0/1/2/3 = 收敛/未收敛/达 max_iter/stalled`；
-  仓内权威 `docs/plugins/algorithms_phase2/11_upm.md` §4.6 与
-  `docs/algorithms/PHASE2_UPM_IMPL.md` §496 均定义
-  `0=max_iter / 1=converged / 2=stalled / 3=invalid`。
-- **现处置**：按 AGENTS.md §1.1「规范在别的文档去那一份读」采用**仓内权威**定义实现。
-- **建议**：确认以仓内权威为准，或指示按任务书文字调整（后者需同步改两份正式文档）。
+- **状态**：**已裁决**。负责人裁决：以**仓内权威**为准，订正成统一枚举。
+- **唯一口径**：`0=max_iter / 1=converged / 2=stalled / 3=invalid`
+  （`docs/plugins/algorithms_phase2/11_upm.md` §4.6、`docs/science/PHASE2_UPM.md` §5、
+  `docs/algorithms/PHASE2_UPM_IMPL.md`、`lib/algorithms/coverage/include/astro/phase2/upm.h`）。
+- **现处置**：`tasks/SCI-502.md` / `tasks/DOC-502.md` 的任务书文字已按仓内权威订正；
+  `upm.h` 与 `PHASE2_UPM_IMPL.md` 中只写 0/1 的旧表述已补齐四态；实现与文档一致。
 
-## Q-5（科学文档 vs 代码落地缺口）测光 n≥100 适用域未在生产实现
+## Q-5（科学文档 vs 代码落地缺口）测光星数门槛
 
-- **事实**：`docs/science/PHOTOMETRY.md` §16.5 定案"生产适用域 = 匹配星数 n ≥ 100，
-  低星数帧显式降级 `degraded_reason`"，但生产硬门槛仍是 `kMinFitStars=3`
-  （`frame_photometry_fit.h:70`、`module_adapters.cpp` 的 `P1_PHOT_MIN_FIT_STARS=3`），
-  `lib/` 内无 `low_star_count` 与 100 阈值。
-- **影响**：规范已定案、机器未落地 ⇒ 当前产品会以 n=3..99 的帧产出"已标定"结果，
-  与适用域声明不符。
-- **建议**：立 A 线任务实现降级路径（登记 `degraded_reason=low_star_count`），
-  或由负责人裁决改为"仅文档声明、不设机器门"。
+- **状态**：**已裁决**。负责人裁决：实际输入帧不会遇到该问题，**把相关门槛与限制都删掉**；
+  星数真的少时应**报拟合失败**，而不是用门禁去卡。
+- **现处置**：`ASTROCS_DESIGN.md`、`docs/science/PHOTOMETRY.md` §16.5、
+  `实验/photometric-magnitude/REPORT_paper.md` 的适用域门槛条款已删除（星数不构成拒绝条件）；
+  `module_adapters.cpp` 的调度器侧星数门禁（`P1_PHOT_MIN_FIT_STARS`）与拟合后复检门已删除，
+  改由拟合自身判决（`rc`/`fit_ok`）上报；`eng/ci/check_provenance_consistency.py` 的
+  `n_matched >= 3` 判红条件改为「拟合证据自洽」。
+- **保留的求解前提**：SCI-PHOT-001 §4 的 `|r_consistent| >= 3` 才进 IRLS 是求解前提
+  （不成立即 NO_DATA = 拟合失败），不是星数准入门槛。
 
 ## Q-6（性能门）L2 判据是否可在本环境达标
 
@@ -132,7 +133,7 @@
   （`p1_op_wcs`/`p1_op_drizzle`/`p1_op_photometry`/`p1_op_noise`/`p1_op_star_psf_impl`）
   的 manifest 也不记录**实际输入路径** ⇒ 违反 `PIPELINE_BLOCK_CONTRACT.md` §4「降级必须显式」。
   来源 ARCH-AUDIT-01 §③ B-5（该报告判为「新发现，未登记」）。
-- 该条**只登记事实**：降级显式性在机器门上无判据（同族登记见 `docs/KNOWN_LIMITATIONS.md` §E M-4）；
+- 该条**只登记事实**：降级显式性在机器门上无判据（同族登记见 `docs/KNOWN_LIMITATIONS.md` §E 条目 32；原发现编号 M-4）；
   是否要求「降级必须写 `degraded_reason` 并由门校验」属顶层合同结构性变更，需负责人裁决。
 
 （同批补登记的 **BFD-U1**（`unit_mismatch`，major）——phase3 `hips` 输入端口单位仍为

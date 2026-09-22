@@ -64,7 +64,7 @@ inline const std::set<std::string>& value_flags() {
         // §8/21_observability §8.4: 资源门 enforce 语义显式写法
         // （accept|record|record-only|strict|enforce）；消费者见 commands.cpp。
         "--on-resource-gate",
-        // FIX-405 G3-11: verify 能力的命令树落位 —— §7.1/§6.2 唯一命令树**没有**
+        // G3-11: verify 能力的命令树落位 —— §7.1/§6.2 唯一命令树**没有**
         // 独立 verify 命令（verify* 属已删别名 → rc=2，见 parser.cpp:36、129），
         // 故 verify 作为 **doctor 的机器旗标** --run-manifest <manifest.json>
         // 提供（doctor --json --run-manifest <p>：manifest→status→version→输入
@@ -103,7 +103,7 @@ inline const std::vector<CommandDesc>& commands() {
         // （help_text 里带 "-" 前缀的只保留 --version，避免把可选旗标行混进命令树）。
         {"--help",    false, {}},
         {"-h",        false, {}},
-        // FIX-405 G3-11: doctor 承载 verify 能力（--run-manifest 机器旗标，
+        // G3-11: doctor 承载 verify 能力（--run-manifest 机器旗标，
         // 见 value_flags() 注释）；help 行仍由 help_usage() 生成为
         // 「astrocs doctor [--json]」⇒ §7.1 命令树与 help golden 不变。
         {"doctor",    true, {"--json", "--run-manifest"}},

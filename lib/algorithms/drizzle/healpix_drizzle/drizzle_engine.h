@@ -134,7 +134,7 @@ struct DrizzleStats {
     int64_t op_sh_calls = 0;        // 球面重叠 (Sutherland-Hodgman 等价) 调用数
     int64_t op_tile_lookups = 0;    // tile 累加器访问数
     int64_t op_heap_allocations = 0;// 热循环堆分配数 (目标 ~0)
-    // ── FIX-405 G3-5 / DATA-002 §2a（rule_id NAN-SAMPLE-MASK-COVERAGE-NAN）──
+    // ── G3-5 / DATA-002 §2a（rule_id NAN-SAMPLE-MASK-COVERAGE-NAN）──
     // 样本级掩膜强制计数（禁静默剔除）。不合格样本 = ¬isfinite(x_j) ∨
     // ¬isfinite(V_j) ∨ V_j ≤ 0；被剔除样本同时从 F_p（分子）、D_p（分母）与
     // Var_p（方差项）中剔除并重新归一。按原因分类计数（互斥、可加）。

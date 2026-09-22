@@ -80,7 +80,7 @@ static bool valid_product_params(int tile_width, int hips_order) {
 }
 
 // ---------------------------------------------------------------------------
-// FIX-401 (ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1):
+// ASTROCS_DESIGN.md §10「I/O 与原子产品」/ GAP_AUDIT G3-1:
 // **完成清单 fail-closed** —— 「没有完成清单就不算成功对象」。产品集根下的
 // manifest.json 由 writer 在**全部 tile 完成之后**最后原子落盘 (aio_hips_finalize);
 // 中途 kill / 失败 / 取消只会留下无清单的 tile 残骸。消费者 (aio_hips_open)
@@ -405,7 +405,7 @@ AioHipsDataset* aio_hips_open(const char* out_dir, int product)  {
                           product == AIO_HIPS_RD_VARIANCE ? "variance" :
                           product == AIO_HIPS_RD_IVAR ? "ivar" :
                           product == AIO_HIPS_RD_NREJ ? "nrej" : "nused";
-        // FIX-401 §10: 完成清单 fail-closed (先于任何子产品内容读取)。
+        // §10: 完成清单 fail-closed (先于任何子产品内容读取)。
         {
             std::string products, merr;
             if (!manifest_products_of(out_dir, &products, &merr)) {

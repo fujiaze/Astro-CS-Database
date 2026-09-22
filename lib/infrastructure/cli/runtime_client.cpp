@@ -347,7 +347,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     if (fail_reason) *fail_reason = rr.error().message();
     return 70;
   }
-  // MEM-WIRE-01 (ARCH-AUDIT-01 B-3 = ARCH-AUDIT-02 F-04): 生产路径必须把内存上限
+  // 生产路径必须把内存上限
   // 交给 Runtime（旧写法 create_runtime(budget) ⇒ Scheduler memory_limit_bytes=0 ⇒
   // §8.3 内存回压是死代码）。上限来源由调用方解析（commands.cpp: 配置/profile ×
   // 实测可用内存，默认 95%），本层零硬编码。
@@ -407,7 +407,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     // RT-008: 退出码映射保持 CLI 合同（04）:
     //   失败 manifest 的 error_kind==input → 3(INPUT)；DATA(参数/配置/数据) → 2(ARGS)；
     //   IO → 7；CANCELLED → 9；RESOURCE → 5；其余 → 70
-    // FIX-401: 失败 manifest 的 error_kind==disk_full → 10(RESOURCE, ASTROCS_DESIGN
+    // 失败 manifest 的 error_kind==disk_full → 10(RESOURCE, ASTROCS_DESIGN
     //   §7.2「10 = 磁盘写满 / 写盘失败」)。磁盘满必须按**失败本身**归类, 不能靠 CLI
     //   事后探针 —— §10 要求失败路径清理临时产物, 清理释放空间后探针必然 fail-open
     //   (实测 rc=7); 探针保留为兜底, 不再是唯一判据 (见 commands.cpp 调用点注释)。
@@ -431,7 +431,7 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     }
     switch (rt_ret.error().domain()) {
       case astrocs::core::ErrorDomain::DATA: return 2;
-      // FIX-402: ASTROCS_DESIGN §7.2「4 = 科学验证或不变量失败」——此前
+      // ASTROCS_DESIGN §7.2「4 = 科学验证或不变量失败」——此前
       // SCIENCE_PRECONDITION 落 default→70, 使语义守卫（非面亮度输入/不变量
       // 违例）无法按合同给 4。仅补齐该域映射, 不改其它域语义。
       case astrocs::core::ErrorDomain::SCIENCE_PRECONDITION: return 4;

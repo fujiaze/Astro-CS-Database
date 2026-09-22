@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-// FIX-201 (ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5):
+// ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ §9.73 裁决 U5:
 // 整文件读取机制经 aio 唯一实现 (aio_file::read_all), 本 TU 不自持 ifstream 通道。
 #include "aio_file_io.h"
 
@@ -357,7 +357,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
         if (slash != std::string::npos) {
             const std::string parent = hd.substr(0, slash);
             const std::string frame_key = hd.substr(slash + 1);
-            // FIX-201: 读取经 aio (aio_file::read_all, aio_fopen_utf8 通道);
+            // 读取经 aio (aio_file::read_all, aio_fopen_utf8 通道);
             // 读取失败 = 不写键 (与原 ifstream 打开失败同语义, fail-closed)。
             std::string snr_json_text;
             if (aio_file::read_all((parent + "/p1_snr.json").c_str(),

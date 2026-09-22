@@ -721,6 +721,11 @@ int main() {
           "frozen default token = natural_bicubic_spline_clip_v1");
     check(!astrocs::v6::p2weight::parse_sparse_recon_operator("nn", &op),
           "unknown token is not parsed");
+    check(std::string(astrocs::v6::p2weight::sparse_recon_operator_for_source(false)) ==
+              std::string("natural_bicubic_spline_clip_v1") &&
+              std::string(astrocs::v6::p2weight::sparse_recon_operator_for_source(true)) ==
+                  std::string("natural_bicubic_spline_clip_mesh_median_v1"),
+          "source-based selection rule: ground -> default, high-contrast -> mesh median");
   }
 
   std::printf("\n== summary: %d passed, %d failed ==\n", g_pass, g_fail);

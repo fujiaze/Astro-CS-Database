@@ -1,5 +1,5 @@
 // lib/algorithms/projection/p3_wcs.h — FITS-WCS 输出描述符 + TAN 投影正反变换 (ALG-P3-002) — P3-002
-// W4-A9 批次 1: 原址 lib/phase3_session/p3_wcs.h, 按 ASTROCS_DESIGN §7.1「projection」
+// 原址 lib/phase3_session/p3_wcs.h, 按 ASTROCS_DESIGN §7.1「projection」
 // 行迁入本模块 (WCS 属投影域); 命名空间 astrocs::phase3 与全部公共符号名不变
 // (架构重构不改科学语义/接口, ENGINEERING_SPEC §3)。
 // 覆盖: CRPIX(pixel-center)/CD 关键字正确性、east_left|east_right、旋转 PA、
@@ -83,7 +83,7 @@ struct P3WcsApplicability {
     bool require_negative_det_cd;            // true: 手性 det(CD)<0（SCI §9a-4/G1）
     bool crpix_fits_1based_pixel_center;     // true: CRPIX=(W+1)/2,(H+1)/2（Paper I §2.1.1）
     double roundtrip_tol_px;                 // 1e-8 px 紧门（适用域 = scale ≥ min_scale_arcsec；
-                                             // FIX-406 实测最坏 2.437e-9 px @0.18″/px）
+                                             // 实测最坏 2.437e-9 px @0.18″/px）
     double roundtrip_tol_global_px;          // 1e-6 px 全域保守门（覆盖所有真实尺度）
     double min_scale_arcsec;                 // 0.9″/px 紧门适用域下限（仓内最小真实尺度 0.9586）
     double envelope_c_env;                   // 128 解析包络设计常数（实测 max 78）

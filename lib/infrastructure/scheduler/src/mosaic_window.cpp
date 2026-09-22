@@ -176,7 +176,7 @@ WindowOutcome MosaicWindowScheduler::run_window(const MosaicWindow& w, int worke
   // ③ 窗口内固定顺序：coverage → UPM → 排异 → SNR² 集成（此处按像素序做集成）
   // ④ 稠密 SNR 现场求值：逐像素即时算，不预计算稠密面、不驻留
   //
-  // ④b MEM-WIRE-01（修 ARCH-AUDIT-02 F-07）：**峰值驻留 = 实测值**。
+  // ④b **峰值驻留 = 实测值**。
   // 修复前此处写 const std::size_t resident = sizeof(double) * 4;（编译期常量 32 B），
   // 是写入 peak 的**唯一来源** ⇒ mosaic_window 的 E1（peak>4096 判红）/E2 断言对象即该
   // 常量，**不可能红**（AGENTS §5「恒真门没有证据资格」）。
@@ -289,7 +289,7 @@ std::vector<WindowOutcome> MosaicWindowScheduler::run() {
   return out;
 }
 
-// ── MEM-WIRE-01 / ARCH-AUDIT-02 F-07：窗口峰值驻留判据实现（可红可绿） ──
+// ── 窗口峰值驻留判据实现（可红可绿） ──
 // 判据语义见头文件注释（四条同时成立才绿）。本函数是**唯一判据实现**：单测绿/红两侧
 // 都调用它，负例（把实测峰值换成编译期常量 / 换成 0）必须在同一函数上判红。
 std::size_t MosaicWindowScheduler::window_peak_bound_bytes(std::size_t tiles_in_window,
