@@ -17,13 +17,21 @@ BUNIT=ASTROCS_RELATIVE_FLUX（相对通量）却未应用测光 ⇒ 下游把 AD
      photometry_applied=true ⇒ photscal 有限且 > 0；
   P3b 数据侧补盲（P1-PHOT-BROKEN）：schema==DATA-P1-PHOTPROV-001 且
       photometry_applied=true 的记录还必须**自带逐帧标度与拟合证据**：
-        · photscales 为非空对象，键数 == n_frames（若给出），值均为有限正数；
+        · photscales 为非空对象，键数 == n_frames_applied（若给出；无该键时退回
+          == n_frames），值均为有限正数；
         · photoapplied_artifacts 为非空数组，数量与 photscales 一致；
         · photscale_detail 与 photscales 键集一致，逐帧 fitted==true 且
           n_matched 为非负整数（fitted=true ⇒ n_matched>=1：0 颗内点即无拟合证据）。
           **星数不作门槛**（SCI-PHOT-001 §16.5「星数不构成拒绝条件」）：星少到
           §4 求解前提不成立时，生产侧按拟合失败上报（不产出标度），门禁侧只判
           provenance 自洽，不另立星数判红条件。
+  P3b-2 数据侧逐帧判决自洽（FAILSEM-01：单帧拟合失败 ⇒ 该帧 fail，不阻塞其他帧）：
+        · frames[].status ∈ {ok, fail}；ok + fail 条数 == n_frames；
+        · frames[] 中 photometry_applied=true 的帧数 == photscales 键数；
+        · status=fail ⇒ photometry_applied 必须为 false、必须带稳定错误码
+          error_status（[A-Z][A-Z0-9_]*）、不得带 degraded=true（失败 ≠ 降级）；
+        · n_frames_ok / n_frames_failed / failed_frames 与 frames[] 逐条一致。
+        applied=true 的含义是**组级摘要**（至少一帧已施加）；逐帧真相只看 frames[]。
       动机（实测 RELEASE-02 L4-rebuild/norm_phot）：11/12 板块声明
       applied=true + photscal=1.0，而该 1.0 是 star_matcher NO_DATA 分支返回的
       **占位值**（日志 "匹配+清洗完成: 0 颗, scale=1.000000e+00"）——
@@ -63,6 +71,8 @@ PRODUCT_GLOBS = ("**/p1_phot.json", "**/manifest.json", "**/*product*.json",
 MAX_FILES = 4000
 RELATIVE_FLUX = "ASTROCS_RELATIVE_FLUX"
 PHOTPROV_SCHEMA = "DATA-P1-PHOTPROV-001"
+# 逐帧失败的稳定错误码形态（frames[].error_status / frame_errors[].status）
+ERROR_STATUS_RE = re.compile(r"^[A-Z][A-Z0-9_]{2,63}$")
 
 
 def _neutral_photscal(adapters: str):
@@ -159,18 +169,84 @@ def _photprov_applied_problems(rec):
     """
     problems = []
     scales = rec.get("photscales")
+    frames = rec.get("frames")
+    n_applied = rec.get("n_frames_applied")
     if not isinstance(scales, dict) or not scales:
         problems.append("photometry_applied=true 但 photscales 缺失/为空"
                         "（逐帧标度是 applied 的必要条件）")
     else:
-        n_frames = rec.get("n_frames")
-        if isinstance(n_frames, int) and not isinstance(n_frames, bool) and n_frames > 0 \
-                and len(scales) != n_frames:
-            problems.append("photometry_applied=true 但 photscales 覆盖 %d/%d 帧"
-                            % (len(scales), n_frames))
+        # FAILSEM-01：applied=true 是**组级摘要**，含义 = 至少一帧已施加；逐帧真相在
+        # frames[]/photscales。核对口径因此是「键数 == n_frames_applied」，不再是
+        # 「键数 == n_frames」（部分帧按拟合失败显式判 fail 时不施加，见 P3b-2）。
+        if isinstance(n_applied, int) and not isinstance(n_applied, bool) and n_applied > 0:
+            if len(scales) != n_applied:
+                problems.append("photometry_applied=true 但 photscales 覆盖 %d/%d 已施加帧"
+                                % (len(scales), n_applied))
+        else:
+            n_frames = rec.get("n_frames")
+            if isinstance(n_frames, int) and not isinstance(n_frames, bool) and n_frames > 0 \
+                    and len(scales) != n_frames:
+                problems.append("photometry_applied=true 但 photscales 覆盖 %d/%d 帧"
+                                % (len(scales), n_frames))
         for key, value in scales.items():
             if not _is_finite_positive_number(value):
                 problems.append("photscales[%s]=%r 非有限正数" % (key, value))
+    # ── P3b-2（FAILSEM-01）：逐帧判决表自洽 ─────────────────────────────────
+    # frames[] 是"哪一帧成功、哪一帧失败"的唯一真相；失败帧必须是**显式失败**
+    # （error_status 稳定错误码 + photometry_applied=false），不得登记为降级。
+    if isinstance(frames, list) and frames:
+        n_ok = n_fail = n_apply_true = 0
+        fail_keys = []
+        for item in frames:
+            if not isinstance(item, dict):
+                problems.append("frames[] 元素非对象")
+                continue
+            key = item.get("frame_key")
+            status = item.get("status")
+            if status not in ("ok", "fail"):
+                problems.append("frames[%s].status=%r 非 ok/fail" % (key, status))
+            if item.get("photometry_applied") is True:
+                n_apply_true += 1
+                if isinstance(scales, dict) and key not in scales:
+                    problems.append("frames[%s] 声明 photometry_applied=true 但不在"
+                                    " photscales 中" % key)
+            if status == "fail":
+                n_fail += 1
+                fail_keys.append(key)
+                if item.get("photometry_applied") is True:
+                    problems.append("frames[%s] status=fail 却声明 photometry_applied=true"
+                                    "（失败帧不得施加标度）" % key)
+                code = item.get("error_status")
+                if not (isinstance(code, str) and ERROR_STATUS_RE.match(code)):
+                    problems.append("frames[%s].error_status=%r 非稳定错误码"
+                                    "（[A-Z][A-Z0-9_]*）" % (key, code))
+                if item.get("degraded") is True:
+                    problems.append("frames[%s] 帧级失败不得登记为降级"
+                                    "（降级 ≠ 失败；见 LOG 合同 §6）" % key)
+            elif status == "ok":
+                n_ok += 1
+        if isinstance(scales, dict) and n_apply_true != len(scales):
+            problems.append("frames[] 中 photometry_applied=true 的帧数(%d) 与"
+                            " photscales(%d) 不一致" % (n_apply_true, len(scales)))
+        n_frames = rec.get("n_frames")
+        if isinstance(n_frames, int) and not isinstance(n_frames, bool) and n_frames > 0 \
+                and n_ok + n_fail != n_frames:
+            problems.append("frames[] 逐帧判决 %d 条（ok=%d/fail=%d）与 n_frames=%d 不一致"
+                            % (n_ok + n_fail, n_ok, n_fail, n_frames))
+        declared_fail = rec.get("n_frames_failed")
+        if isinstance(declared_fail, int) and not isinstance(declared_fail, bool) \
+                and declared_fail != n_fail:
+            problems.append("n_frames_failed=%d 与 frames[] 中 status=fail 的 %d 条不一致"
+                            % (declared_fail, n_fail))
+        declared_ok = rec.get("n_frames_ok")
+        if isinstance(declared_ok, int) and not isinstance(declared_ok, bool) \
+                and declared_ok != n_ok:
+            problems.append("n_frames_ok=%d 与 frames[] 中 status=ok 的 %d 条不一致"
+                            % (declared_ok, n_ok))
+        listed = rec.get("failed_frames")
+        if isinstance(listed, list) and sorted(str(x) for x in listed) != sorted(fail_keys):
+            problems.append("failed_frames=%r 与 frames[] 中 status=fail 的帧集不一致"
+                            % (listed,))
     artifacts = rec.get("photoapplied_artifacts")
     if not isinstance(artifacts, list) or not artifacts:
         problems.append("photometry_applied=true 但 photoapplied_artifacts 缺失/为空")
@@ -320,6 +396,52 @@ _BAD_PHOTPROV_CONTRADICT = {
     "n_frames": 1, "photscales": {"a": 1.0}, "photoapplied_artifacts": ["/p/a.fits"],
     "photscale_detail": {"a": {"k_photo": 1.0, "n_matched": 0, "fitted": True}},
 }
+# FAILSEM-01 夹具: 3 帧里 1 帧拟合失败（显式 fail），另 2 帧照常施加 ⇒ **判绿**。
+# 判别力: 若把"部分帧失败"当成 provenance 不自洽（或把 applied 的含义退回
+# "必须覆盖全部帧"），本夹具转红。
+_GOOD_PHOTPROV_PARTIAL = {
+    "schema": PHOTPROV_SCHEMA, "photometry_applied": True, "photscal": 6.272202992543341e-17,
+    "pixel_scaling": "partial", "n_frames": 3,
+    "n_frames_ok": 2, "n_frames_failed": 1, "n_frames_applied": 2,
+    "frames": [
+        {"frame_key": "a", "status": "ok", "photometry_applied": True},
+        {"frame_key": "b", "status": "ok", "photometry_applied": True},
+        {"frame_key": "c", "status": "fail", "photometry_applied": False,
+         "error_domain": "SCIENCE_PRECONDITION", "error_status": "PHOT_SCALE_MISSING",
+         "error": "no photometric scale for frame c"},
+    ],
+    "failed_frames": ["c"],
+    "photscales": {"a": 6.272202992543341e-17, "b": 5.685037392078662e-17},
+    "photoapplied_artifacts": ["/p/a.fits", "/p/b.fits"],
+    "photscale_detail": {
+        "a": {"k_photo": 6.272202992543341e-17, "n_matched": 939, "fitted": True},
+        "b": {"k_photo": 5.685037392078662e-17, "n_matched": 917, "fitted": True}},
+}
+# 失败帧却声明已施加 ⇒ 判红（失败帧不得带标度）。
+_BAD_PHOTPROV_FAIL_APPLIED = {
+    "schema": PHOTPROV_SCHEMA, "photometry_applied": True, "photscal": 1.0,
+    "n_frames": 1, "n_frames_ok": 0, "n_frames_failed": 1, "n_frames_applied": 1,
+    "frames": [{"frame_key": "a", "status": "fail", "photometry_applied": True,
+                "error_status": "PHOT_FIT_NO_SCALE"}],
+    "failed_frames": ["a"],
+    "photscales": {"a": 1.0}, "photoapplied_artifacts": ["/p/a.fits"],
+    "photscale_detail": {"a": {"k_photo": 1.0, "n_matched": 5, "fitted": True}},
+}
+# 失败帧无稳定错误码 / 登记为降级 ⇒ 判红（显式失败不得冒充降级）。
+_BAD_PHOTPROV_FAIL_DEGRADED = {
+    "schema": PHOTPROV_SCHEMA, "photometry_applied": True, "photscal": 6.272202992543341e-17,
+    "n_frames": 2, "n_frames_ok": 1, "n_frames_failed": 1, "n_frames_applied": 1,
+    "frames": [
+        {"frame_key": "a", "status": "ok", "photometry_applied": True},
+        {"frame_key": "b", "status": "fail", "photometry_applied": False,
+         "degraded": True},
+    ],
+    "failed_frames": ["b"],
+    "photscales": {"a": 6.272202992543341e-17},
+    "photoapplied_artifacts": ["/p/a.fits"],
+    "photscale_detail": {"a": {"k_photo": 6.272202992543341e-17, "n_matched": 939,
+                               "fitted": True}},
+}
 
 
 def _write_fixture(root: pathlib.Path, records, entries=None, source_ok=True):
@@ -371,6 +493,17 @@ def _selftest() -> int:
         d_pb_con = base / "photprov_contradict"
         _write_fixture(d_pb_con, [_BAD_PHOTPROV_CONTRADICT])
         cases.append(("red_photprov_zero_inliers", True, d_pb_con))
+        # FAILSEM-01 判别力: 单帧失败 + 其余帧施加 ⇒ 绿; 失败帧声明已施加 /
+        # 登记为降级 ⇒ 红。
+        d_pb_part = base / "photprov_partial"
+        _write_fixture(d_pb_part, [_GOOD_PHOTPROV_PARTIAL])
+        cases.append(("green_photprov_partial_frame_failure", False, d_pb_part))
+        d_pb_fa = base / "photprov_fail_applied"
+        _write_fixture(d_pb_fa, [_BAD_PHOTPROV_FAIL_APPLIED])
+        cases.append(("red_photprov_failed_frame_applied", True, d_pb_fa))
+        d_pb_fd = base / "photprov_fail_degraded"
+        _write_fixture(d_pb_fd, [_BAD_PHOTPROV_FAIL_DEGRADED])
+        cases.append(("red_photprov_failed_frame_as_degradation", True, d_pb_fd))
         d_led = base / "ledgered"
         _write_fixture(d_led, [_BAD_NEUTRAL, _GOOD_APPLIED],
                        entries=[{"id": "provenance:eng/ci/fixtures/provenance/prod_product.json:[0]",
