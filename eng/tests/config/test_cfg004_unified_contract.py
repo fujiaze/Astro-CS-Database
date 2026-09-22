@@ -114,19 +114,37 @@ def parser_session_keys():
     return keys
 
 
-# §3.3「平铺单块简写与 blocks[] 等价」的**现实差异**（本任务实测，只减不增）：
-# 平铺门 session_keys() 是全局并集（第二份键名清单），比 ⋃_sessions config_fields() 多出这些键
-# ⇒ 平铺形态收得进、blocks[] 内判 unknown key（rc=3），两形态**不等价**。
+# 「CLI 门 − 会话字段表（config_fields）」的**现实差异登记**（只减不增；新增键必须在此显式登记）。
+# 事实：parser.cpp session_keys()（平铺/块内两门共用的唯一键表）比 ⋃_sessions
+# session_commands.h config_fields() 多出这些键 —— 它们被 CLI 接受，但**不在**
+# phase_config 的 schema/--template/--help 面（config_fields 正是那三面的唯一声明：
+# test_03 钉死「schema 块内键集 == config_fields() ∪ block_keys()」）。
+# 两类成因（逐键判断归属，不得笼统处理）：
+#   ① 资源/编排/运行期策略键（max_tiles / frame / mode / sampler_used / output_fits_path /
+#      sub_block_px / queue_depth …）—— 按 docs/contracts/CONFIG_CONTRACT.md §3「内存/流式
+#      预算类字段**不进** phase_config：不可跨机器复现、属实现策略，CFG-002 登记为
+#      runtime_policy」**不得**补进 config_fields（补进去就必须同步改 phase_config schema，
+#      等于把它们升成科学配置属性面 —— 那是顶层合同变更，须负责人裁决）。
+#      sub_block_px / queue_depth（P3-STREAM-01 导出编排参数）属此类：生产消费点 =
+#      lib/infrastructure/scheduler/src/module_adapters.cpp 的 p3n_sub_block_px（值域
+#      [16,1024] 内存守卫）与 writer/verify 节点的 queue_depth 守卫（值域 [1,64]），
+#      缺省/值域权威 = docs/architecture/PHASE3_MODULE_ARCH.md:40 ⇒ 有生产消费者，不得删键。
+#   ② Phase1 既有科学键（cosmetic / dark_* / master_* / photometry / sparse_snr_layer /
+#      algorithm_psf_model …）—— config_fields 只列模板骨架，未逐条列出。
 # 收口配方（二选一，均在 lib/**，不在本任务文件域）：
-#   ① 按会话把这 19 键补进 config_fields()（json=nullptr ⇒ 不进 --template/--help 骨架，
-#      但平铺/块内两门同时认它）；② 从 session_keys() 删除（仅当该键确无生产消费者）。
-# 收口后本表必须清空，断言随之变严（== set()）。
+#   ① 补进 config_fields()（须同步 phase_config schema 与 --help，见 test_03 与
+#      eng/tests/cli/test_unified_blocks_templates.py::test_08）；② 从 session_keys() 删除
+#      （仅当该键确无生产消费者）。收口后本表清空，断言随之变严（== set()）。
+# 注（2026-09-23 订正）：本表**不再**声称「两形态不等价」—— FIX-210 已把块内键门改为与平铺门
+# 同源的 session_keys() ∪ block_keys()（parser.cpp session_blocks_errors:440-456），两形态等价
+# 由 eng/tests/cli/test_fix210_block_key_parity.py 的探针判据锁定；本表因此是
+# 「CLI 门 ⊃ 合同/帮助面」的差异登记，而不是形态差异。
 FLAT_ONLY_RESIDUE = {
     "algorithm_psf_model", "algorithm_upm_gauge", "cosmetic", "dark_optimization",
     "dark_scale_factor", "frame", "master_flat_median_range", "master_flat_normalize",
     "master_scale", "master_units", "max_tiles", "mode", "output_fits_path",
-    "persist_upm", "photometry", "reject_profile", "sampler_used", "sparse_snr_layer",
-    "upm_save_path",
+    "persist_upm", "photometry", "queue_depth", "reject_profile", "sampler_used",
+    "sparse_snr_layer", "sub_block_px", "upm_save_path",
 }
 
 
