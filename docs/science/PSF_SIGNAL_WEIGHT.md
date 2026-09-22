@@ -69,9 +69,20 @@ w_k = SNR_k² / F_ref,k²  ≡  1 / σ_F,k²
 
 帧级 SNR 与稀疏控制点 SNR 共用同一物理定义与同一逐帧参考通量 `F_ref`，换算对两者一致（最高设计 §2.2、§3.1）。点源目标下它与严格点源信息权重同值：`W_info = a²PᵀC⁻¹P = 1/Var(F_hat)`；白噪声近似 `W_info = a²/(σ_pix²·A_NEA)`（§2）。
 
-**不存在"权重模式"这个概念**：没有模式键、模式枚举、模式配置项或模式产物；权重不是预先算好并落盘在产品里的量，而是消费时按天球像素对应的输入帧集合现场算出的派生量。Phase1 与 Phase3 不产生、不消费权重；消费方也不得由"检测到多少颗星"一类偶然因素自动切换口径。
+**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物；权重不是预先算好并落盘在产品里的量，而是消费时按天球像素对应的输入帧集合现场算出的派生量。Phase1 与 Phase3 不产生、不消费权重；消费方也不得由"检测到多少颗星"一类偶然因素自动切换口径。
 
-实现面对越界 token 一律 fail-closed 显式拒绝并给出迁移提示，不得静默接受：已退役对象 token（`psfsw_robust`）、延迟口径（`psf_snr_power`）、legacy token（`auto` / `support_x_snr2` / 整数 `0|1|2`）与未知值（`FZ-MODE-RETIRED` / `FZ-MODE-DEFERRED` / `FZ-FIELD-WEIGHTMODE`）。生产守卫当前接受的 token 集合为 `{point_information, surface_gls}`；其中 `surface_gls`（`AᵀC⁻¹A`，扩展源 GLS）在生产路径上无消费点，与本节的单一口径不一致，属实现面待收敛项。
+阶段一与阶段二的分工固定为：
+
+~~~text
+阶段一  产出稀疏 SNR 控制点（控制点存绝对 SNR，不乘/除帧级标量）
+阶段二  先用每帧的稀疏控制点重建稠密 SNR 面 SNR(x,y)，再取逆方差（最优功率）定权
+        w(x,y) = SNR(x,y)^2 / F_ref^2 = 1 / sigma_F(x,y)^2
+        → 叠加
+~~~
+
+实现面对任何口径 token 一律 fail-closed 显式拒绝并给出迁移提示，不得静默接受：已退役对象 token（`psfsw_robust`）、延迟口径（`psf_snr_power`）、legacy token（`auto` / `support_x_snr2` / 整数 `0|1|2`）与未知值，理由分别引用 `FZ-MODE-RETIRED` / `FZ-MODE-DEFERRED` / `FZ-FIELD-WEIGHTMODE` / `FZ-WEIGHT-SINGLE-PATH`；**没有任何 token 属于合法口径**（CLI `--mode` 面对 phase2 全部 fail-closed）。
+
+扩展源 GLS（`x̂=(AᵀC⁻¹A)⁻¹AᵀC⁻¹d`，§5 与 `docs/science/INTEGRATION.md`）是**估计量**，不是可选的权重口径：它的权重同样来自重建 SNR 面的逆方差；把"扩展源 GLS"当成另一套权重来源属禁止项（§8）。
 
 ## 5. 诊断量与不确定度的边界
 

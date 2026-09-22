@@ -71,9 +71,12 @@ CATALOG_MIGRATION_IDS = ["MIG-WEIGHTMODE-LEGACY", "MIG-UNITS-PXVARIANCE", "MIG-N
 VALIDITY_REASONS = {"no_common_star_set", "background_nonpositive_undefined_transform",
                     "insufficient_valid_stars", "selection_bias_gate_failed",
                     "spatial_nonuniformity_gate_failed"}
-# FZ-MODE-PRODUCTION（PSFSW-RETIRE-03 口径统一）：生产接受集 = {point_information,
-# surface_gls}；psfsw_robust 是**退役对象** psfsw_robust_weight 的声明 token ⇒ 不在
-# 生产集、不在 baseline 集，但必须仍能被**识别为退役/迁移情形**（不得静默接受）。
+# FZ-WEIGHT-SINGLE-PATH：权重只有一个口径，没有可选择项。本集合是**数据对象合同层**
+# 的登记面（与 eng/contracts/data/v6_clause_registry_v1.json 的 weight_modes 同源），
+# 运行时**不得**据此放行任何 --mode token（见 lib/infrastructure/cli/v6_runtime_contract.h
+# 的 route_phase2_weight_token：全部 token fail-closed）。
+# psfsw_robust 是**退役对象** psfsw_robust_weight 的声明 token ⇒ 必须仍能被
+# **识别为退役/迁移情形**（不得静默接受、不得当作未知值草率处理）。
 PRODUCTION_MODES = {"point_information", "surface_gls"}
 BASELINE_MODES = {"equal", "pixel_ivar"}
 RETIRED_MODES = {"psfsw_robust"}
@@ -201,12 +204,13 @@ class Oracle:
             mc = doc.get("mode_class")
             if m in RETIRED_MODES:
                 # FZ-MODE-RETIRED：退役对象声明 ⇒ 显式拒绝 + 迁移提示（不静默接受，
-                # 也不当作"未知值"草率处理）。
+                # 也不当作"未知值"草率处理）。迁移指向**单一权重口径**。
                 errs.append(
                     "FZ-MODE-RETIRED: weight_mode %r rejected - psfsw_robust_weight is "
-                    "not a current object; allowed production modes: "
-                    "point_information|surface_gls; migration: derive frame weights "
-                    "from frame SNR on site" % (m,))
+                    "not a current object; allowed production weight object: "
+                    "point_information (W_info = 1/Var(F_hat)); migration: Phase2 "
+                    "reconstructs the dense SNR field and derives inverse-variance "
+                    "weights w = SNR^2/F_ref^2 (FZ-WEIGHT-SINGLE-PATH)" % (m,))
             elif isinstance(m, bool) or m in ("auto", "support_x_snr2", "psf_snr_power", 0) \
                     or (m not in PRODUCTION_MODES and m not in BASELINE_MODES):
                 errs.append("illegal weight_mode: %r" % (m,))

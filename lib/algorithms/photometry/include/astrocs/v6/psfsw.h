@@ -324,14 +324,11 @@ CovariancePropagation propagate_covariance(
 /* ------------------------------------------------------------------------- */
 const std::vector<std::string>& forbidden_psfsw_product_keys();
 const std::vector<std::string>& forbidden_weight_source_aliases();
-/* 现行生产模式接受集（FZ-MODE-PRODUCTION）= {point_information, surface_gls}；
- * 与 coverage.cpp / v6_runtime_contract.h 同口径。 */
-const std::vector<std::string>& production_weight_modes();
-bool is_production_weight_mode(const std::string& mode);
 /* FZ-MODE-RETIRED（PSFSW-RETIRE-03 口径统一）：psfsw_robust 是**退役对象**
- * psfsw_robust_weight 的声明 token —— is_production_weight_mode 对它返回 **false**
- * （不再声称它是生产模式），但识别/拒绝面保留：命中即调用方必须显式拒绝 + 迁移提示，
- * 不得静默接受。 */
+ * psfsw_robust_weight 的声明 token；权重只有一个口径（FZ-WEIGHT-SINGLE-PATH：
+ * 阶段1 稀疏 SNR 控制点 → 阶段2 重建稠密 SNR 面 → 逆方差定权 → 叠加），
+ * 因此不存在任何"生产权重口径"集合。识别/拒绝面保留：命中即调用方必须显式拒绝 +
+ * 迁移提示，不得静默接受。 */
 bool is_retired_weight_mode_token(const std::string& mode);
 /* 拒绝说明（含被拒 token、现行允许面与迁移提示）；未命中返回空串。 */
 std::string retired_weight_mode_reject_reason(const std::string& mode);
@@ -342,9 +339,9 @@ struct GateFinding {
 };
 
 struct PsfswRecord {
-    /* 模式/身份 */
+    /* 身份：本记录族 = 退役对象 psfsw_robust_weight 的历史/诊断声明面。
+     * 唯一合法取值 = 退役 token "psfsw_robust"；声明任何其它值 ⇒ PSFSW-G01。 */
     std::string weight_mode = "psfsw_robust";
-    std::vector<std::string> production_modes;   /* 声明进生产路由的枚举 */
     std::string weight_kind = "relative_dimensionless";
     std::string weight_units = "1";
     bool group_normalized = true;

@@ -1,4 +1,4 @@
-# lib/algorithms/integration/v6 — Phase2 三模式产品链集成层 (P2-INTEGRATE-001, Wave 8)
+# lib/algorithms/integration/v6 — Phase2 产品链集成层（单一权重口径）(P2-INTEGRATE-001, Wave 8)
 
 > 本目录是 V6 目标态 Phase2 **产品链集成**（接线）层，与同目录的 legacy 合同文件
 > （`README.md`/`module.yaml`/`memory.md`，P2-INT 迁移合同）**共存不覆盖**。
@@ -8,7 +8,7 @@
 
 | 文件 | 说明 |
 |---|---|
-| `lib/include/astrocs/v6/phase2_integrate.h` | 三模式路由 / 磁盘重开消费 / 组合 / 原子发布 / 重开校验 / UPM·REJ·SAMP 接线公共接口 |
+| `lib/include/astrocs/v6/phase2_integrate.h` | 磁盘重开消费 / 组合 / 原子发布 / 重开校验 / UPM·REJ·SAMP 接线公共接口 |
 | `src/phase2_integrate.cpp` | 上述实现（只接线，不含新科学公式） |
 | `CMakeLists.txt` | 自包含静态库 `astrocs_v6_phase2_integrate`（可独立构建） |
 
@@ -19,22 +19,27 @@
 - `lib/algorithms/coverage/src/rejection.cpp`（IMPL-P2-REJ-001）：`p2_reject_classify`、`p2_reject_plan_resolve`、
   `p2_reject_plan_thresholds_inherited`、`p2_rejection_weight_surface_guard`
 - `lib/algorithms/coverage/src/{sampler,coverage}.cpp`（IMPL-P2-SAMP-001）：`p2_spatial_model_eval|summary`、
-  `p2_scalar_degrade_gate`、`p2_coverage_support_classify`、`p2_weight_mode_check`、
-  `p2_weight_source_token_reject`
+  `p2_scalar_degrade_gate`、`p2_coverage_support_classify`、`p2_weight_source_token_reject`
+- `lib/algorithms/integration/v6/src/weight_chain.cpp`：稠密 SNR 重建 + 逆方差权重链
+  （`SparseSnrReconstructor` / `compute_inverse_variance_weights`）
 - `lib/{dynamic_psf,snr_estimator,photometric_calib}`（IMPL-P1-PSFW-001）：
   `conventional_coadd`、`propagate_covariance`、`conventional_effective_psf`、
   `compute_psfsw_weights`、`validate_psfsw_record`
 - `lib/infrastructure/aio/v6`（IMPL-AIO-001）：流式 FITS + DATASUM/CHECKSUM + 原子发布 + provenance + BUNIT
 
-## 三模式（FZ-MODE-PRODUCTION）
+## 单一权重口径（FZ-WEIGHT-SINGLE-PATH）
 
-| mode | 权威式 | covariance |
+权重只有一个口径、没有可选择项：Phase1 产稀疏 SNR 控制点 → Phase2 重建稠密 SNR 面 →
+取逆方差（最优功率）定权 → 叠加。
+
+| 环节 | 权威式 | 说明 |
 |---|---|---|
-| `point_information` | `Q=ΣQ_k; W=ΣW_info,k; F=Q/W; Var=1/W`（相关帧 `W=A^T C^-1 A`） | `R C_in R^T` 实际系数传播 |
-| `surface_gls` | `x=(A^T C^-1 A)^-1 A^T C^-1 d; Cov=(A^T C^-1 A)^-1` | GLS；pixel-ivar 近似过 `Var_approx/Var_GLS<=1+0.05` 门（硬上限 1.20） |
-| `psfsw_robust` | 组内 median=1 + `alpha_k(p)=W_k v_k/Σ` conventional coadd | `C_out=R C_in R^T`；**禁** `1/W_psfsw` |
+| 稠密 SNR 重建 | `SparseSnrReconstructor::eval`（算子由层显式声明，默认 `natural_bicubic_spline_clip_v1`） | 控制点存**绝对** SNR，直接重建，不乘帧级标量 |
+| 逆方差定权 | `w_k = SNR_k^2/F_ref,k^2 = 1/sigma_F,k^2`（`compute_inverse_variance_weights`） | 逐帧 `F_ref,k` 同源配对；缺任一帧即 fail-closed |
+| 点源组合 | `Q=ΣQ_k; W=ΣW_info,k; F=Q/W; Var=1/W`（相关帧 `W=A^T C^-1 A`） | covariance 由 `R C_in R^T` 实际系数传播 |
 
-`psf_snr_power` 保持 DEFERRED，不进生产路由（FZ-MODE-DEFERRED / C-004.1）。
+退役对象 `psfsw_robust_weight` 的声明 token 一律显式拒绝 + 迁移提示
+（FZ-MODE-RETIRED；`docs/design/UNIFIED_MODEL.md:58`）。
 
 ## 构建 / 测试
 

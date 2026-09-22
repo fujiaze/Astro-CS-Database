@@ -17,8 +17,8 @@
 ## 3. 输入/输出数据合同
 
 - **输入**：归一化产品组、UPM 参数、rejection、PSF/信息层、帧级 SNR（文件头）、[稀疏**绝对** SNR 层]、配置。
-- **SNR 路径（三条，配置文件 JSON 显式指定；默认稀疏）**：
-  - `dense`（稠密面，精度基准）/ `sparse_reconstruct`（**默认**：由稀疏层重建稠密）/ `frame_reconstruct`（帧级重建稠密）；三条口径都直接产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示；
+- **SNR 重建路径（三条，配置文件 JSON 显式指定；默认稀疏）**：这三条是**重建方式**的选择，**不是**权重口径的选择 —— 三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，都走同一条逆方差定权式（见 §4.0）；
+  - `dense`（稠密面，精度基准）/ `sparse_reconstruct`（**默认**：由稀疏层重建稠密）/ `frame_reconstruct`（帧级重建稠密）；
   - `sparse_reconstruct` 且输入**有**稀疏层 → 由稀疏**绝对** SNR 控制点**直接重建**出稠密 `SNR(x,y)`（控制点值即绝对信噪比本身，**不乘帧级标量**），参与科学运算；
   - 输入**无**稀疏层而路径为默认/`sparse_reconstruct` → 按帧级执行并**显式记录实际路径**（`snr_path_effective=frame_reconstruct` + 计数），**不得静默**；稀疏层存在但损坏/不可重建 → 明确失败（§7）；
   - 三条路径**没有全局最优、只有适用域**：完整适用域图谱由 `实验/absolute-snr` 给出（最高设计 §5.3）；其中 **HST 类高对比域的结论与重建算子绑定**（双线性/默认算子下帧级更优，`..._mesh_median_v1` 下稀疏更优），判据与 Δ\* 见 `07_noise_snr.md` §4.2/§4.5。
@@ -32,8 +32,9 @@
 
 ## 4. 算法与公式要点
 
-### 4.0 SNR 重建与逆方差权重
+### 4.0 SNR 重建与逆方差权重（单一权重口径，没有可选择项）
 
+- **分工固定**：阶段一**只生产信噪比**（稀疏 SNR 控制点）；阶段二在叠加前**先算真实信号面** —— 用**每帧的稀疏控制点重建出稠密控制点 / 稠密 SNR 面**，再按**逆方差（最优功率）**定权后叠加。没有可选的权重口径、口径选择键、口径枚举或口径配置项；越界 token 一律 fail-closed（`FZ-WEIGHT-SINGLE-PATH` / `FZ-MODE-RETIRED` / `FZ-FIELD-WEIGHTMODE`）。
 - `sparse_reconstruct`（默认）→ 由稀疏**绝对** SNR 控制点重建为稠密 `SNR(x,y)`（控制点值是绝对量本身，**不乘/不除帧级标量**）；
   - **重建算子由层显式声明**（`sparse_snr_layer.reconstruction_operator`，冻结词表：默认 `natural_bicubic_spline_clip_v1`（自然边界双三次样条 + 值域钳制）、高对比域 `natural_bicubic_spline_clip_mesh_median_v1`、对照/回退 `bilinear_regular_grid_v1`、散点 `nearest_control_point_v1`）；实际生效算子标识与重建误差入 manifest（`SparseReconstruction.operator_id` / `node_reproduction_max_abs`）；未识别标识或声明与层形态不符 ⇒ fail-closed；
   - **层几何**：控制点坐标是像素中心坐标，规则网格下落在所属 cell 中心；定义域 = 层覆盖的 cell 并集，越出即 fail-closed（不外推、不回退帧级）。算子定义、钳制必要性、mesh 滤波开关的按域规则与几何约定正本见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5；

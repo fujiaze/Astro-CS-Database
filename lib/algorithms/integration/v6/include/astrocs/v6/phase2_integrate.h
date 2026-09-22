@@ -1,4 +1,4 @@
-/* phase2_integrate.h — V6 Phase2 三模式产品链集成 / 磁盘重开消费 / 原子发布
+/* phase2_integrate.h — V6 Phase2 产品链集成 / 磁盘重开消费 / 原子发布
  *
  * 任务: P2-INTEGRATE-001 (Wave 8, write_scope = lib/algorithms/coverage/src/integrate.{cpp,h},
  *       lib/algorithms/coverage/src/block.{cpp,h}, lib/algorithms/integration/, lib/phase2_session/,
@@ -7,35 +7,31 @@
  *   - UPM 乘加求解/参数协方差: p2_upm_ma_* (IMPL-P2-UPM-001)
  *   - 分类排异 sigma_eff^2   : p2_reject_classify / p2_reject_calibration (IMPL-P2-REJ-001)
  *   - 空间求值/标量降级/覆盖  : p2_spatial_model_eval|summary、p2_scalar_degrade_gate、
- *                             p2_coverage_support_classify、p2_weight_mode_check、
+ *                             p2_coverage_support_classify、
  *                             p2_weight_source_token_reject (IMPL-P2-SAMP-001)
- *   - PSFSW 复合/组内归一/conventional coadd/covariance 传播/effective PSF :
- *                             astrocs::v6::p1psfw (IMPL-P1-PSFW-001)
+ *   - SNR → 逆方差权重链     : astrocs::v6::p2weight (weight_chain.h)
  *   - FITS/原子发布/provenance/BUNIT : astrocs::aio (IMPL-AIO-001)
  *
  * 冻结锚（逐条符合，不得放宽）:
- *   FZ-MODE-PRODUCTION {point_information, surface_gls}
- *                      （原集合里的 psfsw_robust 已按负责人裁决退役，见下）
+ *   FZ-WEIGHT-SINGLE-PATH  权重只有一个口径、没有可选择项：Phase1 产稀疏 SNR 控制点
+ *                      → Phase2 重建稠密 SNR 面 → 取逆方差（最优功率）定权 → 叠加；
+ *                      w = SNR^2/F_ref^2 = 1/sigma_F^2（ASTROCS_DESIGN.md §3.1；
+ *                      docs/science/PSF_SIGNAL_WEIGHT.md §4）
  *   FZ-MODE-RETIRED    psfsw_robust 显式拒绝 + 迁移提示：psfsw_robust_weight 不是
  *                      现行对象（ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒
- *                      parse/route/产品校验三处接受面一律拒绝，不得静默接受
- *   FZ-MODE-DEFERRED   psf_snr_power 保持 DEFERRED，不进生产路由（C-004.1）
+ *                      产品校验与权重来源拒绝面一律拒绝，不得静默接受
  *   FZ-FIELD-WEIGHTMODE legacy 0=support×snr² / auto / support_x_snr2 REJECT
  *   FZ-FORMULA-Q/WINFO/FHAT   Q_k=a_k P_k^T C_k^-1 d_k; W=a_k^2 P_k^T C_k^-1 P_k;
  *                             F_hat=Q/W; Var=1/W
  *   FZ-FORMULA-GLS           x_hat=(A^T C^-1 A)^-1 A^T C^-1 d; Cov=(A^T C^-1 A)^-1;
  *                             R=(A^T C^-1 A)^-1 A^T C^-1
- *   FZ-GATE-PIXIVAR-APPROX   rho=Var_approx/Var_GLS; p95<=1+eps(0.05); per-element
- *                             hard cap 1+0.20
  *   FZ-AP2S-IDENT-RTOL 1e-9 / FZ-AP2S-EPSF-RTOL 1e-12 /
  *   FZ-AP2PT-SNR-IDENT-RTOL 1e-9 / FZ-AP2PT-CORR-RATIO-MIN 1.05
- *   FZ-FORMULA-PSFSW-COMPOSITE / FZ-FIELD-PSFSW-UNIT / FZ-FIELD-PSFSW-4COMP
  *   FZ-FORMULA-COV-PROP      C_out = R C_in R^T；variance_from=combination_coefficients；
  *                            禁 1/W_psfsw、禁权重/诊断反推
  *   FZ-GATE-PSFSW-EPSF       effective PSF 必输；只给 FWHM 标量 REJECT
  *   FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE 诊断量不得进权重/方差来源
  *   FZ-PROV-MINIMAL-SET / FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC
- *   FZ-GATE-PSFSW-FAILCLOSED 单帧不足 n_common / 组不足 2 帧 fail-closed
  *   P33 撤销保持（C-004.2）: 不得重新引入 snr_frame_coefficient / snr_coefficient /
  *                             support_x_snr*；帧级 median(SNR_F) 只作诊断
  *   IMPL-P3-INTEGRATE-001 约定: HDU 命名 SIGNAL / FLUX / EFFECTIVE_PSF
@@ -77,31 +73,11 @@ constexpr double kKCorrFrozen = 1.4;      /* FZ-PROV-KCORR-VALUE */
 constexpr const char* kPhase2ProductSchema = "astrocs.v6.phase2-product/v1";
 constexpr const char* kPhase2RecordFile = "phase2_product.json";
 constexpr const char* kPhase2ScienceFile = "mosaic.fits";
+/* 单一产品身份：点源信息量产品（W_info = 1/Var(F_hat)）。
+ * 不存在权重口径的可选择项 ⇒ 没有模式枚举、没有模式路由、没有模式配置键；
+ * 科学权重一律由 Phase2 在集成时按天球像素对应的帧集合现场派生为逆方差
+ * （FZ-WEIGHT-SINGLE-PATH）。 */
 constexpr const char* kTypePoint = "astrocs.phase2.point_source.v1";
-constexpr const char* kTypeSurface = "astrocs.phase2.surface_brightness.v1";
-constexpr const char* kTypePsfsw = "astrocs.phase2.psfsw_integration.v1";
-
-/* ------------------------------------------------------------------ */
-/* 三模式路由（FZ-MODE-PRODUCTION / FZ-MODE-DEFERRED / FZ-FIELD-WEIGHTMODE） */
-/* ------------------------------------------------------------------ */
-enum class WeightMode : int {
-  kPointInformation = 0,
-  kSurfaceGls = 1,
-  kPsfswRobust = 2,   /* RETIRED（FZ-MODE-RETIRED）：保留枚举臂仅为编译/历史产品可判，
-                       * 任何接受面（parse/route/产品校验）都不得返回它。 */
-};
-const char* weight_mode_token(WeightMode m);
-const char* phase2_type_id(WeightMode m);
-/* 解析面（FZ-MODE-RETIRED）：生产接受集 = {point_information, surface_gls}；
- * psfsw_robust 不是现行对象 ⇒ **返回 false**（不解析成 kPsfswRobust）；
- * 可诊断的拒绝说明由 route_weight_mode 给出。 */
-bool parse_weight_mode(const std::string& token, WeightMode* out);
-/* 生产路由门：allowed={point_information,surface_gls}；
- * psfsw_robust -> REJECT（FZ-MODE-RETIRED + 迁移提示，err 含被拒 mode/允许集/迁移）；
- * psf_snr_power/auto/support_x_snr2/0/未知 -> REJECT；equal/pixel_ivar -> baseline 非生产。
- * 返回 0=生产模式；1=REJECT；2=baseline（非生产）。 */
-int route_weight_mode(const char* mode, WeightMode* out, char* err,
-                      std::size_t err_cap);
 
 /* ------------------------------------------------------------------ */
 /* 最小 FITS 平面读取器（BITPIX=-64；extname 空=PRIMARY）                 */
@@ -176,7 +152,6 @@ struct RunMeta {
 struct ProductResult {
   bool ok = false;
   std::string error;
-  WeightMode mode = WeightMode::kPointInformation;
   std::string product_dir;
   std::string output_sha256;
 
@@ -214,41 +189,11 @@ struct ProductResult {
   astrocs::aio::PublishResult publish;
 };
 
-/* surface_gls 输入（设计矩阵/数据/输入协方差由调用方按像素给出） */
-struct SurfaceInputs {
-  std::vector<std::string> product_dirs;
-  std::uint64_t n_out = 1;            /* 输出元素数 */
-  std::uint64_t n_pix_per_frame = 0;  /* m */
-  std::vector<double> design;         /* A: (K*m) x n_out row-major */
-  std::vector<double> data;           /* d: (K*m) x n_out row-major */
-  std::vector<double> c_in;           /* (K*m)^2 row-major */
-  std::vector<double> a_k;            /* 逐帧光度响应（结构性准入 a_k 一致性） */
-  bool pixel_ivar_approx = false;     /* 使用 R~ 并过 epsilon 门 */
-  bool a_k_ignored = false;           /* 负向：忽略 a_k 的一致性 */
-  bool force_missing_error_gate = false; /* 负向：无误差门声明 */
-  std::string correlation_kernel_id = "declared_shared_systematic_v1";
-  double rho_mean = 0.0, rho_max = 0.0;
-};
-
-/* psfsw_robust 输入 */
-struct PsfswInputs {
-  std::vector<std::string> product_dirs;
-  std::vector<std::vector<double>> d;         /* K x P 磁盘 SB */
-  std::vector<std::vector<char>> validity;    /* K x P，可空=全有效 */
-  std::vector<double> c_in;                   /* K*K row-major（实际系数协方差） */
-  std::string correlation_kernel_id = "declared_shared_systematic_v1";
-  double rho_mean = 0.0, rho_max = 0.0;
-};
-
-/* 三模式运行：磁盘重开 -> 组合 -> 原子写盘 -> 重开校验（失败无半成品）。 */
+/* 运行：磁盘重开 -> 组合 -> 原子写盘 -> 重开校验（失败无半成品）。 */
 ProductResult run_point_information(const std::vector<std::string>& product_dirs,
                                     const JointCovariance& joint,
                                     const RunMeta& meta,
                                     const std::string& target_dir);
-ProductResult run_surface_gls(const SurfaceInputs& in, const RunMeta& meta,
-                              const std::string& target_dir);
-ProductResult run_psfsw_robust(const PsfswInputs& in, const RunMeta& meta,
-                               const std::string& target_dir);
 
 /* ------------------------------------------------------------------ */
 /* 磁盘重开独立校验                                                      */
@@ -257,7 +202,6 @@ struct Phase2OpenResult {
   bool ok = false;
   std::string error;
   std::string output_sha256;
-  std::string mode;
   std::vector<std::string> violations; /* G-xxx / FZ-xxx 逐条 */
   std::vector<astrocs::aio::FitsHduInfo> hdus;
   bool has_flux = false, has_effective_psf = false;
@@ -287,7 +231,6 @@ struct UpmRejSampResult {
   double spatial_p05 = 0.0, spatial_p50 = 0.0, spatial_p95 = 0.0;
   double spatial_max_dev = 0.0, spatial_coverage = 0.0, spatial_model_error = 0.0;
   int scalar_verdict = -1;
-  int weight_mode_rc = -1;
   int coverage_rc = -1;
   std::uint64_t n_supported = 0, n_uncovered = 0, n_unavailable = 0;
   std::vector<std::string> evidence;

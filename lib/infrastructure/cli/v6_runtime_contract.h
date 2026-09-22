@@ -5,11 +5,11 @@
 //     模块不得硬编码 workers / ISA / block，不得建立不受 Runtime 管理的私有长期线程池；
 //     模块按 work unit 申请线程租约，Runtime 防止嵌套并行和超额订阅。
 //   * 宪章 §3.1/§3.2 CLI 薄入口与三 Phase 相互隔离：不得把三个 Phase 隐式串接。
-//   * 冻结节点 FZ-MODE-PRODUCTION {point_information, surface_gls}（原集合里的
-//     psfsw_robust 已按负责人裁决移除，见下）；
-//     FZ-MODE-RETIRED psfsw_robust 拒绝进生产：psfsw_robust_weight 不是现行对象
-//     （ASTROCS_DESIGN.md §3.1；docs/design/UNIFIED_MODEL.md:58），拒绝消息带迁移提示；
-//     FZ-MODE-DEFERRED psf_snr_power 拒绝进生产（C-004.1）；
+//   * 冻结节点 FZ-WEIGHT-SINGLE-PATH：权重只有一个口径 —— Phase1 产稀疏 SNR 控制点
+//     → Phase2 重建稠密 SNR 面 → 取逆方差（最优功率）定权 → 叠加。没有可选择项 ⇒
+//     phase2 的 --mode <token> 一律 fail-closed 拒绝（不存在任何合法 token）；
+//     FZ-MODE-RETIRED psfsw_robust 不是现行对象（ASTROCS_DESIGN.md §3.1；
+//     docs/design/UNIFIED_MODEL.md:58），拒绝消息带迁移提示；
 //     FZ-FIELD-WEIGHTMODE legacy 0 / auto / support_x_snr2 拒绝；1|2 → baseline 非生产。
 //   * FZ-P3-MODES {surface_brightness, point_source_flux, visualization}。
 //   * 宪章 §10.5 / §17.6 重计算利用率门禁的**字段面**，以及 SO-05 签字前的
@@ -89,38 +89,27 @@ struct ModeRoute {
     int rc = 2;           // reject 时 CLI 退出码（astrocs::ARGS = 2）
 };
 
-// Phase2 生产权重模式（FZ-MODE-PRODUCTION）。
-//   production: point_information | surface_gls
-//   baseline  : equal | pixel_ivar（非生产）
-//   reject    : psfsw_robust(RETIRED) | psf_snr_power(DEFERRED) | auto |
-//               support_x_snr2 | "0" | "1" | "2" | 未知
+// Phase2 权重口径选择面（FZ-WEIGHT-SINGLE-PATH）。
+//   合法 token：**无** —— 权重只有一个口径，没有可选择项。
+//   全部 token 一律 fail-closed 拒绝（rc=2）：
+//     psfsw_robust(RETIRED) | psf_snr_power(DEFERRED) | auto | support_x_snr2 |
+//     "0" | "1" | "2" | 任何其它串。
 // 说明：字符串 "1"/"2" 是 legacy 整数的字符串形态，必须经 route_legacy_weight_mode_int
-// 映射为 baseline；此处直接拒绝，避免"数字字符串冒充生产模式"。
-// 收窄依据（PSFSW-RETIRE-01）：ASTROCS_DESIGN.md §3.1（订正后：权重只能来自纯净
-// 信号/噪声之比的逆方差，跨帧绝对标定，不基于参考帧）+ docs/science/
-// PSF_SIGNAL_WEIGHT.md §4 订正后的选择表（已移除 psfsw_robust 行）。psfsw_robust_weight
-// 不是现行对象（docs/design/UNIFIED_MODEL.md:58）⇒ 显式拒绝 + 迁移提示，不得静默接受。
-inline ModeRoute route_phase2_mode(const std::string& raw) {
+// 映射为 baseline（该映射属**非科学方差面**的显式登记）；此处直接拒绝，避免"数字
+// 字符串冒充权重口径"。
+// 依据：ASTROCS_DESIGN.md §3.1（权重只能来自纯净信号/噪声之比的逆方差，跨帧绝对
+// 标定，不基于参考帧；全程只有 SNR）+ docs/science/PSF_SIGNAL_WEIGHT.md §4（单一
+// 权重口径，无模式选择）。psfsw_robust_weight 不是现行对象
+// （docs/design/UNIFIED_MODEL.md:58）⇒ 显式拒绝 + 迁移提示，不得静默接受。
+inline ModeRoute route_phase2_weight_token(const std::string& raw) {
     ModeRoute r;
     r.surface = "phase2_weight";
     r.token = raw;
-    if (raw == "point_information" || raw == "surface_gls") {
-        r.kind = RouteKind::kProduction;
-        r.rc = 0;
-        return r;
-    }
     if (raw == "psfsw_robust") {
         r.reason = "FZ-MODE-RETIRED: 'psfsw_robust' rejected - psfsw_robust_weight is "
                    "not a current object (ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
-                   "allowed production modes: point_information | surface_gls; "
-                   "migration: point_information (W_info=1/Var(F_hat)) for point "
-                   "sources, surface_gls (A^T C^-1 A) for extended sources";
-        return r;
-    }
-    if (raw == "equal" || raw == "pixel_ivar") {
-        r.kind = RouteKind::kBaseline;
-        r.rc = 0;
-        r.reason = "baseline non-production weight surface (FZ-MODE-PRODUCTION)";
+                   "migration: Phase2 reconstructs the dense SNR field and derives "
+                   "inverse-variance weights w = SNR^2/F_ref^2";
         return r;
     }
     if (raw == "psf_snr_power") {
@@ -137,8 +126,19 @@ inline ModeRoute route_phase2_mode(const std::string& raw) {
                    "the integer field, not a mode token";
         return r;
     }
-    r.reason = "FZ-MODE-PRODUCTION: unknown weight mode (allowed: point_information | "
-               "surface_gls)";
+    // documented baseline（非科学方差面）：可识别但不作生产口径 —— 权重只有一个口径，
+    // 这两个 token 只是 legacy 整数映射的目标登记，不得据此声称最优。
+    if (raw == "equal" || raw == "pixel_ivar") {
+        r.kind = RouteKind::kBaseline;
+        r.rc = 0;
+        r.reason = "documented baseline (non-production) weight surface; the single "
+                   "scientific weight path is inverse variance from the reconstructed "
+                   "dense SNR field (FZ-WEIGHT-SINGLE-PATH)";
+        return r;
+    }
+    r.reason = "FZ-WEIGHT-SINGLE-PATH: '" + raw + "' rejected - there is no selectable "
+               "weight mode; Phase2 reconstructs the dense SNR field and derives "
+               "inverse-variance weights w = SNR^2/F_ref^2 = 1/sigma_F^2";
     return r;
 }
 

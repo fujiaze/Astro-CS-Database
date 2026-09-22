@@ -188,52 +188,21 @@ int case_weight_gate() {
         check(p2_weight_source_token_reject(nullptr, 1, err, sizeof(err)) == 2,
               "null tokens with n>0 -> param error");
     }
-    // 生产模式门（FZ-MODE-PRODUCTION）：生产接受集 = {point_information, surface_gls}。
-    // psfsw_robust 已按负责人裁决退役（ASTROCS_DESIGN.md §3.1），不再属接受集。
-    const char* prod[] = {"point_information", "surface_gls"};
-    for (std::size_t i = 0; i < sizeof(prod) / sizeof(prod[0]); ++i) {
-        char err[256] = {0};
-        check(p2_weight_mode_check(prod[i], err, sizeof(err)) == 0,
-              "production mode accepted");
-    }
-    // 负例（FZ-MODE-RETIRED）：退役对象 psfsw_robust 必须被**显式拒绝**（不得静默接受、
-    // 不得回退成默认模式），且 err 必须可诊断：含被拒 mode + 允许集 + 迁移提示。
-    // 能红能绿：把 "psfsw_robust" 放回上方 prod[] 接受集，本块即转红。
+    // 单一权重口径（FZ-WEIGHT-SINGLE-PATH）：权重只有一个口径，没有可选择项 ⇒
+    // coverage 面不再提供"权重口径门"（p2_weight_mode_check 已删除）；拒绝面收敛为
+    // **权重来源 token 门**（上一节）与**退役对象拒绝面**：
+    // 退役对象 psfsw_robust_weight 写进 weight.sources/variance_from 必须判红。
+    // 能红能绿：把 psfsw_robust_weight 从 kForbiddenWeightSourceTokens 移除，本块转红。
     {
+        const char* retired[] = {"psfsw_robust_weight", "psfsw"};
         char err[512] = {0};
-        const int rc = p2_weight_mode_check("psfsw_robust", err, sizeof(err));
-        check(rc == 1, "retired mode psfsw_robust rejected (rc=1)");
-        check(std::strstr(err, "psfsw_robust") != nullptr,
-              "retired reject message names the rejected mode");
+        check(p2_weight_source_token_reject(retired, 2, err, sizeof(err)) == 1,
+              "retired weight object rejected as a weight source (FZ-MODE-RETIRED)");
         check(std::strstr(err, "FZ-MODE-RETIRED") != nullptr,
               "retired reject message cites FZ-MODE-RETIRED");
-        check(std::strstr(err, "point_information") != nullptr &&
-                  std::strstr(err, "surface_gls") != nullptr,
-              "retired reject message states the allowed production set");
-        check(std::strstr(err, "migration") != nullptr,
-              "retired reject message carries a migration hint");
-    }
-    const char* bad[] = {"psf_snr_power", "auto", "support_x_snr2", "0", "1",
-                         "2", "unknown", ""};
-    for (std::size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); ++i) {
-        char err[256] = {0};
-        const int rc = p2_weight_mode_check(bad[i], err, sizeof(err));
-        if (rc != 1) {
-            ++g_fail;
-            std::printf("  FAIL: forbidden mode '%s' rc=%d (want 1)\n", bad[i],
-                        rc);
-        } else {
-            ++g_pass;
-        }
-    }
-    {
-        char err[256] = {0};
-        check(p2_weight_mode_check(nullptr, err, sizeof(err)) == 1,
-              "null mode rejected");
-        check(p2_weight_mode_check("equal", err, sizeof(err)) == 2,
-              "equal is baseline not production");
-        check(p2_weight_mode_check("pixel_ivar", err, sizeof(err)) == 2,
-              "pixel_ivar is baseline not production");
+        check(std::strstr(err, "inverse-variance") != nullptr ||
+                  std::strstr(err, "SNR^2") != nullptr,
+              "retired reject message states the single weight path");
     }
     return 0;
 }

@@ -1,15 +1,16 @@
 /* v6_p2_integrate_test.cpp — P2-INTEGRATE-001 端到端集成测试
  *
  * 组（ctest 用例）:
- *   routing     三模式路由门（FZ-MODE-PRODUCTION/DEFERRED/FIELD-WEIGHTMODE）
- *   write       真实 Phase1 产物 -> Phase2 三模式 -> 写盘 -> 重开校验
+ *   singlepath  单一权重口径门（FZ-WEIGHT-SINGLE-PATH：无任何可接受 token）
+ *   write       真实 Phase1 产物 -> Phase2 集成 -> 写盘 -> 重开校验
  *   negative    逐条违反冻结 -> 必红（含未篡改正控制）
  *   halfproduct 发布/重开验证中途失败 -> 无可见半成品 / 无 staging 残留
  *
- * 运行: ./v6_p2_integrate_test <routing|write|negative|halfproduct> <work_root>
+ * 运行: ./v6_p2_integrate_test <singlepath|write|negative|halfproduct> <work_root>
  */
 #include "astrocs/v6/phase2_integrate.h"
 #include "astrocs/v6/phase1_product.h"
+#include "v6_runtime_contract.h"
 
 #include <algorithm>
 #include <cmath>
@@ -204,36 +205,43 @@ static std::vector<std::string> write_fixture(const fs::path& work) {
   return dirs;
 }
 
-/* ── routing ── */
-static bool run_routing() {
-  WeightMode m{};
-  char err[1024];
-  /* FZ-MODE-PRODUCTION：生产接受集 = {point_information, surface_gls}。 */
-  CHECK(route_weight_mode("point_information", &m, err, sizeof(err)) == 0 && m == WeightMode::kPointInformation, "point_information production");
-  CHECK(route_weight_mode("surface_gls", &m, err, sizeof(err)) == 0 && m == WeightMode::kSurfaceGls, "surface_gls production");
-  /* FZ-MODE-RETIRED：退役对象 psfsw_robust 必须被**显式拒绝 + 迁移提示**（不静默接受）。
-   * 能红能绿：把它放回上方接受集（或让 route 返回 0）本块即转红。 */
-  CHECK(route_weight_mode("psfsw_robust", &m, err, sizeof(err)) == 1, "psfsw_robust RETIRED rejected");
-  CHECK(std::strstr(err, "FZ-MODE-RETIRED") != nullptr, "retired reject cites FZ-MODE-RETIRED");
-  CHECK(std::strstr(err, "psfsw_robust") != nullptr, "retired reject names the rejected mode");
-  CHECK(std::strstr(err, "point_information") != nullptr && std::strstr(err, "surface_gls") != nullptr, "retired reject states the allowed production set");
-  CHECK(std::strstr(err, "migration") != nullptr, "retired reject carries a migration hint");
-  CHECK(route_weight_mode("psf_snr_power", &m, err, sizeof(err)) == 1, "psf_snr_power DEFERRED rejected");
-  CHECK(route_weight_mode("auto", &m, err, sizeof(err)) == 1, "auto rejected");
-  CHECK(route_weight_mode("support_x_snr2", &m, err, sizeof(err)) == 1, "support_x_snr2 rejected");
-  CHECK(route_weight_mode("0", &m, err, sizeof(err)) == 1, "legacy 0 rejected");
-  CHECK(route_weight_mode("bogus", &m, err, sizeof(err)) == 1, "unknown rejected");
-  CHECK(route_weight_mode("equal", &m, err, sizeof(err)) == 2, "equal baseline non-production");
-  CHECK(route_weight_mode("pixel_ivar", &m, err, sizeof(err)) == 2, "pixel_ivar baseline non-production");
-  /* 解析面同样不接受退役对象（返回 false，不解析成 kPsfswRobust）。 */
-  CHECK(!parse_weight_mode("psfsw_robust", &m), "parse rejects retired psfsw_robust");
-  CHECK(parse_weight_mode("point_information", &m) && m == WeightMode::kPointInformation, "parse point_information");
-  CHECK(parse_weight_mode("surface_gls", &m) && m == WeightMode::kSurfaceGls, "parse surface_gls");
-  std::printf("  ROUTING PASS checks=%d\n", g_checks);
+/* ── singlepath（单一权重口径：无任何可选择 token） ── */
+static bool run_singlepath() {
+  /* FZ-WEIGHT-SINGLE-PATH：权重只有一个口径（阶段1 稀疏 SNR 控制点 → 阶段2 重建
+   * 稠密 SNR 面 → 逆方差定权 → 叠加），没有可选择项 ⇒ phase2 的 --mode token 面
+   * 必须对**所有** token fail-closed（rc=2 = ARGS）。
+   * 能红能绿：让任何一个 token 走 kProduction 分支，本块立即转红。 */
+  const astrocs::v6runtime::ModeRoute retired =
+      astrocs::v6runtime::route_phase2_weight_token("psfsw_robust");
+  CHECK(retired.kind == astrocs::v6runtime::RouteKind::kReject,
+        "psfsw_robust RETIRED rejected");
+  CHECK(retired.reason.find("FZ-MODE-RETIRED") != std::string::npos,
+        "retired reject cites FZ-MODE-RETIRED");
+  CHECK(retired.reason.find("migration") != std::string::npos,
+        "retired reject carries a migration hint");
+  for (const char* tok : {"point_information", "surface_gls",
+                          "psf_snr_power", "auto", "support_x_snr2", "0", "1", "2",
+                          "bogus", ""}) {
+    const astrocs::v6runtime::ModeRoute r =
+        astrocs::v6runtime::route_phase2_weight_token(tok);
+    CHECK(r.kind == astrocs::v6runtime::RouteKind::kReject,
+          "no phase2 weight-mode token may be accepted (FZ-WEIGHT-SINGLE-PATH)");
+    CHECK(r.rc == 2, "rejected token maps to CLI ARGS rc=2 (fail-closed)");
+  }
+  /* documented baseline（非科学方差面）：可识别但不作生产口径。 */
+  for (const char* tok : {"equal", "pixel_ivar"}) {
+    const astrocs::v6runtime::ModeRoute r =
+        astrocs::v6runtime::route_phase2_weight_token(tok);
+    CHECK(r.kind == astrocs::v6runtime::RouteKind::kBaseline,
+          "baseline token is documented non-production (FZ-WEIGHT-SINGLE-PATH)");
+    CHECK(r.reason.find("single scientific weight path") != std::string::npos,
+          "baseline token reason states the single weight path");
+  }
+  std::printf("  SINGLEPATH PASS checks=%d\n", g_checks);
   return true;
 }
 
-/* ── write（三模式端到端） ── */
+/* ── write（单一权重口径端到端） ── */
 static bool run_write(const fs::path& work) {
   const std::vector<std::string> dirs = write_fixture(work);
   const fs::path out = work / "out";
@@ -261,6 +269,10 @@ static bool run_write(const fs::path& work) {
     const json rec = load_json(out / "point" / "phase2_product.json");
     CHECK(rec["phase2_extensions"]["group_normalization_performed"] == false, "point group normalization flag");
     CHECK(rec["weight_mode_record"]["weight"]["kind"] == "W_info", "point weight.kind");
+    CHECK(rec["weight_mode"] == "point_information",
+          "weight identity constant is canonical (single weight path)");
+    CHECK(rec["weight_mode_record"]["weight_mode"] == "point_information",
+          "weight record identity constant is canonical (single weight path)");
     CHECK(rec["covariance"]["variance_from"] == "actual_combination_coefficients", "point variance_from");
     report["point"] = {{"q", r.q}, {"w_info", r.w_info}, {"flux", r.flux},
                        {"var_f", r.flux_variance}, {"alpha", r.combination_coefficients},
@@ -307,94 +319,6 @@ static bool run_write(const fs::path& work) {
                              {"m", j.m}, {"out", (out / "point_joint").string()}};
   }
 
-  /* --- surface_gls（GLS 正控制 + pixel-ivar 近似过门） --- */
-  {
-    SurfaceInputs si;
-    si.product_dirs = {dirs[0], dirs[1]};
-    si.n_out = 1; si.n_pix_per_frame = 1;
-    si.design = {1.0, 1.0};
-    si.data = {10.0, 14.0};
-    si.c_in = {2.0, 0.0, 0.0, 2.0};
-    si.a_k = {1.0, 1.0};
-    const ProductResult r0 = run_surface_gls(si, make_meta("surf"), (out / "surface").string());
-    CHECK(r0.ok, r0.error.c_str());
-    CHECK_NEAR(r0.x_hat, 12.0, 1e-9, "GLS x_hat = (d1+d2)/2");
-    CHECK_NEAR(r0.var_gls, 1.0, 1e-9, "GLS variance = 1");
-    const Phase2OpenResult o0 = open_phase2_product((out / "surface").string());
-    CHECK(o0.ok, o0.error.c_str());
-
-    SurfaceInputs sa = si;
-    sa.pixel_ivar_approx = true;
-    const ProductResult r1 = run_surface_gls(sa, make_meta("surf-approx"), (out / "surface_approx").string());
-    CHECK(r1.ok, r1.error.c_str());
-    CHECK(r1.pixel_ivar_approx_used, "pixel-ivar approx used");
-    CHECK(r1.approx_gate_passed, "pixel-ivar epsilon gate passed (rho<=1+eps)");
-    CHECK(r1.rho_p95 <= 1.0 + kEpsPixivar + 1e-12, "rho p95 <= 1.05");
-    CHECK(r1.rho_max <= 1.0 + kEpsPixivarSup + 1e-12, "rho max <= 1.20");
-    const Phase2OpenResult o1 = open_phase2_product((out / "surface_approx").string());
-    CHECK(o1.ok, o1.error.c_str());
-    report["surface"] = {{"design", si.design}, {"data", si.data}, {"c_in", si.c_in},
-                         {"a_k", si.a_k}, {"x_hat", r0.x_hat}, {"var_gls", r0.var_gls},
-                         {"alpha", r0.combination_coefficients},
-                         {"rho_p95_approx", r1.rho_p95}, {"rho_max_approx", r1.rho_max},
-                         {"out", (out / "surface").string()}};
-  }
-
-  /* --- psfsw_robust（磁盘组内归一 + conventional coadd + C_out） --- */
-  {
-    const FrameSet fs = open_phase2_frame_set(dirs);
-    CHECK(fs.ok, fs.error.c_str());
-    const std::size_t K = fs.frames.size();
-    const std::size_t P = fs.frames[0].signal_sb.size();
-    PsfswInputs pi;
-    pi.product_dirs = dirs;
-    pi.correlation_kernel_id = "phase2_test_shared_systematic_v1";
-    pi.rho_mean = 0.0; pi.rho_max = 0.0;
-    for (std::size_t k = 0; k < K; ++k) pi.d.push_back(fs.frames[k].signal_sb);
-    pi.validity.assign(K, std::vector<char>(P, 1));
-    pi.c_in.assign(K * K, 0.0);
-    for (std::size_t k = 0; k < K; ++k) {
-      pi.c_in[k * K + k] = 4.0;
-      for (std::size_t l = 0; l < K; ++l) if (k != l) pi.c_in[k * K + l] = 1.0;
-    }
-    const ProductResult r = run_psfsw_robust(pi, make_meta("psfsw"), (out / "psfsw").string());
-    /* FZ-MODE-RETIRED（负例）：退役对象 psfsw_robust_weight 不是现行对象 ⇒ Phase1 消费面
-     * 命中即 fail-closed，**不产出产品**（不静默接受）。原正向路径（conventional coadd /
-     * C_out=R C_in R^T / effective PSF）随对象退役一并关闭。
-     * 能红能绿：让 consume_phase1_group_for_psfsw 放行（或把该声明从 fixture 产品去掉而
-     * 消费面仍产出 w_psfsw），本块即转红。 */
-    CHECK(!r.ok, "retired psfsw_robust rejected (no product)");
-    CHECK(r.error.find("FZ-MODE-RETIRED") != std::string::npos,
-          "retired reject error cites FZ-MODE-RETIRED");
-    CHECK(r.error.find("psfsw_robust_weight") != std::string::npos,
-          "retired reject error names the retired object");
-    CHECK(r.error.find("point_information") != std::string::npos &&
-              r.error.find("surface_gls") != std::string::npos,
-          "retired reject error states the allowed weight objects");
-    CHECK(r.error.find("migration") != std::string::npos,
-          "retired reject error carries a migration hint");
-    CHECK(!fs::exists(out / "psfsw" / "phase2_product.json"),
-          "retired mode wrote no product (fail-closed)");
-    /* 产品面负例（mutation）：把退役 mode 写回一份**合法**的 phase2 产品记录 ⇒ 重开门
-     * 必须显式拒绝且理由可诊断（FZ-MODE-RETIRED），不得静默接受。 */
-    {
-      const fs::path fake = out / "psfsw_retired_fake";
-      rm_rf(fake);
-      fs::create_directories(fake);
-      json frec = load_json(out / "point" / "phase2_product.json");
-      frec["weight_mode"] = "psfsw_robust";
-      save_json(fake / "phase2_product.json", frec);
-      const Phase2OpenResult fo = open_phase2_product(fake.string());
-      CHECK(!fo.ok, "product gate rejects retired weight_mode (mutation)");
-      CHECK(fo.error.find("FZ-MODE-RETIRED") != std::string::npos,
-            "product gate reject cites FZ-MODE-RETIRED");
-      CHECK(fo.error.find("point_information") != std::string::npos &&
-                fo.error.find("surface_gls") != std::string::npos,
-            "product gate reject states the allowed production set");
-    }
-    report["psfsw_retired"] = {{"rejected", !r.ok}, {"error", r.error}};
-  }
-
   /* --- UPM/REJ/SAMP 接线 --- */
   {
     const FrameSet fs = open_phase2_frame_set(dirs);
@@ -408,12 +332,34 @@ static bool run_write(const fs::path& work) {
     CHECK(u.spatial_p05 <= u.spatial_p50 && u.spatial_p50 <= u.spatial_p95, "spatial p05<=p50<=p95");
     CHECK(u.scalar_verdict == 0, "scalar degrade gate ALLOWED (double gate)");
     CHECK(u.coverage_rc == 0, "coverage/support classify rc=0");
-    CHECK(u.weight_mode_rc == 0, "production weight mode gate rc=0");
+    /* 单一口径在位：逆方差权重链是唯一权重来源（无模式门可过/可不过）。 */
+    CHECK(u.coverage_rc == 0, "coverage rc=0 alongside the single weight path");
     CHECK(u.reject_status == 0, "reject classify rc=0");
     report["wiring"] = {{"n_components", u.n_components}, {"rank", u.rank}, {"n_free", u.n_free},
                         {"kappa", u.kappa}, {"sigma_eff2", u.sigma_eff2},
                         {"p05", u.spatial_p05}, {"p50", u.spatial_p50}, {"p95", u.spatial_p95},
                         {"coverage", u.spatial_coverage}};
+  }
+
+  /* --- 退役对象声明必须被显式拒绝（FZ-MODE-RETIRED 负例证据，供独立 Oracle 复算） --- */
+  {
+    const fs::path ret = out / "retired";
+    rm_rf(ret);
+    fs::create_directories(ret);
+    json rec = load_json(out / "point" / "phase2_product.json");
+    rec["weight_mode"] = "psfsw_robust";
+    save_json(ret / "phase2_product.json", rec);
+    const Phase2OpenResult o = open_phase2_product(ret.string());
+    CHECK(!o.ok, "retired psfsw_robust declaration rejected (no product accepted)");
+    CHECK(o.error.find("FZ-MODE-RETIRED") != std::string::npos,
+          "retired reject cites FZ-MODE-RETIRED");
+    CHECK(o.error.find("psfsw_robust_weight") != std::string::npos,
+          "retired reject names the retired object");
+    CHECK(o.error.find("migration") != std::string::npos,
+          "retired reject carries a migration hint");
+    CHECK(o.error.find("SNR^2") != std::string::npos,
+          "retired reject states the single weight path (w = SNR^2/F_ref^2)");
+    report["psfsw_retired"] = {{"rejected", true}, {"error", o.error}};
   }
 
   save_json(work / "v6_p2_results.json", report);
@@ -456,7 +402,11 @@ static bool run_negative(const fs::path& work) {
     else ++detected;
   };
 
-  mutate_and_expect_red("weight_mode_psf_snr_power", [](json& j) { j["weight_mode"] = "psf_snr_power"; });
+  /* FZ-WEIGHT-SINGLE-PATH：身份常量不是可选项 ⇒ 改成任何其它取值都必红
+   * （含曾被当作生产口径的 surface_gls 与退役 token）。 */
+  mutate_and_expect_red("weight_mode_identity_not_canonical", [](json& j) { j["weight_mode"] = "surface_gls"; });
+  mutate_and_expect_red("weight_mode_identity_retired", [](json& j) { j["weight_mode"] = "psfsw_robust"; });
+  mutate_and_expect_red("weight_mode_record_identity_not_canonical", [](json& j) { j["weight_mode_record"]["weight_mode"] = "surface_gls"; });
   mutate_and_expect_red("weight_kind_ivar", [](json& j) { j["weight_mode_record"]["weight"]["kind"] = "ivar"; });
   mutate_and_expect_red("variance_from_weight", [](json& j) { j["covariance"]["variance_from"] = "psfsw_robust_weight"; });
   mutate_and_expect_red("psfsw_boundary_variance_from_weight", [](json& j) {
@@ -493,54 +443,6 @@ static bool run_negative(const fs::path& work) {
     const ProductResult r = run_point_information({dirs[0], dirs[1]}, j, m2, (neg / "naive").string());
     ++g_checks;
     if (r.ok) { ++g_fails; std::fprintf(stderr, "  [FAIL] correlated naive Sum NOT rejected\n"); }
-    else ++detected;
-  }
-
-  /* pixel-ivar 近似：相关噪声按独立处理 -> epsilon 门红。 */
-  {
-    ++total;
-    SurfaceInputs si;
-    si.product_dirs = {dirs[0], dirs[1]};
-    si.n_out = 1; si.n_pix_per_frame = 1;
-    si.design = {1.0, 1.0}; si.data = {10.0, 14.0};
-    si.c_in = {2.0, 1.9, 1.9, 3.0};   /* 强相关，且对角不等 */
-    si.a_k = {1.0, 1.0};
-    si.pixel_ivar_approx = true;
-    const ProductResult r = run_surface_gls(si, make_meta("pixivar"), (neg / "pixivar").string());
-    ++g_checks;
-    if (r.ok) { ++g_fails; std::fprintf(stderr, "  [FAIL] pixel-ivar epsilon gate NOT red (rho=%g)\n", r.rho_p95); }
-    else if (r.approx_gate_passed) { ++g_fails; std::fprintf(stderr, "  [FAIL] approx_gate_passed reported true\n"); }
-    else ++detected;
-  }
-  /* pixel-ivar 结构性准入：a_k 不一致 -> REJECT。 */
-  {
-    ++total;
-    SurfaceInputs si;
-    si.product_dirs = {dirs[0], dirs[1]};
-    si.n_out = 1; si.n_pix_per_frame = 1;
-    si.design = {1.0, 2.0}; si.data = {10.0, 14.0};
-    si.c_in = {2.0, 0.0, 0.0, 2.0};
-    si.a_k = {1.0, 2.0};
-    si.pixel_ivar_approx = true;
-    const ProductResult r = run_surface_gls(si, make_meta("ak"), (neg / "ak").string());
-    ++g_checks;
-    if (r.ok) { ++g_fails; std::fprintf(stderr, "  [FAIL] inconsistent a_k NOT rejected\n"); }
-    else ++detected;
-  }
-  /* 无误差门声明 -> REJECT。 */
-  {
-    ++total;
-    SurfaceInputs si;
-    si.product_dirs = {dirs[0], dirs[1]};
-    si.n_out = 1; si.n_pix_per_frame = 1;
-    si.design = {1.0, 1.0}; si.data = {10.0, 14.0};
-    si.c_in = {2.0, 0.0, 0.0, 2.0};
-    si.a_k = {1.0, 1.0};
-    si.pixel_ivar_approx = true;
-    si.force_missing_error_gate = true;
-    const ProductResult r = run_surface_gls(si, make_meta("nogate"), (neg / "nogate").string());
-    ++g_checks;
-    if (r.ok) { ++g_fails; std::fprintf(stderr, "  [FAIL] missing error gate NOT rejected\n"); }
     else ++detected;
   }
 
@@ -603,7 +505,7 @@ static bool run_halfproduct(const fs::path& work) {
 
 int main(int argc, char** argv) {
   if (argc < 3) {
-    std::fprintf(stderr, "usage: %s <routing|write|negative|halfproduct> <work>\n", argv[0]);
+    std::fprintf(stderr, "usage: %s <singlepath|write|negative|halfproduct> <work>\n", argv[0]);
     return 2;
   }
   const std::string grp = argv[1];
@@ -611,7 +513,7 @@ int main(int argc, char** argv) {
   fs::create_directories(work);
 
   bool ok = false;
-  if (grp == "routing") ok = run_routing();
+  if (grp == "singlepath") ok = run_singlepath();
   else if (grp == "write") ok = run_write(work);
   else if (grp == "negative") ok = run_negative(work);
   else if (grp == "halfproduct") ok = run_halfproduct(work);

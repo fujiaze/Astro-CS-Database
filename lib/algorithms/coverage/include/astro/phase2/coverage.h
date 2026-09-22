@@ -70,23 +70,23 @@ P2_API int p2_coverage_free(P2CoverageResult* out);
 //                              进 weight.sources 即 REJECT；
 //   FZ-GATE-MEDIAN-SNR       : median(SNR_F)/median_source_snr/fwhm/residual
 //                              仅诊断，进权重面即 REJECT（C-004.2）；
-//   FZ-MODE-PRODUCTION       : 生产模式仅 point_information / surface_gls
-//                              （与 docs/science/PSF_SIGNAL_WEIGHT.md §4 订正后的
-//                              选择表一致；原 allowed 集合里的 psfsw_robust 已移除）；
+//   FZ-WEIGHT-SINGLE-PATH    : 权重只有一个口径，没有可选择项 ——
+//                              Phase1 产稀疏 SNR 控制点 → Phase2 重建稠密 SNR 面
+//                              → 取逆方差（最优功率）定权 → 叠加；
+//                              w = SNR^2 / F_ref^2（ASTROCS_DESIGN.md §3.1、
+//                              docs/science/PSF_SIGNAL_WEIGHT.md §4）；
 //   FZ-MODE-RETIRED          : psfsw_robust 不得进生产路由 —— psfsw_robust_weight
 //                              不是现行对象（ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58），
-//                              显式拒绝 + 迁移提示（point_information / surface_gls）；
-//   FZ-MODE-DEFERRED         : psf_snr_power 不得进生产路由（C-004.1）；
+//                              显式拒绝 + 迁移提示（唯一口径 = 逆方差）；
 //   FZ-FIELD-WEIGHTMODE      : legacy 整数 0(=support x snr^2) 不得进科学
 //                              权重面；
 //   DESIGN-P2 §8             : 分块/并行只改执行，不改归约次序；跨 tile
 //                              边界状态有确定边界协议；缺失不得静默零填。
 // 语义源：eng/contracts/data/v6_clause_registry_v1.json
-//         （forbidden.weight_source_tokens / production_weight_mode_forbidden_values）
-//         + 负责人裁决后的 ASTROCS_DESIGN.md §3.1（权重判据）与
-//         docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（该两处已订正；冻结段的
-//         weight_modes.production 含 psfsw_robust 已被裁决取代，见 coverage.cpp
-//         的 RETIRED-OBJECT-REJECT 注释块）。本头文件不得另造词表（C-004.3）。
+//         （forbidden.weight_source_tokens）
+//         + ASTROCS_DESIGN.md §3.1（权重判据）与
+//         docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（单一权重口径；退役对象的拒绝面见
+//         coverage.cpp 的 RETIRED-OBJECT-REJECT 注释块）。本头文件不得另造词表（C-004.3）。
 //
 // 单位（冻结表，本模块不重定义）：signal_sb=ADU/sr、sb_variance_out=
 // ADU^2/sr^2、sb_ivar_out=sr^2/ADU^2、W_info=ADU^-2。
@@ -166,22 +166,6 @@ P2_API int p2_deterministic_reduction_order(
 P2_API int p2_weight_source_token_reject(
     const char* const* tokens, std::uint64_t n,
     char* err, std::size_t err_size);
-
-// 生产权重模式门（FZ-MODE-PRODUCTION / FZ-MODE-RETIRED / FZ-MODE-DEFERRED /
-// FZ-MODE-BASELINE）。allowed 集合 = {point_information, surface_gls}——与
-// docs/science/PSF_SIGNAL_WEIGHT.md §4 订正后的 Phase2 选择表逐项一致（该表已移除
-// psfsw_robust 行）。显式拒绝：
-//   * "psfsw_robust" → rc=1（FZ-MODE-RETIRED）：psfsw_robust_weight 不是现行对象
-//     （ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58），err 给出被拒 mode、允许集与
-//     迁移提示（point_information / surface_gls）；
-//   * psf_snr_power / auto / support_x_snr2 / legacy "0"|"1"|"2" / 空串 / NULL /
-//     未知值 → rc=1（FZ-MODE-DEFERRED / FZ-FIELD-WEIGHTMODE）。
-// equal / pixel_ivar 属 documented baseline（可识别但不作生产模式）：mode 为
-// "equal" 或 "pixel_ivar" → rc=2（baseline，非生产）且 err 说明不得声明科学最优。
-// 拒绝路径一律 fail-closed：rc!=0 且 err 非空（含被拒 mode 与允许集），不返回默认模式。
-// 返回 0=生产模式；1=禁止/未知/退役（REJECT）；2=baseline 模式（非生产）。
-P2_API int p2_weight_mode_check(const char* mode,
-                                char* err, std::size_t err_size);
 
 #ifdef __cplusplus
 }
