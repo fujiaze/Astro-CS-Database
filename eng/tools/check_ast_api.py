@@ -31,6 +31,23 @@ import tempfile
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 
+
+class AnchorStale(Exception):
+    """扫描面锚失效 —— fail-closed，exit 2（docs/ci/01_CHECKS.md §1）。"""
+
+
+def public_include() -> pathlib.Path:
+    """公共头根（单源）：AGENTS.md §7「lib/include/ 公共头」。
+
+    LINUXMAIN-PATH-01 B4: 原实现两处写死 REPO/"include"（ARCH-001 根目录整合前的
+    根 include/，树中已不存在 ⇒ 死锚）：① flags 里多一个无效 -I；
+    ② `for base in (REPO/"lib", REPO/"include")` 的第二项恒假 ⇒ 模块 include/cpp
+    根实际只从 lib/ 派生（lib/include 不在其内，靠 ① 那条无效 -I "兜住"）。
+    死锚当前不产生假红，但它使"公共头根"这一判据面**名存实亡**：一旦 lib/include
+    改名/迁移，flags 不会随之报错而只会静默少一条 -I。现由 REPO 派生 + 锚存活断言。
+    """
+    return REPO / "lib" / "include"
+
 # 检查的核心 public 头 (各含合同声明)
 CORE_HEADERS = [
     "lib/include/astrocs/core/contracts.h",
@@ -45,10 +62,17 @@ SKIP_NAMES = {"if", "for", "while", "sizeof", "return", "static_assert", "switch
 
 
 def include_flags(header: pathlib.Path) -> list[str]:
-    """header 自解析所需 include 路径：lib/include/ + 各模块 lib/include/ 与 cpp/ 根。"""
-    flags = ["-I", str(REPO / "include")]
+    """header 自解析所需 include 路径：lib/include/ + 各模块 lib/include/ 与 cpp/ 根。
+
+    锚失效（公共头根不在）⇒ AnchorStale，不静默少给 -I。
+    """
+    pub = public_include()
+    if not pub.is_dir():
+        raise AnchorStale("PUBLIC_INCLUDE " + str(pub) + " 不存在 —— clang 解析面会静默缩小")
+    flags = ["-I", str(pub)]
     roots = []
-    for base in (REPO / "lib", REPO / "include"):
+    # 生产源根（单源常量，与 lib/ 布局同源：ENGINEERING_SPEC §7）
+    for base in (REPO / "lib",):
         if base.is_dir():
             for d in base.rglob("include"):
                 if d.is_dir():
@@ -56,6 +80,9 @@ def include_flags(header: pathlib.Path) -> list[str]:
             for d in base.rglob("cpp"):
                 if d.is_dir():
                     roots.append(d)
+    if not roots:
+        raise AnchorStale("INCLUDE_ROOTS 在 " + str(REPO / "lib") + " 下派生为 0 个 —— "
+                          "clang 解析面为空")
     for d in sorted(set(roots)):
         flags += ["-I", str(d)]
     flags += ["-I", str(header.parent)]
@@ -340,6 +367,15 @@ def selftest() -> int:
             if not any("参数个数不一致" in e for e in errors):
                 print("SELFTEST_FAIL: 参数个数不一致未被检出: %s" % errors)
                 return 1
+            # 负例 2: 公共头根缺失 ⇒ AnchorStale（fail-closed，不静默少 -I）
+            (td / "lib" / "include").rename(td / "lib" / "include_moved")
+            try:
+                collect_errors()
+                print("SELFTEST_FAIL: 公共头根缺失未抛 AnchorStale")
+                return 1
+            except AnchorStale:
+                pass
+            (td / "lib" / "include_moved").rename(td / "lib" / "include")
         finally:
             REPO = saved
     print("SELFTEST_PASS: 干净基线绿；文档/AST 参数个数不一致必红")
@@ -352,7 +388,11 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     if args.selftest:
         return selftest()
-    errors, stats = collect_errors()
+    try:
+        errors, stats = collect_errors()
+    except AnchorStale as exc:
+        print("DOC-004_ANCHOR_STALE: " + str(exc))
+        return 2
     if errors:
         print("DOC-004_AST_VIOLATION:")
         for e in errors[:60]:

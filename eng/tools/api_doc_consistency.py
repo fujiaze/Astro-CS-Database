@@ -26,18 +26,46 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_FREEZE = "PASS"       # V17 G10 Round6 clean-tree 终验已通过
-SCAN_DIRS = [ROOT / "docs", ROOT / "reports", ROOT / "docs_snapshot"]
+
+# ── 扫描面（LINUXMAIN-PATH-01 B3）：由权威来源派生 + fail-closed 锚存活 ──────────
+# 原实现手抄 [docs, reports, docs_snapshot]，其中 reports/ 与 docs_snapshot/ 已随根目录
+# 整合退役，collect_text() 的 `if not d.exists(): continue` 把它们**静默**跳过 ⇒
+# 名义 3 目录、实际只剩 docs，而 PASS/FAIL 文案照旧宣称覆盖了 reports。
+# 权威来源:
+#   docs/              —— ENGINEERING_SPEC §8「仓库长期维护一套自解释文档集」，
+#                         docs/DOCUMENT_INDEX.yaml 是唯一索引地图；
+#   artifacts/evidence —— ENGINEERING_SPEC §7「artifacts/（证据与产物，含证据锚
+#                         artifacts/evidence/**）」，是 reports/ 退役后的报告/证据落位。
+#   docs_snapshot/     —— 从来不是仓库根：它是 build_v19r{2,3,4}_package.py 在临时
+#                         暂存区里造的打包快照目录名（见其源码 TMP/docs_snapshot），
+#                         故从扫描面移除（记录于此，非静默删除）。
+# 任一扫描目录不存在 ⇒ ANCHOR_STALE + exit 2（禁止静默跳过）。
+SCAN_DIRS = [ROOT / "docs", ROOT / "artifacts" / "evidence"]
 OUT = ROOT / "run" / "temp" / "p2_v17_evidence" / "api_doc_consistency.json"
 
 
+class AnchorStale(Exception):
+    """扫描面锚失效 —— fail-closed，exit 2（docs/ci/01_CHECKS.md §1）。"""
+
+
+def assert_scan_dirs() -> None:
+    """扫描面锚存活：任一目录缺失即点名判红（原实现静默 continue）。"""
+    missing = [str(d.relative_to(ROOT)) for d in SCAN_DIRS if not d.is_dir()]
+    if missing:
+        raise AnchorStale("SCAN_DIRS " + ", ".join(missing) +
+                          " 不存在 —— 文档扫描面会静默缩小，fail-closed 拒绝")
+
+
 def collect_text():
+    """读扫描面全部 .md/.csv/.txt。扫描面前置锚存活断言（fail-closed）。"""
+    assert_scan_dirs()
     parts = []
     for d in SCAN_DIRS:
-        if not d.exists():
-            continue
         for p in sorted(d.rglob("*")):
             if p.is_file() and p.suffix.lower() in (".md", ".csv", ".txt"):
                 parts.append((p, p.read_text(encoding="utf-8", errors="replace")))
+    if not parts:
+        raise AnchorStale("SCAN_DIRS 读入 0 个文本文件 —— 扫描面为空，fail-closed 拒绝")
     return parts
 
 
@@ -54,15 +82,23 @@ def read_first(paths, missing_problem):
 
 
 def main():
-    texts = collect_text()
+    try:
+        texts = collect_text()
+    except AnchorStale as exc:
+        print("API_DOC_CONSISTENCY_FAIL: ANCHOR_STALE %s" % exc)
+        sys.exit(2)
     problems = []
     checks = {}
     # 必读文件（缺失 = 登记 check 失败，不得裸崩）
     REQUIRED_FILES = {
         "PUBLIC_API.md": [ROOT / "docs" / "contracts" / "PUBLIC_API.md"],
         "api_inventory.md": [ROOT / "reports" / "v17" / "api_inventory.md"],
-        "rejection.h": [ROOT / "lib" / "phase2" / "include" / "astro" / "phase2"
-                        / "rejection.h"],
+        # LINUXMAIN-PATH-01 B3: 原锚 lib/phase2/include/astro/phase2/rejection.h
+        # 是 ARCH-001 前的路径（lib/phase2/ 已不存在）⇒ 恒报 rejection_header_missing。
+        # 真身 = lib/algorithms/coverage/include/astro/phase2/rejection.h（同一头文件，
+        # P2_SEMANTIC_* 定义所在）。
+        "rejection.h": [ROOT / "lib" / "algorithms" / "coverage" / "include"
+                        / "astro" / "phase2" / "rejection.h"],
         "SCIENCE_FREEZE.md": [ROOT / "docs" / "validation" / "SCIENCE_FREEZE.md"],
     }
 
@@ -83,9 +119,17 @@ def main():
     # api_inventory.md 已随报告版本化迁移 (reports/api_inventory.md →
     # reports/v17/api_inventory.md)；候选列表 + reports/v*/api_inventory.md
     # 兜底 (存在多个时取字典序最后一个 = 最新版本)。
-    inv_candidates = [ROOT / "reports" / "v17" / "api_inventory.md"]
+    # LINUXMAIN-PATH-01 B3: reports/ 已退役（reports/ -> artifacts/evidence/）。
+    # 候选面由"文档集 + 证据锚"派生，不再手抄 reports/ 死路径。候选只有两种**已登记**形态:
+    #   ① api_inventory.md  —— 历史名（reports/v17/api_inventory.md 已随 reports/ 退役,
+    #                          树内无同名后继）;
+    #   ② api_inventory.csv —— 现行 API 清单真身 docs/architecture/api_inventory.csv
+    #                          （449 行, 列 symbol/header/signature/export）。
+    inv_candidates = []
+    for base in SCAN_DIRS:
+        inv_candidates += sorted(p for p in base.rglob("api_inventory.md") if p.is_file())
     inv_candidates += sorted(
-        p for p in ROOT.glob("reports/v*/api_inventory.md") if p.is_file())
+        p for p in (ROOT / "docs").rglob("api_inventory.csv") if p.is_file())
     seen_inv = set()
     inv_candidates = [p for p in inv_candidates
                       if not (p in seen_inv or seen_inv.add(p))]
