@@ -46,7 +46,7 @@
 2. `module.yaml` —— ID、版本、ABI、端口、schema 链接、entrypoint；
 3. 公开头文件 —— 版本化 C ABI，带 `struct_size`/`abi_version`；
 4. 实现 —— 单一 entrypoint，不隐藏整阶段 Session；
-5. CMake target —— 独立 DLL/SO；
+5. CMake target —— 独立 DLL/SO（**自持符号闭包**：模块 .so/.dll 从源文件独立重编译其依赖闭包，不得依赖宿主进程导出的项目符号；其未定义符号必须能在自身 DT_NEEDED 闭包内解析，由 `CHK-PLUGIN-SYMBOL-CLOSURE` 机器保证）；
 6. 共址可复用测试 —— 单测 + 合同 + 负例；
 7. 输入/输出端口引用有效 DATA 合同（`docs/contracts/` 唯一事实源）。
 
@@ -178,7 +178,7 @@ run/（gitignore：临时产物/日志；自清理机制见 eng/tools/run_gc.py 
 - **锚存活**：检查器硬编码引用的文件/目录必须存在，失效时报 `ANCHOR_STALE`；
 - **注册表双向一致**：`eng/ci/checks.json` 与 `docs/ci/01_CHECKS.md §2` 双向对齐；
 - 修改代码/测试后本地复跑对应检查项；
-- 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、算法引用有效 SCI/ALG、核心合同有独立测试、API 文档与 AST 一致、删除/重命名无悬空引用（含文档索引）、活动文档版本号与状态均为现行、历史代码处置合规（§2）、Git diff 映射到受影响合同与最小测试集、**落盘形态合同**（`CHK-HIPS-STORAGE-FORM`：命名/互斥/归档逐成员帧/索引不变式/哈希口径，含正例与负例注入）。
+- 检查器覆盖（至少）：模块 manifest/注册表/构建 target/产品清单一致、端口引用有效 DATA 合同、算法引用有效 SCI/ALG、核心合同有独立测试、API 文档与 AST 一致、删除/重命名无悬空引用（含文档索引）、活动文档版本号与状态均为现行、历史代码处置合规（§2）、Git diff 映射到受影响合同与最小测试集、**落盘形态合同**（`CHK-HIPS-STORAGE-FORM`：命名/互斥/归档逐成员帧/索引不变式/哈希口径，含正例与负例注入）、**交付共享对象符号闭包**（`CHK-PLUGIN-SYMBOL-CLOSURE`：产品清单登记的每个 plugin .so 的强未定义符号可在 DT_NEEDED 闭包内解析、DT_NEEDED 可解析、`dlopen(RTLD_NOW)` 成功，含正例与负例注入）。
 
 ---
 

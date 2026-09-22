@@ -39,6 +39,13 @@ set(HIPS_PROD_SOURCES
     # + cfitsio + 共享互斥头, 故纳入最小闭包。
     ${HIPS_PROD_DIR}/src/hips/aio_hips_reader.cpp
     ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/healpix/healpix_core.cpp
+    # 打洞机制原语 aio_sparse_punch.h (aio_hips_writer.cpp:22) 为 header-only,
+    # 但它依赖的两处**非 inline 定义**必须随源集编入, 否则 .so 载入期报
+    # undefined symbol: (a) aio_file_io.h 的 inline aio_file::sha256_hex 调
+    # astrocs::crypto::Sha256 做打洞前后整文件摘要校验 —— 该类型定义在 crypto
+    # 唯一实现 TU; (b) aio_log.h 的 aio_log —— 唯一实现 TU aio_log.cpp。
+    ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/crypto/sha256.cpp
+    ${HIPS_PROD_DIR}/src/aio_log.cpp
 )
 add_library(astrocs_p1_hips_writer SHARED
     ${HIPS_ADAPTER_SOURCES}
