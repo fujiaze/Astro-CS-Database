@@ -8931,6 +8931,132 @@
       ]
     },
     {
+      "id": "CHK-ARCH502-NORMALIZE-WF",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-ARCH502-NORMALIZE-WF",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/normalize_workflow.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**",
+        "lib/infrastructure/**",
+        "eng/tests/**",
+        "eng/tools/quality/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "normalize_workflow"
+      ],
+      "steps": [
+        {
+          "id": "CTEST-NORMALIZE-WORKFLOW",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "normalize_workflow",
+            "--output",
+            "run/ci/ctest/normalize_workflow.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/normalize_workflow.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "lib/infrastructure/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "normalize_workflow"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "CHK-SCHED-PROBE-SCHEMA",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-SCHED-PROBE-SCHEMA",
+        "--quiet"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/quality/scheduler_probe_schema.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/contracts/schemas/scheduler_probe_event.schema.json",
+        "lib/infrastructure/scheduler/**",
+        "eng/tools/quality/**"
+      ],
+      "requires_monitor": false,
+      "steps": [
+        {
+          "id": "CHK-SCHED-PROBE-SCHEMA-STEP",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/check_scheduler_probe_schema.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 300,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/quality/scheduler_probe_schema.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/contracts/schemas/**",
+            "eng/tools/quality/**"
+          ],
+          "requires_monitor": false
+        }
+      ]
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",

@@ -27,7 +27,30 @@ using namespace astrocs::core;
 #ifndef ARCH502_EVIDENCE_DIR
 #define ARCH502_EVIDENCE_DIR "run/RELEASE-05/evidence"
 #endif
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
+
+namespace {
+// 确保证据目录存在（ctest 工作目录可能是 run/ci/build-*，必须 mkdir -p）
+void ensure_evidence_dir() {
+  std::string p(ARCH502_EVIDENCE_DIR);
+  std::string acc;
+  std::size_t i = 0;
+  if (!p.empty() && p[0] == '/') { acc = "/"; i = 1; }
+  while (i <= p.size()) {
+    const std::size_t j = p.find('/', i);
+    const std::string part = p.substr(i, (j == std::string::npos ? p.size() : j) - i);
+    if (!part.empty()) {
+      if (!acc.empty() && acc.back() != '/') acc.push_back('/');
+      acc += part;
+      ::mkdir(acc.c_str(), 0755);
+    }
+    if (j == std::string::npos) break;
+    i = j + 1;
+  }
+}
+}  // namespace
 
 namespace {
 int g_fail = 0, g_total = 0;
@@ -148,6 +171,8 @@ std::vector<FrameOutcome> run_with(int workers, bool prefetch, std::uint64_t mem
 }  // namespace
 
 int main() {
+  ensure_evidence_dir();
+
   // A/B. 确定性：N=1/2/4/8 逐位一致 + 输出按 frame_id 升序
   {
     std::vector<std::vector<FrameOutcome>> all;
