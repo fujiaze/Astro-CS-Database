@@ -23,6 +23,11 @@
     10. docs/archive/** 下每个 md 头 400 字符含 ARCHIVED 标记；工程控制归档目录约束；
     11. 根与 docs/ 下无散落旧控制包（含非 ASCII 路径：git -c core.quotepath=false）；
     12. 锚存活 + 旧权威回归（docs/review/**、REVIEW.md、CHANGELOG.md、HANDOVER.md）。
+  D. 扫描面自证
+    13. 逐文件排除项（SKIP_EXACT）逐条有据：是台账本身，或该文件自带 --self-test
+        夹具面（既注册 --self-test 入口、又实现 self_test()）；文件不存在亦判红
+        （锚存活 / fail-closed）。"为了让红灯变绿而随手把某文件塞进排除面"由此判红
+        （负例 S17 无夹具面 / S18 锚缺失 / S19 台账被移出），排除面只减不增、判别力不降。
 
 --strict 语义：判据硬引用的锚（ANCHOR_PATHS）任一缺失 ⇒ FAIL 并打印
   "ANCHOR_STALE: <path>"；退役锚缺失 ⇒ "ANCHOR_RETIRED_OK"（出库完成态，不判红）。
@@ -42,6 +47,7 @@ fail-closed（ENGINEERING_SPEC §10）：
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import re
@@ -110,7 +116,26 @@ ARCHIVED_CONTROL_PACKS = ()
 #   * 本检查器自身与台账 —— 自检夹具/台账按构造承载 docs/ token
 SKIP_SUFFIX = ("/memory.md",)
 SKIP_CONTAINS = ("/third_party/",)
-SKIP_EXACT = (LEDGER_PATH, "eng/tools/doccheck/check_doc_index.py")
+
+# SKIP_EXACT 准入规则（正向判据，不是文件名清单；机器自证 = skip_exact_justified）：
+#   逐文件排除只对「按构造必须承载 docs/ token、但那些 token 不指向真实文件」的文件开放，
+#   且必须属于下列两类之一 —— 不满足者一律不得登记（登记即判红）：
+#     ① 台账本身（LEDGER_PATH）：它是悬空引用的显式登记面，其中的 token 是**数据**不是引用；
+#     ② 自带 --self-test 夹具面的检查器：夹具里的 docs/… 是「应当被判红的样例文本」，
+#        按构造不存在；把它们当悬空引用扫描 = 把负例当违规（DOC-HYGIENE-01 新增
+#        check_doc_hygiene.py 未同步登记时，正是这类假红：8 条全来自其 --self-test 夹具）。
+#   判别力不受影响：非排除文件里的悬空 docs/ 引用仍逐条判红（负例 S13），
+#   台账上限 LEDGER_MAX 只减不增，且新增排除项必须先自证①/②（负例 S17/S18）。
+SKIP_EXACT = (
+    LEDGER_PATH,                                # ① 台账（悬空引用的登记面本身）
+    "eng/tools/doccheck/check_doc_index.py",    # ② 本检查器（--self-test 夹具面）
+    "eng/tools/doccheck/check_doc_hygiene.py",  # ② DOC-HYGIENE 检查器（--self-test 夹具面）
+)
+
+# ②的机器判据：既要有 --self-test 入口，又要有 self_test() 实现体 ——
+# 只在注释里提一句 "--self-test" 不算夹具面（防"塞注释过闸"）。
+SELFTEST_FLAG = "--self-test"
+SELFTEST_ENTRY_RE = re.compile(r"def\s+self_test\s*\(")
 
 # docs/... 指针 token：左边界禁止为路径字符（排除 URL 与 lib/.../docs/x 形态的误报）
 TOKEN_RE = re.compile(r"(?<![A-Za-z0-9_./-])docs/[A-Za-z0-9_./-]*")
@@ -273,6 +298,37 @@ def load_ledger(root: str) -> tuple:
     return {(e["file"], e["token"]): e for e in entries}, str(len(entries)) + " 条（上限 " + str(LEDGER_MAX) + "）"
 
 
+def skip_exact_reason(root: str, rel: str) -> str:
+    """SKIP_EXACT 单条准入自证：返回 "" = 有据，否则返回判红原因。
+
+    依据：ENGINEERING_SPEC §8.4（悬空即缺陷）、§10（锚存活 / fail-closed / 可执行负例面）。
+    规则（见 SKIP_EXACT 准入规则）：① 台账本身；② 自带 --self-test 夹具面的检查器。
+    """
+    if rel == LEDGER_PATH:
+        return ""
+    full = os.path.join(root, rel)
+    if not os.path.isfile(full):
+        return rel + " 不存在（排除面条目是硬引用，必须锚存活；ENGINEERING_SPEC §10）"
+    text = _read(full)
+    if SELFTEST_FLAG not in text:
+        return rel + " 无 " + SELFTEST_FLAG + " 入口（非夹具面文件，不得逐文件排除）"
+    if not SELFTEST_ENTRY_RE.search(text):
+        return rel + " 未实现 self_test()（只提 " + SELFTEST_FLAG + " 不算夹具面）"
+    return ""
+
+
+def check_skip_exact_justified(root: str) -> dict:
+    """扫描面逐文件排除项自证（检查 13）：SKIP_EXACT 每条必须①是台账 或 ②自带夹具面。"""
+    bad = [(rel, why) for rel in SKIP_EXACT
+           for why in (skip_exact_reason(root, rel),) if why]
+    if LEDGER_PATH not in SKIP_EXACT:
+        bad.append((LEDGER_PATH, "台账必须留在排除面内（否则台账自身的 token 被当悬空引用）"))
+    detail = ("无据排除=" + repr(bad[:5]) + " 共" + str(len(bad))
+              + "（SKIP_EXACT 只允许：台账 / 自带 --self-test 夹具面的检查器）") if bad else \
+             ("SKIP_EXACT " + str(len(SKIP_EXACT)) + " 条逐条有据（台账 + 自带 --self-test 夹具面）")
+    return check("skip_exact_justified", not bad, detail)
+
+
 def header_region(lines: list, max_lines: int = 25) -> list:
     out = []
     for ln in lines[:max_lines]:
@@ -325,7 +381,8 @@ def run_checks(root: str, strict: bool) -> tuple:
         for name in ("anchor_files_alive", "index_file_exists", "index_file_git_tracked",
                      "yaml_parse", "index_entry_paths_exist", "docs_fully_covered",
                      "root_docs_doc_links_resolve", "subordinate_docs_registered",
-                     "subordinate_docs_upstream_header", "docs_path_refs_resolve"):
+                     "subordinate_docs_upstream_header", "docs_path_refs_resolve",
+                     "skip_exact_justified"):
             results.append(check(name, False, "仓库根不存在（fail-closed）：" + root))
         results.append(check("retired_authority_not_reintroduced", True,
                              "仓库根不存在：无旧权威可判（已由 anchor/index 项判红）"))
@@ -444,6 +501,9 @@ def run_checks(root: str, strict: bool) -> tuple:
                          (("缺抬头=" + repr(missing_header[:10]) + " 共" + str(len(missing_header)))
                           if missing_header
                           else str(len(subordinate)) + " 份下级文档抬头均有「上游」条款区（100%）")))
+
+    # --- 扫描面排除项自证：SKIP_EXACT 每条必须"有据"（准入规则见 SKIP_EXACT 定义处）---
+    results.append(check_skip_exact_justified(root))
 
     # --- 文档与代码注释中的 docs/ 路径可达（跨域未修项走显式台账）---
     ledger, ledger_detail = load_ledger(root)
@@ -789,6 +849,35 @@ def _write(path: str, text: str) -> None:
         fh.write(text)
 
 
+def _selftest_stub(name: str) -> str:
+    """SKIP_EXACT 中「自带夹具面」条目的同构桩：注册 --self-test 且实现 self_test()。
+
+    真仓里这些路径是真实检查器；mini-repo 必须与真仓同构 —— 缺了就是锚缺失，
+    skip_exact_justified 判红（这正是它该有的牙，见负例 S18）。
+    """
+    return ('#!/usr/bin/env python3\n# -*- coding: utf-8 -*-\n'
+            '"""' + name + ' 夹具桩（mini-repo 与真仓同构用，不承载 docs/ token）。"""\n'
+            'import argparse\n\n\n'
+            'def self_test() -> int:\n'
+            '    return 0\n\n\n'
+            'def main(argv=None) -> int:\n'
+            '    ap = argparse.ArgumentParser()\n'
+            '    ap.add_argument("--self-test", action="store_true")\n'
+            '    a = ap.parse_args(argv)\n'
+            '    return self_test() if a.self_test else 0\n')
+
+
+@contextlib.contextmanager
+def _skip_exact(value):
+    """临时改写 SKIP_EXACT（负例注入用）；退出即还原，自检不残留状态。"""
+    saved = SKIP_EXACT
+    globals()["SKIP_EXACT"] = tuple(value)
+    try:
+        yield
+    finally:
+        globals()["SKIP_EXACT"] = saved
+
+
 def _mk(root: str) -> None:
     for d in ("docs/owner", "docs/ci", "docs/archive", "docs/contracts",
               "lib/x", "eng/tools/doccheck"):
@@ -810,6 +899,10 @@ def _mk(root: str) -> None:
            "// legacy pointer docs/legacy/OLD.md (跨域未修，台账登记)\nint x = 1;\n")
     _write(os.path.join(root, LEDGER_PATH),
            json.dumps(LEDGER_JSON, ensure_ascii=False, indent=1) + "\n")
+    # SKIP_EXACT 的「自带夹具面」条目必须在位且自带 --self-test 实现（与真仓同构）。
+    for rel in SKIP_EXACT:
+        if rel != LEDGER_PATH:
+            _write(os.path.join(root, rel), _selftest_stub(os.path.basename(rel)))
 
 
 def _git_init(root: str) -> None:
@@ -991,6 +1084,34 @@ def self_test() -> int:
         cases.append(("S16-ledger-resolved-still-green",) + _res(r16, "s16", True, 0,
                                                                  "docs_path_refs_resolve"))
 
+        # S17 负例：往 SKIP_EXACT 塞一个「无夹具面」的文件（= 为了让红灯变绿而扩排除面）
+        #     ⇒ skip_exact_justified 判红。非退化自证：同一 mini-repo 在未改动的
+        #     SKIP_EXACT 下该 check 必须为绿 —— 红只能由注入产生，不是夹具本身坏。
+        r17 = _mk_repo(tmp, "s17")
+        _write(os.path.join(r17, "eng/tools/doccheck/no_selftest.py"),
+               "# 该文件没有夹具面：既无 --self-test 入口，也无 self_test() 实现\n")
+        _git_init(r17)
+        res17, _ = run_checks(r17, True)
+        pos17 = next((r["pass"] for r in res17 if r["check"] == "skip_exact_justified"), None)
+        with _skip_exact(SKIP_EXACT + ("eng/tools/doccheck/no_selftest.py",)):
+            ok17, msg17 = _red(r17, "s17", True, "skip_exact_justified")
+        cases.append(("S17-skip-exact-unjustified", bool(ok17) and pos17 is True,
+                      msg17 + " | 正控(未注入时 skip_exact_justified pass)=" + repr(pos17)))
+
+        # S18 负例：SKIP_EXACT 塞入不存在的文件 ⇒ 判红（锚存活/fail-closed：
+        #     否则「先删文件、再挂排除项」会成为永久盲区）
+        r18 = _mk_repo(tmp, "s18")
+        with _skip_exact(SKIP_EXACT + ("eng/tools/doccheck/ghost_checker.py",)):
+            ok18, msg18 = _red(r18, "s18", True, "skip_exact_justified")
+        cases.append(("S18-skip-exact-missing-anchor", ok18, msg18))
+
+        # S19 负例：把台账本身移出 SKIP_EXACT ⇒ 判红（台账里的 token 是数据不是引用；
+        #     台账不在排除面内时它自己会被当悬空引用扫描）
+        r19 = _mk_repo(tmp, "s19")
+        with _skip_exact(tuple(x for x in SKIP_EXACT if x != LEDGER_PATH)):
+            ok19, msg19 = _red(r19, "s19", True, "skip_exact_justified")
+        cases.append(("S19-ledger-dropped-from-skip-exact", ok19, msg19))
+
     bad = [(n, m) for n, ok, m in cases if not ok]
     for n, ok, m in cases:
         print("SELFTEST " + ("PASS" if ok else "FAIL") + " " + n + ": " + m)
@@ -1000,7 +1121,7 @@ def self_test() -> int:
         return 1
     print("SELFTEST_PASS: " + str(len(cases)) + "/" + str(len(cases))
           + " 例符合预期（正例 rc=0；悬空条目/悬空根文档指针/缺抬头/漏登记/代码注释悬空/"
-            "非 ASCII 旧控制包残留/台账缺失 各自判红）")
+            "非 ASCII 旧控制包残留/台账缺失/排除面无据、锚缺失、台账被移出 各自判红）")
     return 0
 
 

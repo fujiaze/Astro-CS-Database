@@ -64,10 +64,10 @@
     },
     {
       "path": "eng/tests/backend/phase2_fixture_main.cpp",
-      "hits": 10,
+      "hits": 5,
       "rules": {
         "cxx-stream": 3,
-        "filesystem": 7
+        "filesystem": 2
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -93,22 +93,19 @@
     },
     {
       "path": "eng/tests/integration/v6_p1/v6_p1_integrate_test.cpp",
-      "hits": 69,
+      "hits": 17,
       "rules": {
         "cxx-stream": 5,
-        "filesystem": 64
+        "filesystem": 12
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
         "<file-scope>",
-        "Case",
-        "NegCase",
         "flip_last_byte",
         "load_json",
         "main",
-        "push_back",
         "rm_rf",
         "run_group",
         "run_halfproduct",
@@ -119,10 +116,10 @@
     },
     {
       "path": "eng/tests/integration/v6_p2/v6_p2_integrate_test.cpp",
-      "hits": 40,
+      "hits": 17,
       "rules": {
         "cxx-stream": 5,
-        "filesystem": 35
+        "filesystem": 12
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -158,10 +155,10 @@
     },
     {
       "path": "eng/tests/system/v6_runtime/v6_runtime_resource_record_test.cpp",
-      "hits": 5,
+      "hits": 3,
       "rules": {
         "cxx-stream": 2,
-        "filesystem": 3
+        "filesystem": 1
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -174,10 +171,10 @@
     },
     {
       "path": "eng/tests/unit/ahpx_hips_format_test.cpp",
-      "hits": 7,
+      "hits": 5,
       "rules": {
         "fopen": 1,
-        "filesystem": 6
+        "filesystem": 4
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -236,10 +233,10 @@
     },
     {
       "path": "eng/tests/unit/cli_process_test.cpp",
-      "hits": 11,
+      "hits": 6,
       "rules": {
         "cxx-stream": 3,
-        "filesystem": 8
+        "filesystem": 3
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -251,10 +248,9 @@
     },
     {
       "path": "eng/tests/unit/core_pipeline_test.cpp",
-      "hits": 9,
+      "hits": 4,
       "rules": {
-        "cxx-stream": 4,
-        "filesystem": 5
+        "cxx-stream": 4
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -262,8 +258,7 @@
       "functions": [
         "<file-scope>",
         "read_file",
-        "test_pipeline_ir_fixtures",
-        "utf8_path"
+        "test_pipeline_ir_fixtures"
       ]
     },
     {
@@ -312,10 +307,10 @@
     },
     {
       "path": "eng/tests/unit/cpu007_profile_store_test.cpp",
-      "hits": 17,
+      "hits": 15,
       "rules": {
         "cxx-stream": 6,
-        "filesystem": 11
+        "filesystem": 9
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -382,9 +377,9 @@
     },
     {
       "path": "eng/tests/unit/drizzle_precision_default_test.cpp",
-      "hits": 5,
+      "hits": 4,
       "rules": {
-        "filesystem": 5
+        "filesystem": 4
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -532,25 +527,24 @@
     },
     {
       "path": "eng/tests/unit/io_ownership_test.cpp",
-      "hits": 4,
+      "hits": 3,
       "rules": {
-        "filesystem": 3,
-        "fopen": 1
+        "fopen": 1,
+        "filesystem": 2
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
-        "<file-scope>",
         "main",
         "write_minimal_fits"
       ]
     },
     {
       "path": "eng/tests/unit/ipv_platform_binding_test.cpp",
-      "hits": 4,
+      "hits": 3,
       "rules": {
-        "filesystem": 4
+        "filesystem": 3
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -636,10 +630,10 @@
     },
     {
       "path": "eng/tests/unit/p1001_real_nodes_test.cpp",
-      "hits": 212,
+      "hits": 140,
       "rules": {
-        "cxx-stream": 29,
-        "filesystem": 181,
+        "cxx-stream": 35,
+        "filesystem": 103,
         "fopen": 2
       },
       "category": "TEST-HARNESS",
@@ -647,8 +641,6 @@
       "owner": "无（测试面）",
       "functions": [
         "<file-scope>",
-        "Fixture",
-        "TriFixture",
         "cleanup_fixture",
         "cleanup_tri_fixture",
         "file_present",
@@ -662,7 +654,6 @@
         "make_tri_fixture",
         "read_bytes",
         "read_file",
-        "read_hips_plane_px",
         "test_b2a12_precision_default_and_equiv",
         "test_b2a13_dark_scale_from_exptime",
         "test_b2a14_photappl_provenance",
@@ -672,6 +663,7 @@
         "test_cos_artifact_is_independent",
         "test_determinism",
         "test_fail_fast_downstream_zero_calls",
+        "test_failsem01_frame_failure_semantics",
         "test_fixp1_photometry_apply",
         "test_golden_parity",
         "test_ivar001_phase1_variance_products",
@@ -766,10 +758,10 @@
     },
     {
       "path": "eng/tests/unit/p1snr/p1snr_frame_parity_test.cpp",
-      "hits": 20,
+      "hits": 14,
       "rules": {
         "cxx-stream": 2,
-        "filesystem": 18
+        "filesystem": 12
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -782,10 +774,10 @@
     },
     {
       "path": "eng/tests/unit/p1snr/p1snr_fref_baseline_test.cpp",
-      "hits": 10,
+      "hits": 7,
       "rules": {
         "cxx-stream": 3,
-        "filesystem": 7
+        "filesystem": 4
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -800,10 +792,10 @@
     },
     {
       "path": "eng/tests/unit/p1wcs/p1wcs_tests_apbp.cpp",
-      "hits": 4,
+      "hits": 3,
       "rules": {
         "fopen": 2,
-        "filesystem": 2
+        "filesystem": 1
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -814,18 +806,16 @@
     },
     {
       "path": "eng/tests/unit/p2001_real_nodes_test.cpp",
-      "hits": 110,
+      "hits": 74,
       "rules": {
         "cxx-stream": 7,
-        "filesystem": 103
+        "filesystem": 67
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
         "<file-scope>",
-        "IvarFixture",
-        "P1Fixture",
         "make_ivar_fixture",
         "make_p1_fixture",
         "read_bin",
@@ -843,18 +833,16 @@
     },
     {
       "path": "eng/tests/unit/p2002_unc_rej_prov_test.cpp",
-      "hits": 91,
+      "hits": 73,
       "rules": {
         "cxx-stream": 7,
-        "filesystem": 84
+        "filesystem": 66
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
         "<file-scope>",
-        "Fixture2",
-        "Fixture3",
         "make_fixture2",
         "make_fixture3",
         "read_bin",
@@ -884,17 +872,16 @@
     },
     {
       "path": "eng/tests/unit/p3002_real_nodes_test.cpp",
-      "hits": 44,
+      "hits": 24,
       "rules": {
         "cxx-stream": 4,
-        "filesystem": 40
+        "filesystem": 20
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
         "<file-scope>",
-        "NodeFixture",
         "cleanup_fixture",
         "fix402_write_completion_manifest",
         "make_node_fixture",
@@ -907,17 +894,16 @@
     },
     {
       "path": "eng/tests/unit/p3002_uncertainty_test.cpp",
-      "hits": 28,
+      "hits": 15,
       "rules": {
         "cxx-stream": 5,
-        "filesystem": 23
+        "filesystem": 10
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
         "<file-scope>",
-        "UncFixture",
         "cleanup_fixture",
         "make_fixture",
         "test_node_worker_parity",
@@ -929,9 +915,9 @@
     },
     {
       "path": "eng/tests/unit/p3_assembly_test.cpp",
-      "hits": 3,
+      "hits": 2,
       "rules": {
-        "filesystem": 3
+        "filesystem": 2
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -941,10 +927,34 @@
       ]
     },
     {
-      "path": "eng/tests/unit/p3_output_test.cpp",
-      "hits": 5,
+      "path": "eng/tests/unit/p3_export_stream_prod_test.cpp",
+      "hits": 21,
       "rules": {
-        "filesystem": 5
+        "cxx-stream": 8,
+        "filesystem": 13
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
+      "owner": "无（测试面）",
+      "functions": [
+        "<file-scope>",
+        "emit_identity",
+        "make_fixture",
+        "measure_once",
+        "read_all_bytes",
+        "rss_peak_kb",
+        "rss_reset_peak",
+        "test_product_identity",
+        "test_rss_criteria",
+        "write_completion_manifest",
+        "write_signal_hips"
+      ]
+    },
+    {
+      "path": "eng/tests/unit/p3_output_test.cpp",
+      "hits": 3,
+      "rules": {
+        "filesystem": 3
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -955,31 +965,29 @@
     },
     {
       "path": "eng/tests/unit/p3_sampler_cache_test.cpp",
-      "hits": 3,
+      "hits": 2,
       "rules": {
-        "filesystem": 3
+        "filesystem": 2
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
-        "build_mini_hips",
-        "main"
+        "build_mini_hips"
       ]
     },
     {
       "path": "eng/tests/unit/rt001_unique_executor_test.cpp",
-      "hits": 24,
+      "hits": 14,
       "rules": {
         "cxx-stream": 4,
-        "filesystem": 20
+        "filesystem": 10
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
         "<file-scope>",
-        "NodeFixture",
         "cleanup_fixture",
         "fix402_write_completion_manifest",
         "make_node_fixture",
@@ -1068,10 +1076,10 @@
     },
     {
       "path": "lib/algorithms/coverage/tests/ivar_wiring_test.cpp",
-      "hits": 19,
+      "hits": 18,
       "rules": {
         "cxx-stream": 4,
-        "filesystem": 15
+        "filesystem": 14
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -1104,10 +1112,10 @@
     },
     {
       "path": "lib/algorithms/coverage/tests/synthetic_gate.cpp",
-      "hits": 102,
+      "hits": 65,
       "rules": {
         "cxx-stream": 25,
-        "filesystem": 76,
+        "filesystem": 39,
         "fopen": 1
       },
       "category": "TEST-HARNESS",
@@ -1249,6 +1257,20 @@
       ]
     },
     {
+      "path": "lib/algorithms/integration/v6/oracle/recon_dump.cpp",
+      "hits": 4,
+      "rules": {
+        "cxx-stream": 4
+      },
+      "category": "DEV-TOOL",
+      "reason": "稀疏重建算子对照实验 dump harness（非生产路径：独立构建、不进根构建/ctest；唯一消费者 = oracle/recon_exp04_parity.py + 实验单元 EXP-04）",
+      "owner": "无（实验/诊断面）",
+      "functions": [
+        "<file-scope>",
+        "main"
+      ]
+    },
+    {
       "path": "lib/algorithms/photometry/cpp/test/gate4_dr3sp_gaiaxpy/fsyn_export.cpp",
       "hits": 1,
       "rules": {
@@ -1289,9 +1311,9 @@
     },
     {
       "path": "lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp",
-      "hits": 3,
+      "hits": 2,
       "rules": {
-        "filesystem": 2,
+        "filesystem": 1,
         "fopen": 1
       },
       "category": "TEST-HARNESS",
@@ -1359,10 +1381,10 @@
     },
     {
       "path": "lib/algorithms/star_detection/tests/p1star/p1stardet_node_gate_test.cpp",
-      "hits": 17,
+      "hits": 16,
       "rules": {
         "cxx-stream": 7,
-        "filesystem": 10
+        "filesystem": 9
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -1598,10 +1620,10 @@
     },
     {
       "path": "lib/infrastructure/cli/commands.cpp",
-      "hits": 69,
+      "hits": 35,
       "rules": {
         "cxx-stream": 15,
-        "filesystem": 54
+        "filesystem": 20
       },
       "category": "OBSERVABILITY-FIXED-ARTIFACTS",
       "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
@@ -1625,9 +1647,9 @@
     },
     {
       "path": "lib/infrastructure/cli/disk_gate.h",
-      "hits": 16,
+      "hits": 10,
       "rules": {
-        "filesystem": 15,
+        "filesystem": 9,
         "fopen": 1
       },
       "category": "OBSERVABILITY-FIXED-ARTIFACTS",
@@ -1674,10 +1696,10 @@
     },
     {
       "path": "lib/infrastructure/cli/parser.cpp",
-      "hits": 14,
+      "hits": 8,
       "rules": {
         "cxx-stream": 6,
-        "filesystem": 8
+        "filesystem": 2
       },
       "category": "OBSERVABILITY-FIXED-ARTIFACTS",
       "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
@@ -1718,17 +1740,16 @@
     },
     {
       "path": "lib/infrastructure/cli/subcommand.h",
-      "hits": 16,
+      "hits": 9,
       "rules": {
         "cxx-stream": 5,
-        "filesystem": 11
+        "filesystem": 4
       },
       "category": "OBSERVABILITY-FIXED-ARTIFACTS",
       "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
       "owner": "FIX-208 / 后续控制包（I/O 收口）",
       "functions": [
         "<file-scope>",
-        "calibration_checks",
         "check_input_path",
         "path_readable_dir",
         "path_readable_file",
@@ -1738,10 +1759,9 @@
     },
     {
       "path": "lib/infrastructure/cli/v6_mode_gate.h",
-      "hits": 3,
+      "hits": 2,
       "rules": {
-        "cxx-stream": 2,
-        "filesystem": 1
+        "cxx-stream": 2
       },
       "category": "OBSERVABILITY-FIXED-ARTIFACTS",
       "reason": "§9 登记在册的固定产物（resource_timeseries.csv / resource_summary.json / worker_balance.csv / alloc_* / 日志）+ CLI 配置读取",
@@ -1914,10 +1934,10 @@
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/checkpoint.cpp",
-      "hits": 19,
+      "hits": 17,
       "rules": {
         "cxx-stream": 5,
-        "filesystem": 13,
+        "filesystem": 11,
         "win32-fs": 1
       },
       "category": "RETIRED-PENDING",
@@ -1928,7 +1948,6 @@
         "CheckpointManager::atomic_write",
         "CheckpointManager::clear_all",
         "CheckpointManager::exists",
-        "CheckpointManager::get_filepath",
         "CheckpointManager::list_all",
         "CheckpointManager::load",
         "CheckpointManager::remove",
@@ -1965,10 +1984,9 @@
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/json_config.cpp",
-      "hits": 2,
+      "hits": 1,
       "rules": {
-        "cxx-stream": 1,
-        "filesystem": 1
+        "cxx-stream": 1
       },
       "category": "RETIRED-PENDING",
       "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
@@ -1979,26 +1997,25 @@
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/logger.cpp",
-      "hits": 6,
+      "hits": 3,
       "rules": {
         "cxx-stream": 1,
-        "filesystem": 5
+        "filesystem": 2
       },
       "category": "RETIRED-PENDING",
       "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
       "owner": "§7.1 退役计划 / 后续控制包",
       "functions": [
         "<file-scope>",
-        "Logger::ensure_log_file",
         "Logger::init",
         "Logger::set_log_dir"
       ]
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/main.cpp",
-      "hits": 4,
+      "hits": 2,
       "rules": {
-        "filesystem": 4
+        "filesystem": 2
       },
       "category": "RETIRED-PENDING",
       "reason": "ASTROCS_DESIGN §7.1 退役计划内（逐像素方差接线搬进 scheduler 后删除）；删除前不得新增 I/O",
@@ -2010,10 +2027,10 @@
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp",
-      "hits": 30,
+      "hits": 26,
       "rules": {
         "cxx-stream": 5,
-        "filesystem": 21,
+        "filesystem": 17,
         "fopen": 4
       },
       "category": "RETIRED-PENDING",
@@ -2037,24 +2054,23 @@
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/gate/orchestrator_saturation_wiring_gate.cpp",
-      "hits": 11,
+      "hits": 5,
       "rules": {
-        "filesystem": 11
+        "filesystem": 5
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
-        "<file-scope>",
         "main"
       ]
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/test_checkpoint.cpp",
-      "hits": 12,
+      "hits": 7,
       "rules": {
         "cxx-stream": 1,
-        "filesystem": 11
+        "filesystem": 6
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -2080,10 +2096,10 @@
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/test_logger.cpp",
-      "hits": 15,
+      "hits": 13,
       "rules": {
         "cxx-stream": 3,
-        "filesystem": 12
+        "filesystem": 10
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -2103,10 +2119,10 @@
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/test_orchestrator_cli.cpp",
-      "hits": 59,
+      "hits": 51,
       "rules": {
         "cxx-stream": 39,
-        "filesystem": 19,
+        "filesystem": 11,
         "fopen": 1
       },
       "category": "TEST-HARNESS",
@@ -2128,10 +2144,10 @@
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/tests/test_p1_batchB_fixes.cpp",
-      "hits": 18,
+      "hits": 13,
       "rules": {
         "cxx-stream": 6,
-        "filesystem": 12
+        "filesystem": 7
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -2185,9 +2201,9 @@
     },
     {
       "path": "lib/phase1_session/tests/p1sess/p1sess_tests_negative.cpp",
-      "hits": 4,
+      "hits": 2,
       "rules": {
-        "filesystem": 4
+        "filesystem": 2
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -2198,9 +2214,9 @@
     },
     {
       "path": "lib/phase1_session/tests/p1sess/p1sess_tests_perf.cpp",
-      "hits": 4,
+      "hits": 2,
       "rules": {
-        "filesystem": 4
+        "filesystem": 2
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -2211,9 +2227,9 @@
     },
     {
       "path": "lib/phase1_session/tests/p1sess/p1sess_tests_properties.cpp",
-      "hits": 6,
+      "hits": 4,
       "rules": {
-        "filesystem": 6
+        "filesystem": 4
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -2224,25 +2240,24 @@
     },
     {
       "path": "lib/phase1_session/tests/p1sess/p1sess_tests_units.cpp",
-      "hits": 5,
+      "hits": 3,
       "rules": {
-        "filesystem": 5
+        "filesystem": 3
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
-        "fixture_base",
         "run_units",
         "setup_fixtures"
       ]
     },
     {
       "path": "lib/phase1_session/tests/test_p1_session_manifest.cpp",
-      "hits": 5,
+      "hits": 4,
       "rules": {
         "fopen": 2,
-        "filesystem": 3
+        "filesystem": 2
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
