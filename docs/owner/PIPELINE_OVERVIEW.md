@@ -42,9 +42,12 @@ Phase3: 任一合同兼容 HiPS（不要求来自 Phase2）
 
 ## 2. Phase1 内部链（单 Phase IR 子图）
 
-Phase1 目标链（03_TARGET_PRODUCT_AND_ARCHITECTURE.md §5）：
-`read → calibration → cosmetic → star_detection → psf → wcs → photometry → noise
+Phase1 目标链（`ASTROCS_DESIGN.md` §4.2）：
+`read → calibration → cosmetic → wcs(platesolve) → star_detection → psf → photometry → noise
 → drizzle → hips_writer`。
+解算节点按帧自读校准后像素自行检测与匹配，不消费检测产物；权威检测的星表逆投影需要含取向的完整 WCS
+（取自本帧解算产物）⇒ 解算在检测与 PSF 建模之前。节点序与依赖边的机器判据见
+`docs/contracts/PIPELINE_BLOCK_CONTRACT.md` §7.1。
 
 当前基线的实际装配（BASE=`da3c4b4a`）：
 - CLI 层 Phase1 IR：`cli/runtime_client.cpp`:92-114 两节点链
