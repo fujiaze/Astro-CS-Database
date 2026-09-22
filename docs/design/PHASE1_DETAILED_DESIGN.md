@@ -39,16 +39,24 @@ d_k = A_k x + n_k,    Cov(n_k) = C_k
 ingest → calibration → cosmetic/validity → background/noise
        → star_detection（星表引导检测）→ psf
        → platesolve（星表匹配 + 稳健迭代精化 WCS，此结果即权威 WCS）
-       → photometry → apply photometry（测光归一化真正落到像素）
+       → photometry（测光拟合 + 归一化施加到像素，**同一步**；见下）
        → noise_snr → drizzle → 产品验证 → 原子发布 HiPS+JSON
 ```
 
 节点可由调度器安排，但科学依赖不可改变；每节点只执行声明 operation，不得通过多个 facade 重复运行整段 Phase1。
+**photometry 为什么是一步（不是两步）**：拟合出的归一化标度 `k_photo` 必须真正落到像素，但**施加不需要独立的节点**——
+同一节点内「读 calibrated 面 → `I_photo = k_photo·I_cal`（in-place）→ 写 photoapplied 面」一次走完，
+省掉一次中间产物落盘，即**省一次写 + 一次读的 IO 往返**（生产 IR 的 normalize 阶段因此是 8 个节点：
+`calibrate / cosmetic_correct / detect_sources / plate_solve / measure_flux / estimate_snr / drizzle_stack / write_hips`，
+其中 `measure_flux` 即 photometry，施加是它的**内部步骤**而不是第 9 个节点）。
 **强制语义（不得放宽，细化见 §3.6）**：① 星表引导检测（检测定义域 = 星表位置，不是整幅图像）；
 ② WCS 解算只有**一个节点、一个权威解**：近似指向由 `wcs.init_source` 给出（不是解算节点），`platesolve` 在该指向下匹配星表并稳健迭代精化，输出即权威 WCS（轮次数是求解器实现细节，不是流程语义）；
 ③ **一次检测、一次通量积分、三处复用**（`star_detection` → `psf` → `photometry` → `noise_snr` 共用同一份
 检测结果与同一 `flux` 口径）；④ **测光归一化必须真正落到像素**（`I_photo = k_photo·m(x,y)·I_cal`；
-未启用时产品显式记 `degraded_reason` 并 fail-closed，元数据 `photappl`/`photscal` 如实落盘）。
+未启用时产品显式记 `degraded_reason` 并 fail-closed，元数据 `photappl`/`photscal` 如实落盘）；
+⑤ **施加的可核对性不因合并而降低**：provenance `p1_phot.json`（`DATA-P1-PHOTPROV-001`）必须记 `photometry_applied` /
+`photscal` / `photscales`（逐帧 `k_photo`）/ `photoapplied_artifacts`（施加后产物路径），使「k 确实乘进了像素」
+可由独立读者用「calibrated 面 × k」逐像素复算核对（判据与实测见 `run/RULING-DOC-01/REPORT.md` 裁决 B）。
 
 ## 4. 校准与方差传播
 

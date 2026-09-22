@@ -2,9 +2,8 @@
 // 唯一数值源: eng/packaging/config/runtime_resources.json
 // （与 G-RES-01 的 resource_gate_thresholds_generated.h 同款机制：
 //   实现侧不得再出现字面量阈值。）
-// 依据: 负责人裁决 2026-09-22（内存最高吃掉空闲的 95% 避免卡死；
-//       该参数配置在 config 里可调，默认 95）+ ASTROCS_DESIGN.md §8.3/§9 +
-//       docs/contracts/SCHEDULER_CONTRACT.md §3。
+// 依据: ASTROCS_DESIGN.md §8.3/§9（静态预算 = 调度准入输入；内存不设资源门）+
+//       docs/contracts/SCHEDULER_CONTRACT.md §3（内存上限由配置决定，禁硬编码）。
 #pragma once
 
 #include <cstdint>

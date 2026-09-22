@@ -92,9 +92,9 @@ string(JSON ASTROCS_RG_WORKLOAD_FLOOR_CORE_SECONDS GET "${ASTROCS_RESOURCE_GATE_
 configure_file(lib/infrastructure/cli/resource_gate_thresholds_generated.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/resource_gate_thresholds_generated.h @ONLY)
 
-# ── MEM-WIRE-01 运行时资源预算比例的唯一数值源 ───────────────────────────────
-# 依据: 负责人裁决 2026-09-22（内存最高吃掉空闲的 95% 避免卡死；该参数**配置在
-# config 里可调，默认 95**）+ ASTROCS_DESIGN.md §8.3/§9 + SCHEDULER_CONTRACT §3。
+# ── 运行时资源预算比例的唯一数值源 ──────────────────────────────────────────
+# 依据: ASTROCS_DESIGN.md §8.3/§9（静态预算 = 调度准入输入；内存不设资源门）
+#       + SCHEDULER_CONTRACT §3（内存上限由配置决定，禁硬编码）。
 # 与上面 G-RES-01 同款机制: 数值只写一次（eng/packaging/config/runtime_resources.json），
 # C++ 侧经生成头消费 ⇒ 实现侧零字面量（不得硬编码比例）。
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/eng/packaging/config/runtime_resources.json ASTROCS_RUNTIME_RESOURCES_JSON)

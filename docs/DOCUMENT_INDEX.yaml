@@ -100,9 +100,10 @@ doc_index:
       downstream: "ASTROCS_DESIGN.md、docs/DOCUMENT_INDEX.yaml、docs/algorithms/NOISE_ESTIMATION.md、docs/architecture/doc_symbol_namespaces.json 等 8 处"
     - path: "docs/KNOWN_LIMITATIONS.md"
       status: ACTIVE_INFORMATIVE
-      duty: "已知限制与明确不做的事项清单"
+      duty: "已知限制与明确不做的事项清单（只写现行限制陈述：现象 / 规范依据 / 归属去向）"
       upstream: "ASTROCS_DESIGN.md §1.3（非目标）"
       downstream: "README.md、docs/DOCUMENT_INDEX.yaml、docs/README-DOCS.md、docs/RELEASE_STATUS.md 等 25 处"
+      notes: "条目的过程台账（编号 / 严重度 / 状态 / 发现任务 / 裁决出处）迁出至 artifacts/evidence/known-limitations-ledger/LEDGER.md（ENGINEERING_SPEC §7 证据锚；artifacts/evidence/README.md 已登记）；本页条目号为稳定 ID，被 eng/tests/** 与 docs/RELEASE_STATUS.md 按「条目 N」「§E M-x」引用，迁移后仍可解析"
     - path: "docs/README-DOCS.md"
       status: ACTIVE_INFORMATIVE
       duty: "文档集导航与阅读顺序（活动文档集的入口说明）"

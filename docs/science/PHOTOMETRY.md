@@ -6,7 +6,7 @@
 
 ## 1 目的与非目标
 
-- **目的**：将仪器流量 `F_instr` 校准到**锚在 Gaia XP 绝对分光刻度（CALSPEC 溯源）的模型通带**光度尺度；模型通带当前为 `T(λ)·Q(λ)·λ`，**不含光学系统透过率与大气消光**（记为未建模项）。在模型通带内的结果可称「绝对通量（Gaia XP 刻度）」；跨通带/换系统/波段外通量不在本合同范围。估计零点 `location`、尺度因子 `scale` 及残差 QA `sigma_residual / sigma_mag`。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S6) -->
+- **目的**：将仪器流量 `F_instr` 校准到**锚在 Gaia XP 绝对分光刻度（CALSPEC 溯源）的模型通带**光度尺度；模型通带当前为 `T(λ)·Q(λ)·λ`，**不含光学系统透过率与大气消光**（记为未建模项）。在模型通带内的结果可称「绝对通量（Gaia XP 刻度）」；跨通带/换系统/波段外通量不在本合同范围。估计零点 `location`、尺度因子 `scale` 及残差 QA `sigma_residual / sigma_mag`。
 - **非目标**：不处理带通外颜色项高阶效应（仅 QA 暴露残差分布）；不估计逐像素噪声方差（SCI-NOISE 边界）；不做大气消光时变建模。
 - **测光标定语义（负责人 2026-09-19 裁决，claim `FIX-SCI-SNR-CANON-001`；不可协商）**：标定目标是**真实测光坐标系（星等）**，手段 = 星点光通量积分 + Gaia + CCD QE + 滤镜透过率曲线；**消除物理单位，只使用星等**。标定因子（本文件 `scale`、Phase1 标定面 `k_photo`）的**绝对值无物理意义**——它把增益/口径/曝光等**未知量全部吸收**；**禁止**用任何物理闭合式（如 `k = g·h·c·1e9/(A·t)`）反推仪器参数或论证其合理性（设计前提 = **FITS 头拿不到这些量**）。**有意义的判据只有一条（尺度无关）**：**测光一致性**——施加后星点**星等**与 Gaia 的残差（散度/MAD）必须小。
 **「帧间一致性」（各帧 `k`/`scale` 落在同一测光体系）是语义目标与报告字段，不是门禁判据**
@@ -18,7 +18,7 @@
 | 符号 | 含义 | 出现位置 |
 |---|---|---|
 | `F_instr` | 仪器通量 (ADU；e⁻ 需 gain，当前不可得) | 输入 |
-| `F_syn` | 合成通量 = `∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`（Gaia 星表模型） | 输入（单位：W·m⁻²·nm，模型通带积分辐照度）<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S7) --> |
+| `F_syn` | 合成通量 = `∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`（Gaia 星表模型） | 输入（单位：W·m⁻²·nm，模型通带积分辐照度） |
 | `r_i` | `log10(F_instr/F_syn)` dex | 定标核心 |
 | `delta_i` | `−2.5·log10(F_instr)−G_Gaia` mag | 星等一致性 |
 | `location` | IRLS/Tukey 稳健位置（dex） | `star_matcher.cpp:478-525` |
@@ -32,7 +32,7 @@
 
 ## 3 物理量和单位
 
-- `F_instr`: ADU（e⁻ 需 gain，当前不可得）；`F_syn`: W·m⁻²·nm（模型通带积分辐照度，`F_syn = ∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`）；二者**不同量纲**，其比值的对数即 `location`（见 DATA_SEMANTICS §14.3）；`r, location, S, sigma_residual`: dex（`r_i = log10(F_instr/F_syn)` 是**有量纲比值**的对数，`location` 单位 dex(ADU/[F_syn 单位])，`scale = 10^{−location}` 单位 [F_syn 单位]/ADU）；`delta, sigma_mag`: mag；`sigma_cal_rel`: 相对误差（`sigma_cal_rel = ln10·sigma_residual`）；`qf` 无量纲标志。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S1/S7) -->
+- `F_instr`: ADU（e⁻ 需 gain，当前不可得）；`F_syn`: W·m⁻²·nm（模型通带积分辐照度，`F_syn = ∫F_λ(λ)·T(λ)·Q(λ)·λ dλ`）；二者**不同量纲**，其比值的对数即 `location`（见 DATA_SEMANTICS §14.3）；`r, location, S, sigma_residual`: dex（`r_i = log10(F_instr/F_syn)` 是**有量纲比值**的对数，`location` 单位 dex(ADU/[F_syn 单位])，`scale = 10^{−location}` 单位 [F_syn 单位]/ADU）；`delta, sigma_mag`: mag；`sigma_cal_rel`: 相对误差（`sigma_cal_rel = ln10·sigma_residual`）；`qf` 无量纲标志。
 
 ## 3a 坐标 frame
 
@@ -72,7 +72,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 ## 6 假设
 
-- Gaia 合成星表（**模型通带相对刻度**，锚 Gaia XP 光谱形状；`F_syn=∫F_λTQλdλ` 不含 `1/(hc)` 等绝对归一，常数由 `location` 吸收，故**不宣称绝对通量刻度**）在本模型通带内提供可信参考；**模型通带不含光学系统透过率与大气消光**（未建模项，跨帧会成为帧间系统差）；大气/仪器零点在观测尺度稳定；饱和判据可靠（`psf_status==0` 且无 `SATURATED` 标志）。<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S6) -->
+- Gaia 合成星表（**模型通带相对刻度**，锚 Gaia XP 光谱形状；`F_syn=∫F_λTQλdλ` 不含 `1/(hc)` 等绝对归一，常数由 `location` 吸收，故**不宣称绝对通量刻度**）在本模型通带内提供可信参考；**模型通带不含光学系统透过率与大气消光**（未建模项，跨帧会成为帧间系统差）；大气/仪器零点在观测尺度稳定；饱和判据可靠（`psf_status==0` 且无 `SATURATED` 标志）。
 
 ## 7 独立不变量
 
@@ -168,7 +168,7 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 
 ## 16 方法链与方法学（DOC-404 增补；不改 §5 公式与常数）
 
-> **上游**：`ASTROCS_DESIGN.md` §2.1（创新点一：测光校准到测光星等坐标系）、§4.2（Phase1 节点流程：星表引导检测 → PSF → WCS 解算 → photometry → **apply photometry**）、§4.4（测光输出语义）；研究包：`docs/research/PHOTOMETRY_RESEARCH_PACK.md`（一手出处与开源对照）。
+> **上游**：`ASTROCS_DESIGN.md` §2.1（创新点一：测光校准到测光星等坐标系）、§4.2（Phase1 节点流程：星表引导检测 → PSF → WCS 解算 → photometry（**含同一步内的归一化施加**））、§4.4（测光输出语义）；研究包：`docs/research/PHOTOMETRY_RESEARCH_PACK.md`（一手出处与开源对照）。
 > **边界**：本节只写方法链与论证，**不引入新公式、常数或门限**；§5 的 IRLS/Tukey 定义、§7 不变量、§10 不可接受变化全部不变；误差预算的**数值与实验**属 SCI-401（推导落点见 §16.4）。
 
 ### 16.1 方法链（逐步对应最高设计 §4.2 的节点顺序）
@@ -178,8 +178,8 @@ outlier_rate = 1 − |r_inliers|/|r_consistent|
 | ① **Gaia XP 逆映射定位** | 用本帧 WCS（近似指向来自 `wcs.init_source`）把 Gaia DR3 星表（ICRS/J2000，自行/视差传播到观测历元）**逆投影到像素域**，只在星表位置做质心/PSF 拟合；拟合失败直接丢弃（不计虚警、不报错）；上限按亮度取 top 2–5 万，极限星等按焦距/画幅/曝光派生估计 | `platesolve`（星表匹配 + 稳健迭代精化）+ `star_detection` | `docs/plugins/algorithms_phase1/03_star_detection.md` §4、`docs/plugins/algorithms_phase1/05_platesolve.md`；研究包 §6（astrometry.net 盲解+精化、SCAMP 星表解算、astropy WCS 逆投影） |
 | ② **星点测光** | 在星表位置做 **PSF 拟合域**测光（全链唯一 `flux` 口径 `flux = 2πA·sx·sy/3`；孔径测光只作显式诊断）；`F_hat = Q/W`、`Var(F_hat)=1/W`；饱和/质量异常不入定标 | `psf` → `photometry` | `docs/plugins/algorithms_phase1/06_photometry.md` §4、`docs/science/PSF_SIGNAL_WEIGHT.md` §2；研究包 §6（DAOPHOT/Anderson & King 的星表引导 PSF 测光族、photutils/SEP 的独立对照） |
 | ③ **光谱 × QE × 透过率积分（正向合成期望测光量）** | 用 Gaia DR3 XP 星点光谱 × 系统响应在**模型通带**内积分得 `F_syn`（本文件 §2/§5 的定义式）；XP 采样网格 = 336–1020 nm、步长 2 nm、343 点，谱插值按 §14a；`Q(λ)≡1` 与网格外无数据是**显式未建模项**，不外推 | `photometry`（参考侧） | 研究包 §3（Gaia DR3 官方文档 §20.12.3/§20.12.4、Montegriffo 2023、De Angeli 2023）、§4（合成测光标准方法：Bessell 1990、Bessell & Murphy 2012、Sirianni 2005、synphot/pysynphot） |
-| ④ **拟合 `k_photo` 与低阶空间增益 `m(x,y)`** | 逐星 `r_i = log10(F_instr/F_syn)` → 星等一致性预过滤 → IRLS/Tukey 稳健位置（§5）；同时用星点残差在帧内估计**低阶乘性空间增益** `m(x,y)`（平场/光学大尺度响应的低阶残余），与 `k_photo` 一并作为标定面 | `photometry` | 本文件 §5；`ASTROCS_DESIGN.md` §4.2「apply photometry」；研究包 §7 ④（平场/大尺度残余的预算出处） |
-| ⑤ **应用到像素** | `I_photo = k_photo·m(x,y)·I_cal` 施加到**整帧像素**（不只星点）；其后所有节点与 drizzle 消费归一化后的像素；该步不可用时产品显式记录 `degraded_reason` 并 **fail-closed** | `apply photometry` | `ASTROCS_DESIGN.md` §4.2（含 fail-closed 条款） |
+| ④ **拟合 `k_photo` 与低阶空间增益 `m(x,y)`** | 逐星 `r_i = log10(F_instr/F_syn)` → 星等一致性预过滤 → IRLS/Tukey 稳健位置（§5）；同时用星点残差在帧内估计**低阶乘性空间增益** `m(x,y)`（平场/光学大尺度响应的低阶残余），与 `k_photo` 一并作为标定面 | `photometry` | 本文件 §5；`ASTROCS_DESIGN.md` §4.2（测光归一化落到像素，photometry 一步完成）；研究包 §7 ④（平场/大尺度残余的预算出处） |
+| ⑤ **应用到像素** | `I_photo = k_photo·m(x,y)·I_cal` 施加到**整帧像素**（不只星点）；其后所有节点与 drizzle 消费归一化后的像素；该步不可用时产品显式记录 `degraded_reason` 并 **fail-closed**。**施加是 `photometry` 节点内的步骤，不是独立节点**（合并成一步省一次中间产物落盘 = 省一次写 + 一次读的 IO 往返） | `photometry`（同一步内的施加步骤） | `ASTROCS_DESIGN.md` §4.2（含 fail-closed 条款） |
 | ⑥ **星等坐标系表达** | 产物通量以**星等/相对星等**表达；零点锚在**同一模型通带**的 Gaia XP 合成刻度上；标定系数绝对值无物理意义 | `noise_snr` 及其后 | `ASTROCS_DESIGN.md` §2.1/§4.4；本文件 §1/§6 |
 
 - **一次检测、一次通量积分、三处复用**：检测、PSF、测光与 SNR 共用同一份星点绑定行与同一通量口径（`ASTROCS_DESIGN.md` §4.2），本节不另立口径。

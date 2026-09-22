@@ -1,0 +1,88 @@
+{
+  "artifacts": [
+    {
+      "canonical_format": "fits",
+      "canonical_hash_spec": "astrocs.canonical-product-hash/v1",
+      "canonical_sha256": "7709a1b0812d886518e339a3d4ee0cfd8e7b55b5a25383e06ef10e751c38c515",
+      "integrity_sha256": "a4a1db00062649d90fd3f266987425538ddb057ec8dcd6c7cb501fb387108fad",
+      "path": "run/GAIA-FAILCLOSED-01/out_empty/calibrated_Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+      "sha256": "a4a1db00062649d90fd3f266987425538ddb057ec8dcd6c7cb501fb387108fad",
+      "size_bytes": 64811520
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "astrocs.canonical-product-hash/v1",
+      "canonical_sha256": "158059cd977c730c7ce553fb7371a5820a12433e8c1c8c929e96412026a88a1c",
+      "integrity_sha256": "fe9d1050ab42b392530e91a49fc0972ae541b5a0d215161fe91c0e3eab24b19c",
+      "path": "run/GAIA-FAILCLOSED-01/out_empty/p1_sources.json",
+      "sha256": "fe9d1050ab42b392530e91a49fc0972ae541b5a0d215161fe91c0e3eab24b19c",
+      "size_bytes": 66874018
+    },
+    {
+      "canonical_format": "json",
+      "canonical_hash_spec": "astrocs.canonical-product-hash/v1",
+      "canonical_sha256": "d9b6b8c57bcc4af317fd7e83861022ffdd7b4d448a087175f706606f368d16f7",
+      "integrity_sha256": "f1eb974d60ec3bb69ed9dd9820d0281a364dba74a7d0c9d0bc2e0361ab5cb8b0",
+      "path": "run/GAIA-FAILCLOSED-01/out_empty/p1_psf.json",
+      "sha256": "f1eb974d60ec3bb69ed9dd9820d0281a364dba74a7d0c9d0bc2e0361ab5cb8b0",
+      "size_bytes": 457
+    }
+  ],
+  "astrocs_version": "0.11.0-alpha.2+g60f46388b7f6e4e7c098645ff8855aeaa5d8309d",
+  "config_path": "run/GAIA-FAILCLOSED-01/e2e_empty_gaia.json",
+  "config_sha256": "4bc2a73f5393a7ac76a81073331829f955672cec858a24f86c5beba27f7f1971",
+  "cpu_profile_path": null,
+  "cpu_profile_sha256": null,
+  "error": {
+    "message": "phase1 failed: node wcs failed: gaia catalog is empty (gaia_data_dir=<repo>/run/GAIA-FAILCLOSED-01/gaia_empty, xpsd_entries=0): refusing to solve WCS without a reference catalog"
+  },
+  "finished_utc": "2026-09-22T10:20:17Z",
+  "kind": "astrocs_run_manifest",
+  "phases": [
+    1
+  ],
+  "platform": {
+    "arch": "amd64",
+    "os": "linux"
+  },
+  "provenance": {
+    "algorithm_ids": [
+      "ALG-002",
+      "ALG-P1-CAL-001",
+      "ALG-P1-COS-001"
+    ],
+    "coordinate_frames": [],
+    "input_product_hashes": [],
+    "module_build_ids": [
+      "astrocs.phase1.calibration@0.11.0-alpha.2+g60f46388b7f6e4e7c098645ff8855aeaa5d8309d",
+      "astrocs.phase1.cosmetic@0.11.0-alpha.2+g60f46388b7f6e4e7c098645ff8855aeaa5d8309d",
+      "astrocs.phase1.star-psf@0.11.0-alpha.2+g60f46388b7f6e4e7c098645ff8855aeaa5d8309d",
+      "astrocs.phase1.wcs-platesolve@0.11.0-alpha.2+g60f46388b7f6e4e7c098645ff8855aeaa5d8309d"
+    ],
+    "output_product_hashes": [
+      {
+        "path": "run/GAIA-FAILCLOSED-01/out_empty/calibrated_Galaxy_Center_mosaic1_T4_flying_dutchman-20250702@061703-180S-Red.fts",
+        "sha256": "a4a1db00062649d90fd3f266987425538ddb057ec8dcd6c7cb501fb387108fad"
+      },
+      {
+        "path": "run/GAIA-FAILCLOSED-01/out_empty/p1_sources.json",
+        "sha256": "fe9d1050ab42b392530e91a49fc0972ae541b5a0d215161fe91c0e3eab24b19c"
+      },
+      {
+        "path": "run/GAIA-FAILCLOSED-01/out_empty/p1_psf.json",
+        "sha256": "f1eb974d60ec3bb69ed9dd9820d0281a364dba74a7d0c9d0bc2e0361ab5cb8b0"
+      }
+    ],
+    "providers": [
+      "baseline"
+    ],
+    "source_sha": "60f46388b7f6e4e7c098645ff8855aeaa5d8309d",
+    "source_version": "0.11.0-alpha.2+g60f46388b7f6e4e7c098645ff8855aeaa5d8309d",
+    "units": []
+  },
+  "run_id": "a78c521b686d",
+  "schema_version": "1",
+  "started_utc": "2026-09-22T10:20:17Z",
+  "status": "incomplete",
+  "summary": "phase1 failed: node wcs failed: gaia catalog is empty (gaia_data_dir=<repo>/run/GAIA-FAILCLOSED-01/gaia_empty, xpsd_entries=0): refusing to solve WCS without a reference catalog"
+}

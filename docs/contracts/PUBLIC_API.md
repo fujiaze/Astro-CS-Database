@@ -139,7 +139,7 @@
 - 遗留通道（不在本合同）：Makefile 产物 cosmetic_corrector.dll 的
   `cc_correct_median/cc_detect_hot/cc_detect_cold/cc_last_error`
   （window 奇数 3..15，Python ctypes 专用）与 `ac::optimize_dark_k`、
-  `calibration::apply_photometry`（未编译未接线）——迁移去留由
+  `calibration::apply_photometry`（**已编译且生产已接线**：Phase1 photometry 节点同一步内施加到像素；RULING-DOC-01 订正）——迁移去留由
   P1-CAL-IMPL 决定（ALG-CAL §4.1）。
 - plan/execute/cancel/inspect 迁移语义见 ALG-CAL-003 文档 §8
   （astrocs.p1.calibration / astrocs_p1_calibration.dll，C ABI adapter 由
@@ -507,7 +507,6 @@ ADU；`out_pixels` 未定标/退化=ADU，已定标（scale≠1 且 n_matched>0�
 （=10^(−location)，`location` 单位 dex(ADU/[F_syn 单位])，F_syn 单位 W·m⁻²·nm；
 量纲见 DATA_SEMANTICS §14.3）；sigma_residual dex；records residual=dex；WCS deg/px；
 光谱 uint8 编码 F(λ)=byte·flux_mul+flux_min（W·m⁻²·nm⁻¹）。
-<!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S1/S2) -->
 
 
 ### 线程安全与确定性

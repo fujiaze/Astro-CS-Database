@@ -176,7 +176,7 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
   12 个 GAIA_EXPORT 符号、返回码、所有权、线程安全。
 - 唯一生产源符号清单与迁移映射：lib/infrastructure/gaia_xpsd_client/README.md §6、
   module.yaml `source_symbols`。
-- **装载 fail-closed（GAIA-FAILCLOSED-01，2026-09-22）**：目录内任一 `*.xpsd` 装载
+- **装载 fail-closed**：目录内任一 `*.xpsd` 装载
   失败（open/mmap/魔数/头字段非法）或条目数 > `MAX_FILES`(32) ⇒
   `gaia_client_create[_ex]` 记录明确原因（目录 / 期望条目数 / 失败数 / 首个失败原因 /
   `loaded_mmap_bytes` / `RLIMIT_AS`）并返回 `NULL`；**不返回残缺 client**。

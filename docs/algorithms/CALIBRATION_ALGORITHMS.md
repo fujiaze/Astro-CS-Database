@@ -242,7 +242,7 @@ F5.4  失败→回退 k_init 且 diagnostics.fell_back=1, fallback_from=
 `lib/infrastructure/aio/include/hiss_format.h`。登记为待迁移符号
 （P1-CAL-IMPL 决定接线或删除），不声明任何生产语义（DISP-CAL-005）。
 
-### 3.6 ALG-CAL-006 Gaia 测光比例应用 `calibration::apply_photometry`（非 SCI 范围，未接线）
+### 3.6 ALG-CAL-006 Gaia 测光比例应用 `calibration::apply_photometry`（非 SCI 范围；**生产已接线**）
 
 源码锚: `photometry_apply.cpp:29-65`、契约 `photometry_apply.h`。规范依据
 `02_FROZEN_STAGE1_HISS_SPEC §7`（I_photo = k_photo·I_cal，Drizzle 前应用）。
@@ -250,17 +250,17 @@ F5.4  失败→回退 k_init 且 diagnostics.fell_back=1, fallback_from=
 ```text
 F6.1  out[i] = (float)((double)light[i] · photscal)   # double 乘法防大
         动态范围精度损失 [58-60]
-F6.2  错误码: −1 light==NULL、−2 out==NULL、−3 w/h<=0、−4 photscal 非有限
-        [32-47]；0=成功
+F6.2  错误码: −1 light==NULL、−2 out==NULL、−3 w/h<=0、−4 photscal 非有限、
+        −5 photscal<=0 [32-52]；0=成功
 F6.3  NaN/Inf 透传: NaN·k=NaN；±Inf·(k>0)=±Inf、·(k<0)=∓Inf、·(k=0)=NaN；
         下游 Drizzle 跳过非有限像素 [54-57 注释]
 F6.4  in-place 安全（逐元素无依赖）；每次调用向 stderr 输出两行日志
         [51,62]
 ```
 
-**现状**: 不在 CMake 构建清单，无生产调用方；`eng/tests/
-test_photometry_apply.cpp` 为其共址测试（同样未挂接 CMake 测试目标）。
+**现状（RULING-DOC-01 订正）**: 已在 CMake 构建清单（根 `CMakeLists.txt`），**有生产调用方**——Phase1 `astrocs.phase1.photometry` 节点在同一步内做「拟合 → 施加」：读 calibrated 面 → `apply_photometry(px,w,h,k_photo,px)`（in-place）→ 写 `photoapplied_*` 面，并把 `apply_entry` / `photometry_applied` / `photscal` / 逐帧 `k_photo` / 施加后产物路径写进 `p1_phot.json`（`DATA-P1-PHOTPROV-001`）。`lib/algorithms/calibration/tests/test_photometry_apply.cpp` 为其共址测试。
 k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-006）。
+**可核对性**：独立读者可用「calibrated 面 × k」逐像素复算核对施加结果（判据与实测见 `run/RULING-DOC-01/REPORT.md` 裁决 B；**判据必须尺度相关**，绝对容差在真实 k 量级（~1e-17）下会把"乘两次"判绿）。
 
 **k_photo 语义**：`k_photo` 的**绝对值无物理意义**
 （吸收增益/口径/曝光等未知量；设计前提 = FITS 头拿不到这些量）；**禁止**用物理闭合式反推仪器参数，
@@ -460,7 +460,7 @@ oracle 同容差；actual_k 精确相等。
   （下游 Drizzle 跳过非有限像素，行为可用但未在 ABI 文档化）。
 - DISP-CAL-005 `optimize_dark_k`（ALG-CAL-005）未编译未接线（不在
   CMake 清单、无调用方）；02_FROZEN §2.3 语义未进入生产路径。
-- DISP-CAL-006 `apply_photometry`（ALG-CAL-006）未编译未接线；k_photo
+- DISP-CAL-006 `apply_photometry`（ALG-CAL-006）**已订正**：已编译（根 `CMakeLists.txt`）且**有生产调用方**（Phase1 photometry 节点同一步内施加）；k_photo
   来源（Gaia 定标）不在本模块。
 - DISP-CAL-007 `normalize_flat`/`compute_mad` 为公共命名空间符号但无
   头文件声明、无调用方（死代码风险）。

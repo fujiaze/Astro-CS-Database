@@ -14,7 +14,7 @@ FITS/XISF 亮场 + 母版
   → star_detection（星表引导检测；一次检测、一次通量积分，三处复用）
   → psf（PSF 建模）
   → platesolve（星表匹配 + 稳健迭代精化 WCS = 权威 WCS）
-  → photometry（通量定标） → apply photometry（测光归一化落到像素）
+  → photometry（通量定标；并在**同一步**内把测光归一化施加到像素，不设独立节点）
   → noise_snr（噪声/帧级 SNR）
   → drizzle（球面重采样/方差传播）
   → 产品验证 → 原子发布 HiPS（signal/support[/variance/ivar] + JSON）

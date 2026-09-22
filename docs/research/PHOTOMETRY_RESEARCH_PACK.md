@@ -2,7 +2,7 @@
 
 > ID: RESEARCH-PHOT-001（DOC-404 新建）
 > 状态: ACTIVE_INFORMATIVE（研究包只承载一手出处、方法学对照与核验留痕；**不定义公式、常数与门限**）
-> 上游: `ASTROCS_DESIGN.md` §2.1（创新点一）、§4.2（Phase1 节点流程：星表引导检测 + WCS 解算 + apply photometry）、§4.4（测光输出语义）、附录 B
+> 上游: `ASTROCS_DESIGN.md` §2.1（创新点一）、§4.2（Phase1 节点流程：星表引导检测 + WCS 解算 + photometry（含同一步内的测光归一化施加））、§4.4（测光输出语义）、附录 B
 > 合同权威: `docs/science/PHOTOMETRY.md`（SCI-PHOT-001，FROZEN）；模块细则: `docs/plugins/algorithms_phase1/06_photometry.md`
 > 消费方: SCI-401 / SCI-402（实验单元一与其误差预算）、DOC-403（文档索引门）
 > 依据: AGENTS.md §5（三重佐证）、§8（科学查证流程）、任务书 `DOC-404`

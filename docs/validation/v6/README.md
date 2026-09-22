@@ -19,7 +19,7 @@
 配套（tracked，reports 侧）：`reports/v6/qa-design/SUMMARY.md`、`qa_matrix.json`、`case_ledger.json`、
 `data/*.json`、`oracle/*.py`、`evidence/`。
 
-**条款 id 落点（DOC-CONTRACT-MERGE-02，2026-09-22）**：本目录各文引用的 `FZ-*` 条款 id 的
+**条款 id 落点**：本目录各文引用的 `FZ-*` 条款 id 的
 现行机器登记表是 `eng/contracts/data/v6_clause_registry_v1.json`（`clauses[]` 的 id/status），
 语义权威是 `docs/contracts/DATA_SEMANTICS.md` §31（§31.10 = 条款注册表与待签登记）。
 原 V6 合同层设计档案与冻结 JSON 已按 `CHG-2026-09-22-V6-CONTRACT-MERGE` 整体出库

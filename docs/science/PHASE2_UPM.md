@@ -123,9 +123,9 @@
 **近奇异（条件数）处置**：
 
 - 天光面正规方程条件数 `κ = cond_2(D⁻¹AᵀWA D⁻¹)` 必须**可观测**并写入 provenance（真实 M42 样本实测 κ = **3.16e7**，`实验/additive-sky-seamless/results/c7_realdata.json`；χ²_red 1.004 但 κ 逼近默认上限）；
-- **κ 上限有两个口径，必须区分（SCI-505 复核登记）**：① **天光面求解器** `sky_plane.cpp:414/441` 默认 `kappa_max = 1e8`；② **UPM/GLS** `upm.h:281` 默认 `1e6`（冻结值 `FZ-AP2S-KAPPA-MAX = 1e6`）。真实 M42 样本 κ = 3.16e7 ⇒ 在 1e8 下**不触发**自适应、在 1e6 下**超限**；**统一两个口径属未决项**（登记 OPEN_QUESTIONS）；统一前任何「自适应已触发」的陈述必须写明所用上限；
+- **κ 上限有两个口径，必须区分**：① **天光面求解器** `sky_plane.cpp:414/441` 默认 `kappa_max = 1e8`；② **UPM/GLS** `upm.h:281` 默认 `1e6`（冻结值 `FZ-AP2S-KAPPA-MAX = 1e6`）。真实 M42 样本 κ = 3.16e7 ⇒ 在 1e8 下**不触发**自适应、在 1e6 下**超限**；**统一两个口径属未决项**（登记 OPEN_QUESTIONS）；统一前任何「自适应已触发」的陈述必须写明所用上限；
 - `κ > kappa_max` ⇒ 必须走**粗糙度正则化**（`roughness_penalty`）或**节点数自适应**，并在 provenance 记录所走分支、所用参数与 κ；**禁止**静默产出欠定解、**禁止**放宽 `kappa_max` 求绿；
-- **门控 κ 的口径（SCI-502 FIX-3 实证订正）**：门控值必须取**实际求解矩阵** `H_solve = H_red + λ·DᵀD` 的条件数，**不得**取未惩罚数据矩阵 `H_red` 的条件数。理由（实测，`eng/tests/unit/v6_p2_sky_kappa`）：`H_red` 的 κ 与 λ 无关（λ 从 1e-3 提到 1e6 恒为 2.497e9），在它上面设门会让「κ 超限 ⇒ 走粗糙度正则化」**永远无法成功**，条款形同虚设；改用 `H_solve` 后同一算例 λ=0 时 κ=2.497e9（超限拒绝）、λ=1e-3（生产默认）时 κ=8.311e3（通过），正则化成为**有效**手段。未惩罚 κ 保留为独立诊断量（`P2SkyPlaneInfo.kappa_data` / JSON `kappa_data` / provenance `sky_plane_kappa_data`）。λ=0 时两者逐位相等（回归锁 A5）。注意 λ 过大反而抬高 `H_solve` 的 κ（惩罚算子自身的谱展布），故自适应重试必须**有界**并以实测 κ 为准；
+- **门控 κ 的口径（实证口径）**：门控值必须取**实际求解矩阵** `H_solve = H_red + λ·DᵀD` 的条件数，**不得**取未惩罚数据矩阵 `H_red` 的条件数。理由（实测，`eng/tests/unit/v6_p2_sky_kappa`）：`H_red` 的 κ 与 λ 无关（λ 从 1e-3 提到 1e6 恒为 2.497e9），在它上面设门会让「κ 超限 ⇒ 走粗糙度正则化」**永远无法成功**，条款形同虚设；改用 `H_solve` 后同一算例 λ=0 时 κ=2.497e9（超限拒绝）、λ=1e-3（生产默认）时 κ=8.311e3（通过），正则化成为**有效**手段。未惩罚 κ 保留为独立诊断量（`P2SkyPlaneInfo.kappa_data` / JSON `kappa_data` / provenance `sky_plane_kappa_data`）。λ=0 时两者逐位相等（回归锁 A5）。注意 λ 过大反而抬高 `H_solve` 的 κ（惩罚算子自身的谱展布），故自适应重试必须**有界**并以实测 κ 为准；
 - provenance 最小集：`gauge_mode`、每分量 `ref_frame_id`、`rank`、`rank_rtol`、`kappa`、`kappa_max`、`k_corr`、`model_hash`、`any_fail_closed_reason`。
 
 ## 8 极端/退化条件
@@ -266,11 +266,11 @@ UPM 在**像素域 control cell**（8×8 双线性网格）上工作，无 WCS/�
 
 | ID | 位置 | 现象 | 实测 |
 |---|---|---|---|
-| FIX-1 | `lib/infrastructure/scheduler/src/module_adapters.cpp:5989-5994`（FIX-1 赋值点，SCI-505 复核） | 绝对容差 `tolerance=1e-6`, `tolerance_relative=0` 在 ~300 e⁻ 尺度**永不收敛** | 300 次迭代 `converged=0` |
+| FIX-1 | `lib/infrastructure/scheduler/src/module_adapters.cpp:5989-5994`（FIX-1 赋值点） | 绝对容差 `tolerance=1e-6`, `tolerance_relative=0` 在 ~300 e⁻ 尺度**永不收敛** | 300 次迭代 `converged=0` |
 | FIX-2 | 同上 `out_converged` | 只有 0/1，**无法区分** max_iter 与 stalled（规范要求 0/1/2/3） | 两例均返回 0 |
 | FIX-3 | 天光面正规方程 | 真实 M42 样本 κ = 3.16e7（近奇异） | χ²_red 1.004 但条件数逼近默认 `kappa_max` |
 
-**处置状态（RELEASE-05）**：FIX-1/2/3 的规范已冻结进 §5（相对容差 + `converged` 0/1/2/3 + stalled 判据）与 §7a（表示能力边界 + κ provenance）；生产实现修复与复跑归 SCI-502。
+**处置状态**：FIX-1/2/3 的规范已冻结进 §5（相对容差 + `converged` 0/1/2/3 + stalled 判据）与 §7a（表示能力边界 + κ provenance）；生产实现修复与复跑为独立承接项。
 
 建议（供前台裁决）：FIX-1 启用 `tolerance_relative=1` 或按观测尺度归一；
 FIX-2 按 §7 语义补 `stalled` 分支；FIX-3 提高粗糙度惩罚或节点数自适应。

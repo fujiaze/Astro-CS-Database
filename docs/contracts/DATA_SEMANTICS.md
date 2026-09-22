@@ -566,7 +566,7 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 
 | 输出 | dtype/shape | 单位/域 | 语义 |
 |---|---|---|---|
-| out_pixels | 同输入 dtype `[h·w]` | 未定标/退化=ADU；已定标（scale≠1 且 n_matched>0）=模型通带积分辐照度（F_syn 单位） | I_cal=I·scale（f32 通道 ImageCorrector :63-77；f64 内联 pc_api.cpp:1023-1028）；退化=恒等拷贝。写盘 BUNIT 必须随 PHOTAPPL 区分（§11.1 PHOTSCAL/PHOTAPPL 行），禁止在已定标帧标 BUNIT=ADU <!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S2) --> |
+| out_pixels | 同输入 dtype `[h·w]` | 未定标/退化=ADU；已定标（scale≠1 且 n_matched>0）=模型通带积分辐照度（F_syn 单位） | I_cal=I·scale（f32 通道 ImageCorrector :63-77；f64 内联 pc_api.cpp:1023-1028）；退化=恒等拷贝。写盘 BUNIT 必须随 PHOTAPPL 区分（§11.1 PHOTSCAL/PHOTAPPL 行），禁止在已定标帧标 BUNIT=ADU |
 | out_scale_factor | double 标量 | 无量纲 | 10^(−location)（IRLS/Tukey，star_matcher.cpp:527-529）；退化/一致集空=1.0 |
 | out_sigma_residual | double 标量 | dex（log10 flux-ratio） | MAD(r_inliers)/0.6744897501960817（:551-560）；下游换算 sigma_mag/sigma_cal_rel 由 snr_phot_cal_quality 承担（API-NOISE-001 边界） |
 | out_n_matched | int32 标量 | 颗 | IRLS inliers 数（fit_used） |
@@ -587,7 +587,6 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
   （W·m⁻²·nm）；`scale = 10^(−location)` 的单位为 **[F_syn 单位]/ADU**。合同在此
   **显式声明参考通量单位**；只有在声明单位后，才允许称 scale 为无量纲乘性因子。
   禁止反向（SCI-PHOT-001 §10）。
-  <!-- (P5-SNR 订正 2026-09-14，负责人授权；依据 PHOTOMETRY_LITERATURE_REVIEW D.2 S1) -->
 - determinism=fixed_reduction_order：F_syn 逐星独立（OpenMP dynamic,64）、
   像素逐元素独立（static）→ 输出 bitwise 与线程数无关（README §7）。
 
@@ -2436,7 +2435,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 
 ### 28.6 Phase3 逐像素立体角 `Omega` 与采样核版本化 registry（`FZ-P3-OMEGA-NONCONST` / `FZ-P3-KERNEL-REGISTRY` / `FZ-P3-QW-RECOMPUTE` / `FZ-P3-MODES`）
 
-> 条款 ID：`DATA-P3-WCS-OMEGA`　状态：**CONTRACT_READY（V6 合同层自解释合并，DOC-CONTRACT-MERGE-02）**
+> 条款 ID：`DATA-P3-WCS-OMEGA`　状态：**CONTRACT_READY**（V6 合同层自解释合并）
 > 承载：本小节是 Phase3 逐像素立体角与采样核 registry 合同的唯一权威；条款登记见 §31.10 与
 > `eng/contracts/data/v6_clause_registry_v1.json`；字段级机器门见 §31.6 登记的产品族字段级合同。
 
