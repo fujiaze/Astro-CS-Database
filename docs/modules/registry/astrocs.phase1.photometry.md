@@ -41,7 +41,7 @@ SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展。
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
-| `psf` | `DATA-P1-PSF` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL` |
+| `calibrated` | `DATA-P1-CAL` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
 | `sources` | `DATA-P1-SOURCES` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
 | `fluxes` | `DATA-P1-FLUX` | 可 | `UnitId::ADU`（与 DATA_SEMANTICS §14.1 psf_flux 一致） | `CoordinateFrame::ICRS` |
 

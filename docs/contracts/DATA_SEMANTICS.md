@@ -2814,6 +2814,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | 段 | 量 | 单位 | 依据 |
 |---|---|---|---|
 | Phase1 校准 / cosmetic | 帧平面 `x_j` | `ADU` | §9.2 / §10.2（线性计数，未按面积或立体角归一） |
+| Phase1 photometry 施加 | 帧平面 `x_j = k_photo·x_cal` | `ADU`（**线性**；零点 = 本帧相对测光零点） | SCI-PHOT-001 §3/§5（`k_photo = 10^{−location}`，单位 [F_syn 单位]/ADU）；`I_photo = k_photo·I_cal`（`photometry_apply.h`） |
 | Phase1 drizzle 权重 | `w_jp = a_jp / A_pixel,j` | `1`（无量纲） | SCI-DRZ-001 §5；`a_jp`（球面重叠面积）与 `A_pixel,j`（源像素球面面积）同为 sr，商无量纲 |
 | Phase1 drizzle 累加 | `sumFlux = Σ_j x_j·w_jp` | `ADU` | 上式；代码锚 `drizzle_engine.cpp#processPixelSharedTiled`（`acc.sumFlux += pixelValue*weight`） |
 | Phase1 drizzle 累加 | `sumArea = Σ_j a_jp` | `sr` | 同函数（`acc.sumArea += overlap_area`）；`A_cell = 4π/(12·nside²)` sr |
@@ -2822,6 +2823,15 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | Phase2 输出 | `signal = flux_sum/covered_area` | **`ADU/sr`** | §20.3（与 P1 writer 同式同源，禁第二套定义） |
 | Phase3 重采样 | 输入 tile 值的加权平均（凸组合） | **`ADU/sr`** | §29.3（采样值 = 面亮度；禁止 flux-per-pixel 解释与面积换算） |
 | Phase3 FITS 写出 | 主 HDU `signal` 的 `BUNIT` | **`ADU/sr`** | §27.1 / §27.3；`VARIANCE`/`IVAR` HDU 的 `BUNIT` = 主 HDU BUNIT 的平方 / 倒数（`FZ-P3-BUNIT-QUADRATIC`） |
+
+**测光归一化层不改变量纲类别**：`I_photo = k_photo·I_cal` 是**线性乘性标度**，施加后帧平面与
+HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光零点**。产品 `BUNIT=ADU/sr` 描述
+**量的种类**（线性计数面亮度），**标度**由 `PHOTSCAL`/`PHOTAPPL` 与 `k_photo` 逐帧承载
+（DATA-P1-PHOTPROV-001 / §13.4）。**"测光星等坐标系"由此实现为逐帧相对零点**，数据面不落盘
+星等：需要星等时按 `m = ZP_k − 2.5·log10 F`（点源/帧级，§13.4）或
+`SB_mag = ZP_k − 2.5·log10(signal) + 2.5·log10(Ω_ref)`（面亮度，见下）现场派生。
+**必须保持线性的硬理由**：阶段二做加性天光校正与逆方差加权求和（`Σ w_i x_i / Σ w_i`，
+`docs/science/INTEGRATION.md`），星等是对数量、不可相加；阶段二/三因此不做星等换算。
 
 **为什么是"每立体角"而不是"每像素"**（跨像元尺度可比硬要求）：
 `signal = Σ_j (x_j/A_pixel,j)·a_jp / Σ_j a_jp`，即各源像素**面亮度**的 `a_jp` 加权平均。

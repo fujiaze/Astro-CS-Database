@@ -3573,7 +3573,9 @@ static void test_fixp1_photometry_apply() {
     cleanup_fixture(fx);
   }
 
-  // ── 负例2: sidecar 只覆盖 1/2 帧 → 整组不施加 ──────────────────────────
+  // ── 负例2（FAILSEM-01 语义反转）: sidecar 只覆盖 1/2 帧 ─────────────────
+  // 旧语义「部分归一化比不归一化更糟 ⇒ 整组不施加」已被负责人裁决取代:
+  //   「拟合失败这帧报 error/fail 呗，不阻塞其他帧。」
   {
     Fixture fx = make_fixture("fixp1part");
     RunContext ctx;
@@ -3583,21 +3585,48 @@ static void test_fixp1_photometry_apply() {
     }
     {
       std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
-      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":0.5}]})";
+      o << R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[{"file":"light_1.fits","k_photo":0.5,"n_matched":9,"source":"gaia_star_matcher_tukey_irls"}]})";
     }
     const std::string cfg =
         cfg_for(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
     Result<void> rc;
     json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
-    CHECK_MSG(rc.ok(), "FIX-P1 PART: photometry with partial scales must succeed");
-    CHECK_MSG(man.value("photometry_applied", false) == false,
-              "FIX-P1 PART: incomplete scales → refuse to apply (no half-normalized set)");
+    // FAILSEM-01（语义反转）: 未被标定通道覆盖的帧**该帧 fail**
+    // （PHOT_SCALE_MISSING）, 已被覆盖的帧照常施加 —— 不再整组连坐。
+    // 判别力: 若把"部分归一化 ⇒ 整组不施加"加回来, frame 1 的 photoapplied
+    // 产物消失 ⇒ 本用例转红。
+    CHECK_MSG(rc.ok(), "FIX-P1 PART: 单帧失败不得中止节点（不阻塞其他帧）");
+    CHECK_MSG(man.value("photometry_applied", false) == true,
+              "FIX-P1 PART: 有标度的帧照常施加（组级摘要 applied=true）");
+    CHECK_MSG(man.value("n_frames_failed", 0) == 1 &&
+                  man.value("n_frames_applied", 0) == 1,
+              "FIX-P1 PART: 恰好 1 帧失败 / 1 帧施加");
     CHECK_MSG(man.value("photscale_source", std::string()) == "photscale_sidecar",
               "FIX-P1 PART: source provenance still recorded");
-    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
-              "FIX-P1 PART: no partial applied frame 1");
+    CHECK_MSG(fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "FIX-P1 PART: 被覆盖的帧必须产出 photoapplied 产物");
     CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_2.fits")),
-              "FIX-P1 PART: no partial applied frame 2");
+              "FIX-P1 PART: 未覆盖的帧不得产出 photoapplied 产物");
+    {
+      json pj;
+      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
+      CHECK_MSG(pj.value("pixel_scaling", std::string()) == "partial",
+                "FIX-P1 PART: pixel_scaling=partial（逐帧真相在 frames[]）");
+      CHECK_MSG(pj.value("n_frames_failed", 0) == 1 &&
+                    pj["failed_frames"].is_array() && pj["failed_frames"].size() == 1 &&
+                    pj["failed_frames"][0].get<std::string>() == "light_2",
+                "FIX-P1 PART: failed_frames 必须指名 light_2");
+      bool l2_fail = false;
+      for (const auto& fe : pj["frames"]) {
+        if (fe.value("frame_key", std::string()) == "light_2") {
+          l2_fail = (fe.value("status", std::string()) == "fail") &&
+                    fe.value("error_status", std::string()) == "PHOT_SCALE_MISSING" &&
+                    fe.value("photometry_applied", true) == false;
+        }
+      }
+      CHECK_MSG(l2_fail, "FIX-P1 PART: frames[light_2] 必须显式 status=fail/"
+                         "error_status=PHOT_SCALE_MISSING/photometry_applied=false");
+    }
     cleanup_fixture(fx);
   }
 }
@@ -3636,6 +3665,8 @@ static void test_p1photbroken_scale_guards() {
 
   // ── RED-1: k=6.27e-17 且 n_matched=0（无拟合证据）必须被拒绝 ─────────────
   // 判别力: 修复前 sidecar 只查 finite&&>0 ⇒ 会施加并声明 applied=true。
+  // FAILSEM-01: 拒绝的**作用域**是"该帧 fail"（PHOT_SCALE_NO_FIT_EVIDENCE）,
+  // 不再中止节点、也不再让其他帧连坐。
   {
     Fixture fx = make_fixture("p1photbroken_nofit");
     RunContext ctx;
@@ -3646,17 +3677,34 @@ static void test_p1photbroken_scale_guards() {
     }
     const std::string cfg = cfg_for2(fx, "\"" + fx.light1 + "\"");
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
-    CHECK_MSG(!rc.ok(), "P1PHOTBROKEN RED-1: scale without fit provenance must be "
-                        "rejected (fail-closed), not silently applied");
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "P1PHOTBROKEN RED-1: 该帧 fail 不中止节点（FAILSEM-01）");
+    CHECK_MSG(man.value("n_frames_failed", 0) == 1 &&
+                  man.value("photometry_applied", true) == false,
+              "P1PHOTBROKEN RED-1: 该帧必须判 fail 且不得声明 applied");
+    {
+      bool r1_fail = false;
+      for (const auto& fe : man["frame_errors"]) {
+        if (fe.value("status", std::string()) == "PHOT_SCALE_NO_FIT_EVIDENCE" &&
+            fe.value("domain", std::string()) == "SCIENCE_PRECONDITION") {
+          r1_fail = true;
+        }
+      }
+      CHECK_MSG(r1_fail, "P1PHOTBROKEN RED-1: frame_errors 必须带稳定错误码"
+                         " PHOT_SCALE_NO_FIT_EVIDENCE + domain SCIENCE_PRECONDITION");
+    }
     CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
               "P1PHOTBROKEN RED-1: no photoapplied artifact for a rejected scale");
     cleanup_fixture(fx);
   }
 
-  // ── RED-2: 单位混装（6.27e-17 与 1.0 同组）必须整组拒绝 ────────────────
-  // 判别力: 这正是 L4 批次的真实形态（11 板块 1.0 + 1 板块 6.27e-17, 相差
-  // 16 dex）。修复前两帧都会以 applied=true 施加 ⇒ 帧间落在不同测光坐标系。
+  // ── RED-2（FAILSEM-01 本任务的判据核心）: 单帧拟合失败 ⇒ 该帧 fail ──────
+  // 场景 = L4 批次的真实形态（一帧有真拟合 6.27e-17, 另一帧 n_matched=0 无证据）。
+  // 判别力（能红能绿）:
+  //   * 绿: 有拟合证据的帧必须**照常产出** photoapplied 产物 + 进 photscales;
+  //   * 红: 无证据的帧必须显式 status=fail 且**无** photoapplied 产物;
+  //   * 红: 若退回"整组连坐"（旧语义）⇒ frame 1 产物消失, 本用例转红;
+  //   * 红: 若退回"静默施加占位 1.0"⇒ frame 2 出现产物, 本用例转红。
   {
     Fixture fx = make_fixture("p1photbroken_mixed");
     RunContext ctx;
@@ -3668,12 +3716,34 @@ static void test_p1photbroken_scale_guards() {
     const std::string cfg =
         cfg_for2(fx, "\"" + fx.light1 + "\", \"" + fx.light2 + "\"");
     Result<void> rc;
-    run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
-    // frame 2 无拟合证据（n_matched=0 且未声明 source）⇒ 硬拒绝（拟合失败，fail-closed）。
-    CHECK_MSG(!rc.ok(), "P1PHOTBROKEN RED-2: mixed-provenance set must be rejected");
-    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")) &&
-                  !fs::exists(fs::path(fx.out_dir + "/photoapplied_light_2.fits")),
-              "P1PHOTBROKEN RED-2: no partial/half-normalized artifacts");
+    json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
+    CHECK_MSG(rc.ok(), "P1PHOTBROKEN RED-2: 单帧失败不得中止节点");
+    CHECK_MSG(man.value("n_frames_failed", -1) == 1 &&
+                  man.value("n_frames_applied", -1) == 1,
+              "P1PHOTBROKEN RED-2: 恰好 1 帧失败 / 1 帧施加");
+    CHECK_MSG(fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "P1PHOTBROKEN RED-2: 有拟合证据的帧仍须成功产出（不阻塞其他帧）");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_2.fits")),
+              "P1PHOTBROKEN RED-2: 无拟合证据的帧不得产出产物（不静默施加占位）");
+    {
+      json pj;
+      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
+      CHECK_MSG(pj["failed_frames"].is_array() && pj["failed_frames"].size() == 1 &&
+                    pj["failed_frames"][0].get<std::string>() == "light_2",
+                "P1PHOTBROKEN RED-2: failed_frames 只含 light_2");
+      CHECK_MSG(pj.contains("photscales") && pj["photscales"].size() == 1 &&
+                    pj["photscales"].contains("light_1") &&
+                    !pj["photscales"].contains("light_2"),
+                "P1PHOTBROKEN RED-2: photscales 只含已施加的 light_1");
+      bool l2 = false;
+      for (const auto& fe : pj["frames"]) {
+        if (fe.value("frame_key", std::string()) == "light_2")
+          l2 = (fe.value("status", std::string()) == "fail") &&
+               fe.value("error_status", std::string()) == "PHOT_SCALE_NO_FIT_EVIDENCE" &&
+               fe.value("photometry_applied", true) == false;
+      }
+      CHECK_MSG(l2, "P1PHOTBROKEN RED-2: frames[light_2] 显式 fail + 稳定错误码");
+    }
     cleanup_fixture(fx);
   }
 
@@ -3760,17 +3830,22 @@ static void test_p1photbroken_scale_guards() {
     cleanup_fixture(fx);
   }
 
-  // ── FIT-FAILURE-REPORT: fit 通道失败按**拟合失败**上报（不是星数门禁判词）──
-  // 失败点落在拟合自身（响应曲线不可读 ⇒ 冻结 C 入口前装配失败, rc<0）:
-  // 节点必须如实写 degraded_reason=photscale_incomplete + photscale_error, 且
-  // 判词是「拟合失败」而不是「星数不足」。判别力: 若在拟合之前插回一条星数
-  // 门禁, 判词会变成星数门措辞 ⇒ 本用例转红。
+  // ── FIT-FAILURE-REPORT: **全局性**失败（环境/配置）⇒ 中止运行 ───────────
+  // 失败点 = 响应曲线文件不可读（程序级配置输入, 不是帧数据）。
+  // FAILSEM-01 语义: 这类失败**换一帧也不会好** ⇒ 必须**全局中止**
+  // （负责人裁决「全局性失败（如星表不可读、config 非法）⇒ 仍应中止」）,
+  // 不得把它降级成"这一帧 fail"。判别力: 若把环境失败也当成帧级失败,
+  // rc 会变 ok ⇒ 本用例转红。
   {
     Fixture fx = make_fixture("p1phot_fitfail");
     RunContext ctx;
     { std::ofstream o(fx.out_dir + "/p1_sources.json", std::ios::binary); o << src2_json; }
-    // 可用天测（过 p1_wcs_astrometry_usable）⇒ 失败点必须落在**拟合**而非 WCS。
+    // 可用天测（过 p1_wcs_astrometry_usable）⇒ 失败点必须落在**曲线加载**而非 WCS。
+    // 注: 帧产品目录必须先建（ofstream 不会建目录; 缺目录会静默不写文件, 于是
+    // 节点回退 config.wcs —— 本用例的 config 无天测键 ⇒ 会误判成 WCS 缺陷）。
     {
+      std::error_code ec;
+      fs::create_directories(frame_root(fx), ec);
       std::ofstream o(frame_root(fx) + "/p1_wcs.json", std::ios::binary);
       o << R"({"schema":"DATA-P1-WCS-001","wcs":{"crval1":83.2834,"crval2":-6.3743,"crpix1":16.0,"crpix2":16.0,"cd11":-0.0002689,"cd12":0.0,"cd21":0.0,"cd22":0.0002689}})";
     }
@@ -3783,24 +3858,25 @@ static void test_p1photbroken_scale_guards() {
         R"(/no_such_filters.json"}}})";
     Result<void> rc;
     json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
-    CHECK_MSG(rc.ok(), "FIT-FAILURE-REPORT: 拟合失败按 degraded_reason 上报（不中止节点）");
-    CHECK_MSG(man.value("photometry_applied", true) == false,
-              "FIT-FAILURE-REPORT: 未产出标度 ⇒ 不得声明已施加");
-    const std::string err = man.value("photscale_error", std::string());
-    CHECK_MSG(err.rfind("photometry fit failed", 0) == 0,
-              ("FIT-FAILURE-REPORT: 判词必须是拟合失败, got: " + err).c_str());
-    CHECK_MSG(err.find("n_matched <") == std::string::npos &&
-                  err.find("§4 gate") == std::string::npos,
-              "FIT-FAILURE-REPORT: 不得残留星数门禁判词");
-    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
-              "FIT-FAILURE-REPORT: 拟合失败不得产出 photoapplied 产物");
-    {
-      json pj;
-      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
-      CHECK_MSG(pj.value("degraded_reason", std::string()) == "photscale_incomplete" &&
-                    pj.value("photometry_applied", true) == false,
-                "FIT-FAILURE-REPORT: provenance 如实（degraded_reason=photscale_incomplete）");
+    CHECK_MSG(rc.failed(), "GLOBAL-FAIL: 响应曲线不可读（环境/配置）必须中止运行");
+    if (rc.failed()) {
+      CHECK_MSG(rc.error().domain() == ErrorDomain::IO,
+                "GLOBAL-FAIL: 环境/星表/曲线类失败域 = IO");
+      const std::string msg = rc.error().message();
+      CHECK_MSG(msg.find("filter curve load failed") != std::string::npos,
+                ("GLOBAL-FAIL: 判词必须指名不可读的曲线, got: " + msg).c_str());
+      CHECK_MSG(msg.find("全局性失败") != std::string::npos,
+                "GLOBAL-FAIL: 判词必须显式声明全局性失败（不冒充帧级失败）");
+      CHECK_MSG(msg.find("n_matched <") == std::string::npos &&
+                    msg.find("§4 gate") == std::string::npos,
+                "GLOBAL-FAIL: 不得残留星数门禁判词");
     }
+    CHECK_MSG(man.value("error_status", std::string()) == "PHOT_FIT_ENVIRONMENT",
+              "GLOBAL-FAIL: manifest 必须带稳定错误码 PHOT_FIT_ENVIRONMENT");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
+              "GLOBAL-FAIL: 中止路径不得产出 photoapplied 产物");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/p1_phot.json")),
+              "GLOBAL-FAIL: 中止路径不得留下貌似完整的测光 provenance");
     cleanup_fixture(fx);
   }
   // ── GREEN: 一致的**真实**标度（6.27e-17 / 5.69e-17 量级）正常通过并施加 ──
@@ -3934,10 +4010,11 @@ static void test_p1photbroken_scale_guards() {
     cleanup_fixture(fx);
   }
 
-  // ── RED-4: fit 通道 WCS 不可用 ⇒ 显式降级, 不得以零 WCS 拟合出占位 1.0 ──
+  // ── RED-4: fit 通道 WCS 不可用 ⇒ **该帧 fail**, 不得以零 WCS 拟合出占位 1.0 ─
   // 判别力: 修复前 config.wcs 非空即通过, 以 CRVAL=(0,0)/CD=0 拟合 → NO_DATA
   // 占位 scale=1.0 → applied=true/photscal=1.0（实测 11/12 板块）。
-  // 修复后 WCS 可用性校验先于拟合 ⇒ photscale_error 指明 WCS（而非 "fit failed"）。
+  // FAILSEM-01: WCS 不可用是**帧级**条件（本帧天测坏）⇒ 该帧 fail, 不中止节点;
+  // 稳定错误码 = PHOT_WCS_UNUSABLE。
   {
     Fixture fx = make_fixture("p1photbroken_wcs");
     RunContext ctx;
@@ -3951,16 +4028,22 @@ static void test_p1photbroken_scale_guards() {
         R"(/no_such_filters.json"}},"wcs":{"init_source":"header_pointing","gaia_data_dir":"/nonexistent"}})";
     Result<void> rc;
     json man = run_node(reg, "astrocs.phase1.photometry", cfg, ctx, &rc);
-    CHECK_MSG(rc.ok(), "P1PHOTBROKEN RED-4: node degrades explicitly (does not abort)");
+    CHECK_MSG(rc.ok(), "P1PHOTBROKEN RED-4: 帧级失败不得中止节点（FAILSEM-01）");
     CHECK_MSG(man.value("photometry_applied", true) == false,
               "P1PHOTBROKEN RED-4: unusable WCS must NOT yield applied=true");
     CHECK_MSG(std::fabs(man.value("photscal", -1.0) - 1.0) < 1e-12,
               "P1PHOTBROKEN RED-4: neutral photscal=1.0 with applied=false");
+    CHECK_MSG(man.value("n_frames_failed", 0) == 1, "P1PHOTBROKEN RED-4: 该帧判 fail");
     {
-      const std::string err = man.value("photscale_error", std::string());
-      CHECK_MSG(err.find("WCS unusable") != std::string::npos,
-                ("P1PHOTBROKEN RED-4: photscale_error must name the WCS defect, got: " +
-                 err).c_str());
+      bool named = false;
+      for (const auto& fe : man["frame_errors"]) {
+        if (fe.value("status", std::string()) == "PHOT_WCS_UNUSABLE" &&
+            fe.value("message", std::string()).find("WCS unusable") != std::string::npos) {
+          named = true;
+        }
+      }
+      CHECK_MSG(named, "P1PHOTBROKEN RED-4: frame_errors 必须指名 WCS 缺陷"
+                       "（PHOT_WCS_UNUSABLE）");
     }
     CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_1.fits")),
               "P1PHOTBROKEN RED-4: no fake identity 'photoapplied' artifact");
@@ -3970,8 +4053,15 @@ static void test_p1photbroken_scale_guards() {
       CHECK_MSG(pj.value("photometry_applied", true) == false &&
                     pj.value("pixel_scaling", std::string()) == "none",
                 "P1PHOTBROKEN RED-4: provenance is honest (applied=false/none)");
-      CHECK_MSG(pj.value("degraded_reason", std::string()) == "photscale_incomplete",
-                "P1PHOTBROKEN RED-4: degraded_reason=photscale_incomplete");
+      // FAILSEM-01: 帧级失败**不是降级** ⇒ 不得写 degraded_reason（那是"通道缺席"
+      // 的专用登记）。失败事实由 frames[] 的 status/error_* 承载。
+      CHECK_MSG(!pj.contains("degraded_reason"),
+                "P1PHOTBROKEN RED-4: 帧级失败不得登记成降级（degraded_reason 缺席）");
+      CHECK_MSG(pj.value("n_frames_failed", 0) == 1 &&
+                    pj["frames"][0].value("status", std::string()) == "fail" &&
+                    pj["frames"][0].value("error_status", std::string()) ==
+                        "PHOT_WCS_UNUSABLE",
+                "P1PHOTBROKEN RED-4: frames[0] 显式 fail + PHOT_WCS_UNUSABLE");
     }
     cleanup_fixture(fx);
   }
@@ -4157,6 +4247,105 @@ static void test_perf_p1_frame_parallel_bitwise_1_vs_n() {
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// FAILSEM-01: 单帧拟合失败 ⇒ 该帧 fail, **不阻塞其他帧**（负责人裁决）
+//   「拟合失败这帧报 error/fail 呗，不阻塞其他帧。」
+// 全链判据（能红能绿）:
+//   A 红: 3 帧里 1 帧无标度 ⇒ 该帧无产品; 其余 2 帧 HiPS 照常产出;
+//          运行级显式判红（write_hips 上抛 SCIENCE_PRECONDITION）, 不发布
+//          p1_products.json（ASTROCS_DESIGN §4.4 + P0-21 不产出部分产品却报成功）。
+//   B 绿: 3 帧全有标度 ⇒ 运行成功且恰好 3 个产品（证明 A 的红不是恒真门）。
+// ══════════════════════════════════════════════════════════════════════════
+static void test_failsem01_frame_failure_semantics() {
+  ModuleRegistry reg;
+  CHECK(register_phase_modules(reg).ok());
+  const std::string sidecar =
+      R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[)"
+      R"({"file":"light_1.fits","k_photo":0.5,"n_matched":9,"source":"gaia_star_matcher_tukey_irls"},)"
+      R"({"file":"light_2.fits","k_photo":0.5,"n_matched":9,"source":"gaia_star_matcher_tukey_irls"},)"
+      R"({"file":"light_3.fits","k_photo":0.5,"n_matched":9,"source":"gaia_star_matcher_tukey_irls"}]})";
+  const std::string sidecar_partial =
+      R"({"schema":"DATA-P1-PHOTSCALE-001","frames":[)"
+      R"({"file":"light_1.fits","k_photo":0.5,"n_matched":9,"source":"gaia_star_matcher_tukey_irls"},)"
+      R"({"file":"light_2.fits","k_photo":0.5,"n_matched":9,"source":"gaia_star_matcher_tukey_irls"}]})";
+  // ── B 绿（负对照）: 三帧全有标度 ⇒ 3 个产品, 运行成功 ──────────────────
+  {
+    TriFixture fx = make_tri_fixture("failsem_green");
+    {
+      std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
+      o << sidecar;
+    }
+    const ChainRunResult cr = run_full_chain_once(tri_chain_cfg(fx, false), 2, reg);
+    CHECK_MSG(cr.ok, ("FAILSEM-01 GREEN: 全帧有标度 ⇒ 必须成功: " + cr.error).c_str());
+    for (int i = 1; i <= 3; ++i) {
+      CHECK_MSG(fs::exists(fs::path(fx.out_dir + "/light_" + std::to_string(i) +
+                                    "/signal/properties")),
+                ("FAILSEM-01 GREEN: frame " + std::to_string(i) + " 必须有产品").c_str());
+    }
+    json prods = json::object();
+    try { prods = json::parse(read_file(fx.out_dir + "/p1_products.json")); }
+    catch (...) { CHECK_MSG(false, "FAILSEM-01 GREEN: p1_products.json 必须存在"); }
+    CHECK_MSG(prods.value("n_products", 0) == 3,
+              "FAILSEM-01 GREEN: n_products 必须 == 3（负对照非退化）");
+    cleanup_tri_fixture(fx);
+  }
+  // ── A 红: light_3 无标度 ⇒ 该帧 fail, 其余两帧照常产出, 运行级判红 ──────
+  {
+    TriFixture fx = make_tri_fixture("failsem_red");
+    {
+      std::ofstream o(fx.out_dir + "/p1_photscale.json", std::ios::binary);
+      o << sidecar_partial;
+    }
+    const ChainRunResult cr = run_full_chain_once(tri_chain_cfg(fx, false), 2, reg);
+    CHECK_MSG(!cr.ok, "FAILSEM-01 RED: 单帧测光失败必须判红（运行级）");
+    CHECK_MSG(cr.error.find("photometric calibration failed upstream") !=
+                  std::string::npos,
+              ("FAILSEM-01 RED: 判词必须指名上游测光失败, got: " + cr.error).c_str());
+    CHECK_MSG(cr.error.find("light_3") != std::string::npos,
+              "FAILSEM-01 RED: 判词必须指名失败帧 light_3");
+    // 其他帧**仍成功产出**（不被失败帧阻塞）:
+    for (int i = 1; i <= 2; ++i) {
+      const std::string root = fx.out_dir + "/light_" + std::to_string(i);
+      CHECK_MSG(fs::exists(fs::path(root + "/signal/properties")),
+                ("FAILSEM-01 RED: frame " + std::to_string(i) +
+                 " 仍必须产出 HiPS 产品（不阻塞其他帧）").c_str());
+      CHECK_MSG(fs::exists(fs::path(root + "/p1_stack.json")),
+                ("FAILSEM-01 RED: frame " + std::to_string(i) +
+                 " 仍必须有 p1_stack.json").c_str());
+    }
+    // 失败帧: 无 photoapplied 产物、无 HiPS 产品目录。
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/photoapplied_light_3.fits")),
+              "FAILSEM-01 RED: 失败帧不得有 photoapplied 产物");
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/light_3/signal/properties")),
+              "FAILSEM-01 RED: 失败帧不得有 HiPS 产品");
+    // 运行级不发布数据集清单（P0-21: 不产出部分产品却报成功）。
+    CHECK_MSG(!fs::exists(fs::path(fx.out_dir + "/p1_products.json")),
+              "FAILSEM-01 RED: 判红的运行不得发布 p1_products.json");
+    // 逐帧判决可独立复核（产品面上的显式失败留痕）。
+    {
+      json pj;
+      try { pj = json::parse(read_file(fx.out_dir + "/p1_phot.json")); } catch (...) {}
+      CHECK_MSG(pj.value("n_frames_failed", 0) == 1 &&
+                    pj["failed_frames"].is_array() && pj["failed_frames"].size() == 1 &&
+                    pj["failed_frames"][0].get<std::string>() == "light_3",
+                "FAILSEM-01 RED: p1_phot.json 必须逐帧指名 light_3 fail");
+      CHECK_MSG(pj.value("pixel_scaling", std::string()) == "partial" &&
+                    pj.value("n_frames_applied", 0) == 2,
+                "FAILSEM-01 RED: pixel_scaling=partial / n_frames_applied=2");
+    }
+    // 下游 drizzle 必须**显式**记录跳过（不是静默丢弃）。
+    {
+      json dj;
+      try { dj = json::parse(read_file(fx.out_dir + "/light_1/p1_stack.json")); }
+      catch (...) {}
+      CHECK_MSG(dj.value("photappl", 0) == 1 &&
+                    dj.value("photscal", 0.0) == 0.5,
+                "FAILSEM-01 RED: 已施加帧的 p1_stack 必须记 photappl=1 + 逐帧 photscal");
+    }
+    cleanup_tri_fixture(fx);
+  }
+}
+
 int main() {
   // PERF-P1: 帧级并行 1/N 逐位等价（生产节点接线验证）
   test_perf_p1_frame_parallel_bitwise_1_vs_n();
@@ -4199,6 +4388,8 @@ int main() {
   test_golden_parity();
   // P0-21: 一组进一组出（N 帧 ⇒ N 个 HiPS 产品）+ fail-closed 负例
   test_p0_21_multi_frame_one_hips_per_input();
+  // FAILSEM-01: 单帧拟合失败 ⇒ 该帧 fail + 其他帧仍成功产出 + 运行级判红
+  test_failsem01_frame_failure_semantics();
   if (failures == 0) {
     std::printf("P1-001 REAL NODES PASS (8 节点唯一真实 operation + call_count=1 + complete 门 fail-closed + 下游零调用)\n");
     return 0;
