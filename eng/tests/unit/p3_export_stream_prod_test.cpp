@@ -240,6 +240,31 @@ std::string read_all_bytes(const std::string& p) {
                      std::istreambuf_iterator<char>());
 }
 
+// FITS 产品对照归一化（**允许差异的唯一来源**）：
+// cfitsio 的 fits_write_std_chksum 把**写入时刻**写进 CHECKSUM/DATASUM 卡的注释，
+// 且 CHECKSUM 值覆盖该注释 ⇒ 同一份数据在两次不同时刻写出时，这两类卡必然不同。
+// 归一化：把这两类卡的「值 + 注释」替换为占位符（卡其余部分保留）；DATASUM 的**值**
+// 单独逐 HDU 提取并强制相等（数据面判据，不参与放行）。除此之外任何字节差异都判红。
+std::string normalize_fits_chksum_cards(const std::string& b,
+                                        std::vector<std::string>* datasums) {
+  std::string out = b;
+  for (std::size_t off = 0; off + 80 <= out.size(); off += 80) {
+    const std::string card = out.substr(off, 80);
+    const std::string kw = card.substr(0, 8);
+    const bool is_ck = (kw == "CHECKSUM");
+    const bool is_ds = (kw.rfind("DATASUM", 0) == 0);
+    if (!is_ck && !is_ds) continue;
+    const std::size_t q1 = card.find('\'');
+    if (q1 == std::string::npos) continue;
+    const std::size_t q2 = card.find('\'', q1 + 1);
+    if (q2 == std::string::npos) continue;
+    if (is_ds && datasums) datasums->push_back(card.substr(q1 + 1, q2 - q1 - 1));
+    // 值 + 注释一并占位（CHECKSUM 值覆盖注释中的时刻；DATASUM 值已单独提取比对）
+    out.replace(off, 80, card.substr(0, 8) + std::string(72, '#'));
+  }
+  return out;
+}
+
 // ── 单配置实测（子进程内执行）────────────────────────────────────────────
 struct Meas {
   int w = 0, h = 0, sb = 0;
@@ -341,6 +366,14 @@ void test_product_identity() {
     const std::string wr = read_all_bytes(fx.out + "/p3_writer.json");
     json wj;
     try { wj = json::parse(wr); } catch (...) { wj = json::object(); }
+    // 判据 ① 必须落在**落盘产品**（p3_writer.json）上，而不只是进程内 manifest：
+    // 下游与验收看到的是磁盘件。
+    CHECK_MSG(wj.contains("export_stream") &&
+                  wj["export_stream"].value("scheduler", std::string()) ==
+                      "ExportStreamScheduler",
+              "on-disk p3_writer.json must declare ExportStreamScheduler");
+    CHECK_MSG(wj.contains("sub_block_px") && wj.value("sub_block_px", 0) == SB,
+              "on-disk p3_writer.json must declare sub_block_px");
     if (fault) {
       sha_frame = wj.value("integrity_sha256", std::string());
       canon_frame = wj.value("canonical_sha256", std::string());
@@ -372,16 +405,28 @@ void test_product_identity() {
   ::unsetenv("ASTROCS_P3_EXPORT_FAULT");
   CHECK_MSG(!sha_stream.empty() && !sha_frame.empty(),
             "both paths must report integrity sha256");
-  CHECK_MSG(sha_stream == sha_frame,
-            ("FITS integrity sha256 must be identical: streaming=" + sha_stream +
-             " whole_frame=" + sha_frame).c_str());
+  // 整文件 integrity sha256 **允许不同**：CHECKSUM/DATASUM 卡注释含写入时刻，
+  // 时刻不同 ⇒ 整文件字节不同（见归一化函数注释）。产品语义由下面三条锁定：
+  // ① canonical sha256 相同（头卡集合 + 逐 HDU 数据 sha256，排除时刻类卡）；
+  // ② 逐 HDU DATASUM 相同（数据单元摘要）；③ 掩掉时刻注释后逐字节相同。
   CHECK_MSG(canon_stream == canon_frame,
             ("canonical sha256 must be identical: streaming=" + canon_stream +
              " whole_frame=" + canon_frame).c_str());
-  CHECK_MSG(bytes_stream == bytes_frame,
-            ("FITS bytes must be identical (streaming " +
-             std::to_string(bytes_stream.size()) + " B vs whole-frame " +
-             std::to_string(bytes_frame.size()) + " B)").c_str());
+  // 逐字节对照：唯一允许的差异是 CHECKSUM/DATASUM 卡注释里的写入时刻（见归一化
+  // 函数注释）；DATASUM 值、头卡集合、全部像素数据必须完全相同。
+  std::vector<std::string> ds_stream, ds_frame;
+  const std::string norm_stream = normalize_fits_chksum_cards(bytes_stream, &ds_stream);
+  const std::string norm_frame = normalize_fits_chksum_cards(bytes_frame, &ds_frame);
+  CHECK_MSG(bytes_stream.size() == bytes_frame.size(),
+            ("FITS size must match: streaming " + std::to_string(bytes_stream.size()) +
+             " B vs whole-frame " + std::to_string(bytes_frame.size()) + " B").c_str());
+  CHECK_MSG(norm_stream == norm_frame,
+            "FITS bytes must be identical apart from the CHECKSUM/DATASUM write "
+            "timestamp comment");
+  CHECK_MSG(!ds_stream.empty() && ds_stream == ds_frame,
+            "per-HDU DATASUM values must be identical (data-unit digest)");
+  std::printf("INFO product identity: HDUs=%zu datasums identical=%s\n", ds_stream.size(),
+              (ds_stream == ds_frame) ? "yes" : "no");
   std::printf("INFO product identity: integrity=%s canonical=%s bytes=%zu\n",
               sha_stream.c_str(), canon_stream.c_str(), bytes_stream.size());
   std::error_code ec;
@@ -392,7 +437,13 @@ void test_product_identity() {
       f << "integrity_sha256=" << sha_stream << "\n";
       f << "canonical_sha256=" << canon_stream << "\n";
       f << "fits_bytes=" << bytes_stream.size() << "\n";
-      f << "streaming_vs_whole_frame: integrity/canonical/bytes all identical\n";
+      f << "hdu_count=" << ds_stream.size() << "\n";
+      for (std::size_t i = 0; i < ds_stream.size(); ++i)
+        f << "datasum[" << i << "]=" << ds_stream[i] << "\n";
+      f << "streaming_vs_whole_frame: canonical sha256 identical, per-HDU DATASUM "
+           "identical, bytes identical after masking the CHECKSUM/DATASUM "
+           "write-timestamp comment; whole-file integrity sha256 differs ONLY by "
+           "that timestamp (cfitsio fits_write_std_chksum embeds wall-clock time)\n";
     }
   }
 }
@@ -430,8 +481,9 @@ void test_rss_criteria() {
   const Meas frame_4x = run(1024, 1024, 256, true);
   csv.flush();
 
-  // ② 峰值随 sub_block 变化（子块 4× 边长 ⇒ 单块缓冲 16×）
-  CHECK_MSG(large_sb.delta_kb > small_sb.delta_kb,
+  // ② 峰值随 sub_block 变化（子块 4× 边长 ⇒ 单块缓冲 16×；在途上界 2·qd·sb²·8 B）
+  // 实测裕度：本机 sb=64 ≈ 3.5 MB / sb=256 ≈ 5.7 MB（差 ≈ 2.2 MB），下界取 1 MB。
+  CHECK_MSG(large_sb.delta_kb >= small_sb.delta_kb + 1024,
             ("peak RSS must grow with sub_block_px: sb=64 " +
              std::to_string(small_sb.delta_kb) + "kB vs sb=256 " +
              std::to_string(large_sb.delta_kb) + "kB").c_str());
@@ -445,6 +497,18 @@ void test_rss_criteria() {
              std::to_string(area_1x.delta_kb) + "kB 1024^2=" +
              std::to_string(area_4x.delta_kb) + "kB ratio=" +
              std::to_string(ratio_stream)).c_str());
+  // ③b 斜率判据（比比值更锐）：面积 4× 的**额外**峰值必须小于一个子块量级，
+  //     而整幅驻留参考路径的额外峰值必须 ≥ 4 MB（= 2 个 f32 平面 @1024²）。
+  const long extra_stream = area_4x.delta_kb - area_1x.delta_kb;
+  const long extra_frame = frame_4x.delta_kb - frame_1x.delta_kb;
+  CHECK_MSG(extra_stream < 2048,
+            ("streaming extra peak for 4x area must stay < 2 MB: " +
+             std::to_string(extra_stream) + "kB").c_str());
+  CHECK_MSG(extra_frame >= 4096,
+            ("whole-frame extra peak for 4x area must be >= 4 MB (non-degenerate "
+             "metric): " + std::to_string(extra_frame) + "kB").c_str());
+  std::printf("INFO rss slope: streaming extra(4x area)=%ldkB whole_frame extra=%ldkB\n",
+              extra_stream, extra_frame);
   // ④ 阳性对照：整幅驻留路径必须随面积线性增长（证明本度量非退化）
   const double ratio_frame =
       (frame_1x.delta_kb > 0)
@@ -466,7 +530,34 @@ void test_rss_criteria() {
 
 }  // namespace
 
+// 证据模式：同一进程内跑两条路径并把产物落盘，供逐字节 diff 定位差异。
+int emit_identity(const std::string& dir) {
+  std::error_code ec;
+  fs::create_directories(dir, ec);
+  for (int pass = 0; pass < 2; ++pass) {
+    const bool fault = (pass == 1);
+    if (fault) ::setenv("ASTROCS_P3_EXPORT_FAULT", "whole_frame_resident", 1);
+    else ::unsetenv("ASTROCS_P3_EXPORT_FAULT");
+    ModuleRegistry reg;
+    if (register_phase_modules(reg).failed()) return 2;
+    Fixture fx = make_fixture(fault ? "emit_f" : "emit_s", 512, 512);
+    ChainResult cr = run_chain(reg, node_config(fx, 512, 512, 128), 128);
+    if (!cr.ok) { std::fprintf(stderr, "chain failed: %s\n", cr.error.c_str()); return 3; }
+    const std::string dst = dir + (fault ? "/frame.fits" : "/stream.fits");
+    fs::copy_file(fx.out + "/output_phase3.fits", dst, fs::copy_options::overwrite_existing, ec);
+    fs::copy_file(fx.out + "/p3_writer.json", dir + (fault ? "/frame_writer.json" : "/stream_writer.json"),
+                  fs::copy_options::overwrite_existing, ec);
+    fs::remove_all(fx.root, ec);
+  }
+  ::unsetenv("ASTROCS_P3_EXPORT_FAULT");
+  std::printf("emitted to %s\n", dir.c_str());
+  return 0;
+}
+
 int main(int argc, char** argv) {
+  if (argc >= 3 && std::strcmp(argv[1], "--emit-identity") == 0) {
+    return emit_identity(argv[2]);
+  }
   if (argc >= 6 && std::strcmp(argv[1], "--measure") == 0) {
     const int w = std::atoi(argv[2]);
     const int h = std::atoi(argv[3]);

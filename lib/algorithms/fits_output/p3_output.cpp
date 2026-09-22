@@ -39,6 +39,7 @@
 #include "aio_atomic_file.h"
 #include "aio_file_io.h"
 
+#include <memory>
 #include <vector>
 
 namespace astrocs::phase3 {
@@ -51,7 +52,7 @@ std::string g_last_err;
 // 逐 HDU 写出并由 cfitsio 自行归属。旧实现自算 "little-endian 无进位字节和"
 // 并以 TINT 整数写入保留字 DATASUM，是非法关键字值（astropy checksum=True
 // 报 Datasum verification failed），已删除。
-// FIX-402 (FZ-P3-BUNIT-QUADRATIC / docs/contracts/v6/data/01_units_and_bunit.md §1):
+// FIX-402 (FZ-P3-BUNIT-QUADRATIC / docs/contracts/DATA_SEMANTICS.md §31.1 §1):
 // variance BUNIT = (signal BUNIT)^2, ivar = 1/variance —— 用**冻结单位表的 canonical
 // 串**（ADU^a/px^p 幂次代数），禁朴素字符串拼接（"ADU/px^2" + "^2" = "ADU/px^2^2"
 // 既非 canonical 也不可判）。解析失败 → false（调用方显式拒绝，禁写出非二次律 BUNIT）。
@@ -161,6 +162,8 @@ bool sha256_file_checked(const char* path, std::string* hex_out) {
 }
 
 }  // namespace
+
+const char* p3_output_last_error() { return g_last_err.c_str(); }
 
 P3OutputStatus p3_output_write_atomic(const float* signal, const float* coverage,
                                       int width, int height,
@@ -590,6 +593,465 @@ P3OutputStatus p3_output_verify_ex(const char* output_path,
         std::string h;
         // R10-C: 哈希失败 = 完整性锚缺失 → 返回 IO, 不写空串/前缀哈希
         if (!sha256_file_checked(output_path, &h)) {
+            g_last_err = "sha256_file(verify) failed";
+            return P3_OUT_IO;
+        }
+        std::snprintf(result->sha256, sizeof(result->sha256), "%s", h.c_str());
+    }
+    return P3_OUT_OK;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// 子块流式写 / 独立重开流式校验（P3-STREAM-01）
+//
+// 规范：ASTROCS_DESIGN §8.3 export 行「子块流式：读子块 → 投影重采样 → 写
+// FITS，有界队列 + 背压，不整幅驻留；I/O 与计算重叠，内存占用与子块大小成
+// 正比、与总图大小无关」；docs/contracts/SCHEDULER_CONTRACT.md §2 export 行同文。
+// 产品语义与整幅 API 逐条同面（FITS 关键字、BSCALE/BZERO、HISTORY provenance、
+// 逐 HDU DATASUM/CHECKSUM、flush→close→fsync→rename 原子发布序、独立重开
+// 对拍），差别只在**驻留面**：像素按矩形子块经 cfitsio 子集接口进出，
+// 任何时刻只持有一个子块的缓冲。
+// ══════════════════════════════════════════════════════════════════════════
+
+struct P3FitsStream::Impl {
+    std::unique_ptr<aio::CfitsioLockGuard> lock;   // cfitsio 进程级串行化（RT-008）
+    fitsfile* f = nullptr;
+    int status = 0;
+    std::string tmp;
+    std::string out;
+    int width = 0, height = 0, bitpix = -32;
+    std::string bunit;
+    int cur_hdu = 0;          // 0=PRIMARY(signal) 1=COVERAGE 2=VARIANCE 3=IVAR
+    bool hdu_open = false;    // 当前 HDU 已建、尚未写 DATASUM/CHECKSUM
+    bool failed = false;
+};
+
+P3FitsStream::P3FitsStream() : impl_(new Impl()) {}
+P3FitsStream::~P3FitsStream() {
+    if (impl_) { abort(); delete impl_; impl_ = nullptr; }
+}
+
+P3OutputStatus P3FitsStream::open(const char* output_path,
+                                  const P3WcsDescriptor* wcs, int width,
+                                  int height, int bitpix, const char* bunit,
+                                  const P3Provenance* prov) {
+    if (!output_path || !wcs || width < 1 || height < 1) return P3_OUT_PARAM;
+    // B2-A4: 投影由已校验 descriptor 决定；未实现投影 fail-closed —— 在创建
+    // 任何临时/输出文件之前拒绝（与整幅路径同判）。
+    {
+        std::string perr;
+        if (p3_wcs_validate_request(wcs->projection, nullptr, nullptr, &perr) !=
+            P3_WCS_OK) {
+            g_last_err = perr;
+            return P3_OUT_PARAM;
+        }
+    }
+    if (bitpix != -32 && bitpix != -64) {
+        g_last_err = "bitpix must be -32|-64";
+        return P3_OUT_PARAM;
+    }
+    impl_->width = width;
+    impl_->height = height;
+    impl_->bitpix = bitpix;
+    impl_->bunit = bunit ? bunit : "ADU";
+    impl_->out = output_path;
+    impl_->lock.reset(new aio::CfitsioLockGuard());
+    make_temp_path(impl_->out, &impl_->tmp);
+    aio_atomic::remove_file(impl_->tmp);
+    long naxes[2] = {width, height};
+    if (fits_create_file(&impl_->f, impl_->tmp.c_str(), &impl_->status)) {
+        g_last_err = "fits_create_file(tmp): " + std::to_string(impl_->status);
+        abort();
+        return P3_OUT_IO;
+    }
+    if (fits_create_img(impl_->f, bitpix, 2, naxes, &impl_->status)) {
+        g_last_err = "fits_create_img: " + std::to_string(impl_->status);
+        abort();
+        return P3_OUT_IO;
+    }
+    // ── 合同③：PRIMARY 头（WCS + 单位 + provenance + HISTORY）在**首像素
+    //    写出之前**全部组装完成；后续 write_block 只碰数据区，不补头。
+    fitsfile* f = impl_->f;
+    int& status = impl_->status;
+    {
+        const char* pj = (wcs->projection && *wcs->projection) ? wcs->projection : "TAN";
+        const std::string ctype1 = std::string("RA---") + pj;
+        const std::string ctype2 = std::string("DEC--") + pj;
+        fits_write_key(f, TSTRING, (char*)"CTYPE1", (void*)ctype1.c_str(), nullptr, &status);
+        fits_write_key(f, TSTRING, (char*)"CTYPE2", (void*)ctype2.c_str(), nullptr, &status);
+    }
+    fits_write_key(f, TSTRING, (char*)"CUNIT1", (void*)"deg", nullptr, &status);
+    fits_write_key(f, TSTRING, (char*)"CUNIT2", (void*)"deg", nullptr, &status);
+    {
+        double val;
+        val = wcs->crpix_x;        fits_write_key(f, TDOUBLE, (char*)"CRPIX1", &val, nullptr, &status);
+        val = wcs->crpix_y;        fits_write_key(f, TDOUBLE, (char*)"CRPIX2", &val, nullptr, &status);
+        val = wcs->crval_ra_deg;   fits_write_key(f, TDOUBLE, (char*)"CRVAL1", &val, nullptr, &status);
+        val = wcs->crval_dec_deg;  fits_write_key(f, TDOUBLE, (char*)"CRVAL2", &val, nullptr, &status);
+        val = wcs->cd[0][0];       fits_write_key(f, TDOUBLE, (char*)"CD1_1", &val, nullptr, &status);
+        val = wcs->cd[0][1];       fits_write_key(f, TDOUBLE, (char*)"CD1_2", &val, nullptr, &status);
+        val = wcs->cd[1][0];       fits_write_key(f, TDOUBLE, (char*)"CD2_1", &val, nullptr, &status);
+        val = wcs->cd[1][1];       fits_write_key(f, TDOUBLE, (char*)"CD2_2", &val, nullptr, &status);
+    }
+    {
+        double bscale = 1.0, bzero = 0.0;
+        fits_write_key(f, TDOUBLE, (char*)"BSCALE", &bscale, nullptr, &status);
+        fits_write_key(f, TDOUBLE, (char*)"BZERO", &bzero, nullptr, &status);
+        fits_write_key(f, TSTRING, (char*)"BUNIT", (void*)impl_->bunit.c_str(), nullptr, &status);
+    }
+    if (prov) {
+        fits_write_key(f, TSTRING, (char*)"HIPSID", (void*)prov->hips_id, nullptr, &status);
+        fits_write_key(f, TSTRING, (char*)"RUNID", (void*)prov->run_id, nullptr, &status);
+        fits_write_key(f, TSTRING, (char*)"ORDERSEL", (void*)prov->order_sel_used, nullptr, &status);
+        fits_write_key(f, TSTRING, (char*)"SAMPLER", (void*)prov->sampler_used, nullptr, &status);
+        fits_write_key(f, TSTRING, (char*)"SWVER", (void*)prov->software_version, nullptr, &status);
+        char hist[160];
+        std::snprintf(hist, sizeof(hist), "HISTORY phase3 source=%s manifest=%s",
+                      prov->hips_id, prov->manifest_hash ? prov->manifest_hash : "");
+        fits_write_history(f, hist, &status);
+    }
+    if (status) {
+        g_last_err = "PRIMARY header write failed: " + std::to_string(status);
+        abort();
+        return P3_OUT_IO;
+    }
+    impl_->cur_hdu = 0;
+    impl_->hdu_open = true;
+    return P3_OUT_OK;
+}
+
+P3OutputStatus P3FitsStream::begin_hdu(int plane) {
+    if (!impl_ || !impl_->f || impl_->failed) return P3_OUT_PARAM;
+    if (plane == 0) {
+        // PRIMARY 已在 open() 内建好（头先于像素）
+        if (impl_->cur_hdu != 0 || !impl_->hdu_open) return P3_OUT_PARAM;
+        return P3_OUT_OK;
+    }
+    if (plane < 1 || plane > 3) return P3_OUT_PARAM;
+    if (impl_->hdu_open) return P3_OUT_PARAM;   // 上一 HDU 未收尾（校验和未写）
+    fitsfile* f = impl_->f;
+    int& status = impl_->status;
+    long cnaxes[2] = {impl_->width, impl_->height};
+    if (fits_create_img(f, impl_->bitpix, 2, cnaxes, &status)) {
+        g_last_err = "extension create_img: " + std::to_string(status);
+        impl_->failed = true;
+        return P3_OUT_IO;
+    }
+    if (plane == 1) {
+        fits_write_key(f, TSTRING, (char*)"EXTNAME", (void*)"COVERAGE", nullptr, &status);
+    } else {
+        // FIX-402: 二次律 canonical 推导（FZ-P3-BUNIT-QUADRATIC）; 表外单位显式拒绝
+        std::string var_bunit, ivar_bunit;
+        if (!bunit_square_canonical(impl_->bunit, &var_bunit, &ivar_bunit)) {
+            g_last_err = std::string("variance BUNIT undecidable for signal BUNIT '") +
+                         impl_->bunit + "' (FZ-P3-BUNIT-QUADRATIC)";
+            impl_->failed = true;
+            return P3_OUT_PARAM;
+        }
+        fits_write_key(f, TSTRING, (char*)"EXTNAME",
+                       (void*)(plane == 2 ? "VARIANCE" : "IVAR"), nullptr, &status);
+        fits_write_key(f, TSTRING, (char*)"BUNIT",
+                       (void*)(plane == 2 ? var_bunit.c_str() : ivar_bunit.c_str()),
+                       nullptr, &status);
+    }
+    if (status) {
+        g_last_err = "extension header write failed: " + std::to_string(status);
+        impl_->failed = true;
+        return P3_OUT_IO;
+    }
+    impl_->cur_hdu = plane;
+    impl_->hdu_open = true;
+    return P3_OUT_OK;
+}
+
+P3OutputStatus P3FitsStream::write_block(int x0, int y0, int w, int h,
+                                         const float* data) {
+    if (!impl_ || !impl_->f || !data) return P3_OUT_PARAM;
+    if (!impl_->hdu_open || impl_->failed) return P3_OUT_PARAM;
+    if (w < 1 || h < 1 || x0 < 0 || y0 < 0 || x0 + w > impl_->width ||
+        y0 + h > impl_->height) {
+        g_last_err = "sub-block out of image bounds";
+        impl_->failed = true;
+        return P3_OUT_PARAM;
+    }
+    long fp[2] = {x0 + 1, y0 + 1};   // FITS 1-based
+    long lp[2] = {x0 + w, y0 + h};
+    int& status = impl_->status;
+    if (fits_write_subset(impl_->f, TFLOAT, fp, lp, (void*)data, &status)) {
+        g_last_err = "fits_write_subset failed: " + std::to_string(status);
+        impl_->failed = true;
+        return P3_OUT_IO;
+    }
+    return P3_OUT_OK;
+}
+
+P3OutputStatus P3FitsStream::end_hdu() {
+    if (!impl_ || !impl_->f) return P3_OUT_PARAM;
+    if (!impl_->hdu_open) return P3_OUT_PARAM;
+    // B2-A9: 标准 DATASUM/CHECKSUM 逐 HDU（与整幅路径同一实现）
+    std::string why;
+    if (!fits_write_std_chksum(impl_->f, &why)) {
+        g_last_err = why;
+        impl_->failed = true;
+        return P3_OUT_IO;
+    }
+    impl_->hdu_open = false;
+    return P3_OUT_OK;
+}
+
+P3OutputStatus P3FitsStream::publish(P3OutputResult* result) {
+    if (!impl_ || !impl_->f || impl_->failed || impl_->hdu_open) return P3_OUT_IO;
+    if (result) std::memset(result, 0, sizeof(*result));
+    int fstatus = 0;
+    if (fits_flush_file(impl_->f, &fstatus)) {
+        g_last_err = "fits_flush_file: " + std::to_string(fstatus);
+        abort();
+        return P3_OUT_IO;
+    }
+    int status = 0;
+    fits_close_file(impl_->f, &status);
+    impl_->f = nullptr;
+    if (status) {
+        g_last_err = "close: " + std::to_string(status);
+        abort();
+        return P3_OUT_IO;
+    }
+    // ② 内容已完整写出后再 fsync（机制在 aio）；③ 原子 rename。
+    const int frc = aio_atomic::fsync_path(impl_->tmp, 0);
+    if (frc != 0) {
+        g_last_err = std::string("fsync(tmp): ") + std::strerror(frc);
+        abort();
+        return P3_OUT_IO;
+    }
+    if (aio_atomic::atomic_replace(impl_->tmp, impl_->out) != 0) {
+        g_last_err = std::string("rename: ") + std::strerror(errno);
+        abort();
+        return P3_OUT_IO;
+    }
+    if (result) {
+        std::string h;
+        if (!sha256_file_checked(impl_->out.c_str(), &h)) {
+            g_last_err = "sha256_file(published output) failed";
+            aio_atomic::remove_file(impl_->out);
+            abort();
+            return P3_OUT_IO;
+        }
+        std::snprintf(result->sha256, sizeof(result->sha256), "%s", h.c_str());
+        result->total_px = (long)impl_->width * impl_->height;
+    }
+    published_ = true;
+    impl_->lock.reset();
+    return P3_OUT_OK;
+}
+
+void P3FitsStream::abort() {
+    if (!impl_) return;
+    if (impl_->f) {
+        int st = 0;
+        fits_close_file(impl_->f, &st);
+        impl_->f = nullptr;
+    }
+    if (!impl_->tmp.empty()) aio_atomic::remove_file(impl_->tmp);
+    impl_->lock.reset();
+}
+
+// ── 独立重开流式校验（与 p3_output_verify_ex 同判据，按子块读回）─────────
+struct P3FitsVerifyStream::Impl {
+    std::unique_ptr<aio::CfitsioLockGuard> lock;
+    fitsfile* f = nullptr;
+    int status = 0;
+    int width = 0, height = 0;
+    bool unc = false;
+    int hdus = 1;
+    int ok = 1, covok = 1, uncok = 1, wcsok = 1;
+    long covered = 0;
+    std::string path;
+};
+
+P3FitsVerifyStream::P3FitsVerifyStream() : impl_(new Impl()) {}
+P3FitsVerifyStream::~P3FitsVerifyStream() {
+    if (impl_) {
+        if (impl_->f) { int st = 0; fits_close_file(impl_->f, &st); impl_->f = nullptr; }
+        impl_->lock.reset();
+        delete impl_;
+        impl_ = nullptr;
+    }
+}
+
+P3OutputStatus P3FitsVerifyStream::open(const char* output_path,
+                                        const P3WcsDescriptor* wcs, int width,
+                                        int height, bool has_uncertainty) {
+    if (!output_path || !wcs || width < 1 || height < 1) return P3_OUT_PARAM;
+    impl_->width = width;
+    impl_->height = height;
+    impl_->unc = has_uncertainty;
+    impl_->path = output_path;
+    impl_->lock.reset(new aio::CfitsioLockGuard());
+    int& status = impl_->status;
+    if (fits_open_file(&impl_->f, output_path, READONLY, &status) != 0) {
+        g_last_err = "open failed";
+        return P3_OUT_IO;
+    }
+    fits_get_num_hdus(impl_->f, &impl_->hdus, &status);
+    fitsfile* f = impl_->f;
+    // primary (HDU 1) = signal: WCS 关键字逐项对拍（B2-A9/AUD-COORD F-05）
+    if (fits_movabs_hdu(f, 1, nullptr, &status) == 0) {
+        const std::string pj = (wcs->projection && *wcs->projection)
+                                   ? wcs->projection : "TAN";
+        const std::string want_ctype1 = std::string("RA---") + pj;
+        const std::string want_ctype2 = std::string("DEC--") + pj;
+        auto card_equals = [](const char* card, const char* want) {
+            std::string got(card ? card : "");
+            if (got.size() >= 2 && got.front() == '\'' && got.back() == '\'')
+                got = got.substr(1, got.size() - 2);
+            while (!got.empty() && (got.back() == ' ' || got.back() == '\t')) got.pop_back();
+            return got == want;
+        };
+        const struct { const char* key; const char* want; } skeys[] = {
+            {"CTYPE1", want_ctype1.c_str()}, {"CTYPE2", want_ctype2.c_str()},
+            {"CUNIT1", "deg"}, {"CUNIT2", "deg"}};
+        for (const auto& sk : skeys) {
+            char card[81] = {0};
+            status = 0;
+            if (fits_read_keyword(f, sk.key, card, nullptr, &status) != 0 ||
+                !card_equals(card, sk.want)) {
+                impl_->wcsok = 0;
+                break;
+            }
+        }
+        status = 0;
+        const struct { const char* key; double want; } dkeys[] = {
+            {"CRPIX1", wcs->crpix_x}, {"CRPIX2", wcs->crpix_y},
+            {"CRVAL1", wcs->crval_ra_deg}, {"CRVAL2", wcs->crval_dec_deg},
+            {"CD1_1", wcs->cd[0][0]}, {"CD1_2", wcs->cd[0][1]},
+            {"CD2_1", wcs->cd[1][0]}, {"CD2_2", wcs->cd[1][1]}};
+        for (const auto& dk : dkeys) {
+            double got = 0.0;
+            status = 0;
+            if (fits_read_key(f, TDOUBLE, (char*)dk.key, &got, nullptr, &status) != 0 ||
+                std::fabs(got - dk.want) > 1e-12) {
+                impl_->wcsok = 0;
+                break;
+            }
+        }
+        status = 0;
+        int naxis = 0, imgtype = 0;
+        long nax[2] = {0, 0};
+        fits_get_img_param(f, 2, &imgtype, &naxis, nax, &status);
+        if ((long)nax[0] != width || (long)nax[1] != height) impl_->ok = 0;
+    } else {
+        impl_->ok = 0;
+    }
+    // extension (HDU 2) = coverage
+    if (impl_->hdus >= 2 && fits_movabs_hdu(f, 2, nullptr, &status) == 0) {
+        int naxis = 0, imgtype = 0;
+        long nax[2] = {0, 0};
+        status = 0;
+        fits_get_img_param(f, 2, &imgtype, &naxis, nax, &status);
+        if ((long)nax[0] != width || (long)nax[1] != height) impl_->covok = 0;
+    } else {
+        impl_->covok = 0;
+    }
+    // uncertainty HDU 面（双向防: available 静默缺 HDU / unavailable 静默占位）
+    if (impl_->unc) {
+        const char* want[2] = {"VARIANCE", "IVAR"};
+        for (int h = 0; h < 2 && impl_->uncok; ++h) {
+            if (impl_->hdus < 3 + h ||
+                fits_movabs_hdu(f, 3 + h, nullptr, &status) != 0) {
+                impl_->uncok = 0;
+                break;
+            }
+            char card[81] = {0};
+            status = 0;
+            if (fits_read_keyword(f, "EXTNAME", card, nullptr, &status) != 0 ||
+                !std::strstr(card, want[h])) {
+                impl_->uncok = 0;
+                break;
+            }
+            int naxis = 0, imgtype = 0;
+            long nax[2] = {0, 0};
+            status = 0;
+            fits_get_img_param(f, 2, &imgtype, &naxis, nax, &status);
+            if ((long)nax[0] != width || (long)nax[1] != height) { impl_->uncok = 0; break; }
+        }
+    } else if (impl_->hdus >= 3) {
+        if (fits_movabs_hdu(f, 3, nullptr, &status) == 0) {
+            char card[81] = {0};
+            status = 0;
+            if (fits_read_keyword(f, "EXTNAME", card, nullptr, &status) == 0 &&
+                (std::strstr(card, "VARIANCE") || std::strstr(card, "IVAR")))
+                impl_->uncok = 0;
+        }
+    }
+    impl_->status = 0;
+    return P3_OUT_OK;
+}
+
+P3OutputStatus P3FitsVerifyStream::check_block(int plane, int x0, int y0, int w,
+                                               int h, const float* expected) {
+    if (!impl_ || !impl_->f || !expected) return P3_OUT_PARAM;
+    if (plane < 0 || plane > 3 || w < 1 || h < 1) return P3_OUT_PARAM;
+    if (x0 < 0 || y0 < 0 || x0 + w > impl_->width || y0 + h > impl_->height)
+        return P3_OUT_PARAM;
+    if (plane >= 2 && !impl_->unc) return P3_OUT_PARAM;
+    int status = 0;
+    if (fits_movabs_hdu(impl_->f, plane + 1, nullptr, &status) != 0) {
+        if (plane == 0) impl_->ok = 0;
+        else if (plane == 1) impl_->covok = 0;
+        else impl_->uncok = 0;
+        return P3_OUT_OK;   // 判定已置位；不在读路径上抛 IO
+    }
+    long fp[2] = {x0 + 1, y0 + 1};
+    long lp[2] = {x0 + w, y0 + h};
+    // cfitsio 的 ffgsv 会**无条件**解引用 inc（getcol.c:433 起）⇒ 必须给合法步长，
+    // 传 nullptr 是空指针解引用（实测 SIGSEGV, si_addr=NULL）。
+    long inc[2] = {1, 1};
+    std::vector<float> buf(static_cast<std::size_t>(w) * h);
+    int anynul = 0;
+    if (fits_read_subset(impl_->f, TFLOAT, fp, lp, inc, nullptr, buf.data(),
+                         &anynul, &status) != 0) {
+        g_last_err = "fits_read_subset failed: " + std::to_string(status);
+        return P3_OUT_IO;
+    }
+    const std::size_t n = static_cast<std::size_t>(w) * h;
+    if (plane == 1) {
+        for (std::size_t i = 0; i < n; ++i) {
+            if ((buf[i] > 0.5f) != (expected[i] > 0.5f)) { impl_->covok = 0; break; }
+        }
+        for (std::size_t i = 0; i < n; ++i) if (buf[i] > 0.5f) ++impl_->covered;
+    } else {
+        for (std::size_t i = 0; i < n; ++i) {
+            // NaN 语义: 双方都是 NaN → 一致（源无覆盖 = NaN）；否则逐值精确回环
+            const bool sn = (expected[i] != expected[i]);
+            const bool rd = (buf[i] != buf[i]);
+            if (buf[i] != expected[i] && !(sn && rd)) {
+                if (plane == 0) impl_->ok = 0;
+                else impl_->uncok = 0;
+                break;
+            }
+        }
+    }
+    return P3_OUT_OK;
+}
+
+P3OutputStatus P3FitsVerifyStream::close(P3OutputResult* result) {
+    if (!impl_) return P3_OUT_PARAM;
+    if (impl_->f) {
+        int st = 0;
+        fits_close_file(impl_->f, &st);
+        impl_->f = nullptr;
+    }
+    impl_->lock.reset();
+    if (result) {
+        std::memset(result, 0, sizeof(*result));
+        result->reopen_ok = (impl_->ok == 1 && impl_->covok == 1 &&
+                             impl_->uncok == 1 && impl_->wcsok == 1)
+                                ? 1 : 0;
+        result->coverage_ok = impl_->covok;
+        result->covered_px = impl_->covered;
+        result->total_px = (long)impl_->width * impl_->height;
+        std::string h;
+        if (!sha256_file_checked(impl_->path.c_str(), &h)) {
             g_last_err = "sha256_file(verify) failed";
             return P3_OUT_IO;
         }

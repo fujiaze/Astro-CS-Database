@@ -2386,6 +2386,14 @@ struct P1GuidedCfg {
   ipv::IPVSolverParams ipv_params;
 };
 
+// 取向先验可用性（**配置级**判定，不需要图像）: 显式 CD 或 rotation_deg+parity
+// 二者之一。星表逆投影必须知道像面取向与镜像; 实测（NGC55 T3 600s 真实帧,
+// 4096²）取向错 90° 时仍有 88 个拟合通过全部质量门（真实场盲检测密度 ~5.7 源/
+// 千像素 ⇒ 随机预测位置常落在真星上），0 星闸门抓不住 ⇒ 缺取向先验时不得声称权威。
+bool p1_guided_has_orientation(const P1GuidedCfg& cfg) {
+  return cfg.have_explicit_wcs || cfg.have_rotation;
+}
+
 // star_detection 段解析（唯一配置入口；top 数禁编译期硬编码，宪章 §10.4）。
 // 返回 false 且写 *why = 配置非法（调用方 DATA fail-closed）。
 bool p1_guided_cfg(const Json& doc, P1GuidedCfg* out, std::string* why) {
@@ -2651,6 +2659,8 @@ bool p1_guided_predict(const P1GuidedCfg& cfg, const P1Image& im, const std::str
     converged = mi.converged;
     capped = mi.capped;
   }
+  std::fprintf(stderr, "[stardet-dbg] predict: m_lim=%.3f n_query=%d n_cat=%zu radius=%.4f\n",
+               m_lim, n_query, cat_ra.size(), query_radius_deg);
   if (cat_ra.empty()) {
     *why = "gaia cone search returned 0 stars (m_lim=" + std::to_string(m_lim) +
            ", radius=" + std::to_string(query_radius_deg) + " deg)";
@@ -2724,22 +2734,44 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   }
   std::string eff_mode = gcfg.mode;
   std::string degrade_reason;
+  const bool have_orient = p1_guided_has_orientation(gcfg);
   if (eff_mode == "auto") {
-    if (!gcfg.gaia_dir.empty()) {
-      eff_mode = "catalog_guided";
-    } else {
+    if (gcfg.gaia_dir.empty()) {
       // 显式降级（**不是**静默）：逐帧落 degraded_reason + authoritative=false。
       eff_mode = "blind_diagnostic";
       degrade_reason = "no reference catalog configured (star_detection.gaia_data_dir / "
                        "wcs.gaia_data_dir absent): authoritative catalog-guided detection "
                        "unavailable, falling back to the declared non-authoritative blind path";
       std::fprintf(stderr, "[star-psf] WARNING (recorded): %s\n", degrade_reason.c_str());
+    } else if (!have_orient) {
+      // 有星表但无取向先验: 逆投影只能假设"北向上/东向左", 而实测该假设在真实
+      // 密集场上仍能产出少量通过全部质量门的假源（随机位置落在真星上），0 星闸门
+      // 抓不住 ⇒ 会以错误天球位置冒充权威星表。auto 模式按"显式降级 + 留痕"处理。
+      eff_mode = "blind_diagnostic";
+      degrade_reason = "reference catalog configured but no orientation prior "
+                       "(star_detection.approx_wcs {crval1,crval2,cd11,cd12,cd21,cd22} or "
+                       "star_detection.rotation_deg+parity absent): catalog inverse "
+                       "projection would use an assumed north-up/east-left orientation; "
+                       "falling back to the declared non-authoritative blind path";
+      std::fprintf(stderr, "[star-psf] WARNING (recorded): %s\n", degrade_reason.c_str());
+    } else {
+      eff_mode = "catalog_guided";
     }
-  } else if (eff_mode == "catalog_guided" && gcfg.gaia_dir.empty()) {
-    return Result<void>::fail(Error(ErrorDomain::DATA,
-        "star_detection.mode=catalog_guided requires gaia_data_dir "
-        "(star_detection.gaia_data_dir or wcs.gaia_data_dir): refusing to degrade to "
-        "full-frame blind detection (ASTROCS_DESIGN.md §4.2)"));
+  } else if (eff_mode == "catalog_guided") {
+    if (gcfg.gaia_dir.empty()) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "star_detection.mode=catalog_guided requires gaia_data_dir "
+          "(star_detection.gaia_data_dir or wcs.gaia_data_dir): refusing to degrade to "
+          "full-frame blind detection (ASTROCS_DESIGN.md §4.2)"));
+    }
+    if (!have_orient) {
+      return Result<void>::fail(Error(ErrorDomain::DATA,
+          "star_detection.mode=catalog_guided requires an orientation prior: configure "
+          "star_detection.approx_wcs {crval1,crval2,cd11,cd12,cd21,cd22} (or the same keys "
+          "under the wcs section), or star_detection.rotation_deg + star_detection.parity; "
+          "refusing to inverse-project the catalog with an assumed orientation "
+          "(ASTROCS_DESIGN.md §4.2: 权威路径必须高纯度, 不得以假设取向冒充)"));
+    }
   }
   const bool guided = (eff_mode == "catalog_guided");
   // Gaia 句柄（权威路径必需）。fail-closed 三道断言与 wcs 节点同款
@@ -2875,6 +2907,8 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       float **gex = nullptr;
       SDetGuidedStats gstats;
       std::memset(&gstats, 0, sizeof(gstats));
+      std::fprintf(stderr, "[stardet-dbg] guided detect: w=%d h=%d n_pred=%zu\n",
+                   im.w(), im.h(), px.size());
       const int grc = sdet_detect_guided_ex_f64(
           ghandles[w], dbuf.data(), im.w(), im.h(), px.data(), py.data(),
           static_cast<int>(px.size()),
