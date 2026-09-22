@@ -1,0 +1,484 @@
+{
+ "meta": {
+  "unit": "EXP-06-SNR-PHYS",
+  "arm": "E 门与故障注入",
+  "seed_base": 20260927,
+  "shape": [
+   1024,
+   1024
+  ],
+  "delta_px": 64,
+  "elapsed_s": 71.41946053504944
+ },
+ "gates": [
+  {
+   "gate": "G1a_flat_truth_physics_field_is_constant",
+   "verdict": "PASS",
+   "expect": "dispersion <= 1e-2",
+   "detail": "平坦天光 + 无源（真值无空间效应）⇒ 物理重建场必须退化为常数；实测离散度 0.00322",
+   "value": {
+    "dispersion_phys": 0.0032240471159971085,
+    "per_method": {
+     "frame_scalar": 0.0,
+     "dense_patch": 0.04004783530745071,
+     "interp_spline": 0.03926367018560639,
+     "interp_bilinear": 0.03848636519755555,
+     "phys": 0.0032240471159971085,
+     "phys_resid": 0.03923292571094916,
+     "phys_unsep": 0.0063245024153215645,
+     "phys_med3drv": 0.0,
+     "naive_pixel": 0.17571617767252856,
+     "phys_free": 0.0005488736460554922,
+     "phys_free_resid": 0.039235260829961316,
+     "phys_auto": 0.0005488736460554922,
+     "phys_auto_resid": 0.039235260829961316,
+     "phys_r0ctrl": 0.0005488736460554922
+    }
+   }
+  },
+  {
+   "gate": "G1b_flat_truth_physics_flatter_than_interpolation",
+   "verdict": "PASS",
+   "expect": "disp <= disp_interp/5",
+   "detail": "同一平坦真值场上，物理重建的伪空间结构必须比纯插值至少小 5 倍；实测 phys=0.00322 interp=0.0393 frame=0（比 12.2）",
+   "value": {
+    "phys": 0.0032240471159971085,
+    "interp": 0.03926367018560639,
+    "frame": 0.0
+   }
+  },
+  {
+   "gate": "G2_zero_noise_truth_must_flag_degenerate",
+   "verdict": "PASS",
+   "expect": "degenerate=True",
+   "detail": "零噪声真值：真值方差恒 0 ⇒ 度量必须显式判退化（不得静默产出数字）；实测 degenerate=True n_eval=0",
+   "value": {
+    "truth_is_zero": true,
+    "degenerate_flag": true,
+    "level_ratio": NaN,
+    "n_eval": 0
+   }
+  },
+  {
+   "gate": "G3a_separation_blocks_bright_pixels",
+   "verdict": "PASS",
+   "expect": "dispersion <= 1e-2",
+   "detail": "平坦天光 + 6 颗极亮星（flux 1e6.5~1e7 e-）⇒ 结构分离后物理场仍须近似常数；实测离散度 0.00363",
+   "value": 0.0036345290839630007
+  },
+  {
+   "gate": "G3b_naive_pixel_substitution_must_be_red",
+   "verdict": "PASS",
+   "expect": "src_snr_p05 <= 0.5（错误臂必须红）",
+   "detail": "逐像素代入亮度：源像素上 sigma 被高估 ⇒ SNR 伪暗洞必须判红；实测源区 SNR 比值 p05 = 0.066",
+   "value": 0.06601441498367333
+  },
+  {
+   "gate": "G4a_naive_pixel_source_snr_dip_must_be_red",
+   "verdict": "PASS",
+   "expect": "p05 <= 0.5（错误臂必须红）",
+   "detail": "逐像素代入亮度：源像素 SNR 比值的 p05 必须显著低于 1（伪暗洞）；实测 0.223",
+   "value": 0.22274003931985079
+  },
+  {
+   "gate": "G4b_physics_source_zone_clean",
+   "verdict": "PASS",
+   "expect": "p05 >= 0.9",
+   "detail": "物理重建在源像素上不得产生 SNR 伪结构；实测源区 SNR p05 = 1.002",
+   "value": 1.0021146474525076
+  },
+  {
+   "gate": "G5_no_separation_must_be_red",
+   "verdict": "PASS",
+   "expect": "E_unsep >= 2*E_phys",
+   "detail": "不做结构分离（大尺度高斯平滑原始帧作驱动量）⇒ 权重效率损失必须显著变差；实测 E_unsep=0.05169 vs E_phys=0.00006（比 938.78）",
+   "value": {
+    "E_unsep": 0.05168879768885026,
+    "E_phys": 5.505965052865491e-05
+   }
+  },
+  {
+   "gate": "G6a_shuffled_controls_destroy_the_brightness_law",
+   "verdict": "PASS",
+   "expect": "E_shuffled >= 10*E_phys",
+   "detail": "控制点值随机洗牌（破坏与亮度的配对）⇒ 物理模型的增益信息被破坏，必须显著劣于物理臂；实测 E_shuffled=0.05544 vs E_phys=0.00006（比 1006.9）；洗牌后斜率 -0.0109 vs 正确 0.7454",
+   "value": {
+    "E_shuffled": 0.05543734536068934,
+    "E_frame": 0.0539928378941954,
+    "E_phys": 5.505965052865491e-05,
+    "c_shuffled": -0.010854573576013625,
+    "c_true": 0.7453533300382414
+   }
+  },
+  {
+   "gate": "G6b_shuffled_model_degenerates_to_frame_scalar",
+   "verdict": "PASS",
+   "expect": "|E_shuffled/E_frame - 1| <= 0.5",
+   "detail": "洗牌后模型退化为帧级标量（亮度项归零）⇒ E 必须与帧级臂同量级；实测 E_shuffled=0.05544 vs E_frame=0.05399",
+   "value": {
+    "E_shuffled": 0.05543734536068934,
+    "E_frame": 0.0539928378941954,
+    "E_phys": 5.505965052865491e-05,
+    "c_shuffled": -0.010854573576013625,
+    "c_true": 0.7453533300382414
+   }
+  },
+  {
+   "gate": "G7_gain_recovery_on_clean_backgrounds",
+   "verdict": "PASS",
+   "expect": "|gain_hat/g - 1| <= 5%",
+   "detail": "弥散分量在 cell 尺度上足够平滑的场景（线性/强梯度）⇒ 自由斜率必须还原 1/g，偏差 <= 5%；实测最差 3.66%",
+   "value": [
+    {
+     "scene": "A2_gradient",
+     "gain_hat": 1.346781445829544,
+     "gain_true": 1.3,
+     "rel_dev": 0.035985727561187675,
+     "lever_var": 0.4922588861890135,
+     "c_se_over_c": 0.011100058916987841
+    },
+    {
+     "scene": "A6_strong_gradient",
+     "gain_hat": 1.347556982888164,
+     "gain_true": 1.3,
+     "rel_dev": 0.036582294529356796,
+     "lever_var": 1.641230185263161,
+     "c_se_over_c": 0.0036911245515481718
+    }
+   ]
+  },
+  {
+   "gate": "G8_power_law_exponent_consistent_with_1",
+   "verdict": "PASS",
+   "expect": "p 与 1 在 3 sigma 内一致",
+   "detail": "物理模型预言 Var 对电平的幂律指数 p = 1；自由指数拟合必须与 1 在 3 sigma 内一致",
+   "value": [
+    {
+     "scene": "A2_gradient",
+     "p": 1.0304944033864134,
+     "p_se": 0.027860669021599997,
+     "consistent_with_1": true
+    },
+    {
+     "scene": "A6_strong_gradient",
+     "p": 1.0019192959224352,
+     "p_se": 0.011997634370010021,
+     "consistent_with_1": true
+    }
+   ]
+  },
+  {
+   "gate": "G9_physics_beats_interpolation_on_smooth_backgrounds",
+   "verdict": "PASS",
+   "expect": "E_phys < E_interp（全部场景）",
+   "detail": "平滑背景（弥散分量在 cell 尺度可分辨）上，物理建模的权重效率损失必须优于纯插值",
+   "value": [
+    {
+     "scene": "A2_gradient",
+     "E_phys": 3.369939961173074e-05,
+     "E_interp": 0.0005024243219995395,
+     "E_phys_resid": 0.0005034692691003873
+    },
+    {
+     "scene": "A4_realistic",
+     "E_phys": 5.2287925009775194e-05,
+     "E_interp": 0.0018273540246487308,
+     "E_phys_resid": 0.0018584907771812542
+    }
+   ]
+  },
+  {
+   "gate": "G10_constant_driver_injection_must_be_red",
+   "verdict": "PASS",
+   "expect": "E_const >= 2*E_phys",
+   "detail": "把驱动量置为常数（等价于丢掉亮度信息）⇒ 必须显著劣于物理重建；实测 E_const=0.49237 vs E_phys=0.00028",
+   "value": {
+    "E_const_driver": 0.49237480998160654,
+    "E_phys": 0.00028138819043665997,
+    "E_frame": 0.49237480998160943
+   }
+  },
+  {
+   "gate": "G11_wrong_gain_injection_must_be_red",
+   "verdict": "PASS",
+   "expect": "E_wrong >= 2*E_phys",
+   "detail": "把帧级增益用错一倍（斜率 1/(2g)）⇒ 必须显著劣于正确增益；实测 E_wrong=0.13190 vs E_phys=0.00028",
+   "value": {
+    "E_wrong_gain": 0.1318982926209784,
+    "E_phys": 0.00028138819043665997
+   }
+  },
+  {
+   "gate": "G12a_caliberP_weight_efficiency_loss_detected",
+   "verdict": "PASS",
+   "expect": "E_wP >= 10*E_ivar（口径错配必须判红）",
+   "detail": "把逐像素显著性平方（w = ((I-D)/sigma)^2）当作权重：必须显著劣于逆方差权重；实测 E_wP=3347303.22081 vs E_ivar=0.05640（比 59348386.3）",
+   "value": {
+    "snr_P_dynrange_p999_over_p50": 16360.708077742262,
+    "E_weight_caliberP": 3347303.220811277,
+    "E_weight_inverse_variance": 0.05640091381548862
+   }
+  },
+  {
+   "gate": "G12b_caliberP_field_is_not_smooth",
+   "verdict": "PASS",
+   "expect": ">= 3（该口径下场不平滑）",
+   "detail": "逐像素显著性场的空间动态范围 p99.9/p50（星点处爆表 ⇒ 场不平滑）；实测 16360.7",
+   "value": 16360.708077742262
+  },
+  {
+   "gate": "G13a_flat_background_auto_is_harmless_and_constant",
+   "verdict": "PASS",
+   "expect": "E_auto <= 1e-4 且场近似常数",
+   "detail": "背景恒定时斜率不可辨识，但驱动量恒定 ⇒ 模型场与斜率无关，auto 必须仍退化为常数且 E 触底；实测 E_auto=4.13e-08，场相对标准差 0.000102；CV 误差 free=0.011408 vs zero=0.011409（几乎并列）",
+   "value": {
+    "cv": {
+     "ok": true,
+     "choose_free": true,
+     "c_free_mean": -0.006550578968990486,
+     "cv_err_free": 0.01140777395202094,
+     "cv_err_zero": 0.011409320261311874,
+     "n_valid": 196,
+     "rule": "c=free"
+    },
+    "E_auto": 4.1335950218268636e-08
+   }
+  },
+  {
+   "gate": "G13b_cv_accepts_slope_on_strong_gradient",
+   "verdict": "PASS",
+   "expect": "choose_free = True",
+   "detail": "强梯度（lever_var=1.641）时交叉验证必须接受自由斜率",
+   "value": {
+    "ok": true,
+    "choose_free": true,
+    "c_free_mean": 0.741517767275685,
+    "cv_err_free": 0.015699065091621632,
+    "cv_err_zero": 0.2630505725478149,
+    "n_valid": 196,
+    "rule": "c=free"
+   }
+  },
+  {
+   "gate": "G13c_auto_never_loses_to_either_candidate",
+   "verdict": "PASS",
+   "expect": "E_auto <= 1.1*min(E_frame, E_free)",
+   "detail": "phys_auto（CV 选斜率）在任何场景都不得显著劣于 frame 与 phys_free 中的较优者（绝对下限 1e-4：低于此量级的差异无工程意义）",
+   "value": [
+    {
+     "scene": "A0_flat",
+     "E_auto": 4.1335950218268636e-08,
+     "E_frame": 2.220446049250313e-16,
+     "E_free": 4.1335950218268636e-08,
+     "E_interp": 0.0005188892336069895,
+     "choose_free": true,
+     "lever_var": 0.006209557609167431
+    },
+    {
+     "scene": "A4_realistic",
+     "E_auto": 6.077753027566857e-05,
+     "E_frame": 0.0539928378941954,
+     "E_free": 6.077753027566857e-05,
+     "E_interp": 0.001768654843740558,
+     "choose_free": true,
+     "lever_var": 0.6495937653846867
+    },
+    {
+     "scene": "A6_strong_gradient",
+     "E_auto": 0.0002893715416496523,
+     "E_frame": 0.49237480998160943,
+     "E_free": 0.0002893715416496523,
+     "E_interp": 0.0017780325681062692,
+     "choose_free": true,
+     "lever_var": 1.641230185263161
+    }
+   ]
+  },
+  {
+   "gate": "G15a_free_slope_model_is_positive_homogeneous",
+   "verdict": "PASS",
+   "expect": "<= 1e-9",
+   "detail": "自由斜率模型对控制值整体缩放严格正齐次 R[a*v]=a*R[v]（冻结算子要求 ②）；实测最大相对偏差 6.66e-16",
+   "value": {
+    "alpha": 1.7,
+    "max_dev_free_slope": 6.661338147750939e-16,
+    "max_dev_fixed_gain": 0.21255664387111062
+   }
+  },
+  {
+   "gate": "G15b_fixed_gain_model_breaks_homogeneity",
+   "verdict": "PASS",
+   "expect": ">= 0.05（必须识别出该差异）",
+   "detail": "用帧级增益固定斜率时模型**不正齐次**（斜率项不随控制值缩放）；实测最大相对偏差 0.213",
+   "value": {
+    "alpha": 1.7,
+    "max_dev_free_slope": 6.661338147750939e-16,
+    "max_dev_fixed_gain": 0.21255664387111062
+   }
+  }
+ ],
+ "detail": {
+  "G1_dispersion": {
+   "frame_scalar": 0.0,
+   "dense_patch": 0.04004783530745071,
+   "interp_spline": 0.03926367018560639,
+   "interp_bilinear": 0.03848636519755555,
+   "phys": 0.0032240471159971085,
+   "phys_resid": 0.03923292571094916,
+   "phys_unsep": 0.0063245024153215645,
+   "phys_med3drv": 0.0,
+   "naive_pixel": 0.17571617767252856,
+   "phys_free": 0.0005488736460554922,
+   "phys_free_resid": 0.039235260829961316,
+   "phys_auto": 0.0005488736460554922,
+   "phys_auto_resid": 0.039235260829961316,
+   "phys_r0ctrl": 0.0005488736460554922
+  },
+  "G2": {
+   "truth_is_zero": true,
+   "degenerate_flag": true,
+   "level_ratio": NaN,
+   "n_eval": 0
+  },
+  "G3": {
+   "phys_dispersion": 0.0036345290839630007,
+   "phys_src_level_ratio": 0.9861518165816161,
+   "naive_src_level_ratio": 0.06601441498367333
+  },
+  "G4": {
+   "naive_src_snr_p05": 0.22274003931985079,
+   "phys_src_snr_p05": 1.0021146474525076,
+   "E_phys": 5.505965052865491e-05,
+   "E_interp": 0.001768654843740558,
+   "E_naive": 0.015709842600671875,
+   "E_unsep": 0.05168879768885026,
+   "E_frame": 0.0539928378941954
+  },
+  "G6": {
+   "E_shuffled": 0.05543734536068934,
+   "E_frame": 0.0539928378941954,
+   "E_phys": 5.505965052865491e-05,
+   "c_shuffled": -0.010854573576013625,
+   "c_true": 0.7453533300382414
+  },
+  "G7_gain_recovery": [
+   {
+    "scene": "A2_gradient",
+    "gain_hat": 1.346781445829544,
+    "gain_true": 1.3,
+    "rel_dev": 0.035985727561187675,
+    "lever_var": 0.4922588861890135,
+    "c_se_over_c": 0.011100058916987841
+   },
+   {
+    "scene": "A6_strong_gradient",
+    "gain_hat": 1.347556982888164,
+    "gain_true": 1.3,
+    "rel_dev": 0.036582294529356796,
+    "lever_var": 1.641230185263161,
+    "c_se_over_c": 0.0036911245515481718
+   }
+  ],
+  "G8_power_law": [
+   {
+    "scene": "A2_gradient",
+    "p": 1.0304944033864134,
+    "p_se": 0.027860669021599997,
+    "consistent_with_1": true
+   },
+   {
+    "scene": "A6_strong_gradient",
+    "p": 1.0019192959224352,
+    "p_se": 0.011997634370010021,
+    "consistent_with_1": true
+   }
+  ],
+  "G9_phys_vs_interp": [
+   {
+    "scene": "A2_gradient",
+    "E_phys": 3.369939961173074e-05,
+    "E_interp": 0.0005024243219995395,
+    "E_phys_resid": 0.0005034692691003873
+   },
+   {
+    "scene": "A4_realistic",
+    "E_phys": 5.2287925009775194e-05,
+    "E_interp": 0.0018273540246487308,
+    "E_phys_resid": 0.0018584907771812542
+   }
+  ],
+  "G10": {
+   "E_const_driver": 0.49237480998160654,
+   "E_phys": 0.00028138819043665997,
+   "E_frame": 0.49237480998160943
+  },
+  "G11": {
+   "E_wrong_gain": 0.1318982926209784,
+   "E_phys": 0.00028138819043665997
+  },
+  "G12": {
+   "snr_P_dynrange_p999_over_p50": 16360.708077742262,
+   "E_weight_caliberP": 3347303.220811277,
+   "E_weight_inverse_variance": 0.05640091381548862
+  },
+  "G14_auto_vs_candidates": [
+   {
+    "scene": "A0_flat",
+    "E_auto": 4.1335950218268636e-08,
+    "E_frame": 2.220446049250313e-16,
+    "E_free": 4.1335950218268636e-08,
+    "E_interp": 0.0005188892336069895,
+    "choose_free": true,
+    "lever_var": 0.006209557609167431
+   },
+   {
+    "scene": "A4_realistic",
+    "E_auto": 6.077753027566857e-05,
+    "E_frame": 0.0539928378941954,
+    "E_free": 6.077753027566857e-05,
+    "E_interp": 0.001768654843740558,
+    "choose_free": true,
+    "lever_var": 0.6495937653846867
+   },
+   {
+    "scene": "A6_strong_gradient",
+    "E_auto": 0.0002893715416496523,
+    "E_frame": 0.49237480998160943,
+    "E_free": 0.0002893715416496523,
+    "E_interp": 0.0017780325681062692,
+    "choose_free": true,
+    "lever_var": 1.641230185263161
+   }
+  ],
+  "G13": {
+   "flat": {
+    "ok": true,
+    "choose_free": true,
+    "c_free_mean": -0.006550578968990486,
+    "cv_err_free": 0.01140777395202094,
+    "cv_err_zero": 0.011409320261311874,
+    "n_valid": 196,
+    "rule": "c=free"
+   },
+   "gradient": {
+    "ok": true,
+    "choose_free": true,
+    "c_free_mean": 0.741517767275685,
+    "cv_err_free": 0.015699065091621632,
+    "cv_err_zero": 0.2630505725478149,
+    "n_valid": 196,
+    "rule": "c=free"
+   },
+   "lever_flat": 0.006209557609167431,
+   "lever_grad": 1.641230185263161,
+   "gain_dev_flat": 4.867546535902329,
+   "gain_dev_grad": 0.036582294529356796
+  },
+  "G15_homogeneity": {
+   "alpha": 1.7,
+   "max_dev_free_slope": 6.661338147750939e-16,
+   "max_dev_fixed_gain": 0.21255664387111062
+  }
+ },
+ "all_pass": true
+}
