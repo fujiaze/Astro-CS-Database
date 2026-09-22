@@ -28,8 +28,9 @@ import unittest
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parents[3]
-if str(_REPO) not in sys.path:
-    sys.path.insert(0, str(_REPO))
+_ENG = Path(__file__).resolve().parents[2]
+if str(_ENG) not in sys.path:
+    sys.path.insert(0, str(_ENG))
 
 from ci.tests import _helpers as H  # noqa: E402
 
@@ -188,7 +189,10 @@ class TestRealRepoRegistration(unittest.TestCase):
             self.assertIn(target, check["ctest_targets"], cid)
             self.assertIn(target, check["command"], cid)
             self.assertFalse(check["waivable"], cid)
-            self.assertEqual(check["profiles"], ["linux-main"], cid)
+            # 档位是**成员关系**不是等值关系（CI_SPEC §2.6：一个检查可同时属于多档；
+            # 本文件 test_full_ctest_gate_registered_for_linux_main 同款口径）。
+            # 要求：合入前门 linux-main 必须覆盖本目标；额外档位（如 prerelease）不构成违约。
+            self.assertIn("linux-main", check["profiles"], cid)
 
     def test_full_ctest_gate_registered_for_linux_main(self):
         """STD-F7 处置 2：linux-main 必须包含全量 ctest 门。"""

@@ -22,7 +22,7 @@ import unittest
 from pathlib import Path
 
 CI_DIR = Path(__file__).resolve().parents[1]
-REPO = CI_DIR.parent
+REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(CI_DIR / "tests"))
 
 import _helpers as H  # noqa: E402
@@ -61,10 +61,18 @@ NINE_REQUIRED_CLASSES = {
                  "UT-ARTIFACT"],
 }
 
-# 生产映射承诺的路径域 —— W4-A3 按**现行树**重锚（ROOT-008/ARCH-001 迁移后）。
+# 生产映射承诺的路径域 —— 按**现行树**重锚（ROOT-008/ARCH-001 与 2026-09-21 根目录整合后）。
 # 迁移前锚（schemas/ modules/ runtime/ evidence/ graph/ launch/ AstroCS.wiki/）在现行
 # 根清单中不存在，作为判据锚即「锚失效」；现行锚的权威声明面 = CHK-IMPACT-MAP 的
 # PROBE_DOMAINS，本表只保留与生产映射直接对应的等价断言（单源，避免两套判据）。
+#
+# 本轮重锚（三处已退役锚，全部按门 PROBE_DOMAINS 同口径订正）：
+#   * 根 cli/ 已随 ARCH-001 迁移退役（AGENTS.md §7：CLI 现落 lib/infrastructure/cli/），
+#     本表原有的 lib/infrastructure/cli/** 条目即其继承者，故不再单列根 cli/**；
+#   * reports/ 已退役 → artifacts/evidence/**（check_impact_map.py PROBE_DOMAINS 注记
+#     「reports/ 退役 → artifacts/evidence/**（AGENTS.md §7）」），按继承者重锚；
+#   * 工程控制/<控制包>/ 目录按 CONTROL_PACK_SPEC §9「收口即清理」随时移出仓库，
+#     锚只取稳定的根条目「工程控制」（与门 PROBE_DOMAINS 一致）。
 REQUIRED_DOMAINS = {
     "VERSION": "VERSION",
     "CMakeLists.txt": "CMakeLists.txt",
@@ -77,14 +85,13 @@ REQUIRED_DOMAINS = {
     "lib/**": "lib/algorithms/psf/src/dpsf_psf.cpp",
     "lib/infrastructure/**": "lib/infrastructure/cli/main.cpp",
     "lib/include/**": "lib/include/astrocs/common_abi_v1.h",
-    "cli/**": "cli/CMakeLists.txt",
     "eng/contracts/**": "eng/contracts/schemas/run_manifest.schema.json",
     "third_party/**": "lib/third_party/nlohmann/json.hpp",
     "eng/tests/**": "eng/tests/testkit/registry.json",
     "testdata/**": "testdata/index.json",
     "artifacts/**": "artifacts/ci",
-    "reports/**": "reports/README.md",
-    "工程控制/**": "工程控制/PROJECT-GOVERNANCE-01/OPEN_ITEMS.md",
+    "artifacts/evidence/**": "artifacts/evidence/README.md",
+    "工程控制/**": "工程控制",
     "eng/tools/**": "eng/tools/quality/check_module_map.py",
     "eng/tools/quality/**": "eng/tools/quality/check_module_map.py",
     "eng/tools/monitoring/**": "eng/tools/monitoring/run_monitored.py",
@@ -189,6 +196,13 @@ class TestImpactMapConsistency(unittest.TestCase):
 
     def test_required_path_domains_covered(self):
         """路径域覆盖 + 锚存活：探针必须在**现行树**中存在，否则本断言自身失效。"""
+        # 单源约束（防两套判据再次漂移）：本表只允许出现 CHK-IMPACT-MAP 的
+        # PROBE_DOMAINS 已登记的路径域。门退役某域而本表未跟随时，本条判红——
+        # 根 cli/ 与 reports/ 的历史漂移正是这样漏过一轮的。
+        gate_domains = {d for d, _anchor, _probe in self.gate.PROBE_DOMAINS}
+        stray = sorted(set(REQUIRED_DOMAINS) - gate_domains)
+        self.assertEqual(stray, [],
+                         f"本表含 CHK-IMPACT-MAP 未登记的路径域（单源漂移）：{stray}")
         runner = _load_run_module()
         for domain, probe in REQUIRED_DOMAINS.items():
             anchor = REPO / probe
@@ -210,7 +224,7 @@ class TestImpactMapConsistency(unittest.TestCase):
 
     def test_no_retired_ids_referenced(self):
         """R5：映射不得引用 docs/ci/01_CHECKS.md §2.1/§2.3 已退役 / RESERVED 的 id。"""
-        doc = (CI_DIR.parent / "docs" / "ci" / "01_CHECKS.md").read_text(encoding="utf-8")
+        doc = (REPO / "docs" / "ci" / "01_CHECKS.md").read_text(encoding="utf-8")
         retired = self.gate.parse_retired(doc)
         self.assertTrue(retired, "退役/RESERVED 表解析为空 ⇒ fail-closed（判据面失效）")
         refs = sorted(self.mapped_ids & retired)

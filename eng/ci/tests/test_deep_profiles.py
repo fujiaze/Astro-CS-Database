@@ -31,12 +31,15 @@ from pathlib import Path
 from unittest import mock
 
 CI_DIR = Path(__file__).resolve().parents[1]
-REPO = CI_DIR.parent
+REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(CI_DIR / "tests"))
 
 import _helpers as H  # noqa: E402
 
-sys.path.insert(0, str(REPO))
+# 注册表校验器在 eng/ci/validate_registry.py，以命名空间包 `ci` 导入
+# （eng/ci 无 __init__.py，需把 eng/ 放上 sys.path）。
+if str(CI_DIR.parent) not in sys.path:
+    sys.path.insert(0, str(CI_DIR.parent))
 from ci import validate_registry as VR  # noqa: E402
 
 REGISTRY_PATH = CI_DIR / "checks.json"
