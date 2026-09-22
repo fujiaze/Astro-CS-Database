@@ -24,6 +24,8 @@
                       全图 build + ctest 全量；承接 STD-F7 处置 2「linux-main 必须
                       包含全量 ctest」。ctest 串行执行（-j 不传）：p1wcs_performance /
                       p1noise_performance 等带时序哨兵，并行会引入与代码无关的抖动。
+                      三步超时按**检查项总预算**分配（见 CHECK_TOTAL_BUDGET 注释），
+                      ctest 步取「总预算 − 已用墙钟」的剩余量，不再硬编码。
   ctest-target      : 单 CTest 目标门（CTEST-<TARGET>，CI-REG-002）：在对内已构建的
                       build dir 上跑 ctest -R ^<target>$；承接 STD-F7 处置 1「本轮新增
                       测试逐个注册为显式检查项」。前置构建由登记顺序保证
@@ -42,6 +44,8 @@ import argparse
 import json
 import subprocess
 import sys
+import time
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -103,11 +107,17 @@ def _append_summary(out_file: Path | None, summary: dict) -> None:
 
 # -------------------------------------------------------------------- 构建链 ----
 
-def _cmake_configure_steps(build_dir: str, cache: list[str],
-                           steps: list[dict]) -> None:
-    steps.append({"name": "cmake-configure", "timeout": 300,
+def _cmake_configure_steps(build_dir: str, cache: list[str], steps: list[dict],
+                           *, configure_timeout: "int | Callable[[], int]" = 300,
+                           build_timeout: "int | Callable[[], int]" = 2400) -> None:
+    """configure + 全图 build 两步（默认上限 = 历史值，其它子命令行为不变）。
+
+    ctest-full 传显式上限：其三步之和必须 ≤ 检查项 timeout_seconds，见
+    CHECK_TOTAL_BUDGET 注释。
+    """
+    steps.append({"name": "cmake-configure", "timeout": configure_timeout,
                   "argv": ["cmake", "-S", ".", "-B", build_dir, *cache]})
-    steps.append({"name": "cmake-build", "timeout": 2400,
+    steps.append({"name": "cmake-build", "timeout": build_timeout,
                   "argv": ["cmake", "--build", build_dir, "-j", "2"]})
 
 
@@ -198,6 +208,41 @@ def cmd_coverage_cpp(args: argparse.Namespace) -> int:
 
 # -------------------------------------------------------------- CTest 门（CI-REG-002） ----
 
+# CTEST-LINUX-FULL 检查项 timeout_seconds = 3600（eng/ci/checks.json）。该值即
+# CI_SPEC §2.5 的硬上限（非 prerelease 档不得更高），故**不改注册表**，改为在
+# 驱动内部把 3600 s 按各步实测需要分配。
+#
+# 各步超时上限（秒）。CI_SPEC §2.5：timeout ≤ max(60, 3 × 最近一次实测墙钟)。
+# 稳态实测（run/CTESTFULL-01/ctest-full.json，本修复的取证轮）：
+#   cmake-configure  实测 1.4 s  → §2.5 需要 60
+#   cmake-build      实测 197 s  → §2.5 需要 600
+#   ctest-full       全量 501 例 → 剩余预算 3600 − 60 − 600 = 2940
+# configure/build 的上限仍取历史值 300 / 2400：它们是**冷树自举**（build dir 被
+# run_gc 回收后第一次跑）的唯一余量。上限只是天花板——稳态下这两步几秒就跑完，
+# 实际超时由 _remaining 按剩余预算给出，不会吃掉 ctest 的份额。
+# 上限是**天花板**而非固定值：每步实际超时 = min(该步上限, 剩余预算)，其中
+# 剩余预算 = (总预算 − 预留余量) − 已用墙钟。由此得到两条不变量：
+#   1) 驱动自身必然在检查项 timeout_seconds 之前收尾 —— 最坏路径
+#      configure 300 + build 2400 = 2700 s，留给 ctest 的剩余 ≥ 780 s > 下限 30 s，
+#      故三步超时之和**实际生效值**恒 ≤ 3480 s < 3600 s（预算耗尽时该步退化为
+#      1 s 快速失败，同样不会越过 3600 s），failed_step 归因不会被 runner 抢走；
+#   2) configure/build 跑得快时 ctest 拿到几乎全部预算（稳态 = 2940 s 上限）。
+# 预留余量覆盖 ctest -N 枚举预检、摘要落盘与超时杀进程的开销。
+#
+# CTESTFULL-01 修复的结构性缺陷：旧实现把 ctest 步**硬编码 900 s**，与检查项
+# 3600 s 预算脱钩。linux-main 档并行道下 ctest 串行被并发检查拖慢 6.11×
+# （登记测试成本 147.3 s 用掉 900 s 墙钟），900 s 只跑到 159/501 ⇒ 该门在
+# linux-main 档下不可能绿（证据 run/ci/run-checks/20260922T195709Z/checks/
+# CTEST-LINUX-FULL.json + run/CTESTFULL-01/ 实测）。
+CHECK_TOTAL_BUDGET = 3600
+BUDGET_MARGIN = 120
+STEP_CAP_CONFIGURE = 300
+STEP_CAP_BUILD = 2400
+STEP_CAP_CTEST = 2940
+# ctest -N 枚举预检是纯列举（实测亚秒级），不该吃 ctest 步的预算。
+CTEST_PROBE_TIMEOUT = 300
+
+
 def _ctest_argv(base: list[str], junit: str | None) -> list[str]:
     """CI-BASELINE-001：附加 --output-junit 产出机器可读全量测试结果。
 
@@ -257,17 +302,28 @@ def cmd_ctest_full(args: argparse.Namespace) -> int:
     基线门消费。
     """
     build_dir = _ensure_inside_repo(args.build_dir, "build-dir")
+    # 预留 BUDGET_MARGIN：驱动必须在检查项超时之前自己收尾（failed_step 归因）。
+    deadline = time.monotonic() + CHECK_TOTAL_BUDGET - BUDGET_MARGIN
+
+    def _remaining(cap: int) -> int:
+        # 下限取 1 s 而非 30 s：预算耗尽时必须让该步**尽快**以 rc=124 失败并
+        # 记 failed_step（fail-closed），而不是给出一个越过检查项超时的值。
+        # 用登记常量时下限永不生效（最坏剩余 3480−2700 = 780 s）。
+        return max(1, min(int(cap), int(deadline - time.monotonic())))
+
     steps: list[dict] = []
-    _cmake_configure_steps(str(build_dir), ["-DCMAKE_BUILD_TYPE=Release"], steps)
-    # 内部超时预算 300(configure)+2400(build)+900(ctest) = 3600 = 检查项
-    # timeout_seconds，驱动步超时先于 runner 总超时触发（归因清晰）。
-    steps.append({"name": "ctest-full", "timeout": 900,
+    _cmake_configure_steps(
+        str(build_dir), ["-DCMAKE_BUILD_TYPE=Release"], steps,
+        configure_timeout=lambda: _remaining(STEP_CAP_CONFIGURE),
+        build_timeout=lambda: _remaining(STEP_CAP_BUILD))
+    steps.append({"name": "ctest-full",
+                  "timeout": lambda: _remaining(args.step_timeout),
                   "argv": _ctest_argv(["ctest", "--output-on-failure"], args.junit),
                   "cwd": str(REPO / build_dir)})
-    rc = _run_steps(steps, args.output)
+    rc = _run_steps(steps, args.output, budget_seconds=CHECK_TOTAL_BUDGET)
     # GAP-027 fail-closed（CI-001）：全量 ctest 同样存在「零命中即 rc=0」的
     # 假绿面（构建树未 configure / 无任何已注册测试），按命中数显式判红。
-    matched, probe_reason = _ctest_match_count(build_dir, ".", args.step_timeout)
+    matched, probe_reason = _ctest_match_count(build_dir, ".", CTEST_PROBE_TIMEOUT)
     zero_hit = matched == 0
     if zero_hit and rc == 0:
         rc = 1
@@ -314,19 +370,32 @@ def cmd_ctest_target(args: argparse.Namespace) -> int:
 
 
 def _run_steps(steps: list[dict], output: str | None,
-               stop_on_failure: bool = True) -> int:
+               stop_on_failure: bool = True,
+               budget_seconds: int | None = None) -> int:
     """顺序执行步骤；stop_on_failure=False 时失败后继续（coverage 语义）。
 
     rc 始终记首个失败步骤退出码；summary["failed_step"] 同名记录。
+    step["timeout"] 可为 int 或零参可调用对象（后者用于「取剩余预算」的步，
+    见 cmd_ctest_full）；每步**实际生效**的超时记入 summary 供复核。
     """
     summary = {"driver": "deep_ci_driver.py", "generated_utc": utc_iso(),
                "steps": [], "exit_code": 0}
+    if budget_seconds is not None:
+        summary["total_budget_seconds"] = budget_seconds
     rc = 0
     for step in steps:
         print(f"[deep_ci_driver] {step['name']}: {' '.join(step['argv'])}", flush=True)
-        res = run_step(step["argv"], timeout=step["timeout"],
+        tmo = step["timeout"]
+        tmo = int(tmo()) if callable(tmo) else int(tmo)
+        t_start = time.monotonic()
+        res = run_step(step["argv"], timeout=tmo,
                        cwd=Path(step["cwd"]) if step.get("cwd") else None)
         res["name"] = step["name"]
+        res["timeout_seconds"] = tmo
+        # CTESTFULL-01：记录每步实际墙钟。旧摘要只有 exit_code/output_tail，
+        # 事后无法回答「ctest 步到底跑了多久 / 是不是被超时杀掉」——
+        # CI_SPEC §2.5 的 timeout ≤ max(60, 3×实测墙钟) 需要这个数才可复核。
+        res["duration_seconds"] = round(time.monotonic() - t_start, 3)
         summary["steps"].append(res)
         print(res["output_tail"], flush=True)
         if res["exit_code"] != 0:
@@ -382,8 +451,9 @@ def build_parser() -> argparse.ArgumentParser:
     # CI-REG-002（STD-F7 处置 1/2）：linux-main 全量 ctest 门 + 逐目标显式门
     f = sub.add_parser("ctest-full", help="全量 CTest 门（CTEST-LINUX-FULL）")
     f.add_argument("--build-dir", default="run/ci/build-gcc-release")
-    f.add_argument("--step-timeout", type=int, default=600,
-                   help="ctest 单步超时（秒）；检查项 timeout_seconds 应大于该值")
+    f.add_argument("--step-timeout", type=int, default=STEP_CAP_CTEST,
+                   help="ctest 步超时上限（秒）；实际取 min(该值, 检查项总预算 − "
+                        "已用墙钟)。检查项 timeout_seconds(3600) 必须大于该值")
     f.add_argument("--junit", default=None,
                    help="ctest --output-junit 全量测试结果 XML（相对路径按构建树解析；"
                         "CI-BASELINE-001 known-failures 基线门消费）")
