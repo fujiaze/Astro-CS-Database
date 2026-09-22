@@ -490,23 +490,54 @@ class TestDiskGateEndToEnd(unittest.TestCase):
         self.assertNotIn(rc, (2,), "不得因磁盘 warn 落预检阻断码 2")
 
     def test_03_strict_resource_flag_no_longer_enforces(self):
-        """--strict-resource-gate 保留接受但不再 enforce（登记现状，无 rc=10 路径）。"""
+        """--strict-resource-gate 保留接受但不再 enforce（登记现状，无 rc=10 路径）。
+
+        场景必须是**资源判据命中违规**：只有违规被记录时才会出现 `resource_gate` 事件，
+        判据也才有观测对象。这里用 MON-002 测试钩子（非用户接口，见
+        lib/infrastructure/cli/runtime_client.cpp::run_pipeline）造低 CPU 假 workload
+        ⇒ active 窗口 >10s、avg 等效核 ≈0 ⇒ evaluate_gate 判 low_avg_cores
+        （或 first-10s 快速失败诊断）⇒ 事件必然出现。旧写法（不造违规）在快机器上
+        事件根本不出现 ⇒ 断言空转（恒绿假判据），在慢机器上事件出现 ⇒ 断言恒红
+        （RELEASE-05 D-14「未定位的瞬时红」的根因）。
+
+        判据面 = `resource_gate` 事件的**合同冻结扩展字段**（逐字；两处机器面同面：
+        lib/infrastructure/cli/protocol.h::missing_required_extension_v1 ↔
+        eng/contracts/schemas/jsonl_event_v1.schema.json 的 then.required 与
+        x-astrocs-event-kind-registry.kinds.resource_gate。人类可读合同
+        docs/api/CLI_PROTOCOL_V1.md §4 只列了 5 类 kind 的扩展字段，未列本 kind）：
+          diag / enforcement / strict / enforced / work_core_seconds /
+          workload_floor_core_seconds / workload_floor_reached
+        该 kind **没有** `resource_gate_mode` 字段（全仓 docs/ 零处规定该名字；
+        旧断言把 `resource` 事件上的实现私有键搬到了 `resource_gate` 事件上 ⇒
+        事件一出现必红）。record-only 处置的合同可观测量 = `enforcement`：取值来自
+        lib/infrastructure/cli/resource_gate.h::gate_enforcement()（§9.74 裁决 10 恒
+        RecordOnly）⇒ "record_only"；它是**派生**值，比硬编码字面量更强——若有人把
+        enforce 路径接回来，它会变成 "enforced"，而硬编码字面量不会。
+        """
         out_dir = os.path.join(self.tmp, "out_strict")
         os.makedirs(out_dir, exist_ok=True)
         cfg = self._cfg("cfg_strict.json",
                         [os.path.join(self.data, "light_1.fits"),
                          os.path.join(self.data, "light_2.fits")], out_dir)
+        env = dict(os.environ)
+        env["ASTROCS_TEST_PIPELINE_SLEEP_MS"] = "12000"   # 造违规（判据的观测对象）
         r = subprocess.run([EXE, "normalize", "--json", cfg, "-y", "--strict-resource-gate"],
-                           capture_output=True, text=True, timeout=600, cwd=run_cwd())
+                           capture_output=True, text=True, timeout=600, cwd=run_cwd(), env=env)
         self.assertEqual(r.returncode, 0, r.stderr[-400:])
         events = [json.loads(l) for l in r.stdout.splitlines() if l.strip()]
         self.assertNotIn(10, [e.get("exit_code") for e in events],
                          "不得再出现资源判据产生的 exit 10")
-        for e in events:
-            if e.get("kind") == "resource_gate":
-                self.assertEqual(e.get("severity"), "warning")
-                self.assertFalse(e.get("enforced"))
-                self.assertEqual(e.get("resource_gate_mode"), "record_only")
+        gate_ev = [e for e in events if e.get("kind") == "resource_gate"]
+        self.assertTrue(gate_ev,
+                        "资源判据命中违规必须记录 resource_gate 事件（否则本判据空转）")
+        for e in gate_ev:
+            self.assertEqual(e.get("severity"), "warning")
+            self.assertFalse(e.get("enforced"))
+            self.assertEqual(e.get("enforcement"), "record_only",
+                             "§9.74 裁决 10: 恒 record-only（合同冻结字段 enforcement）")
+            self.assertTrue(e.get("strict"),
+                            "--strict-resource-gate 必须如实入事件（合同冻结字段 strict）"
+                            "，但不再改变裁决")
 
 
     def test_04_concurrent_frames_without_disk_full_succeed(self):
