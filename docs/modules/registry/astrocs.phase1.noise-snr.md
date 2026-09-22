@@ -33,7 +33,10 @@ SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展。
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
-| `fluxes` | `DATA-P1-FLUX` | 必 | `UnitId::ELECTRON` | `CoordinateFrame::ICRS` |
+| `sources` | `DATA-P1-SOURCES` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
+| `photprov` | `DATA-P1-PHOTPROV-001` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
+| `cleaned` | `DATA-P1-COSMETIC` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
+| `fluxes` | `DATA-P1-FLUX` | 必 | `UnitId::ADU` | `CoordinateFrame::ICRS` |
 | `snr` | `DATA-P1-SNR` | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
 
 invalid = NaN/coverage=0(按 DATA 合同)。

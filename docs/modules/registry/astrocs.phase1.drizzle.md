@@ -35,7 +35,11 @@ master/校准/坏点（P1-CAL/P1-COS）；Phase2 统计合并；线程授予
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
 | `calibrated` | `DATA-P1-CAL` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
-| `stacked` | `DATA-P1-STACK` | 可 | `UnitId::ADU` | `CoordinateFrame::ICRS` |
+| `wcs` | `DATA-P1-WCS` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
+| `photprov` | `DATA-P1-PHOTPROV-001` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
+| `sources` | `DATA-P1-SOURCES` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
+| `snr` | `DATA-P1-SNR` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
+| `stacked` | `DATA-P1-STACK` | 可 | `UnitId::SURFACE_BRIGHTNESS` | `CoordinateFrame::ICRS` |
 
 > 现状 descriptor（module_adapters.cpp:570-587）data_id=DATA-P1-STACK
 > （编排汇总语义）；模块级数据合同 DATA-P1-DRZ

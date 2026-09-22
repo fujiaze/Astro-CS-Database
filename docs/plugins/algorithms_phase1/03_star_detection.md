@@ -22,8 +22,8 @@
 
 ## 4. 算法与公式要点
 
-- **权威检测范式 = 星表引导拟合**（最高设计 §4.2）：检测定义域是**星表位置**（用本帧 WCS 把 Gaia 星表反向投影到像素域），只对星表位置做质心/PSF 拟合；拟合成功即星点，失败**直接丢弃**（不计虚警、不报错）；按亮度取 top 2–5 万颗为上限，极限星等按焦距、画幅、曝光时间派生估计（宁多勿少）；**全图盲检测连通域路径不是权威路径**，它只服务非权威的诊断/初值用途。
-- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）——**仅适用于全图盲检测路径**（全图盲检测 → 匹配 → 解算；该路径的星表**不是**权威科学产品，最高设计 §4.2）。**权威 WCS** 来自星表引导检测后的高纯度星表解算，其近似指向由 `wcs.init_source` 给出。检测路径不消费逐像素 variance/ivar。局部噪声自适应为目标态、当前未实现（GAP 登记），文档按现状描述；
+- **权威检测范式 = 星表引导拟合**（最高设计 §4.2）：检测定义域是**星表位置**（用**本帧已解出的权威 WCS**把 Gaia 星表反向投影到像素域），只对星表位置做质心/PSF 拟合；拟合成功即星点，失败**直接丢弃**（不计虚警、不报错）；按亮度取 top 2–5 万颗为上限，极限星等按焦距、画幅、曝光时间派生估计（宁多勿少）；**全图盲检测连通域路径不是权威路径**，它只服务非权威的诊断/初值用途。
+- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）——**仅适用于全图盲检测路径**（全图盲检测 → 匹配 → 解算；该路径的星表**不是**权威科学产品，最高设计 §4.2）。**权威 WCS** 由 `platesolve` 节点产出（其近似指向由 `wcs.init_source` 给出），节点序上**先于**星表引导检测：解算节点按帧自读校准后像素自行检测与匹配，不消费检测产物；引导检测再以该权威 WCS 作逆投影先验（见 §5.1）。检测路径不消费逐像素 variance/ivar。局部噪声自适应为目标态、当前未实现（GAP 登记），文档按现状描述；
 - 质心/矩与不确定度：一阶矩质心、二阶矩，误差来自局部噪声传播；
 - 输出 selection function（完备性 vs 亮度/位置）和 completeness 参数；
 - 检测统计量与下游 PSF/测光解耦：检测目录不直接成为科学权重。
@@ -36,7 +36,10 @@
 | 诊断/初值（全图盲检测） | `sdet_detect_ex[_f64]` | 平滑 → 局部极大 → 二阶导数零交叉宽度 → 连通域/解混 → 拟合；保留，**不是**权威路径 |
 
 节点侧接线在 `lib/infrastructure/scheduler/src/module_adapters.cpp` 的 `p1_op_star_psf_impl`：
-星表位置由 `p1_guided_predict`（`p1_guided_approx_wcs` 给出的近似 WCS 做 sky→pix 逆投影）产生，
+星表位置由 `p1_guided_predict`（`p1_guided_approx_wcs` 给出的逆投影先验做 sky→pix 逆投影）产生；
+先验按固定优先级取：① `star_detection.approx_wcs` / `wcs` 段的显式天测键 →
+② **本帧解算产物** `<frame_dir>/p1_wcs.json`（`p1_guided_wcs_product_prior` 解析，天测可用性用与
+photometry 同一判据 `p1_wcs_astrometry_usable` 确认）→ ③ `wcs.init_source` 初始指向 + `rotation_deg`/`parity`。
 极限星等复用 `ipv::estimate_mag_lim_iterative` / `ipv::compute_fov_density`（不另立常数）。
 
 ## 5. 配置项
@@ -48,16 +51,20 @@
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `mode` | `auto` | —— | `auto` = 有参考星表且**取向先验可用**时走权威路径，否则**显式降级**为 `blind_diagnostic` 并把原因写进 manifest 的 `detection_degraded_reason`（非静默）；`catalog_guided` = 显式声明权威路径，前置条件不满足即 DATA fail-closed；`blind_diagnostic` = 显式声明的非权威诊断路径 |
+| `mode` | `auto` | —— | `auto` = 有参考星表且**取向先验可得**（本帧 `p1_wcs.json` 产物、或配置给 `approx_wcs`/`rotation_deg`）时走权威路径，否则**显式降级**为 `blind_diagnostic` 并把原因写进 manifest 的 `detection_degraded_reason`（非静默）；`catalog_guided` = 显式声明权威路径，前置条件不满足即 DATA fail-closed；`blind_diagnostic` = 显式声明的非权威诊断路径 |
 | `gaia_data_dir` | 无 | path | 本地 XPSD 星表目录（权威路径必需；亦可用 `wcs.gaia_data_dir`） |
 | `max_stars` | 20000 | 颗 | 检测定义域上限（按 G 星等升序取 top-N）。合同域 = **[20000, 50000]**（最高设计 §4.2「top 2–5 万」）；越界即 DATA 拒绝，**禁静默夹取** |
-| `approx_wcs` | 无 | —— | 近似 WCS 的显式天测键 `{crval1, crval2, cd11, cd12, cd21, cd22}`（可改用 `wcs` 段同名字段）。**取向先验的给法之一** |
-| `rotation_deg` + `parity` | 无 / `pos` | deg / `pos\|neg` | 取向先验的另一种给法：像面相对「北向上/东向左」的旋转（逆时针为正）与镜像标志；板尺度由 `wcs.init_source` 派生的 `s0` 给出 |
+| `approx_wcs` | 无 | —— | 逆投影先验的**显式覆盖**：天测键 `{crval1, crval2, cd11, cd12, cd21, cd22}`（可改用 `wcs` 段同名字段）。给出即优先于本帧解算产物（诊断/负例注入用） |
+| `rotation_deg` + `parity` | 无 / `pos` | deg / `pos\|neg` | 逆投影先验的**兜底给法**（无解算产物且无显式 CD 时生效）：像面相对「北向上/东向左」的旋转（逆时针为正）与镜像标志；板尺度由 `wcs.init_source` 派生的 `s0` 给出 |
 | `limiting_mag` | 由焦距/画幅/曝光派生 | mag | 显式指定极限星等；缺省时由 `ipv::estimate_mag_lim_iterative` 按 `focal_length_mm`、画幅、`EXPTIME` 迭代派生（宁多勿少） |
 
-**取向先验是权威路径的必需输入**：星表逆投影必须知道像面取向与镜像；缺先验时
+**逆投影先验是权威路径的必需输入**：星表逆投影必须知道像面取向与镜像。生产默认来源 = **本帧解算产物**
+`<frame_dir>/p1_wcs.json`（`platesolve` 节点先落盘，由 IR 的 typed 边 `artifact:p1_wcs` 保证序）；
+配置的 `approx_wcs` / `rotation_deg`+`parity` 是覆盖与兜底。两种来源都不可得时：
 `catalog_guided` 直接 DATA 拒绝，`auto` 显式降级（`detection_authoritative=false`），
 **不得**以「北向上/东向左」默认值冒充权威取向。
+先验来源逐帧记入 manifest 溯源（`approx_wcs_source` / `approx_wcs_orientation_assumed` /
+`orientation_from_solved_wcs`），使「权威用的是哪一种先验」在产物上可审计。
 
 ### 5.2 全图盲检测路径的键（诊断/初值，非权威）
 
@@ -87,7 +94,8 @@
 | `catalog_guided` 且未配置星表目录 | DATA 拒绝（点名 `gaia_data_dir`），**不**回退全图盲检测 |
 | 星表目录 0 个 `.xpsd` | DATA 拒绝（`gaia catalog is empty`） |
 | 星表 shard 装载失败或装载数 ≠ 条目数（部分装载） | DATA 拒绝（`gaia catalog is incomplete` / `gaia_client_create failed`）——静默部分装载事故不得重演 |
-| 取向先验缺失（无 `approx_wcs` CD 且无 `rotation_deg`） | `catalog_guided` DATA 拒绝；`auto` 显式降级并留痕 |
+| 逆投影先验缺失（无本帧 `p1_wcs.json` 产物，且无 `approx_wcs` CD、无 `rotation_deg`） | `catalog_guided` DATA 拒绝；`auto` 显式降级并留痕 |
+| 本帧 `p1_wcs.json` 存在但天测不可用（缺 crval/CD、非有限、CD 退化） | DATA 拒绝（与 photometry 同一判据 `p1_wcs_astrometry_usable`，禁 silent default） |
 | 近似 WCS 不可解析（指向/板尺度缺失或退化） | DATA 拒绝（禁 silent default） |
 | 星表逆投影后帧内 0 星，或全部拟合被质量门拒绝 | DATA 拒绝（`0/N catalog-guided fits survived`），**不**回退全图盲检测冒充成功 |
 | `max_stars` 越出 [20000, 50000] | DATA 拒绝（禁静默夹取） |
@@ -108,3 +116,6 @@ manifest 顶层与逐帧记录 `detection_mode`、`detection_authoritative`、
 - 节点级判据 `p1stardet_node_gate`（`lib/algorithms/star_detection/tests/p1star/p1stardet_node_gate_test.cpp`）：
   §7.1 每条 fail-closed 的红例 + `blind_diagnostic`/`auto` 的绿例与留痕断言 +
   真实帧（testdata）权威路径与盲检测的对照。
+- 节点序与边保真判据 = `eng/ci/check_registry_ir_parity.py`（C4–C7：无幻边 / 序为注册表 DAG 拓扑序 /
+  IR 序 == 注册表声明序 / `psf` 在 `wcs` 之后且声明 `artifact:p1_wcs` 输入 / 非退化），
+  含 4 条负例注入（交换 `psf`/`wcs` 序、恢复幻边、移除 `psf` 的 WCS 输入），逐条必判红。

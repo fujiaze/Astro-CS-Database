@@ -35,6 +35,7 @@ SCI/ALG 合同定义(见链接); 不做 SCI/ALG 之外的扩展。
 | 端口 | DATA | 必/可 | 单位 | 坐标 |
 |---|---|---|---|---|
 | `cleaned` | `DATA-P1-COSMETIC` | 必 | `UnitId::ADU` | `CoordinateFrame::PIXEL` |
+| `wcs` | `DATA-P1-WCS` | 必 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
 | `sources` | `DATA-P1-SOURCES` | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::ICRS` |
 | `psf` | `DATA-P1-PSF` | 可 | `UnitId::DIMENSIONLESS` | `CoordinateFrame::PIXEL` |
 
