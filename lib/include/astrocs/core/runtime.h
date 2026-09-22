@@ -93,7 +93,30 @@ class Runtime {
 // ── 工厂（C++ 边界；ownership: 调用者独占销毁） ──
 // create_runtime(budget): 创建唯一 Runtime 实例；budget=有效 CPU 配额（>0）。
 // 失败返回 Error(RESOURCE)。
+//
+// MEM-WIRE-01 (ARCH-AUDIT-01 B-3 = ARCH-AUDIT-02 F-04)：本重载**不携带内存上限**
+// ⇒ Scheduler 的 memory_limit_bytes=0（回压不启用）。语义冻结为「未提供内存预算」，
+// 供单元测试/嵌入式调用方显式声明"本次不启用内存回压"；**生产路径必须走下面带
+// RuntimeResourceBudget 的重载**（CLI run 路径见 runtime_client.cpp::run_pipeline）。
 Result<std::unique_ptr<Runtime>> create_runtime(uint32_t budget) noexcept;
+
+// ── MEM-WIRE-01: Runtime 资源预算（CPU 与内存**同源**；SCHEDULER_CONTRACT §3） ──
+// 一个进程一个资源预算源：CPU 与内存上限都从**配置/profile 或实测探测**得到，
+// 不得硬编码（AGENTS §6；ASTROCS_DESIGN §8.3/§9）。
+//   cpu_budget          : 有效 CPU 配额（>0；CLI 侧 = 亲和性 ∩ cgroup，见 cli_affinity_cpu_count）
+//   memory_limit_bytes  : 峰值工作集上限（0 = 未提供 ⇒ 不启用内存回压）
+//   memory_source       : 上限来源标签（"profile"/"probe"/"none"；观测用，见 memory_budget.h）
+// 语义边界（ASTROCS_DESIGN §3.5）：内存预算是**调度准入输入**，不是门禁判据 ——
+// 超限只让节点排队等待，绝不改退出码、绝不阻断、绝不让 run 失败。
+struct RuntimeResourceBudget {
+  uint32_t cpu_budget = 1;
+  uint64_t memory_limit_bytes = 0;
+  std::string memory_source = "none";
+};
+
+// create_runtime(rb): 同上，但携带完整资源预算（生产路径唯一入口）。
+// 失败返回 Error(RESOURCE)（cpu_budget==0）。
+Result<std::unique_ptr<Runtime>> create_runtime(const RuntimeResourceBudget& rb) noexcept;
 
 }  // namespace astrocs::core
 
