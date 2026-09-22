@@ -38,6 +38,13 @@ import sys
 import tempfile
 
 ASCII_TOKEN = "weight_mode"
+# R1 的 ASCII 键族判据是**裸键**（`weight_mode` / `weight_mode_version` / `weight_mode: 2` …），
+# 不是连字符复合标识符。门/检查项 id 里的 `NO-WEIGHT-MODE-CODE`、`AHPX-WEIGHT-RETIRED`
+# 是**门的名字**而非配置键，按裸键判据不得命中（否则"给门起名"会被当成"复活键"）。
+# 收窄只去掉连字符/下划线复合标识符（`CHK-NO-WEIGHT-MODE-CODE`、
+# `check_no_weight_mode.py`）；裸键及其蛇形家族（`weight_mode` / `weight_mode_version` /
+# `weight_mode: 2`）仍是命中，判据不会因此放过任何活键。
+ASCII_KEY_RE = re.compile(r"(?<![-_A-Za-z0-9])" + re.escape(ASCII_TOKEN) + r"(?![-_])")
 ASCII_MARK = "已按 §9.73 A44 作废"
 ZH_TOKEN = "权重模式"
 ZH_MARKS = ("不存在", "已作废")
@@ -105,7 +112,7 @@ def scan(root):
             lines_total += 1
             if is_derived_map and DERIVED_MAP_FIELD_RE.match(line):
                 continue  # R4：地图的登记字段行/注释行（路径字面量与标题截断副本）
-            if ASCII_TOKEN in line and ASCII_MARK not in line:
+            if ASCII_KEY_RE.search(line) and ASCII_MARK not in line:
                 findings.append({"rule": "R1-ASCII-KEY", "file": rel, "line": idx,
                                  "observed": line.strip()[:160],
                                  "expected": "同行含「%s」留痕（§9.73 A44）" % ASCII_MARK})
@@ -230,6 +237,15 @@ def self_test():
         _write(os.path.join(red5, "README.md"), "# 仓库\n")
         rc = run(red5)
         cases.append(("red_map_prose_mention", rc, 1))
+        # 正例（绿）：门/检查项 id 与门自身文件名里的连字符/下划线复合标识符不是裸键
+        # （"给门起名"不得被当成"复活键"）；同一行的裸键仍照旧判红（见负例 red_bare_*）。
+        green3 = os.path.join(tmp, "green-compound-id")
+        _write(os.path.join(green3, "docs", "ci", "checks.md"),
+               "| CHK-NO-WEIGHT-MODE-CODE | 代码面单一权重口径 | "
+               "`python3 eng/ci/check_no_weight_mode_code.py` | P0 |\n")
+        _write(os.path.join(green3, "README.md"), "# 仓库\n")
+        rc = run(green3)
+        cases.append(("green_compound_check_id", rc, 0))
         # fail-closed：缺 docs/
         bad = os.path.join(tmp, "failclosed")
         _write(os.path.join(bad, "README.md"), "# 仓库\n")
