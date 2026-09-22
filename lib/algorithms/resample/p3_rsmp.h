@@ -11,9 +11,9 @@
 //   * 采样核 registry（FZ-P3-KERNEL-REGISTRY；bilinear_4quad 须独立 Oracle+误差界+边界）
 //   * 三模式 fail-closed 12 门 + kernel/covariance/QW/epsf/provenance 扩展门（FZ-P3-FAILCLOSED）
 //
-// 单位（冻结表 docs/contracts/v6/frozen/01_DATA_CONTRACT_FREEZE.md §1）：
-//   signal_sb=ADU/px²、pixel_variance_in=ADU²、sb_variance_out=ADU²/px⁴、
-//   sb_ivar_out=px⁴/ADU²、W_info=ADU⁻²、Q=ADU⁻¹、flux=ADU、psfsw=1、
+// 单位（冻结表 docs/contracts/DATA_SEMANTICS.md §31.1 §1）：
+//   signal_sb=ADU/sr、pixel_variance_in=ADU²、sb_variance_out=ADU²/sr²、
+//   sb_ivar_out=sr²/ADU²、W_info=ADU⁻²、Q=ADU⁻¹、flux=ADU、psfsw=1、
 //   phase3_var_out=(主 HDU signal BUNIT)²（FZ-P3-BUNIT-QUADRATIC）。
 //
 // 本文件不发明任何冻结阈值：OPEN 项（CF-T-P3-CORR-EPSILON / SO-07）以「未签字即 fail-closed」
@@ -59,7 +59,7 @@ bool is_deferred_weight_mode_token(const std::string& token);
 // ---------------------------------------------------------------------------
 // 1. 单位与 BUNIT 二次律（FZ-UNIT-* / FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC）
 // ---------------------------------------------------------------------------
-// BUNIT 表示为 ADU 幂次 × px 幂次（canonical 串固定，不发明第三套词表；W6 归一）。
+// BUNIT 表示为 ADU 幂次 × 立体角幂次（sr）（canonical 串固定，不发明第三套词表；W6 归一）。
 struct Bunit {
   int adu_power = 0;
   int px_power = 0;
@@ -74,12 +74,12 @@ Bunit bunit_mul(const Bunit& a, const Bunit& b);
 Bunit bunit_square(const Bunit& a);
 Bunit bunit_inverse(const Bunit& a);
 
-// 冻结单位表（docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json units_table）。
+// 冻结单位表（eng/contracts/data/v6_clause_registry_v1.json units_table）。
 namespace units {
-extern const Bunit signal_sb;          // ADU/px^2
+extern const Bunit signal_sb;          // ADU/sr
 extern const Bunit pixel_variance_in;  // ADU^2
-extern const Bunit sb_variance_out;    // ADU^2/px^4
-extern const Bunit sb_ivar_out;        // px^4/ADU^2
+extern const Bunit sb_variance_out;    // ADU^2/sr^2
+extern const Bunit sb_ivar_out;        // sr^2/ADU^2
 extern const Bunit w_info;             // ADU^-2
 extern const Bunit q_stat;             // ADU^-1
 extern const Bunit flux;               // ADU
@@ -102,7 +102,7 @@ struct BunitResolution {
   Bunit resolved;
   std::string reason;
 };
-// 显式 px 幂次 canonical 串恒可判；裸 "ADU" 须 provenance 声明像素语义与 pixel_area_power。
+// 显式立体角幂次 canonical 串恒可判；裸 "ADU" 须 provenance 声明像素语义与 pixel_area_power。
 BunitResolution resolve_bunit(const std::string& bunit_str, const BunitProvenance& prov);
 
 // ---------------------------------------------------------------------------
@@ -323,7 +323,7 @@ struct GateConfig {
 };
 
 struct SurfaceBrightnessInput {
-  std::vector<double> x;         // SB（ADU/px²），size n_in
+  std::vector<double> x;         // SB（ADU/sr），size n_in
   DenseMatrix c_in;              // C_x，size n_in × n_in
   bool measurement_capable = true;
   bool flux_conversion_requested = false;
@@ -357,7 +357,7 @@ SurfaceBrightnessResult propagate_surface_brightness(const SparseOperator& r_op,
 
 struct PointSourceInput {
   SparseOperator s_op;                 // 通量算子 S（列归一）
-  std::vector<double> x;               // 输入 SB（ADU/px²）；若 x_is_surface_brightness=false 则为积分通量 d
+  std::vector<double> x;               // 输入 SB（ADU/sr）；若 x_is_surface_brightness=false 则为积分通量 d
   DenseMatrix c_x;                     // Cov(x) 或 Cov(d)
   Geometry geom;                       // omega_in 用于 d = x*Omega 与 Cov(d)
   bool x_is_surface_brightness = true;
@@ -478,6 +478,17 @@ struct ProductRecord {
 const std::vector<std::string>& forbidden_weight_source_tokens();
 const std::vector<std::string>& forbidden_psfsw_product_keys();
 bool token_is_forbidden_weight_source(const std::string& token);
+
+// 退役对象（PSFSW-RETIRE-01；负责人裁决）：psfsw_robust_weight **不是现行对象**
+// （ASTROCS_DESIGN.md §3.1 订正后；docs/design/UNIFIED_MODEL.md:58；统一对象 14→13）。
+// 旧产品若在 variance_from / weight_sources 声明该对象 ⇒ 显式拒绝 + 迁移提示，
+// 不得静默接受，也不得再把它当作"在役的相对复合权重"。
+// 注意：它同时仍在 forbidden_weight_source_tokens 里（拒绝面），本函数只提供
+// "退役对象"这一更可诊断的判据，不替代 token 门。
+bool is_retired_canonical_weight_object(const std::string& token);
+
+// 退役对象的拒绝说明（含被拒对象、允许面与迁移提示）；未命中返回空串。
+std::string retired_object_reject_detail(const std::string& token);
 
 // 返回第一个违规；无违规则 status==Ok。
 GateResult check_failclosed(const ProductRecord& rec, const GateConfig& cfg);

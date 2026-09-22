@@ -322,7 +322,9 @@ const std::string& last_pipeline_ir_json() {
 
 int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
                  uint32_t budget, std::string* fail_reason,
-                 std::atomic<bool>* cancel_ext) {
+                 std::atomic<bool>* cancel_ext,
+                 uint64_t memory_limit_bytes,
+                 const std::string& memory_source) {
   // MON-002 测试钩子(非用户接口): 假 workload(低 CPU 睡眠)供资源门禁 first-10s/
   // RESOURCE(10) 端到端验证; 不设环境变量时零影响。循环响应信号与外部取消源,
   // 保证 gate 快速失败后本钩子立即让路协作取消。
@@ -345,7 +347,15 @@ int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
     if (fail_reason) *fail_reason = rr.error().message();
     return 70;
   }
-  auto rt = astrocs::core::create_runtime(budget);
+  // MEM-WIRE-01 (ARCH-AUDIT-01 B-3 = ARCH-AUDIT-02 F-04): 生产路径必须把内存上限
+  // 交给 Runtime（旧写法 create_runtime(budget) ⇒ Scheduler memory_limit_bytes=0 ⇒
+  // §8.3 内存回压是死代码）。上限来源由调用方解析（commands.cpp: 配置/profile ×
+  // 实测可用内存，默认 95%），本层零硬编码。
+  astrocs::core::RuntimeResourceBudget rrb;
+  rrb.cpu_budget = budget;
+  rrb.memory_limit_bytes = memory_limit_bytes;
+  rrb.memory_source = memory_source;
+  auto rt = astrocs::core::create_runtime(rrb);
   if (rt.failed()) {
     if (fail_reason) *fail_reason = rt.error().message();
     return 70;

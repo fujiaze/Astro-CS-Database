@@ -10,8 +10,7 @@
 //                DOC-403 文件域，本任务无权同步；
 //             ② eng/ci/spec_named_impls.json SNI-S4-P3X-06/P3X-12 与 eng/ci/ledgers/spec_named_impl_gaps.json
 //                以本文件为锚（删除须同提交改表，属 CI 登记面，需与 DOC-403 同批）；
-//             ③ docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:338 与
-//                docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md 仍点名本文件（docs/** 属 DOC-402 域）。
+//             ③ docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:338 仍点名本文件（属该清单域）。
 // STATUS:     未接入生产。不在任何生产 target 的源列表内（grep -c p3_v6_export CMakeLists.txt = 0），
 //             仅被 eng/tests/integration/v6_p3 编译；生产 export 路径 = lib/phase3_session/p3_session.cpp
 //             → lib/algorithms/projection/p3_wcs.cpp（TAN），不依赖本文件任何符号
@@ -21,12 +20,11 @@
 //                V6-CTEST-INTEGRATION step 的三条 --expect；
 //             ② 同提交删除 eng/ci/spec_named_impls.json 的 SNI-S4-P3X-06/SNI-S4-P3X-12 两条与
 //                eng/ci/ledgers/spec_named_impl_gaps.json 的 SNI-S4-P3X-06 条；
-//             ③ DOC-402 退役 docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md 并把
-//                PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
+//             ③ 把 PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
 //             ④ 删除 eng/tests/integration/v6_p3/** 与 CMakeLists.txt:980 的 add_subdirectory。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §6.3
 //             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
-//             工程控制/RELEASE-04/GAP_AUDIT.md G2-1/G3-2；eng/ci/spec_named_impls.json SNI-S4-P3X-06。
+//             RELEASE-04 GAP_AUDIT G2-1/G3-2（包已出库）；eng/ci/spec_named_impls.json SNI-S4-P3X-06。
 // ──────────────────────────────────────────────────────────────────────
 // lib/phase3_session/p3_v6_export.h — Phase3 V6 三模式产品导出接线层 (P3-INTEGRATE-001)
 //
@@ -41,7 +39,7 @@
 //   * FZ-P3-QW-RECOMPUTE: Q=a*pi^T C_y^-1 f; W=a^2*pi^T C_y^-1 pi; pi=S p;
 //     禁止重采样输入 Q/W；消费上游 W_info 不重算/不替换。
 //   * FZ-P3-BUNIT-QUADRATIC / FZ-UNIT-*: variance BUNIT = (signal BUNIT)^2, ivar = 1/variance；
-//     signal_sb=ADU/px^2, sb_variance_out=ADU^2/px^4, W_info=ADU^-2, Q=ADU^-1, flux=ADU, psfsw=1。
+//     signal_sb=ADU/sr, sb_variance_out=ADU^2/sr^2, W_info=ADU^-2, Q=ADU^-1, flux=ADU, psfsw=1。
 //   * FZ-PROV-MINIMAL-SET: 写盘 provenance 最小集 + 重开可校验。
 //   * FZ-P3-KERNEL-REGISTRY: 未注册/未验证核进生产 -> REJECT；nearest 仅离散/诊断/显式选择。
 //   * ALG-P3-008 §7: 原子发布 tmp -> fsync -> DATASUM/CHECKSUM -> rename -> 重开独立验证；
@@ -59,7 +57,7 @@
 //   * psf_snr_power 保持 DEFERRED，不进入生产路由（FZ-MODE-DEFERRED；C-004.1）。
 //
 // 产品 HDU 布局（生产 schema 约束下的唯一自洽布局，见 p3_v6_export.cpp 顶部注记）:
-//   * 所有模式主 HDU = SIGNAL（面亮度，BUNIT=ADU/px^2）—— 因 provenance schema 规定
+//   * 所有模式主 HDU = SIGNAL（面亮度，BUNIT=ADU/sr）—— 因 provenance schema 规定
 //     bunit="ADU" 只能声明 pixel_semantics=surface_brightness/pixel_area_power=-2，
 //     纯积分通量主面在 v6 生产 schema 下不可表达（FZ-UNIT-FLUX=ADU 与 FZ-BUNIT-SEMANTICS
 //     的交叉张力已登记为 finding；通量以扩展 HDU 承载）。
@@ -126,7 +124,7 @@ struct ExportInputs {
   int in_width = 0;
   int in_height = 0;
   std::vector<double> omega_in_sr;  // n_in，全部 > 0（真实输入像素立体角）
-  std::vector<double> x;            // 输入面亮度 SB（ADU/px^2）
+  std::vector<double> x;            // 输入面亮度 SB（ADU/sr）
 
   // covariance 输入（SB/PSF）。完整 C_x 为生产路径；对角仅作阴性对照。
   p3rsmp::DenseMatrix c_in;

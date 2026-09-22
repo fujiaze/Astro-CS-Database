@@ -10,12 +10,12 @@
 ## 1 判据：预测残差方差（ALG-P2S-REJ.3）
 
 ```text
-sigma_eff^2 = sigma_phase1^2 + J C_theta J^T      [ADU^2/px^4]
+sigma_eff^2 = sigma_phase1^2 + J C_theta J^T      [ADU^2/sr^2]
 z           = residual / sigma_eff                [1]
 ```
 
-- `residual = d - model` [ADU/px^2]；`sigma_phase1` [ADU/px^2]；
-  `J C_theta J^T` 为 UPM 参数不确定度标量对角 [ADU^2/px^4]；
+- `residual = d - model` [ADU/sr]；`sigma_phase1` [ADU/sr]；
+  `J C_theta J^T` 为 UPM 参数不确定度标量对角 [ADU^2/sr^2]；
   `C_theta=(J^T W J)^-1`（ALG-P2-SURF-UPM §4）。
 - **fail-closed**：`noise_flags` 未同时含 `P2_NOISE_PHASE1_DECLARED` 与
   `P2_NOISE_UPM_DECLARED` → `INVALID_INPUT`（禁止用裸残差作阈值）；

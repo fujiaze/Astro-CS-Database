@@ -4,7 +4,7 @@
  *
  * 纪律: 不接线 Phase session；不改 legacy ac_* 实现；不发明 DI-03（共享低秩/
  *       相关核数据面实例化）未冻结的核函数或秩上限；所有 fail-closed 按
- *       docs/science/v6/frozen/01_SEMANTIC_FREEZE.md 实现。
+ *       docs/contracts/DATA_SEMANTICS.md 实现。
  *
  * 测试用故障注入: 仅当环境变量 ASTROCS_V6_CAL_FAULT 被显式设置时改变行为，
  *       默认（未设置）为严格正确实现。对齐仓库既有先例 ASTROCS_RT001_FAULT。
@@ -49,6 +49,15 @@ bool is_allowed_variance_from(const std::string& v) {
   return v == "combination_coefficients" ||
          v == "linear_combination_coefficients" ||
          v == "actual_combination_coefficients";
+}
+
+/* 退役对象（PSFSW-RETIRE-01；负责人裁决「只要纯净信号/噪声的信噪比……绝对标定」）：
+ * psfsw_robust_weight **不是现行对象**（ASTROCS_DESIGN.md §3.1 订正后；
+ * docs/design/UNIFIED_MODEL.md:58；统一对象 14→13，CHG-2026-09-20-PSFSW-RETIRE）。
+ * 旧产品若在 variance_from 声明该对象 ⇒ 显式拒绝 + 迁移提示，不得静默接受，
+ * 也不得再把它当作"在役的相对复合权重"（它连对象都不存在了）。 */
+bool is_retired_canonical_object(const std::string& token) {
+  return token == "psfsw_robust_weight";
 }
 
 /* 冻结的 flat 归一除法下限（FZ-CAL-FLOOR，继承 SCI-CAL-001）。 */
@@ -614,8 +623,8 @@ bool unit_law_consistent(const UnitLaw& law) {
   if (law.signal_unit == "ADU") {
     return law.variance_unit == "ADU^2" && law.ivar_unit == "ADU^-2";
   }
-  if (law.signal_unit == "ADU/px^2") {
-    return law.variance_unit == "ADU^2/px^4" && law.ivar_unit == "px^4/ADU^2";
+  if (law.signal_unit == "ADU/sr") {
+    return law.variance_unit == "ADU^2/sr^2" && law.ivar_unit == "sr^2/ADU^2";
   }
   if (law.signal_unit == "ADU/px") {
     return law.variance_unit == "ADU^2/px^2" && law.ivar_unit == "px^2/ADU^2";
@@ -668,6 +677,10 @@ CovarianceRecord make_calibration_covariance_record(const CalResult& result) {
 }
 
 bool is_forbidden_variance_source(const std::string& token) {
+  // PSFSW-RETIRE-01：其中 "psfsw_robust_weight" / "psfsw" 是**退役对象的拒绝面**
+  // （旧产品声明该对象 ⇒ REJECT），不是"在役的相对复合权重"；两项不得按
+  // "残留清理"删除（删除即变成静默接受）。退役对象另有更可诊断的拒绝路径，
+  // 见 is_retired_canonical_object / validate_covariance_record。
   static const char* kForbidden[] = {
       "median_source_snr", "median_snr", "source_snr_median", "med_source_snr",
       "support", "support_area", "coverage", "coverage_area", "fwhm",
@@ -688,6 +701,13 @@ bool validate_covariance_record(const CovarianceRecord& rec, std::string* error)
   };
   if (rec.propagation != "C_out = R C_in R^T") {
     return fail("propagation must be C_out = R C_in R^T");
+  }
+  if (is_retired_canonical_object(rec.variance_from)) {
+    // 退役对象优先报出（可诊断 + 迁移提示），仍是 fail-closed 的拒绝。
+    return fail("variance_from declares retired canonical object 'psfsw_robust_weight' "
+                "(not a current object: ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+                "migration: variance_from=actual_combination_coefficients with "
+                "C_out = R C_in R^T");
   }
   if (!is_allowed_variance_from(rec.variance_from) ||
       is_forbidden_variance_source(rec.variance_from)) {

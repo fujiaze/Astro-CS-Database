@@ -2494,6 +2494,424 @@ static int sdet_detect_impl(StarDetectorHandle handle,
 }
 
 // ============================================================================
+// sdet_detect_guided_impl - 星表引导检测 (权威路径)
+// ----------------------------------------------------------------------------
+// 规范: ASTROCS_DESIGN.md §4.2/§2.1 + docs/plugins/algorithms_phase1/
+//       03_star_detection.md §4 —— 检测定义域 = **星表位置**(用本帧 WCS 把 Gaia
+//       星表反向投影到像素域), 只对星表位置做质心/PSF 拟合; 拟合成功即星点,
+//       失败**直接丢弃**(不计虚警、不报错)。
+// 与盲检测 (sdet_detect_impl) 的关系: 盲检测的 peaker 七步候选扫描被替换为
+//       "调用方给出的预测位置"; 其后的椭圆高斯 GSL TR-LM 拟合、质量门
+//       (maxAxisRatio / reject_star)、mag 公式、去重/排序/maxStars 截断与盲检测
+//       **同一实现、同一常数**, 不新设阈值。全图盲检测保留为**诊断/初值**路径。
+// 逐位置处理:
+//   ① 非有限 / 距边界 <2px / 拟合盒越界 → 丢弃 (n_dropped)
+//   ② 3×3 邻域双条件饱和判定 (与盲检测同式, 阈值 median+5·bgnoise)
+//   ③ 初始宽度 Sr/Sc = σ=2 平滑图上 9×9 窗二阶矩 (质心/矩估计), 下限 0.5px
+//   ④ R = max(ceil(3.7172·Sr), ceil(3.7172·Sc), 5), 钳位 [1,200] 且不出帧
+//   ⑤ sdet_gauss_fit (椭圆高斯 7 参 GSL TR-LM)
+//   ⑥ 质量门: maxAxisRatio / reject_star; 未过 → 丢弃 (n_rejected)
+//   ⑦ mag = −2.5·log10(Σ_box(pixel − B_fit)) (与盲检测同式同 box)
+//   ⑧ dedup → mag 升序 stable_sort (NaN 末尾) → maxStars 截断
+// 确定性: 拟合逐位置独立按索引写回; dedup/sort/截断串行 ⇒ 输出与线程数无关。
+// ============================================================================
+template <typename T>
+static int sdet_detect_guided_impl(StarDetectorHandle handle,
+                                   const T *image, int width, int height,
+                                   const double *pred_x, const double *pred_y, int n_pred,
+                                   double **out_x, double **out_y, float **out_flux, int **out_saturated,
+                                   float **out_mag, int **out_has_saturated,
+                                   int *out_count,
+                                   const char **extra_names, int extra_count, float ***out_extras,
+                                   SDetGuidedStats *out_stats)
+{
+    if (out_stats) { std::memset(out_stats, 0, sizeof(*out_stats)); out_stats->n_predicted = n_pred; }
+    if (!handle || !image || !out_x || !out_y || !out_flux || !out_saturated || !out_count) return -1;
+    if (n_pred < 0) return -1;
+    if (n_pred > 0 && (!pred_x || !pred_y)) return -1;
+
+    auto t0 = std::chrono::high_resolution_clock::now();
+    sdet_log(SDET_LOG_INFO, "SDET", "sdet_detect_guided_impl start: %dx%d n_pred=%d", width, height, n_pred);
+
+    const SDetParams &params = handle->internal.params;
+    const size_t n = (size_t)width * height;
+    handle->internal.width = width;
+    handle->internal.height = height;
+
+    // 空定义域: 不是错误 (合同 = 0 星输出全 NULL + *out_count=0)
+    if (n_pred == 0) {
+        *out_x = nullptr; *out_y = nullptr; *out_flux = nullptr; *out_saturated = nullptr;
+        if (out_mag) *out_mag = nullptr;
+        if (out_has_saturated) *out_has_saturated = nullptr;
+        *out_count = 0;
+        if (out_extras && extra_count > 0) *out_extras = nullptr;
+        return 0;
+    }
+
+    // 阶段A: σ=2 平滑 (只用于宽度初值估计; 与盲检测同款 Young-van Vliet IIR)
+    std::vector<T> smooth(n);
+    if constexpr (std::is_same_v<T, float>) {
+        sdet_gaussian_blur_yvv(image, smooth.data(), width, height, 2.0);
+    } else {
+        sdet_gaussian_blur_yvv_d(image, smooth.data(), width, height, 2.0);
+    }
+
+    // 阶段B: 背景/阈值/动态范围 —— 与盲检测**同式同常数** (ALG-STARDET-001 §2)
+    T bgnoise = sdet_compute_bgnoise<T>(image, width, height);
+    T img_median;
+    if constexpr (std::is_same_v<T, float>) {
+        img_median = sdet_robust_median(image, (int)n);
+    } else {
+        img_median = sdet_robust_median_d(image, (int)n);
+    }
+    T threshold = img_median + T(5.0) * bgnoise;
+    const double bg = (double)img_median;
+    double maxi = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        if (image[i] > maxi) maxi = image[i];
+    }
+    const float norm = 65535.0f;
+    const double dynrange = std::min(maxi, (double)norm) - bg;
+    const double minsatlevel = dynrange * 0.7;
+    const double satrange = dynrange * 0.1;
+
+    const double s_factor = std::sqrt(-2.0 * std::log(0.001));  // = 3.7172
+    const int MAX_BOX_RADIUS = 200;
+    const int r = 5;
+
+    sdet_log(SDET_LOG_INFO, "SDET", "guided: median=%.4f bgnoise=%.4f threshold=%.4f dynrange=%.1f",
+             img_median, bgnoise, threshold, dynrange);
+
+    struct GuidedCandidate {
+        double cx, cy;
+        double brightness;
+        double mag_est;      // meanhigh (与盲检测同义: 局部背景上方均值估计)
+        float sx, sy;        // Sr/Sc (平滑图 σ 估计)
+        int R;               // 拟合盒半径
+        float sat;           // 饱和水平
+        bool has_saturated;
+    };
+    std::vector<GuidedCandidate> candidates;
+    candidates.reserve((size_t)n_pred);
+    int n_dropped = 0;
+
+    // 初始宽度: σ=2 平滑图局部二阶矩 (背景取全局中位数, 正性截断)。
+    // 与盲检测 Sr/Sc 同为"平滑图上的 σ 估计"量纲; 下限 0.5px —— reject_star 的
+    // FWHM 上限门在 se_smax ≤ 2.0 时本就跳过, 故不引入新阈值。
+    // 自适应窗口 (3 轮): 截断会系统性低估 σ, 窗口按 3σ 扩张后重估。窗口上限 12px
+    // 使噪声主导位置的估计有界 (噪声位置的 σ 被后续 reject_star 的 RMSE 门拒绝)。
+    auto moment_sigma = [&](int ix, int iy, double *sx_out, double *sy_out) {
+        const int hw_max_frame = std::min(std::min(ix - 1, iy - 1),
+                                          std::min(width - 2 - ix, height - 2 - iy));
+        int hw = std::min(4, hw_max_frame);
+        double sx = 0.5, sy = 0.5;
+        for (int iter = 0; iter < 3; ++iter) {
+            double m00 = 0.0, m10 = 0.0, m01 = 0.0, m20 = 0.0, m02 = 0.0;
+            for (int yy = iy - hw; yy <= iy + hw; ++yy) {
+                for (int xx = ix - hw; xx <= ix + hw; ++xx) {
+                    const double v = (double)smooth[(size_t)yy * width + xx] - bg;
+                    if (!(v > 0.0)) continue;
+                    const double dx = (double)xx + 0.5;   // 像素中心 = 索引 + 0.5
+                    const double dy = (double)yy + 0.5;
+                    m00 += v; m10 += v * dx; m01 += v * dy;
+                    m20 += v * dx * dx; m02 += v * dy * dy;
+                }
+            }
+            if (!(m00 > 0.0) || !std::isfinite(m00)) { sx = 0.5; sy = 0.5; break; }
+            double vx = m20 / m00 - (m10 / m00) * (m10 / m00);
+            double vy = m02 / m00 - (m01 / m00) * (m01 / m00);
+            if (!(vx > 0.0) || !std::isfinite(vx)) vx = 0.25;
+            if (!(vy > 0.0) || !std::isfinite(vy)) vy = 0.25;
+            sx = std::sqrt(vx);
+            sy = std::sqrt(vy);
+            const int hw_next = std::max(4, (int)std::ceil(3.0 * std::max(sx, sy)));
+            const int hw_clamped = std::min(std::min(hw_next, 12), hw_max_frame);
+            if (hw_clamped == hw) break;
+            hw = hw_clamped;
+        }
+        *sx_out = std::max(sx, 0.5);
+        *sy_out = std::max(sy, 0.5);
+    };
+
+    for (int i = 0; i < n_pred; ++i) {
+        const double px = pred_x[i];
+        const double py = pred_y[i];
+        if (!std::isfinite(px) || !std::isfinite(py)) { n_dropped++; continue; }
+        const int ix = (int)std::lround(px);
+        const int iy = (int)std::lround(py);
+        // 边界: 距边界 <2px 允许丢弃 (SCI-P1-STAR-001 §1; 与盲检测同判据)
+        if (ix - 2 < 1 || ix + 2 > width - 1 || iy - 2 < 1 || iy + 2 > height - 1) {
+            n_dropped++;
+            continue;
+        }
+        const T pixel0 = image[(size_t)iy * width + ix];
+        // 饱和判定: 3×3 邻域双条件 (与盲检测同式)
+        double meanhigh = 0.0, minhigh = 1e30;
+        int nhigh = 0;
+        for (int ny = iy - 1; ny <= iy + 1; ++ny) {
+            for (int nx = ix - 1; nx <= ix + 1; ++nx) {
+                if (nx == ix && ny == iy) continue;
+                const T v = image[(size_t)ny * width + nx];
+                if (v >= threshold) {
+                    if ((double)v < minhigh) minhigh = (double)v;
+                    meanhigh += (double)v;
+                    nhigh++;
+                }
+            }
+        }
+        bool has_saturated = false;
+        if (nhigh > 0) {
+            meanhigh /= (double)nhigh;
+            has_saturated = (meanhigh - bg >= minsatlevel) &&
+                            ((double)pixel0 - minhigh <= satrange);
+        }
+        float sat = (float)norm;
+        if (has_saturated) sat = (float)(std::min((double)pixel0, (double)norm) - satrange);
+
+        double Sr = 0.5, Sc = 0.5;
+        moment_sigma(ix, iy, &Sr, &Sc);
+        int Rm = (int)std::ceil(s_factor * std::max(Sr, Sc));
+        Rm = std::min(Rm, MAX_BOX_RADIUS);
+        int R = std::max(Rm, r);
+        if (ix - R < 0) R = ix;
+        if (ix + R >= width) R = width - ix - 1;
+        if (iy - R < 0) R = iy;
+        if (iy + R >= height) R = height - iy - 1;
+        if (R < 1) { n_dropped++; continue; }
+
+        // 注: 盲检测用 11x11 窗口的 pixel_count 反推 med_pixel_count →
+        // auto_fit_radius; 引导路径的 R 由星表位置的 σ 估计直接给出, 不需要该量,
+        // 故不在此计算 (该窗口在距边界 <r 的位置会越界读, 引导定义域允许 ix≥3)。
+        candidates.push_back({px, py, (double)pixel0, meanhigh,
+                              (float)Sr, (float)Sc, R, sat, has_saturated});
+    }
+    if (out_stats) out_stats->n_dropped = n_dropped;
+
+    sdet_log(SDET_LOG_INFO, "SDET", "guided candidates: %d/%d (dropped=%d)",
+             (int)candidates.size(), n_pred, n_dropped);
+
+    if (candidates.empty()) {
+        *out_x = nullptr; *out_y = nullptr; *out_flux = nullptr; *out_saturated = nullptr;
+        if (out_mag) *out_mag = nullptr;
+        if (out_has_saturated) *out_has_saturated = nullptr;
+        *out_count = 0;
+        if (out_extras && extra_count > 0) *out_extras = nullptr;
+        return 0;
+    }
+
+    // 定义域闸门: 与盲检测同款 maxStars×2 候选上限 (ALG-STARDET-001 §6)。
+    // 调用方已按亮度取 top-N, 本闸门只作内存/算力兜底; 排序键 (mag_est 降序,
+    // 同值按输入下标升序) 构成全序 ⇒ 与线程数/输入顺序无关。
+    {
+        std::vector<int> order(candidates.size());
+        for (size_t k = 0; k < order.size(); ++k) order[k] = (int)k;
+        std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
+            if (candidates[(size_t)a].mag_est != candidates[(size_t)b].mag_est)
+                return candidates[(size_t)a].mag_est > candidates[(size_t)b].mag_est;
+            return a < b;
+        });
+        std::vector<GuidedCandidate> sorted;
+        sorted.reserve(order.size());
+        for (int k : order) sorted.push_back(candidates[(size_t)k]);
+        candidates.swap(sorted);
+    }
+    if (params.maxStars > 0 && (int)candidates.size() > params.maxStars * 2) {
+        candidates.resize((size_t)params.maxStars * 2);
+    }
+
+    // 阶段C: 椭圆高斯拟合 (与盲检测同一 sdet_gauss_fit / GSL TR-LM 7 参)
+    const int cc_count = (int)candidates.size();
+    std::vector<InternalFitResult> fit_results((size_t)cc_count);
+    int fit_ok_count = 0;
+    #pragma omp parallel
+    {
+        LMWorkspace ws;
+        #pragma omp for schedule(dynamic) reduction(+:fit_ok_count)
+        for (int i = 0; i < cc_count; i++) {
+            const int fit_r = candidates[(size_t)i].R;
+            const int rx0 = std::max(0, (int)candidates[(size_t)i].cx - fit_r);
+            const int ry0 = std::max(0, (int)candidates[(size_t)i].cy - fit_r);
+            const int rx1 = std::min(width, (int)candidates[(size_t)i].cx + fit_r + 1);
+            const int ry1 = std::min(height, (int)candidates[(size_t)i].cy + fit_r + 1);
+            const double sat_mask = (double)candidates[(size_t)i].sat;
+            sdet_gauss_fit<T>(image, width, height,
+                              candidates[(size_t)i].cx, candidates[(size_t)i].cy,
+                              rx0, ry0, rx1, ry1, &fit_results[(size_t)i], &ws, sat_mask,
+                              (double)candidates[(size_t)i].sx, (double)candidates[(size_t)i].sy,
+                              (double)img_median);
+            if (fit_results[(size_t)i].status == SDET_FIT_OK) fit_ok_count++;
+        }
+    }
+    sdet_log(SDET_LOG_INFO, "SDET", "guided fit: %d/%d OK", fit_ok_count, cc_count);
+
+    // 阶段D: 质量门 + StarRecord 构建 (与盲检测同门同式)
+    std::vector<StarRecord> stars;
+    int f_fit = 0, f_round = 0, f_reject = 0;
+    int f_sf[6] = {0, 0, 0, 0, 0, 0};   // reject_star SfError 五码逐项计数 (诊断)
+    for (int i = 0; i < cc_count; i++) {
+        if (fit_results[(size_t)i].status != SDET_FIT_OK) { f_fit++; continue; }
+        const float axis_ratio =
+            (float)(std::max(fit_results[(size_t)i].sx, fit_results[(size_t)i].sy) /
+                    std::max(std::min(fit_results[(size_t)i].sx, fit_results[(size_t)i].sy), 0.001));
+        if (axis_ratio > params.maxAxisRatio) { f_round++; continue; }
+        const SfError sf_err = reject_star(fit_results[(size_t)i], candidates[(size_t)i].has_saturated,
+                                           (double)candidates[(size_t)i].sx,
+                                           (double)candidates[(size_t)i].sy);
+        if (sf_err != SF_OK) {
+            f_reject++;
+            if ((int)sf_err >= 0 && (int)sf_err <= 5) f_sf[(int)sf_err]++;
+            continue;
+        }
+        StarRecord rec;
+        rec.cx = fit_results[(size_t)i].cx;
+        rec.cy = fit_results[(size_t)i].cy;
+        rec.flux = (float)fit_results[(size_t)i].A;
+        rec.is_saturated = (fit_results[(size_t)i].A > dynrange) ? 1 : 0;
+        rec.fwhm_x = (float)fit_results[(size_t)i].fwhm_x;
+        rec.fwhm_y = (float)fit_results[(size_t)i].fwhm_y;
+        rec.sx = (float)fit_results[(size_t)i].sx;
+        rec.sy = (float)fit_results[(size_t)i].sy;
+        rec.theta = (float)fit_results[(size_t)i].theta;
+        rec.background = (float)fit_results[(size_t)i].B;
+        rec.amplitude = (float)fit_results[(size_t)i].A;
+        rec.r = 0.0f;
+        rec.cand_R = (float)candidates[(size_t)i].R;
+        {
+            int mag_radius = candidates[(size_t)i].R;
+            mag_radius = std::max(mag_radius, 5);
+            mag_radius = std::min(mag_radius, 200);
+            const int mcx = (int)candidates[(size_t)i].cx;
+            const int mcy = (int)candidates[(size_t)i].cy;
+            const int mx0 = std::max(0, mcx - mag_radius);
+            const int my0 = std::max(0, mcy - mag_radius);
+            const int mx1 = std::min(width, mcx + mag_radius + 1);
+            const int my1 = std::min(height, mcy + mag_radius + 1);
+            const float local_B = (float)fit_results[(size_t)i].B;
+            double box_sum = 0.0;
+            for (int yy = my0; yy < my1; yy++) {
+                for (int xx = mx0; xx < mx1; xx++) {
+                    box_sum += (double)image[yy * width + xx] - local_B;
+                }
+            }
+            rec.mag = (box_sum > 0.0) ? -2.5f * log10f((float)box_sum) : NAN;
+        }
+        rec.has_saturated = rec.is_saturated;
+        stars.push_back(rec);
+    }
+    if (out_stats) {
+        out_stats->n_fit_failed = f_fit;
+        out_stats->n_rejected = f_round + f_reject;
+        out_stats->n_fit_ok = (int)stars.size();
+    }
+    sdet_log(SDET_LOG_INFO, "SDET",
+             "guided stars: %d (fit_fail=%d roundness=%d reject=%d | fwhm_neg=%d fwhm_small=%d "
+             "round_below=%d rmse_large=%d fwhm_large=%d)",
+             (int)stars.size(), f_fit, f_round, f_reject,
+             f_sf[1], f_sf[2], f_sf[3], f_sf[4], f_sf[5]);
+
+    // 阶段E: 去重 + mag 升序排序 (NaN 末尾) + maxStars 截断 (与盲检测同序)
+    sdet_dedup_stars(stars);
+    sdet_sort_stars(stars);
+    if (params.maxStars > 0 && (int)stars.size() > params.maxStars) {
+        stars.resize((size_t)params.maxStars);
+    }
+    const int result_count = (int)stars.size();
+    if (out_stats) out_stats->n_output = result_count;
+
+    if (result_count == 0) {
+        *out_x = nullptr; *out_y = nullptr; *out_flux = nullptr; *out_saturated = nullptr;
+        if (out_mag) *out_mag = nullptr;
+        if (out_has_saturated) *out_has_saturated = nullptr;
+        *out_count = 0;
+        if (out_extras && extra_count > 0) *out_extras = nullptr;
+        return 0;
+    }
+
+    double *x_coords = (double *)malloc((size_t)result_count * sizeof(double));
+    double *y_coords = (double *)malloc((size_t)result_count * sizeof(double));
+    float *flux_arr = (float *)malloc((size_t)result_count * sizeof(float));
+    int *sat_arr = (int *)malloc((size_t)result_count * sizeof(int));
+    float *mag_arr = out_mag ? (float *)malloc((size_t)result_count * sizeof(float)) : nullptr;
+    int *has_sat_arr = out_has_saturated ? (int *)malloc((size_t)result_count * sizeof(int)) : nullptr;
+    if (!x_coords || !y_coords || !flux_arr || !sat_arr ||
+        (out_mag && !mag_arr) || (out_has_saturated && !has_sat_arr)) {
+        free(x_coords); free(y_coords); free(flux_arr); free(sat_arr);
+        free(mag_arr); free(has_sat_arr);
+        return -1;
+    }
+    for (int i = 0; i < result_count; i++) {
+        x_coords[i] = stars[(size_t)i].cx;
+        y_coords[i] = stars[(size_t)i].cy;
+        flux_arr[i] = stars[(size_t)i].flux;
+        sat_arr[i] = stars[(size_t)i].is_saturated;
+        if (mag_arr) mag_arr[i] = stars[(size_t)i].mag;
+        if (has_sat_arr) has_sat_arr[i] = stars[(size_t)i].has_saturated;
+    }
+
+    if (out_extras && extra_count > 0) {
+        float **extras_arr = (float **)malloc((size_t)extra_count * sizeof(float *));
+        if (!extras_arr) {
+            free(x_coords); free(y_coords); free(flux_arr); free(sat_arr);
+            free(mag_arr); free(has_sat_arr);
+            return -1;
+        }
+        int rows_ok = 0;
+        for (int e = 0; e < extra_count; e++) {
+            extras_arr[e] = (float *)malloc((size_t)result_count * sizeof(float));
+            if (!extras_arr[e]) break;
+            const ExtraField field = parse_extra_name(extra_names[e]);
+            for (int i = 0; i < result_count; i++) {
+                extras_arr[e][i] = get_extra_field(stars[(size_t)i], field);
+            }
+            rows_ok++;
+        }
+        if (rows_ok < extra_count) {
+            for (int e = 0; e < rows_ok; e++) free(extras_arr[e]);
+            free(extras_arr);
+            free(x_coords); free(y_coords); free(flux_arr); free(sat_arr);
+            free(mag_arr); free(has_sat_arr);
+            return -1;
+        }
+        *out_extras = extras_arr;
+    }
+
+    *out_x = x_coords;
+    *out_y = y_coords;
+    *out_flux = flux_arr;
+    *out_saturated = sat_arr;
+    if (out_mag) *out_mag = mag_arr;
+    if (out_has_saturated) *out_has_saturated = has_sat_arr;
+    *out_count = result_count;
+
+    const double elapsed = std::chrono::duration<double>(
+        std::chrono::high_resolution_clock::now() - t0).count();
+    sdet_log(SDET_LOG_INFO, "SDET",
+             "sdet_detect_guided_ex done: pred=%d dropped=%d fit_fail=%d rejected=%d out=%d, %.3f s",
+             n_pred, n_dropped, f_fit, f_round + f_reject, result_count, elapsed);
+    return 0;
+}
+
+SDET_EXPORT int sdet_detect_guided_ex_f64(StarDetectorHandle handle,
+                                          const double *image, int width, int height,
+                                          const double *pred_x, const double *pred_y,
+                                          int n_pred,
+                                          double **out_x, double **out_y, float **out_flux,
+                                          int **out_saturated, float **out_mag,
+                                          int **out_has_saturated, int *out_count,
+                                          const char **extra_names, int extra_count,
+                                          float ***out_extras,
+                                          SDetGuidedStats *out_stats)
+{
+    if (out_stats) std::memset(out_stats, 0, sizeof(*out_stats));
+    if (!handle || !image || width <= 0 || height <= 0) return -1;
+    return sdet_detect_guided_impl<double>(handle, image, width, height,
+                                           pred_x, pred_y, n_pred,
+                                           out_x, out_y, out_flux, out_saturated,
+                                           out_mag, out_has_saturated, out_count,
+                                           extra_names, extra_count, out_extras, out_stats);
+}
+
+// ============================================================================
 // sdet_detect_ex - FP32 入口 (uint16 原始图像, 兼容旧 ABI)
 // 内部 uint16→float32 转换后调用 sdet_detect_impl<float> (行为与旧版逐位一致)
 // ============================================================================

@@ -1,9 +1,35 @@
 {
-  "registry_schema": "astrocs.module-ports-registry/v1",
-  "registry_version": 1,
+  "registry_schema": "astrocs.module-ports-registry/v2",
+  "registry_version": 2,
   "owner": "SA-RT-05",
   "frozen_at": "2026-09-02T00:00:00Z",
-  "note": "RT-001 每 node 唯一真实 operation 绑定表（AUD-001 IRF-0007 修复：IR 节点 id 与 CLI 收集端/真实执行符号不匹配）。单一真源：typed DAG compiler 按 (module_id, operation) 绑定到唯一真实 operation 与 DLL/入口（entry 在本轮为声明名，真实 DLL 绑定属 ABI-00x/RT-002+ 接线）；未知 module_id/operation、module 声明端口与注册表端口不一致即拒绝。phase 字段声明该 module 所属产品 Phase（禁止跨 Phase edge）。",
+  "note": "每个 node 唯一真实 operation 绑定表。单一真源：typed DAG compiler 按 (module_id, operation) 绑定到唯一真实 operation 与 DLL/入口（entry 为声明名，真实 DLL 绑定属 ABI-00x/RT-002+ 接线）；未知 module_id/operation 即拒绝。ports 逐条反映 module_adapters.cpp 中该节点实际打开/写出的产物：name = 端口身份（= 阶段块名），artifacts = 该端口在 output_dir 下的真实产物，carrier = 载体种类，code = 该读写事实在代码中的锚点（文件 + 符号 + 必须出现的 token），由 eng/tools/quality/check_block_flow_ports_vs_code.py 双向机器复核（声明⇒实现 / 实现⇒声明）。phase 字段声明该 module 所属产品 Phase（禁止跨 Phase edge）。",
+  "unit_vocabulary": {
+    "authority": "docs/contracts/DATA_SEMANTICS.md §31.1（单位表）/ §31.2（BUNIT 量纲可判）",
+    "tokens": {
+      "ADU": {
+        "bunit": "ADU",
+        "meaning": "原始/校准后逐像素计数（探测器标度，未按面积或立体角归一）"
+      },
+      "SURFACE_BRIGHTNESS": {
+        "bunit": "ADU/sr",
+        "meaning": "面亮度：计数按**立体角**归一（ADU per steradian）。与输出网格的像元尺度无关 ⇒ 跨帧/跨像元尺度可比；与 FITS 4.0 Table 3 的 sr 一致，单一斜杠合 IAU Style Manual"
+      },
+      "DIMENSIONLESS": {
+        "bunit": "1",
+        "meaning": "无量纲（比值/门/状态/概率/覆盖度）"
+      },
+      "DEGREE": {
+        "bunit": "deg",
+        "meaning": "角度（FITS 4.0 §4.3 保留键角度一律 deg）"
+      }
+    },
+    "rules": [
+      "端口 unit 取词表 token；产品面写盘 BUNIT 取对应 bunit 串（唯一映射，禁第二套写法）",
+      "面亮度载荷一律 SURFACE_BRIGHTNESS；其方差/ivar 由二次律导出 ADU^2/sr^2 与 sr^2/ADU^2（FZ-P3-BUNIT-QUADRATIC）",
+      "raw/校准帧平面（未按立体角归一）一律 ADU；禁止用 ADU 承载面亮度载荷"
+    ]
+  },
   "modules": [
     {
       "module_id": "astrocs.phase1.calibration",
@@ -14,8 +40,108 @@
           "entry": "astrocs_phase1_calibrate_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "frames", "direction": "input", "data_schema_id": "DATA-P1-FRAME", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "calibrated", "direction": "output", "data_schema_id": "DATA-P1-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+            {
+              "name": "lights",
+              "direction": "input",
+              "carrier": "config_path",
+              "artifacts": [
+                "<config>.input_lights[]"
+              ],
+              "data_schema_id": "DATA-P1-FRAME",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_calibrate",
+                  "token": "input_lights"
+                }
+              ]
+            },
+            {
+              "name": "master_bias",
+              "direction": "input",
+              "carrier": "config_path",
+              "artifacts": [
+                "<config>.master_bias"
+              ],
+              "data_schema_id": "DATA-P1-MASTER",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_calibrate",
+                  "token": "master_bias"
+                }
+              ],
+              "note": "可选：缺席时标准式 bias 项为 0，manifest 记 bias_participated=false。"
+            },
+            {
+              "name": "master_dark",
+              "direction": "input",
+              "carrier": "config_path",
+              "artifacts": [
+                "<config>.master_dark"
+              ],
+              "data_schema_id": "DATA-P1-MASTER",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_calibrate",
+                  "token": "master_dark"
+                }
+              ],
+              "note": "在位时 K=t_light/t_dark 由 FITS EXPTIME 推导。"
+            },
+            {
+              "name": "master_flat",
+              "direction": "input",
+              "carrier": "config_path",
+              "artifacts": [
+                "<config>.master_flat"
+              ],
+              "data_schema_id": "DATA-P1-MASTER",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_calibrate",
+                  "token": "master_flat"
+                }
+              ]
+            },
+            {
+              "name": "p1_calibrated",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "calibrated_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-CAL",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_calibrate",
+                  "token": "/calibrated_"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -29,8 +155,46 @@
           "entry": "astrocs_phase1_cosmetic_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "calibrated", "direction": "input", "data_schema_id": "DATA-P1-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "cleaned", "direction": "output", "data_schema_id": "DATA-P1-COSMETIC", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+            {
+              "name": "p1_calibrated",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "calibrated_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-CAL",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_cosmetic",
+                  "token": "p1_calibrated_path"
+                }
+              ]
+            },
+            {
+              "name": "p1_cleaned",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "cleaned_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-COSMETIC",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_cosmetic",
+                  "token": "p1_cosmetic_path"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -44,9 +208,68 @@
           "entry": "astrocs_phase1_starpsf_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "cleaned", "direction": "input", "data_schema_id": "DATA-P1-COSMETIC", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "sources", "direction": "output", "data_schema_id": "DATA-P1-SOURCES", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N,2]" },
-            { "name": "psf", "direction": "output", "data_schema_id": "DATA-P1-PSF", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[K,K]" }
+            {
+              "name": "p1_cleaned",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "cleaned_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-COSMETIC",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_star_psf_impl",
+                  "token": "p1_cleaned_input_path"
+                }
+              ]
+            },
+            {
+              "name": "p1_sources",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_sources.json"
+              ],
+              "data_schema_id": "DATA-P1-SOURCES",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[N,2]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_star_psf_impl",
+                  "token": "/p1_sources.json"
+                }
+              ],
+              "note": "同文件内承载 psf_params 行；photometry 的 PSF 参数取自此处，不读 p1_psf.json。"
+            },
+            {
+              "name": "p1_psf",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_psf.json"
+              ],
+              "data_schema_id": "DATA-P1-PSF",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[K,K]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_star_psf_impl",
+                  "token": "/p1_psf.json"
+                }
+              ],
+              "note": "生产链路零消费者：本端口只登记事实，不虚构消费者。"
+            }
           ]
         }
       ]
@@ -60,8 +283,47 @@
           "entry": "astrocs_phase1_wcs_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "sources", "direction": "input", "data_schema_id": "DATA-P1-SOURCES", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N,2]" },
-            { "name": "wcs", "direction": "output", "data_schema_id": "DATA-P1-WCS", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" }
+            {
+              "name": "p1_calibrated",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "calibrated_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-CAL",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_wcs",
+                  "token": "p1_calibrated_path"
+                }
+              ],
+              "note": "本节点按帧读校准后像素自行做星点检测与 Gaia 求解，不消费 p1_sources.json。"
+            },
+            {
+              "name": "p1_wcs",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<frame_key>/p1_wcs.json"
+              ],
+              "data_schema_id": "DATA-P1-WCS",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_wcs",
+                  "token": "/p1_wcs.json"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -75,11 +337,151 @@
           "entry": "astrocs_phase1_photometry_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "psf", "direction": "input", "data_schema_id": "DATA-P1-PSF", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[K,K]" },
-            { "name": "sources", "direction": "input", "data_schema_id": "DATA-P1-SOURCES", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N,2]" },
-            { "name": "wcs", "direction": "input", "data_schema_id": "DATA-P1-WCS", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" },
-            { "name": "fluxes", "direction": "output", "data_schema_id": "DATA-P1-FLUX", "unit": "ELECTRON", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N]" },
-            { "name": "photprov", "direction": "output", "data_schema_id": "DATA-P1-PHOTPROV-001", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "n/a", "shape_hint": "n/a" }
+            {
+              "name": "p1_sources",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_sources.json"
+              ],
+              "data_schema_id": "DATA-P1-SOURCES",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[N,2]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_photometry",
+                  "token": "/p1_sources.json"
+                }
+              ],
+              "note": "必需：缺失即 DATA fail-closed。"
+            },
+            {
+              "name": "p1_wcs",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<frame_key>/p1_wcs.json"
+              ],
+              "data_schema_id": "DATA-P1-WCS",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_photometry",
+                  "token": "/p1_wcs.json"
+                }
+              ],
+              "note": "取 CRVAL/CD 做 Gaia 投影；不可用即该帧标度显式降级（不静默取 1.0）。"
+            },
+            {
+              "name": "p1_calibrated",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "calibrated_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-CAL",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_photometry",
+                  "token": "p1_calibrated_path"
+                }
+              ]
+            },
+            {
+              "name": "p1_photscale",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_photscale.json"
+              ],
+              "data_schema_id": "DATA-P1-PHOTSCALE-001",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "n/a",
+              "shape_hint": "n/a",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_photometry",
+                  "token": "/p1_photscale.json"
+                }
+              ],
+              "note": "外部标定通道（本阶段无生产者）：存在时按帧标量 k_photo 施加；生产代码只读不写该文件，缺席时走本节点内 Gaia 拟合。"
+            },
+            {
+              "name": "p1_flux",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_flux.json"
+              ],
+              "data_schema_id": "DATA-P1-FLUX",
+              "unit": "ADU",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[N]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_photometry",
+                  "token": "/p1_flux.json"
+                }
+              ],
+              "note": "生产链路零消费者：本端口只登记事实。"
+            },
+            {
+              "name": "p1_phot",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_phot.json"
+              ],
+              "data_schema_id": "DATA-P1-PHOTPROV-001",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "n/a",
+              "shape_hint": "n/a",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_photometry",
+                  "token": "/p1_phot.json"
+                }
+              ]
+            },
+            {
+              "name": "p1_photoapplied",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "photoapplied_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-CAL",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_photometry",
+                  "token": "p1_photoapplied_path"
+                }
+              ],
+              "note": "I_photo = k_photo·I_cal 的施加后像素面；drizzle 在 photometry_applied=true 时消费它。"
+            }
           ]
         }
       ]
@@ -93,8 +495,89 @@
           "entry": "astrocs_phase1_noisesnr_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "fluxes", "direction": "input", "data_schema_id": "DATA-P1-FLUX", "unit": "ELECTRON", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N]" },
-            { "name": "snr", "direction": "output", "data_schema_id": "DATA-P1-SNR", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[N]" }
+            {
+              "name": "p1_sources",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_sources.json"
+              ],
+              "data_schema_id": "DATA-P1-SOURCES",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[N,2]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_noise",
+                  "token": "/p1_sources.json"
+                }
+              ],
+              "note": "必需：缺失即 DATA fail-closed。"
+            },
+            {
+              "name": "p1_phot",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_phot.json"
+              ],
+              "data_schema_id": "DATA-P1-PHOTPROV-001",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "n/a",
+              "shape_hint": "n/a",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_noise",
+                  "token": "/p1_phot.json"
+                }
+              ],
+              "note": "可选：存在时按 k_photo 把测光归一化计入噪声模型。"
+            },
+            {
+              "name": "p1_cleaned",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "cleaned_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-COSMETIC",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_noise",
+                  "token": "p1_cleaned_input_path"
+                }
+              ]
+            },
+            {
+              "name": "p1_snr",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_snr.json"
+              ],
+              "data_schema_id": "DATA-P1-SNR",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[N]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_noise",
+                  "token": "/p1_snr.json"
+                }
+              ],
+              "note": "唯一消费者是 drizzle 的 HiPS 末端（把帧级 SNR 写进 HiPS properties 的 ASTROCS_FRAME_SNR 键）。"
+            }
           ]
         }
       ]
@@ -108,10 +591,177 @@
           "entry": "astrocs_phase1_drizzle_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "calibrated", "direction": "input", "data_schema_id": "DATA-P1-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "wcs", "direction": "input", "data_schema_id": "DATA-P1-WCS", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" },
-            { "name": "photprov", "direction": "input", "data_schema_id": "DATA-P1-PHOTPROV-001", "unit": "DIMENSIONLESS", "coordinate": "ICRS", "scalar": "n/a", "shape_hint": "n/a" },
-            { "name": "stacked", "direction": "output", "data_schema_id": "DATA-P1-STACK", "unit": "ADU", "coordinate": "ICRS", "scalar": "f32", "shape_hint": "[H,W]" }
+            {
+              "name": "p1_phot",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_phot.json"
+              ],
+              "data_schema_id": "DATA-P1-PHOTPROV-001",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "n/a",
+              "shape_hint": "n/a",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_drizzle",
+                  "token": "/p1_phot.json"
+                }
+              ]
+            },
+            {
+              "name": "p1_sources",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_sources.json"
+              ],
+              "data_schema_id": "DATA-P1-SOURCES",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[N,2]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_drizzle",
+                  "token": "/p1_sources.json"
+                }
+              ],
+              "note": "用于逐帧方差面与空白天区判定。"
+            },
+            {
+              "name": "p1_snr",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_snr.json"
+              ],
+              "data_schema_id": "DATA-P1-SNR",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[N]",
+              "code": [
+                {
+                  "file": "lib/algorithms/drizzle/healpix_drizzle/astro_sphere_sink.cpp",
+                  "symbol": "write_hips_phase1",
+                  "token": "/p1_snr.json"
+                }
+              ],
+              "note": "经 hp_drizzle_run_phase1_hips 的 HiPS 末端读父目录 p1_snr.json 的 snr_reference 写帧级 SNR 键；缺失即不写键（fail-closed）。"
+            },
+            {
+              "name": "p1_calibrated",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "calibrated_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-CAL",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_drizzle",
+                  "token": "p1_calibrated_path"
+                }
+              ]
+            },
+            {
+              "name": "p1_photoapplied",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "photoapplied_<light_basename>"
+              ],
+              "data_schema_id": "DATA-P1-CAL",
+              "unit": "ADU",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_drizzle",
+                  "token": "p1_photoapplied_path"
+                }
+              ],
+              "note": "photometry_applied=true 时改读该面；缺失即 fail-closed（禁静默退回未测光 ADU）。"
+            },
+            {
+              "name": "p1_wcs",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<frame_key>/p1_wcs.json"
+              ],
+              "data_schema_id": "DATA-P1-WCS",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_drizzle",
+                  "token": "/p1_wcs.json"
+                }
+              ]
+            },
+            {
+              "name": "frame_hips",
+              "direction": "output",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "<frame_key>/signal",
+                "<frame_key>/support",
+                "<frame_key>/variance",
+                "<frame_key>/ivar",
+                "<frame_key>/properties",
+                "<frame_key>/Moc.fits",
+                "<frame_key>/metadata.fits"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_drizzle",
+                  "token": "hp_drizzle_run_phase1_hips"
+                }
+              ],
+              "note": "Phase1 的 HiPS 产品树由本节点直写（不是 writer）：signal/support 恒写，variance/ivar 成对。"
+            },
+            {
+              "name": "p1_stack",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<frame_key>/p1_stack.json"
+              ],
+              "data_schema_id": "DATA-P1-STACK",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "ICRS",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_drizzle",
+                  "token": "/p1_stack.json"
+                }
+              ],
+              "note": "nside/精度/SIP/测光 provenance 的编排证据（产品面逐字节可复现，墙钟遥测只进节点 manifest）。"
+            }
           ]
         }
       ]
@@ -125,8 +775,95 @@
           "entry": "astrocs_phase1_writer_v1",
           "resource_class": "io",
           "ports": [
-            { "name": "stacked", "direction": "input", "data_schema_id": "DATA-P1-STACK", "unit": "ADU", "coordinate": "ICRS", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "fits", "direction": "output", "data_schema_id": "DATA-P1-FITS", "unit": "ADU", "coordinate": "ICRS", "scalar": "f32", "shape_hint": "[H,W]" }
+            {
+              "name": "frame_hips",
+              "direction": "input",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "<frame_key>/signal",
+                "<frame_key>/support",
+                "<frame_key>/variance",
+                "<frame_key>/ivar",
+                "<frame_key>/properties",
+                "<frame_key>/Moc.fits",
+                "<frame_key>/metadata.fits"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_writer",
+                  "token": "aio_fs::walk_tree"
+                }
+              ],
+              "note": "本节点只校验上游 drizzle 直写的产品树（叶 tile 计数、variance/ivar 成对、单位声明），不写任何 FITS。"
+            },
+            {
+              "name": "p1_stack",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<frame_key>/p1_stack.json"
+              ],
+              "data_schema_id": "DATA-P1-STACK",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "ICRS",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_writer",
+                  "token": "/p1_stack.json"
+                }
+              ]
+            },
+            {
+              "name": "p1_final",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "<frame_key>/p1_final.json"
+              ],
+              "data_schema_id": "DATA-P1-HIPS",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_writer",
+                  "token": "/p1_final.json"
+                }
+              ],
+              "note": "逐帧产品清单（DATA-P1-HIPS）：tile 计数 + 单位/像素语义 + frame 身份。"
+            },
+            {
+              "name": "p1_products",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p1_products.json"
+              ],
+              "data_schema_id": "DATA-P1-PRODUCTS",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "n/a",
+              "shape_hint": "n/a",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p1_op_writer",
+                  "token": "/p1_products.json"
+                }
+              ],
+              "note": "聚合产品清单：hips_paths 直接作为 mosaic 的输入路径来源。"
+            }
           ]
         }
       ]
@@ -140,8 +877,49 @@
           "entry": "astrocs_phase2_coverage_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "calibrated", "direction": "input", "data_schema_id": "DATA-P2-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "coverage", "direction": "output", "data_schema_id": "DATA-P2-COV", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+            {
+              "name": "frame_hips",
+              "direction": "input",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "<frame_key>/signal",
+                "<frame_key>/support",
+                "<frame_key>/properties"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_coverage",
+                  "token": "hips_paths"
+                }
+              ],
+              "note": "逐帧 HiPS 树路径来自 config.hips_paths（= Phase1 的 p1_products.json 的 hips_paths）。"
+            },
+            {
+              "name": "p2_coverage",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_coverage.json"
+              ],
+              "data_schema_id": "DATA-P2-COV",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_coverage",
+                  "token": "/p2_coverage.json"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -155,8 +933,46 @@
           "entry": "astrocs_phase2_sample_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "coverage", "direction": "input", "data_schema_id": "DATA-P2-COV", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "samples", "direction": "output", "data_schema_id": "DATA-P2-SMP", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[N]" }
+            {
+              "name": "p2_coverage",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_coverage.json"
+              ],
+              "data_schema_id": "DATA-P2-COV",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_sample",
+                  "token": "/p2_coverage.json"
+                }
+              ]
+            },
+            {
+              "name": "p2_samples",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_samples.json"
+              ],
+              "data_schema_id": "DATA-P2-SMP",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[N]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_sample",
+                  "token": "/p2_samples.json"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -170,8 +986,73 @@
           "entry": "astrocs_phase2_upmfit_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "samples", "direction": "input", "data_schema_id": "DATA-P2-SMP", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[N]" },
-            { "name": "upm_model", "direction": "output", "data_schema_id": "DATA-P2-UPM", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f64", "shape_hint": "[1]" }
+            {
+              "name": "p2_samples",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_samples.json"
+              ],
+              "data_schema_id": "DATA-P2-SMP",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[N]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_fit",
+                  "token": "/p2_samples.json"
+                }
+              ]
+            },
+            {
+              "name": "p2_upm_model",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_upm_model.bin",
+                "p2_upm_model.json"
+              ],
+              "data_schema_id": "DATA-P2-UPM",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_fit",
+                  "token": "/p2_upm_model.bin"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_fit",
+                  "token": "/p2_upm_model.json"
+                }
+              ]
+            },
+            {
+              "name": "p2_sky_plane",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_sky_plane.bin"
+              ],
+              "data_schema_id": "DATA-P2-UPM",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[N]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_fit",
+                  "token": "/p2_sky_plane.bin"
+                }
+              ],
+              "note": "加性天光面（稀疏控制点）；构建/保存失败时显式降级（sky_plane_degraded=true），不产半成品。"
+            }
           ]
         }
       ]
@@ -185,9 +1066,148 @@
           "entry": "astrocs_phase2_upmapply_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "upm_model", "direction": "input", "data_schema_id": "DATA-P2-UPM", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f64", "shape_hint": "[1]" },
-            { "name": "calibrated_frames", "direction": "input", "data_schema_id": "DATA-P2-CAL", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "corrected", "direction": "output", "data_schema_id": "DATA-P2-COR", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+            {
+              "name": "p2_upm_model",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_upm_model.bin",
+                "p2_upm_model.json"
+              ],
+              "data_schema_id": "DATA-P2-UPM",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_apply",
+                  "token": "/p2_upm_model.json"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_apply",
+                  "token": "/p2_upm_model.bin"
+                }
+              ]
+            },
+            {
+              "name": "p2_sky_plane",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_sky_plane.bin"
+              ],
+              "data_schema_id": "DATA-P2-UPM",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[N]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_apply",
+                  "token": "/p2_sky_plane.bin"
+                }
+              ],
+              "note": "可选：缺席时 sky_plane_loaded/applied=false 显式登记。"
+            },
+            {
+              "name": "p2_coverage",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_coverage.json"
+              ],
+              "data_schema_id": "DATA-P2-COV",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_apply",
+                  "token": "/p2_coverage.json"
+                }
+              ]
+            },
+            {
+              "name": "p2_samples",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_samples.json"
+              ],
+              "data_schema_id": "DATA-P2-SMP",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[N]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_apply",
+                  "token": "/p2_samples.json"
+                }
+              ]
+            },
+            {
+              "name": "frame_hips",
+              "direction": "input",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "<frame_key>/signal",
+                "<frame_key>/support",
+                "<frame_key>/variance"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_apply",
+                  "token": "aio_hips_open"
+                }
+              ],
+              "note": "逐帧 HiPS signal/support（variance 可选）由 coverage 清单携带的 hips_paths 定位。"
+            },
+            {
+              "name": "p2_corrected",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_corrected.json",
+                "p2_corrected_f<frame_id>.bin",
+                "p2_corrected_var_f<frame_id>.bin"
+              ],
+              "data_schema_id": "DATA-P2-COR",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_apply",
+                  "token": "/p2_corrected.json"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_apply",
+                  "token": "/p2_corrected_f"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_upm_apply",
+                  "token": "/p2_corrected_var_f"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -201,8 +1221,93 @@
           "entry": "astrocs_phase2_reject_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "corrected", "direction": "input", "data_schema_id": "DATA-P2-COR", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "accepted_mask", "direction": "output", "data_schema_id": "DATA-P2-REJ", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "u8", "shape_hint": "[H,W]" }
+            {
+              "name": "p2_corrected",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_corrected.json",
+                "p2_corrected_f<frame_id>.bin",
+                "p2_corrected_var_f<frame_id>.bin"
+              ],
+              "data_schema_id": "DATA-P2-COR",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_reject",
+                  "token": "/p2_corrected.json"
+                }
+              ]
+            },
+            {
+              "name": "frame_hips",
+              "direction": "input",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "<frame_key>/support"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_reject",
+                  "token": "aio_hips_open"
+                }
+              ],
+              "note": "逐帧 support 层是几何 n（覆盖计数）的唯一来源。"
+            },
+            {
+              "name": "p2_rejection",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_rejection.json",
+                "p2_rejection_accepted.bin",
+                "p2_rejection_nrej.bin",
+                "p2_rejection_candidates.bin",
+                "p2_rejection_sample_mask.bin"
+              ],
+              "data_schema_id": "DATA-P2-REJ",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "PIXEL",
+              "scalar": "u8",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_reject",
+                  "token": "/p2_rejection.json"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_reject",
+                  "token": "/p2_rejection_accepted.bin"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_reject",
+                  "token": "/p2_rejection_nrej.bin"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_reject",
+                  "token": "/p2_rejection_candidates.bin"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_reject",
+                  "token": "/p2_rejection_sample_mask.bin"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -216,9 +1321,125 @@
           "entry": "astrocs_phase2_integrate_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "accepted_mask", "direction": "input", "data_schema_id": "DATA-P2-REJ", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "u8", "shape_hint": "[H,W]" },
-            { "name": "corrected", "direction": "input", "data_schema_id": "DATA-P2-COR", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "integrated", "direction": "output", "data_schema_id": "DATA-P2-INT", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+            {
+              "name": "p2_corrected",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_corrected.json",
+                "p2_corrected_f<frame_id>.bin",
+                "p2_corrected_var_f<frame_id>.bin"
+              ],
+              "data_schema_id": "DATA-P2-COR",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_integrate",
+                  "token": "/p2_corrected.json"
+                }
+              ]
+            },
+            {
+              "name": "p2_rejection",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_rejection.json",
+                "p2_rejection_accepted.bin",
+                "p2_rejection_nrej.bin",
+                "p2_rejection_candidates.bin",
+                "p2_rejection_sample_mask.bin"
+              ],
+              "data_schema_id": "DATA-P2-REJ",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "PIXEL",
+              "scalar": "u8",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_integrate",
+                  "token": "/p2_rejection.json"
+                }
+              ]
+            },
+            {
+              "name": "frame_hips",
+              "direction": "input",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "<frame_key>/signal",
+                "<frame_key>/support",
+                "<frame_key>/ivar"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_integrate",
+                  "token": "aio_hips_open"
+                }
+              ],
+              "note": "逐帧 signal/support/ivar；ivar 缺失时按 HiPS 头帧级 SNR 现场换算权重，权重链未闭合即 fail-closed。"
+            },
+            {
+              "name": "p2_integrated",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_integrated.json",
+                "p2_integrated_signal.bin",
+                "p2_integrated_support.bin",
+                "p2_integrated_wsum.bin",
+                "p2_integrated_nused.bin",
+                "p2_integrated_nrej.bin"
+              ],
+              "data_schema_id": "DATA-P2-INT",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_integrate",
+                  "token": "/p2_integrated.json"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_integrate",
+                  "token": "/p2_integrated_signal.bin"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_integrate",
+                  "token": "/p2_integrated_support.bin"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_integrate",
+                  "token": "/p2_integrated_wsum.bin"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_integrate",
+                  "token": "/p2_integrated_nused.bin"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_integrate",
+                  "token": "/p2_integrated_nrej.bin"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -232,8 +1453,167 @@
           "entry": "astrocs_phase2_write_v1",
           "resource_class": "io",
           "ports": [
-            { "name": "integrated", "direction": "input", "data_schema_id": "DATA-P2-INT", "unit": "ADU", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "mosaic", "direction": "output", "data_schema_id": "DATA-P2-RES", "unit": "SURFACE_BRIGHTNESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+            {
+              "name": "p2_integrated",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_integrated.json",
+                "p2_integrated_signal.bin",
+                "p2_integrated_support.bin",
+                "p2_integrated_wsum.bin",
+                "p2_integrated_nused.bin",
+                "p2_integrated_nrej.bin"
+              ],
+              "data_schema_id": "DATA-P2-INT",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_write",
+                  "token": "/p2_integrated.json"
+                }
+              ]
+            },
+            {
+              "name": "p2_coverage",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_coverage.json"
+              ],
+              "data_schema_id": "DATA-P2-COV",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_write",
+                  "token": "/p2_coverage.json"
+                }
+              ],
+              "note": "取 target_order 定叶级 nside 与 obs_filter 身份。"
+            },
+            {
+              "name": "p2_samples",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_samples.json"
+              ],
+              "data_schema_id": "DATA-P2-SMP",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[N]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_write",
+                  "token": "/p2_samples.json"
+                }
+              ],
+              "note": "只取 input_manifest_hash 作 provenance。"
+            },
+            {
+              "name": "p2_upm_model",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_upm_model.bin",
+                "p2_upm_model.json"
+              ],
+              "data_schema_id": "DATA-P2-UPM",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_write",
+                  "token": "/p2_upm_model.json"
+                }
+              ],
+              "note": "只取 model_hash 作 provenance。"
+            },
+            {
+              "name": "p2_rejection",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_rejection.json",
+                "p2_rejection_accepted.bin",
+                "p2_rejection_nrej.bin",
+                "p2_rejection_candidates.bin",
+                "p2_rejection_sample_mask.bin"
+              ],
+              "data_schema_id": "DATA-P2-REJ",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "PIXEL",
+              "scalar": "u8",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_write",
+                  "token": "/p2_rejection.json"
+                }
+              ],
+              "note": "只取 profile 作 provenance。"
+            },
+            {
+              "name": "mosaic_hips",
+              "direction": "output",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "signal",
+                "support",
+                "variance",
+                "ivar",
+                "properties",
+                "Moc.fits",
+                "metadata.fits"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_write",
+                  "token": "aio_hips_product_begin"
+                }
+              ],
+              "note": "马赛克 HiPS 产品树：先落运行私有暂存区，校验通过后原子发布。"
+            },
+            {
+              "name": "p2_final",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p2_final.json"
+              ],
+              "data_schema_id": "DATA-P2-RES",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p2_op_write",
+                  "token": "/p2_final.json"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -247,8 +1627,52 @@
           "entry": "astrocs_phase3_properties_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "hips", "direction": "input", "data_schema_id": "DATA-HIPS-001", "unit": "ADU", "coordinate": "HEALPIX", "scalar": "f32", "shape_hint": "[]" },
-            { "name": "props", "direction": "output", "data_schema_id": "DATA-P3-PROPS", "unit": "DIMENSIONLESS", "coordinate": "HEALPIX", "scalar": "f32", "shape_hint": "[1]" }
+            {
+              "name": "mosaic_hips",
+              "direction": "input",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "signal",
+                "support",
+                "variance",
+                "ivar",
+                "properties",
+                "Moc.fits"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_properties",
+                  "token": "p3_sampler_open_ex"
+                }
+              ],
+              "note": "输入 HiPS 树路径来自 config.source.hips_dir；单位非面亮度或不可判即显式拒绝。"
+            },
+            {
+              "name": "p3_props",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_props.json"
+              ],
+              "data_schema_id": "DATA-P3-PROPS",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_properties",
+                  "token": "/p3_props.json"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -262,8 +1686,47 @@
           "entry": "astrocs_phase3_wcs_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "props", "direction": "input", "data_schema_id": "DATA-P3-PROPS", "unit": "DIMENSIONLESS", "coordinate": "HEALPIX", "scalar": "f32", "shape_hint": "[1]" },
-            { "name": "wcs_plan", "direction": "output", "data_schema_id": "DATA-P3-WCS", "unit": "DEGREE", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" }
+            {
+              "name": "p3_props",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_props.json"
+              ],
+              "data_schema_id": "DATA-P3-PROPS",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_wcs",
+                  "token": "/p3_props.json"
+                }
+              ],
+              "note": "门禁级消费：只做上游产物存在性 fail-closed；WCS 参数全部由 config（center/scale/parity/projection）重建，不读 P1 的 WCS。"
+            },
+            {
+              "name": "p3_wcs",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_wcs.json"
+              ],
+              "data_schema_id": "DATA-P3-WCS",
+              "unit": "DEGREE",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_wcs",
+                  "token": "/p3_wcs.json"
+                }
+              ]
+            }
           ]
         }
       ]
@@ -277,9 +1740,98 @@
           "entry": "astrocs_phase3_resample_v1",
           "resource_class": "cpu_heavy",
           "ports": [
-            { "name": "wcs_plan", "direction": "input", "data_schema_id": "DATA-P3-WCS", "unit": "DEGREE", "coordinate": "ICRS", "scalar": "f64", "shape_hint": "[1]" },
-            { "name": "hips", "direction": "input", "data_schema_id": "DATA-HIPS-001", "unit": "ADU", "coordinate": "HEALPIX", "scalar": "f32", "shape_hint": "[]" },
-            { "name": "resampled", "direction": "output", "data_schema_id": "DATA-P3-RES", "unit": "SURFACE_BRIGHTNESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+            {
+              "name": "p3_props",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_props.json"
+              ],
+              "data_schema_id": "DATA-P3-PROPS",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_resample",
+                  "token": "/p3_props.json"
+                }
+              ],
+              "note": "取 canonical BUNIT 与 uncertainty_source，并与实时守卫双向一致（漂移即拒）。"
+            },
+            {
+              "name": "p3_wcs",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_wcs.json"
+              ],
+              "data_schema_id": "DATA-P3-WCS",
+              "unit": "DEGREE",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_resample",
+                  "token": "/p3_wcs.json"
+                }
+              ]
+            },
+            {
+              "name": "mosaic_hips",
+              "direction": "input",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "signal",
+                "support",
+                "variance",
+                "ivar",
+                "properties"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_resample",
+                  "token": "p3_sampler_open_ex"
+                }
+              ]
+            },
+            {
+              "name": "p3_resampled",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_resampled.bin",
+                "p3_resampled.json"
+              ],
+              "data_schema_id": "DATA-P3-RES",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_resample",
+                  "token": "/p3_resampled.bin"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_resample",
+                  "token": "/p3_resampled.json"
+                }
+              ],
+              "note": "子块流式：驻留面 = 单个子块 × 并发任务数，与总图大小无关。"
+            }
           ]
         }
       ]
@@ -293,8 +1845,136 @@
           "entry": "astrocs_phase3_writer_v1",
           "resource_class": "io",
           "ports": [
-            { "name": "resampled", "direction": "input", "data_schema_id": "DATA-P3-RES", "unit": "SURFACE_BRIGHTNESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "fits", "direction": "output", "data_schema_id": "DATA-P3-FITS", "unit": "SURFACE_BRIGHTNESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" }
+            {
+              "name": "p3_resampled",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_resampled.bin",
+                "p3_resampled.json"
+              ],
+              "data_schema_id": "DATA-P3-RES",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_writer",
+                  "token": "/p3_resampled.json"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_writer",
+                  "token": "/p3_resampled.bin"
+                }
+              ]
+            },
+            {
+              "name": "p3_wcs",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_wcs.json"
+              ],
+              "data_schema_id": "DATA-P3-WCS",
+              "unit": "DEGREE",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_writer",
+                  "token": "/p3_wcs.json"
+                }
+              ]
+            },
+            {
+              "name": "run_context",
+              "direction": "input",
+              "carrier": "config_path",
+              "artifacts": [
+                "run_context.json"
+              ],
+              "data_schema_id": "DATA-RUN-CONTEXT",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "n/a",
+              "scalar": "n/a",
+              "shape_hint": "n/a",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_writer",
+                  "token": "/run_context.json"
+                }
+              ],
+              "note": "由 CLI 在会话启动前写入 out_dir；缺失即 DATA fail-closed（禁占位 run_id/software_version）。"
+            },
+            {
+              "name": "mosaic_hips",
+              "direction": "input",
+              "carrier": "hips_product_tree",
+              "artifacts": [
+                "properties",
+                "Moc.fits"
+              ],
+              "data_schema_id": "DATA-HIPS-001",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "HEALPIX",
+              "scalar": "f32",
+              "shape_hint": "[]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_writer",
+                  "token": "p3n_input_manifest_hash"
+                }
+              ],
+              "note": "按实际输入产品算 manifest 哈希（properties + Moc.fits 的 SHA-256）。"
+            },
+            {
+              "name": "p3_fits",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "output_phase3.fits"
+              ],
+              "data_schema_id": "DATA-P3-FITS",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_writer",
+                  "token": "/output_phase3.fits"
+                }
+              ]
+            },
+            {
+              "name": "p3_writer",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_writer.json"
+              ],
+              "data_schema_id": "DATA-P3-WRITER",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "n/a",
+              "shape_hint": "n/a",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_writer",
+                  "token": "/p3_writer.json"
+                }
+              ],
+              "note": "携带 output_fits 路径与 canonical 哈希，是 verify 的输入。"
+            }
           ]
         }
       ]
@@ -308,11 +1988,125 @@
           "entry": "astrocs_phase3_verify_v1",
           "resource_class": "io",
           "ports": [
-            { "name": "fits", "direction": "input", "data_schema_id": "DATA-P3-FITS", "unit": "SURFACE_BRIGHTNESS", "coordinate": "PIXEL", "scalar": "f32", "shape_hint": "[H,W]" },
-            { "name": "verified", "direction": "output", "data_schema_id": "DATA-P3-VER", "unit": "DIMENSIONLESS", "coordinate": "PIXEL", "scalar": "u8", "shape_hint": "[1]" }
+            {
+              "name": "p3_resampled",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_resampled.bin",
+                "p3_resampled.json"
+              ],
+              "data_schema_id": "DATA-P3-RES",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_verify",
+                  "token": "/p3_resampled.json"
+                },
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_verify",
+                  "token": "/p3_resampled.bin"
+                }
+              ]
+            },
+            {
+              "name": "p3_writer",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_writer.json"
+              ],
+              "data_schema_id": "DATA-P3-WRITER",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "ICRS",
+              "scalar": "n/a",
+              "shape_hint": "n/a",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_verify",
+                  "token": "/p3_writer.json"
+                }
+              ],
+              "note": "FITS 路径取自本产物的 output_fits 键（不硬编码输出文件名）。"
+            },
+            {
+              "name": "p3_wcs",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_wcs.json"
+              ],
+              "data_schema_id": "DATA-P3-WCS",
+              "unit": "DEGREE",
+              "coordinate": "ICRS",
+              "scalar": "f64",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_verify",
+                  "token": "/p3_wcs.json"
+                }
+              ]
+            },
+            {
+              "name": "p3_fits",
+              "direction": "input",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "output_phase3.fits"
+              ],
+              "data_schema_id": "DATA-P3-FITS",
+              "unit": "SURFACE_BRIGHTNESS",
+              "coordinate": "PIXEL",
+              "scalar": "f32",
+              "shape_hint": "[H,W]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_verify",
+                  "token": "output_fits"
+                }
+              ],
+              "note": "独立重开子块流式对拍 + 独立重算规范产品哈希（不采信 writer 自报值）。"
+            },
+            {
+              "name": "p3_verify",
+              "direction": "output",
+              "carrier": "output_dir_file",
+              "artifacts": [
+                "p3_verify.json"
+              ],
+              "data_schema_id": "DATA-P3-VER",
+              "unit": "DIMENSIONLESS",
+              "coordinate": "PIXEL",
+              "scalar": "u8",
+              "shape_hint": "[1]",
+              "code": [
+                {
+                  "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+                  "symbol": "p3_op_verify",
+                  "token": "/p3_verify.json"
+                }
+              ]
+            }
           ]
         }
       ]
     }
-  ]
+  ],
+  "carrier_contract": {
+    "statement": "阶段内节点间的唯一载体是 output_dir 文件约定：每个端口对应 output_dir 下的一个具体产品（文件或产品目录），生产者按该路径写、消费者按同一路径读；节点间不存在内存块传递。跨阶段的唯一载体是 HiPS 产品树（磁盘目录 + manifest + 哈希）：normalize 产出逐帧 HiPS 树（frame_hips），mosaic 产出马赛克 HiPS 树（mosaic_hips），export 只读 mosaic_hips。命名块（PipelineFrame 的 data/variance）只存在于单节点执行期的内存中，不落盘、不跨节点、不跨阶段。",
+    "carriers": {
+      "output_dir_file": "节点产物文件：<output_dir>/<artifact>。生产者写入、消费者按同一路径读取（output_dir 文件约定）。",
+      "hips_product_tree": "IVOA HiPS 产品目录树（signal/ support/ variance/ ivar/ + properties + Moc.fits + metadata.fits）。阶段内按目录路径传递；跨阶段时该树本身即交换载体。",
+      "config_path": "阶段外部输入：路径由配置或上游命令给出（原始亮场、母版帧、run_context.json）；本阶段内无生产者。"
+    }
+  }
 }

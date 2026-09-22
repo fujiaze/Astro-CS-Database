@@ -1,9 +1,9 @@
 /* psfsw.h - Phase1/V6 PSFSW 四分量 / 共同星集 / validity-depth 门 (IMPL-P1-PSFW-001)
  *
- * 合同锚 (主: docs/algorithms/v6/phase2-psfsw/PSFSW_ALGORITHM_SPEC.md §3..§8;
- *         Phase1: docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md §4;
- *         冻结: docs/algorithms/v6/frozen/02_GATE_AND_MUTATION_FREEZE.md;
- *         docs/contracts/v6/frozen/02_WEIGHT_MODE_VOCABULARY.md):
+ * 合同锚 (主: docs/science/PSF_SIGNAL_WEIGHT.md;
+ *         Phase1: docs/design/PHASE1_DETAILED_DESIGN.md;
+ *         冻结: docs/algorithms/GATES_AND_TOLERANCES.md;
+ *         eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary):
  *   - FZ-FIELD-PSFSW-4COMP  : signal/concentration/noise/background 四分量,
  *                             measurement_id 互异, p05<=p50<=p95, valid_area_fraction in [0,1]
  *   - FZ-COND-WHITENOISE    : A_NEA = 1 / Sum P^2  (由 dynamic_psf 提供)
@@ -324,8 +324,17 @@ CovariancePropagation propagate_covariance(
 /* ------------------------------------------------------------------------- */
 const std::vector<std::string>& forbidden_psfsw_product_keys();
 const std::vector<std::string>& forbidden_weight_source_aliases();
+/* 现行生产模式接受集（FZ-MODE-PRODUCTION）= {point_information, surface_gls}；
+ * 与 coverage.cpp / v6_runtime_contract.h 同口径。 */
 const std::vector<std::string>& production_weight_modes();
 bool is_production_weight_mode(const std::string& mode);
+/* FZ-MODE-RETIRED（PSFSW-RETIRE-03 口径统一）：psfsw_robust 是**退役对象**
+ * psfsw_robust_weight 的声明 token —— is_production_weight_mode 对它返回 **false**
+ * （不再声称它是生产模式），但识别/拒绝面保留：命中即调用方必须显式拒绝 + 迁移提示，
+ * 不得静默接受。 */
+bool is_retired_weight_mode_token(const std::string& mode);
+/* 拒绝说明（含被拒 token、现行允许面与迁移提示）；未命中返回空串。 */
+std::string retired_weight_mode_reject_reason(const std::string& mode);
 
 struct GateFinding {
     std::string gate;      /* "PSFSW-G05" ... */

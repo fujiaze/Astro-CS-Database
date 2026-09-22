@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <sys/resource.h>   /* FAILCLOSED-01: RLIMIT_AS 诊断（装载失败可诊断） */
 #include <pthread.h>
 #endif
 
@@ -43,6 +44,80 @@
  *   ③ Gaia DR3 G 星等为物理带通星等, 负值/极大值声明均无产品语义。 */
 #define GAIA_MAG_RANGE_MIN (-10.0)
 #define GAIA_MAG_RANGE_MAX ( 40.0)
+
+/* ═══ FAILCLOSED-01 (GAIA-FAILCLOSED-01): 静默部分装载 → fail-closed ══════════
+ * 根因（run/WCS-DETERMINISM-01/REPORT.md §1.2）: gaia_client_create_ex 对目录里
+ * 每个 *.xpsd 调 load_xpsd_file, 返回 -1 时**没有 else 分支** ⇒ 装载失败的
+ * shard 被静默丢弃（无日志/无计数/create 仍返回非 NULL）。在地址空间受限
+ * （RLIMIT_AS）时丢掉的恰是唯一含亮星的 shard, 参考星表随之变成"暗 shard 里
+ * 最亮的 60 颗" ⇒ tri_B/max_vote 崩塌 ⇒ iter_trans_solve 全败。属"静默降级"
+ * 缺陷类（AGENTS §6"不以环境问题掩盖失败"）。
+ * 本块三条不变量（**不改任何科学公式/容差/归约顺序/输出星序**）:
+ *   ① 目录内任一 *.xpsd 装载失败 ⇒ 记原因 + 计数 + create destroy 后返回 NULL
+ *      （宁可失败, 不可用残缺星表解算）;
+ *   ② 条目数 > MAX_FILES ⇒ 同上拒绝（截断装载与失败装载同属"不完整星表"）;
+ *   ③ 查询期单星/单叶丢弃（collector 扩容失败 / 叶块解压失败 / scratch 分配
+ *      失败）⇒ 记账 + 告警 + 查询返回 -1 且输出置空（不返回不完整星表）。
+ * 暴露面（见 gaia_client.h）: gaia_client_get_file_count / _get_file_entry_count /
+ *   _get_file_load_fail_count / _get_last_create_diagnostics / _get_last_create_error。
+ * 文档化截断上限 MAX_STARS_RESULT（200000/文件）不属丢弃, 行为不变。 */
+
+/* 最近一次 create 诊断槽：thread-local（同线程创建+读取, 无共享写; 与仓库既有
+ * aio_*_last_error / drizzle 错误槽同款约定）。仅用于失败路径的可诊断消息与
+ * G-1 shard 覆盖门, 不参与任何科学计算。 */
+#if defined(_MSC_VER)
+#define GAIA_TLS __declspec(thread)
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#define GAIA_TLS _Thread_local
+#else
+#define GAIA_TLS __thread
+#endif
+
+static GAIA_TLS int g_create_diag_valid = 0;
+static GAIA_TLS GaiaCreateDiagnostics g_create_diag;
+static GAIA_TLS char g_create_error[1536];
+
+static void create_diag_reset(void) {
+    memset(&g_create_diag, 0, sizeof(g_create_diag));
+    g_create_diag_valid = 1;
+    g_create_error[0] = '\0';
+}
+
+/* 组装人可读失败原因（与 stderr 的 FATAL 行同源同字段）。 */
+static void create_diag_fail(const char *data_dir, const GaiaCreateDiagnostics *d,
+                             const char *what) {
+    snprintf(g_create_error, sizeof(g_create_error),
+             "gaia catalog %s: dir=%s entries=%d loaded=%d failed=%d "
+             "db_type_skipped=%d first_failure=%s (%s)",
+             what, data_dir ? data_dir : "(null)",
+             d->entry_count, d->file_count, d->fail_count, d->db_type_skipped,
+             d->first_failed_path[0] ? d->first_failed_path : "(none)",
+             d->first_failed_reason[0] ? d->first_failed_reason : "(unknown)");
+    /* FAILCLOSED-01 诊断（B3）: 装载失败的可诊断性靠"触发条件 + 需求规模"两条
+     * 数字落地 —— 已装载 shard 的 mmap 字节合计（地址空间需求）与进程当前
+     * RLIMIT_AS 上限。修复前这类失败只在下游表现为 "iter_trans_solve 全败"。 */
+    {
+        size_t used = strlen(g_create_error);
+        if (used < sizeof(g_create_error)) {
+            snprintf(g_create_error + used, sizeof(g_create_error) - used,
+                     " loaded_mmap_bytes=%lld", d->mmap_bytes);
+        }
+    }
+#ifndef _WIN32
+    {
+        struct rlimit rl;
+        size_t used = strlen(g_create_error);
+        if (used < sizeof(g_create_error) && getrlimit(RLIMIT_AS, &rl) == 0) {
+            if (rl.rlim_cur == RLIM_INFINITY)
+                snprintf(g_create_error + used, sizeof(g_create_error) - used,
+                         " RLIMIT_AS=unlimited");
+            else
+                snprintf(g_create_error + used, sizeof(g_create_error) - used,
+                         " RLIMIT_AS=%llu", (unsigned long long)rl.rlim_cur);
+        }
+    }
+#endif
+}
 
 /* V18R3 测试钩子（仅测试程序定义 GAIA_ALLOC_TEST 时生效）：
  * 将本文件内所有堆分配重定向到测试包装，支持分配故障注入。 */
@@ -229,6 +304,9 @@ typedef struct {
 
 typedef struct {
     char filepath[1024];
+    /* FAILCLOSED-01: load_xpsd_file 失败原因（失败路径必写；成功时为空串）。
+     * 供 create 循环聚合成可见错误与 GaiaCreateDiagnostics 快照。 */
+    char load_error[192];
     char db_identifier[256];
     double magnitude_low, magnitude_high;
     int has_magnitude_range;  /* G1: XML magnitudeRange 是否成功解析 (0=不参与 shard 剪枝, 保守) */
@@ -270,6 +348,14 @@ struct GaiaClient {
     GaiaDbType db_type;
     int db_type_detected;
     int magnitude_range_reject_count; /* P19-gaia: 声明非法而放弃剪枝的文件数 (可见统计) */
+    /* FAILCLOSED-01: 目录枚举/装载计数（create 成功返回的 client 恒满足
+     * file_count == file_entry_count 且 file_load_fail_count == 0）。 */
+    int file_entry_count;        /* 目录内 *.xpsd 条目数（枚举到） */
+    int file_load_fail_count;    /* load_xpsd_file 返回 -1 的 shard 数 */
+    int file_db_type_skipped;    /* 装载成功但 db_type 不匹配而关闭的 shard 数 */
+    int file_max_files_exceeded; /* 条目数 > MAX_FILES（拒绝截断装载） */
+    char first_load_fail_path[1024];
+    char first_load_fail_reason[192];
     QueryCache query_cache;  /* 查询结果缓存 (60s TTL) */
     BlockCacheBudget block_budget; /* G3b: 客户端级解压块缓存总预算 (所有文件共享) */
 #ifdef _WIN32
@@ -313,10 +399,49 @@ typedef struct {
     double ra, dec, magG;
 } SimpleStar;
 
+/* ── FAILCLOSED-01: 查询期"静默丢弃"记账 ────────────────────────────────────
+ * 单星/单叶丢弃会让参考星表变成"错误但看起来正常"的子集（与 shard 静默丢弃
+ * 同源，见 run/WCS-DETERMINISM-01/REPORT.md §1.3），故一律**记账 + 告警**并由
+ * 查询入口 fail-closed（返回 -1、out_* 置空）—— 不返回不完整星表。
+ * 记账器挂在每个 collector 上（per-file / per-coord，正常情况下无跨线程共享）；
+ * 写侧用 named critical 兜底（query_spectrum_by_coords 路径一个记账器可能被多个
+ * worker 写）。丢弃属异常路径，critical 的开销无关紧要。 */
+typedef struct {
+    int failed;             /* 0 = 本次查询完整; 1 = 发生过丢弃 */
+    long dropped_stars;     /* collector 扩容失败丢掉的星数 */
+    long dropped_leaves;    /* 整叶丢弃数（叶块解压失败 / scratch 分配失败） */
+    char reason[192];       /* 首个丢弃原因（人可读） */
+} GaiaDropLedger;
+
+static void drop_ledger_note(GaiaDropLedger *dl, long stars, long leaves,
+                             const char *reason) {
+    if (!dl) return;
+    #pragma omp critical(gaia_drop_ledger)
+    {
+        if (!dl->failed) {
+            dl->failed = 1;
+            snprintf(dl->reason, sizeof(dl->reason), "%s", reason);
+            fprintf(stderr,
+                    "gaia_client: ERROR query degraded: %s "
+                    "(dropped_stars=%ld dropped_leaves=%ld) — refusing "
+                    "incomplete catalog\n",
+                    dl->reason, dl->dropped_stars + stars,
+                    dl->dropped_leaves + leaves);
+        }
+        dl->dropped_stars += stars;
+        dl->dropped_leaves += leaves;
+    }
+}
+
+static void drop_ledger_init(GaiaDropLedger *dl) {
+    if (dl) memset(dl, 0, sizeof(*dl));
+}
+
 typedef struct {
     SimpleStar *stars;
     int count;
     int capacity;
+    GaiaDropLedger drop;    /* FAILCLOSED-01 */
 } StarCollector;
 
 typedef struct {
@@ -331,6 +456,7 @@ typedef struct {
     int count;
     int capacity;
     int spectrum_count;
+    GaiaDropLedger drop;    /* FAILCLOSED-01 */
 } SpectrumStarCollector;
 
 typedef struct {
@@ -341,6 +467,7 @@ typedef struct {
     PhotometryStar *stars;
     int count;
     int capacity;
+    GaiaDropLedger drop;    /* FAILCLOSED-01 */
 } PhotometryStarCollector;
 
 /* ===== 缓存辅助函数 ===== */
@@ -1198,25 +1325,71 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
 #ifdef _WIN32
     xf->hFile = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ, NULL,
                              OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (xf->hFile == INVALID_HANDLE_VALUE) return -1;
+    if (xf->hFile == INVALID_HANDLE_VALUE) {
+        snprintf(xf->load_error, sizeof(xf->load_error),
+                 "CreateFileA failed (GetLastError=%lu)", (unsigned long)GetLastError());
+        return -1;
+    }
     LARGE_INTEGER fsize;
     GetFileSizeEx(xf->hFile, &fsize);
     xf->mmap_size = (size_t)fsize.QuadPart;
     xf->hMap = CreateFileMappingA(xf->hFile, NULL, PAGE_READONLY, 0, 0, NULL);
-    if (!xf->hMap) { CloseHandle(xf->hFile); return -1; }
+    if (!xf->hMap) {
+        snprintf(xf->load_error, sizeof(xf->load_error),
+                 "CreateFileMappingA of %llu bytes failed (GetLastError=%lu)",
+                 (unsigned long long)xf->mmap_size, (unsigned long)GetLastError());
+        CloseHandle(xf->hFile);
+        xf->hFile = INVALID_HANDLE_VALUE;   /* FAILCLOSED-01: 不留悬垂句柄 */
+        return -1;
+    }
     xf->mmap_data = (uint8_t *)MapViewOfFile(xf->hMap, FILE_MAP_READ, 0, 0, 0);
-    if (!xf->mmap_data) { CloseHandle(xf->hMap); CloseHandle(xf->hFile); return -1; }
+    if (!xf->mmap_data) {
+        snprintf(xf->load_error, sizeof(xf->load_error),
+                 "MapViewOfFile of %llu bytes failed (GetLastError=%lu; "
+                 "address-space pressure?)",
+                 (unsigned long long)xf->mmap_size, (unsigned long)GetLastError());
+        CloseHandle(xf->hMap);
+        CloseHandle(xf->hFile);
+        xf->hMap = NULL;
+        xf->hFile = INVALID_HANDLE_VALUE;   /* FAILCLOSED-01: 不留悬垂句柄 */
+        return -1;
+    }
 #else
     xf->fd = open(path, O_RDONLY);
-    if (xf->fd < 0) return -1;
+    if (xf->fd < 0) {
+        snprintf(xf->load_error, sizeof(xf->load_error), "open failed: %s", strerror(errno));
+        return -1;
+    }
     struct stat st;
-    fstat(xf->fd, &st);
+    if (fstat(xf->fd, &st) != 0) {
+        snprintf(xf->load_error, sizeof(xf->load_error), "fstat failed: %s", strerror(errno));
+        close(xf->fd);
+        xf->fd = -1;
+        return -1;
+    }
     xf->mmap_size = st.st_size;
     xf->mmap_data = mmap(NULL, xf->mmap_size, PROT_READ, MAP_PRIVATE, xf->fd, 0);
-    if (xf->mmap_data == MAP_FAILED) { close(xf->fd); return -1; }
+    if (xf->mmap_data == MAP_FAILED) {
+        xf->mmap_data = NULL;
+        snprintf(xf->load_error, sizeof(xf->load_error),
+                 "mmap of %llu bytes failed: %s (address-space / RLIMIT_AS pressure?)",
+                 (unsigned long long)xf->mmap_size, strerror(errno));
+        close(xf->fd);
+        xf->fd = -1;
+        return -1;
+    }
 #endif
 
-    if (xf->mmap_size < 16 || memcmp(xf->mmap_data, XPSD_MAGIC, 8) != 0) return -1;
+    /* FAILCLOSED-01: 此前的失败路径既未 munmap 也未 close(fd) ⇒ 目录里一个坏
+     * 文件就泄漏 1 个 fd + 最多数 GB 地址空间（加剧本缺陷）。改为统一走
+     * close_xpsd_file（此处 bc_lock 尚未初始化, bc_lock_ok=0, 释放是安全的）。 */
+    if (xf->mmap_size < 16 || memcmp(xf->mmap_data, XPSD_MAGIC, 8) != 0) {
+        snprintf(xf->load_error, sizeof(xf->load_error),
+                 "not an XPSD file: size=%llu bytes, magic mismatch (expected \"" XPSD_MAGIC "\")",
+                 (unsigned long long)xf->mmap_size);
+        close_xpsd_file(xf);
+        return -1;
+    }
 
     uint32_t header_len;
     memcpy(&header_len, xf->mmap_data + 8, 4);
@@ -1282,6 +1455,9 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
                     /* M9-H-2: 自报计数不得用作无界分配步长/memcpy 长度。
                      * 非数字/负数/超 WL_COUNT → 整文件拒绝 (不放大分配)。 */
                     if (!parse_bounded_int(p + 14, WL_COUNT, &xf->spectrum_count)) {
+                        snprintf(xf->load_error, sizeof(xf->load_error),
+                                 "invalid spectrumCount declaration (\"%.32s\")",
+                                 p + 14);
                         close_xpsd_file(xf);
                         return -1;
                     }
@@ -1306,6 +1482,9 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
      * 0/缺失同样视为损坏并整文件拒绝 (修复前四种"==0 才兜底"会放行畸形文件)。 */
     if (xf->has_spectrum &&
         (xf->spectrum_count < 1 || xf->spectrum_count > WL_COUNT)) {
+        snprintf(xf->load_error, sizeof(xf->load_error),
+                 "spectrumCount=%d out of range [1,%d] for spectrum file",
+                 xf->spectrum_count, WL_COUNT);
         close_xpsd_file(xf);
         return -1;
     }
@@ -1332,7 +1511,15 @@ static int load_xpsd_file(XPSDFileInternal *xf, const char *path) {
 
         if (node_count > 0 && root_pos > 0) {
             ti->nodes = (QTNode *)malloc(node_count * sizeof(QTNode));
-            if (!ti->nodes) break;
+            if (!ti->nodes) {
+                /* FAILCLOSED-01: 修复前为 break —— 该树被静默丢弃而 load 仍返回 0
+                 * （"装载成功"却少了整棵树 = 静默部分星表）。改为显式失败。 */
+                snprintf(xf->load_error, sizeof(xf->load_error),
+                         "QTNode array alloc failed (tree=%d node_count=%d)",
+                         xf->tree_count, node_count);
+                close_xpsd_file(xf);
+                return -1;
+            }
             const uint8_t *node_data = xf->mmap_data + root_pos;
             for (int i = 0; i < node_count; i++) {
                 QTNode *n = &ti->nodes[i];
@@ -1408,6 +1595,7 @@ static void collector_init(StarCollector *sc, int initial_cap) {
     sc->stars = (SimpleStar *)malloc(initial_cap * sizeof(SimpleStar));
     sc->count = 0;
     sc->capacity = sc->stars ? initial_cap : 0;
+    drop_ledger_init(&sc->drop);   /* FAILCLOSED-01 */
 }
 
 static void collector_push(StarCollector *sc, double ra, double dec, double magG) {
@@ -1415,7 +1603,13 @@ static void collector_push(StarCollector *sc, double ra, double dec, double magG
         int new_cap = sc->capacity * 2;
         if (new_cap == 0) new_cap = 16;  /* V18R3: init 分配失败后自愈 */
         SimpleStar *new_stars = (SimpleStar *)realloc(sc->stars, new_cap * sizeof(SimpleStar));
-        if (!new_stars) return;
+        if (!new_stars) {
+            /* FAILCLOSED-01: 修复前为静默 return —— 单星被丢弃、查询照常返回
+             * 0 与"看起来正常"的更短星表。现记账 + 告警 + 查询 fail-closed。 */
+            drop_ledger_note(&sc->drop, 1, 0,
+                             "star collector realloc failed (OOM): 1 star dropped");
+            return;
+        }
         sc->stars = new_stars;
         sc->capacity = new_cap;
     }
@@ -1432,6 +1626,7 @@ static void collector_free(StarCollector *sc) {
 }
 
 static void spec_collector_init(SpectrumStarCollector *sc, int capacity, int spectrum_count) {
+    drop_ledger_init(&sc->drop);   /* FAILCLOSED-01 */
     sc->stars = (SpectrumStar *)malloc(capacity * sizeof(SpectrumStar));
     if (spectrum_count > 0) {
         sc->spectra = (uint8_t *)malloc((size_t)capacity * spectrum_count);
@@ -1473,13 +1668,20 @@ static void spec_collector_push(SpectrumStarCollector *sc, double ra, double dec
          * = double free。修复后: 失败路径不 free 任何块, 仅暂不提升 capacity
          * (stars 多占一倍内存, 由 spec_collector_free 统一释放, 无泄漏无重放) */
         SpectrumStar *new_stars = (SpectrumStar *)realloc(sc->stars, (size_t)new_cap * sizeof(SpectrumStar));
-        if (!new_stars) return;  /* realloc 失败: 旧块未动, sc->stars 仍有效 */
+        if (!new_stars) {  /* realloc 失败: 旧块未动, sc->stars 仍有效 */
+            drop_ledger_note(&sc->drop, 1, 0,
+                             "spectrum star collector realloc failed (OOM): 1 star dropped");
+            return;
+        }
         sc->stars = new_stars;   /* 立即转移所有权 */
         if (sc->spectrum_count > 0) {
             uint8_t *new_spectra = (uint8_t *)realloc(sc->spectra, (size_t)new_cap * sc->spectrum_count);
             if (!new_spectra) {
                 /* spectra 扩容失败: sc->spectra 仍指旧有效块, capacity 不提升,
-                 * 本条不入队; 下次 push 自动重试扩容 */
+                 * 本条不入队; 下次 push 自动重试扩容。
+                 * FAILCLOSED-01: 该条星（含光谱）不得静默丢弃 ⇒ 记账 + 告警。 */
+                drop_ledger_note(&sc->drop, 1, 0,
+                                 "spectrum buffer realloc failed (OOM): 1 star dropped");
                 return;
             }
             sc->spectra = new_spectra;
@@ -1500,6 +1702,7 @@ static void phot_collector_init(PhotometryStarCollector *pc, int capacity) {
     pc->stars = (PhotometryStar *)malloc(capacity * sizeof(PhotometryStar));
     pc->count = 0;
     pc->capacity = pc->stars ? capacity : 0;  /* V18R3: 分配失败即 0 容量 */
+    drop_ledger_init(&pc->drop);   /* FAILCLOSED-01 */
 }
 
 static void phot_collector_free(PhotometryStarCollector *pc) {
@@ -1515,7 +1718,11 @@ static void phot_collector_push(PhotometryStarCollector *pc, double ra, double d
         int new_cap = pc->capacity * 2;
         if (new_cap == 0) new_cap = 16;  /* V18R3: init 分配失败后自愈 */
         PhotometryStar *new_stars = (PhotometryStar *)realloc(pc->stars, new_cap * sizeof(PhotometryStar));
-        if (!new_stars) return;
+        if (!new_stars) {
+            drop_ledger_note(&pc->drop, 1, 0,
+                             "photometry collector realloc failed (OOM): 1 star dropped");
+            return;
+        }
         pc->stars = new_stars;
         pc->capacity = new_cap;
     }
@@ -1596,7 +1803,13 @@ static void search_recursive(XPSDFileInternal *xf, TreeInfo *tree, int node_idx,
         }
         uint8_t *data = read_leaf_block(xf, node->block_offset, node->compressed_size,
                                          node->block_size, scratch);
-        if (!data) return;
+        if (!data) {
+            /* FAILCLOSED-01: 修复前为静默 return —— 整叶星被丢弃而查询照常返回
+             * 0 与"看起来正常"的更短星表。现记账 + 告警 + 查询 fail-closed。 */
+            drop_ledger_note(&sc->drop, 0, 1,
+                             "leaf block decode failed (corrupt block / OOM): 1 leaf dropped");
+            return;
+        }
 
         int n = node->block_size / xf->star_stride;
         int stride = xf->star_stride;
@@ -1725,7 +1938,13 @@ static void search_recursive_spectrum(XPSDFileInternal *xf, TreeInfo *tree, uint
         }
         uint8_t *data = read_leaf_block(xf, node->block_offset, node->compressed_size,
                                          node->block_size, scratch);
-        if (!data) return;
+        if (!data) {
+            /* FAILCLOSED-01: 修复前为静默 return —— 整叶星被丢弃而查询照常返回
+             * 0 与"看起来正常"的更短星表。现记账 + 告警 + 查询 fail-closed。 */
+            drop_ledger_note(&sc->drop, 0, 1,
+                             "leaf block decode failed (corrupt block / OOM): 1 leaf dropped");
+            return;
+        }
 
         int n = node->block_size / xf->star_stride;
         int stride = xf->star_stride;
@@ -1864,7 +2083,12 @@ static void search_recursive_photometry(XPSDFileInternal *xf, TreeInfo *tree, ui
         }
         uint8_t *data = read_leaf_block(xf, node->block_offset, node->compressed_size,
                                          node->block_size, scratch);
-        if (!data) return;
+        if (!data) {
+            /* FAILCLOSED-01: 修复前为静默 return —— 整叶星被丢弃而查询照常返回。 */
+            drop_ledger_note(&pc->drop, 0, 1,
+                             "leaf block decode failed (corrupt block / OOM): 1 leaf dropped");
+            return;
+        }
 
         int n = node->block_size / xf->star_stride;
         int stride = xf->star_stride;
@@ -1970,44 +2194,134 @@ GaiaClient *gaia_client_create_ex(const char *data_dir, GaiaDbType db_type) {
     snprintf(pattern, sizeof(pattern), "%s\\*.xpsd", data_dir);
     WIN32_FIND_DATAA fd;
     HANDLE hFind = FindFirstFileA(pattern, &fd);
-    if (hFind == INVALID_HANDLE_VALUE) { free(client); return NULL; }
+    if (hFind == INVALID_HANDLE_VALUE) {
+        create_diag_reset();
+        g_create_diag.dir_open_failed = 1;
+        create_diag_fail(data_dir, &g_create_diag, "directory not openable");
+        fprintf(stderr, "gaia_client: FATAL %s\n", g_create_error);
+        gaia_client_destroy(client);
+        return NULL;
+    }
     do {
-        if (client->file_count >= MAX_FILES) break;
+        size_t len = strlen(fd.cFileName);
+        if (len <= 5 || strcmp(fd.cFileName + len - 5, ".xpsd") != 0) continue;
+        /* FAILCLOSED-01: 条目数与装载失败数**分开计数**（修复前只数成功装载的
+         * 文件, 失败者无痕迹）。条目数含被 db_type 过滤者, 故恒有
+         * file_count + db_type_skipped + fail_count <= file_entry_count。 */
+        client->file_entry_count++;
+        if (client->file_count >= MAX_FILES) {
+            client->file_max_files_exceeded = 1;  /* 继续枚举以数全条目 */
+            continue;
+        }
         char fullpath[1024];
         snprintf(fullpath, sizeof(fullpath), "%s\\%s", data_dir, fd.cFileName);
-        if (load_xpsd_file(&client->files[client->file_count], fullpath) == 0) {
-            if (client->files[client->file_count].magnitude_range_invalid)
+        XPSDFileInternal *slot = &client->files[client->file_count];
+        if (load_xpsd_file(slot, fullpath) == 0) {
+            if (slot->magnitude_range_invalid)
                 client->magnitude_range_reject_count++;  /* P19-gaia 可见计数 */
-            if (file_matches_db_type(&client->files[client->file_count], db_type)) {
+            if (file_matches_db_type(slot, db_type)) {
                 client->file_count++;
             } else {
-                close_xpsd_file(&client->files[client->file_count]);
+                close_xpsd_file(slot);
+                client->file_db_type_skipped++;
             }
+        } else {
+            /* FAILCLOSED-01: 修复前**没有 else 分支** —— 装载失败的 shard 被
+             * 静默丢弃（无日志/无计数/create 仍返回非 NULL）。 */
+            client->file_load_fail_count++;
+            if (client->file_load_fail_count == 1) {
+                snprintf(client->first_load_fail_path,
+                         sizeof(client->first_load_fail_path), "%s", fullpath);
+                snprintf(client->first_load_fail_reason,
+                         sizeof(client->first_load_fail_reason), "%s",
+                         slot->load_error[0] ? slot->load_error : "(unknown)");
+            }
+            fprintf(stderr, "gaia_client: ERROR failed to load shard %s: %s\n",
+                    fullpath, slot->load_error[0] ? slot->load_error : "(unknown)");
         }
     } while (FindNextFileA(hFind, &fd));
     FindClose(hFind);
 #else
     DIR *dir = opendir(data_dir);
-    if (!dir) { free(client); return NULL; }
+    if (!dir) {
+        create_diag_reset();
+        g_create_diag.dir_open_failed = 1;
+        create_diag_fail(data_dir, &g_create_diag, "directory not openable");
+        fprintf(stderr, "gaia_client: FATAL %s\n", g_create_error);
+        gaia_client_destroy(client);
+        return NULL;
+    }
     struct dirent *ent;
-    while ((ent = readdir(dir)) != NULL && client->file_count < MAX_FILES) {
+    while ((ent = readdir(dir)) != NULL) {
         size_t len = strlen(ent->d_name);
-        if (len > 5 && strcmp(ent->d_name + len - 5, ".xpsd") == 0) {
-            char fullpath[1024];
-            snprintf(fullpath, sizeof(fullpath), "%s/%s", data_dir, ent->d_name);
-            if (load_xpsd_file(&client->files[client->file_count], fullpath) == 0) {
-                if (client->files[client->file_count].magnitude_range_invalid)
-                    client->magnitude_range_reject_count++;  /* P19-gaia 可见计数 */
-                if (file_matches_db_type(&client->files[client->file_count], db_type)) {
-                    client->file_count++;
-                } else {
-                    close_xpsd_file(&client->files[client->file_count]);
-                }
+        if (len <= 5 || strcmp(ent->d_name + len - 5, ".xpsd") != 0) continue;
+        /* FAILCLOSED-01: 见 Windows 分支同款注释（条目数/失败数分开计数）。 */
+        client->file_entry_count++;
+        if (client->file_count >= MAX_FILES) {
+            client->file_max_files_exceeded = 1;  /* 继续枚举以数全条目 */
+            continue;
+        }
+        char fullpath[1024];
+        snprintf(fullpath, sizeof(fullpath), "%s/%s", data_dir, ent->d_name);
+        XPSDFileInternal *slot = &client->files[client->file_count];
+        if (load_xpsd_file(slot, fullpath) == 0) {
+            if (slot->magnitude_range_invalid)
+                client->magnitude_range_reject_count++;  /* P19-gaia 可见计数 */
+            if (file_matches_db_type(slot, db_type)) {
+                client->file_count++;
+            } else {
+                close_xpsd_file(slot);
+                client->file_db_type_skipped++;
             }
+        } else {
+            /* FAILCLOSED-01: 修复前**没有 else 分支** —— 装载失败的 shard 被
+             * 静默丢弃（无日志/无计数/create 仍返回非 NULL）；在 RLIMIT_AS 受限
+             * 时丢掉的恰是唯一含亮星的 shard ⇒ 参考星表静默变成暗 shard 子集。 */
+            client->file_load_fail_count++;
+            if (client->file_load_fail_count == 1) {
+                snprintf(client->first_load_fail_path,
+                         sizeof(client->first_load_fail_path), "%s", fullpath);
+                snprintf(client->first_load_fail_reason,
+                         sizeof(client->first_load_fail_reason), "%s",
+                         slot->load_error[0] ? slot->load_error : "(unknown)");
+            }
+            fprintf(stderr, "gaia_client: ERROR failed to load shard %s: %s\n",
+                    fullpath, slot->load_error[0] ? slot->load_error : "(unknown)");
         }
     }
     closedir(dir);
 #endif
+
+    /* ── FAILCLOSED-01: 装载诊断快照 + 部分装载拒绝 ─────────────────────────── */
+    create_diag_reset();
+    g_create_diag.entry_count = client->file_entry_count;
+    g_create_diag.file_count = client->file_count;
+    g_create_diag.fail_count = client->file_load_fail_count;
+    g_create_diag.db_type_skipped = client->file_db_type_skipped;
+    g_create_diag.max_files_exceeded = client->file_max_files_exceeded;
+    for (int f = 0; f < client->file_count; f++)
+        g_create_diag.mmap_bytes += (long long)client->files[f].mmap_size;
+    snprintf(g_create_diag.first_failed_path, sizeof(g_create_diag.first_failed_path),
+             "%s", client->first_load_fail_path);
+    snprintf(g_create_diag.first_failed_reason, sizeof(g_create_diag.first_failed_reason),
+             "%s", client->first_load_fail_reason);
+
+    if (client->file_load_fail_count > 0) {
+        /* 宁可失败, 不可用残缺星表解算（上层 fail-closed）。 */
+        create_diag_fail(data_dir, &g_create_diag, "load failed (refusing partial catalog)");
+        fprintf(stderr, "gaia_client: FATAL %s\n", g_create_error);
+        gaia_client_destroy(client);
+        return NULL;
+    }
+    if (client->file_max_files_exceeded) {
+        /* 截断装载与失败装载同属"不完整星表"：条目数超过 MAX_FILES 时拒绝。 */
+        create_diag_fail(data_dir, &g_create_diag,
+                         "too many shards (refusing truncated catalog)");
+        fprintf(stderr, "gaia_client: FATAL %s (MAX_FILES=%d)\n",
+                g_create_error, MAX_FILES);
+        gaia_client_destroy(client);
+        return NULL;
+    }
 
     if (client->file_count > 0) {
         int is_dr3sp = (strstr(client->files[0].db_identifier, "GaiaDR3SP") != NULL);
@@ -2115,7 +2429,12 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
         uint32_t scratch_size = xf->global_max_block_size;
         if (scratch_size == 0) scratch_size = 65536;
         uint8_t *scratch = (uint8_t *)malloc(scratch_size);
-        if (!scratch) continue;
+        if (!scratch) {
+            /* FAILCLOSED-01: 修复前为静默 continue —— 整个 shard 的星被丢弃。 */
+            drop_ledger_note(&sc_arr[f].drop, 0, 1,
+                             "scratch alloc failed (OOM): 1 file skipped");
+            continue;
+        }
 
         for (int t = 0; t < xf->tree_count; t++) {
             if (xf->trees[t].node_count > 0 && xf->trees[t].nodes)
@@ -2124,6 +2443,26 @@ int gaia_client_cone_search(GaiaClient *client, double ra, double dec, double ra
                                   cos_dec_q, sin_dec_q, cos_radius, &sc_arr[f], scratch, &trace);
         }
         free(scratch);
+    }
+
+    /* FAILCLOSED-01: 任一文件发生丢弃（单星扩容失败 / 整叶解压失败 / scratch
+     * 分配失败）⇒ **不返回不完整星表**：输出置空并返回 -1。修复前这些丢弃点
+     * 静默 return/continue，调用方拿到"看起来正常"的更短星表（与 shard 静默
+     * 丢弃同源，见 run/WCS-DETERMINISM-01/REPORT.md §1.3）。 */
+    for (int f = 0; f < nfiles; f++) {
+        if (sc_arr[f].drop.failed) {
+            fprintf(stderr,
+                    "gaia_client: FATAL cone_search degraded: %s "
+                    "(dropped_stars=%ld dropped_leaves=%ld) — refusing "
+                    "incomplete catalog\n",
+                    sc_arr[f].drop.reason, sc_arr[f].drop.dropped_stars,
+                    sc_arr[f].drop.dropped_leaves);
+            for (int g = 0; g < nfiles; g++) collector_free(&sc_arr[g]);
+            free(sc_arr);
+            *out_stars = NULL;
+            *out_count = 0;
+            return -1;
+        }
     }
 
     int total = 0;
@@ -2275,6 +2614,32 @@ int gaia_client_get_magnitude_range_reject_count(GaiaClient *client) {
     return client->magnitude_range_reject_count;
 }
 
+/* ── FAILCLOSED-01: 装载/枚举可见计数与最近一次 create 诊断 ──────────────────
+ * create 成功返回的 client 恒有 file_load_fail_count == 0 且
+ * file_count == file_entry_count（db_type 过滤单独计数）；两个计数供上层节点
+ * 前置条件断言与 G-1 shard 覆盖门使用（见 gaia_client.h）。 */
+int gaia_client_get_file_load_fail_count(GaiaClient *client) {
+    if (!client) return 0;
+    return client->file_load_fail_count;
+}
+
+int gaia_client_get_file_entry_count(GaiaClient *client) {
+    if (!client) return 0;
+    return client->file_entry_count;
+}
+
+/* 最近一次（本线程）create 的诊断快照；thread-local 语义见 g_create_diag 注释。 */
+int gaia_client_get_last_create_diagnostics(GaiaCreateDiagnostics *out) {
+    if (!out || !g_create_diag_valid) return -1;
+    *out = g_create_diag;
+    return 0;
+}
+
+/* 失败原因串（成功 / 未调用过 create 时为 NULL）。 */
+const char *gaia_client_get_last_create_error(void) {
+    return g_create_error[0] ? g_create_error : NULL;
+}
+
 int gaia_client_cone_search_with_spectrum(
     GaiaClient *client,
     double ra, double dec, double radius_deg,
@@ -2318,7 +2683,12 @@ int gaia_client_cone_search_with_spectrum(
         uint32_t scratch_size = xf->global_max_block_size;
         if (scratch_size == 0) scratch_size = 65536;
         uint8_t *scratch = (uint8_t *)malloc(scratch_size);
-        if (!scratch) continue;
+        if (!scratch) {
+            /* FAILCLOSED-01: 修复前为静默 continue —— 整个 shard 的星被丢弃。 */
+            drop_ledger_note(&sc_arr[f].drop, 0, 1,
+                             "scratch alloc failed (OOM): 1 file skipped");
+            continue;
+        }
 
         for (int t = 0; t < xf->tree_count; t++) {
             if (xf->trees[t].node_count > 0 && xf->trees[t].nodes)
@@ -2327,6 +2697,24 @@ int gaia_client_cone_search_with_spectrum(
                                   cos_dec_q, sin_dec_q, cos_radius, &sc_arr[f], scratch, &trace);
         }
         free(scratch);
+    }
+
+    /* FAILCLOSED-01: 同 cone_search —— 任一文件丢弃 ⇒ 不返回不完整星表。 */
+    for (int f = 0; f < nfiles; f++) {
+        if (sc_arr[f].drop.failed) {
+            fprintf(stderr,
+                    "gaia_client: FATAL cone_search_with_spectrum degraded: %s "
+                    "(dropped_stars=%ld dropped_leaves=%ld) — refusing "
+                    "incomplete catalog\n",
+                    sc_arr[f].drop.reason, sc_arr[f].drop.dropped_stars,
+                    sc_arr[f].drop.dropped_leaves);
+            for (int g = 0; g < nfiles; g++) spec_collector_free(&sc_arr[g]);
+            free(sc_arr);
+            *out_stars = NULL;
+            *out_spectra = NULL;
+            *out_count = 0;
+            return -1;
+        }
     }
 
     int total = 0;
@@ -2474,6 +2862,11 @@ int gaia_client_query_spectrum_by_coords(
         return -1;
     }
 
+    /* FAILCLOSED-01: 本入口并行轴=坐标，丢弃记账器由所有 worker 共享
+     * （写侧 drop_ledger_note 内 named critical 保护）。 */
+    GaiaDropLedger q_drop;
+    drop_ledger_init(&q_drop);
+
     /* 并行搜索: 每个坐标独立搜索所有文件，找角距离最近的星 */
     #pragma omp parallel for schedule(dynamic) num_threads(gaia_omp_team_size())
     for (int i = 0; i < n_coords; i++) {
@@ -2492,7 +2885,12 @@ int gaia_client_query_spectrum_by_coords(
             uint32_t scratch_size = xf->global_max_block_size;
             if (scratch_size == 0) scratch_size = 65536;
             uint8_t *scratch = (uint8_t *)malloc(scratch_size);
-            if (!scratch) continue;
+            if (!scratch) {
+                /* FAILCLOSED-01: 修复前为静默 continue —— 该文件的星被丢弃。 */
+                drop_ledger_note(&q_drop, 0, 1,
+                                 "scratch alloc failed (OOM): 1 file skipped");
+                continue;
+            }
 
             int spec_count = 0;
             if (xf->has_spectrum) {
@@ -2544,8 +2942,29 @@ int gaia_client_query_spectrum_by_coords(
                     found_flags[i] = 1;
                 }
             }
+            /* FAILCLOSED-01: 本坐标的丢弃聚合到共享记账器（query 级 fail-closed）。 */
+            if (sc.drop.failed)
+                drop_ledger_note(&q_drop, sc.drop.dropped_stars,
+                                 sc.drop.dropped_leaves, sc.drop.reason);
             spec_collector_free(&sc);
         }
+    }
+
+    /* FAILCLOSED-01: 任一坐标发生丢弃 ⇒ 不返回不完整星表（输出全部置空）。 */
+    if (q_drop.failed) {
+        fprintf(stderr,
+                "gaia_client: FATAL query_spectrum_by_coords degraded: %s "
+                "(dropped_stars=%ld dropped_leaves=%ld) — refusing incomplete "
+                "catalog\n",
+                q_drop.reason, q_drop.dropped_stars, q_drop.dropped_leaves);
+        free(temp_stars);
+        free(temp_spectra);
+        free(found_flags);
+        *out_stars = NULL;
+        *out_spectra = NULL;
+        *out_match_idx = NULL;
+        *out_count = 0;
+        return -1;
     }
 
     /* 压缩: 将匹配结果紧凑排列到输出数组 */
@@ -2622,7 +3041,12 @@ int gaia_client_cone_search_with_photometry(
         uint32_t scratch_size = xf->global_max_block_size;
         if (scratch_size == 0) scratch_size = 65536;
         uint8_t *scratch = (uint8_t *)malloc(scratch_size);
-        if (!scratch) continue;
+        if (!scratch) {
+            /* FAILCLOSED-01: 修复前为静默 continue —— 整个 shard 的星被丢弃。 */
+            drop_ledger_note(&pc_arr[f].drop, 0, 1,
+                             "scratch alloc failed (OOM): 1 file skipped");
+            continue;
+        }
 
         for (int t = 0; t < xf->tree_count; t++) {
             if (xf->trees[t].node_count > 0 && xf->trees[t].nodes)
@@ -2631,6 +3055,23 @@ int gaia_client_cone_search_with_photometry(
                                   cos_dec_q, sin_dec_q, cos_radius, &pc_arr[f], scratch, &trace);
         }
         free(scratch);
+    }
+
+    /* FAILCLOSED-01: 同 cone_search —— 任一文件丢弃 ⇒ 不返回不完整星表。 */
+    for (int f = 0; f < nfiles; f++) {
+        if (pc_arr[f].drop.failed) {
+            fprintf(stderr,
+                    "gaia_client: FATAL cone_search_with_photometry degraded: %s "
+                    "(dropped_stars=%ld dropped_leaves=%ld) — refusing "
+                    "incomplete catalog\n",
+                    pc_arr[f].drop.reason, pc_arr[f].drop.dropped_stars,
+                    pc_arr[f].drop.dropped_leaves);
+            for (int g = 0; g < nfiles; g++) phot_collector_free(&pc_arr[g]);
+            free(pc_arr);
+            *out_stars = NULL;
+            *out_count = 0;
+            return -1;
+        }
     }
 
     int total = 0;

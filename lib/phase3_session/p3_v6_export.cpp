@@ -10,8 +10,7 @@
 //                DOC-403 文件域，本任务无权同步；
 //             ② eng/ci/spec_named_impls.json SNI-S4-P3X-06/P3X-12 与 eng/ci/ledgers/spec_named_impl_gaps.json
 //                以本文件为锚（删除须同提交改表，属 CI 登记面，需与 DOC-403 同批）；
-//             ③ docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:338 与
-//                docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md 仍点名本文件（docs/** 属 DOC-402 域）。
+//             ③ docs/architecture/PRODUCTION_EXECUTION_INVENTORY.csv:338 仍点名本文件（属该清单域）。
 // STATUS:     未接入生产。不在任何生产 target 的源列表内（grep -c p3_v6_export CMakeLists.txt = 0），
 //             仅被 eng/tests/integration/v6_p3 编译；生产 export 路径 = lib/phase3_session/p3_session.cpp
 //             → lib/algorithms/projection/p3_wcs.cpp（TAN），不依赖本文件任何符号
@@ -21,12 +20,11 @@
 //                V6-CTEST-INTEGRATION step 的三条 --expect；
 //             ② 同提交删除 eng/ci/spec_named_impls.json 的 SNI-S4-P3X-06/SNI-S4-P3X-12 两条与
 //                eng/ci/ledgers/spec_named_impl_gaps.json 的 SNI-S4-P3X-06 条；
-//             ③ DOC-402 退役 docs/algorithms/v6/phase3/ALG-P3-001_SPEC.md 并把
-//                PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
+//             ③ 把 PRODUCTION_EXECUTION_INVENTORY.csv:338 的 production=yes 更正为 retired；
 //             ④ 删除 eng/tests/integration/v6_p3/** 与 CMakeLists.txt:980 的 add_subdirectory。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §6.3
 //             （注册表中未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
-//             工程控制/RELEASE-04/GAP_AUDIT.md G2-1/G3-2；eng/ci/spec_named_impls.json SNI-S4-P3X-06。
+//             RELEASE-04 GAP_AUDIT G2-1/G3-2（包已出库）；eng/ci/spec_named_impls.json SNI-S4-P3X-06。
 // ──────────────────────────────────────────────────────────────────────
 // lib/phase3_session/p3_v6_export.cpp — Phase3 V6 三模式产品导出接线实现。
 //
@@ -38,10 +36,10 @@
 //   aio::verify_fits_file / validate_provenance_json / validate_bunit_law -> 重开独立验证
 //
 // 产品 HDU 布局的 schema 依据（W6 生产 schema，SCHEMA-INTEGRATE-001）:
-//   eng/contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json#allOf 规定：
+//   eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/provenance/allOf 规定：
 //     units.bunit == "ADU"  =>  units.pixel_semantics == "surface_brightness"
 //                              且 units.pixel_area_power == -2；
-//     units.bunit 匹配 /px\^2$ => units.pixel_area_power == -2。
+//     units.bunit 匹配 /sr$ => units.pixel_area_power == -2。
 //   叠加 astrocs.v6.signal.v1.schema.json（integrated_flux => pixel_area_power == 0）后，
 //   纯积分通量主面在 v6 生产 schema 下不可表达。故 point_source_flux 模式以 schema 合法的
 //   面亮度主面承载重采样 signal，matched-filter 通量/effective PSF 以扩展 HDU 承载
@@ -262,7 +260,7 @@ aio::Provenance make_provenance(const ExportMode mode, const ExportInputs& in,
   p.input_product_hashes = in.input_product_hashes;
   p.config_hash = in.config_hash;
   // 主 HDU = 面亮度 signal（schema allOf 约束下的唯一自洽主面）。
-  p.units.bunit = "ADU/px^2";
+  p.units.bunit = "ADU/sr";
   p.units.pixel_semantics = "surface_brightness";
   p.units.pixel_area_power = -2;
   p.units.has_target_pixel_area = true;
@@ -313,9 +311,9 @@ aio::Provenance make_provenance(const ExportMode mode, const ExportInputs& in,
   p.generated_utc = in.generated_utc;
   p.output_hash = output_hash;
   p.diagonal_variance_only = false;
-  p.signal_unit = "ADU/px^2";
-  p.variance_unit = "ADU^2/px^4";
-  p.ivar_unit = "px^4/ADU^2";
+  p.signal_unit = "ADU/sr";
+  p.variance_unit = "ADU^2/sr^2";
+  p.ivar_unit = "sr^2/ADU^2";
   return p;
 }
 
@@ -530,7 +528,7 @@ ExportResult export_product(ExportMode mode, const OutputGrid& grid,
     const p3rsmp::SparseOperator rop = p3rsmp::build_row_normalized(nb, kernel);
     out.signal = p3rsmp::apply_operator(rop, in.x);
     std::vector<aio::FitsCard> cards = wcs_cards(grid.descriptor);
-    cards.push_back(aio::FitsCard::make_string("BUNIT", "ADU/px^2", ""));
+    cards.push_back(aio::FitsCard::make_string("BUNIT", "ADU/sr", ""));
     cards.push_back(aio::FitsCard::make_logical("MEASFLAG", false,
                                                 "measurement_capable=false"));
     std::vector<aio::FitsLayer> layers;
@@ -614,7 +612,7 @@ ExportResult export_product(ExportMode mode, const OutputGrid& grid,
   std::vector<std::string> hdu_names;
   {
     std::vector<aio::FitsCard> cards = wcs_cards(grid.descriptor);
-    cards.push_back(aio::FitsCard::make_string("BUNIT", "ADU/px^2", ""));
+    cards.push_back(aio::FitsCard::make_string("BUNIT", "ADU/sr", ""));
     cards.push_back(aio::FitsCard::make_logical("MEASFLAG", true, "measurement_capable"));
     layers.push_back(make_layer("", grid.width, grid.height, cards, out.signal));
     hdu_names.push_back("SIGNAL");
@@ -622,7 +620,7 @@ ExportResult export_product(ExportMode mode, const OutputGrid& grid,
   if (in.uncertainty_available) {
     std::vector<aio::FitsCard> vc;
     vc.push_back(aio::FitsCard::make_string(
-        "BUNIT", in.force_variance_unit.empty() ? "ADU^2/px^4" : in.force_variance_unit, ""));
+        "BUNIT", in.force_variance_unit.empty() ? "ADU^2/sr^2" : in.force_variance_unit, ""));
     layers.push_back(make_layer("VARIANCE", grid.width, grid.height, vc, out.variance));
     hdu_names.push_back("VARIANCE");
   }

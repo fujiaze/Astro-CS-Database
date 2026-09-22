@@ -31,7 +31,7 @@
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §6.3
 //             （未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
 //             lib/algorithms/projection/p3_projection_registry.h「已知偏差登记（FIX-406）」；
-//             工程控制/RELEASE-04/GAP_AUDIT.md G3-6 / G2-1。
+//             RELEASE-04 GAP_AUDIT G3-6 / G2-1（包已出库）。
 // ──────────────────────────────────────────────────────────────────────
 // lib/algorithms/projection/p3_proj_v6.cpp — V6 Phase3 投影实现层（标准 FITS WCS Paper II）
 // 任务 IMPL-P3-PROJ-001；合同锚见 p3_proj_v6.h 头注。

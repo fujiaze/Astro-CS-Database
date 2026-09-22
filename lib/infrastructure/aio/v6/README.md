@@ -29,7 +29,7 @@ BUNIT 量纲可判与二次律、HiPS properties/manifest 渲染与校验。
 | `ALG-P3-008` §7.1/§7.3 | `FitsStreamWriter`：HDU 布局、2880 对齐、DATASUM/CHECKSUM（FITS 4.0 §4.4.2.5） | `G-FITS-DATASUM` / `G-FITS-CHECKSUM` |
 | `ALG-P3-008` §7.3 第 5 步 | `verify_fits_file`：shape / WCS 关键字 / 层完整性 / BUNIT 重开验证 | `G-FITS-LAYER` / `G-FITS-KEYWORD` / `G-FITS-BUNIT` |
 | `FZ-PROV-MINIMAL-SET` | `provenance_required_keys()` + `validate_provenance_json` | `G-PROV-MINIMAL-SET` |
-| `FZ-BUNIT-SEMANTICS` | `bunit_dimension_decidable`（显式 px 幂次 或 ADU+surface_brightness+-2+面积） | `G-BUNIT-SEMANTICS` / `G-PIXEL-AREA-POWER` |
+| `FZ-BUNIT-SEMANTICS` | `bunit_dimension_decidable`（显式立体角幂次 或 ADU+surface_brightness+-2+面积） | `G-BUNIT-SEMANTICS` / `G-PIXEL-AREA-POWER` |
 | `FZ-P3-BUNIT-QUADRATIC` | `quadratic_law_holds`：variance=signal²、ivar=1/variance | `G-BUNIT-QUADRATIC` |
 | `FZ-UNIT-SIGNAL-SB / VAR-IN / VAR-SB / IVAR-SB / WINFO / Q / FLUX / PSFSW` | `frozen_unit_string` + `unit_matches_frozen`（量纲幂次等价） | `G-UNIT-TABLE` |
 | `FZ-COND-FLUX-CONSERV` | pixfrac<1 必须有正 `flux_conservation_factor` | `G-FLUX-CONSERV-FACTOR` |
@@ -61,8 +61,8 @@ ctest 用例：
 ### 外部真值（Oracle 独立性）
 - FITS DATASUM/CHECKSUM：`astropy.io.fits verify_datasum/verify_checksum` 与
   独立转写的 FITS 4.0 §4.4.2.5 1 补码算法双真值交叉；
-- provenance 最小集：required 键由 `eng/contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json`
-  独立反查，单位表由 `docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json` 反查；
+- provenance 最小集：required 键由 `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/provenance`
+  独立反查，单位表由 `eng/contracts/data/v6_clause_registry_v1.json` 反查；
 - SHA-256：`hashlib`。
 
 ## 4. 边界

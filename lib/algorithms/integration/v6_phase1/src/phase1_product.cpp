@@ -49,6 +49,52 @@ json forbidden_variance_sources_json() {
   return a;
 }
 
+/* ── FZ-MODE-RETIRED：退役对象 psfsw_robust_weight 的显式拒绝说明（单一事实源） ──
+ * WHAT:  Phase1 产品族的 psfsw 权重声明（units.psfsw_robust_weight /
+ *        psfsw.weight_mode="psfsw_robust" / psfsw.weight.kind="psfsw_robust_weight"）
+ *        是**退役对象**的声明面。本文件按「显式拒绝 + 迁移提示，不静默接受」处置：
+ *        ① Phase2 消费面 consume_phase1_group_for_psfsw 命中即 fail-closed 拒绝
+ *           （不参与组内归一、不产出 w_psfsw）；
+ *        ② 产品形状校验 open_phase1_product 逐条登记 FZ-MODE-RETIRED 违规并置
+ *           view.retired_weight_object_declared（下游可判，不静默）。
+ * WHY:   负责人裁决「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是绝对
+ *        标定。」⇒ ASTROCS_DESIGN.md §3.1（订正后）「权重只能来自纯净信号与噪声之比……
+ *        任何使偏差随帧而变的量（含 PSF 拟合质量代理）都不得进入科学叠加权重」；
+ *        docs/design/UNIFIED_MODEL.md:58（旧产品若声明该对象 ⇒ 显式拒绝 + 迁移提示，
+ *        不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4。
+ * 边界（PSFSW-RETIRE-03 合同收口后）:
+ *        产品 schema 已把退役对象声明（psfsw.weight_mode / psfsw.weight /
+ *        units.psfsw_robust_weight）从 required 移出 ⇒ 它是**可判定的退役/迁移
+ *        情形**而不再是强制要求：
+ *          - 新产品（write_phase1_product）不再写出该声明；
+ *          - 旧产品仍携带 ⇒ 本文件按退役 canonical 形式校验形状（不合形即 fail）
+ *            并逐条登记违规 + view.retired_weight_object_declared（不静默）；
+ *          - 产品面不据此 fail（否则 write 的原子发布自校验必然失败、整条 Phase1
+ *            产品链不可用）；**硬拒绝落在消费面** consume_phase1_group_for_psfsw
+ *            （该面整体退役，无条件 fail-closed）。
+ *        A44 式留痕：docs/contracts/DATA_SEMANTICS.md §31（单位表 OBSOLETE 行 +
+ *        退役说明）与 eng/contracts/data/v6_clause_registry_v1.json
+ *        #x-astrocs-canonical-object-retirement。 */
+const char* kRetiredCanonicalWeightObject = "psfsw_robust_weight";
+
+const char* kRetiredWeightObjectRejectReason =
+    "FZ-MODE-RETIRED: psfsw_robust_weight is not a current object "
+    "(ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+    "allowed weight objects: point_information (W_info=1/Var(F_hat)), "
+    "surface_gls (A^T C^-1 A); "
+    "migration: Phase2 derives frame weights from frame SNR (1/sigma_F^2) on site; "
+    "PSF quality proxies (FWHM/residual) are diagnostics only";
+
+/* 退役对象声明判据：phase1 产品的 psfsw 块以 canonical 词表声明该对象即命中。 */
+bool declares_retired_weight_object(const json& ps) {
+  if (!ps.is_object()) return false;
+  if (ps.value("weight_mode", std::string()) == "psfsw_robust") return true;
+  if (ps.contains("weight") && ps["weight"].is_object() &&
+      ps["weight"].value("kind", std::string()) == kRetiredCanonicalWeightObject)
+    return true;
+  return false;
+}
+
 std::vector<std::string> split_csv(const std::string& s) {
   std::vector<std::string> out;
   std::string cur;
@@ -129,6 +175,10 @@ bool units_frozen_ok(const Phase1Units& u, std::vector<std::string>* why) {
   astrocs::aio::unit_matches_frozen(Quantity::kWInfo, u.w_info, &r);
   astrocs::aio::unit_matches_frozen(Quantity::kQ, u.q, &r);
   astrocs::aio::unit_matches_frozen(Quantity::kFlux, u.flux, &r);
+  /* FZ-UNIT-PSFSW / FZ-MODE-RETIRED：psfsw_robust_weight 单位项随对象退役。此处仅保留
+   * "历史产品的单位串可判"，**不构成接受依据**：退役对象的显式拒绝在
+   * open_phase1_product (6a) 登记 + consume_phase1_group_for_psfsw 硬拒绝
+   * （见 kRetiredWeightObjectRejectReason）。 */
   astrocs::aio::unit_matches_frozen(Quantity::kPsfswRobustWeight,
                                     u.psfsw_robust_weight, &r);
   std::string qwhy;
@@ -252,7 +302,7 @@ Provenance make_provenance(const Phase1FrameInputs& in, const Phase1Units& u,
   p.k_corr.domain.estimator = "median";
   p.k_corr.domain.spherical = true;
   p.k_corr.calibration.script =
-      "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json"
+      "eng/contracts/data/v6_clause_registry_v1.json"
       "#FZ-PROV-KCORR-VALUE";
   p.k_corr.calibration.seed = 20260915;
   p.k_corr.calibration.calibration_run_id =
@@ -559,7 +609,12 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
     units["W_info"] = in.units.w_info;
     units["Q"] = in.units.q;
     units["flux"] = in.units.flux;
-    units["psfsw_robust_weight"] = in.units.psfsw_robust_weight;
+    /* PSFSW-RETIRE-03（产品合同收口）：**不再写出**退役对象的单位项
+     * units.psfsw_robust_weight。该对象已退役（FZ-MODE-RETIRED），产品 schema 不再
+     * 要求携带它的任何声明；旧产品若仍携带，重开门按退役/迁移情形识别并登记
+     * （open_phase1_product (6)）。留痕见 docs/contracts/DATA_SEMANTICS.md §31.1
+     * 的 OBSOLETE 行与 eng/contracts/data/v6_clause_registry_v1.json
+     * #x-astrocs-canonical-object-retirement。 */
     units["support"] = in.units.support;
     units["pixel_semantics"] = in.units.pixel_semantics;
     units["pixel_area_power"] = in.units.pixel_area_power;
@@ -629,19 +684,16 @@ Phase1WriteResult write_phase1_product(const Phase1FrameInputs& in,
     pi["provenance_ref"] = "provenance";
     doc["point_information"] = pi;
 
-    /* psfsw（生产 schema 形状；weight_value=null 表示 Phase1 尚未有帧组）。 */
+    /* psfsw（**诊断面**：四分量 + 复合式 + 共同星集；weight_value=null 表示 Phase1
+     * 尚未有帧组）。
+     * PSFSW-RETIRE-03（产品合同收口）：**不再写出**退役对象声明
+     * （weight_mode="psfsw_robust" / weight.kind="psfsw_robust_weight"）。退役对象的
+     * 声明在 schema 里已从 required 移出，成为**可判定的退役/迁移情形**：新写出的产品
+     * 不需要它；旧产品仍携带时由 open_phase1_product (6) 识别、登记并交消费面
+     * fail-closed（A44 留痕 + 迁移提示见 kRetiredWeightObjectRejectReason）。 */
     json ps;
     ps["psfsw_schema"] = "astrocs.v6.psfsw/v1";
     ps["schema_version"] = 1;
-    ps["weight_mode"] = "psfsw_robust";
-    ps["weight"] = {{"kind", "psfsw_robust_weight"},
-                    {"units", "1"},
-                    {"group_normalized", true},
-                    {"normalization",
-                     {{"scope", "group"},
-                      {"median_target", 1.0},
-                      {"constants_version", p1psfw::kCompositeVersion}}},
-                    {"weight_value", nullptr}};
     ps["component_flux_unit"] = "ADU";
     auto comp_json = [](const p1psfw::ComponentMeasure& c) {
       return json{{"measurement_id", c.measurement_id},
@@ -951,7 +1003,7 @@ Phase1OpenResult open_phase1_product(const std::string& target_dir) {
   const std::string sig_unit = u.value("signal_sb", std::string());
   const std::string var_unit = u.value("sb_variance_out", std::string());
   const std::string ivar_unit = u.value("sb_ivar_out", std::string());
-  if (!(sig_unit == "ADU/px^2" && var_unit == "ADU^2/px^4" && ivar_unit == "px^4/ADU^2"))
+  if (!(sig_unit == "ADU/sr" && var_unit == "ADU^2/sr^2" && ivar_unit == "sr^2/ADU^2"))
     return fail("frozen unit strings violated");
   {
     std::string why;
@@ -999,33 +1051,62 @@ Phase1OpenResult open_phase1_product(const std::string& target_dir) {
     if (!found) return fail("manifest missing science.fits record");
   }
 
-  /* (6) 权重面 canonical 语义（禁第三套词表 / 禁 ivar 冒充）。 */
+  /* (6) 权重面 canonical 语义（禁第三套词表 / 禁 ivar 冒充）。
+   * PSFSW-RETIRE-03 产品合同收口：psfsw 块里的 weight_mode/weight 是**退役对象
+   * psfsw_robust_weight 的声明面**，已从产品 schema 的 required 移出 ⇒
+   *   ① 缺席 = 现行产品（正常路径，不登记退役）；
+   *   ② 在场 = 可判定的**退役/迁移情形**：形状必须逐条等于退役 canonical 形式
+   *      （否则 fail），并在 violations + view 里**显式登记**（不静默）。
+   * 产品面据此**不** fail（旧产品仍可被识别并按退役处理）；硬拒绝落在消费面
+   * consume_phase1_group_for_psfsw（见 kRetiredWeightObjectRejectReason）。 */
   const json& ps = doc["psfsw"];
-  const json& w = ps["weight"];
-  if (ps.value("weight_mode", std::string()) != "psfsw_robust")
-    return fail("psfsw weight_mode != psfsw_robust");
-  if (w.value("kind", std::string()) != "psfsw_robust_weight")
-    return fail("weight.kind != psfsw_robust_weight (no ivar/fisher)");
-  if (w.value("units", std::string()) != "1")
-    return fail("weight.units != 1");
-  if (w.value("group_normalized", false) != true)
-    return fail("weight.group_normalized != true");
-  if (w["normalization"].value("scope", std::string()) != "group")
-    return fail("normalization.scope != group");
-  if (std::fabs(w["normalization"].value("median_target", 0.0) - 1.0) > 1e-12)
-    return fail("normalization.median_target != 1.0");
-  if (w["normalization"].value("constants_version", std::string()).empty())
-    return fail("normalization.constants_version empty");
+  const bool has_weight_mode = ps.contains("weight_mode");
+  const bool has_weight_block = ps.contains("weight") && ps["weight"].is_object();
+  const json* w = has_weight_block ? &ps["weight"] : nullptr;
+  /* (6a) FZ-MODE-RETIRED：声明退役对象 ⇒ 显式登记违规（不静默）。 */
+  if (declares_retired_weight_object(ps)) {
+    out.violations.push_back(
+        std::string("FZ-MODE-RETIRED: ") + kRetiredCanonicalWeightObject +
+        " declared by phase1 psfsw block (not a current object; allowed weight "
+        "objects: point_information|surface_gls; migration: Phase2 derives frame "
+        "weights from frame SNR)");
+    out.view.retired_weight_object_declared = true;
+    out.view.retired_weight_object = kRetiredCanonicalWeightObject;
+  }
+  /* (6b) 禁第三套词表：无论是否携带退役声明，psfsw 块都不得出现别名 token。 */
   for (const char* bad : {"weight_kind", "weight_units", "weight_normalized",
                           "normalization_scope", "weight_type", "norm_scope"}) {
-    if (w.contains(bad) || ps.contains(bad))
+    if (ps.contains(bad) || (w != nullptr && w->contains(bad)))
       return fail(std::string("forbidden third-vocabulary token: ") + bad);
   }
+  /* (6c) 退役声明形状门：仅在携带时校验（旧产品必须仍是退役 canonical 形式）。 */
   const bool valid = ps["validity"].value("valid", false);
-  const bool has_wv = !w["weight_value"].is_null();
-  if (valid && has_wv) return fail("valid=true but weight_value present (single frame)");
-  if (!valid && has_wv)
-    return fail("valid=false but weight_value present (FZ-GATE-PSFSW-FAILCLOSED)");
+  bool has_wv = false;
+  if (has_weight_mode || has_weight_block) {
+    if (ps.value("weight_mode", std::string()) != "psfsw_robust")
+      return fail("retired psfsw declaration: weight_mode != psfsw_robust");
+    if (w == nullptr)
+      return fail("retired psfsw declaration: weight block missing/not object");
+    if (w->value("kind", std::string()) != "psfsw_robust_weight")
+      return fail("weight.kind != psfsw_robust_weight (no ivar/fisher)");
+    if (w->value("units", std::string()) != "1")
+      return fail("weight.units != 1");
+    if (w->value("group_normalized", false) != true)
+      return fail("weight.group_normalized != true");
+    if (!w->contains("normalization") || !(*w)["normalization"].is_object())
+      return fail("weight.normalization missing/not object");
+    const json& wn = (*w)["normalization"];
+    if (wn.value("scope", std::string()) != "group")
+      return fail("normalization.scope != group");
+    if (std::fabs(wn.value("median_target", 0.0) - 1.0) > 1e-12)
+      return fail("normalization.median_target != 1.0");
+    if (wn.value("constants_version", std::string()).empty())
+      return fail("normalization.constants_version empty");
+    has_wv = w->contains("weight_value") && !(*w)["weight_value"].is_null();
+    if (valid && has_wv) return fail("valid=true but weight_value present (single frame)");
+    if (!valid && has_wv)
+      return fail("valid=false but weight_value present (FZ-GATE-PSFSW-FAILCLOSED)");
+  }
   if (!valid) {
     const std::string reason = ps["validity"]["reason"].is_null()
                                    ? std::string()
@@ -1118,14 +1199,18 @@ Phase1OpenResult open_phase1_product(const std::string& target_dir) {
   v.q = pi["Q"].value("value", 0.0);
   v.flux = pi["flux"].value("value", 0.0);
   v.flux_variance = var_f;
-  v.weight_kind = w.value("kind", std::string());
-  v.weight_units = w.value("units", std::string());
-  v.group_normalized = w.value("group_normalized", false);
-  v.norm_scope = w["normalization"].value("scope", std::string());
-  v.norm_median_target = w["normalization"].value("median_target", 0.0);
-  v.constants_version = w["normalization"].value("constants_version", std::string());
+  /* 退役声明字段只在**携带时**回填；现行产品（不携带）留空/零值——这些字段仅供
+   * 判定/登记，不构成接受依据（PSFSW-RETIRE-03 产品合同收口）。 */
+  if (w != nullptr) {
+    v.weight_kind = w->value("kind", std::string());
+    v.weight_units = w->value("units", std::string());
+    v.group_normalized = w->value("group_normalized", false);
+    v.norm_scope = (*w)["normalization"].value("scope", std::string());
+    v.norm_median_target = (*w)["normalization"].value("median_target", 0.0);
+    v.constants_version = (*w)["normalization"].value("constants_version", std::string());
+  }
   v.has_weight_value = has_wv;
-  v.weight_value = has_wv ? w["weight_value"].get<double>() : 0.0;
+  v.weight_value = (w != nullptr && has_wv) ? (*w)["weight_value"].get<double>() : 0.0;
   v.valid = valid;
   v.reason = ps["validity"]["reason"].is_null() ? std::string()
                                                 : ps["validity"].value("reason", std::string());
@@ -1160,57 +1245,14 @@ Phase1GroupConsumption consume_phase1_group_for_psfsw(
     g.error = "group requires >= 2 disk-reopened phase1 products";
     return g;
   }
-  std::vector<p1psfw::ComponentValues> frames;
-  for (const auto& d : product_dirs) {
-    const Phase1OpenResult r = open_phase1_product(d);
-    if (!r.ok) {
-      g.error = "reopen failed for " + d + ": " + r.error;
-      return g;
-    }
-    if (!r.view.valid) {
-      g.error = "frame invalid (fail-closed): " + d;
-      return g;
-    }
-    if (r.view.n_components != 4) {
-      g.error = "frame lacks four psfsw components: " + d;
-      return g;
-    }
-    /* 从磁盘记录读取四分量值（不信任进程内状态）。 */
-    std::string text, err;
-    if (!read_text_file(d + "/" + kPhase1RecordFile, &text, &err)) {
-      g.error = err;
-      return g;
-    }
-    json doc = json::parse(text);
-    p1psfw::ComponentValues cv;
-    cv.s = doc["psfsw"]["components"]["signal"].value("value", 0.0);
-    cv.conc = doc["psfsw"]["components"]["concentration"].value("value", 0.0);
-    cv.n = doc["psfsw"]["components"]["noise"].value("value", 0.0);
-    cv.b = doc["psfsw"]["components"]["background"].value("value", 0.0);
-    frames.push_back(cv);
-    g.wt_unnormalized.push_back(r.view.unnormalized_wt);
-  }
-  const p1psfw::CompositeResult cr = p1psfw::compute_psfsw_weights(frames);
-  if (!cr.ok) {
-    g.error = std::string("group composite rejected: ") + (cr.reject ? cr.reject : "unknown");
-    return g;
-  }
-  g.n_frames = static_cast<int>(product_dirs.size());
-  g.w_psfsw = cr.w_psfsw;
-  g.median_wt = cr.median_wt;
-  const double med = p1psfw::median_of(cr.w_psfsw);
-  g.record_ok = true;
-  if (std::fabs(med - 1.0) > 1e-9) {
-    g.record_ok = false;
-    g.findings.push_back("group median(w_psfsw) != 1");
-  }
-  for (double wv : cr.w_psfsw)
-    if (!(wv > 0.0)) {
-      g.record_ok = false;
-      g.findings.push_back("non-positive w_psfsw");
-      break;
-    }
-  g.ok = true;
+  /* FZ-MODE-RETIRED：本消费面**整体退役**——它的唯一产物就是退役对象
+   * psfsw_robust_weight 的组内归一权重 w_psfsw（由 PSF 拟合质量代理 S/Conc/N/B
+   * 复合而来）。ASTROCS_DESIGN.md §3.1（订正后）：这类量不得进入科学叠加权重。
+   * 因此**不论产品是否仍携带退役声明**（PSFSW-RETIRE-03 后新产品的产品 schema 已
+   * 不再要求携带）一律 fail-closed：不静默接受、不参与组内归一、不产出 w_psfsw。
+   * 旧产品仍携带声明时，其退役登记在 open_phase1_product (6a)
+   * （view.retired_weight_object_declared + violations），与本次拒绝同源同理由。 */
+  g.error = kRetiredWeightObjectRejectReason;
   return g;
 }
 

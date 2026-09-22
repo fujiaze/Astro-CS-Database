@@ -127,7 +127,7 @@
 
 > 本节由 V6 任务 \`IMPL-P2-UPM-001\` 追加，记录 V6 目标态乘法/加性分离实现；
 > 不改写上文 P2-UPM-DOC 历史合同文本。上位：\`ALG-P2-SURF-UPM.md\`
-> （\`ALG-P2S-UPM.1..8\`）、\`docs/contracts/v6/frozen/*\`、\`docs/algorithms/v6/frozen/*\`。
+> （\`ALG-P2S-UPM.1..8\`）、\`docs/contracts/DATA_SEMANTICS.md §31\`、\`docs/algorithms/GATES_AND_TOLERANCES.md\`。
 
 - 新增公共面（\`lib/algorithms/coverage/include/astro/phase2/upm.h\`）：
   \`P2UpmMaObservation\` / \`P2UpmMaConfig\` / \`P2UpmMaInfo\` +

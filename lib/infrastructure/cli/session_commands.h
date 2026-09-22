@@ -164,6 +164,19 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"output_dir", "\"path/to/out/red\"",
          "本块运行产物唯一落点（必填非空字符串；块级，禁 silent default；"
          "一块 = 一次运行 = 一份 run manifest）", "block"},
+        // 落盘形态键（HIPS-IDX-01）：合同声明 = phase_config_normalize.schema.json
+        // #/$defs/storage_form（enum archive|bare，默认 archive；键缺失/空串/null ⇒
+        // 默认 + warn，禁止静默取默认）。json == nullptr ⇒ 不进 --template/--help 骨架：
+        // 模板不替用户主张形态，用户不写就走「默认 archive + warn」这条已裁决的路径。
+        // 形态只改磁盘表示与 I/O 路径，不改科学结果（两形态 tree_hash 相同）。
+        // 生产消费点（写出侧按形态落盘）= 分阶段实现计划阶段 2 ⇒ 已登记
+        // eng/ci/ledgers/dead_config_keys.json（不得把「CLI 认识」当成「已消费」）。
+        // 只属 normalize：Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳，
+        // 两者的输入合同不设本键（出现即 REJECT）。", "block"},
+        {"storage_form", nullptr,
+         "Phase1 产品落盘形态 archive（默认）| bare；键缺失或留空 ⇒ 取默认 archive 并报 warn"
+         "（合同声明 = phase_config_normalize.schema.json；生产消费点未落地，见死键台账）",
+         "block"},
         {"drizzle",
          "{\"nested\": 1, \"pixfrac\": 1.0, \"precision_mode\": 1}",
          "drizzle 累加参数；nside 缺省即 auto（由最细输入采样派生，"
@@ -183,6 +196,16 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
     static const std::vector<ConfigField> kMosaic = {
         {"schema_version", "\"1\"", "配置合同版本（恒 \"1\"）"},
         {"hips_paths", "[]", "输入 HiPS 产品目录数组（必填非空；properties 严格校验）"},
+        // 索引引用键（HIPS-IDX-01）：合同声明 = phase_config_mosaic.schema.json
+        // #/$defs/coverage_index_ref。**加性可选键**：指向数据集级覆盖索引
+        // coverage.index.json；hips_paths 的元素**保持字符串**（不做元素对象化），
+        // 逐帧产品级索引路径由命名规则派生（<name>.hips / <name>.hips.zst →
+        // <name>.hips.index.json）。缺失 ⇒ 规定回退 = 读全部产品级索引现场倒排。
+        // json == nullptr ⇒ 不进模板骨架。生产消费点 = 阶段二 coverage 节点（阶段 2）
+        // ⇒ 已登记死键台账。", 
+        {"coverage_index", nullptr,
+         "可选：数据集级覆盖索引 coverage.index.json 的路径（加性可选键；缺省回退 = 由产品级索引现场倒排）"
+         "（合同声明 = phase_config_mosaic.schema.json；生产消费点未落地，见死键台账）"},
         {"output_dir", "\".\"", "运行产物唯一落点（必填非空字符串）"},
         // FIX-203（GAP_AUDIT G05；ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 不认的提升键落地。键名**逐字**取合同

@@ -11,10 +11,14 @@
 //   C1 机器判据: 声明集 D == 实现集 I == 实际可运行集 R（R = 生产路径黑盒实跑）;
 //   C2 负例: 8 冻结码中未实现者请求 ⇒ 显式「不支持」+ 已支持清单, 不静默回落 TAN;
 //   C3 正例: 已实现投影（TAN）往返误差 < 合同容差 1e-8 px + CTYPE 面;
-//   C4 适用域: |dec|≤85 / FOV≤20 / det(CD)<0 / CRPIX FITS 1-based / 往返<1e-8,
+//   C4 适用域: |dec|≤85 / FOV≤20 / det(CD)<0 / CRPIX FITS 1-based / 往返<适用门,
 //      违反 ⇒ 拒绝（逐项能红能绿）;
 //   C5 跨注册表一致: v6 内核 registry 行不得被冒充为产品可声明;
-//   C6 --self-test: 判据函数在变异输入下必红（非退化证明）。
+//   C6 --self-test: 判据函数在变异输入下必红（非退化证明）;
+//   C7 容差冻结 + **尺度感知分层门**（GATE-DERIVE-01 / GATE-WCS-01）:
+//      紧门 1e-8 px（适用域 scale ≥ min_scale_arcsec）/ 全域保守门 1e-6 px /
+//      两门均超出适用域 ⇒ **报「超出适用域」而非判红**（负例非退化）;
+//   C8 密集域扫描: 9 点采样是密集域子集（dense ≥ nine），且密集域 max 可红可绿。
 #include "p3_projection_registry.h"
 
 #include <algorithm>
@@ -44,11 +48,18 @@ using astrocs::phase3::P3ProjFrozenEntry;
 using astrocs::phase3::P3ProjProductStatus;
 using astrocs::phase3::P3WcsApplicability;
 using astrocs::phase3::P3WcsDescriptor;
+using astrocs::phase3::P3WcsRoundtripGate;
+using astrocs::phase3::P3WcsRoundtripGateStatus;
 using astrocs::phase3::P3WcsStatus;
 
-// FIX-406 Oracle 冻结容差（1e-8 px）：TAN 全域实测最坏 2.437e-9 px（880 组几何 ×
-// 密集逐像素 8.31e6 次 + FOV=20° 边界 2.42e7 次）；相对旧值 1e-6 px 是收紧。
+// 合同容差**单一事实源** = p3_wcs_applicability("TAN")（本测试不写第二份字面量;
+// 本常量只作「冻结值回归锁」的期望值, 与声明表逐位比对）。
+//   紧门 1e-8 px: TAN 全域实测最坏 2.437e-9 px（880 组几何 × 密集逐像素 8.31e6 次
+//   + FOV=20° 边界 2.42e7 次）；相对旧值 1e-6 px 是收紧。
+//   全域保守门 1e-6 px: SCI-WCS-001 §11 STD-F1（覆盖所有真实尺度, 判据力弱）。
 constexpr double kRoundtripTolPx = 1e-8;
+constexpr double kRoundtripTolGlobalPx = 1e-6;
+constexpr double kMinScaleArcsec = 0.9;   // 紧门适用域下限（仓内最小真实尺度 0.9586）
 
 std::vector<std::string> sorted(std::vector<std::string> v) {
     std::sort(v.begin(), v.end());
@@ -188,8 +199,9 @@ void test_unsupported_negative() {
               "缺省投影 = TAN");
 }
 
-// ---- C3: 正例（TAN 往返 < 1e-8 px 合同容差）-------------------------------
+// ---- C3: 正例（TAN 往返 < 合同容差）---------------------------------------
 void test_implemented_positive() {
+    // 尺度覆盖: 紧门适用域内（≥0.9″/px）与全域保守门带（<0.9″/px）
     const double scales[4] = {0.0001389, 0.001, 0.005, 0.02};
     for (double s : scales) {
         P3WcsDescriptor d{};
@@ -201,8 +213,13 @@ void test_implemented_positive() {
         CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_max_error_px(&d, &max_err) ==
                       P3WcsStatus::P3_WCS_OK,
                   "往返检查可执行");
-        CHECK_MSG(max_err >= 0.0 && max_err < kRoundtripTolPx,
-                  "TAN 往返误差 < 1e-8 px（FIX-406 Oracle 冻结）");
+        // 适用门由单一事实源给出（紧门/全域保守门按尺度选择）; 本测试不硬编第二份
+        const astrocs::phase3::P3WcsRoundtripGate gate =
+            astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+        CHECK_MSG(gate.status != P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_OUT_OF_DOMAIN,
+                  "该尺度下存在适用的往返门");
+        CHECK_MSG(max_err >= 0.0 && max_err < gate.tol_px,
+                  "TAN 往返误差 < 该尺度适用门值（单一事实源 p3_wcs_applicability）");
         CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&d, nullptr) ==
                       P3WcsStatus::P3_WCS_OK,
                   "TAN 适用域检查通过");
@@ -279,6 +296,13 @@ void test_applicability_rejections() {
                   ap->crpix_fits_1based_pixel_center &&
                   ap->roundtrip_tol_px == kRoundtripTolPx,
               "TAN 适用域声明 = 85/20/det<0/1-based/1e-8（FIX-406 Oracle 冻结）");
+    // 分层门声明项（GATE-DERIVE-01 / GATE-WCS-01）: 两门用途不同, 不合并为一个数
+    CHECK_MSG(ap->roundtrip_tol_global_px == kRoundtripTolGlobalPx,
+              "全域保守门声明 = 1e-6 px（SCI-WCS-001 §11 STD-F1）");
+    CHECK_MSG(ap->min_scale_arcsec == kMinScaleArcsec,
+              "紧门适用域下限声明 = 0.9″/px（覆盖仓内最小真实尺度 0.9586″/px）");
+    CHECK_MSG(ap->envelope_c_env == 128.0,
+              "解析包络设计常数 C_env = 128（AD 一阶包络实测 max 78）");
 }
 
 // ---- C5: 跨注册表一致（v6 内核行不得冒充产品声明）------------------------
@@ -307,29 +331,226 @@ void test_cross_registry() {
     }
 }
 
-// ---- C7: 容差合同冻结（FIX-406 Oracle；判据非退化）-------------------------
-// ① 冻结值回归锁: 必须 == kRoundtripTolPx(1e-8) 且不得放宽回旧值 1e-6;
-// ② 最坏工况（全域实测最坏点几何: 0.05″/px, |CRVAL2|=85°, PA=30°, 129²）实测
-//    余量 ≥ 4×（冻结值非擦边, 也不是恒零的退化判据）;
-// ③ 收紧后不得产生假红（该几何仍在适用域内、check_applicability 放行）。
+// ---- C7: 容差合同冻结 + 尺度感知分层门（FIX-406 + GATE-DERIVE-01）----------
+// ① 冻结值回归锁: 紧门 == 1e-8 px（禁放宽回 1e-6）、全域门 == 1e-6 px;
+// ② 最坏工况（全域实测最坏点几何: **0.18″/px**（5e-5 deg/px）, |CRVAL2|=85°,
+//    PA=30°, 129²）——该尺度低于紧门适用域下限 ⇒ **退回全域保守门**, 实测余量 ≥ 4×;
+// ③ 不得产生假红（该几何 make 放行、check_applicability 放行）。
+// 注: 本注释旧版把该工况写成 0.05″/px, 与 FIX-406 扫描表 5e-5 deg/px 差 3.6×,
+//     而 0.18″/px 恰是紧门保守性的临界尺度 ⇒ 已按 GATE-WCS-01 裁决 6 更正。
 void test_tolerance_freeze() {
     const P3WcsApplicability* ap = astrocs::phase3::p3_wcs_applicability("TAN");
     CHECK_MSG(ap != nullptr, "C7: TAN 适用域已声明");
     CHECK_MSG(ap->roundtrip_tol_px == kRoundtripTolPx && kRoundtripTolPx <= 1e-8,
-              "C7: 容差冻结 = 1e-8 px（FIX-406 Oracle；禁放宽回 1e-6）");
+              "C7: 紧门冻结 = 1e-8 px（FIX-406 Oracle；禁放宽回 1e-6）");
     P3WcsDescriptor d{};
     CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 85.0, 0.00005, 129, 129, "east_left",
                                            30.0, &d) == P3WcsStatus::P3_WCS_OK,
-              "C7: 最坏工况几何在适用域内（make 放行）");
+              "C7: 最坏工况几何 make 放行（不判红）");
+    const P3WcsRoundtripGate gate = astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+    CHECK_MSG(gate.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_GLOBAL,
+              "C7: 0.18″/px < min_scale 0.9 ⇒ 紧门不适用, 退回全域保守门");
+    CHECK_MSG(std::fabs(gate.scale_arcsec_per_px - 0.18) < 1e-9,
+              "C7: 该工况尺度 = 0.18″/px（5e-5 deg/px × 3600）");
+    CHECK_MSG(gate.envelope_px > 0.0 && gate.tol_px == ap->roundtrip_tol_global_px,
+              "C7: 适用门 = 全域保守门, 解析包络为正（非退化）");
+    CHECK_MSG(gate.margin >= 4.0,
+              "C7: 全域门余量 ≥ 4×（冻结值非擦边）");
     double err = -1.0;
-    CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_max_error_px(&d, &err) ==
+    int n_dense = 0;
+    CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_dense_max_error_px(&d, &err, &n_dense) ==
                   P3WcsStatus::P3_WCS_OK,
-              "C7: 最坏工况往返可测");
-    CHECK_MSG(err > 0.0 && err * 4.0 < ap->roundtrip_tol_px,
+              "C7: 最坏工况密集域往返可测");
+    CHECK_MSG(err > 0.0 && err * 4.0 < gate.tol_px && n_dense > 1000,
               "C7: 实测 >0 且余量 ≥ 4×（冻结值非擦边/非退化）");
     CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&d, nullptr) ==
                   P3WcsStatus::P3_WCS_OK,
-              "C7: 收紧后最坏工况无假红");
+              "C7: 分层后最坏工况无假红");
+}
+
+// ---- C8: 「低于适用域 ⇒ 报超出适用域而非判红」+ 密集域扫描能红能绿 --------
+// 非退化负例（GATE-WCS-01 必须动作）:
+//   ① 真值无效应⇒绿: 尺度 1.0″/px（≥ min_scale）⇒ 紧门适用（TIGHT）;
+//   ② 低于紧门适用域⇒**报「超出适用域」而非判红**: 尺度 0.18″/px ⇒ 退回全域门;
+//      尺度 0.001″/px（两门包络均超）⇒ OUT_OF_DOMAIN + check_applicability 返回 OK
+//      且 why 明确写「OUT OF APPLICABILITY DOMAIN」;
+//   ③ 反例（证明 ② 不是「恒绿」）: 同一尺度下其它适用域违规仍必红
+//      （det(CD)>0 手性 / CRPIX 非像素中心 / FOV>20°）;
+//   ④ 密集域扫描非退化: dense ≥ nine（超集性质）, 且对「门值缩小 1e6 倍」的
+//      同一判据必红（能红能绿）。
+void test_gate_domain_and_dense_scan() {
+    const P3WcsApplicability* ap = astrocs::phase3::p3_wcs_applicability("TAN");
+    CHECK_MSG(ap != nullptr, "C8: TAN 适用域已声明");
+
+    // ① 紧门适用（尺度 ≥ min_scale）: 3.6″/px
+    {
+        P3WcsDescriptor d{};
+        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.001, 256, 256,
+                                               "east_left", 0.0, &d) ==
+                      P3WcsStatus::P3_WCS_OK,
+                  "C8①: 3.6″/px make 放行");
+        const P3WcsRoundtripGate g = astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+        CHECK_MSG(g.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_TIGHT &&
+                      g.tol_px == kRoundtripTolPx && g.margin > 1.0,
+                  "C8①: 紧门适用且余量 > 1×（真值输入必绿）");
+    }
+
+    // ② 低于紧门适用域 ⇒ 报「超出适用域」而非判红（两个子带）
+    {
+        // ②a 0.18″/px: 紧门不适用, 退回全域保守门（仍保守）
+        P3WcsDescriptor d{};
+        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.00005, 129, 129,
+                                               "east_left", 0.0, &d) ==
+                      P3WcsStatus::P3_WCS_OK,
+                  "C8②a: 0.18″/px（< min_scale）make 仍放行");
+        const P3WcsRoundtripGate g = astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+        CHECK_MSG(g.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_GLOBAL,
+                  "C8②a: 紧门超出适用域 ⇒ 退回全域保守门（不判红）");
+        // ②b 0.001″/px: 两门包络均超 ⇒ OUT_OF_DOMAIN（明确报, 不判红）
+        P3WcsDescriptor d2{};
+        const double s_tiny = 0.001 / 3600.0;   // 0.001″/px
+        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, s_tiny, 64, 64,
+                                               "east_left", 0.0, &d2) ==
+                      P3WcsStatus::P3_WCS_OK,
+                  "C8②b: 0.001″/px make 仍放行（不判红）");
+        const P3WcsRoundtripGate g2 = astrocs::phase3::p3_wcs_roundtrip_gate(&d2);
+        CHECK_MSG(g2.status ==
+                      P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_OUT_OF_DOMAIN &&
+                      g2.tol_px == 0.0 && g2.envelope_px > ap->roundtrip_tol_global_px,
+                  "C8②b: 两门均超出适用域 ⇒ OUT_OF_DOMAIN（包络 > 全域门值）");
+        std::string why;
+        CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&d2, &why) ==
+                      P3WcsStatus::P3_WCS_OK,
+                  "C8②b: 报「超出适用域」而非判红（返回 OK）");
+        CHECK_MSG(why.find("OUT OF APPLICABILITY DOMAIN") != std::string::npos &&
+                      why.find("not a failure") != std::string::npos,
+                  "C8②b: why 明确写出「超出适用域, 不是失败」");
+
+        // ③ 反例: 同尺度下其它适用域违规仍必红（② 不是「恒绿」）
+        P3WcsDescriptor bad = d2;
+        bad.cd[0][0] = std::fabs(bad.cd[0][0]);
+        bad.cd[1][1] = std::fabs(bad.cd[1][1]);
+        CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&bad, &why) ==
+                      P3WcsStatus::P3_WCS_PARAM &&
+                      why.find("chirality") != std::string::npos,
+                  "C8③: 同尺度手性违规仍必红（非恒绿）");
+        P3WcsDescriptor bad2 = d2;
+        bad2.crpix_x = 0.0;
+        CHECK_MSG(astrocs::phase3::p3_wcs_check_applicability(&bad2, &why) ==
+                      P3WcsStatus::P3_WCS_PARAM &&
+                      why.find("CRPIX") != std::string::npos,
+                  "C8③: 同尺度 CRPIX 违规仍必红（非恒绿）");
+        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 2.0, 0.05, 512, 512,
+                                               "east_left", 0.0, &d2) ==
+                      P3WcsStatus::P3_WCS_PARAM,
+                  "C8③: FOV>20° 仍必红（非恒绿）");
+    }
+
+    // ④ 密集域扫描: 超集性质（dense ≥ nine）+ 能红能绿
+    {
+        P3WcsDescriptor d{};
+        CHECK_MSG(astrocs::phase3::p3_wcs_make(150.0, 85.0, 0.001, 512, 512,
+                                               "east_left", 30.0, &d) ==
+                      P3WcsStatus::P3_WCS_OK,
+                  "C8④: 大 FOV 几何 make 放行");
+        double nine = -1.0, dense = -1.0;
+        int n_dense = 0;
+        CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_max_error_px(&d, &nine) ==
+                      P3WcsStatus::P3_WCS_OK,
+                  "C8④: 9 点采样可测");
+        CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_dense_max_error_px(&d, &dense,
+                                                                      &n_dense) ==
+                      P3WcsStatus::P3_WCS_OK,
+                  "C8④: 密集域扫描可测");
+        // 注: |CRVAL2|=85° 时帧上缘越过 85° 的采样点按定义不可往返（world2pix
+        // 冻结守卫）⇒ 计入误差的点数少于总采样数; 域内点数仍 ≫1000。
+        CHECK_MSG(n_dense >= 1000, "C8④: 密集域域内采样点数 ≥ 1000（真覆盖最坏像素）");
+        CHECK_MSG(dense >= nine,
+                  "C8④: 9 点集是密集域子集 ⇒ dense ≥ nine（超集性质, 非退化）");
+        // 非退化核心（GATE-DERIVE-01 §5.1 A6）: 存在门值带 nine < tol < dense 使
+        // **9 点采样门放行**而**密集域门判红** ⇒ 9 点采样不能单独作门证据。
+        {
+            const double tol_between = 0.5 * (nine + dense);
+            CHECK_MSG(nine < tol_between && !(dense < tol_between),
+                      "C8④: 存在 nine<tol<dense 的门值带 ⇒ 9 点门放行/密集域门判红");
+        }
+        const P3WcsRoundtripGate g = astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+        CHECK_MSG(dense > 0.0 && dense < g.tol_px, "C8④: 真值输入必绿");
+        // 判据能红: 门值缩小 1e6 倍后同一实测值必超门（绿/红两侧都可判）
+        CHECK_MSG(!(dense < g.tol_px * 1e-6), "C8④: 门值缩小 1e6 倍 ⇒ 必红（能红能绿）");
+        std::printf(
+            "[dense-scan] scale=%.4f arcsec/px gate=%s tol=%.3g nine=%.6g "
+            "dense=%.6g dense/nine=%.3f n_dense=%d envelope=%.6g margin=%.2f\n",
+            g.scale_arcsec_per_px,
+            g.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_TIGHT ? "TIGHT"
+                                                                      : "GLOBAL",
+            g.tol_px, nine, dense, dense / nine, n_dense, g.envelope_px, g.margin);
+    }
+}
+
+// ---- C9: 尺度表（分层门适用域 + 解析包络独立复算）-------------------------
+// 逐尺度核验（对照 run/GATE-DERIVE-01/REPORT.md §3.2/§4.3 与 GATE-WCS-01 余量表）:
+//   ① 门选择: scale ≥ 0.9″/px ⇒ TIGHT; 0.9 > scale ≥ ~0.003″/px ⇒ GLOBAL;
+//   ② 包络实现 == 独立复算式 C_env·u·sec²Δ/s_rad（测试侧独立算, 不调生产函数）;
+//   ③ 余量 > 1×（紧门带）且实测密集域 max < 适用门值（真值输入必绿）;
+//   ④ 边界非退化: 0.9 两侧门选择不同（不是恒 TIGHT 也不是恒 GLOBAL）。
+void test_gate_scale_table() {
+    const P3WcsApplicability* ap = astrocs::phase3::p3_wcs_applicability("TAN");
+    CHECK_MSG(ap != nullptr, "C9: TAN 适用域已声明");
+    const double u = 1.1102230246251565e-16;       // 2^-53
+    const double arcsec_per_rad = 206264.80624709636;
+    const double scales[7] = {0.18, 0.36, 0.5, 0.9, 0.9586, 3.6, 6.3076};
+    bool saw_tight = false, saw_global = false;
+    for (double s_arcsec : scales) {
+        P3WcsDescriptor d{};
+        const double s_deg = s_arcsec / 3600.0;
+        const P3WcsStatus mk = astrocs::phase3::p3_wcs_make(
+            150.0, 2.0, s_deg, 1024, 1024, "east_left", 0.0, &d);
+        CHECK_MSG(mk == P3WcsStatus::P3_WCS_OK, "C9: 各真实尺度 make 放行");
+        if (mk != P3WcsStatus::P3_WCS_OK) continue;
+        const P3WcsRoundtripGate g = astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+        // ① 门选择
+        if (s_arcsec >= ap->min_scale_arcsec) {
+            CHECK_MSG(g.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_TIGHT &&
+                          g.tol_px == ap->roundtrip_tol_px,
+                      "C9①: scale ≥ min_scale ⇒ 紧门适用");
+            saw_tight = true;
+        } else {
+            CHECK_MSG(g.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_GLOBAL &&
+                          g.tol_px == ap->roundtrip_tol_global_px,
+                      "C9①: scale < min_scale 且包络 ≤ 全域门 ⇒ 退回全域保守门");
+            saw_global = true;
+        }
+        // ② 包络实现 == 独立复算式（测试侧独立计算）
+        const double fov = astrocs::phase3::p3_wcs_fov_deg(
+            std::sqrt(std::fabs(d.cd[0][0] * d.cd[1][1] - d.cd[0][1] * d.cd[1][0])),
+            1024, 1024);
+        const double half = 0.5 * fov * M_PI / 180.0;
+        const double sec2 = 1.0 + half * half;
+        const double env_ref =
+            ap->envelope_c_env * u * sec2 / (s_arcsec / arcsec_per_rad);
+        CHECK_MSG(std::fabs(g.envelope_px - env_ref) <= 1e-15 * env_ref,
+                  "C9②: 解析包络 == 独立复算式 C_env·u·sec²Δ/s_rad");
+        // ③ 实测（密集域）必绿 + 余量
+        double dense = -1.0;
+        int n_dense = 0;
+        CHECK_MSG(astrocs::phase3::p3_wcs_roundtrip_dense_max_error_px(&d, &dense,
+                                                                      &n_dense) ==
+                      P3WcsStatus::P3_WCS_OK,
+                  "C9③: 密集域往返可测");
+        CHECK_MSG(dense > 0.0 && dense < g.tol_px, "C9③: 实测密集域 max < 适用门值");
+        CHECK_MSG(g.margin > 1.0, "C9③: 适用门对解析包络余量 > 1×");
+        std::printf(
+            "[scale-table] s=%.4f\"/px gate=%s tol=%.3g envelope=%.4g margin=%.2f "
+            "dense_max=%.4g n_dense=%d\n",
+            s_arcsec,
+            g.status == P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_TIGHT ? "TIGHT"
+                                                                      : "GLOBAL",
+            g.tol_px, g.envelope_px, g.margin, dense, n_dense);
+    }
+    // ④ 边界非退化
+    CHECK_MSG(saw_tight && saw_global,
+              "C9④: 门选择随尺度变化（非恒 TIGHT / 非恒 GLOBAL）");
 }
 
 // ---- C6: --self-test（判据能红能绿）--------------------------------------
@@ -451,10 +672,13 @@ int main(int argc, char** argv) {
     test_applicability_rejections();
     test_cross_registry();
     test_tolerance_freeze();
+    test_gate_domain_and_dense_scan();
+    test_gate_scale_table();
     if (failures == 0) {
         std::printf(
             "FIX-205 PROJ REGISTRY PASS（声明集==实现集==可运行集 + 未实现显式不支持 "
-            "+ 适用域拒绝 + TAN 往返 <1e-8px, FIX-406 Oracle 冻结）\n");
+            "+ 适用域拒绝 + 往返门分层（紧门 1e-8px / 全域 1e-6px / 超域报错不判红）"
+            "+ 密集域扫描, FIX-406 + GATE-DERIVE-01）\n");
         return 0;
     }
     std::fprintf(stderr, "FIX-205 PROJ REGISTRY FAIL (%d)\n", failures);

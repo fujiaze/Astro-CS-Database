@@ -21,9 +21,17 @@
 #include "aio_util.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <functional>
+#include <mutex>
 #include <string>
+
+#ifdef _WIN32
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "crypto/sha256.h"
 
@@ -116,6 +124,116 @@ inline bool read_range(const char* path, std::uint64_t offset, std::size_t count
     if (!read_ok || !close_ok) { out->clear(); return false; }
     return true;
 }
+
+// ── 位置写（随机访问顺序无关写入；P3-STREAM-01）────────────────────────────
+// 语义：子块流式的**唯一随机写通道**（ASTROCS_DESIGN §8.3 export「子块流式」）。
+// 用途：子块产出顺序与平面文件的字节序无关（平面 = 行主序连续区），故必须能
+// 「按偏移写子块」而不是只能顺序追加；调用方（算法/基建）禁止自行 fopen/fseek。
+// 并发：同一实例的多线程写由内部互斥串行化（FILE* 游标是共享状态）；
+// 区间互不重叠时结果与写入顺序无关（子块 = 互斥区间，故输出逐位确定）。
+class RandomWriter {
+public:
+    ~RandomWriter() { close(); }
+    RandomWriter() = default;
+    RandomWriter(const RandomWriter&) = delete;
+    RandomWriter& operator=(const RandomWriter&) = delete;
+
+    // 创建/截断 path（二进制读写）。失败返回 false（err 非空时写原因）。
+    bool open(const char* path, std::string* err) {
+        if (err) err->clear();
+        close();
+        f_ = aio_fopen_utf8(path, "wb+");
+        if (!f_) {
+            if (err) *err = std::string("open(wb+) failed: ") + (path ? path : "");
+            return false;
+        }
+        path_ = path ? path : "";
+        return true;
+    }
+
+    bool is_open() const { return f_ != nullptr; }
+
+    // 从 offset 起写 count 字节。返回 true = 全部写入且无错误。
+    bool write_at(std::uint64_t offset, const void* data, std::size_t count,
+                  std::string* err) {
+        if (err) err->clear();
+        if (!f_) {
+            if (err) *err = "write_at on closed writer";
+            return false;
+        }
+        if (count == 0) return true;
+        std::lock_guard<std::mutex> lk(mu_);
+#ifdef _WIN32
+        if (_fseeki64(f_, static_cast<long long>(offset), SEEK_SET) != 0) {
+#else
+        if (fseeko(f_, static_cast<off_t>(offset), SEEK_SET) != 0) {
+#endif
+            if (err) *err = "seek failed";
+            return false;
+        }
+        const std::size_t n = std::fwrite(data, 1, count, f_);
+        if (n != count || std::ferror(f_) != 0) {
+            if (err) *err = "short write";
+            return false;
+        }
+        return true;
+    }
+
+    // 把文件长度预置为 size 字节（末字节写 0）。返回 true = 成功。
+    bool reserve(std::uint64_t size, std::string* err) {
+        if (size == 0) return true;
+        const char z = 0;
+        return write_at(size - 1, &z, 1, err);
+    }
+
+    // flush（fflush）→ fsync（落盘）→ close。三步任一失败 = false。
+    bool flush_and_sync(std::string* err) {
+        if (err) err->clear();
+        if (!f_) {
+            if (err) *err = "flush on closed writer";
+            return false;
+        }
+        bool ok = true;
+        {
+            std::lock_guard<std::mutex> lk(mu_);
+            if (std::fflush(f_) != 0) {
+                if (err) *err = "fflush failed";
+                ok = false;
+            }
+        }
+        if (ok) {
+#ifdef _WIN32
+            if (_commit(_fileno(f_)) != 0) {
+#else
+            if (::fsync(fileno(f_)) != 0) {
+#endif
+                if (err) *err = "fsync failed";
+                ok = false;
+            }
+        }
+        if (std::fclose(f_) != 0 && ok) {
+            if (err) *err = "fclose failed";
+            ok = false;
+        }
+        f_ = nullptr;
+        return ok;
+    }
+
+    // 关闭（不落盘保证）；已关闭时幂等。
+    void close() {
+        if (!f_) return;
+        std::lock_guard<std::mutex> lk(mu_);
+        std::fclose(f_);
+        f_ = nullptr;
+    }
+
+    const std::string& path() const { return path_; }
+
+private:
+    std::FILE* f_ = nullptr;
+    std::string path_;
+    std::mutex mu_;
+};
 
 // 完整读取 path 并输出 64 字符小写 hex sha256。
 // 返回 true = out_hex 为完整文件摘要; false = 读取/关闭失败（out_hex 已清空）。

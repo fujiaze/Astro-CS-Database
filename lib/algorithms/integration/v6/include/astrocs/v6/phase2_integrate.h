@@ -14,7 +14,11 @@
  *   - FITS/原子发布/provenance/BUNIT : astrocs::aio (IMPL-AIO-001)
  *
  * 冻结锚（逐条符合，不得放宽）:
- *   FZ-MODE-PRODUCTION {point_information, surface_gls, psfsw_robust}
+ *   FZ-MODE-PRODUCTION {point_information, surface_gls}
+ *                      （原集合里的 psfsw_robust 已按负责人裁决退役，见下）
+ *   FZ-MODE-RETIRED    psfsw_robust 显式拒绝 + 迁移提示：psfsw_robust_weight 不是
+ *                      现行对象（ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒
+ *                      parse/route/产品校验三处接受面一律拒绝，不得静默接受
  *   FZ-MODE-DEFERRED   psf_snr_power 保持 DEFERRED，不进生产路由（C-004.1）
  *   FZ-FIELD-WEIGHTMODE legacy 0=support×snr² / auto / support_x_snr2 REJECT
  *   FZ-FORMULA-Q/WINFO/FHAT   Q_k=a_k P_k^T C_k^-1 d_k; W=a_k^2 P_k^T C_k^-1 P_k;
@@ -59,7 +63,7 @@ namespace v6 {
 namespace p2int {
 
 /* ------------------------------------------------------------------ */
-/* 冻结常数（逐字来自 docs/contracts/v6/frozen，不重新定值）             */
+/* 冻结常数（逐字来自 docs/contracts/DATA_SEMANTICS.md §31，不重新定值）             */
 /* ------------------------------------------------------------------ */
 constexpr double kEpsPixivar = 0.05;      /* FZ-AP2S-EPS-PIXIVAR */
 constexpr double kEpsPixivarSup = 0.20;   /* FZ-AP2S-EPS-PIXIVAR-SUP */
@@ -83,12 +87,17 @@ constexpr const char* kTypePsfsw = "astrocs.phase2.psfsw_integration.v1";
 enum class WeightMode : int {
   kPointInformation = 0,
   kSurfaceGls = 1,
-  kPsfswRobust = 2,
+  kPsfswRobust = 2,   /* RETIRED（FZ-MODE-RETIRED）：保留枚举臂仅为编译/历史产品可判，
+                       * 任何接受面（parse/route/产品校验）都不得返回它。 */
 };
 const char* weight_mode_token(WeightMode m);
 const char* phase2_type_id(WeightMode m);
+/* 解析面（FZ-MODE-RETIRED）：生产接受集 = {point_information, surface_gls}；
+ * psfsw_robust 不是现行对象 ⇒ **返回 false**（不解析成 kPsfswRobust）；
+ * 可诊断的拒绝说明由 route_weight_mode 给出。 */
 bool parse_weight_mode(const std::string& token, WeightMode* out);
-/* 生产路由门：allowed={point_information,surface_gls,psfsw_robust}；
+/* 生产路由门：allowed={point_information,surface_gls}；
+ * psfsw_robust -> REJECT（FZ-MODE-RETIRED + 迁移提示，err 含被拒 mode/允许集/迁移）；
  * psf_snr_power/auto/support_x_snr2/0/未知 -> REJECT；equal/pixel_ivar -> baseline 非生产。
  * 返回 0=生产模式；1=REJECT；2=baseline（非生产）。 */
 int route_weight_mode(const char* mode, WeightMode* out, char* err,
@@ -110,8 +119,8 @@ struct Phase1Frame {
   std::vector<double> psf_profile;      /* P_k, Sum=1 */
   double a = 1.0;                       /* 光度响应 a_k */
   std::string record_sha;               /* phase1_product.json 实际 sha256 */
-  std::vector<double> signal_sb;        /* 磁盘 SIG (ADU/px^2) */
-  std::vector<double> variance_sb;      /* 磁盘 VARIANCE (ADU^2/px^4) */
+  std::vector<double> signal_sb;        /* 磁盘 SIG (ADU/sr) */
+  std::vector<double> variance_sb;      /* 磁盘 VARIANCE (ADU^2/sr^2) */
   std::string signal_bunit, variance_bunit;
 };
 

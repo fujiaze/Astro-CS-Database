@@ -191,9 +191,10 @@ inline P3WcsStatus p3_proj_declare(const char* code, std::string* why) {
 }
 
 // ---- 实际可运行探针（黑盒实跑生产路径, 不查声明表）----
-// 顺序: p3_wcs_validate_request → p3_wcs_make → 往返 < 合同容差 → CTYPE 含该码。
-// 容差单一事实源 = 适用域声明表（p3_wcs_applicability）；本函数不硬编码数值
-// （FIX-406: 旧硬编码 1e-6 与合同表可能漂移；合同值 = 1e-8 px）。
+// 顺序: p3_wcs_validate_request → p3_wcs_make → 密集域往返 < 适用门 → CTYPE 含该码。
+// 容差单一事实源 = 适用域声明表 + 尺度感知门选择（p3_wcs_applicability /
+// p3_wcs_roundtrip_gate）；本函数不硬编码数值（FIX-406: 旧硬编码 1e-6 与合同表
+// 可能漂移；现行 = 紧门 1e-8 px / 全域保守门 1e-6 px，GATE-WCS-01 分层）。
 // OK = 该码在生产路径真的可跑; 其余状态 = 实跑失败（detail 填原因）。
 inline P3WcsStatus p3_proj_probe(const char* code, std::string* detail) {
     if (!code || !*code) {
@@ -207,32 +208,46 @@ inline P3WcsStatus p3_proj_probe(const char* code, std::string* detail) {
         if (detail) *detail = "probe: production request gate rejected: " + why;
         return vst;
     }
-    // 探针几何: 0.5"/px × 64×64（FOV 对角 ~0.0126° ≪ 20° 适用域上界）。
+    // 探针几何: 1.8"/px（0.0005 deg/px）× 64×64 —— **必须落在紧门适用域内**
+    // （scale ≥ min_scale_arcsec = 0.9"/px），否则探针测的是「超出适用域」而非
+    // 合同门；FOV 对角 0.045° ≪ 20° 适用域上界。
     P3WcsDescriptor d{};
     const P3WcsStatus mst =
-        p3_wcs_make(150.0, 2.0, 0.0001389, 64, 64, "east_left", 0.0, &d, code);
+        p3_wcs_make(150.0, 2.0, 0.0005, 64, 64, "east_left", 0.0, &d, code);
     if (mst != P3_WCS_OK) {
         if (detail)
             *detail = "probe: production make rejected (status " +
                       std::to_string(static_cast<int>(mst)) + ")";
         return mst;
     }
+    // 往返证据面 = **密集域扫描**（9 点采样系统性低估最坏值 1.41–5.57×；
+    // GATE-DERIVE-01 §5.1 A6）。
     double max_err_px = 0.0;
-    const P3WcsStatus rst = p3_wcs_roundtrip_max_error_px(&d, &max_err_px);
+    int n_dense = 0;
+    const P3WcsStatus rst =
+        p3_wcs_roundtrip_dense_max_error_px(&d, &max_err_px, &n_dense);
     if (rst != P3_WCS_OK) {
         if (detail) *detail = "probe: roundtrip check failed";
         return rst;
     }
-    // 容差单一事实源 = 适用域声明表（FIX-406 Oracle 冻结；禁在本文件另写字面量）
+    // 容差单一事实源 = 适用域声明表 + 尺度感知门选择（禁在本文件另写字面量）
     const P3WcsApplicability* ap = p3_wcs_applicability(code);
-    if (ap == nullptr || !(ap->roundtrip_tol_px > 0.0)) {
-        if (detail) *detail = "probe: no declared roundtrip tolerance (fail-closed)";
+    if (ap == nullptr) {
+        if (detail) *detail = "probe: no declared applicability domain (fail-closed)";
         return P3_WCS_UNSUPPORTED;
     }
-    if (!(max_err_px < ap->roundtrip_tol_px)) {
+    const P3WcsRoundtripGate gate = p3_wcs_roundtrip_gate(&d);
+    if (gate.status == P3_WCS_RT_GATE_OUT_OF_DOMAIN || !(gate.tol_px > 0.0)) {
         if (detail)
-            *detail = "probe: roundtrip error exceeds contract tolerance " +
-                      std::to_string(ap->roundtrip_tol_px) + " px";
+            *detail = "probe: roundtrip gate out of applicability domain at " +
+                      std::to_string(gate.scale_arcsec_per_px) + " arcsec/px";
+        return P3_WCS_UNSUPPORTED;
+    }
+    if (!(max_err_px < gate.tol_px)) {
+        if (detail)
+            *detail = "probe: roundtrip error exceeds applicable tolerance " +
+                      std::to_string(gate.tol_px) + " px (dense n=" +
+                      std::to_string(n_dense) + ")";
         return P3_WCS_PARAM;
     }
     const std::string kw = p3_wcs_fits_keywords(&d);

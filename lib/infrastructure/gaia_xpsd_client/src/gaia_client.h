@@ -158,6 +158,48 @@ int gaia_client_collect_plan_stats(GaiaClient *client, GaiaPlanStats *out_stats)
  * 调用方；0 表示所有文件声明合法或缺失 (行为与历史一致)。 */
 int gaia_client_get_magnitude_range_reject_count(GaiaClient *client);
 
+/* ═══ FAILCLOSED-01 (GAIA-FAILCLOSED-01): 目录装载/查询的 fail-closed 诊断面 ═══
+ * 背景（根因）: run/WCS-DETERMINISM-01/REPORT.md §1.2 —— gaia_client_create_ex
+ * 对目录里每个 *.xpsd 调 load_xpsd_file, 返回 -1 时**没有 else 分支** ⇒ 装载
+ * 失败的 shard 被静默丢弃（无日志/无计数/create 仍返回非 NULL）。地址空间受限
+ * 时丢掉的恰是唯一含亮星的 shard ⇒ 参考星表静默变成"暗 shard 子集" ⇒
+ * iter_trans_solve 全败（WCS 节点 fail-closed 发生在更下游，原因不可诊断）。
+ *
+ * 现合同（create 侧，fail-closed）:
+ *   ① 目录内任一 *.xpsd 装载失败 ⇒ 逐文件记原因 + 计数 + 枚举结束后
+ *      fprintf(stderr) 明确错误（目录/期望条目数/失败数/首个失败原因）
+ *      + gaia_client_destroy + 返回 NULL；**不返回残缺 client**；
+ *   ② 条目数 > MAX_FILES(32) ⇒ 同样拒绝（截断装载与失败装载同属"不完整星表"）；
+ *   ③ 成功返回的 client 恒满足 file_count == file_entry_count 且
+ *      file_load_fail_count == 0（db_type 过滤导致的跳过单独计数，不算失败）；
+ *   ④ 空目录仍返回非 NULL 的空 client（file_count=0，历史语义不变）；
+ *      上层节点须自行断言 file_count > 0（空星表 fail-closed）。
+ * 现合同（查询侧，fail-closed）: 单星/单叶丢弃（collector 扩容失败 / 叶块解压
+ *   失败 / scratch 分配失败）⇒ 计数 + 告警 + 查询返回 -1 且 out_* 置空；
+ *   **不返回不完整星表**（截断上限 MAX_STARS_RESULT 是文档化契约，不属丢弃）。 */
+typedef struct {
+    int entry_count;        /* 目录内 *.xpsd 条目数（枚举到） */
+    int file_count;         /* 成功装载且 db_type 匹配的 shard 数（= file_count） */
+    int fail_count;         /* load_xpsd_file 返回 -1 的 shard 数 */
+    int db_type_skipped;    /* 装载成功但 db_type 不匹配而关闭的 shard 数 */
+    int max_files_exceeded; /* 条目数 > MAX_FILES（拒绝部分装载） */
+    int dir_open_failed;    /* 目录不可打开（create 返回 NULL） */
+    long long mmap_bytes;   /* 成功装载 shard 的 mmap 字节合计（地址空间需求诊断） */
+    char first_failed_path[1024];
+    char first_failed_reason[192];
+} GaiaCreateDiagnostics;
+
+/* 装载失败的 shard 数。create 成功返回的 client 恒为 0（>0 只出现在拒绝路径的
+ * 诊断快照里）；供上层节点前置条件断言与 G-1 shard 覆盖门使用。 */
+int gaia_client_get_file_load_fail_count(GaiaClient *client);
+/* 目录内 *.xpsd 条目数（枚举到，含装载失败与被 db_type 过滤者）。 */
+int gaia_client_get_file_entry_count(GaiaClient *client);
+/* 最近一次（本线程）create 的诊断快照；返回 0 = 有快照，-1 = 无（out 不改）。 */
+int gaia_client_get_last_create_diagnostics(GaiaCreateDiagnostics *out);
+/* 最近一次 create 失败的人可读原因（目录/期望条目数/失败数/首个失败原因）；
+ * 成功或尚未调用过 create 时返回 NULL。缓冲 thread-local，下次 create 覆盖。 */
+const char *gaia_client_get_last_create_error(void);
+
 /* worker 租借注入：execute 期生效（0=历史默认 OpenMP team，direct 路径不变） */
 void gaia_set_worker_lease(int threads);
 

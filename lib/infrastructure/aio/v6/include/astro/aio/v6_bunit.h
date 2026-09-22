@@ -2,16 +2,16 @@
  *
  * 任务: IMPL-AIO-001 (Wave 5)。写域: lib/infrastructure/aio/v6/。
  * 语义锚 (逐条不得偏离):
- *   FZ-UNIT-SIGNAL-SB   signal_sb          = ADU/px^2
+ *   FZ-UNIT-SIGNAL-SB   signal_sb          = ADU/sr
  *   FZ-UNIT-VAR-IN      pixel_variance_in  = ADU^2
- *   FZ-UNIT-VAR-SB      sb_variance_out    = ADU^2/px^4
- *   FZ-UNIT-IVAR-SB     sb_ivar_out        = px^4/ADU^2
+ *   FZ-UNIT-VAR-SB      sb_variance_out    = ADU^2/sr^2
+ *   FZ-UNIT-IVAR-SB     sb_ivar_out        = sr^2/ADU^2
  *   FZ-UNIT-WINFO       W_info             = ADU^-2
  *   FZ-UNIT-Q           Q                  = ADU^-1
  *   FZ-UNIT-FLUX        flux (F_hat)       = ADU
  *   FZ-UNIT-PSFSW       psfsw_robust_weight= 1 (无量纲)
  *   FZ-P3-BUNIT-QUADRATIC  variance = signal^2; ivar = 1/variance
- *   FZ-BUNIT-SEMANTICS  BUNIT 必须量纲可判: (a) 显式 px 幂次; 或
+ *   FZ-BUNIT-SEMANTICS  BUNIT 必须量纲可判: (a) 显式立体角幂次; 或
  *                       (b) BUNIT=ADU + pixel_semantics=surface_brightness +
  *                           pixel_area_power=-2 + 目标像素面积
  *
@@ -44,8 +44,8 @@ const char* quantity_symbol(Quantity q);
 // 数量 -> 对应冻结条款 id (FZ-UNIT-*)；用于违规可追溯。
 const char* quantity_freeze_id(Quantity q);
 
-// 单位串 -> 幂次 (unit = ADU^adu_power * px^px_power)。解析失败返回 false。
-// 接受: "1", "ADU", "ADU^-2", "ADU/px^2", "ADU^2/px^4", "px^4/ADU^2"。
+// 单位串 -> 幂次 (unit = ADU^adu_power * sr^px_power; px_power 记立体角维幂次)。解析失败返回 false。
+// 接受: "1", "ADU", "ADU^-2", "ADU/sr", "ADU^2/sr^2", "sr^2/ADU^2"。
 struct UnitExponents {
   int adu_power = 0;
   int px_power = 0;

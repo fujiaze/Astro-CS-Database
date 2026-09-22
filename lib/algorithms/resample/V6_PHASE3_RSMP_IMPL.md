@@ -3,8 +3,8 @@
 > 任务：IMPL-P3-RSMP-001（Wave 5，depends_on CONTRACT-FREEZE-001）
 > 写域：`lib/algorithms/resample/`、`eng/tests/unit/v6_rsmp/`（本文件与生产源、共址测试同域）
 > 基线 HEAD：`44e1cb65`（开工时 `git rev-parse HEAD` 复核；未 commit/push）
-> 上位：`docs/algorithms/v6/phase3/ALG-P3-001_{SPEC,KERNEL_REGISTRY,VERIFICATION}.md`、
-> `docs/contracts/v6/frozen/*`、`docs/algorithms/v6/frozen/*`、`docs/science/v6/phase3/PHASE3_PROPAGATION_REVIEW.md`
+> 上位：`docs/algorithms/PHASE3_RESAMPLE.md`、`docs/algorithms/PHASE3_RSMP_IMPL.md`、
+> `docs/contracts/DATA_SEMANTICS.md §31`、`docs/algorithms/GATES_AND_TOLERANCES.md`、`docs/design/PHASE3_DETAILED_DESIGN.md`
 
 ## 1. 生产面
 
@@ -31,7 +31,7 @@
 
 ## 3. 单位（冻结表）
 
-`signal_sb=ADU/px²`、`sb_variance_out=ADU²/px⁴`、`sb_ivar_out=px⁴/ADU²`、`W_info=ADU⁻²`、`Q=ADU⁻¹`、`flux=ADU`、`psfsw=1`、`phase3_var_out=(signal BUNIT)²`。
+`signal_sb=ADU/sr`、`sb_variance_out=ADU²/sr²`、`sb_ivar_out=sr²/ADU²`、`W_info=ADU⁻²`、`Q=ADU⁻¹`、`flux=ADU`、`psfsw=1`、`phase3_var_out=(signal BUNIT)²`。
 
 ## 4. 独立 Oracle 与负向门
 

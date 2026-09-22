@@ -7,10 +7,10 @@
 //
 // 任务: IMPL-P1-DRZ-001 (wave 5, write_scope = lib/infrastructure/aio/healpix_db/)
 // 冻结锚（逐条实现，不得偏离）:
-//   FZ-UNIT-SIGNAL-SB   signal_sb            = ADU/px^2
+//   FZ-UNIT-SIGNAL-SB   signal_sb            = ADU/sr
 //   FZ-UNIT-VAR-IN      pixel_variance_in    = ADU^2
-//   FZ-UNIT-VAR-SB      sb_variance_out      = ADU^2/px^4
-//   FZ-UNIT-IVAR-SB     sb_ivar_out          = px^4/ADU^2
+//   FZ-UNIT-VAR-SB      sb_variance_out      = ADU^2/sr^2
+//   FZ-UNIT-IVAR-SB     sb_ivar_out          = sr^2/ADU^2
 //   FZ-UNIT-WINFO       W_info               = ADU^-2
 //   FZ-UNIT-FLUX        flux F_hat           = ADU
 //   FZ-UNIT-PSFSW       psfsw_robust_weight  = 1 —— **已退役并物理删除**
@@ -41,7 +41,7 @@
 //   FZ-PROV-KCORR / FZ-PROV-MINIMAL-SET
 //       provenance 最小集齐备；k_corr 缺适用域或取 1.0 忽略相关 -> REJECT。
 //   FZ-BUNIT-SEMANTICS
-//       BUNIT 量纲可判：显式 px 幂次，或 BUNIT=ADU 且声明
+//       BUNIT 量纲可判：显式立体角幂次，或 BUNIT=ADU 且声明
 //       pixel_semantics=surface_brightness + pixel_area_power(-2 signal / -4 var)。
 //
 // 本模块不接线任何 session（任务卡：不接线 session）。纯科学核心 + fail-closed
@@ -60,7 +60,7 @@ namespace drizzle {
 // 1. 冻结单位表
 // ---------------------------------------------------------------------------
 
-// 量纲向量：ADU 幂次 × px 幂次（球面立体角等价）。
+// 量纲向量：ADU 幂次 × 立体角幂次（canonical 串写 sr）。
 struct UnitDimension {
     int adu_power = 0;
     int px_power = 0;
@@ -74,9 +74,9 @@ inline bool operator!=(const UnitDimension& a, const UnitDimension& b) {
 }
 
 enum class UnitId {
-    signal_sb,          // ADU/px^2       (FZ-UNIT-SIGNAL-SB)
-    sb_variance_out,    // ADU^2/px^4     (FZ-UNIT-VAR-SB)
-    sb_ivar_out,        // px^4/ADU^2     (FZ-UNIT-IVAR-SB)
+    signal_sb,          // ADU/sr       (FZ-UNIT-SIGNAL-SB)
+    sb_variance_out,    // ADU^2/sr^2     (FZ-UNIT-VAR-SB)
+    sb_ivar_out,        // sr^2/ADU^2     (FZ-UNIT-IVAR-SB)
     pixel_variance_in,  // ADU^2          (FZ-UNIT-VAR-IN)
     w_info,             // ADU^-2         (FZ-UNIT-WINFO)
     flux,               // ADU            (FZ-UNIT-FLUX)
@@ -212,16 +212,16 @@ public:
     double D(uint32_t p) const { return D_p_[p]; }
     const std::vector<OperatorEntry>& row(uint32_t p) const { return rows_[p]; }
 
-    // S_p = Sum_j c_jp x_j   [ADU/px^2]
+    // S_p = Sum_j c_jp x_j   [ADU/sr]
     double signal_sb(uint32_t p, const double* x) const;
 
-    // variance_p = Sum_j c_jp^2 v_j   [ADU^2/px^4]
+    // variance_p = Sum_j c_jp^2 v_j   [ADU^2/sr^2]
     double variance_sb(uint32_t p, const double* v) const;
 
-    // ivar_p = 1 / variance_p   [px^4/ADU^2]
+    // ivar_p = 1 / variance_p   [sr^2/ADU^2]
     double ivar_sb(uint32_t p, const double* v) const;
 
-    // Cov(S_p, S_q) = Sum_j c_jp c_jq v_j   [ADU^2/px^4]
+    // Cov(S_p, S_q) = Sum_j c_jp c_jq v_j   [ADU^2/sr^2]
     double covariance_sb(uint32_t p, uint32_t q, const double* v) const;
 
     // Phi_out = Sum_p S_p D_p   [ADU]
@@ -325,7 +325,7 @@ struct BunitDeclaration {
     std::string pixel_semantics;
     bool has_pixel_area_power = false;
     int pixel_area_power = 0;
-    bool is_canonical_px_power = false; // BUNIT 显式含 px 幂次
+    bool is_canonical_px_power = false; // BUNIT 显式含立体角幂次（串内写 sr）（canonical "sr"）
 };
 GateVerdict gate_bunit_semantics(const BunitDeclaration& signal,
                                  const BunitDeclaration& variance);

@@ -12,10 +12,10 @@
     "phase": 2
    },
    "inputs": {
-    "calibrated": "artifact:cal"
+    "frame_hips": "artifact:p1_hips"
    },
    "outputs": {
-    "coverage": "artifact:coverage"
+    "p2_coverage": "artifact:coverage"
    },
    "resources": {
     "class": "cpu_heavy",
@@ -30,10 +30,10 @@
     "phase": 2
    },
    "inputs": {
-    "coverage": "artifact:coverage"
+    "p2_coverage": "artifact:coverage"
    },
    "outputs": {
-    "samples": "artifact:samples"
+    "p2_samples": "artifact:samples"
    },
    "resources": {
     "class": "cpu_heavy",
@@ -48,10 +48,11 @@
     "phase": 2
    },
    "inputs": {
-    "samples": "artifact:samples"
+    "p2_samples": "artifact:samples"
    },
    "outputs": {
-    "upm_model": "artifact:upm_model"
+    "p2_upm_model": "artifact:upm_model",
+    "p2_sky_plane": "artifact:sky_plane"
    },
    "resources": {
     "class": "cpu_heavy",
@@ -66,11 +67,14 @@
     "phase": 2
    },
    "inputs": {
-    "upm_model": "artifact:upm_model",
-    "calibrated_frames": "artifact:cal"
+    "p2_upm_model": "artifact:upm_model",
+    "p2_sky_plane": "artifact:sky_plane",
+    "p2_coverage": "artifact:coverage",
+    "p2_samples": "artifact:samples",
+    "frame_hips": "artifact:p1_hips"
    },
    "outputs": {
-    "corrected": "artifact:corrected"
+    "p2_corrected": "artifact:corrected"
    },
    "resources": {
     "class": "cpu_heavy",
@@ -85,10 +89,11 @@
     "phase": 2
    },
    "inputs": {
-    "corrected": "artifact:corrected"
+    "p2_corrected": "artifact:corrected",
+    "frame_hips": "artifact:p1_hips"
    },
    "outputs": {
-    "accepted_mask": "artifact:accepted_mask"
+    "p2_rejection": "artifact:rejection"
    },
    "resources": {
     "class": "cpu_heavy",
@@ -103,11 +108,12 @@
     "phase": 2
    },
    "inputs": {
-    "accepted_mask": "artifact:accepted_mask",
-    "corrected": "artifact:corrected"
+    "p2_corrected": "artifact:corrected",
+    "p2_rejection": "artifact:rejection",
+    "frame_hips": "artifact:p1_hips"
    },
    "outputs": {
-    "integrated": "artifact:integrated"
+    "p2_integrated": "artifact:integrated"
    },
    "resources": {
     "class": "cpu_heavy",
@@ -122,10 +128,14 @@
     "phase": 2
    },
    "inputs": {
-    "integrated": "artifact:integrated"
+    "p2_integrated": "artifact:integrated",
+    "p2_coverage": "artifact:coverage",
+    "p2_samples": "artifact:samples",
+    "p2_upm_model": "artifact:upm_model",
+    "p2_rejection": "artifact:rejection"
    },
    "outputs": {
-    "mosaic": "artifact:mosaic"
+    "mosaic_hips": "artifact:mosaic"
    },
    "resources": {
     "class": "io",
@@ -134,6 +144,6 @@
   }
  ],
  "outputs": {
-  "mosaic": "artifact:mosaic"
+  "mosaic_hips": "artifact:mosaic"
  }
 }

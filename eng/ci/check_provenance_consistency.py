@@ -20,7 +20,10 @@ BUNIT=ASTROCS_RELATIVE_FLUX（相对通量）却未应用测光 ⇒ 下游把 AD
         · photscales 为非空对象，键数 == n_frames（若给出），值均为有限正数；
         · photoapplied_artifacts 为非空数组，数量与 photscales 一致；
         · photscale_detail 与 photscales 键集一致，逐帧 fitted==true 且
-          n_matched >= MIN_FIT_STARS（SCI-PHOT-001 §4 冻结门）。
+          n_matched 为非负整数（fitted=true ⇒ n_matched>=1：0 颗内点即无拟合证据）。
+          **星数不作门槛**（SCI-PHOT-001 §16.5「星数不构成拒绝条件」）：星少到
+          §4 求解前提不成立时，生产侧按拟合失败上报（不产出标度），门禁侧只判
+          provenance 自洽，不另立星数判红条件。
       动机（实测 RELEASE-02 L4-rebuild/norm_phot）：11/12 板块声明
       applied=true + photscal=1.0，而该 1.0 是 star_matcher NO_DATA 分支返回的
       **占位值**（日志 "匹配+清洗完成: 0 颗, scale=1.000000e+00"）——
@@ -60,7 +63,6 @@ PRODUCT_GLOBS = ("**/p1_phot.json", "**/manifest.json", "**/*product*.json",
 MAX_FILES = 4000
 RELATIVE_FLUX = "ASTROCS_RELATIVE_FLUX"
 PHOTPROV_SCHEMA = "DATA-P1-PHOTPROV-001"
-MIN_FIT_STARS = 3  # SCI-PHOT-001 §4 冻结门 |r_consistent| >= 3
 
 
 def _neutral_photscal(adapters: str):
@@ -189,11 +191,17 @@ def _photprov_applied_problems(rec):
             if item.get("fitted") is not True:
                 problems.append("photscale_detail[%s].fitted != true"
                                 "（占位/无证据标度不得声明为已应用）" % key)
+            # 星数**不作门槛**（SCI-PHOT-001 §16.5「星数不构成拒绝条件」）：只判
+            # 「有无拟合证据」——n_matched 必须是非负整数，且 fitted=true 时不得为 0
+            # （0 颗内点 = 本次拟合没产出标度，与「已拟合」自相矛盾）。
             n_matched = item.get("n_matched")
             if isinstance(n_matched, bool) or not isinstance(n_matched, int) \
-                    or n_matched < MIN_FIT_STARS:
-                problems.append("photscale_detail[%s].n_matched=%r < %d"
-                                "（SCI-PHOT-001 §4 冻结门）" % (key, n_matched, MIN_FIT_STARS))
+                    or n_matched < 0:
+                problems.append("photscale_detail[%s].n_matched=%r 非非负整数"
+                                "（拟合证据字段缺失/类型错）" % (key, n_matched))
+            elif n_matched < 1:
+                problems.append("photscale_detail[%s].fitted=true 但 n_matched=0"
+                                "（无拟合证据不得声明为已拟合；星数本身不作门槛）" % key)
             if isinstance(scales, dict) and key in scales:
                 k_detail = item.get("k_photo")
                 if not _is_finite_positive_number(k_detail) or \
@@ -298,6 +306,20 @@ _BAD_PHOTPROV_NOFIT = {
     "n_frames": 1, "photscales": {"a": 1.0}, "photoapplied_artifacts": ["/p/a.fits"],
     "photscale_detail": {"a": {"k_photo": 1.0, "n_matched": 0, "fitted": False}},
 }
+# 星数门槛已删（SCI-PHOT-001 §16.5）：少星但有拟合证据 ⇒ **判绿**（不是恒红）。
+_GOOD_PHOTPROV_FEWSTARS = {
+    "schema": PHOTPROV_SCHEMA, "photometry_applied": True, "photscal": 6.272202992543341e-17,
+    "n_frames": 1, "photscales": {"a": 6.272202992543341e-17},
+    "photoapplied_artifacts": ["/p/a.fits"],
+    "photscale_detail": {"a": {"k_photo": 6.272202992543341e-17, "n_matched": 1,
+                                 "fitted": True}},
+}
+# fitted=true 却声明 0 颗内点 ⇒ 自相矛盾（无拟合证据），仍须判红。
+_BAD_PHOTPROV_CONTRADICT = {
+    "schema": PHOTPROV_SCHEMA, "photometry_applied": True, "photscal": 1.0,
+    "n_frames": 1, "photscales": {"a": 1.0}, "photoapplied_artifacts": ["/p/a.fits"],
+    "photscale_detail": {"a": {"k_photo": 1.0, "n_matched": 0, "fitted": True}},
+}
 
 
 def _write_fixture(root: pathlib.Path, records, entries=None, source_ok=True):
@@ -342,6 +364,13 @@ def _selftest() -> int:
         d_pb_red2 = base / "photprov_red2"
         _write_fixture(d_pb_red2, [_BAD_PHOTPROV_NOFIT])
         cases.append(("red_photprov_nofit", True, d_pb_red2))
+        # 星数门槛删除的判别力：少星 + 有证据 ⇒ 绿；fitted=true 但 0 内点 ⇒ 红。
+        d_pb_few = base / "photprov_fewstars"
+        _write_fixture(d_pb_few, [_GOOD_PHOTPROV_FEWSTARS])
+        cases.append(("green_photprov_fewstars", False, d_pb_few))
+        d_pb_con = base / "photprov_contradict"
+        _write_fixture(d_pb_con, [_BAD_PHOTPROV_CONTRADICT])
+        cases.append(("red_photprov_zero_inliers", True, d_pb_con))
         d_led = base / "ledgered"
         _write_fixture(d_led, [_BAD_NEUTRAL, _GOOD_APPLIED],
                        entries=[{"id": "provenance:eng/ci/fixtures/provenance/prod_product.json:[0]",

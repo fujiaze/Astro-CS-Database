@@ -55,9 +55,9 @@ double raw_c(const DrizzleOperator& op, uint32_t p, const OperatorEntry& e) {
 
 const FrozenUnit& frozen_unit(UnitId id) {
     static const FrozenUnit table[] = {
-        {UnitId::signal_sb,           "ADU/px^2",   {1, -2}},
-        {UnitId::sb_variance_out,     "ADU^2/px^4", {2, -4}},
-        {UnitId::sb_ivar_out,         "px^4/ADU^2", {-2, 4}},
+        {UnitId::signal_sb,           "ADU/sr",   {1, -2}},
+        {UnitId::sb_variance_out,     "ADU^2/sr^2", {2, -4}},
+        {UnitId::sb_ivar_out,         "sr^2/ADU^2", {-2, 4}},
         {UnitId::pixel_variance_in,   "ADU^2",      {2, 0}},
         {UnitId::w_info,              "ADU^-2",     {-2, 0}},
         {UnitId::flux,                "ADU",        {1, 0}},

@@ -21,7 +21,7 @@
   - `dense`（稠密面，精度基准）/ `sparse_reconstruct`（**默认**：由稀疏层重建稠密）/ `frame_reconstruct`（帧级重建稠密）；三条口径都直接产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示；
   - `sparse_reconstruct` 且输入**有**稀疏层 → 由稀疏**绝对** SNR 控制点**直接重建**出稠密 `SNR(x,y)`（控制点值即绝对信噪比本身，**不乘帧级标量**），参与科学运算；
   - 输入**无**稀疏层而路径为默认/`sparse_reconstruct` → 按帧级执行并**显式记录实际路径**（`snr_path_effective=frame_reconstruct` + 计数），**不得静默**；稀疏层存在但损坏/不可重建 → 明确失败（§7）；
-  - 三条路径**没有全局最优、只有适用域**：完整适用域图谱由 `实验/absolute-snr` 给出（最高设计 §5.3）。
+  - 三条路径**没有全局最优、只有适用域**：完整适用域图谱由 `实验/absolute-snr` 给出（最高设计 §5.3）；其中 **HST 类高对比域的结论与重建算子绑定**（双线性/默认算子下帧级更优，`..._mesh_median_v1` 下稀疏更优），判据与 Δ\* 见 `07_noise_snr.md` §4.2/§4.5。
   - **逆方差叠加**：每个天球像素接收多个源像素输入，用每个源像素的 SNR 计算对应权重（SNR → 逆方差权重），得到最优检测/测光功率——**不是直接用 SNR 加权**。
 - **输出**（同一马赛克包可含多个明确产品族）：
   1. `surface_brightness`：signal（面亮度量纲，写端口 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）、variance、correlation、effective PSF；
@@ -34,7 +34,9 @@
 
 ### 4.0 SNR 重建与逆方差权重
 
-- `sparse_reconstruct`（默认）→ 由稀疏**绝对** SNR 控制点重建为稠密 `SNR(x,y)`（重建算子与误差入 manifest；控制点值是绝对量本身，**不乘/不除帧级标量**）；
+- `sparse_reconstruct`（默认）→ 由稀疏**绝对** SNR 控制点重建为稠密 `SNR(x,y)`（控制点值是绝对量本身，**不乘/不除帧级标量**）；
+  - **重建算子由层显式声明**（`sparse_snr_layer.reconstruction_operator`，冻结词表：默认 `natural_bicubic_spline_clip_v1`（自然边界双三次样条 + 值域钳制）、高对比域 `natural_bicubic_spline_clip_mesh_median_v1`、对照/回退 `bilinear_regular_grid_v1`、散点 `nearest_control_point_v1`）；实际生效算子标识与重建误差入 manifest（`SparseReconstruction.operator_id` / `node_reproduction_max_abs`）；未识别标识或声明与层形态不符 ⇒ fail-closed；
+  - **层几何**：控制点坐标是像素中心坐标，规则网格下落在所属 cell 中心；定义域 = 层覆盖的 cell 并集，越出即 fail-closed（不外推、不回退帧级）。算子定义、钳制必要性、mesh 滤波开关的按域规则与几何约定正本见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5；
 - `frame_reconstruct` → 帧级 SNR 重建/直接参与（等权重面）；
 - 路径由配置显式选择（默认 `sparse_reconstruct`），是 Phase2 **标准行为**；无稀疏层时按帧级执行并**显式记录实际路径**（不静默）；
 - **逆方差叠加**：每个天球像素的多个源像素输入，由各自 SNR 计算对应权重（SNR → 逆方差权重），非直接 SNR 加权；

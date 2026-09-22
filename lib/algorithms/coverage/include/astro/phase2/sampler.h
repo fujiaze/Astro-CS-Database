@@ -182,8 +182,10 @@ P2_API int p2_sample_controls_cached(
 //   SO-07（PENDING_OWNER_SIGNOFF）: 残差/趋势与功率损失阈值数值待签，
 //       本实现不自行定值；调用方未显式声明阈值即 fail-closed。
 // ---------------------------------------------------------------------------
-// 单位（冻结表，不在此重定义）：signal_sb=ADU/px^2、sb_variance_out=
-// ADU^2/px^4、W_info=ADU^-2、Q=ADU^-1、flux=ADU、psfsw_robust_weight=1。
+// 单位（冻结表，不在此重定义）：signal_sb=ADU/sr、sb_variance_out=
+// ADU^2/sr^2、W_info=ADU^-2、Q=ADU^-1、flux=ADU。
+// 历史单位项 psfsw_robust_weight=1 随该对象退役（ASTROCS_DESIGN.md §3.1；
+// UNIFIED_MODEL.md:58）：本求值器不消费也不接受该对象。
 // 求值器按调用方声明的量求值，不改变单位、不发明权重、不把值当 variance。
 // 值必须来自 Phase1 模型；缺失/NaN 一律 fail-closed，禁止零填。
 // ===========================================================================

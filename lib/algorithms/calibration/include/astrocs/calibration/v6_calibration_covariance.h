@@ -22,10 +22,10 @@
  *           共享项不可表示且无系统误差预算 -> unavailable。
  *
  * 权威锚（冻结，不得偏离）:
- *   docs/algorithms/v6/phase1/ALG_P1_001_PHASE1_ALGORITHM_SPEC.md §2
- *   docs/science/v6/frozen/01_SEMANTIC_FREEZE.md  FZ-PROV-SHARED-SYSTEMATIC /
+ *   docs/algorithms/CALIBRATION_ALGORITHMS.md
+ *   docs/contracts/DATA_SEMANTICS.md  FZ-PROV-SHARED-SYSTEMATIC /
  *       FZ-FORMULA-COV-PROP / FZ-CAL-FLOOR / FZ-CAL-QUANTUM-DEFAULT
- *   docs/contracts/v6/data/03_covariance.md ; 01_units_and_bunit.md
+ *   docs/contracts/DATA_SEMANTICS.md §31.6 ; 01_units_and_bunit.md
  *   reports/v6/contract-review/04_OPEN_ITEMS_AND_SIGNOFF.md  DI-03 (OPEN, fail-closed)
  *
  * 单位（冻结）: light/master signal = ADU ; variance = ADU^2 ;
@@ -288,7 +288,7 @@ struct CovarianceRecord {
 };
 
 /* 从 CalResult 组装 covariance.v1 记录（字段名对齐
- * eng/contracts/proposals/v6/data/astrocs.v6.covariance.v1.schema.json）。 */
+ * eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/covariance）。 */
 CovarianceRecord make_calibration_covariance_record(const CalResult& result);
 
 bool is_forbidden_variance_source(const std::string& token);

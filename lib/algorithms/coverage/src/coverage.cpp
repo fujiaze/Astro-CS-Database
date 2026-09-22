@@ -279,7 +279,7 @@ int p2_coverage_free(P2CoverageResult* out) {
 
 // ===========================================================================
 // V6 目标态：coverage/support 区分、确定性边界与权重角色门
-// 冻结锚见 coverage.h V6 节；语义源 = docs/contracts/v6/frozen/
+// 冻结锚见 coverage.h V6 节；语义源 = docs/contracts/DATA_SEMANTICS.md §31
 // astrocs.v6.contract-freeze.v1.json。禁止零填、禁止权重冒充。
 // ===========================================================================
 
@@ -366,38 +366,39 @@ int p2_deterministic_reduction_order(const std::uint64_t* ipix_in,
 
 namespace {
 
-// ── RETIRED-CODE-RETAINED (ENGINEERING_SPEC §2 保留则注释) ─────────────
-// WHAT:       psfsw 残留面（GAP_AUDIT G2-2 点名的 coverage.cpp:376 / :425 / :430）：
-//             ① :376 冻结 forbidden.weight_source_tokens 里的 "psfsw_robust_weight" / "psfsw"；
-//             ② :425/:430 p2_weight_mode_check 把 "psfsw_robust" 列为生产 weight_mode。
-// WHY-KEPT:   这两处不是无主死代码，而是**冻结合同的在役执行面**：
-//             语义源 = docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json:196-197
-//             （forbidden.weight_source_tokens）与 :73-77（weight_modes.production 含 psfsw_robust），
-//             且被 eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp:148-216 逐项锁定。
-//             统一对象 psfsw_robust_weight 已退役（14→13，eng/contracts/schemas/unified/ 现存 13 个
-//             对象 + port_contract.schema.json）、weight_modes 概念已按 §9.73 裁决 A44 作废
-//             （frozen 文件 :72/:218 的 _a44_deprecation_note），但**冻结合同层与 docs/**
-//             属 DOC-402 域、eng/contracts/** 不属本任务域**；本任务按硬规则「不动 SCI/ALG 冻结
-//             定义」，不得单方面收窄该表（收窄会让 psfsw 重新成为合法权重来源 = 放宽科学门）。
-// STATUS:     非产品目标态、但仍是生产可达的合同门：p2_weight_mode_check /
-//             p2_weight_source_token_reject 由 lib/algorithms/integration/v6/src/phase2_integrate.cpp:1811,1814
-//             调用，并在 astrocs_p3_projection_wcs 之外的 coverage target 内编译。
-//             退役对象 canonical psfsw_robust_weight 已由 port_contract enum 显式拒绝
-//             （eng/contracts/schemas/unified/port_contract.schema.json:15,21 + 负例 n5）。
-// EXIT:       删除（ENGINEERING_SPEC §2 第 1 种处置），需同批完成：
-//             ① DOC-402 把 docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json 的
-//                forbidden.weight_source_tokens 与 weight_modes 两段整体退役（含 A44 留痕）；
-//             ② 同提交收缩 eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp 与
-//                lib/algorithms/coverage/include/astro/phase2/coverage.h:149-165 的声明；
-//             ③ 确认 phase2_integrate.cpp 的调用点不再需要该门（或改指新门）。
-//             条件 ① 完成前删除本分支 = 擅自放宽冻结科学门，禁止。
-// AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）/§3（科学代码红线：
-//             不动冻结定义）；工程控制/RELEASE-04/GAP_AUDIT.md G2-2；
-//             docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json:72,196-197,218；
+// ── RETIRED-OBJECT-REJECT (PSFSW-RETIRE-01；ENGINEERING_SPEC §2 保留则注释) ──
+// WHAT:       psfsw 相关面在本文件的处置（GAP_AUDIT G2-2 曾点名 :376 / :425 / :430）：
+//             ① 冻结 forbidden.weight_source_tokens 里的 "psfsw_robust_weight" / "psfsw"
+//                —— **保留不动**：这是退役对象的**显式拒绝面**（旧产品把该对象写进
+//                weight.sources / variance_from ⇒ rc=1 + token 名）。删除即变成静默接受。
+//             ② p2_weight_mode_check 的生产模式 allowed 集合 —— **按负责人裁决收窄**为
+//                {point_information, surface_gls}；"psfsw_robust" 不再被接受，改走显式
+//                拒绝 + 迁移提示（FZ-MODE-RETIRED，err 含被拒 mode 与允许集）。
+// WHY:        负责人裁决（原话）：「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于
+//             参考帧。而是绝对标定。」⇒ 受 PixInsight PSFSW 启发的稳健复合帧权重
+//             psfsw_robust_weight **不是现行对象**：ASTROCS_DESIGN.md §3.1（订正后）
+//             「权重只能来自纯净信号与噪声之比……任何使偏差随帧而变的量（含 PSF 拟合
+//             质量代理）都不得进入科学叠加权重」；docs/design/UNIFIED_MODEL.md:58；
+//             docs/science/PSF_SIGNAL_WEIGHT.md §1/§4（§4 选择表已移除 psfsw_robust 行，
+//             仅剩 point_information / psf_snr_power(DEFERRED) / surface_gls）；
+//             统一对象退役登记 eng/contracts/data/unified_object_compatibility_map_v1.json:133-143。
+//             本注释块原以「冻结合同 weight_modes.production 含 psfsw_robust」为由拒绝收窄；
+//             该冻结段与 weight_modes 概念的语义源已被上述裁决取代（§9.73 A44 作废留痕），
+//             且收窄 allowed 集合是**收紧**科学门（不是放宽），故按裁决执行。
+// STATUS:     生产可达的合同门：p2_weight_mode_check / p2_weight_source_token_reject
+//             由 lib/algorithms/integration/v6/src/phase2_integrate.cpp:1811,1814 调用，
+//             并在 coverage target 内编译。
+// EXIT:       无（①是拒绝面，必须保留；②已按裁决收窄，无需再动）。
+//             遗留待办（不属本任务域）：docs/contracts/DATA_SEMANTICS.md §31 的
+//             weight_modes.production 段仍含 psfsw_robust（DOC-402 域），以及
+//             eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp:191-196 仍锁定旧 allowed 集合。
+// AUTHORITY:  ASTROCS_DESIGN.md §3.1（订正后）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4；
+//             docs/design/UNIFIED_MODEL.md:58；ENGINEERING_SPEC.md §2/§3；
 //             eng/contracts/data/unified_object_compatibility_map_v1.json:133-143（14→13 退役登记）。
 // ──────────────────────────────────────────────────────────────────────
 // 冻结 forbidden.weight_source_tokens（大小写不敏感全等匹配）。
-// 语义源 = docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json。
+// 语义源 = eng/contracts/data/v6_clause_registry_v1.json；
+// 其中 psfsw_robust_weight/psfsw 两项按退役对象拒绝面保留（见上）。
 const char* const kForbiddenWeightSourceTokens[] = {
     "median_source_snr", "median_snr", "source_snr_median", "med_source_snr",
     "support", "support_area", "coverage", "coverage_area",
@@ -435,11 +436,24 @@ int p2_weight_source_token_reject(const char* const* tokens, std::uint64_t n,
         for (std::size_t j = 0; j < n_forbidden; ++j) {
             if (ascii_ieq(t, kForbiddenWeightSourceTokens[j])) {
                 if (err != nullptr && err_size > 0) {
-                    std::snprintf(err, err_size,
-                                  "forbidden weight source token '%s' "
-                                  "(FZ-GATE-SUPPORT-COVERAGE / FZ-GATE-MEDIAN-SNR / "
-                                  "FZ-FIELD-WEIGHTMODE: diagnostics are not weights)",
-                                  kForbiddenWeightSourceTokens[j]);
+                    // 退役对象与"诊断量冒充权重"分开报出（可诊断 + 迁移提示）：
+                    // psfsw_robust_weight 连对象都不存在（不是"质量代理"）。
+                    if (ascii_ieq(kForbiddenWeightSourceTokens[j], "psfsw_robust_weight")) {
+                        std::snprintf(err, err_size,
+                                      "forbidden weight source token '%s' "
+                                      "(FZ-MODE-RETIRED: not a current object - "
+                                      "ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58; "
+                                      "migration: Phase2 derives frame weights from frame "
+                                      "SNR (1/sigma_F^2); allowed: "
+                                      "point_information|surface_gls)",
+                                      kForbiddenWeightSourceTokens[j]);
+                    } else {
+                        std::snprintf(err, err_size,
+                                      "forbidden weight source token '%s' "
+                                      "(FZ-GATE-SUPPORT-COVERAGE / FZ-GATE-MEDIAN-SNR / "
+                                      "FZ-FIELD-WEIGHTMODE: diagnostics are not weights)",
+                                      kForbiddenWeightSourceTokens[j]);
+                    }
                 }
                 return 1;
             }
@@ -452,13 +466,27 @@ int p2_weight_mode_check(const char* mode, char* err, std::size_t err_size) {
     if (mode == nullptr || *mode == '\0') {
         set_p2_err(err, err_size,
                    "weight_mode: missing (production modes are explicit: "
-                   "point_information|surface_gls|psfsw_robust)");
+                   "point_information|surface_gls)");
         return 1;
     }
-    // 冻结 production 模式（FZ-MODE-PRODUCTION）。
-    if (ascii_ieq(mode, "point_information") || ascii_ieq(mode, "surface_gls") ||
-        ascii_ieq(mode, "psfsw_robust")) {
+    // production 科学模式（FZ-MODE-PRODUCTION）：allowed = {point_information,
+    // surface_gls}。与 docs/science/PSF_SIGNAL_WEIGHT.md §4 订正后的选择表一致。
+    if (ascii_ieq(mode, "point_information") || ascii_ieq(mode, "surface_gls")) {
         return 0;
+    }
+    // 退役对象（FZ-MODE-RETIRED）：psfsw_robust_weight 不是现行对象
+    // （ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58）⇒ 显式拒绝 + 迁移提示。
+    // 不得静默接受、不得回退成默认模式；err 必须含被拒 mode 与允许集。
+    if (ascii_ieq(mode, "psfsw_robust")) {
+        set_p2_err(err, err_size,
+                   "weight_mode 'psfsw_robust' rejected (FZ-MODE-RETIRED): "
+                   "psfsw_robust_weight is not a current object "
+                   "(ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+                   "allowed production modes = point_information|surface_gls; "
+                   "migration: point_information (W_info=1/Var(F_hat)) for point "
+                   "sources, surface_gls (A^T C^-1 A) for extended sources; "
+                   "PSF quality proxies (FWHM/residual) are diagnostics only");
+        return 1;
     }
     // 冻结 documented baseline（FZ-MODE-BASELINE）：可识别，非生产，不得声最优。
     if (ascii_ieq(mode, "equal") || ascii_ieq(mode, "pixel_ivar")) {
@@ -471,13 +499,13 @@ int p2_weight_mode_check(const char* mode, char* err, std::size_t err_size) {
     if (ascii_ieq(mode, "0") || ascii_ieq(mode, "1") || ascii_ieq(mode, "2")) {
         set_p2_err(err, err_size,
                    "legacy integer weight_mode superseded (FZ-FIELD-WEIGHTMODE); "
-                   "use explicit point_information|surface_gls|psfsw_robust");
+                   "use explicit point_information|surface_gls");
         return 1;
     }
     // psf_snr_power / auto / support_x_snr2 / 未知值。
     set_p2_err(err, err_size,
                "forbidden or unknown production weight_mode (FZ-MODE-PRODUCTION / "
-               "FZ-MODE-DEFERRED): only point_information|surface_gls|psfsw_robust");
+               "FZ-MODE-DEFERRED): only point_information|surface_gls");
     return 1;
 }
 

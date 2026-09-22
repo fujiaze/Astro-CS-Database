@@ -214,3 +214,49 @@ set_tests_properties(p1star_angle_guard PROPERTIES
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
   TIMEOUT 10
   PASS_REGULAR_EXPRESSION "SDET_ANGLE_GUARD: PASS")
+
+# ----------------------------------------------------------------------------
+# STARDET-01：星表引导检测（权威路径）判据 —— sdet_detect_guided_ex_f64
+# 规范锚 ASTROCS_DESIGN.md §4.2/§2.1 + docs/plugins/algorithms_phase1/
+# 03_star_detection.md §4：检测定义域 = 星表位置，只对该位置做质心/PSF 拟合，
+# 失败直接丢弃（不计虚警、不报错）；全图盲检测降级为诊断/初值路径（保留）。
+# 被测源 = 与 p1star_tests 同一 ${SDET_SRC} 生产 TU 集（生产源零改动）。
+# 判据 G1..G7 见 p1star_guided_test.cpp 抬头；阈值只引用既有冻结条款。
+# ----------------------------------------------------------------------------
+add_executable(p1star_guided_test
+  ${P1STAR_DIR}/p1star_guided_test.cpp
+  ${SDET_SRC})
+target_include_directories(p1star_guided_test PRIVATE
+  ${SDET_GSL_INCLUDE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${SDET_SRC_DIR}
+  ${P1STAR_DIR})
+target_link_libraries(p1star_guided_test PRIVATE ${SDET_GSL_LINK})
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(p1star_guided_test PRIVATE OpenMP::OpenMP_CXX)
+endif()
+add_test(NAME p1star_guided COMMAND p1star_guided_test)
+set_tests_properties(p1star_guided PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
+  TIMEOUT 300
+  PASS_REGULAR_EXPRESSION "P1STAR GUIDED PASS")
+# ----------------------------------------------------------------------------
+# STARDET-01 节点级门：star-psf 节点星表引导检测（权威路径）fail-closed 与
+# "不得静默降级"。被测面 = p1_op_star_psf_precise_json（进程内直调测试钩子,
+# 不启动 astrocs CLI）。判据 N1..N9b 见测试抬头。
+# 需要 gaia 外部只读数据集（gaia/GaiaDR3）的用例在缺失时打印 SKIP 并汇总。
+# ----------------------------------------------------------------------------
+add_executable(p1stardet_node_gate_test
+  ${P1STAR_DIR}/p1stardet_node_gate_test.cpp)
+target_include_directories(p1stardet_node_gate_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../../../phase1_session/tests/p1sess
+  ${P1STAR_DIR})
+target_compile_definitions(p1stardet_node_gate_test PRIVATE
+  P1STARDET_REPO_ROOT="${CMAKE_SOURCE_DIR}")
+target_link_libraries(p1stardet_node_gate_test PRIVATE
+  astrocs_module_adapters astrocs_core astrocs_phase1_session)
+add_test(NAME p1stardet_node_gate COMMAND p1stardet_node_gate_test)
+set_tests_properties(p1stardet_node_gate PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/run
+  TIMEOUT 900
+  PASS_REGULAR_EXPRESSION "P1STARDET NODE GATE PASS")
