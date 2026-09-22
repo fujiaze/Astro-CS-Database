@@ -8,8 +8,11 @@
 覆盖：
   T1 历史键自证防线：MODULE_MAP 的 23 条 legacy_paths 都不得等于/落在自己的
      target_dir 之下（迁移清单外的同名历史面除外，见 NOT_MIGRATED）。
-  T2 check_module_map 负例：把 legacy_paths 写回现存 target_dir ⇒ 必报
-     legacy_paths_present；正例：真实仓库 23/23 且真实 FAIL 数 > 0（不为绿放宽）。
+  T2 check_module_map 注入探测：把 legacy_paths 写回现存 target_dir ⇒ 必被观测为
+     legacy_paths_present（MODULE_MAP.yaml 头注第 21-22 行的「历史键不得自证」），
+     且该 finding 是 **NOTE 级**（检查器 FINDING_SEVERITY 表；头注第 16 行「任一 FAIL 级
+     finding → exit 1」），故 rc 不得因它变化。断言只认「本用例注入项 + 本用例 rc 差」，
+     不认仓库里恰好存在的其它红灯（曾因此长期假绿）。
   T3 eng/tools/check_module_readmes.py 正例 rc=0 / 负例（README 路径指向不存在文件）rc=1。
   T4 eng/tools/check_warning_suppression.py 正例 rc=0 / 负例（生产源注入 -w 抑制）rc=1。
      ⚠ ARCH-001 前该检查器读旧路径全空 ⇒ static_scan 恒空跑（假绿）；本测试钉死
@@ -22,6 +25,7 @@
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import pathlib
@@ -101,6 +105,31 @@ class TestModuleMapLegacyPathsCannotSelfCertify(unittest.TestCase):
     def setUpClass(cls):
         cls.doc = yaml.safe_load((REPO / "docs/modules/MODULE_MAP.yaml").read_text(encoding="utf-8"))
 
+    @staticmethod
+    def _fixture_module():
+        """按路径加载检查器的合成 fixture 构造器（不依赖包结构/__init__.py）。"""
+        path = REPO / "eng/tools/quality/fixtures/module_map_fixture.py"
+        spec = importlib.util.spec_from_file_location("mod002_module_map_fixture", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+
+    @staticmethod
+    def _build_fixture(root: pathlib.Path) -> pathlib.Path:
+        """合成仓库：正例（7 项面全部物化、缺口表为空）。
+
+        用合成树而不是真实仓库做注入，是为了让「本用例的判据」与仓库里其它面的红绿
+        完全解耦——这正是本文件此前假绿的根因（见 t02 docstring）。
+        """
+        return TestModuleMapLegacyPathsCannotSelfCertify._fixture_module().build_repo(root)
+
+    @staticmethod
+    def _run_checker(root: pathlib.Path, out: pathlib.Path):
+        """跑检查器，返回 (rc, json)；json 是「本用例专属」的可观测量来源。"""
+        proc = run([PY, "eng/tools/quality/check_module_map.py",
+                    "--repo-root", str(root), "--json-out", str(out), "--quiet"])
+        return proc.returncode, json.loads(out.read_text(encoding="utf-8"))
+
     def test_t01_legacy_paths_never_inside_own_target_dir(self):
         self.assertEqual(len(self.doc["modules"]), 23)
         bad = []
@@ -125,40 +154,165 @@ class TestModuleMapLegacyPathsCannotSelfCertify(unittest.TestCase):
                     bad.append((m["id"], p))
         self.assertEqual(bad, [], "迁移清单内的 legacy 路径仍存在（应已迁走）：%s" % bad)
 
-    def test_t02_restoring_self_referential_legacy_path_is_reported(self):
-        """负例：legacy_paths 写回现存 target_dir ⇒ 门必须报 legacy_paths_present。"""
-        with tempfile.TemporaryDirectory(prefix="mod002-map-") as td:
-            tmp = pathlib.Path(td)
-            src = (REPO / "docs/modules/MODULE_MAP.yaml").read_text(encoding="utf-8")
-            mutated = src.replace("    legacy_paths: [lib/calibration]",
-                                  "    legacy_paths: [lib/algorithms/calibration]", 1)
-            self.assertNotEqual(src, mutated, "变异未生效：映射表缺 calibration legacy_paths 锚")
-            bad_map = tmp / "MODULE_MAP.yaml"
-            bad_map.write_text(mutated, encoding="utf-8")
-            out = tmp / "bad.json"
-            proc = run([PY, "eng/tools/quality/check_module_map.py",
-                        "--repo-root", str(REPO), "--map", str(bad_map),
-                        "--json-out", str(out), "--quiet"])
-            data = json.loads(out.read_text(encoding="utf-8"))
-            codes = {f["code"] for f in data["findings"] if f["module"] == "calibration"}
-            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
-            self.assertIn("legacy_paths_present", codes,
-                          "把现存 target_dir 写进 legacy_paths 必须被报出")
+    def test_t02_self_referential_legacy_path_is_observed_but_never_fails(self):
+        """注入：legacy_paths 写回现存 target_dir ⇒ 必须被观测（NOTE），且不得抬 rc。
 
-    def test_t03_real_repo_map_still_reports_honestly(self):
-        """正例：真实仓库 + 真实映射表可跑通，23/23 与真实 FAIL 数如实给出。"""
+        守的是「历史键不得退化成自证」这条**可观测性**不变量 + 「该 finding 属提示级、
+        不是失败级」这条**严重度**不变量（MODULE_MAP.yaml 头注第 16/21-22 行；
+        check_module_map.py 的 FINDING_SEVERITY 把 legacy_paths_present 与
+        not_verified / schema_link_glob_unverifiable 同列为 NOTE）。
+
+        为什么不再断言 rc==1：rc 是**聚合量**——任何与本注入无关的 FAIL 级 finding 都能
+        把它抬到 1，于是「rc==1」既会被无关红灯假绿（曾长期如此），也无法证明本注入被看见。
+        这里只认两个本用例专属的可观测量：注入项本身、以及注入前后的 rc / FAIL 级条数差。
+        """
+        with tempfile.TemporaryDirectory(prefix="mod002-selfref-") as td:
+            tmp = pathlib.Path(td)
+            root = self._build_fixture(tmp / "base")
+            base_rc, base = self._run_checker(root, tmp / "base.json")
+            self.assertNotIn("legacy_paths_present",
+                             {f["code"] for f in base["findings"]},
+                             "夹具基线不得已带自指 legacy 登记")
+
+            root2 = self._build_fixture(tmp / "inject")
+            mp = root2 / "docs/modules/MODULE_MAP.yaml"
+            doc = yaml.safe_load(mp.read_text(encoding="utf-8"))
+            m0 = doc["modules"][0]
+            self.assertIn("legacy_paths", m0, "注入锚失效：映射表首行无 legacy_paths 键")
+            m0["legacy_paths"] = [str(m0["target_dir"])]   # 自指：历史键退化为自证
+            mp.write_text(yaml.safe_dump(doc, allow_unicode=True, sort_keys=False),
+                          encoding="utf-8")
+            inj_rc, injected = self._run_checker(root2, tmp / "inject.json")
+
+            hits = [f for f in injected["findings"] if f["code"] == "legacy_paths_present"]
+            self.assertEqual([(h["module"], h["severity"]) for h in hits],
+                             [(str(m0["id"]), "NOTE")],
+                             "把现存 target_dir 写进 legacy_paths 必须被观测为 NOTE 级 finding；"
+                             "rc=%s" % inj_rc)
+            self.assertEqual(inj_rc, base_rc,
+                             "legacy_paths_present 是 NOTE 级（不参与 fail-closed），"
+                             "注入不得改变 rc")
+            self.assertEqual(injected["summary"]["fail_findings"],
+                             base["summary"]["fail_findings"],
+                             "注入自指 legacy 路径不得新增 FAIL 级 finding")
+
+    def test_t03_real_ledger_and_checker_stay_honest(self):
+        """真实台账 + 检查器必须仍然「诚实且判据活着」——不许为绿放宽，也不靠别人的红灯。
+
+        原断言是 fail_findings > 0（「真实仓库仍应是红灯」）：那不是不变量而是**状态快照**，
+        任何一处合法修复都会让它失效；更糟的是它把「与本用例无关的其它红灯」当护栏
+        （那条陈旧登记一旦合法清除，本用例立刻转红——而它守的东西从来没被验证过）。
+
+        本用例改守四条**与仓库红绿无关**的不变量，外加两条判别力负例（注入必红）：
+          A 合成正例可绿（判据可达，不是靠放宽换来的）；
+          B 注入「未登记假路径」/「陈旧能力登记」⇒ 必须判红并报出对应 FAIL（判别力证明）；
+          C 真实台账棘轮：declared_absent_paths 登记的缺口今天必须仍然缺失、
+            且 legacy_paths 一律不在树中（历史键不得退化成自证）；
+          D 机器报告计数自洽：summary 各计数 == findings 数组实际分布，
+            台账条数 == registered_gaps == GAP 级条数，且 GAP 条目全部来自两份台账；
+          E 真实仓库无假路径、无陈旧登记（有则检查器必然判红，不存在「静默转绿」）。
+        """
         with tempfile.TemporaryDirectory(prefix="mod002-map-real-") as td:
-            out = pathlib.Path(td) / "real.json"
-            proc = run([PY, "eng/tools/quality/check_module_map.py",
-                        "--json-out", str(out), "--quiet"])
-            data = json.loads(out.read_text(encoding="utf-8"))
-            self.assertEqual(data["summary"]["modules_total"], 23)
-            self.assertEqual(data["summary"]["ids_unique"], 23)
-            self.assertGreater(data["summary"]["fail_findings"], 0,
-                               "真实仓库仍应是红灯（不得为绿放宽判据）")
-            legacy_notes = [f for f in data["findings"] if f["code"] == "legacy_paths_present"]
-            self.assertLessEqual(len(legacy_notes), 2)
-            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            tmp = pathlib.Path(td)
+            real_rc, data = self._run_checker(REPO, tmp / "real.json")
+
+            # --- A 合成正例可绿（判据可达） ---
+            pos_rc, pos = self._run_checker(self._build_fixture(tmp / "pos"), tmp / "pos.json")
+            self.assertEqual(pos_rc, 0,
+                             "合成正例必须绿（判据可达性）：%s" % pos["summary"])
+            self.assertEqual(pos["summary"]["fail_findings"], 0)
+
+            # --- B 判别力负例：注入未登记的假路径 ⇒ 必红 ---
+            root = self._build_fixture(tmp / "fakepath")
+            mp = root / "docs/modules/MODULE_MAP.yaml"
+            doc = yaml.safe_load(mp.read_text(encoding="utf-8"))
+            m0 = doc["modules"][0]
+            self.assertIn("readme", m0, "注入锚失效：映射表首行无 readme 键")
+            m0["readme"] = str(m0["target_dir"]) + "/README_GONE_FOR_NEGATIVE_TEST.md"
+            mp.write_text(yaml.safe_dump(doc, allow_unicode=True, sort_keys=False),
+                          encoding="utf-8")
+            bad_rc, bad = self._run_checker(root, tmp / "fakepath.json")
+            self.assertEqual(bad_rc, 1,
+                             "未登记的假路径必须判红（判据被放宽 = 假绿）")
+            self.assertEqual(
+                [(f["module"], f["code"]) for f in bad["findings"] if f["severity"] == "FAIL"],
+                [(str(m0["id"]), "fake_path")],
+                "未登记假路径必须报 FAIL(fake_path)")
+
+            # --- B2 判别力负例：陈旧能力登记（登记了却不再出现）⇒ 必红 ---
+            stale = self._fixture_module().build_repo(tmp / "capstale",
+                                                      mutation="capability_stale")
+            stale_rc, stale_data = self._run_checker(stale, tmp / "capstale.json")
+            self.assertEqual(stale_rc, 1, "陈旧缺口登记必须判红（棘轮反向自证）")
+            self.assertIn("stale_declared_absent_capability",
+                          {f["code"] for f in stale_data["findings"] if f["severity"] == "FAIL"},
+                          "陈旧能力登记必须报 FAIL(stale_declared_absent_capability)")
+
+            # --- C 真实台账棘轮（不依赖仓库其它面的红绿） ---
+            cmake = "\n".join(
+                p.read_text(encoding="utf-8", errors="ignore")
+                for p in REPO.rglob("CMakeLists.txt") if "build" not in p.parts)
+            for it in (self.doc.get("declared_absent_paths") or {}).get("items") or []:
+                if it["key"] == "target":
+                    self.assertNotRegex(
+                        cmake, r"add_(?:library|executable)\s*\(\s*%s\b" % re.escape(str(it["path"])),
+                        "target %s 已定义：缺口落地后必须删登记（棘轮）" % it["path"])
+                else:
+                    self.assertFalse((REPO / str(it["path"])).exists(),
+                                     "%s 已存在：缺口落地后必须删登记（棘轮）" % it["path"])
+            self.assertEqual(
+                [(m["id"], p) for m in self.doc["modules"]
+                 for p in (m.get("legacy_paths") or []) if (REPO / str(p)).exists()],
+                [], "legacy_paths 里出现树中现存路径：历史键退化为自证")
+
+            # --- D 机器报告计数自洽（检查器不得静默丢 finding 或错报计数） ---
+            summary = data["summary"]
+            self.assertEqual(summary["modules_total"], 23)
+            self.assertEqual(summary["ids_unique"], 23)
+            self.assertEqual(summary["index_ids_total"], 23)
+            self.assertEqual(summary["modules_total"], len(data["modules"]))
+            fails = [f for f in data["findings"] if f["severity"] == "FAIL"]
+            gaps = [f for f in data["findings"] if f["severity"] == "GAP"]
+            notes = [f for f in data["findings"] if f["severity"] == "NOTE"]
+            self.assertEqual(summary["fail_findings"], len(fails))
+            self.assertEqual(summary["gap_findings"], len(gaps))
+            self.assertEqual(summary["note_findings"], len(notes))
+            self.assertEqual(summary["fail_findings"] + summary["gap_findings"]
+                             + summary["note_findings"], len(data["findings"]))
+            self.assertEqual(summary["verdict"], "FAIL" if fails else "PASS")
+            self.assertEqual(real_rc, 1 if fails else 0, "rc 必须与 FAIL 级 finding 一致")
+            for f in data["findings"]:
+                for key in ("module", "code", "detail", "severity"):
+                    self.assertIn(key, f, "finding 缺字段 %s：%r" % (key, f))
+            self.assertEqual(
+                summary["fake_paths"],
+                len([f for f in fails if f["code"] in ("fake_path", "fake_target")]))
+            paths = (self.doc.get("declared_absent_paths") or {}).get("items") or []
+            self.assertEqual(len(paths), data["gaps"]["registered"])
+            self.assertEqual(summary["registered_gaps"], len(paths))
+            # GAP 级 finding 只允许来自两份台账登记，且每条都能追到台账条目
+            # （能力缺口可能同时命中「该模块实报」与「登记了但未命中」两条，故用
+            #  ≥ 而非 ==，并要求逐条可追踪，避免把实现细节当不变量锁死）。
+            caps = (self.doc.get("declared_absent_capabilities") or {}).get("items") or []
+            cap_codes = {str(i["code"]) for i in caps}
+            cap_keys = {(str(i["module"]), str(i["code"])) for i in caps}
+            for f in gaps:
+                code = str(f["code"])
+                if code == "declared_absent_registered":
+                    continue      # 路径/target 缺口（已登记）
+                if code == "declared_absent_capability_registered":
+                    continue      # 登记了但本次未命中的能力缺口（可见计数）
+                self.assertIn(code, cap_codes,
+                              "GAP 级 finding 的 code 不在能力缺口台账中：%r" % f)
+                self.assertIn((str(f["module"]), code), cap_keys,
+                              "GAP 级 finding 未逐条命中能力缺口台账：%r" % f)
+
+            # --- E 真实仓库无假路径、无陈旧登记（诚实性红线） ---
+            self.assertEqual(summary["fake_paths"], 0, "真实仓库不得有未登记的假路径")
+            self.assertEqual(
+                [f["code"] for f in fails
+                 if f["code"] in ("stale_declared_absent", "stale_declared_absent_capability")],
+                [], "真实台账不得有陈旧缺口登记（登记必须随落地同步删除）")
 
 
 class TestModuleReadmeCheckerCanRedAndGreen(unittest.TestCase):
