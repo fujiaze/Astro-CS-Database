@@ -6,10 +6,9 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
-#include <fstream>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include <sstream>
+#include "aio_atomic_file.h"
+#include "aio_file_io.h"   // CLEAN-403：aio 唯一 I/O 实现（原子写/顺序写/目录/rename）
 
 namespace astrocs::core {
 namespace {
@@ -29,23 +28,6 @@ std::uint64_t fnv1a(std::uint64_t h, const void* p, std::size_t n) {
   return h;
 }
 
-void mkdir_p(const std::string& path) {
-  std::string acc;
-  std::size_t i = 0;
-  if (!path.empty() && path[0] == '/') { acc = "/"; i = 1; }
-  while (i <= path.size()) {
-    const std::size_t j = path.find('/', i);
-    const std::string part = path.substr(i, (j == std::string::npos ? path.size() : j) - i);
-    if (!part.empty()) {
-      if (!acc.empty() && acc.back() != '/') acc.push_back('/');
-      acc += part;
-      ::mkdir(acc.c_str(), 0755);
-    }
-    if (j == std::string::npos) break;
-    i = j + 1;
-  }
-}
-
 std::string dirname_of(const std::string& p) {
   const std::size_t k = p.find_last_of('/');
   return (k == std::string::npos) ? std::string(".") : p.substr(0, k);
@@ -55,7 +37,9 @@ std::string dirname_of(const std::string& p) {
 
 ExportStreamScheduler::ExportStreamScheduler(ExportStreamConfig cfg)
     : cfg_(std::move(cfg)), probes_(cfg_.probe_path) {
-  if (cfg_.workers < 1) cfg_.workers = 1;
+  // 合同下界：worker 数由配置注入（ThreadBudget），此处仅做下界保护，非默认值。
+  constexpr int kMinWorkers = 1;
+  cfg_.workers = std::max(cfg_.workers, kMinWorkers);
   if (cfg_.sub_block_px < 1) cfg_.sub_block_px = 1;
   if (cfg_.queue_depth < 1) cfg_.queue_depth = 1;
 }
@@ -74,25 +58,30 @@ std::size_t ExportStreamScheduler::sub_block_count() const {
 
 void ExportStreamScheduler::write_manifest() const {
   if (cfg_.manifest_path.empty()) return;
-  mkdir_p(dirname_of(cfg_.manifest_path));
-  std::ofstream f(cfg_.manifest_path, std::ios::out | std::ios::trunc);
-  if (!f) return;
+  aio_atomic::make_dirs(dirname_of(cfg_.manifest_path));
   const std::size_t n = sub_block_count();
   const std::size_t sb_bytes =
       static_cast<std::size_t>(cfg_.sub_block_px) * cfg_.sub_block_px * sizeof(double);
-  f << "{\n  \"schema\": \"astrocs.export-stream-manifest/v1\",\n"
-    << "  \"width\": " << width_ << ",\n  \"height\": " << height_ << ",\n"
-    << "  \"sub_block_px\": " << cfg_.sub_block_px << ",\n"
-    << "  \"sub_block_count\": " << n << ",\n"
-    << "  \"queue_depth\": " << cfg_.queue_depth << ",\n"
-    << "  \"workers\": " << cfg_.workers << ",\n"
-    << "  \"wcs_header_ready_before_write\": "
-    << ((!cfg_.wcs_header.empty() && !cfg_.properties.empty()) ? "true" : "false") << ",\n"
-    << "  \"wcs_header_bytes\": " << cfg_.wcs_header.size() << ",\n"
-    << "  \"properties_bytes\": " << cfg_.properties.size() << ",\n"
-    << "  \"sub_block_bytes\": " << sb_bytes << ",\n"
-    << "  \"bounded_inflight_bytes\": " << (2 * static_cast<std::size_t>(cfg_.queue_depth) * sb_bytes)
-    << "\n}\n";
+  std::ostringstream f;
+  f << R"JSON({
+  "schema": "astrocs.export-stream-manifest/v1",
+  "width": )JSON" << width_ << R"JSON(,
+  "height": )JSON" << height_ << R"JSON(,
+  "sub_block_px": )JSON" << cfg_.sub_block_px << R"JSON(,
+  "sub_block_count": )JSON" << n << R"JSON(,
+  "queue_depth": )JSON" << cfg_.queue_depth << R"JSON(,
+  "workers": )JSON" << cfg_.workers << R"JSON(,
+  "wcs_header_ready_before_write": )JSON"
+    << ((!cfg_.wcs_header.empty() && !cfg_.properties.empty()) ? "true" : "false") << R"JSON(,
+  "wcs_header_bytes": )JSON" << cfg_.wcs_header.size() << R"JSON(,
+  "properties_bytes": )JSON" << cfg_.properties.size() << R"JSON(,
+  "sub_block_bytes": )JSON" << sb_bytes << R"JSON(,
+  "bounded_inflight_bytes": )JSON"
+    << (2 * static_cast<std::size_t>(cfg_.queue_depth) * sb_bytes) << R"JSON(
+}
+)JSON";
+  // CLEAN-403：机制经 aio 唯一实现，本 TU 不自持 ofstream 通道。
+  aio_atomic::write_file_atomic(cfg_.manifest_path, f.str(), nullptr);
 }
 
 void ExportStreamScheduler::reader_loop() {
@@ -213,8 +202,9 @@ void ExportStreamScheduler::writer_loop() {
   }
   // ④ 原子发布：先写临时文件，全部写完后 rename
   const std::string tmp = cfg_.output_path + ".tmp";
-  mkdir_p(dirname_of(cfg_.output_path));
-  std::ofstream out(tmp, std::ios::out | std::ios::binary | std::ios::trunc);
+  aio_atomic::make_dirs(dirname_of(cfg_.output_path));
+  std::string open_err;
+  aio_atomic::AppendSink* out = aio_atomic::write_open_trunc(tmp, &open_err);
   if (!out) {
     cancel_.store(true);
     std::lock_guard<std::mutex> lk(mu_);
@@ -224,14 +214,41 @@ void ExportStreamScheduler::writer_loop() {
     cv_space_.notify_all();
     return;
   }
-  out.write(cfg_.wcs_header.data(), static_cast<std::streamsize>(cfg_.wcs_header.size()));
-  out.write(cfg_.properties.data(), static_cast<std::streamsize>(cfg_.properties.size()));
-  // 预置到最终长度：乱序 seek 写不会因中途 EOF 造成截断，且发布前长度已确定
-  out.seekp(static_cast<std::streamoff>(cfg_.wcs_header.size() + cfg_.properties.size() +
-                                        static_cast<std::size_t>(width_) * height_ * sizeof(double) - 1));
-  out.put(static_cast<char>(0));
-  out.seekp(static_cast<std::streamoff>(cfg_.wcs_header.size() + cfg_.properties.size()));
+  // 顺序写：WCS 头 + properties 先落，随后**按输出行序**追加像素带。
+  // FITS 产品是全图行主序；子块是 tile 局部行主序，故不能整块追加。
+  // 这里用「行带缓冲」：带高 = 子块边长，子块按 (tile_y, tile_x) 行主序产出，
+  // 同一行带内的子块任意 x 序都散射进同一缓冲区，带满即顺序追加。
+  // 结果：内存上界 = width × band_rows × 8 B（与子块数无关），且全程无 seek。
+  bool io_failed = false;
+  auto append = [&](const void* p, std::size_t n) -> bool {
+    if (n == 0) return true;
+    if (aio_atomic::append_write(out, p, n) != 0) { io_failed = true; return false; }
+    return true;
+  };
+  if (!append(cfg_.wcs_header.data(), cfg_.wcs_header.size()) ||
+      !append(cfg_.properties.data(), cfg_.properties.size())) {
+    aio_atomic::append_close(out);
+    aio_atomic::remove_file(tmp);
+    disk_full_.store(true);
+    cancel_.store(true);
+    std::lock_guard<std::mutex> lk(mu_);
+    results_done_ = jobs_total_;
+    cv_done_.notify_all();
+    cv_item_.notify_all();
+    cv_space_.notify_all();
+    return;
+  }
   std::uint64_t written = cfg_.wcs_header.size() + cfg_.properties.size();
+  const int band_rows = cfg_.sub_block_px;
+  const std::size_t band_cap = static_cast<std::size_t>(width_) *
+                               static_cast<std::size_t>(band_rows);
+  std::vector<double> band;
+  int band_start = 0;
+  auto flush_band = [&](int rows) -> bool {
+    if (rows <= 0) return true;
+    const std::size_t n = static_cast<std::size_t>(rows) * static_cast<std::size_t>(width_);
+    return append(band.data(), n * sizeof(double));
+  };
   // 重排缓冲：按子块索引升序写出（与 worker 数无关 ⇒ 输出逐位一致）
   std::map<std::size_t, Result> pending;
   std::size_t next_index = 0;
@@ -261,8 +278,8 @@ void ExportStreamScheduler::writer_loop() {
         // 磁盘满：停止写出、**不发布**（原子语义：临时文件不得 rename 到产品路径）
         disk_full_.store(true);
         cancel_.store(true);           // 让读/算线程立即退出，避免 join 挂死
-        out.close();
-        ::unlink(tmp.c_str());
+        aio_atomic::append_close(out);
+        aio_atomic::remove_file(tmp);
         {
           std::lock_guard<std::mutex> lk(mu_);
           results_done_ = jobs_total_;
@@ -272,19 +289,22 @@ void ExportStreamScheduler::writer_loop() {
         cv_space_.notify_all();
         return;
       }
-      // FITS 产品是**全图行主序**：子块的每一行必须写到它在整幅中的正确行偏移
-      // （子块缓冲区是 tile 局部行主序，直接整块落在左上角偏移会串行）。
-      // 乱序 worker 不影响结果：每个 (子块, 行) 的目标偏移由 (x0,y0) 唯一确定。
-      const std::uint64_t base = static_cast<std::uint64_t>(cfg_.wcs_header.size() +
-                                                            cfg_.properties.size());
+      // 跨行带：先把上一带顺序追加，再开新带（子块与带边界对齐，不跨界）
+      if (cur.y0 >= band_start + band_rows) {
+        const int rows = std::min(band_rows, height_ - band_start);
+        if (!flush_band(rows)) break;
+        band_start += band_rows;
+        band.assign(band_cap, 0.0);
+      }
+      if (band.empty()) band.assign(band_cap, 0.0);
       for (int yy = 0; yy < cur.h; ++yy) {
-        const std::uint64_t off = base +
-            (static_cast<std::uint64_t>(cur.y0 + yy) * static_cast<std::uint64_t>(width_) +
-             static_cast<std::uint64_t>(cur.x0)) * sizeof(double);
-        out.seekp(static_cast<std::streamoff>(off));
-        out.write(reinterpret_cast<const char*>(cur.data.data() +
-                                                static_cast<std::size_t>(yy) * cur.w),
-                  static_cast<std::streamsize>(cur.w) * static_cast<std::streamsize>(sizeof(double)));
+        const int oy = cur.y0 + yy;
+        if (oy < band_start || oy >= band_start + band_rows) continue;   // 越界行不写（不静默扩带）
+        double* dst = band.data() +
+            static_cast<std::size_t>(oy - band_start) * static_cast<std::size_t>(width_) +
+            static_cast<std::size_t>(cur.x0);
+        std::copy(cur.data.begin() + static_cast<std::size_t>(yy) * cur.w,
+                  cur.data.begin() + static_cast<std::size_t>(yy + 1) * cur.w, dst);
       }
       written += nb;
       inflight_bytes_ -= cur.data.size() * sizeof(double);
@@ -298,6 +318,7 @@ void ExportStreamScheduler::writer_loop() {
       }
       cv_space_.notify_all();
     }
+    if (io_failed) break;
     ProbeEvent ev;
     ev.ts = now_seconds();
     ev.kind = ProbeKind::BLOCK_DEATH;
@@ -309,18 +330,28 @@ void ExportStreamScheduler::writer_loop() {
     ev.stage = "export";
     probes_.emit(ev);
   }
-  out.flush();
-  out.close();
+  // 收尾：刷出最后一个未满带
+  if (!io_failed && !cancel_.load()) {
+    for (int bs = band_start; bs < height_; bs += band_rows) {
+      const int rows = std::min(band_rows, height_ - bs);
+      if (!flush_band(rows)) break;
+      if (bs + band_rows < height_) band.assign(band_cap, 0.0);
+    }
+  }
+  if (io_failed) disk_full_.store(true);
   bytes_written_.store(written);
-  const bool complete = (next_index == jobs_total_) && !cancel_.load() && !disk_full_.load();
+  const bool complete = (next_index == jobs_total_) && !cancel_.load() &&
+                        !disk_full_.load() && !io_failed;
+  if (aio_atomic::append_flush(out) != 0) disk_full_.store(true);
+  aio_atomic::append_close(out);
   if (complete) {
     // 原子 rename（同目录内 rename 为原子操作）
-    if (::rename(tmp.c_str(), cfg_.output_path.c_str()) != 0) {
-      ::unlink(tmp.c_str());
+    if (aio_atomic::atomic_replace(tmp, cfg_.output_path) != 0) {
+      aio_atomic::remove_file(tmp);
       disk_full_.store(true);        // rename 失败按写失败处理
     }
   } else {
-    ::unlink(tmp.c_str());           // 取消/中断：不得留下半成品
+    aio_atomic::remove_file(tmp);    // 取消/中断：不得留下半成品
   }
   {
     std::lock_guard<std::mutex> lk(mu_);
@@ -375,23 +406,21 @@ ExportOutcome ExportStreamScheduler::run() {
   o.max_queue_depth = max_queue_;
   o.bytes_written = bytes_written_.load();
   o.wall_seconds = now_seconds() - t0;
-  // checksum 由 writer 在行主序下累积；此处按同一算法独立复算以便核对（只读产品文件）
+  // checksum 由 writer 在行主序下累积；此处按同一算法独立复算以便核对（只读产品文件，经 aio）
   {
     std::uint64_t h = 1469598103934665603ULL;
-    std::ifstream in(cfg_.output_path, std::ios::binary);
-    if (in) {
-      in.seekg(static_cast<std::streamoff>(cfg_.wcs_header.size() + cfg_.properties.size()));
-      std::vector<char> buf(1 << 16);
-      std::size_t total = 0;
-      const std::size_t expect = static_cast<std::size_t>(width_) * height_ * sizeof(double);
-      while (total < expect && in) {
-        const std::size_t want = std::min(buf.size(), expect - total);
-        in.read(buf.data(), static_cast<std::streamsize>(want));
-        const std::size_t got = static_cast<std::size_t>(in.gcount());
-        if (!got) break;
-        h = fnv1a(h, buf.data(), got);
-        total += got;
-      }
+    const std::uint64_t base = cfg_.wcs_header.size() + cfg_.properties.size();
+    const std::uint64_t expect = static_cast<std::uint64_t>(width_) * height_ * sizeof(double);
+    std::vector<char> buf(1 << 16);
+    std::uint64_t total = 0;
+    while (total < expect) {
+      const std::size_t want = static_cast<std::size_t>(
+          std::min<std::uint64_t>(buf.size(), expect - total));
+      std::string chunk;
+      if (!aio_file::read_range(cfg_.output_path.c_str(), base + total, want, &chunk)) break;
+      if (chunk.empty()) break;
+      h = fnv1a(h, chunk.data(), chunk.size());
+      total += chunk.size();
     }
     o.checksum = h;
   }

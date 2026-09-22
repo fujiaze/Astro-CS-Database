@@ -6,12 +6,17 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
-#include <fstream>
+#include "aio_atomic_file.h"   // CLEAN-403：aio 唯一 I/O 实现
 #include <set>
 #include <sstream>
 
 namespace astrocs::core {
 namespace {
+
+std::string dirname_of(const std::string& p) {
+  const std::size_t k = p.find_last_of('/');
+  return (k == std::string::npos) ? std::string(".") : p.substr(0, k);
+}
 
 double now_seconds() {
   using clock = std::chrono::steady_clock;
@@ -49,7 +54,9 @@ double integrate_pixel(const std::vector<const MosaicFrameInput*>& cover, std::u
 
 MosaicWindowScheduler::MosaicWindowScheduler(MosaicWindowConfig cfg)
     : cfg_(std::move(cfg)), probes_(cfg_.probe_path) {
-  if (cfg_.workers < 1) cfg_.workers = 1;
+  // 合同下界：worker 数由配置注入（ThreadBudget），此处仅做下界保护，非默认值。
+  constexpr int kMinWorkers = 1;
+  cfg_.workers = std::max(cfg_.workers, kMinWorkers);
   if (cfg_.window_tiles < 1) cfg_.window_tiles = 1;
 }
 
@@ -93,29 +100,34 @@ std::vector<MosaicWindow> MosaicWindowScheduler::partition() const {
 
 void MosaicWindowScheduler::write_manifest() const {
   if (cfg_.manifest_path.empty()) return;
-  std::ofstream f(cfg_.manifest_path, std::ios::out | std::ios::trunc);
-  if (!f) return;
+  aio_atomic::make_dirs(dirname_of(cfg_.manifest_path));
   const auto ws = partition();
   std::uint64_t routed = 0, naive = 0;
   for (const auto& w : ws) { routed += w.routed_bytes; naive += w.naive_bytes; }
-  f << "{\n  \"schema\": \"astrocs.mosaic-window-manifest/v1\",\n"
-    << "  \"hips_level\": " << cfg_.hips_level << ",\n"
-    << "  \"window_tiles\": " << cfg_.window_tiles << ",\n"
-    << "  \"window_count\": " << ws.size() << ",\n"
-    << "  \"tile_count\": " << tile_count() << ",\n"
-    << "  \"frame_count\": " << frames_.size() << ",\n"
-    << "  \"workers\": " << cfg_.workers << ",\n"
-    << "  \"routed_bytes\": " << routed << ",\n"
-    << "  \"naive_whole_frame_bytes\": " << naive << ",\n"
-    << "  \"read_amplification\": "
-    << (naive > 0 ? static_cast<double>(routed) / static_cast<double>(naive) : 0.0) << ",\n"
-    << "  \"windows\": [";
+  std::ostringstream f;
+  f << R"JSON({
+  "schema": "astrocs.mosaic-window-manifest/v1",
+  "hips_level": )JSON" << cfg_.hips_level << R"JSON(,
+  "window_tiles": )JSON" << cfg_.window_tiles << R"JSON(,
+  "window_count": )JSON" << ws.size() << R"JSON(,
+  "tile_count": )JSON" << tile_count() << R"JSON(,
+  "frame_count": )JSON" << frames_.size() << R"JSON(,
+  "workers": )JSON" << cfg_.workers << R"JSON(,
+  "routed_bytes": )JSON" << routed << R"JSON(,
+  "naive_whole_frame_bytes": )JSON" << naive << R"JSON(,
+  "read_amplification": )JSON"
+    << (naive > 0 ? static_cast<double>(routed) / static_cast<double>(naive) : 0.0) << R"JSON(,
+  "windows": [)JSON";
   for (std::size_t i = 0; i < ws.size(); ++i) {
-    f << (i ? ", " : "") << "{\"window_id\": " << ws[i].window_id
-      << ", \"tiles\": " << ws[i].tile_ipix.size()
-      << ", \"routed_bytes\": " << ws[i].routed_bytes << "}";
+    f << (i ? ", " : "") << R"JSON({"window_id": )JSON" << ws[i].window_id
+      << R"JSON(, "tiles": )JSON" << ws[i].tile_ipix.size()
+      << R"JSON(, "routed_bytes": )JSON" << ws[i].routed_bytes << "}";
   }
-  f << "]\n}\n";
+  f << R"JSON(]
+}
+)JSON";
+  // CLEAN-403：机制经 aio 唯一实现，本 TU 不自持 ofstream 通道。
+  aio_atomic::write_file_atomic(cfg_.manifest_path, f.str(), nullptr);
 }
 
 double MosaicWindowScheduler::read_amplification() const {

@@ -9039,7 +9039,9 @@
           "command": [
             "python3",
             "eng/tools/quality/check_scheduler_probe_schema.py",
-            "--self-test"
+            "--self-test",
+            "--json-out",
+            "run/ci/quality/scheduler_probe_schema.json"
           ],
           "timeout_seconds": 300,
           "heavy": false,
@@ -9235,7 +9237,9 @@
           "command": [
             "python3",
             "eng/tools/quality/check_block_flow_spec.py",
-            "--self-test"
+            "--self-test",
+            "--json-out",
+            "run/ci/quality/block_flow_spec.json"
           ],
           "timeout_seconds": 600,
           "heavy": false,
@@ -9292,7 +9296,9 @@
           "command": [
             "python3",
             "eng/tools/quality/check_block_flow_conformance.py",
-            "--self-test"
+            "--self-test",
+            "--json-out",
+            "run/ci/quality/block_flow_conformance.json"
           ],
           "timeout_seconds": 600,
           "heavy": false,

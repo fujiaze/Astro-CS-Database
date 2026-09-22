@@ -288,7 +288,14 @@ def main():
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
-        return _self_test()
+        rc = _self_test()
+        # 注册表按 outputs 判 missing_output：自测也必须落机器可读证据。
+        if getattr(args, "json_out", None):
+            os.makedirs(os.path.dirname(args.json_out), exist_ok=True)
+            io.open(args.json_out, "w", encoding="utf-8").write(json.dumps(
+                {"tool": "block_flow_spec", "mode": "self-test", "rc": rc,
+                 "verdict": "PASS" if rc == 0 else "FAIL"}, ensure_ascii=False) + "\n")
+        return rc
     errs, spec = run(args.spec)
     verdict = "PASS" if not errs else "FAIL"
     n_nodes = len(spec["nodes"]) if spec else 0
