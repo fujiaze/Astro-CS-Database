@@ -606,6 +606,12 @@ doc_index:
       upstream: "ASTROCS_DESIGN.md §9（CPU 后端与资源）、ENGINEERING_SPEC.md §10"
       downstream: "eng/contracts/schemas/perf_gate_criteria.schema.json、eng/contracts/schemas/monitor_field_semantics.schema.json、eng/ci/checks.json"
       notes: "CONTRACT-501 冻结点；GAP_AUDIT G2-1/G2-2（D-10 恒真门、D-12 监控字段语义）的判据依据"
+    - path: "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md"
+      status: ACTIVE_NORMATIVE
+      duty: "落盘形态合同（CONTRACT-STORAGE-001）：扩展名、归档容器布局、索引 schema、哈希口径"
+      upstream: "ASTROCS_DESIGN.md §10（I/O 与原子产品）、docs/design/PRODUCT_STORAGE_FORM.md"
+      downstream: "eng/contracts/schemas/hips_storage_form.schema.json、eng/tools/hipsform/check_hips_storage_form.py、docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md、docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md"
+      notes: "CI 检查 CHK-HIPS-STORAGE-FORM；索引 schema 机器事实源在 eng/contracts/schemas/"
     - path: "docs/contracts/DATA_ARTIFACTS.md"
       status: ACTIVE_NORMATIVE
       duty: "产品工件清单与原子发布合同"
@@ -672,6 +678,12 @@ doc_index:
       upstream: "ASTROCS_DESIGN.md §6（export：投影导出）"
       downstream: "README.md、docs/DOCUMENT_INDEX.yaml、docs/owner/PROJECT_SPEC.md、docs/plugins/algorithms_phase3/14_projection.md 等 7 处"
       notes: "DESIGN-P3-001：Phase3 HiPS 到科学 WCS FITS 目标态"
+    - path: "docs/design/PRODUCT_STORAGE_FORM.md"
+      status: ACTIVE_NORMATIVE
+      duty: "产品落盘形态（DESIGN-STORAGE-001）：裸 HiPS / zstd 归档包的定义、形态判据、完整形态、索引分层、properties 与哈希口径"
+      upstream: "ASTROCS_DESIGN.md §10（I/O 与原子产品）"
+      downstream: "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md、docs/design/PHASE1_DETAILED_DESIGN.md、docs/design/PHASE2_DETAILED_DESIGN.md、docs/design/PHASE3_DETAILED_DESIGN.md、docs/plugins/infrastructure/17_aio.md"
+      notes: "形态由访问模式决定：Phase1 默认归档（可切裸）、Phase2 裸、Phase3 裸 FITS 不套壳"
     - path: "docs/design/UNIFIED_MODEL.md"
       status: ACTIVE_NORMATIVE
       duty: "统一观测模型、数据对象表与三类配置的唯一正本"
