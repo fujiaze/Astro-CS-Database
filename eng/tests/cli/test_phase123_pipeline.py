@@ -28,7 +28,7 @@ Phase1 侧同源: light 帧用 --make-noisy（确定性噪声，校准后 σ≈1
   生产唯一路径 = 逐帧逆方差; 缺逐帧 ivar 时按 DATA-UNC-001 §30.1 fail-closed
   （禁静默回退等权），故「无 ivar ⇒ rc=2」是本文件的负例判据。
 """
-import hashlib, json, os, re, shutil, signal, subprocess, sys, tempfile, time, unittest
+import atexit, hashlib, json, os, re, shutil, signal, subprocess, sys, tempfile, time, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 # ROOT-008: 唯一产品二进制 build/astrocs（旧 build/cli/astrocs 已退役）
@@ -84,14 +84,105 @@ def _common_incs():
             f"-I{SHARED}", f"-I{os.path.dirname(HEALPIX_SRC)}"]
 
 
+# ── fixture 源清单的权威来源 = 构建图（不手抄文件名）────────────────────────
+# 规范依据（AGENTS.md §1.1「先到最高文档确定规范，再动手」）:
+#   * 根 CMakeLists.txt:4-5「显式源列表, 禁 GLOB (QA-002)」⇒ 每个 add_library 的
+#     显式清单**就是**该目标的构建图闭包，不是「惯例」;
+#   * 根 CMakeLists.txt:378-381 `add_library(astrocs_common STATIC ...)` ——
+#     crypto/sha256.cpp + healpix/healpix_core.cpp 的唯一权威源清单;
+#   * 根 CMakeLists.txt:449-459 `add_library(astrocs_aio STATIC ...)`;
+#   * 根 CMakeLists.txt:480-491 `add_library(astrocs_hips STATIC ...)`;
+#   * lib/algorithms/drizzle/hips/CMakeLists.txt:44-54 逐字登记 aio_hips_writer.cpp
+#     的**最小链接闭包必须含 lib/algorithms/shared/crypto/sha256.cpp** —— 链路是
+#     aio_hips_writer.cpp:22 `#include "aio_sparse_punch.h"` →
+#     aio_sparse_punch.h:37 `#include "aio_file_io.h"` →
+#     aio_file_io.h:240 inline `aio_file::sha256_hex` 调 `astrocs::crypto::Sha256`
+#     （唯一实现 TU = crypto/sha256.cpp）。漏它的表现是**链接期**
+#     `undefined reference to astrocs::crypto::Sha256::...`（CHK-FIX406-SIGTERM
+#     现场 2026-09-22），而链接器一次只报第一条、且不告诉你该补哪个 .cpp。
+_ROOT_CMAKE = os.path.join(REPO, "CMakeLists.txt")
+_FIXTURE_GRAPH_TARGETS = ("astrocs_common", "astrocs_aio", "astrocs_hips")
+
+# fixture 需要的源 —— 本表只回答「要谁」（**文件名**），不回答「在哪」；
+# 路径一律由上面的构建图解析，因此目录搬迁/改名不会让清单静默失效（改错即判红，
+# 见 TestAioFixtureLinkClosure::test_01）。
+_AIO_SEED = ("aio_hips_writer.cpp", "aio_hips_reader.cpp", "aio_fits.cpp",
+             "aio_api.cpp", "aio_log.cpp", "aio_compressor.cpp",
+             "healpix_core.cpp", "sha256.cpp")
+
+
+def _cmake_target_sources(cmake_file, target):
+    """解析 CMakeLists.txt 里 add_library/add_executable(<target> ...) 的显式源清单。
+
+    返回已 resolve 的绝对路径（按清单出现顺序）。构建图变了（目标改名/清单为空）
+    直接抛错判红 —— 不允许测试静默退回手抄。
+    """
+    with open(cmake_file, encoding="utf-8") as fh:
+        text = fh.read()
+    m = re.search(r"add_(?:library|executable)\(\s*" + re.escape(target) + r"\b", text)
+    if m is None:
+        raise AssertionError(
+            "构建图已变：%s 里找不到目标 %s 的显式源清单" % (cmake_file, target))
+    open_at = text.index("(", m.start())
+    depth = 0
+    close_at = -1
+    for k in range(open_at, len(text)):
+        ch = text[k]
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth == 0:
+                close_at = k
+                break
+    if close_at < 0:
+        raise AssertionError("%s: 目标 %s 的源清单括号不闭合" % (cmake_file, target))
+    block = "\n".join(ln.split("#")[0]
+                      for ln in text[open_at + 1:close_at].splitlines())
+    # 仓库路径含空格：直接对整块做路径正则会被空格截断 ⇒ 先把
+    # CMake 变量 CMAKE_CURRENT_SOURCE_DIR 换成无空格占位符，拼回绝对路径后再还原。
+    var = "@CMAKE_CURRENT_SOURCE_DIR@"
+    block = block.replace("$" + "{CMAKE_CURRENT_SOURCE_DIR}", var)
+    root = os.path.dirname(cmake_file)
+    srcs = []
+    for token in re.findall(r"([\w@./-]+\.cpp)", block):
+        token = token.replace(var, root)
+        srcs.append(os.path.normpath(token if os.path.isabs(token)
+                                     else os.path.join(root, token)))
+    if not srcs:
+        raise AssertionError("%s: 目标 %s 的源清单为空" % (cmake_file, target))
+    return srcs
+
+
+def _fixture_graph_sources():
+    """构建图解析出的 fixture 候选源清单（跨目标去重、保序）: [(name, abspath), ...]"""
+    ordered, seen = [], set()
+    for tgt in _FIXTURE_GRAPH_TARGETS:
+        for src in _cmake_target_sources(_ROOT_CMAKE, tgt):
+            name = os.path.basename(src)
+            if name not in seen:
+                seen.add(name)
+                ordered.append((name, src))
+    return ordered
+
+
+def _fixture_graph_by_name():
+    return dict(_fixture_graph_sources())
+
+
 def _aio_srcs():
-    return [os.path.join(AIO, "src", "hips", "aio_hips_writer.cpp"),
-            os.path.join(AIO, "src", "hips", "aio_hips_reader.cpp"),
-            os.path.join(AIO, "src", "aio_fits.cpp"),
-            os.path.join(AIO, "src", "aio_api.cpp"),
-            os.path.join(AIO, "src", "aio_log.cpp"),
-            os.path.join(AIO, "src", "aio_compressor.cpp"),
-            HEALPIX_SRC]
+    """phase2 fixture 的 AIO/C++ 源清单 —— 路径从构建图解析（不手抄）。
+
+    _AIO_SEED 里每个名字必须仍在权威清单里，否则判红（构建图已变，需同步本表）。
+    """
+    by_name = _fixture_graph_by_name()
+    missing = [n for n in _AIO_SEED if n not in by_name]
+    if missing:
+        raise AssertionError(
+            "fixture 源清单已不在构建图里（根 CMakeLists.txt 目标 %s 的权威清单已变，"
+            "需同步 _AIO_SEED）: %s"
+            % ("/".join(_FIXTURE_GRAPH_TARGETS), ", ".join(missing)))
+    return [by_name[n] for n in _AIO_SEED]
 
 
 def jsonl_lines(text):
@@ -496,6 +587,208 @@ class TestPhase123Pipeline(unittest.TestCase):
                            capture_output=True, text=True, timeout=120, cwd=run_cwd())
         self.assertEqual(g.returncode, 2, g.stderr[-200:])
         self.assertIn("unknown command", g.stderr)
+
+# ── nm -C 链接闭包判据（对真实 .o 求「未定义 astrocs:: 符号 − 已定义符号」）────
+# 判据依赖真实编译（nm 需要目标文件），不是源码文本猜测 —— 本缺陷的典型形态
+# aio_file::sha256_hex 是 aio_file_io.h:240 的 **inline** 函数，纯文本扫不出
+# 「谁在调 crypto::Sha256」，只有编成 .o 才现形。
+
+_AIO_CLOSURE = {}
+
+
+def _compile_unit(src, out_dir, *, defs=("-DAIO_ENABLE_FITS",)):
+    """编译单个 TU → .o（与 fixture 同款 flags: -std=c++17 -O2 -w + 同一 include 面）。
+
+    -O2 必须与 fixture 一致：inline 函数在 -O2 下被内联展开，才会把
+    astrocs::crypto::Sha256::* 变成**未定义外部符号**；换成 -O0 判据就与真实
+    链接面不符（inline 体不展开，符号面不同）。
+    """
+    obj = os.path.join(out_dir, os.path.basename(src) + ".o")
+    cmd = ["g++", "-std=c++17", "-O2", "-w", *defs, *_common_incs(), "-c", src, "-o", obj]
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    if r.returncode != 0:
+        raise RuntimeError("compile %s failed:\n%s"
+                           % (os.path.basename(src), r.stderr[-2000:]))
+    return obj
+
+
+def _nm_symbols(objs, kind):
+    """nm -C 提取目标文件集合的符号名（kind='defined' | 'undefined'）。
+
+    注意 nm -C 的**名字里含空格**（模板/参数表），故按列切分时用 maxsplit，
+    不能对整行 split() —— 否则会截出半个符号名，差集判据静默失效。
+    """
+    r = subprocess.run(["nm", "-C", "--%s-only" % kind, *[str(o) for o in objs]],
+                       capture_output=True, text=True, timeout=300)
+    if r.returncode != 0:
+        raise RuntimeError("nm --%s-only failed:\n%s" % (kind, r.stderr[-2000:]))
+    out = set()
+    for line in r.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if kind == "defined":            # "<addr> <type> <name...>"
+            parts = line.split(None, 2)
+            name = parts[2] if len(parts) == 3 else ""
+        else:                            # "<blank> U <name...>"
+            parts = line.split(None, 1)
+            name = parts[1] if len(parts) == 2 else ""
+        if name:
+            out.add(name)
+    return out
+
+
+def _symbol_leaf(sym):
+    """取符号名的叶子标识符（函数名 / 类名），供源码定义正则兜底用。"""
+    s = sym
+    for pre in ("vtable for ", "VTT for ", "typeinfo for ", "typeinfo name for ",
+                "construction vtable for "):
+        if s.startswith(pre):
+            s = s[len(pre):]
+            break
+    s = s.split("(")[0]                  # 去参数表
+    s = s.split("<")[0]                  # 去模板实参
+    return s.rsplit("::", 1)[-1].strip()
+
+
+_TEXT_CACHE = {}
+
+
+def _read_text(path):
+    if path not in _TEXT_CACHE:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            _TEXT_CACHE[path] = fh.read()
+    return _TEXT_CACHE[path]
+
+
+def _source_defines_symbol(text, sym):
+    """源码文本里是否存在 sym 的**定义**（而非调用/声明）——候选无法独立编译时的兜底。"""
+    leaf = _symbol_leaf(sym)
+    if not leaf:
+        return False
+    for m in re.finditer(r"(?m)^[^\n;#{}]*\b" + re.escape(leaf) + r"\s*\(", text):
+        head = m.group(0)[:m.group(0).rindex(leaf)]
+        if "=" in head:
+            continue                     # 赋值/初始化里的调用，不是定义
+        if re.search(r"\b(return|throw|case|sizeof|delete|new|if|while|for|switch|else)\b",
+                     head):
+            continue
+        return True
+    return False
+
+
+def aio_fixture_closure_build():
+    """编译 fixture 的 AIO 源 + fixture 入口 → .o，并求链接闭包差集（进程内缓存）。
+
+    返回 dict: {tmp, objs, main_obj, undefined, defined, missing, error}
+    编译/失败不抛异常，把诊断写进 error，由测试判红。
+    """
+    if _AIO_CLOSURE.get("done"):
+        return _AIO_CLOSURE
+    tmp = tempfile.mkdtemp(prefix="aio_closure_")
+    atexit.register(shutil.rmtree, tmp, ignore_errors=True)
+    _AIO_CLOSURE.update({"done": True, "tmp": tmp, "objs": [], "main_obj": None,
+                         "undefined": set(), "defined": set(), "missing": [],
+                         "error": None})
+    try:
+        objs = [_compile_unit(s, tmp) for s in _aio_srcs()]
+        main_obj = _compile_unit(
+            os.path.join(REPO, "eng", "tests", "backend", "phase2_fixture_main.cpp"), tmp)
+        both = objs + [main_obj]
+        undefined = {s for s in _nm_symbols(both, "undefined") if "astrocs::" in s}
+        defined = _nm_symbols(both, "defined")
+        _AIO_CLOSURE.update({"objs": objs, "main_obj": main_obj,
+                             "undefined": undefined, "defined": defined,
+                             "missing": sorted(undefined - defined)})
+    except Exception as exc:             # noqa: BLE001  诊断自身失败不得掩盖原始错误
+        _AIO_CLOSURE["error"] = repr(exc)
+    return _AIO_CLOSURE
+
+
+def _resolve_missing_symbols(missing, tmp, compiled):
+    """把未解析符号解析回构建图里的 .cpp —— 即「该补哪个文件」。
+
+    精确优先：对**源码文本里提到该符号叶子名**的候选 TU（构建图清单里尚未编译的）
+    编成 .o，用 nm 精确匹配符号定义；候选无法独立编译（需 CMake 生成头 / PRIVATE
+    include 面）时退回源码定义正则。
+    """
+    pool = [p for _n, p in _fixture_graph_sources()]
+    compiled = {os.path.normpath(str(c)) for c in compiled}
+    leaves = {_symbol_leaf(s) for s in missing}
+    exact, fallback = {}, []
+    for src in pool:
+        if src in compiled:
+            continue                     # 已在清单里 ⇒ 不可能定义未解析符号
+        text = _read_text(src)
+        if not any(leaf and leaf in text for leaf in leaves):
+            continue                     # 便宜预筛：文本里根本没提到就不编
+        try:
+            obj = _compile_unit(src, tmp)
+        except RuntimeError:
+            fallback.append(src)
+            continue
+        exact[src] = _nm_symbols([obj], "defined")
+    report = []
+    for sym in sorted(missing):
+        hits = [os.path.relpath(s, REPO) for s, defs in exact.items() if sym in defs]
+        if not hits:
+            hits = [os.path.relpath(s, REPO) for s in fallback
+                    if _source_defines_symbol(_read_text(s), sym)]
+        report.append((sym, sorted(hits)))
+    return report
+
+
+def aio_fixture_closure_diagnostics():
+    """返回 (missing, detail) —— 供本文件与 CHK-FIX406-SIGTERM 的判据共用。"""
+    b = aio_fixture_closure_build()
+    if b["error"]:
+        return ["<compile-error>"], (
+            "fixture 源清单未编译出目标文件，无法做闭包判定：\n" + b["error"])
+    if not b["missing"]:
+        return [], ""
+    report = _resolve_missing_symbols(b["missing"], b["tmp"], b["objs"] + [b["main_obj"]])
+    detail = "\n".join(
+        "  %s\n      ← 定义在 %s" % (sym, "、".join(hits) if hits
+                                    else "（构建图清单内无定义者，可能来自其他库）")
+        for sym, hits in report)
+    return b["missing"], detail
+
+
+@unittest.skipUnless(shutil.which("g++") and shutil.which("nm"), "需要 g++ 与 nm")
+class TestAioFixtureLinkClosure(unittest.TestCase):
+    """机器判据：fixture 源清单必须由构建图推出且覆盖链接闭包。
+
+    防的缺陷类（CHK-FIX406-SIGTERM 现场 2026-09-22）：aio_hips_writer.cpp 因
+    aio_sparse_punch.h → aio_file_io.h 的 inline sha256_hex 引入
+    astrocs::crypto::Sha256::* 外部符号后，手抄源清单要到**链接期**才炸，而链接器
+    只报「undefined reference to <符号>」——不告诉你该补哪个 .cpp，一次只报第一条。
+    本类用两条判据把这一类缺陷变成可判、可点名的红：
+
+      ① test_01_seed_sources_come_from_build_graph：_AIO_SEED 每个名字必须仍在
+         根 CMakeLists.txt 的 astrocs_common/astrocs_aio/astrocs_hips 权威清单里
+         （防改名/搬目录后清单静默失效）；
+      ② test_02_link_closure_complete：nm -C 对真实 .o 求
+         「未定义 astrocs:: 符号 − 已定义符号」差集，非空即判红，并把每个未解析
+         符号解析回构建图里定义它的 .cpp（直接点名该补谁）。
+    """
+
+    def test_01_seed_sources_come_from_build_graph(self):
+        graph = _fixture_graph_sources()
+        self.assertTrue(graph, "构建图里没解析到任何 fixture 候选源（目标改名？）")
+        by_name = dict(graph)
+        missing = [n for n in _AIO_SEED if n not in by_name]
+        self.assertEqual(missing, [],
+                         "fixture 种子源已不在构建图权威清单里（需同步 _AIO_SEED）: "
+                         + ", ".join(missing))
+        for src in _aio_srcs():
+            self.assertTrue(os.path.isfile(src), "构建图解析出的源不存在: " + src)
+
+    def test_02_link_closure_complete(self):
+        missing, detail = aio_fixture_closure_diagnostics()
+        if not missing:
+            return
+        self.fail("fixture 源清单未覆盖链接闭包（未定义 astrocs:: 符号差集非空）：\n"
+                  + detail + "\n  修法：把上面点名的 .cpp 加入 _AIO_SEED。")
 
 
 if __name__ == "__main__":
