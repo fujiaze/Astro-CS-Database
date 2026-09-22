@@ -392,11 +392,23 @@ class TestRealRepoHonesty(unittest.TestCase):
                                     % (x["id"], x["status"]))
 
     def test_t25_no_facade_or_noop_judged_implemented(self):
+        """红线：facade/no-op 模块绝不算实现（真实仓库侧；夹具侧见 T16/T17）。
+
+        原写法 `if codes & {facade,noop}: assertNotIn(status, 正阶梯)` 在本树恒不执行
+        （23 个模块当前零条 facade/noop finding；动态通道实测这两行断言行零执行）——空断言。
+        改成**逻辑等价的逆否形式**（正阶梯/implemented ⇒ findings 不得带 facade/noop），
+        断言在当前树上逐条真的跑（6 个 implemented 模块受检）；判别力另由夹具负例
+        T16（facade_session）/ T17（noop_entrypoint）锁定：注入即判 NOT_IMPLEMENTED 且 rc!=0。
+        """
+        checked = 0
         for m in self.data["modules"]:
             codes = {f["code"] for f in m["findings"]}
-            if codes & {"facade_session_forward", "noop_entrypoint"}:
-                self.assertNotIn(m["status"], {"IMPLEMENTED", "INSTALLED", "VERIFIED"}, m["id"])
-                self.assertFalse(m["implemented"], m["id"])
+            if m["status"] in POSITIVE_RUNGS or m["implemented"]:
+                checked += 1
+                self.assertFalse(codes & {"facade_session_forward", "noop_entrypoint"},
+                                 "%s 被判 %s（implemented=%s）却带 facade/no-op finding：%s"
+                                 % (m["id"], m["status"], m["implemented"], sorted(codes)))
+        self.assertGreater(checked, 0, "无任何正阶梯模块 ⇒ 本用例退化为空断言")
 
 
 class TestGapLedgerRatchet(unittest.TestCase):
