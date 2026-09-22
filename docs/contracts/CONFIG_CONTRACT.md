@@ -12,7 +12,7 @@
 | 事项 | 权威 |
 |---|---|
 | 输入合同（JSON 数据块：`blocks[]` 多块 + 平铺单块简写、程序根 eng/packaging/config/） | `ASTROCS_DESIGN.md` §3.3（:124-222；§9.68 多块形态） |
-| 运行前预检（绿/橙/红、error 强制阻断；**打印报错 + 详细预估，无交互式提示窗**） | `ASTROCS_DESIGN.md` §3.5（**三命令通用预检**；DOC-203 / S02 订正：§3.5 的「必须弹出页面」交互式提示窗措辞已由负责人 2026-09-20 裁决**作废**，现行口径 = ① 打印有没有报错 + ② 详细预估（含资源与磁盘预估），`-y`/`-yes`/`-force` 保留为正式接口；原 `:272-318` 行锚指向 §3.3 区间，已撤以避行号漂移） |
+| 运行前预检（绿/橙/红、error 强制阻断；**打印报错 + 详细预估，无交互式提示窗**） | `ASTROCS_DESIGN.md` §3.5（**三命令通用预检**：现行口径 = ① 打印有没有报错 + ② 详细预估（含资源与磁盘预估）；不设交互式提示窗，`-y`/`-yes`/`-force` 保留为正式接口） |
 | 配置挂载 / 模板 / 机器输出 / 退出码 | `ASTROCS_DESIGN.md` §6.1-§6.3（:574-642） |
 | 三类配置严格分离、benchmark 独占 cpu_profile | `docs/design/UNIFIED_MODEL.md` §3（:54-66） |
 | CLI 预检与模板职责 | `docs/plugins/infrastructure/18_cli.md` §3-§5 |
@@ -41,7 +41,7 @@
 
 | 组 | 字段数 | 权威锚点 |
 |---|---|---|
-| calibration（暗场-亮场曝光容差） | 1 | 负责人裁决 2026-09-16（5 s）；待落 `docs/science/CALIBRATION.md`（SCI-RES-01/R-003 定义 + R-004 落文档） |
+| calibration（暗场-亮场曝光容差） | 1 | 现行值 5 s；待落 `docs/science/CALIBRATION.md`（SCI-RES-01/R-003 定义 + R-004 落文档） |
 | detection（σ 检测阈值） | 1 | `docs/science/STAR_DETECTION.md:21` |
 | psf（默认模型/β） | 2 | `docs/science/PSF.md:7`、`:92` |
 | noise（噪声模型默认配置） | 14 | `docs/science/NOISE_MODEL.md` §4/§5/§5a/§6 陈述行（:41,:49,:73,:95；逐字段 source_ref 见 defaults.json；MASK-002/SC-009 新增 5 键 k/r_min/fwhm_floor/nq≥8/N_sky≥9216 已含在 14 内）。旧锚 `NOISE_ESTIMATION.md:134` 为实现锚，按负责人指令撤出登记面 |
@@ -69,7 +69,7 @@
 
 ## 3 三命令 phase_config 与模板
 
-结构 = `ASTROCS_DESIGN.md` §3.3 的 JSON 数据块。**两种形态，互斥**（GAP_AUDIT §9.68 负责人裁决 2026-09-20）：
+结构 = `ASTROCS_DESIGN.md` §3.3 的 JSON 数据块。**两种形态，互斥**：
 ① **多块形态**（normalize）= 顶层 `{schema_version, blocks[]}`，每块自带一组 `input_lights` + 一套母版 + 运行参数 + **块级 `output_dir`**；
    一块 = 一次运行（独立 `output_dir` / 独立 run manifest / 块级 `name` 归属），多块按序各自成一次运行；
 ② **平铺单块简写**（normalize 单块时的等价写法，向后兼容）= 顶层 `{schema_version, input_lights, master_*, output_dir, ...}`。

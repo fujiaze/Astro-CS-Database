@@ -3,8 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §3.1（数据对象）
 
 > **退役与身份（DOC-203 / Q2 前置裁决 2026-09-20；GAP_AUDIT §4.1/§4.5）**
-> ① canonical 数据对象 = **13 个**（原 14 个）；`psfsw_robust_weight` **已真删**（负责人 2026-09-20
-> 裁决 B；变更 claim `CHG-2026-09-20-PSFSW-RETIRE`；退役记录
+> ① canonical 数据对象 = **13 个**（原 14 个）；`psfsw_robust_weight` **已真删**（变更 claim `CHG-2026-09-20-PSFSW-RETIRE`；退役记录
 > `eng/contracts/data/unified_object_compatibility_map_v1.json#retired_entries`）。上位正本 =
 > `docs/design/UNIFIED_MODEL.md` §2。
 > ② **V6 合同层的语义已自解释合并进现行合同链**（`CHG-2026-09-22-V6-CONTRACT-MERGE`）：条款注册表见
@@ -13,8 +12,6 @@
 > ③ v6 内的 `weight_mode` 家族已按 §9.73 A44 作废（作废键面：删键 / 改写 / 加作废留痕），作废留痕见
 > `docs/contracts/DATA_SEMANTICS.md` §31.3。
 
-- 文档 ID：`IDX-UNIFIED-OBJECTS`（机器索引：`docs/contracts/unified_object_registry.json`）
-- 任务：`DATA-001`　基线 HEAD：`ecf6ad6f`
 - 性质：**索引与语义登记**。本文不改任何科学定义、公式、阈值、容差或推导；对象身份/单位/无效值/精度/可否作权重一律以 canonical schema 为准。
 
 ## 1. 唯一事实源声明（U-02 口径）
@@ -49,7 +46,7 @@ canonical 定义 = eng/contracts/schemas/unified/<对象名>.schema.json
 | `depth_m5` | `https://astrocs.local/schemas/unified/depth_m5/v1` | `eng/contracts/schemas/unified/depth_m5.schema.json` | mag | null | float32|float64 | 摘要，不作权重 | `DATA-OBJ-DEPTH-M5-001` |
 | `frame_snr` | `https://astrocs.local/schemas/unified/frame_snr/v1` | `eng/contracts/schemas/unified/frame_snr.schema.json` | 1（真实信号/噪声比） | null | float32|float64 | 唯一帧级参考；权重由 Phase2 逆方差叠加从 SNR 计算 | `DATA-OBJ-FRAME-SNR-001` |
 | `point_information` | `https://astrocs.local/schemas/unified/point_information/v1` | `eng/contracts/schemas/unified/point_information.schema.json` | ADU^-2（=1/Var(F_hat)，点源通量口径；**不是**面亮度 `signal^-2`——后者为 sr^2/ADU^2，见 DATA_SEMANTICS §31.1a） | null | float32|float64 | 点源目标的严格权重 | `DATA-OBJ-POINT-INFORMATION-001` |
-| ~~`psfsw_robust_weight`~~ **已退役** | ~~`https://astrocs.local/schemas/unified/psfsw_robust_weight/v1`~~ | ~~`eng/contracts/schemas/unified/psfsw_robust_weight.schema.json`~~（**已删除**） | — | — | — | **对象已不存在**（负责人 2026-09-20 裁决 B，14→13；`ASTROCS_DESIGN.md` §2.1/§2.3 + §9.73 A44） | ~~`DATA-OBJ-PSFSW-ROBUST-WEIGHT-001`~~（INDEX 已置 `OBSOLETE`） |
+| ~~`psfsw_robust_weight`~~ **已退役** | ~~`https://astrocs.local/schemas/unified/psfsw_robust_weight/v1`~~ | ~~`eng/contracts/schemas/unified/psfsw_robust_weight.schema.json`~~（**已删除**） | — | — | — | **对象已不存在**（14→13；`ASTROCS_DESIGN.md` §2.1/§2.3 + §9.73 A44） | ~~`DATA-OBJ-PSFSW-ROBUST-WEIGHT-001`~~（INDEX 已置 `OBSOLETE`） |
 | `sparse_snr_layer` | `https://astrocs.local/schemas/unified/sparse_snr_layer/v1` | `eng/contracts/schemas/unified/sparse_snr_layer.schema.json` | 1 | null | float32|float64 | 帧内精细参考 | `DATA-OBJ-SPARSE-SNR-LAYER-001` |
 | `support` | `https://astrocs.local/schemas/unified/support/v1` | `eng/contracts/schemas/unified/support.schema.json` | 1（[0,1]） | 0=无覆盖 | float32|float64|integer | 否 | `DATA-OBJ-SUPPORT-001` |
 | `coverage` | `https://astrocs.local/schemas/unified/coverage/v1` | `eng/contracts/schemas/unified/coverage.schema.json` | 1（几何有效域） | 0=无覆盖（空域） | float32|float64|integer | 否 | `DATA-OBJ-COVERAGE-001` |
@@ -100,8 +97,22 @@ V6 合同层的语义已按 `CHG-2026-09-22-V6-CONTRACT-MERGE` **自解释合并
 >
 > **生效与退役条件**：由**变更编号**决定，**不得**用版本号窗口表达（`ASTROCS_DESIGN.md` §12）。
 > **`weight_mode` 家族**：已按 §9.73 A44 作废（作废键面：删键 / 改写 / 加作废留痕），作废留痕见
-> `docs/contracts/DATA_SEMANTICS.md` §31.3；`psfsw_robust_weight` 对象已按负责人 2026-09-20 裁决 B 真删
+> `docs/contracts/DATA_SEMANTICS.md` §31.3；`psfsw_robust_weight` 对象已真删
 > （14→13；`CHG-2026-09-20-PSFSW-RETIRE`），其负例见 `eng/contracts/schemas/unified/negative/n5_retired_psfsw_robust_weight.schema-violation.json`。
+
+## 4b. `sparse_snr_layer` 的重建声明面（算子词表与层几何）
+
+`sparse_snr_layer` 是 Phase1 产出、Phase2 消费的标准层。除控制点值本身（`sparse_snr_semantics` 冻结为绝对通量型 SNR）外，**该层还必须能自解释「怎么由控制点重建稠密场」**，否则同一份落盘数据在不同消费实现下会得到不同的稠密场。两个声明面（均可选，缺省语义在 schema description 内冻结）：
+
+| 声明 | 键 | 词表 / 值域 | 缺省 | 机器判据 |
+|---|---|---|---|---|
+| 重建算子 | `reconstruction_operator` | `natural_bicubic_spline_clip_v1`（默认档）/ `natural_bicubic_spline_clip_mesh_median_v1`（高对比域档）/ `bilinear_regular_grid_v1`（对照·回退）/ `nearest_control_point_v1`（散点层） | `natural_bicubic_spline_clip_v1` | schema `enum`；消费侧未识别 token ⇒ fail-closed（不得回退默认） |
+| 层几何 | `control_point_geometry` | `spacing_px`（>0）、`node_placement`（`const: cell_center_v1`）、`origin_x`/`origin_y`（缺省 0） | origin 0 + `cell_center_v1` | schema `const`；消费侧「节点—cell 中心」一致性门 ⇒ 角点锚定（半 cell 相位）fail-closed |
+
+- **为什么把「是否开 3×3 mesh 中值前置滤波」编码进算子标识，而不是另开一个布尔字段**：① **值域钳制不是可选项**——去掉它，光滑插值类在病态控制网格上的权重效率损失 E 由 1.007 / 0.294 升到 1.44e4 / 2.48e4，并会给出负的 σ；把钳制与核绑成一个标识后，「无钳制的样条」在合同层**不可表达**；② **mesh 中值滤波只在特定域必需**——HST 类高对比域必需，默认目标域（地面/seeing-limited）有害（真实地面帧上劣 39–74%），因此必须是**按数据来源的显式开关**且默认关；③ 独立布尔可组合出**从未实测**的配置（如双线性+滤波），标识化后不可表达。算子标识随层入 manifest（`SparseReconstruction.operator_id`）。
+- **选择规则**：可判定 cell 内含未分辨点源（空间高分辨率 / HST 类）⇒ `..._mesh_median_v1`；地面 seeing-limited 与一般情形 ⇒ 默认档；无法判断 ⇒ 默认档。**不得**从控制网格自身推断该判定（两个候选标量诊断都不能把「滤波有益」与「滤波有害」的域分开，且在 16-bit 整数真实数据上失效）。
+- **几何**：控制点坐标是像素中心坐标；规则网格下节点落在**所属 Δ×Δ cell 的中心**（cell i 覆盖 `[origin_x + i·Δ, origin_x + (i+1)·Δ − 1]`）。把节点当 cell 角点会使重建场整体平移半个 cell（Δ=64 时 31.5 px）。层定义域 = 层覆盖的 cell 并集，越出即消费侧 fail-closed（不外推、不回退帧级）。
+- 依据：`实验/absolute-snr` EXP-04 §2.7/§4.1/§4.3/§4.5；算子定义、钳制与滤波的实测代价见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.2/§4.5。合同机器门：`eng/tests/contracts/test_unified_object_contract.py`（对象级）与 `lib/algorithms/integration/v6/oracle/recon_contract_gate.py`（本次新增声明面）。
 
 ## 4a. 旧合同 ID → 统一对象映射（MODULE_MAP 引用面，负责人裁决）
 

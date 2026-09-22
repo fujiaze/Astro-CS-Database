@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §7.3（错误传播与运行日志：顶层约束）、§10（I/O 与原子产品）
 
-> 文档 ID：`LOG-004`（归属 `docs/design/`）
-> 状态：ACTIVE_NORMATIVE
 > 机器事实源：`lib/infrastructure/observability/logging/log_event_v1.schema.json`（日志行，LOG-001 正本）、
 > `eng/ci/ledgers/log_system_ledger.json`（显式降级/吞错/落点登记台账）、
 > `eng/tools/quality/check_log_system.py`（判据检查器）。

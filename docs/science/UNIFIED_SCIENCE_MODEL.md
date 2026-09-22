@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §2（核心科学方法）、§3.1（数据对象）
 
-文档 ID：ASTROCS-SCIENCE-MODEL-001  
-状态：TARGET_NORMATIVE  
 适用：Phase1/2/3 全部 SCI、ALG、DATA、API 和产品 schema。
 
 ## 1. 科学目标分层

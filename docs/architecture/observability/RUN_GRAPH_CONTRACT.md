@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §8.1（顶层结构）、§9（CPU 后端与资源）
 
-> 文档 ID：`ARCH-LOG-RUNGRAPH-003`（归属 `docs/architecture/observability/`）
-> 状态：ACTIVE_NORMATIVE（LOG-003 冻结）
 > 机器可读事实源：`eng/tools/graph/render_run_graph.py`（渲染工具 + 机器验证）、
 > `lib/infrastructure/pipeline/trace_replay.py`（RT-006 权威 replay 聚合）、
 > `lib/infrastructure/pipeline/typed_dag.py`（RT-001 typed DAG 编译器，只读消费）。

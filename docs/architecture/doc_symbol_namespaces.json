@@ -21,12 +21,6 @@
   ],
   "registered_symbols": [
     {
-      "token": "TARGET_NORMATIVE",
-      "namespace": "doc_status",
-      "evidence": "docs/design/PHASE2_DETAILED_DESIGN.md:4",
-      "reason": "设计文档状态词（状态：`TARGET_NORMATIVE`），非代码符号"
-    },
-    {
       "token": "snr_v",
       "namespace": "science_quantity",
       "evidence": "docs/GLOSSARY.md:13",

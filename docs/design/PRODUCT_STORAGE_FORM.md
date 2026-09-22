@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §10（I/O 与原子产品）、§4.4 / §5 / §6（三阶段输出合同）、附录 B（外部标准与文献）
 
-文档 ID：`DESIGN-STORAGE-001`
-状态：`TARGET_NORMATIVE`
 上位：`ASTROCS_DESIGN.md`（§0 权威链，最高设计）
 下游：`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`、`docs/interfaces/io/IO_002_HIPS_INPUT_INTERFACE.md`、`docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md`、`docs/plugins/infrastructure/17_aio.md`、`docs/design/PHASE1_DETAILED_DESIGN.md` / `PHASE2_DETAILED_DESIGN.md` / `PHASE3_DETAILED_DESIGN.md`
 
@@ -195,6 +193,11 @@ flowchart LR
 - **怎么做**：对**已写满且已落盘**的文件按 4 KiB 对齐扫描全零块，用 `fallocate(FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE)`（Linux）/ `FSCTL_SET_SPARSE` + `FSCTL_SET_ZERO_DATA`（Windows）释放。**只对整块全零区域打洞**——部分为零的块不得打（会改字节）。
 - **失败怎么办**：**不 fail-closed**。任何一步失败（卷不支持稀疏、对齐不足、权限、`EOPNOTSUPP`）⇒ 跳过打洞、保留完整 `.fits`、在 provenance 记 `trim=skipped(reason)`，产品照常发布。打洞是**体积优化**，不是科学语义；产品在打洞与未打洞两种状态下**逐字节相同**，因此不构成产品差异。
 - **如何验证**（可执行判据）：① 打洞前后整文件 `sha256` 必须相同；② 独立读器（cfitsio 与 astropy 两路）逐 HDU 读 header + 像素，逐字节全等；③ FITS 内嵌 `DATASUM`/`CHECKSUM` 打洞后仍自洽；④ 跨越"洞/非洞边界"的随机访问 `pread` 与打洞前全等；⑤ `st_blocks` 必须下降（否则说明洞没打上，须判红而不是静默通过）。
+- **实现落点**（机制唯一实现，调用方不得另写）：`lib/infrastructure/aio/src/aio_sparse_punch.h` —— `aio_sparse::punch_all_zero_blocks`（扫描 + 打洞 + 读回复算 + 降级判定）、`aio_sparse::volume_supports_punch`（按父目录缓存的卷能力探测，探测文件写在目标同目录）、`aio_sparse::block_is_literal_zero`（可打洞谓词，**字节级**）、`aio_sparse::punch_range_forced`（判据/负例注入用，生产路径不调用）。写端接线在 `lib/infrastructure/aio/src/hips/aio_hips_writer.cpp` 的 `write_fits_atomic`：**临时文件 → 内容写出 → 校验 → `fsync` → 打洞 + 读回复算 → 原子 rename → 父目录 `fsync`**；读回不一致 ⇒ 删除临时文件并失败，**不发布**。
+- **可打洞谓词为什么必须是字节级**：判据是"逐字节等于 0"，**不得**用浮点等值判定 —— IEEE `-0.0` 在浮点比较下等于 `0.0`，但其位型 `0x80000000` 含非零字节；用浮点判定会把 `-0.0` 区打成洞并**改变文件字节**。signal 层边距是 IEEE NaN（`0x7FC00000`），位型含非零字节 ⇒ 按构造落入"不可打洞"，这正是"绝不碰 NaN 区"这条红线的机制来源。
+- **块对齐与 EOF**：只有 4 KiB 对齐的整块可打；洞起点必须块对齐，洞终点要么块对齐、要么等于 `st_size`（末块补到块边界以释放尾部块；`st_size` 与读回语义均不变）。`punched_bytes` 表示**提交**的打洞字节；若洞提交后已分配字节未下降 ⇒ 返回 `NO_RELEASE` 并记 warn（`trim=skipped(no_release)`），**不得**当成功。
+- **降级路径的机器形态**：卷不支持 ⇒ `rc=UNSUPPORTED`、`punched_bytes=0`、`released_bytes=0`，文件**一个字节都不动**（能力探测先于任何打洞调用）；调用方记 `trim=skipped(<reason>)` 后照常发布。
+- **判据（机器）**：`CHK-SPARSE-PUNCH`（静态不变量 + 谓词判据判别力 + TRIM 默认不开/半开禁止）与 `CHK-SPARSE-PUNCH-PROBE`（把本机制的生产头编译成探针跑真实系统调用：读回逐字节一致、释放量、NaN 红线、降级）。
 
 ### 9.2 包围盒 TRIM（可选形态，默认不启用）
 

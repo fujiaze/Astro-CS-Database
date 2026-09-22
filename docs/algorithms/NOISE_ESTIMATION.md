@@ -4,7 +4,6 @@
 
 > ID 覆盖: ALG-NOISE-001 ALG-NOISE-002 ALG-NOISE-003  上游 SCI: SCI-NOISE-001..015
 > (docs/science/NOISE_MODEL.md，FROZEN，共享引用不改动)
-> 状态: DERIVED + CONTRACT_READY §13 增补
 > (逐符号源码锚定 §13.1 / DISP-NOISE §13.3 / TEST-NOISE-DESIGN-001 §13.4，
 > 根公式不变；**噪声模型 A 为唯一生产模型**，公式正本 = docs/science/NOISE_MODEL.md)
 > 模块: snr_estimator/noise_model

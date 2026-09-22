@@ -551,7 +551,7 @@
         "state": "retired",
         "retired_on": "2026-09-20",
         "retired_at_change": "CHG-2026-09-20-PSFSW-RETIRE",
-        "basis": "负责人 2026-09-20 裁决 B（14→13）；工程控制/RELEASE-03/GAP_AUDIT.md §4.5；ASTROCS_DESIGN.md §2.1/§2.2/§2.3；工程控制/RELEASE-02/GAP_AUDIT.md §9.73 裁决 A44",
+        "basis": "对象退役（14→13）：权重只能来自纯净信号与噪声之比/逆方差（ASTROCS_DESIGN.md §2.1/§2.2/§2.3）；变更编号 CHG-2026-09-20-PSFSW-RETIRE；§9.73 A44",
         "canonical_object_data_id": "DATA-OBJ-PSFSW-ROBUST-WEIGHT-001",
         "removed": [
           "eng/contracts/schemas/unified/psfsw_robust_weight.schema.json",

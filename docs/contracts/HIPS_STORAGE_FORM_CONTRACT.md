@@ -140,14 +140,14 @@
 | R5 | 归档形态缺索引 ⇒ fail-closed；裸形态缺索引 ⇒ 目录枚举重建 + provenance 记降级 |
 | R6 | 形态解析失败、索引不一致、归档截断 ⇒ 显式错误码，不静默回退 |
 
-## 7. 体积削减（裸形态；负责人裁决 2026-09-22「TRIM 纳入产品格式」）
+## 7. 体积削减（裸形态）
 
 **两种机制，冻结口径与判据如下**（实测与推导见 `docs/design/PRODUCT_STORAGE_FORM.md` §9、`run/RULING-DOC-01/REPORT.md` 裁决 C）：
 
 | 机制 | 作用层 | 冻结规则 | 失败语义 | 判据（机器可校验） |
 |---|---|---|---|---|
 | **T1 文件系统打洞** | 文件分配层，**字节不变** | 只对 **4 KiB 对齐的整块全零区域**打洞；打洞在 `fsync` 之后、算哈希与原子发布之前完成；`st_size` 必须不变 | **不 fail-closed**：跳过、保留完整 `.fits`、provenance 记 `trim=skipped(reason)` | ① 打洞前后整文件 `sha256` 相同；② cfitsio 与 astropy 两路读器逐 HDU header+像素全等；③ `DATASUM`/`CHECKSUM` 自洽；④ 跨洞边界 `pread` 全等；⑤ `st_blocks` 必须下降（未下降 ⇒ 判红，不静默通过） |
-| **T2 包围盒 TRIM**（WD-HiPS-2.0 §4.3.2） | 瓦片内容层，**改 FITS 结构** | 仅当产品显式声明该形态（`properties`/provenance 记 TRIM 关键字与原始 `ONAXIS1/ONAXIS2`）且下游读端 TRIM-aware；**默认不启用** | 读端不认 TRIM 关键字 ⇒ **fail-closed**（拒绝），禁止按缩小后的 NAXIS 静默继续 | ① 补边后像素与未 TRIM 同源瓦片逐字节全等（补边位模式 = IEEE NaN）；② `ONAXIS1/ONAXIS2` == 未 TRIM 的 NAXIS1/NAXIS2；③ 负例：边距改 0.0 或错位 1 像素必须判红 |
+| **T2 包围盒 TRIM**（WD-HiPS-2.0 §4.3.2；FITS 关键字 `TRIM1`/`TRIM2`/`ONAXIS1`/`ONAXIS2`） | 瓦片内容层，**改 FITS 结构** | 仅当产品显式声明该形态（`properties`/provenance 记 TRIM 关键字与原始 `ONAXIS1/ONAXIS2`）且下游读端 TRIM-aware；**默认不启用** | 读端不认 TRIM 关键字 ⇒ **fail-closed**（拒绝），禁止按缩小后的 NAXIS 静默继续 | ① 补边后像素与未 TRIM 同源瓦片逐字节全等（补边位模式 = IEEE NaN）；② `ONAXIS1/ONAXIS2` == 未 TRIM 的 NAXIS1/NAXIS2；③ 负例：边距改 0.0 或错位 1 像素必须判红 |
 
 - **生效面**：仅**裸形态** `<name>.hips/`。**归档形态 `<name>.hips.zst` 两种都不实施**（收益被 zstd 吸收）。
 - **产品身份不受影响（T1）**：字节不变 ⇒ 产品哈希不变。**T2 改变内容** ⇒ 启用 T2 的产品与未 TRIM 的同源产品**不同身份**，必须在 `properties` 与 manifest 的 `storage` 段显式区分（不得让同一科学内容因是否 TRIM 而静默产生两个身份）。

@@ -2,11 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §2（核心科学方法）
 
-> 文档 ID：DOC-GOV-OWNER-SCIENCE-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§12.5）
-> 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003 唯一源）
-> 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
-> 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
 > 用途：项目负责人 L0 审查入口之一。本文只**汇总权威来源**（不复制公式/函数清单）。
 > ⚠ **DOC-202 R23-adjacent 订正（2026-09-20；DOC-204 改写引文，不复述禁令字样）**：原文（原句见 git 历史）
 > 把 `docs/science/` 与 `docs/algorithms/` 声明为下级自定的排他权威，是**下级文档自行声明权威顺序**，违反最高设计
@@ -85,8 +80,8 @@ INTEGRATION_ALGORITHMS / PHASE3_RESAMPLE / ACR_EQUIVALENCE）。
 | 合成/单元测试文件在位 | `IMPLEMENTED` | `eng/tests/unit/p1_*.cpp`、`eng/tests/api/test_p1_api.py` 存在于当前提交 |
 | **Phase1 节点化（IR 节点唯一真实 operation，`ASTROCS_DESIGN.md` §3.2；原引「宪章 §F.1」已废止）** | **`IMPLEMENTED`** | `lib/infrastructure/scheduler/src/module_adapters.cpp`:4257 八节点（calibrate/cosmetic/star-psf/wcs/photo/noise-snr/drizzle/writer）各绑唯一真实 operation；ctest `p1001_real_nodes` 本提交实测 PASS（P1-001 `9e09941a`） |
 | 合成执行验收（当前提交复跑） | 部分 `IMPLEMENTED` | 节点化/消费者用例本提交实测绿（`p1001_real_nodes`）；原生像素域全量合成链路（真实数据）仍未复跑 → 见下 |
-| 真实数据（BASS/32R）验证 | `NOT_VERIFIED` | `docs/RELEASE_STATUS.md`/`docs/KNOWN_LIMITATIONS.md`：FINAL_REAL_DATA_VALIDATION=PENDING；REAL-000 `9f6b72b5` 数据集审计/索引 v1.2/确定性匹配计划已 IMPLEMENTED |
-| 真实数据（BASS/32R）验证 | NOT_VERIFIED | `docs/RELEASE_STATUS.md`/`docs/KNOWN_LIMITATIONS.md`：FINAL_REAL_DATA_VALIDATION=PENDING |
+| 真实数据（BASS/32R）验证 | `NOT_VERIFIED` | `docs/owner/RELEASE_STATUS.md`/`docs/KNOWN_LIMITATIONS.md`：FINAL_REAL_DATA_VALIDATION=PENDING；REAL-000 `9f6b72b5` 数据集审计/索引 v1.2/确定性匹配计划已 IMPLEMENTED |
+| 真实数据（BASS/32R）验证 | NOT_VERIFIED | `docs/owner/RELEASE_STATUS.md`/`docs/KNOWN_LIMITATIONS.md`：FINAL_REAL_DATA_VALIDATION=PENDING |
 
 ### Phase2（多帧 HiPS → 马赛克 HiPS：UPM/排异/积分）
 

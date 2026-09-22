@@ -7,7 +7,7 @@
   "required": ["schema_version", "product_version", "source_commit", "platform", "units"],
   "properties": {
     "schema_version": { "const": 1 },
-    "product_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$", "description": "必须逐字等于仓库根 VERSION（唯一版本源, docs/governance/VERSION_NAMESPACES.md）; schema 不写死版本值, 漂移由 eng/packaging/check_packaging_consistency.py C1 机器判红" },
+    "product_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$", "description": "必须逐字等于仓库根 VERSION（唯一版本源, docs/owner/RELEASE_STATUS.md §2）; schema 不写死版本值, 漂移由 eng/packaging/check_packaging_consistency.py C1 机器判红" },
     "source_commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "platform": { "enum": ["windows-amd64", "linux-amd64"] },
     "units": {

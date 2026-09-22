@@ -2,7 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
-> 状态：CON-008 PASS
 > 关联代码：`lib/algorithms/coverage/include/astro/phase2/async_io.h`
 > 目标：HiPS/FITS/XISF 读取与计算解耦，使用有界 producer/consumer；
 > 队列容量由 `memory_budget_bytes / item_bytes` 推导，禁止无界队列。

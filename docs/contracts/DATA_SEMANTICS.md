@@ -2797,7 +2797,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | `W_info` | `ADU^-2` | 点源信息权重 = 1/Var(F_hat) | — | — | `FZ-UNIT-WINFO` | FROZEN |
 | `Q` | `ADU^-1` | 点源线性充分统计量 | — | — | `FZ-UNIT-Q` | FROZEN |
 | `flux` (F_hat) | `ADU` | 点源通量估计 | `ADU^2` | `ADU^-2` | `FZ-UNIT-FLUX` | FROZEN |
-| ~~`psfsw_robust_weight`~~ | — | **对象已真删**（负责人 2026-09-20 裁决 B，14→13；GAP_AUDIT §4.5 C01；`CHG-2026-09-20-PSFSW-RETIRE`）⇒ 该单位条款随对象退役 | — | — | ~~`FZ-UNIT-PSFSW`~~（退役留痕） | **OBSOLETE** |
+| ~~`psfsw_robust_weight`~~ | — | **对象已真删**（14→13；`CHG-2026-09-20-PSFSW-RETIRE`）⇒ 该单位条款随对象退役 | — | — | ~~`FZ-UNIT-PSFSW`~~（退役留痕） | **OBSOLETE** |
 | `phase2_mosaic_signal` | `BUNIT(声明)` | Phase2 马赛克 signal；面亮度产品则 `ADU/sr` | `BUNIT^2` | `1/BUNIT^2` | `FZ-UNIT-SIGNAL-SB` | FROZEN |
 | `phase3_var_out` | `BUNIT^2` | Phase3 输出方差 = 主 HDU BUNIT 平方 | — | `1/BUNIT^2` | `FZ-P3-BUNIT-QUADRATIC` | FROZEN |
 
@@ -2883,7 +2883,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | 生产科学模式 | `point_information` / `surface_gls` | 配置显式选择，不得自动切换；各自权威式见 §31.4/§31.5 与 `eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary` |
 | 文档基线模式 | `equal` / `pixel_ivar` | 仅基线比较，**非**科学最优声明 |
 | 延迟模式 | `psf_snr_power` | DEFERRED/NOT_IMPLEMENTED（`FZ-MODE-DEFERRED`），**不进** V6 生产路由（`C-004.1`，本包不解冻） |
-| ~~退役模式~~ | ~~`psfsw_robust`~~ | **已按 §9.73 A44 作废**（退役留痕，PSFSW-RETIRE-01/03）：它是退役对象 `psfsw_robust_weight` 的声明 token，**不在**生产接受集（`FZ-MODE-PRODUCTION = {point_information, surface_gls}`）；旧产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），不得静默接受。依据：`ASTROCS_DESIGN.md` §3.1（订正后：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）、`docs/design/UNIFIED_MODEL.md:58`、负责人 2026-09-20 裁决 B（`CHG-2026-09-20-PSFSW-RETIRE`）与 §9.73 裁决 A44。机器登记：`eng/contracts/data/v6_clause_registry_v1.json#weight_modes.retired`（`_psfsw_retirement_note`）与 `#a44_deprecation.psfsw_retire_03_correction`。 |
+| ~~退役模式~~ | ~~`psfsw_robust`~~ | **已按 §9.73 A44 作废**（退役留痕，PSFSW-RETIRE-01/03）：它是退役对象 `psfsw_robust_weight` 的声明 token，**不在**生产接受集（`FZ-MODE-PRODUCTION = {point_information, surface_gls}`）；旧产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），不得静默接受。依据：`ASTROCS_DESIGN.md` §3.1（订正后：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）、`docs/design/UNIFIED_MODEL.md:58`、变更编号 `CHG-2026-09-20-PSFSW-RETIRE` 与 §9.73 A44。机器登记：`eng/contracts/data/v6_clause_registry_v1.json#weight_modes.retired`（`_psfsw_retirement_note`）与 `#a44_deprecation.psfsw_retire_03_correction`。 |
 
 **legacy 整数处置**（`FZ-FIELD-WEIGHTMODE`；`ADJ-S1`；迁移映射 `eng/contracts/data/v6_clause_registry_v1.json#migration_map.legacy_weight_mode_disposition`；（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））：
 `0=support×snr²` **必须拒绝**（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）；`1 → equal`；`2 → pixel_ivar`（两者仅作文档基线对照）。

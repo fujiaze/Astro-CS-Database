@@ -3530,7 +3530,9 @@
         "run/ci/ctest/p1psf_prodpath_centroid.json",
         "run/ci/ctest/p1snr_frame_parity.json",
         "run/ci/ctest/p1star_angle_guard.json",
+        "run/ci/ctest/p1star_guided.json",
         "run/ci/ctest/p1star_mad.json",
+        "run/ci/ctest/p1stardet_node_gate.json",
         "run/ci/ctest/p2hips_determinism.json",
         "run/ci/ctest/p2hips_negative.json",
         "run/ci/ctest/p2hips_selfcheck.json",
@@ -3573,7 +3575,9 @@
         "p1psf_prodpath_centroid",
         "p1snr_frame_parity",
         "p1star_angle_guard",
+        "p1star_guided",
         "p1star_mad",
+        "p1stardet_node_gate",
         "p2hips_determinism",
         "p2hips_negative",
         "p2hips_selfcheck",
@@ -3719,6 +3723,77 @@
           "requires_monitor": false,
           "ctest_targets": [
             "p1star_angle_guard"
+          ]
+        },
+        {
+          "id": "CTEST-P1STAR-GUIDED",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1star_guided",
+            "--output",
+            "run/ci/ctest/p1star_guided.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1star_guided.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/algorithms/star_detection/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1star_guided"
+          ]
+        },
+        {
+          "id": "CTEST-P1STARDET-NODE-GATE",
+          "profiles": [
+            "linux-main",
+            "prerelease"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1stardet_node_gate",
+            "--output",
+            "run/ci/ctest/p1stardet_node_gate.json"
+          ],
+          "timeout_seconds": 1800,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1stardet_node_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "lib/algorithms/star_detection/**",
+            "lib/infrastructure/scheduler/**",
+            "eng/tests/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1stardet_node_gate"
           ]
         },
         {
@@ -10202,6 +10277,73 @@
           "requires_monitor": false
         }
       ]
+    },
+    {
+      "id": "CHK-SPARSE-PUNCH",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_sparse_punch.py",
+        "--self-test",
+        "--json-out",
+        "run/ci/sparse-punch/selftest.json"
+      ],
+      "timeout_seconds": 600,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/sparse-punch/selftest.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/quality/check_sparse_punch.py",
+        "lib/infrastructure/aio/**",
+        "docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md",
+        "docs/design/PRODUCT_STORAGE_FORM.md",
+        "eng/ci/checks.json"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-SPARSE-PUNCH-PROBE",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_sparse_punch.py",
+        "--probe-run",
+        "--workdir",
+        "run/ci/sparse-punch/probe",
+        "--json-out",
+        "run/ci/sparse-punch/probe.json"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/sparse-punch/probe.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/quality/check_sparse_punch.py",
+        "eng/tools/quality/sparse_punch_probe.cpp",
+        "eng/tools/quality/fits_cross_reader.c",
+        "lib/infrastructure/aio/**",
+        "eng/ci/checks.json"
+      ],
+      "prerequisite_tools": [
+        "python3:numpy",
+        "python3:astropy"
+      ],
+      "requires_monitor": false
     },
     {
       "id": "CHK-KNOWN-FAILURES-BASELINE",

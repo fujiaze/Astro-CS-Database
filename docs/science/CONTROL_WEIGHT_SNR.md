@@ -15,7 +15,7 @@
 > 逐源 `σ_F` 定义，帧级科学基准为 5σ 点源深度 `m_5`（§2a）。字段名 `snr` 仅为兼容保留，
 > 其语义为 "SNR-equivalent relative quality, not a calibrated signal-to-noise ratio"。
 >
-> **同名两义分离（负责人 2026-09-19 裁决 A1/C1，claim `FIX-SCI-SNR-CANON-001`；关闭 §9 的 UNRESOLVED）**：
+> **同名两义分离（claim `FIX-SCI-SNR-CANON-001`；关闭 §9 的 UNRESOLVED）**：
 > **Phase1 HiPS 文件头的 `frame_snr` 是科学量**——帧级未加权原始信噪比（**点源（PSF）信号 SNR，纯信号/噪声**：
 > `SNR = F_signal/σ_F`，`F_signal` 已扣局部背景、天光**只作噪声项**进 `σ_F`；固定源通量下天光增大 ⇒ SNR 单调下降），
 > 定义与红线见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 与 `docs/design/UNIFIED_MODEL.md` §2。
@@ -174,7 +174,7 @@ for 每个控制星 s（半径内）:
 - **逐源最优提取 SNR_F=F/σ_F**：Horne 1986, PASP 98, 609；Naylor 1998, MNRAS 296, 339。
 - **PixInsight PSFSNR/PSFSW 方法学**：PixInsight Reference, New Image Weighting Algorithms（https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html）。**核验状态**：方法学文档，未逐式核验常数。
 - **稳健噪声 MRS/N***：Starck & Murtagh 2006, Astronomical Image and Data Analysis, 2nd ed., Springer（ISBN 978-3-540-33023-3）。
-- **已定案（原 UNRESOLVED，两篇权威打架）**：冲突根因是**同名两义**——本文件 §2a 的 `frame_snr` 是 Phase2 stage2 内部相对质量权重场，而 `docs/design/UNIFIED_MODEL.md` §2 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 的 `frame_snr` 是 Phase1 HiPS 文件头的科学量。负责人 2026-09-19 裁决 A1/C1（claim `FIX-SCI-SNR-CANON-001`）确认：**帧级 SNR = 点源（PSF）信号 SNR，纯信号/噪声**（`F_signal` 已扣局部背景、天光只进 `σ_F`、天光增大 ⇒ SNR 单调下降），故 Phase1 产品面按科学量定义；本文件的 stage2 字段是相对质量场，须改名 `quality_weight` 以消除同名互指。**UNRESOLVED 关闭**。
+- **已定案（原 UNRESOLVED，两篇权威打架）**：冲突根因是**同名两义**——本文件 §2a 的 `frame_snr` 是 Phase2 stage2 内部相对质量权重场，而 `docs/design/UNIFIED_MODEL.md` §2 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1 的 `frame_snr` 是 Phase1 HiPS 文件头的科学量。定案（claim `FIX-SCI-SNR-CANON-001`）确认：**帧级 SNR = 点源（PSF）信号 SNR，纯信号/噪声**（`F_signal` 已扣局部背景、天光只进 `σ_F`、天光增大 ⇒ SNR 单调下降），故 Phase1 产品面按科学量定义；本文件的 stage2 字段是相对质量场，须改名 `quality_weight` 以消除同名互指。**UNRESOLVED 关闭**。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：
 - Astropy（BSD-3-Clause，https://github.com/astropy/astropy）：WCS/投影、统计、单位。

@@ -2,8 +2,6 @@
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
-> 文档 ID：DOC-ARCH-MODULE-MAP
-> 状态：ACTIVE_INFORMATIVE（DOC-CONV-001 按 BASE=`da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540` 实际收敛）
 > 状态词：**唯一口径 = `ASTROCS_DESIGN.md` §12.5（状态阶梯）**；操作层判据见
 > `docs/owner/RELEASE_STATUS.md` §0（该节引 §12.5，不另立阶梯）。
 > ⚠ 本文件**不声明第二套状态阶梯**，也不复述状态词清单；

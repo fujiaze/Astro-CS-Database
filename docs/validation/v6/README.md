@@ -4,9 +4,6 @@
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 文档 ID：`QA-MATRIX-001-INDEX`
-- 任务：QA-MATRIX-001（wave 3；write_scope = `docs/validation/v6/` + `reports/v6/qa-design/`）
-- 基线 HEAD：`125bc0999363be1a42a1f2df3254601e0cc7b8fb`
 
 | 文件 | 内容 |
 |---|---|

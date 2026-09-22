@@ -1,7 +1,5 @@
 # DATA-004 产物溯源与版本语义（Product Provenance）
 
-> 文档 ID：DOC-DATA-PRODUCT-PROVENANCE-001
-> 状态：ACTIVE_NORMATIVE
 > 上游权威：`ASTROCS_DESIGN.md` §1.2/§9（三阶段仅通过原子发布、
 > 哈希与 provenance 完整的磁盘产品/manifest 交换）、DATA-001（typed manifest schema）、
 > DATA-002（三阶段产品交换合同，R-DISK-ONLY / R-EVIDENCE-REQUIRED）、

@@ -1358,6 +1358,24 @@
       ]
     },
     {
+      "path": "lib/algorithms/star_detection/tests/p1star/p1stardet_node_gate_test.cpp",
+      "hits": 17,
+      "rules": {
+        "cxx-stream": 7,
+        "filesystem": 10
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
+      "owner": "无（测试面）",
+      "functions": [
+        "<file-scope>",
+        "main",
+        "test_catalog_fail_closed",
+        "test_guided_positive_and_degradation",
+        "test_real_frame"
+      ]
+    },
+    {
       "path": "lib/algorithms/star_detection/tests/p1star/sdet_oom_interposer.c",
       "hits": 3,
       "rules": {

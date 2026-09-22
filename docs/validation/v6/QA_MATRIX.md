@@ -1,4 +1,4 @@
-> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（负责人 2026-09-20 裁决，GAP_AUDIT.md §9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
+> **⚠ 已按 §9.73 A44 作废**：本文件属历史/冻结层。其中「权重模式 / 权重档位 / mode0·mode1·mode2」这一整套概念**不存在**（§9.73 A44；ASTROCS_DESIGN.md §2.1）。本文件内容**保持历史原样**、仅作留痕，**不构成现行规范**；权重 = 阶段二按该天球像素对应帧集合**现场算出的派生量**。
 
 > **DOC-001 溯源注记（2026-09-16）**：本文为 V6 产品族冻结/设计档案（上一轮治理产物），因仍被活动合同引用而保留在活动索引；文中 工程控制/旧 V6 控制包（ROOT-007 已删除）/** 等旧控制包路径为该轮任务溯源，该控制包已由 ROOT-007 删除，不作现状引用。文中「宪章 `ASTROCS-CONSTITUTION-001` §x.y」引用同属该轮历史溯源——该宪章（`ASTROCS_PROJECT_CONSTITUTION.md`）已废止（ROOT-007 删除），**不构成现行依据**；现行权威见 `ASTROCS_DESIGN.md` §0 权威链。
 
@@ -6,10 +6,6 @@
 
 > 上游：ASTROCS_DESIGN.md §12（验证体系）
 
-- 文档 ID：`QA-MATRIX-001-QA-MATRIX`
-- 任务：`工程控制/旧 V6 控制包（ROOT-007 已删除）/tasks/QA-MATRIX-001.md`（wave 3，depends_on = SCI-ADJ-001）
-- write_scope：`docs/validation/v6/`、`reports/v6/qa-design/`（本任务未写任何其他路径）
-- 基线：`HEAD = 125bc0999363be1a42a1f2df3254601e0cc7b8fb`（执行期实测，见 `reports/v6/qa-design/evidence/logs/`）
 - 机器规格（唯一事实源）：`reports/v6/qa-design/qa_matrix.json`；mutation 目录 `reports/v6/qa-design/data/mutations.json`；基线矩阵 `reports/v6/qa-design/data/baseline_matrix.json`；零用例账本 `reports/v6/qa-design/case_ledger.json`
 - 复跑入口：`python3 reports/v6/qa-design/oracle/run_all.py`（单 rc）
 - 推荐状态：由任务返回消息给出（PASS / FAIL / REVIEW_REQUIRED）

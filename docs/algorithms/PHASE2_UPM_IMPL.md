@@ -311,7 +311,7 @@ dense/sparse 等价门: 1e-12（UPM_SOLVER.md §8/§9 冻结；§13 T5）
 | p2_upm_raw_weight | 0/1/2 | ok / 参数错 / production 缺 control_ivar | :1294/:1311；语义注释 upm.h:137-145 |
 | p2_upm_calibrate_block | 0/1 | ok / 参数 null 或 **未知 frame_id（显式失败禁回退 frame 0）** | :1244-1247、:1249-1252 |
 | p2_upm_evaluate_c | NaN | **未知 frame_id 与 null model 一律返回 NaN**（显式不可用；0.0 是 gauge 参考帧的合法 C 值，禁作哨兵——M7-H-103） | :1301-1307 |
-| p2_upm_convergence | 0/1 | ok / null model（不写任何出参；`converged`：1=在 max_iterations 内达 tolerance，0=迭代耗尽或旧文件未记录） | :1257-1267 |
+| p2_upm_convergence | 0/1 | ok / null model（不写任何出参；`converged` 为**状态枚举** `0=max_iter / 1=converged / 2=stalled / 3=invalid`，旧模型文件未记录读作 0） | :1257-1267 |
 | p2_upm_dense_read_block | 0/1/2 | ok / 参数 null·未知 frame_id·io/parse / **stale-cache（source hash 不匹配）** | :1547-1553、:1554-1556；语义注释 upm.h:176-177 |
 | p2_upm_materialize_dense_n | 0/1 | ok / null、tile_set 空、aio 失败 | :1392-1404、:1508-1514 |
 | p2_upm_component_gauges | 0/1/2 | ok / null model / ref_frame 容量不足 | :1372-1376 |

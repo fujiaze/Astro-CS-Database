@@ -124,7 +124,7 @@ flowchart TB
 
 **通过标准**：上表全部满足；`python3 eng/ci/run_checks.py --check CHK-HIPS-STORAGE-FORM` exit 0 且 `--self-test` 全部正/负例符合预期。
 
-### 3.2 裸形态体积削减验收（打洞；负责人裁决 2026-09-22）
+### 3.2 裸形态体积削减验收（打洞）
 
 权威：`docs/design/PRODUCT_STORAGE_FORM.md` §9、`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md` §7。
 
@@ -138,7 +138,16 @@ flowchart TB
 | 产品身份不受影响 | 打洞产物与未打洞同源产物的产品哈希（`tree_hash` / `canonical_sha256`）相同 |
 | 口径不混用 | 报告与 provenance 不得用 13.31%（包围盒 TRIM 的口径）描述打洞收益；打洞实测整产物 2.77%（Linux）/2.10%（Windows），signal/variance/ivar 三层 0.0000% |
 
-**通过标准**：上表全部满足；打洞的 `--self-test` 正/负例全部符合预期。**未实测项如实登记**：Windows 上的 `FSCTL_SET_SPARSE` + `FSCTL_SET_ZERO_DATA` 等价实现**只有文档依据、未在本机实测**（本机为 Linux）。
+**判据入口（机器）**：
+
+| 门 | 覆盖 |
+|---|---|
+| `CHK-SPARSE-PUNCH` | 静态不变量（零浮点 / 字节谓词 / 单一打洞系统调用 / Windows 等价实现在位 / 块粒度 / 能力探测先于打洞 / 读回复算 / 写端接线次序 / aio 之外零打洞原语）+ 谓词判据判别力（浮点等值变异体必须在 `-0.0` 语料上判错）+ **TRIM 默认不开**（全仓零 `TRIM1`/`TRIM2` 写入者）与**半开禁止**（出现写入者必须同带 `ONAXIS1`/`ONAXIS2`）+ 文档登记在位 |
+| `CHK-SPARSE-PUNCH-PROBE` | 把机制的生产头编译成探针跑真实系统调用：上表前五条 + NaN 红线（NaN 带不得被任何洞覆盖）+ 对 NaN 区/非零区强制打洞必须判红 + 卷不支持时的降级 |
+
+**通过标准**：上表全部满足；`python3 eng/ci/run_checks.py --check CHK-SPARSE-PUNCH CHK-SPARSE-PUNCH-PROBE` exit 0，且两者的正/负例全部符合预期（负例注入逐项判红）。
+
+**未实测项如实登记**：Windows 上的 `FSCTL_SET_SPARSE` + `FSCTL_SET_ZERO_DATA` 等价实现**只有一手文档依据、未在 Windows 上实测**（本机为 Linux）；其静态面由 `CHK-SPARSE-PUNCH` 的 S5/S6 断言，行为面在 Windows 上仍属未验证。
 
 ---
 

@@ -324,7 +324,8 @@ flowchart TD
 - 三种 SNR 重建口径由 JSON 显式指定：`dense`（稠密帧内 SNR）、`sparse_reconstruct`（默认，稀疏控制点插值重建）、`frame_reconstruct`（仅帧级）；实际生效口径记录在 `snr_path_effective`。
 - 实际 SNR 由所选口径**直接给出**：`dense` 用 Phase1 稠密面、`sparse_reconstruct` 用稀疏绝对 SNR 控制点重建、`frame_reconstruct` 用帧级标量；三者都产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示，只在重建方式上不同。叠加权重由 SNR 现场换算为逆方差 `w = 1/σ² = SNR²/F_ref²`（`F_ref` 为逐帧参考通量），这是 point information 最优集成（Zackay & Ofek），不是直接用 SNR 加权。
 - 拟合权重与堆叠权重是两个量：拟合用 `1/σ²`（可加 Huber），堆叠用残差制造者方差并含拟合参数协方差，公式见 `docs/science/CONTROL_WEIGHT_SNR.md`。
-- **三种口径没有全局最优，只有适用域**：地面视宁度受限且噪声场平滑可分辨时，稀疏重建精度最好；高分辨率、高对比结构（如 HST 数据）上帧级口径最好；稠密口径存储代价高。完整适用域图谱由实验单元二给出，作为默认值与文档口径的依据。
+- **稀疏重建算子按冻结词表显式声明**（默认 = 自然边界双三次样条 + 值域钳制；cell 内含未分辨亮源的高对比域按数据来源叠加 3×3 mesh 中值前置滤波；双线性保留为对照/回退），算子标识、重建误差与层几何随层入 manifest；算子定义、钳制的必要性、滤波开关的按域规则与「控制点落在 cell 中心」的几何约定见 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.5。
+- **三种口径没有全局最优，只有适用域**：地面视宁度受限且噪声场平滑可分辨时，稀疏重建精度最好；高分辨率、高对比结构（如 HST 数据）上帧级口径最好——**该结论与重建算子绑定**（`..._mesh_median_v1` 下稀疏反而更优）；稠密口径存储代价高。完整适用域图谱由实验单元二给出，作为默认值与文档口径的依据。
 - 稠密 SNR 是数学表示，工程上按输出像素现场求值、不预计算、不整体驻留，按需权衡 CPU 与内存。
 - 参考通量 `F_ref` 锚定固定参考星等（逐帧、只依赖本帧标定），保证帧级 SNR 跨帧可比且权重配对，口径与适用域见 `docs/plugins/algorithms_phase1/07_noise_snr.md`。
 
@@ -617,7 +618,7 @@ run/                            临时产物与日志（gitignore）
 - 所有产品（含 HiPS tile）走：本次运行私有临时区 → 校验 → fsync → 算哈希 → 原子改名发布 → 最后落完成清单；没有完成清单就不算成功对象；失败/取消时清理临时产物，正式目录只出现完整产品；同一标识只有一个生产者。
 - **产品落盘形态**：HiPS 产品只有两种形态——裸 `<name>.hips/`（目录）与归档 `<name>.hips.zst`（整包 tar + 逐成员 zstd 帧，解压后是合法 HiPS），两形态互斥且**同身份**（产品哈希取解压后内容，不取压缩包字节）。形态按**访问模式**选择：被随机读取用于服务、或作为交付物的产品存裸形态（Phase2 输出、Phase3 平面 FITS 不套壳）；主要被整体搬运、下游按天区查询的产品存归档形态（Phase1 默认，可显式切裸）。查询面（产品级索引 `<name>.hips.index.json` 与数据集级覆盖索引 `coverage.index.json`）**不压缩**、与像素数据分离，登记粒度 = 一个叶 tile。细则见 `docs/design/PRODUCT_STORAGE_FORM.md` 与 `docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`。
 - **形态走输入配置、索引路径走输出清单**：Phase1 的落盘形态由**输入 JSON** 的 `storage_form` 键选定（`archive` 默认 / `bare`；键缺失或留空 ⇒ 取默认并**报 warn**，禁止静默取默认）；Phase2/Phase3 的输入合同**不设**该键（产物固定裸形态），出现即 REJECT。产物必须**自报**形态与索引：`p1_products.json` 逐帧带 `storage_form` / `index_path` / `index_sha256` / `archive_sha256`，运行级带 `coverage_index`；运行完成清单 `manifest.json` 带 `storage` 段。这样不同批次 Phase1 的输出 JSON 可以合并而不丢索引；Phase2 输入沿用既有字段结构（`hips_paths` 元素保持字符串），额外的总索引引用用加性可选键 `coverage_index`。
-- **裸形态的体积削减（负责人裁决 2026-09-22「TRIM 纳入产品格式」）**：分两种机制，**不得混用口径**——① **文件系统打洞**（sparse hole punching）：只释放**本来就是零字节**的区域，**文件字节与读回行为逐字节不变**，跨平台有等价实现（Linux `fallocate(PUNCH_HOLE)`；Windows `FSCTL_SET_SPARSE`+`FSCTL_SET_ZERO_DATA`），失败只跳过并记 `trim=skipped(reason)`、**不 fail-closed**；② **包围盒 TRIM**（HiPS 2.0 工作草案 §4.3.2，`TRIM1/TRIM2/ONAXIS1/ONAXIS2`）：缩小 NAXIS、**改变 FITS 结构**，只在产品显式声明且读端 TRIM-aware 时启用，读端不认这些关键字必须 **fail-closed**（禁止把"缺边"当"天区更小"）。归档形态两种都不实施（收益被 zstd 吸收）。实测收益与判据见 `docs/design/PRODUCT_STORAGE_FORM.md` §9。
+- **裸形态的体积削减**：分两种机制，**不得混用口径**——① **文件系统打洞**（sparse hole punching）：只释放**本来就是零字节**的区域，**文件字节与读回行为逐字节不变**，跨平台有等价实现（Linux `fallocate(PUNCH_HOLE)`；Windows `FSCTL_SET_SPARSE`+`FSCTL_SET_ZERO_DATA`），失败只跳过并记 `trim=skipped(reason)`、**不 fail-closed**；② **包围盒 TRIM**（HiPS 2.0 工作草案 §4.3.2，`TRIM1/TRIM2/ONAXIS1/ONAXIS2`）：缩小 NAXIS、**改变 FITS 结构**，只在产品显式声明且读端 TRIM-aware 时启用，读端不认这些关键字必须 **fail-closed**（禁止把"缺边"当"天区更小"）。归档形态两种都不实施（收益被 zstd 吸收）。实测收益与判据见 `docs/design/PRODUCT_STORAGE_FORM.md` §9。
 - 每次运行生成资源时序、资源汇总、worker 均衡、run manifest、run context、运行图（plan 是预期、trace 是实际，分别如实记录）。
 - manifest 至少记录：产品类型/schema 版本、软件来源、run ID、输入产品标识、科学配置、像素/采样语义、算法 ID、模块 build ID、实际 provider、生成时间；单位/坐标/平面/无效值策略由产品内容证据块显式声明，缺失即不许消费。
 - 无覆盖/无数据 = NaN，与支撑度 ≤0 一致；不用 0 或 ±Inf 冒充无效；请求的 tile 缺失时如实报缺失，不返回父层内容冒充。

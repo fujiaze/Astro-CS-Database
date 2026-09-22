@@ -1228,7 +1228,7 @@
       "unit": "MB",
       "owner_class": "runtime_policy",
       "registration": "plugin_doc",
-      "registered_at": "docs/plugins/infrastructure/17_aio.md:31",
+      "registered_at": "docs/plugins/infrastructure/17_aio.md:36",
       "registered_key": null,
       "finding": "none",
       "note": "缓存上限（实现策略），禁入 phase_config。",
