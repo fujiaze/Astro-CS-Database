@@ -298,6 +298,8 @@ add_library(astrocs_core STATIC
   lib/infrastructure/scheduler/src/block_frame.cpp
   # ARCH-502: normalize 异步工作流调度器（CONTRACT-501 SCHEDULER_CONTRACT）
   lib/infrastructure/scheduler/src/normalize_workflow.cpp
+  # ARCH-503: mosaic 天球窗口并行调度器（CONTRACT-501 SCHEDULER_CONTRACT）
+  lib/infrastructure/scheduler/src/mosaic_window.cpp
   lib/infrastructure/scheduler/src/context.cpp
   lib/infrastructure/scheduler/src/runtime.cpp
   lib/infrastructure/scheduler/src/scheduler.cpp

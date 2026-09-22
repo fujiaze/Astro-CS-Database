@@ -32,6 +32,13 @@ target_compile_definitions(normalize_workflow_test PRIVATE
   ARCH502_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence")
 add_test(NAME normalize_workflow COMMAND normalize_workflow_test)
 
+add_executable(mosaic_window_test mosaic_window_test.cpp)
+target_include_directories(mosaic_window_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
+target_link_libraries(mosaic_window_test PRIVATE astrocs_core)
+target_compile_definitions(mosaic_window_test PRIVATE
+  ARCH503_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence")
+add_test(NAME mosaic_window COMMAND mosaic_window_test)
+
 add_executable(core_context_test core_context_test.cpp)
 target_include_directories(core_context_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_link_libraries(core_context_test PRIVATE astrocs_core)
