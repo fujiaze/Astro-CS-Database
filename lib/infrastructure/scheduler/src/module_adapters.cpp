@@ -1717,6 +1717,52 @@ bool p1_master_flat_valid(const P1Image& flat, std::string* why) {
 }
 
 // ── op: calibrate（唯一真实入口 ac_calibrate_frame; 语义对齐 p1_session calibrate 阶段）──
+// ── PERF-P1 (RELEASE-05): 确定性帧级并行执行器 ─────────────────────────────
+// 与 p2_parallel_for（PERF-P2）**同规范**，不是另发明一套：
+//   · 线程数 = Runtime lease 注入的 __workers（AGENTS §6: 禁硬编码线程数;
+//     1 = 串行 reference）；
+//   · 任务以原子计数动态认领（等价 dynamic schedule, 抗帧间负载不均）；
+//   · 每个任务只写**自己下标**的结果槽与**自己帧**的产物路径；跨任务不做任何
+//     浮点归约 ⇒ 结果与串行**逐位一致**、与线程数/调度顺序无关；
+//   · 帧序归约（累加器 / 产物列表 / 错误选择）在 join 之后由调用线程**按下标升序**
+//     执行 ⇒ 归约顺序冻结，与串行完全相同；
+//   · worker 内异常经 exception_ptr 回传并在 join 后重抛，与串行异常语义一致。
+// 线程安全前提（已核查）: 各算法入口只有不可变的 static const API 表；drizzle 的
+// 错误槽与计数为 thread_local；帧间无共享可变状态。持有句柄的节点（star-psf 的
+// 检测器、wcs 的 ipv/gaia/sdet）必须**按 worker 分实例**，不得跨 worker 共享。
+template <typename Fn>
+static void p1_parallel_for(uint32_t workers, uint64_t n, Fn&& body) {
+  if (workers <= 1 || n <= 1) {
+    for (uint64_t i = 0; i < n; ++i) body(i, 0u);
+    return;
+  }
+  std::atomic<uint64_t> next{0};
+  std::vector<std::exception_ptr> eptr(workers, nullptr);
+  std::vector<std::thread> pool;
+  pool.reserve(workers);
+  for (uint32_t w = 0; w < workers; ++w) {
+    pool.emplace_back([&, w]() {
+      try {
+        for (;;) {
+          const uint64_t i = next.fetch_add(1);
+          if (i >= n) break;
+          body(i, w);
+        }
+      } catch (...) {
+        eptr[w] = std::current_exception();
+      }
+    });
+  }
+  for (auto& th : pool) th.join();
+  for (const auto& e : eptr)
+    if (e) std::rethrow_exception(e);
+}
+
+// P1 节点并行度：Runtime lease 注入的 __workers（budget 唯一权威; 1 = 串行）。
+static uint32_t p1_workers(const Json& doc) {
+  return std::max(1u, doc.value("__workers", 1u));
+}
+
 Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   auto p1_lights_rc = p1_require_lights(doc);
   if (p1_lights_rc.failed()) return p1_lights_rc;
@@ -1923,19 +1969,43 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   uint32_t frames_ok = 0;
   Json per_frame = Json::array();
   Json artifacts = Json::array();
-  for (const auto& lp : lights) {
+  // PERF-P1: 帧级并行（与 p2_parallel_for 同规范）。每帧只写自己下标的结果槽与
+  // 自己帧的产物路径；跨帧无浮点归约；帧序归约（frames_ok/per_frame/artifacts）
+  // 在 join 后按下标升序执行 ⇒ 与串行逐字一致、与 worker 数无关。
+  // W/H 不再由循环内共享变量推进（那是帧间共享可变状态）：以母版尺寸（若有）或
+  // **首帧**尺寸为基准逐帧独立校验，判据与串行相同且确定性。
+  const uint32_t cal_workers = p1_workers(doc);
+  const size_t n_lights = lights.size();
+  const int W_base = W, H_base = H;
+  std::vector<Result<void>> f_err(n_lights, Result<void>::success());
+  std::vector<Json> f_row(n_lights);
+  std::vector<std::string> f_out(n_lights);
+  std::vector<int> f_errkind(n_lights, 0);   // 0=无 1=input 2=output
+  std::vector<int> f_wh(n_lights * 2, -1);
+  p1_parallel_for(cal_workers, n_lights, [&](uint64_t fi, uint32_t) {
+    const std::string lp = lights[fi];
     P1Image light = p1_read_image(lp);
     if (!light.ok()) {
-      (*man)["error_kind"] = "input";
-      st_cal["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::IO, "cannot read light: " + lp));
+      f_errkind[fi] = 1;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read light: " + lp));
+      return;
     }
-    if (W >= 0 && (light.w() != W || light.h() != H)) {
-      st_cal["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "light size mismatch vs masters: " + lp));
+    if (W_base >= 0) {
+      if (light.w() != W_base || light.h() != H_base) {
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+            "light size mismatch vs masters: " + lp));
+        return;
+      }
+    } else if (fi == 0) {
+      f_wh[0] = light.w(); f_wh[1] = light.h();
     }
-    W = light.w(); H = light.h();
+    const int W = (W_base >= 0) ? W_base : f_wh[0];
+    const int H = (H_base >= 0) ? H_base : f_wh[1];
+    if (light.w() != W || light.h() != H) {
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
+          "light size mismatch vs first frame: " + lp));
+      return;
+    }
     // UNIT-001: 亮场声明域（若声明 normalized + scale，按声明换算；产物合同仍为 ADU）。
     if (mu_decl.light.has_scale) p1_apply_declared_scale(light, mu_decl.light.scale);
     const uint64_t n = static_cast<uint64_t>(W) * static_cast<uint64_t>(H);
@@ -1946,25 +2016,25 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
       const AIOImageMetadata lmeta = aio_read_metadata(lp.c_str());
       const double t_light = lmeta.calibration.exptime;
       if (!std::isfinite(t_light) || t_light <= 0.0) {
-        st_cal["status"] = "fail";
-        return Result<void>::fail(Error(ErrorDomain::DATA,
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "light FITS EXPTIME missing/<=0 (required for K=t_light/t_dark): " + lp));
+        return;
       }
       const double k_expo = t_light / dark_exptime;
       if (!std::isfinite(k_expo) || k_expo <= 0.0) {
-        st_cal["status"] = "fail";
-        return Result<void>::fail(Error(ErrorDomain::DATA,
+        f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
             "K=t_light/t_dark invalid (non-finite/<=0) for " + lp));
+        return;
       }
       // 显式配置标量不得与 EXPTIME 比不一致（禁配置冒充科学输入; 只做
       // fail-closed 门, 不改变 K 的推导公式与单位）。
       if (p1_has(doc, "dark_scale_factor")) {
         const double cfg_k = p1_num(doc, "dark_scale_factor", 1.0);
         if (std::fabs(cfg_k - k_expo) > 1e-6 * std::max(1.0, std::fabs(k_expo))) {
-          st_cal["status"] = "fail";
-          return Result<void>::fail(Error(ErrorDomain::DATA,
+          f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA,
               "dark_scale_factor (" + std::to_string(cfg_k) +
               ") disagrees with FITS EXPTIME ratio K=" + std::to_string(k_expo)));
+          return;
         }
       }
       k_use = static_cast<float>(k_expo);
@@ -1976,21 +2046,21 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
         bias.ok() ? bias.px() : nullptr,
         out.data(), dark_opt ? 1 : 0, k_use, &actual_k);
     if (rc != AC_OK) {
-      st_cal["status"] = "fail";
-      return Result<void>::fail(Error(rc == AC_ERR_MEMORY ? ErrorDomain::RESOURCE
+      f_err[fi] = Result<void>::fail(Error(rc == AC_ERR_MEMORY ? ErrorDomain::RESOURCE
                                                           : ErrorDomain::INTERNAL,
           "ac_calibrate_frame failed: " + lp));
+      return;
     }
     // 写出 calibrated_<base>（与 p1_session 命名约定一致; CLI 按此收集 artifact）
     P1Image wim = P1Image(aio_read_fits(lp.c_str()));
     if (!wim.ok()) {
       (*man)["error_kind"] = "input";
-      st_cal["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::IO, "re-read failed: " + lp));
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "re-read failed: " + lp));
+      return;
     }
     if (static_cast<uint64_t>(wim.w()) * static_cast<uint64_t>(wim.h()) != n) {
-      st_cal["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::DATA, "re-read size mismatch: " + lp));
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::DATA, "re-read size mismatch: " + lp));
+      return;
     }
     std::memcpy(wim.px(), out.data(), out.size() * sizeof(float));
     const std::string outp = out_dir + "/calibrated_" + p1_base_name(lp);
@@ -1999,19 +2069,30 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
     std::string werr;
     if (!p1_write_fits_atomic(wim, outp, &werr)) {
       (*man)["error_kind"] = "output";
-      st_cal["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::IO, werr));
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, werr));
+      return;
     }
-    ++frames_ok;
-    artifacts.push_back(outp);
+    f_out[fi] = outp;
     // CONFORM-FIX-A ⑤ / CONFORM-SWEEP-1-008: dark_scale 必须记录**实际施加**的 K。
     // CALIBRATION_ALGORITHMS.md F3.1/F3.2 (:149,154) 规定两个分支都令 actual_k = k,
     // 且标准式 (dark_opt=0) 的 k = k_init = 调用方给出的 t_light/t_dark (不再强制 1.0)。
     // 旧实现在标准式写 k_fixed (默认 1.0) 而算术用 k_use ⇒ K≠1 时每帧溯源字段系统性
     // 错误 (B2-A13/BIAS-001 的判据面即此 manifest 字段)。
-    per_frame.push_back(Json{{"input", p1_base_name(lp)},
-                             {"output", "calibrated_" + p1_base_name(lp)},
-                             {"dark_scale", static_cast<double>(actual_k)}});
+    f_row[fi] = Json{{"input", p1_base_name(lp)},
+                     {"output", "calibrated_" + p1_base_name(lp)},
+                     {"dark_scale", static_cast<double>(actual_k)}};
+  });
+  // 帧序归约（冻结顺序：下标升序；首个失败即返回，与串行同判据）
+  for (size_t fi = 0; fi < n_lights; ++fi) {
+    if (!f_err[fi].ok()) {
+      if (f_errkind[fi] == 1) (*man)["error_kind"] = "input";
+      else if (f_errkind[fi] == 2) (*man)["error_kind"] = "output";
+      st_cal["status"] = "fail";
+      return f_err[fi];
+    }
+    ++frames_ok;
+    per_frame.push_back(f_row[fi]);
+    artifacts.push_back(f_out[fi]);
   }
   st_cal["status"] = "ok";
   st_cal["frames"] = frames_ok;
@@ -2072,14 +2153,24 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   Json& st = stages.emplace_back(Json{{"name", "cosmetic"}, {"status", "running"}});
   int hot_total = 0, cold_total = 0;
   uint32_t frames = 0;
-  for (const auto& l : doc["input_lights"]) {
+  // PERF-P1: 帧级并行（与 p2_parallel_for 同规范）。每帧只写**自己下标**的结果槽与
+  // **自己帧**的产物路径；跨帧无浮点归约；帧序归约（hot/cold/frames/artifacts）在
+  // join 之后按下标升序执行 ⇒ 与串行逐位一致、与 worker 数无关。
+  const uint32_t cos_workers = p1_workers(doc);
+  const size_t n_lights = doc["input_lights"].size();
+  std::vector<Result<void>> f_err(n_lights, Result<void>::success());
+  std::vector<int> f_hot(n_lights, 0), f_cold(n_lights, 0);
+  std::vector<std::string> f_out(n_lights);
+  std::vector<int> f_errkind(n_lights, 0);   // 0=无 1=input 2=output 3=internal
+  p1_parallel_for(cos_workers, n_lights, [&](uint64_t fi, uint32_t) {
+    const std::string lp = doc["input_lights"][fi].get<std::string>();
     // 输入 = artifact:cal（cal 节点产物 calibrated_<base>, 无则原帧）
-    const std::string in_path = p1_calibrated_path(doc, l.get<std::string>());
+    const std::string in_path = p1_calibrated_path(doc, lp);
     P1Image im = p1_read_image(in_path);
     if (!im.ok()) {
-      (*man)["error_kind"] = "input";
-      st["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + in_path));
+      f_errkind[fi] = 1;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cannot read: " + in_path));
+      return;
     }
     std::vector<float> fixed(static_cast<size_t>(im.w()) * static_cast<size_t>(im.h()), 0.0f);
     int hot = 0, cold = 0;
@@ -2087,25 +2178,38 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
                                     fixed.data(), hot_sigma, cold_sigma, method,
                                     mss, &hot, &cold);
     if (rc != AC_OK) {
-      st["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::INTERNAL,
+      f_errkind[fi] = 3;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::INTERNAL,
           std::string("ac_correct_frame failed rc=") + std::to_string(rc)));
+      return;
     }
     std::memcpy(im.px(), fixed.data(), fixed.size() * sizeof(float));
     // 输出 = artifact:cos（cleaned_<base>, 独立于上游 artifact:cal）+ 原子发布。
     // CORE-RACE-001: 修复前此处就地覆写 artifact:cal 路径 —— 与并发下游 drz
     // 读同一路径竞争, aio_write_fits 非原子 ⇒ 撕裂读（P1 数据完整性缺陷）。
-    const std::string out_path = p1_cosmetic_path(doc, l.get<std::string>());
+    const std::string out_path = p1_cosmetic_path(doc, lp);
     std::string werr;
     if (!p1_write_fits_atomic(im, out_path, &werr)) {
-      (*man)["error_kind"] = "output";
-      st["status"] = "fail";
-      return Result<void>::fail(Error(ErrorDomain::IO, "cosmetic " + werr));
+      f_errkind[fi] = 2;
+      f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "cosmetic " + werr));
+      return;
     }
-    hot_total += hot;
-    cold_total += cold;
+    f_hot[fi] = hot;
+    f_cold[fi] = cold;
+    f_out[fi] = out_path;
+  });
+  // 帧序归约（冻结顺序：下标升序；首个失败即返回，与串行同判据）
+  for (size_t fi = 0; fi < n_lights; ++fi) {
+    if (!f_err[fi].ok()) {
+      if (f_errkind[fi] == 1) (*man)["error_kind"] = "input";
+      else if (f_errkind[fi] == 2) (*man)["error_kind"] = "output";
+      st["status"] = "fail";
+      return f_err[fi];
+    }
+    hot_total += f_hot[fi];
+    cold_total += f_cold[fi];
     ++frames;
-    artifacts.push_back(out_path);
+    artifacts.push_back(f_out[fi]);
   }
   st["status"] = "ok";
   st["frames"] = frames;
@@ -8983,6 +9087,9 @@ struct P1NodeModule : public IModule {
     Result<void> r = Result<void>::success();
     try {
       Json doc = Json::parse(config_);
+      // PERF-P1: 与 Phase2 同规范——Runtime lease 是并行度唯一权威，节点 op 内以
+      // __workers 消费（禁硬编码；budget 为空时 lease 降级为 1 ⇒ 串行 reference）。
+      doc["__workers"] = cap;
       switch (spec_.op) {
         // [RELEASE-02 probe] Phase1 七阶段边界 (calibrate/cosmetic/star_psf/wcs/noise/drizzle/writer)
         case P1NodeOp::Calibrate: {
