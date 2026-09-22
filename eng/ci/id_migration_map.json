@@ -66,7 +66,8 @@
         "CON-BUILD-GRAPH",
         "P3-STATUS",
         "WORKFLOW-REGISTRY-BINDING",
-        "CI-BINDING-TESTS"
+        "CI-BINDING-TESTS",
+        "CTEST-SCI-EVIDENCE-REGISTRATION"
       ]
     },
     "CHK-CONTRACT-REF": {
@@ -107,7 +108,13 @@
         "UT-TRACEABILITY",
         "UT-CONTRACTS",
         "V6-NEGATIVE-MUTATION",
-        "V6-CTEST-INTEGRATION"
+        "V6-CTEST-INTEGRATION",
+        "CTEST-ORCH-LOGGER-UNITS",
+        "CTEST-ORCH-CHECKPOINT-UNITS",
+        "CTEST-ORCH-CLI-INTEGRATION",
+        "CTEST-ORCH-LEGACY-CLI-SMOKE",
+        "CTEST-ORCH-LEGACY-CLI-VALIDATE",
+        "CTEST-ORCH-SATURATION-GATE"
       ]
     },
     "CHK-DANGLING": {
@@ -116,8 +123,7 @@
       "name": "删除/重命名无悬空引用",
       "doc": "docs/ci/01_CHECKS.md §2",
       "steps": [
-        "CON-DOC-SYMBOLS",
-        "DOC-INDEX"
+        "CON-DOC-SYMBOLS"
       ]
     },
     "CHK-STALE-DOC": {
@@ -145,10 +151,7 @@
       "kind": "doc",
       "grade": "P0",
       "name": "仓库根目录整洁",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": [
-        "CHK-ROOT-CLEAN"
-      ]
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-UNIT": {
       "kind": "doc",
@@ -160,20 +163,30 @@
         "UT-ARCH",
         "UT-BACKEND",
         "UT-CLI",
+        "UT-CONFIG",
         "UT-VERSION",
         "UT-GLOSSARY",
         "UT-MONITORING",
         "UT-PIPELINE",
         "UT-RUNTIME",
+        "UT-RUNTIME-INTEGRATION",
         "UT-SCIENCELINT",
         "UT-ARTIFACT",
         "UT-IO",
         "UT-QUALITY",
         "UT-GAIA-ZLIB",
+        "PY-TEST-INDEX-VERDICTS",
         "TESTKIT-LIST",
         "CTEST-LINUX-FULL",
+        "CTEST-AIO-CHECKSUM",
+        "CTEST-AIO-TILE_MODEL",
+        "CTEST-AIO-TRANSFORM",
+        "CTEST-AIO-QUERY_PIXEL",
+        "CTEST-AIO-PRECISION_DUAL",
         "WIN-TEST-UNIT",
-        "V6-CTEST-UNIT"
+        "V6-CTEST-UNIT",
+        "CTEST-AIO-HIPS-ATOMIC-PUBLISH",
+        "CTEST-FIX402-PHASE3-SEMANTIC-GUARD"
       ]
     },
     "CHK-ORACLE": {
@@ -190,7 +203,10 @@
         "CTEST-P1PHOT-FIXGATES",
         "CTEST-P1SNR-SCIENCE-ALL",
         "CTEST-IPV-MAG-ITER",
-        "CTEST-IPV-MAG-ITER-DELIVERY"
+        "CTEST-IPV-MAG-ITER-DELIVERY",
+        "CTEST-IPV-SELECT-DOMAIN",
+        "CTEST-P1NOISE-NUMPY-ORACLE",
+        "CTEST-P1WCS-CLOSURE-METRIC-GATE"
       ]
     },
     "CHK-INVARIANT": {
@@ -203,6 +219,8 @@
         "CTEST-P1STAR-MAD",
         "CTEST-P1PSF-PRODPATH-CENTROID",
         "CTEST-P1STAR-ANGLE-GUARD",
+        "CTEST-P1STAR-GUIDED",
+        "CTEST-P1STARDET-NODE-GATE",
         "CTEST-P1SNR-FRAME-PARITY",
         "CTEST-P2HIPS-UNITS",
         "CTEST-P2HIPS-DETERMINISM",
@@ -211,11 +229,23 @@
         "CTEST-GAIA-MANIFEST-BOUNDS",
         "CTEST-XPSD-SPECTRUM-COUNT-BOUNDS",
         "CTEST-GAIA-MAGNITUDE-RANGE-BOUNDS",
+        "CTEST-GAIA-SHARD-COVERAGE",
+        "CTEST-GAIA-SHARD-COVERAGE-SELF-TEST",
         "CTEST-IPV-EXTRACT-WCS-SIP-FAILCLOSED",
         "CTEST-IPV-TRIANGLE-BUDGET",
         "CTEST-AIO-HIPS-PUBLISH-ATOMIC-UNITS",
         "CTEST-AIO-HIPS-PUBLISH-ATOMIC",
-        "IPV-PLATFORM-BINDING"
+        "IPV-PLATFORM-BINDING",
+        "CTEST-P1PSF-CENTROID-GATE",
+        "CTEST-P1PSF-CENTROID-GATE-NEG",
+        "CTEST-P1PSF-CENTER-CONTRACT",
+        "CTEST-P1PSF-CENTER-CONTRACT-NEG",
+        "CTEST-P1PSF-CENTER-CONTRACT-ASTROPY",
+        "CTEST-P1CAL-BIAS-INFLUENCE-GATE",
+        "CTEST-P1NOISE-MASK",
+        "CTEST-P1NOISE-SATURATION",
+        "CTEST-P1NOISE-SATURATION-SELFCHECK",
+        "CTEST-P1NOISE-SATURATION-WIRING"
       ]
     },
     "CHK-ABI": {
@@ -232,7 +262,13 @@
         "CTEST-AIO-ABI-SELFCHECK",
         "CTEST-IPV-ABI-LAYOUT-LOCK",
         "CTEST-IPV-ABI-LAYOUT-LOCK-SELFCHECK",
-        "CTEST-IPV-PARAMS-ABI-FAILCLOSED"
+        "CTEST-IPV-PARAMS-ABI-FAILCLOSED",
+        "CTEST-AIO-ABI-LAYOUT-LOCK",
+        "CTEST-AIO-ABI-LAYOUT-LOCK-SELFCHECK",
+        "CTEST-IPV-DEAD-PARAMS-LOCK",
+        "CTEST-IPV-DEAD-PARAMS-LOCK-SELFCHECK",
+        "CTEST-IPV-ERROR-UTF8",
+        "CTEST-P1NOISE-ABI-LAYOUT"
       ]
     },
     "CHK-SCHEMA": {
@@ -241,7 +277,6 @@
       "name": "schema 校验",
       "doc": "docs/ci/01_CHECKS.md §2",
       "steps": [
-        "TASK-RESULT-SCHEMA",
         "CON-CONFIG-CONTRACTS",
         "LOG-CONTRACT-SELFCHECK"
       ]
@@ -341,7 +376,8 @@
         "CTEST-RT001-UNIQUE-EXECUTOR",
         "CTEST-COMPARE-PRODUCTS-QUALITY",
         "AIO-OWNERSHIP",
-        "CON-EXECUTION-CONTRACTS"
+        "CON-EXECUTION-CONTRACTS",
+        "CON-EXECUTION-CONTRACTS-SELFTEST"
       ]
     },
     "CHK-PACKAGE": {
@@ -357,10 +393,7 @@
       "kind": "extension",
       "grade": "P0",
       "name": "凭据/密钥卫生（ROOT-006 注册，absorbed）",
-      "doc": "CI-001 扩展登记（§2 无对应行）",
-      "steps": [
-        "CHK-SECRET-HYGIENE"
-      ]
+      "doc": "CI-001 扩展登记（§2 无对应行）"
     },
     "CHK-ENV-ADOPTION": {
       "kind": "extension",
@@ -368,8 +401,6 @@
       "name": "CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账）",
       "doc": "CI-001 扩展登记（§2 无对应行）",
       "steps": [
-        "WORKSPACE-ADOPTION",
-        "RECONCILE-STATE",
         "TOOLCHAIN-VERIFY"
       ]
     },
@@ -424,13 +455,24 @@
       "kind": "extension",
       "grade": "P1",
       "name": "标准注册表 C1–C8 判据 + 9 场景 fault-inject 负例面",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）",
+      "steps": [
+        "STD-REG",
+        "STD-REG-FI-DANGLING",
+        "STD-REG-FI-VERSION-DRIFT"
+      ]
     },
     "CHK-REGISTRY-DOC-SYNC": {
       "kind": "extension",
       "grade": "P0",
       "name": "注册表 ↔ docs/ci/01_CHECKS.md §2 双向一致（ENGINEERING_SPEC §8）",
-      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）"
+      "doc": "docs/ci/01_CHECKS.md §2（CI-003 登记）",
+      "steps": [
+        "REGISTRY-DOC-SYNC",
+        "REGISTRY-DOC-SYNC-SELFTEST",
+        "ID-MIGRATION-MAP-DOC-SYNC",
+        "ID-MIGRATION-MAP-DOC-SYNC-SELFTEST"
+      ]
     },
     "RESOURCE-GATE-REAL": {
       "kind": "extension",
@@ -448,104 +490,114 @@
       "kind": "extension",
       "grade": "P0",
       "name": "eng/ci/impact_map.json 判据一致性门（changed-path→checks 映射；ENGINEERING_SPEC §8）",
-      "doc": "docs/ci/01_CHECKS.md §2（W4-A3 登记）"
+      "doc": "docs/ci/01_CHECKS.md §2（W4-A3 登记）",
+      "steps": [
+        "IMPACT-MAP",
+        "IMPACT-MAP-SELFTEST"
+      ]
     },
     "CHK-PKG-CONSISTENCY": {
       "kind": "extension",
       "grade": "P0",
       "name": "产品清单/安装树合同/依赖锁/安装规则/许可登记面一致 + SBOM 实树 hash 自证",
-      "doc": "docs/ci/01_CHECKS.md §2（W5-PKG-001 交付，W4-A3 注册）"
+      "doc": "docs/ci/01_CHECKS.md §2（W5-PKG-001 交付，W4-A3 注册）",
+      "steps": [
+        "PKG-CONSISTENCY",
+        "PKG-CONSISTENCY-NEG",
+        "PKG-SBOM",
+        "PKG-SBOM-NEG"
+      ]
     },
     "CHK-EXIT-CONSISTENCY": {
       "kind": "ci",
-      "grade": "P1"
+      "grade": "P1",
+      "steps": [
+        "EXIT-CONSISTENCY-SCAN",
+        "EXIT-CONSISTENCY-SELFTEST"
+      ]
     },
     "CHK-E2E-REPRO": {
       "kind": "ci",
-      "grade": "P0"
+      "grade": "P0",
+      "steps": [
+        "E2E-WCS-CLOSURE-REPRO-SELFTEST"
+      ]
     },
     "CHK-ALGO-WIRING": {
       "kind": "ci",
       "grade": "P0",
       "name": "算法/关键 API 生产调用图可达性门",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-REGISTRY-IR-PARITY": {
       "kind": "ci",
       "grade": "P0",
       "name": "生产注册表 ↔ Pipeline IR 双向一致门",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-CONFIG-CONSUMED": {
       "kind": "ci",
       "grade": "P0",
       "name": "生产配置键消费门（死键 no-op）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-CONFIG-DEFAULTS": {
       "kind": "ci",
       "grade": "P0",
       "name": "生产默认值一致性门",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-PROD-SCALE": {
       "kind": "ci",
       "grade": "P0",
       "name": "生产尺度参数门",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-PROVENANCE-CONSISTENCY": {
       "kind": "ci",
       "grade": "P0",
       "name": "产品 provenance 自洽门",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-REALDATA-E2E": {
       "kind": "ci",
       "grade": "P0",
       "name": "真实数据 E2E（slow）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH": {
       "kind": "extension",
       "grade": "P0",
       "name": "规范点名的权威实现必须在生产可达路径（CMake 根构建图闭包 + 生产节点调用点；登记表 eng/ci/spec_named_impls.json；缺口台账 eng/ci/ledgers/spec_named_impl_gaps.json）",
-      "doc": "docs/ci/01_CHECKS.md §2（DESIGN-GAP-LAND 登记，GAP_AUDIT §9.44 负责人令）"
+      "doc": "docs/ci/01_CHECKS.md §2（DESIGN-GAP-LAND 登记，GAP_AUDIT §9.44 负责人令）",
+      "steps": [
+        "SPEC-NAMED-IMPL-ON-PROD-PATH",
+        "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST"
+      ]
     },
     "CHK-NO-WEIGHT-MODE": {
       "kind": "extension",
       "grade": "P0",
       "name": "§9.73 A44「权重模式」整套作废门（docs/** + README.md 零未留痕残留）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-NO-WEIGHT-MODE-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "上项的可执行负例面",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "AHPX-WEIGHT-RETIRED": {
       "kind": "extension",
       "grade": "P0",
       "name": "HiPS 格式内部权重枚举作废（FIX-202 行为门）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-FIX203-PROMOTED-KEYS": {
       "kind": "extension",
       "grade": "P1",
       "name": "提升键落地三方一致（CLI 键表 ↔ 生产消费 ↔ 死键台账）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-P3-PROJ-DECL": {
       "kind": "extension",
@@ -570,15 +622,13 @@
       "kind": "extension",
       "grade": "P0",
       "name": "aio 文件级唯一 I/O 边界（FIX-201）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "AIO-IO-BOUNDARY-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "上项的可执行负例面",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-PSFSW-RETIRED-STATIC": {
       "kind": "extension",
@@ -586,113 +636,99 @@
       "name": "PSFSW 退役对象 canonical 面静态清零",
       "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
       "steps": [
-        "PSFSW-RETIRED-STATIC"
+        "PSFSW-RETIRED-STATIC",
+        "PSFSW-RETIRED-STATIC-SELFTEST"
       ]
     },
     "CHK-PSFSW-RETIRED-NEGATIVE": {
       "kind": "extension",
       "grade": "P1",
       "name": "退役对象行为门（旧声明显式拒绝 + 迁移提示）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-FIX208-EVENT-STREAM-DEFAULT": {
       "kind": "extension",
       "grade": "P0",
       "name": "事件流 = 默认输出（FIX-208）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "CHK-FIX208-DISK-GATE": {
       "kind": "extension",
       "grade": "P0",
       "name": "资源门只管磁盘（FIX-208）",
-      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RELEASE-03 BLD-201 登记）"
     },
     "DOC-INDEX": {
       "kind": "ci",
       "grade": "P0",
       "name": "双向层级索引闭合门（索引条目路径存在 / 最高设计与根文档 docs/ 指针可达 / 下级文档登记与「上游」抬头 100% / 文档与代码注释 docs/ 路径；悬空即缺陷、fail-closed）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "DOC-INDEX-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "DOC-INDEX 可执行正/负例面（19 例：悬空条目 / 悬空根文档指针 / 缺抬头 / 漏登记 / 代码注释悬空 / 非 ASCII 旧控制包残留 / 台账缺失）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-DOC-HYGIENE": {
       "kind": "ci",
       "grade": "P0",
       "name": "正式文档过程痕迹门 + 已知限制台账 ID 可解析门（D1 逐字裁决引述 / 订正+日期流水 / 工作项编号；D2 条目号与台账编号表双向一致、引用不悬空；fail-closed）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-DOC-HYGIENE-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-DOC-HYGIENE 可执行正/负例面（1 正例 + 10 负例：逐字裁决 / 订正流水 / 工作项编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-RETIRED-CODE": {
       "kind": "ci",
       "grade": "P0",
       "name": "历史实现处置门（ENGINEERING_SPEC §2：R1 注释旧逻辑 / R2 保留件注释块 / R3 注释块字段完整性 / R4 生产可达性报表 / R5 锚存活；台账 eng/ci/retired_code_allowlist.json）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-RETIRED-CODE-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "CHK-RETIRED-CODE 可执行负例面（9 例 fault-inject）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-FIX406-SIGTERM": {
       "kind": "ci",
       "grade": "P0",
       "name": "CLI 取消矩阵（SIGTERM/SIGINT + Windows 控制台事件；CTRL_CLOSE 平台限制显式登记）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-REGISTRY-VALIDATE": {
       "kind": "ci",
       "grade": "P0",
       "name": "注册表结构校验器（R1-R15）成为真正的门：eng/ci/checks.json 唯一注册表结构一致",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "L2-FROZEN-GATE-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "L2 冻结判据裁决器红/绿双向自测（缺失证据/坏证据/空文件/门不适用/分母未声明/合同缺失）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "L2-FROZEN-GATE-REPLAY": {
       "kind": "ci",
       "grade": "P0",
       "name": "RELEASE-04 归档 L2 违规证据回放：历史 verdict=pass 必须现判红（恒真门改真判红）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "WORKER-BALANCE-METRIC-SELFTEST": {
       "kind": "ci",
       "grade": "P0",
       "name": "worker_balance 利用率指标判别力自测（正确算法 + 两组负载输出不同 + 退化判红）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "WORKER-BALANCE-METRIC-REPLAY": {
       "kind": "ci",
       "grade": "P0",
       "name": "归档 worker_balance 退化件判红 + 权威时间序列按正确算法复算非常数",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "PSFSW-RETIRED-STATIC-SELFTEST": {
       "kind": "ci",
@@ -705,15 +741,17 @@
       "kind": "ci",
       "grade": "P0",
       "name": "门禁 fail-closed 契约红绿自测（requires_monitor 证据强制 + L2 冻结判据 + mutates_workspace 可写面 + 登记输出存在性）",
-      "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2"
     },
     "CHK-FAILCLOSED-SURVEY": {
       "kind": "ci",
       "grade": "P0",
       "name": "全门禁 fail-closed 普查（缺失证据 / 坏证据 / 无输出三注入；适用面必须判红）",
       "doc": "docs/ci/01_CHECKS.md §2",
-      "steps": []
+      "steps": [
+        "FAILCLOSED-SURVEY",
+        "FAILCLOSED-SURVEY-SELFTEST"
+      ]
     },
     "CHK-ARCH501-BLOCK-FRAME": {
       "kind": "doc",
@@ -845,8 +883,7 @@
       "kind": "extension",
       "grade": "P0",
       "name": "DISP-DRZ-009 面亮度保持权重回归门（DRIZZLE-FIX-01）",
-      "doc": "docs/ci/01_CHECKS.md §2（DRIZZLE-FIX-01 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（DRIZZLE-FIX-01 登记）"
     },
     "CHK-LOG-SYS": {
       "kind": "doc",
@@ -862,29 +899,25 @@
       "kind": "extension",
       "grade": "P0",
       "name": "并行确定性容差档判据自检（逐字节档 + 浮点容差档，能红能绿）",
-      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）；判据口径 docs/contracts/SCHEDULER_CONTRACT.md §2.1 + docs/contracts/TEST_MATRIX.md §2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）；判据口径 docs/contracts/SCHEDULER_CONTRACT.md §2.1 + docs/contracts/TEST_MATRIX.md §2"
     },
     "CHK-RUN-MANIFEST-SCHEMA": {
       "kind": "extension",
       "grade": "P0",
       "name": "run manifest 双合同符合性门（CLI-003 严格 + CFG-001 偏差棘轮）",
-      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）"
     },
     "CHK-RUN-MANIFEST-SCHEMA-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "上项的可执行负例面（正例/负例自检）",
-      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）"
     },
     "CHK-PHOTOMETRY-APPLY-SELFTEST": {
       "kind": "extension",
       "grade": "P0",
       "name": "测光归一化施加的像素级复算门自检（裁决 B 的判据非退化面）",
-      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（RULING-DOC-01 登记）"
     },
     "CHK-BLOCKFLOW-PORTS-VS-CODE": {
       "kind": "doc",
@@ -899,22 +932,19 @@
       "kind": "extension",
       "grade": "P0",
       "name": "裸形态打洞判据：静态不变量 + 谓词判据判别力（零浮点/字节谓词/读回复算/降级先于接触）",
-      "doc": "docs/ci/01_CHECKS.md §2（TRIM-LAND-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 + ACCEPTANCE_SPEC.md §3.2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（TRIM-LAND-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 + ACCEPTANCE_SPEC.md §3.2"
     },
     "CHK-SPARSE-PUNCH-PROBE": {
       "kind": "extension",
       "grade": "P0",
       "name": "裸形态打洞判据的可执行面：由生产头编译探针跑真实系统调用（读回逐字节一致/释放量/NaN 红线/降级）",
-      "doc": "docs/ci/01_CHECKS.md §2（TRIM-LAND-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 + ACCEPTANCE_SPEC.md §3.2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（TRIM-LAND-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 + ACCEPTANCE_SPEC.md §3.2"
     },
     "CHK-HIPS-STORAGE-FORM": {
       "kind": "extension",
       "grade": "P0",
       "name": "落盘形态合同门（CONTRACT-STORAGE-001）：两形态命名与互斥、归档必须为整包 tar + 逐成员独立 zstd 帧、索引不变式、形态输入配置与完成清单口径一致",
-      "doc": "docs/ci/01_CHECKS.md §2（HIPS-PACK-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md + ACCEPTANCE_SPEC.md §3.2",
-      "steps": []
+      "doc": "docs/ci/01_CHECKS.md §2（HIPS-PACK-01 登记）；口径 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md + ACCEPTANCE_SPEC.md §3.2"
     },
     "CHK-P3-EXPORT-STREAM-PROD": {
       "kind": "extension",
@@ -933,6 +963,68 @@
       "doc": "docs/ci/01_CHECKS.md §2（P3-STREAM-01 登记）；口径 docs/contracts/SCHEDULER_CONTRACT.md §2",
       "steps": [
         "CTEST-P3-EXPORT-STREAM-RSS"
+      ]
+    },
+    "CHK-PLUGIN-SYMBOL-CLOSURE": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "交付共享对象（plugin .so）符号闭包：产品清单登记的非 exe unit 逐个断言强未定义符号可在依赖闭包内解析（闭包 = DT_NEEDED 传递闭包 ∪ 宿主基线库）、DT_NEEDED 可解析、dlopen(RTLD_NOW|RTLD_LOCAL) 成功；含可执行正负例自检",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "STATIC-PLUGIN-SYMBOL-CLOSURE",
+        "SELFTEST-PLUGIN-SYMBOL-CLOSURE"
+      ]
+    },
+    "CHK-DEEP-PROFILES-TESTS": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "deep/main profile 注册与档位选择单测（33 例）：prerequisite_tools 探测三分支（工具齐备 PASS / 缺失 waivable SKIPPED / 缺失不可豁免 FAIL(prerequisite...",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-NO-WEIGHT-MODE-CODE": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "代码面「单一权重口径」门（无模式选择机制 + 逆方差链路在位；lib/** + eng/tools/**）",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-NO-WEIGHT-MODE-CODE-SELFTEST": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "上项的可执行负例面（注入模式选择 ⇒ 红；拆除链路 ⇒ 红；干净树 ⇒ 绿）",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-CI-INTEGRATION-SELFTESTS": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "eng/ci/tests 下 3 个真起子进程/真跑 CLI/含真实测量窗的自测，按 CI_SPEC §2.6 归 integration 档",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CI-INTEGRATION-CI001-FAILCLOSED",
+        "CI-INTEGRATION-CI-REPAIR-ROUND",
+        "CI-INTEGRATION-RUN-MONITORED"
+      ]
+    },
+    "CHK-CI-CONTRACT-SELFTESTS": {
+      "kind": "extension",
+      "grade": "P1",
+      "name": "eng/ci/tests 下 15 个 CI 契约/工作流/资源门自测，逐文件独立进程执行（整目录 discover 的「绿」是 sys.path 顺序副作用，会掩盖坏模块）",
+      "doc": "docs/ci/01_CHECKS.md §2",
+      "steps": [
+        "CI-CONTRACT-BOOTSTRAP-UTF8",
+        "CI-CONTRACT-RUNNER-CONTRACT",
+        "CI-CONTRACT-RUNNER-EXECUTION",
+        "CI-CONTRACT-RUNNER-SELECTION",
+        "CI-CONTRACT-GAP4-EMPTY-OUTPUTS",
+        "CI-CONTRACT-IMPACT-MAP",
+        "CI-CONTRACT-NEGATIVE-GUARDS",
+        "CI-CONTRACT-RESOURCE-PROBE",
+        "CI-CONTRACT-RESOURCE-MONITOR-SHIM",
+        "CI-CONTRACT-RUN-PREFIX-PROBE",
+        "CI-CONTRACT-FATDUCK-WORKFLOW",
+        "CI-CONTRACT-VERIFY-REMOTE-RUN",
+        "CI-CONTRACT-WINDOWS-CI",
+        "CI-CONTRACT-WORKFLOW-LOCK",
+        "CI-CONTRACT-CTEST-REGISTRATION"
       ]
     }
   },
@@ -994,6 +1086,22 @@
       "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
     },
     {
+      "old_id": "AHPX-WEIGHT-RETIRED",
+      "decision": "KEPT",
+      "target": "AHPX-WEIGHT-RETIRED",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "AIO-IO-BOUNDARY-SELFTEST",
+      "decision": "KEPT",
+      "target": "AIO-IO-BOUNDARY-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
       "old_id": "AIO-OWNERSHIP",
       "decision": "MERGED-INTO",
       "target": "CHK-RESOURCE",
@@ -1030,6 +1138,175 @@
       "note": "Linux Release 构建"
     },
     {
+      "old_id": "CHK-AIO-IO-BOUNDARY",
+      "decision": "KEPT",
+      "target": "CHK-AIO-IO-BOUNDARY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-ALGO-WIRING",
+      "decision": "KEPT",
+      "target": "CHK-ALGO-WIRING",
+      "checker": "eng/ci/check_algo_wiring.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_algo_wiring.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-BLOCKFLOW-CONFORMANCE-STEP",
+      "decision": "KEPT",
+      "target": "CHK-BLOCKFLOW-CONFORMANCE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "ARCH-505 新增执行单元"
+    },
+    {
+      "old_id": "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP",
+      "decision": "KEPT",
+      "target": "CHK-BLOCKFLOW-PORTS-VS-CODE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "REGISTRY-ALIGN-01 新增执行单元（端口↔代码双向一致）"
+    },
+    {
+      "old_id": "CHK-BLOCKFLOW-SPEC-STEP",
+      "decision": "KEPT",
+      "target": "CHK-BLOCKFLOW-SPEC",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "ARCH-505 新增执行单元"
+    },
+    {
+      "old_id": "CHK-CONFIG-CONSUMED",
+      "decision": "KEPT",
+      "target": "CHK-CONFIG-CONSUMED",
+      "checker": "eng/ci/check_config_consumed.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_config_consumed.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-CONFIG-DEFAULTS",
+      "decision": "KEPT",
+      "target": "CHK-CONFIG-DEFAULTS",
+      "checker": "eng/ci/check_config_defaults.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_config_defaults.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-DEEP-PROFILES-TESTS",
+      "decision": "KEPT",
+      "target": "CHK-DEEP-PROFILES-TESTS",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CHK-DOC-HYGIENE",
+      "decision": "KEPT",
+      "target": "CHK-DOC-HYGIENE",
+      "kind": "ci",
+      "grade": "P0",
+      "note": "DOC-HYGIENE-01 新增执行单元（非本波基线，absorbed）：ENGINEERING_SPEC §8 规则 2（正式文档不堆任务编号与日期）+ 规则 4（悬空即缺陷）；判据含已知限制台账 ID 可解析（D2）"
+    },
+    {
+      "old_id": "CHK-DOC-HYGIENE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-DOC-HYGIENE-SELFTEST",
+      "kind": "ci",
+      "grade": "P0",
+      "note": "DOC-HYGIENE-01 新增执行单元（非本波基线，absorbed）：ENGINEERING_SPEC §10 可执行负例面（1 正例 + 10 负例）"
+    },
+    {
+      "old_id": "CHK-DRZ-DISP009",
+      "decision": "KEPT",
+      "target": "CHK-DRZ-DISP009",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "DRIZZLE-FIX-01（2026-09-22）新增执行单元（非本波基线，absorbed）：DISP-DRZ-009 面亮度保持权重 w_jp=a_jp/A_pixel,j 回归门；判据 = 常量面亮度 |S_p/B0-1|<1e-3（pixfrac∈(0,1]）+ \"分母取 A_drop 必判红\"负例控制；可执行负例面见 run/DRIZZLE-FIX-01/REPORT.md §⑥（真实注入红/绿 + sha256）。"
+    },
+    {
+      "old_id": "CHK-E2E-REPRO",
+      "decision": "KEPT",
+      "target": "CHK-E2E-REPRO",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "E2E-FIX-001 发布门 G-P1-WCS-CLOSURE-REPRO CI 注册"
+    },
+    {
+      "old_id": "CHK-EXIT-CONSISTENCY",
+      "decision": "KEPT",
+      "target": "CHK-EXIT-CONSISTENCY",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "C 类收口：结论与退出码一致性（W4-A3 新增门）"
+    },
+    {
+      "old_id": "CHK-FAILCLOSED-SURVEY",
+      "decision": "KEPT",
+      "target": "CHK-FAILCLOSED-SURVEY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "新增聚合项（GATE-501）（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "CHK-FIX203-PROMOTED-KEYS",
+      "decision": "KEPT",
+      "target": "CHK-FIX203-PROMOTED-KEYS",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-FIX208-DISK-GATE",
+      "decision": "KEPT",
+      "target": "CHK-FIX208-DISK-GATE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-FIX208-EVENT-STREAM-DEFAULT",
+      "decision": "KEPT",
+      "target": "CHK-FIX208-EVENT-STREAM-DEFAULT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-FIX406-SIGTERM",
+      "decision": "KEPT",
+      "target": "CHK-FIX406-SIGTERM",
+      "kind": "ci",
+      "grade": "P0",
+      "note": "FIX-406 新增测试矩阵；DOC-403 登记（2026-09-21，依据 run/FIX-406/WINDOWS_CANCEL_PLATFORM_LIMITS.md §3 W4）"
+    },
+    {
+      "old_id": "CHK-GATE-FAILCLOSED-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-GATE-FAILCLOSED-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "CHK-HIPS-STORAGE-FORM",
+      "decision": "KEPT",
+      "target": "CHK-HIPS-STORAGE-FORM",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "HIPS-PACK-01（2026-09-22）新增执行单元（非本波基线，absorbed）：落盘形态合同（CONTRACT-STORAGE-001）机器门，判据与 21 例可执行负例见 eng/tools/hipsform/check_hips_storage_form.py --self-test。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
+    },
+    {
       "old_id": "CHK-MODULE-MANIFEST",
       "decision": "MERGED-INTO",
       "target": "CHK-MODULE-MANIFEST",
@@ -1037,6 +1314,124 @@
       "grade": "P0",
       "order_in_target": 0,
       "note": "模块 manifest/注册表/构建 target/产品清单一致"
+    },
+    {
+      "old_id": "CHK-NO-WEIGHT-MODE",
+      "decision": "KEPT",
+      "target": "CHK-NO-WEIGHT-MODE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-NO-WEIGHT-MODE-CODE",
+      "decision": "KEPT",
+      "target": "CHK-NO-WEIGHT-MODE-CODE",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CHK-NO-WEIGHT-MODE-CODE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-NO-WEIGHT-MODE-CODE-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CHK-NO-WEIGHT-MODE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-NO-WEIGHT-MODE-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-NWORKER-TOLERANCE",
+      "decision": "KEPT",
+      "target": "CHK-NWORKER-TOLERANCE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：1/N worker 等价判据由「逐位一致」改为「逐字节优先 + 冻结浮点容差」（负责人裁决 2026-09-22）；本项为容差档的非退化自检 python3 eng/tools/v6/v6_numeric_equiv.py --self-test"
+    },
+    {
+      "old_id": "CHK-PHOTOMETRY-APPLY-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-PHOTOMETRY-APPLY-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 B（合并 photometry 与施加为一步，须保留像素级可核对判据）"
+    },
+    {
+      "old_id": "CHK-PROD-SCALE",
+      "decision": "KEPT",
+      "target": "CHK-PROD-SCALE",
+      "checker": "eng/ci/check_prod_scale.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_prod_scale.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-PROVENANCE-CONSISTENCY",
+      "decision": "KEPT",
+      "target": "CHK-PROVENANCE-CONSISTENCY",
+      "checker": "eng/ci/check_provenance_consistency.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_provenance_consistency.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-PSFSW-RETIRED-NEGATIVE",
+      "decision": "KEPT",
+      "target": "CHK-PSFSW-RETIRED-NEGATIVE",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "CHK-REALDATA-E2E",
+      "decision": "KEPT",
+      "target": "CHK-REALDATA-E2E",
+      "checker": "eng/ci/check_realdata_e2e.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_realdata_e2e.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-REGISTRY-IR-PARITY",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRY-IR-PARITY",
+      "checker": "eng/ci/check_registry_ir_parity.py",
+      "owner": "RELEASE-02 fix-gates",
+      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_registry_ir_parity.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-REGISTRY-VALIDATE",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRY-VALIDATE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/validate_registry.py --registry eng/ci/checks.json --strict"
+    },
+    {
+      "old_id": "CHK-RETIRED-CODE",
+      "decision": "KEPT",
+      "target": "CHK-RETIRED-CODE",
+      "kind": "ci",
+      "grade": "P0",
+      "note": "CLEAN-401 新增检查器；DOC-403 登记（2026-09-21）"
+    },
+    {
+      "old_id": "CHK-RETIRED-CODE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-RETIRED-CODE-SELFTEST",
+      "kind": "ci",
+      "grade": "P0",
+      "note": "CLEAN-401 新增检查器；DOC-403 登记（2026-09-21）"
     },
     {
       "old_id": "CHK-ROOT-CLEAN",
@@ -1047,12 +1442,70 @@
       "note": "仓库根目录整洁"
     },
     {
+      "old_id": "CHK-RUN-MANIFEST-SCHEMA",
+      "decision": "KEPT",
+      "target": "CHK-RUN-MANIFEST-SCHEMA",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 D（run manifest 以冻结 schema 为准 + 补门）"
+    },
+    {
+      "old_id": "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 D（run manifest 以冻结 schema 为准 + 补门）"
+    },
+    {
+      "old_id": "CHK-SCHED-PROBE-SCHEMA-STEP",
+      "decision": "KEPT",
+      "target": "CHK-SCHED-PROBE-SCHEMA",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "ARCH-502 新增执行单元"
+    },
+    {
       "old_id": "CHK-SECRET-HYGIENE",
       "decision": "KEPT",
       "target": "CHK-SECRET-HYGIENE",
       "kind": "extension",
       "grade": "P0",
       "note": "凭据/密钥卫生（ROOT-006 注册，absorbed）"
+    },
+    {
+      "old_id": "CHK-SPARSE-PUNCH",
+      "decision": "KEPT",
+      "target": "CHK-SPARSE-PUNCH",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "TRIM-LAND-01 新增执行单元（非本波基线，absorbed）：裸形态体积削减（文件系统打洞）落地与判据"
+    },
+    {
+      "old_id": "CHK-SPARSE-PUNCH-PROBE",
+      "decision": "KEPT",
+      "target": "CHK-SPARSE-PUNCH-PROBE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "TRIM-LAND-01 新增执行单元（非本波基线，absorbed）：裸形态体积削减（文件系统打洞）落地与判据"
+    },
+    {
+      "old_id": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "decision": "KEPT",
+      "target": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "DESIGN-GAP-LAND（2026-09-19）新增执行单元（非基线 146 项，absorbed）：GAP_AUDIT §9.44 负责人令新增门禁 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH，覆盖 S1-002/S2-NS-01/S4-P3X-06 三条同类缺陷；判据+可执行负例见 eng/ci/check_spec_named_impl.py --self-test。"
+    },
+    {
+      "old_id": "CHK-TEST-DISCRIMINATIVE-STEP",
+      "decision": "KEPT",
+      "target": "CHK-TEST-DISCRIMINATIVE",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "GATE-502 新增执行单元（空断言静态门）"
     },
     {
       "old_id": "CI-BINDING-TESTS",
@@ -1062,6 +1515,168 @@
       "grade": "P0",
       "order_in_target": 6,
       "note": "模块 manifest/注册表/构建 target/产品清单一致"
+    },
+    {
+      "old_id": "CI-CONTRACT-BOOTSTRAP-UTF8",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-CTEST-REGISTRATION",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 14,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-FATDUCK-WORKFLOW",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 10,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-GAP4-EMPTY-OUTPUTS",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 4,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-IMPACT-MAP",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 5,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-NEGATIVE-GUARDS",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 6,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-RESOURCE-MONITOR-SHIM",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 8,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-RESOURCE-PROBE",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 7,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-RUN-PREFIX-PROBE",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 9,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-RUNNER-CONTRACT",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 1,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-RUNNER-EXECUTION",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 2,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-RUNNER-SELECTION",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 3,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-VERIFY-REMOTE-RUN",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 11,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-WINDOWS-CI",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 12,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-CONTRACT-WORKFLOW-LOCK",
+      "decision": "KEPT",
+      "target": "CHK-CI-CONTRACT-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 13,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-INTEGRATION-CI-REPAIR-ROUND",
+      "decision": "KEPT",
+      "target": "CHK-CI-INTEGRATION-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 1,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-INTEGRATION-CI001-FAILCLOSED",
+      "decision": "KEPT",
+      "target": "CHK-CI-INTEGRATION-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "CI-INTEGRATION-RUN-MONITORED",
+      "decision": "KEPT",
+      "target": "CHK-CI-INTEGRATION-SELFTESTS",
+      "kind": "extension",
+      "grade": "P1",
+      "order_in_target": 2,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
     },
     {
       "old_id": "CLI-COMMAND-LAYER",
@@ -1136,6 +1751,14 @@
       "note": "内存/线程/利用率门禁"
     },
     {
+      "old_id": "CON-EXECUTION-CONTRACTS-SELFTEST",
+      "decision": "MERGED-INTO",
+      "target": "CHK-RESOURCE",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
       "old_id": "CON-FORBIDDEN-PATTERNS",
       "decision": "MERGED-INTO",
       "target": "CHK-STATIC",
@@ -1190,6 +1813,22 @@
       "note": "端口引用有效 DATA 合同（canonical=eng/contracts/schemas/unified/**、docs/contracts/unified_object_registry.json）"
     },
     {
+      "old_id": "CTEST-AIO-ABI-LAYOUT-LOCK",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-AIO-ABI-LAYOUT-LOCK-SELFCHECK",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
       "old_id": "CTEST-AIO-ABI-NEGATIVE",
       "decision": "MERGED-INTO",
       "target": "CHK-ABI",
@@ -1217,6 +1856,22 @@
       "note": "C ABI 兼容性"
     },
     {
+      "old_id": "CTEST-AIO-CHECKSUM",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-AIO-HIPS-ATOMIC-PUBLISH",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
       "old_id": "CTEST-AIO-HIPS-PUBLISH-ATOMIC",
       "decision": "MERGED-INTO",
       "target": "CHK-INVARIANT",
@@ -1235,6 +1890,47 @@
       "note": "科学不变量/性质测试"
     },
     {
+      "old_id": "CTEST-AIO-PRECISION_DUAL",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-AIO-QUERY_PIXEL",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-AIO-TILE_MODEL",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-AIO-TRANSFORM",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
+    },
+    {
+      "old_id": "CTEST-BLOCK-FLOW",
+      "decision": "KEPT",
+      "target": "CHK-ARCH505-BLOCK-FLOW",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "ARCH-505 新增执行单元"
+    },
+    {
       "old_id": "CTEST-COMPARE-PRODUCTS-QUALITY",
       "decision": "MERGED-INTO",
       "target": "CHK-RESOURCE",
@@ -1244,6 +1940,15 @@
       "note": "内存/线程/利用率门禁"
     },
     {
+      "old_id": "CTEST-CORE-BLOCK-FRAME",
+      "decision": "KEPT",
+      "target": "CHK-ARCH501-BLOCK-FRAME",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "ARCH-501 命名块生命周期 ctest 目标（新增执行单元）"
+    },
+    {
       "old_id": "CTEST-DRIZZLE-PRECISION-DEFAULT",
       "decision": "MERGED-INTO",
       "target": "CHK-INVARIANT",
@@ -1251,6 +1956,23 @@
       "grade": "P0",
       "order_in_target": 0,
       "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-EXPORT-STREAM",
+      "decision": "KEPT",
+      "target": "CHK-ARCH504-EXPORT-STREAM",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "ARCH-504 新增执行单元"
+    },
+    {
+      "old_id": "CTEST-FIX402-PHASE3-SEMANTIC-GUARD",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
     },
     {
       "old_id": "CTEST-GAIA-MAGNITUDE-RANGE-BOUNDS",
@@ -1307,6 +2029,31 @@
       "note": "C ABI 兼容性"
     },
     {
+      "old_id": "CTEST-IPV-DEAD-PARAMS-LOCK",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-IPV-DEAD-PARAMS-LOCK-SELFCHECK",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-IPV-ERROR-UTF8",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 14,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
       "old_id": "CTEST-IPV-EXTRACT-WCS-SIP-FAILCLOSED",
       "decision": "MERGED-INTO",
       "target": "CHK-INVARIANT",
@@ -1343,6 +2090,15 @@
       "note": "C ABI 兼容性"
     },
     {
+      "old_id": "CTEST-IPV-SELECT-DOMAIN",
+      "decision": "KEPT",
+      "target": "CHK-ORACLE",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 11,
+      "note": "注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
       "old_id": "CTEST-IPV-TRIANGLE-BUDGET",
       "decision": "MERGED-INTO",
       "target": "CHK-INVARIANT",
@@ -1361,6 +2117,15 @@
       "note": "每模块单测"
     },
     {
+      "old_id": "CTEST-MEM-WIRE",
+      "decision": "KEPT",
+      "target": "CHK-MEM-WIRE-01",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "MEM-WIRE-01 新增执行单元"
+    },
+    {
       "old_id": "CTEST-MON004-ENFORCEMENT",
       "decision": "MERGED-INTO",
       "target": "CHK-RESOURCE",
@@ -1370,6 +2135,78 @@
       "note": "内存/线程/利用率门禁"
     },
     {
+      "old_id": "CTEST-MOSAIC-WINDOW",
+      "decision": "KEPT",
+      "target": "CHK-ARCH503-MOSAIC-WIN",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "ARCH-503 新增执行单元"
+    },
+    {
+      "old_id": "CTEST-NORMALIZE-WORKFLOW",
+      "decision": "KEPT",
+      "target": "CHK-ARCH502-NORMALIZE-WF",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "ARCH-502 新增执行单元"
+    },
+    {
+      "old_id": "CTEST-ORCH-CHECKPOINT-UNITS",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CTEST-ORCH-CLI-INTEGRATION",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CTEST-ORCH-LEGACY-CLI-SMOKE",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CTEST-ORCH-LEGACY-CLI-VALIDATE",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CTEST-ORCH-LOGGER-UNITS",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
+      "old_id": "CTEST-ORCH-SATURATION-GATE",
+      "decision": "KEPT",
+      "target": "CHK-CONTRACT-TEST",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "ORCH-001 编排层共址测试（补登记）"
+    },
+    {
       "old_id": "CTEST-P1001-REAL-NODES",
       "decision": "MERGED-INTO",
       "target": "CHK-SYNTH-P1",
@@ -1377,6 +2214,14 @@
       "grade": "P0",
       "order_in_target": 0,
       "note": "normalize 合成全链"
+    },
+    {
+      "old_id": "CTEST-P1CAL-BIAS-INFLUENCE-GATE",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1cal_bias_influence_gate（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
     },
     {
       "old_id": "CTEST-P1DRZ-MERGE-PIPELINE-LOCK",
@@ -1397,6 +2242,54 @@
       "note": "1 vs N worker 数值一致"
     },
     {
+      "old_id": "CTEST-P1NOISE-ABI-LAYOUT",
+      "decision": "KEPT",
+      "target": "CHK-ABI",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_abi_layout（CHK-ABI 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-MASK",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_mask（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-NUMPY-ORACLE",
+      "decision": "KEPT",
+      "target": "CHK-ORACLE",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-SATURATION",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-SATURATION-SELFCHECK",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation_selfcheck（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
+      "old_id": "CTEST-P1NOISE-SATURATION-WIRING",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation_wiring（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
       "old_id": "CTEST-P1PHOT-FIXGATES",
       "decision": "MERGED-INTO",
       "target": "CHK-ORACLE",
@@ -1404,6 +2297,46 @@
       "grade": "P0",
       "order_in_target": 5,
       "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "CTEST-P1PSF-CENTER-CONTRACT",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-CENTER-CONTRACT-ASTROPY",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-CENTER-CONTRACT-NEG",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-CENTROID-GATE",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-P1PSF-CENTROID-GATE-NEG",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
     },
     {
       "old_id": "CTEST-P1PSF-PRODPATH-CENTROID",
@@ -1451,6 +2384,14 @@
       "note": "科学不变量/性质测试"
     },
     {
+      "old_id": "CTEST-P1STAR-GUIDED",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "STARDET-01（星表引导检测按文档订正）：登记新交付的 ctest 目标 p1star_guided（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
+    },
+    {
       "old_id": "CTEST-P1STAR-MAD",
       "decision": "MERGED-INTO",
       "target": "CHK-INVARIANT",
@@ -1458,6 +2399,14 @@
       "grade": "P0",
       "order_in_target": 1,
       "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-P1STARDET-NODE-GATE",
+      "decision": "KEPT",
+      "target": "CHK-INVARIANT",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "STARDET-01（星表引导检测按文档订正）：登记新交付的 ctest 目标 p1stardet_node_gate（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
     },
     {
       "old_id": "CTEST-P1WCS-APBP",
@@ -1476,6 +2425,14 @@
       "grade": "P0",
       "order_in_target": 3,
       "note": "SCI/ALG Oracle 测试"
+    },
+    {
+      "old_id": "CTEST-P1WCS-CLOSURE-METRIC-GATE",
+      "decision": "KEPT",
+      "target": "CHK-ORACLE",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3：登记新交付的 ctest 目标 p1wcs_closure_metric_gate（CHK-ORACLE 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
     },
     {
       "old_id": "CTEST-P1WCS-STD-F1-BRIDGE",
@@ -1539,6 +2496,15 @@
       "grade": "P0",
       "order_in_target": 5,
       "note": "科学不变量/性质测试"
+    },
+    {
+      "old_id": "CTEST-P3-EXPORT-STREAM-RSS",
+      "decision": "KEPT",
+      "target": "CHK-P3-EXPORT-STREAM-RSS",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "P3-STREAM-01（2026-09-22）新增执行单元（非本波基线，absorbed）：ctest 目标 p3_export_stream_prod 经资源监视器跑内核记账驻留判据（clear_refs 归零后读 VmHWM）。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
     },
     {
       "old_id": "CTEST-P3-PROJECTION-FAULT",
@@ -1622,6 +2588,23 @@
       "note": "内存/线程/利用率门禁"
     },
     {
+      "old_id": "CTEST-SCI-EVIDENCE-REGISTRATION",
+      "decision": "KEPT",
+      "target": "CHK-MODULE-MANIFEST",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
+    },
+    {
+      "old_id": "CTEST-V6-P2-SKY-KAPPA",
+      "decision": "KEPT",
+      "target": "CHK-SCI502-SKY-KAPPA",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "SCI-502 FIX-3 κ 自适应 ctest 目标（新增执行单元）"
+    },
+    {
       "old_id": "CTEST-XPSD-SPECTRUM-COUNT-BOUNDS",
       "decision": "MERGED-INTO",
       "target": "CHK-INVARIANT",
@@ -1703,6 +2686,14 @@
       "note": "DOC-403（2026-09-21）：原为 CHK-DANGLING 的 step，提升为顶层注册项（顶层化后 docs/ci/01_CHECKS.md §2 才能有自己的登记行，满足 CHK-REGISTRY-DOC-SYNC 双向一致）"
     },
     {
+      "old_id": "DOC-INDEX-SELFTEST",
+      "decision": "KEPT",
+      "target": "DOC-INDEX-SELFTEST",
+      "kind": "ci",
+      "grade": "P0",
+      "note": "DOC-403（2026-09-21）新增执行单元（ENGINEERING_SPEC §10 可执行负例面）"
+    },
+    {
       "old_id": "DOC-L0",
       "decision": "KEPT",
       "target": "DOC-L0",
@@ -1730,6 +2721,33 @@
       "note": "静态分析"
     },
     {
+      "old_id": "E2E-CHAIN-SELFTEST-STEP",
+      "decision": "KEPT",
+      "target": "CHK-E2E-CHAIN-SELFTEST",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "E2E-501 新增执行单元"
+    },
+    {
+      "old_id": "E2E-CHAIN-VERIFY-STEP",
+      "decision": "KEPT",
+      "target": "CHK-E2E-CHAIN",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "E2E-501 新增执行单元"
+    },
+    {
+      "old_id": "E2E-WCS-CLOSURE-REPRO-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-E2E-REPRO",
+      "kind": "ci",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "G-P1-WCS-CLOSURE-REPRO 自检：7 类注入必红 + 缺输入 fail-closed 必红"
+    },
+    {
       "old_id": "ENG-CONSTRAINTS",
       "decision": "KEPT",
       "target": "ENG-CONSTRAINTS",
@@ -1739,6 +2757,40 @@
       "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
     },
     {
+      "old_id": "EXIT-CONSISTENCY-SCAN",
+      "decision": "KEPT",
+      "target": "CHK-EXIT-CONSISTENCY",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "扫描 eng/tools/**+eng/ci/**：打印 FAIL 必须 rc≠0"
+    },
+    {
+      "old_id": "EXIT-CONSISTENCY-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-EXIT-CONSISTENCY",
+      "kind": "ci",
+      "grade": "P1",
+      "order_in_target": 0,
+      "note": "自测面：3 正例 + 3 负例"
+    },
+    {
+      "old_id": "FAILCLOSED-SURVEY",
+      "decision": "MERGED-INTO",
+      "target": "CHK-FAILCLOSED-SURVEY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "新增执行单元（GATE-501）（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "FAILCLOSED-SURVEY-SELFTEST",
+      "decision": "MERGED-INTO",
+      "target": "CHK-FAILCLOSED-SURVEY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "新增执行单元（GATE-501，普查自身能红能绿）（非本波 146 项基线，absorbed）"
+    },
+    {
       "old_id": "GLOSSARY-DOCS",
       "decision": "KEPT",
       "target": "GLOSSARY-DOCS",
@@ -1746,6 +2798,40 @@
       "owner": "GOV-001 (W2)",
       "reason": "词典锚点/别名唯一性；悬空引用门归 CHK-DANGLING（GOV-001 迁移）",
       "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
+    },
+    {
+      "old_id": "ID-MIGRATION-MAP-DOC-SYNC",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRY-DOC-SYNC",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 2,
+      "note": "并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "ID-MIGRATION-MAP-DOC-SYNC-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRY-DOC-SYNC",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 3,
+      "note": "并发写回后重建：注册表已登记的执行单元，按 KEPT 归入其父项"
+    },
+    {
+      "old_id": "IMPACT-MAP",
+      "decision": "KEPT",
+      "target": "CHK-IMPACT-MAP",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W4-A3（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）：收口 eng/ci/tests/test_impact_map.py 4 条既有红的根因（step id 与顶层 id 混用）"
+    },
+    {
+      "old_id": "IMPACT-MAP-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-IMPACT-MAP",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W4-A3（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）：收口 eng/ci/tests/test_impact_map.py 4 条既有红的根因（step id 与顶层 id 混用）"
     },
     {
       "old_id": "IPV-PLATFORM-BINDING",
@@ -1793,6 +2879,22 @@
       "note": "版本化已知失败基线门（聚合型，linux-main 末位）"
     },
     {
+      "old_id": "L2-FROZEN-GATE-REPLAY",
+      "decision": "KEPT",
+      "target": "L2-FROZEN-GATE-REPLAY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_frozen_gate.py --replay --json-out run/ci/l2-frozen-gate/replay.json"
+    },
+    {
+      "old_id": "L2-FROZEN-GATE-SELFTEST",
+      "decision": "KEPT",
+      "target": "L2-FROZEN-GATE-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_frozen_gate.py --self-test"
+    },
+    {
       "old_id": "LINUX-MAIN-BUILD-TREE",
       "decision": "KEPT-PENDING-MERGE",
       "target": "CHK-BUILD-LINUX",
@@ -1824,6 +2926,24 @@
       "note": "schema 校验"
     },
     {
+      "old_id": "LOG-SYS-SCAN",
+      "decision": "KEPT",
+      "target": "CHK-LOG-SYS",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "LOG-SYS-01 新增执行单元（日志与错误系统判据）"
+    },
+    {
+      "old_id": "LOG-SYS-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-LOG-SYS",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "LOG-SYS-01 新增执行单元（6 类故障注入必红）"
+    },
+    {
       "old_id": "MODULE-READMES",
       "decision": "MERGED-INTO",
       "target": "CHK-MODULE-MANIFEST",
@@ -1840,6 +2960,30 @@
       "grade": "P0",
       "order_in_target": 1,
       "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "P3-PROJ-DECL-REGISTRY",
+      "decision": "KEPT",
+      "target": "CHK-P3-PROJ-DECL",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "P3-PROJ-DECL-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-P3-PROJ-DECL-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "P3-PROJ-DECL-UNSUPPORTED-CLI",
+      "decision": "KEPT",
+      "target": "CHK-P3-PROJ-DECL",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
     },
     {
       "old_id": "P3-STATUS",
@@ -1860,6 +3004,47 @@
       "note": "算法引用有效 SCI/ALG"
     },
     {
+      "old_id": "PKG-CONSISTENCY",
+      "decision": "KEPT",
+      "target": "CHK-PKG-CONSISTENCY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 eng/ci/checks.json 注册（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "PKG-CONSISTENCY-NEG",
+      "decision": "KEPT",
+      "target": "CHK-PKG-CONSISTENCY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 eng/ci/checks.json 注册（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "PKG-SBOM",
+      "decision": "KEPT",
+      "target": "CHK-PKG-CONSISTENCY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 eng/ci/checks.json 注册（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "PKG-SBOM-NEG",
+      "decision": "KEPT",
+      "target": "CHK-PKG-CONSISTENCY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 eng/ci/checks.json 注册（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "PREFLIGHT-MATRIX-STEP",
+      "decision": "KEPT",
+      "target": "CHK-PREFLIGHT-MATRIX",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "E2E-501 新增执行单元"
+    },
+    {
       "old_id": "PROD-REACH-SELFTEST",
       "decision": "MERGED-INTO",
       "target": "CHK-STATIC",
@@ -1878,6 +3063,31 @@
       "note": "算法引用有效 SCI/ALG"
     },
     {
+      "old_id": "PSFSW-RETIRED-STATIC",
+      "decision": "KEPT",
+      "target": "CHK-PSFSW-RETIRED-STATIC",
+      "kind": "extension",
+      "grade": "P1",
+      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
+    },
+    {
+      "old_id": "PSFSW-RETIRED-STATIC-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-PSFSW-RETIRED-STATIC",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_psfsw_retired.py --self-test"
+    },
+    {
+      "old_id": "PY-TEST-INDEX-VERDICTS",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "checker": "eng/ci/check_test_index.py",
+      "owner": "RELEASE-02 CI-HYGIENE",
+      "reason": "DESIGN-CONFORMANCE SUB-D-35：test_index.csv 无机器 verdict，含 errors/failures/skip 的套件被当作通过。本门把聚合判据机器化（PASS ⇔ failed==0∧errored==0；全 skip 不得记 PASS），并入 CHK-UNIT 聚合面。",
+      "note": "RELEASE-02（2026-09-18）新增；非本波 146 项基线，absorbed。"
+    },
+    {
       "old_id": "RECONCILE-STATE",
       "decision": "MERGED-INTO",
       "target": "CHK-ENV-ADOPTION",
@@ -1885,6 +3095,56 @@
       "grade": "P1",
       "order_in_target": 1,
       "note": "CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账）"
+    },
+    {
+      "old_id": "REGISTRY-DOC-SYNC",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRY-DOC-SYNC",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "REGISTRY-DOC-SYNC-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRY-DOC-SYNC",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "RESOURCE-GATE-REAL",
+      "decision": "KEPT",
+      "target": "RESOURCE-GATE-REAL",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "RESOURCE-GATE-REAL-NEG",
+      "decision": "KEPT",
+      "target": "RESOURCE-GATE-REAL-NEG",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "SELFTEST-P3-EXPORT-STREAM-PROD",
+      "decision": "KEPT",
+      "target": "CHK-P3-EXPORT-STREAM-PROD",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "P3-STREAM-01（2026-09-22）新增执行单元（非本波基线，absorbed）：上项的可执行负例面（同一检查器 --self-test）。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
+    },
+    {
+      "old_id": "SELFTEST-PLUGIN-SYMBOL-CLOSURE",
+      "decision": "KEPT",
+      "target": "CHK-PLUGIN-SYMBOL-CLOSURE",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 1,
+      "note": "新增执行单元（非本波基线，absorbed）：上项的可执行负例面（同一检查器 --self-test，未纳入闭包的符号引用 / DT_NEEDED 不可解析 / 构建图缺失各自判红）。"
     },
     {
       "old_id": "SERIAL-HARDCODE",
@@ -1903,6 +3163,64 @@
       "grade": "P0",
       "order_in_target": 3,
       "note": "内存/线程/利用率门禁"
+    },
+    {
+      "old_id": "SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "decision": "KEPT",
+      "target": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "DESIGN-GAP-LAND（2026-09-19）新增执行单元（非基线 146 项，absorbed）：GAP_AUDIT §9.44 负责人令新增门禁 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH，覆盖 S1-002/S2-NS-01/S4-P3X-06 三条同类缺陷；判据+可执行负例见 eng/ci/check_spec_named_impl.py --self-test。"
+    },
+    {
+      "old_id": "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "DESIGN-GAP-LAND（2026-09-19）新增执行单元（非基线 146 项，absorbed）：GAP_AUDIT §9.44 负责人令新增门禁 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH，覆盖 S1-002/S2-NS-01/S4-P3X-06 三条同类缺陷；判据+可执行负例见 eng/ci/check_spec_named_impl.py --self-test。"
+    },
+    {
+      "old_id": "STATIC-P3-EXPORT-STREAM-PROD",
+      "decision": "KEPT",
+      "target": "CHK-P3-EXPORT-STREAM-PROD",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "P3-STREAM-01（2026-09-22）新增执行单元（非本波基线，absorbed）：静态锁生产 writer 节点引用 ExportStreamScheduler，3 处变异必红的可执行负例见 eng/tools/arch/check_p3_export_stream_prod.py --self-test。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
+    },
+    {
+      "old_id": "STATIC-PLUGIN-SYMBOL-CLOSURE",
+      "decision": "KEPT",
+      "target": "CHK-PLUGIN-SYMBOL-CLOSURE",
+      "kind": "extension",
+      "grade": "P0",
+      "order_in_target": 0,
+      "note": "新增执行单元（非本波基线，absorbed）：plugin .so 符号闭包静态判据 —— 强未定义符号必须能在 DT_NEEDED 传递闭包 ∪ 宿主基线库内解析，缺产物/缺构建图 fail-closed。"
+    },
+    {
+      "old_id": "STD-REG",
+      "decision": "KEPT",
+      "target": "STD-REG",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "STD-REG-FI-DANGLING",
+      "decision": "KEPT",
+      "target": "STD-REG",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
+    },
+    {
+      "old_id": "STD-REG-FI-VERSION-DRIFT",
+      "decision": "KEPT",
+      "target": "STD-REG",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
     },
     {
       "old_id": "TASK-RESULT-SCHEMA",
@@ -2022,6 +3340,15 @@
       "note": "每模块单测"
     },
     {
+      "old_id": "UT-CONFIG",
+      "decision": "MERGED-INTO",
+      "target": "CHK-UNIT",
+      "kind": "doc",
+      "grade": "P0",
+      "order_in_target": 18,
+      "note": "W5-CFG-002（2026-09-17）交付 eng/tests/config（47 例 rc=0）；W4-A3 注册为 CHK-UNIT 执行单元（原无 CI 步骤）"
+    },
+    {
       "old_id": "UT-CONTRACTS",
       "decision": "MERGED-INTO",
       "target": "CHK-CONTRACT-TEST",
@@ -2128,6 +3455,15 @@
       "grade": "P0",
       "order_in_target": 8,
       "note": "每模块单测"
+    },
+    {
+      "old_id": "UT-RUNTIME-INTEGRATION",
+      "decision": "KEPT",
+      "target": "CHK-UNIT",
+      "kind": "test",
+      "grade": "P0",
+      "order_in_target": 999,
+      "note": "CI-INCREMENTAL：eng/tests/runtime 的集成型用例拆出（真实会话/子进程），只进 integration 档"
     },
     {
       "old_id": "UT-SCIENCELINT",
@@ -2247,15 +3583,6 @@
       "note": "CI-003（2026-09-16）：原 RETIRE-PENDING-GOV-001 判定撤销 —— 该门经判据迁移/修锚/加可执行负例后保留为活动门，已登记 docs/ci/01_CHECKS.md §2。"
     },
     {
-      "old_id": "PY-TEST-INDEX-VERDICTS",
-      "decision": "MERGED-INTO",
-      "target": "CHK-UNIT",
-      "checker": "eng/ci/check_test_index.py",
-      "owner": "RELEASE-02 CI-HYGIENE",
-      "reason": "DESIGN-CONFORMANCE SUB-D-35：test_index.csv 无机器 verdict，含 errors/failures/skip 的套件被当作通过。本门把聚合判据机器化（PASS ⇔ failed==0∧errored==0；全 skip 不得记 PASS），并入 CHK-UNIT 聚合面。",
-      "note": "RELEASE-02（2026-09-18）新增；非本波 146 项基线，absorbed。"
-    },
-    {
       "old_id": "WARNING-SUPPRESSION",
       "decision": "MERGED-INTO",
       "target": "CHK-WARN",
@@ -2303,6 +3630,22 @@
       "note": "每模块单测"
     },
     {
+      "old_id": "WORKER-BALANCE-METRIC-REPLAY",
+      "decision": "KEPT",
+      "target": "WORKER-BALANCE-METRIC-REPLAY",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_worker_balance.py --replay-archived --json-out run/ci/worker-balance/replay.json"
+    },
+    {
+      "old_id": "WORKER-BALANCE-METRIC-SELFTEST",
+      "decision": "KEPT",
+      "target": "WORKER-BALANCE-METRIC-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_worker_balance.py --self-test"
+    },
+    {
       "old_id": "WORKFLOW-REGISTRY-BINDING",
       "decision": "MERGED-INTO",
       "target": "CHK-MODULE-MANIFEST",
@@ -2319,1143 +3662,161 @@
       "grade": "P1",
       "order_in_target": 0,
       "note": "CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账）"
-    },
-    {
-      "old_id": "STD-REG",
-      "decision": "KEPT",
-      "target": "STD-REG",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "STD-REG-FI-DANGLING",
-      "decision": "KEPT",
-      "target": "STD-REG",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "STD-REG-FI-VERSION-DRIFT",
-      "decision": "KEPT",
-      "target": "STD-REG",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "REGISTRY-DOC-SYNC",
-      "decision": "KEPT",
-      "target": "CHK-REGISTRY-DOC-SYNC",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "REGISTRY-DOC-SYNC-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-REGISTRY-DOC-SYNC",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "RESOURCE-GATE-REAL",
-      "decision": "KEPT",
-      "target": "RESOURCE-GATE-REAL",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "RESOURCE-GATE-REAL-NEG",
-      "decision": "KEPT",
-      "target": "RESOURCE-GATE-REAL-NEG",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "CI-003（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "IMPACT-MAP",
-      "decision": "KEPT",
-      "target": "CHK-IMPACT-MAP",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "W4-A3（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）：收口 eng/ci/tests/test_impact_map.py 4 条既有红的根因（step id 与顶层 id 混用）"
-    },
-    {
-      "old_id": "IMPACT-MAP-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-IMPACT-MAP",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "W4-A3（2026-09-16）新增执行单元（非本波 146 项基线，absorbed）：收口 eng/ci/tests/test_impact_map.py 4 条既有红的根因（step id 与顶层 id 混用）"
-    },
-    {
-      "old_id": "CTEST-AIO-ABI-LAYOUT-LOCK",
-      "decision": "KEPT",
-      "target": "CHK-ABI",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "CTEST-AIO-ABI-LAYOUT-LOCK-SELFCHECK",
-      "decision": "KEPT",
-      "target": "CHK-ABI",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "CTEST-IPV-DEAD-PARAMS-LOCK",
-      "decision": "KEPT",
-      "target": "CHK-ABI",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "CTEST-IPV-DEAD-PARAMS-LOCK-SELFCHECK",
-      "decision": "KEPT",
-      "target": "CHK-ABI",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "CTEST-P1PSF-CENTROID-GATE",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "CTEST-P1PSF-CENTROID-GATE-NEG",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "CTEST-P1PSF-CENTER-CONTRACT",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "CTEST-P1PSF-CENTER-CONTRACT-NEG",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "CTEST-P1PSF-CENTER-CONTRACT-ASTROPY",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "CTEST-P1NOISE-NUMPY-ORACLE",
-      "decision": "KEPT",
-      "target": "CHK-ORACLE",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "CTEST-SCI-EVIDENCE-REGISTRATION",
-      "decision": "KEPT",
-      "target": "CHK-MODULE-MANIFEST",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）新增执行单元：收口 CTEST-REGISTRATION 的 C3未注册目标 11 项（W4-A1 PSF 中心口径门 / P27 死字段锁 / P1NOISE NumPy oracle / SCI-FIX-WEIGHT 三合一证据门），均属非本波 146 项基线（absorbed）"
-    },
-    {
-      "old_id": "PKG-CONSISTENCY",
-      "decision": "KEPT",
-      "target": "CHK-PKG-CONSISTENCY",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 eng/ci/checks.json 注册（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "PKG-CONSISTENCY-NEG",
-      "decision": "KEPT",
-      "target": "CHK-PKG-CONSISTENCY",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 eng/ci/checks.json 注册（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "PKG-SBOM",
-      "decision": "KEPT",
-      "target": "CHK-PKG-CONSISTENCY",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 eng/ci/checks.json 注册（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "PKG-SBOM-NEG",
-      "decision": "KEPT",
-      "target": "CHK-PKG-CONSISTENCY",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "W5-PKG-001（2026-09-17）交付；W4-A3 按 eng/ci/checks.json 注册（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "UT-CONFIG",
-      "decision": "MERGED-INTO",
-      "target": "CHK-UNIT",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 18,
-      "note": "W5-CFG-002（2026-09-17）交付 eng/tests/config（47 例 rc=0）；W4-A3 注册为 CHK-UNIT 执行单元（原无 CI 步骤）"
-    },
-    {
-      "old_id": "CTEST-P1CAL-BIAS-INFLUENCE-GATE",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1cal_bias_influence_gate（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
-    },
-    {
-      "old_id": "CTEST-P1NOISE-MASK",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_mask（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
-    },
-    {
-      "old_id": "CTEST-P1NOISE-SATURATION",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
-    },
-    {
-      "old_id": "CTEST-P1NOISE-SATURATION-SELFCHECK",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation_selfcheck（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
-    },
-    {
-      "old_id": "CTEST-P1NOISE-SATURATION-WIRING",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_saturation_wiring（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
-    },
-    {
-      "old_id": "CTEST-P1NOISE-ABI-LAYOUT",
-      "decision": "KEPT",
-      "target": "CHK-ABI",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3（2026-09-17）：登记新交付的 ctest 目标 p1noise_abi_layout（CHK-ABI 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
-    },
-    {
-      "old_id": "CTEST-P1WCS-CLOSURE-METRIC-GATE",
-      "decision": "KEPT",
-      "target": "CHK-ORACLE",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "W4-A3：登记新交付的 ctest 目标 p1wcs_closure_metric_gate（CHK-ORACLE 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
-    },
-    {
-      "old_id": "CHK-EXIT-CONSISTENCY",
-      "decision": "KEPT",
-      "target": "CHK-EXIT-CONSISTENCY",
-      "kind": "ci",
-      "grade": "P1",
-      "order_in_target": 0,
-      "note": "C 类收口：结论与退出码一致性（W4-A3 新增门）"
-    },
-    {
-      "old_id": "EXIT-CONSISTENCY-SCAN",
-      "decision": "KEPT",
-      "target": "CHK-EXIT-CONSISTENCY",
-      "kind": "ci",
-      "grade": "P1",
-      "order_in_target": 0,
-      "note": "扫描 eng/tools/**+eng/ci/**：打印 FAIL 必须 rc≠0"
-    },
-    {
-      "old_id": "EXIT-CONSISTENCY-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-EXIT-CONSISTENCY",
-      "kind": "ci",
-      "grade": "P1",
-      "order_in_target": 0,
-      "note": "自测面：3 正例 + 3 负例"
-    },
-    {
-      "old_id": "CTEST-ORCH-LOGGER-UNITS",
-      "decision": "KEPT",
-      "target": "CHK-CONTRACT-TEST",
-      "kind": "ci",
-      "grade": "P1",
-      "order_in_target": 0,
-      "note": "ORCH-001 编排层共址测试（补登记）"
-    },
-    {
-      "old_id": "CTEST-ORCH-CHECKPOINT-UNITS",
-      "decision": "KEPT",
-      "target": "CHK-CONTRACT-TEST",
-      "kind": "ci",
-      "grade": "P1",
-      "order_in_target": 0,
-      "note": "ORCH-001 编排层共址测试（补登记）"
-    },
-    {
-      "old_id": "CTEST-ORCH-CLI-INTEGRATION",
-      "decision": "KEPT",
-      "target": "CHK-CONTRACT-TEST",
-      "kind": "ci",
-      "grade": "P1",
-      "order_in_target": 0,
-      "note": "ORCH-001 编排层共址测试（补登记）"
-    },
-    {
-      "old_id": "CTEST-ORCH-LEGACY-CLI-SMOKE",
-      "decision": "KEPT",
-      "target": "CHK-CONTRACT-TEST",
-      "kind": "ci",
-      "grade": "P1",
-      "order_in_target": 0,
-      "note": "ORCH-001 编排层共址测试（补登记）"
-    },
-    {
-      "old_id": "CTEST-ORCH-LEGACY-CLI-VALIDATE",
-      "decision": "KEPT",
-      "target": "CHK-CONTRACT-TEST",
-      "kind": "ci",
-      "grade": "P1",
-      "order_in_target": 0,
-      "note": "ORCH-001 编排层共址测试（补登记）"
-    },
-    {
-      "old_id": "CTEST-ORCH-SATURATION-GATE",
-      "decision": "KEPT",
-      "target": "CHK-CONTRACT-TEST",
-      "kind": "ci",
-      "grade": "P1",
-      "order_in_target": 0,
-      "note": "ORCH-001 编排层共址测试（补登记）"
-    },
-    {
-      "old_id": "CHK-E2E-REPRO",
-      "decision": "KEPT",
-      "target": "CHK-E2E-REPRO",
-      "kind": "ci",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "E2E-FIX-001 发布门 G-P1-WCS-CLOSURE-REPRO CI 注册"
-    },
-    {
-      "old_id": "E2E-WCS-CLOSURE-REPRO-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-E2E-REPRO",
-      "kind": "ci",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "G-P1-WCS-CLOSURE-REPRO 自检：7 类注入必红 + 缺输入 fail-closed 必红"
-    },
-    {
-      "old_id": "CHK-ALGO-WIRING",
-      "decision": "KEPT",
-      "target": "CHK-ALGO-WIRING",
-      "checker": "eng/ci/check_algo_wiring.py",
-      "owner": "RELEASE-02 fix-gates",
-      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_algo_wiring.py --self-test。",
-      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
-    },
-    {
-      "old_id": "CHK-REGISTRY-IR-PARITY",
-      "decision": "KEPT",
-      "target": "CHK-REGISTRY-IR-PARITY",
-      "checker": "eng/ci/check_registry_ir_parity.py",
-      "owner": "RELEASE-02 fix-gates",
-      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_registry_ir_parity.py --self-test。",
-      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
-    },
-    {
-      "old_id": "CHK-CONFIG-CONSUMED",
-      "decision": "KEPT",
-      "target": "CHK-CONFIG-CONSUMED",
-      "checker": "eng/ci/check_config_consumed.py",
-      "owner": "RELEASE-02 fix-gates",
-      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_config_consumed.py --self-test。",
-      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
-    },
-    {
-      "old_id": "CHK-CONFIG-DEFAULTS",
-      "decision": "KEPT",
-      "target": "CHK-CONFIG-DEFAULTS",
-      "checker": "eng/ci/check_config_defaults.py",
-      "owner": "RELEASE-02 fix-gates",
-      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_config_defaults.py --self-test。",
-      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
-    },
-    {
-      "old_id": "CHK-PROD-SCALE",
-      "decision": "KEPT",
-      "target": "CHK-PROD-SCALE",
-      "checker": "eng/ci/check_prod_scale.py",
-      "owner": "RELEASE-02 fix-gates",
-      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_prod_scale.py --self-test。",
-      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
-    },
-    {
-      "old_id": "CHK-PROVENANCE-CONSISTENCY",
-      "decision": "KEPT",
-      "target": "CHK-PROVENANCE-CONSISTENCY",
-      "checker": "eng/ci/check_provenance_consistency.py",
-      "owner": "RELEASE-02 fix-gates",
-      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_provenance_consistency.py --self-test。",
-      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
-    },
-    {
-      "old_id": "CHK-REALDATA-E2E",
-      "decision": "KEPT",
-      "target": "CHK-REALDATA-E2E",
-      "checker": "eng/ci/check_realdata_e2e.py",
-      "owner": "RELEASE-02 fix-gates",
-      "reason": "RELEASE-02 代码修复分片（CI 门禁防复发）新增检查项；判据+可执行负例见 eng/ci/check_realdata_e2e.py --self-test。",
-      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
-    },
-    {
-      "old_id": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
-      "decision": "KEPT",
-      "target": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "DESIGN-GAP-LAND（2026-09-19）新增执行单元（非基线 146 项，absorbed）：GAP_AUDIT §9.44 负责人令新增门禁 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH，覆盖 S1-002/S2-NS-01/S4-P3X-06 三条同类缺陷；判据+可执行负例见 eng/ci/check_spec_named_impl.py --self-test。"
-    },
-    {
-      "old_id": "SPEC-NAMED-IMPL-ON-PROD-PATH",
-      "decision": "KEPT",
-      "target": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "DESIGN-GAP-LAND（2026-09-19）新增执行单元（非基线 146 项，absorbed）：GAP_AUDIT §9.44 负责人令新增门禁 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH，覆盖 S1-002/S2-NS-01/S4-P3X-06 三条同类缺陷；判据+可执行负例见 eng/ci/check_spec_named_impl.py --self-test。"
-    },
-    {
-      "old_id": "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "DESIGN-GAP-LAND（2026-09-19）新增执行单元（非基线 146 项，absorbed）：GAP_AUDIT §9.44 负责人令新增门禁 CHK-SPEC-NAMED-IMPL-ON-PROD-PATH，覆盖 S1-002/S2-NS-01/S4-P3X-06 三条同类缺陷；判据+可执行负例见 eng/ci/check_spec_named_impl.py --self-test。"
-    },
-    {
-      "old_id": "CHK-NO-WEIGHT-MODE",
-      "decision": "KEPT",
-      "target": "CHK-NO-WEIGHT-MODE",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "CHK-NO-WEIGHT-MODE-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-NO-WEIGHT-MODE-SELFTEST",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "AHPX-WEIGHT-RETIRED",
-      "decision": "KEPT",
-      "target": "AHPX-WEIGHT-RETIRED",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "CHK-FIX203-PROMOTED-KEYS",
-      "decision": "KEPT",
-      "target": "CHK-FIX203-PROMOTED-KEYS",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "P3-PROJ-DECL-REGISTRY",
-      "decision": "KEPT",
-      "target": "CHK-P3-PROJ-DECL",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "P3-PROJ-DECL-UNSUPPORTED-CLI",
-      "decision": "KEPT",
-      "target": "CHK-P3-PROJ-DECL",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "P3-PROJ-DECL-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-P3-PROJ-DECL-SELFTEST",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "CHK-AIO-IO-BOUNDARY",
-      "decision": "KEPT",
-      "target": "CHK-AIO-IO-BOUNDARY",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "AIO-IO-BOUNDARY-SELFTEST",
-      "decision": "KEPT",
-      "target": "AIO-IO-BOUNDARY-SELFTEST",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "PSFSW-RETIRED-STATIC",
-      "decision": "KEPT",
-      "target": "CHK-PSFSW-RETIRED-STATIC",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "CHK-PSFSW-RETIRED-NEGATIVE",
-      "decision": "KEPT",
-      "target": "CHK-PSFSW-RETIRED-NEGATIVE",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "CHK-FIX208-EVENT-STREAM-DEFAULT",
-      "decision": "KEPT",
-      "target": "CHK-FIX208-EVENT-STREAM-DEFAULT",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "CHK-FIX208-DISK-GATE",
-      "decision": "KEPT",
-      "target": "CHK-FIX208-DISK-GATE",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RELEASE-03 BLD-201（2026-09-20）新增执行单元（非本波基线，absorbed）：各判据来源见工程控制/RELEASE-03/change-claims/** 与 run/RELEASE-03/logs/*-receipt.md；可执行负例面见各检查器 --self-test 或登记命令内建的负例用例。"
-    },
-    {
-      "old_id": "DOC-INDEX-SELFTEST",
-      "decision": "KEPT",
-      "target": "DOC-INDEX-SELFTEST",
-      "kind": "ci",
-      "grade": "P0",
-      "note": "DOC-403（2026-09-21）新增执行单元（ENGINEERING_SPEC §10 可执行负例面）"
-    },
-    {
-      "old_id": "CHK-RETIRED-CODE",
-      "decision": "KEPT",
-      "target": "CHK-RETIRED-CODE",
-      "kind": "ci",
-      "grade": "P0",
-      "note": "CLEAN-401 新增检查器；DOC-403 登记（2026-09-21）"
-    },
-    {
-      "old_id": "CHK-RETIRED-CODE-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-RETIRED-CODE-SELFTEST",
-      "kind": "ci",
-      "grade": "P0",
-      "note": "CLEAN-401 新增检查器；DOC-403 登记（2026-09-21）"
-    },
-    {
-      "old_id": "CHK-FIX406-SIGTERM",
-      "decision": "KEPT",
-      "target": "CHK-FIX406-SIGTERM",
-      "kind": "ci",
-      "grade": "P0",
-      "note": "FIX-406 新增测试矩阵；DOC-403 登记（2026-09-21，依据 run/FIX-406/WINDOWS_CANCEL_PLATFORM_LIMITS.md §3 W4）"
-    },
-    {
-      "old_id": "UT-RUNTIME-INTEGRATION",
-      "decision": "KEPT",
-      "target": "CHK-UNIT",
-      "kind": "test",
-      "grade": "P0",
-      "order_in_target": 999,
-      "note": "CI-INCREMENTAL：eng/tests/runtime 的集成型用例拆出（真实会话/子进程），只进 integration 档"
-    },
-    {
-      "old_id": "CHK-REGISTRY-VALIDATE",
-      "decision": "KEPT",
-      "target": "CHK-REGISTRY-VALIDATE",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/validate_registry.py --registry eng/ci/checks.json --strict"
-    },
-    {
-      "old_id": "L2-FROZEN-GATE-SELFTEST",
-      "decision": "KEPT",
-      "target": "L2-FROZEN-GATE-SELFTEST",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_frozen_gate.py --self-test"
-    },
-    {
-      "old_id": "L2-FROZEN-GATE-REPLAY",
-      "decision": "KEPT",
-      "target": "L2-FROZEN-GATE-REPLAY",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_frozen_gate.py --replay --json-out run/ci/l2-frozen-gate/replay.json"
-    },
-    {
-      "old_id": "WORKER-BALANCE-METRIC-SELFTEST",
-      "decision": "KEPT",
-      "target": "WORKER-BALANCE-METRIC-SELFTEST",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_worker_balance.py --self-test"
-    },
-    {
-      "old_id": "WORKER-BALANCE-METRIC-REPLAY",
-      "decision": "KEPT",
-      "target": "WORKER-BALANCE-METRIC-REPLAY",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_worker_balance.py --replay-archived --json-out run/ci/worker-balance/replay.json"
-    },
-    {
-      "old_id": "PSFSW-RETIRED-STATIC-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-PSFSW-RETIRED-STATIC",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）：python3 eng/ci/check_psfsw_retired.py --self-test"
-    },
-    {
-      "old_id": "CON-EXECUTION-CONTRACTS-SELFTEST",
-      "decision": "MERGED-INTO",
-      "target": "CHK-RESOURCE",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
-    },
-    {
-      "old_id": "CTEST-AIO-CHECKSUM",
-      "decision": "MERGED-INTO",
-      "target": "CHK-UNIT",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
-    },
-    {
-      "old_id": "CTEST-AIO-HIPS-ATOMIC-PUBLISH",
-      "decision": "MERGED-INTO",
-      "target": "CHK-UNIT",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
-    },
-    {
-      "old_id": "CTEST-AIO-PRECISION_DUAL",
-      "decision": "MERGED-INTO",
-      "target": "CHK-UNIT",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
-    },
-    {
-      "old_id": "CTEST-AIO-QUERY_PIXEL",
-      "decision": "MERGED-INTO",
-      "target": "CHK-UNIT",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
-    },
-    {
-      "old_id": "CTEST-AIO-TILE_MODEL",
-      "decision": "MERGED-INTO",
-      "target": "CHK-UNIT",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
-    },
-    {
-      "old_id": "CTEST-AIO-TRANSFORM",
-      "decision": "MERGED-INTO",
-      "target": "CHK-UNIT",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
-    },
-    {
-      "old_id": "CTEST-FIX402-PHASE3-SEMANTIC-GUARD",
-      "decision": "MERGED-INTO",
-      "target": "CHK-UNIT",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）补登记：既有执行单元缺迁移映射登记（注册表结构校验器 R13 孤儿 unit），按注册表父项补登，不改判据"
-    },
-    {
-      "old_id": "CHK-GATE-FAILCLOSED-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-GATE-FAILCLOSED-SELFTEST",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "GATE-501（RELEASE-05）新增执行单元（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "CHK-FAILCLOSED-SURVEY",
-      "decision": "KEPT",
-      "target": "CHK-FAILCLOSED-SURVEY",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "新增聚合项（GATE-501）（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "FAILCLOSED-SURVEY",
-      "decision": "MERGED-INTO",
-      "target": "CHK-FAILCLOSED-SURVEY",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "新增执行单元（GATE-501）（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "FAILCLOSED-SURVEY-SELFTEST",
-      "decision": "MERGED-INTO",
-      "target": "CHK-FAILCLOSED-SURVEY",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "新增执行单元（GATE-501，普查自身能红能绿）（非本波 146 项基线，absorbed）"
-    },
-    {
-      "old_id": "CTEST-CORE-BLOCK-FRAME",
-      "decision": "KEPT",
-      "target": "CHK-ARCH501-BLOCK-FRAME",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "ARCH-501 命名块生命周期 ctest 目标（新增执行单元）"
-    },
-    {
-      "old_id": "CTEST-V6-P2-SKY-KAPPA",
-      "decision": "KEPT",
-      "target": "CHK-SCI502-SKY-KAPPA",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "SCI-502 FIX-3 κ 自适应 ctest 目标（新增执行单元）"
-    },
-    {
-      "old_id": "CHK-TEST-DISCRIMINATIVE-STEP",
-      "decision": "KEPT",
-      "target": "CHK-TEST-DISCRIMINATIVE",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "GATE-502 新增执行单元（空断言静态门）"
-    },
-    {
-      "old_id": "CTEST-NORMALIZE-WORKFLOW",
-      "decision": "KEPT",
-      "target": "CHK-ARCH502-NORMALIZE-WF",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "ARCH-502 新增执行单元"
-    },
-    {
-      "old_id": "CHK-SCHED-PROBE-SCHEMA-STEP",
-      "decision": "KEPT",
-      "target": "CHK-SCHED-PROBE-SCHEMA",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "ARCH-502 新增执行单元"
-    },
-    {
-      "old_id": "LOG-SYS-SCAN",
-      "decision": "KEPT",
-      "target": "CHK-LOG-SYS",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "LOG-SYS-01 新增执行单元（日志与错误系统判据）"
-    },
-    {
-      "old_id": "LOG-SYS-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-LOG-SYS",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 1,
-      "note": "LOG-SYS-01 新增执行单元（6 类故障注入必红）"
-    },
-    {
-      "old_id": "CTEST-MOSAIC-WINDOW",
-      "decision": "KEPT",
-      "target": "CHK-ARCH503-MOSAIC-WIN",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "ARCH-503 新增执行单元"
-    },
-    {
-      "old_id": "CTEST-MEM-WIRE",
-      "decision": "KEPT",
-      "target": "CHK-MEM-WIRE-01",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "MEM-WIRE-01 新增执行单元"
-    },
-    {
-      "old_id": "CHK-NWORKER-TOLERANCE",
-      "decision": "KEPT",
-      "target": "CHK-NWORKER-TOLERANCE",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：1/N worker 等价判据由「逐位一致」改为「逐字节优先 + 冻结浮点容差」（负责人裁决 2026-09-22）；本项为容差档的非退化自检 python3 eng/tools/v6/v6_numeric_equiv.py --self-test"
-    },
-    {
-      "old_id": "CTEST-EXPORT-STREAM",
-      "decision": "KEPT",
-      "target": "CHK-ARCH504-EXPORT-STREAM",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "ARCH-504 新增执行单元"
-    },
-    {
-      "old_id": "CHK-BLOCKFLOW-SPEC-STEP",
-      "decision": "KEPT",
-      "target": "CHK-BLOCKFLOW-SPEC",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "ARCH-505 新增执行单元"
-    },
-    {
-      "old_id": "CHK-BLOCKFLOW-CONFORMANCE-STEP",
-      "decision": "KEPT",
-      "target": "CHK-BLOCKFLOW-CONFORMANCE",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "ARCH-505 新增执行单元"
-    },
-    {
-      "old_id": "CTEST-BLOCK-FLOW",
-      "decision": "KEPT",
-      "target": "CHK-ARCH505-BLOCK-FLOW",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "ARCH-505 新增执行单元"
-    },
-    {
-      "old_id": "PREFLIGHT-MATRIX-STEP",
-      "decision": "KEPT",
-      "target": "CHK-PREFLIGHT-MATRIX",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "E2E-501 新增执行单元"
-    },
-    {
-      "old_id": "E2E-CHAIN-VERIFY-STEP",
-      "decision": "KEPT",
-      "target": "CHK-E2E-CHAIN",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "E2E-501 新增执行单元"
-    },
-    {
-      "old_id": "E2E-CHAIN-SELFTEST-STEP",
-      "decision": "KEPT",
-      "target": "CHK-E2E-CHAIN-SELFTEST",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "E2E-501 新增执行单元"
-    },
-    {
-      "old_id": "CHK-DRZ-DISP009",
-      "decision": "KEPT",
-      "target": "CHK-DRZ-DISP009",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "DRIZZLE-FIX-01（2026-09-22）新增执行单元（非本波基线，absorbed）：DISP-DRZ-009 面亮度保持权重 w_jp=a_jp/A_pixel,j 回归门；判据 = 常量面亮度 |S_p/B0-1|<1e-3（pixfrac∈(0,1]）+ \"分母取 A_drop 必判红\"负例控制；可执行负例面见 run/DRIZZLE-FIX-01/REPORT.md §⑥（真实注入红/绿 + sha256）。"
-    },
-    {
-      "old_id": "CHK-RUN-MANIFEST-SCHEMA",
-      "decision": "KEPT",
-      "target": "CHK-RUN-MANIFEST-SCHEMA",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 D（run manifest 以冻结 schema 为准 + 补门）"
-    },
-    {
-      "old_id": "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 D（run manifest 以冻结 schema 为准 + 补门）"
-    },
-    {
-      "old_id": "CHK-PHOTOMETRY-APPLY-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-PHOTOMETRY-APPLY-SELFTEST",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "RULING-DOC-01（2026-09-22）新增执行单元（非本波基线，absorbed）：负责人裁决 B（合并 photometry 与施加为一步，须保留像素级可核对判据）"
-    },
-    {
-      "old_id": "CHK-DOC-HYGIENE",
-      "decision": "KEPT",
-      "target": "CHK-DOC-HYGIENE",
-      "kind": "ci",
-      "grade": "P0",
-      "note": "DOC-HYGIENE-01 新增执行单元（非本波基线，absorbed）：ENGINEERING_SPEC §8 规则 2（正式文档不堆任务编号与日期）+ 规则 4（悬空即缺陷）；判据含已知限制台账 ID 可解析（D2）"
-    },
-    {
-      "old_id": "CHK-DOC-HYGIENE-SELFTEST",
-      "decision": "KEPT",
-      "target": "CHK-DOC-HYGIENE-SELFTEST",
-      "kind": "ci",
-      "grade": "P0",
-      "note": "DOC-HYGIENE-01 新增执行单元（非本波基线，absorbed）：ENGINEERING_SPEC §10 可执行负例面（1 正例 + 10 负例）"
-    },
-    {
-      "old_id": "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP",
-      "decision": "KEPT",
-      "target": "CHK-BLOCKFLOW-PORTS-VS-CODE",
-      "kind": "doc",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "REGISTRY-ALIGN-01 新增执行单元（端口↔代码双向一致）"
-    },
-    {
-      "old_id": "CHK-SPARSE-PUNCH",
-      "decision": "KEPT",
-      "target": "CHK-SPARSE-PUNCH",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "TRIM-LAND-01 新增执行单元（非本波基线，absorbed）：裸形态体积削减（文件系统打洞）落地与判据"
-    },
-    {
-      "old_id": "CHK-SPARSE-PUNCH-PROBE",
-      "decision": "KEPT",
-      "target": "CHK-SPARSE-PUNCH-PROBE",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "TRIM-LAND-01 新增执行单元（非本波基线，absorbed）：裸形态体积削减（文件系统打洞）落地与判据"
-    },
-    {
-      "old_id": "CTEST-P1STAR-GUIDED",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "STARDET-01（星表引导检测按文档订正）：登记新交付的 ctest 目标 p1star_guided（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
-    },
-    {
-      "old_id": "CTEST-P1STARDET-NODE-GATE",
-      "decision": "KEPT",
-      "target": "CHK-INVARIANT",
-      "kind": "extension",
-      "grade": "P1",
-      "note": "STARDET-01（星表引导检测按文档订正）：登记新交付的 ctest 目标 p1stardet_node_gate（CHK-INVARIANT 域门）；CTEST-REGISTRATION C3 要求新增/改名测试同提交登记"
-    },
-    {
-      "old_id": "CHK-HIPS-STORAGE-FORM",
-      "decision": "KEPT",
-      "target": "CHK-HIPS-STORAGE-FORM",
-      "kind": "extension",
-      "grade": "P0",
-      "note": "HIPS-PACK-01（2026-09-22）新增执行单元（非本波基线，absorbed）：落盘形态合同（CONTRACT-STORAGE-001）机器门，判据与 21 例可执行负例见 eng/tools/hipsform/check_hips_storage_form.py --self-test。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
-    },
-    {
-      "old_id": "STATIC-P3-EXPORT-STREAM-PROD",
-      "decision": "KEPT",
-      "target": "CHK-P3-EXPORT-STREAM-PROD",
-      "kind": "extension",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "P3-STREAM-01（2026-09-22）新增执行单元（非本波基线，absorbed）：静态锁生产 writer 节点引用 ExportStreamScheduler，3 处变异必红的可执行负例见 eng/tools/arch/check_p3_export_stream_prod.py --self-test。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
-    },
-    {
-      "old_id": "SELFTEST-P3-EXPORT-STREAM-PROD",
-      "decision": "KEPT",
-      "target": "CHK-P3-EXPORT-STREAM-PROD",
-      "kind": "extension",
-      "grade": "P0",
-      "order_in_target": 1,
-      "note": "P3-STREAM-01（2026-09-22）新增执行单元（非本波基线，absorbed）：上项的可执行负例面（同一检查器 --self-test）。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
-    },
-    {
-      "old_id": "CTEST-P3-EXPORT-STREAM-RSS",
-      "decision": "KEPT",
-      "target": "CHK-P3-EXPORT-STREAM-RSS",
-      "kind": "extension",
-      "grade": "P0",
-      "order_in_target": 0,
-      "note": "P3-STREAM-01（2026-09-22）新增执行单元（非本波基线，absorbed）：ctest 目标 p3_export_stream_prod 经资源监视器跑内核记账驻留判据（clear_refs 归零后读 VmHWM）。REGMAP-FIX-01 补登记迁移映射（R13 孤儿 unit 缺口，仅登记不改判据）。"
     }
   ],
   "coverage": {
     "source_entry_count": 158,
     "mapped_entry_count": 147,
-    "merged_into": 137,
-    "kept": 84,
+    "merged_into": 149,
+    "kept": 146,
     "retire_pending_gov_001": 0,
     "retired": 0,
     "silent_drops": 0,
-    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。 REGMAP-FIX-01（2026-09-22）：补登记 4 个执行单元（CHK-HIPS-STORAGE-FORM / STATIC-P3-EXPORT-STREAM-PROD / SELFTEST-P3-EXPORT-STREAM-PROD / CTEST-P3-EXPORT-STREAM-RSS，分属 CHK-HIPS-STORAGE-FORM / CHK-P3-EXPORT-STREAM-PROD / CHK-P3-EXPORT-STREAM-RSS 三个目标）登记为 absorbed —— 三者由 HIPS-PACK-01 与 P3-STREAM-01 登记进 checks.json 时漏登记本映射（R13 孤儿 unit 缺口）；同时把 CHK-HIPS-STORAGE-FORM 移到 CHK-KNOWN-FAILURES-BASELINE 之前，使 linux-main 选中序末位仍是 KNOWN-FAILURES-BASELINE-CHECK（R10）。",
+    "note": "覆盖 = 本波基线 146 项逐条登记；TRACEABILITY-CODE 属基线前退役（147→146），单列不得计为丢失 CI-003（2026-09-16）：6 个 GOV-001 治理门由 RETIRE-PENDING 改判 KEPT（保留并修判据）；新增 7 个执行单元登记为 absorbed。 W4-A3（2026-09-16）：新增 2 个执行单元（IMPACT-MAP / IMPACT-MAP-SELFTEST，CHK-IMPACT-MAP）登记为 absorbed。 W4-A3（2026-09-17）：新增 11 个执行单元（CTEST-*，登记 CTEST-REGISTRATION 的C3 未注册目标）为 absorbed。 W4-A3（2026-09-17）：新增 4 个执行单元（PKG-*，CHK-PKG-CONSISTENCY）为 absorbed。 RELEASE-02 fix-gates（2026-09-19）：新增 7 个执行单元（CHK-ALGO-WIRING / CHK-REGISTRY-IR-PARITY / CHK-CONFIG-CONSUMED / CHK-CONFIG-DEFAULTS / CHK-PROD-SCALE / CHK-PROVENANCE-CONSISTENCY / CHK-REALDATA-E2E）登记为 absorbed。 DOC-403（2026-09-21）：DOC-INDEX 由 CHK-DANGLING step 提升为顶层；新增 4 个执行单元（DOC-INDEX-SELFTEST / CHK-RETIRED-CODE / CHK-RETIRED-CODE-SELFTEST / CHK-FIX406-SIGTERM）登记为 absorbed。 GATE-501（2026-09-21，RELEASE-05）：新增 6 个执行单元（CHK-REGISTRY-VALIDATE / L2-FROZEN-GATE-SELFTEST / L2-FROZEN-GATE-REPLAY / WORKER-BALANCE-METRIC-SELFTEST / WORKER-BALANCE-METRIC-REPLAY / PSFSW-RETIRED-STATIC-SELFTEST）登记为 absorbed。 GATE-501（2026-09-21）：补登记 8 个既有孤儿 unit 的迁移映射（R13 缺口，仅登记不改判据）。 RELEASE-05 CONTRACT-501/ARCH-501/SCI-502：新增 2 个执行单元（CTEST-CORE-BLOCK-FRAME、CTEST-V6-P2-SKY-KAPPA）登记为 absorbed。 GATE-502：新增 1 个执行单元（CHK-TEST-DISCRIMINATIVE-STEP，空断言静态门）登记为 absorbed。 ARCH-502：新增 2 个执行单元（CTEST-NORMALIZE-WORKFLOW、CHK-SCHED-PROBE-SCHEMA-STEP）登记为 absorbed。 ARCH-503：新增 1 个执行单元（CTEST-MOSAIC-WINDOW）登记为 absorbed。 ARCH-504：新增 1 个执行单元（CTEST-EXPORT-STREAM）登记为 absorbed。 ARCH-505：新增 3 个执行单元（块流规格/一致性/执行器）登记为 absorbed。 E2E-501：新增 3 个执行单元（预检矩阵/E2E 链/链自测）登记为 absorbed。 GAIA-FAILCLOSED-01（2026-09-22）：新增 2 个执行单元（CTEST-GAIA-SHARD-COVERAGE / CTEST-GAIA-SHARD-COVERAGE-SELF-TEST，CHK-INVARIANT）登记为 absorbed。 DRIZZLE-FIX-01（2026-09-22）：新增 1 个执行单元（CHK-DRZ-DISP009）登记为 absorbed。 LOG-SYS-01（2026-09-22）：新增 2 个执行单元（LOG-SYS-SCAN / LOG-SYS-SELFTEST，CHK-LOG-SYS 日志与错误系统判据）登记为 absorbed。 RULING-DOC-01（2026-09-22）：新增 1 个执行单元（CHK-NWORKER-TOLERANCE，1/N worker 等价判据的容差档非退化自检）登记为 absorbed。 TRIM-LAND-01：新增 2 个执行单元（CHK-SPARSE-PUNCH 静态不变量+谓词判据判别力；CHK-SPARSE-PUNCH-PROBE 由生产头编译探针跑真实系统调用）登记为 absorbed。 REGMAP-FIX-01（2026-09-22）：补登记 4 个执行单元（CHK-HIPS-STORAGE-FORM / STATIC-P3-EXPORT-STREAM-PROD / SELFTEST-P3-EXPORT-STREAM-PROD / CTEST-P3-EXPORT-STREAM-RSS，分属 CHK-HIPS-STORAGE-FORM / CHK-P3-EXPORT-STREAM-PROD / CHK-P3-EXPORT-STREAM-RSS 三个目标）登记为 absorbed —— 三者由 HIPS-PACK-01 与 P3-STREAM-01 登记进 checks.json 时漏登记本映射（R13 孤儿 unit 缺口）；同时把 CHK-HIPS-STORAGE-FORM 移到 CHK-KNOWN-FAILURES-BASELINE 之前，使 linux-main 选中序末位仍是 KNOWN-FAILURES-BASELINE-CHECK（R10）。 RECONCILE-01（并发写回重建）：一次并发写回把本文件与 checks.json 覆写成过期快照，丢失了共享对象符号闭包门、deep profile 注册单测门、迁移映射文档同步两 step 等登记；本次以现存最全快照为底重建，并补回当前注册表独有的新增项。",
     "absorbed_entries": [
-      "CHK-SECRET-HYGIENE",
-      "STD-REG",
-      "STD-REG-FI-DANGLING",
-      "STD-REG-FI-VERSION-DRIFT",
-      "REGISTRY-DOC-SYNC",
-      "REGISTRY-DOC-SYNC-SELFTEST",
-      "RESOURCE-GATE-REAL",
-      "RESOURCE-GATE-REAL-NEG",
-      "IMPACT-MAP",
-      "IMPACT-MAP-SELFTEST",
-      "CTEST-AIO-ABI-LAYOUT-LOCK",
-      "CTEST-AIO-ABI-LAYOUT-LOCK-SELFCHECK",
-      "CTEST-IPV-DEAD-PARAMS-LOCK",
-      "CTEST-IPV-DEAD-PARAMS-LOCK-SELFCHECK",
-      "CTEST-P1PSF-CENTROID-GATE",
-      "CTEST-P1PSF-CENTROID-GATE-NEG",
-      "CTEST-P1PSF-CENTER-CONTRACT",
-      "CTEST-P1PSF-CENTER-CONTRACT-NEG",
-      "CTEST-P1PSF-CENTER-CONTRACT-ASTROPY",
-      "CTEST-P1NOISE-NUMPY-ORACLE",
-      "CTEST-SCI-EVIDENCE-REGISTRATION",
-      "PKG-CONSISTENCY",
-      "PKG-CONSISTENCY-NEG",
-      "PKG-SBOM",
-      "PKG-SBOM-NEG",
-      "UT-CONFIG",
-      "CTEST-P1CAL-BIAS-INFLUENCE-GATE",
-      "CTEST-P1NOISE-MASK",
-      "CTEST-P1NOISE-SATURATION",
-      "CTEST-P1NOISE-SATURATION-SELFCHECK",
-      "CTEST-P1NOISE-SATURATION-WIRING",
-      "CTEST-P1NOISE-ABI-LAYOUT",
-      "CTEST-P1WCS-CLOSURE-METRIC-GATE",
-      "PY-TEST-INDEX-VERDICTS",
+      "AHPX-WEIGHT-RETIRED",
+      "AIO-IO-BOUNDARY-SELFTEST",
+      "CHK-AIO-IO-BOUNDARY",
       "CHK-ALGO-WIRING",
-      "CHK-REGISTRY-IR-PARITY",
+      "CHK-BLOCKFLOW-CONFORMANCE-STEP",
+      "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP",
+      "CHK-BLOCKFLOW-SPEC-STEP",
       "CHK-CONFIG-CONSUMED",
       "CHK-CONFIG-DEFAULTS",
-      "CHK-PROD-SCALE",
-      "CHK-PROVENANCE-CONSISTENCY",
-      "CHK-REALDATA-E2E",
-      "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
-      "SPEC-NAMED-IMPL-ON-PROD-PATH",
-      "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST",
-      "CHK-NO-WEIGHT-MODE",
-      "CHK-NO-WEIGHT-MODE-SELFTEST",
-      "AHPX-WEIGHT-RETIRED",
+      "CHK-DEEP-PROFILES-TESTS",
       "CHK-DOC-HYGIENE",
       "CHK-DOC-HYGIENE-SELFTEST",
+      "CHK-DRZ-DISP009",
+      "CHK-FAILCLOSED-SURVEY",
       "CHK-FIX203-PROMOTED-KEYS",
-      "P3-PROJ-DECL-REGISTRY",
-      "P3-PROJ-DECL-UNSUPPORTED-CLI",
-      "P3-PROJ-DECL-SELFTEST",
-      "CHK-AIO-IO-BOUNDARY",
-      "AIO-IO-BOUNDARY-SELFTEST",
-      "PSFSW-RETIRED-STATIC",
-      "CHK-PSFSW-RETIRED-NEGATIVE",
-      "CHK-FIX208-EVENT-STREAM-DEFAULT",
       "CHK-FIX208-DISK-GATE",
-      "DOC-INDEX-SELFTEST",
+      "CHK-FIX208-EVENT-STREAM-DEFAULT",
+      "CHK-FIX406-SIGTERM",
+      "CHK-GATE-FAILCLOSED-SELFTEST",
+      "CHK-HIPS-STORAGE-FORM",
+      "CHK-NO-WEIGHT-MODE",
+      "CHK-NO-WEIGHT-MODE-CODE",
+      "CHK-NO-WEIGHT-MODE-CODE-SELFTEST",
+      "CHK-NO-WEIGHT-MODE-SELFTEST",
+      "CHK-NWORKER-TOLERANCE",
+      "CHK-PHOTOMETRY-APPLY-SELFTEST",
+      "CHK-PROD-SCALE",
+      "CHK-PROVENANCE-CONSISTENCY",
+      "CHK-PSFSW-RETIRED-NEGATIVE",
+      "CHK-REALDATA-E2E",
+      "CHK-REGISTRY-IR-PARITY",
+      "CHK-REGISTRY-VALIDATE",
       "CHK-RETIRED-CODE",
       "CHK-RETIRED-CODE-SELFTEST",
-      "CHK-FIX406-SIGTERM",
-      "CHK-REGISTRY-VALIDATE",
-      "L2-FROZEN-GATE-SELFTEST",
-      "L2-FROZEN-GATE-REPLAY",
-      "WORKER-BALANCE-METRIC-SELFTEST",
-      "WORKER-BALANCE-METRIC-REPLAY",
-      "PSFSW-RETIRED-STATIC-SELFTEST",
+      "CHK-RUN-MANIFEST-SCHEMA",
+      "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
+      "CHK-SCHED-PROBE-SCHEMA-STEP",
+      "CHK-SECRET-HYGIENE",
+      "CHK-SPARSE-PUNCH",
+      "CHK-SPARSE-PUNCH-PROBE",
+      "CHK-SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "CHK-TEST-DISCRIMINATIVE-STEP",
+      "CI-CONTRACT-BOOTSTRAP-UTF8",
+      "CI-CONTRACT-CTEST-REGISTRATION",
+      "CI-CONTRACT-FATDUCK-WORKFLOW",
+      "CI-CONTRACT-GAP4-EMPTY-OUTPUTS",
+      "CI-CONTRACT-IMPACT-MAP",
+      "CI-CONTRACT-NEGATIVE-GUARDS",
+      "CI-CONTRACT-RESOURCE-MONITOR-SHIM",
+      "CI-CONTRACT-RESOURCE-PROBE",
+      "CI-CONTRACT-RUN-PREFIX-PROBE",
+      "CI-CONTRACT-RUNNER-CONTRACT",
+      "CI-CONTRACT-RUNNER-EXECUTION",
+      "CI-CONTRACT-RUNNER-SELECTION",
+      "CI-CONTRACT-VERIFY-REMOTE-RUN",
+      "CI-CONTRACT-WINDOWS-CI",
+      "CI-CONTRACT-WORKFLOW-LOCK",
+      "CI-INTEGRATION-CI-REPAIR-ROUND",
+      "CI-INTEGRATION-CI001-FAILCLOSED",
+      "CI-INTEGRATION-RUN-MONITORED",
       "CON-EXECUTION-CONTRACTS-SELFTEST",
+      "CTEST-AIO-ABI-LAYOUT-LOCK",
+      "CTEST-AIO-ABI-LAYOUT-LOCK-SELFCHECK",
       "CTEST-AIO-CHECKSUM",
       "CTEST-AIO-HIPS-ATOMIC-PUBLISH",
       "CTEST-AIO-PRECISION_DUAL",
       "CTEST-AIO-QUERY_PIXEL",
       "CTEST-AIO-TILE_MODEL",
       "CTEST-AIO-TRANSFORM",
-      "CTEST-FIX402-PHASE3-SEMANTIC-GUARD",
-      "CHK-GATE-FAILCLOSED-SELFTEST",
-      "CHK-FAILCLOSED-SURVEY",
-      "FAILCLOSED-SURVEY",
-      "FAILCLOSED-SURVEY-SELFTEST",
-      "CTEST-CORE-BLOCK-FRAME",
-      "CTEST-V6-P2-SKY-KAPPA",
-      "CHK-TEST-DISCRIMINATIVE-STEP",
-      "CTEST-NORMALIZE-WORKFLOW",
-      "CHK-SCHED-PROBE-SCHEMA-STEP",
-      "CTEST-MOSAIC-WINDOW",
-      "CTEST-EXPORT-STREAM",
-      "CHK-BLOCKFLOW-SPEC-STEP",
-      "CHK-BLOCKFLOW-CONFORMANCE-STEP",
-      "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP",
       "CTEST-BLOCK-FLOW",
-      "PREFLIGHT-MATRIX-STEP",
-      "E2E-CHAIN-VERIFY-STEP",
-      "E2E-CHAIN-SELFTEST-STEP",
-      "LOG-SYS-SCAN",
-      "LOG-SYS-SELFTEST",
+      "CTEST-CORE-BLOCK-FRAME",
+      "CTEST-EXPORT-STREAM",
+      "CTEST-FIX402-PHASE3-SEMANTIC-GUARD",
       "CTEST-GAIA-SHARD-COVERAGE",
       "CTEST-GAIA-SHARD-COVERAGE-SELF-TEST",
-      "CHK-DRZ-DISP009",
+      "CTEST-IPV-DEAD-PARAMS-LOCK",
+      "CTEST-IPV-DEAD-PARAMS-LOCK-SELFCHECK",
+      "CTEST-IPV-ERROR-UTF8",
+      "CTEST-IPV-SELECT-DOMAIN",
       "CTEST-MEM-WIRE",
-      "CHK-NWORKER-TOLERANCE",
-      "CHK-RUN-MANIFEST-SCHEMA",
-      "CHK-RUN-MANIFEST-SCHEMA-SELFTEST",
-      "CHK-PHOTOMETRY-APPLY-SELFTEST",
-      "CHK-BLOCKFLOW-PORTS-VS-CODE-STEP",
-      "CHK-SPARSE-PUNCH",
-      "CHK-SPARSE-PUNCH-PROBE",
+      "CTEST-MOSAIC-WINDOW",
+      "CTEST-NORMALIZE-WORKFLOW",
+      "CTEST-P1CAL-BIAS-INFLUENCE-GATE",
+      "CTEST-P1NOISE-ABI-LAYOUT",
+      "CTEST-P1NOISE-MASK",
+      "CTEST-P1NOISE-NUMPY-ORACLE",
+      "CTEST-P1NOISE-SATURATION",
+      "CTEST-P1NOISE-SATURATION-SELFCHECK",
+      "CTEST-P1NOISE-SATURATION-WIRING",
+      "CTEST-P1PSF-CENTER-CONTRACT",
+      "CTEST-P1PSF-CENTER-CONTRACT-ASTROPY",
+      "CTEST-P1PSF-CENTER-CONTRACT-NEG",
+      "CTEST-P1PSF-CENTROID-GATE",
+      "CTEST-P1PSF-CENTROID-GATE-NEG",
       "CTEST-P1STAR-GUIDED",
       "CTEST-P1STARDET-NODE-GATE",
-      "CHK-HIPS-STORAGE-FORM",
-      "STATIC-P3-EXPORT-STREAM-PROD",
+      "CTEST-P1WCS-CLOSURE-METRIC-GATE",
+      "CTEST-P3-EXPORT-STREAM-RSS",
+      "CTEST-SCI-EVIDENCE-REGISTRATION",
+      "CTEST-V6-P2-SKY-KAPPA",
+      "DOC-INDEX-SELFTEST",
+      "E2E-CHAIN-SELFTEST-STEP",
+      "E2E-CHAIN-VERIFY-STEP",
+      "FAILCLOSED-SURVEY",
+      "FAILCLOSED-SURVEY-SELFTEST",
+      "ID-MIGRATION-MAP-DOC-SYNC",
+      "ID-MIGRATION-MAP-DOC-SYNC-SELFTEST",
+      "IMPACT-MAP",
+      "IMPACT-MAP-SELFTEST",
+      "L2-FROZEN-GATE-REPLAY",
+      "L2-FROZEN-GATE-SELFTEST",
+      "LOG-SYS-SCAN",
+      "LOG-SYS-SELFTEST",
+      "P3-PROJ-DECL-REGISTRY",
+      "P3-PROJ-DECL-SELFTEST",
+      "P3-PROJ-DECL-UNSUPPORTED-CLI",
+      "PKG-CONSISTENCY",
+      "PKG-CONSISTENCY-NEG",
+      "PKG-SBOM",
+      "PKG-SBOM-NEG",
+      "PREFLIGHT-MATRIX-STEP",
+      "PSFSW-RETIRED-STATIC",
+      "PSFSW-RETIRED-STATIC-SELFTEST",
+      "PY-TEST-INDEX-VERDICTS",
+      "REGISTRY-DOC-SYNC",
+      "REGISTRY-DOC-SYNC-SELFTEST",
+      "RESOURCE-GATE-REAL",
+      "RESOURCE-GATE-REAL-NEG",
       "SELFTEST-P3-EXPORT-STREAM-PROD",
-      "CTEST-P3-EXPORT-STREAM-RSS"
+      "SELFTEST-PLUGIN-SYMBOL-CLOSURE",
+      "SPEC-NAMED-IMPL-ON-PROD-PATH",
+      "SPEC-NAMED-IMPL-ON-PROD-PATH-SELFTEST",
+      "STATIC-P3-EXPORT-STREAM-PROD",
+      "STATIC-PLUGIN-SYMBOL-CLOSURE",
+      "STD-REG",
+      "STD-REG-FI-DANGLING",
+      "STD-REG-FI-VERSION-DRIFT",
+      "UT-CONFIG",
+      "WORKER-BALANCE-METRIC-REPLAY",
+      "WORKER-BALANCE-METRIC-SELFTEST"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,
-    "result_entry_count": 76
+    "result_entry_count": 112
   }
 }
