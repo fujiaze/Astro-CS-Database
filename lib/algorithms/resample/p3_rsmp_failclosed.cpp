@@ -11,6 +11,9 @@ namespace astrocs {
 namespace p3rsmp {
 
 const std::vector<std::string>& forbidden_weight_source_tokens() {
+  // PSFSW-RETIRE-01：其中 "psfsw_robust_weight" / "psfsw" 自负责人裁决起表示
+  // **退役对象的显式拒绝面**（旧产品声明该对象 ⇒ REJECT），不是"在役的相对
+  // 复合权重"。该两项不得按"残留清理"删除（删除即变成静默接受）。
   static const std::vector<std::string> v = {
       "median_source_snr", "median_snr", "source_snr_median", "med_source_snr",
       "support",           "support_area", "coverage",          "coverage_area",
@@ -19,6 +22,21 @@ const std::vector<std::string>& forbidden_weight_source_tokens() {
       "psfsw_robust_weight", "psfsw",      "weight",
   };
   return v;
+}
+
+bool is_retired_canonical_weight_object(const std::string& token) {
+  // 统一对象 psfsw_robust_weight 已退役（14→13；CHG-2026-09-20-PSFSW-RETIRE）：
+  // 不是现行对象，无 canonical schema，端口合同枚举不接受。
+  return token == "psfsw_robust_weight";
+}
+
+std::string retired_object_reject_detail(const std::string& token) {
+  if (!is_retired_canonical_weight_object(token)) return std::string();
+  return "retired_canonical_object=" + token +
+         " (not a current object: ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+         "migration: variance_from=actual_combination_coefficients with "
+         "C_out=R C_in R^T; frame weights are derived in Phase2 from frame SNR "
+         "(1/sigma_F^2), not carried as a product";
 }
 
 const std::vector<std::string>& forbidden_psfsw_product_keys() {
@@ -61,16 +79,30 @@ std::vector<GateResult> check_failclosed_all(const ProductRecord& rec, const Gat
   }
 
   // --- 全局：上游相对复合权重不得写成 ivar/variance（G-P3-GLB-01）---
+  // PSFSW-RETIRE-01：退役对象 psfsw_robust_weight 的处置与在役禁止 token 分开表达——
+  // 旧产品声明该对象时给出"退役对象 + 迁移提示"，而不是把它当成在役的复合权重；
+  // 两条路径都是 Status::Reject + 同一门号（fail-closed，无静默接受分支）。
   {
     std::string hit;
+    std::string hit_retired;
     const bool ws_forbidden = contains_forbidden(rec.weight_sources, &hit);
+    for (const std::string& s : rec.weight_sources) {
+      if (is_retired_canonical_weight_object(s)) { hit_retired = s; break; }
+    }
     const bool vf_forbidden =
         !rec.variance_from.empty() && token_is_forbidden_weight_source(rec.variance_from);
-    if (ws_forbidden || vf_forbidden || rec.uses_relative_weight_as_ivar ||
-        rec.variance_from_weight) {
+    const bool vf_retired = is_retired_canonical_weight_object(rec.variance_from);
+    if (ws_forbidden || vf_forbidden || !hit_retired.empty() || vf_retired ||
+        rec.uses_relative_weight_as_ivar || rec.variance_from_weight) {
       std::string why = "relative_composite_weight_used_as_variance";
       if (ws_forbidden) why += ":weight_sources=" + hit;
       if (vf_forbidden) why += ":variance_from=" + rec.variance_from;
+      if (!hit_retired.empty()) {
+        why += ":weight_sources_" + retired_object_reject_detail(hit_retired);
+      }
+      if (vf_retired) {
+        why += ":variance_from_" + retired_object_reject_detail(rec.variance_from);
+      }
       if (rec.uses_relative_weight_as_ivar) why += ":uses_relative_weight_as_ivar";
       if (rec.variance_from_weight) why += ":variance_from_weight";
       add_gate(&v, Status::Reject, "G-P3-GLB-01", why);

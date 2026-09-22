@@ -33,7 +33,9 @@ std::string trim(const std::string& s) {
   return s.substr(a, b - a);
 }
 
-// 解析单个因子 "ADU"、"px"、"ADU^2"、"px^-4"、"1"。
+// 解析单个因子 "ADU"、"sr"、"ADU^2"、"sr^-2"、"1"。
+// 立体角维符号 = "sr"（FITS 4.0 Table 3 IAU 基本单位）；legacy "px"/"pixel"
+// 仅作读侧迁移别名（旧产品把同一物理量误写作 px 幂次（数值本就按立体角归一，未变）），写侧一律出 "sr"。
 bool parse_factor(const std::string& factor, UnitExponents* acc) {
   const std::string f = trim(factor);
   if (f.empty()) return false;
@@ -55,7 +57,11 @@ bool parse_factor(const std::string& factor, UnitExponents* acc) {
     acc->adu_power += exp;
     return true;
   }
-  if (name == "px" || name == "pixel") {
+  if (name == "sr") {
+    acc->px_power += exp;
+    return true;
+  }
+  if (name == "px" || name == "pixel") {  // legacy 读侧别名（同一立体角维）
     acc->px_power += exp;
     return true;
   }
@@ -134,7 +140,7 @@ std::string format_unit_exponents(const UnitExponents& e) {
   }
   if (e.px_power != 0) {
     if (!first) os << "*";
-    os << "px";
+    os << "sr";
     if (e.px_power != 1) os << "^" << e.px_power;
   }
   return os.str();
@@ -142,10 +148,10 @@ std::string format_unit_exponents(const UnitExponents& e) {
 
 const char* frozen_unit_string(Quantity q) {
   switch (q) {
-    case Quantity::kSignalSb: return "ADU/px^2";
+    case Quantity::kSignalSb: return "ADU/sr";
     case Quantity::kPixelVarianceIn: return "ADU^2";
-    case Quantity::kSbVarianceOut: return "ADU^2/px^4";
-    case Quantity::kSbIvarOut: return "px^4/ADU^2";
+    case Quantity::kSbVarianceOut: return "ADU^2/sr^2";
+    case Quantity::kSbIvarOut: return "sr^2/ADU^2";
     case Quantity::kWInfo: return "ADU^-2";
     case Quantity::kQ: return "ADU^-1";
     case Quantity::kFlux: return "ADU";
@@ -212,10 +218,10 @@ BunitCheck bunit_dimension_decidable(const std::string& bunit,
     out.reason = "BUNIT unparsable: '" + bunit + "'";
     return out;
   }
-  // (a) 显式含 px 幂次 -> 量纲可判。
+  // (a) 显式含立体角幂次（canonical "sr"）-> 量纲可判。
   if (e.px_power != 0) {
     out.decidable = true;
-    out.reason = "explicit px power";
+    out.reason = "explicit solid-angle power";
     return out;
   }
   // (b) BUNIT=ADU + provenance 声明 surface_brightness + pixel_area_power=-2。

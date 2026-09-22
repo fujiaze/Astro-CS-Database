@@ -280,6 +280,12 @@ const std::set<std::string>& session_keys() {
         // B2-A8: Phase1 产品观测 passband 身份（空 = 显式无 filter）；写入
         // HiPS properties obs_filter，Phase2 coverage 以此分组并 fail-closed。
         "filter_passband",
+        // HIPS-IDX-01（合同 = phase_config_normalize.schema.json#/$defs/storage_form）：
+        // Phase1 产品落盘形态键 archive|bare（默认 archive；键缺失/空串 ⇒ 默认 + warn）。
+        // 只识别并透传到 pdoc；写出侧按形态落盘 = 分阶段实现计划阶段 2 ⇒ 生产零读取
+        // 期间由 eng/ci/ledgers/dead_config_keys.json 显式登记（不得静默 no-op）。
+        // 仅 normalize 认本键：Phase2/Phase3 固定裸形态，其输入出现本键即 rc=3。
+        "storage_form",
         // P1-001: 真实节点域科学参数（drizzle: nside/nested/pixfrac/precision;
         // wcs: ipv 求解链参数——非 silent default, 缺失即节点 DATA 拒绝）
         "drizzle", "wcs",
@@ -302,6 +308,11 @@ const std::set<std::string>& session_keys() {
         // （「权重模式」概念不存在；权重是消费 SNR 时的派生量）⇒ 配置里出现即 rc=3。
         "hips_paths", "upm", "upm_save_path", "persist_upm",
         "reject", "reject_profile",
+        // HIPS-IDX-01（合同 = phase_config_mosaic.schema.json#/$defs/coverage_index_ref）：
+        // 阶段二输入的**加性可选键**，指向数据集级覆盖索引 coverage.index.json；
+        // hips_paths 元素保持字符串（逐帧索引路径按命名规则派生）。同 snr_path：
+        // CLI 只识别并透传，消费点（阶段二 coverage 节点）在阶段 2 ⇒ 死键台账已登记。
+        "coverage_index",
         // FIX-203（GAP_AUDIT G05；ASTROCS_DESIGN §3.3「三命令通用输入合同：键名一律以
         // 命令行实际认的键为准」）：合同声明但 CLI 白名单缺的提升键落地。键名**逐字**取
         // 合同声明名（禁止新造同义键）：
@@ -313,6 +324,11 @@ const std::set<std::string>& session_keys() {
         "source", "center", "scale_deg_per_px", "width_px", "height_px",
         "projection", "sampler", "longitude_parity", "bitpix",
         "coverage_output", "max_tiles", "frame",
+        // P3-STREAM-01（ASTROCS_DESIGN §8.3 export 行 + SCHEDULER_CONTRACT §3）：
+        // 导出**编排参数**（子块边长 / 有界队列深度）——与 max_tiles 同款的资源/
+        // 编排键（非科学键，不改任何公式与容差），生产消费点 = module_adapters 的
+        // phase3 resample2/writer/verify 节点（p3n_sub_block_px）。
+        "sub_block_px", "queue_depth",
         // FIX-203（GAP_AUDIT N03）：export 提升键（合同声明名逐字，平铺顶层，与
         // center/scale_deg_per_px 同面）：
         //   phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}

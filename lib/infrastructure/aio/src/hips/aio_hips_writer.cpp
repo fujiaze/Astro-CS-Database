@@ -19,11 +19,13 @@
 #include "aio_hips_reader.h"   // DATA-UNC-001 §30.2/§30.3: verify 面回读 (只读)
 #include "aio_atomic_file.h"   // AIO-001: 临时文件+fsync+原子 rename 落盘原语
 #include "aio_disk_full.h"     // FIX-401: 磁盘满/配额失败的失败瞬间分类
+#include "aio_sparse_punch.h"  // 裸形态体积削减: 文件系统打洞 (合同 §7 T1)
 #include "healpix/healpix_core.h"
 
 #include <fitsio.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -582,6 +584,33 @@ bool write_fits_atomic(const std::string& final_path,
         if (err) *err = "fsync failed: " + tmp + " (errno=" + std::to_string(frc) + ")";
         return false;
     }
+    // 裸形态体积削减（打洞）：fsync 之后、原子发布之前。
+    // 依据 docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §7 表 T1 与
+    // ENGINEERING_SPEC.md §11：只对块对齐的**字面全零**区域打洞；文件字节与
+    // st_size 不变；打洞后读回复算，不一致 ⇒ 不得发布（硬错误）；卷不支持 ⇒
+    // 跳过并记 warn（trim=skipped(<reason>)），不 fail-closed。
+    {
+        aio_sparse::PunchResult pr;
+        aio_sparse::punch_all_zero_blocks(tmp, &pr, /*verify=*/true);
+        if (pr.rc == aio_sparse::PUNCH_VERIFY_MISMATCH) {
+            aio_atomic::remove_file(tmp);
+            if (err)
+                *err = "sparse punch readback mismatch (" + pr.reason + "): " + tmp;
+            return false;
+        }
+        if (pr.rc == aio_sparse::PUNCH_OK && pr.punched_bytes != 0) {
+            aio_log(AIO_LOG_INFO, "aio_sparse",
+                    "trim=punched bytes=%llu holes=%u released=%llu size=%llu file=%s",
+                    (unsigned long long)pr.punched_bytes, (unsigned)pr.holes,
+                    (unsigned long long)pr.released_bytes(),
+                    (unsigned long long)pr.size_bytes, tmp.c_str());
+        } else if (pr.rc != aio_sparse::PUNCH_OK) {
+            // 打洞是体积优化，不是科学语义：降级不阻断发布。
+            aio_log(AIO_LOG_WARN, "aio_sparse",
+                    "trim=skipped(%s) errno=%d file=%s",
+                    pr.reason.c_str(), pr.sys_errno, tmp.c_str());
+        }
+    }
     if (tile_fault("tile_rename_fail")) {
         aio_atomic::remove_file(tmp);
         if (err) *err = "atomic rename failed (injected: tile_rename_fail): " + tmp;
@@ -666,7 +695,7 @@ bool write_properties(const std::string& path,
 }
 
 // ---------------------------------------------------------------------------
-// hierarchy 累加器
+// hierarchy 累加器 (MEM-DESIGN-01: 稀疏分块 + 按需通道 + 完备即流式写出)
 // ---------------------------------------------------------------------------
 // FIX-403 / GAP_AUDIT G3-3 / DISP-HIPS-009: 父层累加 (Σflux / Σarea / Σvar_num)
 // **恒在 f64 累加器**进行 (ASTROCS_DESIGN §3.3 默认科学计算双精度); 产品声明位深
@@ -676,55 +705,174 @@ bool write_properties(const std::string& path,
 // 超 HIPS_WRITER.md §9 冻结容差 rtol=1e-6。修法即该文 DISP-HIPS-009 处置建议
 // "f32 产品仍用 double 累加 (存储时再截断)"。
 //
+// MEM-DESIGN-01 (内存结构优化; 权威: ASTROCS_DESIGN §8.3 静态预算/内存占用永不
+// 越界 + §3.3 精度口径; 实测见 run/MEM-DESIGN-01/REPORT.md):
+//
+// (A) 稀疏分块 —— 每祖先 cell 的 512×512 面按 64×64 子块**惰性分配**: 没有数据
+//     的子块根本不分配 (恒等于全零 ⇒ 零字节占用, 比"填零+压缩"更彻底)。
+//     分块索引 = NESTED local z >> 12: z 的低 12 位恰是块内 bit-interleave 坐标
+//     (z = interleave(x,y) ⇒ z>>12 = interleave(x>>6, y>>6)), 故 z>>12 就是 2D
+//     均匀方块网格索引; 发布面 (FITS 行主序) 与该网格只差 flip/transpose,
+//     方块性保持 ⇒ 覆盖分布可由发布 support 面直接实测 (不靠仿真)。
+//     64×64 块 ⇒ 每 cell 恰好 64 块 = 稠密 512×512 的 1:1 覆盖, 故稀疏表示的
+//     载荷字节**恒 ≤ 稠密**(唯一开销 = 每通道 64×8 B 指针表 = 512 B/cell/通道)。
+//     真实产物实测子块占用率 0.70 (3 通道 1631 MiB → 979 MiB)。
+// (C) 按需通道 —— variance 通道只在首次 var 累加时分配 (signal-only 产品不分配);
+//     旧 count 通道全文件零读取 (死通道), 已删除 (每 cell 省 1 MiB = 14%)。
+// (B) 完备即流式写出 —— 祖先 cell 的 4^dk 个叶槽全部到达后, 该 cell 不可能再收到
+//     贡献 ⇒ 立即写出其 hierarchy tile 并释放内存, 不整层常驻到 finalize。
+//     判据只依赖"槽位是否都已到达"(与写序无关) ⇒ 对任意调用序成立; 叶槽数用
+//     计数器而非位图 (同一 cell 内不同叶 ipix 必属不同槽), 内存 O(1)/cell。
+//
+// 逐位不变 (硬约束): 每个累加元素的加法次数与顺序与稠密实现**逐位相同** ——
+//   分块只改变"零从哪来"(惰性零块 vs 预置零数组), 不改变任何一次浮点运算;
+//   流式写出只改变"何时落盘", 不改变累加顺序。判据见 p1hips oracle O8 组
+//   (稀疏 vs 稠密注入逐字节一致 / drop_blk0 注入必判红) 与
+//   run/MEM-DESIGN-01/verify 的基线-优化双二进制 sha256 对照。
+//
 // 负例注入面 (测试专用, 与 ASTROCS_HIPS_DIAG_FAULT / ASTROCS_HIPS_PROV_FAULT
-// 同模式): ASTROCS_HIPS_HIER_FAULT=f32_accum 复现修复前语义 (每步 partial sum
-// 舍入到 float 后存回 f64), 供 P1HIPS oracle 组 O7 证明精度判据能红 (非退化)。
-struct AncestorAcc {
-    std::vector<double> sumFluxD;   // Σ sig·a (权重 = 未钳制真实覆盖面积)
-    std::vector<double> sumAreaD;   // Σ a
-    // 方差传播分子 Σ v_j w_jp² (hierarchy 归约同叶级公式)
-    std::vector<double> sumVarD;
-    std::vector<uint32_t> count;
-    bool f32_accum = false;         // 注入面: true = 复现修复前 f32 逐步舍入
+// 同模式, 未设置时逐行零行为差异):
+//   ASTROCS_HIPS_HIER_FAULT=f32_accum     复现修复前 f32 逐步舍入 (FIX-403 O7)
+//   ASTROCS_HIPS_HIER_FAULT=dense_blocks  每通道一次性分配全部 64 块 = 修复前
+//                                         稠密分配 + 不流式写出 (等价旧语义);
+//                                         用于"稀疏 ≡ 稠密"逐位对照与内存判据判红
+//   ASTROCS_HIPS_HIER_FAULT=drop_blk0     丢弃落入子块 0 的累加 (模拟"错误跳过
+//                                         子块") ⇒ 数值判据必须判红
+namespace hier_sparse {
+constexpr size_t kSide    = 64;                  // 子块边长 (元素)
+constexpr size_t kElems   = kSide * kSide;       // 4096 = 2^12
+constexpr size_t kShift   = 12;                  // log2(kElems)
+constexpr size_t kMask    = kElems - 1;
+constexpr size_t kPerAxis = 512 / kSide;         // 8
+constexpr size_t kCount   = kPerAxis * kPerAxis; // 64
+static_assert(kPerAxis * kSide == 512, "子块网格必须整除 512");
+static_assert((size_t(1) << kShift) == kElems, "kShift 必须等于 log2(kElems)");
+using Block = std::unique_ptr<double[]>;
+using Table = std::array<Block, kCount>;
 
-    void ensure(bool inject_f32_accum) {
-        f32_accum = inject_f32_accum;
-        const size_t n = 512 * 512;
-        if (sumFluxD.empty()) sumFluxD.assign(n, 0.0);
-        if (sumAreaD.empty()) sumAreaD.assign(n, 0.0);
-        if (sumVarD.empty()) sumVarD.assign(n, 0.0);
-        if (count.empty()) count.assign(n, 0u);
+// 惰性分配: 值初始化 (new double[n]()) = 全零, 与稠密 assign(n, 0.0) 逐位等价。
+inline double* ensure_block(Table& t, size_t bi) {
+    Block& p = t[bi];
+    if (!p) p.reset(new double[kElems]());
+    return p.get();
+}
+// 未分配块 = 恒零 (与稠密数组读到的 0.0 逐位相同)。
+inline double at(const Table& t, size_t z) {
+    const Block& p = t[z >> kShift];
+    return p ? p[z & kMask] : 0.0;
+}
+}  // namespace hier_sparse
+
+// 注入面参数 (每 (tile, level) 解析一次, 不在逐像素热路径)
+struct HierFaults {
+    bool f32_accum = false;
+    bool dense_blocks = false;
+    bool drop_blk0 = false;
+};
+
+struct AncestorAcc {
+    hier_sparse::Table fluxD{};   // Σ sig·a (权重 = 未钳制真实覆盖面积)
+    hier_sparse::Table areaD{};   // Σ a
+    hier_sparse::Table varD{};    // 方差传播分子 Σ v_j w_jp² (按需通道)
+    uint64_t slots_seen = 0;      // 已到达叶槽数 (重复叶 tile 不计)
+    uint64_t slots_total = 0;     // 该 cell 的叶槽总数 4^dk
+    // variance 通道的配对计数 (仅 variance/ivar 产品使用): 只有"待配对槽"收到
+    // var 贡献才计入 ⇒ 与 signal/var 的调用时序无关地精确判定"该 cell 的
+    // Σflux/Σarea/Σvar 三者都已收齐"。
+    uint64_t var_slots_seen = 0;
+    uint64_t pending_var_slot = UINT64_MAX;   // 最近一次 signal 写设置的待配对槽
+    bool f32_accum = false;       // 注入面: true = 复现修复前 f32 逐步舍入
+    bool dense_forced = false;    // 注入面: true = 复现修复前稠密分配
+    bool drop_blk0 = false;       // 注入面: true = 丢弃子块 0 的累加
+    bool flushed = false;         // 已流式写出并释放
+    // 热路径块指针缓存: z 关于 i 单调不减 ⇒ 连续 i 命中同一块 (命中率 ~1),
+    // 每像素只多一次整数比较 (不改变任何浮点运算)。
+    size_t cur_bi = SIZE_MAX;
+    size_t cur_var_bi = SIZE_MAX;
+    double* cur_flux = nullptr;
+    double* cur_area = nullptr;
+    double* cur_var = nullptr;
+
+    void ensure(const HierFaults& f, uint64_t slots_total_) {
+        f32_accum = f.f32_accum;
+        drop_blk0 = f.drop_blk0;
+        dense_forced = f.dense_blocks;
+        if (slots_total == 0) slots_total = slots_total_;
+        if (dense_forced) {   // 注入面: 一次性分配全部块 (复现修复前稠密语义)
+            for (size_t bi = 0; bi < hier_sparse::kCount; ++bi) {
+                hier_sparse::ensure_block(fluxD, bi);
+                hier_sparse::ensure_block(areaD, bi);
+                if (f.dense_blocks) hier_sparse::ensure_block(varD, bi);
+            }
+        }
     }
     // f32 逐步舍入的等价复现: 两 float 之和在 double 中精确, 再一次舍入到 float
     // = 正确舍入的 float 加法 (binary64→binary32 双重舍入在 p_d≥2·p_f+2 时无害)。
     static double f32_step(double acc, double v) {
         return (double)(float)((double)(float)acc + (double)(float)v);
     }
-    void add(size_t i, double flux, double area) {
-        if (f32_accum) {
-            sumFluxD[i] = f32_step(sumFluxD[i], flux);
-            sumAreaD[i] = f32_step(sumAreaD[i], area);
-        } else {
-            sumFluxD[i] += flux;
-            sumAreaD[i] += area;
+    void add(size_t z, double flux, double area) {
+        const size_t bi = z >> hier_sparse::kShift;
+        if (drop_blk0 && bi == 0) return;   // 注入面: 整块丢弃
+        if (bi != cur_bi) {
+            cur_bi = bi;
+            cur_flux = hier_sparse::ensure_block(fluxD, bi);
+            cur_area = hier_sparse::ensure_block(areaD, bi);
         }
-        ++count[i];
+        const size_t off = z & hier_sparse::kMask;
+        if (f32_accum) {
+            cur_flux[off] = f32_step(cur_flux[off], flux);
+            cur_area[off] = f32_step(cur_area[off], area);
+        } else {
+            cur_flux[off] += flux;
+            cur_area[off] += area;
+        }
     }
-    void add_var(size_t i, double var_num, double area) {
-        (void)area;
-        if (f32_accum) sumVarD[i] = f32_step(sumVarD[i], var_num);
-        else           sumVarD[i] += var_num;
+    void add_var(size_t z, double var_num) {
+        const size_t bi = z >> hier_sparse::kShift;
+        if (drop_blk0 && bi == 0) return;   // 注入面: 整块丢弃
+        if (bi != cur_var_bi) {
+            cur_var_bi = bi;
+            cur_var = hier_sparse::ensure_block(varD, bi);
+        }
+        const size_t off = z & hier_sparse::kMask;
+        if (f32_accum) cur_var[off] = f32_step(cur_var[off], var_num);
+        else           cur_var[off] += var_num;
     }
-    double fluxAt(size_t i) const { return sumFluxD[i]; }
-    double areaAt(size_t i) const { return sumAreaD[i]; }
-    double varAt(size_t i) const  { return sumVarD[i]; }
+    double fluxAt(size_t i) const { return hier_sparse::at(fluxD, i); }
+    double areaAt(size_t i) const { return hier_sparse::at(areaD, i); }
+    double varAt(size_t i) const  { return hier_sparse::at(varD, i); }
+    // 写出后立即释放 (流式写出与 finalize 共用); 保留 slots_* 供重复写判定。
+    void release() {
+        for (size_t bi = 0; bi < hier_sparse::kCount; ++bi) {
+            fluxD[bi].reset(); areaD[bi].reset(); varD[bi].reset();
+        }
+        cur_bi = SIZE_MAX; cur_var_bi = SIZE_MAX;
+        cur_flux = cur_area = cur_var = nullptr;
+        flushed = true;
+    }
+    // 未释放子块数 (仅用于诊断/测试打印; 不参与数值路径)
+    size_t allocated_blocks() const {
+        size_t n = 0;
+        for (size_t bi = 0; bi < hier_sparse::kCount; ++bi)
+            if (fluxD[bi]) ++n;
+        return n;
+    }
 };
 
-// 负例注入判定 (测试专用): 生产默认 false; 见 AncestorAcc 注释。
-bool hier_f32_accum_injected() {
-    return fault_injected("ASTROCS_HIPS_HIER_FAULT", "f32_accum");
+// 注入面判定 (测试专用): 生产默认全 false; 见 AncestorAcc 注释。
+HierFaults hier_faults() {
+    HierFaults f;
+    f.f32_accum    = fault_injected("ASTROCS_HIPS_HIER_FAULT", "f32_accum");
+    f.dense_blocks = fault_injected("ASTROCS_HIPS_HIER_FAULT", "dense_blocks");
+    f.drop_blk0    = fault_injected("ASTROCS_HIPS_HIER_FAULT", "drop_blk0");
+    return f;
 }
 
+// ---------------------------------------------------------------------------
+// MEM-DESIGN-01: 祖先 cell 写出与流式释放 (finalize 与流式写出**共用同一路径**
+// ⇒ 两种写出时序的产物逐位相同)。
+// ---------------------------------------------------------------------------
 } // namespace
 
 // ============================================================================
@@ -793,6 +941,174 @@ struct AioHipsProductSet {
     // nused/nrej 诊断平面 scratch (int32, FITS 序写缓冲)
     std::vector<int32_t> scratch_diag_nrej, scratch_diag_nused;
 };
+
+namespace {
+
+// M2a-H-3 可观测计数: "Σ未钳制覆盖面积 > A_cell_k"的父像素数。稀疏实现只遍历
+// **已分配子块** (未分配块恒零, 恒不满足 > A_cell_k>0), 与稠密全扫描同值。
+static uint64_t count_coverage_gt1(const AncestorAcc& acc, int k) {
+    const uint32_t nside_k = 1u << (k + 9);
+    const double A_cell_k = 4.0 * kPi() / (12.0 * (double)nside_k * nside_k);
+    uint64_t cnt = 0;
+    for (size_t bi = 0; bi < hier_sparse::kCount; ++bi) {
+        const double* pa = acc.areaD[bi].get();
+        if (!pa) continue;
+        const double* pf = acc.fluxD[bi].get();
+        for (size_t o = 0; o < hier_sparse::kElems; ++o)
+            if (pa[o] > A_cell_k && std::isfinite(pf[o])) ++cnt;
+    }
+    return cnt;
+}
+
+// 单个祖先 cell 的 hierarchy tile 写出 (signal/support/variance/ivar)。
+// 归约与钳制与修复前逐行一致: sig = Σflux/Σarea; sup = Σarea/A_cell_k 且发布面
+// **唯一一次**钳制 sup<=1; 无贡献像素 sig=NaN/sup=0; var = Σvar_num/(Σarea)²。
+static bool write_hierarchy_cell(AioHipsProductSet* ps, int k, uint64_t A,
+                                 AncestorAcc& acc) {
+    const int bitpix = ps->data_type == AIO_HIPS_FLOAT32 ? -32 : -64;
+    const size_t n = 512 * 512;
+    const uint32_t nside_k = 1u << (k + 9);
+    const double A_cell_k = 4.0 * kPi() / (12.0 * (double)nside_k * nside_k);
+    std::vector<std::pair<std::string, std::string>> cards;
+    cards.push_back({"NSIDE", std::to_string(nside_k)});
+    cards.push_back({"FIRSTPIX", "0"});
+    cards.push_back({"LASTPIX", std::to_string(n - 1)});
+    std::string rel = tile_rel_path(k, A, ".fits");
+    // AncestorAcc 以 NESTED local 索引累加, 写出低阶 hierarchy FITS 时同样
+    // scatter 到标准 HiPS 行主序 (逐像素全覆盖, 无需预置零)。
+    std::unique_ptr<float[]>  sigF, supF;
+    std::unique_ptr<double[]> sigD, supD;
+    if (bitpix == -32) { sigF.reset(new float[n]); supF.reset(new float[n]); }
+    else               { sigD.reset(new double[n]); supD.reset(new double[n]); }
+    for (size_t i = 0; i < n; ++i) {
+        const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+            (uint64_t)i, 9u, 512u);
+        const double area = acc.areaAt(i);
+        const double flux = acc.fluxAt(i);
+        double sig = 0.0, sup = 0.0;
+        if (area > 0.0 && std::isfinite(flux)) {
+            sig = flux / area;
+            sup = area / A_cell_k;
+            if (sup > 1.0) sup = 1.0;   // I2: 发布面唯一一次钳制
+        } else {
+            sig = std::numeric_limits<double>::quiet_NaN();
+        }
+        if (bitpix == -32) { sigF[fi] = (float)sig; supF[fi] = (float)sup; }
+        else               { sigD[fi] = sig;        supD[fi] = sup; }
+    }
+    if (ps->flags & AIO_HIPS_PRODUCT_SIGNAL) {
+        std::string p = ps->out_dir + "/signal/" + rel;
+        make_dirs(p.substr(0, p.find_last_of('/')));
+        if (!write_fits_image(p, bitpix, 512, 512,
+                              bitpix == -32 ? (const void*)sigF.get()
+                                            : (const void*)sigD.get(),
+                              cards, ps->obs_title, ps->obs_filter,
+                              ps->exposure, ps->obs_date))
+            return false;
+    }
+    if (ps->flags & AIO_HIPS_PRODUCT_SUPPORT) {
+        std::string p = ps->out_dir + "/support/" + rel;
+        make_dirs(p.substr(0, p.find_last_of('/')));
+        if (!write_fits_image(p, bitpix, 512, 512,
+                              bitpix == -32 ? (const void*)supF.get()
+                                            : (const void*)supD.get(),
+                              cards, ps->obs_title, ps->obs_filter,
+                              ps->exposure, ps->obs_date))
+            return false;
+    }
+    // variance/ivar hierarchy (归约公式同叶级)
+    if ((ps->flags & (AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR)) != 0) {
+        std::unique_ptr<float[]>  varF, ivarF;
+        std::unique_ptr<double[]> varD, ivarD;
+        if (bitpix == -32) { varF.reset(new float[n]); ivarF.reset(new float[n]); }
+        else               { varD.reset(new double[n]); ivarD.reset(new double[n]); }
+        for (size_t i = 0; i < n; ++i) {
+            const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
+                (uint64_t)i, 9u, 512u);
+            const double area = acc.areaAt(i);
+            const double vnum = acc.varAt(i);
+            double var = std::numeric_limits<double>::quiet_NaN();
+            double iv = std::numeric_limits<double>::quiet_NaN();
+            if (area > 0.0 && vnum > 0.0 && std::isfinite(area) && std::isfinite(vnum)) {
+                var = vnum / (area * area);
+                iv = 1.0 / var;
+            }
+            if (bitpix == -32) { varF[fi] = (float)var; ivarF[fi] = (float)iv; }
+            else               { varD[fi] = var;        ivarD[fi] = iv; }
+        }
+        if (ps->flags & AIO_HIPS_PRODUCT_VARIANCE) {
+            std::string p = ps->out_dir + "/variance/" + rel;
+            make_dirs(p.substr(0, p.find_last_of('/')));
+            if (!write_fits_image(p, bitpix, 512, 512,
+                                  bitpix == -32 ? (const void*)varF.get()
+                                                : (const void*)varD.get(),
+                                  cards, ps->obs_title, ps->obs_filter,
+                                  ps->exposure, ps->obs_date))
+                return false;
+        }
+        if (ps->flags & AIO_HIPS_PRODUCT_IVAR) {
+            std::string p = ps->out_dir + "/ivar/" + rel;
+            make_dirs(p.substr(0, p.find_last_of('/')));
+            if (!write_fits_image(p, bitpix, 512, 512,
+                                  bitpix == -32 ? (const void*)ivarF.get()
+                                                : (const void*)ivarD.get(),
+                                  cards, ps->obs_title, ps->obs_filter,
+                                  ps->exposure, ps->obs_date))
+                return false;
+        }
+    }
+    return true;
+}
+
+// (B) 完备即写出: 把因本次叶写而"叶槽齐备"的祖先 cell 立即写出并释放。
+// 完备判据 = slots_seen == slots_total (= 该 cell 的 4^dk 个叶槽全部到达) ⇒ 此后
+// 该 cell 不可能再收到**新**贡献 (只可能有重复叶写, 已在写叶处 fail-closed 拦截),
+// 故与写序无关地对任意调用序成立。
+static bool stream_flush_ready_cells(AioHipsProductSet* ps, uint64_t leaf_ipix) {
+    // 注入面 dense_blocks = 修复前语义 (稠密分配 + 不流式写出), 用于 O8 的
+    // "稀疏+流式 ≡ 稠密+不流式"逐字节对照与结构/内存判据判红。
+    if (hier_faults().dense_blocks) return true;
+    for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
+        const uint64_t shift = 2ULL * (uint64_t)((int)ps->tile_order - k);
+        const uint64_t A = leaf_ipix >> shift;
+        auto it = ps->hier[(size_t)k].find(A);
+        if (it == ps->hier[(size_t)k].end()) continue;
+        AncestorAcc& acc = it->second;
+        if (acc.flushed || acc.slots_total == 0 ||
+            acc.slots_seen != acc.slots_total)
+            continue;
+        // variance/ivar 产品: Σvar 也必须收齐 (var_slots_seen 由"待配对槽"精确计数,
+        // 与 signal/var 交错方式无关) ⇒ 任何调用时序下都不会提前写出。
+        if ((ps->flags & (AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR)) != 0 &&
+            acc.var_slots_seen != acc.slots_total)
+            continue;
+        ps->coverage_gt1_pixels += count_coverage_gt1(acc, k);
+        if (!write_hierarchy_cell(ps, k, A, acc)) return false;
+        acc.release();
+    }
+    return true;
+}
+
+// 重复写同一叶 tile 的 fail-closed 判定: 旧语义下重复写会产生"叶文件被最后一次
+// 覆盖 + hierarchy 重复计数"的不一致产品; 若该叶的祖先 cell 已流式写出, 重复贡献
+// 无处可加 ⇒ 拒绝 (禁静默丢贡献)。返回 false 时已置 last_error。
+static bool hier_duplicate_allowed(AioHipsProductSet* ps, uint64_t leaf_ipix) {
+    for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
+        const uint64_t shift = 2ULL * (uint64_t)((int)ps->tile_order - k);
+        const uint64_t A = leaf_ipix >> shift;
+        auto it = ps->hier[(size_t)k].find(A);
+        if (it != ps->hier[(size_t)k].end() && it->second.flushed) {
+            set_error("重复写叶 tile " + std::to_string(leaf_ipix) +
+                      ": 其祖先 cell (Norder" + std::to_string(k) + " ipix=" +
+                      std::to_string(A) + ") 已完备并流式写出 (MEM-DESIGN-01 (B)), "
+                      "重复贡献无法按旧语义累加 ⇒ fail-closed");
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace (MEM-DESIGN-01 稀疏累加器辅助)
 
 // ============================================================================
 // P1 (R9-A): C 边界异常屏障 (bughunt_p1_batchI; 家族方案对齐 f1cb487c
@@ -1015,14 +1331,20 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
             std::chrono::steady_clock::now() - t_wr0).count();
 
         // 3. MOC + 覆盖统计
-        if (ps->moc_cells.insert(view->parent_ipix).second) {
+        const bool new_leaf = ps->moc_cells.insert(view->parent_ipix).second;
+        if (new_leaf) {
             ps->leaf_ipix_list.push_back(view->parent_ipix);
             ps->moc_area_sr += 4.0 * kPi() / (12.0 * (1ULL << (2 * ps->tile_order)));
+        } else if (!hier_duplicate_allowed(ps, view->parent_ipix)) {
+            return -8;   // 重复写落在已流式写出的祖先 cell 上 (见函数注释)
         }
         ps->covered_area_sr += tile_covered;
 
         // 4. hierarchy 累加 (k = K-1 .. 0)
+        // 逐位不变: 每元素加法次数与顺序与稠密实现逐位相同; 稀疏分块只改变
+        // "零从哪来" (惰性零块 vs 预置零数组), 不改变任何一次浮点运算。
         const auto t_ha0 = std::chrono::steady_clock::now();
+        const HierFaults hf = hier_faults();
         for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
             int dk = (int)ps->tile_order - k;
             uint64_t shift = 2ULL * (uint64_t)dk;
@@ -1030,7 +1352,20 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
             uint64_t A = view->parent_ipix >> shift;
             uint64_t s = view->parent_ipix & mask;
             AncestorAcc& acc = ps->hier[(size_t)k][A];
-            acc.ensure(hier_f32_accum_injected());
+            if (acc.flushed) {
+                // 该 cell 已写出并释放: 新贡献无处可加 (重复叶写已在上面拦截,
+                // 故此处只可能是调用时序被破坏) ⇒ fail-closed, 禁静默丢贡献。
+                set_error("叶 tile " + std::to_string(view->parent_ipix) +
+                          " 在祖先 cell (Norder" + std::to_string(k) + " ipix=" +
+                          std::to_string(A) + ") 流式写出之后到达 ⇒ 写出时序被破坏 "
+                          "(variance tile 必须与其 signal tile 配对) ⇒ fail-closed");
+                return -10;
+            }
+            acc.ensure(hf, shift >= 64 ? ~0ULL : (1ULL << shift));   // slots_total = 4^dk
+            if (new_leaf) {                   // 叶槽到达计数 (重复叶写不计)
+                ++acc.slots_seen;
+                acc.pending_var_slot = s;     // 供 var 通道精确配对
+            }
             for (size_t i = 0; i < n; ++i) {
                 // 直接使用 NESTED 序 sig/sup 缓存（与 FITS 序
                 // 读回逐位一致），免每 i 一次 nested_local_to_fits_index 反查。
@@ -1048,6 +1383,10 @@ int aio_hips_write_signal_support_tile(AioHipsProductSet* ps,
                 acc.add(z, flux, area);
             }
         }
+        // (B) 完备即写出 (signal/var 两处触发点都调用; 是否满足完备条件由
+        // stream_flush_ready_cells 按产品位与三个累加通道的收齐状态判定 ⇒
+        // 与调用时序无关)。
+        if (!stream_flush_ready_cells(ps, view->parent_ipix)) return -9;
         ps->prof_hierarchy_accum += std::chrono::duration<double>(
             std::chrono::steady_clock::now() - t_ha0).count();
         return 0;
@@ -1167,6 +1506,9 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
         // MOC 已在 write_signal_support_tile 登记, 不重复)
 
         // hierarchy: 累加 var_num (归约公式同叶级: var_parent = Σvar_num/(Σarea)²)
+        // (C) 按需通道: varD 子块只在首次 var 累加时分配 ⇒ signal-only 产品
+        // 不分配 variance 通道 (旧实现恒分配 2 MiB/cell)。
+        const HierFaults hf = hier_faults();
         for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
             int dk = (int)ps->tile_order - k;
             uint64_t shift = 2ULL * (uint64_t)dk;
@@ -1174,14 +1516,34 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
             uint64_t A = view->parent_ipix >> shift;
             uint64_t s = view->parent_ipix & mask;
             AncestorAcc& acc = ps->hier[(size_t)k][A];
-            acc.ensure(hier_f32_accum_injected());
+            if (acc.flushed) {
+                // 该 cell 已写出并释放。产品位未含 variance/ivar 时 var 数据本就
+                // 不发布 (finalize 不读 var 通道) ⇒ 与旧语义无可观测差异, 静默跳过;
+                // 含 variance/ivar 时该贡献会被发布面读到 ⇒ fail-closed。
+                if (ps->flags & (AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR)) {
+                    set_error("variance tile: 祖先 cell (Norder" + std::to_string(k) +
+                              " ipix=" + std::to_string(A) +
+                              ") 已完备并流式写出, 拒绝晚到的 var 贡献 (fail-closed)");
+                    return -8;
+                }
+                continue;
+            }
+            acc.ensure(hf, shift >= 64 ? ~0ULL : (1ULL << shift));
+            // var 通道配对计数: 只认"待配对槽"(= 最近一次 signal 写的槽) 的 var 贡献
+            // ⇒ 与 signal/var 交错方式无关地精确判定 var 是否收齐。
+            if (acc.pending_var_slot == s) {
+                ++acc.var_slots_seen;
+                acc.pending_var_slot = UINT64_MAX;
+            }
             for (size_t i = 0; i < n; ++i) {
                 if (var_n[i] <= 0.0) continue;
                 size_t z = (size_t)(((s << 18ULL) | (uint64_t)i) >>
                                     (2ULL * (uint64_t)(ps->tile_order - (uint32_t)k)));
-                acc.add_var(z, var_n[i], 0.0);
+                acc.add_var(z, var_n[i]);
             }
         }
+        // (B) 完备即写出 (var 累加之后): 见 write_signal_support_tile 注释。
+        if (!stream_flush_ready_cells(ps, view->parent_ipix)) return -8;
         return 0;
 
     }
@@ -1502,97 +1864,16 @@ static bool finalize_image_product(AioHipsProductSet* ps,
     return true;
 }
 
-// hierarchy: 从 order K-1 到 0 逐级写出
+// hierarchy: 从 order K-1 到 0 逐级写出 (未流式写出的 cell)。
+// MEM-DESIGN-01: 与流式写出共用 write_hierarchy_cell ⇒ 两种时序产物逐位相同;
+// 每个 cell 写出后立即 release() (finalize 阶段峰值不再整层常驻)。
 static bool finalize_hierarchy(AioHipsProductSet* ps) {
-    const int bitpix = ps->data_type == AIO_HIPS_FLOAT32 ? -32 : -64;
-    const size_t n = 512 * 512;
-    std::vector<float> sigF(n), supF(n);
-    std::vector<double> sigD(n), supD(n);
     for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
         for (auto& kv : ps->hier[(size_t)k]) {
-            uint64_t A = kv.first;
             AncestorAcc& acc = kv.second;
-            const uint32_t nside_k = 1u << (k + 9);
-            const double A_cell_k = 4.0 * kPi() / (12.0 * (double)nside_k * nside_k);
-            std::vector<std::pair<std::string, std::string>> cards;
-            cards.push_back({"NSIDE", std::to_string(nside_k)});
-            cards.push_back({"FIRSTPIX", "0"});
-            cards.push_back({"LASTPIX", std::to_string(n - 1)});
-            std::string rel = tile_rel_path(k, A, ".fits");
-            // AncestorAcc 以 NESTED local 索引累加,
-            // 写出低阶 hierarchy FITS 时同样 scatter 到标准 HiPS 行主序
-            for (size_t i = 0; i < n; ++i) {
-                const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
-                    (uint64_t)i, 9u, 512u);
-                double area = acc.areaAt(i);
-                double flux = acc.fluxAt(i);
-                double sig = 0.0, sup = 0.0;
-                if (area > 0.0 && std::isfinite(flux)) {
-                    sig = flux / area;
-                    sup = area / A_cell_k;
-                    if (sup > 1.0) sup = 1.0;   // I2: 发布面唯一一次钳制
-                } else {
-                    sig = std::numeric_limits<double>::quiet_NaN();
-                }
-                if (bitpix == -32) { sigF[fi] = (float)sig; supF[fi] = (float)sup; }
-                else               { sigD[fi] = sig;        supD[fi] = sup; }
-            }
-            if (ps->flags & AIO_HIPS_PRODUCT_SIGNAL) {
-                std::string p = ps->out_dir + "/signal/" + rel;
-                make_dirs(p.substr(0, p.find_last_of('/')));
-                if (!write_fits_image(p, bitpix, 512, 512,
-                                      bitpix == -32 ? (const void*)sigF.data() : (const void*)sigD.data(),
-                                      cards, ps->obs_title, ps->obs_filter, ps->exposure, ps->obs_date))
-                    return false;
-            }
-            if (ps->flags & AIO_HIPS_PRODUCT_SUPPORT) {
-                std::string p = ps->out_dir + "/support/" + rel;
-                make_dirs(p.substr(0, p.find_last_of('/')));
-                if (!write_fits_image(p, bitpix, 512, 512,
-                                      bitpix == -32 ? (const void*)supF.data() : (const void*)supD.data(),
-                                      cards, ps->obs_title, ps->obs_filter, ps->exposure, ps->obs_date))
-                    return false;
-            }
-            // variance/ivar hierarchy (归约公式同叶级)
-            if ((ps->flags & (AIO_HIPS_PRODUCT_VARIANCE |
-                              AIO_HIPS_PRODUCT_IVAR)) != 0) {
-                std::vector<float>  varF(n), ivarF(n);
-                std::vector<double> varD(n), ivarD(n);
-                for (size_t i = 0; i < n; ++i) {
-                    const uint64_t fi = astrocs::healpix::nested_local_to_fits_index(
-                        (uint64_t)i, 9u, 512u);
-                    const double area = acc.areaAt(i);
-                    const double vnum = acc.varAt(i);
-                    double var = std::numeric_limits<double>::quiet_NaN();
-                    double iv = std::numeric_limits<double>::quiet_NaN();
-                    if (area > 0.0 && vnum > 0.0 && std::isfinite(area) && std::isfinite(vnum)) {
-                        var = vnum / (area * area);
-                        iv = 1.0 / var;
-                    }
-                    if (bitpix == -32) { varF[fi] = (float)var; ivarF[fi] = (float)iv; }
-                    else               { varD[fi] = var;        ivarD[fi] = iv; }
-                }
-                if (ps->flags & AIO_HIPS_PRODUCT_VARIANCE) {
-                    std::string p = ps->out_dir + "/variance/" + rel;
-                    make_dirs(p.substr(0, p.find_last_of('/')));
-                    if (!write_fits_image(p, bitpix, 512, 512,
-                                          bitpix == -32 ? (const void*)varF.data()
-                                                        : (const void*)varD.data(),
-                                          cards, ps->obs_title, ps->obs_filter,
-                                          ps->exposure, ps->obs_date))
-                        return false;
-                }
-                if (ps->flags & AIO_HIPS_PRODUCT_IVAR) {
-                    std::string p = ps->out_dir + "/ivar/" + rel;
-                    make_dirs(p.substr(0, p.find_last_of('/')));
-                    if (!write_fits_image(p, bitpix, 512, 512,
-                                          bitpix == -32 ? (const void*)ivarF.data()
-                                                        : (const void*)ivarD.data(),
-                                          cards, ps->obs_title, ps->obs_filter,
-                                          ps->exposure, ps->obs_date))
-                        return false;
-                }
-            }
+            if (acc.flushed) continue;   // 已在写叶过程中流式写出并释放
+            if (!write_hierarchy_cell(ps, k, kv.first, acc)) return false;
+            acc.release();
         }
     }
     return true;
@@ -1896,17 +2177,14 @@ int aio_hips_finalize(AioHipsProductSet* ps)  {
         // M2a-H-3 可观测计数: properties 在 hierarchy 写出**之前**落盘, 故先由
         // 累加器统计"Σ未钳制覆盖面积 > A_cell_k"的父像素数 (与 finalize_hierarchy
         // 的发布面钳制逐像素一致), 使编码限从不可观测变为可测量。
-        ps->coverage_gt1_pixels = 0;
+        // MEM-DESIGN-01: 流式写出的 cell 在写出时刻已用同一 count_coverage_gt1
+        // 计入, 此处只补**未写出**的 cell ⇒ 与"全部 cell 一次性全扫描"同值
+        // (纯计数, 与扫描顺序无关; 稀疏实现只遍历已分配子块, 未分配块恒零)。
         for (int k = (int)ps->tile_order - 1; k >= 0; --k) {
-            const uint32_t nside_k = 1u << (k + 9);
-            const double A_cell_k = 4.0 * kPi() / (12.0 * (double)nside_k * nside_k);
             for (auto& hkv : ps->hier[(size_t)k]) {
                 AncestorAcc& acc = hkv.second;
-                for (size_t i = 0; i < 512 * 512; ++i) {
-                    const double a = acc.areaAt(i);
-                    if (a > A_cell_k && std::isfinite(acc.fluxAt(i)))
-                        ++ps->coverage_gt1_pixels;
-                }
+                if (acc.flushed) continue;
+                ps->coverage_gt1_pixels += count_coverage_gt1(acc, k);
             }
         }
         std::string range;

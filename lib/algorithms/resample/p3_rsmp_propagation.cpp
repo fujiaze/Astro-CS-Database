@@ -67,8 +67,11 @@ SurfaceBrightnessResult propagate_surface_brightness(const SparseOperator& r_op,
   rec.variance_from = in.variance_from;
   rec.weight_sources = in.weight_sources;
   rec.uses_relative_weight_as_ivar = in.uses_relative_weight_as_ivar;
-  rec.variance_from_weight =
-      (in.variance_from == "weight" || in.variance_from == "psfsw_robust_weight");
+  // PSFSW-RETIRE-01：psfsw_robust_weight 不再按"在役的相对复合权重"处理——它是
+  // **退役对象**（ASTROCS_DESIGN.md §3.1；UNIFIED_MODEL.md:58），由
+  // check_failclosed_all 的 G-P3-GLB-01 走退役对象显式拒绝 + 迁移提示（同时仍命中
+  // forbidden_weight_source_tokens 的 token 门）。此处只保留在役的 "weight" 别名。
+  rec.variance_from_weight = (in.variance_from == "weight");
   rec.provenance_complete = in.provenance_complete;
   rec.provenance_missing_keys = in.provenance_missing_keys;
 

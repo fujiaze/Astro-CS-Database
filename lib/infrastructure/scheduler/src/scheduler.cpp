@@ -38,6 +38,22 @@ void Scheduler::add_node(NodeSpec spec) {
   status_[id] = NodeStatus::PLANNED;
 }
 
+std::vector<Scheduler::NodePlanView> Scheduler::node_plans() const {
+  std::vector<NodePlanView> out;
+  out.reserve(nodes_.size());
+  for (const auto& [id, spec] : nodes_) {
+    NodePlanView v;
+    v.node_id = id;
+    v.estimated_memory_bytes = spec.estimated_memory_bytes;
+    v.plan_estimated = spec.plan_estimated;
+    v.plan_source = spec.plan_source;
+    v.unestimable_reason = spec.plan_unestimable_reason;
+    v.resource_class = spec.resource_class;
+    out.push_back(std::move(v));
+  }
+  return out;
+}
+
 Result<void> Scheduler::build() {
   if (nodes_.empty()) {
     return Result<void>::fail(Error(ErrorDomain::DATA, "scheduler: no nodes"));

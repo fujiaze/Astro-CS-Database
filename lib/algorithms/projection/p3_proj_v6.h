@@ -31,7 +31,7 @@
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）；ASTROCS_DESIGN.md §6.3
 //             （未实现的投影被选择时显式报「不支持」，当前仅 TAN 可用）；
 //             lib/algorithms/projection/p3_projection_registry.h「已知偏差登记（FIX-406）」；
-//             工程控制/RELEASE-04/GAP_AUDIT.md G3-6 / G2-1。
+//             RELEASE-04 GAP_AUDIT G3-6 / G2-1（包已出库）。
 // ──────────────────────────────────────────────────────────────────────
 // lib/algorithms/projection/p3_proj_v6.h — V6 Phase3 投影实现层（标准 FITS WCS Paper II
 // registry v3 已实现四投影 + 逐像素立体角 Ω + R/S 行/列归一二元语义 + 计划/奇点/wrap）
@@ -46,10 +46,10 @@
 //   * ALG-P3-001 §1.3（统一线性模型：Ω'_i=|det(d sky/d pixel)|_i、
 //     R_ij=|Ω_j∩Ω'_i|/Ω'_i 行归一、S_ij=|Ω_j∩Ω'_i|/Ω_j 列归一、S_ij=R_ij Ω'_i/Ω_j）
 //     §2.4（逐像素面积元必须真实计算；禁常数 Ω）+ 独立 Oracle 实测值。
-//   * docs/contracts/v6/frozen/01_DATA_CONTRACT_FREEZE.md（Omega 单位 sr；
-//     phase3_var_out BUNIT=(signal BUNIT)²）；docs/contracts/v6/data/08_phase3.md §2。
+//   * docs/contracts/DATA_SEMANTICS.md §31.1（Omega 单位 sr；
+//     phase3_var_out BUNIT=(signal BUNIT)²）；docs/contracts/DATA_SEMANTICS.md §28.6 §2。
 //   * FZ-P3-OMEGA-NONCONST（FROZEN）：常数 Ω 冒充逐像素面积元 → REJECT。
-//   * 单位表: signal_sb=ADU/px^2, sb_variance_out=ADU^2/px^4, W_info=ADU^-2,
+//   * 单位表: signal_sb=ADU/sr, sb_variance_out=ADU^2/sr^2, W_info=ADU^-2,
 //     psfsw_robust_weight=1；本层 Ω 单位 = sr（phase3.v1.omega.units="sr"）。
 //
 // 关键约定（标准 FITS WCS，独立 oracle 用 astropy/WCSLIB 交叉验证）:
@@ -105,7 +105,7 @@ constexpr int kFrozenProjectionCount = 8;
 const char* const* registry_frozen_set(int* count);
 bool registry_is_frozen_code(const char* code);   // 冻结集合成员判定（大小写敏感）
 
-// phase3.v1.omega 单位（docs/contracts/v6/data/08_phase3.md §2）。
+// phase3.v1.omega 单位（docs/contracts/DATA_SEMANTICS.md §28.6 §2）。
 constexpr const char* kUnitOmegaSr = "sr";
 
 enum class ProjectionId : int {
@@ -248,11 +248,11 @@ ProjStatus matrix_row_sums(const double* r, int m, int n, double* sums);
 ProjStatus matrix_col_sums(const double* s, int m, int n, double* sums);
 
 // ---- 单位/量纲注记（冻结表）----
-// signal_sb=ADU/px^2; sb_variance_out=ADU^2/px^4; W_info=ADU^-2;
+// signal_sb=ADU/sr; sb_variance_out=ADU^2/sr^2; W_info=ADU^-2;
 // Q=ADU^-1; F_hat=ADU; psfsw_robust_weight=1; phase3_var_out=BUNIT^2。
 // Ω 只以 sr 出现，禁与 variance/weight/ivar 混名。
-constexpr const char* kUnitSignalSb = "ADU/px^2";
-constexpr const char* kUnitSbVarianceOut = "ADU^2/px^4";
+constexpr const char* kUnitSignalSb = "ADU/sr";
+constexpr const char* kUnitSbVarianceOut = "ADU^2/sr^2";
 constexpr const char* kUnitWInfo = "ADU^-2";
 constexpr const char* kUnitPsfswWeight = "1";
 

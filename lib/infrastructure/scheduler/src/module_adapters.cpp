@@ -727,7 +727,7 @@ ModuleDescriptor phase3_descriptor() {
   d.execution_class = "cpu_heavy";
   d.parallel_ok = true;
   d.ports = {
-      {"hips", "DATA-HIPS-001", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"hips", "DATA-HIPS-001", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
       {"tile", "DATA-TILE-001", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::HEALPIX},
   };
   d.sci_id = "SCI-P3-RES-001";
@@ -750,7 +750,7 @@ ModuleDescriptor p3_properties_descriptor() {
   d.execution_class = "cpu_heavy";
   d.parallel_ok = true;
   d.ports = {
-      {"hips", "DATA-HIPS-001", true, UnitId::ADU, CoordinateFrame::HEALPIX},
+      {"hips", "DATA-HIPS-001", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::HEALPIX},
       {"props", "DATA-P3-PROPS", false, UnitId::DIMENSIONLESS, CoordinateFrame::HEALPIX},
   };
   d.sci_id = "SCI-P3-PROPS-001";
@@ -789,7 +789,7 @@ ModuleDescriptor p3_resample2_descriptor() {
   d.parallel_ok = true;
   d.ports = {
       {"wcs_plan", "DATA-P3-WCS", true, UnitId::DEGREE, CoordinateFrame::ICRS},
-      {"hips", "DATA-HIPS-001", true, UnitId::ADU, CoordinateFrame::HEALPIX},
+      {"hips", "DATA-HIPS-001", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::HEALPIX},
       {"resampled", "DATA-P3-RES", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
   };
   d.sci_id = "SCI-P3-RES-001";
@@ -914,7 +914,7 @@ ModuleDescriptor p1_photometry_descriptor() {
       // 真实 WCS → 939/917 匹配, location=16.20 dex）。与 F-8（drz←wcs）、
       // DET-001（drz←phot）同款处置: 声明 typed 边, 调度器保证 wcs 先落盘。
       {"wcs", "DATA-P1-WCS", true, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
-      {"fluxes", "DATA-P1-FLUX", false, UnitId::ELECTRON, CoordinateFrame::ICRS},
+      {"fluxes", "DATA-P1-FLUX", false, UnitId::ADU, CoordinateFrame::ICRS},
       // DET-001 (D5): p1_phot.json (DATA-P1-PHOTPROV-001) 是本节点的第二个真实
       // 产物, 且被 drizzle 节点按 output_dir 文件约定消费。未声明为 typed 输出
       // 时 drizzle 无依赖边、与 photometry 并发执行, 会在本文件落盘前读到
@@ -939,7 +939,7 @@ ModuleDescriptor p1_noise_snr_descriptor() {
   d.execution_class = "cpu_heavy";
   d.parallel_ok = true;
   d.ports = {
-      {"fluxes", "DATA-P1-FLUX", true, UnitId::ELECTRON, CoordinateFrame::ICRS},
+      {"fluxes", "DATA-P1-FLUX", true, UnitId::ADU, CoordinateFrame::ICRS},
       {"snr", "DATA-P1-SNR", false, UnitId::DIMENSIONLESS, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-SNR-001";
@@ -970,7 +970,7 @@ ModuleDescriptor p1_drizzle_descriptor() {
       // 「未应用测光」（静默 ADU 降级）。声明依赖边后调度器保证 phot 完成再执行 drz。
       {"photprov", "DATA-P1-PHOTPROV-001", true, UnitId::DIMENSIONLESS,
        CoordinateFrame::ICRS},
-      {"stacked", "DATA-P1-STACK", false, UnitId::ADU, CoordinateFrame::ICRS},
+      {"stacked", "DATA-P1-STACK", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-DRIZ-001";
   d.alg_id = "ALG-005";            // drizzle-* kernels
@@ -988,8 +988,8 @@ ModuleDescriptor p1_writer_descriptor() {
   d.execution_class = "io";
   d.parallel_ok = false;
   d.ports = {
-      {"stacked", "DATA-P1-STACK", true, UnitId::ADU, CoordinateFrame::ICRS},
-      {"fits", "DATA-P1-FITS", false, UnitId::ADU, CoordinateFrame::ICRS},
+      {"stacked", "DATA-P1-STACK", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::ICRS},
+      {"fits", "DATA-P1-FITS", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::ICRS},
   };
   d.sci_id = "SCI-P1-WR-001";
   d.alg_id = "ALG-P1-WR-001";
@@ -1012,7 +1012,7 @@ ModuleDescriptor p2_coverage_descriptor() {
   d.execution_class = "cpu_heavy";
   d.parallel_ok = true;
   d.ports = {
-      {"calibrated", "DATA-P2-CAL", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"calibrated", "DATA-P2-CAL", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
       {"coverage", "DATA-P2-COV", false, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
   };
   d.sci_id = "SCI-P2-COV-001";
@@ -1032,7 +1032,7 @@ ModuleDescriptor p2_sample_descriptor() {
   d.parallel_ok = true;
   d.ports = {
       {"coverage", "DATA-P2-COV", true, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
-      {"samples", "DATA-P2-SMP", false, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"samples", "DATA-P2-SMP", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
   };
   d.sci_id = "SCI-P2-SMP-001";
   d.alg_id = "ALG-P2-SMP-001";
@@ -1050,8 +1050,8 @@ ModuleDescriptor p2_upm_fit_descriptor() {
   d.execution_class = "cpu_heavy";
   d.parallel_ok = true;
   d.ports = {
-      {"samples", "DATA-P2-SMP", true, UnitId::ADU, CoordinateFrame::PIXEL},
-      {"upm_model", "DATA-P2-UPM", false, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"samples", "DATA-P2-SMP", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
+      {"upm_model", "DATA-P2-UPM", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
   };
   d.sci_id = "SCI-P2-UPM-001";
   d.alg_id = "ALG-P2-UPM-001";
@@ -1069,9 +1069,9 @@ ModuleDescriptor p2_upm_apply_descriptor() {
   d.execution_class = "cpu_heavy";
   d.parallel_ok = true;
   d.ports = {
-      {"upm_model", "DATA-P2-UPM", true, UnitId::ADU, CoordinateFrame::PIXEL},
-      {"calibrated_frames", "DATA-P2-CAL", true, UnitId::ADU, CoordinateFrame::PIXEL},
-      {"corrected", "DATA-P2-COR", false, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"upm_model", "DATA-P2-UPM", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
+      {"calibrated_frames", "DATA-P2-CAL", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
+      {"corrected", "DATA-P2-COR", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
   };
   d.sci_id = "SCI-P2-UPM-002";
   d.alg_id = "ALG-P2-UPM-002";
@@ -1089,7 +1089,7 @@ ModuleDescriptor p2_reject_descriptor() {
   d.execution_class = "cpu_heavy";
   d.parallel_ok = true;
   d.ports = {
-      {"corrected", "DATA-P2-COR", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"corrected", "DATA-P2-COR", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
       {"accepted_mask", "DATA-P2-REJ", false, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
   };
   d.sci_id = "SCI-P2-REJ-001";
@@ -1109,8 +1109,8 @@ ModuleDescriptor p2_integrate_descriptor() {
   d.parallel_ok = true;
   d.ports = {
       {"accepted_mask", "DATA-P2-REJ", true, UnitId::DIMENSIONLESS, CoordinateFrame::PIXEL},
-      {"corrected", "DATA-P2-COR", true, UnitId::ADU, CoordinateFrame::PIXEL},
-      {"integrated", "DATA-P2-INT", false, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"corrected", "DATA-P2-COR", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
+      {"integrated", "DATA-P2-INT", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
   };
   d.sci_id = "SCI-P2-INT-001";
   d.alg_id = "ALG-P2-INT-001";
@@ -1129,11 +1129,11 @@ ModuleDescriptor p2_write_descriptor() {
   d.parallel_ok = false;
   d.ports = {
       // FIX-402（GAP_AUDIT G3-4 / ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」）:
-      // **写出端口**单位 = SURFACE_BRIGHTNESS（冻结单位表 signal_sb = ADU/px^2;
+      // **写出端口**单位 = SURFACE_BRIGHTNESS（冻结单位表 signal_sb = ADU/sr;
       // docs/contracts/DATA_SEMANTICS.md §31.1）。integrated 输入面仍为
       // integrate 节点产出的逐像素信号面（docs/modules/registry/astrocs.phase2.write.md
       // 端口表同源: 输入 ADU / 输出 SURFACE_BRIGHTNESS）。
-      {"integrated", "DATA-P2-INT", true, UnitId::ADU, CoordinateFrame::PIXEL},
+      {"integrated", "DATA-P2-INT", true, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
       {"mosaic", "DATA-P2-RES", false, UnitId::SURFACE_BRIGHTNESS, CoordinateFrame::PIXEL},
   };
   d.sci_id = "SCI-P2-WR-001";
@@ -2659,8 +2659,6 @@ bool p1_guided_predict(const P1GuidedCfg& cfg, const P1Image& im, const std::str
     converged = mi.converged;
     capped = mi.capped;
   }
-  std::fprintf(stderr, "[stardet-dbg] predict: m_lim=%.3f n_query=%d n_cat=%zu radius=%.4f\n",
-               m_lim, n_query, cat_ra.size(), query_radius_deg);
   if (cat_ra.empty()) {
     *why = "gaia cone search returned 0 stars (m_lim=" + std::to_string(m_lim) +
            ", radius=" + std::to_string(query_radius_deg) + " deg)";
@@ -2907,8 +2905,6 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
       float **gex = nullptr;
       SDetGuidedStats gstats;
       std::memset(&gstats, 0, sizeof(gstats));
-      std::fprintf(stderr, "[stardet-dbg] guided detect: w=%d h=%d n_pred=%zu\n",
-                   im.w(), im.h(), px.size());
       const int grc = sdet_detect_guided_ex_f64(
           ghandles[w], dbuf.data(), im.w(), im.h(), px.data(), py.data(),
           static_cast<int>(px.size()),
@@ -4192,10 +4188,13 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   //   不同测光坐标系 ⇒ 比不归一化更糟）; 任一缺失 → 不施加 + degraded_reason。
   //
   // ── P1-PHOT-BROKEN 修复门（全部 fail-closed, 不得放宽）──────────────────
-  // (1) P1_PHOT_MIN_FIT_STARS: 只接受**真实拟合**产物（SCI-PHOT-001 §4 冻结门
-  //     |r_consistent| >= 3）。NO_DATA 退化返回的占位 1.0 一律拒绝 —— 禁止把
-  //     1.0 伪装成"已应用"。
-  // (2) P1_PHOT_MAX_SIGMA_DEX: 拟合散度 QA 上限（1.0 dex = 2.5 mag）。散度更大
+  // (0) **本节点不设星数门槛**（SCI-PHOT-001 §16.5）：标度按帧自身拟合结果判定，
+  //     不以「匹配星数 >= N」作准入。SCI-PHOT-001 §4 的「|r_consistent| >= 3 才进
+  //     IRLS」是**求解前提**（唯一实现在 star_matcher / frame_photometry_fit 内，
+  //     常量 astrocs::photometry::kMinFitStars）：不成立时拟合**本就不产出标度**
+  //     （rc<0 / fit_ok=false），本节点按**拟合失败**如实上报，而不是另立门禁去卡。
+  //     外部 sidecar 通道同理：只判「有无拟合证据」，不判星数够不够。
+  // (1) P1_PHOT_MAX_SIGMA_DEX: 拟合散度 QA 上限（1.0 dex = 2.5 mag）。散度更大
   //     说明匹配集不是同一测光零点, 不是标度。
   // (3) P1_PHOT_MAX_SPREAD_DEX: **组内帧间一致性**上限。SCI-PHOT-001 §3 明确
   //     scale 单位是 [F_syn 单位]/ADU, 其**绝对值**由未建模的仪器常数
@@ -4209,7 +4208,6 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   //     达 1.35 mag 仍能过门（"1.35 mag 的假帧间差照样过门"）。旧口径下 L4 真实
   //     帧对 t2_m1 的 k 散度 0.0427 dex = 0.107 mag 亦能过门, 而它是视宁度假信号。
   //     超限 ⇒ 整组不施加 + degraded_reason（fail-closed, 不混装测光体系）。
-  constexpr int P1_PHOT_MIN_FIT_STARS = 3;
   constexpr double P1_PHOT_MAX_SIGMA_DEX = 1.0;
   constexpr double P1_PHOT_MAX_SPREAD_DEX = 0.02;  // ≈0.05 mag 峰峰（负责人判据）
   struct P1FrameScale {
@@ -4398,22 +4396,17 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         freq.qe_json = qe_json; freq.qe_name = qe_name;
         const astrocs::photometry::FramePhotFitResult fr =
             astrocs::photometry::fit_frame_photometry(freq);
-        if (fr.rc != 0) { photscale_error = "fit failed for " + key + ": " + fr.error; break; }
-        // P1-PHOT-BROKEN (b): **必须**是真实拟合产物。冻结 C 入口在 NO_DATA/
-        // 退化分支（无 PSF 星 / 无光谱星 / 滤光片缓存失败 / SCI-PHOT-001 §4
-        // 冻结门 |r_consistent|<3）返回 rc==0 且 scale=1.0、fit_used=0。原判定
-        // 只查 finite&&>0, 于是把占位 1.0 当作"已拟合标度"施加并声明
-        // photometry_applied=true —— 正是 FIX-P1 承诺不会做的事（伪造 1.0）。
-        if (!fr.fit_ok) {
-          photscale_error = "photometry fit produced no scale for " + key +
-                            " (NO_DATA, degraded_reason=" + fr.degraded_reason +
+        // 拟合失败 = **拟合自身的判决**（rc / fit_ok），不是本节点另立的星数门。
+        // 冻结 C 入口在 NO_DATA/退化分支（无 PSF 星 / 无光谱星 / 滤光片缓存失败 /
+        // SCI-PHOT-001 §4 求解前提 |r_consistent|<3）返回 rc==0 且 scale=1.0、
+        // fit_used=0；占位 1.0 不得当作"已拟合标度"施加（FIX-P1）。
+        // 原实现在此处另有一条 n_matched < 3 的复检门 —— 与 fit_ok 同判且不可达，
+        // 按「不设星数门槛」删除（SCI-PHOT-001 §16.5）。
+        if (fr.rc != 0 || !fr.fit_ok) {
+          photscale_error = "photometry fit failed for " + key + ": " +
+                            (fr.error.empty() ? std::string("no scale produced") : fr.error) +
+                            " (degraded_reason=" + fr.degraded_reason +
                             ", n_matched=" + std::to_string(fr.n_matched) + ")";
-          break;
-        }
-        if (fr.n_matched < P1_PHOT_MIN_FIT_STARS) {
-          photscale_error = "fit inliers below SCI-PHOT-001 §4 gate for " + key +
-                            " (n_matched=" + std::to_string(fr.n_matched) + " < " +
-                            std::to_string(P1_PHOT_MIN_FIT_STARS) + ")";
           break;
         }
         if (!(std::isfinite(fr.k_photo) && fr.k_photo > 0.0)) {
@@ -4464,17 +4457,21 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           if (file.empty() || !(std::isfinite(k) && k > 0.0))
             return Result<void>::fail(Error(ErrorDomain::DATA,
                 "p1_photscale.json frame requires file + finite k_photo>0"));
-          // P1-PHOT-BROKEN (b'): 外部通道同样不得注入"无拟合证据"的占位标度。
-          // 显式声明 n_matched 时必须过 SCI-PHOT-001 §4 冻结门（|r_consistent|>=3）;
-          // 未声明则按 fitted=false 如实登记来源, 不冒充拟合产物。
+          // P1-PHOT-BROKEN (b'): 外部通道不得注入"无拟合证据"的占位标度。
+          // 判据 = **有无拟合证据**（SCI-PHOT-001 §16.5「星数不构成拒绝条件」），
+          // 不是"星数够不够"：侧车显式声明拟合来源（source）或声明拟合产出了
+          // 至少一颗内点（n_matched >= 1）即为有证据；两者皆无 = 该标度没有拟合
+          // 支撑 ⇒ 按**拟合失败**硬拒绝（fail-closed，不冒充已标定）。
           const int n_matched = sfj.value("n_matched", -1);
-          if (n_matched >= 0 && n_matched < P1_PHOT_MIN_FIT_STARS) {
+          const bool source_declared =
+              sfj.contains("source") && sfj["source"].is_string() &&
+              !sfj["source"].get<std::string>().empty();
+          const bool fit_evidence = source_declared || n_matched >= 1;
+          if (!fit_evidence) {
             return Result<void>::fail(Error(ErrorDomain::DATA,
-                "p1_photscale.json frame declares n_matched=" +
-                std::to_string(n_matched) + " < " +
-                std::to_string(P1_PHOT_MIN_FIT_STARS) +
-                " (SCI-PHOT-001 §4 gate): a scale with no fit provenance must not"
-                " be applied (refusing to fake a calibration)"));
+                "p1_photscale.json frame has no fit provenance (n_matched=" +
+                std::to_string(n_matched) + ", source undeclared): no fit produced"
+                " this scale -- refusing to fake a calibration"));
           }
           P1FrameScale sc;
           sc.key = p1_frame_key(file);
@@ -4482,7 +4479,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
           sc.n_matched = n_matched < 0 ? 0 : n_matched;
           sc.sigma_residual_dex = sfj.value("sigma_residual_dex", 0.0);
           sc.source = sfj.value("source", std::string("photscale_sidecar"));
-          sc.fitted = (n_matched >= P1_PHOT_MIN_FIT_STARS);
+          sc.fitted = fit_evidence;
           scales[sc.key] = sc;
         }
         if (!scales.empty()) photscale_source = "photscale_sidecar";
@@ -4521,19 +4518,17 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
       if (i == 0 || sc->k_photo < kmin) kmin = sc->k_photo;
       if (i == 0 || sc->k_photo > kmax) kmax = sc->k_photo;
     }
-    // (c1) 每帧都必须有**拟合证据**（fitted=true）。外部 sidecar 未声明
-    // n_matched（<§4 门）时 fitted=false ⇒ 整组拒绝, 不把无证据标度伪装成
-    // "已应用"（与 CHK-PROVENANCE-CONSISTENCY 的 photscale_detail.fitted 判据
-    // 同一口径, 生产侧与门禁侧不得分歧）。
+    // (c1) 每帧都必须有**拟合证据**（fitted=true）。判据 = 有无拟合证据，
+    // **不是**星数门槛（SCI-PHOT-001 §16.5）：无证据标度 ⇒ 整组拒绝，不把
+    // 无证据标度伪装成"已应用"（与 CHK-PROVENANCE-CONSISTENCY 的
+    // photscale_detail.fitted 判据同一口径, 生产侧与门禁侧不得分歧）。
     for (size_t i = 0; i < n_lights && scales_complete; ++i) {
       const P1FrameScale* sc = find_scale(lights[i].get<std::string>());
       if (sc == nullptr) { scales_complete = false; break; }
       if (!sc->fitted) {
-        photscale_error = "photscale for " + sc->key +
-                          " has no fit provenance (n_matched=" +
-                          std::to_string(sc->n_matched) + " < " +
-                          std::to_string(P1_PHOT_MIN_FIT_STARS) +
-                          ", SCI-PHOT-001 §4 gate); refusing to declare it applied";
+        photscale_error = "photometry fit has no provenance for " + sc->key +
+                          " (n_matched=" + std::to_string(sc->n_matched) +
+                          ", source undeclared); refusing to declare it applied";
         scales_complete = false;
       }
     }
@@ -6193,13 +6188,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
 //      (signal/ + support/ = NorderK/DirD/NpixN.fits, Moc.fits, metadata.fits,
 //      properties); 本节点不再消费任何中间容器, 只做产物事实面校验并落
 //      p1_final.json (逐节点 typed artifact 合同不变)。──
-// FIX-402: 冻结单位表 canonical **产品 BUNIT 串**（docs/contracts/DATA_SEMANTICS.md §31.1）: signal_sb = ADU/px^2, sb_variance_out = ADU^2/px^4,
-// sb_ivar_out = px^4/ADU^2。产品面必须逐字写冻结串。
+// FIX-402: 冻结单位表 canonical **产品 BUNIT 串**（docs/contracts/DATA_SEMANTICS.md §31.1）: signal_sb = ADU/sr, sb_variance_out = ADU^2/sr^2,
+// sb_ivar_out = sr^2/ADU^2。产品面必须逐字写冻结串。
 // 注: p3rsmp::Bunit::canonical() 是带符号指数书写（"ADU/px^-2"）, 与冻结表的产品
 // 串约定不同（该函数语义由 v6 单位测试冻结, 本任务不改动它）—— 两者不得混用。
-constexpr const char* kP3BunitSurfaceBrightness = "ADU/px^2";
-constexpr const char* kP3BunitSbVariance = "ADU^2/px^4";
-constexpr const char* kP3BunitSbIvar = "px^4/ADU^2";
+constexpr const char* kP3BunitSurfaceBrightness = "ADU/sr";
+constexpr const char* kP3BunitSbVariance = "ADU^2/sr^2";
+constexpr const char* kP3BunitSbIvar = "sr^2/ADU^2";
 
 // FIX-402: HiPS 产品单位/像素语义声明（properties + manifest.json 双写）。
 // 定义在 p2_read_json 之后（依赖它）; 此处前置声明供 Phase1 writer 调用。
@@ -6312,7 +6307,7 @@ Result<void> p1_op_writer(const Json& doc, Json* man) {
     }
     const bool has_uncertainty = (n_variance_tiles > 0 && n_ivar_tiles > 0);
     // FIX-402: 逐帧 HiPS 产品单位/像素语义声明（Phase1 Drizzle/HiPS signal 亦为
-    // 面亮度 signal_sb = ADU/px^2; 冻结单位表 §1 + FZ-BUNIT-SEMANTICS）。未声明
+    // 面亮度 signal_sb = ADU/sr; 冻结单位表 §1 + FZ-BUNIT-SEMANTICS）。未声明
     // ⇒ Phase3 输入语义守卫按"单位不可判"拒绝（Phase1→Phase3 直连流不可用）。
     {
       std::string uerr;
@@ -9425,12 +9420,12 @@ bool p2_publish_mosaic_tree(const std::string& out_dir,
 }
 
 // ══ FIX-402: Phase2 mosaic 产品单位声明（BUNIT + 像素语义 provenance）════════
-// 依据: ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」; docs/contracts/DATA_SEMANTICS.md §31.1（signal_sb = ADU/px^2; 方差/ivar 由二次律唯一导出）;
+// 依据: ASTROCS_DESIGN §5.6「Phase2 信号为面亮度量纲」; docs/contracts/DATA_SEMANTICS.md §31.1（signal_sb = ADU/sr; 方差/ivar 由二次律唯一导出）;
 // FZ-BUNIT-SEMANTICS / FZ-P3-BUNIT-QUADRATIC。单位串 = 冻结单位表的 canonical
 // 产品串（kP3Bunit* 常量），本节点不另发明第二套词表、不做任何"猜测"。
 //
 // 写出面 = 双写（与 AIO writer 的 properties ↔ manifest.json 双写纪律同构）:
-//   * 每个 image 子产品 properties: BUNIT（signal=ADU/px^2, variance=(BUNIT)^2,
+//   * 每个 image 子产品 properties: BUNIT（signal=ADU/sr, variance=(BUNIT)^2,
 //     ivar=1/(BUNIT)^2）+ ASTROCS_SIGNAL_UNIT / ASTROCS_PIXEL_SEMANTICS /
 //     ASTROCS_PIXEL_AREA_POWER（canonical 幂次: signal -2 / variance -4 / ivar +4）;
 //   * 产品根 manifest.json（完成清单）: units 块（键名同义, 值同源）。
@@ -10524,9 +10519,9 @@ bool p3n_wcs_from_json(const Json& j, astrocs::phase3::P3WcsDescriptor* d,
 // ══ FIX-402: Phase3 输入语义守卫（ASTROCS_DESIGN §6.3 / FZ-BUNIT-SEMANTICS）════
 // 生产 export 只接受**面亮度语义**输入；按输入 provenance 声明的单位分派，
 // 不做任何"自动猜测单位"的宽松解析（缺声明即拒绝，禁 silent default ADU）:
-//   * 面亮度（BUNIT 显式含 px 幂次 canonical "ADU/px^2"，或 BUNIT=ADU +
+//   * 面亮度（BUNIT 显式含 px 幂次 canonical "ADU/sr"，或 BUNIT=ADU +
 //     ASTROCS_PIXEL_SEMANTICS=surface_brightness + ASTROCS_PIXEL_AREA_POWER=-2）→ 放行;
-//     下游统一携带冻结单位表的 canonical 产品串（"ADU/px^2"）。
+//     下游统一携带冻结单位表的 canonical 产品串（"ADU/sr"）。
 //   * 缺 BUNIT / 空 BUNIT / 裸 ADU 而无像素语义声明（单位不可判）→ 输入缺失或
 //     格式错 → error_kind=input（CLI exit 3）。
 //   * 已声明但非面亮度（积分通量 ADU/px^0、方差或 ivar 面、冻结单位表外单位）→
@@ -10535,7 +10530,7 @@ struct P3InputUnit {
   bool ok = false;
   bool input_error = false;      // true → exit 3（输入缺失/格式错）; false → exit 4
   std::string bunit_raw;
-  std::string bunit_canonical;   // 通过时 = "ADU/px^2"
+  std::string bunit_canonical;   // 通过时 = "ADU/sr"
   std::string code;              // 机器可判错误码（节点 manifest semantic_code）
   std::string reason;
 };
@@ -10624,7 +10619,7 @@ P3InputUnit p3n_guard_input_units(const std::string& hips_dir) {
       }
     }
   }
-  // 冻结串逐字比较（仅去空白; 禁大小写/别名/幂次"猜测"）: "ADU/px^2" 是唯一
+  // 冻结串逐字比较（仅去空白; 禁大小写/别名/幂次"猜测"）: "ADU/sr" 是唯一
   // 显式可判的面亮度 BUNIT 串; 裸 ADU 须 provenance 声明补足 (FZ-BUNIT-SEMANTICS (b))。
   std::string norm;
   for (char c : g.bunit_raw) {

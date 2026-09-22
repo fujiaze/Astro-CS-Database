@@ -40,6 +40,10 @@ class Scheduler {
     uint64_t estimated_memory_bytes = 0;  // NodePlan 估计（内存回压用）
     uint32_t min_workers = 1;             // 该节点所需最小 worker（lease 下限）
     uint32_t max_workers = 1;             // 该节点所需最大 worker（lease 上限）
+    // MEM-WIRE-01 观测面（不参与调度判定；供判据断言"估算确实来自估算器"）：
+    bool plan_estimated = false;          // true = estimated_memory_bytes 来自真实估算
+    std::string plan_source;              // "estimator" | "module"（空 = 未估算）
+    std::string plan_unestimable_reason;  // 非空 = 不可静态估算的原因（此时估计为 0）
   };
 
   // memory_limit_bytes: 0 = 不限制内存回压
@@ -59,6 +63,18 @@ class Scheduler {
 
   uint32_t max_concurrency() const { return budget_; }
   uint64_t memory_limit() const { return memory_limit_bytes_; }
+
+  // MEM-WIRE-01: 节点静态预算观测面（只读快照；不参与调度判定）。
+  // 供 Runtime::inspect() 与判据断言「估算确实来自估算器、未被硬写 0」。
+  struct NodePlanView {
+    std::string node_id;
+    uint64_t estimated_memory_bytes = 0;
+    bool plan_estimated = false;
+    std::string plan_source;
+    std::string unestimable_reason;
+    std::string resource_class;
+  };
+  std::vector<NodePlanView> node_plans() const;
 
   // RT-007: 统一取消 token —— 置位本调度器取消, 并立即取消当前运行 run 的
   // RunContext token（若正在 run）。run 外调用只置位本调度器（下次 run 起始清除,

@@ -64,9 +64,11 @@ struct FramePhotFitRequest {
   double mag_max = 16.0;
 };
 
-// SCI-PHOT-001 §4/§8 冻结门: |r_consistent| >= 3 才进 IRLS, 否则 NO_DATA
-// （scale 保持 1.0、fit_used=0、不迭代）。本常量只用于**上报**拟合是否真的
-// 产出标度, 不改变 §4 判据本身。
+// SCI-PHOT-001 §4/§8 的**求解前提**（不是星数准入门槛）: |r_consistent| >= 3 才
+// 进 IRLS, 否则 NO_DATA（scale 保持 1.0、fit_used=0、不迭代）。SCI-PHOT-001 §16.5
+// 明确「星数不构成拒绝条件」——星少到该前提不成立时, 后果是**拟合本就不产出
+// 标度**（按拟合失败上报）, 而不是由某个门禁去卡帧。本常量只用于**上报**拟合
+// 是否真的产出标度, 不改变 §4 判据本身。
 inline constexpr int kMinFitStars = 3;
 
 struct FramePhotFitResult {
@@ -78,7 +80,7 @@ struct FramePhotFitResult {
   // 无光谱星、滤光片缓存失败、|r_consistent|<3）**返回 0 且 scale=1.0**。
   // 修复前 module_adapters 只看 finite&&>0, 于是把 NO_DATA 的占位 1.0 当作
   // "已拟合标度"施加并声明 photometry_applied=true（伪造 1.0）。
-  // fit_ok=true ⇔ rc==0 且 n_matched>=kMinFitStars 且 scale 有限且 >0。
+  // fit_ok=true ⇔ rc==0 且 n_matched>=kMinFitStars（§4 求解前提）且 scale 有限且 >0。
   bool fit_ok = false;
   int n_matched = 0;            // IRLS 后 inliers
   double sigma_residual_dex = 0.0;

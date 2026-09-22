@@ -34,16 +34,21 @@ static bool safe_pixel_count(int w, int h, std::uint64_t* out) {
 // STD-F1 导出边界 +1 桥接锁 (前台裁决 R-02 方案 b)
 // ---------------------------------------------------------------------------
 // 合同锚:
-//   - docs/science/ASTROMETRY.md §5/§7 (xp = x+1; CRPIX 1-based; 往返 <1e-6 px)
+//   - docs/science/ASTROMETRY.md §5/§7 (xp = x+1; CRPIX 1-based) 与 §11 STD-F1
+//     桥接门（**全域保守门 1e-6 px**，覆盖所有尺度）
+//   - docs/algorithms/GATES_AND_TOLERANCES.md §3 G-P1-WCS-BRIDGE（紧门 1e-8 px，
+//     适用域 scale ≥ 0.9″/px）/ G-P1-WCS-BRIDGE-GLOBAL（全域保守门 1e-6 px）
 //   - docs/standards/STANDARDS_REGISTRY.md STD-F1 (Paper I §2.1.1)
 //   - lib/algorithms/projection/p3_wcs.cpp (唯一 +1 桥接点 fits_pixel_1based;
 //     W4-A9 批次 1 由 lib/phase3_session/ 迁入本模块共址测试)
 // 验收 (任务规格 STD-F1-ADJ 必须动作 4/5):
 //   1. 九宫格 = 中心 1 格 + 四角 4 格 + 四边中点 4 格, 每格 100x100 px,
-//      逐像素显式验证**无 1px 偏移** (往返 < 1e-6 px 不变量, 每格 10000 像素);
+//      逐像素显式验证**无 1px 偏移** (往返 < **该尺度适用门值**, 每格 10000 像素;
+//      本用例 kScale = 0.0001389 deg/px = 0.5″/px < min_scale 0.9″/px ⇒ 紧门
+//      1e-8 px **超出适用域**, 适用门 = 全域保守门 1e-6 px（GATE-WCS-01 裁决 1/4）);
 //   2. 导出边界独立性: 由**独立第三方参考实现** (标准 TAN 向量式正投影, 不调用
 //      被测函数) 按 Paper I §2.1.1 的 1-based 配对 (xp = x0 + 1) 前向, 与生产
-//      p3_wcs_pix2world 逐点一致 (< 1e-6 px);
+//      p3_wcs_pix2world 逐点一致 (< 该尺度适用门值);
 //   3. 负向注入**必败**: 同一独立参考改用「桥接移除」(xp = x0) 与「双重桥接」
 //      (xp = x0 + 2) 配对时, 像素偏差恰为 1px/轴 (2D = √2 px) >> 冻结门 1e-4 px
 //      ⇒ 桥接缺失/错置必被检出 (桥接不是恒真装饰);
@@ -60,7 +65,10 @@ constexpr int kFrameW = 1024;
 constexpr int kFrameH = 1024;
 constexpr int kCell = 100;                  // 每格 100x100 px (负责人 rev3.1 口径)
 constexpr double kScale = 0.0001389;        // deg/px (P3-002 既有用例同值)
-constexpr double kRoundtripGatePx = 1e-6;   // SCI-WCS-001 §7 往返不变量 (FP64)
+// 往返容差**不写第二份字面量**: 由单一事实源 p3_wcs_applicability("TAN") 经
+// p3_wcs_roundtrip_gate() 按尺度选出（紧门 1e-8 px / 全域保守门 1e-6 px）。
+// kFrozenGatePx = 1e-4 px 是「负向注入必须被检出」的下界（GATES §3
+// G-P1-WCS-F2 / G-P1-WCS-RT 登记的跨实现容差），1 px 桥接偏差远大于它。
 constexpr double kFrozenGatePx = 1e-4;      // 冻结门 (Paper I 交叉, 不放宽)
 constexpr int kSampleStride = 10;           // 抽样: 每格每轴每 10px 取一点
 constexpr double kDegToRad = 0.01745329251994329577;
@@ -275,7 +283,8 @@ std::string descriptor_json(const astrocs::phase3::P3WcsDescriptor& d,
 // 九宫格 + 桥接锁主体验: 每个 parity 跑一遍并导出证据 JSON 片段。
 std::string run_nine_grid(const char* parity,
                           astrocs::phase3::P3WcsDescriptor* d_out,
-                          CellStats stats_out[9]) {
+                          CellStats stats_out[9],
+                          astrocs::phase3::P3WcsRoundtripGate* gate_out) {
   astrocs::phase3::P3WcsDescriptor d{};
   const bool made = astrocs::phase3::p3_wcs_make(
                         150.0, 2.0, kScale, kFrameW, kFrameH, parity, 0.0, &d) ==
@@ -285,14 +294,20 @@ std::string run_nine_grid(const char* parity,
   *d_out = d;
   for (int c = 0; c < 9; ++c) evaluate_cell(d, kNineGrid[c], &stats_out[c]);
 
+  // 该尺度下的适用门值（单一事实源; 本用例 0.5″/px ⇒ 全域保守门 1e-6 px）
+  const astrocs::phase3::P3WcsRoundtripGate gate =
+      astrocs::phase3::p3_wcs_roundtrip_gate(&d);
+  CHECK(gate.status != astrocs::phase3::P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_OUT_OF_DOMAIN);
+  CHECK(gate.tol_px > 0.0);
+  if (gate_out != nullptr) *gate_out = gate;
   for (int c = 0; c < 9; ++c) {
     const CellStats& st = stats_out[c];
-    // 断言 1: 九宫格逐格无 1px 偏移 (往返 < 1e-6 px, 每格 10000 像素)
+    // 断言 1: 九宫格逐格无 1px 偏移 (往返 < 该尺度适用门值, 每格 10000 像素)
     CHECK(st.n_px == kCell * kCell);
-    CHECK(st.max_rt_px < kRoundtripGatePx);
+    CHECK(st.max_rt_px < gate.tol_px);
     CHECK(st.n_bridge_px == (kCell / kSampleStride) * (kCell / kSampleStride));
     // 断言 2: 独立第三方参考 (Paper I §2.1.1, xp = x0+1) 与生产逐点一致
-    CHECK(st.max_ref_px < kRoundtripGatePx);
+    CHECK(st.max_ref_px < gate.tol_px);
     // 断言 3: 负向注入必败 —— 桥接移除/双重桥接的像素偏差恰为 1px/轴 (√2 px)
     CHECK(st.max_nobridge_px > kFrozenGatePx);
     CHECK(st.max_double_px > kFrozenGatePx);
@@ -400,8 +415,10 @@ int main() {
   {
     astrocs::phase3::P3WcsDescriptor d_left{}, d_right{};
     CellStats st_left[9], st_right[9];
-    const std::string j_left = run_nine_grid("east_left", &d_left, st_left);
-    const std::string j_right = run_nine_grid("east_right", &d_right, st_right);
+    astrocs::phase3::P3WcsRoundtripGate gate{};
+    const std::string j_left = run_nine_grid("east_left", &d_left, st_left, &gate);
+    const std::string j_right =
+        run_nine_grid("east_right", &d_right, st_right, nullptr);
     CHECK(!j_left.empty() && !j_right.empty());
 
     // 九宫格逐格摘要 (stdout, 证据表来源)
@@ -427,12 +444,18 @@ int main() {
                    "{\"schema\":\"std_f1/p3-nine-grid-export-v1\","
                    "\"frame\":{\"width\":%d,\"height\":%d},"
                    "\"cell_px\":%d,\"roundtrip_gate_px\":%.3e,"
+                   "\"roundtrip_gate_status\":\"%s\","
                    "\"frozen_gate_px\":%.3e,"
                    "\"crpix_invariant\":\"(W+1)/2\","
                    "\"bridge\":\"p3_wcs.cpp fits_pixel_1based (xp = x + 1)\","
                    "\"bridge_fault_env\":\"%s\","
                    "\"runs\":[%s,%s]}\n",
-                   kFrameW, kFrameH, kCell, kRoundtripGatePx, kFrozenGatePx,
+                   kFrameW, kFrameH, kCell, gate.tol_px,
+                   (gate.status ==
+                            astrocs::phase3::P3WcsRoundtripGateStatus::P3_WCS_RT_GATE_TIGHT
+                        ? "tight"
+                        : "global_conservative"),
+                   kFrozenGatePx,
                    (std::getenv("STD_F1_BRIDGE_FAULT") ? std::getenv("STD_F1_BRIDGE_FAULT") : ""),
                    j_left.c_str(), j_right.c_str());
       std::fclose(fp);

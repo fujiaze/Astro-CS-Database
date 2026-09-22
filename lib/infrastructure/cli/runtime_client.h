@@ -26,9 +26,15 @@ std::string build_pipeline_ir(const std::vector<int>& phases,
 // 资源判据（CPU/内存/线程）置位本取消源（原 first-10s gate 快速失败接线已退役）；
 // 参数保留为通用外部取消面，调用点当前恒传 nullptr。
 // 返回: exit code（astrocs::OK=0；科学失败=4；IO=7；...）
+// MEM-WIRE-01: memory_limit_bytes / memory_source —— 内存静态预算（§8.3）。
+//   来源 = 调用方按「配置/profile + 实测可用内存」解析（见 astrocs/core/memory_budget.h）；
+//   本函数只透传给 create_runtime(RuntimeResourceBudget)，**不发明数值**。
+//   0 = 未提供 ⇒ 不启用内存回压（语义同旧行为，便于既有调用方零改动）。
 int run_pipeline(const std::vector<int>& phases, const std::string& config_json,
                  uint32_t budget, std::string* fail_reason,
-                 std::atomic<bool>* cancel_ext = nullptr);
+                 std::atomic<bool>* cancel_ext = nullptr,
+                 uint64_t memory_limit_bytes = 0,
+                 const std::string& memory_source = std::string("none"));
 
 // 执行后收集每个节点的 session manifest 摘要（node_id → JSON 文本）。
 // 供 CLI 写 run manifest 时逐 artifact 验证（ArtifactStore 绑定语义）。

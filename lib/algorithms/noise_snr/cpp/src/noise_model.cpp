@@ -22,6 +22,7 @@
 #include <limits>
 #include <vector>
 #include <unordered_map>
+#include <mutex>      // PERF-P1: floor 注册表的线程安全（帧级并行下多 worker 并发 build/fill/free）
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -33,6 +34,60 @@ static std::unordered_map<const NoiseWeightModelV1*, double> g_model_floor;
 // FIX-405 G3-6: variance_floor 钳位触发计数（build 期间被 floor 抬升的数值个数:
 // 全局兜底 + 逐控制点）。0 = 未触发。注册表与 g_model_floor 同生命周期。
 static std::unordered_map<const NoiseWeightModelV1*, int64_t> g_model_floor_clamp;
+
+// ── PERF-P1 (RELEASE-05): 注册表线程安全 ─────────────────────────────────────
+// 上述两个注册表是**按模型指针键控的进程级 map**。生产 P1 节点在帧级并行下会由
+// 多个 worker **并发**调用 snr_noise_model_v1[_f64]（build）/ _fill（读 floor）/
+// _free（erase）：noise-snr 节点逐帧建模型，drizzle 节点逐帧建模型并 fill 逐像素
+// variance。并发写 std::unordered_map 是未定义行为（可能崩溃或损坏），故全部
+// 访问统一经本互斥量；**热路径零加锁**（build 期钳位计数改为局部累加，结束时
+// 一次写入），科学数值与调用序列语义零改动。
+static std::mutex g_model_registry_mutex;
+
+// build 期登记 floor 并把钳位计数清零（原 :317-318 语义）。
+static void registry_register_model(const NoiseWeightModelV1* m, double floor_var) {
+    std::lock_guard<std::mutex> lk(g_model_registry_mutex);
+    g_model_floor[m] = floor_var;
+    g_model_floor_clamp[m] = 0;
+}
+
+// 显式绑定 floor，**不动**既有钳位计数（原 _bind_variance_floor 语义）。
+static void registry_bind_floor(const NoiseWeightModelV1* m, double floor_var) {
+    std::lock_guard<std::mutex> lk(g_model_registry_mutex);
+    g_model_floor[m] = floor_var;
+}
+
+// build 结束时一次性累加钳位计数（n==0 时不产生访问，避免无谓加锁）。
+static void registry_add_clamp(const NoiseWeightModelV1* m, int64_t n) {
+    if (n == 0) return;
+    std::lock_guard<std::mutex> lk(g_model_registry_mutex);
+    g_model_floor_clamp[m] += n;
+}
+
+// 读 floor；未绑定或非法 ⇒ false（调用方按 SNR_FLOOR_UNBOUND fail-closed）。
+static bool registry_get_floor(const NoiseWeightModelV1* m, double* out) {
+    std::lock_guard<std::mutex> lk(g_model_registry_mutex);
+    auto it = g_model_floor.find(m);
+    if (it == g_model_floor.end() || !std::isfinite(it->second) ||
+        it->second <= 0.0) {
+        return false;
+    }
+    *out = it->second;
+    return true;
+}
+
+// 读钳位计数；未注册 ⇒ -1（显式"未知"，不冒充 0）。
+static int64_t registry_get_clamp(const NoiseWeightModelV1* m) {
+    std::lock_guard<std::mutex> lk(g_model_registry_mutex);
+    auto it = g_model_floor_clamp.find(m);
+    return it == g_model_floor_clamp.end() ? (int64_t)-1 : it->second;
+}
+
+static void registry_erase(const NoiseWeightModelV1* m) {
+    std::lock_guard<std::mutex> lk(g_model_registry_mutex);
+    g_model_floor.erase(m);
+    g_model_floor_clamp.erase(m);
+}
 
 constexpr double kLn10 = 2.302585092994045684017991454684; // NOISE_ESTIMATION.md / NOISE_MODEL.md 科学定义 log10↔ln 换算
 // trimmed-mean-abs-residual → Gaussian σ 换算因子:
@@ -314,8 +369,10 @@ int noise_model_impl(const T* data, int h, int w,
     if (!std::isfinite(c.variance_floor) || c.variance_floor <= 0.0) {
         return SNR_FLOOR_UNBOUND;
     }
-    g_model_floor[out_model] = c.variance_floor;
-    g_model_floor_clamp[out_model] = 0;   // 钳位计数随 build 清零 (触发即计数)
+    registry_register_model(out_model, c.variance_floor);
+    // 钳位计数随 build 清零 (触发即计数)；build 期只累加**局部**变量，返回前
+    // 一次性写入注册表 ⇒ 热路径（逐 patch / 控制点）零加锁。
+    int64_t clamp_count = 0;
 
     const int gx = std::max(2, c.patch_grid_x);
     const int gy = std::max(2, c.patch_grid_y);
@@ -485,7 +542,7 @@ int noise_model_impl(const T* data, int h, int w,
         std::vector<double> vc = patch_var;
         const double vmed = robust_median(vc);
         // FIX-405 G3-6: 钳位触发即计数（不改变数值, 只把静默钳位变为可登记状态）
-        if (vmed < c.variance_floor) ++g_model_floor_clamp[out_model];
+        if (vmed < c.variance_floor) ++clamp_count;
         out_model->variance_bg_global = std::max(vmed, c.variance_floor);
         out_model->sigma_bg_global = std::sqrt(out_model->variance_bg_global);
         out_model->ivar_bg_global = 1.0 / out_model->variance_bg_global;
@@ -509,20 +566,23 @@ int noise_model_impl(const T* data, int h, int w,
         if ((std::int64_t)all.size() < std::max<std::int64_t>(1, fallback_min)) {
             out_model->degenerate = 1;
             out_model->mask_degraded = plan.flags;
+            registry_add_clamp(out_model, clamp_count);
             return 1;
         }
         const double sig = robust_sigma(all);
         if (!std::isfinite(sig) || sig <= 0.0) {
             out_model->degenerate = 1;
             out_model->mask_degraded = plan.flags;
+            registry_add_clamp(out_model, clamp_count);
             return 1;
         }
         out_model->sigma_bg_global = sig;
-        if (sig * sig < c.variance_floor) ++g_model_floor_clamp[out_model];
+        if (sig * sig < c.variance_floor) ++clamp_count;
         out_model->variance_bg_global = std::max(sig * sig, c.variance_floor);
         out_model->ivar_bg_global = 1.0 / out_model->variance_bg_global;
         out_model->degenerate = 1;  // 无空间分辨, 全局兜底
         out_model->mask_degraded = plan.flags | kMaskDegraded;
+        registry_add_clamp(out_model, clamp_count);
         return 0;
     }
 
@@ -541,7 +601,7 @@ int noise_model_impl(const T* data, int h, int w,
         return 3;
     }
     for (std::size_t i = 0; i < n; ++i) {
-        if (patch_var[i] < c.variance_floor) ++g_model_floor_clamp[out_model];
+        if (patch_var[i] < c.variance_floor) ++clamp_count;
         const double var = std::max(patch_var[i], c.variance_floor);
         out_model->ctrl_x_px[i] = ctrl_x[i];
         out_model->ctrl_y_px[i] = ctrl_y[i];
@@ -556,6 +616,7 @@ int noise_model_impl(const T* data, int h, int w,
          plane_geometry_ratio(ctrl_x.data(), ctrl_y.data(), n) >= kPlaneGeomRatio)
             ? 1 : 0;
     out_model->source = 0;  // empirical blank-sky (production 基线)
+    registry_add_clamp(out_model, clamp_count);
     return 0;
 }
 
@@ -743,21 +804,19 @@ int fill_impl(const NoiseWeightModelV1* m, int h, int w,
             c = (syv * sxx - sxv * sxy) / det;
         }
         const double a = mv - b * mx - c * my;
+        // W1-NOISE-002 / FIX-405 G3-6: floor 传播只经内部注册表（按模型指针键控）。
+        // **fail-closed**: 模型未绑定 floor（或绑定值非法）时显式拒绝
+        // （SNR_FLOOR_UNBOUND），不再静默回退 1e-12 —— 后者会让配置的
+        // variance_floor 在生产 fill 路径上被无声忽略。
+        // 绑定途径: snr_noise_model_v1[_f64] build, 或
+        // snr_noise_model_v1_bind_variance_floor。
+        // PERF-P1: 查询移到像素循环**之前**（floor 在循环内恒定）——原实现在逐像素
+        // 循环内查全局 map，既白付每像素一次哈希查找，又是帧级并行下的并发访问点。
+        // 判据与拒绝时机（未绑定/非法 ⇒ SNR_FLOOR_UNBOUND）逐字不变。
+        double floor = 0.0;
+        if (!registry_get_floor(m, &floor)) return SNR_FLOOR_UNBOUND;
         for (int y = 0; y < h; ++y) {
             for (int x = 0; x < w; ++x) {
-                // W1-NOISE-002 / FIX-405 G3-6: floor 传播只经内部注册表（按模型
-                // 指针键控）。**fail-closed**: 模型未绑定 floor（或绑定值非法）时
-                // 显式拒绝（SNR_FLOOR_UNBOUND），不再静默回退 1e-12 —— 后者会让
-                // 配置的 variance_floor 在生产 fill 路径上被无声忽略。
-                // 绑定途径: snr_noise_model_v1[_f64] build, 或
-                // snr_noise_model_v1_bind_variance_floor。
-                double floor = 0.0;
-                auto it = g_model_floor.find(m);
-                if (it == g_model_floor.end() || !std::isfinite(it->second) ||
-                    it->second <= 0.0) {
-                    return SNR_FLOOR_UNBOUND;
-                }
-                floor = it->second;
                 const double var = std::max(a + b * (double)x + c * (double)y, floor);
                 if (out_variance) out_variance[(std::size_t)y * w + x] = (float)var;
                 if (out_ivar) out_ivar[(std::size_t)y * w + x] = (float)(1.0 / var);
@@ -799,7 +858,7 @@ SNR_API int snr_noise_model_v1_bind_variance_floor(NoiseWeightModelV1* model,
     if (!model) return 3;
     if (!std::isfinite(floor_var) || floor_var <= 0.0) return SNR_FLOOR_UNBOUND;
     if (snr_noise_model_v1_abi_check_model(model) != 0) return SNR_ABI_MISMATCH;
-    g_model_floor[model] = floor_var;
+    registry_bind_floor(model, floor_var);
     return 0;
 }
 
@@ -808,14 +867,12 @@ SNR_API int snr_noise_model_v1_bind_variance_floor(NoiseWeightModelV1* model,
 SNR_API int64_t snr_noise_model_v1_floor_clamp_count(
     const NoiseWeightModelV1* model) {
     if (!model) return -1;
-    auto it = g_model_floor_clamp.find(model);
-    return it == g_model_floor_clamp.end() ? (int64_t)-1 : it->second;
+    return registry_get_clamp(model);
 }
 
 SNR_API void snr_noise_model_v1_free(NoiseWeightModelV1* model) {
     if (!model) return;
-    g_model_floor.erase(model);
-    g_model_floor_clamp.erase(model);
+    registry_erase(model);
     std::free(model->ctrl_x_px);
     std::free(model->ctrl_y_px);
     std::free(model->ctrl_sigma);

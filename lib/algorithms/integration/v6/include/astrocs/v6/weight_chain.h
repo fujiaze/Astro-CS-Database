@@ -10,7 +10,7 @@
  *   - docs/plugins/algorithms_phase2/13_integration.md §4.0:32-38
  *       （自动检测稀疏层；有→帧级×帧内，无→帧级；损坏/不可重建→明确失败，
  *        不得静默回退帧级）
- *   - docs/algorithms/v6/phase2-point/ALG-P2-POINT-001_SPEC.md:116-132
+ *   - docs/science/CONTROL_WEIGHT_SNR.md
  *       （SNR_k = F_ref·sqrt(W_info,k)；SNR_combined² = Σ SNR_k² 仅独立帧成立）
  *   - eng/contracts/schemas/unified/sparse_snr_layer.schema.json（control_points{x,y,sparse_snr_value}）
  *
@@ -82,11 +82,59 @@ struct SparseSnrPoint {
   double snr = 0.0;  /* 未加权帧内 SNR 参考值 [1]（>0 且有限） */
 };
 
-/* 重建算子（显式声明，写入 manifest；禁止隐式外推）:
- *   - regular_grid=true : 规则网格双线性插值（nx*ny 控制点，行主序 j*nx+i，
- *                         x=x0+i*dx, y=y0+j*dy）；越界 → fail-closed。
+/* ------------------------------------------------------------------ */
+/* 重建算子（冻结词表；算子标识 = 唯一配置面，写入 manifest）             */
+/* ------------------------------------------------------------------ */
+/* 每个算子把「核 + 是否开 3×3 mesh 中值前置滤波 + 是否做值域钳制」**整组**
+ * 绑成一个不可拆分的标识。为什么不做成独立布尔开关（见
+ * docs/plugins/algorithms_phase1/07_noise_snr.md §4.5、实验 EXP-04 §2.7/§4.4）：
+ *   ① 值域钳制**不是可选项**：去掉它，光滑插值类在病态控制网格上失控
+ *      （E 达 2.48e4），且会给出**负的 σ**（实测 min = −0.5585，非物理）；
+ *   ② 中值前置滤波在默认目标域（地面/seeing-limited）**有害**
+ *      （真实地面帧上劣 39~74%、解析可分辨域劣 9.3 倍），只在 HST 类高对比域必需；
+ *   ③ 独立布尔可组合出「双线性 + 滤波」等**从未实测**的配置，标识化后不可表达。
+ * 词表（token ↔ 语义）：
+ *   natural_bicubic_spline_clip_v1             默认。可分离自然边界双三次样条
+ *                                              + 钳到有效控制值值域。
+ *   natural_bicubic_spline_clip_mesh_median_v1 同上，且在样条前插入 3×3 mesh
+ *                                              中值滤波（边界 replicate，无条件）。
+ *   bilinear_regular_grid_v1                   规则网格双线性（现行实现，保留为
+ *                                              对照/回退；无钳制、无滤波）。
+ *   nearest_control_point_v1                   最近控制点（散点模式唯一合法算子）。
+ * 未识别 token ⇒ fail-closed（不得回退默认）。 */
+enum class SparseReconOperator : int {
+  kNaturalBicubicSplineClip = 0,
+  kNaturalBicubicSplineClipMeshMedian = 1,
+  kBilinearRegularGrid = 2,
+  kNearestControlPoint = 3,
+};
+const char* sparse_recon_operator_token(SparseReconOperator op);
+/* 默认算子（规则网格）。散点模式默认 = nearest_control_point_v1。 */
+const char* sparse_recon_operator_default_token();
+bool parse_sparse_recon_operator(const std::string& token, SparseReconOperator* out);
+/* 该算子是否含 3×3 mesh 中值前置滤波（= 按数据来源的开关，默认关）。 */
+bool sparse_recon_operator_uses_mesh_median(SparseReconOperator op);
+/* 该算子是否做值域钳制（默认算子必须为真；不得单独关闭）。 */
+bool sparse_recon_operator_clips_to_ctrl_range(SparseReconOperator op);
+
+/* 稀疏帧内层几何（显式声明，写入 manifest；禁止隐式外推）:
+ *   - regular_grid=true : 规则网格插值。nx*ny 控制点，行主序 j*nx+i。
+ *       **节点落在所属 cell 的中心**（与 Phase2 UPM 8×8/tile 控制网格同一约定，
+ *       upm.cpp 的 centered bilinear basis）：cell i 覆盖像素
+ *       [grid_origin_x + i*dx, grid_origin_x + (i+1)*dx - 1]，
+ *       其中心 = grid_origin_x + i*dx + (dx-1)/2
+ *       ⇒ 必须 x0 = grid_origin_x + (dx-1)/2（y 同）。
+ *       把节点当 cell 角点（x0 = grid_origin_x）会使整场平移半个 cell
+ *       （Δ=64 时 31.5 px）；该错位由 cell 中心门 fail-closed 拦截。
+ *       **查询坐标 = 像素中心坐标**（像素序号 p ↔ 坐标 p）。
+ *       **定义域 = 层覆盖的 cell 并集**：[grid_origin_x − 0.5,
+ *       grid_origin_x + nx·dx − 0.5]（y 同）——cell 内非节点处的值由插值给出，
+ *       最外半个 cell 由端点节点常数延拓（与 SExtractor/photutils 的
+ *       mesh 背景覆盖整帧同语义）。越出该并集 → fail-closed（不外推、
+ *       不回退帧级）。
  *   - regular_grid=false: 最近控制点，必须显式给 max_radius_px>0；
- *                         超半径/未给半径 → fail-closed（不外推、不回退帧级）。 */
+ *                         超半径/未给半径 → fail-closed（不外推、不回退帧级）。
+ *   - 控制点值语义见 sparse_snr_layer.schema.json：**绝对**通量型 SNR。 */
 struct SparseSnrLayer {
   bool present = false;
   std::vector<SparseSnrPoint> points;
@@ -95,18 +143,79 @@ struct SparseSnrLayer {
   double x0 = 0.0, y0 = 0.0, dx = 1.0, dy = 1.0;
   double grid_tol = 1e-6;      /* 网格位置一致性容差 [px] */
   double max_radius_px = -1.0; /* 散点模式覆盖半径 [px]；<=0 视为未声明 */
+  /* 重建算子声明（token 见上；空串 = 默认算子）。
+   * 该声明同时承载「是否开 mesh 中值滤波」——滤波由算子标识编码，
+   * 不作为独立开关（理由见上）。 */
+  std::string reconstruction_operator;
+  /* cell 网格原点（像素坐标）。默认 0 = 帧原点。 */
+  double grid_origin_x = 0.0;
+  double grid_origin_y = 0.0;
 };
 
 /* 单次重建结果（进 manifest 的「重建算子与误差」）。 */
 struct SparseReconstruction {
-  std::string operator_id;                 /* "" = 未使用；否则 bilinear_regular_grid_v1 /
-                                              nearest_control_point_v1 */
+  std::string operator_id;                 /* 实际生效算子 token（"" = 未使用） */
   std::size_t n_control_points = 0;
   double node_reproduction_max_abs = 0.0;  /* 控制点自身复现最大绝对残差；应 ~0 */
   bool out_of_domain = false;              /* true = 查询点不在层定义域内 */
+  /* 落地可审计量（全部进 manifest；不参与科学换算） */
+  std::size_t n_invalid_control_points_filled = 0; /* NaN 节点按 nearest_valid 填充数 */
+  bool mesh_median_applied = false;        /* 是否施加 3×3 mesh 中值前置滤波 */
+  bool value_range_clipped = false;        /* 是否做值域钳制 */
+  double clip_low = 0.0, clip_high = 0.0;  /* 钳制区间 [min,max]（未钳制 = 0/0） */
+  double cell_center_offset_max_abs = 0.0; /* 节点相对 cell 中心的最大偏移 [px]；应 ~0 */
 };
 
-/* 由稀疏层在 (x,y) 重建帧内 SNR。失败返回 false 并写 err（fail-closed）。 */
+/* 预置重建器：把与查询点无关的预处理（网格校验 / NaN 填充 / mesh 中值 /
+ * 自然样条二阶导）做一次，之后逐像素 eval 只做 O(nx) 求值。
+ * 生产按输出像素现场求值，逐像素重做预处理会把 O(nx*ny) 乘进每个像素。
+ * prepare/eval 不持有可变共享状态 ⇒ 同一实例可被多 worker 并发只读调用，
+ * 结果与 worker 数无关（逐位一致）。 */
+class SparseSnrReconstructor {
+ public:
+  /* 校验层 + 预处理。任何退化 ⇒ false 并写 err（fail-closed）。 */
+  bool prepare(const SparseSnrLayer& layer, std::string* err);
+  /* 在 (x,y) 求值（像素中心坐标）。未 prepare ⇒ false。 */
+  bool eval(double x, double y, double* out_snr, SparseReconstruction* info,
+            std::string* err) const;
+
+  bool ready() const { return ready_; }
+  SparseReconOperator op() const { return op_; }
+  const char* operator_id() const { return sparse_recon_operator_token(op_); }
+  std::size_t n_control_points() const { return n_control_points_; }
+  double node_reproduction_max_abs() const { return node_residual_; }
+  std::size_t n_invalid_control_points_filled() const { return n_filled_; }
+  bool mesh_median_applied() const { return mesh_median_; }
+  bool value_range_clipped() const { return clips_; }
+  double clip_low() const { return clip_low_; }
+  double clip_high() const { return clip_high_; }
+  double cell_center_offset_max_abs() const { return cell_center_offset_; }
+
+ private:
+  void fill_info(SparseReconstruction* info) const;
+
+  bool ready_ = false;
+  bool regular_grid_ = false;
+  SparseReconOperator op_ = SparseReconOperator::kNaturalBicubicSplineClip;
+  int nx_ = 0, ny_ = 0;
+  double x0_ = 0.0, y0_ = 0.0, dx_ = 1.0, dy_ = 1.0, tol_ = 1e-6;
+  double grid_origin_x_ = 0.0, grid_origin_y_ = 0.0;
+  double max_radius_px_ = -1.0;
+  std::vector<double> grid_;               /* ny*nx，已填充（行主序 j*nx+i） */
+  std::vector<double> my_;                 /* y 向自然样条二阶导（ny*nx） */
+  std::vector<SparseSnrPoint> points_;     /* 散点模式 */
+  bool clips_ = false;
+  bool mesh_median_ = false;
+  double clip_low_ = 0.0, clip_high_ = 0.0;
+  double node_residual_ = 0.0;
+  double cell_center_offset_ = 0.0;
+  std::size_t n_filled_ = 0;
+  std::size_t n_control_points_ = 0;
+};
+
+/* 由稀疏层在 (x,y) 重建帧内 SNR。失败返回 false 并写 err（fail-closed）。
+ * 等价于 SparseSnrReconstructor::prepare + eval（单次调用走同一代码路径，
+ * 逐位一致）。 */
 bool reconstruct_sparse_snr(const SparseSnrLayer& layer, double x, double y,
                             double* out_snr, SparseReconstruction* info,
                             std::string* err);

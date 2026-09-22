@@ -2615,7 +2615,7 @@ int p2_rejection_weight_surface_guard(const char* const* tokens,
 // ── RETIRED-CODE-RETAINED (ENGINEERING_SPEC §2 保留则注释) ─────────────
 // WHAT:       psfsw 残留面（GAP_AUDIT G2-2 的 rejection.cpp 对应点）：拒绝权重面守卫的
 //             冻结禁止 token 表里保留 "psfsw"（与 coverage.cpp:376 同一冻结词表的第二份执行面）。
-// WHY-KEPT:   同 coverage.cpp 的保留块：语义源 = docs/contracts/v6/frozen/
+// WHY-KEPT:   同 coverage.cpp 的保留块：语义源 = docs/contracts/DATA_SEMANTICS.md §31
 //             astrocs.v6.contract-freeze.v1.json:196-197 的 forbidden.weight_source_tokens，
 //             由 FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE / FZ-MODE-DEFERRED 三条冻结门
 //             要求（本函数是 p2_rejection_weight_surface_guard 的实参面）。
@@ -2625,8 +2625,8 @@ int p2_rejection_weight_surface_guard(const char* const* tokens,
 // EXIT:       与 coverage.cpp:376 同批删除：DOC-402 整体退役 frozen 的
 //             forbidden.weight_source_tokens 段并留 A44 痕后，同提交收缩本表与
 //             eng/tests/unit/v6_p2_samp/v6_p2_samp_test.cpp 的对应断言。
-// AUTHORITY:  ENGINEERING_SPEC.md §2 / §3；工程控制/RELEASE-04/GAP_AUDIT.md G2-2；
-//             docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json:196-197。
+// AUTHORITY:  ENGINEERING_SPEC.md §2 / §3；RELEASE-04 GAP_AUDIT G2-2（包已出库）；
+//             eng/contracts/data/v6_clause_registry_v1.json:196-197。
 // ──────────────────────────────────────────────────────────────────────
     // 禁止 token（FZ-GATE-MEDIAN-SNR / FZ-GATE-SUPPORT-COVERAGE /
     // FZ-MODE-DEFERRED / ALG-P2S-REJ.3 probability 非权重）。

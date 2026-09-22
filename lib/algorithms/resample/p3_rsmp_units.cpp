@@ -1,5 +1,5 @@
 // lib/algorithms/resample/p3_rsmp_units.cpp
-// 单位表 / BUNIT 二次律 / 模式枚举（冻结表 docs/contracts/v6/frozen/）。
+// 单位表 / BUNIT 二次律 / 模式枚举（冻结表 docs/contracts/DATA_SEMANTICS.md §31）。
 #include "p3_rsmp.h"
 
 #include <cctype>
@@ -61,7 +61,7 @@ std::string Bunit::canonical() const {
   }
   if (px_power != 0) {
     if (!s.empty()) s += "/";
-    s += "px";
+    s += "sr";
     if (px_power != 1) s += "^" + std::to_string(px_power);
   }
   return s;
@@ -74,10 +74,10 @@ Bunit bunit_square(const Bunit& a) { return bunit_mul(a, a); }
 Bunit bunit_inverse(const Bunit& a) { return Bunit{-a.adu_power, -a.px_power}; }
 
 namespace units {
-const Bunit signal_sb{1, -2};          // ADU/px^2
+const Bunit signal_sb{1, -2};          // ADU/sr
 const Bunit pixel_variance_in{2, 0};   // ADU^2
-const Bunit sb_variance_out{2, -4};    // ADU^2/px^4
-const Bunit sb_ivar_out{-2, 4};        // px^4/ADU^2
+const Bunit sb_variance_out{2, -4};    // ADU^2/sr^2
+const Bunit sb_ivar_out{-2, 4};        // sr^2/ADU^2
 const Bunit w_info{-2, 0};             // ADU^-2
 const Bunit q_stat{-1, 0};             // ADU^-1
 const Bunit flux{1, 0};                // ADU
@@ -111,12 +111,16 @@ bool parse_bunit_string(const std::string& s, Bunit* out) {
   if (slash != std::string::npos) {
     left = t.substr(0, slash);
     std::string right = t.substr(slash + 1);
-    // right 必须是 px 或 px^N
-    if (right.rfind("px", 0) != 0) return false;
-    if (right.size() == 2) {
+    // right 必须是 sr 或 sr^N（legacy "px"/"pixel" 读侧别名同幂次）
+    const bool is_sr = right.rfind("sr", 0) == 0;
+    const bool is_px = right.rfind("px", 0) == 0;
+    const bool is_pixel = right.rfind("pixel", 0) == 0;
+    if (!is_sr && !is_px && !is_pixel) return false;
+    const std::size_t sym_len = is_sr ? 2 : (is_px ? 2 : 5);
+    if (right.size() == sym_len) {
       px = 1;
-    } else if (right.size() > 3 && right[2] == '^') {
-      try { px = std::stoi(right.substr(3)); } catch (...) { return false; }
+    } else if (right.size() > sym_len + 1 && right[sym_len] == '^') {
+      try { px = std::stoi(right.substr(sym_len + 1)); } catch (...) { return false; }
     } else {
       return false;
     }
@@ -138,7 +142,7 @@ BunitResolution resolve_bunit(const std::string& bunit_str, const BunitProvenanc
   BunitResolution r;
   Bunit parsed;
   if (parse_bunit_string(bunit_str, &parsed)) {
-    // (a) 显式含 px 幂次 → 恒可判
+    // (a) 显式含立体角幂次 → 恒可判
     if (parsed.px_power != 0) {
       r.resolvable = true;
       r.resolved = parsed;

@@ -286,9 +286,11 @@ P3ResampleStatus p3_sampler_open_ex(const char* product_dir, P3Sampler* out,
     s->leaf_nside = kTileWidth << p.order;
     s->root = product_dir;
     out->impl = s;
-    // 暴露输入实际 order 与 BUNIT(缺省 ADU, 绝不 Jy/beam)
+    // 暴露输入实际 order 与 BUNIT(缺省 ADU/sr, 绝不 Jy/beam)
     if (out_order) *out_order = p.order;
-    if (out_bunit) *out_bunit = p.bunit.empty() ? std::string("ADU") : p.bunit;
+    // 采样值 = 输入 HiPS tile 值的凸组合 ⇒ 与输入同单位（面亮度，canonical "ADU/sr"，
+    // DATA_SEMANTICS §29.3/§31.1a）；缺省串取该平面物理单位，禁裸 ADU（每像素口径）。
+    if (out_bunit) *out_bunit = p.bunit.empty() ? std::string("ADU/sr") : p.bunit;
     return P3_RS_OK;
 }
 P3ResampleStatus p3_sample_nearest(P3Sampler* s, double ra_deg, double dec_deg,

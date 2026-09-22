@@ -647,7 +647,7 @@ const std::vector<std::string>& forbidden_psfsw_product_keys() {
     static const std::vector<std::string> keys = {
         "ivar", "inverse_variance", "variance", "var", "sigma", "sigma2",
         "fisher", "fisher_information", "information", "w_info", "w_psf",
-        /* 扩展守卫 (docs/contracts/v6/frozen/02_WEIGHT_MODE_VOCABULARY.md §3 登记) */
+        /* 扩展守卫 (eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary §3 登记) */
         "snr", "snr2", "support", "coverage"};
     return keys;
 }
@@ -662,9 +662,12 @@ const std::vector<std::string>& forbidden_weight_source_aliases() {
     return aliases;
 }
 
+/* 现行生产模式接受集（FZ-MODE-PRODUCTION）：{point_information, surface_gls}。
+ * 与 coverage.cpp 的 p2_weight_mode_check 与 v6_runtime_contract.h 的
+ * route_phase2_mode **同口径**（同一对象在权威链上只能有一个身份）。 */
 const std::vector<std::string>& production_weight_modes() {
     static const std::vector<std::string> modes = {
-        "point_information", "surface_gls", "psfsw_robust"};
+        "point_information", "surface_gls"};
     return modes;
 }
 
@@ -672,6 +675,34 @@ bool is_production_weight_mode(const std::string& mode) {
     for (const auto& m : production_weight_modes())
         if (m == mode) return true;
     return false;
+}
+
+/* ── FZ-MODE-RETIRED：退役对象 psfsw_robust_weight 的显式拒绝说明（单一事实源） ──
+ * WHAT:  weight_mode token "psfsw_robust" 是**退役对象** psfsw_robust_weight 的声明面。
+ * WHY:   负责人裁决「只要纯净信号/噪声的信噪比。要求跨帧可用，不基于参考帧。而是
+ *        绝对标定。」⇒ ASTROCS_DESIGN.md §3.1（订正后）：权重只能来自纯净信号与噪声
+ *        之比（逆方差），任何使偏差随帧而变的量（含 PSF 拟合质量代理）不得进入科学
+ *        叠加权重；docs/design/UNIFIED_MODEL.md:58（旧产品声明该对象 ⇒ 显式拒绝 +
+ *        迁移提示，不得静默接受）；docs/science/PSF_SIGNAL_WEIGHT.md §1/§4。
+ * 口径:  与 coverage.cpp / v6_runtime_contract.h 同口径 ——
+ *        is_production_weight_mode("psfsw_robust") == **false**（不再声称它是生产
+ *        模式），但本文件保留"能识别 + 给迁移提示"的**拒绝面**（下面两个函数）：
+ *        任何接受面都不得放行该 token。 */
+const char* kRetiredWeightModeToken = "psfsw_robust";
+
+bool is_retired_weight_mode_token(const std::string& mode) {
+    return mode == kRetiredWeightModeToken;
+}
+
+std::string retired_weight_mode_reject_reason(const std::string& mode) {
+    if (!is_retired_weight_mode_token(mode)) return std::string();
+    return std::string("FZ-MODE-RETIRED: '") + mode +
+           "' rejected - psfsw_robust_weight is not a current object "
+           "(ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); "
+           "allowed production modes: point_information | surface_gls; "
+           "migration: point_information (W_info=1/Var(F_hat)) for point "
+           "sources, surface_gls (A^T C^-1 A) for extended sources; "
+           "PSF quality proxies (FWHM/residual) are diagnostics only";
 }
 
 namespace {
@@ -723,11 +754,21 @@ NCommonTier tier_from_record(const PsfswRecord& rec) {
 RecordValidation validate_psfsw_record(const PsfswRecord& rec) {
     RecordValidation v;
 
-    /* G01 模式在生产列表且为 psfsw_robust */
-    if (!is_production_weight_mode(rec.weight_mode)) {
+    /* G01 模式身份（PSFSW-RETIRE-03 口径统一）：
+     *   ① 退役 token "psfsw_robust"：本记录族（历史 psfsw 记录）的唯一合法身份，
+     *      能识别并给迁移提示（is_retired_weight_mode_token /
+     *      retired_weight_mode_reject_reason），但**不再声称它是生产模式**
+     *      （is_production_weight_mode 为 false）；退役处置由拒绝面 API 承担，
+     *      记录门不据此 fail（该记录族本身即历史/诊断面）。
+     *   ② 其余（含现行生产模式与未知值）→ G01（记录族身份不符）。 */
+    if (is_retired_weight_mode_token(rec.weight_mode)) {
+        /* 历史 psfsw 记录族身份成立（见上 ①）。 */
+    } else if (is_production_weight_mode(rec.weight_mode)) {
+        add_finding(v, "PSFSW-G01",
+                    "psfsw record must declare retired token psfsw_robust, got: " +
+                        rec.weight_mode);
+    } else {
         add_finding(v, "PSFSW-G01", "weight_mode not in production set: " + rec.weight_mode);
-    } else if (rec.weight_mode != "psfsw_robust") {
-        add_finding(v, "PSFSW-G01", "psfsw record must declare weight_mode=psfsw_robust");
     }
 
     /* G02 无量纲 + 禁 flux^-2/ivar 词 */

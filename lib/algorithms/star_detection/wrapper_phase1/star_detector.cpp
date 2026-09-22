@@ -68,7 +68,7 @@ StarDetector::StarDetector(double detection_sigma) : detection_sigma_(detection_
 //             ③ 若将来决定统一 σ 口径（改调 1.4826·MAD）⇒ 必须先做数值等价验证并同步
 //                p1_sources.json / p1_snr 的容差与基线，不得直接替换。
 // AUTHORITY:  ENGINEERING_SPEC.md §2（历史实现处置：保留则注释）/§3（科学代码红线）；
-//             工程控制/RELEASE-04/GAP_AUDIT.md G2-3；
+//             RELEASE-04 GAP_AUDIT G2-3（包已出库）；
 //             实验证据 run/CLEAN-401/third_sigma/{README.md,verify.log,results/metrics.json}；
 //             docs/science/NOISE_MODEL.md:46（冻结的 σ_bg=1.4826·MAD 仍是注册口径，未改）。
 // ──────────────────────────────────────────────────────────────────────

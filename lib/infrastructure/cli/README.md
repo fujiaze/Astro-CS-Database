@@ -2,7 +2,7 @@
 
 ## 1. 职责与边界
 
-AstroCS **唯一可执行入口** `astrocs`（Windows 交付名 `ACSD Cli.exe`）的命令编排层：
+AstroCS **唯一可执行入口** `astrocs`（Windows 交付名 `astrocs.exe`）的命令编排层：
 
 - **职责**（薄入口，ASTROCS_DESIGN §6.1）：命令解析、配置预检、模板生成、运行确认、
   机器输出（`--json` 下 stdout 恰一个 JSON 文档）、JSONL 事件、取消与退出码；

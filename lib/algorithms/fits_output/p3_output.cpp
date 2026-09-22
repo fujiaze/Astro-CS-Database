@@ -54,7 +54,7 @@ std::string g_last_err;
 // 报 Datasum verification failed），已删除。
 // FIX-402 (FZ-P3-BUNIT-QUADRATIC / docs/contracts/DATA_SEMANTICS.md §31.1 §1):
 // variance BUNIT = (signal BUNIT)^2, ivar = 1/variance —— 用**冻结单位表的 canonical
-// 串**（ADU^a/px^p 幂次代数），禁朴素字符串拼接（"ADU/px^2" + "^2" = "ADU/px^2^2"
+// 串**（ADU^a/px^p 幂次代数），禁朴素字符串拼接（"ADU/sr" + "^2" = "ADU/sr^2"
 // 既非 canonical 也不可判）。解析失败 → false（调用方显式拒绝，禁写出非二次律 BUNIT）。
 bool bunit_square_canonical(const std::string& signal, std::string* variance,
                             std::string* ivar) {
@@ -74,8 +74,8 @@ bool bunit_square_canonical(const std::string& signal, std::string* variance,
         }
         return false;
     };
-    // 冻结表书写形式（分母正幂次）: {+1,-2} → "ADU/px^2"; {+2,-4} → "ADU^2/px^4";
-    // {-2,+4} → "px^4/ADU^2"; {+1,0} → "ADU"; {-2,0} → "ADU^-2"。
+    // 冻结表书写形式（分母正幂次）: {+1,-2} → "ADU/sr"; {+2,-4} → "ADU^2/sr^2";
+    // {-2,+4} → "sr^2/ADU^2"; {+1,0} → "ADU"; {-2,0} → "ADU^-2"。
     auto canon = [](int adu, int px) -> std::string {
         if (adu == 0 && px == 0) return "1";
         if (adu > 0) {
@@ -264,7 +264,10 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
         double bscale = 1.0, bzero = 0.0;
         fits_write_key(f, TDOUBLE, (char*)"BSCALE", &bscale, nullptr, &status);
         fits_write_key(f, TDOUBLE, (char*)"BZERO", &bzero, nullptr, &status);
-        const char* unit = bunit ? bunit : "ADU";
+        // 主 HDU = 重采样后的**面亮度**平面（§27.1/§29.3），单位口径见
+        // DATA_SEMANTICS §31.1a；缺省串取该平面的物理单位 canonical "ADU/sr"
+        // （裸 "ADU" 是每像素计数口径，与本平面数值不符且量纲不可判）。
+        const char* unit = (bunit && *bunit) ? bunit : "ADU/sr";
         fits_write_key(f, TSTRING, (char*)"BUNIT", (void*)unit, nullptr, &status);
     }
     if (prov) {
@@ -331,7 +334,7 @@ P3OutputStatus p3_output_write_atomic_ex(const float* signal, const float* cover
     // VARIANCE (BUNIT=<BUNIT>^2) + IVAR (BUNIT=1/(<BUNIT>^2)), DATASUM 逐 HDU;
     // 与主/扩展 HDU 同一原子发布序 (取消不落盘语义由上方 cancelled 分支保持)。
     if (variance && ivar) {
-        const char* unit = (bunit && *bunit) ? bunit : "ADU";
+        const char* unit = (bunit && *bunit) ? bunit : "ADU/sr";
         // FIX-402: 二次律 canonical 推导（FZ-P3-BUNIT-QUADRATIC）; 单位不在冻结
         // 表内 → 显式拒绝, 不写出不可判的 variance BUNIT。
         std::string var_bunit, ivar_bunit;

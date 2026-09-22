@@ -1936,7 +1936,7 @@ int p2_upm_close(void* model) {
 
 // ===========================================================================
 // V6 目标态：UPM 乘法/加性分离求解器（ALG-P2S-UPM.1..8）
-// 见 lib/algorithms/coverage/include/astro/phase2/upm.h 顶部契约与 docs/contracts/v6/frozen。
+// 见 lib/algorithms/coverage/include/astro/phase2/upm.h 顶部契约与 docs/contracts/DATA_SEMANTICS.md §31。
 // ===========================================================================
 namespace {
 

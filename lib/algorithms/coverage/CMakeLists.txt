@@ -148,6 +148,31 @@ if(GTest_FOUND)
     # hard fail 的共址回归门（正例 + 负例，能红能绿）。
     add_executable(phase2_rej_nonfinite_weights tests/rejection_nonfinite_weights_test.cpp)
     target_link_libraries(phase2_rej_nonfinite_weights PRIVATE phase2 GTest::gtest_main)
+
+    # ── PSFSW-RETIRE-01（负责人裁决）：退役对象负例门（能红能绿） ──────────
+    # ① 生产模式门 + 运行面路由：psfsw_robust 必须显式拒绝（不得静默接受）。
+    add_executable(phase2_coverage_mode_retire tests/weight_mode_retire_negative_test.cpp)
+    target_include_directories(phase2_coverage_mode_retire PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../infrastructure/cli)
+    # coverage.cpp 的 inspect_frame 走 aio_hips_* ⇒ 与 phase2_synthetic_gate 同口径
+    # 需要 AIO 链接面（P2_AIO_LINK）。
+    target_link_libraries(phase2_coverage_mode_retire PRIVATE phase2 GTest::gtest_main
+        ${P2_AIO_LINK})
+
+    # ② 退役对象拒绝面（resample variance_from / calibration variance_from /
+    #    drizzle 单位符号）：被测生产源直接编译，避免与 phase2 的重复符号面
+    #    （astrocs_p3_rsmp 已链 astrocs_common/aio/hips/hips_properties）。
+    #    注：本任务写域不含 eng/tests/**，故负例登记在 coverage 模块共址测试位。
+    add_executable(p3_rsmp_retired_object_negative
+        tests/retired_object_reject_negative_test.cpp
+        ${CMAKE_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle/v6_drizzle_science.cpp
+        ${CMAKE_SOURCE_DIR}/lib/algorithms/calibration/src/v6_calibration_covariance.cpp)
+    target_include_directories(p3_rsmp_retired_object_negative PRIVATE
+        ${CMAKE_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle
+        ${CMAKE_SOURCE_DIR}/lib/algorithms/calibration/include)
+    target_link_libraries(p3_rsmp_retired_object_negative PRIVATE
+        astrocs_p3_rsmp GTest::gtest_main)
+
     include(GoogleTest)
     # V3 B3-A4: 每个 Phase2 门的发现测试统一加 TEST_PREFIX "phase2_<gate>."，
     # 使全量 ctest 中的 Phase2 科学门可归因、可 grep（"ctest -N | grep -i
@@ -169,6 +194,10 @@ if(GTest_FOUND)
         TEST_PREFIX "phase2_sampler.")
     gtest_discover_tests(phase2_rej_nonfinite_weights DISCOVERY_MODE PRE_TEST
         TEST_PREFIX "phase2_rej_nonfinite_weights.")
+    gtest_discover_tests(phase2_coverage_mode_retire DISCOVERY_MODE PRE_TEST
+        TEST_PREFIX "phase2_coverage_mode_retire.")
+    gtest_discover_tests(p3_rsmp_retired_object_negative DISCOVERY_MODE PRE_TEST
+        TEST_PREFIX "p3_rsmp_retired_object_negative.")
 endif()
 
 # BLD-002: 以下工具降级为 compatibility (EXCLUDE_FROM_ALL) —— 非正式 ALL target,

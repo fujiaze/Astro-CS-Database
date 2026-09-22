@@ -19,8 +19,8 @@
 
 ```
 <target_dir>/
-  science.fits          # PRIMARY=signal_sb(ADU/px^2) + SUPPORT(px^2)
-                        # + VARIANCE(ADU^2/px^4) + IVAR(px^4/ADU^2)
+  science.fits          # PRIMARY=signal_sb(ADU/sr) + SUPPORT(px^2)
+                        # + VARIANCE(ADU^2/sr^2) + IVAR(sr^2/ADU^2)
   phase1_product.json   # 复合记录（见下）
 ```
 
@@ -39,8 +39,8 @@
 
 ## 冻结口径（逐条）
 
-- 单位：`signal_sb=ADU/px^2`、`pixel_variance_in=ADU^2`、`sb_variance_out=ADU^2/px^4`、
-  `sb_ivar_out=px^4/ADU^2`、`W_info=ADU^-2`、`Q=ADU^-1`、`flux=ADU`、`psfsw=1`。
+- 单位：`signal_sb=ADU/sr`、`pixel_variance_in=ADU^2`、`sb_variance_out=ADU^2/sr^2`、
+  `sb_ivar_out=sr^2/ADU^2`、`W_info=ADU^-2`、`Q=ADU^-1`、`flux=ADU`、`psfsw=1`。
 - BUNIT 量纲可判 + **二次律** `variance = signal^2`、`ivar = 1/variance`。
 - 权重词表单源（W6 canonical）：`weight.kind="psfsw_robust_weight"`、`units="1"`、
   `group_normalized=true`、`normalization.scope="group"`、`median_target=1.0`、

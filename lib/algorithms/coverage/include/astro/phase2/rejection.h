@@ -447,7 +447,7 @@ P2_API int p2_reject_stack(const P2SampleStackView* in, P2RejectionResult* out);
 //
 // 语义：
 // - 阈值使用**预测残差方差** sigma_eff^2 = sigma_phase1^2 + J C_theta J^T
-//   （单位：signal ADU/px^2，variance ADU^2/px^4）。禁止用裸原始残差
+//   （单位：signal ADU/sr，variance ADU^2/sr^2）。禁止用裸原始残差
 //   （未含 UPM 参数不确定度）作阈值（ALG-P2S-REJ.3，fail-closed）。
 // - 每样本输出 reason（4 继承：accepted/rejected_low/rejected_high/
 //   underdetermined）+ reason_class（6 污染类，与拒绝方向正交，
@@ -525,7 +525,7 @@ typedef struct {
 } P2RejectClassifyConfig;
 
 // 每样本证据（判据域；调用方从像素邻域/跨帧/UPM 残差计算）。
-// residual/sigma_phase1 单位 ADU/px^2；upm_variance 单位 ADU^2/px^4。
+// residual/sigma_phase1 单位 ADU/sr；upm_variance 单位 ADU^2/sr^2。
 typedef struct {
     const double* residual;          // r = d - model
     const double* sigma_phase1;      // sigma_phase1

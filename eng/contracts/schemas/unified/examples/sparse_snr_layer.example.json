@@ -29,6 +29,13 @@
     "generated_utc": "2026-09-16T00:00:00Z"
   },
   "sparse_snr_semantics": "absolute_flux_type_snr",
+  "reconstruction_operator": "natural_bicubic_spline_clip_v1",
+  "control_point_geometry": {
+    "spacing_px": 64,
+    "node_placement": "cell_center_v1",
+    "origin_x": 0,
+    "origin_y": 0
+  },
   "control_points": [
     {
       "x": 12.0,

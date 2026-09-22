@@ -251,6 +251,174 @@ inline void o7_set_f32_accum_env(bool on) {
 #endif
 }
 
+// ---------------------------------------------------------------------------
+// O8 (MEM-DESIGN-01) 稀疏分块累加器: 逐位等价 + 增量式写出 + 能红能绿
+// ---------------------------------------------------------------------------
+// 判别面 (为什么这样取参数):
+//   fixture K=4 (nside=2^13), 叶 tile 0..15 连续 + 32,33:
+//     · level3 cell 0..3 各 4 槽 ⇒ 写满 16 叶后**齐备** ⇒ 必须已流式写出;
+//     · level2 cell 0 (16 槽) 亦齐备; level1 (64 槽) / level0 (256 槽) 不齐备
+//       ⇒ 必须留到 finalize;
+//     · 叶 32,33 ⇒ level3 cell 8 部分覆盖 (不齐备) ⇒ 与"齐备即写出"形成对照。
+//   非退化前提: 若流式写出被关闭 (或判据恒真), (b) 段的结构断言必须判红 ——
+//   由 ASTROCS_HIPS_HIER_FAULT=dense_blocks (等价修复前"稠密分配 + 不流式"
+//   语义) 注入实测。
+//   (a) 段: 稀疏+流式 与 稠密+不流式 两棵产品树**逐文件逐字节**一致 ⇒
+//   稀疏化/流式化不改变任何一次浮点运算与任何落盘字节。
+constexpr std::uint32_t O8_TILE_ORDER = 4;                    // K=4
+constexpr std::uint32_t O8_LEAF_ORDER = O8_TILE_ORDER + 9u;   // L=13
+constexpr std::uint32_t O8_NSIDE = 1u << O8_LEAF_ORDER;       // 8192
+
+struct O8Fix {
+    std::vector<float> flux_f, area_f, var_f;
+    AstroSphereTileView view{};
+};
+
+inline O8Fix o8_make_tile(std::uint64_t parent_ipix, std::uint64_t seed) {
+    O8Fix f;
+    aio_hips_tile_view_abi_init(&f.view);
+    const double a_cell = fix_a_cell_sr(O8_NSIDE);
+    SplitMix64 rng(seed);
+    f.flux_f.resize(FIX_NPIX);
+    f.area_f.resize(FIX_NPIX);
+    f.var_f.resize(FIX_NPIX);
+    for (std::size_t i = 0; i < FIX_NPIX; ++i) {
+        const double u = rng.unit();
+        double cov = 0.0, sig = 0.0, vn = 0.0;
+        if (u >= 0.05) {                       // 5% 零覆盖 (跳过路径)
+            cov = 0.15 + 0.25 * rng.unit();
+            sig = 0.5 + 2.5 * rng.unit();
+            vn = 0.01 + 0.5 * rng.unit();
+            if (u < 0.07) sig = std::nan("");   // 2% 非有限通量 (有限性分支)
+        }
+        const double a = cov * a_cell;
+        f.area_f[i] = (float)a;
+        f.flux_f[i] = (float)(sig * a);
+        f.var_f[i] = (float)vn;
+    }
+    f.view.parent_ipix = parent_ipix;
+    f.view.leaf_order = O8_LEAF_ORDER;
+    f.view.width = 512;
+    f.view.data_type = AIO_HIPS_FLOAT32;
+    f.view.flux_sum = f.flux_f.data();
+    f.view.covered_area = f.area_f.data();
+    f.view.valid_mask = nullptr;
+    f.view.var_num_sum = f.var_f.data();
+    return f;
+}
+
+inline void o8_rebind(std::vector<O8Fix>& v) {
+    for (auto& f : v) {
+        f.view.flux_sum = f.flux_f.data();
+        f.view.covered_area = f.area_f.data();
+        f.view.var_num_sum = f.var_f.data();
+    }
+}
+
+inline bool o8_file_exists(const std::string& p) {
+    struct stat st;
+    return ::stat(p.c_str(), &st) == 0 && S_ISREG(st.st_mode);
+}
+
+// 写一个 O8 产品: flags 决定是否含 variance/ivar (两条流式写出触发点都要覆盖)。
+// stop_after >= 0 时只写前 stop_after 个叶 tile; do_finalize=false 时把句柄交给
+// keep_open (调用方自行 finalize/abort) —— 用于"finalize 之前"的结构断言。
+inline bool o8_write_product(const std::string& dir, std::vector<O8Fix>& tiles, int flags,
+                             std::string& err, int stop_after = -1,
+                             long* rss_after_leaves = nullptr,
+                             bool do_finalize = true,
+                             AioHipsProductSet** keep_open = nullptr) {
+    AioHipsProductSet* ps = aio_hips_product_begin(
+        dir.c_str(), O8_NSIDE, 512, AIO_HIPS_FLOAT32, flags,
+        "ivo://astrocs/test/p1hips", "o8", nullptr, 0.0, "2026-09-22T00:00:00Z", 0);
+    if (!ps) { err = aio_hips_last_error(); return false; }
+    const int n = (stop_after < 0) ? (int)tiles.size() : stop_after;
+    for (int t = 0; t < n; ++t) {
+        const int rc = aio_hips_write_signal_support_tile(ps, &tiles[(size_t)t].view);
+        if (rc != 0) { err = aio_hips_last_error(); aio_hips_abort(ps); return false; }
+        if (flags & (AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR)) {
+            const int vrc = aio_hips_write_variance_tile(ps, &tiles[(size_t)t].view);
+            if (vrc != 0 && vrc != -5 && vrc != -2) {
+                err = aio_hips_last_error(); aio_hips_abort(ps); return false;
+            }
+        }
+    }
+    if (rss_after_leaves) *rss_after_leaves = o7_rss_kb();
+    if (!do_finalize) { if (keep_open) *keep_open = ps; return true; }
+    const int frc = aio_hips_finalize(ps);
+    if (frc != 0) { err = aio_hips_last_error(); return false; }
+    return true;
+}
+
+// 逐文件字节比较 (相对路径集合 + 每文件逐字节)。返回空串 = 完全一致。
+//   skip — 相对路径命中任一子串则跳过 (properties 含 UTC 时间戳, 合同上不跨运行复现)
+//   only — 非空时只比较命中该子串的路径 (用于定位差异出现在叶面还是层级面)
+inline std::string o8_tree_diff(const std::string& a, const std::string& b,
+                                const std::vector<std::string>& skip, const char* only,
+                                std::size_t* n_cmp, std::size_t* n_skip) {
+    std::vector<std::string> fa, fb;
+    walk_dir(a, fa);
+    walk_dir(b, fb);
+    const std::string ra = a + "/", rb = b + "/";
+    std::vector<std::string> rel_a, rel_b;
+    for (const auto& f : fa)
+        if (f.rfind(ra, 0) == 0) rel_a.push_back(f.substr(ra.size()));
+    for (const auto& f : fb)
+        if (f.rfind(rb, 0) == 0) rel_b.push_back(f.substr(rb.size()));
+    std::sort(rel_a.begin(), rel_a.end());
+    std::sort(rel_b.begin(), rel_b.end());
+    std::size_t cmp = 0, skp = 0;
+    auto wanted = [&](const std::string& r) {
+        if (only && *only && r.find(only) == std::string::npos) return false;
+        for (const auto& s : skip)
+            if (r.find(s) != std::string::npos) return false;
+        return true;
+    };
+    std::vector<std::string> wa, wb;
+    for (const auto& r : rel_a) { if (wanted(r)) wa.push_back(r); else ++skp; }
+    for (const auto& r : rel_b) if (wanted(r)) wb.push_back(r);
+    if (wa.size() != wb.size())
+        return "可比文件数不同: " + std::to_string(wa.size()) + " vs " + std::to_string(wb.size());
+    for (std::size_t i = 0; i < wa.size(); ++i) {
+        if (wa[i] != wb[i]) return "路径集合不同: " + wa[i] + " vs " + wb[i];
+        FILE* x = std::fopen((a + "/" + wa[i]).c_str(), "rb");
+        FILE* y = std::fopen((b + "/" + wb[i]).c_str(), "rb");
+        if (!x || !y) { if (x) std::fclose(x); if (y) std::fclose(y); return "打开失败: " + wa[i]; }
+        std::size_t off = 0;
+        bool diff = false;
+        for (;;) {
+            unsigned char bx[65536], by[65536];
+            const std::size_t nx = std::fread(bx, 1, sizeof(bx), x);
+            const std::size_t ny = std::fread(by, 1, sizeof(by), y);
+            if (nx != ny) { diff = true; break; }
+            if (nx == 0) break;
+            if (std::memcmp(bx, by, nx) != 0) {
+                for (std::size_t k = 0; k < nx; ++k)
+                    if (bx[k] != by[k]) { off += k; break; }
+                diff = true;
+                break;
+            }
+            off += nx;
+        }
+        std::fclose(x); std::fclose(y);
+        if (diff) return "字节不同: " + wa[i] + " @" + std::to_string(off);
+        ++cmp;
+    }
+    if (n_cmp) *n_cmp = cmp;
+    if (n_skip) *n_skip = skp;
+    return std::string();
+}
+
+// 环境变量注入面切换 (ASTROCS_HIPS_HIER_FAULT)
+inline void o8_set_hier_fault(const char* val) {
+#if defined(_WIN32)
+    _putenv_s("ASTROCS_HIPS_HIER_FAULT", val ? val : "");
+#else
+    if (val) setenv("ASTROCS_HIPS_HIER_FAULT", val, 1);
+    else     unsetenv("ASTROCS_HIPS_HIER_FAULT");
+#endif
+}
+
 }  // namespace
 
 namespace p1hips {
@@ -528,24 +696,62 @@ int test_oracle() {
         // 本 fixture 被填充祖先 cell = K = 10 (每层 A=0 一个) ⇒ +31.5 MB。
         // 实测与产品级外推见 run/FIX-403/REPORT.md §2 (如实登记: 该增量与
         // "覆盖区叶级稠密面"同量级偏大, 只在"全天空叶级稠密面"口径下远小于)。
+        // 内存判据 (MEM-DESIGN-01 稀疏化后重写解析模型; 见 run/MEM-DESIGN-01/REPORT.md):
+        //   fixture 结构: K=10, 2 个叶 tile (parent 0/1) 同属每层 A=0; 层 k 的 dk=10-k,
+        //   叶槽 s∈{0,1} 覆盖 z 区间 ⇒ 该层触碰子块数 = 2·max(1, 2^(18-2dk)/4096)。
+        //   稀疏解析量 = Σ_k 触碰块 × 4096 × 8 B × 2 通道 (SIGNAL|SUPPORT, 无 var 通道)。
+        //   稠密解析量 = 10 cell × 3 通道 × 262144 × 8 B (修复后稠密 f64 轨; 修复前
+        //   f32 轨为其一半)。
         {
             const long cells = (long)O7_TILE_ORDER;   // 每层 1 个 (A=0)
             const long b_f32 = cells * 3L * (long)FIX_NPIX * 4L;
             const long b_f64 = cells * 3L * (long)FIX_NPIX * 8L;
-            std::printf("[o7-mem] ancestor_cells=%ld f32_track=%ld B f64_track=%ld B "
-                        "delta=+%ld B (%.3f MB) rss0=%ld kB rss1=%ld kB rss_delta=%ld kB\n",
-                        cells, b_f32, b_f64, b_f64 - b_f32,
-                        (double)(b_f64 - b_f32) / 1048576.0, rss0, rss1,
+            long blk_per_chan = 0;
+            for (int dk = 1; dk <= (int)O7_TILE_ORDER; ++dk) {
+                const long span = 1L << (18 - 2 * dk);        // s=0 覆盖的 z 元素数
+                const long nb = (span >= 4096L) ? (span / 4096L) : 1L;
+                blk_per_chan += 2L * nb;                      // s∈{0,1}
+            }
+            const long b_sparse = blk_per_chan * 2L * 4096L * 8L;   // 2 通道
+            std::printf("[o7-mem] ancestor_cells=%ld dense_f64_track=%ld B dense_f32_track=%ld B "
+                        "sparse_blocks_per_chan=%ld sparse_bytes=%ld B (%.3f MB) "
+                        "rss0=%ld kB rss1=%ld kB rss_delta=%ld kB\n",
+                        cells, b_f64, b_f32, blk_per_chan, b_sparse,
+                        (double)b_sparse / 1048576.0, rss0, rss1,
                         (rss0 > 0 && rss1 > 0) ? (rss1 - rss0) : -1L);
-            // 下界断言 (非退化): 观测点 RSS 增量必须 ≥ 解析 f64 轨增量的 50%
-            // —— 证明累加器确实被分配 (注入/回退到"零分配"实现即判红);
-            // 分配器/页粒度噪声留 2× 余量, 跨上下文实测 49~80 MB (阈值 15.7 MB)。
-            if (rss0 > 0 && rss1 > 0)
+            if (rss0 > 0 && rss1 > 0) {
+                // 下界 (非退化): RSS 增量 ≥ 稀疏解析量的 50% —— 证明累加器确实被
+                // 分配 ("零分配"伪实现即判红)。
                 P1HIPS_CHECK_MSG(cs,
-                                 (rss1 - rss0) * 1024L >= (b_f64 - b_f32) / 2L,
-                                 "o7_mem_f64_accumulator_present",
-                                 "RSS 增量 %ld kB 低于 f64 累加器解析增量的 50%% (%ld B)",
-                                 rss1 - rss0, (b_f64 - b_f32) / 2L);
+                                 (rss1 - rss0) * 1024L >= b_sparse / 2L,
+                                 "o7_mem_sparse_accumulator_present",
+                                 "RSS 增量 %ld kB 低于稀疏累加器解析量的 50%% (%ld B)",
+                                 rss1 - rss0, b_sparse / 2L);
+                // 上界 (非退化): RSS 增量 ≤ 稠密 f64 轨的 50% —— 证明"每祖先 cell
+                // 一整张 512×512"的稠密分配确已消失 (回退稠密即判红)。
+                P1HIPS_CHECK_MSG(cs,
+                                 (rss1 - rss0) * 1024L <= b_f64 / 2L,
+                                 "o7_mem_dense_track_gone",
+                                 "RSS 增量 %ld kB 超过稠密 f64 轨的 50%% (%ld B) —— "
+                                 "稠密分配未消除", rss1 - rss0, b_f64 / 2L);
+            }
+            // 能红: 同一 fixture 走 dense_blocks 注入 (= 修复前稠密分配 + 不流式
+            // 写出) ⇒ 上界判据必须判红, 否则上界恒真无判别力。
+            o8_set_hier_fault("dense_blocks");
+            const std::string dir_dm = make_tmp_dir("o7mem");
+            long rss1d = -1;
+            std::string errm;
+            const bool wokd = o7_write_product(dir_dm, tiles, errm, &rss1d);
+            o8_set_hier_fault(nullptr);
+            P1HIPS_CHECK_MSG(cs, wokd, "o7_mem_dense_write", "稠密注入写出失败: %s", errm.c_str());
+            if (rss0 > 0 && rss1d > 0) {
+                std::printf("[o7-mem-neg] dense_blocks rss_delta=%ld kB (上界阈值 %ld B)\n",
+                            rss1d - rss0, b_f64 / 2L);
+                P1HIPS_CHECK_MSG(cs, (rss1d - rss0) * 1024L > b_f64 / 2L,
+                                 "o7_mem_dense_bound_must_be_red",
+                                 "稠密注入下 RSS 增量 %ld kB 未越上界 %ld B ⇒ 内存判据退化",
+                                 rss1d - rss0, b_f64 / 2L);
+            }
         }
         O7Result base;
         if (wok) {
@@ -624,8 +830,188 @@ int test_oracle() {
         }
     }
 
+    // --- O8 (MEM-DESIGN-01): 稀疏分块累加器逐位等价 + 增量式写出 + 能红能绿
+    {
+        const std::vector<std::string> skip_props{"properties"};
+        // fixture: 叶 0..15 连续 (level3 cell0..3 各 4 槽齐备, level2 cell0 16 槽齐备)
+        //          + 叶 32,33 (level3 cell8 部分覆盖)
+        std::vector<O8Fix> tiles;
+        tiles.reserve(18);
+        for (int p = 0; p < 16; ++p)
+            tiles.push_back(o8_make_tile((std::uint64_t)p,
+                                         0x0E8A0000ULL + (std::uint64_t)p));
+        tiles.push_back(o8_make_tile(32, 0x0E8A0032ULL));
+        tiles.push_back(o8_make_tile(33, 0x0E8A0033ULL));
+        o8_rebind(tiles);
+
+        // (b) 结构判据: 增量式写出 —— 叶槽齐备的祖先 cell 必须在 finalize **之前**
+        // 已落盘, 未齐备的必须尚未落盘 (对照 finalize 之后补齐)。
+        {
+            const std::string dir = make_tmp_dir("o8struct");
+            AioHipsProductSet* ps = aio_hips_product_begin(
+                dir.c_str(), O8_NSIDE, 512, AIO_HIPS_FLOAT32,
+                AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
+                "ivo://astrocs/test/p1hips", "o8", nullptr, 0.0,
+                "2026-09-22T00:00:00Z", 0);
+            P1HIPS_CHECK_MSG(cs, ps != nullptr, "o8_struct_begin",
+                             "product_begin 失败: %s", aio_hips_last_error());
+            if (ps) {
+                bool wok = true;
+                for (int t = 0; t < 16 && wok; ++t)
+                    wok = (aio_hips_write_signal_support_tile(ps, &tiles[(std::size_t)t].view) == 0);
+                P1HIPS_CHECK_MSG(cs, wok, "o8_struct_partial_write", "前 16 叶写出失败");
+                for (int c = 0; c < 4; ++c)
+                    P1HIPS_CHECK_MSG(cs,
+                                     o8_file_exists(o7_tile_path(dir, "signal", 3, (std::uint64_t)c)),
+                                     "o8_stream_level3_written",
+                                     "Norder3 cell%d 叶槽齐备却未在 finalize 前写出 "
+                                     "(增量式写出失效)", c);
+                P1HIPS_CHECK_MSG(cs, o8_file_exists(o7_tile_path(dir, "signal", 2, 0)),
+                                 "o8_stream_level2_written",
+                                 "Norder2 cell0 (16 槽齐备) 未在 finalize 前写出");
+                P1HIPS_CHECK_MSG(cs, !o8_file_exists(o7_tile_path(dir, "signal", 1, 0)),
+                                 "o8_stream_level1_deferred",
+                                 "Norder1 cell0 仅 16/64 槽却已写出 (提前写出 = 数值必错)");
+                P1HIPS_CHECK_MSG(cs, !o8_file_exists(o7_tile_path(dir, "signal", 0, 0)),
+                                 "o8_stream_level0_deferred",
+                                 "Norder0 cell0 仅 16/256 槽却已写出 (提前写出 = 数值必错)");
+                P1HIPS_CHECK_EQ(cs, aio_hips_finalize(ps), 0);
+                P1HIPS_CHECK_MSG(cs, o8_file_exists(o7_tile_path(dir, "signal", 1, 0)),
+                                 "o8_finalize_level1", "finalize 未补齐 Norder1 cell0");
+                P1HIPS_CHECK_MSG(cs, o8_file_exists(o7_tile_path(dir, "signal", 0, 0)),
+                                 "o8_finalize_level0", "finalize 未补齐 Norder0 cell0");
+            } else {
+                aio_hips_abort(ps);
+            }
+            // 能红: 稠密注入 (= 修复前"不流式写出"语义) 下同一结构判据必须判红。
+            o8_set_hier_fault("dense_blocks");
+            const std::string dir_d = make_tmp_dir("o8structd");
+            std::string err_d;
+            AioHipsProductSet* ps_d = nullptr;
+            const bool ok_d = o8_write_product(dir_d, tiles,
+                                               AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT,
+                                               err_d, 16, nullptr, false, &ps_d);
+            o8_set_hier_fault(nullptr);
+            P1HIPS_CHECK_MSG(cs, ok_d && ps_d != nullptr, "o8_struct_dense_write",
+                             "稠密注入写出失败: %s", err_d.c_str());
+            P1HIPS_CHECK_MSG(cs, !o8_file_exists(o7_tile_path(dir_d, "signal", 3, 0)),
+                             "o8_stream_structure_must_be_red",
+                             "稠密注入 (不流式写出) 下 Norder3 仍在 finalize 前落盘 ⇒ "
+                             "结构判据无判别力");
+            if (ps_d) aio_hips_abort(ps_d);
+        }
+
+        // (a) 绿: 稀疏+流式 与 稠密+不流式 两棵产品树逐文件逐字节一致
+        //     (两条流式触发点都覆盖: 无 variance / 有 variance)。
+        for (int variant = 0; variant < 2; ++variant) {
+            const int flags = (variant == 0)
+                ? (AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT)
+                : (AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
+                   AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR);
+            const std::string da = make_tmp_dir(variant == 0 ? "o8sa" : "o8sb");
+            const std::string db = make_tmp_dir(variant == 0 ? "o8da" : "o8db");
+            std::string e1, e2;
+            const bool ok1 = o8_write_product(da, tiles, flags, e1);
+            o8_set_hier_fault("dense_blocks");
+            const bool ok2 = o8_write_product(db, tiles, flags, e2);
+            o8_set_hier_fault(nullptr);
+            P1HIPS_CHECK_MSG(cs, ok1 && ok2, "o8_pair_write",
+                             "写出失败 (sparse=%d dense=%d): %s / %s", (int)ok1, (int)ok2,
+                             e1.c_str(), e2.c_str());
+            std::size_t ncmp = 0, nskip = 0;
+            const std::string d = o8_tree_diff(da, db, skip_props, nullptr, &ncmp, &nskip);
+            P1HIPS_CHECK_MSG(cs, ncmp > 0, "o8_pair_nonvacuous",
+                             "逐字节对照比较文件数 = 0 (空对照, 判据退化)");
+            P1HIPS_CHECK_MSG(cs, d.empty(), "o8_sparse_stream_bitwise_eq_dense",
+                             "稀疏+流式 与 稠密+不流式 产物不一致 [%s] (cmp=%zu skip=%zu)",
+                             d.c_str(), ncmp, nskip);
+            // 层级面确实存在 (非空对照): 至少 9 个祖先 cell 的 signal tile
+            P1HIPS_CHECK_MSG(cs,
+                             o8_file_exists(o7_tile_path(da, "signal", 3, 8)) &&
+                             o8_file_exists(o7_tile_path(da, "signal", 0, 0)),
+                             "o8_hierarchy_present", "层级 tile 缺失");
+            std::printf("[o8] variant=%d flags=%d 逐字节对照 cmp=%zu skip=%zu -> %s\n",
+                        variant, flags, ncmp, nskip, d.empty() ? "IDENTICAL" : d.c_str());
+        }
+
+        // (a2) 调用时序不变性: "先写完全部 signal、再写全部 variance"(非交错) 必须
+        //      与交错序产物逐字节一致 —— 该序下 cell 的 Σvar 收齐判定依赖
+        //      "待配对槽"计数 (否则会在最后一个 signal 处提前写出, 静默丢 var)。
+        {
+            const int flags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
+                              AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR;
+            const std::string da = make_tmp_dir("o8ord_a");   // 交错序 (o8_write_product)
+            const std::string db = make_tmp_dir("o8ord_b");   // 全 signal 后全 variance
+            std::string e1, e2;
+            const bool ok1 = o8_write_product(da, tiles, flags, e1);
+            bool ok2 = true;
+            {
+                AioHipsProductSet* ps = aio_hips_product_begin(
+                    db.c_str(), O8_NSIDE, 512, AIO_HIPS_FLOAT32, flags,
+                    "ivo://astrocs/test/p1hips", "o8", nullptr, 0.0,
+                    "2026-09-22T00:00:00Z", 0);
+                if (!ps) { e2 = aio_hips_last_error(); ok2 = false; }
+                for (std::size_t t = 0; ok2 && t < tiles.size(); ++t)
+                    if (aio_hips_write_signal_support_tile(ps, &tiles[t].view) != 0) {
+                        e2 = aio_hips_last_error(); ok2 = false;
+                    }
+                for (std::size_t t = 0; ok2 && t < tiles.size(); ++t) {
+                    const int vrc = aio_hips_write_variance_tile(ps, &tiles[t].view);
+                    if (vrc != 0 && vrc != -5 && vrc != -2) { e2 = aio_hips_last_error(); ok2 = false; }
+                }
+                if (ok2 && aio_hips_finalize(ps) != 0) { e2 = aio_hips_last_error(); ok2 = false; }
+                if (!ok2 && ps) aio_hips_abort(ps);
+            }
+            P1HIPS_CHECK_MSG(cs, ok1 && ok2, "o8_order_write",
+                             "写出失败 (interleaved=%d signal-then-var=%d): %s / %s",
+                             (int)ok1, (int)ok2, e1.c_str(), e2.c_str());
+            std::size_t nc = 0, ns = 0;
+            const std::string d = o8_tree_diff(da, db, skip_props, nullptr, &nc, &ns);
+            P1HIPS_CHECK_MSG(cs, nc > 0, "o8_order_nonvacuous", "时序对照比较文件数 = 0");
+            P1HIPS_CHECK_MSG(cs, d.empty(), "o8_order_invariance",
+                             "交错序 与 全signal后全variance 产物不一致 [%s] (cmp=%zu)",
+                             d.c_str(), nc);
+            std::printf("[o8-order] 交错序 vs 全signal后全variance: cmp=%zu -> %s\n",
+                        nc, d.empty() ? "IDENTICAL" : d.c_str());
+        }
+
+        // (c) 红: ASTROCS_HIPS_HIER_FAULT=drop_blk0 (错误跳过子块 0) ⇒ 同一逐字节
+        //     判据必须判红, 且差异必须出现在**层级面**(叶面无差异) —— 证明判据
+        //     真在检验层级累加, 而不是恒真。
+        {
+            const int flags = AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT;
+            const std::string da = make_tmp_dir("o8neg_a");
+            const std::string db = make_tmp_dir("o8neg_b");
+            std::string e1, e2;
+            const bool ok1 = o8_write_product(da, tiles, flags, e1);
+            o8_set_hier_fault("drop_blk0");
+            const bool ok2 = o8_write_product(db, tiles, flags, e2);
+            o8_set_hier_fault(nullptr);
+            P1HIPS_CHECK_MSG(cs, ok1 && ok2, "o8_neg_write", "写出失败: %s / %s",
+                             e1.c_str(), e2.c_str());
+            std::size_t nc = 0, ns = 0;
+            const std::string d_all = o8_tree_diff(da, db, skip_props, nullptr, &nc, &ns);
+            P1HIPS_CHECK_MSG(cs, !d_all.empty(), "o8_neg_drop_block_must_be_red",
+                             "错误跳过子块 0 后产物仍逐字节一致 ⇒ 稀疏路径判据退化");
+            std::size_t nc_leaf = 0, ns_leaf = 0, nc_h = 0, ns_h = 0;
+            const std::string d_leaf =
+                o8_tree_diff(da, db, skip_props, "Norder4/", &nc_leaf, &ns_leaf);
+            const std::string d_hier =
+                o8_tree_diff(da, db, skip_props, "Norder3/", &nc_h, &ns_h);
+            P1HIPS_CHECK_MSG(cs, d_leaf.empty() && nc_leaf > 0,
+                             "o8_neg_leaf_unchanged",
+                             "叶级 tile 也被改动 [%s] —— 注入面越界 (只应影响层级累加)",
+                             d_leaf.c_str());
+            P1HIPS_CHECK_MSG(cs, !d_hier.empty(), "o8_neg_hierarchy_differs",
+                             "层级面未检出差异 [%s] ⇒ 判据未覆盖层级累加", d_hier.c_str());
+            std::printf("[o8-neg] drop_blk0: 叶面 cmp=%zu -> %s ; Norder3 cmp=%zu -> %s\n",
+                        nc_leaf, d_leaf.empty() ? "IDENTICAL" : d_leaf.c_str(),
+                        nc_h, d_hier.empty() ? "IDENTICAL" : d_hier.c_str());
+        }
+    }
+
     if (cs.failures == 0) {
-        std::fprintf(stdout, "[p1hips] oracle: O1..O7 PASS\n");
+        std::fprintf(stdout, "[p1hips] oracle: O1..O8 PASS\n");
         return 0;
     }
     std::fprintf(stderr, "[p1hips] oracle: %d check(s) failed\n", cs.failures);

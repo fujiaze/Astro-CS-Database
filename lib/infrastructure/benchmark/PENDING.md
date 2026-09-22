@@ -3,7 +3,7 @@
 > 依据：`ASTROCS_DESIGN.md` §7.1（顶层结构唯一：`lib/infrastructure/benchmark`）、§8（CPU 后端与资源：`cpu_profile` 由 benchmark 生成）；
 > `eng/cmake/ARCH-001-migration-manifest.md` §1 第 16 行（`lib/backend_host` → `lib/infrastructure/benchmark/backend_host`，**DONE**）。
 > **本文件不作模块状态声明**：模块状态一律由 `eng/tools/quality/check_module_map.py` 现场计算
-> （`ASTROCS_DESIGN.md` §11.4 状态词表），禁止在登记面自证。
+> （`ASTROCS_DESIGN.md` §12.5 状态词表），禁止在登记面自证。
 
 - 目录现状（**如实登记**，2026-09-20 实测 `git ls-files lib/infrastructure/benchmark | wc -l` = **38**，目录**非空**）：
   - `backend_host/`（27）：backend 加载/选路（`backend_loader.*`、`cpu_routing.*`、`baseline_*`、`avx/avx2/avx512_backend.cpp`）、`bench_harness.*`/`bench_report.*`、`profile_gen*.cpp`/`profile_store.*`、`worker_advisor.*`、`hardware_inspect.*`、`host_services.cpp`；

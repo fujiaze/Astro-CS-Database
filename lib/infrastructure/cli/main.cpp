@@ -11,6 +11,10 @@
 #include <string>
 #include <vector>
 
+#if defined(__GLIBC__)
+#include <malloc.h>   // PERF-MEM-FIX-01 (F3): mallopt 分配器调优
+#endif
+
 #include "cli_common.h"
 
 #include "cancel_token.h"
@@ -23,7 +27,27 @@
 
 // ─────────────── crash boundary + 平台入口 ───────────────
 
+// ─────────────── PERF-MEM-FIX-01 (F3): glibc 分配器调优 ───────────────
+// P1 drizzle 节点的叶数组单块 2.67-8.39 MB (nside=65536/depth=9 时
+// n_leaf_per_tile = 262144 叶 × 32 B = 8 MiB), 落在 glibc **动态** mmap 阈值
+// 区间内 (默认 128 KiB, 每 free 一个大块就自动上调, 上限 32 MB) ⇒ 释放后整块
+// 滞留在线程 arena 不还内核, 峰值 RSS 远高于真实工作集 (实测 3 帧串行单核:
+// live heap 峰值 4.06 GB / RSS 4.09 GB, 而收尾 malloc_trim 后残留仅 2.3 MB)。
+// 两处进程级设置 (不改任何科学公式/归约顺序/线程预算):
+//   M_MMAP_THRESHOLD = 1 MiB —— 显式设定即关闭动态调整, 使 ≥1 MiB 的叶数组一律
+//     走 mmap, free 时 munmap 立即归还内核, RSS 峰值跟随真实工作集;
+//   M_ARENA_MAX = 2 —— 限制"每线程一个 64 MiB arena"的虚拟地址预留与跨 arena
+//     碎片 (worker 数仍由 Runtime profile/lease 决定, 不在此硬编码)。
+// 仅 __GLIBC__ 平台生效 (Windows/musl 无此接口)。
+static void tune_allocator_for_large_tiles() {
+#if defined(__GLIBC__)
+    mallopt(M_MMAP_THRESHOLD, 1 << 20);
+    mallopt(M_ARENA_MAX, 2);
+#endif
+}
+
 int real_main(int argc, char** argv_utf8) {
+    tune_allocator_for_large_tiles();
     astrocs::install_cancel_handlers();
     std::string joined_for_report;
     try {
