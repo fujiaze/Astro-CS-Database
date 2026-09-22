@@ -1,0 +1,460 @@
+{
+ "meta": {
+  "unit": "EXP-06-SNR-PHYS",
+  "arm": "F 消融（驱动量构造）",
+  "seed": 20260927,
+  "delta": 64,
+  "note": "报告 3.2/3.3 的产出脚本；固定 seed，可一键复跑"
+ },
+ "scenes": [
+  {
+   "scene": "smooth_curvature",
+   "gain_true": 1.3,
+   "drivers": [
+    {
+     "abs_err_median": 0.577122395706624,
+     "abs_err_p95": 2.2931104296951617,
+     "signed_median": -0.10196858290976252,
+     "rms": 1.155955153459213,
+     "driver": "bilin_med3",
+     "meta": {
+      "n_iter": 3,
+      "delta_std": [
+       70.12469626820226,
+       2.6914375410246603,
+       0.5675367993752812
+      ],
+      "keep_frac_mesh_p50": 0.9970703125,
+      "keep_frac_mesh_p05": 0.9951171875,
+      "mesh_grid": [
+       16,
+       16
+      ],
+      "n_mesh": 256,
+      "mode": "bilin_med3"
+     },
+     "gain_hat_free": 1.3569569301465303,
+     "gain_dev_free": 0.043813023189638756,
+     "c_se_over_c": 0.00839256078867103,
+     "lever_var": 0.6594120096135809
+    },
+    {
+     "abs_err_median": 0.3835276837893389,
+     "abs_err_p95": 3.05994239882466,
+     "signed_median": -0.1552301602442867,
+     "rms": 1.3742008356634625,
+     "driver": "spline",
+     "meta": {
+      "mode": "spline",
+      "op_name": "spline_natural_clip",
+      "n_iter": 3,
+      "n_bad_mesh_last": 0,
+      "min_keep": 0.5,
+      "box": 64
+     },
+     "gain_hat_free": 1.3420309603359397,
+     "gain_dev_free": 0.032331507950722926,
+     "c_se_over_c": 0.008623361943541004,
+     "lever_var": 0.6476324196792913
+    },
+    {
+     "abs_err_median": 0.0,
+     "abs_err_p95": 0.0,
+     "signed_median": 0.0,
+     "rms": 0.0,
+     "driver": "oracle_D_true",
+     "meta": {
+      "mode": "oracle"
+     },
+     "gain_hat_free": 1.3422179110083865,
+     "gain_dev_free": 0.03247531616029731,
+     "c_se_over_c": 0.008394322584197695,
+     "lever_var": 0.6495289626881203
+    }
+   ],
+   "boundary": {
+    "sigma_ctrl_median_border": 13.720539927391837,
+    "sigma_ctrl_median_inner": 15.956107735067427,
+    "border_ratio": 0.8598926602405431,
+    "gain_hat_all_cells": 1.358117309915824,
+    "gain_hat_inner_only": 1.3420309603359397,
+    "gain_dev_all_cells": 0.04470562301217229,
+    "gain_dev_inner_only": 0.032331507950722926
+   },
+   "gates": [
+    {
+     "gate": "AB1_smooth_curvature_spline_closer_to_truth",
+     "verdict": "PASS",
+     "expect": "spline < bilin_med3",
+     "detail": "[smooth_curvature] 样条展开（无 mesh 中值滤波）比中值+双线性更接近真值弥散分量；实测 0.384 vs 0.577 ADU",
+     "value": {
+      "spline": 0.3835276837893389,
+      "bilin_med3": 0.577122395706624
+     }
+    },
+    {
+     "gate": "AB2_smooth_curvature_med3_degrades_slope",
+     "verdict": "PASS",
+     "expect": "med3 >= spline",
+     "detail": "[smooth_curvature] 中值+双线性驱动量下的斜率偏差不小于样条驱动量；实测 4.4% vs 3.2%",
+     "value": {
+      "bilin_med3": 0.043813023189638756,
+      "spline": 0.032331507950722926,
+      "oracle": 0.03247531616029731
+     }
+    },
+    {
+     "gate": "AB3_smooth_curvature_slope_error_is_estimator_dominated",
+     "verdict": "PASS",
+     "expect": "oracle_dev >= 0.5 * spline_dev",
+     "detail": "[smooth_curvature] 用**解析真值**作驱动量（下界）时斜率偏差仍达样条驱动量的一半以上 ⇒ 斜率误差的主导项是控制点 sigma 估计器本身，不是驱动量构造；实测下界 3.25% vs 样条 3.23%",
+     "value": {
+      "bilin_med3": 0.043813023189638756,
+      "spline": 0.032331507950722926,
+      "oracle_D_true": 0.03247531616029731
+     }
+    },
+    {
+     "gate": "AB4_smooth_curvature_spline_driver_reduces_slope_error",
+     "verdict": "PASS",
+     "expect": "spline_dev <= 0.9 * med3_dev",
+     "detail": "[smooth_curvature] 样条展开相对中值+双线性把斜率偏差降低 >= 10%（相对）；实测 4.38% -> 3.23%",
+     "value": {
+      "bilin_med3": 0.043813023189638756,
+      "spline": 0.032331507950722926,
+      "oracle_D_true": 0.03247531616029731
+     }
+    },
+    {
+     "gate": "AB5_smooth_curvature_dropping_border_cells_reduces_slope_error",
+     "verdict": "PASS",
+     "expect": "inner_only < all_cells",
+     "detail": "[smooth_curvature] 剔除控制网格最外圈必须降低斜率偏差；实测全网格 4.47% -> 仅内圈 3.23%",
+     "value": {
+      "sigma_ctrl_median_border": 13.720539927391837,
+      "sigma_ctrl_median_inner": 15.956107735067427,
+      "border_ratio": 0.8598926602405431,
+      "gain_hat_all_cells": 1.358117309915824,
+      "gain_hat_inner_only": 1.3420309603359397,
+      "gain_dev_all_cells": 0.04470562301217229,
+      "gain_dev_inner_only": 0.032331507950722926
+     }
+    },
+    {
+     "gate": "AB6_smooth_curvature_border_sigma_is_biased_low",
+     "verdict": "PASS",
+     "expect": "border_ratio < 1",
+     "detail": "[smooth_curvature] 控制网格最外圈的 sigma_hat 系统性**偏低**（边界 mesh 的背景电平被低估）；实测 外圈/内圈 = 0.860",
+     "value": {
+      "sigma_ctrl_median_border": 13.720539927391837,
+      "sigma_ctrl_median_inner": 15.956107735067427,
+      "border_ratio": 0.8598926602405431,
+      "gain_hat_all_cells": 1.358117309915824,
+      "gain_hat_inner_only": 1.3420309603359397,
+      "gain_dev_all_cells": 0.04470562301217229,
+      "gain_dev_inner_only": 0.032331507950722926
+     }
+    }
+   ]
+  },
+  {
+   "scene": "realistic",
+   "gain_true": 1.3,
+   "drivers": [
+    {
+     "abs_err_median": 0.603845399297029,
+     "abs_err_p95": 2.5822787661555253,
+     "signed_median": 0.08939018584032965,
+     "rms": 1.3190372771849903,
+     "driver": "bilin_med3",
+     "meta": {
+      "n_iter": 3,
+      "delta_std": [
+       68.93489596228306,
+       2.538437434396431,
+       0.5870639423250396
+      ],
+      "keep_frac_mesh_p50": 0.995849609375,
+      "keep_frac_mesh_p05": 0.7962646484375,
+      "mesh_grid": [
+       16,
+       16
+      ],
+      "n_mesh": 256,
+      "mode": "bilin_med3"
+     },
+     "gain_hat_free": 1.344884144972637,
+     "gain_dev_free": 0.034526265363566955,
+     "c_se_over_c": 0.012448263810908404,
+     "lever_var": 0.6642122046836068
+    },
+    {
+     "abs_err_median": 0.4914388805136696,
+     "abs_err_p95": 3.0788285125555035,
+     "signed_median": -0.0014547402931839315,
+     "rms": 1.5116451119776584,
+     "driver": "spline",
+     "meta": {
+      "mode": "spline",
+      "op_name": "spline_natural_clip",
+      "n_iter": 3,
+      "n_bad_mesh_last": 0,
+      "min_keep": 0.5,
+      "box": 64
+     },
+     "gain_hat_free": 1.3369629359197142,
+     "gain_dev_free": 0.028433027630549335,
+     "c_se_over_c": 0.012589693818601868,
+     "lever_var": 0.6506361243060275
+    },
+    {
+     "abs_err_median": 0.0,
+     "abs_err_p95": 0.0,
+     "signed_median": 0.0,
+     "rms": 0.0,
+     "driver": "oracle_D_true",
+     "meta": {
+      "mode": "oracle"
+     },
+     "gain_hat_free": 1.3385362581795204,
+     "gain_dev_free": 0.029643275522707846,
+     "c_se_over_c": 0.012824833246765532,
+     "lever_var": 0.6534543617606315
+    }
+   ],
+   "boundary": {
+    "sigma_ctrl_median_border": 14.095693072577003,
+    "sigma_ctrl_median_inner": 15.92733111567123,
+    "border_ratio": 0.8850003161363275,
+    "gain_hat_all_cells": 1.3451632609548791,
+    "gain_hat_inner_only": 1.3369629359197142,
+    "gain_dev_all_cells": 0.034740969965291635,
+    "gain_dev_inner_only": 0.028433027630549335
+   },
+   "gates": [
+    {
+     "gate": "AB1_realistic_spline_closer_to_truth",
+     "verdict": "PASS",
+     "expect": "spline < bilin_med3",
+     "detail": "[realistic] 样条展开（无 mesh 中值滤波）比中值+双线性更接近真值弥散分量；实测 0.491 vs 0.604 ADU",
+     "value": {
+      "spline": 0.4914388805136696,
+      "bilin_med3": 0.603845399297029
+     }
+    },
+    {
+     "gate": "AB2_realistic_med3_degrades_slope",
+     "verdict": "PASS",
+     "expect": "med3 >= spline",
+     "detail": "[realistic] 中值+双线性驱动量下的斜率偏差不小于样条驱动量；实测 3.5% vs 2.8%",
+     "value": {
+      "bilin_med3": 0.034526265363566955,
+      "spline": 0.028433027630549335,
+      "oracle": 0.029643275522707846
+     }
+    },
+    {
+     "gate": "AB3_realistic_slope_error_is_estimator_dominated",
+     "verdict": "PASS",
+     "expect": "oracle_dev >= 0.5 * spline_dev",
+     "detail": "[realistic] 用**解析真值**作驱动量（下界）时斜率偏差仍达样条驱动量的一半以上 ⇒ 斜率误差的主导项是控制点 sigma 估计器本身，不是驱动量构造；实测下界 2.96% vs 样条 2.84%",
+     "value": {
+      "bilin_med3": 0.034526265363566955,
+      "spline": 0.028433027630549335,
+      "oracle_D_true": 0.029643275522707846
+     }
+    },
+    {
+     "gate": "AB4_realistic_spline_driver_reduces_slope_error",
+     "verdict": "PASS",
+     "expect": "spline_dev <= 0.9 * med3_dev",
+     "detail": "[realistic] 样条展开相对中值+双线性把斜率偏差降低 >= 10%（相对）；实测 3.45% -> 2.84%",
+     "value": {
+      "bilin_med3": 0.034526265363566955,
+      "spline": 0.028433027630549335,
+      "oracle_D_true": 0.029643275522707846
+     }
+    },
+    {
+     "gate": "AB5_realistic_dropping_border_cells_reduces_slope_error",
+     "verdict": "PASS",
+     "expect": "inner_only < all_cells",
+     "detail": "[realistic] 剔除控制网格最外圈必须降低斜率偏差；实测全网格 3.47% -> 仅内圈 2.84%",
+     "value": {
+      "sigma_ctrl_median_border": 14.095693072577003,
+      "sigma_ctrl_median_inner": 15.92733111567123,
+      "border_ratio": 0.8850003161363275,
+      "gain_hat_all_cells": 1.3451632609548791,
+      "gain_hat_inner_only": 1.3369629359197142,
+      "gain_dev_all_cells": 0.034740969965291635,
+      "gain_dev_inner_only": 0.028433027630549335
+     }
+    },
+    {
+     "gate": "AB6_realistic_border_sigma_is_biased_low",
+     "verdict": "PASS",
+     "expect": "border_ratio < 1",
+     "detail": "[realistic] 控制网格最外圈的 sigma_hat 系统性**偏低**（边界 mesh 的背景电平被低估）；实测 外圈/内圈 = 0.885",
+     "value": {
+      "sigma_ctrl_median_border": 14.095693072577003,
+      "sigma_ctrl_median_inner": 15.92733111567123,
+      "border_ratio": 0.8850003161363275,
+      "gain_hat_all_cells": 1.3451632609548791,
+      "gain_hat_inner_only": 1.3369629359197142,
+      "gain_dev_all_cells": 0.034740969965291635,
+      "gain_dev_inner_only": 0.028433027630549335
+     }
+    }
+   ]
+  }
+ ],
+ "gates": [
+  {
+   "gate": "AB1_smooth_curvature_spline_closer_to_truth",
+   "verdict": "PASS",
+   "expect": "spline < bilin_med3",
+   "detail": "[smooth_curvature] 样条展开（无 mesh 中值滤波）比中值+双线性更接近真值弥散分量；实测 0.384 vs 0.577 ADU",
+   "value": {
+    "spline": 0.3835276837893389,
+    "bilin_med3": 0.577122395706624
+   }
+  },
+  {
+   "gate": "AB2_smooth_curvature_med3_degrades_slope",
+   "verdict": "PASS",
+   "expect": "med3 >= spline",
+   "detail": "[smooth_curvature] 中值+双线性驱动量下的斜率偏差不小于样条驱动量；实测 4.4% vs 3.2%",
+   "value": {
+    "bilin_med3": 0.043813023189638756,
+    "spline": 0.032331507950722926,
+    "oracle": 0.03247531616029731
+   }
+  },
+  {
+   "gate": "AB3_smooth_curvature_slope_error_is_estimator_dominated",
+   "verdict": "PASS",
+   "expect": "oracle_dev >= 0.5 * spline_dev",
+   "detail": "[smooth_curvature] 用**解析真值**作驱动量（下界）时斜率偏差仍达样条驱动量的一半以上 ⇒ 斜率误差的主导项是控制点 sigma 估计器本身，不是驱动量构造；实测下界 3.25% vs 样条 3.23%",
+   "value": {
+    "bilin_med3": 0.043813023189638756,
+    "spline": 0.032331507950722926,
+    "oracle_D_true": 0.03247531616029731
+   }
+  },
+  {
+   "gate": "AB4_smooth_curvature_spline_driver_reduces_slope_error",
+   "verdict": "PASS",
+   "expect": "spline_dev <= 0.9 * med3_dev",
+   "detail": "[smooth_curvature] 样条展开相对中值+双线性把斜率偏差降低 >= 10%（相对）；实测 4.38% -> 3.23%",
+   "value": {
+    "bilin_med3": 0.043813023189638756,
+    "spline": 0.032331507950722926,
+    "oracle_D_true": 0.03247531616029731
+   }
+  },
+  {
+   "gate": "AB5_smooth_curvature_dropping_border_cells_reduces_slope_error",
+   "verdict": "PASS",
+   "expect": "inner_only < all_cells",
+   "detail": "[smooth_curvature] 剔除控制网格最外圈必须降低斜率偏差；实测全网格 4.47% -> 仅内圈 3.23%",
+   "value": {
+    "sigma_ctrl_median_border": 13.720539927391837,
+    "sigma_ctrl_median_inner": 15.956107735067427,
+    "border_ratio": 0.8598926602405431,
+    "gain_hat_all_cells": 1.358117309915824,
+    "gain_hat_inner_only": 1.3420309603359397,
+    "gain_dev_all_cells": 0.04470562301217229,
+    "gain_dev_inner_only": 0.032331507950722926
+   }
+  },
+  {
+   "gate": "AB6_smooth_curvature_border_sigma_is_biased_low",
+   "verdict": "PASS",
+   "expect": "border_ratio < 1",
+   "detail": "[smooth_curvature] 控制网格最外圈的 sigma_hat 系统性**偏低**（边界 mesh 的背景电平被低估）；实测 外圈/内圈 = 0.860",
+   "value": {
+    "sigma_ctrl_median_border": 13.720539927391837,
+    "sigma_ctrl_median_inner": 15.956107735067427,
+    "border_ratio": 0.8598926602405431,
+    "gain_hat_all_cells": 1.358117309915824,
+    "gain_hat_inner_only": 1.3420309603359397,
+    "gain_dev_all_cells": 0.04470562301217229,
+    "gain_dev_inner_only": 0.032331507950722926
+   }
+  },
+  {
+   "gate": "AB1_realistic_spline_closer_to_truth",
+   "verdict": "PASS",
+   "expect": "spline < bilin_med3",
+   "detail": "[realistic] 样条展开（无 mesh 中值滤波）比中值+双线性更接近真值弥散分量；实测 0.491 vs 0.604 ADU",
+   "value": {
+    "spline": 0.4914388805136696,
+    "bilin_med3": 0.603845399297029
+   }
+  },
+  {
+   "gate": "AB2_realistic_med3_degrades_slope",
+   "verdict": "PASS",
+   "expect": "med3 >= spline",
+   "detail": "[realistic] 中值+双线性驱动量下的斜率偏差不小于样条驱动量；实测 3.5% vs 2.8%",
+   "value": {
+    "bilin_med3": 0.034526265363566955,
+    "spline": 0.028433027630549335,
+    "oracle": 0.029643275522707846
+   }
+  },
+  {
+   "gate": "AB3_realistic_slope_error_is_estimator_dominated",
+   "verdict": "PASS",
+   "expect": "oracle_dev >= 0.5 * spline_dev",
+   "detail": "[realistic] 用**解析真值**作驱动量（下界）时斜率偏差仍达样条驱动量的一半以上 ⇒ 斜率误差的主导项是控制点 sigma 估计器本身，不是驱动量构造；实测下界 2.96% vs 样条 2.84%",
+   "value": {
+    "bilin_med3": 0.034526265363566955,
+    "spline": 0.028433027630549335,
+    "oracle_D_true": 0.029643275522707846
+   }
+  },
+  {
+   "gate": "AB4_realistic_spline_driver_reduces_slope_error",
+   "verdict": "PASS",
+   "expect": "spline_dev <= 0.9 * med3_dev",
+   "detail": "[realistic] 样条展开相对中值+双线性把斜率偏差降低 >= 10%（相对）；实测 3.45% -> 2.84%",
+   "value": {
+    "bilin_med3": 0.034526265363566955,
+    "spline": 0.028433027630549335,
+    "oracle_D_true": 0.029643275522707846
+   }
+  },
+  {
+   "gate": "AB5_realistic_dropping_border_cells_reduces_slope_error",
+   "verdict": "PASS",
+   "expect": "inner_only < all_cells",
+   "detail": "[realistic] 剔除控制网格最外圈必须降低斜率偏差；实测全网格 3.47% -> 仅内圈 2.84%",
+   "value": {
+    "sigma_ctrl_median_border": 14.095693072577003,
+    "sigma_ctrl_median_inner": 15.92733111567123,
+    "border_ratio": 0.8850003161363275,
+    "gain_hat_all_cells": 1.3451632609548791,
+    "gain_hat_inner_only": 1.3369629359197142,
+    "gain_dev_all_cells": 0.034740969965291635,
+    "gain_dev_inner_only": 0.028433027630549335
+   }
+  },
+  {
+   "gate": "AB6_realistic_border_sigma_is_biased_low",
+   "verdict": "PASS",
+   "expect": "border_ratio < 1",
+   "detail": "[realistic] 控制网格最外圈的 sigma_hat 系统性**偏低**（边界 mesh 的背景电平被低估）；实测 外圈/内圈 = 0.885",
+   "value": {
+    "sigma_ctrl_median_border": 14.095693072577003,
+    "sigma_ctrl_median_inner": 15.92733111567123,
+    "border_ratio": 0.8850003161363275,
+    "gain_hat_all_cells": 1.3451632609548791,
+    "gain_hat_inner_only": 1.3369629359197142,
+    "gain_dev_all_cells": 0.034740969965291635,
+    "gain_dev_inner_only": 0.028433027630549335
+   }
+  }
+ ],
+ "all_pass": true
+}
