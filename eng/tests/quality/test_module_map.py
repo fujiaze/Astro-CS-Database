@@ -11,7 +11,9 @@
   T5  facade / no-op（导出符号存在但无可执行路径、entrypoint 转发整阶段 Session）
       必须判 NOT_IMPLEMENTED，绝不判 IMPLEMENTED
   T6  真实仓库诚实性：实现只认 target_dir；旧命名目录（lib/star_detector 等）不参与
-      实现判定；lib/algorithms|infrastructure 未建立时不得出现 IMPLEMENTED/INSTALLED
+      实现判定，且 ARCH-001 完成后旧命名面必须清零（回归即红）；把模块还原成
+      「迁移前形态」（旧命名面在 + target_dir 不在）时，门不得判实现、缺实现必须如实红灯
+      （夹具反事实，见 T24 的沿革注释）
   T7  状态词只取 ASTROCS_DESIGN §12.5 词表
   T8  检查器 --selftest 全绿（能绿能红自证）
 """
@@ -20,6 +22,7 @@ from __future__ import annotations
 import json
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -256,33 +259,137 @@ class TestRealRepoHonesty(unittest.TestCase):
             self.assertIn(m["verification_status"], VOCABULARY, m["id"])
 
     def test_t22_implementation_only_from_target_dir(self):
-        """红线：没有目标目录 ⇒ 绝不可能是 IMPLEMENTED/INSTALLED/VERIFIED。"""
+        """红线：没有目标目录 ⇒ 绝不可能是 IMPLEMENTED/INSTALLED/VERIFIED。
+
+        原写法是 `if not target.is_dir(): assertNotIn(status, 正阶梯)` —— ARCH-001 落地后
+        23/23 target_dir 全在位 ⇒ 该分支恒不执行（空断言）。这里改成**逻辑等价的逆否形式**
+        （正阶梯状态 ⇒ target_dir 必须是实物），断言因此在当前树上每次都真的跑：
+        当前 6 个模块 implemented=True，逐条受检。反事实（target_dir 缺失）由 T24 在夹具上守。
+        """
+        checked = 0
         for m in self.data["modules"]:
             target = REPO / m["target_dir"]
-            if not target.is_dir():
-                self.assertNotIn(m["status"], {"IMPLEMENTED", "INSTALLED", "VERIFIED"},
-                                 "%s 目标目录不存在却被判 %s" % (m["id"], m["status"]))
-                self.assertFalse(m["implemented"], m["id"])
-            if m["implemented"]:
-                self.assertTrue(target.is_dir(), "%s 实现必须来自 target_dir" % m["id"])
+            if m["status"] in POSITIVE_RUNGS or m["implemented"]:
+                checked += 1
+                self.assertTrue(target.is_dir(),
+                                "%s 被判 %s（implemented=%s），但 target_dir 不存在：%s"
+                                % (m["id"], m["status"], m["implemented"], m["target_dir"]))
+        self.assertGreater(checked, 0, "无任何正阶梯模块 ⇒ 本用例退化为空断言")
 
     def test_t23_legacy_dirs_never_count_as_implemented(self):
-        by_id = {m["id"]: m for m in self.data["modules"]}
-        for mid, legacy in LEGACY_PAIRS:
-            if (REPO / legacy).exists() and not (REPO / by_id[mid]["target_dir"]).is_dir():
-                self.assertNotIn(by_id[mid]["status"], {"IMPLEMENTED", "INSTALLED", "VERIFIED"},
-                                 "%s：旧命名目录 %s 存在不得算实现" % (mid, legacy))
+        """ARCH-001 完成态棘轮：旧命名面必须清零，且门不得据旧目录判任何实现。
 
-    def test_t24_real_repo_verdict_is_honest_red_until_arch001(self):
-        """lib/algorithms|infrastructure 未建立时，门必须红灯（如实），不得为绿放宽。"""
-        legacy_present = (REPO / "lib" / "star_detector").exists()
-        targets_present = (REPO / "lib" / "algorithms").is_dir() or (REPO / "lib" / "infrastructure").is_dir()
-        if legacy_present and not targets_present:
-            self.assertNotEqual(self.proc.returncode, 0,
-                                "ARCH-001 未落地时本门应红灯；变绿说明判据被放宽")
-            self.assertEqual(self.data["summary"]["verdict"], "FAIL")
-            for m in self.data["modules"]:
-                self.assertIn(m["status"], {"NOT_IMPLEMENTED", "CONTRACT_READY", "FAIL"}, m["id"])
+        原写法 `if (REPO/legacy).exists() and not target.is_dir(): assertNotIn(status, 正阶梯)`
+        在本树恒不执行（16 组旧命名目录全不存在、23/23 target_dir 全在位）——空断言。
+        MODULE_MAP.yaml 头注第 18-20 行：「迁移完成后这些路径在树中一律不存在」⇒ 旧命名面
+        回归是必须判红的缺陷，据此重钉两条当前真实成立、有判别力的断言：
+          ① 16 组旧命名目录在树中必须全部不存在（mkdir 任一个即红）；
+          ② 门必须报零条 legacy_paths_present（旧目录回来而未同步删 legacy_paths 登记 ⇒
+             门出 NOTE，此处即刻变红）。
+        「旧目录存在也不得被算成实现」的**门侧反事实**由
+        test_t24_pre_migration_shape_is_never_judged_implemented 在夹具上守；声明面口径
+        （MODULE_MAP 的 23 条 legacy_paths）另由
+        eng/tests/quality/test_mod002_migration_refs.py::test_t01b_legacy_paths_are_pre_migration_paths
+        （第 146-155 行）守 —— 本用例是硬编码配对表的回归棘轮，两张表任一被改都拦得住。
+        """
+        present = sorted(p for _mid, p in LEGACY_PAIRS if (REPO / p).exists())
+        self.assertEqual(present, [],
+                         "ARCH-001 迁移清单内的旧命名面必须已不在树中（迁移不得留双份）：%s" % present)
+        notes = [(x["module"], x["detail"]) for x in self.data["findings"]
+                 if x["code"] == "legacy_paths_present"]
+        self.assertEqual(notes, [], "门观测到旧命名面仍在树中（旧命名面回归）：%s" % notes)
+
+    def test_t24_pre_migration_shape_is_never_judged_implemented(self):
+        """反事实注入：把模块还原成 ARCH-001 前形态 ⇒ 绝不判实现，缺实现必须如实红灯。
+
+        沿革（为什么重钉）：本用例原断言「lib/star_detector 在 且 lib/algorithms|infrastructure
+        不在 ⇒ 本门必红、23 模块状态全非正阶梯」。ARCH-001 落地后该前提恒假 ⇒ 断言块永不执行
+        （空断言，AGENTS.md §5）。迁移前形态作为**状态**已不存在，但它守的判据是**永久**的
+        （check_module_map.py 头注「诚实性红线」第 68-74 行；MODULE_MAP.yaml 头注第 18-22 行）：
+        实现只认 target_dir，旧命名面存在不得成为实现证据，缺实现的门不得为绿放宽。
+        故把「状态快照」改成夹具上的**反事实注入**，三段断言当前都真的跑：
+          ① 正例基线：该模块判 INSTALLED 且 implemented —— 判据可达，不是靠放宽换绿；
+          ② 还原成迁移前形态（旧命名目录在 + target_dir 不在）且缺口**未登记** ⇒
+             rc!=0、verdict=FAIL、该模块 NOT_IMPLEMENTED 且 implemented=False
+             （= 原用例「迁移未落地时本门必红」的等价物，fail-closed）；
+          ③ 同一形态但缺口**已登记**（owner=BLD-401）⇒ 判定不变（仍 NOT_IMPLEMENTED，
+             绝不 IMPLEMENTED/INSTALLED/VERIFIED），只是严重级降为可见 GAP、rc 回到 0；
+             旧命名面被观测为 NOTE(legacy_paths_present)，但不得抬升任何模块的状态。
+        树侧（旧路径必须已不在树中）由本文件 test_t23 与
+        test_mod002_migration_refs.py::test_t01b_legacy_paths_are_pre_migration_paths:146 守。
+        """
+        with tempfile.TemporaryDirectory(prefix="mod001-premigration-") as td:
+            tmp = pathlib.Path(td)
+            row = yaml.safe_load(MAP.read_text(encoding="utf-8"))["modules"][0]
+            mid = str(row["id"])
+            tdir = str(row["target_dir"])
+            legacy = str((row.get("legacy_paths") or [""])[0])
+            self.assertTrue(legacy, "注入锚失效：映射表首行无 legacy_paths")
+
+            def mod_of(data):
+                return [x for x in data["modules"] if x["id"] == mid][0]
+
+            def inject(root):
+                """还原 ARCH-001 前形态：旧命名面在（带一份像样的生产源）、target_dir 不在。"""
+                shutil.rmtree(root / tdir)
+                (root / legacy / "src").mkdir(parents=True, exist_ok=True)
+                (root / legacy / "src" / (mid + ".cpp")).write_text(
+                    'extern "C" int ' + str(row["entrypoint"])
+                    + '(const void *h, const char *r, void *o) '
+                      "{ (void)h; (void)r; (void)o; return 0; }\n",
+                    encoding="utf-8")
+
+            def check(root, name):
+                out = tmp / (name + ".json")
+                proc = run_tool(repo_root=root, extra=("--json-out", str(out), "--quiet"))
+                return proc, json.loads(out.read_text(encoding="utf-8"))
+
+            # ① 正例基线：判据可达
+            proc, data = check(fx.build_repo(tmp / "base"), "base")
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertIn(mod_of(data)["status"], POSITIVE_RUNGS, "夹具正例基线必须判正阶梯")
+            self.assertTrue(mod_of(data)["implemented"])
+
+            # ② 迁移前形态 + 缺口未登记 ⇒ 如实红灯
+            root = fx.build_repo(tmp / "unregistered")
+            inject(root)
+            proc, data = check(root, "unregistered")
+            self.assertNotEqual(proc.returncode, 0, "缺实现且未登记缺口必须红灯（fail-closed）")
+            self.assertEqual(data["summary"]["verdict"], "FAIL")
+            mod = mod_of(data)
+            self.assertEqual(mod["status"], "NOT_IMPLEMENTED", "旧命名面在不得被判实现")
+            self.assertFalse(mod["implemented"])
+            self.assertIn("fake_path",
+                          {x["code"] for x in mod["findings"] if x["severity"] == "FAIL"})
+
+            # ③ 同一形态 + 缺口已登记 ⇒ 判定不变，只降严重级
+            root = fx.build_repo(tmp / "registered")
+            inject(root)
+            mp = root / "docs/modules/MODULE_MAP.yaml"
+            doc = yaml.safe_load(mp.read_text(encoding="utf-8"))
+            doc["declared_absent_paths"] = {
+                "checked_at": "fixture", "path_gap_count": 1, "target_gap_count": 0,
+                "items": [{"module": mid, "key": "target_dir", "path": tdir,
+                           "owner": "BLD-401", "reason": "夹具反事实：还原 ARCH-001 前形态"}]}
+            mp.write_text(yaml.safe_dump(doc, allow_unicode=True, sort_keys=False),
+                          encoding="utf-8")
+            proc, data = check(root, "registered")
+            mod = mod_of(data)
+            # 判定先于 rc：注入「旧命名面算实现」时，下面这条必须第一个炸（诊断指向判定本身）
+            self.assertEqual(mod["status"], "NOT_IMPLEMENTED",
+                             "缺口登记只降严重级，不得把「缺实现」改判成实现")
+            self.assertFalse(mod["implemented"])
+            self.assertNotIn(mod["status"], POSITIVE_RUNGS)
+            self.assertEqual(proc.returncode, 0, "已登记缺口 ⇒ 严重级降为 GAP，rc 不为红")
+            self.assertIn("declared_absent_registered", {x["code"] for x in mod["findings"]})
+            self.assertEqual([(x["module"], x["severity"]) for x in data["findings"]
+                              if x["code"] == "legacy_paths_present"], [(mid, "NOTE")],
+                             "旧命名面必须被观测为 NOTE，且不参与实现判定")
+            for x in data["modules"]:
+                if x["status"] in POSITIVE_RUNGS or x["implemented"]:
+                    self.assertTrue((root / x["target_dir"]).is_dir(),
+                                    "%s 在迁移前形态下被判 %s，但其 target_dir 不存在"
+                                    % (x["id"], x["status"]))
 
     def test_t25_no_facade_or_noop_judged_implemented(self):
         for m in self.data["modules"]:
@@ -293,9 +400,10 @@ class TestRealRepoHonesty(unittest.TestCase):
 
 
 class TestGapLedgerRatchet(unittest.TestCase):
-    """FIX-404 缺口台账（50 路径 + 16 target + 72 能力）的测试侧棘轮。
+    """FIX-404 缺口台账（50 路径 + 16 target + 能力缺口）的测试侧棘轮（当前规模见 T30 的沿革注释）。
 
-    GATE-502 步骤 5 逐项甄别结论：66 条路径/target 缺口与 72 条能力缺口**全部为
+    GATE-502 步骤 5 逐项甄别结论（当时 66 条路径/target + 72 条能力缺口；能力侧随后按
+    「缺口落地 ⇒ 删登记」各减 1，现为 70，见 T30 沿革注释）：66 条路径/target 缺口与能力缺口**全部为
     「待实现」**（模块/schema/unit 未落地），owner = BLD-401（全门收口）或
     RELEASE-04/未覆盖（GUI/HiPS Browser，本包显式不做）
     ⇒ **标 DEFERRED，不进全绿集**：不为未实现模块写假绿测试（空骨架测试 = 假绿），
@@ -327,7 +435,12 @@ class TestGapLedgerRatchet(unittest.TestCase):
         n_target = len([i for i in items if i["key"] == "target"])
         self.assertEqual(self.paths["target_gap_count"], n_target)
         self.assertEqual(self.paths["path_gap_count"], len(items) - n_target)
-        self.assertEqual(72, self.caps["capability_gap_count"], "能力缺口规模漂移须显式改登记")
+        # 70 = 台账 declared_absent_capabilities 的当前规模（只减不增的棘轮：每次规模变化必须
+        # 在此显式改登记，并写明依据）。沿革：72 → 71（2026-09-22 前台复核删除 noise_snr 的陈旧
+        # header_missing_abi_version 登记）→ 70（2026-09-23 删除 star_detection 的陈旧
+        # missing_co_located_tests 登记：该模块共址测试 tests/p1star/ 已落地，检查器
+        # CHK-MODULE-MANIFEST 的 stale_declared_absent_capability 判红要求随落地删登记）。
+        self.assertEqual(70, self.caps["capability_gap_count"], "能力缺口规模漂移须显式改登记")
         self.assertEqual(self.caps["capability_gap_count"], len(self.caps["items"]))
         self.assertEqual(66, self.data["gaps"]["registered"],
                          "台账 66 条必须与机器实测 registered_gaps 相等（双向对齐）")
