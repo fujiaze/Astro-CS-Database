@@ -10,8 +10,9 @@
 // 正例与负例并列；负例断言"违反冻结即失败"。独立 Oracle 见
 // run/v6/p2-samp/oracle/check_spec.py（Python 重算 + 结构校验）。
 //
-// 单位（冻结表）：signal_sb=ADU/px^2、sb_variance_out=ADU^2/px^4、
-// W_info=ADU^-2、psfsw_robust_weight=1。support/coverage 不是权重。
+// 单位（冻结表）：signal_sb=ADU/px^2、sb_variance_out=ADU^2/px^4、W_info=ADU^-2。
+// psfsw_robust_weight=1 的单位项随对象退役（FZ-MODE-RETIRED），不再是接受依据；
+// support/coverage 不是权重。
 #include "astro/phase2/coverage.h"
 #include "astro/phase2/sampler.h"
 
@@ -187,12 +188,30 @@ int case_weight_gate() {
         check(p2_weight_source_token_reject(nullptr, 1, err, sizeof(err)) == 2,
               "null tokens with n>0 -> param error");
     }
-    // 生产模式门
-    const char* prod[] = {"point_information", "surface_gls", "psfsw_robust"};
-    for (std::size_t i = 0; i < 3; ++i) {
+    // 生产模式门（FZ-MODE-PRODUCTION）：生产接受集 = {point_information, surface_gls}。
+    // psfsw_robust 已按负责人裁决退役（ASTROCS_DESIGN.md §3.1），不再属接受集。
+    const char* prod[] = {"point_information", "surface_gls"};
+    for (std::size_t i = 0; i < sizeof(prod) / sizeof(prod[0]); ++i) {
         char err[256] = {0};
         check(p2_weight_mode_check(prod[i], err, sizeof(err)) == 0,
               "production mode accepted");
+    }
+    // 负例（FZ-MODE-RETIRED）：退役对象 psfsw_robust 必须被**显式拒绝**（不得静默接受、
+    // 不得回退成默认模式），且 err 必须可诊断：含被拒 mode + 允许集 + 迁移提示。
+    // 能红能绿：把 "psfsw_robust" 放回上方 prod[] 接受集，本块即转红。
+    {
+        char err[512] = {0};
+        const int rc = p2_weight_mode_check("psfsw_robust", err, sizeof(err));
+        check(rc == 1, "retired mode psfsw_robust rejected (rc=1)");
+        check(std::strstr(err, "psfsw_robust") != nullptr,
+              "retired reject message names the rejected mode");
+        check(std::strstr(err, "FZ-MODE-RETIRED") != nullptr,
+              "retired reject message cites FZ-MODE-RETIRED");
+        check(std::strstr(err, "point_information") != nullptr &&
+                  std::strstr(err, "surface_gls") != nullptr,
+              "retired reject message states the allowed production set");
+        check(std::strstr(err, "migration") != nullptr,
+              "retired reject message carries a migration hint");
     }
     const char* bad[] = {"psf_snr_power", "auto", "support_x_snr2", "0", "1",
                          "2", "unknown", ""};

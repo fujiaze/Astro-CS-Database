@@ -69,7 +69,7 @@ CLEAN-403（棘轮收口；fail-closed）
 A44（前台追加，同源违规；ASTROCS_DESIGN §2.1 + §9.73 裁决 A44）
   A1 活目标 HiPS provenance 不得再出现「权重模式」族键/取值来源：
      lib/infrastructure/aio/** 的 C/C++ 源码中零 ASTROCS_WEIGHT_MODE；
-     HiPS provenance 只承载帧级 SNR 与稀疏相对 SNR 比值。
+     HiPS provenance 只承载帧级 SNR 与稀疏控制点上的绝对 SNR。
      （docs/** 面由 eng/ci/check_no_weight_mode.py 覆盖；本规则补代码面。）
 
 扫描面：仓库首方 C/C++ 源（lib/ eng/tests/ lib/include/ eng/tools/ scripts/ eng/ci/ eng/cmake/ cli/ runtime/）。

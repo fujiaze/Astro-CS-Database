@@ -207,10 +207,17 @@ static std::vector<std::string> write_fixture(const fs::path& work) {
 /* ── routing ── */
 static bool run_routing() {
   WeightMode m{};
-  char err[256];
+  char err[1024];
+  /* FZ-MODE-PRODUCTION：生产接受集 = {point_information, surface_gls}。 */
   CHECK(route_weight_mode("point_information", &m, err, sizeof(err)) == 0 && m == WeightMode::kPointInformation, "point_information production");
   CHECK(route_weight_mode("surface_gls", &m, err, sizeof(err)) == 0 && m == WeightMode::kSurfaceGls, "surface_gls production");
-  CHECK(route_weight_mode("psfsw_robust", &m, err, sizeof(err)) == 0 && m == WeightMode::kPsfswRobust, "psfsw_robust production");
+  /* FZ-MODE-RETIRED：退役对象 psfsw_robust 必须被**显式拒绝 + 迁移提示**（不静默接受）。
+   * 能红能绿：把它放回上方接受集（或让 route 返回 0）本块即转红。 */
+  CHECK(route_weight_mode("psfsw_robust", &m, err, sizeof(err)) == 1, "psfsw_robust RETIRED rejected");
+  CHECK(std::strstr(err, "FZ-MODE-RETIRED") != nullptr, "retired reject cites FZ-MODE-RETIRED");
+  CHECK(std::strstr(err, "psfsw_robust") != nullptr, "retired reject names the rejected mode");
+  CHECK(std::strstr(err, "point_information") != nullptr && std::strstr(err, "surface_gls") != nullptr, "retired reject states the allowed production set");
+  CHECK(std::strstr(err, "migration") != nullptr, "retired reject carries a migration hint");
   CHECK(route_weight_mode("psf_snr_power", &m, err, sizeof(err)) == 1, "psf_snr_power DEFERRED rejected");
   CHECK(route_weight_mode("auto", &m, err, sizeof(err)) == 1, "auto rejected");
   CHECK(route_weight_mode("support_x_snr2", &m, err, sizeof(err)) == 1, "support_x_snr2 rejected");
@@ -218,7 +225,10 @@ static bool run_routing() {
   CHECK(route_weight_mode("bogus", &m, err, sizeof(err)) == 1, "unknown rejected");
   CHECK(route_weight_mode("equal", &m, err, sizeof(err)) == 2, "equal baseline non-production");
   CHECK(route_weight_mode("pixel_ivar", &m, err, sizeof(err)) == 2, "pixel_ivar baseline non-production");
-  CHECK(parse_weight_mode("psfsw_robust", &m) && m == WeightMode::kPsfswRobust, "parse psfsw");
+  /* 解析面同样不接受退役对象（返回 false，不解析成 kPsfswRobust）。 */
+  CHECK(!parse_weight_mode("psfsw_robust", &m), "parse rejects retired psfsw_robust");
+  CHECK(parse_weight_mode("point_information", &m) && m == WeightMode::kPointInformation, "parse point_information");
+  CHECK(parse_weight_mode("surface_gls", &m) && m == WeightMode::kSurfaceGls, "parse surface_gls");
   std::printf("  ROUTING PASS checks=%d\n", g_checks);
   return true;
 }
@@ -348,36 +358,41 @@ static bool run_write(const fs::path& work) {
       for (std::size_t l = 0; l < K; ++l) if (k != l) pi.c_in[k * K + l] = 1.0;
     }
     const ProductResult r = run_psfsw_robust(pi, make_meta("psfsw"), (out / "psfsw").string());
-    CHECK(r.ok, r.error.c_str());
-    const Phase2OpenResult o = open_phase2_product((out / "psfsw").string());
-    CHECK(o.ok, o.error.c_str());
-    CHECK(o.has_effective_psf, "psfsw effective PSF present");
-    /* 实际系数 sum=1 + C_out = R C_in R^T（独立复算） */
-    double asum = 0.0; for (double a : r.combination_coefficients) asum += a;
-    CHECK_NEAR(asum, 1.0, 1e-9, "psfsw actual combination coefficients sum to 1");
-    double var_recon = 0.0;
-    for (std::size_t a = 0; a < K; ++a)
-      for (std::size_t b = 0; b < K; ++b)
-        var_recon += r.combination_coefficients[a] * r.combination_coefficients[b] * pi.c_in[a * K + b];
-    CHECK_NEAR(r.variance_out[0], var_recon, 1e-12, "C_out = R C_in R^T (FZ-FORMULA-COV-PROP)");
-    const json rec = load_json(out / "psfsw" / "phase2_product.json");
-    /* 禁止 1/W_psfsw：真实传播方差 != 1/W（除非巧合） */
-    const double one_over_w = 1.0 / rec["phase2_extensions"]["w_psfsw"][0].get<double>();
-    CHECK(std::fabs(r.variance_out[0] - one_over_w) > 1e-6, "variance is NOT 1/W_psfsw (RULINGS #5)");
-    CHECK(rec["psfsw"]["weight"]["group_normalized"] == true, "psfsw group_normalized");
-    CHECK(rec["psfsw"]["weight"]["units"] == "1", "psfsw weight.units=1");
-    CHECK(rec["covariance"]["psfsw_boundary"]["uses_relative_weight_as_ivar"] == false, "psfsw no ivar");
-    double med = 0.0; {
-      std::vector<double> w = rec["phase2_extensions"]["w_psfsw"].get<std::vector<double>>();
-      std::sort(w.begin(), w.end()); med = (w.size() % 2) ? w[w.size()/2] : 0.5*(w[w.size()/2-1]+w[w.size()/2]);
+    /* FZ-MODE-RETIRED（负例）：退役对象 psfsw_robust_weight 不是现行对象 ⇒ Phase1 消费面
+     * 命中即 fail-closed，**不产出产品**（不静默接受）。原正向路径（conventional coadd /
+     * C_out=R C_in R^T / effective PSF）随对象退役一并关闭。
+     * 能红能绿：让 consume_phase1_group_for_psfsw 放行（或把该声明从 fixture 产品去掉而
+     * 消费面仍产出 w_psfsw），本块即转红。 */
+    CHECK(!r.ok, "retired psfsw_robust rejected (no product)");
+    CHECK(r.error.find("FZ-MODE-RETIRED") != std::string::npos,
+          "retired reject error cites FZ-MODE-RETIRED");
+    CHECK(r.error.find("psfsw_robust_weight") != std::string::npos,
+          "retired reject error names the retired object");
+    CHECK(r.error.find("point_information") != std::string::npos &&
+              r.error.find("surface_gls") != std::string::npos,
+          "retired reject error states the allowed weight objects");
+    CHECK(r.error.find("migration") != std::string::npos,
+          "retired reject error carries a migration hint");
+    CHECK(!fs::exists(out / "psfsw" / "phase2_product.json"),
+          "retired mode wrote no product (fail-closed)");
+    /* 产品面负例（mutation）：把退役 mode 写回一份**合法**的 phase2 产品记录 ⇒ 重开门
+     * 必须显式拒绝且理由可诊断（FZ-MODE-RETIRED），不得静默接受。 */
+    {
+      const fs::path fake = out / "psfsw_retired_fake";
+      rm_rf(fake);
+      fs::create_directories(fake);
+      json frec = load_json(out / "point" / "phase2_product.json");
+      frec["weight_mode"] = "psfsw_robust";
+      save_json(fake / "phase2_product.json", frec);
+      const Phase2OpenResult fo = open_phase2_product(fake.string());
+      CHECK(!fo.ok, "product gate rejects retired weight_mode (mutation)");
+      CHECK(fo.error.find("FZ-MODE-RETIRED") != std::string::npos,
+            "product gate reject cites FZ-MODE-RETIRED");
+      CHECK(fo.error.find("point_information") != std::string::npos &&
+                fo.error.find("surface_gls") != std::string::npos,
+            "product gate reject states the allowed production set");
     }
-    CHECK_NEAR(med, 1.0, 1e-9, "disk group median(W_psfsw)=1 (OI-01)");
-    report["psfsw"] = {{"w_psfsw", rec["phase2_extensions"]["w_psfsw"]},
-                       {"c_in", pi.c_in},
-                       {"alpha", r.combination_coefficients},
-                       {"var_out", r.variance_out},
-                       {"peff", r.effective_psf},
-                       {"out", (out / "psfsw").string()}};
+    report["psfsw_retired"] = {{"rejected", !r.ok}, {"error", r.error}};
   }
 
   /* --- UPM/REJ/SAMP 接线 --- */

@@ -49,10 +49,10 @@
       "approximation": "V6 schema/Oracle（psfsw/weight-mode/provenance/covariance/signal/effective-psf）",
       "in_ctest": false,
       "default_on": true,
-      "driver": "eng/tests/contracts/v6/test_v6_negative_mutations.py",
+      "driver": "eng/tests/contracts/product_family/test_field_constraints_mutations.py",
       "registration": "CHK-CONTRACT-TEST → UT-CONTRACTS（unittest discover eng/tests/contracts）",
       "result": "total=34 detected=34 missed=0 wrong_gate=0",
-      "evidence": "eng/tests/contracts/v6/evidence/mutations.json"
+      "evidence": "eng/tests/contracts/product_family/evidence/mutations.json"
     },
     {
       "id": "docchk002_mutation",

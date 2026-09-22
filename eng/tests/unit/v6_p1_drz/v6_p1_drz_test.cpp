@@ -135,8 +135,12 @@ static void run_units() {
     check((frozen_unit(UnitId::pixel_variance_in).dim == UnitDimension{2, 0}),
           "pixel_variance_in=ADU^2");
     check((frozen_unit(UnitId::w_info).dim == UnitDimension{-2, 0}), "W_info=ADU^-2");
-    check((frozen_unit(UnitId::psfsw_robust_weight).dim == UnitDimension{0, 0}),
-          "psfsw dimensionless");
+    /* PSFSW-RETIRE-03：psfsw_robust_weight 已**物理删除**（UnitId 无其项、冻结单位表
+       无其行）——本行原为 frozen_unit(UnitId::psfsw_robust_weight).dim 断言。退役对象
+       的识别面只剩字符串面，故改为锁定"仍被显式识别 + 现行符号不被误判"（不是删断言）。 */
+    check(is_retired_unit_symbol("psfsw_robust_weight"),
+          "retired unit symbol still recognized (string face)");
+    check(!is_retired_unit_symbol("W_info"), "live unit symbol not misjudged as retired");
     check(unit_law_holds(UnitId::signal_sb, UnitId::sb_variance_out, UnitId::sb_ivar_out),
           "unit law variance=signal^2");
 

@@ -70,9 +70,9 @@ kernel_nearest_continuous_field / kernel_unregistered_bicubic
 ## 5. 未决风险（需控制器裁决）
 
 1. **生产 schema 与 bare-ADU 通量的交叉张力**（REVIEW_REQUIRED）：
-   `eng/contracts/schemas/v6/astrocs.v6.provenance.v1.schema.json#allOf` 规定 `units.bunit="ADU"`
+   `eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/provenance/allOf` 规定 `units.bunit="ADU"`
    必须配 `pixel_semantics=surface_brightness`/`pixel_area_power=-2`；而
-   `astrocs.v6.signal.v1.schema.json` 规定 `integrated_flux => pixel_area_power=0`。
+   `product_family_field_constraints.schema.json#/$defs/signal` 规定 `integrated_flux => pixel_area_power=0`。
    二者叠加使纯积分通量主面在 v6 生产 schema 下不可表达；AIO `bunit_dimension_decidable`
    也仅接受 SB-ADU。本接线因此把 matched-filter 通量放扩展 HDU（`FLUX=ADU`/
    `FLUX_VARIANCE=ADU^2`），主面保持 schema 合法的面亮度。建议 owner 对该交叉张力给出裁决

@@ -1,7 +1,7 @@
 {
   "schema": "astrocs.known-failures-baseline/v1",
   "repo": "/workspace/Astro CS Database",
-  "source_commit": "dd9c240408a328280987d16fa0fd28179455ac41",
+  "source_commit": "60f46388b7f6e4e7c098645ff8855aeaa5d8309d",
   "finding_count": 40,
   "reproduced_count": 16,
   "findings": [
@@ -185,7 +185,7 @@
       "status": "NOT_REPRODUCED_WITH_EVIDENCE",
       "minimal_command": "wc -l lib/infrastructure/cli/main.cpp",
       "evidence": [
-        "lib/infrastructure/cli/main.cpp 79 行（>400 判定为超厚）"
+        "lib/infrastructure/cli/main.cpp 103 行（>400 判定为超厚）"
       ],
       "note": "薄 CLI 要求未满足"
     },

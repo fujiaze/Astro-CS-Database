@@ -1,0 +1,512 @@
+{
+  "ledger_schema": "astrocs.ci-ledger/v1",
+  "ledger_id": "log-system",
+  "purpose": "CHK-LOG-SYS 的**显式登记面**（不是豁免）：承载生产收敛面吞错点、条件回退点与硬编码日志落点的已确证条目。条目只减不增；删条目即恢复判红（不得用本台账把门禁改绿）。",
+  "authority": {
+    "design": "ASTROCS_DESIGN.md §7.3（错误传播与运行日志）",
+    "detail": "docs/design/LOG_AND_ERROR_SYSTEM.md",
+    "contract": "docs/contracts/LOG_AND_ERROR_CONTRACT.md",
+    "checker": "eng/tools/quality/check_log_system.py（CHK-LOG-SYS）"
+  },
+  "landing_contract": {
+    "default_dir": "<output_dir>/logs",
+    "jsonl_name": "run_<run_id>.jsonl",
+    "summary_name": "run_<run_id>.log",
+    "anchors": [
+      "lib/infrastructure/observability/logging/log_event_v1.schema.json",
+      "docs/design/LOG_AND_ERROR_SYSTEM.md",
+      "docs/contracts/LOG_AND_ERROR_CONTRACT.md"
+    ]
+  },
+  "error_swallow": {
+    "max_entries": 28,
+    "entries": [
+      {
+        "id": "LSW-001",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "cli_memory_budget_percent",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 149,
+        "kind": "known_gap",
+        "reason": "profile 不可读/不可解析 ⇒ 返回 0（内存预算回落默认），无 stderr、无日志事件、无 manifest 记录 ⇒ 静默降级。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-002",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "build_run_provenance",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 247,
+        "kind": "known_gap",
+        "reason": "节点 manifest 解析失败 ⇒ continue 跳过该节点，provenance 静默缺项（无记录）。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-003",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "write_run_graphs",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 498,
+        "kind": "known_gap",
+        "reason": "节点 manifest 解析失败 ⇒ 静默跳过该节点，run graph 静默缺节点（观测面静默缺数据）。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-004",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "backend_isa_name",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 625,
+        "kind": "known_gap",
+        "reason": "CPU 画像失败 ⇒ 返回 \"baseline\"，无记录 ⇒ 静默降级 ISA 画像。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-005",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "<global>",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 1005,
+        "kind": "known_gap",
+        "reason": "IR JSON 解析失败 ⇒ work_units 取 0 哨兵（注释自述不臆造工作量），但无事件记录，静默。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-006",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "run_phase2_block",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 1271,
+        "kind": "known_gap",
+        "reason": "mosaic 节点 manifest 解析失败 ⇒ 静默跳过 uncertainty 摘要，无记录。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-007",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "run_phase2_block",
+        "key": "catch#2",
+        "anchor": "catch",
+        "line_hint": 1322,
+        "kind": "known_gap",
+        "reason": "mosaic 会话摘要 JSON 解析失败 ⇒ 静默跳过资源摘要字段，无记录。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-008",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "run_phase3_block",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 1421,
+        "kind": "known_gap",
+        "reason": "resume 前序配置解析失败 ⇒ 静默置空 doc（前序产物扫描面静默缩小）。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-009",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "run_phase3_block",
+        "key": "catch#2",
+        "anchor": "catch",
+        "line_hint": 1524,
+        "kind": "known_gap",
+        "reason": "节点 manifest 解析失败 ⇒ continue 跳过，产物核对面静默缺项。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-010",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "run_phase3_block",
+        "key": "catch#3",
+        "anchor": "catch",
+        "line_hint": 1571,
+        "kind": "known_gap",
+        "reason": "uncertainty 摘要解析失败 ⇒ 静默跳过，无记录。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-011",
+        "file": "lib/infrastructure/cli/commands.cpp",
+        "symbol": "run_phase1_block",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 1998,
+        "kind": "known_gap",
+        "reason": "节点 manifest 解析失败 ⇒ continue 跳过，产物核对面静默缺项。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-012",
+        "file": "lib/infrastructure/cli/runtime_client.cpp",
+        "symbol": "run_pipeline",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 426,
+        "kind": "known_gap",
+        "reason": "失败 manifest 解析失败 ⇒ 静默跳过 error_kind 判定 ⇒ 退出码可能被静默改变（应 3/10 变 2/7）；位于错误收敛路径上，优先级最高。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-013",
+        "file": "lib/infrastructure/cli/runtime_client.cpp",
+        "symbol": "collect_node_artifact_paths",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 458,
+        "kind": "known_gap",
+        "reason": "节点 manifest 解析失败 ⇒ continue 跳过，artifact 收集面静默缺项。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-014",
+        "file": "lib/infrastructure/cli/v6_mode_gate.h",
+        "symbol": "mode_gate",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 38,
+        "kind": "known_gap",
+        "reason": "门控文档解析失败 ⇒ have_doc=false，静默降级门控判定（无记录）。",
+        "owner": "CLI 域主（前台裁决接线面）",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-015",
+        "file": "lib/infrastructure/scheduler/src/executor.cpp",
+        "symbol": "<global>",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 137,
+        "kind": "known_gap",
+        "reason": "worker 计算任务异常被吞（注释自述「异常不得杀死 worker」）⇒ 任务失败不改变 run 结论，无错误上行；违反最高设计 §7.3「任何模块运行出问题都必须抛错到 CLI」。",
+        "owner": "scheduler/pipeline 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-016",
+        "file": "lib/infrastructure/scheduler/src/executor.cpp",
+        "symbol": "<global>",
+        "key": "catch#2",
+        "anchor": "catch",
+        "line_hint": 254,
+        "kind": "known_gap",
+        "reason": "worker I/O 任务异常被吞（同上）⇒ I/O 失败不改变 run 结论。",
+        "owner": "scheduler/pipeline 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-017",
+        "file": "lib/infrastructure/pipeline/orchestrator/cpp/src/main.cpp",
+        "symbol": "inspect_hiss_file",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 157,
+        "kind": "accepted",
+        "reason": "编排层遗留 target（astrocs_infra_orchestrator 未链入生产 astrocs）内的人读检查工具：JSON 解析失败仅输出原始 JSON。",
+        "owner": "编排层（遗留 target）域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-018",
+        "file": "lib/infrastructure/aio/src/aio_api.cpp",
+        "symbol": "aio_get_dtype",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 270,
+        "kind": "accepted",
+        "reason": "C ABI 查询接口的异常守卫：异常不得跨 C ABI 传播（最高设计 §8.5），异常时返回哨兵值（0/空串），调用方以哨兵判定；不承载科学结论。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-019",
+        "file": "lib/infrastructure/aio/src/aio_api.cpp",
+        "symbol": "aio_get_width",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 280,
+        "kind": "accepted",
+        "reason": "C ABI 查询接口的异常守卫：异常不得跨 C ABI 传播（最高设计 §8.5），异常时返回哨兵值（0/空串），调用方以哨兵判定；不承载科学结论。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-020",
+        "file": "lib/infrastructure/aio/src/aio_api.cpp",
+        "symbol": "aio_get_height",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 290,
+        "kind": "accepted",
+        "reason": "C ABI 查询接口的异常守卫：异常不得跨 C ABI 传播（最高设计 §8.5），异常时返回哨兵值（0/空串），调用方以哨兵判定；不承载科学结论。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-021",
+        "file": "lib/infrastructure/aio/src/aio_api.cpp",
+        "symbol": "aio_get_channels",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 300,
+        "kind": "accepted",
+        "reason": "C ABI 查询接口的异常守卫：异常不得跨 C ABI 传播（最高设计 §8.5），异常时返回哨兵值（0/空串），调用方以哨兵判定；不承载科学结论。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-022",
+        "file": "lib/infrastructure/aio/src/aio_api.cpp",
+        "symbol": "aio_get_keyword_count",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 344,
+        "kind": "accepted",
+        "reason": "C ABI 查询接口的异常守卫：异常不得跨 C ABI 传播（最高设计 §8.5），异常时返回哨兵值（0/空串），调用方以哨兵判定；不承载科学结论。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-023",
+        "file": "lib/infrastructure/aio/src/aio_api.cpp",
+        "symbol": "aio_get_source_format",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 366,
+        "kind": "accepted",
+        "reason": "C ABI 查询接口的异常守卫：异常不得跨 C ABI 传播（最高设计 §8.5），异常时返回哨兵值（0/空串），调用方以哨兵判定；不承载科学结论。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-024",
+        "file": "lib/infrastructure/aio/src/aio_api.cpp",
+        "symbol": "aio_get_source_path",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 376,
+        "kind": "accepted",
+        "reason": "C ABI 查询接口的异常守卫：异常不得跨 C ABI 传播（最高设计 §8.5），异常时返回哨兵值（0/空串），调用方以哨兵判定；不承载科学结论。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-025",
+        "file": "lib/infrastructure/aio/src/aio_api.cpp",
+        "symbol": "aio_is_fits",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 425,
+        "kind": "accepted",
+        "reason": "C ABI 查询接口的异常守卫：异常不得跨 C ABI 传播（最高设计 §8.5），异常时返回哨兵值（0/空串），调用方以哨兵判定；不承载科学结论。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-026",
+        "file": "lib/infrastructure/aio/src/aio_api.cpp",
+        "symbol": "aio_is_xisf",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 437,
+        "kind": "accepted",
+        "reason": "C ABI 查询接口的异常守卫：异常不得跨 C ABI 传播（最高设计 §8.5），异常时返回哨兵值（0/空串），调用方以哨兵判定；不承载科学结论。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-027",
+        "file": "lib/infrastructure/aio/src/aio_fits.cpp",
+        "symbol": "parse_fits_header",
+        "key": "catch#1",
+        "anchor": "catch",
+        "line_hint": 161,
+        "kind": "known_gap",
+        "reason": "BSCALE 解析失败 ⇒ 静默保持默认 0 ⇒ 像素标定静默错误（改变科学数值，属故障而非降级）。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSW-028",
+        "file": "lib/infrastructure/aio/src/aio_fits.cpp",
+        "symbol": "parse_fits_header",
+        "key": "catch#2",
+        "anchor": "catch",
+        "line_hint": 162,
+        "kind": "known_gap",
+        "reason": "BZERO 解析失败 ⇒ 静默保持默认 0 ⇒ 像素标定静默错误（改变科学数值，属故障而非降级）。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      }
+    ]
+  },
+  "silent_degradation": {
+    "max_entries": 2,
+    "entries": [
+      {
+        "id": "LSD-001",
+        "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+        "symbol": "p1_calibrated_path",
+        "key": "fallback",
+        "anchor": "p1_calibrated_path(",
+        "line_hint": 1452,
+        "kind": "known_gap",
+        "reason": "ARCH-AUDIT-01 B-5：calibrated_<base> 缺失即静默返回原始 light 帧，不写 degraded_reason、manifest 不记实际消费路径。违反 PIPELINE_BLOCK_CONTRACT §4「降级必须显式」。",
+        "owner": "scheduler/pipeline 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSD-002",
+        "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+        "symbol": "p1_cleaned_input_path",
+        "key": "fallback",
+        "anchor": "p1_cleaned_input_path(",
+        "line_hint": 1468,
+        "kind": "known_gap",
+        "reason": "ARCH-AUDIT-01 B-5：cleaned_<base> 缺失即静默回退到 cal 产物/原帧，不写 degraded_reason、manifest 不记实际消费路径。",
+        "owner": "scheduler/pipeline 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      }
+    ]
+  },
+  "log_landing": {
+    "max_entries": 8,
+    "entries": [
+      {
+        "id": "LSL-001",
+        "file": "lib/algorithms/psf/src/dpsf_log.cpp",
+        "symbol": "<literal>",
+        "key": "literal#1",
+        "anchor": "lib\\\\dynamic_psf\\\\logs\\\\dynamic_psf.log",
+        "line_hint": 41,
+        "kind": "known_gap",
+        "reason": "PSF 模块日志硬编码落源码树（Windows 分支 lib\\dynamic_psf\\logs\\）；违反最高设计 §7.3「日志落 output_dir」与 §7 目录规范。",
+        "owner": "PSF 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSL-002",
+        "file": "lib/algorithms/psf/src/dpsf_log.cpp",
+        "symbol": "<literal>",
+        "key": "literal#2",
+        "anchor": "lib/algorithms/psf/logs/dynamic_psf.log",
+        "line_hint": 43,
+        "kind": "known_gap",
+        "reason": "PSF 模块日志硬编码落源码树（Linux 分支 lib/algorithms/psf/logs/）。",
+        "owner": "PSF 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSL-003",
+        "file": "lib/algorithms/star_detection/src/sdet_log.cpp",
+        "symbol": "<literal>",
+        "key": "literal#1",
+        "anchor": "lib\\\\star_detector\\\\logs\\\\star_detector.log",
+        "line_hint": 40,
+        "kind": "known_gap",
+        "reason": "星点检测模块日志硬编码落源码树（Windows 分支 lib\\star_detector\\logs\\）。",
+        "owner": "星点检测域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSL-004",
+        "file": "lib/algorithms/star_detection/src/sdet_log.cpp",
+        "symbol": "<literal>",
+        "key": "literal#2",
+        "anchor": "lib/algorithms/star_detection/logs/star_detector.log",
+        "line_hint": 42,
+        "kind": "known_gap",
+        "reason": "星点检测模块日志硬编码落源码树（Linux 分支 lib/algorithms/star_detection/logs/）。",
+        "owner": "星点检测域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSL-005",
+        "file": "lib/infrastructure/aio/src/aio_log.cpp",
+        "symbol": "<literal>",
+        "key": "literal#1",
+        "anchor": "lib\\\\astro_image_io\\\\logs\\\\astro_image_io.log",
+        "line_hint": 43,
+        "kind": "known_gap",
+        "reason": "aio 日志硬编码落源码树（Windows 分支 lib\\astro_image_io\\logs\\astro_image_io.log）；aio 链入生产 astrocs ⇒ **生产可达**，每次运行都写源码树（实测该文件 63 MB）。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSL-006",
+        "file": "lib/infrastructure/aio/src/aio_log.cpp",
+        "symbol": "<literal>",
+        "key": "literal#2",
+        "anchor": "lib/infrastructure/aio/logs/astro_image_io.log",
+        "line_hint": 45,
+        "kind": "known_gap",
+        "reason": "aio 日志硬编码落源码树（Linux 分支 lib/infrastructure/aio/logs/astro_image_io.log）；生产可达。",
+        "owner": "aio 域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSL-007",
+        "file": "lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp",
+        "symbol": "<literal>",
+        "key": "literal#1",
+        "anchor": "run/logs/orchestrator",
+        "line_hint": 566,
+        "kind": "known_gap",
+        "reason": "编排层遗留 target 的 log_dir 默认值 = CWD 相对 run/logs/orchestrator；该 target 未链入生产 astrocs，但路径形态违反最高设计 §7.3。",
+        "owner": "编排层（遗留 target）域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      },
+      {
+        "id": "LSL-008",
+        "file": "lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp",
+        "symbol": "<literal>",
+        "key": "literal#2",
+        "anchor": "/run/logs/plate_solve",
+        "line_hint": 2037,
+        "kind": "known_gap",
+        "reason": "编排层遗留 target 的 log_dir 硬编码 <project_root>/run/logs/plate_solve；同上。",
+        "owner": "编排层（遗留 target）域主",
+        "exit_condition": "本条目对应站点改为显式上报/显式降级（写 degraded_reason + manifest 记录）或落点改为 output_dir 派生后删除本条目；删条目即恢复判红。"
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "F-EXIT-MAP",
+      "kind": "finding",
+      "summary": "运行时错误域→退出码映射与 exit_codes.h 语义不一致：ErrorDomain::CONFIG→default 70（合同 §5 为 2）、ErrorDomain::BACKEND→default 70（应为 5）、ErrorDomain::RESOURCE→5（exit_codes.h 的 RESOURCE=10）。",
+      "evidence": "lib/infrastructure/cli/runtime_client.cpp 的 switch(rt_ret.error().domain()) 分支",
+      "impact": "配置错误与后端加载失败会以 70（未分类内部错误）上报；资源类失败以 5（BACKEND）上报，与 §7.2 码值语义不符。",
+      "owner": "负责人裁决（CLI 收敛面）",
+      "action": "另派实现任务按 docs/contracts/LOG_AND_ERROR_CONTRACT.md §5 订正映射并补退出码可达矩阵测试；本设计不改码。"
+    },
+    {
+      "id": "F-PHASE-ENUM",
+      "kind": "finding",
+      "summary": "LOG-001 schema 的 phase 枚举为 phase1/phase2/phase3/runtime/monitoring/cli/\"\"，而 docs/architecture/observability/STRUCTURED_LOGGING_CONTRACT.md §2.2 写成 phase1/phase2/phase3/lib/infrastructure/observability/monitoring/cli/\"\"；且 phase1/2/3 是最高设计 §7.1 明令不出现在代码目录的内部指代。",
+      "evidence": "lib/infrastructure/observability/logging/log_event_v1.schema.json#phase 与合同文档 §2.2 不一致",
+      "impact": "日志行归属字段的两处口径不一致；按 schema 写入的 runtime 归属行无法在文档侧对号。",
+      "owner": "LOG-001 合同 owner（SA-LOG-08）/ 负责人裁决",
+      "action": "合同变更流程：先统一 schema 与文档（建议枚举改用 normalize/mosaic/export/runtime），再在实现任务接入。本设计不改 schema。"
+    }
+  ]
+}

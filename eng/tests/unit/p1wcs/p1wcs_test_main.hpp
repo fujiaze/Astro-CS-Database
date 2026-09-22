@@ -67,6 +67,10 @@ static const char* const kP1wcsFaultNames[] = {
     "f2x_parity_workers",       // apbp: 1 worker / N worker bitwise
     "f2x_layout_expand",        // apbp: 布局扩展登记 + 一步防退化观察线
     "f2x_cross_export",         // apbp: 交叉验证输入导出
+    "f2x_iter_floor_freeze",    // apbp: 迭代反演路径紧门 κ_iter·τ = 1e-8 px
+                                //   (GATE-WCS-01 裁决 2 / G-P1-WCS-RT-ITER)
+    "f2x_apbp_represent_freeze", // apbp: AP/BP 多项式逆表示门 ≤10% 边缘畸变预算
+                                //   (GATE-WCS-01 裁决 2 / G-P1-WCS-RT-APBP)
     // negative 组
     "n1_few_stars",           // negative: <3 星 success=0
     "n1_collinear_success",   // negative: 共线退化 success=0 (DISP-WCS-001)

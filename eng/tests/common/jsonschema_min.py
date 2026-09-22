@@ -6,7 +6,7 @@ additionalProperties, propertyNames, items, minItems/maxItems/uniqueItems, minPr
 minLength/maxLength/pattern, minimum/maximum/exclusiveMinimum/exclusiveMaximum,
 allOf/anyOf/oneOf/not, if/then/else。$ref 的兄弟关键字按 2020-12 语义照常求值。
 
-`eng/tests/contracts/v6/test_v6_schema_integration.py` 在 jsonschema 可用时用官方
+`eng/tests/contracts/product_family/test_field_constraints_integration.py` 在 jsonschema 可用时用官方
 Draft202012Validator 做差分对照；CI（unittest，无第三方依赖）用本实现。
 """
 import re

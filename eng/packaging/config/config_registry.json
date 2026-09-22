@@ -362,12 +362,12 @@
       "registered_at": null,
       "registered_key": null,
       "finding": "gap",
-      "note": "插件默认 true（是否输出 selection function）；SCI/ALG 零命中。同名 token 在 docs/algorithms/v6/phase2-psfsw/PSFSW_ALGORITHM_SPEC.md:118 指 PSFSW 选择函数证据对象（异义同名）。归属：负责人裁决（含同名消歧）。",
+      "note": "插件默认 true（是否输出 selection function）；SCI/ALG 零命中。同名 token 在 docs/science/PSF_SIGNAL_WEIGHT.md:118 指 PSFSW 选择函数证据对象（异义同名）。归属：负责人裁决（含同名消歧）。",
       "conflict": {
         "kind": "unregistered_default_homonym",
         "evidence": [
           "docs/plugins/algorithms_phase1/03_star_detection.md:35",
-          "docs/algorithms/v6/phase2-psfsw/PSFSW_ALGORITHM_SPEC.md:118"
+          "docs/science/PSF_SIGNAL_WEIGHT.md:118"
         ],
         "owner": "负责人裁决"
       }
@@ -1462,37 +1462,52 @@
     {
       "module": "21_observability",
       "doc": "docs/plugins/infrastructure/21_observability.md",
-      "line": 32,
+      "line": 34,
       "field": "log_level",
       "declared_default": "info",
       "unit": null,
       "owner_class": "runtime_policy",
       "registration": "plugin_doc",
-      "registered_at": "docs/plugins/infrastructure/21_observability.md:30",
+      "registered_at": "docs/plugins/infrastructure/21_observability.md:34",
       "registered_key": null,
       "finding": "none",
-      "note": "观测面旋钮（默认 info，值域 trace/debug/info/warn/error）；权威 = 插件文档，禁入科学配置。",
+      "note": "观测面旋钮（默认 info，值域 debug/info/warn/error）；权威 = 插件文档，禁入科学配置。",
       "conflict": null
     },
     {
       "module": "21_observability",
       "doc": "docs/plugins/infrastructure/21_observability.md",
-      "line": 33,
-      "field": "event_dir",
-      "declared_default": "run/<run_id>/",
+      "line": 35,
+      "field": "log_dir",
+      "declared_default": "<output_dir>/logs",
       "unit": null,
       "owner_class": "runtime_policy",
       "registration": "plugin_doc",
-      "registered_at": "docs/plugins/infrastructure/21_observability.md:31",
+      "registered_at": "docs/plugins/infrastructure/21_observability.md:35",
       "registered_key": null,
       "finding": "none",
-      "note": "事件输出目录（默认 run/<run_id>/），运行期策略。",
+      "note": "运行日志目录（默认由块级 output_dir 派生 = <output_dir>/logs），运行期策略；禁落 CWD/源码树/run/（ASTROCS_DESIGN §7.3、LOG-004）。",
       "conflict": null
     },
     {
       "module": "21_observability",
       "doc": "docs/plugins/infrastructure/21_observability.md",
-      "line": 34,
+      "line": 36,
+      "field": "log_keep",
+      "declared_default": "all",
+      "unit": null,
+      "owner_class": "runtime_policy",
+      "registration": "plugin_doc",
+      "registered_at": "docs/plugins/infrastructure/21_observability.md:36",
+      "registered_key": null,
+      "finding": "none",
+      "note": "运行日志保留策略（默认 all = 全保留，或最近 N 次），运行期策略。",
+      "conflict": null
+    },
+    {
+      "module": "21_observability",
+      "doc": "docs/plugins/infrastructure/21_observability.md",
+      "line": 37,
       "field": "sampling",
       "declared_default": null,
       "unit": null,

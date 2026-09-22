@@ -668,7 +668,7 @@
       "unit": "1",
       "constraint": "0 < pixfrac <= 1（严格校验，非法值显式 NO_DATA，不静默夹逼；DRIZZLE.md:31,:92；DRIZZLE_GEOMETRY.md:61,:102）",
       "authority_status": "owner_adjudicated",
-      "source": "docs/science/DRIZZLE.md:35（0<pixfrac<=1，非法 NO_DATA，不静默夹逼）；docs/contracts/v6/data/02_signal.md:43-48（FZ-COND-FLUX-CONSERV：pixfrac=1 ⇒ ΣF=Σx 严格守恒；pixfrac<1 ⇒ 总输出通量 = pixfrac²·Σx 且 provenance.flux_conservation_factor=pixfrac²）",
+      "source": "docs/science/DRIZZLE.md:35（0<pixfrac<=1，非法 NO_DATA，不静默夹逼）；docs/contracts/DATA_SEMANTICS.md §31.1:43-48（FZ-COND-FLUX-CONSERV：pixfrac=1 ⇒ ΣF=Σx 严格守恒；pixfrac<1 ⇒ 总输出通量 = pixfrac²·Σx 且 provenance.flux_conservation_factor=pixfrac²）",
       "source_ref": {
         "path": "docs/science/DRIZZLE.md",
         "line": 35

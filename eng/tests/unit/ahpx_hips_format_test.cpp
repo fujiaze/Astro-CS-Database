@@ -3,7 +3,7 @@
 //
 // 规范依据:
 //   ASTROCS_DESIGN.md §2.1 (全程只有 SNR, 不存在「权重模式」; HiPS 里存的是
-//     帧级 SNR + 稀疏相对 SNR 比值), §3.4 (稀疏 SNR 层在交换合同里有位置)
+//     帧级 SNR + 稀疏控制点上的绝对 SNR), §3.4 (稀疏 SNR 层在交换合同里有位置)
 //   GAP_AUDIT.md §9.73 裁决 A44; DESIGN-DRAFT §3.1-D
 //
 // 组:

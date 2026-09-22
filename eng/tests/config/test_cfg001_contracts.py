@@ -4,7 +4,7 @@
 
 跑法（控制包指定）：
   python3 -m unittest discover -s eng/tests/config -t eng/tests/config
-所有断言都直接读仓库文件，零第三方依赖（jsonschema 子集用 eng/tests/contracts/v6/jsonschema_min.py）。
+所有断言都直接读仓库文件，零第三方依赖（jsonschema 子集用 eng/tests/common/jsonschema_min.py）。
 """
 import json
 import os

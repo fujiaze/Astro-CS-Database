@@ -52,17 +52,15 @@ TEXT_EXT = {".md", ".json", ".yaml", ".yml", ".csv", ".txt", ".py", ".rst"}
 # **登记与派生**面：path = 仓库路径字面量；downstream = 机器扫描出的引用方路径表；
 # duty = 所登记文档标题的截断副本。它们不是在引入 weight_mode 作为活键/枚举/
 # 配置项/产物。
-# 判定依据（2026-09-21 BLD-401 R4 实测的 4 处命中形态）：
-#   ① docs/DOCUMENT_INDEX.yaml:70  README.md 条目的 downstream 计数串里出现
-#      eng/ci/check_no_weight_mode.py —— **门自己的文件名**自指误报；
-#   ② :776 W6_SCHEMA_INTEGRATION.md 条目的 downstream 里出现被登记文档**路径**
-#      docs/contracts/v6/data/05_point_information_and_weight_mode.md；
-#   ③ :802 同一路径的 path 条目本身；
-#   ④ :779 docs/contracts/v6/data/00_README.md 的 duty —— 该文档 H1 的 100 字
-#      截断副本（截断把源文档 H1 同行的「已按 §9.73 A44 作废：该概念不存在」切掉）。
-# 不遮蔽（关键）：地图 path 登记的文档本体仍在 docs/** 扫描面内被逐行直扫 ——
-#   05_point_information_and_weight_mode.md 的 duty 行自带 A44 留痕、00_README.md
-#   全文自带留痕，故排除地图不会放过任何活文档里的裸键。
+# 判定依据（BLD-401 R4 实测的 4 处命中形态）：
+#   ① README.md 条目的 downstream 计数串里出现 eng/ci/check_no_weight_mode.py
+#      —— **门自己的文件名**自指误报；
+#   ② 被登记文档条目的 downstream 里出现**其它文档路径**（路径字面量，不是活键）；
+#   ③ 该路径的 path: 条目本身；
+#   ④ duty: 字段是所登记文档标题的 100 字截断副本（截断会把源文档 H1 同行的
+#      「已按 §9.73 A44 作废：该概念不存在」切掉）。
+# 不遮蔽（关键）：地图 path 登记的文档本体仍在 docs/** 扫描面内被逐行直扫，且其
+#   duty/H1 自带 A44 留痕；故排除地图的登记字段行不会放过任何活文档里的裸键。
 # 收窄（只准更精确、不准更宽松）：只跳过地图自身的**登记字段行与注释行**；地图里
 #   任何其它行（裸键 weight_mode: 2、正文、表格）照旧全量判红（负例见 --self-test）。
 # 锚存活：DERIVED_MAP_REL 不存在时豁免集自然为空 ⇒ 判据只会更严，不会更松。
@@ -206,13 +204,13 @@ def self_test():
                "      status: ACTIVE_INFORMATIVE\n"
                "      duty: \"仓库入口说明\"\n"
                "      downstream: \"eng/ci/check_no_weight_mode.py、eng/ci/check_version.py 等 161 处\"\n"
-               "    - path: \"docs/contracts/v6/data/00_README.md\"\n"
+               "    - path: \"docs/contracts/DATA_SEMANTICS.md\"\n"
                "      status: ACTIVE_NORMATIVE\n"
-               "      duty: \"DATA-DESIGN-001 — 跨 Phase signal / covariance / PSF / W_info / PSFSW / weight_mode / effective PSF / provenanc\"\n"
-               "      downstream: \"docs/DOCUMENT_INDEX.yaml、docs/contracts/v6/data/05_point_information_and_weight_mode.md\"\n"
-               "    - path: \"docs/contracts/v6/data/05_point_information_and_weight_mode.md\"\n"
+               "      duty: \"DATA-UNC-001 — 跨 Phase 数据合同（weight_mode / effective PSF / provenanc\"\n"
+               "      downstream: \"docs/DOCUMENT_INDEX.yaml、docs/contracts/PUBLIC_API.md\"\n"
+               "    - path: \"docs/contracts/PUBLIC_API.md\"\n"
                "      status: ACTIVE_NORMATIVE\n"
-               "      duty: \"05 — W_info 与 weight_mode 对象 schema（已按 §9.73 A44 作废：该概念不存在）\"\n")
+               "      duty: \"公共 API 消费面（weight_mode 已按 §9.73 A44 作废：该概念不存在）\"\n")
         _write(os.path.join(green2, "README.md"), "# 仓库\n")
         rc = run(green2)
         cases.append(("green_derived_index_map_registration", rc, 0))

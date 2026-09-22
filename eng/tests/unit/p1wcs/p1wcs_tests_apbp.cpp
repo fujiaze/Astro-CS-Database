@@ -3,6 +3,11 @@
 // 合同锚: docs/algorithms/PLATESOLVE.md §11.4 F2 (SIP 前向/逆向 roundtrip
 // |Δ|≤1e-4 px, 冻结不放宽); owner 裁决 1 选 B (2026-09-09): AP/BP 布局扩展
 // + 消费方迭代式反演, 恢复冻结门, 不接受缩小 fixture 畸变量级。
+// **分层门**（GATE-WCS-01 裁决 2; 依据 run/GATE-DERIVE-01/REPORT.md §5.4/§6.3）:
+//   G-P1-WCS-RT      全链冻结门 1e-4 px（SCI/ALG 冻结值, 不放宽; 判据力弱）
+//   G-P1-WCS-RT-ITER 迭代反演路径紧门 = κ_iter·τ = 1e-8 px（τ = 1e-9 px）
+//   G-P1-WCS-RT-APBP AP/BP 多项式逆**表示门** = 10% × 边缘畸变预算(px)
+//   三条路径地板相差 5–9 个量级 ⇒ 同一个数不能同时服务它们（REPORT §6.3）。
 //
 // 六类验收覆盖 (本组全部落断言, 数值证据导出 run/p1wcs_wcs003/):
 //   1. 中心 90% 区域: 三档畸变 fixture 冻结门 <1e-4 px
@@ -49,6 +54,19 @@ constexpr unsigned kSeedRand = 20260914u;  // 随机采样点 (固定 seed)
 constexpr int kRandPoints = 1200;  // ≥1000 确定性随机采样点
 constexpr double kFreezePx = 1e-4; // F2 冻结门 (px, 不放宽)
 
+// ---- 分层门（GATE-WCS-01 裁决 2）------------------------------------------
+// τ = 迭代反演收敛容差(px, 契约) —— 反演判据 max|F(u)| < τ, F(u)=u+A(u)−UV。
+// 门值 = κ_iter·τ（κ_iter = 10: 实测最坏 2.91e-9 px = 2.9·τ ⇒ 余量 3.4×,
+// κ_iter=10 再为跨平台 libm/FMA 差异留余量）。
+constexpr double kIterTolPx = 1e-9;      // τ（invert_point() 的单一来源）
+constexpr double kIterGateKappa = 10.0;  // κ_iter
+constexpr double kIterGatePx = kIterGateKappa * kIterTolPx;   // 1e-8 px
+// AP/BP 多项式逆**表示门**: 一步直加残差 ≤ 10% × 边缘畸变预算(px)。
+// 实测（本组 fixture, APx 阶 7/81×81 拟合）: low 1.9e-4%、mid 0.036%、high 1.89%
+// ⇒ 最坏档余量 5.3×。该门回答「多项式表示残差是否在畸变预算的合理比例内」,
+// **不是** FP64 地板门（~184 px 畸变下多项式逆根本达不到 1e-4 px: 实测 3.46 px）。
+constexpr double kApbpBudgetFrac = 0.10;
+
 struct SolveOut {
     ipv::WcsFitResult w;
     bool ok;
@@ -75,9 +93,11 @@ struct IterPoint {
     bool converged;
 };
 
-IterPoint invert_point(const ipv::WcsFitResult& w, double ra, double dec) {
+// τ 可变的反演（用于「度量随 τ 缩小」的判别性负例, 与生产契约同函数）
+IterPoint invert_point_tau(const ipv::WcsFitResult& w, double ra, double dec,
+                           double tau_px) {
     const ipv::WcsIterativeResult r =
-        ipv::wcs_sky_to_pixel_iterative(w, ra, dec, 1e-9, 64);
+        ipv::wcs_sky_to_pixel_iterative(w, ra, dec, tau_px, 64);
     IterPoint p;
     p.x = r.x;
     p.y = r.y;
@@ -85,6 +105,11 @@ IterPoint invert_point(const ipv::WcsFitResult& w, double ra, double dec) {
     p.reject_code = r.reject_code;
     p.converged = r.converged;
     return p;
+}
+
+// 生产契约 τ = kIterTolPx（单一来源; 反演判据 max|F(u)| < τ）
+IterPoint invert_point(const ipv::WcsFitResult& w, double ra, double dec) {
+    return invert_point_tau(w, ra, dec, kIterTolPx);
 }
 
 bool iter_point_bitwise(const IterPoint& a, const IterPoint& b) {
@@ -311,6 +336,173 @@ int test_apbp() {
         P1WCS_CHECK(cs, st_tru[f].n == (int)center90_pts.size() &&
                             st_tru[f].max_rt < kFreezePx,
                     "f2x_truth_anchor");
+
+        // ------------------------------------------------------------------
+        // 7a. f2x_iter_floor_freeze（G-P1-WCS-RT-ITER）: 迭代反演路径紧门
+        //     max(center90 ∪ boundary ∪ random) < κ_iter·τ = 1e-8 px
+        //     （该量 = 独立 oracle 前向锚 + 生产迭代反演 ⇒ 纯反演地板;
+        //      不含拟合误差, 故可用 τ 量级设门）
+        // ------------------------------------------------------------------
+        const double iter_worst = std::max(
+            std::max(st_c90[f].max_rt, st_bnd[f].max_rt), st_rnd[f].max_rt);
+        P1WCS_CHECK(cs, iter_worst > 0.0 && iter_worst < kIterGatePx,
+                    "f2x_iter_floor_freeze");
+        // ------------------------------------------------------------------
+        // 7b. f2x_apbp_represent_freeze（G-P1-WCS-RT-APBP）: APx 一步直加
+        //     **表示残差** ≤ 10% × 边缘畸变预算（表示门, 与 τ 门分开登记）
+        // ------------------------------------------------------------------
+        P1WCS_CHECK(cs, edge_dist_px[f] > 0.0 &&
+                            apx_onestep_max[f] < kApbpBudgetFrac * edge_dist_px[f],
+                    "f2x_apbp_represent_freeze");
+        std::fprintf(stdout,
+                     "[GATE-WCS-01] %s: iter_worst=%.4g px (gate=%.3g = %g*tau) "
+                     "apx1s=%.4g px budget=%.4g px (%.3f%% of edge_dist) "
+                     "frozen_1e-4_margin=%.3g\n",
+                     kFixtures[f].name, iter_worst, kIterGatePx, kIterGateKappa,
+                     apx_onestep_max[f], kApbpBudgetFrac * edge_dist_px[f],
+                     100.0 * apx_onestep_max[f] / edge_dist_px[f],
+                     kFreezePx / iter_worst);
+    }
+
+    // ------------------------------------------------------------------
+    // 7c. 负例非退化（能红能绿）:
+    //   ① 真值无效应⇒归零: 零畸变 fixture（dist_scale = 0）⇒ 迭代反演往返与
+    //      APx 一步表示残差都塌缩到 FP64 地板（≪ 各自门值）;
+    //   ② 判据能红（迭代门）: 前向像素注入 +1e-3 px 后再反演 ⇒ 往返 ≈1e-3 px
+    //      ≫ κ_iter·τ ⇒ 同一判据必红;
+    //   ③ 判据能红（表示门）: 把 APx/BPx 系数清零（等价缺陷）⇒ 一步残差 ≈ 畸变
+    //      量级 ≫ 10% 预算 ⇒ 表示门必红。
+    // ------------------------------------------------------------------
+    {
+        // ① 零畸变 ⇒ 归零
+        const FixWcsF fx0 = fix_wcs_f_distortion(kSeedF1, 0.0);
+        const SolveOut s0 = solve_f(fx0);
+        P1WCS_CHECK(cs, s0.ok && s0.w.success, "f2x_iter_floor_freeze");
+        double rt0 = 0.0, apx0 = 0.0;
+        {
+            const ipv::WcsFitResult& w = s0.w;
+            double i00, i01, i10, i11;
+            oracle_invert2(w.cd.cd11, w.cd.cd12, w.cd.cd21, w.cd.cd22, &i00, &i01,
+                           &i10, &i11);
+            for (const auto& pt : center90_pts) {
+                double ra, dec;
+                oracle_wcs_forward(w.cd.cd11, w.cd.cd12, w.cd.cd21, w.cd.cd22,
+                                   w.crval[0], w.crval[1], w.crpix[0], w.crpix[1],
+                                   w.sip.A, w.sip.B, w.sip.order, pt.first,
+                                   pt.second, &ra, &dec);
+                const IterPoint ip = invert_point(w, ra, dec);
+                if (ip.converged)
+                    rt0 = std::max(rt0, std::hypot(ip.x - pt.first, ip.y - pt.second));
+                double xi, eta;
+                oracle_gnomonic(ra, dec, w.crval[0], w.crval[1], &xi, &eta);
+                const double uvx = i00 * xi + i01 * eta;
+                const double uvy = i10 * xi + i11 * eta;
+                double cx1, cy1;
+                oracle_sip_eval_stride(w.sip.APx, w.sip.BPx, w.sip.apx_order, 10,
+                                       uvx, uvy, &cx1, &cy1);
+                double xr, yr;
+                oracle_wcs_reverse(w.cd.cd11, w.cd.cd12, w.cd.cd21, w.cd.cd22,
+                                   w.crval[0], w.crval[1], w.crpix[0], w.crpix[1],
+                                   w.sip.A, w.sip.B, w.sip.order, ra, dec, &xr, &yr);
+                apx0 = std::max(apx0, std::hypot(uvx + cx1 - (xr - w.crpix[0]),
+                                                 uvy + cy1 - (yr - w.crpix[1])));
+            }
+        }
+        P1WCS_CHECK(cs, rt0 > 0.0 && rt0 < kIterGatePx, "f2x_iter_floor_freeze");
+        // 表示门「真值无效应⇒归零」: 零畸变 ⇒ APx 表示残差塌缩到 FP64 地板,
+        // 且比 high 档（畸变 ~184 px）小 ≥1e6 倍（实测 2.6e-11 vs 3.46 px）
+        P1WCS_CHECK(cs, apx0 < 1e-9 && apx0 * 1e6 < apx_onestep_max[2],
+                    "f2x_apbp_represent_freeze");
+        std::fprintf(stdout,
+                     "[GATE-WCS-01] zero-distortion control: iter_rt=%.4g px "
+                     "apx1s=%.4g px（表示残差塌缩 %.3g× vs high 档）\n",
+                     rt0, apx0, apx_onestep_max[2] / apx0);
+
+        // ①' 迭代门判别性（度量非退化）: 把 τ 收紧 1000×（1e-9 → 1e-12）⇒ 往返
+        //     误差显著缩小（实测 1.655e-9 → 3.918e-10, 收缩 4.23×, 断言 ≥2×）
+        //     ⇒ 该度量确实测**反演地板**, 不是常数、不是恒真判据。
+        //     **如实登记**: 收缩比 ≪ 1000× ⇒ 除 τ 之外还存在 ~4e-10 px 量级的
+        //     FP64/迭代结构地板（牛顿残差判据 |F|∞<τ 之外的分量）; 这正是
+        //     G-P1-WCS-RT-ITER 取 κ_iter=10 而非 1 的定量理由。
+        {
+            const ipv::WcsFitResult& w = sol[2].w;   // high 档
+            double rt_tight = 0.0;
+            for (const auto& pt : center90_pts) {
+                double ra, dec;
+                oracle_wcs_forward(w.cd.cd11, w.cd.cd12, w.cd.cd21, w.cd.cd22,
+                                   w.crval[0], w.crval[1], w.crpix[0], w.crpix[1],
+                                   w.sip.A, w.sip.B, w.sip.order, pt.first,
+                                   pt.second, &ra, &dec);
+                const IterPoint ip = invert_point_tau(w, ra, dec, 1e-12);
+                if (ip.converged)
+                    rt_tight =
+                        std::max(rt_tight, std::hypot(ip.x - pt.first, ip.y - pt.second));
+            }
+            P1WCS_CHECK(cs, rt_tight > 0.0 && rt_tight * 2.0 < st_c90[2].max_rt,
+                        "f2x_iter_floor_freeze");   // τ↓1000× ⇒ 误差至少↓2×
+            std::fprintf(stdout,
+                         "[GATE-WCS-01] tau-scaling control: tau=1e-9 ⇒ %.4g px, "
+                         "tau=1e-12 ⇒ %.4g px（收缩 %.3g×; 度量测地板, 非恒真）\n",
+                         st_c90[2].max_rt, rt_tight, st_c90[2].max_rt / rt_tight);
+        }
+
+        // ② 迭代门能红: 前向像素注入 +1e-3 px
+        {
+            const ipv::WcsFitResult& w = sol[2].w;   // high 档
+            const double x_f = center90_pts[0].first;
+            const double y_f = center90_pts[0].second;
+            double ra, dec;
+            oracle_wcs_forward(w.cd.cd11, w.cd.cd12, w.cd.cd21, w.cd.cd22,
+                               w.crval[0], w.crval[1], w.crpix[0], w.crpix[1],
+                               w.sip.A, w.sip.B, w.sip.order, x_f + 1e-3, y_f,
+                               &ra, &dec);
+            const IterPoint ip = invert_point(w, ra, dec);
+            const double rt_bias =
+                ip.converged ? std::hypot(ip.x - x_f, ip.y - y_f) : -1.0;
+            P1WCS_CHECK(cs, rt_bias > kIterGatePx,
+                        "f2x_iter_floor_freeze");   // 注入必红（非退化）
+        }
+
+        // ③ 表示门能红: APx/BPx 清零（等价缺陷）
+        {
+            ipv::WcsFitResult wbad = sol[2].w;   // high 档
+            for (int i = 0; i < 100; ++i) {
+                wbad.sip.APx[i] = 0.0;
+                wbad.sip.BPx[i] = 0.0;
+            }
+            double i00, i01, i10, i11;
+            oracle_invert2(wbad.cd.cd11, wbad.cd.cd12, wbad.cd.cd21, wbad.cd.cd22,
+                           &i00, &i01, &i10, &i11);
+            double apx_bad = 0.0;
+            for (const auto& pt : center90_pts) {
+                double ra, dec;
+                oracle_wcs_forward(wbad.cd.cd11, wbad.cd.cd12, wbad.cd.cd21,
+                                   wbad.cd.cd22, wbad.crval[0], wbad.crval[1],
+                                   wbad.crpix[0], wbad.crpix[1], wbad.sip.A,
+                                   wbad.sip.B, wbad.sip.order, pt.first, pt.second,
+                                   &ra, &dec);
+                double xi, eta;
+                oracle_gnomonic(ra, dec, wbad.crval[0], wbad.crval[1], &xi, &eta);
+                const double uvx = i00 * xi + i01 * eta;
+                const double uvy = i10 * xi + i11 * eta;
+                double cx1, cy1;
+                oracle_sip_eval_stride(wbad.sip.APx, wbad.sip.BPx, wbad.sip.apx_order,
+                                       10, uvx, uvy, &cx1, &cy1);
+                double xr, yr;
+                oracle_wcs_reverse(wbad.cd.cd11, wbad.cd.cd12, wbad.cd.cd21,
+                                   wbad.cd.cd22, wbad.crval[0], wbad.crval[1],
+                                   wbad.crpix[0], wbad.crpix[1], wbad.sip.A,
+                                   wbad.sip.B, wbad.sip.order, ra, dec, &xr, &yr);
+                apx_bad = std::max(apx_bad, std::hypot(uvx + cx1 - (xr - wbad.crpix[0]),
+                                                       uvy + cy1 - (yr - wbad.crpix[1])));
+            }
+            P1WCS_CHECK(cs, apx_bad > kApbpBudgetFrac * edge_dist_px[2],
+                        "f2x_apbp_represent_freeze");   // 注入必红（非退化）
+            std::fprintf(stdout,
+                         "[GATE-WCS-01] negative controls: bias+1e-3px ⇒ 迭代门必红; "
+                         "APx 清零 ⇒ 表示门必红 (apx_bad=%.4g px > %.4g px)\n",
+                         apx_bad, kApbpBudgetFrac * edge_dist_px[2]);
+        }
     }
 
     // ------------------------------------------------------------------

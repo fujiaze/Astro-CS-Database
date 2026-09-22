@@ -6,16 +6,16 @@
     {
       "id": "registered_not_in_ir:astrocs.phase2.resample",
       "kind": "known_divergence",
-      "reason": "module_adapters.cpp:7980-7985 注册 phase2_descriptor()（module_id=astrocs.phase2.resample，:606-624 P2 模板复制残留占位），但 build_pipeline_ir 的 phase2 链为 coverage→sample→upm_fit→upm_apply→reject→integrate→write，无该节点；该模块永不被调度。属 B 类「注册了但不在管线」。",
-      "owner": "RELEASE-02 fix-gates（前台裁决：删除占位注册 或 接线到 IR）",
+      "reason": "module_adapters.cpp:7980-7985 注册 phase2_descriptor()（module_id=astrocs.phase2.resample，:606-624 P2 模板复制残留占位），但 build_pipeline_ir 的 phase2 链为 coverage→sample→upm_fit→upm_apply→reject→integrate→write，无该节点；该模块永不被调度。属 B 类「注册了但不在管线」。**ARCH-AUDIT-02 §1.3 F-08 补充（ARCH-DEBT-01 登记，2026-09-22）**：本条的解除理由面**不完整**——除「不在管线」外还违反 ENGINEERING_SPEC.md §4 第 4 条「实现 —— 单一 entrypoint，**不隐藏整阶段 Session**」：该工厂是 make_session_module<P2Api>，一旦被调度即执行 p2_session_run（coverage→sampler→UPM→persist 四段整阶段编排），正是 §4.4 禁止的形态；且 descriptor 的 SCI/ALG/DATA id（SCI-P2-RES-001 等）与实现语义不符。来源报告 run/ARCH-AUDIT-02/REPORT.md §1.3 F-08（该报告注明「台账理由未覆盖 §4.4 角度」）。",
+      "owner": "RELEASE-02 fix-gates（前台裁决：删除占位注册 或 接线到 IR）；ARCH-DEBT-01 补登 §4.4 角度",
       "exit_condition": "从 register_phase_modules 移除 astrocs.phase2.resample，或在 build_pipeline_ir 增补对应节点并给出 SCI/ALG 依据",
       "module_id": "astrocs.phase2.resample"
     },
     {
       "id": "registered_not_in_ir:astrocs.phase3.resample",
       "kind": "known_divergence",
-      "reason": "module_adapters.cpp:7988-7992 注册 phase3_descriptor()（module_id=astrocs.phase3.resample，:625-643），但 phase3 IR 链为 properties→wcs→resample2→writer→verify，顶层 resample 占位不在管线（:8049-8050 注释自认占位）。",
-      "owner": "RELEASE-02 fix-gates（前台裁决：删除占位注册 或 接线到 IR）",
+      "reason": "module_adapters.cpp:7988-7992 注册 phase3_descriptor()（module_id=astrocs.phase3.resample，:625-643），但 phase3 IR 链为 properties→wcs→resample2→writer→verify，顶层 resample 占位不在管线（:8049-8050 注释自认占位）。**ARCH-AUDIT-03 §3 P3-07 补充（ARCH-DEBT-01 登记，2026-09-22）**：本条事实面**不完整**——该占位行同时（a）**不在** lib/infrastructure/pipeline/module_ports.registry.json（冻结端口绑定表）内（真实链是 astrocs.phase3.{properties,wcs,resample2,writer,verify}）；（b）ports 声明 {hips(DATA-HIPS-001, ADU, PIXEL), tile(DATA-TILE-001, SURFACE_BRIGHTNESS, HEALPIX)} 与 sci_id/alg_id/data_id/test_id 全是 P2 模板占位；（c）一旦被调度即执行**完整 p3_session_run（整条 Phase3 链）**，违反 ENGINEERING_SPEC.md §4 第 4 条「不隐藏整阶段 Session」与 ASTROCS_DESIGN.md §8.4「每个生产 DAG 节点映射唯一真实模块/导出入口」。同一占位行已在 eng/contracts/block_flow/conformance_deviations.json#BFD-C1（undeclared_module，blocker）登记，本条目与其构成**同一事实的双登记面**（端口面 ↔ IR 面），不重复计数。来源报告 run/ARCH-AUDIT-03/REPORT.md §3 P3-07。",
+      "owner": "RELEASE-02 fix-gates（前台裁决：删除占位注册 或 接线到 IR）；ARCH-DEBT-01 补登冻结绑定表缺失与 §4.4 角度",
       "exit_condition": "从 register_phase_modules 移除 astrocs.phase3.resample，或在 build_pipeline_ir 增补对应节点并给出 SCI/ALG 依据",
       "module_id": "astrocs.phase3.resample"
     }

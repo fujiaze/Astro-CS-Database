@@ -3,18 +3,24 @@
 (TAN/SIN/CAR/AIT) Python 侧对拍面 (eng/tests/backend)。
 
 合同锚: ALG-P3-PROJ-IMPL-001 §15 (docs/algorithms/PHASE3_PROJ_IMPL.md,
-P3-001 新 claim) + SCI-P3-001 (FROZEN, TAN 往返容差 1e-6 px 零改动) +
-宪章 §7.3/§18.1 (首批四投影 registry 冻结)。
+P3-001 新 claim) + SCI-P3-001 (FROZEN) + 宪章 §7.3/§18.1 (首批四投影 registry 冻结)
++ docs/algorithms/GATES_AND_TOLERANCES.md §3 G-P1-WCS-BRIDGE（紧门 1e-8 px，
+适用域 scale ≥ 0.9″/px）/ G-P1-WCS-BRIDGE-GLOBAL（全域保守门 1e-6 px）。
+
+往返容差**不硬编**: driver 额外编译生产注册表 p3_wcs.cpp 并打印 CONTRACT 行
+（单一事实源 = p3_wcs_applicability("TAN")）；本文件按投影选取适用门
+（TAN: 紧门；SIN/CAR/AIT: 无产品适用域声明 ⇒ 全域保守门）。
 
 方法 (independent, 不调生产实现复算):
   A) C++ driver 内联编译 lib/algorithms/projection/p3_projection.cpp (生产同源,
-     registry 直调), 网格输出每采样点 (x,y,ra,dec) 与往返 (x2,y2) 文本。
+     registry 直调) + p3_wcs.cpp（只读合同值）, 网格输出每采样点
+     (x,y,ra,dec) 与往返 (x2,y2) 文本。
   B) Python/numpy 侧**第一性独立实现**四投影正反映射:
      TAN/SIN = 3D 单位向量法 (CRVAL 正交基切平面重建/透视除法, 与生产
      球面三角公式完全不同路径); CAR/AIT = θ₀=+90° 恒等旋转 + Paper II
      反演式独立书写; world2pix = 独立 CD⁻¹ 解析逆。
-  C) 对拍容差全部预冻结写死: 解析比对 <1e-9 deg (FP64 机器精度量级)、
-     往返 <1e-6 px (SCI §7 冻结值, 禁放宽)。
+  C) 对拍容差: 解析比对 <1e-9 deg (FP64 机器精度量级)、往返 < 适用合同门
+     （单一事实源, 见上; 禁放宽）。
   D) 确定性: driver 全网格输出 sha256, 两次独立运行必须逐字节一致。
 
 仅新增测试文件, 不修改生产代码。
@@ -31,19 +37,31 @@ import unittest
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 P3PROJ_INC = os.path.join(REPO, "lib", "algorithms", "projection")
 
-# ---------- 预冻结常量(写死, 不事后放宽) ----------
-ROUNDTRIP_TOL_PX = 1e-6      # SCI-P3-001 §7 冻结往返容差
+# ---------- 常量 ----------
 ORACLE_TOL_DEG = 1e-9        # 解析解比对(FP64 机器精度量级)
+# 往返容差由 driver 打印的 CONTRACT 行回填（单一事实源 = p3_wcs_applicability）;
+# 未拿到合同值 ⇒ 判红（fail-closed）, 不回落字面量。
+CONTRACT = {}                # {"tight","global","min_scale","c_env"}
 
 # ---------- C++ driver(内联编译生产源, 文本协议) ----------
 PROJ_DRIVER = r'''
 #include "p3_projection.h"
+#include "p3_wcs.h"   // 只读合同值（p3_wcs_applicability）; 不做任何投影计算
 #include <cstdio>
 #include <cstring>
 #include <string>
 using namespace astrocs::phase3proj;
 int main(int argc, char** argv) {
     if (argc < 7) { std::fprintf(stderr, "usage: <code> <ra0> <dec0> <scale> <W> <H>\n"); return 2; }
+    // 往返容差单一事实源（GATES §3 G-P1-WCS-BRIDGE / -GLOBAL; GATE-WCS-01 裁决 7）
+    {
+        const astrocs::phase3::P3WcsApplicability* ap =
+            astrocs::phase3::p3_wcs_applicability("TAN");
+        if (ap == nullptr) { std::fprintf(stderr, "no TAN applicability declaration\n"); return 4; }
+        std::printf("CONTRACT tight=%.17g global=%.17g min_scale=%.17g c_env=%.17g\n",
+                    ap->roundtrip_tol_px, ap->roundtrip_tol_global_px,
+                    ap->min_scale_arcsec, ap->envelope_c_env);
+    }
     const char* code = argv[1];
     const double ra0 = atof(argv[2]), dec0 = atof(argv[3]), scale = atof(argv[4]);
     const int W = atoi(argv[5]), H = atoi(argv[6]);
@@ -85,6 +103,7 @@ def build_driver(workdir: str) -> str:
         f.write(PROJ_DRIVER)
     cmd = ["g++", "-std=c++17", "-O2", "-I", P3PROJ_INC, src,
            os.path.join(REPO, "lib", "algorithms", "projection", "p3_projection.cpp"),
+           os.path.join(REPO, "lib", "algorithms", "projection", "p3_wcs.cpp"),
            "-o", exe]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
     if r.returncode != 0:
@@ -217,6 +236,19 @@ class TestP3ProjectionOracle(unittest.TestCase):
     def setUpClass(cls):
         cls.workdir = tempfile.mkdtemp(prefix="p3_proj_oracle_")
         cls.exe = build_driver(cls.workdir)
+        # 合同容差单一事实源（driver 打印; 未拿到 ⇒ CONTRACT 为空 ⇒ 断言必红）
+        global CONTRACT
+        out = run_driver(cls.exe, "TAN", 10.0, -60.0, 0.001, 64, 64)
+        m = re.search(r"CONTRACT (.*)", out)
+        assert m is not None, "driver 未打印 CONTRACT（合同值不可得, fail-closed）"
+        CONTRACT = {t.split("=")[0]: float(t.split("=")[1]) for t in m.group(1).split()}
+
+    @staticmethod
+    def roundtrip_tol_px(code):
+        """适用往返门(px): TAN = 紧门（本用例尺度 ≥ min_scale）; 其余 = 全域保守门。"""
+        if not CONTRACT:
+            return 0.0   # fail-closed: 无合同值 ⇒ 断言必红
+        return CONTRACT["tight"] if code == "TAN" else CONTRACT["global"]
 
     @classmethod
     def tearDownClass(cls):
@@ -251,7 +283,7 @@ class TestP3ProjectionOracle(unittest.TestCase):
                 self.assertLessEqual(len(line), 80, f"{code} FITS 行宽")
 
     def test_oracle_grid(self):
-        """四投影全网格: 生产 vs numpy 独立 oracle(<1e-9 deg) + 往返(<1e-6 px)
+        """四投影全网格: 生产 vs numpy 独立 oracle(<1e-9 deg) + 往返(< 适用合同门)
         + 正向独立解析解。"""
         for code, ra0, dec0, scale, w, h in self.CASES:
             out = run_driver(self.exe, code, ra0, dec0, scale, w, h)
@@ -286,11 +318,13 @@ class TestP3ProjectionOracle(unittest.TestCase):
                 # 独立 oracle 反向(world2pix)
                 p = oracle_world2pix(code, ra0, dec0, desc, ra, dec)
                 self.assertIsNotNone(p, f"{code} oracle world2pix ({ra},{dec})")
+                rt_tol = self.roundtrip_tol_px(code)
+                self.assertGreater(rt_tol, 0.0, f"{code} 适用门有声明来源(fail-closed)")
                 err = math.hypot(p[0] - x, p[1] - y)
-                self.assertLess(err, ROUNDTRIP_TOL_PX,
+                self.assertLess(err, rt_tol,
                                 f"{code} world2pix vs oracle ({ra},{dec})")
-                # 往返(冻结 <1e-6 px)
-                self.assertLess(math.hypot(x2 - x, y2 - y), ROUNDTRIP_TOL_PX,
+                # 往返(< 适用合同门; 单一事实源 = p3_wcs_applicability)
+                self.assertLess(math.hypot(x2 - x, y2 - y), rt_tol,
                                 f"{code} roundtrip ({x},{y})")
                 n_ok += 1
             self.assertGreater(n_ok, 0, f"{code} 有效采样点")

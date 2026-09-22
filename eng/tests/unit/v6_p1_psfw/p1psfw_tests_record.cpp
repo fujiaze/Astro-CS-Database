@@ -1,5 +1,5 @@
 /* p1psfw_tests_record.cpp - 记录门 PSFSW-G01..G25 正向控制 + 负向 mutation
- * 负向 mutation 编号对齐 docs/algorithms/v6/phase2-psfsw/PSFSW_GATES_AND_MUTATIONS.md §3。 */
+ * 负向 mutation 编号对齐 docs/validation/v6/NEGATIVE_MUTATION_CATALOG.md。 */
 #include "p1psfw_fixtures.hpp"
 #include "p1psfw_oracle.hpp"
 #include "p1psfw_test_main.hpp"
@@ -170,11 +170,28 @@ P1PSFW_REGISTER(record) {
     { PsfswRecord r = good; r.weight_sources = {"median_source_snr"};
       P1_CHECK(has_gate(validate_psfsw_record(r), "PSFSW-G22")); }
 
-    /* ---- 模式/枚举结构检查: 生产=3, 延迟不进生产 ---- */
-    P1_CHECK(production_weight_modes().size() == 3);
+    /* ---- 模式/枚举结构检查（PSFSW-RETIRE-03 口径统一）----
+     * 生产接受集 = {point_information, surface_gls}（与 coverage.cpp /
+     * v6_runtime_contract.h 同口径）；psfsw_robust 是**退役对象**：不再是生产模式，
+     * 但必须仍能被识别为退役 token 并给出迁移提示（拒绝面保留，不是删断言）。 */
+    P1_CHECK(production_weight_modes().size() == 2);
     P1_CHECK(is_production_weight_mode("point_information"));
     P1_CHECK(is_production_weight_mode("surface_gls"));
-    P1_CHECK(is_production_weight_mode("psfsw_robust"));
+    P1_CHECK(!is_production_weight_mode("psfsw_robust"));
+    P1_CHECK(is_retired_weight_mode_token("psfsw_robust"));
+    {
+        const std::string r = retired_weight_mode_reject_reason("psfsw_robust");
+        P1_CHECK(r.find("FZ-MODE-RETIRED") != std::string::npos);
+        P1_CHECK(r.find("psfsw_robust") != std::string::npos);
+        P1_CHECK(r.find("not a current object") != std::string::npos);
+        P1_CHECK(r.find("point_information") != std::string::npos);
+        P1_CHECK(r.find("surface_gls") != std::string::npos);
+        P1_CHECK(r.find("migration") != std::string::npos);
+    }
+    /* 阳性对照（能绿）：现行生产模式不得被误判为退役 token。 */
+    P1_CHECK(!is_retired_weight_mode_token("point_information"));
+    P1_CHECK(!is_retired_weight_mode_token("surface_gls"));
+    P1_CHECK(retired_weight_mode_reject_reason("point_information").empty());
     P1_CHECK(!is_production_weight_mode("equal"));
     P1_CHECK(!is_production_weight_mode("pixel_ivar"));
     P1_CHECK(!is_production_weight_mode("psf_snr_power"));

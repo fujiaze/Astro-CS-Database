@@ -93,10 +93,10 @@
     },
     {
       "path": "eng/tests/integration/v6_p1/v6_p1_integrate_test.cpp",
-      "hits": 65,
+      "hits": 69,
       "rules": {
         "cxx-stream": 5,
-        "filesystem": 60
+        "filesystem": 64
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -119,10 +119,10 @@
     },
     {
       "path": "eng/tests/integration/v6_p2/v6_p2_integrate_test.cpp",
-      "hits": 37,
+      "hits": 40,
       "rules": {
         "cxx-stream": 5,
-        "filesystem": 32
+        "filesystem": 35
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -473,6 +473,25 @@
       "functions": [
         "<file-scope>",
         "write_dr3_xpsd"
+      ]
+    },
+    {
+      "path": "eng/tests/unit/gaia_shard_coverage_gate_test.c",
+      "hits": 9,
+      "rules": {
+        "fs-mutate": 5,
+        "fopen": 3,
+        "win32-fs": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
+      "owner": "无（测试面）",
+      "functions": [
+        "<file-scope>",
+        "count_xpsd_entries",
+        "main",
+        "write_garbage",
+        "write_xpsd"
       ]
     },
     {
@@ -1201,6 +1220,19 @@
       "functions": [
         "run_drizzle_matrix",
         "run_overlap_matrix"
+      ]
+    },
+    {
+      "path": "lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_disp009_gate.cpp",
+      "hits": 1,
+      "rules": {
+        "fopen": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
+      "owner": "无（测试面）",
+      "functions": [
+        "evaluate"
       ]
     },
     {

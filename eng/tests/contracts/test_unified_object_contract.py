@@ -23,9 +23,14 @@ REPO = HERE.parents[2]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
-# 2026-09-21 根目录整合：tests/ → eng/tests/，discover -t eng/tests/contracts 下
-# v6 是顶层包（不再是 tests.contracts.v6）。
-from v6 import jsonschema_min as jm  # noqa: E402
+# 校验器按显式仓库路径加载（eng/tests/common/jsonschema_min.py，零第三方依赖），
+# 不依赖 unittest 的顶层包布局。
+import importlib.util  # noqa: E402
+
+_spec = importlib.util.spec_from_file_location(
+    "unified_object_jsonschema_min", REPO / "eng/tests/common/jsonschema_min.py")
+jm = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(jm)
 
 SCHEMAS = REPO / "eng/contracts/schemas"
 UNIFIED = SCHEMAS / "unified"
@@ -255,7 +260,8 @@ class TestNegativeFixtures(unittest.TestCase):
 
     def test_expected_index_covers_all_cases(self):
         exp = self.expected()
-        self.assertEqual(5, len(exp), "负例索引必须覆盖全部负例（含退役对象声明负例 n5）")
+        self.assertEqual(6, len(exp),
+                         "负例索引必须覆盖全部负例（含退役对象声明负例 n5、稀疏层相对语义负例 n6）")
         for name in exp:
             self.assertTrue((NEGATIVE / name).is_file(), "负例 fixture 缺失: %s" % name)
 
@@ -298,6 +304,162 @@ class TestNegativeFixtures(unittest.TestCase):
         self.assertEqual(port["accepts_object"], neg["accepts_object"])
         self.assertEqual(port["rejects_object"], neg["connected_object_document"]["unified_object"])
 
+
+
+class TestSparseSnrAbsoluteSemantics(unittest.TestCase):
+    """G. sparse_snr_layer 存**绝对** SNR：schema 冻结 + 数值判据能红能绿。
+
+    设计（ASTROCS_DESIGN.md §2.2/§3.1/§4.4/§5.3）：控制点值 = 该点的绝对通量型
+    SNR F_ref/σ_F(x,y)，与 frame_snr 同口径、同逐帧参考通量 F_ref；Phase2 由
+    控制点**直接重建**为稠密 SNR 场，**不**乘/除帧级标量。本类给出机器可判据：
+      * 结构判据：schema 以 sparse_snr_semantics=absolute_flux_type_snr 冻结语义；
+      * 数值判据：节点处重建值必须等于落盘值，且与帧级标量**无关**；
+        按相对值解释（frame_snr × v/median(v)）时节点重建值 ≠ 落盘值 ⇒ 判红；
+        并显式处理退化点（frame_snr == median(v) 时两解释重合，该处不计证据）。
+    """
+
+    def layer(self):
+        return load(EXAMPLES / "sparse_snr_layer.example.json")
+
+    def schema(self):
+        return load(UNIFIED / "sparse_snr_layer.schema.json")
+
+    # ── 结构判据 ──────────────────────────────────────────────────────────
+    def test_schema_freezes_absolute_value_semantics(self):
+        doc = self.schema()
+        self.assertIn("sparse_snr_semantics", doc["required"],
+                      "sparse_snr_semantics 必须 required（否则相对值解释可静默通过）")
+        self.assertEqual("absolute_flux_type_snr",
+                         doc["properties"]["sparse_snr_semantics"]["const"])
+        cp = doc["properties"]["control_points"]["items"]["properties"]["sparse_snr_value"]
+        self.assertIn("exclusiveMinimum", cp, "控制点值是绝对 SNR ⇒ 值域为 (0, +inf)")
+        self.assertEqual(0, cp["exclusiveMinimum"])
+        # 正例必须带该判别式
+        self.assertEqual("absolute_flux_type_snr", self.layer()["sparse_snr_semantics"])
+        self.assertEqual("", merged_errors(self.layer(), doc))
+
+    def test_relative_semantics_declaration_is_rejected(self):
+        """注入「仍按相对值解释」⇒ 必须判红（且命中语义判别门）。"""
+        doc = self.schema()
+        bad = json.loads(json.dumps(self.layer()))
+        bad["sparse_snr_semantics"] = "relative_to_frame_snr_median"
+        errs = merged_errors(bad, doc)
+        self.assertIn("sparse_snr_semantics:const", errs,
+                      "相对语义声明未命中 const 门: %s" % errs)
+
+    def test_missing_semantics_declaration_is_rejected(self):
+        """缺判别式 ⇒ 必须判红（禁「不说就是绝对」的静默通过）。"""
+        doc = self.schema()
+        bad = json.loads(json.dumps(self.layer()))
+        del bad["sparse_snr_semantics"]
+        errs = merged_errors(bad, doc)
+        self.assertIn("sparse_snr_semantics", errs, "缺判别式未判红: %s" % errs)
+
+    def test_zero_control_point_value_is_rejected(self):
+        """0 不是合法绝对 SNR（invalid 由 NaN 承载，禁 0 冒充）。"""
+        doc = self.schema()
+        bad = json.loads(json.dumps(self.layer()))
+        bad["control_points"][0]["sparse_snr_value"] = 0.0
+        errs = merged_errors(bad, doc)
+        self.assertIn("sparse_snr_value", errs, "0 值未判红: %s" % errs)
+
+    # ── 数值判据（能红能绿，含退化点处置）────────────────────────────────
+    @staticmethod
+    def node_reconstruction(points, frame_snr, interpretation):
+        """控制点处的重建值。absolute = 落盘绝对值的直接重建；relative = 被否决的乘帧级解释。"""
+        vals = [p["sparse_snr_value"] for p in points]
+        med = sorted(vals)[len(vals) // 2]
+        if interpretation == "absolute":
+            return list(vals)
+        if interpretation == "relative":
+            return [frame_snr * v / med for v in vals]
+        raise ValueError(interpretation)
+
+    @staticmethod
+    def verdict(points, frame_snr):
+        """判据：绝对解释下节点重建 == 落盘值，且与 frame_snr 无关 ⇒ GREEN；否则 RED。
+
+        返回 (verdict, evidence)；frame_snr == median(v) 时两解释重合 ⇒ DEGENERATE（不计证据）。
+        """
+        vals = [p["sparse_snr_value"] for p in points]
+        med = sorted(vals)[len(vals) // 2]
+        if abs(frame_snr - med) <= 0.0:
+            return "DEGENERATE", {"median": med, "frame_snr": frame_snr}
+        abs_v = TestSparseSnrAbsoluteSemantics.node_reconstruction(points, frame_snr, "absolute")
+        rel_v = TestSparseSnrAbsoluteSemantics.node_reconstruction(points, frame_snr, "relative")
+        node_ok = all(a == b for a, b in zip(abs_v, vals))
+        frame_invariant = (abs_v ==
+                           TestSparseSnrAbsoluteSemantics.node_reconstruction(points, frame_snr * 7.0, "absolute"))
+        differs = any(abs(a - r) > 0.0 for a, r in zip(abs_v, rel_v))
+        ok = node_ok and frame_invariant and differs
+        return ("GREEN" if ok else "RED"), \
+            {"node_reproduction": node_ok, "frame_invariant": frame_invariant,
+             "relative_interpretation_differs": differs,
+             "max_abs_delta_relative_vs_absolute": max(abs(a - r) for a, r in zip(abs_v, rel_v))}
+
+    def test_absolute_reconstruction_is_green_and_relative_is_red(self):
+        pts = self.layer()["control_points"]
+        v, ev = self.verdict(pts, 100.0)          # frame_snr 故意 != median(22.5, 19.75)=21.125
+        self.assertEqual("GREEN", v, "绝对解释未通过节点复现/帧级无关判据: %s" % ev)
+        self.assertTrue(ev["relative_interpretation_differs"])
+        self.assertGreater(ev["max_abs_delta_relative_vs_absolute"], 0.0,
+                           "相对解释与绝对解释不可区分 ⇒ 判据退化")
+
+    def test_frame_scalar_does_not_change_reconstruction(self):
+        """同一稀疏层配不同帧级标量 ⇒ 重建结果必须逐位相同（帧级标量不是尺度基准）。"""
+        pts = self.layer()["control_points"]
+        a = self.node_reconstruction(pts, 5.0, "absolute")
+        b = self.node_reconstruction(pts, 5000.0, "absolute")
+        self.assertEqual(a, b)
+
+    def test_degenerate_point_is_not_evidence(self):
+        """退化点（frame_snr == median(v)）两解释重合 ⇒ 判据必须报 DEGENERATE，不得当绿。"""
+        pts = self.layer()["control_points"]
+        med = sorted(p["sparse_snr_value"] for p in pts)[len(pts) // 2]
+        v, _ = self.verdict(pts, med)
+        self.assertEqual("DEGENERATE", v, "真值无效应时必须退化，不得给出恒真绿")
+
+    def test_relative_interpretation_red_is_live(self):
+        """负例活体检查：把相对解释当正解 ⇒ 与落盘绝对值不同（判据可判红）。"""
+        pts = self.layer()["control_points"]
+        vals = [p["sparse_snr_value"] for p in pts]
+        rel = self.node_reconstruction(pts, 100.0, "relative")
+        self.assertNotEqual(rel, vals,
+                            "相对解释与落盘绝对值相同 ⇒ 无法判红（判据失效）")
+
+    # ── 文档漂移判据（注入相对表述 ⇒ 判红）──────────────────────────────
+    AUTHORITY_DOCS = (
+        "ASTROCS_DESIGN.md",
+        "docs/design/UNIFIED_MODEL.md",
+        "docs/design/PHASE2_DETAILED_DESIGN.md",
+        "docs/plugins/algorithms_phase1/07_noise_snr.md",
+        "docs/plugins/algorithms_phase2/13_integration.md",
+        "docs/contracts/DATA_SEMANTICS.md",
+        "docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md",
+    )
+    RELATIVE_DECLARATIONS = ("帧内相对场", "稀疏相对 SNR", "相对 SNR 层", "中位归一",
+                             "rho_c", "SNR_frame × rho", "帧级 × 帧内")
+
+    def test_authority_docs_declare_absolute_not_relative(self):
+        """权威链文档不得把稀疏层声明为相对场/中位归一（注入该表述 ⇒ 必须判红）。"""
+        offenders = []
+        for rel in self.AUTHORITY_DOCS:
+            p = REPO / rel
+            self.assertTrue(p.is_file(), "权威文档缺失（fail-closed）: %s" % rel)
+            txt = p.read_text(encoding="utf-8")
+            for tok in self.RELATIVE_DECLARATIONS:
+                if tok in txt:
+                    offenders.append("%s: %r" % (rel, tok))
+        self.assertEqual([], offenders, "权威链文档仍把稀疏层声明为相对场: %s" % offenders)
+
+    def test_doc_drift_judge_is_live(self):
+        """判据活体：注入一处相对表述 ⇒ 同一判据必须命中（能红）。"""
+        fake = "docs/plugins/algorithms_phase1/07_noise_snr.md"
+        txt = (REPO / fake).read_text(encoding="utf-8")
+        injected = txt + "\n- 稀疏层与帧级标量的关系是「帧级 × 帧内相对场」：帧内相对场中位归一。\n"
+        hits = [t for t in self.RELATIVE_DECLARATIONS if t in injected]
+        self.assertIn("帧内相对场", hits, "注入相对表述后判据未命中 ⇒ 判据失效")
+        self.assertIn("中位归一", hits)
 
 class TestRetiredObjectContract(unittest.TestCase):
     """F. 退役对象（psfsw_robust_weight，14→13）：无 canonical 正本、旧声明显式拒绝 + 迁移提示。"""
@@ -553,10 +715,17 @@ class TestRegistryIndex(unittest.TestCase):
             self.assertRegex(lp["deprecated_at_change"], r"^CHG-\d{4}-\d{2}-\d{2}-[A-Z0-9-]+$")
             self.assertEqual("OWNER_DECISION", lp["retire_after_change"])
             self.assertIn("版本号不得作为退役条件", lp["retire_note"])
-        # 5 条 status=FROZEN_COMPATIBILITY 的产品族专用投影按 Q2 在位保留，不得写版本号退役窗口。
+        # 产品族专用投影面必须与磁盘逐一对应（非对象 schema 一律走 other_schema_files 登记），
+        # 且每条投影不得写版本号退役窗口。判据比"固定条数"更强：条数随出库变化，覆盖关系不随之松动。
         projections = [p for c in reg["canonical_object_classes"]
                        for p in c["compatibility_projections"]]
-        self.assertEqual(5, len(projections))
+        canonical_files = {c["canonical_schema_file"] for c in reg["canonical_object_classes"]}
+        owned_other = {o["file"] for o in reg["other_schema_files"]}
+        on_disk = {p.relative_to(REPO).as_posix() for p in SCHEMAS.rglob("*.schema.json")}
+        expected = on_disk - canonical_files - owned_other
+        self.assertEqual(expected, {p["file"] for p in projections},
+                         "compatibility_projections 必须与磁盘上的兼容期 schema 面逐一对应: "
+                         "expected=%s declared=%s" % (sorted(expected), sorted(p["file"] for p in projections)))
         for p in projections:
             self.assertEqual("FROZEN_COMPATIBILITY", p["status"])
             self.assertEqual("OWNER_DECISION", p["retire_after_change"])

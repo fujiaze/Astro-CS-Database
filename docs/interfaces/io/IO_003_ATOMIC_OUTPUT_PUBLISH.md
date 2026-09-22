@@ -21,6 +21,14 @@ IO-003 在 IO-001（FITS 原子写）+ IO-002（HiPS 读端）之上建立 **原
 `临时写（run 私有 stage）→ 关闭/fsync → fitsverify（结构 + DATASUM）→ sha256 →
 原子 rename → 最后原子落 manifest.json(COMPLETE) = 完成标记`。
 
+**落盘形态**（`docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md`）：产品以裸
+`<name>.hips/` 或归档 `<name>.hips.zst` 发布，二者互斥；归档形态的发布次序是
+「stage 内先按裸形态写出并逐瓦片 fitsverify → 打包为逐成员独立 zstd 帧 → 写产品级
+索引 → 归档与索引 fsync + 原子 rename → 完成 manifest」。**归档解压后的合法性在
+写入侧即被证明**（打包前逐瓦片过 fitsverify；发布前用标准工具解压与裸形态做
+`tree_hash` 等价比对）。产品身份哈希仍取**解压后内容**（§5 `tree_hash`），归档字节
+的 sha256 只作容器指纹记入 `storage` 段，不作产品身份。
+
 本合同**不改科学公式**（`scientific_change=false`），不做 tile 生成/投影（科学层属
 P1/P2/P3）；`lib/infrastructure/aio` 与 `lib/infrastructure/aio/io` 保持原样不修改。本接口冻结**输出端**语义；
 读端（IO-002）与产物交换资格（DATA-002）是独立冻结面，不在此重复。

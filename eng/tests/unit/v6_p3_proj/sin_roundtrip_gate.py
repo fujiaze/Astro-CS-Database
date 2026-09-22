@@ -17,7 +17,7 @@
     只用 TOL_REPRODUCE = 1e-6 px 作为「偏差是否仍可测」的判定阈值（FIX-406 报告实测
     2.5e-5 px @0.5"/px，比该阈值高 25×；astropy/WCSLIB 参考面 ~2.5e-10 px，低 4 个量级）。
 
-依据: 工程控制/RELEASE-04/GAP_AUDIT.md G3-6；任务书 CLEAN-401 步骤 7（v6 SIN 内核转 FIX-406）；
+依据: RELEASE-04 GAP_AUDIT G3-6（包已出库）；任务书 CLEAN-401 步骤 7（v6 SIN 内核转 FIX-406）；
       证据 run/FIX-406/SIN_ROUNDTRIP_ORACLE.md、run/FIX-406/evidence/kernel_roundtrip.json。
 用法: python3 eng/tests/unit/v6_p3_proj/sin_roundtrip_gate.py [--repo .] [--json-out P] [--quiet]
 """
@@ -31,7 +31,12 @@ import sys
 import tempfile
 
 TOL_REPRODUCE_PX = 1e-6  # 偏差仍可测的判定阈值（见文件头；非契约容差）
-CONTRACT_TOL_PX = 1e-8   # p3_wcs_applicability TAN 往返容差（对照打印用）
+# 对照打印用（**不是**本门的判定阈值）: p3_wcs_applicability("TAN") 的**紧门**。
+# 注意适用域（GATE-WCS-01 裁决 1/4）: 紧门仅在 scale ≥ min_scale_arcsec = 0.9″/px
+# 时有保守性证据; 本门扫描尺度 0.5″/px 低于该下限 ⇒ 适用的是**全域保守门**
+# 1e-6 px（= TOL_REPRODUCE_PX, G-P1-WCS-BRIDGE-GLOBAL）。SIN 偏差 2.5e-5 px
+# 两个门都远超 ⇒ 结论不受影响。
+CONTRACT_TOL_PX = 1e-8   # 紧门（对照打印用; 单值来源见 lib/.../p3_wcs.cpp）
 
 PROBE_SRC = r"""
 #include "p3_proj_v6.h"

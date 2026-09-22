@@ -2,8 +2,9 @@
 """IMPL-AIO-001 独立 Oracle 库。
 
 真值来源（不调用任何 C++ 被测实现）:
-  - docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json (冻结条款/单位表)
-  - eng/contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json (required 键)
+  - eng/contracts/data/v6_clause_registry_v1.json (冻结条款/单位表)
+  - eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/provenance
+    (required 键；产品族记录级字段级合同)
   - astropy.io.fits（外部 FITS 校验和/结构真值）
   - hashlib（SHA-256 真值）
   - 本文件内独立转写的 FITS 4.0 §4.4.2.5 1 补码算法（第二真值，交叉 astropy）
@@ -241,13 +242,13 @@ def run_checks(art_dir: str, repo_root: str) -> List[str]:
             return json.load(fh)
 
     contract_path = os.path.join(
-        repo_root, "docs/contracts/v6/frozen/astrocs.v6.contract-freeze.v1.json")
+        repo_root, "eng/contracts/data/v6_clause_registry_v1.json")
     schema_path = os.path.join(
-        repo_root, "eng/contracts/proposals/v6/data/astrocs.v6.provenance.v1.schema.json")
+        repo_root, "eng/contracts/schemas/product_family_field_constraints.schema.json")
     with open(contract_path, "r", encoding="utf-8") as fh:
         contract = json.load(fh)
     with open(schema_path, "r", encoding="utf-8") as fh:
-        prov_schema = json.load(fh)
+        prov_schema = json.load(fh)["$defs"]["provenance"]
 
     # ── C1 冻结条款在合同 JSON 中存在且状态可判 ──────────────────────────
     clause_ids = {c["id"] for c in contract["clauses"]}
@@ -264,7 +265,17 @@ def run_checks(art_dir: str, repo_root: str) -> List[str]:
     check(units_table["signal_sb"]["ivar_unit"] == "px^4/ADU^2",
           "contract signal_sb ivar unit")
     check(units_table["W_info"]["unit"] == "ADU^-2", "contract W_info unit")
-    check(units_table["psfsw_robust_weight"]["unit"] == "1", "contract psfsw unit")
+    # PSFSW-RETIRE-03：退役对象 psfsw_robust_weight 已从现行单位表**移出**
+    # （与 §31.1 的 OBSOLETE/对象真删一致；物理删除对齐，见 UnitId 侧）。
+    # 识别面只剩"退役登记"：它必须仍被登记为退役对象与退役模式，但**不得**再作为
+    # 现行单位行出现（否则同一对象在权威链上出现第二个身份）。
+    check("psfsw_robust_weight" not in units_table,
+          "retired unit must not be a live units_table row (PSFSW-RETIRE-03)")
+    check(contract["x-astrocs-canonical-object-retirement"]["retired_canonical_object"]
+          == "psfsw_robust_weight",
+          "retired unit must stay registered as a retired canonical object")
+    check("psfsw_robust" in contract["weight_modes"].get("retired", []),
+          "retired weight mode token must stay registered as retired")
 
     # ── C3 provenance 最小集（独立 required 来源 = schema） ──────────────
     # W6 SCHEMA-INTEGRATE-001 可能迁移 schema 文件：缺失时回退到语义同源的
