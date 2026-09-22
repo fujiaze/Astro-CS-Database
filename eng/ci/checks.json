@@ -5349,6 +5349,59 @@
             "schemas/**"
           ],
           "requires_monitor": false
+        },
+        {
+          "id": "EVT-FIELD-SETS",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_event_field_sets.py",
+            "--json-out",
+            "run/ci/event-field-sets/event_field_sets.json"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/event-field-sets/event_field_sets.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_event_field_sets.py",
+            "eng/contracts/schemas/jsonl_event_v1.schema.json",
+            "eng/tests/cli/test_cli004_process_protocol.py",
+            "eng/tests/cli/test_fix208_event_stream_default.py",
+            "lib/infrastructure/cli/protocol.h"
+          ],
+          "requires_monitor": false
+        },
+        {
+          "id": "EVT-FIELD-SETS-SELFTEST",
+          "profiles": [
+            "fast",
+            "linux-main",
+            "windows-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/ci/check_event_field_sets.py",
+            "--self-test"
+          ],
+          "timeout_seconds": 60,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [],
+          "waivable": false,
+          "changed_paths": [
+            "eng/ci/check_event_field_sets.py"
+          ],
+          "requires_monitor": false
         }
       ]
     },
