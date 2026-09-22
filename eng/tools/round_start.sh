@@ -1,19 +1,44 @@
 #!/usr/bin/env bash
 # 开新一轮运行：回收旧轮次产物 → 建目录 → 写轮次元数据（负责人 2026-09-21 指令）。
-# 用法：tools/round_start.sh <ROUND-ID>       例：tools/round_start.sh RELEASE-05
+# 用法：eng/tools/round_start.sh <ROUND-ID>       例：eng/tools/round_start.sh RELEASE-05
 # 说明：run/ 是 gitignore 的临时区，历史轮次会累积到上百 GB；本脚本把"先清旧轮次"变成固定动作。
-# 细节与硬护栏见 tools/run_gc.py 头部注释；保留清单见 tools/run_keep.txt。
+# 细节与硬护栏见 eng/tools/run_gc.py 头部注释；保留清单见 eng/tools/run_keep.txt。
+#
+# 路径单源（LINUXMAIN-PATH-01 A）：TOOLS_DIR 由 BASH_SOURCE 派生，ROOT = TOOLS_DIR/../..，
+# 回收器与保留清单 = TOOLS_DIR 下的同名文件。原实现把 ROOT 算成 eng/（相对 tools/ 时代少退一级），
+# 于是三处同时静默退化：①`python3 tools/run_gc.py` 恰在 eng/ 下命中而"看起来正常"；
+# ②轮次目录被建到 eng/run/ 而 run/<ROUND> 从未存在；③run_gc 去读 repo/tools/run_keep.txt
+# （不存在）⇒ 保留清单整条被静默忽略。实测（临时夹具）：--apply 删除了清单内明确登记的
+# run/RELEASE-04 以及其余全部轮次，且 exit 0 打印"run/NEW-01 就绪"。
 set -euo pipefail
 
-ROUND="${1:?用法: tools/round_start.sh <ROUND-ID>}"
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROUND="${1:?用法: eng/tools/round_start.sh <ROUND-ID>}"
+SELF="${BASH_SOURCE[0]}"
+case "$SELF" in
+  */*) : ;;
+  *) SELF="$(command -v -- "$SELF" || echo "$SELF")" ;;
+esac
+TOOLS_DIR="$(cd "$(dirname "$SELF")" && pwd)"
+ROOT="$(cd "$TOOLS_DIR/../.." && pwd)"
+GC="$TOOLS_DIR/run_gc.py"
+KEEP="$TOOLS_DIR/run_keep.txt"
+
+# fail-closed 前置断言（ENGINEERING_SPEC §10「锚存活」/「路径不存在即判红」）：
+# 任一锚失效 ⇒ 点名后退出 2，绝不带着错的 ROOT 继续（那正是本脚本原来的静默退化）。
+die_anchor() { echo "ANCHOR_STALE: $1 $2" >&2; exit 2; }
+[ -f "$ROOT/CMakeLists.txt" ] || die_anchor ROOT_SENTINEL "$ROOT/CMakeLists.txt"
+[ -f "$GC" ]                  || die_anchor RUN_GC "$GC"
+[ -f "$KEEP" ]                || die_anchor KEEP_FILE "$KEEP"
+
 cd "$ROOT"
 
-echo "== 1/3 回收旧轮次产物（保留 run_keep.txt 与 $ROUND）=="
-python3 tools/run_gc.py --apply --keep "$ROUND"
+echo "== 1/3 回收旧轮次产物（保留 $KEEP 与 $ROUND）=="
+python3 "$GC" --apply --keep "$ROUND" --keep-file "$KEEP"
 
 echo "== 2/3 建立 run/$ROUND =="
 mkdir -p "run/$ROUND/logs" "run/$ROUND/evidence"
+[ -d "run/$ROUND/logs" ] && [ -d "run/$ROUND/evidence" ] \
+  || die_anchor ROUND_DIR "$ROOT/run/$ROUND"
 
 echo "== 3/3 写轮次元数据 =="
 if [ ! -f "run/$ROUND/ROUND.md" ]; then

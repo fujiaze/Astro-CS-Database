@@ -302,8 +302,56 @@ def check_lock_vs_tree(root: Path, findings: list, allow_missing_git: bool = Fal
 
 
 # ── C5 依赖锁 ↔ CMake 实际依赖 ───────────────────────────────────────────────
+# 源码面（LINUXMAIN-PATH-01 B5）：原实现手抄 ("lib", "include", "cli") 三个源根，
+# 其中 include/ 与 cli/ 随 ARCH-001 根目录整合退役（include/ -> lib/include,
+# cli/ -> lib/infrastructure/cli），由 `if not d.is_dir(): continue` **静默**跳过。
+# 现改为从权威来源派生：
+#   * CMake 面 = 根 CMakeLists.txt（BLD-002 唯一产品事实源）的 add_subdirectory 闭包，
+#     替代死锚 root/"cli"/"CMakeLists.txt"；
+#   * 源根面 = ENGINEERING_SPEC §7「lib/ = 科学算法 + 公共头 + 第三方 + 基建」单源常量，
+#     lib/include 与 lib/infrastructure/cli 均已在其内。
+# 扫描面为空 / 种子缺失 ⇒ InputUnavailable（fail-closed，exit 2）。
+SOURCE_ROOTS = ["lib"]
+SOURCE_SUFFIXES = (".c", ".cc", ".cpp", ".h", ".hpp")
+# 源文本收集上限：命中即判红（扫描面被截断 = 判据面不完整，不得给出"一致"结论）
+SOURCE_TEXT_CAP = 4000
+
+_ADD_SUBDIR_RE = re.compile(r"(?<![\w-])add_subdirectory\s*\(\s*([^\s)#]+)", re.I)
+
+
+def _strip_cmake_comments(text: str) -> str:
+    return "\n".join(re.sub(r"#.*$", "", ln) for ln in text.splitlines())
+
+
+def _build_graph_cmake(root: Path) -> list:
+    """根 CMakeLists.txt 的 add_subdirectory 闭包（字面路径边）。
+
+    变量驱动的边与悬空边**不计入**（本函数只用于收集实存 CMakeLists），
+    但根 CMakeLists.txt 本身缺失即 ANCHOR_STALE —— 那是唯一的种子锚。
+    """
+    seed = root / ROOT_CMAKE
+    if not seed.is_file():
+        raise InputUnavailable(f"ANCHOR_STALE: {ROOT_CMAKE} 不存在（BLD-002 唯一产品事实源）")
+    seen, stack = set(), [seed]
+    while stack:
+        f = stack.pop()
+        if f in seen:
+            continue
+        seen.add(f)
+        for m in _ADD_SUBDIR_RE.finditer(_strip_cmake_comments(
+                f.read_text(encoding="utf-8", errors="ignore"))):
+            tok = m.group(1).strip('"')
+            if "${" in tok or "$<" in tok:
+                continue
+            sub = (f.parent / tok).resolve() / "CMakeLists.txt"
+            if sub.is_file():
+                stack.append(sub)
+    return sorted(seen)
+
+
 def _declared_source_roots(root: Path) -> list:
-    paths = [root / ROOT_CMAKE, root / "cli" / "CMakeLists.txt"]
+    paths = [root / ROOT_CMAKE]
+    paths.extend(_build_graph_cmake(root))
     paths.extend(sorted((root / "eng" / "cmake").glob("*")))
     paths.extend(sorted(root.glob("lib/*/CMakeLists.txt")))
     paths.extend(sorted(root.glob("lib/*/*/CMakeLists.txt")))
@@ -337,18 +385,26 @@ def check_lock_vs_cmake(root: Path, findings: list):
     src_texts = {}
     for p in _declared_source_roots(root):
         src_texts[p] = p.read_text(encoding="utf-8", errors="ignore")
-    for src_dir in ("lib", "include", "cli"):
+    for src_dir in SOURCE_ROOTS:
         d = root / src_dir
         if not d.is_dir():
-            continue
+            # 扫描面锚失效 ⇒ fail-closed 点名（原实现静默 continue）
+            raise InputUnavailable(
+                f"ANCHOR_STALE: SOURCE_ROOTS {src_dir} 不存在于 {root} —— "
+                f"依赖引用面会静默缩小")
         for p in d.rglob("*"):
-            if len(src_texts) >= 4000:
-                break
-            if p.is_file() and p.suffix in (".c", ".cc", ".cpp", ".h", ".hpp"):
+            if len(src_texts) >= SOURCE_TEXT_CAP:
+                # 截断 = 判据面不完整 ⇒ 不得给出"一致"结论（原实现是静默 break）
+                raise InputUnavailable(
+                    f"ANCHOR_STALE: 源文本收集达上限 {SOURCE_TEXT_CAP}（{src_dir}）—— "
+                    f"引用面被截断，fail-closed 拒绝判定")
+            if p.is_file() and p.suffix in SOURCE_SUFFIXES:
                 try:
                     src_texts[p] = p.read_text(encoding="utf-8", errors="ignore")
                 except OSError:
                     continue
+    if not src_texts:
+        raise InputUnavailable("ANCHOR_STALE: 依赖引用面收集到 0 个文本 —— fail-closed 拒绝判定")
 
     for dep in load_json(root, LOCK).get("production_dependencies") or []:
         name = dep.get("name", "?")
@@ -619,6 +675,10 @@ def self_test(repo: Path) -> int:
         ("C6 目录通配安装回归", _inject_wildcard, "C6"),
         ("C7 许可文本缺失", lambda r: (r / LICENSE_DIR / "nlohmann_json.MIT.txt").unlink(),
          "C7"),
+        # LINUXMAIN-PATH-01 B5 新增负例: 源码面锚失效必须 fail-closed（exit 2 语义），
+        # 而不是像原实现那样静默 continue 后给出"一致"结论。
+        ("C5 源码面锚失效（lib/ 不在）", lambda r: (r / "lib").rename(r / "lib_moved"),
+         "ANCHOR_STALE"),
     )
     anchor_stale = False
     with tempfile.TemporaryDirectory(prefix="astrocs-pkg-selftest-") as tmp:
@@ -634,6 +694,9 @@ def self_test(repo: Path) -> int:
             except InputUnavailable as e:
                 # 锚失效/输入不可用 = runner error（rc=2）：点名，不 traceback
                 print(str(e), file=sys.stderr)
+                if expect == "ANCHOR_STALE":
+                    print(f"SELFTEST PASS {case}: 锚失效按预期 fail-closed")
+                    continue
                 print(f"SELFTEST FAIL {case}: 输入不可用 {e}")
                 ok = False
                 anchor_stale = True
