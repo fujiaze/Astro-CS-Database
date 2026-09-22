@@ -30,22 +30,30 @@
 ## 1 ALG-DRZ-001 核心累加公式（与 SCI-DRZ-001 §5 对照）
 
 - 源锚: `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp`
-  （processPixelSharedTiled/processPixelTiled 累加段 1490-1540）。
+  （`processPixelTiled` / `processPixelSharedTiled` 累加段 1538-1638，
+  2026-09-22 DRIZZLE-FIX-01 重锚；**符号名优先于行号**，行号仅作导航）。
 - 记号: 源像素 j（值 x_j [ADU]、方差 v_j [ADU²]、权重面）、目标
   HEALPix NESTED leaf p；drop = 源像素按 pixfrac 收缩的球面 footprint；
-  A_drop,j = drop 球面总面积 [sr]（S-H 裁剪前，双精度角点累积，
-  <1e-20 拒绝，drizzle_engine.cpp:1439-1441）。
+  A_pixel,j = **未收缩**源像素球面总面积 [sr]（DRIZZLE-FIX-01 引入，
+  `spherical::polygon_area_consistent`）；A_drop,j = drop 球面总面积 [sr]
+  （S-H 裁剪前，双精度角点累积，<1e-20 拒绝，
+  `build_drop_geometry_into` / `DropGeometryT::drop_area`）。
 - 离散公式（逐条源码锚）:
-  - 权重: `w_jp = a_jp / A_drop,j`，a_jp = drop ∩
-    target p 球面交叠面积 [sr]（drizzle_engine.cpp:1508；w≤0 拒绝 :1509-1512）。
-    SCI-DRZ-001 §5 的目标态为面亮度保持权重 `w_SB=a_jp/A_pixel,j=pixfrac²·w_jp`；
-    现行源码用 `w_jp`，`pixfrac<1` 时 `S_p` 偏 `1/pixfrac²`（DISP-DRZ-009）。
+  - 权重: `w_jp = a_jp / A_pixel,j`（**DRIZZLE-FIX-01 修复后口径**，
+    SCI-DRZ-001 §5 目标态面亮度保持权重），a_jp = drop ∩ target p 球面交叠
+    面积 [sr]；A_pixel,j = **未收缩**源像素球面面积 [sr]，由
+    `spherical::polygon_area_consistent`（与 drop_area 同一分支同一例程）
+    对未收缩四角求值。`pixfrac==1` 时未收缩四角 ≡ drop 四角 ⇒ 分母直接取
+    `drop_area`（**逐位不变**，默认 `drizzle.pixfrac=1.0` 零回归）；
+    `pixfrac<1` 时多 4 次 `pixelToSky`（审核量化 +3%）。w≤0 拒绝。
+    修复前为 `w=a_jp/A_drop,j`（分子"drop 分数交叠"配分母"绝对面积"），
+    `pixfrac<1` 时 `S_p` 偏 `1/pixfrac²`（DISP-DRZ-009，已闭环）。
   - 通量: `F_p = Σ_j x_j · w_jp`（`acc.sumFlux += Scalar(pixelValue *
-    weight)`，:1530）。
+    weight)`，:1629）。
   - 支撑面积: `D_p = Σ_j a_jp`（`acc.sumArea += Scalar(overlap_area)`，
-    :1531）。
+    :1630；**绝对球面面积**，support = D_p/A_cell 语义不变）。
   - 方差分子: `sumVarNum_p = Σ_j v_j · w_jp²`（`(double)v · (double)w²`
-    中转再转 Scalar，仅当 v>0 累加，:1534-1537）。
+    中转再转 Scalar，仅当 v>0 累加，:1631-1637）。
   - 贡献计数: `nContrib_p = Σ_j 1`。
 - **S_p = F_p/D_p 归一不在本模块**: sumFlux/sumArea/sumVarNum 原始和
   逐 tile 传出（astro_sphere_sink.cpp:99-104 dense 化），归一在
@@ -129,18 +137,35 @@
 
 ## 6 确定性与归约（1/N 合同）
 
-- 并行: `#pragma omp parallel for schedule(static) num_threads(N)
-  reduction(+:nSourcePixels,…)` 逐行条带（drizzle_engine.cpp:1673-1674）；
-  线程数 = config.threads（>0）否则 omp_get_max_threads（:1642-1647），
-  不改全局 omp_set_num_threads；无 _OPENMP 退化串行（tid=0）。
-- 累加结构: per-thread `unordered_map<parent, TileAccumulator>` +
-  per-thread 计数器（:1648-1649）；行级顶点缓存 thread_local
-  （:1689-1691）。
-- 合并: 串行按线程序 t=1..N−1 合入 threadTiles[0]，仅合并 touched
-  leaf，字段序 sumFlux→sumArea→sumVarNum→nContrib（:1765-1788）。
-- **1/N 确定性成立**: 同输入同线程数 bitwise 可复现（schedule(static)
-  行→线程映射固定 + 合并序固定）；跨线程数时 leaf 内浮点和顺序不同，
-  不保证 bitwise（差异 ≤ 浮点结合律界，测试门 §9 覆盖 1/2/4 线程）。
+> **2026-09-22 订正（DRIZZLE-FIX-01）**：本节原写"跨线程数时 leaf 内浮点和顺序
+> 不同, 不保证 bitwise"——那是 **P15a/P22 修复前（P12）** 的状态，与现行代码
+> **不符**。现行实现把归约结合树定义为*输入*的函数，跨线程预算 **bitwise 一致**；
+> 下列条目已按 `drizzle_engine.cpp` 现行符号（`drizzleTiledImpl` /
+> `drizzle_deterministic_stripe_count` / `merge_tile_map_into`）逐条核对改写。
+
+- 并行（P15a DRIZZLE-DET-001 + P22 池化归约流水线）: y 行按
+  `drizzle_deterministic_stripe_count(img.height) = min(ceil(height/16), 256)`
+  划分为**固定 stripe 数**（**仅依赖 `img.height`，与线程预算无关**）；
+  每个 stripe 由**唯一**线程按 (y,x) 行主序累加进池中 scratch map
+  （无 atomic、无竞争）；stripe 边界 `y0 = stripe*height/n_stripes` 只依赖
+  stripe 索引。worker 数唯一来自 `config.threads`（>0）否则
+  `omp_get_max_threads`（`drizzleTiledImpl`），不改全局
+  omp_set_num_threads；无 _OPENMP 退化串行（tid=0）。
+- 累加结构: 归约池中至多 `kScratchPoolCap` 个 scratch map（P22 前为
+  per-thread map）+ per-thread 计数器；行级顶点缓存 thread_local
+  （`shared_vertices = (config.pixfrac == 1.0)`）。
+- 合并: 任意线程按 `merge_cursor` **升序左折叠**归约
+  （`merge_tile_map_into`：按 `touched` 插入序逐 leaf 累加，字段序
+  sumFlux→sumArea→sumVarNum→nContrib）；输出 `tiles` 按 `parent_ipix` 排序
+  ⇒ tile 写盘顺序也与线程数无关。
+- **1/N 确定性成立（跨线程数 bitwise）**: 任一 leaf 的浮点加法结合树
+  = "stripe 0..N_s−1 升序左折叠"，只是**输入与 `img.height`** 的函数
+  ⇒ 同输入在不同 worker 预算下产物科学载荷逐字节一致。
+  回归锁（sha256 逐位比对）: `p1drz_taskset_invariance`（P15a，正方形 256²，
+  taskset 1/2/4/8/16）与 `p1drz_merge_pipeline_lock`（P22，高瘦 256×1024
+  = 64 stripe，强制池耗尽/归还与跨线程归约归属，FP32/FP64 × 两轮重复）。
+  P12 旧口径（per-thread map + 按线程序 t=1..N−1 合并）仅在
+  `drizzle_engine.cpp` 的 P15a 段注释中作为**缺陷史**保留，不再是现行行为。
 - ThreadLease: 模块内零命中；omp 为模块内部通道，生产调度走 Runtime
   lease（CMakeLists.txt:379-382 注释）——ThreadLease 迁移整改点
   （P1-DRZ-IMPL），迁移必须保持本节合并序。
@@ -238,19 +263,27 @@
 | DISP-DRZ-006 | TileLeafAccumulatorT release 仅 3 字段（drizzle_engine.h:62-63 注释） | 实际 4 字段（sumVarNum 为正式产品） | drizzle_engine.h:62-63 vs 64-71 |
 | DISP-DRZ-007 | SCI §13 方差锚 drizzle_engine.cpp:100/736-762 | 行号漂移：现行方差锚 astro_sphere_sink.cpp:100 + aio_hips_writer finalize_tile | DRIZZLE.md:131 vs drizzle_engine.cpp:2-3 |
 | DISP-DRZ-008 | poly_clip.h 自述生产重叠面积用途 | PolyClip（平面 S-H/Shoelace）生产 tiled 路径零调用 | poly_clip.h:4-15 vs drizzle_engine.cpp 全文 |
-| DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`） | 源码用 `w_jp=a_jp/A_drop,j`（drizzle_engine.cpp:1531）后 `S_p=sumFlux/sumArea`，`pixfrac<1` 偏 `1/pixfrac²`（pixfrac=0.8→1.5625×） | DRIZZLE.md:40-54 vs drizzle_engine.cpp:1531,1553-1554；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/v6/data/02_signal.md:38） |
+| DISP-DRZ-009 | SCI-DRZ-001 §5 目标态面亮度保持权重 `w_SB=a_jp/A_pixel,j`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`） | **已闭环（DRIZZLE-FIX-01，2026-09-22）**：`processPixelSharedTiled` 的 `weight = overlap_area / pixel_area`（分母 = 未收缩像素面积 A_pixel,j）；修复前为 `w_jp=a_jp/A_drop,j` 后 `S_p=sumFlux/sumArea`，`pixfrac<1` 偏 `1/pixfrac²`（pf=0.8→+56.25%，实测与 `1/pf²−1` 逐位吻合） | DRIZZLE.md:40-54 vs drizzle_engine.cpp `processPixelSharedTiled`（`pixel_area` 段）/ `spherical_overlap.cpp:polygon_area_consistent`；契约 `FZ-FORMULA-DRIZZLE-SB`（docs/contracts/DATA_SEMANTICS.md §31.1）；回归门 `p1drz_disp009` |
 
 无差异项（核对通过）: F/D/sumVarNum 结构、HP_CIRCUMRADIUS
 _FACTOR=1.25、三层缓冲语义、NESTED 统一、按线程序合并确定性。
 
-**DISP-DRZ-009 最小修复（归 P1-DRZ-IMPL；本次未改源码）**：
-`drizzle_engine.cpp:1531` 的 `weight = overlap_area / drop_area` 改为
-`weight = overlap_area * (pixfrac*pixfrac) / drop_area`（等价 `overlap_area/A_pixel,j`，
-因 `A_drop,j=pixfrac²·A_pixel,j`）；`sumArea`/`sumVarNum` 语义与
-`variance=sumVarNum/sumArea²` 不变。pixfrac=1 时数值逐位不变（默认
-`eng/packaging/config/defaults.json` `drizzle.pixfrac=1.0`）。验证：重跑 `p1drz` 常量面亮度门
-（`FZ-GATE-CONST-SB`，覆盖 pixfrac∈(0,1]）、`variance_propagation_test`、
-`candidate_oracle_test` 9003 例、以及 `ctest -R 'p1drz|drizzle'`。
+**DISP-DRZ-009 修复实现（DRIZZLE-FIX-01，2026-09-22；已落地）**：
+`drizzle_engine.cpp` 的 `processPixelSharedTiled` 内 `weight = overlap_area / drop_area`
+改为 `weight = overlap_area / pixel_area`，其中 `pixel_area` = **未收缩**源像素球面面积
+（新增 `spherical::polygon_area_consistent`，与 `build_drop_geometry_into` 的
+`drop_area` 同一分支同一例程）；`pixfrac<1` 时由调用方
+（`processPixelTiled` 的 Step 2b）补 4 次未收缩四角 `pixelToSky`；
+`pixfrac==1` 时传 nullptr ⇒ 分母直接取 `drop_area`，产物**逐字节不变**
+（sha256 实证：`.norm.hiss`/`.canon` 改前=改后）。`sumArea`（D_p=Σa_jp，
+support 语义）与 `sumVarNum`/`variance=sumVarNum/sumArea²` 语义不变。
+**注意**：原拟的近似写法 `overlap_area·pixfrac²/drop_area` **不得采用** ——
+恒等式 `A_drop,j=pixfrac²·A_pixel,j` 有 O(θ²) 球面非线性残差
+（审核实测 8.3e-7 @2"/px），会让 `pixfrac<1` 的面亮度引入同阶系统偏差。
+验证：新增回归门 `p1drz_disp009`（pixfrac∈{1.0,0.8,0.6,0.5} 常量面亮度
+`|S_p/B0−1|<1e-3` + "分母取 A_drop 必判红"的负例控制），并重跑
+`ctest -R 'drz|drizzle|p1drz|hips'`（31 项）与 `p1drz_taskset_invariance`/
+`p1drz_merge_pipeline_lock` 1/N 逐位锁。
 
 **DISP-DRZ-005 负面用例建议（仅注记，用例实现不在本批）**：θ < 1e-3 rad
 的微小 drop 两侧对拍——同一输入分别走切平面分支（`planar_polygon_area_n`）

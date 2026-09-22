@@ -87,6 +87,21 @@ template <typename T>
 T spherical_polygon_area_n(const Vec3T<T>* vertices, int n);
 
 // ============================================================================
+// 未收缩源像素球面面积 A_pixel,j (DISP-DRZ-009 / SCI-DRZ-001 §5 的 w_jp 分母)
+//
+// 与 build_drop_geometry_into() 计算 g.drop_area 时**同一分支、同一例程**
+// (角半径 < 1e-3 rad → 切平面 2D 面积; 否则 → Eriksson 球面扇形面积),
+// 保证 "A_pixel,j 与 A_drop,j 口径一致" 不是约定而是实现事实。
+//
+// 用途: 面亮度保持权重 w_jp = a_jp / A_pixel,j 的分母。pixfrac==1 时未收缩
+// 四角与 drop 四角逐位相同, 调用方**不应**调用本函数而应直接复用 drop_area
+// (见 drizzle_engine.cpp processPixelSharedTiled), 以获得逐位不变的默认路径。
+//
+// 返回: 球面度 (sr); 顶点数 < 3 或退化输入返回 0.0 (调用方 fail-closed)。
+// ============================================================================
+double polygon_area_consistent(const Vec3* vertices, int n);
+
+// ============================================================================
 // 球面 Sutherland-Hodgman 多边形裁剪
 //
 // 用一组大圆弧裁剪球面多边形:

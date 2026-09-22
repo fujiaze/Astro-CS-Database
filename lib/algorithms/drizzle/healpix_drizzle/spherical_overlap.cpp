@@ -1858,4 +1858,39 @@ template void query_candidate_pixels_fast<double>(
     const std::vector<Vec3T<double>>&, const healpix::HealpixCore&,
     std::vector<uint64_t>&, bool*);
 
+// ============================================================================
+// 未收缩源像素球面面积 A_pixel,j (DISP-DRZ-009)
+// ----------------------------------------------------------------------------
+// 与 build_drop_geometry_into() 的 drop_area **同一分支、同一例程**:
+//   角半径 ang0 < 1e-3 rad (≈206") → planar_polygon_area_n (切平面 2D)
+//   否则                          → spherical_polygon_area_n<double> (Eriksson 扇形)
+// 逐语句与 build_drop_geometry_into 内的 drop_area 段一致, 差别仅在于本函数
+// 接受任意顶点数并直接对传入角点求值 (调用方传未收缩四角)。
+// 因此 pixfrac==1 时 (未收缩四角 == drop 四角) 本函数返回值与 drop_area 相同;
+// 生产路径在该情形下**直接复用 drop_area** (不调用本函数) 以保证逐位不变。
+// 定义置于文件末尾: 依赖上方 static planar_polygon_area_n, 且**不位移**任何
+// 既有行号 (docs/algorithms/anchors/anchor_contract.json 的 DRZ-MAXANGLE 绑定
+// 以文档行锚校验 drop_area 所在行, 见 docs/algorithms/DRIZZLE_GEOMETRY.md §10)。
+// ============================================================================
+double polygon_area_consistent(const Vec3* vertices, int n) {
+    if (vertices == nullptr || n < 3) return 0.0;
+    double cx0 = 0.0, cy0 = 0.0, cz0 = 0.0;
+    for (int i = 0; i < n; i++) {
+        cx0 += vertices[i].x;
+        cy0 += vertices[i].y;
+        cz0 += vertices[i].z;
+    }
+    const double l0 = std::sqrt(cx0 * cx0 + cy0 * cy0 + cz0 * cz0);
+    if (l0 > 1e-300) { cx0 /= l0; cy0 /= l0; cz0 /= l0; }
+    double ang0 = 0.0;
+    for (int i = 0; i < n; i++) {
+        double d = vertices[i].x * cx0 + vertices[i].y * cy0 +
+                   vertices[i].z * cz0;
+        d = std::max(-1.0, std::min(1.0, d));
+        ang0 = std::max(ang0, std::acos(d));
+    }
+    return (ang0 < 1e-3) ? planar_polygon_area_n(vertices, n)
+                         : spherical_polygon_area_n<double>(vertices, n);
+}
+
 } // namespace spherical

@@ -62,14 +62,18 @@ const FrozenUnit& frozen_unit(UnitId id) {
         {UnitId::w_info,              "ADU^-2",     {-2, 0}},
         {UnitId::flux,                "ADU",        {1, 0}},
         {UnitId::q,                   "ADU^-1",     {-1, 0}},
-        {UnitId::psfsw_robust_weight, "1",          {0, 0}},
+        /* PSFSW-RETIRE-03：psfsw_robust_weight 的行已**物理删除**（原 RETIRED 占位行）。
+         * 该对象不是现行对象，冻结单位表不承载它的任何身份；识别/拒绝走字符串面
+         * is_retired_unit_symbol + retired_unit_reject_reason。 */
         {UnitId::pixel_area,          "px^2",       {0, 2}},
         {UnitId::dimensionless,       "1",          {0, 0}},
     };
     for (const FrozenUnit& u : table) {
         if (u.id == id) return u;
     }
-    return table[9]; // dimensionless
+    /* 兜底 = 表末项 dimensionless。用表长表达式而非硬编码下标：删行会使下标平移，
+     * 硬编码即越界（PSFSW-RETIRE-03 删 psfsw_robust_weight 行时即为此）。 */
+    return table[sizeof(table) / sizeof(table[0]) - 1];
 }
 
 UnitDimension square_dimension(UnitDimension d) {
@@ -84,6 +88,37 @@ bool unit_law_holds(UnitId signal, UnitId variance, UnitId ivar) {
     const UnitDimension v = frozen_unit(variance).dim;
     const UnitDimension i = frozen_unit(ivar).dim;
     return square_dimension(s) == v && inverse_dimension(v) == i;
+}
+
+// ── 退役对象显式拒绝（PSFSW-RETIRE-01）──────────────────────────────────
+namespace {
+const char kRetiredUnitSymbol[] = "psfsw_robust_weight";
+
+char ascii_lower(char c) {
+    return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
+}
+} // namespace
+
+/* PSFSW-RETIRE-03：is_retired_unit_id 已随枚举项物理删除——退役对象不再有
+ * 枚举身份，识别面只有字符串面（见头文件说明）。 */
+
+bool is_retired_unit_symbol(const std::string& symbol) {
+    // 大小写不敏感全等（与 coverage/resample 的 token 门同口径）。
+    const std::size_t n = sizeof(kRetiredUnitSymbol) - 1; // 不含 '\0'
+    if (symbol.size() != n) return false;
+    for (std::size_t i = 0; i < n; ++i) {
+        if (ascii_lower(symbol[i]) != ascii_lower(kRetiredUnitSymbol[i])) return false;
+    }
+    return true;
+}
+
+std::string retired_unit_reject_reason(const std::string& symbol) {
+    if (!is_retired_unit_symbol(symbol)) return std::string();
+    return "retired unit/weight object '" + symbol +
+           "' (FZ-UNIT-PSFSW retired; PSFSW-RETIRE-01): psfsw_robust_weight is not a "
+           "current object (ASTROCS_DESIGN.md 3.1; UNIFIED_MODEL.md:58); allowed "
+           "weight objects: point_information (W_info=1/Var(F_hat)) or surface_gls "
+           "(A^T C^-1 A); PSF quality proxies (FWHM/residual) are diagnostics only";
 }
 
 // ---------------------------------------------------------------------------
