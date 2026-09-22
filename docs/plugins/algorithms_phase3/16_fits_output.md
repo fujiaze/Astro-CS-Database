@@ -15,7 +15,8 @@
 
 ## 3. 输入/输出数据合同
 
-- **输入**：重采样产品（signal/统计、variance、correlation、coverage、validity、PSF、provenance 材料）、配置。
+- **输入**：重采样产品（signal/统计、variance、correlation、coverage、validity、PSF、provenance 材料）、配置；输入 HiPS 产品的落盘形态由落盘名判定，裸/归档同义。
+- **输出形态**：交付物为**裸 FITS，不压缩、不套壳**；Phase3 不产出 HiPS，不使用 `.hips` / `.hips.zst` 命名。
 - **输出**：
   - **输出不需要带权重**——上游已完成叠加，这里只投影到平面并直接计算生成对应 WCS；
   - PRIMARY：所选科学 signal/flux/statistic；

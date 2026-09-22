@@ -80,7 +80,10 @@ coverage:
 
 ## 7 独立不变量
 
-- **WCS 往返不变量**：`pixel→world→pixel` 误差 `<1e-8 px`（FP64；生产注册表 `kTanApplicability.roundtrip_tol_px`，`p3_wcs.cpp:191`）。
+- **WCS 往返不变量**：`pixel→world→pixel` 误差 `<1e-8 px`（FP64；生产注册表 `kTanApplicability.roundtrip_tol_px`，`p3_wcs.cpp`）。
+  **适用域**：该紧门仅在 `scale ≥ min_scale_arcsec = 0.9″/px`（`kTanApplicability.min_scale_arcsec`）时有保守性证据；
+  尺度低于下限时紧门**不适用**（报「超出适用域」而非判红），退回全域保守门 `1e-6 px`（`roundtrip_tol_global_px`）。
+  门的适用域判定 = `p3_wcs_roundtrip_gate()`（单一事实源）；见 `docs/algorithms/GATES_AND_TOLERANCES.md` §3。
 - **常数场不变量**：常数球面面亮度场 `B0` → 有效区输出恒 `B0`（nearest 与 bilinear 均）。
 - **bilinear 权重和**：4 邻域权重和 = 1 ± k·ULP（FP64 累加；**不作逐位/精确断言**——
   IEEE-754 下「恒为 1」不可满足；k 由累加 dtype 决定，测试以相对容差判）。
@@ -125,7 +128,7 @@ coverage:
 11. **FITS 关键字**：`BITPIX=-32/-64`；`BSCALE=1,BZERO=0`；`BUNIT` 按 properties（缺省 'ADU'）；WCS=`CRPIX/CRVAL/CD1_1,1_2,2_1,2_2/CTYPE=TAN/CUNIT=deg`；`HISTORY+provenance`（源 HiPS 标识/order_sel/sampler/软件版本/manifest hash）必写。
     `CRVAL=(center.RA, center.Dec)` 且**两个分量都进映射**；LONPOLE 取 Paper II 标准默认
     （δ0≥θ0 ⇒ 0° 否则 180°），读方无需额外关键字即可复现。
-12. **插值误差/投影畸变/容差/FOV**：nearest 无插值误差，bilinear O(h²) 且 h≤s_out；TAN 畸变随 FOV 增长——**alpha 适用 FOV ≤20°** 冻结（中心距极点 ≥5°）；容差：WCS roundtrip 1e-8 px（生产注册表 `p3_wcs.cpp:191`）、解析场容差由 SYN-007 **预冻结**。
+12. **插值误差/投影畸变/容差/FOV**：nearest 无插值误差，bilinear O(h²) 且 h≤s_out；TAN 畸变随 FOV 增长——**alpha 适用 FOV ≤20°** 冻结（中心距极点 ≥5°）；容差：WCS roundtrip 1e-8 px（生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`））、解析场容差由 SYN-007 **预冻结**。
 
 ## 10 不可接受变化
 

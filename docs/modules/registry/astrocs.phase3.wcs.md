@@ -120,8 +120,12 @@ downstream: [TEST-P3-WCS-001]
 - G2 正向（:93-118）: (ξ,η)=CD·(pix−CRPIX)→θ=atan(1/r)→球面角
   （Calabretta & Greisen 2002 形式）→RA wrap [0,360)。
 - G2 反向（:120-143）: gnomonic (ξ,η)→δ=CD⁻¹·(ξ,η)→0-based 像素。
-- 容差: roundtrip <1e-8 px（SCI §7 冻结；生产注册表 `p3_wcs.cpp:191`）；FOV≤20° 适用域
-  （SCI §9a-12）。
+- 容差: roundtrip **紧门** <1e-8 px（SCI §7 冻结；生产注册表 `p3_wcs.cpp`（`kTanApplicability`，
+  单一事实源 `p3_wcs_applicability()`））—— **适用域 `scale ≥ min_scale_arcsec = 0.9″/px`**，
+  低于该尺度紧门不适用（报「超出适用域」而非判红），退回**全域保守门** 1e-6 px
+  （`roundtrip_tol_global_px`）；机器可读判定 = `p3_wcs_roundtrip_gate()`；FOV≤20° 适用域
+  （SCI §9a-12）。门表事实源 = `docs/algorithms/GATES_AND_TOLERANCES.md` §3
+  （G-P1-WCS-BRIDGE / -GLOBAL / -RT-ITER / -RT-APBP）。
 
 ## 7 执行类、并行轴、ThreadBudget lease、确定性
 

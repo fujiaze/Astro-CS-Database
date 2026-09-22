@@ -35,10 +35,9 @@ downstream: [TEST-P1-STAR-001]
   引用不改动）/ ALG-STARDET-001（STAR_DETECTION_ALGORITHMS §11 逐符号锚）/
   DATA-P1-STAR（DATA_SEMANTICS §17）/ API-STAR-001（PUBLIC_API 星点检测节）/
   编排上游 API-P1-003（PHASE1_API_V1 §2 一帧一次权威检测）。
-- 生产调用：run_stage_psf（PSF/STAR_MEASURE 阶段的**第一轮盲解**检测：
-  权威检测范式 = **星表引导拟合**（星表位置为定义域），本实现在最高设计 §3.2 `:120` 中
-  被点名为第一轮盲解的生产源；全图盲检测连通域**不是**权威路径，见 `ASTROCS_DESIGN.md`
-  §3.2 `:119-120` / §3.6 `:323-325`；
+- 生产调用：run_stage_psf（PSF/STAR_MEASURE 阶段的**全图盲检测**：
+  权威检测范式 = **星表引导拟合**（星表位置为定义域），本实现是全图盲检测路径的生产源；
+  全图盲检测连通域**不是**权威路径，见 `ASTROCS_DESIGN.md` §4.2；
   orchestrator.cpp:2067；sdet_create 参数构造 :1593-1612；FP64/FP32 通道
   :2172-2198；star_det 权威块 FLOAT64[N,6] 写入 :2218-2246）；PLATESOLVE
   fallback 读块禁重检测（:1748-1755、:1826-1829）。

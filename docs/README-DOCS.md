@@ -28,7 +28,7 @@ L5 模块文档        docs/modules/**（module 页 + MODULE_MAP.yaml + registry
 ```
 
 - 任务状态与发布结论只写在 `工程控制/PROJECT-GOVERNANCE-01/`（控制包）与
-  `docs/owner/RELEASE_STATUS.md`；状态词唯一口径 = `ASTROCS_DESIGN.md` §11.3。
+  `docs/owner/RELEASE_STATUS.md`；状态词唯一口径 = `ASTROCS_DESIGN.md` §12.5（状态阶梯）。
 - 已删除且不得再作现状引用的旧体系：根 `ASTROCS_PROJECT_CONSTITUTION.md`、
   旧工程约束、旧 `CHANGELOG.md`/`REVIEW.md`/`HANDOVER.md`、`设计大纲/`、
 `evidence/**`、旧历史控制包归档树与旧 `工程控制/AstroCS_*` 控制包（均已删除）

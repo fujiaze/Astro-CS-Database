@@ -9,7 +9,7 @@
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：星表引导检测细则）、§4.2（节点流程：星表引导检测与 WCS 两轮解算）与 §2.1（创新点一：测光校准到测光星等坐标系，星点位置由星表逆映射获得）；硬约束转引 `docs/plugins/algorithms_phase1/**` 与 `docs/science/**`；检测阈值的冻结定义见 `docs/science/STAR_DETECTION.md:18-19`、`docs/algorithms/STAR_DETECTION_ALGORITHMS.md:36`、`docs/algorithms/GATES_AND_TOLERANCES.md:38-39`。
+- 最高设计 `ASTROCS_DESIGN.md` §4.6（硬约束：星表引导检测细则）、§4.2（节点流程：星表引导检测与 WCS 解算）与 §2.1（创新点一：测光校准到测光星等坐标系，星点位置由星表逆映射获得）；硬约束转引 `docs/plugins/algorithms_phase1/**` 与 `docs/science/**`；检测阈值的冻结定义见 `docs/science/STAR_DETECTION.md:18-19`、`docs/algorithms/STAR_DETECTION_ALGORITHMS.md:36`、`docs/algorithms/GATES_AND_TOLERANCES.md:38-39`。
 - `docs/design/PHASE1_DETAILED_DESIGN.md` §5（背景、有效性与源检测）
 - `docs/science/UNCERTAINTY_AND_COVARIANCE.md`（质心/矩不确定度）
 
@@ -22,8 +22,8 @@
 
 ## 4. 算法与公式要点
 
-- **权威检测范式 = 星表引导拟合**（最高设计 §4.2）：检测定义域是**星表位置**（用本帧 WCS 把 Gaia 星表反向投影到像素域），只对星表位置做质心/PSF 拟合；拟合成功即星点，失败**直接丢弃**（不计虚警、不报错）；按亮度取 top 2–5 万颗为上限，极限星等按焦距、画幅、曝光时间派生估计（宁多勿少）；**全图盲检测连通域路径不是权威路径**，它只服务第一轮粗解 WCS。
-- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）——**仅适用于「第一轮盲解」**（全图盲检测 → 粗匹配 → 初解 WCS，只为星表投影提供近似指向，该轮星表**不是**权威科学产品；实现即既有 `sdet_api.cpp`，最高设计 §4.2）。**第二轮精解**用星表引导检测后的高纯度星表重解 WCS，此结果才是权威 WCS。检测路径不消费逐像素 variance/ivar。局部噪声自适应为目标态、当前未实现（GAP 登记），文档按现状描述；
+- **权威检测范式 = 星表引导拟合**（最高设计 §4.2）：检测定义域是**星表位置**（用本帧 WCS 把 Gaia 星表反向投影到像素域），只对星表位置做质心/PSF 拟合；拟合成功即星点，失败**直接丢弃**（不计虚警、不报错）；按亮度取 top 2–5 万颗为上限，极限星等按焦距、画幅、曝光时间派生估计（宁多勿少）；**全图盲检测连通域路径不是权威路径**，它只服务非权威的诊断/初值用途。
+- 检测阈值 = `median(img) + 5.0·bgnoise`（**全局背景噪声 RMS 的倍数**，`bgnoise` 由 FnNoise1 行差分族估计；阈值作用于 σ=2 平滑图；实现 `sdet_api.cpp:1782-1792`）——**仅适用于全图盲检测路径**（全图盲检测 → 匹配 → 解算；该路径的星表**不是**权威科学产品，最高设计 §4.2）。**权威 WCS** 来自星表引导检测后的高纯度星表解算，其近似指向由 `wcs.init_source` 给出。检测路径不消费逐像素 variance/ivar。局部噪声自适应为目标态、当前未实现（GAP 登记），文档按现状描述；
 - 质心/矩与不确定度：一阶矩质心、二阶矩，误差来自局部噪声传播；
 - 输出 selection function（完备性 vs 亮度/位置）和 completeness 参数；
 - 检测统计量与下游 PSF/测光解耦：检测目录不直接成为科学权重。
@@ -32,9 +32,9 @@
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `detection_threshold` | 5.0 | σ（全局 bgnoise） | **第一轮盲解专用 / 显式声明的可选诊断**（**不是**模块主路径配置——主路径 = 星表引导拟合，不消费此键）；语义 = `median(img)+5.0·bgnoise`（σ=2 平滑图上判定），与 `eng/packaging/config/defaults.json#detection.threshold_sigma` 同义（最高设计 §4.2/§4.3） |
-| `min_area` | 2 | px | 最小连通像素数。**仅第一轮盲解 / 连通域诊断**（星表引导路径不做连通域） |
-| `deblend` | true | —— | 是否解混。**仅第一轮盲解 / 显式声明的可选诊断**（星表引导路径按星表位置逐源拟合，不做盲解混） |
+| `detection_threshold` | 5.0 | σ（全局 bgnoise） | **全图盲检测专用 / 显式声明的可选诊断**（**不是**模块主路径配置——主路径 = 星表引导拟合，不消费此键）；语义 = `median(img)+5.0·bgnoise`（σ=2 平滑图上判定），与 `eng/packaging/config/defaults.json#detection.threshold_sigma` 同义（最高设计 §4.2/§4.3） |
+| `min_area` | 2 | px | 最小连通像素数。**仅全图盲检测 / 连通域诊断**（星表引导路径不做连通域） |
+| `deblend` | true | —— | 是否解混。**仅全图盲检测 / 显式声明的可选诊断**（星表引导路径按星表位置逐源拟合，不做盲解混） |
 | `selection_function` | true | —— | 是否输出 selection function |
 
 ## 6. 接口/ABI

@@ -6,9 +6,9 @@
 
 ## 1 总览与单一入口
 
-AstroCS 是天文 CCD 图像校准-标准化-重投影系统，发布物为**每平台恰好一个用户入口**：`astrocs` CLI（Windows/Linux amd64），Phase1/2/3 由该 CLI 进程内调用，无第二用户入口。
+AstroCS 是天文 CCD 图像校准-标准化-重投影系统，发布物为**每平台恰好一个用户入口**：`astrocs` CLI（Windows 交付名 `astrocs.exe`，Linux 为 `astrocs`；amd64）。该唯一入口按命令**拉起对应阶段的调度器**：一次 CLI 调用只驱动一个阶段，normalize / mosaic / export 三个阶段各自实例化自己的调度器与内存管线，互不共享内存、会话或运行时状态。
 
-- **唯一生产 exe**：`astrocs`（单一 target，Windows/Linux 同名规则见 CLI-001 安装策略）。
+- **唯一生产 exe**：`astrocs`（Windows 交付名 `astrocs.exe`；单一 target，安装策略见 CLI-001）。
 - **被取代的旧入口（迁移冻结）**：`orchestrator.exe`（Phase1 编排 exe）、`astrocs-stage2`（Phase2 CLI）、`healpix_browser_qt`/`browser_cli`（浏览器工具）——**不再构建为发布目标**，其能力迁移如下：orchestrator 的 DllLoader/stage 编排→CLI 内嵌 pipeline driver（API-003/004 直接函数调用，无进程边界）；astrocs-stage2 的参数面→CLI 命令树（API-002 schema v1）；browser→保留源码为 tool 分类（不进发布安装规则，PRODUCTION_EXECUTION_INVENTORY exe_target=tool）。
 - ACR 不接入（V5）：生产为纯 CPU 自适应 backend；`acr_route` 仅存配置守卫（ARCH-001 清单 24 处，`!=cpu/auto` 显式拒）。
 
@@ -16,7 +16,7 @@ AstroCS 是天文 CCD 图像校准-标准化-重投影系统，发布物为**每
 
 ```text
 astrocs CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
-  └── pipeline driver (Phase1/2/3 in-process; 串行控制面)
+  └── 阶段调度器分发（一次 CLI 调用只驱动一个阶段；串行控制面）
         ├── Phase1: astro_image_io → calibration → star_detector → dynamic_psf
         │           → ipv(plate solve) → photometric_calib → snr_estimator → healpix_drizzle → HiPS
         ├── Phase2: coverage → sampler → UPM → rejection → integration → HiPS 产品
@@ -57,12 +57,12 @@ astrocs CLI (唯一入口; parser/JSONL/exit/cancel/crash boundary — API-002)
 2. lib/ 唯一源码目录；**产品落块级 `output_dir`，`run/` 只放临时产物与日志**（最高设计 §9）；testdata/ 只读。
 3. I/O 唯一入口 astro_image_io；healpix_core/sha256 单源（B4-01）。
 4. 科学语义唯一实现，oracle/reference 并存不重复 active path。
-5. Phase1/2/3 全部 in-process 由 CLI 调用（无 orchestrator 进程边界）。
+5. 唯一 CLI 入口在进程内（in-process）按命令拉起对应阶段的调度器：一次调用只驱动一个阶段，三个阶段各自实例化调度器与内存管线，无跨阶段进程边界。
 
 ## 8 关联
 
 - 任务: ARCH-002(本文件)/ARCH-003(backend ABI)/ARCH-004(thread budget)/ARCH-005(Phase3 模块)/CLI-001(单一 target)/API-001..005
 - 文档: MODULE_MAP.md/DATA_FLOW.md/PIPELINE.md/ERROR_MODEL.md/THREADING_MODEL.md/OWNERSHIP_AND_LIFETIME.md/IO_AND_ATOMICITY.md/PERFORMANCE_MODEL.md
 - **权威**：本文件是详细文档层的一员，**不另立权威链、不作排他性权威自称**
-  （最高设计 §0.1/§0.2）；架构问题的权威 = 最高设计 §7，科学/算法权威 = `docs/science/` + `docs/algorithms/`，
+  （最高设计 §0.1/§0.2）；架构问题的唯一权威 = 最高设计 §8，科学/算法权威 = `docs/science/` + `docs/algorithms/`，
   与本文件冲突时一律以最高设计为准。

@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §0.1（唯一权威链）、§0.2（详细文档层与双向索引）
 
 文档 ID：`ASTROCS-PROJECT-SPEC-002`  
-文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）  
+文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§12.5）  
 定位：`ASTROCS_DESIGN.md` 之下，项目目标态设计的细节总入口。本文描述 AstroCS 必须做到什么，不描述某次工程修复流水账。
 
 ## 1. 权威体系
@@ -63,7 +63,7 @@ Phase3 接收任意兼容 HiPS，按选定投影与采样导出标准 WCS 平面
 
 ## 7. 数据对象不可混淆
 
-`signal`、`variance/ivar`、帧级 SNR 与稀疏相对 SNR 层、`quality`、`support`、`coverage`、`validity`、`rejection`、UPM 参数和 `provenance` 是不同合同对象。禁止模糊 `weight/value/mask/snr` 承载多个含义；权重是 Phase2 消费 SNR 时的现场派生量，不是独立合同对象。
+`signal`、`variance/ivar`、帧级 SNR 与稀疏绝对 SNR 层、`quality`、`support`、`coverage`、`validity`、`rejection`、UPM 参数和 `provenance` 是不同合同对象。禁止模糊 `weight/value/mask/snr` 承载多个含义；权重是 Phase2 消费 SNR 时的现场派生量，不是独立合同对象。
 
 ## 8. 科学正确性门
 

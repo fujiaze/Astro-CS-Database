@@ -39,5 +39,12 @@
       "connected_object_document/unified_object:enum",
       "connected_object_document/object_schema_id:enum"
     ]
+  },
+  "n6_sparse_snr_relative_semantics.schema-violation.json": {
+    "schema": "sparse_snr_layer",
+    "must_match": [
+      "sparse_snr_semantics:const",
+      "sparse_snr_semantics"
+    ]
   }
 }

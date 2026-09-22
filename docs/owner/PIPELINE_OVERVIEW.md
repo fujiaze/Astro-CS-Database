@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §1.2（三个命令，三个独立产品）、§8.2（数据流形态）
 
 > 文档 ID：DOC-GOV-OWNER-PIPELINE-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
+> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§12.5）
 > 目标产品：`0.11.0-alpha.2`（根 VERSION，GOV-003）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
 > 收敛基线：DOC-CONV-001，BASE_SHA = `da3c4b4aaf64ef9b61039fabd1100ddd1f9b8540`
@@ -39,7 +39,7 @@ Phase3: 任一合同兼容 HiPS（不要求来自 Phase2）
 | 隔离要求 | 状态 | 依据（当前提交内静态可核） |
 |---|---|---|
 | 唯一命令树 `normalize/mosaic/export`（+ `help/--version/doctor/benchmark`）存在 | `INSTALLED` | CLI-001 切换为 `ASTROCS_DESIGN.md` §6.2 唯一命令树：旧 `phase1/2/3` 用户命令与 `validate/plan/inspect` 全部删除且 rc=2（`docs/api/CLI_PROTOCOL_V1.md` §1）；`eng/tests/cli/test_cli001_vpi.py` 15/15 PASS |
-| **遗留 `astrocs run --phases 1,2,3` 进程内连跑** | `IMPLEMENTED`（遗留入口已删除） | CLI-002 移除 `run`/`graph` 入口（`a6c39cc1` 收口未知命令判定）；实测 `run --phases` → rc=2 `unknown command 'run'`，与 `ASTROCS_DESIGN.md` §1.2（禁止隐式串接）一致 |
+| **三命令平级独立（唯一命令树，无跨阶段连跑入口）** | `IMPLEMENTED` | `run`/`graph` 不在命令树内（CLI-002，`a6c39cc1`）；实测 `run --phases` → rc=2 `unknown command 'run'`，与 `ASTROCS_DESIGN.md` §1.2/§7.1（唯一命令树、禁止隐式串接）一致 |
 | 单 Phase 命令走独立进程/独立 Runtime 实例 | `IMPLEMENTED` | `normalize/mosaic/export` 子命令（`cli/commands.cpp`，handler 名经 CLI-001 切换）各启动单 Phase 运行 |
 | RT-001 类型化 DAG 拒绝跨 Phase edge | PASS | `runtime/pipeline/typed_dag.py` + `module_ports.registry.json`（module 带 phase 字段，跨 Phase edge 拒绝，见 RT-001 集成 commit requirements） |
 | DATA-002 产品交换合同（磁盘交换、role↔type 绑定、Phase2 不依赖 Phase1 run ID） | PASS | `eng/contracts/data/phase_product_exchange*` + `runtime/artifact_store/phase_product_exchange_validator.py`（合同冻结） |
@@ -64,7 +64,7 @@ Phase1 目标链（03_TARGET_PRODUCT_AND_ARCHITECTURE.md §5）：
 - 模块端口注册表：`runtime/pipeline/module_ports.registry.json`（RT-001）登记
   `astrocs.phase1.*` 与 entry（`astrocs_phase1_*_v1`）。
 
-现场计算（`eng/tools/quality/check_module_map.py`；状态词依 `ASTROCS_DESIGN.md` §11.4，不在本文自证）：装配与节点绑定在位且**本提交实测通过**——
+现场计算（`eng/tools/quality/check_module_map.py`；状态词依 `ASTROCS_DESIGN.md` §12.5，不在本文自证）：装配与节点绑定在位且**本提交实测通过**——
 ctest `p1001_real_nodes`（7 节点主链 cal→cos→psf→phot→snr→drz→wr，
 每节点 call_count=1、fail-fast 下游零调用、确定性 bitwise）本提交 rc=0（P1-001 `9e09941a`）。
 

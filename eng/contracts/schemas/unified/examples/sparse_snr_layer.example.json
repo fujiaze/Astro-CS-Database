@@ -28,6 +28,7 @@
     ],
     "generated_utc": "2026-09-16T00:00:00Z"
   },
+  "sparse_snr_semantics": "absolute_flux_type_snr",
   "control_points": [
     {
       "x": 12.0,

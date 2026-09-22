@@ -47,3 +47,123 @@
 27. **运动目标 / 光谱 / 时序**：小行星、彗星等运动目标与光谱、时序产品不在本版范围。
 28. **异常亮斑与 dense-field**：异常亮斑处理与高密度星场（dense-field）未覆盖。
 29. **平台与形态**：Windows 腿、安装器、GUI/HiPS Browser、GPU/ACR 生产化、ARM 均不在本版范围。
+
+## E. 架构审核补登记（ARCH-DEBT-01，2026-09-22）
+
+> **口径**：本节只**登记**三份只读架构审核（`run/ARCH-AUDIT-01/REPORT.md`、`run/ARCH-AUDIT-02/REPORT.md`、`run/ARCH-AUDIT-03/REPORT.md`）与两份专题审核（`run/PROJ-AUDIT-01/REPORT.md`、`run/DRIZZLE-AUDIT-01/REPORT.md`）已确证、但**机器台账无法承载**的现行限制（架构面 / 门禁判据面 / 文档一致性面）。
+> 每条给：**唯一 ID（本节条目号）· 现象（文件:符号，不写死行号）· 规范依据（文档+条款）· 严重度 · 状态 · 是否需负责人裁决 · 归属/去向**。
+> **本节只登记，不修任何实现**（`lib/**` 只读）。已由机器台账承载的条目见本节第 47 条的交叉引用，**不在此重复登记**。
+> 严重度词表沿用审核报告分级（阻塞 / 重要 / 次要 / 存疑）；状态词只取 已登记 / 待修 / 待裁决。
+
+30. **内存静态预算与内存回压未接线（ARCH-AUDIT-01 B-3 ＝ ARCH-AUDIT-02 F-04，两报告同源）**
+    - **现象**：`lib/infrastructure/scheduler/src/runtime.cpp#RuntimeImpl::load_pipeline` 以 `memory_limit_bytes=0` 构造 `Scheduler`，并**无条件覆盖** `spec.estimated_memory_bytes = 0`（`ModulePlan.estimated_memory_bytes` 字段存在却被抹掉）⇒ `lib/infrastructure/scheduler/src/scheduler.cpp#Scheduler::run` 的 `memory_limit_bytes_ > 0` 内存回压分支是**死代码**；设计 §8.3「静态预算」的实现 `lib/infrastructure/scheduler/src/plan_estimator.cpp` **零生产引用**（根 `CMakeLists.txt` 全文无该符号）。
+    - **规范依据**：`ASTROCS_DESIGN.md §8.3`「静态预算…内存占用永不越界」、`§9`；`ENGINEERING_SPEC.md §12`「队列有容量/背压」；`docs/contracts/PIPELINE_BLOCK_CONTRACT.md §5`；`docs/contracts/SCHEDULER_CONTRACT.md §3`。
+    - **严重度** 阻塞 · **状态** **已修（MEM-WIRE-01，2026-09-22）** · **需负责人裁决** 否（已裁）—— 负责人 2026-09-22 逐字裁决：「我是不设置上限，有多少资源吃多少资源。（内存最高吃掉空闲的 95% 避免卡死，且这个参数配置在 config 里面可调，默认 95）」。据此口径：**内存预算是调度准入输入（回压/排队），不是资源门**（`ASTROCS_DESIGN.md §3.5` 的「内存不设门」约束门禁语义，与 §8.3 的调度语义不互斥），来源 = 实测可用内存（aio 边界唯一探测）× 可配置比例（默认 95，唯一数值源 `eng/packaging/config/runtime_resources.json`）。**残余**：P1（normalize）节点的帧尺寸只在 FITS 头里，核心层无 IO 面 ⇒ 这些节点不可静态估算（`unestimable_reason` 显式登记），解除路径 = CLI 在 IR 侧带帧形状或模块 `plan()` 自报 `estimated_memory_bytes`。
+    - **归属/去向**：调度器域；判据面归 `eng/ci`（现无「调度器准入控制是否被喂入静态预算」检查项）。**不在 `eng/ci/ledgers/dormant_algorithms.json` 登记 `plan_estimator`**：该台账以 `lib/**/module.yaml` 的 `source_symbols` 为唯一键源，`plan_estimator` 未被任何 module.yaml 声明。
+
+31. **生产零探针事件（ARCH-AUDIT-01 M-2）**
+    - **现象**：`lib/include/astrocs/core/normalize_workflow.h#ProbeEvent` 的**全部发出点**位于四个未接线调度器 TU（`lib/infrastructure/scheduler/src/{normalize_workflow,mosaic_window,export_stream,block_flow}.cpp`），生产路径（`module_adapters.cpp` 的 p1/p2/p3 节点）**零发出点**；探针汇聚点 `#ProbeSink::emit` 因此恒空。
+    - **规范依据**：`ENGINEERING_SPEC.md §4.1`「调度器与模块预埋性能探针，编排参数的调优…基于探针数据」；`ASTROCS_DESIGN.md §9`。
+    - **严重度** 重要 · **状态** 待修 · **需负责人裁决** 否。
+    - **归属/去向**：同族已在 `工程控制/RELEASE-05/GAP_AUDIT.md` **G0-5**（「性能探针不成体系」）与 G0-2 登记；本条补充**符号级事实**（零发出点）与判据缺口——探针 schema 门只做 `--self-test`，**不检查生产是否有发出点**。
+
+32. **块流合同不可机器判定 + 门无完整性判据（ARCH-AUDIT-01 M-4）**
+    - **现象**：`eng/contracts/block_flow/stage_block_flow.json` 的声明块名（**逻辑端口名**）与实现面（**产品文件名**）之间无机器可读映射；`eng/tools/quality/gen_block_flow_spec.py` docstring 自认该限制，判据实测 78 token / 75 未匹配。`eng/tools/quality/check_block_flow_conformance.py` 的 D1–D8 **不含**「登记册完整性」判据 ⇒ 漏登记（BFD-A11..A16 即人工补登）不会被门发现。
+    - **规范依据**：`docs/contracts/PIPELINE_BLOCK_CONTRACT.md §1/§3`；`AGENTS.md §9`「判据必须非退化…门禁本身不合理时改进门禁本身」。
+    - **严重度** 重要 · **状态** 待修 · **需负责人裁决** 是（是否把「声明块名 ↔ 实现产品文件名」升为合同字段属顶层合同结构性变更）。
+    - **归属/去向**：`eng/contracts/block_flow/**` + `eng/tools/quality/check_block_flow_conformance.py`（补「登记册完整性」正例/负例）。同族事实（`BFD-A17` 的降级显式性无判据）已写入该登记册的 `note`。
+
+33. **`build_pipeline_ir` 保留多阶段串联面、生产侧无门禁止（ARCH-AUDIT-01 M-5）**
+    - **现象**：`lib/infrastructure/scheduler/src/runtime_client.cpp` 的 `want1/want2/want3` 允许一次调用串多阶段；三阶段组合**仅单测**使用，生产调用点传单 phase，但**无任何门约束生产调用点的 phases 参数基数**。
+    - **规范依据**：`ASTROCS_DESIGN.md §8.1`「一次 CLI 调用只驱动一个阶段」；`AGENTS.md §6`「不串三阶段」。
+    - **严重度** 重要（潜在误接线面，非现行违规） · **状态** 待修 · **需负责人裁决** 是（加门或收窄 API 属调度器接口变更）。
+    - **归属/去向**：调度器域 + `eng/ci`（生产调用点 phases 基数判据）。
+
+34. **Phase2 分块大小编译期硬编码 512²（ARCH-AUDIT-02 F-03）**
+    - **现象**：`lib/infrastructure/scheduler/src/module_adapters.cpp` 文件级 `constexpr uint64_t kP2TileLeafSpan = 512ULL * 512ULL`；`#p2_op_reject` 内 `tile_span != kP2TileLeafSpan` 直接判 DATA 错误（读 `cor_doc.value("tile_leaf_span", kP2TileLeafSpan)` 后即硬校验）⇒ 无任何配置/资源门输入。内存驱动的动态分块实现 `p2_block_plan`（`lib/algorithms/coverage/include/astro/phase2/block.h`）已在 `eng/ci/ledgers/dormant_algorithms.json` 登记为生产不可达。
+    - **规范依据**：`AGENTS.md §6`「不硬编码线程/ISA/**block**：由 benchmark 生成的 profile 决定」；`docs/contracts/SCHEDULER_CONTRACT.md §3`「分块/窗口/子块大小由配置/资源门决定」；`ASTROCS_DESIGN.md §8.3`；`docs/plugins/algorithms_phase2/**`（PHASE2_DETAILED_DESIGN §8「内存不足时重新分块」）。
+    - **严重度** 阻塞（审核判为明确违规） · **状态** 待修 · **需负责人裁决** 是（把 tile span 提升为受控配置键 = 合同 + CLI 键面变更，须避免新造同义键）。
+    - **归属/去向**：Phase2 集成/排异域 + 合同面任务；解除路径与 `dead_config_keys.json` 的键面纪律一致。
+
+35. **`CHK-ARCH503-MOSAIC-WIN` 的「峰值驻留」判据恒真（ARCH-AUDIT-02 F-07）**
+    - **现象**：`lib/infrastructure/scheduler/src/mosaic_window.cpp` 内窗口峰值驻留被赋为编译期常量（`sizeof(double) * 4` = 32 B），是写入 `peak` 的**唯一来源**；mosaic_window 单测的 E1（`peak>4096` 判红）与 E2（16 vs 64 tiles 峰值相等）断言对象即该常量 ⇒ **不可能红**。D 判据的「读放大」用 `MosaicFrameInput::tile_bytes` **声明值**合成，无真实 I/O；A/C 的「逐位一致」建立在合成核 `integrate_pixel`（由 tile 字节数与像素下标造值）上。而 `CHK-ARCH503-MOSAIC-WIN`（`eng/ci/checks.json`）的全部判据就是该 ctest。
+    - **规范依据**：`AGENTS.md §5`「判据必须非退化…恒真门没有证据资格」、`§9`；`docs/contracts/SCHEDULER_CONTRACT.md §6`（负例要求）。
+    - **严重度** 阻塞（审核判为明确违规） · **状态** **已修（MEM-WIRE-01，2026-09-22）** · **需负责人裁决** 否 —— 按 `AGENTS.md §9`「改进门禁本身，而不是放松判据」处置：① `mosaic_window.cpp` 的峰值驻留改为**实测值**（窗口输出像素缓冲 `capacity()` + 路由指针向量 + 标量局部，循环内取最大）；② 判据收敛为唯一实现 `window_peak_residency_ok`（peak>0 / peak≤解析上界 / 与总图规模解耦 / 装满时 `window_tiles` 更大 ⇒ peak **严格更大**），四条同时成立才绿；③ 两条负例（常量驻留 `sizeof(double)*4`、零驻留注入）必须判红 —— 源码级注入 `sizeof(double)*4` 实测 21 项中 2 项判红（`run/MEM-WIRE-01/REPORT.md §⑧`）。
+    - **归属/去向**：mosaic_window 判据面 + `eng/ci`；同族已有 `工程控制/RELEASE-05/GAP_AUDIT.md` **G2-1**（「L2 性能门恒真」）与 **G2-7**（「空断言/恒真测试普查」）。`eng/ci/mutation_gates.json` 的 `open_items` 已声明「本文件是人工登记，尚无 checker」。
+
+36. **`lib/phase{1,2,3}_session` 不在 `ENGINEERING_SPEC §7` 的 `lib/` 子目录清单内（ARCH-AUDIT-02 F-13）**
+    - **现象**：`ENGINEERING_SPEC.md §7` 的 `lib/` 代码块只列 `algorithms/ include/ third_party/ infrastructure/`；实际存在 `lib/phase1_session/`、`lib/phase2_session/`、`lib/phase3_session/` 三个整阶段 Session 目录。`docs/modules/MODULE_MAP.yaml` 既未把三者列入 `modules`（23 个模块）、也未列入任何 `legacy_paths`，其 `declared_absent_paths`（登记「声明了但不存在」的路径）亦**不适用**（这些目录真实存在，登进去会被门判 `stale_declared_absent`）⇒ 现状是**无登记面的未声明目录**。
+    - **规范依据**：`ENGINEERING_SPEC.md §7`（`lib/` 子目录清单，强制；同节末「确需新增根目录条目，先登记并经负责人确认」同旨）；`ASTROCS_DESIGN.md §8.4`。
+    - **严重度** 次要 · **状态** 待裁决 · **需负责人裁决** 是（三选一：删除 / 迁入 `lib/infrastructure/` / 在 `ENGINEERING_SPEC §7` 与 `MODULE_MAP.yaml` 补登记并给去向）。p3 已登记为删除对象（ARCH-001 DEFERRED），p1/p2 未见同等级登记。
+    - **归属/去向**：全门转绿收口任务 + 三阶段架构目标态任务（ARCH-505）。
+
+37. **缺 tile 未进产品 provenance（ARCH-AUDIT-03 P3-02）**
+    - **现象**：`lib/infrastructure/scheduler/src/module_adapters.cpp#p3_op_writer` 硬编 `prov.missing_tiles = nullptr; prov.missing_count = 0;` ⇒ `P3Provenance` 的 missing 字段恒空，FITS HISTORY/manifest 不携带任何缺失信息。**可判据其实已在**：`lib/algorithms/resample/p3_resample.h#p3_sampler_cache_stats()` 的 `absent_reads`/absent_entries` 已被 `#p3_op_resample` 调用并落进**中间节点 manifest** `tile_cache.absent_reads`，只是**没有**沿 `p3_resampled.json → p3_writer.json → FITS provenance` 链传下去。已由 `lib/algorithms/resample/module.yaml` 的 `known_defects: DISP-P3RSMP-004` 在**模块面**登记。
+    - **规范依据**：`docs/science/PHASE3_HIPS_TO_FITS.md §8`（SCI-P3-001，FROZEN）「缺 tile → coverage=0, S=NaN，**provenance 记录 missing**，不中断」、`§9a-9`；`ASTROCS_DESIGN.md §10`「请求的 tile 缺失时如实报缺失，不返回父层内容冒充」；`docs/api/PHASE3_API_V1.md §4`。
+    - **严重度** 重要 · **状态** 待修 · **需负责人裁决** 否。
+    - **归属/去向**：Phase3 resample/writer 域（接线 `absent_reads`/absent_entries` + 补「缺失 tile 时 provenance 必非空」负例）。
+
+38. **`API-P3-001 §4` 的拒绝清单与 `SCI-P3 §9a-10` 正面冲突（API 文档过期）（ARCH-AUDIT-03 P3-03）**
+    - **现象**：`docs/api/PHASE3_API_V1.md §4`（API-P3-001，**FROZEN**）把 variance/weight/ivar/flux-per-pixel 输入模式列为 `ACS_ERR_UNSUPPORTED`；`docs/science/PHASE3_HIPS_TO_FITS.md §1`（SCI-P3-001，**FROZEN**）括注「variance/ivar 子产品输入为例外：按 §9a-10 必须显式消费传播，**不属拒绝项**」，`§9a-10` 明文「含 variance/ivar 子产品时必须显式消费传播（输出 VARIANCE/IVAR 扩展 HDU）」；`docs/contracts/DATA_SEMANTICS.md §27.2` 同旨（禁静默丢弃）。**代码事实已按 SCI §9a-10 实现**：`p3_uncertainty_open`/p3_uncertainty_propagate` 被 `#p3_op_resample` 调用、`#p3_op_writer` 写 VARIANCE/IVAR HDU。
+    - **规范依据**：`ASTROCS_DESIGN.md §0.2`「同一主题只有一份正本」「双向对应」；`ENGINEERING_SPEC.md §3`（科学正确性优先；文档与事实不符时订正文档是义务）。
+    - **严重度** 重要 · **状态** 待修（**文档订正**，不改代码） · **需负责人裁决** 否。
+    - **归属/去向**：按 SCI §9a-10 订正 API-P3-001 §4 行（variance/ivar 移出拒绝清单，改为「必须消费/传播」）。
+
+39. **Phase3 三处文档引用的机器 schema 不存在（断链）+ 门禁盲区（ARCH-AUDIT-03 P3-04）**
+    - **现象**：`docs/api/PHASE3_API_V1.md §2` 引 `schemas/phase3_request_v1.schema.json`、`docs/plugins/algorithms_phase3/15_resample.md §3` 引 `eng/contracts/schemas/export_product.schema.json`、`docs/plugins/algorithms_phase3/16_fits_output.md §3` 引 `eng/contracts/schemas/fits_product.schema.json` —— **三者均不存在**（实测；`eng/contracts` 下 export/fits/p3 名式只命中 `data/examples/phase3_planar_fits_v1.example.json` 与 `schemas/phase_config_export.schema.json`）。**判据盲区（已实测）**：`python3 eng/tools/doccheck/check_doc_index.py --strict` **rc=0 / DOC_INDEX_PASS**（证据 `run/ARCH-AUDIT-03/logs/doc_index.log`），输出不含这三个路径；`CHK-CONTRACT-REF` 的实现是合同 **ID** 图（`eng/tools/check_contract_graph.py` + `check_data_artifacts.py`），其 `changed_paths` 不含 `docs/plugins/**`、`docs/api/**` ⇒ 三处断链落在覆盖面之外。
+    - **规范依据**：`ASTROCS_DESIGN.md §0.2`「docs/contracts/（合同说明，对应 eng/contracts/ 的 schema）…**双向可追溯**」「每份文档、每个机制都能追溯到本设计的一条要点」；`AGENTS.md §9`。
+    - **严重度** 重要 · **状态** 待修 · **需负责人裁决** 是（补 schema vs 改引用；且**补门判据**「文档中形如 eng/contracts/**.schema.json 或 schemas/*.schema.json 的路径必须存在」属门禁面变更）。
+    - **归属/去向**：合同 schema 面 + 门禁判据面（须可红可绿：注入悬空路径必须判红）。
+
+40. **`PHASE3_HIPS_TO_FITS §16` 与 `PHASE3_PROJ_IMPL §16` 的 C4/C5 登记面被在途 FIX-402 反证（ARCH-AUDIT-03 P3-05）**
+    - **现象**：两处 §16 C4 称「§5.3 输入语义守卫在生产 export 路径**未生效（守卫未接线）**…守卫内核 `p3_rsmp_units.cpp` 与会话接线层 `p3_v6_export.cpp` 未进构建」；C5 称「即使接线也会 REJECT（产品 FITS tile 无 BUNIT）」。**已过期的一半**：`lib/algorithms/resample/CMakeLists.txt` 已把 `p3_rsmp_units.cpp` 编入 `astrocs_p3_rsmp`；`module_adapters.cpp#p3n_guard_input_units` 已被生产 IR 节点链 properties/resample2/writer 调用（`#resolve_bunit` + 冻结串 `kP3BunitSurfaceBrightness`，缺 BUNIT/不可判 → fail-closed）；`#p3_op_writer` 强制 `p3_resampled.json#bunit` 校验。**仍然成立的一半**：`p3_v6_export.cpp` 仍未进构建（`grep -c p3_v6_export CMakeLists.txt` = 0，文件抬头自述「未接入生产」），该半已由 `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06` 登记。
+    - **规范依据**：`ASTROCS_DESIGN.md §0.2`（同一主题只有一份正本）、`§12.5`；`ENGINEERING_SPEC.md §8`「文档集随代码持续维护更新，保持自解释」。
+    - **严重度** 重要 · **状态** 待修（**文档订正**，必须按「生产链已接线 / v6 shell 仍未接线」**分开陈述**，不得整体删除） · **需负责人裁决** 否。
+    - **归属/去向**：**FIX-402 提交时必须同步** §16（两处，两文档「同一实验单元不得两套文字」）；登记面已由 `SNI-S4-P3X-06` 承载。
+
+41. **SIN / CAR / AIT 缺「往返误差上界 + 尺度域」声明（PROJ-AUDIT-01 P3）**
+    - **现象**：`lib/algorithms/projection/p3_wcs.cpp#p3_wcs_applicability()` 只对 **TAN** 返回非空，SIN/CAR/AIT 返回 `nullptr`（`p3_proj_probe`/`p3_wcs_check_applicability` 因此 fail-closed，**不静默回落 TAN**）；v6 投影 Spec 结构体字段只有 `max_abs_crval_dec_deg` / `max_fov_deg` / `singularity_kind` 三项——**没有往返容差字段、没有尺度下限字段**。`max_fov_deg` 是**声明字段而非 make 硬门**（文档 §15.1 明说，实测一致）。
+    - **规范依据**：`ASTROCS_DESIGN.md §5.3`「每种投影必须声明适用域（**含往返误差上界**），违反⇒拒绝」、`§6.3`；`docs/algorithms/PHASE3_PROJ_IMPL.md §15.1`。
+    - **严重度** 中低 · **状态** 待修 · **需负责人裁决** 否。
+    - **风险面**：三者为内核-only（非产品声明）且 make 的四角域守卫 + `|CRVAL2|≤85°` 仍在 ⇒ 风险 = 「**内核被接线时缺门**」，不是「当前产品缺门」。**归属/去向**：接线任务必须同时补 `P3WcsApplicability` 行（往返紧门 + 全局门 + `min_scale`），否则 `p3_proj_probe` 永远 UNSUPPORTED。
+
+42. **v6 T2 往返判据对 SIN 缺陷零区分力 + 文档 §15.6 与实现值不一致（PROJ-AUDIT-01 P4）**
+    - **现象**：`docs/algorithms/PHASE3_PROJ_IMPL.md §15.6` 写「每投影 pixel→world→pixel **< 1e-8 px**」，实现是 `eng/tests/unit/v6_p3_proj/v6_p3_proj_test.cpp` 的 `kRoundtripTolPx = 1e-6`（`p3_proj_wcs_oracle.py::roundtrip_tol_px` 对非 TAN 取 `contract["global"]` = 1e-6）⇒ **文档值与实现值不符**。T2 用例表给 SIN 的尺度是 0.02 deg/px = 72″/px，该尺度下 SIN 误差 2.1e-9 px ⇒ **判据恒绿**，对 world→pixel 条件数缺陷零区分力（该缺陷由反向门 `sin_roundtrip_gate.py` 承担，§16 已登记）。
+    - **规范依据**：`AGENTS.md §5`「判据必须非退化」；`ASTROCS_DESIGN.md §5.3`；`ENGINEERING_SPEC.md §8`（文档随代码维护）。
+    - **严重度** 低 · **状态** 待修（文档订正 + 可选判据增强） · **需负责人裁决** 否。
+    - **归属/去向**：§15.6 改为实测门值并注明「T2 不覆盖 world→pixel 条件数缺陷，后者由反向门承担」；若要 T2 具备区分力，需把 SIN 用例尺度压到 ≤0.9″/px 并配尺度感知门（判据面变更）。
+
+43. **AIT「全天空」表述与四角域守卫矛盾（PROJ-AUDIT-01 P2）—— 表述已订正，守卫不动**
+    - **现象**：`docs/algorithms/PHASE3_PROJ_IMPL.md §15.3` 原写「全天空（360°×180°）为设计目标域（受椭圆域约束）」，§15.5 表 AIT 行写「椭圆域内（声明值；半轴 162.0569°×81.0285°）」。实测：四角守卫下 360×180 帧四角 A = xp²/4 + yp² = **1.994 > 1** ⇒ HEMISPHERE **必拒**；最大可构造矩形帧 = **229.24°×114.56°**（面积 8.000 sr = 4π 的 **63.7%**），与解析最优 2ab = 8 rad² 吻合。性质：**数学上不可达**——椭圆内接矩形四角恒在椭圆上（A=1），覆盖整个椭圆的矩形四角恒在椭圆外（A=2>1）。
+    - **规范依据**：`ASTROCS_DESIGN.md §6.3`；`docs/algorithms/PHASE3_PROJ_IMPL.md §15.1/§15.3/§15.5`；`ENGINEERING_SPEC.md §3`（文档与事实不符时订正文档是义务）。
+    - **严重度** 中低 · **状态** **已修（文档表述，ARCH-DEBT-01 落地）** · **需负责人裁决** 已裁决（前台裁决：**改文档表述，保持 fail-closed 四角守卫不动**）。
+    - **归属/去向**：§15.3/§15.5 已改为「AIT 可构造域 = 内接矩形族（最大 229.24°×114.56°，63.7% 天空）」；`lib/algorithms/projection/` 的守卫与 `p3_proj_v6.h` 头注**未改**（`lib/**` 只读；头注「全天空展示」属内核注释，随接线任务一并订正）。影响面为内核-only，不影响产品声明集。
+
+44. **球面 S-H 的逐源像素闭合散布无逐像素门覆盖（DRIZZLE-AUDIT-01 N1）**
+    - **现象**：Σ_p a_jp 应恒等于 A_drop（与裁剪实现无关的解析恒等式）。球面 S-H 路径实测闭合散布：1.00″/px（nside=2^18）max **+1.72e-06** / min −1.54e-06 / **σ=1.04e-06**；0.30″/px max +3.14e-05 / σ=1.22e-05；而独立平面精确算法（顶点枚举，完全不同的算法）闭合误差 **2.7e-16**（机器精度）。归因：球面 S-H 用相邻单位向量叉积重建大圆的条件数限制（近平行平面交点误差 ~1e-11 rad ÷ drop 角尺度 θ），`lib/algorithms/drizzle/` 下 `spherical_overlap.cpp` 既有注释已识别该机制。**性质：散布而非系统偏置**（16 像素 mean≈0）⇒ **帧级**通量闭合仍很好（实测 2.4e-08 @pf=1，远优于冻结 FP64 <1e-6 门），**但逐源像素的乘性随机误差 σ≈1.0e-6 @1″/px 不被任何现有门覆盖**（现有门是帧级/逐叶级）。
+    - **规范依据**：`docs/algorithms/DRIZZLE_GEOMETRY.md`（ALG-DRZ-001）；`AGENTS.md §5`「判据必须非退化」；docs/science 冻结的 FP64 通量闭合门。
+    - **严重度** 中（审核判为「超出冻结的逐像素闭合预算」） · **状态** 待裁决 · **需负责人裁决** 是（是否新增**逐像素/逐源**闭合门并冻结其预算；若 SCI-B 要声明 1e-6 级绝对 SNR 精度，该噪声不可忽略）。
+    - **诚实边界**：证据来自**忠实 Python 复刻**（叶边界与 astropy_healpix 逐位一致），**未**在产品二进制上复现（审核禁止运行 AstroCS 可执行文件）。**归属/去向**：drizzle 域 + 判据面；与在途 `run/DRIZZLE-FIX-01-plan.json` 协同，避免重复。
+
+45. **`leaf_fully_inside_drop` 解析面积快路径与 S-H 路径的面积不连续（DRIZZLE-AUDIT-01 N2）**
+    - **现象**：`overlap_area_impl`（`lib/algorithms/drizzle/` 下 `spherical_overlap.cpp`）在「叶完全落在 drop 内」时返回**解析**叶面积 π/(3·nside²)，其余情况返回 **4 角大圆弧多边形**面积；二者之差 = 用弦代弧的系统性亏缺，标度 ≈ **0.5/nside²**（nside=512 实测 1.905e-06；1024 → 4.779e-07；262144 → 3.990e-11）。生产 nside（≥2^17）时 ≤1e-9 可忽略；但 PERF-SCALE-001 的 W1 配置用 `nside=512`，此时不连续达 **1.9e-6**，与冻结的「FP64 通量闭合 <1e-6」**同阶**。解析快路径返回的是**真值**（HEALPix 像素面积恒为 4π/(12·nside²)），S-H 路径**低估** ⇒ 不连续方向 = 「部分覆盖叶被系统性低估」。
+    - **规范依据**：`docs/algorithms/DRIZZLE_GEOMETRY.md`（ALG-DRZ-001）；`AGENTS.md §5`（真值无效应⇒归零；判据非退化）。
+    - **严重度** 中低 · **状态** 待修 · **需负责人裁决** 是（是否要求两条路径在同一 nside 下连续，或把「nside 下限」写入适用域）。
+    - **归属/去向**：drizzle 域 + 性能尺度配置面；与在途 DRIZZLE-FIX-01 协同。
+
+46. **drizzle 两处文档漂移（DRIZZLE-AUDIT-01 §1.6/§1.7）**
+    - **现象（两处，均为文档滞后于代码）**：
+      1. `docs/algorithms/DRIZZLE_GEOMETRY.md §6` 仍写「跨线程数时 leaf 内浮点和顺序不同，**不保证 bitwise**」——该表述是 **P15a/P22 修复前**的状态；现行代码跨 worker 逐位一致（审核实测 stripe 归约跨 worker digest 集合大小 = 1，且以 legacy 归约 5 个 worker 数 → 5 个不同 digest 为**负例**自证非退化）。
+      2. `docs/plugins/algorithms_phase1/08_drizzle.md §7` 仍写「生产调度路径不挂 variance 块 ⇒ has_variance=0 ⇒ uncertainty_available=false」——与工作区现状（`module_adapters.cpp` 的 variance 块接线**已存在**，定案 2 / NoiseWeightModelV1 blank-sky variance，且 fail-closed）**不符**。
+    - **规范依据**：`ENGINEERING_SPEC.md §8`（文档集随代码持续维护更新，保持自解释）；`ASTROCS_DESIGN.md §0.2`。
+    - **严重度** 次要 · **状态** 待修（**文档订正**） · **需负责人裁决** 否（若第 2 处实为「接线已落地但未跑通」则需上呈，审核记为「已发现，未裁决」）。
+    - **归属/去向**：§6 订正为「跨线程数 bitwise 一致，由 `p1drz_merge_pipeline_lock` 回归锁守护」；`08_drizzle.md §7` 按接线现状订正。
+
+47. **已由机器台账承载（本节只给交叉引用，不重复登记）**
+    - **ARCH-AUDIT-01 B-5 静默回退** → `eng/contracts/block_flow/conformance_deviations.json#BFD-A17`（blocker，`undeclared_input`；已在 `工程控制/RELEASE-05/OPEN_QUESTIONS.md` OQ-9 上呈）。
+    - **ARCH-AUDIT-03 P3-08 phase3 hips 输入端口单位仍为 ADU** → `eng/contracts/block_flow/conformance_deviations.json#BFD-U1`（major，`unit_mismatch`）。
+    - **ARCH-AUDIT-02 F-06 死配置键 algorithm_rejection_method / reject** → `eng/ci/ledgers/dead_config_keys.json#dead_config_key:algorithm_rejection_method` 与 `#dead_config_key:reject`。
+    - **ARCH-AUDIT-02 F-08 整阶段 Session 仍注册在生产注册表（§4.4 角度）** → `eng/ci/ledgers/registry_ir_parity.json#registered_not_in_ir:astrocs.phase2.resample`（本次**补充**理由面）。
+    - **ARCH-AUDIT-03 P3-07 占位注册行 astrocs.phase3.resample** → `eng/ci/ledgers/registry_ir_parity.json#registered_not_in_ir:astrocs.phase3.resample`（本次**补充**「不在冻结端口绑定表 + 不在 IR + 整阶段 Session」事实面）与 `eng/contracts/block_flow/conformance_deviations.json#BFD-C1`（同一事实的端口面双登记）。
+    - **ARCH-AUDIT-03 P3-05「v6 shell p3_v6_export.cpp 未进构建」半** → `eng/ci/ledgers/spec_named_impl_gaps.json#SNI-S4-P3X-06`（本次**补充** P3-05 交叉引用与「分开陈述」要求）。
+    - **同族已在控制包登记、本节不另立条目**：`工程控制/RELEASE-05/GAP_AUDIT.md` **G0-1**（命名块内存管线未落地）、**G0-2**（三阶段无独立调度器）、**G0-4**（块生命周期未实现）、**G0-5**（性能探针不成体系）、**G2-1**（L2 性能门恒真）、**G2-7**（空断言/恒真测试普查）、**G2-8**（docs/contracts ↔ eng/contracts 双向对应无机器校验）；`工程控制/RELEASE-05/OPEN_QUESTIONS.md` **OQ-9**（端口声明 vs 真实数据流）、**OQ-10**。

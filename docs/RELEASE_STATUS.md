@@ -2,9 +2,9 @@
 
 > 上游：ASTROCS_DESIGN.md §12.5（状态阶梯）、§13（版本与发布权）
 
-> 状态词唯一口径：`ASTROCS_DESIGN.md` §11.3 —— `CONTRACT_READY` / `IMPLEMENTED` /
+> 状态词唯一口径：`ASTROCS_DESIGN.md` §12.5 —— `CONTRACT_READY` / `IMPLEMENTED` /
 > `INSTALLED` / `VERIFIED`；负向 `NOT_IMPLEMENTED` / `NOT_VERIFIED` / `DEFERRED` /
-> `DORMANT` / `FAIL`。**合成测试或历史可用节点不等于真实数据/Windows VERIFIED**（§11.3 末条）。
+> `DORMANT` / `FAIL`。**合成测试或历史可用节点不等于真实数据/Windows VERIFIED**（§12.5 末条）。
 
 当前结论（DOC-001 复检，2026-09-16）：
 

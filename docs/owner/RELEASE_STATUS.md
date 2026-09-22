@@ -3,7 +3,7 @@
 > 上游：ASTROCS_DESIGN.md §12.5（状态阶梯）、§13（版本与发布权）
 
 > 文档 ID：DOC-GOV-OWNER-RELEASE-001
-> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§11）
+> 文档活动分类：以 `docs/DOCUMENT_INDEX.yaml` 登记为准（由 `eng/tools/doccheck/check_doc_index.py` 现场校验；本文不自证状态，依 `ASTROCS_DESIGN.md` §0.2/§12.5）
 > 目标产品：`0.11.0-alpha.2`（根 `VERSION`，GOV-003 唯一源；生成串
 > `0.11.0-alpha.2+g<commit12>`，见 `docs/governance/VERSION_NAMESPACES.md`）
 > 建立基线：`caee3e67e5a209a9e47b514f42b2b63f3dc4da4e`（GOV-004，历史值）
@@ -13,12 +13,10 @@
 > 最终发布裁定只属项目负责人（`ASTROCS_DESIGN.md` §12；原引「宪章 §1.2/§H」已废止），本 Agent 至多声明
 > READY_FOR_OWNER_REVIEW，不替代批准。
 
-## 0. 状态词阶梯（唯一口径；`ASTROCS_DESIGN.md` §11.4 同源）
+## 0. 状态词阶梯（`ASTROCS_DESIGN.md` §12.5 的操作层判据）
 
-> ⚠ **DOC-202 R23 订正（2026-09-20）**：本节原引「`ASTROCS_DESIGN.md` §11.3」**节号错误**，
-> 状态阶梯的唯一口径是 **§11.4「状态阶梯（唯一口径）」**（§11.3 是「发布前四层验收」）。
-> 本节是 §11.4 的**操作层判据**展开，**不另立第二套状态阶梯**；其它登记表/映射表
-> 只引用 §11.4 与本表，不得复述或改写状态词清单。
+> 本节展开 `ASTROCS_DESIGN.md` §12.5（状态阶梯）的**操作层判据**；其它登记表/映射表
+> 只引用 §12.5 与本表，不得复述或改写状态词清单。
 
 | 状态词 | 语义 | 判据（当前提交内可核） |
 |---|---|---|
@@ -79,7 +77,7 @@ Phase3 流式 FITS 接入 → 当前状态 NOT_READY_FOR_RELEASE，而非 READY_
 | Phase3 四投影 registry（TAN/SIN/CAR/AIT） | `IMPLEMENTED` | `lib/algorithms/projection/p3_projection.{h,cpp}`:267-273（registry v1 恰四行）；ctest `p3_projection_units`/`p3_projection_fault` 2/2 PASS；CI `CTEST-P3-PROJECTION-UNITS/FAULT` |
 | MOD 科学模块安装面 + 产品清单 | `INSTALLED` | `eng/cmake/install_layout.cmake`:104-105；`eng/packaging/astrocs.product.json` units=10；`eng/tests/abi/mod001_install_load_check.py` 64/64 PASS（MOD-001 `59fdeab3`；`f74fc20f` 摘出 p1_noise） |
 | CLI 薄命令面（validate/plan/inspect） | `INSTALLED` | `cli/parser.cpp` kRules（9 条新命令）；`build/cli/astrocs --help` 实测；`eng/tests/cli/test_cli001_vpi.py` 15/15 PASS（CLI-001 `026717fd`） |
-| 三 Phase 隔离（独立命令，无进程内连跑） | `IMPLEMENTED` | `astrocs run --phases 1,2,3` → rc=2 `unknown command 'run'`（CLI-002 删除）；DATA-002 磁盘交换合同冻结 |
+| 三 Phase 隔离（三个独立命令，一次调用只驱动一个阶段） | `IMPLEMENTED` | `normalize`/`mosaic`/`export` 各拉起本阶段调度器（`ASTROCS_DESIGN.md` §1.2/§8.1）；`run --phases 1,2,3` → rc=2 `unknown command 'run'`（CLI-002）；DATA-002 磁盘交换合同冻结 |
 | 结构化日志合同 | `CONTRACT_READY` | LOG-001（schema/JSONL 契约） |
 | Windows 工具链 preset | `CONTRACT_READY` | BLD-001 + `eng/packaging/schemas/preset-contract.json` |
 | 唯一根 CMake 构建图 | `IMPLEMENTED` | BLD-002；根 `ninja -C build` 本提交实测 rc=0（全量 28 步） |

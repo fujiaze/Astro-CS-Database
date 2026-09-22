@@ -16,10 +16,10 @@
 
 ## 3. 输入/输出数据合同
 
-- **输入**：归一化产品组、UPM 参数、rejection、PSF/信息层、帧级 SNR（文件头）、[稀疏帧内 SNR 层]、配置。
+- **输入**：归一化产品组、UPM 参数、rejection、PSF/信息层、帧级 SNR（文件头）、[稀疏**绝对** SNR 层]、配置。
 - **SNR 路径（三条，配置文件 JSON 显式指定；默认稀疏）**：
-  - `dense`（稠密面，精度基准）/ `sparse_reconstruct`（**默认**：稀疏层重建稠密）/ `frame_reconstruct`（帧级重建稠密）；
-  - `sparse_reconstruct` 且输入**有**稀疏层 → 实际 SNR = 帧级 × 帧内，参与科学运算；
+  - `dense`（稠密面，精度基准）/ `sparse_reconstruct`（**默认**：由稀疏层重建稠密）/ `frame_reconstruct`（帧级重建稠密）；三条口径都直接产出同一物理量 `SNR = F_ref/σ_F` 的稠密表示；
+  - `sparse_reconstruct` 且输入**有**稀疏层 → 由稀疏**绝对** SNR 控制点**直接重建**出稠密 `SNR(x,y)`（控制点值即绝对信噪比本身，**不乘帧级标量**），参与科学运算；
   - 输入**无**稀疏层而路径为默认/`sparse_reconstruct` → 按帧级执行并**显式记录实际路径**（`snr_path_effective=frame_reconstruct` + 计数），**不得静默**；稀疏层存在但损坏/不可重建 → 明确失败（§7）；
   - 三条路径**没有全局最优、只有适用域**：完整适用域图谱由 `实验/absolute-snr` 给出（最高设计 §5.3）。
   - **逆方差叠加**：每个天球像素接收多个源像素输入，用每个源像素的 SNR 计算对应权重（SNR → 逆方差权重），得到最优检测/测光功率——**不是直接用 SNR 加权**。
@@ -34,11 +34,11 @@
 
 ### 4.0 SNR 重建与逆方差权重
 
-- `sparse_reconstruct`（默认）→ 实际 SNR = 帧级 × 帧内（由稀疏控制点插值/重建为稠密，重建算子与误差入 manifest）；
+- `sparse_reconstruct`（默认）→ 由稀疏**绝对** SNR 控制点重建为稠密 `SNR(x,y)`（重建算子与误差入 manifest；控制点值是绝对量本身，**不乘/不除帧级标量**）；
 - `frame_reconstruct` → 帧级 SNR 重建/直接参与（等权重面）；
 - 路径由配置显式选择（默认 `sparse_reconstruct`），是 Phase2 **标准行为**；无稀疏层时按帧级执行并**显式记录实际路径**（不静默）；
 - **逆方差叠加**：每个天球像素的多个源像素输入，由各自 SNR 计算对应权重（SNR → 逆方差权重），非直接 SNR 加权；
-  **换算口径**：`w_k = SNR_k²/F_ref,k² = 1/σ_F,k²`——`F_ref,k` 是**逐帧**参考通量（`frame_independent_fixed_magnitude`），配对性只要求**同一帧内** SNR 与 `F_ref` 同源（`07_noise_snr.md` §4.1）；
+  **换算口径**：`w_k = SNR_k²/F_ref,k² = 1/σ_F,k²`——`F_ref,k` 是**逐帧**参考通量（`frame_independent_fixed_magnitude`），配对性只要求**同一帧内** SNR 与 `F_ref` 同源（`07_noise_snr.md` §4.1）；对稀疏重建场逐像素同式：`w(x,y) = SNR(x,y)²/F_ref,k²`，其中 `SNR(x,y)` 由绝对控制点重建得到；
 - **稠密权重是数学表示，工程按需计算**：叠加分块进行（最小单元可为单个像素），**不预计算稠密、不全部加载内存**，用到哪个像素的 SNR 算哪个；全稠密 = 数学等价描述，工程用节省资源的实现并按需权衡 CPU 与内存。
 
 ### 扩展源/面亮度
@@ -95,7 +95,7 @@ Q_k = a_kP_kᵀC_k⁻¹d_k,    W_k = a_k²P_kᵀC_k⁻¹P_k
 
 ### 权重来源禁止表的锁定状态
 
-- `coverage.cpp` 的 `kForbiddenWeightSourceTokens`（含 `psfsw_robust_weight`、`psfsw` 等 token）与其同文件内的权重来源检查门、以及 `rejection.cpp` 的同源词表，是 `docs/contracts/v6/frozen` **冻结合同段在役的执行面**——**不是死代码**，不得按「残留清理」删除。
-- **解锁条件 = 冻结合同段失效**；顺序不可颠倒：先让冻结合同段失效，再收缩代码词表。反序会**放宽**冻结科学门（使 `psfsw` 重新成为合法权重来源）。
+- `coverage.cpp` 的 `kForbiddenWeightSourceTokens`（含 `psfsw_robust_weight`、`psfsw` 等 token）与其同文件内的权重来源检查门、以及 `rejection.cpp` 的同源词表，是 `docs/contracts/DATA_SEMANTICS.md` §31.8（`G-WEIGHT-SOURCES`/`G-DIAGNOSTIC-NOT-WEIGHT`）与 `docs/science/PSF_SIGNAL_WEIGHT.md` §8（禁止事项）**在役判据的执行面**——**不是死代码**，不得按「残留清理」删除。
+- **解锁条件 = §31.8 禁止表本身被变更流程废止**；顺序不可颠倒：先废止禁止表，再收缩代码词表。反序会**放宽**冻结科学门（使 `psfsw` 重新成为合法权重来源）。
 - 生产权重来源仍是单一现场派生量（逐样本 ivar）；该禁止表只负责**拒绝**非法来源，不产生权重。
 

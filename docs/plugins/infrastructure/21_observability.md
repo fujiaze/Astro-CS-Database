@@ -1,22 +1,24 @@
 # 插件文档：observability（可观测性）
 
-> 上游：ASTROCS_DESIGN.md §8.1（顶层结构）
+> 上游：ASTROCS_DESIGN.md §7.3（错误传播与运行日志）、§8.1（顶层结构）
 
 ## 1. 职责与边界
 
-- **职责**：结构化日志、事件流（JSONL）、运行图、资源监控与诊断，贯穿 CLI 到科学模块。
-- **不是**：不改变科学结果；不做 I/O 提交（aio）；不因观测开销影响性能预算。
+- **职责**：结构化日志与**运行日志落盘**、事件流（JSONL）、运行图、资源监控与诊断，贯穿 CLI 到科学模块。
+- **不是**：不改变科学结果；不做 I/O 提交（`aio` 是唯一 I/O 边界，本模块经它写日志）；不判定退出码（退出码收敛在 CLI）；不因观测开销影响性能预算。
 
 ## 2. 权威依据
 
-- 最高设计 `ASTROCS_DESIGN.md` §7.2（配置、事件与退出码：JSONL 事件流）、§9（CPU 后端与资源：资源记录与重计算资源门）、§10（I/O 与原子产品：run 产物）
+- 最高设计 `ASTROCS_DESIGN.md` §7.2（配置、事件与退出码：JSONL 事件流）、§7.3（错误传播与运行日志）、§9（CPU 后端与资源：资源记录与重计算资源门）、§10（I/O 与原子产品：run 产物）
+- `docs/design/LOG_AND_ERROR_SYSTEM.md`（日志与错误系统详细设计）、`docs/contracts/LOG_AND_ERROR_CONTRACT.md`（日志行/落点/降级/退出码映射合同）
 - `eng/contracts/schemas/events.schema.json`
 - `eng/contracts/resource_gate_v1.json`（G-RES-01 数值唯一源，见 §8）
 
 ## 3. 输入/输出数据合同
 
-- **输出**：JSONL 事件流（schema_version/event_id/run_id/kind：progress/resource/artifact/backend/final）、run-graph.json、resource_timeseries.csv、resource_summary.json、worker_balance.csv、日志。
-- 参考：`eng/contracts/schemas/events.schema.json`、`run_*.schema.json`。
+- **输出**：JSONL 事件流（schema_version/event_id/run_id/kind：progress/resource/artifact/backend/final）、run-graph.json、resource_timeseries.csv、resource_summary.json、worker_balance.csv；
+- **运行日志工件**：`<output_dir>/logs/run_<run_id>.jsonl`（机器，行格式 = `astrocs.log.event.v1`）与 `<output_dir>/logs/run_<run_id>.log`（人可读摘要，与 JSONL 同源）；两工件在 run manifest 的 `log_artifacts[]` 登记（字段表见 `docs/contracts/LOG_AND_ERROR_CONTRACT.md` §4）。
+- 参考：`eng/contracts/schemas/events.schema.json`、`run_*.schema.json`、`lib/infrastructure/observability/logging/log_event_v1.schema.json`。
 
 ## 4. 算法与公式要点
 
@@ -29,8 +31,9 @@
 
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
-| `log_level` | `info` | —— | trace/debug/info/warn/error |
-| `event_dir` | `run/<run_id>/` | —— | 事件输出目录 |
+| `log_level` | `info` | —— | debug/info/warn/error |
+| `log_dir` | `<output_dir>/logs` | —— | 运行日志目录；由块级 `output_dir` 派生，禁落 CWD/源码树/`run/` |
+| `log_keep` | `all` | —— | 运行日志保留策略（`all` = 全保留，或最近 N 次） |
 | `sampling` | —— | —— | 资源采样间隔 |
 
 ## 6. 接口/ABI
@@ -39,8 +42,10 @@
 
 ## 7. 错误与边界
 
-- 事件写失败 → 降级为文件日志并标记，不静默吞；
-- 凭据/密钥不得出现在日志/事件（脱敏）。
+- 日志/事件写入失败 → 记 stderr 脱敏摘要 + 本次运行以非 0 退出码结束（IO=7；磁盘满=10）；**禁止**"换一路日志继续跑"式的静默吞错；
+- 日志目录解析失败 → exit 2（ARGS）；目录创建失败 → exit 7（IO）；收尾 fsync 失败 → exit 7；哈希或 manifest 登记失败 → exit 8（INTEGRITY）；
+- 降级必须显式：写 `degraded_reason` 并入 manifest；静默回退到低优先输入/静默保持缺省值/静默跳过校验都按故障上行（`docs/contracts/LOG_AND_ERROR_CONTRACT.md` §6）；
+- 凭据/密钥与绝对用户路径不得出现在日志/事件/诊断（脱敏规则唯一源 = LOG-001 §5）。
 
 ## 8. 重计算负载资源门（G-RES-01）
 
@@ -115,6 +120,8 @@
 
 - 事件 schema 校验；
 - 事件与 run 产物一致性（trace 反映实际）；
-- 取消/失败路径事件完整；
+- 取消/失败路径事件完整，且**失败与取消路径同样产出 `<output_dir>/logs/` 两工件**并在 manifest 登记（sha256/行数/级别分布与磁盘一致）；
+- 日志落点测试：`log_dir` 缺省落 `<output_dir>/logs`；显式 `log_dir` 越出 `output_dir` 判 exit 2；**注入"落 `run/`/CWD/源码树"必红**（判据 `CHK-LOG-SYS` R3）；
+- 日志写失败不静默：注入只读日志目录 ⇒ 运行非 0 退出 + stderr 有脱敏摘要；
 - 脱敏测试（无凭据泄漏）；
 - G-RES-01：判据边界（10 s 严格界 / ≥10 s 窗）、分母三分量与哨兵、record_and_justify 不改退出码、fail-closed 注入（抹掉样本必翻转）—— 见 `eng/tests/monitoring/test_frozen_gate.py`。

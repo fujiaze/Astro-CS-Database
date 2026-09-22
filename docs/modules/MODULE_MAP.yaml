@@ -7,12 +7,12 @@
 # 权威依据：
 #   - docs/plugins/00_INDEX.md §1（模块归属）、§2（23 篇模块总表）、§3（每篇 8 节模板）、§5（维护规则）
 #   - ENGINEERING_SPEC.md §4（每模块必备 7 项）、§8（manifest/注册表/target/产品清单一致）
-#   - ASTROCS_DESIGN.md §7.1（顶层结构唯一）、§7.3（模块与 DLL/SO 边界）、§11.3（状态阶梯唯一口径）
+#   - ASTROCS_DESIGN.md §7.1（顶层结构唯一）、§7.3（模块与 DLL/SO 边界）、§12.5（状态阶梯唯一口径）
 #   - docs/ci/01_CHECKS.md §2（CHK-MODULE-MANIFEST = 模块 manifest/注册表/构建 target/产品清单一致，P0）
 #   - eng/contracts/config/module_dll_contract.schema.json（entrypoint_abi 统一 astrocs_module_query_v1）
 #
 # 本表是**期望映射**：不含任何模块状态声明。模块状态一律由
-# eng/tools/quality/check_module_map.py 现场计算，状态词只取 §11.3 词表；
+# eng/tools/quality/check_module_map.py 现场计算，状态词只取 §12.5 词表；
 # 禁止在本表写 status 字段（防「表内自证绿」）。
 #
 # 诚实性约定：legacy_paths 保存**迁移前**的路径（历史键），只作 ARCH-001 的定位线索，
@@ -29,10 +29,10 @@ tool: eng/tools/quality/check_module_map.py
 authorities:
   module_index: docs/plugins/00_INDEX.md §1/§2/§3/§5
   engineering_spec: ENGINEERING_SPEC.md §4/§8
-  design: ASTROCS_DESIGN.md §7.1/§7.3/§11.3
+  design: ASTROCS_DESIGN.md §7.1/§7.3/§12.5
   checks_registry: docs/ci/01_CHECKS.md §2
 status_vocabulary: [CONTRACT_READY, IMPLEMENTED, INSTALLED, VERIFIED, NOT_IMPLEMENTED, NOT_VERIFIED, DEFERRED, DORMANT, FAIL]
-status_vocabulary_authority: ASTROCS_DESIGN.md §11.3
+status_vocabulary_authority: ASTROCS_DESIGN.md §12.5
 conventions:
   target_dir_algorithms: lib/algorithms/<id>
   target_dir_infrastructure: lib/infrastructure/<id>
@@ -758,16 +758,16 @@ modules:
 gap_owners:
   - id: BLD-401
     kind: task
-    authority: 工程控制/RELEASE-04/tasks/BLD-401.md
-    note: 全门转绿收口任务；承接本包未单列文件域的缺口裁决与上呈
+    authority: 工程控制/RELEASE-05/tasks/CLEAN-501.md
+    note: 全门转绿收口任务；承接本包未单列文件域的缺口裁决与上呈（RELEASE-04 包已按 CONTROL_PACK_SPEC §9 出库，缺口归属由 RELEASE-05 CLEAN-501 承接，见 RELEASE-05 GAP_AUDIT G2-6）
   - id: DOC-403
     kind: task
-    authority: 工程控制/RELEASE-04/tasks/DOC-403.md
-    note: 双向层级索引闭合任务；doccheck 检查器域内的历史 docs/ 指针由该面收口
+    authority: 工程控制/RELEASE-05/tasks/CLEAN-501.md
+    note: 双向层级索引闭合任务；doccheck 检查器域内的历史 docs/ 指针由该面收口（RELEASE-04 包已出库，缺口归属由 RELEASE-05 CLEAN-501 承接）
   - id: RELEASE-04/未覆盖
     kind: out_of_scope
-    authority: 工程控制/RELEASE-04/GAP_AUDIT.md §未覆盖
-    note: 本包显式不做（GUI/HiPS Browser 等）；声明保留，待后续包落地
+    authority: 工程控制/RELEASE-05/GAP_AUDIT.md G2-6
+    note: 本包显式不做（GUI/HiPS Browser 等）；声明保留，待后续包落地（未覆盖项甄别归 RELEASE-05 CLEAN-501/GATE-502）
 declared_absent_paths:
   note: >-
     下列声明路径/target 在登记时点实测不存在。这是**已登记缺口**，不是「已存在」声明；
@@ -856,11 +856,11 @@ declared_absent_capabilities:
   note: >-
     下列 (module, code) 组合在登记时点实测缺失。这是**已登记实现缺口**，不是「已具备」声明；
     逐条处置由 owner 承接（补实现/manifest/unit）或上呈负责人裁决，不得删判据换绿。
-  checked_at: 2026-09-21（FIX-404 复核实测）
-  capability_gap_count: 72
+  checked_at: 2026-09-22（前台复核：删除 noise_snr 的陈旧 header_missing_abi_version 登记并同步计数 72→71）
+  capability_gap_count: 71
   items:
     - {module: aio, code: missing_implementation, owner: BLD-401, reason: "target_dir 下无合同 entrypoint 生产实现（模块未落地；实现缺口）"}
-    - {module: aio, code: product_unit_skeleton, owner: BLD-401, reason: "产品清单 unit 状态 SKELETON（未安装；§11.3）"}
+    - {module: aio, code: product_unit_skeleton, owner: BLD-401, reason: "产品清单 unit 状态 SKELETON（未安装；§12.5）"}
     - {module: benchmark, code: missing_implementation, owner: BLD-401, reason: "target_dir 下无合同 entrypoint 生产实现（模块未落地；实现缺口）"}
     - {module: benchmark, code: product_unit_missing, owner: BLD-401, reason: "产品清单无对应 unit（ENGINEERING_SPEC §8；实现缺口）"}
     - {module: cli, code: header_missing_abi_version, owner: BLD-401, reason: "公开头缺 abi_version/struct_size（ENGINEERING_SPEC §4 第 3 项）"}
@@ -883,7 +883,6 @@ declared_absent_capabilities:
     - {module: integration, code: missing_implementation, owner: BLD-401, reason: "target_dir 下无合同 entrypoint 生产实现（模块未落地；实现缺口）"}
     - {module: integration, code: module_yaml_value_mismatch, owner: BLD-401, reason: "module.yaml 字段与映射表期望不一致（entrypoint/module_id；实现缺口）"}
     - {module: integration, code: product_unit_missing, owner: BLD-401, reason: "产品清单无对应 unit（ENGINEERING_SPEC §8；实现缺口）"}
-    - {module: noise_snr, code: header_missing_abi_version, owner: BLD-401, reason: "公开头缺 abi_version/struct_size（ENGINEERING_SPEC §4 第 3 项）"}
     - {module: noise_snr, code: module_yaml_value_mismatch, owner: BLD-401, reason: "module.yaml 字段与映射表期望不一致（entrypoint/module_id；实现缺口）"}
     - {module: noise_snr, code: product_unit_missing, owner: BLD-401, reason: "产品清单无对应 unit（ENGINEERING_SPEC §8；实现缺口）"}
     - {module: observability, code: header_missing_abi_version, owner: BLD-401, reason: "公开头缺 abi_version/struct_size（ENGINEERING_SPEC §4 第 3 项）"}
@@ -921,7 +920,7 @@ declared_absent_capabilities:
     - {module: sampling, code: product_unit_missing, owner: BLD-401, reason: "产品清单无对应 unit（ENGINEERING_SPEC §8；实现缺口）"}
     - {module: scheduler, code: header_missing_abi_version, owner: BLD-401, reason: "公开头缺 abi_version/struct_size（ENGINEERING_SPEC §4 第 3 项）"}
     - {module: scheduler, code: missing_implementation, owner: BLD-401, reason: "target_dir 下无合同 entrypoint 生产实现（模块未落地；实现缺口）"}
-    - {module: scheduler, code: product_unit_skeleton, owner: BLD-401, reason: "产品清单 unit 状态 SKELETON（未安装；§11.3）"}
+    - {module: scheduler, code: product_unit_skeleton, owner: BLD-401, reason: "产品清单 unit 状态 SKELETON（未安装；§12.5）"}
     - {module: star_detection, code: header_missing_abi_version, owner: BLD-401, reason: "公开头缺 abi_version/struct_size（ENGINEERING_SPEC §4 第 3 项）"}
     - {module: star_detection, code: missing_co_located_tests, owner: BLD-401, reason: "共址测试目录在位但无可识别测试文件（ENGINEERING_SPEC §4 第 6 项）"}
     - {module: star_detection, code: missing_implementation, owner: BLD-401, reason: "target_dir 下无合同 entrypoint 生产实现（模块未落地；实现缺口）"}

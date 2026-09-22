@@ -26,7 +26,27 @@
     "product_family"
   ],
   "propertyNames": {
-    "pattern": "^(?!(weight|value|mask|snr)$)(?!(weight|value|mask|snr)(_|$))(?!(weight|value|mask)(_|$)).*$"
+    "pattern": "^(?!(weight|value|mask|snr)$)(?!(weight|value|mask|snr)(_|$))(?!(weight|value|mask)(_|$)).*$",
+    "not": {
+      "enum": [
+        "ivar",
+        "inverse_variance",
+        "variance",
+        "var",
+        "sigma",
+        "sigma2",
+        "fisher",
+        "fisher_information",
+        "information",
+        "w_info",
+        "w_psf",
+        "snr",
+        "snr2",
+        "support",
+        "coverage"
+      ],
+      "description": "禁止键守卫（FZ-FIELD-PSFSW-4COMP / FZ-GATE-PSFSW-COV）：诊断量/派生量不得作为裸键出现，禁止写成 ivar/Fisher/W_info/方差/SNR/support/coverage 等；见 docs/contracts/DATA_SEMANTICS.md §31.7/§31.8"
+    }
   },
   "properties": {
     "unified_object": {
@@ -384,6 +404,168 @@
             ]
           }
         }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "units"
+        ],
+        "properties": {
+          "units": {
+            "required": [
+              "bunit_semantics",
+              "pixel_area_power"
+            ],
+            "properties": {
+              "bunit_semantics": {
+                "const": "written_px_power"
+              },
+              "pixel_area_power": {
+                "not": {
+                  "const": 0
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "units": {
+            "properties": {
+              "bunit": {
+                "pattern": "px"
+              }
+            }
+          }
+        }
+      },
+      "x-astrocs-gate": {
+        "clause_id": "FZ-BUNIT-SEMANTICS",
+        "gate": "G-BUNIT-SEMANTICS",
+        "rule": "bunit_semantics=written_px_power 且 pixel_area_power!=0 ⇒ BUNIT 必须显式含 px 幂次（量纲可判 (a)）",
+        "source": "docs/contracts/DATA_SEMANTICS.md §31.2"
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "units"
+        ],
+        "properties": {
+          "units": {
+            "required": [
+              "bunit_semantics"
+            ],
+            "properties": {
+              "bunit_semantics": {
+                "const": "declared_via_provenance"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "units": {
+            "required": [
+              "pixel_semantics",
+              "pixel_area_power"
+            ],
+            "properties": {
+              "bunit": {
+                "const": "ADU"
+              }
+            }
+          }
+        }
+      },
+      "x-astrocs-gate": {
+        "clause_id": "FZ-BUNIT-SEMANTICS",
+        "gate": "G-BUNIT-SEMANTICS",
+        "rule": "bunit_semantics=declared_via_provenance ⇒ BUNIT 仅写 ADU，量纲由 pixel_semantics + pixel_area_power 声明（量纲可判 (b)）",
+        "source": "docs/contracts/DATA_SEMANTICS.md §31.2"
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "units"
+        ],
+        "properties": {
+          "units": {
+            "required": [
+              "bunit_semantics",
+              "pixel_semantics"
+            ],
+            "properties": {
+              "bunit_semantics": {
+                "const": "declared_via_provenance"
+              },
+              "pixel_semantics": {
+                "const": "surface_brightness"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "units": {
+            "properties": {
+              "pixel_area_power": {
+                "const": -2
+              }
+            }
+          }
+        }
+      },
+      "x-astrocs-gate": {
+        "clause_id": "FZ-BUNIT-SEMANTICS",
+        "gate": "G-BUNIT-SEMANTICS",
+        "rule": "declared_via_provenance + surface_brightness ⇒ pixel_area_power=-2",
+        "source": "docs/contracts/DATA_SEMANTICS.md §31.2"
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "units"
+        ],
+        "properties": {
+          "units": {
+            "required": [
+              "bunit_semantics",
+              "pixel_semantics"
+            ],
+            "properties": {
+              "bunit_semantics": {
+                "const": "declared_via_provenance"
+              },
+              "pixel_semantics": {
+                "const": "integrated_flux"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "units": {
+            "properties": {
+              "pixel_area_power": {
+                "const": 0
+              }
+            }
+          }
+        }
+      },
+      "x-astrocs-gate": {
+        "clause_id": "FZ-BUNIT-SEMANTICS",
+        "gate": "G-BUNIT-SEMANTICS",
+        "rule": "declared_via_provenance + integrated_flux ⇒ pixel_area_power=0",
+        "source": "docs/contracts/DATA_SEMANTICS.md §31.2"
       }
     }
   ]

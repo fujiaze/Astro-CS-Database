@@ -149,6 +149,7 @@ for 每个控制星 s（半径内）:
 4. **量纲区隔复核**：`quality_weight`（无量纲相对质量）与 `variance/ivar`（ADU²）不混用——§5/§6 的不变量在本单元以数值方式复核（权重换算恒等、组合方差解析对拍）。
 5. **生产调用点读噪双计：已修复（SCI-501 / FIX-407，RELEASE-05）**。原缺陷：`module_adapters.cpp` 把**含读噪**的经验空天总 rms 填入 `sigma_sky_adu`，而 gain>0 时 `snr_science.cpp` 再加一次 `(RN/g)²` ⇒ σ_F 高估（基准点 +12.8%、RN=50 时 +34.0%，天光主导时消失）。**修复**：`SnrSourceParams.sigma_sky_source` 显式声明语义（`SHOT_ONLY` / `EMPIRICAL_TOTAL_RMS`），生产调用点声明 `EMPIRICAL_TOTAL_RMS`（`noise_sigma` = 1.4826×MAD 经验总 rms）⇒ 不再叠加 `(RN/g)²`；`sigma_sky_source_effective` 落 provenance。**保护测试** `p1snr_science_skysource`：正确口径与独立 MC 真值 zA=1.27（≤3σ）绿、双计臂 zB=25.6（>3σ）红、legacy 缺省与双计臂逐位一致（向后兼容）。PSF 行路径（`snr_estimator.cpp`，gain 未知不加 RN 项）不受影响。量化见 `实验/absolute-snr/results/DOC_CORRECTIONS.md` D1。
 6. **误差预算常数单位**：`NOISE_MODEL.md:86` 的 `1.44/√N` 是**相对**标准误（实测 1.166/√N），换算到 dex 为 `1.44/ln10/√N`；直接当 dex 常数用会高估 2.303 倍（`DOC_CORRECTIONS.md` D2）。
+7. **稀疏层表示与载体（负责人裁决）**：`sparse_snr_layer` 的控制点直接存**绝对**通量型 SNR `SNR_c = F_ref/σ_F,c`（与帧级 SNR 同物理定义、同逐帧参考通量 `F_ref`，无量纲）；Phase2 由控制点**直接重建**为稠密 `SNR(x,y)`，逐像素权重同式 `w(x,y)=SNR(x,y)²/F_ref²`。帧级 SNR 与稀疏层是**相互独立**的两个对象——帧级 SNR **不作**稀疏层的尺度基准，也不参与其还原；帧级 SNR 自身的定义、红线与独立用途（帧级参考电平、`frame_reconstruct` 口径、缺逐像素 ivar 时的帧级逆方差权重链）见 §2a 与 `docs/plugins/algorithms_phase1/07_noise_snr.md` §4.1。本节 §2a 的帧级科学基准与 §4 的 `quality_weight` 语义均不因此改变。
 
 ## 8b. 三口径适用域图谱（SCI-B 定案；选型依据）
 
@@ -163,6 +164,7 @@ for 每个控制星 s（半径内）:
 - **失效边界不是单一 `Δ/ℓ≈1`，而是「`Δ/ℓ` × σ 场幅度 × 未分辨结构污染」三因子联合判据**：无源污染合成面上 sparse 在 Δ=512 px 仍胜（余量 ℓ=16 → 0.6%、ℓ=32 → 1.8%、ℓ=64 → 2.8%、ℓ=128 → 16%、ℓ=256 → 35%），而 HST M16 真实结构面上 Δ*=16 px（Δ/ℓ=0.50）；
 - **判据必须非退化**：空间权重/σ 场的精度判据用**权重效率损失** `E = Var_w/Var_opt − 1`（全局尺度相消；`E=0 ⇔ σ̂ ∝ σ_true`）。「帧级臂 RMSE ≤ K·s_field」类判据对**任意**真值场恒真（对抗打乱场下 E=7.17 仍绿），**不得充当证据**（`b6_gates_audit.json::tautology_demo`）；平坦 σ 场（真值无空间效应）时任何「空间口径优于帧级」的排序判据都退化，须走 `DEGENERATE_flat_field_ranking_never_true` 用例（该门不计证据）；
 - **兜底**：HST 类数据默认给**帧级标量兜底**，不静默用稀疏口径冒充空间精度。
+- **三口径全部保留，无退役项**：稀疏层改存**绝对** SNR 是**表示与载体**的变更，**不改变本图谱**——图谱比较的是「三条口径重建稠密 SNR 的精度与存储量」，与「控制点存相对值还是绝对值」正交（重建算子与误差仍在 manifest 显式声明）。`frame_reconstruct` 有独立适用域（HST 类高对比结构域）且是「输入无稀疏层」时 `snr_path_effective` 的唯一合法取值 ⇒ **不作废**；`dense` 仍是精度基准；`sparse_reconstruct` 仍是默认。
 
 ## 9 参考文献与参考代码库（含许可证）— SCI-001-S2 补齐
 
