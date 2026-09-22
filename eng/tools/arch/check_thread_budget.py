@@ -71,6 +71,18 @@ REGISTERED = {
         "provider per-call 池 x1: 同上(avx2 provider)",
     "lib/infrastructure/benchmark/cpu/avx512/src/avx512_provider.cpp":
         "provider per-call 池 x1: 同上(avx512 provider)",
+    "lib/infrastructure/scheduler/src/normalize_workflow.cpp":
+        "ARCH-502 normalize 异步工作流调度器：预取专用线程 x1（prefetch_pool），线程数 = cfg.prefetch_threads"
+        "（配置注入，默认 1 表示关闭预取；非编译期字面量）；生命周期限于 run()，与 worker 池分离",
+    "lib/include/astrocs/core/normalize_workflow.h":
+        "ARCH-502 同上的 worker 池声明（std::vector<std::thread> pool_）：线程数 = cfg.workers（ThreadBudget 注入），"
+        "run() 内创建/join，非长期池",
+    "lib/include/astrocs/core/mosaic_window.h":
+        "ARCH-503 天区窗口调度器 worker 池 x1：线程数 = cfg.workers（ThreadBudget 注入），run() 内创建/join，非长期池",
+    "lib/include/astrocs/core/export_stream.h":
+        "ARCH-504 子块流式调度器 worker 池 x1：线程数 = cfg.workers（ThreadBudget 注入），run() 内创建/join，非长期池",
+    "lib/include/astrocs/core/block_flow.h":
+        "ARCH-505 命名块流执行器：不持有线程池（复用调用方注入的执行函数），登记为可见面",
     "lib/phase3_session/p3_session.cpp":
         "Session 期池 x1: ASTROCS_DESIGN §7.3 禁 Session 型模块 -> 该目录为 INT-001 删除对象(ARCH-001 DEFERRED)",
     # ── 后台守护/监控线程（非并行池）──

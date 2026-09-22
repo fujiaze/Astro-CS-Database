@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
-#include <fstream>
+#include "aio_atomic_file.h"   // aio 唯一 I/O：原子文本落盘（CLEAN-403）
 #include <sstream>
 
 namespace astrocs::core {
@@ -95,22 +95,26 @@ double ProbeSink::sum_value(ProbeKind k) const {
 
 bool ProbeSink::flush() {
   if (path_.empty()) return true;
-  std::lock_guard<std::mutex> lk(mu_);
-  std::ofstream f(path_, std::ios::out | std::ios::trunc);
-  if (!f) return false;
-  for (const auto& e : events_) {
-    f << "{\"ts\":" << e.ts << ",\"stage\":\"" << json_escape(e.stage) << "\",\"kind\":\""
-      << probe_kind_name(e.kind) << "\"";
-    if (!e.node.empty()) f << ",\"node\":\"" << json_escape(e.node) << "\"";
-    if (!e.block.empty()) f << ",\"block\":\"" << json_escape(e.block) << "\"";
-    f << ",\"value\":" << e.value << ",\"unit\":\"" << e.unit << "\"";
-    if (e.bytes) f << ",\"bytes\":" << e.bytes;
-    if (e.frame_id) f << ",\"frame_id\":" << e.frame_id;
-    if (e.window_id) f << ",\"window_id\":" << e.window_id;
-    if (e.worker >= 0) f << ",\"worker\":" << e.worker;
-    f << "}\n";
+  std::string blob;
+  {
+    std::lock_guard<std::mutex> lk(mu_);
+    std::ostringstream f;
+    for (const auto& e : events_) {
+      f << "{\"ts\":" << e.ts << ",\"stage\":\"" << json_escape(e.stage) << "\",\"kind\":\""
+        << probe_kind_name(e.kind) << "\"";
+      if (!e.node.empty()) f << ",\"node\":\"" << json_escape(e.node) << "\"";
+      if (!e.block.empty()) f << ",\"block\":\"" << json_escape(e.block) << "\"";
+      f << ",\"value\":" << e.value << ",\"unit\":\"" << e.unit << "\"";
+      if (e.bytes) f << ",\"bytes\":" << e.bytes;
+      if (e.frame_id) f << ",\"frame_id\":" << e.frame_id;
+      if (e.window_id) f << ",\"window_id\":" << e.window_id;
+      if (e.worker >= 0) f << ",\"worker\":" << e.worker;
+      f << "}\n";
+    }
+    blob = f.str();
   }
-  return static_cast<bool>(f);
+  // CLEAN-403：机制经 aio 唯一实现（aio_atomic::write_file_atomic），本 TU 不自持 ofstream 通道。
+  return aio_atomic::write_file_atomic(path_, blob, nullptr) == 0;
 }
 
 // ── PrefetchCache ──────────────────────────────────────────────────────────
@@ -178,7 +182,9 @@ std::size_t PrefetchCache::size() const {
 // ── NormalizeWorkflowScheduler ─────────────────────────────────────────────
 NormalizeWorkflowScheduler::NormalizeWorkflowScheduler(NormalizeWorkflowConfig cfg)
     : cfg_(std::move(cfg)), probes_(cfg_.probe_path) {
-  if (cfg_.workers < 1) cfg_.workers = 1;   // 合同：worker 数由配置注入，仅做下界保护
+  // 合同下界：worker 数由配置注入（ThreadBudget），此处仅做下界保护，非默认值。
+  constexpr int kMinWorkers = 1;
+  cfg_.workers = std::max(cfg_.workers, kMinWorkers);
 }
 
 NormalizeWorkflowScheduler::~NormalizeWorkflowScheduler() {

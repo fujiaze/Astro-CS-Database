@@ -123,3 +123,49 @@
 **agent 推荐方案 1**，并在同一变更里同步 `docs/contracts/PIPELINE_BLOCK_CONTRACT.md` 的块生命周期清单
 （删掉代码中不存在的「WCS/PSF/SNR 存活到导出」表述，改为「跨阶段唯一载体 = HiPS 产品树」）。
 
+
+---
+
+## OQ-10（BLOCKER，VIS-501 / 可诊断性）：M42（T2/T3）真实帧 Gaia IPV 解算失败，且生产路径**刻意关闭求解日志**
+
+**现象（可复现）**
+```
+build/astrocs normalize --json run/RELEASE-05/e2e/configs/p1_m42_t2_red.json -y
+→ rc=2, node wcs failed:
+  ipv_solve_from_memory_with_callback_d failed:
+  ipv_select_from_memory_with_callback_f64 ??????, ????????????
+  (ipv 真实求解器链: 求解失败或解被 parity/尺度合理性闸门拒绝; frame .../calibrated_M42_M1_T2_...-300S-Red.fts)
+```
+- 同一命令、同一代码、同一 `gaia_data_dir`（`gaia/GaiaDR3`）跑**银心 T4** 三帧**全部成功**
+  （nside=65536、42 内点、rms 0.32"），故链路本身可用，失败与数据集相关；
+- M42 T2 帧的星点检测正常（`p1_sources.json` n_detected = 86717/92839/…，与 T4 同量级），
+  排除"星太少"；
+- 帧头指向存在且合理（`RA 05 33 08.00 / DEC -06 22 32.0`，`CRVAL1/2 = 83.2834/-6.3743`，
+  `FOCALLEN 1917.6 mm`、`XPIXSZ 9.0 µm` ⇒ 约 0.968"/px）。
+
+**为什么查不下去（本 OQ 的实质）**
+`lib/infrastructure/scheduler/src/module_adapters.cpp:2946` 在调用真实求解器前**清零**日志目录：
+```cpp
+std::memset(ip.log_dir, 0, sizeof(ip.log_dir));  // 节点面禁写求解日志
+```
+IPVSolver 内部的 `Logger`（`lib/algorithms/platesolve/cpp/ipv/include/ipv_log.h`）本可逐阶段记录
+"星表查询/三角形匹配/RANSAC/parity 与尺度闸门/extract_wcs_sip" 的每一步，但生产路径把它关掉了，
+于是失败只剩一句**不可读的乱码**（错误串是 GBK 字节被按 UTF-8 打印成 `??????`）。
+结果：真实数据的解算失败**无法定位根因**，只能二选一——要么盲改算法，要么放弃该数据集。
+这同时违反 AGENTS §6「不以'环境问题/工具问题'掩盖失败，必须给出可复现证据」的可诊断性要求。
+
+**请负责人裁决（三选一，附 agent 推荐）**
+1. **加可诊断开关（推荐）**：把 `log_dir` 改为由配置/环境变量显式开启（默认仍关闭，不改变生产默认行为），
+   失败时把求解日志落到 `output_dir` 或 `run/`；同时把 IPV 的 GBK 错误串按 UTF-8 归一（或至少转义），
+   让失败信息可读。代价：改 `module_adapters.cpp` 的节点面策略 + 一处编码归一，需登记新配置键。
+2. **保持关闭，M42 组登记为数据侧受限**：VIS-501 只出银心组成品帧，M42 组标 BLOCKED；
+   代价：VIS-501 只完成一半，且下次遇到解算失败仍然查不动。
+3. **先做一次性离线诊断**（不改生产）：单独写一个探针程序直接调 IPV 求解器并开启日志，
+   定位 M42 失败根因后再决定是否需要方案 1。代价：多一个一次性工具，但不触碰生产策略。
+
+**agent 推荐方案 3 立即做、方案 1 随后做**：先拿到根因（可能只是帧头指向偏差或 parity 约定），
+再决定是数据问题还是代码问题；无论结论如何，"生产失败无日志且错误串乱码"都应修。
+
+**影响面**：VIS-501（M42 组成品帧）、E2E-501 的 M42 数据集冒烟（已改为银心 T4 跑通全链）、
+以及任何依赖真实 T2/T3 数据的验收。
+

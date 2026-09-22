@@ -201,6 +201,23 @@
       ]
     },
     {
+      "path": "eng/tests/unit/block_flow_test.cpp",
+      "hits": 4,
+      "rules": {
+        "cxx-stream": 3,
+        "fs-mutate": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
+      "owner": "无（测试面）",
+      "functions": [
+        "<file-scope>",
+        "ensure_dir",
+        "main",
+        "read_file"
+      ]
+    },
+    {
       "path": "eng/tests/unit/calibration_integration_test.cpp",
       "hits": 5,
       "rules": {
@@ -373,6 +390,22 @@
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
+        "main"
+      ]
+    },
+    {
+      "path": "eng/tests/unit/export_stream_test.cpp",
+      "hits": 4,
+      "rules": {
+        "cxx-stream": 3,
+        "fs-mutate": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
+      "owner": "无（测试面）",
+      "functions": [
+        "<file-scope>",
+        "ensure_dir",
         "main"
       ]
     },
@@ -551,12 +584,44 @@
       ]
     },
     {
+      "path": "eng/tests/unit/mosaic_window_test.cpp",
+      "hits": 5,
+      "rules": {
+        "cxx-stream": 4,
+        "fs-mutate": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
+      "owner": "无（测试面）",
+      "functions": [
+        "<file-scope>",
+        "ensure_dir",
+        "main"
+      ]
+    },
+    {
+      "path": "eng/tests/unit/normalize_workflow_test.cpp",
+      "hits": 6,
+      "rules": {
+        "cxx-stream": 5,
+        "fs-mutate": 1
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
+      "owner": "无（测试面）",
+      "functions": [
+        "<file-scope>",
+        "ensure_evidence_dir",
+        "main"
+      ]
+    },
+    {
       "path": "eng/tests/unit/p1001_real_nodes_test.cpp",
       "hits": 212,
       "rules": {
         "cxx-stream": 29,
         "filesystem": 181,
-        "fopen": 1
+        "fopen": 2
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -596,14 +661,14 @@
         "test_nodes_real_operation",
         "test_p0_21_multi_frame_one_hips_per_input",
         "test_p1photbroken_scale_guards",
+        "test_psf_nonfinite_frame_fail_closed",
         "test_psf_partial_fit_identity",
         "test_runtime_chain_call_count_1",
         "test_torn_artifact_fault_injection",
         "write_p1_sources",
         "write_p21_scatter_hips",
         "write_sparse_hips",
-        "write_sparse_hips_var",
-        "test_psf_nonfinite_frame_fail_closed"
+        "write_sparse_hips_var"
       ]
     },
     {
