@@ -307,13 +307,16 @@ void ExportStreamScheduler::writer_loop() {
                   cur.data.begin() + static_cast<std::size_t>(yy + 1) * cur.w, dst);
       }
       written += nb;
-      inflight_bytes_ -= cur.data.size() * sizeof(double);
-      if (inflight_count_ > 0) --inflight_count_;
       pending.erase(it);
       ++next_index;
       ++done;
       {
+        // ACCEPT-501 P-1：在途计数的**递减必须与 reader 的递增同锁**。
+        // 原实现在 mu_ 之外递减非原子成员，与持锁递增构成数据竞争 ⇒ 丢失更新 +
+        // 无符号下溢（实测 inflight_bytes_ 回绕到 2^64-1048576，约 21% 概率红）。
         std::lock_guard<std::mutex> lk(mu_);
+        inflight_bytes_ -= cur.data.size() * sizeof(double);
+        if (inflight_count_ > 0) --inflight_count_;
         ++results_done_;
       }
       cv_space_.notify_all();

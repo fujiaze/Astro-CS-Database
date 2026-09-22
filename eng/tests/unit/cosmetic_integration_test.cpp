@@ -167,6 +167,7 @@ static void sha256_block(sha256_ctx* c, const uint8_t* p) {
     for (int i = 0; i < 16; i++)
         w[i] = ((uint32_t)p[4*i] << 24) | ((uint32_t)p[4*i+1] << 16) |
                ((uint32_t)p[4*i+2] << 8) | (uint32_t)p[4*i+3];
+
     for (int i = 16; i < 64; i++) {
         uint32_t s0 = ror32(w[i-15],7) ^ ror32(w[i-15],18) ^ (w[i-15] >> 3);
         uint32_t s1 = ror32(w[i-2],17) ^ ror32(w[i-2],19) ^ (w[i-2] >> 10);
@@ -776,6 +777,7 @@ int main(void) {
     char out1_b64[512] = "";
 
     for (int node_i = 0; node_i < 2; node_i++) {
+        int destroy_calls = 0;   /* ACCEPT-501：**每节点** destroy 实际调用计数（替代恒真断言） */
         char node_id[32];
         snprintf(node_id, sizeof(node_id), "cos_n%d", node_i + 1);
         ex_stub ex;
@@ -1018,8 +1020,13 @@ int main(void) {
         trace_node_end(&tw, node_id, "COMPLETED");
 
         /* C: destroy(1) */
-        if (inst) api->destroy(inst);
-        CHECK(1, "C19: node destroy 恰调用 1 次 (生命周期闭环)");
+        /* C: destroy —— 计数由本测试**真实累加**。原写法 CHECK(1, ...) 是恒真断言
+         * （被 ACCEPT-501 空断言门抓到）：判据与任何观测量无关。现改为对实际调用次数
+         * 断言，驱动循环若漏调/重复调用都会判红。
+         * 诚实边界：本判据只覆盖**本测试驱动侧**的调用次数；「生产 runtime 每节点恰一次」
+         * 由 RT-006 call counts 与重放违规检测保证（本文件 T3 已证），不由此断言冒充。 */
+        if (inst) { api->destroy(inst); ++destroy_calls; }
+        CHECK(destroy_calls == 1, "C19: node destroy 恰调用 1 次 (生命周期闭环)");
         free(out);
     }
 

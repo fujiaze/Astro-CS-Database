@@ -213,6 +213,117 @@
           "contains": "ra"
         }
       ]
+    },
+    {
+      "id": "BFD-A11",
+      "severity": "blocker",
+      "kind": "undeclared_input",
+      "registry_ref": "R:normalize 节点 16 R=['sources'] W=['wcs']",
+      "summary": "wcs/platesolve 被声明消费 sources 块，代码从不读 p1_sources.json：它按帧读**校准后 FITS** 自行做星点检测与 Gaia 求解（sdet_detect_ex_f64 + ipv_solve_from_memory）。声明的 sources 端口从未打开。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 2724,
+          "contains": "p1_calibrated_path(doc, doc[\"input_lights\"][0]"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 2824,
+          "contains": "p1_calibrated_path(doc, lp)"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 2958,
+          "contains": "p1_calibrated_path(doc, lp)"
+        }
+      ],
+      "note": "ACCEPT-501 独立复核发现（12 条登记之外的漏登记项），由执行 agent 逐行复核确认后补登记。"
+    },
+    {
+      "id": "BFD-A12",
+      "severity": "blocker",
+      "kind": "undeclared_output",
+      "registry_ref": "R:normalize 节点 17 W=['fluxes','photprov']",
+      "summary": "photometry 额外产出 p1_photscale.json（测光尺度），注册表未声明该块。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 3536,
+          "contains": "p1_photscale.json"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A13",
+      "severity": "blocker",
+      "kind": "undeclared_output",
+      "registry_ref": "R:mosaic 节点 8/11（corrected / integrated 链）",
+      "summary": "mosaic 的 UPM/天光面链额外读写 p2_sky_plane.bin（二值天光面产品），注册表未声明该块。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 6307,
+          "contains": "p2_sky_plane.bin"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 6482,
+          "contains": "p2_sky_plane.bin"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A14",
+      "severity": "blocker",
+      "kind": "undeclared_output",
+      "registry_ref": "R:mosaic 节点 10 W=['accepted_mask']",
+      "summary": "reject 节点额外产出 p2_rejection_accepted.bin / p2_rejection.json 等一串 p2_rejection* 产品，注册表只声明 accepted_mask 一个块。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 7420,
+          "contains": "p2_rejection_accepted.bin"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 7476,
+          "contains": "p2_rejection.json"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A15",
+      "severity": "blocker",
+      "kind": "undeclared_input",
+      "registry_ref": "R:mosaic 节点 12 R=['integrated'] W=['mosaic']",
+      "summary": "mosaic writer 除 integrated 外还额外读 p2_coverage.json / p2_rejection.json 等 4 个上游产品（注册表未声明），即真实输入面比声明面宽。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 8477,
+          "contains": "p2_coverage.json"
+        },
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 8543,
+          "contains": "p2_rejection.json"
+        }
+      ]
+    },
+    {
+      "id": "BFD-A16",
+      "severity": "blocker",
+      "kind": "undeclared_input",
+      "registry_ref": "R:export 节点 3 R=['wcs_plan','hips'] W=['resampled']",
+      "summary": "export resample 节点实际读 p3_props.json（properties 面）而注册表把 props 只声明给节点 1/2，未声明给 resample。",
+      "evidence": [
+        {
+          "file": "lib/infrastructure/scheduler/src/module_adapters.cpp",
+          "line": 9786,
+          "contains": "p3_props.json"
+        }
+      ]
     }
-  ]
+  ],
+  "note": "ACCEPT-501 独立复核指出登记册漏登记 ≥8 处真实偏差；本文件已补 BFD-A11..A16（每条证据由执行 agent 逐行复核 file:line+token 后登记）。"
 }

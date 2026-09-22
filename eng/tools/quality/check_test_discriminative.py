@@ -42,7 +42,7 @@ REPO_DEFAULT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 SCAN_ROOT = "eng/tests"
 
 PY_SUFFIX = (".py",)
-CPP_SUFFIX = (".cpp", ".cc", ".cxx", ".hpp", ".h")
+CPP_SUFFIX = (".cpp", ".cc", ".cxx", ".hpp", ".h", ".c")   # ACCEPT-501：补 .c（eng/tests 有 28 个 .c 此前完全不扫）
 
 # C++ 恒真断言（剥注释后匹配）：CHECK(true) / ASSERT_TRUE(true) 等软通过形态。
 CPP_TRIVIAL = [
@@ -52,7 +52,9 @@ CPP_TRIVIAL = [
     (r"\b(?:TEST_)?(?:CHECK|REQUIRE|ASSERT|EXPECT|VERIFY)_TRUE\s*\(\s*true\b",
      "CHECK/ASSERT_TRUE(true)"),
     (r"\b(?:TEST_)?(?:CHECK|ASSERT|EXPECT|REQUIRE|VERIFY)\s*\(\s*true\b", "CHECK/ASSERT(true)"),
-    (r"\b(?:TEST_)?(?:CHECK|ASSERT|EXPECT|REQUIRE|VERIFY)\s*\(\s*1\s*\)", "CHECK/ASSERT(1)"),
+    # ACCEPT-501：原正则要求单参 CHECK(1)，漏掉带消息形态 CHECK(1, "msg")。
+    # 逗号形态同样是恒真（判据与消息无关），必须一并识别。
+    (r"\b(?:TEST_)?(?:CHECK|ASSERT|EXPECT|REQUIRE|VERIFY)\s*\(\s*1\s*[,)]", "CHECK/ASSERT(1)"),
     (r"\bstatic_assert\s*\(\s*true\b", "static_assert(true)"),
     (r"\bassert\s*\(\s*true\b", "assert(true)"),
 ]
