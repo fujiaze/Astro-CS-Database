@@ -179,8 +179,17 @@ class TestP3Output(unittest.TestCase):
             self.assertIn(kw, head, f"missing keyword {kw}")
         # provenance 值
         self.assertIn("ivo://astrocs/test_p3", head)
-        # P3-002: BUNIT 来源输入合同(缺省 ADU 面亮度), 绝不 Jy/beam 默认
-        self.assertIn("ADU", head)
+        # P3-002 来源输入合同: 调用方传入的 BUNIT 逐字写出 —— 探针显式传 "ADU"
+        # (p3_output_probe_main.cpp:57), 故头内 BUNIT 必须是 'ADU' 本身。
+        # 裸 ADU 只在该 (b) 形态(声明了像素语义)下合法; 缺省(未传)串现为 canonical
+        # "ADU/sr"（docs/contracts/DATA_SEMANTICS.md §31.1/§31.1a）, 由
+        # test_p3005_fits_output.py / test_p3006_production_pipeline.py 锁定。
+        # 判据不得退化为子串命中("ADU" 是 "ADU/sr" 的子串 ⇒ 恒真)。
+        _bunit = re.search(r"BUNIT\s*=\s*'([^']*)'", head)
+        self.assertIsNotNone(_bunit, "缺 BUNIT 关键字")
+        # FITS 字符串值按列空格补齐（实测卡值 = 'ADU     '）⇒ 比较前剥补齐空格。
+        self.assertEqual(_bunit.group(1).strip(), "ADU",
+                         "BUNIT 应逐字继承调用方传入的单位")
         self.assertNotIn("Jy/beam", head)
         self.assertIn("bilinear", head)
 

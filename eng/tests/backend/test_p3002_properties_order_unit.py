@@ -3,7 +3,7 @@
 """test_p3002_properties_order_unit.py — P3-002 (G6) properties/order/unit。
 验证:
   A) order_sel 上限来自输入实际 order(reader/resampler 使用该 order, 非仅 metadata);
-  B) BUNIT 来源输入合同: properties 有 BUNIT 用之, 缺省 ADU, 绝不 Jy/beam 默认;
+  B) BUNIT 来源输入合同: properties 有 BUNIT 用之, 缺省 canonical "ADU/sr", 绝不 Jy/beam 默认;
   C) BITPIX/max memory 来自 request+NodePlan(-32|-64);
   D) 不支持输入显式错误。
 """
@@ -36,12 +36,17 @@ class TestP3002PropertiesOrderUnit(unittest.TestCase):
         self.assertIn("*out_order = p.order", r, "open_ex 未输出 properties 实测 order")
 
     def test_02_bunit_from_contract(self):
-        """BUNIT 来源输入合同: 缺省 ADU, 绝不 Jy/beam 默认。"""
+        """BUNIT 来源输入合同: 缺省 canonical "ADU/sr", 绝不 Jy/beam 默认。"""
         s = open(SESS, encoding="utf-8").read()
         self.assertIn("bunit.c_str()", s, "session 未用输入合同 BUNIT")
         self.assertNotIn('"Jy/beam"', s, "session 不得硬编码 Jy/beam")
         r = open(RES, encoding="utf-8").read()
-        self.assertIn('"ADU"', r, "缺省 BUNIT 应为 ADU")
+        # 缺省 = 冻结单位表的 canonical 面亮度串（docs/contracts/DATA_SEMANTICS.md
+        # §31.1 signal_sb = ADU/sr；§31.1a「产品 FITS/HiPS 写盘 BUNIT 一律取该串」）。
+        # 重采样值 = 输入 tile 值的凸组合 ⇒ 与输入同单位（§29.3）；裸 "ADU" 是每像素
+        # 计数口径，与重采样平面的数值不符且量纲不可判（§31.2），不得作缺省。
+        self.assertIn('"ADU/sr"', r, "缺省 BUNIT 应为 ADU/sr（DATA_SEMANTICS §31.1a）")
+        self.assertNotIn('std::string("ADU")', r, "缺省 BUNIT 不得退回裸 ADU")
         h = open(PROPS_H, encoding="utf-8").read()
         self.assertIn("bunit", h, "HipsProperties 缺 bunit 字段")
         c = open(PROPS_C, encoding="utf-8").read()

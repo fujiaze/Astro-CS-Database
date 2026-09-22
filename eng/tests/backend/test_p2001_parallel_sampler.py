@@ -58,7 +58,10 @@ class TestP2001ParallelSampler(unittest.TestCase):
                 os.path.join(AIO, "src", "aio_api.cpp"),
                 os.path.join(AIO, "src", "aio_log.cpp"),
                 os.path.join(AIO, "src", "aio_compressor.cpp"),
-                os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp")]
+                os.path.join(REPO, "lib", "algorithms", "shared", "healpix", "healpix_core.cpp"),
+                # FIX-201: aio_file_io.h 的 sha256_hex 经 astrocs::crypto::Sha256
+                #（单一实现 lib/algorithms/shared/crypto/sha256.cpp）。
+                os.path.join(REPO, "lib", "algorithms", "shared", "crypto", "sha256.cpp")]
         exe = os.path.join(cls.tmp, "fixture")
         r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
                             *srcs, *cfitsio_objs(cls.tmp), "-lz", "-lzstd", "-llz4",

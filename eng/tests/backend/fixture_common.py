@@ -63,7 +63,11 @@ def _build_fixture_exe():
             os.path.join(AIO, "src", "aio_api.cpp"),
             os.path.join(AIO, "src", "aio_log.cpp"),
             os.path.join(AIO, "src", "aio_compressor.cpp"),
-            os.path.join(SHARED, "healpix", "healpix_core.cpp")]
+            os.path.join(SHARED, "healpix", "healpix_core.cpp"),
+            # FIX-201: aio_file_io.h 的 sha256_hex 经 astrocs::crypto::Sha256
+            #（单一实现 lib/algorithms/shared/crypto/sha256.cpp）⇒ 直编 AIO
+            # 源码的 fixture 必须把该 TU 一并链接，否则 aio_hips_writer 未定义符号。
+            os.path.join(SHARED, "crypto", "sha256.cpp")]
     r = subprocess.run(["g++", "-std=c++17", "-O2", "-w", "-DAIO_ENABLE_FITS", *incs,
                         *srcs, *_cfitsio_objs(os.path.dirname(_FIXTURE_EXE)),
                         "-lz", "-lzstd", "-llz4", "-o", _FIXTURE_EXE],
