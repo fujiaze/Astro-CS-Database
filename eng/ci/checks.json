@@ -9127,6 +9127,76 @@
       ]
     },
     {
+      "id": "CHK-ARCH504-EXPORT-STREAM",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/run_checks.py",
+        "--check",
+        "CHK-ARCH504-EXPORT-STREAM",
+        "--quiet"
+      ],
+      "timeout_seconds": 900,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/ctest/export_stream.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**",
+        "lib/infrastructure/**",
+        "eng/tests/**"
+      ],
+      "requires_monitor": false,
+      "ctest_targets": [
+        "export_stream"
+      ],
+      "steps": [
+        {
+          "id": "CTEST-EXPORT-STREAM",
+          "profiles": [
+            "fast",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "export_stream",
+            "--output",
+            "run/ci/ctest/export_stream.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/export_stream.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "lib/infrastructure/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "export_stream"
+          ]
+        }
+      ]
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",

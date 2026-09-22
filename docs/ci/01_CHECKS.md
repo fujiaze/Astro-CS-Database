@@ -102,6 +102,7 @@
 | CHK-TEST-DISCRIMINATIVE | 质量 | 空断言静态门：Python AST 扫 test_* 与 C++ 剥注释扫恒真形态（CHECK/ASSERT/EXPECT/REQUIRE/VERIFY/TEST_CHECK 的 (true)/(1)/static_assert/assert），findings 必须为 0；含 --self-test 2 正例必绿 + 6 负例逐条必红 | `python3 eng/ci/run_checks.py --check CHK-TEST-DISCRIMINATIVE --quiet` | P0 |
 | CHK-ARCH502-NORMALIZE-WF | 架构 | ARCH-502 normalize 异步工作流调度器回归锁：帧内 DAG 流水、多帧并发、N=1/2/4/8 checksum 逐位一致、归约按 frame_id 升序、专用预取线程、块生命周期由调度器掌管、内存超限必失败、取消无泄漏、磁盘满传播 | `python3 eng/ci/run_checks.py --check CHK-ARCH502-NORMALIZE-WF --quiet` | P0 |
 | CHK-ARCH503-MOSAIC-WIN | 架构 | ARCH-503 mosaic 天球窗口并行调度器回归锁：窗口划分（大小入 manifest）、按窗口路由消除整帧读放大、窗口内固定顺序、稠密 SNR 现场求值、N=1/2/4/8/16 逐位一致、与单窗口参考实现**逐位相同**、峰值驻留与总图大小解耦、取消 | `python3 eng/ci/run_checks.py --check CHK-ARCH503-MOSAIC-WIN --quiet` | P0 |
+| CHK-ARCH504-EXPORT-STREAM | 架构 | ARCH-504 export 子块流式调度器回归锁：三级有界流水线+背压、全图行主序 FITS 逐位一致、与 worker 数无关、原子发布无 .tmp 残留、磁盘满 exit 10 不发布、WCS 头缺失拒绝开写、在途字节与子块大小成正比且与总图大小无关、探针、取消 | `python3 eng/ci/run_checks.py --check CHK-ARCH504-EXPORT-STREAM --quiet` | P0 |
 | CHK-SCHED-PROBE-SCHEMA | 合同 | CONTRACT-501 探针事件 schema 机器校验：逐行校验 JSONL 的必填字段/枚举/单位与事件名一致性，空文件与无输出判红（fail-closed）；含 --self-test 1 正 5 负 | `python3 eng/ci/run_checks.py --check CHK-SCHED-PROBE-SCHEMA --quiet` | P0 |
 
 ### 2.1 检查器退役与预留
