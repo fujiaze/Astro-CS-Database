@@ -22,11 +22,14 @@
 
 方法：纯 Python unittest + stdlib（同 eng/tests/monitoring/test_monitor_contract.py
 风格），真实调用 lib/infrastructure/pipeline/trace_replay.py + 本工具；样例 trace 为
-RT-006 7 节点真实语义 JSONL（与 test_rt006_trace.py 同构），哈希为可辨识
-合成值（真实观测路径语义验证，非真实产品运行）。
+RT-006 7 节点真实语义 JSONL（与 test_rt006_trace.py 同构）。节点集合、每节点发布的
+artifact 一律**从计划 fixture 推导**，artifact_sha256 期望值**由产物内容推导**
+（sha256(artifact_content)）——两处都不是手抄常量表，fixture 或产物面一改就重新对齐，
+不会退化成"改 DAG 就得改测试"（真实观测路径语义验证，非真实产品运行）。
 """
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import pathlib
@@ -51,15 +54,30 @@ SPEC.loader.exec_module(RG)
 
 TOOL_PY = REPO / "eng" / "tools" / "graph" / "render_run_graph.py"
 
-NODES = ["coverage", "sample", "upm_fit", "upm_apply", "reject",
-         "integrate", "write"]
+PLAN_FIXTURE = (REPO / "lib" / "infrastructure" / "pipeline" / "fixtures"
+                / "phase2_typed_dag.json")
+_PLAN_FIXTURE = json.loads(PLAN_FIXTURE.read_text(encoding="utf-8"))
+# 节点集合与「每节点发布哪些 artifact」**从计划 fixture 推导**（唯一权威），不手抄：
+# UNIT-DERIVE-01（7cde39cb）改写 fixture 时（reject 的 accepted_mask → rejection、
+# upm_fit 增加 sky_plane）手抄表与磁盘脱钩，本文件曾以 KeyError 判红。
+NODES = [n["node_id"] for n in _PLAN_FIXTURE["nodes"]]
+# 每节点发布的 artifact = fixture 中该节点 outputs 的取值（保序去重）；index 0 = 主产物
+NODE_ARTIFACTS = {n["node_id"]: list(dict.fromkeys(n["outputs"].values()))
+                  for n in _PLAN_FIXTURE["nodes"]}
+OUT_ART = {nid: arts[0] for nid, arts in NODE_ARTIFACTS.items()}
 DLL_SHA = "d" * 64
-# 每节点发布 artifact = 计划 fixture 中该节点的 output artifact（真实语义对齐）
-OUT_ART = {"coverage": "artifact:coverage", "sample": "artifact:samples",
-           "upm_fit": "artifact:upm_model", "upm_apply": "artifact:corrected",
-           "reject": "artifact:accepted_mask",
-           "integrate": "artifact:integrated", "write": "artifact:mosaic"}
-ART_SHA = {art: ("%064x" % (i + 100)) for i, art in enumerate(OUT_ART.values())}
+
+
+def artifact_content(art: str) -> bytes:
+    """样例产物的字节内容：以 artifact 身份为种子的确定性载荷（真实产品不入库）。"""
+    return ("astrocs.phase2.fixture-artifact:%s\n" % art).encode("utf-8")
+
+
+# 期望哈希**由产物内容推导**（sha256(artifact_content)），不是手抄常量表：
+# 图上的 artifact_sha256 必须等于该产物内容的真实摘要 —— 编造、张冠李戴、
+# 漏传观测都会判红；fixture 增删 artifact 时本表自动跟随。
+ART_SHA = {art: hashlib.sha256(artifact_content(art)).hexdigest()
+           for arts in NODE_ARTIFACTS.values() for art in arts}
 
 
 def make_trace_jsonl(*, tamper_node: str = "", zero_dll: bool = False,
@@ -88,20 +106,23 @@ def make_trace_jsonl(*, tamper_node: str = "", zero_dll: bool = False,
             "dll_sha256": (DLL_SHA if not zero_dll else ""),
             "seq": i * 10 + 2}
         lines.append(json.dumps(mc))
-        lines.append(json.dumps({
-            "schema": "astrocs.trace-event/v1", "type": "artifact_publish",
-            "ts_utc": "2026-09-04T00:00:01.%03dZ" % i, "run_id": "run-g7",
-            "node_id": nid, "module_id": "astrocs.phase2." + nid,
-            "artifact_id": OUT_ART[nid],
-            "artifact_sha256": ART_SHA[OUT_ART[nid]],
-            "artifact_size": 4096 * (i + 1),
-            "seq": i * 10 + 3}))
+        # 发布该节点在计划里声明的**全部**产物（保序）——计划数据边引用的 artifact
+        # 因此都有真实发布观测；无观测的边只能标空（G3/G6，见另一用例）。
+        for k, art in enumerate(NODE_ARTIFACTS[nid]):
+            lines.append(json.dumps({
+                "schema": "astrocs.trace-event/v1", "type": "artifact_publish",
+                "ts_utc": "2026-09-04T00:00:01.%03dZ" % i, "run_id": "run-g7",
+                "node_id": nid, "module_id": "astrocs.phase2." + nid,
+                "artifact_id": art,
+                "artifact_sha256": ART_SHA[art],
+                "artifact_size": 4096 * (i + 1) + k,
+                "seq": i * 10 + 3 + k}))
         ne = {
             "schema": "astrocs.trace-event/v1", "type": "node_end",
             "ts_utc": "2026-09-04T00:00:01.%03dZ" % i, "run_id": "run-g7",
             "node_id": nid, "status": "COMPLETED", "wall_ms": 10.0 + i,
             "workers": workers, "granted_workers": workers,
-            "provider": provider, "seq": i * 10 + 4}
+            "provider": provider, "seq": i * 10 + 3 + len(NODE_ARTIFACTS[nid])}
         if tamper_node and nid == tamper_node:
             ne["status"] = "FAILED"
             ne["error"] = "boom"
@@ -256,11 +277,11 @@ class TestGraphConsistency(unittest.TestCase):
         # （真实用法：只把 plan-only 图当"计划 vs 实际"对照，验收用同 trace 图）
 
     def test_edges_carry_plan_data_edges_and_artifact_hash(self):
-        g = self._graph_for(make_trace_jsonl())
+        jsonl = make_trace_jsonl()
+        g = self._graph_for(jsonl)
         edges = {e["artifact"]: e for e in g["edges"]}
         # fixture 经 RT-001 编译器推导的数据边（authoritative plan edges）
-        plan = json.loads((REPO / "lib" / "infrastructure" / "pipeline" / "fixtures"
-                           / "phase2_typed_dag.json").read_text(encoding="utf-8"))
+        plan = json.loads(PLAN_FIXTURE.read_text(encoding="utf-8"))
         from lib.infrastructure.pipeline.typed_dag import TypedDagCompiler
         res = TypedDagCompiler().compile(plan)
         self.assertTrue(res.ok)
@@ -268,11 +289,20 @@ class TestGraphConsistency(unittest.TestCase):
         plan_edge_arts = {e["artifact"] for e in pj["edges"]}
         self.assertEqual(set(edges), plan_edge_arts)
         self.assertIn("artifact:coverage", edges)
-        # 计划数据边携带真实 artifact_publish 观测 hash（本样例 trace 发布了
-        # 每个内部数据边 artifact → 边标注 sha256 有真实观测值，非 config 冒充）
-        for art in plan_edge_arts:
+        # 覆盖前提（判据非退化）：样例 trace 必须发布计划数据边引用的**每一个**
+        # artifact —— fixture 再改而 trace 没跟 ⇒ 这里带着差集判红，不再退化成
+        # KeyError，也不允许"没观测"被静默当成通过。
+        self.assertEqual(set(), plan_edge_arts - set(ART_SHA),
+                         "样例 trace 未发布计划数据边引用的产物: %s"
+                         % sorted(plan_edge_arts - set(ART_SHA)))
+        # 期望值 = 该产物内容的真实摘要（ART_SHA = sha256(artifact_content)）：
+        # 计划数据边携带真实 artifact_publish 观测 hash，非 config 冒充/编造。
+        for art in sorted(plan_edge_arts):
             self.assertEqual(edges[art]["edge_source"], "plan")
-            self.assertEqual(edges[art]["artifact_sha256"], ART_SHA[art])
+            self.assertEqual(edges[art]["artifact_sha256"], ART_SHA[art],
+                             "边 %s 的 artifact_sha256 必须是该产物内容的摘要" % art)
+            self.assertNotEqual(edges[art]["artifact_sha256"], "",
+                                "边 %s 有发布观测 ⇒ hash 不得为空" % art)
         # 抽样验证边端点与 plan 边一致（coverage → sample / upm_apply → reject）
         pe_by_art = {}
         for e in pj["edges"]:
@@ -306,12 +336,14 @@ class TestGraphConsistency(unittest.TestCase):
         g = self._graph_for(make_trace_jsonl(), with_plan=False)
         self.assertEqual(g["plan"], None)
         by_art = {e["artifact"]: e for e in g["edges"]}
-        self.assertEqual(len(g["edges"]), 7)
+        # 边集合 = trace 真实发布过的 artifact 集合（推导，不写死条数：节点可发布多个产物）
+        self.assertEqual(set(by_art), set(ART_SHA))
         for nid in NODES:
-            e = by_art[OUT_ART[nid]]
-            self.assertEqual(e["from"], nid)
-            self.assertEqual(e["artifact_sha256"], ART_SHA[OUT_ART[nid]])
-            self.assertEqual(e["edge_source"], "trace")
+            for art in NODE_ARTIFACTS[nid]:
+                e = by_art[art]
+                self.assertEqual(e["from"], nid)
+                self.assertEqual(e["artifact_sha256"], ART_SHA[art])
+                self.assertEqual(e["edge_source"], "trace")
 
     def test_no_node_id_events_produce_no_empty_node(self):
         g = self._graph_for(make_trace_jsonl(no_node_id=True))

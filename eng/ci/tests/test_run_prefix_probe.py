@@ -29,9 +29,12 @@ from pathlib import Path
 from unittest import mock
 
 CI_DIR = Path(__file__).resolve().parents[1]
-REPO = CI_DIR.parent
-if str(REPO) not in sys.path:
-    sys.path.insert(0, str(REPO))
+# REPO = 仓库根（probe_prerequisite 的仓库根参数，用来解析 command 里的仓库相对路径）；
+# 命名空间包 `ci` 的导入路径是 eng/（CI_DIR.parent），两者不是同一个目录。
+REPO = Path(__file__).resolve().parents[3]
+_ENG = Path(__file__).resolve().parents[2]
+if str(_ENG) not in sys.path:
+    sys.path.insert(0, str(_ENG))
 
 from ci.tests import _helpers as H  # noqa: E402
 from ci import run as ci_run  # noqa: E402

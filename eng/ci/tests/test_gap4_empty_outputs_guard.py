@@ -14,11 +14,16 @@
 """
 from __future__ import annotations
 
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-import _helpers as H
+_ENG = Path(__file__).resolve().parents[2]
+if str(_ENG) not in sys.path:
+    sys.path.insert(0, str(_ENG))
+
+from ci.tests import _helpers as H  # noqa: E402
 
 
 def _run_fast(repo: Path, checks: list[dict], out_name: str):

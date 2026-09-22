@@ -530,6 +530,13 @@
       "object_class": null,
       "owner": "DOC-CONTRACT-MERGE-02",
       "note": "V6 合同层十类产品族记录（units/signal/covariance/psf/effective-psf/point-information/weight-mode/psfsw/provenance/phase3）的字段级机器门，按 $defs 逐件承载；**不是**数据对象合同，不定义 unified_object 判别字段。权威 = docs/contracts/DATA_SEMANTICS.md §31.6；变更编号 CHG-2026-09-22-V6-CONTRACT-MERGE。"
+    },
+    {
+      "file": "eng/contracts/schemas/hips_storage_form.schema.json",
+      "role": "storage_form_contract",
+      "owner": "CONTRACT-STORAGE-001",
+      "object_class": null,
+      "note": "落盘形态合同（CONTRACT-STORAGE-001；doc_id DOC-CONTRACT-STORAGE-001，doc_status ACTIVE_NORMATIVE）的机器事实源：两形态命名与互斥、归档容器布局、产品级索引与数据集级覆盖索引 schema、形态输入配置键与运行完成清单 storage 段；**不是** UNIFIED_MODEL §2 的 13 个数据对象之一，不定义 unified_object 判别字段。权威 = docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md（上位 ASTROCS_DESIGN.md §10 + docs/design/PRODUCT_STORAGE_FORM.md）；机器检查器 = eng/tools/hipsform/check_hips_storage_form.py（CI 检查 CHK-HIPS-STORAGE-FORM）。"
     }
   ],
   "deprecation": {

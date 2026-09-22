@@ -33,7 +33,11 @@ from pathlib import Path
 
 import yaml
 
-import _helpers as H  # noqa: E402
+_ENG = Path(__file__).resolve().parents[2]
+if str(_ENG) not in sys.path:
+    sys.path.insert(0, str(_ENG))
+
+from ci.tests import _helpers as H  # noqa: E402
 
 REPO = H.REPO
 RUNNER = H.RUNNER

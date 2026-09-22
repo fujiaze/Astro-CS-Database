@@ -12,8 +12,9 @@ import unittest
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parents[3]
-if str(_REPO) not in sys.path:
-    sys.path.insert(0, str(_REPO))
+_ENG = Path(__file__).resolve().parents[2]
+if str(_ENG) not in sys.path:
+    sys.path.insert(0, str(_ENG))
 
 from ci.tests import _helpers as H  # noqa: E402
 
@@ -164,22 +165,49 @@ class TestWorkspacePurity(unittest.TestCase):
             self.assertEqual(ci["verdict"], "FAIL")
             self.assertEqual(ci["summary"]["fail_detail"].get("FAIL(dirty)"), 1)
 
-    def test_mutating_check_exempt_from_dirty(self):
+    def test_mutating_check_dirty_scope_is_declared_surface(self):
+        """§9.3：mutates_workspace=true 的可写面 = 登记 outputs ∪ dirty_ignore_*，
+        **不再**自我豁免——越界写仍 FAIL(dirty)；写在登记 outputs 内才 PASS。
+
+        权威依据 docs/ci/CI_SPEC.md §9.3（「mutates_workspace（真强制，不改名）」）：
+        「mutates_workspace: true 的执行单元可写面 = 登记 outputs ∪ dirty_ignore_exact/
+        dirty_ignore_prefixes；**不再**无条件跳过执行前后的工作区对比（旧行为是
+        自我豁免）。写出可写面之外的任何路径 ⇒ FAIL(dirty)（与 mutates_workspace:
+        false 同判据）」。旧断言（dirty.checked=False + PASS）正是被废止的自我豁免
+        语义，会把真违规判绿。同口径注册门 = CHK-GATE-FAILCLOSED-SELFTEST 的
+        test_F（越界写判红）/ test_G（只写登记 outputs 判绿）。
+        """
+        # (1) 可写面为空（outputs=[]）→ 写 X.txt 越界 → FAIL(dirty)
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             repo = H.make_repo(root / "repo")
             out_root = root / "out"
-            # 单独一组：mutates_workspace=true 的同类命令不触发 dirty，verdict PASS
             H.write_registry(repo, [H.check(id="CHK-MUT", command=self.CREATE,
                                             mutates_workspace=True)])
             H.write_ci_result_schema(repo)
             proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
-            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(proc.returncode, 1, f"越界写必须 exit 1：{proc.stderr}")
             per = H.load_check_result(out_root, "CHK-MUT")
-            self.assertEqual(per["verdict"], "PASS")
-            self.assertFalse(per["dirty"]["checked"])
-            self.assertEqual(per["dirty"]["violations"], [])
+            self.assertEqual(per["verdict"], "FAIL(dirty)")
+            self.assertTrue(per["dirty"]["checked"],
+                            "mutates_workspace=true 同样做工作区对比（无自我豁免）")
+            self.assertIn("X.txt", per["dirty"]["violations"])
+            self.assertEqual(per["exit_code"], 0, "命令本身成功，违规在纯净性")
             self.assertTrue((repo / "X.txt").is_file())
+        # (2) 同一命令把 X.txt 登记进可写面 → PASS（豁免来自登记面，不是自我豁免）
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo = H.make_repo(root / "repo")
+            out_root = root / "out"
+            H.write_registry(repo, [H.check(id="CHK-MUT2", command=self.CREATE,
+                                            mutates_workspace=True, outputs=["X.txt"])])
+            H.write_ci_result_schema(repo)
+            proc = H.run_runner(["--profile", "fast", "--output-root", str(out_root)], repo)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            per = H.load_check_result(out_root, "CHK-MUT2")
+            self.assertEqual(per["verdict"], "PASS")
+            self.assertTrue(per["dirty"]["checked"])
+            self.assertEqual(per["dirty"]["violations"], [])
 
     def test_clean_check_passes_untouched_workspace(self):
         with tempfile.TemporaryDirectory() as td:

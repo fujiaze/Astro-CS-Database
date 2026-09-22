@@ -30,8 +30,9 @@ import unittest
 from pathlib import Path
 
 _REPO = Path(__file__).resolve().parents[3]
-if str(_REPO) not in sys.path:
-    sys.path.insert(0, str(_REPO))
+_ENG = Path(__file__).resolve().parents[2]
+if str(_ENG) not in sys.path:
+    sys.path.insert(0, str(_ENG))
 
 from ci.tests import _helpers as H  # noqa: E402
 
@@ -81,6 +82,15 @@ def _runner_mon_check(repo: Path, out_root: Path, check: dict) -> subprocess.Com
     # shim 真跑时经 runpy 透传 repo/tools/monitoring/run_monitored.py，故一并
     # 复制实体与其同目录依赖（resource_probe fallback import）。
     shutil.copyfile(_REPO / "eng" / "ci" / "resource_monitor.py", ci_dir / "resource_monitor.py")
+    # 资源门数值契约（唯一数值源，docs/ci/CI_SPEC.md §9.2）是监控包装器的**导入期**
+    # 前置输入（run_monitored.py 模块级 load_resource_gate_contract，缺失即
+    # RuntimeError）：fixture 不带它时 shim 必以 rc=1 崩，检查在 rc!=0 分支被记为
+    # FAIL，永远走不到监控证据判定面——本类 8 例会以「假红」形态全灭。
+    # 与 CHK-GATE-FAILCLOSED-SELFTEST 的 fixture 同构（test_gate_failclosed_selftest.py:90）。
+    contracts_dir = repo / "eng" / "contracts"
+    contracts_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(_REPO / "eng" / "contracts" / "resource_gate_v1.json",
+                    contracts_dir / "resource_gate_v1.json")
     mon_dir = repo / "eng" / "tools" / "monitoring"
     mon_dir.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(_REPO / "eng" / "tools" / "monitoring" / "run_monitored.py",
@@ -233,14 +243,18 @@ class TestMonitoredChecksRequestGate(unittest.TestCase):
 
 
 class TestRunnerGateEvidenceContract(unittest.TestCase):
-    """目标 2b：eng/ci/run.py 监控证据合同（请求判定才校验 frozen_gate）。
+    """目标 2b：eng/ci/run.py 监控证据合同（声明即必须监控；请求判定才校验 frozen_gate）。
 
-    F-CI-002-04/06 收窄（owner 裁决原则一致化应用, 2026-09-11）：合同从
-    "requires_monitor 必须判定"收窄为"命令请求了判定（--gate-required/
-    --gate-workers）就必须兑现判定证据"；未请求判定的监控检查（纯采样留证）
-    不强制 frozen_gate。注入形态：真 shim --gate-required 包装，真证据落
-    outputs 之外的 RAW 路径，被监控子命令写 outputs 登记的 MON_JSON（伪造面）
-    ——校验按 outputs 定位到伪造证据。
+    现行口径 = docs/ci/CI_SPEC.md §9.1（GATE-501 / D-12 取「真强制」分支，
+    test_gate_failclosed_selftest.py 为同口径注册门）：
+      * requires_monitor=true ⇒ **必须**产出含 cpu_samples 的监控证据，
+        缺失/不可解析 ⇒ FAIL(monitor_gate_missing)（**不因命令未带判定旗标而放行**）；
+      * 命令请求了判定（--gate-required/--gate-workers）⇒ 证据还必须含合法
+        frozen_gate.verdict ∈ {pass, not_applicable}，且四条 L2 冻结判据复核违规即红；
+      * 未请求判定的监控检查（纯采样留证）不强制 frozen_gate（仍强制监控证据本身）。
+
+    注入形态：真 shim --gate-required 包装，真证据落 outputs 之外的 RAW 路径，
+    被监控子命令写 outputs 登记的 MON_JSON（伪造面）——校验按 outputs 定位到伪造证据。
     """
 
     RAW_MON_JSON = "run/ci/monitor/CHK-MON-raw.json"
@@ -282,8 +296,40 @@ class TestRunnerGateEvidenceContract(unittest.TestCase):
             ci = H.load_ci_result(out_root)
             self.assertEqual(ci["verdict"], "FAIL")
 
+    # D-10 堵口后的合规证据面：四条 L2 冻结判据（CI_SPEC §9.2）逐条达标。
+    # verdict=pass 只是声明，裁决按 metrics 重算——metrics 空即 evidence_unevaluable 判红。
+    GOOD_METRICS = {
+        "effective_cpus": 16, "allocated": 16, "interval_seconds": 60.0,
+        "avg_utilization": 0.95, "p50_utilization": 0.97,
+        "sample_pass_fraction": 1.0, "max_low_window_seconds": 0.0,
+        "utilization_evaluated": True,
+    }
+
     def test_evidence_with_gate_verdict_passes(self):
-        """正向：证据含合法 frozen_gate.verdict=pass → PASS。"""
+        """正向：证据含合法 frozen_gate.verdict=pass 且 metrics 四判据达标 → PASS。"""
+        payload = ("{'duration_seconds': 60.0, 'poll_interval': 0.2,"
+                   " 'cpu_samples': [{'t': 0.0, 'cpu_percent': 100.0}],"
+                   " 'frozen_gate': {'verdict': 'pass', 'violations': [],"
+                   " 'recorded': [], 'metrics': " + repr(self.GOOD_METRICS) + "}}")
+        writer = ("import json,pathlib;"
+                  f"pathlib.Path({MON_JSON!r}).parent.mkdir(parents=True, exist_ok=True);"
+                  f"pathlib.Path({MON_JSON!r}).write_text(json.dumps(" + payload + "))")
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            repo = H.make_repo(root / "repo")
+            out_root = root / "out"
+            proc = _runner_mon_check(repo, out_root, self._mon_check(self._gate_cmd(writer)))
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            per = H.load_check_result(out_root, "CHK-MON")
+            self.assertEqual(per["verdict"], "PASS")
+
+    def test_forged_pass_with_degenerate_metrics_fails_closed(self):
+        """D-10 堵口（恒真门）：verdict=pass 但 metrics 不可重算 → 必红。
+
+        权威依据 docs/ci/CI_SPEC.md §9.2「证据含 frozen_gate ⇒ 四条 L2 冻结判据按
+        §9.2 复核，违规即红」+ §9.2 裁决面 l2_frozen_gate.adjudicate。声明式
+        verdict=pass 不构成证据：空 metrics 复算不出判据 ⇒ evidence_unevaluable。
+        """
         writer = (
             "import json,pathlib;"
             f"pathlib.Path({MON_JSON!r}).parent.mkdir(parents=True, exist_ok=True);"
@@ -297,9 +343,10 @@ class TestRunnerGateEvidenceContract(unittest.TestCase):
             repo = H.make_repo(root / "repo")
             out_root = root / "out"
             proc = _runner_mon_check(repo, out_root, self._mon_check(self._gate_cmd(writer)))
-            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(proc.returncode, 1, proc.stderr)
             per = H.load_check_result(out_root, "CHK-MON")
-            self.assertEqual(per["verdict"], "PASS")
+            self.assertEqual(per["verdict"], "FAIL(monitor_gate_missing)")
+            self.assertIn("L2 冻结判据", per.get("reason") or "")
 
     def test_evidence_with_contradicted_gate_fail_fails_closed(self):
         """矛盾注入：verdict=fail 但 exit_code=0（门禁未传导退出码）→ 必败。"""
@@ -454,16 +501,27 @@ class TestRunMonitoredGateRequiredFlag(unittest.TestCase):
             gate = H.load_json(out)["frozen_gate"]
             self.assertEqual(gate["verdict"], "not_applicable")
 
-    def test_gate_required_mutually_exclusive_with_gate_workers(self):
-        """--gate-required 与 --gate-workers 互斥：同给 → 用法错误（exit 2）。"""
+    def test_gate_required_with_declared_workers_is_prescribed_form(self):
+        """--gate-required 与 --gate-workers 同给 = **规定形态**（不是用法错误）。
+
+        权威依据 docs/plugins/infrastructure/21_observability.md:102：唯一判定点以
+        「run_monitored.py --gate-required --gate-workers <registry 声明>」形式执行，
+        且「--gate-workers 必须由 registry 显式声明」；docs/ci/CI_SPEC.md §9.1 亦把
+        两者并列为「请求判定」旗标。旧断言「两者互斥 ⇒ SystemExit(2)」与该规定形态
+        直接矛盾（会把规定形态判成用法错误），故按现行口径订正：同给必须被接受，
+        且已分配容量分母取自 --gate-workers。
+        """
         from tools.monitoring import run_monitored as RM
         with tempfile.TemporaryDirectory() as td:
             out = Path(td) / "ev.json"
-            with self.assertRaises(SystemExit) as ctx:
-                RM.main(["--timeout", "30", "--output", str(out),
-                         "--gate-required", "--gate-workers", "2",
-                         "--", sys.executable, "-c", "print('ok')"])
-            self.assertEqual(ctx.exception.code, 2)
+            rc = RM.main(["--timeout", "30", "--output", str(out),
+                          "--gate-required", "--gate-workers", "2",
+                          "--", sys.executable, "-c", "print('ok')"])
+            self.assertEqual(rc, 0, "规定形态必须被接受（短区间 → not_applicable，非豁免）")
+            metrics = H.load_json(out)["frozen_gate"]["metrics"]
+            self.assertEqual(metrics["allocated"], 2,
+                             "已分配容量分母必须取自 --gate-workers 声明值")
+            self.assertEqual(metrics["allocated_source"], "granted_workers")
 
     def test_gate_required_host_probe_unavailable_fails_closed(self):
         """host_probe 不可得（proc_root 指向空目录）→ 门禁 fail-closed → exit 10。"""

@@ -41,8 +41,9 @@ from pathlib import Path
 from unittest import mock
 
 _REPO = Path(__file__).resolve().parents[3]
-if str(_REPO) not in sys.path:
-    sys.path.insert(0, str(_REPO))
+_ENG = Path(__file__).resolve().parents[2]
+if str(_ENG) not in sys.path:
+    sys.path.insert(0, str(_ENG))
 
 from ci.tests import _helpers as H  # noqa: E402
 from ci import validate_registry as VR  # noqa: E402
@@ -413,7 +414,8 @@ class TestPlatformGating(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             repo = H.make_repo(root / "repo")
-            (repo / "eng" / "ci").mkdir(exist_ok=True)
+            # make_repo 只建 A.txt/B.txt，没有 eng/ 父目录 ⇒ 必须 parents=True
+            (repo / "eng" / "ci").mkdir(parents=True, exist_ok=True)
             (repo / "eng" / "tools" / "quality").mkdir(parents=True, exist_ok=True)
             # probe 需要的仓库内脚本副本（不执行，仅存在性探测）
             shutil.copyfile(_REPO / "eng" / "ci" / "resource_monitor.py",
