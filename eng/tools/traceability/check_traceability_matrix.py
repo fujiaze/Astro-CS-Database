@@ -21,6 +21,21 @@
                       test/evidence ID 若既不是占位也不是已建 authority（见
                       AUTHORITY_DIRS），登记缺 authority 文件；不崩溃。
 
+Git 面与 fail-closed（GITDECOUPLE-02；规范依据 docs/ci/01_CHECKS.md §1、
+ENGINEERING_SPEC.md §10、docs/traceability/TRACEABILITY_SPEC.md §7:123/:151）：
+  * 规则 C1/C7 逐字要求「文件存在**且受 Git 跟踪**」——"被跟踪" 是判据的一部分，
+    不是纯枚举源，因此**不**把 git 去掉（去掉等于放宽判据）；
+  * 但 git 不可用（无 git 可执行文件 / 非 git 工作树）时，原实现把
+    `git ls-files --error-unmatch` 的非零返回一律当 "未跟踪" ⇒ 真因被报成
+    MISSING_FILE / DANGLING_REF（实测：无 .git 镜像树里 28 条误导性错误），
+    且 git 缺失时抛 FileNotFoundError traceback（§1「不得 traceback」）；
+  * 现行为：启动时探测 git 面一次；不可用 ⇒ **显式降级 + 留痕**（打印
+    `GIT_UNAVAILABLE: <原因>`，JSON 记 git_face）——"被跟踪" 子判据整面跳过，
+    存在性等其余判据照常执行 —— 并 **fail-closed rc=2**（依赖不可用 ⇒ 不给结论）。
+  * CMakeLists 枚举面（ctest 目标注册判据的输入）改确定性 os.walk + 剪枝，
+    不依赖 git；枚举为空 ⇒ 判红点名 CMAKE_FACE_EMPTY（§1 scanned==0 ⇒ rc!=0）。
+退出码：0 PASS / 1 FAIL（判据命中）/ 2 依赖不可用（GIT_UNAVAILABLE，fail-closed）/
+        3 TOOLING_FAILURE（未捕获异常，不允许伪 PASS）。
 任何未捕获异常 → 打印 TOOLING_FAILURE 并 exit 3（不允许伪 PASS）。
 用法：
   python3 eng/tools/traceability/check_traceability_matrix.py [--root <repo>]
@@ -118,10 +133,67 @@ def warn(prefix: str, msg: str, subcode: str = None, sig: str = None) -> dict:
     return rec
 
 
+class GitUnavailable(Exception):
+    """git 不可用 / 非 git 工作树 —— C1/C7 的「被 Git 跟踪」子判据无法执行。
+
+    规范依据：docs/traceability/TRACEABILITY_SPEC.md §7:123/:151 把「受 Git 跟踪」
+    列为判据的一部分，故 git 面不可用时**不得**把它静默当成「未跟踪」（那会把
+    真因报成 MISSING_FILE/DANGLING_REF），也不得 traceback（docs/ci/01_CHECKS.md §1）。
+    """
+
+
+class AnchorStale(Exception):
+    """锚失效 / 枚举面为空 —— fail-closed（§1 锚存活 + scanned==0 ⇒ rc!=0）。"""
+
+
+# git 面探测缓存（结论与 rel 无关，只探一次）
+_GIT_FACE: dict = {}
+# 「被 Git 跟踪」子判据的可用性（main 启动时置位；不可用 ⇒ 整面跳过 + 留痕 + rc=2）
+_TRACKING: dict = {"probed": False, "available": True, "reason": "git 工作树"}
+
+
+def probe_tracking(root: str) -> tuple[bool, str]:
+    """探测 (git 面可用?, 原因)。缓存；git 可执行文件缺失也在此被显式吸收（不 traceback）。"""
+    key = os.path.abspath(root)
+    if key in _GIT_FACE:
+        return _GIT_FACE[key]
+    try:
+        p = subprocess.run(["git", "-C", key, "rev-parse", "--is-inside-work-tree"],
+                           capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError) as exc:
+        res = (False, f"git 调用失败（{exc.__class__.__name__}: {exc}）")
+    else:
+        if p.returncode != 0:
+            last = (p.stderr.strip().splitlines() or [""])[-1]
+            res = (False, f"非 git 工作树（git rev-parse rc={p.returncode}: {last[:140]}）")
+        elif p.stdout.strip() != "true":
+            res = (False, f"git rev-parse 输出非 true: {p.stdout.strip()[:60]!r}")
+        else:
+            res = (True, "git 工作树")
+    _GIT_FACE[key] = res
+    return res
+
+
+def tracking_available() -> bool:
+    return bool(_TRACKING["available"])
+
+
 def git_tracked(root: str, rel: str) -> bool:
-    r = subprocess.run(["git", "ls-files", "--error-unmatch", "--", rel],
-                       cwd=root, capture_output=True, text=True)
-    return r.returncode == 0
+    """rel 是否被 git 跟踪。git 面不可用 ⇒ GitUnavailable（调用方显式降级 + 留痕）。"""
+    ok, why = probe_tracking(root)
+    if not ok:
+        raise GitUnavailable(why)
+    try:
+        r = subprocess.run(["git", "ls-files", "--error-unmatch", "--", rel],
+                           cwd=root, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise GitUnavailable(f"git ls-files 调用失败（{exc.__class__.__name__}: {exc}）") from None
+    if r.returncode == 0:
+        return True
+    if r.returncode == 1:
+        return False  # git 的正常否定回答：确实未跟踪
+    last = (r.stderr.strip().splitlines() or [""])[-1]
+    raise GitUnavailable(f"git ls-files --error-unmatch rc={r.returncode}: {last[:140]}")
 
 
 def check_file(root: str, rel: str, results: list[dict]) -> None:
@@ -129,6 +201,8 @@ def check_file(root: str, rel: str, results: list[dict]) -> None:
     if not os.path.isfile(full):
         results.append(err("MISSING_FILE", f"{rel} 不存在"))
         return
+    if not tracking_available():
+        return  # 显式降级：由 main 统一打印 GIT_UNAVAILABLE 留痕 + rc=2，不在这里刷误导性错误
     if not git_tracked(root, rel):
         results.append(err("MISSING_FILE", f"{rel} 存在但未受 Git 跟踪（git ls-files --error-unmatch 失败）"))
 
@@ -169,6 +243,14 @@ def main() -> int:
     root = os.path.abspath(args.root)
     results: list[dict] = []
 
+    # git 面探测（一次）—— 显式降级 + 留痕（§1：不得 traceback、不得静默降级）
+    ok, why = probe_tracking(root)
+    _TRACKING.update(probed=True, available=ok, reason=why)
+    if not ok:
+        print(f"GIT_UNAVAILABLE: {why}\n  ⇒ C1/C7 的「受 Git 跟踪」子判据整面跳过（存在性等"
+              f"其余判据照常执行）；依赖不可用 ⇒ fail-closed rc=2，不给出 PASS 结论",
+              file=sys.stderr)
+
     # C1 文件存在 + 被跟踪
     check_file(root, MATRIX_REL, results)
     check_file(root, MATRIX_CSV_REL, results)
@@ -178,7 +260,7 @@ def main() -> int:
     data = parse_matrix(root, results)
     if data is None:
         n_errors, _n_warns = _finish(root, args, results)
-        return 1 if n_errors else 0
+        return _exit_code(n_errors)
 
     _check_csv_parity(root, results)
 
@@ -265,6 +347,14 @@ def main() -> int:
         if test_st == "VERIFIED" and src_st != "VERIFIED":
             results.append(err("CHAIN_BREAK", f"{mid}: TEST VERIFIED 但 SRC 非 VERIFIED（无实现却有测试证据）"))
 
+    # C7 输入面：ctest 目标注册判据的 CMakeLists 枚举面（确定性枚举，不依赖 git）。
+    # 空面 ⇒ 判红点名（§1 scanned==0 ⇒ rc!=0），且不在 _check_anchor 里刷 N 条同因错误。
+    try:
+        cmakelists_face(root)
+    except AnchorStale as exc:
+        results.append(err("DANGLING_REF",
+                           f"ctest 目标注册判据的枚举面不可用: {exc}", "CMAKE_FACE_EMPTY"))
+
     # C7 DANGLING_REF：VERIFIED 层锚可解析
     src_seen = {}
     for row in rows:
@@ -310,7 +400,7 @@ def main() -> int:
     # 旧写法在 _finish 之后从原 results 重算 errors —— strict 升级与基线判定的
     # 结果不进退出码 ⇒ 打印 FAIL 却 rc=0（该检查器自身的 fail-open）。
     n_errors, _n_warns = _finish(root, args, results)
-    return 1 if n_errors else 0
+    return _exit_code(n_errors)
 
 
 # —— 复合 test_path / src_path 解析（W4-A3） -------------------------------------
@@ -345,12 +435,24 @@ def _path_kind(root: str, rel: str) -> str:
 
 def _dir_tracked(root: str, rel: str) -> bool:
     """目录引用算「已跟踪」当且仅当目录下至少有一个 git 跟踪文件。"""
-    r = subprocess.run(["git", "ls-files", "--", rel + "/"], cwd=root,
-                       capture_output=True, text=True)
+    ok, why = probe_tracking(root)
+    if not ok:
+        raise GitUnavailable(why)
+    try:
+        r = subprocess.run(["git", "ls-files", "--", rel + "/"], cwd=root,
+                           capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise GitUnavailable(f"git ls-files 调用失败（{exc.__class__.__name__}: {exc}）") from None
+    if r.returncode != 0:
+        last = (r.stderr.strip().splitlines() or [""])[-1]
+        raise GitUnavailable(f"git ls-files -- {rel}/ rc={r.returncode}: {last[:140]}")
     return bool(r.stdout.strip())
 
 
 def _git_tracked_dir(root: str, rel: str) -> bool:
+    """路径是否属于「受 Git 跟踪」面；git 面不可用 ⇒ False（调用方已整面跳过）。"""
+    if not tracking_available():
+        return False
     return _dir_tracked(root, rel) if _path_kind(root, rel) == "dir" else git_tracked(root, rel)
 
 
@@ -458,7 +560,9 @@ def _check_anchor(root, mid, layer, p, results, seen):
             tgt = ent["target"]
             if any(ch in tgt for ch in "*?["):
                 continue  # glob 目标不逐名判定
-            if not git_tracked_cmakelists_has_target(root, tgt):
+            if not _cmake_face_available():
+                continue  # 枚举面不可用：main 已统一判红并留痕（CMAKE_FACE_EMPTY），不在此刷 N 条
+            if not cmakelists_has_target(root, tgt):
                 results.append(err("DANGLING_REF",
                                    f"{mid} [{layer}]: ctest 目标 {tgt} 未在任何 CMakeLists 中注册", "CTEST_TARGET_NOT_FOUND"))
             continue
@@ -470,7 +574,7 @@ def _check_anchor(root, mid, layer, p, results, seen):
                 results.append(err("DANGLING_REF",
                                    f"{mid} [{layer}]: 路径不存在 {rel}", "PATH_NOT_FOUND"))
             continue
-        if not _git_tracked_dir(root, rel):
+        if tracking_available() and not _git_tracked_dir(root, rel):
             # W4-A3 判据分级：「路径不存在」是硬错（ERROR）；「路径在盘上但尚未纳入
             # 版本库」是**工作区瞬时状态**（前台提交前必然出现，如 W4-A9 的迁移文件），
             # 与同文件既有的 REF_OUT_OF_SCOPE 同例：默认 WARN，--strict 升级 ERROR。
@@ -486,7 +590,9 @@ def _check_anchor(root, mid, layer, p, results, seen):
             sym = ent["case"]
             if kind == "dir":
                 # 目录引用 + 用例名：在该目录的 CMakeLists 中查找 ctest 目标/用例名
-                if not git_tracked_cmakelists_has_target(root, sym, subdir=rel):
+                if not _cmake_face_available():
+                    continue
+                if not cmakelists_has_target(root, sym, subdir=rel):
                     results.append(err("DANGLING_REF",
                                        f"{mid} [{layer}]: 用例/目标 {sym} 不在 {rel} 的 CMakeLists", "CASE_NOT_FOUND"))
                 continue
@@ -506,29 +612,68 @@ def _check_anchor(root, mid, layer, p, results, seen):
 
 
 _CMAKELISTS_TARGET_CACHE: dict = {}
+# CMakeLists 枚举面的剪枝排除面（构建区 / 临时产物区 / VCS 元数据；AGENTS.md §3/§7）
+CMAKE_FACE_EXCLUDED_DIRS = ("build", "run", ".git")
+ADD_TEST_NAME_RE = re.compile(r"add_test\s*\(\s*NAME\s+([^\s()#]+)")
 
 
-def git_tracked_cmakelists_has_target(root: str, target: str, subdir: str = None) -> bool:
-    """目标名是否出现在 git 跟踪的 CMakeLists.txt 的 add_test(NAME …) 中。
+def _cmake_walk_error(exc: OSError) -> None:
+    """遍历期错误 ⇒ 枚举面可能静默缩小 —— fail-closed，不静默跳过。"""
+    raise AnchorStale(f"CMAKE_SCAN_FACE_WALK_ERROR: {exc}")
+
+
+def cmakelists_face(root: str) -> list[str]:
+    """CMakeLists.txt 枚举面（仓库相对路径；确定性 os.walk + 剪枝，**不依赖 git**）。
+
+    GITDECOUPLE-02：原实现用 `git ls-files -- CMakeLists.txt */CMakeLists.txt` 取面 ——
+    那是**纯枚举源**（判据是 "目标是否在任一 CMakeLists 的 add_test(NAME …) 中注册"），
+    却在非 git 树里退化成空面 ⇒ 全部 ctest 目标被判 "未在任何 CMakeLists 中注册"（误导）。
+    实测真仓库：剪枝枚举 80 个 == `git ls-files` 80 个（集合逐元素相等），
+    add_test(NAME) 目标 325 == 325（无漂移）；且 worktree 枚举不再受
+    git pathspec `*/CMakeLists.txt` 只匹配一层深的限制。
+
+    枚举为空 ⇒ AnchorStale（fail-closed；§1「scanned == 0 ⇒ rc != 0」），
+    调用方（main）转成点名判红 CMAKE_FACE_EMPTY。
+    """
+    if "names" in _CMAKELISTS_TARGET_CACHE:
+        return _CMAKELISTS_TARGET_CACHE.get("face", [])
+    found: list[str] = []
+    for dirpath, dirnames, filenames in os.walk(root, onerror=_cmake_walk_error,
+                                               followlinks=False):
+        dirnames[:] = sorted(d for d in dirnames if d not in CMAKE_FACE_EXCLUDED_DIRS)
+        if "CMakeLists.txt" in filenames:
+            found.append(os.path.relpath(os.path.join(dirpath, "CMakeLists.txt"), root)
+                         .replace(os.sep, "/"))
+    if not found:
+        raise AnchorStale(
+            f"CMAKE_SCAN_FACE_EMPTY: {root} 下未枚举到任何 CMakeLists.txt"
+            f"（排除面 {CMAKE_FACE_EXCLUDED_DIRS}）—— ctest 目标注册判据无输入")
+    names = set()
+    for rel in sorted(found):
+        try:
+            text = open(os.path.join(root, rel), encoding="utf-8",
+                        errors="replace").read()
+        except OSError:
+            continue
+        for m in ADD_TEST_NAME_RE.finditer(text):
+            names.add((m.group(1).strip().strip('"'), rel))
+    _CMAKELISTS_TARGET_CACHE["face"] = sorted(found)
+    _CMAKELISTS_TARGET_CACHE["names"] = names
+    return _CMAKELISTS_TARGET_CACHE["face"]
+
+
+def _cmake_face_available() -> bool:
+    return "names" in _CMAKELISTS_TARGET_CACHE
+
+
+def cmakelists_has_target(root: str, target: str, subdir: str = None) -> bool:
+    """目标名是否出现在枚举面内任一 CMakeLists.txt 的 add_test(NAME …) 中。
 
     带缓存与一次全树扫描；用于区分「路径不存在」与「用例/目标不存在」。
+    枚举面为空 ⇒ AnchorStale（不静默返回 False 把真因报成 "目标未注册"）。
     """
-    if not _CMAKELISTS_TARGET_CACHE:
-        r = subprocess.run(["git", "ls-files", "--", "CMakeLists.txt", "*/CMakeLists.txt"],
-                           cwd=root, capture_output=True, text=True)
-        names = set()
-        for rel in r.stdout.splitlines():
-            rel = rel.strip()
-            if not rel or not rel.endswith("CMakeLists.txt"):
-                continue
-            full = os.path.join(root, rel)
-            try:
-                text = open(full, encoding="utf-8", errors="replace").read()
-            except Exception:  # noqa: BLE001
-                continue
-            for m in re.finditer(r"add_test\s*\(\s*NAME\s+([^\s()#]+)", text):
-                names.add((m.group(1).strip().strip('"'), rel))
-        _CMAKELISTS_TARGET_CACHE["names"] = names
+    if not _cmake_face_available():
+        cmakelists_face(root)
     names = _CMAKELISTS_TARGET_CACHE.get("names", set())
     if subdir is not None:
         pre = subdir.rstrip("/") + "/"
@@ -659,6 +804,13 @@ def _load_warn_baseline(root, rel):
     return sigs, None
 
 
+def _exit_code(n_errors: int) -> int:
+    """退出码：依赖不可用 ⇒ 2（fail-closed，不给结论）；否则按错误数 1/0。"""
+    if not tracking_available():
+        return 2
+    return 1 if n_errors else 0
+
+
 def _finish(root, args, results):
     base_sigs, base_err = _load_warn_baseline(root, WARN_BASELINE_REL)
     if getattr(args, "ignore_baseline", False):
@@ -702,7 +854,12 @@ def _finish(root, args, results):
             "bypassed": bool(getattr(args, "ignore_baseline", False)),
         },
         "issues": sorted(results, key=lambda r: (r["severity"], r["code"], r["detail"])),
-        "result": "TRACEABILITY_MATRIX_PASS" if not errors else "TRACEABILITY_MATRIX_FAIL",
+        # git 面留痕（§1「显式降级 + 留痕」）：available=False ⇒ 结论是 UNVERIFIABLE，rc=2
+        "git_face": {"available": tracking_available(),
+                     "detail": _TRACKING.get("reason", "")},
+        "result": ("TRACEABILITY_MATRIX_FAIL" if errors
+                   else ("TRACEABILITY_MATRIX_UNVERIFIABLE" if not tracking_available()
+                         else "TRACEABILITY_MATRIX_PASS")),
     }
     # 附上输入 hash 与矩阵统计
     full = os.path.join(root, MATRIX_REL)
@@ -724,6 +881,12 @@ def _finish(root, args, results):
             tag = r["code"] + ("/" + r["subcode"] if r.get("subcode") else "")
             print(f"  [{tag}] {r['detail']}")
         print("WARN 摘要: %d 条（--strict 将升级为 ERROR）" % len(warns))
+    elif not tracking_available():
+        # 无判据违规但依赖不可用 ⇒ 不得打印 PASS（§1 fail-closed）
+        print("TRACEABILITY_MATRIX_UNVERIFIABLE: GIT_UNAVAILABLE %s"
+              % _TRACKING.get("reason", ""))
+        print("  「受 Git 跟踪」子判据（C1/C7）已显式跳过并留痕；存在性等判据已全部执行；"
+              "依赖不可用 ⇒ rc=2，不给出 PASS 结论")
     else:
         rows = 0
         try:

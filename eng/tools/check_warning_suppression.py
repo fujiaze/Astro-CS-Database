@@ -347,10 +347,21 @@ def count_build_warnings(build_dir, repo=None, build_cmd="cmake"):
     return r.stdout.strip()
 
 
-def measure_build(build_dir):
+# 强制重编锚 (单源常量; 锚失效 ⇒ ANCHOR_STALE rc=2)
+MEASURE_BUILD_ANCHOR_REL = "lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp"
+
+
+def measure_build(build_dir, repo=None):
     """touch 强制重编一个生产文件后统计警告 (构建树存在时的功能需要)。
 
-    返回警告统计串; 锚失效时返回 None (调用方 fail-closed 判 FAIL)。
+    返回警告统计串; 锚失效时返回 None (调用方 fail-closed 判 ANCHOR_STALE + rc=2)。
+
+    GITDECOUPLE-02: 原 main 在这条分支上打印 ANCHOR_STALE 却 `return 1` ——
+    与本文件 docstring 的退出码约定 ("2 = ANCHOR_STALE") 及 `static_scan` 的
+    ANCHOR_STALE 分支 (rc=2) 自相矛盾, 也与 §1「锚失效须显式点名失败」的语义分级
+    不一致 (1 = 判据违规, 2 = 锚/扫描面不可用)。现两条 ANCHOR_STALE 分支同为 rc=2。
+    repo 参数仅供 --selftest 注入夹具根 (生产调用不传 ⇒ 真仓库), 使"锚失效"分支
+    可在不触碰真仓库、不触发构建的前提下被机器断言。
 
     锚点订正 (DOC-205 回执 #1): 原锚 wrapper_phase1/noise_model.cpp 已按
     NOISE-MODEL-CANON-001 / EXP-206 定案从 HEAD 删除 (B 为 A 的退化子集, 退役),
@@ -359,13 +370,14 @@ def measure_build(build_dir):
     改锚为仍在 astrocs_phase1_noise 源列表内的
     wrapper_phase1/snr_frame_science.cpp (CMakeLists.txt:646)。
     """
-    rel_src = REPO / "lib" / "algorithms" / "noise_snr" / "wrapper_phase1" / "snr_frame_science.cpp"
+    repo = pathlib.Path(repo) if repo is not None else REPO
+    rel_src = repo / MEASURE_BUILD_ANCHOR_REL
     if not rel_src.is_file():
-        # 锚存活 (ENGINEERING_SPEC.md §8): 硬编码锚失效 ⇒ 显式判红, 不静默跳过、
-        # 不 touch 出幽灵文件。
+        # 锚存活 (ENGINEERING_SPEC.md §8 / docs/ci/01_CHECKS.md §1): 硬编码锚失效 ⇒
+        # 显式判红 (调用方 rc=2 ANCHOR_STALE), 不静默跳过、不 touch 出幽灵文件。
         return None
     rel_src.touch()
-    return count_build_warnings(build_dir)
+    return count_build_warnings(build_dir, repo=repo)
 
 
 def selftest() -> int:
@@ -460,14 +472,24 @@ def selftest() -> int:
         if not any("oneshot_fixture" in e for e in errs6):
             fails.append("负例6 排除面失效后一次性夹具未判红: %s" % errs6)
 
+        # 负例 ⑦: measure_build 的强制重编锚失效 ⇒ 返回 None (main 据此判 ANCHOR_STALE
+        #   rc=2)。夹具根下没有该锚 ⇒ 分支在 touch / 构建**之前**返回: 既不触碰真仓库,
+        #   也不触发构建 (本自测全程零构建)。能红能绿: 正例面由真仓库 rc=0 覆盖。
+        fake_build = root / "build"
+        fake_build.mkdir(parents=True, exist_ok=True)
+        if measure_build(fake_build, repo=root) is not None:
+            fails.append("负例7 measure_build 锚失效未返回 None (应 fail-closed rc=2)")
+        if (root / MEASURE_BUILD_ANCHOR_REL).exists():
+            fails.append("负例7 锚失效分支竟 touch 出幽灵文件: %s" % MEASURE_BUILD_ANCHOR_REL)
+
     if fails:
         print("QA-001_SELFTEST_FAIL:")
         for f in fails:
             print("  " + f)
         return 1
     print("QA-001_SELFTEST_PASS: 干净夹具绿; 未登记 -w / PROD_DIRS 锚失效 / "
-          "根 CMake 缺失 / 历史抑制变量 / 排除面失效 各自判红; "
-          "add_test 内 shell -w 与 run|build 一次性夹具不误报")
+          "根 CMake 缺失 / 历史抑制变量 / 排除面失效 / measure_build 锚失效(rc=2 面) "
+          "各自判红; add_test 内 shell -w 与 run|build 一次性夹具不误报")
     return 0
 
 
@@ -496,12 +518,13 @@ def main(argv=None) -> int:
         return 1
     warn = measure_build(build_dir)
     if warn is None:
-        # 锚存活 fail-closed (ENGINEERING_SPEC §8): 硬编码生产源不存在 ⇒ 判红,
-        # 不得把「锚失效」当「零警告」。
-        print("QA-001_FAIL: ANCHOR_STALE 强制重编锚 "
-              "lib/algorithms/noise_snr/wrapper_phase1/snr_frame_science.cpp 不存在 "
-              "⇒ 编译警告统计无法执行, fail-closed 判 FAIL")
-        return 1
+        # 锚存活 fail-closed (ENGINEERING_SPEC.md §10 / docs/ci/01_CHECKS.md §1):
+        # 硬编码生产源不存在 ⇒ 判红, 不得把「锚失效」当「零警告」。
+        # 退出码 2 = ANCHOR_STALE (本文件 docstring 的约定; 与 static_scan 分支一致) ——
+        # GITDECOUPLE-02 前此处误为 1, 把"锚失效"混进"判据违规"。
+        print(f"ANCHOR_STALE: MEASURE_BUILD_ANCHOR_REL {MEASURE_BUILD_ANCHOR_REL} 不存在"
+              f" ⇒ 编译警告统计无法执行, fail-closed (rc=2)")
+        return 2
     if warn not in ("", "0"):
         print("QA-001_WARN_VIOLATION:")
         print("  生产构建警告 %s 个 (非 0)" % warn)

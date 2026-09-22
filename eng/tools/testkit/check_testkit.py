@@ -18,7 +18,19 @@
   K6 故障注入（--fault-injection）：篡改期望/断链 fixture/把 oracle 换成生产
      符号，随后 harness 必须 FAIL（exit != 0），否则 FORBIDDEN_PASS。
 
-任何未捕获异常 → TOOLING_FAILURE exit 3（不允许伪 PASS）。
+Git 面与 fail-closed（GITDECOUPLE-02；规范依据 docs/ci/01_CHECKS.md §1、
+ENGINEERING_SPEC.md §10、eng/tests/testkit/testkit.spec.md §7:28）：
+  * K1 逐字要求元数据文件「存在且被 Git 跟踪」——"被跟踪" 是判据的一部分，不删
+    （删掉等于放宽判据）；但 git 不可用（无 git 可执行文件 / 非 git 工作树）时，
+    原实现把 `git ls-files --error-unmatch` 的非零返回一律当 "未跟踪" ⇒ 真因被报成
+    "文件未受 Git 跟踪"（实测：无 .git 镜像树里 2 条误导性 MISSING_FILE），
+    git 缺失时更是 FileNotFoundError traceback（§1「不得 traceback」）。
+  * 现行为：启动时探测 git 面一次；不可用 ⇒ **显式降级 + 留痕**（打印
+    `GIT_UNAVAILABLE: <原因>`，JSON 记 git_face）——"被跟踪" 子判据整面跳过，
+    存在性 / schema / 唯一性 / 期望来源等判据照常执行 —— 并 **fail-closed rc=2**
+    （依赖不可用 ⇒ 不给结论，不打印 TESTKIT_PASS）。
+退出码：0 TESTKIT_PASS / 1 TESTKIT_FAIL / 2 依赖不可用（GIT_UNAVAILABLE，fail-closed）/
+        3 TOOLING_FAILURE（未捕获异常，不允许伪 PASS）。
 用法：
   python3 eng/tools/testkit/check_testkit.py --root <repo> [--list] [--module <id>]
       [--strict] [--fault-injection] [--json-out <file>]
@@ -53,10 +65,57 @@ def warn(code, msg):
     return {"severity": "WARN", "code": code, "detail": msg}
 
 
+class GitUnavailable(Exception):
+    """git 不可用 / 非 git 工作树 —— K1「被 Git 跟踪」子判据无法执行（§1 不得 traceback）。"""
+
+
+# git 面探测缓存（结论与 rel 无关，只探一次）与「被跟踪」子判据可用性
+_GIT_FACE: dict = {}
+_TRACKING: dict = {"available": True, "reason": "git 工作树"}
+
+
+def probe_tracking(root):
+    """探测 (git 面可用?, 原因)。缓存；git 可执行文件缺失在此被显式吸收（不 traceback）。"""
+    key = os.path.abspath(root)
+    if key in _GIT_FACE:
+        return _GIT_FACE[key]
+    try:
+        p = subprocess.run(["git", "-C", key, "rev-parse", "--is-inside-work-tree"],
+                           capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError) as exc:
+        res = (False, f"git 调用失败（{exc.__class__.__name__}: {exc}）")
+    else:
+        if p.returncode != 0:
+            last = (p.stderr.strip().splitlines() or [""])[-1]
+            res = (False, f"非 git 工作树（git rev-parse rc={p.returncode}: {last[:140]}）")
+        elif p.stdout.strip() != "true":
+            res = (False, f"git rev-parse 输出非 true: {p.stdout.strip()[:60]!r}")
+        else:
+            res = (True, "git 工作树")
+    _GIT_FACE[key] = res
+    return res
+
+
+def tracking_available():
+    return bool(_TRACKING["available"])
+
+
 def git_tracked(root, rel):
-    r = subprocess.run(["git", "ls-files", "--error-unmatch", "--", rel],
-                       cwd=root, capture_output=True, text=True)
-    return r.returncode == 0
+    """rel 是否被 git 跟踪。git 面不可用 ⇒ GitUnavailable（调用方显式降级 + 留痕）。"""
+    ok, why = probe_tracking(root)
+    if not ok:
+        raise GitUnavailable(why)
+    try:
+        r = subprocess.run(["git", "ls-files", "--error-unmatch", "--", rel],
+                           cwd=root, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise GitUnavailable(f"git ls-files 调用失败（{exc.__class__.__name__}: {exc}）") from None
+    if r.returncode == 0:
+        return True
+    if r.returncode == 1:
+        return False  # git 的正常否定回答：确实未跟踪
+    last = (r.stderr.strip().splitlines() or [""])[-1]
+    raise GitUnavailable(f"git ls-files --error-unmatch rc={r.returncode}: {last[:140]}")
 
 
 def load_json(root, rel, results):
@@ -64,7 +123,7 @@ def load_json(root, rel, results):
     if not os.path.isfile(full):
         results.append(err("MISSING_FILE", f"{rel} 不存在"))
         return None
-    if not git_tracked(root, rel):
+    if tracking_available() and not git_tracked(root, rel):
         results.append(err("MISSING_FILE", f"{rel} 存在但未受 Git 跟踪"))
     try:
         with open(full, encoding="utf-8") as f:
@@ -182,6 +241,14 @@ def main() -> int:
     args = ap.parse_args()
     root = os.path.abspath(args.root)
     results: list[dict] = []
+
+    # git 面探测（一次）—— 显式降级 + 留痕（§1：不得 traceback、不得静默降级）
+    ok, why = probe_tracking(root)
+    _TRACKING.update(available=ok, reason=why)
+    if not ok:
+        print(f"GIT_UNAVAILABLE: {why}\n  ⇒ K1 的「受 Git 跟踪」子判据整面跳过（存在性 / schema /"
+              f" 唯一性 / 期望来源等判据照常执行）；依赖不可用 ⇒ fail-closed rc=2，"
+              f"不给出 TESTKIT_PASS 结论", file=sys.stderr)
 
     schema = load_json(root, SCHEMA_REL, results)
     registry = load_json(root, REGISTRY_REL, results)
@@ -307,7 +374,12 @@ def _finish(root, args, results, executed=None) -> int:
         "errors": len(errors),
         "warns": len(warns),
         "issues": sorted(results, key=lambda r: (r["severity"], r["code"], r["detail"])),
-        "verdict": "TESTKIT_PASS" if not errors else "TESTKIT_FAIL",
+        # git 面留痕（§1「显式降级 + 留痕」）：available=False ⇒ 结论 UNVERIFIABLE，rc=2
+        "git_face": {"available": tracking_available(),
+                     "detail": _TRACKING.get("reason", "")},
+        "verdict": ("TESTKIT_FAIL" if errors
+                    else ("TESTKIT_UNVERIFIABLE" if not tracking_available()
+                          else "TESTKIT_PASS")),
     }
     text = json.dumps(summary, ensure_ascii=False, indent=1, sort_keys=True)
     if args.json_out:
@@ -324,6 +396,12 @@ def _finish(root, args, results, executed=None) -> int:
         if warns:
             print(f"WARN: {len(warns)} 条（--strict 升级为 ERROR）")
         return 1
+    if not tracking_available():
+        # 无判据违规但依赖不可用 ⇒ 不得打印 PASS（§1 fail-closed）
+        print(f"TESTKIT_UNVERIFIABLE: GIT_UNAVAILABLE {_TRACKING.get('reason', '')}")
+        print("  「受 Git 跟踪」子判据（K1）已显式跳过并留痕；存在性等判据已全部执行；"
+              "依赖不可用 ⇒ rc=2，不给出 PASS 结论")
+        return 2
     print(f"TESTKIT_PASS errors=0" + (f" warns={len(warns)}" if warns else ""))
     if executed is not None:
         print(f"  executed={len(executed)}")
