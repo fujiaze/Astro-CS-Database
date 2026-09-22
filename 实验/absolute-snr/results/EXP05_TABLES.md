@@ -9,11 +9,11 @@
 
 | 数据类 | 场景 | c_agg | b_f（帧级估计器） | b_c（局部估计器） | c_sigma | **绝对表示 SNR 偏差** | **相对表示 SNR 偏差** | 比值 |
 |---|---|---|---|---|---|---|---|---|
-| 解析合成 | flat_no_struct | +1.0000 | +0.9862 | +0.9861 | +1.0002 | **+1.41%** | **+1.40%** | 1.0x |
-| 解析合成 | flat_with_struct | +1.0000 | +1.8293 | +1.0087 | +1.8113 | **-0.86%** | **-45.32%** | 52.7x |
-| 解析合成 | vary_no_struct | +1.0789 | +0.9191 | +0.9845 | +1.0117 | **+1.57%** | **+0.36%** | 0.2x |
-| 解析合成 | ramp_no_struct | +1.0135 | +0.9686 | +0.9862 | +0.9974 | **+1.40%** | **+1.62%** | 1.2x |
-| 解析合成 | vary_with_struct | +1.0554 | +1.7252 | +1.0059 | +1.8122 | **-0.58%** | **-45.08%** | 77.2x |
+| 解析合成 | flat_no_struct | +1.0000 | +0.9861 | +0.9857 | +1.0001 | **+1.45%** | **+1.41%** | 1.0x |
+| 解析合成 | flat_with_struct | +1.0000 | +1.7897 | +1.0102 | +1.7734 | **-1.01%** | **-44.12%** | 43.9x |
+| 解析合成 | vary_no_struct | +1.0997 | +0.9147 | +0.9842 | +1.0262 | **+1.60%** | **-1.04%** | 0.6x |
+| 解析合成 | ramp_no_struct | +1.0135 | +0.9686 | +0.9858 | +0.9953 | **+1.44%** | **+1.89%** | 1.3x |
+| 解析合成 | vary_with_struct | +1.0848 | +1.6967 | +1.0057 | +1.8245 | **-0.56%** | **-45.47%** | 80.5x |
 | HST 前向 | hst_null | +0.9997 | +0.9865 | +0.9844 | +1.0010 | **+1.58%** | **+1.47%** | 0.9x |
 | HST 前向 | hst_struct | +1.2668 | +0.8687 | +0.9997 | +1.0998 | **+0.03%** | **-9.05%** | 313.5x |
 | HST 前向 | hst_struct_varsky | +1.3137 | +0.8586 | +0.9975 | +1.1305 | **+0.25%** | **-11.32%** | 44.6x |
@@ -114,7 +114,7 @@
 | **PASS** | G1d_exp1_ratio_1.000000_is_theorem | +0.000000 | <= 1e-12 |
 | **PASS** | G2a_fixed_prior_mean_breaks_common_mode | +0.504050 | > 1e-3 |
 | **PASS** | G2b_homogeneous_operator_has_no_residual | +0.000000 | <= 1e-12 |
-| **PASS** | G3_negative_control_degenerate | {"gap": 5.694039912218507e-05, "threshold": 0.0015825876836977435} | <= max(3*sd,1e-3) |
+| **PASS** | G3_negative_control_degenerate | {"gap": 0.00036944997178989247, "threshold": 0.0013048926324023202} | <= max(3*sd,1e-3) |
 | **PASS** | G4_anchor_discrepancy_is_live_on_real_data | +2.703630 | |c-1| > 0.1 |
 | **PASS** | G5a_frame_scalar_fault_leaves_absolute_bitwise | +0.000000 | == 0 |
 | **PASS** | G5b_frame_scalar_fault_moves_relative_linearly | +0.000000 | <= 1e-12 |
@@ -128,8 +128,8 @@
 | **PASS** | G9a_cross_frame_E_closed_form_matches | +0.000000 | <= 1e-12 |
 | **PASS** | G9b_cross_frame_E_positive_when_c_differs | +0.006507 | > 0 |
 | **PASS** | G10_combined_snr_level_bias_dominated_by_common_mode | {"common": 1.8603446214423816, "xframe": -0.002334660951879952} | common > 10*xframe |
-| **PASS** | G11_abs_closer_than_rel[flat_with_struct] | {"abs": -0.008597097293408129, "rel": -0.45323721707892} | |abs| < |rel|/3 |
-| **PASS** | G11_abs_closer_than_rel[vary_with_struct] | {"abs": -0.005836001246866784, "rel": -0.45076347511456644} | |abs| < |rel|/3 |
+| **PASS** | G11_abs_closer_than_rel[flat_with_struct] | {"abs": -0.010051412225691114, "rel": -0.4411813494937777} | |abs| < |rel|/3 |
+| **PASS** | G11_abs_closer_than_rel[vary_with_struct] | {"abs": -0.005648086073645531, "rel": -0.4547165689973078} | |abs| < |rel|/3 |
 | **PASS** | G11_abs_closer_than_rel[hst_struct] | {"abs": 0.00028878466098203326, "rel": -0.0905213850965233} | |abs| < |rel|/3 |
 | **PASS** | G11_abs_closer_than_rel[hst_struct_varsky] | {"abs": 0.002539492888801176, "rel": -0.11315155568776303} | |abs| < |rel|/3 |
 | **PASS** | G11_abs_closer_than_rel[real_M1] | {"abs": 0.001466241146564018, "rel": 0.16980393494790424} | |abs| < |rel|/3 |

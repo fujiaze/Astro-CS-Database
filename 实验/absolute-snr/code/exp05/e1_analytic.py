@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+import zlib
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -87,7 +88,8 @@ def build_scenarios():
 def run_scenario(name, desc, sig_fn, struct_fn, n_mc=N_MC, seed=X.SEED):
     rows: List[Dict[str, Any]] = []
     for m in range(n_mc):
-        rng = np.random.default_rng(seed + 101 * m + abs(hash(name)) % 1000)
+        # **确定性**场景偏移：禁用 Python 的字符串 hash（PYTHONHASHSEED 随机化会使复跑不可复现）
+        rng = np.random.default_rng(seed + 101 * m + int(zlib.crc32(name.encode()) % 1000))
         sig = np.asarray(sig_fn(rng), dtype=np.float64)
         struct = np.asarray(struct_fn(rng), dtype=np.float64)
         img = struct + rng.normal(0.0, 1.0, size=SHAPE) * sig

@@ -3,7 +3,7 @@
   "delta_px": 64,
   "meaning": "整帧裁剪 RMS 在原始像素 vs 去大尺度结构残差上的读数之比 = 结构对帧级 sigma 的贡献倍数（无需真值）",
   "data_class": "testdata 真实数据（只读）",
-  "elapsed_s": 16.895880699157715
+  "elapsed_s": 20.294893980026245
  },
  "frames": [
   {

@@ -1,0 +1,293 @@
+{
+ "experiment": "SCI-B / EXP-04 跨帧一致性",
+ "frozen_config": {
+  "delta_px": 64,
+  "crop": 1024,
+  "m_realization": 8,
+  "seed_base": 20260921
+ },
+ "C1a_analytic_multi_realization": {
+  "nn": {
+   "scatter_median_dex": 0.0075681510217507995,
+   "scatter_p95_dex": 0.011497438385082099
+  },
+  "bilinear": {
+   "scatter_median_dex": 0.005036077222220437,
+   "scatter_p95_dex": 0.008357888242874392
+  },
+  "bicubic_cc": {
+   "scatter_median_dex": 0.0060891346616615185,
+   "scatter_p95_dex": 0.009771382367968304
+  },
+  "spline_natural": {
+   "scatter_median_dex": 0.006551294653758795,
+   "scatter_p95_dex": 0.01029622527969627
+  },
+  "sextractor_spline": {
+   "scatter_median_dex": 0.005650779657368741,
+   "scatter_p95_dex": 0.009404181594982196
+  },
+  "photutils_zoom3": {
+   "scatter_median_dex": 0.005697104879391565,
+   "scatter_p95_dex": 0.009544876309776497
+  },
+  "photutils_zoom1": {
+   "scatter_median_dex": 0.0046676392186432115,
+   "scatter_p95_dex": 0.007996319655023546
+  },
+  "idw": {
+   "scatter_median_dex": 0.0030192665742341824,
+   "scatter_p95_dex": 0.0053278215056224085
+  },
+  "gpr_rbf": {
+   "scatter_median_dex": 0.006995298063654818,
+   "scatter_p95_dex": 0.010888332191195647
+  },
+  "gpr_matern32": {
+   "scatter_median_dex": 0.0063368049911708135,
+   "scatter_p95_dex": 0.010110065760452836
+  },
+  "gpr_exp": {
+   "scatter_median_dex": 0.004965989353034182,
+   "scatter_p95_dex": 0.008161438531890872
+  },
+  "frame_median_scalar": {
+   "scatter_median_dex": 0.0009374134659156136,
+   "scatter_p95_dex": null,
+   "values": [
+    0.9803667245896308,
+    0.9839458102569067,
+    0.9853723360711044,
+    0.9870300864957495,
+    0.9861663034610619,
+    0.9841707091159078,
+    0.9834292425802406,
+    0.9824644126629496
+   ]
+  }
+ },
+ "C1b_hst_multi_realization": {
+  "nn": {
+   "scatter_median_dex": 0.0071450705551436185,
+   "scatter_p95_dex": 0.011325849637141158
+  },
+  "bilinear": {
+   "scatter_median_dex": 0.004761750512941051,
+   "scatter_p95_dex": 0.008372858985697807
+  },
+  "bicubic_cc": {
+   "scatter_median_dex": 0.005862037237730501,
+   "scatter_p95_dex": 0.00968152479871654
+  },
+  "spline_natural": {
+   "scatter_median_dex": 0.006332136864928205,
+   "scatter_p95_dex": 0.01022386656741457
+  },
+  "sextractor_spline": {
+   "scatter_median_dex": 0.004873514008905877,
+   "scatter_p95_dex": 0.008127107127719201
+  },
+  "photutils_zoom3": {
+   "scatter_median_dex": 0.00490356290309041,
+   "scatter_p95_dex": 0.008403203387725504
+  },
+  "photutils_zoom1": {
+   "scatter_median_dex": 0.004059334114427274,
+   "scatter_p95_dex": 0.00700234500214321
+  },
+  "idw": {
+   "scatter_median_dex": 0.002856226259111011,
+   "scatter_p95_dex": 0.005227071944591148
+  },
+  "gpr_rbf": {
+   "scatter_median_dex": 0.006766182384878415,
+   "scatter_p95_dex": 0.011239726926273048
+  },
+  "gpr_matern32": {
+   "scatter_median_dex": 0.006130339553203518,
+   "scatter_p95_dex": 0.01023715720288207
+  },
+  "gpr_exp": {
+   "scatter_median_dex": 0.0047348346273147655,
+   "scatter_p95_dex": 0.008227880351913719
+  }
+ },
+ "C2_real_checkerboard_split": {
+  "M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts": {
+   "meta": {
+    "file": "M42_M1_T2_flying_dutchman-20251212@012404-300S-Red.fts",
+    "exptime": 300.0,
+    "filter": "Red",
+    "crop": 1024
+   },
+   "rows": {
+    "nn": {
+     "split_scatter_median_dex": 0.0,
+     "split_scatter_p95_dex": 0.04575749056067517
+    },
+    "bilinear": {
+     "split_scatter_median_dex": 0.007845533028336035,
+     "split_scatter_p95_dex": 0.03746736980208208
+    },
+    "bicubic_cc": {
+     "split_scatter_median_dex": 0.008909682431268974,
+     "split_scatter_p95_dex": 0.044374077041862914
+    },
+    "spline_natural": {
+     "split_scatter_median_dex": 0.010803208994663402,
+     "split_scatter_p95_dex": 0.04612117394516655
+    },
+    "sextractor_spline": {
+     "split_scatter_median_dex": 0.004826389837998268,
+     "split_scatter_p95_dex": 0.04593566266126615
+    },
+    "photutils_zoom3": {
+     "split_scatter_median_dex": 0.003448838589402676,
+     "split_scatter_p95_dex": 0.045017978150578425
+    },
+    "photutils_zoom1": {
+     "split_scatter_median_dex": 0.0022223592779229916,
+     "split_scatter_p95_dex": 0.041251825915489815
+    },
+    "idw": {
+     "split_scatter_median_dex": 0.005520225681266441,
+     "split_scatter_p95_dex": 0.020192106237052355
+    },
+    "gpr_rbf": {
+     "split_scatter_median_dex": 0.012421115657229672,
+     "split_scatter_p95_dex": 0.048510823615493734
+    },
+    "gpr_matern32": {
+     "split_scatter_median_dex": 0.009914552268204384,
+     "split_scatter_p95_dex": 0.04538330718529882
+    },
+    "gpr_exp": {
+     "split_scatter_median_dex": 0.007821897845735174,
+     "split_scatter_p95_dex": 0.036578329219313345
+    },
+    "frame_median_scalar": {
+     "split_scatter_median_dex": 0.0,
+     "split_scatter_p95_dex": null
+    }
+   }
+  },
+  "M42_M2_T2_flying_dutchman-20251212@020002-300S-Red.fts": {
+   "meta": {
+    "file": "M42_M2_T2_flying_dutchman-20251212@020002-300S-Red.fts",
+    "exptime": 300.0,
+    "filter": "Red",
+    "crop": 1024
+   },
+   "rows": {
+    "nn": {
+     "split_scatter_median_dex": 0.0,
+     "split_scatter_p95_dex": 0.04575749056067517
+    },
+    "bilinear": {
+     "split_scatter_median_dex": 0.007206323841564839,
+     "split_scatter_p95_dex": 0.03476047272629326
+    },
+    "bicubic_cc": {
+     "split_scatter_median_dex": 0.007655312037309537,
+     "split_scatter_p95_dex": 0.04133104704560164
+    },
+    "spline_natural": {
+     "split_scatter_median_dex": 0.009390341863861524,
+     "split_scatter_p95_dex": 0.0432419623061993
+    },
+    "sextractor_spline": {
+     "split_scatter_median_dex": 0.004184067850353645,
+     "split_scatter_p95_dex": 0.040980250622744775
+    },
+    "photutils_zoom3": {
+     "split_scatter_median_dex": 0.004192580746874922,
+     "split_scatter_p95_dex": 0.041075401121974324
+    },
+    "photutils_zoom1": {
+     "split_scatter_median_dex": 0.0014686652377878077,
+     "split_scatter_p95_dex": 0.03476210625921191
+    },
+    "idw": {
+     "split_scatter_median_dex": 0.0059437796470897366,
+     "split_scatter_p95_dex": 0.019517761699125342
+    },
+    "gpr_rbf": {
+     "split_scatter_median_dex": 0.010983043972549938,
+     "split_scatter_p95_dex": 0.04516480344473471
+    },
+    "gpr_matern32": {
+     "split_scatter_median_dex": 0.008795379997449575,
+     "split_scatter_p95_dex": 0.04212076258566157
+    },
+    "gpr_exp": {
+     "split_scatter_median_dex": 0.007335219815599913,
+     "split_scatter_p95_dex": 0.033980311722719016
+    },
+    "frame_median_scalar": {
+     "split_scatter_median_dex": 0.0,
+     "split_scatter_p95_dex": null
+    }
+   }
+  },
+  "M42_M4_T2_flying_dutchman-20251224@045919-300S-Red.fts": {
+   "meta": {
+    "file": "M42_M4_T2_flying_dutchman-20251224@045919-300S-Red.fts",
+    "exptime": 300.0,
+    "filter": "Red",
+    "crop": 1024
+   },
+   "rows": {
+    "nn": {
+     "split_scatter_median_dex": 0.0,
+     "split_scatter_p95_dex": 0.04575749056067517
+    },
+    "bilinear": {
+     "split_scatter_median_dex": 0.0005386462012326824,
+     "split_scatter_p95_dex": 0.03142983389704562
+    },
+    "bicubic_cc": {
+     "split_scatter_median_dex": 0.0024059373152624554,
+     "split_scatter_p95_dex": 0.03853753405233016
+    },
+    "spline_natural": {
+     "split_scatter_median_dex": 0.004140942535223895,
+     "split_scatter_p95_dex": 0.039918788325432136
+    },
+    "sextractor_spline": {
+     "split_scatter_median_dex": 7.976369639455998e-06,
+     "split_scatter_p95_dex": 0.028006558231513306
+    },
+    "photutils_zoom3": {
+     "split_scatter_median_dex": 1.118198692586154e-06,
+     "split_scatter_p95_dex": 0.02628914449947758
+    },
+    "photutils_zoom1": {
+     "split_scatter_median_dex": 0.0,
+     "split_scatter_p95_dex": 0.023032198798308104
+    },
+    "idw": {
+     "split_scatter_median_dex": 0.003436337344974978,
+     "split_scatter_p95_dex": 0.01685256489201274
+    },
+    "gpr_rbf": {
+     "split_scatter_median_dex": 0.005581556139636973,
+     "split_scatter_p95_dex": 0.04114355932389458
+    },
+    "gpr_matern32": {
+     "split_scatter_median_dex": 0.0037896853478392636,
+     "split_scatter_p95_dex": 0.03909096768616226
+    },
+    "gpr_exp": {
+     "split_scatter_median_dex": 0.002170519352406062,
+     "split_scatter_p95_dex": 0.03099672705313176
+    },
+    "frame_median_scalar": {
+     "split_scatter_median_dex": 0.0,
+     "split_scatter_p95_dex": null
+    }
+   }
+  }
+ },
+ "generated_at": "2026-09-22T15:02:22Z",
+ "wall_s": 87.19376635551453
+}

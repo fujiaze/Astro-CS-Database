@@ -1,0 +1,383 @@
+{
+ "experiment": "SCI-B / EXP-04 复核 B3 三口径适用域图谱",
+ "frozen_config": {
+  "crop": 2048,
+  "p_dense": 32,
+  "delta_grid": [
+   16,
+   32,
+   64,
+   128,
+   256,
+   512
+  ],
+  "seed_base": 20260921,
+  "estimator": "mad_cell_indep（独立实现）"
+ },
+ "R1_hst_cell_mad_bias_vs_delta": {
+  "rows": [
+   {
+    "delta_px": 16,
+    "bias_cell_mad_vs_patchrms_dex": 0.0200030302310487,
+    "bias_sparse_vs_patchrms_dex": 0.019397423871827083,
+    "bias_dense_dex": 0.02858601773440865,
+    "rmse_sparse": 0.054256283475122374,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   },
+   {
+    "delta_px": 32,
+    "bias_cell_mad_vs_patchrms_dex": 0.02858601773440865,
+    "bias_sparse_vs_patchrms_dex": 0.029672460984224276,
+    "bias_dense_dex": 0.02858601773440865,
+    "rmse_sparse": 0.08050324260926338,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   },
+   {
+    "delta_px": 64,
+    "bias_cell_mad_vs_patchrms_dex": 0.050185504957141316,
+    "bias_sparse_vs_patchrms_dex": 0.05823495232952151,
+    "bias_dense_dex": 0.02858601773440865,
+    "rmse_sparse": 0.117379580082404,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   },
+   {
+    "delta_px": 128,
+    "bias_cell_mad_vs_patchrms_dex": 0.10543424641313506,
+    "bias_sparse_vs_patchrms_dex": 0.13768875126802144,
+    "bias_dense_dex": 0.02858601773440865,
+    "rmse_sparse": 0.14436895317095513,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   },
+   {
+    "delta_px": 256,
+    "bias_cell_mad_vs_patchrms_dex": 0.18616577271369367,
+    "bias_sparse_vs_patchrms_dex": 0.2626267080255327,
+    "bias_dense_dex": 0.02858601773440865,
+    "rmse_sparse": 0.1687699530617774,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   },
+   {
+    "delta_px": 512,
+    "bias_cell_mad_vs_patchrms_dex": 0.4293743607059859,
+    "bias_sparse_vs_patchrms_dex": 0.44435173536156014,
+    "bias_dense_dex": 0.02858601773440865,
+    "rmse_sparse": 0.17882166334686472,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   }
+  ],
+  "meta": {
+   "file": "hlsp_heritage_hst_wfc3-uvis_m16_f657n_v1_drz.fits",
+   "bunit": "ELECTRONS/S",
+   "scale_to_median_e": 880.5331022118963,
+   "median_signal_e": 200.0,
+   "max_over_median": 33099.34464935712,
+   "crop": 2048,
+   "gain": 1.3,
+   "rn_e": 10.0,
+   "dark_e": 0.5,
+   "sky_e": 200.0
+  },
+  "b3_reference": {
+   "+0.0297@32": "B3 at_delta64 detail 口径",
+   "note": "B3 用 2048 crop、Δ 到 512"
+  }
+ },
+ "R2_delta_star_hst": {
+  "rows": [
+   {
+    "delta_px": 16,
+    "rmse_sparse": 0.054256283475122374,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   },
+   {
+    "delta_px": 32,
+    "rmse_sparse": 0.08050324260926338,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   },
+   {
+    "delta_px": 64,
+    "rmse_sparse": 0.117379580082404,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   },
+   {
+    "delta_px": 128,
+    "rmse_sparse": 0.14436895317095513,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   },
+   {
+    "delta_px": 256,
+    "rmse_sparse": 0.1687699530617774,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   },
+   {
+    "delta_px": 512,
+    "rmse_sparse": 0.17882166334686472,
+    "rmse_frame": 0.05382622961945828,
+    "sparse_worse_than_frame": true
+   }
+  ],
+  "delta_star_px": 16,
+  "status": "crossed",
+  "b3_reference": "B3: HST 真实结构面 Δ*=16 px（Δ/ℓ=0.50）"
+ },
+ "R2b_delta_star_synthetic": [
+  {
+   "ell_nominal_px": 8.0,
+   "rows": [
+    {
+     "delta_px": 16,
+     "rmse_sparse": 0.01957182200083651,
+     "rmse_frame": 0.050747973671912514,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 32,
+     "rmse_sparse": 0.024843739191454606,
+     "rmse_frame": 0.050747973671912514,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 64,
+     "rmse_sparse": 0.044599185141900505,
+     "rmse_frame": 0.050747973671912514,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 128,
+     "rmse_sparse": 0.04893632672772007,
+     "rmse_frame": 0.050747973671912514,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 256,
+     "rmse_sparse": 0.050245547654661285,
+     "rmse_frame": 0.050747973671912514,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 512,
+     "rmse_sparse": 0.05057919436062021,
+     "rmse_frame": 0.050747973671912514,
+     "sparse_worse_than_frame": false
+    }
+   ],
+   "delta_star_px": null,
+   "status": "no_crossing"
+  },
+  {
+   "ell_nominal_px": 16.0,
+   "rows": [
+    {
+     "delta_px": 16,
+     "rmse_sparse": 0.01910369175834963,
+     "rmse_frame": 0.07639554629880499,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 32,
+     "rmse_sparse": 0.02901440972671422,
+     "rmse_frame": 0.07639554629880499,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 64,
+     "rmse_sparse": 0.06090878595920908,
+     "rmse_frame": 0.07639554629880499,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 128,
+     "rmse_sparse": 0.07210347938475575,
+     "rmse_frame": 0.07639554629880499,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 256,
+     "rmse_sparse": 0.07538066574031349,
+     "rmse_frame": 0.07639554629880499,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 512,
+     "rmse_sparse": 0.07628369912934443,
+     "rmse_frame": 0.07639554629880499,
+     "sparse_worse_than_frame": false
+    }
+   ],
+   "delta_star_px": null,
+   "status": "no_crossing"
+  },
+  {
+   "ell_nominal_px": 32.0,
+   "rows": [
+    {
+     "delta_px": 16,
+     "rmse_sparse": 0.01576826393404077,
+     "rmse_frame": 0.09218730260056603,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 32,
+     "rmse_sparse": 0.021127406308074383,
+     "rmse_frame": 0.09218730260056603,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 64,
+     "rmse_sparse": 0.055052405196728216,
+     "rmse_frame": 0.09218730260056603,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 128,
+     "rmse_sparse": 0.08096576092257132,
+     "rmse_frame": 0.09218730260056603,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 256,
+     "rmse_sparse": 0.08940733710934647,
+     "rmse_frame": 0.09218730260056603,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 512,
+     "rmse_sparse": 0.09160465873091259,
+     "rmse_frame": 0.09218730260056603,
+     "sparse_worse_than_frame": false
+    }
+   ],
+   "delta_star_px": null,
+   "status": "no_crossing"
+  },
+  {
+   "ell_nominal_px": 64.0,
+   "rows": [
+    {
+     "delta_px": 16,
+     "rmse_sparse": 0.013779479783937083,
+     "rmse_frame": 0.09799721407973867,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 32,
+     "rmse_sparse": 0.012190294219952174,
+     "rmse_frame": 0.09799721407973867,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 64,
+     "rmse_sparse": 0.026587144753306032,
+     "rmse_frame": 0.09799721407973867,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 128,
+     "rmse_sparse": 0.059737854121841016,
+     "rmse_frame": 0.09799721407973867,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 256,
+     "rmse_sparse": 0.08290485455426799,
+     "rmse_frame": 0.09799721407973867,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 512,
+     "rmse_sparse": 0.09209558181104836,
+     "rmse_frame": 0.09799721407973867,
+     "sparse_worse_than_frame": false
+    }
+   ],
+   "delta_star_px": null,
+   "status": "no_crossing"
+  },
+  {
+   "ell_nominal_px": 128.0,
+   "rows": [
+    {
+     "delta_px": 16,
+     "rmse_sparse": 0.013570577491583472,
+     "rmse_frame": 0.09955636784355552,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 32,
+     "rmse_sparse": 0.010784934085316302,
+     "rmse_frame": 0.09955636784355552,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 64,
+     "rmse_sparse": 0.009925314432604596,
+     "rmse_frame": 0.09955636784355552,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 128,
+     "rmse_sparse": 0.026406818483592144,
+     "rmse_frame": 0.09955636784355552,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 256,
+     "rmse_sparse": 0.05621833811283199,
+     "rmse_frame": 0.09955636784355552,
+     "sparse_worse_than_frame": false
+    },
+    {
+     "delta_px": 512,
+     "rmse_sparse": 0.08170477931518032,
+     "rmse_frame": 0.09955636784355552,
+     "sparse_worse_than_frame": false
+    }
+   ],
+   "delta_star_px": null,
+   "status": "no_crossing"
+  }
+ ],
+ "R3_storage_gate": {
+  "dense_bytes": 67108864,
+  "budget_bytes": 1048576,
+  "dense_over_budget": 64.0,
+  "sparse64_bytes": 32768,
+  "sparse64_over_budget": 0.03125,
+  "b3_reference": "B3: 4096² dense = 64 MiB = 1 MiB 预算的 64 倍（FP32 口径）",
+  "note": "本单元 dense 按 FP32、sparse 按 FP64（负责人裁决 SCI-PREC-01）；B3 两者都按 FP32"
+ },
+ "R4_degenerate_flat": {
+  "degenerate": true,
+  "note": "真值场为常数 ⇒ 帧级常数臂 RMSE≡0，任何空间臂都不可能严格更优；B3 同登记"
+ },
+ "R5_tautology": {
+  "K_list": [
+   1,
+   5,
+   10,
+   100
+  ],
+  "rmse_frame_vs_sfield": {
+   "1": false,
+   "5": true,
+   "10": true,
+   "100": true
+  },
+  "s_field_dex": 0.10000000000000002,
+  "rmse_frame_demo": 0.10003437475874886,
+  "note": "'帧级臂 RMSE <= K·s_field' 在 K 足够大时对任意真值场恒真 ⇒ 无证据资格（复核 §8b）"
+ },
+ "generated_at": "2026-09-22T15:03:09Z",
+ "wall_s": 46.33453965187073
+}

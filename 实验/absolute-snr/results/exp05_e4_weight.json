@@ -4,7 +4,7 @@
   "delta_px": 64,
   "weight_definition": "w = SNR^2/F_ref^2 = 1/sigma_F^2（07_noise_snr.md 4.1；严格只在通量型 SNR 下成立）",
   "efficiency_definition": "E = Var_w/Var_opt - 1，Var_w = sum(w^2 var)/(sum w)^2，Var_opt = 1/sum(1/var)",
-  "elapsed_s": 2.8932533264160156
+  "elapsed_s": 3.2033188343048096
  },
  "D1_theorem": {
   "operator_scale_equivariance_max_rel": {
