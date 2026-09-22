@@ -18,7 +18,9 @@ import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 VIS = os.path.join(REPO, "run/RELEASE-05/vis")
-GAIA = os.path.join(REPO, "gaia/GaiaDR3")
+# 星表目录：光度阶段需要含光谱的 GaiaDR3SP（DATA_SEMANTICS §8.1/§8.2：DR3 记录无光谱、
+# BP/RP 恒 0 sentinel），且 orchestrator 的 PLATESOLVE 默认 db_type 即 DR3SP。
+GAIA = os.path.join(REPO, "gaia/GaiaDR3SP")
 
 
 def block(name, lights, cal, bias, dark, flat, out_dir, k):
