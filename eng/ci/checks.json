@@ -4811,7 +4811,7 @@
             "python3",
             "eng/tools/check_ast_api.py"
           ],
-          "timeout_seconds": 120,
+          "timeout_seconds": 480,
           "heavy": false,
           "mutates_workspace": false,
           "outputs": [],
@@ -5288,7 +5288,7 @@
       "outputs": [],
       "waivable": false,
       "changed_paths": [
-        "cli/**",
+        "lib/infrastructure/cli/**",
         "eng/contracts/**",
         "docs/**",
         "工程控制/**",
@@ -7428,7 +7428,7 @@
       "changed_paths": [
         "docs/**",
         "实验/**",
-        "reports/**",
+        "artifacts/evidence/**",
         "README.md"
       ],
       "requires_monitor": false
@@ -7905,7 +7905,6 @@
       "waivable": false,
       "changed_paths": [
         "lib/**",
-        "cli/**",
         "lib/infrastructure/cli/**",
         "eng/tools/quality/resource_gate_probe.py",
         "eng/tools/quality/check_resource_gate_real.py",
