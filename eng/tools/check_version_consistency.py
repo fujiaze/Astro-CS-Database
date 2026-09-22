@@ -153,8 +153,14 @@ LIFECYCLE_BOUNDARY_RE = re.compile(
 #   ③ 间隔长度上限 EXTERNAL_TOOL_GAP_MAX，防止跨语义单元误吸附。
 # 同行其它位置的产品版本字面量照旧必须等于唯一源基础号（负例见 --self-test 与
 # eng/tests/version/test_version_consistency.py::TestExternalToolVersionExemption）。
+#   apache/httpd（COMPRESS-ARCHIVE-01 补登）: 研究包记录 CDS HiPS 服务器 HTTP 行为实测时
+#       把**服务端产品串** `Apache/2.4.67` 作为溯源证据写进正文（"实测命令与响应" 行）。
+#       这是第三方 Web 服务器版本，不是本项目版本声明；口径同 BLD-401 R3（外部组件版本
+#       是溯源证据，严禁为过检查改写研究包内容），故补入工具名表 —— 判定仍受 ①②③ 三条
+#       收窄约束（间隔上限、无中间版本字面量、无本项目版本语境词）约束，不放宽。
 EXTERNAL_TOOL_NAMES = ("swarp", "deepskystacker", "sextractor", "scamp", "siril",
-                       "astropy", "photutils", "gaiaxpy", "cfitsio", "wcsliber")
+                       "astropy", "photutils", "gaiaxpy", "cfitsio", "wcsliber",
+                       "apache", "httpd")
 EXTERNAL_TOOL_NAME_RE = re.compile(
     r"(?<![A-Za-z0-9_])(?:" + "|".join(sorted(set(EXTERNAL_TOOL_NAMES), key=len, reverse=True))
     + r")(?![A-Za-z0-9_])", re.IGNORECASE)
@@ -327,6 +333,7 @@ def self_test():
         "| SWarp `coadd.c:1279-1311` | SWarp 2.41.5 | **有效**：`COADD_WEIGHTED` 分支 |",
         "| DeepSkyStacker `RegisterEngine.cpp:86-118` | DeepSkyStacker/DSS 6.2.2 | **有效** |",
         "| SExtractor `analyse.c:200-203,304-310` | SExtractor 2.28.2 | **有效** |",
+        "- **实测命令与响应**（2026-09-22，`https://alasky.cds.unistra.fr`，Apache/2.4.67）：",
     ]
     for i, line in enumerate(EXTERNAL_LINES, 1):
         # 先红证据: 修复前（BASE_RE 直扫原始行）这些行必被抓, 用例才有回归意义
@@ -342,6 +349,8 @@ def self_test():
          "| SWarp 2.41.5 | 当前版本 %s-alpha.%d |" % (base_num, alpha_n + 1), True)
     case("distant_literal_not_absorbed_by_tool_name",
          "SWarp " + ("x" * (EXTERNAL_TOOL_GAP_MAX + 10)) + " 9.9.9", True)
+    case("server_tool_project_context_gap_not_exempted",
+         "Apache 对照：本项目版本 9.9.9", True)
 
     for name, ok, want, sample in cases:
         print("SELFTEST_%s %s (want_hit=%s%s)"
