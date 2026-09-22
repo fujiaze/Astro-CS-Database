@@ -39,6 +39,13 @@ target_compile_definitions(mosaic_window_test PRIVATE
   ARCH503_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence")
 add_test(NAME mosaic_window COMMAND mosaic_window_test)
 
+add_executable(export_stream_test export_stream_test.cpp)
+target_include_directories(export_stream_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
+target_link_libraries(export_stream_test PRIVATE astrocs_core)
+target_compile_definitions(export_stream_test PRIVATE
+  ARCH504_EVIDENCE_DIR="${CMAKE_SOURCE_DIR}/run/RELEASE-05/evidence")
+add_test(NAME export_stream COMMAND export_stream_test)
+
 add_executable(core_context_test core_context_test.cpp)
 target_include_directories(core_context_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include)
 target_link_libraries(core_context_test PRIVATE astrocs_core)
