@@ -45,12 +45,31 @@ FITS index = (511 - x) * 512 + y
   docs/science/UNCERTAINTY_AND_COVARIANCE.md），pixel variance ≠
   aperture variance。
 - HiPS 子产品位：`AIO_HIPS_PRODUCT_VARIANCE=8`、`AIO_HIPS_PRODUCT_IVAR=16`。
-- **无覆盖值语义（F-UNC-001 已裁决，2026-09-17）**：Phase1 逐帧 variance/ivar
-  产品的无覆盖/无方差信息像素写 `variance=0` 且 `ivar=0`（显式不可用，禁止伪装）；
-  **NaN/负只表示产品损坏**（写侧非有限/负输入 ⇒ rc=−6 硬失败，读侧 ⇒ hard fail）；
-  全无信息 tile ⇒ rc=−5 不落盘。Phase2/Phase3 **输出产品**的无覆盖语义仍以 §30 为
-  唯一权威（NaN 同态）；`ivar=0` 在 Phase2/Phase3 读侧为合法零权重
-  （§20.1/§21/§30.4；读侧须先过 support>0 ∧ finite signal 资格门）。
+- **Phase1 逐帧 variance/ivar 产品的逐像素三态（F-UNC-001 消解，2026-09-23）**：
+  按权威链（§0.1「科学公式与算法推导的唯一权威是 `docs/science/`」；
+  `docs/science/NOISE_MODEL.md` §7:110-111「不可用一律 `ivar=0`、**不得由 clamp
+  产生**」+「NaN 保留给产品损坏」）与「与 signal 同态」原则，取下列**唯一口径**：
+
+  | 态 | 判据（writer 输入） | `variance` | `ivar` |
+  |---|---|---|---|
+  | 方差可用 | `area>0 ∧ isfinite(area) ∧ vnum>0 ∧ isfinite(vnum)` | `vnum/area²` | `1/variance` |
+  | **有覆盖但方差不可用** | `area>0 ∧ isfinite(area) ∧ vnum==0` | **`0`** | **`0`**（显式不可用，**禁 NaN**） |
+  | **无覆盖** | `area<=0` 或 `area` 非有限 | **`NaN`** | **`NaN`**（与 `signal=NaN ∧ support=0` 同态） |
+  | **损坏** | `vnum` 非有限 或 `vnum<0`（或 `area` 非有限） | — | — ⇒ **rc=−6 硬失败**（禁 clamp/禁静默跳过） |
+
+  全无覆盖 tile ⇒ `rc=−5` 不落盘（显式失败而非空产品）。
+  **消解注记（三处旧文互斥的处置）**：§4a 旧文「无覆盖/无方差信息**都**写 0」与
+  §11.2「`covered_area≤0` → NaN」、§12.4「不可用 → variance=0.0」互斥。
+  本节按 §11.2 与 §30.4:2698/2703（「无覆盖 variance 用 NaN，与 signal NaN 同态」）
+  取「**无覆盖 = NaN**」；§4a 旧文的「无覆盖」一项**由本注记取代**，「无方差信息
+  = 0/0」一项保留并强化为「有覆盖但方差不可用」。**残留上呈项**：§4a 旧文带
+  「F-UNC-001 已裁决」字样，若负责人裁定「无覆盖亦写 0/0」（可得的文本支持 =
+  §4a 旧文与 §12.4:423），则改动面 = writer 两处 `area<=0` 分支由 NaN 改 0，
+  且**全部现存 Phase1 variance/ivar 子产品需重新基线**（当前实现下无覆盖像素为
+  NaN）。该取舍与「全正输入逐位不变」的回归约束直接冲突，故本节不单方面变更。
+  Phase2/Phase3 **输出产品**的无覆盖语义仍以 §30 为唯一权威（NaN 同态）；
+  `ivar=0` 在 Phase2/Phase3 读侧为合法零权重（§20.1/§21/§30.4；读侧须先过
+  support>0 ∧ finite signal 资格门）。
 
 ## 5. frame identity / manifest（DATA-FRAME-ID-001，V19R4 冻结）
 
@@ -320,7 +339,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | 数组/文件 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
 | sumFlux（tile 累加量，HiPS SIGNAL 底数） | float32 或 float64（随 precision_mode）`[512][512]`/tile | ADU·w 加权和（原始和，未归一） | S_p=F_p/D_p 归一不在 drizzle 层——由 aio_hips_writer finalize_tile 完成（aio_hips_writer.cpp:566-631；DISP-DRZ-007） |
-| sumArea（HiPS SUPPORT 底数） | 同上 `[512][512]`/tile | sr（Σa_jp；support=Σarea/A_p 归一在 sink/writer） | covered_area≤0 → variance/ivar 记 NaN（合法，aio_hips_writer.cpp:615-622） |
+| sumArea（HiPS SUPPORT 底数） | 同上 `[512][512]`/tile | sr（Σa_jp；support=Σarea/A_p 归一在 sink/writer） | covered_area≤0 → **无覆盖**：variance/ivar 记 NaN（与 signal NaN 同态）；covered_area>0 且 var_num_sum==0 → **有覆盖但方差不可用**：variance=0 ∧ ivar=0（§4a 三态表） |
 | sumVarNum → variance/ivar 产品 | 同上 | ADU²；ivar=1/variance | 仅当 varianceValue>0 累加（drizzle_engine.cpp:1531-1534）；无 variance 输入不产 variance 产品（AIO_HIPS_PRODUCT_ALL 非 V19） |
 | nContrib（tile 内 leaf 计数） | int `[512][512]`/tile | 贡献源像素数 | 0 = touched 集合外（不写） |
 | SNR 控制点子块（有 snr_model 时） | local_ipix + snr | 像素序、无量纲 | 逐 tile 内嵌 SNR 子块（legacy 容器格式） |
@@ -367,7 +386,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | nside | int，2 的幂 | — | ≥512 强制（<512 返回 NULL，aio_hips_writer.cpp:399-401）；叶阶 leaf_order=ilog2(nside) |
 | tile_width | int | — | 恒 512（≠512 拒绝 :402；tile_order=leaf_order−9） |
 | data_type | 0=float32 / 1=float64 | — | 其他值拒绝（:403）；决定存储 bitpix −32/−64 与 hierarchy 累加器轨（f32 产品 float 累加，DISP-HIPS-009） |
-| flags | 位或 SIGNAL=1/SUPPORT=2/SNR=4/VARIANCE=8/IVAR=16（ALL=7/ALL_V19=31） | — | 越位拒绝（:404）；variance/ivar 请求须配 var_num_sum 输入 |
+| flags | 位或 SIGNAL=1/SUPPORT=2/SNR=4/VARIANCE=8/IVAR=16（ALL=7/ALL_V19=31） | — | 越位拒绝（:404）；variance/ivar 请求须配 var_num_sum 输入。**产品集由输入面声明决定，不得由内容扫描推断**：调用方在**输入**中声明「本帧携带方差面」（Phase1 末端 = `write_hips_phase1` 的 `has_variance` 形参，与通用档 `write_hips_direct` 同形参同口径），writer 据此请求 VARIANCE\|IVAR 并成对落盘；**禁止**用「至少一个叶像素 var_num_sum>0」之类的**内容判据**决定是否产出子产品 —— 那会让「整帧方差不可用」的帧不产 ivar 子产品，把像素级不可用升级为产品级拒绝（读侧 `ivar_product_missing>0` ⇒ fail-closed） |
 | creator_did / obs_title / obs_filter / exposure_s / obs_date | 字符串/字符串/double(s)/字符串 | —（ADU 无关） | **B2-A8: obs_filter 恒写（参数 NULL→空串值，不再是"不写键"）**，Phase1 config `filter_passband` 透传（lib/infrastructure/cli/parser.cpp:303-309；module_adapters p1_op_writer）；obs_date 仍可 NULL（不写键）；exposure≤0 不写 obs_exptime/t_min/t_max；缺省 did=ivo://astrocs/phase1、title="AstroCS Phase1"（:414-415） |
 | moc_order | uint | — | 0=auto（=tile_order）；>0 取 min(moc_order, tile_order) 静默钳位（:419，DISP-HIPS-005） |
 | AstroSphereTileView: parent_ipix | uint64 | NESTED ipix（Norder K） | ≥12·4^K 拒绝 rc=−3（:433-437）；width/leaf_order/dtype 不匹配拒绝 rc=−2（:428-431） |
@@ -419,8 +438,12 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 
 - 无效判定域（signal/support）：`valid && area>0 && isfinite(flux) &&
   isfinite(area)`（:476,:481-485）；variance/ivar 可用域额外要求 `vnum>0 &&
-  isfinite(vnum) && area>0`（:617-621）。不可用 → signal=NaN、support=0.0、
-  variance=0.0、ivar=0.0（IEEE NaN 填充仅 signal，不用 FITS BLANK）；损坏（vnum/area 非有限或 vnum<0）→ rc=−6 硬失败（禁 clamp/禁静默跳过）。
+  isfinite(vnum) && area>0`（:617-621）。逐像素三态（§4a 三态表为唯一口径）：
+  **无覆盖**（`area<=0`/非有限）→ `signal=NaN`、`support=0.0`、
+  `variance=NaN`、`ivar=NaN`；**有覆盖但方差不可用**（`area>0 ∧ vnum==0`）→
+  `signal` 有限、`support>0`、`variance=0.0`、`ivar=0.0`（显式不可用，禁 NaN）；
+  **损坏**（`vnum`/area 非有限或 `vnum<0`）→ rc=−6 硬失败（禁 clamp/禁静默跳过）。
+  IEEE NaN 填充用于 signal 与"无覆盖"的 variance/ivar，不用 FITS BLANK。
 - 全无效 variance tile：写请求返回 −5、不落盘（调用方预判跳过，
   astro_sphere_sink.cpp:123-144 计数不 abort）——显式失败而非空产品。
 - 存储 dtype 双轨 f32/f64 由 data_type 一次固化；归一运算在 double 域
@@ -2274,13 +2297,13 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 | max_tiles | int | 标量 | tile | 缓存容量；≤0 恢复默认 8（cpp:161-168）；会话层默认 min(1024, ceil(W·H/512²)+16)，请求超默认 → ACS_ERR_BUDGET（p3_session.cpp:179-194，可降不可升） |
 | sampler 选择（会话面） | char* | 1 | — | `nearest`\|`bilinear`（缺省 bilinear；白名单 p3_session.cpp:116-119） |
 | d（WCS 平面） | P3WcsDescriptor* | 1 | deg、px | 输出平面几何（DATA-P3-WCS §28.2）；逐输出像素中心 (x,y) 0-based int |
-| HiPS tile（读路径） | float32 | 512×512/leaf | 面亮度 | tile=HEALPix cell @hips_order 的 W×W FITS float tile（SCI §9a-1）；local 映射 =DATA_SEMANTICS §3 CDS oracle 冻结（fits_index=(511-x)*512+y）；tile 值=面亮度（§9a-8），NaN=传播语义（§6.6）非 invalid；tile 缺失=无覆盖非错误 |
+| HiPS tile（读路径） | float32 | 512×512/leaf | 面亮度 | tile=HEALPix cell @hips_order 的 W×W FITS float tile（SCI §9a-1）；local 映射 =DATA_SEMANTICS §3 CDS oracle 冻结（fits_index=(511-x)*512+y）；tile 值=面亮度（§9a-8）；**tile 内 NaN = 样本级不合格（值非有限）**，按 §2a 规则 1 从分子/分母/方差三项剔除并重归一（rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`；正本 = DATA-002 §2a；实现锚 `lib/algorithms/resample/p3_resample.h:93-96`），**不是**整体传播；tile 缺失=无覆盖（无候选样本）非错误 |
 
 ### 29.2 输出
 
 | 名称 | dtype/形态 | 语义 |
 |---|---|---|
-| value（采样出参） | float32 标量 | 面亮度采样值（BUNIT 承载单位，canonical `ADU/sr`，缺省同，绝不 Jy/beam——open_ex cpp:130-159 + SCI §9a-11）；tile 内 NaN → NaN（传播）；tile 缺失 → NaN |
+| value（采样出参） | float32 标量 | 面亮度采样值（BUNIT 承载单位，canonical `ADU/sr`，缺省同，绝不 Jy/beam——open_ex cpp:130-159 + SCI §9a-11）；**tile 内 NaN = 样本级不合格**：从分子/分母/方差三项剔除并重归一（正本 = DATA-002 §2a 规则 1；实现 = `p3_sample_bilinear_nanmask_ex`，`p3_resample.h:176-179`）；**仅零合格样本**（或 `D_p=0`）⇒ `S=NaN`（覆盖级 NaN）+ 强制计数 `n_rejected_nonfinite`（承载面 §30.7）；tile 缺失 ⇒ 无候选样本 ⇒ `NaN` 且 `coverage=0` |
 | coverage（采样出参） | float32 标量 | **二值语义**（0/1，float 承载）；C=1 ⇔ 采样足迹内存在有限 tile 像素（SCI §5）；tile 缺失/未打开 → 0 |
 | out_order（open_ex 出参） | int 标量 | 输入 survey 实际 order（properties 读出，非请求猜测） |
 | out_bunit（open_ex 出参） | char* | tile BUNIT，canonical **`ADU/sr`**，缺省同（§31.1a；绝不 Jy/beam） |
@@ -2310,7 +2333,9 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
   UNSUPPORTED→ACS_ERR_UNSUPPORTED、PARAM→ACS_ERR_PARAM（p3_session.cpp:
   169-172）。
 - 边界: tile 缺失/读失败 = coverage=0 数据语义**非错误**（§29.2，
-  SCI §9a-9）；tile 内 NaN = 值 NaN + coverage=1（传播非 invalid）；
+  SCI §9a-9）；**tile 内 NaN = 样本级掩膜**（剩余合格邻域重归一；
+  仅零合格样本才 `S=NaN` + coverage=1，并暴露 `n_rejected_nonfinite`）；
+  coverage 只判足迹内有无 tile 像素，**值 NaN 不改 C**（`p3_resample.h:95-96`）；
   sampler 未打开时采样 = coverage=0（禁静默默认，test_p3_resample.py
   test_06 冻结）；order 上限=survey 实际 order（欠采样降级为原生
   分辨率输出，SCI §9a-5）；missing tile 聚合上报未接线
@@ -2656,14 +2681,18 @@ sample_mask 布局: 逐 tile 块按 tile_ipix 升序拼接; 块内 [s*tile_span 
   + 本节，supersession 生效；SCI-P3 原文注记见
   docs/science/PHASE3_HIPS_TO_FITS.md 头部 DATA-UNC-001 更新块）**:
   1. 输入 HiPS 含 variance/ 子产品 → u_in = variance 平面（**variance==0 像素 =
-     无信息（F-UNC-001 写侧 0/0）⇒ u 无效 = NaN 传播态，禁止读作零不确定度**）；
-     否则含 ivar/ → u_in = 1/ivar（**ivar==0 像素 = 零权重 ⇒ u 无效 = NaN 传播态，
-     非硬错误**，见 -3 与 UNC Phase3 节）；两者并存 → variance 优先，
+     「有覆盖但方差不可用」（§4a 三态表）⇒ 该样本**不计入** `var_out` 的方差项，
+     信号与几何权重照常计入；输出面写 `variance=0 ∧ ivar=0`（显式不可用），
+     **禁止读作零不确定度、也禁止写成 NaN**（NaN 保留给「无覆盖」）；
+     u 的无效态**一律**按本条处置，不存在「无效即传播 NaN」的写法）；
+     否则含 ivar/ → u_in = 1/ivar（**ivar==0 像素 = 零权重 ⇒ 同上「有覆盖但方差不可用」
+     口径，非硬错误**，见 -3 与 UNC Phase3 节）；两者并存 → variance 优先，
      provenance 记 uncertainty_source=variance（一致性数值校验为验证建议，不冻结容差）；
   2. 两者皆无 → **uncertainty unavailable**：输出不写 VARIANCE/IVAR HDU +
      manifest `uncertainty_available=false` + 命令 diagnostics 明示
      （unavailable 显式登记模式；禁静默丢弃，禁占位 HDU）；
-  3. u 值域: NaN = 传播态（见 invalid 表）；负/Inf（**ivar==0 导出的 1/0→Inf
+  3. u 值域: NaN = 无覆盖/缺失态（见 invalid 表）；**`u==0`（有限）= 有覆盖但方差不可用
+     （见 -1，不作损坏、不作 NaN）**；负/Inf（**ivar==0 导出的 1/0→Inf
      明确禁止**）= **产品损坏 → 显式错误**（run 拒绝，rc 由实现任务映射到现行
      P3_RS_*/ACS_ERR_* 状态域登记，禁 clamp/补 0/静默跳过）；
      **订正说明（SCI-FIX-PROJ 2026-09-16，M1a-A-009）**：原括注「含 ivar==0
@@ -2696,9 +2725,25 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | 条件 | signal | variance | ivar | coverage |
 |---|---|---|---|---|
 | 无覆盖（tile 缺失/足迹无 tile 像素） | NaN | NaN | NaN | 0 |
-| NaN 传播（足迹内 leaf signal 或 u 为 NaN） | NaN | NaN | NaN | 1 |
+| **样本级掩膜**（足迹内 leaf signal 或 u 非有限者被剔除并重归一，§2a 规则 1） | 有合格样本=有限值 / 零合格样本=NaN | Σ_{方差可用} c′_k²·u_k（有方差可用样本）/ 0（有覆盖但方差不可用，§4a 显式不可用） | 1/var_out（var_out>0）/ 0（var_out=0）/ NaN（零合格样本） | 1 |
 | 覆盖不一致（leaf signal 有限而 u 无效/缺失） | 按采样值 | NaN | NaN | 1（+ provenance uncertainty_missing_pixels 计数，不中断不补 0） |
 | 正常传播（足迹 signal 与 u 全有效） | Σ c_k·s_k | Σ c_k²·u_k | 1/var_out | 1 |
+
+  **「NaN 传播」口径已作废（2026-09-23，与 §2a 正本对齐）**：原行把「足迹内 leaf signal/u 为 NaN」
+  整体传播为输出 NaN，与 DATA-002 §2a 规则 1（**样本级掩膜 + 重归一**）互斥。按 §2a（**唯一正本**；
+  逐字同口径三处 = `docs/standards/NUMERIC_STANDARD.md` §MUST「NaN/Inf 契约」、
+  `lib/algorithms/resample/p3_resample.h:150-159`）与实现（`p3_resample.h:93-96`、
+  `p3_sample_bilinear_nanmask_ex` :176-179），该行现取「样本级掩膜」：不合格样本从**分子、分母、
+  方差三项**一并剔除并重归一，**仅零合格样本**（或 `D_p=0`）才是覆盖级 NaN（`signal=NaN`），
+  且每个输出像素**必须**暴露 `n_rejected_nonfinite`（承载面 = §30.7 DATA-P3-REJ-001）。
+
+  **「u 无效」与「u 缺失」必须分列（2026-09-23）**：原「覆盖不一致」行把两者合并为 `variance=NaN`，
+  与 §2a 规则 1a 互斥。分列口径：
+  - **u 无效** = 该 leaf 的 `variance==0` 或 `ivar==0`（**有限且 ≤0**）= **有覆盖但方差不可用**
+    ⇒ 该样本**不计入** `var_out` 的方差项，信号与几何权重照常计入；输出面写
+    **`variance=0 ∧ ivar=0`（显式不可用，§4a；禁 NaN、禁 clamp/地板顶替）**；
+  - **u 缺失** = leaf uncertainty 子产品缺失 = 覆盖不一致 ⇒ 保 `signal`、`variance=NaN`、`coverage=1`，
+    **+ provenance `uncertainty_missing_pixels` 计数**（不中断、不补 0）。
 
   NaN 同态说明: 无覆盖 variance 用 NaN（§12.4 writer 通道合同与 signal NaN
   同态），不用 §4a 的 0（§4a 歧义消解见 §4a 注记与 §30.1）。
@@ -2982,8 +3027,10 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 | ~~退役模式~~ | ~~`psfsw_robust`~~ | **已按 §9.73 A44 作废**（退役留痕，PSFSW-RETIRE-01/03）：它是退役对象 `psfsw_robust_weight` 的声明 token，**不在**生产接受集（`FZ-MODE-PRODUCTION = {point_information, surface_gls}`）；旧产品声明该 token ⇒ **显式拒绝 + 迁移提示**（`FZ-MODE-RETIRED`），不得静默接受。依据：`ASTROCS_DESIGN.md` §3.1（订正后：权重只能来自纯净信号与噪声之比/逆方差，PSF 拟合质量代理只作诊断）、`docs/design/UNIFIED_MODEL.md:58`、变更编号 `CHG-2026-09-20-PSFSW-RETIRE` 与 §9.73 A44。机器登记：`eng/contracts/data/v6_clause_registry_v1.json#weight_modes.retired`（`_psfsw_retirement_note`）与 `#a44_deprecation.psfsw_retire_03_correction`。 |
 
 **legacy 整数处置**（`FZ-FIELD-WEIGHTMODE`；`ADJ-S1`；迁移映射 `eng/contracts/data/v6_clause_registry_v1.json#migration_map.legacy_weight_mode_disposition`；（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））：
-`0=support×snr²` **必须拒绝**（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）；`1 → equal`；`2 → pixel_ivar`（两者仅作文档基线对照）。
-生产枚举出现 `psf_snr_power` / `auto` / `support_x_snr2` / `0` / 未知值 → REJECT。历史 `ASTROCS_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，不得反向定义生产枚举。
+**全值域一律拒绝**（§9.73 裁决 A44 后订正）：`0=support×snr²`（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）、`1=equal`、`2=pixel_ivar` **三者同等拒绝** —— A44 删除该字段后它不存在任何合法取值，故原「0 拒绝、1/2 → 文档基线」的处置**已作废**（`ASTROCS_DESIGN.md` §3.1:175「没有可选择项」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4:72）。实现事实源：`stage2_common.cpp` / `module_adapters.cpp`（键出现即拒绝）、`v6_runtime_contract.h` 的 `route_legacy_weight_mode_int`（纯拒绝面）。
+生产枚举（**输入路径**）出现 `psf_snr_power` / `auto` / `support_x_snr2` / `equal` / `pixel_ivar` / 整数 `0`|`1`|`2` / `weight_mode` 键 / `legacy_allow_weight_fallback` 键 / 未知值 → REJECT。历史 `ASTROCS_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，不得反向定义生产枚举。
+
+**登记面 vs 输入路径（A44 口径，本节判据形态）**：「登记面」= 描述**历史/既有数据对象**的形态，是**名词**；「输入路径」= 决定生产**接受什么**，是**动词**。冻结（`FZ-WEIGHT-SINGLE-PATH` / A44）禁止的是**后者**，不禁止前者 —— 故本节与 `eng/contracts/data/v6_clause_registry_v1.json#weight_modes`、`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的**历史词表登记保留**，但必须正面写清它**不是**接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token 一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，不得据此声称生产可用。
 
 ### 31.4 单一权重词表归一（`C-004.3`/`DI-01`/`DI-07`）
 
@@ -3037,7 +3084,8 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 | 缺 effective PSF（只给 FWHM 标量） | REJECT | `G-EPSF-PRESENT` |
 | `k_corr=1` / 跨域外推 | REJECT | `G-KCORR-DOMAIN` |
 | `variance_from` 为权重标量 / `Var=1/W_psfsw` | REJECT | `G-COV-VARIANCE-FROM`/`G-PSFSW-COV` |
-| legacy `weight_mode=0` （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） | REJECT | `G-LEGACY-MIGRATION` |
+| legacy `weight_mode` 整数 `0`|`1`|`2`（§9.73 A44 后**全值域**；原仅 `0`） | REJECT | `G-LEGACY-MIGRATION` |
+| 键 `weight_mode` / `legacy_allow_weight_fallback` 出现于配置（任何取值/形态） | REJECT（具名 fail-closed） | `FZ-FIELD-WEIGHTMODE`；`FZ-WEIGHT-SINGLE-PATH` |
 
 ### 31.9 边界与登记（只登记不擅改）
 
