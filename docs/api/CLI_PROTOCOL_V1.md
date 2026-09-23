@@ -66,7 +66,8 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
   - `final`：运行收尾（`exit_code` 必须 ∈ §2 冻结退出码域；status / run_manifest / summary）；
   - `stage_start` / `stage_end`：阶段起止（无扩展字段）；
   - `graph`：运行图落盘（path）；
-  - `resource_gate`：资源门判定记录（诊断 / 强制口径 / 工作量下界）；
+  - `resource_gate`：资源门判定记录（诊断 / 强制口径 / 工作量下界 / SO-05 签字证据）；
+    逐键语义与必含集见 `docs/plugins/infrastructure/21_observability.md` §8.4「事件面登记」；
   - `v6_mode_route`：V6 路由登记（route_kind / token / surface / 来源 / 预算归属）。
   **kind 集合与逐 kind 字段集由机器门 `eng/ci/check_event_field_sets.py`（EVT-FIELD-SETS）守
   五面一致**（正本 kExt / schema `allOf[].then.required` / schema `x-astrocs-event-kind-registry` /
@@ -128,3 +129,40 @@ UT-CLI `mutates_workspace=false` 的 dirty 判定。
 4. **取消路径**:SIGINT 后的 `incomplete` manifest 也写 `output_dir`(不写 CWD `"."`)。
 5. 回归锚: `eng/tests/cli/test_cli001_vpi.py`、`eng/tests/cli/test_phase123_pipeline.py`
    负例矩阵的 `neg: missing output_dir` + `no CWD residue` 两条。
+### 7.1 导出裁剪范围参数 `crop`（GUI 框选导出接口，EXPORT-CROP-01）
+
+> 权威：负责人裁决 2026-09-23 逐字：「默认导出的话是要求边框不得裁剪任何有效像素，然后可以
+> 导出一些黑边。到平面后我自己手动剪裁。然后支持手动输入裁剪范围。这样我以后 gui 的 HiPS
+> 浏览器里面我可以直接导出框选。需要保留接口。」
+> 上游：本文件 §1（命令树）/ §7（配置与 `output_dir`）+ `ASTROCS_DESIGN.md` §6/§7.2。
+> 设计正本：`docs/design/PHASE3_DETAILED_DESIGN.md` §8；字段合同：
+> `eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop`；
+> 字段说明（`--help` 同源）：`lib/infrastructure/cli/session_commands.h` 的
+> `config_fields(SESSION_EXPORT)`。
+
+`export --json <config.json>` 的运行配置接受一个**可选**键 `crop`（块内或平铺顶层，与
+`center`/`width_px`/`scale_deg_per_px` 同面）。**缺省不裁剪** = 整幅导出（允许黑边，
+不得裁掉任何有效像素）。
+
+```jsonc
+// 形式一：平面像素矩形（FITS 1-based 闭区间，相对未裁剪输出画幅）
+"crop": {"crop_form": "pixels", "pixels": {"x0": 1001, "y0": 2001, "x1": 1512, "y1": 2512}}
+
+// 形式二：天球轴对齐矩形（ICRS deg；ra_min_deg > ra_max_deg = 跨 RA=0 绕回）
+"crop": {"crop_form": "sky",
+         "sky": {"ra_min_deg": 83.5, "ra_max_deg": 84.0,
+                 "dec_min_deg": -5.6, "dec_max_deg": -5.2}}
+```
+
+- **两形式互斥**：`crop_form` 选中其一，另一形式同时出现 ⇒ **具名拒绝**（不比较、不取一）。
+- **接口稳定性**：键形固定、可机器生成；GUI 的 HiPS 浏览器框选导出**直接填该键**，
+  不需要新的 CLI 命令或旗标（`export` 命令树与退出码不变）。
+- **判据（fail-closed，全部具名报错，禁静默夹取）**：越界 / 宽高非正 / 两形式同时给 /
+  裁剪后为空 / `sky` 边界点落在 TAN 半球外 ⇒ 拒绝。schema 面判结构（键闭包、类型、
+  基本值域）；跨字段几何判据的唯一实现 = `lib/algorithms/projection/p3_wcs.h`，
+  由 CLI 配置面与 scheduler 节点面共用。
+- **精确性**：写出 FITS 的 WCS = 未裁剪画幅 WCS 在窗口上的**精确限制**（`CRVAL`/`CD`
+  逐位不变、`CRPIX` 减**整数**窗口原点）⇒ 裁剪框内的像素与不裁剪时**逐位相同**。
+- **模板口径**：`crop` 是可选键且**不进** `--template` 骨架（模板不替用户主张裁剪；
+  缺省即不裁剪），只进 `--help` 字段说明。
+

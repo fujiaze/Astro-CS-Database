@@ -192,6 +192,18 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
          "可选指向来源 header_pointing|config|neighbor_crval（缺省 header_pointing）", "block"},
         {"snr", nullptr,
          "可选 SNR 科学块（gain_e_per_adu/read_noise_e/zero_point_mag 等）", "block"},
+        // STARDET-01（B3）：星表引导检测（权威路径）配置段。段内键 = 生产节点
+        // p1_guided_cfg（module_adapters.cpp）实际读取的键集；合同声明 =
+        // eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config。
+        // 缺段 = 全取编译期默认（mode=auto / max_stars=20000 / parity=pos /
+        // limiting_mag 由焦距画幅曝光派生），不是错误 ⇒ json == nullptr（只进
+        // --help 字段说明，不进 --template 骨架；gaia_data_dir 的模板承载仍走 wcs 段）。
+        {"star_detection", nullptr,
+         "可选星表引导检测配置段（ASTROCS_DESIGN.md §4.2 权威范式）："
+         "mode(auto|catalog_guided|blind_diagnostic)/gaia_data_dir/max_stars(合同域 "
+         "[20000,50000])/approx_wcs{crval1,crval2,cd11,cd12,cd21,cd22}/rotation_deg/"
+         "parity(pos|neg)/limiting_mag/limiting_mag_safety/query_radius_factor/"
+         "limiting_mag_max_iter；缺段 = 取编译期默认", "block"},
     };
     static const std::vector<ConfigField> kMosaic = {
         {"schema_version", "\"1\"", "配置合同版本（恒 \"1\"）"},
@@ -260,6 +272,26 @@ inline const std::vector<ConfigField>& config_fields(SessionId s) {
         {"crpix_px", "[512.5, 512.5]",
          "参考像素（FITS 1-based；示例值 = 本模板 1024×1024 输出的几何中心，缺省 = 中心；"
          "合同声明 = phase_config_export.schema.json；生产消费点未落地，见死键台账）"},
+        // EXPORT-CROP-01（负责人裁决 2026-09-23）：「默认导出的话是要求边框不得裁剪任何
+        // 有效像素，然后可以导出一些黑边。到平面后我自己手动剪裁。然后支持手动输入裁剪
+        // 范围。这样我以后 gui 的 HiPS 浏览器里面我可以直接导出框选。需要保留接口。」
+        // ⇒ crop 是**可选**键，缺省不裁剪（整幅导出，允许黑边）；两种形式互斥：
+        //   pixels —— 平面像素矩形（FITS 1-based 闭区间，相对未裁剪输出画幅；手动裁剪面）
+        //   sky    —— 天球轴对齐矩形（ICRS deg；GUI 框选来自 HiPS 浏览器，框的是天区）
+        // 键形稳定、可机器生成（GUI 框选导出将来直接填本键）；全部非法输入 fail-closed
+        // 具名报错（越界/宽高非正/两形式同时给/裁剪后为空），禁静默夹取。
+        // json == nullptr ⇒ 不进 --template/--help 骨架的**取值**面（模板不替用户主张裁剪；
+        // 缺省即不裁剪，模板保持「整幅导出」语义），但键名列进 --help（config_fields 唯一声明）。
+        // 合同声明 = phase_config_export.schema.json#/$defs/export_crop；
+        // 几何唯一实现 = lib/algorithms/projection/p3_wcs.h（CLI 配置面与节点面共用）；
+        // 生产消费点 = scheduler 的 p3 wcs/writer/verify 节点（P3NodeModule）。
+        {"crop", nullptr,
+         "可选：导出裁剪范围（缺省不裁剪 = 整幅导出，允许黑边；不得裁掉有效像素）。"
+         "两形式互斥：{crop_form:\"pixels\",pixels:{x0,y0,x1,y1}}（FITS 1-based 闭区间，"
+         "相对未裁剪输出画幅）或 {crop_form:\"sky\",sky:{ra_min_deg,ra_max_deg,dec_min_deg,"
+         "dec_max_deg}}（ICRS deg 轴对齐矩形，外扩取整为像素窗口）。"
+         "越界/宽高非正/两形式同时给/裁剪后为空 ⇒ 具名报错，不静默夹取"
+         "（合同 = phase_config_export.schema.json#/$defs/export_crop）"},
         // 精度口径（ASTROCS_DESIGN §3.3:256）：阶段三精度键 = 位深键 bitpix(-32/-64)
         // —— 既有键、已在 session_keys() 白名单且已被生产消费（lib/phase3_session/p3_session.cpp:126,391；
         // module_adapters.cpp:8890/9693），**不是新造键**。这里只把它列进字段说明（json == nullptr

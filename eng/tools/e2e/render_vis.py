@@ -6,10 +6,17 @@
       AGENTS §9（视觉层提交前自行逐块检查，分辨率不足时裁剪放大再读；分段计时找热点）。
 
 判据（fail-closed，都能红）：
-  V1 覆盖域自洽          产品带 COVERAGE 平面时按两条互斥判据判：
-                         V1a 覆盖==0 ⇒ 必须非有限（未覆盖不得有值）；
-                         V1b 覆盖 >0 ⇒ 必须有限（覆盖不得是 NaN）；
-                         无覆盖平面时退化为 finite_fraction == 1.0；
+  V1 覆盖域自洽          V1a 覆盖==0 ⇒ 必须非有限（未覆盖不得有值；抓幻影数据）；
+                         V1b 非有限像素中**不与画幅边界连通**的连通域数 == 0
+                             （内部空洞 = 被有限值包围的非有限像素，真缺陷）；
+                         无覆盖平面时 V1a 不适用，V1b 同判（同一规则，不另设口径）。
+     为什么 V1b 判「内部空洞」而不是「覆盖却非有限」：导出画幅由用户给定，**可以大于数据
+     足迹** —— 此时边框上必然出现非有限黑边，这是设计允许的（ASTROCS_DESIGN.md §6：
+     export 按用户指定 WCS 导出平面；负责人 2026-09-23 裁决：默认导出不得裁剪任何有效像素，
+     允许导出黑边，由用户到平面后自行裁剪）。因此「覆盖 >0 ⇒ 必须有限」这个前提是错的：
+     它把「画幅大于足迹」这一合法几何误判成缺陷（M42 全画幅导出实测 464,263 px / 2.77%，
+     全部落在足迹边缘的窄带内）。真正该判的是 ACCEPTANCE_SPEC.md §6.2「无"黑洞"：
+     无异常零值/死区/**未填充孔洞**」——即内部空洞，阈值 0。
   V2 nonzero_fraction    非零像素占比 > 0（全零产品 = 空图，判红）；
   V3 dynamic_range       有限像素的 p99.9/p0.1 > 1（常数图判红）；
   V4 seam_metric         相邻分块边界处的一阶差分中位数与块内同向差分中位数之比
@@ -46,6 +53,73 @@ def stretch(a, lo_pct=0.1, hi_pct=99.9, mode="asinh", asinh_a=0.05):
     if mode == "asinh":
         x = np.arcsinh(x / asinh_a) / np.arcsinh(1.0 / asinh_a)
     return (np.clip(x, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8), lo, hi
+
+
+def _bfs_reach(nf, w, seeds):
+    """4-连通泛洪：只能走 nf 为真的像素。返回 (visited 位图, 成员下标列表)。
+
+    nf 为 bytearray（长度 = h*w，行主序，1 = 可通行）。种子下标为 0-based 平坦下标。
+    """
+    n = len(nf)
+    visited = bytearray(n)
+    members = []
+    stack = list(seeds)
+    while stack:
+        i = stack.pop()
+        if visited[i]:
+            continue
+        visited[i] = 1
+        members.append(i)
+        c = i % w
+        if i >= w and nf[i - w] and not visited[i - w]:
+            stack.append(i - w)
+        if i + w < n and nf[i + w] and not visited[i + w]:
+            stack.append(i + w)
+        if c > 0 and nf[i - 1] and not visited[i - 1]:
+            stack.append(i - 1)
+        if c + 1 < w and nf[i + 1] and not visited[i + 1]:
+            stack.append(i + 1)
+    return visited, members
+
+
+def hole_analysis(nonfinite):
+    """V1b 判据实现：把非有限像素分成「边界黑边」与「内部空洞」两类（4-连通）。
+
+    边界黑边  = 与画幅边界连通的非有限连通域 —— 画幅大于数据足迹时的合法黑边，设计允许；
+    内部空洞  = 其余非有限像素（被有限值包围）—— ACCEPTANCE_SPEC §6.2「无黑洞」判红，阈值 0。
+
+    返回 (hole_mask, boundary_px, n_components, largest_component_px)。
+    无第三方依赖（不用 scipy）：bytearray 上的确定性泛洪，4096² 实测量级 = 亚秒。
+    """
+    h, w = nonfinite.shape
+    flat = np.ascontiguousarray(nonfinite, dtype=np.uint8).ravel()
+    nf = bytearray(flat.tobytes())
+    border = np.zeros((h, w), dtype=bool)
+    if h and w:
+        border[0, :] = True
+        border[-1, :] = True
+        border[:, 0] = True
+        border[:, -1] = True
+    seeds = [int(i) for i in np.flatnonzero(nonfinite & border)]
+    reached, border_members = _bfs_reach(nf, w, seeds)
+    reached_arr = np.frombuffer(bytes(reached), dtype=np.uint8).reshape(h, w).astype(bool)
+    hole_mask = nonfinite & ~reached_arr
+    # 空洞连通域计数（同样 4-连通；只对残集泛洪，量级 = 缺陷像素数，不是全图）
+    remaining = bytearray(nf)
+    for i in border_members:
+        remaining[i] = 0
+    n_comp = 0
+    largest = 0
+    for i in np.flatnonzero(hole_mask):
+        i = int(i)
+        if not remaining[i]:
+            continue
+        _v, members = _bfs_reach(remaining, w, [i])
+        n_comp += 1
+        largest = max(largest, len(members))
+        for j in members:
+            remaining[j] = 0
+    return hole_mask, len(border_members), n_comp, largest
 
 
 def seam_metric(img, tile):
@@ -115,20 +189,28 @@ def main():
     # V1 判据：产品必须"值域与覆盖域自洽"。请求画幅可以大于数据足迹 ⇒ 合法未覆盖区必然是
     # 非有限值，因此"全图必须全有限"既会误杀正确产品、又会把"覆盖平面说有数据而信号是 NaN"
     # 这个真缺陷混在一起看不出来。有覆盖平面时按两条互斥判据分别判。
-    cov_stats = {}
+    # V1b 对**所有**产品同判（与有无 COVERAGE 平面无关）：非有限像素按「是否与画幅边界
+    # 4-连通」二分 —— 与边界连通 = 合法黑边；其余 = 内部空洞，判红（阈值 0）。
+    hole_mask, boundary_nonfinite, n_hole_comp, largest_hole = hole_analysis(~fin)
+    internal_hole_px = int(hole_mask.sum())
+    cov_stats = {"boundary_nonfinite_px": boundary_nonfinite,
+                 "internal_hole_px": internal_hole_px,
+                 "internal_hole_components": n_hole_comp,
+                 "internal_hole_largest_px": largest_hole}
     if cov is not None and cov.shape == data.shape:
         covered = cov > 0
         phantom = int((fin & ~covered).sum())       # 未覆盖却带着有限值
-        overreport = int((~fin & covered).sum())    # 覆盖却无有限值（NaN/Inf）
-        cov_stats = {"covered_fraction": float(covered.mean()),
-                     "phantom_data_px": phantom, "covered_but_nonfinite_px": overreport}
+        cov_stats["covered_fraction"] = float(covered.mean())
+        cov_stats["phantom_data_px"] = phantom
+        # 诊断量（非判据）：覆盖域内的非有限像素数。含合法黑边的内侧像素，
+        # 因此**不作为判据**——判据是上面的内部空洞（V1b）。
+        cov_stats["covered_but_nonfinite_px"] = int((~fin & covered).sum())
         if phantom:
             findings.append("V1a 未覆盖却有值 phantom_data_px=%d" % phantom)
-        if overreport:
-            findings.append("V1b 覆盖却非有限 covered_but_nonfinite_px=%d（%.4f%%）"
-                            % (overreport, 100.0 * overreport / n))
-    elif finite_fraction != 1.0:
-        findings.append("V1 finite_fraction=%.6f != 1.0（无覆盖平面可交叉核对）" % finite_fraction)
+    if internal_hole_px:
+        findings.append("V1b 内部空洞 internal_hole_px=%d（连通域 %d 个，最大 %d px；"
+                        "阈值 0；被有限值包围的非有限像素 = 真缺陷）"
+                        % (internal_hole_px, n_hole_comp, largest_hole))
     nz = int(np.count_nonzero(data[fin]))
     nonzero_fraction = nz / n
     if not nonzero_fraction > 0:
