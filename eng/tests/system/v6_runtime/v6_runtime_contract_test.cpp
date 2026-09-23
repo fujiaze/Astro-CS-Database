@@ -58,20 +58,27 @@ static void test_modes() {
     // 单一口径锚：未知 token 的拒绝理由必须给出正向口径陈述。
     CHECK(route_phase2_weight_token("bogus").reason.find("FZ-WEIGHT-SINGLE-PATH") != std::string::npos,
           "unknown phase2 token reject reason cites FZ-WEIGHT-SINGLE-PATH");
-    // baseline 非生产
-    for (const char* t : {"equal", "pixel_ivar"}) {
-        CHECK(route_phase2_weight_token(t).kind == RouteKind::kBaseline,
-              std::string("phase2 baseline: ") + t);
+    // §9.73 裁决 A44（FZ-WEIGHT-SINGLE-PATH）：phase2 的 --mode 面**没有**合法 token。
+    // 原 equal / pixel_ivar → kBaseline 的非生产放行面已删除：它们的唯一理由是
+    // 「legacy 整数路由的映射目标登记」，整数路由删除后理由消失 ⇒ 全 token 一律拒绝。
+    for (const char* t : {"equal", "pixel_ivar", "auto", "support_x_snr2",
+                          "point_information", "surface_gls"}) {
+        const ModeRoute r = route_phase2_weight_token(t);
+        CHECK(r.kind == RouteKind::kReject, std::string("phase2 token must reject: ") + t);
+        CHECK(r.rc == 2, std::string("phase2 token reject rc must be 2: ") + t);
     }
-    // legacy 整数: 0 必拒, 1|2 -> baseline
-    CHECK(route_legacy_weight_mode_int(0).kind == RouteKind::kReject,
-          "legacy weight_mode 0 rejected");
-    CHECK(route_legacy_weight_mode_int(1).kind == RouteKind::kBaseline,
-          "legacy weight_mode 1 -> baseline equal");
-    CHECK(route_legacy_weight_mode_int(2).kind == RouteKind::kBaseline,
-          "legacy weight_mode 2 -> baseline pixel_ivar");
-    CHECK(route_legacy_weight_mode_int(7).kind == RouteKind::kReject,
-          "legacy weight_mode unknown rejected");
+    // legacy 整数 weight_mode：全值域拒绝（含原 1|2 的 baseline 放行面）。
+    for (int v : {0, 1, 2, 3, 7, -1}) {
+        const ModeRoute r = route_legacy_weight_mode_int(v);
+        CHECK(r.kind == RouteKind::kReject,
+              "legacy weight_mode integer must reject: " + std::to_string(v));
+        CHECK(r.rc == 2, "legacy weight_mode reject rc must be 2");
+        CHECK(r.reason.find("FZ-FIELD-WEIGHTMODE") != std::string::npos,
+              "legacy weight_mode reject must cite FZ-FIELD-WEIGHTMODE");
+    }
+    // 最危险值 0（support x SNR^2）保留更具体的拒绝理由（判据非退化）。
+    CHECK(route_legacy_weight_mode_int(0).reason.find("support x SNR^2") != std::string::npos,
+          "legacy 0 reject reason must name support x SNR^2");
     // FZ-P3-MODES
     for (const char* t : {"surface_brightness", "point_source_flux", "visualization"}) {
         CHECK(route_phase3_mode(t).kind == RouteKind::kProduction,
