@@ -11465,6 +11465,356 @@
       "requires_monitor": false
     },
     {
+      "id": "CHK-REGISTRATION-ANCHORS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_registration_anchors.py",
+        "--json-out",
+        "run/ci/registration-anchors/report.json"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/registration-anchors/report.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "eng/contracts/**",
+        "eng/ci/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-REGISTRATION-ANCHORS-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_registration_anchors.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/check_registration_anchors.py",
+        "eng/ci/ledgers/registration_anchor_ledger.json"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-CMAKE-USEBEFOREDEF",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_cmake_usebeforedef.py",
+        "--root",
+        ".",
+        "--json-out",
+        "run/ci/cmake-usebeforedef/report.json"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/cmake-usebeforedef/report.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "eng/cmake/**",
+        "lib/**/CMakeLists.txt",
+        "eng/tests/**/CMakeLists.txt"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-CMAKE-USEBEFOREDEF-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_cmake_usebeforedef.py",
+        "--selftest"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/quality/check_cmake_usebeforedef.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-MODULE-ID-NORMALIZATION",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_module_id_normalization.py",
+        "--root",
+        ".",
+        "--json-out",
+        "run/ci/module-id-normalization/report.json"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/module-id-normalization/report.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/modules/MODULE_MAP.yaml",
+        "docs/modules/registry/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-MODULE-ID-NORMALIZATION-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_module_id_normalization.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/quality/check_module_id_normalization.py",
+        "docs/modules/registry/module_id_migration_baseline.json"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-MASTER-UNIT-GUARD",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_master_unit_guard.py",
+        "--repo",
+        ".",
+        "--out-json",
+        "run/ci/master-unit-guard/report.json"
+      ],
+      "timeout_seconds": 1800,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/master-unit-guard/report.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "lib/algorithms/calibration/**",
+        "lib/infrastructure/cli/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-MASTER-UNIT-GUARD-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/check_master_unit_guard.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 1800,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/quality/check_master_unit_guard.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-GATES-AND-TOLERANCES",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/check_gates_and_tolerances.py"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/algorithms/GATES_AND_TOLERANCES.md",
+        "docs/DOCUMENT_INDEX.yaml"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-GATES-AND-TOLERANCES-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/check_gates_and_tolerances.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/check_gates_and_tolerances.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-VERSION-CONSISTENCY-VER001",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/check_version_consistency.py"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "eng/contracts/schemas/**",
+        "eng/tests/**",
+        "VERSION"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-VERSION-CONSISTENCY-VER001-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/check_version_consistency.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/tools/check_version_consistency.py",
+        "eng/tests/version/test_version_consistency.py"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-BASELINE-OPCODES",
+      "profiles": [
+        "linux-main",
+        "linux-deep"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "eng/tools/check_baseline_opcodes.py",
+        "build/CMakeFiles/astrocs_cpu_baseline.dir/lib/backend_host/baseline_backend.cpp.o"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "lib/backend_host/**",
+        "lib/infrastructure/benchmark/backend_host/**"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-LINK-SCAN",
+      "profiles": [
+        "linux-main"
+      ],
+      "platform": "linux",
+      "command": [
+        "python3",
+        "eng/tools/check_link_scan.py",
+        "build/astrocs"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "CMakeLists.txt",
+        "lib/**"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",

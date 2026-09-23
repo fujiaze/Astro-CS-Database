@@ -121,7 +121,13 @@ def main():
     out={"tool":"check_module_id_normalization","inject":a.fault_inject,"status":status,
          "baseline":(base or {}).get("baseline_id"),"current":cur,"baseline_classes":(base or {}).get("classes"),
          "stats":stat,"over_baseline":over,"errors":errs,"examples":errs[:5]}
-    if a.json_out: open(a.json_out,"w",encoding="utf-8").write(json.dumps(out,ensure_ascii=False,indent=1))
+    if a.json_out:
+        # 产物目录不存在时自建：缺目录不是「无违规」，抛 traceback 会把工具故障
+        # 报成判据结果（01_CHECKS §1：不得 traceback、不得静默降级）。
+        import os as _os
+        _d = _os.path.dirname(a.json_out)
+        if _d: _os.makedirs(_d, exist_ok=True)
+        open(a.json_out,"w",encoding="utf-8").write(json.dumps(out,ensure_ascii=False,indent=1))
     print(json.dumps({k:out[k] for k in ("tool","status","baseline","current","baseline_classes","over_baseline","stats")},ensure_ascii=False))
     for e in errs[:5]: print("  -",e)
     sys.exit(1 if over else 0)
