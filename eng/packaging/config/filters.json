@@ -717,14 +717,14 @@
     "non_key_examples": [
       {
         "literal": "bader r",
-        "where": "docs/contracts/CONFIG_CONTRACT.md:197",
+        "where": "docs/contracts/CONFIG_CONTRACT.md:198",
         "kind": "design_doc_negative_example",
         "resolution": "ERROR",
-        "note": "现行权威 = docs/contracts/CONFIG_CONTRACT.md §10「滤镜名匹配语义」负例表（第 195 行）冻结的 \"bader r\"；RELEASE-04 换版后最高设计不再携带该反例串，原 §3.3 行号锚点失效（GATE-502 按现行合同重锚，值与判据未变）。与本库键 'Baader R' 拼写不同形（bader vs Baader）：仅折叠大小写/空白仍不相等，因此任何「轻量归一化」都不能把它变成合法键；按 resolution_rule 判 ERROR。反例在 eng/tests/config/test_cfg003_multiblock.py 与 eng/tests/config/test_cfg001_negative.py 上红绿双向复跑。"
+        "note": "现行权威 = docs/contracts/CONFIG_CONTRACT.md §10「滤镜名匹配语义」负例表（第 198 行）冻结的 \"bader r\"；RELEASE-04 换版后最高设计不再携带该反例串，原 §3.3 行号锚点失效（GATE-502 按现行合同重锚，值与判据未变）。与本库键 'Baader R' 拼写不同形（bader vs Baader）：仅折叠大小写/空白仍不相等，因此任何「轻量归一化」都不能把它变成合法键；按 resolution_rule 判 ERROR。反例在 eng/tests/config/test_cfg003_multiblock.py 与 eng/tests/config/test_cfg001_negative.py 上红绿双向复跑。"
       },
       {
         "literal": "bader v",
-        "where": "docs/contracts/CONFIG_CONTRACT.md:197",
+        "where": "docs/contracts/CONFIG_CONTRACT.md:198",
         "kind": "design_doc_negative_example",
         "resolution": "ERROR",
         "note": "同上（现行权威锚点 = docs/contracts/CONFIG_CONTRACT.md:197）；且本库 45 条曲线中不存在 Baader V 曲线（Baader 品牌只有 Baader B/Baader G/Baader R/UV-IR Cut L CMOS Optimized/7nm H-alpha/8.5nm OIII 六条），故该示例既不能按字面命中，也不存在可归一化到的键。"

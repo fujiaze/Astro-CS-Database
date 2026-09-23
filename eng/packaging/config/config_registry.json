@@ -2086,7 +2086,7 @@
       "linux",
       "windows"
     ],
-    "derivation": "生产者字面量集合，非编造：lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp:255-261（_WIN32->windows，否则->linux）；lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:568（缺 os 字段回落 linux）；平台面由 ENGINEERING_SPEC.md §1（Windows 10+ amd64 / Linux amd64）封闭。",
+    "derivation": "生产者字面量集合，非编造：lib/infrastructure/benchmark/backend_host/hardware_inspect.cpp:259-265（_WIN32->windows，否则->linux）；lib/infrastructure/benchmark/backend_host/profile_gen_v2.cpp:571（缺 os 字段回落 linux）；平台面由 ENGINEERING_SPEC.md §1（Windows 10+ amd64 / Linux amd64）封闭。",
     "consumers": [
       "lib/infrastructure/benchmark/backend_host/cpu_routing.cpp:271-275（os_abi 与 hw os.name 逐字比较，不等即 stale_machine）"
     ],

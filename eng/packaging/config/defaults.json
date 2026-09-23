@@ -704,10 +704,10 @@
       "unit": "1",
       "constraint": "枚举 token ∈ {dense, sparse_reconstruct, frame_reconstruct}；默认 sparse_reconstruct = Phase2 默认消费 Phase1 稀疏控制点 SNR 层重建稠密 SNR（负责人 2026-09-19 裁决 GAP_AUDIT §9.46：马赛克各帧天光/光污染空间分布不同 ⇒ 帧级标量精度不足）。三条路径全部保留供论文精度对比；SP-0（实测 Var_p 比值）为诊断量、不作默认开关。承载字段 = phase_config mosaic 的 snr_path（值域唯一事实源 = eng/contracts/schemas/phase_config_mosaic.schema.json）",
       "authority_status": "owner_adjudicated",
-      "source": "负责人裁决 2026-09-19（GAP_AUDIT §9.46：Phase2 默认消费稀疏层 ⇒ snr_path = sparse_reconstruct，不再按 SP-0 判据决定；三条路径保留、JSON 可显式指定；SP-0 降为诊断量）；docs/plugins/algorithms_phase1/07_noise_snr.md:142（snr_path 默认 sparse_reconstruct，三条路径与 SP-0 判据）",
+      "source": "负责人裁决 2026-09-19（GAP_AUDIT §9.46：Phase2 默认消费稀疏层 ⇒ snr_path = sparse_reconstruct，不再按 SP-0 判据决定；三条路径保留、JSON 可显式指定；SP-0 降为诊断量）；docs/plugins/algorithms_phase1/07_noise_snr.md:186（snr_path 默认 sparse_reconstruct；三条路径的适用域由 实验/absolute-snr 给出）",
       "source_ref": {
         "path": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-        "line": 142
+        "line": 186
       },
       "pending_task": null,
       "enum_token": "sparse_reconstruct",
