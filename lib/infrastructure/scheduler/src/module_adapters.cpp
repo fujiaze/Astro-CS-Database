@@ -63,6 +63,7 @@
 #include "astro_image_io.h"
 #include "aio_fits.h"        // AIOImageData 完整布局: 写出前归一化样本格式为 FP32
 #include "hp_drizzle_api.h"
+#include "astrocs/noise/variance_plane_policy.h"   // §4a 三态表的方差面可用性判据
 
 // P1-001 口径更新: 真实求解器/拟合器/HiPS writer 生产头（模块库零 diff 只读调用）
 #include "dynamic_psf.h"     // lib/algorithms/psf: dpsf_fit_batch_f64 (Moffat4 FP64)
@@ -4488,8 +4489,30 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     double zero_point_mag = 0.0;
     int zero_point_n_stars = 0;
     double zero_point_scatter_mag = 0.0;
+    // ── PASSBAND-IDENTITY-GATE-01: 通带身份（帧级自述）───────────────────
+    // 拟合入口自报的「实际用于合成 F_syn 的曲线身份」；组级一致性由
+    // passband_identity 落盘（见 provenance 段）。空 filter_key ⇒ 该帧的标度
+    // 不是拟合通道产出的（侧车通道），身份不适用。
+    std::string filter_key;
+    std::string filter_curve_name;
+    int filter_n_points = 0;
+    double filter_wl_min_nm = 0.0;
+    double filter_wl_max_nm = 0.0;
   };
   std::map<std::string, P1FrameScale> scales;
+  // 组级通带身份（配置声明 + 实际装载的曲线身份）。拟合通道启用时由**首帧**
+  // 结果落定；随后每帧必须与它一致，否则该帧判 fail（帧间不得混用不同通带）。
+  bool passband_identity_valid = false;
+  std::string passband_identity_declared;   // 配置声明的通带名（块级 filter_passband）
+  std::string passband_identity_filter;     // FILTER 关键字（fit.filter 或 filter_passband）
+  std::string passband_identity_key;        // 解析出的库键（= filters.json 对象键）
+  std::string passband_identity_curve_name; // 曲线对象自述 name（身份门要求 == 库键）
+  int passband_identity_n_points = 0;
+  double passband_identity_wl_min_nm = 0.0;
+  double passband_identity_wl_max_nm = 0.0;
+  double passband_identity_val_min = 0.0;
+  double passband_identity_val_max = 0.0;
+  std::string passband_identity_curve_source;  // filters.json 路径（实际读的那个）
   std::string photscale_source = "none";
   const Json phot_cfg = (p1_has(doc, "photometry") && doc["photometry"].is_object())
                             ? doc["photometry"] : Json::object();
@@ -4705,6 +4728,12 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         freq.sip_a = sip.a; freq.sip_b = sip.b; freq.sip_ap = sip.ap; freq.sip_bp = sip.bp;
         freq.gaia_data_dir = gaia_dir;
         freq.filter_name = filter_name;
+        // PASSBAND-IDENTITY-GATE-01: 把配置**声明**的通带名送进拟合入口，由
+        // 生产唯一实现核对「FILTER 关键字解析出的库键 == 声明名」；不等 ⇒
+        // 拟合拒绝产出标度（具名环境作用域失败，见 frame_photometry_fit.cpp）。
+        // 依据 docs/science/PHOTOMETRY.md §2a.4/§2a.5（通带形状不被零点吸收、
+        // 比较 sigma_residual 必须声明所用模型通带）。
+        freq.declared_filter_passband = doc.value("filter_passband", std::string());
         freq.filters_json = filters_json;
         freq.qe_json = qe_json; freq.qe_name = qe_name;
         const astrocs::photometry::FramePhotFitResult fr =
@@ -4758,11 +4787,49 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
         sc.fitted = true;
         sc.n_psf_domain = n_psf_domain;    // F-INSTR-CONFORM-FIX provenance
         sc.n_psf_skipped = n_psf_skipped;
+        // PASSBAND-IDENTITY-GATE-01: 帧级通带身份自述（组级一致性见下方落盘）
+        sc.filter_key = fr.filter_key;
+        sc.filter_curve_name = fr.filter_curve_name;
+        sc.filter_n_points = fr.filter_n_points;
+        sc.filter_wl_min_nm = fr.filter_wl_min_nm;
+        sc.filter_wl_max_nm = fr.filter_wl_max_nm;
         // FREF-BASELINE-001: 帧自身测光零点（正向合成, 与帧噪声无关）
         sc.zero_point_valid = fr.zero_point_valid;
         sc.zero_point_mag = fr.zero_point_mag;
         sc.zero_point_n_stars = fr.zero_point_n_stars;
         sc.zero_point_scatter_mag = fr.zero_point_scatter_mag;
+        // ── PASSBAND-IDENTITY-GATE-01: 通带身份（组级一致性）─────────────
+        // 首帧落定组级身份；后续帧必须与首帧**逐项**一致（同一组只能有一条
+        // 模型通带）。不一致 ⇒ 该帧 fail（帧间不得混装不同通带的产品）。
+        if (!passband_identity_valid) {
+          passband_identity_valid = true;
+          passband_identity_declared = doc.value("filter_passband", std::string());
+          passband_identity_filter = filter_name;
+          passband_identity_key = fr.filter_key;
+          passband_identity_curve_name = fr.filter_curve_name;
+          passband_identity_n_points = fr.filter_n_points;
+          passband_identity_wl_min_nm = fr.filter_wl_min_nm;
+          passband_identity_wl_max_nm = fr.filter_wl_max_nm;
+          passband_identity_val_min = fr.filter_val_min;
+          passband_identity_val_max = fr.filter_val_max;
+          passband_identity_curve_source = filters_json;
+        } else if (fr.filter_key != passband_identity_key ||
+                   fr.filter_n_points != passband_identity_n_points ||
+                   fr.filter_wl_min_nm != passband_identity_wl_min_nm ||
+                   fr.filter_wl_max_nm != passband_identity_wl_max_nm) {
+          mark_frame_fail(i, "SCIENCE_PRECONDITION", "PHOT_PASSBAND_IDENTITY_INCONSISTENT",
+                          "passband identity differs from the group's first fitted frame"
+                          " for " + key + " (group key='" + passband_identity_key +
+                          "' n_points=" + std::to_string(passband_identity_n_points) +
+                          " range=[" + std::to_string(passband_identity_wl_min_nm) + "," +
+                          std::to_string(passband_identity_wl_max_nm) + "] nm; frame key='" +
+                          fr.filter_key + "' n_points=" + std::to_string(fr.filter_n_points) +
+                          " range=[" + std::to_string(fr.filter_wl_min_nm) + "," +
+                          std::to_string(fr.filter_wl_max_nm) + "] nm)"
+                          " -- refusing to mix different model passbands in one group",
+                          "passband_identity_inconsistent");
+          continue;
+        }
         scales[key] = sc;
       }
       // 通道已走通即如实登记来源（逐帧成败见 verdicts / photscale_fit）。
@@ -5085,6 +5152,33 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     frame_status_map[fkey] = entry;
   }
 
+  // ── PASSBAND-IDENTITY-GATE-01: 通带身份自述（落盘 + 判据）────────────────
+  // 把「配置声明的通带」与「实际用于合成 F_syn 的曲线身份」一起落进 p1_phot.json，
+  // 使二者可在产品里被**独立核对**（而不是只能信任运行日志）。gate 字段的语义：
+  //   "enforced (curve identity == declared filter name)" = 生产唯一实现已在装配期
+  //     核对并通过（曲线对象自述 name == 库键，且与 provenance 的 curve_stats 一致）；
+  //   "not_applicable (no fitted scale)" = 无拟合标度产出（标度来自侧车或通道缺席），
+  //     通带身份不适用 —— 此时**不**声称已核对。
+  // 依据 docs/science/PHOTOMETRY.md §2a.4（比较 sigma_residual 必须声明所用模型
+  // 通带）+ §2a.5（通带形状不被零点吸收）+ docs/contracts/CONFIG_CONTRACT.md §4
+  // （滤镜名解析 = 字节精确、无别名）。
+  auto passband_identity_json = [&]() -> Json {
+    if (!passband_identity_valid)
+      return Json{{"gate", "not_applicable (no fitted scale)"},
+                  {"declared_filter_passband", doc.value("filter_passband", std::string())}};
+    return Json{{"gate", "enforced (curve identity == declared filter name)"},
+                {"declared_filter_passband", passband_identity_declared},
+                {"filter_keyword", passband_identity_filter},
+                {"resolved_library_key", passband_identity_key},
+                {"curve_name", passband_identity_curve_name},
+                {"n_points", passband_identity_n_points},
+                {"wl_min_nm", passband_identity_wl_min_nm},
+                {"wl_max_nm", passband_identity_wl_max_nm},
+                {"val_min", passband_identity_val_min},
+                {"val_max", passband_identity_val_max},
+                {"curve_source", passband_identity_curve_source}};
+  };
+
   // ── B2-A14: 真实测光 provenance sidecar (DATA-P1-PHOTPROV-001) ─────────────
   // drizzle 消费本产物决定 PHOTSCAL/PHOTAPPL; 禁止硬编码 1。如实声明是否已对
   // 像素施加测光缩放（施加后 applied=true, operation 记录两步）。
@@ -5108,6 +5202,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
                    {"photscale_spread_dex", photscale_spread_dex},
                    {"photscale_spread_warn", photscale_spread_warn},
                    {"photscale_spread_gate", "none (owner ruling 9.49: frame-independent)"},
+                   // PASSBAND-IDENTITY-GATE-01: 通带身份自述（声明 vs 实际曲线）
+                   {"passband_identity", passband_identity_json()},
                    {"n_frames", static_cast<uint64_t>(n_lights)},
                    // ── FAILSEM-01: 逐帧判决（下游与门禁的**唯一真相**）──────
                    // 每帧一条: status ∈ {ok, fail}。fail 帧带 error_domain /
@@ -5147,6 +5243,8 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   (*man)["photscale_spread_dex"] = photscale_spread_dex;
   (*man)["photscale_spread_warn"] = photscale_spread_warn;
   (*man)["photscale_spread_gate"] = "none (owner ruling 9.49: frame-independent)";
+  // PASSBAND-IDENTITY-GATE-01: 通带身份（与 p1_phot.json 同一对象，逐字段可核）
+  (*man)["passband_identity"] = passband_identity_json();
   // F-INSTR-CONFORM-FIX (SCI-PHOT-001 §9a): 本节点 F_instr 的域 = PSF 拟合域
   // 解析通量; 修复前 = 检测域 5×5 盒和。显式登记以便独立核对。
   (*man)["f_instr_domain"] = "psf_analytic_flux_2pi_A_sx_sy_over_3";
@@ -6493,35 +6591,37 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                        " signal/support (ASTROCS_DESIGN §8.2:547)";
         } else {
           std::vector<float> var_plane(static_cast<size_t>(n_px), 0.0f);
-          // 平面可用性判据 = fill 成功 **且** 逐像素有限正（既有判据，逐字保留）。
+          // 平面可用性判据 = fill 成功 **且** 无**损坏**像素（variance<0 或非有限）。
+          // variance==0 是 §4a 明文规定的**合法产品态**（有覆盖但方差不可用 ⇒ 零权重）:
+          // 平面预测 ≤ 0 或该像素在产品 dtype 中不可表示时，生产者写 0∧0；投影侧
+          // (drizzle_engine 的 varianceValue<=0 分支) 只跳过方差累加、不丢 signal/support
+          // ⇒ **不构成拒绝理由**。整面丢弃会把可用像素的**空间方差结构**一并丢掉、
+          // 退化成帧级常数场, 那是纯损失。判据正本 = astrocs/noise/variance_plane_policy.h
+          // （与生产者同判据；逐位中性: 全正平面只读不写）。
+          std::size_t n_var_unavailable = 0;
+          std::size_t n_var_corrupt = 0;
           auto fill_plane = [&](P1NoiseFrameModel& m) -> bool {
             std::fill(var_plane.begin(), var_plane.end(), 0.0f);
             if (snr_noise_model_v1_fill(&m.model, im.h(), im.w(),
                                         var_plane.data(), nullptr) != 0) {
               return false;
             }
-            for (size_t i = 0; i < var_plane.size(); ++i) {
-              const float v = var_plane[i];
-              if (!(std::isfinite(v) && v > 0.0f)) return false;
-            }
-            return true;
+            const astrocs::noise::VariancePlaneVerdict vp =
+                astrocs::noise::classify_variance_plane(var_plane.data(),
+                                                        var_plane.size());
+            n_var_unavailable = vp.n_unavailable;
+            n_var_corrupt = vp.n_corrupt;
+            return vp.accepted;
           };
           bool plane_ok = fill_plane(nmc);
           bool plane_invalid_fallback = false;
           if (!plane_ok) {
-            // ── fail-closed 退化：线性平面不是合法方差场 ─────────────────────
-            // SCI-NOISE §5 的平面是**外推**模型：控制点方差恒正，但最小二乘平面
-            // 可在帧内取非正值（M42 真实帧实测：16.25% 像素为负，角点 −515 ADU²，
-            // 连自己的控制点都 misfit）。§7 明令「clamp **只作用于可用方差**；
-            // **不可用一律 ivar=0（不得由 clamp 产生）**」——此时若按 §5 把负预测
-            // clamp 到 variance_floor：(i) 会把不可用方差伪造成可用权重
-            // （ivar=1/floor 比物理 ivar 大 ~1e14 倍）；(ii) 换算到数组标度后
-            // floor=α²·1e-12≈5.7e-46 **在 float32 下下溢为 0**，而 drizzle
-            // （drizzle_engine.cpp:2029）对 varianceValue<=0 是**整像素 continue**
-            // ⇒ 连 signal/support 一起丢（ASTROCS_DESIGN §8.2:547）。
-            // 故退回 SCI-NOISE §4/§5 **已规定的**全局常量场
-            // （variance_bg_global = 合格 patch variance 的稳健中位数），并显式
-            // 登记降级（不静默、不挂会破坏数据的块）。数值上：平面合法帧逐位不变。
+            // ── fail-closed：平面面本身损坏（variance<0 或非有限）──────────────
+            // §4a「损坏 ⇒ rc=−6 硬失败（禁 clamp/禁静默跳过）」。此时退回
+            // SCI-NOISE §4/§5 **已规定的**全局常量场（variance_bg_global = 合格 patch
+            // variance 的稳健中位数），并显式登记降级（不静默）。数值上：平面合法帧逐位不变。
+            // 注意「平面含非正**预测**」不再是本分支的触发条件——那是生产者的合法
+            // 零方差态（见上），由 §4a 三态表按像素承载。
             P1NoiseFrameModel nmc_global = p1_noise_model_for_frame(
                 nm_data, nm_is_f64, im.h(), im.w(), frame_path, snr_cfg, nm_src,
                 nm_data_scale, /*disable_spatial_field=*/true);
@@ -6532,6 +6632,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
               nmc = nmc_global;                      // 所有权转移（下方统一 _free）
               f_var_diag[fi] = nmc.diag;
               var_diag["spatial_plane_invalid_fallback_global"] = true;
+              var_diag["spatial_plane_corrupt_pixels"] = (std::int64_t)n_var_corrupt;
               plane_ok = true;
               plane_invalid_fallback = true;
               var_status = "attached_global_field_plane_invalid";
@@ -6544,6 +6645,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             }
           }
           if (!plane_ok) {
+            var_diag["spatial_plane_corrupt_pixels"] = (std::int64_t)n_var_corrupt;
             var_status = "skipped_fill_failed";
             var_reason = "snr_noise_model_v1_fill failed (non-zero rc) or the plane"
                          " holds a non-positive/non-finite value, and the global"
@@ -6567,6 +6669,10 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
               var_status = "attached";
               var_reason = "ok";
             }
+            // §4a 三态表的产品面事实: 有多少像素是「有覆盖但方差不可用」(0∧0)。
+            // 与「平面是否被采用」正交, 故两条路径都要登记。
+            var_diag["variance_unavailable_pixels"] =
+                (std::int64_t)n_var_unavailable;
           }
         }
         snr_noise_model_v1_free(&nmc.model);   // 与 v1 成对（DISP-NOISE-001/009）
@@ -10546,7 +10652,10 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                             {"ivar_bunit", uncertainty_available
                                  ? std::string(kP3BunitSbIvar)
                                  : std::string()},
-                            {"quadratic_law", "variance = signal^2; ivar = 1/variance"}}},
+                            // 单位传播写法（docs/contracts/DATA_SEMANTICS.md §31.1 FZ-P3-BUNIT-QUADRATIC）：
+                            // 本条只约束 BUNIT 单位串，不约束数值——variance 是独立估计量，
+                            // 数值上一般 != signal^2（含读噪/量化时，见 EMVA 1288 R4.0 Linear §2.4 Eq.(15)）。
+                            {"quadratic_law", "BUNIT(variance) = BUNIT(signal)^2; BUNIT(ivar) = 1/BUNIT(signal)^2"}}},
                         {"uncertainty_available", uncertainty_available},
                         // G3-12（ASTROCS_DESIGN §3.1）：p2_final.json
                         // **不再落** weight_mode 键（「全程只有 SNR，不存在

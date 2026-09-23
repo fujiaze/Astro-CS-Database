@@ -1511,8 +1511,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
   >1e6 :634-638、cells>2e8 :644-648/:1071-1077、首 tile 越界
   :656-669、exception 兜底 :1089-1097）；容量不足**不报错**：
   按 capacity 截断拷贝、out_n_* 返回真实需求量（:1098-1117）。
-  线程安全=reentrant yes / threadsafe yes（PERF-401 订正：原 `g_aio_mu`
-  串行路径锁已删除，读路径无进程级共享可变状态；per-worker 独立 AIO
+  线程安全=reentrant yes / threadsafe yes（读路径**不存在进程级串行锁**、无进程级共享可变状态；per-worker 独立 AIO
   句柄 :938，每次读各自 open→read→close、句柄线程私有不跨线程转移；
   依据见 `docs/architecture/EXECUTION_MODEL.md` §2/§3）；无取消
   检查点（ThreadLease 接线归 P2-SAMP-IMPL，与 DISP-COV-005
@@ -2141,11 +2140,15 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 | ~~退役值~~ | ~~`psfsw_robust`~~ —— **已按 §9.73 A44 作废**（退役对象 `psfsw_robust_weight` 的声明 token；`FZ-MODE-RETIRED`）：声明即**显式拒绝 + 迁移提示**（迁移到 `point_information` / `surface_gls`），不得静默接受（A44 式留痕见 `docs/contracts/DATA_SEMANTICS.md` §31.3 与 `eng/contracts/data/v6_clause_registry_v1.json#weight_modes.retired`） |
 | 合法值（文档基线） | `equal` / `pixel_ivar`（仅基线对照，非科学最优声明） |
 | 延迟值 | `psf_snr_power`（DEFERRED，不进 V6 生产路由；`C-004.1` 本包不解冻） |
-| 拒绝值 | `auto` / `support_x_snr2` / legacy 整数 `0` / 未知串（`G-WEIGHTMODE-ENUM`） |
-| 现有落点（历史） | Phase2 mosaic write 消费面 `P2Stage2Config.weight_mode`（`stage2_common.h:90`）曾为整数 `0/1/2`（本文 §「Phase2 mosaic write 公共消费面」:1165；`DATA_SEMANTICS` §20/§30.3）（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） |
+| 拒绝值 | `auto` / `support_x_snr2` / legacy 整数 `0` / `1` / `2`（§9.73 A44 后**全值域**拒绝）/ 未知串（`G-WEIGHTMODE-ENUM`） |
+| 现有落点（**已删除**） | Phase2 mosaic write 消费面 `P2Stage2Config::weight_mode`（原 `stage2_common.h:90`）曾为整数 `0/1/2`，**该字段已按 §9.73 A44 删除**（头文件中不再存在；`integration.weight_mode` 出现即拒绝）（本文 §「Phase2 mosaic write 公共消费面」:1165；`DATA_SEMANTICS` §20/§30.3）（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量） |
 | 词表落点 | `eng/contracts/data/v6_clause_registry_v1.json#weight_vocabulary`（`canonical_fields` + `dual_mapping` + `legacy_integer`） |
 
-**legacy 整数处置（reader 规则，唯一）**：`0=support×snr²` **一律拒绝**（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）；`1 → equal`；`2 → pixel_ivar`（迁移结果必须带 ~~`weight_mode_version`~~ （已按 §9.73 A44 作废：键不存在；权重是派生量），且两者不得冒充生产模式）。生产 writer 只写显式字符串模式。
+**legacy 整数处置（reader 规则，唯一；§9.73 裁决 A44 后订正）**：**全值域一律拒绝** —— `0=support×snr²`、`1=equal`、`2=pixel_ivar` **三者同等拒绝**（`FZ-FIELD-WEIGHTMODE`；`G-LEGACY-MIGRATION`）。
+
+> 订正依据：A44 删除 legacy 整数权重模式域后，该字段**不存在任何合法取值** ⇒ 不再是「0 拒绝、1/2 映射为文档基线」，而是**出现即 fail-closed 具名拒绝**（`ASTROCS_DESIGN.md` §3.1:175「权重的产生链固定为两步、**没有可选择项**」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4:72「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」）。实现事实源：`lib/algorithms/coverage/src/stage2_common.cpp` 与 `lib/infrastructure/scheduler/src/module_adapters.cpp`（键出现即拒绝）；CLI 面 `lib/infrastructure/cli/v6_runtime_contract.h` 的 `route_legacy_weight_mode_int` 是**纯拒绝面**（0/1/2 与任意整数 → `kReject`）。
+
+**登记面 vs 输入路径（A44 口径，本合同的判据形态；本段对 `weight_mode` （已按 §9.73 A44 作废：键不存在；权重是派生量） 的登记作说明）**：「登记面」= 描述**历史/既有数据对象**的形态，是**名词**；「输入路径」= 决定生产**接受什么**，是**动词**。冻结（`FZ-WEIGHT-SINGLE-PATH` / A44）禁止的是**后者**，不禁止前者 —— 故本文与 `eng/contracts/data/v6_clause_registry_v1.json#weight_modes`、`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的**历史词表登记保留**，但必须正面写清它**不是**接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token（`auto` / `ivar` / `equal` / `support_x_snr2` / 整数 `0`|`1`|`2` / `weight_mode` 键 / `legacy_allow_weight_fallback` 键）一律 fail-closed 具名拒绝**；反之，仅用于描述既有对象形态的枚举与映射不构成输入面，不得据此声称生产可用。生产 writer 只写显式字符串模式。
 
 ### 2. ~~权重对象 canonical 字段~~ **已作废**（`psfsw_robust_weight` 对象已真删，14→13；DOC-203 订正）
 
