@@ -316,30 +316,57 @@ int HissWriter::open(const std::string& output_path,
         return -2;
     }
 
-    // WP-C 步骤9: 测光元数据一致性校验 (02_FROZEN §7)
+    // WP-C 步骤9 + UNIT-DERIVE-01 收口: 产品 BUNIT 口径校验 (fail-closed, 逐类具名)
+    // 规范: docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810（全链 signal 承载的物理量是
+    //   面亮度，产品 FITS/HiPS 写盘 BUNIT 一律取 canonical 串）+ §31.1a:2827-2830（测光
+    //   归一化层是线性乘性标度，不改变量纲类别：BUNIT 描述「量的种类」，标度由
+    //   PHOTSCAL/PHOTAPPL 与 k_photo 逐帧承载）+ §31.2 FZ-BUNIT-SEMANTICS（写盘 BUNIT
+    //   必须量纲可判）。
+    // 合法集 = §31.1 冻结串（signal 面亮度 / 其方差 / 其逆方差）:
+    //   "ADU/sr" / "ADU^2/sr^2" / "sr^2/ADU^2"。
+    // 判红 (HISS_ERR_INVALID_STATE, rc=-2) 三类, 各自具名:
+    //   (a) 空串 —— 单位未声明;
+    //   (b) "ASTROCS_RELATIVE_FLUX" —— 非面亮度量纲串：它把「标度已变」写成「量的种类已变」,
+    //       与 §31.1a:2827-2830 相反。订正 = 写 "ADU/sr"，标度交给 PHOTAPPL/PHOTSCAL;
+    //   (c) 其它串（含裸 "ADU"）—— §31.2 规定裸 "ADU" 必须配 provenance 声明
+    //       pixel_semantics="surface_brightness" + pixel_area_power=-2，HISS 容器无该
+    //       provenance 面 ⇒ 单位不可判, 不得静默落盘。
+    // PHOTAPPL/PHOTSCAL 只承载标度, **不**作为单位判据（标度 ≠ 量纲类别）。
     {
         const std::string bunit_str(metadata.bunit);
-        const bool is_relative_flux = (bunit_str == "ASTROCS_RELATIVE_FLUX");
-        const bool photappl = (metadata.photappl != 0);
-
-        if (is_relative_flux && !photappl) {
+        const bool is_frozen_sb_unit = (bunit_str == "ADU/sr" ||
+                                        bunit_str == "ADU^2/sr^2" ||
+                                        bunit_str == "sr^2/ADU^2");
+        if (bunit_str.empty()) {
             fprintf(stderr,
-                    "[hiss][writer] open 失败: 元数据不一致 - BUNIT=%s 但 PHOTAPPL=FALSE "
-                    "(PHOTSCAL=%.6f)。BUNIT=ASTROCS_RELATIVE_FLUX 要求 signal 已应用 Gaia 测光校准 "
-                    "(PHOTAPPL=TRUE) (HISS_ERR_INVALID_STATE)\n",
-                    metadata.bunit, metadata.photscal);
-            return -2;  // HISS_ERR_INVALID_STATE
+                    "[hiss][writer] open 失败: BUNIT 未声明 (空串)。写盘 BUNIT 必须量纲可判 "
+                    "(docs/contracts/DATA_SEMANTICS.md §31.2 FZ-BUNIT-SEMANTICS); "
+                    "产品 signal 面亮度 canonical 串 = \"ADU/sr\" (HISS_ERR_INVALID_STATE)\n");
+            return -2;
         }
-
-        fprintf(stderr,
-                "[hiss][writer] 测光元数据: PHOTAPPL=%d PHOTSCAL=%.6f BUNIT=%s (一致性 OK)\n",
-                metadata.photappl, metadata.photscal, metadata.bunit);
-
-        if (photappl && !is_relative_flux) {
+        if (bunit_str == "ASTROCS_RELATIVE_FLUX") {
             fprintf(stderr,
-                    "[hiss][writer] 警告: PHOTAPPL=TRUE 但 BUNIT=%s (建议改为 ASTROCS_RELATIVE_FLUX)\n",
+                    "[hiss][writer] open 失败: BUNIT=%s 不是面亮度口径串。产品 BUNIT 一律取 "
+                    "canonical \"ADU/sr\"——测光归一化是线性乘性标度，只改零点、不改量纲类别，"
+                    "标度由 PHOTAPPL/PHOTSCAL 承载 (docs/contracts/DATA_SEMANTICS.md "
+                    "§31.1a:2808-2810 / :2827-2830) (HISS_ERR_INVALID_STATE)\n",
                     metadata.bunit);
+            return -2;
         }
+        if (!is_frozen_sb_unit) {
+            fprintf(stderr,
+                    "[hiss][writer] open 失败: BUNIT=%s 不在 §31.1 冻结串集 "
+                    "{ADU/sr, ADU^2/sr^2, sr^2/ADU^2} 内；裸 \"ADU\" 需 provenance 声明 "
+                    "pixel_semantics=\"surface_brightness\" + pixel_area_power=-2，"
+                    "HISS 容器无该面 ⇒ 单位不可判 (FZ-BUNIT-SEMANTICS) "
+                    "(HISS_ERR_INVALID_STATE)\n",
+                    metadata.bunit);
+            return -2;
+        }
+        fprintf(stderr,
+                "[hiss][writer] 单位口径: BUNIT=%s (canonical 面亮度族) PHOTAPPL=%d "
+                "PHOTSCAL=%.6f (标度由 PHOTAPPL/PHOTSCAL 承载, 非单位判据)\n",
+                metadata.bunit, metadata.photappl, metadata.photscal);
     }
 
     pimpl_->grid     = grid;

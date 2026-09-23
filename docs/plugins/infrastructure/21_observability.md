@@ -98,9 +98,25 @@
 
 ### 8.4 record / enforce 划分与判定点
 
-- **程序内默认 record_only**：CLI 运行期只记录与报告，不因资源判据改变退出码（`--strict-resource-gate` / `--on-resource-gate strict` 可复现 enforce 语义）。
+- **程序内恒 record_only**（`ASTROCS_DESIGN.md` §3.5「资源门只管磁盘…内存、CPU、线程不设门」；§9.74 裁决 10）：CLI 运行期只记录与报告，**不因资源判据改变退出码**；`--strict-resource-gate` / `--on-resource-gate strict` **保留接受但不改变裁决**（旗标请求事实由事件字段如实登记，见下「事件面登记」）。实现唯一收口 = `lib/infrastructure/cli/resource_gate.h::gate_enforcement`（恒返回 `RecordOnly`；`Enforced` 枚举值仅为既有 ABI/测试引用保留）。
 - **唯一判定点 = CI 重计算检查（`CHK-RESOURCE` 的 `RESOURCE-GATE-REAL` 步骤）+ 发布验收**，以 `run_monitored.py --gate-required --gate-workers <registry 声明>` 形式执行。**`--gate-workers` 必须由 registry 显式声明**；未声明时利用率类判据不成立（记 `allocated_capacity_undeclared`），只有 ① 生效。
-- **exit 10（RESOURCE）** 的充分条件：判定域内 ①②③ 任一违约且处于 enforce 面。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。
+- **exit 10（RESOURCE）** 的充分条件：判定域内 ①②③ 任一违约且处于 enforce 面——该路径**只存在于 CI 判定点**，程序内（CLI）无此路径。`NOT_APPLICABLE` 与 record-only 记录项**都不产生 exit 10**。
+
+**事件面登记（`resource` / `resource_gate`）**
+
+`resource_gate`（severity=warning，仅判定为违规时发出）的**冻结必含扩展字段**（五面一致；机器门 = `eng/ci/check_event_field_sets.py`，正本 = `lib/infrastructure/cli/protocol.h::missing_required_extension_v1`）：
+
+| 字段 | 承载事实 |
+|---|---|
+| `diag` / `enforcement` / `enforced` | 诊断分类 / 处置口径（恒 `record_only`）/ 是否已强制（恒 `false`） |
+| `strict` | 用户是否请求了 strict 旗标（`--strict-resource-gate` / `--on-resource-gate strict`）；**不改变裁决** |
+| `work_core_seconds` / `workload_floor_core_seconds` / `workload_floor_reached` | 工作量下限事实（判据 ⑦，只记录，不参与判定） |
+| `so05_signoff_id` / `so05_signoff_status` | SO-05 签字项身份与状态（`DATA_SEMANTICS.md` §31.10：恒 `SO-05` / `PENDING_OWNER_SIGNOFF`） |
+| `auto_adjudication_allowed` | 自动裁决是否放行（恒 `false`） |
+
+**不得**在 `resource_gate` 事件写「若已签字是否会失败」类字段：§8.3 的 ④⑤⑥ 是 `record_and_justify`（违约后果 = 记录 + 超标登记，**不改退出码**），事件级常量无法表达逐判据的 enforce/record 分类，写了就是错的。
+
+`resource`（severity=info，每阶段末发出）的必含扩展字段 = CLI-004 冻结五项（`cpu_cores_used` / `rss_bytes` / `io_read_bytes` / `io_write_bytes` / `threads`）；其余（含 SO-05 记录字段 `measurement_policy` / `so05_signoff_id` / `so05_signoff_status` / `auto_adjudication_allowed` / `auto_adjudication_policy` / `one_budget_source_rule` / `determinism_contract`，以及 `strict_flag_requested`）是**实现侧附加字段**，不属冻结必含集（口径同 `CLI_PROTOCOL_V1.md` §4 对 `artifact` 的 DET-001 附加字段）。
 
 ### 8.5 豁免与不可豁免面
 
@@ -115,6 +131,35 @@
 | C++ CLI | `lib/infrastructure/cli/resource_gate.h`、`memory_report.h`（阈值经 CMake 从契约生成的 `resource_gate_thresholds_generated.h` 引入） | 程序内 record_only；① 用 `workers_p50` |
 | Python 冻结门 | `eng/tools/monitoring/run_monitored.py::evaluate_frozen_gate` / `resolve_allocated_capacity` | CI 判定点实现；① 用 `threads_p50` |
 | 外挂 judge（建议面） | `eng/tools/quality/resource_monitor.py` | 只给建议，不做发布判定；阈值同契约 |
+
+### 8.7 节点级归因探针与两个 I/O 口径（PERF-501）
+
+G-RES-01 的采样面是**进程级**的：它能判「利用率低」，不能回答「哪个节点、几条线程」。
+补上归因面的三个 env-gated 观测开关（默认零输出零开销，只观测、不改调度与数值路径）：
+
+| 开关 | 输出行 | 落点 |
+|---|---|---|
+| `ASTROCS_NODE_TRACE=1` | `[nodetrace] BEGIN <node> <steady_s>` / `END <node> <elapsed_s>` | `module_adapters.cpp` P10-UTIL2-006 |
+| `ASTROCS_LEASE_TRACE=1` | `[lease] <node> host_workers=… acquired=… cap=… budget_available=…` | `module_adapters.cpp` P7-UTIL-001 |
+| `ASTROCS_P1CAP_TRACE=1` | `[p1cap] frame_workers/parallel_for node=… lease=… memory_cap=… frame_workers=… n_units=… inner_omp=…` | `module_adapters.cpp` PERF-501 |
+
+消费者 = `eng/tools/monitoring/node_waterfall.py`：把上述行与 `resource_timeseries.csv`
+（或外挂 `resource_monitor.py` 的 `samples.csv`）按时间轴对齐，输出**节点瀑布 + 逐节点并行宽度**
+（`--self-test` 自证解析与归因口径）。
+
+**两个 I/O 口径不可混用**（本任务实测澄清）：
+
+- `resource_timeseries.csv` 的 `io_wait_pct` / `resource_summary.json` 的 `io_wait_pct_mean`
+  是 **`/proc/stat` 首行第 5 个数值（系统级 iowait，jiffies）÷ 采样区间 × 100**
+  （`lib/infrastructure/cli/monitor.h:189-210` 取值、`resource_recorder.h:158-159` 归一），
+  单位与 `cpu_pct` 同刻度 = **等效核 × 100**，且**含其它进程**的 I/O 等待。
+  ⇒ 它回答「盘上有没有负载」，**不**回答「是不是 AstroCS 在等盘」。
+- `resource_monitor.py` 新增的 `io_wait_all_ms` = **Σ 全线程 `delayacct_blkio_ticks` 增量**
+  （`/proc/<pid>/task/<tid>/stat` 第 42 字段），是**本进程树**真实块 I/O 等待；旧字段
+  `io_wait_ms` 只取线程组组长（`/proc/<pid>/stat`），在帧级并行下会系统性低估。
+
+读字节同理有两档，报告时必须写明用哪档：`/proc/<pid>/io` 的 `read_bytes` = 物理盘读；
+`rchar` = 含 page cache 命中的逻辑读（`run_monitored.py --io` 默认取 `rchar`）。
 
 ## 9. 测试与 Oracle
 

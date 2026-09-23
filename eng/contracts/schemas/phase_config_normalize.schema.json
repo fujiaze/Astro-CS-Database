@@ -27,7 +27,8 @@
     "算法选择的逐项权威见 docs/contracts/CONFIG_CONTRACT.md §3。",
     "**落盘形态键 storage_form**：Phase1 产品的落盘形态是**输入配置项**，不是运行期开关——取值 archive（默认）/ bare；键缺失、空串或 null ⇒ 取默认 archive 并报一条 level=warn 事件（不静默取默认）。合同与判据：docs/contracts/HIPS_STORAGE_FORM_CONTRACT.md §10、docs/design/PRODUCT_STORAGE_FORM.md §10；字段词表唯一源 = eng/contracts/schemas/hips_storage_form.schema.json#x-astrocs-field-vocabulary。本键**只**出现在 normalize（Phase2 固定裸服务面、Phase3 固定裸 FITS 不套壳）——mosaic/export 出现本键一律 REJECT。生产消费点（写出侧按形态落盘）属分阶段实现计划阶段 2；在此之前 CLI 只识别并透传，登记在 eng/ci/ledgers/dead_config_keys.json，不得静默 no-op。",
     "块内键集派生（§9.71 裁决 2 定案 3「键名一律以命令行实际认的键为准」）：唯一声明 = lib/infrastructure/cli/session_commands.h 的 config_fields(SESSION_NORMALIZE) + parser.cpp block_keys()={name, output_dir}。**登记在案的既存差异（本任务实测，未修）**：normalize_block 另含 12 个会话可选键（cosmetic / dark_optimization / dark_scale_factor / master_units / master_scale / master_flat_normalize / master_flat_median_range / photometry / sparse_snr_layer / sparse_snr_spacing_px / algorithm_drizzle_pixfrac / algorithm_psf_model）——它们在 parser.cpp session_keys()（平铺白名单）内、可经平铺简写到达，但**不在** config_fields() 内 ⇒ CLI 的块内未知键门（session_blocks_errors）对块内出现它们判 rc=3（实测）。收口二选一（均不在本任务文件域）：① 把这 12 键补进 config_fields()（lib/infrastructure/cli/**）；② 从 normalize_block 移除并改指 config_registry.json 的两条 sparse_snr_layer 登记点（eng/packaging/config/**）。在收口前，块内出现这 12 键是「schema 通过但 CLI rc=3」，不得据此认为块面已同构。",
-    "按 §9.73 裁决 A44（不存在「权重模式」）：本 schema 任何分支都**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode（机器断言在 eng/tests/config/test_cfg004_unified_contract.py）。"
+    "按 §9.73 裁决 A44（不存在「权重模式」）：本 schema 任何分支都**不含** weight_mode / legacy_allow_weight_fallback / algorithm_weight_mode（机器断言在 eng/tests/config/test_cfg004_unified_contract.py）。",
+    "star_detection 段（B3 收口）：段内键 = 生产节点 p1_guided_cfg（lib/infrastructure/scheduler/src/module_adapters.cpp）实际读取的键集；缺段 = 取编译期默认，不是错误。段内键名 mode 与 cpu_profile 的 legacy_v1/kernel_v1 同名（语义无关：检测模式 vs CPU profile 模式；且不在 cross_class_forbidden.cpu_profile_keys_in_phase_config 硬件禁止名列表内）⇒ 按**登记制**处置（登记面 = docs/contracts/config_separation_anchors.json#cross_class_forbidden.documented_same_name；门 = eng/tests/config/test_cfg001_contracts.py::TestCrossClassDisjointness 与 eng/tests/config/gate_assertions.py 门 G4，两者均从该登记面读取集合、不硬编码）。键闭包由 propertyNames.enum + additionalProperties:false 保证。合同文档 = docs/plugins/algorithms_phase1/03_star_detection.md §5.1；登记册 = eng/packaging/config/config_registry.json（03_star_detection 组）。"
   ],
   "type": "object",
   "$defs": {
@@ -231,6 +232,108 @@
       "type": "object",
       "description": "可选测光归一配置块（fit.enabled/gaia_data_dir/filter/filters_json/qe_json/qe_name/max_stars）；缺失 = 不施加（如实中性 applied=false，不伪造 1.0），消费 = p1_op_photometry"
     },
+    "star_detection_config": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "星表引导检测（权威路径）配置段。段内键 = 生产节点 p1_guided_cfg（lib/infrastructure/scheduler/src/module_adapters.cpp）实际读取的键集；缺段 = 全取编译期默认（不是错误）。规范：ASTROCS_DESIGN.md §4.2（星表引导检测 = 权威范式；按亮度取 top 2–5 万；极限星等按焦距、画幅、曝光时间派生估计，宁多勿少）+ docs/plugins/algorithms_phase1/03_star_detection.md §5.1。",
+      "propertyNames": {
+        "enum": [
+          "mode",
+          "gaia_data_dir",
+          "max_stars",
+          "approx_wcs",
+          "rotation_deg",
+          "parity",
+          "limiting_mag",
+          "limiting_mag_safety",
+          "query_radius_factor",
+          "limiting_mag_max_iter"
+        ]
+      },
+      "properties": {
+        "mode": {
+          "enum": [
+            "auto",
+            "catalog_guided",
+            "blind_diagnostic"
+          ],
+          "default": "auto",
+          "description": "auto = 有参考星表且取向先验可得（本帧 p1_wcs.json 产物、或配置给 approx_wcs/rotation_deg）时走权威路径，否则显式降级为 blind_diagnostic 并把原因写进 manifest 的 detection_degraded_reason（非静默）；catalog_guided = 显式声明权威路径，前置条件不满足即 DATA fail-closed；blind_diagnostic = 显式声明的非权威诊断路径。越界 token 即 DATA 拒绝（module_adapters.cpp p1_guided_cfg）。**跨类同名登记**：本键名与 cpu_profile 的 legacy_v1/kernel_v1 的 mode 同名（语义无关：检测模式 vs CPU profile 模式；且不在 cross_class_forbidden.cpu_profile_keys_in_phase_config 硬件禁止名列表内）⇒ 按登记制登记于 docs/contracts/config_separation_anchors.json#cross_class_forbidden.documented_same_name，门 = eng/tests/config/test_cfg001_contracts.py::TestCrossClassDisjointness。"
+        },
+        "gaia_data_dir": {
+          "type": "string",
+          "description": "本地 XPSD 星表目录（权威路径必需；亦可用 wcs.gaia_data_dir）。节点读取顺序 = star_detection.gaia_data_dir 优先、回退 wcs.gaia_data_dir。"
+        },
+        "max_stars": {
+          "type": "integer",
+          "minimum": 20000,
+          "maximum": 50000,
+          "default": 20000,
+          "description": "检测定义域上限（按 G 星等升序取 top-N）。合同域 = [20000, 50000]（ASTROCS_DESIGN.md §4.2「top 2–5 万」）；越界即 DATA 拒绝，禁静默夹取。"
+        },
+        "approx_wcs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "crval1",
+            "crval2",
+            "cd11",
+            "cd12",
+            "cd21",
+            "cd22"
+          ],
+          "description": "逆投影先验的显式覆盖：天测键 {crval1, crval2, cd11, cd12, cd21, cd22}（可改用 wcs 段同名字段）。给出即优先于本帧解算产物（诊断/负例注入用）。六键必须齐备：缺键即 DATA 拒绝（禁静默回退到 wcs 段而忽略用户输入）。",
+          "properties": {
+            "crval1": {
+              "type": "number"
+            },
+            "crval2": {
+              "type": "number"
+            },
+            "cd11": {
+              "type": "number"
+            },
+            "cd12": {
+              "type": "number"
+            },
+            "cd21": {
+              "type": "number"
+            },
+            "cd22": {
+              "type": "number"
+            }
+          }
+        },
+        "rotation_deg": {
+          "type": "number",
+          "description": "逆投影先验的兜底给法（无解算产物且无显式 CD 时生效）：像面相对「北向上/东向左」的旋转（逆时针为正）；板尺度由 wcs.init_source 派生的 s0 给出。必须有限，否则 DATA 拒绝。"
+        },
+        "parity": {
+          "enum": [
+            "pos",
+            "neg"
+          ],
+          "default": "pos",
+          "description": "逆投影先验的镜像标志（与 rotation_deg 同组的兜底给法）。"
+        },
+        "limiting_mag": {
+          "type": "number",
+          "description": "显式指定极限星等；缺省时由 ipv::estimate_mag_lim_iterative 按 focal_length_mm、画幅、EXPTIME 迭代派生（宁多勿少）。给出时必须有限，否则 DATA 拒绝。"
+        },
+        "limiting_mag_safety": {
+          "type": "number",
+          "description": "极限星等迭代的目标星数倍率（N_target = n_target × safety）。缺省 = ipv::IPVSolverParams::m_lim_safety = 3.0（lib/algorithms/platesolve/cpp/ipv/include/ipv_types.h）。"
+        },
+        "query_radius_factor": {
+          "type": "number",
+          "description": "Gaia 查询半径因子（query_radius = FOV_diag × factor）。缺省 = ipv::IPVSolverParams::gaia_query_radius_factor = 0.55（ipv_types.h）。"
+        },
+        "limiting_mag_max_iter": {
+          "type": "integer",
+          "description": "极限星等迭代的最大 Gaia 查询次数。缺省 = ipv::IPVSolverParams::m_lim_max_iter = 4（ipv_types.h）。"
+        }
+      }
+    },
     "sparse_snr_layer": {
       "type": "boolean",
       "default": true,
@@ -336,6 +439,9 @@
         "photometry": {
           "$ref": "#/$defs/photometry"
         },
+        "star_detection": {
+          "$ref": "#/$defs/star_detection_config"
+        },
         "sparse_snr_layer": {
           "$ref": "#/$defs/sparse_snr_layer"
         },
@@ -416,6 +522,9 @@
     "photometry": {
       "$ref": "#/$defs/photometry"
     },
+    "star_detection": {
+      "$ref": "#/$defs/star_detection_config"
+    },
     "sparse_snr_layer": {
       "$ref": "#/$defs/sparse_snr_layer"
     },
@@ -483,6 +592,7 @@
         "wcs",
         "snr",
         "photometry",
+        "star_detection",
         "sparse_snr_layer",
         "sparse_snr_spacing_px",
         "algorithm_drizzle_pixfrac",

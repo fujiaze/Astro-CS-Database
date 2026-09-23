@@ -11,7 +11,8 @@
 断言（fail-closed，任一产品缺失/退化即红）：
   E1 p3_writer.json：coverage_stats.covered_px > 0 且 <= total_px；
   E2 p3_verify.json：coverage_ok==1、reopen_ok==1、canonical_match!=false；
-  E3 bunit 非 ASTROCS_RELATIVE_FLUX（除非 photometry_applied=true）；
+  E3 bunit（键存在时）必须 == "ADU/sr"（canonical 面亮度串；DATA_SEMANTICS §31.1a:
+     2808-2810 / :2827-2830 —— 测光是否施加不改变 BUNIT）；
   E4 output_fits 存在时：有限像素占比 >= --min-finite-fraction（默认 0.5）；
   E5 零产品命中 ⇒ rc=2（不得空扫描判绿）。
 
@@ -45,7 +46,7 @@ DEFAULT_WORK_DIR = "run/RELEASE-02/fix-gates/e2e"
 DEFAULT_NORMALIZE_GLOB = "run/RELEASE-01/e2e/l4/configs/p1_m42_*_red.json"
 DEFAULT_MOSAIC_CONFIG = "run/RELEASE-02/L4-rebuild/mosaic_49.json"
 DEFAULT_BINARY = "build/astrocs"
-RELATIVE_FLUX = "ASTROCS_RELATIVE_FLUX"
+CANONICAL_SB = "ADU/sr"   # §31.1 FZ-UNIT-SIGNAL-SB canonical 面亮度串
 
 
 def _load_json(path):
@@ -86,9 +87,13 @@ def verify_products(work_dir: pathlib.Path, min_finite_fraction=0.5):
             findings.append("E2E_COVERAGE:%s covered_px=%r" % (rel, covered))
         elif isinstance(total, (int, float)) and covered > total:
             findings.append("E2E_COVERAGE:%s covered_px>total_px" % rel)
-        bunit = str(doc.get("bunit", "")).upper()
-        if bunit == RELATIVE_FLUX:
-            findings.append("E2E_BUNIT:%s bunit=%s 需 photometry_applied 佐证" % (rel, bunit))
+        # B1 口径订正（CONTRACT-GAPS-01）：产品 BUNIT 一律取 canonical 面亮度串，与
+        # photometry_applied 解耦（docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810 /
+        # :2827-2830）。键缺失不判（本门只判"写了但写错"）。
+        bunit = str(doc.get("bunit", "")).strip()
+        if bunit and bunit != CANONICAL_SB:
+            findings.append("E2E_BUNIT:%s bunit=%s 非 canonical 面亮度串 %s"
+                            "（DATA_SEMANTICS §31.1a）" % (rel, bunit, CANONICAL_SB))
         if int(doc.get("reopen_ok", 1)) == 0:
             findings.append("E2E_REOPEN:%s reopen_ok=0" % rel)
         fits_path = doc.get("output_fits")
@@ -151,7 +156,7 @@ def execute(repo, plan, work_dir, timeout):
 
 
 # --------------------------------------------------------------------------- selftest ----
-_GOOD_WRITER = {"bunit": "ADU", "reopen_ok": 1,
+_GOOD_WRITER = {"bunit": "ADU/sr", "reopen_ok": 1,   # canonical 面亮度串（B1 口径订正）
                 "coverage_stats": {"covered_px": 100, "total_px": 400},
                 "output_fits": None}
 _BAD_WRITER = {"bunit": "ADU", "reopen_ok": 1,

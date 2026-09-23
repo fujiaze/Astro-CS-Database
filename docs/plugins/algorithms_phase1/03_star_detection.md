@@ -49,14 +49,23 @@ photometry 同一判据 `p1_wcs_astrometry_usable` 确认）→ ③ `wcs.init_so
 节点 `star-psf` 从输入的 `star_detection` 段解析检测模式；同一键也可回退到 `wcs` 段
 （`gaia_data_dir`）。**模式与输入在节点级一次解析**，逐帧不再重解析。
 
+本段是**合法配置段**：合同声明 = `eng/contracts/schemas/phase_config_normalize.schema.json`
+`#/$defs/star_detection_config`（块内与平铺两形态同面），CLI 认键面 =
+`lib/infrastructure/cli/session_commands.h::config_fields(SESSION_NORMALIZE)` 与
+`lib/infrastructure/cli/parser.cpp::session_keys()`。**缺段不是错误**：全取编译期默认。
+段内未知键被 schema 拒（`additionalProperties: false`）。
+
 | 字段 | 默认 | 单位 | 说明 |
 |---|---|---|---|
 | `mode` | `auto` | —— | `auto` = 有参考星表且**取向先验可得**（本帧 `p1_wcs.json` 产物、或配置给 `approx_wcs`/`rotation_deg`）时走权威路径，否则**显式降级**为 `blind_diagnostic` 并把原因写进 manifest 的 `detection_degraded_reason`（非静默）；`catalog_guided` = 显式声明权威路径，前置条件不满足即 DATA fail-closed；`blind_diagnostic` = 显式声明的非权威诊断路径 |
 | `gaia_data_dir` | 无 | path | 本地 XPSD 星表目录（权威路径必需；亦可用 `wcs.gaia_data_dir`） |
 | `max_stars` | 20000 | 颗 | 检测定义域上限（按 G 星等升序取 top-N）。合同域 = **[20000, 50000]**（最高设计 §4.2「top 2–5 万」）；越界即 DATA 拒绝，**禁静默夹取** |
-| `approx_wcs` | 无 | —— | 逆投影先验的**显式覆盖**：天测键 `{crval1, crval2, cd11, cd12, cd21, cd22}`（可改用 `wcs` 段同名字段）。给出即优先于本帧解算产物（诊断/负例注入用） |
+| `approx_wcs` | 无 | —— | 逆投影先验的**显式覆盖**：天测键 `{crval1, crval2, cd11, cd12, cd21, cd22}`（可改用 `wcs` 段同名字段）。给出即优先于本帧解算产物（诊断/负例注入用）。**六键必须齐备**：显式给出而缺键即 DATA 拒绝，禁静默回退到 `wcs` 段 |
 | `rotation_deg` + `parity` | 无 / `pos` | deg / `pos\|neg` | 逆投影先验的**兜底给法**（无解算产物且无显式 CD 时生效）：像面相对「北向上/东向左」的旋转（逆时针为正）与镜像标志；板尺度由 `wcs.init_source` 派生的 `s0` 给出 |
 | `limiting_mag` | 由焦距/画幅/曝光派生 | mag | 显式指定极限星等；缺省时由 `ipv::estimate_mag_lim_iterative` 按 `focal_length_mm`、画幅、`EXPTIME` 迭代派生（宁多勿少） |
+| `limiting_mag_safety` | 3.0 | —— | 极限星等迭代的目标星数倍率（`N_target = n_target × safety`）。缺省 = `ipv::IPVSolverParams::m_lim_safety`（`lib/algorithms/platesolve/cpp/ipv/include/ipv_types.h`） |
+| `query_radius_factor` | 0.55 | —— | Gaia 查询半径因子（`query_radius = FOV_diag × factor`）。缺省 = `ipv::IPVSolverParams::gaia_query_radius_factor`（同头文件） |
+| `limiting_mag_max_iter` | 4 | 次 | 极限星等迭代的最大 Gaia 查询次数。缺省 = `ipv::IPVSolverParams::m_lim_max_iter`（同头文件） |
 
 **逆投影先验是权威路径的必需输入**：星表逆投影必须知道像面取向与镜像。生产默认来源 = **本帧解算产物**
 `<frame_dir>/p1_wcs.json`（`platesolve` 节点先落盘，由 IR 的 typed 边 `artifact:p1_wcs` 保证序）；

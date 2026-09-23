@@ -630,9 +630,9 @@
     },
     {
       "path": "eng/tests/unit/p1001_real_nodes_test.cpp",
-      "hits": 140,
+      "hits": 142,
       "rules": {
-        "cxx-stream": 35,
+        "cxx-stream": 37,
         "filesystem": 103,
         "fopen": 2
       },
@@ -806,10 +806,10 @@
     },
     {
       "path": "eng/tests/unit/p2001_real_nodes_test.cpp",
-      "hits": 74,
+      "hits": 76,
       "rules": {
         "cxx-stream": 7,
-        "filesystem": 67
+        "filesystem": 69
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -1070,16 +1070,16 @@
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
       "owner": "无（测试面）",
       "functions": [
-        "test_writer_photappl_false_adu",
-        "test_writer_photappl_true_relative_flux"
+        "test_writer_photappl_false_canonical_sb",
+        "test_writer_photappl_true_canonical_sb"
       ]
     },
     {
       "path": "lib/algorithms/coverage/tests/ivar_wiring_test.cpp",
-      "hits": 18,
+      "hits": 19,
       "rules": {
-        "cxx-stream": 4,
-        "filesystem": 14
+        "cxx-stream": 3,
+        "filesystem": 16
       },
       "category": "TEST-HARNESS",
       "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
@@ -1334,6 +1334,23 @@
       "owner": "无（测试面）",
       "functions": [
         "main"
+      ]
+    },
+    {
+      "path": "lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp",
+      "hits": 7,
+      "rules": {
+        "cxx-stream": 2,
+        "filesystem": 5
+      },
+      "category": "TEST-HARNESS",
+      "reason": "测试夹具/桩直连 I/O（非生产数据通路）—— 逐函数显式登记；新增函数或新增文件未登记即判红",
+      "owner": "无（测试面）",
+      "functions": [
+        "<file-scope>",
+        "build_fixture",
+        "main",
+        "write_sub"
       ]
     },
     {
@@ -2027,9 +2044,9 @@
     },
     {
       "path": "lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp",
-      "hits": 26,
+      "hits": 25,
       "rules": {
-        "cxx-stream": 5,
+        "cxx-stream": 4,
         "filesystem": 17,
         "fopen": 4
       },
@@ -2048,7 +2065,6 @@
         "Orchestrator::run_stage_hips_verify",
         "Orchestrator::run_stage_hiss_verify",
         "Orchestrator::run_stage_photometric",
-        "load_filter_curve",
         "write_stage_trace"
       ]
     },
@@ -2284,5 +2300,22 @@
         "verify_product_on_disk"
       ]
     }
-  ]
+  ],
+  "baseline_raised": {
+    "reason": "CONTRACT-GAPS-01 归因（负责人授权提额；两条均非本任务引入，逐条核实过来源与必要性）：① eng/tests/unit/p2001_real_nodes_test.cpp 74→76：来源 = §9.73 裁决 A44 / fail-closed 收口（工作区未提交改动，git diff --stat 148+/79-，净 +2）。新增命中是 4 处 fs::exists 负例断言（CHECK_MSG(!fs::exists(out + \"/p2_integrated.json\")) 与 p2_final.json，两处输出目录各一对），判据 = 「失败时不得留下产物」；它们是 fail-closed 的**唯一可观测证据**，删掉就等于把「零产物」变成空断言，故属必要命中而非回归。命中函数集合不变（14 项与台账一致），新增命中落在既有测试函数内。② lib/algorithms/coverage/tests/ivar_wiring_test.cpp 18→19：来源 = §9.73 裁决 A44 删除 legacy_allow_weight_fallback 降级放行路径（git diff 可见 write_config 由「无条件写 legacy_allow_weight_fallback=false」改为「默认不写该键，仅负例分支显式复活它」）。新增命中 = 该负例分支的 1 处 cxx-stream 写（if (revive_legacy_fallback) f << \",\\\"legacy_allow_weight_fallback\\\":true\";），它是「已删除的 legacy 键复活必须被解析器拒绝」这条判据的注入面，属必要命中；函数集合不变（5 项与台账一致）。两条均为「测试面直连 I/O（非生产数据通路）」，category/owner 不变，未触碰 HARD 层。",
+    "baseline_total_before": 1143,
+    "baseline_total_after": 1145,
+    "raised_entries": [
+      {
+        "path": "eng/tests/unit/p2001_real_nodes_test.cpp",
+        "was": 74,
+        "now": 76
+      },
+      {
+        "path": "lib/algorithms/coverage/tests/ivar_wiring_test.cpp",
+        "was": 18,
+        "now": 19
+      }
+    ]
+  }
 }

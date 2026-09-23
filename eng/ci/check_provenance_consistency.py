@@ -2,18 +2,23 @@
 # -*- coding: utf-8 -*-
 """CHK-PROVENANCE-CONSISTENCY —— 产品 provenance 自洽门。
 
-防的复发缺口：产品声明 photometry_applied=false 却带非中性 photscal，或
-BUNIT=ASTROCS_RELATIVE_FLUX（相对通量）却未应用测光 ⇒ 下游把 ADU 当相对通量
-使用（或反之），静默量纲错。
+防的复发缺口：产品声明 photometry_applied=false 却带非中性 photscal，或产品 BUNIT 写成
+非 canonical 面亮度串（ASTROCS_RELATIVE_FLUX / 裸 ADU 等）⇒ 下游按错误量纲解释像素，
+静默量纲错。
 
 判据（fail-closed）：
   P1 生产侧中性 provenance：module_adapters.cpp 的 p1_phot.json 构造
      photometry_applied=false 时 photscal 必须为 1.0；
   P2 消费侧守卫：hiss_writer.cpp 必须存在
-     BUNIT=ASTROCS_RELATIVE_FLUX 且 PHOTAPPL=FALSE 的显式拒绝；
+     ① 对 ASTROCS_RELATIVE_FLUX（非面亮度口径串）的**具名拒绝**；
+     ② §31.1 冻结串合法集判定（canonical "ADU/sr" 等）与错误码 HISS_ERR_INVALID_STATE。
+     口径 = docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810 与 :2827-2830
+     （测光归一化只改零点、不改量纲类别；标度由 PHOTSCAL/PHOTAPPL 承载）
+     —— B1 / CONTRACT-GAPS-01 订正；
   P3 数据侧：扫描产品 JSON（--products-root，默认 eng/ci/fixtures/provenance +
       存在的 run/ 下 e2e 产品），对每个含 provenance 键的记录断言
-     photometry_applied=false ⇒ photscal==1.0 且 bunit != ASTROCS_RELATIVE_FLUX；
+     bunit（键存在时）== "ADU/sr"（canonical 面亮度串，与测光是否施加无关）；
+     photometry_applied=false ⇒ photscal==1.0；
      photometry_applied=true ⇒ photscal 有限且 > 0；
   P3b 数据侧补盲（P1-PHOT-BROKEN）：schema==DATA-P1-PHOTPROV-001 且
       photometry_applied=true 的记录还必须**自带逐帧标度与拟合证据**：
@@ -69,7 +74,8 @@ DEFAULT_ROOTS = ("eng/ci/fixtures/provenance", "run")
 PRODUCT_GLOBS = ("**/p1_phot.json", "**/manifest.json", "**/*product*.json",
                  "**/*provenance*.json")
 MAX_FILES = 4000
-RELATIVE_FLUX = "ASTROCS_RELATIVE_FLUX"
+RELATIVE_FLUX = "ASTROCS_RELATIVE_FLUX"   # 非面亮度口径串（不再是合法产品串）
+CANONICAL_SB = "ADU/sr"                   # §31.1 FZ-UNIT-SIGNAL-SB canonical 面亮度串
 PHOTPROV_SCHEMA = "DATA-P1-PHOTPROV-001"
 # 逐帧失败的稳定错误码形态（frames[].error_status / frame_errors[].status）
 ERROR_STATUS_RE = re.compile(r"^[A-Z][A-Z0-9_]{2,63}$")
@@ -108,9 +114,18 @@ def check_source_invariants(repo: pathlib.Path):
         findings.append("provenance_producer_neutral_photscal:%s（未应用测光分支却写 "
                         "photscal=%s）" % (neutral, neutral))
     writer = gc.read_text(repo / HISS_WRITER, HISS_WRITER)
-    if not re.search(r"is_relative_flux\s*&&\s*!\s*photappl", writer):
-        findings.append("provenance_writer_guard_missing:%s（缺 BUNIT=RELATIVE_FLUX 且 "
-                        "PHOTAPPL=FALSE 的拒绝）" % HISS_WRITER)
+    # B1 口径订正（CONTRACT-GAPS-01）：产品 BUNIT 一律取 canonical 面亮度族串，与
+    # PHOTAPPL 解耦（docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810 / :2827-2830）。
+    # 判据三条，缺一即红（强度不降：旧口径只守「RELATIVE_FLUX 且 !PHOTAPPL」这一种组合）。
+    if not re.search(r'bunit_str\s*==\s*"ASTROCS_RELATIVE_FLUX"', writer):
+        findings.append("provenance_writer_guard_missing:%s（缺 ASTROCS_RELATIVE_FLUX "
+                        "非面亮度口径串的具名拒绝）" % HISS_WRITER)
+    if not re.search(r"is_frozen_sb_unit", writer):
+        findings.append("provenance_writer_canonical_set_missing:%s（缺 §31.1 冻结串合法集"
+                        "判定）" % HISS_WRITER)
+    if '"ADU/sr"' not in writer:
+        findings.append("provenance_writer_canonical_string_missing:%s（缺 canonical 面亮度串 "
+                        '\"ADU/sr\"）' % HISS_WRITER)
     if "HISS_ERR_INVALID_STATE" not in writer:
         findings.append("provenance_writer_error_code_missing:%s" % HISS_WRITER)
     return findings
@@ -123,6 +138,24 @@ def _iter_products(root: pathlib.Path):
             if path.is_file() and path not in seen:
                 seen.add(path)
                 yield path
+
+
+def _bunit_problems(bunit):
+    """B1 单位口径判据：产品 BUNIT（键存在时）必须是 canonical 面亮度串。
+
+    规范 = docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810（产品 FITS/HiPS 写盘 BUNIT
+    一律取该串）+ :2827-2830（测光归一化只改零点、不改量纲类别，标度由 PHOTSCAL/
+    PHOTAPPL 承载）⇒ 测光是否施加**不改变** BUNIT。
+    键缺失不判（本门职责边界 = provenance 自洽；p1_stack.json 的 bunit 缺失由
+    hiss_writer 的 BUNIT 守卫与 declare_hips_surface_brightness_units 的两声明面
+    同串守卫在生产侧判红）。
+    """
+    if bunit is None:
+        return []
+    if str(bunit).strip() != CANONICAL_SB:
+        return ["bunit=%s 非 canonical 面亮度串 %s（DATA_SEMANTICS §31.1a）"
+                % (bunit, CANONICAL_SB)]
+    return []
 
 
 def _walk_records(node, path, out):
@@ -318,9 +351,9 @@ def scan_products(repo: pathlib.Path, roots):
                                 problems.append("photometry_applied=false 但 photscal=%s" % photscal)
                         except (TypeError, ValueError):
                             problems.append("photscal 非数值: %r" % (photscal,))
-                    if bunit is not None and str(bunit).upper() == RELATIVE_FLUX:
-                        problems.append("photometry_applied=false 但 bunit=%s" % bunit)
+                    problems.extend(_bunit_problems(bunit))
                 elif applied is True:
+                    problems.extend(_bunit_problems(bunit))
                     if photscal is not None:
                         try:
                             value = float(photscal)
@@ -357,8 +390,10 @@ def evaluate(repo: pathlib.Path, roots=None):
 
 # --------------------------------------------------------------------------- selftest ----
 _GOOD_NEUTRAL = {"schema": "DATA-P1-PHOTPROV-001", "photometry_applied": False,
-                 "photscal": 1.0, "bunit": "ADU"}
-_GOOD_APPLIED = {"photometry_applied": True, "photscal": 1.23, "bunit": RELATIVE_FLUX}
+                 "photscal": 1.0, "bunit": CANONICAL_SB}
+_GOOD_APPLIED = {"photometry_applied": True, "photscal": 1.23, "bunit": CANONICAL_SB}
+# 非 canonical 串（含旧口径下"合法"的裸 ADU）在 applied=true 时同样判红。
+_BAD_BUNIT_BARE_ADU = {"photometry_applied": True, "photscal": 1.23, "bunit": "ADU"}
 _BAD_NEUTRAL = {"photometry_applied": False, "photscal": 2.5, "bunit": "ADU"}
 _BAD_BUNIT = {"photometry_applied": False, "photscal": 1.0, "bunit": RELATIVE_FLUX}
 # P3b 夹具（P1-PHOT-BROKEN）: 真实拟合标度（6.27e-17 量级, SCI-PHOT-001 §3 单位
@@ -444,7 +479,8 @@ _BAD_PHOTPROV_FAIL_DEGRADED = {
 }
 
 
-def _write_fixture(root: pathlib.Path, records, entries=None, source_ok=True):
+def _write_fixture(root: pathlib.Path, records, entries=None, source_ok=True,
+                   writer_ok="full"):
     import json
     (root / "lib/infrastructure/scheduler/src").mkdir(parents=True, exist_ok=True)
     (root / "lib/infrastructure/aio/src").mkdir(parents=True, exist_ok=True)
@@ -453,8 +489,20 @@ def _write_fixture(root: pathlib.Path, records, entries=None, source_ok=True):
     adapters = ('{"photometry_applied", false}, {"photscal", 1.0},'
                 if source_ok else '{"photometry_applied", false}, {"photscal", 2.5},')
     (root / ADAPTERS).write_text(adapters, encoding="utf-8")
-    (root / HISS_WRITER).write_text("if (is_relative_flux && !photappl) return -2; "
-                                    "// HISS_ERR_INVALID_STATE\n", encoding="utf-8")
+    # writer 变体（B1 判据的负例注入面）：
+    #   full          = 具名拒绝 + canonical 合法集 + 错误码齐备 ⇒ P2 绿；
+    #   no_guard      = 缺 ASTROCS_RELATIVE_FLUX 的具名拒绝 ⇒ P2 红（guard_missing）；
+    #   no_canonical  = 缺 canonical 串与合法集判定 ⇒ P2 红（canonical_*_missing）。
+    writer_src = {
+        "full": ('if (bunit_str == "ASTROCS_RELATIVE_FLUX") return -2; '
+                 'const bool is_frozen_sb_unit = (bunit_str == "ADU/sr" || '
+                 'bunit_str == "ADU^2/sr^2"); // HISS_ERR_INVALID_STATE\n'),
+        "no_guard": ('if (bunit_str.empty()) return -2; '
+                     'const bool is_frozen_sb_unit = true; // HISS_ERR_INVALID_STATE\n'),
+        "no_canonical": ('if (bunit_str == "ASTROCS_RELATIVE_FLUX") return -2; '
+                         '// HISS_ERR_INVALID_STATE\n'),
+    }[writer_ok]
+    (root / HISS_WRITER).write_text(writer_src, encoding="utf-8")
     (root / "eng/ci/fixtures/provenance/prod_product.json").write_text(json.dumps(records), encoding="utf-8")
     (root / LEDGER).write_text(json.dumps(
         {"ledger_schema": gc.LEDGER_SCHEMA, "ledger_id": "fixture", "entries": list(entries or [])}),
@@ -474,6 +522,17 @@ def _selftest() -> int:
         d_bad = base / "bad"
         _write_fixture(d_bad, [_BAD_NEUTRAL, _BAD_BUNIT])
         cases.append(("red_photscal_and_bunit", True, d_bad))
+        # B1 单位口径订正的判别力：非 canonical 串（裸 ADU）在 applied=true 时必红。
+        d_bad_adu = base / "bad_bunit_bare_adu"
+        _write_fixture(d_bad_adu, [_BAD_BUNIT_BARE_ADU])
+        cases.append(("red_bunit_bare_adu", True, d_bad_adu))
+        # B1 P2 锚点订正后的两条负例：缺具名拒绝 / 缺 canonical 串 ⇒ 必红。
+        d_w1 = base / "writer_no_guard"
+        _write_fixture(d_w1, [_GOOD_NEUTRAL, _GOOD_APPLIED], writer_ok="no_guard")
+        cases.append(("red_writer_guard_missing", True, d_w1))
+        d_w2 = base / "writer_no_canonical"
+        _write_fixture(d_w2, [_GOOD_NEUTRAL, _GOOD_APPLIED], writer_ok="no_canonical")
+        cases.append(("red_writer_canonical_missing", True, d_w2))
         d_src = base / "badsrc"
         _write_fixture(d_src, [_GOOD_NEUTRAL], source_ok=False)
         cases.append(("red_producer_neutral_photscal", True, d_src))

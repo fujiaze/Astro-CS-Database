@@ -133,18 +133,24 @@ class TestCrossClassDisjointness(unittest.TestCase):
         self.cpu = C.load_json(CPU_SCHEMA)
         self.manifest = set(C.property_names(C.load_json(MANIFEST_SCHEMA)))
 
+    def _documented_same_name(self):
+        """已登记的跨类同名键集合（唯一事实源 = docs/contracts/config_separation_anchors.json
+        cross_class_forbidden.documented_same_name；本方法不硬编码清单）。"""
+        anchors = C.load_json(ANCHORS)
+        return set(anchors["cross_class_forbidden"].get("documented_same_name", {}).keys())
+
     def test_phase_config_vs_current_cpu_profile_is_empty(self):
         c_v2 = C.property_names(self.cpu["$defs"]["profile_v2"])
         self.assertEqual(set(), self.phase & c_v2, "phase_config 与 cpu_profile v2 字段名冲突: %s" % (self.phase & c_v2))
 
     def test_phase_config_vs_legacy_v1_intersection_is_documented(self):
         c_legacy = C.property_names(self.cpu["$defs"]["legacy_v1"]) | C.property_names(self.cpu["$defs"]["kernel_v1"])
-        self.assertEqual({"precision"}, self.phase & c_legacy,
+        self.assertEqual(self._documented_same_name(), self.phase & c_legacy,
                          "legacy v1 与 phase_config 的同名集合发生变化（需负责人裁决）: %s" % (self.phase & c_legacy))
 
     def test_phase_config_vs_whole_cpu_profile_intersection_is_documented(self):
         c_all = C.property_names(self.cpu)
-        self.assertEqual({"precision"}, self.phase & c_all,
+        self.assertEqual(self._documented_same_name(), self.phase & c_all,
                          "cpu_profile ∩ phase_config 除已登记的 precision 外出现新冲突: %s" % (self.phase & c_all))
 
     def test_phase_config_vs_run_manifest_is_empty(self):

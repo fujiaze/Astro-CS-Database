@@ -5163,7 +5163,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
 }
 
 // ── NOISE-MODEL-CANON-002（负责人 §9.67 定案 2「逐像素方差接入」+ ASTROCS_DESIGN
-//    §7.1a「阶段内内存块管线」条款 3/4）────────────────────────────────────
+//    §8.2:526-527「阶段内：命名块内存管线与块生命周期」）────────────────────────────────────
 // A（snr_noise_model_v1 / _f64 / _fill；docs/science/NOISE_MODEL.md:71/165 与
 // docs/algorithms/NOISE_ESTIMATION.md §13.1:120「生产符号唯一源」）的**调用侧配置
 // 推导**共用面。两个消费点必须同源，禁止第二份策略副本（自适应 patch 网格 / 掩膜
@@ -6363,7 +6363,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       f_err[fi] = Result<void>::fail(Error(ErrorDomain::IO, "add data block failed"));
       return;
     }
-    // ── 定案 2（负责人 §9.67「2那就接入啊」+ ASTROCS_DESIGN §7.1a 条款 3/4）──
+    // ── 定案 2（负责人 §9.67「2那就接入啊」+ ASTROCS_DESIGN §8.2:526-527）──
     // 逐像素 variance **帧内命名块**（登记面 = DATA-P1-DRZ §11.1:295 逐字
     // 「variance 面（可选，帧内块）| float32，随 data 布局 | ADU²」）。
     // 生产者 = A（snr_noise_model_v1/_fill; 与 p1_op_noise 共用
@@ -6375,7 +6375,8 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
     // 帧身份/标度: 输入数组 = 与 "data" 块**同一数组、同一 dtype** ⇒ 无需 SNR-002
     //   尺度律（PHOTSCAL 已由上游测光节点乘入, 本节点不二次缩放, 见 hp_drizzle_api
     //   的 apply_photometry=false 口径）。
-    // fail-closed（ASTROCS_DESIGN §7.1a 条款 8「禁止挂会破坏数据的块」）:
+    // fail-closed（ASTROCS_DESIGN §8.2:547「退化或无正有限值的面（如全零方差面）
+    // 不挂帧，挂帧会导致积分侧清空像素」）:
     //   ① A 退化（rc=1）时 variance_bg_global 保持 0（noise_model.cpp:414-418）
     //      ⇒ _fill 写出全零平面（:739-746）; 而 drizzle_engine.cpp:1919 对
     //      varianceValue<=0 是**整像素 continue**（不只是不累加方差）⇒ 挂全零
@@ -6485,7 +6486,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
           var_reason = "NoiseWeightModelV1 degenerate (rc=1): variance_bg_global=0;"
                        " attaching an all-zero plane would make drizzle_engine"
                        " skip every pixel (varianceValue<=0 => continue) and erase"
-                       " signal/support (ASTROCS_DESIGN 7.1a clause 8)";
+                       " signal/support (ASTROCS_DESIGN §8.2:547)";
         } else {
           std::vector<float> var_plane(static_cast<size_t>(n_px), 0.0f);
           // 平面可用性判据 = fill 成功 **且** 逐像素有限正（既有判据，逐字保留）。
@@ -6513,7 +6514,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
             // （ivar=1/floor 比物理 ivar 大 ~1e14 倍）；(ii) 换算到数组标度后
             // floor=α²·1e-12≈5.7e-46 **在 float32 下下溢为 0**，而 drizzle
             // （drizzle_engine.cpp:2029）对 varianceValue<=0 是**整像素 continue**
-            // ⇒ 连 signal/support 一起丢（ASTROCS_DESIGN §7.1a 条款 8）。
+            // ⇒ 连 signal/support 一起丢（ASTROCS_DESIGN §8.2:547）。
             // 故退回 SCI-NOISE §4/§5 **已规定的**全局常量场
             // （variance_bg_global = 合格 patch variance 的稳健中位数），并显式
             // 登记降级（不静默、不挂会破坏数据的块）。数值上：平面合法帧逐位不变。
@@ -6766,7 +6767,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       }
       (*man)["variance_product_status"] =
           var_all ? "attached" : (var_any ? "mixed" : "skipped");
-      // 块词表登记（ASTROCS_DESIGN §7.1a 条款 3: 名字/类型/形状/单位/可缺性）。
+      // 块词表登记（ASTROCS_DESIGN §8.2:526: 名字/形状/类型/单位/可缺性）。
       (*man)["variance_block_name"] = "variance";
       (*man)["variance_block_type"] = "AIO_BLOCK_FLOAT32";
       (*man)["variance_block_shape"] = f_var_block[fi]["shape"];
@@ -10213,7 +10214,7 @@ bool declare_hips_surface_brightness_units(const std::string& product_root,
 //      variance/ivar = DATA-P2-VAR-001 §30.1: ivar_mosaic=W=Σivar_i、
 //      variance=1/W 经 writer 通道（var_num_sum = variance×cov²,
 //      writer 归约 variance = var_num_sum/covered_area²）; n_used=0 →
-//      cov=0 → NaN/NaN 同态（writer 通道 §12.4 冻结合同）。nused/nrej
+//      cov=0 → 产 0（writer 按 covered_area<=0 出 NaN，§30.4 同态）。nused/nrej
 //      子产品位（DATA-P2-REJ-001 §30.2, 位 32/64）待 AIO 域实现, 现以
 //      integrated bins 诊断面承载（artifact 如实登记, 不冒充子产品）。──
 Result<void> p2_op_write(const Json& doc, Json* man) {
@@ -10361,13 +10362,24 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
       flux_buf[local] = static_cast<float>(sig * cov);
       cov_buf[local] = static_cast<float>(cov);
       // §30.1: var_num_sum = variance_mosaic × cov² = cov²/W（writer 归约
-      // variance = var_num_sum/cov²）; W 病态/无样本 → NaN（writer NaN 同态）
+      // variance = var_num_sum/cov²）。三态（DATA_SEMANTICS §4a:49 / §12.4:423 /
+      // §30.4:2698）：
+      //   无覆盖 (cov<=0)        → **有限 0**：writer 按 covered_area<=0 输出 NaN
+      //                            （§30.4「无覆盖 variance 用 NaN，不用 §4a 的 0」）。
+      //                            此处**不得**用 NaN 当哨兵 —— §4a:49「NaN/负只
+      //                            表示产品损坏」，而 §12.4:423 对非有限输入是
+      //                            rc=-6 硬失败（禁 clamp/禁静默跳过）。
+      //   有覆盖 ∧ W 有效 (w>0)  → cov²/W（逆方差）。
+      //   有覆盖 ∧ W 病态 (w<=0) → NaN = **真损坏** ⇒ writer rc=-6 硬失败（信号保留）。
       if (uncertainty_available) {
         const double w = wsum_v[static_cast<size_t>(i)];
-        varnum_buf[local] =
-            static_cast<float>((std::isfinite(w) && w > 0.0)
-                                   ? (cov * cov) / w
-                                   : std::numeric_limits<double>::quiet_NaN());
+        if (!(cov > 0.0)) {
+          varnum_buf[local] = 0.0f;
+        } else if (std::isfinite(w) && w > 0.0) {
+          varnum_buf[local] = static_cast<float>((cov * cov) / w);
+        } else {
+          varnum_buf[local] = std::numeric_limits<float>::quiet_NaN();
+        }
       }
     }
     AstroSphereTileView view;

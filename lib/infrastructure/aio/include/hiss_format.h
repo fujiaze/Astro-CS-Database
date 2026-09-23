@@ -299,7 +299,10 @@ struct HissMetadata {
     // 测光字段
     double   photscal = 1.0;     // 实际应用比例
     int      photappl = 0;       // 是否已应用
-    char     bunit[32] = "ASTROCS_RELATIVE_FLUX";
+    // BUNIT 口径 = canonical 面亮度串（docs/contracts/DATA_SEMANTICS.md §31.1a:
+    // 2808-2810「产品 FITS/HiPS 写盘 BUNIT 一律取该串」；测光标度由 photappl/photscal
+    // 承载，不改量纲类别，同 §31.1a:2827-2830）。
+    char     bunit[32] = "ADU/sr";
 
     // 校准字段
     char     calmode[32] = "";   // 实际采用模式
