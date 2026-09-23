@@ -51,6 +51,30 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 - 排序 median/MAD 确定性；IRLS 按 r 索引固定顺序加权和，无跨样本归约。
 
+### 5.1 到达顺序不变性（正向约束）
+
+本节把「样本序」定为**显式契约**，而非实现细节。样本序有两类来源，约束强度不同：
+
+| 到达序来源 | 是否允许进入浮点路径 | 判据（事前冻结） |
+|---|---|---|
+| **PSF 星表序**（`psf_cx/cy/flux/status` 的数组序） | 允许，且**它就是样本序本身**：匹配与 IRLS 的归约序由它唯一决定（`star_matcher.cpp` 的 `matchWithKdTree` 按 PSF 下标 `k=0..n-1` 正向查询；`cleanAndScale` 的 `r_consistent` 按同一序累积） | 置换该序 ⇒ 计数/索引/选择结果**精确一致**；IRLS 归约按 `docs/contracts/TEST_MATRIX.md` §2 的 `C·γ_n·Σ\|terms\| + atol`（`C≤4`）判等价（§5c：顺序变化仅影响 <1ulp） |
+| **Gaia 参考星表序**（`gaia_ra/dec/mag/fsyn` 的数组序） | **不得**进入任何浮点累加序 | 置换该序 ⇒ **全输出逐位（bitwise）不变**（含 out_pixels / scale / sigma / diag / 逐星 records） |
+
+理由：匹配是**集合谓词**（互为最近邻），与表的枚举序无关；`matches[]` 的输出序由 PSF 序驱动。
+故 Gaia 表序只改变索引标号，任何随它变化的结果都说明该序泄漏进了数值路径 —— 那是缺陷，不是容差问题。
+
+**并列（exact tie）是唯一已知的例外，且当前为「未定义」**：当两颗 Gaia 星到同一 PSF 星的距离**精确相等**时，
+最近邻选择退化为「KD-tree 遍历序先到者胜」（`findNearestRec` 的 `dist2 < best_dist2` 严格比较），
+而遍历序由建树时的 `std::sort` 结果决定 ⇒ **该情形下匹配伙伴随输入序变化**。
+规范口径：**并列构型不在本算法的适用域内**；调用方（星检测/星表）必须保证同一 PSF 星在匹配半径内不存在
+精确等距的 Gaia 候选。该例外的存在性由 `p1phot_determinism` 的 N1 负例锁住（判据必须能分辨它）。
+
+**可执行判据**：`lib/algorithms/photometry/tests/p1phot/p1phot_tests_determinism.cpp`
+（ctest `p1phot_determinism`）—— 线程数扫描 1/2/4/8（I5 的显式补全）+ 两类到达序置换
++ 两个序相关负例（N1 并列 tie-break / N2 在线归约），正负例共用同一 `verdict` 函数。
+**注意与 §13.4 I5 的区别**：I5 只扫线程数、每个线程跑**完全相同的样本序**，因此**抓不到**顺序依赖；
+两者互补，不可互相替代。
+
 ## 6 复杂度
 
 - O(n_ref log n_ref) 排序 + O(n_ref·iter) IRLS
