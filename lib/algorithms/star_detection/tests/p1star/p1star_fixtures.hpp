@@ -253,14 +253,19 @@ inline constexpr double F1TB_SIGMA_SMOOTH = 2.0;   // sdet_api.cpp:1772 实参
 inline constexpr double F1TB_SNR_FLOOR = 10.0;     // 旧冻结声明的召回域下限
 
 // §11.4 F1 判据表: σ_psf 六档 + 逐档实测阈 (生产 sdet_detect_ex_f64, 默认参数
-// sdet_create(nullptr), 256² 单星居中, 峰值对齐像素中心, 64 次/档)。
+// sdet_create(nullptr), 256² 单星居中, 峰值对齐像素中心, **300 次/档**)。
 //   THR50 : 检出概率 0.5 的信噪比 (50% 过渡点)
-//   THR99 : 使实测召回达到 1.00 的最小信噪比 —— n=64 下 ≥0.99 与 =1.00 等价
+//   THR99 : 使实测召回达到 **300/300** 的最小信噪比格点。
+//           n=300 的依据: 零失败下 Clopper-Pearson 95% 下界 = 0.05^(1/300) = 0.99006
+//           ≥ 0.99; 最小样本量 ln(0.05)/ln(0.99) = 298.07。n=64 零失败只给 0.954 下界,
+//           不足以确立 ≥99% ⇒ 旧 64 次/档标定系统性偏乐观 (σ=1.5/2.5 各低 1 个 SNR 单位,
+//           σ=1.0 低 8 个)。
 inline constexpr double F1TB_SIGMA_BANDS[6] = {1.0, 1.27, 1.5, 2.0, 2.5, 3.0};
-inline constexpr double F1TB_THR50[6] = {31.1, 21.4, 17.7, 14.2, 9.4, 8.3};
-inline constexpr double F1TB_THR99[6] = {46.0, 24.0, 19.0, 16.0, 10.0, 10.0};
-inline constexpr double F1TB_KAPPA50 = 6.23;       // 50% 点单参数拟合 (趋势模型)
-inline constexpr double F1TB_KAPPA99 = 7.33;       // 99% 阈单参数拟合 (趋势模型)
+inline constexpr double F1TB_THR50[6] = {31.1, 21.5, 17.7, 14.1, 9.3, 8.3};
+inline constexpr double F1TB_THR99[6] = {54.0, 24.0, 20.0, 16.0, 11.0, 10.0};
+inline constexpr double F1TB_KAPPA50 = 6.21;       // 50% 点单参数拟合 (趋势模型)
+inline constexpr double F1TB_KAPPA99 = 7.15;       // 99% 阈单参数拟合, σ>=1.27 五档
+                                                   // (六档含 σ=1.0 时 7.75 ± 1.56, 残差 28.2%)
 
 // 档值本身取该档实测值; 档间 (严格位于两档之间) 取相邻两档较严者 (较大阈);
 // σ_psf 超出 [1.0, 3.0] px 取端点档值 (声明域外, 见 §11.4 适用域)
@@ -296,30 +301,34 @@ inline F1TbZone f1tb_zone(double sigma, double snr_peak) {
 }
 
 struct FixStarH {
-    int w = 384, h = 384;
+    int w = 512, h = 384;
     double bg = 300.0;
     double noise = 6.0;
     std::vector<double> img;
     std::vector<SynthStar> truth;
 };
 
-// σ 档 = §11.4 冻结判据表的六档; SNR 阶梯覆盖原空档 [10, 32.5) 全宽
-// (14 级, 上端 32.4 < 32.5 严格落在空档内)。峰值对齐像素中心。
-inline FixStarH fix_star_h_f1_transition_band() {
-    static const double kSigmas[6] = {1.0, 1.27, 1.5, 2.0, 2.5, 3.0};
-    static const double kSnrs[14] = {10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0,
-                                     17.5, 19.0, 21.0, 23.0, 26.0, 29.0, 32.4};
+// SNR 阶梯 20 级: 前 14 级铺满原空档 [10, 32.5) 全宽 (上端 32.4 < 32.5 严格落在
+// 空档内), 后 6 级 (46/50/55/65/75/85) 使 σ_psf = 1.0 px 档也有域内真星 ——
+// 该档 99% 阈 54.0 高于空档上端, 不补则该档只提供负例、域内召回不被行使。
+inline constexpr double F1TB_SNR_LADDER[20] = {10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0,
+                                               17.5, 19.0, 21.0, 23.0, 26.0, 29.0, 32.4,
+                                               46.0, 50.0, 55.0, 65.0, 75.0, 85.0};
+
+// σ 档 = §11.4 冻结判据表的六档; 峰值对齐像素中心。seed 可换, 供多 seed
+// 翻转率研究; 冻结夹具用默认 seed。
+inline FixStarH fix_star_h_f1_transition_band(unsigned long long seed = 20260923ull) {
     FixStarH fx;
-    std::mt19937_64 rng(20260923ull);
+    std::mt19937_64 rng(seed);
     std::normal_distribution<double> ndist(fx.bg, fx.noise);
     fx.img.assign((std::size_t)fx.w * fx.h, 0.0);
     for (auto& v : fx.img) v = ndist(rng);
-    fx.truth.reserve(84);
+    fx.truth.reserve(6 * 20);
     for (int r = 0; r < 6; ++r) {
-        for (int c = 0; c < 14; ++c) {
+        for (int c = 0; c < 20; ++c) {
             // +0.5 使星心落在像素几何中心 (峰值对齐像素中心, 冻结表声明域)
-            SynthStar s{30.5 + 24.0 * c, 30.5 + 60.0 * r, kSigmas[r],
-                        kSnrs[c] * fx.noise};
+            SynthStar s{26.5 + 24.0 * c, 30.5 + 60.0 * r, F1TB_SIGMA_BANDS[r],
+                        F1TB_SNR_LADDER[c] * fx.noise};
             fx.truth.push_back(s);
         }
     }
