@@ -777,7 +777,8 @@ int fill_impl(const NoiseWeightModelV1* m, int h, int w,
               float* out_variance, float* out_ivar) {
     if (m->has_spatial_field && m->n_control_points >= 4) {
         // 平滑方差场: 最小二乘平面拟合 var(x,y) = a + b·x + c·y
-        // （对平滑噪声梯度统计最优；负预测 clamp 到 variance_floor）。
+        // （对平滑噪声梯度统计最优；预测 ≤ 0 的像素方差不可用 ⇒ variance=0 ∧
+        //  ivar=0，预测为正时按 floor 夹逼 —— 见下方逐像素循环的判据出处）。
         double mx = 0, my = 0, mv = 0;
         const uint32_t n = m->n_control_points;
         for (uint32_t i = 0; i < n; ++i) {
@@ -815,11 +816,40 @@ int fill_impl(const NoiseWeightModelV1* m, int h, int w,
         // 判据与拒绝时机（未绑定/非法 ⇒ SNR_FLOOR_UNBOUND）逐字不变。
         double floor = 0.0;
         if (!registry_get_floor(m, &floor)) return SNR_FLOOR_UNBOUND;
+        // SCI-NOISE-001 §5/§7/§9 + DATA_SEMANTICS §4a 三态表:
+        //   平面是**外推**模型（控制点方差恒正，最小二乘平面可在帧内取非正值）。
+        //   预测 > 0 ⇒ 该处方差**可用**：取 max(预测, floor)，floor 是数值保护，
+        //               保证 ivar 有限（§7「clamp 只作用于可用方差」）。
+        //   预测 ≤ 0 ⇒ 该处方差**不可用**：产品面写 variance=0 ∧ ivar=0
+        //               （显式不可用）。**不得** clamp 成 floor —— 那会把「模型在
+        //               此处失效」伪造成 ivar=1/floor 的极大权重（floor=1e-12 时
+        //               比物理 ivar 大 ~1e12 倍），且在按 α² 换算的标度下
+        //               1/floor 在 float32 中溢出为 +inf（非有限产品值）。
+        //               也不得写 NaN（NaN 保留给产品损坏，§4a F-UNC-001）。
+        // 产品 dtype 一致性守卫: 输出面 (variance, ivar) 必须落在两态之一 ——
+        //   可用: variance > 0 ∧ isfinite(variance) ∧ ivar = 1/variance;
+        //   不可用: variance == 0 ∧ ivar == 0。
+        // 生效 floor 由配置给出（单位 ADU²）; 调用方若以别的标度消费数组,
+        // 必须把 floor 一并按 α² 换算。换算后 floor 可在 float32 中下溢为 0,
+        // 此时 1/floor 上溢为 +inf ⇒ 该像素在产品 dtype 中方差不可表示,
+        // 取不可用态（禁发布 (0, +inf) 这种自相矛盾的对）。
         for (int y = 0; y < h; ++y) {
             for (int x = 0; x < w; ++x) {
-                const double var = std::max(a + b * (double)x + c * (double)y, floor);
-                if (out_variance) out_variance[(std::size_t)y * w + x] = (float)var;
-                if (out_ivar) out_ivar[(std::size_t)y * w + x] = (float)(1.0 / var);
+                const std::size_t idx = (std::size_t)y * w + x;
+                const double pred = a + b * (double)x + c * (double)y;
+                float v_out = 0.0f, i_out = 0.0f;
+                if (pred > 0.0) {
+                    const double var = (pred < floor) ? floor : pred;
+                    const double ivar = 1.0 / var;
+                    const float vc = (float)var, ic = (float)ivar;
+                    if (std::isfinite(vc) && vc > 0.0f &&
+                        std::isfinite(ic) && ic > 0.0f) {
+                        v_out = vc;
+                        i_out = ic;
+                    }
+                }
+                if (out_variance) out_variance[idx] = v_out;
+                if (out_ivar) out_ivar[idx] = i_out;
             }
         }
     } else {

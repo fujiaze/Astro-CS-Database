@@ -133,11 +133,15 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 
 ### 4.4 噪声模型：A 为唯一生产模型
 
-- **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt:645-659` 的 `astrocs_phase1_noise`（STATIC），主程序链接 `:747`。
+- **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt:767-770` 的 `astrocs_phase1_noise`（STATIC），经 `astrocs_phase1_session` 的 PUBLIC 闭包（`CMakeLists.txt:876`）链入主程序。
 - 模型定义、参数语义、稳健噪声估计与掩膜规则的正本见 `docs/science/NOISE_MODEL.md`；本文件只登记插件侧接口与接线事实，不复制公式。
 - **逐像素方差接线现状（如实登记）**：A 已编入 `astrocs_phase1_noise` 并链入主程序，但生产调度路径（`module_adapters.cpp`）尚未挂 `variance` 块 ⇒ `hp_drizzle_api.cpp:1024` 读不到 ⇒ `astro_sphere_sink.cpp:306–327` 不产出 variance/ivar 子产品面 ⇒ `p2_integrated.json` 报 `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）。
 - **接入义务**：把 `orchestrator` 的逐像素方差接线（`orchestrator.cpp:4694-4839`）搬进 `scheduler`，使生产产出逐像素 `variance`/`ivar` 产品面；接入并验证后删除 `lib/infrastructure/pipeline/orchestrator/cpp/` 与 v6 家族（最高设计 §8.2）。
-- **硬化项**：`variance_floor` clamp 可产出「rc=0 + deg=0 + var=1e-12」的**伪有效模型**（仅输入误读场景复现）⇒ 须补**退化判据与守卫**（fail-closed）。
+- **逐像素方差面的两态约束（必须成立）**：`snr_noise_model_v1_fill` 输出的每一像素必须落在两态之一 —— **可用** `variance>0 ∧ isfinite(variance) ∧ ivar=1/variance`；**不可用** `variance=0 ∧ ivar=0`。
+  平面预测 ≤ 0、或生效 floor / 输出值在 float32 中不可表示（下溢为 0 / 上溢为非有限）的像素取不可用态；**禁止**把不可用方差 clamp 成 floor
+  （那会把「模型在此处失效」发布成 `ivar=1/floor` 的极大权重），也**禁止**发布 `(0, +inf)` 这类自相矛盾的对。
+  正本 = `docs/science/NOISE_MODEL.md` §5/§7/§9 与 `docs/contracts/DATA_SEMANTICS.md` §4a 三态表；
+  门 = `ctest -R p1noise_negative`（`n7_plane_pred_unavailable` / `n7b_dtype_underflow_pair`）+ `ctest -R p1noise_selfcheck`（证明判据能红，非恒真）。
 - **影响面（诚实）**：**不影响**帧级 SNR 路径（`snr_chain_closure="closed"`，科学上正确）；**影响**逐像素**不确定度产品面**。凡「逐像素方差/不确定度已传播到产品」的主张，**只能引用 A 的插件路径证据**，**不得声称生产路径已产出**。
 - **行号说明**：本节的 `文件:行` 以符号名/文件名核对为准；工作树并发改动会使行号漂移。
 

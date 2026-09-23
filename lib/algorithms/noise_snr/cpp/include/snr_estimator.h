@@ -215,8 +215,12 @@ SNR_API int  snr_noise_model_v1_abi_check_config(const SnrNoiseModelConfig* cfg)
 SNR_API int  snr_noise_model_v1_abi_check_model(const NoiseWeightModelV1* model);
 
 // 填充逐像素 variance / ivar (FLOAT32 输出; 可空任一输出)。
-// 空间场启用且有 >=4 控制点 → 最小二乘平面 var(x,y)=a+b·x+c·y
-// （负预测 clamp 到 variance_floor）；否则全局常量。 冻结。
+// 空间场启用且有 >=4 控制点 → 最小二乘平面 var(x,y)=a+b·x+c·y：
+//   预测 > 0 ⇒ variance=max(预测, variance_floor) 且 ivar=1/variance
+//              （floor 只作用于可用方差，保证 ivar 有限）；
+//   预测 ≤ 0 ⇒ 该像素方差**不可用**：variance=0 ∧ ivar=0
+//              （禁 clamp 成 floor、禁写 NaN；DATA_SEMANTICS §4a 三态表）。
+// 否则全局常量（退化时 variance_bg_global=ivar_bg_global=0）。 冻结。
 // 返回 0=成功, 3=nullptr/尺寸非法, SNR_ABI_MISMATCH(-9)=model ABI 头部失配,
 // SNR_FLOOR_UNBOUND(-10)=模型未绑定 variance_floor（G3-6 fail-closed：
 //   原实现对此静默回退 1e-12，使配置的 variance_floor 在生产 fill 路径上被无声

@@ -35,7 +35,8 @@ patch 网格（整除划分，循环 :179-208）、星点固定保守掩膜（so
 σ=1.482602218505602·MAD、5σ cosmic 裁剪 ≤2 轮 :42-107）、合格 patch 作
 控制点（:241-267）、可选最小二乘平面空间方差场、全局兜底（合格 patch
 variance 稳健中位数，:207-246）；fill 逐像素 variance/ivar 场（平面 LS
-var(x,y)=a+b·x+c·y 负预测 clamp floor / 全局常量，fill_impl :371-419）；
+var(x,y)=a+b·x+c·y：预测>0 ⇒ max(预测,floor) 且 ivar=1/var；预测≤0 ⇒ variance=0 ∧ ivar=0
+（不可用态；SCI-NOISE-001 §5/§7/§9 + DATA_SEMANTICS §4a 三态表），fill_impl :776-866）；
 scale law（x'=αx → var'=α²var、ivar'=ivar/α²，:488-495）；gain+read-noise
 Poisson 诊断函数（var_ADU=max(signal,0)/gain+(rn/gain)²，:497-505，
 不入生产权重）。数据语义 DATA-P1-NOISE（DATA_SEMANTICS §13）。
@@ -117,7 +118,7 @@ noise_model.cpp:371-384 括号内为默认值）：
 | max_clip_rounds | int | 2 | cosmic 裁剪轮数（>=0） |
 | use_gain_model | uint32 | 0 | **现状零读取**：置 1 无任何效果（DISP-NOISE-003，字段存在易误用） |
 | enable_spatial_field | uint32 | 1 | 1=最小二乘平面空间方差场 |
-| variance_floor | double | 1e-12 | ivar 分母下限 ADU²（build ≤0 不 clamp 原值直通、fill ≤0 回退 1e-12——两阶段语义不一致 DISP-NOISE-002） |
+| variance_floor | double | 1e-12 | **可用方差**的 ivar 分母下限 ADU²；必须有限且 >0，否则 build 与 fill 均显式拒绝 `SNR_FLOOR_UNBOUND(-10)`（不产出模型、不静默回退常数）；只作用于平面预测 >0 的像素（预测 ≤0 ⇒ variance=0 ∧ ivar=0） |
 
 错误码：`0`=成功（含 degenerate 兜底）/ `1`=完全退化（无合格 patch 且
 全帧兜底退化，ivar_bg_global=0.0）/ `3`=参数非法（nullptr、h/w≤0）或
