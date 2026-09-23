@@ -22,11 +22,25 @@
   TRACEABILITY MATRIX GATE PASS (n modules) 或 FAIL (n modules) 末行
 退出码: 0 = 全 PASS；1 = 存在 FAIL；3 = TOOLING_FAILURE（不允许伪 PASS）。
 
+退役（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+  本脚本未注册进 eng/ci/checks.json；它与**在册**的 TRACEABILITY-MATRIX
+  （eng/tools/traceability/check_traceability_matrix.py）读同一个
+  docs/traceability/TRACEABILITY_MATRIX.json，却在现行合同下结论相反：
+  docs/traceability/TRACEABILITY_SPEC.md §4/§7 只要求
+  (a) SRC VERIFIED ⇒ TEST 非 MISSING、(b) TEST VERIFIED ⇒ SRC VERIFIED、
+  (c) EVIDENCE VERIFIED ⇒ 锚可解析；本脚本的 RULE-A（test_path 不得是文档锚）
+  与 RULE-B（TEST VERIFIED ⇒ EVIDENCE 非 MISSING）**不在该合同判据内**，
+  且其自引权威 PSF.md §13 已不存在 ⇒ 判据不在现行合同内。
+  * 无参调用：打印退役标识并 exit 2；
+  * 原实现保留为 legacy_gate_main()，经 --legacy-gate 复跑（判据未改，能红能绿）；
+  * --self-test 的产物目录默认改落 run/traceability-matrix/（§7 登记的临时产物区），
+    不再复活已回收的 run/PROJECT-GOVERNANCE-01/** 命名空间。
+
 用法:
-  python3 eng/tools/check_traceability_matrix.py [--root <repo>] [--matrix <json>]
-      [--module MOD-xxx ...] [--quiet] [--json-out <file>]
+  python3 eng/tools/check_traceability_matrix.py --legacy-gate [--root <repo>]
+      [--matrix <json>] [--module MOD-xxx ...] [--quiet] [--json-out <file>]
   python3 eng/tools/check_traceability_matrix.py --self-test \
-      --self-test-dir run/PROJECT-GOVERNANCE-01/SCI-FIX-PSF/logs/matrix_gate_selftest
+      --self-test-dir run/traceability-matrix/selftest
 
 依赖: Python 3.10+ 标准库；无网络；不改任何文件（--self-test 只写 --self-test-dir）。
 """
@@ -215,14 +229,23 @@ def self_test(root: str, outdir: str, matrix_real: str) -> int:
     print(f"SELFTEST dir={outdir} cases={len(cases)} (真实 CLI 子进程复算)")
     rc_all = 0
     n_bad_caught = 0
+
+    # P0 退役契约：无参调用 ⇒ 退役标识 + exit 2（§2.1:140）
+    proc = subprocess.run([sys.executable, os.path.abspath(__file__)],
+                          capture_output=True, text=True)
+    ok = proc.returncode == 2 and "RETIRED" in (proc.stdout + proc.stderr)
+    print(f"SELFTEST {'PASS' if ok else 'FAIL'} P0_retired_noarg "
+          f"rc={proc.returncode} (want rc=2 + RETIRED)")
+    if not ok:
+        rc_all = 1
     for name, row, expect in cases:
         copy = os.path.join(outdir, f"matrix_selftest_{name}.json")
         with open(copy, "w", encoding="utf-8") as f:
             json.dump({"schema": "astrocs.traceability-matrix/v1", "modules": [row]}, f,
                       ensure_ascii=False, indent=1)
         proc = subprocess.run(
-            [sys.executable, os.path.abspath(__file__), "--root", root, "--matrix", copy,
-             "--quiet"],
+            [sys.executable, os.path.abspath(__file__), "--legacy-gate",
+             "--root", root, "--matrix", copy, "--quiet"],
             capture_output=True, text=True)
         fired = sorted({ln.split()[2] for ln in proc.stdout.splitlines()
                         if ln.startswith("FAIL ")})
@@ -245,24 +268,18 @@ def self_test(root: str, outdir: str, matrix_real: str) -> int:
 
 
 # --------------------------------------------------------------------------
-def main() -> int:
-    ap = argparse.ArgumentParser(description="追溯矩阵可执行性门（RULE-A/B/C）")
-    ap.add_argument("--root", default=".")
-    ap.add_argument("--matrix", default=None, help=f"默认 {MATRIX_REL}")
-    ap.add_argument("--module", action="append", default=[], help="只检查指定 module_id（可重复）")
-    ap.add_argument("--quiet", action="store_true", help="只打印 FAIL 行")
-    ap.add_argument("--json-out", default=None)
-    ap.add_argument("--self-test", action="store_true")
-    ap.add_argument("--self-test-dir", default="run/PROJECT-GOVERNANCE-01/SCI-FIX-PSF/logs/matrix_gate_selftest")
-    args = ap.parse_args()
+RETIREMENT_MARKER = (
+    "RETIRED: check_traceability_matrix.py（SCI-FIX-PSF M3b-F-02）未注册进 "
+    "eng/ci/checks.json；在册门 = TRACEABILITY-MATRIX "
+    "(eng/tools/traceability/check_traceability_matrix.py)，本脚本的 RULE-A/RULE-B "
+    "不在 docs/traceability/TRACEABILITY_SPEC.md §4/§7 的合同判据内。"
+)
+
+
+def legacy_gate_main(args) -> int:
+    """退役前的原门主体（RULE-A/B/C，判据未改）。"""
     root = os.path.abspath(args.root)
     matrix_path = args.matrix or os.path.join(root, MATRIX_REL)
-
-    if args.self_test:
-        outdir = args.self_test_dir if os.path.isabs(args.self_test_dir) \
-            else os.path.join(root, args.self_test_dir)
-        return self_test(root, outdir, matrix_path)
-
     results, n_mod = run_gate(root, matrix_path, args.module, args.quiet)
     fails = [r for r in results if not r["ok"]]
     verdict = "PASS" if not fails else "FAIL"
@@ -288,6 +305,34 @@ def main() -> int:
             print(f"TOOLING_FAILURE: 写 json-out 失败 {exc}", file=sys.stderr)
             return 3
     return 0 if not fails else 1
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--legacy-gate", action="store_true", dest="legacy_gate",
+                    help="复跑退役前的原门主体（RULE-A/B/C，判据未改）")
+    ap.add_argument("--root", default=".")
+    ap.add_argument("--matrix", default=None, help=f"默认 {MATRIX_REL}")
+    ap.add_argument("--module", action="append", default=[], help="只检查指定 module_id（可重复）")
+    ap.add_argument("--quiet", action="store_true", help="只打印 FAIL 行")
+    ap.add_argument("--json-out", default=None)
+    ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--self-test-dir", default="run/traceability-matrix/selftest")
+    args = ap.parse_args(argv)
+    root = os.path.abspath(args.root)
+    matrix_path = args.matrix or os.path.join(root, MATRIX_REL)
+
+    if args.self_test:
+        outdir = args.self_test_dir if os.path.isabs(args.self_test_dir) \
+            else os.path.join(root, args.self_test_dir)
+        return self_test(root, outdir, matrix_path)
+    if not args.legacy_gate:
+        # §2.1:140：退役检查器无参调用时打印退役标识并 exit 2
+        print(RETIREMENT_MARKER, file=sys.stderr)
+        print("  复跑原实现: --legacy-gate [--root DIR] [--matrix F] [--module M] "
+              "[--quiet] [--json-out F]", file=sys.stderr)
+        return 2
+    return legacy_gate_main(args)
 
 
 if __name__ == "__main__":

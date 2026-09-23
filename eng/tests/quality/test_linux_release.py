@@ -61,8 +61,10 @@ class TestLinuxRelease(unittest.TestCase):
         self.assertRegex(ver, r"^\d+\.\d+\.\d+-alpha\.\d+$", "包名必须 alpha")
         for bad in ("stable", "rc", "release"):
             self.assertNotIn(bad, base, f"禁止 {bad} 标记")
-        # "1.0" 是稳定版标记，必须按版本段比较：裸子串会被 0.11.0 / 0.10.0 误伤
-        # （0.11.0 里含 "1.0"），即该断言在现行 VERSION 下恒假、长期被恒 skip 掩盖。
+        # "1.0" 是稳定版标记，必须按版本段比较：裸子串会被现行基础号误伤
+        # （基础号里含 "1.0" 子串），即该断言在现行 VERSION 下恒假、长期被恒 skip 掩盖。
+        # 注：本注释刻意不写任何 X.Y.Z 字面量 —— VER-001（docs/VERSIONING.md §4）
+        # 的扫描面含 eng/tests/**，写死历史版本号会随唯一源推进而恒红。
         self.assertNotRegex(base, r"(?<!\d)1\.0(?!\d)", "禁止 1.0 标记")
 
     def test_03_single_user_exe_and_tree(self):

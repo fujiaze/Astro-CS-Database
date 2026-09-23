@@ -26,10 +26,19 @@
   本门只保证：历史映射不悬空、ACR 禁止迁移声明不丢失、SCI 引用不悬空、归档后新增
   源必须显式登记。
 
+退役（docs/ci/01_CHECKS.md §2.1「检查器退役与预留」）
+  本脚本从未注册进 eng/ci/checks.json；判据对象 docs/archive/refactor/P2_SYMBOL_MAP.md
+  已随 GOV-002 归档清理删除（归档表本身带 ARCHIVED_NON_NORMATIVE 头注，是历史记录），
+  现行模块映射由在册门 CHK-MODULE-MANIFEST（eng/tools/quality/check_module_map.py）承担。
+  * 无参调用：打印退役标识并 exit 2；
+  * 原实现保留为 legacy_main()，经 --legacy-check 复跑（判据未改，能红能绿）；
+  * --json-out 由调用方显式给出；本脚本默认不写任何产物（不落仓库根）。
+
 用法
-  python3 eng/tools/check_p2_symbol_map.py [--root .] [--json-out F]
+  python3 eng/tools/check_p2_symbol_map.py --legacy-check [--root .] [--json-out F]
   python3 eng/tools/check_p2_symbol_map.py --self-test
-exit 0 = PASS；1 = 判据违规；2 = 输入不可用（fail-closed）。
+exit 0 = PASS；1 = 判据违规；2 = 退役（无参调用）/ 输入不可用（fail-closed）；
+3 = 用法错误。
 
 只读；仅 stdlib；输出稳定排序（无时间戳）。
 """
@@ -245,7 +254,8 @@ def _mk_fixture():
     return root
 
 
-def self_test():
+def legacy_self_test():
+    """退役前的原夹具自检（判据未改；9 组：正例 1 + 负例/恢复 7 类）。"""
     fails = []
     checks = []
 
@@ -302,19 +312,93 @@ def self_test():
     return 0
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser(description="P2-001 symbol map / ACR migration gate")
-    ap.add_argument("--root", default=REPO)
-    ap.add_argument("--json-out", default=None)
-    ap.add_argument("--self-test", action="store_true")
-    args = ap.parse_args(argv)
-    if args.self_test:
-        return self_test()
+RETIREMENT_MARKER = (
+    "RETIRED: check_p2_symbol_map.py（P2-001）从未注册进 eng/ci/checks.json；"
+    "判据对象 docs/archive/refactor/P2_SYMBOL_MAP.md 已随 GOV-002 归档清理删除；"
+    "现行模块映射在册门 = CHK-MODULE-MANIFEST（eng/tools/quality/check_module_map.py）。"
+)
+
+
+def legacy_main(args) -> int:
+    """退役前的原判定实现（判据未改）。"""
     if not os.path.isdir(args.root):
         print("P2-001_MAP_VIOLATION: ANCHOR_STALE: --root %s" % args.root)
         return 2
     return emit(check_root(args.root), args.json_out)
 
 
+def self_test() -> int:
+    """可执行正/负例面：退役契约（§1:10–11）+ 原判据的 9 组自检。"""
+    import subprocess
+    problems = []
+    cases = 0
+
+    def check_case(name, rc, want_rc, blob, token):
+        nonlocal cases
+        cases += 1
+        ok = rc == want_rc and token in blob
+        print("  SELFTEST_%s %-34s rc=%d want_rc=%d token=%r"
+              % ("PASS" if ok else "FAIL", name, rc, want_rc, token))
+        if not ok:
+            problems.append("%s: rc=%d(want %d) token=%r missing" % (name, rc, want_rc, token))
+
+    me = os.path.abspath(__file__)
+
+    def run_cli(extra):
+        return subprocess.run([sys.executable, me] + extra,
+                              capture_output=True, text=True, timeout=300)
+
+    r = run_cli([])
+    check_case("P0_retired_noarg", r.returncode, 2, r.stdout + r.stderr, "RETIRED")
+
+    # 显式入口在真仓：对象已删 ⇒ 原 R1 锚存活判据具名点名（fail-closed，非零退出）
+    r = run_cli(["--legacy-check", "--root", REPO])
+    check_case("N1_legacy_anchor_stale_named", r.returncode, 1, r.stdout + r.stderr,
+               "ANCHOR_STALE: MAP_REL")
+
+    # --root 不存在 ⇒ rc=2
+    r = run_cli(["--legacy-check", "--root", os.path.join(REPO, "no_such_root")])
+    check_case("N2_root_missing_red", r.returncode, 2, r.stdout + r.stderr,
+               "ANCHOR_STALE: --root")
+
+    # 原判据的 9 组夹具自检（判据未改）
+    cases += 1
+    rc = legacy_self_test()
+    if rc != 0:
+        problems.append("legacy_self_test rc=%d" % rc)
+    print("  SELFTEST_%s %-34s rc=%d" % ("PASS" if rc == 0 else "FAIL",
+                                        "P3_legacy_fixtures", rc))
+
+    print("SELF_TEST %s cases=%d problems=%d"
+          % ("PASS" if not problems else "FAIL", cases, len(problems)))
+    for p in problems:
+        print("  - " + p)
+    return 0 if not problems else 1
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--legacy-check", action="store_true", dest="legacy_check",
+                    help="复跑退役前的原判定实现（判据未改）")
+    ap.add_argument("--root", default=REPO)
+    ap.add_argument("--json-out", default=None)
+    ap.add_argument("--self-test", action="store_true")
+    args = ap.parse_args(argv)
+    if args.self_test:
+        return self_test()
+    if not args.legacy_check:
+        # §2.1:140：退役检查器无参调用时打印退役标识并 exit 2
+        print(RETIREMENT_MARKER, file=sys.stderr)
+        print("  复跑原实现: --legacy-check [--root DIR] [--json-out F]", file=sys.stderr)
+        return 2
+    return legacy_main(args)
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except SystemExit:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        print("TOOLING_FAILURE: %r" % (exc,), file=sys.stderr)
+        sys.exit(3)

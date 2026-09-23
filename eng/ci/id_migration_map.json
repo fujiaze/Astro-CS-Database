@@ -413,6 +413,90 @@
         "TOOLCHAIN-VERIFY"
       ]
     },
+    "CHK-REGISTRATION-ANCHORS": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "登记面活引用必须仍有对象",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-REGISTRATION-ANCHORS-SELFTEST": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "登记面活引用门自检",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-CMAKE-USEBEFOREDEF": {
+      "kind": "ci",
+      "grade": "P1",
+      "name": "CMake 使用前定义",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-CMAKE-USEBEFOREDEF-SELFTEST": {
+      "kind": "ci",
+      "grade": "P1",
+      "name": "CMake 使用前定义门自检",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-MODULE-ID-NORMALIZATION": {
+      "kind": "doc",
+      "grade": "P1",
+      "name": "模块 id 归一化",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-MODULE-ID-NORMALIZATION-SELFTEST": {
+      "kind": "doc",
+      "grade": "P1",
+      "name": "模块 id 归一化门自检",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-MASTER-UNIT-GUARD": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "母版单位守卫",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-MASTER-UNIT-GUARD-SELFTEST": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "母版单位守卫门自检",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-GATES-AND-TOLERANCES": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "门与容差表 vs 实现",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-GATES-AND-TOLERANCES-SELFTEST": {
+      "kind": "doc",
+      "grade": "P0",
+      "name": "门与容差表门自检",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-VERSION-CONSISTENCY-VER001": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "版本一致性 VER-001",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-VERSION-CONSISTENCY-VER001-SELFTEST": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "版本一致性 VER-001 门自检",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-BASELINE-OPCODES": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "基线目标指令集",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
+    "CHK-LINK-SCAN": {
+      "kind": "ci",
+      "grade": "P0",
+      "name": "链接面扫描",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
     "CHK-KNOWN-FAILURES-BASELINE": {
       "kind": "extension",
       "grade": "P1",
@@ -1428,6 +1512,118 @@
       "checker": "eng/tools/quality/check_path_domain_anchors.py",
       "owner": "PATHDOMAIN-01",
       "reason": "changed_paths 是 glob 路径域，决定改了哪些文件要跑哪些门，但从来没有存在性判据——目录退役后该域静默失效。判据+可执行负例见 eng/tools/quality/check_path_domain_anchors.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-REGISTRATION-ANCHORS",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRATION-ANCHORS",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "登记面活引用必须仍有对象：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-REGISTRATION-ANCHORS-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-REGISTRATION-ANCHORS-SELFTEST",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "登记面活引用门自检：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-CMAKE-USEBEFOREDEF",
+      "decision": "KEPT",
+      "target": "CHK-CMAKE-USEBEFOREDEF",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "CMake 使用前定义：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-CMAKE-USEBEFOREDEF-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-CMAKE-USEBEFOREDEF-SELFTEST",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "CMake 使用前定义门自检：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-MODULE-ID-NORMALIZATION",
+      "decision": "KEPT",
+      "target": "CHK-MODULE-ID-NORMALIZATION",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "模块 id 归一化：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-MODULE-ID-NORMALIZATION-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-MODULE-ID-NORMALIZATION-SELFTEST",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "模块 id 归一化门自检：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-MASTER-UNIT-GUARD",
+      "decision": "KEPT",
+      "target": "CHK-MASTER-UNIT-GUARD",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "母版单位守卫：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-MASTER-UNIT-GUARD-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-MASTER-UNIT-GUARD-SELFTEST",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "母版单位守卫门自检：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-GATES-AND-TOLERANCES",
+      "decision": "KEPT",
+      "target": "CHK-GATES-AND-TOLERANCES",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "门与容差表 vs 实现：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-GATES-AND-TOLERANCES-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-GATES-AND-TOLERANCES-SELFTEST",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "门与容差表门自检：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-VERSION-CONSISTENCY-VER001",
+      "decision": "KEPT",
+      "target": "CHK-VERSION-CONSISTENCY-VER001",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "版本一致性 VER-001：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-VERSION-CONSISTENCY-VER001-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-VERSION-CONSISTENCY-VER001-SELFTEST",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "版本一致性 VER-001 门自检：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-BASELINE-OPCODES",
+      "decision": "KEPT",
+      "target": "CHK-BASELINE-OPCODES",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "基线目标指令集：该判据面此前没有任何在册门承接。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-LINK-SCAN",
+      "decision": "KEPT",
+      "target": "CHK-LINK-SCAN",
+      "owner": "ORPHAN-PREREQ-01",
+      "reason": "链接面扫描：该判据面此前没有任何在册门承接。",
       "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
     },
     {
@@ -3769,6 +3965,20 @@
       "CHK-FIX406-SIGTERM",
       "CHK-GATE-FAILCLOSED-SELFTEST",
       "CHK-HIPS-STORAGE-FORM",
+      "CHK-REGISTRATION-ANCHORS",
+      "CHK-REGISTRATION-ANCHORS-SELFTEST",
+      "CHK-CMAKE-USEBEFOREDEF",
+      "CHK-CMAKE-USEBEFOREDEF-SELFTEST",
+      "CHK-MODULE-ID-NORMALIZATION",
+      "CHK-MODULE-ID-NORMALIZATION-SELFTEST",
+      "CHK-MASTER-UNIT-GUARD",
+      "CHK-MASTER-UNIT-GUARD-SELFTEST",
+      "CHK-GATES-AND-TOLERANCES",
+      "CHK-GATES-AND-TOLERANCES-SELFTEST",
+      "CHK-VERSION-CONSISTENCY-VER001",
+      "CHK-VERSION-CONSISTENCY-VER001-SELFTEST",
+      "CHK-BASELINE-OPCODES",
+      "CHK-LINK-SCAN",
       "CHK-MUTATION-GATES",
       "CHK-NO-WEIGHT-MODE",
       "CHK-NO-WEIGHT-MODE-CODE",
