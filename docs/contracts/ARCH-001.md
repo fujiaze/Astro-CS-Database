@@ -83,7 +83,7 @@ io → data_contracts; io ⇏ runtime; io ⇏ modules
 |---|---|---|
 | lib/infrastructure/cli/main.cpp 顺序调用 3 session 且不传 Artifact ID | 第二套编排 (P0-006) | CLI-002 |
 | aio_pipeline_engine 内置 5-stage 调度 + omp16 | I/O 越权编排 (P1-003) | LEG-003 |
-| orchestrator.cpp 5573 行全局调度 | 第二生产调度器 (P1-002) | LEG-002 |
+| orchestrator.cpp 5522 行全局调度 | 第二生产调度器 (P1-002) | LEG-002 |
 | p2_session cpu_workers=1 | 生产串行 (P0-001) | P2-002 |
 | CLI drizzle 直呼 hp_drizzle_run_hips | CLI 直连科学 (P1-005) | LEG-001 |
 | ACR registry 符号在生产 astrocs | ACR 生产泄漏 (P1-007) | LEG-004 |

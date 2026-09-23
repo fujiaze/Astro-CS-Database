@@ -64,7 +64,7 @@ lib/infrastructure/pipeline/orchestrator/cpp/。
   执行 = `cpp/src/orchestrator.cpp` 的 `run_stage_*` 与阶段表；
   取消 = `request_cancel()` / SIGINT 原子 token（`ASTROCS_CANCELLED`）；
   checkpoint = `cpp/src/checkpoint.cpp`。
-  `ASTROCS_DESIGN.md:374` 的 pipeline 行（typed DAG、artifact、内存/数据管线）在本仓的
+  `ASTROCS_DESIGN.md` §8.4 顶层结构里的 pipeline 位（typed DAG、块生命周期、内存/数据管线）在本仓的
   代码实体是 `lib/infrastructure/scheduler/src/{pipeline,artifact,artifact_store}.cpp` 与
   `lib/infrastructure/runtime/**`（MODULE_MAP id=`runtime`），**不是**本模块。
 - **物理位 = `lib/infrastructure/pipeline/orchestrator/**`**：ARCH-001 迁移清单 #15
