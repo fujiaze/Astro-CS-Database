@@ -79,9 +79,13 @@ def main():
     bad_type = json.loads(json.dumps(template))
     bad_type["integration"]["precision"] = "int8"
     run_parse(json.dumps(bad_type), expect_parse_ok=False)
-    bad_wm = json.loads(json.dumps(template))
-    bad_wm["integration"]["weight_mode"] = "snr2"
-    run_parse(json.dumps(bad_wm), expect_parse_ok=False)
+    # §9.73 裁决 A44：两个已删除键**出现即拒绝**（负例面; 值形态不改变判定）。
+    for dead_key, dead_val in (("weight_mode", "snr2"),
+                               ("weight_mode", 0),
+                               ("legacy_allow_weight_fallback", True)):
+        bad_wm = json.loads(json.dumps(template))
+        bad_wm["integration"][dead_key] = dead_val
+        run_parse(json.dumps(bad_wm), expect_parse_ok=False)
     print("[config] 非法输入清晰错误 PASS")
     print("CONFIG_SMOKE=" + ("PASS" if ok else "FAIL"))
     return 0 if ok else 1

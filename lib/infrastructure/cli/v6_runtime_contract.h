@@ -10,7 +10,9 @@
 //     phase2 的 --mode <token> 一律 fail-closed 拒绝（不存在任何合法 token）；
 //     FZ-MODE-RETIRED psfsw_robust 不是现行对象（ASTROCS_DESIGN.md §3.1；
 //     docs/design/UNIFIED_MODEL.md:58），拒绝消息带迁移提示；
-//     FZ-FIELD-WEIGHTMODE legacy 0 / auto / support_x_snr2 拒绝；1|2 → baseline 非生产。
+//     FZ-FIELD-WEIGHTMODE legacy 整数 weight_mode 与 auto / support_x_snr2 / equal /
+//     pixel_ivar **全部**拒绝（§9.73 裁决 A44 后无任何合法取值，含原 1|2 → baseline
+//     的非生产放行面）。
 //   * FZ-P3-MODES {surface_brightness, point_source_flux, visualization}。
 //   * 宪章 §10.5 / §17.6 重计算利用率门禁的**字段面**，以及 SO-05 签字前的
 //     fail-closed 记录/裁决分离策略（CONTROLLER_LOG C-007；04_OPEN_ITEMS_AND_SIGNOFF SO-05）。
@@ -91,12 +93,15 @@ struct ModeRoute {
 
 // Phase2 权重口径选择面（FZ-WEIGHT-SINGLE-PATH）。
 //   合法 token：**无** —— 权重只有一个口径，没有可选择项。
-//   全部 token 一律 fail-closed 拒绝（rc=2）：
+//   全部 token 一律 fail-closed 拒绝（rc=2），**无例外**：
 //     psfsw_robust(RETIRED) | psf_snr_power(DEFERRED) | auto | support_x_snr2 |
-//     "0" | "1" | "2" | 任何其它串。
-// 说明：字符串 "1"/"2" 是 legacy 整数的字符串形态，必须经 route_legacy_weight_mode_int
-// 映射为 baseline（该映射属**非科学方差面**的显式登记）；此处直接拒绝，避免"数字
-// 字符串冒充权重口径"。
+//     equal | pixel_ivar | "0" | "1" | "2" | 任何其它串。
+// 说明（§9.73 裁决 A44 后订正）：字符串 "1"/"2" 是 legacy 整数的字符串形态，
+// 一律直接拒绝，避免"数字字符串冒充权重口径"。
+// 原实现把 equal / pixel_ivar 放行为 kBaseline（rc=0 + 告警），其唯一理由是
+// 「它们是 route_legacy_weight_mode_int 的映射目标登记」；A44 删除该整数路由后，
+// 该理由消失 ⇒ 二者与其余 token 同归 fail-closed（本注释首句本来就是这条口径，
+// 旧实现与自身冻结说明不一致）。
 // 依据：ASTROCS_DESIGN.md §3.1（权重只能来自纯净信号/噪声之比的逆方差，跨帧绝对
 // 标定，不基于参考帧；全程只有 SNR）+ docs/science/PSF_SIGNAL_WEIGHT.md §4（单一
 // 权重口径，无模式选择）。psfsw_robust_weight 不是现行对象
@@ -126,14 +131,15 @@ inline ModeRoute route_phase2_weight_token(const std::string& raw) {
                    "the integer field, not a mode token";
         return r;
     }
-    // documented baseline（非科学方差面）：可识别但不作生产口径 —— 权重只有一个口径，
-    // 这两个 token 只是 legacy 整数映射的目标登记，不得据此声称最优。
     if (raw == "equal" || raw == "pixel_ivar") {
-        r.kind = RouteKind::kBaseline;
-        r.rc = 0;
-        r.reason = "documented baseline (non-production) weight surface; the single "
-                   "scientific weight path is inverse variance from the reconstructed "
-                   "dense SNR field (FZ-WEIGHT-SINGLE-PATH)";
+        // §9.73 裁决 A44：原实现把这两个 token 放行为 kBaseline（rc=0），理由是
+        // 「legacy 整数映射的目标登记」。整数路由已删除 ⇒ 该理由消失；且它们是
+        // **输入路径**（CLI --mode）上的口径 token ⇒ 与其余 token 同归 fail-closed
+        // （ASTROCS_DESIGN.md §3.1:175「没有可选择项」；PSF_SIGNAL_WEIGHT.md §4:72
+        // 「不存在口径选择键、口径枚举、口径配置项或口径产物」）。
+        r.reason = "FZ-WEIGHT-SINGLE-PATH: '" + raw + "' rejected - there is no "
+                   "selectable weight mode; Phase2 reconstructs the dense SNR field "
+                   "and derives inverse-variance weights w = SNR^2/F_ref^2 = 1/sigma_F^2";
         return r;
     }
     r.reason = "FZ-WEIGHT-SINGLE-PATH: '" + raw + "' rejected - there is no selectable "
@@ -161,25 +167,23 @@ inline ModeRoute route_phase3_mode(const std::string& raw) {
     return r;
 }
 
-// legacy 整数 weight_mode 字段：0=legacy SNR → 必须拒绝；1=equal / 2=ivar → baseline。
+// legacy 整数 weight_mode 字段：**纯拒绝面**（§9.73 裁决 A44）。
+// 原实现把 1|2 映射为 kBaseline（rc=0，非生产但放行）、仅 0 拒绝；A44 删除 legacy
+// 整数权重模式域后，该字段不存在任何合法取值 ⇒ 全值域 fail-closed。
+// 保留函数名与具名拒绝面（本仓既有惯例：退役对象的拒绝面必须存活、收紧不是删除；
+// 见 eng/ci/check_no_weight_mode_code.py C2「退役对象的拒绝面必须存活」与
+// is_retired_weight_mode_token）。最危险值 0（support x SNR^2，无量纲、非信号/噪声
+// 之比）保留**更具体**的拒绝理由，便于用户按提示改对。
+// 依据：ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；
+// docs/science/PSF_SIGNAL_WEIGHT.md §4:72「不存在口径选择键、口径枚举、口径配置项
+// 或口径产物」；docs/contracts/DATA_SEMANTICS.md §31.3（legacy weight_mode=0 → REJECT）。
 inline ModeRoute route_legacy_weight_mode_int(int v) {
     ModeRoute r;
     r.surface = "phase2_legacy_int";
-    if (v == 1) {
-        r.kind = RouteKind::kBaseline;
-        r.token = "equal";
-        r.rc = 0;
-        r.reason = "legacy weight_mode=1 -> baseline equal (non-production)";
-        return r;
-    }
-    if (v == 2) {
-        r.kind = RouteKind::kBaseline;
-        r.token = "pixel_ivar";
-        r.rc = 0;
-        r.reason = "legacy weight_mode=2 -> baseline pixel_ivar (non-production)";
-        return r;
-    }
     r.token = std::to_string(v);
+    // 全值域 fail-closed：最危险值 0（support x SNR^2）保留更具体的拒绝理由。
+    // 该分支文本是 V6 变异驱动（eng/tools/v6/v6_runtime_mutation_driver.py
+    // "legacy-weight-mode-0-allowed"）的注入锚点，**逐字保持**。
     if (v == 0) {
         r.reason = "FZ-FIELD-WEIGHTMODE: legacy weight_mode 0 (support x SNR^2) is not a "
                    "science variance surface and is rejected (fail-closed)";

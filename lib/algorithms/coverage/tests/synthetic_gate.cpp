@@ -4100,8 +4100,7 @@ TEST(Phase2Wiring, G1ProductionWiringTruth) {
         "precision": "fp32", "memory_limit_mb": 8192,
         "rejection": {"method": "sigma", "profile": "wbpp_2_9_1",
                        "normalization": "astrocs_median_center_v1",
-                       "underdetermined_n": 2},
-        "weight_mode": "auto"
+                       "underdetermined_n": 2}
       },
       "output": {"hips": "out.hips"},
       "diagnostics": {"enabled": true}

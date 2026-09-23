@@ -80,7 +80,13 @@ inline std::string missing_required_extension_v1(const std::string& kind,
         {"graph", {"path"}},
         {"resource_gate", {"diag", "enforcement", "strict", "enforced",
                            "work_core_seconds", "workload_floor_core_seconds",
-                           "workload_floor_reached"}},
+                           "workload_floor_reached",
+                           // SO-05 记录/裁决分离的证据面（B4 登记；语义 =
+                           // docs/plugins/infrastructure/21_observability.md §8.4）：
+                           // 未签字前资源判据恒 record_only，这三键使该事实在事件上可审计
+                           // （缺任一键即发送侧拒发，fail-closed）。
+                           "so05_signoff_id", "so05_signoff_status",
+                           "auto_adjudication_allowed"}},
         {"v6_mode_route", {"route_kind", "token", "surface", "source", "reason",
                            "implicit_phase_chain", "budget_source_owner",
                            "budget_allocated_cores", "one_budget_source_rule"}},

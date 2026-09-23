@@ -77,7 +77,6 @@
         "technique": "ss_median_dl"
       }
     },
-    "weight_mode": "auto",
     "acr_route": "cpu"
   },
   "output": {

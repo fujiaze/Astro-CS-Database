@@ -31,8 +31,7 @@
         "upper_sigma": 3.0,
         "max_iterations": 8
       }
-    },
-    "weight_mode": "auto"
+    }
   },
   "output": {
     "hips": "run/phase2/v6/real_overlap.mosaic.hips"

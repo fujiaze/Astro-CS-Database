@@ -1095,15 +1095,24 @@ static int run_with_resource_gate(astrocs::JsonlEmitter& ev, const std::string& 
         ev.emit("resource_gate", "warning", phase, why,
                 {{"diag", astrocs::gate_diag_name(d)},
                  {"enforcement", astrocs::gate_enforcement_name(enf)},
+                 // strict 是 resource_gate 的**冻结必含扩展字段**（五面同面：protocol.h kExt /
+                 // schema allOf.then.required / schema x-astrocs-event-kind-registry /
+                 // 读侧 CLI-004 / 读侧 FIX208）。原先与之同实参重复的 strict_flag_requested
+                 // 已删——一次 emit 不写两个同义键（B4）。
                  {"strict", strict_flag_requested},
-                 {"strict_flag_requested", strict_flag_requested},
                  {"enforced", enforced},
                  {"work_core_seconds", g.work_core_seconds},
                  {"workload_floor_core_seconds", astrocs::kMon003MinCoreSeconds},
                  {"workload_floor_reached", astrocs::gate_workload_above_floor(g)},
-                 // SO-05: 资源判据的自动判决权属负责人签字项；未签字前 kept record-only，
-                 // 此处只记录"若已签字是否会失败"，不改变退出码（避免擅自升级为非豁免红灯）。
-                 {"would_fail_if_so05_signed", true},
+                 // SO-05 记录/裁决分离（§9.74 裁决 10；docs/plugins/infrastructure/
+                 // 21_observability.md §8.3/§8.4）：资源判据**恒 record-only**，CLI 面不存在
+                 // enforce 路径（resource_gate.h::gate_enforcement 恒 RecordOnly）。原先写的
+                 // would_fail_if_so05_signed=true 已删：它对 §8.3 的 record_and_justify 判据
+                 // ④⑤⑥（平均利用率 / 利用率 p50 / 逐样本利用率）是错的——§8.3 明定它们的
+                 // 违约后果是「记录 + 超标登记（不改退出码）」，即使签字也不产生 exit 10；
+                 // 该键是**事件级常量**，无法表达逐判据的 enforce/record 分类，属「不该存在」。
+                 // 以下三键是 SO-05 证据面的**必含扩展字段**（B4 登记，五面同面；语义见
+                 // 21_observability.md §8.4）。
                  {"so05_signoff_id", astrocs::v6runtime::kSo05Id},
                  {"so05_signoff_status", astrocs::v6runtime::kSo05Status},
                  {"auto_adjudication_allowed", false}});
@@ -1344,7 +1353,8 @@ BlockOutcome run_phase2_block(const Parsed& p, astrocs::JsonlEmitter& ev,
 
 // CLI-MULTIBLOCK（§9.71 裁决 2）：mosaic 运行入口（形态判定 + 逐块派发；final 恰一个）。
 int cmd_session2_run(const Parsed& p, astrocs::JsonlEmitter& ev) {
-    // RUNTIME-CI-001: 显式模式路由门（--mode / legacy weight_mode）；reject → ARGS(2)。
+    // RUNTIME-CI-001: 显式模式路由门（--mode；§9.73 A44 后 legacy 整数 weight_mode
+    // 与 config 的 weight_mode 键均已删除，出现即具名拒绝）；reject → ARGS(2)。
     {
         const int mrc = astrocs::v6cli::mode_gate(p, 2, ev);
         if (mrc != astrocs::OK) return mrc;

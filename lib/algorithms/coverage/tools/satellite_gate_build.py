@@ -197,7 +197,7 @@ def main():
                 "memory_limit_mb": 16384,
                 "rejection": {"method": "auto", "profile": "wbpp_current",
                               "underdetermined_n": 2},
-                "weight_mode": "auto",
+                # §9.73 裁决 A44：weight_mode 已删除（出现即拒绝）⇒ 不再生成。
                 "acr_route": "cpu"
             },
             "output": {"hips": out_hips},
