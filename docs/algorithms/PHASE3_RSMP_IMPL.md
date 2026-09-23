@@ -89,13 +89,32 @@ lib/algorithms/resample/p3_resample.h 全部公共符号（ALG-P3-003 施工面 
 | `P3SamplerImpl` | h:28（前置声明） | cpp:38-47 等 | 不透明实现类型 |
 | `P3Sampler` | h:29-31 | — | `P3SamplerImpl* impl; char last_error[256];` |
 | `p3_sampler_open` | h:32-33 | cpp:109+ | `(const char* hips_dir, P3Sampler* out, char* err)`；= open_ex 缺参薄封装 |
-| `p3_sampler_open_ex` | h:36-38 | cpp:130-159 | `(hips_dir, out, int* out_order, char* out_bunit, char* err)` |
+| `p3_sampler_open_ex` | h:39-41 | cpp:269-296 | `(const char* product_dir, P3Sampler* out, int* out_order, std::string* out_bunit, std::string* err)`（**std::string***，非 `char*`） |
 | `p3_sampler_set_max_tiles` | h:42 | cpp:161-168 | `(P3Sampler*, int max_tiles)`；≤0 恢复默认 8 |
-| `p3_sample_nearest` | h:46-47 | cpp:232-239 | `(const P3Sampler*, const P3WcsDescriptor*, int x, int y, float* value, float* coverage)` |
-| `p3_sample_bilinear` | h:51-52 | cpp:196-230 | 同上签名 |
+| `p3_sample_nearest` | h:87-88 | cpp:296-300 | `(P3Sampler*, double ra_deg, double dec_deg, float* value, int* coverage)`（= `_ex` 薄封装） |
+| `p3_sample_nearest_ex` | h:132-134 | cpp:301-314 | 同上 + `uint64_t* leaf_ipix`（nearest 方差传播面） |
+| `p3_sample_bilinear` | h:96-97 | cpp:315-321 | `(P3Sampler*, double ra_deg, double dec_deg, float* value, int* coverage)`（= `_ex` 薄封装） |
+| `p3_sample_bilinear_ex` | h:145-147 | cpp:322-339 | 同上 + `double weights[4]` + `uint64_t leaf_ipix[4]` |
+| `p3_sampler_attach_cache` | h:56 | cpp:235-241 | `(P3Sampler* dst, const P3Sampler* src)`：共享有界 LRU（P30；§7） |
+| `p3_sampler_cache_stats` | h:73 | cpp:242-248 | `(const P3Sampler*, P3CacheStats*)`：命中率/负缓存/逐出可观测计数 |
+| `p3_sampler_set_absent_cache` | h:79 | cpp:250-256 | 负缓存开关（默认开；回归阴性对照用） |
+| `p3_uncertainty_open` / `p3_uncertainty_close` / `p3_uncertainty_propagate` | h:126 / h:129 / h:195 | 同文件 | DATA-P3-UNC-001 不确定度消费面（variance/ivar 子产品） |
+
+- **签名漂移订正（本次）**：本表早期版本把采样函数记为
+  `(const P3Sampler*, const P3WcsDescriptor*, int x, int y, float* value, float* coverage)`
+  （像素坐标入参、coverage 为 `float*`）——现行公共面是**天球坐标入参**
+  `(P3Sampler*, double ra_deg, double dec_deg, float* value, int* coverage)`
+  （coverage 为 `int*` 二值），并新增 `_ex`/`nanmask_ex`/`attach_cache`/
 | `p3_sampler_close` | h:95 | cpp:465-470 | `(P3Sampler*)`；释放 impl，置 nullptr |
 | `P3SampleRejection` | h:159-166 | — | 样本级掩膜强制计数（`n_rejected_nonfinite` + 三项原因分类 + `n_eligible`） |
 | `p3_sample_bilinear_nanmask_ex` | h:171-174 | cpp:322-464 | `(..., double weights[4], uint64_t leaf_ipix[4], P3SampleRejection*)`；= `p3_sample_bilinear_ex` 的唯一实现，额外暴露强制计数 |
+
+- **签名漂移订正（本次）**：本表早期版本把采样函数记为
+  `(const P3Sampler*, const P3WcsDescriptor*, int x, int y, float* value, float* coverage)`
+  （像素坐标入参、coverage 为 `float*`）——现行公共面是**天球坐标入参**
+  `(P3Sampler*, double ra_deg, double dec_deg, float* value, int* coverage)`
+  （coverage 为 `int*` 二值），并新增 `_ex`/`nanmask_ex`/`attach_cache`/
+  `cache_stats`/`uncertainty_*` 等符号族。消费方按符号名核对，行号仅作导航。
 
 - 内部符号（合同可见但非导出）: `read_leaf`（cpp:186-202）、`SharedTileCache`（cpp:64-122）、
   `kTileWidth=512`（cpp:48）。
@@ -135,6 +154,13 @@ pixel_resolution_arcsec(nside=512 << k) / 3600 ≤ scale_deg_per_px
 
 其中 `pixel_resolution_arcsec(nside) = sqrt(4π/(12·nside²))·180·3600/π`
 （lib/algorithms/shared/healpix/healpix_core.cpp 权威实现）= `sqrt(π/3)/nside` rad。
+**该式是精确的等面积等效线尺度，不是近似**：HEALPix 在同一 nside 下**所有单元面积严格
+相等** = `4π/(12·nside²)`（Górski et al. 2005, ApJ 622, 759 §4；本仓实测
+`run/SCI-FIX-DRZGEOM-01/evidence/exp_a_geometry.json` A4 段：nside=512/1024 × 9 档纬度
+面积相对偏差恒为 0.0；同一实验的等经纬网格阴性对照在 dec=89.9° 偏 −20.5%）。
+**适用域**：该式是**面平均**判据；HEALPix 单元的局部采样步长（邻元中心角距）随纬度与
+方向变化——实测 nside=512 共边邻元步长 ∈ [0.63,0.71]×该尺度、对角邻元 ∈ [1.95,2.94]×
+该尺度。要求方向性分辨率保证时须按局部步长另加余量，不得把它当各向同性分辨率上界。
 与 ALG-P3-003 G3 冻结式 `s_tile_rad = sqrt(π/3)/(2^order·W)`、
 `order = clamp(ceil(log2(sqrt(π/3)/(W·s_out))), 0, hips_order)`
 **数学等价**（nside = W·2^k，W=512）：取等价形式
@@ -160,8 +186,13 @@ nullptr/空串/`flux`/`flux_per_pixel`/variance/weight/ivar）返回
   dataproduct_type`；`hips_order ∈ [0,20]`；`hips_tile_width` 必须
   512——hips_properties.cpp:122 显式拒非 512；NESTED 唯一）②校验
   `hips_frame` ICRS ③构造 `P3SamplerImpl`（nside=512·2^order）④
-  `out_order`/`out_bunit` 回填实际值；BUNIT 缺省 `'ADU'`，
-  **绝不缺省 Jy/beam**（头注 + SCI §9a-11）。失败路径: properties
+  `out_order`/`out_bunit` 回填实际值；BUNIT **必须**取输入 tile 的 BUNIT，
+  输入 properties 无 BUNIT 时取 **canonical `ADU/sr`**（**绝不**缺省 `ADU`、
+  **绝不**缺省 Jy/beam）。依据 DATA_SEMANTICS §31.1/§31.1a（`FZ-UNIT-SIGNAL-SB`
+  FROZEN）：采样值是输入 tile 值的凸组合 ⇒ 与输入同量纲；`ADU/sr` = 计数按立体角
+  归一的面亮度串，裸 `ADU` = 每像素计数口径，与写盘数值不符且量纲不可判
+  （§31.1a 并明确否定 `ADU/px^2`）。**实现锚**：`p3_resample.cpp`
+  `p3_sampler_open_ex`（`out_bunit = p.bunit.empty() ? "ADU/sr" : p.bunit`）。失败路径: properties
   校验失败/路径不存在 → `P3_RS_IO`；语义不符 → `P3_RS_PARAM` 或
   `P3_RS_UNSUPPORTED`（frame≠ICRS）；err 缓冲写人类可读消息。
 - `p3_sampler_open`（cpp:109+）: open_ex 缺参薄封装（out_order/
@@ -241,21 +272,28 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   互斥可加）；计数 0 与「字段缺失」必须可区分（DATA-002 §2a 规则 3）。信号核的
   方差/权重两类恒 0（不消费方差面；权重由几何唯一确定）。
 
-## 7 TileCache 并发/确定性合同（cpp:22-36）
+## 7 TileCache 并发/确定性合同（`SharedTileCache`，cpp:63-122）
 
-- 有界 FIFO 缓存: 容量默认 8（`set_max_tiles` 可调，≤0 恢复 8）；
-  插入超容时逐出 `keys` 队首（**最旧插入**，cpp:33 `keys.erase(
-  keys.begin())`）——ALG-P3-003 §3 伪代码写 "LRU"，实现为 FIFO
-  （无访问序更新），DISP-P3RSMP-002 如实登记。
-- 键: `(order, tile_ipix)`；值: tile 缓冲。
-- 并发模型: **每 worker 独立 sampler（自含独立 cache）**，跨 worker
-  无共享可变状态；HiPS tile 文件只读共享，无写锁（p3_session.cpp:
-  217-226 worker 闭包内 `p3_sampler_open_ex` 每 worker 重建）。
-  单 sampler 实例本身**非线程安全**（无内部锁），禁止跨线程共享
-  同一 `P3Sampler`——合同禁止项。
-- 确定性: 逐出策略 FIFO + 逐像素独立采样 ⇒ 输出与 tile 装载顺序、
-  worker 数、缓存容量**无关**（同一输出像素的计算路径固定: 邻域
-  确定 → 最近中心确定 → 权重确定）。禁 hardware_concurrency 决定
+- **有界 LRU 缓存（跨 worker 共享、线程安全）**: 结构 = `std::list<uint64_t> lru`
+  （front = MRU）+ `unordered_map` + `std::mutex`；`get` 命中时
+  `lru.splice(lru.begin(), lru, it->second.it)` ⇒ **访问序更新（真 LRU）**，
+  超容时逐出 `lru.back()`（最久未用）。容量默认 8（`set_max_tiles` 可调，≤0 恢复 8），
+  生产会话经 `p3_sampler_attach_cache` 让每 worker sampler **共享同一缓存**
+  （容量 = max_tiles 总量，与 worker 数无关 ⇒ 峰值内存不随核数增长；
+  p3_session.cpp:260-273）。**DISP-P3RSMP-002（FIFO 登记）已随 P30 缓存改造失效**，
+  现行策略 = LRU。
+- **负缓存（absent）**: tile 不存在/读失败记一次，之后直接返回缺失，
+  语义与"每次 open 都失败"逐位等价（`stat_open_fail` 与负缓存命中分列计数）。
+- 键: `(order, tile_ipix)`；值: tile 缓冲（`shared_ptr<const TileData>`，只读共享）。
+  每 sampler 另有 `kHotSlots=8` 前端热缓存（命中不取共享锁）。
+- 并发模型: 缓存本身线程安全；**单 `P3Sampler` 实例的其余状态非线程安全**
+  （无内部锁），禁止跨线程共享同一 `P3Sampler`——合同禁止项。
+  HiPS tile 文件只读共享，无写锁（p3_session.cpp:217-244 worker 闭包内
+  `p3_sampler_open_ex` 每 worker 重建 + attach 共享缓存）。
+- 确定性: 缓存策略（LRU/容量/负缓存开关）只影响 I/O 命中率，**不影响任何像素值**
+  （tile 内容只读；同一输出像素的计算路径固定: 邻域确定 → 最近中心确定 → 权重确定）
+  ⇒ 输出与 tile 装载顺序、worker 数、缓存容量**无关**。该"只影响 I/O"性质是结构性约束：
+  一旦引入跨 tile 的数值状态即失效。禁 hardware_concurrency 决定
   worker 数（=budget.max_workers，p3_session.cpp:211-214）。
 
 ## 8 会话编排合同（p3_session.cpp 消费链，实测）
@@ -352,7 +390,8 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
 - 本合同冻结**现状实现**为合同基线；§11 偏差表登记与合同基线的差异，
   整改走 P3-RSMP-IMPL/INT。
 - 禁止项（合同）: 第二套 healpix 数学核心；第三种采样核；flux/
-  variance/weight 输入静默接受；BUNIT 缺省非 ADU；仅写 metadata 的
+  variance/weight 输入静默接受；**BUNIT 缺省非 canonical `ADU/sr`**
+  （缺省必须为 `ADU/sr`，见 §6.3）；仅写 metadata 的
   order；hardware_concurrency 决定线程数；静默默认 open；**静默剔除**
   （¬isfinite 样本必须计数暴露）；**零填替代**（零合格样本必须 NaN）；
   **用未重归一的几何权重传播方差**（DATA-002 §2a 规则 1）。
