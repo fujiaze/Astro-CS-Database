@@ -29,16 +29,30 @@
 
 ## 3 物理量和单位
 
-- `C, raw, calibrated, σ_bg`: ADU；`control_variance`: ADU²；`control_ivar`: ADU⁻²；`quality, control_reliability`: 无量纲 [0,1]；`w_UPM`: **ADU⁻²（绝对逆方差量）**；`w_cell`: **无量纲（份额式，单位元 = 无量纲）**；`N_retained`: 无量纲；`frame_id`: 无量纲 uint64；`θ`: ADU。
+- `C, raw, calibrated, σ_bg`: **面亮度 ADU·sr⁻¹**（与上游 Phase1 HiPS signal 层同标度，量纲依据=写盘 BUNIT 冻结集 {ADU/sr, ADU^2/sr^2, sr^2/ADU^2}，裸 ADU 判红：`lib/infrastructure/aio/src/hiss_writer.cpp:335-365`；实测闭环见 ALG-P2-SMP-001 §2）；
+  `control_variance`: **(ADU·sr⁻¹)²**；`control_ivar`: **(ADU·sr⁻¹)⁻²**；
+  `quality, control_reliability`: 无量纲 [0,1]；
+  `w_UPM`: **(ADU·sr⁻¹)⁻²（绝对逆方差量）**——注意其量纲随上游 signal 标度而变，**不是**与仪器无关的常数；跨标度（如与 ADU 域孔径测光量）混用前必须先声明 Ω_px 换算；
+  `w_cell`: **无量纲（份额式，单位元 = 无量纲）**；`N_retained`: 无量纲；`frame_id`: 无量纲 uint64；`θ`: 面亮度 ADU·sr⁻¹。
 
 ## 4 输入有效域
 
 - 帧数 `n_frames ≥2` 且至少一 control cell 有 `≥2` 帧 clean 覆盖，否则 harmonic continuation 填单帧区；`n_control_points` 可为 0（→ NO_DATA）。
 - `control_ivar` 有效要求 `use_ivar_weight=1` 时 `control_ivar>0` 且有限，否则 `p2_upm_raw_weight rc=2 → build rc=2`（`DATA-UPM-CONTROL-UNC-001`）。
-- `k_corr` 为 `frames[f].kcorr>0 ? per-frame : cfg.control_k_corr`，缺省 1.4（`sampler.cpp:857`）；
-  **定义域 1 ≤ k_corr**：`p2_upm_control_variance` 与 `p2_upm_ma_build` 对 k_corr<1
-  显式拒（`rc=1`/`rc=7`）——k_corr<1 ⇔ N_eff>N_retained，正相关样本的有效样本量
-  不可能大于样本数（SC-005 / R-2 D-10）。
+- `k_corr` 为 `frames[f].kcorr>0 ? per-frame : cfg.control_k_corr`，缺省 1.4（`sampler.cpp:874`）；
+  **定义域 1 < k_corr**：`p2_upm_control_variance`（`upm.cpp:2772-2783`）与
+  `p2_upm_ma_build`（`upm.cpp:2265-2275`）对 k_corr<1 返回 rc=1、对 k_corr=1 返回 rc=2
+  ——k_corr<1 ⇔ N_eff>N_retained，正相关样本的有效样本量不可能大于样本数；
+  k_corr=1 表示忽略相关，二者都显式拒（SC-005 / R-2 D-10）。
+  **适用域（正向约束）**：k_corr 只在**其标定域内**有实证意义。生产取值 1.4 的来源是
+  项目自产 MC（pixfrac=0.8、2000 次、实证 1.3883），该证据源 `control_median_mc_test`
+  **未注册（构建孤儿）⇒ 不可复跑**；逐帧标定表的适用域为源像素角尺度 [300,600]″/px，
+  而全部已知生产帧的源像素尺度 ≈1″/px（M42 实测 0.9890″/px，
+  `run/SCI-FIX-PHASE2-01/evidence/r2_m42_raw.json:R2a_unit`）⇒ **逐帧标定在生产尺度上
+  不生效，生产实际使用未在本尺度标定的冻结常数 1.4**。写盘门（FZ-PROV-KCORR，
+  `upm.cpp:2265-2275`）要求 `k_corr_applicability_domain` 非空，且 k_corr ≠ 1.4 时
+  另给 `k_corr_calibration_run_id`；任何引用 `control_variance` 的陈述必须与所用 k_corr、
+  其标定域、以及「该域是否覆盖当前数据尺度」一同给出。
 - 标定表 scale 维（300–600″/px）**已退役**：生产真帧源像素角尺度 0.9586″/px 在域外，
   域外一律显式回退冻结默认 1.4（禁 clamp 静默饱和）；域外帧保留 `kcorr=0` 并打
   `[sampler] k_corr 域外回退` 标（`sampler.cpp:560-574`）。
@@ -58,8 +72,16 @@
       w_cell = w_UPM / Σ_cell w_UPM × control_reliability,  Σ_cell w_cell = control_reliability
   control_ivar = 1 / control_variance
   control_variance = k_corr × (π/2) × σ_bg² / N_retained
+  # 精确形式 Var(median) = 1/(4·N·f(m)²)，高斯特例 = πσ²/(2N)；
+  #   成立条件 = iid ∧ 分布近似高斯 ∧ N ≥ 65（N=5 时渐近式低估 8.5%）；
+  #   非高斯域不成立（均匀 1.91×、拉普拉斯 0.335×，实测见 ALG-P2-SMP-001 §5.4）。
+  #   出处：Serfling 1980 §2.3.2（ISBN 0-471-02403-1 / DOI 10.1002/9780470316481）。
+  # σ_bg = patch 内样本稳健尺度（含结构分量）；背景主导 patch 才等于噪声尺度
+  #   （实测 3.78% 的 M42 真帧 patch 结构抬升 >2×，ALG-P2-SMP-001 §5.4）。
+  # σ_bg_raw = 0（patch 内 ≥ 半数像素同值）⇒ 无尺度信息：control_ivar 必须为 0，
+  #   禁止以数值保护量生成有限方差发布（ALG-P2-SMP-001 §5.4）。
   # control estimator = patch median (非单 leaf)
-  # N_retained = clipping 后保留数 (非 n_total)
+  # N_retained = clipping 后保留数 (非 n_total)；域 [min_samples, (2r+1)²] = [5, 289]
   # k_corr = 1.4 保守冻结；1 ≤ k_corr（域外显式拒）；实证 1.3883 来自
   #   control_median_mc_test（**未注册：构建孤儿，见 §11/§13/§15 的 MISSING 登记**）
   # N_eff = N_retained / k_corr
@@ -95,7 +117,20 @@
 
 - **常量场不变量（SCI-004 gauge 对齐）**：常数**公共**输入（各帧同值 `raw_f=C`）时 `M=C`、`C_f=0`（每分量参考帧 gauge；弱零锚微调除外），全 control cell 无空间梯度——**不写 `C_f=C`**。仅当各帧存在独立零点差时 `C_f` 才吸收 per-frame offset（参考帧之外）。
 - **空 control 不传播**：无合格 control 时不产伪 `C_f`，显式 NO_DATA。
-- **Huber 对称性（无量纲标准化）**：残差先标准化 `z=r/sigma_eff`，其中 `r=value−M−C`，`sigma_eff=max(|uncertainty|,sigma_floor)`；`Huber(δ=1.345)` 作用于无量纲 `z`：小残差区 `loss=0.5z²`(等价 L2)，大残差区 `loss=δ|z|−0.5δ²`(L1)，位置估计对称。δ=1.345 无量纲（单位=sigma_eff）。
+- **Huber 对称性（无量纲标准化）**：残差先标准化 `z=r/sigma_eff`，其中 `r=value−M−C`，
+  `sigma_eff=max(|uncertainty|,sigma_floor)`；`Huber(δ=1.345)` 作用于无量纲 `z`：
+  小残差区 `loss=0.5z²`（等价 L2），大残差区 `loss=δ|z|−0.5δ²`（L1），位置估计对称。
+  **δ=1.345 的量纲与出处**：δ 无量纲（单位 = sigma_eff）；δ=1.345 是**高斯**参考分布下
+  渐近效率 95% 的 Huber 阈值，出处 Huber, P. J. 1964, *Ann. Math. Statist.* **35**, 73-101,
+  DOI 10.1214/aoms/1177703732（稳健位置估计的原始框架）+ Holland, P. W. & Welsch, R. E. 1977,
+  *Comm. Statist.* A6, 813, DOI 10.1080/03610927708827533（IRLS 实现与 δ 取值表）+
+  Huber, P. J. & Ronchetti, E. M. 2009, *Robust Statistics*, 2nd ed., Wiley,
+  ISBN 978-0-470-12990-6 / DOI 10.1002/9780470434697（§4 效率表）。
+  **适用域**：① z 必须无量纲（已满足）；② 参考分布为高斯时 95% 效率成立；
+  ③ sigma_eff 必须携带观测的真实标度——`sigma_floor` 一旦主导（即
+  `|uncertainty| < sigma_floor`），z 失去统计尺度意义，Huber 权退化为对
+  `r/sigma_floor` 的固定阈值判据，此时 95% 效率的结论**不成立**。
+  `sigma_floor` 的数值与量纲见 §5 常量面与 ALG-P2-SMP-001 §5.3。
 - **frame_id 绑定幂等**：`save→open` 后 `parameter_rows[index]` 重开值 `max_abs==0`（`dense/sparse 1e-12` 等价门）。
 - **k_corr 缩放**：`control_variance` 随 `k_corr` 线性缩放，`N_eff` 反比缩放；定义域 1 ≤ k_corr。
 - **两级权重三条性质（w_UPM 绝对式 vs w_cell 份额式）**：
@@ -105,16 +140,33 @@
   时改变估计量 ⇒ 未同步换算 λs/λ0 不得改用绝对权（§10）。
 - **并行确定性容差（三档，冻结）**：(a) 同配置重复构建 = **位精确** + `model_hash` 逐字相同
   （构造保证：连续块划分 + 每 k/每帧不相交写 + 无共享浮点累加器）；(b) **跨 worker 数
-  （1..N）= 1e-12 绝对容差**，不是位精确 —— `compute_raw` 的 per-control 求和按 worker
-  连续切片分块后按 worker 序合并，与串行索引序的结合顺序不同（FP 加法非结合）；
-  实测 ΔC_max = 2.22e-15 ≈ 1 ulp @10 ADU（`run/PROJECT-GOVERNANCE-01/SCI-FIX-WEIGHT/
-  logs/probe_1t2t.log`）；(c) 跨后端等价 = **不允许**（无此合同）。
+  （1..N）= 相对容差 rtol 1e-12**（判据 `|ΔC| ≤ 1e-12·max(|C|, C_scale)`，
+  `C_scale` = 该次构建 C 场量级），不是位精确 —— `compute_raw` 的 per-control 求和按 worker
+  连续切片分块后按 worker 序合并，与串行索引序的结合顺序不同（FP 加法非结合），
+  误差量级由 FP 加法非结合性决定，**与绝对标度成正比**；
+  实测 ΔC_max = 2.22e-15（该算例 C 量级 ≈10，即 ≈1 ulp；
+  `run/PROJECT-GOVERNANCE-01/SCI-FIX-WEIGHT/logs/probe_1t2t.log`）；
+  (c) 跨后端等价 = **不允许**（无此合同）。
+  **适用域（正向约束）**：判据必须随标度归一。绝对量 1e-12 只在 `|C| ≈ 1` 时与 rtol 1e-12
+  等价；生产 C 场为面亮度 ADU·sr⁻¹，量级由 Ω_px 决定（M42 实测 raw 天空
+  1210 ADU/px、Ω_px = 2.2991e-11 sr ⇒ 5.26e13 ADU·sr⁻¹，
+  `run/SCI-FIX-PHASE2-01/evidence/r2_m42_raw.json:R2a_unit`），此时 ulp 量级为 1e-2，
+  绝对 1e-12 比 ulp 严 10 个数量级、不可达；反之在 α² 标度（≈1e-29）上绝对 1e-12
+  又比 ulp 松 14 个数量级、恒真。**禁止**在未声明 C 场标度的情况下引用绝对 1e-12。
 
 ## 7a 表示能力边界与近奇异处置（SCI-UPM-CAP-001 / SCI-UPM-KAPPA-001）
 
 **表示能力边界（无接缝 ⟺ 公共面可表示）**：
 
-- 参考面 `B_ref`（8×8 control cell 双线性）只能表示尺度 ≳ 2× **节点间距**的分量；节点间距实测 `h = 0.0355° ≈ 127.8 px`（= 2× cell 64 px，见 `实验/additive-sky-seamless/code/c3_public_plane.py:26-28` 与 `run/SCI-403/sky_c1_amp_0.json:cfg.node_spacing_deg`）——**不是** tile_width/8=64 px；
+- 参考面 `B_ref`（8×8 control cell 双线性）只能表示尺度 ≳ 2× **节点间距**的分量；节点间距
+  实测 `h = 0.0355°`（= 2× cell；见 `实验/additive-sky-seamless/code/c3_public_plane.py:26-28`
+  与 `run/SCI-403/sky_c1_amp_0.json:cfg.node_spacing_deg`）——**不是** tile_width/8；
+  **量纲与适用域（正向约束）**：`h` 的**定义域量是角尺度（度）**；它与像素数的换算
+  `h ≈ 127.8 px` 只在源像素角尺度 = 0.9586″/px 时成立（0.0355°×3600/0.9586 = 133.3；
+  实验单元自身使用 0.0355°/127.8 px 的对应值）。**换仪器/换像素尺度后 `h` 的度数不变、
+  像素数按比例变**，故一切「尺度 ≲ 256 px」类的像素域判据必须随像素尺度重算；
+  本仓 M42 真帧实测源像素尺度 0.9890″/px（`run/SCI-FIX-PHASE2-01/evidence/r2_m42_raw.json:R2a_unit`），
+  在该尺度下 2×h = 0.0710° ≈ 258.5 px。
 - 当帧间天光差含「`B_ref` **不可表示**且沿向**相干**」的分量时，残余接缝 ≈ **0.80 × 该分量 RMS**（Pearson 0.896，`实验/additive-sky-seamless/results/c2_multiplicative.json`）；
 - 空间尺度 ≲ 2× 节点间距（≈256 px）时显著：尺度 1600→50 px 扫描使残余接缝 **×5.07**；
 - **工程要求**：节点间距须 ≤ 目标可表示尺度的 1/2；`roughness_penalty` 只在「面确实光滑」的前提下使用，不得用强平滑掩盖不可表示分量；

@@ -27,7 +27,16 @@
 
 ## 3 物理量和单位
 
-- `values, S`: ADU；`support`: 无量纲 [0,1]；`weights`: ADU⁻²；`frame_id`: uint64；`sigma, threshold`: ADU；`alpha`: 无量纲 (ESD)；迭代 `max_iterations`: 无量纲；`radius`: pixel。
+- `values, S`: **面亮度 ADU·sr⁻¹**（与 UPM 校准后同一标度；量纲依据=上游 Phase1 HiPS
+  signal 层写盘 BUNIT 冻结集 {ADU/sr, ADU^2/sr^2, sr^2/ADU^2}，裸 ADU 判红，
+  `lib/infrastructure/aio/src/hiss_writer.cpp:335-365`；实测闭环见 ALG-P2-SMP-001 §2）；
+  `support`: 无量纲 [0,1]；`weights`: **(ADU·sr⁻¹)⁻²**；`frame_id`: uint64；
+  `sigma, threshold`: **面亮度 ADU·sr⁻¹**；`alpha`: 无量纲 (ESD)；迭代 `max_iterations`:
+  无量纲；`radius`: pixel。
+- **适用域（正向约束）**：`sigma`/`threshold` 与 `values` 同标度是本层全部阈值判据的
+  前提；`percentile` 档的 `scale=|median|`（§8a）同样以 `values` 标度为量纲——
+  换标度（ADU ↔ ADU·sr⁻¹）只按比例缩放 `median`，**不改变** §8a 的塌缩条件
+  （塌缩判据是 `median → 0` 的相对条件，与标度无关）。
 
 ## 4 输入有效域
 
@@ -114,7 +123,13 @@ large_scale 结构生长:
 ### 8a 根因登记：percentile 的 `scale=|median|` 在近零天光上塌缩（未修复，SC-005）
 
 - 判据带 = `[median − 0.2·|median|, median + 0.1·|median|]`（`rejection.cpp:1599-1611`，
-  工作域 = `v − median`，`scale=|median|`）。
+  工作域 = `v − median`，`scale = |median|`；单位 = 面亮度 ADU·sr⁻¹，与 `values` 同标度）。
+- **塌缩的可判定条件（正向表述）**：带半宽 = `0.2·|median|`，全宽 = `0.3·|median|`。
+  设该像素栈的稳健尺度为 `s`（如 MAD×1.4826），则「带非空且含中位样本」要求
+  `0.3·|median| > 0`；当 `|median| → 0`（近零天光）而样本离散度 `s` 不随之为 0 时，
+  带在 `s` 的尺度上退化为 0 宽 ⇒ **全部非中位样本被拒**。判据是**相对条件**
+  （`|median|/s → 0`），与标度无关；`s` 在低电平档可由 `max(|median|, MAD)` 提供，
+  本条只登记条件与影响面，改尺度属重标定事项（§10 禁改）。
 - 在近零天光像素上 `median → 0` ⇒ 带宽塌缩为 0 ⇒ **全部非中位样本被拒**。独立 MC
   （20 万次随机高斯栈）实测：显式 `percentile` 在 n=6 / n=8 的全拒率 **73.9% / 70.1%**；
   奇数 n（3/5/7）为 0（中位样本必在带内）。

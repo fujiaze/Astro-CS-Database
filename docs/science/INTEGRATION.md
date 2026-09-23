@@ -26,7 +26,15 @@
 
 ## 3 物理量和单位
 
-- `x, signal, values`: ADU（与校准后同一标度）；`w, ivar`: 信号⁻²（但本层不编码 ivar 语义，仅数值权重）；`support`: 无量纲 [0,1]；计数 `n_*`: 无量纲；`wsum`: 信号⁻²。
+- `x, signal, values`: **面亮度 ADU·sr⁻¹**（与 UPM 校准后同一标度；量纲依据=上游 Phase1 HiPS
+  signal 层的写盘 BUNIT 冻结集 {ADU/sr, ADU^2/sr^2, sr^2/ADU^2}，裸 ADU 判红，
+  `lib/infrastructure/aio/src/hiss_writer.cpp:335-365`；标度换算与实测闭环见
+  ALG-P2-SMP-001 §2 与 ALG-P2-INT-001 §8）；`w, ivar`: **信号⁻²，即 (ADU·sr⁻¹)⁻²**
+  （本层不编码 ivar 语义，仅数值权重）；`support`: 无量纲 [0,1]；计数 `n_*`: 无量纲；
+  `wsum`: 信号⁻²，即 (ADU·sr⁻¹)⁻²；`vs = Σwᵢxᵢ`: (ADU·sr⁻¹)⁻¹。
+- **适用域（正向约束）**：`w` 与 `values` 必须同标度——换标度（例如把 ADU·sr⁻¹ 的值与
+  ADU 域的 ivar 相乘）会使 `signal` 偏 Ω_px 的幂次倍。本层不做标度换算，标度一致性
+  由调用方（Stage2）保证。
 
 ## 4 输入有效域
 
@@ -74,7 +82,17 @@
 - **常量场不变量**：`values[i]=C` 常数且 `w_i>0` 时 `signal=C`（与权重分布无关）。
 - **空支撑守恒**：无 `support` 输入时 `support=1.0`，不产生伪 0 支撑。
 - **确定性**：加权求和顺序按输入索引 `i=0..count-1` 固定，`signal` 确定性（FP64 舍入仅顺序确定性）。
-- **支撑单调性**：`sup_max = max(accepted support)`，增样本不减 `support`。
+- **支撑单调性**：`sup_max = max(accepted support)`，增样本不减 `support`；
+  **口径的精确作用域**：max 的作用域 = 通过资格门（`accepted ∧ values 有限 ∧
+  support 有限且 >0`）的全部样本，**不含权重正性要求**——零权重 accepted 样本的
+  support **进入** max（`lib/algorithms/coverage/src/integrate.cpp:49-50`，位于权重分支
+  之前；回归门 `eng/tests/unit/p2_output_semantics_test.cpp:85-107`）。
+- **两个 support 的命名区分（禁止混名）**：
+  (i) **样本级 support**（本层输入 `support[i]`，域 (0,1]，几何覆盖支撑）——
+  本层只对它做 canonical max 归约；
+  (ii) **发布 support**（HiPS support 层的钳后发布值 `a/A_cell`）——**禁止**回流
+  当作归约权重或置信度（`docs/algorithms/PHASE2_MOSAIC_WRITE.md` §7 红线）。
+  本层输出 `P2PixelResult.support` 属 (i) 的归约结果，下游写盘时再转成 (ii)。
 
 ## 8 极端/退化条件
 

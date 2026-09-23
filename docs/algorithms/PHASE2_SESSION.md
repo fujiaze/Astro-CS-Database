@@ -113,14 +113,35 @@ owner=创建者、threadsafe:no（handle 级）、reentrant:yes（:16）。
    （:71）；坏 JSON（parse_error）→ PARAM（:73-79）；非 object →
    PARAM（:80）；缺必需键 `hips_paths`/`output_dir` → PARAM（:81-85）；
    类型门 hips_paths 非空 string[]、output_dir string（:86-92）、
-   upm 为 object（:93-96）。**无 silent default**（p2_session.h:19）。
+   upm 为 object（:93-96）。
+   **无 silent default（正向约束 + 适用域）**：validate 的判据面 = 必需键存在性
+   （`hips_paths`/`output_dir`）、类型、`upm` 形状；**键白名单不在其判据面内**——
+   未知键（含科学参数拼写错误，如 `sigma_flor`）不报错、静默落到常量面默认值
+   （实现事实：`lib/phase2_session/p2_session.cpp:71-100` 无未知键遍历）。
+   因此「无 silent default」的**适用域**必须写成：*已知键的取值语义无默认*；
+   *未知键的拒绝不在本层*。消费方若要求未知键 fail-closed，必须在上层 config
+   schema 校验承担。
+   **组合约束（正向）**：`persist_upm=true` 必须与 `upm_save_path` 同时出现——
+   当前实现 `doc.value("persist_upm",false) && doc.contains("upm_save_path")`
+   （`p2_session.cpp:239`）在缺 `upm_save_path` 时**不落 persist 且不报错**；
+   规范要求该组合缺失时显式判 PARAM（登记 DISP-P2SES-004，整改归 P2-SESSION-IMPL）。
 3. **p2_session_run**（:100-248）：parse（:103-110，失败文案
    "config parse failed (validate first)"）→ hips 装配（:111-114）→
    预算日志（:115-117）→ 四段（§3）。常量面（:184-194 冻结首版值）：
    robust_loss=0（huber）、upm_weight_source=0、weight 由 Phase2 按该天球像素
    对应帧集合现场算出（逐样本 ivar；SNR 只作 veto/质量门）、
-   huber_delta=1.345、max_iterations=100、tolerance=1e-6、
-   sigma_floor=1e-3、support_power=1.0、use_ivar_weight=1、
+   huber_delta=1.345（**无量纲**；高斯参考分布下渐近效率 95% 的 Huber 阈值，
+   出处 Huber 1964, Ann. Math. Statist. 35, 73, DOI 10.1214/aoms/1177703732；
+   Holland & Welsch 1977, Comm. Statist. A6, 813, DOI 10.1080/03610927708827533；
+   适用域=标准化残差 z=r/sigma_eff 且 sigma_eff 由观测标度主导，见
+   `docs/science/PHASE2_UPM.md` §7）、max_iterations=100（无量纲；域 ≥1，
+   达上限时 converged 必须记 0=max_iter 而非「已收敛」）、
+   tolerance=1e-6（**相对量**：判据 `max_dM/max(scale_obs,eps) < tol_step`，
+   见 `docs/science/PHASE2_UPM.md` §5；绝对容差在面亮度 ADU·sr⁻¹ 标度上
+   永不收敛，实测 300 次迭代 converged=0）、
+   sigma_floor=1e-3（**量纲 = 面亮度 ADU·sr⁻¹**，与 `uncertainty` 同标度；
+   当 `|uncertainty| < sigma_floor` 时 Huber 的 z 失去统计尺度意义，
+   见 `docs/science/PHASE2_UPM.md` §7）、support_power=1.0、use_ivar_weight=1、
    control_reliability=1.0、target_order=cov 实测值（:189）；config
    `upm.{max_iterations,huber_delta,smoothing_lambda}` 可覆盖
    （:196-202）；persist 条件 `persist_upm && upm_save_path`（:222）。

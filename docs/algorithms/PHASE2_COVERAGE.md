@@ -57,6 +57,19 @@
   tile_width=%d"）；`hips_version` 缺失拒绝（:88, :111-115）；
   `hips_frame` ∈ {equatorial, icrs}（:86, :116-121，"unsupported
   hips_frame=%s"）。
+  **合法集的依据与适用域（正向约束）**：
+  (i) `tile_width = 512` 是本仓**产品约定**（与本模块 writer/reader 及
+  `lib/algorithms/shared/healpix/healpix_core.h:40-48` 的 `tile_width = 2^shift`
+  （shift=9）一致），**不是** IVOA HiPS 1.0 的强制值——IVOA HiPS 1.0 §4.4.1
+  的 `hips_tile_width` 合法值是 2 的幂，允许其它 tile 宽。故本模块合法域的正确
+  表述是「本产品线冻结 tile_width=512」；域外（如 256）判红属**产品约定拒绝**，
+  **不得**表述为「标准不允许」。
+  (ii) `hips_frame ∈ {equatorial, icrs}` 同为**产品约定**：IVOA HiPS 1.0 §4.4.1
+  的 `hips_frame` 标准值域是 {equatorial, galactic, ecliptic}，本模块额外接受
+  `icrs` 而拒绝 `galactic`/`ecliptic`。`equatorial` 与 `icrs` 在本仓语义等价
+  （同一天球系、J2000 参考架），列为两个取值是**输入兼容性**需要，不是两个不同的
+  坐标系；下游一律按 ICRS/J2000 消费。域外（galactic/ecliptic）判红属**未实现**，
+  **不得**表述为「非法坐标系」。
 - B2-A8 filter/passband 身份（inspect_frame :92-104, build :215-225）: `obs_filter`
   **键缺失 → rc=1 "missing obs_filter property ..."**（:92-104，fail-closed）；
   键存在时（含空串）其值进入 `P2HipsInputInfo.filter_passband` 并在 build 层
@@ -292,6 +305,14 @@ status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:
   保持 memset（:151）后的 0——rc=1 与 status=0 并存，
   违反 status/return 同步惯例（对照 :168/:177/:190/:200 均置 1）；
   调用方若只看 status 会误判成功。整改: 统一 status=1（P2-COV-IMPL）。
+- **两个 frame_id 的命名区分（禁止混名，正向约束）**：
+  (i) **coverage frame_id**（本模块，路径基名截断，64 B 上限）：仅作本模块输入
+  登记与 union 分组键，**不保证跨 run 稳定**、**不保证唯一**；
+  (ii) **sampler/UPM frame_id**（内容 SHA-256 truncated-64，
+  `docs/algorithms/PHASE2_SAMPLER.md` §5.6 / DATA-FRAME-ID-001）：唯一持久化绑定键
+  （manifest / UPM `parameter_rows ↔ frame_id`）。两者同名不同物：任何跨模块引用
+  frame_id 的地方**必须**写明是哪一种；把 (i) 当 (ii) 使用会使持久化绑定在
+  重命名/换根目录后失效。
 - DISP-COV-002 frame_id 取基名截断: `base.find_last_of("/\\")` 后
   substr（:113-118）以 `/` 或 `\` 基名为 frame_id，跨平台
   分隔符混用时截断点漂移；64 B 上限截断（strncpy + coverage.h:33 `frame_id[64]`）后
