@@ -29,7 +29,7 @@ G2 (ALG-P3-002) 反向映射 (逐输出像素 (x,y), 1-based→中间平面):
 
 G3 (ALG-P3-003) order 选择 (SCI-P3 §5 冻结):
   s_out_rad = s_out · π/180                         # s_out 单位 deg/px（量纲声明，M7-A-209）
-  s_tile_rad(order) = sqrt(π/3) / (2^order · W)     # tile 像素角尺度近似
+  s_tile_rad(order) = sqrt(π/3) / (2^order · W)     # 叶级像素**等面积等效线尺度**（精确，非近似）
   order_needed = ceil( log2( sqrt(π/3) / (W · s_out_rad) ) )
   order_sel = clamp(order_needed, 0, hips_order)    # = min(hips_order, max(0, order_needed))
 
@@ -60,7 +60,14 @@ G4 (ALG-P3-003) leaf 采样:
             规定 → 不自行发明，登记 ALG-P3-RSMP-IMPL-001 §11 DISP-P3RSMP-006。
 
 G5 (ALG-P3-004) FITS 写:
-  BITPIX=−32/−64, BSCALE=1, BZERO=0, BUNIT=properties(缺省 'ADU')
+  BITPIX=−32/−64, BSCALE=1, BZERO=0
+  BUNIT = 源 properties 的 BUNIT（**必须经面亮度量纲校验**）；
+          无 BUNIT 键 ⇒ canonical 'ADU/sr'（**禁**缺省 'ADU'，禁 Jy/beam）
+  # 依据 DATA_SEMANTICS §31.1/§31.1a（FZ-UNIT-SIGNAL-SB FROZEN）：重采样值是输入
+  # tile 值的凸组合 ⇒ 与输入同量纲（面亮度）；'ADU/sr' 是计数按立体角归一的合法串，
+  # 裸 'ADU' 是每像素计数口径（与数值不符且量纲不可判）；§31.1a 同时否定 'ADU/px^2'。
+  # 实现锚：p3_resample.cpp p3_sampler_open_ex（缺省串）→ p3_session.cpp:396 透传
+  # → p3_output.cpp:284/351/675（写盘缺省同串）。
   WCS: G1 全量 + CTYPE=RA---<proj>/DEC--<proj> + CUNIT=deg
   (B2-A4: <proj> 取自已校验 projection, alpha 唯一合法值 "TAN";
    未实现投影在写前 fail-closed, 不落任何 FITS)
@@ -68,7 +75,18 @@ G5 (ALG-P3-004) FITS 写:
   coverage: C=1 ⇔ 足迹内存在 tile 像素（值可为 NaN；NaN 只进 S 不改 C）; 无覆盖 S=NaN/C=0
 ```
 
-推导来源: **SCI-P3-001 §5 连续定义与 §9a 冻结回答的离散化**（G1↔§9a-4, G2↔§5 反向映射, G3↔§9a-5, G4↔§9a-6/7, G5↔§9a-11）；实现一致性锚（非推导依据）: 待建 `lib/phase3`。
+推导来源: **SCI-P3-001 §5 连续定义与 §9a 冻结回答的离散化**（G1↔§9a-4, G2↔§5 反向映射, G3↔§9a-5, G4↔§9a-6/7, G5↔§9a-11）；实现一致性锚（非推导依据）:
+`lib/algorithms/resample/p3_resample.cpp`（G3=`p3_order_select`、G4=nearest/bilinear 采样核）
+与 `lib/algorithms/projection/p3_wcs.cpp`（G1/G2）。
+
+**G3 的适用域与量纲（证据锚）**：`s_tile_rad` 是**等面积等效**线尺度——HEALPix 同 nside
+下所有单元面积严格等于 `4π/(12·nside²)`（Górski et al. 2005, ApJ 622, 759 §4），故
+`sqrt(π/3)/(2^order·W)` 与该面积的平方根**逐位恒等**（非近似）；本仓实验
+`run/SCI-FIX-DRZGEOM-01/evidence/exp_a_geometry.json` A4 段：nside=512/1024 × 9 档纬度面积
+相对偏差恒 0.0（阴性对照：等经纬网格在 dec=89.9° 偏 −20.5%）。**但它不是各向同性分辨率
+上界**：单元局部采样步长（邻元中心角距）随纬度/方向变化，nside=512 实测共边邻元 ∈
+[0.63,0.71]×该尺度、对角邻元 ∈ [1.95,2.94]×该尺度。要求方向性分辨率保证的消费方须按局部
+步长另加余量；`order_sel` 只保证**面平均**尺度 ≥ 请求尺度。
 
 ## 3 伪代码
 
@@ -78,7 +96,7 @@ function phase3_resample(hips_dir, params):
   validate(params): frame=icrs, W,H∈[1,20000], s_out>0, |center.Dec|≤85°(距极点 ≥5°), pixfrac N/A
     # |center.Dec| ≤ 85°（离两极 ≥5°），与 SCI-P3 §4 的 abs(dec)<=85° 一致。
   order_sel = G3(props.hips_order, W=props.hips_tile_width, s_out)
-  cd = G1(params); tiles = TileCache(order_sel)        # 有界缓存按 (ipix_tile); 逐出 FIFO 最旧插入（实测 p3_resample.cpp:22-36 keys.erase(begin()) 无访问序更新, DISP-P3RSMP-002）
+  cd = G1(params); tiles = TileCache(order_sel)        # 有界 **LRU** 缓存（SharedTileCache：get 时 splice 到表头 = 访问序更新，超容逐出表尾；跨 worker 共享 + 负缓存 + 每 sampler 8 槽热缓存；p3_resample.cpp:63-122、p3_sampler_attach_cache cpp:235）
   parallel for row_band in rows(out):                  # worker pool by affinity, 禁硬编码线程数
     if cancelled(row_band): return CANCELLED           # 行带粒度
     for y in row_band:
@@ -131,6 +149,11 @@ function phase3_resample(hips_dir, params):
 ## 7 CPU-only 后端策略（V5）
 
 - 仅 CPU：行带 worker pool（按 affinity 调度, **禁止硬编码线程数**）；输出与线程划分无关(逐像素独立+固定序)；无 ISA 变体分支需求(三角函数经 libm, 结果确定性由同 libm 版本冻结, 跨平台数值合同入 SYN-007)。
+- **不变性的结构性前提（正向约束）**：输出与 worker 数/行带划分/tile 缓存状态无关，其成立条件是
+  **每个输出像素的计算只依赖其固定邻域**（邻域确定 → 最近中心确定 → 权重确定），且
+  **不得引入任何跨 tile / 跨像素的可变数值状态**（累加器、自适应核、依赖历史的重归一等）。
+  违反该前提时线程不变性立即失效——这是结构性约束，不是性能性质。
+  tile 缓存（有界 LRU / 负缓存 / 容量）只影响 I/O 命中率，**不影响任何像素值**（tile 内容只读）。
 
 ## 8 参考实现/Oracle
 
@@ -163,7 +186,10 @@ function phase3_resample(hips_dir, params):
 - HiPS 层级/tile 与 order：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；Fernique et al. 2015, A&A 578, A114。
 - HEALPix 几何/ang2pix：Górski et al. 2005, ApJ 622, 759；astropy-healpix（BSD-3-Clause）。
 - 双线性插值：教科书级（Press et al. 2007, Numerical Recipes 3rd ed.）；本模块 order/邻域语义 Project-defined（SCI-P3 §5）。
-- WCS 反变换：Paper I/II；astropy/WCSLIB 作独立 Oracle。
+- WCS 反变换：Paper I = Greisen & Calabretta 2002, A&A 395, 1061（DOI 10.1051/0004-6361:20021326）
+  §2.1.1（中间坐标 = CD·(p−CRPIX)）；Paper II = Calabretta & Greisen 2002, A&A 395, 1077
+  （DOI 10.1051/0004-6361:20021327）§2.2（三 Euler 角旋转核）/ Table 1（TAN: R=(180/π)·cotθ）；
+  FITS Standard 4.0（2016）§4.3/§4.4；astropy 7.0.1（WCSLIB）作独立 Oracle。
 - 方差传播（若涉及）：Fruchter & Hook 2002；UNCERTAINTY_AND_COVARIANCE.md。
 
 参考代码库（含许可证；GPL 代码仅作行为/数值对照，不复制进本仓）：

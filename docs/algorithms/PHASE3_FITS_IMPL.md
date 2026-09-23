@@ -38,7 +38,7 @@
 | width,height | int px | [1,20000]（会话层 :113-114；内核 width<1 拒 :207） | p3_output.h:59-60 |
 | bitpix | int | -32 \| -64（真实决定 buffer，h:64） | p3_output.cpp:236-245 |
 | BSCALE/BZERO | f64 | 1.0 / 0.0（恒定；FITS 4.0 §4.4.2.4 规定浮点，B2-A9 由 TINT 改 TDOUBLE） | p3_output.cpp:278-280 |
-| BUNIT | string | 主 HDU 面亮度单位；调用方给空串/`nullptr` ⇒ 取 canonical `ADU/sr`（唯一事实源 cpp:284-285，与 DATA_SEMANTICS §31.1a「产品写盘 BUNIT 一律取该串」同口径） | p3_output.cpp:284-285 |
+| BUNIT | string | 主 HDU 面亮度单位；调用方给空串/`nullptr` ⇒ 取 canonical `ADU/sr`（唯一事实源 cpp:284-285，与 DATA_SEMANTICS §31.1a「产品写盘 BUNIT 一律取该串」同口径）。**上游同口径**：重采样器 `p3_sampler_open_ex` 对无 BUNIT 的源 properties 亦回填 `ADU/sr`（p3_resample.cpp:293），会话 `p3_session.cpp:396` 原样透传 ⇒ 全链缺省串一致，**不出现裸 `ADU`** | p3_output.cpp:284-285 / p3_resample.cpp:293 |
 | CRPIX1/2 | f64 px | FITS 1-based pixel-center | p3_wcs.h:17-18 / p3_output.cpp:263-264 |
 | CRVAL1/2 | f64 deg | ICRS 中心 | p3_wcs.h:15-16 / p3_output.cpp:265-266 |
 | CD1_1..CD2_2 | f64 deg/px | FITS 顺序 CD[i][j] | p3_wcs.h:19 / p3_output.cpp:267-270 |
@@ -270,9 +270,13 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   （h:54-57 冻结注；IO_003 §6）。g_last_err 承载最近错误摘要
   （:48，last_error 脱敏出口 p3_session.h:34-37）。
 - 边界值：W/H∈[1,20000]（会话 :113-114）；abs(dec)≤85° TAN 极点
-  守卫（p3_session.cpp:107）；输出四角同半球 P3_WCS_HEMISPHERE
-  （p3_wcs.h:29）；max_tiles 请求可降不可升 → ACS_ERR_BUDGET
-  （p3_session.cpp:179-195）。
+  守卫（p3_session.cpp:107）；输出四角**投影域守卫** P3_WCS_HEMISPHERE
+  （p3_wcs.h:29；判据语义见 ALG-P3-PROJ-IMPL-001 §6.4/§9：r=tanρ<π/2 即
+  ρ<atan(π/2)=57.5184°，**不是**半球界）；max_tiles 请求可降不可升 →
+  ACS_ERR_BUDGET（p3_session.cpp:179-195）。
+  **四角检查的充分性**：域守卫集是仿射映射下圆盘的原像 ⇒ 凸集 ⇒ 矩形帧
+  "四角在域内 ⇔ 全域在域内"（证明与 1e6 点稠密扫描实证见
+  ALG-P3-PROJ-IMPL-001 §6.4）；**适用域** = 矩形输出帧 + 线性 CD 映射。
 
 ## 11 Oracle
 
@@ -325,8 +329,16 @@ function p3_output_verify(path, wcs, signal, coverage, W, H, out result):
   值显式拒（session :127/:129）。
 - max_tiles 默认 min(1024, ceil(W·H/512²)+16)，请求可降不可升
   （:179-195）；order_sel ≤ min(20, 输入实际 order)（:199-200）。
-- 容差：WCS roundtrip ≤1e-8 px（SCI-P3 §7 + 生产注册表 `p3_wcs.cpp`（`kTanApplicability`，单一事实源 `p3_wcs_applicability()`）；执行测试取 1e-4 px
-  观测阈 :232）；常数场 0（bilinear 权重和=1 构造保证）；
+- 容差（**唯一事实源 = `p3_wcs_applicability()` / `kTanApplicability`**，
+  p3_wcs.cpp:212-222）：合同紧门 `roundtrip_tol_px = 1e-8 px`（**适用域**
+  `scale ≥ min_scale_arcsec = 0.9″/px`；域外明确报"超出适用域"、**不判红**）、
+  全域保守门 `roundtrip_tol_global_px = 1e-6 px`（覆盖全部真实仪器尺度，
+  代价是判别力弱）、`max_fov_deg = 20°`、`max_abs_crval_dec_deg = 85°`、
+  `envelope_c_env = 128`（解析包络设计常数，实测 max 78）。门值/适用域/推导
+  以 `docs/algorithms/GATES_AND_TOLERANCES.md` §3 与 `run/GATE-DERIVE-01/REPORT.md`
+  为准。执行测试的 `1e-4 px` 是**观测阈**（比合同紧门松 1e4 倍）——
+  它只用于"是否触发人工复核"，**不得**被引用为合同容差；
+  常数场 0（bilinear 权重和=1 构造保证）；
   回环逐值精确（F4 NaN 语义）；sha256 64hex 小写。
 - R10-C 发布序（F1）与 sha256 严格封装（F2）为冻结协议，整改归
   P3-FITS-IMPL 时不得放宽（禁前缀哈希/禁半成品发布）。

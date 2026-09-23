@@ -56,8 +56,8 @@
 
 | 文件 | 行数 | 角色 |
 |---|---|---|
-| lib/algorithms/projection/p3_wcs.h | 66 | 唯一权威签名头（P3WcsDescriptor/P3WcsStatus/四函数）；已迁入本目录，行数按新址复测 |
-| lib/algorithms/projection/p3_wcs.cpp | 232 | 实现（常量+守卫/G1 构造/正反映射/关键词）；已迁入本目录，行数按新址复测 |
+| lib/algorithms/projection/p3_wcs.h | 373 | 唯一权威签名头（P3WcsDescriptor/P3WcsStatus/四函数 + 适用域/Oracle 面）；已迁入本目录，行数按新址复测 |
+| lib/algorithms/projection/p3_wcs.cpp | 593 | 实现（常量+守卫/G1 构造/正反映射/关键词 + 适用域门 `p3_wcs_check_applicability` + 往返门 `p3_wcs_roundtrip_*`）；行数按新址复测 |
 | lib/phase3_session/p3_session.cpp | 329 | 会话消费点（:17/:160/:163/:232/:247-253） |
 | eng/tests/backend/p3_wcs_main.cpp | — | 探针（make/p2w/w2p/kw 四模式，printf 协议） |
 | eng/tests/backend/test_p1002_gaps.py | — | 独立解析解回归（内联编译链接 p3_wcs.cpp） |
@@ -67,9 +67,13 @@
 - 头部声明锚: p3_wcs.h:12-20（P3WcsDescriptor）/:22-27（P3WcsStatus）
   /:31-34（p3_wcs_make）/:38-39（p3_wcs_pix2world）/:42-43
   （p3_wcs_world2pix）/:46（p3_wcs_fits_keywords）。
-- 实现锚: p3_wcs.cpp:13-22（常量）/:24-27（normalize_ra）/:30-90
-  （p3_wcs_make）/:93-118（pix2world）/:120-143（world2pix）/:145-163
-  （fits_keywords）。
+- 实现锚（**符号名优先**；行号随适用域门/Oracle 面扩写整体下移，§3 表为现行实测）:
+  p3_wcs.cpp:13-22（常量）/:24-31（normalize_ra）/:92-171（`p3_wcs_make`，
+  含投影校验、G1 CD 构造 :120-143、四角守卫 :146-155、适用域门 :156-166）
+  /:515-540（`p3_wcs_pix2world`）/:542-568（`p3_wcs_world2pix`）
+  /:570-593（`p3_wcs_fits_keywords`）；适用域与往返门
+  `p3_wcs_applicability` / `p3_wcs_check_applicability` / `p3_wcs_roundtrip_*`
+  在同文件内，为容差唯一事实源。
 - 命名空间 astrocs::phase3（p3_wcs.cpp:10）；文件头注 :1-2（数学来源
   Calabretta & Greisen (2002) 标准球面三角公式，RA wrap 经 atan2+fmod
   归一）。
@@ -185,12 +189,22 @@ east_right 分支取 sgn_y=−sgn_x（:71），PA=0 ⇒ CD=diag(+s,−s)，
 与 G1 冻结的 diag(+s,−s) 一致（east_left 与之互为 y 镜像）。
 此为现行生产语义，本文档如实登记。
 
-### 6.4 四角同半球守卫（:80-88 冻结）
+### 6.4 四角域守卫（:146-155 冻结）
 
 构造完成后对四角像素 (0,0)、(W−1,0)、(0,H−1)、(W−1,H−1)
 （0-based）逐一调用 p3_wcs_pix2world，任一返回非 P3_WCS_OK
-（即任一角落在 TAN 半球外）⇒ 整体返回该状态（首次失败码透传），
+（即任一角落在域守卫之外，§9 已订正判据语义）⇒ 整体返回该状态（首次失败码透传），
 不产出半成品 descriptor。
+
+- **充分性（正向约束 + 证明）**：`pix2world` 的域守卫集
+  `R = {(x,y) : |CD·((x,y)+1−CRPIX)|·kRad < π/2}` 是仿射映射 `CD` 下**圆盘的原像**
+  ⇒ `R` 是**凸集**（PA≠0 时为椭圆盘，仍凸）。矩形帧 `Q` 是四角的凸包，
+  故 `四角 ⊆ R ⇒ Q ⊆ R`：**四角检查对矩形帧既充分又必要**。
+  实测锚（同一探针 PART3）：角点刚在域内的帧（r_corner=1.5501 < π/2），
+  1001×1001 稠密扫描 1002001 点**零拒绝**；角点在域外的帧（r_corner=1.8512）
+  被拒点数与判据 `r≥π/2` 的预测**逐点一致**（mismatch=0）。
+  ⇒ 该检查的适用域 = `R` 为凸的任意帧（含 PA≠0）；对**非矩形**输出区域（若未来引入）
+  必须重新论证凸性。
 
 ### 6.5 projection 字段
 
@@ -207,8 +221,11 @@ h:19 冻结为 "TAN"）；P3_WCS_UNSUPPORTED=2 枚举现无产生点（备而
 中间坐标 (deg): dx=(x+1)−CRPIX_x, dy=(y+1)−CRPIX_y          # :97-98
               ξ = (CD[0][0]·dx + CD[0][1]·dy)·kRad          # :99
               η = (CD[1][0]·dx + CD[1][1]·dy)·kRad          # :100
-TAN 半球守卫: r=√(ξ²+η²) ≥ π/2 → P3_WCS_HEMISPHERE          # :103-104
-gnomonic 反投影: θ=atan2(1, r)（=atan(1/r)）                 # :105
+域守卫（**数值域上界，不是半球界**）:
+              r=√(ξ²+η²) ≥ π/2 → P3_WCS_HEMISPHERE           # :524-526
+              # r = tan(ρ) = cot θ_native（ρ = 距 CRVAL 的角距，Paper II Table 1
+              #   x=R·sinφ, y=−R·cosφ, R=(180/π)·cotθ ⇒ |(x,y)|_rad = cotθ = tanρ）
+gnomonic 反投影: θ=atan2(1, r)（=atan(1/r)）                 # :527
               φ=atan2(−ξ, η)（自 +dec 轴向 −RA）            # :106
               Dec = asin(sinθ·sinδ₀ + cosθ·cosδ₀·cosφ)      # :110
               Δα = atan2(−cosθ·sinφ, cosδ₀·sinθ − sinδ₀·cosθ·cosφ)  # :112
@@ -264,11 +281,23 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 | P3_WCS_OK | 0 | 成功 | — |
 | P3_WCS_PARAM | 1 | make: out 空/:39 parity/:40 \|dec\|>85°/:41 scale≤0/:42-43 尺寸越界；pix2world :95 空指针；world2pix :122 空指针/:123 \|dec\|>85°/:137 \|det\|<1e-300 | ACS_ERR_PARAM |
 | P3_WCS_UNSUPPORTED | 2 | 无产生点（projection≠TAN 备用枚举，§6.5） | ACS_ERR_UNSUPPORTED |
-| P3_WCS_HEMISPHERE | 3 | pix2world :104 r≥π/2；world2pix :130 denom≤0；make 四角守卫透传（:84-87） | ACS_ERR_PARAM |
+| P3_WCS_HEMISPHERE | 3 | pix2world :524-526 r≥π/2（域上界 ρ*=57.5183634°，非半球界）；world2pix :549-552 denom≤0（真前半球 ρ≥90°）；make 四角守卫透传（:146-155） | ACS_ERR_PARAM |
 
-- 极点/半球单一条件冻结: |dec|≤85°（kMaxAbsDec :15，SCI/API/session
-  同一常数）；TAN 半球界 r<π/2 与 denom>0 数学等价（gnomonic 背面
-  判定的正反两形态）。
+- 极点守卫单一条件冻结: |dec|≤85°（kMaxAbsDec :15，SCI/API/session
+  同一常数）。
+- **域守卫与半球界的正确关系（正向约束：两个判据不等价）**：
+  - `pix2world` 侧判据是 `r = tan(ρ) < π/2`，即 **ρ < ρ* = atan(π/2) = 57.5183634°**
+    （等价于 `θ_native > atan(2/π)`）；它是**数值域上界**（gnomonic 反投影
+    `θ=atan2(1,r)` 在 ρ→90°（r→0）附近的精度退化区之前设卡），**不是**半球边界。
+  - `world2pix` 侧判据是 `denom = cos(ρ) > 0`，即 **ρ < 90°**（真前半球）。
+  - ⇒ `{r<π/2}` ⊊ `{denom>0}`：环带 **57.5183634° ≤ ρ < 90°** 是前半球合法天区，
+    但 `pix2world` 一律返回 P3_WCS_HEMISPHERE ⇒ 该环带内正反映射不互逆。
+    实测锚（生产码探针 `run/SCI-FIX-DRZGEOM-01/evidence/exp_b_tan_guard_probe`）：
+    ρ=57.0°→OK、ρ=57.5184°→HEMISPHERE（阈值 = atan(π/2)）；同一 descriptor 的
+    401×401 网格（160801 点）中被 `r≥π/2` 拒绝的 8124 点**全部**满足 `denom>0`。
+  - **适用域**：本域合同域 FOV ≤ 20°（§6.1 适用域门）的四角 ρ_max ≈ 14.2° < ρ*，
+    故该守卫在 alpha 合同域内**永不触发**；它只在视场半对角 > 57.52°（FOV ≳ 115°）时生效。
+    消费方不得用"半球"字样解释该判据——那会把 57.52°–90° 的合法天区误判为不可达。
 - make 四角守卫透传的返回码可能为 P3_WCS_HEMISPHERE（视场超半球）
   ——即"参数合法但视场越界"仍属失败，不产出 descriptor。
 

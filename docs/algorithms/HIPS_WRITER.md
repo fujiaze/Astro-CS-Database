@@ -14,8 +14,10 @@
 > HiPS 1.0/1.4 外部参照: IVOA HiPS 推荐（Fernique et al. 2015）、HEALPix 算法
 > （Górski et al. 2005）——经 SCI-P3-001 :120-124 收录的文献锚，本文件不另立外部断言。
 > 本文件为逐公式"算法+源码锚点"登记：凡 SCI 层无覆盖而实现自带的语义（HiPS 写出
-> 合同细节），以实现为准登记并标注；凡实现与 SCI 语义冲突处，登记 DISP- 条目，
-> 不反向修改 SCI。
+> 合同细节），以实现为准登记并标注；凡实现与 SCI 语义冲突处，登记 DISP- 条目。
+> **权威订正原则** = `ENGINEERING_SPEC.md` §3「科学正确性优先」：独立证据（外部标准 /
+> 文献 / 可复跑实验）证明文档与事实不符时，**订正文档是义务**（SCI 层订正走变更流程并
+> 记录证据与影响面）；文档已被证明正确而实现不符时改实现。
 >
 > **行号锚声明**：跨边界结构 ABI 头/校验、共用 `fmt_sky_fraction`、未钳制面积
 > 归约与钳制计数使 `aio_hips_writer.cpp` 行号整体推移（+57 起，最大约 +147）。
@@ -75,8 +77,12 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
   512×512，与父 cell parent_ipix（NESTED，Norder K）拼接出全局 HEALPix 索引。
 - (2b) 归一（与 SCI-DRZ-001 :145 support=D_p 语义一致，集合级细节由实现定，
   DATA_SEMANTICS §4）：对 tile 内每局部像素 p（512²）：
-  `signal[p] = flux_sum[p] / covered_area[p]`（:477），
-  `support[p] = covered_area[p]/A_cell`，`>1 钳 1.0`（:478-479）。
+  `signal[p] = flux_sum[p] / covered_area[p]`（:1300），
+  `support[p] = covered_area[p]/A_cell`，`>1 钳 1.0`（:1301-1305）。
+  **量纲（逐项）**：flux_sum [ADU]、covered_area [sr] ⇒ `signal` **[ADU/sr]**
+  （面亮度，`FZ-UNIT-SIGNAL-SB` FROZEN；推导见 DATA_SEMANTICS §31.1a 量纲链表）；
+  `support` **无量纲**（sr/sr，∈[0,1]）。**禁止**把 `signal` 读作"每像素计数"
+  （裸 ADU）：两者相差 1/A_cell 的立体角因子，且跨像元尺度不可比。
 - (2b-上游) **B2-A15**：Phase1 编排（module_adapters.cpp p1_op_writer）不再以
   `support>0 ? A_cell : 0` 传入 `covered_area`（该写法把任意部分覆盖塌缩为
   满覆盖，AIO 侧 `support=area/A_cell` 恒 1）；改为按 HISS 支持度 uint8 面
@@ -156,7 +162,10 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
   首次遇到时创建）→ fixed_reduction_order（无并行求和漂移）。
 - (4c) 落盘：finalize 时对每阶 k<T：nside_k=2^(k+9)、
   A_cell_k=4π/(12·nside_k²)；cell 归一 signal=Σflux/Σarea、
-  support=min(Σarea/A_cell_k,1)（:1214-1221，**发布面唯一一次钳制**；
+  support=min(Σarea/A_cell_k,1)（层级面钳制点，`finalize_hierarchy` 内
+  `sup = area/A_cell_k; if (sup>1.0) sup=1.0`；叶级另有各自发布面的钳制点
+  `:1301-1305` ⇒ **每个发布面各钳制一次**，两处计数键不同：叶级
+  `astrocs_support_clamped_pixels`、层级 `astrocs_coverage_gt1_pixels`；
   Σflux/Σarea 用的是 (4b) 的未钳制面积）、variance/ivar 同 (3a) 用
   Σarea——与叶级公式同构；对齐 IVOA"低阶像素=子像素聚合"。**编码限
   （M2a-H-3）**：support 是 a/A_cell_k 的钳后值，Σa>A_cell_k 时父级真实覆盖
@@ -273,7 +282,8 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
 - **SCI 缺口（如实登记）**：HiPS 写出合同（tile 切分/hierarchy 聚合/properties
   键集/publish 协议）在 docs/science/ 无 SCI 级条目——由本文件 ALG-HIPS 承接；
   SCIENCE_SCOPE.md:9 仅产品级目标，SCI-P3-001 为读侧消费合同。SCI 化候选
-  变更走 SCI 变更流程，不在本任务改动（纪律：不得根据代码缺口反向修改 SCI）。
+  变更走 SCI 变更流程（ENGINEERING_SPEC §3：独立证据证明文档有误时订正文档是义务，
+  SCI 层订正须记录证据与影响面并做一致性回归）。
 - DRIZZLE.md:132 指向的 DISP-DRZ-007（方差行漂移）涉 astro_sphere_sink.cpp:100
   与本文件 (3a) 接口，本模块不改传播公式。
 - 上游 drizzle 计算为 OpenMP 行级并行（drizzle_engine.cpp:1673，
