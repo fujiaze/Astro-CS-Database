@@ -1,10 +1,11 @@
 // ============================================================================
 // frame_photometry_fit.cpp - 单帧 k_photo 装配（见 frame_photometry_fit.h）
 //
-// 装配步骤与 orchestrator::run_stage_photometric（orchestrator.cpp:2699-2850）
-// 同源同口径:
-//   1. FILTER 名称映射 (map_filter_name)
-//   2. filters.json / qe_curves.json 曲线加载 (与 load_filter_curve 同解析)
+// 装配步骤与 orchestrator::run_stage_photometric 同源同口径
+//   （PHOTOCURVE-ORCH-01 后该阶段的曲线装载段见 orchestrator.cpp 的
+//    "辅助: 滤光片名称映射 + 响应曲线装载" 注释块；两处都只做委托）:
+//   1. FILTER 名称映射 (curve_json::map_filter_name, 唯一实现)
+//   2. filters.json / qe_curves.json 曲线加载 (curve_json::load_curve, 唯一实现)
 //   3. gaia_client 锥形搜索光谱参数 → spectrum_wl 网格
 //   4. FOV 半径 = pixel_scale * sqrt(W²+H²)/2 * 1.2, 钳位 [1,10] 度
 //   5. pc_calibrate_simple_with_gaia_f64_v2_qf（生产星匹配 + IRLS/Tukey）
@@ -15,6 +16,7 @@
 
 #include "frame_photometry_fit.h"
 
+#include "filter_curve_json.h" // 曲线解析唯一实现 (结构化对象解析)
 #include "pc_api_qf.h"          // pc_calibrate_simple_with_gaia_f64_v2_qf
 #include "spectrum_integrator.h" // prepare_filter_cache / compute_f_syn_cached_xpsd
 #include "../include/photometric_calib.h"
@@ -41,91 +43,14 @@ namespace astrocs {
 namespace photometry {
 namespace {
 
-// FITS FILTER → filters.json 键（与 orchestrator.cpp:1342 map_filter_name 同表）
-std::string map_filter_name(const std::string& f) {
-    auto ieq = [](const std::string& a, const char* b) {
-        return std::equal(a.begin(), a.end(), b, b + std::strlen(b),
-            [](char c1, char c2) { return std::tolower(c1) == std::tolower(c2); });
-    };
-    if (ieq(f, "Red") || ieq(f, "R")) return "Baader R";
-    if (ieq(f, "Green") || ieq(f, "G")) return "Baader G";
-    if (ieq(f, "Blue") || ieq(f, "B")) return "Baader B";
-    if (ieq(f, "Lum") || ieq(f, "L") || ieq(f, "Luminance"))
-        return "Baader UV/IR Cut / L CMOS Optimized";
-    if (ieq(f, "H-alpha") || ieq(f, "Ha") || ieq(f, "HA")) return "Baader 7nm H-alpha";
-    if (ieq(f, "OIII") || ieq(f, "Oiii")) return "Baader 8.5nm OIII";
-    return f;
-}
-
-// 定位曲线对象并抽数组。返回 false 表示文件/键/数组任一缺失。
-//
-// ── P1-PHOT-CURVE-RESOLVE 修复（2026-09，M42 真实数据根因调查）─────────────
-// 缺陷（修复前）: 只做 content.find("\"name\"") 取**第一次**文本出现，再从该偏移
-//   往后找第一个 "wavelength_nm"。当 filters_json 指向**转录版**
-//   eng/packaging/config/filters.json（顶层顺序 [..., provenance, lookup, filters]，
-//   曲线定义在 filters 段）时，名字会先在 provenance.per_filter 段命中 ⇒ 偏移落在
-//   filters 段之前 ⇒ 取到 filters 段的**第一个**滤镜曲线。
-//   实测（run/M42-SCIA-ROOTCAUSE-01）：配置声明 filter="Baader R" 而实际取到
-//   "Antlia V Pro Series B"（53 点 / 420–524 nm），使 M42 Red 帧的 F_syn 用蓝端通带
-//   合成 ⇒ 逐星残差散度从 0.019 dex 膨胀到 0.204 dex（10.7×），
-//   2.5σ = 0.51 mag（EXP-04 三帧量级 0.045–0.057 mag 的 8.9 倍）。
-// 修复: 只接受**同时**满足 (a) 键后紧跟 ':' 与 '{'（是对象键而非任意文本）、
-//   (b) 该对象内**含 wavelength_nm 数组** 的候选；取第一个满足者。
-//   provenance/其他段落的对象不含 wavelength_nm ⇒ 被跳过。
-//   这是曲线**解析**修复，不改任何科学公式、常数与容差。
-bool load_curve(const std::string& json_path, const std::string& curve_name,
-                std::vector<double>* out_wl, std::vector<double>* out_trans) {
-    // CLEAN-403: 读取经 aio; 打开/读取失败 ⇒ false (与原 !ifs.is_open() 同语义)。
-    std::string content;
-    if (!aio_file::read_all(json_path.c_str(), &content)) return false;
-    auto is_space = [](char c) {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
-    };
-    const std::string key = "\"" + curve_name + "\"";
-    std::string obj;
-    for (size_t p = content.find(key); p != std::string::npos; p = content.find(key, p + 1)) {
-        size_t q = p + key.size();
-        while (q < content.size() && is_space(content[q])) ++q;
-        if (q >= content.size() || content[q] != ':') continue;   // 非对象键 (如别名表/字符串值)
-        ++q;
-        while (q < content.size() && is_space(content[q])) ++q;
-        if (q >= content.size() || content[q] != '{') continue;   // 非对象值
-        // 括号配平取该对象的完整文本
-        size_t depth = 0, end = std::string::npos;
-        for (size_t i = q; i < content.size(); ++i) {
-            if (content[i] == '{') ++depth;
-            else if (content[i] == '}') { if (--depth == 0) { end = i; break; } }
-        }
-        if (end == std::string::npos) continue;
-        std::string cand = content.substr(q, end - q + 1);
-        if (cand.find("\"wavelength_nm\"") == std::string::npos) continue;  // 曲线对象判据
-        obj = std::move(cand);
-        break;
-    }
-    if (obj.empty()) return false;
-    size_t pos = 0;
-    auto extract_array = [&obj, &pos](const std::string& arr_key,
-                                      std::vector<double>* out) -> bool {
-        size_t kpos = obj.find(arr_key, pos);
-        if (kpos == std::string::npos) return false;
-        size_t b0 = obj.find('[', kpos);
-        if (b0 == std::string::npos) return false;
-        size_t b1 = obj.find(']', b0);
-        if (b1 == std::string::npos) return false;
-        std::string arr = obj.substr(b0 + 1, b1 - b0 - 1);
-        std::replace(arr.begin(), arr.end(), ',', ' ');
-        std::istringstream iss(arr);
-        out->clear();
-        double v = 0.0;
-        while (iss >> v) out->push_back(v);
-        return !out->empty();
-    };
-    if (!extract_array("\"wavelength_nm\"", out_wl) ||
-        !extract_array("\"value\"", out_trans)) {
-        return false;
-    }
-    return out_wl->size() == out_trans->size();
-}
+// ── 曲线解析: **唯一实现** = lib/algorithms/photometry/cpp/src/filter_curve_json.h ──
+// 依据 docs/standards/CODE_STANDARD.md §MUST「禁止重复 production science
+// implementation（单一实现 + oracle）」。本 TU 与 orchestrator 路径
+// (lib/infrastructure/pipeline/orchestrator/cpp/src/orchestrator.cpp) 共用同一份
+// 定位/抽取代码与同一张 FILTER→库键表（curve_json::map_filter_name）。
+// 修复前两处各持一份**文本搜索**实现：在转录版 eng/packaging/config/filters.json
+// 上会把 "Baader R" 解析成 filters 段的第一条曲线 "Antlia V Pro Series B"
+// （53 点 / 420–524 nm）—— 缺陷记录与规范依据见 filter_curve_json.h 文件头。
 
 }  // namespace
 
@@ -164,16 +89,23 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         return out;
     }
 
-    const std::string filter_key = map_filter_name(req.filter_name);
+    const std::string filter_key = curve_json::map_filter_name(req.filter_name);
     std::vector<double> filter_wl, filter_trans;
-    if (!load_curve(req.filters_json, filter_key, &filter_wl, &filter_trans)) {
-        out.error = "filter curve load failed: '" + filter_key + "' in " + req.filters_json;
+    const curve_json::LoadStatus filter_st =
+        curve_json::load_curve(req.filters_json, filter_key, &filter_wl, &filter_trans);
+    if (filter_st != curve_json::LoadStatus::kOk) {
+        // 曲线名解析不到 ⇒ 具名报错 (不静默取到别的曲线, CODE_STANDARD §MUST
+        // 「禁止 silent config fallback 改变科学语义」)
+        out.error = "filter curve load failed: '" + filter_key + "' in " + req.filters_json +
+                    " (" + curve_json::status_name(filter_st) + ")";
         out.failure_scope = FitFailureScope::kEnvironment;   // 程序级配置输入, 非帧数据
         return out;
     }
     std::vector<double> qe_wl, qe_trans;
     if (!req.qe_json.empty() && !req.qe_name.empty()) {
-        if (!load_curve(req.qe_json, req.qe_name, &qe_wl, &qe_trans)) {
+        const curve_json::LoadStatus qe_st =
+            curve_json::load_curve(req.qe_json, req.qe_name, &qe_wl, &qe_trans);
+        if (qe_st != curve_json::LoadStatus::kOk) {
             qe_wl.clear();
             qe_trans.clear();
             // 曲线名/文件存在但解析失败 ⇒ 不得静默退化为 Q(λ)≡1（通带错配是合成

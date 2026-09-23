@@ -94,26 +94,33 @@ for (int i = 0; i < m; i++) {
 
 ### 3.2 合成流量公式
 
-对第 i 颗 Gaia 星，其合成仪器流量为：
+对第 i 颗 Gaia 星，其参考合成通量为（权威：`docs/science/PHOTOMETRY.md` §2a，claim `PHOT-FSYN-CANON-001`）：
 
 ```
-F_syn,i = ∫ S_i(λ) × T(λ) × Q(λ) × λ dλ
+F_syn,i = ∫ F_λ,i(λ) × T(λ) × Q(λ) × λ dλ          # 单位 W·m⁻²·nm
+F_λ,i(λ_j) = byte_j × flux_mul_i + flux_min_i       # 单位 W·m⁻²·nm⁻¹（XPSD 官方解码）
 ```
 
 其中：
-- `S_i(λ)`: Gaia DR3/SP 提供的光谱采样数据，uint8[343] (0-255) 量化值，无量纲；绝对标度在 F_syn/F_instr 比值中消去，可直接作为 S(λ) 输入
-- `T(λ)`: 滤光片透过率曲线（从 `data/response_curves/filters.json` 加载）
-- `Q(λ)`: CCD 量子效率曲线（0-1，可选，默认为 1）
-- `λ`: 波长（nm）
+- `F_λ,i(λ)`: 参考星的**绝对**谱辐照度（W·m⁻²·nm⁻¹）。生产路径由 XPSD 记录内的**逐星** float32 量化参数解码：`F_λ = byte×flux_mul + flux_min`（`gaia_xpsd_client` 模块；记录布局 `32B EncodedStarData | float fluxMin | float fluxMul | uint8 flux[343]`）。**`byte` 数组本身不是与星无关的相对谱形**——`flux_min/flux_mul` 逐星不同（真实数据实测跨 6 个数量级），忽略它们会引入与星等相关的偏差。
+- `T(λ)`: 滤光片透过率曲线，无量纲 `[0,1]`（从 `data/response_curves/filters.json` 或 `eng/packaging/config/filters.json` 加载）
+- `Q(λ)`: CCD 量子效率曲线，无量纲 `[0,1]`，**是通带的组成部分**；未配置时 `Q≡1`（显式未建模项，物理含义 = 假设理想平坦 QE）
+- `λ`、`dλ`: 波长与积分元（nm）
 
-**波长加权 `λ`** 的原因：Gaia 光谱数据源自 BP/RP 能量流量密度光谱，经量化存储为 uint8，而 CCD 探测器计量的是光子数。光子能量 E = hc/λ，因此单位波长间隔的光子数与 λ 成正比。转换常数 1/(hc) 对所有星相同，在 F_syn/F_instr 比值中消去，故省略。
+**量纲**：`W·m⁻²·nm⁻¹ × 1 × 1 × nm × nm = W·m⁻²·nm`；物理含义 `F_syn = hc·N_γ`（`N_γ` 为通带内光子计数率 photons·s⁻¹·m⁻²，`hc` 以 J·nm 计）。
+
+**波长加权 `λ`** 的原因：CCD 计量的是光子数，单位波长间隔的光子数 ∝ `F_λ·λ/(hc)`（Sirianni et al. 2005 §5 式 3 脚注 5："The energy flux distribution fλ … is multiplied by λ/hc in order to convert it into photon flux distribution as appropriate for a photon-counting detector."；Bessell & Murphy 2012 式 A30 同义）。转换常数 `1/(hc)` 对所有星相同，被零点吸收，故省略——这与 Gaia DR3 官方文档 §5.4.1 式 (5.41) 的写法一致。
+
+**归一化分母的地位**：官方式 (5.41) 写成平均量 `∫f_λ S λ dλ / ∫S λ dλ`；本节去掉分母 `∫T Q λ dλ`，因为它是**逐帧常数**，在 `r_i` 中只造成 `location` 平移。**通带形状（含 `Q`）不被吸收**，其失配直接进入 `sigma_residual`。
+
+**不含 `10^(−0.4·G)`**：Gaia G 星等不进入 `F_syn`。把 `10^(−0.4·G)` 乘进参考通量会给逐星 `r_i` 注入 `+0.4·G_i`（dex）的加性项，单标量 `location` 吸收不掉（真实 M42 样本实测 MAD-σ = 0.459 dex = 1.147 mag）。
 
 ### 3.3 数值积分
 
 - **插值**：Akima 子样条插值，避免过冲
 - **积分法则**：Simpson 1/3 复合公式
-- **步长**：0.1 nm（[ARCHIVED/失实]：生产实现为重叠区 **1.0 nm** 均匀网格，`spectrum_integrator.cpp:247`；见文首横幅）
-- **积分范围**：[λ_min, λ_max]，取滤光片、光谱、QE 曲线三者的重叠区间（Gaia 光谱数据覆盖 336-1020 nm）
+- **网格**：生产路径（`prepare_filter_cache` + `compute_f_syn_cached_xpsd`）把 `T`、`Q` 用 Akima 重采样到**谱网格本身**（343 点 / 2 nm / 336–1020 nm），在该网格上做复合 Simpson；非生产的 `compute_f_syn` 用重叠区 **1.0 nm** 均匀网格（`spectrum_integrator.cpp:247`）。
+- **积分范围**：谱网格与通带（`T·Q`）的**非零重叠区间**；网格外 `T·Q` 置 0，**不外推**。完全无重叠时 `F_syn ≡ 0`——此时**没有可用的参考通量**，必须走"拟合失败/不能定标"路径（`docs/science/PHOTOMETRY.md` §2a.1/§8），**不得**给出零点或星等。对照：`synphot`/`pysynphot` 对完全不重叠抛 `DisjointError`、对部分重叠抛 `PartialOverlap`（`synphot/observation.py:96-108`、`pysynphot/observation.py:81-121`），`speclite` 在积分网格未覆盖响应曲线时抛 `ValueError`（`speclite/filters.py:1311-1317`）。
 
 ### 3.4 合成星等
 
@@ -121,15 +128,17 @@ F_syn,i = ∫ S_i(λ) × T(λ) × Q(λ) × λ dλ
 m_syn,i = -2.5 × log10(F_syn,i) + C
 ```
 
-其中 C 为任意常数（在比值计算中消去，无需确定）。
+其中 C 为任意常数（在比值计算中消去，无需确定）。**绝对合成星等零点**由生产按
+`ZP_syn = median_i(magG_i + 2.5·log10 F_syn,i)`（`frame_photometry_fit.cpp:183-245`）给出，
+散度 `1.4826·MAD` 即该通带相对 Gaia G 的**色项散度**（`zero_point_scatter_mag`）。
 
 ### 3.5 数据来源
 
 | 数据 | 来源 | 格式 |
 |------|------|------|
-| Gaia 光谱数据 | `gaia_xpsd_client` 模块 (Gaia DR3SP) | uint8[343] 数组，336-1020nm，步长 2nm |
-| 滤光片透过率 T(λ) | `data/response_curves/filters.json` | JSON (波长,透过率对) |
-| CCD QE 曲线 Q(λ) | `data/response_curves/qe_curves.json` | JSON (波长,QE对)，可选 |
+| Gaia 光谱数据 | `gaia_xpsd_client` 模块 (Gaia DR3SP 数据集) | uint8[343] 数组 + **逐星** `flux_min`/`flux_mul`（float32），336–1020 nm，步长 2 nm；`F_λ=byte·flux_mul+flux_min`（W·m⁻²·nm⁻¹） |
+| 滤光片透过率 T(λ) | `data/response_curves/filters.json` / `eng/packaging/config/filters.json` | JSON (波长,透过率对)；曲线 provenance 状态见 `provenance.status`（当前 `unverified`，GAP-025） |
+| CCD QE 曲线 Q(λ) | `data/response_curves/qe_curves.json` | JSON (波长,QE对)；**是通带组成部分**，未配置时 `Q≡1` 为显式未建模项 |
 
 Gaia DR3SP 光谱以 uint8 (0-255) 存储，积分时转换为 float64 直接作为 S(λ) 输入。绝对标度在 F_syn/F_instr 比值中消去，故无需标定转换系数。
 

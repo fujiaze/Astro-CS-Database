@@ -119,14 +119,25 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 
 **F_syn 合成测光**（spectrum_integrator.cpp; 生产路径=XPSD 官方解码）:
 
+定义式（权威：`docs/science/PHOTOMETRY.md` §2a，claim `PHOT-FSYN-CANON-001`）：
+
+```text
+F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ        # W·m⁻²·nm；F_λ 单位 W·m⁻²·nm⁻¹；λ、dλ 单位 nm
+```
+
+**不含** `10^(−0.4·G)`；`G`（Gaia G 星等）不进入 `F_syn`。与官方定义（Gaia DR3 文档 §5.4.1 式 5.41：`⟨f_λ⟩ = ∫f_λ S λ dλ / ∫S λ dλ`）只差与星无关的归一化分母 `∫TQλdλ`，该分母被 `location`/`ZP_syn` 吸收。
+
 | 步骤 | 符号/位置 | 锚 |
 |---|---|---|
 | Akima 子样条 | akima_interpolate（fill=0） | :44-126 |
 | Simpson 1/3 复合（尾 3/8） | simpson_integrate | :128-168 |
-| F_syn 主实现 | compute_f_syn（重叠区 1.0nm 网格 :247-255; 被积函数 s·t·q·λ :265-271） | :170-281 |
-| 滤光片/QE 缓存 | prepare_filter_cache | :283-380 |
-| XPSD 解码 | F(λ)=byte·flux_mul+flux_min | :62-64 |
-| 生产符号 | compute_f_syn_cached_xpsd | :409-454 |
+| **生产符号（XPSD 绝对口径）** | `compute_f_syn_cached_xpsd`（被积函数 `(byte·flux_mul+flux_min)·λTQ`） | :409-454（:441-447） |
+| 滤光片/QE 缓存 | prepare_filter_cache（T、Q 用 Akima 重采样到**完整** 343 点谱网格，区间外 0；权重 = Simpson 系数×T×Q×λ） | :283-380 |
+| XPSD 解码 | F(λ)=byte·flux_mul+flux_min（W·m⁻²·nm⁻¹，逐星量化参数） | gaia_client.h:62-64 |
+| **非生产通道（历史相对口径）** | `compute_f_syn` / `compute_f_syn_cached`：`∫uint8·T·Q·λdλ × 10^(−0.4·magG)`；仅作数值对拍，**不得**用于生产定标 | :170-281 / :366-406 |
+
+**生产路径的实证锚**（真实 M42 产物，`run/SCI-PHOT-FORMULA-01/evidence/d1_zp_sigma_rederive.json`）：
+`zero_point_mag = median_i(magG_i + 2.5·log10 F_syn,i)` 由上式**逐位复现** —— T2/M1 落盘 `−15.126346726632235` vs 复算 `−15.126346726631280`（Δ=9.5e−13，n=2338）；T3/M1 落盘 `−15.123241368129857` vs 复算 `−15.123241368086541`（n=2309）。
 
 **生产编排**（pc_api.cpp）: 校验 :784-804; 退化（无 Gaia/无 PSF/无光谱星/滤光片失败 → scale=1.0/rc=0） :72-98/:808-830/:868-890/:911-923; 自适应锥搜 mag_max_arr{12..16}×5 :836-866; F_syn OpenMP schedule(dynamic,64) 逐星 :928-948; 匹配+清洗 :969-976; 逐星 PcMatchRecord :983-1021; f64 内联像素校正 :1023-1028; run_with_gaia_impl<T> :755-1041（_v2 :1048-1082 / _f64_v2 :1084-1118 封装）; make_dr3sp_id :743-752。
 
@@ -140,7 +151,8 @@ function photometric_fit(F_instr, F_syn, G_Gaia):
 - 清洗为**星等预过滤 + IRLS/Tukey 稳健位置估计**；
   scale=10^(−location)（IRLS 直出），median(F_syn/F_instr) 仅为
   computeScale 残留符号（DISP-PHOT-003）。
-- F_syn 网格为**1.0nm**（spectrum_integrator.cpp:247-255）。
+- F_syn 网格：生产 `prepare_filter_cache` 路径把 T/Q 重采样到**谱网格本身**（343 点 / 2 nm / 336–1020 nm），`compute_f_syn_cached_xpsd` 在该网格上做复合 Simpson；非生产的 `compute_f_syn` 用重叠区 **1.0 nm** 网格（spectrum_integrator.cpp:247-255）。
+- **参考通量口径**：`F_syn = ∫F_λ·T·Q·λ dλ`（W·m⁻²·nm，**不含** `10^(−0.4·G)`；XPSD 解码 `F_λ=byte·flux_mul+flux_min` 已是绝对谱辐照度，实测 `median(m_syn−magG)=−0.0037 mag`）。权威 `docs/science/PHOTOMETRY.md` §2a。
 - 生产 XPSD 光谱为 uint8 编码 F(λ)=byte·flux_mul+flux_min（:62-64/:409-454），
   非 float 原始光谱。
 - 自适应星等锥搜 mag_max_arr={12,13,14,15,16}（pc_api.cpp:836-866）实际

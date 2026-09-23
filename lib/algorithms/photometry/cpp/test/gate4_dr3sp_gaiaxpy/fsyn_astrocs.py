@@ -2,11 +2,24 @@
 """
 Gate 4: AstroCS DR3SP 积分参考实现 (numpy 移植)
 
-与生产 C++ lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp 数值等价
-(Akima 插值 + Simpson 1/3 复合积分 + lambda 加权 + G 星等归一化):
-    F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ × 10^(-0.4·mag_g)
+本文件含两条通道, 语义不同, **不得混用**:
 
-由 fsyn_export.cpp (生产 C++) 交叉验证数值一致 (见 gate4_gaiaxpy_compare.py)。
+1. 生产口径 (权威: docs/science/PHOTOMETRY.md §2a, claim PHOT-FSYN-CANON-001):
+       F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ                     [W·m⁻²·nm]
+       F_λ(λ_j) = byte_j·flux_mul + flux_min               [W·m⁻²·nm⁻¹]
+   生产符号 = compute_f_syn_cached_xpsd; 本文件的等价物是 synthetic_band_flux()
+   (光子加权平均, 与官方 Gaia DR3 文档 §5.4.1 式 5.41 同式)。
+   本文件 **没有** 直接给出 XPSD 绝对解码的移植; gate4 的主对比走
+   gaiaxpy.calibrate() 的绝对谱 + synthetic_band_flux() + 官方零点。
+
+2. 历史相对口径 (非生产, 仅数值对拍):
+       compute_f_syn(...) = ∫ uint8·T(λ)·Q(λ)·λ dλ × 10^(-0.4·mag_g)
+   与 C++ compute_f_syn / compute_f_syn_cached 数值等价 (由 fsyn_export.cpp 交叉验证,
+   见 gate4_gaiaxpy_compare.py 第 6 步)。该写法把 uint8 当"与星无关的相对谱形",
+   会向逐星 r_i 注入 +0.4·G_i (dex) 的加性项, 单标量零点吸收不掉
+   (真实 M42 样本实测 MAD-σ = 0.459 dex = 1.147 mag);
+   且 XPSD 量化参数 flux_min/flux_mul 逐星不同, uint8 数组本身不可作相对谱形。
+   **生产定标不得使用该通道。**
 """
 
 import numpy as np

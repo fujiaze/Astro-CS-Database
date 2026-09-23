@@ -122,8 +122,10 @@ PC_API int pc_calibrate_simple(
 // ============================================================================
 // 扩展接口: 接受 gaia_client handle, DLL 内部查询 DR3SP 光谱并积分得 F_syn
 //
-// 功能: 锥形搜索 Gaia DR3SP -> 取 BP/RP uint8 光谱
-// -> Akima+Simpson 积分 F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ × 10^(-0.4*mag_g)
+// 功能: 锥形搜索 Gaia DR3SP -> 取 BP/RP 采样谱 + 逐星量化参数 flux_min/flux_mul
+// -> Akima+Simpson 积分 F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ   (W·m⁻²·nm)
+//    其中 F_λ = byte·flux_mul + flux_min (绝对谱辐照度, W·m⁻²·nm⁻¹);
+//    **不含** 10^(-0.4·magG) 因子 (权威: docs/science/PHOTOMETRY.md §2a, PHOT-FSYN-CANON-001)
 // -> WCS 投影 -> KD-tree 匹配 PSF 星 -> 星等一致性 + IRLS/Tukey 清洗
 // -> 全局 scale 校正
 //
