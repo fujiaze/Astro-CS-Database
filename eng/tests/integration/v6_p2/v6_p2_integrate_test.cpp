@@ -228,14 +228,16 @@ static bool run_singlepath() {
           "no phase2 weight-mode token may be accepted (FZ-WEIGHT-SINGLE-PATH)");
     CHECK(r.rc == 2, "rejected token maps to CLI ARGS rc=2 (fail-closed)");
   }
-  /* documented baseline（非科学方差面）：可识别但不作生产口径。 */
+  /* FZ-WEIGHT-SINGLE-PATH：原 equal / pixel_ivar → kBaseline 的**非生产放行面**
+   * 已删除——它们唯一的理由是「legacy 整数路由的映射目标登记」，整数路由删除后
+   * 理由消失 ⇒ 全 token 一律拒绝，不留任何"可识别但不作生产口径"的旁门。
+   * 能红能绿：任一 token 若走回 kBaseline/kProduction，本块立即转红。 */
   for (const char* tok : {"equal", "pixel_ivar"}) {
     const astrocs::v6runtime::ModeRoute r =
         astrocs::v6runtime::route_phase2_weight_token(tok);
-    CHECK(r.kind == astrocs::v6runtime::RouteKind::kBaseline,
-          "baseline token is documented non-production (FZ-WEIGHT-SINGLE-PATH)");
-    CHECK(r.reason.find("single scientific weight path") != std::string::npos,
-          "baseline token reason states the single weight path");
+    CHECK(r.kind == astrocs::v6runtime::RouteKind::kReject,
+          "former baseline token must now reject (FZ-WEIGHT-SINGLE-PATH)");
+    CHECK(r.rc == 2, "former baseline token maps to CLI ARGS rc=2 (fail-closed)");
   }
   std::printf("  SINGLEPATH PASS checks=%d\n", g_checks);
   return true;
