@@ -90,17 +90,57 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
     }
 
     const std::string filter_key = curve_json::map_filter_name(req.filter_name);
+    // ── 通带身份门（装配期 fail-closed；PASSBAND-IDENTITY-GATE-01）──────────
+    // (a) 声明名核对：配置**声明**的通带（块级 filter_passband）必须与
+    //     FILTER 关键字解析出的库键一致。不一致 ⇒ 两者不是同一条曲线，
+    //     合成 F_syn 用的通带与配置声明不符 ⇒ 拒绝产出标度（具名，环境作用域）。
+    //     依据 docs/science/PHOTOMETRY.md §2a.4「比较不同帧/不同模型的
+    //     sigma_residual 时必须声明所用模型通带」+ §2a.5（通带形状不被零点吸收）
+    //     + eng/packaging/config/filters.json#lookup.resolution_rule（名字解析
+    //     为字节精确、无别名）。**这不是新的科学判据**：它只核对"用的是不是
+    //     声明的那条曲线"，不改任何公式、阈值、容差与权重。
+    if (!req.declared_filter_passband.empty() &&
+        req.declared_filter_passband != filter_key) {
+        out.error = "passband identity mismatch: declared filter_passband '" +
+                    req.declared_filter_passband + "' but FILTER '" + req.filter_name +
+                    "' resolves to library key '" + filter_key +
+                    "' -- refusing to synthesize F_syn with a passband other than the"
+                    " declared one";
+        out.failure_scope = FitFailureScope::kEnvironment;   // 配置声明矛盾, 非帧数据
+        return out;
+    }
     std::vector<double> filter_wl, filter_trans;
+    curve_json::IdentityMismatch filter_id;
     const curve_json::LoadStatus filter_st =
-        curve_json::load_curve(req.filters_json, filter_key, &filter_wl, &filter_trans);
+        curve_json::load_curve(req.filters_json, filter_key, &filter_wl, &filter_trans,
+                               &filter_id);
     if (filter_st != curve_json::LoadStatus::kOk) {
         // 曲线名解析不到 ⇒ 具名报错 (不静默取到别的曲线, CODE_STANDARD §MUST
-        // 「禁止 silent config fallback 改变科学语义」)
+        // 「禁止 silent config fallback 改变科学语义」)。
+        // kCurveIdentityMismatch ⇒ 曲线对象的自述身份与请求名/provenance 声明
+        // 不符：**这正是「按文本位置取错通带」的判别式**，必须把实际取到的身份
+        // 写进判词（否则下游只能看到一个"某条曲线"）。
         out.error = "filter curve load failed: '" + filter_key + "' in " + req.filters_json +
                     " (" + curve_json::status_name(filter_st) + ")";
+        if (filter_st == curve_json::LoadStatus::kCurveIdentityMismatch) {
+            out.error += " [passband identity: requested='" + filter_id.requested +
+                         "' object_name='" +
+                         (filter_id.object_name_present ? filter_id.object_name
+                                                        : std::string("<absent>")) +
+                         "' reason=" + filter_id.reason +
+                         " detail=" + filter_id.detail + "]";
+        }
         out.failure_scope = FitFailureScope::kEnvironment;   // 程序级配置输入, 非帧数据
         return out;
     }
+    // 身份自述（由曲线对象自身与实际数组算出；身份门已保证 name == filter_key）。
+    out.filter_key = filter_key;
+    out.filter_curve_name = filter_key;
+    out.filter_n_points = static_cast<int>(filter_wl.size());
+    out.filter_wl_min_nm = *std::min_element(filter_wl.begin(), filter_wl.end());
+    out.filter_wl_max_nm = *std::max_element(filter_wl.begin(), filter_wl.end());
+    out.filter_val_min = *std::min_element(filter_trans.begin(), filter_trans.end());
+    out.filter_val_max = *std::max_element(filter_trans.begin(), filter_trans.end());
     std::vector<double> qe_wl, qe_trans;
     if (!req.qe_json.empty() && !req.qe_name.empty()) {
         const curve_json::LoadStatus qe_st =

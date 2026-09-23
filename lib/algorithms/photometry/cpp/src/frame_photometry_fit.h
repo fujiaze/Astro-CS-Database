@@ -57,6 +57,10 @@ struct FramePhotFitRequest {
   // 配置
   std::string gaia_data_dir;   // XPSD 数据目录（光谱星必需, 通常 .../GaiaDR3SP）
   std::string filter_name;     // FITS FILTER 关键字值（内部映射到 filters.json 键）
+  // 配置**声明**的通带名（块级 filter_passband）。非空时按
+  // map_filter_name(filter_name) 与它核对：不等 ⇒ 拟合**拒绝产出标度**
+  // （配置声明与实际使用的通带不是同一条曲线）。空 = 未声明，跳过该核对。
+  std::string declared_filter_passband;
   std::string filters_json;    // filters.json 路径
   std::string qe_json;         // qe_curves.json 路径（可空）
   std::string qe_name;         // QE 曲线键（可空）
@@ -123,6 +127,23 @@ struct FramePhotFitResult {
   double zero_point_mag = 0.0;          // ZP_syn [mag]
   int zero_point_n_stars = 0;           // 参与中位数的锥形搜索星数
   double zero_point_scatter_mag = 0.0;  // 1.4826*MAD(ZP_i) [mag]（星族 SED 散布）
+  // ── 通带身份自述（PASSBAND-IDENTITY-GATE-01）─────────────────────────────
+  // 「实际用于合成 F_syn 的那条曲线是谁」的机器可读记录：由**曲线对象自身**的
+  // 自述字段 + 实际数组算出（不是把请求名回抄一遍）。调用方必须把它落进
+  // p1_phot.json 的 provenance，使「配置声明的通带」与「实际用的曲线」在产品里
+  // 可独立核对（docs/science/PHOTOMETRY.md §2a.4「比较不同帧/不同模型的
+  // sigma_residual 时必须声明所用模型通带」）。
+  // filter_key：声明名经 map_filter_name 解析出的库键（= filters.json 对象键）。
+  // filter_curve_name：该对象 name 字段的自述值；身份门要求它与 filter_key 相等
+  //   （不等 ⇒ fit 失败，不会有结果产出）。
+  // n_points / wl_min_nm / wl_max_nm / val_min / val_max：实际装载数组的统计量。
+  std::string filter_key;
+  std::string filter_curve_name;
+  int filter_n_points = 0;
+  double filter_wl_min_nm = 0.0;
+  double filter_wl_max_nm = 0.0;
+  double filter_val_min = 0.0;
+  double filter_val_max = 0.0;
 };
 
 // 运行单帧生产星匹配链, 返回 k_photo。

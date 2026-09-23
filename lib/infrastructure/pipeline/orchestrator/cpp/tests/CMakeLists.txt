@@ -124,3 +124,43 @@ add_test(NAME orchestrator_curve_resolve_gate_fault_inject
 set_tests_properties(orchestrator_curve_resolve_gate_fault_inject PROPERTIES
   WORKING_DIRECTORY ${ORCH_TEST_WORK}
   PASS_REGULAR_EXPRESSION "FAULT_INJECT\\(legacy\\) DETECTED")
+
+# ── 5) PASSBAND-IDENTITY-GATE-01：测光装配期通带身份门（生产拟合入口）────────
+# 被测面 = 生产装配入口 astrocs::photometry::fit_frame_photometry
+# （scheduler/module_adapters.cpp 的 photometry 节点 → 本入口）。判据: 配置声明
+# 的通带名与 FILTER 关键字解析出的库键不一致 ⇒ 拒绝产出标度（具名、环境作用域）;
+# 一致 ⇒ 身份门放行。依据 docs/science/PHOTOMETRY.md §2a.4/§2a.5 +
+# docs/contracts/CONFIG_CONTRACT.md §4（名字解析字节精确、无别名）。
+# gaia 客户端由既有共享库 astrocs_catalog_gaia 提供（生产源零改动）。
+add_executable(p1phot_passband_identity_gate
+  test_p1phot_passband_identity.cpp
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/frame_photometry_fit.cpp
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/pc_api.cpp
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/star_matcher.cpp
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/wcs_transform.cpp
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/image_corrector.cpp
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src/spectrum_integrator.cpp
+  # gaia 客户端按**生产源零改动**直接编入（既有共享库把 legacy 符号设为 hidden,
+  # 不可链接）; C 标准与根 CMakeLists 的同名源一致。
+  ${CMAKE_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c)
+set_property(SOURCE ${CMAKE_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src/gaia_client.c
+  PROPERTY C_STANDARD 11)
+target_include_directories(p1phot_passband_identity_gate PRIVATE
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/include
+  ${CMAKE_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src
+  ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/shared
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/shared/crypto
+  ${CMAKE_SOURCE_DIR}/lib/include)
+find_package(OpenMP QUIET)
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(p1phot_passband_identity_gate PRIVATE OpenMP::OpenMP_CXX)
+endif()
+find_package(ZLIB REQUIRED)
+find_package(Threads REQUIRED)
+target_link_libraries(p1phot_passband_identity_gate PRIVATE ZLIB::ZLIB Threads::Threads)
+add_test(NAME p1phot_passband_identity_gate
+  COMMAND p1phot_passband_identity_gate ${CMAKE_SOURCE_DIR})
+set_tests_properties(p1phot_passband_identity_gate PROPERTIES
+  WORKING_DIRECTORY ${ORCH_TEST_WORK})
