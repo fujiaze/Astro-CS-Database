@@ -1769,23 +1769,61 @@ bool p1_master_flat_valid(const P1Image& flat, std::string* why) {
 // 线程安全前提（已核查）: 各算法入口只有不可变的 static const API 表；drizzle 的
 // 错误槽与计数为 thread_local；帧间无共享可变状态。持有句柄的节点（star-psf 的
 // 检测器、wcs 的 ipv/gaia/sdet）必须**按 worker 分实例**，不得跨 worker 共享。
+// PERF-501 观测: ASTROCS_P1CAP_TRACE=1 时输出**并行轴分配快照**（租约 / 内存上限 /
+// 帧在飞数 / 帧内 OpenMP 度）。仅观测，不改变调度、并行度与科学结果；默认零输出
+// 零开销。用途: 把进程级 /proc CPU 平台（如恒 202%）精确归因到"哪个节点被压到几条
+// 线程"。节点名取调度器写入的线程本地归属（context.h:170 trace_current_node），
+// 无需逐调用点传参。
+void trace_p1_cap(const char* what, uint32_t lease, uint32_t memory_cap,
+                  uint32_t frame_workers, uint64_t n, uint32_t inner_omp) {
+  static const bool on = [] {
+    const char* v = std::getenv("ASTROCS_P1CAP_TRACE");
+    return v && v[0] == '1';
+  }();
+  if (!on) return;
+  std::fprintf(stderr,
+               "[p1cap] %s node=%s lease=%u memory_cap=%u frame_workers=%u "
+               "n_units=%llu inner_omp=%u\n",
+               what, trace_current_node().c_str(), lease, memory_cap,
+               frame_workers, static_cast<unsigned long long>(n), inner_omp);
+}
+
 template <typename Fn>
-static void p1_parallel_for(uint32_t workers, uint64_t n, Fn&& body) {
+static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget,
+                            Fn&& body) {
+  // PERF-501: 并行轴 = 帧级（workers，受内存上限约束）× 帧内 OpenMP（inner_omp）。
+  // 帧级宽度被**内存**压到低于 lease 预算时（典型: 4096² 帧 × 358 B/px ⇒ cap=2，
+  // 而 lease=16），剩下的预算必须转给帧内轴，否则 14 个核空转。总并行度
+  // = in_flight × inner_omp ≤ thread_budget，仍不超额订阅（AGENTS §6: 线程数唯一
+  // 来自 Runtime lease，不硬编码）。
+  const uint32_t budget = (thread_budget > 0) ? thread_budget : workers;
+#ifdef _OPENMP
+  const uint64_t in_flight =
+      std::min<uint64_t>(n, static_cast<uint64_t>(workers));
+  const uint32_t inner_u =
+      (in_flight > 0)
+          ? std::max<uint32_t>(1u, budget / static_cast<uint32_t>(in_flight))
+          : 1u;
+#else
+  const uint32_t inner_u = 1u;
+#endif
+  // memory_cap 列在本行不适用（帧级池大小已由 workers 给出），恒填 0 = n/a；
+  // 真实内存闸门值见同节点的 [p1cap] frame_workers 行。
+  trace_p1_cap("parallel_for", budget, 0, workers, n, inner_u);
   if (workers <= 1 || n <= 1) {
     for (uint64_t i = 0; i < n; ++i) body(i, 0u);
     return;
   }
   // PERF-P1: 帧级并行占用了并行轴 ⇒ 帧内 OpenMP 并行度必须按**剩余预算**分配，
-  // 禁止 N×N 超额订阅（帧数 ≥ workers 时帧内 = 1）。依据：drizzle_engine.cpp:1736
-  // 的 num_threads 与 dpsf_psf.cpp:615/740/873/1047 的 omp parallel for 都取当前
-  // 线程的 omp_get_max_threads()；std::thread worker 的 ICV 是进程默认值（= 硬件
-  // 并发），若不显式收窄就会 16×16 线程 + 每帧 num_threads 份线程局部缓冲
-  // （内存 ×256）。这是**并行轴分配**，不是硬编码线程数：总并行度仍由 Runtime
-  // lease 的 __workers 唯一决定（AGENTS §6）。
+  // 禁止 N×N 超额订阅。依据：drizzle_engine.cpp 的 num_threads 与
+  // dpsf_psf.cpp 的 omp parallel for 都取当前线程的 omp_get_max_threads()；
+  // std::thread worker 的 ICV 是进程默认值（= 硬件并发），若不显式收窄就会
+  // N×N 线程 + 每帧 num_threads 份线程局部缓冲（内存 ×256）。
+  // 这是**并行轴分配**，不是硬编码线程数：总并行度仍由 Runtime lease 的
+  // __workers 唯一决定（AGENTS §6）。
   // 注: omp_set_num_threads 只改**本线程**的 ICV，不影响主线程与进程其他阶段。
 #ifdef _OPENMP
-  const int inner_omp = static_cast<int>(
-      (n >= workers) ? 1u : std::max(1u, workers / static_cast<uint32_t>(n)));
+  const int inner_omp = static_cast<int>(inner_u);
 #endif
   std::atomic<uint64_t> next{0};
   std::vector<std::exception_ptr> eptr(workers, nullptr);
@@ -1834,7 +1872,20 @@ static uint32_t p1_workers(const Json& doc) {
 //   AIO-SYSINFO-01: 探测机制已在 aio 侧就绪（aio_system_available_memory_bytes，
 //   Windows 分支 = GlobalMemoryStatusEx.ullAvailPhys）；**是否在 Windows 放开并行
 //   仍属平台策略**（需平台证据），故本函数在 Windows 保持既有取值 0 = 不可判定。
-static constexpr double kP1FrameBytesPerPixel = 358.0;   // 实测标定（见上）
+// PERF-501 重标定（探针驱动；旧值 358.0 = PERF-MEM-FIX-01 之前的口径）：
+//   · 旧值来源: ser3/par3/par11 三帧并行峰值 17.5 GB（≈5.8 GB/帧）——**K = num_threads
+//     时代**的标定，drizzle scratch 池随 worker 数线性放大；
+//   · 现口径: drizzle_engine.cpp 的 kScratchPoolCap = 2 已把池钉在 K ≤ 2，峰值不再随
+//     worker 数放大（PERF-MEM-FIX-01 F1，未提交的工作区代码即本标定对象）；
+//   · 实测（PERF-501 冒烟，4096×4096 / FP64 / 2 帧在飞 / 16.78e6 px）:
+//       峰值 RSS 3.55 GB（run/PERF-501/evidence/after_w16_2f），drizzle 窗口内
+//       单帧边际 ≈ 1.8 GB ⇒ **≈107 B/px**；PERF-PROFILE-01 §9.2 用独立算式给出
+//       ≈210–240 B/px（含 hierarchy 祖先与 6 份帧副本的保守上界）。
+//   · 取 200.0 = 实测值的 1.87× 裕度、且落在独立算式的保守区间下沿 ⇒ 仍是安全侧，
+//     但不再把帧并发压到 2（旧值在 24.6 GB 机器上对 4096² 帧恒给 cap=2，
+//     把 16 核预算浪费 14 核 —— 见 docs/architecture/THREADING_MODEL.md §并行轴分配）。
+//   · 标定对象变更（drizzle 精度模式 / nside / 帧几何）必须重测并更新本值。
+static constexpr double kP1FrameBytesPerPixel = 200.0;   // 实测标定（见上）
 static constexpr double kP1FrameMemSafetyFrac = 0.75;    // 留基础占用与运行波动
 
 static uint64_t p1_available_memory_bytes() {
@@ -1875,7 +1926,13 @@ static uint32_t p1_memory_cap(const Json& doc) {
 // P1 帧级并行的**实际**并行度 = min(Runtime lease 预算, 内存安全上限)。帧数多于该值时
 // p1_parallel_for 的原子认领天然分批（同时最多 cap 帧在飞，内存受控）。
 static uint32_t p1_frame_workers(const Json& doc) {
-  return std::min(p1_workers(doc), p1_memory_cap(doc));
+  const uint32_t lease = p1_workers(doc);
+  const uint32_t mem_cap = p1_memory_cap(doc);
+  const uint32_t frame_workers = std::min(lease, mem_cap);
+  // PERF-501: 并行轴分配的**根因快照**（lease 是预算权威，memory_cap 是内存闸门，
+  // 两者取小才是真实帧在飞数）。仅 ASTROCS_P1CAP_TRACE=1 时输出。
+  trace_p1_cap("frame_workers", lease, mem_cap, frame_workers, 0, 0);
+  return frame_workers;
 }
 
 Result<void> p1_op_calibrate(const Json& doc, Json* man) {
@@ -2097,7 +2154,7 @@ Result<void> p1_op_calibrate(const Json& doc, Json* man) {
   std::vector<std::string> f_out(n_lights);
   std::vector<int> f_errkind(n_lights, 0);   // 0=无 1=input 2=output
   std::vector<int> f_wh(n_lights * 2, -1);
-  p1_parallel_for(cal_workers, n_lights, [&](uint64_t fi, uint32_t) {
+  p1_parallel_for(cal_workers, n_lights, p1_workers(doc), [&](uint64_t fi, uint32_t) {
     const std::string lp = lights[fi];
     P1Image light = p1_read_image(lp);
     if (!light.ok()) {
@@ -2277,7 +2334,7 @@ Result<void> p1_op_cosmetic(const Json& doc, Json* man) {
   std::vector<int> f_hot(n_lights, 0), f_cold(n_lights, 0);
   std::vector<std::string> f_out(n_lights);
   std::vector<int> f_errkind(n_lights, 0);   // 0=无 1=input 2=output 3=internal
-  p1_parallel_for(cos_workers, n_lights, [&](uint64_t fi, uint32_t) {
+  p1_parallel_for(cos_workers, n_lights, p1_workers(doc), [&](uint64_t fi, uint32_t) {
     const std::string lp = doc["input_lights"][fi].get<std::string>();
     // 输入 = artifact:cal（cal 节点产物 calibrated_<base>, 无则原帧）
     const std::string in_path = p1_calibrated_path(doc, lp);
@@ -2961,7 +3018,7 @@ Result<void> p1_op_star_psf_impl(const Json& doc, Json* man, int n_fit_limit) {
   std::vector<std::vector<double>> f_fx(n_lights), f_fy(n_lights), f_ell(n_lights);
   std::vector<int64_t> f_nvalid(n_lights, 0), f_ntotal(n_lights, 0), f_nfit(n_lights, 0);
   std::vector<std::unique_ptr<astrocs::phase1::StarDetector>> dets(sp_workers);
-  p1_parallel_for(sp_workers, n_lights, [&](uint64_t fi, uint32_t w) {
+  p1_parallel_for(sp_workers, n_lights, p1_workers(doc), [&](uint64_t fi, uint32_t w) {
     if (!dets[w]) dets[w] = std::make_unique<astrocs::phase1::StarDetector>(5.0);
     const astrocs::phase1::StarDetector& det = *dets[w];
     // IR 输入端口 = artifact:cos → 消费 cosmetic 节点产物（CORE-RACE-001 接线）
@@ -4218,7 +4275,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
   std::vector<bool> f_missing(n_cat, false);
   std::vector<std::string> f_missing_name(n_cat);
   std::vector<Json> f_frames(n_cat);
-  p1_parallel_for(phot_workers, n_cat, [&](uint64_t fi, uint32_t) {
+  p1_parallel_for(phot_workers, n_cat, p1_workers(doc), [&](uint64_t fi, uint32_t) {
     const Json& fr = cat[fi];
     const std::string file = fr.value("file", std::string());
     // sources.json 的 file 是 calibrated 基名; 逐帧读取。
@@ -4860,7 +4917,7 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
     std::vector<std::string> f_apath(n_lights), f_key(n_lights);
     std::vector<double> f_k(n_lights, 0.0);
     std::vector<Json> f_detail(n_lights);
-    p1_parallel_for(ph_workers, n_lights, [&](uint64_t fi, uint32_t) {
+    p1_parallel_for(ph_workers, n_lights, p1_workers(doc), [&](uint64_t fi, uint32_t) {
       // FAILSEM-01: 只施加**产出标度**的帧; 拟合失败的帧不写 photoapplied 产物
       // （该帧的失败已记在 verdicts / manifest / p1_phot.json）。
       if (!do_apply[fi]) return;
@@ -5094,7 +5151,12 @@ Result<void> p1_op_photometry(const Json& doc, Json* man) {
 //      §11.1:295「variance 面（可选，帧内块）float32，随 data 布局，ADU²」；
 //      消费侧 = hp_drizzle_api.cpp:1018-1052，零改动）
 // data/data_is_f64: 必须与 drizzle 的 "data" 块**同一数组**（同 dtype），使逐像素
-//   方差的帧身份与标度自动一致（无需 SNR-002 尺度律）。
+//   方差的帧身份与标度自动一致。
+//   **但"同一数组"不足以免除单位换算**：模型内唯一的**绝对常数**是
+//   variance_floor（SCI-NOISE §7 冻结 1e-12 **ADU²**），它不随数组线性缩放。
+//   数组被上游测光归一化（x' = α·x_ADU）时 floor 必须按 SNR-002 的 α² 换算，
+//   否则 max(plane, floor) 会把整帧钳到 floor（M42 实测：α²≈5.7e-34、
+//   真实空背景方差≈3e-31 ⇒ 全帧恒为 1e-12，噪声信息全丢）。见 data_scale 参数。
 // rc 语义同 snr_noise_model_v1：0=成功（含退化兜底）/ 1=完全退化（ivar=0）/
 //   3=参数非法 / -9=ABI 失配。model 由调用方 snr_noise_model_v1_free 释放
 //   （**必须成对**，否则撞 DISP-NOISE-001/009 注册表泄漏）。
@@ -5114,13 +5176,38 @@ P1NoiseFrameModel p1_noise_model_for_frame(const void* data, bool data_is_f64,
                                            int h, int w,
                                            const std::string& frame_path,
                                            const Json& snr_cfg,
-                                           const Json* src_frame) {
+                                           const Json* src_frame,
+                                           double data_scale,
+                                           bool disable_spatial_field) {
   P1NoiseFrameModel out;
   SnrNoiseModelConfig ncfg{};
   if (snr_noise_model_v1_default_config(&ncfg) != 0) {
     out.cfg_default_failed = true;
     out.rc = 3;
     return out;
+  }
+  // ── 单位链（SCI-NOISE §3/§7 + SNR-002 尺度律）─────────────────────────────
+  // variance_floor 的冻结单位是 **ADU²**（SCI-NOISE §7「variance_floor 单位为 ADU²、
+  // 默认 1e-12 属冻结项」；§3「x, σ_bg, √variance: ADU（或 e⁻，同输入标度）」）。
+  // 本函数收到的数组可能已被上游测光节点按 x' = α·x_ADU 归一化（α = frame_photscal）。
+  // floor 与数组必须**同标度**：α² ≈ 5.7e-34 时 1e-12 比该帧真实空背景方差
+  // （≈3e-31）大 19 个数量级 ⇒ fill_impl 的 max(a+b·x+c·y, floor) 把**每个像素**
+  // 钳成常数 1e-12，产品 variance 退化为纯几何量（与 signal 无关、跨帧恒定）。
+  // 按 SNR-002「x'=αx ⇒ var'=α²var, ivar'=ivar/α²」把 floor 换算到数组标度；
+  // ADU 面（α=1）逐位不变。**冻结默认值本身不改**（仍由 default_config 给出）。
+  const double floor_adu2 = ncfg.variance_floor;
+  if (std::isfinite(data_scale) && data_scale > 0.0 && data_scale != 1.0) {
+    ncfg.variance_floor = floor_adu2 * data_scale * data_scale;
+    out.diag["noise_variance_floor_unit_scale"] =
+        Json{{"floor_adu2", floor_adu2},
+             {"data_scale", data_scale},
+             {"floor_array_units", ncfg.variance_floor}};
+  }
+  // 平面场禁用通道：调用方在**线性平面不是合法方差场**时的 fail-closed 退化
+  // （退回 SCI-NOISE §4/§5 已规定的全局常量场）。默认不启用 ⇒ 数值逐位不变。
+  if (disable_spatial_field) {
+    ncfg.enable_spatial_field = 0;
+    out.diag["noise_spatial_field_disabled"] = true;
   }
   // 自适应 patch 网格（调用方职责，非公式变更）：默认 8x8 网格要求每 patch
   // >= min_patch_samples(64) 个天空样本；小画幅帧（如测试 fixture 32x32）
@@ -5503,7 +5590,7 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
   std::vector<int> f_errkind(nz_lights, 0);   // 0=无 1=input 2=noise_model_config 3=abi_or_input
   std::vector<Json> f_frame(nz_lights);
   std::vector<Json> f_diag(nz_lights);
-  p1_parallel_for(nz_workers, nz_lights, [&](uint64_t fi, uint32_t) {
+  p1_parallel_for(nz_workers, nz_lights, p1_workers(doc), [&](uint64_t fi, uint32_t) {
     // cosmetic 下游（cos → psf → phot → snr）: 消费 artifact:cos 产物
     const std::string path =
         p1_cleaned_input_path(doc, doc["input_lights"][fi].get<std::string>());
@@ -5536,9 +5623,12 @@ Result<void> p1_op_noise(const Json& doc, Json* man) {
     const Json* nm_src = find_src_frame(base);
     // A 的唯一调用面（NOISE-MODEL-CANON-002）: 与 drizzle 节点的逐像素 variance
     // 帧内块共用 p1_noise_model_for_frame, 禁止第二份配置推导副本。
+    // 本节点消费 cosmetic 下游的 cleaned_<base> 面（ADU 标度，见 p1_snr.json 的
+    // background/frame_depth_flux5_adu 均为 ADU）⇒ 数组标度 α=1，floor 1e-12 ADU²
+    // 量纲正确，逐位不变（SCI-NOISE §3/§7）。
     P1NoiseFrameModel nmc = p1_noise_model_for_frame(
         nm_data, im_f64, static_cast<int>(im.h()), static_cast<int>(im.w()),
-        path, snr_cfg, nm_src);
+        path, snr_cfg, nm_src, /*data_scale=*/1.0, /*disable_spatial_field=*/false);
     // 调用侧适配事实（键名与既有 manifest 键一致；未适配的键不出现）。
     // PERF-P1: 写入 man 的动作移出并行体（逐帧暂存，join 后按帧序覆盖）。
     f_diag[fi] = nmc.diag;
@@ -6009,7 +6099,7 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
   std::vector<bool> f_skip(drz_n, false);          // FAILSEM-01: 上游已判 fail 的帧
   std::vector<std::string> f_skip_reason(drz_n);
   std::vector<std::string> f_skip_status(drz_n);
-  p1_parallel_for(drz_workers, drz_n, [&](uint64_t fi, uint32_t) {
+  p1_parallel_for(drz_workers, drz_n, p1_workers(doc), [&](uint64_t fi, uint32_t) {
     const std::string lp = doc["input_lights"][fi].get<std::string>();
     // [RELEASE-02 probe] 逐帧热点: drizzle
     ASTROCS_PROBE_SCOPE_CTX(_probe_drz_frame, "phase1", "drizzle.frame");
@@ -6336,8 +6426,15 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
       } else {
         const Json snr_cfg = (doc.contains("snr") && doc["snr"].is_object())
                                  ? doc["snr"] : Json::object();
+        // 数组标度 α（SCI-NOISE §3/§7 + SNR-002）: frame_applied ⇒ 本帧消费
+        // photoapplied_<base>，像素值 = α·ADU（α = frame_photscal ≈ 1e-17）；
+        // 噪声模型的 variance_floor（冻结单位 ADU²）必须按 α² 换算到同一标度，
+        // 否则 max(plane, floor) 把整帧钳成常数（见 p1_noise_model_for_frame）。
+        // 未施加测光（显式 ADU 降级面）时 α=1，逐位不变。
+        const double nm_data_scale = frame_applied ? frame_photscal : 1.0;
         P1NoiseFrameModel nmc = p1_noise_model_for_frame(
-            nm_data, nm_is_f64, im.h(), im.w(), frame_path, snr_cfg, nm_src);
+            nm_data, nm_is_f64, im.h(), im.w(), frame_path, snr_cfg, nm_src,
+            nm_data_scale, /*disable_spatial_field=*/false);
         // 调用侧适配事实（与 p1_op_noise 同键名, 只增诊断不改数值）。
         // PERF-P1: 暂存到本帧槽；写入 man 的动作在 join 后按帧序复现（并行体不写 man）。
         f_var_diag[fi] = nmc.diag;
@@ -6369,18 +6466,62 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                        " signal/support (ASTROCS_DESIGN 7.1a clause 8)";
         } else {
           std::vector<float> var_plane(static_cast<size_t>(n_px), 0.0f);
-          const int fill_rc = snr_noise_model_v1_fill(&nmc.model, im.h(), im.w(),
-                                                      var_plane.data(), nullptr);
-          bool plane_ok = (fill_rc == 0);
-          for (size_t i = 0; plane_ok && i < var_plane.size(); ++i) {
-            const float v = var_plane[i];
-            if (!(std::isfinite(v) && v > 0.0f)) plane_ok = false;
+          // 平面可用性判据 = fill 成功 **且** 逐像素有限正（既有判据，逐字保留）。
+          auto fill_plane = [&](P1NoiseFrameModel& m) -> bool {
+            std::fill(var_plane.begin(), var_plane.end(), 0.0f);
+            if (snr_noise_model_v1_fill(&m.model, im.h(), im.w(),
+                                        var_plane.data(), nullptr) != 0) {
+              return false;
+            }
+            for (size_t i = 0; i < var_plane.size(); ++i) {
+              const float v = var_plane[i];
+              if (!(std::isfinite(v) && v > 0.0f)) return false;
+            }
+            return true;
+          };
+          bool plane_ok = fill_plane(nmc);
+          bool plane_invalid_fallback = false;
+          if (!plane_ok) {
+            // ── fail-closed 退化：线性平面不是合法方差场 ─────────────────────
+            // SCI-NOISE §5 的平面是**外推**模型：控制点方差恒正，但最小二乘平面
+            // 可在帧内取非正值（M42 真实帧实测：16.25% 像素为负，角点 −515 ADU²，
+            // 连自己的控制点都 misfit）。§7 明令「clamp **只作用于可用方差**；
+            // **不可用一律 ivar=0（不得由 clamp 产生）**」——此时若按 §5 把负预测
+            // clamp 到 variance_floor：(i) 会把不可用方差伪造成可用权重
+            // （ivar=1/floor 比物理 ivar 大 ~1e14 倍）；(ii) 换算到数组标度后
+            // floor=α²·1e-12≈5.7e-46 **在 float32 下下溢为 0**，而 drizzle
+            // （drizzle_engine.cpp:2029）对 varianceValue<=0 是**整像素 continue**
+            // ⇒ 连 signal/support 一起丢（ASTROCS_DESIGN §7.1a 条款 8）。
+            // 故退回 SCI-NOISE §4/§5 **已规定的**全局常量场
+            // （variance_bg_global = 合格 patch variance 的稳健中位数），并显式
+            // 登记降级（不静默、不挂会破坏数据的块）。数值上：平面合法帧逐位不变。
+            P1NoiseFrameModel nmc_global = p1_noise_model_for_frame(
+                nm_data, nm_is_f64, im.h(), im.w(), frame_path, snr_cfg, nm_src,
+                nm_data_scale, /*disable_spatial_field=*/true);
+            const bool global_ok =
+                (nmc_global.rc == 0) && (nmc_global.model.degenerate == 0);
+            if (global_ok && fill_plane(nmc_global)) {
+              snr_noise_model_v1_free(&nmc.model);   // 与 v1 成对（DISP-NOISE-001/009）
+              nmc = nmc_global;                      // 所有权转移（下方统一 _free）
+              f_var_diag[fi] = nmc.diag;
+              var_diag["spatial_plane_invalid_fallback_global"] = true;
+              plane_ok = true;
+              plane_invalid_fallback = true;
+              var_status = "attached_global_field_plane_invalid";
+              var_reason = "spatial plane is not a valid variance field (fill failed or"
+                           " holds a non-positive value); fell back to the SCI-NOISE"
+                           " §4/§5 global constant field (variance_bg_global) —"
+                           " explicit degradation, signal/support preserved";
+            } else {
+              snr_noise_model_v1_free(&nmc_global.model);
+            }
           }
           if (!plane_ok) {
             var_status = "skipped_fill_failed";
-            var_reason = "snr_noise_model_v1_fill rc=" + std::to_string(fill_rc) +
-                         " or plane holds a non-positive/non-finite value;"
-                         " refusing to attach a block that would drop pixels";
+            var_reason = "snr_noise_model_v1_fill failed (non-zero rc) or the plane"
+                         " holds a non-positive/non-finite value, and the global"
+                         " constant-field fallback was unavailable; refusing to attach"
+                         " a block that would drop pixels";
           } else {
             const int vrc = aio_frame_add_block(
                 frame, "variance", AIO_BLOCK_FLOAT32, var_plane.data(),
@@ -6395,13 +6536,15 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                   "drizzle variance block add failed rc=" + std::to_string(vrc)));
               return;
             }
-            var_status = "attached";
-            var_reason = "ok";
+            if (!plane_invalid_fallback) {   // 降级声明不得被默认状态覆盖
+              var_status = "attached";
+              var_reason = "ok";
+            }
           }
         }
         snr_noise_model_v1_free(&nmc.model);   // 与 v1 成对（DISP-NOISE-001/009）
       }
-      if (var_status != "attached") {
+      if (var_status.rfind("attached", 0) != 0) {
         std::fprintf(stderr,
                      "[drizzle_node][variance] %s: %s (frame %s) -- variance 块不挂,"
                      " signal/support 产品面不受影响（显式降级, 非静默）\n",
