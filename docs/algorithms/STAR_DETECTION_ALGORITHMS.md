@@ -17,7 +17,7 @@
 - SCI-PSF-001（PSF 拟合共享 SCI）：星检测为 PSF 拟合与 plate solve 提供候选/中心，
   本文档只登记检测侧算法事实，不修改共享 SCI。
 - 输入: 单帧图像（生产通道 FP64 `double` 或 FP32 经 uint16 量化，`[h·w]` 行主序，ADU）
-  + SDetParams 参数（star_detector.h:13-24）。
+  + SDetParams 参数（star_detector.h:14-23）。
 - 输出: 逐星 `(cx,cy,flux,mag,saturated,has_saturated)` 十数组（`double*/float*/int*`，
   malloc 由调用方 `sdet_free_detect_ex` 释放）+ 可选 extras 列。
 - 生产调用: orchestrator.cpp:2067 run_stage_psf（PSF/STAR_MEASURE 阶段，一帧一次
@@ -213,7 +213,7 @@ sdet_detect_impl(image, w, h, params):            # sdet_api.cpp:1749-2499
 | sdet_detect_saturated_stars | :675-775 | 半阈值 CC 饱和检测（debug 路径） |
 | get_extra_field / parse_extra_name | :778-819 | extras 列解析 |
 
-SDetParams 9 字段（star_detector.h:13-24）生产消费面（DISP-STAR-003）:
+SDetParams 9 字段（star_detector.h:14-23）生产消费面（DISP-STAR-003）:
 maxStars（:2028-2034/:2240-2242）、maxAxisRatio（:2143-2145）完整消费；
 fitRadius 仅驱动 auto 半径日志推导（:2024-2026，阶段6 实际用 per-candidate R
 :2039）；fwhmClipSigma 仅 debug 入口消费（:1450-1452，impl 阶段8 已移除全局

@@ -22,7 +22,7 @@
 | `cd_inv` | `CD^{-1}` 线性逆 `pixel/arcsec`（仅 SIP 换算） | `ipv_wcs.cpp:328-331` |
 | `trans` | IPV 求解的畸变多项式（含 `x_ij,y_ij`） | 求解器 |
 | `A/B` | SIP 前向畸变系数 `1/pixel^{i+j-1}` | `ipv_wcs.cpp:340-356` |
-| `AP/BP` | SIP 逆向系数 | `ipv_wcs.cpp:463-464` |
+| `AP/BP` | SIP 逆向系数 | `ipv_wcs.cpp:464` |
 | `RA,Dec` | 天球坐标 J2000 deg | 输出 |
 | `θ_q, radius` | 查询锥球心距/半径 | `gaia_client.c` |
 | `C, C45` | 极区平面 Lipschitz `π/2≈1.5708`, `π/(2√2)≈1.1107` | 极区 prune |
@@ -79,7 +79,7 @@ Y-up → Y-down 转换 (FITS 1-based 输出):
   `trans`/SIP 拟合自变量是 **sdet 半整数像素中心** `det_x = i + 0.5`（`i` 为 0-based 数组下标；
   `lib/algorithms/star_detection/src/sdet_api.cpp:546-549`），`u = det_x − w/2`
   （`lib/algorithms/platesolve/cpp/ipv/src/ipv_select.cpp:943,947` 取 `cx = img_w/2.0`），
-  `CRPIX = w/2 + 0.5`（`lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:158-162`）。因
+  `CRPIX = w/2 + 0.5`（`lib/algorithms/platesolve/cpp/ipv/src/ipv_wcs.cpp:159-162`）。因
   `p = det_x + 0.5 = i + 1`，故 **`u = det_x − w/2 = p − CRPIX` 就是 Paper I §2.1.1 的 `q`**；
   迭代反演 `out.x = u + CRPIX`（`ipv_wcs.cpp:942-946`）返回的是 **1-based FITS 像素 `p`**
   （参考像素 `det_x = w/2` ⟺ `p = CRPIX`）。**无 1px 原点差、无"常量 1px 平移"。**

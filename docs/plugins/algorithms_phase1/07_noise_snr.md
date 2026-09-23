@@ -133,7 +133,7 @@ w_k = 1/σ_F,k² = SNR_k(F_ref,k)² / F_ref,k²   ⇒  w_k ∝ SNR_k²（配对�
 
 ### 4.4 噪声模型：A 为唯一生产模型
 
-- **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt:644-659` 的 `astrocs_phase1_noise`（STATIC），主程序链接 `:747`。
+- **噪声模型 A 为唯一生产模型**：实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp`，接口 `snr_noise_model_v1` / `_f64` / `_fill` + `NoiseWeightModelV1`（**逐像素**），编入根 `CMakeLists.txt:645-659` 的 `astrocs_phase1_noise`（STATIC），主程序链接 `:747`。
 - 模型定义、参数语义、稳健噪声估计与掩膜规则的正本见 `docs/science/NOISE_MODEL.md`；本文件只登记插件侧接口与接线事实，不复制公式。
 - **逐像素方差接线现状（如实登记）**：A 已编入 `astrocs_phase1_noise` 并链入主程序，但生产调度路径（`module_adapters.cpp`）尚未挂 `variance` 块 ⇒ `hp_drizzle_api.cpp:1024` 读不到 ⇒ `astro_sphere_sink.cpp:306–327` 不产出 variance/ivar 子产品面 ⇒ `p2_integrated.json` 报 `uncertainty_available=false`（原因 `ivar_product_missing_frame_snr_fallback`）。
 - **接入义务**：把 `orchestrator` 的逐像素方差接线（`orchestrator.cpp:4694-4839`）搬进 `scheduler`，使生产产出逐像素 `variance`/`ivar` 产品面；接入并验证后删除 `lib/infrastructure/pipeline/orchestrator/cpp/` 与 v6 家族（最高设计 §8.2）。

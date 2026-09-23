@@ -64,7 +64,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 - **FWHM 缩放不变量**：各向同性 Moffat4 的 `FWHM/σ` 比值恒为 `1.230310`，与 `A,B` 无关。
 - **积分一致性**：各向同性 `σ` 的解析 `flux` 在数值积分（足域）内与 `A,σ` 的 `2πAσ²/3` 比例一致（误差仅离散域/截断）。
-- **旋转简并不变量**：`θ` 四候选 `{θ,π/2−θ,π/2+θ,π−θ}` 中以 trimmed-mad 最小者消歧后，`fwhm_x/y` 与方向无关（`dpsf_psf.cpp:351-363`）。
+- **旋转简并不变量**：`θ` 四候选 `{θ,π/2−θ,π/2+θ,π−θ}` 中以 trimmed-mad 最小者消歧后，`fwhm_x/y` 与方向无关（`dpsf_psf.cpp:352-363`）。
 - **平移不变量**：整帧平移 `Δ` 后拟合中心 `cx+x0` 同步平移 `Δ`（子像素插值误差内）。
 
 ## 8 极端/退化条件
@@ -80,7 +80,7 @@ flux = 2πA·sxsy/3   (整平面延伸假设)
 
 ## 9 精度策略
 
-- FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:98-182`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:95`）用于 `robust_residual_sigma`，仅 Gaussian 假设下有尺度意义。
+- FP64 拟合 LM 求解器 `lm_solve`（`dpsf_psf.cpp:98-181`），仅 7 参数 Moffat4 路径；`kTrimMeanToSigma=0.7316727929211932` 解析常数（`noise_model.cpp:95`）用于 `robust_residual_sigma`，仅 Gaussian 假设下有尺度意义。
 
 ## 9a 专属问题回答（SCI-002 指定问题逐项）
 

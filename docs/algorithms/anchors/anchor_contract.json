@@ -3,8 +3,7 @@
   "task": "SCI-ANCHOR-001",
   "note": "ALG/SCI 文档源码行号锚冻结合同：解析规则(resolvers)、已知豁免(exemptions)、符号绑定(bindings)。语义与维护义务见同目录 ANCHOR_CONTRACT.md。",
   "doc_globs": [
-    "docs/science/*.md",
-    "docs/algorithms/*.md"
+    "docs/**/*.md"
   ],
   "resolvers": [
     {
@@ -102,6 +101,72 @@
       "basename": "NOISE_MODEL.md",
       "path": "docs/science/NOISE_MODEL.md",
       "why": "裸 NOISE_MODEL.md 锚指 SCI 冻结文档；reports/ 下同名审计报告使 basename 不再唯一，显式钉死"
+    },
+    {
+      "doc": "docs/contracts/DATA_SEMANTICS.md",
+      "basename": "api.cpp",
+      "path": "lib/algorithms/drizzle/healpix_drizzle/hp_drizzle_api.cpp",
+      "why": "§10 drizzle 段的裸 api.cpp = drizzle C API 实现，与 DRIZZLE_GEOMETRY.md 同一目标（ARCH-001 迁移后现址 lib/algorithms/drizzle/healpix_drizzle）"
+    },
+    {
+      "doc": "docs/contracts/PUBLIC_API.md",
+      "basename": "build.ps1",
+      "path": "lib/algorithms/noise_snr/cpp/build.ps1",
+      "why": "同句已写「头: lib/algorithms/noise_snr/cpp/include/snr_estimator.h … 现状构建=cpp/Makefile:5,12 … + cpp/build.ps1:29」，cpp/ 即 lib/algorithms/noise_snr/cpp/"
+    },
+    {
+      "doc": "docs/contracts/PUBLIC_API.md",
+      "basename": "star_detector.h",
+      "path": "lib/algorithms/star_detection/include/star_detector.h",
+      "why": "该节逐行锚 sdet_create/sdet_destroy/sdet_detect/sdet_detect_ex(_f64)/sdet_free_*/SDetParams 只存在于 include/star_detector.h（wrapper_phase1/star_detector.h 无这些符号）"
+    },
+    {
+      "doc": "docs/modules/registry/astrocs.phase1.noise-snr.md",
+      "basename": "build.ps1",
+      "path": "lib/algorithms/noise_snr/cpp/build.ps1",
+      "why": "页内自述「现行生产实现 lib/algorithms/noise_snr/cpp/（现状构建=cpp/Makefile:5,12 … + cpp/build.ps1:29）」"
+    },
+    {
+      "doc": "docs/modules/registry/astrocs.phase1.photometry.md",
+      "basename": "build.ps1",
+      "path": "lib/algorithms/photometry/cpp/build.ps1",
+      "why": "页内自述「现行生产实现 lib/algorithms/photometry/cpp/（现状构建=cpp/Makefile:11 … + cpp/build.ps1:9）」"
+    },
+    {
+      "doc": "docs/modules/registry/astrocs.phase1.wcs-platesolve.md",
+      "basename": "build.ps1",
+      "path": "lib/algorithms/platesolve/cpp/ipv/build.ps1",
+      "why": "页内自述「现状构建 cpp/ipv/build.ps1:27 / Makefile:6 → ipv_solver.dll」，模块根 lib/algorithms/platesolve/"
+    },
+    {
+      "doc": "docs/modules/photometric_calib.md",
+      "basename": "build.ps1",
+      "path": "lib/algorithms/photometry/cpp/build.ps1",
+      "why": "页内自述「现状构建= cpp/Makefile:11 + build.ps1:9（photometric_calib.dll）」，cpp/ 属 lib/algorithms/photometry/cpp/"
+    },
+    {
+      "doc": "docs/references/SCIENTIFIC_REFERENCES.md",
+      "basename": "healpix_core.cpp",
+      "path": "lib/algorithms/shared/healpix/healpix_core.cpp",
+      "why": "同行自述「本仓 healpix_core.cpp:338-340 自述移植自 Healpix_3.83」；:338 正是该自述注释，drizzle 副本无此注释"
+    },
+    {
+      "doc": "docs/contracts/DATA_ARTIFACTS.md",
+      "basename": "resample2.md",
+      "path": "docs/modules/registry/astrocs.phase3.resample2.md",
+      "why": "原文以省略号截断写「…resample2.md:71」，被引文档即 docs/modules/registry/astrocs.phase3.resample2.md"
+    },
+    {
+      "doc": "docs/contracts/DATA_ARTIFACTS.md",
+      "basename": "properties.md",
+      "path": "docs/modules/registry/astrocs.phase3.properties.md",
+      "why": "原文以省略号截断写「…properties.md:22」，被引文档即 docs/modules/registry/astrocs.phase3.properties.md"
+    },
+    {
+      "doc": "docs/algorithms/PHASE3_RSMP_IMPL.md",
+      "basename": "module_entry.cpp",
+      "path": "lib/algorithms/drizzle/src/module_entry.cpp",
+      "why": "DISP-P3RSMP-006 行自述「drizzle 先例 module_entry.cpp:971 的 n_rejected_nonfinite」；全仓 5 个 module_entry.cpp 中只有 lib/algorithms/drizzle/src/module_entry.cpp:971 是 \"n_rejected_nonfinite\" 聚合键，其余 4 个该行无此键"
     }
   ],
   "exemptions": [

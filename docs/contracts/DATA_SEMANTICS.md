@@ -301,8 +301,8 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 
 | 块/参数 | dtype/shape | 单位/域 | invalid / NULL 语义 |
 |---|---|---|---|
-| "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（hp_drizzle_api.cpp:583-630） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；**值 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**（**2026-09-20 订正**：原文「值 NaN/Inf 静默跳过（等效掩膜，不进累加器，无计数暴露——DISP-DRZ-004，drizzle_engine.cpp:1712）」**已作废**——实现 `drizzle_engine.cpp:1898-1902` 自述「旧 `isfinite(...)+continue` 静默吞像素已删除」，科学锚 `docs/science/DRIZZLE.md:116`，回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537`（`p1drz_negative`）；原锚 `api.cpp:486-503` 的 `api.cpp` 在本仓不存在，已重锚为 `hp_drizzle_api.cpp`） |
-| "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（hp_drizzle_api.cpp:427-448，`read_wcs_params_from_frame`）；CDELT+CROTA2 构造 CD（hp_drizzle_api.cpp:434-443）。（**2026-09-20 订正**：原锚 `api.cpp:541-545` / `api.cpp:538` 的 `api.cpp` 在本仓不存在且行号已漂移，已重锚） |
+| "data" 块 | float32 或 float64（二选一）`[H][W]` 行主序（hp_drizzle_api.cpp:583-630） | ADU | 多通道 channels≠1 拒绝（BLOCKER）；**值 NaN/Inf 经 `F_p=Σx_j·w_jp` 直接传播、drizzle 层不掩膜**（**2026-09-20 订正**：原文「值 NaN/Inf 静默跳过（等效掩膜，不进累加器，无计数暴露——DISP-DRZ-004，drizzle_engine.cpp:1713）」**已作废**——实现 `drizzle_engine.cpp:1899-1902` 自述「旧 `isfinite(...)+continue` 静默吞像素已删除」，科学锚 `docs/science/DRIZZLE.md:116`，回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537`（`p1drz_negative`）；原锚 `api.cpp:486-503` 的 `api.cpp` 在本仓不存在，已重锚为 `hp_drizzle_api.cpp`） |
+| "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（hp_drizzle_api.cpp:427-447，`read_wcs_params_from_frame`）；CDELT+CROTA2 构造 CD（hp_drizzle_api.cpp:434-443）。（**2026-09-20 订正**：原锚 `api.cpp:541-545` / `api.cpp:538` 的 `api.cpp` 在本仓不存在且行号已漂移，已重锚） |
 | "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（hp_drizzle_api.cpp:451-505；**2026-09-20 订正**：原锚 `api.cpp:552-557` 的 `api.cpp` 在本仓不存在且行号已漂移）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001）。**B2-A17**：编排 drizzle 节点从 `p1_wcs.json` 读回 `wcs.sip`，经 `p1_sip_write_header_frame` 写 frame header `CTYPE1/2`（含 `-SIP`）、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键（module_adapters.cpp p1_op_drizzle）。 |
 | "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界缺省 **FP64**（不再静默 FP32；权威 = docs/algorithms/DRIZZLE_GEOMETRY.md `RESCUE-FD-02 库边界精度缺省` + 实现锚 `hp_drizzle_api.cpp:956-991` + 回归 `eng/tests/unit/drizzle_precision_default_test.cpp`；**语义不变**），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325）。**B2-A12**：P1 drizzle 节点不再写死 "0"，按 `drizzle.precision_mode` 写实际精度；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
 | "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`，引擎显式降级写 `BUNIT=ADU`（`drizzle_engine.cpp:1950-1956`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
@@ -340,7 +340,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   ivar=1/variance 的归一与 NaN 语义在 astro_image_io finalize 层
   （variance = var_num_sum/covered_area²，covered_area≤0 → NaN）。
 - 确定性: 同输入同线程数 bitwise 可复现（schedule(static) + 按线程序
-  合并，drizzle_engine.cpp:1670-1671,1762-1785；1/N 合同见
+  合并，drizzle_engine.cpp:1671,1762-1785；1/N 合同见
   ALG-DRZ-001 §6）。
 - 取消: 模块内无取消机制（长 run 不可中断；编排取消点=帧/tile 粒度
   为编排层合同，PHASE1_API_V1 头部）。
@@ -620,7 +620,7 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 ### 15.2 输出
 
 **布局 A：编排层 `psf` 块（必需块，PHOTOMETRIC 消费，缺失退出码 3，
-orchestrator.cpp:2563-2570）**——DPSFFitResult 序列化（:2376-2387）：
+orchestrator.cpp:2564-2570）**——DPSFFitResult 序列化（:2376-2387）：
 
 | 列 | dtype/单位 | 语义 / invalid |
 |---|---|---|
@@ -758,7 +758,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 - API-P1-001 冻结 7-stage 序列与现状 4 段（CAL+COS）的差距在
   lib/phase1_session/README.md §3 如实声明；补齐归 P1-SESSION-IMPL。
 - assembly 层禁止声明 IMPLEMENTED 于无证据处；descriptor 端口编目
-  （module_adapters.cpp:316-606）与本节冲突时以本节+各冻结 DATA 节为准。
+  （module_adapters.cpp:317-606）与本节冲突时以本节+各冻结 DATA 节为准。
 
 ## 17. Phase1 star-detection 模块输入/输出数据（DATA-P1-STAR）
 
@@ -780,9 +780,9 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 |---|---|---|---|
 | image | uint16（FP32 通道，float→uint16 clamp [0,65535] 转换，orchestrator.cpp:2179-2187，DISP-STAR-001）/ double（FP64 通道全程不降级，PREC-105 同族）`[h·w]` 行主序 0-based | ADU | NULL / h≤0 / w≤0 → rc=−1（sdet_api.cpp:1612、:2325、:2340） |
 | handle（sdet_create 预建，orchestrator.cpp:1593-1612 参数构造） | StarDetectorHandle | — | NULL → −1；句柄级互斥使用（PHASE1_API_V1 §2 表行 handle 级 no/no）；SDetParams 9 字段生产消费面缺口=DISP-STAR-003（ALG-STARDET-001 §11.1/§11.3） |
-| extra_names / extra_count | const char** / int | — | 可 NULL/0（生产调用传 nullptr,0，orchestrator.cpp:2175-2177、:2195-2196）；名称解析 parse_extra_name（sdet_api.cpp:779-802），不识别名该列全 0 |
+| extra_names / extra_count | const char** / int | — | 可 NULL/0（生产调用传 nullptr,0，orchestrator.cpp:2175-2176、:2195-2196）；名称解析 parse_extra_name（sdet_api.cpp:780-802），不识别名该列全 0 |
 
-### 17.2 输出（malloc 10 数组，唯一释放入口 sdet_free_detect_ex，sdet_api.cpp:2357-2373）
+### 17.2 输出（malloc 10 数组，唯一释放入口 sdet_free_detect_ex，sdet_api.cpp:2357-2372）
 
 | 数组 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
@@ -817,7 +817,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 
 ### 17.3 排序/截断/精度规则（汇总）
 
-- 输出全序：mag 升序 stable_sort + NaN 末尾（sdet_api.cpp:941-956）；
+- 输出全序：mag 升序 stable_sort + NaN 末尾（sdet_api.cpp:942-956）；
   dedup（饱和优先保、正常星 d²≤1.0，:822-939）；输出层 maxStars 截断保最亮
   （:2240-2242），候选层截断 maxStars×2（:2028-2034）。
 - FP64 通道（sdet_detect_ex_f64，:2343-2355）全程 double 不降级，仅
@@ -862,7 +862,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 | n_detections | int | — | 过滤后 0 星 → BLOCK_MISSING（orchestrator.cpp:1895-1900）；<3 星求解器显式失败 |
 | image_width/height | int | pixel | 边缘过滤 5px 裁剪（:1866-1868） |
 | ra0/dec0（OBJCTRA/OBJCTDEC，header 必需；config 可覆盖 initial_ra/initial_dec/focal_length/pixel_size） | double | deg | 缺失 → 阶段失败（:1933-1944 约束注释：必须使用 OBJCTRA/OBJCTDEC 作初始指向） |
-| focal_length_mm/pixel_size_um（FOCALLEN/XPIXSZ） | double | mm / μm | 驱动 s0=206.265·pixel_um/focal_mm（ipv_select.cpp:49,:253）；畸值 → 匹配失败显式 NO_SOLUTION |
+| focal_length_mm/pixel_size_um（FOCALLEN/XPIXSZ） | double | mm / μm | 驱动 s0=206.265·pixel_um/focal_mm（ipv_select.cpp:50,:253）；畸值 → 匹配失败显式 NO_SOLUTION |
 | star_measurements（orchestrator 侧权威源，非 C ABI 直入） | FLOAT64 `[N,≥15]` 行主序 | 列 0 star_id,1 x,2 y,3 flux_inst,4 flux_unc,5 background,6 psf_status,7 fwhm,8 A,9 B,10 mad,11 ecc,12 mag,13 saturated,14 has_saturated（:1846-1849） | 缺失/格式错 → BLOCK_MISSING（:1830-1839）；过滤 status∉{0,3}、sat r[13]、fwhm r[7]∉[0.5,20]、边缘 5px（:1852-1862） |
 | star_det（fallback 源，orchestrator 侧） | FLOAT64 `[N,6]` | DATA-P1-STAR §17.2 编排序列化 | 仅 PSF 有效星不足时补充（显式 DETECTOR_FALLBACK）；坐标已是 +0.5 契约（:1878）；严重饱和（d[4]/d[5]≠0）排除；与 PSF 星 <0.5px 去重（:1891-1897） |
 | gaia 句柄（ipv_set_gaia_handle） | intptr_t | Gaia DR3SP | 调用方保证生存期；句柄级互斥 |
@@ -882,7 +882,7 @@ config 在 run 内二次解析（validate 先行的合同，:155-159 parse 失�
 | ctype1/ctype2[16] | char | "RA---TAN(-SIP)"/"DEC--TAN(-SIP)" | — |
 | error_msg[256] | char | — | 空串=无错；NULL 参数/C++ 异常填充（ipv_entry.cpp:181-187/:218-224） |
 
-- 编排写回（唯一权威落位，orchestrator.cpp:2003-2050）：header KV
+- 编排写回（唯一权威落位，orchestrator.cpp:2003-2049）：header KV
   CTYPE1/2、CRVAL1/2、CRPIX1/2、CD1_1/CD1_2/CD2_1/CD2_2、RADESYS=ICRS、
   EQUINOX=2000.0；sip_order>0 时 A_ORDER/B_ORDER + A_i_j/B_i_j；
   ap_order>0 时 AP_ORDER/BP_ORDER + AP_i_j/BP_i_j。求解失败 →
@@ -992,14 +992,14 @@ default）：
 | 字段 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
 | n_inputs | uint64 标量 | 无量纲 | 回填实际帧数（:216） |
-| inputs | P2HipsInputInfo `[n_inputs]` 调用方分配（coverage.h:31-38） | — | union_cells/inputs 非空才回填（:219-228）；两阶段第一次调用不写 |
+| inputs | P2HipsInputInfo `[n_inputs]` 调用方分配（coverage.h:32-38） | — | union_cells/inputs 非空才回填（:219-228）；两阶段第一次调用不写 |
 | n_union_cells | uint64 标量 K | 无量纲 | 两阶段第一次调用即有效（容量查询，:218） |
-| union_cells | P2MocCell `[K]` 调用方分配（coverage.h:26-29） | order=uint64（=target_order，:221）、ipix=uint64（NESTED 父单元索引，<12·4^order，去重升序 :212-214） | 第二次调用回填（:219-224）；K=0 合法（空 MOC，rc=0） |
+| union_cells | P2MocCell `[K]` 调用方分配（coverage.h:27-29） | order=uint64（=target_order，:221）、ipix=uint64（NESTED 父单元索引，<12·4^order，去重升序 :212-214） | 第二次调用回填（:219-224）；K=0 合法（空 MOC，rc=0） |
 | target_order | int 标量 | 无量纲（HEALPix order） | = min(逐帧 hips_order)（:194-196，冻结：禁低 order 插值伪装分辨率） |
 | status | int | 0=ok（:229） | 错误路径 1（:168/:177/:190/:200）；"no inputs" 分支 rc=1 而 status=0（DISP-COV-001） |
 | error | char[512] | — | rc=1 时载因；memset（:151）先于各错误分支 strncpy（如 :155），error 有效 |
 
-P2HipsInputInfo 逐字段（coverage.h:31-38，回填锚 :113-143）:
+P2HipsInputInfo 逐字段（coverage.h:32-38，回填锚 :113-143）:
 
 | 字段 | dtype/shape | 单位/值域 | invalid |
 |---|---|---|---|
@@ -1260,7 +1260,7 @@ signal 回读失败 rc=7 :1665）。
 ## 21. Phase2 integration（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-INT）
 
 > ID: DATA-P2-INT  状态: CONTRACT_READY（P2-INT-DOC 冻结，2026-09-09）
-> 模块: lib/algorithms/coverage/src/integrate.cpp（76 行）+ 唯一权威签名头
+> 模块: lib/algorithms/coverage/src/integrate.cpp（81 行）+ 唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）
 > （astrocs.p2.integration；合同三件套 lib/algorithms/integration/，迁移目标
 > astrocs_p2_integration.dll 为矩阵合同值，尚未存在，由 P2-INT-IMPL
@@ -1362,8 +1362,8 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 ## 22. Phase2 rejection（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-REJ）
 
 > ID: DATA-P2-REJ  状态: CONTRACT_READY（P2-REJ-DOC 冻结，2026-09-09）
-> 模块: lib/algorithms/coverage/src/rejection.cpp（2076 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/rejection.h（329 行）
+> 模块: lib/algorithms/coverage/src/rejection.cpp（2949 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/rejection.h（595 行）
 > （astrocs.p2.rejection；合同三件套 lib/algorithms/rejection/，迁移目标
 > astrocs_p2_rejection.dll 为矩阵合同值，尚未存在，由 P2-REJ-IMPL
 > 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 候选栈排异内核
@@ -1412,7 +1412,7 @@ Input: `values` const void*（frame-major，value_dtype 0=fp32/1=fp64，
 u64 可空（紧凑、帧序一一对应）；count/pixel；support_threshold 与
 quality_flags_required 语义同 (1)。
 
-Output → 紧凑 P2CandidateStack（kernel 输入，rejection.h:266-273）:
+Output → 紧凑 P2CandidateStack（kernel 输入，rejection.h:267-273）:
 
 | 字段 | dtype/shape | 单位/域 | 可空语义 | 约束 |
 |---|---|---|---|---|
@@ -1455,7 +1455,7 @@ eligible 位图 `[count]`，V15FilterAllPolicies :4337）。
   :174-177；profile 版本化，生产默认 astrocs_adaptive_pixel）；kernel 永不接收 AUTO
   （:285 注释，违规→INVALID_METHOD :1688-1701）。
 
-### 22.2 输出（P2RejectionDecision，rejection.h:275-283）
+### 22.2 输出（P2RejectionDecision，rejection.h:276-283）
 
 | 字段 | dtype/shape | 单位/值域 | invalid/未定 |
 |---|---|---|---|
@@ -1556,8 +1556,8 @@ plan_resolve :1031-1046；gather/eligibility :1129-1140/:1152-1163）。
 ## 23. Phase2 sampling（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-SMP）
 
 > ID: DATA-P2-SMP  状态: CONTRACT_READY（P2-SAMP-DOC 冻结，2026-09-09）
-> 模块: lib/algorithms/coverage/src/sampler.cpp（1156 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行）
+> 模块: lib/algorithms/coverage/src/sampler.cpp（1536 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（288 行）
 > （astrocs.p2.sampling；合同三件套 lib/algorithms/sampling/，迁移目标
 > astrocs_p2_sampling.dll 为矩阵合同值，尚未存在，由 P2-SAMP-IMPL
 > 建立，禁止声明 IMPLEMENTED）。本节是 Phase2 background-clean 控制
@@ -1583,7 +1583,7 @@ rc=1（:656-669）。
 | hips_paths | const char* const* `[n_inputs]` | HiPS 根路径（AIO 打开 signal/support/snr/ivar :529-546） | 不可空 | — |
 | frame_ids（cached 版） | const u64 `[n_inputs]` | 无量纲内容稳定帧标识（DATA-FRAME-ID-001，sampler.h:85-93 冻结） | 可空=实现内部 p2_frame_id 重算（:315-318）；0=非法哨兵（:512-523，sampler.h:117 冻结注释） | 与 hips_paths 同序（h:123） |
 
-**(3) cfg**（P2SamplerConfig，sampler.h:32-57，15 字段；默认值
+**(3) cfg**（P2SamplerConfig，sampler.h:33-57，15 字段；默认值
 p2_sampler_default_config 单一来源 sampler.cpp:294-312；显式
 cfg 覆盖；`<=0` 数值字段经 :485-502 修补回退默认——显式 0 被吞=
 DISP-P2SMP-001；control_k_corr<=0 → 冻结默认 1.4 :497-498）:
@@ -1727,7 +1727,7 @@ u64。out_n_controls = n_union×G² **全几何节点含空覆盖占位**
 
 > ID: DATA-P2-SESSION  状态: CONTRACT_READY（P2-SESSION-DOC 冻结，
 > 2026-09-10，SA-P2-X24）
-> 模块: lib/phase2_session/p2_session.cpp（282 行）+ 唯一权威签名头
+> 模块: lib/phase2_session/p2_session.cpp（318 行）+ 唯一权威签名头
 > lib/phase2_session/p2_session.h（39 行）（astrocs.p2.session；构建=
 > 静态库 astrocs_phase2_session，根 CMakeLists.txt:454-458；迁移目标
 > astrocs_p2_session.dll 为矩阵合同值，尚未存在——MISSING 如实登记，
@@ -1901,8 +1901,8 @@ tree hash/COMPLETE 状态）在本段不适用，如实现状态登记**（无�
 ## 25. Phase2 UPM fit（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-UPM）
 
 > ID: DATA-P2-UPM  状态: CONTRACT_READY（P2-UPM-DOC 冻结，2026-09-10）
-> 模块: lib/algorithms/coverage/src/upm.cpp（1565 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/upm.h（184 行）（astrocs.p2.upm-fit；
+> 模块: lib/algorithms/coverage/src/upm.cpp（2793 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/upm.h（384 行）（astrocs.p2.upm-fit；
 > astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移目标
 > astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL 建立，
 > 禁止声明 IMPLEMENTED）。本节是 Phase2 UPM fit（联合拟合/持久化/
@@ -1992,7 +1992,7 @@ evaluate_c/dense_read_block（apply 域=§26）。端口 samples→upm_model
 - 唯一权威 dtype=FP64（precision=1，upm.cpp:256 "fp64 reference"）；
   dense cache 亦 fp64（:1402 写 1 /* fp64 缓存 */）；模型 JSON/AIO
   文本同值。
-- 单位权威=SCI-UPM-001 §3（docs/science/PHASE2_UPM.md:29 实测
+- 单位权威=SCI-UPM-001 §3（docs/science/PHASE2_UPM.md:30 实测
   "C, raw, calibrated, σ_bg: ADU"）: 校正场 C/参数 M/uncertainty/
   σ_bg=ADU、control_variance=ADU²、control_ivar=1/ADU²、
   snr/support/quality 无量纲、frame_id 无量纲 u64、M=latent unified
@@ -2081,8 +2081,8 @@ source_hash=model_hash 绑定，不匹配 → dense_read_block rc=2 stale
 ## 26. Phase2 UPM apply（lib/algorithms/coverage）模块输入/输出数据（DATA-P2-COR）
 
 > ID: DATA-P2-COR  状态: CONTRACT_READY（P2-UPM-DOC 冻结，2026-09-10）
-> 模块: lib/algorithms/coverage/src/upm.cpp（1565 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/upm.h（184 行，calibrate/evaluate/
+> 模块: lib/algorithms/coverage/src/upm.cpp（2793 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/upm.h（384 行，calibrate/evaluate/
 > dense_read 面 =upm.h:112-123/:164-172）（astrocs.p2.upm-apply；
 > astrocs_phase2 静态库成员，根 CMakeLists.txt:337-346/:338；迁移
 > 目标 astrocs_p2_upm.dll 为矩阵合同值，尚未存在，由 P2-UPM-IMPL
@@ -2161,8 +2161,8 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 ## 27. Phase3 FITS 写出（lib/algorithms/fits_output）模块输入/输出数据（DATA-P3-FITS）
 
 > ID: DATA-P3-FITS  状态: CONTRACT_READY（P3-FITS-DOC 冻结，2026-09-08）
-> 模块: lib/algorithms/fits_output/p3_output.cpp（370 行）+ 唯一权威签名头
-> lib/algorithms/fits_output/p3_output.h（64 行，write/verify 面
+> 模块: lib/algorithms/fits_output/p3_output.cpp（1082 行）+ 唯一权威签名头
+> lib/algorithms/fits_output/p3_output.h（166 行，write/verify 面
 > =p3_output.h:45-60）（astrocs.p3.fits_writer；astrocs_phase3_session
 > 静态库成员，根 CMakeLists.txt:460-465；迁移目标
 > astrocs_p3_fits_writer.dll 为矩阵合同值，尚未存在，由 P3-FITS-IMPL
@@ -2181,8 +2181,8 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 | 名称 | dtype | shape | 单位 | 语义/invalid |
 |---|---|---|---|---|
 | signal | float32 | [W·H]（行主序，W,H∈[1,20000]） | BUNIT（surface brightness，canonical `ADU/sr`，缺省同；§31.1a） | 无覆盖像素=NaN（上游采样 c≠1 置 NaN，p3_session.cpp:238）；NaN 合法语义=无覆盖，禁 ±Inf 伪装 |
-| coverage | float32 | [W·H] | DIMENSIONLESS（二值门 {0,1}） | covered ⇔ value>0.5f（p3_output.cpp:301/:360）；**1 ⇔ 足迹内存在 tile 像素（其值可为 NaN；非有限只进 signal，不改 coverage，真值表见 §30.4）**（ALG-P3-004 G5）；其它值按门归 0/1。**口径注记：coverage=1 不表示 signal 有限**——mask 语义 = coverage ∧ isfinite(signal)（SCI-P3-001 §5）；
-| wcs | P3WcsDescriptor | 1 | deg/px（CD）、px（CRPIX） | crpix FITS 1-based pixel-center（p3_wcs.h:14）；cd FITS 顺序 CD[i][j]（:16）；projection="TAN"（:19）；abs(dec)≤85° 与四角同半球守卫（P3_WCS_PARAM/P3_WCS_HEMISPHERE，p3_wcs.h:24-26） |
+| coverage | float32 | [W·H] | DIMENSIONLESS（二值门 {0,1}） | covered ⇔ value>0.5f（p3_output.cpp:302/:360）；**1 ⇔ 足迹内存在 tile 像素（其值可为 NaN；非有限只进 signal，不改 coverage，真值表见 §30.4）**（ALG-P3-004 G5）；其它值按门归 0/1。**口径注记：coverage=1 不表示 signal 有限**——mask 语义 = coverage ∧ isfinite(signal)（SCI-P3-001 §5）；
+| wcs | P3WcsDescriptor | 1 | deg/px（CD）、px（CRPIX） | crpix FITS 1-based pixel-center（p3_wcs.h:14）；cd FITS 顺序 CD[i][j]（:16）；projection="TAN"（:19）；abs(dec)≤85° 与四角同半球守卫（P3_WCS_PARAM/P3_WCS_HEMISPHERE，p3_wcs.h:25-26） |
 | bunit | char* | 1 | — | 可空→缺省 **"ADU/sr"**（主 HDU 是重采样后的面亮度平面，canonical 串见 §31.1a；裸 `ADU` 无法量纲可判且与数值不符） |
 | prov | P3Provenance | 1 | — | 8 字段（p3_output.h:15-24）；**B2-A10 起 manifest_hash = sha256(输入 HiPS `signal/properties`+`signal/Moc.fits`)**，由 module_adapters `p3_op_writer` 计算并写入 HISTORY `manifest=`；RUNID/SWVER/source_sha 由 CLI `run_context.json` 注入，禁占位串 |
 | bitpix | int | 1 | — | ∈{-32,-64}，其它值 P3_OUT_PARAM（p3_output.cpp:140-154）；session 默认 -32（:285） |
@@ -2215,7 +2215,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 ### 27.4 错误/边界
 
 - rc 语义（P3_OUT_OK=0/P3_OUT_PARAM=1/P3_OUT_IO=2/P3_OUT_CANCELLED=3，
-  p3_output.h:34-39）与逐触发锚见 ALG-P3-FITS-IMPL-001 §10 表；
+  p3_output.h:35-39）与逐触发锚见 ALG-P3-FITS-IMPL-001 §10 表；
   失败/取消 → unlink(tmp/产物) 不留假文件、不发布无完整性锚输出
   （h:41-44 + IO_003 §6）。
 - 发布协议冻结（R10-C）：fits_flush_file → close → fsync(fd) →
@@ -2247,8 +2247,8 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 ## 29. Phase3 HiPS 重采样（lib/algorithms/resample）模块输入/输出数据（DATA-P3-RES）
 
 > ID: DATA-P3-RES  状态: CONTRACT_READY（P3-RSMP-DOC 冻结，2026-09-12）
-> 模块: lib/algorithms/resample/p3_resample.cpp（239 行）+ 唯一权威签名头
-> lib/algorithms/resample/p3_resample.h（58 行，本域十符号 =p3_resample.h
+> 模块: lib/algorithms/resample/p3_resample.cpp（586 行）+ 唯一权威签名头
+> lib/algorithms/resample/p3_resample.h（201 行，本域十符号 =p3_resample.h
 > 全部公共面）（astrocs.p3.resample；astrocs_phase3_session 静态库
 > 成员，根 CMakeLists.txt:460-465；迁移目标 astrocs_p3_resample.dll
 > 为矩阵合同值，尚未存在（DISP-P3RSMP-005），由 P3-RSMP-IMPL 建立，
@@ -2268,7 +2268,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 | 名称 | dtype | shape | 单位 | 语义/invalid |
 |---|---|---|---|---|
 | hips_dir | char* | 1 | — | HiPS 根目录；properties 严格校验（必需 keys hips_order/hips_tile_width/hips_frame/dataproduct_type，order∈[0,20]，tile_width 必须 512，NESTED 唯一，frame=ICRS——hips_properties.cpp:113-122） |
-| max_order | int | 标量 | — | order 选择上限=输入实际 order（会话 clamp ≤20，p3_session.cpp:196-199；禁仅写 metadata 的 order）；<0 或 >20 → P3_RS_PARAM（p3_resample.cpp:84） |
+| max_order | int | 标量 | — | order 选择上限=输入实际 order（会话 clamp ≤20，p3_session.cpp:197-199；禁仅写 metadata 的 order）；<0 或 >20 → P3_RS_PARAM（p3_resample.cpp:84） |
 | scale_deg_per_px | float64 | 标量 | deg/px | 必 >0（cpp:86）；G3 order 选择的唯一尺度输入 |
 | input_mode（守卫面） | char* | 1 | — | `surface_brightness` 唯一合法（p3_resample_check_mode cpp:95-107）；flux/variance/weight/ivar → UNSUPPORTED（SCI §9a-8/10；会话接线缺口 DISP-P3RSMP-003）。**目标态合同（DATA-P3-UNC-001 §30.4，2026-09-09 冻结，supersession SCI-P3 §9a-10 variance/ivar 拒绝语义，上位 = docs/science/UNCERTAINTY_AND_COVARIANCE.md（Phase3 节）+ 本文 §30.4 DATA-P3-UNC-001；**语义不变**）**：variance/ivar 子产品输入由显式拒绝改为显式消费传播（输出 VARIANCE/IVAR HDU），flux-per-pixel/weight 等其余拒绝项不变；实现归 P3-001，本节现状守卫在实现落地前保持有效 |
 | max_tiles | int | 标量 | tile | 缓存容量；≤0 恢复默认 8（cpp:161-168）；会话层默认 min(1024, ceil(W·H/512²)+16)，请求超默认 → ACS_ERR_BUDGET（p3_session.cpp:179-194，可降不可升） |
@@ -2375,7 +2375,7 @@ corrected[i] = input_signal[i] − C(frame_id, leaf_ipix[i])
 
 | 名称 | dtype/形态 | 语义 |
 |---|---|---|
-| P3WcsDescriptor | struct（p3_wcs.h:11-20） | crval_ra/dec_deg（deg, ICRS）；crpix_x/y（FITS 1-based pixel-center=(W+1)/2）；cd[2][2]（FITS 顺序 CD[i][j]，deg/px，CD-only，det=−s²<0 手性冻结）；width_px/height_px；projection（B2-A4：由 p3_wcs_make 入口经 p3_wcs_validate_request 校验后携带；本生产路径唯一合法值 "TAN"） |
+| P3WcsDescriptor | struct（p3_wcs.h:12-20） | crval_ra/dec_deg（deg, ICRS）；crpix_x/y（FITS 1-based pixel-center=(W+1)/2）；cd[2][2]（FITS 顺序 CD[i][j]，deg/px，CD-only，det=−s²<0 手性冻结）；width_px/height_px；projection（B2-A4：由 p3_wcs_make 入口经 p3_wcs_validate_request 校验后携带；本生产路径唯一合法值 "TAN"） |
 | ra_deg / dec_deg（pix2world 出参） | float64 标量 | deg（ICRS）；RA 归一 [0,360)（normalize_ra fmod+正化，:24-27/:113-114） |
 | x / y（world2pix 出参） | float64 标量 | px（0-based；δ=CD⁻¹·(ξ,η)+CRPIX−1，:136-141） |
 | fits_keywords 返回 | std::string | 每行 ≤80 字节 FITS 卡文本，"\n" 分隔：CTYPE1/2=RA---TAN/DEC--TAN、CUNIT1/2=deg、CRPIX1/2、CRVAL1/2（%.10f）、CD1_1..CD2_2（%.12e）（:145-163）；nullptr 入参→空串 |

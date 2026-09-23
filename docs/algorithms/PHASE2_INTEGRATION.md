@@ -52,7 +52,7 @@ ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
 | 符号/段 | 锚（integrate.cpp） | 语义 |
 |---|---|---|
 | p2_validate_candidate_weights | :10-17 | 预检：weights=null→0（合规）；任一 !finite 或 w<0→1（违规）；w==0 合法（不违规）。调用方: stage2.cpp:1141/:1402 |
-| p2_integrate_pixel | :19-74 | 唯一生产入口（C ABI；integrate.h:58-66 声明） |
+| p2_integrate_pixel | :19-74 | 唯一生产入口（C ABI；integrate.h:58-65 声明） |
 | ├ null 防御 | :20-21 | stack==null 或 result==null → rc=1 |
 | ├ 空栈 | :22-26 | count==0 ∨ values==null → NO_CANDIDATES（rc=0） |
 | ├ eligibility 循环 | :30-57 | 候选索引固定序 i=0..count-1 |

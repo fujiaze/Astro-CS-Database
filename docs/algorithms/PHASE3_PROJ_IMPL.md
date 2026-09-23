@@ -64,7 +64,7 @@
 | eng/tests/unit/p3_wcs_test.cpp | 90 | 单元测试（WCS 完整性/尺寸溢出检查） |
 | 根 CMakeLists.txt:460-465 | — | 构建挂载（astrocs_phase3_session STATIC） |
 
-- 头部声明锚: p3_wcs.h:11-20（P3WcsDescriptor）/:22-27（P3WcsStatus）
+- 头部声明锚: p3_wcs.h:12-20（P3WcsDescriptor）/:22-27（P3WcsStatus）
   /:31-34（p3_wcs_make）/:38-39（p3_wcs_pix2world）/:42-43
   （p3_wcs_world2pix）/:46（p3_wcs_fits_keywords）。
 - 实现锚: p3_wcs.cpp:13-22（常量）/:24-27（normalize_ra）/:30-90
@@ -77,7 +77,7 @@
 ## 4 符号冻结（实测签名，不改码）
 
 ```cpp
-// p3_wcs.h:11-20
+// p3_wcs.h:12-20
 struct P3WcsDescriptor {
   double crval_ra_deg;    // 中心 RA (deg, ICRS)
   double crval_dec_deg;   // 中心 Dec (deg, ICRS)
@@ -603,7 +603,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 
 | # | 位置 | 现状（实测） | 归属 |
 |---|---|---|---|
-| C1 | `docs/modules/registry/astrocs.phase2.write.md:60` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
+| C1 | `docs/modules/registry/astrocs.phase2.write.md:61` | `UnitId::ADU（signal surface brightness）` | ✅ 现行 `UnitId::SURFACE_BRIGHTNESS` |
 | C1b | 同页 `:63-64` / `lib/algorithms/coverage/hips_p2/README.md:99` / `lib/algorithms/coverage/hips_p2/module.yaml:33` | 行锚 `module_adapters.cpp:739-756` / `:677-694` 已漂移 | ✅ 现址 `:1040-1057`（`grep -n p2_write_descriptor → :1040`） |
 | **C1a** | `lib/infrastructure/scheduler/src/module_adapters.cpp:1040-1057`（`p2_write_descriptor`） | `mosaic` 端口仍 `UnitId::ADU`（:1049），`integrated` 亦为 `UnitId::ADU`（:1048）；`UnitId::SURFACE_BRIGHTNESS` 枚举已存在但 phase2 未用 | **lib/** ⇒ FIX / P2-XX-INT（本包只登记） |
 | C2 | `astrocs.phase2.write.md:41` / `docs/modules/hips_p2.md:39` | writer 视图中间量 `flux` 与产品语义混淆 | ✅ 已补「该 `flux` 是 writer 视图中间量、落盘值 = `flux_sum/covered_area`」 |

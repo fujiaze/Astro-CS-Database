@@ -20,7 +20,7 @@ downstream: [TEST-P2-HIPS-001, DATA-P2-HIPS]
 > （r1，CONTRACT_READY）+ lib/algorithms/coverage/hips_p2/module.yaml（MOD-astrocs-phase2-
 > hips-writer，module_id=astrocs.p2.hips_writer，dll_target=
 > astrocs_p2_hips_writer.dll，entrypoint=MISSING）为准。唯一生产源
-> lib/algorithms/coverage/tools/stage2.cpp（1762 行，astrocs-stage2 工具，
+> lib/algorithms/coverage/tools/stage2.cpp（1965 行，astrocs-stage2 工具，
 > lib/algorithms/coverage/CMakeLists.txt:103-110）+ config 层
 > lib/algorithms/coverage/include/astro/phase2/stage2_common.h（P2Stage2Config :16-100），
 > 全部行锚 grep/sed 实测，禁止手抄他版。

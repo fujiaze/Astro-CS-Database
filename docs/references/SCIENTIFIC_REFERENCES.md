@@ -91,7 +91,7 @@
 40. PixInsight WeightedBatchPreprocessing (WBPP)（<https://pixinsight.com/doc/scripts/WeightedBatchPreprocessing/WeightedBatchPreprocessing.html>）的 bestRejectionMethod 与 ImageIntegration 参考文档。用途：wbpp_2_9_1 auto 路由与阈值表的**非学术软件来源**（AstroCS 自认“非论文引用”）。
 61. IRAF imcombine（IRAF/NOAO 许可，非 OSI；<https://iraf-community.github.io/>）的 reject=sigclip|avsigclip|pclip|lfitclip|minmax 与 winsorize 参数。用途：AstroCS 六类排异核（sigma/winsorized/averaged/linear_fit/percentile/minmax）的**共同祖先**；iraf.net 403，**需网络核验精确 URL**。
 62. ccdproc.combine（BSD-3-Clause，<https://ccdproc.readthedocs.io/>）：clip_extrema（=IRAF-like minmax）、sigma_clip_low/high_thresh、combine 的加权/裁剪语义。用途：IRAF 排异核的可执行独立实现对照。
-63. Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, “Proper Image Subtraction: Optimal Transient Detection, Photometry, and Hypothesis Testing”, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27；arXiv:1601.02655）。用途：噪声加权最优检验/预测残差方差阈值（plugins/12_rejection.md:22 若引最优检验应锚此）。
+63. Zackay, B., Ofek, E. O. & Gal-Yam, A. 2016, “Proper Image Subtraction: Optimal Transient Detection, Photometry, and Hypothesis Testing”, ApJ 830, 27（DOI 10.3847/0004-637X/830/1/27；arXiv:1601.02655）。用途：噪声加权最优检验/预测残差方差阈值（plugins/12_rejection.md:23 若引最优检验应锚此）。
 
 ## K. UPM、马赛克与背景模型
 

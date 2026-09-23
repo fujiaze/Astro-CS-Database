@@ -272,9 +272,9 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
   截断与无效规则为实现语义，DATA_SEMANTICS §4 冻结）。
 - **SCI 缺口（如实登记）**：HiPS 写出合同（tile 切分/hierarchy 聚合/properties
   键集/publish 协议）在 docs/science/ 无 SCI 级条目——由本文件 ALG-HIPS 承接；
-  SCIENCE_SCOPE.md:9-10 仅产品级目标，SCI-P3-001 为读侧消费合同。SCI 化候选
+  SCIENCE_SCOPE.md:9 仅产品级目标，SCI-P3-001 为读侧消费合同。SCI 化候选
   变更走 SCI 变更流程，不在本任务改动（纪律：不得根据代码缺口反向修改 SCI）。
-- DRIZZLE.md:131 指向的 DISP-DRZ-007（方差行漂移）涉 astro_sphere_sink.cpp:100
+- DRIZZLE.md:132 指向的 DISP-DRZ-007（方差行漂移）涉 astro_sphere_sink.cpp:100
   与本文件 (3a) 接口，本模块不改传播公式。
 - 上游 drizzle 计算为 OpenMP 行级并行（drizzle_engine.cpp:1673，
   schedule(static)，线程数不污染 ICV :1644），线程私有 tile 累加 + 线程 0

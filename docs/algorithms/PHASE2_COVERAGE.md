@@ -30,9 +30,9 @@
 - 输入: N 个 Phase1 单帧 HiPS 目录路径 `const char* const*`（signal 子目录
   语义，`aio_hips_open(path, AIO_HIPS_RD_SIGNAL)`，:61；signal 子目录下
   properties + Moc.fits，AIO 侧 aio_hips_reader.cpp:205/:141）。
-- 输出: `P2CoverageResult` POD（coverage.h:45-53）= 逐帧元信息
-  P2HipsInputInfo[N]（coverage.h:31-43）+ union MOC 叶级 cell 数组
-  P2MocCell[K]（coverage.h:26-29）+ target_order + status/error。
+- 输出: `P2CoverageResult` POD（coverage.h:46-53）= 逐帧元信息
+  P2HipsInputInfo[N]（coverage.h:32-43）+ union MOC 叶级 cell 数组
+  P2MocCell[K]（coverage.h:27-29）+ target_order + status/error。
 - 下游消费: sampler（p2_sample_controls/:p2_sample_controls_cached，sampler.cpp:1138/:1138
   （impl :463，消费 n_union_cells :632/union_cells[0] :658/逐 cell ipix
   :702）、编排 session（lib/phase2_session/p2_session.cpp:119-148 coverage
@@ -129,7 +129,7 @@ p2_coverage_build(hips_paths, n_inputs, out):
 
 - 第一次调用: `out->union_cells=NULL`（capacity query）→ 返回
   `n_union_cells=K` 且不写 cell 数组（:219-224 条件回填）；调用方分配
-  `K` 个 P2MocCell 后第二次调用获得数据（头注释 coverage.h:55-56；实测
+  `K` 个 P2MocCell 后第二次调用获得数据（头注释 coverage.h:56；实测
   每次调用完整重新扫描全部输入，无缓存，inputs 指针同理两阶段回填
   :225-228）。
 - P2CoverageResult/P2MocCell/P2HipsInputInfo 全部为调用方分配（coverage.h
@@ -260,16 +260,16 @@ p2_coverage_build(hips_paths, n_inputs, out):
   （:47-51，include 行 :50；AIO 头自带 C 链接声明，双保险属维护歧义，
 并入 DISP-COV-005 整改域）；
 头文件 aio_hips_reader.h 落位 lib/infrastructure/aio/include/（根 CMake
-astrocs_phase2 include 目录 CMakeLists.txt:346-352 第 3 项，实测）。
+astrocs_phase2 include 目录 CMakeLists.txt:346-351 第 3 项，实测）。
 
-P2HipsInputInfo 7 字段（coverage.h:31-43）生产消费面: hips_path
+P2HipsInputInfo 7 字段（coverage.h:32-43）生产消费面: hips_path
 （:111 回填）、frame_id（:113-118，路径基名截断，见 DISP-COV-002）、
 max_leaf_order（:119）、n_tiles（:120 初 0/:136 回填）、filter_passband
 （:121-123）、frame_type（:124-126 回填 hips_frame）；frame_id 64 B /
 filter_passband 64 B / frame_type 32 B 截断上限（coverage.h:32-37 +
 strncpy 截断语义）。
 
-P2CoverageResult 7 字段（coverage.h:45-53）: n_inputs/inputs/
+P2CoverageResult 7 字段（coverage.h:46-53）: n_inputs/inputs/
 n_union_cells/union_cells/target_order/status/error（512 B，:47）。
 status 语义: 0=ok（:229）；错误路径部分分支置 1（:168/:177/:190/:200），
 "no inputs" 分支未置（DISP-COV-001）。

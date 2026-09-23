@@ -105,7 +105,7 @@ downstream: [TEST-P2-REJ-001]
 ## Registry descriptor 与配置 schema
 
 module_id=`astrocs.phase2.reject`（占位）；execution_class=
-`cpu_heavy`；parallel_ok=True（module_adapters.cpp:702-706 实测）。
+`cpu_heavy`；parallel_ok=True（module_adapters.cpp:703-706 实测）。
 配置=stage2_common.h reject_method/reject_profile/
 reject_underdetermined_n/reject_normalization(+floor 1e-12)/
 large_scale_*（stage2_common.h:52-63）+ typed params 唯一默认源=

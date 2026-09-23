@@ -33,9 +33,9 @@ downstream: [TEST-P2-SMP-001]
 - 合同三件套：lib/algorithms/sampling/（README/module.yaml/memory.md，按
   lib/algorithms/integration/→lib/algorithms/coverage/hips_p2/ 先例新建；lib/algorithms/coverage/ 一套已被
   P2-COV 占用）。
-- 生产源：lib/algorithms/coverage/src/sampler.cpp（1156 行，根 CMakeLists.txt
+- 生产源：lib/algorithms/coverage/src/sampler.cpp（1536 行，根 CMakeLists.txt
   :337-346/:342 astrocs_phase2 静态库成员）+ 签名头正本
-  lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行）。
+  lib/algorithms/coverage/include/astro/phase2/sampler.h（288 行）。
 - 模块页：docs/modules/phase2_samp.md。
 
 ## 职责与明确非职责
@@ -95,7 +95,7 @@ n_union>1e6/cells>2e8/首 tile 越界 → rc=1；容量不足不报错
 
 module_id=`astrocs.phase2.sample`（占位）；execution_class=
 `cpu_heavy`；parallel_ok=True。配置=P2SamplerConfig 15 字段
-（sampler.h:32-57；默认 p2_sampler_default_config :60/:294-312）+
+（sampler.h:33-57；默认 p2_sampler_default_config :60/:294-312）+
 sccfg 14 字段显式透传（stage2.cpp:256-274；control_k_corr 未透传，
 零初始化经 impl :497-498 修补回退默认 1.4）。
 

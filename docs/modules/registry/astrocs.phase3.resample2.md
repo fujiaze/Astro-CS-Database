@@ -30,8 +30,8 @@ downstream: [TEST-P3-RES-001]
   CONTRACT_READY entrypoint=MISSING + memory.md，迁移目标目录按
   lib/algorithms/projection→phase3_fits 先例新建；lib/phase3_session/ 为会话
   编排域共享源，不整目录归属）。
-- 生产源: lib/algorithms/resample/p3_resample.cpp（239 行）+ 权威源
-  签名头 p3_resample.h（58 行）。
+- 生产源: lib/algorithms/resample/p3_resample.cpp（586 行）+ 权威源
+  签名头 p3_resample.h（201 行）。
 - 合同链: SCI-P3-001（共享 FROZEN，docs/science/PHASE3_HIPS_TO_FITS.md，
   V5 SCI-007；矩阵 science_id 占位 SCI-P3-RES-001 映射
   声明⇒SCI-P3-001）→ ALG-P3-003（docs/algorithms/PHASE3_RESAMPLE.md
@@ -134,7 +134,7 @@ downstream: [TEST-P3-RES-001]
   权威；与 ALG-P3-003 G3 ceil 式 `order=clamp(ceil(log2(sqrt(π/3)/
   (W·s_out))), 0, hips_order)` 数学等价，nside=W·2^k）；无更细层
   →out_order=max_order（欠采样降级，SCI §9a-5）；会话 max_order=
-  输入实际 order（p3_session.cpp:196-199，禁仅写 metadata）。
+  输入实际 order（p3_session.cpp:197-199，禁仅写 metadata）。
 - G4 NEAREST（:232-239）: 输出像素中心→pix2ang→ang2pix(nside_leaf)
   精确 cell；无插值误差（SCI §9a-12）。
 - G4 BILINEAR（:196-230）: leaf 3×3 邻域（healpix_neighbors）四象限
@@ -188,10 +188,10 @@ downstream: [TEST-P3-RES-001]
   test_status=DORMANT）；可执行面升级归 P3-RSMP-TEST。
 - 现状执行测试（相邻证据，引用不冒认）:
   eng/tests/backend/p3_resample_probe_main.cpp（探针六模式）+
-  eng/tests/backend/test_p3_resample.py（156 行，test_05_nan_semantics/
+  eng/tests/backend/test_p3_resample.py（164 行，test_05_nan_semantics/
   test_06_no_silent_default_open/seam 域界 1e8-1..12e8+1 连续性
-  1e-5°）+ eng/tests/backend/test_p3003_parallel_resampler.py（104 行）+
-  eng/tests/unit/p3_interp_test.cpp（109 行）/p3_coverage_test.cpp
+  1e-5°）+ eng/tests/backend/test_p3003_parallel_resampler.py（141 行）+
+  eng/tests/unit/p3_interp_test.cpp（137 行）/p3_coverage_test.cpp
   （106 行，独立参考实现非生产自证）。
 - EVIDENCE: EVID-MISSING（归 P3-RSMP-INT/验收补）。
 

@@ -43,7 +43,7 @@
 | `weights[i]` | 候选科学权重（可空=等权） | 1/ADU²（数值域；策略在调用方），f64 | rejection.h:269 |
 | `frame_ids[i]` | 稳定帧标识（ESD tie-break/确定性） | 无量纲 u64 | rejection.h:270 |
 | `count` | 候选数（=资格后 n_eff） | 无量纲 u32 | rejection.h:271 |
-| `reasons[i]` | per-sample 判定 | u8 0..3（P2RejectReason） | rejection.h:73-78/:277 |
+| `reasons[i]` | per-sample 判定 | u8 0..3（P2RejectReason） | rejection.h:73-77/:277 |
 | `status` | stack-level 终态 | int 0..7（P2RejectStatus） | rejection.h:81-90/:282 |
 | `n`（nominal） | planning 层几何可贡献数（一次解析） | 无量纲 u32 | rejection.h:174-177 |
 | `med/scale` | 工作域中位数/尺度 | ADU（MEDIAN_SCALE 无量纲化后 1） | rejection.cpp:1749-1767 |
@@ -672,7 +672,7 @@ tally: accepted_count/rejected_low/rejected_high/iterations  :1820-1834
 - 消费者: stage2.cpp（§6；DATA_SEMANTICS §20 编排域）/
   acr_kernels.cpp（ACR 域）/ eng/tests/unit/p2_rejection_test.cpp
   （P2-005 语义 id/解析面）/ eng/tests/backend/test_p2004_reject_
-  integrate.py（P2-004 生产 Oracle）/ module_adapters.cpp:704-721
+  integrate.py（P2-004 生产 Oracle）/ module_adapters.cpp:704-720
   descriptor 占位。
 - SCI: docs/science/REJECTION.md（SCI-REJ-001..008，FROZEN，零改动）。
 

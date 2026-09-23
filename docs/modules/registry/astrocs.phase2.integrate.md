@@ -32,7 +32,7 @@ downstream: [TEST-P2-INT-001]
 - 合同三件套：lib/algorithms/integration/（README r1/module.yaml CONTRACT_READY
   entrypoint=MISSING/memory.md；lib/algorithms/coverage/ 一目录一套已被 P2-COV
   占用，按 lib/algorithms/coverage/hips_p2/ 先例新建）。
-- 生产源：lib/algorithms/coverage/src/integrate.cpp（76 行，根 CMakeLists.txt
+- 生产源：lib/algorithms/coverage/src/integrate.cpp（81 行，根 CMakeLists.txt
   :336-346/:344 astrocs_phase2 静态库成员）+ 签名头正本
   lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行）。
 - 模块页：docs/modules/phase2_int.md。
@@ -50,7 +50,7 @@ downstream: [TEST-P2-INT-001]
 
 ## 输入输出端口、DATA、单位、坐标、invalid
 
-编排层 descriptor 端口表（module_adapters.cpp:721-733，占位词汇，
+编排层 descriptor 端口表（module_adapters.cpp:722-733，占位词汇，
 按 frontmatter registry 生成词保留）:
 
 | 端口 | DATA | 必/可 | 单位 | 坐标 |

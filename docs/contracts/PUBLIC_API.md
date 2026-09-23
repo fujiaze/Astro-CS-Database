@@ -243,7 +243,7 @@
   5=无 WCS、6/7=SNR 读/尺寸、8/9=权重读/尺寸、10=drizzle 失败、
   11=写 legacy 容器失败、12=C 边界内部异常，hp_drizzle_api.cpp:185-396
   `hp_drizzle_fits_to_ahpx`）；帧通道混用负值 -1..-8（参数/
-  块校验）、-9=无 WCS（read_wcs_params_from_frame，hp_drizzle_api.cpp:427-448）、
+  块校验）、-9=无 WCS（read_wcs_params_from_frame，hp_drizzle_api.cpp:427-447）、
   -12=HiPS dir 空（:1143-1145）、
   -13=直写失败（:1175-1177）——正负两套并存无集中枚举（登记缺陷，
   迁移整改点）。reverse 返回 1..6（+7=C 边界内部异常；hp_drizzle_api.cpp:46-163
@@ -274,7 +274,7 @@
   正负两套混用；文件通道接受 pixfrac=0.0 而引擎层拒绝（DISP-DRZ-003）；
   ~~值像素 NaN 静默跳过无计数（DISP-DRZ-004）~~ **该登记已作废（2026-09-20）**：现行实现为
   **值 NaN 经 `F_p` 传播、不掩膜**（`docs/science/DRIZZLE.md:116`；实现
-  `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1898-1902`「旧 `isfinite(...)+continue`
+  `lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1899-1902`「旧 `isfinite(...)+continue`
   静默吞像素已删除」；回归 `.../tests/p1drz/p1drz_tests_core.cpp:517-537` `p1drz_negative`）；
   shim 对非法 nside 容忍
   不抛。完整清单见 ALG-DRZ-001 §10（DISP-DRZ-001..008）。
@@ -442,7 +442,7 @@
 ## Photometric C API（API-PHOT-001）
 
 > ID: API-PHOT-001  状态: CONTRACT_READY（P1-PHOT-DOC 冻结，2026-09-07）
-> 头: lib/algorithms/photometry/cpp/include/photometric_calib.h（271 行，唯一
+> 头: lib/algorithms/photometry/cpp/include/photometric_calib.h（275 行，唯一
 > 权威签名头，PC_API :7-11 `extern "C"` 不抛异常）
 > SRC: lib/algorithms/photometry/cpp/src/pc_api.cpp
 > SCI: SCI-PHOT-001（docs/science/PHOTOMETRY.md，FROZEN，共享引用不改动）
@@ -548,7 +548,7 @@ ADU；`out_pixels` 未定标/退化=ADU，已定标（scale≠1 且 n_matched>0�
 > 头: lib/algorithms/psf/include/dynamic_psf.h（唯一权威签名源，禁止手抄他版；
 > DPSF_EXPORT extern "C"（_WIN32 下 __declspec(dllexport) :8，否则
 > __attribute__((visibility("default"))) :10））
-> SRC: lib/algorithms/psf/src/dpsf_psf.cpp（934 行）
+> SRC: lib/algorithms/psf/src/dpsf_psf.cpp（1146 行）
 > SCI: SCI-P1-PSF-001（本任务冻结层）；ALG: ALG-STARPSF-001
 > （STAR_PSF_ALGORITHMS §11 逐符号锚）；DATA: DATA-P1-PSF
 > （DATA_SEMANTICS §15，双 [N,9] 布局权威）；编排级合同 API-P1-003
@@ -572,7 +572,7 @@ snr_estimator snr_psf_fit_quality，snr_estimator.h:79，API-NOISE-001
 
 | 符号 | 头锚 | 定义锚 | 摘要 |
 |---|---|---|---|
-| dpsf_fit | :44-47 | dpsf_psf.cpp:427 | uint16 单星拟合，DPSFFitResult 输出 |
+| dpsf_fit | :44-47 | dpsf_psf.cpp:428 | uint16 单星拟合，DPSFFitResult 输出 |
 | dpsf_fit_batch | :49-52 | dpsf_psf.cpp:482 | uint16 批量（逐星 float patch），DPSFFitResult*[] |
 | dpsf_fit_batch_f | :59-63 | dpsf_psf.cpp:580 | float32 图 + (cx[],cy[])，DPSFFitResult*[]（FP32 生产通道） |
 | dpsf_free_results | :64 | dpsf_psf.cpp:599 | 释放批量 DPSFFitResult 数组 |
@@ -592,7 +592,7 @@ DPSFFitResult 12 字段（:17-31）、DPSFFitParams{fitRadius,maxIter,tolerance}
 
 - dpsf_fit_batch/_f/_d：`*out_results` 为 DLL 内 malloc 数组，调用方
   `dpsf_free_results` 释放（:599）；失败（rc≠0）调用方仍须对非 NULL
-  results 释放（orchestrator.cpp:2350-2353 先 free 再返回）。
+  results 释放（orchestrator.cpp:2350-2352 先 free 再返回）。
 - dpsf_fit_batch_f32/_f64：out_psf_params 由调用方预分配（N·9·sizeof(double)），
   out_n_valid 由 DLL 写；params 可 NULL（默认 fitRadius=8/maxIter=200/
   tolerance=1e-8，:717-719/:845-847；maxIter/tolerance 为死参数 DISP-PSF-003）。
@@ -795,7 +795,7 @@ manifest 字段 dtype 逐项登记；坐标/单位词汇沿用 GLOSSARY（ADU/0-
 
 | 符号 | 锚 | 语义 |
 |---|---|---|
-| `sdet_create` | star_detector.h:33 / sdet_api.cpp:954 | handle 创建；params=NULL→默认（structureLayers=5/hotPixelFilterRadius=1/iterativeClipSigma=9.0/iterativeMaxRounds=5/medianFilterDetail=1/maxStars=2000/fitRadius=6/fwhmClipSigma=3.0/maxAxisRatio=2.0，:963-975）；生产实参 orchestrator.cpp:1593-1612（fitRadius=0=自动半径） |
+| `sdet_create` | star_detector.h:31 / sdet_api.cpp:954 | handle 创建；params=NULL→默认（structureLayers=5/hotPixelFilterRadius=1/iterativeClipSigma=9.0/iterativeMaxRounds=5/medianFilterDetail=1/maxStars=2000/fitRadius=6/fwhmClipSigma=3.0/maxAxisRatio=2.0，:963-975）；生产实参 orchestrator.cpp:1593-1612（fitRadius=0=自动半径） |
 | `sdet_destroy` | star_detector.h:34 / :984 | 唯一释放对 |
 | `sdet_detect` | star_detector.h:36-40 / :992 | 旧 uint16 入口（仅 x/y；内部旧 CC 路径，非生产，DISP-STAR-005） |
 | `sdet_free_coords` | star_detector.h:42 / :1276 | sdet_detect x/y 专用释放 |
@@ -873,7 +873,7 @@ saturated/has_saturated int 0/1；图像输入 FP32 通道 uint16（DISP-STAR-00
 > ID: API-WCS-001  状态: CONTRACT_READY（P1-WCS-DOC 冻结，2026-09-07）
 > 头: lib/algorithms/platesolve/cpp/ipv/include/ipv_api.h（唯一权威签名源，禁止手抄
 > 他版；IPV_API extern "C" 导出宏，238 行）
-> SRC: lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（649 行；内核
+> SRC: lib/algorithms/platesolve/cpp/ipv/src/ipv_entry.cpp（809 行；内核
 > ipv_solver/ipv_select/ipv_triangle/ipv_itertrans/ipv_robust_refine/
 > ipv_wcs/ipv_sip 共 13821 行）
 > SCI: SCI-WCS-001（docs/science/ASTROMETRY.md，共享引用不改动）；
@@ -954,7 +954,7 @@ focal_length_mm mm；pixel_size_um μm；输出 cd deg/pixel、crval deg
 
 - 句柄级互斥使用（同一 solver 句柄禁止跨线程并发求解）；gaia/detector
   句柄生存期由调用方保证。
-- OpenMP 并行点：三角形投票（ipv_triangle.cpp:302/:347，线程局部矩阵 +
+- OpenMP 并行点：三角形投票（ipv_triangle.cpp:303/:347，线程局部矩阵 +
   整数归并 collapse(2) schedule(static)）、选星（ipv_select.cpp:810/:1123/
   :1412/:1756）——投票与拟合归并为整数/单线程浮点，输出 bitwise 与线程数
   无关（determinism=fixed_reduction_order，ALG-WCS-001 §11.4 F5 冻结断言）。
@@ -998,7 +998,7 @@ focal_length_mm mm；pixel_size_um μm；输出 cd deg/pixel、crval deg
 > ID: API-COV-001  状态: CONTRACT_READY（P2-COV-DOC 冻结，2026-09-07）
 > 头: lib/algorithms/coverage/include/astro/phase2/coverage.h（唯一权威签名源，59 行，
 > 禁止手抄他版；P2_API 导出宏 :16-20 Windows dllexport/POSIX 默认可见）
-> SRC: lib/algorithms/coverage/src/coverage.cpp（239 行；生产目标根 CMake
+> SRC: lib/algorithms/coverage/src/coverage.cpp（455 行；生产目标根 CMake
 > astrocs_phase2 静态库 CMakeLists.txt:338-346，独立 self-build
 > lib/algorithms/coverage/CMakeLists.txt:42-46 phase2 STATIC；astrocs_p2_coverage.dll
 > 为迁移目标合同值，尚未存在，由 P2-COV-IMPL 建立）
@@ -1021,7 +1021,7 @@ PSF/Drizzle（coverage.h:6）、像素数据读取（只读 properties+Moc.fits�
 intersection/depth/missing-tiles 产品（DISP-COV-004）、任何科学权重
 计算（合同红线：coverage 禁作隐式科学权重，PHASE2_COVERAGE.md §7）。
 无取消检查点（API-P2-001 §2 行 1 取消点=无，阶段级取消由编排 session
-阶段边界提供，p2_session.cpp:120）。
+阶段边界提供，p2_session.cpp:121）。
 
 ### 导出符号（coverage.h/coverage.cpp 实测行号锚，2 个全部当前真实存在）
 
@@ -1034,7 +1034,7 @@ intersection/depth/missing-tiles 产品（DISP-COV-004）、任何科学权重
 匿名 namespace :55-142）、parse_props（coverage.cpp:20-45，文件作用域
 static）。
 
-核心结构体: P2MocCell 2 字段（coverage.h:26-29，order/ipix 均uint64）；
+核心结构体: P2MocCell 2 字段（coverage.h:27-29，order/ipix 均uint64）；
 P2HipsInputInfo 7 字段（:31-38，hips_path[1024]/frame_id[64]/
 max_leaf_order/n_tiles/filter_passband[64]/frame_type[32]）；P2CoverageResult
 7 字段（:40-48，n_inputs/inputs/n_union_cells/union_cells/target_order/
@@ -1246,7 +1246,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 清单行 17-19/24-29 的展开冻结，**不新增、不修改任何 C 头/C
 > ABI**）；编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，
 > 内核本身无 session 依赖（无状态纯函数）。
-> SRC: lib/algorithms/coverage/src/integrate.cpp（76 行，astrocs_phase2 静态库
+> SRC: lib/algorithms/coverage/src/integrate.cpp（81 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:344）；唯一权威签名头
 > lib/algorithms/coverage/include/astro/phase2/integrate.h（74 行: P2PixelStack
 > :36-42 / P2IntegrateStatus :45-51 / P2PixelResult :53-63 / 函数
@@ -1259,7 +1259,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > integrate 为编排层词汇，module_adapters.cpp:719-737，由 P2-XX-INT
 > 对齐）。
 
-### 导出符号与签名要点（integrate.h:58-66，冻结）
+### 导出符号与签名要点（integrate.h:58-65，冻结）
 
 - `int p2_integrate_pixel(const P2PixelStack*, P2PixelResult*)`
   （:58-59）: rc=1 仅 stack/result null（integrate.cpp:20-21）；
@@ -1320,9 +1320,9 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 冻结（既有符号的展开冻结，**不新增、不修改任何 C 头/C ABI**）；
 > 编排层经 API-P2-001（PHASE2_API_V1 phase session）驱动，kernel
 > 无 session 依赖（无状态纯函数）。
-> SRC: lib/algorithms/coverage/src/rejection.cpp（2076 行，astrocs_phase2 静态库
+> SRC: lib/algorithms/coverage/src/rejection.cpp（2949 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:336-346/:340）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/rejection.h（329 行）；DATA:
+> lib/algorithms/coverage/include/astro/phase2/rejection.h（595 行）；DATA:
 > DATA-P2-REJ（DATA_SEMANTICS §22，单位/dtype/shape/invalid 唯一
 > 权威）；ALG: ALG-P2-REJ-001（docs/algorithms/PHASE2_REJECTION.md，
 > 逐符号锚与消费链）；MOD: astrocs.p2.rejection（迁移目标
@@ -1456,9 +1456,9 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 展开冻结，**不新增、不修改任何 C 头/C ABI**）；编排层经
 > API-P2-001（PHASE2_API_V1 phase session）驱动，采样函数无
 > session 依赖（数据面经 P2CoverageResult 显式传入）。
-> SRC: lib/algorithms/coverage/src/sampler.cpp（1156 行，astrocs_phase2 静态库
+> SRC: lib/algorithms/coverage/src/sampler.cpp（1536 行，astrocs_phase2 静态库
 > 成员，根 CMakeLists.txt:337-346/:342）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行）；DATA:
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（288 行）；DATA:
 > DATA-P2-SMP（DATA_SEMANTICS §23，单位/dtype/shape/invalid 唯一
 > 权威）；ALG: ALG-P2-SMP-001（docs/algorithms/PHASE2_SAMPLER.md，
 > 逐符号锚与消费链）；MOD: astrocs.p2.sampling（迁移目标
@@ -1528,7 +1528,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 | snr_available | int 0/1（0=回退整帧中位，禁以 1.0 伪装 unknown，upm.h:51-55） |
 | P2SampleStats | 10 字段 u64 诊断计数（sampler.h:63-74） |
 | P2ControlNode | 7 字段（sampler.h:77-83）；out_n_controls=n_union×G² 含空覆盖占位 |
-| cfg | P2SamplerConfig 15 字段（sampler.h:32-57；默认单一来源 :60/:294-312） |
+| cfg | P2SamplerConfig 15 字段（sampler.h:33-57；默认单一来源 :60/:294-312） |
 | 调用粒度 | 全帧批量（一次调用产出全 union 控制网格观测，非逐像素） |
 
 ### 确定性/并发合同（matrix 专项）
@@ -1582,7 +1582,7 @@ registry descriptor 像素登记由 P2-COV-INT 修订）。
 > 科学实现（纯编排 facade，直调 lib/algorithms/coverage 生产符号），编排上游=
 > API-P2-001（PHASE2_API_V1 phase session，docs/api/PHASE2_API_V1.md
 > FROZEN，引用不改动）。
-> SRC: lib/phase2_session/p2_session.cpp（282 行，静态库
+> SRC: lib/phase2_session/p2_session.cpp（318 行，静态库
 > astrocs_phase2_session 成员，根 CMakeLists.txt:454-458）+ 唯一
 > 权威签名头 lib/phase2_session/p2_session.h（39 行）；DATA:
 > DATA-P2-SESSION（DATA_SEMANTICS §24，eng/packaging/config/manifest/错误码唯一
@@ -1666,7 +1666,7 @@ destroy（唯一释放）。句柄不可复制/二次 destroy；宿主保证 hos
   注释锚）——同一 handle 并发调用禁止；不同 handle 并发合法
   （无共享可变全局态）。
 - 取消点=**阶段边界**（p2_session.h:22 注释锚；coverage/sample/
-  upm_build/persist 段前 4 检查点，p2_session.cpp:120/:152/:181/
+  upm_build/persist 段前 4 检查点，p2_session.cpp:121/:152/:181/
   :223-227）；upm 整模型不写半成品（段内无检查点，persist 取消先
   close）；取消返回 ACS_ERR_CANCELLED + 段 status=cancelled。
 - 内部并行**仅 UPM blocks**：sample/upm 段 cpu_workers=
@@ -1698,9 +1698,9 @@ destroy（唯一释放）。句柄不可复制/二次 destroy；宿主保证 hos
 > 定位: Phase2 UPM fit/persist/apply/reload 公共 C ABI 消费面——
 > 既有 16 导出符号的展开冻结（**不新增、不修改任何 C 头/C ABI**；
 > upm.h 为唯一权威签名头，184 行）。
-> SRC: lib/algorithms/coverage/src/upm.cpp（1565 行，astrocs_phase2 静态库成员，
+> SRC: lib/algorithms/coverage/src/upm.cpp（2793 行，astrocs_phase2 静态库成员，
 > 根 CMakeLists.txt:337-346/:338）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/upm.h（184 行）；DATA:
+> lib/algorithms/coverage/include/astro/phase2/upm.h（384 行）；DATA:
 > DATA-P2-UPM（DATA_SEMANTICS §25，fit/persist 域单位/dtype/invalid
 > 唯一权威）/ DATA-P2-COR（DATA_SEMANTICS §26，apply 域唯一权威）；
 > ALG: ALG-P2-UPM-IMPL-001（docs/algorithms/PHASE2_UPM_IMPL.md，
@@ -1857,9 +1857,9 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > （**不新增、不修改任何 C 头/C ABI**；p3_output.h 为唯一权威签名
 > 头，64 行，C++ namespace astrocs::phase3；编排面 p3_session.h
 > 五段式=API-P3-001 FROZEN 不变，本节仅镜像声明）。
-> SRC: lib/algorithms/fits_output/p3_output.cpp（370 行，astrocs_phase3_session
+> SRC: lib/algorithms/fits_output/p3_output.cpp（1082 行，astrocs_phase3_session
 > 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
-> lib/algorithms/fits_output/p3_output.h（64 行）+ WCS 关键字源 p3_wcs.h
+> lib/algorithms/fits_output/p3_output.h（166 行）+ WCS 关键字源 p3_wcs.h
 > （50 行）；DATA: DATA-P3-FITS（DATA_SEMANTICS §27，单位/dtype/
 > invalid 唯一权威）；ALG: ALG-P3-FITS-IMPL-001
 > （docs/algorithms/PHASE3_FITS_IMPL.md，逐符号锚与消费链）；
@@ -1929,7 +1929,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
   设计冻结 VERIFIED（ALG-P3-FITS-IMPL-001 §12 T1-T7 + registry
   手写页 docs/modules/registry/astrocs.phase3.writer.md §独立
   synthetic 验证节，双重陈述）；现状执行测试 eng/tests/unit/
-  p3_output_test.cpp（116 行 4 段）=相邻证据引用不冒认；可执行
+  p3_output_test.cpp（244 行 4 段）=相邻证据引用不冒认；可执行
   归 P3-FITS-TEST 落地 + EVIDENCE；INDEX 登记 status: DORMANT
   （照 TEST-P2-INT-001 先例）。
 - 下游: TEST-P3-WR-001（MISSING，P3-FITS-DOC 登记）；上游
@@ -2019,7 +2019,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 - 测试语义: TEST-P3-WCS-001——登记面=TEST-P3-WCS-DESIGN-001 设计
   冻结 VERIFIED（ALG-P3-PROJ-IMPL-001 §12 T1-T7 + registry 手写页
   docs/modules/registry/astrocs.phase3.wcs.md §9，双重陈述）；
-  现状执行测试 eng/tests/unit/p3_wcs_test.cpp（90 行）+
+  现状执行测试 eng/tests/unit/p3_wcs_test.cpp（474 行）+
   eng/tests/backend/test_p1002_gaps.py（独立解析解回归）+
   eng/tests/backend/p3_wcs_main.cpp（探针）=相邻证据引用不冒认；
   验收级（WCSLIB oracle）归 P3-PROJ-TEST 落地 + EVIDENCE。
@@ -2036,9 +2036,9 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
 > （**不新增、不修改任何 C 头/C ABI**；p3_resample.h 为唯一权威签名
 > 头，58 行，C++ namespace astrocs::phase3；编排面 p3_session.h 五段
 > 式=API-P3-001 FROZEN 不变，本节仅镜像声明）。
-> SRC: lib/algorithms/resample/p3_resample.cpp（239 行，astrocs_phase3_
+> SRC: lib/algorithms/resample/p3_resample.cpp（586 行，astrocs_phase3_
 > session 静态库成员，根 CMakeLists.txt:460-465）+ 唯一权威签名头
-> lib/algorithms/resample/p3_resample.h（58 行）；DATA: DATA-P3-RES
+> lib/algorithms/resample/p3_resample.h（201 行）；DATA: DATA-P3-RES
 > （DATA_SEMANTICS §29，单位/dtype/invalid 唯一权威）；ALG:
 > ALG-P3-RSMP-IMPL-001（docs/algorithms/PHASE3_RSMP_IMPL.md，逐符号
 > 锚与 G3/G4 冻结式）；MOD: astrocs.p3.resample（迁移目标
@@ -2094,7 +2094,7 @@ worker 数无关、同 worker 数下位精确；dense 物化 bit-identical
   共享可变状态）；单一 P3Sampler 实例非线程安全（无内部锁），禁止
   跨线程共享——合同禁止项（ALG-P3-RSMP-IMPL-001 §7）；确定性
   bitwise（输出与 tile 装载顺序/worker 数/缓存容量无关）。
-- 会话消费锚（编排面 API-P3-001 镜像）: p3_session.cpp:167-178
+- 会话消费锚（编排面 API-P3-001 镜像）: p3_session.cpp:167-177
   主 sampler open_ex :171（状态映射 IO→ACS_ERR_IO、UNSUPPORTED→
   ACS_ERR_UNSUPPORTED、PARAM→ACS_ERR_PARAM，:175-176）/:179-194
   max_tiles 会话守卫/:196-199 p3_order_select（max_order=输入实际
