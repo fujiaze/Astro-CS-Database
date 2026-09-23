@@ -485,7 +485,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | source_mask | float32 `[h·w]` | —（≠0 即源掩膜 1） | 可 NULL（改用 star 坐标通道）；非 NULL 时忽略 star_x/y（互斥，DISP-NOISE-006）；掩膜像素不参与统计 |
 | star_x / star_y | double `[n_stars]` | pixel（0-based） | 可 NULL/n_stars=0；掩膜半径 rmax=max(1,r0)·max(1,scale)（默认 10·6=60 px）统一不按亮度缩放；非有限坐标跳过该星（:148-151） |
 | cfg（SnrNoiseModelConfig） | 结构体按 snr_estimator.h:108-122 | — | 可 NULL（=default_config）；patch_grid_x/y≥2、cosmic_clip_sigma≥1、min_patch_samples≥1（默认 64）、max_clip_rounds≥0 静默钳位（DISP-NOISE-007）；gain_e_per_adu/read_noise_e/use_gain_model 三字段现状零读取（DISP-NOISE-003）；`saturation_level`：>0 = 饱和电平 ADU（过滤生效），0/负/非有限 = **未提供（unset）**，来源与降级声明语义见 SCI NOISE_MODEL §4「饱和域」（claim SC-008） |
-| variance_floor | double | ADU² | 默认 1e-12；build 阶段 ≤0 不 clamp（原值直通），fill 阶段 ≤0 回退 1e-12（DISP-NOISE-002） |
+| variance_floor | double | ADU² | 默认 1e-12。**两个阶段同口径**：取非正值 ⇒ 具名拒绝 `SNR_FLOOR_UNBOUND`（rc=−10），**不得直通、不得回退到任何常数**。生效地板必须在其产品 dtype 中可表示（`NOISE_MODEL` §9），否则同样拒绝 |
 
 ### 13.2 输出（NoiseWeightModelV1 + fill 逐像素场）
 
@@ -502,7 +502,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   patch 中心 ctrl_x_px/ctrl_y_px 为 patch 几何中心（(x0+x1)/2）。
 - FP64 全链路统计（f32 输入升 double 计）；fill 输出 float32 截断
   （诊断值非科学累加值）。
-- 量纲不变量：ivar=1/max(variance,floor) 精确互倒（SCI §7）；gain 模型
+- 量纲不变量（**两态穷尽**）：方差可用 ⇒ `variance>0 ∧ isfinite(variance) ∧ ivar=1/variance` 精确互倒；方差不可用 ⇒ `variance=0 ∧ ivar=0`。**不存在 `ivar=1/max(variance,floor)` 这一形态**——地板不得进入产品值（SCI §7/§9）；gain 模型
   var_ADU=max(signal,0)/gain+(rn/gain)² 仅诊断（SNR-005，不入生产——
   §4a/SCI §10 域外引用）。
 
@@ -1114,7 +1114,7 @@ P2Stage2Config 公共关键字段（唯一签名源 stage2_common.h:16-99，行�
 |---|---|---|---|
 | AIO_HIPS_RD_SIGNAL（:536） | 每帧 signal/ | float32/64，ADU surface brightness | 逐样本积分分母侧科学值（SCI-INT §5 加权积分输入） |
 | AIO_HIPS_RD_SUPPORT（:537） | 每帧 support/ | float32/64，无量纲 [0,1] | eligibility/覆盖支持度（禁作科学权重，§20.3 红线） |
-| AIO_HIPS_RD_IVAR（:557；（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）） | 每帧 ivar/ | 1/ADU²（§4a，DATA-HIPS-IVAR-001） | 逆方差积分权重；缺失帧 → rc=7 或显式降级标红；读侧先过资格门（support>0 ∧ finite signal）再读权重：ivar==0 = 合法零权重、variance==0 = 无信息、non-finite/负 = 产品损坏 hard fail |
+| AIO_HIPS_RD_IVAR（:557；） | 每帧 ivar/ | 1/ADU²（§4a，DATA-HIPS-IVAR-001） | 逆方差积分权重；缺失帧 → rc=7 或显式降级标红；读侧先过资格门（support>0 ∧ finite signal）再读权重：ivar==0 = 合法零权重、variance==0 = 无信息、non-finite/负 = 产品损坏 hard fail |
 
 ### 20.2 输出（`<out_hips>` Phase2 马赛克产品集）
 
@@ -1174,11 +1174,11 @@ signal 回读失败 rc=7 :1665）。
     `w_UPM = quality_factor × geometric_reliability × control_ivar`，
     docs/science/PHASE2_UPM.md §5）；
   - ivar/variance = **输入侧逐帧产品**（§4a，DATA-HIPS-VAR-001/
-    DATA-HIPS-IVAR-001），Phase2 仅作逐样本 ivar 积分权重消费 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
+    DATA-HIPS-IVAR-001），Phase2 仅作逐样本 ivar 积分权重消费
     （stage2.cpp:1106-1117），不输出 Phase2 合成 variance/ivar
     产品（DISP-P2HIPS-001；目标态合同 DATA-P2-VAR-001 §30.1——
-    权重为纯逆方差且无 fallback 时输出 variance/ivar 子产品 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量），
-    `ivar_mosaic(p) = wsum(p)`，合成公式与 invalid policy 见 §30.1）；权重语义: 逐样本 ivar （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
+    权重为纯逆方差且无 fallback 时输出 variance/ivar 子产品 ，
+    `ivar_mosaic(p) = wsum(p)`，合成公式与 invalid policy 见 §30.1）；权重语义: 逐样本 ivar
     （ivar 缺失/无效样本 fallback support :1113-1114，计入
     fallback 统计）、0=support×snr²（legacy/诊断，local snr map
     → frame snr fallback，赋值 :1136，CPU 路径重复 :1396）、
@@ -1186,8 +1186,8 @@ signal 回读失败 rc=7 :1665）。
   - mask（rejection reasons → accepted 标志 + large_scale 连通
     grow，p2_large_scale_apply :1549 + 二次积分 :1554-1565）:
     仅供二次积分 accepted 判定，**不输出产品、不进入权重式**。
-  - 红线: **禁 support 冒充 ivar**——权重为逐样本 ivar 且 ivar 产品 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
-    缺失帧 → 默认 rc=7 显式科学错误；仅历史 legacy 降级键 （已按 §9.73 A44 作废：键不存在；权重是派生量） legacy_allow_weight_fallback
+  - 红线: **禁 support 冒充 ivar**——权重为逐样本 ivar 且 ivar 产品
+    缺失帧 → 默认 rc=7 显式科学错误；仅历史 legacy 降级键 legacy_allow_weight_fallback
     =true 显式降级 support 并 diagnostics 标红（stage2.cpp:565-578）。
     ivar（1/ADU²）与 support（无量纲）量纲不同，任何静默互换违反
     本节。
@@ -1366,7 +1366,7 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 - 上游: SCI-INT-001（FROZEN）；ALG-P2-INT-001（本域算法权威）；
   DATA-P2-REJ（accepted 掩码，P2-REJ 域）；DATA-P2-COR（values
   校准值，Phase1 校准链）；ivar 输入权重语义=§4a/
-  DATA-HIPS-IVAR-001（逐样本 ivar 消费在 Stage2，:1106-1117；（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））。
+  DATA-HIPS-IVAR-001（逐样本 ivar 消费在 Stage2，:1106-1117；）。
 - 下游: DATA-P2-HIPS（§20，signal/support 逆归一化消费域，
   stage2.cpp:1227-1228/:1588-1589）；ACR 加速消费（acr_kernels.cpp，
   DATA_SEMANTICS 未设独立 ACR 节，消费合同以 §21 + ALG §6 为准）；
@@ -1848,7 +1848,7 @@ P2UpmBuildConfig 冻结默认 + upm 子键覆盖 → void* model（不透明句�
 | P2UpmBuildConfig 字段 | 会话冻结值 | 锚 |
 |---|---|---|
 | robust_loss | 0（huber） | :184 |
-| upm_weight_source（原 snr_weight_mode，（已按 §9.73 A44 作废：键不存在；权重是派生量）） | 0（snr2_normalized） | :185 |
+| upm_weight_source（原 snr_weight_mode，） | 0（snr2_normalized） | :185 |
 | huber_delta | 1.345（upm.huber_delta 可覆盖） | :186/:199-200 |
 | max_iterations | 100（upm.max_iterations 可覆盖） | :187/:197-198 |
 | tolerance | 1e-6（无 config 覆盖键） | :188 |
@@ -1958,7 +1958,7 @@ rc=1**（空间 UPM 必须知 control leaf 层级 order=target+9，:261/:380；
 | 字段 | dtype | 默认 | 单位/语义 |
 |---|---|---|---|
 | robust_loss | int | 0 | 0=huber（首版冻结，h:72） |
-| upm_weight_source（原 snr_weight_mode，（已按 §9.73 A44 作废：键不存在；权重是派生量）） | int | 0 | 0=snr2_normalized（首版，h:73） |
+| upm_weight_source（原 snr_weight_mode，） | int | 0 | 0=snr2_normalized（首版，h:73） |
 | huber_delta | double | 1.345 | Huber delta（h:74；≤0→1.345 :237） |
 | smoothing_lambda | double | 0.0 | 图平滑权重（默认关，h:75；<0→0.0 :245） |
 | zero_anchor_weight | double | 1e-3 | 弱零校正锚权重（h:76；<0→1e-3 :244） |
@@ -2055,7 +2055,7 @@ JSON；唯一 AIO 出口 aio_upm_write_sparse :1003-1005，定义
 aio_upm.cpp:66 原子写，ENG-IO-001；p2_upm_open :1008-…，format 校验
 :1027-1028 非 astrocs-upm-v2 → rc=1）。JSON 顶层字段（:947-1002
 实测）: format="astrocs-upm-v2"（:947）/version/target_order/precision/
-robust_loss/upm_weight_source（原 snr_weight_mode，（已按 §9.73 A44 作废：键不存在；权重是派生量））/use_ivar_weight/huber_delta/
+robust_loss/upm_weight_source（原 snr_weight_mode，）/use_ivar_weight/huber_delta/
 smoothing_lambda/zero_anchor_weight/max_iterations/tolerance/
 sigma_floor/support_power/model_hash/input_manifest_hash/iterations/
 objective/component_count/geometry_component_count/
@@ -2544,7 +2544,7 @@ Phase3 输出 variance BUNIT = (主 HDU signal BUNIT)²，ivar = 1/variance（§
   512×512 tile，dtype 同 precision，f32/f64），写通道 = writer 既有
   `aio_hips_write_variance_tile`（aio_hips_writer.cpp:603；var_num_sum /
   covered_area² 归一合同 §12.3/§12.4 已冻结）。
-- **合成公式**（权重为纯逆方差科学默认，且 `ivar_product_missing==0`，即全部 （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
+- **合成公式**（权重为纯逆方差科学默认，且 `ivar_product_missing==0`，即全部
   输入帧 ivar 产品可用、无 fallback；有效样本资格 = SCI-INT §5 valid ∧ W>0）:
 
 ```text
@@ -2560,9 +2560,9 @@ variance_mosaic(p) = 1 / W(p)
 - **unavailable 规则（fail-closed，唯一出口）**: 下列任一 → **不写
   variance/ivar 子产品** + manifest `uncertainty_available=false` +
   diagnostics 标红计数，禁止用 support/snr²/常量 0 伪 variance：
-  1. 权重非纯逆方差（等权 / legacy 诊断档非科学方差面，ivar （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
+  1. 权重非纯逆方差（等权 / legacy 诊断档非科学方差面，ivar
      读端亦不强制打开，§20.1）；
-  2. fallback 发生（历史 legacy 降级键 `legacy_allow_weight_fallback=true` （已按 §9.73 A44 作废：键不存在；权重是派生量） 且
+  2. fallback 发生（历史 legacy 降级键 `legacy_allow_weight_fallback=true`且
      `ivar_product_missing>0`，§20.4 rc=7 门的显式降级路径）——混合帧集
      （部分帧 support 降级）同样整体 unavailable；
   3. 合成输入非有限被 `p2_validate_candidate_weights` 拒（INVALID_INPUT，
@@ -2577,7 +2577,7 @@ variance_mosaic(p) = 1 / W(p)
 | 合成结果非有限（W=Inf 等病态） | NaN | NaN | + diagnostics 病态像素计数，禁静默 0 |
 | 输入 ivar 非有限/负 | — | — | `p2_validate_candidate_weights` hard fail（现行 rc=6），不入合成 |
 
-  注：Phase1 逐帧输入产品的 0/NaN 双值预存歧义见 §4a 消解注记（finding
+  注：Phase1 逐帧输入产品的 0/NaN 编码口径见 §4a 三态表（该表为唯一权威；finding
   F-UNC-001）；读侧消费按 §20.1（ivar==0 合法零权重、nonfinite 拒），
   本表只冻结 Phase2 **输出**产品。
 
@@ -2757,9 +2757,9 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 
 - **TEST-P2-UNC-DESIGN-001**（Phase2，f64 oracle rtol=1e-12、1T/2T/repeat
   bitwise、索引/整数 bitwise）:
-  - V1 正向: 3 帧合成 ivar 1:2:4，纯逆方差权重 → ivar_mosaic==Σivar、（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）
+  - V1 正向: 3 帧合成 ivar 1:2:4，纯逆方差权重 → ivar_mosaic==Σivar、
     variance_mosaic==1/W 逐像素；
-  - V2 unavailable 负向: 缺 ivar 帧 + 历史 legacy 降级键 legacy_allow_weight_fallback=true （已按 §9.73 A44 作废：键不存在；权重是派生量） →
+  - V2 unavailable 负向: 缺 ivar 帧 + 历史 legacy 降级键 legacy_allow_weight_fallback=true →
     variance/ivar 子产品不存在 + uncertainty_available=false；缺 ivar 且未
     显式 fallback → rc=7（现行门不变）；
   - V3 invalid: 输入 ivar 非有限 → INVALID_INPUT（rc=6）；n_used=0 像素
@@ -2796,7 +2796,7 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 - ALG（实现锚，现状如实）: ALG-P2-HIPS-001..004（PHASE2_MOSAIC_WRITE.md
   §11.3 DISP-P2HIPS-001/002 整改去向）；ALG-P3-003/ALG-P3-RSMP-IMPL-001
   （§29.1 守卫）、ALG-P3-004/ALG-P3-FITS-IMPL-001（§27.2 HDU 扩展）。
-- DATA 同文档: §4a（0/NaN 歧义消解注记）、§12.3/§12.4（writer variance
+- DATA 同文档: §4a（variance/ivar 逐像素三态唯一权威表）、§12.3/§12.4（writer variance
   通道合同）、§20（P2-HIPS 现状）、§21/§22（n_used/reason 权威）、§27/§29
   （P3 现状注记）。
 - 登记面: docs/contracts/DATA_ARTIFACTS.md §1 四行（DATA-P2-VAR-001/
@@ -2804,8 +2804,10 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
   docs/contracts/INDEX.yaml DATA-UNC-001 四条目；消费任务 P2-001/P3-001
   （控制包 DAG，G-SCI 门组成）。
 - findings 登记（域外预存问题，不在本任务修复）:
-  - F-UNC-001: §4a（0=无覆盖）与 §12.4（无效=NaN）预存双值，Phase1
-    域语义消歧归 Phase1 域任务；
+  - F-UNC-001（**已消解**）: variance/ivar 逐像素编码以 **§4a 三态表为唯一
+    权威**——无覆盖 ⇒ `NaN`（与 `signal=NaN ∧ support=0` 同态）；有覆盖但
+    方差不可用 ⇒ `variance=0 ∧ ivar=0`（显式不可用，禁写 NaN）；损坏 ⇒
+    `rc=−6` 硬失败。§12.4 与 §30.4 的表述分别指向前两者，**不存在双值**；
   - F-UNC-002: 基线 check_data_artifacts 预存 FAIL（DATA-HIPS-001/
     DATA-TILE-001 声明未登记，HEAD 即失败，与本任务无关，须 P0/P1 清理时
     处置）；
@@ -3010,7 +3012,7 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 仅写 `ADU` 而无 (b) 声明 = 单位不可判 → 产品标 `unavailable` 或 `REJECT`。`pixel_area_power` canonical 缺省：`signal_sb=-2`、`sb_variance_out=-4`、`sb_ivar_out=+4`、`flux/Q/W_info/psfsw_robust_weight=0`。
 机器强制（canonical 对象层）：`eng/contracts/schemas/unified/provenance.schema.json` 的 `units.allOf/if-then`（`bunit` 含 `/sr` ⇒ `bunit_semantics=written_px_power` + `pixel_semantics=surface_brightness` + `pixel_area_power=-2`；`bunit_semantics=declared_via_provenance` ⇒ 必需 `target_pixel_area`；`pixel_semantics=integrated_flux` ⇒ `pixel_area_power=0`）；`eng/contracts/schemas/unified/signal.schema.json` 的 `pixel_semantics ↔ pixel_area_power` 自洽门。产品族记录层同判据见 §31.6 登记的产品族字段级合同。
 
-### 31.3 ~~`weight_mode` 三分~~ **已作废** （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（原 `FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE` 已随 V6 合同层按 `CHG-2026-09-22-V6-CONTRACT-MERGE` 整体出库；条款去向见 §31.10）
+### 31.3 ~~`weight_mode` 三分~~ （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（原 `FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE` 已随 V6 合同层按 `CHG-2026-09-22-V6-CONTRACT-MERGE` 整体出库；条款去向见 §31.10）
 
 | 面 | 合法值 | 语义 |
 |---|---|---|
@@ -3021,9 +3023,9 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 
 **legacy 整数处置**（`FZ-FIELD-WEIGHTMODE`；`ADJ-S1`；迁移映射 `eng/contracts/data/v6_clause_registry_v1.json#migration_map.legacy_weight_mode_disposition`；（已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量））：
 **全值域一律拒绝**（§9.73 裁决 A44 后订正）：`0=support×snr²`（support/coverage 只作门，`FZ-GATE-SUPPORT-COVERAGE`）、`1=equal`、`2=pixel_ivar` **三者同等拒绝** —— A44 删除该字段后它不存在任何合法取值，故原「0 拒绝、1/2 → 文档基线」的处置**已作废**（`ASTROCS_DESIGN.md` §3.1:175「没有可选择项」；`docs/science/PSF_SIGNAL_WEIGHT.md` §4:72）。实现事实源：`stage2_common.cpp` / `module_adapters.cpp`（键出现即拒绝）、`v6_runtime_contract.h` 的 `route_legacy_weight_mode_int`（纯拒绝面）。
-生产枚举（**输入路径**）出现 `psf_snr_power` / `auto` / `support_x_snr2` / `equal` / `pixel_ivar` / 整数 `0`|`1`|`2` / `weight_mode` 键 / `legacy_allow_weight_fallback` 键 / 未知值 → REJECT。历史 `ASTROCS_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，不得反向定义生产枚举。
+生产枚举（**输入路径**）出现 `psf_snr_power` / `auto` / `support_x_snr2` / `equal` / `pixel_ivar` / 整数 `0`|`1`|`2` / `weight_mode` （已按 §9.73 A44 作废：键不存在；权重是派生量） 键 / `legacy_allow_weight_fallback` （已按 §9.73 A44 作废：键不存在；权重是派生量） 键 / 未知值 → REJECT。历史 `ASTROCS_WEIGHT_MODE` 整数（§30.3）与 ACR `{auto,ivar,equal,support_x_snr2}` 一律标 ARCHIVED，不得反向定义生产枚举。
 
-**登记面 vs 输入路径（A44 口径，本节判据形态）**：「登记面」= 描述**历史/既有数据对象**的形态，是**名词**；「输入路径」= 决定生产**接受什么**，是**动词**。冻结（`FZ-WEIGHT-SINGLE-PATH` / A44）禁止的是**后者**，不禁止前者 —— 故本节与 `eng/contracts/data/v6_clause_registry_v1.json#weight_modes`、`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的**历史词表登记保留**，但必须正面写清它**不是**接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token 一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，不得据此声称生产可用。
+**登记面 vs 输入路径（A44 口径，本节判据形态；本段对 `weight_mode` （已按 §9.73 A44 作废：键不存在；权重是派生量） 的登记作说明）**：「登记面」= 描述**历史/既有数据对象**的形态，是**名词**；「输入路径」= 决定生产**接受什么**，是**动词**。冻结（`FZ-WEIGHT-SINGLE-PATH` / A44）禁止的是**后者**，不禁止前者 —— 故本节与 `eng/contracts/data/v6_clause_registry_v1.json#weight_modes`、`eng/contracts/schemas/product_family_field_constraints.schema.json#/$defs/weight_mode` 的**历史词表登记保留**，但必须正面写清它**不是**接受集。判据（唯一可判定式）：**凡出现在「配置读取 / 路由 / 解析」路径上的 legacy 权重域 token 一律 fail-closed 具名拒绝**；仅用于描述既有对象形态的枚举与映射不构成输入面，不得据此声称生产可用。
 
 ### 31.4 单一权重词表归一（`C-004.3`/`DI-01`/`DI-07`）
 
@@ -3077,8 +3079,8 @@ concentration 写作 `ADU/px` 属**登记在案的文本错误**：`ADU/px²` �
 | 缺 effective PSF（只给 FWHM 标量） | REJECT | `G-EPSF-PRESENT` |
 | `k_corr=1` / 跨域外推 | REJECT | `G-KCORR-DOMAIN` |
 | `variance_from` 为权重标量 / `Var=1/W_psfsw` | REJECT | `G-COV-VARIANCE-FROM`/`G-PSFSW-COV` |
-| legacy `weight_mode` 整数 `0`|`1`|`2`（§9.73 A44 后**全值域**；原仅 `0`） | REJECT | `G-LEGACY-MIGRATION` |
-| 键 `weight_mode` / `legacy_allow_weight_fallback` 出现于配置（任何取值/形态） | REJECT（具名 fail-closed） | `FZ-FIELD-WEIGHTMODE`；`FZ-WEIGHT-SINGLE-PATH` |
+| legacy `weight_mode` （已按 §9.73 A44 作废：键不存在；权重是派生量） 整数 `0`|`1`|`2`（A44 后**全值域**；原仅 `0`） | REJECT | `G-LEGACY-MIGRATION` |
+| 键 `weight_mode` （已按 §9.73 A44 作废：键不存在；权重是派生量） / `legacy_allow_weight_fallback` （已按 §9.73 A44 作废：键不存在；权重是派生量） 出现于配置（任何取值/形态） | REJECT（具名 fail-closed） | `FZ-FIELD-WEIGHTMODE`；`FZ-WEIGHT-SINGLE-PATH` |
 
 ### 31.9 边界与登记（只登记不擅改）
 
