@@ -1,12 +1,47 @@
 #!/usr/bin/env python3
 """LNX-005 测试: Linux amd64 alpha 发布包 — staging install + 单 exe 白名单 + MANIFEST/SBOM/licenses/hash + 空目录 smoke。
 验收(03 L143): 只有一个 user exe; 私有 SO/manifest 完整; 包名 alpha; 解包运行 PASS。
+
+被测对象（输入对象）解析 —— 仓库既有约定，不新造：
+  1. 环境变量 ASTROCS_CLI_BIN（全仓 CLI 测试统一覆盖点）；
+  2. build/astrocs（AGENTS.md §3 唯一根 CMake 产物；ROOT-008 后唯一产品二进制）；
+  3. run/ci/build-gcc-release/astrocs（CI 构建目录）。
+  先例（逐字同序）：eng/ci/check_algo_wiring.py:150
+  `for rel in ("build/astrocs", "run/ci/build-gcc-release/astrocs")`；
+  另见 eng/tools/check_cli_run_preset.py:285、eng/tools/check_legacy_exit.py:36、
+  eng/tests/cli/test_phase123_pipeline.py:34（"唯一产品二进制 build/astrocs"）。
+
+原实现硬编码 build/lnx_v5_clean_rel/astrocs —— 该路径**全仓无生产者**（仅
+eng/tools/assemble_audit.py:128 的历史审计行提及），于是类级 @skipUnless 恒假、
+6 个用例恒 skip：LNX-005 这一条版本条款长期没有可执行载体（AGENTS.md §5
+「SKIP 充数算未完成」）。现改为：解析到二进制 ⇒ 6 例真跑；解析不到 ⇒
+**具名判红** MISSING_CLI_BINARY（fail-closed，ENGINEERING_SPEC §10），不再静默跳过。
+本测试的判据面是**打包工具** eng/tools/make_linux_release.py（包结构/白名单/
+manifest/SBOM/hash/解包 smoke），二进制只是输入对象 ⇒ 不要求它来自某个特定
+构建目录；"clean release 构建"的溯义不由本测试承担（见 TEST-P3 回执）。
 """
 import hashlib, os, re, shutil, subprocess, sys, tarfile, tempfile, unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 MAKER = os.path.join(REPO, "eng", "tools", "make_linux_release.py")
-BUILD = os.path.join(REPO, "build", "lnx_v5_clean_rel", "astrocs")
+
+
+def find_cli_binary():
+    """返回 (路径, None) 或 (None, 具名原因)。解析序见模块 docstring。"""
+    env = os.environ.get("ASTROCS_CLI_BIN")
+    if env:
+        if os.path.isfile(env):
+            return env, None
+        return None, ("ASTROCS_CLI_BIN=%s 指向的文件不存在" % env)
+    for rel in ("build/astrocs", "run/ci/build-gcc-release/astrocs"):
+        cand = os.path.join(REPO, *rel.split("/"))
+        if os.path.isfile(cand):
+            return cand, None
+    return None, ("已探测 ASTROCS_CLI_BIN / build/astrocs / "
+                  "run/ci/build-gcc-release/astrocs 均不存在")
+
+
+BUILD, BUILD_MISSING = find_cli_binary()
 
 
 def sha256_file(path):
@@ -17,12 +52,17 @@ def sha256_file(path):
     return h.hexdigest()
 
 
-@unittest.skipUnless(os.path.isfile(BUILD), "需要先建 lnx_v5_clean_rel/astrocs")
 class TestLinuxRelease(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.mkdtemp(prefix="lnx005_")
         cls.out = os.path.join(cls.tmp, "out")
+        cls.unpack = os.path.join(cls.tmp, "unpack")
+        cls.pkg = None
+        cls.rc = None
+        cls.outtxt = ""
+        if BUILD is None:
+            return                      # 每个用例由 _require_bin 具名判红
         r = subprocess.run([sys.executable, MAKER, "--bin", BUILD, "--out", cls.out],
                            capture_output=True, text=True, cwd=REPO, timeout=120)
         cls.rc = r.returncode
@@ -30,7 +70,6 @@ class TestLinuxRelease(unittest.TestCase):
         taps = [f for f in os.listdir(cls.out) if f.endswith(".tar.zst") or f.endswith(".tar.gz")]
         cls.pkg = os.path.join(cls.out, taps[0]) if taps else None
         # 解包到独立目录(供各用例)
-        cls.unpack = os.path.join(cls.tmp, "unpack")
         os.makedirs(cls.unpack)
         if cls.pkg:
             if cls.pkg.endswith(".tar.zst"):
@@ -42,12 +81,25 @@ class TestLinuxRelease(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.tmp, ignore_errors=True)
 
+    def _require_bin(self):
+        """缺输入对象 ⇒ 具名判红，**不得**静默 skip（AGENTS.md §5 / ENGINEERING_SPEC §10）。
+
+        门禁判据：LNX-005 是版本条款的可执行载体，SKIP 等于该条款没有载体。
+        """
+        if BUILD is None:
+            self.fail("MISSING_CLI_BINARY: 未找到被测 astrocs CLI 产物（%s）。"
+                      "构建: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && "
+                      "ninja -C build；或用 ASTROCS_CLI_BIN=<path> 指定。"
+                      "本用例不得以 SKIP 通过。" % BUILD_MISSING)
+
     def test_01_package_created(self):
+        self._require_bin()
         self.assertEqual(self.rc, 0, self.outtxt)
         self.assertTrue(self.pkg and os.path.isfile(self.pkg), "必须生成 tar 包")
         self.assertIn("AstroCS-Linux-amd64-", os.path.basename(self.pkg))
 
     def test_02_package_name_is_alpha(self):
+        self._require_bin()
         base = os.path.basename(self.pkg)
         # 版本单源: 读取 VERSION
         ver = open(os.path.join(REPO, "VERSION"), encoding="utf-8").read().strip()
@@ -68,6 +120,7 @@ class TestLinuxRelease(unittest.TestCase):
         self.assertNotRegex(base, r"(?<!\d)1\.0(?!\d)", "禁止 1.0 标记")
 
     def test_03_single_user_exe_and_tree(self):
+        self._require_bin()
         root = os.path.join(self.unpack, "astrocs")
         exes = []
         for dp, _dn, files in os.walk(root):
@@ -80,12 +133,14 @@ class TestLinuxRelease(unittest.TestCase):
         self.assertEqual(bin_exes[0].replace(os.sep, "/"), "bin/astrocs")
 
     def test_04_manifest_sbom_licenses_hash_present(self):
+        self._require_bin()
         root = os.path.join(self.unpack, "astrocs")
         for req in ["MANIFEST.json", "SBOM.spdx.json", "VERSION", "SHA256SUMS",
                     "backends.manifest.json", "LICENSES/NOTICE.txt"]:
             self.assertTrue(os.path.isfile(os.path.join(root, req)), f"缺 {req}")
 
     def test_05_manifest_entries_match_files(self):
+        self._require_bin()
         root = os.path.join(self.unpack, "astrocs")
         man = json_load(os.path.join(root, "MANIFEST.json"))
         for e in man["files"]:
@@ -97,6 +152,7 @@ class TestLinuxRelease(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
     def test_06_extracted_run_doctor_passes(self):
+        self._require_bin()
         exe = os.path.join(self.unpack, "astrocs", "bin", "astrocs")
         r = subprocess.run([exe, "doctor", "--json"], capture_output=True, text=True, timeout=60)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)

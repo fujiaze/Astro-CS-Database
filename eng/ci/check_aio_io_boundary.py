@@ -655,6 +655,44 @@ def build_inventory(root, hits):
     }
 
 
+def inventory_delta(new_entries, cur):
+    """--update-inventory 的棘轮守卫：区分「新登记」与「提额」。
+
+    棘轮语义 = 命中数**只减不增**（台账 note 逐字）。--update-inventory 是唯一
+    会改写基线的入口，因此它也是唯一能让棘轮**静默失去约束力**的地方：无条件
+    重算会把基线抬到当前实测值，违规当场被抹掉。本函数把这条堵死：
+
+      * 新增条目（文件首次出现非 aio 命中）⇒ 允许，逐条列名 —— 这是「登记」，
+        不是「提额」：新条目自带 category/reason/owner 理由，且未登记本身在
+        evaluate 里就是红的；
+      * 既有条目 hits **增长** ⇒ 判红，具名 BASELINE_STALE，必须显式
+        --accept-growth <理由> 才落盘（落盘时写 baseline_raised 记录）；
+      * 既有条目 hits 下降 / 条目消失 ⇒ 允许（棘轮的自然方向，且 evaluate 的
+        stale 面另判）。
+
+    参数：new_entries = build_inventory(...)["entries"]；cur = load_inventory(...)
+    （None = 台账缺失，首次生成）。返回 (verdict, detail)。
+    """
+    newm = {e["path"]: e for e in new_entries}
+    detail = {"new": sorted(set(newm) - set(cur or {})),
+              "dropped": sorted(set(cur or {}) - set(newm)),
+              "raised": [], "lowered": []}
+    for rel in sorted(set(newm) & set(cur or {})):
+        was = int(cur[rel].get("hits", 0))
+        now = int(newm[rel].get("hits", 0))
+        if now > was:
+            detail["raised"].append((rel, was, now))
+        elif now < was:
+            detail["lowered"].append((rel, was, now))
+    detail["baseline_total"] = sum(int(e.get("hits", 0)) for e in (cur or {}).values())
+    detail["actual_total"] = sum(int(e.get("hits", 0)) for e in newm.values())
+    if cur is None:
+        return "NO_LEDGER", detail
+    if detail["raised"]:
+        return "BASELINE_STALE", detail
+    return "OK", detail
+
+
 # ── 主判据 ──────────────────────────────────────────────────────────────────
 def evaluate(root, inventory, strict_inventory):
     hits = scan(root)
@@ -726,6 +764,12 @@ def evaluate(root, inventory, strict_inventory):
 
     diag = scan_diagnostic_calls(root)
     a44 = scan_a44(root)
+    # 棘轮总量面（基线 vs 实测）：per-file 的 over 已逐条判红，这里再给**单个数**
+    # —— 一个「只减不增」的棘轮若没有可比的总量读数，读者无法一眼看出它是否
+    # 已经失去约束力（基线低于真实高水位时它要么恒红要么被跳过）。总量口径 =
+    # 台账面（不含 AIO-INTERNAL 与 HARD 前缀，HARD 面另有 H1/H2 判据）。
+    baseline_total = sum(int(e.get("hits", 0)) for e in inventory.values())
+    actual_total = sum(len(v) for v in inventory_hits.values())
     return {
         "fail_closed": None,
         "hard": hard, "unregistered": unregistered, "over": over,
@@ -733,6 +777,8 @@ def evaluate(root, inventory, strict_inventory):
         "residual": residual, "misclassified": misclassified,
         "fn_unregistered": fn_unregistered, "fn_stale": fn_stale,
         "hits": hits, "inventory_hits": inventory_hits,
+        "baseline_total": baseline_total, "actual_total": actual_total,
+        "baseline_stale": bool(over),
     }
 
 
@@ -770,6 +816,10 @@ def render(res, report, strict_inventory):
           % (len(res["inventory_hits"]),
              len(res["inventory_hits"]) - len(res["unregistered"]),
              len(res["unregistered"])))
+    print("    棘轮总量: 台账基线 %d 处 → 实测 %d 处%s"
+          % (res["baseline_total"], res["actual_total"],
+             "" if res["actual_total"] <= res["baseline_total"]
+             else "（**基线低于真实高水位 ⇒ 棘轮已失去约束力**）"))
     if res["unregistered"]:
         bad += len(res["unregistered"])
         for rel in res["unregistered"]:
@@ -778,7 +828,8 @@ def render(res, report, strict_inventory):
     if res["over"]:
         bad += len(res["over"])
         for rel, was, now in res["over"]:
-            print("    GROWTH %s: 登记 %d → 实际 %d（只减不增）" % (rel, was, now))
+            print("    BASELINE_STALE %s: 台账基线 %d → 实测 %d（只减不增；"
+                  "基线已陈旧，不是静默通过）" % (rel, was, now))
     if res["stale"]:
         tag = "VIOLATION" if strict_inventory else "STALE"
         if strict_inventory:
@@ -1151,6 +1202,59 @@ def self_test():
               "pure_absent=%s io_flagged=%s [%s]"
               % (n17_pure, n17_io, "PASS" if n17 else "FAIL"))
 
+        # ── 棘轮「基线陈旧」自检（CHK-AIO-IO-BOUNDARY）────────────────────────
+        # 缺陷面：--update-inventory 无条件把基线抬到当前实测值 ⇒ 一个「只减不增」
+        # 的棘轮可以在没有任何留痕的情况下被重新基线化，违规当场抹掉。此时门
+        # 要么恒红要么被跳过，等于没有约束力。
+        # 判据（本自检锁定）：既有条目命中数增长 ⇒ 判红 + 具名 BASELINE_STALE +
+        # **不落盘**；显式 --accept-growth <理由> 才落盘，并写 baseline_raised。
+        import contextlib as _ctx
+        import io as _io
+        import shutil as _sh
+        probe_rel = "lib/infrastructure/cli/growth_probe.cpp"
+        probe_abs = os.path.join(td, probe_rel)
+        _mk(probe_abs, "void w1(void){ std::ofstream f(\"a.bin\"); }\n"
+                       "void w2(void){ std::ofstream g(\"b.bin\"); }\n")
+        led_path = os.path.join(td, INVENTORY_REL)
+        _mk(led_path, json.dumps({"schema": "astrocs-aio-io-boundary-inventory/v1",
+                                  "entries": [{"path": probe_rel, "hits": 1,
+                                               "category": "DEV-TOOL",
+                                               "reason": "self-test",
+                                               "owner": "self-test"}]},
+                                 ensure_ascii=False))
+        before = open(led_path, encoding="utf-8").read()
+        # 18a 纯函数面：新条目 = 登记（允许）；既有条目下降 = 棘轮自然方向（允许）。
+        v_new, d_new = inventory_delta(
+            [{"path": "lib/algorithms/clean_mod/brand_new.cpp", "hits": 3}], {})
+        v_low, _d_low = inventory_delta(
+            [{"path": probe_rel, "hits": 0}], {probe_rel: {"path": probe_rel, "hits": 5}})
+        n18a = (v_new == "OK" and d_new["new"] == ["lib/algorithms/clean_mod/brand_new.cpp"]
+                and v_low == "OK")
+        # 18b 端到端：基线 1 → 实测 2 ⇒ 必须 rc=1、具名 BASELINE_STALE、台账**未改写**。
+        buf = _io.StringIO()
+        with _ctx.redirect_stdout(buf):
+            rc_stale = main(["--root", td, "--update-inventory"])
+        out_stale = buf.getvalue()
+        n18b = (rc_stale == 1 and "BASELINE_STALE" in out_stale
+                and open(led_path, encoding="utf-8").read() == before)
+        # 18c 端到端：显式 --accept-growth ⇒ rc=0，且台账留下 baseline_raised 记录。
+        buf2 = _io.StringIO()
+        with _ctx.redirect_stdout(buf2):
+            rc_acc = main(["--root", td, "--update-inventory",
+                           "--accept-growth", "self-test 提额留痕"])
+        led_after = json.load(open(led_path, encoding="utf-8"))
+        entry_after = [e for e in led_after["entries"] if e["path"] == probe_rel]
+        n18c = (rc_acc == 0 and led_after.get("baseline_raised", {}).get("reason")
+                == "self-test 提额留痕" and entry_after
+                and int(entry_after[0]["hits"]) == 2)
+        os.remove(probe_abs)
+        _sh.rmtree(os.path.join(td, "eng", "ci"), ignore_errors=True)
+        n18 = n18a and n18b and n18c
+        ok = ok and n18
+        print("  self-test 负例18(棘轮基线陈旧: 新条目允许/增长判红具名 BASELINE_STALE/"
+              "不落盘/--accept-growth 才提额留痕): pure=%s red_no_write=%s accepted=%s [%s]"
+              % (n18a, n18b, n18c, "PASS" if n18 else "FAIL"))
+
     print("AIO-IO-BOUNDARY_SELF-TEST_%s" % ("PASS" if ok else "FAIL"))
     return 0 if ok else 1
 
@@ -1161,6 +1265,9 @@ def main(argv=None):
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--strict-inventory", action="store_true")
     ap.add_argument("--update-inventory", action="store_true")
+    ap.add_argument("--accept-growth", default=None, metavar="REASON",
+                    help="显式接受棘轮基线**抬高**（既有条目命中数增长）并记录理由；"
+                         "不给则该情形判红并具名 BASELINE_STALE，不落盘")
     ap.add_argument("--root", default=None)
     args = ap.parse_args(argv)
 
@@ -1182,6 +1289,30 @@ def main(argv=None):
     if args.update_inventory:
         hits = scan(root)
         inv = build_inventory(root, hits)
+        cur = load_inventory(root)
+        verdict, detail = inventory_delta(inv["entries"], cur)
+        if verdict == "BASELINE_STALE" and not args.accept_growth:
+            # 棘轮自检（ENGINEERING_SPEC §8：门本身不合理就改门，不是放松判据）：
+            # 基线低于实测 ⇒ 无条件重算等于把违规抹掉 ⇒ 判红且**不落盘**。
+            print("BASELINE_STALE: --update-inventory 会抬高棘轮基线（只减不增），拒绝落盘")
+            for rel, was, now in detail["raised"]:
+                print("    既有条目 %s: 台账基线 %d → 实测 %d" % (rel, was, now))
+            print("    台账总量 %d → 实测 %d；新登记 %d 个文件"
+                  % (detail["baseline_total"], detail["actual_total"],
+                     len(detail["new"])))
+            print("    ⇒ 要么整改新增命中，要么显式 --accept-growth <理由> 接受提额并留痕。")
+            return 1
+        if verdict == "BASELINE_STALE":
+            inv["baseline_raised"] = {
+                "reason": args.accept_growth,
+                "baseline_total_before": detail["baseline_total"],
+                "baseline_total_after": detail["actual_total"],
+                "raised_entries": [{"path": r, "was": w, "now": n}
+                                   for r, w, n in detail["raised"]],
+            }
+            print("BASELINE_RAISED(accepted): 台账总量 %d → %d；理由: %s"
+                  % (detail["baseline_total"], detail["actual_total"],
+                     args.accept_growth))
         path = os.path.join(root, INVENTORY_REL)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         tmp = path + ".tmp"
@@ -1189,7 +1320,10 @@ def main(argv=None):
             json.dump(inv, fh, ensure_ascii=False, indent=2, sort_keys=False)
             fh.write("\n")
         os.replace(tmp, path)
-        print("INVENTORY-UPDATED: %s (%d entries)" % (INVENTORY_REL, len(inv["entries"])))
+        print("INVENTORY-UPDATED: %s (%d entries; 新登记 %d; 提额 %d; 下降 %d; 删除 %d)"
+              % (INVENTORY_REL, len(inv["entries"]), len(detail["new"]),
+                 len(detail["raised"]), len(detail["lowered"]),
+                 len(detail["dropped"])))
         return 0
 
     inventory = load_inventory(root)
