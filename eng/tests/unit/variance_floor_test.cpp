@@ -58,7 +58,13 @@ static const char* g_case = "(init)";
 using astrocs::VarianceFloor;
 using astrocs::VarianceFloorSource;
 
-// M42 实测帧测光标度（run/PERF-501/out/t2_16f_after/.../p1_stack.json photscal）
+// α 标度的**判别域边界值**（不是某一帧的实测标度）：选它使「ADU 绝对地板 1e-12·α²」
+// 恰好落在 float32 次正规数下界（1.4013e-45）之下 ⇒ V2/V5/V7 的红锚「精确下溢为 0」
+// 才有判别力（α ≥ 3.75e-17 时 1e-12·α² ≥ 1.4e-45，红锚不成立）。**该值承载断言，勿改**。
+// ⚠ 旧注释把它标为「M42 实测帧测光标度（run/PERF-501/out/t2_16f_after/…）」，**出处已作废**：
+// 那一跑用的是错通带曲线（53 点 / 420–524 nm），整幅测光刻度错 ×2.457905（0.86 mag）；
+// 证据见 run/P1-CONCURRENCY-CALIB-01/REPORT.md §3.3。正确通带（Baader R，73 点 / 572–716 nm）
+// 下 M42 T2 各帧 α ≈ 5.2–5.9e-17（P1-CONCURRENCY-CALIB-01 同二进制实测）。
 static const double kAlpha = 2.3846837130250378e-17;
 static const double kFloorAdu = 1e-12;              // NOISE_MODEL §5/§9 冻结默认（ADU²）
 static const double kEpsRel = 1e-12;                // 相对系数（该帧方差尺度的 1e-12）

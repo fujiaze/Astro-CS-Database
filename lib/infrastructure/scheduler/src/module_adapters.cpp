@@ -1877,22 +1877,42 @@ static uint32_t p1_workers(const Json& doc) {
 //   AIO-SYSINFO-01: 探测机制已在 aio 侧就绪（aio_system_available_memory_bytes，
 //   Windows 分支 = GlobalMemoryStatusEx.ullAvailPhys）；**是否在 Windows 放开并行
 //   仍属平台策略**（需平台证据），故本函数在 Windows 保持既有取值 0 = 不可判定。
-// PERF-501 重标定（探针驱动；旧值 358.0 = PERF-MEM-FIX-01 之前的口径）：
-//   · 旧值来源: ser3/par3/par11 三帧并行峰值 17.5 GB（≈5.8 GB/帧）——**K = num_threads
-//     时代**的标定，drizzle scratch 池随 worker 数线性放大；
-//   · 现口径: drizzle_engine.cpp 的 kScratchPoolCap = 2 已把池钉在 K ≤ 2，峰值不再随
-//     worker 数放大（PERF-MEM-FIX-01 F1，未提交的工作区代码即本标定对象）；
-//   · 实测（PERF-501 冒烟，4096×4096 / FP64 / 2 帧在飞 / 16.78e6 px）:
-//       峰值 RSS 3.55 GB（run/PERF-501/evidence/after_w16_2f），drizzle 窗口内
-//       单帧边际 ≈ 1.8 GB ⇒ **≈107 B/px**；PERF-PROFILE-01 §9.2 用独立算式给出
-//       ≈210–240 B/px（含 hierarchy 祖先与 6 份帧副本的保守上界）。
-//   · PERF-501 试标定值 200.0 **未采纳**：把帧并发由 2 抬到 4 后，同一输入的低阶/叶
-//     HiPS 产品与基线**大面积不等价**（16 帧 T2：11820 个 FITS 中 5846 个 DATASUM 变化，
-//     抽样可见整幅替换，远超任何事前冻结容差）⇒ 属"改科学口径换速度"。必须先修 HiPS
-//     hierarchy 的归并序（PERF-PROFILE-01 §9.3 已预警 AncestorAcc 按 tile 到达序 +=）
-//     再抬本值。证据与登记见 docs/architecture/PERFORMANCE_MODEL.md §PERF-501.4。
-//   · 标定对象变更（drizzle 精度模式 / nside / 帧几何）必须重测并更新本值。
-static constexpr double kP1FrameBytesPerPixel = 358.0;   // 实测标定（PERF-501 复核后维持）
+// P1-CONCURRENCY-CALIB-01 重标定（同二进制受控扫描；2026-09-23）：
+//   · 旧值 358.0 的来历: par3（3 帧并行）峰值 RSS 17,946,058,752 B ÷ 3 帧 ÷ 16.2e6 px
+//     （T4 4500×3600）≈ 369 B/px。该构造**隐含 base = 0**（把整幅峰值全摊给"在飞帧"），
+//     而同一报告的 ser3（3 帧**串行**、1 CPU）峰值就是 4.19 GB ⇒ base ≠ 0；
+//     且它是 **K = num_threads 时代**的标定（scratch 池随 worker 数线性放大）。
+//   · 现口径: kScratchPoolCap = 2 把池钉在 K ≤ 2，峰值不再随 worker 数放大。
+//   · **实测内存模型**（run/P1-CONCURRENCY-CALIB-01；同一二进制
+//     build_source_digest=f86d60e2…、同场 8 帧 4096²/FP64/auto nside、inner_omp 恒 1、
+//     只变 in_flight、峰值 RSS 由**外部**采样 /proc/<pid>/status VmHWM）:
+//         RSS(F) = 0.143 GB + F × 1.6724 GB        （F = in_flight，残差 ≤ ±2.5%）
+//         ⇒ 边际 99.68 B/px、base 0.143 GB
+//       实测点: F=1→1.799 / F=2→3.576,3.580（两次重复）/ F=4→6.726 /
+//               F=8→13.555,13.325 GB（两次重复）
+//   · 旧值 358.0 对**边际**项保守 3.59×（358 / 99.68）。
+//   · **原「抬帧并发会改变 HiPS 产品」的拒收理由已被证伪**（P1-CONCURRENCY-CALIB-01 §3.3）：
+//     其唯一证据（t2_16f_fixA vs t2_16f_after 的 8769/11820 DATASUM 变化）是**跨二进制 +
+//     跨通带曲线**的对照 —— 两跑 k_photo 差 ×2.457905（0.86 mag），signal 逐像素 A/B 比值
+//     恰为该刻度比（min/p50/max = 2.4579049/2.4579051/2.4579053）⇒ 残差归零；
+//     且祖先归约按 s 互斥（aio_hips_writer.cpp:771-777；HIPS-DETERMINISM-01 已证
+//     "tile 到达序 +=" 形态在生产不存在）、跨帧零浮点归约（本文件 :6203-6206）。
+//   · **受控扫描直接反证**：同帧集 8 帧、同一二进制、只变 in_flight(2/4/8) 与 inner_omp(1/2)
+//     ⇒ **FITS 差异 0/5916、必同 JSON 差异 0**（含全部 HiPS 层级、calibrated/photoapplied
+//     科学帧与组级星表聚合），仅 10 个含 output_dir 路径串的 JSON 在掩码后逐键相同。
+//   · 取值 116.0 的依据: W_eff = F × min(max(1, lease/F), K) 在 F=8 取到 16（=8×2），
+//     而 F∈[9,15] 是 I=1 死区（W_eff 掉到 9..15）⇒ **不是越小越好**。
+//     F=8 ⟺ 0.75A/(9P) < B ≤ 0.75A/(8P)（是**窗口**不是阈值）；
+//     A=20.77 GB 时 = (103.2, 116.1]。取窗口上端 116.0 ⇒ A ∈ [20.76, 23.3] GB 内
+//     得 F=8 / W_eff=16；A 更低时优雅退化为 F=6–7（W_eff=12–14），
+//     任何 A 下都不劣于旧值的 W_eff=4。
+//   · **目标配置实测**（lease=16, F=8, inner=2, W_eff=16）: 峰值 RSS 13.940 GB
+//     = 0.75A(A=20.77 GB) 的 89.5% ⇒ 余量 10.5%；同帧集墙钟 421.0 s，
+//     对比旧口径的 W_eff=4（783.5 s）为 **1.86×**。
+//   · 标定对象变更（drizzle 精度模式 / nside / 帧几何 / K）必须重测并更新本值。
+//   · 残留风险: p1_memory_cap 是**瞬时快照**而非预留；无 swap 机器上闸门放行后若其它进程
+//     再吃内存，安全垫会被吃掉（旧值峰值 3.5 GB 时风险小，13.9 GB 时不可忽略）。
+static constexpr double kP1FrameBytesPerPixel = 116.0;   // 实测标定（P1-CONCURRENCY-CALIB-01）
 static constexpr double kP1FrameMemSafetyFrac = 0.75;    // 留基础占用与运行波动
 
 static uint64_t p1_available_memory_bytes() {
@@ -10652,10 +10672,12 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
                             {"ivar_bunit", uncertainty_available
                                  ? std::string(kP3BunitSbIvar)
                                  : std::string()},
-                            // 单位传播写法（docs/contracts/DATA_SEMANTICS.md §31.1 FZ-P3-BUNIT-QUADRATIC）：
-                            // 本条只约束 BUNIT 单位串，不约束数值——variance 是独立估计量，
-                            // 数值上一般 != signal^2（含读噪/量化时，见 EMVA 1288 R4.0 Linear §2.4 Eq.(15)）。
-                            {"quadratic_law", "BUNIT(variance) = BUNIT(signal)^2; BUNIT(ivar) = 1/BUNIT(signal)^2"}}},
+                            // FZ-P3-BUNIT-QUADRATIC 的串是**冻结契约值**（product_family_field_constraints
+                            // .schema.json $defs/units 的 const 逐字规定），本处**逐字照抄、不得改写**。
+                            // 读法消歧见 docs/contracts/DATA_SEMANTICS.md §31.1：首分句 "variance = signal^2"
+                            // 是**单位传播的简写**，读作 BUNIT(variance) = BUNIT(signal)^2，**不是**数值物理律
+                            // （数值上含读噪/量化时 variance != signal^2，见 EMVA 1288 R4.0 Linear §2.4 Eq.(15)）。
+                            {"quadratic_law", "variance = signal^2; ivar = 1/variance; Phase3 variance BUNIT = (main HDU signal BUNIT)^2"}}},
                         {"uncertainty_available", uncertainty_available},
                         // G3-12（ASTROCS_DESIGN §3.1）：p2_final.json
                         // **不再落** weight_mode 键（「全程只有 SNR，不存在

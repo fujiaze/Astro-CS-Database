@@ -1,4 +1,17 @@
 # run/ 轮次保留清单（eng/tools/run_gc.py 读取；与本文件同目录，路径单源）
+RELEASE-*
+AUTONOMOUS-*
+RUN-PROVENANCE-*
+CONTRACT-*
+STARDET-*
+DS-*
+WEIGHTMODE-*
+NOISE-*
+PASSBAND-*
+PHOT-*
+VAR-*
+HIPS-*
+P1-*
 #
 # 每行一个 fnmatch glob，匹配 run/ 的**直接子项名**；# 开头为注释。
 # 登记规则：现行轮次的验收证据在此登记；未登记的轮次可被 run_gc.py 回收。

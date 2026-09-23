@@ -29,7 +29,7 @@
 | 项 | 模式 | 细节 |
 |---|---|---|
 | HiPS write | async_io | `aio_hips_writer` 异步刷盘, 事务提交；合同见 [ASYNC_IO_CONTRACT.md](ASYNC_IO_CONTRACT.md) |
-| HiPS read | 并发只读（无进程级锁） | **PERF-401 线程模型**：读路径无进程级共享可变状态；每个 `fitsfile*` 为单线程私有、生命周期不跨线程转移（每次调用各自 open→read→close，句柄只在该调用栈帧）；并发安全由 cfitsio `_REENTRANT` 构建保证（`FptrTable`/错误栈由 cfitsio 自带 `Fitsio_Lock` 保护，`READONLY` 打开 `fits_already_open` 直接返回、不复用句柄，`cfileio.c:1544`）。机器判据 `check_execution_contracts.py::EXEC-AIO-READ-NO-GLOBAL-LOCK` |
+| HiPS read | 并发只读（无进程级锁） | **读路径线程模型**：读路径无进程级共享可变状态；每个 `fitsfile*` 为单线程私有、生命周期不跨线程转移（每次调用各自 open→read→close，句柄只在该调用栈帧）；并发安全由 cfitsio `_REENTRANT` 构建保证（`FptrTable`/错误栈由 cfitsio 自带 `Fitsio_Lock` 保护，`READONLY` 打开 `fits_already_open` 直接返回、不复用句柄，`cfileio.c:1544`）。机器判据 `check_execution_contracts.py::EXEC-AIO-READ-NO-GLOBAL-LOCK` |
 | ~~ACR H2D/D2H~~ **DORMANT** | — | 保留源码与隔离测试，**不进生产**；原行：async via CUDA stream / `cuda_bridge_api` H2D>0 in cold Mixed (BDR D gate) |
 | Fallback | sync fallback | 生产 fallback **只有一条**：无 cpu_profile → baseline 后端 + 动态 worker（保守合法，最高设计 §8） |
 
@@ -37,7 +37,7 @@
 
 | 共享 | 原语 | 粒度 |
 |---|---|---|
-| aio_read 读路径 | **无进程级互斥量**（PERF-401 取代旧 `critical(aio_read)`） | 每次调用独立句柄，句柄线程私有、不跨线程转移；剩余串行化点（诊断/写面）统一走计数式 `aio::CfitsioLockGuard`（等待进 `resource_timeseries.csv` 的 `lock_wait_ns`） |
+| aio_read 读路径 | **无进程级互斥量**（读路径不存在进程级临界区） | 每次调用独立句柄，句柄线程私有、不跨线程转移；剩余串行化点（诊断/写面）统一走计数式 `aio::CfitsioLockGuard`（等待进 `resource_timeseries.csv` 的 `lock_wait_ns`） |
 | rejected_* | `atomic` | per-sample |
 | Drizzle counters | `atomic` / `reduction` | per-tile |
 | Dense cache | `mutex` | per-write |
@@ -82,7 +82,7 @@
 | ID | 覆盖 |
 |---|---|
 | ARC-EXEC-001 | Stage1 per-tile OpenMP calibrate |
-| ARC-EXEC-002 | Stage2 sampler 并发只读（PERF-401：无进程级锁；句柄单线程私有、不跨线程转移；Runtime lease 定 worker 数） |
+| ARC-EXEC-002 | Stage2 sampler 并发只读（无进程级锁；句柄单线程私有、不跨线程转移；Runtime lease 定 worker 数） |
 | ARC-EXEC-003 | Stage2 UPM serial solve |
 | ARC-EXEC-004 | Phase2 block/reject/integrate per-pixel parallel |
 | ~~ARC-EXEC-005~~ **DORMANT** | ACR Dispatcher mixed H2D/D2H + fallback —— **休眠，不进生产**（最高设计 §8） |
