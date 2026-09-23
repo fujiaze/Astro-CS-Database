@@ -597,7 +597,7 @@ static std::string write_test_hiss(const std::string& base_path,
     meta.tile_nside = grid.tile_nside;
     std::strncpy(meta.object, "CorrectnessTest", sizeof(meta.object) - 1);
     meta.exptime = 60.0;
-    // BUNIT=ASTROCS_RELATIVE_FLUX (默认) 要求 PHOTAPPL=TRUE (Writer 元数据一致性校验)
+    // BUNIT=ADU/sr (默认) 要求 PHOTAPPL=TRUE (Writer 元数据一致性校验)
     meta.photappl = 1;
     meta.photscal = 1.0;
 
@@ -1140,7 +1140,7 @@ static void test_20_atomic_commit(int id) {
     hiss::HissMetadata meta;
     meta.nside = grid.nside; meta.tile_nside = grid.tile_nside;
     std::strncpy(meta.object, "AtomicTest", sizeof(meta.object) - 1);
-    meta.photappl = 1; meta.photscal = 1.0;  // BUNIT=ASTROCS_RELATIVE_FLUX 要求 PHOTAPPL=TRUE
+    meta.photappl = 1; meta.photscal = 1.0;  // BUNIT=ADU/sr 要求 PHOTAPPL=TRUE
 
     hiss::DrizzleTileAccumulator acc;
     acc.tile_nside = 16; acc.parent_ipix = 42;
@@ -1205,7 +1205,7 @@ static void test_21_nested_ipix_recovery(int id) {
 
     hiss::HissMetadata meta;
     meta.nside = nside; meta.tile_nside = tile_nside;
-    meta.photappl = 1; meta.photscal = 1.0;  // BUNIT=ASTROCS_RELATIVE_FLUX 要求 PHOTAPPL=TRUE
+    meta.photappl = 1; meta.photscal = 1.0;  // BUNIT=ADU/sr 要求 PHOTAPPL=TRUE
 
     // 选择一个 parent_ipix, 填充其所有叶像素
     uint64_t parent_ipix = 5;

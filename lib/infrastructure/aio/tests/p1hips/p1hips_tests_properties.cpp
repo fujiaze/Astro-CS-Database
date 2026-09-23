@@ -427,8 +427,148 @@ int test_properties() {
                          mok ? mv.c_str() : "(missing)");
     }
 
+    // --- P8: 变瓦片到达顺序的确定性 (HIPS-DETERMINISM-01) ---
+    //
+    // 判据结构性缺口: P1 只改**并发线程数**, 每个线程内部写序完全相同 ⇒ 天然
+    // 抓不到"到达序"依赖。本组固定同一组叶 tile 的**逐位相同内容**, 只改其到达
+    // 顺序, 要求产品树逐位相同。
+    //
+    // 规范依据:
+    //   docs/contracts/SCHEDULER_CONTRACT.md §2.1:28「结构性不变量(必须满足, 判红项):
+    //     归约顺序按帧 ID/块 ID/窗口 ID/像素序固定; 跨 worker 无共享浮点累加器;
+    //     异步与工作窃取只改变执行顺序, 不改变结合顺序」+ §6:71「归约顺序随
+    //     worker 数变化(共享浮点累加器/动态归约序) ⇒ 判红」;
+    //   docs/algorithms/HIPS_WRITER.md §9「f64 通路逐像素 bitwise(同序确定性)」;
+    //   docs/contracts/DATA_SEMANTICS.md §12.3:414「astrocs_covered_sky_fraction
+    //     = covered_area_sr/4π」(契约键, 归约须与到达序无关)。
+    //
+    // 几何 nside=2048 (tile_order=2), 4 个叶 tile (parent_ipix 0..3):
+    //   k=1: A=ipix>>2 → cell 0 需 4 槽, 4 tile 到齐 ⇒ **流式完备写出**;
+    //   k=0: A=ipix>>4 → cell 0 需 16 槽, 只到 4 ⇒ 走 **finalize** 路径。
+    //   两条写出路径同时被覆盖。
+    // 像素值必须**非均匀** (splitmix64 固定 seed): 常数 fixture 下任何重结合都
+    // 逐位相同 ⇒ 判据退化。
+    // 负例 (判据非退化, AGENTS §5): 以 ASTROCS_HIPS_HIER_FAULT=cross_tile_sum
+    // 注入「祖先累加退化为真正的跨瓦片求和」(= PERF-PROFILE-01 §9.3 预警形态),
+    // 同一组排列必须**判红**; 无注入时必须**判绿**。两侧都在本组内自证。
+    {
+        constexpr std::uint32_t kP8Nside = 2048;   // tile_order = 2
+        constexpr std::uint32_t kP8LeafOrder = 11; // ilog2(2048)
+        // 4 个叶 tile 已足够同时覆盖两条写出路径 (见下方 k=1/k=0 分析),
+        // 且把本组写盘量压到 CI 可接受量级 (16 个 FITS/轮 × 6 轮)。
+        constexpr int kP8NLeaf = 4;
+        const std::size_t n = (std::size_t)FIX_NPIX;
+        const double a_cell = fix_a_cell_sr(kP8Nside);
+        // 每 ipix 的像素数组由固定 seed 生成 ⇒ 与到达顺序无关 (只顺序变, 内容不变)
+        std::vector<std::vector<double>> p8_flux(kP8NLeaf), p8_area(kP8NLeaf),
+            p8_vnum(kP8NLeaf);
+        for (int t = 0; t < kP8NLeaf; ++t) {
+            SplitMix64 rng(0xC0FFEEULL * 1000003ULL + (std::uint64_t)t);
+            p8_flux[t].assign(n, 0.0);
+            p8_area[t].assign(n, 0.0);
+            p8_vnum[t].assign(n, 0.0);
+            for (std::size_t i = 0; i < n; ++i) {
+                const double af = 0.3 + 0.6 * rng.unit();
+                const double ar = af * a_cell;
+                const double sg = 10.0 + 5.0 * rng.unit();
+                const double sd = 0.01 + 0.05 * rng.unit();
+                p8_area[t][i] = ar;
+                p8_flux[t][i] = sg * ar;
+                p8_vnum[t][i] = sd * sd * ar * ar;
+            }
+            // 少量边界像素 (不可用态): 覆盖为 0 / 方差为 0
+            p8_area[t][7] = 0.0; p8_flux[t][7] = 0.0; p8_vnum[t][7] = 0.0;
+            p8_vnum[t][11] = 0.0;
+        }
+        auto p8_write = [&](const std::string& dir, const std::vector<int>& order) {
+            AioHipsProductSet* ps = aio_hips_product_begin(
+                dir.c_str(), kP8Nside, 512, AIO_HIPS_FLOAT64,
+                AIO_HIPS_PRODUCT_SIGNAL | AIO_HIPS_PRODUCT_SUPPORT |
+                    AIO_HIPS_PRODUCT_VARIANCE | AIO_HIPS_PRODUCT_IVAR,
+                "ivo://astrocs/test/p1hips", "p8", nullptr, 0.0, nullptr, 0);
+            if (!ps) return -1;
+            for (int idx : order) {
+                AstroSphereTileView v;
+                std::memset(&v, 0, sizeof(v));
+                aio_hips_tile_view_abi_init(&v);
+                v.parent_ipix = (std::uint64_t)idx;
+                v.leaf_order = kP8LeafOrder;
+                v.width = 512;
+                v.data_type = AIO_HIPS_FLOAT64;
+                v.flux_sum = p8_flux[(std::size_t)idx].data();
+                v.covered_area = p8_area[(std::size_t)idx].data();
+                v.var_num_sum = p8_vnum[(std::size_t)idx].data();
+                int rc = aio_hips_write_signal_support_tile(ps, &v);
+                if (rc != 0) { aio_hips_abort(ps); return rc; }
+                aio_hips_tile_view_abi_init(&v);
+                rc = aio_hips_write_variance_tile(ps, &v);
+                if (rc != 0) { aio_hips_abort(ps); return rc; }
+            }
+            return aio_hips_finalize(ps);
+        };
+        std::vector<int> p8_ident, p8_rev, p8_inter;
+        for (int i = 0; i < kP8NLeaf; ++i) p8_ident.push_back(i);
+        p8_rev.assign(p8_ident.rbegin(), p8_ident.rend());
+        // 非平凡固定排列: 偶数下标在前、奇数下标在后 (与 identity/reverse 都不同)
+        for (int i = 0; i < kP8NLeaf; i += 2) p8_inter.push_back(i);
+        for (int i = 1; i < kP8NLeaf; i += 2) p8_inter.push_back(i);
+        const std::vector<int>* p8_orders[3] = {&p8_ident, &p8_rev, &p8_inter};
+        const char* p8_names[3] = {"identity", "reverse", "interleave"};
+        // 跑一轮排列, 返回是否"全部逐位相同"
+        auto p8_round = [&](bool* all_ok, std::string* detail) {
+            std::uint64_t d_ref = 0;
+            std::string frac_ref;
+            bool ok_ref = false;
+            *all_ok = true;
+            for (int ci = 0; ci < 3; ++ci) {
+                const std::string dir = make_tmp_dir("p8");
+                const int rc = p8_write(dir, *p8_orders[ci]);
+                std::uint64_t dg = 0;
+                const bool ok = (rc == 0) && tree_digest(dir, dg, "properties", nullptr);
+                const auto kv = read_properties(dir + "/signal/properties");
+                const auto it = kv.find("astrocs_covered_sky_fraction");
+                const std::string frac =
+                    (it == kv.end()) ? std::string("(missing)") : it->second;
+                if (ci == 0) { d_ref = dg; frac_ref = frac; ok_ref = ok; continue; }
+                if (!(ok && ok_ref && dg == d_ref)) {
+                    *all_ok = false;
+                    if (detail) *detail = std::string(p8_names[ci]);
+                }
+                if (frac != frac_ref) {
+                    *all_ok = false;
+                    if (detail) *detail = std::string(p8_names[ci]) + "(sky_fraction)";
+                }
+            }
+            return ok_ref;
+        };
+        // ① 生产实现 (无注入) ⇒ 必须逐位相同
+        bool p8_ok = false;
+        std::string p8_detail;
+        const bool p8_ref_ok = p8_round(&p8_ok, &p8_detail);
+        P1HIPS_CHECK_MSG(cs, p8_ref_ok && p8_ok, "p8_arrival_order_bitwise",
+                         "到达顺序 %s 的产品树与 identity 不逐位相同",
+                         p8_detail.empty() ? "?" : p8_detail.c_str());
+        // ② 负例: 注入"跨瓦片求和"形态 ⇒ 必须判红 (证明判据非退化)
+        {
+            const char* prev = std::getenv("ASTROCS_HIPS_HIER_FAULT");
+            const std::string prev_s = prev ? prev : std::string();
+            setenv("ASTROCS_HIPS_HIER_FAULT", "cross_tile_sum", 1);
+            bool inj_ok = false;
+            std::string inj_detail;
+            const bool inj_ref_ok = p8_round(&inj_ok, &inj_detail);
+            if (prev) setenv("ASTROCS_HIPS_HIER_FAULT", prev_s.c_str(), 1);
+            else      unsetenv("ASTROCS_HIPS_HIER_FAULT");
+            // 双侧: 注入轮必须「写入成功」且「排列确实不同」—— 只断言后者
+            // 会被「写失败」误判成已检出。
+            P1HIPS_CHECK_MSG(cs, inj_ref_ok && !inj_ok, "p8_negative_injection_detected",
+                             "注入 cross_tile_sum 后未检出顺序依赖 (write_ok=%d, "
+                             "all_identical=%d) ⇒ P8 判据无判别力 (恒真门, AGENTS §5)",
+                             (int)inj_ref_ok, (int)inj_ok);
+        }
+    }
+
     if (cs.failures == 0) {
-        std::fprintf(stdout, "[p1hips] properties: P1..P7 PASS\n");
+        std::fprintf(stdout, "[p1hips] properties: P1..P8 PASS\n");
         return 0;
     }
     std::fprintf(stderr, "[p1hips] properties: %d check(s) failed\n", cs.failures);

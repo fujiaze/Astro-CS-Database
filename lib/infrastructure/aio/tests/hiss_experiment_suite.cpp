@@ -794,7 +794,7 @@ static bool run_checksum_experiment() {
     meta.tile_nside = tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
     std::snprintf(meta.object, sizeof(meta.object), "ChecksumBench");
 
     struct CkConf { hiss::ChecksumType ct; const char* name; };
@@ -969,7 +969,7 @@ static bool run_alignment_experiment() {
     meta.tile_nside = tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
     std::snprintf(meta.object, sizeof(meta.object), "AlignmentBench");
 
     std::string path = g_raw_dir + "/_alignment.hiss";
@@ -1118,7 +1118,7 @@ static bool build_browser_io_file(const std::string& path, int n_tiles,
     meta.tile_nside = tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
     std::snprintf(meta.object, sizeof(meta.object), "BrowserIOBench");
 
     std::filesystem::remove(path);

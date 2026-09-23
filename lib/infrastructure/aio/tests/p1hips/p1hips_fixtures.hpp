@@ -182,7 +182,9 @@ inline std::vector<FixSnrPointF> fix_hips_d_snr_points(std::uint64_t seed, int n
 
 // ---------------------------------------------------------------------------
 // FIX-HIPS-E: variance 半有效视图: 前半像素 var_num>0, 后半 var_num=0
-// (any_valid=true → 写出合法; 对半分界用于 ivar=1/var 互倒检查)
+//   前半 = 有覆盖 ∧ 方差可用  → variance=vnum/area², ivar=1/variance
+//   后半 = 有覆盖 ∧ 方差不可用 → variance=0 ∧ ivar=0（§4a:49 显式不可用）
+// 对半分界同时服务于 ivar=1/var 互倒检查与「0/0 而非 NaN」检查。
 // ---------------------------------------------------------------------------
 inline FixViewF64 fix_hips_e_half_var_tile(std::uint64_t parent_ipix,
                                            double sb, double area_factor,
@@ -193,10 +195,29 @@ inline FixViewF64 fix_hips_e_half_var_tile(std::uint64_t parent_ipix,
     return f;
 }
 
-// FIX-HIPS-F: 全无效 variance 视图 (var_num 全 0 → write_variance rc=-5)
-inline FixViewF64 fix_hips_f_all_invalid_var_tile(std::uint64_t parent_ipix) {
+// FIX-HIPS-F: 「有覆盖但无方差信息」视图 (area>0 恒定, var_num 全 0)
+//   §4a:49 的**合法产品态** ⇒ write_variance 必须返回 0 并落盘 variance=0 ∧ ivar=0
+//   （禁写 NaN；拒写会让 support>0 的像素在阶段二变成 ivar tile 缺失 rc=7）。
+inline FixViewF64 fix_hips_f_covered_no_var_tile(std::uint64_t parent_ipix) {
     FixViewF64 f = fix_hips_a_tile(parent_ipix, 10.0, 0.5, 1.0, true, true);
     for (auto& v : f.var_num_sum) v = 0.0;
+    return f;
+}
+
+// FIX-HIPS-F2: 真「无覆盖」视图 (covered_area 全 0 ⇒ 全像素 NaN)
+//   ⇒ write_variance 必须返回 −5 且不落盘（§12.4:425 全无效 variance tile）。
+inline FixViewF64 fix_hips_f_uncovered_var_tile(std::uint64_t parent_ipix) {
+    FixViewF64 f = fix_hips_a_tile(parent_ipix, 10.0, 0.5, 1.0, true, true);
+    for (auto& a : f.covered_area) a = 0.0;
+    for (auto& v : f.var_num_sum) v = 0.0;
+    return f;
+}
+
+// FIX-HIPS-F3: 损坏视图 (§12.4:423) —— vnum<0 或非有限 ⇒ write_variance rc=−6。
+inline FixViewF64 fix_hips_f_corrupt_var_tile(std::uint64_t parent_ipix,
+                                              double bad_value) {
+    FixViewF64 f = fix_hips_a_tile(parent_ipix, 10.0, 0.5, 1.0, true, true);
+    f.var_num_sum[0] = bad_value;
     return f;
 }
 

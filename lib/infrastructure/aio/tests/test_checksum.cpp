@@ -126,7 +126,7 @@ static void make_test_grid_meta(uint32_t nside, hiss::HissGridSpec& grid,
     meta.tile_nside = grid.tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 }
 
 // ============================================================================

@@ -124,7 +124,7 @@ static void test_01_fp32_roundtrip_bitexact(int id) {
     meta.tile_nside = grid.tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     uint32_t n_leaf = 16;  // 4^2 = 16 for NSIDE=64
     double A_p = 4.0 * 3.14159265358979 / (12.0 * 64.0 * 64.0);
@@ -217,7 +217,7 @@ static void test_02_fp64_roundtrip_bitexact(int id) {
     meta.tile_nside = grid.tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     uint32_t n_leaf = 16;
     double A_p = 4.0 * 3.14159265358979 / (12.0 * 64.0 * 64.0);
@@ -306,7 +306,7 @@ static void test_03_cross_mode_rejection(int id) {
     meta.tile_nside = grid.tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     uint32_t n_leaf = 16;
     double A_p = 4.0 * 3.14159265358979 / (12.0 * 64.0 * 64.0);
@@ -393,7 +393,7 @@ static void test_04_metadata_precision_fields(int id) {
     meta.tile_nside = grid.tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     uint32_t n_leaf = 16;
     double A_p = 4.0 * 3.14159265358979 / (12.0 * 64.0 * 64.0);
@@ -504,7 +504,7 @@ static void test_05_precision_difference(int id) {
     meta.tile_nside = grid.tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     uint32_t n_leaf = 16;
     double A_p = 4.0 * 3.14159265358979 / (12.0 * 64.0 * 64.0);

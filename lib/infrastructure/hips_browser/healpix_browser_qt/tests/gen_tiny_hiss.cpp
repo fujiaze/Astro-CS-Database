@@ -31,7 +31,7 @@ static bool write_one(const std::string& path, bool f64) {
     meta.tile_nside = grid.tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     const uint32_t n_leaf = 16;
     const double A_p = 4.0 * 3.14159265358979 / (12.0 * 64.0 * 64.0);

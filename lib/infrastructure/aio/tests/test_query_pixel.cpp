@@ -259,7 +259,7 @@ static void make_grid_meta(uint32_t nside, hiss::HissGridSpec& grid, hiss::HissM
     meta.tile_nside = tile_nside;
     meta.photappl = 1;
     meta.photscal = 1.0;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 }
 
 // 计算 HEALPix 像素面积 (球面度)

@@ -616,18 +616,34 @@ int test_oracle() {
         TileFits var, ivar;
         if (read_tile_fits(d64 + "/variance/Norder0/Dir0/Npix0.fits", var) &&
             read_tile_fits(d64 + "/ivar/Norder0/Dir0/Npix0.fits", ivar)) {
-            bool inv_ok = true, nan_ok = true;
+            bool inv_ok = true, nan_ok = true, zero_ok = true;
+            std::size_t n_zero = 0, n_pos = 0, n_nan = 0;
             for (std::size_t i = 0; i < var.pix_d.size(); ++i) {
                 const double v = var.pix_d[i], iv = ivar.pix_d[i];
                 if (std::isnan(v)) {
                     if (!std::isnan(iv)) { nan_ok = false; break; }   // I3 一致
+                    ++n_nan;
+                    continue;
+                }
+                if (v == 0.0) {
+                    // §4a:42「variance=0/缺失 → ivar=0（显式不可用，禁止伪装）」
+                    // —— 0/0 是**显式不可用**对，不是 1/v 的数值结果（1/0=Inf 被禁）。
+                    if (iv != 0.0) { zero_ok = false; break; }
+                    ++n_zero;
                     continue;
                 }
                 // f64: ivar == 1/variance bitwise (生产同式独立复算)
                 if (!bits_eq_d(iv, 1.0 / v)) { inv_ok = false; break; }
+                ++n_pos;
             }
             P1HIPS_CHECK(cs, inv_ok, "o5_ivar_inverse_bitwise");
             P1HIPS_CHECK(cs, nan_ok, "o5_nan_pair");
+            P1HIPS_CHECK(cs, zero_ok, "o5_zero_pair_explicit_unavailable");
+            // 判别力锚: 半有效视图必须真的产出两类像素, 否则本组退化为恒真门
+            P1HIPS_CHECK_MSG(cs, n_zero > 0 && n_pos > 0,
+                             "o5_zero_pair_nondegenerate",
+                             "半有效视图未产生两类像素 (zero=%zu pos=%zu nan=%zu)",
+                             n_zero, n_pos, n_nan);
         } else {
             P1HIPS_CHECK(cs, false, "o5_readback");
         }
