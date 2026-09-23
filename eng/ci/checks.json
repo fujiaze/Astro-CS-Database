@@ -1749,6 +1749,114 @@
       "requires_monitor": false
     },
     {
+      "id": "CON-SYMBOL-DIM-UNIQUE",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/contracts/check_symbol_dimension_uniqueness.py",
+        "--out-json",
+        "run/ci/symbol-dimension-unique/symbol_dimension_unique.json"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/symbol-dimension-unique/symbol_dimension_unique.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "eng/tools/**",
+        "eng/contracts/**",
+        "lib/**",
+        "ASTROCS_DESIGN.md"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CON-SYMBOL-DIM-UNIQUE-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/quality/contracts/check_symbol_dimension_uniqueness.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "eng/tools/**",
+        "eng/contracts/**",
+        "lib/**",
+        "ASTROCS_DESIGN.md"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-FROZEN-STRING-DISAMBIG",
+      "profiles": [
+        "fast",
+        "linux-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/doccheck/check_frozen_string_disambiguation.py"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "eng/tools/**",
+        "eng/contracts/**",
+        "lib/**",
+        "ASTROCS_DESIGN.md"
+      ],
+      "requires_monitor": false
+    },
+    {
+      "id": "CHK-FROZEN-STRING-DISAMBIG-SELFTEST",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/doccheck/check_frozen_string_disambiguation.py",
+        "--self-test"
+      ],
+      "timeout_seconds": 300,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "docs/**",
+        "eng/tools/**",
+        "eng/contracts/**",
+        "lib/**",
+        "ASTROCS_DESIGN.md"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "CHK-RETIRED-CODE",
       "profiles": [
         "fast",
@@ -3170,13 +3278,18 @@
         "ipv_mag_iter",
         "ipv_mag_iter_delivery",
         "ipv_select_domain",
+        "orchestrator_curve_resolve_gate",
+        "orchestrator_curve_resolve_gate_fault_inject",
         "p1noise_numpy_oracle",
+        "p1phot_determinism",
         "p1phot_fixgates",
+        "p1phot_passband_identity_gate",
         "p1snr_science_*",
         "p1wcs_apbp",
         "p1wcs_astropy_cross",
         "p1wcs_closure_metric_gate",
-        "p1wcs_std_f1_bridge_cross"
+        "p1wcs_std_f1_bridge_cross",
+        "variance_floor"
       ],
       "dirty_ignore_prefixes": [
         "run/v6/"
@@ -3392,6 +3505,180 @@
           "requires_monitor": false,
           "ctest_targets": [
             "p1phot_fixgates"
+          ]
+        },
+        {
+          "id": "CTEST-P1PHOT-DETERMINISM",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1phot_determinism",
+            "--output",
+            "run/ci/ctest/p1phot_determinism.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1phot_determinism.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1phot_determinism"
+          ]
+        },
+        {
+          "id": "CTEST-P1PHOT-PASSBAND-IDENTITY",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "p1phot_passband_identity_gate",
+            "--output",
+            "run/ci/ctest/p1phot_passband_identity_gate.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/p1phot_passband_identity_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt",
+            "eng/packaging/config/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "p1phot_passband_identity_gate"
+          ]
+        },
+        {
+          "id": "CTEST-ORCH-CURVE-RESOLVE",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "orchestrator_curve_resolve_gate",
+            "--output",
+            "run/ci/ctest/orchestrator_curve_resolve_gate.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/orchestrator_curve_resolve_gate.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt",
+            "eng/packaging/config/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "orchestrator_curve_resolve_gate"
+          ]
+        },
+        {
+          "id": "CTEST-ORCH-CURVE-RESOLVE-FAULT-INJECT",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "orchestrator_curve_resolve_gate_fault_inject",
+            "--output",
+            "run/ci/ctest/orchestrator_curve_resolve_gate_fault_inject.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/orchestrator_curve_resolve_gate_fault_inject.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt",
+            "eng/packaging/config/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "orchestrator_curve_resolve_gate_fault_inject"
+          ]
+        },
+        {
+          "id": "CTEST-P1NOISE-VARIANCE-FLOOR",
+          "profiles": [
+            "linux-main"
+          ],
+          "platform": "linux",
+          "command": [
+            "python3",
+            "eng/tools/quality/deep_ci_driver.py",
+            "ctest-target",
+            "--build-dir",
+            "run/ci/build-gcc-release",
+            "--target",
+            "variance_floor",
+            "--output",
+            "run/ci/ctest/variance_floor.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": false,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/ctest/variance_floor.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/**",
+            "lib/**",
+            "CMakeLists.txt",
+            "lib/algorithms/noise_snr/**"
+          ],
+          "requires_monitor": false,
+          "ctest_targets": [
+            "variance_floor"
           ]
         },
         {
