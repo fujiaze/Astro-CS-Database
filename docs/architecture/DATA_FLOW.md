@@ -2,7 +2,7 @@
 
 > 上游：ASTROCS_DESIGN.md §8（软件架构）
 
-> 本文按最高设计 §3.2 / §4.2 / §4.5 / §7.1a 描述；入口 = 唯一 CLI 的 `normalize` / `mosaic` / `export` 三个子命令。
+> 本文按最高设计 §4.2（normalize 节点流程）/ §5.2（mosaic 固定科学流程）/ §5.5（逐像素排异）/ §8.1-§8.2（阶段内命名块内存管线与块生命周期）描述；入口 = 唯一 CLI 的 `normalize` / `mosaic` / `export` 三个子命令。
 
 ## Phase1（normalize：单帧管线）
 
@@ -20,8 +20,8 @@ FITS/XISF 亮场 + 母版
   → 产品验证 → 原子发布 HiPS（signal/support[/variance/ivar] + JSON）
 ```
 
-- 入口 = 唯一 CLI 的 `normalize` 子命令（最高设计 §6.2）。
-- 阶段内节点之间**传内存块**（`PipelineFrame` 命名块），**不落中间文件**（最高设计 §7.1a）；
+- 入口 = 唯一 CLI 的 `normalize` 子命令（最高设计 §7.1 命令树）。
+- 阶段内节点之间**传内存块**（`PipelineFrame` 命名块），**不落中间文件**（最高设计 §8.1:502 / §8.2:526-527）；
   当前生产实现仍用磁盘 JSON/FITS 传递，属**现行设计缺口**（生产节点覆盖率 **1/20**、相邻节点传块 **0**）。
 
 ## Phase2（mosaic：多帧统一模型）
@@ -40,7 +40,7 @@ FITS/XISF 亮场 + 母版
   → 产品验证 → 原子发布马赛克 HiPS + verify
 ```
 
-- 入口 = 唯一 CLI 的 `mosaic` 子命令（最高设计 §6.2）。
+- 入口 = 唯一 CLI 的 `mosaic` 子命令（最高设计 §7.1 命令树）。
 - 排异**不是「7 种任选」**：**逐像素按 N 自动选择**，冻结映射表落位
   `docs/plugins/algorithms_phase2/12_rejection.md` §9（权威 = `ASTROCS_DESIGN.md` §5.5 / `docs/science/REJECTION.md`；**只引用，不复制**）。
 
