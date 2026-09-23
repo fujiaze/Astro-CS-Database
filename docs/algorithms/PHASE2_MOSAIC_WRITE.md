@@ -319,7 +319,11 @@ main(stage2.json, CLI overrides):
 ## 7 合同负向条款（科学红线，P2-HIPS 专项）
 
 - **四概念分离红线**: `signal`（SCI-INT §5 加权积分输出；产品语义 = **面亮度**，
-  写端口 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`）、
+  写端口 `UnitId::SURFACE_BRIGHTNESS`，落盘值 = `flux_sum / covered_area`，
+  **量纲 = ADU·sr⁻¹**，写盘 BUNIT 字面量取冻结串 `ADU/sr`（其方差层 `ADU^2/sr^2`、
+  逆方差层 `sr^2/ADU^2`）——合法集与判红规则见
+  `lib/infrastructure/aio/src/hiss_writer.cpp:335-365`；裸 `ADU` 不在合法集内；
+  **标度 ≠ 量纲类别**：测光归一化只改零点，标度由 PHOTAPPL/PHOTSCAL 承载）、
   `variance/ivar`（输入侧逐帧产品消费，w_i=ivar_i；生产权重 = 逐样本 ivar，
   由 Phase2 按该天球像素对应帧集合现场算出），
   `support`（SCI-INT §5 sup_max=max(accepted support)，几何覆盖 [0,1]，
