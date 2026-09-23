@@ -20,7 +20,9 @@
 | +20 | mag_raw (uint16) | `magG = mag_raw*0.001 - 1.5` |
 | +22/+24 | magBP/magRP (uint16) | 发布 BP/RP 星等 |
 | +26 | dra_raw (int16) | RA 修正 |
-| +28..+39 | (保留) | 标志等 |
+| +28..+31 | (保留) | 标志等 |
+| +32 | fluxMin (float32) | 逐星量化参数（PCL `EncodedStarSPData`） |
+| +36 | fluxMul (float32) | 逐星量化参数 |
 | +40 | spectrum | BP/RP 采样光谱 uint8 × 343 |
 
 ## 光谱网格 (header 属性, 与 gaia_client.c 解析一致)
@@ -38,8 +40,14 @@ spectrumStart=336, spectrumStep=2, spectrumCount=343, spectrumBits=8
    (行内无 source_id 字段)。因此 per-star DR3SP lineage 不能使用官方 source_id;
    本包采用位置量化哈希 `dr3sp_id` (ra/dec 量化到 1e-4 deg 后 64-bit 混合哈希),
    并在 photometric_match 块中记录。
-2. **uint8 标定未知**: XPSD 的 uint8 相对光谱缩放由 PixInsight 定义, 未随数据库公开;
-   生产 `compute_f_syn` 按 `S(λ) = uint8 × 10^(-0.4·magG)` 使用, 即把 uint8 当作相对 SED 形状。
+2. **uint8 由逐星量化参数解码, 绝对刻度已实证锚定**: XPSD 每条记录自带 float32
+   `fluxMin`/`fluxMul` (偏移 +32/+36), 解码 `F(λ) = byte·fluxMul + fluxMin` 给出
+   **绝对谱辐照度** (W·m⁻²·nm⁻¹)。实证 (任务 SCI-PHOT-FORMULA-01, 26211 颗真实 XPSD 星):
+   用官方 Gaia G 通带 (Riello et al. 2021) + GaiaXPy `Gaia_DR3_Vega` 零点 −26.4899 复算合成星等,
+   `median(m_syn − magG) = −0.0037 mag`、MAD `0.0033 mag` (G∈[6,18]、解码谱处处为正, n=11272)。
+   证据 `run/SCI-PHOT-FORMULA-01/evidence/a1_xpsd_absolute_check.json`、`a2_bandpass_and_absolute.json`。
+   **`byte` 数组本身不是与星无关的相对谱形** (量化参数逐星不同, 实测跨 6 个数量级), 因此
+   "把 uint8 当相对 SED 再乘 `10^(−0.4·magG)`" 的写法不成立 (见下节)。
 3. **无 covariance/quality flag 暴露**: XPSD 仅提供光谱字节与星等, 不提供 XP 协方差。
 
 ## 与 GaiaXPy / Gaia DR3 官方数据的关系
@@ -51,18 +59,28 @@ spectrumStart=336, spectrumStep=2, spectrumCount=343, spectrumBits=8
 - 官方通带: Gaia EDR3/DR3 passband.dat (Riello et al. 2021, A&A 649 A3),
   G/BP/RP 响应曲线 + 零点点 (GaiaXPy XpFilter XML: G=-26.4899, BP=-25.9655, RP=-27.2164)。
 
-## 生产积分约定 (冻结)
+## 生产积分约定 (权威: docs/science/PHOTOMETRY.md §2a, claim PHOT-FSYN-CANON-001)
 
 ```text
-F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ × 10^(-0.4·magG)
+F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ            # W·m⁻²·nm  —— 不含 10^(-0.4·magG)
+F_λ(λ_i) = byte_i·fluxMul + fluxMin         # W·m⁻²·nm⁻¹ (XPSD 逐星量化解码)
 ```
 
-- S(λ): XPSD uint8 光谱 (336-1020nm @2nm, 343 点)
-- T(λ): 滤光片响应 (Akima 插值到光谱网格)
-- Q(λ): CCD QE (Akima 插值; 无 QE 时 Q=1)
-- 积分: Simpson 1/3 复合 (末尾奇数区间 Simpson 3/8)
-- 光子计数约定: 权重 λ (与 Gaia 合成测光光子计数约定一致)
-- 通带外: T=0 (passband.dat 的 99.99 哨兵值置 0)
+- F_λ: XPSD uint8 经 `byte·fluxMul + fluxMin` 解码的**绝对**谱辐照度 (336–1020 nm @2 nm, 343 点)
+- T(λ): 滤光片响应 (Akima 插值到光谱网格, 区间外 0)
+- Q(λ): CCD QE (Akima 插值; 未配置时 Q≡1, 显式未建模项; **Q 是通带组成部分**)
+- 积分: Simpson 1/3 复合 (末尾奇数区间 Simpson 3/8), 在**谱网格本身**上积分
+- 光子计数约定: 权重 λ。依据: Gaia DR3 官方文档 §5.4.1 式 (5.41)
+  `⟨f_λ⟩ = ∫f_λ S λ dλ / ∫S λ dλ`; Sirianni et al. 2005 §5 式 (3) 脚注 5
+  ("multiplied by λ/hc … as appropriate for a photon-counting detector");
+  Bessell & Murphy 2012 式 (A30)。本合同省略与星无关的分母 `∫TQλdλ` (被 location/ZP_syn 吸收)
+  与常数 `1/(hc)` (同上)。
+- 通带外: T=0 (passband.dat 的 99.99 哨兵值置 0); 完全无重叠 ⇒ F_syn≡0 ⇒ 不能定标
+
+**历史相对口径 (非生产, 仅数值对拍)**: `compute_f_syn`/`compute_f_syn_cached` 曾按
+`∫uint8·T·Q·λdλ × 10^(−0.4·magG)` 使用。该写法给逐星 `r_i` 注入 `+0.4·G_i` (dex) 的加性项,
+单标量零点吸收不掉 (真实 M42 样本实测 MAD-σ = 0.459 dex = 1.147 mag);
+且量化参数逐星不同, uint8 数组不可当相对谱形。**生产定标路径是 `compute_f_syn_cached_xpsd`。**
 
 Gate 4 对比结论 (详见 `gate4_result.json`):
 同一 XP 源上, AstroCS 积分约定 (passband.dat + 零点点 + 光子加权平均通量)

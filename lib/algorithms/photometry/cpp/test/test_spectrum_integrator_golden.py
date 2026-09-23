@@ -10,6 +10,11 @@ test_spectrum_integrator_golden.py - P12-003 光谱积分与响应曲线无回�
 用途:
   1. 验证 spectrum_integrator.cpp 的 compute_f_syn / compute_f_syn_cached 数值
      与 Python 参考实现 SyntheticPhotometry.compute 一致 (算法等价性)
+     ⚠ 本测试只覆盖**非生产的相对口径** (∫uint8·T·Q·λdλ × 10^(-0.4·mag_g))。
+     生产定标走 compute_f_syn_cached_xpsd (XPSD 绝对解码, **不含** mag_g 因子);
+     该生产口径的权威定义与证据见 docs/science/PHOTOMETRY.md §2a
+     (claim PHOT-FSYN-CANON-001), 数值 Oracle 见
+     lib/algorithms/photometry/tests/p1phot/p1phot_tests_units.cpp U6。
   2. 验证 P12-002 (star_matcher.cpp 修改) 未引入回归
   3. 生成 filter/QE provenance 报告
 

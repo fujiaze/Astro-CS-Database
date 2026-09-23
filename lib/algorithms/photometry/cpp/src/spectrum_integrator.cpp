@@ -165,7 +165,9 @@ double simpson_integrate(const std::vector<double>& x, const std::vector<double>
 }
 
 // ----------------------------------------------------------------------------
-// compute_f_syn: 单星合成流量 (: 加入 CCD QE 曲线 Q(λ))
+// compute_f_syn: [非生产通道] 单星相对合成流量 (: 加入 CCD QE 曲线 Q(λ))
+// 含 10^(-0.4*mag_g) 乘性归一; 生产定标走 compute_f_syn_cached_xpsd
+// (权威: docs/science/PHOTOMETRY.md §2a, claim PHOT-FSYN-CANON-001)
 // ----------------------------------------------------------------------------
 double compute_f_syn(
     const uint8_t* spectrum_uint8, int spectrum_count,
@@ -195,7 +197,8 @@ double compute_f_syn(
         return 0.0;
     }
 
-    // uint8 -> float64, 作为 S(λ), 并乘 10^(-0.4*mag_g) 做星等归一化
+    // [非生产通道] uint8 -> float64, 作为相对谱形, 并乘 10^(-0.4*mag_g) 做星等归一化
+    // (该写法不用于生产定标: 量化参数逐星不同, 且 mag_g 因子给 r_i 注入 +0.4·G_i)
     double mag_factor = std::pow(10.0, -0.4 * mag_g);
 
     std::vector<double> sed_wl(spectrum_wl, spectrum_wl + wl_count);
