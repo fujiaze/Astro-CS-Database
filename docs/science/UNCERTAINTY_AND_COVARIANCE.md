@@ -9,7 +9,9 @@
 ## 逐像素方差
 
 - 输入方差：噪声模型 A = `NoiseWeightModelV1`（空背景稳健方差，唯一生产模型，SCI-NOISE-001..015）；
-- Drizzle 传播：var_p = Σ v_j w_jp² / D_p²（SCI-DRZ-014）；与 `lib/algorithms/noise_snr` 的 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
+- Drizzle 传播：var_p = Σ v_j w_jp² / D_p²（SCI-DRZ-014）；实现 = 分子 `acc.sumVarNum += varianceValue · w²`、分母 `D_p = Σ a_jp`（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1632-1634`）。
+  与 `lib/algorithms/noise_snr` 的 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002；实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:919`、声明 `snr_estimator.h:256`）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
+  **量纲**：`v_j` 与 `var_p` 同标度平方（`ADU²`；产品面为面亮度时 `ADU²/sr²`），`w_jp`/`D_p` 无量纲 ⇒ 缩放律在标度类别的任何一档上都成立（`docs/standards/NUMERIC_STANDARD.md`「量纲与标度」）。
 - 产品：HiPS variance + ivar（1/variance）。
 
 ## 协方差（重要边界）
@@ -41,7 +43,8 @@ control_variance = k_corr × (π/2) × sigma_bg² / N_retained
 control_ivar     = 1 / control_variance
 ```
 
-- 独立 Gaussian 基线 Var(median) ≈ πσ²/(2N)（实证 ratio 0.997）；
+- 独立 Gaussian 基线 Var(median) ≈ πσ²/(2N)（实证 ratio 0.997）；**适用域（必须与 `sigma_bg` 的前提一致）**：样本独立同分布且 patch 内**无未分辨空间结构**。`sigma_bg` 来自 8×8 patch 的稳健尺度，其前提是背景在 patch 尺度局部平稳（`docs/science/SCIENCE_SCOPE.md` §假设的 `γ = dlog(patch 方差)/dlog(patch 中位信号) ≈ 1` 判据）。前提被违反时 `sigma_bg` 量的是空间结构而非随机分量，`control_variance` 与 `control_ivar` **一并失真** ⇒ 该 patch 的噪声场必须显式降级并登记 `degraded_reason`，不得按随机噪声消费；
+  **量纲**：`sigma_bg²` 单位 `ADU²`，`N_retained` 无量纲计数，`k_corr` 无量纲 ⇒ `control_variance` 单位 `ADU²`、`control_ivar` 单位 `ADU⁻²`；
 - k_corr 表征 Drizzle 输出协方差导致的 N_eff<N_retained：MC
   （pixfrac=0.8，2000 实现）k_corr=1.3883，N_eff≈181/251；冻结 1.4；
 - N_retained 用 clipping 后保留样本（patch vs truth 验证）；
@@ -99,14 +102,22 @@ ivar_out = 1 / var_out   (var_out 有限且 >0)；var_out=0→0、NaN→NaN 同�
 - **Σc_k² ≠ 1 是正确物理**：bilinear 平均降低独立像素方差但引入相邻相关
   （§上协方差机制），禁止误用 Σc_k=1 归一 variance（常数信号场不变量
   SCI-P3 §7 只对 signal 成立，对 variance 不成立）。
-- **实现口径（如实）**：`p3_rsmp_covariance.cpp`/`p3_rsmp_propagation.cpp` 现按
-  对角特例 `Σc_k²u_k` 传播（不建完整 C_in）；该口径是**下界**，使用该 variance
-  做测量误差时必须显式加入协方差项（本文件对使用的约束同款边界）。
+- **实现口径（正向约束）**：`propagate_covariance(op, c_in)` 按一般式 `C_y = R C_x Rᵀ` 计算，
+  **不假定 `C_in` 对角**（`lib/algorithms/resample/p3_rsmp_covariance.cpp:22-45`）；输出只取对角线作为
+  `variance` 产品（`p3_rsmp_propagation.cpp:101,108`）。**完整 `C_x` 是生产输入路径**，对角 `C_in` 只作
+  阴性对照（`lib/phase3_session/p3_v6_export.h:129-132`）。
+  ⇒ 本文件主式与实现同式；产品面仍只发布对角 `variance`，**使用该 variance 做孔径/测量误差时**
+  必须显式加入协方差项（本文件「对使用的约束」同款边界）。
 - 输入选择：输入 HiPS 含 variance/ 子产品则 u=variance；否则含 ivar/ 则
   u=1/ivar；两者皆无 → uncertainty unavailable（输出无 VARIANCE/IVAR HDU +
   manifest uncertainty_available=false，DATA_SEMANTICS §30.4 unavailable 模式）；
   负/Inf = 产品损坏显式错误；NaN 传播（C=1）；**ivar==0 像素 = 零权重 ⇒
   u 无效（NaN 传播态），不是硬错误，也不得导出 1/0→Inf**（DATA_SEMANTICS §30.4-1/-3）。
+  - **哨兵语义的跨阶段对照（必须成对读）**：Phase1 产品面把 `ivar=0` 定义为**不可用（拒绝加权）**并
+    强制成对 `variance=0 ∧ ivar=0`（`docs/science/NOISE_MODEL.md` §7「空 support 不传播」「产品 dtype 成对不变量」）；
+    Phase3 输入面把 `ivar=0` 读作**零权重 ⇒ 输出 NaN 传播态**。两者是同一哨兵值在**不同承载面**上的
+    语义，转换点在 P3 输入选择：`variance=0 ∧ ivar=0` 的输入像素其输出 `variance/ivar=NaN`，
+    既不硬错也不得反解出 `+Inf`。
 - invalid（输出面）：无覆盖（C=0）→ variance/ivar=NaN（signal=NaN 同态）；
   覆盖不一致（leaf signal 有限而 u 缺失）→ 输出 NaN + provenance 计数。
 - 产品/FITS 表达（EXTNAME=VARIANCE/IVAR、BUNIT 派生）与验证门：
@@ -128,7 +139,7 @@ DATA-UPM-CONTROL-UNC-001；DATA-P2-VAR-001；DATA-P3-UNC-001
 > 本节只补出处与参考实现，不改动本文件任何公式与容差。
 
 - **线性方差二次型 C_out = R C_in Rᵀ**：线性误差传播（教科书级）；数值稳定性与归约误差见 Higham 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）。
-- **Drizzle 后相邻像素相关与方差低估**：Fruchter & Hook 2002, PASP 114, 144（§5 相关噪声）；DrizzlePac Handbook（STScI）；Zackay & Ofek 2017, ApJ 836, 188（相关噪声下的信息保持组合）。**差异**：AstroCS 只存对角 variance，协方差仅文档化（§协方差节），与上述文献的完整 C_out 表述存在系统性低估，已在 §对使用的约束 与 §Phase3 重采样方差传播 中如实登记。
+- **Drizzle 后相邻像素相关与方差低估**：Fruchter & Hook 2002, PASP 114, 144（DOI 10.1086/338393，§5 相关噪声）；DrizzlePac Handbook（STScI）；Zackay & Ofek 2017, ApJ 836, 188（相关噪声下的信息保持组合）。**差异（正向约束）**：传播链内部按完整二次型计算 `C_y = R C_x Rᵀ`（§Phase3），但**产品面只发布其对角线** `variance`，完整协方差矩阵不作为产品交付（§协方差节）。⇒ 用产品 `variance` 做孔径/测量误差时，必须显式加入协方差项；`Σc_k²u_k` 标量式只在 `C_in` 对角时成立。
 - **var(median) ≈ πσ²/(2N)**：Laplace 分布/正态样本中位数渐近方差的教科书结论（见 Kendall & Stuart, The Advanced Theory of Statistics, Vol.1，或 Hoaglin et al. 1983）；0.997 实证 ratio 见 SCI-UPM §11。
 - **像素 ivar 与孔径方差不等价**：aperture 方差须显式加 Cov 项；相关噪声处理见 Zackay & Ofek 2017 II。
 

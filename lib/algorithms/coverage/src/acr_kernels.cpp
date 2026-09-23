@@ -346,9 +346,16 @@ void register_phase2_acr_kernels() {
         KernelRegistration r;
         r.id = kOpMosaicReject;
         r.args.buffer_count = 7;
+        // 标量布局（10 槽、60 字节，与 append_scalar 的紧凑追加顺序一致）：
+        //   px@0(size_t) depth@8(size_t) method@16(int) und_n@20(int)
+        //   lo@24(double) hi@32(double) max_it@40(int) p0@44(size_t)
+        //   wmode@52(int) workers@56(int)
+        // validate_invocation 按精确相等判定（kernel_registry.cpp:21），故此值必须
+        // 等于 launcher 实际读取的布局字节数；少一个槽会让 workers 读到 nullopt，
+        // 使并行 worker 预算不可达（并行路径静默退化为串行）。
         r.args.scalar_bytes = 2 * sizeof(std::size_t) + 2 * sizeof(int) +
                               2 * sizeof(double) + sizeof(int) +
-                              sizeof(std::size_t) + sizeof(int);  // CON-007 worker
+                              sizeof(std::size_t) + 2 * sizeof(int);  // wmode + workers
         r.cpu = &mosaic_reject_legacy;  // CPU 即 legacy reference 语义
         r.legacy_parallel = &mosaic_reject_legacy;
         r.cuda = &mosaic_reject_cuda;
