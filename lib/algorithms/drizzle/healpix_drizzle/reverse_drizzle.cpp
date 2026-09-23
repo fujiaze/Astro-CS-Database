@@ -123,7 +123,8 @@ static double estimate_footprint_radius_px(const WcsSip& wcs, int W, int H,
 // ---- 累计器 (T=float 真实 FP32 路径; T=double FP64 路径) ----
 template <typename T>
 struct ReverseAccum {
-    std::vector<T> signal;
+    std::vector<T> signal;      // Σ_j B_j·a_jp  (面亮度 × 重叠面积)
+    std::vector<T> weight;      // Σ_j a_jp       (重叠面积和, 用于面亮度加权平均)
     std::vector<T> coverage;
     std::vector<uint8_t> touched;
 };
@@ -137,6 +138,7 @@ static bool run_typed(const ReverseDrizzleInput& in, ReverseDrizzleOutput& out,
     const size_t npix = (size_t)W * (size_t)H;
     ReverseAccum<T> acc;
     acc.signal.assign(npix, T(0));
+    acc.weight.assign(npix, T(0));
     acc.coverage.assign(npix, T(0));
     acc.touched.assign(npix, 0);
 
@@ -213,8 +215,11 @@ static bool run_typed(const ReverseDrizzleInput& in, ReverseDrizzleOutput& out,
                 const size_t idx = (size_t)py * (size_t)W + (size_t)px;
                 const double pixel_area = spherical::spherical_polygon_area(fp);
                 if (pixel_area <= 0.0 || !std::isfinite(pixel_area)) continue;
-                const double w = ov / drop_area;
+                // 面亮度加权平均：分子 Σ B_j·a_jp、分母 Σ a_jp（契约 DATA_SEMANTICS §11.2）。
+                // 禁用 ov/drop_area 归一——那是 a_jp/A_drop,j，输出会随源 nside 变化而非面亮度。
+                const double w = ov;
                 acc.signal[idx] += T(sig * w);
+                acc.weight[idx] += T(w);
                 acc.coverage[idx] += T(support * ov / pixel_area);
                 acc.touched[idx] = 1;
                 ++out.n_overlaps;
@@ -226,7 +231,8 @@ static bool run_typed(const ReverseDrizzleInput& in, ReverseDrizzleOutput& out,
 
     // 5. 输出
     for (size_t i = 0; i < npix; i++) {
-        double s = (double)acc.signal[i];
+        const double wsum = (double)acc.weight[i];
+        double s = (wsum > 0.0) ? (double)acc.signal[i] / wsum : 0.0;
         double c = (double)acc.coverage[i];
         if (c > 1.0) c = 1.0;
         if (!in.no_data_as_zero && acc.touched[i] == 0) {
