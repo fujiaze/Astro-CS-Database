@@ -1,0 +1,34 @@
+{
+  "_comment": "PHOTOCURVE-ORCH-01 负例夹具（注入场景）: 名字 'Ghost R' 只作为 provenance.per_filter 的对象键出现, filters 段没有该键。判据: curve_json::load_curve ⇒ kCurveNameOutsideLibrary（显式报错）; 修复前的文本搜索口径会静默取到 filters 段的第一条曲线 'Antlia V Pro Series B'。结构仿 eng/packaging/config/filters.json 的转录版顶层键序 [provenance, lookup, filters]。",
+  "filters_schema": "astrocs.filter-library/v1",
+  "provenance": {
+    "status": "unverified",
+    "per_filter": {
+      "Ghost R": {
+        "source": "unverified",
+        "curve_stats": { "n_points": 0, "wl_min": null, "wl_max": null }
+      }
+    }
+  },
+  "lookup": {
+    "unknown_filter": "error",
+    "match": "exact",
+    "resolution_rule": "resolve(name) = filters[name] if name in keys(filters) else ERROR(unknown_filter)"
+  },
+  "filters": {
+    "Antlia V Pro Series B": {
+      "name": "Antlia V Pro Series B",
+      "channel": "B",
+      "wavelength_nm": [420.0, 524.0],
+      "value": [0.12, 0.18],
+      "n_points": 2
+    },
+    "Baader R": {
+      "name": "Baader R",
+      "channel": "R",
+      "wavelength_nm": [572.0, 716.0],
+      "value": [0.91, 0.95],
+      "n_points": 2
+    }
+  }
+}

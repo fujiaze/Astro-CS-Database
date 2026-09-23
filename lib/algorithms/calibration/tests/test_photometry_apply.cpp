@@ -11,9 +11,10 @@
 // 4. photscal=0.5 → 像素值减半
 // 4b. photscal<0 → 拒绝 (负值翻转极性无物理意义)
 // 5. 参数校验 (nullptr/非法尺寸/NaN photscal)
-// 6. Writer 元数据一致性: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
-// 7. Writer 元数据一致性: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
-// 8. Writer 元数据一致性: apply_photometry=false + BUNIT=ADU → 成功
+// 6. Writer 单位口径: apply_photometry=true + BUNIT=ADU/sr → 成功
+// 7. Writer 单位口径: BUNIT=ASTROCS_RELATIVE_FLUX（非面亮度口径串）→ 拒绝
+// 8. Writer 单位口径: apply_photometry=false + BUNIT=ADU/sr → 成功
+// 8b. Writer 单位口径: BUNIT=ADU（裸计数，无 provenance 声明）→ 拒绝
 //
 // 编译 (从 eng/tests/ 目录, 链接真实 HissWriter::open):
 // g++ -std=c++17 -O2 -fopenmp -DHAS_ZSTD -DAIO_ENABLE_HEALPIX \
@@ -253,8 +254,10 @@ static void test_large_dynamic_range() {
 // (链接 ../../../infrastructure/aio/src/hiss_writer.cpp 等真实生产代码)
 // ============================================================================
 
-// 测试 6: Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → 成功
-static void test_writer_photappl_true_relative_flux() {
+// 测试 6: Writer: apply_photometry=true + BUNIT=ADU/sr → 成功
+// 口径 = docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810（产品 BUNIT 一律取 canonical
+// 面亮度串）+ :2827-2830（测光归一化只改零点、不改量纲类别，标度由 PHOTSCAL/PHOTAPPL 承载）
+static void test_writer_photappl_true_canonical_sb() {
     hiss::HissGridSpec grid;
     grid.nside = 16;
     grid.tile_nside = 16;
@@ -270,19 +273,20 @@ static void test_writer_photappl_true_relative_flux() {
     meta.pixfrac = 1.0;
     meta.photappl = 1;
     meta.photscal = 1.234e-5;
-    std::snprintf(meta.bunit, sizeof(meta.bunit), "ASTROCS_RELATIVE_FLUX");
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
 
     hiss::HissWriter writer;
     std::string tmp_path = "test_photometry_apply_tmp_partial.hiss";
     int rc = writer.open(tmp_path, grid, meta);
-    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=true + BUNIT=ASTROCS_RELATIVE_FLUX → open 成功");
+    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=true + BUNIT=ADU/sr → open 成功");
     writer.cancel();  // 清理临时文件
     std::error_code ec;
     std::filesystem::remove(tmp_path, ec);
     std::filesystem::remove(tmp_path + ".partial", ec);
 }
 
-// 测试 7: Writer: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝
+// 测试 7: Writer: BUNIT=ASTROCS_RELATIVE_FLUX → 拒绝（非面亮度口径串，与 PHOTAPPL 无关）
+// 该串把「标度已变」写成「量的种类已变」，与 DATA_SEMANTICS §31.1a:2827-2830 相反。
 static void test_writer_photappl_false_relative_flux() {
     hiss::HissGridSpec grid;
     grid.nside = 16;
@@ -304,12 +308,45 @@ static void test_writer_photappl_false_relative_flux() {
     hiss::HissWriter writer;
     std::string tmp_path = "test_photometry_apply_tmp_reject.hiss";
     int rc = writer.open(tmp_path, grid, meta);
-    ASSERT_TRUE(rc == -2, "Writer: apply_photometry=false + BUNIT=ASTROCS_RELATIVE_FLUX → open 返回 -2 (拒绝)");
+    ASSERT_TRUE(rc == -2, "Writer: BUNIT=ASTROCS_RELATIVE_FLUX → open 返回 -2 (非面亮度口径串, 拒绝)");
     // open 失败时不创建 .partial, 无需清理
 }
 
-// 测试 8: Writer: apply_photometry=false + BUNIT=ADU → 成功 (允许非测光数据)
-static void test_writer_photappl_false_adu() {
+// 测试 8: Writer: apply_photometry=false + BUNIT=ADU/sr → 成功
+// (允许非测光数据：未施加测光只意味着标度未变，单位串仍是 canonical 面亮度串)
+static void test_writer_photappl_false_canonical_sb() {
+    hiss::HissGridSpec grid;
+    grid.nside = 16;
+    grid.tile_nside = 16;
+    grid.ordering = 1;
+    grid.radesys = 0;
+    grid.pixfrac = 1.0;
+
+    hiss::HissMetadata meta;
+    meta.nside = 16;
+    meta.tile_nside = 16;
+    meta.ordering = 1;
+    meta.radesys = 0;
+    meta.pixfrac = 1.0;
+    meta.photappl = 0;
+    meta.photscal = 1.0;
+    std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU/sr");
+
+    hiss::HissWriter writer;
+    std::string tmp_path = "test_photometry_apply_tmp_canonical.hiss";
+    int rc = writer.open(tmp_path, grid, meta);
+    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=false + BUNIT=ADU/sr → open 成功 (允许非测光数据)");
+    writer.cancel();
+    std::error_code ec;
+    std::filesystem::remove(tmp_path, ec);
+    std::filesystem::remove(tmp_path + ".partial", ec);
+}
+
+// 测试 8b: Writer: BUNIT=ADU（裸计数，无 provenance 声明）→ 拒绝
+// 依据 = docs/contracts/DATA_SEMANTICS.md §31.2 FZ-BUNIT-SEMANTICS：裸 "ADU" 必须配
+// provenance 声明 pixel_semantics="surface_brightness" + pixel_area_power=-2；HISS 容器
+// 无该 provenance 面 ⇒ 单位不可判 ⇒ fail-closed 拒发（不得静默落盘）。
+static void test_writer_bare_adu_rejected() {
     hiss::HissGridSpec grid;
     grid.nside = 16;
     grid.tile_nside = 16;
@@ -328,13 +365,9 @@ static void test_writer_photappl_false_adu() {
     std::snprintf(meta.bunit, sizeof(meta.bunit), "ADU");
 
     hiss::HissWriter writer;
-    std::string tmp_path = "test_photometry_apply_tmp_adu.hiss";
+    std::string tmp_path = "test_photometry_apply_tmp_bare_adu.hiss";
     int rc = writer.open(tmp_path, grid, meta);
-    ASSERT_TRUE(rc == 0, "Writer: apply_photometry=false + BUNIT=ADU → open 成功 (允许非测光数据)");
-    writer.cancel();
-    std::error_code ec;
-    std::filesystem::remove(tmp_path, ec);
-    std::filesystem::remove(tmp_path + ".partial", ec);
+    ASSERT_TRUE(rc == -2, "Writer: BUNIT=ADU (裸计数, 无 provenance 声明) → open 返回 -2 (单位不可判)");
 }
 
 // ============================================================================
@@ -355,9 +388,10 @@ int main() {
     test_large_dynamic_range();
 
     printf("\n--- Writer 元数据一致性校验 (hiss::HissWriter::open) ---\n");
-    test_writer_photappl_true_relative_flux();
+    test_writer_photappl_true_canonical_sb();
     test_writer_photappl_false_relative_flux();
-    test_writer_photappl_false_adu();
+    test_writer_photappl_false_canonical_sb();
+    test_writer_bare_adu_rejected();
 
     printf("\n=== 测试结果 ===\n");
     printf("通过: %d\n", g_pass);

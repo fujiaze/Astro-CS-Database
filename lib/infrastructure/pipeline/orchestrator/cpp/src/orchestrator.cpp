@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <cstdio>
 #include <cstdlib>
 #include <cmath>
 #include <functional>
@@ -63,6 +64,10 @@
 // photometric_calib C API (用于 run_stage_photometric)
 #include "photometric_calib.h"
 
+// P1-PHOT-CURVE-RESOLVE / PHOTOCURVE-ORCH-01: 滤镜/QE 响应曲线解析的**唯一实现**
+// (结构化对象解析; 与 frame_photometry_fit.cpp 共用同一份代码与同一张 FILTER 映射表)。
+#include "filter_curve_json.h"
+
 // snr_estimator C API (用于 run_stage_snr)
 #include "snr_estimator.h"
 // 饱和电平解析策略（SAT-001 / claim SC-008；SCI NOISE_MODEL §4 饱和域）
@@ -77,6 +82,8 @@
 #endif
 
 namespace fs = std::filesystem;
+// 曲线解析唯一实现 (P1-PHOT-CURVE-RESOLVE / PHOTOCURVE-ORCH-01)
+namespace curve_json = astrocs::photometry::curve_json;
 
 // ============================================================================
 // JSON 字段提取 (基于 nlohmann/json)
@@ -1337,102 +1344,25 @@ static double parse_dec_dms(const char* s) {
 }
 
 // ============================================================================
-// 辅助: 滤光片名称映射 (FITS FILTER 关键字 → filters.json 名称)
+// 辅助: 滤光片名称映射 + 响应曲线装载
+// **唯一实现** = lib/algorithms/photometry/cpp/src/filter_curve_json.h
+// 依据: docs/standards/CODE_STANDARD.md §MUST「禁止重复 production science
+//   implementation（单一实现 + oracle）」+ 「禁止 silent config fallback 改变科学
+//   语义」；键解析规则 = eng/packaging/config/filters.json#lookup.resolution_rule
+//   （字节精确、无别名、未知滤镜 -> error）。
+// 修复前本文件自持一份**文本搜索**实现（content.find("\"<name>\"") 取第一次文本
+//   出现 → 再往后找第一个 "wavelength_nm"）：在**转录版**
+//   eng/packaging/config/filters.json（顶层键序
+//   [filters_schema, library_id, task, authority, transcription, provenance,
+//    lookup, filters]）上会先在 provenance.per_filter 命中 ⇒ 偏移落在 filters 段
+//   之前 ⇒ 取到 filters 段的**第一条**曲线 "Antlia V Pro Series B"
+//   （53 点 / 420–524 nm）而不是声明的 "Baader R"（73 点 / 572–716 nm）
+//   ⇒ F_syn 用错误通带合成。缺陷记录与规范依据见该头文件；本文件只做委托，
+//   **不再自持任何解析分支**（第二份实现 = 同类缺陷复发的根源）。
 // ============================================================================
-static std::string map_filter_name(const std::string& fits_filter) {
-    // 大小写不敏感比较的辅助
-    auto ieq = [](const std::string& a, const char* b) {
-        return std::equal(a.begin(), a.end(), b, b + std::strlen(b),
-            [](char c1, char c2) { return std::tolower(c1) == std::tolower(c2); });
-    };
-    if (ieq(fits_filter, "Red") || ieq(fits_filter, "R")) return "Baader R";
-    if (ieq(fits_filter, "Green") || ieq(fits_filter, "G")) return "Baader G";
-    if (ieq(fits_filter, "Blue") || ieq(fits_filter, "B")) return "Baader B";
-    if (ieq(fits_filter, "Lum") || ieq(fits_filter, "L") || ieq(fits_filter, "Luminance"))
-        return "Baader UV/IR Cut / L CMOS Optimized";
-    // 窄带滤光片映射 (H-alpha / OIII 大小写变体)
-    // T4: Baader RGBHaOIII (7nm HA, 8.5nm OIII); T2/T3: Astrodon (暂用 Baader 曲线近似)
-    if (ieq(fits_filter, "H-alpha") || ieq(fits_filter, "Ha") || ieq(fits_filter, "HA"))
-        return "Baader 7nm H-alpha";
-    if (ieq(fits_filter, "OIII") || ieq(fits_filter, "Oiii"))
-        return "Baader 8.5nm OIII";
-    // 未匹配时原样返回 (可能本身就是 filters.json 中的名称)
-    return fits_filter;
-}
 
-// ============================================================================
-// 辅助: 从 filters.json 加载指定滤光片的波长与透过率数组
-// 简化 JSON 解析: 定位 "filter_name" 键 → 提取 wavelength_nm 和 value 数组
-// 返回: true=成功, false=失败
-// ============================================================================
-static bool load_filter_curve(const std::string& json_path,
-                               const std::string& filter_name,
-                               std::vector<double>& out_wl,
-                               std::vector<double>& out_trans) {
-    std::ifstream ifs(json_path);
-    if (!ifs.is_open()) {
-        LOG_ERROR("orchestrator", "无法打开 filters.json: " + json_path);
-        return false;
-    }
-    std::string content((std::istreambuf_iterator<char>(ifs)),
-                         std::istreambuf_iterator<char>());
-    ifs.close();
-
-    // 定位 "filter_name" 键 (作为 JSON 对象键, 带引号)
-    std::string key = "\"" + filter_name + "\"";
-    size_t pos = content.find(key);
-    if (pos == std::string::npos) {
-        LOG_ERROR("orchestrator", "滤光片 '" + filter_name + "' 未在 filters.json 中找到");
-        return false;
-    }
-
-    // 从 key 之后查找 "wavelength_nm" 数组
-    auto extract_array = [&content, &pos](const std::string& arr_key,
-                                           std::vector<double>& out) -> bool {
-        size_t kpos = content.find(arr_key, pos);
-        if (kpos == std::string::npos) return false;
-        size_t bracket_start = content.find('[', kpos);
-        if (bracket_start == std::string::npos) return false;
-        size_t bracket_end = content.find(']', bracket_start);
-        if (bracket_end == std::string::npos) return false;
-
-        std::string arr_str = content.substr(bracket_start + 1,
-                                              bracket_end - bracket_start - 1);
-        std::replace(arr_str.begin(), arr_str.end(), ',', ' ');
-        std::istringstream iss(arr_str);
-        out.clear();
-        double v;
-        while (iss >> v) out.push_back(v);
-        return !out.empty();
-    };
-
-    if (!extract_array("\"wavelength_nm\"", out_wl) ||
-        !extract_array("\"value\"", out_trans)) {
-        LOG_ERROR("orchestrator", "解析滤光片 " + filter_name + " 的数组失败");
-        return false;
-    }
-    if (out_wl.size() != out_trans.size()) {
-        LOG_ERROR("orchestrator", "滤光片 " + filter_name +
-                  " 数组长度不一致: wl=" + std::to_string(out_wl.size()) +
-                  " trans=" + std::to_string(out_trans.size()));
-        return false;
-    }
-    return true;
-}
-
-// ============================================================================
-// 辅助: 加载 CCD QE 曲线
-// qe_curves.json 格式与 filters.json 一致:
-// {"<name>": {"name": "...", "channel": "Q", "wavelength_nm": [...], "value": [...]}}
-// 注: 数组键名是 "value" 而非 "qe" (与 filters.json 共用解析逻辑)
-// ============================================================================
-static bool load_qe_curve(const std::string& json_path,
-                          const std::string& qe_name,
-                          std::vector<double>& out_wl,
-                          std::vector<double>& out_trans) {
-    // 复用 load_filter_curve 的 JSON 解析逻辑 (格式完全一致: wavelength_nm + value)
-    return load_filter_curve(json_path, qe_name, out_wl, out_trans);
-}
+// 注: QE 曲线装载与滤镜曲线同口径 (curve_json::load_curve, 唯一实现);
+// qe_curves.json 的数组键名同为 "wavelength_nm" + "value"。
 
 // ============================================================================
 // 辅助: 从 stage1_config.json 文本中提取 "qe_curve" 字段值
@@ -2700,7 +2630,7 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     std::string filter_str;
     const char* filter_cstr = fn_kv_get(frame_, "header", "FILTER");
     if (filter_cstr) filter_str = filter_cstr;
-    std::string filter_name = map_filter_name(filter_str);
+    std::string filter_name = curve_json::map_filter_name(filter_str);
     LOG_INFO("orchestrator", "[PHOTOMETRIC] FILTER='" + filter_str + "' -> '" + filter_name + "'");
 
     // 加载滤光片曲线 (: typed Stage1Config 直接驱动; schema 已必需
@@ -2714,9 +2644,16 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
     }
     LOG_INFO("orchestrator", "[PHOTOMETRIC] filters_json: " + filters_json);
     std::vector<double> filter_wl, filter_trans;
-    if (!load_filter_curve(filters_json, filter_name, filter_wl, filter_trans)) {
-        LOG_ERROR("orchestrator", "[PHOTOMETRIC] 加载滤光片曲线失败");
-        result.error_msg = "[PHOTOMETRIC] 加载滤光片曲线失败";
+    const curve_json::LoadStatus filter_st =
+        curve_json::load_curve(filters_json, filter_name, &filter_wl, &filter_trans);
+    if (filter_st != curve_json::LoadStatus::kOk) {
+        // 具名报错: 曲线名解析不到时**不得**静默取到别的曲线
+        // (CODE_STANDARD §MUST「禁止 silent config fallback 改变科学语义」;
+        //  filters.json#lookup.resolution_rule「未知滤镜 -> error」)
+        LOG_ERROR("orchestrator", "[PHOTOMETRIC] 加载滤光片曲线失败: '" + filter_name +
+                  "' in " + filters_json + " (" + curve_json::status_name(filter_st) + ")");
+        result.error_msg = "[PHOTOMETRIC] 加载滤光片曲线失败: " + filter_name +
+                           " (" + curve_json::status_name(filter_st) + ")";
         return false;
     }
     LOG_INFO("orchestrator", "[PHOTOMETRIC] 滤光片: " + std::to_string(filter_wl.size()) + " 点");
@@ -2735,13 +2672,25 @@ bool Orchestrator::run_stage_photometric(TaskResult& result) {
             return false;
         }
         LOG_INFO("orchestrator", "[PHOTOMETRIC] qe_curves_json: " + qe_json);
-        if (load_qe_curve(qe_json, qe_name, qe_wl, qe_trans)) {
+        const curve_json::LoadStatus qe_st =
+            curve_json::load_curve(qe_json, qe_name, &qe_wl, &qe_trans);
+        if (qe_st == curve_json::LoadStatus::kOk) {
             LOG_INFO("orchestrator", "[PHOTOMETRIC] QE 曲线 '" + qe_name + "': " + std::to_string(qe_wl.size()) + " 点");
         } else {
-            LOG_WARN("orchestrator", "[PHOTOMETRIC] 加载 QE 曲线 '" + qe_name + "' 失败, F_syn 将不含 Q(λ)");
+            LOG_WARN("orchestrator", "[PHOTOMETRIC] 加载 QE 曲线 '" + qe_name + "' 失败 (" +
+                     curve_json::status_name(qe_st) + "), F_syn 将不含 Q(λ)");
+            // 与 frame_photometry_fit.cpp 同口径: Q(λ)≡1 是**显式未建模项**
+            // (docs/science/PHOTOMETRY.md:180)，必须显式告警，否则"没配 QE"与
+            // "QE 已计入"在下游不可区分。
+            std::fprintf(stderr, "[photometry] WARNING: QE 曲线 '%s' 在 %s 中解析失败 (%s), "
+                                 "按 Q(lambda)=1 继续 (显式未建模项)\n",
+                         qe_name.c_str(), qe_json.c_str(), curve_json::status_name(qe_st));
         }
     } else {
         LOG_INFO("orchestrator", "[PHOTOMETRIC] 未配置 qe_curve, F_syn 将不含 Q(λ)");
+        std::fprintf(stderr, "[photometry] WARNING: qe_json/qe_name 未配置 "
+                             "(orchestrator: photometric.qe_curve / calib_params.qe_curve), "
+                             "F_syn 按 Q(lambda)=1 合成 (显式未建模项)\n");
     }
 
     // 构建 spectrum_wl
