@@ -3375,8 +3375,16 @@ TEST(Phase2Acr, LegacyLauncherEquivalent) {
     astro::compute::append_scalar(inv.scalars, int{2});   // underdetermined_n
     astro::compute::append_scalar(inv.scalars, double{4.0}); // lower_sigma
     astro::compute::append_scalar(inv.scalars, double{3.0}); // upper_sigma
-    astro::compute::append_scalar(inv.scalars, int{8});   // max_iterations
-    astro::compute::append_scalar(inv.scalars, int{1});   // CON-007 workers
+    astro::compute::append_scalar(inv.scalars, int{8});            // max_iterations
+    astro::compute::append_scalar(inv.scalars, std::size_t{0});    // p0（tile 内偏移）
+    astro::compute::append_scalar(inv.scalars, int{0});            // wmode（0=legacy）
+    astro::compute::append_scalar(inv.scalars, int{1});            // workers
+    // 夹具自检（非退化）：标量 blob 必须与注册声明的布局一致，否则 p0/wmode/workers
+    // 三个槽读到 nullopt、静默落缺省值，本用例就不再覆盖它声称覆盖的槽。
+    ASSERT_EQ(inv.scalars.bytes.size(), reg->args.scalar_bytes);
+    ASSERT_TRUE(astro::compute::read_scalar<std::size_t>(inv.scalars, 44).has_value());
+    ASSERT_TRUE(astro::compute::read_scalar<int>(inv.scalars, 52).has_value());
+    ASSERT_TRUE(astro::compute::read_scalar<int>(inv.scalars, 56).has_value());
     reg->legacy_parallel(inv, nullptr);
     EXPECT_NEAR(out[0], 10.1f, 1e-4f);
     EXPECT_NEAR(out[1], 20.0f, 1e-2f);
@@ -3415,12 +3423,28 @@ TEST(Phase2AcrParallel, LegacyCpuOneVsTwoTDetermine) {
         astro::compute::append_scalar(inv.scalars, int{2});
         astro::compute::append_scalar(inv.scalars, double{4.0});
         astro::compute::append_scalar(inv.scalars, double{3.0});
-        astro::compute::append_scalar(inv.scalars, int{8});
-        astro::compute::append_scalar(inv.scalars, int{workers});
+        astro::compute::append_scalar(inv.scalars, int{8});            // max_iterations
+        astro::compute::append_scalar(inv.scalars, std::size_t{0});    // p0
+        astro::compute::append_scalar(inv.scalars, int{0});            // wmode
+        astro::compute::append_scalar(inv.scalars, int{workers});      // workers
         return inv;
     };
     astro::compute::KernelInvocation iv1 = make_inv(out1, 1);
     astro::compute::KernelInvocation iv2 = make_inv(out2, 2);
+    // 前置条件自检（非退化）：workers 槽在偏移 56，必须真的可读；否则两档取到同一
+    // 配置，本用例的比较恒真、无证据资格。
+    ASSERT_EQ(iv1.scalars.bytes.size(), reg->args.scalar_bytes);
+    ASSERT_EQ(iv2.scalars.bytes.size(), reg->args.scalar_bytes);
+    ASSERT_TRUE(astro::compute::read_scalar<int>(iv1.scalars, 56).has_value())
+        << "workers 槽不可读 ⇒ 1T/2T 两档配置相同，本用例无判别力";
+    ASSERT_EQ(*astro::compute::read_scalar<int>(iv1.scalars, 56), 1);
+    ASSERT_EQ(*astro::compute::read_scalar<int>(iv2.scalars, 56), 2);
+#if !defined(P2_ENABLE_OPENMP)
+    // 判别力前置条件：mosaic_reject_legacy 的并行分支只在 P2_ENABLE_OPENMP 定义时
+    // 参与编译（acr_kernels.cpp:75-80,212-245；coverage/CMakeLists.txt:28 默认 OFF）。
+    // 未定义时 workers=2 仍走串行路径，1T/2T 比较不构成对并行确定性的证据。
+    GTEST_SKIP() << "P2_ENABLE_OPENMP 未定义：并行分支未参与编译，本用例未行使";
+#endif
     reg->legacy_parallel(iv1, nullptr);
     reg->legacy_parallel(iv2, nullptr);
     for (std::size_t p = 0; p < px; ++p)

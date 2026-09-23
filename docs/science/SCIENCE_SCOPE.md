@@ -76,12 +76,20 @@ AstroCS 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal�
 ## 系统/随机误差
 
 系统性：flat 残差、PSF 色差、测光零点漂移（QA 元数据化）；
-随机性：光子泊松 + 读出噪声（NoiseWeightModelV1）。
+随机性：空背景随机分量由 `NoiseWeightModelV1` 以 **patch 稳健尺度（MAD→σ）** 估计并落成 `variance/ivar`；
+该模型的唯一生产基线是**经验空背景方差**（`source==0`，`noise_model.cpp:618`）。
+「光子泊松 + 读出噪声」的参数式 `var_ADU = max(signal,0)/gain + (read_noise_e/gain)²` **只是诊断/交叉验证通道**，
+不得作为生产方差来源（`docs/science/NOISE_MODEL.md` §9a「Poisson+read noise」、§10）；本链不建模 gain。
+**适用域**：随机分量 = 空背景散粒 + 读出的**经验合计**；源泊松项、系统项与 Drizzle 后协方差不在本模型内（`docs/science/UNCERTAINTY_AND_COVARIANCE.md`）。
 
 ## 数值精度
 
-精度按数据形态归属：**稠密数据**（与像素数同阶的面——图像面、球面累加器、方差/权重/覆盖面、HiPS tile 面）默认 **FP32**；
-**稀疏/有限数据**（帧级 SNR、WCS 解、星表匹配、测光定标）全程 **FP64**。显式等价路径按 SparseEqualsDense 1e-12 门。
+精度按数据形态归属：**稠密数据**（与像素数同阶的面——图像面、球面累加器、方差/权重/覆盖面、HiPS tile 面）以 **FP32** 承载发布面；
+**稀疏/有限数据**（帧级 SNR、WCS 解、星表匹配、测光定标）全程 **FP64**。
+  - **计算与承载分离**：本层内部归约/累积用 FP64，FP32 是**落盘/发布 dtype**（块类型 `AIO_BLOCK_FLOAT32`/`AIO_BLOCK_FLOAT64` 由精度模式选择，`module_adapters.cpp:6355-6377`）。
+  - **量纲后果（必须显式处理）**：任何**绝对**常数一旦随标度换算就会改变可表示性。方差地板 `1e-12`（单位 `ADU²`）按 `α²`（`α` 为逐帧测光标度，`α ∈ [1.1387e-17, 6.0083e-17]`）换算后为 `~1e-46`，在 FP32 中精确下溢为 `0`，而 `1/floor` 上溢为 `+inf`；
+    该像素**必须**取不可用态 `(variance=0 ∧ ivar=0)`，禁止发布 `(0, +inf)`（`docs/science/NOISE_MODEL.md` §7「产品 dtype 成对不变量」、§9 ②③）。
+  - **显式等价路径门**：UPM 稀疏模型与稠密缓存对同一输入的块输出按 `EXPECT_NEAR(..., 1e-12)` 判等（`lib/algorithms/coverage/tests/synthetic_gate.cpp:2849`，用例 `Phase2Upm.SparseEqualsDense`）；该门只覆盖 UPM 物化路径，不覆盖 FP32/FP64 承载面之间的差异。
 
 ## 参考文献
 
