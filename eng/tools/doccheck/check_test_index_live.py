@@ -21,6 +21,11 @@
   W2 counts       cases/failed/errored/skipped 必须与实测**逐项相等**。
   W3 wall_magnitude 登记 `measured_wall_s` 与实测墙钟**量级一致**：max/min > 3.0
                    且绝对差 > 2.0 s ⇒ 判红（秒级套件的噪声不判红；量级漂移判红）。
+  W4 report_rows  `eng/ci/INVENTORY_REPORT.md` 自述的 test_index.csv 行数必须 == CSV
+                   实测**数据行数**（口径 = 本门同一个 `load_rows`，不另立扫描器）。
+                   规范句式（该报告必须逐字含此句，缺失/不可解析 ⇒ 判红 fail-closed）：
+                   `eng/tests/test_index.csv 全目录覆盖，<N> 行`（N = 数据行数，不含表头）；
+                   历史快照读数写在**其后**的加注里，不得写在该句式内。
 
 用法
   python3 eng/tools/doccheck/check_test_index_live.py                # 实跑全部 local_runnable 行
@@ -38,6 +43,7 @@ import csv
 import io
 import json
 import os
+import re
 import re
 import shutil
 import subprocess
@@ -209,6 +215,30 @@ def load_rows(csv_path):
     return list(reader), missing
 
 
+# W4：报告自述行数 vs 实测数据行数。规范句式见模块 docstring；句式缺失 = 判红
+# （fail-closed：不允许靠删掉这句话来躲判据）。
+REPORT_REL = os.path.join("eng", "ci", "INVENTORY_REPORT.md")
+REPORT_CLAIM_RE = re.compile(r"test_index\.csv[^）)\n]{0,40}?[，,]\s*(\d+)\s*行")
+
+
+def check_report_rows(repo, data_rows):
+    """Return list of problems for W4（报告自述的 test_index.csv 行数）。"""
+    path = os.path.join(repo, REPORT_REL)
+    if not os.path.isfile(path):
+        return ["W4 %s: 报告缺失（fail-closed）" % REPORT_REL]
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+    m = REPORT_CLAIM_RE.search(text)
+    if not m:
+        return ["W4 %s: 找不到规范句式「test_index.csv 全目录覆盖，<N> 行」"
+                "（缺失/不可解析 ⇒ 判红，禁止删句躲门）" % REPORT_REL]
+    claimed = int(m.group(1))
+    if claimed != data_rows:
+        return ["W4 %s: 自述 %d 行 / 实测 %d 数据行（表头不计）"
+                % (REPORT_REL, claimed, data_rows)]
+    return []
+
+
 def run(csv_path, suites, exclude, timeout_s, budget_s, dry_run, json_out):
     if not os.path.isfile(csv_path):
         print(json.dumps({"tool": "check_test_index_live", "verdict": "INPUT_MISSING",
@@ -227,6 +257,8 @@ def run(csv_path, suites, exclude, timeout_s, budget_s, dry_run, json_out):
         return 2
     problems, measured, excluded = check_rows(REPO, rows, suites, exclude, timeout_s,
                                               budget_s, dry_run)
+    # W4：报告自述行数（dry-run 也判——它不依赖实跑，只依赖 CSV 行数）
+    problems = problems + check_report_rows(REPO, len(rows))
     out = {"tool": "eng/tools/doccheck/check_test_index_live.py",
            "csv": csv_path, "runnable_rows": len(runnable),
            "excluded_rows": excluded,

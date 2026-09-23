@@ -14,17 +14,23 @@
   类缺陷长期无机器门的结构性原因。
 
 判据（任一 L 违规 ⇒ exit 1）
-  L0 scan_floor        fail-closed：文档根不存在 / 扫到 0 篇 ALG 文档 /
+  L0 scan_floor        fail-closed：文档根不存在 / 扫到 0 篇文档 /
                        提取到 0 个行数锚 或 0 个符号锚 ⇒ 判红（禁止空转判绿）；
                        git 不可用 ⇒ 判红（无法判定锚目标是否 tracked）。
   L1 count_mismatch    行数锚 `<file>（N 行` 的 N 必须 == 目标文件实测行数（去尾换行）。
+                       作用域 = DOC_GLOB（现 docs/**/*.md，含 docs/contracts、docs/modules）。
   L3 symbol_drift      逐符号表中「列头声明了文件」的锚：该行首列符号必须逐字出现在
                        该锚的行范围内。符号整体不在目标文件 ⇒ L3 symbol_absent。
+                       作用域 = SYMBOL_GLOB（**有意保持** docs/algorithms/*.md，见常量注释）。
   L2 target_unresolved 锚目标必须解析到唯一**被 git 跟踪**的仓库文件（exact →
                        doc-relative → unique basename）；解析不到/未跟踪 ⇒ 判红。
 
 不覆盖（如实声明，不假装覆盖）
-  - 显式 `file:N-M` 的**界内**判定由兄弟 step `DOC-LINE-ANCHORS` 承担，本门不重复实现；
+  - 显式 `file:N-M` 的**界内**判定由兄弟门 `DOC-LINE-ANCHORS` 承担，本门不重复实现；
+  - **锚边界落在空行**由 `DOC-LINE-ANCHORS` 的 C6 判（该门有完整 resolver 链与
+    unresolved_registry，本门无）；本门不重复实现，避免第二套解析口径；
+  - `docs/contracts/DATA_SEMANTICS.md` 的逐符号表漂移（实测 35 条）本门**当前不判**
+    （L3 作用域未扩），见模块常量注释与 DOC-DRIFT-FIX-01 回执的「发现但未改」；
   - 散文正文里不带文件列的裸行号（如 `# :555` 代码注释式锚）**无法在无符号绑定的
     前提下自动核对**，本门不计入判据，清单见 reports/RELEASE-02/guard-tools-fix.md。
 
@@ -48,7 +54,14 @@ import sys
 import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-DOC_GLOB = "docs/algorithms/*.md"
+# L1（行数锚）作用域：DOC-DRIFT-FIX-01 由 docs/algorithms/*.md 扩到全 docs 面 ——
+# docs/contracts/**、docs/modules/** 的「<file>（N 行」长期无门，实测 70 条与源文件不符。
+DOC_GLOB = "docs/**/*.md"
+# L3（逐符号表行号范围）作用域**有意保持** docs/algorithms/*.md：扩到 docs/contracts 会
+# 立刻暴露 docs/contracts/DATA_SEMANTICS.md 两张状态表 35 条符号漂移（rejection.cpp /
+# p2_session.cpp 整体位移），订正需逐符号重新推导语义，不属本任务声明的判据面 ——
+# 该项已在回执中作为「发现但未改」逐条列出，不得当作已覆盖。
+SYMBOL_GLOB = "docs/algorithms/*.md"
 
 EXTS = ("cpp", "cc", "cxx", "h", "hpp", "hh", "py", "sh", "ps1", "json",
         "yaml", "yml", "md", "cmake", "in", "txt")
@@ -119,8 +132,8 @@ def md_cells(line):
     return [c.strip() for c in s.strip("|").split("|")]
 
 
-def scan_doc(root, doc, basename_index, tracked_set):
-    """Return (findings, counters, records)."""
+def scan_doc(root, doc, basename_index, tracked_set, symbol_scope=True):
+    """Return (findings, counters, records). symbol_scope=False ⇒ 只跑 L1（行数锚）。"""
     findings = []
     lines = read_lines(os.path.join(root, doc))
     counts = {"count_anchors": 0, "symbol_anchors": 0}
@@ -160,7 +173,7 @@ def scan_doc(root, doc, basename_index, tracked_set):
             records.append(rec)
 
     # L3：逐符号表（列头声明文件）里的裸行号范围
-    for i, line in enumerate(lines):
+    for i, line in enumerate(lines) if symbol_scope else ():
         if not SEP_RE.match(line) or i == 0:
             continue
         hdr = md_cells(lines[i - 1])
@@ -219,9 +232,9 @@ def scan_doc(root, doc, basename_index, tracked_set):
 def check_root(root):
     root = os.path.abspath(root)
     errors = []
-    if not os.path.isdir(os.path.join(root, "docs", "algorithms")):
+    if not os.path.isdir(os.path.join(root, "docs")):
         return {"verdict": "FAIL", "errors": [
-            {"code": "L0_scan_floor", "detail": "ANCHOR_STALE: DOC_GLOB 根不存在 docs/algorithms/"}],
+            {"code": "L0_scan_floor", "detail": "ANCHOR_STALE: DOC_GLOB 根不存在 docs/"}],
             "anchors": [], "counters": {}}
     tracked = git_ls(root)
     tracked_set = set(tracked) if tracked is not None else None
@@ -230,13 +243,17 @@ def check_root(root):
                        "detail": "git ls-files 不可用，无法判定锚目标是否 tracked（fail-closed）"})
     basename_index = build_basename_index(root)
     docs = sorted(os.path.relpath(p, root).replace(os.sep, "/")
-                  for p in _glob.glob(os.path.join(root, DOC_GLOB)))
+                  for p in _glob.glob(os.path.join(root, DOC_GLOB), recursive=True))
+    symbol_docs = set(os.path.relpath(p, root).replace(os.sep, "/")
+                      for p in _glob.glob(os.path.join(root, SYMBOL_GLOB), recursive=True))
     if not docs:
         errors.append({"code": "L0_scan_floor", "detail": "ANCHOR_STALE: 0 篇文档命中 " + DOC_GLOB})
+    if not symbol_docs:
+        errors.append({"code": "L0_scan_floor", "detail": "ANCHOR_STALE: 0 篇文档命中 " + SYMBOL_GLOB})
     counters = {"count_anchors": 0, "symbol_anchors": 0}
     anchors = []
     for d in docs:
-        f, c, r = scan_doc(root, d, basename_index, tracked_set)
+        f, c, r = scan_doc(root, d, basename_index, tracked_set, symbol_scope=(d in symbol_docs))
         errors.extend(f)
         anchors.extend(r)
         for k in counters:
@@ -261,6 +278,7 @@ def emit(result, json_out):
         "schema": "astrocs/alg-line-anchors/v1",
         "task": "GUARD-TOOLS-FIX / CONFORM-SWEEP-3-018",
         "doc_glob": DOC_GLOB,
+        "symbol_glob": SYMBOL_GLOB,
         "verdict": result["verdict"],
         "documents": result.get("documents", 0),
         "counters": result.get("counters", {}),
