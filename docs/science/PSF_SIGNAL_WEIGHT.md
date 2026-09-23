@@ -40,9 +40,17 @@ PixInsight 将 PSFSW 定义为 hybrid PSF/aperture photometry 的综合图像质
 
 > **PixInsight 官方公式（2026-09-17 核对；GitLab `Reference-Documentation/docs/ImageWeighting/02-PSF_Flux_Weighting_Algorithms.pidoc` master，与官网 `https://pixinsight.com/doc/docs/ImageWeighting/ImageWeighting.html` 式号一致）**
 > - PSFSW（式[16]）：`w_PSF = c1·(Σ_{j=1}^n f_j)·(Σ_{j=1}^n f̄_j) / (c2·σ_n·M*)`。`f_j` 为 FWTM 椭圆孔径内逐像素减局部背景之和（式[7]，**不使用拟合振幅 A**，故称 hybrid PSF/aperture photometry）；`f̄_j=f_j/(π·r_x·r_y)` 为 mean PSF flux（式[8]，信号集中度）；`M*=median(R*)` 为 MMT 残差（式[12]）的中位数（式[13]，默认尺度 256 px）；`σ_n` 为 MRS 或 `N*` 噪声估计（文章称默认 MRS）。
-> - PSFSNR（式[18]）：`SNR_PSF = c3·(Σ_{j=1}^n f_j)²/(c4·σ_n²)`。**分子是 (Σf_j)²，不是 √(Σf_j²)**；官方元数据里 `PSFFluxPower=Σf_j²` 标注 “Currently not used, reserved for future extensions”。
+> - PSFSNR（式[18]）：`SNR_PSF = c3·(Σ_{j=1}^n f_j)²/(c4·σ_n²)`。**分子是 (Σf_j)²，不是 √(Σf_j²)**；官方元数据里 `PSFFluxPower=Σf_j²` 标注 “Currently not used, reserved for future extensions”。**未独立核验**：该串在 `02-PSF_Flux_Weighting_Algorithms.pidoc` 全文（25471 字符）中**不存在**，应在 PCL 头文件侧，需补一手锚点后才可引用。
 > - 标准 SNR（式[20]）：`SNR=σ²/σ_n²`（全局尺度估计/噪声方差；官方明确指出它受背景梯度与天光正向影响）。
-> - 文章版常数：`c1=8.0832×10⁻⁶, c2=9.0×10⁺⁶`（式[17]）；`c3=1.350×10⁻⁷, c4=4.987×10⁺⁶`（式[19]）。标定集 = 1000 幅 4096² 合成图（背景高斯 σ=0.001/均值 0.015、平均 1500 颗可检测星、Moffat β=4 FWHM=5 px、Poisson+高斯噪声），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。**PCL 2.10.4 头文件**为 `c1=5.326×10⁻⁶, c3=1.316×10⁻⁷`（c2/c4 相同）——引用任何常数必须带版本。
+> - 文章版常数：`c1=8.0832×10⁻⁶, c2=9.0×10⁺⁶`（式[17]）；`c3=1.350×10⁻⁷, c4=4.987×10⁺⁶`（式[19]）。
+>   **逐字核验（源码原文，非二手转述）**：`02-PSF_Flux_Weighting_Algorithms.pidoc` 中该二式逐字为
+>   `\begin{array}{l} c_1 = 8.0832\times{10^{-6}} \\ c_2 = 9.0\times{10^{+6}} \end{array}` 与
+>   `\begin{array}{l} c_3 = 1.350\times{10^{-7}} \\ c_4 = 4.987\times{10^{+6}} \end{array}`；
+>   定义式逐字为 `w_{PSF} = \frac{c_1\sum_{j=1}^n f_j\,\sum_{j=1}^n \bar{f_j}}{c_2\,\sigma_n\,M^\star}`、
+>   `\textup{SNR}_{PSF} = \frac{c_3\left(\sum_{j=1}^n f_j\right)^2}{c_4\,\sigma_n^2}`。
+>   **注意 `c2`/`c4` 的指数确为 `+6`（不是抄写错误）**：它们与 `c1`/`c3` 配对使用，
+>   标定集为 1000 幅 4096² 合成图（背景高斯 σ=0.001、均值 0.015、平均 1500 颗可检测星、
+>   Moffat β=4 FWHM=5 px），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。标定集 = 1000 幅 4096² 合成图（背景高斯 σ=0.001/均值 0.015、平均 1500 颗可检测星、Moffat β=4 FWHM=5 px、Poisson+高斯噪声），调至中位 PSFSW=1、中位 PSFSNR=中位标准 SNR=3.029。**PCL 2.10.4 头文件**为 `c1=5.326×10⁻⁶, c3=1.316×10⁻⁷`（c2/c4 相同）——引用任何常数必须带版本。**未独立核验**：PCL 头文件在 `gitlab.com/pixinsight/PCL` 的常见路径上 404，该行数值与下一条元数据断言均待补一手锚点。
 >
 > **AstroCS 实现披露（`lib/algorithms/photometry/cpp/src/psfsw.cpp:312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:57-61`）**：本项目复合为 `Wt=C_norm·S^α·Conc^β/(N^γ·B^δ)`，冻结版本 `PSFSW-COMPOSITE-V1` 取 `α=2, β=1, γ=2, δ=1, C_norm=1.0`；其中 `S_k=Σ fhat`（共同星 PSF 通量之和）、`Conc_k=mean(fhat)/A_NEA`、`N_k=1.482602218505602·MAD({fhat})`（**共同星的星间通量散度，不是图像噪声 σ_n**）、`B_k=b̄_k·A_ref,k`（稳健背景×参考面积）。因此本项目是**受 PixInsight PSFSW 启发**而非**等价于式[16]**：指数（α=2,γ=2 vs 1,1）、`N` 的语义（星间散度 vs 图像噪声）、`B` 的面积因子三处均不同。该复合的指数与阈值在实现中标注 `PENDING_OWNER_SIGNOFF`，尚无本项目 L1 合成数据标定记录；不得据「PixInsight 同类」推定其最优性。
 > - 依据出处：PixInsight .pidoc 式[7][8][12][13][16][17][18][19][20]；PCL 2.10.4 Doxygen `PSFSignalEstimator.h`；`lib/algorithms/photometry/cpp/src/psfsw.cpp:233-238,312-314`；`lib/algorithms/photometry/include/astrocs/v6/psfsw.h:42-64,137-138`。
