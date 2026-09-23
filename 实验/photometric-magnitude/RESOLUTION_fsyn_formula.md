@@ -132,6 +132,9 @@ g++ -O2 -std=c++17 -I lib/algorithms/photometry/cpp/src \
 python3 run/SCI-PHOT-FORMULA-01/code/c1_analytic_check.py          # 解析对拍 + 误差分解
 python3 run/SCI-PHOT-FORMULA-01/code/c2_negative_controls.py       # 负例量级
 python3 run/SCI-PHOT-FORMULA-01/code/d1_zp_sigma_rederive.py       # 生产链 ZP_syn 逐位复现
+python3 run/SCI-PHOT-FORMULA-01/code/q1_qe_discriminate.py         # QE +12% 判别 (变体对照)
+python3 run/SCI-PHOT-FORMULA-01/code/q2_qe_mechanism.py            # 回归 + 置换检验
+python3 run/SCI-PHOT-FORMULA-01/code/q3_qe_colour_chain.py         # 颜色链条
 ```
 
 ---
@@ -146,6 +149,13 @@ python3 run/SCI-PHOT-FORMULA-01/code/d1_zp_sigma_rederive.py       # 生产链 Z
 - 通带曲线本身 provenance 为 `unverified`（`eng/packaging/config/filters.json → provenance.status`，
   GAP-025）：本记录的"正确通带"指**配置声明的那一支**（`Baader R`），
   **不**声称该曲线的厂商出处已被核实。
-- `Q(λ)≡1` 与计入 `KAF-16803` QE 的实测散度变化为 **+12%**（0.0457 → 0.0510 mag），
-  而 `Q≡1` 的跨星色项只有 **0.0082 mag** ⇒ 该 +12% **不能**全部归因于色项，
-  本任务**未**做进一步归因（已登记为未决项）。
+- `Q(λ)≡1` 与计入 `KAF-16803` QE 的实测散度变化为 **+11.6%（T2/M1）/ +16.0%（T3/M1）**。
+  该 +12% 的归因**已判定**（详见 `docs/science/PHOTOMETRY.md` §2a.4）：
+  `Q` 曲线形状对不同 SED 给出不同的乘性因子（与颜色 `corr = 0.90`），该因子与既有残差 `r0`
+  正相关（`corr = 0.56–0.59`，回归斜率 `k = 0.090/0.100`，`R² = 0.31/0.35`）⇒ `sigma_residual`
+  按 **(1+k) 放大**而非独立散度二次合成。判别证据：常数 `Q=0.8`（纯标度）给出 `sigma` **逐位不变**
+  （负例对照通过）；独立散度模型只预言 +0.8%/+1.1%（**被证伪**）；置换检验打乱 `Δr`–`r0` 配对后
+  比值降到 **0.951/0.976**（效应消失）⇒ 机制是相关性，不是新增散度，也不是 inlier 集合变化
+  （inlier 成员变化 0/448 与 4/515）。证据 `run/SCI-PHOT-FORMULA-01/evidence/{q1_qe_discriminate,q2_qe_mechanism,q3_qe_colour_chain}.json`。
+- 上述判别实验的**剩余未解释量**：`(1+k)` 模型解释 T2/M1 的 87%、T3/M1 的 78%；
+  余量来自 inlier 集合的少量变化与二阶效应，本任务**未**进一步分解。
