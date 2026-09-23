@@ -87,10 +87,14 @@
   （surface_brightness 唯一合法）、P3SamplerImpl :109 起
   （open :109+/open_ex :130-159 BUNIT 缺省 ADU 绝不 Jy/beam/
   set_max_tiles :161-168 ≤0 恢复默认 8/close :170-180 幂等）、
-  p3_sample_bilinear :196-230（leaf 3×3 邻域四象限最近中心 d² 比较/
-  den=dx·dy2-dx2·dy≤0 跳过背面/|dx|>1e-300 防 0 除/u,v clamp [0,1]/
-  四权重 FP64 Σ=1/any_nan→nanf("")/coverage 恒 1/(void)y1 压
-  unused）、p3_sample_nearest :232-239（ang2pix 精确 cell）。
+  p3_sample_bilinear[_nanmask] :315-464（leaf 3×3 邻域四象限最近中心 d²
+  比较/|dx|>1e-300 防 0 除/u,v clamp [0,1]/几何权重 wg FP64 Σ=1±k·ULP/
+  **样本级掩膜+重归一**: ¬isfinite(含 ±Inf) 样本从分子/分母/方差三项剔除,
+  剩余合格邻域重归一 c_k=wg_k/Σ(合格 wg_j)（FP64 固定 k 序）/零合格样本或
+  D_p=0 ⇒ S=NaN（覆盖级 NaN）/weights[4]=**生效权重**（被剔除样本恰 0）/
+  coverage 恒 1 且值非有限不改 C/计数经 P3SampleRejection.n_rejected_nonfinite
+  暴露）、p3_sample_nearest[_ex] :296-313（ang2pix 精确 cell；单样本零合格
+  ⇒ S=NaN + C=1, §4 第 91 行口径）。
   会话消费: p3_session.cpp :16 lib/include/:167-178 主 sampler open_ex :171
   （实际 order/BUNIT）/:179-194 max_tiles 内存守卫（默认
   min(1024, ceil(W·H/512²)+16)，请求超默认→ACS_ERR_BUDGET 可降
@@ -108,11 +112,14 @@
   bilinear/parity/bitpix∈{-32,-64}/coverage_output 仅 mask）。
   执行面: eng/tests/backend/p3_resample_probe_main.cpp 探针
   （order/mode/open/nearest/bilinear/pix2ang 六模式）+
-  eng/tests/backend/test_p3_resample.py 156 行（test_05_nan_semantics
+  eng/tests/backend/test_p3_resample.py（test_05_nan_semantics nearest
   tile 内 NaN→C=1+值 NaN/test_06_no_silent_default_open/seam 域界
-  1e8-1..12e8+1 连续性 1e-5°）+ test_p3003_parallel_resampler.py
-  104 行 + eng/tests/unit/p3_interp_test.cpp 109 行/p3_coverage_test.cpp
-  106 行（独立参考实现，非生产自证）。
+  1e8-1..12e8+1 连续性 1e-5°）+ test_p3003_parallel_resampler.py +
+  eng/tests/unit/p3_interp_test.cpp + p3_coverage_test.cpp（独立参考实现,
+  非生产自证; 7)-10) 段新增样本级掩膜口径的参考模型判据）+
+  lib/algorithms/resample/tests/p3rsmp/p3_nan_mask_test.cpp（**生产码在内**
+  的掩膜 Oracle+负例: 逐像素注入 NaN/±Inf, 解析真值=重归一加权和,
+  含「实现回退 any_nan→NaN 即判红」实证, run/RSMP-NANMASK-01/evidence/）。
 - 实测偏差（如实登记，DISP/整改不修码）:
   1) DISP-P3RSMP-001: bilinear=切平面四象限最近中心双线性
      （cpp:196-230）；ALG-P3-003 G4 施工规格写"面积重叠分数（投影

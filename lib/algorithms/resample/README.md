@@ -36,24 +36,35 @@
 
 ## 3 生产源（冻结实测，2026-09-12）
 
-- 唯一权威签名头: `lib/algorithms/resample/p3_resample.h`（150 行，2026-09-16 实测）——
+- 唯一权威签名头: `lib/algorithms/resample/p3_resample.h`（197 行，2026-09-23 实测；NAN-SAMPLE-MASK 对齐任务新增 `P3SampleRejection` + `p3_sample_bilinear_nanmask_ex`）——
   公共符号（按 `path::symbol` 定位，不冻结行号）: `P3ResampleStatus` /
   `p3_order_select` / `p3_resample_check_mode` / `P3SamplerImpl`(前置声明) /
   `P3Sampler` / `p3_sampler_open` / `p3_sampler_open_ex` /
   `p3_sampler_set_max_tiles` / `p3_sampler_attach_cache` / `P3CacheStats` /
   `p3_sampler_cache_stats` / `p3_sampler_set_absent_cache` /
-  `p3_sample_nearest[_ex]` / `p3_sample_bilinear[_ex]` / `p3_sampler_close` /
+  `p3_sample_nearest[_ex]` / `p3_sample_bilinear[_ex]` / `P3SampleRejection` /
+  `p3_sample_bilinear_nanmask_ex` / `p3_sampler_close` /
   `p3_uncertainty_open` / `p3_uncertainty_close` / `p3_uncertainty_propagate`
   （uncertainty 面按 DATA-P3-UNC-001 §30.4-4 supersession 追加）。
   **注意**：ALG-P3-RSMP-IMPL-001 §4 仍记「全部公共符号（10 个）/58 行」，
   与本节实测不符——该滞后口径属 M1a-C-007，本 README 按实测记录，不复抄旧值。
-- 实现: `lib/algorithms/resample/p3_resample.cpp`（519 行，2026-09-16 实测；
+- 实现: `lib/algorithms/resample/p3_resample.cpp`（586 行，2026-09-23 实测；
   按 `path::symbol` 定位）: `kTileWidth=512`、`SharedTileCache`
   （**跨 worker 共享、有界 LRU + 缺失负缓存**，P30 `955c45df`；容量 = max_tiles，
   与 worker 数无关）、`read_leaf`、`p3_order_select`、`p3_resample_check_mode`、
   `p3_sampler_open[_ex]`、`p3_sampler_set_max_tiles`、`p3_sampler_attach_cache`、
-  `p3_sample_nearest_ex`、`p3_sample_bilinear_ex`、`p3_uncertainty_open`、
+  `p3_sample_nearest_ex`、`p3_sample_bilinear_ex`（= `p3_sample_bilinear_nanmask_ex`
+  的薄封装）、`p3_sample_bilinear_nanmask_ex`、`p3_uncertainty_open`、
   `p3_uncertainty_propagate`、`p3_sampler_close`。
+- **NaN 处置口径（本次对齐，rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`）**: 权威 =
+  `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling`
+  （唯一正本）+ `docs/standards/NUMERIC_STANDARD.md` §MUST + ALG-P3-003 §2 G4/§4。
+  实现: ¬isfinite（含 ±Inf）邻域样本从分子、分母、**方差**三项一并剔除，剩余合格
+  邻域重归一（FP64 固定 k 序）；`weights[4]` 暴露**生效（重归一）权重**（被剔除样本
+  恰为 0）⇒ 方差传播 `Σc_k²u_k` 消费该权重；仅零合格样本（或 D_p=0）⇒ S=NaN
+  （覆盖级 NaN）；C 只判足迹内有无 tile 像素（值非有限不改 C）；强制计数经
+  `P3SampleRejection::n_rejected_nonfinite` 暴露（计数 0 与「字段缺失」可区分）。
+  **产品承载面未冻结**（DISP-P3RSMP-006，上呈）；C 语义跨文档冲突见 DISP-P3RSMP-007。
 - 会话消费点: `lib/phase3_session/p3_session.cpp::p3_session_run` ——
   `p3_resample.h` include、`p3_sampler_open_ex`（暴露实际 order/BUNIT）、
   max_tiles 会话守卫（可降不可升）、`p3_order_select`（max_order=输入实际
@@ -67,7 +78,8 @@
 - 职责: sampler 生命周期（open/open_ex/set_max_tiles/close）、G3
   order 选择、输入模式守卫（surface_brightness 唯一合法）、
   NEAREST/BILINEAR 逐输出像素采样（含跨 tile 邻域读取）、tile 缓存
-  （跨 worker 共享的有界 LRU + 缺失负缓存，P30 `955c45df`）、coverage 二值语义。
+  （跨 worker 共享的有界 LRU + 缺失负缓存，P30 `955c45df`）、coverage 二值语义、
+  样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数（NAN-SAMPLE-MASK-COVERAGE-NAN）。
 - 非职责: 不做投影/WCS 构造（ALG-P3-PROJ-IMPL-001 归 phase3_proj 域）、
   不做 FITS 原子写（p3_output 域）、不做会话编排与请求解析
   （p3_session 域）、不修改 SCI 公式（SCI-P3 FROZEN 零改动）、

@@ -322,6 +322,26 @@ P3ResampleStatus p3_sample_bilinear(P3Sampler* s, double ra_deg, double dec_deg,
 P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_deg,
                                        float* value, int* coverage,
                                        double weights[4], uint64_t leaf_ipix[4]) {
+    // 薄封装: 同一数学路径 (样本级掩膜版), 不暴露计数
+    return p3_sample_bilinear_nanmask_ex(s, ra_deg, dec_deg, value, coverage,
+                                         weights, leaf_ipix, nullptr);
+}
+
+// 样本级掩膜口径 (rule_id NAN-SAMPLE-MASK-COVERAGE-NAN) 的唯一实现:
+//   权威 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md §2a
+//   invalid_handling 块 (唯一正本) + docs/standards/NUMERIC_STANDARD.md §MUST
+//   + ALG-P3-003 §2 G4/§4 (docs/algorithms/PHASE3_RESAMPLE.md)。
+//   ①不合格样本 = ¬isfinite(值) (NaN 与 ±Inf 同类);
+//   ②从分子、分母、方差三项一并剔除 (被剔除样本的生效权重恰为 0 ⇒ 不留在分母);
+//   ③对剩余合格邻域重归一 c_k = w_k / Σ(合格 w_j) (FP64, 固定 k 序 ⇒ 确定性);
+//   ④仅零合格样本 (n_eligible==0) 或有效权重和 D_p==0 时 S=NaN (覆盖级 NaN);
+//   ⑤C 只判足迹内有无 tile 像素: 4 个 tile 均可读则 C=1, 值 NaN 不改 C (§4);
+//   ⑥强制计数: 被剔除样本数按原因分类暴露 (禁静默剔除; 禁零填替代)。
+P3ResampleStatus p3_sample_bilinear_nanmask_ex(P3Sampler* s, double ra_deg, double dec_deg,
+                                               float* value, int* coverage,
+                                               double weights[4], uint64_t leaf_ipix[4],
+                                               P3SampleRejection* rejection) {
+    if (rejection) *rejection = P3SampleRejection{};   // 计数 0 与「字段缺失」可区分
     if (!s || !s->impl || !value || !coverage) return P3_RS_PARAM;
     auto* impl = s->impl;
     const uint32_t nside = impl->leaf_nside;
@@ -394,15 +414,45 @@ P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_d
     if (std::fabs(dy) > 1e-300) v = (0.0 - y0) / dy;
     u = std::min(1.0, std::max(0.0, u));
     v = std::min(1.0, std::max(0.0, v));
-    const double w00 = (1 - u) * (1 - v), w10 = u * (1 - v);
-    const double w01 = (1 - u) * v, w11 = u * v;
-    const double val = w00 * v00 + w10 * v10 + w01 * v01 + w11 * v11;
-    const bool any_nan = std::isnan(v00) || std::isnan(v10) || std::isnan(v01) ||
-                         std::isnan(v11);
-    *value = any_nan ? std::nanf("") : static_cast<float>(val);
-    *coverage = 1;   // §4: NaN 参与仍 C=1(S=NaN)
-    if (weights) {
-        weights[0] = w00; weights[1] = w10; weights[2] = w01; weights[3] = w11;
+    const double wg[4] = {(1 - u) * (1 - v), u * (1 - v),
+                          (1 - u) * v, u * v};      // G4 几何权重 (Σ=1±k·ULP)
+    const float vv[4] = {v00, v10, v01, v11};
+    // ── 样本级掩膜 (¬isfinite, 含 ±Inf) + 剩余有效邻域重归一 ───────────────
+    // rule_id NAN-SAMPLE-MASK-COVERAGE-NAN: 不合格样本从分子、分母、方差三项
+    // 一并剔除; 被剔除样本的生效权重恰为 0 ⇒ 其权重不进分母、其值不进分子、
+    // 其方差项 (c²u) 恰为 0 ⇒ 方差传播必须消费下面暴露的**生效权重**。
+    bool ok[4];
+    double wsum = 0.0;                 // D_p = Σ_{合格} w_j
+    int n_rej = 0;
+    for (int k = 0; k < 4; ++k) {
+        ok[k] = std::isfinite(vv[k]);
+        if (ok[k]) wsum += wg[k]; else ++n_rej;
+    }
+    if (rejection) {
+        rejection->n_rejected_nonfinite = n_rej;
+        rejection->n_rejected_nonfinite_value = n_rej;   // 本核唯一原因类 (值非有限)
+        rejection->n_rejected_nonfinite_variance = 0;    // 信号核不消费方差面
+        rejection->n_rejected_nonpositive_weight = 0;    // 权重由几何唯一确定
+        rejection->n_eligible = 4 - n_rej;
+    }
+    const bool zero_eligible = (n_rej == 4) || !(wsum > 0.0);
+    if (zero_eligible) {
+        // 覆盖级 NaN (DATA-002 §2a 规则 2: 零合格样本 / D_p=0):
+        // S=NaN; C 不变 (§4: C 只判足迹内有无 tile 像素 ⇒ 4 tile 可读则 C=1);
+        // 禁零填替代; 生效权重全 0 (此时 Σc_k=1 不变量不适用)。
+        *value = std::nanf("");
+        *coverage = 1;
+        if (weights) weights[0] = weights[1] = weights[2] = weights[3] = 0.0;
+    } else {
+        double val = 0.0;
+        for (int k = 0; k < 4; ++k) {
+            if (!ok[k]) continue;
+            const double eff = wg[k] / wsum;   // 重归一 (FP64, 固定 k 序)
+            val += eff * static_cast<double>(vv[k]);
+            if (weights) weights[k] = eff;
+        }
+        *value = static_cast<float>(val);
+        *coverage = 1;   // §4: 值非有限不改 C
     }
     if (leaf_ipix) {
         leaf_ipix[0] = q[0][0]->ipix; leaf_ipix[1] = q[1][0]->ipix;
@@ -503,15 +553,26 @@ P3ResampleStatus p3_uncertainty_propagate(P3Sampler* u, const double* weights,
     *st = P3_U_OK;
     double acc = 0.0;                     // FP64 累加 (§30.4 精度合同)
     bool any_nan = false, any_missing = false;
+    int n_masked = 0;                     // 生效权重 0 = signal 路径已剔除的样本
     for (int k = 0; k < npts; ++k) {
+        const double w = (npts == 1) ? 1.0 : weights[k];
         double u_k = 0;
         P3UncPixelState s_k = P3_U_OK;
         const P3ResampleStatus r = read_u_leaf(u, leaf_ipix[k], &u_k, &s_k);
-        if (r != P3_RS_OK) return r;      // 负/Inf 损坏 → run 拒绝
+        if (r != P3_RS_OK) return r;      // 负/Inf 损坏 → run 拒绝 (fail-closed 不变)
+        // 样本级掩膜 (rule_id NAN-SAMPLE-MASK-COVERAGE-NAN, DATA-002 §2a 规则 1:
+        // 不合格样本从分子、分母、**方差**三项一并剔除): p3_sample_bilinear_ex
+        // 暴露的生效权重对被剔除样本恰为 0 ⇒ 该项 c²u 恰为 0 ⇒ 从方差一并剔除,
+        // 不参与 NaN/missing 合成。u 仍读入 ⇒ 产品损坏 (负/Inf) 仍 fail-closed。
+        if (npts == 4 && w == 0.0) { ++n_masked; continue; }
         if (s_k == P3_U_MISSING) { any_missing = true; continue; }
         if (s_k == P3_U_NAN) { any_nan = true; continue; }
-        const double w = (npts == 1) ? 1.0 : weights[k];
         acc += w * w * u_k;               // var_out = Σ c_k²·u_k (nearest: c=1)
+    }
+    if (npts == 4 && n_masked == npts) {
+        // 零合格样本 (与 signal 路径同一判定, D_p=0) ⇒ 覆盖级 NaN;
+        // 禁静默 0 冒充无效 (DATA-002 §2a 规则 2)。
+        *st = P3_U_NAN; *u_out = std::nanf(""); return P3_RS_OK;
     }
     // 合成序: 损坏 > missing > NaN > 数值 (§30.4 invalid 表:
     // 覆盖不一致与 NaN 传播输出面同为 NaN, 差别在 missing 计数语义)
