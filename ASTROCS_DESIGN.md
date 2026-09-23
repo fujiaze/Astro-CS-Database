@@ -628,6 +628,7 @@ run/                            临时产物与日志（gitignore）
 - 浮点归约顺序冻结（按帧/块/窗口 ID 与像素序，跨 worker 无共享浮点累加器），并行开关不改变科学数值：**1 worker 与 N worker 的等价判据是事前冻结的浮点容差，不是逐位一致**。容差来源按优先级取——模块科学页已冻结三档的按其三档（`docs/science/PHASE2_UPM.md` §7：同配置重复=位精确 + `model_hash` 逐字；跨 worker 数=1e-12 绝对容差；跨后端不允许），未冻结的按 `docs/contracts/TEST_MATRIX.md` §2 通用容差规则。绝对容差必须同时声明**适用量级域**（该容差 ≥ 1 ulp 的量级范围），超出适用域按同值的相对形式判；低于 1 ulp 的绝对容差不可满足，不得作为门。变体与 baseline 同式同序、过同一套 Oracle；计算后端失败安全中止整个阶段，不混用两种后端结果。
 - 每个 heavy 模块实现前给出资源分析（峰值工作集、缓存复用点、调度顺序），运行时自动记录 CPU/RSS/读写/IOWait/worker 均衡/墙钟。
 - 调度器与模块预埋性能探针（节点墙钟、排队等待、块生命周期、RSS、I/O、worker 均衡、缓存命中），随事件流落盘；编排参数（窗口大小、预取深度、帧并发度、工作窃取）基于探针实测数据迭代。调度与编排的性能优化排在功能与数值正确闭环之后。
+- **并行度沿两个轴分配，两轴之积即同时真正在算的线程数**：帧级并发（同时在飞的数据块/帧数）与帧内并行（块内并行度）。调度器按内存闸门与 Runtime lease 联合确定两者，取**使乘积最大**的组合；帧内不可并行的串行段（帧内读取、产品写出等）由**帧级并发重叠**，不以加大帧内宽度替代。模块不自决帧级并发、不硬编码帧内度。
 
 ---
 
@@ -762,7 +763,7 @@ flowchart TD
 
 ## 附录 A. 术语
 
-signal / variance / ivar / frame_snr / point_information / sparse_snr_layer / support / coverage / validity / rejection / provenance / UPM / PSF / HiPS / HEALPix / WCS / Drizzle / cpu_profile / phase_config / run_manifest / control_ivar —— 定义见 `docs/design/UNIFIED_MODEL.md` 与 `docs/GLOSSARY.md`。
+signal / variance / ivar / frame_snr / point_information / sparse_snr_layer / support / coverage / validity / rejection / provenance / UPM / PSF / HiPS / HEALPix / WCS / projection / stacking / Drizzle / cpu_profile / phase_config / run_manifest / control_ivar —— 定义见 `docs/design/UNIFIED_MODEL.md` 与 `docs/GLOSSARY.md`。
 
 ## 附录 B. 外部标准与文献
 

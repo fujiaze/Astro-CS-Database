@@ -21,6 +21,8 @@
 | ra_dec | 天球坐标,ICRS/equatorial;RA∈[0,360),Dec∈[-90,90] | 度;内部球面计算弧度,公共 ABI 度 | - | docs/contracts/DATA_SEMANTICS.md §1 |
 | pixel_coordinate | 内部像素坐标 0-based x∈[0,w-1](y 同);FITS 1-based xp=x+1;CRPIX=1-based (w/2+0.5,h/2+0.5) 恒成立 | 无量纲(px) | xp/yp(1-based) → 显式标注 FITS 1-based | docs/science/ASTROMETRY.md#14 |
 | healpix_ordering | NESTED 是唯一允许 ordering(ring 未迁移);order K,nside=2^K,非法值拒绝 | 无量纲 | ring → 拒绝 | docs/contracts/DATA_SEMANTICS.md §2 |
+| projection | 球面↔平面坐标变换的唯一实现是 drizzle,在阶段一(帧切平面→HEALPix 球面)与阶段三(HEALPix 球面→目标投影平面)执行;只做坐标变换与重采样,不做跨帧组合 | — | - | docs/science/DRIZZLE.md |
+| stacking | 跨帧样本组合的唯一实现是排异积分,在阶段二执行;消费已落到天球像素的样本做排异与加权求和,不做任何坐标变换 | — | - | docs/science/INTEGRATION.md |
 | frame_id | 帧身份=truncated-64(SHA-256 of science payload identity),取前 16 hex 为 uint64;与路径/重命名无关;禁止描述为 FNV-1a/路径派生 | uint64 | - | docs/contracts/DATA_SEMANTICS.md §5 |
 | signal | 科学表面亮度(float32/64),不使用 display stretch;负值保留,不自动 pedestal/clamp | ADU/sr | - | docs/contracts/DATA_SEMANTICS.md §4 |
 | surface_brightness | 输出面亮度 S_p=F_p/D_p(通量按**立体角**归一);禁止把每像素常量通量与常量天空面亮度混淆 | ADU/sr(每立体角;variance=ADU^2/sr^2, ivar=sr^2/ADU^2) | flux(混淆用法) → 显式区分 flux 与 surface_brightness | docs/science/DRIZZLE.md#46 |
