@@ -2,8 +2,12 @@
 """L4 重建：把 12 个 normalize 产出的 p1_products.json 合并为一个 49 产品数据集。
 
 铁律：产品数必须 == 49（磁盘 R 帧数）。不足即判红，不得继续。
-输出 mosaic 配置：output_dir 在顶层（与参考配置一致）；weight_mode=2（SNR 逆方差链）；
-不使用 legacy_allow_weight_fallback（该假绿路径已被删除）。
+输出 mosaic 配置：output_dir 在顶层（与参考配置一致）。
+
+§9.73 裁决 A44（WEIGHTMODE-CLEANUP-01）：**单一权重口径** —— 本配置**不写**任何权重键。
+权重是阶段二按天球像素对应的输入帧集合现场算出的派生量 w = SNR²/F_ref² = 1/σ_F²，
+没有可选择项（ASTROCS_DESIGN.md §3.1:171/175；docs/science/PSF_SIGNAL_WEIGHT.md §4:62/72）。
+原 `weight_mode: 2` 与 `legacy_allow_weight_fallback` 两个键**已删除**，出现即配置解析失败。
 """
 import json, sys, glob, os
 
@@ -41,11 +45,10 @@ def main():
     cfg = {'schema_version': '1',
            'hips_paths': all_paths,
            'output_dir': os.path.join(L4, 'mosaic_out'),
-           'weight_mode': 2,
            'algorithm_rejection_method': ''}
     out = os.path.join(L4, 'mosaic_49.json')
     json.dump(cfg, open(out,'w',encoding='utf-8'), ensure_ascii=False, indent=2)
-    print('OK: wrote', out, 'with', total, 'paths, weight_mode=2')
+    print('OK: wrote', out, 'with', total, 'paths, single weight path (no weight key)')
     return 0
 
 if __name__ == '__main__':

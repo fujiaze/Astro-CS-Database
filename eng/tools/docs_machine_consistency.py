@@ -3,7 +3,12 @@
 """docs_machine_consistency.py — 文档↔代码机器一致性检查（含同常数多写法门）
 
 检查项（check 名与报告字段向后兼容）:
-  1. config_weight_mode_ivar        — CONFIG_SCHEMA weight_mode auto/ivar ↔ stage2_common 解析
+  1. config_weight_mode_ivar        — CONFIG_SCHEMA `weight_mode` 作废留痕 ↔ stage2_common
+        **拒绝面**（§9.73 裁决 A44 后判据已**反转**：原断言「含 legacy token 解析」，
+        现断言「**不得**含 legacy token 解析 ∧ **必须**含 `in.contains("weight_mode")`
+        具名 fail-closed 拒绝面 ∧ 必须引用 §9.73」。反转理由：A44 删除 legacy 整数
+        权重模式域后，原断言要求 stage2_common.cpp **保留**该域解析 —— 那是把已废除
+        的域钉成合法规格（ASTROCS_DESIGN.md §3.1:175「没有可选择项」）。）
   2. frame_id_contract_exact        — DATA-FRAME-ID-001：SHA-256 truncate，无 FNV/路径派生残留
   3. error_taxonomy_exit_codes      — ERROR_MODEL 退出码全集合 ↔ orchestrator.h 枚举
   4. integration_status_full_set    — INTEGRATION_ALGORITHMS ↔ integrate.h（P2_INTEGRATE_*）
@@ -186,7 +191,7 @@ class Resolver:
 
 SOURCES = [
     ("config_schema", "CONFIG_SCHEMA.md", ("weight_mode",), "docs/development/CONFIG_SCHEMA.md"),
-    ("stage2_common", "stage2_common.cpp", ('wm == "auto" || wm == "ivar"',),
+    ("stage2_common", "stage2_common.cpp", ('in.contains("weight_mode")',),
      "lib/phase2/src/stage2_common.cpp"),
     ("sampler_h", "sampler.h", ("truncated-64",), "lib/phase2/include/astro/phase2/sampler.h"),
     ("data_semantics", "DATA_SEMANTICS.md", ("frame_id",), "docs/contracts/DATA_SEMANTICS.md"),
@@ -303,10 +308,16 @@ def run_checks(root: str) -> dict:
 
     cfg_doc = r.read(p["config_schema"])
     cfg_code = r.read(p["stage2_common"])
+    # §9.73 裁决 A44 反转（WEIGHTMODE-CLEANUP-01）：正向约束 —— 文档留痕在位、
+    # 代码面**不得**含 legacy token 解析、**必须**含具名拒绝面且引用裁决编号。
+    _legacy_parse_gone = not any(t in cfg_code for t in (
+        'wm == "auto"', 'wm == "ivar"', '"support_x_snr2"', '"equal"'))
     results.append(check(
         "config_weight_mode_ivar",
-        "weight_mode(auto)" in cfg_doc and 'wm == "auto" || wm == "ivar"' in cfg_code,
-        "CONFIG_SCHEMA weight_mode auto/ivar <-> stage2_common parse"))
+        "weight_mode" in cfg_doc and _legacy_parse_gone
+        and 'in.contains("weight_mode")' in cfg_code and "§9.73" in cfg_code,
+        "CONFIG_SCHEMA weight_mode A44 留痕 <-> stage2_common 具名拒绝面（§9.73 A44；"
+        "原 legacy token 解析必须已删除）"))
 
     sampler_h = r.read(p["sampler_h"])
     data_sem = r.read(p["data_semantics"])
@@ -429,7 +440,7 @@ def _mini_enum(name, rows) -> str:
 
 MINI_FILES = {
     "lib/algorithms/coverage/src/stage2_common.cpp":
-        'if (wm == "auto" || wm == "ivar") { }\n',
+        '// §9.73 A44\nif (in.contains("weight_mode")) { return false; }\n',
     "lib/algorithms/coverage/include/astro/phase2/sampler.h":
         "// frame_id = truncated-64 SHA-256\n",
     "lib/algorithms/coverage/include/astro/phase2/integrate.h":
@@ -571,6 +582,18 @@ INJECTIONS = {
         "constexpr double kTrimMeanToSigma = 0.7316727929211932;",
         "constexpr double kTrimMeanToSigma = 0.7316728;"),
     "drop-source-file": ("lib/infrastructure/aio/include/aio_hips.h", None, None),
+    # §9.73 裁决 A44 反转面的可执行负例（注入后必须判红）
+    "revive-legacy-weight-token-parse": (
+        "lib/algorithms/coverage/src/stage2_common.cpp",
+        'if (in.contains("weight_mode")) {',
+        'const std::string wm = in.value("weight_mode", std::string("auto"));\n'
+        '        if (wm == "auto" || wm == "ivar") { }',
+    ),
+    "drop-weight-reject-face": (
+        "lib/algorithms/coverage/src/stage2_common.cpp",
+        'if (in.contains("weight_mode")) {',
+        'if (false) {',
+    ),
 }
 
 
