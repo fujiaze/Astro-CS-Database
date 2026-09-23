@@ -6,9 +6,9 @@
 // RA wrap、TAN 半球守卫(输出四角同半球)、abs(dec)<=85° 极点守卫(单一条件)。
 #ifndef ASTROCS_P3_WCS_H
 #define ASTROCS_P3_WCS_H
-
+#include <algorithm>
+#include <cmath>
 #include <string>
-
 namespace astrocs::phase3 {
 
 struct P3WcsDescriptor {
@@ -160,6 +160,213 @@ P3WcsStatus p3_wcs_roundtrip_dense_max_error_px(const P3WcsDescriptor* d,
  * p3_wcs_make 在返回前调用本函数: 违反适用域 ⇒ 拒绝且 *out 保持零初始化。 */
 P3WcsStatus p3_wcs_check_applicability(const P3WcsDescriptor* d,
                                        std::string* why);
+
+
+// ── EXPORT-CROP-01：导出裁剪窗口（crop）——本文件即几何唯一实现 ─────────────
+// 与 p3_wcs_validate_request 同款「唯一语义源，CLI 配置面与节点面共用」：
+// 调用方 = lib/infrastructure/scheduler/src/module_adapters.cpp 的 p3 节点链
+// （p3n_crop_shape / p3n_crop_window / p3n_crop_from_plan / p3_crop_apply_wcs）。
+// 规范正本 = docs/design/PHASE3_DETAILED_DESIGN.md §8 +
+// docs/contracts/CONFIG_CONTRACT.md §3（export 行 crop）；
+// 字段合同 = eng/contracts/schemas/phase_config_export.schema.json#/$defs/export_crop。
+//
+// 语义（负责人裁决 2026-09-23：「默认导出的话是要求边框不得裁剪任何有效像素，然后可以
+// 导出一些黑边。到平面后我自己手动剪裁。然后支持手动输入裁剪范围。这样我以后 gui 的
+// HiPS 浏览器里面我可以直接导出框选。需要保留接口。」）：
+//   ① 默认**不裁剪**（active=false；整幅导出，允许黑边，不得裁掉任何有效像素）；
+//   ② 可选**手动裁剪范围**，两种形式都要有：pixels（平面像素矩形）/ sky（天球矩形）；
+//   ③ 参数形态稳定、可机器生成（GUI 框选导出将来直接填）；
+//   ④ 裁剪帧的 WCS = 原画幅 WCS 在窗口上的**精确限制**（CRVAL/CD 逐位不变、CRPIX 减
+//      **整数**窗口原点）⇒「裁剪框内像素与不裁剪时逐位相同」由构造保证；
+//   ⑤ fail-closed：越界 / 宽高非正 / 两种形式同时给 / 裁剪后为空 —— 全部具名拒绝，
+//      **不静默夹取**。
+//
+// 裁剪窗口（内部规范形：0-based，半开区间 [x0,x1) × [y0,y1)）。
+// active=false ⇒ 不裁剪（默认；窗口字段无意义，调用方必须按 active 分支）。
+struct P3CropWindow {
+    bool active = false;
+    long x0 = 0;
+    long y0 = 0;
+    long x1 = 0;
+    long y1 = 0;
+    int width() const { return static_cast<int>(x1 - x0); }
+    int height() const { return static_cast<int>(y1 - y0); }
+};
+
+enum P3CropStatus {
+    P3_CROP_OK = 0,
+    P3_CROP_PARAM = 1,         // 参数非法：越界 / 宽高非正 / 两形式同时给 / 裁剪后为空
+    P3_CROP_HEMISPHERE = 2,    // 天球矩形边界点落在 TAN 半球之外（不可界定）
+};
+
+// 天球矩形边界加密采样点数（每条边，含两端点）。确定性、无全局状态。
+// 取值理由：TAN 在输出画幅内的映射是光滑近仿射；每边 257 点把「边界在像素域的
+// 弓高」压到远小于 1 px（2° 画幅实测 < 1e-3 px），保证外扩包围盒不切像素。
+constexpr int kP3CropEdgeSamples = 257;
+
+// ── 形式一：平面像素矩形（FITS 1-based 闭区间，相对输出画幅）───────────────
+// 校验：整数域 [1,frame_w]×[1,frame_h]、x0<=x1、y0<=y1（否则 = 宽高非正/裁剪后为空）。
+inline P3CropStatus p3_crop_window_from_fits(long x0_fits, long y0_fits,
+                                             long x1_fits, long y1_fits,
+                                             int frame_w, int frame_h,
+                                             P3CropWindow* out, std::string* why) {
+    auto fail = [&](const std::string& m) {
+        if (why) *why = m;
+        return P3_CROP_PARAM;
+    };
+    if (out == nullptr) return fail("crop: internal null window");
+    if (frame_w < 1 || frame_h < 1)
+        return fail("crop: output frame is empty (width_px/height_px must be >= 1)");
+    if (x0_fits < 1 || y0_fits < 1 || x1_fits < 1 || y1_fits < 1)
+        return fail("crop.pixels: coordinates are FITS 1-based; values < 1 are invalid"
+                    " (got x0=" + std::to_string(x0_fits) + ", y0=" + std::to_string(y0_fits) +
+                    ", x1=" + std::to_string(x1_fits) + ", y1=" + std::to_string(y1_fits) + ")");
+    if (x1_fits > frame_w || y1_fits > frame_h)
+        return fail("crop.pixels: out of frame (frame is " + std::to_string(frame_w) + "x" +
+                    std::to_string(frame_h) + ", FITS 1-based [1," + std::to_string(frame_w) +
+                    "]x[1," + std::to_string(frame_h) + "]; got x1=" + std::to_string(x1_fits) +
+                    ", y1=" + std::to_string(y1_fits) +
+                    "); refusing to clamp silently");
+    if (x1_fits < x0_fits || y1_fits < y0_fits)
+        return fail("crop.pixels: non-positive width/height — empty crop (x1<x0 or y1<y0; got x0=" +
+                    std::to_string(x0_fits) + "..x1=" + std::to_string(x1_fits) + ", y0=" +
+                    std::to_string(y0_fits) + "..y1=" + std::to_string(y1_fits) + ")");
+    out->active = true;
+    out->x0 = x0_fits - 1;
+    out->y0 = y0_fits - 1;
+    out->x1 = x1_fits;          // 1-based 闭区间 x1 ⇒ 0-based 半开 x1
+    out->y1 = y1_fits;
+    if (out->width() < 1 || out->height() < 1)
+        return fail("crop.pixels: empty crop after conversion");
+    return P3_CROP_OK;
+}
+
+// ── 形式二：天球矩形（ICRS deg，轴对齐 [ra_min,ra_max]×[dec_min,dec_max]）───
+// ra_min > ra_max ⇒ 跨 RA=0 的绕回矩形（按 ra_min → ra_max+360 的短弧采样）。
+// 转换 = 边界加密采样 → 逐点 world2pix → **外扩**整数包围盒
+//        x0=floor(min x)、x1=floor(max x)+1（保证不切掉任何中心落在矩形内的像素）。
+// 转换结果越界 / 为空 ⇒ 具名拒绝（不夹取）。
+inline P3CropStatus p3_crop_window_from_sky(const P3WcsDescriptor* frame,
+                                            double ra_min_deg, double ra_max_deg,
+                                            double dec_min_deg, double dec_max_deg,
+                                            int frame_w, int frame_h,
+                                            P3CropWindow* out, std::string* why) {
+    auto fail = [&](const std::string& m) {
+        if (why) *why = m;
+        return P3_CROP_PARAM;
+    };
+    if (frame == nullptr || out == nullptr) return fail("crop: internal null argument");
+    if (frame_w < 1 || frame_h < 1)
+        return fail("crop: output frame is empty (width_px/height_px must be >= 1)");
+    const double vals[4] = {ra_min_deg, ra_max_deg, dec_min_deg, dec_max_deg};
+    for (int i = 0; i < 4; ++i) {
+        if (!std::isfinite(vals[i]))
+            return fail("crop.sky: all four bounds must be finite numbers");
+    }
+    if (ra_min_deg < 0.0 || ra_min_deg > 360.0 || ra_max_deg < 0.0 || ra_max_deg > 360.0)
+        return fail("crop.sky: ra_min_deg/ra_max_deg must be in [0,360] (ICRS deg)");
+    if (dec_min_deg < -90.0 || dec_min_deg > 90.0 ||
+        dec_max_deg < -90.0 || dec_max_deg > 90.0)
+        return fail("crop.sky: dec_min_deg/dec_max_deg must be in [-90,90] (ICRS deg)");
+    if (!(dec_min_deg < dec_max_deg))
+        return fail("crop.sky: non-positive height (dec_min_deg must be < dec_max_deg)");
+    // TAN 冻结适用域（与 p3_wcs_make 的 kMaxAbsDec 同一条件，不另设口径）
+    if (std::fabs(dec_min_deg) > 85.0 || std::fabs(dec_max_deg) > 85.0)
+        return fail("crop.sky: |dec| must be <= 85 deg (TAN pole excluded)");
+    if (!(ra_min_deg < ra_max_deg) && !(ra_max_deg < ra_min_deg))
+        return fail("crop.sky: non-positive width (ra_min_deg == ra_max_deg)");
+    const double ra_span = (ra_max_deg > ra_min_deg) ? (ra_max_deg - ra_min_deg)
+                                                     : (ra_max_deg + 360.0 - ra_min_deg);
+    double xmin = 0.0, xmax = 0.0, ymin = 0.0, ymax = 0.0;
+    bool first = true;
+    bool hemisphere = false;
+    auto sample = [&](double ra, double dec) {
+        double x = 0.0, y = 0.0;
+        const P3WcsStatus st = p3_wcs_world2pix(frame, ra, dec, &x, &y);
+        if (st == P3_WCS_HEMISPHERE) {
+            hemisphere = true;
+            return;
+        }
+        if (st != P3_WCS_OK) {
+            hemisphere = true;   // 极点邻域等：同样不可界定
+            return;
+        }
+        if (first) {
+            xmin = xmax = x;
+            ymin = ymax = y;
+            first = false;
+            return;
+        }
+        xmin = std::min(xmin, x);
+        xmax = std::max(xmax, x);
+        ymin = std::min(ymin, y);
+        ymax = std::max(ymax, y);
+    };
+    const int n = kP3CropEdgeSamples;
+    for (int i = 0; i < n; ++i) {
+        const double t = static_cast<double>(i) / static_cast<double>(n - 1);
+        // 两条 RA 边（dec 走遍整段）
+        const double dec = dec_min_deg + t * (dec_max_deg - dec_min_deg);
+        sample(ra_min_deg, dec);
+        sample(ra_max_deg, dec);
+        // 两条 Dec 边（ra 走遍整段，含绕回）
+        const double ra = ra_min_deg + t * ra_span;
+        sample(ra, dec_min_deg);
+        sample(ra, dec_max_deg);
+    }
+    if (hemisphere)
+        return fail("crop.sky: a boundary point of the requested sky rectangle falls outside"
+                    " the TAN hemisphere (or in the pole exclusion zone); the crop cannot be"
+                    " bounded on this projection — narrow the rectangle");
+    if (first)
+        return fail("crop.sky: no usable boundary sample (degenerate rectangle)");
+    const long cx0 = static_cast<long>(std::floor(xmin));
+    const long cy0 = static_cast<long>(std::floor(ymin));
+    const long cx1 = static_cast<long>(std::floor(xmax)) + 1;
+    const long cy1 = static_cast<long>(std::floor(ymax)) + 1;
+    if (cx1 <= cx0 || cy1 <= cy0)
+        return fail("crop.sky: empty pixel window after conversion");
+    // 「裁剪后为空」与「越界」分开命名（都拒绝，诊断不同）：
+    //   * 完全不相交 ⇒ 裁剪后为空（用户框到了画幅之外的天区）；
+    //   * 部分越出画幅 ⇒ 越界（禁止静默夹取）。
+    if (cx1 <= 0 || cy1 <= 0 || cx0 >= frame_w || cy0 >= frame_h)
+        return fail("crop.sky: empty crop — the requested sky rectangle does not intersect the"
+                    " output frame (converted window [" + std::to_string(cx0) + "," +
+                    std::to_string(cx1) + ")x[" + std::to_string(cy0) + "," +
+                    std::to_string(cy1) + ") vs frame [0," + std::to_string(frame_w) + ")x[0," +
+                    std::to_string(frame_h) + "))");
+    if (cx0 < 0 || cy0 < 0 || cx1 > frame_w || cy1 > frame_h)
+        return fail("crop.sky: converted pixel window [" + std::to_string(cx0) + "," +
+                    std::to_string(cx1) + ")x[" + std::to_string(cy0) + "," +
+                    std::to_string(cy1) + ") is outside the output frame [0," +
+                    std::to_string(frame_w) + ")x[0," + std::to_string(frame_h) +
+                    "); refusing to clamp silently");
+    out->active = true;
+    out->x0 = cx0;
+    out->y0 = cy0;
+    out->x1 = cx1;
+    out->y1 = cy1;
+    return P3_CROP_OK;
+}
+
+// ── 窗口 → 裁剪帧 WCS：原画幅 WCS 在窗口上的**精确限制** ────────────────────
+// CRVAL/CD 逐位不变；CRPIX（FITS 1-based）减去 0-based 窗口原点。
+// 不变式：world_crop(x', y') == world_full(x' + x0, y' + y0)（逐点严格相等）。
+inline P3CropStatus p3_crop_apply_wcs(const P3WcsDescriptor* frame,
+                                      const P3CropWindow& win, P3WcsDescriptor* out) {
+    if (frame == nullptr || out == nullptr) return P3_CROP_PARAM;
+    if (!win.active) {
+        *out = *frame;   // 不裁剪：描述符逐位不变（默认路径零改动）
+        return P3_CROP_OK;
+    }
+    if (win.width() < 1 || win.height() < 1) return P3_CROP_PARAM;
+    *out = *frame;
+    out->crpix_x = frame->crpix_x - static_cast<double>(win.x0);
+    out->crpix_y = frame->crpix_y - static_cast<double>(win.y0);
+    out->width_px = win.width();
+    out->height_px = win.height();
+    return P3_CROP_OK;
+}
 
 }  // namespace astrocs::phase3
 

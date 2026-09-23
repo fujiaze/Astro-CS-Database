@@ -54,6 +54,9 @@
     "crpix_px": {
       "$ref": "#/$defs/export_wcs/properties/crpix_px"
     },
+    "crop": {
+      "$ref": "#/$defs/export_crop"
+    },
     "height_px": {
       "$ref": "#/$defs/export_wcs/properties/height_px"
     },
@@ -356,6 +359,133 @@
       ],
       "description": "覆盖率输出（CLI --help 字段说明：当前唯一实现 mask）"
     },
+    "export_crop": {
+      "type": "object",
+      "required": [
+        "crop_form"
+      ],
+      "additionalProperties": false,
+      "description": "导出裁剪范围（可选键；缺省 = **不裁剪**，整幅导出）。权威 = 负责人裁决 2026-09-23：「默认导出的话是要求边框不得裁剪任何有效像素，然后可以导出一些黑边。到平面后我自己手动剪裁。然后支持手动输入裁剪范围。这样我以后 gui 的 HiPS 浏览器里面我可以直接导出框选。需要保留接口。」语义 = docs/design/PHASE3_DETAILED_DESIGN.md §8；字段合同 = docs/contracts/CONFIG_CONTRACT.md §3。裁剪 = 在**已定义好的输出画幅**（center/width_px/height_px/scale_deg_per_px/longitude_parity/projection）上取矩形子窗；不改画幅定义、不改投影、不改重采样。写出 FITS 的 WCS = 原画幅 WCS 在窗口上的**精确限制**（CRVAL/CD 不变、CRPIX 减整数窗口原点）⇒ 窗口内像素与不裁剪时逐位相同（裁剪只能裁、不能改数值）。两种形式**互斥**（crop_form 选中其一，另一形式出现即拒，不比较、不取一）：pixels（平面像素矩形）/ sky（天球轴对齐矩形）。全部非法输入 fail-closed 具名报错（越界 / 宽高非正 / 两形式同时给 / 裁剪后为空），禁静默夹取。**本 schema 只判结构**（键闭包/类型/基本值域）；跨字段的几何判据（x1<=width_px、x0<=x1、天球矩形转换后的窗口是否越界/为空）由 CLI 预检与 scheduler 节点 validate_config 用 lib/algorithms/projection/p3_wcs.h 的唯一实现判（JSON Schema 无法表达跨字段算术）。",
+      "properties": {
+        "crop_form": {
+          "enum": [
+            "pixels",
+            "sky"
+          ],
+          "description": "裁剪范围形式判别键（必填、显式）：pixels = 平面像素矩形（用户到平面后手动裁剪；GUI 框选也是平面矩形）；sky = 天球轴对齐矩形（GUI 的框选来自 HiPS 浏览器，框的是天区）。**键名取 crop_form 而非 mode**：cpu_profile 的 legacy_v1/kernel_v1 已占用 mode，同名异义被 UNIFIED_MODEL.md §3 禁止（与 export 用 output_mode 避开 mode 同一处置）。"
+        },
+        "pixels": {
+          "$ref": "#/$defs/export_crop_pixels"
+        },
+        "sky": {
+          "$ref": "#/$defs/export_crop_sky"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "crop_form"
+            ],
+            "properties": {
+              "crop_form": {
+                "const": "pixels"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "pixels"
+            ],
+            "not": {
+              "required": [
+                "sky"
+              ]
+            }
+          },
+          "else": {
+            "required": [
+              "sky"
+            ],
+            "not": {
+              "required": [
+                "pixels"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "export_crop_pixels": {
+      "type": "object",
+      "required": [
+        "x0",
+        "y0",
+        "x1",
+        "y1"
+      ],
+      "additionalProperties": false,
+      "description": "平面像素矩形：FITS 1-based **闭区间** [x0,x1]×[y0,y1]（与 crpix_px 同约定），相对**未裁剪输出画幅**。窗口尺寸 = (x1-x0+1)×(y1-y0+1)。x1<=width_px / y1<=height_px / x0<=x1 / y0<=y1 由生产面判（越界或宽高非正 ⇒ 具名拒绝，不静默夹取）。",
+      "properties": {
+        "x0": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "左边界列（FITS 1-based，>=1）"
+        },
+        "y0": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "下边界行（FITS 1-based，>=1）"
+        },
+        "x1": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "右边界列（FITS 1-based，含；<= width_px，生产面判）"
+        },
+        "y1": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "上边界行（FITS 1-based，含；<= height_px，生产面判）"
+        }
+      }
+    },
+    "export_crop_sky": {
+      "type": "object",
+      "required": [
+        "ra_min_deg",
+        "ra_max_deg",
+        "dec_min_deg",
+        "dec_max_deg"
+      ],
+      "additionalProperties": false,
+      "description": "天球轴对齐矩形（ICRS deg）：[ra_min_deg, ra_max_deg] × [dec_min_deg, dec_max_deg]。ra_min_deg > ra_max_deg ⇒ 跨 RA=0 的绕回矩形（按 ra_min → ra_max+360 的短弧解释）。转换 = 边界加密采样 → 逐点 world2pix → **外扩**整数包围盒（保证不切掉任何中心落在矩形内的像素）；转换后越界或为空 ⇒ 具名拒绝，不静默夹取。|dec| <= 85°（TAN 极点排除）与 TAN 半球适用域继承 p3_wcs_make 的同一条件。",
+      "properties": {
+        "ra_min_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360,
+          "description": "RA 下界（ICRS deg，[0,360]）"
+        },
+        "ra_max_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360,
+          "description": "RA 上界（ICRS deg，[0,360]；< ra_min_deg 表示跨 RA=0 绕回）"
+        },
+        "dec_min_deg": {
+          "type": "number",
+          "minimum": -85,
+          "maximum": 85,
+          "description": "Dec 下界（ICRS deg，|dec| <= 85°，TAN 极点排除）"
+        },
+        "dec_max_deg": {
+          "type": "number",
+          "minimum": -85,
+          "maximum": 85,
+          "description": "Dec 上界（ICRS deg，同上；必须 > dec_min_deg）"
+        }
+      }
+    },
     "export_block": {
       "type": "object",
       "required": [
@@ -377,6 +507,9 @@
         },
         "crpix_px": {
           "$ref": "#/$defs/export_wcs/properties/crpix_px"
+        },
+        "crop": {
+          "$ref": "#/$defs/export_crop"
         },
         "height_px": {
           "$ref": "#/$defs/export_wcs/properties/height_px"
@@ -495,6 +628,7 @@
           "center",
           "coverage_output",
           "crpix_px",
+          "crop",
           "height_px",
           "longitude_parity",
           "output_dir",

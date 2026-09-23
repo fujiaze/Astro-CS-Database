@@ -299,6 +299,14 @@ const std::set<std::string>& session_keys() {
         //   由 p1_op_photometry 消费 (I_photo=k_photo*I_cal, 02_FROZEN §7)。
         //   缺失 = 不施加 (如实中性 applied=false, 不伪造 1.0)。
         "photometry",
+        // STARDET-01（B3）：星表引导检测（权威路径）配置段。段内键 = 生产节点
+        //   p1_guided_cfg（module_adapters.cpp）实际读取的键集；缺段 = 全取编译期
+        //   默认（mode=auto / max_stars=20000 / parity=pos / limiting_mag 派生），
+        //   不是错误。合同声明 =
+        //   eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config。
+        //   规范：ASTROCS_DESIGN.md §4.2（星表引导检测 = 权威范式，top 2–5 万）
+        //   + docs/plugins/algorithms_phase1/03_star_detection.md §5.1。
+        "star_detection",
         // phase2 平铺 (p2_session / canonical P2 节点链 消费面)
         // B1-A4: 节点实际消费键必须可达, 否则配置被 parser 拒绝而链路不可闭合。
         // 节点侧键集（module_adapters P2NodeModule::validate_config + op 读取）:
@@ -334,6 +342,12 @@ const std::set<std::string>& session_keys() {
         //   phase_config_export.schema.json#/$defs/export_wcs/properties/{rotation_deg,crpix_px}
         // 同 snr_path：CLI 只识别并透传，生产消费点未落地 ⇒ 死键台账已登记。
         "rotation_deg", "crpix_px",
+        // EXPORT-CROP-01（负责人裁决 2026-09-23）：导出裁剪范围键（可选，缺省不裁剪）。
+        // 合同声明 = phase_config_export.schema.json#/$defs/export_crop（键名逐字取
+        // 合同声明名，禁新造同义键）；几何唯一实现 = lib/algorithms/projection/p3_wcs.h
+        // （CLI 配置面与节点面共用）；生产消费点 = scheduler 的 p3 wcs/writer/verify
+        // 节点（P3NodeModule::validate_config + p3_op_wcs/writer/verify）⇒ 不是死键。
+        "crop",
         // 计算精度口径（ASTROCS_DESIGN §3.3:256）：阶段一 =
         // drizzle.precision_mode(0=FP32/1=FP64)；阶段二/三 = 位深键 bitpix(-32/-64)。
         // **不新造 precision(fp32/fp64) 同义键**——合同旧键 precision 由死键台账登记

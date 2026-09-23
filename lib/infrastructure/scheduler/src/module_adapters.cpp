@@ -1881,11 +1881,13 @@ static uint32_t p1_workers(const Json& doc) {
 //       峰值 RSS 3.55 GB（run/PERF-501/evidence/after_w16_2f），drizzle 窗口内
 //       单帧边际 ≈ 1.8 GB ⇒ **≈107 B/px**；PERF-PROFILE-01 §9.2 用独立算式给出
 //       ≈210–240 B/px（含 hierarchy 祖先与 6 份帧副本的保守上界）。
-//   · 取 200.0 = 实测值的 1.87× 裕度、且落在独立算式的保守区间下沿 ⇒ 仍是安全侧，
-//     但不再把帧并发压到 2（旧值在 24.6 GB 机器上对 4096² 帧恒给 cap=2，
-//     把 16 核预算浪费 14 核 —— 见 docs/architecture/THREADING_MODEL.md §并行轴分配）。
+//   · PERF-501 试标定值 200.0 **未采纳**：把帧并发由 2 抬到 4 后，同一输入的低阶/叶
+//     HiPS 产品与基线**大面积不等价**（16 帧 T2：11820 个 FITS 中 5846 个 DATASUM 变化，
+//     抽样可见整幅替换，远超任何事前冻结容差）⇒ 属"改科学口径换速度"。必须先修 HiPS
+//     hierarchy 的归并序（PERF-PROFILE-01 §9.3 已预警 AncestorAcc 按 tile 到达序 +=）
+//     再抬本值。证据与登记见 docs/architecture/PERFORMANCE_MODEL.md §PERF-501.4。
 //   · 标定对象变更（drizzle 精度模式 / nside / 帧几何）必须重测并更新本值。
-static constexpr double kP1FrameBytesPerPixel = 200.0;   // 实测标定（见上）
+static constexpr double kP1FrameBytesPerPixel = 358.0;   // 实测标定（PERF-501 复核后维持）
 static constexpr double kP1FrameMemSafetyFrac = 0.75;    // 留基础占用与运行波动
 
 static uint64_t p1_available_memory_bytes() {
@@ -2512,7 +2514,27 @@ bool p1_guided_cfg(const Json& doc, P1GuidedCfg* out, std::string* why) {
     return false;
   }
   out->max_stars = max_stars;
-  // 显式近似 WCS（star_detection.approx_wcs 优先, 回退 wcs 段的天测键）
+  // 显式近似 WCS（star_detection.approx_wcs 优先, 回退 wcs 段的天测键）。
+  // B3 fail-closed：approx_wcs **显式给出**时六键必须齐备 —— 缺键不得静默回退到
+  // wcs 段（那会把用户输入静默丢弃，违 docs/contracts/LOG_AND_ERROR_CONTRACT.md §6
+  // 「禁止静默回退/静默跳过校验」）。合同声明 =
+  // eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/star_detection_config
+  // （approx_wcs.required = 六天测键）。
+  if (p1_has(sd, "approx_wcs")) {
+    if (!sd["approx_wcs"].is_object()) {
+      *why = "star_detection.approx_wcs must be an object with the six astrometric keys "
+             "crval1/crval2/cd11/cd12/cd21/cd22";
+      return false;
+    }
+    for (const char* k : {"crval1", "crval2", "cd11", "cd12", "cd21", "cd22"}) {
+      if (!p1_has(sd["approx_wcs"], k)) {
+        *why = std::string("star_detection.approx_wcs missing key '") + k +
+               "' (six astrometric keys must be complete; silent fallback to the wcs "
+               "section is forbidden)";
+        return false;
+      }
+    }
+  }
   const Json aw = (p1_has(sd, "approx_wcs") && sd["approx_wcs"].is_object())
                       ? sd["approx_wcs"] : wc;
   if (p1_has(aw, "crval1") && p1_has(aw, "crval2") && p1_has(aw, "cd11") &&
@@ -6648,7 +6670,13 @@ Result<void> p1_op_drizzle(const Json& doc, Json* man) {
                           {"nside_clamped", auto_res.clamped != 0},
                           {"n_healpix_pixels", static_cast<int64_t>(res.n_healpix_pixels)},
                           {"n_source_pixels", static_cast<int64_t>(res.n_source_pixels)},
-                          {"bunit", frame_applied ? "ASTROCS_RELATIVE_FLUX" : "ADU"},
+                          // BUNIT 口径 = canonical 面亮度串，**与 frame_applied 无关**：
+                          // 测光归一化是线性乘性标度，只改零点、不改量纲类别，标度由
+                          // photappl/photscal 逐帧承载（docs/contracts/DATA_SEMANTICS.md
+                          // §31.1a:2808-2810 与 :2827-2830）。同一份像素的另一个声明面
+                          // <fdir>/signal/properties 的 BUNIT 由 declare_hips_surface_
+                          // brightness_units 写同一串；两串不一致由该函数判红（B1 守卫）。
+                          {"bunit", "ADU/sr"},
                           {"photappl", frame_applied ? 1 : 0},
                           {"photscal", frame_photscal},
                           {"photometry_provenance", have_phot_prov ? "p1_phot.json" : "absent"},
@@ -9258,12 +9286,14 @@ static bool p2_hips_prop_double(AioHipsDataset* ds, const char* key, double* out
 }
 
 // ── op: integrate_frames（唯一真实入口 p2_validate_candidate_weights +
-//      p2_integrate_pixel; 权重面 = DATA-UNC-001 §30.1 目标态合同:
-//      weight_mode=2（科学默认）逐样本 ivar 逆方差。ivar 产品缺失 → 不再等权
-//      降级: 由 HiPS 头帧级 SNR 现场换算逆方差权重（w = SNR²/F_ref² = 1/σ_F²,
+//      p2_integrate_pixel; 权重面 = DATA-UNC-001 §30.1 目标态合同 +
+//      §9.73 裁决 A44 的**单一权重口径**（ASTROCS_DESIGN.md §3.1:175
+//      「权重的产生链固定为两步、没有可选择项」；PSF_SIGNAL_WEIGHT.md §4）:
+//      逐样本 ivar 逆方差。ivar 产品缺失 → 不再等权降级:
+//      由 HiPS 头帧级 SNR 现场换算逆方差权重（w = SNR²/F_ref² = 1/σ_F²,
 //      weight-chain-report §6）; 权重链未闭合 → DATA 错误 + closure token
-//      （legacy_allow_weight_fallback=true 不再产生成功降级路径）。
-//      weight_mode=1 等权 + uncertainty_available=false）。
+//      （legacy_allow_weight_fallback 已按 §9.73 A44 删除：出现即拒绝）。
+//      原 weight_mode∈{1,2} 整数域已删除：该键出现即 fail-closed 拒绝。
 //      ivar_mosaic = Σ ivar_i（帧索引序, 正权样本）; variance = 1/W。──
 Result<void> p2_op_integrate(const Json& doc, Json* man) {
   const std::string out_dir = doc.value("output_dir", std::string("."));
@@ -9285,21 +9315,36 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
         "corrected artifact frames invalid"));
   const uint64_t tile_span = cor_doc.value("tile_leaf_span", kP2TileLeafSpan);
 
-  int weight_mode = 2;
-  if (doc.contains("weight_mode")) {
-    if (!doc["weight_mode"].is_number_integer())
-      return Result<void>::fail(Error(ErrorDomain::DATA,
-          "weight_mode must be integer (1=equal, 2=ivar)"));
-    weight_mode = doc["weight_mode"].get<int>();
-  }
-  if (weight_mode != 1 && weight_mode != 2)
-    // SMOKE-001 D10: 诊断必须回显实际非法值（旧文案硬编码 "0"，把 99 报成 0，
-    // 用户按提示改不对）。判定规则与文案语义不变，仅把字面量改为实参。
+  // ── §9.73 裁决 A44：legacy 整数权重模式域（0/1/2）已删除 ─────────────────
+  // 规范依据（权威，只读）：
+  //   · ASTROCS_DESIGN.md §3.1:171「全程只有 SNR，没有"权重模式"这个概念」；
+  //   · ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、**没有可选择项**」；
+  //   · docs/science/PSF_SIGNAL_WEIGHT.md §4:62/72「单一权重口径（无模式选择）」
+  //     「**没有可选择的口径**：不存在口径选择键、口径枚举、口径配置项或口径产物」；
+  //   · docs/ci/01_CHECKS.md CHK-NO-WEIGHT-MODE-CODE（FZ-WEIGHT-SINGLE-PATH）。
+  // 原实现读整数 doc["weight_mode"]∈{1,2}：1=equal（等权、unit_weight_mode1）、
+  // 2=ivar。equal 是一个**可选择的非逆方差口径**，与「没有可选择项」直接冲突。
+  // ⇒ 该键既不能被设、也不能被读：出现即 fail-closed 拒绝（退役对象的拒绝面
+  //   必须存活，不得静默忽略）。唯一权重口径 = 逐样本 ivar 逆方差；ivar 缺失时
+  //   走帧级 SNR 逆方差链（w = SNR²/F_ref²），权重链未闭合则 DATA 错误。
+  if (doc.contains("weight_mode"))
     return Result<void>::fail(Error(ErrorDomain::DATA,
-        "weight_mode " + std::to_string(weight_mode) +
-        " (legacy SNR) is not a science variance surface in the"
-        " node chain; only 1 (equal) or 2 (ivar) are legal (DATA-UNC-001 §30.1)"));
-  const bool allow_fallback = doc.value("legacy_allow_weight_fallback", false);
+        "weight_mode 已按 §9.73 裁决 A44 删除：不存在「权重模式」"
+        "（ASTROCS_DESIGN.md §3.1:175「权重的产生链固定为两步、没有可选择项」；"
+        "docs/science/PSF_SIGNAL_WEIGHT.md §4「单一权重口径（无模式选择）」）。"
+        "权重是阶段二按天球像素对应的输入帧集合现场算出的派生量 "
+        "w = SNR^2/F_ref^2 = 1/sigma_F^2；请删除该键。"));
+  // §9.73 裁决 A44（同批清理）：legacy_allow_weight_fallback **已删除**。
+  // 该键曾允许「ivar 缺失 → 降级 support/equal」；support 是无量纲几何量、equal 是等权，
+  // 二者都不是信号/噪声之比（ASTROCS_DESIGN.md §3.1:173/175）⇒ 既不能被设、也不能被读，
+  // 出现即 fail-closed 具名拒绝。唯一降级面 = 帧级 SNR 逆方差链 w = SNR^2/F_ref^2，
+  // 由数据可用性自动决定（不是用户开关）；权重链未闭合即 DATA 错误。
+  if (doc.contains("legacy_allow_weight_fallback"))
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "legacy_allow_weight_fallback 已按 §9.73 裁决 A44 删除：它允许用无量纲 "
+        "support 或等权降级冒充逆方差权重，与 ASTROCS_DESIGN.md §3.1:173「权重只能"
+        "来自纯净信号与噪声之比」及 §3.1:175「没有可选择项」冲突。唯一降级面 = "
+        "帧级 SNR 逆方差链 w = SNR^2/F_ref^2；请删除该键。"));
 
   // ── RELEASE-02 P2b-2: 优先消费归一化逐像素方差 w = 1/Var(corrected) ──────
   // p2_corrected.json 报 uncertainty_available=true（方差完整传播：残差制造者
@@ -9309,7 +9354,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   // 过渡期（方差未完整传播）不得声称逆方差加权（P2b-5）。
   std::vector<std::string> corr_var_file(frames.size());
   bool corr_var_ready = false;
-  if (weight_mode == 2) {
+  {
     const bool cor_var_avail = cor_doc.value("variance_available", false);
     const bool cor_unc_avail = cor_doc.value("uncertainty_available", false);
     bool all_files = cor_var_avail && cor_unc_avail;
@@ -9354,7 +9399,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
     weight_source = "corrected_variance";
     uncertainty_available = true;
   }
-  if (weight_mode == 2 && !corr_var_ready) {
+  if (!corr_var_ready) {
     uint64_t ivar_missing = 0;
     for (size_t f = 0; f < frames.size(); ++f) {
       const std::string p = frames[f].value("hips_path", "");
@@ -9450,9 +9495,9 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
             "weight_mode=2 requires per-frame ivar products; " +
             std::to_string(ivar_missing) + "/" + std::to_string(frames.size()) +
             " frames missing ivar; frame-SNR weight chain NOT closed (" + tok +
-            "): " + detail + " (DATA-UNC-001 §30.1: no silent fallback;"
-            " legacy_allow_weight_fallback=true no longer produces a successful"
-            " equal-weight degradation)"));
+            "): " + detail + " (DATA-UNC-001 §30.1: no silent fallback; the legacy"
+            " exit legacy_allow_weight_fallback=true is deleted per §9.73 A44 and"
+            " no longer produces any equal-weight degradation)"));
       }
       use_snr_chain = true;
       snr_weights = wres.weights;
@@ -9474,17 +9519,17 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                     "/" + std::to_string(frames.size()) +
                     " frames missing ivar -> HiPS frame-SNR inverse-variance"
                     " weights (source=" + weight_source + "; closure=" +
-                    snr_chain_closure + "; legacy_allow_weight_fallback=" +
-                    (allow_fallback ? "true(requested,no-op)" : "false") + ")\n")
+                    snr_chain_closure + "; legacy_allow_weight_fallback deleted"
+                    " per §9.73 A44)\n")
                        .c_str());
     } else {
       uncertainty_available = true;
     }
-  } else {
-    uncertainty_available = false;   // mode 1: 等权非 ivar 语义面
-    uncertainty_unavailable_reason = "weight_mode_1_equal_non_ivar";   // §30.1 规则 1
-    weight_basis = "unit_weight_mode1";
   }
+  // §9.73 裁决 A44：原 `else`（weight_mode==1 → 等权、unit_weight_mode1、
+  // uncertainty_unavailable_reason="weight_mode_1_equal_non_ivar"）已删除 ——
+  // 等权是**可选择的非逆方差口径**，与 ASTROCS_DESIGN.md §3.1:175「没有可选择项」
+  // 直接冲突；唯一口径 = 逐样本 ivar，ivar 缺失走帧级 SNR 逆方差链（fail-closed）。
   struct IvarGuard {
     std::vector<IvarSet>* v;
     ~IvarGuard() { for (auto& iv : *v) if (iv.ds) aio_hips_close(iv.ds); }
@@ -9616,8 +9661,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
   }
   const size_t n_tiles = itiles.size();
   const uint32_t workers = std::max(1u, doc.value("__workers", 1u));
-  const bool need_ivar =
-      (weight_mode == 2 && !fallback && !use_snr_chain && !corr_var_ready);
+  const bool need_ivar = (!fallback && !use_snr_chain && !corr_var_ready);
   std::vector<double> sig_bin(n_tiles * static_cast<size_t>(tile_span));
   std::vector<double> sup_bin(n_tiles * static_cast<size_t>(tile_span));
   std::vector<double> wsum_bin(n_tiles * static_cast<size_t>(tile_span));
@@ -9763,7 +9807,7 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           continue;
         }
         double w = 1.0;
-        if (weight_mode == 2 && !fallback) {
+        if (!fallback) {
           if (corr_var_ready) {
             // P2b-2 priority 1: w = 1/Var(corrected)（逐像素归一化方差）
             const double vv = tile_cvar[d][static_cast<size_t>(p)];
@@ -9937,7 +9981,6 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
                         "none (owner ruling 9.49: frame-independent; pairing is "
                         "per-frame SNR_k^2/F_ref,k^2)"},
                        {"fallback", fallback},
-                       {"legacy_allow_weight_fallback", allow_fallback},
                        {"ivar_product_missing_frames", missing_j.size()},
                        {"ivar_product_missing_frame_indices", missing_j},
                        {"variance_product_present_frames", variance_present_frames},
@@ -9975,7 +10018,6 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
       "none (owner ruling 9.49: frame-independent; pairing is per-frame "
       "SNR_k^2/F_ref,k^2)";
   (*man)["fallback"] = fallback;
-  (*man)["legacy_allow_weight_fallback"] = allow_fallback;
   (*man)["ivar_product_missing_frames"] = static_cast<uint64_t>(missing_j.size());
   (*man)["variance_product_present_frames"] = variance_present_frames;
   (*man)["uncertainty_available"] = uncertainty_available;
@@ -10130,6 +10172,36 @@ bool declare_hips_surface_brightness_units(const std::string& product_root,
   if (aio_atomic::write_file_atomic(man_path, mdoc.dump(2) + "\n", &werr) != 0) {
     if (err) *err = "manifest.json 原子写失败: " + man_path + " (" + werr + ")";
     return false;
+  }
+  // ── B1 守卫：同一份像素的两个 BUNIT 声明面必须同串（Phase1 直写路径覆盖）──────
+  // Phase1 末端由 AstroSphereSink 直写标准 HiPS 树（signal/ + support/ + properties），
+  // **不经** HissWriter::open 的元数据校验 —— 这正是「两个单位串并存而运行期无信号」
+  // 的成因。故在此显式核对本帧 p1_stack.json 的 bunit 键与刚写出的 properties BUNIT：
+  // 不一致即判红（fail-closed，禁静默）。
+  // 规范：docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810（产品 BUNIT 一律取 canonical
+  // 面亮度串）+ :2827-2830（测光标度由 PHOTSCAL/PHOTAPPL 承载，不改量纲类别）。
+  // 注：p1_stack.json 缺失 = 该产品族无此声明面（如 Phase2 mosaic 产品），不判。
+  {
+    const std::string st_path = product_root + "/p1_stack.json";
+    std::string stext;
+    if (aio_fs::read_all(st_path, &stext)) {
+      Json sd;
+      bool parsed = false;
+      try { sd = Json::parse(stext); parsed = sd.is_object(); } catch (...) { parsed = false; }
+      if (!parsed) {
+        if (err) *err = "p1_stack.json 不可解析（BUNIT 口径核对失败）: " + st_path;
+        return false;
+      }
+      const std::string declared = sd.value("bunit", std::string());
+      if (declared != sb) {
+        if (err)
+          *err = "BUNIT 口径不一致（同一份像素两个单位串）: p1_stack.json bunit=\"" +
+                 declared + "\" vs signal/properties BUNIT=\"" + sb +
+                 "\"（docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810：产品 BUNIT 一律取 "
+                 "canonical 面亮度串；测光标度由 PHOTAPPL/PHOTSCAL 承载）";
+        return false;
+      }
+    }
   }
   return true;
 }
@@ -10776,9 +10848,9 @@ struct P2NodeModule : public IModule {
   const ModuleDescriptor& descriptor() const noexcept override { return desc_; }
 
   // config 合同: hips_paths（非空 string 数组）+ output_dir（string）必填;
-  // upm/reject 对象可选; weight_mode ∈ {1,2}（0=legacy SNR 非科学方差面,
-  // DATA-UNC-001 §30.1 目标态）; 其余科学参数无 silent default（op 内
-  // fail-closed 校验, 不提前消费缺省值）。
+  // upm/reject 对象可选; weight_mode **已按 §9.73 裁决 A44 删除**（出现即拒绝,
+  // 不存在「权重模式」）; 其余科学参数无 silent default（op 内 fail-closed
+  // 校验, 不提前消费缺省值）。
   Result<void> validate_config(const std::string& config_json) override {
     Json doc;
     try {
@@ -10806,13 +10878,18 @@ struct P2NodeModule : public IModule {
       return Result<void>::fail(Error(ErrorDomain::DATA, "upm must be object"));
     if (doc.contains("reject") && !doc["reject"].is_object())
       return Result<void>::fail(Error(ErrorDomain::DATA, "reject must be object"));
-    if (doc.contains("weight_mode") && !doc["weight_mode"].is_number_integer())
+    // §9.73 裁决 A44：不存在「权重模式」⇒ 该键既不能被设、也不能被读。
+    // 出现在节点配置里即 fail-closed 拒绝（不得静默忽略，也不得做类型校验后放行）。
+    if (doc.contains("weight_mode"))
       return Result<void>::fail(Error(ErrorDomain::DATA,
-          "weight_mode must be integer (1=equal, 2=ivar)"));
-    if (doc.contains("legacy_allow_weight_fallback") &&
-        !doc["legacy_allow_weight_fallback"].is_boolean())
+          "weight_mode 已按 §9.73 裁决 A44 删除：不存在「权重模式」"
+          "（ASTROCS_DESIGN.md §3.1:175「没有可选择项」；"
+          "docs/science/PSF_SIGNAL_WEIGHT.md §4「单一权重口径（无模式选择）」）。"));
+    // §9.73 裁决 A44（同批清理）：该键已删除 ⇒ 出现即拒绝（不再做类型校验后放行）。
+    if (doc.contains("legacy_allow_weight_fallback"))
       return Result<void>::fail(Error(ErrorDomain::DATA,
-          "legacy_allow_weight_fallback must be boolean"));
+          "legacy_allow_weight_fallback 已按 §9.73 裁决 A44 删除：它允许用无量纲 "
+          "support 或等权降级冒充逆方差权重（ASTROCS_DESIGN.md §3.1:173/175）。"));
     return Result<void>::success();
   }
 
@@ -11047,6 +11124,145 @@ bool p3n_sub_block_px(const Json& doc, int* out, std::string* err) {
   return true;
 }
 
+// ── EXPORT-CROP-01：导出裁剪范围（默认不裁剪）──────────────────────────────
+// 权威：docs/contracts/CONFIG_CONTRACT.md §3（export 行 crop）+ docs/design/
+// PHASE3_DETAILED_DESIGN.md §8；几何唯一实现 = lib/algorithms/projection/p3_wcs.h
+// （CLI 配置面与节点面共用，禁第二份）。负责人裁决 2026-09-23：默认导出不得裁剪
+// 任何有效像素（允许黑边），裁剪为**可选**参数，且两种形式都要有。
+// 键形（稳定、可机器生成；GUI 框选直接填）：
+//   {"crop":{"crop_form":"pixels","pixels":{"x0":1,"y0":1,"x1":512,"y1":512}}}
+//     —— FITS 1-based 闭区间，相对**未裁剪输出画幅**（用户到平面后手动裁剪；GUI 框选）
+//   {"crop":{"crop_form":"sky","sky":{"ra_min_deg":..,"ra_max_deg":..,
+//                                "dec_min_deg":..,"dec_max_deg":..}}}
+//     —— ICRS deg 轴对齐矩形（GUI 的框选来自 HiPS 浏览器，框的是天区）；
+//        边界加密采样后外扩取整为像素窗口（保证不切掉任何中心落在矩形内的像素）
+// 两形式**互斥**：crop_form 选中其一，另一形式同时出现即具名拒绝（不比较、不取一）。
+// 判别键名取 crop_form 而非 mode：cpu_profile 的 legacy_v1/kernel_v1 已占用 mode，
+// 同名异义被 UNIFIED_MODEL §3 禁止（与 export 用 output_mode 避开 mode 同一处置）。
+// 全部非法输入 fail-closed 具名拒绝（越界/宽高非正/两形式同时给/裁剪后为空），
+// 禁静默夹取。
+bool p3n_crop_shape(const Json& doc, Json* out_crop, std::string* err) {
+  auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
+  if (!doc.contains("crop")) return true;   // 缺省 = 不裁剪
+  const Json& c = doc["crop"];
+  if (!c.is_object()) return fail("crop must be an object");
+  if (!c.contains("crop_form") || !c["crop_form"].is_string())
+    return fail("crop.crop_form is required and must be a string (\"pixels\"|\"sky\")");
+  const std::string mode = c["crop_form"].get<std::string>();
+  if (mode != "pixels" && mode != "sky")
+    return fail("crop.crop_form must be \"pixels\"|\"sky\" (got \"" + mode + "\")");
+  const std::string other = (mode == "pixels") ? "sky" : "pixels";
+  if (c.contains(other))
+    return fail("crop: \"" + mode + "\" and \"" + other +
+                "\" are mutually exclusive — both were given; refusing to pick one"
+                " (delete the unused form)");
+  if (!c.contains(mode))
+    return fail("crop: crop_form=\"" + mode + "\" requires the \"" + mode + "\" object");
+  for (auto it = c.begin(); it != c.end(); ++it) {
+    if (it.key() != "crop_form" && it.key() != mode)
+      return fail("crop: unknown key \"" + it.key() + "\" (allowed: crop_form + \"" + mode +
+                  "\")");
+  }
+  const Json& form = c[mode];
+  if (!form.is_object()) return fail("crop." + mode + " must be an object");
+  const char* pk[4] = {"x0", "y0", "x1", "y1"};
+  const char* sk[4] = {"ra_min_deg", "ra_max_deg", "dec_min_deg", "dec_max_deg"};
+  const char** keys = (mode == "sky") ? sk : pk;
+  for (int i = 0; i < 4; ++i) {
+    if (!form.contains(keys[i]))
+      return fail(std::string("crop.") + mode + "." + keys[i] + " is required");
+    const bool ok_type = (mode == "sky") ? form[keys[i]].is_number()
+                                         : form[keys[i]].is_number_integer();
+    if (!ok_type)
+      return fail(std::string("crop.") + mode + "." + keys[i] +
+                  (mode == "sky" ? " must be a number (ICRS deg)"
+                                 : " must be an integer (FITS 1-based pixel index)"));
+  }
+  for (auto it = form.begin(); it != form.end(); ++it) {
+    bool known = false;
+    for (int i = 0; i < 4; ++i) if (it.key() == keys[i]) known = true;
+    if (!known) return fail("crop." + mode + ": unknown key \"" + it.key() + "\"");
+  }
+  if (out_crop) *out_crop = c;
+  return true;
+}
+
+// crop 形状 + 几何。frame = **未裁剪**输出画幅描述符（w/h 必须与之一致）。
+// 缺省（无 crop 键）⇒ win->active=false，行为与既有整幅导出逐位相同。
+bool p3n_crop_window(const Json& doc, const astrocs::phase3::P3WcsDescriptor& frame,
+                     int w, int h, astrocs::phase3::P3CropWindow* win,
+                     std::string* mode_out, std::string* err) {
+  using namespace astrocs::phase3;
+  auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
+  win->active = false;
+  if (mode_out) mode_out->clear();
+  Json c;
+  if (!p3n_crop_shape(doc, &c, err)) return false;
+  if (c.is_null()) return true;
+  const std::string mode = c["crop_form"].get<std::string>();
+  if (mode_out) *mode_out = mode;
+  const Json& f = c[mode];
+  std::string why;
+  P3CropStatus st = P3_CROP_PARAM;
+  if (mode == "pixels") {
+    st = p3_crop_window_from_fits(f["x0"].get<long long>(), f["y0"].get<long long>(),
+                                  f["x1"].get<long long>(), f["y1"].get<long long>(),
+                                  w, h, win, &why);
+  } else {
+    st = p3_crop_window_from_sky(&frame, f["ra_min_deg"].get<double>(),
+                                 f["ra_max_deg"].get<double>(),
+                                 f["dec_min_deg"].get<double>(),
+                                 f["dec_max_deg"].get<double>(), w, h, win, &why);
+  }
+  if (st != P3_CROP_OK)
+    return fail(why.empty() ? std::string("crop: rejected") : why);
+  return true;
+}
+
+// 已解析窗口 → p3_wcs.json 的 crop 块（writer/verify 的唯一来源）。
+Json p3n_crop_plan_json(const astrocs::phase3::P3CropWindow& win,
+                        const std::string& mode) {
+  if (!win.active) return Json{{"active", false}};
+  return Json{{"active", true},   {"crop_form", mode},
+              {"x0", win.x0},     {"y0", win.y0},   {"x1", win.x1}, {"y1", win.y1},
+              {"width_px", win.width()}, {"height_px", win.height()}};
+}
+
+// p3_wcs.json → 窗口（writer/verify 只读此处，禁各自重算；越域 = artifact 漂移拒）。
+bool p3n_crop_from_plan(const Json& plan, int w, int h,
+                        astrocs::phase3::P3CropWindow* win, std::string* err) {
+  auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
+  win->active = false;
+  if (!plan.contains("crop")) return true;   // 旧 artifact：无 crop = 不裁剪
+  const Json& c = plan["crop"];
+  if (!c.is_object() || !c.contains("active") || !c["active"].is_boolean())
+    return fail("p3_wcs.json crop block malformed (missing boolean active)");
+  if (!c["active"].get<bool>()) return true;
+  for (const char* k : {"x0", "y0", "x1", "y1"}) {
+    if (!c.contains(k) || !c[k].is_number_integer())
+      return fail(std::string("p3_wcs.json crop.") + k + " missing/not integer");
+  }
+  win->active = true;
+  win->x0 = c["x0"].get<long long>();
+  win->y0 = c["y0"].get<long long>();
+  win->x1 = c["x1"].get<long long>();
+  win->y1 = c["y1"].get<long long>();
+  if (win->width() < 1 || win->height() < 1 || win->x0 < 0 || win->y0 < 0 ||
+      win->x1 > w || win->y1 > h)
+    return fail("p3_wcs.json crop window outside the output frame (artifact drift)");
+  return true;
+}
+
+// 平面 → 窗口子平面（整幅驻留参考路径用；流式路径按行偏移直读）。
+void p3n_window_plane(const float* src, int w, const astrocs::phase3::P3CropWindow& c,
+                      std::vector<float>* dst) {
+  dst->resize((std::size_t)c.width() * (std::size_t)c.height());
+  for (int y = 0; y < c.height(); ++y)
+    std::memcpy(dst->data() + (std::size_t)y * (std::size_t)c.width(),
+                src + (std::size_t)(c.y0 + y) * (std::size_t)w + (std::size_t)c.x0,
+                (std::size_t)c.width() * sizeof(float));
+}
+
 bool p3n_geom(const Json& doc, P3nGeom* g, std::string* err) {
   auto fail = [&](const std::string& m) { if (err) *err = m; return false; };
   if (!doc.contains("source") || !doc["source"].is_object() ||
@@ -11072,6 +11288,9 @@ bool p3n_geom(const Json& doc, P3nGeom* g, std::string* err) {
   g->projection = doc.value("projection", std::string("TAN"));
   g->frame = doc.value("frame", std::string("icrs"));
   g->coverage_output = doc.value("coverage_output", std::string("mask"));
+  // EXPORT-CROP-01: 裁剪范围先于数值面做**形状**校验（越界/宽高非正/两形式同时给
+  // 等几何判定需要画幅 WCS，在 wcs 节点与 validate_config 处同源判；此处先拒形状）。
+  if (!p3n_crop_shape(doc, nullptr, err)) return false;
   // 值域 (与 p3_session 同款; 无 silent default 非法值)
   if (!(g->scale > 0.0)) return fail("scale_deg_per_px must be > 0");
   if (g->w < 1 || g->w > 20000 || g->h < 1 || g->h > 20000)
@@ -11415,6 +11634,14 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
                    : wst == P3_WCS_HEMISPHERE ? "output crosses TAN hemisphere"
                                               : "parameter out of range")));
   }
+  // ── EXPORT-CROP-01：裁剪窗口解析（默认不裁剪）──────────────────────────
+  // 画幅 WCS 已构造（**未裁剪**）⇒ 在此把 crop 解析成整数像素窗口并随 wcs plan
+  // 落盘；writer/verify 只读该窗口（单一事实源，禁各自重算）。resample 仍按
+  // 未裁剪画幅产出平面 ⇒ 窗口内像素与不裁剪时**逐位相同**（裁剪只能裁、不改数值）。
+  astrocs::phase3::P3CropWindow crop;
+  std::string crop_mode, crop_err;
+  if (!p3n_crop_window(doc, wcs, g.w, g.h, &crop, &crop_mode, &crop_err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, crop_err));
   const std::string path = g.out_dir + "/p3_wcs.json";
   Json plan{{"schema", "DATA-P3-WCS"},
             {"crval_ra_deg", wcs.crval_ra_deg},
@@ -11428,6 +11655,7 @@ Result<void> p3_op_wcs(const Json& doc, Json* man) {
             {"width_px", wcs.width_px},
             {"height_px", wcs.height_px},
             {"projection", wcs.projection},
+            {"crop", p3n_crop_plan_json(crop, crop_mode)},
             {"fits_keywords", p3_wcs_fits_keywords(&wcs)}};
   // §9 原子提交
   if (!p2_write_text_atomic(path, plan.dump(2) + "\n"))
@@ -11969,7 +12197,27 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
   P3WcsDescriptor wcs{};
   if (!p3n_wcs_from_json(plan, &wcs, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
-  const long nelem = (long)g.w * g.h;
+  // ── EXPORT-CROP-01：裁剪窗口（默认不裁剪 ⇒ 与既有整幅导出逐位相同）──────
+  // 写出画幅 = 窗口；输出 WCS = 未裁剪画幅 WCS 在窗口上的**精确限制**
+  // （CRVAL/CD 逐位不变、CRPIX 减整数窗口原点）⇒ 窗口内像素逐位等于整幅导出的
+  // 同位置像素（裁剪只能裁、不能改数值）。resample 仍按未裁剪画幅产出平面，
+  // 因此本节点是裁剪的**唯一**写出点。
+  astrocs::phase3::P3CropWindow crop;
+  if (!p3n_crop_from_plan(plan, g.w, g.h, &crop, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  P3WcsDescriptor owcs{};
+  if (astrocs::phase3::p3_crop_apply_wcs(&wcs, crop, &owcs) != astrocs::phase3::P3_CROP_OK)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "crop: failed to derive the cropped WCS from the frame WCS"));
+  const int ow = owcs.width_px;
+  const int oh = owcs.height_px;
+  const std::string crop_mode =
+      (plan.contains("crop") && plan["crop"].is_object() &&
+       plan["crop"].contains("crop_form") && plan["crop"]["crop_form"].is_string())
+          ? plan["crop"]["crop_form"].get<std::string>()
+          : std::string();
+  const long nelem = (long)g.w * g.h;        // 平面元素数（未裁剪画幅）
+  const long onelem = (long)ow * (long)oh;   // 产品元素数（裁剪后画幅）
   const bool unc = res.value("uncertainty_available", false);
   // 输出面单位必须来自 resample 的 canonical 面亮度声明（禁 loose default
   // "ADU"）; 输出模式/可测量性同样必须显式随产物落盘（FZ-P3-MODES）。
@@ -12076,22 +12324,40 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
         return Result<void>::fail(Error(ErrorDomain::DATA,
             "p3_resampled.bin truncated (planes vs manifest drift)"));
     }
+    // 裁剪：整幅驻留参考路径同样只写出窗口（与流式路径逐字节一致；
+    // 该路径只在 ASTROCS_P3_EXPORT_FAULT 下可达，必须与生产路径同产品语义）
+    std::vector<float> wsig, wcov, wvar, wivar;
+    const float* psig = sig.data();
+    const float* pcov = cov.data();
+    const float* pvar = unc ? var_p.data() : nullptr;
+    const float* pivar = unc ? ivar_p.data() : nullptr;
+    if (crop.active) {
+      p3n_window_plane(sig.data(), g.w, crop, &wsig);
+      p3n_window_plane(cov.data(), g.w, crop, &wcov);
+      if (unc) {
+        p3n_window_plane(var_p.data(), g.w, crop, &wvar);
+        p3n_window_plane(ivar_p.data(), g.w, crop, &wivar);
+      }
+      psig = wsig.data();
+      pcov = wcov.data();
+      pvar = unc ? wvar.data() : nullptr;
+      pivar = unc ? wivar.data() : nullptr;
+    }
     const P3OutputStatus ost = p3_output_write_atomic_ex(
-        sig.data(), cov.data(), unc ? var_p.data() : nullptr,
-        unc ? ivar_p.data() : nullptr, g.w, g.h, &wcs,
+        psig, pcov, pvar, pivar, ow, oh, &owcs,
         bunit_canon.c_str(), fits_path.c_str(), &prov, g.bitpix, -1, &ores);
     if (ost != P3_OUT_OK)
       return Result<void>::fail(Error(ErrorDomain::IO,
           "p3_output_write_atomic_ex failed (status " +
               std::to_string((int)ost) + ")"));
-    for (long i = 0; i < nelem; ++i) if (cov[(size_t)i] > 0.5f) ++covn;
+    for (long i = 0; i < onelem; ++i) if (pcov[(size_t)i] > 0.5f) ++covn;
   } else {
     // ── 生产路径：子块流式（ExportStreamScheduler + FITS 子集写）─────────
     // 驻留面 = 单个子块 × 在途上限（2·queue_depth），**与 W×H 无关**。
     const int nplanes = unc ? 4 : 2;
     std::atomic<bool> read_failed{false};
     P3FitsStream fs;
-    if (fs.open(fits_path.c_str(), &wcs, g.w, g.h, g.bitpix,
+    if (fs.open(fits_path.c_str(), &owcs, ow, oh, g.bitpix,
                 bunit_canon.c_str(), &prov) != P3_OUT_OK) {
       return Result<void>::fail(Error(ErrorDomain::IO,
           std::string("p3_stream open failed: ") + p3_output_last_error()));
@@ -12103,12 +12369,16 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
             std::string("p3_stream begin_hdu failed: ") + p3_output_last_error()));
       }
       // 读子块：平面 p 的第 y 行第 x 列 = (p·nelem + y·W + x) 个 float（行内连续）
+      // EXPORT-CROP-01：子块坐标在**裁剪后画幅**上；平面读取按窗口原点平移
+      //（裁剪只改读取起点与写出画幅，不改任何像素值 ⇒ 与不裁剪逐位相同）。
+      const int gx = (int)crop.x0;
+      const int gy = (int)crop.y0;
       auto read_fn = [&](int x0, int y0, int w, int h, double* out) {
         const uint64_t plane_off = (uint64_t)plane * (uint64_t)nelem;
         std::string buf;
         for (int yy = 0; yy < h; ++yy) {
-          const uint64_t row =
-              plane_off + (uint64_t)(y0 + yy) * (uint64_t)g.w + (uint64_t)x0;
+          const uint64_t row = plane_off + (uint64_t)(gy + y0 + yy) * (uint64_t)g.w +
+                               (uint64_t)(gx + x0);
           const std::size_t nbytes = (std::size_t)w * sizeof(float);
           if (!aio_file::read_range(bin_p.c_str(), row * sizeof(float), nbytes, &buf)) {
             read_failed.store(true);
@@ -12131,7 +12401,7 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
       sc.output_path = fits_path;
       sc.sub_block_fn = read_fn;
       astrocs::core::ExportStreamScheduler sched(sc);
-      sched.set_image(g.w, g.h);
+      sched.set_image(ow, oh);   // EXPORT-CROP-01: 调度网格 = 裁剪后画幅
       const astrocs::core::ExportOutcome so = sched.run();
       if (ctx != nullptr && ctx->cancelled()) {
         fs.abort();
@@ -12163,20 +12433,21 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
     // 独立重开对拍（与整幅路径同判据；按子块流式，不整幅驻留）
     {
       P3FitsVerifyStream vs;
-      if (vs.open(fits_path.c_str(), &wcs, g.w, g.h, unc) != P3_OUT_OK)
+      if (vs.open(fits_path.c_str(), &owcs, ow, oh, unc) != P3_OUT_OK)
         return Result<void>::fail(Error(ErrorDomain::IO,
             std::string("p3_stream verify open failed: ") + p3_output_last_error()));
       std::vector<float> fb;
       for (int plane = 0; plane < nplanes; ++plane) {
-        for (int y0 = 0; y0 < g.h; y0 += sb) {
-          for (int x0 = 0; x0 < g.w; x0 += sb) {
-            const int w = std::min(sb, g.w - x0);
-            const int h = std::min(sb, g.h - y0);
+        for (int y0 = 0; y0 < oh; y0 += sb) {
+          for (int x0 = 0; x0 < ow; x0 += sb) {
+            const int w = std::min(sb, ow - x0);
+            const int h = std::min(sb, oh - y0);
             fb.resize((std::size_t)w * h);
             std::string buf;
             for (int yy = 0; yy < h; ++yy) {
               const uint64_t row = (uint64_t)plane * (uint64_t)nelem +
-                                   (uint64_t)(y0 + yy) * (uint64_t)g.w + (uint64_t)x0;
+                                   (uint64_t)(crop.y0 + y0 + yy) * (uint64_t)g.w +
+                                   (uint64_t)(crop.x0 + x0);
               if (!aio_file::read_range(bin_p.c_str(), row * sizeof(float),
                                         (std::size_t)w * sizeof(float), &buf))
                 return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -12217,7 +12488,12 @@ Result<void> p3_op_writer(const Json& doc, Json* man, uint32_t cap,
           {"canonical_hash_spec", astrocs::core::kCanonicalProductHashSpec},
           {"integrity_sha256", std::string(ores.sha256)},
           {"reopen_ok", ores.reopen_ok},
-          {"coverage_stats", {{"covered_px", covn}, {"total_px", nelem}}},
+          {"coverage_stats", {{"covered_px", covn}, {"total_px", onelem}}},
+          // EXPORT-CROP-01：裁剪窗口随 writer manifest 落盘（下游/验收可独立核对
+          // 「写出画幅 = 请求的裁剪尺寸」且像素未被改动）。
+          {"crop", p3n_crop_plan_json(crop, crop_mode)},
+          {"frame_width_px", g.w},
+          {"frame_height_px", g.h},
           {"uncertainty_available", unc},
           {"uncertainty_source", unc_src},
           {"uncertainty_missing_pixels",
@@ -12313,6 +12589,18 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   P3WcsDescriptor wcs{};
   if (!p3n_wcs_from_json(plan, &wcs, &err))
     return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  // ── EXPORT-CROP-01：裁剪窗口（与 writer 同源读 p3_wcs.json；默认不裁剪）──
+  // 独立重开验证必须对**写出画幅**（裁剪后）判，并逐像素与平面窗口对拍 ⇒
+  // 「裁剪只裁、不改数值」在验证面同样被锁住。
+  astrocs::phase3::P3CropWindow crop;
+  if (!p3n_crop_from_plan(plan, g.w, g.h, &crop, &err))
+    return Result<void>::fail(Error(ErrorDomain::DATA, err));
+  P3WcsDescriptor owcs{};
+  if (astrocs::phase3::p3_crop_apply_wcs(&wcs, crop, &owcs) != astrocs::phase3::P3_CROP_OK)
+    return Result<void>::fail(Error(ErrorDomain::DATA,
+        "crop: failed to derive the cropped WCS from the frame WCS"));
+  const int ow = owcs.width_px;
+  const int oh = owcs.height_px;
   const long nelem = (long)g.w * g.h;
   const bool unc = res.value("uncertainty_available", false);
   // verify 独立重开面同样消费 canonical 单位/模式声明（禁 loose default）;
@@ -12344,21 +12632,22 @@ Result<void> p3_op_verify(const Json& doc, Json* man) {
   P3OutputResult vres{};
   {
     P3FitsVerifyStream vs;
-    if (vs.open(verify_fits.c_str(), &wcs, g.w, g.h, unc) != P3_OUT_OK)
+    if (vs.open(verify_fits.c_str(), &owcs, ow, oh, unc) != P3_OUT_OK)
       return Result<void>::fail(Error(ErrorDomain::IO,
           std::string("p3_stream verify open failed: ") + p3_output_last_error()));
     const int nplanes = unc ? 4 : 2;
     std::vector<float> fb;
     for (int plane = 0; plane < nplanes; ++plane) {
-      for (int y0 = 0; y0 < g.h; y0 += sb) {
-        for (int x0 = 0; x0 < g.w; x0 += sb) {
-          const int w = std::min(sb, g.w - x0);
-          const int h = std::min(sb, g.h - y0);
+      for (int y0 = 0; y0 < oh; y0 += sb) {
+        for (int x0 = 0; x0 < ow; x0 += sb) {
+          const int w = std::min(sb, ow - x0);
+          const int h = std::min(sb, oh - y0);
           fb.resize((std::size_t)w * h);
           std::string buf;
           for (int yy = 0; yy < h; ++yy) {
             const uint64_t row = (uint64_t)plane * (uint64_t)nelem +
-                                 (uint64_t)(y0 + yy) * (uint64_t)g.w + (uint64_t)x0;
+                                 (uint64_t)(crop.y0 + y0 + yy) * (uint64_t)g.w +
+                                 (uint64_t)(crop.x0 + x0);
             if (!aio_file::read_range(bin_p.c_str(), row * sizeof(float),
                                       (std::size_t)w * sizeof(float), &buf))
               return Result<void>::fail(Error(ErrorDomain::DATA,
@@ -12494,6 +12783,24 @@ struct P3NodeModule : public IModule {
       std::string rerr;
       if (!p3n_check_request_fields(doc, &rerr))
         return Result<void>::fail(Error(ErrorDomain::DATA, rerr));
+    }
+    // EXPORT-CROP-01: 裁剪范围 fail-closed（形状 + 几何）。画幅 WCS 由配置唯一确定
+    // （与 wcs 节点同源同参）⇒ 越界 / 宽高非正 / 两种形式同时给 / 裁剪后为空
+    // 在 validate/plan 阶段即具名拒绝，不等到 writer 才报，也不静默夹取。
+    {
+      P3nGeom cg;
+      std::string cerr;
+      if (!p3n_geom(doc, &cg, &cerr))
+        return Result<void>::fail(Error(ErrorDomain::DATA, cerr));
+      astrocs::phase3::P3WcsDescriptor frame{};
+      if (astrocs::phase3::p3_wcs_make(cg.ra, cg.dec, cg.scale, cg.w, cg.h,
+                                       cg.parity.c_str(), 0.0, &frame,
+                                       cg.projection.c_str()) == astrocs::phase3::P3_WCS_OK) {
+        astrocs::phase3::P3CropWindow cwin;
+        std::string cwerr;
+        if (!p3n_crop_window(doc, frame, cg.w, cg.h, &cwin, nullptr, &cwerr))
+          return Result<void>::fail(Error(ErrorDomain::DATA, cwerr));
+      }
     }
     return Result<void>::success();
   }
