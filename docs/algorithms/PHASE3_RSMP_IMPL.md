@@ -236,7 +236,7 @@ fits_index = nested_local_to_fits_index(local, 9, 512)   # = (511-x)*512 + y（D
   DATA-002 §2a `invalid_handling`；本文件 §11 DISP 台账与 §13 禁止项同步）:
   合格 = `isfinite(值)`（NaN 与 ±Inf 同类）；被剔除样本**从分子、分母、方差三项
   一并剔除**，剩余合格邻域重归一 `c_k = wg_k / Σ(合格 wg_j)`（FP64，固定 k 序 ⇒
-  确定性）；仅 `n_eligible==0` 或有效权重和 `D_p==0` 时 `*value=NaN`（覆盖级 NaN，
+  确定性）；仅 `n_eligible==0` 或有效权重和 `W_p==0` 时 `*value=NaN`（覆盖级 NaN，
   禁零填替代、禁哨兵值）⑤`*coverage` 恒 1（到达插值即视为有足迹；值非有限**不改**
   C —— 4 个 tile 均可读 ⇒ C=1）⑥强制计数: `P3SampleRejection` 暴露
   `n_rejected_nonfinite`（= 值非有限 + 方差非有限 + 权重非正，互斥可加；信号核

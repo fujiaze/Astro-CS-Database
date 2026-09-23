@@ -11,7 +11,7 @@
 - 输入方差：噪声模型 A = `NoiseWeightModelV1`（空背景稳健方差，唯一生产模型，SCI-NOISE-001..015）；
 - Drizzle 传播：var_p = Σ v_j w_jp² / D_p²（SCI-DRZ-014）；实现 = 分子 `acc.sumVarNum += varianceValue · w²`、分母 `D_p = Σ a_jp`（`lib/algorithms/drizzle/healpix_drizzle/drizzle_engine.cpp:1632-1634`）。
   与 `lib/algorithms/noise_snr` 的 `snr_noise_scale_law`（`x′=α·x → Var′=α²·Var, ivar′=ivar/α²`，SCI-NOISE-002；实现 `lib/algorithms/noise_snr/cpp/src/noise_model.cpp:919`、声明 `snr_estimator.h:256`）同源互引——Drizzle 归一化权重求和即该缩放律的加权形式；
-  **量纲**：`v_j` 与 `var_p` 同标度平方（`ADU²`；产品面为面亮度时 `ADU²/sr²`），`w_jp`/`D_p` 无量纲 ⇒ 缩放律在标度类别的任何一档上都成立（`docs/standards/NUMERIC_STANDARD.md`「量纲与标度」）。
+  **量纲**：`v_j` 与 `var_p` 同标度平方（`ADU²`；产品面为面亮度时 `ADU²/sr²`），`w_jp` 无量纲、`D_p = Σ_j a_jp` 为覆盖球面面积（`sr`）且**与 `v_j` 无关** ⇒ 缩放律在标度类别的任何一档上都成立（`DATA_SEMANTICS` §4a；`docs/standards/NUMERIC_STANDARD.md`「量纲与标度」）。
 - 产品：HiPS variance + ivar（1/variance）。
 
 ## 协方差（重要边界）

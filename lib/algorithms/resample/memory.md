@@ -91,7 +91,7 @@
   比较/|dx|>1e-300 防 0 除/u,v clamp [0,1]/几何权重 wg FP64 Σ=1±k·ULP/
   **样本级掩膜+重归一**: ¬isfinite(含 ±Inf) 样本从分子/分母/方差三项剔除,
   剩余合格邻域重归一 c_k=wg_k/Σ(合格 wg_j)（FP64 固定 k 序）/零合格样本或
-  D_p=0 ⇒ S=NaN（覆盖级 NaN）/weights[4]=**生效权重**（被剔除样本恰 0）/
+  W_p=0（无量纲权重和）⇒ S=NaN（覆盖级 NaN）/weights[4]=**生效权重**（被剔除样本恰 0）/
   coverage 恒 1 且值非有限不改 C/计数经 P3SampleRejection.n_rejected_nonfinite
   暴露）、p3_sample_nearest[_ex] :296-313（ang2pix 精确 cell；单样本零合格
   ⇒ S=NaN + C=1, §4 第 91 行口径）。

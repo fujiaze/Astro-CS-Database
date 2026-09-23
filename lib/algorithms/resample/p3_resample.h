@@ -92,7 +92,7 @@ P3ResampleStatus p3_sample_nearest(P3Sampler* s, double ra_deg, double dec_deg,
  * 任一角 tile 缺失 → coverage=0 且 *value=NaN;
  * 邻域样本 ¬isfinite（NaN 与 ±Inf 同类）→ **样本级掩膜 + 剩余有效邻域重归一**
  * （rule_id NAN-SAMPLE-MASK-COVERAGE-NAN, ALG-P3-003 §2 G4 / §4）;
- * 仅零合格样本（或有效权重和 D_p=0）→ S=NaN（覆盖级 NaN）; C 只判足迹内有无
+ * 仅零合格样本（或有效权重和 W_p=0，无量纲）→ S=NaN（覆盖级 NaN）; C 只判足迹内有无
  * tile 像素（值 NaN 不改 C, 4 个 tile 均可读则 C=1）。 */
 P3ResampleStatus p3_sample_bilinear(P3Sampler* s, double ra_deg, double dec_deg,
                                           float* value, int* coverage);
@@ -142,7 +142,7 @@ P3ResampleStatus p3_sample_nearest_ex(P3Sampler* s, double ra_deg, double dec_de
  * 全部合格时与几何权重逐值同量级（重归一为恒等, 差异 ≤ k·ULP, ALG-P3-003 §9）。
  * 依据: DATA-002 §2a 规则 1 要求不合格样本从**分子、分母、方差三项**一并剔除并
  * 重新归一 ⇒ 方差传播 Σc'_k²u_k 必须消费本权重（不得沿用未重归一的几何权重）。
- * 零合格样本（或 D_p=0）时四权重全 0（此时 S=NaN, C=1; Σc'_k=1 不适用）。 */
+ * 零合格样本（或 W_p=0）时四权重全 0（此时 S=NaN, C=1; Σc'_k=1 不适用）。 */
 P3ResampleStatus p3_sample_bilinear_ex(P3Sampler* s, double ra_deg, double dec_deg,
                                        float* value, int* coverage,
                                        double weights[4], uint64_t leaf_ipix[4]);
@@ -186,7 +186,7 @@ P3ResampleStatus p3_sample_bilinear_nanmask_ex(P3Sampler* s, double ra_deg, doub
  *   样本恰为 0）—— 依据 DATA-002 §2a 规则 1「不合格样本从分子、分母、方差三项
  *   一并剔除并重新归一」: 剔除后权重变了, 方差项必须用重归一后的权重算, 不得
  *   沿用原几何权重。生效权重为 0 的样本从方差项一并剔除 (c²u 恰为 0), 不参与
- *   NaN/missing 合成; 四样本全为 0 (= 零合格样本 / D_p=0) ⇒ 覆盖级 NaN
+ *   NaN/missing 合成; 四样本全为 0 (= 零合格样本 / W_p=0) ⇒ 覆盖级 NaN
  *   (禁静默 0 冒充无效)。u 仍逐样本读入 ⇒ 负/Inf 产品损坏仍 fail-closed 拒绝。
  * u 值读取: variance→u 原值; ivar→u=1/ivar (ivar==0→NaN 传播态)。
  * 返回: P3_RS_OK + *u_out + *st (P3_U_OK/NAN/MISSING);
