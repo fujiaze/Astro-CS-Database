@@ -1147,13 +1147,12 @@ bool DrizzleEngine::writeHis(const std::unordered_map<uint64_t, PixelAccumulator
     bool photometry_done = config.apply_photometry || config.photometry_applied_upstream;
     hmeta.photscal   = config.photscal;
     hmeta.photappl   = photometry_done ? 1 : 0;
-    // BUNIT: 测光已应用 → ASTROCS_RELATIVE_FLUX (02_FROZEN §7)
-    // 正式 Stage1 不允许输出未校准 ADU signal (验证已在函数入口完成)
-    if (photometry_done) {
-        std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ASTROCS_RELATIVE_FLUX");
-    } else {
-        std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU");
-    }
+    // BUNIT: canonical 面亮度串（docs/contracts/DATA_SEMANTICS.md §31.1a:2808-2810
+    // 「产品 FITS/HiPS 写盘 BUNIT 一律取该串」+ :2827-2830「测光归一化是线性乘性标度，
+    // 只改零点、不改量纲类别，标度由 PHOTSCAL/PHOTAPPL 承载」）——测光是否施加**不改变**
+    // BUNIT。本路径为 legacy .hiss 容器出口（hp_drizzle_run 零生产调用者，已在
+    // CMakeLists.txt 登记），按同一口径写串，不得再写 ASTROCS_RELATIVE_FLUX / 裸 ADU。
+    std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU/sr");
     // 传统 FITS 字段 (按输入继承)
     std::snprintf(hmeta.filter, sizeof(hmeta.filter), "%s", meta.filter.c_str());
     hmeta.exptime = meta.exposure_s;
@@ -1988,12 +1987,15 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
             // ── G3-5 / DISP-DRZ-004 收口 ───────────────────────────────────
             // 冻结合同（唯一口径文字 = docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md
             // §2a；rule_id = NAN-SAMPLE-MASK-COVERAGE-NAN，EXP-202 定案）:
-            //   合格样本 = isfinite(x_j) ∧ isfinite(V_j) ∧ V_j > 0；
+            //   合格样本 = isfinite(x_j)（值有限即合格）；
             //   不合格样本 → **样本级掩膜**（从分子 F_p、分母 D_p、方差项
             //   Var_p 三项一并剔除 ⇒ 重归一自动成立；禁止让单个不合格样本使
             //   整像素变 NaN；禁止把被剔除样本的权重留在分母里）；
             //   仅当 D_p = 0（零合格样本）时输出 signal = NaN ∧ support ≤ 0；
             //   **强制计数**：被剔除样本按原因分类计数（禁静默剔除）。
+            // 方差可用性是**独立通道**，不参与合格性判定（上游授权 =
+            // ASTROCS_DESIGN.md §5.5:379「NaN 采用样本级掩膜」；V≤0 无掩膜授权，
+            // 按 §0.1:45「每一层只由它的上一层推出」不得由下级另立）。
             // 旧行为（NaN 经 F_p 直接传播 + 无计数）已作废（原注释引用的
             // DRIZZLE.md §8「不掩膜」行亦已按同一 rule_id 反转）。
             DrizzleOpCounters& tc = threadCounters[static_cast<size_t>(tid)];
@@ -2024,9 +2026,16 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
                     ++tc.rejected_nonfinite_variance;   // 原因 2: 方差非有限
                     continue;
                 }
-                // variance == 0（无方差面的合法数据边界，如全零方差面不挂帧）
-                // 仍按原语义跳过，但不计入 n_rejected_nonfinite（非"非有限"类）。
-                if (varianceValue <= 0.0f) continue;
+                // V_j <= 0 = 「方差不可用」这一**合法产品态**（DATA_SEMANTICS
+                // §4a:49「无覆盖/无方差信息像素写 variance=0 且 ivar=0（显式
+                // 不可用）」；§20.1:1101「ivar==0 = 合法零权重、variance==0 =
+                // 无信息」），**不是**无效像素：样本合格性只看值是否有限
+                // （DATA-002 §2a）。故不丢信号、不丢几何支撑，只把方差项置 0
+                // —— 下游 processPixel* 的 `varianceValue > 0.0f` 判据自然
+                // 跳过 sumVarNum 累加，产品面即 §4a 的 variance=0 ∧ ivar=0。
+                // 丢弃会同时销毁 support（support 是纯几何量 covered_area/A_cell，
+                // DATA_SEMANTICS §12.3:398-411），使该像素在下游变成"无效"。
+                if (varianceValue <= 0.0f) varianceValue = 0.0f;
             }
 
             // P15a: 源像素总数由 per-thread 操作计数确定性求和得到 (不使用 reduction)
@@ -2392,8 +2401,9 @@ bool DrizzleEngine::writeHisTilesT(const std::vector<TileAccumulatorT<Scalar>>& 
     bool photometry_done = config.apply_photometry || config.photometry_applied_upstream;
     hmeta.photscal   = config.photscal;
     hmeta.photappl   = photometry_done ? 1 : 0;
-    std::snprintf(hmeta.bunit, sizeof(hmeta.bunit),
-                  photometry_done ? "ASTROCS_RELATIVE_FLUX" : "ADU");
+    // 同 writeHis：产品 BUNIT = canonical 面亮度串（DATA_SEMANTICS §31.1a:2808-2810 /
+    // :2827-2830），与测光是否施加无关。
+    std::snprintf(hmeta.bunit, sizeof(hmeta.bunit), "ADU/sr");
     std::snprintf(hmeta.filter, sizeof(hmeta.filter), "%s", meta.filter.c_str());
     hmeta.exptime = meta.exposure_s;
     std::snprintf(hmeta.date_obs, sizeof(hmeta.date_obs), "%s", meta.obs_time.c_str());

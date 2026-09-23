@@ -38,12 +38,15 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 // metadata.fits + properties), 不落任何中间容器。
 //
 // 逐字节等价要点 (与 lib/infrastructure/scheduler/src/module_adapters.cpp 旧 p1_op_writer 同口径):
-//   * 无方差输入时只写 signal + support 两个子产品 (flags =
-//     SIGNAL|SUPPORT); 累加器携带有限正方差累加量 (sumVarNum>0) 时按
-//     DATA-P1-HIPS §12.1/§12.2 追加 variance/ivar 子产品 (flags 增
-//     VARIANCE|IVAR, var_num_sum = Σ v_j·w_jp², writer 归约
-//     variance = var_num_sum/covered_area²、ivar = 1/variance)。snr 与
-//     drizzle provenance 通道本末端不开;
+//   * 无方差**输入** (帧内无 "variance" 块) 时只写 signal + support 两个子产品
+//     (flags = SIGNAL|SUPPORT); 帧携带方差输入时按 DATA-P1-HIPS §12.1/§12.2
+//     追加 variance/ivar 子产品 (flags 增 VARIANCE|IVAR, var_num_sum =
+//     Σ v_j·w_jp², writer 归约 variance = var_num_sum/covered_area²、
+//     ivar = 1/variance)。snr 与 drizzle provenance 通道本末端不开;
+//     **产品集判据 = 「帧携带方差输入」(has_variance 形参)，不是「至少一个叶像素
+//     有正方差累加量」**：后一判据会让「整帧方差不可用」的帧不产 variance/ivar
+//     子产品 ⇒ 阶段二 ivar_product_missing>0 ⇒ rc=7；而「有覆盖但方差不可用」
+//     是 §4a:49 的合法产品态 (variance=0 ∧ ivar=0)。
 //   * covered_area 先按容器 support 的 uint8 面积比量化
 //     (u8 = lround(255*clamp(sumArea/A_cell,0,1)), area = (u8/255)*A_cell),
 //     再交给 aio_hips 计算 signal = flux/area, support = area/A_cell;
@@ -56,6 +59,10 @@ bool write_hips_direct(const std::vector<TileAccumulatorT<Scalar>>& tiles,
 //     writer 完全一致。
 // tiles: 必须按 depth=9 分组 (512x512 叶 tile, 与 HiPS Norder9 tile 1:1)。
 // filter_passband: 观测 passband 身份 (可为空串, 与旧 writer 同口径透传)。
+// has_variance: 1 = 本帧携带方差输入 ("variance" 帧内块存在, 即
+//   hp_drizzle_api.cpp 的 variancePtr != nullptr) ⇒ 请求 VARIANCE|IVAR 并
+//   成对落盘 (逐像素三态见 astro_sphere_sink.cpp 叶级注释);
+//   0 = 无方差输入 ⇒ 只写 signal+support (与旧 writer 逐字节等价)。
 //
 // RELEASE-02 SD-15 增补: 本末端额外把**帧级未加权通量型 SNR**写入 HiPS
 // properties（键名冻结 ASTROCS_FRAME_SNR = F_ref/σ_F 与 ASTROCS_REFERENCE_FLUX
@@ -69,6 +76,7 @@ bool write_hips_phase1(const std::vector<TileAccumulatorT<Scalar>>& tiles,
                        const DrizzleConfig& config,
                        const std::string& hips_dir,
                        const std::string& filter_passband,
+                       int has_variance,
                        std::string& err);
 
 } // namespace drizzle

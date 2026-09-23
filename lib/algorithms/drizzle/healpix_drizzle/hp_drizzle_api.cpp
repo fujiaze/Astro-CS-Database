@@ -14,6 +14,7 @@
 #include "aio_healpix_io.h"         // HioSnrModel, HioSnrControlPoint (向后兼容宏)
 #include "astro_sphere_sink.h"      // Phase1: Drizzle -> AIO HiPS 直写
 #include "hp_drizzle_internal.h"    // F-13: run_drizzle_internal / setErrorMsg (run_hips 已迁出本 TU)
+#include "astrocs/core/variance_floor.h"  // 按 dtype 导出的方差地板 (NOISE_MODEL §7/§9)
 // ASTROCS_DESIGN §9「aio 是文件级唯一 I/O 边界」+ 原子产品:
 // 产品面落盘一律经 aio 机制原语 (aio_atomic_file.h), 本 TU 不得自持文件通道。
 #include "aio_atomic_file.h"
@@ -1032,12 +1033,36 @@ try {
                         width, height);
             } else if (vblk->type == AIO_BLOCK_FLOAT64) {
                 const double* vd = static_cast<const double*>(vblk->data);
-                varianceConv.assign((size_t)width * (size_t)height, 0.0f);
-                for (size_t i = 0; i < varianceConv.size(); ++i)
-                    varianceConv[i] = (float)vd[i];
+                const size_t nv = (size_t)width * (size_t)height;
+                // 逐像素方差的**消费域是 float32**（本指针类型即 float*，且
+                // 产品 variance/ivar 的存储 dtype 双轨含 f32，DATA_SEMANTICS
+                // §12.4）。帧像素可能已被测光归一化到数组标度 x'=α·x
+                // （α=frame_photscal，M42 实测 2.3846837130250378e-17），此时
+                // 真实可用方差量级 ~1e-31…1e-29，而任何以 ADU² 表达的绝对地板
+                // 经 α² 换算后（α²·1e-12 = 5.6867e-46）在 float32 下**精确下溢
+                // 为 0**。直接用 (float)vd[i] 会把「正值但 f32 下溢」的**可用**
+                // 方差静默变成 0，即把「可用」降级为「不可用」。
+                // ⇒ 生效地板按 dtype 导出（NOISE_MODEL §7/§9）：只对**可用**
+                //    （有限且 >0）样本生效，且只用于**顶住下溢**；精确 0/负/非有限
+                //    原样透传（那是「不可用」与「损坏」，不得由地板伪装）。
+                //    对现行生产面（全正且 f32 可表示）逐位不变。
+                std::vector<double> usable(vd, vd + nv);
+                const astrocs::VarianceFloor vf = astrocs::derive_variance_floor(
+                    astrocs::variance_median_usable(usable),
+                    /*eps_rel=*/1e-12, /*product_is_f64=*/false);
+                varianceConv.assign(nv, 0.0f);
+                long long n_rescued = 0;
+                for (size_t i = 0; i < nv; ++i) {
+                    bool rescued = false;
+                    varianceConv[i] = astrocs::to_product_dtype_keeping_availability(
+                        vd[i], vf, &rescued);
+                    if (rescued) ++n_rescued;
+                }
                 variancePtr = varianceConv.data();
-                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: variance 块 FLOAT64 [%dx%d] → FLOAT32 转换\n",
-                        width, height);
+                fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: variance 块 FLOAT64 [%dx%d] → FLOAT32 转换"
+                                " (dtype 导出地板=%s, 下溢救援=%lld)\n",
+                        width, height,
+                        astrocs::variance_floor_provenance_json(vf).c_str(), n_rescued);
             } else {
                 fprintf(stderr, "[hp_drizzle_api] hp_drizzle_run: variance 块类型 %d 不支持, 跳过方差传播\n",
                         (int)vblk->type);
@@ -1164,9 +1189,16 @@ try {
             // Phase1 生产末端: 与旧 writer 节点逐字节等价的标准 HiPS 直写。
             const std::string filter_pb =
                 hips_filter_passband ? std::string(hips_filter_passband) : std::string();
+            // 产品集判据 = 本帧是否携带方差输入（"variance" 块存在），
+            // 与 hips_profile=0 档的 write_hips_direct 同一形参、同一口径：
+            // 帧带方差 ⇒ 必产 variance/ivar 子产品（逐像素三态由 writer 判定，
+            // 「整帧方差不可用」写全 0/0，§4a:49），否则阶段二
+            // ivar_product_missing>0 ⇒ rc=7。无方差块时逐字节不变。
             hips_ok = img.use_f64
-                ? write_hips_phase1<double>(tiles_f64, config, hips_dir, filter_pb, errMsg)
-                : write_hips_phase1<float>(tiles_f32, config, hips_dir, filter_pb, errMsg);
+                ? write_hips_phase1<double>(tiles_f64, config, hips_dir, filter_pb,
+                                            variancePtr ? 1 : 0, errMsg)
+                : write_hips_phase1<float>(tiles_f32, config, hips_dir, filter_pb,
+                                           variancePtr ? 1 : 0, errMsg);
         } else {
             hips_ok = img.use_f64
                 ? write_hips_direct<double>(tiles_f64, config, meta, hips_dir, snr_pts,

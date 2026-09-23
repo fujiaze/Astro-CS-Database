@@ -135,9 +135,12 @@ struct DrizzleStats {
     int64_t op_tile_lookups = 0;    // tile 累加器访问数
     int64_t op_heap_allocations = 0;// 热循环堆分配数 (目标 ~0)
     // ── G3-5 / DATA-002 §2a（rule_id NAN-SAMPLE-MASK-COVERAGE-NAN）──
-    // 样本级掩膜强制计数（禁静默剔除）。不合格样本 = ¬isfinite(x_j) ∨
-    // ¬isfinite(V_j) ∨ V_j ≤ 0；被剔除样本同时从 F_p（分子）、D_p（分母）与
-    // Var_p（方差项）中剔除并重新归一。按原因分类计数（互斥、可加）。
+    // 样本级掩膜强制计数（禁静默剔除）。不合格样本 = ¬isfinite(x_j)（值非
+    // 有限）；被剔除样本同时从 F_p（分子）、D_p（分母）与 Var_p（方差项）中
+    // 剔除并重新归一。按原因分类计数（互斥、可加）。
+    // 方差可用性是**独立通道**：V_j 有限且 V_j ≤ 0 = 「有覆盖但无方差信息」
+    // ⇒ 信号与几何权重照常计入 F_p/D_p（保信号、保覆盖），不计入 Var_p；
+    // V_j 非有限 = 方差面损坏 ⇒ 按不合格样本剔除（n_rejected_nonfinite_variance）。
     int64_t n_rejected_nonfinite = 0;            // 合计 = 下列三项之和
     int64_t n_rejected_nonfinite_value = 0;      // 值非有限 (NaN/Inf)
     int64_t n_rejected_nonfinite_variance = 0;   // 方差面非有限 (NaN/Inf)
