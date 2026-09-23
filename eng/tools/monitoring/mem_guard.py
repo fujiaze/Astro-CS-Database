@@ -93,6 +93,11 @@ def main(argv=None) -> int:
                     help="采样间隔秒（默认 0.5）")
     ap.add_argument("--grace", type=float, default=10.0,
                     help="SIGTERM 后等待秒数，仍存活则 SIGKILL（默认 10）")
+    ap.add_argument("--timeout", type=float, default=0.0,
+                    help="墙钟上限秒（0=不限）。超时杀整个进程组并返回 124，"
+                         "与 timeout(1) 约定一致。必须用本参数而不是外层 timeout(1)："
+                         "本工具以 start_new_session=True 建独立会话，外层 timeout(1) "
+                         "只能杀掉本工具本身，子进程会逃逸成孤儿继续占用 CPU/IO。")
     ap.add_argument("--label", default="",
                     help="日志标签（默认取命令 basename）")
     ap.add_argument("command", nargs=argparse.REMAINDER,
@@ -114,12 +119,31 @@ def main(argv=None) -> int:
 
     peak_kb = 0
     killed = False
+    timed_out = False
     miss_streak = 0
+    deadline_wall = (time.time() + args.timeout) if args.timeout > 0 else None
 
     try:
         while True:
             rc = proc.poll()
             if rc is not None:
+                break
+            if deadline_wall is not None and time.time() >= deadline_wall:
+                print(f"[mem_guard] TIMEOUT label={label} pid={root_pid} "
+                      f"墙钟超过 {args.timeout:.0f}s，杀进程组", file=sys.stderr, flush=True)
+                timed_out = True
+                try:
+                    os.killpg(pgid, signal.SIGTERM)
+                except OSError:
+                    pass
+                grace_end = time.time() + args.grace
+                while time.time() < grace_end and proc.poll() is None:
+                    time.sleep(0.2)
+                if proc.poll() is None:
+                    try:
+                        os.killpg(pgid, signal.SIGKILL)
+                    except OSError:
+                        pass
                 break
             total_kb = 0
             got_any = False
@@ -171,6 +195,8 @@ def main(argv=None) -> int:
     # 不透传子进程的负信号码——调用方只需判 137 即知"内存超限被杀"。
     if killed:
         return 137
+    if timed_out:
+        return 124
     return rc if rc is not None else 1
 
 
