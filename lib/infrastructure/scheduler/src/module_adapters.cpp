@@ -1793,29 +1793,88 @@ void trace_p1_cap(const char* what, uint32_t lease, uint32_t memory_cap,
                frame_workers, static_cast<unsigned long long>(n), inner_omp);
 }
 
+// 标定旋钮读取（仅 P1-PARALLEL-AXIS-REDESIGN-01 受控 A/B 用；缺省 0 = 用策略值）。
+// 只做无符号十进制解析；非法输入返回 0（= 不覆盖），不抛异常、不改任何数值路径。
+static uint32_t p1_axis_env_u32(const char* name) {
+  const char* v = std::getenv(name);
+  if (!v || !v[0]) return 0;
+  char* end = nullptr;
+  const unsigned long long x = std::strtoull(v, &end, 10);
+  if (end == v) return 0;
+  return static_cast<uint32_t>(std::min<unsigned long long>(x, 4096ull));
+}
+
 template <typename Fn>
 static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget,
                             Fn&& body) {
-  // PERF-501: 并行轴 = 帧级（workers，受内存上限约束）× 帧内 OpenMP（inner_omp）。
-  // 帧级宽度被**内存**压到低于 lease 预算时（典型: 4096² 帧 × 358 B/px ⇒ cap=2，
-  // 而 lease=16），剩下的预算必须转给帧内轴，否则 14 个核空转。总并行度
-  // = in_flight × inner_omp ≤ thread_budget，仍不超额订阅（AGENTS §6: 线程数唯一
-  // 来自 Runtime lease，不硬编码）。
+  // ── P1-PARALLEL-AXIS-REDESIGN-01: 并行轴分配 ─────────────────────────────
+  // 规范依据: docs/architecture/THREADING_MODEL.md「并行轴分配」（两轴之积 ≤ lease）;
+  //   docs/contracts/SCHEDULER_CONTRACT.md:28（归约序按帧/块/窗口/像素 ID 固定、
+  //   跨 worker 无共享浮点累加器）⇒ 轴形态只决定「预算怎么用」，不进数值路径。
+  // 轴: 帧级 frame_w（受内存闸门约束）× 帧内 OpenMP inner_u，frame_w × inner_u ≤ budget。
+  // 策略: **保留既有的「帧轴优先摊开、剩余预算转帧内轴」分配（本轮不改其行为）**。
+  //   「内存闸门咬住时改为一帧独占全部预算（frame_w = 1, inner_u = budget）」这一形态
+  //   已被同二进制四档受控 A/B **实测否决**（run/P1-PARALLEL-AXIS-REDESIGN-01/REPORT.md）:
+  //     8 帧×2 线程（现状） 墙钟 390.7 s / 峰值 14.12 GB / CPU p50 1321%
+  //     2 帧×8 线程         墙钟 532.9 s / 峰值  5.25 GB / CPU p50  701%
+  //     1 帧×16 线程        墙钟 583.7 s / 峰值  3.57 GB / CPU p50   98.9%
+  //     8 帧×「单帧高并行令牌」 墙钟 459.0 s / 峰值 12.43 GB / CPU p50 720%
+  //   ⇒ 帧在飞数越少：墙钟单调变差、CPU 占用单调变低、内存单调变省。
+  //   根因: 每帧都有**不可并行**的串行段（FITS 读、hips_write 占 drizzle 帧时 24–30%、
+  //   星表查询、wcs-platesolve 无帧级并行），帧级并发正是把这些串行段互相重叠的手段；
+  //   压到 1 帧会让其余 15 个核在串行段上空转 —— cpu_p50 98.9% 即「真的变成单核」，
+  //   恰是本轮要消除的症状本身。四档产品**逐位相同** ⇒ 轴形态不改科学结果，
+  //   故按**墙钟**选型（内存余量见 REPORT §5）。
+  // 不变式: in_flight × inner_u ≤ budget，且 budget = Runtime lease（AGENTS §6:
+  //   线程数唯一来自 lease，不硬编码）。
   const uint32_t budget = (thread_budget > 0) ? thread_budget : workers;
-#ifdef _OPENMP
+  uint32_t frame_w = (workers > 0) ? workers : 1u;
   const uint64_t in_flight =
-      std::min<uint64_t>(n, static_cast<uint64_t>(workers));
-  const uint32_t inner_u =
+      std::min<uint64_t>(n, static_cast<uint64_t>(frame_w));
+#ifdef _OPENMP
+  uint32_t inner_u =
       (in_flight > 0)
           ? std::max<uint32_t>(1u, budget / static_cast<uint32_t>(in_flight))
           : 1u;
 #else
-  const uint32_t inner_u = 1u;
+  uint32_t inner_u = 1u;
 #endif
+  // 标定旋钮（仅用于**同一二进制、唯一变量 = 并行轴形态**的受控 A/B；缺省 0 = 策略值）。
+  // 越界（frame_w × inner_u > budget）一律**拒绝覆盖**并留痕 ⇒ fail-closed 回策略值，
+  // 「总并行度 ≤ lease」不因标定而破（AGENTS §6）。
+  {
+    const uint32_t fw = p1_axis_env_u32("ASTROCS_P1_AXIS_FRAME_WORKERS");
+    const uint32_t io = p1_axis_env_u32("ASTROCS_P1_AXIS_INNER_OMP");
+    if (fw > 0 || io > 0) {
+      const uint32_t nf = (fw > 0) ? fw : frame_w;
+      const uint32_t ni = (io > 0) ? io : inner_u;
+      if (nf >= 1u && ni >= 1u &&
+          static_cast<uint64_t>(nf) * static_cast<uint64_t>(ni) <=
+              static_cast<uint64_t>(budget)) {
+        frame_w = nf;
+        inner_u = ni;
+      } else {
+        std::fprintf(stderr,
+                     "[p1axis] 拒绝越界标定 frame_workers=%u inner_omp=%u "
+                     "budget=%u ⇒ 回策略值 frame_workers=%u inner_omp=%u\n",
+                     nf, ni, budget, frame_w, inner_u);
+      }
+    }
+  }
   // memory_cap 列在本行不适用（帧级池大小已由 workers 给出），恒填 0 = n/a；
   // 真实内存闸门值见同节点的 [p1cap] frame_workers 行。
-  trace_p1_cap("parallel_for", budget, 0, workers, n, inner_u);
-  if (workers <= 1 || n <= 1) {
+  trace_p1_cap("parallel_for", budget, 0, frame_w, n, inner_u);
+  if (frame_w <= 1 || n <= 1) {
+    // 帧级宽度退化为 1 的路径（lease=1 / 内存闸门 cap=1 / 单帧 / 标定旋钮指定）。
+    // **必须显式把帧内预算注入本线程 ICV** —— 缺陷（本轮修，P1-PARALLEL-AXIS-REDESIGN-01）:
+    // 旧实现在本分支直接串行循环、**从不调用 omp_set_num_threads** ⇒ 帧内宽度回落到
+    // **调用线程的既有 ICV**（通常是进程默认 = 硬件并发，而非 lease）：
+    // 「本帧独占整个预算」既不被保证、也随调用上下文漂移（不可复现），
+    // 且可能超出 lease 造成超额订阅。
+    // 依据: docs/architecture/THREADING_MODEL.md「并行轴分配」不变式。
+#ifdef _OPENMP
+    omp_set_num_threads(static_cast<int>(inner_u));
+#endif
     for (uint64_t i = 0; i < n; ++i) body(i, 0u);
     return;
   }
@@ -1831,10 +1890,10 @@ static void p1_parallel_for(uint32_t workers, uint64_t n, uint32_t thread_budget
   const int inner_omp = static_cast<int>(inner_u);
 #endif
   std::atomic<uint64_t> next{0};
-  std::vector<std::exception_ptr> eptr(workers, nullptr);
+  std::vector<std::exception_ptr> eptr(frame_w, nullptr);
   std::vector<std::thread> pool;
-  pool.reserve(workers);
-  for (uint32_t w = 0; w < workers; ++w) {
+  pool.reserve(frame_w);
+  for (uint32_t w = 0; w < frame_w; ++w) {
     pool.emplace_back([&, w]() {
 #ifdef _OPENMP
       omp_set_num_threads(inner_omp);

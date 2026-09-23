@@ -301,6 +301,18 @@ def compare_manifests(base: dict, other: dict):
            "other_only": sorted(set(other) - set(base)),
            "n_common": len(common), "must_diff": [], "telem_diff": [],
            "n_path_only": []}
+    # P1-PARALLEL-AXIS-REDESIGN-01 判别力修正（**恒真门**）:
+    #   旧口径只在**共同文件**上比对 ⇒ ① 两份 manifest 文件集完全不相交（common=0）、
+    #   ② 另档产物为空目录、③ 另档多/少一个科学产品 —— 三种情形都必须判红，
+    #   旧实现一律返回 0（绿），即「没有可比的差异」被当成「没有差异」。
+    #   对 A/B 对照而言文件集必须逐项一致（同帧集 ⇒ 同产物集），故 fail-closed 判红。
+    res["vacuous"] = (len(common) == 0)
+    # 文件集不一致只在 **must 类**上判红：run-scoped 遥测（如 astrocs_run_<hash>.json）
+    # 的文件名本身含 run 哈希 ⇒ 两次运行必然一有一无，那不是产品差异。
+    # 口径：只统计 classify()=='must' 的单侧文件（宁可误报，不可漏报科学产品缺失）。
+    res["base_only_must"] = [r for r in res["base_only"] if classify(r) == "must"]
+    res["other_only_must"] = [r for r in res["other_only"] if classify(r) == "must"]
+    res["set_mismatch"] = bool(res["base_only_must"] or res["other_only_must"])
     for rel in sorted(common):
         a, b = base[rel], other[rel]
         same = (a["sha256"] == b["sha256"])
@@ -322,6 +334,7 @@ def compare_manifests(base: dict, other: dict):
 def cmd_compare(a) -> int:
     mans = [json.load(open(p)) for p in a.manifest]
     base_name = os.path.basename(a.manifest[0])
+    rows = []
     worst = 0
     for i in range(1, len(mans)):
         res = compare_manifests(mans[0], mans[i])
@@ -335,13 +348,22 @@ def cmd_compare(a) -> int:
             print("  !! 必同文件差异（前 20）:")
             for r in res["must_diff"][:20]:
                 print("     -", r)
+        # P1-PARALLEL-AXIS-REDESIGN-01 fail-closed: 无可比对象 / 文件集不一致 ⇒ 判红。
+        # 旧口径只看**共同文件**的差异 ⇒ common=0 时恒返回 0（绿），是恒真门。
+        if res["vacuous"]:
+            print("  !! 空对照：共同文件 0 ⇒ 判红（无判别力，不得当绿）")
+        if res["set_mismatch"]:
+            print("  !! 文件集不一致（must 类）⇒ 判红（仅基准有 %d / 仅本档有 %d）"
+                  % (len(res["base_only_must"]), len(res["other_only_must"])))
+            for r in (res["base_only_must"] + res["other_only_must"])[:10]:
+                print("     -", r)
         worst = max(worst, res["n_must_diff"])
-        if a.json_out:
-            a.json_out.append({"base": a.manifest[0], "other": a.manifest[i], **res})
-    if a.json_out is not None and a.out:
+        rows.append({"base": a.manifest[0], "other": a.manifest[i], **res})
+    if a.out:
         with open(a.out, "w") as f:
-            json.dump(a.json_out, f, indent=1, ensure_ascii=False)
-    return 1 if worst else 0
+            json.dump(rows, f, indent=1, ensure_ascii=False)
+    bad = worst or any(r["vacuous"] or r["set_mismatch"] for r in rows)
+    return 1 if bad else 0
 
 
 def cmd_manifest(a) -> int:
@@ -443,6 +465,39 @@ def self_test() -> int:
         r = compare_manifests(build_manifest(d3, mask=d3), build_manifest(d4, mask=d4))
         print("SELFCHECK phase9 科学字段改 1 位: must_diff=%d (期望 1)" % r["n_must_diff"])
         ok &= (r["n_must_diff"] == 1)
+        # 负例 5-7（P1-PARALLEL-AXIS-REDESIGN-01 **恒真门**修正）：旧口径只比**共同文件**，
+        # common=0 时恒判绿 —— 「另档产物整体缺失/错位」会被当成「没有差异」。
+        g1 = os.path.join(tmp, "g1"); g2 = os.path.join(tmp, "g2")
+        os.makedirs(os.path.join(g1, "frame"), exist_ok=True)
+        os.makedirs(os.path.join(g2, "other"), exist_ok=True)
+        open(os.path.join(g1, "frame", "signal.fits"), "wb").write(b"A" * 32)
+        open(os.path.join(g2, "other", "signal.fits"), "wb").write(b"A" * 32)
+        r = compare_manifests(build_manifest(g1), build_manifest(g2))
+        print("SELFCHECK phase10 文件集不相交: vacuous=%s set_mismatch=%s (期望 True/True)"
+              % (r["vacuous"], r["set_mismatch"]))
+        ok &= (r["vacuous"] and r["set_mismatch"])
+        g3 = os.path.join(tmp, "g3"); os.makedirs(g3, exist_ok=True)
+        r = compare_manifests(build_manifest(g1), build_manifest(g3))
+        print("SELFCHECK phase11 另档为空目录: vacuous=%s (期望 True)" % r["vacuous"])
+        ok &= bool(r["vacuous"])
+        g4 = os.path.join(tmp, "g4"); os.makedirs(os.path.join(g4, "frame"), exist_ok=True)
+        open(os.path.join(g4, "frame", "signal.fits"), "wb").write(b"A" * 32)
+        open(os.path.join(g4, "frame", "extra.fits"), "wb").write(b"B" * 32)
+        r = compare_manifests(build_manifest(g1), build_manifest(g4))
+        print("SELFCHECK phase12 另档多一个产品: set_mismatch=%s must_diff=%d (期望 True/0)"
+              % (r["set_mismatch"], r["n_must_diff"]))
+        ok &= (r["set_mismatch"] and r["n_must_diff"] == 0)
+        # 正例：单侧只差 **run-scoped 遥测**（文件名含 run 哈希）⇒ 不得判红。
+        g5 = os.path.join(tmp, "g5"); g6 = os.path.join(tmp, "g6")
+        for d in (g5, g6):
+            os.makedirs(os.path.join(d, "frame"), exist_ok=True)
+            open(os.path.join(d, "frame", "signal.fits"), "wb").write(b"A" * 32)
+        open(os.path.join(g5, "astrocs_run_aaaaaaaaaaaa.json"), "w").write('{"t":1}')
+        open(os.path.join(g6, "astrocs_run_bbbbbbbbbbbb.json"), "w").write('{"t":2}')
+        r = compare_manifests(build_manifest(g5), build_manifest(g6))
+        print("SELFCHECK phase13 单侧只差 run-scoped 遥测: set_mismatch=%s must_diff=%d (期望 False/0)"
+              % (r["set_mismatch"], r["n_must_diff"]))
+        ok &= (not r["set_mismatch"] and r["n_must_diff"] == 0)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print("CONCURRENCY_SWEEP SELFCHECK %s" % ("PASS" if ok else "FAIL"))
