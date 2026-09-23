@@ -52,10 +52,11 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
     ⇒ S_p = Σ_j B_j a_jp / Σ_j a_jp
     drop 面积 A_drop,j 在分子分母相消(均匀 drop 尺度下), 只决定 footprint;
     按 A_drop,j 归一的权重 a_jp/A_drop,j 满足 w_jp = pixfrac²·(a_jp/A_drop,j)，
-    故两种归一下的信号相差 1/pixfrac²（DISP-DRZ-009：**已闭环** ——
-    现实现用 w_jp=a_jp/A_pixel,j，见
+    故两种归一下的信号相差 1/pixfrac²：**禁用**按 A_drop,j 归一
+    （w_jp=a_jp/A_drop,j；负例判据 1/pf²−1，pf=0.8 → +56.25%）。
+    正确口径 w_jp=a_jp/A_pixel,j，见
     drizzle_engine.cpp 的 processPixelSharedTiled「pixel_area」段与
-    spherical_overlap.cpp 的 polygon_area_consistent；回归门 p1drz_disp009）
+    spherical_overlap.cpp 的 polygon_area_consistent；回归门 p1drz_disp009。
 
 语义固定（SCI-003: flux vs surface-brightness 二选一）:
   【输入 x_j = 源像素积分通量】(单位统一为 ADU/e⁻), 由天体面亮度场 B(Ω) 对像素积分:
@@ -80,7 +81,8 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
 球面几何 (ALG-DRZ-GEOM):
   drop 多边形: pixelToSky((x±0.5·pixfrac, y±0.5·pixfrac)) → Vec3 单位向量
   目标边界: NESTED leaf 4 角（赤道菱形/极区退化），nside≥256 用 boundary4，
-            低 nside 自适应细分；面积经 Sutherland–Hodgman + Girard 定理
+            低 nside 自适应细分；面积经 Sutherland–Hodgman 球面裁剪 +
+            Van Oosterom & Strackee 扇形三角剖分
   通量守恒条件不变量：Σ_p w_jp·A_drop,p 与输入总通量在容差内一致（§7）。
 缓冲三层 (spherical_overlap.cpp:40, HP_CIRCUMRADIUS_FACTOR=1.25·hp_res):
   1) overlap quick-reject:  lim = max_angle + 1.25·hp_res
@@ -148,7 +150,7 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
 ## 12 关联 ALG ID
 
 - `ALG-DRZ-CAND` 候选零漏选与包围圆三层缓冲
-- `ALG-DRZ-OVERLAP` Sutherland–Hodgman + Girard 球面裁剪
+- `ALG-DRZ-OVERLAP` Sutherland–Hodgman 球面裁剪 + Van Oosterom & Strackee 扇形三角剖分
 - `ALG-DRZ-VAR` 方差传播 `sumVarNum/D²`
 - `ALG-DRZ-GEOM-CACHE` LRU 8192 bounded target-ipix cache
 
@@ -192,10 +194,11 @@ Fruchter & Hook 线性重建 (SCI-DRZ-001; 面亮度保持归一):
   `dover/=jaco`（`jaco=A_drop`）后 `dow=dover·w`——drop 面积同入分子分母，是一致加权均值；
   DrizzlePac Handbook §2.3.2（p.17）“the weights of the individual output pixels … are independent of the choice of p [pixfrac]”；
   SWarp `src/resample.c` 以 `A_out/A_in` 面积比保面亮度（无 drop/pixfrac 概念）。
-  **按 `A_drop,j` 归一的混合式**（分子 `x_j·a_jp/A_drop,j`、分母 `Σ a_jp`）给出 `S_p=B0/pixfrac²`，仅 pixfrac=1 正确——该式即登记项 DISP-DRZ-009，**已闭环**：现实现用 `w_jp=a_jp/A_pixel,j`（`drizzle_engine.cpp` `processPixelSharedTiled` 的 `pixel_area` 段），回归门 `p1drz_disp009`（pixfrac∈(0,1] 常量面亮度门 + "分母取 A_drop 必判红"的负例控制）。
+  **禁用** **按 `A_drop,j` 归一的混合式**（分子 `x_j·a_jp/A_drop,j`、分母 `Σ a_jp`）：它给出 `S_p=B0/pixfrac²`，仅 pixfrac=1 正确（`DISP-DRZ-009` 负例判据）。正确口径 = `w_jp=a_jp/A_pixel,j`（`drizzle_engine.cpp` `processPixelSharedTiled` 的 `pixel_area` 段），回归门 `p1drz_disp009`（pixfrac∈(0,1] 常量面亮度门 + "分母取 A_drop 必判红"的负例控制）。
 - **Drizzle 实践与相关噪声**：DrizzlePac Handbook（STScI）；drizzlepac（BSD-3-Clause，https://github.com/spacetelescope/drizzlepac）。
 - **HEALPix 几何/order**：Górski, K. M. et al. 2005, ApJ 622, 759（DOI 10.1086/427976）；独立实现 astropy-healpix（BSD-3-Clause）、healpy（GPL-2.0，只对照不复制）。
-- **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207，Girard 定理）；**实现实为 Sutherland–Hodgman + Van Oosterom & Strackee 扇形三角剖分**（spherical_overlap.cpp:152-186,218），本文件 §5/§12 的“Girard 定理”命名与实现不符，登记 `DISP-DRZ-002`，待变更流程处理。
+- **球面多边形面积**：Van Oosterom, A. & Strackee, J. 1983, IEEE Trans. Biomed. Eng. 30, 125（DOI 10.1109/TBME.1983.325207）——本模块按其平面三角形立体角式实现
+  Sutherland–Hodgman 球面裁剪 + 扇形三角剖分（spherical_overlap.cpp:152-186,218）。
 - **多边形裁剪**：Sutherland, I. E. & Hodgman, G. W. 1974, “Reentrant Polygon Clipping”, Comm. ACM 17, 32（DOI 10.1145/360767.360802）——平面算法原型（原文只处理平面多边形与平面窗口）；本模块的球面逐边裁剪是它的推广。
 - **HiPS/MOC 层级**：IVOA HiPS 1.0（https://www.ivoa.net/documents/HiPS/）；IVOA MOC 1.0（https://www.ivoa.net/documents/MOC/）；Fernique et al. 2015, A&A 578, A114。
 - **HP_CIRCUMRADIUS_FACTOR=1.25、三层缓冲**：Project-defined（§5/§8），以 9003 例零漏选门承载。

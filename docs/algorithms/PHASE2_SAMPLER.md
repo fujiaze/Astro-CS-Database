@@ -444,10 +444,9 @@ cells[idx]（:870-872，无跨线程数据竞争面），veto/insufficient 经
 TEST(Phase2SamplerParallel, OneTvsTwoTDeterminism) 承载）；全局
 g_aio_mu（:161 声明，read_tile_pair :166 加锁；并行路径 per-worker 独立句柄不经此锁）。
 
-**OpenMP 残留澄清**：PHASE2_SAMPLER 旧 §并行模型 的
-`P2_ENABLE_OPENMP` 表述为历史状态——当前实现 OpenMP 已移除、
-std::thread 为唯一并行路径（:879-880 注释"OpenMP 条件已移除"；
-lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编译面）。
+**并行路径唯一口径**：`std::thread` 为唯一并行路径（:879-880 注释）；
+lib/algorithms/coverage/CMakeLists.txt:28 的 `P2_ENABLE_OPENMP` option 仅影响
+旧 target 编译面，**禁用**据此启用 OpenMP 路径。
 本节是 `ASTROCS_DESIGN.md` §8（资源与并行的强制条款：确定性合同 = 浮点归约顺序冻结、并行开关不改科学数值、输出不依赖线程调度；线程预算唯一来源）与 §7.1（模块边界）在本模块的**落地细化**，**不另立权威**（§0.1：只有一份权威链）。
 
 ## 7 与 SCI 的对应与偏差（如实登记）
@@ -460,7 +459,7 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
 | SNR 来自 Catalogue 禁止重检测 | :851-867 纯查询 | 一致 |
 | control_variance 公式（SCI-UPM-WEIGHT-001） | :840-842 逐项一致 | 一致 |
 | k_corr MC 校准非猜测（sampler.h:50-51） | :83/:89-112（选项 B 逐帧，pixfrac 维） | 常数一致（冻结 1.4 ≥ 实证）；**MC 证据源 `control_median_mc_test` 未注册（MISSING，构建孤儿）⇒ 不可复跑** |
-| per-control `control_reliability`（旧名 geometric_reliability）参与归一化 | 采样器不产出 per-control 可靠度；UPM 侧实现为**配置常量 1.0**（`upm.cpp:565` 归一化消费） | 不在本模块域（UPM 侧缺陷，已登记 SC-005） |
+| per-control `control_reliability`（`geometric_reliability` 为**禁用**旧名）参与归一化 | 采样器不产出 per-control 可靠度；UPM 侧实现为**配置常量 1.0**（`upm.cpp:565` 归一化消费） | 不在本模块域（UPM 侧缺陷，已登记 SC-005） |
 | wiki 语义版本 34A532A2...B2EB308 | sampler.cpp:3/:85-87 注释锚定 | 一致 |
 
 ## 8 单位与 dtype 登记（唯一权威=DATA_SEMANTICS §23）
@@ -548,17 +547,17 @@ lib/algorithms/coverage/CMakeLists.txt:28 option 保留仅影响旧 target 编�
   yes；无取消检查点（ThreadLease 接线归 P2-SAMP-IMPL 整改点，与
   DISP-COV-005 同构）。
 
-### 11.2 现状缺陷清单（DISP-P2SMP-001..007，登记不改码，整改归 P2-SAMP-IMPL/TEST）
+### 11.2 现状缺陷清单（DISP-P2SMP-001..007，登记不改码）
 
 | ID | 锚（sampler.cpp） | 内容 | 来源 |
 |---|---|---|---|
-| DISP-P2SMP-001 | :485-502 | 配置修补 `<=0→默认` 吞显式 0（意图"禁用"的 0 被静默改写为默认值，如 background_clip_iters=0 想关 clipping 反而得 3） | bughunt R3-A P3-③（ledger.md:250），本任务复核锚定 |
-| DISP-P2SMP-002 | :1022 | 第三遍 ：1022 对 accepted=false 且 reason==2 的帧再次 `++rejected_insufficient_retained`，与第二遍 ：1006 递增重复——P2SampleStats.rejected_insufficient_retained 对该类拒绝双计数（统计面偏差，obs 输出不受影响；:1078-1079 注释自述曾修 double-count，此残留与其意图矛盾） | 本任务实测 |
-| DISP-P2SMP-003 | :641-643/:655/:666-672/:705-713 等 17 处 | 诊断进度日志直写 stderr（fprintf/fflush），未走结构化日志通道，err 缓冲外；生产可观测性债（静默失败排查依赖 stderr 文本） | 本任务实测 |
-| DISP-P2SMP-004 | ~~:849-850~~ | **已闭环（配置面）**：阈值与半径已入配置面 `P2SamplerConfig.star_mask_snr_factor`（默认 10.0）/ `star_mask_radius_deg`（默认 0.012），`sampler.h:58-59` 声明、`sampler.cpp:318-319` 默认值、`:513-514` 配置修补、`:1149` 消费；单位：factor 无量纲（帧 SNR 中位数的倍数）、radius = 度 | 本仓复核（证据 `run/SCI-FIX-PHASE2-01/logs/`） |
-| DISP-P2SMP-005 | :853 | clipping 相对收敛阈值 `1e-12×max(|m0|,1e-12)`：m0≈0 时阈值≈1e-24 过严，实际退化为固定 background_clip_iters 轮全迭代（结果仍确定、单调收缩、min_samples 兜底；无科学输出影响，性能观察级） | 本任务实测 |
-| DISP-P2SMP-006 | :575-584 | **域外回退的可观测性缺口**：`[sampler] k_corr 域外回退` 标只在 `pixfrac > 0 且 尺度 ∉ [300,600]″` 时打；Drizzle provenance 键缺失（pixfrac 不可解析）时回退到 `cfg.control_k_corr` 是**静默**的，provenance 无法区分两条回退路径 | 本仓实测（证据：`run/VARIANCE-SEMANTICS-01/probe/out_probe_orig_m42_1024_1024/hips/signal/properties` 无 `ASTROCS_DRIZZLE_*` 键仍以 1.4 参与生产） |
-| DISP-P2SMP-007 | :864-877 | **零尺度伪方差**：`σ_bg_raw=0` 时以 1e-12 生成有限 control_variance（7.609e-27）与 control_ivar（1.314e26）并随 obs 发布；§5.4 已冻结「无尺度信息」发布口径，实现整改归 P2-SAMP-IMPL | 本仓实测（证据 `run/SCI-FIX-PHASE2-01/evidence/e3e4_floor_structure.json`、`run/SCI-FIX-PHASE2-01/evidence/e3c_weight_pollution.json`） |
+| DISP-P2SMP-001 | :485-502 | 配置修补 `<=0→默认` 吞显式 0（意图"禁用"的 0 被静默改写为默认值，如 background_clip_iters=0 想关 clipping 反而得 3） | 实测 |
+| DISP-P2SMP-002 | :1022 | 第三遍 ：1022 对 accepted=false 且 reason==2 的帧再次 `++rejected_insufficient_retained`，与第二遍 ：1006 递增重复——P2SampleStats.rejected_insufficient_retained 对该类拒绝双计数（统计面偏差，obs 输出不受影响；:1078-1079 注释自述曾修 double-count，此残留与其意图矛盾） | 实测 |
+| DISP-P2SMP-003 | :641-643/:655/:666-672/:705-713 等 17 处 | 诊断进度日志直写 stderr（fprintf/fflush），未走结构化日志通道，err 缓冲外；生产可观测性债（静默失败排查依赖 stderr 文本） | 实测 |
+| DISP-P2SMP-004 | sampler.h:58-59; sampler.cpp:318-319,513-514,1149 | **配置面口径（约束）**：星掩膜阈值与半径必须由配置面承载——`P2SamplerConfig.star_mask_snr_factor`（默认 10.0）/ `star_mask_radius_deg`（默认 0.012），`sampler.h:58-59` 声明、`sampler.cpp:318-319` 默认值、`:513-514` 配置修补、`:1149` 消费；单位：factor 无量纲（帧 SNR 中位数的倍数）、radius = 度 | 实测 |
+| DISP-P2SMP-005 | :853 | clipping 相对收敛阈值 `1e-12×max(|m0|,1e-12)`：m0≈0 时阈值≈1e-24 过严，实际退化为固定 background_clip_iters 轮全迭代（结果仍确定、单调收缩、min_samples 兜底；无科学输出影响，性能观察级） | 实测 |
+| DISP-P2SMP-006 | :575-584 | **域外回退的可观测性缺口**：`[sampler] k_corr 域外回退` 标只在 `pixfrac > 0 且 尺度 ∉ [300,600]″` 时打；Drizzle provenance 键缺失（pixfrac 不可解析）时回退到 `cfg.control_k_corr` 是**静默**的，provenance 无法区分两条回退路径 | 实测（provenance 无 `ASTROCS_DRIZZLE_*` 键时仍以 1.4 参与生产） |
+| DISP-P2SMP-007 | :864-877 | **零尺度伪方差**：`σ_bg_raw=0` 时以 1e-12 生成有限 control_variance（7.609e-27）与 control_ivar（1.314e26）并随 obs 发布；§5.4 已冻结「无尺度信息」发布口径，**禁用**以 1e-12 之类的占位尺度生成伪有限 control_variance/control_ivar | 实测 |
 
 ### 11.3 TEST-P2-SMP-DESIGN-001 冻结测试设计（可执行 TEST-P2-SMP-001 由 P2-SAMP-TEST 落地，双面登记不冒认）
 
@@ -605,7 +604,7 @@ fill）。fixture 由固定 seed 合成 HiPS 树生成，不提交大二进制�
 
 - `ALG-P2-SMP-001` = 本文档整体（逐符号锚 §3/§5；矩阵 P2-SAMP 行
   algorithm_id，INDEX.yaml path 绑定本文件）。
-- `ALG-UPM-CONTROL-IVAR-001`（既有 INDEX 条目，path 历史上即绑定
+- `ALG-UPM-CONTROL-IVAR-001`（既有 INDEX 条目，path 绑定
   本文件）= 本文档 §5.4 + §2（control_variance/control_ivar 公式
   与 k_corr 域）；两 ID 并存不冲突——ALG-P2-SMP-001 为模块合同
   全集，ALG-UPM-CONTROL-IVAR-001 为其方差子面（UPM 权重消费方

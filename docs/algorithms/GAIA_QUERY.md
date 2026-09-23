@@ -86,8 +86,8 @@ r < 1e-15  → RA_s = center_ra, Dec_s = center_dec   # 投影中心（极点）
 1 deg = 3600″ × 10⁶ µas/″ = 3.6e9 µas，故 1 LSB = 3.6e9/1.8e9 = **2 µas**
 （等价口径：分母分解 500 LSB/mas → 0.002 mas = 2 µas）。与同代码块
 `dra_raw` 步长换算规则交叉印证：1/3.6e8 deg = 10 µas/LSB（1 deg=3.6e9 µas）。
-历史文档曾记 7.2 µas/LSB，属换算错误（7.2 µas 对应 1/5e8 deg，
-与实码分母 1.8e9 不符），本节已按实测推导修正。
+**禁用** 7.2 µas/LSB 这一取值：它对应 1/5e8 deg，与实码分母 1.8e9 不符
+（负例判据）。
 
 ### 2.4 赤道带 bbox 剪枝（bbox_intersects gaia_client.c:648-659）
 
@@ -192,9 +192,9 @@ spectrum_start/step/count 取自 XPSD XML <Data parameters="...">（缺省 0，
   失败（open/mmap/魔数/头字段非法）或条目数 > `MAX_FILES`(32) ⇒
   `gaia_client_create[_ex]` 记录明确原因（目录 / 期望条目数 / 失败数 / 首个失败原因 /
   `loaded_mmap_bytes` / `RLIMIT_AS`）并返回 `NULL`；**不返回残缺 client**。
-  修复前装载失败的 shard 被**静默丢弃**（无日志、无计数、create 仍非 NULL），地址空间
+  **禁用**静默丢弃装载失败的 shard（无日志、无计数、create 仍非 NULL）——地址空间
   受限时丢掉的恰是唯一含亮星的 shard ⇒ 参考星表静默变成"暗 shard 里最亮的 N 颗" ⇒
-  `iter_trans_solve` 全败（根因与证据见 run/WCS-DETERMINISM-01/REPORT.md §1.2/§2.1）。
+  `iter_trans_solve` 全败（负例判据）。
   成功返回的 client 恒满足 `file_count == 目录内 *.xpsd 条目数` 且
   `file_load_fail_count == 0`（db_type 过滤导致的跳过单独计数，不算失败）；空目录
   仍返回 `file_count=0` 的空 client（平台语义不变），上层节点须自行断言

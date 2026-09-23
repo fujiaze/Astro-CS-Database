@@ -83,11 +83,11 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
   （面亮度，`FZ-UNIT-SIGNAL-SB` FROZEN；推导见 DATA_SEMANTICS §31.1a 量纲链表）；
   `support` **无量纲**（sr/sr，∈[0,1]）。**禁止**把 `signal` 读作"每像素计数"
   （裸 ADU）：两者相差 1/A_cell 的立体角因子，且跨像元尺度不可比。
-- (2b-上游) **B2-A15**：Phase1 编排（module_adapters.cpp p1_op_writer）不再以
-  `support>0 ? A_cell : 0` 传入 `covered_area`（该写法把任意部分覆盖塌缩为
-  满覆盖，AIO 侧 `support=area/A_cell` 恒 1）；改为按 HISS 支持度 uint8 面
-  `covered_area = (support/255)·A_cell` 连续缩放，并置 `valid_mask`=本 parent
-  实际触及叶像素（未覆盖偏移不再保留上一 parent 缓冲）；provenance
+- (2b-上游) Phase1 编排（module_adapters.cpp p1_op_writer）必须按 HISS 支持度
+  uint8 面连续缩放 `covered_area = (support/255)·A_cell`，并置 `valid_mask`=
+  本 parent 实际触及叶像素（未覆盖偏移**不得**保留上一 parent 缓冲）；
+  **禁用** `support>0 ? A_cell : 0` 这一写法——它把任意部分覆盖塌缩为满覆盖
+  （AIO 侧 `support=area/A_cell` 恒 1，负例判据）；provenance
   `covered_area_model="hiss_support_ratio_x_A_cell"`。
 - (2c) 无效规则（:476,:481-485）：当 `valid[p] && area[p]>0 && isfinite(flux[p])
   && isfinite(area[p])` 为假 → signal=NaN、support=0（:483-485）；
@@ -102,8 +102,8 @@ docs/interfaces/io/IO_003_ATOMIC_OUTPUT_PUBLISH.md，本文件仅登记对齐边
   DISP-HIPS-012）；`fits_write_pix` 行主序一次写 512×512（:220-225，
   bitpix −32/−64 随 data_type）；`fits_write_chksum`（:230，DATASUM/
   CHECKSUM 完整性）。路径 `Norder{K}/Dir{(ipix/10000)*10000}/Npix{ipix}.fits`
-  （IVOA REC-HIPS-1.0 §4.1；M2b-B-01 前为 Dir=商/Npix=余数，与标准相反；
-  tile_rel_path 现位于本文件 aio_hips_writer.cpp 的匿名命名空间内）。
+  （IVOA REC-HIPS-1.0 §4.1；**禁用** Dir=商/Npix=余数这一与标准相反的映射；
+  tile_rel_path 位于本文件 aio_hips_writer.cpp 的匿名命名空间内）。
 - (2e) 登记副作用：FITS 写失败 rc=−4（signal，:513）/−5（support，:521）；
   MOC 叶级 cell（moc_cells.insert :528-529）、moc_area_sr += A_cell(K)
   （:530）、covered_area_sr += tile_covered（:532）、leaf_ipix_list 追加
@@ -222,19 +222,20 @@ DATA_SEMANTICS §4a（DATA-HIPS-VAR-001/DATA-HIPS-IVAR-001）。
   412.258369″，经 SCI-DRZ-001 冻结的 1–2× 过采样 ⇒ 帧尺度 ≤2×412.258369″；
   该界是物理/表示域，**不是** k_corr 查表域 [300,600]″）/ obs_regime
   / hips_hierarchy / **hips_pixel_scale = (180/π)·√(π/3)/nside deg（IVOA REC-HIPS-1.0
-  §4.4.1 单位=度；M2b-B-03 前多乘 3600 写角秒。帧尺度上界常量
+  §4.4.1 单位=度；**禁用**多乘 3600 写角秒。帧尺度上界常量
   ACS_HIPS_MAX_FRAME_SCALE_ARCSEC 仍是角秒内部量，不改）
   （:704-705，%.6f）** / **hips_initial_fov="60" 硬编码（:745，DISP-HIPS-002）** /
   **moc_sky_fraction（与 manifest.json 共用唯一格式化函数
   fmt_sky_fraction = %.17g，:1051/:1115/:1673；DBL_DECIMAL_DIG ⇒
-  strtod 回程精确，§9 的 <1e-9 绝对容差与键值精确两条无条件成立；修复前
-  properties 走 std::to_string 6dp、manifest 走 %.8f ⇒ 双面字面量必然分叉）** /
+  strtod 回程精确，§9 的 <1e-9 绝对容差与键值精确两条无条件成立；**禁用**
+  properties 与 manifest 各用一套格式化（std::to_string 6dp / %.8f）——
+  双面字面量必然分叉，违反逐字符相等）** /
   astrocs_covered_sky_fraction / astrocs_signal_dtype /
   **astrocs_support_clamped_pixels + astrocs_coverage_gt1_pixels（:1119-1120
   properties / :1668-1669 manifest；M2a-H-3 钳制计数，见 (4c) 编码限）** /
   [非空] hips_data_range（sig_min≤sig_max 才写，:1026-1029）/ **hips_ordering=
   "NESTED" 恒写（:908，B2-A8；消费侧 coverage 断言 NESTED）** / **obs_filter
-  恒写（含空值，:960-964，B2-A8；空串=显式"无 filter"声明，不再是"键缺失"）** /
+  恒写（含空值，:960-964；空串=显式"无 filter"声明，**禁用**"键缺失"写法）** /
   [exposure>0] obs_exptime / [obs_date] obs_date +
   t_min+t_max（iso_to_mjd :65-79 固定纪元换算，t_max=t_min+exposure/86400，
   :762-771）。另写极简 metadata.fits（PIXTYPE/ORDERING=NESTED/NSIDE/
@@ -331,8 +332,8 @@ round-trip（(5c)）。容差冻结见 §9。
   Hipsgen 样例）；FITS 头键精确匹配；MOC UNIQ 精确（式见 (5a)）；
   hierarchy 父像素=子像素精确聚合（NESTED 4 分叉）；**层次闭合 oracle 的权重
   必须取 fixture 输入的未钳制覆盖面积，不得用产物 support（钳后值）反乘
-  ——否则 oracle 与实现同源、对 (4b) 型错误恒绿（M2a-H-3 修复的正是
-  p1hips_tests_properties.cpp 的同源 oracle）**；moc_sky_fraction 的序列化
+  ——否则 oracle 与实现同源、对 (4b) 型错误恒绿（负例判据：同源 oracle
+  对等价缺陷注入必须判红）**；moc_sky_fraction 的序列化
   判别点必须取十进制非有限小数（oracle 组 O6 用 N=1,K=0 ⇒ 1/12：
   6dp 偏 3.333e-7 = §9 容差的 333 倍，且 properties↔manifest 字面量必须
   逐字符相等）。独立复检生态参考：
@@ -359,7 +360,7 @@ round-trip（(5c)）。容差冻结见 §9。
   兼容入口 tile 数组，N11）**。
 - **冻结容差**：f64 通路逐像素 bitwise（同序确定性）；f32 存储 rtol=1e-7
   （单次乘除舍入界）；hierarchy f64 累加对 oracle bitwise、f32 累加路径
-  rtol=1e-6（f32 累加器漂移界，DISP-HIPS-009 修复前口径）；sky fraction
+  rtol=1e-6（f32 累加器漂移界；DISP-HIPS-009）；sky fraction
   绝对误差 <1e-9 **且字面量必须 strtod 回程精确（%.17g；判别点取 1/12 这类
   十进制非有限小数，见 §9 oracle）**；MOC/properties 键值精确相等
   （moc_sky_fraction 在 properties 与 manifest 两面**逐字符**相等）；checksum
@@ -368,7 +369,7 @@ round-trip（(5c)）。容差冻结见 §9。
   路径断言无交叉污染。
 - 性能/资源：单 tile 写耗与内存水位 smoke 记录（非冻结容差，登记即可）。
 
-## 10. DISP-HIPS-001..012 — 实现缺陷/偏差清单（修复归 P1-HIPS-IMPL/INT）
+## 10. DISP-HIPS-001..012 — 实现偏差清单
 
 | ID | 严重度 | 描述 | 锚 | 处置建议 |
 |---|---|---|---|---|

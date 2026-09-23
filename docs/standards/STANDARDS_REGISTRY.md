@@ -60,7 +60,7 @@
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
-| Paper I §2.1.1（CRPIX 1-based 参考像素） | 参考像素 CRPIX 为 1-based，像素坐标 `xp = x + 1` | CONFORMANT | docs/science/ASTROMETRY.md；docs/algorithms/PLATESOLVE.md；eng/tests/unit/p1wcs/p1wcs_astropy_cross.py；eng/tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py；lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp | STD-F1（已闭环：ipv 求解器拟合自变量为 sdet 半整数像素中心、输出 `x=u+CRPIX` 即 1-based FITS `p`，与 Paper I §2.1.1 逐式一致；产品网格/数组下标→FITS 的单次 +1 换算在 Phase3 导出边界与 p1_wcs.json 写出侧；实测 astropy 交叉 5.7e-14 deg、九宫格 18 格无 1px 偏移、负向注入必败；见 §3 偏差索引与 FIX-SCI-WCS-001） |
+| Paper I §2.1.1（CRPIX 1-based 参考像素） | 参考像素 CRPIX 为 1-based，像素坐标 `xp = x + 1` | CONFORMANT | docs/science/ASTROMETRY.md；docs/algorithms/PLATESOLVE.md；eng/tests/unit/p1wcs/p1wcs_astropy_cross.py；eng/tests/unit/p1wcs/p1wcs_std_f1_bridge_cross.py；lib/algorithms/projection/tests/p3wcs/p3_wcs_test.cpp | STD-F1（CLOSED：ipv 求解器拟合自变量为 sdet 半整数像素中心、输出 `x=u+CRPIX` 即 1-based FITS `p`，与 Paper I §2.1.1 逐式一致；产品网格/数组下标→FITS 的单次 +1 换算在 Phase3 导出边界与 p1_wcs.json 写出侧；实测 astropy 交叉 5.7e-14 deg、九宫格 18 格无 1px 偏移、负向注入必败；见 §3 偏差索引） |
 | Paper I §3（CD/CTYPE 关键词体系） | 线性变换以 CD 矩阵 + CTYPE 表达；FITS 头卡 ≤80 字节 | CONFORMANT | docs/algorithms/PHASE3_PROJ_IMPL.md；lib/algorithms/projection/p3_wcs.cpp；eng/tests/unit/p3_projection_test.cpp | 无（T5/T7 断言在位） |
 | Paper II §5 Table 1（TAN/SIN/CAR/AIT 四投影） | 四投影按 Table 1 的 R_θ 定义实现，新增投影须注册并附独立往返 Oracle | CONFORMANT | docs/algorithms/PHASE3_PROJ_IMPL.md；eng/tests/unit/p3_projection_test.cpp；eng/tests/backend/test_p3_projection_oracle.py | 无（registry v1 恰四行；T1/T2 往返与独立解析解在位） |
 | Paper II §2.1（LONPOLE 与旋转） | 允许通用 LONPOLE/φ_p 附加旋转机制 | PROJECT_DEFINED | docs/algorithms/PHASE3_PROJ_IMPL.md | 无（本实现固定 θ₀=+90°、无 φ_p 附加旋转，显式冻结为 Project-defined；不实现通用 LONPOLE） |
@@ -72,7 +72,7 @@
 
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
-| STD-F1 | 已闭环（原高/P1） | docs/science/ASTROMETRY.md | STD-F1-ADJ（订正标签 FIX-SCI-WCS-001：ipv 求解器输出 `x=u+CRPIX` 即 1-based FITS `p`、与 Paper I 逐式一致；产品网格/数组下标→FITS 的单次 +1 换算在 Phase3 导出边界与 p1_wcs.json 写出侧；实测 astropy 交叉 5.7e-14 deg / 九宫格 18 格无 1px 偏移 / 负向注入必败） |
+| STD-F1 | CLOSED | docs/science/ASTROMETRY.md | STD-F1-ADJ（ipv 求解器输出 `x=u+CRPIX` 即 1-based FITS `p`、与 Paper I 逐式一致；产品网格/数组下标→FITS 的单次 +1 换算在 Phase3 导出边界与 p1_wcs.json 写出侧；实测 astropy 交叉 5.7e-14 deg / 九宫格 18 格无 1px 偏移 / 负向注入必败） |
 | DISP-WCS-001 | 中 | docs/algorithms/PLATESOLVE.md | P1-WCS-IMPL（CD 退化静默坍缩，负面用例已在位） |
 | DISP-WCS-008 | 低 | docs/algorithms/PLATESOLVE.md；docs/science/ASTROMETRY.md | P1-WCS-IMPL（网格/阶扩展与迭代反演已落地，SCI 口径已同步） |
 | DISP-P3PROJ-001 | 中 | docs/algorithms/PHASE3_PROJ_IMPL.md | P3-PROJ-IMPL / P3-PROJ-INT（PA 未接线：会话恒传 rotation_pa_deg=0.0；astrocs_p3_projection.dll 未建 entrypoint=MISSING） |
@@ -156,21 +156,20 @@
 - CLAUSES: §2（drop 与 pixfrac）/§3（线性重建与权重 w_jp=a_jp/A_pixel）/§4（欠采样图像重建）
 - COMPLIANCE: PARTIAL
 - EVIDENCE: docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz
-- DEVIATION: DISP-DRZ-001；DISP-DRZ-002；DISP-DRZ-003；**DISP-DRZ-004**；DISP-DRZ-005；DISP-DRZ-006；DISP-DRZ-007；DISP-DRZ-008；DISP-DRZ-009
-  （**`DISP-DRZ-004` = TRACKED/OPEN**：现行实现为值 NaN 经 `F_p` **传播、不掩膜**，
-  与生产口径不符。**唯一口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 =
+- DEVIATION: DISP-DRZ-001；DISP-DRZ-002；DISP-DRZ-003；DISP-DRZ-004；DISP-DRZ-005；DISP-DRZ-006；DISP-DRZ-007；DISP-DRZ-008；DISP-DRZ-009
+  （**`DISP-DRZ-004` 口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 =
   `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling` 块：
   样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 `n_rejected_nonfinite`；
   `docs/standards/NUMERIC_STANDARD.md` §MUST 引用同一份文字，**不得两套**）。
-  处置 = 实现侧改为掩膜（P1-DRZ-IMPL）。）
+  **禁用**把值 NaN 经 `F_p` 传播——会污染整像素信号与几何支撑。）
 
 | 条款 | 标准要求 | 符合状态 | 证据指针 | 偏差 |
 |---|---|---|---|---|
 | §2（drop 与 pixfrac 收缩因子） | drop 为源像素按 pixfrac 收缩后的足迹，pixfrac∈(0,1] | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp | DISP-DRZ-003（API 层接受 pixfrac=0.0，引擎层拒绝——两层双轨） |
-| §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 一致加权均值，drop 面积在分子分母相消；每像素常量 ADU ⇒ S=C/A_pixel | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz | DISP-DRZ-009（源码归一为 `w=a/A_drop`，pixfrac<1 的绝对面亮度偏 1/pixfrac²）；DISP-DRZ-002（面积实现为 S-H 裁剪+Van Oosterom 扇形剖分，非 Girard 定理，文档措辞已登记） |
+| §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 一致加权均值，drop 面积在分子分母相消；每像素常量 ADU ⇒ S=C/A_pixel | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests/p1drz | DISP-DRZ-009（CLOSED：归一为 `w=a/A_pixel`，**禁用** `w=a/A_drop`——pixfrac<1 的绝对面亮度偏 1/pixfrac²）；DISP-DRZ-002（TRACKED：源码注释写「Girard 定理」而实现为 S-H 裁剪 + Van Oosterom & Strackee 扇形剖分，注释须同步） |
 | §3（球面交叠面积与微小 drop 数值路径） | 交叠面积计算须数值稳定 | PROJECT_DEFINED | docs/algorithms/DRIZZLE_GEOMETRY.md | DISP-DRZ-005（角跨度 <1e-3 rad 时切平面分支为真路径，注释论证偏差 <4e-8；禁删） |
 | §4（欠采样重建与候选枚举完备性） | 重建须覆盖全部候选源像素，零漏选 | CONFORMANT | lib/algorithms/drizzle/healpix_drizzle/tests/candidate_oracle_test.cpp；docs/algorithms/DRIZZLE_GEOMETRY.md | 无（9003 例全枚举 false_negative=0：4 pixfrac × 5 尺度 × 7 nside × RA 跨 0 × 极区 × face 边界） |
-| §3（方差/权重传播确定性） | 重建为线性加权，须确定性可复现 | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；docs/standards/NUMERIC_STANDARD.md | **DISP-DRZ-004（TRACKED/OPEN）**：现行实现为值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1899-1902`；回归 `p1drz_tests_core.cpp:517-537`），与生产口径 `NAN-SAMPLE-MASK-COVERAGE-NAN`（样本级掩膜 + 覆盖级 NaN + 强制计数）不符 ⇒ 待实现侧整改（P1-DRZ-IMPL）；DISP-DRZ-007（方差锚行号漂移） |
+| §3（方差/权重传播确定性） | 重建为线性加权，须确定性可复现 | PARTIAL | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；docs/standards/NUMERIC_STANDARD.md | DISP-DRZ-004（CLOSED：口径 = `NAN-SAMPLE-MASK-COVERAGE-NAN`，样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数，实现锚见 `docs/algorithms/DRIZZLE_GEOMETRY.md` §5/§10）；DISP-DRZ-007（TRACKED：方差锚行号漂移） |
 | §2/§3（SIP 畸变场下的 drop 映射） | 源像素角点经 WCS 映射到球面多边形 | PARTIAL | docs/algorithms/DRIZZLE_GEOMETRY.md；lib/algorithms/drizzle/healpix_drizzle/tests | DISP-DRZ-001（SIP 阶数校验 [0,5] 与注释 0..4 不符） |
 
 ### D.drizzle 偏差表
@@ -178,14 +177,14 @@
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
 | DISP-DRZ-001 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（SIP 阶数注释与校验不一致） |
-| DISP-DRZ-002 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（面积算法文档措辞 vs 实现） |
+| DISP-DRZ-002 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | TRACKED（残留 = 源码注释 `spherical_overlap.h:15,77` / `spherical_overlap.cpp:11` 写「Girard 定理」，实现为 S-H 球面裁剪 + Van Oosterom & Strackee 扇形剖分；文档侧命名已与实现一致） |
 | DISP-DRZ-003 | 中 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（pixfrac 双轨边界） |
-| DISP-DRZ-004 | **高（P1）** | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；docs/standards/NUMERIC_STANDARD.md | **TRACKED/OPEN**：现行实现为值 NaN 经 `F_p` **传播、不掩膜**（`docs/science/DRIZZLE.md:116`；`drizzle_engine.cpp:1899-1902`；回归 `lib/algorithms/drizzle/healpix_drizzle/tests/p1drz/p1drz_tests_core.cpp:517-537` `p1drz_negative`）。**唯一口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling`：样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 `n_rejected_nonfinite`；`NUMERIC_STANDARD.md` §MUST 引用同一份文字）。处置 = 实现侧由「传播」改「掩膜」+ 补计数暴露（P1-DRZ-IMPL） |
-| DISP-DRZ-005 | 中 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL / P1-DRZ-INT（微小 drop 切平面真路径须守护，禁按旧登记删除） |
+| DISP-DRZ-004 | **高** | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md；docs/standards/NUMERIC_STANDARD.md | CLOSED：**唯一口径 = rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`**（正本 = `docs/interfaces/data/DATA-002_PHASE_PRODUCT_EXCHANGE.md` §2a `invalid_handling`：样本级掩膜 + 重归一 + 覆盖级 NaN + 强制计数 `n_rejected_nonfinite`；`NUMERIC_STANDARD.md` §MUST 引用同一份文字）。**禁用**把值 NaN 经 `F_p` 传播（负例判据；实现锚见 `docs/algorithms/DRIZZLE_GEOMETRY.md` §5/§10） |
+| DISP-DRZ-005 | 中 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL / P1-DRZ-INT（微小 drop 切平面真路径须守护，**禁用**删除该分支） |
 | DISP-DRZ-006 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（累加器字段数注释漂移） |
 | DISP-DRZ-007 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（方差锚行号漂移） |
 | DISP-DRZ-008 | 低 | docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（PolyClip 零调用） |
-| DISP-DRZ-009 | **高** | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md | P1-DRZ-IMPL（源码归一 `w=a/A_drop` vs SCI 目标态面亮度保持 `w=a/A_pixel`；pixfrac<1 偏 1/pixfrac²，FIX-SCI-DRZ-001） |
+| DISP-DRZ-009 | **高** | docs/science/DRIZZLE.md；docs/algorithms/DRIZZLE_GEOMETRY.md | CLOSED：归一恒为面亮度保持口径 `w=a/A_pixel`（`S_p=Σ_j B_j a_jp/Σ_j a_jp`）；**禁用** `w=a/A_drop`——pixfrac<1 偏 `1/pixfrac²`（负例判据） |
 
 ---
 
@@ -265,17 +264,17 @@
 | DISP-HIPS-011 | hips | §4.4.1（all-sky map 与 MOC 关系） | 第 5 行 | TRACKED | P1-HIPS-IMPL |
 | DISP-HIPS-012 | hips | §6.3.1（客户端绘制所需的初始视场/像素尺度元数据） | 第 6 行 | TRACKED | P1-HIPS-IMPL |
 | DISP-DRZ-001 | drizzle | §2/§3（SIP 畸变场下的 drop 映射） | 第 6 行 | TRACKED | P1-DRZ-IMPL |
-| DISP-DRZ-002 | drizzle | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 第 2 行 | TRACKED | P1-DRZ-IMPL |
-| DISP-DRZ-009 | drizzle | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 第 2 行 | TRACKED | P1-DRZ-IMPL |
+| DISP-DRZ-002 | drizzle | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 第 2 行 | TRACKED | 源码注释同步（`spherical_overlap.h:15,77` / `spherical_overlap.cpp:11`） |
+| DISP-DRZ-009 | drizzle | §3（线性重建 w_jp = a_jp / A_pixel 与面亮度语义） | 第 2 行 | CLOSED | —（面亮度保持口径 `w=a/A_pixel`） |
 | DISP-DRZ-003 | drizzle | §2（drop 与 pixfrac 收缩因子） | 第 1 行 | TRACKED | P1-DRZ-IMPL |
-| DISP-DRZ-004 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | **TRACKED** | P1-DRZ-IMPL（现行实现为值 NaN 经 `F_p` 传播、不掩膜；口径 = 掩膜，rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`（正本 = DATA-002 §2a `invalid_handling`），实现侧待改） |
+| DISP-DRZ-004 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | CLOSED | —（口径 = 样本级掩膜，rule_id `NAN-SAMPLE-MASK-COVERAGE-NAN`；正本 = DATA-002 §2a `invalid_handling`） |
 | DISP-DRZ-005 | drizzle | §3（球面交叠面积与微小 drop 数值路径） | 第 3 行 | TRACKED | P1-DRZ-IMPL / P1-DRZ-INT |
 | DISP-DRZ-006 | drizzle | §2（drop 与 pixfrac 收缩因子） | 第 1 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-DRZ-007 | drizzle | §3（方差/权重传播确定性） | 第 5 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-DRZ-008 | drizzle | §4（欠采样重建与候选枚举完备性） | 第 4 行 | TRACKED | P1-DRZ-IMPL |
 | DISP-GAIA-001 | catalog | DR3 测光列（phot_g_mean_mag / phot_bp_mean_mag / phot_rp_mean_mag） | 第 2 行 | TRACKED | catalog 域原子任务 |
 | DISP-FITS-001 | fits | §4.4/§5（扩展 HDU 与表扩展） | 第 3 行 | TRACKED | IO 域原子任务 |
-| STD-F6 | (跨域治理) | （注册表级：本注册表自身，§1.2/§3.1） | — | CLOSED | STD-REG-001（本注册表建立即闭环） |
+| STD-F6 | (跨域治理) | （注册表级：本注册表自身，§1.2/§3.1） | — | CLOSED | STD-REG-001（本注册表建立即关闭） |
 
 ### 3.1 登记纪律
 
@@ -296,7 +295,7 @@
 
 | 偏差 ID | 严重度 | 指针 | 处置归属 |
 |---|---|---|---|
-| STD-F6 | 已闭环（治理级/P1） | docs/standards/STANDARDS_REGISTRY.md（本注册表 §1.2/§3.1） | STD-REG-001（本注册表建立即闭环；依据 = `STD-F6`「国际标准冻结注册表缺失」处置面） |
+| STD-F6 | CLOSED | docs/standards/STANDARDS_REGISTRY.md（本注册表 §1.2/§3.1） | STD-REG-001（本注册表建立即关闭；依据 = `STD-F6`「国际标准冻结注册表缺失」处置面） |
 
 
 ---

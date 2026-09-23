@@ -39,7 +39,7 @@
 | `n_used` | 实际参与积分样本数 | 无量纲 u32 | integrate.h:57 |
 | `wsum` | Σ wᵢ（eligible ∧ w>0） | (ADU·sr⁻¹)⁻² | integrate.cpp:59-60 |
 | `vs` | Σ wᵢxᵢ | (ADU·sr⁻¹)⁻¹ | integrate.cpp:59-60 |
-| `sup_max` | max(accepted support) —— **canonical 语义，已实现**（`integrate.cpp:49-50`，位于权重分支之前；§7/§11.3 闭环登记） | 无量纲 | integrate.cpp:49-50 |
+| `sup_max` | max(accepted support) —— **canonical 语义**（`integrate.cpp:49-50`，位于权重分支之前；约束见 §7/§11.3） | 无量纲 | integrate.cpp:49-50 |
 
 权重语义（integrate.h:8-11 注释冻结）: 权重是 Phase2 按该天球像素
 对应帧集合现场算出的派生量——逐样本 `ivar`（`1/ADU²`），由调用方构造
@@ -62,7 +62,7 @@ ivar/SNR 策略（SNR 只作 veto/质量门，不直接加权）。
 | │ ├ n_finite 计数 | :43 | ++n_finite |
 | │ ├ 权重门 | :44-48 | w=weights?w[i]:1.0；!finite → invalid_input；w<0 → invalid_input |
 | │ ├ 零权重 | :49 | w==0 → continue（合法零贡献；n_accepted/n_finite 已计入） |
-| │ ├ sup_max 更新 | :49-50 | support 非空时 sup_max=max(sup_max,sup)——**位于权重分支（:51-57，含 :56 `w==0 continue`）之前**，作用域 = 通过资格门的全部 accepted 样本（canonical 语义，DISP-P2INT-001/002 已闭环，§7/§11.3） |
+| │ ├ sup_max 更新 | :49-50 | support 非空时 sup_max=max(sup_max,sup)——**位于权重分支（:51-57，含 :56 `w==0 continue`）之前**，作用域 = 通过资格门的全部 accepted 样本（canonical 语义；约束与负例判据见 §7/§11.3） |
 | │ ├ 累加 | :52-53 | vs+=w*x; wsum+=w（double 固定序） |
 | │ └ n_used 计数 | :56 | ++n_used |
 | ├ rc 同步 | :58-63 | invalid_input → INVALID_INPUT（rc=0，n_used=已计数部分） |
@@ -170,14 +170,15 @@ eligibility（逐候选 i，候选索引固定序）:
 
 - SCI §5:55-60 伪码与本文档 §5 逐行同构（eligibility/wsum/vs/
   signal/support reducer/状态分支）。
-- **support reducer 口径已统一（B2-A7 闭环，DISP-P2INT-001/002 关闭）**:
-  SCI §5:58 已订正为 `max_{accepted} support[i]`（SCI-FIX-WEIGHT / SC-005），
-  与 integrate.h:17-19、SCI §2:21/§5:63/§7:75 一致。实现把 `sup_max` 更新
-  置于权重分支**之前**（integrate.cpp:44-50），零权重 accepted 样本的
-  support 进入 max；回归门 eng/tests/unit/p2_output_semantics_test.cpp:85-107
-  （4b/4c，B2-A7；`ctest -R p2_output_semantics` Passed）。
-  **旧登记「实现现状 = max over {valid ∧ W>0}」已过期**（实现位置为
-  `:49-50`，不在 `w==0 continue` 之后），不得据此整改实现。
+- **support reducer 唯一口径**: `max_{accepted} support[i]`（SCI §5:58、
+  integrate.h:17-19、SCI §2:21/§5:63/§7:75 同文，**不得存在第二口径**）。
+  `sup_max` 更新必须置于权重分支**之前**（integrate.cpp:49-50），
+  作用域 = 通过资格门的全部 accepted 样本；零权重 accepted 样本的
+  support 必须进入 max。**禁用**把 `sup_max` 更新置于 `w==0 continue`
+  之后——会使零权 accepted 样本的 support 被静默丢弃、低估 coverage 并集
+  （负例判据见 §11.3）。回归门
+  eng/tests/unit/p2_output_semantics_test.cpp:85-107
+  （4b/4c；`ctest -R p2_output_semantics`）。
 - SCI §5:63 声称与 "integrate.cpp:10-79" / "integrate.h:1-75"
   一致——实测文件为 81 行/74 行（行号如实以本文档 §3 为准；
   语义一致不含该行号范围漂移）。
@@ -208,8 +209,8 @@ eligibility（逐候选 i，候选索引固定序）:
 
 1. 五态枚举 name/value/顺序（integrate.h:45-51）。
 2. support canonical reducer 语义 = max(accepted support)（integrate.h:17-19
-   文本口径；实现已在 integrate.cpp:44-50 对齐，DISP-P2INT-001/002 关闭，
-   禁止改语义解释）。
+   文本口径；`sup_max` 更新位置 = integrate.cpp:49-50，位于权重分支之前，
+   **禁止改语义解释或更新位置**）。
 3. 零权重=合法零贡献（integrate.cpp:56 / SCI §10）。
 4. 候选索引固定序归约（确定性合同，§6）。
 5. policy/reducer 分离（本层不引入权重策略；weights 数组外置）。
@@ -228,36 +229,34 @@ eligibility（逐候选 i，候选索引固定序）:
 - status: §4 表（五态互斥显式；wsum==0 无除法路径）。
 - 并发合同: reentrant=yes（无全局/静态可变状态，纯函数）；
   threadsafe=no（无内部锁，并发由调用方像素划分）；internal_parallel
-  =none；取消点=无（迁移 ThreadLease 接线归 P2-INT-IMPL，
+  =none；取消点=无（ThreadLease 接线迁移不得引入取消点，
   与 DISP-COV-005 同构）。
 
-### 11.3 缺陷清单（DISP-P2INT-001..002，**均已闭环**）
+### 11.3 support reducer 冻结约束与负例判据
 
-- **DISP-P2INT-001**（bughunt R3-A）: **已闭环**。现行实现把 `sup_max` 更新置于
-  权重分支**之前**（`integrate.cpp:49-50`；权重分支 = `:51-57`，其中 `:56` 为
-  `if (w == 0.0) continue;`），零权重 accepted 样本的 support 进入 max，与
-  `integrate.h:17` 的 `max(accepted support)` 冻结语义一致。回归门：
-  `eng/tests/unit/p2_output_semantics_test.cpp:85-107`（4b/4c，B2-A7）。
-  **能红能绿实证（本任务新增）**：`run/SCI-FIX-PHASE2-01/exp/e5_supmax_contract.cpp`
-  直接链接生产 `integrate.cpp`，输入 `{support=0.2,0.3,0.9}`、`{w=1,1,0}`、全 accepted：
-  生产实现输出 `support=0.9`（判绿）；同文件内的旧排序参考实现输出 `support=0.3`
-  （判红，证明该判据有判别力）；两臂 `signal` 逐位相同（=11），即 support 与 signal 正交。
-  证据：`run/SCI-FIX-PHASE2-01/logs/e5.log`。
-- **DISP-P2INT-002**（文档级）: **已闭环**。`docs/science/INTEGRATION.md` §5 与 §7 的
-  文本口径已是 `max_{accepted} support[i]`（与 `integrate.h:17-19` 逐字一致），
-  `docs/contracts/DATA_SEMANTICS.md` §21.5 的旧登记同步失效。两处不再有差集。
-- 附注（锚漂移，非缺陷）: SCI §5 末尾引用 `integrate.cpp:10-79` / `integrate.h:1-75`
-  超出实测行数——行号权威以本文档 §3 实测为准；该引用不承载语义。
+- **约束（`DISP-P2INT-001` 面）**：`sup_max` 更新必须位于权重分支**之前**（`integrate.cpp:49-50`；权重分支 =
+  `:51-57`，其中 `:56` 为 `if (w == 0.0) continue;`），作用域 = 通过资格门的全部
+  accepted 样本；零权重 accepted 样本的 support 必须进入 max，与 `integrate.h:17`
+  的 `max(accepted support)` 冻结语义一致。回归门：
+  `eng/tests/unit/p2_output_semantics_test.cpp:85-107`（4b/4c）。
+- **禁用**把 `sup_max` 更新置于 `w == 0` 分支之后——会使零权 accepted 样本的 support
+  被静默丢弃，低估 coverage 并集。**负例判据**：输入 `{support=0.2,0.3,0.9}`、
+  `{w=1,1,0}`、全 accepted，必须输出 `support=0.9`；置于分支之后的实现输出
+  `support=0.3` ⇒ 判红（证明该判据有判别力）；两臂 `signal` 逐位相同（=11），
+  即 support 与 signal 正交。
+- **约束（`DISP-P2INT-002` 面）**：`docs/science/INTEGRATION.md` §5/§7、`docs/contracts/DATA_SEMANTICS.md` §21.5
+  与 `integrate.h:17-19` 的文本口径必须同为 `max_{accepted} support[i]`，
+  **不得存在第二口径**。
 
 ### 11.4 TEST-P2-INT-DESIGN-001 冻结测试设计（可执行 TEST-P2-INT-001 由 P2-INT-TEST 落地）
 
 - **F1 常量场门**（SCI §11）: `values[i]=C`（多权重组合
   equal/snr²/support_x_snr2/ivar 形状）→ `signal==C`
   （max_abs==0，rtol 0）；与权重分布无关。
-  **判据非退化声明（本任务新增）**：常量场门对任何满足 `ΣwᵢC/Σwᵢ` 的实现恒真，
+  **判据非退化声明**：常量场门对任何满足 `ΣwᵢC/Σwᵢ` 的实现恒真，
   **对权重口径错误无判别力**（把 support 当 ivar、把 SNR² 当 ivar 都照样通过）。
   故 F1 必须与下述 **F1b 权重判别门**成对使用，单独用 F1 不构成权重正确性的证据。
-- **F1b 权重判别门（非退化，本任务新增）**: 构造**非均匀权重 + 非常量场**：
+- **F1b 权重判别门（非退化）**: 构造**非均匀权重 + 非常量场**：
   `values = {1, 2, 4}`、`weights = {1, 1, 2}`、全 accepted、support 全 1
   → 断言 `signal == (1·1 + 1·2 + 2·4)/4 = 2.75`（bitwise，rtol 0）；
   再构造 `weights = {1, 1, 0}`（含零权重）→ 断言 `signal == 1.5` 且 `n_used == 2`。
@@ -275,7 +274,7 @@ eligibility（逐候选 i，候选索引固定序）:
   （rtol 0）；support=null → 1.0；NaN/≤0 support → INVALID_INPUT。
 - **F5 DISP-P2INT-001 回归门**: 构造零权重 accepted 样本
   （support 高于正权样本）→ 断言输出 support=全局 max（按 header
-  :17 口径；现状实现该门 FAIL，登记为整改验收门）。
+  :17 口径）。
 - **F6 Python 参考 Oracle**（SCI §11）: NumPy 对同
   values/weights/support/accepted 复算 signal/support/status/
   全计数器，`rtol 1e-12`。
