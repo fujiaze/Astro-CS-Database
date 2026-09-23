@@ -38,6 +38,12 @@
   （历史列名，权威语义=10–90% 截尾均值 |残差|，即 residual_scale）、
   [8]=eccentricity；dtype 全列 double/FLOAT64，单位 B/A/flux/mad=ADU、
   cx/cy/fwhm/eccentricity 如上。
+- **θ 列不在此布局中**（布局 B 无 θ 列）；布局 A 的 θ 单位 rad，**规范值域
+  `[0, π)`**，消费方必须先归约再作位置角解释（实测真实产物 `|θ|>π` 占 63.1%，
+  见 `docs/science/PSF.md` §3）。
+- **[7] 列名 `mad` 与语义**：权威语义 = 10–90% 截尾均值 |残差|（`residual_scale`，
+  单位 ADU），**不是**中位绝对偏差；`robust_residual_sigma = [7]/0.7316727929211932`
+  仅在 Gaussian 残差且 `m ≥ 441` 时具绝对标度意义（`docs/science/PSF.md` §9）。
 - 消费者：PHOTOMETRIC（必需块，缺失退出码 3，orchestrator.cpp:2564-2570）、
   snr_psf_fit_quality（`snr_estimator.h:57-74` PsfFitQualityRow 同序映射）；
   逐列 dtype/invalid 权威表见 **DATA_SEMANTICS §15.2 生产表布局 A**
@@ -53,10 +59,20 @@
 ```text
 F1: I(r)=B+A/(1+Q)^4, Q=p1dx²+2p2dxdy+p3dy², dx=x−(cx+x0), dy=y−(cy+y0)
     p1=cos²θ/(2sx²)+sin²θ/(2sy²), p2=sin2θ/(4sx²)−sin2θ/(4sy²), p3=sin²θ/(2sx²)+cos²θ/(2sy²)
-F2: 各向同性 sx=sy=σ→ Q=0.5·r²/σ², α=√2σ, FWHM=2√2σ·√(2^{1/4}−1)=1.230310σ
-F3: flux=2πA·sxsy/3 (β=4 整平面)
+F2: 各向同性 sx=sy=σ→ Q=0.5·r²/σ², α=√2σ, FWHM=2√2σ·√(2^{1/4}−1)=1.230307652590102σ
+    # 实现常量 MOFFAT4_FWHM_FACTOR=1.230310（dpsf_psf.cpp:25），与精确值相对差 +1.91e-6
+    # 适用域：仅 β=4；各向异性按轴 FWHM_x=1.230310·sx、FWHM_y=1.230310·sy（:393-394）
+F3: flux=2πA·sxsy/3 (β=4 整平面；对任意 sx,sy,θ 成立：det M=1/(4sx²sy²) ⇒ ∫∫A/(1+Q)^4=πA/(3√det M))
+    # 截断适用域：窗口半径 r_win 的窗外通量占比 f_out=(1+r_win²/α²)^{−3}；
+    # r_win=3.7172σ（sdet s_factor）⇒ f_out=2.02e-3（发布值偏高 0.20%）；
+    # r_win<1.41σ ⇒ f_out>3.1%，该域下 flux 不得当全通量用
 F4: residual_scale=10–90% trimmed mean |residual|, robust_residual_sigma=residual_scale/0.7316727929211932
     (kTrimMeanToSigma=0.7316727929211932, E[trimmed mean |r|]=0.731673σ, Gaussian)
+    # 闭式：2(φ(Φ⁻¹(0.55))−φ(Φ⁻¹(0.95)))/0.8 = 0.7316730952806134（与常量相对差 4.13e-7）
+    # 适用域：Gaussian 专属；Uniform/Laplace/t5 残差下 σ̂/σ = 1.184/0.802/0.865（偏差 ≤±18%）
+    # 实现取 lo=int(0.1m)、hi=int(0.9m)（:248-249），两端裁剪不对称 ⇒ 有限 m 偏低：
+    # m=121 −0.98%、m=169 −0.47%、m=441 −0.28%、m=1024 −0.11%；适用域 m≥441（|偏差|<0.3%）
+    # 证据 run/SCI-FIX-STARPSF-01/results/e1_constants.txt
 F5: q_psf=A/residual_scale, q_psf为QA代理不进science weight
 ```
 
@@ -72,7 +88,7 @@ function detect_centroid(image, sigma_bg):
 
 function fit_psf_moffat4(image, cx,cy, fitRadius):
   init B=median(patch), A=max−B, x0=y0=0, sx=sy=1.2, θ=0
-  LM 7参 Levenberg-Marquardt (dpsf_psf.cpp:lm_solve) iter≤50 tol=1e-6
+  LM 7参 Levenberg-Marquardt (dpsf_psf.cpp:lm_solve) max_iter=200 tol=1e-8（:374-375 实参，硬编码）
     J via finite diff, Δ=(JᵀJ+λI)⁻¹ Jᵀr, λ adaptive
   post: FWHM=1.230310·sx/sy, flux=2πA·sxsy/3
   θ消歧 4候选 {θ,π/2−θ,π/2+θ,π−θ} 取 trimmed-mad 最小 (dpsf_psf.cpp:352-363)
@@ -90,7 +106,7 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 
 | 条件 | 行为 |
 |---|---|
-| 图像含 NaN/Inf | 该 patch 跳过拟合，status=BAD |
+| 图像含 NaN/Inf | **逐像素**跳过（采样阶段 `isfinite` 过滤，`:284-304`），其余像素正常拟合；**整窗**全部非有限 ⇒ `status=DPSF_FIT_INVALID_PARAMS`(2)（`:305-311`）。状态码域 = {0,1,2,3}，无 `BAD` 码 |
 | `max−B ≤0` | reject `A≤0` (dpsf_psf.cpp:45) |
 | `sx/sy ≤0` | reject invalid params (333-344) |
 | `MAD==0` | `robust_residual_sigma` 不换算，q_psf仍计算 |
@@ -157,11 +173,10 @@ Batch deterministic: input order fixed, per-star independent, reduction none cro
 | 错误码 OK=0 / NO_CONVERGENCE=1 / INVALID_PARAMS=2 / ITERATION_LIMIT=3 | dynamic_psf.h:33-36 |
 | 批拟合 OpenMP `schedule(dynamic) reduction(+:success_count)` 4 处 | dpsf_psf.cpp:528,635,738,876 |
 
-与 §3 伪代码的出入（如实登记，不改 §3）：实测 LM 参数为 tol=1e-8、max_iter=200
-（:320-321），§3 "iter≤50 tol=1e-6" 为旧稿；`DPSFFitParams.maxIter/tolerance`
-字段不被消费（DISP-PSF-003）。§4 "NaN/Inf patch 跳过 status=BAD" 无对应实现：
-BAD 码不存在（dynamic_psf.h:33-36 仅 0–3），NaN/Inf 经 LM 传导至参数非有限由
-验证链一 (:336-338) 判 NO_CONVERGENCE。§4 饱和掩膜 reject 属 star_detector 侧，
+§3 伪代码与实测一致：LM 实参 tol=1e-8、max_iter=200（:374-375 调用点，硬编码）；
+`DPSFFitParams.maxIter/tolerance` 字段不被消费（DISP-PSF-003）。§4 NaN/Inf 行为 =
+**逐像素**采样过滤（:284-304）+ 整窗全非有限时 `INVALID_PARAMS`(2)（:305-311）；
+状态码域 = {0,1,2,3}（dynamic_psf.h:33-36）。§4 饱和掩膜 reject 属 star_detector 侧，
 dynamic_psf 不消费饱和列 [4]/[5]（:741）。
 
 ### 11.2 拟合失败语义（冻结，P1-PSF-TEST 逐码负例）

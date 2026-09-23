@@ -182,7 +182,27 @@ Polar prune: if |dec|>45° use C/C45 disk B(q,C·radius), false_negative=0
 
 ## 9 容差来源
 
-- 收敛 0.01" (pixel/3600), 尺度容差 0.002 (各向异性 0.2%), Huber 1.345 (robust 统计), 预冻结。
+- 收敛 0.01" (pixel/3600)：`ipv_solver.cpp:199 CONV_THRESH_ARCSEC = 0.01`，判据
+  `√(x00²+y00²) < 0.01″`（`ipv_solver.cpp:19`）。**量纲 arcsec**；
+  **适用域**：该值只约束迭代重投影的**自洽收敛**，不是天测精度界——
+  产品级天测精度门另立（G-P1-WCS-CLOSURE，阈值 UNJUSTIFIED）。
+- 三角形匹配容差 5.0″：`ipv_solver.cpp:660` 实参。**量纲 arcsec**；
+  **阈值来源 UNJUSTIFIED**（无推导、未随像素尺度归一），登记为待标定项，
+  在标定前**不得**被引用为精度声明。
+- 尺度容差 0.002（各向异性 0.2%）：**阈值来源 UNJUSTIFIED**，登记为待标定项。
+- Huber 1.345：**有文献依据**——Huber (1964) `ψ_k` 族在 `k = 1.345` 处对
+  Gaussian 的渐近效率为 **95%**（Huber, P. J. 1964, Ann. Math. Statist. 35, 73,
+  DOI 10.1214/aoms/1177703732；效率表见 Holland & Welsch 1977, Comm. Statist.
+  Theor. Meth. 6, 813, DOI 10.1080/03610927708827533 §2）。实现锚
+  `ipv_sip.cpp:242`：`delta = 1.345 × median_abs_r`。
+  **适用域**：`δ = 1.345·MAD(|r|)` 要求残差近似对称且尺度由 MAD 稳健估计；
+  非对称/重尾残差下 95% 效率结论不成立。
+- IRLS 迭代上限 15、收敛 ε 1e-6：`ipv_sip.cpp:408-409`（`IRLS_MAX_ITER`、
+  `IRLS_CONV_EPS`）。**阈值来源 UNJUSTIFIED**；该路径经 DISP-WCS-003 登记为
+  **非生产**（生产走 `extract_wcs_sip` 的采样网格解析路径），本条只描述
+  非生产实现，**不得**作为生产精度依据。
+- 预冻结声明不变：上述数值除 Huber 1.345 外均无推导，标记 UNJUSTIFIED 的部分
+  在标定前不得引用。
 
 ## 10 关联 ARC/API/TST
 

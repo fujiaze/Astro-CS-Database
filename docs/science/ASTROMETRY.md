@@ -29,13 +29,34 @@
 
 ## 3 物理量和单位
 
-- `x,y,xp,CRPIX`: pixel；`CD`: deg/pixel；`cd_inv`: pixel/arcsec；`SIP A/B/AP/BP`: `1/pixel^{i+j-1}`；`RA`: deg `[0,360)`, `Dec`: deg `[-90,90]`；`σ` 质心误差: pixel；`rms`: pixel/arcsec。
+- `x,y,xp,CRPIX`: pixel；`CD`: deg/pixel；`trans.linear`: arcsec/pixel
+  （`CD = trans.linear/3600`）；`cd_inv = inv(trans.linear)`: pixel/arcsec；
+  `SIP A/B/AP/BP`: `1/pixel^{i+j-1}`（量纲自洽：`cd_inv·trans.x_ij` =
+  (pixel/arcsec)·(arcsec/pixel^{i+j}) = 1/pixel^{i+j-1}）；
+  `RA`: deg `[0,360)`, `Dec`: deg `[-90,90]`；`σ` 质心误差: pixel；
+  `rms`: **两个不同量纲的列必须分别命名**——`rms_px`（pixel）与
+  `rms_arcsec`（arcsec），换算 `rms_px = rms_arcsec/s0`、
+  `s0 = 3600·√|det(CD)|`（arcsec/pixel，§11a）。**禁止**把 `rms` 写成
+  `pixel/arcsec`（该写法会被读成「每角秒的像素数」，与像素残差差 `s0²` 倍）。
 
 ## 3a 坐标 frame
 
 - 天球 frame：**ICRS/J2000**（Gaia DR3 星表同系）；`RA∈[0,360)`, `Dec∈[-90,90]`（GLOSSARY `ra_dec`）。
 - 像素约定：内部 0-based `x,y`，FITS 输出 1-based `xp=x+1`，`CRPIX` 1-based 恒为 `(w/2+0.5, h/2+0.5)`（§7 不变量）；FITS 输出执行 Y-up→Y-down 翻转（§5），`|det(CD)|` 不变。
-- **口径边界与责任方**（STD-F1 合同条款）：ipv 求解器内部保持 0-based 自洽约定；**FITS 1-based 的唯一桥接点 = Phase3 导出边界**（§5a），桥接责任方为 `lib/phase3_session/`。除该边界外任何一侧不得再施加一次 `+1`（双重桥接 = 恒定 1px 系统偏移）。
+- **口径边界与责任方**（STD-F1 合同条款）：**每一个 0-based 量在它自己的输出边界上恰好施加一次「下标→FITS 1-based」换算**；同一量在别处**不得**再施加一次 `+1`（双重桥接 = 恒定 1px 系统偏移）。桥接点逐项（§5a 为唯一事实源）：
+  1. **ipv 求解器内部不是桥接点**——其 `u = det_x − w/2` 已等于 Paper I §2.1.1 的
+     `q`，迭代反演输出 `u + CRPIX` 已是 1-based FITS `p`（§5a），故
+     `ipv_wcs.cpp` 输出侧**不再叠加** `+1`；
+  2. `p1_sources` 的整数数组下标 `x`：由 `eng/tools/astrometry/closure_metric.py:223`
+     的 `p = x + 1` 换算（第三方 astropy `origin=0` 语义）；
+  3. p3 产品网格下标 `x0`：由 `lib/algorithms/projection/p3_wcs.cpp` 的
+     `fits_pixel_1based`（`xp = x0 + kFitsPixelOrigin`，`kFitsPixelOrigin = 1.0`）换算；
+  4. `p1_wcs.json` 写出侧：`lib/infrastructure/scheduler/src/module_adapters.cpp:2487-2493`、
+     `:2731-2733` 对 samples 的 0-based `(x,y)` 单次 `+1` 后喂 1-based `WcsTan`，
+     并声明 `pixel_origin`/`fits_pixel_origin`（`:2555-2557`、`:2811-2813`）。
+  上述 2/3/4 是**三个不同量**在各自边界上的单次换算，互不重复；**"唯一桥接点"
+  这一表述不成立**，正确口径是「每量一次」。
+  桥接缺失或重复都产生恒定 1px 系统偏移，必须被第三方对拍检出（§11）。
 
 ## 4 输入有效域
 
