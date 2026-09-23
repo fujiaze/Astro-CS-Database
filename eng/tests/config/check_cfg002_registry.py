@@ -1049,11 +1049,33 @@ SANDBOX_FILES = [
     "eng/tests/backend/test_cpu_profile.py", "eng/tests/unit/cpu007_profile_store_test.cpp",
     "eng/tools/validate_cpu_profile.py",
 ]
-SANDBOX_DIRS = ["config", "eng/contracts/schemas", "eng/contracts/config", "docs/plugins",
+# 2026-09-23 CFG002-01 订正：根目录整合（ee99ca26）后 config/ → eng/packaging/config/、
+# tests/ → eng/tests/、contracts/ → eng/contracts/；本清单未同步 ⇒ 自检在 build_sandbox 直接
+# Fail（负例面整体失效，test_self_test_injections_all_red 恒红）。此处按现路径订正。
+SANDBOX_DIRS = ["eng/packaging/config", "eng/contracts/schemas", "eng/contracts/config", "docs/plugins",
                 "eng/tests/config/fixtures"]
 # 顶层科学/算法文档（defaults 的 source_ref 与 contracts_doc 登记点指向它们；v6 子树门不读，不入沙箱）
 SANDBOX_GLOBS = ["docs/science/*.md", "docs/algorithms/*.md", "docs/design/UNIFIED_MODEL.md",
                  "lib/infrastructure/benchmark/backend_host/*.cpp", "ENGINEERING_SPEC.md"]
+
+
+_CITE_FILES_CACHE = {}
+
+
+def _contract_citation_files(repo):
+    """CONFIG_CONTRACT 正文 文件:行 引用到的文件（去重后的仓库相对路径）。
+
+    2026-09-23 加固：沙箱必须含齐这些文件，否则 CFG002-11 在沙箱里会因「无此文件」判红
+    （真实仓库绿、沙箱红 ⇒ 沙箱不忠实 ⇒ 自检整体失效）。结果按 repo 缓存（os.walk 只跑一次）。
+    """
+    if repo not in _CITE_FILES_CACHE:
+        out = set()
+        for m in re.finditer(r"([A-Za-z0-9_./\u4e00-\u9fff\-]+\.(?:md|json|jsonc|yaml|csv|py|cpp|h)):(\d+)",
+                             read_text(repo, CONTRACT_DOC)):
+            for hit in _find_citation(repo, m.group(1)):
+                out.add(hit)
+        _CITE_FILES_CACHE[repo] = sorted(out)
+    return _CITE_FILES_CACHE[repo]
 
 
 def build_sandbox(src, dst):
@@ -1081,10 +1103,19 @@ def build_sandbox(src, dst):
             d = os.path.join(dst, rel)
             os.makedirs(os.path.dirname(d), exist_ok=True)
             shutil.copy2(s, d)
-    v = os.path.join(src, "tests", "common", "jsonschema_min.py")
+    # 2026-09-23 订正：源/目标路径同步为 eng/tests/common/（_validator 读的是
+    # <sandbox>/eng/tests/common/jsonschema_min.py；原 "tests/common" 两侧都不成立）。
+    # CONFIG_CONTRACT 引用面补齐（见 _contract_citation_files 说明）
+    for rel in _contract_citation_files(src):
+        s = os.path.join(src, rel)
+        d = os.path.join(dst, rel)
+        if os.path.isfile(s) and not os.path.isfile(d):
+            os.makedirs(os.path.dirname(d), exist_ok=True)
+            shutil.copy2(s, d)
+    v = os.path.join(src, "eng", "tests", "common", "jsonschema_min.py")
     if not os.path.isfile(v):
         raise Fail("sandbox source missing: eng/tests/common/jsonschema_min.py")
-    d = os.path.join(dst, "tests", "common", "jsonschema_min.py")
+    d = os.path.join(dst, "eng", "tests", "common", "jsonschema_min.py")
     os.makedirs(os.path.dirname(d), exist_ok=True)
     shutil.copy2(v, d)
     return dst
@@ -1105,6 +1136,28 @@ def _edit_text(root, rel, mutate):
         text = fh.read()
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(mutate(text))
+
+
+def _blank_line_in(root, rel, exclude):
+    """返回 rel 中一个空行的行号（用于把引用漂移到空行；动态取值，抗文档重排）。"""
+    for i, ln in enumerate(read_text(root, rel).split("\n")):
+        if not ln.strip() and (i + 1) != exclude:
+            return i + 1
+    raise Fail("no blank line in %s (exclude=%d)" % (rel, exclude))
+
+
+def _tree_digest(root):
+    """沙箱全树摘要：用于证明注入真的改动了文件（空操作注入 = 负例面失效）。"""
+    import hashlib
+    h = hashlib.sha256()
+    for dirpath, dirs, files in os.walk(root):
+        dirs.sort()
+        for name in sorted(files):
+            p = os.path.join(dirpath, name)
+            h.update(os.path.relpath(p, root).encode("utf-8", "replace"))
+            with open(p, "rb") as fh:
+                h.update(fh.read())
+    return h.hexdigest()
 
 
 def _write_text(root, rel, text):
@@ -1177,16 +1230,22 @@ INJECTIONS = [
      lambda root: _write_text(root, "eng/packaging/config/injected.schema.json", "{}\n")),
     ("contracts_config_same_basename", "CFG002-07",
      lambda root: shutil.copy2(os.path.join(root, DEFAULTS),
-                               os.path.join(root, "contracts", "config", "defaults.json"))),
+                               os.path.join(root, "eng", "contracts", "config", "defaults.json"))),
     # DOC-403：登记条目行重复（下游引用不算重复登记；本注入保证判据仍有牙）
     ("index_entry_duplicated", "CFG002-07",
      lambda root: _edit_text(root, DOC_INDEX,
                              lambda t: t.replace('    - path: "' + CONTRACT_DOC + '"',
                                                  '    - path: "' + CONTRACT_DOC + '"' + chr(10)
                                                  + '    - path: "' + CONTRACT_DOC + '"', 1))),
+    # 2026-09-23 订正：原靶点 "docs/science/PHASE3_HIPS_TO_FITS.md:39" 在 W5-CFG-002 重锚后
+    # 已不在 CONFIG_CONTRACT 正文（str.replace 静默变成空操作 ⇒ 该负例面失效，自检只能靠
+    # 「未被检出」兜底）。现靶点 = docs/science/PHOTOMETRY.md:7（正文实存、且不在
+    # contract_doc_citations.token_anchors 内 ⇒ 只可能由「指向空行」这一条判红，
+    # 判据面不被 token 锚重复覆盖）；漂移目标行由沙箱内动态取空行，抗文档重排。
     ("contract_doc_citation_drift", "CFG002-11",
      lambda root: _edit_text(root, CONTRACT_DOC, lambda t: t.replace(
-         "docs/science/PHASE3_HIPS_TO_FITS.md:39", "docs/science/PHASE3_HIPS_TO_FITS.md:31"))),
+         "docs/science/PHOTOMETRY.md:7",
+         "docs/science/PHOTOMETRY.md:%d" % _blank_line_in(root, "docs/science/PHOTOMETRY.md", 7)))),
     ("defaults_anchor_drift", "CFG002-09",
      lambda root: _edit_json(root, DEFAULTS, lambda d: [
          f.__setitem__("source_ref", {"path": "docs/science/STAR_DETECTION.md", "line": 1})
@@ -1233,10 +1292,16 @@ def self_test(repo, verbose=True):
                            % [c for c in baseline if not c["ok"]]], real
         for i, (name, expect, mutate) in enumerate(INJECTIONS):
             root = build_sandbox(repo, os.path.join(tmp, "inj%02d" % i))
+            before = _tree_digest(root)
             try:
                 mutate(root)
             except Exception as exc:  # noqa: BLE001 —— 注入失败必须显式报告，不得静默算过
                 problems.append("注入 %s 执行失败（负例面不可用）: %s: %s" % (name, type(exc).__name__, exc))
+                continue
+            # 2026-09-23 加固：靶点随文档改写消失时 str.replace 会静默变空操作，注入「必红」会
+            # 退化成恒真面。此处先证明注入真的改了沙箱（未改动 ⇒ 直接判红并点名）。
+            if _tree_digest(root) == before:
+                problems.append("注入 %s 是空操作（未改动沙箱任何文件 ⇒ 靶点已失效，负例面不可用）" % name)
                 continue
             res = {c["id"]: c for c in run_checks(root)}
             if res[expect]["ok"]:
