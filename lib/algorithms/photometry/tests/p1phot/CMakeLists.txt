@@ -82,6 +82,7 @@ add_executable(p1phot_tests
   ${P1PHOT_DIR}/p1phot_tests_properties.cpp
   ${P1PHOT_DIR}/p1phot_tests_oracle.cpp
   ${P1PHOT_DIR}/p1phot_tests_negative.cpp
+  ${P1PHOT_DIR}/p1phot_tests_determinism.cpp
   ${P1PHOT_DIR}/p1phot_gaia_stub.cpp
   ${P1PHOT_PROD_SOURCES})
 target_include_directories(p1phot_tests PRIVATE
@@ -97,6 +98,9 @@ add_test(NAME p1phot_units COMMAND p1phot_tests units)
 add_test(NAME p1phot_properties COMMAND p1phot_tests properties)
 add_test(NAME p1phot_oracle COMMAND p1phot_tests oracle)
 add_test(NAME p1phot_negative COMMAND p1phot_tests negative)
+# 到达顺序不变性 + 线程数扫描 (1/2/4/8): §13.4 I5 只扫线程数、样本序恒定 ⇒
+# 本组把"样本序"变成被控自变量 (判据口径 = docs/contracts/TEST_MATRIX.md §2)。
+add_test(NAME p1phot_determinism COMMAND p1phot_tests determinism)
 
 # performance 基线 (独立可执行, 时长敏感与 core 组隔离)
 add_executable(p1phot_perf_test
@@ -120,6 +124,7 @@ add_executable(p1phot_selfcheck_test
   ${P1PHOT_DIR}/p1phot_tests_properties.cpp
   ${P1PHOT_DIR}/p1phot_tests_oracle.cpp
   ${P1PHOT_DIR}/p1phot_tests_negative.cpp
+  ${P1PHOT_DIR}/p1phot_tests_determinism.cpp
   ${P1PHOT_DIR}/p1phot_gaia_stub.cpp
   ${P1PHOT_PROD_SOURCES})
 target_include_directories(p1phot_selfcheck_test PRIVATE

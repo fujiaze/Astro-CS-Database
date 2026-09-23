@@ -27,6 +27,7 @@ int test_units();
 int test_properties();
 int test_oracle();
 int test_negative();
+int test_determinism();
 }  // namespace p1phot
 
 namespace {
@@ -66,6 +67,7 @@ static int run_injected_group(const char* group) {
     if (std::strcmp(group, "properties") == 0) return p1phot::test_properties();
     if (std::strcmp(group, "oracle") == 0) return p1phot::test_oracle();
     if (std::strcmp(group, "negative") == 0) return p1phot::test_negative();
+    if (std::strcmp(group, "determinism") == 0) return p1phot::test_determinism();
     return 127;
 }
 
@@ -106,6 +108,21 @@ int run_selfcheck() {
         }
         std::fprintf(stdout,
                      "SELFCHECK phase3: fault-inject 'o1_irls_reference' → child rc=%d (必败验证通过)\n",
+                     child_rc);
+    }
+
+    // 阶段 4: 注入 determinism 组 → 必 FAIL (第三注入点: 到达顺序不变性判据)
+    {
+        const int child_rc = run_injected_child("determinism", "p1phot_order_invariance");
+        if (child_rc == 0) {
+            std::fprintf(stderr,
+                         "SELFCHECK: fault-inject 'p1phot_order_invariance' 后 determinism "
+                         "仍 PASS — 到达顺序不变性判据是恒真占位\n");
+            return 1;
+        }
+        std::fprintf(stdout,
+                     "SELFCHECK phase4: fault-inject 'p1phot_order_invariance' → child rc=%d "
+                     "(必败验证通过)\n",
                      child_rc);
     }
 
