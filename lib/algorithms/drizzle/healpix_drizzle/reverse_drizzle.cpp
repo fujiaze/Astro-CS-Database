@@ -191,10 +191,13 @@ static bool run_typed(const ReverseDrizzleInput& in, ReverseDrizzleOutput& out,
         }
         if (!any_proj) { ++out.n_skipped_outside; continue; }
         const double m = footprint_radius_px + 2.0;
-        int x0 = std::max(0, (int)std::floor(minx - m));
-        int x1 = std::min(W - 1, (int)std::ceil(maxx + m));
-        int y0 = std::max(0, (int)std::floor(miny - m));
-        int y1 = std::min(H - 1, (int)std::ceil(maxy + m));
+        // 范围夹紧：TAN 在接近 90° 处 ξ/η 可远超 int 表示范围，直接 (int) 转换是 UB。
+        // 夹到 ±1e9（在 int32 域内）即可 —— 该方向的候选必然落在画幅外，无需保留精确值。
+        const double kBound = 1e9;
+        int x0 = std::max(0, (int)std::floor(std::max(minx - m, -kBound)));
+        int x1 = std::min(W - 1, (int)std::ceil(std::min(maxx + m, kBound)));
+        int y0 = std::max(0, (int)std::floor(std::max(miny - m, -kBound)));
+        int y1 = std::min(H - 1, (int)std::ceil(std::min(maxy + m, kBound)));
         if (x0 > x1 || y0 > y1) { ++out.n_skipped_outside; continue; }
 
         // 4. 逐候选像素: target 球面 footprint + 球面 overlap + 面积分配

@@ -272,7 +272,7 @@ inline P3CropStatus p3_crop_window_from_sky(const P3WcsDescriptor* frame,
         return fail("crop.sky: non-positive height (dec_min_deg must be < dec_max_deg)");
     // TAN 冻结适用域（与 p3_wcs_make 的 kMaxAbsDec 同一条件，不另设口径）
     if (std::fabs(dec_min_deg) > 85.0 || std::fabs(dec_max_deg) > 85.0)
-        return fail("crop.sky: |dec| must be <= 85 deg (TAN pole excluded)");
+        return fail("crop.sky: |dec| must be <= 85 deg (request-domain narrowing; TAN diverges only at 90 deg from CRVAL)");
     if (!(ra_min_deg < ra_max_deg) && !(ra_max_deg < ra_min_deg))
         return fail("crop.sky: non-positive width (ra_min_deg == ra_max_deg)");
     const double ra_span = (ra_max_deg > ra_min_deg) ? (ra_max_deg - ra_min_deg)
