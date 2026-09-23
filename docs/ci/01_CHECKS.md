@@ -132,6 +132,7 @@
 | CHK-SCHED-PROBE-SCHEMA | 合同 | 探针事件 schema 机器校验：逐行校验 JSONL 的必填字段/枚举/单位与事件名一致性，空文件与无输出判红（fail-closed）；含 --self-test 1 正 5 负 | `python3 eng/ci/run_checks.py --check CHK-SCHED-PROBE-SCHEMA --quiet` | P0 |
 | CHK-HIPS-STORAGE-FORM | 合同 | 落盘形态合同（CONTRACT-STORAGE-001）：两形态命名与互斥、归档必须为「整包 tar + 逐成员独立 zstd 帧」且标准工具 `zstd -dc \| tar -xf` 逐字节还原、归档内 properties 与裸形态逐字节一致且不声明非标准 `hips_tile_format`、产品级索引与数据集级覆盖索引的 schema 与不变式（coverage/tiles 集合一致、可重算）、产品身份哈希取解压后内容；**形态输入配置与输出清单**（`storage_form` 缺省/留空 ⇒ 默认 archive + warn、逐帧 `index_path`/`index_sha256`/`archive_sha256` 齐备、运行完成清单 `storage` 段不变式 M1..M4、mosaic/export 出现形态键必须 REJECT、逐层文档字段口径一致 `--doc-consistency`）；负例面 21 例（properties 撒谎 / 读路径不支持形态 / 归档缺索引 / 索引与内容不一致 / 归档截断 / 流内混装不压缩区 / byte-shuffle 预变换 / 两形态 properties 分叉 / 索引 schema 违规 / 覆盖索引非块粒度 / 两形态共存 / 缺省形态键未报 warn / 缺省未走登记默认 / 逐帧缺 index_path / bare 带归档指纹 / 清单 form_source=default 无 warn / 层间同义名 / 取值口径漂移 等）逐一判红 | `python3 eng/tools/hipsform/check_hips_storage_form.py --self-test` | P0 |
 | CHK-P3-EXPORT-STREAM-PROD | 架构 | Phase3 导出子块流式的**生产接线静态锁**：生产 writer 节点 TU 必须引用子块流式调度器（整幅驻留路径不得回流）；含 `--self-test`（3 处变异必红） | `python3 eng/ci/run_checks.py --check CHK-P3-EXPORT-STREAM-PROD --quiet` | P0 |
+| CHK-MUTATION-GATES | 治理 | 变异门登记册的「登记项必须仍有对象」：`eng/ci/mutation_gates.json` 的 `design_claim` 锚存活（doc/§节号/行号/引文四查）+ 每条 gate 的 driver/registration/evidence 路径必须存在或在 `gone_artifacts` 显式登记（棘轮，只减不增，产物回来了判红）；输入缺失/不可解析 fail-closed | `python3 eng/ci/check_mutation_gates.py` | P1 |
 | CHK-P3-EXPORT-STREAM-RSS | 架构 | Phase3 导出子块流式的**动态驻留判据**：把已回收引用归零后读内核 VmHWM 记账真实峰值（非声明值、非采样），流式峰值与产品面积解耦，比值与斜率双阈值 | `python3 eng/ci/run_checks.py --check CHK-P3-EXPORT-STREAM-RSS --quiet` | P0 |
 
 ### 2.1 检查器退役与预留
@@ -139,6 +140,7 @@
 - 检查器退役：从 `eng/ci/checks.json` 移除注册项，检查器文件保留可复跑性；退役检查器无参调用时打印退役标识并 exit 2；
 - 工具入口退役：退役工具的 `main` 打印退役标识并 exit 2，原实现保留为 `legacy_main()`，仍被其他检查器消费的函数保持活动语义；
 - 已退役检查器：`TASK-RESULT-SCHEMA`、`WORKSPACE-ADOPTION`、`RECONCILE-STATE`、`TRACEABILITY-CODE`；退役明细与复原坐标以仓库 git 历史与 `reports/` 台账为准；
+- **未注册**的一次性审计脚本（从未进注册表，按本节退役契约处置）：`eng/tools/quality/check_comment_hygiene.py`（V19R2 注释卫生扫描；无参调用打印退役标识并 exit 2，原实现保留为 `--legacy-scan`，产物不再落 `reports/**`）；其判据面由在册的 `CON-COMMENTS`（`CHK-STALE-DOC` 的步骤，`eng/tools/quality/contracts/check_comments.py`）承接；
 - RESERVED（文档登记但无实现，重新注册前须先有实现与可执行负例）：
 
 | RESERVED 项 | 重新注册前置条件 |

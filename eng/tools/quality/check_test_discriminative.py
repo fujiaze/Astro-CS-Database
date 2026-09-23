@@ -23,7 +23,9 @@
   python3 eng/tools/quality/check_test_discriminative.py --quiet
   python3 eng/tools/quality/check_test_discriminative.py --self-test  # 正负例（红绿双向）
   python3 eng/tools/quality/check_test_discriminative.py --json-out X
-退出码：0 PASS；1 FAIL（含输入缺失 fail-closed）；2 用法错误。
+退出码：0 PASS；1 FAIL（含输入缺失 fail-closed）；2 用法错误或产物写入失败
+（TOOLING_FAILURE：--json-out 父目录缺失时自建，仍失败则具名报错不 traceback
+—— 01_CHECKS §1「不得 traceback」/「fail-closed」）。
 
 注：本检查器为 GATE-502 新增；注册表条目（eng/ci/checks.json）属 GATE-501 域 ——
     GATE-502 不越域改注册表，登记请求见任务回执。
@@ -403,9 +405,21 @@ def main(argv=None):
     for s in stats["skipped"]:
         print("  note(skipped, 非测试模块): %s" % s)
     if args.json_out:
-        with open(args.json_out, "w", encoding="utf-8") as fh:
-            json.dump({"findings": findings, "stats": stats, "selftest": selftest}, fh,
-                      ensure_ascii=False, indent=1)
+        # 产物落盘是检查器合同的一部分：父目录不存在时**自建**，仍失败则具名
+        # TOOLING_FAILURE + rc=2（fail-closed），绝不 traceback（01_CHECKS §1
+        # 「不得 traceback」）。原实现在父目录缺失时抛 FileNotFoundError
+        # （复现：--json-out run/<task>/nonexistent_dir/out.json ⇒ rc=1 + traceback）。
+        try:
+            parent = os.path.dirname(os.path.abspath(args.json_out))
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            with open(args.json_out, "w", encoding="utf-8") as fh:
+                json.dump({"findings": findings, "stats": stats, "selftest": selftest}, fh,
+                          ensure_ascii=False, indent=1)
+        except OSError as exc:
+            print("TOOLING_FAILURE: 写 json-out 失败 %s: %s" % (args.json_out, exc),
+                  file=sys.stderr)
+            return 2
     if selftest is not None and not selftest["ok"]:
         return 1
     return 1 if findings else 0

@@ -296,7 +296,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 35,
+      "line": 73,
       "field": "detection_threshold",
       "declared_default": "5.0",
       "unit": "σ（全局 bgnoise）",
@@ -311,7 +311,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 36,
+      "line": 74,
       "field": "min_area",
       "declared_default": "2",
       "unit": "px",
@@ -332,7 +332,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 37,
+      "line": 75,
       "field": "deblend",
       "declared_default": "true",
       "unit": null,
@@ -353,7 +353,7 @@
     {
       "module": "03_star_detection",
       "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
-      "line": 38,
+      "line": 76,
       "field": "selection_function",
       "declared_default": "true",
       "unit": null,
@@ -593,7 +593,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 135,
+      "line": 179,
       "field": "reference_flux",
       "declared_default": "逐帧 `F_ref,k",
       "unit": "见说明",
@@ -608,7 +608,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 136,
+      "line": 180,
       "field": "scalar_gate_rd",
       "declared_default": null,
       "unit": null,
@@ -623,7 +623,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 137,
+      "line": 181,
       "field": "scalar_gate_trend",
       "declared_default": null,
       "unit": null,
@@ -638,7 +638,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 138,
+      "line": 182,
       "field": "psfsw_enable",
       "declared_default": "true",
       "unit": null,
@@ -660,7 +660,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 139,
+      "line": 183,
       "field": "sparse_snr_layer",
       "declared_default": "true",
       "unit": null,
@@ -675,7 +675,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 141,
+      "line": 185,
       "field": "sparse_snr_density",
       "declared_default": null,
       "unit": "点/度²",
@@ -690,7 +690,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 142,
+      "line": 186,
       "field": "snr_path",
       "declared_default": "sparse_reconstruct",
       "unit": null,
@@ -705,7 +705,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 46,
+      "line": 48,
       "field": "order",
       "declared_default": null,
       "unit": null,
@@ -720,7 +720,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 47,
+      "line": 49,
       "field": "pixfrac",
       "declared_default": "1.0",
       "unit": null,
@@ -735,7 +735,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 48,
+      "line": 50,
       "field": "pixel_scale",
       "declared_default": null,
       "unit": "arcsec/px",
@@ -750,7 +750,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 49,
+      "line": 51,
       "field": "nside",
       "declared_default": null,
       "unit": null,
@@ -765,7 +765,7 @@
     {
       "module": "08_drizzle",
       "doc": "docs/plugins/algorithms_phase1/08_drizzle.md",
-      "line": 50,
+      "line": 52,
       "field": "sparse_snr_layer",
       "declared_default": "true",
       "unit": null,
@@ -780,7 +780,7 @@
     {
       "module": "09_coverage",
       "doc": "docs/plugins/algorithms_phase2/09_coverage.md",
-      "line": 32,
+      "line": 33,
       "field": "min_overlap",
       "declared_default": null,
       "unit": "deg²",
@@ -795,7 +795,7 @@
     {
       "module": "09_coverage",
       "doc": "docs/plugins/algorithms_phase2/09_coverage.md",
-      "line": 33,
+      "line": 34,
       "field": "connected_components",
       "declared_default": "true",
       "unit": null,
@@ -979,7 +979,7 @@
     {
       "module": "13_integration",
       "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 69,
+      "line": 72,
       "field": "target_product",
       "declared_default": "全",
       "unit": null,
@@ -1000,7 +1000,7 @@
     {
       "module": "13_integration",
       "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 70,
+      "line": 73,
       "field": "correlation_approx",
       "declared_default": null,
       "unit": null,
@@ -1015,13 +1015,13 @@
     {
       "module": "13_integration",
       "doc": "docs/plugins/algorithms_phase2/13_integration.md",
-      "line": 71,
+      "line": 74,
       "field": "baseline_compare",
       "declared_default": "true",
       "unit": null,
       "owner_class": "runtime_policy",
       "registration": "plugin_doc",
-      "registered_at": "docs/plugins/algorithms_phase2/13_integration.md:69",
+      "registered_at": "docs/plugins/algorithms_phase2/13_integration.md:74",
       "registered_key": null,
       "finding": "none",
       "note": "基线比较输出开关（QA 面，不改科学结果）；权威 = 插件文档默认 true；禁入 phase_config。",
@@ -1162,13 +1162,13 @@
     {
       "module": "16_fits_output",
       "doc": "docs/plugins/algorithms_phase3/16_fits_output.md",
-      "line": 41,
+      "line": 42,
       "field": "band_height",
       "declared_default": null,
       "unit": "px",
       "owner_class": "runtime_policy",
       "registration": "plugin_doc",
-      "registered_at": "docs/plugins/algorithms_phase3/16_fits_output.md:39",
+      "registered_at": "docs/plugins/algorithms_phase3/16_fits_output.md:42",
       "registered_key": null,
       "finding": "none",
       "note": "内存预算类实现策略：CONFIG_CONTRACT §3 明示不进 phase_config（不可跨机器复现）。",
@@ -1177,13 +1177,13 @@
     {
       "module": "16_fits_output",
       "doc": "docs/plugins/algorithms_phase3/16_fits_output.md",
-      "line": 42,
+      "line": 43,
       "field": "tile_cache_mb",
       "declared_default": null,
       "unit": "MB",
       "owner_class": "runtime_policy",
       "registration": "plugin_doc",
-      "registered_at": "docs/plugins/algorithms_phase3/16_fits_output.md:40",
+      "registered_at": "docs/plugins/algorithms_phase3/16_fits_output.md:43",
       "registered_key": null,
       "finding": "none",
       "note": "同上（tile 缓存上限）。",
@@ -1192,13 +1192,13 @@
     {
       "module": "16_fits_output",
       "doc": "docs/plugins/algorithms_phase3/16_fits_output.md",
-      "line": 43,
+      "line": 44,
       "field": "compression",
       "declared_default": "none",
       "unit": null,
       "owner_class": "runtime_policy",
       "registration": "plugin_doc",
-      "registered_at": "docs/plugins/algorithms_phase3/16_fits_output.md:41",
+      "registered_at": "docs/plugins/algorithms_phase3/16_fits_output.md:44",
       "registered_key": null,
       "finding": "none",
       "note": "产物文件格式选项（默认 none），非科学参数；权威 = 插件文档，禁入科学配置。",
@@ -1207,7 +1207,7 @@
     {
       "module": "16_fits_output",
       "doc": "docs/plugins/algorithms_phase3/16_fits_output.md",
-      "line": 44,
+      "line": 45,
       "field": "mode",
       "declared_default": "surface_brightness",
       "unit": null,
@@ -1222,7 +1222,7 @@
     {
       "module": "17_aio",
       "doc": "docs/plugins/infrastructure/17_aio.md",
-      "line": 33,
+      "line": 37,
       "field": "cache_mb",
       "declared_default": null,
       "unit": "MB",
@@ -1237,7 +1237,7 @@
     {
       "module": "17_aio",
       "doc": "docs/plugins/infrastructure/17_aio.md",
-      "line": 34,
+      "line": 38,
       "field": "fsync",
       "declared_default": "true",
       "unit": null,
@@ -1252,7 +1252,7 @@
     {
       "module": "17_aio",
       "doc": "docs/plugins/infrastructure/17_aio.md",
-      "line": 35,
+      "line": 39,
       "field": "checksum",
       "declared_default": "true",
       "unit": null,
@@ -1267,7 +1267,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 36,
+      "line": 39,
       "field": "json",
       "declared_default": null,
       "unit": null,
@@ -1282,7 +1282,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 37,
+      "line": 40,
       "field": "template",
       "declared_default": null,
       "unit": null,
@@ -1297,7 +1297,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 38,
+      "line": 41,
       "field": "output",
       "declared_default": "stdout",
       "unit": null,
@@ -1312,7 +1312,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 39,
+      "line": 42,
       "field": "help",
       "declared_default": null,
       "unit": null,
@@ -1327,7 +1327,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 40,
+      "line": 43,
       "field": "-y",
       "declared_default": null,
       "unit": null,
@@ -1342,7 +1342,7 @@
     {
       "module": "18_cli",
       "doc": "docs/plugins/infrastructure/18_cli.md",
-      "line": 41,
+      "line": 44,
       "field": "-force",
       "declared_default": null,
       "unit": null,
@@ -1649,7 +1649,7 @@
     {
       "module": "07_noise_snr",
       "doc": "docs/plugins/algorithms_phase1/07_noise_snr.md",
-      "line": 140,
+      "line": 184,
       "field": "sparse_snr_spacing_px",
       "declared_default": "64",
       "unit": "px",
@@ -1876,41 +1876,131 @@
       "doc": "docs/plugins/algorithms_phase2/11_upm.md",
       "line": 100,
       "field": "smoothing_lambda",
-      "declared_default": "0.1`（生产常量 `P2_SMOOTHING_LAMBDA_AUTO`）",
+      "declared_default": "键缺省时编译期默认 **0.0**；`P2_SMOOTHING_LAMBDA_AUTO` = 0.1 仅在 auto 路径生效",
       "unit": null,
       "owner_class": "science_param",
       "registration": "none",
       "registered_at": null,
       "registered_key": null,
       "finding": "unregistered",
-      "note": "UPM 图平滑 λ（upm.h:75 逐字「图平滑权重（默认 0=关闭）」）。**与「堆叠平滑项」不是同一项**：阻尼 α≈0.5 是迭代阻尼（ASTROCS_DESIGN §4.4:459）、smoothing_lambda 是拟合正则项、堆叠平滑项是拟合目标里的新项（§9.67 定案 5 本期不加）。前两者并存不冲突。生产经 model.smoothing_lambda 读取，未登记。",
+      "note": "UPM 图平滑 λ（upm.h:75 逐字「图平滑权重（默认 0=关闭）」）。**与「堆叠平滑项」不是同一项**：阻尼 α≈0.5 是迭代阻尼（ASTROCS_DESIGN §4.4:459）、smoothing_lambda 是拟合正则项、堆叠平滑项是拟合目标里的新项（§9.67 定案 5 本期不加）。前两者并存不冲突。生产经 model.smoothing_lambda 读取，未登记。 【2026-09-23 CFG002-01 订正】declared_default 与文档单元格同步：原登记为文档改写前的残片；现行文档列 = 「键缺省时编译期默认 0.0；P2_SMOOTHING_LAMBDA_AUTO = 0.1 仅在 auto 路径生效」，与 upm.h:75「默认 0=关闭」+ stage2_common.h:24（auto 键值专用常量）逐条一致。",
       "conflict": null
+    },
+    {
+      "module": "03_star_detection",
+      "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
+      "line": 54,
+      "field": "mode",
+      "declared_default": "auto",
+      "unit": null,
+      "owner_class": "science_param",
+      "registration": "none",
+      "registered_at": null,
+      "registered_key": null,
+      "finding": "gap",
+      "conflict": null,
+      "note": "插件声明默认 auto（auto|catalog_guided|blind_diagnostic）。star_detection 段不在 phase_config 块属性面（normalize_block additionalProperties:false）也不在 CLI config_fields(SESSION_NORMALIZE) 键集内 ⇒ 用户无法经合法输入面设置本键，生产只取编译期默认（module_adapters.cpp:2437-2444；越界 token 即 DATA fail-closed）。SCI/ALG 权威只规定「星表引导拟合 = 权威范式、全图盲检测非权威」（ASTROCS_DESIGN.md §4.2），未定义本键。归属：负责人裁决（与 star_detection 段的契约面收口一并处置）。"
+    },
+    {
+      "module": "03_star_detection",
+      "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
+      "line": 55,
+      "field": "gaia_data_dir",
+      "declared_default": "无",
+      "unit": "path",
+      "owner_class": "science_param",
+      "registration": "phase_config",
+      "registered_at": "eng/contracts/schemas/phase_config_normalize.schema.json#/$defs/wcs_config",
+      "registered_key": "wcs.gaia_data_dir",
+      "finding": "none",
+      "conflict": null,
+      "note": "同一旋钮的合同承载拼写 = wcs.gaia_data_dir（phase_config_normalize#/$defs/wcs_config；CLI config_fields 的 wcs 项同面）。节点读取顺序 = star_detection.gaia_data_dir 优先、回退 wcs.gaia_data_dir（module_adapters.cpp:2445-2447）。注意：star_detection 段本身不在 schema 块属性面与 CLI 键集内 ⇒ 生产可达拼写只有 wcs.gaia_data_dir（同 03_star_detection/mode 行 note）。"
+    },
+    {
+      "module": "03_star_detection",
+      "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
+      "line": 56,
+      "field": "max_stars",
+      "declared_default": "20000",
+      "unit": "颗",
+      "owner_class": "science_param",
+      "registration": "none",
+      "registered_at": null,
+      "registered_key": null,
+      "finding": "gap",
+      "conflict": null,
+      "note": "插件声明默认 20000（= 合同域下界）。合同域 [20000,50000] 有最高设计 §4.2「top 2–5 万」权威、越界即 DATA 拒绝（module_adapters.cpp:2398-2403 kP1GuidedMaxStarsLo/Hi + 2450-2456 判定），但本键无任何配置类承载（不在 phase_config schema / CLI 键集 / defaults.json）⇒ 未登记。归属：负责人裁决。"
+    },
+    {
+      "module": "03_star_detection",
+      "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
+      "line": 57,
+      "field": "approx_wcs",
+      "declared_default": "无",
+      "unit": null,
+      "owner_class": "science_param",
+      "registration": "none",
+      "registered_at": null,
+      "registered_key": null,
+      "finding": "unregistered",
+      "conflict": null,
+      "note": "无默认（默认列「无」）。逆投影先验的显式覆盖，天测键 crval1/crval2/cd11/cd12/cd21/cd22（module_adapters.cpp:2458-2470；可改用 wcs 段同名字段）。未进任何配置类 ⇒ 未登记。归属：负责人裁决。"
+    },
+    {
+      "module": "03_star_detection",
+      "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
+      "line": 58,
+      "field": "rotation_deg + parity",
+      "declared_default": "无 / `pos",
+      "unit": "deg / `pos\\",
+      "owner_class": "science_param",
+      "registration": "none",
+      "registered_at": null,
+      "registered_key": null,
+      "finding": "gap",
+      "conflict": null,
+      "note": "合并行：rotation_deg 无默认、parity 默认 pos（pos|neg）。逆投影先验的兜底给法，无解算产物且无显式 CD 时生效（module_adapters.cpp:2477-2490；缺取向先验时不得声称权威，:2424-2434）。插件声明了 parity 默认值但无 SCI/ALG 条款、未进任何配置类 ⇒ 缺口。归属：负责人裁决。【转录口径】文档单元格含转义竖线（deg / pos\\|neg），本册登记的是 CFG002-01 表格解析器的实际取值（unit 截到转义竖线前），与既有 reference_flux 行同一口径；改动该单元格文本会同时改变解析结果，须同步本行。"
+    },
+    {
+      "module": "03_star_detection",
+      "doc": "docs/plugins/algorithms_phase1/03_star_detection.md",
+      "line": 59,
+      "field": "limiting_mag",
+      "declared_default": "由焦距/画幅/曝光派生",
+      "unit": "mag",
+      "owner_class": "science_param",
+      "registration": "none",
+      "registered_at": null,
+      "registered_key": null,
+      "finding": "gap",
+      "conflict": null,
+      "note": "插件声明默认 = 由焦距/画幅/曝光派生（非数值，复用 ipv::estimate_mag_lim_iterative，不另立常数）；显式给出时必须有限，否则 DATA 拒绝（module_adapters.cpp:2491-2498）。未进任何配置类 ⇒ 缺口。归属：负责人裁决。"
     }
   ],
   "totals": {
-    "rows": 110,
+    "rows": 117,
     "by_finding": {
-      "none": 58,
-      "gap": 21,
-      "unregistered": 31
+      "gap": 25,
+      "none": 60,
+      "unregistered": 32
     },
     "by_owner_class": {
-      "science_param": 76,
-      "runtime_policy": 25,
       "cli_surface": 6,
-      "resource_binding": 3
+      "resource_binding": 3,
+      "runtime_policy": 26,
+      "science_param": 82
     },
     "by_registration": {
-      "inputs_block": 8,
-      "none": 52,
-      "defaults_json": 6,
-      "phase_config": 9,
-      "plugin_doc": 24,
-      "contracts_doc": 3,
       "cli": 6,
-      "cpu_profile": 2
+      "contracts_doc": 3,
+      "cpu_profile": 2,
+      "defaults_json": 6,
+      "inputs_block": 8,
+      "none": 57,
+      "phase_config": 10,
+      "plugin_doc": 25
     },
-    "plugin_knobs": 110
+    "plugin_knobs": 117
   },
   "filter_name_policy": {
     "source_of_truth": "eng/packaging/config/filters.json#lookup",
@@ -2033,15 +2123,14 @@
     ],
     "test_index_known_unregistered": [
       "eng/tests/conformance",
-      "eng/tests/gaia_zlib",
       "eng/tests/integration",
       "eng/tests/oracle",
       "eng/tests/realdata",
       "eng/tests/system",
       "eng/tests/validation"
     ],
-    "test_index_known_unregistered_note": "CFG-002 只闭合 eng/tests/config 的登记（任务卡 6.7 / 本卡项5）；上列 5 个目录在 eng/tests/test_index.csv 中缺席（编制时实测，均有测试源但无登记行），属 QA/测试线登记缺口，已登记为交接项。机器门要求「未登记集合 == 本清单」：新增 eng/tests/** 目录必须先登记（fail-closed），清单缩小时必须同步。 追加 eng/tests/validation：RELEASE-02 验证工作区（L4/M16 真实数据验收与论文实验），由 RELEASE-02 控制包建立。",
-    "gate": "机器门断言：①contracts/config/** 与 eng/packaging/config/** 无同名文件、无重复 schema 定义；②DOCUMENT_INDEX 中 CONFIG_CONTRACT.md 恰一次且 ACTIVE_NORMATIVE；③tests/test_index.csv 登记 eng/tests/config，且「未登记目录集合 == test_index_known_unregistered」（fail-closed）；④config/** 下不得出现 *.schema.json（防第二事实源）。"
+    "test_index_known_unregistered_note": "CFG-002 只闭合 eng/tests/config 的登记（任务卡 6.7 / 本卡项5）；上列目录在 eng/tests/test_index.csv 中缺席（编制时实测，均有测试源但无登记行），属 QA/测试线登记缺口，已登记为交接项。机器门要求「未登记集合 == 本清单」：新增 eng/tests/** 目录必须先登记（fail-closed），清单缩小时必须同步。 追加 eng/tests/validation：RELEASE-02 验证工作区（L4/M16 真实数据验收与论文实验），由 RELEASE-02 控制包建立。 退役登记项 eng/tests/gaia_zlib 已删除：该目录在真仓库不存在（目录本身与 test_index.csv 双向都不成立），属「登记了但已无对象」的死登记项；本清单是只减不增的棘轮，死项必须删除而不是留着提示。",
+    "gate": "机器门断言：①contracts/config/** 与 eng/packaging/config/** 无同名文件、无重复 schema 定义；②DOCUMENT_INDEX 中 CONFIG_CONTRACT.md 恰一次且 ACTIVE_NORMATIVE；③tests/test_index.csv 登记 eng/tests/config，且「未登记目录集合 == test_index_known_unregistered」（fail-closed）；④config/** 下不得出现 *.schema.json（防第二事实源）；⑤「登记项必须仍有对象」（棘轮，只减不增）：本清单每一条的目录必须真实存在，且必须仍是 test_index.csv 的未登记缺口；失效项 ⇒ 判红并要求删除登记 —— 由 PY-TEST-INDEX-VERDICTS（eng/ci/check_test_index.py R8）机器保证。"
   },
   "cpu_profile_kernel_link": {
     "status": "LINKED",

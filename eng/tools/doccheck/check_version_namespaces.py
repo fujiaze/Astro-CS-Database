@@ -169,15 +169,96 @@ def scan_file(path: str, base_num: str, alpha_n: int, errors: list, warnings: li
                                   f"{base_num}: {line.strip()[:90]}")
 
 
+def _self_test() -> int:
+    """可执行负例面（01_CHECKS §1「每项检查必须提供机器可执行负例入口」）。
+
+    N1 非 git 树：把本检查器 + gen_version.py + VERSION 复制到临时树（GIT_CEILING_DIRECTORIES
+       阻断向上找 .git）⇒ 必须 rc=1，且 gen_version_from_source 的 detail 具名
+       GIT_UNAVAILABLE，且全输出零 "Traceback"（§1「不得 traceback」）；
+    N2 伪造产品版本字面量写进 active 扫描面 ⇒ 必须 rc=1（mutation 合同的端到端面）；
+    P1 真仓库 ⇒ 必须 rc=0（能绿）。
+    """
+    import shutil
+    import tempfile
+    problems: list[str] = []
+    me = os.path.abspath(__file__)
+    # me = <repo>/eng/tools/doccheck/check_version_namespaces.py ⇒ 上溯 4 层
+    repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(me))))
+
+    def _run(root: str, env=None):
+        return subprocess.run([sys.executable, me, "--root", root],
+                              capture_output=True, text=True, timeout=180, env=env)
+
+    p1 = _run(repo)
+    if p1.returncode != 0:
+        problems.append("P1 真仓库未判绿: rc=%d %s" % (p1.returncode, p1.stdout[:160]))
+
+    tmp = tempfile.mkdtemp(prefix="astrocs_vn_nogit_")
+    try:
+        os.makedirs(os.path.join(tmp, "eng", "tools", "doccheck"))
+        shutil.copy2(me, os.path.join(tmp, "eng", "tools", "doccheck",
+                                      "check_version_namespaces.py"))
+        shutil.copy2(os.path.join(repo, "eng", "tools", "gen_version.py"),
+                     os.path.join(tmp, "eng", "tools", "gen_version.py"))
+        shutil.copy2(os.path.join(repo, "VERSION"), os.path.join(tmp, "VERSION"))
+        env = dict(os.environ, GIT_CEILING_DIRECTORIES=tmp)
+        n1 = _run(tmp, env)
+        blob = n1.stdout + n1.stderr
+        if n1.returncode == 0:
+            problems.append("N1 非 git 树未判红（依赖不可用必须 fail-closed）")
+        if "GIT_UNAVAILABLE" not in blob:
+            problems.append("N1 未具名 GIT_UNAVAILABLE")
+        if "Traceback" in blob:
+            problems.append("N1 出现 traceback（§1 禁止）")
+        try:
+            doc = json.loads(n1.stdout)
+        except Exception:                                     # noqa: BLE001
+            doc = {}
+        if doc.get("git_face", {}).get("available") is not False:
+            problems.append("N1 git_face 未留痕 available=false: %r" % (doc.get("git_face"),))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    tmp2 = tempfile.mkdtemp(prefix="astrocs_vn_forge_")
+    try:
+        os.makedirs(os.path.join(tmp2, "eng", "tools", "doccheck"))
+        os.makedirs(os.path.join(tmp2, "docs", "owner"))
+        shutil.copy2(me, os.path.join(tmp2, "eng", "tools", "doccheck",
+                                      "check_version_namespaces.py"))
+        shutil.copy2(os.path.join(repo, "eng", "tools", "gen_version.py"),
+                     os.path.join(tmp2, "eng", "tools", "gen_version.py"))
+        shutil.copy2(os.path.join(repo, "VERSION"), os.path.join(tmp2, "VERSION"))
+        with open(os.path.join(tmp2, "docs", "owner", "FORGED.md"), "w",
+                  encoding="utf-8") as f:
+            f.write("发布产品版本 9.9.9-alpha.1 与 1.2.3 正式版\n")
+        n2 = _run(tmp2, dict(os.environ, GIT_CEILING_DIRECTORIES=tmp2))
+        if n2.returncode == 0:
+            problems.append("N2 伪造产品版本字面量未被判红")
+    finally:
+        shutil.rmtree(tmp2, ignore_errors=True)
+
+    for p in problems:
+        print("  - %s" % p)
+    print("SELF_TEST %s positives=1 negatives=2" % ("PASS" if not problems else "FAIL"))
+    return 0 if not problems else 1
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".")
     ap.add_argument("--json-out", default=None)
+    ap.add_argument("--self-test", action="store_true",
+                    help="可执行正/负例面（非 git 树 / 伪造版本字面量必须判红）")
     args = ap.parse_args()
+    if args.self_test:
+        return _self_test()
     root = os.path.abspath(args.root)
     results: list[dict] = []
     errors: list[str] = []
     warnings: list[str] = []
+    # git 面留痕（§1「显式降级 + 留痕」）：gen_version 的版本串只能从 git HEAD 派生，
+    # git 不可用时该分量不可得 ⇒ 判红（不给结论），并在 JSON 里具名记录原因。
+    git_face: dict = {"available": True, "detail": "git 工作树"}
 
     try:
         ver = root_version(root)
@@ -205,8 +286,18 @@ def main() -> int:
                     results.append(check("gen_version_from_source", False,
                                          f"gen_version 输出前缀不符: {rep.get('version')!r}"))
             else:
-                results.append(check("gen_version_from_source", False,
-                                     f"gen_version 退出 {r.returncode}: {r.stderr[:120]}"))
+                # 依赖不可用 vs 版本链不符必须分开命名（01_CHECKS §1「显式降级 + 点名」）：
+                # gen_version 在非 git 树 / 无 git 时以 GIT_UNAVAILABLE + rc=2 显式降级；
+                # 原实现把它的 traceback 文本原样塞进 detail，读起来像"版本不符"（语义错位）。
+                why = (r.stderr.strip().splitlines() or [""])[0]
+                if "GIT_UNAVAILABLE" in why:
+                    git_face = {"available": False, "detail": why[:200]}
+                    results.append(check("gen_version_from_source", False,
+                                         f"依赖不可用（GIT_UNAVAILABLE，fail-closed rc={r.returncode}）: "
+                                         f"{why[:160]}"))
+                else:
+                    results.append(check("gen_version_from_source", False,
+                                         f"gen_version 退出 {r.returncode}: {r.stderr[:120]}"))
         except Exception as exc:  # noqa: BLE001
             results.append(check("gen_version_from_source", False, str(exc)))
     else:
@@ -307,6 +398,7 @@ def main() -> int:
         "results": sorted(results, key=lambda r: r["check"]),
         "warnings": warnings,
         "out_of_scope_legacy": out_of_scope,
+        "git_face": git_face,
         "verdict": "VERSION_NAMESPACES_PASS" if passed else "VERSION_NAMESPACES_FAIL",
     }
     text = json.dumps(out, ensure_ascii=False, indent=2, sort_keys=True)

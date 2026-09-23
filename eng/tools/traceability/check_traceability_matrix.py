@@ -91,18 +91,52 @@ MODULE_ANCHOR_DIRS = [
     "docs/modules/registry",  # registry production 模块（module_adapters.cpp 唯一源）
 ]
 AUTHORITY_DIRS = {  # 各合同层 authority 文档搜索目录（id 需在其中一个文件文本中出现）
+    # 锚存活（docs/ci/01_CHECKS.md §1）：本表每条**必须**是当前树里存在的目录；
+    # 失效项由 check_authority_dirs() fail-closed 点名（ANCHOR_STALE + rc=2），
+    # 不得像旧版那样在 _id_has_authority 里 os.path.isdir 为假就 continue
+    # —— 那会让整层 authority 查找静默变成"永不命中"，把真因报成
+    # REF_OUT_OF_SCOPE(WARN)。旧表含 4 类退役路径，已按下述依据订正：
+    #   evidence/ reports/ returns/  → artifacts/evidence
+    #     （ENGINEERING_SPEC §7「artifacts/（证据与产物…证据锚 artifacts/evidence/**）」；
+    #       reports/ 本身也不在 §7 根目录白名单内，运行它会触发 CHK-ROOT-CLEAN）
+    #   lib/core/src                 → 无现行对应（ARCH-001 目录等价迁移后不存在）；
+    #                                   DATA/API 的 authority 是 docs/ 面，直接删除死锚
+    #   include/ tests/              → lib/include 已含在 lib/ 内；tests/ 现为 eng/tests/
     "SCI": ["docs/science"],
     "ALG": ["docs/algorithms", "docs/science"],
-    "DATA": ["docs/contracts", "docs/interfaces/data", "docs/api", "lib/core/src"],
+    "DATA": ["docs/contracts", "docs/interfaces/data", "docs/api"],
     "API": ["docs/api", "docs/contracts", "docs/interfaces/io", "docs/architecture/cpu",
-            "docs/modules/registry", "lib/core/src", "eng/tests/conformance",
+            "docs/modules/registry", "eng/tests/conformance",
             "lib/infrastructure/benchmark/cpu"],
     "ARCH": ["docs/architecture", "docs/architecture/cpu", "docs/contracts", "docs/api"],
     "MOD": ["eng/tests/conformance", "lib/infrastructure", "docs/modules/registry"],
-    "SRC": ["lib", "include", "tests"],
-    "TEST": ["tests", "lib", "docs/interfaces", "docs/contracts", "docs/modules/registry"],
-    "EVID": ["evidence", "reports", "returns"],
+    "SRC": ["lib"],
+    "TEST": ["eng/tests", "lib", "docs/interfaces", "docs/contracts", "docs/modules/registry"],
+    "EVID": ["artifacts/evidence"],
 }
+
+
+def check_authority_dirs(root: str) -> list[str]:
+    """AUTHORITY_DIRS 锚存活断言（§1「锚存活」）。返回失效点名列表（空 = 全存活）。
+
+    为什么必须 fail-closed：authority 查找是"在某层若干目录里找 id 文本"，目录不存在
+    时旧实现静默 continue ⇒ 该层**永远不命中** ⇒ 每条 VERIFIED 行都稳定产出
+    REF_OUT_OF_SCOPE(WARN)，看起来像"待补 authority"，实际是判据面已死。
+    故：逐条点名失效路径；某层无任一存活目录时另记一条层级点名。
+    """
+    stale: list[str] = []
+    for layer in sorted(AUTHORITY_DIRS):
+        dirs = AUTHORITY_DIRS[layer]
+        if not dirs:
+            stale.append(f"AUTHORITY_DIRS.{layer} <空目录清单>")
+            continue
+        live = [d for d in dirs if os.path.isdir(os.path.join(root, d))]
+        for d in dirs:
+            if not os.path.isdir(os.path.join(root, d)):
+                stale.append(f"AUTHORITY_DIRS.{layer} {d}")
+        if not live:
+            stale.append(f"AUTHORITY_DIRS.{layer} <该层无任一存活目录，authority 查找恒不命中>")
+    return stale
 EMPTY_BAD = {"", "-", "?", "TBD", "TODO", "N/A", "NA", "n/a"}
 PLACEHOLDER_RE = re.compile(r"^[A-Z]+-MISSING$")
 
@@ -232,6 +266,71 @@ def is_empty(v) -> bool:
     return s == "" or s in EMPTY_BAD
 
 
+def _self_test_authority_dirs() -> int:
+    """AUTHORITY_DIRS 锚存活的可执行正/负例面（01_CHECKS §1「可执行负例面」）。
+
+    P1 真仓库：全目录存活（check_authority_dirs == []），且真实检查器 rc=0；
+    N1 空树：全部层失效 ⇒ ANCHOR_STALE 点名 + rc!=0（不得静默 PASS、不得 traceback）；
+    N2 只缺 artifacts/evidence：只点名 AUTHORITY_DIRS.EVID artifacts/evidence + rc!=0
+       （证明判据是逐条点名，不是"全有或全无"）。
+    """
+    import shutil
+    import tempfile
+
+    problems: list[str] = []
+    me = os.path.abspath(__file__)
+    # me = <repo>/eng/tools/traceability/check_traceability_matrix.py ⇒ 上溯 4 层
+    repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(me))))
+
+    if check_authority_dirs(repo):
+        problems.append("P1 真仓库 AUTHORITY_DIRS 未全存活: %s" % check_authority_dirs(repo))
+
+    def _run(root):
+        return subprocess.run([sys.executable, me, "--root", root],
+                              capture_output=True, text=True, timeout=300)
+
+    empty = tempfile.mkdtemp(prefix="astrocs_tm_empty_")
+    try:
+        r = _run(empty)
+        blob = r.stdout + r.stderr
+        if r.returncode == 0:
+            problems.append("N1 空树未判红（锚失效必须 fail-closed）")
+        if "ANCHOR_STALE" not in blob:
+            problems.append("N1 空树未点名 ANCHOR_STALE")
+        if "Traceback" in blob:
+            problems.append("N1 空树出现 traceback（§1 禁止）")
+    finally:
+        shutil.rmtree(empty, ignore_errors=True)
+
+    partial = tempfile.mkdtemp(prefix="astrocs_tm_partial_")
+    try:
+        for layer in AUTHORITY_DIRS:
+            for d in AUTHORITY_DIRS[layer]:
+                if d == "artifacts/evidence":
+                    continue
+                os.makedirs(os.path.join(partial, d), exist_ok=True)
+        r = _run(partial)
+        blob = r.stdout + r.stderr
+        if r.returncode == 0:
+            problems.append("N2 只缺 EVID 目录未判红")
+        if "AUTHORITY_DIRS.EVID artifacts/evidence" not in blob:
+            problems.append("N2 未精确点名 AUTHORITY_DIRS.EVID artifacts/evidence")
+        # 只允许 EVID 层被点名（含其"该层无任一存活目录"层级点名）；其它层不得误报
+        others = [ln for ln in blob.splitlines()
+                  if ln.startswith("ANCHOR_STALE: AUTHORITY_DIRS.") and "AUTHORITY_DIRS.EVID" not in ln]
+        if others:
+            problems.append("N2 误报其它锚: %s" % others[:3])
+        if "Traceback" in blob:
+            problems.append("N2 出现 traceback（§1 禁止）")
+    finally:
+        shutil.rmtree(partial, ignore_errors=True)
+
+    for p in problems:
+        print("  - %s" % p)
+    print("SELF_TEST %s positives=1 negatives=2" % ("PASS" if not problems else "FAIL"))
+    return 0 if not problems else 1
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--root", default=".")
@@ -239,9 +338,24 @@ def main() -> int:
     ap.add_argument("--strict", action="store_true")
     ap.add_argument("--ignore-baseline", action="store_true", dest="ignore_baseline",
                     help="负例注入面：绕过烧毁式 WARN 基线（存量 WARN 必须判红）")
+    ap.add_argument("--self-test", action="store_true", dest="self_test",
+                    help="可执行正/负例面：AUTHORITY_DIRS 锚存活（缺目录必须 ANCHOR_STALE + rc=2）")
     args = ap.parse_args()
+    if args.self_test:
+        return _self_test_authority_dirs()
     root = os.path.abspath(args.root)
     results: list[dict] = []
+
+    # 锚存活（先于一切判据）：AUTHORITY_DIRS 任一目录失效 ⇒ ANCHOR_STALE 点名并判红。
+    # 记 ERROR 而**不**提前 return：其余判据（断链/悬空/重复/空单元格）与 authority
+    # 面相互独立，仍然有效且对定位有用；提前中断会让"一个锚失效"淹没整份报告。
+    stale_dirs = check_authority_dirs(root)
+    for s in stale_dirs:
+        results.append(err("ANCHOR_STALE", s))
+    if stale_dirs:
+        print(f"ANCHOR_STALE: AUTHORITY_DIRS 含 {len(stale_dirs)} 条失效路径"
+              f"（authority 查找会静默不命中）—— fail-closed 判红"
+              f"（docs/ci/01_CHECKS.md §1「锚存活」）", file=sys.stderr)
 
     # git 面探测（一次）—— 显式降级 + 留痕（§1：不得 traceback、不得静默降级）
     ok, why = probe_tracking(root)

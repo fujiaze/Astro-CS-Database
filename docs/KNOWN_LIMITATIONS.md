@@ -83,7 +83,7 @@
 35. **`CHK-ARCH503-MOSAIC-WIN` 的峰值驻留判据（已收敛为唯一实现）**
     - **现行口径**：`lib/infrastructure/scheduler/src/mosaic_window.cpp` 的峰值驻留取**实测值**（窗口输出像素缓冲 `capacity()` + 路由指针向量 + 标量局部，循环内取最大）；判据收敛为唯一实现 `window_peak_residency_ok`——peak>0 / peak≤解析上界 / 与总图规模解耦 / 装满时 `window_tiles` 更大 ⇒ peak **严格更大**，四条同时成立才绿；两条负例（常量驻留 `sizeof(double)*4`、零驻留注入）必须判红。
     - **规范依据**：`AGENTS.md §5`「判据必须非退化…恒真门没有证据资格」、`§9`；`docs/contracts/SCHEDULER_CONTRACT.md §6`（负例要求）。
-    - **残余**：`eng/ci/mutation_gates.json` 的 `open_items` 为人工登记，**尚无 checker**。
+    - **残余**：`eng/ci/mutation_gates.json` 的判据已机器化 —— `eng/ci/check_mutation_gates.py` 断言 design_claim 锚存活（doc/§节号/行号/引文四查）、登记项仍有对象（driver/registration/evidence 的路径必须存在或在 gone_artifacts 显式登记）、gone_artifacts 棘轮（只减不增），带 `--self-test`。该 checker **尚未**在 `eng/ci/checks.json` 注册；真仓库当前判红：design_claim 原引的 `ASTROCS_DESIGN.md §11.1` 在现行设计中不存在，且 6 条登记产物（`run/v6/**` 与 `eng/tests/contracts/product_family/evidence/mutations.json`）的路径已消失。
     - **归属/去向**：mosaic_window 判据面 + `eng/ci`；同族已在控制包差距清单登记（「L2 性能门恒真」「空断言/恒真测试普查」）。
 
 36. **`lib/phase{1,2,3}_session` 不在 `ENGINEERING_SPEC §7` 的 `lib/` 子目录清单内**

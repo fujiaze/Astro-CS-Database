@@ -11438,6 +11438,31 @@
       ]
     },
     {
+      "id": "CHK-MUTATION-GATES",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/ci/check_mutation_gates.py"
+      ],
+      "timeout_seconds": 120,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [],
+      "waivable": false,
+      "changed_paths": [
+        "eng/ci/mutation_gates.json",
+        "eng/ci/check_mutation_gates.py",
+        "ASTROCS_DESIGN.md",
+        "ENGINEERING_SPEC.md"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "CHK-KNOWN-FAILURES-BASELINE",
       "profiles": [
         "fast",

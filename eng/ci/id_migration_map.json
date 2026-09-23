@@ -54,6 +54,12 @@
         "DEEP-COMPLEXITY"
       ]
     },
+    "CHK-MUTATION-GATES": {
+      "kind": "doc",
+      "grade": "P1",
+      "name": "变异门登记册的登记项必须仍有对象",
+      "doc": "docs/ci/01_CHECKS.md §2"
+    },
     "CHK-MODULE-MANIFEST": {
       "kind": "doc",
       "grade": "P0",
@@ -1422,6 +1428,15 @@
       "checker": "eng/tools/quality/check_path_domain_anchors.py",
       "owner": "PATHDOMAIN-01",
       "reason": "changed_paths 是 glob 路径域，决定改了哪些文件要跑哪些门，但从来没有存在性判据——目录退役后该域静默失效。判据+可执行负例见 eng/tools/quality/check_path_domain_anchors.py --self-test。",
+      "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
+    },
+    {
+      "old_id": "CHK-MUTATION-GATES",
+      "decision": "KEPT",
+      "target": "CHK-MUTATION-GATES",
+      "checker": "eng/ci/check_mutation_gates.py",
+      "owner": "DEFECT-REPRO-01",
+      "reason": "该登记册此前全仓零机器消费方，且它的设计依据（设计文档某节的行号引文）整条不存在，另有 6 条登记产物路径早已消失——登记了却不再有对象，且没人会发现。新判据做四查锚存活 + 产物路径存在性棘轮。",
       "note": "本波新增执行单元，登记为 absorbed（不计入 source_entry_count）。"
     },
     {
@@ -3754,6 +3769,7 @@
       "CHK-FIX406-SIGTERM",
       "CHK-GATE-FAILCLOSED-SELFTEST",
       "CHK-HIPS-STORAGE-FORM",
+      "CHK-MUTATION-GATES",
       "CHK-NO-WEIGHT-MODE",
       "CHK-NO-WEIGHT-MODE-CODE",
       "CHK-NO-WEIGHT-MODE-CODE-SELFTEST",
