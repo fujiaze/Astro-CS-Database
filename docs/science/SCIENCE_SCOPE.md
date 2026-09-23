@@ -76,11 +76,15 @@ AstroCS 从多帧天文 CCD 图像估计统一的天球辐射场（HiPS signal�
 ## 系统/随机误差
 
 系统性：flat 残差、PSF 色差、测光零点漂移（QA 元数据化）；
-随机性：空背景随机分量由 `NoiseWeightModelV1` 以 **patch 稳健尺度（MAD→σ）** 估计并落成 `variance/ivar`；
-该模型的唯一生产基线是**经验空背景方差**（`source==0`，`noise_model.cpp:618`）。
-「光子泊松 + 读出噪声」的参数式 `var_ADU = max(signal,0)/gain + (read_noise_e/gain)²` **只是诊断/交叉验证通道**，
-不得作为生产方差来源（`docs/science/NOISE_MODEL.md` §9a「Poisson+read noise」、§10）；本链不建模 gain。
-**适用域**：随机分量 = 空背景散粒 + 读出的**经验合计**；源泊松项、系统项与 Drizzle 后协方差不在本模型内（`docs/science/UNCERTAINTY_AND_COVARIANCE.md`）。
+随机性由**两个用途不同的方差面**承载，二者量纲相同、**不得互相替代**（`docs/science/NOISE_MODEL.md` §5/§5c）：
+**背景方差面** = 空背景随机分量，由 `NoiseWeightModelV1` 以 **patch 稳健尺度（MAD→σ）** 估计并落成 `variance/ivar`，
+其唯一基线是**经验空背景方差**（`source==0`，`noise_model.cpp:618`）；
+**加权方差面** = 该像素的**总方差**，含**源光子散粒项**，供叠加与拟合的最优加权，其源项与常数项来自
+`gain`/\`read_noise_e\` 与星点测光给出的源电平（`docs/science/NOISE_MODEL.md` §5c）。
+「光子泊松 + 读出噪声」的参数式 `var_ADU = max(signal,0)/gain + (read_noise_e/gain)²`
+**不得**作为背景方差面的来源，**必须**作为加权方差面的来源。
+**适用域**：背景方差面 = 空背景散粒 + 读出的**经验合计**；系统项与 Drizzle 后协方差不在任一面内
+（`docs/science/UNCERTAINTY_AND_COVARIANCE.md`）。
 
 ## 数值精度
 
