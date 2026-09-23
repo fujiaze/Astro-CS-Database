@@ -140,7 +140,14 @@ DATA-UPM-CONTROL-UNC-001；DATA-P2-VAR-001；DATA-P3-UNC-001
 
 - **线性方差二次型 C_out = R C_in Rᵀ**：线性误差传播（教科书级）；数值稳定性与归约误差见 Higham 2002, Accuracy and Stability of Numerical Algorithms, 2nd ed., SIAM（ISBN 0-89871-521-0）。
 - **Drizzle 后相邻像素相关与方差低估**：Fruchter & Hook 2002, PASP 114, 144（DOI 10.1086/338393，§5 相关噪声）；DrizzlePac Handbook（STScI）；Zackay & Ofek 2017, ApJ 836, 188（相关噪声下的信息保持组合）。**差异（正向约束）**：传播链内部按完整二次型计算 `C_y = R C_x Rᵀ`（§Phase3），但**产品面只发布其对角线** `variance`，完整协方差矩阵不作为产品交付（§协方差节）。⇒ 用产品 `variance` 做孔径/测量误差时，必须显式加入协方差项；`Σc_k²u_k` 标量式只在 `C_in` 对角时成立。
-- **var(median) ≈ πσ²/(2N)**：Laplace 分布/正态样本中位数渐近方差的教科书结论（见 Kendall & Stuart, The Advanced Theory of Statistics, Vol.1，或 Hoaglin et al. 1983）；0.997 实证 ratio 见 SCI-UPM §11。
+- **var(median) = πσ²/(2N)**：**只对高斯样本成立**（正向约束）。一般式为 `Var(median) = 1/(4N·f(m)²)`，
+  高斯密度 `f(m) = 1/(σ√(2π))` 代入即得 `πσ²/(2N)`；**换分布必须换 `f(m)`**——均匀分布为 `6σ²/(πN)`（比值 6/π），
+  Laplace（尺度 b）为 `b²/N`（比值 1/π）。出处：Cramér, H. 1946, *Mathematical Methods of Statistics*,
+  Princeton UP, **§28.5「The quantiles」（pp. 367–369）**（逐字：*"the median z of a sample of n from this
+  distribution is asymptotically normal (m, σ√(π/(2n)))"*）。**适用域**：样本 i.i.d.、分布连续、密度在中位数邻域
+  连续可微（`f(m)>0`）、大样本渐近。**本仓判据**：`PHASE2_SAMPLER.md` 的 MC 对非高斯族给出判红结果
+  （均匀分布实测比值 1.9013 @N=1025 vs 解析 6/π；Laplace 实测 0.3345 vs 解析 1/π）⇒ 把本式用于非高斯样本即判红。
+  **未独立验证**：Kendall & Stuart Vol.1 与 Hoaglin et al. 1983 的章节号与逐字原文（付费墙）。
 - **像素 ivar 与孔径方差不等价**：aperture 方差须显式加 Cov 项；相关噪声处理见 Zackay & Ofek 2017 II。
 
 参考代码库（含许可证；仅对照不复制 GPL 代码）：

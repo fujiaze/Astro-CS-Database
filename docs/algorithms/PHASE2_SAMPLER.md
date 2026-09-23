@@ -257,9 +257,11 @@ uncertainty      = sqrt(control_variance)                  # :878
   出处：Serfling, R. J. 1980, *Approximation Theorems of Mathematical Statistics*,
   Wiley, ISBN 0-471-02403-1（DOI 10.1002/9780470316481），§2.3.2 样本分位数渐近
   正态性定理（p=1/2 即中位数）；同结论亦见 Cramér, H. 1946, *Mathematical Methods
-  of Statistics*, Princeton UP, §28.4。
-- 本仓独立复核（`run/SCI-FIX-PHASE2-01/exp/e1e2_domain_calibration.py`，证据
-  `evidence/e1e2_domain.json:median_variance`，R=4×10⁵）：把实测 Var(median) 与
+  of Statistics*, Princeton UP, **§28.5「The quantiles」（pp. 367–369）**（§28.4 为「Functions of moments」，不含本结论）。
+  逐字：*"the median z of a sample of n from this distribution is asymptotically normal (m, σ√(π/(2n)))"*。
+- 本仓独立复核（**就地方法**：固定 seed 的 MC，R = 4×10⁵ 次重采样，每次从指定分布抽 N 个 i.i.d. 样本、
+  取样本中位数、算其样本方差，再与解析式相除取比值；判据 = 比值须随 N 增大收敛到 1）：
+  把实测 Var(median) 与
   πσ²/(2N) 相除，高斯族得 **0.9149 (N=5) / 0.9722 (N=17) / 0.9938 (N=65) /
   1.0030 (N=289)** ⇒ 渐近式在 N=5 时**低估 8.5%**、N=17 时低估 2.8%、N≥65 时误差 <1%。
   同一实验对非高斯族给出**判红**结果：均匀分布比值 → 6/π = 1.9099（实测 1.9013 @N=1025）、

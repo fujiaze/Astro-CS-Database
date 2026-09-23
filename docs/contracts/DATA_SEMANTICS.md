@@ -1167,8 +1167,11 @@ Phase1/Phase2 的 FITS tile **当前不写 `BUNIT`**（实测 tile 头只有
 `pixel_semantics` / `pixel_area_power` 这类像素语义 provenance 键。后果：§5.3 的输入语义守卫
 （`lib/algorithms/resample/p3_rsmp_units.cpp:137-171` `resolve_bunit`：裸 `ADU` 需
 `pixel_semantics=SurfaceBrightness && pixel_area_power=-2` 才可判）**即使接线也会拒绝当前产品**
-（`resolvable=false`）。⇒ 本条为**已登记缺口**（归属：signal 产品写出面 / 归后续 FIX；证据
-`run/RELEASE-02/实验/E09-Phase2信号量纲/ALIGNMENT-5.3.md` C3/C5），**不得**据此声称 §5.3 守卫已生效。
+（`resolvable=false`）。⇒ 本条为**已登记缺口**（归属：signal 产品写出面 / 归后续 FIX）。**复现方法（就地，不依赖外部目录）**：
+以现行 Phase2 面亮度产品（`BUNIT=ADU/sr`）为输入调用 `resolve_bunit`，声明 `pixel_semantics=SurfaceBrightness`
+且 `pixel_area_power=-2`（即产品自述的立体角幂）；判据 = 返回 `resolvable=false` ⇒ 缺口成立、§5.3 守卫**未生效**。
+反例（负对照）：把 `BUNIT` 换成 `ADU` 且 `pixel_area_power=0` 时 `resolvable=true` ⇒ 判据非退化。
+**不得**据此缺口声称 §5.3 守卫已生效。
 
 写出 tile 集: cov.n_union_cells 顺序逐 tile（stage2.cpp:659-660），
 探测读零帧的 tile 跳过（frames.empty() → continue，:669）；写后
@@ -1234,8 +1237,10 @@ signal 回读失败 rc=7 :1665）。
   略 >1 而被钳 ⇒ 输入 support 恒为 1 时 `astrocs_support_clamped_pixels` **也非零**。
   实测：常量场（输入 support≡1）`astrocs_support_clamped_pixels = 262144`（= 全部像素）。
   ⇒ 该计数**不能直接读作过覆盖像素数**（判据须同时看 `covered_area > A_cell` 的
-  未钳制事实，或改用 float64 累加/回除）；证据
-  `run/RELEASE-02/实验/E09-Phase2信号量纲/ALIGNMENT-5.3.md` C8。
+  未钳制事实，或改用 float64 累加/回除）。**复现方法（就地）**：构造输入 `support ≡ 1` 的常量场
+  （tile 全 512×512 = 262144 像素均被覆盖），读 `astrocs_support_clamped_pixels`；判据 = 计数等于
+  全部像素数 262144 且 `covered_area` 处处不大于 `A_cell` ⇒ 该计数**不等于**过覆盖像素数。
+  反例（负对照）：单帧单次覆盖的 tile 上该计数应为 0 ⇒ 判据非退化。
 - **序合同（HIPS-IMG-001，§3）**: 输出 FITS tile 行主序
   `(511−x)·512+y`；stage2 集成缓冲为 FITS 行主序，写入前按
   `nested_local_to_fits_index` 逆映射转 NESTED local 序（ACR 路径
