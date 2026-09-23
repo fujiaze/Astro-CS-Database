@@ -10094,10 +10094,20 @@ Result<void> p2_op_integrate(const Json& doc, Json* man) {
           ++l_invalid;
         }
       } else {
-        // 无有效样本: NaN/NaN 同态（§30.1 invalid policy 第 1 行, 禁 0/±Inf 伪装）
+        // signal 与 W 的口径**分开**（§30.1：ivar = W = Σw）：
+        //   ZERO_VALID_WEIGHT = 样本在、**权重全 0**（=「有覆盖但方差不可用」，
+        //     §4a:49 明文合法产品态）⇒ signal 无定义（NaN），但 W **就是权重和 = 0**，
+        //     不得写成 NaN——写成 NaN 会让下游把「方差不可用」误判成「权重面损坏」
+        //     （tile 写出侧对 cov>0 ∧ 非有限 W 判 rc=-6 硬失败）。
+        //   其余（NO_CANDIDATES / ALL_REJECTED / INVALID_INPUT）= 无有效样本
+        //     ⇒ NaN/NaN 同态（§30.1 invalid policy 第 1 行, 禁 0/±Inf 伪装）。
         signal = std::numeric_limits<double>::quiet_NaN();
-        wsum = std::numeric_limits<double>::quiet_NaN();
-        if (pr.status == P2_INTEGRATE_ZERO_VALID_WEIGHT) ++l_zero;
+        if (pr.status == P2_INTEGRATE_ZERO_VALID_WEIGHT) {
+          wsum = 0.0;
+          ++l_zero;
+        } else {
+          wsum = std::numeric_limits<double>::quiet_NaN();
+        }
       }
       sig_bin[base + p] = signal;
       sup_bin[base + p] = pr.support;   // canonical reducer max(accepted support)
@@ -10558,14 +10568,20 @@ Result<void> p2_op_write(const Json& doc, Json* man) {
       //                            此处**不得**用 NaN 当哨兵 —— §4a:49「NaN/负只
       //                            表示产品损坏」，而 §12.4:423 对非有限输入是
       //                            rc=-6 硬失败（禁 clamp/禁静默跳过）。
-      //   有覆盖 ∧ W 有效 (w>0)  → cov²/W（逆方差）。
-      //   有覆盖 ∧ W 病态 (w<=0) → NaN = **真损坏** ⇒ writer rc=-6 硬失败（信号保留）。
+      //   有覆盖 ∧ W 有效 (w>0)   → cov²/W（逆方差）。
+      //   有覆盖 ∧ W==0          → **0 = 显式不可用**（§4a:49「有覆盖但方差不可用
+      //                            ⇒ variance=0 ∧ ivar=0」，禁 NaN）。这一行是
+      //                            三态表的第三态，不是损坏：W==0 的来源是全部样本
+      //                            方差不可用（p1 variance=0 ⇒ ivar=0 ⇒ Σw=0）。
+      //   有覆盖 ∧ W 非有限或负  → NaN = **真损坏** ⇒ writer rc=-6 硬失败（信号保留）。
       if (uncertainty_available) {
         const double w = wsum_v[static_cast<size_t>(i)];
         if (!(cov > 0.0)) {
           varnum_buf[local] = 0.0f;
         } else if (std::isfinite(w) && w > 0.0) {
           varnum_buf[local] = static_cast<float>((cov * cov) / w);
+        } else if (w == 0.0) {
+          varnum_buf[local] = 0.0f;
         } else {
           varnum_buf[local] = std::numeric_limits<float>::quiet_NaN();
         }

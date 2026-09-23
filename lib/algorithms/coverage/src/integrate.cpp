@@ -70,6 +70,14 @@ int p2_integrate_pixel(const P2PixelStack* in, P2PixelResult* out) {
     if (n_positive_weight == 0) {
         out->status = (n_accepted == 0) ? P2_INTEGRATE_ALL_REJECTED
                                         : P2_INTEGRATE_ZERO_VALID_WEIGHT;
+        // support 是**覆盖并集下界**，与 signal 是否可用**解耦**（integrate.h 冻结语义：
+        // 「output support 唯一 canonical reducer = max(accepted support)」）。
+        // 全零权只表示"没有可用的统计贡献"（ZERO_VALID_WEIGHT），不表示"没有覆盖"；
+        // 此处若不发布 support，零权 accepted 样本的覆盖会被静默丢弃，下游把
+        // "有覆盖但方差不可用"误判成"无覆盖"并据此 fail-closed 判 tile 缺失。
+        // ALL_REJECTED（无任何 accepted 样本）的 sup_max 恒为 0，保持不发布。
+        if (out->status == P2_INTEGRATE_ZERO_VALID_WEIGHT)
+            out->support = (in->support != nullptr) ? sup_max : 1.0;
         return 0;
     }
     out->signal = vs / wsum;

@@ -1038,9 +1038,13 @@ static bool write_hierarchy_cell(AioHipsProductSet* ps, int k, uint64_t A,
             const double area = acc.areaAt(i);
             const double vnum = acc.varAt(i);
             // ── §12.4:423 损坏判定（先于一切映射；禁 clamp、禁静默跳过）────────
-            // 损坏 = vnum/area 非有限 或 vnum < 0（上游数值损坏），与"方差不可用"
-            // （vnum==0 且 area>0，合法产品态）严格区分。
-            if (!std::isfinite(vnum) || vnum < 0.0 || !std::isfinite(area)) {
+            // 损坏 = **有覆盖**（area>0）而 vnum 非有限或 vnum<0（上游数值损坏）。
+            // 判定必须**以覆盖为前提**：无覆盖（area<=0）时 vnum 为 NaN 是**正确的产品态**
+            // （与 signal 面的 NaN 同态，见下方三态表第三行），不得判损坏——否则
+            // "整块无覆盖"的层次 cell 会被误判成数值损坏并硬失败 rc=-6，
+            // 把"这一块天区没数据"变成"产品损坏"。
+            if (!std::isfinite(area) ||
+                (area > 0.0 && (!std::isfinite(vnum) || vnum < 0.0))) {
                 set_error("hierarchy variance 损坏 (vnum/area 非有限或 vnum<0) Norder" +
                           std::to_string(k) + " ipix=" + std::to_string(A) +
                           " i=" + std::to_string(i) + " vnum=" + std::to_string(vnum) +
@@ -1510,9 +1514,13 @@ int aio_hips_write_variance_tile(AioHipsProductSet* ps,
                 if (view->covered_area) area = ((const double*)view->covered_area)[i];
             }
             // ── §12.4:423 损坏判定（先于一切映射；禁 clamp、禁静默跳过）────────
-            // 损坏 = vnum/area 非有限 或 vnum < 0（上游数值损坏，禁止被静默写成
-            // NaN/0）。与"方差不可用"（vnum==0 且 area>0，合法产品态）严格区分。
-            if (!std::isfinite(vnum) || vnum < 0.0 || !std::isfinite(area)) {
+            // 损坏 = **有覆盖**（area>0）而 vnum 非有限或 vnum<0（上游数值损坏，
+            // 禁止被静默写成 NaN/0）。判定必须**以覆盖为前提**：无覆盖（area<=0）时
+            // vnum 为 NaN 是**正确的产品态**（与 signal 面的 NaN 同态，见下方三态表
+            // 第三行），不得判损坏——否则"这块天区没数据"会被误判成"产品损坏"并
+            // rc=-6 硬失败。
+            if (!std::isfinite(area) ||
+                (area > 0.0 && (!std::isfinite(vnum) || vnum < 0.0))) {
                 set_error("var_num_sum/covered_area 损坏 (vnum/area 非有限或 vnum<0) i=" +
                           std::to_string(i) + " vnum=" + std::to_string(vnum) +
                           " area=" + std::to_string(area) +
