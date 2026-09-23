@@ -57,25 +57,62 @@ std::string map_filter_name(const std::string& f) {
     return f;
 }
 
-// 与 orchestrator.cpp:1368 load_filter_curve 同解析（定位对象键 → 抽数组）。
-// 返回 false 表示文件/键/数组任一缺失。
+// 定位曲线对象并抽数组。返回 false 表示文件/键/数组任一缺失。
+//
+// ── P1-PHOT-CURVE-RESOLVE 修复（2026-09，M42 真实数据根因调查）─────────────
+// 缺陷（修复前）: 只做 content.find("\"name\"") 取**第一次**文本出现，再从该偏移
+//   往后找第一个 "wavelength_nm"。当 filters_json 指向**转录版**
+//   eng/packaging/config/filters.json（顶层顺序 [..., provenance, lookup, filters]，
+//   曲线定义在 filters 段）时，名字会先在 provenance.per_filter 段命中 ⇒ 偏移落在
+//   filters 段之前 ⇒ 取到 filters 段的**第一个**滤镜曲线。
+//   实测（run/M42-SCIA-ROOTCAUSE-01）：配置声明 filter="Baader R" 而实际取到
+//   "Antlia V Pro Series B"（53 点 / 420–524 nm），使 M42 Red 帧的 F_syn 用蓝端通带
+//   合成 ⇒ 逐星残差散度从 0.019 dex 膨胀到 0.204 dex（10.7×），
+//   2.5σ = 0.51 mag（EXP-04 三帧量级 0.045–0.057 mag 的 8.9 倍）。
+// 修复: 只接受**同时**满足 (a) 键后紧跟 ':' 与 '{'（是对象键而非任意文本）、
+//   (b) 该对象内**含 wavelength_nm 数组** 的候选；取第一个满足者。
+//   provenance/其他段落的对象不含 wavelength_nm ⇒ 被跳过。
+//   这是曲线**解析**修复，不改任何科学公式、常数与容差。
 bool load_curve(const std::string& json_path, const std::string& curve_name,
                 std::vector<double>* out_wl, std::vector<double>* out_trans) {
     // CLEAN-403: 读取经 aio; 打开/读取失败 ⇒ false (与原 !ifs.is_open() 同语义)。
     std::string content;
     if (!aio_file::read_all(json_path.c_str(), &content)) return false;
+    auto is_space = [](char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
+    };
     const std::string key = "\"" + curve_name + "\"";
-    size_t pos = content.find(key);
-    if (pos == std::string::npos) return false;
-    auto extract_array = [&content, &pos](const std::string& arr_key,
-                                           std::vector<double>* out) -> bool {
-        size_t kpos = content.find(arr_key, pos);
+    std::string obj;
+    for (size_t p = content.find(key); p != std::string::npos; p = content.find(key, p + 1)) {
+        size_t q = p + key.size();
+        while (q < content.size() && is_space(content[q])) ++q;
+        if (q >= content.size() || content[q] != ':') continue;   // 非对象键 (如别名表/字符串值)
+        ++q;
+        while (q < content.size() && is_space(content[q])) ++q;
+        if (q >= content.size() || content[q] != '{') continue;   // 非对象值
+        // 括号配平取该对象的完整文本
+        size_t depth = 0, end = std::string::npos;
+        for (size_t i = q; i < content.size(); ++i) {
+            if (content[i] == '{') ++depth;
+            else if (content[i] == '}') { if (--depth == 0) { end = i; break; } }
+        }
+        if (end == std::string::npos) continue;
+        std::string cand = content.substr(q, end - q + 1);
+        if (cand.find("\"wavelength_nm\"") == std::string::npos) continue;  // 曲线对象判据
+        obj = std::move(cand);
+        break;
+    }
+    if (obj.empty()) return false;
+    size_t pos = 0;
+    auto extract_array = [&obj, &pos](const std::string& arr_key,
+                                      std::vector<double>* out) -> bool {
+        size_t kpos = obj.find(arr_key, pos);
         if (kpos == std::string::npos) return false;
-        size_t b0 = content.find('[', kpos);
+        size_t b0 = obj.find('[', kpos);
         if (b0 == std::string::npos) return false;
-        size_t b1 = content.find(']', b0);
+        size_t b1 = obj.find(']', b0);
         if (b1 == std::string::npos) return false;
-        std::string arr = content.substr(b0 + 1, b1 - b0 - 1);
+        std::string arr = obj.substr(b0 + 1, b1 - b0 - 1);
         std::replace(arr.begin(), arr.end(), ',', ' ');
         std::istringstream iss(arr);
         out->clear();
@@ -139,7 +176,18 @@ FramePhotFitResult fit_frame_photometry(const FramePhotFitRequest& req) {
         if (!load_curve(req.qe_json, req.qe_name, &qe_wl, &qe_trans)) {
             qe_wl.clear();
             qe_trans.clear();
+            // 曲线名/文件存在但解析失败 ⇒ 不得静默退化为 Q(λ)≡1（通带错配是合成
+            // 测光定标的主误差项，见 docs/references/PHOTOMETRY_LITERATURE_REVIEW_ARCHIVE.md
+            // §1.4）；如实报出，由调用方决定是否判红。
+            std::fprintf(stderr, "[photometry] WARNING: QE 曲线 '%s' 在 %s 中解析失败, "
+                                 "按 Q(lambda)=1 继续 (显式未建模项)\n",
+                         req.qe_name.c_str(), req.qe_json.c_str());
         }
+    } else {
+        // 配置未提供 QE ⇒ Q(λ)≡1（既有语义，不阻断）；补一条显式告警，避免"没配 QE"
+        // 与"QE 已计入"在下游不可区分。
+        std::fprintf(stderr, "[photometry] WARNING: qe_json/qe_name 未配置, "
+                             "F_syn 按 Q(lambda)=1 合成 (显式未建模项)\n");
     }
 
     // FOV 半径（与 orchestrator.cpp:2771-2778 同式同钳位）
