@@ -67,6 +67,52 @@ configure_file(lib/infrastructure/cli/version_generated.h.in ${CMAKE_CURRENT_BIN
 file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/version_generated.h
   "#define ASTROCS_COMMIT_SHA \"${ASTROCS_GIT_COMMIT}\"\n")
 
+# ── 构建期指纹 (RUN-PROVENANCE-01) ───────────────────────────────────────────
+# 缺陷（一手证据 run/RUN-PROVENANCE-01/REPORT.md §A）: ASTROCS_COMMIT_SHA 只在
+# **configure 期**采样一次；Ninja 的 RERUN_CMAKE 规则只依赖 CMake 输入（实测
+# build/build.ninja:19586 的依赖面里没有任何 .cpp/.h）⇒ 改源码不会重跑 configure
+# ⇒ 编译进去的是新代码，provenance 记的却是旧 SHA；同一次 configure 下的所有运行
+# 共享同一个 source_sha，于是"同 source_sha"被误当成"同一二进制"（事故形态见
+# run/RUN-PROVENANCE-01/logs/A2_repro_defect.log）。
+# 修法: 另出**构建期**采样的 build_stamp_generated.h（HEAD / dirty / 源集内容摘要），
+# 由 eng/tools/gen_build_stamp.py 在构建期生成；依赖面 = git 索引给出的**显式清单**
+# （非 GLOB，QA-002），脚本内容不变时不落盘（mtime 不变 ⇒ 不触发下游重编译）。
+# 语义权威: docs/VERSIONING.md「构建指纹合同」；消费者规则: 判"同一代码/同一二进制"
+# **只看** ASTROCS_BUILD_SOURCE_DIGEST —— source_sha 只表示 configure 时刻的 HEAD。
+find_package(Python3 COMPONENTS Interpreter QUIET)
+set(ASTROCS_STAMP_PYTHON "python3")
+if(Python3_EXECUTABLE)
+  set(ASTROCS_STAMP_PYTHON "${Python3_EXECUTABLE}")
+endif()
+execute_process(COMMAND git ls-files -- lib eng/cmake CMakeLists.txt VERSION CMakePresets.json
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  OUTPUT_VARIABLE ASTROCS_STAMP_FILES OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_VARIABLE ASTROCS_STAMP_ERR RESULT_VARIABLE ASTROCS_STAMP_RC)
+if(NOT ASTROCS_STAMP_RC EQUAL 0)
+  message(FATAL_ERROR
+    "GIT_UNAVAILABLE: git ls-files 失败（rc=${ASTROCS_STAMP_RC}; ${ASTROCS_STAMP_ERR}）"
+    " —— 构建期指纹的依赖面来自 git 索引；没有 git 就没有可信指纹，"
+    "与 eng/tools/gen_build_stamp.py 的 GIT_UNAVAILABLE fail-closed 同口径。")
+endif()
+string(REPLACE "\n" ";" ASTROCS_STAMP_FILES "${ASTROCS_STAMP_FILES}")
+set(ASTROCS_STAMP_DEPS "")
+foreach(_f IN LISTS ASTROCS_STAMP_FILES)
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${_f})
+    list(APPEND ASTROCS_STAMP_DEPS ${CMAKE_CURRENT_SOURCE_DIR}/${_f})
+  endif()
+endforeach()
+list(LENGTH ASTROCS_STAMP_DEPS ASTROCS_STAMP_N)
+message(STATUS "构建期指纹依赖面: ${ASTROCS_STAMP_N} 个源文件 (RUN-PROVENANCE-01)")
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build_stamp_generated.h
+  COMMAND ${ASTROCS_STAMP_PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/eng/tools/gen_build_stamp.py
+          --header ${CMAKE_CURRENT_BINARY_DIR}/build_stamp_generated.h
+          --manifest ${CMAKE_CURRENT_BINARY_DIR}/build_stamp_manifest.json
+          --configure-head ${ASTROCS_GIT_COMMIT}
+  DEPENDS ${ASTROCS_STAMP_DEPS} ${CMAKE_CURRENT_SOURCE_DIR}/eng/tools/gen_build_stamp.py
+  COMMENT "生成构建期指纹 build_stamp_generated.h (RUN-PROVENANCE-01)"
+  VERBATIM)
+
 # ── G-RES-01 数值唯一源 (GATE-FIX-RES / R-4 D-11) ────────────────────────────
 # 阈值不得在 C++ 里复制字面量: 由 eng/contracts/resource_gate_v1.json 生成
 # resource_gate_thresholds_generated.h (CMake >= 3.19 string(JSON), 无额外依赖)。
@@ -332,7 +378,15 @@ add_library(astrocs_core STATIC
   # DET-001: 规范产品哈希（canonical product hash）—— 与
   # eng/tools/canonical_product_hash.py 逐字节同构的 C++ 实现; 进 core 使 CLI run
   # manifest 与 P3 writer/verify 节点共用同一实现（无第二份口径）。
-  lib/infrastructure/scheduler/src/canonical_hash.cpp)
+  lib/infrastructure/scheduler/src/canonical_hash.cpp
+  # RUN-PROVENANCE-01: 构建期指纹的**唯一**消费 TU。生成头显式声明为构建输入
+  # （不依赖"碰巧已生成"），且只有本 TU include 它 —— 源集一变，指纹头就变，
+  # 但重编译面固定为这一个小 TU + 重归档，不会波及 module_adapters/commands 等大 TU。
+  ${CMAKE_CURRENT_BINARY_DIR}/build_stamp_generated.h
+  lib/infrastructure/scheduler/src/build_stamp.cpp)
+# 生成头在构建根目录；astrocs_core 的 PUBLIC include 面保持 lib/include 不变，
+# 生成头只对本 target 可见（消费者走 astrocs/core/build_stamp.h 的访问器）。
+target_include_directories(astrocs_core PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(astrocs_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
   ${CMAKE_CURRENT_SOURCE_DIR}/lib/third_party)

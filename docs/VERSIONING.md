@@ -18,6 +18,34 @@
 - `--version --json` 输出至少：`version, prerelease(=alpha), commit, dirty, build_id, abi_version, cli_schema_version`，schema 见 `schemas/version.schema.json`。
 - `abi_version` / `cli_schema_version` 的唯一定义点在 `eng/tools/gen_version.py`；ABI-001 / API-002 冻结时置 1。
 
+## 2.1 构建指纹合同（RUN-PROVENANCE-01）
+
+- **事实（一手证据 `run/RUN-PROVENANCE-01/REPORT.md` §A）**：`ASTROCS_COMMIT_SHA`
+  （`version_generated.h`）由 **CMake configure 期** 的 `git rev-parse HEAD` 采样一次
+  （`CMakeLists.txt`）。Ninja 的 `RERUN_CMAKE` 规则只依赖 CMake 输入，**不含任何
+  `.cpp/.h`** ⇒ 改源码不会重跑 configure ⇒ 二进制里编进去的是新代码，记录里留的是旧
+  SHA。故 `run_context.json` / `provenance` 的 `source_sha` **只表示 configure 时刻的
+  HEAD，不是构建指纹**；两份产物的 `source_sha` 相等**不蕴含**同一二进制。
+- **构建指纹**（判「同一代码 / 同一二进制」的唯一依据）由 `eng/tools/gen_build_stamp.py`
+  在**构建期**采样、经 `build_stamp_generated.h` 烙进产物，随 `run_context.json` 与
+  `run_manifest.provenance` 落盘：
+
+  | 字段 | 含义 | 能否单独判「同一二进制」 |
+  |---|---|---|
+  | `build_source_digest` | 声明源集（`lib/**` 非测试 + `eng/cmake/**` + 根级构建输入）逐文件内容对象 id 的 sha256（64hex） | **能**（唯一依据） |
+  | `build_head_sha` | 构建期 HEAD（40hex） | 否（纯文档提交也会前进） |
+  | `build_dirty` | 构建期工作树是否有未提交改动（§2 的 dirty 语义） | 否 |
+  | `configure_head_sha` | configure 期 HEAD（对照 `source_sha` 的来历） | 否 |
+
+- **消费规则**：凡「同一二进制 / 同一代码」的比较、逐位 A/B 对比、跨运行归因，一律以
+  `build_source_digest` 相等为前提；`source_sha` 相等**不构成**前提。
+- **代价约束**：指纹只由 `git ls-files` 给出的显式清单 + 改动文件的对象 id 决定
+  （干净工作树零读盘，实测 < 50ms）；生成头内容不变时不落盘，故不触发下游重编译；
+  生成头只被一个 TU（`build_stamp.cpp`）消费，指纹变化的重编译面 = 1 个小 TU。
+- **机器判据**：`eng/ci/check_build_provenance.py` —— 记录指纹 ≠ 当前工作树重算 ⇒
+  具名判红（`SOURCE_DIGEST_MISMATCH`，有构建树逐文件清单时精确点名差异文件）；
+  产物缺指纹 ⇒ `BUILD_STAMP_ANCHOR_MISSING`（rc=2，**不可锚定 ≠ 通过**）。
+
 ## 3. 同步矩阵（机器检查覆盖）
 
 | 消费点 | 同步方式 | 检查 |
@@ -25,6 +53,7 @@
 | CLI `--version`/`--version --json` | 构建期由 gen_version 注入 | schema 校验 + DOCCHK |
 | alpha 包名/清单（LNX-005/WIN-009） | 打包脚本必须调用 gen_version | 打包校验器 |
 | run_manifest.json | 运行期调 gen_version | CLI-003 |
+| run_manifest.provenance / run_context.json 的构建指纹 | 构建期由 gen_build_stamp.py 烙入（§2.1） | CHK-BUILD-PROVENANCE |
 | 文档 | 只允许出现当前基础号 | 本 checker |
 
 ## 4. 机器检查

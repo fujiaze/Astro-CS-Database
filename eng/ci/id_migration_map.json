@@ -1131,6 +1131,18 @@
         "CI-CONTRACT-WORKFLOW-LOCK",
         "CI-CONTRACT-CTEST-REGISTRATION"
       ]
+    },
+    "CHK-BUILD-PROVENANCE": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "构建期指纹一致性门（产物自报 build_source_digest 必须等于工作树重算值；缺锚记判不可锚定）",
+      "doc": "docs/ci/01_CHECKS.md §2；口径 docs/VERSIONING.md §2.1"
+    },
+    "CHK-BUILD-PROVENANCE-SELFTEST": {
+      "kind": "extension",
+      "grade": "P0",
+      "name": "上项的可执行正/负例面（8 例：2 绿 + 4 红 + 缺指纹 rc=2）",
+      "doc": "docs/ci/01_CHECKS.md §2"
     }
   },
   "reserved_targets": {
@@ -3933,6 +3945,24 @@
       "grade": "P1",
       "order_in_target": 0,
       "note": "CI 环境/接管基线（工具链策略、工作区接管证据、任务-证据对账）"
+    },
+    {
+      "old_id": "CHK-BUILD-PROVENANCE",
+      "decision": "KEPT",
+      "target": "CHK-BUILD-PROVENANCE",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/ci/check_build_provenance.py",
+      "note": "新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/VERSIONING.md §2.1 构建指纹合同与 docs/api/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。"
+    },
+    {
+      "old_id": "CHK-BUILD-PROVENANCE-SELFTEST",
+      "decision": "KEPT",
+      "target": "CHK-BUILD-PROVENANCE-SELFTEST",
+      "kind": "extension",
+      "grade": "P0",
+      "checker": "eng/ci/check_build_provenance.py",
+      "note": "新增执行单元（非本波基线，absorbed）：构建期指纹一致性及其可执行正/负例面。判据依据 docs/VERSIONING.md §2.1 构建指纹合同与 docs/api/MANIFEST_VERIFY_V1.md 的 source_sha 语义订正。"
     }
   ],
   "coverage": {
@@ -4104,7 +4134,9 @@
       "STD-REG-FI-VERSION-DRIFT",
       "UT-CONFIG",
       "WORKER-BALANCE-METRIC-REPLAY",
-      "WORKER-BALANCE-METRIC-SELFTEST"
+      "WORKER-BALANCE-METRIC-SELFTEST",
+      "CHK-BUILD-PROVENANCE",
+      "CHK-BUILD-PROVENANCE-SELFTEST"
     ],
     "absorbed_note": "CHK-SECRET-HYGIENE 不属本波基线 146 项，来自 ROOT-006 注册文件（吸收并入）",
     "kept_pending_merge": 3,

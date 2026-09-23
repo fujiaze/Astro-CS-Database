@@ -71,6 +71,10 @@ target_include_directories(astrocs_infra_orchestrator PRIVATE
   ${CMAKE_SOURCE_DIR}/lib/infrastructure/aio/src
   ${CMAKE_SOURCE_DIR}/lib/algorithms/psf/include
   ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/include
+  # PHOTOCURVE-ORCH-01: 曲线解析唯一实现 filter_curve_json.h 位于 photometry 的
+  # cpp/src（与 frame_photometry_fit.cpp 共用同一份代码 ⇒ 只在此加头文件搜索面，
+  # 不新增静态链接依赖: 该头 header-only，唯一外部符号 aio_file::read_all 亦 inline）。
+  ${CMAKE_SOURCE_DIR}/lib/algorithms/photometry/cpp/src
   ${CMAKE_SOURCE_DIR}/lib/algorithms/drizzle/healpix_drizzle
   ${CMAKE_SOURCE_DIR}/lib/infrastructure/gaia_xpsd_client/src
   ${CMAKE_SOURCE_DIR}/lib/algorithms/star_detection/include
