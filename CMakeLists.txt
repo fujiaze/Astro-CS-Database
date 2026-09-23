@@ -54,11 +54,26 @@ endif()
 # 版本单源: 根 VERSION 文件 (VER-001)
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/VERSION ASTROCS_BASE_VERSION)
 string(STRIP "${ASTROCS_BASE_VERSION}" ASTROCS_BASE_VERSION)
+# git 面 fail-closed（VER-001 唯一版本源 / ENGINEERING_SPEC §10 / AGENTS.md §6）：
+# 生成串的 "+g<sha>" 分量**只能**来自 git HEAD —— 没有 git 就没有诚实的版本串。
+# 原实现退化到全零 SHA 继续构建（实测：归档树 "git archive HEAD | tar -x" 内
+# cmake rc=0，version_generated.h 得 "...+g0000...0"）⇒ 版本门变**假绿**：看着有
+# 版本串，其实是 0000000，零追溯价值，且以环境问题掩盖失败。
+# 现口径与 eng/tools/gen_version.py::main 逐字同构（具名 GIT_UNAVAILABLE +
+# 拒绝给出结论 + rc=2），先例 eng/tools/traceability/check_traceability_matrix.py:364
+# （非 git 工作树 ⇒ GIT_UNAVAILABLE rc=2）。非 git 树（归档树 / 测试镜像树 /
+# 无 .git 的检出，形态见 eng/tools/check_warning_suppression.py:30）在此**配置期**
+# 即判红，不产出任何可被当作合法版本串消费的串。
 execute_process(COMMAND git rev-parse HEAD
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  OUTPUT_VARIABLE ASTROCS_GIT_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
-if(NOT ASTROCS_GIT_COMMIT)
-  set(ASTROCS_GIT_COMMIT "0000000000000000000000000000000000000000")
+  OUTPUT_VARIABLE ASTROCS_GIT_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_VARIABLE ASTROCS_GIT_ERR RESULT_VARIABLE ASTROCS_GIT_RC)
+if(NOT ASTROCS_GIT_RC EQUAL 0 OR ASTROCS_GIT_COMMIT STREQUAL "")
+  message(FATAL_ERROR
+    "GIT_UNAVAILABLE: git rev-parse HEAD 失败（rc=${ASTROCS_GIT_RC}; ${ASTROCS_GIT_ERR}）"
+    " —— 版本串的 +g<sha> 分量只能来自 git HEAD，退化为全零 SHA 会让版本门假绿。"
+    " 依据 VER-001 / ENGINEERING_SPEC §10 / AGENTS.md §6；与 eng/tools/gen_version.py"
+    " 的 GIT_UNAVAILABLE fail-closed 同口径。请在 git 工作树内配置构建。")
 endif()
 set(ASTROCS_VERSION_STRING "${ASTROCS_BASE_VERSION}+g${ASTROCS_GIT_COMMIT}")
 
