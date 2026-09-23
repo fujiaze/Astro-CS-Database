@@ -1844,7 +1844,28 @@ bool DrizzleEngine::drizzleTiledImpl(const FitsImage& img, const DrizzleConfig& 
     //     的加法序) ⇒ 浮点结合树与 K 无关, 逐位一致。
     // K=2 保留"一份在累加、一份在归约"的重叠; 池不再随 worker 数放大。
     // 归约流水线的线程预算不变式由 p1drz_merge_pipeline_lock 回归锁守。
-    static constexpr int kScratchPoolCap = 2;
+    // P1-PARALLEL-AXIS-REDESIGN-01: 池上限由**帧内轴宽度**决定，不再硬钉 2。
+    //   定理（有效宽度口径见 docs/architecture/PERFORMANCE_MODEL.md §5）:
+    //     W_eff = in_flight × min(inner_omp, K) ⇒ 要 W_eff 达到帧内轴宽度必须 K ≥ inner_omp;
+    //     而 K = inner_omp = num_threads 时，同时在飞的 scratch 份数
+    //     = in_flight × inner_omp ≤ lease（p1_parallel_for 的轴不变式，
+    //     docs/architecture/THREADING_MODEL.md「并行轴分配」）
+    //   ⇒ **K = num_threads 是达成满宽的唯一最小取值**，且总份数与轴形态无关。
+    //   旧值 2 是「帧内轴尚未按剩余预算分配」时代的补丁：那时每帧线程数 = 进程默认
+    //   （硬件并发），K 不压就会 16 帧 × 16 线程 = 256 份（8 GB 地址空间下 bad_alloc）。
+    //   该前提已被 p1_parallel_for 的轴不变式取代 ⇒ 补丁不再必要，且 K < inner_omp
+    //   会让多出的线程在池上空等（实测 CPU p50 = 385.6%，PERFORMANCE_MODEL.md §5）。
+    // K 只决定同时在飞的 stripe 数，**不进数值路径**（见上引三条）⇒ 改 K 逐位不变；
+    // 逐位实证 = 同二进制三档 A/B（run/P1-PARALLEL-AXIS-REDESIGN-01/REPORT.md）
+    // + 既有跨预算回归锁 p1drz_merge_pipeline_lock（taskset 1/2/4/8/16 逐位相同）。
+    // 标定旋钮（仅同一二进制受控 A/B；缺省 0 = 策略值 = num_threads）。
+    int kScratchPoolCap = num_threads;
+    if (const char* v = std::getenv("ASTROCS_P1_AXIS_SCRATCH_CAP")) {
+      if (v[0]) {
+        const long x = std::strtol(v, nullptr, 10);
+        if (x >= 1) kScratchPoolCap = static_cast<int>(std::min<long>(x, 4096));
+      }
+    }
     const int kScratchPool = std::min(num_threads, kScratchPoolCap);
     std::vector<std::unordered_map<uint64_t, TileAccumulatorT<Scalar>>> scratchPool(
         static_cast<size_t>(kScratchPool));

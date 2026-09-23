@@ -46,10 +46,47 @@ inner_omp = max(1, thread_budget / in_flight)     // thread_budget = __workers�
 `inner_omp = 1`，与历史行为逐位相同 ⇒ 该分配只改“预算怎么用”，不改任何节点的数值路径。
 并行宽度与归约顺序无关（各节点归约顺序见下节确定性锚点）。
 
+**有效宽度的第三个因子（P1-PARALLEL-AXIS-REDESIGN-01 补）**：drizzle 投影内部的
+scratch 池上限 `K`（`drizzle_engine.cpp` 的 `kScratchPoolCap`）会把帧内轴再截一次：
+
+```
+W_eff = in_flight × min(inner_omp, K)        // 有效宽度（PERFORMANCE_MODEL.md §5）
+```
+
+⇒ **要 `W_eff` 达到帧内轴宽度必须 `K ≥ inner_omp`**；而 `K = inner_omp = num_threads` 时
+同时在飞的 scratch 份数 `= in_flight × inner_omp ≤ lease`（上式不变式）
+⇒ **`K = num_threads` 是达成满宽的唯一最小取值，且总份数与轴形态无关**。
+故 `kScratchPoolCap` 的取值不再是独立旋钮，而由帧内轴派生。
+
+**「一帧独占全部核心」形态已被实测否决（P1-PARALLEL-AXIS-REDESIGN-01）**：
+在 `lease=16`、8 帧 4096²/FP64、`W_eff` 恒为 16 的同二进制四档受控 A/B 下
+（证据 `run/P1-PARALLEL-AXIS-REDESIGN-01/REPORT.md`；产品四档**逐位相同**）：
+
+| 形态 | 墙钟 (s) | 峰值 RSS (GB) | CPU p50 |
+|---|---|---|---|
+| **8 帧 × 2 线程（现状）** | **390.7** | 14.12 | **1321%** |
+| 8 帧 ×「单帧高并行令牌」（同时只有一帧持 9 线程，其余帧 1 线程） | 459.0 | 12.43 | 720% |
+| 2 帧 × 8 线程 | 532.9 | 5.25 | 701% |
+| **1 帧 × 16 线程（「一帧独占」）** | **583.7** | **3.57** | **98.9%** |
+
+**帧在飞数越少：墙钟单调变差、CPU 占用单调变低、内存单调变省。** 根因是**每帧都有
+不可并行的串行段**（FITS 读、`hips_write` 与 `drizzle_run` 帧内串行且占 drizzle 帧时 24–30%、
+星表查询、`wcs-platesolve` 无帧级并行），帧级并发正是把这些串行段互相重叠的手段；
+压到 1 帧会让其余核在串行段上空转（CPU p50 98.9% = 真的变成单核）。
+⇒ **保留「帧轴优先摊开、剩余预算转帧内轴」的分配**；不得以「显然更优」为由改回一帧独占。
+
 **观测面**：`ASTROCS_LEASE_TRACE=1` 给租约（`[lease] ... cap=`）、`ASTROCS_NODE_TRACE=1`
 给节点执行窗口、`ASTROCS_P1CAP_TRACE=1` 给本分配快照（`[p1cap] ...`）。三者由
 `eng/tools/monitoring/node_waterfall.py` 合成为节点级瀑布 + 逐节点并行宽度表。
 标定值（`kP1FrameBytesPerPixel` 等）与实测依据见 `docs/architecture/PERFORMANCE_MODEL.md`。
+
+**轴形态的受控 A/B 旋钮（P1-PARALLEL-AXIS-REDESIGN-01）**：
+`ASTROCS_P1_AXIS_FRAME_WORKERS` / `ASTROCS_P1_AXIS_INNER_OMP`
+（`module_adapters.cpp` 的 `p1_parallel_for`）与 `ASTROCS_P1_AXIS_SCRATCH_CAP`
+（`drizzle_engine.cpp`）。缺省 `0` = 用策略值；**`frame_w × inner_omp > lease` 时一律
+拒绝覆盖并打 `[p1axis] 拒绝越界标定…`** ⇒ 「总并行度 ≤ Runtime lease」不因标定而破
+（AGENTS §6）。它们是为满足上文「并发度 A/B 对照的可复现性」第 1 条而存在的：
+`taskset` 单靠 CPU 掩码无法在 `W_eff` 恒为 16 的前提下产生 `(8,2)/(2,8)/(1,16)` 三种形态。
 
 ### 并发度 A/B 对照的可复现性（P1-CONCURRENCY-CALIB-01 冻结口径）
 
