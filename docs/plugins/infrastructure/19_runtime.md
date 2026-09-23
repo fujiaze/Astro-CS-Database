@@ -25,7 +25,14 @@
 
 - typed DAG：节点 = 模块/entrypoint/operation；科学依赖不可改变（最高设计 §3/4/5）；
 - 一个进程只有一个资源调度器与线程预算源；模块不得硬编码 workers、不得私建长期线程池；
-- 分块/并行只改变执行，不改变归约次序或科学结果。
+- 分块/并行只改变执行，不改变归约次序或科学结果；
+- **并行轴分配（PERF-501）**：Phase1 节点的帧级宽度与帧内 OpenMP 度由同一 lease 预算切分，
+  `in_flight = min(n, frame_workers)`、`inner_omp = max(1, thread_budget / in_flight)`，
+  两轴之积 ≤ 预算。帧级被 `p1_memory_cap`（内存闸门）压低时必须把剩余预算转给帧内轴，
+  否则出现「16 核预算只用 2 核」的利用率塌陷（实测 cpu 恒 202%）。
+  语义与不变式见 `docs/architecture/THREADING_MODEL.md` §并行轴分配；
+  标定值与实测见 `docs/architecture/PERFORMANCE_MODEL.md` §PERF-501；
+  观测面 `ASTROCS_{LEASE,NODE,P1CAP}_TRACE=1` + `eng/tools/monitoring/node_waterfall.py`。
 
 ### 4.2 编排连续性与数据局部性
 

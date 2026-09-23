@@ -188,6 +188,40 @@ def _task_ticks(pid):
     return out
 
 
+def _task_blkio_ticks(pid):
+    """Σ 全部线程的 delayacct_blkio_ticks（/proc/<pid>/task/<tid>/stat 第 42 字段）。
+
+    PERF-501 补测面: /proc/<pid>/stat 的 delayacct_blkio_ticks 是**线程组组长单条
+    任务**的块 I/O 延迟, worker 线程在 D 态等盘的时间完全不可见 —— 只看组长会把
+    真实块 I/O 等待系统性低估（帧级并行下组长往往只是派发者）。本函数按 tid 汇总,
+    得到**本进程树真实**的块 I/O 等待（单位 clock tick, 与 cpu 时间同刻度）。
+    与系统级 /proc/stat iowait（含其它进程, 且以"等效核×100"为刻度）口径不同, 两者
+    互补: 前者回答"是不是我在等盘", 后者回答"盘上有没有别的负载"。
+    """
+    total = 0
+    try:
+        tids = os.listdir("/proc/%d/task" % pid)
+    except OSError:
+        return 0
+    for tid in tids:
+        if not tid.isdigit():
+            continue
+        text = _read_text("/proc/%d/task/%s/stat" % (pid, tid))
+        if not text:
+            continue
+        lp = text.rfind(")")
+        if lp < 0:
+            continue
+        body = text[lp + 2:].split()
+        if len(body) < 40:
+            continue
+        try:
+            total += int(body[39])
+        except (ValueError, IndexError):
+            continue
+    return total
+
+
 def _status_kb(pid, key):
     text = _read_text("/proc/%d/status" % pid)
     if not text:
@@ -243,6 +277,7 @@ def snapshot(root_pid):
     rchar = 0
     wchar = 0
     blkio = 0
+    blkio_all = 0
     threads = {}
     n_threads = 0
     for pid in pids:
@@ -251,6 +286,8 @@ def snapshot(root_pid):
             continue
         cpu_ticks += st["utime"] + st["stime"]
         blkio += st["blkio_ticks"]
+        # PERF-501: 组长口径（blkio）与**全线程**口径（blkio_all）并列保留，向后兼容。
+        blkio_all += _task_blkio_ticks(pid)
         if pid == root_pid:
             cpu_ticks += st["cutime"] + st["cstime"]   # 已 reap 的子进程 CPU 归属
         n_threads += st["num_threads"]
@@ -280,6 +317,7 @@ def snapshot(root_pid):
         "rchar": rchar,
         "wchar": wchar,
         "blkio_ticks": blkio,
+        "blkio_all_ticks": blkio_all,   # PERF-501: 全线程 delayacct 汇总
         "threads": threads,
         "n_threads": n_threads,
     }
@@ -502,6 +540,9 @@ def run_monitor(argv, out_dir, interval, capacity, capacity_src, timeout,
                     "write_bytes_per_s": max(0, snap["write_bytes"] - prev["write_bytes"]) / dt,
                     "io_wait_ms": max(0, snap["blkio_ticks"] - prev["blkio_ticks"])
                                   / CLK_TCK * 1000.0,
+                    # PERF-501: 全线程块 I/O 等待增量（真实进程级 I/O 阻塞时间）。
+                    "io_wait_all_ms": max(0, snap["blkio_all_ticks"]
+                                          - prev["blkio_all_ticks"]) / CLK_TCK * 1000.0,
                 })
             else:
                 rec.update({
@@ -512,6 +553,7 @@ def run_monitor(argv, out_dir, interval, capacity, capacity_src, timeout,
                     "pss_bytes": snap["pss_bytes"], "rss_growth_mb_per_s": 0.0,
                     "read_bytes": snap["read_bytes"], "write_bytes": snap["write_bytes"],
                     "read_bytes_per_s": 0.0, "write_bytes_per_s": 0.0, "io_wait_ms": 0.0,
+                    "io_wait_all_ms": 0.0,
                 })
             rec["iso_utc"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             records.append(rec)
@@ -637,6 +679,9 @@ def facts(records, capacity, low_util_percent, max_low_util_run,
     total_read = sum(max(0.0, r["read_bytes_per_s"]) * r["dt"] for r in records)
     total_write = sum(max(0.0, r["write_bytes_per_s"]) * r["dt"] for r in records)
     io_wait = sum(r["io_wait_ms"] for r in records)
+    # PERF-501: 全线程口径（真实进程级块 I/O 等待）; 旧字段语义不变。
+    # 缺列（旧产物 / 合成夹具）按 0 计：新字段是**增补**，不得让旧样本反判失败。
+    io_wait_all = sum(float(r.get("io_wait_all_ms") or 0.0) for r in records)
     mean_cap = statistics.fmean(cpu) if cpu else 0.0
     wall = records[-1]["t"] - records[0]["t"] if len(records) > 1 else 0.0
     return {
@@ -678,6 +723,11 @@ def facts(records, capacity, low_util_percent, max_low_util_run,
         "io": {
             "read_bytes": total_read, "write_bytes": total_write,
             "io_wait_ms": round(io_wait, 3),
+            # PERF-501: 全线程块 I/O 等待（组长口径 io_wait_ms 会低估 worker 的等盘
+            # 时间）；等效核均值 = io_wait_all_ms / wall_ms。
+            "io_wait_all_ms": round(io_wait_all, 3),
+            "io_wait_all_equiv_cores_mean": round(
+                io_wait_all / max(1.0, wall * 1000.0), 4),
         },
         "facts": {
             "low_util_continuous_runs_ge_threshold": low_runs,
@@ -742,7 +792,8 @@ def judge(summary, thresholds):
 CSV_COLUMNS = ["t", "iso_utc", "dt", "cpu_ticks_total", "cpu_pct_core",
                "cpu_pct_capacity", "effective_cores", "busy_threads", "n_threads", "n_procs",
                "rss_bytes", "pss_bytes", "rss_growth_mb_per_s", "read_bytes",
-               "write_bytes", "read_bytes_per_s", "write_bytes_per_s", "io_wait_ms"]
+               "write_bytes", "read_bytes_per_s", "write_bytes_per_s", "io_wait_ms",
+               "io_wait_all_ms"]
 
 
 def write_csv(path, rows, columns):
