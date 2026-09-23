@@ -35,16 +35,24 @@
 
 ## 2. 方法、公式与判据
 
-### 2.1 冻结的合成测光约定（`SCI-PHOT-001` / `spectrum_integrator.cpp`）
+### 2.1 合成测光约定（生产口径 `SCI-PHOT-001` §2a / `spectrum_integrator.cpp`）
 
 ```
-F_syn = ∫ S(λ)·T(λ)·Q(λ)·λ dλ × 10^(-0.4·magG)
+F_syn = ∫ F_λ(λ)·T(λ)·Q(λ)·λ dλ          # 单位 W·m⁻²·nm；不含 10^(-0.4·G)
+F_λ   = byte·flux_mul + flux_min         # 绝对谱辐照度 W·m⁻²·nm⁻¹
 ```
 
-- `S`：天体 SED（Gaia DR3 XP，343 点 @2 nm，336–1020 nm）
-- `T`：通带透过率；`Q`：探测器 QE；插值为 **Akima 子样条**（区间外填 0），
-  求积为**复合 Simpson 1/3**（末尾奇数区间用 3/8，`n==1` 退梯形）
+- `F_λ`：天体 SED（Gaia DR3 XP **外部定标**采样谱，343 点 @2 nm，336–1020 nm；单位 W·m⁻²·nm⁻¹）
+- `T`：通带透过率；`Q`：探测器 QE（**通带的组成部分**，未配置时 `Q≡1` 为显式未建模项）；
+  插值为 **Akima 子样条**（区间外填 0），求积为**复合 Simpson 1/3**（末尾奇数区间用 3/8，`n==1` 退梯形）
 - 本实验**未改动**该约定；只对它做独立 Oracle 校验（见 §4.1）
+
+> **关于 `scia_common.f_syn(..., mag_g=…)` 的 `mag_g` 参数**：它是**星等指派重标度**
+> （把源谱绝对通量重标到指定星等，`F_λ → F_λ·10^(−0.4·(m−G_source))`），**不是参考通量定义的一部分**。
+> 本单元中 `step2_hst_sim.py` 对注入与模型使用同一因子 ⇒ 在 `r_i` 中**精确相消**，结论不受影响；
+> `scia_calib.py`/`step7_negatives.py`/`step8_real_frame.py` 不传该参数。
+> **不得把它当作通用参考通量公式搬用到别处**（会给逐星 `r_i` 注入 `+0.4·G_i` dex，单标量零点吸收不掉）。
+> 完整订正见 `RESOLUTION_fsyn_formula.md`。
 
 ### 2.2 零点估计（IRLS/Tukey）
 
