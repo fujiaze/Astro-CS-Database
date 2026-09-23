@@ -37,10 +37,29 @@ FITS index = (511 - x) * 512 + y
 
 ## 4a. variance / ivar 产品（DATA-HIPS-VAR-001 / DATA-HIPS-IVAR-001）
 
-- `variance`：逐像素随机方差（信号单位²），Drizzle 方差传播
-  `variance_p = Σ v_j·w_jp² / D_p²`（SCI-DRZ-014）；编码三态见 §4a 表（无覆盖 ⇒ NaN）。
-- `ivar`：逆方差 `1/variance`；variance=0/缺失 → ivar=0（显式不可用，
-  禁止伪装）；NaN/负 variance 视为产品损坏。
+- `variance`：逐像素随机方差（**信号单位²**）。Drizzle 方差传播
+  `variance_p = Σ_j v_j·w_jp² / D_p²`（SCI-DRZ-014）。**逐符号量纲与标度**（标度词表 =
+  `docs/standards/NUMERIC_STANDARD.md`）：
+  - `v_j` = 输入源像素逐像素方差，量纲 `ADU^2`（§31.1 `pixel_variance_in`），
+    **标度 = 与同帧 `data` 面同一标度**：`calibrated_adu` ⇒ `ADU^2`；
+    `photo_scaled_adu` ⇒ `α²·ADU^2`（α = 该帧 photscal，**逐帧量**，非全仓常数）。
+  - `w_jp = a_jp / A_pixel,j` **无量纲**（`a_jp` 球面重叠面积、`A_pixel,j` 源像素球面面积，
+    同为 sr，商无量纲；§31.1a；实现锚 `drizzle_engine.cpp` `weight = overlap_area / pixel_area`）。
+  - `D_p = Σ_j a_jp` = **covered_area，量纲 `sr`**（即 §12.2 的 `covered_area`；实现锚
+    `drizzle_engine.cpp` `acc.sumArea += overlap_area`）。**`D_p` 不是无量纲权重和**：
+    本式与 §12.2 的 `variance = var_num_sum / covered_area²`（`var_num_sum = Σ_j v_j·w_jp²`，
+    量纲 `ADU^2`）是**同一式的两种写法**，不得当作两套公式。
+  - `variance_p` 量纲 `ADU^2/sr^2`（§31.1 `sb_variance_out`，标度类别 `surface_brightness`）。
+  - **符号唯一性（强制）**：`D_p` 只表示 covered_area[sr]。其它聚合算子（帧间逆方差加权集成的
+    分母 `W_p = Σ_i w_i`，量纲 = 权重单位）**必须另用符号**，不得复用 `D_p` —— 二者量纲不同，
+    代入错误相差 `A_cell²`（`nside = 2^18` 时 4.306e21，即 21.63 dex，见
+    `docs/standards/NUMERIC_STANDARD.md` 面亮度标度律）。
+  编码三态见 §4a 表（无覆盖 ⇒ NaN）。
+- `ivar`：逆方差 `1/variance`（**有限域严格互倒**）；variance=0/缺失 → ivar=0（显式不可用，
+  禁止伪装）；NaN/负 variance 视为产品损坏。**标度随 variance 同承载面**：面亮度域
+  `sr^2/ADU^2`（§31.1 `sb_ivar_out`）、像素域帧内块 `ADU^-2`（§11.1）。`ivar = 1/variance`
+  只在**同一承载面内**成立；跨承载面必须先按 `docs/standards/NUMERIC_STANDARD.md` 的
+  面亮度标度律（因子 `1/A_cell^2`）换算，禁止直接代入。
 - 相邻像素非严格独立（协方差已文档化，见
   docs/science/UNCERTAINTY_AND_COVARIANCE.md），pixel variance ≠
   aperture variance。
@@ -317,12 +336,12 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 | "header" KV: CD1_1..CD2_2 或 CDELT1/2+CRVAL1/2+CRPIX1/2 | double | 度/像素、度、像素（1-based） | 两者均缺 → 无 WCS，帧通道返回 -9（hp_drizzle_api.cpp:427-447，`read_wcs_params_from_frame`）；CDELT+CROTA2 构造 CD（hp_drizzle_api.cpp:434-443）。（**2026-09-20 订正**：原锚 `api.cpp:541-545` / `api.cpp:538` 的 `api.cpp` 在本仓不存在且行号已漂移，已重锚） |
 | "header" KV: SIP A/B/AP/BP 系数 | double[] | 无量纲 | gate A_ORDER 存在才载入（hp_drizzle_api.cpp:451-505；**2026-09-20 订正**：原锚 `api.cpp:552-557` 的 `api.cpp` 在本仓不存在且行号已漂移）；reverse 通道 sip_order 校验 [0,5]（DISP-DRZ-001）。**B2-A17**：编排 drizzle 节点从 `p1_wcs.json` 读回 `wcs.sip`，经 `p1_sip_write_header_frame` 写 frame header `CTYPE1/2`（含 `-SIP`）、`A_ORDER`/`B_ORDER`、`A_i_j`/`B_i_j`、`AP_*`/`BP_*`；无 SIP → CTYPE 不含 `-SIP` 且不写任何 SIP 键（module_adapters.cpp p1_op_drizzle）。 |
 | "header" KV: "PRECISION" | 字符串 "fp32"/"fp64" | — | precision_mode=-1 时读取；**RESCUE-FD-02**：无 KV 时库边界缺省 **FP64**（不再静默 FP32；权威 = docs/algorithms/DRIZZLE_GEOMETRY.md `RESCUE-FD-02 库边界精度缺省` + 实现锚 `hp_drizzle_api.cpp:956-991` + 回归 `eng/tests/unit/drizzle_precision_default_test.cpp`；**语义不变**），未知 KV 值/参数非 -1/0/1 → 显式拒绝（返回非零，不写产物，`hp_drizzle_api.cpp:956-991`）；编排经 aio_frame_kv_set 写入（orchestrator.cpp:3313-3325）。**B2-A12**：P1 drizzle 节点不再写死 "0"，按 `drizzle.precision_mode` 写实际精度；`precision_mode` 缺失/非整数 0|1 → DATA 拒绝（CLI rc=2），不写 p1_stack.* |
-| "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`，引擎显式降级写 `BUNIT=ADU`（`drizzle_engine.cpp:1950-1956`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
+| "header" KV: "PHOTSCAL"/"PHOTAPPL"/"PHOTDEGRADE" | 数值 + 整型标签 | 无量纲 | — | **B2-A14**：drizzle 节点从真实测光 provenance `p1_phot.json`（DATA-P1-PHOTPROV-001，由 `p1_op_photometry` 产出）读 `photometry_applied`/`photscal`；未应用测光 → `PHOTAPPL=0`+`PHOTDEGRADE=1`；**写盘 BUNIT 一律取 §31.1 冻结的 canonical 面亮度族串（signal 面 `ADU/sr`），由输入面声明决定，不得随 `PHOTAPPL` 区分**——BUNIT 描述「量的种类」（线性计数面亮度），标度由 `PHOTSCAL`/`PHOTAPPL` 逐帧承载（§31.1a；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed，只接受 `{ADU/sr, ADU^2/sr^2, sr^2/ADU^2}`）；未显式降级且 `PHOTAPPL=0` → 引擎按 02_FROZEN §7 拒绝。`PHOTAPPL=1` 仅当 provenance 声明已应用（禁硬编码） |
 | "snr_model" 块（可选；**标准块定义表已登记**，见本节首注） | 稀疏控制点（ra/dec/snr_psf + snr_phot/median_snr/idw_power） | 度、度、无量纲 | 缺块/0 点 → 不写 SNR 子块；KD-tree IDW 重建逐像素 SNR（snr_evaluator.h） |
 | nside | int，2 的幂 | — | 非法（≤0 或非 2 的幂）拒绝（hp_drizzle_api.cpp:208-211 文件通道 / `:557-561` 帧通道；**2026-09-20 订正**：原锚 `api.cpp:398-402` 的 `api.cpp` 在本仓不存在且行号已漂移）；auto 模式钳位 [16,2^22]（compute_auto_nside） |
 | nested | int 1/0 | — | 仅 1=NESTED；0=RING 硬拒绝（drizzle_engine.cpp:1575-1579） |
 | pixfrac | double | drop 与源像素之比（无量纲） | 引擎层 (0,1] 严格拒绝 ≤0/>1（:1567-1574，不夹逼）；文件通道 API 层接受 0.0 的双轨见 DISP-DRZ-003 |
-| "variance" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | ADU²（signal 单位²；UNIFIED_MODEL §2 variance 对象） | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
+| "variance" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | **像素域**量纲 `ADU^2`（§31.1 `pixel_variance_in`；UNIFIED_MODEL §2 variance 对象）；**标度 = 与同帧 `data` 块同一数组、同一 dtype**（数组为 `photo_scaled_adu` ⇒ 随 α² 一并缩放；本节点不二次缩放。标度词表 = `docs/standards/NUMERIC_STANDARD.md`）。**输入块（`ADU^2`，像素域）与输出产品（`ADU^2/sr^2`，面亮度域，§12.2）量纲不同**；换算责任方 = writer 归一（因子 `1/covered_area^2`，§4a） | 非有限或 ≤0 → 跳过该像素（:1727-1729）；无 variance 输入 → 不产 variance/ivar 产品 |
 | "ivar" 块（可选，帧内块；**标准块定义表已登记**，见本节首注） | float32，随 data 布局 | ADU⁻²（= 1/variance，有限域互为倒数） | variance 缺失/≤0 → ivar=0（显式不可用，禁 1/0→Inf；§4a）；非有限或 ≤0 → 跳过该像素 |
 | ~~weight 面（可选，文件通道 FITS）~~ **已作废** | — | — | **已删面**（DOC-203 / R06，按 §9.73 A44）：阶段一/阶段三**不产生也不消费**权重；HiPS 只存**帧级 SNR** + **稀疏控制点上的绝对 SNR**，权重是**阶段二按天球像素对应帧集合现场算出的派生量**（`ASTROCS_DESIGN.md` §2.1）。该面仅存在于**已作废**的 legacy 文件通道 API `hp_drizzle_run(…, weight_path, …)`（`hp_drizzle_api.h:39,49`；**零生产调用者**，GAP_AUDIT A-04；生产末端 = `hp_drizzle_run_hips`）⇒ 该形参的退役归 legacy API 退役面，**不得**作为输入通道使用 |
 | snr 面（可选，文件通道 FITS） | float32 `[H][W]` | 无量纲 | 读失败 rc=8/9；尺寸不匹配 rc=7/9；非有限/≤0 跳过 |
@@ -395,8 +414,8 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 |---|---|---|---|
 | signal/NorderK/DirD/NpixN.fits | float32 或 float64 `[512×512]` NESTED local（bitpix −32/−64 随 data_type） | **`ADU/sr`**（面亮度 signal=flux_sum/covered_area；`covered_area` 单位 sr，推导见 §31.1a） | 无效像素 IEEE NaN 填充（无 FITS BLANK 整型卡；:483-485） |
 | support/…fits | 同上 | 无量纲 [0,1]（covered_area/A_cell，>1 钳 1.0；A_cell=4π/(12·nside²)） | 无效像素 0.0 |
-| variance/…fits | 同上 | **`ADU^2/sr^2`**（var_num_sum/covered_area²；var_num_sum=Σ v_j·w_jp²，v_j 单位 ADU²、w_jp 无量纲） | 无信息（area≤0 或 vnum≤0）→ 0.0（§4a）；非有限/负 → rc=−6 硬失败；tile 全无信息 → rc=−5 不落盘（:629-632） |
-| ivar/…fits | 同上 | **`sr^2/ADU^2`**（=1/variance，有限域互为倒数） | 无信息 → 0.0（禁 1/0→Inf）；非有限/负 → rc=−6 |
+| variance/…fits | 同上 | **`ADU^2/sr^2`**（var_num_sum/covered_area²；var_num_sum=Σ v_j·w_jp²，v_j 单位 ADU²、w_jp 无量纲；§4a 的 `D_p` 即 covered_area） | **三态，唯一口径 = §4a 表**：无覆盖（area≤0 或 area 非有限）→ **NaN**（与 `signal=NaN ∧ support=0` 同态）；有覆盖但无方差信息（area>0 ∧ vnum==0）→ **0.0**（显式不可用）；损坏（vnum 非有限 或 vnum<0）→ **rc=−6 硬失败**（禁 clamp/禁静默跳过）。**全 tile 无覆盖**（无任何 covered 像素）→ rc=−5 不落盘；全 tile「有覆盖但方差不可用」→ 照写全 0（合法产品态，禁按 −5 拒写） |
+| ivar/…fits | 同上 | **`sr^2/ADU^2`**（=1/variance，有限域互为倒数） | **三态同 variance 行**：无覆盖 → **NaN**；有覆盖但无方差信息 → **0.0**（禁 `1/0→Inf`）；损坏 → rc=−6 |
 | hierarchy 低阶 tiles（signal/support/variance/ivar 同目录树，nside=2^(k+9), k<tile_order） | 同上 `[512×512]` | 同上（父 cell=子像素聚合；f32 产品 float 累加 DISP-HIPS-009） | 空 acc 父 cell 照写全 NaN（DISP-HIPS-011） |
 | Moc.fits（每子产品） | BINTABLE 列 UNIQ（int64 域 4·4^m+(c>>2(K−m))) | 无量纲（UNIQ 编码） | 空集不写（:246）；moc_order<K 低阶 UNIQ 对自家 reader 无效（DISP-HIPS-005） |
 | properties（每子产品） | 文本 key=value 逐行 | — | 直写无原子性/无转义（DISP-HIPS-010）；时间键=真实 UTC（字节不跨运行复现） |
@@ -420,7 +439,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   （§11.2；flux_sum=Σ x_j·(a_jp/A_pixel,j) 单位 ADU、covered_area=Σ a_jp 单位 sr）
   → writer 归一 signal=flux_sum/covered_area（⇒ **`ADU/sr`**）、
   support=min(covered_area/A_cell,1)、variance=var_num_sum/covered_area²、
-  ivar=1/variance；F=signal×support×A_cell 闭合（gate7 复检同式）。
+  ivar=1/variance。F=signal×support×A_cell 闭合**只在 support 未被钳制时恒等**（`support = min(covered_area/A_cell, 1)` 是钳后发布值，covered_area>A_cell 时丢失倍数信息）——适用域、两条冻结处置与可观测计数见 §20.3「support 钳制的编码限」；过覆盖像素上该式**不得**用于复原 covered_area。
 - 天区度量：moc_area_sr=Σ A_cell(K)（逐叶 tile 登记制，
   aio_hips_writer.cpp:530）；hips/moc_sky_fraction=moc_area_sr/4π；
   astrocs_covered_sky_fraction=covered_area_sr/4π；hips_pixel_scale=
@@ -437,7 +456,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
   `signal` 有限、`support>0`、`variance=0.0`、`ivar=0.0`（显式不可用，禁 NaN）；
   **损坏**（`vnum`/area 非有限或 `vnum<0`）→ rc=−6 硬失败（禁 clamp/禁静默跳过）。
   IEEE NaN 填充用于 signal 与"无覆盖"的 variance/ivar，不用 FITS BLANK。
-- 全无效 variance tile：写请求返回 −5、不落盘（调用方预判跳过，
+- 全**无覆盖** variance tile（无任何 covered 像素）：写请求返回 −5、不落盘（调用方预判跳过，
   astro_sphere_sink.cpp:123-144 计数不 abort）——显式失败而非空产品。
 - 存储 dtype 双轨 f32/f64 由 data_type 一次固化；归一运算在 double 域
   （:469-477）后截断到存储 dtype；hierarchy 累加器 f32 产品为 float
@@ -481,11 +500,11 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 
 | 参数/字段 | dtype/shape | 单位/域 | invalid / NULL 语义 |
 |---|---|---|---|
-| data | float32（v1）/ float64（f64）`[h·w]` 行主序 0-based | ADU（或 e⁻，同输入标度） | 非 NULL 强制；h>0/w>0 否则 rc=3（noise_model.cpp:143）；NaN/Inf 与饱和像素过滤不统计（valid_pixel :64-68）；**饱和像素 = `x ≥ saturation_level`**，电平来源优先级 = 显式 `cfg.saturation_level>0` > 帧元数据 FITS `SATURATE` > `DATAMAX`；`0`/负/非有限 = **未提供电平（unset）≠「无饱和」**，此时编排层**必须**写显式降级声明 `photo_stats.NOISE_SATURATION_FILTER=DISABLED_NO_METADATA`（禁止静默；SCI NOISE_MODEL §4「饱和域」，claim SC-008 / SAT-001） |
+| data | float32（v1）/ float64（f64）`[h·w]` 行主序 0-based | 标度类别 = 调用方声明的输入面标度（`docs/standards/NUMERIC_STANDARD.md`）：现行生产面 = `calibrated_adu`（ADU，α=1）；`photo_scaled_adu` 时量纲为 `α·ADU` 且 `variance_floor` 必须按 α² 同标度换算（见本表 `variance_floor` 行）。或 e⁻（同输入标度，仅当调用方另行给出 gain 换算） | 非 NULL 强制；h>0/w>0 否则 rc=3（noise_model.cpp:143）；NaN/Inf 与饱和像素过滤不统计（valid_pixel :64-68）；**饱和像素 = `x ≥ saturation_level`**，**`x` 与 `saturation_level` 必须同标度**（电平来源 = 帧元数据 FITS `SATURATE`/`DATAMAX`，属探测器原始 ADU 面 ⇒ 数组为 `photo_scaled_adu` 时**不得**直接比较，须先换算或改用同标度电平；换算责任方 = 调用方），电平来源优先级 = 显式 `cfg.saturation_level>0` > 帧元数据 FITS `SATURATE` > `DATAMAX`；`0`/负/非有限 = **未提供电平（unset）≠「无饱和」**，此时编排层**必须**写显式降级声明 `photo_stats.NOISE_SATURATION_FILTER=DISABLED_NO_METADATA`（禁止静默；SCI NOISE_MODEL §4「饱和域」，claim SC-008 / SAT-001） |
 | source_mask | float32 `[h·w]` | —（≠0 即源掩膜 1） | 可 NULL（改用 star 坐标通道）；非 NULL 时忽略 star_x/y（互斥，DISP-NOISE-006）；掩膜像素不参与统计 |
 | star_x / star_y | double `[n_stars]` | pixel（0-based） | 可 NULL/n_stars=0；掩膜半径 rmax=max(1,r0)·max(1,scale)（默认 10·6=60 px）统一不按亮度缩放；非有限坐标跳过该星（:148-151） |
 | cfg（SnrNoiseModelConfig） | 结构体按 snr_estimator.h:108-122 | — | 可 NULL（=default_config）；patch_grid_x/y≥2、cosmic_clip_sigma≥1、min_patch_samples≥1（默认 64）、max_clip_rounds≥0 静默钳位（DISP-NOISE-007）；gain_e_per_adu/read_noise_e/use_gain_model 三字段现状零读取（DISP-NOISE-003）；`saturation_level`：>0 = 饱和电平 ADU（过滤生效），0/负/非有限 = **未提供（unset）**，来源与降级声明语义见 SCI NOISE_MODEL §4「饱和域」（claim SC-008） |
-| variance_floor | double | ADU² | 默认 1e-12。**两个阶段同口径**：取非正值 ⇒ 具名拒绝 `SNR_FLOOR_UNBOUND`（rc=−10），**不得直通、不得回退到任何常数**。生效地板必须在其产品 dtype 中可表示（`NOISE_MODEL` §9），否则同样拒绝 |
+| variance_floor | double | ADU² | 默认 1e-12。**标度 = 与所作用数组同一标度**（标度词表 = `docs/standards/NUMERIC_STANDARD.md`）：数组为 `calibrated_adu` ⇒ 1e-12 ADU²；数组为 `photo_scaled_adu` ⇒ 按线性标度律取 `α²·1e-12`（α = 该帧 photscal，**逐帧量**；实现锚 = `module_adapters.cpp` 的 `p1_noise_model_for_frame(data_scale=…)` 把 `variance_floor` 乘 `data_scale²`）。**两个阶段同口径**：取非正值 ⇒ 具名拒绝 `SNR_FLOOR_UNBOUND`（rc=−10），**不得直通、不得回退到任何常数**。生效地板必须在其产品 dtype 中可表示（`NOISE_MODEL` §9），否则同样拒绝 |
 
 ### 13.2 输出（NoiseWeightModelV1 + fill 逐像素场）
 
@@ -493,7 +512,7 @@ phase1_session 将 out 写为 `calibrated_<原名>.fits`（float32 ADU）；母�
 |---|---|---|---|
 | NoiseWeightModelV1（snr_estimator.h:127-144） | ctrl_* double `[n_control_points]`（patch 中心 0-based 像素坐标/σ/variance/ivar） | σ: ADU；variance: ADU²；ivar: ADU⁻² | 合格 patch 的 max(patch_var, floor) 与 1/var；n_qualified_patches+n_rejected_patches==64（8×8） |
 | sigma_bg_global / variance_bg_global / ivar_bg_global | double 标量 | ADU / ADU² / ADU⁻² | 全局兜底=合格 patch variance 稳健中位数（非退化）；完全退化 rc=1 时 ivar_bg_global==0.0（显式不可用，禁止伪装——§4a） |
-| source / has_spatial_field / degenerate | uint8 标志 | — | source=0（empirical blank-sky 唯一生产基线）；has_spatial_field=1 须 enable_spatial_field==1、n_control_points>=4 且控制点几何张成二维（点云相对条件数 λlo/λhi≥1/16，即 κ=√(λhi/λlo)≤4；DISP-NOISE-010 已整改）；degenerate=1=无合格 patch 且全帧兜底退化 |
+| source / has_spatial_field / degenerate | uint8 标志 | — | source=0（empirical blank-sky 唯一生产基线）。**适用域（正向约束）**：empirical 路径以 8×8 patch 的稳健尺度估计随机噪声，**要求 patch 内以天空背景为主**——帧含大面积未分辨结构 / 强梯度 / 弥散源时 patch 尺度量的是**结构**而非随机噪声，该域权重效率损失 E 由 0.0091 升至 0.4364（判据 `E = Var_w/Var_opt − 1`，见 `docs/science/CONTROL_WEIGHT_SNR.md`）⇒ 该域必须走 `has_spatial_field` 空间场或显式降级，**不得**以 source=0 标量场冒充；has_spatial_field=1 须 enable_spatial_field==1、n_control_points>=4 且控制点几何张成二维（点云相对条件数 λlo/λhi≥1/16，即 κ=√(λhi/λlo)≤4；DISP-NOISE-010 已整改）；degenerate=1=无合格 patch 且全帧兜底退化 |
 | fill 输出 out_variance / out_ivar | float32 `[h·w]` 行主序 | ADU² / ADU⁻² | 任一可 NULL（可空输出，双 NULL 拒绝 rc=3 :467）；平面预测**为正**时取 max(a+b·x+c·y, floor)（floor 为**按 dtype 导出**的数值保护，见 SCI §9）；**预测 ≤ 0 ⇒ 该像素方差不可用：variance=0 ∧ ivar=0（显式不可用，不得由 clamp 产生、不得写 NaN）**；无合格 patch 时 ivar=0 拒绝加权（SCI §7） |
 
 ### 13.3 坐标与精度规则（汇总）
@@ -584,8 +603,8 @@ p1snr_frame_parity_test.cpp）**：同一输入下 `psf.max_stars=0`（不限）
 
 | 输出 | dtype/shape | 单位/域 | 语义 |
 |---|---|---|---|
-| out_pixels | 同输入 dtype `[h·w]` | 未定标/退化=ADU；已定标（scale≠1 且 n_matched>0）=模型通带积分辐照度（F_syn 单位） | I_cal=I·scale（f32 通道 ImageCorrector :63-77；f64 内联 pc_api.cpp:1023-1028）；退化=恒等拷贝。写盘 BUNIT 必须随 PHOTAPPL 区分（§11.1 PHOTSCAL/PHOTAPPL 行），禁止在已定标帧标 BUNIT=ADU |
-| out_scale_factor | double 标量 | 无量纲 | 10^(−location)（IRLS/Tukey，star_matcher.cpp:527-529）；退化/一致集空=1.0 |
+| out_pixels | 同输入 dtype `[h·w]` | 未定标/退化 = `calibrated_adu`（量纲 ADU）；已定标（scale≠1 且 n_matched>0）= `photo_scaled_adu`（量纲 `α·ADU` = 模型通带积分辐照度 `F_syn` 单位，α = scale） | I_cal=I·scale（f32 通道 ImageCorrector :63-77；f64 内联 pc_api.cpp:1023-1028）；退化=恒等拷贝。**写盘 BUNIT 一律取 §31.1 冻结的 canonical 面亮度族串（signal 面 `ADU/sr`），由输入面声明决定，不得随 `PHOTAPPL` 区分**——标度由 `PHOTSCAL`/`PHOTAPPL` 逐帧承载（§31.1a；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed）；裸 `ADU` 只在 §31.2 (b) 的 provenance 声明齐备时可写 |
+| out_scale_factor | double 标量 | **`[F_syn 单位]/ADU`**（`scale = 10^(−location)`；F_syn 单位 = 模型通带积分辐照度，逐项见 §14.3。**不是**无量纲——只有在显式声明参考通量单位后才允许称其为无量纲乘性因子，SCI-PHOT-001 §10） | 10^(−location)（IRLS/Tukey，`star_matcher.cpp` 的 `std::pow(10.0, -location)`）；退化/一致集空 = 1.0（恒等，量纲退化为无量纲的特例） |
 | out_sigma_residual | double 标量 | dex（log10 flux-ratio） | MAD(r_inliers)/0.6744897501960817（:551-560）；下游换算 sigma_mag/sigma_cal_rel 由 snr_phot_cal_quality 承担（API-NOISE-001 边界） |
 | out_n_matched | int32 标量 | 颗 | IRLS inliers 数（fit_used） |
 | out_diag | PhotometricDiag（头 :21-45） | 计数/dex/px | 17 字段分阶段诊断；rejected_quality 为混合计数（DISP-PHOT-006） |
@@ -1298,7 +1317,7 @@ acr_kernels.cpp:189-195）。字段可空语义为冻结合同（§20 同构）:
 | 字段 | dtype/shape | 单位/域 | 可空语义 | 约束（违规→INVALID_INPUT） |
 |---|---|---|---|---|
 | values | f64 `[count]` | ADU（与校准后同标度，SCI §3） | 不可空（null+count==0 → NO_CANDIDATES :23-26；null 且 count>0 → NO_CANDIDATES，values==null 同分支） | accepted 样本须 finite（:37） |
-| weights | f64 `[count]` | 1/ADU²（数值权重，策略在调用方；本层无 ivar 语义，SCI §3） | 可空=等权 1.0（:45 w=weights?w[i]:1.0） | accepted 样本须 finite ∧ ≥0（:44-48）；w==0 合法零贡献（:49） |
+| weights | f64 `[count]` | 数值权重，**量纲 = 1/（`values` 的量纲）²**（本层无 ivar 语义，策略在调用方，SCI §3）。**标度 = 与 `values` 同承载面**：`values` 为像素域 `calibrated_adu`/`photo_scaled_adu` ⇒ 权重 `1/ADU^2`（后者为 `1/(α·ADU)^2`）；`values` 为面亮度域 ⇒ 权重 `sr^2/ADU^2`（§31.1 `sb_ivar_out`）。**跨承载面代入前必须按 `docs/standards/NUMERIC_STANDARD.md` 标度律换算**（面亮度因子 `1/A_cell^2`；线性因子 `1/α^2`），换算责任方 = 构造权重的调用方 | 可空=等权 1.0（:45 w=weights?w[i]:1.0） | accepted 样本须 finite ∧ ≥0（:44-48）；w==0 合法零贡献（:49） |
 | support | f64 `[count]` | 无量纲 [0,1]（几何覆盖，§4；禁作科学权重，§20.3 红线） | 可空=1.0（输出侧 :71 空支撑守恒） | accepted 样本须 finite ∧ >0（:38-42） |
 | accepted | u8 `[count]` | 无量纲 0/1（排异层产物，DATA-P2-REJ） | 可空=全接受（:34-36） | — |
 | count | u32 标量 | 无量纲 | — | 0 → NO_CANDIDATES |
@@ -1311,7 +1330,7 @@ acr_kernels.cpp:189-195）。字段可空语义为冻结合同（§20 同构）:
 
 | 字段 | dtype/shape | 单位/值域 | invalid/未定 |
 |---|---|---|---|
-| signal | f64 标量 | ADU（=Σwᵢxᵢ/Σwᵢ，仅正权重 eligible 样本） | 非正权状态（§21.3 非 OK）时无定义，调用方须按 status 门禁消费（stage2.cpp `(status==0)?signal:0` 同型，acr_kernels.cpp:199-200） |
+| signal | f64 标量 | 量纲 = `values` 的量纲（=Σwᵢxᵢ/Σwᵢ，仅正权重 eligible 样本）；**本层不改变标度类别**——输入为像素域帧面（`calibrated_adu`/`photo_scaled_adu`，量纲 ADU / α·ADU）时输出仍是像素域值，**不是**面亮度 `ADU/sr`；立体角归一（`1/A_cell`）在 writer 层完成（§12.3/§20.3） | 非正权状态（§21.3 非 OK）时无定义，调用方须按 status 门禁消费（stage2.cpp `(status==0)?signal:0` 同型，acr_kernels.cpp:199-200） |
 | support | f64 标量 | 无量纲 [0,1] = max reducer 输出（support 输入空 → 1.0，:71 空支撑守恒） | 同上；现状实现含 DISP-P2INT-001（零权重 accepted 样本不进 max，保守方向，ALG §11.3） |
 | n_used | u32 标量 | 无量纲 = n_positive_weight（通过门正权样本数，:56） | — |
 | n_candidates | u32 标量 | 无量纲 =count | — |
@@ -1390,16 +1409,34 @@ rc（函数返回）: 0=语义由 status 承载；1=stack/result null（:20-21�
 > API 面: API-P2-REJ-001（PUBLIC_API.md）+ 编排级 API-P2-001
 > （FROZEN）。
 >
-> **`MINMAX` 路径已禁用（DOC-203 / S01；§9.71 裁决 3.4 + EXP-204，2026-09-20）**：
-> `min/max` **不得**在任何档位使用（WBPP 自动选择表内不含 min/max 且明文拒绝
-> 「Min/Max rejection should not be used for production work」）。因此：
-> ① `eng/contracts/schemas/phase_config_mosaic.schema.json` 的 `minmax` 枚举值**已删**（FIX-207 已落地）；
-> ② 本节以下对 `MINMAX` **实现分支**的描述只作**实现事实留痕**（内核里该分支仍存在），
-> **不是**可选生产路由——生产**不得**选择它；③ 该内核分支的删除/隔离**仍开放**：
-> **实测** FIX-204（`5e8c09ce`）只把逐像素自动选择策略落到 `rejection.cpp:1139` `kPixelSmallNPolicy`
-> （4≤N≤5 / 6≤N≤15），**未删** `rejection.cpp` 的 `P2_REJECT_MINMAX` / `reject_minmax_impl` /
-> `p.minmax.*` 默认（:993/:1093/:1169/:1240-1241/:1878/:2149-2150/:2470-2471）⇒ 登记为**遗留缺口**，
-> 归属后续 FIX（原指派 FIX-204 未覆盖该面）。
+> **`MINMAX` 在合同层不可选（`FZ-REJ-NO-MINMAX`）**：`min/max` **不得**在任何档位使用。
+> **依据分两层，两层都只支持「不推荐 / AUTO 不选」，不支持「外部标准禁止」**：
+> ① **外部依据（软件惯例，非学术共识）**：WBPP（PixInsight WeightedBatchPreprocessing）
+> **2.5.9** 官方更新包 `src/scripts/WeightedBatchPreprocessing/WeightedBatchPreprocessing-engine.js`
+> 的 `rejectionIsGood()`（:1349）对 `MinMax` 返回
+> `[false, "Min/Max rejection should not be used for production work"]`（:1360，**逐字**）——
+> 该串是**告警理由串**，调用方（:4184-4187）只调 `this.warning(...)`，**行为是 WARN，不是硬阻断**；
+> 其自动选择表 `bestRejectionMethod()`（:1421-1429）与算法清单 `StackEngine.rejectionMethods`（:5963）
+> **均不含 min/max**（逐字核验，档界 6/16）。PixInsight 官方 ImageIntegration 文档的措辞是
+> *"Other than these control tasks and some special cases, min/max should be avoided in production work"*
+> —— **带明文豁免**。**已检索 arXiv 多组关键词（min/max × pixel rejection / image stacking /
+> small number of images / CR-SPLIT 等），未找到任何同行评议文献支持该禁令** ⇒ 本条是**工程惯例**，
+> 不得表述为学术结论。**引用要求**：引外部依据时必须写明 WBPP 版本（**2.5.9** 为可公开核验版；
+> 2.9.1 源码随商业安装分发、行号未独立验证），并写明行为是 **WARN** 而非 REJECT。
+> ② **内部冻结（本条的真正效力来源）** = AUTO 路由值域恒为 `{percentile, winsorized_sigma, linear_fit}`
+> （实现锚 `lib/algorithms/coverage/src/rejection.cpp` 的 `astrocs_n_map_method`）。
+> 因此三条**同时**成立：
+> ① `eng/contracts/schemas/phase_config_mosaic.schema.json` 的 `algorithm_rejection_method`
+> 枚举值域 = `{auto, sigma, winsorized, averaged_sigma, linear_fit, esd, percentile}`，**不含** `minmax`；
+> ② **stage2 工具配置面同面 fail-closed（强制）**：`lib/algorithms/coverage/src/stage2_common.cpp` 的
+> `p2_stage2_parse_config` 对 `integration.rejection.method == "minmax"` **必须具名拒绝**——
+> 该键不在 phase_config schema 的键集内（`mosaic_config.additionalProperties = false`），
+> 故 schema 枚举**不覆盖**这条旁路，必须在解析器上同面封堵；
+> ③ 内核的 `P2_REJECT_MINMAX` / `reject_minmax_impl` / `p.minmax.*` 只作**实现事实留痕**
+> 与诊断工具（`lib/algorithms/coverage/tools/rejection_cli.cpp`）的可达分支，**不是**可选生产路由；
+> 本节以下对 `MINMAX` 的一切描述一律按此读。
+> **机器判据（非退化）**：正例 = `integration.rejection.method` 取 `"winsorized_sigma"` ⇒ 解析成功；
+> 负例 = 取 `"minmax"` ⇒ 解析失败并给出具名错误串。两档结果必须不同。
 
 ### 22.1 输入（按消费路径分层；锚=rejection.h，未注文件者同）
 
@@ -1619,7 +1656,7 @@ DISP-P2SMP-001；control_k_corr<=0 → 冻结默认 1.4 :497-498）:
 | background_tolerance | double | 3.0 | 局部 tolerance gate（MAD 单位，h:44；:988-992） |
 | background_neighbor_radius | int | 2 | 局部 baseline 邻域 cell 半径（h:45；:970-975） |
 | background_catalog_veto | int | 1 | SNR catalogue veto 开关（h:46；:853-856） |
-| control_k_corr | double | 1.4 | Drizzle 协方差方差放大因子（无量纲；h:47-53 冻结公式/实证 1.3883、保守 1.4；逐帧查表 :547-555 优先于该值） |
+| control_k_corr | double | 1.4 | Drizzle 协方差方差放大因子（**无量纲**）。**适用域（正向约束）**：Drizzle 核 `pixfrac ∈ [0.5, 1.0]` 且源像素角尺度 `∈ [300, 600]″/px`（= 逐帧查表域）；**域外（含 NaN / 未知）一律取冻结默认 1.4，禁止 clamp 静默饱和**（域外 clamp 会把一个与帧无关的表值当成逐帧标定）。**证据**：MC 标定 `UPMW-005 control_median_mc_test`（当前 Drizzle 引擎、`pixfrac = 0.8` 生产默认、2000 次实现）实测 `k_corr_empirical = 1.3883`、`N_eff ≈ 181 < N_retained = 251`；取 1.4 ≥ 1.3883（保守侧）。逐帧查表（pixfrac × 角尺度双线性插值）优先于该值；实现锚 = `lib/algorithms/coverage/src/sampler.cpp` 的 `kcorr_lookup` / `kControlCorrDefault` |
 | cpu_workers | int | 1 | CON-004 worker 数，Runtime lease 唯一来源（h:54-56；stage2.cpp:273-274；0→1 :883） |
 
 **(4) 输出缓冲四组**（probe/fill 协议，sampler.h:101-102/:118-119
@@ -1644,7 +1681,9 @@ sampler.cpp:1029-1059）:
 | uncertainty | f64 | ADU（=sqrt(control_variance)，:843/:1036） | — |
 | snr | f64 | 无量纲（局部 catalogue SNR 中位或回退整帧精确中位 ：860-861/:1037） | snr_available=0 时整帧回退值（不以 1.0 伪装，upm.h:51-55） |
 | ivar | f64 | 1/ADU²（**弃用仅诊断**：单 leaf Phase1 ivar ≠ Var(control estimator)，:1039-1054 冻结注释；ivar 产品缺失/非 finite/≤0 → 0.0 如实降级 :1046，UPM 侧回退 1/uncertainty² :580 注） | 0.0=无 ivar 产品 |
-| control_variance | f64 | ADU²（k_corr×(π/2)×σ_bg²/N_retained，:840-842 冻结；ALG-UPM-CONTROL-IVAR-001） | cvar≤0 不可达（σ floor 1e-12 :818/:829） |
+| control_variance | f64 | ADU²（`k_corr × (π/2) × σ_bg² / N_retained`；ALG-UPM-CONTROL-IVAR-001；实现锚 `lib/algorithms/coverage/src/sampler.cpp` 的 `cvar = kcorr_f * kPiHalf * sigma * sigma / n_ret`）。**标度 = 与所消费的 Phase1 帧面同一标度**（§25.3 标度条）。**逐项来源**：`σ_bg` = patch 的稳健尺度（MAD×1.482602218505602），量纲 ADU，标度同上；`(π/2)` = **样本中位数的渐近方差因子** `Var(median) = (π/2)·σ²/N`（零均值高斯、i.i.d.、大样本；一般式 `1/(4N·f(m)²)` 代入高斯密度即得，见 §25.3 证据条）；`N_retained` = 通过 cosmic 裁剪的保留样本数；`k_corr` 见上表。**适用域与修正（正向约束；方向已核实，不得写成「保守」）**：`Var(median) = (π/2)·σ²/N` 的成立条件 = **i.i.d. + 连续型分布 + 密度 `f` 在中位数邻域连续可微（`f(m)>0`）+ 大样本渐近**。证据（一手，逐字）：Cramér, *Mathematical Methods of Statistics*, Princeton Univ. Press, 1946, **§28.5 "The quantiles"（pp. 367–369）** —— *"the median z of a sample of n from this distribution is asymptotically normal (m, σ√(π/(2n)))"*（括号内是**标准差** ⇒ 方差恰为 `πσ²/(2n)`，不是近似）；一般式 `Var(ζ_p) = pq/(n·f(ζ_p)^2)`，中位数 `p = q = 1/2` ⇒ `1/(4N·f(m)^2)`。
+  **σ-clip 后的修正**：以样本中位数为中心、对称 `±aσ` 裁剪后，因子由 `π/2` 变为 `C(a)·π/2`，`C(a) = (1+r)^2 + 2q − 4q(1+r)`（`q = Φ(−a)`、`r = e^{−a^2/2}`）：`a = 3 ⇒ C = 1.0196`、`a = 2 ⇒ 1.2312`、`a = 1 ⇒ 1.8787`。⇒ **本式在 3σ 裁剪下偏小约 2%，即由此得到的权重偏大约 2%（偏乐观，不是保守）**；裁剪越激进偏差越大。**非对称裁剪会改变中位数的估计目标，本修正不适用**。
+  **σ 由 MAD×1.482602218505602 估计的影响**：`π/2` 因子本身不变（plug-in + Slutsky），但 `(π/2)·σ̂²/N` 作为估计量多一份变异性：`Var(1.4826·MAD) ≈ 1.3604·σ²/N`（渐近效率 36.75%）⇒ 该估计量的相对标准差 ≈ `2.33/√N`（`N = 4096` 时约 3.6%）。 | cvar≤0 不可达（σ floor 1e-12 :818/:829） |
 | control_ivar | f64 | 1/ADU²（=1/cvar，cvar≤0 → 0 如实降级 :842；:1042） | 0.0=方差未定义 |
 | snr_available | int | 0/1（1=局部邻域有 catalogue 星点 ：859；0=无，回退整帧中位；:1038） | — |
 | support | f64 | 无量纲 [0,1]（patch 内有效支撑比，sup_sum/n_valid :844；:1057） | — |
@@ -1965,7 +2004,7 @@ rc=1**（空间 UPM 必须知 control leaf 层级 order=target+9，:261/:380；
 | max_iterations | int | 100 | IRLS 最大迭代（h:77；≤0→100 :238） |
 | tolerance | double | 1e-6 | 收敛容差（h:78） |
 | target_order | int | -1(auto) | 模型目标 order；auto 必须显式，否则 rc=1（h:79；:246-249） |
-| sigma_floor | double | 1e-3 | uncertainty 下限（h:80；≤0→1e-3 :239） |
+| sigma_floor | double | 1e-3 | uncertainty 下限。**标度 = 与所消费的 `uncertainty` 同标度**（本域 = 帧面标度，见 §25.3 标度条；帧面为 `photo_scaled_adu` 时按 α 同标度换算，方差类量按 α²）。**三个地板的分工（正向约束，禁止混用）**：`sigma_floor = 1e-3` 作用于 **σ（ADU）**、只用于 UPM 观测降权路径 `sigma_eff = max(|unc|, sigma_floor)`；`variance_floor = 1e-12` 作用于 **variance（ADU²）**、只用于 noise 模型的数值保护（§13.1）；`σ_bg` 的 1e-12 是 patch 方差下界、只用于 `cvar>0` 可达性。三者的量纲与作用面不同，**不得**互相替代或合并 |
 | support_power | double | 1.0 | support 因子指数（h:81；<0→1.0 :240） |
 | quality_mode | int | 0 | 0=flags 映射（h:82） |
 | use_ivar_weight | int | 1 | 1=science weight 用 control_ivar（h:83-86；production control_ivar≤0/非有限→显式 INVALID，:1307-1311）；0=legacy 仅 ablation/诊断（SNR-015） |
@@ -2005,9 +2044,11 @@ evaluate_c/dense_read_block（apply 域=§26）。端口 samples→upm_model
 
 ### 25.3 单位/dtype/确定性
 
+- **证据（一手，`(π/2)` 因子）**：样本中位数的渐近方差 `1/(4N·f(m)^2)` 在零均值高斯密度 `f(m) = 1/(σ√(2π))` 上代入 ⇒ `Var(median) = πσ²/(2N) = (π/2)·σ²/N`。仓内复算锚 = `lib/algorithms/coverage/tests/synthetic_gate.cpp` 的 MC 断言（同式）；`σ` 由 MAD×1.482602218505602 估计（`robust_sigma`）。
 - 唯一权威 dtype=FP64（precision=1，upm.cpp:256 "fp64 reference"）；
   dense cache 亦 fp64（:1402 写 1 /* fp64 缓存 */）；模型 JSON/AIO
   文本同值。
+- **标度（正向约束）**：本域全部 ADU 面量（`C`/`M`/`uncertainty`/`σ_bg`/`control_variance`/`control_ivar`）**与所消费的 Phase1 帧面同一标度**（标度词表 = `docs/standards/NUMERIC_STANDARD.md`）：帧面为 `calibrated_adu` ⇒ 1 ADU；帧面为 `photo_scaled_adu` ⇒ 量纲 `α·ADU`、方差按 α² 缩放（α = 该帧 photscal，**逐帧量**）。混合标度的帧集**不得**直接进同一 UPM 拟合；换算责任方 = 调用方（帧侧）。
 - 单位权威=SCI-UPM-001 §3（docs/science/PHASE2_UPM.md:30 实测
   "C, raw, calibrated, σ_bg: ADU"）: 校正场 C/参数 M/uncertainty/
   σ_bg=ADU、control_variance=ADU²、control_ivar=1/ADU²、
@@ -2927,20 +2968,25 @@ ivar_out = var_out 同态  (var_out=0 → 0 显式不可用; NaN → NaN)
 | `phase2_mosaic_signal` | `BUNIT(声明)` | Phase2 马赛克 signal；面亮度产品则 `ADU/sr` | `BUNIT^2` | `1/BUNIT^2` | `FZ-UNIT-SIGNAL-SB` | FROZEN |
 | `phase3_var_out` | `BUNIT^2` | Phase3 输出方差 = 主 HDU BUNIT 平方 | — | `1/BUNIT^2` | `FZ-P3-BUNIT-QUADRATIC` | FROZEN |
 
-**二次律（`FZ-P3-BUNIT-QUADRATIC`）**：`variance = signal^2`、`ivar = 1/variance`；Phase3 输出 variance BUNIT = (主 HDU signal BUNIT)²。
+**二次律（`FZ-P3-BUNIT-QUADRATIC`）**：**`BUNIT(variance) = BUNIT(signal)^2`**、**`BUNIT(ivar) = 1/BUNIT(signal)^2`**；Phase3 输出 variance BUNIT = (主 HDU signal BUNIT)²。
+**本条只约束单位串，不约束数值——两件事必须分开（正向约束）**：
+- **单位层（恒真式，无需附加条件）**：标准差不变量 `s` 的单位为 `U` ⇒ 其平方（方差）的单位为 `U^2`、`ivar` 为 `U^-2`。证据（一手，逐字）：JCGM 100:2008（GUM）§4.2.3 NOTE 2 —— *"Although the variance s²(q̄) is the more fundamental quantity, the standard deviation s(q̄) is more convenient in practice because **it has the same dimension as q**"*；§4.3.3/§4.3.4/§4.3.5 逐字给出 `g^2` / `Ω^2` / `mm^2` 的单位串实例；FITS 4.0 §4.3.1 + Table 6 规定幂次记法（`**` 或 `ˆ` 或并置）。该层**仅用于构造与校验 `BUNIT` 字符串**。
+- **数值层（一般不成立，必须独立给出）**：数值等式 `variance = signal^2` 只在**纯泊松散粒噪声主导、且 signal 以同一标度的期望计数（电子数）表述**时成立。证据（一手，逐字）：EMVA Standard 1288 Release 4.0 Linear（2021-06-16）§2.4 "Noise Model" Eq.(13) —— *"Therefore the variance of the fluctuations is equal to the mean number of accumulated electrons"*，即 `σ_e^2 = μ_e`；**同一节** Eq.(14)(15) 给出完整式 `σ_y^2 = K^2·σ_d^2 + σ_q^2 + K·(μ_y − μ_{y,dark})`，其中 offset 项 `K^2 σ_d^2 + σ_q^2` **与信号无关**（读噪被原文明确称为 *"signal independent"*；`σ_q^2 = 1/12 DN^2`）⇒ **signal → 0 时 variance 不趋于 0**，`variance = signal^2` 在低信号端必然失效。仓内对应的数值式 = `docs/science/NOISE_MODEL.md` 的 gain 模型 `var_ADU = max(signal,0)/gain + (rn/gain)^2`（**仅诊断、不入生产**）。产品面的 `variance` 是**独立估计量**（§4a / §12.2 的 `var_num_sum/covered_area^2`）；**禁止**用 `signal^2` 反算、顶替或校验产品方差。
+- **EMVA 1288 的引用口径（版本敏感）**：方差法 / photon transfer 只在 **Release 3.0（2010-11-29）/ 3.1a** 中定义（§2.1 增益 `K` 单位为 **DN/e⁻**，注意不是 e⁻/ADU；§2.2 Eq.(9) 含 offset；§6.6 回归程序）；**Release 4.0 General（2021-06-16）已声明不再使用 photon transfer curve**（Preface 逐字 *"The photon transfer curve is no longer used."*）。引「EMVA 1288 方差法」**必须**写明 Release 3.0/3.1a；引「EMVA 1288」（=4.0）只支持散粒噪声式与完整方差式。
 
 ### 31.1a 面亮度单位口径的推导（`FZ-UNIT-SIGNAL-SB`）
 
 **结论**：AstroCS 全链 `signal` 承载的物理量是**面亮度**（surface brightness），单位唯一写作
 **`ADU/sr`**（计数按**立体角**归一）；`variance` = `ADU^2/sr^2`、`ivar` = `sr^2/ADU^2`
-由二次律唯一导出。产品 FITS/HiPS 写盘 `BUNIT` 一律取该串。
+由二次律唯一导出。产品 FITS/HiPS 写盘 `BUNIT` 一律取该串（canonical 面亮度族 = `ADU/sr` / `ADU^2/sr^2` / `sr^2/ADU^2`；实现守卫 = `hiss_writer.cpp` 的 BUNIT 白名单 fail-closed）。
+**BUNIT 相等不是标度相等的充分条件（正向约束）**：`BUNIT` 描述**量的种类**，逐帧标度由 `PHOTSCAL`/`PHOTAPPL`（DATA-P1-PHOTPROV-001）与 `k_photo` 承载。跨帧比较、合并、加权或做阈值判定前，消费侧**必须**读逐帧标度并按标度律换算到同一标度（`docs/standards/NUMERIC_STANDARD.md`）；**禁止**仅凭 `BUNIT` 相同即认定可合并、可加权、可比较。
 
 **推导链（逐段量纲）**：
 
 | 段 | 量 | 单位 | 依据 |
 |---|---|---|---|
 | Phase1 校准 / cosmetic | 帧平面 `x_j` | `ADU` | §9.2 / §10.2（线性计数，未按面积或立体角归一） |
-| Phase1 photometry 施加 | 帧平面 `x_j = k_photo·x_cal` | `ADU`（**线性**；零点 = 本帧相对测光零点） | SCI-PHOT-001 §3/§5（`k_photo = 10^{−location}`，单位 [F_syn 单位]/ADU）；`I_photo = k_photo·I_cal`（`photometry_apply.h`） |
+| Phase1 photometry 施加 | 帧平面 `x_j = k_photo·x_cal` | **`α·ADU`**（标度类别 `photo_scaled_adu`；`α = k_photo = 10^{−location}` 量纲 `[F_syn 单位]/ADU` ⇒ 数值量纲 = 模型通带积分辐照度；**线性**；零点 = 本帧相对测光零点） | SCI-PHOT-001 §3/§5；`I_photo = k_photo·I_cal`（`photometry_apply.h`） |
 | Phase1 drizzle 权重 | `w_jp = a_jp / A_pixel,j` | `1`（无量纲） | SCI-DRZ-001 §5；`a_jp`（球面重叠面积）与 `A_pixel,j`（源像素球面面积）同为 sr，商无量纲 |
 | Phase1 drizzle 累加 | `sumFlux = Σ_j x_j·w_jp` | `ADU` | 上式；代码锚 `drizzle_engine.cpp#processPixelSharedTiled`（`acc.sumFlux += pixelValue*weight`） |
 | Phase1 drizzle 累加 | `sumArea = Σ_j a_jp` | `sr` | 同函数（`acc.sumArea += overlap_area`）；`A_cell = 4π/(12·nside²)` sr |
@@ -2967,7 +3013,8 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 
 **为什么不是 `mag/arcsec^2` 或 `erg/s/cm^2/Å/arcsec^2`**：两者都是**绝对定标**后的面亮度单位，
 且前者承载对数值。AstroCS 的 `signal` 是**线性**探测器计数面亮度；本阶段的测光链只建立
-**逐帧相对零点** `ZP_k`（`m = ZP − 2.5·log10 F`，§13.4），不携带增益/滤光片绝对通标定。
+**逐帧相对零点** `ZP_k`（`m = ZP − 2.5·log10 F`，§13.4）。
+**绝对/相对口径的边界（正向约束）**：本链**不**建立增益标定（`e⁻/ADU` 不入本层，`docs/science/CALIBRATION.md` §1 非目标）；**不**建立具名标准测光系统（Johnson/Cousins/SDSS 等）的零点。它建立的是**以本帧滤光片正向合成的模型通带积分辐照度 `F_syn`（`W·m^-2·nm^-1`，Gaia DR3 XP 绝对 XPSD 谱）为参考**的逐帧乘性标度 `k_photo`（§14.3 与本节推导链）；该参考的**通带正确性**受制于滤镜库 provenance 状态（`docs/contracts/CONFIG_CONTRACT.md` §4：45/45 曲线 `status=unverified`）。故本链的「绝对」**只**指参考谱本身的绝对定标，**不**指本仓已独立核验的绝对测光；对外声称绝对测光前必须先补齐通带 provenance。
 写 `mag/arcsec^2` 会同时错在量纲（线性 vs 对数）与定标声明（宣称未做的绝对定标）。
 需要星等面亮度时按 `SB_mag = ZP_k − 2.5·log10(signal) + 2.5·log10(Ω_ref)` **派生**
 （`Ω_ref` = 选定参考立体角；1 arcsec² = 2.3504430539e-11 sr），不改 `BUNIT`。
@@ -2977,16 +3024,26 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 - §4.4.2.5「BUNIT keyword」：*"The value field shall contain a character string describing the
   physical units in which the quantities in the array, after application of BSCALE and BZERO,
   are expressed. **These units must follow the prescriptions of Sect. 4.3.**"*
-- §4.3「Units」：单位串限 restricted ASCII，且 *"The units of all FITS header keyword values …
-  should conform with the recommendations in the IAU Style Manual (McNally 1988)"*；
-  *"The IAU style manual forbids the use of more than one slash ('/') character in a units string."*
-- Table 3（IAU-recommended basic units）列 **`sr` steradian**（solid angle）。
-- Table 4（Additional allowed units）列 **`adu`**（Analog-to-digital converter），
-  并把 **`pixel` / `pix` 列在 area 类**（"(image/detector) pixel"）。
+- **§4.3.1「Construction of units strings」**（正文 p.10）：单位串限 restricted ASCII，且 *"The units of all FITS
+  header keyword values … should conform with the recommendations in the IAU Style Manual (McNally 1988)"*；
+  *"Note that, per IAU convention, **case is significant throughout**. The IAU style manual forbids the use of
+  more than one slash ('/') character in a units string. **However, since normal mathematical precedence rules
+  apply in this context, more than one slash may be used but is discouraged.**"*（两句并列，引用时不得只引前一句）
+- Table 3（IAU-recommended basic units，正文 p.8）逐字列 **`solid angle | sr | steradian`**。
+- Table 4（Additional allowed units，正文 p.9）逐字列 **`adu | Analog-to-digital converter`**，
+  并把 **`pixel` / `pix` 列在 `area`（面积）量类**（逐字 `area | pixel | (image/detector) pixel`）；
+  全文无 `dimensionless` 字样 ⇒ **标准未把 `pixel` 称作无量纲计数单位**。
+- Table 6（正文 p.11）幂次记法只允许 `**` 或 `ˆ`（U+02C6）或直接并置，**不**允许 ASCII `^`（U+005E）。
 
-⇒ `ADU/sr` 由 Table 3 的 `sr` 与 Table 4 的 `adu` 两个合法符号、单一斜杠构成，量纲精确、FITS 合法。
-⇒ 反例：`ADU/px^2` 在 FITS 下读作「ADU 每（像素面积）²」（Table 4 的 `pix` 已是面积单位），
-既非面亮度量纲，也与写盘数值（按 sr 归一）不符；`ADU/px^2/sr` 含两个斜杠，为 IAU Style Manual 所禁、FITS 所劝阻。
+⇒ 面亮度串 `ADU/sr` 由 Table 3 的 `sr` 与 Table 4 的 `adu`、单一斜杠构成，量纲精确。
+⇒ **大小写偏差（如实登记）**：§4.3.1 规定 *case is significant throughout*，Table 4 的合法符号是**小写** `adu`；
+  本仓冻结的 canonical 串用大写 `ADU`（社区通行拼法）。严格按 IAU 大小写应为 `adu/sr`。
+  `ADU/sr` **保留为 canonical（冻结项，不因本条改动）**，但**不得**声称它逐字等于 Table 4 的符号。
+⇒ 反例（两处违规）：`ADU/px^2` —— ① `px` **不是** Table 4 列出的单位串（只有 `pixel` 与 `pix`）；
+  ② 幂符号 `^` 不在 Table 6 允许集内。合规写法为 `adu/pix**2` / `adu/pixˆ2` / `adu/pix2`。
+  语义上因 Table 4 把 `pixel` 定义为**面积**，`adu/pix` 已是「每像素面积」（面亮度），
+  而 `adu/pix**2` 量纲为 area⁻²，**不是**通常想表达的「每像素」。
+⇒ `ADU/px^2/sr` 含两个斜杠：IAU Style Manual **禁止**，FITS 4.0 §4.3.1 **允许但劝阻**。
 
 **单位串与内部幂次编码的对应**：内部量纲代数把立体角维记在 `px_power` / `pixel_area_power` 上
 （`signal_sb = -2`、`sb_variance_out = -4`、`sb_ivar_out = +4`）。
@@ -3001,15 +3058,20 @@ HiPS signal 仍是**线性面亮度**，只是零点换成**逐帧相对测光�
 
 ### 31.2 BUNIT 量纲可判（`FZ-BUNIT-SEMANTICS`，PENDING/SO-01）
 
-写盘 BUNIT 必须量纲可判，满足 (a) 或 (b)：
+写盘 BUNIT 必须量纲可判，满足 (a) 或 (b)；且**任何产品都必须同时满足 (c)**：
 
 ```text
 (a) BUNIT 显式含立体角幂次（canonical "sr"）: canonical "ADU/sr"(signal SB) 与 "ADU^2/sr^2"(variance SB)
 (b) BUNIT = "ADU" 时 provenance 必须声明 pixel_semantics = "surface_brightness"
     且 pixel_area_power = -2 且给出目标像素面积
+(c) 标度可判：provenance 必须声明该产品的**标度类别**（取值只能来自
+    docs/standards/NUMERIC_STANDARD.md 的封闭词表）与逐帧乘性因子
+    （photscal / alpha，逐帧量）；未声明标度 = 单位可判但**标度不可判**，
+    消费侧不得把它与其它产品比较、合并或加权
 ```
 
-仅写 `ADU` 而无 (b) 声明 = 单位不可判 → 产品标 `unavailable` 或 `REJECT`。`pixel_area_power` canonical 缺省：`signal_sb=-2`、`sb_variance_out=-4`、`sb_ivar_out=+4`、`flux/Q/W_info/psfsw_robust_weight=0`。
+仅写 `ADU` 而无 (b) 声明 = 单位不可判 → 产品标 `unavailable` 或 `REJECT`。
+**BUNIT 相等不蕴含标度相等（正向约束）**：`BUNIT` 只描述量的种类；同一 `ADU/sr` 串下，未施加测光的帧与已施加测光的帧相差逐帧因子 `α`。消费侧判据 = `BUNIT` 相同 **∧** 标度类别相同 **∧** 逐帧因子相同（或已按标度律换算到同一标度）；三者缺一即不得合并、不得加权、不得做阈值判定。`pixel_area_power` canonical 缺省：`signal_sb=-2`、`sb_variance_out=-4`、`sb_ivar_out=+4`、`flux/Q/W_info/psfsw_robust_weight=0`。
 机器强制（canonical 对象层）：`eng/contracts/schemas/unified/provenance.schema.json` 的 `units.allOf/if-then`（`bunit` 含 `/sr` ⇒ `bunit_semantics=written_px_power` + `pixel_semantics=surface_brightness` + `pixel_area_power=-2`；`bunit_semantics=declared_via_provenance` ⇒ 必需 `target_pixel_area`；`pixel_semantics=integrated_flux` ⇒ `pixel_area_power=0`）；`eng/contracts/schemas/unified/signal.schema.json` 的 `pixel_semantics ↔ pixel_area_power` 自洽门。产品族记录层同判据见 §31.6 登记的产品族字段级合同。
 
 ### 31.3 ~~`weight_mode` 三分~~ （已按 §9.73 A44 作废：该概念不存在；权重是阶段二按该天球像素对应帧集合现场算出的派生量）（原 `FZ-MODE-PRODUCTION`/`-BASELINE`/`-DEFERRED`、`FZ-FIELD-WEIGHTMODE` 已随 V6 合同层按 `CHG-2026-09-22-V6-CONTRACT-MERGE` 整体出库；条款去向见 §31.10）

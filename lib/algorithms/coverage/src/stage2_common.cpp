@@ -241,8 +241,20 @@ bool p2_stage2_parse_config(const nlohmann::json& j, P2Stage2Config* cfg, std::s
                     cfg->reject_method = P2_REJECT_PERCENTILE;
                 else if (method == "median_sigma")
                     cfg->reject_method = P2_REJECT_MEDIAN_SIGMA;
-                else if (method == "minmax")
-                    cfg->reject_method = P2_REJECT_MINMAX;
+                // FZ-REJ-NO-MINMAX（docs/contracts/DATA_SEMANTICS.md §22 首注）:
+                // min/max 在合同层不可选。phase_config schema 的
+                // algorithm_rejection_method 枚举已删 minmax，但本键
+                // （integration.rejection.method）不在该 schema 的键集内
+                // （mosaic_config.additionalProperties=false）⇒ schema 枚举**不覆盖**
+                // 这条旁路，必须在此同面 fail-closed 封堵，否则生产可达
+                // reject_minmax_impl。
+                else if (method == "minmax") {
+                    *err = "rejection.method=minmax 不可选 (FZ-REJ-NO-MINMAX): "
+                           "min/max 不得用于生产；AUTO 路由值域恒为 "
+                           "{percentile, winsorized_sigma, linear_fit}。"
+                           "见 docs/contracts/DATA_SEMANTICS.md §22 首注。";
+                    return false;
+                }
                 // FIX-REJ n=2 档: 已知先验 σ 的极值检验（显式方法）
                 else if (method == "extreme_value_clip_prior_sigma")
                     cfg->reject_method = P2_REJECT_EXTREME_VALUE_PRIOR_SIGMA;
