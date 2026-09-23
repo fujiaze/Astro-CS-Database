@@ -121,8 +121,11 @@ struct F1TbTally {
     int n_ge10 = 0, n_ge20 = 0;
     int band_hit = 0;
     bool band_seen[6] = {false, false, false, false, false, false};
+    int pos_band_hit = 0;
+    bool pos_band_seen[6] = {false, false, false, false, false, false};
 
     // C1: 召回场必须含过渡带真星, 且过渡带负例须覆盖 ≥4 个 σ 档
+    //     (σ_psf=3.0 px 档阈 10.0 与域下限重合, 其过渡带结构性为空)
     bool c1_band_present() const { return n_tb >= 8 && band_hit >= 4; }
     // C2: 判据声明在域内的真星召回 ≥99%
     bool c2_in_domain_recall() const {
@@ -134,9 +137,11 @@ struct F1TbTally {
     }
     // C4: §11.4 非退化指标 — snr10 档真星数必须与 snr20 档不同
     bool c4_doc_indicator() const { return n_ge10 != n_ge20; }
+    // C5: 每一档都必须有域内真星, 否则该档的域内召回不被行使
+    bool c5_pos_all_bands() const { return pos_band_hit >= 6; }
     bool ok() const {
         return c1_band_present() && c2_in_domain_recall() && c3_negative_red() &&
-               c4_doc_indicator();
+               c4_doc_indicator() && c5_pos_all_bands();
     }
 };
 
@@ -155,6 +160,11 @@ F1TbTally f1tb_tally(const std::vector<F1TbField>& fields, F1TbVariant v) {
                 if (v == F1TbVariant::PosAbsent) continue;
                 t.n_pos++;
                 if (v != F1TbVariant::PosUndetected) t.n_pos_det += det;
+                for (int b = 0; b < 6; ++b)
+                    if (std::fabs(s.sigma - F1TB_SIGMA_BANDS[b]) < 1e-9 && !t.pos_band_seen[b]) {
+                        t.pos_band_seen[b] = true;
+                        t.pos_band_hit++;
+                    }
             } else if (snr >= F1TB_SNR_FLOOR) {
                 if (v == F1TbVariant::TransitionBandAbsent) continue;
                 t.n_tb++;
@@ -311,12 +321,13 @@ int test_units() {
         for (int k = 0; k < 5; ++k) {
             const F1TbTally& t = *tally[k];
             std::printf("[f1tb] %-16s pos=%d/%d tb=%d/%d below=%d/%d ge10=%d ge20=%d "
-                        "bands=%d | C1=%d C2=%d C3=%d C4=%d => %s\n",
+                        "tbBands=%d posBands=%d | C1=%d C2=%d C3=%d C4=%d C5=%d => %s\n",
                         vname[k], t.n_pos_det, t.n_pos, t.n_tb_det, t.n_tb,
                         t.n_below_det, t.n_below, t.n_ge10, t.n_ge20, t.band_hit,
+                        t.pos_band_hit,
                         (int)t.c1_band_present(), (int)t.c2_in_domain_recall(),
                         (int)t.c3_negative_red(), (int)t.c4_doc_indicator(),
-                        t.ok() ? "GREEN" : "RED");
+                        (int)t.c5_pos_all_bands(), t.ok() ? "GREEN" : "RED");
         }
 
         // 补夹具后的诚实场: 四个子句全绿
@@ -324,13 +335,15 @@ int test_units() {
         P1STAR_CHECK(cs, t_post.c2_in_domain_recall(), "f1tb_in_domain_recall_ge99");
         P1STAR_CHECK(cs, t_post.c3_negative_red(), "f1tb_negative_red");
         P1STAR_CHECK(cs, t_post.c4_doc_indicator(), "f1tb_doc_indicator_snr10_ne_snr20");
+        P1STAR_CHECK(cs, t_post.c5_pos_all_bands(), "f1tb_every_sigma_band_has_in_domain");
 
         // 判别力自检 (能红能绿, AGENTS.md §5): 变体结论必须与诚实场不同
         P1STAR_CHECK(cs, !t_pre.ok(), "f1tb_pregap_field_red");
         P1STAR_CHECK(cs, !t_pos_absent.ok(), "f1tb_pos_absent_red");
         P1STAR_CHECK(cs, !t_pos_undet.ok(), "f1tb_pos_undetected_red");
         P1STAR_CHECK(cs, !t_tb_absent.ok(), "f1tb_tb_absent_red");
-        P1STAR_CHECK(cs, t_post.ok() && !t_pos_absent.ok() && !t_pre.ok(),
+        P1STAR_CHECK(cs, t_post.ok() && !t_pos_absent.ok() && !t_pre.ok() &&
+                         !t_pos_undet.ok() && !t_tb_absent.ok(),
                      "f1tb_verdicts_differ");
 
         sdet_destroy(ha);
