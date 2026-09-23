@@ -23,6 +23,34 @@
 - 浮点累积顺序固定（确定性输出）；reduction 顺序文档化。
 - cache（dense UPM、Gaia 查询缓存）必须线程安全或单线程互斥访问。
 
+### 并行轴分配（PERF-501 冻结口径）
+
+P1 各节点有两个可独立分配的并行轴：**帧级**（同时处理几帧，受内存闸门约束）与
+**帧内 OpenMP**（每帧几条线程，受线程预算约束）。两轴之和必须 ≤ Runtime lease 给出的
+预算（禁止 N×N 超额订阅），实现落点 = `p1_parallel_for(workers, n, thread_budget, body)`
+（`lib/infrastructure/scheduler/src/module_adapters.cpp`）。
+
+```
+in_flight = min(n, frame_workers)                 // frame_workers = min(__workers, p1_memory_cap)
+inner_omp = max(1, thread_budget / in_flight)     // thread_budget = __workers（lease）
+总并行度  = in_flight × inner_omp ≤ thread_budget
+```
+
+**为什么两轴都要动**：`p1_memory_cap`（`cap = floor(MemAvailable × 0.75 / (W×H×B/px))`）
+可能把帧级宽度压到远低于 lease —— 24.6 GB 机器上 4096² 帧在旧标定（358 B/px）下恒得
+`cap = 2`，而 lease = 16。此时若帧内轴仍钉在 1，实际并行宽度只有 2/16，14 个核空转
+（PERF-501 实测：cpu 恒 202%、p50 利用率 12.6%，G-RES-01 判据 ④⑤⑥ 全违约）。
+**帧级被内存压低时，剩余预算必须转给帧内轴。**
+
+**不变式**：帧级宽度未被内存压低时（`frame_workers == thread_budget`）本式退化为
+`inner_omp = 1`，与历史行为逐位相同 ⇒ 该分配只改“预算怎么用”，不改任何节点的数值路径。
+并行宽度与归约顺序无关（各节点归约顺序见下节确定性锚点）。
+
+**观测面**：`ASTROCS_LEASE_TRACE=1` 给租约（`[lease] ... cap=`）、`ASTROCS_NODE_TRACE=1`
+给节点执行窗口、`ASTROCS_P1CAP_TRACE=1` 给本分配快照（`[p1cap] ...`）。三者由
+`eng/tools/monitoring/node_waterfall.py` 合成为节点级瀑布 + 逐节点并行宽度表。
+标定值（`kP1FrameBytesPerPixel` 等）与实测依据见 `docs/architecture/PERFORMANCE_MODEL.md`。
+
 ## 确定性锚点（ARC-004）
 
 - Phase2 UPM 权重归一：`lib/algorithms/coverage/src/upm.cpp:495` `compute_raw` — `raw_w = quality_factor * control_ivar` 冻结后按 control `sums[ck]` 归一（`raw_w[i]/sums[ck]*reliability`），遍历顺序为观测索引 `i` 固定顺序；确定性契约见 `docs/modules/phase2.md`（SCI-UPM-WEIGHT-001）。
