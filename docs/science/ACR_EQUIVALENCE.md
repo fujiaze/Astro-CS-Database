@@ -75,7 +75,7 @@
       n=2 时 CPU 走 UNDERDETERMINED 全接受；CUDA 进 sigma-clip，两样本的 |z| 恒为
       1/1.482602218505602 = 0.6744897501960817，故在缺省 |lower|=4.0/upper=3.0 下数值同解；
       当 upper<0.674490 或 |lower|<0.674490 时两侧**分歧**。
-  (c) 权重模式哨兵: CPU 对 wmode==2 显式 throw (acr_kernels.cpp:141-144)；CUDA launcher 不读该槽，
+  (c) 已删权重记号哨兵槽（该记号已按 §9.73 A44 作废；槽位保留且被钉为常量 2，故复活时失败关闭）: CPU 对 wmode==2 显式 throw (acr_kernels.cpp:141-144)；CUDA launcher 不读该槽，
       无同款 fail-closed ⇒ 若该槽被置 2，只有 CPU 侧拒绝。
 
 失败回退 (不得改变科学语义):
