@@ -53,7 +53,7 @@ floor 0.1，即约定入参 master_flat 已是 median≈1.0 的归一化平场�
 | 文件形态 | 文件自身声明 | 到 ADU 的换算 | 违反时 |
 |---|---|---|---|
 | FITS 整数（`BITPIX=16`, `BZERO=32768`） | `BSCALE/BZERO` ⇒ 物理值 | 无（已 ADU；[0,65535]） | — |
-| XISF `Float32` `bounds="0:1"` | **可表示域**（黑/白点），非物理单位（XISF 1.0 §Image，浮点实型必须带 `bounds`） | 换算因子**不由文件给出**：须声明 `master_units=normalized` + `master_scale`（16 位原生数据取 65535，PCL `NormalizeSamples`/`UInt16 MaxSampleValue`） | 消费边界 DATA 拒绝（rc=2），诊断点名文件 |
+| XISF `Float32` `bounds="0:1"` | **可表示域**（黑/白点），非物理单位（XISF 1.0 §Image，浮点实型必须带 `bounds`） | 换算因子**不由文件给出**：须声明 `master_units=normalized` + `master_scale`。**65535 的适用域**：仅当母版由 **16 位原生整数样本按 `2¹⁶−1` 归一**得到（PixInsight/PCL `NormalizeSamples` 的 `UInt16` 目标域，`MaxSampleValue()=65535`）时成立；12/14 位原生、或按其他 `MaxSampleValue` 归一、或经 BSCALE/BZERO 之外缩放得到的 Float32 母版，其因子**不是** 65535，必须由调用方按其真实原生位深给出。文件本身不含该信息，声明是**唯一**事实源 | 消费边界 DATA 拒绝（rc=2），诊断点名文件 |
 | master_flat（任一形态） | 无 | 归一化是**独立维度**：`median(flat)` 须落在 `master_flat_median_range`（默认 [0.5,2.0]，`eng/packaging/config/defaults.json`），否则须显式声明 `master_flat_normalize="median"`（= §2 `flat_norm`，幂等） | 未声明且不落区间 ⇒ DATA 拒绝（rc=2） |
 | master_dark | `dark_optimization`（bool）声明是否含 bias | — | 提供 dark 而未声明 ⇒ DATA 拒绝（rc=2） |
 
@@ -73,6 +73,10 @@ U4 已声明的换算因子/归一动作与观测统计必须自洽（声明 nor
 ```text
 F1.1  n_frames==1: out = stack[0]（直接拷贝，不做 sigma-clip，NaN 原样保留）
       [master_generator.cpp:84-88]
+      # 适用域: 单帧母版 = 该帧的逐位副本 ⇒ 母版继承该帧全部宇宙线/坏点/瞬态，
+      #   稳健尺度不可估计（无多帧可比）。该母版可用于差分/自校准类用途，
+      #   **不得**作为"多帧中值/均值母版"消费；调用方须在 manifest 显式登记
+      #   母版帧数 = 1，下游据此决定是否可用于标度与噪声台账。
 F1.2  每像素 idx（OpenMP parallel + for，线程本地 vals[n_frames]/work 缓冲
       复用）[master_generator.cpp:91-97]:
         vals[n] = stack[n*npix + idx]
@@ -81,7 +85,16 @@ F1.3  sigma-clip 迭代 iter=0..max_iter-1 [104-133]:
         med  = median(work)                      # nth_element，偶数取双中位均值
         mad  = median({|v−med| | !isnan(v)})     # work 复用（clear 后重填）
         σ    = 1.482602218505602·mad                        # k_sigma [76]
+        # 适用域: 该换算是"高斯核心"下的尺度一致估计（1/Φ⁻¹(3/4)，
+        #   全精度常数 1.482602218505602 实测 = 1/0.6744897501960817，
+        #   float32 舍入相对差 +1.359e-08）。非高斯核心（重尾/双峰/含结构）
+        #   时 mad 仍稳健但 σ 的尺度含义偏移 ⇒ 阈值只能当"稳健倍数"用，
+        #   不得反解为物理噪声 σ。
         σ<=0 → break                             # 无离散度 [120]
+        # 适用域: "先估尺度再 clip"成立的充要条件是离群像素占比 < 50%
+        #   （MAD 的击穿点 = 50%）：占比 < 50% 时 mad 完全不受离群值影响，
+        #   阈值不被抬高；占比 >= 50% 时 med 本身已落在离群群里，本迭代
+        #   既不收敛也无科学含义 ⇒ 必须显式拒绝该像素列，不得输出该值。
         v=NaN 当 dev<−sigma_low·σ 或 dev>sigma_high·σ   # 非对称阈值 [127]
         迭代 rejected==0 → break                 # 收敛 [132]
 F1.4  合并 [136-157]:
@@ -122,15 +135,20 @@ F2.3  步骤3（最终归一）[255-288]:
         out = max(out / final_med, 0.1)
 ```
 
-> **OWNER-04 登记（不反向改 SCI）**：F2.1/F2.3 的"负 median 拒绝"与
-> SCI-CAL-001 §4/§5/§8 对 `median<=0` 的"不归一、保持原样"文本不一致；
-> 按 ANCHOR_CONTRACT §2.3 只登记、不改 SCI 原文，处置选项为改代码，或按
-> `ENGINEERING_SPEC.md` §3 + `SCIENCE_CORRECTNESS.md` 流程订正 SCI 文本。
+> **`median<=0` 的两侧分工（冻结口径，见 §3.3 `normalize_flat` 适用域）**：
+> SCI-CAL-001 §4/§5/§8 的"`median<=0` 不归一、保持原样"约束的是**消费侧**
+> 原语（`normalize_flat` 拿到已存在的平场数组时的就地处置）；F2.1/F2.3 是
+> **生产侧**，其合同是产出一个 `median=1.0` 的母版——此时"保持原样"等于交付
+> 未归一母版，违反 SCI-CAL-001 §5 输入合同。故负 median 返回
+> `AC_ERR_PARAM`（fail-closed）**是**该合同下的正确行为，二者不矛盾。
+> 两侧的可执行实证见 §3.3 `normalize_flat` 条目。
 >
-> **DISP-CAL-010 关联（不改 SCI 文本）**：F2.1/F2.3 帧级
+> **DISP-CAL-010 关联**：F2.1/F2.3 帧级
 > median 与 `generate_master` 逐像素路径同一 NaN 策略（先剔 NaN 再取
-> 中位数）；"全 NaN 帧 / 全 NaN 输出 → fail-closed" 的退化语义在 SCI-CAL-001
-> §4/§8 无显式条文，作为 **OWNER-04 关联**登记，处置选项同上。
+> 中位数）；"全 NaN 帧 / 全 NaN 输出 → fail-closed" 属**生产侧**合同
+> （产不出 `median=1.0` 的母版即不可交付），与 §3.3 的消费侧分工同源。
+> **要求**：该 fail-closed 必须以 `AC_ERR_PARAM` 上抛并由消费边界转成
+> DATA 拒绝（rc=2），不得把退化输入静默产成常数 0.1 的假母版。
 >
 > **消费边界（冻结口径）**：P1 校准节点 `p1_op_calibrate`
 > （`module_adapters.cpp:1154-1179,1230-1240`）在进入 `ac_calibrate_frame`
@@ -185,6 +203,19 @@ F3.4  契约边界:
   med<=0 原样返回）：**当前无任何生产调用方**（ac_api 不转发，模块内无
   调用）。median→1.0 归一由 ALG-CAL-002 在 master 生成期承担；登记为
   未接线辅助符号（DISP-CAL-007）。
+  - **适用域（冻结，消费侧 / 生产侧分工）**：`normalize_flat` 是**消费侧**
+    原语——它拿到的是一个**已存在**的平场数组，`median<=0` 时"保持原样"
+    是唯一不产生 Inf/符号翻转的处置（`calibrator.cpp:91`）。ALG-CAL-002
+    的步骤 1/3 是**生产侧**——它必须**产出**一个 `median=1.0` 的母版；
+    此时"保持原样"意味着交付一个未归一母版，直接违反 SCI-CAL-001 §5
+    的输入合同，故 `master_generator.cpp:234-238,276-280` 的
+    `AC_ERR_PARAM` 是**正确的 fail-closed**，与 SCI 文本不构成矛盾。
+    **可执行实证**（实测：直接调用生产 `ac::normalize_flat` 与 `ac::generate_master_flat`）：
+    同一组 `{-1,-2,-3,-4}` 输入，`ac::normalize_flat` 输出 `{-1,-2,-3,-4}`
+    （原样），`ac::generate_master_flat` 返回 `-1`（`AC_ERR_PARAM`）。
+  - **消费侧总门（冻结）**：`median(flat)<=0` 的平场**不得进入** `calibrate`
+    的除法（`max(flat,0.1)` 会把负响应整片钳成 0.1）。生产口径 = 消费边界
+    `module_adapters.cpp:1992-2002` 的 DATA 拒绝（CLI rc=2）。
 - `compute_mad`（`calibrator.cpp:71-81`）：与 cosmetic 的
   `compute_global_mad` 同义，供 C++ 内部使用，公共头无声明。
 
@@ -198,6 +229,9 @@ F4.1  热像素 [118-134]: med=median(dark 全帧)；mad=median(|dark−med|)；
       冷像素 [139-155]: cold = (bias < med − cold_sigma·σ)
       # 阈值统计为单线程 O(n)；**不过滤 NaN**（NaN 参与 nth_element，
       # 行为不可靠——负面测试覆盖，DISP-CAL-004）
+      # 适用域: 成立前提 = 检测源帧稳健尺度 mad>0。mad=0 时 σ=0、阈值退化为
+      #   ±med，判定变成"是否严格大于/小于中位数"，与坏点无关（实测见
+      #   COSMETIC_ALGORITHMS.md §1 适用域）。此时候选数不是坏点率。
 F4.2  结构过滤 [61-113]: 8 连通 BFS 标记；size(label)>=max_size 的连通域
       掩码清 0（保留 <max_size 结构以排除星点）；背景 label 0 不参与。
 F4.3  修复 [160-225]:
@@ -258,15 +292,21 @@ F6.4  in-place 安全（逐元素无依赖）；每次调用向 stderr 输出两
         [51,62]
 ```
 
-**现状（RULING-DOC-01 订正）**: 已在 CMake 构建清单（根 `CMakeLists.txt`），**有生产调用方**——Phase1 `astrocs.phase1.photometry` 节点在同一步内做「拟合 → 施加」：读 calibrated 面 → `apply_photometry(px,w,h,k_photo,px)`（in-place）→ 写 `photoapplied_*` 面，并把 `apply_entry` / `photometry_applied` / `photscal` / 逐帧 `k_photo` / 施加后产物路径写进 `p1_phot.json`（`DATA-P1-PHOTPROV-001`）。`lib/algorithms/calibration/tests/test_photometry_apply.cpp` 为其共址测试。
+**现状**: 已在 CMake 构建清单（根 `CMakeLists.txt`），**有生产调用方**——Phase1 `astrocs.phase1.photometry` 节点在同一步内做「拟合 → 施加」：读 calibrated 面 → `apply_photometry(px,w,h,k_photo,px)`（in-place）→ 写 `photoapplied_*` 面，并把 `apply_entry` / `photometry_applied` / `photscal` / 逐帧 `k_photo` / 施加后产物路径写进 `p1_phot.json`（`DATA-P1-PHOTPROV-001`）。`lib/algorithms/calibration/tests/test_photometry_apply.cpp` 为其共址测试。
 k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-006）。
-**可核对性**：独立读者可用「calibrated 面 × k」逐像素复算核对施加结果（判据与实测见 `run/RULING-DOC-01/REPORT.md` 裁决 B；**判据必须尺度相关**，绝对容差在真实 k 量级（~1e-17）下会把"乘两次"判绿）。
+**可核对性**：独立读者可用「calibrated 面 × k」逐像素复算核对施加结果；**该复算判据必须尺度相关**——取无量纲相对差，绝对容差在真实 `k_photo` 量级（~1e-17）下会把"乘两次"判绿。
 
 **k_photo 语义**：`k_photo` 的**绝对值无物理意义**
 （吸收增益/口径/曝光等未知量；设计前提 = FITS 头拿不到这些量）；**禁止**用物理闭合式反推仪器参数，
-**禁止**设绝对窗口；验收只用**一个尺度无关判据**——**测光一致性**（星等与 Gaia 残差散度/MAD 小）。
-**「帧间一致性」（各帧落同一测光体系）是语义目标与报告字段，不是门禁判据**。
-见 `docs/science/PHOTOMETRY.md` §1。
+**禁止**设绝对窗口。**两个判据面必须分开（冻结）**：
+① **科学验收面**（判"测光体系对不对"）：只用一个**尺度无关**判据——**测光一致性**
+（星等与 Gaia 残差散度/MAD 小）；任何含 `k_photo` 绝对值的窗口在此面无判别力，
+因为 `k_photo` 与真值之间只差一个整体常数；
+② **可核对性面**（判"该标量是否被正确施加一次"）：必须用**尺度相关**判据——
+以 `calibrated_*` 面 × `k_photo` 逐像素复算并与 `photoapplied_*` 面比对，
+容差为无量纲相对差；绝对容差在真实 `k_photo` 量级（~1e-17）下会把"乘两次"判绿，
+**不得**用于此面。**「帧间一致性」（各帧落同一测光体系）是语义目标与报告字段，不是门禁判据**。
+两面的判据口径见 `docs/science/PHOTOMETRY.md` §1。
 
 ## 4 实现事实（源码核对）
 
@@ -277,13 +317,13 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 | 错误码 | AC_OK=0、AC_ERR_PARAM=−1、AC_ERR_MEMORY=−2、AC_ERR_INTERNAL=−3；**−2/−3 从未返回**（见 DISP-CAL-001） | astro_calibration.h:21-24 |
 | FP64 ABI | 仅 `ac_calibrate_frame_f64` 真双精度（calibrate_d）；`ac_generate_master_*_f64`、`ac_correct_frame_f64` 将 double 输入 `static_cast<float>` 走 f32 实现后转回 double（统计/mask 路径降级，头文件 105-115 声明） | ac_api.cpp:147-263 |
 | 输出 dtype/shape | f32 ABI: float32 `[h][w]` 行主序（idx=y·w+x，0-based）；f64 ABI: double 同 shape；stack: `[n_frames][h][w]` 连续 | 各 C API 注释 |
-| 单位 | 全部 ADU；flat_norm/σ 参数/K 无量纲；曝光秒仅在调用方算 K 时出现；坐标 0-based 像素、无 WCS | SCI-CAL-001 §3/§3a |
+| 单位 | `cal`/`raw`/`bias`/`dark` 为 **ADU**（**前置条件**：入参已处于 §2 标度声明表所定义的 ADU 域，即 `物理值 = BSCALE·样本 + BZERO`；本层单位盲，标度由消费边界校验）；`flat_norm`/`σ` 参数/`K` 无量纲；曝光秒仅在调用方算 K 时出现；坐标 0-based 像素、无 WCS | SCI-CAL-001 §3/§3a；本文 §2 标度声明表 |
 | 掩码极性 | bad/hot/cold 掩码 1=坏点（char/uint8） | cosmetic_corrector.cpp:130,151 |
 | NaN 语义 | generate_master 统计跳过 NaN、全 NaN→输出 NaN；**generate_master_flat 帧级 median 同样先剔 NaN（DISP-CAL-010），全 NaN 帧/全 NaN 输出 fail-closed**；calibrate/cosmetic 阈值统计**不**过滤 NaN（NaN 算术直传/阈值不可靠） | master_generator.cpp:106-118,214-223,258-267；cosmetic_corrector.cpp:46-54 |
 | 日志 I/O | generate_master/flat 每次调用 2 行 stderr（ac_log）；apply_photometry 2 行 stderr；无文件/网络 I/O | master_generator.cpp:38-45 |
 | 内存 | 输出缓冲调用方分配；模块内 std::vector RAII。峰值额外内存: generate_master O(n_frames/线程)；generate_master_flat O(n_frames·npix·4B)（norm 主缓冲）；calibrate O(1)；cosmetic O(npix)（labels+masks+统计副本）；f64 转接层 O(n_pix) 全帧复制 | 各源文件 |
 | 构建 | CMake 目标 `astrocs_calibration`（STATIC，4 个 cpp，OpenMP 可选）；非生产 MinGW 通道: build.ps1（astro_calibration.dll）、Makefile（cpp/ 版 cosmetic_corrector.dll，cc_* 4 导出，window 奇数 3..15） | CMakeLists.txt:503-523；lib/algorithms/calibration/Makefile |
-| 生产调用方 | `lib/phase1_session/p1_session.cpp:243` 仅调 `ac_calibrate_frame`（master 由配置传入，帧粒度取消在 session 层）；master 生成与 cosmetic 的 ac_* 入口当前无生产调用方 | p1_session.cpp:200-270 |
+| 生产调用方 | **calibrate**：`lib/phase1_session/p1_session.cpp:372` 与 `lib/infrastructure/scheduler/src/module_adapters.cpp:2220`（`p1_op_calibrate`，CLI 路径）；**cosmetic**：`p1_session.cpp:462-465` 与 `module_adapters.cpp:2355`（`p1_op_cosmetic`），两处均传 `nullptr, nullptr` 检测源（见 COSMETIC_ALGORITHMS.md §4）；**master 生成**（`ac_generate_master_*`）当前无生产调用方——唯一入口 `lib/algorithms/calibration/src/module_entry.cpp:970-998` 属 `astrocs_p1_calibration` DLL 适配层，该 entrypoint 零调用（`lib/algorithms/calibration/README.md:22`） | p1_session.cpp:372,462-465；module_adapters.cpp:2220,2355；module_entry.cpp:970-998 |
 
 ### 4.1 非生产双实现：`cpp/cosmetic_corrector.cpp`（cc_* 通道）
 
@@ -291,9 +331,12 @@ k_photo 的来源（Gaia 光谱积分定标）不在本模块（登记 DISP-CAL-
 独立 DLL（Python ctypes 通道），支持参数化窗口 `cc_correct_median(data,
 bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15 栈
 缓冲 256 上限）、`cc_detect_hot/cc_detect_cold`（double sigma）返回计数、
-`cc_last_error()`。不在 CMake 构建内，属待迁移符号（P1-CAL-IMPL 决定
-去留）；`docs/modules/calibration.md` 中 "window 偶数/<3/>15 → −1" 即指此
-通道，非 ac_correct_frame。
+`cc_last_error()`。不在任何 CMake 目标内（唯一构建路径是同目录 Windows
+MinGW `Makefile`，仓内无消费者）。**已退役**：逐条分歧（`mad=0` 回退总体
+标准差 vs 生产源的 `σ=0`、窗口 clamp vs 镜像反射、参数化窗口 vs 固定
+5×5）见 COSMETIC_ALGORITHMS.md §8，禁止作为现状依据或 oracle。
+`docs/modules/calibration.md` 中 "window 偶数/<3/>15 → −1" 即指此通道，
+非 ac_correct_frame。
 
 ## 5 复杂度
 
@@ -336,17 +379,17 @@ bad_mask,H,W,window)`（window 奇数 3..15，偶数/<3/>15 返回 −1，15×15
 |---|---|---|
 | 空指针 / n_frames<=0 / w<=0 / h<=0（C API 入口） | 返回 AC_ERR_PARAM，不写 out | ac_api.cpp:60-61,72-73,86-87,100-101,115-116 及 f64 对应 |
 | ac:: 层参数无效（void 函数） | 静默返回，out 不写，actual_k=k_init | calibrator.cpp:116-119；cosmetic_corrector.cpp:236 |
-| median(flat)<=0（normalize_flat） | 不归一保持原样（SCI §4/§5/§8 文本；与 master_generator 的"拒绝"分歧登记 OWNER-04） | calibrator.cpp:86 |
+| median(flat)<=0（normalize_flat，消费侧原语） | 不归一保持原样（SCI §4/§5/§8 文本；与生产侧的 fail-closed 属**不同操作**，见 §3.3 分工） | calibrator.cpp:91 |
 | frame_med/final_med == 0（master flat，全零帧） | 置 1.0（不缩放） | master_generator.cpp:231,273 |
-| flat 帧全 NaN / 全 NaN 输出（master flat） | 剔 NaN 后无有效中位数 → 返回 AC_ERR_PARAM，out 不写（DISP-CAL-010 fail-closed；OWNER-04 关联：全 NaN 帧退化语义 SCI-CAL-001 §4/§8 无显式条文） | master_generator.cpp:219-221,263-265 |
+| flat 帧全 NaN / 全 NaN 输出（master flat） | 剔 NaN 后无有效中位数 → 返回 AC_ERR_PARAM，out 不写（DISP-CAL-010 fail-closed；生产侧合同：产不出 median=1.0 的母版即不可交付） | master_generator.cpp:219-221,263-265 |
 | frame_med/final_med < 0（master flat） | 返回 AC_ERR_PARAM，不写 out | master_generator.cpp:234-238,276-280 |
 | flat 帧含部分 NaN（master flat 步骤1/3 median） | 与 generate_master 逐像素路径同一策略：先剔 NaN 再取中位数（DISP-CAL-010） | master_generator.cpp:214-223,258-267,49-60 |
-| master flat 全零 / median<=0 / 非有限（p1_op_calibrate 消费边界） | DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（fail-closed） | module_adapters.cpp:1154-1179,1230-1240 |
+| master flat 全零 / median<=0 / 非有限（p1_op_calibrate 消费边界） | DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（fail-closed） | module_adapters.cpp:1992-2002（判定 `p1_master_flat_valid` 调用 :1996、拒绝 :1998-2000） |
 | flat==NULL（calibrate） | 跳过除法，退化减法 | calibrator.cpp:129,139 |
 | dark==NULL（calibrate 标准分支） | out=(light−bias)/flat（bias 在位时） | calibrator.cpp:137-138 |
 | dark_opt=1 但 bias/dark 缺一 | 回退标准式且**沿用调用方给的 k**（不再强制 k=1.0） | calibrator.cpp:124,133-142 |
 | bias==NULL 而 dark 在位（标准式） | 本底不去除：out=(light−K·dark)/flat；调用方预检/manifest 必须显式登记（DISP-CAL-012） | calibrator.cpp:136-140；module_adapters.cpp（p1_op_calibrate） |
-| dark_opt=1 且 bias+dark 在位（p1_op_calibrate K 分支） | K 由 light/dark FITS EXPTIME 推导 = t_light/t_dark；EXPTIME 缺失/非正或显式 dark_scale_factor 与 EXPTIME 比不一致 → DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（fail-closed） | module_adapters.cpp:1243-1305 |
+| dark_opt=1 且 bias+dark 在位（p1_op_calibrate K 分支） | K 由 light/dark FITS EXPTIME 推导 = t_light/t_dark；EXPTIME 缺失/非正或显式 dark_scale_factor 与 EXPTIME 比不一致 → DATA 拒绝（CLI rc=2），不进入 calibrate、不写 calibrated_*（fail-closed） | module_adapters.cpp:2127（`dark_optimization` 读取）、:2129-2147（dark EXPTIME）、:2198-2216（light EXPTIME 与 K 一致性，容差在 :2211） |
 | σ=0（generate_master） | 提前终止不剔除 | master_generator.cpp:120 |
 | 单帧 master | 直接拷贝不做 clip | master_generator.cpp:84-88 |
 | 全 NaN 像素列 | median 路径 NaN；mean 路径 cnt=0 → NaN | master_generator.cpp:141,155 |
@@ -434,15 +477,22 @@ sigma<=0 禁用、NaN 行为按 §7 声明）。
 （含除法路径）float32 rtol=1e-6、atol=1e-7（SCI §11/§15 预冻结，来源:
 float32 相对精度 ~1e-7 × floor 0.1 放大 ≤10×）；IDW/median 修复对照
 oracle 同容差；actual_k 精确相等。
+- **量纲逐项**：`rtol` 无量纲；`atol` 与被比较量同标度（本层 = **ADU**，
+  即 `cal`/母版的标度；`actual_k` 无量纲且要求**精确相等**，不适用本容差）；
+  `max_abs` 与 `bitwise` 是无量纲判据（逐位/零）。
+- **适用域（冻结）**：本容差组界定的是**同一输入下的算术自洽性**（实现 vs
+  NumPy oracle），**不**界定输入标度是否正确。输入标度错（母版 [0,1] 归一化
+  被当 ADU 消费、平场未归一）会使产物整体相差 4.845×/16.161× 量级，
+  但实现与"同样用错标度的 oracle"仍可逐位一致 ⇒ **本容差组对输入标度类
+  缺陷不敏感，不得作为标度正确的证据**；标度由 §2 标度声明表 + 消费边界
+  门判定（DISP-CAL-013）。
 
 ## 10 现状缺陷清单（如实登记，P1-CAL-IMPL/INT 处理；不改代码）
 
 - DISP-CAL-001（**部分关闭**）`generate_master_flat` 逐帧/最终归一对
   **负 median** 取**拒绝**语义（返回 AC_ERR_PARAM，不写 out；
   `master_generator.cpp:234-238,276-280`），不直除翻转符号。**残留**：
-  与 `normalize_flat`（median<=0 完全不归一，`calibrator.cpp:91`）语义
-  不一致，且与 SCI-CAL-001 §4/§5/§8 的"保持原样"文本分歧仍为开放项 →
-  **OWNER-04**（不反向改 SCI）。`ac_generate_master_*` 系列
+  `ac_generate_master_*` 系列
   无 extern "C" 异常屏障仍未处理：std::bad_alloc 可穿越 C ABI
   （AC_ERR_MEMORY/AC_ERR_INTERNAL 为死值，从未返回）。
 - DISP-CAL-010（**已按现行语义落地**）`generate_master_flat` 步骤1 的
@@ -484,6 +534,15 @@ oracle 同容差；actual_k 精确相等。
   （16,777,216 px 全等，max|Δ|=0）即偏离**；只提供 bias（无 dark/flat）时产物与
   完全不标定必须不同（**逐位相同即 bias 零影响，属偏离**）；缺 bias 的 dark+flat
   产物 100% 像素不同（max 300192、mean 5863.8）⇒ dark/flat 确实参与。
+  **判据的适用域与必须配套的量级判据（冻结）**："不同/逐位不同"只排除
+  "输入被静默忽略"，**对减错量级不敏感**——少减 1001.87 ADU 的 bias
+  （即按 [0,1] 归一化值 0.0153 相减）产物同样"不同"而判绿。故本判据**必须**
+  与逐像素量级判据同组执行：`median(cal_obs)` 对逐像素 oracle
+  `median[(raw − bias − K·(dark − bias))/flat_norm]` 的**无量纲相对差** ≤ 该判据
+  的数值容差（当前生产门脚本按每例 1e-2..3e-2 相对差判定，见
+  `eng/tools/quality/check_master_unit_guard.py:287,297,351,391,405`；
+  该数值**未**登记在 `eng/packaging/config/defaults.json`，见 §2 标度声明表
+  的量纲说明）。**"必须不同"单独使用不具备证据资格**。
   `dark_opt=1` 分支有/无 bias 并非逐位相同（2,141,721 px 差，max|Δ|=0.03125），
   差异来自 FP32 舍入而非代数相消。**影响面**：默认分支（`dark_optimization` 缺省）
   消费"已减 bias 暗电流母版"的标定产物；含 bias 的暗场母版必须用
@@ -496,7 +555,11 @@ oracle 同容差；actual_k 精确相等。
   `aio_xisf.cpp` 对 `sampleFormat="Float32"` 只做字节布局转换（`convert_xisf_pixels`），
   **不解释 `Image` 元素的 `bounds`（可表示域）**，也不做任何单位换算；`p1_op_calibrate`
   把读到的 float 直接当 ADU 传给 `ac_calibrate_frame`——该路径由 §2 标度声明表与
-  U1–U4 四条机器规则 fail-closed 拦截。
+  U1–U4 四条机器规则 fail-closed 拦截（规则本体
+  `lib/include/astrocs/core/master_unit_guard.h:93-173`；调用与诊断
+  `lib/infrastructure/scheduler/src/module_adapters.cpp:2003-2125`；
+  声明换算 `:2033,2037,2041`；K 推导 `:2129-2147,2198-2216`；
+  `ac_calibrate_frame` 调用 `:2220`）。
   **独立实测（自写 XISF/FITS 读取器，不导入 AstroCS）**：T2 母版
   `sampleFormat=Float32 bounds="0:1"`——`masterBias` median
   0.015288（×65535 = **1001.87 ADU**）、`masterDark600` median 0.015391（**1008.63 ADU**）、
@@ -558,8 +621,8 @@ oracle 同容差；actual_k 精确相等。
 
 - 母版约定与 ISR 顺序：ccdproc（BSD-3-Clause）reduction_toolbox/subtract_dark；LSST ip_isr（GPL-3.0）isrFunctions.py。
 - 探测器噪声/gain：Janesick 2001, SPIE PM83, Ch.2；Newberry 1991, PASP 103, 122；Howell 2006, Handbook of CCD Astronomy 2nd ed., CUP, Ch.4。
-- MAD→σ 常数 1.482602218505602：标准正态分位恒等式；Rousseeuw & Croux 1993, JASA 88, 1273（DOI 10.1080/01621459.1993.10476408）。
-- FITS BSCALE/BZERO：FITS Standard 3.0 §4.2.1/§4.3；CFITSIO 作独立读取器 Oracle。
+- MAD→σ 常数 1.482602218505602：标准正态分位恒等式（实测 `1/0.6744897501960817` 逐位相同）；Rousseeuw & Croux 1993, JASA **88(424), 1273–1283**（DOI 10.1080/01621459.1993.10476408）——卷页成立，但该文研究 `S_n`/`Q_n` 并把 `1.4826·MAD` 当既有基线，**不**是本仓"有限样本校正"的来源；本仓用渐近常数、不做校正（要做则引 Akinshin 2022 arXiv:2207.12005 或 Park-Kim-Wang 2020 DOI 10.1080/03610918.2019.1699114）。
+- FITS BSCALE/BZERO：FITS Standard 4.0 §4.4.2.5（Eq. 3；`BZERO=32768` 见同节 BLANK 段 + Table 11，属存储约定）；CFITSIO 作独立读取器 Oracle。
 - XISF bounds 与 65535：XISF 1.0 Spec（PixInsight；PCL 自定义 source-available 许可）。
 - IRAF ccdproc/zerocombine（IRAF/NOAO 许可，非 OSI）：经典归约顺序对照。
 
