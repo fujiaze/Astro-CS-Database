@@ -13,8 +13,8 @@
 > §14 = 以独立证据判定、不预设谁为准。订正原则见 `ENGINEERING_SPEC.md` §3。
 > 本文档为 WCS/投影域**实现级合同**：逐符号源码行号锚定 + 冻结公式 +
 > 错误语义 + 并发/确定性合同 + TEST 设计冻结 + 实测偏差登记。
-> 生产源: lib/algorithms/projection/p3_wcs.h（66 行，唯一权威签名头）+
-> lib/algorithms/projection/p3_wcs.cpp（232 行），已由 lib/phase3_session/ 迁入本目录
+> 生产源: lib/algorithms/projection/p3_wcs.h（166 行，唯一权威签名头）+
+> lib/algorithms/projection/p3_wcs.cpp（593 行），已由 lib/phase3_session/ 迁入本目录
 > （内容逐字节等价，行数按新址复测）。
 
 ## 1 目的与非目标
@@ -311,7 +311,7 @@ eng/tests/backend/test_p1002_gaps.py 承载（独立解析解，非生产代码
 ## 12 TEST-P3-WCS-DESIGN-001 设计冻结（登记面 VERIFIED）
 
 > 可执行测试现状三处如实登记（引用不冒认，验收级升级归
-> P3-PROJ-TEST）: eng/tests/unit/p3_wcs_test.cpp（90 行）、
+> P3-PROJ-TEST）: eng/tests/unit/p3_wcs_test.cpp（474 行）、
 > eng/tests/backend/test_p1002_gaps.py（独立解析解回归）、
 > eng/tests/backend/p3_wcs_main.cpp（探针）。
 

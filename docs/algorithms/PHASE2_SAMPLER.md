@@ -12,8 +12,8 @@
 > §处理链第 5 步"控制采样"（链位置）。
 > 关联 ALG: ALG-UPM-CONTROL-IVAR-001（本文件 §5.4 冻结承接，见 §12）；
 > ALG-UPM-001（UPM 拟合，下游消费方）。
-> 模块: lib/algorithms/coverage/src/sampler.cpp（1156 行）+ 唯一权威签名头
-> lib/algorithms/coverage/include/astro/phase2/sampler.h（136 行，实测）；
+> 模块: lib/algorithms/coverage/src/sampler.cpp（1536 行）+ 唯一权威签名头
+> lib/algorithms/coverage/include/astro/phase2/sampler.h（288 行，实测）；
 > DATA: DATA-P2-SMP（DATA_SEMANTICS §23）；API: API-P2-SMP-001
 > （PUBLIC_API.md）；MOD: astrocs.p2.sampling（合同三件套
 > lib/algorithms/sampling/，迁移目标 astrocs_p2_sampling.dll 为矩阵合同值
@@ -60,34 +60,34 @@ y_ik/σ_ik/snr_ik/support_ik/quality_ik，产出 UPM 联合加性校准的
 control_ivar=1/ADU²、ra_deg/dec_deg=度（J2000）、snr=无量纲；
 连续数学定义见 §5，dtype/shape 唯一权威=DATA_SEMANTICS §23。
 
-## 3 逐符号锚（sampler.cpp 1156 行 / sampler.h 136 行，实测）
+## 3 逐符号锚（sampler.cpp 1536 行 / sampler.h 288 行，实测）
 
 **导出符号（sampler.h 声明 / sampler.cpp 实现）**：
 
 | 符号 | 声明（sampler.h） | 实现（sampler.cpp） | 语义 |
 |---|---|---|---|
-| p2_sampler_default_config | :60 | :294-312 | 默认配置单一来源（15 字段） |
-| p2_frame_id | :93 | :314-438 | truncated-64 canonical SHA-256 帧身份 |
-| p2_stats_median | :97 | :440-447 | 共享 median（NaN 过滤） |
-| p2_stats_mad | :98-99 | :449-461 | 共享 MAD×1.482602218505602（out_median 回传） |
-| p2_sample_controls | :103-114 | :1121-1136 | 采样入口（frame_id 内部计算） |
-| p2_sample_controls_cached | :120-132 | :1138-1154 | 采样入口（外部透传 frame_id 缓存） |
+| p2_sampler_default_config | :66 | :294-312 | 默认配置单一来源（15 字段） |
+| p2_frame_id | :99 | :314-438 | truncated-64 canonical SHA-256 帧身份 |
+| p2_stats_median | :103 | :450-457 | 共享 median（NaN 过滤） |
+| p2_stats_mad | :104-105 | :449-461 | 共享 MAD×1.482602218505602（out_median 回传） |
+| p2_sample_controls | :103-114 | :1236-1251 | 采样入口（frame_id 内部计算） |
+| p2_sample_controls_cached | :156-168 | :1255-1271 | 采样入口（外部透传 frame_id 缓存） |
 
 **内部符号（匿名/静态）**：
 
 | 符号 | 锚（sampler.cpp） | 语义 |
 |---|---|---|
 | kTileWidth/kTileShift | :75-76 | 512×512 tile，shift=log2(512)=9 |
-| kSnrCatalogMax | :77 | SNR catalogue 上限 65536 |
-| kControlCorrDefault | :82 | k_corr 冻结保守默认 1.4 |
-| kPiHalf | :83 | π/2 常数（UPMW-004 中位数方差） |
+| kSnrCatalogMax | :78 | SNR catalogue 上限 65536 |
+| kControlCorrDefault | :83 | k_corr 冻结保守默认 1.4 |
+| kPiHalf | :84 | π/2 常数（UPMW-004 中位数方差） |
 | kcorr_lookup | :88-109 | pixfrac×scale 双线性标定表 |
 | frame_drizzle_provenance | :112-137 | 帧 properties 解析 pixfrac/scale |
 | read_tile_pair | :163-180 | signal+support tile 成对读（g_aio_mu :161 串行化） |
 | median_of | :191-204 | nth_element median（偶数取 [begin,mid) 最大值均值；P0-01 修复） |
 | SnrIndex::build/query/any_above | :206-288 | dec 排序索引 + RA 保守窗口 + 精确角距 |
 | p2_sample_controls_impl | :463-1119 | 三阶段采样管线本体 |
-| CellStat | :599-612 | 每 (cell,frame) 候选统计载体 |
+| CellStat | :634-647 | 每 (cell,frame) 候选统计载体 |
 
 **配置面（P2SamplerConfig，sampler.h:33-62，声明注释 ：31）**：15 字段默认值见
 §3 表 p2_sampler_default_config 实现行；`control_grid_per_tile=8`/

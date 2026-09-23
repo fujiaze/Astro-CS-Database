@@ -1004,6 +1004,35 @@
       ]
     },
     {
+      "id": "ALG-LINE-ANCHORS",
+      "profiles": [
+        "fast",
+        "linux-main",
+        "windows-main"
+      ],
+      "platform": "any",
+      "command": [
+        "python3",
+        "eng/tools/doccheck/check_alg_line_anchors.py",
+        "--json-out",
+        "run/ci/alg-line-anchors/alg_line_anchors.json"
+      ],
+      "timeout_seconds": 180,
+      "heavy": false,
+      "mutates_workspace": false,
+      "outputs": [
+        "run/ci/alg-line-anchors/alg_line_anchors.json"
+      ],
+      "waivable": false,
+      "changed_paths": [
+        "docs/algorithms/**",
+        "lib/**",
+        "eng/tests/**",
+        "CMakeLists.txt"
+      ],
+      "requires_monitor": false
+    },
+    {
       "id": "CHK-CONTRACT-TEST",
       "profiles": [
         "fast",
@@ -2619,6 +2648,35 @@
             "eng/tests/**"
           ],
           "requires_monitor": false
+        },
+        {
+          "id": "TEST-INDEX-LIVE",
+          "profiles": [
+            "integration",
+            "linux-main"
+          ],
+          "platform": "any",
+          "command": [
+            "python3",
+            "eng/tools/doccheck/check_test_index_live.py",
+            "--exclude-suites",
+            "arch",
+            "--json-out",
+            "run/ci/test-index-live/test_index_live.json"
+          ],
+          "timeout_seconds": 900,
+          "heavy": true,
+          "mutates_workspace": false,
+          "outputs": [
+            "run/ci/test-index-live/test_index_live.json"
+          ],
+          "waivable": false,
+          "changed_paths": [
+            "eng/tests/test_index.csv",
+            "eng/tests/**",
+            "eng/tools/doccheck/check_test_index_live.py"
+          ],
+          "requires_monitor": true
         },
         {
           "id": "TESTKIT-LIST",

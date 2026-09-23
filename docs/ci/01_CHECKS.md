@@ -30,6 +30,7 @@
 | CHK-DANGLING | 文档一致性 | 删除/重命名无悬空引用 | ci 检查器 | P1 |
 | DOC-INDEX | 文档一致性 | 双向层级索引闭合（索引条目路径存在 / 最高设计与根文档 docs/ 指针可达 / 下级文档登记与「上游」抬头 100% / 文档与代码注释 docs/ 路径；悬空即缺陷、fail-closed；跨域未修项台账 `eng/tools/doccheck/dangling_ledger.json` 只减不增） | `python3 eng/tools/doccheck/check_doc_index.py --strict` | P0 |
 | DOC-INDEX-SELFTEST | 文档一致性 | 上项的可执行正/负例面（19 例：悬空条目 / 悬空根文档指针 / 缺抬头 / 漏登记 / 代码注释悬空 / 非 ASCII 旧控制包残留 / 台账缺失各自判红） | `python3 eng/tools/doccheck/check_doc_index.py --self-test` | P0 |
+| ALG-LINE-ANCHORS | 文档一致性 | ALG 文档行数锚 + 逐符号表行号范围 vs 源文件实测（L0 fail-closed / L1 行数 / L2 目标解析 / L3 符号漂移；11 组自测） | `python3 eng/tools/doccheck/check_alg_line_anchors.py` | P0 |
 | CHK-DOC-HYGIENE | 文档一致性 | 正式文档过程痕迹门 + 已知限制台账 ID 可解析门：D1 不得出现负责人裁决逐字引述 / 「订正·修订 + 日期」流水 / 工作项编号（豁免面 = 研究包与归档件；历史遗留逐条登记 `PREEXISTING`，只减不增）；D2 `docs/KNOWN_LIMITATIONS.md` 条目号与 `artifacts/evidence/known-limitations-ledger/LEDGER.md` §1 编号表双向一致、仓库内「条目 N / §E M-x / 原发现编号 X」引用全部可解析；fail-closed | `python3 eng/tools/doccheck/check_doc_hygiene.py` | P0 |
 | CHK-DOC-HYGIENE-SELFTEST | 文档一致性 | 上项的可执行正/负例面（1 正例 + 10 负例：逐字裁决引述 / 订正流水 / 工作项编号 / SCI-5xx 编号 / 条目引用悬空 / 台账编号不一致 / 台账缺失 / 条目号提取为空 / 发现编号未解析 / 引用扫描面为空各自判红） | `python3 eng/tools/doccheck/check_doc_hygiene.py --self-test` | P0 |
 | CHK-STALE-DOC | 文档一致性 | 活动文档无陈旧版本号/历史状态冒充 | ci 检查器 | P1 |

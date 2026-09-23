@@ -55,8 +55,28 @@ handler→内部会话 API 追溯(phase 为内部指代): normalize→API-003(�
 > `astrocs.log.event.v1`）是**结构化日志**合同，**显式声明它不是运行事件流**；其事件键名 `event`
 > 与本流的 `kind` **不得混用**，两份流各用**不同工件名**、不得互相冒充。
 
-- 每行必含: `schema_version,event_id,run_id,timestamp_utc,sequence,kind,severity,phase,stage,message`;`sequence` 从 0 单调递增。
-- kind 扩展字段: progress{completed,total,unit,rate,eta_seconds} / resource{cpu_cores_used,rss_bytes,io_read_bytes,io_write_bytes,threads} / artifact{role,path,sha256,size_bytes,integrity_sha256,canonical_sha256,canonical_hash_spec,canonical_format}（**DET-001**：sha256=整文件字节摘要(完整性)，canonical_sha256=规范产品哈希(像素数据+科学元数据，排除易变卡/键；口径 spec=astrocs.canonical-product-hash/v1，见 eng/tools/canonical_product_hash.py --spec)；可复现性判据用 canonical_sha256，不得用 sha256） / backend{kernel,backend_id,isa,workers,block_size,reason} / final{exit_code,status,run_manifest,summary}。
+- 每行必含: `schema_version,event_id,run_id,timestamp_utc,sequence,kind,severity,phase,stage,message`（正本 `protocol.h::kEventFieldsV1`）;`sequence` 从 0 单调递增。
+- **逐 kind 冻结扩展字段集 = 正本唯一**：`lib/infrastructure/cli/protocol.h::missing_required_extension_v1`
+  的 `kExt` 表（发送侧 `ValidateEventV1` 按表逐字段硬闸，缺字段即拒发）。**本节不复制该清单**——
+  复制即形成第二份定义；字段名 / 枚举 / 顺序键一律回正本读。现行 10 类 kind 的**语义**：
+  - `progress`：阶段内进度（完成量/总量/单位/速率/预计剩余）；
+  - `resource`：进程资源采样（CPU 核数 / RSS / 读写字节日 / 线程数）；
+  - `artifact`：落盘产物登记（角色/路径/整文件字节摘要/字节数）；
+  - `backend`：实际后端选择（kernel / backend_id / isa / workers / block_size / reason）；
+  - `final`：运行收尾（`exit_code` 必须 ∈ §2 冻结退出码域；status / run_manifest / summary）；
+  - `stage_start` / `stage_end`：阶段起止（无扩展字段）；
+  - `graph`：运行图落盘（path）；
+  - `resource_gate`：资源门判定记录（诊断 / 强制口径 / 工作量下界）；
+  - `v6_mode_route`：V6 路由登记（route_kind / token / surface / 来源 / 预算归属）。
+  **kind 集合与逐 kind 字段集由机器门 `eng/ci/check_event_field_sets.py`（EVT-FIELD-SETS）守
+  五面一致**（正本 kExt / schema `allOf[].then.required` / schema `x-astrocs-event-kind-registry` /
+  读侧 CLI-004 / 读侧 FIX208）；本节只给指针与语义，**不重复该判据**。
+- **`artifact` 的 DET-001 附加字段不属冻结必含集**：`integrity_sha256` / `canonical_sha256` /
+  `canonical_hash_spec` / `canonical_format` 是实现侧附加字段（正本 `kExt` 的 artifact 必含集
+  = role/path/sha256/size_bytes 四项），**不得**被当作必含集校验。DET-001 判据：
+  sha256=整文件字节摘要(完整性)，canonical_sha256=规范产品哈希(像素数据+科学元数据，排除易变卡/键；
+  口径 spec=astrocs.canonical-product-hash/v1，见 eng/tools/canonical_product_hash.py --spec)；
+  可复现性判据用 canonical_sha256，不得用 sha256。
 - 重计算 stage 必发 `stage_start/stage_end`+实际 backend 事件;GUI/未来客户端只消费本协议(禁链接科学库绕过 CLI)。
 - schema: `eng/contracts/schemas/jsonl_event_v1.schema.json`(CLI-002 golden 用;**派生件**，不得自成第二份定义)。
 

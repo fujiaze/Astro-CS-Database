@@ -19,7 +19,7 @@
 > **尚未建立**，MISSING 如实登记；现状构建=静态库
 > astrocs_phase2_session（根 CMakeLists.txt:454-458），编入 astrocs
 > 可执行（:501-506）。权威源: lib/phase2_session/p2_session.h（39 行）
-> + p2_session.cpp（298 行，实测；本文件行号禁止手抄他版）。
+> + p2_session.cpp（318 行，实测；本文件行号禁止手抄他版）。
 
 ## 1 目的与非目标
 
@@ -236,13 +236,13 @@ pixel / p2_reject_* / p2_upm_apply 族 / hips writer 任何符号——7 节点
 
 | ACS_ERR_* | 触发（精确） | 锚（p2_session.cpp） |
 |---|---|---|
-| ACS_ERR_ABI_MISMATCH | host null / struct_size≠sizeof(astrocs_host_services_v1) / abi_version≠V1 | :57-59 |
-| ACS_ERR_PARAM | out/hull、span 空、坏 JSON、非 object、缺必需键、类型错（validate 与 run 前置） | :60/:71-96/:102/:109/:252/:270 |
-| ACS_ERR_NOMEM | SessionState new 失败；inspect host alloc 失败 | :61-62/:261 |
-| ACS_ERR_CANCELLED | 四段边界取消 | :120/:152/:181/:226 |
-| ACS_ERR_STATE | 域 rc=2（合同 §4 build fail，如 production 显式缺 ivar） | map_rc :48 |
-| ACS_ERR_IO | p2_upm_save 失败（error_kind="output"） | :230-235 |
-| ACS_ERR_INTERNAL | 域 rc 其他（非 0/1/2） | map_rc :49 |
+| ACS_ERR_ABI_MISMATCH | host null / struct_size≠sizeof(astrocs_host_services_v1) / abi_version≠V1 | :61-63 |
+| ACS_ERR_PARAM | out/hull、span 空、坏 JSON、非 object、缺必需键、类型错（validate 与 run 前置） | :49/:71-96/:62/:73/:80/:82 |
+| ACS_ERR_NOMEM | SessionState new 失败；inspect host alloc 失败 | :64-65/:297 |
+| ACS_ERR_CANCELLED | 四段边界取消 | :122/:160/:195/:243 |
+| ACS_ERR_STATE | 域 rc=2（合同 §4 build fail，如 production 显式缺 ivar） | map_rc :50 |
+| ACS_ERR_IO | p2_upm_save 失败（error_kind="output"） | :254-259 |
+| ACS_ERR_INTERNAL | 域 rc 其他（非 0/1/2） | map_rc :51 |
 
 域 rc→ACS_ERR 归并 map_rc（:43-50）：rc=0→OK；last_error 记
 "<what> rc=<n>"；error_kind 标 "input"。域内 rc 细分语义见各域文档
@@ -352,7 +352,7 @@ DATA-P2-SESSION（§24，并行任务生成）；本节为实现现状锚定。
   （P2-SESSION-TEST 落地）；`TEST-P2-SESSION-DESIGN-001` = 本文件
   §11.5（双面登记不冒认）。
 - `SRC-P2-SESSION-001` = lib/phase2_session/ 源码实测面（p2_session.h
-  39 行 + p2_session.cpp 298 行（复测）+ 根 CMakeLists.txt:454-458/:501-506/
+  39 行 + p2_session.cpp 318 行（复测）+ 根 CMakeLists.txt:454-458/:501-506/
   :517-529），本文件全部行号锚的权威。
 - `MOD-astrocs-phase2-session` = lib/phase2_session/module.yaml（本
   任务同批建立）+ registry 页（并行任务生成）。
