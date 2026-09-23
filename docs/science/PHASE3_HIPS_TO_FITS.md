@@ -7,7 +7,7 @@
 ## 1 目的与非目标
 
 - **目的**：把符合支持子集的图像 HiPS（HEALPix 层次球面 tile）重投影为用户指定天区/投影/像元尺度/宽高的二维 FITS image，带合法 FITS-WCS header、coverage 与可追溯 metadata（控制包 13 §2 冻结定义）。
-- **非目标（alpha 显式拒绝项）**：多通道/RGBA HiPS；JPEG/PNG 等 lossy/display-stretch tile；int+BLANK tile；weight/support 输入产品；flux-per-pixel 输入模式；SIN/CAR 等非 TAN 投影；极近极点视场；GUI。**（variance/ivar 子产品输入为例外：按 §9a-10 必须显式消费传播，不属拒绝项。）**
+- **非目标（alpha 显式拒绝项）**：多通道/RGBA HiPS；JPEG/PNG 等 lossy/display-stretch tile；int+BLANK tile；weight/support 输入产品；flux-per-pixel 输入模式；SIN/CAR 等非 TAN 投影；极近极点视场（请求域收窄，理由见 §4）；GUI。**（variance/ivar 子产品输入为例外：按 §9a-10 必须显式消费传播，不属拒绝项。）**
 
 ## 2 符号表
 
@@ -44,7 +44,7 @@
   - **`hips_frame` 的值域与扩展条款**：IVOA REC-HiPS-1.0 §4.4.1 逐字给出标准值域「Format: word “equatorial” (ICRS), “galactic”, “ecliptic”」；同节另逐字声明「The vocabulary associated to some keywords are not exhaustive and may be extended if required」。⇒ **值域 = {equatorial, galactic, ecliptic}**；本管道只产/只收 `equatorial`（ICRS 坐标由该值承载），这是**本管道的范围收窄**，不是对规范的限制；读侧另接受非标准别名 `icrs` 作只读兼容。
   - **tile 宽支持子集**：一般式 = `leaf_order = order_sel + log2(W)`（tile 内 leaf 数 = W²，见 §5），故 `W=512` 时才是 +9。alpha 支持子集**收窄为 W=512**（与生产 `kTileWidth=512` 一致，`p3_resample.cpp:48`）；`W≠512`（含 256/1024）→ **显式拒绝**（不静默按 512 处理），扩宽须补跨 tile 邻接映射与 Oracle 后另行冻结。
   - **W 必须是 2 的幂（该前提由本管道要求，不来自规范）**：规范对 `hips_tile_width` 的约束逐字只有「positive integer」（默认 512），**未要求 2 的幂**；而 §5 的位移恒等式 `tile = ipix >> (2·log2(W))` 只在 `W = 2^S` 时成立。⇒ 实现必须**显式断言** `W & (W-1) == 0`（当前由 properties 解析器以 `hips_tile_width must be 512` 收窄实现，`lib/algorithms/coverage/hips_properties.cpp:120-121`）；非 2 的幂的 W 在规范内合法但**不在本算法适用域**，必须显式拒绝而非静默计算。
-- 视场约束: `abs(dec)<=85°`（距极点 ≥5°；TAN 极点退化显式拒，单一条件，SCI/API/session 三处一致；`dec` 即 CRVAL2，**参与映射**）；`W_out,H_out∈[1,20000]`；`s_out>0`；输出四角与中心同半球（TAN 半球约束，越界显式拒）。
+- 视场约束: `abs(dec)<=85°`（距极点 ≥5°；单一条件，SCI/API/session 三处一致；`dec` 即 CRVAL2，**参与映射**）。**该界限是请求域收窄，不是投影奇点**：TAN 的唯一数学奇点在距 CRVAL **90°** 的大圆（`cos c = 0`）；投影中心在极点处 `cos c = 1`、完全良态（FITS WCS Paper II §5.1 式 (11) 与 §5.1.3 式 (54) `R_θ = (180°/π)·cot θ`；§2.3 明确 CRVAL 即 native 极点；勘误 2.1 明言默认 LONPOLE 规则**对 θ₀ = 90° 同样适用**）。收窄理由是**极点邻域的球面面积路径尚未达冻结门**（实测闭合破门）；放宽须经变更流程，且**必须与该路径达门同时进行**，否则会把显式拒绝变成静默错值。`W_out,H_out∈[1,20000]`；`s_out>0`；输出四角与中心同半球（TAN 半球约束，越界显式拒）。
 - 拒绝项（§1）逐一显式错误，**无静默默认**。
 
 ## 5 连续定义
@@ -116,7 +116,7 @@ coverage:
 | 缺 tile（目录存在但文件缺失） | 该足迹 coverage=0, S=NaN，provenance 记录 missing，不中断 |
 | tile 内 NaN | 传播为输出 NaN（**C=1**，值 NaN；与 §5 coverage 定义一致：C 只判「足迹内有无 tile 像素」），mask 语义经 coverage+NaN 判定 |
 | 跨 `RA=0/360` | RA 归一 [0,360) wrap，采样按球面角差，无接缝跳变 |
-| 极区 tile/输出中心 `abs(dec)>85°` | 显式拒绝（TAN 退化；`abs(dec)<=85°` 单一条件） |
+| 极区 tile/输出中心 `abs(dec)>85°` | 显式拒绝（**请求域收窄，非投影奇点**，理由见 §4；`abs(dec)<=85°` 单一条件） |
 | properties 非法/缺失键 | 显式错误（无 silent default） |
 | JPEG/PNG/int+BLANK/多通道 tile | 显式拒绝（alpha 范围外） |
 
@@ -148,7 +148,7 @@ coverage:
 11. **FITS 关键字**：`BITPIX=-32/-64`；`BSCALE=1,BZERO=0`；`BUNIT` 按 properties，缺省为 canonical `ADU/sr`（**不是**裸 `ADU`——裸 `ADU` 无法量纲可判且与写盘数值不符，见 §3）；WCS=`CRPIX/CRVAL/CD1_1,1_2,2_1,2_2/CTYPE=TAN/CUNIT=deg`；`HISTORY+provenance`（源 HiPS 标识/order_sel/sampler/软件版本/manifest hash）必写。实现锚：缺省串 `p3_resample.cpp:293`、`p3_output.cpp:284-285`；variance/ivar 的 BUNIT 由二次律 canonical 推导（`p3_output.cpp:55-90/:348-372`），不在冻结单位表内的串显式拒绝。
     `CRVAL=(center.RA, center.Dec)` 且**两个分量都进映射**；LONPOLE 取标准默认（`δ0 ≥ θ0 ⇒ φ0`，否则 `φ0+180°`；`φ0` 由 `PVi_1a` 给出、通常为 0。该口径是 Paper II §2.2 的**现行有效形式**，与 FITS Standard 4.0 §8.3 及官方勘误件「Corrections and clarifications for FITS WCS papers I, II, & III」一致。TAN 为天顶投影 ⇒ `θ0 = 90°`，本合同 `|CRVAL2| ≤ 85°` 排除 `δ0 = θ0` ⇒ **默认恒为 `φ0+180° = 180°`**）
     （δ0≥θ0 ⇒ 0° 否则 180°），读方无需额外关键字即可复现。
-12. **插值误差/投影畸变/容差/FOV**：nearest 无插值误差，bilinear O(h²) 且 `h ≤ h_max`（§5）；TAN 畸变随 FOV 增长——**alpha 适用 FOV ≤20°** 冻结（中心距极点 ≥5°）。
+12. **插值误差/投影畸变/容差/FOV**：nearest 无插值误差，bilinear O(h²) 且 `h ≤ h_max`（§5）；TAN 畸变随 FOV 增长——**alpha 适用 FOV ≤20°** 冻结。该门**只依赖 FOV**（`max sec²c = 1 + (FOV_rad/2)²`），与中心赤纬无关；中心距极点 ≥5° 是**独立**的请求域收窄（§4），两者不同源。
     **FOV 上限的定量含义**：TAN（gnomonic，Paper II §5.1.3 式(54) `Rθ = (180°/π)·cot θ`，θ 为 native latitude、γ = 90°−θ 为离参考点角距）的**径向**尺度因子为 `sec²γ`、**切向**为 `secγ`（⇒ TAN **不是 conformal**）。以本合同的平面 FOV 约定（`FOV = s_out·sqrt(W_out²+H_out²)`，`ξ_half = FOV_rad/2 = tan γ_max`，`p3_wcs.cpp:238-261`）：平面 FOV=20° ⇒ `γ_max = 9.9023°`、径向放大率 `sec²γ_max = 1.030462`（**+3.046%**）、切向 `+1.511%`、像元角尺度比 `cos²γ_max = 0.970441`（**−2.956%**）；FOV=30° ⇒ 径向 **+7.180%**；FOV=40° ⇒ **+13.247%**。⇒ 20° 冻结的适用域 = **边缘与中心的尺度差 ≤3.1%**；超出该域必须显式拒绝（`p3_wcs.cpp:456-461`）。证据：`run/SCI-FIX-PHOTFIT-01/evidence/e4_healpix_tan.json → tan_plane_fov_convention`。
     容差：WCS roundtrip 1e-8 px（单一事实源 `kTanApplicability`，`p3_wcs.cpp:212-224`）、解析场容差由 SYN-007 **预冻结**。
 
